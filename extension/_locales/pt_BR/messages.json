@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "Para entrar, marque primeiro a caixa acima. Sem ela o app funciona; só os cartões não são sincronizados.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Concluir a configuração · faltam {n} etapas",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Continue de onde parou — leva um ou dois minutos.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Continuar de onde parei",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Não mostrar de novo",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

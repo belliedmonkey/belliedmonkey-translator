@@ -350,7 +350,9 @@
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
-    if (onboarding || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    // 「继续设置」卡在场时也让路：它继续的那条引导最后一屏就是这件事（首页不挂两张「还差一步」）。
+    const resuming = $('ob-resume') && !$('ob-resume').hidden;
+    if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
     paintSysBanner();   // 扩展那张在场 ⇒ 这一张让位（AppSysBanner.decide 读的就是它）
@@ -486,6 +488,11 @@
   // 同一个控件在扩展引导的采集屏上就在开关旁边，那才是它该在的地方。
   // App 设置页里仍然改得了，只是不再占引导的一屏。
   const OB_SEEN = 'onboardSeen';
+  // 「以后再设置」只记这一次（2026-09-22，画布「以后再设置只记这一次」，用户点头两处：最多 3 次启动、✕ = 永久）。
+  // 跳过写这个而**不写** OB_SEEN：{ step: 停在哪一屏, shows: 那张卡已经跟着出现过几次启动 }。
+  // 原来跳过与走完写的是同一个 OB_SEEN ⇒「以后」这两个字是句假话：按下去就是「永远不」。
+  const OB_RESUME = 'onboardResume';
+  const OB_RESUME_MAX = 3;
   // signin 屏按**同步有没有编进这个构建**取舍，与扩展引导的 OB 同一个写法
   // （onboard.js 的 syncOn）。中国版扩展的登录入口是被整节 remove 掉的
   // （options.js 的 `if (!MT_BACKEND.enabled)`），所以那一屏那句「扩展里也要登录
@@ -648,11 +655,63 @@
         });
       }
     } catch (_) {}
-    try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
+    try {
+      if (result === 'skipped') {
+        await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: { step: OB[obAt], shows: 0 } }, r));
+      } else {
+        await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r));
+        await new Promise((r) => chrome.storage.local.remove(OB_RESUME, r));
+      }
+    } catch (_) {}
     $('onboard').hidden = true;
     paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
     await show(await LearnAuth.current().catch(() => null));
   }
+
+  // ── 「继续设置」卡 ─────────────────────────────────────────────────────────
+  //
+  // 只在**未登录首页**上、且这台设备「还没配好」（EngineState.needsSetup —— 判据只有这一处）时出现。
+  // 已登录或已有引擎 ⇒ 要做的已经做了：永久收起，不再出现。每出现一次计一次；第 OB_RESUME_MAX 次
+  // 之后自己收起，不纠缠。扩展横幅在它在场时让路（paintExtBanner）：引导最后一屏就是「打开扩展」，
+  // 首页不许同时挂两张「还差一步」。
+  let obResume = null;
+  async function obResumeRetire() {
+    obResume = null;
+    $('ob-resume').hidden = true;
+    try {
+      await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r));
+      await new Promise((r) => chrome.storage.local.remove(OB_RESUME, r));
+    } catch (_) {}
+  }
+  // 启动时调一次（每次启动至多计一次）。返回卡是否在场。
+  async function paintObResume(session) {
+    const card = $('ob-resume');
+    card.hidden = true;
+    if (!obResume) return false;
+    let needs = true;
+    try { needs = EngineState.needsSetup(await readObSettings()); } catch (_) {}
+    if (session || !needs || (Number(obResume.shows) || 0) >= OB_RESUME_MAX) { await obResumeRetire(); return false; }
+    obResume = { step: obResume.step, shows: (Number(obResume.shows) || 0) + 1 };
+    try { await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: obResume }, r)); } catch (_) {}
+    const at = Math.max(0, OB.indexOf(obResume.step));
+    $('ob-resume-title').textContent = t('ob_resume_title', '继续设置 · 还差 {n} 步').replace('{n}', String(OB.length - at));
+    $('ob-resume-body').textContent = t('ob_resume_body', '从上次停下的那一屏接着来，一两分钟就好。');
+    $('ob-resume-go').textContent = t('ob_resume_go', '从上次停下的地方继续');
+    $('ob-resume-close').setAttribute('aria-label', t('ob_resume_close', '不再提示'));
+    card.hidden = false;
+    paintExtBanner(extState);
+    return true;
+  }
+  $('ob-resume-go').addEventListener('click', () => {
+    const at = Math.max(0, OB.indexOf(obResume && obResume.step));
+    $('ob-resume').hidden = true;
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = true;
+    $('onboard').hidden = false;
+    paintExtBanner(extState);
+    obAt = at; obPaint();
+  });
+  $('ob-resume-close').addEventListener('click', async () => { await obResumeRetire(); paintExtBanner(extState); });
 
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
@@ -1529,9 +1588,11 @@
         extBannerShownDay = (o && o['tm:extBannerDay']) || '';
       } catch (_) {}
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
-      const seen = await new Promise((r) => chrome.storage.local.get([OB_SEEN], r))
-        .then((o) => !!(o && o[OB_SEEN])).catch(() => true);
-      if (!session && !seen) {
+      const obState = await new Promise((r) => chrome.storage.local.get([OB_SEEN, OB_RESUME], r)).catch(() => null);
+      const seen = !obState || !!obState[OB_SEEN];
+      obResume = (!seen && obState && obState[OB_RESUME] && typeof obState[OB_RESUME] === 'object') ? obState[OB_RESUME] : null;
+      // 跳过过的人回来：不重弹整条引导（被跳过的东西再挡一次路是打扰），首页出「继续设置」卡。
+      if (!session && !seen && !obResume) {
         $('signed-out').hidden = true;
         $('signed-in').hidden = true;
         $('onboard').hidden = false;
@@ -1540,6 +1601,7 @@
         return;
       }
       await show(session);
+      if (obResume) await paintObResume(session);
       // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
       // as the recovery path, but the status line must name the real problem.
       if (!session && LearnAuth.lastLoadError()) {

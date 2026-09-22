@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "로그인하려면 먼저 위 항목에 체크하세요. 체크하지 않아도 사용할 수 있지만 카드는 동기화되지 않습니다.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "설정 계속하기 · {n}단계 남음",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "지난번에 멈춘 화면부터 이어서 하세요. 1~2분이면 됩니다.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "멈춘 곳부터 계속",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "다시 보지 않기",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

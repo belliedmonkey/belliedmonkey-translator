@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "Para iniciar sesión, marca primero la casilla de arriba. Sin ella la app funciona; solo que tus tarjetas no se sincronizan.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Terminar la configuración · faltan {n} pasos",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Sigue donde lo dejaste: es cosa de uno o dos minutos.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Continuar donde lo dejé",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "No volver a mostrar",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

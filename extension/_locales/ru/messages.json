@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "Чтобы войти, сначала отметьте пункт выше. Без этого приложение работает, просто карточки не синхронизируются.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Завершить настройку · осталось шагов: {n}",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Продолжите с того места, где остановились, — это минута-две.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Продолжить с того же места",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Больше не показывать",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

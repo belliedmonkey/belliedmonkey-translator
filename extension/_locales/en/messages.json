@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "To sign in, tick the box above first. You can use the app without it — your cards just won’t sync.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Finish setting up · {n} steps left",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Pick up where you left off — it takes a minute or two.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Continue where I left off",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Don’t show again",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

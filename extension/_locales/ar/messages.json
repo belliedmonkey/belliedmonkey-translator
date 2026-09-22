@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "لتسجيل الدخول، حدّد المربع أعلاه أولًا. يعمل التطبيق بدونه، لكن بطاقاتك لن تُزامَن.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "أكمل الإعداد · بقي {n} خطوات",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "تابع من حيث توقفت — يستغرق دقيقة أو اثنتين.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "المتابعة من حيث توقفت",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "عدم الإظهار مرة أخرى",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

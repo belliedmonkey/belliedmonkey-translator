@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "サインインするには、上の項目にチェックを入れてください。チェックしなくても使えますが、カードは同期されません。",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "設定を続ける · 残り {n} ステップ",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "前回止まった画面から続けられます。1〜2 分で終わります。",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "前回の続きから",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "今後表示しない",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }
