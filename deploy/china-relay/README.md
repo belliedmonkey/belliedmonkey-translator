@@ -14,15 +14,44 @@
 
 | | 判据 | 谁做 |
 |---|---|---|
-| **机器** | 一台境内机器能跑 Deno ≥ 1.40。原来那台 Lighthouse（北京，`lhins-6amaoj8m`）如果还在，可以直接用 | 你 |
-| **域名 + ICP** | 例如 `relay.belliedmonkey.com`。`belliedmonkey.com` 已有浙ICP备2026057340号，但**子域名的接入是否要单独报**要去核实，不要假设；解析到这台机器的云厂商必须就是备案的接入商 | 你 |
+| **运行处** | **首选腾讯云云函数（Web 函数，境内地域如北京 / 上海）**，用平台默认域名 —— 不绑自己的域名就不涉及 ICP 备案（2026-09-22 用户裁定）。备选：一台境内机器（1B） | 你 |
+| **默认域名可用** | 部署后在**境内手机网络**下回读 `/spec`（第 2 节 ⑤）。腾讯云对默认域名有过「仅供调试」一类说法，未核实 —— 回读不过就改绑自己的域名，那时才需要备案 | 你 |
 | **百炼 key** | 阿里云百炼（北京区）开一把 API key，开余额告警（见第 4 节） | 你 |
 | **价格** | 查百炼控制台里所钉模型的实价，填进 `GRANT_PRICES`（见第 1 节）。**不许照抄国际版那组数** | 你 |
 | **出境同意已上线** | 带 #399 的中国版 App 已经过审上架 | — |
 
 ---
 
-## 1. 在机器上跑
+## 1A. 腾讯云云函数（首选）
+
+**地域必须选境内**（北京 / 上海 / 广州…）。选香港或海外，原文就又出境了 —— 合规检查查不到
+这一条，因为地址长得都一样。
+
+建一个 **Web 函数**，运行环境选「自定义」或任一 Node 版本都行（真正跑的是我们带进去的 Deno）。
+代码包里放三个文件：
+
+```
+index.ts        ← supabase/functions/bt-relay/index.ts 原样拷贝
+deno            ← Linux x86_64 的 deno 可执行文件（github.com/denoland/deno/releases 的 deno-x86_64-unknown-linux-gnu.zip）
+scf_bootstrap   ← 下面这 4 行，chmod 755
+```
+
+```bash
+#!/bin/bash
+export PORT=9000 DENO_DIR=/tmp/deno
+chmod +x ./deno 2>/dev/null
+exec ./deno run --allow-net --allow-env index.ts
+```
+
+（Web 函数要求进程监听 `0.0.0.0:9000`；`index.ts` 读到 `PORT` 才换端口，Supabase 上不设它，
+行为不变。`DENO_DIR` 指到 `/tmp`，因为代码目录是只读的。）
+
+环境变量填在函数配置里（**不要**写进代码包），与 1B 的 `relay.env` 同一组：`SUPABASE_URL`、
+`SUPABASE_SERVICE_ROLE_KEY`、`UPSTREAM=dashscope`、`UPSTREAM_KEY`、`CLAIM_PROXY=1`、`GRANT_MODELS`、
+`GRANT_PRICES`。超时设 60 秒（整页翻译的长请求）；开「函数 URL / 公网访问」拿到默认地址，
+这个地址就是下面的 `R` 和第 3 节的 `relayUrl`。
+
+## 1B. 在自己的机器上跑（备选；绑自己的域名就要 ICP 备案）
 
 ```bash
 # 拷那一个文件过去；不需要仓库的其它东西
@@ -63,7 +92,7 @@ node -e "const L=require('./build/providers.config.js');console.log(L.find(p=>p.
 ## 2. 回读 —— 每一步都要看到结果，不是「命令没报错」
 
 ```bash
-R=https://relay.belliedmonkey.com
+R=<1A 拿到的默认地址，或 1B 的域名>
 curl -s $R/spec                          # ① {"models":{"chat":"<与注册表同名>"},...}
 curl -s -X POST $R/claim                 # ② 401 {"error":"session"} —— 代转通了（东京回的）
 curl -s -X POST $R/chat/completions -H 'Authorization: Bearer bmg_x' -d '{}'
@@ -82,7 +111,7 @@ curl -s -X POST $R/chat/completions -H 'Authorization: Bearer bmg_x' -d '{}'
 `extension/learn/backend.config.js`：
 
 ```js
-china: { ready: true, relayUrl: 'https://relay.belliedmonkey.com', vendor: 'dashscope' },
+china: { ready: true, relayUrl: '<同上，https 开头>', vendor: 'dashscope' },
 ```
 
 然后 `node build.js --flavor china`。构建会：

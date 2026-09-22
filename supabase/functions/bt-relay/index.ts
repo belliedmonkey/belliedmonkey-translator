@@ -124,7 +124,13 @@ const KEEP_TTS = ['input', 'voice', 'response_format', 'speed'];
 
 type Shape = 'chat' | 'tts' | 'stt';
 
-Deno.serve(async (req) => {
+// 端口：Supabase 上不设 PORT，照旧 Deno.serve(handler)（行为不变）。境内部署在腾讯云
+// 「Web 函数」里时平台要求监听 0.0.0.0:9000，由 scf_bootstrap 传 PORT=9000 进来。
+const PORT = Deno.env.get('PORT');
+const serve = (h: (req: Request) => Response | Promise<Response>) =>
+  PORT ? Deno.serve({ port: Number(PORT), hostname: '0.0.0.0' }, h) : Deno.serve(h);
+
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (!OR_KEY || !KNOWN_UPSTREAM) return json({ error: 'grant_misconfigured' }, 503);
 
