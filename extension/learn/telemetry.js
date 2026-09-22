@@ -127,12 +127,22 @@ var MTTelemetry = (() => {
     const r = await sget([K.on]);
     return r[K.on] !== false;                 // 缺省 = 开（设计 §2 第 4 条）
   }
-  async function installId() {
-    const r = await sget([K.id]);
-    if (r[K.id]) return { id: r[K.id], fresh: false };
-    const id = uuid();
-    await sset({ [K.id]: id });
-    return { id, fresh: true };
+  // 单飞（#387）：同一页面里并发的几次调用共用**同一次**「读 → 没有就生成 → 写」。原来两次并发
+  // 都读到「没有 id」、各生成一个、各自当成 fresh ⇒ init 记两条 installed，而队列在 flush 时才盖
+  // 当时的 id，于是线上看到的是「同一个 id、同一分钟、重复 N 条」。只有 fresh 那一次返回 fresh:true。
+  let idFlight = null;
+  function installId() {
+    if (idFlight) return idFlight.then((x) => ({ id: x.id, fresh: false }));
+    const p = (async () => {
+      const r = await sget([K.id]);
+      if (r[K.id]) return { id: r[K.id], fresh: false };
+      const id = uuid();
+      await sset({ [K.id]: id });
+      return { id, fresh: true };
+    })();
+    idFlight = p;
+    p.catch(() => { if (idFlight === p) idFlight = null; });
+    return p;
   }
   function envelope(id, e) {
     return {
@@ -172,7 +182,15 @@ var MTTelemetry = (() => {
     } catch (_) { return false; }
   }
   // 每个 install 只发一次的事件（capture_first / sync_on / installed）。
-  async function once(name, props, now) {
+  // 串行（#387）：去重表也是「读-改-写」，并发的两次 once 会都读到「没发过」。单独一条链，
+  // 不排进 trackChain —— once 里面要调 track，排进同一条链会自己等自己。
+  let onceChain = Promise.resolve();
+  function once(name, props, now) {
+    const run = onceChain.then(() => onceOne(name, props, now), () => onceOne(name, props, now));
+    onceChain = run.catch(() => {});
+    return run;
+  }
+  async function onceOne(name, props, now) {
     try {
       if (!(await enabled())) return false;
       const r = await sget([K.once]);
@@ -180,7 +198,10 @@ var MTTelemetry = (() => {
       if (seen.includes(name)) return false;
       seen.push(name);
       await sset({ [K.once]: seen });
-      return track(name, props, now);
+      // 不 await：track 自己排进 trackChain；等它会把 onceChain 与 trackChain 串成一条，
+      // 而 trackOne 里的 grant_exhausted 又会调 once —— 那就是自己等自己。
+      track(name, props, now);
+      return true;
     } catch (_) { return false; }
   }
   function schedule() {
@@ -229,11 +250,20 @@ var MTTelemetry = (() => {
     }
     await sremove([K.id, K.queue, K.once, K.day, K.last]);
     await sset({ [K.on]: false });
+    idFlight = null;                           // 下次打开要生成新 id，不能复用内存里的旧的
+    initFlight = null;
     return false;
   }
 
   // ── 初始化：installed（首次）+ heartbeat（每个自然日一次）+ 扩展页打开即 flush ──
-  async function init(opts) {
+  // 单飞（#387）：App 包里 app.js 与 review.js 各调一次 init，两次并发。同一页面只跑一次，
+  // 后来的调用等第一次的结果；flushNow 各自照办（flush 自带 5 秒软锁）。
+  let initFlight = null;
+  function init(opts) {
+    if (!initFlight) initFlight = initOnce();
+    return initFlight.then(() => { if (opts && opts.flushNow) flush(); });
+  }
+  async function initOnce() {
     try {
       if (!spec()) return;
       if (!(await enabled())) return;
@@ -242,7 +272,6 @@ var MTTelemetry = (() => {
       const today = new Date().toISOString().slice(0, 10);
       const r = await sget([K.day]);
       if (r[K.day] !== today) { await sset({ [K.day]: today }); await track('heartbeat'); }
-      if (opts && opts.flushNow) flush();
     } catch (_) {}
   }
 

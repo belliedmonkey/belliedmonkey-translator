@@ -76,6 +76,22 @@ describe('MTTelemetry — 开关与心跳', () => {
     const names = q(store, T).map((e) => e.name);
     eq(names.join(','), 'installed,heartbeat');
   });
+  // #387（2026-09-22）：App 面 259 台装机里 257 台 installed 重复，256 台重复在**同一分钟、同一批**。
+  // 根因是同一页面里两个模块各调一次 init（App 包里 app.js 与 review.js），两次并发都读到「没有 id」。
+  // 上一条测试是**顺序**调三次，所以永远是绿的 —— 线上的 bug 恰恰是并发。
+  test('④b 同一页面并发 init：installed / heartbeat 各只一条，且只生成一个 id', async () => {
+    const { T, store } = load();
+    await Promise.all([T.init(), T.init(), T.init()]);
+    const names = q(store, T).map((e) => e.name);
+    eq(names.join(','), 'installed,heartbeat', '并发 init 记了多条：' + names.join(','));
+    const a = await T.installId(), b = await T.installId();
+    eq(a.id, b.id); eq(a.fresh, false);
+  });
+  test('④c 并发 once：同一个事件只进队一次', async () => {
+    const { T, store } = load();
+    await Promise.all([T.once('sync_on'), T.once('sync_on'), T.once('sync_on')]);
+    eq(q(store, T).filter((e) => e.name === 'sync_on').length, 1);
+  });
   test('flush：先清队列再发，一批 ≤ 50，信封带同一个 install_id', async () => {
     const { T, store, sends } = load();
     for (let i = 0; i < 12; i += 1) await T.track('heartbeat');   // 第 10 条触发 flush
