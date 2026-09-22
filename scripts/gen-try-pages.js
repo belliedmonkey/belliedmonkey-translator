@@ -31,7 +31,10 @@ const CHECK = process.argv.includes('--check');
 // 几乎必然是中文，而多出来的 11 页没有任何人会到达。
 const SITES = [
   { dir: path.join(os.homedir(), 'belliedmonkey-cc'), host: 'belliedmonkey.cc',
-    targets: TARGETS.map((t) => t.code), i18n: true },
+    // analytics：Vercel Web Analytics（2026-09-20 起，只在 .cc；.com 在 EdgeOne，没有它）。
+    // 那行脚本当天是直接加进站点页面的，模板没跟上 —— 于是「按提示重新生成」会把 12 个试翻页的统计
+    // 静默删掉（2026-09-22 发 1.15.0 时 test:setup-page 报不同步才发现）。写进模板，别再手加。
+    targets: TARGETS.map((t) => t.code), i18n: true, analytics: true },
   { dir: path.join(os.homedir(), 'belliedmonkey-com'), host: 'belliedmonkey.com',
     targets: ['zh-CN'], i18n: false },
 ];
@@ -156,7 +159,7 @@ ${paras}
   });
 })();
 </script>
-${site.i18n ? '<script src="/i18n/i18n.js"></script>\n' : ''}</body>
+${site.i18n ? '<script src="/i18n/i18n.js"></script>\n' : ''}${site.analytics ? '<script defer src="/_vercel/insights/script.js"></script>\n' : ''}</body>
 </html>
 `;
 }
