@@ -141,7 +141,21 @@ var MT_BACKEND = {
     // 换后端时只改上面那个 `url`。生成到产物里的是完整地址，运行时原样使用
     // （wire-format 的「地址原样请求」承诺，domain-design §7）。
     relayPath: '/functions/v1/bt-relay',
-    china: { ready: false },
+    // ─── 中国版额度：方案 C（learning-design §8.10.1，2026-09-22 裁定）─────────
+    //
+    // 原文**只走境内**：客户端 → 境内中继（同一份 bt-relay 代码，上游换成百炼 · 千问）。
+    // 境内中继同时代转「领取」（/claim → 东京 bt-grant，只带登录令牌），所以中国版产物里
+    // **一个东京的额度路径都没有** —— 合规门（build/china-gate.js）就按这一条验：
+    // 产物里出现的每一个额度端点都必须落在 relayUrl 那台主机上。
+    //
+    //   ready: false —— 中国版 MT_GRANT 恒为 null，产物与从前逐字相同（今天的值）。
+    //   ready: true  —— relayUrl 必须是 https、不在 *.supabase.co；否则构建直接失败。
+    //
+    // 翻它之前（deploy/china-relay/README.md 有逐条判据）：境内机器上 /spec 回读到千问、
+    // relayUrl 的域名 ICP 备案已过、出境单独同意已随版上线（#399）。
+    // **只有翻译这一槽**：百炼没有与中继同形状的朗读 / 转写接口，中国版额度不含那两槽。
+    // 披露文案里的 {vendor} 不在这里写：取注册表 qwen 条目的中国区 label（build.js chinaGrant）。
+    china: { ready: false, relayUrl: '', vendor: 'dashscope' },
   },
 };
 

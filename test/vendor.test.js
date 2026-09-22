@@ -27,12 +27,12 @@ describe('vendor/pdfjs', () => {
   });
   test('中国合规正则对 .mjs 零命中；build.js 的扫描范围含 mjs', () => {
     const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
-    const m = /const FORBIDDEN = (\/.*\/i);/.exec(build);
-    ok(m, 'build.js 里找不到 FORBIDDEN');
-    const re = new RegExp(m[1].slice(1, -2), 'i');
+    // 判据 2026-09-22 挪进了 build/china-gate.js（纯函数），这里直接用它，不再从 build.js 里抠正则。
+    const G = require('../build/china-gate.js');
+    ok(/require\('\.\/build\/china-gate\.js'\)/.test(build), 'build.js 的中国合规门没有走 build/china-gate.js');
     for (const f of ['legacy/pdf.min.mjs', 'legacy/pdf.worker.min.mjs']) {
       const text = fs.readFileSync(path.join(V, f), 'utf8');
-      ok(!re.test(text), f + ' 含中国版禁止的品牌/端点字样');
+      ok(G.scan([{ name: f, text }], { grantHost: '' }).length === 0, f + ' 含中国版禁止的品牌/端点字样');
     }
     ok(/m\?js\|json\|html\|css\|txt/.test(build), 'build.js 的中国合规扫描要包含 .mjs');
   });

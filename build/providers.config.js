@@ -47,8 +47,13 @@
 // 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
 const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+// 中国版额度（方案 C）：境内中继，只在 grant.china.ready 时进中国版注册表。
+// 合法性（https、不在 *.supabase.co）由 build.js 的 chinaGrant() 把关，这里只取值。
+const CN = (MT_BACKEND.grant && MT_BACKEND.grant.china) || {};
+const CN_READY = CN.ready === true && !!CN.relayUrl;
+const CN_RELAY = String(CN.relayUrl || '').replace(/\/+$/, '');
 
-module.exports = [
+const LIST = [
   {
     id: 'google', type: 'google', flavors: ['global'],
     vision: false,
@@ -199,12 +204,27 @@ module.exports = [
   // 模型由服务端钉住；客户端在「详细」里改模型会拿到 403 model_not_allowed，
   // 那句话有专门的文案（改回去，或填自己的 key）。
   {
-    id: 'grant', type: 'chat-compat', flavors: ['global'], grantOnly: true,
+    id: 'grant', type: 'chat-compat', flavors: CN_READY ? ['global', 'china'] : ['global'], grantOnly: true,
     vision: false,
     needsKey: true, supportsBaseUrl: false, supportsModel: false,
-    defaultEndpoint: RELAY + '/chat/completions',
-    defaultModel: 'deepseek/deepseek-v4-flash',
-    label: { global: 'BelliedMonkey 免费额度' },
+    // 未就绪时只写国际版那一个值 —— 注册表与从前逐字相同，不留一个指向空主机的中国区地址。
+    defaultEndpoint: CN_READY ? { global: RELAY + '/chat/completions', china: CN_RELAY + '/chat/completions' } : RELAY + '/chat/completions',
+    // 中国线的模型**不在这里另写** —— 取注册表里 qwen 那一条的中国区默认值（一处真相）。
+    // 境内中继的 GRANT_MODELS.chat 必须与它一致，否则每次请求都撞 403 model_not_allowed。
+    defaultModel: { global: 'deepseek/deepseek-v4-flash', china: null },   // ← 下面从 qwen 那一条填
+    label: { global: 'BelliedMonkey 免费额度', china: '大肚猴免费额度' },
     labelKey: 'grant_engine_label',
   },
 ];
+
+if (CN_READY) {
+  const qwen = LIST.find((p) => p.id === 'qwen');
+  const grant = LIST.find((p) => p.id === 'grant');
+  grant.defaultModel.china = (qwen && qwen.defaultModel && (qwen.defaultModel.china || qwen.defaultModel)) || '';
+} else {
+  const grant = LIST.find((p) => p.id === 'grant');
+  grant.defaultModel = grant.defaultModel.global;
+  grant.label = { global: grant.label.global };
+}
+
+module.exports = LIST;

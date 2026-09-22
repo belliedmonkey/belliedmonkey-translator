@@ -90,6 +90,25 @@ function chinaBackendReady() {
   return cn.ready === true && !!cn.url && !!cn.anonKey;
 }
 
+// 中国版额度的境内中继（方案 C，learning-design §8.10.1）。未就绪 → null（今天的值，
+// 产物与从前逐字相同）。**就绪却配错就让构建失败**，不静默退回 null —— 「以为发了额度、
+// 其实没有」与「以为原文在境内、其实在东京」都是看不出来的谎。
+function chinaGrant() {
+  const cfg = require('./extension/learn/backend.config.js');
+  const cn = (cfg.grant && cfg.grant.china) || {};
+  if (cn.ready !== true) return null;
+  const bad = (why) => { err('grant.china.ready=true 但 ' + why + ' —— 修好配置或把 ready 改回 false'); process.exit(1); };
+  if (!cfg.grant.enabled) bad('grant.enabled 是 false');
+  let u; try { u = new URL(cn.relayUrl); } catch (_) { bad('relayUrl 不是合法地址（' + JSON.stringify(cn.relayUrl) + '）'); }
+  if (u.protocol !== 'https:') bad('relayUrl 不是 https');
+  if (/\.supabase\.co$/i.test(u.hostname)) bad('relayUrl 在 *.supabase.co（那是东京，原文会出境）');
+  return { relayUrl: String(cn.relayUrl).replace(/\/+$/, ''), host: u.hostname,
+    vendor: cn.vendor || 'dashscope',
+    // 披露里的名字取注册表（一处真相）：qwen 条目的中国区 label。
+    vendorLabel: (() => { const q = require('./build/providers.config.js').find((p) => p.id === 'qwen');
+      return (q && q.label && (q.label.china || q.label)) || 'dashscope'; })() };
+}
+
 // 把产物里的 url / anonKey 换成境内那一套。
 //
 // 与 flipSyncFlag / limitProviders 同一条纪律：**恰好一处**，否则 exit(1)。
@@ -350,7 +369,16 @@ function generateProviders(dir, flavor) {
   // 与 README 的 Gate F 文案同版上线。发 null 时客户端所有额度分支都取不到 spec，
   // 行为与从前逐字相同。
   const BK = require('./extension/learn/backend.config.js');
-  const grantCfg = (flavor === 'china' || !BK.grant || !BK.grant.enabled) ? null : {
+  // 中国版：方案 C（§8.10.1）。只在 grant.china.ready 且地址合法时才有；领取与翻译都打
+  // 境内中继（中继代转领取），产物里一个东京的额度路径都没有 —— 合规门按这一条验。
+  const cnGrant = flavor === 'china' ? chinaGrant() : null;
+  const grantCfg = cnGrant ? {
+    vendor: cnGrant.vendor,
+    vendorLabel: cnGrant.vendorLabel,
+    limitUsd: BK.grant.limitUsd,
+    claimUrl: cnGrant.relayUrl + '/claim',
+    models: { chat: (providers.find((p) => p.id === 'grant') || {}).defaultModel || '' },
+  } : (flavor === 'china' || !BK.grant || !BK.grant.enabled) ? null : {
     vendor: BK.grant.vendor,
     vendorLabel: BK.grant.vendorLabel || BK.grant.vendor,   // 披露文案里的 {vendor}
     limitUsd: BK.grant.limitUsd,
@@ -639,34 +667,28 @@ function applyChinaLocales(dir) {
 // reference. See docs/domain-design.md.
 
 function complianceGateChina(dir, label) {
-  // bt-ingest：匿名用量事件的端点（Gate D）。中国版一个字节都不发，产物里不该有它。
-  //
-  // `MT_GRANT = {` 与 `bt-grant`：免费额度（Gate F，§8.10）。中国版**恒为 null**，
-  // 不是「关着」而是「不存在」—— 中国用户的原文会经东京中转，而境内后端未就绪。
-  // 判据写成**发射形式**而不是裸词 `MT_GRANT`：backend.config.js 的注释里会提到它，
-  // 而注释不是能力。`= null` 那一行必须放行，否则「恒为 null」这件事本身就没法表达。
-  // 这一条是**证伪出来的**：2026-09-08 把 grant.enabled 试着翻成 true，中国版产物里
-  // 一度真的出现了完整的 MT_GRANT 与三条中继条目 —— 因为 flipSyncFlag 撞上了嵌套的
-  // 那个 enabled 而中途退出，产物停在了没被覆盖的全球版上。
-const FORBIDDEN = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|bt-ingest|MT_GRANT = \{|\/functions\/v1\/bt-grant|bt-relay\/(chat|audio)/i;
-  const hits = [];
+  // 判据与禁令表在 build/china-gate.js（纯函数，有单测与证伪）。这里只负责走目录。
+  // 额度那一条（2026-09-22 改写）：原来是「产物里不许有额度端点」，现在是「产物里的额度
+  // 端点必须是境内那一个」—— grantHost 为空（grant.china 未就绪）时两者等价，与从前逐字相同。
+  const G = require('./build/china-gate.js');
+  const cn = chinaGrant();
+  const files = [];
   (function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) { walk(p); continue; }
       if (!/\.(m?js|json|html|css|txt)$/.test(e.name)) continue;   // .mjs 也扫（vendor pdf.js，2026-09-11）
-      const text = fs.readFileSync(p, 'utf8');
-      text.split('\n').forEach((line, i) => {
-        if (FORBIDDEN.test(line)) hits.push(`${path.relative(dir, p)}:${i + 1}  ${line.trim().slice(0, 100)}`);
-      });
+      files.push({ name: path.relative(dir, p), text: fs.readFileSync(p, 'utf8') });
     }
   })(dir);
+  const hits = G.scan(files, { grantHost: cn ? cn.host : '' });
   if (hits.length) {
     err(`China compliance gate FAILED — forbidden brand/endpoint references in ${label || 'dist-china'}/:`);
     hits.slice(0, 30).forEach((h) => console.error('   ' + h));
     process.exit(1);
   }
-  log(`China compliance gate passed for ${label || 'dist-china'} (no OpenAI/ChatGPT/Claude/global-endpoint references)`);
+  log(`China compliance gate passed for ${label || 'dist-china'} (no OpenAI/ChatGPT/Claude/global-endpoint references`
+    + (cn ? `; grant endpoints only on ${cn.host})` : '; no grant)'));
 }
 
 // ─── Speech (TTS) engine registry bundle ────────────────────────────────────

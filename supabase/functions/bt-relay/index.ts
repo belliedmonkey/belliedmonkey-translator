@@ -23,11 +23,32 @@
 //     GRANT_PRICES='{"ttsPerKChar":0.015,"sttPerMB":0.02,"chatPerKTok":0.001,"chatFloor":0.0005}' \
 //     GRANT_FLOAT_MIN_USD=5
 //   supabase functions deploy bt-relay --no-verify-jwt
+//
+// ── 同一份代码的第二个部署：中国版的境内中继（方案 C，learning-design §8.10.1）──
+//
+// 原文只走境内：境内机器上用 Deno 跑**这同一个文件**，上游换成阿里云百炼的兼容模式。
+// 账本仍在东京（SUPABASE_URL 指东京）—— 过境的只有令牌 hash 与每次的花费数字，没有原文。
+// 领取也由它代转（POST /claim → 东京 bt-grant，只带登录令牌），所以中国版产物里一个东京的
+// 额度路径都没有（build/china-gate.js 按这一条验）。部署契约：deploy/china-relay/README.md。
+//
+//   UPSTREAM=dashscope  UPSTREAM_KEY=sk-...  CLAIM_PROXY=1
+//   GRANT_MODELS='{"chat":"<注册表 qwen 的中国区 defaultModel>"}'
+//   GRANT_PRICES='{"chatPerKTok":…,"chatFloor":…}'   ← 按百炼实价填，不许照抄上面那组
+//
+// 不设 UPSTREAM 时行为与从前**逐字相同**（OpenRouter、读余额、usage.include、没有 /claim）。
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const OR_KEY = Deno.env.get('OPENROUTER_GRANT_KEY') || '';
-const OR_BASE = Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1';
+// 上游是谁。只认两个值；认不出的值当配置错误（503），不猜。
+const UPSTREAM = Deno.env.get('UPSTREAM') || 'openrouter';
+const IS_OR = UPSTREAM === 'openrouter';
+const KNOWN_UPSTREAM = IS_OR || UPSTREAM === 'dashscope';
+const OR_KEY = IS_OR ? (Deno.env.get('OPENROUTER_GRANT_KEY') || '') : (Deno.env.get('UPSTREAM_KEY') || '');
+const OR_BASE = IS_OR
+  ? (Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1')
+  : (Deno.env.get('UPSTREAM_BASE') || 'https://dashscope.aliyuncs.com/compatible-mode/v1');
+// 代转领取（只给境内中继开）。东京那个部署不设它 —— 那里客户端直接打 bt-grant。
+const CLAIM_PROXY = Deno.env.get('CLAIM_PROXY') === '1';
 // 密钥里的 JSON 写错一个字符，模块加载期就抛 —— 整个函数变成一个没有正文的 500，
 // 而 500 不会告诉任何人「你的 GRANT_MODELS 少了个引号」。解析失败要能说出是哪一个。
 function envJson<T>(name: string): T | null {
@@ -46,7 +67,7 @@ const CAP_STT = 25 * 1024 * 1024;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 const json = (body: unknown, status = 200) =>
@@ -72,6 +93,9 @@ async function rpc(fn: string, args: unknown) {
 //    不需要申请的 key，而我们连自己欠了什么都不知道。
 let floatCache = { at: 0, usd: Infinity };
 async function floatOk(): Promise<boolean> {
+  // 余额接口是 OpenRouter 独有的。百炼没有同形状的读法 —— 读不到不等于没钱（同下面那条），
+  // 放行；那一侧的池子靠百炼控制台的余额告警盯，写在 deploy/china-relay/README.md。
+  if (!IS_OR) return true;
   if (Date.now() - floatCache.at < 600_000) return floatCache.usd >= FLOAT_MIN;
   try {
     const r = await fetch(`${OR_BASE}/credits`, { headers: { Authorization: `Bearer ${OR_KEY}` } });
@@ -102,11 +126,29 @@ type Shape = 'chat' | 'tts' | 'stt';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  if (!OR_KEY) return json({ error: 'grant_misconfigured' }, 503);
+  if (!OR_KEY || !KNOWN_UPSTREAM) return json({ error: 'grant_misconfigured' }, 503);
 
   const url = new URL(req.url);
   // 路径后缀就是形状 —— 与 wire-format.js 同一条规则（domain-design §7）。
+  // 境内部署没有 /functions/v1/bt-relay 这段前缀，替换不命中，路径原样就是后缀。
   const p = url.pathname.replace(/^.*\/bt-relay/, '');
+
+  // 代转领取：原样把登录令牌交给东京的 bt-grant，原样把回答交回去。不看、不存、不改。
+  // 过境的是身份（登录本身就已经过境，且有出境单独同意 #399），不是原文。
+  if (CLAIM_PROXY && req.method === 'POST' && p === '/claim') {
+    try {
+      const r = await fetch(`${URL_}/functions/v1/bt-grant`, {
+        method: 'POST',
+        headers: {
+          apikey: req.headers.get('apikey') || '',
+          Authorization: req.headers.get('Authorization') || '',
+        },
+      });
+      return new Response(await r.text(), {
+        status: r.status, headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    } catch { return json({ error: 'server' }, 502); }
+  }
 
   if (req.method === 'GET' && p === '/spec') {
     // 巡检脚本的回读点：中继钉住的模型必须与注册表 defaultModel 逐字相同
@@ -194,7 +236,9 @@ Deno.serve(async (req) => {
       for (const k of keep) if (k in body) sent[k] = body[k];
       if (shape === 'chat') {
         if (!Array.isArray(sent.messages) || !sent.messages.length) return json({ error: 'bad_request' }, 400);
-        sent.usage = { include: true };              // 让提供方把这一次的真实花费告诉我们
+        // 让提供方把这一次的真实花费告诉我们。只有 OpenRouter 认这个字段；百炼的兼容模式
+        // 不认的字段不该由我们替它试（model-params 那条纪律），它的花费走 total_tokens 那一级。
+        if (IS_OR) sent.usage = { include: true };
       } else if (typeof sent.input !== 'string' || !sent.input) {
         return json({ error: 'bad_request' }, 400);
       }
