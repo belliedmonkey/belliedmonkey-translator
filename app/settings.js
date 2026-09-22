@@ -876,25 +876,7 @@ var AppSettings = (() => {
     }
     _grantBusy = true; await paintGrant(session);
     try {
-      const claimed = await LearnGrant.claim();
-      const cur = await get(KEYS);
-      // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
-      const plan = LearnGrant.plan(claimed, cur, window, { overwrite: id === 'restore' });
-      if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
-      if (plan.marks) await set(plan.marks);
-      // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。
-      if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
-      // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
-      const wroteAny = plan.tests && plan.tests.length > 0;
-      await markEngineChosen(plan);
-      if (hooks.say) hooks.say(wroteAny
-        ? t('grant_claimed_toast', '免费额度已配好')
-        : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
-      // **这句「已配好」此前没有证据** —— 领取这条路一次自检都不跑（plan.tests 只用来
-      // 数槽位）。与一键卡走同一份回执：跑一次真的请求，通了才算。
-      if (wroteAny) {
-        try { if (typeof AppSetupDone !== 'undefined') await AppSetupDone.show(plan.tests); } catch (_) {}
-      }
+      await claimAndApply({ overwrite: id === 'restore', say: hooks.say });
     } catch (e) {
       if (e && e.code === 'grant_unavailable') _grantUnavailable = true;
       if (hooks.say) hooks.say(String((e && e.message) || e));
@@ -903,6 +885,35 @@ var AppSettings = (() => {
       await paintGrant(session);
       await paint(session, hooks.say);
     }
+  }
+
+  // 领额度 → 写进三槽 → 记 engine_set → 三行自检回执。**这一段是共用的**：
+  // 设置页的「领取 / 改回」按钮走它，引导页登录成功后的自动领取也走它
+  // （2026-09-22，learning-design §8.10.1）。抽出来的理由不是复用，是**不能有第二份**
+  // —— 它里面有四件容易各写各的事：overwrite 的语义、engine_set 什么时候才算数、
+  // 「已配好」这句话要有证据、以及一个槽都没写时那句话是假的。
+  async function claimAndApply(opts) {
+    const o = opts || {};
+    const claimed = await LearnGrant.claim();
+    const cur = await get(KEYS);
+    // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
+    const plan = LearnGrant.plan(claimed, cur, window, { overwrite: !!o.overwrite });
+    if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
+    if (plan.marks) await set(plan.marks);
+    // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。
+    if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
+    // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
+    const wroteAny = plan.tests && plan.tests.length > 0;
+    await markEngineChosen(plan);
+    if (o.say) o.say(wroteAny
+      ? t('grant_claimed_toast', '免费额度已配好')
+      : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
+    // **这句「已配好」此前没有证据** —— 领取这条路一次自检都不跑（plan.tests 只用来
+    // 数槽位）。与一键卡走同一份回执：跑一次真的请求，通了才算。
+    if (wroteAny && o.selfTest !== false) {
+      try { if (typeof AppSetupDone !== 'undefined') await AppSetupDone.show(plan.tests); } catch (_) {}
+    }
+    return { wroteAny, plan };
   }
 
   async function setupQuickCard(session, say) {
@@ -1429,5 +1440,5 @@ var AppSettings = (() => {
     });
   }
 
-  return { KEYS, ensureDefaults, paintStatic, paint, wire, setDetail };
+  return { KEYS, ensureDefaults, paintStatic, paint, wire, setDetail, claimAndApply };
 })();

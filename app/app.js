@@ -217,6 +217,24 @@
     el.hidden = !isDemoAddress($('email').value) && $('app-pw-form').hidden;
   }
 
+  let _autoClaimed = false;
+  async function autoClaimGrant() {
+    if (_autoClaimed) return;                       // 一次会话只试一次
+    if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
+    if (typeof AppSettings === 'undefined' || !AppSettings.claimAndApply) return;
+    // 「配好了没有」的判据只有一个出口（EngineState.needsSetup），不在这里另写一份。
+    try {
+      if (typeof EngineState !== 'undefined' && EngineState.needsSetup) {
+        const cur = await new Promise((r) => chrome.storage.local.get(AppSettings.KEYS, (v) => r(v || {})));
+        if (!EngineState.needsSetup(cur)) return;   // 已经有引擎 —— 不碰
+      }
+    } catch (_) { return; }
+    _autoClaimed = true;
+    // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；回执留给设置页与引导
+    // 自己的那一屏（画布第 2 页）。额度写进槽这件事本身由 engine_set 记着。
+    await AppSettings.claimAndApply({ overwrite: false, selfTest: false });
+  }
+
   async function show(session) {
     currentSession = session;
     // Bind the corpus BEFORE anything reads it. Every path that changes who is
@@ -227,6 +245,19 @@
     catch (_) { /* storage read failed — keep the corpus we are on rather than guess */ }
     $('signed-out').hidden = !!session;
     $('signed-in').hidden = !session;
+    // 登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
+    // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配
+    // 引擎也没领额度** —— 我们让他们登了，却没顺手把额度给他们。
+    //
+    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合
+    // 点（见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必
+    // 重新登录一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，
+    // 所以重复调用是幂等的（它同时就是读余额那个调用）。
+    //
+    // 三个闸：没登录不做 · 没有额度这条路不做（中国版 MT_GRANT 恒为 null）·
+    // **已经配好引擎的不做** —— overwrite 传 false，不碰用户自己的 key。
+    // 静默失败：领不到额度不该挡住首页（grant_unavailable 等）。
+    if (session) autoClaimGrant().catch(() => {});
     // Signing out from inside settings or review must not leave that view on screen
     // over the sign-in form.
     if (!session) {

@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>大肚猴翻译</title>
+  <!-- ../ is load-bearing: the Safari converter puts Main.html in Base.lproj/ while
+       Script.js and Style.css sit at the bundle root. Same-directory hrefs 404 and the
+       app opens to a blank white screen with nothing in the log. -->
+  <link rel="stylesheet" href="../Style.css">
+</head>
+<body>
+  <main id="app">
+    <!-- 浏览器那半边没打通时的横幅。卡片只能从 Safari 扩展经同步进来，所以这条
+         横跨登录与未登录两种状态 —— 它说的不是「你没登录」，是「材料的来源还没开」。
+         状态由 ViewController 在 didFinish 里调 show() 灌进来（macOS 查得到，
+         iOS 查不到 —— getStateOfSafariExtension 是 macOS-only）。 -->
+    <!-- 跨面账号不一致的拦截（learning-design §8.4.1.1）。
+         扩展打开 belliedmonkey://review?uid=… 把人送过来，两边 userId 不同时出现。
+         **不自动切换账号** —— §8.4.3 的归属闸说过，切账号会把一份语料推进另一个
+         账号的云端。这里只给事实和两个动作，选择权在人手上。 -->
+    <section id="dl-mismatch" hidden>
+      <p id="dl-mismatch-title" data-i18n="app_dl_mismatch_title">两边不是同一个账号</p>
+      <p id="dl-mismatch-body" class="note"></p>
+      <button id="dl-mismatch-switch" type="button" data-i18n="app_dl_switch">退出，换成扩展那个账号</button>
+      <button id="dl-mismatch-keep" type="button" class="secondary" data-i18n="app_dl_keep">保持当前账号</button>
+    </section>
+
+    <section id="ext-banner" hidden>
+      <p id="ext-banner-title"></p>
+      <p id="ext-banner-body" class="note"></p>
+      <button id="ext-banner-act" type="button" hidden></button>
+      <!-- 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
+           注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
+           App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 -->
+      <!-- iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
+           #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 -->
+      <button id="ext-banner-setup" type="button" class="secondary"></button>
+      <!-- 三步放在主按钮**之后**：320×480 下三张插图会把按钮顶出首屏（引导 ext 屏
+           靠 sticky 页脚解决，横幅在可滚动的首页里没有页脚），先给动作再给佐证。 -->
+      <ol id="ext-banner-steps" class="ob-steps" hidden></ol>
+      <!-- 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
+           用户裁定：只有点了它才收起（extBannerDoneAt）。 -->
+      <button id="ext-banner-done" type="button" class="secondary" hidden></button>
+      <p id="ext-banner-check" class="note" hidden><a href="#" id="ext-banner-check-link"></a></p>
+    </section>
+    <!-- Signed out. This is the only screen a new user sees, so it has to say what
+         signing in is FOR — the app is empty without it (learning-design §7.2), and
+         an empty deck with no explanation reads as a broken app. -->
+    <section id="signed-out" hidden>
+      <h1>大肚猴翻译</h1>
+      <p class="lede" id="lede"></p>
+
+      <!-- A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
+           #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
+           但**不假装登录是可选的**：App 结构上不采集，材料只能经同步进来
+           （learning-design §7.2 / §9.2），所以要在这台设备上复习就必须登录。
+           登录表单按需展开，而不是挡在门口。 -->
+      <!-- 2026-09-05 重设计（design/signin/）：一键登录直接在这张卡上，不再藏在
+           「登录」按钮后面；邮箱是备选，折叠成一行链接。
+           原生 Sign in with Apple（§8.4.1.2）与 Google（系统鉴权会话）由 app.js 在
+           原生桥存在时才显示 —— 不存在时显示它等于给一个点了没反应的按钮。
+           Apple 按钮按 HIG：黑底白字带标（暗色下反转）。 -->
+      <div id="signin-prompt">
+        <p id="signin-why"></p>
+        <button id="btn-apple" type="button" class="provider apple" hidden><svg class="provider-mark" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg><span id="btn-apple-label"></span></button>
+        <button id="btn-google" type="button" class="provider google" hidden><svg class="provider-mark" width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span id="btn-google-label"></span></button>
+        <button id="btn-signin" type="button" class="link"></button>
+
+      <!-- 邮箱表单在同一张卡里（design/signin/）：展开时接在链接的位置，验证码那一步
+           把卡上的其它东西换掉（.code-step），不往下堆。 -->
+      <div id="signin-forms" hidden>
+      <form id="email-form">
+        <label for="email" id="email-label"></label>
+        <input id="email" type="text" inputmode="email" autocomplete="username"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <button id="send" type="submit" class="secondary"></button>
+      </form>
+
+      <form id="code-form" hidden>
+        <label for="code" id="code-label"></label>
+        <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <button id="verify" type="submit"></button>
+        <div class="link-row">
+          <button id="resend" type="button" class="link"></button>
+          <button id="back" type="button" class="link"></button>
+        </div>
+      </form>
+
+      <!-- 密码登录（§8.4.1 第二种 grant，2026-08-17）：验证码仍是默认路径；密码
+           面向已在服务端设置过密码的账号（如审核演示账号）。 -->
+      <form id="app-pw-form" hidden>
+        <label for="app-pw-email" id="app-pw-email-label"></label>
+        <input id="app-pw-email" type="email" inputmode="email" autocomplete="email"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <label for="app-pw" id="app-pw-label"></label>
+        <input id="app-pw" type="password" autocomplete="current-password"
+               autocapitalize="none" autocorrect="off" spellcheck="false" required>
+        <button id="app-pw-login" type="submit"></button>
+        <button id="app-pw-back" type="button" class="link"></button>
+      </form>
+      <!-- 默认隐藏：只有 plus-alias（演示账号）才会被 refreshPwEntry 揭出来。
+           **必须写在标记里**，不能只靠 show() 去设 —— 首次运行走引导那条路
+           根本不会调用 show()，那时它就会一直露着。 -->
+      <button id="app-use-pw" type="button" class="link" hidden></button>
+      </div>
+      </div>
+
+      <p class="note" id="local-note"></p>
+      <!-- 对话 · 实时听译（§9.6）在未登录时也存在：它不依赖同步进来的牌库，语料写本机。
+           与播客模式不同（那个要牌库，只在登录后的首页）。同一门控、同一条去设置的路。 -->
+      <div class="modes">
+        <span class="modes-label" id="modes-label2"></span>
+        <div class="mode-list">
+        <button id="app-listen-entry2" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint2"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
+        <button id="app-docs-entry2" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-docs-entry-hint2"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        </div>
+        <p class="note" id="modes-privacy2"></p>
+        <p class="note" id="app-listen-need-live2" hidden>
+          <span id="app-listen-need-live-why2"></span>
+          <button id="app-listen-need-live-go2" type="button" class="link"></button>
+        </p>
+      </div>
+    </section>
+
+    <!-- 首次运行引导（§引导）。
+         设计稿里是九屏，这里只落四到五屏 —— 另外几屏 App 做不到：配翻译引擎、
+         打开采集、看第一张卡，全都发生在扩展那一侧，而 App 与扩展**不共享存储**
+         （app/chrome-shim.js 把 chrome.storage 垫在 localStorage 上）。
+         在 App 里画一个引擎选择器或采集开关，设了也是空转 —— 那比不给更糟。
+         所以这几屏的职责是：讲清楚闭环、设能设的（learnRules 经同步生效）、
+         把人送到 Safari，然后如实交代还要在浏览器里做什么。 -->
+    <section id="onboard" hidden>
+      <div id="ob-bar"><div id="ob-fill"></div></div>
+      <div id="ob-body">
+        <h2 id="ob-title"></h2>
+        <p id="ob-text"></p>
+        <ol id="ob-steps" class="ob-steps" hidden></ol>
+        <div id="ob-kv" hidden></div>
+        <p class="note" id="ob-telemetry" hidden></p>
+      </div>
+      <!-- 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
+           #ob-setup 就是那一屏的前进键（docs/interaction-spec.md）——
+           一个前进键放在会被内容顶下去的地方，就是没有前进键。 -->
+      <div id="ob-foot">
+        <button id="ob-prefs" type="button" hidden></button>
+        <!-- class 由 obPaint 按平台设：iOS 上它是这一屏**唯一**的行动、也是前进键
+             （那一屏没有「继续」），必须是主按钮；macOS 上主行动是 #ob-prefs
+             （直达 Safari 扩展设置），它退成次级。写死在这里就没法分。 -->
+        <button id="ob-setup" type="button" hidden></button>
+        <button id="ob-next" type="button"></button>
+        <button id="ob-skip" type="button" class="link"></button>
+      </div>
+    </section>
+
+    <!-- 启用扩展那一屏的插图。放模板里让 obSteps() 克隆 —— 它们是**图形**，写在标记
+         里看得见改得动，比在 JS 里堆 createElementNS 清楚。
+         里面**一个要翻译的字都没有**：形状按 iOS Safari 实际布局画，话全在下面的
+         <span> 里走 t()。颜色只用调色板令牌（同吉祥物的规矩：重新配色不用碰这里），
+         也因此暗色模式免费。id 一律 app- 前缀 —— 与 review.html 撞名会让构建直接失败。 -->
+    <template id="app-art-1">
+        <svg viewBox="0 0 280 150" aria-hidden="true">
+        <rect x="26" y="18" width="228" height="60" rx="8" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="40" y="32" width="120" height="7" rx="3.5" fill="var(--line)"/>
+        <rect x="40" y="46" width="180" height="6" rx="3" fill="var(--line)" opacity=".55"/>
+        <rect x="40" y="58" width="150" height="6" rx="3" fill="var(--line)" opacity=".55"/>
+        <rect x="26" y="92" width="228" height="42" rx="14" fill="var(--field)" stroke="var(--line)" stroke-width="2"/>
+        <path d="M48 113l-7-6 7-6" stroke="var(--text-secondary)" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="62" y="101" width="150" height="24" rx="12" fill="var(--bg)" stroke="var(--line)" stroke-width="1.5"/>
+        <rect x="70" y="107" width="13" height="11" rx="2.5" fill="none" stroke="var(--text)" stroke-width="2"/>
+        <path d="M70 111.5h4" stroke="var(--text)" stroke-width="2" stroke-linecap="round"/>
+        <text x="92" y="117" font-size="9" font-family="ui-monospace,monospace" fill="var(--text-secondary)">belliedmonkey.cc</text>
+        <path d="M198 108a5.5 5.5 0 1 0 4 5.5" stroke="var(--text-secondary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <circle cx="232" cy="113" r="1.8" fill="var(--text-secondary)"/><circle cx="238" cy="113" r="1.8" fill="var(--text-secondary)"/><circle cx="244" cy="113" r="1.8" fill="var(--text-secondary)"/>
+        <circle cx="76.5" cy="112.5" r="15" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/>
+        </svg>
+    </template>
+    <template id="app-art-2">
+        <svg viewBox="0 0 280 150" aria-hidden="true">
+        <g>
+        <rect x="52" y="24" width="176" height="102" rx="14" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="66" y="38" width="86" height="7" rx="3.5" fill="var(--line)"/>
+        <rect x="196" y="34" width="16" height="14" rx="3" fill="none" stroke="var(--line)" stroke-width="2"/>
+        <rect x="60" y="62" width="160" height="26" rx="8" fill="var(--sage-light)"/>
+        <rect x="66" y="71.5" width="72" height="7" rx="3.5" fill="var(--sage-strong)"/>
+        <rect x="196" y="68" width="16" height="14" rx="3" fill="none" stroke="var(--sage-strong)" stroke-width="2"/>
+        <path d="M198 72.5h4" stroke="var(--sage-strong)" stroke-width="2" stroke-linecap="round"/>
+        <rect x="66" y="104" width="60" height="7" rx="3.5" fill="var(--line)"/>
+        <rect x="196" y="100" width="16" height="14" rx="3" fill="none" stroke="var(--line)" stroke-width="2"/>
+        </g>
+        <path d="M14 75h32m0 0-9-7m9 7-9 7" stroke="var(--accent)" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    </template>
+    <template id="app-art-3">
+        <svg viewBox="0 0 280 150" aria-hidden="true">
+        <rect x="34" y="20" width="212" height="112" rx="14" fill="var(--bg)" stroke="var(--line)" stroke-width="2"/>
+        <rect x="112" y="32" width="56" height="7" rx="3.5" fill="var(--text-secondary)" opacity=".45"/>
+        <rect x="48" y="50" width="184" height="20" rx="10" fill="var(--field)" stroke="var(--line)"/>
+        <circle cx="60" cy="59" r="4" fill="none" stroke="var(--text-secondary)" stroke-width="1.6"/>
+        <path d="M63 62l3 3" stroke="var(--text-secondary)" stroke-width="1.6" stroke-linecap="round"/>
+        <rect x="48" y="82" width="184" height="34" rx="10" fill="var(--card-bg)" stroke="var(--line)"/>
+        <rect x="58" y="90" width="18" height="18" rx="5" fill="var(--accent)"/>
+        <rect x="84" y="95.5" width="72" height="7" rx="3.5" fill="var(--text)" opacity=".5"/>
+        <rect x="176" y="89" width="42" height="21" rx="10.5" fill="var(--sage-strong)"/>
+        <circle cx="207.5" cy="99.5" r="8" fill="#fff"/>
+        <rect x="168" y="81" width="58" height="37" rx="18.5" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 4"/>
+        </svg>
+    </template>
+
+    <!-- Signed in. Stage 2 is deliberately just the sync state: proving material
+         reaches the app is the whole point of this stage, and a review UI on top of
+         an unproven pull would hide exactly the failure worth seeing. -->
+    <section id="signed-in" hidden>
+      <header>
+        <span id="who"></span>
+        <span class="head-actions">
+          <button id="gear" type="button" class="link"></button>
+          <button id="signout" type="button" class="link"></button>
+        </span>
+      </header>
+
+      <!-- 今日一张卡（design: 大肚猴翻译 App 首页 · 主推）：待复习是唯一的大数字，其余四个
+           计数缩成小字，开始复习是卡内唯一主按钮，同步收成小胶囊 + 上次同步时间。
+           计数由 app.js 的 cell() 按语义类落格，CSS 按类而不是按位置排版。 -->
+      <section class="today">
+        <div class="today-head"><span class="today-label" id="today-label"></span><span class="note" id="last"></span></div>
+        <div id="app-counts" class="counts"></div>
+        <div class="today-bar" aria-hidden="true"><span id="today-bar-learning"></span><span id="today-bar-due"></span></div>
+        <div class="row">
+          <button id="review" type="button"></button>
+          <button id="sync" type="button" class="secondary"></button>
+        </div>
+      </section>
+
+      <!-- 「听」：两个模式做成带图标与一句说明的列表行。门控不过时整行不存在
+           （AppDriving.refreshEntry / AppListen.refreshEntry 切 hidden），两行都不在时整组
+           隐藏（CSS :has）；门没过时留一条可见、有标签、直达设置页那个控件的路。 -->
+      <div class="modes">
+        <span class="modes-label" id="modes-label"></span>
+        <div class="mode-list">
+        <button id="app-drive-start" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3"/><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z"/><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-drive-desc"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button id="app-listen-entry" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M9 21h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-listen-entry-hint"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <!-- 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 -->
+        <button id="app-docs-entry" type="button" class="mode" hidden>
+          <span class="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span>
+          <span class="mode-text"><span class="mode-title"></span><span class="mode-desc" id="app-docs-entry-hint"></span></span>
+          <svg class="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        </div>
+        <p class="note" id="modes-privacy"></p>
+        <p class="note" id="app-drive-need-tts" hidden>
+          <span id="app-drive-need-tts-why"></span>
+          <button id="app-drive-need-tts-go" type="button" class="link"></button>
+        </p>
+        <p class="note" id="app-listen-need-live" hidden>
+          <span id="app-listen-need-live-why"></span>
+          <button id="app-listen-need-live-go" type="button" class="link"></button>
+        </p>
+      </div>
+    </section>
+
+    <!-- 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
+         免提听读会话。文本全程可见（音频优先，从不藏字）；超大按钮；语音问答环
+         仅在 STT + 解析引擎 + uiLang 音色三门全开时存在。视图切换归 app.js（同
+         #review-view 的分工），内部全归 app/driving.js。 -->
+    <section id="app-drive" hidden>
+      <button id="app-drive-back" type="button" class="link"></button>
+      <h2 id="app-drive-title"></h2>
+      <p class="note" id="app-drive-progress"></p>
+      <div class="drive-card">
+        <p id="app-drive-text"></p>
+        <p id="app-drive-tr"></p>
+        <!-- 解析文本：耳朵优先，但从不藏起来 —— 停车时看得见刚才播的是什么。 -->
+        <p class="note" id="app-drive-notes"></p>
+      </div>
+      <p class="note" id="app-drive-status" role="status" aria-live="polite"></p>
+      <p class="note err" id="app-drive-note"></p>
+      <div class="drive-grid">
+        <button id="app-drive-pause" type="button" hidden></button>
+        <button id="app-drive-next" type="button" hidden></button>
+        <button id="app-drive-repeat" type="button" hidden></button>
+        <!-- 播放顺序：随机 / 顺序 / 循环 / 单曲循环，点一下轮换。它只改变**这张卡
+             结束之后**发生什么，永不打断正在播的音频 —— 所以开车时按它是安全的。 -->
+        <button id="app-drive-mode" type="button" hidden></button>
+        <!-- 「解析这句」：只在暂停时出现。解析 + 显示 + 朗读，读完回到暂停 ——
+             暂停的语义是「我在控制」，读完一段解析不该顺势把整场恢复。 -->
+        <button id="app-drive-explain" type="button" hidden></button>
+      </div>
+      <button id="app-drive-more" type="button" class="secondary" hidden></button>
+      <p class="note" id="app-drive-cost"></p>
+    </section>
+
+    <!-- Settings. Only what the LEARNING layer owns (plan §F): the review loop's own
+         knobs, the account, the corpus — and, since learning-design §7.2's 2026-08-08
+         amendment, ONE device-local credential: a chat engine + key used solely for
+         sentence notes (§9.2). The app still never translates and never captures;
+         the key never syncs. -->
+    <!-- 对话 · 实时听译（learning-design §9.6，评审中）。PR-L0 探针：只由隐藏手势进入
+         （头部名字 5 连点），什么都不写；量三件事：file:// WKWebView 开 wss、麦克风 PCM、
+         锁屏后 finals 还来不来。 -->
+    <!-- 对话 · 实时听译（learning-design §9.6 / interaction-spec 同名一节）：App 专属。
+         上卡 = 当下（逐词原文 + 临时译文），下面 = 整句定稿历史（可加星）；按住「我说」
+         走 walkie-talkie；松手 → 翻面大字给对方看 + 朗读。视图切换归本模块（open/leave），
+         与 #app-drive 的分工相同。 -->
+    <section id="app-listen" hidden>
+      <div class="listen-head">
+        <button id="app-listen-back" class="link" type="button"></button>
+        <h2 id="app-listen-title"></h2>
+        <span id="app-listen-pill" class="listen-pill"></span>
+      </div>
+      <p class="note listen-langline"><span id="app-listen-lang"></span> <span id="app-listen-ephemeral-pill" class="listen-eph-pill" hidden></span></p>
+      <p class="note listen-mac-note" id="app-listen-mac-note" hidden></p>
+      <div class="drive-card listen-now" id="app-listen-now">
+        <div class="listen-now-head"><span id="app-listen-now-label"></span><span id="app-listen-live" class="listen-live" hidden>● 实时</span></div>
+        <p id="app-listen-partial" class="listen-partial"></p>
+        <p id="app-listen-partial-tr" class="listen-partial-tr"></p>
+      </div>
+      <div id="app-listen-history-wrap" class="drive-card listen-history-wrap">
+        <div class="listen-now-head"><span id="app-listen-history-title"></span><span class="listen-head-acts"><button id="app-listen-copy" type="button" class="link" hidden></button><button id="app-listen-end" type="button" class="link" hidden></button></span></div>
+        <div id="app-listen-history" class="listen-history"></div>
+      </div>
+      <p class="note" id="app-listen-queue" hidden></p>
+      <p class="note err" id="app-listen-note"></p>
+      <!-- 只剩一个主按钮：不再有「按住 · 我说」，双方自由说话（2026-09-08）。 -->
+      <div id="app-listen-actions">
+        <button id="app-listen-toggle" type="button"></button>
+      </div>
+      <!-- 语言对摊在外面而不是收进设置里（画布画板 6，2026-09-08 定 A 版）：语言对是这个
+           模式唯一的必填配置，而它选错之后**不会报错** —— 每句都判成对方、译文语言不对，
+           只会「看起来怪」。摊在外面等于让这个错误自己暴露。 -->
+      <div class="listen-pair" id="app-listen-pair">
+        <label class="note"><span id="app-listen-my-label"></span> <select id="app-listen-my"></select></label>
+        <span class="listen-pair-arrow" aria-hidden="true">⇄</span>
+        <label class="note"><span id="app-listen-other-label"></span> <select id="app-listen-other"></select></label>
+      </div>
+      <label class="check listen-autospeak" id="app-listen-autospeak-row">
+        <input id="app-listen-autospeak" type="checkbox">
+        <span id="app-listen-autospeak-label"></span>
+      </label>
+      <!-- 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储** ——
+           记住上次的勾选反而危险，用户会以为在留记录而其实没有。 -->
+      <label class="check listen-autospeak" id="app-listen-ephemeral-row">
+        <input id="app-listen-ephemeral" type="checkbox">
+        <span id="app-listen-ephemeral-label"></span>
+      </label>
+      <p class="note" id="app-listen-cost"></p>
+
+      <div id="app-listen-summary" class="drive-card" hidden>
+        <h3 id="app-listen-summary-title"></h3>
+        <p id="app-listen-summary-body"></p>
+        <p class="note" id="app-listen-summary-note"></p>
+        <div class="drive-grid">
+          <button id="app-listen-summary-home" type="button"></button>
+          <button id="app-listen-summary-again" type="button" class="secondary"></button>
+        </div>
+      </div>
+
+      <!-- 放大展示卡（给对方看）：点任一历史行打开，底下照常在听；「朗读」只在有 TTS 引擎时存在；
+           点任意处关闭。不是一个 phase，是历史行上的叠层（画布「交互逻辑」表 1 showing）。 -->
+      <div id="app-listen-flip" class="listen-flip" hidden>
+        <p class="listen-flip-hint" id="app-listen-flip-hint"></p>
+        <p class="listen-flip-text" id="app-listen-flip-text"></p>
+        <p class="listen-flip-sub" id="app-listen-flip-sub"></p>
+        <p class="listen-flip-speaking" id="app-listen-flip-speaking" hidden></p>
+        <div class="drive-grid">
+          <button id="app-listen-flip-again" type="button" class="secondary"></button>
+          <button id="app-listen-flip-back" type="button"></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 extension/learn/doc-view.js
+         （与扩展页同一份字节），编排在 app/docs.js。文件选择是原生 <input type=file>：iOS 由 WKWebView
+         弹系统选择器；macOS 要宿主实现 runOpenPanel（D5），否则是死按钮。 -->
+    <section id="app-docs" hidden>
+      <div class="docs-head">
+        <button id="app-docs-back" class="link" type="button"></button>
+        <h2 id="app-docs-title"></h2>
+      </div>
+      <div id="app-docs-root"></div>
+      <input type="file" id="app-docs-file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp" hidden>
+    </section>
+
+    <section id="app-settings" hidden>
+      <button id="settings-back" type="button" class="link"></button>
+      <h2 id="settings-title"></h2>
+
+      <!-- 「快速 | 详细」两档 —— 与扩展设置页同一套类名契约（.adv-only / .quick-only）
+           和同一条不变量：一键配置卡与逐引擎控件**永不同屏**（interaction-spec）。
+           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护，
+           从 DOM 里拿掉一张卡会让每次保存静默失败。 -->
+      <div class="mode-tabs" id="mode-tabs" role="tablist">
+        <button id="mode-quick" type="button" role="tab" data-i18n="opt_mode_quick">快速</button>
+        <button id="mode-detail" type="button" role="tab" data-i18n="opt_mode_detail">详细</button>
+      </div>
+
+      <!-- 一把 key 配好全部（QuickSetup）。与扩展设置页、扩展引导第 2 屏是**同一个
+           组件**。它算出 patch 交给 host 写盘，本页的 applyQuickSetup() 负责落地。
+           它 plan() 出来的 chat 三键正是 provider / apiKey / apiBaseUrl / apiModel
+           —— 与 App 这一档用的键完全对齐，零适配。 -->
+      <!-- 免费额度（§8.10）。与一键卡并排在同一个 tab 里（裁定 D2：登录不是墙）。
+           MT_GRANT 为 null 时整块不出 —— 中国版恒是这样，全球版在开关翻之前也是。 -->
+      <section class="quick-only" id="grant-card" hidden>
+        <div id="grant-box"></div>
+      </section>
+
+      <section class="quick-only" id="quick-setup-card">
+        <h3 id="quick-setup-title"></h3>
+        <div id="quick-setup"></div>
+      </section>
+
+      <!-- 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项 —— 两边存储不通，
+           但**选项集合必须一致**，由 test/engine-fields.test.js 的门禁钉在 _locales/ 上。
+           在 App 里它不只是「界面文字」：driving.js 拿它当用户的母语，决定句子解析用
+           哪种语言生成、用哪个语音朗读，**播客模式入口还按它有没有语音做门控** ——
+           在没有这个控件之前，系统语言不是母语的人会拿到一个默认消失的入口。 -->
+      <label class="field">
+        <span id="ui-lang-label"></span>
+        <select id="ui-lang">
+          <option value="auto" id="ui-lang-auto"></option>
+          <option value="zh_CN">简体中文</option>
+          <option value="zh_TW">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ko">한국어</option>
+          <option value="fr">Français</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+          <option value="hi">हिन्दी</option>
+          <option value="ar">العربية</option>
+          <option value="pt_BR">Português</option>
+          <option value="ru">Русский</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span id="daily-label"></span>
+        <input id="daily" type="number" min="1" max="200" step="1" inputmode="numeric">
+      </label>
+
+      <label class="field" id="app-tts-section">
+        <span id="tts-mode-label"></span>
+        <select id="tts-mode">
+          <option value="off" id="tts-mode-off"></option>
+          <option value="assist" id="tts-mode-assist"></option>
+          <option value="audio-first" id="tts-mode-audio-first"></option>
+        </select>
+      </label>
+
+      <label class="check">
+        <input id="tts-auto" type="checkbox">
+        <span id="tts-auto-label"></span>
+      </label>
+
+      <label class="field adv-only">
+        <span id="tts-engine-label"></span>
+        <select id="tts-engine"></select>
+      </label>
+      <label class="field adv-only" id="tts-key-field">
+        <span id="tts-key-label"></span>
+        <input id="tts-api-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="tts-base-field">
+        <span id="tts-base-label"></span>
+        <input id="tts-base-url" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="tts-model-field">
+        <span id="tts-model-label"></span>
+        <input id="tts-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+
+      <label class="field">
+        <span id="tts-voice-label"></span>
+        <select id="tts-voice"></select>
+      </label>
+
+      <label class="field">
+        <span id="tts-rate-label"></span>
+        <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1">
+        <output id="tts-rate-out"></output>
+      </label>
+
+      <label class="field adv-only">
+        <button id="btn-tts-test" type="button"></button>
+      </label>
+      <p class="note" id="test-tts-note"></p>
+      <p class="note" id="tts-note"></p>
+
+      <h3 id="notes-title"></h3>
+      <label class="field adv-only">
+        <span id="notes-provider-label"></span>
+        <select id="notes-provider"></select>
+      </label>
+      <label class="field adv-only" id="notes-key-field">
+        <span id="notes-key-label"></span>
+        <input id="notes-api-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="notes-base-field">
+        <span id="notes-base-label"></span>
+        <input id="notes-base-url" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="notes-model-field">
+        <span id="notes-model-label"></span>
+        <input id="notes-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only">
+        <button id="btn-test-notes" type="button"></button>
+      </label>
+      <p class="note" id="test-notes-note"></p>
+      <p class="note" id="notes-note"></p>
+
+      <!-- 转写引擎（learning-design §9.4）：「说」题的录音只发到这里配置的端点，
+           识别后即弃；不配置则说题不存在。设备本地凭证（§7.2），永不同步。 -->
+      <!-- 播客模式（learning-design §9.5）。播放顺序是播放器里的按钮；这里只放
+           **要花钱**的那个开关，因为它需要一句解释，而解释属于设置页。 -->
+      <h3 id="drive-title"></h3>
+      <label class="check">
+        <input id="drive-play-notes" type="checkbox">
+        <span id="drive-play-notes-label"></span>
+      </label>
+      <p class="note" id="drive-play-notes-note"></p>
+      <!-- 对话 · 实时听译（§9.6）：定稿句对进复习作为来源「对话」，默认开；下面一句是
+           §10 Gate E 的披露 —— 说在配置的那个点上。 -->
+      <h3 id="listen-title"></h3>
+      <label class="check">
+        <input id="listen-capture" type="checkbox">
+        <span id="listen-capture-label"></span>
+      </label>
+      <p class="note" id="listen-capture-note"></p>
+      <!-- 语言对（§9.6，2026-09-08）。两个下拉与对话页底部那两个是**同一份设置**：
+           洽谈现场发现语言选错要能立刻改，跳设置页等于中断会话，所以两处都有。
+           两边选成同一种语言时不是拒绝而是对调 —— 见 ListenCore.langPatch 的注释。 -->
+      <label class="field">
+        <span id="listen-my-lang-label"></span>
+        <select id="listen-my-lang"></select>
+      </label>
+      <label class="field">
+        <span id="listen-other-lang-label"></span>
+        <select id="listen-other-lang"></select>
+      </label>
+      <p class="note" id="listen-lang-note"></p>
+      <label class="check">
+        <input id="listen-autospeak" type="checkbox">
+        <span id="listen-autospeak-label"></span>
+      </label>
+      <p class="note" id="listen-autospeak-note"></p>
+      <!-- 文档翻译（§9.7）：译文进复习作为来源「文档」，默认开；下面一句是 §10 Gate G 的披露 ——
+           说在配置的那个点上。预取下一页默认关（只解析不翻译；开了也只多翻一页）。 -->
+      <h3 id="docs-title"></h3>
+      <label class="check">
+        <input id="doc-capture" type="checkbox">
+        <span id="doc-capture-label"></span>
+      </label>
+      <p class="note" id="doc-capture-note"></p>
+      <label class="check">
+        <input id="doc-prefetch" type="checkbox">
+        <span id="doc-prefetch-label"></span>
+      </label>
+      <!-- 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
+           但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
+           系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 -->
+      <p class="note" id="drive-awake-note"></p>
+
+      <!-- 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
+           这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
+           可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 -->
+      <label class="field">
+        <span id="drive-preload-days-label"></span>
+        <select id="drive-preload-days">
+          <option value="0" id="drive-preload-days-0"></option>
+          <option value="3" id="drive-preload-days-3"></option>
+          <option value="7" id="drive-preload-days-7"></option>
+        </select>
+      </label>
+      <!-- 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
+           那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
+           里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
+           这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 -->
+      <button id="btn-drive-preload" type="button" class="secondary"></button>
+      <p class="note" id="drive-preload-note" role="status" aria-live="polite"></p>
+      <p class="note" id="drive-preload-hint"></p>
+      <p class="note" id="drive-audio-cache"></p>
+      <button id="btn-drive-clear-audio" type="button" class="danger"></button>
+
+      <h3 id="stt-title"></h3>
+      <label class="field adv-only">
+        <span id="stt-engine-label"></span>
+        <select id="stt-engine"></select>
+      </label>
+      <label class="field adv-only" id="stt-key-field">
+        <span id="stt-key-label"></span>
+        <input id="stt-api-key" type="password" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="stt-base-field">
+        <span id="stt-base-label"></span>
+        <input id="stt-base-url" type="url" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only" id="stt-model-field">
+        <span id="stt-model-label"></span>
+        <input id="stt-model" type="text" autocomplete="off" autocapitalize="none"
+               autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field adv-only">
+        <button id="btn-test-stt" type="button"></button>
+      </label>
+      <p class="note" id="test-stt-note"></p>
+      <p class="note" id="stt-note"></p>
+
+      <!-- 来源治理（interaction-spec）：规则随账号同步（§8.9），在手机上改是
+           自然场景。App 自身不采集 —— 这里改的是浏览器扩展那头的采集行为。 -->
+      <h3 id="app-langs-title"></h3>
+      <div id="app-langs"></div>
+      <p class="note" id="app-langs-note"></p>
+
+      <h3 id="app-sources-title"></h3>
+      <div id="app-sources"></div>
+
+      <h3 id="corpus-title"></h3>
+      <div class="counts" id="settings-counts"></div>
+      <button id="split-long" type="button" class="secondary"></button>
+      <button id="clean-known" type="button" class="secondary"></button>
+      <!-- 本机卫生，不是同步功能：一台设备换过账号之后，唯一的出路不该是删应用
+           重装。刻意**不受** MT_BACKEND.enabled 门控 —— 先例是扩展设置页的同一个
+           按钮就在同步块之外，所以中国版扩展照样有它。 -->
+      <button id="clear-learn" type="button" class="secondary danger"></button>
+
+      <!-- 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
+           打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 -->
+      <h3 id="feedback-title"></h3>
+      <button id="feedback-mail" type="button" class="secondary"></button>
+      <button id="feedback-rate" type="button" class="secondary"></button>
+      <p class="note" id="feedback-note"></p>
+
+      <!-- 匿名用量事件的开关（docs/telemetry-design.md §5）。中国版 MT_TELEMETRY 为 null，整块藏掉。 -->
+      <div id="telemetry-block" hidden>
+        <h3 id="telemetry-title"></h3>
+        <label class="row-toggle"><span id="telemetry-label"></span><input type="checkbox" id="telemetry-on"></label>
+        <p class="note" id="telemetry-note"></p>
+      </div>
+
+      <h3 id="account-title"></h3>
+      <p class="note" id="account-who"></p>
+      <button id="settings-signout" type="button" class="secondary"></button>
+      <!-- Apple requires in-app account deletion wherever accounts exist
+           (learning-design §10 Gate B). Not a nice-to-have: without it the app cannot
+           ship. Destructive, so it confirms and says exactly what goes. -->
+      <button id="delete-account" type="button" class="danger"></button>
+      <p class="note" id="delete-note"></p>
+    </section>
+
+    <!-- The review surface, lifted from extension/learn/review.html at build time
+         (build/app-bundle.js). Not a copy kept in sync by hand — the extension's file
+         is the source, and this is the only place the app can put it, since the app
+         is exactly three filenames. -->
+    <section id="review-view" hidden>
+      <button id="review-back" type="button" class="link"></button>
+      <div class="page">
+    <header class="bar">
+      <h1 data-i18n="learn_title">复习</h1>
+      <div class="counts" id="counts"></div>
+      <!-- interaction-spec「多设备同步一致性」: 常驻同步状态行。五态：同步中 /
+           同步完成·时间 / 离线 / 失败 / 未登录。公开构建（sync 未编入）整行隐藏。 -->
+      <div class="sync-line" id="sync-line" hidden></div>
+      <!-- 跨面交接（learning-design §8.4.1.1）：把人送去 App 继续复习，并把一个
+           **不透明 userId** 带过去，好让 App 那边发现「两边不是同一个账号」——
+           在这之前没有任何一侧发现得了。只在已登录时出现：没登录时既没有 id 可带，
+           那边也拉不到任何东西。 -->
+      <button id="go-app" type="button" class="go-app" hidden></button>
+      <!-- 文档翻译（§9.7）：只在扩展页显示；App 里由 AppDocs 提供入口（D4）。 -->
+      <a id="go-docs" class="go-app" href="docs.html" hidden data-i18n="doc_review_entry">📄 翻译文档</a>
+    </header>
+
+    <!-- Empty: no corpus at all. Says how material gets collected, rather than
+         「暂无数据」 (interaction-spec: 复习 / Review → States). -->
+    <!-- 存储压力。绝不在网页里出现，但对开了采集的用户绝不隐瞒
+         （domain-design §9.1 铁律二）。它不挡卡片——库满了照样能复习。 -->
+    <div class="pressure" id="pressure" hidden>
+      <span id="pressure-msg"></span>
+      <button id="pressure-fix" data-i18n="learn_clean_known">清理已掌握的卡</button>
+    </div>
+
+    <section class="panel" id="empty" hidden>
+      <h2 data-i18n="learn_empty_title">还没有学习材料</h2>
+      <!-- 两支：采集**没开**（要去开）与采集**已经开着**（只是还没攒到）。
+           原来共用一句，于是一个两分钟前刚在引导里亲手打开采集的人，翻完一段点进来，
+           被告知「去设置里打开采集」—— 骂错了人，而且他会以为自己哪里做错了。
+           判据是 learnEnabled，不是只数 items.length。 -->
+      <p id="empty-off" data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你真正读过的句子会自动存进来 —— 快速滚过去的不算。</p>
+      <p id="empty-on" hidden data-i18n="learn_empty_on">采集已经开着了。照常浏览、照常翻译，你**停下来读完**的句子会出现在这里 —— 快速滚过去的不算。</p>
+      <!-- 第三支，比上面两支更要紧（§8.4.1.2 身份合并）：这台设备上**有**卡，
+           只是挂在另一个账号下。换一个身份登录（Apple 的「隐藏我的邮箱」、手机号）
+           会拿到一个新账号 + 一个独立的空库，而整条路**一个错都不报** ——
+           用户看到的就是这一页，然后以为自己的东西没了。
+           它出现时，上面两支要让位：那两句在这种情况下都是错的。 -->
+      <p id="empty-other" hidden data-i18n="learn_empty_other_account">这台设备上还有另一个账号的学习材料。你现在登录的是另一个账号 —— 那些卡没有丢，用原来的账号登录就会回来。</p>
+      <p id="empty-settings-row"><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
+      <!-- 扩展侧的引导入口。这是用户产生「为什么一张卡都没有」疑问的地方，也是唯一
+           能回答它的地方。
+           ⚠️ 它在 App 里必须**藏起来**：App 打不开 chrome-extension:// 页面，而且 App
+           结构上不采集（材料只经同步进来），一个「去把扩展配好」的按钮在那里是死链。
+           App 侧由 paintAppEmptyState() 负责隐藏 —— 见 app/app.js。 -->
+      <p id="empty-onboard-row" hidden><a href="#" id="empty-onboard" data-i18n="extob_reonboard">重看开始使用引导</a></p>
+    </section>
+
+    <!-- One-time explainer (interaction-spec 复习: first visit, three sentences,
+         dismissed forever). Non-blocking: it sits above the card, never instead. -->
+    <section class="panel howto" id="howto" hidden>
+      <h2 data-i18n="learn_howto_title">复习是怎么运作的</h2>
+      <p data-i18n="learn_howto_1">记得 → 间隔拉长，下次更晚出现。</p>
+      <p data-i18n="learn_howto_2">忘了 → 重新开始，很快再见。</p>
+      <p data-i18n="learn_howto_3">记忆强度攒满 180 天，这张卡就毕业了。</p>
+      <button id="howto-ok" data-i18n="learn_howto_ok">知道了</button>
+    </section>
+
+    <!-- Empty: corpus exists, nothing due. Says WHEN the next card comes up; never
+         fabricates work by advancing cards early. -->
+    <section class="panel" id="nothing-due" hidden>
+      <h2 data-i18n="learn_alldone_title">今天的复习做完了</h2>
+      <p id="next-due"></p>
+      <!-- The daily-new cap has a setting; a wall nobody can see the dial for reads
+           as a defect (§5.1). -->
+      <p class="cap-hint" id="cap-hint"></p>
+    </section>
+
+    <!-- §5.3 free practice. Shown whenever the deck is done, or on demand from the
+         footer — the deck-done screen is no longer a dead end. -->
+    <section class="panel practice-setup" id="practice-setup" hidden>
+      <p class="practice-rule" data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+      <div class="practice-row">
+        <select id="practice-pool">
+          <option value="learning" selected data-i18n="learn_pool_learning">学习中</option>
+          <option value="all" data-i18n="learn_pool_all">全部（含候选与已掌握）</option>
+        </select>
+        <select id="practice-batch">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="0" data-i18n="learn_batch_unlimited">不限</option>
+        </select>
+        <button id="practice-start" data-i18n="learn_practice_start">开始练习</button>
+      </div>
+    </section>
+
+    <section class="card" id="card" hidden>
+      <div class="src" id="src"></div>
+      <!-- 来源操作（interaction-spec「来源治理」）：⋯ 展开，删除随同步传播（§7.4）。 -->
+      <div class="src-actions" id="src-actions" hidden></div>
+
+      <!-- Memory strength, always visible (§5.1): the first place 「已掌握」 has a
+           user-visible definition — strength reaching 180 days. -->
+      <div class="strength" id="strength">
+        <div class="strength-track"><div class="strength-bar" id="strength-bar"></div></div>
+        <span class="strength-label" id="strength-label"></span>
+      </div>
+
+      <!-- §5.2/§5.4 skill badges: lit when that exercise form was passed at
+           ≥「记得」; lit-but-stale (past the freshness window) renders dashed.
+           All available skills fresh + strength full ⇒ 全面掌握. -->
+      <div class="badges" id="badges">
+        <span class="badge" id="badge-read" data-i18n="learn_badge_read">读</span>
+        <span class="badge" id="badge-listen" data-i18n="learn_badge_listen">听</span>
+        <span class="badge" id="badge-speak" hidden data-i18n="learn_badge_speak">说</span>
+        <span class="badge" id="badge-write" data-i18n="learn_badge_write">写</span>
+        <span class="badge full" id="badge-full" hidden data-i18n="learn_mastered_full">全面掌握</span>
+      </div>
+
+      <!-- 语音。在 audio-first 模式下原文先藏起来，先听再看。播放原文不揭晓
+           任何东西，所以不违反「揭晓永远由用户发起」——那条约束的是译文。 -->
+      <div class="audio" id="audio" hidden>
+        <button class="play" id="play" data-i18n="tts_play">▶ 听一遍</button>
+        <span class="audio-note" id="audio-note"></span>
+      </div>
+
+      <!-- §5.2 说 = shadowing at the listen tier, labelled practice, never a test.
+           ASR stays out (§11/§12) — the browser's recognition API ships recordings
+           to vendor servers, which the no-telemetry promise cannot absorb. -->
+      <p class="shadow-hint" id="shadow" hidden data-i18n="learn_shadow_hint">跟着读一遍（练习，不计入验证）</p>
+
+      <p class="orig" id="orig"></p>
+
+      <!-- §9.3 exercise variants: 译文选择题 / 盲听选词 / 理解题 render here. One
+           tap (or 确认 for the multi-select pick) locks the options, reveals, and
+           the objective result constrains the grades — the cloze rule, reused.
+           #ex-status doubles as the pack cost/status line (§9.3 cost contract). -->
+      <p class="shadow-hint" id="ex-prompt" hidden></p>
+      <div class="ex-options" id="ex-options" hidden></div>
+      <button class="reveal" id="ex-check" hidden data-i18n="learn_check_pick">确认选择</button>
+      <p class="shadow-hint" id="ex-status" hidden></p>
+
+      <!-- §9.4 说题卡: record → the USER'S OWN transcription endpoint → local
+           score. The recording is discarded after the transcript returns — never
+           stored, never synced (§10 Gate C). Transcript renders textContent-only. -->
+      <div class="speak-box" id="speak-box" hidden>
+        <button class="reveal" id="speak-record" data-i18n="learn_speak_record">🎙 开始录音</button>
+        <p class="shadow-hint" id="speak-status"></p>
+        <p class="speak-transcript" id="speak-transcript" hidden></p>
+        <p class="shadow-hint" id="speak-score" hidden></p>
+      </div>
+
+      <!-- §5.2 write tier: translation shown, the original with blanks. The inputs
+           are checked automatically — the one objectively verified skill. -->
+      <p class="shadow-hint" id="write-prompt" hidden data-i18n="learn_write_prompt">把原句补全</p>
+      <p class="cloze" id="cloze" hidden></p>
+      <p class="shadow-hint" id="write-replaced" hidden data-i18n="learn_write_replaced">已替换为正确答案</p>
+
+      <div class="media" id="media" hidden></div>
+
+      <button class="reveal secondary" id="reveal-orig" hidden data-i18n="learn_reveal_orig">显示原文</button>
+      <button class="reveal" id="reveal" data-i18n="learn_reveal">显示译文</button>
+      <button class="reveal" id="cloze-check" hidden data-i18n="learn_check">检查</button>
+
+      <div class="answer" id="answer" hidden>
+        <p class="tr" id="tr"></p>
+        <!-- Practice honesty (§5.1 must survive §5.3): in practice the grade buttons
+             cannot promise intervals they will not grant, so their .when labels are
+             replaced and this one line explains what a practice rep does instead. -->
+        <p class="practice-rule" id="practice-note" hidden data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+        <!-- §5.4 second exercise: same honesty rule as practice — grades 1–3 grant
+             no interval here, and this line says so before the user grades. -->
+        <p class="practice-rule" id="extra-note" hidden data-i18n="learn_second_exercise">再练一项 · 不再计入复习间隔</p>
+        <!-- §9.2 sentence notes — rendered only when a chat-capable engine is
+             configured (capability gate; no engine ⇒ no entry point, never a
+             disabled button with an apology). Cost is stated at the point of use. -->
+        <div class="notes-wrap" id="notes-wrap" hidden>
+          <button class="reveal secondary" id="notes-btn" data-i18n="learn_notes_btn">解析这句</button>
+          <p class="shadow-hint" id="notes-cost" data-i18n="learn_notes_cost">使用你配置的 API，一次调用，永久缓存</p>
+          <div class="notes-box" id="notes-box" hidden></div>
+        </div>
+
+        <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
+             textContent, which would wipe the .when consequence label (§5.1). -->
+        <div class="grades" id="grades">
+          <button class="grade g0" data-grade="0"><span data-i18n="learn_grade_again">不记得</span><small class="when"></small></button>
+          <button class="grade g1" data-grade="1"><span data-i18n="learn_grade_hard">有点难</span><small class="when"></small></button>
+          <button class="grade g2" data-grade="2"><span data-i18n="learn_grade_good">记得</span><small class="when"></small></button>
+          <button class="grade g3" data-grade="3"><span data-i18n="learn_grade_easy">太简单</span><small class="when"></small></button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="progress"></span>
+      <span class="foot-links">
+        <a href="#" id="practice-open" data-i18n="learn_practice">自由练习</a>
+        <a href="#" id="open-settings" data-i18n="learn_settings">设置</a>
+      </span>
+    </footer>
+  </div>
+
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+     <!-- 免费额度（§8.10）。这一页只用 enabled()：未登录那行说哪句话、链接落到哪 -->
+  
+  
+  
+  
+  
+  
+  
+  <!-- §8.8 auto-sync: opening this page is the heartbeat. These three (plus the
+       backend config) exist here ONLY for that — review.js itself never pushes. -->
+  
+  
+  
+  <!-- 本地备份（§7.5）：仅扩展页 —— App 的 IDB 已实证耐久，bundle 刻意不含它。 -->
+  
+  
+  <!-- 「去 App 里复习」这一跳（地址 + 打不开时的出口）。必须在 review.js 之前。 -->
+    </section>
+  </main>
+
+  <p id="status" role="status" aria-live="polite"></p>
+  <script src="../Script.js"></script>
+</body>
+</html>
