@@ -1219,7 +1219,7 @@
             : t('app_sync_empty', '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。')));
       }
     } catch (err) {
-      say(humanError(err), true);
+      if (!(await reconcileSession())) say(humanError(err), true);
     } finally {
       $('sync').disabled = false;
       $('sync').textContent = t('app_sync', '同步');
@@ -1227,6 +1227,20 @@
   }
 
   $('sync').addEventListener('click', doSync);
+
+  // 会话被服务端判死（auth.js token()：400/401 且带 GoTrue 错误体 ⇒ store(null)）之后，界面要跟着回到
+  // 未登录的登录卡。原来没有这一步：会话已经清掉，首页却还挂着邮箱和「退出」，同步按钮只会说
+  // 「学习库有归属，但现在没有登录」—— 登录入口藏在「退出」后面。2026-09-22 中国版切境内后端时每个
+  // 已登录的老用户都会撞上一次（东京签的刷新令牌在境内必然被拒）；国际版里刷新令牌被作废时同样如此。
+  async function reconcileSession() {
+    if (!currentSession) return false;
+    let s = null;
+    try { s = await LearnAuth.current(); } catch (_) { return false; }   // 读不到 ≠ 已退出（§8.4.1）
+    if (s) return false;
+    await show(null);
+    say(t('sync_err_signed_out', '登录已失效，请重新登录。'), true);
+    return true;
+  }
 
   // §8.8 修订版 — launch and return-to-foreground are ENTRIES, and every entry
   // FORCES a sync (interaction-spec「多设备同步一致性」: 每次进 App 即同步，绕过
@@ -1237,6 +1251,7 @@
     if (!currentSession) return;
     const r = await LearnSync.autoSync(Date.now(), Object.assign({ force: true }, extra || {}))
       .catch(() => null);
+    if (await reconcileSession()) return;
     if (r) await paintCounts();
   }
 

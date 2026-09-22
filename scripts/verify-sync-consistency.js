@@ -35,7 +35,7 @@ const SHIM_SRC = fs.readFileSync(path.join(ROOT, 'app/chrome-shim.js'), 'utf8');
 setTimeout(() => { console.log('\n✗ 超时（240s），没有结论'); process.exit(2); }, 240000).unref();
 
 // ─── 进程级假云：两台“设备”共享的唯一后端状态 ────────────────────────────────
-const cloud = { seq: 0, rows: [], gets: 0, posts: 0 };
+const cloud = { seq: 0, rows: [], gets: 0, posts: 0, refreshDead: false };
 
 // ─── 宿主（沿用 verify-learn-flow 的双宿主形状） ────────────────────────────
 const HOSTS = {
@@ -133,6 +133,11 @@ function serve(host) {
         const bytes = cloud.rows.reduce((n, r) => n + (r.blob.length - 2) / 2, 0);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify([{ bytes, chunks: cloud.rows.length, quota: 50 * 1024 * 1024 }]));
+      }
+      // 刷新令牌被服务端作废：真实 GoTrue 的回法（400 + 错误体）—— auth.js 只在「400/401 且带错误体」时判死。
+      if (cloud.refreshDead && u.startsWith('/auth/v1/token')) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ code: 400, error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token: Refresh Token Not Found' }));
       }
       if (u.startsWith('/auth/v1/')) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -371,6 +376,21 @@ async function withHost(host, fn) {
       'App 里长出了「在 App 里继续复习」按钮 —— renderGoApp 没判宿主');
     const bad = await sweep('#review-view');
     need(bad.length === 0, '表面扫描: ' + bad.join(' | '));
+
+    // ─── 会话被服务端判死 ⇒ 首页回到登录卡（2026-09-22）─────────────────────
+    // 中国版切境内后端时，每个已登录老用户手里都是东京签的刷新令牌，境内必然 400。修前：会话已清掉，
+    // 首页却还挂着邮箱与「退出」，同步按钮只说「学习库有归属，但现在没有登录」—— 登录入口藏在「退出」后面。
+    cloud.refreshDead = true;
+    await ev(`new Promise((r) => chrome.storage.local.get(['learnAuth'], (o) => { o.learnAuth.expiresAt = Date.now() - 1000;
+      chrome.storage.local.set({ learnAuth: o.learnAuth }, () => r(null)); }))
+      .then(() => (LearnAuth._reset ? LearnAuth._reset() : null)).then(() => 'ok')`);
+    await ev(`document.getElementById('review-view').hidden = true; document.getElementById('sync').click(); 'ok'`);
+    await new Promise((r) => setTimeout(r, 1500));
+    const dead = JSON.parse(await ev(`JSON.stringify({ out: !document.getElementById('signed-out').hidden,
+      inn: !document.getElementById('signed-in').hidden, status: document.getElementById('status').textContent })`));
+    need(dead.out && !dead.inn && /登录已失效/.test(dead.status),
+      '会话被服务端判死后首页没回到登录卡：' + JSON.stringify(dead));
+    cloud.refreshDead = false;
   });
 
   // ─── 设备 C：全新空库 —— 只靠日志重放，必须收敛到 B 删除后的世界 ──────────
