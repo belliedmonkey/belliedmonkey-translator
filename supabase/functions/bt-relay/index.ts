@@ -78,7 +78,23 @@ async function sha256Hex(s: string) {
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// 账本的两种走法。境内中继设 LEDGER_URL + LEDGER_KEY：只经 bt-grant-ledger 那个窄口查 / 扣额度，
+// **不持有 service_role**（那是整个库的最高权限，不出东京这个项目 —— 用户 2026-09-22 裁定）。
+// 东京这个部署不设它，照旧直连 RPC，行为不变。
+const LEDGER_URL = (Deno.env.get('LEDGER_URL') || '').replace(/\/+$/, '');
+const LEDGER_KEY = Deno.env.get('LEDGER_KEY') || '';
+const LEDGER_PATH: Record<string, string> = { bt_grant_check: '/check', bt_grant_charge: '/charge' };
+
 async function rpc(fn: string, args: unknown) {
+  if (LEDGER_URL) {
+    const r = await fetch(LEDGER_URL + LEDGER_PATH[fn], {
+      method: 'POST',
+      headers: { 'x-ledger-key': LEDGER_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    });
+    if (!r.ok) throw new Error(fn + ' ' + r.status);
+    return r.json();
+  }
   const r = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
     method: 'POST',
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
@@ -124,7 +140,13 @@ const KEEP_TTS = ['input', 'voice', 'response_format', 'speed'];
 
 type Shape = 'chat' | 'tts' | 'stt';
 
-Deno.serve(async (req) => {
+// 端口：Supabase 上不设 PORT，照旧 Deno.serve(handler)（行为不变）。境内部署在腾讯云
+// 「Web 函数」里时平台要求监听 0.0.0.0:9000，由 scf_bootstrap 传 PORT=9000 进来。
+const PORT = Deno.env.get('PORT');
+const serve = (h: (req: Request) => Response | Promise<Response>) =>
+  PORT ? Deno.serve({ port: Number(PORT), hostname: '0.0.0.0' }, h) : Deno.serve(h);
+
+serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (!OR_KEY || !KNOWN_UPSTREAM) return json({ error: 'grant_misconfigured' }, 503);
 

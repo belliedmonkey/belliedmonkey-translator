@@ -1,0 +1,4 @@
+#!/bin/bash
+# 腾讯云 Web 函数的启动脚本：进程必须监听 0.0.0.0:9000。
+export PORT=9000
+exec node main.mjs

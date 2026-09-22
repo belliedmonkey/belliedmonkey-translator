@@ -14,15 +14,39 @@
 
 | | 判据 | 谁做 |
 |---|---|---|
-| **机器** | 一台境内机器能跑 Deno ≥ 1.40。原来那台 Lighthouse（北京，`lhins-6amaoj8m`）如果还在，可以直接用 | 你 |
-| **域名 + ICP** | 例如 `relay.belliedmonkey.com`。`belliedmonkey.com` 已有浙ICP备2026057340号，但**子域名的接入是否要单独报**要去核实，不要假设；解析到这台机器的云厂商必须就是备案的接入商 | 你 |
+| **运行处** | **首选腾讯云云函数（Web 函数，境内地域如北京 / 上海）**，用平台默认域名 —— 不绑自己的域名就不涉及 ICP 备案（2026-09-22 用户裁定）。备选：一台境内机器（1B） | 你 |
+| **默认域名可用** | 部署后在**境内手机网络**下回读 `/spec`（第 2 节 ⑤）。腾讯云对默认域名有过「仅供调试」一类说法，未核实 —— 回读不过就改绑自己的域名，那时才需要备案 | 你 |
 | **百炼 key** | 阿里云百炼（北京区）开一把 API key，开余额告警（见第 4 节） | 你 |
 | **价格** | 查百炼控制台里所钉模型的实价，填进 `GRANT_PRICES`（见第 1 节）。**不许照抄国际版那组数** | 你 |
 | **出境同意已上线** | 带 #399 的中国版 App 已经过审上架 | — |
 
 ---
 
-## 1. 在机器上跑
+## 1A. 腾讯云云函数（首选）
+
+**地域必须选境内**（北京 / 上海 / 广州…）。选香港或海外，原文就又出境了 —— 合规检查查不到
+这一条，因为地址长得都一样。
+
+建一个 **Web 函数**，运行环境选 **Node.js 18 或更新**。代码包用脚本打：
+
+```bash
+deploy/china-relay/build-scf.sh        # → deploy/china-relay/.out/bt-relay-scf.zip（约 15 KB）
+```
+
+包里四个文件：`relay.mjs`（`deno bundle` 把 `bt-relay/index.ts` 原样转成 JS —— **逻辑还是那一份**）、
+`deno-shim.mjs`（在 Node 里补 `Deno.env.get` / `Deno.serve` 两个入口，不含任何中继逻辑）、`main.mjs`、
+`scf_bootstrap`（`PORT=9000 node main.mjs`，Web 函数要求监听 `0.0.0.0:9000`）。
+
+**为什么不直接带 Deno 进去**：Linux 版 deno 解压 95 MB，且要 glibc ≥ 2.18，云函数的运行环境未必满足；
+Node 18+ 自带 fetch / Request / Response / FormData，缺的只有那两个入口。2026-09-22 本机按这个包
+实跑过：`scf_bootstrap` 起在 9000、真实百炼回译文、按 total_tokens 记账、换模型 403、预检放行 apikey。
+
+环境变量填在函数配置里（**不要**写进代码包），与 1B 的 `relay.env` 同一组：`SUPABASE_URL`、
+`LEDGER_URL`、`LEDGER_KEY`、`UPSTREAM=dashscope`、`UPSTREAM_KEY`、`CLAIM_PROXY=1`、`GRANT_MODELS`、
+`GRANT_PRICES`。超时设 60 秒（整页翻译的长请求）；开「函数 URL / 公网访问」拿到默认地址，
+这个地址就是下面的 `R` 和第 3 节的 `relayUrl`。
+
+## 1B. 在自己的机器上跑（备选；绑自己的域名就要 ICP 备案）
 
 ```bash
 # 拷那一个文件过去；不需要仓库的其它东西
@@ -30,7 +54,8 @@ scp supabase/functions/bt-relay/index.ts relay:/opt/bt-relay/index.ts
 
 # /opt/bt-relay/relay.env（权限 600）
 SUPABASE_URL=https://cavezcufztzqsohpjmup.supabase.co    # 账本在东京
-SUPABASE_SERVICE_ROLE_KEY=<东京项目的 service_role key>
+LEDGER_URL=https://cavezcufztzqsohpjmup.supabase.co/functions/v1/bt-grant-ledger
+LEDGER_KEY=<与东京 supabase secret LEDGER_KEY 相同>     # **不放 service_role**，见下
 UPSTREAM=dashscope
 UPSTREAM_KEY=<百炼 key>
 CLAIM_PROXY=1
@@ -60,10 +85,23 @@ node -e "const L=require('./build/providers.config.js');console.log(L.find(p=>p.
 
 ---
 
+### 为什么中继不拿 service_role（2026-09-22 用户裁定）
+
+service_role 是东京那个库的最高权限。中继只需要「查额度、扣额度」两个动作，所以东京加了一个窄口
+`supabase/functions/bt-grant-ledger`：只认一把专用钥匙 `LEDGER_KEY`，只做 `/check` 与 `/charge`，
+单次记账 ≤ $0.05、hash 必须是 64 位 hex。这把钥匙泄露的最坏后果是「某个令牌被多记账、提前用完」，
+读不到任何内容、加不了额度、碰不到别的表。中继设了 `LEDGER_URL` 就走它，不再直连 RPC。
+
+东京那边设钥匙（值取 `.local/keys.md` 的 `ledger_key`，不回显）：
+
+```bash
+SUPABASE_ACCESS_TOKEN=… supabase secrets set --project-ref cavezcufztzqsohpjmup LEDGER_KEY=…
+```
+
 ## 2. 回读 —— 每一步都要看到结果，不是「命令没报错」
 
 ```bash
-R=https://relay.belliedmonkey.com
+R=<1A 拿到的默认地址，或 1B 的域名>
 curl -s $R/spec                          # ① {"models":{"chat":"<与注册表同名>"},...}
 curl -s -X POST $R/claim                 # ② 401 {"error":"session"} —— 代转通了（东京回的）
 curl -s -X POST $R/chat/completions -H 'Authorization: Bearer bmg_x' -d '{}'
@@ -82,7 +120,7 @@ curl -s -X POST $R/chat/completions -H 'Authorization: Bearer bmg_x' -d '{}'
 `extension/learn/backend.config.js`：
 
 ```js
-china: { ready: true, relayUrl: 'https://relay.belliedmonkey.com', vendor: 'dashscope' },
+china: { ready: true, relayUrl: '<同上，https 开头>', vendor: 'dashscope' },
 ```
 
 然后 `node build.js --flavor china`。构建会：
