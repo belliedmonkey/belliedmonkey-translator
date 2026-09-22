@@ -96,7 +96,9 @@ docker compose up -d               # ④ 其余
 > **2026-09-22 实测**（服务器上用 admin 接口建两个测试账号，验完删掉）：③ push 201 · ④ pull 回读一致、
 > `bt_usage` 正确、第 6 块 9MB 回 **53100** · 另一账号 / 匿名读不到、冒充 user_id 写入 403、PATCH 已写行 0 行生效 ·
 > ⑤ 删号 200、账号与卡片一起消失 · 刷新令牌 ok · ② 服务器取 Apple JWKS 200。
-> **未验**：① 邮箱 OTP（等 Gmail 应用专用密码）、② 真机 Apple 登录、放置一小时后的自动刷新。
+> ① 邮箱 OTP（同日补验）：外网 POST /otp 200（4.5 s）→ Gmail 3 秒内收到，主题与中英双语模板同东京、**6 位**码 →
+> POST /verify（与 auth.js 同形 `type:'email'`）拿到 session → 用它拉同步 200。
+> **未验**：② 真机 Apple 登录、放置一小时后的自动刷新。
 > 首次实跑踩到并已修进本目录的四处：`API_EXTERNAL_URL` 必填 · 兼容层密码是会话参数不是 `psql -v` ·
 > `schema.sql` 的 `pg_cron` 改成有才建 · **Supabase 预置的表权限要自己补**（缺了就是 push / pull 全 42501）。
 
