@@ -107,10 +107,27 @@ var EngineTest = (() => {
 
   const missing = (name) => { const e = new Error(name + ' not loaded'); e.code = 'no_engine'; return e; };
 
+  // 没填 key 就不发请求（#385，2026-09-22 用户裁定）：朗读 / 转写两槽早就这样（tts.js 的 engineReady），
+  // 翻译 / 解析两槽此前照样把请求发出去，回 401 落进 http —— 线上 engine_test 的 http 34 条里混着它，
+  // 本该离线就能具名说出来的错。
+  //
+  // **只拦「地址由注册表给定」的平台**（DeepSeek、智谱、千问…）。自定义地址（requiresEndpoint，
+  // custom_chat / custom_msg）注册表里也标着 needsKey，但接本地 Ollama 这类的人根本没有 key ——
+  // 对它们照旧真的试一次，免得把一个能用的配置说成坏的。读注册表生成物，不另写一份引擎表；
+  // 认不出的引擎不拦（交给传输层照旧处理）。
+  function assertKey(provider, apiKey) {
+    if (String(apiKey || '').trim()) return;
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    const p = list.find((x) => x && x.id === provider);
+    if (!p || !p.needsKey || p.requiresEndpoint) return;
+    const e = new Error('no key'); e.code = 'no_key'; throw e;
+  }
+
   // ── 四条传输，各走该功能真正用的那条路 ──────────────────────────────
   async function translation(cfg) {
     if (typeof TranslationAPI === 'undefined') throw missing('TranslationAPI');
     assertEndpointShape(cfg.baseUrl);
+    assertKey(cfg.provider, cfg.apiKey);
     const t0 = Date.now();
     // noCache：一个可能不发请求的「测试连接」是有害的（实测过：改完地址点测试，
     // 1ms 返回「通了」，一个包都没出去）。diag 是出参，传输层把真正请求的地址与
@@ -130,6 +147,7 @@ var EngineTest = (() => {
     if (typeof LearnNotes === 'undefined') throw missing('LearnNotes');
     const cfg = LearnNotes.resolveConfig(settings || {});
     assertEndpointShape(cfg.baseUrl);
+    assertKey(cfg.provider, cfg.apiKey);
     LearnNotes.configure(cfg);
     return LearnNotes.test();
   }

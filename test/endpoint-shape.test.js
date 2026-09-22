@@ -155,3 +155,47 @@ describe('每个地址输入框都挂了失焦判定', () => {
     }
   });
 });
+
+// #385（2026-09-22 用户裁定）：翻译 / 解析两槽没填 key 就具名说 no_key，**一个请求都不发**；
+// 自定义地址不拦（本地 Ollama 这类本来就没有 key）。判据是「传输层被调用了几次」，不是文案。
+describe('没填 key：官方平台直接说，自定义地址照旧试一次', () => {
+  const REG = [
+    { id: 'deepseek', needsKey: true, requiresEndpoint: false },
+    { id: 'custom_chat', needsKey: true, requiresEndpoint: true },
+    { id: 'google', needsKey: false },
+  ];
+  const mk = () => {
+    const calls = [];
+    const TranslationAPI = { translate: async (...a) => { calls.push(a); return '你好'; } };
+    const LearnNotes = {
+      resolveConfig: (s) => ({ provider: s.provider, apiKey: s.apiKey || '', baseUrl: s.baseUrl || '' }),
+      configure() {}, test: async () => { calls.push('notes'); return { ms: 1 }; },
+    };
+    const ET = loadModule('learn/engine-test.js', { window: { MT_PROVIDERS: REG }, WireFormat, TranslationAPI, LearnNotes }).EngineTest;
+    return { ET, calls };
+  };
+  const codeOf = async (p) => { try { await p; return 'ok'; } catch (e) { return e.code; } };
+
+  test('官方平台没填 key ⇒ no_key，翻译与解析都 0 请求', async () => {
+    const { ET, calls } = mk();
+    eq(await codeOf(ET.translation({ provider: 'deepseek', apiKey: '' })), 'no_key');
+    eq(await codeOf(ET.notes({ provider: 'deepseek', apiKey: '  ' })), 'no_key');
+    eq(calls.length, 0, '没填 key 却把请求发出去了 —— 回 401 会被记成 http');
+  });
+  test('填了 key ⇒ 照常发', async () => {
+    const { ET, calls } = mk();
+    eq(await codeOf(ET.translation({ provider: 'deepseek', apiKey: 'sk-x' })), 'ok');
+    eq(calls.length, 1);
+  });
+  test('自定义地址没 key ⇒ 照旧试一次（本地模型没有 key）', async () => {
+    const { ET, calls } = mk();
+    eq(await codeOf(ET.translation({ provider: 'custom_chat', apiKey: '', baseUrl: 'http://127.0.0.1:11434/v1/chat/completions' })), 'ok');
+    eq(calls.length, 1, '自定义地址被当成没填 key 拦下了 —— 接本地 Ollama 的人会被说成配错');
+  });
+  test('不要 key 的引擎、认不出的引擎 ⇒ 不拦', async () => {
+    const { ET, calls } = mk();
+    eq(await codeOf(ET.translation({ provider: 'google', apiKey: '' })), 'ok');
+    eq(await codeOf(ET.translation({ provider: 'nope', apiKey: '' })), 'ok');
+    eq(calls.length, 2);
+  });
+});
