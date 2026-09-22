@@ -1,5 +1,18 @@
 # 中国版境内后端 —— 从空机器到切过去
 
+> **2026-09-22 实装记录**（机器 `lhins-6amaoj8m`，北京，Ubuntu 24.04，2C2G）：
+> - 域名用 **`api.belliedmonkey.com`**（`belliedmonkey.com` 的备案接入资源就是这台机器），不是下文示例里的 `.cn`。
+> - **发信复用东京那套 Gmail**（用户裁定，不去问 SES）：587 实测通，`smtp-check.sh` 每小时查一次连通性。
+>   密码读不回来（管理接口只给摘要），由用户放进服务器的 `gotrue.env`。
+> - 镜像走腾讯云内网加速 `mirror.ccs.tencentyun.com`（`/etc/docker/daemon.json`），境内拉 Docker Hub 不通。
+> - **所有密钥在服务器上生成、只在服务器上**（`/opt/bt/deploy/china/.env`、`gotrue.env`，600）；
+>   取回本机的只有公开的 anon key。
+> - 邮件模板 `GOTRUE_MAILER_TEMPLATES_*` 要的是**网址**：由 Caddy 内部入口 `:8081/templates/otp.html` 提供。
+> - 离线朗读模型地址表 `bt_model_sources` 不在 `schema.sql` 里，单独 `model-sources.sql`。
+> - 删号服务只听 8000（共享文件 `Deno.serve(handler)` 不读 PORT）—— 原配置的 8080 已改。
+> - **不做迁移**（用户裁定，读数：东京里大陆 IP 的外部账号 11 个，有像样数据的 2 个且与用户本人同网段）。
+>   切过去那一版的版本说明 + 隐私页写清「需重新登录、东京旧卡片不自动过来、本机卡片会重新同步」。
+
 一台轻量应用服务器跑整套：Postgres + GoTrue + PostgREST + Caddy。
 **协议一个字节不变** —— 客户端说的是标准 GoTrue + PostgREST，只换地址。
 
@@ -63,12 +76,12 @@ console.log(`${h}.${p}.`+c.createHmac("sha256",s).update(`${h}.${p}`).digest("ba
 
 ```bash
 docker compose up -d db
-docker compose up -d auth          # ① 让 GoTrue 跑完自己的 migrations（建 auth schema + auth.users）
+docker compose exec -T db psql -U postgres -c 'create schema if not exists auth'   # ⓪ GoTrue 的迁移表要放进 auth，它不自己建这个 schema
+docker compose up -d auth          # ① 让 GoTrue 跑完自己的 migrations（建 auth.users 等）
 docker compose logs -f auth        #    等到看见 migrations 完成再往下
 
-docker compose exec -T db psql -U postgres \
-  -v mt.authenticator_password="'$AUTHENTICATOR_PASSWORD'" \
-  < auth-compat.sql                # ② 角色 + auth.uid()/auth.role()
+docker compose exec -T -e PGOPTIONS="-c mt.authenticator_password=$AUTHENTICATOR_PASSWORD" db \
+  psql -v ON_ERROR_STOP=1 -U postgres < auth-compat.sql   # ② 角色 + auth.uid()/auth.role()（会话参数，不是 -v 变量）
 docker compose exec -T db psql -U postgres < ../../supabase/schema.sql   # ③ 原样，一个字节不改
 
 docker compose up -d               # ④ 其余
@@ -79,6 +92,15 @@ docker compose up -d               # ④ 其余
 `auth-compat.sql` 补出来。`auth-compat.sql` 末尾有回读断言，别拿「没报错」当成功。
 
 ## 4. 五条真实链路，逐条跑通
+
+> **2026-09-22 实测**（服务器上用 admin 接口建两个测试账号，验完删掉）：③ push 201 · ④ pull 回读一致、
+> `bt_usage` 正确、第 6 块 9MB 回 **53100** · 另一账号 / 匿名读不到、冒充 user_id 写入 403、PATCH 已写行 0 行生效 ·
+> ⑤ 删号 200、账号与卡片一起消失 · 刷新令牌 ok · ② 服务器取 Apple JWKS 200。
+> ① 邮箱 OTP（同日补验）：外网 POST /otp 200（4.5 s）→ Gmail 3 秒内收到，主题与中英双语模板同东京、**6 位**码 →
+> POST /verify（与 auth.js 同形 `type:'email'`）拿到 session → 用它拉同步 200。
+> **未验**：② 真机 Apple 登录、放置一小时后的自动刷新。
+> 首次实跑踩到并已修进本目录的四处：`API_EXTERNAL_URL` 必填 · 兼容层密码是会话参数不是 `psql -v` ·
+> `schema.sql` 的 `pg_cron` 改成有才建 · **Supabase 预置的表权限要自己补**（缺了就是 push / pull 全 42501）。
 
 这五条是客户端**已经在依赖**的行为。没跑通就不要翻 `china.ready`。
 
@@ -101,10 +123,13 @@ docker compose up -d               # ④ 其余
 ```js
 china: {
   ready: true,
-  url: 'https://api.belliedmonkey.cn',
-  anonKey: '<第 2 步签的 anon>',
+  url: 'https://api.belliedmonkey.com',
+  // 2026-09-22 在服务器上签发（公开值；服务器 /opt/bt/deploy/china/.env 的 ANON_KEY 为准）
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImJlbGxpZWRtb25rZXkiLCJpYXQiOjE3OTAwNTEwNDIsImV4cCI6MjEwNTQxMTA0Mn0.fLi55wvR7_fGoYRyCvgfBOMRjgx1qGV2wcdQ7SjX5x8',
 },
 ```
+
+三个值**一起改**：`test/backend-config.test.js` 禁止「ready 为假却填了地址」的半填状态。
 
 ```bash
 npm test                       # 门禁会检查：url 不是 *.supabase.co、两 flavor 的 url/anonKey 不同

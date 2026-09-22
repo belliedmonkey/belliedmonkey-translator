@@ -199,10 +199,22 @@ revoke all on function public.bt_rollup_day(date) from public, anon, authenticat
 
 -- 每天 03:17 UTC：先聚合昨天，再删 180 天前的原始行。顺序是硬的 —— 反过来会把
 -- 还没聚合的那一天删掉。
-create extension if not exists pg_cron;
-select cron.unschedule(jobid) from cron.job where jobname in ('bt_events_rollup', 'bt_events_retention');
-select cron.schedule('bt_events_rollup',    '17 3 * * *', $$select public.bt_rollup_day((now() - interval '1 day')::date)$$);
-select cron.schedule('bt_events_retention', '27 3 * * *', $$delete from public.bt_events where received_at < now() - interval '180 days'$$);
+-- pg_cron 是 Supabase 自带的扩展，**普通 PostgreSQL 没有**。中国版境内后端（deploy/china，
+-- postgres:15-alpine）按这份文件建库时，2026-09-22 第一次实跑就停在这里，后面的表一张都没建。
+-- 所以改成「有才建」：Supabase 上行为逐字不变；境内没有它 —— 中国版不发遥测（这两个任务管的是
+-- bt_events），流水清理见下面 bt_grant_usage 那一段的注释。
+do $cron$
+begin
+  if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
+    create extension if not exists pg_cron;
+    perform cron.unschedule(jobid) from cron.job where jobname in ('bt_events_rollup', 'bt_events_retention');
+    perform cron.schedule('bt_events_rollup',    '17 3 * * *', $$select public.bt_rollup_day((now() - interval '1 day')::date)$$);
+    perform cron.schedule('bt_events_retention', '27 3 * * *', $$delete from public.bt_events where received_at < now() - interval '180 days'$$);
+  else
+    raise notice 'pg_cron 不可用：跳过 bt_events 的汇总 / 清理任务（中国版境内后端不收遥测）';
+  end if;
+end
+$cron$;
 
 -- bt_optouts 的自增（边缘函数经 RPC 调；service role 才有权限）。
 create or replace function public.bt_optout_bump(d date)
@@ -377,6 +389,15 @@ revoke all on function public.bt_grant_charge(text, text, text, numeric, int) fr
 revoke all on function public.bt_grant_stats() from public, anon, authenticated;
 
 -- 流水 90 天保留（额度本身与账号同寿，删号 cascade 带走）。
-select cron.unschedule(jobid) from cron.job where jobname = 'bt_grant_usage_retention';
-select cron.schedule('bt_grant_usage_retention', '37 3 * * *',
-  $$delete from public.bt_grant_usage where at < now() - interval '90 days'$$);
+-- 没有 pg_cron 的库（中国版境内后端）跳过；那边开额度时用宿主机 crontab 跑同一句 delete。
+do $cron$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'bt_grant_usage_retention';
+    perform cron.schedule('bt_grant_usage_retention', '37 3 * * *',
+      $$delete from public.bt_grant_usage where at < now() - interval '90 days'$$);
+  else
+    raise notice 'pg_cron 不可用：跳过 bt_grant_usage 的 90 天清理（改用宿主机 crontab）';
+  end if;
+end
+$cron$;

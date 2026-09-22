@@ -94,9 +94,11 @@ services:
       SUPABASE_URL: http://proxy:8081
       SUPABASE_ANON_KEY: ${ANON_KEY:?必须设置}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?必须设置}
-      PORT: "8080"
+    # ⚠️ 那个共享文件是 `Deno.serve(handler)`，**只听默认的 8000**，不读 PORT。
+    #    这里原来写着 PORT=8080 + expose 8080、Caddyfile 转发 fn:8080 —— 删号请求会全部打空
+    #    （2026-09-22 部署前核对时发现）。改部署这一侧对上它，不改共享文件。
     expose:
-      - "8080"
+      - "8000"
 
   # 把 GoTrue 与 PostgREST 挂在**同一个域名**下，路径与 Supabase 逐字相同
   # （/auth/v1/* 与 /rest/v1/*）—— 客户端因此一个字节都不用改。
@@ -109,6 +111,7 @@ services:
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./otp.html:/srv/templates/otp.html:ro
       - ./data/caddy:/data
     environment:
       MT_DOMAIN: ${MT_DOMAIN:?必须设置，例如 api.belliedmonkey.cn}
