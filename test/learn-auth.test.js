@@ -358,3 +358,58 @@ describe('App 那条路：票直接传进来（不经内容脚本）', () => {
     eq(calls.length, 0);
   });
 });
+
+// ─── learning-design §8.4.3「后端换了：主库跟着第一个登录的人走」（2026-09-22）──────────────
+describe('后端换了 ⇒ 主库由这次登录的人接管（中国版切境内）', () => {
+  function loadRehome(seed, backend) {
+    const stored = Object.assign({}, seed || {});
+    const PageSettings = {
+      read: async (keys) => ({ ok: true, data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+      write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+      removeKeys: async (keys) => { for (const k of keys) delete stored[k]; return { ok: true }; },
+    };
+    let used = null;
+    const LearnStore = { DB_NAME: 'mt-learn', dbNameFor: (u) => 'mt-learn-' + u, useDb: async (n) => { used = n; return n; },
+      getMeta: async () => null, setMeta: async () => {} };
+    const ctx = loadModule('learn/auth.js', { window: {}, MT_BACKEND: Object.assign({ anonKey: 'anon', table: 'bt_chunks' }, backend),
+      PageSettings, LearnStore, fetch: async () => { throw new Error('no network in this test'); } });
+    return { A: ctx.LearnAuth, stored, usedDb: () => used };
+  }
+  const TOKYO = 'https://tokyo.supabase.co'; const CN = 'https://api.example.cn';
+
+  test('老设备（主库无后端记录）+ 产物带 previousUrl ⇒ 新后端的账号接管主库，留待办', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo' }, { url: CN, previousUrl: TOKYO });
+    const want = await A.bindCorpus({ userId: 'u-cn', backend: CN });
+    eq(want, 'mt-learn', '应当选中主库，而不是给一个空库');
+    eq(stored.learnDbOwner, 'u-cn'); eq(stored.learnDbOwnerBackend, CN); eq(stored.learnRehome, 'u-cn');
+    eq(await A.takeRehome('u-other'), false, '待办只对接管者生效');
+    eq(await A.takeRehome('u-cn'), true); eq(await A.takeRehome('u-cn'), false, '取走即清');
+  });
+
+  test('国际版（没有 previousUrl）⇒ 行为逐字不变：另一个账号仍拿独立库、不留待办', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-a' }, { url: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-b' }), 'mt-learn-u-b');
+    eq(stored.learnDbOwner, 'u-a'); ok(!('learnRehome' in stored));
+  });
+
+  test('已在新后端认领过 ⇒ 同后端的另一个账号照旧拿独立库（保护不打折）', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-cn', learnDbOwnerBackend: CN }, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-cn2', backend: CN }), 'mt-learn-u-cn2');
+    eq(stored.learnDbOwner, 'u-cn'); ok(!('learnRehome' in stored));
+  });
+
+  test('★ 升级那一刻本机还存着旧后端的会话 ⇒ 它不许动归属（否则真正的新账号登录时主库已「属于别人」）', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo', learnActiveDb: 'mt-learn' }, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-tokyo' }), 'mt-learn', '旧会话（无 backend 字段）按未登录选库');
+    eq(stored.learnDbOwner, 'u-tokyo'); ok(!('learnDbOwnerBackend' in stored), '不许写认领后端'); ok(!('learnRehome' in stored));
+    // 随后新后端的账号登录：照常接管
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
+    eq(stored.learnDbOwner, 'u-cn'); eq(stored.learnRehome, 'u-cn');
+  });
+
+  test('首次认领顺手记下后端', async () => {
+    const { A, stored } = loadRehome({}, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
+    eq(stored.learnDbOwnerBackend, CN); ok(!('learnRehome' in stored), '首次认领不是改户');
+  });
+});

@@ -327,6 +327,11 @@
   const EXT_DONE = 'extBannerDoneAt';
   let extBannerDone = false;
   let extBannerShownDay = '';
+  // 启动时「当天记过没有」与「继续设置卡在不在」都还没读出来之前，横幅照画、但不记 shown。
+  // 原生的 show('ios') 常在预读之前就到 ⇒ extBannerShownDay 还是空串，每次启动都记一条
+  // （1.12.1–1.14.0 线上约四成「装机·天」记了多条，最多一天 52 条）；而且继续设置卡要等
+  // paintObResume 才露面，横幅在那之前会先闪一下并记一条，其实用户没看到它。
+  let extBannerPrimed = false;
   function extBannerTrack(action) {
     try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('ext_banner', { action }); } catch (_) {}
   }
@@ -371,7 +376,7 @@
     if (done) { done.hidden = !ios; done.textContent = t('app_ext_done', '我已打开'); }
     const check = $('ext-banner-check');
     if (check) { check.hidden = !ios; $('ext-banner-check-link').textContent = t('app_ext_check_hint', '不确定？打开检测页看绿灯 →'); }
-    if (ios) {
+    if (ios && extBannerPrimed) {
       // 每装机每天至多一条 shown（telemetry-design §3.1）。
       const today = new Date().toISOString().slice(0, 10);
       if (extBannerShownDay !== today) {
@@ -1214,7 +1219,7 @@
             : t('app_sync_empty', '同步完成，但服务器上还没有内容 —— 先在浏览器里采集一些，再回来同步。')));
       }
     } catch (err) {
-      say(humanError(err), true);
+      if (!(await reconcileSession())) say(humanError(err), true);
     } finally {
       $('sync').disabled = false;
       $('sync').textContent = t('app_sync', '同步');
@@ -1222,6 +1227,20 @@
   }
 
   $('sync').addEventListener('click', doSync);
+
+  // 会话被服务端判死（auth.js token()：400/401 且带 GoTrue 错误体 ⇒ store(null)）之后，界面要跟着回到
+  // 未登录的登录卡。原来没有这一步：会话已经清掉，首页却还挂着邮箱和「退出」，同步按钮只会说
+  // 「学习库有归属，但现在没有登录」—— 登录入口藏在「退出」后面。2026-09-22 中国版切境内后端时每个
+  // 已登录的老用户都会撞上一次（东京签的刷新令牌在境内必然被拒）；国际版里刷新令牌被作废时同样如此。
+  async function reconcileSession() {
+    if (!currentSession) return false;
+    let s = null;
+    try { s = await LearnAuth.current(); } catch (_) { return false; }   // 读不到 ≠ 已退出（§8.4.1）
+    if (s) return false;
+    await show(null);
+    say(t('sync_err_signed_out', '登录已失效，请重新登录。'), true);
+    return true;
+  }
 
   // §8.8 修订版 — launch and return-to-foreground are ENTRIES, and every entry
   // FORCES a sync (interaction-spec「多设备同步一致性」: 每次进 App 即同步，绕过
@@ -1232,6 +1251,7 @@
     if (!currentSession) return;
     const r = await LearnSync.autoSync(Date.now(), Object.assign({ force: true }, extra || {}))
       .catch(() => null);
+    if (await reconcileSession()) return;
     if (r) await paintCounts();
   }
 
@@ -1635,12 +1655,15 @@
         $('signed-out').hidden = true;
         $('signed-in').hidden = true;
         $('onboard').hidden = false;
+        extBannerPrimed = true;
         paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
         obAt = 0; obPaint();
         return;
       }
       await show(session);
       if (obResume) await paintObResume(session);
+      extBannerPrimed = true;
+      paintExtBanner(extState);   // 预读与继续设置卡都定了：这一次画才算用户看到的
       // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
       // as the recovery path, but the status line must name the real problem.
       if (!session && LearnAuth.lastLoadError()) {
@@ -1651,6 +1674,7 @@
       quietSync();
     } catch (err) {
       // A corrupt session must not leave a blank window with no way forward.
+      extBannerPrimed = true;
       await show(null);
       say(humanError(err), true);
     }

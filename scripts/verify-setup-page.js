@@ -92,6 +92,8 @@ async function checkSite(site) {
       'EXCEPTION ' + ((p.exceptionDetails.exception || {}).description || p.exceptionDetails.text)) });
     cdp.listeners.push({ event: 'Log.entryAdded', fn: (p) => {
       if (p.entry.level !== 'error' || /favicon/.test(p.entry.url || '')) return;
+      // Vercel 统计脚本只在线上存在（平台注入的路径），本机静态服务上 404 是常态，不是页面缺陷。
+      if (/\/_vercel\/insights\//.test(p.entry.url || '')) return;
       // 阶段 ④ 的 503 是本门禁自己造的，不是页面缺陷。
       if (blockI18n && /\/i18n\//.test(p.entry.url || '')) return;
       bad.push('ERROR ' + p.entry.text + ' ' + (p.entry.url || ''));

@@ -92,6 +92,19 @@ describe('MTTelemetry — 开关与心跳', () => {
     await Promise.all([T.once('sync_on'), T.once('sync_on'), T.once('sync_on')]);
     eq(q(store, T).filter((e) => e.name === 'sync_on').length, 1);
   });
+  // #387 后半（2026-09-22 发 1.15.0 前模拟器回读）：init 单飞之后 installed 在队列里只有一条了，
+  // 表里却仍**成对**出现 —— 整批在 20–50ms 内被 POST 两次。app.js 与 review.js 各调一次
+  // init({flushNow})，两个 flush 并发，都在对方清队列之前读到同一批；tm:last 那把 5 秒软锁
+  // 挡的是两个页面，挡不住同一页面里的两次调用。
+  test('④d 同一页面并发 flush：同一批只发一次', async () => {
+    const { T, sends } = load();
+    await T.init();
+    await Promise.all([T.init({ flushNow: true }), T.init({ flushNow: true }), T.flush()]);
+    await new Promise((r) => setTimeout(r, 10));
+    const names = sends.flatMap((s) => s.body.map((e) => e.name));
+    eq(names.filter((n) => n === 'installed').length, 1, '并发 flush 把同一批发了多遍：' + names.join(','));
+    eq(sends.length, 1);
+  });
   test('flush：先清队列再发，一批 ≤ 50，信封带同一个 install_id', async () => {
     const { T, store, sends } = load();
     for (let i = 0; i < 12; i += 1) await T.track('heartbeat');   // 第 10 条触发 flush

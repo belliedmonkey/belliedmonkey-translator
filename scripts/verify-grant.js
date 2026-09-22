@@ -44,6 +44,12 @@ function prepareDist(port) {
   t = t.replace('window.MT_GRANT = null;',
     `window.MT_GRANT = ${JSON.stringify({ vendor: 'test', vendorLabel: 'TestVendor', limitUsd: 0.2, claimUrl: base + '/functions/v1/bt-grant', models: { chat: MODEL } })};`);
   fs.writeFileSync(gen, t);
+  // 登录后端指到本机不监听的端口 = 离线：门禁种的是假会话，真打到后端会 401 → 强制刷新 → 被拒 ⇒ 会话判死
+  // （sync.js call()，2026-09-22 起的正确行为），额度那一支就测成了「未登录」。
+  { const f = path.join(run, 'learn', 'backend.config.js'); const bt = fs.readFileSync(f, 'utf8');
+    const bu = bt.replace(/^  url: '[^']*'/m, "  url: 'http://127.0.0.1:9'");
+    if (bu === bt) throw new Error('backend.config.js 里找不到顶层 url —— 形状变了？');
+    fs.writeFileSync(f, bu); }
   for (const f of ['tts.gen.js', 'stt.gen.js']) {
     const p = path.join(run, 'content', f);
     fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace(/https:\/\/[a-z0-9]+\.supabase\.co/g, base));

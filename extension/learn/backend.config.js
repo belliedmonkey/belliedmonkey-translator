@@ -103,10 +103,13 @@ var MT_BACKEND = {
   //
   // 只有一处写死了「境内」这件事：门禁要求 `url` 不是 *.supabase.co
   // （见 test/backend-config.test.js）—— 否则「切过去了」会是一句假话。
+  // 2026-09-22 翻（用户裁定「1.15.0 就切」）：服务器五条链路 + 一小时刷新已验（deploy/china/README §4），
+  // 真机 Apple 登录随 1.15.0 验收矩阵补。已有中国版用户的东京数据**不迁移**（用户裁定），发布说明与隐私页写明。
   china: {
-    ready: false,
-    url: '',
-    anonKey: '',
+    ready: true,
+    url: 'https://api.belliedmonkey.com',
+    // 公开值；服务器 /opt/bt/deploy/china/.env 的 ANON_KEY 为准
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImJlbGxpZWRtb25rZXkiLCJpYXQiOjE3OTAwNTEwNDIsImV4cCI6MjEwNTQxMTA0Mn0.fLi55wvR7_fGoYRyCvgfBOMRjgx1qGV2wcdQ7SjX5x8',
   },
 
   // ─── 免费额度（§8.10，2026-09-08）────────────────────────────────────────

@@ -38,7 +38,10 @@ const LEDGER = require(path.join(ROOT, 'build/perf-ledger.config.js'));
 const SITES = {
   global: { dir: process.env.MT_SITE_CC || path.join(process.env.HOME, 'belliedmonkey-cc'),
             host: 'belliedmonkey.cc', lang: 'en',
-            appName: 'BelliedMonkey Translator', orgName: 'BelliedMonkey, LLC' },
+            appName: 'BelliedMonkey Translator', orgName: 'BelliedMonkey, LLC',
+            // Vercel Web Analytics（2026-09-20 起只在 .cc）。当天是手加进站点页面的，模板没跟上 ⇒
+            // 「按提示重新生成」会把统计静默删掉。与 gen-try-pages.js 的同名开关同一件事。
+            analytics: true },
   china:  { dir: process.env.MT_SITE_CN || path.join(process.env.HOME, 'belliedmonkey-com'),
             host: 'belliedmonkey.com', lang: 'zh-Hans',
             appName: '大肚猴翻译', orgName: '大肚猴翻译' },   // 个人非经营性备案：落款是品牌，不是公司主体

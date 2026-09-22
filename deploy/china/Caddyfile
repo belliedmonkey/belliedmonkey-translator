@@ -29,37 +29,45 @@
 }
 
 {$MT_DOMAIN} {
-	# GoTrue 自己不带 /auth/v1 前缀，它的路由是 /otp、/verify、/token…
-	# 所以这里要**剥掉**前缀再转发。
-	handle_path /auth/v1/* {
-		reverse_proxy auth:9999
-	}
-
-	# PostgREST 同理：它的路由是 /bt_chunks、/rpc/bt_usage。
-	handle_path /rest/v1/* {
-		reverse_proxy rest:3000
-	}
-
-	# 删号那个小服务（替代 Supabase 的 /functions/v1/bt-delete-account）。
-	# 客户端调用点：auth.js:310。失败只降级为 partial 不抛，所以它不在
-	# 关键路径上 —— 但没有它，用户删号时云端数据会留着。
-	handle_path /functions/v1/* {
-		reverse_proxy fn:8000
-	}
-
-	# CORS：扩展页与宿主 App 都是从别的 origin 发过来的。
+	# CORS：扩展页与宿主 App 都是从别的 origin 发过来的（App 的页面 origin 是 file://，请求头里 Origin: null）。
+	# ⚠️ **必须排在所有路径 handle 之前。** handle / handle_path 是互斥的、先匹配先得：这一块原来排在后面，
+	#    OPTIONS /auth/v1/* 于是被转给 GoTrue，而 GoTrue 回的 204 只有 Allow-Origin、没有 Allow-Headers ——
+	#    浏览器拦下每一个带 apikey 头的登录请求（2026-09-22 模拟器 App 里 `Load failed`；curl 不做预检，
+	#    所以服务器上五条链路「全通」的实测没看出来）。判据：见 README §4 那条 OPTIONS 回读。
 	# 客户端实际会送的头只有这三个（auth.js:50、sync.js:31-38）——
 	# 少一个就是全部请求被浏览器拦在发出去之前。
-	@cors_preflight method OPTIONS
-	handle @cors_preflight {
-		header {
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "authorization, apikey, content-type, prefer"
-			Access-Control-Max-Age "86400"
+	# route：里面的块**按书写顺序**执行。不包的话 Caddy 按指令优先级排序，handle_path 永远先于 handle ——
+	# 预检块写在最前面也会被路径块抢先（2026-09-22 第一次修只挪了位置，读回 OPTIONS 仍缺 Allow-Headers）。
+	route {
+		@cors_preflight method OPTIONS
+		handle @cors_preflight {
+			header {
+				Access-Control-Allow-Origin "*"
+				Access-Control-Allow-Methods "GET, POST, PATCH, DELETE, HEAD, OPTIONS"
+				Access-Control-Allow-Headers "authorization, apikey, content-type, prefer"
+				Access-Control-Max-Age "86400"
+			}
+			respond 204
 		}
-		respond 204
+		# GoTrue 自己不带 /auth/v1 前缀，它的路由是 /otp、/verify、/token…
+		# 所以这里要**剥掉**前缀再转发。
+		handle_path /auth/v1/* {
+			reverse_proxy auth:9999
+		}
+
+		# PostgREST 同理：它的路由是 /bt_chunks、/rpc/bt_usage。
+		handle_path /rest/v1/* {
+			reverse_proxy rest:3000
+		}
+
+		# 删号那个小服务（替代 Supabase 的 /functions/v1/bt-delete-account）。
+		# 客户端调用点：auth.js:310。失败只降级为 partial 不抛，所以它不在
+		# 关键路径上 —— 但没有它，用户删号时云端数据会留着。
+		handle_path /functions/v1/* {
+			reverse_proxy fn:8000
+		}
 	}
+
 	header {
 		Access-Control-Allow-Origin "*"
 		# PostgREST 的分页与 Prefer 回显要能被读到。
