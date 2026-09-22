@@ -121,6 +121,8 @@ function fakeStore(seed = {}) {
     tombstones: () => Promise.resolve(new Set(seed.tombs || [])),
     hasEverEvicted: () => Promise.resolve(!!seed.everEvicted),
     bumpPressure: (f, n) => { bumps.push({ f, n }); return Promise.resolve(); },
+    clearSyncStamps: () => { let n = 0; for (const it of items) if (it.syncedAt) { delete it.syncedAt; n++; }
+      for (const r of reviews) if (r.viaSync) { delete r.viaSync; n++; } return Promise.resolve(n); },
   };
 }
 
@@ -427,6 +429,82 @@ describe('LearnSync — pull', () => {
     eq(r.skipped, 1);
     eq(r.chunks, 0);
     eq(store.meta.syncCursor, 7, 'the cursor MUST move past a row we cannot use');
+  });
+});
+
+// 2026-09-22：中国版切境内后端。老用户手里是东京签的访问令牌 —— 还在有效期内，所以 token() 不会刷新，
+// 境内 PostgREST 却回 401（签名对不上）。修前 App 只会说「同步没能完成，稍后自动重试」，要等最多一小时
+// 令牌自然过期才走到刷新、才发现刷新令牌早已作废。401 本身就是「这张令牌不算数」：作废它、强制刷新一次。
+describe('LearnSync — 数据接口 401 ⇒ 作废访问令牌、强制刷新一次', () => {
+  const ROWS = (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u);
+  test('刷新被服务端明确拒绝（400 + 错误体）⇒ 会话判死，pull 以 signed_out 结束', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let refreshes = 0;
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: () => reply(401, { code: 'PGRST301', message: 'JWSError JWSInvalidSignature' }) },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => { refreshes++; return reply(400, { code: 400, error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token: Refresh Token Not Found' }); } },
+    ]);
+    const { S, A } = setup({ store, fetch: fetchFn });
+    const e = await S.pull().then(() => null, (x) => x);
+    ok(e, 'pull 应当失败');
+    eq(e.code, 'signed_out', '401 之后刷新被拒，应当是 signed_out 而不是 ' + (e && e.code));
+    eq(refreshes, 1, '应当恰好强制刷新一次');
+    eq(await A.current(), null, '会话应当被清掉');
+  });
+  test('刷新成功 ⇒ 用新令牌重试一次，pull 成功', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const seen = [];
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: (u, i) => { const a = i.headers.Authorization; seen.push(a); return a === 'Bearer NEW' ? reply(200, []) : reply(401, { code: 'PGRST301', message: 'JWT expired' }); } },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => reply(200, { access_token: 'NEW', refresh_token: 'RT2', expires_in: 3600, user: { id: 'u1', email: 'a@b.c' } }) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.pull();
+    eq(r.chunks, 0);
+    eq(seen.join(','), 'Bearer tok,Bearer NEW');
+  });
+  test('重试后仍 401 ⇒ 不再无限刷新，按 http_401 报出', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let refreshes = 0;
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: () => reply(401, { message: 'nope' }) },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => { refreshes++; return reply(200, { access_token: 'NEW' + refreshes, refresh_token: 'R' + refreshes, expires_in: 3600, user: { id: 'u1' } }); } },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const e = await S.pull().then(() => null, (x) => x);
+    eq(e && e.code, 'http_401'); eq(refreshes, 1);
+  });
+});
+
+describe('LearnSync — 后端换了：ownerGate 清掉旧后端的同步账（§8.4.3）', () => {
+  // 从旧后端拉下来的卡带着 syncedAt、复习记录带 viaSync —— 不抹掉，它们永远不会被推上新后端。
+  test('待办在 ⇒ 清归属戳 / 游标 / 水位 / 已同步戳，然后整库推上去；再推一次为 0（收敛）', async () => {
+    const store = fakeStore({
+      meta: { corpusOwner: { userId: 'u-tokyo', at: T0 }, syncCursor: 42, syncPushedAt: T0 + 9e6 },
+      items: [card('a', { syncedAt: T0 }), card('b', { syncedAt: T0 }), card('c')],
+      reviews: [{ itemId: 'a', grade: 3, at: T0, viaSync: true }],
+      sources: [{ id: 'src1', url: 'u' }],
+    });
+    let pending = true;
+    const auth = { userId: async () => 'u-cn', token: async () => 'tok', expireAccess: async () => {},
+      takeRehome: async (me) => { if (pending && me === 'u-cn') { pending = false; return true; } return false; } };
+    const bodies = [];
+    const fetchFn = fakeFetch([{ match: (u, i) => i && i.method === 'POST', reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: bodies.length }]); } }]);
+    const { S, C } = setup({ store, fetch: fetchFn, auth });
+    const r = await S.push(T0 + 1e7);
+    eq(store.meta.corpusOwner && store.meta.corpusOwner.userId, 'u-cn', '清完应认领为新账号');
+    eq(store.meta.syncCursor, 0);
+    ok(r.pushed >= 1, '应当推了');
+    const back = C.fromJsonl(await C.inflate(S.fromHex(bodies[0].blob)));
+    eq(back.cards.length, 3, '三张卡都该上去（含从旧后端拉下来的两张）');
+    const r2 = await S.push(T0 + 2e7);
+    eq(r2.pushed, 0, '第二次推送应当收敛为 0');
+  });
+  test('没有待办 ⇒ 旧的归属戳照常拦 owner_mismatch（保护不打折）', async () => {
+    const store = fakeStore({ meta: { corpusOwner: { userId: 'u-a', at: T0 } }, items: [card('a')] });
+    const auth = { userId: async () => 'u-b', token: async () => 'tok', takeRehome: async () => false };
+    const { S } = setup({ store, auth });
+    await rejects(S.push(T0 + 1), (e) => e.code === 'owner_mismatch');
   });
 });
 

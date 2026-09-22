@@ -35,7 +35,21 @@ var LearnSync = (() => {
     }, extra || {});
   }
 
+  // 401 ⇒ 这张访问令牌不算数了：作废它、强制刷新一次、用新令牌重试一次（见 auth.js expireAccess）。
+  // 刷新被明确拒绝时 token() 已判死会话 ⇒ signed_out，调用方（App 的 reconcileSession）据此回到登录卡。
+  // 只重试一次：重试后仍 401 就按 http_401 报出，不无限刷新。
   async function call(url, init) {
+    try { return await callOnce(url, init); } catch (e) {
+      const auth = init && init.headers && init.headers.Authorization;
+      if (e.status !== 401 || !auth || typeof LearnAuth.expireAccess !== 'function') throw e;
+      await LearnAuth.expireAccess(String(auth).replace(/^Bearer /, ''));
+      let t;
+      try { t = await LearnAuth.token(); } catch (_) { throw e; }   // 刷新暂时失败（离线/5xx）：报原来的 401
+      if (!t) { const so = new Error('not signed in'); so.code = 'signed_out'; throw so; }
+      return callOnce(url, Object.assign({}, init, { headers: Object.assign({}, init.headers, { Authorization: 'Bearer ' + t }) }));
+    }
+  }
+  async function callOnce(url, init) {
     let res;
     try {
       res = await fetch(url, init);
@@ -96,9 +110,18 @@ var LearnSync = (() => {
   function ownerErr(code) { const e = new Error(code); e.code = code; return e; }
 
   async function ownerGate() {
+    const me0 = await (async () => { try { return await LearnAuth.userId(); } catch (_) { return null; } })();
+    // 后端换了（learning-design §8.4.3）：bindCorpus 已把主库交给这次登录的人，这里清掉旧后端的同步账 ——
+    // 归属戳、游标、水位、卡上的「已同步」戳。清完下面照常认领，下一次推送就是整库上传。
+    if (me0 && typeof LearnAuth.takeRehome === 'function' && await LearnAuth.takeRehome(me0)) {
+      await LearnStore.setMeta(OWNER, null);
+      await LearnStore.setMeta(CURSOR, 0);
+      await LearnStore.setMeta(PUSHED, 0);
+      if (typeof LearnStore.clearSyncStamps === 'function') await LearnStore.clearSyncStamps();
+    }
     const [stamp, me] = await Promise.all([
       LearnStore.getMeta(OWNER, null),
-      (async () => { try { return await LearnAuth.userId(); } catch (_) { return null; } })(),
+      Promise.resolve(me0),
     ]);
     const owner = stamp && stamp.userId;
     if (!owner) {

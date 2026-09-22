@@ -169,6 +169,9 @@ var LearnAuth = (() => {
       // 少了这一行的表现是「登录成功却显示空白」。
       phone: (json.user && json.user.phone) || null,
       userId: (json.user && json.user.id) || null,
+      // 哪个后端签的（learning-design §8.4.3「后端换了」）。两个后端的 userId 不可比，bindCorpus 只让
+      // 当前后端签出的会话去认领 / 接管主库。老会话没有这个字段 ⇒ 按「本构建之前的后端」算。
+      backend: MT_BACKEND.url,
     };
   }
 
@@ -276,6 +279,16 @@ var LearnAuth = (() => {
     return next ? next.accessToken : null;
   }
 
+  // 数据接口对这张访问令牌回了 401（sync.js 的 call）：它在服务端眼里不算数了 —— 被吊销，或者根本是别的
+  // 后端签的（2026-09-22 中国版切境内后端：东京签的令牌仍在有效期内，境内 PostgREST 不认）。只在内存里把它
+  // 标成过期，下一次 token() 就会走刷新：刷新被明确拒绝 ⇒ 判死（既有逻辑）；刷新成功 ⇒ 新令牌照常落盘。
+  // 不写存储、不通知监听者 —— 这还不是一次会话变化。只作废调用方手里那一张：别人已经刷新过就什么都不做。
+  async function expireAccess(staleToken) {
+    const s = await load();
+    if (!s || (staleToken && s.accessToken !== staleToken)) return;
+    cached = Object.assign({}, s, { expiresAt: 0 });
+  }
+
   async function signOut() {
     const s = await load();
     if (s && s.accessToken) {
@@ -341,6 +354,11 @@ var LearnAuth = (() => {
   // second, different account gets a database of its own.
   const DB_OWNER = 'learnDbOwner';     // userId that owns the primary database
   const DB_ACTIVE = 'learnActiveDb';   // database currently selected
+  // 主库是在哪个后端认领的（learning-design §8.4.3「后端换了」）。两个后端的 userId 不可比。
+  const DB_OWNER_BACKEND = 'learnDbOwnerBackend';
+  const REHOME = 'learnRehome';        // 待办：下一次 ownerGate 清掉旧后端的同步账（sync.js）
+  // 没有记录的主库按「本构建之前的后端」算：切过后端的产物由构建写入 previousUrl，没切过的就是当前后端。
+  const priorBackend = () => (MT_BACKEND.previousUrl || MT_BACKEND.url);
 
   async function bindCorpus(session) {
     // Read the session DIRECTLY instead of through load(): load() also carries the
@@ -349,18 +367,23 @@ var LearnAuth = (() => {
     // there: the bind became the first thing to open the store, early enough to
     // collide with a connection that had not closed yet, and the review page's
     // whole bootstrap stopped behind it with a blank screen and nothing said.
-    let me = null;
-    if (session !== undefined) me = (session && session.userId) || null;
+    let me = null; let sess = null;
+    if (session !== undefined) sess = session || null;
     else {
       const c = cachedSession();
-      if (c) me = c.userId || null;
+      if (c) sess = c;
       else {
         const r = await PageSettings.read([KEY]);
-        me = (r.ok && r.data[KEY] && r.data[KEY].userId) || null;
+        sess = (r.ok && r.data[KEY]) || null;
       }
     }
+    me = (sess && sess.userId) || null;
+    // 旧后端签的会话（升级那一刻本机还存着的东京会话）不许认领、不许接管 —— 它马上会被判死；
+    // 让它先动了归属，真正的新账号登录时主库就已经「属于别人」了（2026-09-22 模拟器实测踩到）。
+    // 这种会话按「未登录」选库：保留上次选中的库，什么都不写。
+    const stale = !!(me && (sess.backend || priorBackend()) !== MT_BACKEND.url);
     let want;
-    if (!me) {
+    if (!me || stale) {
       // Signed out keeps whatever was last selected. "Signing out is not a reason
       // to lose what you learned" is the existing stance; revealing the PREVIOUS
       // account's corpus after signing out of this one would break that promise
@@ -368,12 +391,18 @@ var LearnAuth = (() => {
       const r = await PageSettings.read([DB_ACTIVE]);
       want = (r.ok && r.data[DB_ACTIVE]) || LearnStore.DB_NAME;
     } else {
-      const r = await PageSettings.read([DB_OWNER]);
+      const r = await PageSettings.read([DB_OWNER, DB_OWNER_BACKEND]);
       const owner = r.ok ? (r.data[DB_OWNER] || null) : null;
+      const ownerBackend = (r.ok && r.data[DB_OWNER_BACKEND]) || priorBackend();
       if (!owner) {
         // Unclaimed: this is every upgrading device. Claim the primary — do not
         // create a second database and do not move anything into it.
-        await PageSettings.write({ [DB_OWNER]: me });
+        await PageSettings.write({ [DB_OWNER]: me, [DB_OWNER_BACKEND]: MT_BACKEND.url });
+        want = LearnStore.DB_NAME;
+      } else if (r.ok && ownerBackend !== MT_BACKEND.url) {
+        // 后端换了：旧 owner 是另一个后端的 id，与 me 不可比 ⇒ 这次登录的人接管主库，库内清账交给
+        // ownerGate（这里不许开库）。只在读成功时走这条 —— 读失败不能把别人的库改名给我。
+        await PageSettings.write({ [DB_OWNER]: me, [DB_OWNER_BACKEND]: MT_BACKEND.url, [REHOME]: me });
         want = LearnStore.DB_NAME;
       } else {
         want = (owner === me) ? LearnStore.DB_NAME : LearnStore.dbNameFor(me);
@@ -392,6 +421,15 @@ var LearnAuth = (() => {
   //
   // 不开数据库：只读两个 storage 键。§8.4.3 那条「绑定不许要求打开数据库」的纪律
   // 是为死锁付过代价的，这里没有理由再碰它。
+  // ownerGate 取走「后端换了」的待办：只对同一个人生效（标记里记着接管者），取走即清。
+  async function takeRehome(me) {
+    const r = await PageSettings.read([REHOME]);
+    const who = r.ok ? r.data[REHOME] : null;
+    if (!who || who !== me) return false;
+    await PageSettings.removeKeys([REHOME]);
+    return true;
+  }
+
   async function otherAccountOnDevice() {
     const r = await PageSettings.read([DB_OWNER]);
     const owner = (r.ok && r.data[DB_OWNER]) || null;
@@ -528,9 +566,9 @@ var LearnAuth = (() => {
   function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
 
   return {
-    signIn, verify, signInPassword, token, signOut, deleteAccount,
+    signIn, verify, signInPassword, token, expireAccess, signOut, deleteAccount,
     prepareProviderSignIn, providerSignInUrl, completeProviderSignIn, signInWithIdToken,
-    current, userId, displayName, bindCorpus, otherAccountOnDevice,
+    current, userId, displayName, bindCorpus, takeRehome, otherAccountOnDevice,
     cachedSession, lastLoadError, onChange,
     _reset,
   };

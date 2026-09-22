@@ -115,6 +115,10 @@ function chinaGrant() {
 // 一个静默的 0 处替换会产出一个「说自己是中国版、其实还在打东京」的包 ——
 // 那是这个仓库最贵的那类谎，而它在产物里完全看不出来。
 function switchBackend(text, what, cn) {
+  // 切之前的地址留在产物里（previousUrl）：bindCorpus 靠它认出「主库是在旧后端认领的」
+  // （learning-design §8.4.3「后端换了」）—— 否则老用户在新后端一登录，本机的卡就挂到一个再也登不上的身份下。
+  const prev = (/^  url: '([^']*)',/m.exec(text) || [])[1] || '';
+  text = text.replace(/^(  url: '[^']*',.*)$/m, `$1\n  previousUrl: '${prev}', // CHINA build: 切后端之前的地址（build.js）`);
   const out = [['url', cn.url], ['anonKey', cn.anonKey]].reduce((acc, [key, val]) => {
     // 只匹配**顶层**那一条（行首两个空格），不碰 china 块里的同名键（四个空格）。
     const RE = new RegExp(`^  ${key}: '[^']*',`, 'm');
@@ -1338,7 +1342,8 @@ nameLengthGate(DIST);
   // 两条发射路径必须指向同一个后端：china.ready=true 时中国版 App 包里不许再出现 *.supabase.co。
   if (FLAVOR === 'china' && chinaBackendReady()) {
     const js = fs.readFileSync(path.join(ROOT, APP_OUT, 'Script.js'), 'utf8');
-    const tokyo = js.match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || [];
+    // previousUrl 那一行豁免：它只拿来比较（bindCorpus 认旧主库），从不发请求。别处出现一次都算红。
+    const tokyo = js.split('\n').filter((l) => !/^  previousUrl: '/.test(l)).join('\n').match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || [];
     if (tokyo.length) { err(`${APP_OUT}/Script.js 里还有 ${tokyo.length} 处 *.supabase.co（${[...new Set(tokyo)].join(', ')}）—— china.ready=true 时中国版 App 必须连境内后端`); process.exit(1); }
     log('China flavor: App 包后端 → ' + chinaBackend().url + '（与扩展同一个）');
   }

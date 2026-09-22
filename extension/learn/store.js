@@ -165,6 +165,25 @@ var LearnStore = (() => {
 
   function putItem(item) { return tx(['items'], 'readwrite', (s) => { s.items.put(item); }); }
 
+  // 后端换了（learning-design §8.4.3「后端换了」）：抹掉「已从旧后端同步过」的戳 —— 卡的 syncedAt、
+  // 复习记录的 viaSync。不抹的话从旧后端拉下来的卡永远不会被推上新后端（push 的挡板是 > syncedAt）。
+  // 只改这两个字段，不碰任何学习状态。返回改了几条（给测试与日志看）。
+  function clearSyncStamps() {
+    let n = 0;
+    return tx(['items', 'reviews'], 'readwrite', (s) => {
+      s.items.openCursor().onsuccess = (e) => {
+        const c = e.target.result; if (!c) return;
+        if (c.value && c.value.syncedAt) { const v = Object.assign({}, c.value); delete v.syncedAt; c.update(v); n++; }
+        c.continue();
+      };
+      s.reviews.openCursor().onsuccess = (e) => {
+        const c = e.target.result; if (!c) return;
+        if (c.value && c.value.viaSync) { const v = Object.assign({}, c.value); delete v.viaSync; c.update(v); n++; }
+        c.continue();
+      };
+    }).then(() => n);
+  }
+
   function getMeta(k, dflt) {
     let val = dflt;
     return tx(['meta'], 'readonly', (s) => {
@@ -675,7 +694,7 @@ var LearnStore = (() => {
   return {
     MAX_ITEMS, MAX_AUDIO_BYTES, MAX_TOMBS, MAX_DELS, DB_NAME,
     dbNameFor, currentDbName, useDb, closeDb,
-    open, allItems, allSources, allReviews, putItem, mergeBatch, recordReview,
+    open, allItems, allSources, allReviews, putItem, clearSyncStamps, mergeBatch, recordReview,
     getMeta, setMeta, evictIfNeeded, clearAll, stats,
     tombstones, hasEverEvicted, trimTombs,
     applyDels, deleteItems, deleteSourcesIfOrphan, userDels, allDels, trimDels,

@@ -25,7 +25,20 @@ const { launchChrome } = require('../test/layout/chrome.js');
 const { CDP } = require('../test/layout/cdp.js');
 const { SWEEP_FN, installSweep, sweepBoth } = require('./lib/sweep.js');
 
-const DIST = process.argv[2] || path.join(__dirname, '..', 'dist');
+const SRC_DIST = process.argv[2] || path.join(__dirname, '..', 'dist');
+// 门禁种的是**假会话**。页面的进入级同步若真打到后端：401 → 强制刷新 → 服务端明确拒绝 ⇒ 会话判死
+// （sync.js call()，2026-09-22 起的正确行为），门禁就测成了「未登录」。所以拷一份产物，把后端指到本机一个
+// 不监听的端口 = 离线，会话保留。（--host-resolver-rules 试过，Chrome 并不总认 —— verify-site-handoff.js 记过。）
+const DIST = (() => {
+  const fs = require('fs'); const os = require('os');
+  const run = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-signin-'));
+  fs.cpSync(SRC_DIST, run, { recursive: true });
+  const f = path.join(run, 'learn', 'backend.config.js');
+  const t = fs.readFileSync(f, 'utf8'); const u = t.replace(/^  url: '[^']*'/m, "  url: 'http://127.0.0.1:9'");
+  if (u === t) throw new Error('backend.config.js 里找不到顶层 url —— 形状变了？');
+  fs.writeFileSync(f, u);
+  return run;
+})();
 const EMAIL = 'tester@example.com';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
