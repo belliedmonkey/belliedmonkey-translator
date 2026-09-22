@@ -327,6 +327,11 @@
   const EXT_DONE = 'extBannerDoneAt';
   let extBannerDone = false;
   let extBannerShownDay = '';
+  // 启动时「当天记过没有」与「继续设置卡在不在」都还没读出来之前，横幅照画、但不记 shown。
+  // 原生的 show('ios') 常在预读之前就到 ⇒ extBannerShownDay 还是空串，每次启动都记一条
+  // （1.12.1–1.14.0 线上约四成「装机·天」记了多条，最多一天 52 条）；而且继续设置卡要等
+  // paintObResume 才露面，横幅在那之前会先闪一下并记一条，其实用户没看到它。
+  let extBannerPrimed = false;
   function extBannerTrack(action) {
     try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('ext_banner', { action }); } catch (_) {}
   }
@@ -371,7 +376,7 @@
     if (done) { done.hidden = !ios; done.textContent = t('app_ext_done', '我已打开'); }
     const check = $('ext-banner-check');
     if (check) { check.hidden = !ios; $('ext-banner-check-link').textContent = t('app_ext_check_hint', '不确定？打开检测页看绿灯 →'); }
-    if (ios) {
+    if (ios && extBannerPrimed) {
       // 每装机每天至多一条 shown（telemetry-design §3.1）。
       const today = new Date().toISOString().slice(0, 10);
       if (extBannerShownDay !== today) {
@@ -1635,12 +1640,15 @@
         $('signed-out').hidden = true;
         $('signed-in').hidden = true;
         $('onboard').hidden = false;
+        extBannerPrimed = true;
         paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
         obAt = 0; obPaint();
         return;
       }
       await show(session);
       if (obResume) await paintObResume(session);
+      extBannerPrimed = true;
+      paintExtBanner(extState);   // 预读与继续设置卡都定了：这一次画才算用户看到的
       // Storage-read failure ≠ signed out (§8.4.1): the sign-in form still works
       // as the recovery path, but the status line must name the real problem.
       if (!session && LearnAuth.lastLoadError()) {
@@ -1651,6 +1659,7 @@
       quietSync();
     } catch (err) {
       // A corrupt session must not leave a blank window with no way forward.
+      extBannerPrimed = true;
       await show(null);
       say(humanError(err), true);
     }

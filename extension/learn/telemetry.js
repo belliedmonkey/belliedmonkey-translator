@@ -216,7 +216,15 @@ var MTTelemetry = (() => {
       return !!(r && r.ok);
     } catch (_) { return false; }
   }
-  async function flush() {
+  // 单飞（#387 后半，2026-09-22）：app.js 与 review.js 各调一次 init({flushNow})，同一页面里两个
+  // flush 并发，都在对方清队列之前读到同一批 ⇒ 整批 POST 两遍（表里成对、相隔 20–50ms）。
+  // 下面那把 tm:last 软锁挡的是**两个页面**，挡不住同一页面里的两次调用。后来的调用等同一个结果。
+  let flushFlight = null;
+  function flush() {
+    if (!flushFlight) flushFlight = flushOnce().finally(() => { flushFlight = null; });
+    return flushFlight;
+  }
+  async function flushOnce() {
     try {
       if (!(await enabled())) return false;
       const r = await sget([K.queue, K.last]);
