@@ -3620,5 +3620,21 @@
   "xb_need": {
     "message": "要登录，先勾选上面这一条。不勾也能用，只是卡片不会同步。",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "继续设置 · 还差 {n} 步",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "从上次停下的那一屏接着来，一两分钟就好。",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "从上次停下的地方继续",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "不再提示",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

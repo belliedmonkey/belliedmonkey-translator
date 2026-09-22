@@ -62,6 +62,17 @@
     <section id="signed-out" hidden>
       <h1>大肚猴翻译</h1>
       <p class="lede" id="lede"></p>
+      <!-- 「继续设置」卡（2026-09-22，画布 PTAr3ymseUw7s1sKvUX7Kf 第 1 页「以后再设置只记这一次」，用户点头）：
+           点「以后再设置」只关这一次；下次打开、还没登录也没引擎时，回来的是这张卡，不是整条引导。
+           ✕ = 永久收起；最多跟着 3 次启动。显隐由 app.js paintObResume() 决定。 -->
+      <div id="ob-resume" hidden>
+        <div class="ob-resume-head">
+          <p id="ob-resume-title"></p>
+          <button id="ob-resume-close" type="button" class="link">✕</button>
+        </div>
+        <p id="ob-resume-body" class="note"></p>
+        <button id="ob-resume-go" type="button"></button>
+      </div>
       <!-- 未登录也要能进设置（2026-09-17）：此前这张首页通向设置的唯一路径是对话入口灰态下的「去设置里选择 →」，
            实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 -->
       <p class="note" id="signed-out-actions"><button id="gear2" type="button" class="link"></button></p>

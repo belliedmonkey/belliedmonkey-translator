@@ -3451,5 +3451,21 @@
   "xb_need": {
     "message": "साइन इन करने के लिए पहले ऊपर वाला बॉक्स चुनें। इसके बिना भी ऐप चलता है, बस कार्ड सिंक नहीं होंगे।",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "सेटअप पूरा करें · {n} चरण बाकी",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "जहाँ छोड़ा था वहीं से शुरू करें — एक-दो मिनट लगेंगे।",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "जहाँ छोड़ा था वहीं से जारी रखें",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "फिर न दिखाएँ",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

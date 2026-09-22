@@ -661,3 +661,12 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .xb-consent .xb-err { margin: 0 0 0 30px; font-size: 0.8rem; color: var(--danger, #b3261e); }
 .xb-consent.need { border-color: var(--danger, #b3261e); }
 #ob-xb-box { margin-top: 12px; text-align: left; }
+
+/* 「继续设置」卡（2026-09-22）：与登录卡同一张纸的质感，主按钮就是这张卡唯一的行动。✕ 的点击区 ≥ 44px。 */
+#ob-resume { background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+#ob-resume .ob-resume-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+#ob-resume-title { margin: 0; font-weight: 700; color: var(--fg); }
+#ob-resume-body { margin: 0; }
+#ob-resume-close { min-width: 44px; min-height: 44px; margin: -12px -12px 0 0; padding: 0; background: none;
+  border: 0; color: var(--muted, var(--fg)); font-size: 1rem; text-decoration: none; }

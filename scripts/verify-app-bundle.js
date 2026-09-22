@@ -1041,6 +1041,72 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: inj.identifier }, sessionId).catch(() => {});
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['extBannerDoneAt', 'onboardSeen'], r))`, awaitPromise: true }, sessionId);
     }
+
+    // ─── 「以后再设置」只记这一次（2026-09-22，画布「以后再设置只记这一次」，用户点头）────────────
+    // 判据要**真的重开 App**（重载页面；存储是 localStorage，重载后还在），逐次读回：
+    //   跳过 → 不写 onboardSeen、记下停在哪屏 → 重开出「继续设置」卡而不是整条引导、横幅让路 →
+    //   点继续回到那一屏 → 第 4 次重开自己收起并永久记上 · ✕ 当场永久 · 已有引擎就根本不出。
+    if (o.syncEnabled) {
+      const E = async (x) => JSON.parse((await cdp.send('Runtime.evaluate', { expression: x, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
+      const reopen = async () => { await cdp.send('Page.reload', {}, sessionId); await new Promise((r) => setTimeout(r, 1500)); };
+      const store = `new Promise((r) => chrome.storage.local.get(['onboardSeen', 'onboardResume'], (v) => r(JSON.stringify(v || {}))))`;
+      const view = `JSON.stringify({ onboard: !document.getElementById('onboard').hidden, step: document.body.dataset.obStep || '',
+        card: !document.getElementById('ob-resume').hidden, title: document.getElementById('ob-resume-title').textContent,
+        banner: !document.getElementById('ext-banner').hidden })`;
+      const reset = (extra) => `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'provider', 'apiKey'], () => chrome.storage.local.set(${extra || '{}'}, r)))`;
+      // 原生侧在 didFinish 里调 show('ios')：不照样复刻，横幅在无头环境里本来就不出，
+      //「卡在场时横幅让路」那条断言会空转（第一版证伪时摘掉让路逻辑它照样绿）。
+      const injR = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      await reopen();
+      const v0 = await E(view);
+      need(v0.onboard && v0.step === 'welcome', '全新状态下引导没从第 1 屏开始：' + JSON.stringify(v0));
+      // 走到第 2 屏再跳过 —— 停在哪屏要被记住，不能一律回到开头。第 2 屏（登录屏）不挂「以后再设置」
+      //（它有自己的「先不登录」），所以在第 1 屏跳过：判据是记下的 step 与卡上的「还差几步」对得上。
+      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-skip').click()`, awaitPromise: true }, sessionId);
+      await new Promise((r) => setTimeout(r, 300));
+      const s1 = (await E(store));
+      need(!s1.onboardSeen, '点「以后再设置」又写了 onboardSeen —— 那就是「永远不」，不是「以后」');
+      need(s1.onboardResume && s1.onboardResume.step === 'welcome' && s1.onboardResume.shows === 0,
+        '跳过后没记下停在哪一屏：' + JSON.stringify(s1));
+      await reopen();
+      const v1 = await E(view);
+      need(!v1.onboard, '跳过过的人重开 App 又被整条引导挡住了 —— 回来的应当是一张卡');
+      need(v1.card, '跳过过的人重开 App，首页没有「继续设置」卡');
+      need(/\d/.test(v1.title), '「继续设置」卡标题没说还差几步：「' + v1.title + '」');
+      need(!v1.banner, '「继续设置」卡与扩展横幅同时挂在首页 —— 两张「还差一步」');
+      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-resume-go').click()`, awaitPromise: true }, sessionId);
+      await new Promise((r) => setTimeout(r, 200));
+      const v2 = await E(view);
+      need(v2.onboard && v2.step === 'welcome' && !v2.card, '点「从上次停下的地方继续」没回到停下的那一屏：' + JSON.stringify(v2));
+      // 次数上限：已经出现过 1 次；再重开 2 次（第 2、3 次）仍在，第 4 次自己收起并永久记上。
+      await reopen(); await reopen();
+      const v3 = await E(view), s3 = (await E(store));
+      need(v3.card && s3.onboardResume && s3.onboardResume.shows === 3, '第 3 次重开时卡应当还在、计数为 3：' + JSON.stringify({ v3, s3 }));
+      await reopen();
+      const v4 = await E(view), s4 = (await E(store));
+      need(!v4.card && !v4.onboard && s4.onboardSeen && !s4.onboardResume, '第 4 次重开卡还在纠缠，或没永久收起：' + JSON.stringify({ v4, s4 }));
+      // ✕ = 当场永久。
+      await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardResume: { step: 'firstuse', shows: 0 } }`), awaitPromise: true }, sessionId);
+      await reopen();
+      const v5 = await E(view);
+      need(v5.card && /2/.test(v5.title), '停在最后一屏之前的「还差几步」不对（firstuse 之后还剩 2 屏）：' + JSON.stringify(v5));
+      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-resume-close').click()`, awaitPromise: true }, sessionId);
+      await new Promise((r) => setTimeout(r, 200));
+      const s5 = (await E(store));
+      await reopen();
+      const v6 = await E(view);
+      need(s5.onboardSeen && !s5.onboardResume && !v6.card && !v6.onboard, '点 ✕ 没有永久收起：' + JSON.stringify({ s5, v6 }));
+      // 已经配好引擎（自己去设置里填了 key）⇒ 什么都不出，并永久收起。
+      await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardResume: { step: 'welcome', shows: 0 }, provider: 'deepseek', apiKey: 'sk-gate-0123456789' }`), awaitPromise: true }, sessionId);
+      await reopen();
+      const v7 = await E(view), s7 = (await E(store));
+      need(!v7.card && !v7.onboard && s7.onboardSeen, '已经配好引擎还在提示「继续设置」：' + JSON.stringify({ v7, s7 }));
+      // 反面：卡收起之后横幅要能回来（否则上面那条「让路」可能只是横幅整个坏了）。v6：✕ 之后、没引擎。
+      need(v6.banner, '✕ 收起卡之后扩展横幅没回来 —— 「让路」那条断言可能是空转的');
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: injR.identifier }, sessionId).catch(() => {});
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+    }
   } catch (e) { ok = false; console.log('  ✗ ' + (e && e.stack)); }
   chrome.cleanup(); srv.close();
   console.log(ok ? `\n✓ App 页面在真实引擎里起得来，模块齐全，样式已加载（${FLAVOR}）` : '\n✗ App 页面有问题');

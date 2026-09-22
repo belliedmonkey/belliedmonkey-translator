@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "Zum Anmelden zuerst das Kästchen oben ankreuzen. Ohne funktioniert die App auch – nur werden die Karten nicht synchronisiert.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Einrichtung abschließen · noch {n} Schritte",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Machen Sie dort weiter, wo Sie aufgehört haben – ein, zwei Minuten.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Dort weitermachen, wo ich war",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Nicht mehr anzeigen",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

@@ -3619,5 +3619,21 @@
   "xb_need": {
     "message": "Pour vous connecter, cochez d’abord la case ci-dessus. Sans elle, l’app fonctionne ; vos fiches ne sont simplement pas synchronisées.",
     "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Terminer la configuration · {n} étapes restantes",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Reprenez là où vous vous êtes arrêté — une minute ou deux.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Reprendre là où j’en étais",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Ne plus afficher",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
   }
 }

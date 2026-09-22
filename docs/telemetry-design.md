@@ -457,6 +457,18 @@ Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走
 那条「不给任何网站造指纹面」的注释），不带页面地址、不带版本以外的任何东西；中国版不发（规则 4）。
 App 侧与扩展侧的 `install_id` 天然不同，**不拼接** —— 这三节只看各自的总数与比例。
 
+### 3.8 2026-09-22 amendment（**提案，待人评审**）：「继续设置」卡被看到 / 被点
+
+> 同 §3.6：只写提案，不进 §3 的表。卡片本身（interaction-spec「以后再设置只记这一次」）已按画布落地，不等这一条。
+
+**要回答的问题**：跳过的人里，有多少会第二次打开 App（卡被看到）、看到之后有多少点了继续、有多少点 ✕、有多少被
+第 4 次自动收起。今天离开引导那一刻已有 `onboarding_done{result:'skipped', step}`，之后的一段是黑的。
+
+**提案**：不加事件，给 `onboarding_done` 的 `surface` 加一个值 **`app_resume`**，并在卡上补三处发送：卡**出现**时
+`result:'shown'`（每次启动至多一条，本来就按启动计数）、点 ✕ 时 `result:'dismissed'`、自动收起时 `result:'expired'`；
+点「继续」之后，引导走完 / 再次跳过仍由原来那条 `surface:'app'` 的 `onboarding_done` 回答。`result` 因此多三个值。
+**影响面先说**：89.5% 的 App 装机只活跃过 1 天，这条读数的分母会很小 —— 它回答的是「这个补丁值不值得留」，不是增长。
+
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
 edge function neither stores nor logs them as a field).
