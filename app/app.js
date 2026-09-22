@@ -675,6 +675,15 @@
   // 之后自己收起，不纠缠。扩展横幅在它在场时让路（paintExtBanner）：引导最后一屏就是「打开扩展」，
   // 首页不许同时挂两张「还差一步」。
   let obResume = null;
+  // 读数（telemetry-design §3.8）：出现 / 点 ✕ / 自动收起。「已登录或已有引擎」那条收起不记 ——
+  // 那是「已经做完了」，不是这张卡的结局；点「继续」之后由原来的 surface:'app' 那条回答。
+  function obResumeTrack(result) {
+    try {
+      if (typeof MTTelemetry !== 'undefined' && obResume) {
+        MTTelemetry.track('onboarding_done', { surface: 'app_resume', result, step: obResume.step });
+      }
+    } catch (_) {}
+  }
   async function obResumeRetire() {
     obResume = null;
     $('ob-resume').hidden = true;
@@ -690,6 +699,7 @@
     if (!obResume) return false;
     let needs = true;
     try { needs = EngineState.needsSetup(await readObSettings()); } catch (_) {}
+    if ((Number(obResume.shows) || 0) >= OB_RESUME_MAX && !session && needs) obResumeTrack('expired');
     if (session || !needs || (Number(obResume.shows) || 0) >= OB_RESUME_MAX) { await obResumeRetire(); return false; }
     obResume = { step: obResume.step, shows: (Number(obResume.shows) || 0) + 1 };
     try { await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: obResume }, r)); } catch (_) {}
@@ -699,6 +709,7 @@
     $('ob-resume-go').textContent = t('ob_resume_go', '从上次停下的地方继续');
     $('ob-resume-close').setAttribute('aria-label', t('ob_resume_close', '不再提示'));
     card.hidden = false;
+    obResumeTrack('shown');
     paintExtBanner(extState);
     return true;
   }
@@ -711,7 +722,7 @@
     paintExtBanner(extState);
     obAt = at; obPaint();
   });
-  $('ob-resume-close').addEventListener('click', async () => { await obResumeRetire(); paintExtBanner(extState); });
+  $('ob-resume-close').addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
 
   // ─── Sign in ──────────────────────────────────────────────────────────────
 

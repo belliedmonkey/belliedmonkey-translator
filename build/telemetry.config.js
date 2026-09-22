@@ -36,8 +36,10 @@ const EVENTS = {
   // （`app/app.js` 的 OB 与 `extension/onboard/onboard.js` 的 OB），所以是并集；
   // 屏序改了这里要跟着改（加枚举值，门禁只认事件名，不会自己红）。
   onboarding_done: {
-    surface: ['ext', 'app'],
-    result: ['done', 'skipped'],
+    // app_resume / shown / dismissed / expired（2026-09-22，§3.8，用户评审通过）：「继续设置」卡 ——
+    // 出现（每次启动至多一条）· 点 ✕ · 第 4 次启动自动收起。点「继续」之后仍由 surface:'app' 那条回答。
+    surface: ['ext', 'app', 'app_resume'],
+    result: ['done', 'skipped', 'shown', 'dismissed', 'expired'],
     // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
     // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
     step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try', 'firstuse'],
@@ -136,6 +138,7 @@ const SEAMS = {
   onboarding_done: [
     { host: 'ext', file: 'extension/onboard/onboard.js', match: "surface: 'ext'" },
     { host: 'app', file: 'app/app.js', match: "surface: 'app'" },
+    { host: 'app', file: 'app/app.js', match: "surface: 'app_resume'" },
   ],
   engine_set: [
     { host: 'ext', file: 'extension/options/options.js' },

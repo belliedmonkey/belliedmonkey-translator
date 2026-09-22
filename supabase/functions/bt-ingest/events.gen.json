@@ -30,11 +30,15 @@
     "onboarding_done": {
       "surface": [
         "ext",
-        "app"
+        "app",
+        "app_resume"
       ],
       "result": [
         "done",
-        "skipped"
+        "skipped",
+        "shown",
+        "dismissed",
+        "expired"
       ],
       "step": [
         "welcome",
