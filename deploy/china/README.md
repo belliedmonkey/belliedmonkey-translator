@@ -113,6 +113,7 @@ docker compose up -d               # ④ 其余
 | 3 | push | `POST /rest/v1/bt_chunks`，body 的 `blob` 是 `\x…` hex | bytea 表示不对 ⇒ 语料上下行全坏 |
 | 4 | pull + 配额 | `GET /rest/v1/bt_chunks?...&seq=gt.0`；再灌到超 50MB，看错误 JSON 的 `code` 是不是 `53100` | PostgREST 没把 PG error code 透传 ⇒ 超配额时报错不具名 |
 | 5 | 删号 | `POST /functions/v1/bt-delete-account` | `SUPABASE_URL` 指错（必须是 `http://proxy:8081`，不是 `auth:9999`） |
+| 6 | 跨域预检 | `curl -X OPTIONS https://<域名>/auth/v1/token -H 'Origin: null' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: apikey,authorization,content-type,prefer'`，`/rest/v1/…`、`/functions/v1/…` 各一次，三条都要带 `access-control-allow-headers` | 只有 `allow-origin` ⇒ 预检块被路径块抢先（Caddyfile 必须用 `route`）。**上面 1–5 用 curl 测全通也证明不了这一条** —— curl 不做预检，App 与扩展页做。2026-09-22 就是这么漏的：App 里 `Load failed`、界面说「网络离线」 |
 
 还要验一条**不是单点而是时间**的：**放置一小时以上再操作**，确认 access token 过期后
 能自动刷新。`GOTRUE_SECURITY_REFRESH_TOKEN_REUSE_INTERVAL` 为 0 会让用户被**随机登出**
