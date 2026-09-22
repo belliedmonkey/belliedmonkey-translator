@@ -411,6 +411,50 @@ Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走
 **先补这两条，再改交互** —— 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。
 这也是复习那条（`review_session` 至今 0）现在的处境。
 
+### 3.7 2026-09-22 amendment（**提案，待人评审**）：复习与「去 Safari 再回来」这两段是黑的
+
+> 同 §3.6：**本节只写提案，不进 §3 的表**。评审通过后一个 PR 同时改表 + 注册表 + 生成物 + 代码
+> + 两站隐私页（growth-spec §4 同版）。用户 2026-09-22 裁定这两条都「先补可观测性」（#386、#384）。
+
+#### A · 复习：`review_session` 只在「清空」时发，于是 0 分不清是「没人复习」还是「量不到」（#386）
+
+**读数（2026-09-21）**：52 台存过第一条语料，`review_session` **0 条**。根因叠了两层：
+一轮的门槛是「今天全部清完」——对刚存下第一批语料的新用户，每副牌 4 张新卡、当日新卡预算 15
+（`learn-scheduler.js`），**要一口气连评满 15 张才会发出第一条**；而**中途退出没有任何记录**
+（`review.js` 没有 pagehide，App 的返回只重算计数）。卡级进度是落库的，缺的只是读数。
+
+**提案**：不加事件，改 `review_session`：
+
+| | 现在 | 提案 |
+|---|---|---|
+| 属性 | `graded`（int） | `graded`（int）· **`result: done \| left`** · **`left`（int，离开时还剩几张）** |
+| 何时发 | 牌组清空（`!deck.length`） | 清空时发 `done`；**离开复习面时**（扩展 `pagehide`、App 返回键）若这一轮**已经露出过卡**且没清空，发 `left` —— `graded` 可以是 0（「打开了、一张没评就走」本身就是答案） |
+| 每会话 | 一条 | 仍至多一条（`done` 与 `left` 互斥） |
+
+回答的问题：没人来 / 来了没评 / 评了几张就走 / 离清完差多少 —— 这四种今天在表里都是同一个 0。
+下一步要不要降门槛（画布），等这张表出来再定。
+
+#### B · 「去 Safari 再回来」：App 把人送去检测页，而检测页那一侧一个数都没有（#384）
+
+**读数（2026-09-21，#384 第三条评论）**：247 台 App 装机里 176 台（71%）生命周期不到 5 分钟；
+**唯一还活着的窗口**是 66 台出现过「隔几分钟又回来」——正是去 Safari 弄一下再回来的形状。
+而 `ext_banner{setup}` 之后发生了什么，我们一个数都没有；`setup` 本身还混着两个来源（主按钮与
+「不确定？打开检测页看绿灯」共用一个 action）。
+
+**提案**：把这一段补成三节漏斗，**只新增一个事件**：
+
+1. **App 里点了哪个**：`ext_banner.action` 加一个值 `check`（「打开检测页」那一行），`setup` 只留给主按钮。加枚举值，不加事件。
+2. **到没到检测页**：**不新增采集**。`belliedmonkey.cc` 已有 Vercel Web Analytics（09-20 起），
+   `/setup` 的访问量就是这一节。只读汇总数、不与 `bt_events` join（原则 7）。
+3. **看没看见绿灯**：新事件 **`setup_detected`**，无属性，**每装机一次**（`once`）。发送点是
+   `content-main.js` 在自家域名上设 `data-mt-extension` 并派发 `mt-extension-ready` 的那一处，
+   **只在检测页路径**（`/setup`）上发。它是扩展侧的事件（`host = safari | chrome | firefox`），
+   回答「多少台 Safari 真的把扩展开起来、并且回到了我们给的那一页」。
+
+**边界**：`setup_detected` 只在我们自己的域名上发（那段代码本来就只在 `MT_SITES` 里跑，见它上面
+那条「不给任何网站造指纹面」的注释），不带页面地址、不带版本以外的任何东西；中国版不发（规则 4）。
+App 侧与扩展侧的 `install_id` 天然不同，**不拼接** —— 这三节只看各自的总数与比例。
+
 **Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
 edge function neither stores nor logs them as a field).
