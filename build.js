@@ -1333,7 +1333,15 @@ nameLengthGate(DIST);
   // concatenates it as-is.
   // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
   buildAppBundle(path.join(ROOT, APP_OUT), log,
-    FLAVOR === 'china' ? { genRoot: DIST, limitProviders } : {});
+    FLAVOR === 'china' ? { genRoot: DIST, limitProviders,
+      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : {});
+  // 两条发射路径必须指向同一个后端：china.ready=true 时中国版 App 包里不许再出现 *.supabase.co。
+  if (FLAVOR === 'china' && chinaBackendReady()) {
+    const js = fs.readFileSync(path.join(ROOT, APP_OUT, 'Script.js'), 'utf8');
+    const tokyo = js.match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || [];
+    if (tokyo.length) { err(`${APP_OUT}/Script.js 里还有 ${tokyo.length} 处 *.supabase.co（${[...new Set(tokyo)].join(', ')}）—— china.ready=true 时中国版 App 必须连境内后端`); process.exit(1); }
+    log('China flavor: App 包后端 → ' + chinaBackend().url + '（与扩展同一个）');
+  }
   // 系统翻译扩展的裁剪包（learning-design §9.9）。与 App 包同一条 flavor 纪律：
   // 中国版从 dist-china/ 取生成物。它也要过下面那两道门 —— 同一份传输代码，
   // 品牌词与合规判据一个都不能少（AGENTS 规则 10）。

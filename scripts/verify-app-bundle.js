@@ -36,6 +36,17 @@ const FLAVOR = (() => {
 })();
 const APP_DIR = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
 const SRC = path.join(ROOT, APP_DIR);
+// 出境同意要不要出现，独立于页面自己的判定再算一遍：中国版 **且** 包里的后端在 *.supabase.co（东京）。
+// 2026-09-22 中国版切到境内后端（china.ready=true）⇒ 中国版包里这条为假，框必须消失。
+// 不按 FLAVOR 写死 —— 写死的那版在翻开关当天红了四条，而产品行为是对的。
+const XB_WANT = (() => {
+  if (FLAVOR !== 'china') return false;
+  try {
+    const js = fs.readFileSync(path.join(SRC, 'Script.js'), 'utf8');
+    const m = js.match(/^  url: '([^']*)'/m);
+    return !!(m && /\.supabase\.co$/i.test(new URL(m[1]).hostname));
+  } catch (_) { return true; }
+})();
 
 const MIME = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html' };
 
@@ -678,8 +689,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           return JSON.stringify(out);
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const xv = JSON.parse(xb.result.value);
-      need(xv.expect === (FLAVOR === 'china'),
-        `出境同意的「需不需要」算出来是 ${xv.expect}，而这是 ${FLAVOR} 包 —— 中国版后端还在东京，应当需要；国际版不需要`);
+      need(xv.expect === XB_WANT,
+        `出境同意的「需不需要」页面算出来是 ${xv.expect}，包里的后端地址说应当是 ${XB_WANT}（${FLAVOR} 包）—— 只有中国版且后端在境外时才需要`);
       if (xv.expect) {
         need(xv.boxVis, '中国版首页登录卡上没有出境单独同意框 —— 登录即出境，却没问过');
         need(!xv.checked, '出境同意框默认是勾上的 —— 那不叫「单独同意」');
@@ -861,7 +872,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           '登录屏的主按钮是「' + (si && si.nextText) + '」—— 与普通的「继续」一样，点了只会翻页、不会登录');
         need(si && !!si.alt, '登录屏没有「先不登录」—— 不想登录的人只能整条引导跳过');
         need(si && !/最后一步/.test(si.title), '登录屏标题还写着「最后一步」—— 它已经不是最后一屏了');
-        const xbWant = FLAVOR === 'china';
+        const xbWant = XB_WANT;
         need(si && si.xbOb && si.xbOb.vis === xbWant,
           `引导登录屏${xbWant ? '没有' : '出现了'}出境单独同意框（${FLAVOR} 包）`);
         if (xbWant) {

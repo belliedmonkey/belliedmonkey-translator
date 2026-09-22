@@ -240,6 +240,11 @@ function buildAppBundle(outDir, log, opts) {
     // **这里必须单独做一次** —— App 包拼的是**源码**那份 backend.config.js，不是
     // dist-china 里那份，所以 build.js 对 dist-china 的改写在这条路上完全不生效。
     // 同一份文件、两条发射路径，2026-08-09 的 sync 翻转就是在这里漏过一次。
+    // 境内后端（china.ready=true）：同一个坑的第三次 —— build.js 只改写了 dist-china 那份，
+    // App 包拼源码，不单独切的话中国版扩展连境内、中国版 App 仍连东京（2026-09-22 翻开关时发现）。
+    if (opts.switchBackend && rel === 'extension/learn/backend.config.js') {
+      text = opts.switchBackend(text, rel + ' (app bundle)');
+    }
     if (opts.limitProviders && rel === 'extension/learn/backend.config.js') {
       text = opts.limitProviders(text, rel + ' (app bundle)', ['apple']);
     }
