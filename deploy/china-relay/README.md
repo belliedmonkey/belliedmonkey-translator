@@ -27,24 +27,19 @@
 **地域必须选境内**（北京 / 上海 / 广州…）。选香港或海外，原文就又出境了 —— 合规检查查不到
 这一条，因为地址长得都一样。
 
-建一个 **Web 函数**，运行环境选「自定义」或任一 Node 版本都行（真正跑的是我们带进去的 Deno）。
-代码包里放三个文件：
-
-```
-index.ts        ← supabase/functions/bt-relay/index.ts 原样拷贝
-deno            ← Linux x86_64 的 deno 可执行文件（github.com/denoland/deno/releases 的 deno-x86_64-unknown-linux-gnu.zip）
-scf_bootstrap   ← 下面这 4 行，chmod 755
-```
+建一个 **Web 函数**，运行环境选 **Node.js 18 或更新**。代码包用脚本打：
 
 ```bash
-#!/bin/bash
-export PORT=9000 DENO_DIR=/tmp/deno
-chmod +x ./deno 2>/dev/null
-exec ./deno run --allow-net --allow-env index.ts
+deploy/china-relay/build-scf.sh        # → deploy/china-relay/.out/bt-relay-scf.zip（约 15 KB）
 ```
 
-（Web 函数要求进程监听 `0.0.0.0:9000`；`index.ts` 读到 `PORT` 才换端口，Supabase 上不设它，
-行为不变。`DENO_DIR` 指到 `/tmp`，因为代码目录是只读的。）
+包里四个文件：`relay.mjs`（`deno bundle` 把 `bt-relay/index.ts` 原样转成 JS —— **逻辑还是那一份**）、
+`deno-shim.mjs`（在 Node 里补 `Deno.env.get` / `Deno.serve` 两个入口，不含任何中继逻辑）、`main.mjs`、
+`scf_bootstrap`（`PORT=9000 node main.mjs`，Web 函数要求监听 `0.0.0.0:9000`）。
+
+**为什么不直接带 Deno 进去**：Linux 版 deno 解压 95 MB，且要 glibc ≥ 2.18，云函数的运行环境未必满足；
+Node 18+ 自带 fetch / Request / Response / FormData，缺的只有那两个入口。2026-09-22 本机按这个包
+实跑过：`scf_bootstrap` 起在 9000、真实百炼回译文、按 total_tokens 记账、换模型 403、预检放行 apikey。
 
 环境变量填在函数配置里（**不要**写进代码包），与 1B 的 `relay.env` 同一组：`SUPABASE_URL`、
 `SUPABASE_SERVICE_ROLE_KEY`、`UPSTREAM=dashscope`、`UPSTREAM_KEY`、`CLAIM_PROXY=1`、`GRANT_MODELS`、
