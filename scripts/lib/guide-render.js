@@ -218,7 +218,7 @@ Three steps, about a minute. That page detects the extension and confirms when i
   <a href="/support.html">Support</a>
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator" target="_blank" rel="noopener">Source code</a>
 </footer>
-</body>
+${site.analytics ? '<script defer src="/_vercel/insights/script.js"></script>\n' : ''}</body>
 </html>
 `;
 }
