@@ -484,7 +484,12 @@ is not restated here. The one-sentence disclosure used verbatim everywhere:
   whitelist throws; ② any property value containing `http`, `@`, or longer than 64
   characters is rejected (nobody gets to smuggle a URL, an email or a sentence in);
   ③ after the switch is off, `track` is a no-op and the queue is cleared;
-  ④ `heartbeat` enqueues once per day.
+  ④ `heartbeat` enqueues once per day. ④b/④c（2026-09-22，#387）：**并发**的 `init` / `once` 只记一条 ——
+  原来的 ④ 是顺序调三次，所以永远红不了，而线上的 bug 恰恰是并发（App 包里 `app.js` 与 `review.js` 各调一次
+  `init`）。修复前这两条实测为红。
+- **查询口径（#387）**：修复出货之前，App 面的 `installed` / `heartbeat` **按条数数约是两倍**（259 台里 257 台
+  重复，256 台重复在同一分钟、同一批上报，中位 2 条、最多 12 条）。比率一直用 `count(distinct install_id)`，
+  不受影响；**凡是按事件条数数装机或日活的查询，一律改成按 `install_id` 去重**，旧数据永远带着这个洞。
 - `test/backend-config.test.js` — the china artifact contains no `MT_TELEMETRY_URL`.
 - `npm run test:smoke` — a local stub endpoint; translate one paragraph; assert a
   `translate_ok` arrives and the payload has **no** URL or text field.
