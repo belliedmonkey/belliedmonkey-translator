@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "復習ライブラリで見る →"
+  },
+  "ob_signin_grant_title": {
+    "message": "ログインして無料クレジットを受け取る"
+  },
+  "ob_signin_grant_body": {
+    "message": "クレジットはこちらで負担します。まずは十分使えます。自分のキーも使えます。ログインするとカードを他のデバイスにも同期できます。"
+  },
+  "ob_signin_sync_title": {
+    "message": "ログイン（任意）"
+  },
+  "ob_signin_sync_body": {
+    "message": "ログインするとカードを他のデバイスに同期できます。翻訳エンジンは設定で自分のキーを入力してください。"
+  },
+  "ob_signin_later": {
+    "message": "今はログインしない"
+  },
+  "ob_signin_email": {
+    "message": "メールでログイン"
+  },
+  "ob_try_title": {
+    "message": "さっそく一文試す"
+  },
+  "ob_try_body": {
+    "message": "素材を探す必要はありません。ここにあります。翻訳するか、聞いてみてください。"
+  },
+  "ob_try_translate": {
+    "message": "この文を翻訳"
+  },
+  "ob_try_listen": {
+    "message": "この文を聞く"
+  },
+  "ob_try_working": {
+    "message": "翻訳中…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "使える翻訳エンジンがまだありません。ログインすると無料クレジットが自動で追加されます。設定で自分のキーを入れることもできます。"
+  },
+  "ob_try_noengine_key": {
+    "message": "使える翻訳エンジンがまだありません —— 設定でキーを入れればすぐ使えます。"
+  },
+  "ob_try_sample_alt": {
+    "message": "外国語で読んでいると、同じ単語に何度も出会ううちに、もう調べなくてもよくなる。"
   }
 }

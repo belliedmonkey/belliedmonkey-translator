@@ -3566,5 +3566,47 @@
   },
   "systrans_discover_see": {
     "message": "在複習庫裡看 →"
+  },
+  "ob_signin_grant_title": {
+    "message": "登入，順手領一份免費額度"
+  },
+  "ob_signin_grant_body": {
+    "message": "額度由我們出，夠先用一陣；也可以用你自己的 key。登入還能把卡片同步到你的其他裝置。"
+  },
+  "ob_signin_sync_title": {
+    "message": "登入（可選）"
+  },
+  "ob_signin_sync_body": {
+    "message": "登入用來把卡片同步到你的其他裝置。翻譯引擎可以在設定裡填你自己的 key。"
+  },
+  "ob_signin_later": {
+    "message": "先不登入"
+  },
+  "ob_signin_email": {
+    "message": "用電子郵件登入"
+  },
+  "ob_try_title": {
+    "message": "現在就試一句"
+  },
+  "ob_try_body": {
+    "message": "不用自己找素材，這句就在這裡。翻翻看，或者聽一遍。"
+  },
+  "ob_try_translate": {
+    "message": "翻這一句"
+  },
+  "ob_try_listen": {
+    "message": "聽這一句"
+  },
+  "ob_try_working": {
+    "message": "正在翻譯…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "還沒有可用的翻譯引擎。登入一下就會自動領一份免費額度；也可以在設定裡填自己的 key。"
+  },
+  "ob_try_noengine_key": {
+    "message": "還沒有可用的翻譯引擎 —— 在設定裡填一把 key 就能用。"
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二語言裡讀東西，同一個詞見得多了，就不再需要查了。"
   }
 }

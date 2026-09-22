@@ -663,10 +663,48 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           window.show('ios');                        // 先把平台设成 iOS
           await new Promise((r) => setTimeout(r, 20));
           const seen = [];
-          // 从第一屏重新走：点 next 直到最后一屏
-          for (let i = 0; i < 5; i++) {
+          const vis = (el) => !!(el && el.getClientRects().length);
+          // 按**页面自报的屏名**走（document.body.dataset.obStep），不是固定点 5 次。
+          // 原来的写法「for (i < 5)」再断言「seen.length === 5」，数的是循环次数不是屏数 ——
+          // 屏数变了它照样是 5（最后一屏被采两遍），**结构上就红不了**。2026-09-22 登录屏
+          // 挪到第 2 屏之后，「那一屏点了只翻页、根本不登录」就是这样溜进 main 的。
+          for (let i = 0; i < 8; i++) {
+            const step = document.body.dataset.obStep || '';
             const kv = $('ob-kv').hidden ? [] : $('ob-kv').querySelectorAll('div span');
-            seen.push({ title: $('ob-title').textContent, text: $('ob-text').textContent,
+            // 「就地试一句」：没有引擎时点「翻这一句」，必须**说出一句话**，不是空着、不是一直「正在翻译…」。
+            let tryRes = null;
+            if (step === 'firstuse') {
+              const src = $('ob-try-src'), out = $('ob-try-out');
+              tryRes = { shown: vis($('ob-try')), src: src ? src.textContent : '',
+                         tr: vis($('ob-try-tr')), say: vis($('ob-try-say')) };
+              const setS = (o) => new Promise((r) => chrome.storage.local.set(o, r));
+              const clickAndWait = async () => {
+                $('ob-try-tr').click();
+                for (let k = 0; k < 60; k++) {
+                  await new Promise((r) => setTimeout(r, 50));
+                  if (!out.hidden && !$('ob-try-tr').disabled) break;
+                }
+                return { out: out.hidden ? '' : out.textContent, cls: out.className,
+                         stuck: $('ob-try-tr').disabled };
+              };
+              // **两个场景都钉死状态**，不靠环境碰巧。第一版只点一次、断言「结果是 bad」——
+              // 而这里设置是空的、国际版默认引擎是不用 key 的 Google，于是它走的根本不是
+              // 「没有引擎」那一支，是「真去翻、无头环境连不上外网、报错」：测的是环境。
+              const keep = await new Promise((r) => chrome.storage.local.get(['provider', 'apiKey'], (v) => r(v || {})));
+              // ① 没有引擎：选一个必须填 key 的引擎、key 留空
+              await setS({ provider: 'deepseek', apiKey: '' });
+              tryRes.none = await clickAndWait();
+              // ② 有引擎：给 key、把传输桩掉 —— 判据是「译文落到结果行」，不是去打外网
+              const realTr = TranslationAPI.translate;
+              TranslationAPI.translate = async () => '【桩】这是一句译文';
+              await setS({ provider: 'deepseek', apiKey: 'sk-gate-0123456789' });
+              try { tryRes.okRun = await clickAndWait(); } finally { TranslationAPI.translate = realTr; }
+              await new Promise((r) => chrome.storage.local.remove(['provider', 'apiKey'], r));
+              if (keep.provider || keep.apiKey) await setS(keep);
+            }
+            seen.push({ step, tryRes, nextText: vis($('ob-next')) ? $('ob-next').textContent : '',
+                        alt: vis($('ob-alt')) ? $('ob-alt').textContent : '',
+                        title: $('ob-title').textContent, text: $('ob-text').textContent,
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
                         steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
                         next: !$('ob-next').hidden,
@@ -681,7 +719,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
                           document.body.appendChild(d);
                           const v = getComputedStyle(d).backgroundColor; d.remove(); return v;
                         })(),
-                        btns: ['ob-prefs', 'ob-setup', 'ob-next', 'ob-skip']
+                        // ob-alt / ob-try-* 是 2026-09-22 加的：页脚外的按钮不纳入，
+                        // 这一条就看不见「翻这一句」与「继续」两个填色按钮并排。
+                        btns: ['ob-prefs', 'ob-setup', 'ob-next', 'ob-alt', 'ob-skip', 'ob-try-tr', 'ob-try-say']
                           .filter((id) => !!($(id) && $(id).getClientRects().length))
                           .map((id) => ({ id, bg: getComputedStyle($(id)).backgroundColor })),
                         // 「首屏看不看得见能点的东西」。判据是渲染坐标：#onboard 的父级
@@ -700,10 +740,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             // 'ext' 那一屏**没有「继续」**：主行动是「在网页上完成设置」，它同时前进
             // 一屏。所以遍历也得走那个按钮 —— 照旧点 ob-next 会卡死在那一屏，而门禁
             // 会报成「屏数不对」，指向完全错误的原因。
-            if (i < 4) {
-              const btn = $('ob-next').hidden ? $('ob-setup') : $('ob-next');
-              btn.click(); await new Promise((r) => setTimeout(r, 30));
-            }
+            // 最后一屏（ext）不点：它的主按钮是收尾键，点了会结束引导、开外链。
+            if (step === 'ext' || sec.hidden) break;
+            // 登录屏走「先不登录」：它的主按钮是**真的去登录**（无头环境里没有 Apple 桥，
+            // 会退到邮箱 = 结束引导），而那正是这一屏该有的样子。
+            const btn = step === 'signin' ? $('ob-alt')
+              : ($('ob-next').hidden ? $('ob-setup') : $('ob-next'));
+            btn.click(); await new Promise((r) => setTimeout(r, 30));
           }
           // 「继续」在不在，必须在**主循环里逐屏采**。原来我另起了一个循环回头找那一屏
           // —— 它会把引导又点走一遍，于是这一条和横幅那一条读到的都是走完之后的状态，
@@ -719,6 +762,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // 「可以先用免费通道」这句只有在注册表真有 needsKey:false 的引擎时才成立。
           // 中国版一个都没有（google 是 global-only），说了就是假话 ——
           // 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状。
+          out2.backendOn = !!(window.MT_BACKEND && window.MT_BACKEND.enabled);
           out2.providerCount = (window.MT_PROVIDERS || []).length;
           out2.freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
           out2.engineNote = seen.map((x) => x.kv0).filter(Boolean).join(' | ');
@@ -741,7 +785,45 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         '引导里又出现了「可以先用免费通道」—— 2026-09-01 裁定：不再推荐它');
       need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
         + '两个一起显示等于把同一句话一字不差地重复一遍');
-      need(seen.length === 5, '引导不是五屏，实际 ' + seen.length);
+      // 2026-09-22 屏序：welcome → signin → firstuse → ext（signin 按 MT_BACKEND.enabled）。
+      const order = seen.map((x) => x.step).join(' → ');
+      const want = ov.backendOn ? 'welcome → signin → firstuse → ext' : 'welcome → firstuse → ext';
+      need(order === want, `引导屏序是「${order}」，期望「${want}」`);
+      // ★ 登录屏的主按钮**不许是「继续」**。它原来能登录，是因为它是最后一屏、那个按钮其实
+      //   是「结束引导、落到首页登录卡上」；挪到中间之后若没跟着改，这一屏就只是一张说明，
+      //   点了只翻页。判据与语种无关：拿「就地试一句」那屏的「继续」来比。
+      const si = seen.find((x) => x.step === 'signin');
+      const fu = seen.find((x) => x.step === 'firstuse');
+      if (ov.backendOn) {
+        need(si && si.nextText && fu && si.nextText !== fu.nextText,
+          '登录屏的主按钮是「' + (si && si.nextText) + '」—— 与普通的「继续」一样，点了只会翻页、不会登录');
+        need(si && !!si.alt, '登录屏没有「先不登录」—— 不想登录的人只能整条引导跳过');
+        need(si && !/最后一步/.test(si.title), '登录屏标题还写着「最后一步」—— 它已经不是最后一屏了');
+      }
+      // ★ 「就地试一句」：素材内置、两个动作都在；没有引擎时点「翻这一句」必须说出一句话。
+      // ★ **填色的是哪一个**，不只是「至多一个」。那条计数门禁在「就地试一句」上是绿的 ——
+      //   填色的确实只有一个，只是填成了「继续」而不是「翻这一句」，人一眼看到的主行动是
+      //   「跳过去」。2026-09-22 截图才看出来。
+      const filledIds = (x) => (x && x.btns || []).filter((b) => x.accentBg && b.bg === x.accentBg).map((b) => b.id);
+      need(fu && filledIds(fu).join() === 'ob-try-tr',
+        '「就地试一句」那一屏填色的是「' + (fu ? filledIds(fu).join('、') : '') + '」—— 主行动应当是「翻这一句」，不是「继续」');
+      if (ov.backendOn) {
+        need(si && filledIds(si).join() === 'ob-next',
+          '登录屏填色的是「' + (si ? filledIds(si).join('、') : '') + '」—— 主行动应当是登录那个按钮');
+        need(si && !(si.btns || []).some((b) => b.id === 'ob-skip'),
+          '登录屏又挂着「以后再设置」—— 与「先不登录」两个相近的「不」并排，分不清哪个是跳过这一屏');
+      }
+      need(fu && fu.tryRes && fu.tryRes.shown, '「就地试一句」那一屏没有露出试一句的区块');
+      need(fu && fu.tryRes && fu.tryRes.src.trim().length > 10, '「就地试一句」没有内置的示例句');
+      need(fu && fu.tryRes && fu.tryRes.tr && fu.tryRes.say, '「翻这一句 / 听这一句」两个按钮不全');
+      const none = fu && fu.tryRes && fu.tryRes.none, okRun = fu && fu.tryRes && fu.tryRes.okRun;
+      need(none && !none.stuck && okRun && !okRun.stuck, '点了「翻这一句」之后按钮一直是禁用的 —— 请求没落定');
+      // 没有引擎：要**具名**说出来，而且不带 ✗ —— 带 ✗ 的是传输失败，那是另一件事。
+      need(none && none.cls === 'bad' && none.out && !/^✗/.test(none.out),
+        '没有引擎时点「翻这一句」，结果行是「' + (none && none.out) + '」(' + (none && none.cls) + ') —— '
+        + '应当具名说「还没有可用的翻译引擎」，不是空着、不是一直「正在翻译…」、也不是一条传输报错');
+      need(okRun && okRun.cls === 'ok' && okRun.out === '【桩】这是一句译文',
+        '有引擎时点「翻这一句」，结果行是「' + (okRun && okRun.out) + '」—— 译文没有落到结果行');
       const blank = seen.map((x, i) => (x.title && x.text) ? null : i).filter((x) => x !== null);
       need(blank.length === 0, '这几屏标题或正文是空的（i18n 键没落到）：' + blank.join(','));
       need(seen[0].w !== seen[seen.length - 1].w, '进度条从头到尾没动');

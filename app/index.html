@@ -172,6 +172,16 @@
         <p id="ob-text"></p>
         <ol id="ob-steps" class="ob-steps" hidden></ol>
         <div id="ob-kv" hidden></div>
+        <!-- 「就地试一句」（2026-09-22，画布 #392 第 2 页）：素材内置，不让人自己找、自己粘；
+             两个动作都在这个 App 里完成，不把人送去任何别处。 -->
+        <div id="ob-try" hidden>
+          <p id="ob-try-src"></p>
+          <div class="ob-try-acts">
+            <button id="ob-try-tr" type="button"></button>
+            <button id="ob-try-say" type="button" class="secondary"></button>
+          </div>
+          <p id="ob-try-out" hidden></p>
+        </div>
         <p class="note" id="ob-telemetry" hidden></p>
       </div>
       <!-- 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
@@ -184,6 +194,8 @@
              （直达 Safari 扩展设置），它退成次级。写死在这里就没法分。 -->
         <button id="ob-setup" type="button" hidden></button>
         <button id="ob-next" type="button"></button>
+        <!-- 每屏自定的次要动作（现在只有登录屏用它：「先不登录」）。排在主按钮**下面**。 -->
+        <button id="ob-alt" type="button" class="secondary" hidden></button>
         <button id="ob-skip" type="button" class="link"></button>
       </div>
     </section>

@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "복습 라이브러리에서 보기 →"
+  },
+  "ob_signin_grant_title": {
+    "message": "로그인하고 무료 크레딧 받기"
+  },
+  "ob_signin_grant_body": {
+    "message": "크레딧은 저희가 부담합니다. 처음 쓰기엔 충분해요. 직접 가진 키를 써도 됩니다. 로그인하면 카드를 다른 기기에도 동기화할 수 있습니다."
+  },
+  "ob_signin_sync_title": {
+    "message": "로그인 (선택)"
+  },
+  "ob_signin_sync_body": {
+    "message": "로그인하면 카드를 다른 기기에 동기화할 수 있습니다. 번역 엔진은 설정에서 직접 키를 입력하세요."
+  },
+  "ob_signin_later": {
+    "message": "나중에 할게요"
+  },
+  "ob_signin_email": {
+    "message": "이메일로 로그인"
+  },
+  "ob_try_title": {
+    "message": "지금 한 문장 해 보기"
+  },
+  "ob_try_body": {
+    "message": "자료를 찾을 필요 없어요. 여기 있습니다. 번역해 보거나 들어 보세요."
+  },
+  "ob_try_translate": {
+    "message": "이 문장 번역"
+  },
+  "ob_try_listen": {
+    "message": "이 문장 듣기"
+  },
+  "ob_try_working": {
+    "message": "번역 중…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "아직 사용할 수 있는 번역 엔진이 없습니다. 로그인하면 무료 크레딧이 자동으로 추가됩니다. 설정에서 직접 키를 넣을 수도 있어요."
+  },
+  "ob_try_noengine_key": {
+    "message": "아직 사용할 수 있는 번역 엔진이 없습니다 —— 설정에서 키를 넣으면 바로 쓸 수 있어요."
+  },
+  "ob_try_sample_alt": {
+    "message": "외국어로 읽다 보면, 같은 단어를 자주 만나게 되면서 더 이상 찾아볼 필요가 없어진다."
   }
 }

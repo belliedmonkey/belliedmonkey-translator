@@ -3566,5 +3566,47 @@
   },
   "systrans_discover_see": {
     "message": "在复习库里看 →"
+  },
+  "ob_signin_grant_title": {
+    "message": "登录，顺手领一份免费额度"
+  },
+  "ob_signin_grant_body": {
+    "message": "额度由我们出，够先用一阵；也可以用你自己的 key。登录还能把卡片同步到你的其它设备。"
+  },
+  "ob_signin_sync_title": {
+    "message": "登录（可选）"
+  },
+  "ob_signin_sync_body": {
+    "message": "登录用来把卡片同步到你的其它设备。翻译引擎可以在设置里填你自己的 key。"
+  },
+  "ob_signin_later": {
+    "message": "先不登录"
+  },
+  "ob_signin_email": {
+    "message": "用邮箱登录"
+  },
+  "ob_try_title": {
+    "message": "现在就试一句"
+  },
+  "ob_try_body": {
+    "message": "不用自己找素材，这句就在这儿。翻翻看，或者听一遍。"
+  },
+  "ob_try_translate": {
+    "message": "翻这一句"
+  },
+  "ob_try_listen": {
+    "message": "听这一句"
+  },
+  "ob_try_working": {
+    "message": "正在翻译…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "还没有可用的翻译引擎。登录一下就会自动领一份免费额度；也可以在设置里填自己的 key。"
+  },
+  "ob_try_noengine_key": {
+    "message": "还没有可用的翻译引擎 —— 在设置里填一把 key 就能用。"
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
   }
 }

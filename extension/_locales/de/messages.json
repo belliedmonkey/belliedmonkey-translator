@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "In der Wiederholung ansehen →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Anmelden und kostenloses Guthaben erhalten"
+  },
+  "ob_signin_grant_body": {
+    "message": "Das Guthaben übernehmen wir, es reicht für den Anfang reichlich; du kannst auch deinen eigenen Schlüssel verwenden. Die Anmeldung synchronisiert außerdem deine Karten auf deine anderen Geräte."
+  },
+  "ob_signin_sync_title": {
+    "message": "Anmelden (optional)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Die Anmeldung synchronisiert deine Karten auf deine anderen Geräte. Für die Übersetzung trägst du in den Einstellungen deinen eigenen Schlüssel ein."
+  },
+  "ob_signin_later": {
+    "message": "Jetzt nicht"
+  },
+  "ob_signin_email": {
+    "message": "Mit E-Mail anmelden"
+  },
+  "ob_try_title": {
+    "message": "Jetzt einen Satz ausprobieren"
+  },
+  "ob_try_body": {
+    "message": "Du musst nichts suchen – hier ist einer. Übersetze ihn oder hör ihn dir an."
+  },
+  "ob_try_translate": {
+    "message": "Diesen Satz übersetzen"
+  },
+  "ob_try_listen": {
+    "message": "Diesen Satz anhören"
+  },
+  "ob_try_working": {
+    "message": "Wird übersetzt …"
+  },
+  "ob_try_noengine_grant": {
+    "message": "Noch keine Übersetzungs-Engine. Melde dich an, dann wird kostenloses Guthaben automatisch hinzugefügt – oder trag deinen Schlüssel in den Einstellungen ein."
+  },
+  "ob_try_noengine_key": {
+    "message": "Noch keine Übersetzungs-Engine – trag einen Schlüssel in den Einstellungen ein, dann geht’s los."
+  },
+  "ob_try_sample_alt": {
+    "message": "Wer in einer Fremdsprache liest, muss dieselben Wörter irgendwann nicht mehr nachschlagen, weil sie immer wieder auftauchen."
   }
 }

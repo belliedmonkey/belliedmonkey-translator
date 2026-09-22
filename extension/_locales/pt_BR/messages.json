@@ -3565,5 +3565,47 @@
   },
   "systrans_discover_see": {
     "message": "Ver na revisão →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Entre e ganhe crédito grátis"
+  },
+  "ob_signin_grant_body": {
+    "message": "O crédito é por nossa conta e dá de sobra para começar; você também pode usar sua própria chave. Entrar também sincroniza seus cartões com seus outros dispositivos."
+  },
+  "ob_signin_sync_title": {
+    "message": "Entrar (opcional)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Entrar sincroniza seus cartões com seus outros dispositivos. Para traduzir, adicione sua própria chave nos Ajustes."
+  },
+  "ob_signin_later": {
+    "message": "Agora não"
+  },
+  "ob_signin_email": {
+    "message": "Entrar com e-mail"
+  },
+  "ob_try_title": {
+    "message": "Experimente uma frase agora"
+  },
+  "ob_try_body": {
+    "message": "Não precisa procurar nada: aqui está uma. Traduza ou ouça."
+  },
+  "ob_try_translate": {
+    "message": "Traduzir esta frase"
+  },
+  "ob_try_listen": {
+    "message": "Ouvir esta frase"
+  },
+  "ob_try_working": {
+    "message": "Traduzindo…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "Ainda não há mecanismo de tradução. Entre e o crédito grátis é adicionado automaticamente — ou adicione sua chave nos Ajustes."
+  },
+  "ob_try_noengine_key": {
+    "message": "Ainda não há mecanismo de tradução — adicione uma chave nos Ajustes e pronto."
+  },
+  "ob_try_sample_alt": {
+    "message": "Lendo em uma segunda língua, de tanto encontrar as mesmas palavras, você deixa de precisar procurá-las."
   }
 }
