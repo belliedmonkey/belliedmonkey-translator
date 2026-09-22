@@ -2,7 +2,8 @@
 
 > **2026-09-22 实装记录**（机器 `lhins-6amaoj8m`，北京，Ubuntu 24.04，2C2G）：
 > - 域名用 **`api.belliedmonkey.com`**（`belliedmonkey.com` 的备案接入资源就是这台机器），不是下文示例里的 `.cn`。
-> - **发信复用东京那套 Gmail**（用户裁定，不去问 SES）：587 实测通，`smtp-check.sh` 每小时查一次连通性。
+> - **发信走 QQ 邮箱 SMTP**（`smtp.qq.com:587`，发件人 `zcheung@vip.qq.com`）：同日先用了东京那套 Gmail，后改境内 ——
+>   Gmail 会把收件人邮箱带出境。`smtp-check.sh` 每小时查一次连通性。
 >   密码读不回来（管理接口只给摘要），由用户放进服务器的 `gotrue.env`。
 > - 镜像走腾讯云内网加速 `mirror.ccs.tencentyun.com`（`/etc/docker/daemon.json`），境内拉 Docker Hub 不通。
 > - **所有密钥在服务器上生成、只在服务器上**（`/opt/bt/deploy/china/.env`、`gotrue.env`，600）；
