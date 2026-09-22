@@ -103,15 +103,6 @@
                同一个组件、同一套 id，所以两边以后是一起改的。 -->
           <div id="ob-manual" hidden></div>
 
-          <!-- 第 3 屏：真的采集开关 + 语言 chips（复用 SourcesView.renderLangChips） -->
-          <div id="ob-capture" hidden>
-            <label class="row">
-              <input id="ob-learn" type="checkbox">
-              <span data-i18n="extob_capture_toggle">把我读过的句子存成复习卡</span>
-            </label>
-            <p id="ob-capture-note" class="hint"></p>
-            <div id="ob-langs"></div>
-          </div>
 
         </div>
         <!-- 行动键全部在吸底页脚。#ob-cta 原来在 #ob-body 里，于是「现在翻一页看看」
@@ -186,7 +177,6 @@
   <script src="../content/translation-api.js"></script>
   <script src="../learn/backend.config.js"></script>
   <script src="../content/learn-rules.js"></script>
-  <script src="../learn/sources-view.js"></script>
   <script src="../learn/tts.js"></script>
   <script src="../learn/speech-input.js"></script>
   <script src="../learn/page-settings.js"></script>
