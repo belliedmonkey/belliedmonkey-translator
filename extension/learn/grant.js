@@ -104,8 +104,11 @@ var LearnGrant = (function () {
     const chat = pick(r.MT_PROVIDERS, 'grant');
     const tts = pick(r.MT_TTS_ENGINES, 'grant_speech');
     const stt = pick(r.MT_STT_ENGINES, 'grant_stt');
-    if (!chat || !tts || !stt) return null;
-    return { host: 'grant', chat, tts, stt };
+    // 翻译那一槽是必需的；朗读 / 转写可以没有 —— 中国版额度（方案 C，§8.10.1）只有翻译：
+    // 百炼没有与中继同形状的朗读 / 转写接口。原来这里三条缺一就返回 null，于是中国版
+    // 「领取」会一个槽都不写、静默退出，而界面只会说「没配好」—— 看不出是哪儿断了。
+    if (!chat) return null;
+    return { host: 'grant', chat, tts: tts || null, stt: stt || null };
   }
 
   // plan(claimed, settings, reg, opts) → { writes, skipped, replaced, tests, marks }

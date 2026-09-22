@@ -242,8 +242,10 @@ var QuickSetup = (() => {
 
     if (!p || !key) return { writes, skipped, tests, replaced };
 
-    const ttsEngine = p.tts.id;
-    const sttEngine = p.stt.id;
+    // 平台可以不带朗读 / 转写（中国版的免费额度只有翻译，grant.js platform()）。缺的那一槽
+    // **不写、不测**，记成 skipped/absent —— 绝不能拿翻译的 key 去配一个不存在的引擎。
+    const ttsEngine = p.tts ? p.tts.id : '';
+    const sttEngine = p.stt ? p.stt.id : '';
 
     // 端点 / 模型 / 音色写空是构成要件：留着上一个引擎的地址配新引擎的 key，正是
     // notes.js 明文禁止的「把 key 和一个不是发给它的端点配在一起」。空 = 走注册表
@@ -258,7 +260,9 @@ var QuickSetup = (() => {
       skipped.push({ slot: 'chat', reason: 'already', current: s.provider || '' });
     }
 
-    if (st.tts === 'empty') {
+    if (!p.tts) {
+      skipped.push({ slot: 'tts', reason: 'absent', current: s.ttsEngine || '' });
+    } else if (st.tts === 'empty') {
       writes.ttsEngine = ttsEngine;
       writes.ttsApiKey = key;
       writes.ttsBaseUrl = '';
@@ -278,7 +282,9 @@ var QuickSetup = (() => {
       skipped.push({ slot: 'tts', reason: 'already', current: s.ttsEngine || '' });
     }
 
-    if (st.stt === 'empty') {
+    if (!p.stt) {
+      skipped.push({ slot: 'stt', reason: 'absent', current: s.sttEngine || '' });
+    } else if (st.stt === 'empty') {
       writes.sttEngine = sttEngine;
       writes.sttApiKey = key;
       writes.sttBaseUrl = '';

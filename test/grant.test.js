@@ -132,6 +132,18 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     ok(!('apiKey' in r.writes), '尾号不同却覆盖了');
   });
 
+  test('只有翻译那一条（中国版额度，方案 C）：只写翻译槽，朗读 / 转写一个键都不碰', () => {
+    const reg = { MT_PROVIDERS: REG.MT_PROVIDERS, MT_TTS_ENGINES: [], MT_STT_ENGINES: [] };
+    const r = G.plan(claimed, {}, reg);
+    eq(r.writes.provider, 'grant', '翻译槽没写 —— 中国版领了额度等于没领');
+    eq(r.writes.apiKey, TOKEN);
+    ok(!Object.keys(r.writes).some((k) => /^tts|^stt/.test(k)),
+      '拿翻译的令牌配了一个不存在的朗读 / 转写引擎：' + Object.keys(r.writes).join(','));
+    deepEq(Array.from(r.tests), ['chat'], '自检应当只测翻译');
+    ok(r.skipped.some((x) => x.slot === 'tts' && x.reason === 'absent')
+      && r.skipped.some((x) => x.slot === 'stt' && x.reason === 'absent'), '缺的两槽没记成 absent');
+  });
+
   test('注册表里没有那三条时不产出任何 writes（中国版 / 老产物）', () => {
     const r = G.plan(claimed, {}, { MT_PROVIDERS: [], MT_TTS_ENGINES: [], MT_STT_ENGINES: [] });
     deepEq(r.writes, {});
