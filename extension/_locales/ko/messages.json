@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "외국어로 읽다 보면, 같은 단어를 자주 만나게 되면서 더 이상 찾아볼 필요가 없어진다."
+  },
+  "xb_consent": {
+    "message": "별도로 동의합니다: 로그인하면 내 계정 정보(이메일 또는 Apple 계정 식별자)와 학습 카드(읽은 문장, 번역문, 출처 페이지 주소와 제목)가 일본 도쿄에 있는 서버로 전송되어 저장되며, 수령자는 Supabase Pte. Ltd.입니다.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "수령자, 목적, 철회 방법은 개인정보 처리방침 3절 참고",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "로그인하려면 먼저 위 항목에 체크하세요. 체크하지 않아도 사용할 수 있지만 카드는 동기화되지 않습니다.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

@@ -3607,5 +3607,17 @@
   },
   "ob_try_sample_alt": {
     "message": "Quand on lit dans une deuxième langue, à force de croiser les mêmes mots, on n’a plus besoin de les chercher."
+  },
+  "xb_consent": {
+    "message": "Je consens séparément : une fois connecté, mes informations de compte (e-mail ou identifiant Apple) et mes fiches d’étude (phrases lues, traductions, adresses et titres des pages sources) sont transférées et stockées sur des serveurs situés à Tokyo (Japon), exploités par Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Destinataire, finalité et retrait du consentement : politique de confidentialité, section 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Pour vous connecter, cochez d’abord la case ci-dessus. Sans elle, l’app fonctionne ; vos fiches ne sont simplement pas synchronisées.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
   }
 }

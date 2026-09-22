@@ -640,6 +640,58 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(wv.formsAfterClick, '点了登录却展不开表单');
       need(wv.providersInPrompt, '一键登录（Apple / Google）没在说明卡上 —— 又躲回邮箱表单后面了');
       need(wv.emailLinkInPrompt, '「或用邮箱登录」那行链接不在说明卡上');
+
+      // ★ 出境单独同意（2026-09-22，PIPL 第 39 条）。中国版的账号与卡片存在东京，登录就是出境。
+      //   判据是**后端收到了什么**，不是框画没画：把 fetch 换成计数器，不勾就提交邮箱表单 ——
+      //   发往后端的请求必须是 0；勾上再提交，必须 ≥1（证明拦的是「没同意」，不是表单本来就发不出去）。
+      //   期望值由页面自己的配置算（flavor + 后端域名），不按 FLAVOR 写死：境内后端就绪那天
+      //   框自己消失，这条也跟着改口，不会变成一条红着的旧规矩。
+      const xb = await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          const $ = (id) => document.getElementById(id);
+          const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+          const host = (() => { try { return new URL(MT_BACKEND.url).hostname; } catch (_) { return ''; } })();
+          const expect = window.MT_FLAVOR === 'china' && MT_BACKEND.enabled && /\\.supabase\\.co$/i.test(host);
+          await new Promise((r) => chrome.storage.local.remove('xbConsent', r));
+          const realFetch = window.fetch; let calls = 0;
+          window.fetch = async (u) => { if (String(u).includes(host)) calls++;
+            return new Response('{"error":"gate-stub"}', { status: 500, headers: { 'Content-Type': 'application/json' } }); };
+          // 首页卡此刻未必在渲染（首启时引导盖在上面），所以这里问的是它自己的 hidden，不是坐标。
+          const out = { expect, boxVis: !$('xb-box').hidden, checked: $('xb-check').checked };
+          try {
+            $('signin-forms').hidden = false; $('email-form').hidden = false;
+            $('email').value = 'gate@example.com';
+            $('email-form').requestSubmit(); await wait(200);
+            out.callsUnchecked = calls;
+            out.errVis = !$('xb-box').querySelector('.xb-err').hidden && !!$('xb-box').querySelector('.xb-err').textContent;
+            if (expect) { $('xb-check').click(); await wait(50); }
+            out.stored = await new Promise((r) => chrome.storage.local.get(['xbConsent'], (v) => r(!!(v && v.xbConsent))));
+            out.obMirrored = $('ob-xb-check').checked;
+            $('email-form').requestSubmit(); await wait(300);
+            out.callsChecked = calls;
+          } finally {
+            window.fetch = realFetch;
+            await new Promise((r) => chrome.storage.local.remove('xbConsent', r));
+            if (expect && $('xb-check').checked) $('xb-check').click();
+            $('email').value = ''; $('send').disabled = false;
+          }
+          return JSON.stringify(out);
+        })()`, awaitPromise: true, returnByValue: true }, sessionId);
+      const xv = JSON.parse(xb.result.value);
+      need(xv.expect === (FLAVOR === 'china'),
+        `出境同意的「需不需要」算出来是 ${xv.expect}，而这是 ${FLAVOR} 包 —— 中国版后端还在东京，应当需要；国际版不需要`);
+      if (xv.expect) {
+        need(xv.boxVis, '中国版首页登录卡上没有出境单独同意框 —— 登录即出境，却没问过');
+        need(!xv.checked, '出境同意框默认是勾上的 —— 那不叫「单独同意」');
+        need(xv.callsUnchecked === 0, `没勾出境同意就提交了邮箱表单，后端收到了 ${xv.callsUnchecked} 个请求 —— 没拦住`);
+        need(xv.errVis, '没勾就点登录，拦下了却一句话都没说 —— 用户只会觉得按钮坏了');
+        need(xv.stored, '勾了出境同意而 xbConsent 没落盘 —— 下次打开又要再勾');
+        need(xv.obMirrored, '首页卡上勾了，引导登录屏那一份没跟着勾 —— 两个框应当是同一个同意');
+        need(xv.callsChecked >= 1, '勾上之后提交邮箱表单，后端一个请求都没收到 —— 上面那条「0」证明不了是同意框拦的');
+      } else {
+        need(!xv.boxVis, `${FLAVOR} 包的登录卡上出现了出境同意框 —— 后端不在境外时它是一句假话`);
+        need(xv.callsUnchecked >= 1, `${FLAVOR} 包不勾任何框提交邮箱表单，后端没收到请求 —— 登录被误拦了`);
+      }
     }
     // 首次运行引导：五屏走一遍（§引导）。断言的是**每一屏都有话说**、进度条在动、
     // 走完能落到登录表单 —— 而不是元素存不存在。
@@ -702,7 +754,17 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
               await new Promise((r) => chrome.storage.local.remove(['provider', 'apiKey'], r));
               if (keep.provider || keep.apiKey) await setS(keep);
             }
-            seen.push({ step, tryRes, nextText: vis($('ob-next')) ? $('ob-next').textContent : '',
+            // 出境同意：登录屏上那一份在不在；不勾点主按钮，必须**原地不动**（不登录、不结束引导）。
+            let xbOb = null;
+            if (step === 'signin') {
+              xbOb = { vis: !!$('ob-xb-box').getClientRects().length };
+              if (xbOb.vis && !$('ob-xb-check').checked) {
+                $('ob-next').click(); await new Promise((r) => setTimeout(r, 50));
+                xbOb.stayed = document.body.dataset.obStep === 'signin' && !sec.hidden;
+                xbOb.err = !!$('ob-xb-box').querySelector('.xb-err').getClientRects().length;
+              }
+            } else xbOb = { vis: !!$('ob-xb-box').getClientRects().length };
+            seen.push({ step, tryRes, xbOb, nextText: vis($('ob-next')) ? $('ob-next').textContent : '',
                         alt: vis($('ob-alt')) ? $('ob-alt').textContent : '',
                         title: $('ob-title').textContent, text: $('ob-text').textContent,
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
@@ -799,6 +861,15 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           '登录屏的主按钮是「' + (si && si.nextText) + '」—— 与普通的「继续」一样，点了只会翻页、不会登录');
         need(si && !!si.alt, '登录屏没有「先不登录」—— 不想登录的人只能整条引导跳过');
         need(si && !/最后一步/.test(si.title), '登录屏标题还写着「最后一步」—— 它已经不是最后一屏了');
+        const xbWant = FLAVOR === 'china';
+        need(si && si.xbOb && si.xbOb.vis === xbWant,
+          `引导登录屏${xbWant ? '没有' : '出现了'}出境单独同意框（${FLAVOR} 包）`);
+        if (xbWant) {
+          need(si.xbOb.stayed, '引导登录屏上没勾出境同意就点了登录，引导却往下走了 —— 没拦住');
+          need(si.xbOb.err, '引导登录屏上没勾就点登录，拦下了却没说为什么');
+        }
+        need(!seen.some((x) => x.step !== 'signin' && x.xbOb && x.xbOb.vis),
+          '出境同意框漏到了登录屏以外的引导屏上');
       }
       // ★ 「就地试一句」：素材内置、两个动作都在；没有引擎时点「翻这一句」必须说出一句话。
       // ★ **填色的是哪一个**，不只是「至多一个」。那条计数门禁在「就地试一句」上是绿的 ——
