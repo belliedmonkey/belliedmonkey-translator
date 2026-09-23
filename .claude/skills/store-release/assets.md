@@ -311,13 +311,17 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 | Apple iOS 中国版 | `cn-iphone-1..7` + `cn-ipad-1..7`（zh-Hans） | 无 |
 | Apple macOS 中国版 | `cn-mac-1..7` | 无 |
 | CWS / AMO | `{zh,en}-web-1..9` + `cws-promo-tile-440x280.png` | 无 |
-| 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk}.png` ← `en-web-{1,4,7,8,9}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
+| 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk,systrans}.png` ← `en-web-{1,4,7,8,9,10}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
 | 中国官网 | `~/belliedmonkey-com/media/shot-*.png` ← `screenshots-cn/cn-web-{1,3,5,6,7}` | 无 |
 
 **帧号只往后加、不重排** —— 官网与 `scripts/asc-media.js` 的 `ORDER` 都按帧号取图。
 `en-iphone-10`（系统翻译）只有 iPhone 档有原料：iPad 拍不到（没硬件，模拟器里没有
 TranslationUIProvider），Mac 没这个功能，扩展两店不放 App 独有的东西。
 **`zh-iphone-10` 不存在** —— 缺 `zh-phone-systrans.png` 原料，`render.sh` 会跳过并打印一行。
+**`en-web-10` 是例外中的例外**（2026-09-23 加）：同一帧渲一份 1280×800 给**官网**用，
+横版画布上立的仍是手机框（帧 10 没有 desk 档原料，按 tier 取会渲出空 Mac 窗口套破图）。
+它**进不了两店** —— 上面那行 `CWS / AMO` 取的是 `web-1..9`，而两店的取图是按
+`asc-media.js` 的 `ORDER_GLOBAL` 逐帧点名，10 根本不在表里（「按构造排除」）。
 
 两个官网的图**不要手工 cp**，各有同步脚本，会写 `PROVENANCE.txt`（来源 / 时间 / sha256）：
 `belliedmonkey-cc/media/src/sync-from-store-assets.sh` 与
