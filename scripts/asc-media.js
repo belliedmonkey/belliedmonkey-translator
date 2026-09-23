@@ -80,6 +80,10 @@ const ORDER_IPHONE = [1, 10, 8, 9, 2, 7, 3, 4, 5, 6];
 // App 独有的东西。10 张同样正好是 ASC 每组的上限。
 const ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5, 6];
 const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
+// 中国版的 iPhone 集也多一帧：8 = 系统翻译，排在第 2 位 —— 与国际版 ORDER_IPHONE 的
+// 帧 10 同一个位置、同一条理由。**只有 iPhone 集有它**：iPad 没有原料（没有 iPad 硬件），
+// Mac 根本没有这个功能。2026-09-23 真机补拍（cn-phone-systrans.png）之后才有。
+const ORDER_CN_IPHONE = [1, 8, 6, 7, 5, 3, 2, 4];
 // App 独有功能的帧（8 实时字幕、9 对话听译）：只上 App Store。扩展商店（AMO 预览图、CWS 截图）不放 ——
 // 装 Firefox / Chrome 扩展的人得不到这两样，放上去就是在宣传用户拿不到的东西。scripts/amo-listing.js 读这一行。
 const APP_ONLY_GLOBAL = [8, 9];
@@ -299,7 +303,7 @@ const PLAN = [
   {
     id: 'cn-ios', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_CN, (i) => c(`cn-iphone-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_CN_IPHONE, (i) => c(`cn-iphone-${i}.png`)),
       APP_IPAD_PRO_3GEN_129: frames(ORDER_CN, (i) => c(`cn-ipad-${i}.png`)),
     },
     previews: { IPHONE_65: v('zh-ios.mp4') },

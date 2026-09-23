@@ -54,7 +54,7 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
     // 因为只有它有原料 —— iPad 没有硬件可拍、Mac 根本没有这个功能。
     // ORDER_MAC 是 2026-09-23 加的第四张，镜像对称：Mac 那一集多一帧（11 快速翻译），
     // 因为这个功能只有 Mac 有，而原料也只有 desk 档。
-    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|CN|IPHONE|MAC),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
+    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|CN|CN_IPHONE|IPHONE|MAC),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
   });
 
   test('aso.md 里的每个语种，在 iOS 与 macOS 各有一条截图线', () => {

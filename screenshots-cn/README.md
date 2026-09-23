@@ -4,6 +4,11 @@ App Store 中国版（大肚猴翻译 / `com.belliedmonkeytranslator.cn`）的�
 **出货图是 `cn-{iphone,ipad,mac,web}-1..7.png`** —— iPhone 6.5"（1242×2688）、iPad 13"（2064×2752）、
 Mac App Store 16:10（2880×1800），以及给官网 belliedmonkey.com 用的 1280×800（`cn-web-*`）。
 
+外加**帧 8（系统翻译，2026-09-23 加）**，它只有两档：`cn-iphone-8.png`（进 iPhone 那一集，
+`ORDER_CN_IPHONE`）与 `cn-web-8.png`（只给官网）。原因与国际版的帧 10 一样 —— 这个功能只有
+iPhone 有，原料也只有手机档实拍（`src/assets/cn-phone-systrans.png`，ZHAO的iPhone 上用**商店包**
+拍的，引擎是通义千问）。iPad 不渲（没有 iPad 硬件）、Mac 没这功能。横版的 web 档里立的仍是手机框。
+
 ## 与全球版（store-assets/）的区别 —— 不是风格差异，是事实差异
 
 中国版刻意少了两个全球版有的故事，因为它们在中国版**不成立**：

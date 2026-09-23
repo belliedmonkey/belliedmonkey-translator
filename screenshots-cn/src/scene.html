@@ -56,6 +56,10 @@ const COPY = {
   // 6 / 7：1.11 的 App 功能，原料是 dist-app-china 的实拍（capture-app.js）。
   6: ['任何 App 的声音，都有双语字幕', 'Mac 上是悬浮字幕条，iPhone 上是画中画字幕窗'],
   7: ['面对面，实时听译', '两个人自由说话，自动分边、自动朗读'],
+  // 8：系统翻译（1.14 起）。**只有 iPhone 有这个功能**，原料也只有手机档实拍
+  // （`cn-phone-systrans.png`，ZHAO的iPhone 上中国版商店包拍的）。所以它只进
+  // iPhone 那一集与官网，不进 iPad / Mac —— 与国际版帧 10 同一条理由。
+  8: ['在任何 App 里翻译', '选中文字 → 翻译。用你自己配的引擎，不经过我们的服务器'],
 };
 const [big, sub] = COPY[f];
 document.getElementById('big').textContent = big;
@@ -90,12 +94,23 @@ const appShot = (k) => `assets/cn-${portrait ? (W >= 1500 ? 'tablet' : 'phone') 
 // 帧 6 的手机画布放中国版调试包 14 Pro 真机 USB 录屏抽的帧「Safari 测试页 + 画中画字幕窗」（cn-phone-subspip）
 if (APP[f]) stage.innerHTML = portrait ? (W >= 1500 ? tablet(appShot(APP[f])) : phone(appShot(f === '6' ? 'subspip' : APP[f]))) : mac(appShot(f === '6' ? 'subsbar' : APP[f]));
 else if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
+// 帧 8：系统翻译。**永远用手机框，不跟画布走** —— 只有手机档原料；这不违反
+// 「画布是什么设备就放那个设备的图」，那条说的是设备框要配得上截图的视口。
+else if (f === '8') stage.innerHTML = phone('assets/cn-phone-systrans.png');
 else if (f === '5') stage.innerHTML = portrait ? (W >= 1500 ? tablet(DOCS) : phone(DOCS)) : mac(DOCS);
 else if (portrait && W >= 1500) stage.innerHTML = tablet(TAB[f]);
 else if (portrait) stage.innerHTML = phone(PHONE[f]);
 else stage.innerHTML = mac(DESK[f]);
 
 if (portrait) document.querySelectorAll('.phone, .tablet').forEach((p) => { p.style.width = W >= 1500 ? '86%' : '78%'; });
+// 帧 8 在**横版**画布（官网 1280×800）上也立手机框 —— 而上面那行只管竖版，
+// 不给宽度的话手机会按舞台整宽铺开、直接溢出画布。按可用高度反推宽度。
+if (!portrait) document.querySelectorAll('.phone').forEach((p) => {
+  const img = p.querySelector('img');
+  const fit = () => { const ratio = (img.naturalHeight || 2556) / (img.naturalWidth || 1178);
+    p.style.width = Math.min(W * 0.34, (H * 0.60) / ratio) + 'px'; };
+  if (img.complete) fit(); else img.onload = fit;
+});
 // 横版的桌面帧是 2200×1520（比 f1 的 1728×868 高），按可用高度反推宽度铺满舞台。
 if (!portrait && f !== '1') {
   const imgH = H * 0.66 - 34;
