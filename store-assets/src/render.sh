@@ -26,4 +26,8 @@ echo "Rendered $(ls "$OUT"/*.png | wc -l | tr -d ' ') screenshots to $OUT"
 for lang in zh en; do
   [ -f "$DIR/assets/$lang-phone-systrans.png" ] || { echo "跳过 f=10（缺 $lang-phone-systrans.png）"; continue; }
   render 10 $lang "$OUT/$lang-iphone-10.png" 1242,2688
+  # web 档（1280×800）**只给官网**，不给扩展两店。这不是靠自觉：CWS / AMO 与 ASC
+  # 都按 asc-media.js 的 ORDER_GLOBAL / ORDER_CN 逐帧取图，而 10 不在那两张表里
+  # （见 asc-media.js 的「按构造排除」一段）—— 多出这个文件漏不进商店。
+  render 10 $lang "$OUT/$lang-web-10.png"    1280,800
 done

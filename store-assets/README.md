@@ -1,8 +1,12 @@
 # 国际版商店素材（store-assets/）
 
 App Store（`com.belliedmonkeytranslator`）、Chrome Web Store、AMO 共用的截图与预览片。
-出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加 **`{zh,en}-iphone-10.png`**（系统翻译，
-只有 iPhone 档有原料），由 `src/scene.html` 把**实拍产品图**合进版式框里渲染而成。
+出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加帧 10（系统翻译）的两档：
+**`{zh,en}-iphone-10.png`**（商店用）与 **`{zh,en}-web-10.png`**（只给官网，2026-09-23 加）。
+帧 10 只有 phone 档原料，所以这两张里立的都是手机框 —— 横版的 web 档也一样，
+见下面那条硬规矩为什么这不算违例。**web-10 不会漏进扩展两店**：CWS / AMO 与 ASC 都按
+`asc-media.js` 的 `ORDER_GLOBAL` / `ORDER_CN` 逐帧取图，而 10 不在那两张表里。
+以上都由 `src/scene.html` 把**实拍产品图**合进版式框里渲染而成。
 帧号的含义见 `src/scene.html` 的 `COPY` 表，**只往后加、不重排** —— 官网直接按帧号取图，
 `scripts/asc-media.js` 的 `ORDER` 也按帧号写死了商店里的显示顺序。中国版的对应目录是 [`screenshots-cn/`](../screenshots-cn/)。
 
