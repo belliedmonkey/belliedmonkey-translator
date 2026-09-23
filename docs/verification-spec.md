@@ -234,7 +234,7 @@ Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18
 
 | 路 | 结果 | 一句话 |
 |---|---|---|
-| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试 |
+| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试。**⚠️ 2026-09-23 推翻：那一整天几十轮 `test-without-building` 全部正常起了 runner**（见 §0.2.3）⇒ 这条不是恒真的路障，别因为它跳过 XCUITest；再遇到先插 USB |
 | Device Hub「View Screen」（Xcode 27 `Contents/Applications/DeviceHub.app`） | 半通 | 能实时看真机屏幕（AX 里 `AXButton (View Screen)` 可按），但 cua 的像素点击 / 前台点击 / 按住松开都**落不到手机上** —— 只当监视器 |
 | 调试包 + 局域网控制通道 + `devicectl` 截屏 | ✓ | 下面这一节 |
 
@@ -274,6 +274,61 @@ Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18
 识别语言包行从「未下载 · zh-CN · ja-JP」到「已就绪」用了 15 s；离线朗读模型（GitHub Releases，129 MB）在这台手机的网络下
 `HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败，行进入「下载失败 · 重试」—— **失败态是对的，但境内网络拉不动 GitHub 是事实**，
 china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
+
+### 0.2.3 XCUITest 驱动真机：一天里踩实的十件事（2026-09-23）
+
+09-23 用 XCUITest（`.local/spike/S6/runner`，`test-without-building`）在 ZHAO的iPhone 上补拍中国版与国际版的
+「系统翻译」商店原料，全程无人值守。**这条路今天是通的** —— 上表里那条「XCUITest 在 Wi-Fi 下被拒」当天没有重现，
+几十轮 `test-without-building` 都正常起了 runner。下面是当天真正花掉时间的十件事，按撞到的顺序。
+
+**驱动与环境**
+
+1. **`TEST_RUNNER_` 前缀**：要把环境变量传进**设备上的测试进程**，必须写成 `TEST_RUNNER_MT_URL=…`。
+   直接 `MT_URL=…` 只进 `xcodebuild` 自己的环境，测试里 `ProcessInfo.processInfo.environment` 读不到。
+   **症状很欺骗**：测试「passed」，但只跑了 14 秒走默认分支 —— 判据要看附件，不看 passed。
+2. **别卸 runner。** 卸掉之后新装的包起不来：`profile has not been explicitly trusted by the user`，
+   而同一开发者身份签的**主 App 照样能起**（它的信任早就建立过，卸载不影响）。开发者模式开着也不管用，
+   `devicectl` 没有「信任证书」这个能力 ⇒ **只能人在手机上点一次**。09-23 我为排查一次启动失败卸了 runner，
+   把当天唯一还有效的那份信任删掉，后半程直接失去了真机。**启动失败先查别的，最后才动 runner。**
+3. **锁屏做不到，所以 iPhone 镜像在无人值守时不可用。** `devicectl` 没有 lock 子命令；XCUITest 的私有选择器
+   `pressLockButton` 调用成功但**没有效果**（截图回读手机仍亮着）。而镜像自己要求「连接前请锁定 iPhone」
+   （窗口原话），加上 §0.2.1 的密码前提 —— 两道都得人来。
+4. **Safari 会缓存本机测试页。** 改了 `http://<Mac IP>:<port>/` 的内容后必须加 `?v=N`，否则真机拍到的还是旧文案，
+   而页面看起来完全正常。
+5. **境内真机打不开 Wikipedia。** 第一次拍中国版原料得到一张**纯白页**。真机要英文正文时，用本机起的页走局域网
+   （同 §0.2.2 的控制通道那套 IP），别依赖外网站点 —— 何况中国版商店图本来就不该出现境内打不开的站点。
+
+**两份 App 并存的代价（扩展 §2.0）**
+
+6. §2.0 说「一台机器上只能装一份」。09-23 为拍两版原料**同时装了国际版与中国版**，代价是：系统「设置 › 应用 ›
+   默认 App › 翻译」里出现**两个同名「大肚猴翻译」**，名字上分不开 —— 只能靠**当前选中的那个带蓝勾**认出来，
+   点另一个切换。列表行不是 `cell` 类型（`st.cells` 匹配到 0 个），用 `staticTexts` 按序号点。
+7. **判断到底是哪个 App 在答话，看弹层底部披露行里的引擎名**（中国版 `qwen` / 国际版 `openrouter`），
+   **不要看 App 名** —— 两个都叫「大肚猴翻译」。切默认 App 之后的验证判据就是这一行变了没有。
+
+**WKWebView 里的控件**
+
+8. **密码框清不掉，已有值时再填会追加。** 框里已有 35 个字符时填一把 73 的 key，结果是 **108**
+   （`enterKey` 的「清空：35 → 35」当场记下了失败）。长按调粘贴也不行（callout 不暴露给 XCUITest，`menuItems` 为空）；
+   `devicectl device pasteboard copy` 能把内容写进手机剪贴板（回读字节数一致），但粘不进这个框。
+   **唯一可靠的清空办法是卸载重装拿一个空框**，判据照旧是**圆点数 == key 长度**。
+   ⚠️ 占位符也会被读成 value：中国版一键卡的「粘贴一次，三样一起配好」正好 11 个字，
+   所以「填之前长度 11」**不代表里面有东西**。
+9. **`<select>` 点开是原生弹层**，选项不在普通元素树里、而且懒加载：`find(label CONTAINS 'DeepSeek')` 一无所获，
+   滚动重查也没用。**先截一张图看清到底有几个选项**再决定怎么点 —— 那次截图直接证明了下拉里根本没有 DeepSeek。
+
+**配引擎（拍任何「翻译出结果」的原料之前）**
+
+10. **App 里没有主翻译引擎的控件。** `index.html` 只有 notes-provider / tts-engine / stt-engine；
+    而 `LearnNotes.resolveConfig` 里 **`notesProvider` 优先于 `provider`**，**系统翻译镜像（`vault-mirror.js`）
+    与快速翻译都走它** ⇒ **要让下游真翻得出东西，配「详细 › 句子解析」那一格**，别去一键卡找「翻译」。
+    一键卡**按 flavor 给不同平台**：中国版只认通义千问，国际版只给 OpenRouter / OpenAI 且**不给填地址**。
+    境内网络下国际版那两个都不通 —— OpenAI 打不开；OpenRouter 端点可达（同一次配置里「转写 ✓ 3304ms」）
+    但默认模型被服务端 403 `This model is not available in your region`。
+
+**贯穿这一天的一条**：**判据必须在目标设备上读。** 同一把 OpenRouter key、同一个默认模型，
+Mac 上 `curl` 两次都是 **200**（Mac 走代理），手机上 **403**（境内直连）。只在 Mac 上验这把 key，
+会得出与事实完全相反的结论。
 
 ### 0.3 语音类验证：用播放代替真人（2026-09-12 用户裁定）
 
