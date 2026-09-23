@@ -113,7 +113,7 @@ const PLAN = [
   {
     id: 'global-ios-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_IPHONE, (i) => g(`zh-iphone-${i}.png`)),
       APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
     },
     previews: { IPHONE_65: v('zh-ios.mp4') },

@@ -306,7 +306,7 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 
 | 面 | 截图 | 视频 |
 |---|---|---|
-| Apple iOS 国际版 | `en-iphone-1..10` + `en-ipad-1..9`（en-US）、`zh-iphone-1..9` + `zh-ipad-1..9`（zh-Hans） | `IPHONE_65` ×1 |
+| Apple iOS 国际版 | `en-iphone-1..10` + `en-ipad-1..9`（en-US）、`zh-iphone-1..10` + `zh-ipad-1..9`（zh-Hans） | `IPHONE_65` ×1 |
 | Apple macOS 国际版 | `en-mac-1..11`、`zh-mac-1..11`（含帧 11 快速翻译；无帧 10）| `DESKTOP` ×1 |
 | Apple iOS 中国版 | `cn-iphone-1..8`（含帧 8 系统翻译）+ `cn-ipad-1..7`（zh-Hans） | 无 |
 | Apple macOS 中国版 | `cn-mac-1..7` | 无 |
@@ -317,7 +317,10 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 **帧号只往后加、不重排** —— 官网与 `scripts/asc-media.js` 的 `ORDER` 都按帧号取图。
 `en-iphone-10`（系统翻译）只有 iPhone 档有原料：iPad 拍不到（没硬件，模拟器里没有
 TranslationUIProvider），Mac 没这个功能，扩展两店不放 App 独有的东西。
-**`zh-iphone-10` 不存在** —— 缺 `zh-phone-systrans.png` 原料，`render.sh` 会跳过并打印一行。
+**`zh-iphone-10` 2026-09-23 补齐**（此前缺 `zh-phone-systrans.png`，`render.sh` 会跳过并打印一行）：
+真机实拍，引擎 deepseek，zh-Hans 的 iPhone 集因此也走 `ORDER_IPHONE`、从 9 帧变 10 帧。
+**判据是弹层底部披露行的引擎名** —— 手机上同时装着中国版时，两个 App 都叫「大肚猴翻译」，
+名字分不出谁在答话（中国版是 `qwen`）；而默认翻译 App 被重置时答话的是 Apple 自己的「翻译」弹层。
 **`en-web-10` 是例外中的例外**（2026-09-23 加）：同一帧渲一份 1280×800 给**官网**用，
 横版画布上立的仍是手机框（帧 10 没有 desk 档原料，按 tier 取会渲出空 Mac 窗口套破图）。
 它**进不了两店** —— 上面那行 `CWS / AMO` 取的是 `web-1..9`，而两店的取图是按
