@@ -27,7 +27,16 @@ for lang in zh en; do
   [ -f "$DIR/assets/$lang-phone-systrans.png" ] || { echo "跳过 f=10（缺 $lang-phone-systrans.png）"; continue; }
   render 10 $lang "$OUT/$lang-iphone-10.png" 1242,2688
   # web 档（1280×800）**只给官网**，不给扩展两店。这不是靠自觉：CWS / AMO 与 ASC
-  # 都按 asc-media.js 的 ORDER_GLOBAL / ORDER_CN 逐帧取图，而 10 不在那两张表里
-  # （见 asc-media.js 的「按构造排除」一段）—— 多出这个文件漏不进商店。
+  # 都按 asc-media.js 的 ORDER_GLOBAL / ORDER_CN / ORDER_IPHONE / ORDER_MAC 逐帧取图，
+  # 而 10 只在 ORDER_IPHONE 里 —— 多出这个 web 文件漏不进任何商店。
   render 10 $lang "$OUT/$lang-web-10.png"    1280,800
+done
+
+# 帧 11（快速翻译）**只渲 Mac 与 web 两档**：原料只有 desk 档，而这个功能只有 Mac 有
+# （iPhone / iPad 上不存在）。Mac 那张进 App Store 的 Mac 集（ORDER_MAC），web 那张只给官网。
+# 与帧 10 镜像对称：那一帧只有手机档、只进 iPhone 集。
+for lang in zh en; do
+  [ -f "$DIR/assets/$lang-desk-quick.png" ] || { echo "跳过 f=11（缺 $lang-desk-quick.png）"; continue; }
+  render 11 $lang "$OUT/$lang-mac-11.png"  2880,1800
+  render 11 $lang "$OUT/$lang-web-11.png"  1280,800
 done

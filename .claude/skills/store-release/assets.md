@@ -307,11 +307,11 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 | 面 | 截图 | 视频 |
 |---|---|---|
 | Apple iOS 国际版 | `en-iphone-1..10` + `en-ipad-1..9`（en-US）、`zh-iphone-1..9` + `zh-ipad-1..9`（zh-Hans） | `IPHONE_65` ×1 |
-| Apple macOS 国际版 | `en-mac-1..9`、`zh-mac-1..9` | `DESKTOP` ×1 |
+| Apple macOS 国际版 | `en-mac-1..11`、`zh-mac-1..11`（含帧 11 快速翻译；无帧 10）| `DESKTOP` ×1 |
 | Apple iOS 中国版 | `cn-iphone-1..7` + `cn-ipad-1..7`（zh-Hans） | 无 |
 | Apple macOS 中国版 | `cn-mac-1..7` | 无 |
 | CWS / AMO | `{zh,en}-web-1..9` + `cws-promo-tile-440x280.png` | 无 |
-| 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk,systrans}.png` ← `en-web-{1,4,7,8,9,10}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
+| 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk,systrans,quick}.png` ← `en-web-{1,4,7,8,9,10,11}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
 | 中国官网 | `~/belliedmonkey-com/media/shot-*.png` ← `screenshots-cn/cn-web-{1,3,5,6,7}` | 无 |
 
 **帧号只往后加、不重排** —— 官网与 `scripts/asc-media.js` 的 `ORDER` 都按帧号取图。
@@ -322,6 +322,11 @@ TranslationUIProvider），Mac 没这个功能，扩展两店不放 App 独有�
 横版画布上立的仍是手机框（帧 10 没有 desk 档原料，按 tier 取会渲出空 Mac 窗口套破图）。
 它**进不了两店** —— 上面那行 `CWS / AMO` 取的是 `web-1..9`，而两店的取图是按
 `asc-media.js` 的 `ORDER_GLOBAL` 逐帧点名，10 根本不在表里（「按构造排除」）。
+
+**`{zh,en}-mac-11` / `-web-11`（快速翻译，2026-09-23 加）是帧 10 的镜像**：原料只有 desk
+档（`{zh,en}-desk-quick.png`，Mac 实拍），所以它只进 **Mac** 那一集（`ORDER_MAC`，快速翻译
+是 Mac 独有功能）与官网，不进 iPhone / iPad、不进两店。竖版画布上它也立 Mac 窗口框。
+**Mac 集因此是 10 张**（`ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5, 6]`），与 iPhone 集一样顶格。
 
 两个官网的图**不要手工 cp**，各有同步脚本，会写 `PROVENANCE.txt`（来源 / 时间 / sha256）：
 `belliedmonkey-cc/media/src/sync-from-store-assets.sh` 与
