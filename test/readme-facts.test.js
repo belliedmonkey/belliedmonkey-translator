@@ -91,18 +91,24 @@ describe('README ×2 里写死的仓库事实', () => {
   //   · screenshots-cn/README.md 写「四帧、两个尺寸」，实际 7 帧 4 个尺寸
   //   · store-release 技能的 assets.md 素材矩阵整张表都停在 1..5 / 1..4
   // 每加一帧都要改三处文档，靠人记着必然漏。
-  // 2026-09-23：四档不再等长 —— 帧 10（系统翻译）原本只有 iPhone 档有原料，这天给官网
-  // 补了 web 档（`en-web-10.png`，见 render.sh 帧 10 那一段）。于是「共有帧数」不能再拿
-  // web 档的张数来代表：现在用 **mac 档**代表四档共有的那一段（Mac 没有系统翻译这个功能，
-  // 所以它天然停在共有帧），iPhone 与 web 各自单独核对。
+  // 2026-09-23：四档不再等长，而且**两次变长的方向相反**——
+  //   · 帧 10（系统翻译）只有手机档原料 ⇒ iPhone 集 10 张；这天又给官网补了 web 档。
+  //   · 帧 11（快速翻译）只有桌面档原料 ⇒ Mac 集 10 张；同样给官网补了 web 档。
+  // 于是「共有帧数」既不能拿 web 档代表（它两帧都有），也不能拿 mac 档代表（它有帧 11）——
+  // 现在用 **iPad 档**：系统翻译拍不到（没有 iPad 硬件），快速翻译在 iPad 上不存在，
+  // 所以它是唯一天然停在共有帧的一档。iPhone / Mac / web 各自单独核对。
   // ⚠️ assets.md 里「CWS / AMO 取 web-1..N」那一行说的是**两店取哪几帧**，不是磁盘上有几张 ——
-  // 它必须停在共有帧：帧 10 是 App 独有功能，扩展商店不放（asc-media.js 的「按构造排除」）。
+  // 它必须停在共有帧：10 / 11 都是 App 独有功能，扩展商店不放（asc-media.js 的「按构造排除」）。
   test('商店素材的帧数：三份文档与磁盘上的张数一致', () => {
     const count = (dir, prefix) => fs.readdirSync(path.join(ROOT, dir))
       .filter((f) => f.startsWith(prefix + '-') && f.endsWith('.png')).length;
-    const enShared = count('store-assets', 'en-mac');
-    const enWeb = count('store-assets', 'en-web');
-    const enPhone = count('store-assets', 'en-iphone');
+    // ⚠️ **帧号 ≠ 张数**，这是 2026-09-23 加帧 11 时当场踩到的：Mac 档的文件是 1..9 外加 11，
+    // 共 10 张而最大帧号是 11。所以「共有那一段」比张数，「某种设备独有的帧」比帧号，两者分开。
+    const nums = (dir, prefix) => fs.readdirSync(path.join(ROOT, dir))
+      .filter((f) => f.startsWith(prefix + '-') && f.endsWith('.png'))
+      .map((f) => Number(f.slice(prefix.length + 1, -4)))
+      .filter(Number.isInteger).sort((a, b) => a - b);
+    const enShared = count('store-assets', 'en-ipad');
     const cn = count('screenshots-cn', 'cn-web');
 
     const SA = fs.readFileSync(path.join(ROOT, 'store-assets', 'README.md'), 'utf8');
@@ -110,11 +116,23 @@ describe('README ×2 里写死的仓库事实', () => {
     const AS = fs.readFileSync(path.join(ROOT, '.claude', 'skills', 'store-release', 'assets.md'), 'utf8');
 
     eq(pick(SA, 'store-assets/README 的 1..N', /\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), enShared);
-    eq(pick(SA, 'store-assets/README 的 iphone-N', /iphone-(\d+)\.png/), enPhone);
-    eq(pick(SA, 'store-assets/README 的 web-N', /web-(\d+)\.png/), enWeb);
     eq(pick(CN, 'screenshots-cn/README 的 1..N', /cn-\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), cn);
     eq(pick(AS, 'assets.md 的 {zh,en}-web-1..N（两店取哪几帧）', /\{zh,en\}-web-1\.\.(\d+)/), enShared);
-    eq(pick(AS, 'assets.md 的 en-iphone-1..N', /en-iphone-1\.\.(\d+)/), enPhone);
+
+    // 「某种设备独有」的帧（号 > 共有段）：磁盘上有的，README 必须逐个点名；
+    // README 点到的，磁盘上必须真有。两个方向都堵住，漏渲和写错帧号都会红。
+    const onDisk = [];
+    for (const tier of ['iphone', 'ipad', 'mac', 'web']) {
+      for (const n of nums('store-assets', `en-${tier}`)) if (n > enShared) onDisk.push(`${tier}-${n}.png`);
+    }
+    for (const e of onDisk) ok(SA.includes(e), `store-assets/README 没提到独有帧 ${e}`);
+    for (const m of SA.matchAll(/\b(iphone|ipad|mac|web)-(\d+)\.png/g)) {
+      if (Number(m[2]) <= enShared) continue;
+      ok(onDisk.includes(m[0]), `store-assets/README 写了 ${m[0]}，但 store-assets/ 里没有这张`);
+    }
+    // assets.md 的 iPhone 那一行写的是**帧号**（`en-iphone-1..10`：1..9 再加系统翻译那帧），
+    // 而 iPhone 档恰好 1..10 连号，所以张数与最大帧号相等；Mac 那行不连号，不能这么比。
+    eq(pick(AS, 'assets.md 的 en-iphone-1..N', /en-iphone-1\.\.(\d+)/), nums('store-assets', 'en-iphone').at(-1));
     eq(pick(AS, 'assets.md 的 cn-iphone-1..N', /cn-iphone-1\.\.(\d+)/), cn);
   });
 

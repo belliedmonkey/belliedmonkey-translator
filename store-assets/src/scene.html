@@ -85,6 +85,9 @@ const COPY = {
     // 所以它只进 iPhone 那一集，不进 iPad（没有 iPad 硬件拍原料，模拟器里没有这个扩展点）、
     // 不进 Mac、不进扩展两店（APP_ONLY_GLOBAL）。
     10: ['在任何 App 里翻译', '选中文字 → 翻译。用你自己配的引擎，不经过我们的服务器'],
+    // 11：1.13.1 的主角「快速翻译」，**只在 Mac 上**（iPhone / iPad 上没有这个功能）。
+    // 所以它只进 Mac 那一集与官网，不进 iPhone / iPad、不进扩展两店 —— 与帧 10 镜像对称。
+    11: ['在 Mac 上，划一下就有译文', '选中按快捷键，译文贴着光标出现，不抢焦点'],
   },
   en: {
     1: ['Browse like you always do', 'Original and translation, side by side'],
@@ -97,6 +100,7 @@ const COPY = {
     8: ['Live subtitles for any app', 'A floating bar on Mac, Picture in Picture on iPhone'],
     9: ['Face to face, translated live', 'Speak freely — sorted by speaker, read aloud'],
     10: ['Translate inside any app', 'Select text → Translate. Your own engine, never through our servers'],
+    11: ['On your Mac, select and it\'s translated', 'Press the shortcut — the translation appears by your cursor, without stealing focus'],
   },
 };
 // 第 5 帧的竖版画布里没有 Mac（手机画布是两台手机、iPad 画布是 iPad + 手机），标题不能再说「电脑上读」。
@@ -134,6 +138,10 @@ else if (f === '9') stage.innerHTML = device(own('listen'));
 // 钉成 phone 并不违反「画布是什么设备就放那个设备的图」那条规矩 —— 那条规矩说的是
 // **设备框要配得上截图的视口**，而不是画布方向；帧 5 的横版画布里同样立着一台手机。
 else if (f === '10') stage.innerHTML = device(own('systrans', 'phone'), 'phone');
+// 帧 11：快速翻译。**永远用 Mac 窗口框，不跟画布走** —— 与帧 10 镜像对称：那一帧只有
+// phone 档原料（钉 phone），这一帧只有 desk 档原料（钉 desk）。快速翻译是 Mac 独有功能，
+// 手机上不存在，所以即便渲到竖版画布上，框也必须是 Mac 窗口。
+else if (f === '11') stage.innerHTML = device(own('quick', 'desk'), 'desk');
 else if (f === '5') {
   // 跨设备闭环。横版：Mac 上读 → 手机上复习（手机是这一帧的主语，不是错放）。
   // 竖版：这台设备上读 → 手机上复习；手机画布里就是两台手机（读的那台 / 复习的那台）。

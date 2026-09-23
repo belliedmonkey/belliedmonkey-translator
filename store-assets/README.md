@@ -1,11 +1,20 @@
 # 国际版商店素材（store-assets/）
 
 App Store（`com.belliedmonkeytranslator`）、Chrome Web Store、AMO 共用的截图与预览片。
-出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加帧 10（系统翻译）的两档：
-**`{zh,en}-iphone-10.png`**（商店用）与 **`{zh,en}-web-10.png`**（只给官网，2026-09-23 加）。
-帧 10 只有 phone 档原料，所以这两张里立的都是手机框 —— 横版的 web 档也一样，
-见下面那条硬规矩为什么这不算违例。**web-10 不会漏进扩展两店**：CWS / AMO 与 ASC 都按
-`asc-media.js` 的 `ORDER_GLOBAL` / `ORDER_CN` 逐帧取图，而 10 不在那两张表里。
+出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加两帧**只有一种设备有**的：
+
+| 帧 | 功能 | 原料只有 | 出货到 |
+|---|---|---|---|
+| 10 | 系统翻译 | phone 档 | `{zh,en}-iphone-10.png`（iPhone 集）+ `{zh,en}-web-10.png`（只给官网）|
+| 11 | 快速翻译 | desk 档 | `{zh,en}-mac-11.png`（Mac 集）+ `{zh,en}-web-11.png`（只给官网）|
+
+两帧镜像对称：帧 10 在横版画布上也立手机框，帧 11 在竖版画布上也立 Mac 窗口框 ——
+**设备框配的是截图的视口，不是画布方向**，见下面那条硬规矩。
+
+**这两帧的 web 档漏不进扩展两店**：CWS / AMO 与 ASC 都按 `asc-media.js` 的
+`ORDER_GLOBAL` / `ORDER_IPHONE` / `ORDER_MAC` / `ORDER_CN` 逐帧取图，而两店读的是
+`ORDER_GLOBAL`，10 与 11 都不在里面。
+
 以上都由 `src/scene.html` 把**实拍产品图**合进版式框里渲染而成。
 帧号的含义见 `src/scene.html` 的 `COPY` 表，**只往后加、不重排** —— 官网直接按帧号取图，
 `scripts/asc-media.js` 的 `ORDER` 也按帧号写死了商店里的显示顺序。中国版的对应目录是 [`screenshots-cn/`](../screenshots-cn/)。

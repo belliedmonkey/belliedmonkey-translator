@@ -75,13 +75,17 @@ const ORDER_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5, 6];
 // **只有 iPhone 集有它** —— iPad 没有原料（没有 iPad 硬件，模拟器里没有那个扩展点），
 // Mac 根本没有这个功能。10 张正好是 ASC 每组的上限。
 const ORDER_IPHONE = [1, 10, 8, 9, 2, 7, 3, 4, 5, 6];
+// Mac 那一集同样多一帧：11 = 快速翻译（1.13.1 的主角），排在第 2 位 —— 与 iPhone 的
+// 帧 10 镜像对称。**只有 Mac 集有它**：iPhone / iPad 上没有这个功能，扩展两店不放
+// App 独有的东西。10 张同样正好是 ASC 每组的上限。
+const ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5, 6];
 const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
 // App 独有功能的帧（8 实时字幕、9 对话听译）：只上 App Store。扩展商店（AMO 预览图、CWS 截图）不放 ——
 // 装 Firefox / Chrome 扩展的人得不到这两样，放上去就是在宣传用户拿不到的东西。scripts/amo-listing.js 读这一行。
 const APP_ONLY_GLOBAL = [8, 9];
-// 帧 10 不在这张表里，**因为它根本不在 ORDER_GLOBAL 里** —— 扩展两店按 ORDER_GLOBAL 取图，
-// 所以它是「按构造排除」，不是「按名单排除」。写进 APP_ONLY_GLOBAL 反而会被门禁判成帧号写错
-// （test/asc-media-plan.test.js：这张表里的号必须在 ORDER_GLOBAL 里）。
+// 帧 10 与帧 11 都不在这张表里，**因为它们根本不在 ORDER_GLOBAL 里** —— 扩展两店按
+// ORDER_GLOBAL 取图，所以它们是「按构造排除」，不是「按名单排除」。写进 APP_ONLY_GLOBAL
+// 反而会被门禁判成帧号写错（test/asc-media-plan.test.js：这张表里的号必须在 ORDER_GLOBAL 里）。
 const frames = (order, p) => order.map((i) => p(`${i}`));
 // 预览视频放仓库里（原来在 /tmp，重启即丢，1.10 那轮已经找不回源文件）。中国版沿用中文那两条 —— 画面里没有境外站点。
 const v = (n) => path.join(ROOT, "store-assets", "video", n);
@@ -97,7 +101,7 @@ const PLAN = [
   },
   {
     id: 'global-mac', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'en-US',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: { DESKTOP: v('en-mac.mp4') },
   },
   // 国际版的 zh-Hans 本地化原本一张截图都没有 ⇒ 中文用户看到的是 en-US 那套英文图。
@@ -112,7 +116,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hans',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`zh-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`zh-mac-${i}.png`)) },
     previews: { DESKTOP: v('zh-mac.mp4') },
   },
   // 其余九份本地化（2026-09-03 补）。它们有文案、有关键词，**却一张截图都没有** ——
@@ -132,7 +136,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ru',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -145,7 +149,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'de-DE',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -158,7 +162,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ja',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -171,7 +175,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'fr-FR',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -184,7 +188,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ko',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -197,7 +201,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pt-BR',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -210,7 +214,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'es-ES',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -223,7 +227,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ar-SA',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   // 1.11.0 新增的四个语种（it / tr / vi / pl）：文案在 store-assets/aso.md，截图用英文那套（理由同上）。
@@ -237,7 +241,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-it', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'it',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -250,7 +254,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'tr',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -263,7 +267,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'vi',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -276,7 +280,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pl',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`en-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
     previews: {},
   },
   {
@@ -289,7 +293,7 @@ const PLAN = [
   },
   {
     id: 'global-mac-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hant',
-    screenshots: { APP_DESKTOP: frames(ORDER_GLOBAL, (i) => g(`zh-mac-${i}.png`)) },
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`zh-mac-${i}.png`)) },
     previews: { DESKTOP: v('zh-mac.mp4') },
   },
   {
