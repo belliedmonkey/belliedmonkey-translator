@@ -109,14 +109,14 @@ describe('README ×2 里写死的仓库事实', () => {
       .map((f) => Number(f.slice(prefix.length + 1, -4)))
       .filter(Number.isInteger).sort((a, b) => a - b);
     const enShared = count('store-assets', 'en-ipad');
-    const cn = count('screenshots-cn', 'cn-web');
+    const cnShared = count('screenshots-cn', 'cn-ipad');
 
     const SA = fs.readFileSync(path.join(ROOT, 'store-assets', 'README.md'), 'utf8');
     const CN = fs.readFileSync(path.join(ROOT, 'screenshots-cn', 'README.md'), 'utf8');
     const AS = fs.readFileSync(path.join(ROOT, '.claude', 'skills', 'store-release', 'assets.md'), 'utf8');
 
     eq(pick(SA, 'store-assets/README 的 1..N', /\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), enShared);
-    eq(pick(CN, 'screenshots-cn/README 的 1..N', /cn-\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), cn);
+    eq(pick(CN, 'screenshots-cn/README 的 1..N', /cn-\{iphone,ipad,mac,web\}-1\.\.(\d+)\.png/), cnShared);
     eq(pick(AS, 'assets.md 的 {zh,en}-web-1..N（两店取哪几帧）', /\{zh,en\}-web-1\.\.(\d+)/), enShared);
 
     // 「某种设备独有」的帧（号 > 共有段）：磁盘上有的，README 必须逐个点名；
@@ -130,10 +130,21 @@ describe('README ×2 里写死的仓库事实', () => {
       if (Number(m[2]) <= enShared) continue;
       ok(onDisk.includes(m[0]), `store-assets/README 写了 ${m[0]}，但 store-assets/ 里没有这张`);
     }
+
+    // 中国版同一套（2026-09-23 补了帧 8 系统翻译：只有 iPhone 与 web 两档）
+    const cnDisk = [];
+    for (const tier of ['iphone', 'ipad', 'mac', 'web']) {
+      for (const n of nums('screenshots-cn', `cn-${tier}`)) if (n > cnShared) cnDisk.push(`cn-${tier}-${n}.png`);
+    }
+    for (const e of cnDisk) ok(CN.includes(e), `screenshots-cn/README 没提到独有帧 ${e}`);
+    for (const m of CN.matchAll(/\bcn-(iphone|ipad|mac|web)-(\d+)\.png/g)) {
+      if (Number(m[2]) <= cnShared) continue;
+      ok(cnDisk.includes(m[0]), `screenshots-cn/README 写了 ${m[0]}，但 screenshots-cn/ 里没有这张`);
+    }
     // assets.md 的 iPhone 那一行写的是**帧号**（`en-iphone-1..10`：1..9 再加系统翻译那帧），
     // 而 iPhone 档恰好 1..10 连号，所以张数与最大帧号相等；Mac 那行不连号，不能这么比。
     eq(pick(AS, 'assets.md 的 en-iphone-1..N', /en-iphone-1\.\.(\d+)/), nums('store-assets', 'en-iphone').at(-1));
-    eq(pick(AS, 'assets.md 的 cn-iphone-1..N', /cn-iphone-1\.\.(\d+)/), cn);
+    eq(pick(AS, 'assets.md 的 cn-iphone-1..N', /cn-iphone-1\.\.(\d+)/), nums('screenshots-cn', 'cn-iphone').at(-1));
   });
 
   // 结构树漏掉整整几个目录，是 2026-09-21 那次审计里最严重的一条 —— 数字对了、

@@ -23,4 +23,12 @@ for f in 1 2 3 4 5 6 7; do
   render $f "$OUT/cn-mac-$f.png"    2880,1800     # Mac App Store 16:10
   render $f "$OUT/cn-web-$f.png"    1280,800      # 官网 belliedmonkey.com 首页
 done
+# 帧 8（系统翻译）**只渲 iPhone 与 web 两档**：这个功能只有 iPhone 有，原料也只有手机档。
+# iPad 不渲（没有 iPad 硬件拍原料，且 iPadOS 上同样没有这个扩展点）、Mac 根本没这功能。
+# web 那张只给官网 belliedmonkey.com，不进任何商店（ORDER_CN 之外，按构造排除）。
+[ -f "$DIR/assets/cn-phone-systrans.png" ] && {
+  render 8 "$OUT/cn-iphone-8.png" 1242,2688
+  render 8 "$OUT/cn-web-8.png"    1280,800
+} || echo "跳过 f=8（缺 cn-phone-systrans.png）"
+
 echo "Rendered $(ls "$OUT"/cn-*.png | wc -l | tr -d ' ') China screenshots to $OUT"
