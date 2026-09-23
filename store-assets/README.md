@@ -75,6 +75,36 @@ bash store-assets/src/render.sh                 # 合成 72 张（9 帧 × 2 语
 - **你的账号**。旧 `f3`/`f4` 印着真实邮箱 —— 那是公开页面。脚本拍的那些不登录，
   页面显示「未登录，仅本机数据」；YouTube 也别登录（头像会进图）。
 
+## App Preview 视频（`compose-preview.sh` / `compose-preview-ios.sh`）
+
+成片在 `store-assets/video/{en,zh}-{ios,mac}.mp4`。输入分两半：
+
+```bash
+bash store-assets/src/make-preview-inputs.sh    # 题卡 + 三条音轨，默认写 .local/store-media/
+# 剩下的只能现场录屏，见下
+bash store-assets/src/compose-preview.sh zh     # STORE_MEDIA 不传就用 .local/store-media/
+```
+
+**可复现的那一半**（`make-preview-inputs.sh` 全包了）：六张题卡（`preview-card.html`）、
+声源音轨 `en.wav` / `zh.wav`（`say` 念 `.local/spike/conv/ref.txt` 的单语侧）、合成的环境音床
+`music.wav`、以及对话段的 `conv.wav`。
+
+**只能现场拍的那一半**：四段录屏 `rec/{en,zh}-subs.mov`、`rec/{en,zh}-talk-v2.mov`，
+各配一个 `.start.txt`（录屏开始那一刻音轨已经播到第几秒，合成脚本按它对声画）。
+
+- **字幕段**：Chrome 开 `preview-stage.html?lang=<声源语言>`（`--app=` 窗口铺满屏幕，
+  **不要 `--kiosk`** —— 那会进独立 Space，App 的窗口就点不到了），App 里开「实时字幕」，
+  Mac 外放对应的 wav。**判据是真的出字幕**：开始后 ~10 s 没有第一条定稿就停下，
+  先按 `docs/verification-spec.md` §2.G 第 6 条查「仅系统录音」授权，别接着往下拍。
+- 录屏用 `ffmpeg -f avfoundation -capture_cursor 0 -i "<screen>:<mic>"`：它出的是
+  **3024×1964 真视网膜像素**，而 cua-driver 的录像只有 1512×982（放大到 2560×1600 会糊）。
+  顺带把麦克风录进去 —— 只用来对齐：`silencedetect` 比出录屏里第一声与 wav 里第一声的
+  差值，就是 `.start.txt` 要写的偏移，不用猜。
+- 录之前把 cua 的**代理光标关掉**（`set_agent_cursor_enabled {"enabled":false}`），
+  它是一个真的覆盖窗口，会被录进去。
+- 裁掉菜单栏与 Chrome 的标题条，并裁成 16:10 再交给合成脚本，例如
+  `crop=2934:1834:45:130`（3024×1964 的屏）。
+
 ## 上传
 
 `node scripts/asc-media.js` 打印计划，`--apply` 才真替换。资产上传是三步（预留 → 传字节
