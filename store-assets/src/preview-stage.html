@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!-- App Preview 视频里「实时字幕」那一段的**声源舞台**：preview-stage.html?lang=en|zh
+     一个通用的「会议录音」界面（不是任何真实产品的仿制），全屏播放时我们自己的悬浮字幕条
+     压在它下方 —— 录屏拍的就是这两层。lang 是**声源的语言**（en.wav / zh.wav 里说的那一种），
+     所以 zh-mac.mp4 用 lang=en（英文声源 → 条上出中文译文），en-mac.mp4 用 lang=zh。
+
+     2026-09-23 重建。原来的舞台页只存在于 $STORE_MEDIA（不进仓库），随录屏原片一起丢了，
+     于是「重跑一次合成」变成了「整个重拍」。这一份进仓库，配色取自 build/palette.config.js
+     的品牌色（陶土），其余是中性的深色 UI —— 它只负责当背景，不冒充任何厂商。
+
+     文案与 .local/spike/conv/ref.txt 的对话语料同一场景（供应商询价），这样声音与画面讲的是
+     同一件事；音轨由 make-preview-inputs.sh 用 `say` 生成。 -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: linear-gradient(155deg, #33414f 0%, #1e2a35 45%, #16202a 100%);
+    color: #f2ece1; display: flex; flex-direction: column;
+    padding: 5.5vh 6vw 4vh;
+  }
+  /* 左边那一栏要 flex:1，否则它被压成最窄宽度，标题里的 <br> 之外还会再折行（09-23 撞到）。 */
+  .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 4vw; }
+  .top > div:first-child { flex: 1; min-width: 0; }
+  .kicker { font-size: 1.55vh; letter-spacing: .42em; text-transform: uppercase; color: #8fa3b5; font-weight: 600; }
+  h1 { font-size: 6.4vh; line-height: 1.16; font-weight: 800; margin-top: 2.2vh; max-width: 78%; }
+  .meta { font-size: 2.5vh; color: #8fa3b5; margin-top: 2.6vh; font-weight: 500; }
+  .who { display: flex; gap: 1.1vw; }
+  .who div {
+    width: 6.4vh; height: 6.4vh; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 2.8vh; font-weight: 700; color: #20292f;
+  }
+  .a { background: #e8be6a; }
+  .b { background: #93cfea; }
+  .wrap { flex: 1; display: flex; align-items: center; }
+  canvas { width: 100%; height: 22vh; display: block; }
+  .foot { display: flex; align-items: center; gap: 1.4vw; height: 12vh; }
+  .rec { display: flex; align-items: center; gap: .8vw; font-size: 2.3vh; color: #9fb2c2; font-weight: 500; }
+  .dot { width: 1.5vh; height: 1.5vh; border-radius: 50%; background: #c67139; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <div class="kicker" id="kicker"></div>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </div>
+  <div class="who"><div class="a">A</div><div class="b">B</div></div>
+</div>
+<div class="wrap"><canvas id="wave"></canvas></div>
+<div class="foot"><div class="rec"><div class="dot"></div><span id="rec"></span></div></div>
+<script>
+const lang = new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en';
+const T = {
+  en: { kicker: 'Supplier call', title: 'Shipping dates, samples<br>and payment terms', meta: 'Order review · 2 speakers', rec: 'Recording' },
+  zh: { kicker: '供应商通话', title: '交期、样品<br>与付款方式', meta: '订单复核 · 2 人', rec: '录音中' },
+}[lang];
+for (const k of ['kicker', 'title', 'meta', 'rec']) document.getElementById(k).innerHTML = T[k];
+
+// 滚动波形：纯装饰，不代表真实电平 —— 它唯一的作用是让这一段录屏「在动」。
+const cv = document.getElementById('wave'), cx = cv.getContext('2d');
+let bars = [];
+function size() {
+  cv.width = cv.clientWidth * devicePixelRatio; cv.height = cv.clientHeight * devicePixelRatio;
+  const n = Math.round(cv.width / (3 * devicePixelRatio));
+  while (bars.length < n) bars.push(Math.random());
+  bars = bars.slice(-n);
+}
+addEventListener('resize', size); size();
+let phase = 0;
+setInterval(() => {
+  phase += 0.17;
+  bars.push(Math.abs(Math.sin(phase) * 0.55 + Math.random() * 0.45)); bars.shift();
+  const w = cv.width / bars.length, mid = cv.height / 2;
+  cx.clearRect(0, 0, cv.width, cv.height);
+  cx.fillStyle = '#8a8064';
+  bars.forEach((v, i) => {
+    const h = Math.max(2 * devicePixelRatio, v * cv.height * 0.92);
+    cx.fillRect(i * w, mid - h / 2, Math.max(1, w * 0.62), h);
+  });
+}, 33);
+</script>
+</body>
+</html>
