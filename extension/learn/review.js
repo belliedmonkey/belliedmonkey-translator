@@ -18,6 +18,72 @@
   // 那个数在 App 里随长驻页面跨轮累加，评分弹窗还在用它，不动。这里只管遥测 ——
   // **露出过一张计划卡**就算开始一轮；清空（done）或离开（left）都算结束，结束即清零，每轮至多一条。
   const sess = { open: false, graded: 0 };
+
+  // ── 习惯：来过的日子（#386，2026-09-24 用户裁定）──────────────────────────
+  //
+  // 「每天或每周有重新进来复习就好了 —— 养成习惯远比单词学很大量重要。」
+  // 所以这里记的是**来过的日子**，不是刷了多少张。判据是**打开了复习面**，
+  // 不是「评了一张」：目标就是回来，把门槛设在回来之后没有道理。
+  //
+  // 只在本机（`mt:reviewDays`，最多留 60 天），**不同步、不进遥测、不进商店文案**。
+  // 关掉匿名用量开关的人照样看得到这一行 —— 它是给他自己看的。
+  const VISIT_KEY = 'mt:reviewDays';
+  const VISIT_KEEP = 60;
+  const dayKey = (d) => {
+    const x = new Date(d);
+    return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+  };
+  let visitDays = [];
+  async function markVisit(now) {
+    const today = dayKey(now || Date.now());
+    try {
+      const r = await new Promise((res) => chrome.storage.local.get([VISIT_KEY], (v) => res(v || {})));
+      const prev = Array.isArray(r[VISIT_KEY]) ? r[VISIT_KEY].filter((x) => typeof x === 'string') : [];
+      visitDays = prev.includes(today) ? prev : prev.concat(today);
+      visitDays = visitDays.sort().slice(-VISIT_KEEP);
+      if (!prev.includes(today)) await new Promise((res) => chrome.storage.local.set({ [VISIT_KEY]: visitDays }, res));
+    } catch (_) { visitDays = visitDays.includes(today) ? visitDays : visitDays.concat(today); }
+    return visitDays;
+  }
+  // 连续天数：从今天往回数，断了就停。**断了不惩罚** —— 界面上不会有「连续中断」这种话。
+  function streakOf(days, now) {
+    const set = new Set(days || []);
+    let n = 0;
+    const d = new Date(now || Date.now());
+    for (;;) {
+      if (!set.has(dayKey(d))) break;
+      n += 1;
+      d.setDate(d.getDate() - 1);
+    }
+    return n;
+  }
+  // 最近 7 天：从 6 天前到今天，来过的填色。
+  function lastSeven(days, now) {
+    const set = new Set(days || []);
+    const out = [];
+    const d = new Date(now || Date.now());
+    d.setDate(d.getDate() - 6);
+    for (let i = 0; i < 7; i++) { out.push(set.has(dayKey(d))); d.setDate(d.getDate() + 1); }
+    return out;
+  }
+  function paintHabit(now) {
+    const box = $('habit'); if (!box) return;
+    const n = streakOf(visitDays, now);
+    if (!n) { box.hidden = true; return; }
+    box.hidden = false;
+    $('habit-line').textContent = n > 1
+      ? t('learn_habit_streak', '今天来过了 · 连续 {n} 天').replace('{n}', String(n))
+      : t('learn_habit_today', '今天来过了');
+    const cells = lastSeven(visitDays, now);
+    const row = $('habit-days');
+    row.textContent = '';
+    for (const on of cells) {
+      const sp = document.createElement('span');
+      if (on) sp.className = 'on';
+      row.append(sp);
+    }
+  }
+
   function sessEnd(result) {
     if (!sess.open) return;
     const graded = sess.graded;
@@ -1102,6 +1168,10 @@
     // account, one budget, every device (interaction-spec「多设备同步一致性」).
     const newToday = LearnScheduler.introducedToday(await LearnStore.allReviews(), now);
 
+    // 来过就记一天（#386）。放在分支**之前** —— 有没有到期卡都算来过，
+    // 那正是裁定的意思：目标是回来，不是刷完。
+    await markVisit(now);
+
     deck = LearnScheduler.buildDeck(items, now, sched, newToday);
     idx = 0;
 
@@ -1130,6 +1200,14 @@
     }
     if (!deck.length) {
       $('card').hidden = true; $('empty').hidden = true; $('nothing-due').hidden = false;
+      // 标题按「他刚做完」还是「今天本来就没有」分开 —— 同一句话对两种人只有一种是真的。
+      const tEl = $('alldone-title');
+      if (tEl) {
+        tEl.textContent = doneThisRun
+          ? t('learn_alldone_title', '今天的复习做完了')
+          : t('learn_nothing_due_title', '今天没有要复习的');
+      }
+      paintHabit(now);    // 习惯条：先确认他来过（#386）
       // Say WHEN, rather than fabricating work by advancing cards early.
       const upcoming = items
         .filter((it) => it.sched && it.sched.dueAt)
@@ -1256,7 +1334,9 @@
     }
   }
 
-  window.LearnReview = { start, reloadSettings, leave };
+  // `_habit` 是**给测试的**（同 MTTelemetry._shape 的做法）：纯函数，没有副作用，
+  // 界面不读它。连续天数这种「差一天就全错」的算术，单测比门禁便宜得多。
+  window.LearnReview = { start, reloadSettings, leave, _habit: { dayKey, streakOf, lastSeven } };
 
   // ─── Boot ────────────────────────────────────────────────────────────────
 

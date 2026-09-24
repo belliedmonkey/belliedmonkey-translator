@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— هذا العنوان لا يوفّره"
+  },
+  "learn_habit_streak": {
+    "message": "عُدتَ اليوم · {n} أيام متتالية"
+  },
+  "learn_habit_today": {
+    "message": "عُدتَ اليوم"
+  },
+  "learn_nothing_due_title": {
+    "message": "لا شيء للمراجعة اليوم"
   }
 }

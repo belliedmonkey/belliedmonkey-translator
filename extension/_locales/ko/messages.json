@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— 이 엔드포인트에서는 제공하지 않음"
+  },
+  "learn_habit_streak": {
+    "message": "오늘도 들렀어요 · {n}일 연속"
+  },
+  "learn_habit_today": {
+    "message": "오늘도 들렀어요"
+  },
+  "learn_nothing_due_title": {
+    "message": "오늘은 복습할 것이 없어요"
   }
 }

@@ -3672,5 +3672,14 @@
   },
   "qs_absent_custom": {
     "message": "— 这个地址不提供"
+  },
+  "learn_habit_streak": {
+    "message": "今天来过了 · 连续 {n} 天"
+  },
+  "learn_habit_today": {
+    "message": "今天来过了"
+  },
+  "learn_nothing_due_title": {
+    "message": "今天没有要复习的"
   }
 }

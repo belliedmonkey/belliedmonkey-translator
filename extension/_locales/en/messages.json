@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— not offered by this endpoint"
+  },
+  "learn_habit_streak": {
+    "message": "You came back today · {n} days in a row"
+  },
+  "learn_habit_today": {
+    "message": "You came back today"
+  },
+  "learn_nothing_due_title": {
+    "message": "Nothing to review today"
   }
 }

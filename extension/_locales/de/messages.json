@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— von dieser URL nicht angeboten"
+  },
+  "learn_habit_streak": {
+    "message": "Heute warst du da · {n} Tage in Folge"
+  },
+  "learn_habit_today": {
+    "message": "Heute warst du da"
+  },
+  "learn_nothing_due_title": {
+    "message": "Heute gibt es nichts zu wiederholen"
   }
 }

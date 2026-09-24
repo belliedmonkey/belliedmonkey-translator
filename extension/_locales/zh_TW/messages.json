@@ -3672,5 +3672,14 @@
   },
   "qs_absent_custom": {
     "message": "— 這個位址不提供"
+  },
+  "learn_habit_streak": {
+    "message": "今天來過了 · 連續 {n} 天"
+  },
+  "learn_habit_today": {
+    "message": "今天來過了"
+  },
+  "learn_nothing_due_title": {
+    "message": "今天沒有要複習的"
   }
 }
