@@ -393,7 +393,24 @@ function resolveVersion(argv) {
 }
 let VERSION = null;
 
-(async () => {
+// 出货清单也给别人用 —— `asc-submit.js` 的提审门禁要拿它当「应该有几张」的判据。
+// 2026-09-24 查出：`ORDER_MAC` 配 10 张而商店上只有 9、`ORDER_CN_IPHONE` 配 8 而商店上 7
+// —— 那两帧渲染出来了、进了仓库、写进了这张表，却**从来没传上去过**（每次发版都撞上
+// 在审状态被跳过）。配置与商店各说各话，而没有任何东西会因此变红。
+// 导出的是**期望张数**，不是文件路径：门禁只关心「配了几张」对不对得上「商店有几张」。
+function expectedCounts() {
+  const out = [];
+  for (const p of PLAN) {
+    for (const [displayType, files] of Object.entries(p.screenshots || {})) {
+      out.push({ id: p.id, bundleId: p.bundleId, platform: p.platform, locale: p.locale, displayType, count: files.length });
+    }
+  }
+  return out;
+}
+module.exports = { expectedCounts };
+
+// 只有直接跑这个脚本才连 ASC —— 被 require 时不做任何网络动作（asc-submit 会 require 它）。
+if (require.main === module) (async () => {
   const argv = process.argv.slice(2);
   const apply = argv.includes('--apply');
   // --previews-only：只挂预览视频，跳过截图段。截图段一挂就整条抛出，预览段根本轮不到

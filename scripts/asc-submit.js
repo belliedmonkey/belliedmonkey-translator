@@ -12,11 +12,14 @@
 //   ③ PATCH /reviewSubmissions/{id}  {submitted:true}         → 真正递出去
 // 只做①② 的话，ASC 网页上能看到一个待提交的草稿，而 Apple 那边什么都没收到。
 //
-// 提交之前这里会硬拦四件事，每一件都在这个项目里真的发生过：
+// 提交之前这里会硬拦五件事，每一件都在这个项目里真的发生过：
 //   · 版本状态必须是 PREPARE_FOR_SUBMISSION（别去动已上架/在审的）
 //   · 必须挂了 build（#161 之前 asc.js 的 include=build 会把「未挂」误报成已挂）
 //   · build 必须 VALID
 //   · 主语言必须有截图（旧素材事故：商店页展示未完成状态、真实邮箱）
+//   · **每个 (locale × 档) 的张数要和 asc-media 的 PLAN 对得上**（2026-09-24：
+//     国际 Mac 配 10 张而商店 9、中国 iPhone 配 8 而商店 7 —— 两个主打功能的帧
+//     从来没传上去过，而「一张都没有」那条拦不住它）
 'use strict';
 
 const fs = require('fs');
@@ -26,6 +29,9 @@ const crypto = require('crypto');
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
 const API = 'https://api.appstoreconnect.apple.com/v1';
+// 出货清单的唯一登记处是 asc-media.js 的 PLAN —— 这里只读它，不复制一份。
+// （它被 require 时不连 ASC，见那边的 `require.main === module` 守卫。）
+const { expectedCounts } = require('./asc-media.js');
 
 function slot(name) {
   const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS, 'utf8'));
@@ -142,15 +148,47 @@ async function cancelReview(version, bundleIds, apply) {
       }
       const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
         + '&fields[appStoreVersionLocalizations]=locale');
+      // 截图：**不只看有没有，还要看够不够**。
+      //
+      // 2026-09-24 查出两处缺口：`ORDER_MAC` 配 10 张而国际 Mac 商店上只有 9（缺帧 11
+      // 快速翻译，1.13.1 的主角）、`ORDER_CN_IPHONE` 配 8 而中国 iPhone 上只有 7（缺帧 8
+      // 系统翻译，1.14.0 的主角）。那两帧渲染出来了、进了仓库、写进了 asc-media 的 PLAN，
+      // **却从来没传上去过** —— `asc-media.js` 碰到在审的版本会跳过，而唯一能传的窗口是
+      // 「上一版过审之后、下一版提交之前」，恰恰是没人在想截图的时候。每发一版顺手跳一次，
+      // 两个主打功能就一直没有配图，而且**没有任何东西会因此变红**：
+      // 原来这里只拦「一张都没有」，9 张和 10 张在它眼里一样好。
+      //
+      // 素材那一步的判据也不够：它问的是「有没有过时的图」，不是「配置里的每一帧是不是
+      // 都真的在商店里」。两个问题不一样，只有后者能发现「从来没传上去过」。
+      const expect = new Map();
+      for (const e of expectedCounts()) {
+        if (e.bundleId === app.attributes.bundleId && e.platform === plat) expect.set(`${e.locale}|${e.displayType}`, e.count);
+      }
       let shots = 0;
+      const gaps = [];
       for (const L of locs.data) {
-        const sets = await api('GET', `/appStoreVersionLocalizations/${L.id}/appScreenshotSets?limit=20`);
+        const loc = L.attributes.locale;
+        const sets = await api('GET', `/appStoreVersionLocalizations/${L.id}/appScreenshotSets?limit=20`
+          + '&fields[appScreenshotSets]=screenshotDisplayType');
         for (const s of sets.data) {
+          const dt = s.attributes.screenshotDisplayType;
           const imgs = await api('GET', `/appScreenshotSets/${s.id}/appScreenshots?limit=20&fields[appScreenshots]=fileName`);
           shots += imgs.data.length;
+          const want = expect.get(`${loc}|${dt}`);
+          // 清单里没有的 (locale × 档) 不管 —— 门禁只对「我们自己声明要传」的那些负责。
+          if (want != null && imgs.data.length !== want) gaps.push(`${loc} ${dt}: 商店 ${imgs.data.length} 张，清单要 ${want} 张`);
+        }
+        // 清单里有、商店上整组不存在 —— 比数量对不上更严重。
+        const have = new Set(sets.data.map((s) => `${loc}|${s.attributes.screenshotDisplayType}`));
+        for (const [k, want] of expect) {
+          if (k.startsWith(loc + '|') && !have.has(k)) gaps.push(`${k.replace('|', ' ')}: 商店上整组没有，清单要 ${want} 张`);
         }
       }
       if (!shots) throw new Error(`${label}: 一张截图都没有`);
+      if (gaps.length) {
+        throw new Error(`${label}: 截图与 asc-media 的清单对不上 —— 先跑 \`node scripts/asc-media.js --apply\` 再提审\n`
+          + gaps.map((g) => '      · ' + g).join('\n'));
+      }
 
       // 「本次更新内容」为空 ⇒ Apple 在 ② 那一步报「appStoreVersions … is not in valid
       // state」，**完全不提是哪一项缺了**。2026-08-22 四条线全卡在这里，靠逐项对比
