@@ -582,6 +582,9 @@ var AppListen = (() => {
     }
     if (state === 'sound') {
       sysSound = true;
+      // 原生说「有声」与我们自己收到非零样本是同一件事的两个来源（#424）：本机路只发电平、
+      // 不发 PCM，两边都记进同一个 heardAny，免得同一场里两套判据打架。
+      if (session) session.heardAny = true;
       if (phase === 'listening' && sysSilent) {
         const el = $('app-listen-note');
         if (el && el.textContent === silentHint()) note('');
@@ -687,7 +690,7 @@ var AppListen = (() => {
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
-    sysSilent = false; sysSound = false;
+    sysSilent = false; sysSound = false; deafHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
     // 用户会以为在留记录而其实没有。
@@ -765,6 +768,10 @@ var AppListen = (() => {
   let startedAt = 0, earlyRetries = 0;
   // 本场收到过 silent / sound 没有（决定 10 修订二）：决定静音门的暂停句指不指向权限
   let sysSilent = false, sysSound = false;
+  // 听了这么久还一个非零样本都没有 ⇒ 说一句（#424）。8 秒：比原生那条 3 秒的探测宽松，
+  // 给「开始 → 切到浏览器 → 点播放」留足时间，又远早于 30 秒的静音门。
+  const DEAF_HINT_MS = 8000;
+  let deafHinted = false;
   function silentHint() { return t('subtitle_bar_silent', '还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限'); }
   // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
   function pause(reason) {
@@ -776,10 +783,17 @@ var AppListen = (() => {
     micStop(); closeSocket();
     if (inc) inc.reset();
     partial = ''; partialTr = '';
+    // 「没有声音」与「拿不到声音」是两回事，出口也相反（#424）。指向权限的条件有两个，
+    // 任一成立即可：
+    //   · 原生报过 silent 且从没报过 sound（决定 10 修订二 + O2，需要「别的 App 正在出声」）；
+    //   · **这一场一个非零样本都没收到**（`session.heardAny`）—— 原生那条判据只在开始后
+    //     3 秒量一次，而我们自己的文档教的顺序是「先在 App 里开始，再去点播放」，
+    //     于是最常见的那一种恰好量不到：#420 当天就是这样，30 秒后得到的是「没有声音」。
+    const deaf = !session.heardAny || (sysSilent && !sysSound);
     if (reason === 'silence') note(session.mode !== 'subtitle' ? t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。')
-      : sysSilent && !sysSound ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : deaf ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
       : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
-    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && sysSilent && !sysSound ? 'silence-permission' : 'silence');
+    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf ? 'silence-permission' : 'silence');
     paint();
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
@@ -1140,6 +1154,23 @@ var AppListen = (() => {
       : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
     pill.classList.toggle('live', listening);
     if (phase === 'downloading') subState('downloading', dlPct);
+    // 早说一句（#424）：字幕档听了 DEAF_HINT_MS 还**一个非零样本都没收到** ⇒ 采集链路多半
+    // 是死的（Mac 上通常是系统录音权限），不是环境安静。原来这句话只在原生报 silent 时出，
+    // 而那条判据只在开始后 3 秒量一次；等不到它的人要一直等到 30 秒静音门，然后收到一句
+    // 指错方向的「没有声音」。不中断会话、不改计费，只是把话说对，并给一条去系统设置的路。
+    if (listening && session.mode === 'subtitle' && !session.heardAny && !deafHinted
+        && ms >= DEAF_HINT_MS) {
+      deafHinted = true;
+      note(silentHint(), false);
+      subState('silent');
+    } else if (listening && deafHinted && session.heardAny) {
+      // 声音终于来了 ⇒ 把那句话撤掉（同原生 'sound' 那一支的做法：只撤**我们自己写的**
+      // 那一句，别把用户看到的别的提示一并清了）。
+      deafHinted = false;
+      const el = $('app-listen-note');
+      if (el && el.textContent === silentHint()) note('');
+      if (!sysSilent || sysSound) subState('listening');
+    }
     // Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行
     const dp = $('app-listen-device-privacy');
     if (dp) { dp.hidden = false; dp.textContent = t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'); }
