@@ -3657,5 +3657,20 @@
   },
   "ob_web_only": {
     "message": "我只要网页翻译"
+  },
+  "qs_base": {
+    "message": "接口地址（完整）"
+  },
+  "qs_key_ph_one": {
+    "message": "粘贴一次，配好翻译"
+  },
+  "qs_apply_one": {
+    "message": "用这个地址配好翻译"
+  },
+  "qs_absent": {
+    "message": "— 这个平台不提供"
+  },
+  "qs_absent_custom": {
+    "message": "— 这个地址不提供"
   }
 }

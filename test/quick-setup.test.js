@@ -84,7 +84,18 @@ describe('QuickSetup.represents — 这份已存配置，一键卡表示得了�
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
     eq(REG.Q.represents({ provider: 'deepseek', apiKey: 'sk-x' }), null,
       'DeepSeek 不在任何一键平台里 —— 快速视图没有一个控件能显示这份配置');
-    eq(REG.Q.represents({ provider: 'custom_chat', apiKey: 'sk-x' }), null, '');
+  });
+
+  // #421 方案 C 之后这一条**反过来了**：卡上有了地址框，用自定义端点配好的人
+  // 两格都显示得出来，于是设置页可以落在「快速」，不必把他赶去「详细」。
+  test('用自定义端点配好的 ⇒ 表示得了（地址随 prefill 一起回显）', () => {
+    if (!REG) return ok(true, '（dist/ 不存在，跳过）');
+    const url = 'https://gw.example.internal/v1/chat/completions';
+    const rep = REG.Q.represents({ provider: 'custom_chat', apiKey: 'sk-x', apiBaseUrl: url });
+    ok(rep && rep.custom, '自定义那一项应当认得出这份配置，实际 ' + JSON.stringify(rep && rep.host));
+    const pre = REG.Q.prefill({ provider: 'custom_chat', apiKey: 'sk-x', apiBaseUrl: url });
+    ok(pre && pre.custom && pre.key === 'sk-x' && pre.baseUrl === url,
+      '回显要带上地址 —— 少了它，卡看起来像「配好了」而那一格是空的：' + JSON.stringify(pre));
   });
 
   test('朗读/转写用别的平台不影响判据 —— 只看翻译那一路', () => {
@@ -131,7 +142,9 @@ describe('QuickSetup — 每个进了下拉的平台都得说得出「去哪儿�
     test(dir + '：platforms() 里每个平台的 chat 条目都带 keyUrl，且是 https 绝对地址', () => {
       const d = fromDist(dir);
       if (!d) return ok(true, '（' + dir + '/ 不存在，跳过 —— 先跑 node build.js）');
-      const list = d.Q.platforms();
+      // 自定义那一项（#421 C）没有「去哪儿申请」可言：地址和 key 都来自用户自己的
+      // 服务，给一个第三方控制台的链接才是错的。渲染器对没有 keyUrl 的平台隐藏那一行。
+      const list = d.Q.platforms().filter((p) => !p.custom);
       ok(list.length > 0, dir + ' 一个平台都没有，这条断言就成了空转');
       for (const p of list) {
         const u = p.chat.keyUrl;
@@ -157,7 +170,8 @@ describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', 
   test('global：恰好两组，且有实测推荐的 openrouter.ai 排第一', () => {
     const d = fromDist('dist');
     if (!d) return ok(true, '（dist/ 不存在，跳过 —— 先跑 node build.js）');
-    const hosts = d.Q.platforms().map((p) => p.host);
+    // 同上：自定义那一项不参与推导，这条断言守的是推导出来的那几组。
+    const hosts = d.Q.platforms().filter((p) => !p.custom).map((p) => p.host);
     eq(hosts[0], 'openrouter.ai',
       '有实测推荐的排前面：注册表顺序是历史形成的（openai 只是加得早），拿它当推荐序'
       + '会让这张卡推荐一个我们从没跑过跨能力实测的平台');
@@ -176,7 +190,8 @@ describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', 
   test('china：恰好 dashscope.aliyuncs.com', () => {
     const d = fromDist('dist-china');
     if (!d) return ok(true, '（dist-china/ 不存在，跳过 —— 先跑 node build.js --flavor china）');
-    const hosts = d.Q.platforms().map((p) => p.host);
+    // 推导出来的组**恰好一组**；自定义那一项（#421 C）不参与推导，单独排在末尾。
+    const hosts = d.Q.platforms().filter((p) => !p.custom).map((p) => p.host);
     deepEq(hosts, ['dashscope.aliyuncs.com'], 'china 恰好一组');
   });
 
@@ -198,17 +213,35 @@ describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', 
     // 也就没有了消费者，一并删掉 —— 留着的话它是一份永远不会被读的数据。
   });
 
-  test('结果里不含 needsKey:false 或 requiresEndpoint 的条目', () => {
+  test('推导出来的组里不含 needsKey:false 或 requiresEndpoint 的条目', () => {
     for (const dir of ['dist', 'dist-china']) {
       const d = fromDist(dir);
       if (!d) continue;
-      for (const p of d.Q.platforms()) {
+      // 自定义那一项（#421 C）**故意**是 requiresEndpoint 的 —— 它不走推导，
+      // 单独加在末尾，承诺的也只有翻译一样。这条断言守的是推导那一段。
+      for (const p of d.Q.platforms().filter((x) => !x.custom)) {
         for (const e of [p.chat, p.tts, p.stt]) {
           eq(e.needsKey, true, `${dir} ${e.id} needsKey`);
           ok(!e.requiresEndpoint, `${dir} ${e.id} 不该是自填端点条目`);
         }
         ok(d.Q.consistent(p), `${dir} ${p.host} 组内 needsKey 必须一致 —— 不一致说明这个 host 上不是一把 key 通吃`);
       }
+    }
+    ok(true, '');
+  });
+
+  // ── 自定义那一项（#421 方案 C）────────────────────────────────────────
+  test('两个 flavor 都有「自定义」，且**排在最后**（推导出来的平台先来）', () => {
+    for (const dir of ['dist', 'dist-china']) {
+      const d = fromDist(dir);
+      if (!d) continue;
+      const list = d.Q.platforms();
+      const customs = list.filter((x) => x.custom);
+      eq(customs.length, 1, `${dir} 自定义应当恰好一项`);
+      eq(list[list.length - 1].custom, true, `${dir} 自定义应当排在最后`);
+      ok(customs[0].chat.requiresEndpoint, `${dir} 自定义那一条必须是自填端点的引擎`);
+      ok(!customs[0].tts && !customs[0].stt, `${dir} 自定义只承诺翻译，不该带朗读 / 转写`);
+      ok(d.Q.consistent(customs[0]), `${dir} 自定义那一项的自检应当通过`);
     }
     ok(true, '');
   });
@@ -222,6 +255,11 @@ const PLATFORM = {
   stt: { id: 'openrouter_transcribe', needsKey: true, defaultEndpoint: 'https://openrouter.ai/api/v1/audio/transcriptions' },
 };
 const KEY = 'sk-or-v1-test';
+const CUSTOM = {
+  host: '', custom: true,
+  chat: { id: 'custom_chat', needsKey: true, requiresEndpoint: true, defaultEndpoint: null },
+  tts: null, stt: null,
+};
 
 describe('QuickSetup.plan — 只填空，不覆盖', () => {
   test('空存储：三组键必须全部出现，且**恰好**是这些', () => {
@@ -234,6 +272,25 @@ describe('QuickSetup.plan — 只填空，不覆盖', () => {
       sttEngine: 'openrouter_transcribe', sttApiKey: KEY, sttBaseUrl: '', sttModel: '',
     }, 'writes 必须逐字是这些 —— 多一个键就是一个 saveAll() 读不回、下次被清掉的键');
     deepEq(r.tests, ['chat', 'tts', 'stt'], '三样都要测');
+  });
+
+  // #421 方案 C：自定义平台只配翻译，而且地址是构成要件。
+  test('自定义平台：地址写进 apiBaseUrl，朗读 / 转写记成 absent、一个键都不写', () => {
+    const { Q } = load();
+    const url = 'https://gw.example.internal/v1/chat/completions';
+    const r = Q.plan({ platform: CUSTOM, key: KEY, settings: {}, baseUrl: url });
+    deepEq(r.writes, { provider: 'custom_chat', apiKey: KEY, apiBaseUrl: url, apiModel: '' },
+      '自定义平台只写翻译那一组，且地址是用户填的那一条');
+    deepEq(r.tests, ['chat'], '只测翻译 —— 它也只承诺了翻译');
+    deepEq(r.skipped.map((x) => x.slot + ':' + x.reason).sort(), ['stt:absent', 'tts:absent'],
+      '缺的两样要记成 absent（「这个地址不提供」），不是「你已经配过了」');
+  });
+
+  test('自定义平台缺地址：什么都不写、什么都不测 —— 没有端点的 requiresEndpoint 引擎运行时是死的', () => {
+    const { Q } = load();
+    const r = Q.plan({ platform: CUSTOM, key: KEY, settings: {} });
+    deepEq(r.writes, {}, '缺地址就不许写 provider/key —— 否则卡上说「配好了」，实际配了个空端点');
+    deepEq(r.tests, [], '也不该测');
   });
 
   test('翻译已配：不含任何 api* 键，skipped 记下它', () => {
