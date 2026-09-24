@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  Mac 预览片「快速翻译」那一段的**背景页**（同 preview-stage.html 之于字幕段）。
+
+  为什么要一张自己的页，而不是随便开个网站：
+  · 快速翻译会把页面上**已经存在的译文**一起取走 —— 拿被扩展翻过的页面当背景，
+    面板里会出现中英混在一起的原文（2026-09-23 实测）。这一页没有扩展参与。
+  · 境内打不开的站点不能进商店素材（中国版尤其），本地页没有这个问题。
+  · 录屏要可复现：网页会改版，这一页不会。
+
+  内容是中性的产品说明文字，**不写任何厂商名**（中国版商店素材同一条规矩），
+  也不写真实的人或公司。段落长度按「一段正好铺满一行半」调过，选中之后面板不会过高。
+
+  用法：Chrome 以 --app=file://<abs path> 打开（不要 --kiosk，它会进独立 Space）。
+-->
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8">
+<!-- Chrome 看见 lang="en" 会自己弹「翻译此页？」气泡，那东西会进录屏；
+     命令行的 --disable-translate / --disable-features=Translate 都拦不住（实测），
+     只有页面自己说「别翻我」才管用。 -->
+<meta name="google" content="notranslate">
+<title>Reading</title>
+<style>
+  :root { --bg: #f5ead8; --fg: #201e1d; --muted: #82796a; --line: #eee7db; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+  body {
+    font: 400 27px/1.72 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center;
+  }
+  main { width: min(1000px, 78vw); }
+  .kicker { font-size: 15px; letter-spacing: .26em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  h1 { font-size: 52px; line-height: 1.2; margin: 14px 0 26px; font-weight: 700; }
+  p { margin: 0 0 22px; }
+  .rule { height: 1px; background: var(--line); margin: 30px 0; border: 0; }
+  .note { font-size: 19px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">Field notes</div>
+  <h1>What a long walk teaches about pace</h1>
+  <p id="pick">The first hour always feels too slow, and that is exactly the point: a pace you can hold for six hours is never the pace that feels fast at the start.</p>
+  <p>Walkers who begin at a comfortable speed tend to arrive earlier than those who sprint the first mile, because the cost of recovering from an early mistake is paid over the whole afternoon.</p>
+  <hr class="rule">
+  <p class="note">Selecting any sentence and pressing the shortcut shows it in your own language, without leaving this page.</p>
+</main>
+</body>
+</html>
