@@ -426,11 +426,12 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     if(!q) fail('引擎屏上没有「一把 key 配好全部」那张卡 —— HTML 在但没渲染？');
     else if(!q.apply) fail('卡渲染了但没有那个按钮');
     else {
-      // global 有 openrouter.ai / api.openai.com 两组，china 只有 dashscope 一组；
-      // 只有一项时刻意不渲染 <select>（一个只有一个选项的下拉是在假装有选择）。
-      const wantSel = DIST==='dist-china' ? 0 : 2;
-      if(q.plat!==wantSel) fail(`平台下拉 ${q.plat} 项，期望 ${wantSel}（china 只有一组，不该有下拉）`);
-      else pass(`一键配置卡在，平台${wantSel?`下拉 ${wantSel} 项`:'唯一、不渲染下拉'}`);
+      // 推导出来的组：global 两组、china 一组；**再加一项「自定义」**（#421 方案 C，
+      // 2026-09-24）—— 手里有一个能用的 OpenAI 兼容地址的人，原来在这张卡上无路可走。
+      // 所以两个 flavor 现在都有下拉（china 从「唯一、不渲染」变成两项）。
+      const wantSel = DIST==='dist-china' ? 2 : 3;
+      if(q.plat!==wantSel) fail(`平台下拉 ${q.plat} 项，期望 ${wantSel}（推导组 + 自定义那一项）`);
+      else pass(`一键配置卡在，平台下拉 ${wantSel} 项（含「自定义」）`);
     }
     // ★ 一键配置的自检**真的点一次**。
     //
@@ -470,6 +471,60 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       if(ref.length) fail(`自检印出了 JS 报错（不是引擎的错，是我们自己的）：${ref[0].txt}`);
       else if(bad.length) fail(`打桩全都成功，却有 ${bad.length} 行失败：${bad[0].txt}`);
       else pass(`一键配置自检跑通 ${sc.rows.length} 项，无一失败`);
+    }
+
+    // ★ 「自定义」那一项（#421 方案 C）：选它之后卡必须变 —— 多一个地址框、按钮只承诺
+    //   一样、缺地址点了什么都不写、填上之后真把地址写进 apiBaseUrl。
+    //   判据是**存储里那三个键**，不是界面上的绿勾：写不写得进去才是这张卡的作用。
+    const cu = await evA(`(async()=>{
+      const sel = document.getElementById('qs-platform');
+      if (!sel) return JSON.stringify({ err: '没有平台下拉' });
+      const opts = [...sel.options];
+      const i = opts.findIndex(o => o.dataset && o.dataset.custom === '1');   // 渲染器给自定义那一项标了 data-custom
+      if (i < 0) return JSON.stringify({ err: '下拉里没有「自定义」那一项：' + opts.map(o => o.textContent).join(' | ') });
+      sel.value = String(i);
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 60));
+      const row = document.getElementById('qs-base-row');
+      const base = document.getElementById('qs-base');
+      const btn = document.getElementById('qs-apply');
+      const shown = !!(row && !row.hidden && row.getClientRects().length);
+      const applyText = (btn.textContent || '').trim();
+      const ph = base ? base.placeholder : '';
+      // ① 缺地址：点了什么都不该写
+      await new Promise(r => chrome.storage.local.remove(['provider', 'apiKey', 'apiBaseUrl'], r));
+      const key = document.getElementById('qs-key');
+      key.value = 'sk-verify-custom-1'; key.dispatchEvent(new Event('input', { bubbles: true }));
+      btn.click();
+      await new Promise(r => setTimeout(r, 500));
+      const after0 = await new Promise(r => chrome.storage.local.get(['provider', 'apiKey', 'apiBaseUrl'], v => r(v || {})));
+      // ② 填上地址再点
+      base.value = 'https://gw.example.internal/v1/chat/completions';
+      base.dispatchEvent(new Event('input', { bubbles: true }));
+      btn.click();
+      for (let i = 0; i < 60; i++) {
+        await new Promise(r => setTimeout(r, 100));
+        if (document.querySelectorAll('#ob-quick .qs-ok, #ob-quick .qs-bad').length) break;
+      }
+      const after1 = await new Promise(r => chrome.storage.local.get(['provider', 'apiKey', 'apiBaseUrl'], v => r(v || {})));
+      const rows = [...document.querySelectorAll('#ob-quick .qs-res li')]
+        .map(li => (li.textContent || '').replace(/\s+/g, ' ').trim());
+      return JSON.stringify({ shown, applyText, ph, after0, after1, rows });
+    })()`);
+    if(cu.err) fail('自定义那一项验不了：'+cu.err);
+    else {
+      if(!cu.shown) fail('选了「自定义」却没有地址框 —— 那一条引擎没有默认端点，不填地址配了也是死的');
+      else pass('选「自定义」⇒ 出地址框');
+      if(!/^https?:\/\//.test(cu.ph||'')) fail(`地址框的占位符不是注册表里的示例地址：「${cu.ph}」`);
+      else pass('地址框的占位符来自注册表（不是卡里另抄一份）');
+      if(cu.after0 && cu.after0.apiKey) fail('缺地址就把 key 写进去了 —— 卡上会说「配好了」，而端点是空的');
+      else pass('缺地址 ⇒ 一个键都不写');
+      if(!(cu.after1 && cu.after1.apiBaseUrl === 'https://gw.example.internal/v1/chat/completions'))
+        fail('填了地址点「配好」，apiBaseUrl 没写进去：'+JSON.stringify(cu.after1));
+      else pass('填地址 ⇒ provider / key / apiBaseUrl 三个键都写对了');
+      const absent = (cu.rows||[]).filter(x=>/不提供|not offered|提供されません|제공하지|non proposé|nicht angeboten|no lo ofrece|não oferece|не даёт|لا يوفّره|नहीं देता/.test(x));
+      if(absent.length !== 2) fail(`朗读 / 转写那两行该说「这个地址不提供」，实际 ${JSON.stringify(cu.rows)}`);
+      else pass('朗读 / 转写如实说「这个地址不提供」（不是「你已经配过了」）');
     }
 
 

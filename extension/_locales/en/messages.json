@@ -3656,5 +3656,20 @@
   },
   "ob_web_only": {
     "message": "I only want web page translation"
+  },
+  "qs_base": {
+    "message": "Endpoint URL (full)"
+  },
+  "qs_key_ph_one": {
+    "message": "Paste once, translation set up"
+  },
+  "qs_apply_one": {
+    "message": "Set up translation with this endpoint"
+  },
+  "qs_absent": {
+    "message": "— not offered by this platform"
+  },
+  "qs_absent_custom": {
+    "message": "— not offered by this endpoint"
   }
 }

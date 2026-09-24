@@ -3657,5 +3657,20 @@
   },
   "ob_web_only": {
     "message": "我只要網頁翻譯"
+  },
+  "qs_base": {
+    "message": "介面位址（完整）"
+  },
+  "qs_key_ph_one": {
+    "message": "貼上一次，配好翻譯"
+  },
+  "qs_apply_one": {
+    "message": "用這個位址配好翻譯"
+  },
+  "qs_absent": {
+    "message": "— 這個平台不提供"
+  },
+  "qs_absent_custom": {
+    "message": "— 這個位址不提供"
   }
 }

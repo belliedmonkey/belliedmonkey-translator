@@ -65,6 +65,24 @@ var QuickSetup = (() => {
     return !!e && e.needsKey === true && !e.requiresEndpoint && !!hostOf(e.defaultEndpoint || '');
   }
 
+  // 自定义平台（#421 方案 C，2026-09-24，画布 9eu7Ysbss9WQ9NJCoEWPMS）。
+  //
+  // 它进不了下面那套推导，而且**两条都不成立**：没有 host（地址要用户自己填），
+  // 也没有配套的朗读 / 转写。把它挡在外面本来是对的 —— 直到发现代价：手里有一个
+  // 能用的兼容地址（自建网关、公司内网）的人，在这张卡上**无路可走**（#421：国际版
+  // 那两个平台在某些网络位置下一个直连打不开、一个默认模型被按地区 403）。
+  // ⚠️ 这段注释会原样进中国版产物，别在这里写厂商名（build/china-gate.js 会红）。
+  //
+  // 所以它单独加在**最后一项**，并且只承诺它真能做到的那一样：翻译。按钮文案、
+  // 隐私那句、结果行都跟着变 —— 一张说「一把 key 配好三样」的卡，配一样就得说一样。
+  // 条目本身从注册表找，**不写死 id**：判据是「要自己填地址的那条对话引擎」。
+  function customPlatform(reg) {
+    const r = registries(reg);
+    const e = (r.providers || []).find((x) => x && x.requiresEndpoint && x.needsKey === true
+      && !x.grantOnly && (x.type === 'chat-compat' || x.type === 'messages-compat'));
+    return e ? { host: '', custom: true, chat: e, tts: null, stt: null } : null;
+  }
+
   function platforms(reg) {
     const r = registries(reg);
     // 有实测推荐的 host 排前面，其余按注册表顺序。
@@ -100,7 +118,8 @@ var QuickSetup = (() => {
         // openrouter_speech 赢过 openrouter_audio（专用语音端点，不是带音频输出
         // 的对话模型）。
         chat: g.chat[0], tts: g.tts[0], stt: g.stt[0],
-      }));
+      }))
+      .concat(customPlatform(reg) ? [customPlatform(reg)] : []);
   }
   // 2026-09-11 → 09-17 这里曾有「实时转写（可选）」一格：平台自身没有实时接口时另配一把
   // 实时引擎的 key，填了就把转写槽整个换成那一家。实时转写自 2026-09-17 起固定为设备内置
@@ -110,6 +129,9 @@ var QuickSetup = (() => {
   // 「这个组里的条目 needsKey 必须一致」—— 推导法唯一的自检。不一致说明这个 host
   // 上不是一把 key 通吃，分组的前提已经不成立。
   function consistent(p) {
+    // 自定义组只有 chat（#421 C）—— 「一把 key 通吃三样」这条前提对它本来就不成立，
+    // 它承诺的也只有翻译一样。自检退回到「它自己那一条要 key」。
+    if (p && p.custom) return !!p.chat && p.chat.needsKey === true;
     return [p.chat, p.tts, p.stt].every((e) => e.needsKey === true);
   }
 
@@ -251,9 +273,13 @@ var QuickSetup = (() => {
     // notes.js 明文禁止的「把 key 和一个不是发给它的端点配在一起」。空 = 走注册表
     // 默认 = 一个能工作的配置（wire-format 的两分支合同）。
     if (st.chat === 'empty') {
+      // 自定义平台**必须**带地址，没有就什么都不写：一个没有端点的 requiresEndpoint
+      // 引擎在运行时会被 wire-format 判成没配好，而卡上会显示「配好了」。
+      if (p.custom && !has(input.baseUrl)) return { writes: {}, skipped, tests: [], replaced };
       writes.provider = p.chat.id;
       writes.apiKey = key;
-      writes.apiBaseUrl = '';
+      // 非自定义平台写空 = 走注册表默认（wire-format 两分支合同）；自定义写用户填的那一条。
+      writes.apiBaseUrl = p.custom ? String(input.baseUrl).trim() : '';
       writes.apiModel = pinModel ? (p.chat.defaultModel || '') : '';
       tests.push('chat');
     } else {
@@ -394,7 +420,8 @@ var QuickSetup = (() => {
       '下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请在各自的卡片里单独配置。')));
 
     // 只有一项时不渲染 <select> —— 一个只有一个选项的下拉是在假装有选择。
-    let current = (pre && pre.host && list.find((p) => p.host === pre.host)) || list[0];
+    let current = (pre && pre.custom && list.find((p) => p.custom))
+      || (pre && pre.host && list.find((p) => p.host === pre.host)) || list[0];
     if (list.length > 1) {
       const row = el('div', 'qs-row');
       row.append(el('label', null, t('qs_platform', '平台')));
@@ -402,7 +429,11 @@ var QuickSetup = (() => {
       list.forEach((p, i) => {
         const o = doc.createElement('option');
         o.value = String(i);
-        o.textContent = labelOf(p.chat, t) + ' · ' + p.host;
+        // 自定义那一项没有 host 可写（地址还没填）—— 标签就是注册表里那条引擎的名字。
+        // 标 data-custom：宿主与门禁靠它认人，别去猜标签长什么样（中国版那条注册表
+        // 标签里本来就带「·」，按符号猜会认错）。
+        o.textContent = p.custom ? labelOf(p.chat, t) : labelOf(p.chat, t) + ' · ' + p.host;
+        if (p.custom) o.dataset.custom = '1';
         sel.append(o);
       });
       sel.value = String(list.indexOf(current));
@@ -412,6 +443,17 @@ var QuickSetup = (() => {
       wrap.append(el('p', 'qs-sub', t('qs_only_one', '可用平台：{p}').replace('{p}',
         labelOf(current.chat, t) + ' · ' + current.host)));
     }
+
+    // 接口地址：只有自定义平台要填（#421 C）。占位符**取自注册表的 placeholder** ——
+    // 地址类的事实一律归注册表，这张卡不再抄一份示例地址。
+    const baseRow = el('div', 'qs-row');
+    baseRow.id = 'qs-base-row';
+    baseRow.append(el('label', null, t('qs_base', '接口地址（完整）')));
+    const base = doc.createElement('input');
+    base.id = 'qs-base'; base.type = 'url'; base.autocomplete = 'off';
+    base.autocapitalize = 'none'; base.spellcheck = false;
+    if (pre && pre.baseUrl) base.value = pre.baseUrl;
+    baseRow.append(base); wrap.append(baseRow);
 
     const keyRow = el('div', 'qs-row');
     keyRow.append(el('label', null, t('qs_key', 'API Key')));
@@ -445,7 +487,18 @@ var QuickSetup = (() => {
         keyLink.textContent = t('qs_get_key', '还没有 key？去 {p} 申请 ↗')
           .replace('{p}', labelOf(current.chat, t));
       }
-      privacy.textContent = t('qs_privacy',
+      // 自定义平台（#421 C）：多一个地址框；按钮与隐私句都只说它真做得到的那一样。
+      baseRow.hidden = !current.custom;
+      base.placeholder = (current.chat && current.chat.placeholder) || '';
+      key.placeholder = current.custom
+        ? t('qs_key_ph_one', '粘贴一次，配好翻译')
+        : t('qs_key_ph', '粘贴一次，三样一起配好');
+      btn.textContent = current.custom
+        ? t('qs_apply_one', '用这个地址配好翻译')
+        : t('qs_apply', '配好翻译、朗读、转写');
+      // 转写那句隐私话只有在这个平台真的做转写时才成立。
+      privacy.hidden = !!current.custom;
+      privacy.textContent = current.custom ? '' : t('qs_privacy',
         '转写会把你的**录音**发到 {host} 识别，识别完立即丢弃，不存储也不同步。')
         .replace('{host}', current.host).replace(/\*\*/g, '');
     }
@@ -489,6 +542,8 @@ var QuickSetup = (() => {
     btn.addEventListener('click', async () => {
       const k = key.value.trim();
       if (!k) { key.focus(); return; }
+      // 自定义平台没有默认端点：地址是构成要件，缺了就什么都别写（plan 里也再挡一次）。
+      if (current.custom && !base.value.trim()) { base.focus(); return; }
       // **点下去那一刻才读设置。** 原来这里用的是 render 时传进来的快照，而那份快照
       // 在 options 上是页面加载时读的、之后永不更新（s0）。后果不是显示不对，是丢数据：
       // 用户在「详细」里敲了 key → 点这个按钮 → state() 按旧快照判「没配过」→ 覆盖那把
@@ -515,7 +570,7 @@ var QuickSetup = (() => {
       // 尾八位由宿主给（它存在 grantTail，不在 SETTINGS_KEYS 里）；2026-09-11 回归前这里没传，免费槽永远算「已配过」。
       let replaceKeyTail = '';
       try { replaceKeyTail = typeof opts.replaceKeyTail === 'function' ? String((await opts.replaceKeyTail()) || '') : String(cur.grantTail || ''); } catch (_) { replaceKeyTail = ''; }
-      const p = plan({ platform: current, key: k, settings: cur, replaceKeyTail });
+      const p = plan({ platform: current, key: k, settings: cur, replaceKeyTail, baseUrl: base.value.trim() });
       btn.disabled = true;
       // 四行**在按下那一刻就存在**，不是「成功后才冒出来的绿框」—— 那种形状让失败
       // 看起来像什么都没发生。
@@ -536,8 +591,12 @@ var QuickSetup = (() => {
 
       for (const sk of p.skipped) {
         rows[sk.slot].className = 'qs-idle';
-        rows[sk.slot].textContent = t('qs_untouched', '— 没动 · 你已经配过了（{cur}）')
-          .replace('{cur}', sk.current || t('qs_unknown', '已有配置'));
+        // 「这个平台没有这一样」与「你已经配过了」是两回事（#421 C）。原来两种都印成
+        // 后者 —— 对一个只做翻译的平台，那句话是假的：用户并没有配过朗读。
+        rows[sk.slot].textContent = sk.reason === 'absent'
+          ? (current.custom ? t('qs_absent_custom', '— 这个地址不提供') : t('qs_absent', '— 这个平台不提供'))
+          : t('qs_untouched', '— 没动 · 你已经配过了（{cur}）')
+            .replace('{cur}', sk.current || t('qs_unknown', '已有配置'));
       }
 
       try { await opts.onApply(p); } catch (e) {
@@ -637,7 +696,13 @@ var QuickSetup = (() => {
   function prefill(settings, reg) {
     const s = settings || {};
     const rep = represents(s, reg);
-    if (rep && has(s.apiKey)) return { host: rep.host, key: s.apiKey, slot: 'chat' };
+    if (rep && has(s.apiKey)) {
+      // 自定义平台按 id 认（它没有 host），并且要把地址一起回显 —— 少了地址，
+      // 卡上看起来像「配好了」而那一格其实是空的。
+      return rep.custom
+        ? { host: '', custom: true, key: s.apiKey, baseUrl: s.apiBaseUrl || '', slot: 'chat' }
+        : { host: rep.host, key: s.apiKey, slot: 'chat' };
+    }
     for (const p of platforms(reg)) {
       if (has(s.ttsApiKey) && p.tts && p.tts.id === s.ttsEngine) return { host: p.host, key: s.ttsApiKey, slot: 'tts' };
       if (has(s.sttApiKey) && p.stt && p.stt.id === s.sttEngine) return { host: p.host, key: s.sttApiKey, slot: 'stt' };

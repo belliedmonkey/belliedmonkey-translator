@@ -3656,5 +3656,20 @@
   },
   "ob_web_only": {
     "message": "ウェブページの翻訳だけでいい"
+  },
+  "qs_base": {
+    "message": "エンドポイント URL（完全）"
+  },
+  "qs_key_ph_one": {
+    "message": "一度貼るだけで翻訳を設定"
+  },
+  "qs_apply_one": {
+    "message": "このエンドポイントで翻訳を設定"
+  },
+  "qs_absent": {
+    "message": "— このプラットフォームでは提供されません"
+  },
+  "qs_absent_custom": {
+    "message": "— このエンドポイントでは提供されません"
   }
 }

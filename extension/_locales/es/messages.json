@@ -3656,5 +3656,20 @@
   },
   "ob_web_only": {
     "message": "Solo quiero la traducción de páginas web"
+  },
+  "qs_base": {
+    "message": "URL del endpoint (completa)"
+  },
+  "qs_key_ph_one": {
+    "message": "Pega una vez y la traducción queda lista"
+  },
+  "qs_apply_one": {
+    "message": "Configurar la traducción con esta URL"
+  },
+  "qs_absent": {
+    "message": "— esta plataforma no lo ofrece"
+  },
+  "qs_absent_custom": {
+    "message": "— esta URL no lo ofrece"
   }
 }

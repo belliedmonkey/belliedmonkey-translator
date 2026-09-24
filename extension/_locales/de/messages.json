@@ -3656,5 +3656,20 @@
   },
   "ob_web_only": {
     "message": "Ich will nur die Webseiten-Übersetzung"
+  },
+  "qs_base": {
+    "message": "Endpunkt-URL (vollständig)"
+  },
+  "qs_key_ph_one": {
+    "message": "Einmal einfügen, Übersetzung ist eingerichtet"
+  },
+  "qs_apply_one": {
+    "message": "Übersetzung mit dieser URL einrichten"
+  },
+  "qs_absent": {
+    "message": "— von dieser Plattform nicht angeboten"
+  },
+  "qs_absent_custom": {
+    "message": "— von dieser URL nicht angeboten"
   }
 }

@@ -3656,5 +3656,20 @@
   },
   "ob_web_only": {
     "message": "Je veux seulement la traduction de pages web"
+  },
+  "qs_base": {
+    "message": "URL du point de terminaison (complète)"
+  },
+  "qs_key_ph_one": {
+    "message": "Collez une fois, la traduction est prête"
+  },
+  "qs_apply_one": {
+    "message": "Configurer la traduction avec cette URL"
+  },
+  "qs_absent": {
+    "message": "— non proposé par cette plateforme"
+  },
+  "qs_absent_custom": {
+    "message": "— non proposé par cette URL"
   }
 }
