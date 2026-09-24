@@ -802,6 +802,21 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
                         btns: ['ob-prefs', 'ob-setup', 'ob-next', 'ob-alt', 'ob-skip', 'ob-try-tr', 'ob-try-say']
                           .filter((id) => !!($(id) && $(id).getClientRects().length))
                           .map((id) => ({ id, bg: getComputedStyle($(id)).backgroundColor })),
+                        // 「以后再设置」必须**渲染成文字链**，不是第三个等宽按钮（#386 画布，
+                        // 照 ext 屏 2026-09-02「等宽灰按钮」那次先例）。判据是渲染出来的样子，
+                        // 不是类名 —— class="link" 挂着而规则没命中，正是 2026-09-24 真机
+                        // 上看到的那个形状（#onboard 不在 button.link 的 :where 名单里）。
+                        // ⚠️ 这一整段在模板字符串里，注释里也不许出现反引号。
+                        skip: (() => {
+                          const el = $('ob-skip');
+                          if (!el || !el.getClientRects().length) return null;
+                          const cs = getComputedStyle(el);
+                          return { bg: cs.backgroundColor, border: cs.borderTopWidth,
+                                   deco: cs.textDecorationLine,
+                                   w: Math.round(el.getBoundingClientRect().width),
+                                   nextW: $('ob-next') && $('ob-next').getClientRects().length
+                                     ? Math.round($('ob-next').getBoundingClientRect().width) : 0 };
+                        })(),
                         // 「首屏看不看得见能点的东西」。判据是渲染坐标：#onboard 的父级
                         // #app 是普通 block，所以 flex 那条高度链是断的，overflow 也好
                         // sticky 也好，都可能静默失效 —— 失效的样子就是这个数字大过视口。
@@ -913,6 +928,17 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(we && /\d/.test(we.hintText || ''), '主按钮下那句「两步，约 30 秒」没出来：' + JSON.stringify(we && we.hintText));
       need(!seen.some((x) => x.step !== 'welcome' && (x.exitText || (x.chips || []).length)),
         '引擎名或那条出口漏到了第一屏以外的屏上');
+      // ★「以后再设置」是文字链，不是第三个等宽按钮（2026-09-24 Mac 真机上抓到的：
+      //   `#onboard` 不在 app/style.css 里 `button.link` 那条 :where 名单中，于是类名挂着、
+      //   规则没命中）。三条判据各自独立：没有填色、没有边框、和主按钮不一样宽。
+      for (const s of seen.map((x) => x.skip).filter(Boolean)) {
+        need(/rgba\(0, 0, 0, 0\)|transparent/.test(s.bg),
+          '「以后再设置」被渲染成了填色按钮（背景 ' + s.bg + '）—— 它该是文字链');
+        need(parseFloat(s.border) === 0,
+          '「以后再设置」有边框（' + s.border + '）—— 那是按钮的样子，不是文字链');
+        need(!(s.nextW && Math.abs(s.w - s.nextW) < 8),
+          '「以后再设置」和主按钮一样宽（' + s.w + 'px）—— 等宽的两个键分不出主次，正是 ext 屏 2026-09-02 那次的坑');
+      }
       need(fu && fu.tryRes && fu.tryRes.shown, '「就地试一句」那一屏没有露出试一句的区块');
       need(fu && fu.tryRes && fu.tryRes.src.trim().length > 10, '「就地试一句」没有内置的示例句');
       need(fu && fu.tryRes && fu.tryRes.tr && fu.tryRes.say, '「翻这一句 / 听这一句」两个按钮不全');

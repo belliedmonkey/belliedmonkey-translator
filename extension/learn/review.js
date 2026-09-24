@@ -25,9 +25,15 @@
   // 所以这里记的是**来过的日子**，不是刷了多少张。判据是**打开了复习面**，
   // 不是「评了一张」：目标就是回来，把门槛设在回来之后没有道理。
   //
-  // 只在本机（`mt:reviewDays`，最多留 60 天），**不同步、不进遥测、不进商店文案**。
+  // 只在本机（`reviewDays`，最多留 60 天），**不同步、不进遥测、不进商店文案**。
   // 关掉匿名用量开关的人照样看得到这一行 —— 它是给他自己看的。
-  const VISIT_KEY = 'mt:reviewDays';
+  //
+  // ⚠️ **chrome.storage 的键不带 `mt:` 前缀**（同 `learnRules` / `tm:day`）。1.16.0 发出去的那版
+  // 写的是 `mt:reviewDays`，在 App 宿主里被 `app/chrome-shim.js` 再加一次前缀，实际落成
+  // `mt:mt:reviewDays` —— 2026-09-24 Mac 真机验证时从容器里读出来才看见。改回惯例的同时
+  // **读的时候兜住老键**：直接换名字会把已经攒下的连续天数清零，而那正是这一层唯一的资产。
+  const VISIT_KEY = 'reviewDays';
+  const VISIT_KEY_LEGACY = 'mt:reviewDays';
   const VISIT_KEEP = 60;
   const dayKey = (d) => {
     const x = new Date(d);
@@ -37,11 +43,15 @@
   async function markVisit(now) {
     const today = dayKey(now || Date.now());
     try {
-      const r = await new Promise((res) => chrome.storage.local.get([VISIT_KEY], (v) => res(v || {})));
-      const prev = Array.isArray(r[VISIT_KEY]) ? r[VISIT_KEY].filter((x) => typeof x === 'string') : [];
-      visitDays = prev.includes(today) ? prev : prev.concat(today);
-      visitDays = visitDays.sort().slice(-VISIT_KEEP);
-      if (!prev.includes(today)) await new Promise((res) => chrome.storage.local.set({ [VISIT_KEY]: visitDays }, res));
+      const r = await new Promise((res) => chrome.storage.local.get([VISIT_KEY, VISIT_KEY_LEGACY], (v) => res(v || {})));
+      // 新键与老键**并起来**，不是「新键为空才看老键」：1.16.0 与更新之后的版本可能各写过几天，
+      // 择一会丢掉另一半。并集之后只写新键，老键留着不动（清数据那条路本来就会一起清掉）。
+      const days = (k) => (Array.isArray(r[k]) ? r[k].filter((x) => typeof x === 'string') : []);
+      const prev = [...new Set([...days(VISIT_KEY), ...days(VISIT_KEY_LEGACY)])].sort();
+      visitDays = (prev.includes(today) ? prev : prev.concat(today)).sort().slice(-VISIT_KEEP);
+      // 迁移那一天老键里有、新键里没有，这时也要写一次 —— 判据是「新键是不是已经等于并集」。
+      const same = days(VISIT_KEY).length === visitDays.length && days(VISIT_KEY).every((x, i) => x === visitDays[i]);
+      if (!same) await new Promise((res) => chrome.storage.local.set({ [VISIT_KEY]: visitDays }, res));
     } catch (_) { visitDays = visitDays.includes(today) ? visitDays : visitDays.concat(today); }
     return visitDays;
   }
