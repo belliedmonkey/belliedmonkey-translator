@@ -1726,10 +1726,10 @@
     "message": "Empezar"
   },
   "ob_welcome_title": {
-    "message": "Aprende lo que realmente lees"
+    "message": "Tú eliges el modelo que traduce"
   },
   "ob_welcome_body": {
-    "message": "Traducir una frase, escuchar un fragmento, ver subtítulos en vivo: todo aquí en la app. La traducción de páginas web vive en el navegador."
+    "message": "El sistema solo tiene su propio motor. Aquí eliges uno: la traducción llega directamente de él y nunca pasa por nuestros servidores."
   },
   "ob_ios_1": {
     "message": "En Safari, toca el icono de extensiones a la izquierda de la barra de direcciones"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "Recuperado: vuelve al inicio para verlo.",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Dos pasos, unos 30 segundos"
+  },
+  "ob_web_only": {
+    "message": "Solo quiero la traducción de páginas web"
   }
 }

@@ -776,6 +776,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
               }
             } else xbOb = { vis: !!$('ob-xb-box').getClientRects().length };
             seen.push({ step, tryRes, xbOb, nextText: vis($('ob-next')) ? $('ob-next').textContent : '',
+                        // 第一屏改版（画布板 B2，2026-09-24）：引擎名一行、出口、主按钮下那句话。
+                        // 逐屏采，不是走完之后回头找 —— 回头找会读到最后一屏（同上面那条教训）。
+                        chips: $('ob-engines').hidden ? [] : [...$('ob-engines').querySelectorAll('span')].map((x) => x.textContent),
+                        exitText: vis($('ob-webonly')) ? $('ob-webonly-text').textContent : '',
+                        hintText: $('ob-hint').hidden ? '' : $('ob-hint').textContent,
                         alt: vis($('ob-alt')) ? $('ob-alt').textContent : '',
                         title: $('ob-title').textContent, text: $('ob-text').textContent,
                         w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
@@ -837,6 +842,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状。
           out2.backendOn = !!(window.MT_BACKEND && window.MT_BACKEND.enabled);
           out2.providerCount = (window.MT_PROVIDERS || []).length;
+          out2.providerLabels = (window.MT_PROVIDERS || []).map((x) => String((x && x.label) || ''));
           out2.freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
           out2.engineNote = seen.map((x) => x.kv0).filter(Boolean).join(' | ');
           return JSON.stringify(out2);
@@ -895,6 +901,18 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(si && !(si.btns || []).some((b) => b.id === 'ob-skip'),
           '登录屏又挂着「以后再设置」—— 与「先不登录」两个相近的「不」并排，分不清哪个是跳过这一屏');
       }
+      // ★ 第一屏（画布板 B2 / telemetry-design §3.9 提案 B）：引擎名**从注册表来**、出口在、时长那句在。
+      //   写死牌子名的后果只有中国版看得见（它的注册表里没有 GPT / Claude），所以判据不是
+      //   「有没有 chip」，是「每个 chip 都能在 MT_PROVIDERS 的 label 里找到」。
+      const we = seen.find((x) => x.step === 'welcome');
+      const chips = (we && we.chips || []).filter((c) => c !== '…');
+      need(chips.length >= 2, '第一屏没渲染引擎名：' + JSON.stringify(we && we.chips));
+      const stray = chips.filter((c) => !(ov.providerLabels || []).some((l) => String(l).startsWith(c)));
+      need(stray.length === 0, '第一屏的引擎名不是从 MT_PROVIDERS 来的（写死了？）：' + JSON.stringify(stray));
+      need(we && we.exitText.trim().length > 1, '第一屏没有「我只要网页翻译 →」那条出口');
+      need(we && /\d/.test(we.hintText || ''), '主按钮下那句「两步，约 30 秒」没出来：' + JSON.stringify(we && we.hintText));
+      need(!seen.some((x) => x.step !== 'welcome' && (x.exitText || (x.chips || []).length)),
+        '引擎名或那条出口漏到了第一屏以外的屏上');
       need(fu && fu.tryRes && fu.tryRes.shown, '「就地试一句」那一屏没有露出试一句的区块');
       need(fu && fu.tryRes && fu.tryRes.src.trim().length > 10, '「就地试一句」没有内置的示例句');
       need(fu && fu.tryRes && fu.tryRes.tr && fu.tryRes.say, '「翻这一句 / 听这一句」两个按钮不全');
@@ -1115,6 +1133,45 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(!v7.card && !v7.onboard && s7.onboardSeen, '已经配好引擎还在提示「继续设置」：' + JSON.stringify({ v7, s7 }));
       // 反面：卡收起之后横幅要能回来（否则上面那条「让路」可能只是横幅整个坏了）。v6：✕ 之后、没引擎。
       need(v6.banner, '✕ 收起卡之后扩展横幅没回来 —— 「让路」那条断言可能是空转的');
+      // ─── 「我只要网页翻译 →」：记一条 web_only，并把人送到讲扩展那一屏（telemetry-design §3.9 B）────
+      // 判据是**队列里真的有那条**，不是「代码里有 track 调用」—— 客户端的 shape() 会把
+      // 白名单外的属性整条丢掉，少生成一次 providers.gen.js 这一行就凭空消失而没人看得见
+      // （同扩展侧 verify-onboard 里那条的理由）。顺带钉住「一次引导只记一条」。
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      await reopen();
+      const wo = await E(`(async () => {
+        try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
+        await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
+        await new Promise((r) => chrome.storage.local.remove(['tm:queue'], r));
+        const step0 = document.body.dataset.obStep || '';
+        document.getElementById('ob-webonly').click();
+        await new Promise((r) => setTimeout(r, 400));
+        const after = document.body.dataset.obStep || '';
+        // 再走一次收尾：这一次**不许**再记第二条（§3 表：离开时一条）。
+        const fin = document.getElementById('ob-setup');
+        if (fin && !fin.hidden) fin.click();
+        await new Promise((r) => setTimeout(r, 400));
+        const q = await new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r((v || {})['tm:queue'] || [])));
+        const all = q.filter((x) => x && x.name === 'onboarding_done');
+        return JSON.stringify({ step0, after, n: all.length, props: all.length ? all[0].props : null,
+          hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec),
+          onboard: !document.getElementById('onboard').hidden });
+      })()`);
+      need(wo.step0 === 'welcome', '「我只要网页翻译」探针没有从第 1 屏开始：' + JSON.stringify(wo));
+      // 出口本身两个 flavor 都要有：它首先是给用户的一条路，其次才是证据。
+      need(wo.after === 'ext', '点完没把人送到讲扩展那一屏，而是停在「' + wo.after + '」');
+      if (wo.hasSpec) {
+        need(wo.props && wo.props.result === 'web_only' && wo.props.surface === 'app' && wo.props.step === 'welcome',
+          '点「我只要网页翻译」没记下 result:web_only：' + JSON.stringify(wo));
+        need(wo.props && ['0-2', '3-9', '10-29', '30+'].includes(wo.props.dwell),
+          '那一条没带 dwell（§3.9 提案 A）：' + JSON.stringify(wo.props));
+        need(wo.n === 1, '一次引导记了 ' + wo.n + ' 条 onboarding_done —— 应当只有一条（离开时那一条）');
+      } else {
+        // 中国版：产物里根本没有 MT_TELEMETRY（Gate D 的承诺是「一个字节都不发」）。
+        // 这里的判据因此反过来：点完出口，队列必须仍然是空的 —— 与扩展侧 verify-onboard 同一条。
+        need(wo.n === 0, '中国版产物里竟然攒出了 ' + wo.n + ' 条 onboarding_done —— Gate D 说好一条都不发');
+      }
+
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
       await reopen();

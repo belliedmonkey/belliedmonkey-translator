@@ -38,7 +38,8 @@
         "skipped",
         "shown",
         "dismissed",
-        "expired"
+        "expired",
+        "web_only"
       ],
       "step": [
         "welcome",

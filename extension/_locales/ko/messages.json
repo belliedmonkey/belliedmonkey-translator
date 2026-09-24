@@ -1726,10 +1726,10 @@
     "message": "설정 시작"
   },
   "ob_welcome_title": {
-    "message": "실제로 읽은 것으로 학습하기"
+    "message": "번역에 쓸 모델은 직접 고르세요"
   },
   "ob_welcome_body": {
-    "message": "단어 번역, 음성 듣기, 실시간 자막 —— 모두 이 앱에서 바로 쓸 수 있습니다. 웹페이지 번역은 브라우저 쪽입니다."
+    "message": "시스템에는 자체 엔진 하나뿐입니다. 여기서는 원하는 것을 고르세요 —— 번역문은 그 모델에서 바로 오며, 저희 서버를 거치지 않습니다."
   },
   "ob_ios_1": {
     "message": "Safari에서 주소 표시줄 왼쪽의 확장 프로그램 아이콘을 탭"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "복원했습니다. 홈으로 돌아가면 보입니다.",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "두 단계, 약 30초"
+  },
+  "ob_web_only": {
+    "message": "웹페이지 번역만 쓰고 싶어요"
   }
 }

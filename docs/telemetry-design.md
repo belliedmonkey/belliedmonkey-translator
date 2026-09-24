@@ -83,7 +83,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 |---|---|---|---|
 | `installed` | — | the id is first generated | telemetry module first init |
 | `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
-| `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A） | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` 与 `obResumeTrack()` |
+| `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B） | `extension/onboard/onboard.js` `finish()` · `app/app.js` `obFinish()` 与 `obResumeTrack()` |
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
 | `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
@@ -473,11 +473,11 @@ App 侧与扩展侧的 `install_id` 天然不同，**不拼接** —— 这三�
 answers · per-paragraph translation events · precise timestamps · IP addresses (the
 edge function neither stores nor logs them as a field).
 
-### 3.9 2026-09-23 amendment：第一屏为什么留不住人（**A 已落地，B 待画布点头**）
+### 3.9 2026-09-23 amendment：第一屏为什么留不住人（**A / B 均已落地**）
 
-> **状态（2026-09-24 用户评审）**：**提案 A（`dwell` 分桶）通过并已落地** —— 表、注册表、
-> 生成物、两个宿主的代码在同一个 PR 里改完（§3.6 定下的流程）。**提案 B
-> （`result:'web_only'`）仍未动** —— 它依赖第一屏加一条出口，按 `AGENTS.md` 要画布先行。
+> **状态（2026-09-24 用户评审）**：**A 与 B 都通过并已落地**。A（`dwell` 分桶）先走，
+> B（`result:'web_only'`）随第一屏改版一起 —— 画布板 B2 用户点头后落地，按 `AGENTS.md`
+> 的「动交互要画布先行」。两次都是一个 PR 同时改表 + 注册表 + 生成物 + 代码（§3.6 的流程）。
 > 本节原文保留，作为「当时凭什么这么提」的记录。
 
 **现象。** 1.15.0 的引导重排（5 → 4 屏、登录提到第 2 屏、登录即领额度）出货后第一批读数：
@@ -522,7 +522,7 @@ edge function neither stores nor logs them as a field).
   若落在 `10-29`，问题在文案。**先分清楚，再决定改哪个。**
 - 这是**加属性**，不是加事件；只在既有的「离开引导」那一次发送点上多带一个字段。
 
-**提案 B：第一屏给一个明确出口，点了记下来（依赖交互改动）。**
+**提案 B：第一屏给一个明确出口，点了记下来（依赖交互改动）。** ✅ **2026-09-24 已落地。**
 
 在第一屏加一条「**我只要网页翻译 →**」，点它记 `result: 'web_only'`。
 

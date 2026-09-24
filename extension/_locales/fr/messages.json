@@ -1726,10 +1726,10 @@
     "message": "Commencer"
   },
   "ob_welcome_title": {
-    "message": "Apprenez ce que vous lisez vraiment"
+    "message": "C’est vous qui choisissez le modèle"
   },
   "ob_welcome_body": {
-    "message": "Traduire un passage, écouter un extrait, afficher des sous-titres en direct — tout se fait dans l’app. La traduction des pages web se passe côté navigateur."
+    "message": "Le système n’a que son propre moteur. Ici, vous en choisissez un — la traduction en vient directement, sans passer par nos serveurs."
   },
   "ob_ios_1": {
     "message": "Dans Safari, touchez l’icône des extensions à gauche de la barre d’adresse"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "C’est rétabli — revenez à l’accueil pour la voir.",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Deux étapes, environ 30 secondes"
+  },
+  "ob_web_only": {
+    "message": "Je veux seulement la traduction de pages web"
   }
 }
