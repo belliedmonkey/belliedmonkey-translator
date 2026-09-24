@@ -104,15 +104,25 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 /* interaction-spec 全局原则: every in-flight control looks disabled — selects and
    inputs included (the TTS engine picker locks during voice discovery).
    45% — the Organic spec value (handoff §2). */
-:where(#signed-out, #signed-in, #app-settings) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
+/* `#onboard` 是这三个的**兄弟**节点，不是后代 —— 漏了它，引导里的控件就落不到这两条全局规则上。
+   2026-09-24 Mac 真机验证时才看见：引导第一屏的「以后再设置」渲染成与主按钮等宽的白色药丸，
+   而 #386 的画布定的是**文字链**（照 `ext` 屏 2026-09-02「等宽灰按钮」那次先例）。扩展那侧的
+   onboard.html 是另一套 CSS，不受影响 —— 所以商店图里它是文字链，App 里不是，两边对不上。 */
+:where(#signed-out, #signed-in, #app-settings, #onboard) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
 
-:where(#signed-out, #signed-in, #app-settings) button.link {
+:where(#signed-out, #signed-in, #app-settings, #onboard) button.link {
   background: none;
   color: var(--accent-deep);
   font-weight: 400;
   min-height: 0;
   padding: 6px;
   text-decoration: underline;
+  /* 下面两行是给 #onboard 补的，另外三处本来就有：那三处的基础 button 规则写了 border: 0，
+     而 #onboard 不在它的名单里，于是浏览器默认的 1px 边框留了下来；#ob-foot 又是纵向 flex，
+     不写 align-self 就被拉成和主按钮等宽。两件合起来正是真机上看到的「第三个等宽白按钮」。
+     在另外三处这两行是空操作（已经 border: 0，且不在 flex 列里）。 */
+  border: 0;
+  align-self: center;
 }
 
 header {

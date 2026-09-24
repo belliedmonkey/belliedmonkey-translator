@@ -344,8 +344,24 @@ async function runHost(host) {
     })()`));
     const sessRows = async () => JSON.parse(await ev(`new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r(JSON.stringify(
       ((v || {})['tm:queue'] || []).filter((x) => x && x.name === 'review_session').map((x) => x.props)))))`));
+    // 习惯条的键从 `mt:reviewDays` 改回 `reviewDays`（chrome.storage 的键不带 mt: 前缀；
+    // 1.16.0 发出去的是老名字，在 App 宿主里还会被垫层再加一次前缀）。换名字不许把人已经
+    // 攒下的连续天数清零 —— 先只塞老键，看新键会不会把它们接过去。
+    await ev(`new Promise((r) => chrome.storage.local.set({ 'mt:reviewDays': ['2026-09-01', '2026-09-02'] }, () => chrome.storage.local.remove(['reviewDays'], () => r('ok'))))`);
+
     await ev(`LearnReview.start().then(() => 'ok')`);
     await new Promise((r) => setTimeout(r, 400));
+
+    // 老键里的两天必须出现在新键里，今天也在 —— 少一条就是「升级那天连续天数归零」。
+    {
+      const days = JSON.parse(await ev(`new Promise((r) => chrome.storage.local.get(['reviewDays'], (v) => r(JSON.stringify((v || {})['reviewDays'] || []))))`));
+      const today = new Date();
+      const tk = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+      for (const d of ['2026-09-01', '2026-09-02', tk]) {
+        need(days.includes(d), `习惯条换键之后丢了 ${d}（新键 reviewDays = ${JSON.stringify(days)}）—— 老用户的连续天数会被清零`);
+      }
+      console.log(`  habit: 老键 mt:reviewDays 的两天已并进新键 reviewDays（共 ${days.length} 天）`);
+    }
 
     // §3.10：露出第一张卡就该有一条 opened —— 它是唯一不依赖「善终」的观测点。
     {
