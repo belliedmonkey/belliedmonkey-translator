@@ -117,6 +117,7 @@ ${r.zh.map((l) => `  <li>${esc(l)}</li>`).join('\n')}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="/icon.png">
+<script defer src="/_vercel/insights/script.js"></script>
 ${style}
 <script type="application/ld+json">
 {

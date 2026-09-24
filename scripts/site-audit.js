@@ -28,7 +28,8 @@ const ROOT = path.resolve(__dirname, '..');
 
 const SITES = [
   { key: 'cc', name: '国际 belliedmonkey.cc', host: 'https://belliedmonkey.cc',
-    dir: process.env.MT_SITE_CC || path.join(os.homedir(), 'belliedmonkey-cc'), i18n: true, rootLang: 'en' },
+    dir: process.env.MT_SITE_CC || path.join(os.homedir(), 'belliedmonkey-cc'), i18n: true, rootLang: 'en',
+    analytics: '/_vercel/insights/script.js' },
   { key: 'com', name: '中国 belliedmonkey.com', host: 'https://belliedmonkey.com',
     dir: process.env.MT_SITE_COM || path.join(os.homedir(), 'belliedmonkey-com'), i18n: false, rootLang: 'zh-CN' },
 ];
@@ -336,6 +337,29 @@ function auditSite(site, opts = {}) {
       }
       if (!fbBad) OK(`内联兜底与 ${site.rootLang} 字典逐字一致（${fbSkip} 个含 {v} 的键按例外跳过）`);
     }
+  }
+
+  // ①ter 统计脚本必须在每一个页面上（只有装了统计的站才查）
+  //
+  // 2026-09-20 装 Vercel Web Analytics 时，脚本是按当时磁盘上的 77 个页面逐个加进去的。
+  // 但 changelog.html 是 **生成物**（scripts/gen-changelog.js），它的模板里没有这一行 ——
+  // 于是 1.15.0 发版重新生成，这一页的统计就被悄悄擦掉了，09-24 才发现。
+  // 没有任何东西会因此报错：页面照常渲染，只是这一页的访问从此不被记录。
+  //
+  // 同一个形状还会再来（og-card、语言页、以后任何新的生成器），所以判据放在这里：
+  // **站上每一个不跳转的页面都必须带统计脚本**，一个都不能少。
+  const FROZEN_NO_ANALYTICS = new Set(['privacy-cn.html', 'support-cn.html']);
+  if (site.analytics) {
+    let anBad = 0, anTot = 0;
+    for (const [rel, html] of pages) {
+      if (redirected.has(rel) || FROZEN_NO_ANALYTICS.has(rel)) continue;
+      anTot++;
+      if (!html.includes(site.analytics)) {
+        R(`${rel}: 少了统计脚本 ${site.analytics} —— 这一页的访问不会被记录（是生成物的话，要改的是生成器）`);
+        anBad++;
+      }
+    }
+    if (!anBad) OK(`${anTot} 个页面都带统计脚本（${FROZEN_NO_ANALYTICS.size} 个冻结页按例外跳过）`);
   }
 
   // ② hreflang 成对互指（只有国际站有）
