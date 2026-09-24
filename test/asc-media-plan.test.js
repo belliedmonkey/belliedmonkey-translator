@@ -7,7 +7,8 @@
 //   ② 新增语种有文案、没截图。2026-09-03 九份本地化一张图都没有，提审被 409 挡下，而 Apple
 //      的报错不指出是哪个 locale。aso.md 里加了语种而这里没加，就是同一件事再来一次。
 //
-// 读源码而不 require：asc-media.js 一加载就去连 ASC。
+// 读源码而不 require：asc-media.js 一加载就去连 ASC ——
+// **除了 `expectedCounts()`**，2026-09-24 起它被 `require.main === module` 守卫着，可以安全 require。
 
 const fs = require('fs');
 const path = require('path');
@@ -87,5 +88,50 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
   test('每条线的 id 唯一（--only 靠它点名）', () => {
     const ids = LINES.map((x) => x.id);
     eq(new Set(ids).size, ids.length, `有重复的 id：${ids.filter((x, i) => ids.indexOf(x) !== i).join(', ')}`);
+  });
+});
+
+// ── expectedCounts()：asc-submit 提审门禁依赖的那条边界（2026-09-24） ──────────
+//
+// `asc-submit.js` 提审前会回读 ASC 的实际张数，和这里导出的期望比对，对不上就拒绝提交。
+// 那道门挡的是一件已经发生过两次的事：帧渲染出来了、写进了 PLAN，**却从来没传上去过**
+// （国际 Mac 配 10 张而商店 9、中国 iPhone 配 8 而商店 7 —— 每次发版都撞上在审状态被跳过）。
+//
+// 这条测试守的是**依赖边界本身**：如果有人删掉 export，或者去掉 `require.main` 守卫
+// （那样 require 它就会去连 ASC、在 npm test 里挂住），发版当天才会发现。
+describe('asc-media 导出 expectedCounts —— asc-submit 的提审门禁靠它', () => {
+  const { expectedCounts } = require('../scripts/asc-media.js');
+
+  test('导得出来，且每条都带齐四个定位字段 + 张数', () => {
+    const rows = expectedCounts();
+    ok(rows.length > 0, '一条都没有');
+    for (const r of rows) {
+      ok(r.bundleId && r.platform && r.locale && r.displayType, '缺定位字段: ' + JSON.stringify(r));
+      ok(Number.isInteger(r.count) && r.count > 0, '张数不是正整数: ' + JSON.stringify(r));
+    }
+  });
+
+  // ⚠️ **期望是按 locale 分的，不是按档分的**：帧 10（系统翻译）只进 en-US 与 zh-Hans
+  // 两份 iPhone 集，另外九种语言的 iPhone 走 ORDER_GLOBAL（9 张，用英文那套图）。
+  // Mac 相反 —— 所有 locale 都走 ORDER_MAC（10 张）。
+  // 我第一版测试断言「同一档各 locale 张数一致」，当场被这里证伪。
+  test('张数与 ORDER_* 一致（按 locale 取，因为各 locale 并不相同）', () => {
+    const rows = expectedCounts();
+    const at = (bundleId, platform, locale, displayType) => {
+      const hit = rows.filter((r) => r.bundleId === bundleId && r.platform === platform
+        && r.locale === locale && r.displayType === displayType);
+      eq(hit.length, 1, `${bundleId} ${platform} ${locale} ${displayType} 命中 ${hit.length} 条`);
+      return hit[0].count;
+    };
+    const GL = 'com.belliedmonkeytranslator', CN = 'com.belliedmonkeytranslator.cn';
+    eq(at(GL, 'IOS', 'en-US', 'APP_IPHONE_65'), 10);           // ORDER_IPHONE（含帧 10 系统翻译）
+    eq(at(GL, 'IOS', 'zh-Hans', 'APP_IPHONE_65'), 10);         // 同上
+    eq(at(GL, 'IOS', 'ru', 'APP_IPHONE_65'), 9);               // ORDER_GLOBAL —— 其余语种没有帧 10
+    eq(at(GL, 'IOS', 'en-US', 'APP_IPAD_PRO_3GEN_129'), 9);    // ORDER_GLOBAL（iPad 没原料）
+    eq(at(GL, 'MAC_OS', 'en-US', 'APP_DESKTOP'), 10);          // ORDER_MAC（含帧 11 快速翻译）
+    eq(at(GL, 'MAC_OS', 'ru', 'APP_DESKTOP'), 10);             // Mac 所有 locale 都是 10
+    eq(at(CN, 'IOS', 'zh-Hans', 'APP_IPHONE_65'), 8);          // ORDER_CN_IPHONE（含帧 8 系统翻译）
+    eq(at(CN, 'IOS', 'zh-Hans', 'APP_IPAD_PRO_3GEN_129'), 7);  // ORDER_CN
+    eq(at(CN, 'MAC_OS', 'zh-Hans', 'APP_DESKTOP'), 7);         // ORDER_CN
   });
 });
