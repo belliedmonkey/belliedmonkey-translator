@@ -66,16 +66,18 @@
     for (let i = 0; i < 7; i++) { out.push(set.has(dayKey(d))); d.setDate(d.getDate() + 1); }
     return out;
   }
-  function paintHabit(now) {
-    const box = $('habit'); if (!box) return;
+  // 两个面板都要显示同一条（没有到期卡那一屏、一组做完那一屏），所以容器 id 可传。
+  function paintHabit(now, prefix) {
+    const p = prefix || 'habit';
+    const box = $(p); if (!box) return;
     const n = streakOf(visitDays, now);
     if (!n) { box.hidden = true; return; }
     box.hidden = false;
-    $('habit-line').textContent = n > 1
+    $(p + '-line').textContent = n > 1
       ? t('learn_habit_streak', '今天来过了 · 连续 {n} 天').replace('{n}', String(n))
       : t('learn_habit_today', '今天来过了');
     const cells = lastSeven(visitDays, now);
-    const row = $('habit-days');
+    const row = $(p + '-days');
     row.textContent = '';
     for (const on of cells) {
       const sp = document.createElement('span');
@@ -83,6 +85,16 @@
       row.append(sp);
     }
   }
+
+  // ── 一组（#386 画布板 B，2026-09-24 用户裁定）────────────────────────────
+  //
+  // 终点从「今天全部清完」改成**一小组**。默认 5 张：小到必然完成得了，
+  // 而「再来一组」是**可选**的，不是默认动作。练习模式不算组 —— 那条路没有「清完」。
+  //
+  // ⚠️ 不是设置项，也不动调度器：`dailyNew` / `deckSize` 一个字节没改，
+  // 变的只是**一次给几张、什么时候说「做完了」**。
+  const GROUP = 5;
+  let inGroup = 0;
 
   function sessEnd(result) {
     if (!sess.open) return;
@@ -939,7 +951,7 @@
     // dailyNew, the last systematic cross-device count divergence).
 
     doneThisRun++;
-    if (!practicing) sess.graded++;
+    if (!practicing) { sess.graded++; inGroup++; }
 
     // §5.4 — a second stale skill re-renders the SAME card once more before the
     // deck moves on. Skipped after a fail: the card just lapsed and is coming back
@@ -956,9 +968,32 @@
     idx++;
     refreshPressure();
     if (idx >= deck.length) { await start(); return; }
+    // 够一组了：停在完成态。**只有还有卡时才停** —— 正好清空的那一次仍然走
+    // #nothing-due（那一屏才是「今天的复习做完了」）。
+    if (!practicing && inGroup >= GROUP) { await showGroupDone(sources); return; }
     show(sources);
     await refreshCounts();
   }
+
+  // 一组做完了。这一屏要回答三件事，顺序不能反：**你来过**（习惯条）·
+  // 还剩多少（陈述，不催促）· 要不要再来一组（可选）。
+  async function showGroupDone(sources) {
+    const { due } = await refreshCounts();
+    $('card').hidden = true;
+    $('empty').hidden = true;
+    $('nothing-due').hidden = true;
+    $('group-done').hidden = false;
+    $('group-done-title').textContent = t('learn_group_done', '今天这一组做完了');
+    paintHabit(Date.now(), 'group-habit');
+    const left = Math.max(0, Number(due) || 0);
+    $('group-left').textContent = left
+      ? t('learn_group_left', '今天还剩 {n} 张 —— 不急着一次做完。').replace('{n}', String(left))
+      : t('learn_group_left_none', '剩下的明天再来。');
+    $('group-more').textContent = t('learn_group_more', '再来一组');
+    $('group-stop').textContent = t('learn_group_stop', '今天就到这儿');
+    groupSources = sources;
+  }
+  let groupSources = null;
 
   // ─── §5.3 free practice ──────────────────────────────────────────────────
 
@@ -1171,6 +1206,9 @@
     // 来过就记一天（#386）。放在分支**之前** —— 有没有到期卡都算来过，
     // 那正是裁定的意思：目标是回来，不是刷完。
     await markVisit(now);
+    // 重建牌堆 = 新的一组（组计数只在「连着评」的那一段里有意义）。
+    inGroup = 0;
+    if ($('group-done')) $('group-done').hidden = true;
 
     deck = LearnScheduler.buildDeck(items, now, sched, newToday);
     idx = 0;
@@ -1336,6 +1374,27 @@
 
   // `_habit` 是**给测试的**（同 MTTelemetry._shape 的做法）：纯函数，没有副作用，
   // 界面不读它。连续天数这种「差一天就全错」的算术，单测比门禁便宜得多。
+  // 「再来一组」：继续当前牌堆，组计数清零。「今天就到这儿」：这一轮到此为止 ——
+  // 与关掉页面等价地记一条 left，界面停在一张「你来过了」的平静收尾上，不是空屏。
+  $('group-more').addEventListener('click', async () => {
+    inGroup = 0;
+    $('group-done').hidden = true;
+    if (idx >= deck.length) { await start(); return; }
+    show(groupSources || currentSources);
+    await refreshCounts();
+  });
+  $('group-stop').addEventListener('click', async () => {
+    inGroup = 0;
+    sessEnd('left');
+    $('group-done').hidden = true;
+    $('card').hidden = true;
+    $('nothing-due').hidden = false;
+    $('alldone-title').textContent = t('learn_group_done', '今天这一组做完了');
+    paintHabit(Date.now());
+    $('next-due').textContent = t('learn_group_bye', '剩下的明天再说 —— 回来就好。');
+    $('cap-hint').textContent = '';
+  });
+
   window.LearnReview = { start, reloadSettings, leave, _habit: { dayKey, streakOf, lastSeven } };
 
   // ─── Boot ────────────────────────────────────────────────────────────────

@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "오늘은 복습할 것이 없어요"
+  },
+  "learn_group_done": {
+    "message": "오늘 이 묶음은 끝났어요"
+  },
+  "learn_group_left": {
+    "message": "오늘 {n}장 남았어요 —— 한 번에 다 할 필요는 없어요."
+  },
+  "learn_group_left_none": {
+    "message": "나머지는 내일 하세요."
+  },
+  "learn_group_more": {
+    "message": "한 묶음 더"
+  },
+  "learn_group_stop": {
+    "message": "오늘은 여기까지"
+  },
+  "learn_group_bye": {
+    "message": "나머지는 내일도 괜찮아요 —— 다시 오기만 하면 돼요."
   }
 }

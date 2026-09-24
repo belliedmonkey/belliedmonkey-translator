@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "Сегодня нечего повторять"
+  },
+  "learn_group_done": {
+    "message": "Эта группа на сегодня готова"
+  },
+  "learn_group_left": {
+    "message": "Сегодня осталось {n} — не обязательно закончить всё сразу."
+  },
+  "learn_group_left_none": {
+    "message": "Остальное можно завтра."
+  },
+  "learn_group_more": {
+    "message": "Ещё одну группу"
+  },
+  "learn_group_stop": {
+    "message": "На сегодня хватит"
+  },
+  "learn_group_bye": {
+    "message": "Остальное подождёт — просто возвращайтесь."
   }
 }

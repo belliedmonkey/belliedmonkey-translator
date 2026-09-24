@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "Heute gibt es nichts zu wiederholen"
+  },
+  "learn_group_done": {
+    "message": "Diese Gruppe ist für heute fertig"
+  },
+  "learn_group_left": {
+    "message": "Heute bleiben noch {n} — du musst nicht alles auf einmal schaffen."
+  },
+  "learn_group_left_none": {
+    "message": "Der Rest kann bis morgen warten."
+  },
+  "learn_group_more": {
+    "message": "Noch eine Gruppe"
+  },
+  "learn_group_stop": {
+    "message": "Für heute reicht es"
+  },
+  "learn_group_bye": {
+    "message": "Der Rest kann warten — komm einfach wieder."
   }
 }

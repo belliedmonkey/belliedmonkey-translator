@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "Rien à réviser aujourd’hui"
+  },
+  "learn_group_done": {
+    "message": "Ce groupe est terminé pour aujourd’hui"
+  },
+  "learn_group_left": {
+    "message": "Il reste {n} cartes aujourd’hui — inutile de tout finir d’un coup."
+  },
+  "learn_group_left_none": {
+    "message": "Le reste peut attendre demain."
+  },
+  "learn_group_more": {
+    "message": "Encore un groupe"
+  },
+  "learn_group_stop": {
+    "message": "C’est tout pour aujourd’hui"
+  },
+  "learn_group_bye": {
+    "message": "Le reste peut attendre — revenez, c’est tout."
   }
 }
