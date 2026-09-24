@@ -214,7 +214,27 @@ Rules:
     return false;
   }
 
+  // 这一次请求耗了多久（telemetry-design §3.11 A）。**只在这一处量**，和 `route` 一样
+  // 挂在抛出的错误对象上 —— 这里是唯一知道「请求什么时候开始」的地方。
+  //
+  // 此前三个 onFail 各自拿会话起点减出一个 `ms`，于是同一列里混着「网页会话开了多久」
+  // 「字幕会话开了多久」和一个写死的 0。读出来的 p50 是 962 秒，而客户端上限是
+  // RequestShape.timeoutMs() 默认 20 秒 —— 那个数不可能对，却没人看得出来。
+  // **一个量错的数比没有数更贵。**
+  //
+  // 连请求都没发的失败（no_base / unknown_provider 这类）走不到这里，因此**没有** ms，
+  // 上层据此不发这个字段：缺席看得出来。
   async function apiFetch(url, opts, label, diag) {
+    const startedAt = Date.now();
+    try {
+      return await apiFetchInner(url, opts, label, diag);
+    } catch (e) {
+      if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = Date.now() - startedAt;
+      throw e;
+    }
+  }
+
+  async function apiFetchInner(url, opts, label, diag) {
     let resp;
     let usedRoute = null;
     const origin = originOf(url);

@@ -232,6 +232,38 @@ describe('TranslationAPI — failures are named, and carry the URL', () => {
     eq(e.url, 'https://api.deepseek.com/v1/chat/completions');
   });
 
+  // §3.11 A：失败要带上**这一次请求**耗了多久。
+  //
+  // 为什么必须有这条门禁：修好之前，三个 onFail 各自拿「会话起点」减出一个 `ms`
+  // （网页 / 字幕）或干脆写死 0（文档），全落在同一列里。线上读出来的 p50 是 962 秒、
+  // 最长 69635302（19.3 小时），而客户端两条通路的上限都是 RequestShape.timeoutMs()
+  // 默认 20 秒 —— 那个数不可能对。**而它没有让任何东西变红**：字段在白名单里、
+  // 类型也是 int，注册表门禁全绿。一个量错的数比没有数更贵，因为它看不出来是错的。
+  //
+  // 判据取「有界」而不是某个具体值：只要它还是会话年龄，就必然不受 timeoutMs 约束。
+  test('失败带上这一次请求的耗时，且受超时上限约束 —— 不是会话已开多久', async () => {
+    const { API } = loadAPI([errJson(404)]);
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    ok(Number.isInteger(e.ms), '失败要带整数 ms，实际 ' + JSON.stringify(e.ms));
+    ok(e.ms >= 0 && e.ms < 20000, 'ms 应落在超时上限内，实际 ' + e.ms);
+  });
+
+  test('网络失败也带 ms —— 请求发出去了，耗时就是事实', async () => {
+    const { API } = loadAPI(() => { throw new TypeError('Load failed'); });
+    const e = await rejects(API.translate('hello', 'zh-CN', 'deepseek', 'K', ''));
+    eq(e.code, 'network');
+    ok(Number.isInteger(e.ms), '实际 ' + JSON.stringify(e.ms));
+  });
+
+  // 连请求都没发出去的失败**不带** ms —— 上层据此不发这个字段。
+  // 缺席看得出来，一个编出来的 0 看不出来。
+  test('根本没发请求的失败不带 ms', async () => {
+    const { API, fetch } = loadAPI([]);
+    const e = await rejects(API.translate('hello world', 'zh-CN', 'no-such-engine', 'K', ''));
+    eq(fetch.calls.length, 0);
+    ok(!('ms' in e), '没发请求就不该有 ms，实际 ' + JSON.stringify(e.ms));
+  });
+
   // 服务端那句话是用户唯一能拿去搜的东西。以前它被 `resp.json()` 吞掉（非 JSON 的
   // 错误体直接变成 {}），于是一个点名了字段的 400 在界面上只剩「服务端拒绝了这次请求」。
   test('服务端原话被原样带出来，JSON 与非 JSON 都要', async () => {

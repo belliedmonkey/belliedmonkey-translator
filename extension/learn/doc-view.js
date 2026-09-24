@@ -294,17 +294,20 @@ var DocView = (() => {
         targetLang: () => (settingsCache && settingsCache.targetLang) || s.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
         selectActive: (us) => us.filter((u) => u.page === cur),
         window: { AHEAD_MS: 0, GRACE_MS: 0, MAX_PER_TICK: 4, MAX_RETRIES: 3, RETRY_GAP_MS: 800 },
-        onOk: () => { if (!state.okSent) { state.okSent = true; track('translate_ok', { provider: String(s.provider || ''), kind: 'doc', ms: 0 }); } },
+        // §3.11 A：以前这里写死 ms: 0 —— 一个假的读数混在同一列里。文档这条路没有
+        // 「从开启到第一段译文」可言（翻的是当前这一页），所以干脆不发这个字段。
+        onOk: () => { if (!state.okSent) { state.okSent = true; track('translate_ok', { provider: String(s.provider || ''), kind: 'doc' }); } },
         onFail: (e) => {
           if (failSent) return;
           failSent = true;
-          track('translate_fail', {
+          const fail = {
             provider: String(s.provider || ''),
             code: (e && typeof e.code === 'string') ? e.code : 'network',
             status: Number.isInteger(e && e.status) ? e.status : 0,
             route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
-            ms: 0,
-          });
+          };
+          if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
+          track('translate_fail', fail);
         },
       });
       engine.setUnits(units);

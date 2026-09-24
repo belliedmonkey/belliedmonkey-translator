@@ -54,13 +54,16 @@ var WebpageTranslator = (() => {
         // 在页面上要说两句不同的话，而后者说错会让用户去查自己的账户。
         if (e && (e.grant || e.halt) && typeof e.code === 'string') grantHalt = e.code;
         if (!(typeof MTTelemetry !== 'undefined')) return;
-        MTTelemetry.track('translate_fail', {
+        // §3.11 A：`ms` 是**这一次请求**的耗时，由 translation-api 的 apiFetch 挂上来。
+        // 读不到就不发这个字段 —— 退回去发一个会话年龄，等于把一个看不出错的错数入库。
+        const fail = {
           provider: String(settings.provider || ''),
           code: (e && typeof e.code === 'string') ? e.code : 'network',
           status: Number.isInteger(e && e.status) ? e.status : 0,
           route: (e && e.route === 'proxy') ? 'proxy' : ((e && e.route === 'direct') ? 'direct' : ''),
-          ms: Date.now() - enabledAt,
-        });
+        };
+        if (Number.isInteger(e && e.ms)) fail.ms = e.ms;
+        MTTelemetry.track('translate_fail', fail);
       },
       translate: (text) => TranslationAPI.translate(
         text, settings.targetLang || TranslationCore.DEFAULT_TARGET_LANG,
