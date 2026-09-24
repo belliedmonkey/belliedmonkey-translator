@@ -23,7 +23,7 @@ ROOT="$(cd "$DIR/../.." && pwd)"
 # 上一次素材全丢，一半原因就是它们待在一个临时目录里。
 M=${STORE_MEDIA:-$ROOT/.local/store-media}
 CHROME=${CHROME:-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"}
-mkdir -p "$M/cards" "$M/rec"
+mkdir -p "$M/cards" "$M/cards-ios" "$M/rec"
 
 # ── 题卡 ────────────────────────────────────────────────────────────────────
 for lang in en zh; do
@@ -34,6 +34,18 @@ for lang in en zh; do
   done
 done
 echo "题卡 6 张 → $M/cards"
+
+# iPhone 竖版题卡（886×1920）。iOS 那支只用 subs / end 两张 —— 它没有「对话」那一段。
+# 2026-09-25 补：原来这个脚本只出 Mac 的六张，于是 compose-preview-ios.sh 的 cards-ios/
+# 一直是空的，而它的报错是「文件不存在」，指不到「谁该生成它」。
+for lang in en zh; do
+  for t in subs end; do
+    "$CHROME" --headless --disable-gpu --hide-scrollbars --force-device-scale-factor=1 \
+      --window-size=886,1920 --screenshot="$M/cards-ios/$lang-$t.png" \
+      "file://$DIR/preview-card.html?t=$t&lang=$lang&size=ios" >/dev/null 2>&1
+  done
+done
+echo "竖版题卡 4 张 → $M/cards-ios"
 
 # ── 声源音轨 ────────────────────────────────────────────────────────────────
 # 与 preview-stage.html 同一场景（供应商询价），句子取自 .local/spike/conv/ref.txt 的单语侧：
