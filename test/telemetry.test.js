@@ -185,3 +185,27 @@ describe('MTTelemetry — dwell 分桶（§3.9）', () => {
     ok(T._shape('onboarding_done', { surface: 'app_resume', result: 'shown', step: 'welcome' }));
   });
 });
+
+// review_session 的两个新取值（telemetry-design §3.10，2026-09-24）。
+// 判据从「刷完」换成「有没有回来」之后，这两个值是**唯一**能回答「他今天来过没有」
+// 的东西：opened 不依赖善终，nothing_due 回答「他来了而我们没东西给他」。
+describe('MTTelemetry — review_session 的 opened / nothing_due（§3.10）', () => {
+  test('四个取值都进得了白名单', () => {
+    const { T } = load();
+    for (const r of ['opened', 'done', 'left', 'nothing_due']) {
+      ok(T._shape('review_session', { graded: 0, result: r, left: 0 }), r);
+    }
+  });
+  test('桶外的取值整条被判掉 —— 「打开」不能写成别的词', () => {
+    const { T } = load();
+    eq(T._shape('review_session', { graded: 0, result: 'open', left: 0 }), null);
+    eq(T._shape('review_session', { graded: 0, result: 'visited', left: 0 }), null);
+  });
+  test('opened 入队时不带任何多余的键', async () => {
+    const { T, store } = load();
+    eq(await T.track('review_session', { graded: 0, result: 'opened', left: 0 }), true);
+    const e = q(store, T).pop();
+    eq(e.name, 'review_session');
+    eq(JSON.stringify(Object.keys(e.props).sort()), JSON.stringify(['graded', 'left', 'result']));
+  });
+});

@@ -96,18 +96,41 @@
   const GROUP = 5;
   let inGroup = 0;
 
+  function trackSession(props) {
+    if (typeof MTTelemetry === 'undefined') return;
+    try { MTTelemetry.track('review_session', props); } catch (_) {}
+  }
+  // 露出第一张卡：**立刻**记一条 opened（§3.10）。这是这一套里唯一不依赖「善终」的
+  // 观测点 —— 发出去之后，用户后面怎么退出（包括直接杀掉 App）都不影响
+  // 「他今天来过」已经落库。每轮只发一条。
+  function sessOpened() {
+    if (sess.open) return;
+    sess.open = true;
+    trackSession({ graded: 0, result: 'opened', left: 0 });
+  }
   function sessEnd(result) {
     if (!sess.open) return;
     const graded = sess.graded;
     const left = result === 'left' ? deck.length : 0;
     sess.open = false; sess.graded = 0;
-    if (typeof MTTelemetry === 'undefined') return;
-    try { MTTelemetry.track('review_session', { graded, result, left }); } catch (_) {}
+    trackSession({ graded, result, left });
+  }
+  // 打开了复习面，但今天没有到期卡（§3.10）。它**不是**一轮的结局 —— 那一轮根本没开始，
+  // 所以不碰 sess，只按「每次打开至多一条」记一次。
+  let nothingDueSent = false;
+  function sessNothingDue() {
+    if (nothingDueSent) return;
+    nothingDueSent = true;
+    trackSession({ graded: 0, result: 'nothing_due', left: 0 });
   }
   // 离开复习面：扩展是关页 / 跳走（pagehide），App 是返回首页或从复习页进设置（app.js 调 leave()）。
   // 练习模式不算 —— 那是另一条路，没有「清完」这件事。
   function leave() { if (!practicing) sessEnd('left'); }
   window.addEventListener('pagehide', leave);
+  // App（长驻 WKWebView）里 pagehide 几乎不触发 —— 直接杀掉 App 时一条都发不出去，
+  // 而那是 iOS / macOS 上最常见的退出方式（§3.10 零行的三层原因之一）。
+  // visibilitychange 会给，切后台就当离开这一轮；回来再露卡会重新开一轮。
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leave(); });
   let practicing = false;   // §5.3 — free practice: same card flow, asymmetric rule
   let donePractice = 0;
   let currentMode = 'read'; // §5.2 — which exercise form the card on screen is using
@@ -1208,6 +1231,7 @@
     await markVisit(now);
     // 重建牌堆 = 新的一组（组计数只在「连着评」的那一段里有意义）。
     inGroup = 0;
+    nothingDueSent = false;
     if ($('group-done')) $('group-done').hidden = true;
 
     deck = LearnScheduler.buildDeck(items, now, sched, newToday);
@@ -1268,11 +1292,12 @@
       }
       // 清空 = done。原来只在这里发、而且要 doneThisRun 非零 —— 中途离开从来没有记录（#386：
       // 52 台存过语料、0 条）。现在离开也发（sessEnd('left')），两种结果互斥、每轮一条。
-      sessEnd('done');
+      // sess 开过 = 他刚把牌堆清空（done）；没开过 = 他一进来就没有到期卡（nothing_due）。
+      if (sess.open) sessEnd('done'); else sessNothingDue();
       return;
     }
 
-    sess.open = true;       // 露出了一张计划卡：这一轮开始（已经开着就保持，graded 继续累加）
+    sessOpened();           // 露出了一张计划卡：这一轮开始，并**当场**记一条 opened（§3.10）
     show(sources);
   }
 

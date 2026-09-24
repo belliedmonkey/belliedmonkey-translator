@@ -91,7 +91,15 @@ const EVENTS = {
   // 文档翻译（2026-09-11，learning-design §9.7）：一份文档打开一次。只有格式与页数 —— 不带文件名、字数、页文本。
   doc_open: { kind: ['pdf', 'docx', 'txt', 'image'], pages: 'int' },
   // result / left（2026-09-22，§3.7 A）：离开复习面也发；done 与 left 互斥、每轮一条。
-  review_session: { graded: 'int', result: ['done', 'left'], left: 'int' },
+  // opened / nothing_due（2026-09-24，§3.10，用户裁定「每天或每周回来就好，养成习惯
+  // 远比学很大量重要」）：判据从「刷完」换成「有没有回来」。
+  //   · opened     露出第一张卡**立刻**发 —— 这一套里**唯一不依赖「善终」的观测点**。
+  //                 done / left 都要求清空或走正门，而 App 被直接杀掉两个都不触发，
+  //                 于是这个事件在线上**全历史零行**（同期 capture_first 65 台）。
+  //   · nothing_due 打开了复习面，但今天没有到期卡 —— 他来了，而我们没有东西给他。
+  //                 这是新用户第二天最常见的画面，此前连「他来了」都看不见。
+  // 每轮：opened 一条 + 结局一条（done / left / nothing_due 三选一，互斥）。
+  review_session: { graded: 'int', result: ['done', 'left', 'opened', 'nothing_due'], left: 'int' },
   // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
   // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
   // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
@@ -188,7 +196,15 @@ const SEAMS = {
     { host: 'app', file: 'app/listen.js' },
   ],
   doc_open: SHARED('extension/learn/doc-view.js'),
-  review_session: SHARED('extension/learn/review.js'),
+  review_session: SHARED('extension/learn/review.js')
+    // §3.10：少带一个取值不会让任何门禁自己红 —— 事件照发、表照样合法，只是那一列
+    // 永远是空的。所以两个新取值各钉一条（同 onboarding_done 的 dwell）。
+    .concat([
+      { host: 'ext', file: 'extension/learn/review.js', match: "sessOpened()" },
+      { host: 'app', file: 'extension/learn/review.js', match: "sessOpened()" },
+      { host: 'ext', file: 'extension/learn/review.js', match: "'nothing_due'" },
+      { host: 'app', file: 'extension/learn/review.js', match: "'nothing_due'" },
+    ]),
   grant_claimed: SHARED('extension/learn/grant.js'),
   grant_exhausted: SHARED('extension/learn/telemetry.js'),
   sync_on: SHARED('extension/learn/sync.js'),
