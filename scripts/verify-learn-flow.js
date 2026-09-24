@@ -346,7 +346,23 @@ async function runHost(host) {
     // assertions by which item is on screen.
     const seen = new Set();
     let sawExtra = false;
-    for (let i = 0; i < 10; i++) {
+    // #386 板 B：每评满 5 张会停在「今天这一组做完了」。**门禁要走过这一屏**，
+    // 否则这个循环在第 5 张就静默结束，后面那些按卡分派的断言全部空转
+    // （加这一段之前它确实绿着 —— 绿是因为没再跑，不是因为对）。
+    let sawGroup = 0;
+    for (let i = 0; i < 14; i++) {
+      if (!(await hidden('#group-done'))) {
+        sawGroup++;
+        if (sawGroup === 1) {
+          const gl = await ev(`document.getElementById('group-left').textContent.trim()`);
+          const hb = await ev(`document.getElementById('group-habit').hidden ? '' : document.getElementById('group-habit-line').textContent.trim()`);
+          need(/\d/.test(gl) || gl.length > 0, '一组做完那一屏没说还剩多少：「' + gl + '」');
+          need(hb.length > 0, '一组做完那一屏没有习惯条（先确认他来过，再说别的）');
+        }
+        await click('#group-more');           // 「再来一组」：继续，别让门禁停在这儿
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
       if (await hidden('#card')) break;
       const orig = await ev(`document.getElementById('orig').textContent.trim()`);
       const writeMode = !(await hidden('#write-prompt'));
@@ -667,6 +683,67 @@ async function runHost(host) {
     // Practice reviews carry their circumstances.
     const pr = await ev(`LearnStore.allReviews().then((rs) => JSON.stringify(rs.filter((r) => r.practice)))`).then(JSON.parse);
     need(pr.length >= 1 && pr.every((r) => r.mode), '练习复习记录缺 practice/mode 标记');
+
+    // 7b · 一组做完（#386 板 B，2026-09-24）。**单独造场景**：主流程那副牌只有 5–6 张，
+    // 第 5 次评分与牌堆清空同时发生 —— 那时正确的行为是走「今天的复习做完了」，
+    // 不该弹这一屏。所以这里另外塞 8 张到期卡，让「评满一组、但还有卡」真的发生。
+    // 判据是三件：那一屏出现了 · 上面有习惯条与剩余数 · 两个按钮各自真的做事。
+    {
+      await ev(`(async () => {
+        const now = Date.now(), day = 86400e3;
+        for (let i = 0; i < 8; i++) {
+          await LearnStore.putItem({ id: 'grp' + i, text: 'Group probe sentence number ' + i + '.',
+            tr: '分组探针第 ' + i + ' 句。', lang: 'en', sourceId: 'src1', state: 'learning',
+            createdAt: now - 9 * day, lastSeenAt: now - day, seenCount: 3, salience: 0.3,
+            skills: { listen: now, speak: now, write: now },
+            sched: { s: 1.5, d: 5, lastReviewAt: now - 2 * day, dueAt: now - 3600e3, reps: 2, lapses: 0 } });
+        }
+        return 'ok';
+      })()`);
+      await ev(`LearnReview.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 400));
+      let graded = 0;
+      for (let i = 0; i < 12 && (await hidden('#group-done')); i++) {
+        if (await hidden('#card')) break;
+        if (!(await hidden('#reveal'))) await click('#reveal');
+        await new Promise((r) => setTimeout(r, 80));
+        await click('.grade[data-grade="2"]');
+        graded++;
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      need(!(await hidden('#group-done')),
+        `连评 ${graded} 张之后仍没出现「今天这一组做完了」—— 板 B 的终点没生效`);
+      const gl = await ev(`document.getElementById('group-left').textContent.trim()`);
+      const gh = await ev(`document.getElementById('group-habit').hidden ? '' : document.getElementById('group-habit-line').textContent.trim()`);
+      need(/\d/.test(gl), '那一屏没说清今天还剩多少：「' + gl + '」');
+      need(gh.length > 0, '那一屏没有习惯条 —— 先确认他来过，再说剩下多少');
+      need(graded === 5, `一组应当是 5 张，实际评了 ${graded} 张才停`);
+      // 「再来一组」：回到卡片，继续评
+      await click('#group-more');
+      await new Promise((r) => setTimeout(r, 250));
+      need(!(await hidden('#card')) && (await hidden('#group-done')), '点「再来一组」没有回到卡片');
+      // 「今天就到这儿」：再评满一组，然后走那条路 —— 停在一张平静的收尾上，不是空屏
+      for (let i = 0; i < 12 && (await hidden('#group-done')); i++) {
+        if (await hidden('#card')) break;
+        if (!(await hidden('#reveal'))) await click('#reveal');
+        await new Promise((r) => setTimeout(r, 80));
+        await click('.grade[data-grade="2"]');
+        await new Promise((r) => setTimeout(r, 200));
+      }
+      if (!(await hidden('#group-done'))) {
+        await click('#group-stop');
+        await new Promise((r) => setTimeout(r, 250));
+        const t2 = await ev(`document.getElementById('alldone-title').textContent.trim()`);
+        const hb2 = await ev(`document.getElementById('habit').hidden ? '' : document.getElementById('habit-line').textContent.trim()`);
+        need((await hidden('#card')) && !(await hidden('#nothing-due')), '点「今天就到这儿」之后既没有卡也没有收尾屏 —— 那就是空屏');
+        need(t2.length > 0 && hb2.length > 0, '收尾屏没有标题或习惯条：' + JSON.stringify({ t2, hb2 }));
+      }
+      await sweep('一组做完', '#group-done');
+      // 收拾干净：探针卡不能影响后面的断言
+      await ev(`LearnStore.deleteItems(['grp0','grp1','grp2','grp3','grp4','grp5','grp6','grp7'], Date.now()).then(() => 'ok')`);
+      await ev(`LearnReview.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 300));
+    }
 
     // 8 · Notes gate opens live and renders from the (mocked) engine, cached.
     await ev(`(async () => {

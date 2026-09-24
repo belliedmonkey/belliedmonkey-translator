@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "Hoy no hay nada que repasar"
+  },
+  "learn_group_done": {
+    "message": "Este grupo ya está hecho por hoy"
+  },
+  "learn_group_left": {
+    "message": "Hoy quedan {n} — no hace falta terminarlo todo de una vez."
+  },
+  "learn_group_left_none": {
+    "message": "El resto puede esperar a mañana."
+  },
+  "learn_group_more": {
+    "message": "Otro grupo"
+  },
+  "learn_group_stop": {
+    "message": "Por hoy basta"
+  },
+  "learn_group_bye": {
+    "message": "El resto puede esperar: basta con que vuelvas."
   }
 }

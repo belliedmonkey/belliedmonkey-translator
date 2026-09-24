@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "Nothing to review today"
+  },
+  "learn_group_done": {
+    "message": "That group is done for today"
+  },
+  "learn_group_left": {
+    "message": "{n} left today — no need to finish it all at once."
+  },
+  "learn_group_left_none": {
+    "message": "The rest can wait for tomorrow."
+  },
+  "learn_group_more": {
+    "message": "One more group"
+  },
+  "learn_group_stop": {
+    "message": "That is it for today"
+  },
+  "learn_group_bye": {
+    "message": "The rest can wait — just come back."
   }
 }

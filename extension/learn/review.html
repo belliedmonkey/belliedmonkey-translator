@@ -83,6 +83,20 @@
       <p class="cap-hint" id="cap-hint"></p>
     </section>
 
+    <!-- 一组做完了（#386 画布板 B，2026-09-24）：终点从「今天全部清完」改成**一小组**。
+         「今天该刷的全清了」对攒了几天的人几乎不可能 —— 一个每天都清不完的任务，
+         对养成习惯是反作用。这一屏只在**还有卡**时出现；真清空了仍走 #nothing-due。 -->
+    <section class="panel" id="group-done" hidden>
+      <h2 id="group-done-title"></h2>
+      <div id="group-habit" hidden>
+        <p id="group-habit-line"></p>
+        <div id="group-habit-days" class="habit-days" aria-hidden="true"></div>
+      </div>
+      <p id="group-left"></p>
+      <button id="group-more" type="button"></button>
+      <button id="group-stop" type="button" class="secondary"></button>
+    </section>
+
     <!-- §5.3 free practice. Shown whenever the deck is done, or on demand from the
          footer — the deck-done screen is no longer a dead end. -->
     <section class="panel practice-setup" id="practice-setup" hidden>

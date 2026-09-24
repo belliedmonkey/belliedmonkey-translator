@@ -198,6 +198,11 @@ button:hover { border-color: var(--accent); }
 }
 .habit-days span.on { background: var(--sage); border-color: var(--sage); }
 
+/* 一组做完了（#386 板 B）。两个按钮竖排：「再来一组」是可选的，不是默认动作 —— 
+   所以它在上面但不抢眼，「今天就到这儿」同样是一条正经的路，不是放弃。 */
+#group-done button { display: block; width: 100%; margin-top: 8px; }
+#group-left { color: var(--text-secondary); font-size: 14px; }
+
 /* ─── §5.3 free practice ───────────────────────────────────────────────────── */
 .practice-rule { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
 .practice-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }

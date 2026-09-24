@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "لا شيء للمراجعة اليوم"
+  },
+  "learn_group_done": {
+    "message": "انتهت هذه المجموعة لليوم"
+  },
+  "learn_group_left": {
+    "message": "بقيت {n} اليوم — لا داعي لإنهائها كلها دفعة واحدة."
+  },
+  "learn_group_left_none": {
+    "message": "الباقي يمكن أن ينتظر الغد."
+  },
+  "learn_group_more": {
+    "message": "مجموعة أخرى"
+  },
+  "learn_group_stop": {
+    "message": "يكفي لليوم"
+  },
+  "learn_group_bye": {
+    "message": "الباقي ينتظر —— يكفي أن تعود."
   }
 }

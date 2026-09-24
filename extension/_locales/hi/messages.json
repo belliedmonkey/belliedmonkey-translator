@@ -3513,5 +3513,23 @@
   },
   "learn_nothing_due_title": {
     "message": "आज दोहराने के लिए कुछ नहीं है"
+  },
+  "learn_group_done": {
+    "message": "आज का यह समूह हो गया"
+  },
+  "learn_group_left": {
+    "message": "आज {n} बचे हैं —— सब एक साथ खत्म करना जरूरी नहीं।"
+  },
+  "learn_group_left_none": {
+    "message": "बाकी कल कर लेना।"
+  },
+  "learn_group_more": {
+    "message": "एक और समूह"
+  },
+  "learn_group_stop": {
+    "message": "आज के लिए इतना ही"
+  },
+  "learn_group_bye": {
+    "message": "बाकी कल सही —— बस लौटकर आते रहिए।"
   }
 }

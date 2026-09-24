@@ -3681,5 +3681,23 @@
   },
   "learn_nothing_due_title": {
     "message": "今天没有要复习的"
+  },
+  "learn_group_done": {
+    "message": "今天这一组做完了"
+  },
+  "learn_group_left": {
+    "message": "今天还剩 {n} 张 —— 不急着一次做完。"
+  },
+  "learn_group_left_none": {
+    "message": "剩下的明天再来。"
+  },
+  "learn_group_more": {
+    "message": "再来一组"
+  },
+  "learn_group_stop": {
+    "message": "今天就到这儿"
+  },
+  "learn_group_bye": {
+    "message": "剩下的明天再说 —— 回来就好。"
   }
 }

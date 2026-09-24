@@ -3680,5 +3680,23 @@
   },
   "learn_nothing_due_title": {
     "message": "今日は復習するものがありません"
+  },
+  "learn_group_done": {
+    "message": "今日のこの一組は終わりです"
+  },
+  "learn_group_left": {
+    "message": "今日はあと {n} 枚 —— 一度に終わらせなくて大丈夫。"
+  },
+  "learn_group_left_none": {
+    "message": "残りは明日に。"
+  },
+  "learn_group_more": {
+    "message": "もう一組"
+  },
+  "learn_group_stop": {
+    "message": "今日はここまで"
+  },
+  "learn_group_bye": {
+    "message": "残りは明日で大丈夫 —— また来てください。"
   }
 }
