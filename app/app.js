@@ -523,6 +523,10 @@
     .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : [])
     .concat(['firstuse', 'ext']);
   let obAt = 0;
+  // 引导**出现**的时刻（telemetry-design §3.9 的 dwell）。App 与扩展不一样：这里引导是
+  // 首页里的一屏，有两条进场路（首次运行、从「继续设置」卡点进来），两条都要打点，
+  // 否则从卡进来的那批人停留时长永远算成「从启动到现在」。
+  let obShownAt = 0;
 
   function obPaint() {
     if ($('ob-telemetry')) $('ob-telemetry').hidden = true;   // 只在最后一屏露出
@@ -655,9 +659,12 @@
   async function obFinish(result) {
     try {
       if (typeof MTTelemetry !== 'undefined') {
-        MTTelemetry.track('onboarding_done', {
+        // dwell（§3.9 提案 A）：分桶的停留时长。算不出来就不带这个键 ——
+        // 空串不在枚举里，带上去整条事件会被判掉。
+        const d = MTTelemetry.dwell(obShownAt);
+        MTTelemetry.track('onboarding_done', Object.assign({
           surface: 'app', result: result === 'skipped' ? 'skipped' : 'done', step: OB[obAt],
-        });
+        }, d ? { dwell: d } : {}));
       }
     } catch (_) {}
     try {
@@ -725,6 +732,7 @@
     $('signed-in').hidden = true;
     $('onboard').hidden = false;
     paintExtBanner(extState);
+    obShownAt = Date.now();
     obAt = at; obPaint();
   });
   $('ob-resume-close').addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
@@ -1657,6 +1665,7 @@
         $('onboard').hidden = false;
         extBannerPrimed = true;
         paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
+        obShownAt = Date.now();
         obAt = 0; obPaint();
         return;
       }

@@ -155,3 +155,33 @@ describe('MTTelemetry — grant_exhausted 由 translate_fail{credit_exhausted} �
     eq(q(store, T).filter((e) => e.name === 'grant_exhausted').length, 0);
   });
 });
+
+// dwell（telemetry-design §3.9 提案 A，2026-09-24）：引导停留时长的**桶**。
+// 两件事在这里守：① 桶边界；② **算不出来时吐空串**，让调用方整个不带这个键 ——
+// 带空串进去会被 shape() 判成非法值，把整条 onboarding_done 丢掉（为一个诊断属性
+// 丢掉主事件是本末倒置）。
+describe('MTTelemetry — dwell 分桶（§3.9）', () => {
+  const at = (T, secs) => T.dwell(1_000_000, 1_000_000 + secs * 1000);
+  test('边界：<3 → 0-2；<10 → 3-9；<30 → 10-29；其余 30+', () => {
+    const { T } = load();
+    eq(at(T, 0), '0-2'); eq(at(T, 2.9), '0-2');
+    eq(at(T, 3), '3-9'); eq(at(T, 9.9), '3-9');
+    eq(at(T, 10), '10-29'); eq(at(T, 29.9), '10-29');
+    eq(at(T, 30), '30+'); eq(at(T, 600), '30+');
+  });
+  test('算不出来就吐空串：没记开始时间 / 时钟倒流', () => {
+    const { T } = load();
+    eq(T.dwell(0), ''); eq(T.dwell(undefined), ''); eq(T.dwell(NaN), '');
+    eq(at(T, -5), '');
+  });
+  test('吐出来的四个值都进得了白名单；桶外的值（如秒数）整条事件被判掉', () => {
+    const { T } = load();
+    for (const d of ['0-2', '3-9', '10-29', '30+']) {
+      ok(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: d }), d);
+    }
+    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '7' }), null);
+    eq(T._shape('onboarding_done', { surface: 'app', result: 'skipped', step: 'welcome', dwell: '' }), null);
+    // 不带这个键是合法的 —— app_resume 那条就永远不带。
+    ok(T._shape('onboarding_done', { surface: 'app_resume', result: 'shown', step: 'welcome' }));
+  });
+});
