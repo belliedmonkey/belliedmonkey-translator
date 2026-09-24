@@ -39,7 +39,10 @@ const EVENTS = {
     // app_resume / shown / dismissed / expired（2026-09-22，§3.8，用户评审通过）：「继续设置」卡 ——
     // 出现（每次启动至多一条）· 点 ✕ · 第 4 次启动自动收起。点「继续」之后仍由 surface:'app' 那条回答。
     surface: ['ext', 'app', 'app_resume'],
-    result: ['done', 'skipped', 'shown', 'dismissed', 'expired'],
+    // web_only（2026-09-24，§3.9 提案 B，用户评审通过）：第一屏那条「我只要网页翻译 →」。
+    // 它与 done / skipped **并列**，不是 skipped 的子类 —— 说的是「他自己讲了要哪一半」，
+    // 不是「他放弃了」。只有 surface:'app' 会发（扩展引导里人已经在浏览器里，没有这条出口）。
+    result: ['done', 'skipped', 'shown', 'dismissed', 'expired', 'web_only'],
     // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
     // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
     step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try', 'firstuse'],
@@ -149,6 +152,7 @@ const SEAMS = {
     { host: 'ext', file: 'extension/onboard/onboard.js', match: 'dwell: d' },
     { host: 'app', file: 'app/app.js', match: "surface: 'app'" },
     { host: 'app', file: 'app/app.js', match: 'dwell: d' },
+    { host: 'app', file: 'app/app.js', match: "obTrackLeave('web_only')" },
     { host: 'app', file: 'app/app.js', match: "surface: 'app_resume'" },
   ],
   engine_set: [

@@ -1726,10 +1726,10 @@
     "message": "設定を始める"
   },
   "ob_welcome_title": {
-    "message": "実際に読んだものから学ぶ"
+    "message": "翻訳に使うモデルは、あなたが選ぶ"
   },
   "ob_welcome_body": {
-    "message": "語句の翻訳、音声の聞き取り、リアルタイム字幕 —— どれもこのアプリだけで使えます。ウェブページの翻訳はブラウザ側です。"
+    "message": "システムのエンジンは一つだけ。ここでは好きなものを選べます —— 訳文はそのモデルから直接届き、私たちのサーバーは通りません。"
   },
   "ob_ios_1": {
     "message": "Safari でアドレスバー左側の機能拡張アイコンをタップ"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "戻しました。ホームに戻ると表示されます。",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "2 ステップ、約 30 秒"
+  },
+  "ob_web_only": {
+    "message": "ウェブページの翻訳だけでいい"
   }
 }

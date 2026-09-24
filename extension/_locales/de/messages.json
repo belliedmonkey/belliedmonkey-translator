@@ -1726,10 +1726,10 @@
     "message": "Los geht's"
   },
   "ob_welcome_title": {
-    "message": "Lerne, was du wirklich liest"
+    "message": "Du bestimmst, welches Modell übersetzt"
   },
   "ob_welcome_body": {
-    "message": "Markiertes übersetzen, einen Ausschnitt anhören, Live-Untertitel ansehen – alles direkt in der App. Die Übersetzung von Webseiten läuft im Browser."
+    "message": "Das System hat nur seine eigene Engine. Hier wählst du eine aus — die Übersetzung kommt direkt von ihr und läuft nie über unsere Server."
   },
   "ob_ios_1": {
     "message": "Tippe in Safari auf das Erweiterungssymbol links in der Adressleiste"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "Wiederhergestellt – auf dem Startbildschirm ist er wieder zu sehen.",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Zwei Schritte, etwa 30 Sekunden"
+  },
+  "ob_web_only": {
+    "message": "Ich will nur die Webseiten-Übersetzung"
   }
 }

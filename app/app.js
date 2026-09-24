@@ -527,6 +527,9 @@
   // 首页里的一屏，有两条进场路（首次运行、从「继续设置」卡点进来），两条都要打点，
   // 否则从卡进来的那批人停留时长永远算成「从启动到现在」。
   let obShownAt = 0;
+  // 这一次引导是否已经记过「离开」那一条。两条进场路都要清掉它 —— 跳过之后从
+  // 「继续设置」卡回来是**新的一次**引导，它的结局要照样记一条。
+  let obLeft = false;
 
   function obPaint() {
     if ($('ob-telemetry')) $('ob-telemetry').hidden = true;   // 只在最后一屏露出
@@ -537,7 +540,8 @@
     // 「登录屏点了只翻页、根本不登录」。自报之后门禁问的是「现在是哪一屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box',
+      'ob-engines', 'ob-webonly', 'ob-hint']) $(id).hidden = true;
     // 主/次逐屏重设，不留状态（同扩展 onboard.js）。默认「继续」是这一屏的主行动；
     // 有自己主行动的屏（「就地试一句」）在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
     $('ob-next').classList.remove('secondary');
@@ -548,12 +552,30 @@
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
 
     if (step === 'welcome') {
-      // 2026-09-22：不再一上来就讲分工。先说**这个 App 自己能做什么** —— 24% 的人
-      // 本来就会自己去找听译，而其中一多半手里没引擎。
-      $('ob-title').textContent = t('ob_welcome_title', '学习你真正在读的东西');
+      // 2026-09-24（画布板 B2 + 文案 1，用户点头）：这一屏改成讲**用户要办的事** ——
+      // 挑一个翻译模型。1.15.0 的读数是 skipped@welcome 占装机一半还多（telemetry-design §3.9），
+      // 而原来那句「网页翻译在浏览器那半边」是在第一屏就先讲我们内部的分工。
+      // 三处变化，各有各的理由：
+      //   · 标题/正文换成「模型你说了算」—— 与系统自带翻译的差别就在这一句；
+      //   · 引擎名一行从注册表渲染（见 obEngineChips）；
+      //   · 主按钮下补一句「两步，约 30 秒」，把「这要花多久」先答了。
+      $('ob-title').textContent = t('ob_welcome_title', '翻译用哪个模型，你说了算');
       $('ob-text').textContent = t('ob_welcome_body',
-        '划词翻译、听一段、看实时字幕 —— 这些在这个 App 里就能用。网页翻译在浏览器那半边。');
+        '系统只有它自己那一个引擎。这里你挑一个 —— 译文直接从它来，不经过我们的服务器。');
+      const chips = obEngineChips();
+      if (chips.length) {
+        const box = $('ob-engines');
+        box.textContent = '';
+        for (const name of chips) { const s = document.createElement('span'); s.textContent = name; box.append(s); }
+        const more = document.createElement('span'); more.textContent = '…'; box.append(more);
+        box.hidden = false;
+      }
       $('ob-next').textContent = t('ob_start', '开始设置');
+      $('ob-hint').textContent = t('ob_welcome_hint', '两步，约 30 秒');
+      $('ob-hint').hidden = false;
+      // 出口只在第一屏给：它回答的是「你是不是只想要网页翻译」，后面几屏问这个已经晚了。
+      $('ob-webonly-text').textContent = t('ob_web_only', '我只要网页翻译');
+      $('ob-webonly').hidden = false;
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
       // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
@@ -642,6 +664,25 @@
     ol.hidden = false;
   }
 
+  // 第一屏那一行引擎名。**从注册表读，不写死牌子**（仓库根那份说明里的一注册表原则）——
+  // 写死的后果是中国版会显示一堆境内用不了的名字，而门禁看不出来。
+  // ⚠️ 这段注释会原样进中国版产物：别在这里写任何厂商名，`build/china-gate.js` 会红
+  //（它的词表连文件名里的那个词都算）。
+  // 两条过滤都是通用规则，不是牌子名单：
+  //   · custom_* 与 grant 不是牌子（一个是「自己填地址」，一个是我们的免费额度）；
+  //   · 后面那个标签若以前面某个开头就跳过 —— 同一家的第二条（如 MT 版）不重复占位。
+  function obEngineChips() {
+    const out = [];
+    for (const p of (typeof MT_PROVIDERS !== 'undefined' ? MT_PROVIDERS : [])) {
+      if (!p || /^custom_/.test(p.id) || p.id === 'grant') continue;
+      const label = String(p.label || '').split(/\s*[(（]/)[0].trim();
+      if (!label || out.some((s) => label.startsWith(s))) continue;
+      out.push(label);
+      if (out.length === 4) break;
+    }
+    return out;
+  }
+
   function obKv(rows) {
     const box = $('ob-kv');
     box.textContent = '';
@@ -656,17 +697,25 @@
 
   // `result`：走完还是跳过。两条路本来就走同一个收尾，于是在表里长得一模一样
   // （telemetry-design §3.6，2026-09-22）。`step` 是**离开时停在哪一屏**，只记这一条。
-  async function obFinish(result) {
+  // 这一次引导「离开」的那一条读数。**每次引导至多一条**（§3 表的定义）：
+  // 点过「我只要网页翻译」之后，ext 屏上的收尾不再重复记。
+  function obTrackLeave(result) {
+    if (obLeft) return;
+    obLeft = true;
     try {
       if (typeof MTTelemetry !== 'undefined') {
         // dwell（§3.9 提案 A）：分桶的停留时长。算不出来就不带这个键 ——
         // 空串不在枚举里，带上去整条事件会被判掉。
         const d = MTTelemetry.dwell(obShownAt);
         MTTelemetry.track('onboarding_done', Object.assign({
-          surface: 'app', result: result === 'skipped' ? 'skipped' : 'done', step: OB[obAt],
+          surface: 'app', result, step: OB[obAt],
         }, d ? { dwell: d } : {}));
       }
     } catch (_) {}
+  }
+
+  async function obFinish(result) {
+    obTrackLeave(result === 'skipped' ? 'skipped' : 'done');
     try {
       if (result === 'skipped') {
         await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: { step: OB[obAt], shows: 0 } }, r));
@@ -732,7 +781,7 @@
     $('signed-in').hidden = true;
     $('onboard').hidden = false;
     paintExtBanner(extState);
-    obShownAt = Date.now();
+    obShownAt = Date.now(); obLeft = false;
     obAt = at; obPaint();
   });
   $('ob-resume-close').addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
@@ -933,6 +982,24 @@
     obFinish().then(() => { try { $('btn-apple').focus(); } catch (_) {} });
   });
   $('ob-skip').addEventListener('click', () => { obFinish('skipped'); });
+  // 「我只要网页翻译 →」（画布板 B2 / telemetry-design §3.9 提案 B）。
+  //
+  // 两件事，顺序不能反：**先记，再把人送走**。记的是 result:'web_only' ——
+  // 这一条与 done / skipped 并列，是「他自己说了要哪一半」，不是「他放弃了」。
+  //
+  // 送到哪儿：**最后那一屏（ext）**，那一屏讲的就是怎么把浏览器那半边打通
+  // （macOS 直达 Safari 扩展设置，iOS 给三步 + 在网页上完成设置）。
+  // 不直接退出引导：退出等于把他丢回一个还没配好的首页，而他要的东西就在那一屏上。
+  //
+  // obLeft：这一次引导**只记一条** onboarding_done（§3 表的定义是「离开时一条」）。
+  // 点了这里之后，ext 屏上的收尾不再重复记 —— 否则同一个人会出现两行，
+  // 「有多少人只要网页翻译」和「有多少人走完了」两个数同时变虚。
+  $('ob-webonly').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    obTrackLeave('web_only');
+    const at = OB.indexOf('ext');
+    if (at >= 0) { obAt = at; obPaint(); } else obFinish();
+  });
   $('ob-prefs').addEventListener('click', openSafariPrefs);
 
   // 邮箱是备选：展开表单时一键登录仍留在卡上；只有那行链接自己消失。
@@ -1665,7 +1732,7 @@
         $('onboard').hidden = false;
         extBannerPrimed = true;
         paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
-        obShownAt = Date.now();
+        obShownAt = Date.now(); obLeft = false;
         obAt = 0; obPaint();
         return;
       }

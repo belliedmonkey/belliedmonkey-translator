@@ -397,6 +397,23 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   background: var(--accent-track); color: var(--accent-deep);
   font-size: 0.8rem; display: flex; align-items: center; justify-content: center;
 }
+/* 第一屏的引擎名（画布板 B2）。只是一行「有哪些牌子」的提示，不可点 ——
+   真正的选择在第 2 屏，这里点一下什么都不发生才是对的。 */
+.ob-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.ob-chips span {
+  padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px;
+  font-size: 0.86rem; color: var(--dim); line-height: 1.4;
+}
+/* 「我只要网页翻译 →」。整张卡可点（44px 起），不是一行小字里的链接。 */
+.ob-exit {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  background: var(--field); border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 12px 14px; color: var(--accent-deep); text-decoration: none; line-height: 1.5;
+}
+.ob-exit:hover { background: var(--accent-track); }
+.ob-exit span:first-child { flex: 1; min-width: 0; }
+.ob-exit-arrow { flex: none; }
+.ob-hint { text-align: center; margin: 0; }
 #ob-kv { display: flex; flex-direction: column; gap: 10px; }
 /* 「就地试一句」。原句是一张卡，译文落在它下面 —— 与网页里「原文在上、译文在下」同一个
    形状，让第一次见到的人不用学第二种读法。颜色全部走共享 token，不引入新色值。 */

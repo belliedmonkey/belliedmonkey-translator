@@ -1726,10 +1726,10 @@
     "message": "Get started"
   },
   "ob_welcome_title": {
-    "message": "Learn what you actually read"
+    "message": "You pick the model that translates"
   },
   "ob_welcome_body": {
-    "message": "Look up a phrase, listen to a clip, watch live captions — all right here in the app. Web page translation lives in the browser half."
+    "message": "The system has only its own engine. Here you choose one — the translation comes straight from it, never through our servers."
   },
   "ob_ios_1": {
     "message": "In Safari, tap the extensions icon at the left of the address bar"
@@ -3651,5 +3651,11 @@
   "extb_done": {
     "message": "Restored — go back to the home screen to see it.",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Two steps, about 30 seconds"
+  },
+  "ob_web_only": {
+    "message": "I only want web page translation"
   }
 }

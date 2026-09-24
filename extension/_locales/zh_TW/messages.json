@@ -1727,10 +1727,10 @@
     "message": "開始設定"
   },
   "ob_welcome_title": {
-    "message": "學習你真正在讀的東西"
+    "message": "翻譯用哪個模型，你說了算"
   },
   "ob_welcome_body": {
-    "message": "劃詞翻譯、聽一段、看即時字幕 —— 這些在這個 App 裡就能用。網頁翻譯在瀏覽器那半邊。"
+    "message": "系統只有它自己那一個引擎。這裡你挑一個 —— 譯文直接從它來，不經過我們的伺服器。"
   },
   "ob_ios_1": {
     "message": "在 Safari 裡點網址列左邊的擴充功能圖示"
@@ -3652,5 +3652,11 @@
   "extb_done": {
     "message": "已恢復 —— 回到首頁就能看到那張提示。",
     "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "兩步，約 30 秒"
+  },
+  "ob_web_only": {
+    "message": "我只要網頁翻譯"
   }
 }
