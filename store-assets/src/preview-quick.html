@@ -12,6 +12,11 @@
   也不写真实的人或公司。段落长度按「一段正好铺满一行半」调过，选中之后面板不会过高。
 
   用法：Chrome 以 --app=file://<abs path> 打开（不要 --kiosk，它会进独立 Space）。
+
+  两个语种，用 ?src=zh 切：
+  · 默认（en 源）→ 给**中文商店视频**用：英文页译成中文；
+  · ?src=zh（中文源）→ 给**英文商店视频**用：中文页译成英文。
+    方向必须是「外语 → 看片人的语言」，反了就等于在演一个没人需要的功能。
 -->
 <html lang="en" translate="no">
 <head>
@@ -37,7 +42,7 @@
 </style>
 </head>
 <body>
-<main>
+<main id="en">
   <div class="kicker">Field notes</div>
   <h1>What a long walk teaches about pace</h1>
   <p id="pick">The first hour always feels too slow, and that is exactly the point: a pace you can hold for six hours is never the pace that feels fast at the start.</p>
@@ -45,5 +50,23 @@
   <hr class="rule">
   <p class="note">Selecting any sentence and pressing the shortcut shows it in your own language, without leaving this page.</p>
 </main>
+<main id="zh" hidden lang="zh-Hans">
+  <div class="kicker">田野笔记</div>
+  <h1>长途步行教给人的节奏</h1>
+  <p id="pick-zh">头一个小时总会觉得太慢，而这恰恰是关键：能撑满六个小时的节奏，从来都不是起步时让人觉得快的那一种。</p>
+  <p>以舒服的速度出发的人，往往比头一英里就冲刺的人更早到达，因为一开始犯的错，代价要用整个下午来还。</p>
+  <hr class="rule">
+  <p class="note">选中任意一句，按下快捷键，它就会以你自己的语言出现，而不必离开这一页。</p>
+</main>
+<script>
+  // ?src=zh → 中文源（给英文商店视频用）。两套正文写在同一份文件里，
+  // 免得两个语种的排版在两个文件里各走各的。
+  (function () {
+    var zh = new URLSearchParams(location.search).get('src') === 'zh';
+    document.getElementById('en').hidden = zh;
+    document.getElementById('zh').hidden = !zh;
+    document.documentElement.lang = zh ? 'zh-Hans' : 'en';
+  })();
+</script>
 </body>
 </html>
