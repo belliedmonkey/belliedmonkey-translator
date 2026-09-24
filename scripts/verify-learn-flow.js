@@ -1230,7 +1230,10 @@ async function runHost(host) {
       need(noEngineLine.indexOf('\n') > 0 || noEngineLine.length > 0, '账单是空的');
       // 英文文案是「notes engine」（2026-09-06 起 App 会按存储里的 uiLang 即时切语言，这一步
       // 跑在 en 下 —— 以前能过是因为 review.js 从不刷新 PageI18n，页面一直停在中文）。
-      need(/解析引擎|analysis engine|notes engine|解析エンジン|해설 엔진|moteur|Analyse-Engine|motor de|movimiento|движок|محرّك/.test(noEngineLine),
+      // 判据是「账单里出现了**引擎**这个词」，不是某一句固定文案 —— #421 方案 A 把那一格
+      // 从「解析引擎」改名成「翻译与句子解析」的引擎之后，原来的正则（写死了旧措辞）
+      // 会红，而它要守的那件事（引擎没配却一个字都不提）根本没变。各语种的「引擎」：
+      need(/引擎|engine|エンジン|엔진|moteur|Engine|motor|mecanismo|движок|محرّك|محرك|इंजन/i.test(noEngineLine),
         '引擎没配，账单里一个字都没提 —— 这正是 build 38 的症状: ' + noEngineLine
         + ' · 状态 ' + JSON.stringify(await ev(`(({ playNotes, notesOk }) => ({ playNotes, notesOk }))(AppDriving._debug())`))
         + ' · 存储 ' + await ev(`JSON.stringify({ pn: localStorage.getItem('mt:drivePlayNotes'), p: localStorage.getItem('mt:provider'), np: localStorage.getItem('mt:notesProvider') })`));

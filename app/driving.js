@@ -479,7 +479,7 @@ var AppDriving = (() => {
     }
     switch (code) {
       case 'no_engine': return t('drive_notes_engine_missing',
-        '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）');
+        '「播放解析」需要先在设置里配好引擎（设置 → 翻译与句子解析）');
       case 'notes_empty': return t('drive_notes_empty', '这张卡没有可播的解析');
       case 'no_base': return t('drive_notes_no_base', '解析引擎还没配置好，这张卡的解析跳过了');
       case 'no_voice':
@@ -875,7 +875,7 @@ var AppDriving = (() => {
     // 存在」——用户**明确打开了一个开关**，什么都不发生就必须给出理由，而且要点名去哪配。
     // 真机 build 38 上这条路径静默无声，表现得和功能没做一模一样。
     sessionNote = (playNotes && !notesOk)
-      ? t('drive_notes_engine_missing', '「播放解析」需要先在设置里配好解析引擎（设置 → 句子解析）')
+      ? t('drive_notes_engine_missing', '「播放解析」需要先在设置里配好引擎（设置 → 翻译与句子解析）')
       : '';
     bgNote = backgroundNote();
     // 两个原因各说各的，并且「没音色」那一支要说得出**去哪儿解决**。

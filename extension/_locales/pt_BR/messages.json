@@ -978,10 +978,10 @@
     "message": "Cartões com idioma desconhecido (por ex., capturados no Safari, que não tem detecção de idioma) só são lidos com a voz escolhida acima; sem escolha, não podem ser reproduzidos. A chave da API de voz funciona como a das notas da frase: fica só neste dispositivo, em texto simples, e nunca sincroniza com sua conta."
   },
   "app_set_notes_title": {
-    "message": "Notas da frase"
+    "message": "Tradução e notas da frase"
   },
   "app_set_notes_provider": {
-    "message": "Motor de notas"
+    "message": "Motor"
   },
   "app_set_notes_none": {
     "message": "Nenhum"
@@ -996,7 +996,7 @@
     "message": "Modelo"
   },
   "app_set_notes_note": {
-    "message": "Usado apenas para gerar notas da frase (palavras / expressões / gramática), chamando sua própria API. A chave fica só neste dispositivo e nunca sincroniza com sua conta; é separada da chave configurada na extensão, com a mesma segurança — ambas ficam em texto simples no dispositivo."
+    "message": "Este motor faz toda tradução do app: tradução do sistema, tradução rápida, tradução de documentos, as traduções da conversa e das legendas ao vivo, e as notas da frase (palavras / expressões / gramática). Ele chama a sua própria API. A chave fica só neste dispositivo e nunca sincroniza com a sua conta; é separada da chave da extensão e igualmente segura — ambas ficam em texto puro no dispositivo."
   },
   "app_set_corpus": {
     "message": "Biblioteca"
@@ -1461,8 +1461,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_engine_missing": {
-    "message": "Para ler a análise é preciso configurar antes um mecanismo de análise (Ajustes → Análise da frase)",
-    "description": "Driving mode (§9.5)"
+    "message": "Para ler a análise é preciso configurar antes um motor (Ajustes → Tradução e notas da frase)"
   },
   "drive_notes_empty": {
     "message": "Este cartão não tem análise para ler",

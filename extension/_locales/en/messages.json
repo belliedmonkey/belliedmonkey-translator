@@ -978,10 +978,10 @@
     "message": "Cards with an unknown language (e.g. captured in Safari, which has no language detection) play only with the voice chosen above; without a choice they can't be spoken. The speech API key works like the sentence-notes key: it stays on this device only, never syncs with your account, and is stored in plaintext."
   },
   "app_set_notes_title": {
-    "message": "Sentence notes"
+    "message": "Translation & sentence notes"
   },
   "app_set_notes_provider": {
-    "message": "Notes engine"
+    "message": "Engine"
   },
   "app_set_notes_none": {
     "message": "None"
@@ -996,7 +996,7 @@
     "message": "Model"
   },
   "app_set_notes_note": {
-    "message": "Used only to generate sentence notes (words / phrases / grammar), calling your own API. The key stays on this device and never syncs with your account; it is separate from the key configured in the browser extension, with the same security standing — both are stored in plaintext on the device."
+    "message": "This engine does every translation in the app: system translation, quick translate, document translation, the translations in conversation and live subtitles — and sentence notes (words / phrases / grammar). It calls your own API. The key stays on this device only and never syncs with your account; it is separate from the one in the browser extension, and just as safe — both are stored in plain text on the device."
   },
   "app_set_corpus": {
     "message": "Library"
@@ -1461,8 +1461,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_engine_missing": {
-    "message": "Reading the notes aloud needs a notes engine first — set one up in Settings → Sentence notes",
-    "description": "Driving mode (§9.5)"
+    "message": "Reading the notes aloud needs an engine first — set one up in Settings → Translation & sentence notes"
   },
   "drive_notes_empty": {
     "message": "This card has no notes to read",

@@ -978,10 +978,10 @@
     "message": "Karten mit unbekannter Sprache (z. B. in Safari erfasst, das keine Spracherkennung hat) werden nur mit der oben gewählten Stimme vorgelesen; ohne Auswahl bleiben sie stumm. Der Sprach-API-Schlüssel verhält sich wie der Satzanalyse-Schlüssel: nur auf diesem Gerät, im Klartext, nie mit dem Konto synchronisiert."
   },
   "app_set_notes_title": {
-    "message": "Satzanalyse"
+    "message": "Übersetzung und Satzanalyse"
   },
   "app_set_notes_provider": {
-    "message": "Analyse-Engine"
+    "message": "Engine"
   },
   "app_set_notes_none": {
     "message": "Keiner"
@@ -996,7 +996,7 @@
     "message": "Modell"
   },
   "app_set_notes_note": {
-    "message": "Wird nur zum Erzeugen der Satzanalyse (Wörter / Wendungen / Grammatik) über deine eigene API genutzt. Der Schlüssel bleibt nur auf diesem Gerät und wird nie mit dem Konto synchronisiert; er ist vom Schlüssel in der Browser-Erweiterung getrennt, mit gleicher Sicherheit — beide liegen im Klartext auf dem Gerät."
+    "message": "Diese Engine übernimmt jede Übersetzung in der App: Systemübersetzung, Schnellübersetzung, Dokumentübersetzung, die Übersetzungen in Gespräch und Live-Untertiteln — und die Satzanalyse (Wörter / Wendungen / Grammatik). Sie ruft deine eigene API auf. Der Schlüssel bleibt nur auf diesem Gerät und wird nie mit deinem Konto synchronisiert; er ist vom Schlüssel der Browser-Erweiterung getrennt und genauso sicher — beide liegen im Klartext auf dem Gerät."
   },
   "app_set_corpus": {
     "message": "Bibliothek"
@@ -1461,8 +1461,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_engine_missing": {
-    "message": "Zum Vorlesen der Erläuterung braucht es zuerst eine Erläuterungs-Engine — unter Einstellungen → Satz-Erläuterung einrichten",
-    "description": "Driving mode (§9.5)"
+    "message": "Zum Vorlesen der Erläuterung braucht es zuerst eine Engine — unter Einstellungen → Übersetzung und Satzanalyse einrichten"
   },
   "drive_notes_empty": {
     "message": "Diese Karte hat keine Erläuterung zum Vorlesen",

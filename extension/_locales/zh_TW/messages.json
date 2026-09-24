@@ -979,10 +979,10 @@
     "message": "語言未知的卡（例如在 Safari 裡採集的 —— 那裡沒有語言偵測）只用上面選定的朗讀語音；不選則這類卡無法朗讀。語音 API Key 與句子解析的金鑰一樣：只存這台裝置、不隨帳號同步，本機明文保存。"
   },
   "app_set_notes_title": {
-    "message": "句子解析"
+    "message": "翻譯與句子解析"
   },
   "app_set_notes_provider": {
-    "message": "解析引擎"
+    "message": "引擎"
   },
   "app_set_notes_none": {
     "message": "不使用"
@@ -997,7 +997,7 @@
     "message": "模型"
   },
   "app_set_notes_note": {
-    "message": "僅用於產生句子解析（生詞 / 短語 / 語法），呼叫你自己的 API。金鑰只存在這台裝置上，不隨帳號同步；與瀏覽器擴充功能裡配置的金鑰互不相通，安全性也相同 —— 都是本機明文保存。"
+    "message": "這個引擎負責 App 裡的每一處翻譯：系統翻譯、快速翻譯、文件翻譯、對話與即時字幕的譯文，以及句子解析（生字 / 片語 / 文法）。呼叫你自己的 API；密鑰只存在這台裝置上，不隨帳號同步；與瀏覽器擴充功能裡設定的密鑰互不相通，安全性也相同 —— 都是本機明文保存。"
   },
   "app_set_corpus": {
     "message": "學習庫"
@@ -1462,8 +1462,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_engine_missing": {
-    "message": "「播放解析」需要先在設定裡配好解析引擎（設定 → 句子解析）",
-    "description": "Driving mode (§9.5)"
+    "message": "「播放解析」需要先在設定裡配好引擎（設定 → 翻譯與句子解析）"
   },
   "drive_notes_empty": {
     "message": "這張卡沒有可播的解析",

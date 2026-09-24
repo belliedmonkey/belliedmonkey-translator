@@ -547,7 +547,9 @@
       <!-- 永不同屏，但路必须有：详细档顶上一行指回快速档 -->
       <p class="note adv-only" id="app-adv-hint"><button type="button" class="link" id="app-adv-hint-go"></button></p>
 
-      <!-- App 没有翻译引擎的逐项控件（只有一键卡），所以详细档是三张槽卡：句子解析 / 整段转写 / 朗读 -->
+      <!-- 详细档是三张槽卡：翻译与句子解析 / 整段转写 / 朗读。第一张**就是主翻译引擎**
+           （notesProvider 优先于 provider，见 LearnNotes.resolveConfig）—— #421 方案 A 之前
+           它自称「仅用于生成句子解析」，于是没人知道翻译该在哪儿配。 -->
       <div class="sgroup adv-only" id="g-notes">
       <h3 id="notes-title"></h3>
       <label class="field adv-only">
