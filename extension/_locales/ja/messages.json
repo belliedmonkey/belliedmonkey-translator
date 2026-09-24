@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— このエンドポイントでは提供されません"
+  },
+  "learn_habit_streak": {
+    "message": "今日は来ました · {n} 日連続"
+  },
+  "learn_habit_today": {
+    "message": "今日は来ました"
+  },
+  "learn_nothing_due_title": {
+    "message": "今日は復習するものがありません"
   }
 }

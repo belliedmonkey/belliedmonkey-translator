@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— этот адрес этого не даёт"
+  },
+  "learn_habit_streak": {
+    "message": "Сегодня вы заходили · {n} дней подряд"
+  },
+  "learn_habit_today": {
+    "message": "Сегодня вы заходили"
+  },
+  "learn_nothing_due_title": {
+    "message": "Сегодня нечего повторять"
   }
 }

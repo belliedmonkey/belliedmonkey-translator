@@ -188,6 +188,16 @@ button:hover { border-color: var(--accent); }
 .howto button { margin-top: 8px; }
 .cap-hint { font-size: 13px; }
 
+/* 习惯条（#386）。一行字 + 最近 7 天，克制到不像一个功能：不催、不罚、不庆祝。 */
+#habit { margin: 10px 0 14px; }
+#habit-line { margin: 0 0 8px; font-size: 14px; color: var(--text); }
+.habit-days { display: flex; gap: 6px; }
+.habit-days span {
+  flex: 1; height: 22px; border-radius: 6px;
+  background: var(--card-bg); border: 1px dashed var(--border);
+}
+.habit-days span.on { background: var(--sage); border-color: var(--sage); }
+
 /* ─── §5.3 free practice ───────────────────────────────────────────────────── */
 .practice-rule { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
 .practice-row { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }

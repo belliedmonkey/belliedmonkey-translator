@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— esta URL no lo ofrece"
+  },
+  "learn_habit_streak": {
+    "message": "Hoy volviste · {n} días seguidos"
+  },
+  "learn_habit_today": {
+    "message": "Hoy volviste"
+  },
+  "learn_nothing_due_title": {
+    "message": "Hoy no hay nada que repasar"
   }
 }

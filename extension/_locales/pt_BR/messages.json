@@ -3671,5 +3671,14 @@
   },
   "qs_absent_custom": {
     "message": "— este endpoint não oferece"
+  },
+  "learn_habit_streak": {
+    "message": "Você voltou hoje · {n} dias seguidos"
+  },
+  "learn_habit_today": {
+    "message": "Você voltou hoje"
+  },
+  "learn_nothing_due_title": {
+    "message": "Nada para revisar hoje"
   }
 }

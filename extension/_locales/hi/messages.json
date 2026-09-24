@@ -3504,5 +3504,14 @@
   },
   "qs_absent_custom": {
     "message": "— यह एंडपॉइंट यह नहीं देता"
+  },
+  "learn_habit_streak": {
+    "message": "आज आप आए · लगातार {n} दिन"
+  },
+  "learn_habit_today": {
+    "message": "आज आप आए"
+  },
+  "learn_nothing_due_title": {
+    "message": "आज दोहराने के लिए कुछ नहीं है"
   }
 }
