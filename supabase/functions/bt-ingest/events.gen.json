@@ -50,6 +50,12 @@
         "capture",
         "try",
         "firstuse"
+      ],
+      "dwell": [
+        "0-2",
+        "3-9",
+        "10-29",
+        "30+"
       ]
     },
     "engine_set": {

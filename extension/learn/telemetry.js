@@ -283,8 +283,22 @@ var MTTelemetry = (() => {
     } catch (_) {}
   }
 
+  // 停留时长 → 桶（telemetry-design §3.9，2026-09-24）。注册表里 dwell 是枚举，
+  // 所以这里**只能**吐出那四个值之一；算不出来（没记开始时间、时钟倒流）就吐 ''，
+  // 调用方据此**整个不带这个键** —— 带一个空串会被 shape() 判成非法值，整条事件丢掉。
+  function dwell(startMs, now) {
+    const t0 = Number(startMs);
+    if (!Number.isFinite(t0) || t0 <= 0) return '';
+    const s = ((Number(now) || Date.now()) - t0) / 1000;
+    if (!Number.isFinite(s) || s < 0) return '';
+    if (s < 3) return '0-2';
+    if (s < 10) return '3-9';
+    if (s < 30) return '10-29';
+    return '30+';
+  }
+
   return {
-    track, once, flush, init, enabled, setEnabled, installId,
+    track, once, flush, init, enabled, setEnabled, installId, dwell,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
   };

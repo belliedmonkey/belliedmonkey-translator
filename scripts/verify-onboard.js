@@ -522,6 +522,7 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
     // 静态 seam 门禁证明得了后者，证明不了前者：客户端的 shape() 会把白名单外的属性
     // 静默丢掉，所以少生成一次 providers.gen.js，这两个属性就凭空消失而没人看得见。
     const STEPS_OK=['welcome','engine','try'];
+    const DWELL_OK=['0-2','3-9','10-29','30+'];
     const skipped=await evA(`(async()=>{
       // 两件必须先做，否则测到的是「不发」这件废事：
       //   ① allowAutomation —— spec() 在 navigator.webdriver 为真时返回 null（自动化不算
@@ -563,7 +564,14 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
         fail(`跳过发出的 result 是「${p.result}」而不是 skipped —— 走完与放弃又分不开了`);
       else if(!STEPS_OK.includes(p.step))
         fail(`跳过发出的 step 是「${p.step}」，不在屏序里 —— 它与 OB 数组同源，对不上就是记错了`);
-      else pass(`跳过发出 onboarding_done{result:skipped, step:${p.step}}`);
+      // dwell（§3.9 提案 A）：这一条**必须在队列里真的看得到**。静态门禁只能证明代码里
+      // 带了这个键 —— 而 shape() 会把白名单外的属性连整条事件一起丢掉，所以少生成一次
+      // providers.gen.js，dwell 要么整条不见、要么静默消失，两种在代码里都看不出来。
+      // 门禁跑完这几屏通常在 10 s 以内，所以这里不钉具体的桶，只钉「是那四个之一」。
+      else if(!DWELL_OK.includes(p.dwell))
+        fail(`跳过发出的 dwell 是「${p.dwell}」，不在 ${DWELL_OK.join(' / ')} 里 —— `
+          + '要么没打「引导出现」那一刻的点，要么它没进注册表（重新生成 providers.gen.js）');
+      else pass(`跳过发出 onboarding_done{result:skipped, step:${p.step}, dwell:${p.dwell}}`);
     }
     if(seen[0].w===seen[seen.length-1].w) fail('进度条没动'); else pass(`进度条 ${seen[0].w} → ${seen[seen.length-1].w}`);
     if(errs.length){ok=false;console.log('  控制台错误:');errs.slice(0,4).forEach(e=>console.log('    '+e));}

@@ -84,6 +84,8 @@
   // `onboarding_done.step` 出货之后才会告诉我们（telemetry-design §3.6）。
   const OB = ['welcome', 'engine', 'try'];
   let at = 0;
+  // 引导页是独立的一页，打开即出现 ⇒ 这一行就是「引导出现」的时刻（telemetry-design §3.9）。
+  const shownAt = Date.now();
   let settings = {};
   let learnRules = null;
 
@@ -487,9 +489,12 @@
     await storageSet({ extObSeen: 1 });
     try {
       if (typeof MTTelemetry !== 'undefined') {
-        MTTelemetry.track('onboarding_done', {
+        // dwell（§3.9 提案 A）：分桶的停留时长，用来分开「没读就跳」与「读了还是跳」。
+        // 算不出来就**不带这个键** —— 空串不在枚举里，会把整条事件判掉。
+        const d = MTTelemetry.dwell(shownAt);
+        MTTelemetry.track('onboarding_done', Object.assign({
           surface: 'ext', result: result === 'skipped' ? 'skipped' : 'done', step: OB[at],
-        });
+        }, d ? { dwell: d } : {}));
       }
     } catch (_) {}
     $('onboard').hidden = true;

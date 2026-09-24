@@ -43,6 +43,13 @@ const EVENTS = {
     // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
     // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
     step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try', 'firstuse'],
+    // dwell（2026-09-24，§3.9 提案 A，用户评审通过）：从引导出现到离开，**分桶的秒数**。
+    // 为什么要它：1.15.0 出货后 `skipped@welcome` 占了装机的一半还多，而 `step` 只说
+    // 「停在第 1 屏」，分不开「没读就跳」（动线问题：「以后再设置」和主按钮等宽）与
+    // 「读了还是跳」（文案问题）—— 这两种的修法完全相反。
+    // 为什么分桶不是秒数：原则 1 的延伸，精确停留时长在小样本上接近指纹。
+    // 只有 surface ext / app 带它；app_resume 那张卡没有「停留」可言，不带（键缺席是合法的）。
+    dwell: ['0-2', '3-9', '10-29', '30+'],
   },
   engine_set: { provider: 'id' },
   // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」
@@ -137,7 +144,11 @@ const SEAMS = {
   heartbeat: SHARED('extension/learn/telemetry.js'),
   onboarding_done: [
     { host: 'ext', file: 'extension/onboard/onboard.js', match: "surface: 'ext'" },
+    // dwell（§3.9 提案 A）：属性也钉住。少带一个诊断属性不会让任何门禁自己红 ——
+    // 事件照发、表照样合法，只是那一列永远是空的（§3.4 那条教训的属性版）。
+    { host: 'ext', file: 'extension/onboard/onboard.js', match: 'dwell: d' },
     { host: 'app', file: 'app/app.js', match: "surface: 'app'" },
+    { host: 'app', file: 'app/app.js', match: 'dwell: d' },
     { host: 'app', file: 'app/app.js', match: "surface: 'app_resume'" },
   ],
   engine_set: [
