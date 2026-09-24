@@ -38,7 +38,7 @@ Three decisions were taken with it: **on by default, switch in settings** ·
 | Where do translations fail — which engine, which error? | only when someone writes in | `translate_fail` |
 | How many people still use it (DAU / WAU / retention)? | Apple gives downloads; AMO says 3 | `heartbeat` |
 | Where does the learning loop break? | unknown | `capture_first` `review_session` `sync_on` —— **判据是回访节奏，不是「刷完」**（2026-09-24 §3.10）：按 `(install_id, ts::date)` 去重，数 7 天里有几天出现过 `review_session{result:'opened'}` |
-| Safari vs Chrome vs the app — what share? | guessed from an unset WKWebView UA (#175) | `host` on every event |
+| Safari vs Chrome vs the app — what share? | guessed from an unset WKWebView UA (#175) | `host` on every event —— **扩展到底有多少人真的启用了，判据也在这里**：`installed` 按 `host` 分组。**不是** `setup_detected`（那一条只覆盖来过我们自己站的人，见 §3.11 B） |
 | **(6, 2026-09-10)** When we ask the user for something — rate us, turn the extension on — is the ask ever *seen*, and does anyone act on it? | unknown: App Store 评分 5 天里 0 条，`review_session` 0 条，而我们不知道提示有没有出现过 | `rate_prompt` `ext_banner` |
 
 If a proposed event does not serve one of these rows, it does not go in.
@@ -87,7 +87,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
 | `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
-| `translate_fail` | `provider` `code` `status` (number only) `route` `ms` | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
+| `translate_fail` | `provider` `code` `status` (number only) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
@@ -97,7 +97,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
 | `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出，§3.7 B） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与三个 listener |
-| `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B） | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
+| `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `app/app.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
@@ -586,6 +586,87 @@ edge function neither stores nor logs them as a field).
 **不在本提案里的那一半**：如果判据是「有没有回来」，那么复习面把「清空今天」当终点的框法、
 以及 `dailyNew: 15` / `deckSize: 20` 这两个默认值都该重估 —— 一个每天都清不完的任务，
 对「养成习惯」是反作用。但那动的是交互与领域设计，按 `AGENTS.md` 要**画布先行**，另开。
+
+### 3.11 2026-09-24 amendment（**提案，待人评审**）：两个读数在骗人
+
+09-24 查激活漏斗时被自己的表带偏了两次。两处都不是数错，是**字段的含义与它看起来的含义
+不一样**，而表上没有一个字写明。一个读表的人（这次是模型，下次可能是人）会按字面去理解。
+
+#### A. `translate_fail.ms` 量的不是这次请求，是这个页面开了多久
+
+`content-webpage.js` 的 `onFail` 里写的是 `ms: Date.now() - enabledAt`，而 `enabledAt`
+是**这个页面开启翻译的时刻**。`onOk` 有 `okSent` 守着、每会话只发一条，所以
+`translate_ok.ms` 确实是「从开启到第一段译文」——有意义。但 **`onFail` 没有任何去重**：
+页面开着多久，后面每一条失败的 `ms` 就有多大。
+
+**而且三个发送点是三种不同的东西**，落在同一列里：
+
+| 发送点 | `ms` 实际是什么 | 去重 |
+|---|---|---|
+| `content-webpage.js` `onFail` | `Date.now() - enabledAt`（网页会话已开多久） | 无 —— 每次失败一条 |
+| `subtitle-adapter.js` `onFail` | `Date.now() - subSince`（字幕会话已开多久） | 无 |
+| `learn/doc-view.js` `onFail` | **写死 `0`** | `failSent`，每份文档一条 |
+
+所以对 `translate_fail.ms` 做任何聚合，都是把「会话年龄」和一堆常数 0 混在一起平均。
+（`learn/doc-view.js` 的 `translate_ok.ms` 同样写死 `0`，一并纳入本提案。）
+
+实测把人带偏到什么程度（09-24 回读，14 天窗口）：
+
+| 引擎 · 错误码 | 设备 | 次数 | `ms` 的 p50 |
+|---|---|---|---|
+| 免费额度（`grant`）· `timeout` | 14 | 547 | **962.8 秒** |
+
+于是「免费额度这条路中位要等 16 分钟」这个结论被写了出来，最长的一条 `ms=69635302`
+（**19.3 小时**）还被当成了一次挂死的请求。**都不成立**：客户端两条通路的上限都是
+`RequestShape.timeoutMs()`，默认 **20 秒**（`directFetch` 的 `AbortController`、
+`proxyFetch` 的 `Promise.race`）。20 秒的闸门不可能量出 16 分钟 —— 那只是一个开了很久的标签页。
+
+**本该在「20 秒的上限量出 16 分钟」时就怀疑指标**，而不是怀疑代码。这条教训与 §3.3.1
+（`engine_set` 在说谎）是同一个形状：一个字段的名字承诺了它没有做到的事。
+
+**提案：`translate_fail.ms` 改成量这一次请求的耗时。**
+
+- 不加字段、不改白名单 —— `ms` 已经在表里，改的是它在**哪里**被算出来。
+- 实现上与 `route` 完全对称：`translation-api.js` 已经在抛出的错误对象上挂
+  `code` / `status` / `route` / `url`，在同样那几处挂上 `ms`（请求开始到失败的毫秒数）即可；
+  **三个 `onFail` 都改成读 `e.ms`**，读不到时**不发这个字段**，而不是退回去发一个会误导人的数
+  —— 一个缺席的数能看出来是缺席，一个错的数看不出来。`doc-view.js` 写死的两个 `0` 一并去掉。
+- `translate_ok.ms` **不动**：它每会话一条，「从开启到第一段译文」正是它该量的东西。
+  两个事件的 `ms` 含义从此不同，所以表上必须各写各的。
+
+> 备选是把 `ms` 从 `translate_fail` 上去掉。不采纳：请求耗时正是诊断 `timeout` / `network`
+> 唯一有用的那个数，去掉等于把这一类故障重新变黑。
+
+#### B. `setup_detected` 不是激活率，是「来过官网的人里有多少亮了绿灯」
+
+`content-main.js` 里它只在一个 `if` 里发：
+
+```js
+const MT_SITES = /^(www\.)?belliedmonkey\.(cc|com)$/;
+if (MT_SITES.test(location.hostname)) { … MTTelemetry.once('setup_detected'); }
+```
+
+这条域名边界是**安全边界，不是可以放宽的优化** —— 同一段注释写着：在 `<all_urls>` 上
+都注入标记，等于让任何网站都能探测出用户装了这个扩展，对一个把「不追踪」写进 README
+的产品，那是自己给自己造指纹面。所以它永远只覆盖**装了扩展并且来过我们自己站**的人。
+
+⇒ **`setup_detected` 回答的是一个更窄的问题**：官网那个启用教程页的绿灯，被多少人看见过。
+它是激活人群的一个子集，**不能拿来当激活率**，也不能用它的低值推断「没人启用扩展」。
+
+**真正的扩展激活信号已经有了，是 `installed` 按 `host` 分组。** `content-main.js:523`
+在每个页面调 `MTTelemetry.init()`，`installed` 在 install_id 首次生成时发一条
+（`telemetry.js` 的 `if (fresh) await track('installed')`）—— 扩展跑起来过，就说明它被启用了。
+09-24 回读（14 天）：`host='safari'` **138** 台、`host='chrome'` 42 台、`host='app'` 238 台。
+
+**提案：只改文档，不动代码。** 把上面这两句话写进 §3 的表（下面已改），并在 §1 的问题表里
+把「装了扩展的有多少」这一问的判据钉成 `installed` 按 host 分组，而不是 `setup_detected`。
+
+#### 这两条为什么值得单独记一笔
+
+`AGENTS.md` 规则 4 管住了「不许加什么字段」，`telemetry-registry.test.js` 管住了
+「表与注册表不许对不上」。**但没有任何东西管住「字段的含义有没有被写清楚」** ——
+而这次两个误读都出在这里，且都是在有表、有门禁、全绿的情况下发生的。
+所以判据只能是文档：**每个字段写清它量的是哪一段时间、覆盖的是哪一群人。**
 
 ## 4. Transport
 
