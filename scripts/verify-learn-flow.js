@@ -332,8 +332,28 @@ async function runHost(host) {
     const seedInfo = JSON.parse(await ev(SEED));
     console.log('  seed: seeded', JSON.stringify(seedInfo));
     if (host.isApp) await ev(`document.getElementById('review-view').hidden = false; 'ok'`);
+    // §3.10：打开遥测的逃生口并清空队列 —— 下面要**从队列里读回** opened / nothing_due。
+    // allowAutomation 是 telemetry.js 自己留的口子（navigator.webdriver 为真时默认不发），
+    // 只入队、不 flush，所以一个字节都不会发出去。中国版产物里 MT_TELEMETRY 不存在，
+    // 那边这几条断言按「队列必须为空」反着走。
+    const tmOn = JSON.parse(await ev(`(async () => {
+      try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
+      await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
+      await new Promise((r) => chrome.storage.local.remove(['tm:queue'], r));
+      return JSON.stringify({ spec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
+    })()`));
+    const sessRows = async () => JSON.parse(await ev(`new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r(JSON.stringify(
+      ((v || {})['tm:queue'] || []).filter((x) => x && x.name === 'review_session').map((x) => x.props)))))`));
     await ev(`LearnReview.start().then(() => 'ok')`);
     await new Promise((r) => setTimeout(r, 400));
+
+    // §3.10：露出第一张卡就该有一条 opened —— 它是唯一不依赖「善终」的观测点。
+    {
+      const rows = await sessRows();
+      const opened = rows.filter((x) => x.result === 'opened');
+      if (tmOn.spec) need(opened.length === 1, '露出第一张卡之后队列里没有恰好一条 opened：' + JSON.stringify(rows));
+      else need(rows.length === 0, '中国版产物里竟然攒出了 review_session —— Gate D 说好一条都不发');
+    }
 
     // 1 · Deck built from the corpus, counts painted.
     need(!(await hidden('#card')), '种子语料后第一张卡没有出现');
@@ -741,8 +761,21 @@ async function runHost(host) {
       await sweep('一组做完', '#group-done');
       // 收拾干净：探针卡不能影响后面的断言
       await ev(`LearnStore.deleteItems(['grp0','grp1','grp2','grp3','grp4','grp5','grp6','grp7'], Date.now()).then(() => 'ok')`);
+      // §3.10：这时候牌堆已经空了 —— 再打开一次就是「他来了，而我们没有东西给他」。
+      // 判据是**队列里真的有 nothing_due**：这一屏此前在表里完全不可见，而它正是
+      // 新用户第二天最可能看到的画面。
+      await ev(`new Promise((r) => chrome.storage.local.remove(['tm:queue'], r))`);
       await ev(`LearnReview.start().then(() => 'ok')`);
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 400));
+      {
+        const rows = await sessRows();
+        if (tmOn.spec) {
+          need(rows.some((x) => x.result === 'nothing_due'),
+            '打开复习面、今天没有到期卡 —— 队列里却没有 nothing_due：' + JSON.stringify(rows));
+          need(!rows.some((x) => x.result === 'opened'),
+            '没有卡可露，却记了一条 opened：' + JSON.stringify(rows));
+        } else need(rows.length === 0, '中国版产物里竟然攒出了 review_session');
+      }
     }
 
     // 8 · Notes gate opens live and renders from the (mocked) engine, cached.

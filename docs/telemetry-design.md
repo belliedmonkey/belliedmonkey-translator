@@ -37,7 +37,7 @@ Three decisions were taken with it: **on by default, switch in settings** ·
 | Of the people who installed, how many configured an engine and translated something? | unknown | `engine_set` `translate_ok` |
 | Where do translations fail — which engine, which error? | only when someone writes in | `translate_fail` |
 | How many people still use it (DAU / WAU / retention)? | Apple gives downloads; AMO says 3 | `heartbeat` |
-| Where does the learning loop break? | unknown | `capture_first` `review_session` `sync_on` |
+| Where does the learning loop break? | unknown | `capture_first` `review_session` `sync_on` —— **判据是回访节奏，不是「刷完」**（2026-09-24 §3.10）：按 `(install_id, ts::date)` 去重，数 7 天里有几天出现过 `review_session{result:'opened'}` |
 | Safari vs Chrome vs the app — what share? | guessed from an unset WKWebView UA (#175) | `host` on every event |
 | **(6, 2026-09-10)** When we ask the user for something — rate us, turn the extension on — is the ask ever *seen*, and does anyone act on it? | unknown: App Store 评分 5 天里 0 条，`review_session` 0 条，而我们不知道提示有没有出现过 | `rate_prompt` `ext_banner` |
 
@@ -91,7 +91,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
 | `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
 | `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
-| `review_session` | `graded` · `result: done \| left` · `left`（int，离开时还剩几张） | 一轮结束：牌组清空（`done`）**或离开复习面**（`left`，露出过卡、没清空；`graded` 可以是 0）—— 互斥、每轮一条（2026-09-22，§3.7 A） | `review.js` `sessEnd()`：`!deck.length` 分支（done）· `pagehide` 与导出的 `leave()`（left；App 的返回键与复习页进设置两处调它） |
+| `review_session` | `graded` · `result: opened \| done \| left \| nothing_due` · `left`（int，离开时还剩几张） | **打开**：露出第一张卡立刻发 `opened`（每轮一条，§3.10 —— 唯一不依赖「善终」的观测点）。**结局**：牌组清空（`done`）· 离开复习面（`left`，露出过卡、没清空；`graded` 可以是 0）· 一进来就没有到期卡（`nothing_due`，那一轮根本没开始）—— 三者互斥、每次打开至多一条（2026-09-22 §3.7 A，2026-09-24 §3.10） | `review.js` `sessOpened()`（opened）· `sessEnd()`：`!deck.length` 分支（done）· `pagehide` / `visibilitychange→hidden` / 导出的 `leave()`（left）· `sessNothingDue()`（nothing_due） |
 | `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
 | `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
@@ -540,7 +540,7 @@ edge function neither stores nor logs them as a field).
 「以后再设置」降成文字链、加「两步，约 30 秒」）**已经选定**。**先补这两条，再改交互** ——
 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。与 §3.6 当日写下的是同一句话。
 
-### 3.10 2026-09-24 amendment（**提案，待人评审**）：复习的判据从「刷完」换成「有没有回来」
+### 3.10 2026-09-24 amendment（**同日用户评审通过并已落地**）：复习的判据从「刷完」换成「有没有回来」
 
 **读数（2026-09-24 回读）**：`review_session` **全历史零行** —— 不是 14 天窗口里少，是这个事件
 存在以来一条都没有。同期 `capture_first` 有 **65 台**（存过第一条语料）。§3.7 A 补的 `left`
@@ -561,7 +561,8 @@ edge function neither stores nor logs them as a field).
 每周有重新进来复习就好了，养成习惯远比单词学很大量重要」。**判据要跟着改** ——
 「刷完一轮」本来就不该是成功的定义，它只是今天唯一量得到的东西。
 
-**提案：不加事件，改 `review_session` 的发送时机与取值。**
+**提案：不加事件，改 `review_session` 的发送时机与取值。** ✅ **2026-09-24 已落地**
+（表、注册表、生成物、代码、门禁在同一个 PR；`bt-ingest` 先于客户端部署）。
 
 | | 现在 | 提案 |
 |---|---|---|
