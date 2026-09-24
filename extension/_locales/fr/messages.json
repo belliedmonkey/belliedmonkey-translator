@@ -978,10 +978,10 @@
     "message": "Les cartes de langue inconnue (p. ex. capturées dans Safari, sans détection de langue) ne sont lues qu'avec la voix choisie ci-dessus ; sans choix, elles restent muettes. La clé API vocale fonctionne comme celle des notes de phrase : elle reste sur cet appareil, en clair, et n'est jamais synchronisée avec votre compte."
   },
   "app_set_notes_title": {
-    "message": "Notes de phrase"
+    "message": "Traduction et notes de phrase"
   },
   "app_set_notes_provider": {
-    "message": "Moteur de notes"
+    "message": "Moteur"
   },
   "app_set_notes_none": {
     "message": "Aucun"
@@ -996,7 +996,7 @@
     "message": "Modèle"
   },
   "app_set_notes_note": {
-    "message": "Sert uniquement à générer les notes de phrase (mots / expressions / grammaire) via votre propre API. La clé reste sur cet appareil et n'est jamais synchronisée avec votre compte ; elle est distincte de celle de l'extension, avec la même sécurité — les deux sont stockées en clair sur l'appareil."
+    "message": "Ce moteur assure toutes les traductions de l’app : traduction système, traduction rapide, traduction de documents, les traductions de la conversation et des sous-titres en direct — ainsi que les notes de phrase (mots / expressions / grammaire). Il appelle votre propre API. La clé reste sur cet appareil et ne se synchronise jamais avec votre compte ; elle est distincte de celle de l’extension et tout aussi sûre — les deux sont stockées en clair sur l’appareil."
   },
   "app_set_corpus": {
     "message": "Bibliothèque"
@@ -1461,8 +1461,7 @@
     "description": "Driving mode (§9.5)"
   },
   "drive_notes_engine_missing": {
-    "message": "Lire les notes exige d’abord un moteur de notes — configurez-le dans Réglages → Notes de phrase",
-    "description": "Driving mode (§9.5)"
+    "message": "Lire les notes exige d’abord un moteur — configurez-le dans Réglages → Traduction et notes de phrase"
   },
   "drive_notes_empty": {
     "message": "Cette carte n’a pas de notes à lire",

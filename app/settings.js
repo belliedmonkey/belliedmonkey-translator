@@ -136,12 +136,16 @@ var AppSettings = (() => {
     $('tts-auto-label').textContent = t('app_set_tts_auto', '显示译文时自动朗读');
     $('tts-rate-label').textContent = t('app_set_tts_rate', '朗读速度');
     $('tts-note').textContent = t('app_set_tts_note', '语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。语音 API Key 与句子解析的密钥一样：只存这台设备、不随账号同步，本机明文保存。');
-    $('notes-title').textContent = t('app_set_notes_title', '句子解析');
-    $('notes-provider-label').textContent = t('app_set_notes_provider', '解析引擎');
+    // #421 方案 A（2026-09-24，画布 9eu7Ysbss9WQ9NJCoEWPMS）：这一格**不只管句子解析**。
+    // LearnNotes.resolveConfig 里 notesProvider 优先于 provider，而系统翻译（vault-mirror）、
+    // 快速翻译（quick）、文档翻译（docs）、对话与字幕的译文（listen）都经它解析 ⇒ 它其实就是
+    // App 的主翻译引擎。标题与说明照实写，否则按字面读的人永远不会来这里配翻译。
+    $('notes-title').textContent = t('app_set_notes_title', '翻译与句子解析');
+    $('notes-provider-label').textContent = t('app_set_notes_provider', '引擎');
     $('notes-key-label').textContent = t('app_set_notes_key', 'API Key');
     $('notes-base-label').textContent = t('app_set_notes_base', '自定义接口地址');
     $('notes-model-label').textContent = t('app_set_notes_model', '模型');
-    $('notes-note').textContent = t('app_set_notes_note', '仅用于生成句子解析（生词 / 短语 / 语法），调用你自己的 API。密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。');
+    $('notes-note').textContent = t('app_set_notes_note', '这个引擎负责 App 里的每一处翻译：系统翻译、快速翻译、文档翻译、对话与实时字幕的译文，以及句子解析（生词 / 短语 / 语法）。调用你自己的 API；密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。');
     // The picker lists chat-capable engines ONLY, and asks LearnNotes which those
     // are — the gate and the picker share one definition, so they cannot drift.
     // Labels come from the registry; nothing engine-specific is restated here.
