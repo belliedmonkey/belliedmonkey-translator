@@ -84,16 +84,19 @@ async function waitFor(fn, ms, label) {
 const FAKE_BRIDGES = `(() => {
   // mtAudio（app/native-audio.js 的协议）：msgs 记收到的每条消息；caps 给了才回 caps-probe（没给 = 老原生壳）。
   // 假麦克风每 100 ms 发一次电平（本机路 deliver:'level'，PCM 留在原生侧）。
-  const st = { timer: 0, started: 0, stopped: 0, msgs: [], caps: null };
+  // zero:true ⇒ 假麦克风照常按时发帧，但**电平恒零**：模拟采集链路死掉（#420 那次
+  // ScreenCaptureKit 就是这样 —— 报告成功、样本全零），与「环境安静」是两回事。
+  const st = { timer: 0, started: 0, stopped: 0, msgs: [], caps: null, zero: false };
   window.__fakeBridge = st;
   const emitA = (m) => window.NativeAudio && window.NativeAudio._fromNative(m);
+  const zeroPcm = () => { const n = 1600; let s = ''; for (let i = 0; i < n * 2; i++) s += String.fromCharCode(0); return btoa(s); };
   const pcm = () => { const n = 1600, b = new Uint8Array(n * 2); for (let i = 0; i < n; i++) { const v = Math.round(8000 * Math.sin(i / 3)); b[2 * i] = v & 255; b[2 * i + 1] = (v >> 8) & 255; } let s = ''; for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); };
   window.webkit = { messageHandlers: { mtAudio: { postMessage(msg) {
     st.msgs.push(msg);
     if (msg.type === 'caps-probe') { if (st.caps) setTimeout(() => emitA(Object.assign({ type: 'audio-caps' }, st.caps)), 0); }
     else if (msg.type === 'session-start') setTimeout(() => emitA({ type: 'session-ready', platform: 'macos', suspends: false }), 0);
     else if (msg.type === 'mic-start') { st.started++; st.deliver = msg.deliver || 'pcm'; setTimeout(() => emitA(st.holdGrant ? { type: 'mic-state', state: 'waiting', reason: 'waiting-permission', source: msg.source || 'mic' } : { type: 'mic-state', state: 'granted' }), 0); clearInterval(st.timer);
-      st.timer = setInterval(() => emitA(st.deliver === 'level' ? { type: 'mic-level', rms: 0.2 } : { type: 'mic-pcm', b64: pcm() }), 100); }
+      st.timer = setInterval(() => emitA(st.deliver === 'level' ? { type: 'mic-level', rms: st.zero ? 0 : 0.2 } : { type: 'mic-pcm', b64: st.zero ? zeroPcm() : pcm() }), 100); }
     else if (msg.type === 'mic-stop') { st.stopped++; clearInterval(st.timer); st.timer = 0; setTimeout(() => emitA({ type: 'mic-state', state: 'ended' }), 0); }
   } } } };
   // mtSpeech（app/native-speech.js 的协议）：本机识别 + 本机朗读。os:'old' ⇒ stt-probe 回 unsupported/os。
@@ -562,6 +565,40 @@ const FAKE_BRIDGES = `(() => {
       'H4b(O2): 听到过声音再到静音门 ⇒ 条上照旧 silence、暂停句不提权限，实际 ' + JSON.stringify(h4b4));
     await evalIn(cdp, sessionId, `(AppListen.resume(), 'ok')`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4b(O2): 继续后回到 listening');
+    // H4c（#424）. **原生一声不吭**的那一种：既没报 silent 也没报 sound，样本恒零。
+    // 这正是最常见的顺序（先在 App 里开始，再去浏览器点播放）—— 原生那条判据只在开始后
+    // 3 秒量一次，量的时候什么都没播，于是它永远不报 silent，用户要等到 30 秒静音门，
+    // 然后收到一句指错方向的「没有声音」（#420 当天就是这样）。
+    // 判据是「收到的样本是不是全零」，所以这里**什么都不发**，只等时间过去。
+    // 真等 ~9 秒而不是把时钟改快：改快了测的是那个假时钟，不是「听了 8 秒还没声音」。
+    await evalIn(cdp, sessionId, `(AppListen.end(), 'ok')`);
+    await sleep(400);
+    await evalIn(cdp, sessionId, `(__fakeBridge.zero = true, 'ok')`);   // 采集链路「死了」：照常发帧，电平恒零
+    await evalIn(cdp, sessionId, `(document.getElementById('app-subs-entry2').click(), 'ok')`);
+    await sleep(400);
+    const markD = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4c: 新一场字幕会话进入 listening');
+    await sleep(9500);
+    const h4c1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markD}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+    need(h4c1.phase === 'listening' && /还没听到系统声音/.test(h4c1.note) && h4c1.states.includes('silent'),
+      'H4c(#424): 听了 8 秒一个非零样本都没有 ⇒ 该出不中断提示并把条切到 silent（原生没报过 silent），实际 ' + JSON.stringify(h4c1));
+    const markD2 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(AppListen.pause('silence'), 'ok')`);
+    await sleep(200);
+    const h4c2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markD2}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+    need(h4c2.phase === 'paused' && /系统录音权限/.test(h4c2.note) && h4c2.states.includes('silence-permission') && !h4c2.states.includes('silence'),
+      'H4c(#424): 从没拿到过真样本就到静音门 ⇒ 暂停句与条都该指向权限（而不是「没有声音」），实际 ' + JSON.stringify(h4c2));
+    await evalIn(cdp, sessionId, `(AppListen.resume(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H4c: 继续后回到 listening');
+    // 声音终于来了（原生报 sound）⇒ 那句话撤掉、条回到 listening
+    const markD3 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
+    await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'mic-state', state: 'sound', source: 'system' }), 'ok')`);
+    await sleep(1400);
+    const h4c3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ note: (document.getElementById('app-listen-note') || {}).textContent || '', states: __fakeBridge.msgs.slice(${markD3}).filter((m) => m.type === 'subtitle-state').map((m) => m.state) })`));
+    need(!/还没听到系统声音/.test(h4c3.note) && h4c3.states.includes('listening'),
+      'H4c(#424): 声音来了之后那句提示该撤掉、条回到 listening，实际 ' + JSON.stringify(h4c3));
+    await evalIn(cdp, sessionId, `(__fakeBridge.zero = false, 'ok')`);
     // H5. 单向：每一句都归对方；没有 ↔ / 给对方看 / 朗读；自动朗读不出声
     const showMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await say('en-US', 'The keynote starts in five minutes.');

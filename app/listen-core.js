@@ -60,6 +60,10 @@ var ListenCore = (() => {
       ephemeral: false,   // 「这次不留记录」：这一场只在屏幕上存在（开始前决定，中途不可改）
       flips: 0,           // 点过几次 ↔ —— 归属判得准不准的唯一体感指标
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
+      // 这一场**有没有收到过一个非零样本**（#424）。与语音门限无关：底噪、配乐、隔壁的
+      // 说话都算「拿得到声音」，**恒零才是「拿不到」** —— 那是采集侧死了（Mac 上多半是
+      // 系统录音权限），不是环境安静。两者的出口完全不同，所以必须分开记。
+      heardAny: false,
       noiseFrom: 0,       // 环境底噪的摸底起点
       noiseMin: null,     // 摸底期内的最小 RMS（≈ 底噪）
       noiseFloor: null,   // 当前的底噪估计
@@ -374,6 +378,9 @@ var ListenCore = (() => {
 
   // 每来一块 PCM 调一次；返回 true 表示已经静了 SILENCE_MS，该暂停了。
   function silenceCheck(s, rms, now) {
+    // 顺手记「这一场拿到过真样本没有」（#424）。判据是 **> 0**，不是过不过语音门限 ——
+    // 房间里的麦克风永远不会给出恒零，给出恒零的只有一条死掉的采集链路。
+    if (rms > 0) s.heardAny = true;
     // 字幕模式：静态门限（见 MODES.staticGate）。持续的配乐就是「有声」，不摸底噪、不抬门限。
     if (modeOf(s).staticGate) {
       if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; return false; }
