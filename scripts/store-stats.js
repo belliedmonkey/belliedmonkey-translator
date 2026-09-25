@@ -61,7 +61,8 @@ const ASC = require('./lib/asc-client');
 
 const ROOT = path.join(__dirname, '..');
 const KEYS = path.join(ROOT, '.local', 'keys.md');
-const SNAPDIR = path.join(ROOT, '.local', 'stats');   // .local/ 已在 .gitignore:35
+// .local/ 已在 .gitignore:35。取**主仓库**那一份：在 worktree 里跑时，写进临时目录的快照删树就丢（scripts/lib/local-dir.js）。
+const SNAPDIR = path.join(require('./lib/local-dir').mainLocalDir(ROOT), 'stats');
 
 // 与 amo-publish.js 同款槽位读取：`[^\S\n]*` 而不是 `\s*`，空槽位不许跨行吃下一个字段名。
 function slot(name) {

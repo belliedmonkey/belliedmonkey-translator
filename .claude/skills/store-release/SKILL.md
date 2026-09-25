@@ -304,6 +304,30 @@ node scripts/asc-media.js --apply                # 其余
 `uploadOperations` 逐段 PUT → 提交 md5），漏了校验和会永远停在 `UPLOAD_COMPLETE`，
 商店页看不到图，**而 API 全程不报错**。
 
+### 6.5 商店文案（ASO）—— 每一版过一遍台账，不是每一版都改
+
+**关键词、副标题、描述只能在版本记录还是 `PREPARE_FOR_SUBMISSION` 时改**，提审之后就锁到下一版。所以这一步
+必须在提审**之前**做，而且要先看台账再动手 —— 规矩在 `docs/growth-spec.md` §6。
+
+```bash
+node scripts/gen-aso-platforms.js --check   # 两份平台文件与底稿 aso.md 一致
+node scripts/asc.js aso --audit             # 商店上现有文案的体检（只读）
+npm run asc:sources                         # 基线：各地区来自搜索的曝光（也给分析报表请求续命）
+npm run aso:rank                            # 基线：关键词近似名次（约 5 分钟）
+# 看 store-assets/aso-ledger.md：这一版有没有排好的实验？关键词是不是还在「锁两版」的观察期里？
+node scripts/asc.js aso com.belliedmonkeytranslator    IOS    <版本> store-assets/aso-ios.md         # 干运行，看差异
+node scripts/asc.js aso com.belliedmonkeytranslator    MAC_OS <版本> store-assets/aso-mac.md
+node scripts/asc.js aso com.belliedmonkeytranslator.cn IOS    <版本> store-assets/aso-ios.md
+node scripts/asc.js aso com.belliedmonkeytranslator.cn MAC_OS <版本> store-assets/aso-mac.md
+# 确认无误后各加 --apply；它每写一处都会回读
+```
+
+- **iOS 传 `aso-ios.md`，macOS 传 `aso-mac.md`**，`aso.md` 是底稿、不直接上传。`asc.js` 会拦传错的 ——
+  传错了不会报错，商店页只是悄悄少一节主打功能（「系统翻译」因此在 iOS 文案里缺席过三个版本）。
+- 名称 / 副标题是 app 级的（`asc.js appinfo`），两个平台共用；也只能随新版本改。
+- **动了什么，当场记进台账**：改前 / 改后原文、假设、这一次的基线读数。过审后 7 天与 14 天各回读一次
+  `asc:sources` + `installs` + `aso:rank`，把结论补进同一条。
+
 ### 7. 发布说明 —— 空了会让整轮提审失败，而 Apple 不告诉你
 
 写 `store-assets/release-notes-<版本>.md`，再 PATCH 进每个本地化的 `whatsNew`。
@@ -317,6 +341,9 @@ node scripts/asc-media.js --apply                # 其余
 写进去就是假的。
 
 ### 8. 提审
+
+> **提审时不要勾「重置评分摘要」**（App Store Connect 的 *Reset iOS Summary Rating*）。评分本来就是 0，
+> 以后攒起来的每一颗星都是搜索排序的权重；重置一次就清零（2026-09-25 评分画布，telemetry-design §3.12）。
 
 ```bash
 node scripts/asc-submit.js 1.6.4            # 干运行，五道前置全查
@@ -493,7 +520,10 @@ npm run site:audit                       # 门禁：两站的 SEO/GEO 底子（t
 node scripts/asc.js installs 45
 ```
 
-走的是 **salesReports**，不是 analyticsReports —— 后者要先 POST 一个请求再等 Apple
+想知道「商店把我们展示给了谁、在哪里被看见」（搜索 / 浏览 / 引荐，按地区），用 `npm run asc:sources`
+—— 那一条读的是 analyticsReports 的 ONGOING 请求。
+
+下载量这一条走的是 **salesReports**，不是 analyticsReports —— 后者要先 POST 一个请求再等 Apple
 异步生成实例（一次性快照通常要等一天上下），前者是现成的，且每行自带 Country Code
 与 Device。凭证是 `.local/keys.md` 里的 `ascVendorNumber`，那个号 **API 查不到**，
 只能去网页上抄一次：「付款和财务报告」页左上角的灰色小字

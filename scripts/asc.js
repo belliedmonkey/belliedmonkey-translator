@@ -872,8 +872,18 @@ async function cmdDevices(udid, name, macFlag) {
     if (rest[0] === '--audit') { const ok = await cmdAsoAudit(); process.exit(ok ? 0 : 1); }
     const [bundleId, platform, versionString, file] = rest;
     if (!bundleId || !platform || !versionString || !file) {
-      console.log('用法: node scripts/asc.js aso <bundleId> <IOS|MAC_OS> <版本> <aso.md> [--apply] [--promo-only]');
+      console.log('用法: node scripts/asc.js aso <bundleId> <IOS|MAC_OS> <版本> <store-assets/aso-ios.md | aso-mac.md> [--apply] [--promo-only]');
       console.log('      node scripts/asc.js aso --audit');
+      process.exit(1);
+    }
+    // 平台与文件必须对上（2026-09-25，scripts/gen-aso-platforms.js）：aso.md 是底稿，iOS 传 aso-ios.md
+    // （多「系统翻译」一节）、macOS 传 aso-mac.md（多「快速翻译」一节）。传错了**不会报错** —— 商店页只是
+    // 悄悄少一节主打功能，或者多一节这个平台没有的功能。系统翻译在 iOS 商店文案里缺席了三个版本就是这么来的。
+    const WANT = { IOS: 'aso-ios.md', MAC_OS: 'aso-mac.md' };
+    const base = require('path').basename(file);
+    if (WANT[platform] && base !== WANT[platform]) {
+      console.error(`✗ ${platform} 要传 store-assets/${WANT[platform]}，不是 ${base}。`
+        + '（aso.md 是底稿；两份平台文件由 node scripts/gen-aso-platforms.js 生成）');
       process.exit(1);
     }
     const ok = await cmdAso(bundleId, platform, versionString, file,
