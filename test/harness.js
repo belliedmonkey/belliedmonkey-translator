@@ -3,8 +3,9 @@
 // The extension ships as browser IIFE modules (no ES modules, no npm deps — see
 // AGENTS.md). To regress their pure logic in plain Node we eval each source file
 // inside a `vm` sandbox with just enough browser globals stubbed, then read the
-// global the IIFE assigns (e.g. `TranslationCore`). No jsdom / no devDependencies:
-// DOM-heavy modules are covered by docs/regression-tests.md (manual) instead.
+// global the IIFE assigns (e.g. `TranslationCore`). No jsdom, no test framework;
+// build-time devDependencies only (esbuild, for `loadSrc` below — domain-design §10).
+// DOM-heavy modules are covered by the real-Chrome CDP gates instead.
 
 const vm = require('vm');
 const fs = require('fs');
@@ -38,6 +39,26 @@ function loadModule(relFile, sandbox = {}) {
     const abs = f.includes('/') ? path.join(EXT_ROOT, f) : path.join(EXT_DIR, f);
     vm.runInContext(fs.readFileSync(abs, 'utf8'), ctx, { filename: f });
   }
+  return ctx;
+}
+
+// Load a src/ module (may use import/JSX): esbuild-bundle it to an IIFE exposing
+// `globalName`, then run it in a vm context exactly like a legacy IIFE file.
+// Store / lib modules are plain JS (they never import React — domain-design §10.2),
+// so what runs here is what ships. React COMPONENTS are deliberately not vm-tested:
+// their logic lives in the store layer, their rendering in the real-Chrome gates.
+function loadSrc(relFile, globalName, sandbox = {}) {
+  const { buildOptions } = require('../build/run-esbuild.js');
+  let es;
+  try { es = require('esbuild'); }
+  catch { throw new Error('loadSrc 需要 esbuild —— 先 `npm ci`（domain-design §10.1）'); }
+  const r = es.buildSync(buildOptions({
+    entryPoints: [path.join(__dirname, '..', relFile)],
+    write: false, globalName, sourcemap: false,
+  }));
+  const base = { console, setTimeout, clearTimeout, setInterval, clearInterval };
+  const ctx = vm.createContext(Object.assign(base, sandbox));
+  vm.runInContext(r.outputFiles[0].text, ctx, { filename: relFile });
   return ctx;
 }
 
@@ -133,7 +154,7 @@ async function run() {
 }
 
 module.exports = {
-  loadModule, describe, test, run,
+  loadModule, loadSrc, describe, test, run,
   ok, eq, deepEq, match, rejects, tick,
   AssertionError,
 };

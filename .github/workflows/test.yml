@@ -1,8 +1,10 @@
 name: test
 
-# Zero-dependency repo: there is nothing to install, so there is deliberately no
-# `npm ci`, no lockfile restore and no cache step. If an install step ever shows
-# up here, a dependency crept into package.json and that is the thing to fix.
+# Runtime-zero-dependency repo (docs/domain-design.md §10): devDependencies are
+# BUILD-TIME ONLY (esbuild / react / react-dom for the UI bundles), pinned by
+# package-lock.json — the lockfile's sha512 integrity is the registry of record,
+# same family as the pdf.js vendor sha256. `npm ci` restores exactly that set.
+# If anything ever lands in `dependencies` (runtime), that is the thing to fix.
 
 on:
   push:
@@ -46,6 +48,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
       - run: npm test
 
   build:
@@ -66,6 +70,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+      - run: npm ci
       # build.js carries hard gates, not just packaging: the manifest
       # `data_collection_permissions` assertion (issue #53) and the china-flavor
       # compliance grep over dist-china/. A green build IS the gate here; the

@@ -5,6 +5,7 @@
 //   node scripts/amo-publish.js --check             # 只体检：凭证、附加组件状态，不动任何东西
 //   node scripts/amo-publish.js --upload            # 传 xpi 并等校验，**不**建版本
 //   node scripts/amo-publish.js --upload --publish  # 传 + 建版本（对外动作，需显式加旗标）
+//   … --publish --source-zip                        # 建版本后附源码 zip（git archive，判据是回读 source 非空）
 //
 // 与 cws-publish.js 同一套分档：默认什么都不做，提交是对外动作，不该是副作用。
 //
@@ -76,7 +77,7 @@ async function api(method, url, body, headers) {
   const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
   if (opt('--xpi')) XPI = opt('--xpi');
   const want = { check: argv.includes('--check'), upload: argv.includes('--upload'),
-    publish: argv.includes('--publish') };
+    publish: argv.includes('--publish'), sourceZip: argv.includes('--source-zip') };
   if (!want.check && !want.upload) {
     console.log('用法: node scripts/amo-publish.js --check | --upload [--publish]');
     console.log('  从历史 tag 重出产物: --xpi <路径> --tag <tag> --worktree <目录>');
@@ -176,5 +177,32 @@ async function api(method, url, body, headers) {
     process.exit(1);
   }
   console.log(`✓ 版本已创建：${created.d.version}`);
+
+  // ── 附源码（--source-zip，React/esbuild 起是必答题）───────────────────────
+  // xpi 里的 bundle 是机器生成代码，AMO 政策要求附可复现的源码 zip（含 lockfile；
+  // 复现步骤在 docs/amo-build.md）。zip 用 `git archive` 从 --tag（缺省 HEAD）打出：
+  // 出的就是版本库里那棵树，不含 node_modules / .local。判据是**回读**：PATCH 之后
+  // GET 这个版本，source 字段非空才算附上 —— 一个 2xx 不算。
+  if (want.sourceZip) {
+    const treeish = opt('--tag') || 'HEAD';
+    const cwd = opt('--worktree') || ROOT;
+    const zipPath = path.join(require('os').tmpdir(), `amo-source-${created.d.version}.zip`);
+    execSync(`git archive --format=zip -o ${JSON.stringify(zipPath)} ${JSON.stringify(treeish)}`, { cwd });
+    const sfd = new FormData();
+    sfd.append('source', new Blob([fs.readFileSync(zipPath)]), `source-${created.d.version}.zip`);
+    const patched = await api('PATCH',
+      `${API}/addons/addon/${encodeURIComponent(addonId)}/versions/${created.d.id}/`, sfd);
+    if (!patched.ok) { console.error(`✗ 附源码失败 HTTP ${patched.status}: ${brief(patched.text)}`); process.exit(1); }
+    const back = await api('GET',
+      `${API}/addons/addon/${encodeURIComponent(addonId)}/versions/${created.d.id}/`);
+    if (!back.ok || !back.d || !back.d.source) {
+      console.error(`✗ 附源码回读失败：source=${back.d && back.d.source}（HTTP ${back.status}）—— PATCH 的 2xx 不算数`);
+      process.exit(1);
+    }
+    console.log(`✓ 源码 zip 已附并回读（${treeish} → ${path.basename(zipPath)}）`);
+  } else {
+    console.log('  ⚠ 未附源码（--source-zip）。带 esbuild bundle 的版本 AMO 会要，见 docs/amo-build.md。');
+  }
+
   console.log('  审核状态可用 --check 复查（AMO 与 CWS 不同，这边 API 读得出审核结果）。');
 })().catch((e) => { console.error('✗ ' + ((e && e.stack) || e)); process.exit(1); });
