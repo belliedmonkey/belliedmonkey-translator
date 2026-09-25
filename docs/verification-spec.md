@@ -2257,6 +2257,42 @@ mode, which is how a 1.9:1 default-blue link shipped on the onboarding page.
 
 ## 4. Verification-honesty rules (mandatory)
 
+### 4.0 卡死的后台任务不是静止的 —— 杀掉那一步，它会跑完剩下的（2026-09-25）
+
+仓库里已经有一条「**后台任务活没活，看产物不看进程**」
+（记忆 `background-task-liveness-by-output`）。这是它的下半句，当天用一次真事故换来的。
+
+**事故**：本次会话早期挂了一个后台任务（证伪某道门禁，链子是
+`cp 备份 → 改坏 → 跑测试 → cp 还原 → 重建 → npm test`）。它卡在「跑测试」那一步，
+**满核空转了 30 小时**没人发现。一天后清理进程时把它 kill 掉 —— 那条 shell 命令链
+**立刻接着往下跑**，于是：
+
+```
+cp /tmp/rev.bak extension/learn/review.js   ← 用 30 小时前的备份覆盖
+node build.js                                ← 拿被覆盖的源码重建 dist/
+```
+
+`extension/learn/review.js` 被回滚了 **110 行**，`dist/` 也跟着错。这发生在**当天所有
+上传之后**，所以出货产物没事（判据：从 GitHub 直链重新下载，包内 `review.js` 与本地
+正确版本 **md5 相同**）—— 但工作树错了。
+
+**口径**：
+
+1. **杀掉任何一个卡住的后台步骤之后，立刻 `git status`。** 那条链子的下一步可能是
+   `cp` / `mv` / `rm` / `build`，而你只看见「进程没了」。
+2. 后台任务里凡是有「改坏 → 还原」这种成对操作的，**还原那一步依赖的备份会随时间腐烂**。
+   卡得越久，备份越旧，还原造成的破坏越大。⇒ 证伪类任务**别挂后台**，前台跑完再走。
+3. `pgrep` 说「在跑」与「在做有用功」是两回事。一个正常 1 分钟结束的 `npm test` 跑了
+   30 小时，判据不是它的存在，是**它的产物和它的 CPU 时间**（`%CPU=100`、
+   `TIME=1825 分钟` 是空转的指纹）。
+
+**反过来说一句同样重要的**：这次**门禁是抓得住的** —— 当天我先断言「没有任何东西会红」，
+随后把那份坏文件放回去实测，`npm test` 立刻红在
+`review_session/app: extension/learn/review.js 里没有 sessOpened()`，`test:learn` 也红。
+**所以要补的不是一道新门，是「杀完回读工作树」这个动作**；门已经在了，缺的是让它跑到。
+（断言之前先测 —— 我那句「不会红」是错的，测了才知道。）
+
+
 **A DOM element existing is NOT proof the user sees it.** This burned us: the YouTube
 `.mt-yt-dual` element was present (`querySelectorAll` found it) but invisible — clipped
 by an ancestor's `overflow:hidden`.
