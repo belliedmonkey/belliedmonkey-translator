@@ -286,10 +286,15 @@ china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
 1. **`TEST_RUNNER_` 前缀**：要把环境变量传进**设备上的测试进程**，必须写成 `TEST_RUNNER_MT_URL=…`。
    直接 `MT_URL=…` 只进 `xcodebuild` 自己的环境，测试里 `ProcessInfo.processInfo.environment` 读不到。
    **症状很欺骗**：测试「passed」，但只跑了 14 秒走默认分支 —— 判据要看附件，不看 passed。
-2. **别卸 runner。** 卸掉之后新装的包起不来：`profile has not been explicitly trusted by the user`，
-   而同一开发者身份签的**主 App 照样能起**（它的信任早就建立过，卸载不影响）。开发者模式开着也不管用，
-   `devicectl` 没有「信任证书」这个能力 ⇒ **只能人在手机上点一次**。09-23 我为排查一次启动失败卸了 runner，
-   把当天唯一还有效的那份信任删掉，后半程直接失去了真机。**启动失败先查别的，最后才动 runner。**
+2. **少重建 runner。** 装上新二进制就要联网重校验开发者证书，没当场完成就报
+   `profile has not been explicitly trusted by the user` / `Developer App Certificate is not trusted`，
+   而 `devicectl` 没有「信任证书」这个能力 ⇒ **只能人在手机主屏点一下 `S56UITests-Runner` 图标**
+   （「VPN与设备管理」里**没有**「开发者App」那一节，别去那儿找）。
+   **2026-09-25 钉死的真因：变的只有可执行文件的 CDHash —— 证书与描述文件两个月一个字节没动**，
+   所以「卸了 runner」和「重装主 App」都只是相关，不是原因（详见 §2.I）。
+   ⇒ 加新流程用脚本驱动的 `testDrive`（`tools/ios-runner/README.md`），写 JSON 不改 Swift，就不触发这一关。
+   09-23 我为排查一次启动失败卸了 runner，把当天唯一还有效的那份信任删掉，后半程直接失去了真机。
+   **启动失败先查别的，最后才动 runner。**
 3. **锁屏做不到，所以 iPhone 镜像在无人值守时不可用。** `devicectl` 没有 lock 子命令；XCUITest 的私有选择器
    `pressLockButton` 调用成功但**没有效果**（截图回读手机仍亮着）。而镜像自己要求「连接前请锁定 iPhone」
    （窗口原话），加上 §0.2.1 的密码前提 —— 两道都得人来。
@@ -1458,12 +1463,30 @@ has not been explicitly trusted by the user
 `Apple Development: … (DT6MT97DP4)` 签名、**照常启动**；runner 的描述文件有效到 2027、这台设备在
 `ProvisionedDevices` 里、`codesign` 读回同一个 TeamIdentifier。**只有测试程序被挡。**
 
-要人在手机上点一次：设置 → 通用 → VPN 与设备管理 → 开发者 App → 信任。
+要人在手机上点一次 —— **在主屏点那个 `S56UITests-Runner` 图标**（灰色空白图标，点开可能一闪就退，
+那是正常的）。**不要去「设置 → 通用 → VPN 与设备管理」找「开发者 App」那一节：开发者模式开着时
+那一节根本不存在**（2026-09-25 实测，此前这里写的路径是错的）。
 
 **卸载 runner 再装一遍偶尔能绕过一次，但不可靠。** 同一天里：第一次这么做通了，之后每次重装主 App
 它就又被挡，再用同样的办法（卸载 + `build-for-testing` + `test-without-building`、`xcodebuild test`
-整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。**触发条件像是「重装了主 App」** ——
-所以真机那一轮要一次装好、一次跑完，别边改边装。
+整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。
+
+> **2026-09-25 把真因钉死了：触发条件是「runner 的二进制变了」，不是「卸了 runner」也不是
+> 「重装了主 App」。** 那天既没卸 runner、也没重装主 App，只改了 `S56UITests.swift` 重建，照样被挡。
+> 逐项回读过（同一天）：
+>
+> | 项 | 读数 |
+> |---|---|
+> | 签名证书 | 钥匙串里**只有一张**有效的 iOS 开发证书（`Apple Development: ZHAO ZHANG`，2026-06-27 签发、2027-06 到期），两个月没变 |
+> | 描述文件 | Host 与 Runner 嵌的是**同一份**（UUID `9607f946…`，2026-09-12 建、2027-09 到期），`embedded.mobileprovision` 的 md5 两者相同，且 09-21 之后一个新 profile 都没生成 |
+> | 每次重建变的 | **只有可执行文件的 CDHash 与签名时间戳** |
+>
+> ⇒ 装上新二进制就要**联网重新校验一次开发者证书**（记忆 `ios-dev-cert-online-verification`），
+> 校验没当场完成就报这个错，而点图标正是在前台触发那次校验。
+>
+> **所以对策不是「修签名」，是「少重建」。** runner 里有脚本驱动的通用用例
+> `testDrive`（`tools/ios-runner/README.md`）：加新流程写 JSON、不改 Swift、不重建，
+> 也就不会触发这一关。改 Swift 之前先问一句「这个能不能用 testDrive 表达」。
 
 **这一步没有自动化的替代**：镜像那条路也不行（ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上
 镜像）。排验证计划时把它当成一个「要人」的步骤，别排在无人值守的那一段里。

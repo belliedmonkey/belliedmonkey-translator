@@ -147,6 +147,7 @@ TestFlight 新装的包容器是空的，而 runner 一上来就点「以后再�
 | App + 画中画 | `testPiPClose` | 开 App → 跳过引导 → 实时字幕 → 开始 → 开 Safari 测试页 → 点播放 → 画中画浮出 |
 | 系统翻译 | `testT1Safari` / `testT1Default` | 设成默认翻译 App → 在别的 App 里选字 → 翻译 |
 | 配 key | `testFillKey` | 见上 |
+| **任何新流程** | **`testDrive`** | **脚本驱动：步骤用 JSON 从 `MT_SCRIPT` 传进去，不用改 Swift、不用重建 runner** —— 也就不会触发上面那道证书重校验。步骤表见 `tools/ios-runner/README.md` |
 
 ```bash
 cd .local/spike/S6
@@ -181,7 +182,7 @@ AUDIO=… AUD_T0=… bash store-assets/src/compose-preview-ios.sh zh
 | `ffmpeg -i "7:none"` 报 I/O error | `avfoundation` 的**屏幕设备号会变**（7 ↔ 5） | 每次录前重新 `-list_devices` |
 | 「"某某iPhone"的相机」打不开 | 那是**连续互通相机**，不是手机屏幕 | 手机屏幕只能走 QuickTime |
 | QuickTime 存不出文件、⌘S 没反应 | 沙盒只认存储面板；脚本路径一律无权限 | 别让它录，只当取景器 |
-| runner 起不来 `Developer App Certificate is not trusted` | 证书信任掉了 | **「VPN与设备管理」里没有「开发者App」那一节** —— 让用户在主屏点一下 `S56UITests-Runner` 图标 |
+| runner 起不来 `Developer App Certificate is not trusted` | **重建了 runner** ⇒ 新二进制要联网重校验证书（证书与描述文件其实两个月没变，只有 CDHash 变了）| 让用户在主屏点一下 `S56UITests-Runner` 图标；**「VPN与设备管理」里没有「开发者App」那一节**。根治办法是**少重建** —— 用 `testDrive` 写 JSON |
 | 画中画里只有原文 | 手机上没配翻译引擎 | 见上；判据是原文**下面**有译文 |
 | Safari 里视频没播 | 本机测试页**被 Safari 缓存**了 | URL 加 `?v=N`；页面 `<video autoplay muted>`（镜像时喇叭本来就静音，静音不损失） |
 | Chrome 弹「翻译此页？」进了录屏 | `--disable-translate` / `--disable-features=Translate` **都拦不住** | 页面自己 `translate="no"` + `<meta name="google" content="notranslate">` |
