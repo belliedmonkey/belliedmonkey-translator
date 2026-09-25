@@ -287,6 +287,23 @@ ${head('同一个位置、同一个节奏，换一个目的地', '只给已登�
 ${hint('文案里不带具体句数：内容脚本拿不到扩展学习库里「今天几句」，为它另开通道不值。以后能便宜拿到再加。')}
 `, { page: 'p2' });
 
+board('K-Browsers.dc.html', 1320, 820, '第三轮：Chrome / Firefox 也不要评分，改成去扩展复习页', `
+${head('第二轮留着它的理由只有「5.6.1 管不到」—— 那只说明可以问，不说明应该问', '用户问：「Chrome / Firefox 为什么仍然让人去评分，而不是去复习？」')}
+<table class="tbl">
+  <tr><th></th><th>读数（09-25）</th></tr>
+  <tr><td>Chrome 评分行</td><td class="no">12 台看过 90 次，<b>点击 0</b> —— 和 Safari 同一个结论</td></tr>
+  <tr><td>这两个商店的评分值多少</td><td class="no">量 85% 以上来自 App Store 搜索；Chrome 商店 28 天 3 次安装</td></tr>
+  <tr><td>Chrome 真在用</td><td>7 台：<b>6 台 Mac 全都开了学习</b>、1 台 Windows 没开</td></tr>
+  <tr><td>Firefox 真在用</td><td>0 台</td></tr>
+</table>
+${grid(2, `
+  ${cell('改成', '「今天读过的句子，去复习 →」', pageWithRow(rateRow('今天读过的句子，去复习 →')))}
+  ${cell('打开的是', '扩展自己的复习页（learn/review.html）', hint('不需要登录、Windows 上也有、不用跳出浏览器；<b>只要开了学习</b>就出现。门槛与节奏同 Safari。评分只留常驻链接（设置页 / 弹窗）。'))}
+`)}
+${ask('量要说实话', '最多 6 台 Mac Chrome，而我们自己的开发机、测试机也在里面 —— 真实用户可能只有一两个。改它是因为<b>便宜、口径一致</b>（落地 PR 还没合），不是因为它能带来很多东西。')}
+${hint('遥测：事件 <code class="code">app_nudge</code> 改名 <code class="code">review_nudge</code>，两种浏览器共用，目的地由公共字段 <code class="code">host</code> 区分，不另加取值。')}
+`, { page: 'p2' });
+
 // ══════ 第 3 页 · 现状与规约矛盾（备查）══════════════════════════════════════
 
 board('G-Now.dc.html', 1320, 700, '现在的三处评分入口', `
@@ -351,6 +368,8 @@ idx.notes.why = { x: NX, y: 0, w: 540, maxH: 520, page: 'p1', color: 'orange',
 idx.notes.rule = { x: NX, y: 600, w: 540, maxH: 360, page: 'p1', color: 'purple',
   text: '流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。' };
 
+idx.notes.round3 = { x: NX, y: 2100, w: 540, maxH: 360, page: 'p1', color: 'green',
+  text: '✓ 第三轮（09-25 晚）：用户问「Chrome / Firefox 为什么仍然让人去评分？」→ 查数（真在用 7 台，6 台 Mac 全开了学习；Firefox 0）→ 用户「好的 改吧」。\n\nChrome / Firefox 那一行也改成「去复习」，打开扩展复习页（板 K）；评分只留常驻链接。事件改名 review_nudge。' };
 idx.notes.round2 = { x: NX, y: 1560, w: 540, maxH: 480, page: 'p1', color: 'green',
   text: '第二轮（09-25 下午）：用户问「为什么这么多人看到却没人评分？没有这个答案做什么都意义不大」→ 推两个分支（板 I）→ 发现苹果 5.6.1 禁止自定义评分提示 ⇒ Safari 那一行改「回 App」（板 J），Chrome / Firefox 照旧。\n\n✓ 09-25 用户：「451 我点头」—— 第二轮五件全部通过。规约 §3.12 已按第二轮重写并合入（#451）；落地 PR 进行中。' };
 idx.notes.ruled = { x: NX, y: 1040, w: 540, maxH: 460, page: 'p1', color: 'green',

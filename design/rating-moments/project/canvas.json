@@ -88,6 +88,14 @@
       "page": "p2",
       "title": "Safari 那一行：从「去商店评分」改成「回 App 复习」"
     },
+    "K-Browsers.dc.html": {
+      "x": 0,
+      "y": 2240,
+      "w": 1320,
+      "h": 820,
+      "page": "p2",
+      "title": "第三轮：Chrome / Firefox 也不要评分，改成去扩展复习页"
+    },
     "G-Now.dc.html": {
       "x": 0,
       "y": 0,
@@ -114,6 +122,7 @@
     "E-Qualify.dc.html",
     "F-App.dc.html",
     "J-BackToApp.dc.html",
+    "K-Browsers.dc.html",
     "G-Now.dc.html",
     "H-Spec.dc.html"
   ],
@@ -159,6 +168,15 @@
       "page": "p1",
       "color": "purple",
       "text": "流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。"
+    },
+    "round3": {
+      "x": 3960,
+      "y": 2100,
+      "w": 540,
+      "maxH": 360,
+      "page": "p1",
+      "color": "green",
+      "text": "✓ 第三轮（09-25 晚）：用户问「Chrome / Firefox 为什么仍然让人去评分？」→ 查数（真在用 7 台，6 台 Mac 全开了学习；Firefox 0）→ 用户「好的 改吧」。\n\nChrome / Firefox 那一行也改成「去复习」，打开扩展复习页（板 K）；评分只留常驻链接。事件改名 review_nudge。"
     },
     "round2": {
       "x": 3960,
