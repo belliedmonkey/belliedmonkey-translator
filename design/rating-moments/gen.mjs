@@ -351,8 +351,8 @@ idx.notes.why = { x: NX, y: 0, w: 540, maxH: 520, page: 'p1', color: 'orange',
 idx.notes.rule = { x: NX, y: 600, w: 540, maxH: 360, page: 'p1', color: 'purple',
   text: '流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。' };
 
-idx.notes.round2 = { x: NX, y: 1560, w: 540, maxH: 420, page: 'p1', color: 'blue',
-  text: '第二轮（09-25 下午）：用户问「为什么这么多人看到却没人评分？没有这个答案做什么都意义不大」→ 推两个分支（板 I）→ 发现苹果 5.6.1 禁止自定义评分提示 ⇒ Safari 那一行改「回 App」（板 J），Chrome / Firefox 照旧。\n\n板 C 已改成第二轮的五件，等你点头。' };
+idx.notes.round2 = { x: NX, y: 1560, w: 540, maxH: 480, page: 'p1', color: 'green',
+  text: '第二轮（09-25 下午）：用户问「为什么这么多人看到却没人评分？没有这个答案做什么都意义不大」→ 推两个分支（板 I）→ 发现苹果 5.6.1 禁止自定义评分提示 ⇒ Safari 那一行改「回 App」（板 J），Chrome / Firefox 照旧。\n\n✓ 09-25 用户：「451 我点头」—— 第二轮五件全部通过。规约 §3.12 已按第二轮重写并合入（#451）；落地 PR 进行中。' };
 idx.notes.ruled = { x: NX, y: 1040, w: 540, maxH: 460, page: 'p1', color: 'green',
   text: '✓ 2026-09-25 用户裁定：板 C 四件**全部按建议**。\n\n① 评分行：每天至多一次、最多 5 个不同日子，点或 × 立刻进 90 天冷却\n② 只问成功 ≥3 次且跨 ≥2 天的人\n③ App 系统评分挪到听译结束 / 快速翻译 / 系统翻译收件箱 / 复习 opened，同一门槛\n④ 扩展与 App 冷却不打通，规约改成实话\n\n补记：板 B 那次唯一的点击，用户答「很可能是我点的」⇒ 真实点击按 0 算。① 选「按日」而不是「按次」的理由里，「保住第 4 天那次点击」这条不再成立；剩下的理由仍够：同样的曝光预算分散到回访的日子，比堆在同一天的连续页面合理，且最多一台从 98 次降到 5 次。不需要重新裁定。\n\n下一步：遥测 docs PR（§3.12）过评审 → 部署 bt-ingest → 代码 PR（interaction-spec 同提交改）。' };
 fs.writeFileSync(path.join(OUT, 'canvas.json'), JSON.stringify(idx, null, 2) + '\n');
