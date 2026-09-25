@@ -139,6 +139,12 @@ im.crop((0,104,2560,104+1286)).resize((1728,868), Image.LANCZOS).save('store-ass
 
 ## 视频（App Preview）
 
+> **2026-09-25 起，录与合成的可执行配方搬到了 `/preview-video`**
+> （`.claude/skills/preview-video/SKILL.md`）—— Mac 两支怎么录、iPhone 两支怎么用
+> QuickTime 当取景器 + ffmpeg 裁窗口、声画怎么对齐、十二条陷阱索引都在那里。
+> **这一节只留规格、历史事故与配音/音乐的做法**，不要在两处各写一份录制步骤。
+
+
 ### Apple 规格
 
 | 预览类型 | 像素 | 时长 | 帧率 | 编码 |
