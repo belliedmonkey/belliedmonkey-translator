@@ -90,6 +90,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `tap` | `text` `exact` `swipes` | 滚动着找文字并点 |
 | `menu` | `item` `s` | 点选中菜单里的一项（拷贝/查询/翻译/查找）|
 | `drag` | `text` `from` `to` | **选整句**：长按只选一个词、三连点不扩选，只能按住拖 |
+| `dragxy` | `from` `to` `press` | **整窗归一化坐标**的按住拖。原生表格的重排手柄（≡）在 AX 上没有可点的动作，只能这样 |
 | `select` | `label` `value` | 下拉：**按标签找，不按值找**（四个下拉的值都是「中文」或「English」）|
 | `selects` | `tag` | 整页下拉**边滚边收**（只看当前屏会误判「那几档不存在」）|
 | `key` | `value` `expectLen` | 填密钥框；判据是**圆点数 == key 长度** |

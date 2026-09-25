@@ -1866,6 +1866,17 @@ final class S56UITests: XCTestCase {
                 el.coordinate(withNormalizedOffset: a).press(forDuration: 1.1, thenDragTo: el.coordinate(withNormalizedOffset: b))
                 sleep(2)
                 note("[\(tag)] 拖选「\(t)」→ 菜单项: " + app.menuItems.allElementsBoundByIndex.prefix(8).map { $0.label }.joined(separator: "|"))
+            case "dragxy":
+                // 通用的「按住拖」，坐标是**整窗归一化**的。与 `drag` 分开是因为那个只认
+                // webview 里的一段文字；原生表格的重排手柄（≡）在 AX 上没有可点的动作，
+                // 只能按住拖。09-25 用它把「首选语言」里的 English 拖到简体中文上面。
+                let da = vec(step, "from") ?? CGVector(dx: 0.5, dy: 0.5)
+                let db = vec(step, "to") ?? CGVector(dx: 0.5, dy: 0.3)
+                let hold = Double(i(step, "press") ?? 1)
+                app.coordinate(withNormalizedOffset: da)
+                   .press(forDuration: hold, thenDragTo: app.coordinate(withNormalizedOffset: db))
+                sleep(UInt32(i(step, "s") ?? 2))
+                note("[\(tag)] 按住 \(hold)s 拖 (\(da.dx),\(da.dy)) → (\(db.dx),\(db.dy))")
             case "select":
                 guard let l = s(step, "label"), let v = s(step, "value") else { note("[\(tag)] 缺 label/value"); break }
                 setSelect(l, v, tag)
