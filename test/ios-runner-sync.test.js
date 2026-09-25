@@ -43,12 +43,16 @@ describe('iOS runner：仓库里的源码就是权威的那一份', () => {
     ok(md.includes('Developer App Certificate is not trusted'), 'README 没写那条报错原文');
     ok(md.includes('S56UITests-Runner'), 'README 没说要点哪个图标（放行之前的临时解法）');
     ok(/没有.*开发者App/.test(md), 'README 没写「VPN与设备管理里没有开发者App那一节」——去那里找是死路');
-    // 根治办法必须**指向那个真能导入的文件**。只写「放行 ppq.apple.com」的话，
-    // 下一个人还要自己拼一份模块文件，而那正是今天花掉半小时的地方。
-    ok(md.includes(MODULE), `README 没指向 ${MODULE}（根治办法只写原理不给文件，等于没写）`);
+    // 可行的解法必须写全那三步（关代理 → 点图标 → 开代理）。少一步就等于没写：
+    // 09-25 撞到的两次里，直接点图标（代理开着）报的是「无法验证App」。
+    ok(/关掉.*代理|关掉 ?Shadowrocket/.test(md), 'README 没写「先关代理」这一步');
+    // 那份模块**没有被证实有效**，README 必须说清楚，否则下一个人会照着它去「根治」。
+    ok(md.includes(MODULE) && /没有被证实|未证实|不要再把它写成解法/.test(md),
+      `README 提到 ${MODULE} 时必须标明它未被证实（09-25 的错误结论就是这么进来的）`);
   });
 
-  test('Shadowrocket 模块放行了校验端点，且**没有**放行整个 apple.com', () => {
+  // 模块留着只当线索（域名清单是对的），所以这道门仍然守「别顺手放宽」这一条。
+  test('Shadowrocket 模块只放行校验端点，**没有**放行整个 apple.com', () => {
     const p = path.join(REPO, MODULE);
     ok(fs.existsSync(p), `缺 tools/ios-runner/${MODULE}`);
     const m = fs.readFileSync(p, 'utf8');
