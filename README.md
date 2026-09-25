@@ -36,6 +36,11 @@ BelliedMonkey Translator is a free, open-source (GPL-3.0) app and browser extens
 </p>
 <p align="center"><sub>Sentences you actually read come back as review cards — on your phone or on your Mac. Pick the translation, grade yourself, and spaced repetition schedules the next visit.</sub></p>
 
+<p align="center">
+  <img src="docs/media/app-live-subtitles.gif" alt="Live Subtitles on iPhone: a picture-in-picture window floats over another app, stacking each spoken sentence with its translation — the English translation in bold, the Chinese original beneath it." width="27%">
+</p>
+<p align="center"><sub>Live Subtitles: point the app at whatever is playing and the captions float in a picture-in-picture window, above whatever else you are doing. <a href="https://belliedmonkey.cc/#app-preview">Watch the full 30-second preview →</a></sub></p>
+
 ---
 
 ## Install
