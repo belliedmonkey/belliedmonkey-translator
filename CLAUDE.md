@@ -289,6 +289,7 @@ Key routing rules:
 - Release to any of the six store surfaces → invoke `/store-release`
 - Adding or measuring a provider/model → invoke `/perf-tune`
 - Windows row of the verification matrix → invoke `/win-matrix`
+- Re-shooting or extending a store preview video → invoke `/preview-video`
 - Bugs/errors → invoke `/gstack-investigate`
 - Code review/diff check → invoke `/code-review` (built in; `/code-review ultra` is the
   cloud multi-agent one, and only the user can launch it)
