@@ -1,0 +1,18 @@
+#!name=Apple 开发者证书校验直连
+#!desc=让 iOS 校验「开发者 App」证书的那几个端点走直连。装上新的开发签名二进制（例如重建 XCUITest runner）后，系统要联网验一次证书；这次请求走代理走不通时会报「Developer App Certificate is not trusted」，App 起不来，只能人在主屏点一下图标。放行这几个域名之后就不用点了。
+#!author=belliedmonkey
+#!homepage=https://github.com/belliedmonkey/belliedmonkey-translator/tree/main/tools/ios-runner
+
+[Rule]
+# 开发者 App 的校验端点 —— 这一条是主角
+DOMAIN,ppq.apple.com,DIRECT
+
+# 证书吊销状态查询（OCSP / CRL）。校验证书时会顺带查这些；
+# 走代理时它们也容易超时，而超时的表现同样是「证书不受信任」。
+DOMAIN,ocsp.apple.com,DIRECT
+DOMAIN,ocsp2.apple.com,DIRECT
+DOMAIN,crl.apple.com,DIRECT
+DOMAIN,valid.apple.com,DIRECT
+
+# ⚠️ 故意**不**写 DOMAIN-SUFFIX,apple.com —— 那会把一大片流量一起放走，
+# 远超这件事需要的范围。只放行校验链路上的这几个。

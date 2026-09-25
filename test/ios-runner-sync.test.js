@@ -20,6 +20,9 @@ const REPO = path.join(ROOT, 'tools', 'ios-runner');
 const WORK = path.join(ROOT, '.local', 'spike', 'S6', 'runner');
 
 // 两份都该有的源码。工程文件（S56Runner.xcodeproj）是 XcodeGen 的生成物，不比。
+// Shadowrocket 模块：放行 iOS 校验开发者证书的那几个端点。它只在仓库里有，不进工作区。
+const MODULE = 'shadowrocket-apple-dev-bypass.module';
+
 const FILES = [
   ['UITests/S56UITests.swift', 'UITests/S56UITests.swift'],
   ['Host/HostApp.swift', 'Host/HostApp.swift'],
@@ -35,11 +38,26 @@ describe('iOS runner：仓库里的源码就是权威的那一份', () => {
     }
   });
 
-  test('README 把「每次重建要人点图标」写清楚了 —— 这条今天卡住过两次', () => {
+  test('README 把「证书不受信任」的真因与根治办法都写了 —— 这条今天卡住过两次', () => {
     const md = fs.readFileSync(path.join(REPO, 'README.md'), 'utf8');
     ok(md.includes('Developer App Certificate is not trusted'), 'README 没写那条报错原文');
-    ok(md.includes('S56UITests-Runner'), 'README 没说要点哪个图标');
+    ok(md.includes('S56UITests-Runner'), 'README 没说要点哪个图标（放行之前的临时解法）');
     ok(/没有.*开发者App/.test(md), 'README 没写「VPN与设备管理里没有开发者App那一节」——去那里找是死路');
+    // 根治办法必须**指向那个真能导入的文件**。只写「放行 ppq.apple.com」的话，
+    // 下一个人还要自己拼一份模块文件，而那正是今天花掉半小时的地方。
+    ok(md.includes(MODULE), `README 没指向 ${MODULE}（根治办法只写原理不给文件，等于没写）`);
+  });
+
+  test('Shadowrocket 模块放行了校验端点，且**没有**放行整个 apple.com', () => {
+    const p = path.join(REPO, MODULE);
+    ok(fs.existsSync(p), `缺 tools/ios-runner/${MODULE}`);
+    const m = fs.readFileSync(p, 'utf8');
+    // ppq.apple.com 是主角：iOS 校验「开发者 App」证书就问它。
+    ok(/^DOMAIN,ppq\.apple\.com,DIRECT$/m.test(m), '模块里没有放行 ppq.apple.com 的那一条');
+    // 证伪方向：`DOMAIN-SUFFIX,apple.com` 会把一大片流量一起放走，远超这件事需要的范围。
+    // 这道门是为了防止「反正不灵就放宽一点」这种顺手的退化。
+    ok(!/DOMAIN-SUFFIX\s*,\s*apple\.com/i.test(m.replace(/^\s*#.*$/gm, '')),
+      '模块放行了整个 apple.com —— 只该放行校验链路上那几个域名');
   });
 
   test('testDrive 的步骤表与实现里的 op 对得上 —— README 少写一个 op，用它的人就不知道有', () => {

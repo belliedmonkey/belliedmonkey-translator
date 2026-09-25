@@ -1,6 +1,10 @@
 import XCTest
 import UIKit
 
+// 2026-09-25：装上新二进制后 iOS 要联网校验开发者证书；这次请求走代理走不通时报
+// 「Developer App Certificate is not trusted」，只能人点图标。
+// 放行办法见 tools/ios-runner/shadowrocket-apple-dev-bypass.module。
+
 // 模拟器上 `XCUIDeviceButton.volumeUp` 在**编译期**就不可用（不是运行时失败），
 // 所以岔路要用条件编译，不能用 if。
 enum MTVol {

@@ -182,7 +182,7 @@ AUDIO=… AUD_T0=… bash store-assets/src/compose-preview-ios.sh zh
 | `ffmpeg -i "7:none"` 报 I/O error | `avfoundation` 的**屏幕设备号会变**（7 ↔ 5） | 每次录前重新 `-list_devices` |
 | 「"某某iPhone"的相机」打不开 | 那是**连续互通相机**，不是手机屏幕 | 手机屏幕只能走 QuickTime |
 | QuickTime 存不出文件、⌘S 没反应 | 沙盒只认存储面板；脚本路径一律无权限 | 别让它录，只当取景器 |
-| runner 起不来 `Developer App Certificate is not trusted` | **重建了 runner** ⇒ 新二进制要联网重校验证书（证书与描述文件其实两个月没变，只有 CDHash 变了）| 让用户在主屏点一下 `S56UITests-Runner` 图标；**「VPN与设备管理」里没有「开发者App」那一节**。根治办法是**少重建** —— 用 `testDrive` 写 JSON |
+| runner 起不来 `Developer App Certificate is not trusted` | **重建了 runner** ⇒ 新二进制要联网重校验证书（证书与描述文件其实两个月没变，只有 CDHash 变了），而**那次请求被手机上的代理劫走了** | **根治：Shadowrocket 导入 `tools/ios-runner/shadowrocket-apple-dev-bypass.module`**（只放行 `ppq.apple.com` + OCSP/CRL）⇒ 09-25 实测重建后不用点图标。没装模块时只能让用户在主屏点一下 `S56UITests-Runner` 图标；**「VPN与设备管理」里没有「开发者App」那一节** |
 | 画中画里只有原文 | 手机上没配翻译引擎 | 见上；判据是原文**下面**有译文 |
 | Safari 里视频没播 | 本机测试页**被 Safari 缓存**了 | URL 加 `?v=N`；页面 `<video autoplay muted>`（镜像时喇叭本来就静音，静音不损失） |
 | Chrome 弹「翻译此页？」进了录屏 | `--disable-translate` / `--disable-features=Translate` **都拦不住** | 页面自己 `translate="no"` + `<meta name="google" content="notranslate">` |
