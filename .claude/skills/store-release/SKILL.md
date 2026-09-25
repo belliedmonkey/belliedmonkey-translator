@@ -173,11 +173,20 @@ bundle id         .cn 与否对得上 flavor
 **中国版独有三项**（上次被拒就是栽在这里）：
 
 ```
-sync              learn/backend.config.js 里 enabled: false
+sync              **判据随 china.ready 走，不是恒为 false**（2026-09-25 更正）：
+                  境内后端就绪时 dist-china 的 enabled 是 **true**，且 backend.config.js
+                  里的地址是 https://api.belliedmonkey.com；构建日志会打
+                  「China flavor: backend → …（境内，同步保持开启）」。
+                  只有 china.ready=false 时才翻成 enabled:false，日志打「sync disabled」。
+                  ⇒ **看构建日志那一行**，别拿 enabled 的字面值当判据。
 品牌词            grep -rlE 'ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com' 应命中 0 个文件
 google 引擎       content/providers.gen.js 里 '"id":"google"' 应为 0 条
 默认引擎          background.js 里 provider: 'deepseek'（不是 google）
 ```
+
+> 这条 2026-09-25 更正过：技能里原来写「enabled: false」，而 1.15.0（09-22）把中国版
+> 整个切到境内之后，`build.js:1274` 那个分支走的是「保持开启」。拿旧判据去核会得出
+> 「中国版要被拒了」的错误结论 —— 实现是对的，文档是旧的。
 
 ### 4. 上传 + 挂 build
 
