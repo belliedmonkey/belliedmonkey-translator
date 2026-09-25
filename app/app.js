@@ -1532,6 +1532,20 @@
 
   (async () => {
     paintStatic();
+    // 上面那一遍是按**系统**语言画的（存储还没读回来）。补这一次重画，否则首页
+    // 永远不跟随「界面语言」—— 而设置页会跟随（它经 review.js 调过 setUiLang），
+    // 于是同一个 App 里一半英文一半中文。非中文用户的第一屏就是这块。
+    PageI18n.applyStoredUiLang(paintStatic);
+    // 改语言当场生效的那一半。设置页是写入方，它只重画自己那一节（settings.js 的
+    // paintStatic），而首页这一层的文字是这里画的 —— 走 onChanged 总线接，不在
+    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。
+    try {
+      chrome.storage.onChanged.addListener((ch) => {
+        if (!ch || !ch.uiLang) return;
+        PageI18n.setUiLang(ch.uiLang.newValue || 'auto');
+        paintStatic();
+      });
+    } catch (_) {}
 
     // The app must honour the SAME shipping switch as the extension. `MT_BACKEND
     // .enabled === false` promises there is "no path to an account or to our server"

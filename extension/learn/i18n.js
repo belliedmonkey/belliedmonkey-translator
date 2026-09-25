@@ -53,5 +53,22 @@ var PageI18n = (() => {
 
   function setUiLang(v) { uiLang = v || 'auto'; }
 
-  return { t, applyI18n, setUiLang, effectiveLocale, normalizeLocale };
+  // 把用户在设置里选的 `uiLang` 灌进来，然后回调（回调总是「把这一页重画一遍」）。
+  //
+  // **每一个会画字的页面都要在启动时调它一次。** 存储是异步的，所以页面必然先按
+  // 系统语言画了一遍；不补这一次重画，那一页就**永远**停在系统语言上 —— 而症状
+  // 不是「少了一句翻译」，是整块 UI 说错语言，偏偏另一块又是对的，看着像随机。
+  //
+  // 2026-09-25 真机实测（系统语言中文、界面语言设成 English、杀掉 App 重开）：
+  // 设置页是英文（它经 review.js 调过 setUiLang），而**首页整块**与**快速翻译面板**
+  // 还是中文 —— 这两条启动路径上一次都没调过。词条一个不缺，缺的是这一次调用。
+  function applyStoredUiLang(repaint) {
+    let done = false;
+    const fire = () => { if (done) return; done = true; try { repaint && repaint(); } catch (_) {} };
+    try {
+      chrome.storage.local.get(['uiLang'], (v) => { setUiLang((v && v.uiLang) || 'auto'); fire(); });
+    } catch (_) { fire(); }   // 没有 chrome.storage 的宿主：按系统语言画的那一遍就是最终结果
+  }
+
+  return { t, applyI18n, setUiLang, applyStoredUiLang, effectiveLocale, normalizeLocale };
 })();

@@ -1076,6 +1076,51 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(tl.options === 13, '「译成」：该是 1 + 12 项，实际 ' + tl.options);
     }
 
+    // ─── 界面语言：**首页也要跟随**，冷启动就跟随（2026-09-25）────────────────────────
+    //
+    // 这条门禁背后那次事故：真机上把「界面语言」设成 English、杀掉 App 重开 ——
+    // 设置页是英文，而**首页整块**（产品名下那句 lede、登录卡、分节标题「听」）与
+    // **快速翻译面板**还是中文。词条一个不缺；缺的是 `PageI18n.setUiLang` 在这两条
+    // 启动路径上从来没被调过 —— 全仓库只有设置页的 change 处理器和 review.js 调它。
+    // 于是「进过设置页」的那一半界面是对的，没进过的那一半是错的，看着像随机。
+    //
+    // **为什么用日语当判据**：跑测试的 Chrome 自己是英文（或中文），拿 'en' 做期望
+    // 会在「根本没调 setUiLang」时**照样绿** —— 系统回落恰好也给英文。'ja' 既不是
+    // 系统语言也不是回落值（回落是 zh_CN），只有真的读了 uiLang 才可能出现。
+    {
+      const jaLede = 'ブラウザで読んだ文がここに同期され、復習できます。';
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ uiLang: 'ja' }, r))`, awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const cold = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({
+        lede: (document.getElementById('lede') || {}).textContent || '',
+        modes: (document.getElementById('modes-label') || {}).textContent || '',
+        gear: (document.getElementById('gear') || {}).textContent || '' })`, returnByValue: true }, sessionId);
+      const cv = JSON.parse(cold.result.value);
+      need(cv.lede === jaLede, `界面语言：冷启动后首页的 lede 该是日文，实际「${cv.lede}」—— 首页没跟随 uiLang`);
+      // 不只量一处：lede 对了而别处没跟上，说明补的那次重画没覆盖整页。
+      need(!/[\u4e00-\u9fff]/.test(cv.modes) || cv.modes === '聞く',
+        `界面语言：分节标题也该跟随，实际「${cv.modes}」`);
+      need(!/^设置$/.test(cv.gear), `界面语言：「设置」入口也该跟随，实际「${cv.gear}」`);
+
+      // 改语言**当场生效**，不等下次启动。设置页是写入方、只重画自己那一节，
+      // 首页这一层靠 storage.onChanged 总线接 —— 断了就只有重启才对。
+      const live = JSON.parse((await cdp.send('Runtime.evaluate', { expression: `(async () => {
+        const sel = document.getElementById('ui-lang');
+        sel.value = 'en'; sel.dispatchEvent(new Event('change', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 600));
+        return JSON.stringify({ lede: (document.getElementById('lede') || {}).textContent || '' });
+      })()`, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
+      need(/^Sentences you read/.test(live.lede),
+        `界面语言：换成 English 后首页该当场变，实际「${live.lede}」—— onChanged 那条总线没接上`);
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['uiLang'], r))`, awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1500));
+      // installSweep 走 Runtime.evaluate，**重载一次就没了**，而后面还有清扫要跑。
+      // 不装回来的症状是「__sweep is not defined」，看着像清扫本身坏了。
+      await installSweep(cdp, sessionId);
+    }
+
     await sweepView('复习视图', `(async () => { const $ = (id) => document.getElementById(id);
       $('app-settings').hidden = true; $('review-view').hidden = false;
       await LearnReview.start(); return 'ok'; })()`, '#review-view');

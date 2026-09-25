@@ -284,6 +284,10 @@
   function boot() {
     document.documentElement.classList.add('quick-mode');
     paintStatic();
+    // 面板是**独立的一次页面加载**，有它自己的 PageI18n —— 主壳或设置页调过
+    // setUiLang 不算数。不补这一句，英文用户看到的面板标题、「复制译文」和那句
+    // 隐私说明全是中文（2026-09-25 真机实测，也因此毁掉过一条商店预览片）。
+    if (typeof PageI18n !== 'undefined') PageI18n.applyStoredUiLang(paintStatic);
     $('quick-root').hidden = false;
     $('qk-close').addEventListener('click', () => post({ type: 'quick-close' }));
     $('qk-pin').addEventListener('click', () => setPinned(!pinned, true));
