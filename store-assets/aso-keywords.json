@@ -1,0 +1,20 @@
+{
+  "_说明": "scripts/aso-rank.js 的词表。键是「目标」（哪个 app × 哪个平台），值是 { 店面: [搜索词] }。店面按 `asc.js sources` 里「来自搜索的曝光」排序挑（2026-09-25：US 2021 · TW 169 · JP 150 · TR 91 · VN 75 · DE 44；中国版只在 CN）。每个店面放三类词：现有 keywords / subtitle 里的词（看它们到底排不排得上）、候选长尾词（下一版换词前先测名次）、品牌词（看自己的名字能不能搜到）。改词表不影响任何商店字段 —— 它只决定测什么。",
+  "ios": {
+    "us": ["belliedmonkey", "bilingual translation", "live subtitles", "live translate", "dual subtitles", "bilingual subtitles", "youtube dual subtitles", "translate safari", "safari translate extension", "safari extension translator", "translate webpage", "interpreter", "conversation translator", "pdf translator", "language learning flashcards"],
+    "tw": ["雙語字幕", "即時字幕", "網頁翻譯", "同步口譯", "雙語對照", "safari 翻譯"],
+    "jp": ["同時通訳", "二か国語字幕", "リアルタイム字幕", "ウェブページ翻訳", "safari 翻訳"],
+    "tr": ["canlı altyazı", "altyazı çeviri", "çift dilli", "canlı çeviri", "safari çeviri"],
+    "vn": ["phụ đề song ngữ", "dịch trực tiếp", "dịch trang web", "phiên dịch"],
+    "de": ["live untertitel", "zweisprachig", "übersetzer safari", "simultandolmetscher"]
+  },
+  "mac": {
+    "us": ["belliedmonkey", "translate safari", "live subtitles", "bilingual translation", "quick translate", "screenshot translate", "translator"]
+  },
+  "ios-cn": {
+    "cn": ["大肚猴翻译", "同声传译", "双语字幕", "实时字幕", "网页翻译", "双语对照", "对话翻译", "外刊阅读", "背单词", "safari 翻译"]
+  },
+  "mac-cn": {
+    "cn": ["大肚猴翻译", "网页翻译", "实时字幕", "划词翻译", "截图翻译"]
+  }
+}

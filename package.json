@@ -30,6 +30,8 @@
     "test:setup-page": "node scripts/gen-try-pages.js --check && node scripts/verify-setup-page.js",
     "site:audit": "node scripts/site-audit.js",
     "site:traffic": "node scripts/site-traffic.js",
+    "aso:rank": "node scripts/aso-rank.js",
+    "asc:sources": "node scripts/asc.js sources",
     "changelog": "node scripts/gen-changelog.js",
     "test:onboard": "node scripts/verify-onboard.js dist && node scripts/verify-onboard.js dist-china",
     "test:wipe": "node scripts/verify-wipe.js dist && node scripts/verify-wipe.js dist-china",
