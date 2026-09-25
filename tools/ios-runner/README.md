@@ -23,37 +23,43 @@ cd .local/spike/S6 && xcodebuild build-for-testing \
 `npm test` 里的 `test/ios-runner-sync.test.js` 会比对两份的 sha256，不一致就红 ——
 免得「改了工作区那份、仓库里这份还是旧的」这种静默漂移。
 
-## 「证书不受信任」：真因是代理劫走了那次校验（2026-09-25 解决）
+## 「证书不受信任」：触发它的是**装新 App 的二进制**，不是重建 runner
 
-装上新二进制之后，iOS 要**联网校验一次开发者证书**。这次请求**走代理走不通**时报
+装上一个**这个开发者身份签的新 App 二进制**之后，iOS 要联网校验一次证书。校验没完成时，
+**同一身份签的其它程序（包括这个 runner）一起被挡**，报：
 
 ```
 The application could not be launched because the Developer App Certificate is not trusted.
 ```
 
-`devicectl` 帮不上忙（它没有「信任证书」这个能力），只能人在主屏点一下 `S56UITests-Runner`
-的图标——点图标就是在前台重试那次校验。
+`devicectl` 帮不上忙（它没有「信任证书」这个能力，而且**它不触发校验**）。
 
-**根治办法：把校验链路放直连。** 手机的 Shadowrocket 导入本目录的
-[`shadowrocket-apple-dev-bypass.module`](shadowrocket-apple-dev-bypass.module)
-（配置 → 模块 → + → 填地址 → 打开开关）。它只放行 `ppq.apple.com` 与几个 OCSP/CRL 域名，
-**故意不写 `DOMAIN-SUFFIX,apple.com`**。
+**已知可行的解法**（2026-09-25 当天两次实测，顺序不能错）：
 
-**对照实验（同一天，同一台机器）**：
-
-| | 重建 runner 之后直接跑 |
-|---|---|
-| 导入模块前 | 失败两次，每次都要人点图标 |
-| 导入模块后 | `TEST EXECUTE SUCCEEDED`，12.5 s，附件里有 `[0-launch] 起了 …` + 截图 —— **一下都没点** |
-
-> 走到这一步之前绕过两个错误结论：以为是「卸了 runner」、以为是「Xcode 轮换了证书」。
-> 逐项回读推翻了后者（**只有一张有效证书、profile 两个月没变，每次变的只有 CDHash**），
-> 而真因是用户那句「先关 Shadowrocket 再打开 app 才行」点破的。
-> **有人在回路里的时候，他的观察是最便宜的一次测量。**
+1. **关掉手机上的代理（Shadowrocket）**
+2. 人在主屏点一下 `S56UITests-Runner` 的图标（灰色空白图标，点开可能一闪就退，正常）
+3. **再把代理打开**
 
 「设置 › 通用 › VPN与设备管理」里**没有**「开发者App」那一节（开发者模式开着就不用它）——别去那里找。
 
-⇒ 即便如此仍然**优先少重建**：加新流程用下面那个脚本驱动的用例，不需要改 Swift。
+### ⚠️ 本目录的 Shadowrocket 模块：**没有被证实有效，别当成根治**
+
+`shadowrocket-apple-dev-bypass.module` 放行 `ppq.apple.com` 与几个 OCSP/CRL 域名。
+当天我一度断言它根治了这件事，**那个结论是错的**：
+
+| 观测 | 我当时的解释 | 实际 |
+|---|---|---|
+| 导入模块后重建 runner 三次全过、不用点 | 模块生效了 | **重建 runner 本来就不需要重新校验** —— 证书那时已经受信，变的只有二进制哈希 |
+| 导入模块前重建失败两次 | 模块没装 | 那两次前面**装过新 App**，欠的是那一次校验 |
+| 装完主 App 新包，runner 被挡、重建也不管用、点图标报「无法验证App」 | —— | **此时代理是开着的**（用户确认）⇒ 模块并没有让校验通过 |
+
+最后一行是决定性的：**开着代理 + 装着模块，校验照样失败。** 所以模块留在这里只当一份
+线索（域名清单是对的），**不要再把它写成解法**。为什么放行了还不通没有查实 —— 可能这段
+流量不走 Shadowrocket 的规则引擎，也可能端点不止这几个。
+
+> 方法论上这一条比结论值钱：**两个解释都能装下同一批观测时，我只验证了自己先想到的那个。**
+> 分开它们的测试一直都在手边（关掉模块重建一次），而我没做就把结论写进了文档、记忆和 PR。
+> 真正把它翻过来的又是用户的一句观察 ——「点的时候 Shadowrocket 是开着的」。
 
 ## `testDrive` —— 加流程写 JSON，不重建
 
@@ -84,6 +90,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `tap` | `text` `exact` `swipes` | 滚动着找文字并点 |
 | `menu` | `item` `s` | 点选中菜单里的一项（拷贝/查询/翻译/查找）|
 | `drag` | `text` `from` `to` | **选整句**：长按只选一个词、三连点不扩选，只能按住拖 |
+| `dragxy` | `from` `to` `press` | **整窗归一化坐标**的按住拖。原生表格的重排手柄（≡）在 AX 上没有可点的动作，只能这样 |
 | `select` | `label` `value` | 下拉：**按标签找，不按值找**（四个下拉的值都是「中文」或「English」）|
 | `selects` | `tag` | 整页下拉**边滚边收**（只看当前屏会误判「那几档不存在」）|
 | `key` | `value` `expectLen` | 填密钥框；判据是**圆点数 == key 长度** |

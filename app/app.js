@@ -90,6 +90,10 @@
   }
 
   function paintStatic() {
+    // 产品名也是要本地化的一句（`action_title`，12 个语种都有）。它原来是 index.html 里
+    // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
+    // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
+    $('app-brand').textContent = t('action_title', '大肚猴翻译');
     $('lede').textContent = t('app_lede', '你在浏览器里读到的句子，会同步到这里来复习。');
     $('email-label').textContent = t('app_email_label', '邮箱');
     $('send').textContent = t('app_send', '发送验证码');
@@ -1532,6 +1536,20 @@
 
   (async () => {
     paintStatic();
+    // 上面那一遍是按**系统**语言画的（存储还没读回来）。补这一次重画，否则首页
+    // 永远不跟随「界面语言」—— 而设置页会跟随（它经 review.js 调过 setUiLang），
+    // 于是同一个 App 里一半英文一半中文。非中文用户的第一屏就是这块。
+    PageI18n.applyStoredUiLang(paintStatic);
+    // 改语言当场生效的那一半。设置页是写入方，它只重画自己那一节（settings.js 的
+    // paintStatic），而首页这一层的文字是这里画的 —— 走 onChanged 总线接，不在
+    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。
+    try {
+      chrome.storage.onChanged.addListener((ch) => {
+        if (!ch || !ch.uiLang) return;
+        PageI18n.setUiLang(ch.uiLang.newValue || 'auto');
+        paintStatic();
+      });
+    } catch (_) {}
 
     // The app must honour the SAME shipping switch as the extension. `MT_BACKEND
     // .enabled === false` promises there is "no path to an account or to our server"

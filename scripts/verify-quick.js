@@ -131,6 +131,39 @@ async function main() {
     need(a.opts.length >= 10 && a.opts.indexOf('') < 0 && a.opts.indexOf('zh-CN') >= 0, 'A: 目标语言选项该从「译成」克隆、去掉「跟随界面语言」，实际 ' + JSON.stringify(a.opts));
     need(a.resize >= 1, 'A: 启动后该报一次高度（quick-resize）');
 
+    // ── A2. 面板跟随「界面语言」──────────────────────────────────────────────
+    // 面板是**独立的一次页面加载**，有它自己的 PageI18n —— 主壳或设置页调过
+    // setUiLang 不算数。2026-09-25 真机实测：界面语言设成 English，面板的标题、
+    // 「复制译文」、那句隐私说明**全是中文**，因为这条启动路径没人调 setUiLang。
+    //
+    // 判据用**日语**：跑测试的 Chrome 是英文，拿 'en' 当期望会在「根本没读 uiLang」
+    // 时照样绿（系统回落恰好也给英文）；'ja' 既不是系统语言也不是回落值（zh_CN）。
+    //
+    // ⚠️ 重开这一页必须用 **Page.reload**。`Page.navigate` 到**同一个 URL 同一个
+    // hash** 不会重新加载文档，面板根本不会再启动一次 —— 于是量到的是上一次启动的
+    // 结果，门禁会对着修好的代码报红（09-25 就这么误判了一轮）。
+    {
+      await E(`new Promise((r) => chrome.storage.local.set({ uiLang: 'ja' }, r))`);
+      need(JSON.parse(await E(`new Promise((r) => chrome.storage.local.get(['uiLang'], (v) => r(JSON.stringify(v || {}))))`)).uiLang === 'ja',
+        'A2: 种子没落盘，后面量的就不是这件事');   // 只信回读
+      await cdp.send('Page.reload', {}, sessionId);
+      await until(() => E(`typeof __out !== 'undefined' && __out.some((m) => m.type === 'quick-ready')`), 8000, 'A2: quick-ready');
+      await sleep(900);   // applyStoredUiLang 是异步读存储，重画落在 quick-ready 之后
+      const ja = JSON.parse(await E(`JSON.stringify({
+        copy: document.getElementById('qk-copy').getAttribute('aria-label') || '',
+        ph: document.getElementById('qk-src').placeholder || '',
+        loc: (typeof PageI18n !== 'undefined' ? PageI18n.effectiveLocale() : '-') })`));
+      need(ja.loc === 'ja', `A2: 面板该按 uiLang 解出 ja，实际「${ja.loc}」—— 这条启动路径没调 setUiLang`);
+      need(ja.copy === '訳文をコピー', `A2: 面板的「复制译文」该跟着变日文，实际「${ja.copy}」`);
+      need(ja.ph === '翻訳するテキストを入力またはペースト', `A2: 占位文案也该跟着变，实际「${ja.ph}」`);
+      // 还原：后面几段都按中文界面断言（「选中文字」「已存入复习库」）
+      await E(`new Promise((r) => chrome.storage.local.set({ uiLang: 'zh-CN' }, r))`);
+      stats.calls.length = 0; stats.other.length = 0;
+      await cdp.send('Page.reload', {}, sessionId);
+      await until(() => E(`typeof __out !== 'undefined' && __out.some((m) => m.type === 'quick-ready')`), 8000, 'A2: 还原后 quick-ready');
+      await sleep(700);
+    }
+
     // ── B. 交来选中文字 ⇒ 译文上屏、方向对、出站消息形状对 ──
     await show({ via: 'select', origin: 'selection', text: 'The committee postponed the vote.' });
     const b = await settled();
