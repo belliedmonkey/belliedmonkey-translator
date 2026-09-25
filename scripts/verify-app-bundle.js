@@ -1093,11 +1093,14 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
       const cold = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({
+        brand: (document.getElementById('app-brand') || {}).textContent || '',
         lede: (document.getElementById('lede') || {}).textContent || '',
         modes: (document.getElementById('modes-label') || {}).textContent || '',
         gear: (document.getElementById('gear') || {}).textContent || '' })`, returnByValue: true }, sessionId);
       const cv = JSON.parse(cold.result.value);
       need(cv.lede === jaLede, `界面语言：冷启动后首页的 lede 该是日文，实际「${cv.lede}」—— 首页没跟随 uiLang`);
+      // 产品名原来是写死的 h1（没有 id、没有 data-i18n），整屏都变了它还是中文。
+      need(cv.brand === '大肚猴翻訳', `界面语言：首页的产品名该跟随，实际「${cv.brand}」—— 它是不是又变回写死的 h1 了`);
       // 不只量一处：lede 对了而别处没跟上，说明补的那次重画没覆盖整页。
       need(!/[\u4e00-\u9fff]/.test(cv.modes) || cv.modes === '聞く',
         `界面语言：分节标题也该跟随，实际「${cv.modes}」`);

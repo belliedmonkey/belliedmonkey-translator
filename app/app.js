@@ -90,6 +90,10 @@
   }
 
   function paintStatic() {
+    // 产品名也是要本地化的一句（`action_title`，12 个语种都有）。它原来是 index.html 里
+    // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
+    // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
+    $('app-brand').textContent = t('action_title', '大肚猴翻译');
     $('lede').textContent = t('app_lede', '你在浏览器里读到的句子，会同步到这里来复习。');
     $('email-label').textContent = t('app_email_label', '邮箱');
     $('send').textContent = t('app_send', '发送验证码');
