@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>要你裁定的四件</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:820px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">每件都给了建议 —— 点头或改哪几条都行</h1><span>裁定后按规约：写 interaction-spec → 遥测 docs PR 过评审 → 代码</span></div></div>
+<div class="ask"><b>① 评分行的冷却口径（板 D）</b>建议 <b>「每天至多一次、最多出现在 5 个不同的日子」</b>，点或 × 仍然立刻进 90 天冷却。<br>按现有数据：Safari 曝光 389 → 约 60（-85%），而那台点了的设备在第 4 天依然会看到它。</div>
+<div class="ask"><b>② 只问真在用的人（板 E）</b>建议评分行只在<b>成功过 ≥3 次、且跨 ≥2 天</b>之后才出现（现在是「第 3 个成功的网页会话」，同一天刷 3 页就会被问）。Safari 那 58 台里符合的是 17 台。</div>
+<div class="ask"><b>③ App 的系统评分挪不挪（板 F）</b>建议<b>挪</b>，但别指望它：挪到「听译 / 实时字幕结束且有句子」「Mac 快速翻译第 3 次成功」「系统翻译收件箱进卡」，门槛同②。它便宜、方向对，只是今天的 App 用户太少。<b>绝不在按钮回调里调</b>（Apple 明文禁止）。</div>
+<div class="ask"><b>④ 扩展与 App 的冷却要不要打通</b>建议<b>不打通</b>，把规约改成实话：两边各自 90 天。打通要走 App Group，属于领域设计；而同一个人两边都被问到的概率，按上表几乎为 0。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
