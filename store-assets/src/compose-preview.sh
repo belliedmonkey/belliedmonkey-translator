@@ -29,6 +29,12 @@ TALK_IN=2;   TALK_DUR=8       # 取录屏 2–10 s（原来 9 s，同上）
 QUICK_DUR=3                   # 快速翻译：选中 → 面板出译文，够看清一次
 TOTAL=$(echo "$CARD*3 + $SUBS_DUR + $TALK_DUR + $QUICK_DUR" | bc)
 SA=$(echo "$SUBS_T0 + $SUBS_IN" | bc); TA=$(echo "$TALK_T0 + $TALK_IN" | bc)
+SA_END=$(echo "$SA + $SUBS_DUR" | bc); TA_END=$(echo "$TA + $TALK_DUR" | bc)
+# 两条外放音轨当时都是 `while true; do afplay …; done` 循环放的，所以取的时候也要
+# **循环着取**（`-stream_loop -1` + 滤镜里按绝对起止截）—— 越过一轮之后喇叭里放的
+# 本来就是文件开头，这是还原，不是取巧。不循环的后果是**安静地少一截**：
+# 2026-09-25 iOS 那支就这么出了个 21.7 s 音轨配 28 s 画面的片子，本地能放，
+# 传到 ASC 被异步判 MOV_RESAVE_CORRUPTED。下面出片后有门禁兜住。
 OUT=${OUT_DIR:-$(cd "$(dirname "$0")/.." && pwd)/video}/$L-mac.mp4
 echo "${L}：总长 $TOTAL s（Apple 上限 30）· 字幕段音轨起点 $SA s · 对话段音轨起点 $TA s"
 
@@ -40,8 +46,8 @@ ffmpeg -v error -y \
   -ss $TALK_IN -t $TALK_DUR -i "$TALK" \
   -ss 0 -t $QUICK_DUR -i "$QUICK" \
   -loop 1 -framerate 30 -t $CARD -i $C/$L-end.png \
-  -ss $SA -t $SUBS_DUR -i "$SUBS_AUDIO" \
-  -ss $TA -t $TALK_DUR -i "$CONV" \
+  -stream_loop -1 -i "$SUBS_AUDIO" \
+  -stream_loop -1 -i "$CONV" \
   -i $M/music.wav \
   -filter_complex "\
 [0:v]$V,fade=t=in:st=0:d=$FADE,fade=t=out:st=$(echo "$CARD-$FADE" | bc):d=$FADE[v0];\
@@ -52,9 +58,9 @@ ffmpeg -v error -y \
 [5:v]$V,fade=t=in:st=0:d=$FADE,fade=t=out:st=$(echo "$CARD-$FADE" | bc):d=$FADE[v5];\
 [v0][v1][v2][v3][v4][v5]concat=n=6:v=1:a=0[v];\
 anullsrc=r=48000:cl=stereo,atrim=duration=$CARD[s0];\
-[6:a]aformat=sample_rates=48000:channel_layouts=stereo,loudnorm=I=-18:TP=-2,atrim=duration=$SUBS_DUR,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.3,afade=t=out:st=$(echo "$SUBS_DUR-0.4" | bc):d=0.4[s1];\
+[6:a]atrim=start=$SA:end=$SA_END,asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,loudnorm=I=-18:TP=-2,afade=t=in:st=0:d=0.3,afade=t=out:st=$(echo "$SUBS_DUR-0.4" | bc):d=0.4[s1];\
 anullsrc=r=48000:cl=stereo,atrim=duration=$CARD[s2];\
-[7:a]aformat=sample_rates=48000:channel_layouts=stereo,loudnorm=I=-18:TP=-2,atrim=duration=$TALK_DUR,asetpts=PTS-STARTPTS,afade=t=in:st=0:d=0.3,afade=t=out:st=$(echo "$TALK_DUR-0.4" | bc):d=0.4[s3];\
+[7:a]atrim=start=$TA:end=$TA_END,asetpts=PTS-STARTPTS,aformat=sample_rates=48000:channel_layouts=stereo,loudnorm=I=-18:TP=-2,afade=t=in:st=0:d=0.3,afade=t=out:st=$(echo "$TALK_DUR-0.4" | bc):d=0.4[s3];\
 anullsrc=r=48000:cl=stereo,atrim=duration=$QUICK_DUR[s4];\
 anullsrc=r=48000:cl=stereo,atrim=duration=$CARD[s5];\
 [s0][s1][s2][s3][s4][s5]concat=n=6:v=0:a=1[dia];\
@@ -63,3 +69,21 @@ anullsrc=r=48000:cl=stereo,atrim=duration=$CARD[s5];\
   -map "[v]" -map "[a]" -c:v libx264 -profile:v high -pix_fmt yuv420p -r 30 -crf 18 -preset medium \
   -c:a aac -b:a 192k -ar 48000 -ac 2 -movflags +faststart -t $TOTAL "$OUT" || { echo "✗ 合成失败"; exit 1; }
 ffprobe -v error -show_entries format=duration:stream=codec_name,profile,width,height,r_frame_rate,pix_fmt,sample_rate,channels -of compact "$OUT"
+
+# ── 出片后的判据：音轨必须和画面一样长（与 compose-preview-ios.sh 同一条）────────
+# 「能放」不是判据 —— 音轨短一截只是后半段静音，本地看不出来，而 ASC 上传后异步判
+# MOV_RESAVE_CORRUPTED，那时脚本早退出了、上传那一步还打过 ✓。
+VD=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of csv=p=0 "$OUT")
+AD=$(ffprobe -v error -select_streams a:0 -show_entries stream=duration -of csv=p=0 "$OUT")
+python3 - "$VD" "$AD" "$TOTAL" <<'PY' || { echo "   ⇒ 删掉这个残片，别让它被传上去"; rm -f "$OUT"; exit 1; }
+import sys
+v, a, t = (float(x) for x in sys.argv[1:4])
+bad = []
+if abs(v - a) > 0.2: bad.append(f"音轨 {a:.2f}s 与画面 {v:.2f}s 不等长（差 {abs(v-a):.2f}s）")
+if abs(v - t) > 0.2: bad.append(f"画面 {v:.2f}s 与计划的 {t:.2f}s 不符")
+if bad:
+    print("✗ " + "；".join(bad))
+    print("  音轨短了多半是外放音轨没循环着取 —— 见上面 SA/TA 那一段的注释")
+    sys.exit(1)
+print(f"✓ 音画等长 {v:.2f}s")
+PY
