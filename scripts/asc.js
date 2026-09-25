@@ -5,6 +5,7 @@
 //   node scripts/asc.js builds                 # 四条线各自最近的 build 和处理状态
 //   node scripts/asc.js versions               # 四条线的版本记录和审核状态
 //   node scripts/asc.js reviews [条数]         # App Store 用户评论（默认 20 条）
+//   node scripts/asc.js sources [天数]         # 商店曝光从哪来：按地区 × 来源（搜索 / 浏览 / 引荐），默认 14 天
 //   node scripts/asc.js bind <bundleId> <IOS|MAC_OS> <版本号> <build号>
 //                                              # 把某个 build 挂到某个版本（对外动作）
 //   例：node scripts/asc.js bind com.belliedmonkeytranslator IOS 1.6.4 43
@@ -641,7 +642,7 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
 
 // ─── installs：下载量。两条线各占多少、在哪些国家、什么设备 ─────────────────
 //
-// 2026-09-03 之前这个问题**答不了**：账号从没接过任何分析数据，
+// 2026-09-03 之前这个问题**答不了**：账号从没接过任何分析数据（09-21 起有了 ONGOING 请求，见下面的 `sources`），
 // analyticsReportRequests 是 0，商店评论两条线都是 0 条，同步后端又分不出 flavor
 // （中国版的 App 也带登录，chunks 里没有客户端标记）。
 //
@@ -690,6 +691,112 @@ async function cmdInstalls(days) {
     console.log(`  ${cc.padEnd(4)} ${String(s).padStart(4)}  ${(100 * s / total).toFixed(1).padStart(5)}%  ${parts}`);
   }
   console.log(`\n  共 ${terr.size} 个国家/地区`);
+}
+
+// ─── sources：商店曝光从哪来（按地区 × 来源）──────────────────────────────────
+//
+// installs 答「多少人下载」，这里答「商店把我们展示给了多少人、是在哪里被看见的」——
+// 搜索、浏览、还是被别处引荐。**ASO 的成败看这个，不看关键词名次**：名次只是近似，
+// 这里是 Apple 自己的计数。
+//
+// 数据来自 analyticsReports（不是 salesReports）。2026-09-21 给两条线各建了一个
+// `accessType=ONGOING` 的请求，Apple 此后每天异步出一份实例。三段式：
+//   请求 → 报表（按名字挑 Discovery and Engagement Detailed）→ 实例（按 processingDate）
+//   → 分片（预签名 URL，gzip 的 TSV，不要带我们的 Authorization）
+//
+// 三件必须知道的事：
+//   · **长期没人读，Apple 会把请求停掉**（`stoppedDueToInactivity: true`），停了就要重建、
+//     历史接不上。所以这条命令每次都先打印那个字段 —— 读它本身也在给它续命。
+//   · **没有搜索词**。156 份报表里没有「哪个词带来了曝光」这一份（2026-09-25 逐个查过），
+//     这里最细只到「来源类型 × 地区」。关键词名次另见 scripts/aso-rank.js（近似值）。
+//   · **隐私抑制很重**：低于阈值的行直接不给。只能读「构成」与「趋势」，
+//     别拿它和 salesReports 的下载数做除法算转化率（两者口径对不上，09-21 验过）。
+const ANALYTICS_REQUESTS = {
+  // 请求 id 只在这里登记。它们是 2026-09-21 建的，删了就得重建、重新等一天。
+  '国际版': '7c2a8229-4d51-4519-b2b1-210a23a2396f',
+  '中国版': 'cfbdfac7-95cf-4236-9959-55fb0df9073d',
+};
+const DISCOVERY_REPORT = 'App Store Discovery and Engagement Detailed';
+
+async function readInstanceRows(instanceId) {
+  const zlib = require('zlib');
+  const segs = (await api('GET', `/analyticsReportInstances/${instanceId}/segments?limit=50`)).data || [];
+  const rows = [];
+  for (const s of segs) {
+    // 预签名的 S3 地址：带上我们的 Bearer 反而会被拒。
+    const r = await fetch(s.attributes.url);
+    if (!r.ok) throw new Error(`分片下载 HTTP ${r.status}（instance ${instanceId}）`);
+    const buf = Buffer.from(await r.arrayBuffer());
+    let txt;
+    try { txt = zlib.gunzipSync(buf).toString('utf8'); } catch (_) { txt = buf.toString('utf8'); }
+    const lines = txt.split('\n').filter(Boolean);
+    const head = lines.shift().split('\t');
+    for (const l of lines) {
+      const cols = l.split('\t');
+      const row = {};
+      head.forEach((h, i) => { row[h] = cols[i]; });
+      rows.push(row);
+    }
+  }
+  return rows;
+}
+
+async function cmdSources(days) {
+  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  let ok = true;
+  for (const [label, reqId] of Object.entries(ANALYTICS_REQUESTS)) {
+    console.log(`\n■ ${label}  请求 ${reqId}`);
+    let req;
+    try { req = await api('GET', `/analyticsReportRequests/${reqId}`); }
+    catch (e) {
+      // 请求没了就明说 —— 打一张空表会被读成「没人看见我们」。
+      console.log(`  ✗ 读不到这个请求：${e.message.slice(0, 160)}`);
+      console.log('    请求可能被删或 id 写错了。重建：POST /analyticsReportRequests（accessType=ONGOING），再等一天出实例。');
+      ok = false; continue;
+    }
+    const a = req.data.attributes;
+    const stopped = a.stoppedDueToInactivity === true;
+    console.log(`  accessType=${a.accessType}  stoppedDueToInactivity=${a.stoppedDueToInactivity}${stopped ? '  ✗ 已被 Apple 停掉 —— 要重建' : ''}`);
+    if (stopped) ok = false;
+
+    const reports = (await api('GET', `/analyticsReportRequests/${reqId}/reports?limit=200`)).data || [];
+    const rep = reports.find((r) => r.attributes.name === DISCOVERY_REPORT);
+    if (!rep) { console.log(`  ✗ 没找到「${DISCOVERY_REPORT}」（共 ${reports.length} 份报表）`); ok = false; continue; }
+    const inst = ((await api('GET', `/analyticsReports/${rep.id}/instances?limit=200`)).data || [])
+      .filter((i) => i.attributes.granularity === 'DAILY' && i.attributes.processingDate >= since)
+      .sort((x, y) => x.attributes.processingDate.localeCompare(y.attributes.processingDate));
+    if (!inst.length) { console.log(`  （${since} 以来还没有日实例）`); continue; }
+    console.log(`  日实例 ${inst.length} 份：${inst[0].attributes.processingDate} → ${inst[inst.length - 1].attributes.processingDate}`);
+
+    const byEvSrc = new Map();     // `${event}${SEP}${source}` → counts
+    const searchByTerr = new Map(); // territory → 来自搜索的曝光
+    for (const i of inst) {
+      for (const row of await readInstanceRows(i.id)) {
+        const n = parseInt(row.Counts, 10) || 0;
+        const k = `${row.Event}${SEP}${row['Source Type']}`;
+        byEvSrc.set(k, (byEvSrc.get(k) || 0) + n);
+        if (row.Event === 'Impression' && row['Source Type'] === 'App Store search') {
+          searchByTerr.set(row.Territory, (searchByTerr.get(row.Territory) || 0) + n);
+        }
+      }
+    }
+    const byEvent = new Map();
+    for (const [k, v] of byEvSrc) { const [ev] = cut(k); byEvent.set(ev, (byEvent.get(ev) || 0) + v); }
+    for (const [ev, tot] of [...byEvent].sort((x, y) => y[1] - x[1])) {
+      console.log(`  ${ev}  合计 ${tot}`);
+      for (const [k, v] of [...byEvSrc].filter(([k]) => cut(k)[0] === ev).sort((x, y) => y[1] - x[1])) {
+        console.log(`      ${cut(k)[1].padEnd(26)} ${String(v).padStart(6)}  ${(100 * v / tot).toFixed(1).padStart(5)}%`);
+      }
+    }
+    if (searchByTerr.size) {
+      console.log('  来自搜索的曝光 · 按地区（前 12）');
+      for (const [t, v] of [...searchByTerr].sort((x, y) => y[1] - x[1]).slice(0, 12)) {
+        console.log(`      ${String(t).padEnd(6)} ${String(v).padStart(6)}`);
+      }
+    }
+  }
+  console.log('\n（隐私抑制：低于阈值的行 Apple 不给。读构成与趋势，别和 installs 相除。）');
+  return ok;
 }
 
 // 用户原话 —— 这个产品没有遥测，所以商店评论是极少数能听见真实用户的渠道之一。
@@ -839,13 +946,19 @@ async function cmdDevices(udid, name, macFlag) {
     const ok = await cmdPrivacy(rest.includes('--apply'));
     process.exit(ok ? 0 : 1);
   }
+  if (cmd === 'sources') {
+    // 默认 14 天。Apple 通常滞后一到两天出实例。
+    const n = Math.max(1, Math.min(180, parseInt(rest[0], 10) || 14));
+    const ok = await cmdSources(n);
+    process.exit(ok ? 0 : 1);
+  }
   if (cmd === 'installs') {
     // 默认 30 天。免费 app 的 Units 就是下载次数。
     const n = Math.max(1, Math.min(365, parseInt(rest[0], 10) || 30));
     await cmdInstalls(n);
     return;
   }
-  console.log('用法: node scripts/asc.js builds | versions | reviews [条数] | installs [天数]'
+  console.log('用法: node scripts/asc.js builds | versions | reviews [条数] | installs [天数] | sources [天数]'
     + ' | aso --audit'
     + ' | aso <bundleId> <平台> <版本> <aso.md> [--apply] [--promo-only]'
     + ' | appinfo <bundleId> <aso.md> [--apply]'

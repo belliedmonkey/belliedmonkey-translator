@@ -156,6 +156,37 @@ async function apple(days) {
 // 真实用户，其中一个有 221 次中继调用和 35 KB 语料 —— 「有实质语料的用户」因此从 6 个
 // 被夸大成 8 个。**一个漏掉的自己人比十个漏掉的真用户更能歪曲结论**，因为自己人的
 // 数据形状恰恰最像重度用户。新开测试号记得加进那个文件。
+// 星级评分（iTunes lookup，公开接口、不要凭证）。
+//
+// 上面那个「评分」读的是 customerReviews —— **只有写了字的评论**。App 里的系统评分弹窗
+// （SKStoreReviewController）收来的多半是只打星、不写字，那部分只在商店页的
+// `userRatingCount` 里，而且**按店面分开计**：美国店的评分不出现在日本店。
+// 2026-09-25 第一次读：两条线、11 个店面，全部是 0 —— 而评分是搜索排序的权重项。
+// 所以它必须和下载量放在同一张表里盯，不能只看「文字评论 0 条」。
+//
+// 店面取下载量前 12 的国家（国际版）+ cn（中国版只在那一个店面）。
+// 结果里 null = 这个店面没上架；'error' = 请求失败（不当成 0）。
+async function starRatings(terr) {
+  const BUNDLES = { '国际版': 'com.belliedmonkeytranslator', '中国版': 'com.belliedmonkeytranslator.cn' };
+  const top = Object.entries(terr || {}).sort((a, b) => b[1] - a[1]).slice(0, 12)
+    .map(([cc]) => cc.toLowerCase()).filter((cc) => cc !== 'cn');
+  if (!top.includes('us')) top.unshift('us');
+  const out = {};
+  for (const [label, bid] of Object.entries(BUNDLES)) {
+    out[label] = {};
+    for (const cc of (label === '中国版' ? ['cn'] : top)) {
+      try {
+        const r = await fetch(`https://itunes.apple.com/lookup?bundleId=${bid}&country=${cc}`);
+        const x = ((await r.json()).results || [])[0];
+        out[label][cc] = x ? { count: x.userRatingCount || 0, avg: x.averageUserRating || 0,
+          current: x.userRatingCountForCurrentVersion || 0 } : null;
+      } catch (_) { out[label][cc] = 'error'; }
+    }
+  }
+  return out;
+}
+const starTotal = (m) => Object.values(m || {}).reduce((a, v) => a + ((v && typeof v === 'object') ? v.count : 0), 0);
+
 function ownAccounts() {
   const f = path.join(SNAPDIR, 'own-accounts.txt');
   const fallback = ['belliedmonkey%'];
@@ -323,7 +354,8 @@ function delta(now, then) {
   const P = (prev && prev.data) || {};
 
   const sb = await supabase();
-  const snapshot = { at: new Date().toISOString(), days, github: gh, amo: mo, apple: ap, supabase: sb, manual: man };
+  const stars = await starRatings(ap.ok ? ap.terr : {});
+  const snapshot = { at: new Date().toISOString(), days, github: gh, amo: mo, apple: ap, stars, supabase: sb, manual: man };
 
   // 先落盘再打印：报表是可以重跑的，而**今天的 AMO 日活错过了就永远拿不回来**。
   fs.mkdirSync(SNAPDIR, { recursive: true });
@@ -345,7 +377,13 @@ function delta(now, then) {
     const dev = Object.entries(ap.byDev).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${v}`);
     console.log('    设备  ' + dev.join(' · '));
     const rt = Object.entries(ap.ratings).map(([k, v]) => `${k} ${v.count === null ? '?' : v.count + ' 条'}`);
-    console.log('    评分  ' + rt.join(' · '));
+    console.log('    文字评论  ' + rt.join(' · '));
+    for (const [label, m] of Object.entries(stars)) {
+      const t = starTotal(m);
+      const Ps = (P.stars && P.stars[label]) || null;
+      const cells = Object.entries(m).map(([cc, v]) => `${cc} ${v === null ? '—' : v === 'error' ? '?' : v.count}`);
+      console.log(`    星级评分 ${label} 共 ${t}${Ps ? delta(t, starTotal(Ps)) : ''}　（${cells.join(' · ')}）`);
+    }
   }
 
   // ── Firefox AMO ──
