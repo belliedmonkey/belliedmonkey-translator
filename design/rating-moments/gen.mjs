@@ -303,5 +303,7 @@ idx.notes.why = { x: NX, y: 0, w: 540, maxH: 520, page: 'p1', color: 'orange',
 idx.notes.rule = { x: NX, y: 600, w: 540, maxH: 360, page: 'p1', color: 'purple',
   text: '流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。' };
 
+idx.notes.ruled = { x: NX, y: 1040, w: 540, maxH: 300, page: 'p1', color: 'green',
+  text: '✓ 2026-09-25 用户裁定：板 C 四件**全部按建议**。\n\n① 评分行：每天至多一次、最多 5 个不同日子，点或 × 立刻进 90 天冷却\n② 只问成功 ≥3 次且跨 ≥2 天的人\n③ App 系统评分挪到听译结束 / 快速翻译 / 系统翻译收件箱 / 复习 opened，同一门槛\n④ 扩展与 App 冷却不打通，规约改成实话\n\n下一步：遥测 docs PR（§3.12）过评审 → 部署 bt-ingest → 代码 PR（interaction-spec 同提交改）。' };
 fs.writeFileSync(path.join(OUT, 'canvas.json'), JSON.stringify(idx, null, 2) + '\n');
 console.log('✓ design/rating-moments/project：' + order.length + ' 块板');
