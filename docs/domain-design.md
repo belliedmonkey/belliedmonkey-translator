@@ -1193,6 +1193,10 @@ in PR3, not assumed.
 | `Reviewer` | `learn/review.{html,css,js}` | learning layer (§9): the review surface — one implementation covering all five matrix rows, hosted in an extension page **and** in the host app's `WKWebView` (§9.4) |
 | Host app | `safari-project/…/Shared (App)/` | learning layer (§9.4): the one-tap surface on iOS + macOS. **Not a second engine** — it loads the same review UI and scheduler, swapping only the host shims. Requires sign-in; the server is its only source (§9.3) |
 
+> **UI framework note (2026-09-25)**: the view layer of the page-type surfaces above
+> (`Reviewer`, `DocView`, and both hosts' pages) is governed by §10 — React, one
+> source module per shared surface, one compilation, zero forks (§10.3).
+
 ## 7. Provider transport & region flavors (合规双分发)
 
 The transport is **provider-agnostic and format-keyed**, and the provider *list*
@@ -1819,3 +1823,112 @@ at runtime, never branched.
 > a review surface at all, against `AGENTS.md` rules 2 and 3. **Keeping the extension's
 > review page is what makes signing in buy multi-device sync and a better surface,
 > rather than buying the feature itself.**
+
+> **2026-09-25 restatement**: both surfaces' shared UI moves to React; the "loads the
+> same review UI" guarantee is restated as **同一份源模块、同一次编译、零分叉** —
+> see §10.3, including how it is enforced by machine (metafile 对账门).
+
+## 10. UI 层框架 (React) — the view layer (2026-09-25)
+
+> **Status**: 用户 2026-09-25 裁定采纳；本节随 docs-only PR 过人评审后生效。
+> **管辖**：两宿主所有页面型 UI（扩展 popup / options / onboard / review / docs 五个
+> 页面 + App 全部视图）与注入 UI 的岛（悬浮球、字幕 overlay、翻译 chip）。
+> 本节属领域设计：改动本节任何规则先出 docs PR 过人评审（`AGENTS.md` 治理规则）。
+
+### 10.1 The decision — React 19 + esbuild, runtime stays zero-dep
+
+- 页面型 UI 全部迁 **React 19 + JSX**，esbuild 打包为 **IIFE**（`target` 取自
+  `build/os-floor.config.js`，单一来源；`jsx:'automatic'`；production define；
+  **不 minify** —— AMO 可读、门禁可读、diff 可人审）。
+- **「零依赖」约定修订为：运行时零依赖不变；构建期依赖仅限 devDependencies**
+  （esbuild / react / react-dom），版本经 `package-lock.json` 的 sha512 integrity
+  钉死（与 pdf.js vendor 的 sha256、`fetch-native-deps` 的钉法同族），CI 用
+  `npm ci`。产物里不出现任何 CDN、任何运行时 npm 依赖。
+- **不迁的东西（永久）**：纯逻辑模块（translation-core、translation-api、
+  wire-format、request-shape、listen-core、quick-core…）、原生桥适配器
+  （native-speech / native-audio / quick-host / vault-mirror —— 不迁 JSX、不改
+  路径，PROTOCOL 对表零扰动）、`dom-processor` 的分段逻辑、CSS 文件。
+- App 三文件契约（`Main.html` / `Script.js` / `Style.css`）不破：App 端 UI 收敛为
+  **单个** esbuild 产物拼进 `Script.js` 尾部；**一个 Script.js 里绝不允许出现两份
+  React**，这是 App UI 必须单入口的硬理由。
+
+### 10.2 State — one store, reactivity is the point (核心约束 — do not break)
+
+- `chrome.storage.local`（扩展）/ `app/chrome-shim.js`（App，原样保留）仍是唯一
+  持久层。其上是唯一的 **settings-store**（纯 JS，不 import React，两宿主同一份）：
+  启动经 `PageSettings.read` 全量读（**ok:false 语义必须透传** —— 读失败 ≠ 空配置）；
+  全页面**唯一一处** `storage.onChanged` 订阅；写 = 乐观更新 + `pendingEcho` 回声
+  去重；**写入方也订阅**。React 侧经 `useSyncExternalStore` 暴露。
+- **`SETTINGS_SCHEMA` 是设置键的唯一登记处**。各页手拷键清单（SETTINGS_KEYS /
+  POPUP_KEYS / READ_KEYS / docs KEYS）废除；新键必须进 SCHEMA，同一条一注册规则
+  与 §7 的 provider registry 同族。
+- **视图路由进 view-store**：顶层按单一 view 值条件渲染，section 互斥从「约定」
+  变成「结构」；`#quick` 分叉是 view-store 的初始值来源（`MAIN_ONLY` 拼接机制
+  随之退役，其行为不变量由 `test:quick` 行为门继续把守）。
+- i18n 收敛为一份 `t()` / `useT()`；`uiLang` 变更自动整树重渲染。`applyI18n` /
+  `paintStatic` 的打补丁模式废除。
+- **手动重绘一律废除**（depsOnWrite、paint*() 链、entry/entry2 双份同步）。此后
+  「某处改了设置、另一处界面不刷新」是 store 的 bug，不再是页面的疏忽。
+
+### 10.3 §9.4 restated — 同一份源模块、同一次编译、零分叉
+
+旧表述「两个宿主跑同一份**字节**」在打包世界不再成立；诚实的等价物是：
+
+1. 共享面（`Reviewer`、`DocView`、`SourcesView`、`EngineFields`、`QuickSetup`、
+   `Dialog`、`DepLine`、`Grant`）每个是**全仓唯一源文件**（`src/shared/`），两宿主
+   入口 import 同一路径 —— 仍然只有一份实现，App 不是第二套 UI。
+2. 执法机器化：esbuild **metafile 对账门** —— 扩展 review bundle 与 App UI bundle
+   的共享组件源文件集合必须一致、react 版本单源（lockfile）；加上源码级单实现
+   断言（`grant-one-implementation` 同款）与 `test:learn` 双宿主同产物驱动。
+3. 本仓各文档中历史叙述里的「同一份字节」，自本节起一律按「同一份源模块、同一次
+   编译」读；历史文本不逐处改写。
+
+### 10.4 hidden 纪律的 React 落法 (核心约束 — do not break)
+
+- **可见性是派生布尔值，传给始终挂载元素的 `hidden` 属性**；今天存在于 DOM 的
+  节点**不许条件卸载**。保的是三样东西：现有端到端门的 `.hidden` 断言、
+  `hidden-guard`、以及靠切 hidden 遍历 section 的深浅对比度 sweep。
+- 仅今天本来就 create/remove 的瞬态节点（dialog 弹层等）可条件渲染。
+- **现有 id 全部保留** —— id 是测试与原生桥的锚点，不是实现细节。
+
+### 10.5 迁移过渡 — 命令式孤岛规则
+
+React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **承诺永不重渲染孤岛
+子树**（稳定 key、无 children）；hidden 分权 —— React 只写 section 级 hidden，
+孤岛只写自己内部的。两套机制抢写同一属性的竞态由此杜绝。翻转顺序：先两宿主壳，
+后共享模块（把孤岛换成 import），接缝窗口最短；全程共享模块只有一份实现。
+
+### 10.6 Content 注入 UI 的边界
+
+- **岛式 root**：悬浮球、字幕 overlay、翻译 chip 各一个 React root —— 自包含、
+  不参与宿主文档流。
+- **`.mt-translation` 译文块保留 createElement 直插**（不 React 化）：它是插进
+  宿主文档流的兄弟节点，宿主框架随时删搬，与 React 所有权模型冲突；42 个布局
+  fixture 按结构断言；本质 write-once 文本，无响应式需求。只把状态读取换成
+  store 订阅。**去留判据**（满足任一即维持命令式）：(a) 真机上逐节点 root 超
+  内存/首译延迟预算；(b) 结构被迫变动致 fixture 改断言 > 5 个；(c) `__mtTrans`
+  背引用需要绕过 reconciler 的 hack。
+- **懒加载**：content UI bundle 构建为 ESM 进 `web_accessible_resources`，由极小
+  IIFE loader 在第一次要画 UI 时 `import(chrome.runtime.getURL(...))`；Firefox
+  实测不过则回退静态 IIFE 注入。**预算门**：content 产物总量增幅 ≤ +150KB 且
+  冷注入中位耗时增幅 ≤ 10ms，超了构建即红。
+- Trusted Types：React 不走 innerHTML；`src/` 全域禁 `dangerouslySetInnerHTML`
+  （grep 门）；图标用 JSX `<svg>` 子元素，不用字符串注入。
+
+### 10.7 注册表与桥在 React 世界的位置
+
+- **生成注册表不进 bundle**：`*.gen.js`、`i18n-messages.js`（1.19MB）、
+  `backend.config.js` 继续独立 script 标签 / 拼接段挂 `window.MT_*`（flavor 正则
+  改写依赖「独立文件恰好命中一次」）。`src/` 新代码一律经 `src/lib/registry.js`
+  唯一读口；grep 门禁止 `src/` 直接摸 `window.MT_` 或 import gen 文件。
+- **window 级原生回调名是 ABI**（`window.show`、`__mtAppleResult`、
+  `__mtWebAuthResult`、`__mtDeepLink`、`AppQuick._fromNative`、
+  `NativeSpeech._fromNative`、`NativeAudio._fromNative`、`AppVault.onNative`…）：
+  由 `installBridgeGlobals()` 幂等挂回，签名逐字不变，实现体转发到 emitter；
+  store 订阅桥事件，React 不直接摸全局。
+
+### 10.8 迁移期验收基线 — 行为与像素双不变
+
+见 `interaction-spec.md` 全局原则新增条。测试纪律：**不变量不能丢，只能换锚点**；
+每个迁移 PR 的描述附「不变量 → 旧锚点 → 新锚点」表；没有任何测试被删除后不留
+等强度替代；禁止为组件测试引 jsdom（组件渲染走真 Chrome CDP 门）。

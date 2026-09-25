@@ -75,7 +75,10 @@ Safari iOS browser extension for bilingual translation — fully open source and
 
 ## Build & Test
 
-零依赖，不用 `npm install`。Node 底线：`npm test` **≥20**（`learn/chunk.js` 用
+**运行时零依赖；构建期依赖仅限 devDependencies**（esbuild / react —— React 迁移
+`docs/domain-design.md` §10 起），版本由 `package-lock.json` 钉死，先 `npm ci` 再构建
+（devDeps 落地前 `npm ci` 是 no-op，照跑不误）。产物里不许出现任何运行时 npm 依赖或
+CDN。Node 底线：`npm test` **≥20**（`learn/chunk.js` 用
 `CompressionStream('deflate-raw')`），其余跑真 Chrome 的门 **≥22**（内置 WebSocket）。
 
 ```bash

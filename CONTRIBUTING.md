@@ -29,7 +29,8 @@ Questions, ideas, "what do you use it for" — [Discussions](https://github.com/
 ## Building
 
 ```bash
-node build.js        # extension/ → dist/ and the Chrome ZIP; zero dependencies
+npm ci               # build-time devDependencies only (esbuild/react — domain-design §10); runtime stays zero-dep
+node build.js        # extension/ → dist/ and the Chrome ZIP
 npm test             # pure-logic suite
 ```
 
