@@ -187,6 +187,7 @@ function copyDir(src, dst) {
     const srcPath = path.join(src, entry.name);
     const dstPath = path.join(dst, entry.name);
     if (entry.isDirectory()) copyDir(srcPath, dstPath);
+    else if (entry.name.endsWith('.jsx')) continue;   // bundle 源码（domain-design §10）不进 dist
     else fs.copyFileSync(srcPath, dstPath);
   }
 }
@@ -1288,6 +1289,16 @@ if (FLAVOR === 'china') {
   log('China flavor: default provider google → deepseek');
 }
 
+// ─── UI bundles（React，domain-design §10）──────────────────────────────────
+// 产物覆盖 DIST 内同名文件，随后的每一道门禁扫的都是 bundle 之后的出货目录。
+// 清单（build/ui-entries.config.js）为空时这里是严格 no-op —— 连 esbuild 都不 require。
+{
+  const { ENTRIES } = require('./build/ui-entries.config.js');
+  const { bundleUiEntries } = require('./build/run-esbuild.js');
+  const n = bundleUiEntries({ entries: ENTRIES, dist: DIST, log });
+  if (n) log(`esbuild: ${n} 个 UI bundle 已写入 ${path.basename(DIST)}/`);
+}
+
 // 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。
 defaultProviderGate(DIST, path.basename(DIST), FLAVOR);
 defaultLocaleGate(DIST, path.basename(DIST), TARGET === 'firefox' ? 'global' : FLAVOR);
@@ -1299,7 +1310,8 @@ if (isFirefox) patchManifestForFirefox();
 generateIcons(DIST);
 
 // Palette gate — no legacy brand colours may ship
-legacyBrandGate(DIST, path.basename(DIST));
+legacyBrandGate(DIST, path.basename(DIST),
+  fs.existsSync(path.join(__dirname, 'src')) ? [path.join(__dirname, 'src')] : []);
 
 // Validate
 validateManifest(DIST, isFirefox);
@@ -1352,7 +1364,8 @@ nameLengthGate(DIST);
   // 品牌词与合规判据一个都不能少（AGENTS 规则 10）。
   const { buildExtBundle } = require("./build/ext-bundle.js");
   buildExtBundle(path.join(ROOT, APP_OUT), log, FLAVOR === "china" ? { genRoot: DIST } : {});
-  legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]);
+  legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]
+    .concat(fs.existsSync(path.join(ROOT, 'src')) ? [path.join(ROOT, 'src')] : []));
   if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
 }
 
