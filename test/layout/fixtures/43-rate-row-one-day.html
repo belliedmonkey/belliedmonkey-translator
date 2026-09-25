@@ -2,27 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Rating prompt row: after the last translation, once, once the install has 3+ successes across 2+ days</title>
+<title>Rating prompt row: many successes but all on one day ⇒ no row (2026-09-25, telemetry-design §3.12)</title>
 <style>
   body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 720px; }
   p { margin: 0 0 14px; line-height: 1.7; }
-  aside { margin-top: 24px; padding: 12px; background: #f3f3f3; }
 </style>
 </head>
 <body>
 
+<!-- 「真在用」= 成功 ≥3 次、且出现在 ≥2 个不同的本地日。这台装机已经成功 5 次，
+     但一个日子都还没记下（这一页是今天的第一次记录）—— 第一天连刷几页的人还在试，不问。
+     修之前的口径是「第 3 次成功会话就问」，这一张在那时会挂出一行。 -->
 <p id="p1">Spaced repetition schedules each review just before you would forget it.</p>
 <p id="p2">The forgetting curve describes how memory fades over time without practice.</p>
 <p id="p3">Reading in two languages keeps the original in view while the translation sits beneath it.</p>
-<aside id="side">Editorial note: this box is the page's own footer content.</aside>
 
 <script type="application/json" id="mt-expect">
 {
-  "name": "rate-row",
-  "unitCount": 4,
+  "name": "rate-row-one-day",
+  "unitCount": 3,
   "cfg": { "learnEnabled": true },
-  "storage": { "mtOkSessions": 2, "mtOkDays": ["2020-01-01"] },
-  "rateRow": { "count": 1 }
+  "storage": { "mtOkSessions": 5, "mtOkDays": [] },
+  "rateRow": { "count": 0 }
 }
 </script>
 </body>

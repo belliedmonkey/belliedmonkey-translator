@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "¿Te resulta útil? Deja una valoración en la tienda →"
   },
+  "app_nudge_text": {
+    "message": "Frases leídas hoy: repásalas en la App →"
+  },
+  "review_nudge_text": {
+    "message": "Frases leídas hoy: repasarlas →"
+  },
   "doc_title": {
     "message": "Traducción de documentos"
   },

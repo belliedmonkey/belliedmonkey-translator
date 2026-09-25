@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "役に立ちましたか？ストアで評価する →"
   },
+  "app_nudge_text": {
+    "message": "今日読んだ文を、アプリで復習 →"
+  },
+  "review_nudge_text": {
+    "message": "今日読んだ文を復習する →"
+  },
   "doc_title": {
     "message": "文書翻訳"
   },

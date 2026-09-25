@@ -382,25 +382,42 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 - Skip non-content regions and non-text (nav/header/footer/aside, buttons, code,
   scripts, hidden elements). Idempotent (never duplicate if injected twice).
 
-### 评分提示 — 译文末尾一行（2026-09-10）
+### 译文末尾一行：去复习（2026-09-10 起是评分提示；2026-09-25 三轮改写，不再要评分）
 
-用户裁定：放在**译文末尾一行**，不是悬浮气泡、不是弹窗。
+用户裁定（09-10）：放在**译文末尾一行**，不是悬浮气泡、不是弹窗。
+**09-25 改写**（评分画布 https://claude.ai/artifact/RmJMXH1TF59zKm66xgs54y ，源 `design/rating-moments/`，
+三轮裁定；遥测见 telemetry-design §3.12）：原先这一行是「觉得好用？去商店给个评分 →」。星级评分两条线 12 个店面全是 0；
+这一行被插进页面几百次、真实点击约为 0，而且我们从来不知道有没有人真看见过它。**苹果审核指南 5.6.1 禁止自定义评分提示**
+（Safari 扩展是 App 的一部分）；Chrome / Firefox 虽不受它管，但同样 0 点击、商店评分对量几乎没有影响。
+所以这一行**不再要评分**，而是把真在用的人带进复习 —— 评分只留在常驻链接里，App 另在收获时刻用系统 API 请求（见下）。
 
-- **出现条件**：这台装机**第 3 个成功翻译的页面会话**（`translate_ok` 的口径：一页一次，跨页累计，
-  键 `mtOkSessions`）之后；`mtRatingAskedAt` 为空或距今 ≥ 90 天；这个宿主有商店条目（`MTFeedback.rateUrl()`
-  非 null —— 中国版 Chrome/Firefox 永不出现）。同一页至多一次。
-- **位置**：挂在文档序**最后一个已译段落的原文节点之后**（后一个兄弟，不进原文盒子），随着翻译往下
-  推进而跟到新的最后一段之下 —— 它永远在用户刚读完的那一段下面，不遮内容、不 fixed、不打断。
-- **形状**：一句「觉得好用？去商店给个评分 →」+ 一个 ×。带 `translate="no"` 与 `data-mt-skip-region`
-  （自家 UI 的契约，见 §States）；样式继承译文字号，颜色来自注册表调色板。
-- **点句子**：在点击手势里**同步** `window.open(rateUrl)`（Safari → App Store `?action=write-review`，
-  Chrome → CWS reviews，Firefox → AMO reviews），然后写 `mtRatingAskedAt`、发 `rate_prompt{tap}`、移除。
-  **点 ×**：写 `mtRatingAskedAt`、发 `rate_prompt{dismiss}`、移除。挂上时发 `rate_prompt{shown}`。
-  点或关**一次即 90 天不再出**（与 App 侧 `maybeRequestRating` 共用同一个键与同一个冷却）。
-- **不动的**：弹窗 / 设置页 / 引导页的评分行仍是常驻链接（那是入口不是打扰）；App 侧「刷完一轮复习
-  ≥ 3 张」的系统评分弹窗照旧。
-- **为什么是 3 个页面而不是 3 句**：`translate_ok` 一页只发一次；只在一页上反复翻的人永远到不了 3，
-  提示只给「不止试了一次」的人。
+- **按宿主两种目的地**（同一句话的两个版本）：
+  - **Safari**（iOS / macOS）：「今天读过的句子，去 App 里复习 →」，点了走 `AppLink.open(uid, …, 'review')` 落在 App 的复习屏。
+    **只给已登录、且开了学习的人** —— 学习层默认关、没登录句子过不去，两者缺一都是把人送进一个必然空着的复习屏。
+  - **Chrome / Firefox**：「今天读过的句子，去复习 →」，打开**扩展自己的复习页**（`learn/review.html`）。
+    不需要登录、Windows 上也有，**只要开了学习**就出现。
+- **出现条件**（两种同一套，`MTFeedback.rowToOffer`）：这台装机**成功 ≥3 次、且出现在 ≥2 个不同本地日**
+  （键 `mtOkSessions` + `mtOkDays`；第一天连刷三页的人还在试）；不在 90 天冷却里（`mtRatingAskedAt`，沿用旧键名）；
+  **今天还没挂过**（每个本地日至多一次，键 `mtRowDays`）。
+- **节奏**：最多出现在 **5 个不同的日子**；第 5 个日子挂过之后**自动**进 90 天冷却。旧口径是「不理它就每页都出」——
+  09-25 回读最多一台 98 次。
+- **位置**：挂在文档序**最后一个已译段落的原文节点之后**（后一个兄弟，不进原文盒子），随翻译推进跟到新的最后一段之下。
+  ⚠️ 这个位置常在屏幕下方 —— 所以「挂上」与「看见」分开记（`shown` / `seen`）。
+- **形状**：一句话 + 一个 ×。带 `translate="no"` 与 `data-mt-skip-region`（自家 UI 的契约，见 §States）；
+  `data-mt-row-kind` = `app`（Safari）/ `review`（Chrome / Firefox）；样式继承译文字号，颜色来自注册表调色板。
+- **点句子**：在点击手势里**同步**打开目的地（自定义 scheme / `window.open`），然后写冷却、发 `review_nudge{tap}`、移除。
+  Safari 那一跳没有人接住时发 `review_nudge{no_app}`，并在原位说清出口（「这台设备上没能打开 App」/「这个 App 只有 iPhone、iPad 和 Mac 版」）。
+  **点 ×**：写冷却、发 `{dismiss}`、移除。点或关**一次即 90 天不再出**。
+- **计数**：挂上时发 `review_nudge{shown}`；行至少一半进入视口、连续停留 ≥1 秒时发 `{seen}`（每行至多一次；
+  没有 IntersectionObserver 的环境不发，宁缺勿假）。目的地由事件的公共字段 `host` 区分。
+- **App 的系统评分**（`MTFeedback.noteValueMoment`）：在**收获时刻**请求 —— 复习里做完一组（5 张，「这一组做完了」那一屏；
+  从 Safari 那一行进来的人走到这里就是那条路的终点）· 听译 / 实时字幕结束且出过句子 · Mac 快速翻译出了译文 ·
+  系统翻译收件箱进了卡。门槛同上（这些时刻 ≥3 次、跨 ≥2 个日子，键 `mtValueCount` / `mtValueDays`），90 天冷却；
+  **只在事件回调里调，不在任何按钮点击里调**（系统可能静默丢弃请求，按钮就成了点了没反应的按钮）。发 `rate_prompt{requested}`
+  —— 不是 `shown`：系统弹没弹我们不知道。原来的「一轮复习刷完且 ≥3 张」触发点取消（1.16.0 之前一次都没发生过）。
+- **冷却不打通**：扩展与 App 各有一份 `mtRatingAskedAt`（同名键、两个存储），各自 90 天。
+  （此前这里写的是「共用同一个键与同一个冷却」—— 从来不成立。）
+- **不动的**：弹窗 / 设置页 / 引导页的「给我们评分」仍是常驻链接（那是入口不是打扰，也不是 5.6.1 说的提示）。
 
 ### One unified path (incl. YouTube) — see [`domain-design.md`](domain-design.md)
 - All DOM — normal pages **and** YouTube title/description/comments — goes through

@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "Gefällt es dir? Bewerte uns im Store →"
   },
+  "app_nudge_text": {
+    "message": "Heute gelesene Sätze – in der App wiederholen →"
+  },
+  "review_nudge_text": {
+    "message": "Heute gelesene Sätze wiederholen →"
+  },
   "doc_title": {
     "message": "Dokumentübersetzung"
   },

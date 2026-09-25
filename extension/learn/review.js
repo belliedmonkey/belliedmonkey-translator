@@ -1025,6 +1025,13 @@
     $('group-more').textContent = t('learn_group_more', '再来一组');
     $('group-stop').textContent = t('learn_group_stop', '今天就到这儿');
     groupSources = sources;
+    // 收获时刻（telemetry-design §3.12 ④）：做完一组（5 张）是这个面上最自然的停顿 ——
+    // 从 Safari 那一行「回 App 复习」进来的人，走到这里就是那条路的终点。原来的触发点是
+    // 「一轮刷完且 ≥3 张」，1.16.0 之前一次都没发生过。这里是做完一组之后弹出的这一屏，
+    // 不是某个按钮的点击回调。只有 App 有系统评分；扩展复习页不加载 feedback.js，typeof 守卫。
+    if (typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) {
+      try { MTFeedback.noteValueMoment('review').catch(() => {}); } catch (_) {}
+    }
   }
   let groupSources = null;
 
@@ -1295,11 +1302,6 @@
         .replace('{n}', String(sched.dailyNew));
       $('progress').textContent = doneThisRun
         ? t('learn_done_run', '本次完成 {n} 张').replace('{n}', String(doneThisRun)) : '';
-      // 成功时刻：一轮刷完、且真做了几张。只有宿主 App 有系统评分弹窗；扩展的
-      // 复习页不加载 feedback.js，typeof 守卫让这里在那边是空操作。
-      if (doneThisRun && typeof MTFeedback !== 'undefined') {
-        try { MTFeedback.maybeRequestRating(doneThisRun); } catch (_) {}
-      }
       // 清空 = done。原来只在这里发、而且要 doneThisRun 非零 —— 中途离开从来没有记录（#386：
       // 52 台存过语料、0 条）。现在离开也发（sessEnd('left')），两种结果互斥、每轮一条。
       // sess 开过 = 他刚把牌堆清空（done）；没开过 = 他一进来就没有到期卡（nothing_due）。

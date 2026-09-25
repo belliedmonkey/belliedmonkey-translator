@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "Finding it useful? Leave a rating in the store →"
   },
+  "app_nudge_text": {
+    "message": "Sentences you read today — review them in the App →"
+  },
+  "review_nudge_text": {
+    "message": "Sentences you read today — review them →"
+  },
   "doc_title": {
     "message": "Document translation"
   },

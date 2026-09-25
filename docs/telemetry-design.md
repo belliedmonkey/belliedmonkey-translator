@@ -95,7 +95,8 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
 | `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
-| `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条。~~挂上即等于 `mtRatingAskedAt` 落盘~~ —— **这半句从来不成立**：代码与 `interaction-spec.md` §评分提示都是点或 × 才写冷却，所以不理它就每页都出（09-25 回读：Safari 37 台 / 389 次，最多一台 98 次）。口径改动见 §3.12 |
+| `rate_prompt` | `action: shown \| tap \| dismiss \| requested`（`requested` 2026-09-25，§3.12） | **App** 在收获时刻向系统发出评分请求（`requested`，requestReview 不回调，**不是曝光**）。`shown` / `tap` / `dismiss` 是**旧口径**（1.16.x 及更早：译文末尾「去商店给个评分」那一行）—— §3.12 第三轮起新版本不再发，服务端为老客户端照收 | `learn/feedback.js` `noteValueMoment()`（requested，App）。~~挂上即等于 `mtRatingAskedAt` 落盘~~ —— 这半句从来不成立，见 §3.12 |
+| `review_nudge` | `action: shown \| seen \| tap \| dismiss \| no_app` | 译文末尾「今天读过的句子，去复习 →」被挂上 / 真进入视线（至少一半、连续 ≥1 秒）/ 被点 / 被关 / 点了但没人接住 scheme（`no_app`，只 Safari）。**目的地由 `host` 区分**：`safari` → App 的复习屏（只给已登录且开了学习的人），`chrome` / `firefox` → 扩展自己的复习页（开了学习即可）。每装机每本地日至多 1 条 `shown`、每 90 天至多 5 条（2026-09-25，§3.12） | `content-webpage.js` `placeRateRow()`、`watchSeen()` 与行内两个 click handler；Safari 那一跳的 `AppLink.open` 兜底回调 |
 | `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出，§3.7 B） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与三个 listener |
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `app/app.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
@@ -707,7 +708,7 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
 |---|---|---|
 | `rate_prompt.action` 取值 | `shown \| tap \| dismiss` | 加 **`seen`**、**`requested`** |
 | `rate_prompt` 在各宿主 | ext：`content-webpage.js`；app：`none` | ext：仍是 `content-webpage.js`，但 **Safari 不再发**（那一行换成 `app_nudge`）；app：`extension/learn/feedback.js` `maybeRequestRating` 真发出 `request-review` 那一刻发 `requested` |
-| **新事件 `app_nudge`** | — | `action: shown \| seen \| tap \| dismiss \| no_app`；只在 Safari 的「回 App」行发（`host='safari'`）；`no_app` = `AppLink.open` 的兜底被触发（没有人接住 scheme） |
+| **新事件 `app_nudge`**（第三轮改名 `review_nudge`，见下） | — | `action: shown \| seen \| tap \| dismiss \| no_app`；只在 Safari 的「回 App」行发（`host='safari'`）；`no_app` = `AppLink.open` 的兜底被触发（没有人接住 scheme） |
 | `shown` 的上限 | 名义「90 天一组」，实际每页一条 | 每装机每个本地日至多 1 条、每 90 天至多 5 条（两种行都是） |
 
 **`seen` 的定义**：行至少一半进入视口、连续停留 ≥1 秒，每一行至多记一次。从此「展示」分成两层：`shown` = 插进了页面，
@@ -722,6 +723,17 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
 
 **口径与隐私不变**：仍然只有枚举，没有内容、没有页面地址、没有句数；「跨 ≥2 天」的日期集合只存本机
 （与 `mtOkSessions` 同处），**不上报**。中国版照旧一条不发。
+
+**第三轮（2026-09-25 晚，用户对话中同意）：Chrome / Firefox 也不再要评分。** 第二轮留着它的理由只有
+「5.6.1 管不到」—— 那只说明**可以**问，不说明**应该**问：Chrome 12 台 / 90 次展示同样 0 点击；Chrome / Firefox 商店的评分
+对量几乎没有影响（85% 以上来自 App Store 搜索）；而「把真在用的人带进复习」对哪个浏览器都成立。回读：Chrome 真在用 7 台
+（6 台 Mac 全都开了学习，1 台 Windows 没开），Firefox 0 台。所以：
+
+- Chrome / Firefox 那一行改为「今天读过的句子，去复习 →」，打开**扩展自己的复习页**（`learn/review.html`）——不需要登录、
+  Windows 上也有，只要开了学习就出现。节奏、门槛同上。评分只留常驻链接（设置页 / 弹窗），不发事件。
+- 事件 `app_nudge` **改名 `review_nudge`**，两种浏览器共用；目的地由公共字段 `host` 区分，**不另加取值**。
+  `app_nudge` 从未有客户端发过（落地 PR 合并前改名），服务端同步改。
+- `rate_prompt` 在扩展一侧不再发；`shown` / `tap` / `dismiss` 只剩老版本客户端，服务端照收；`seen` 从未发过，撤回。
 
 **顺序**（与 §3.6 同一套）：本节评审通过 → 一个 PR 同时改 §3 表（`rate_prompt` 行 + 新增 `app_nudge` 行）+
 `build/telemetry.config.js`（取值、送出点、新事件）+ 生成物 → **先部署 `bt-ingest` 并回读它接受 `seen` / `requested` /

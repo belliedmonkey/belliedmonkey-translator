@@ -2701,6 +2701,12 @@
   "rate_prompt_text": {
     "message": "覺得好用？去商店給個評分 →"
   },
+  "app_nudge_text": {
+    "message": "今天讀過的句子，去 App 裡複習 →"
+  },
+  "review_nudge_text": {
+    "message": "今天讀過的句子，去複習 →"
+  },
   "doc_title": {
     "message": "文件翻譯"
   },

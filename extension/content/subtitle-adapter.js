@@ -132,11 +132,14 @@ var SubtitleAdapter = (() => {
     const engine = TranslationCore.createSubtitleEngine({
       getCurrentTime: () => spec.getCurrentTime(),
       onOk: () => {
-        if (subOkSent || !(typeof MTTelemetry !== 'undefined')) return;
+        if (subOkSent) return;
         subOkSent = true;
-        MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
         // 字幕会话也算一次成功会话（评分提示的计数），只计数：叠层里没有位置出那一行。
+        // 放在遥测判断**之前**：计数只在本机、与遥测无关 —— 原来它跟在 `typeof MTTelemetry`
+        // 的守卫后面，没加载遥测的构建里就一次都不计（今天的构建都加载了，所以没发作过）。
         try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteOkSession) MTFeedback.noteOkSession().catch(() => {}); } catch (_) {}
+        if (typeof MTTelemetry === 'undefined') return;
+        MTTelemetry.track('translate_ok', { provider: String((settings && settings.provider) || ''), kind: 'subtitle', ms: Date.now() - subSince });
       },
       onFail: (e) => {
         if (e && (e.grant || e.halt) && typeof e.code === 'string') haltCode = e.code;

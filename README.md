@@ -197,7 +197,7 @@ Two mechanisms, each covering half of that promise:
 - **Page text and layout** — every site-specific layout fix ships with a new regression
   fixture distilled from that site's minimal markup pattern, and **that fixture must fail
   before the fix**, with the red run recorded in the issue. Pre-existing fixtures are never
-  edited to accommodate a new one. 42 fixtures today, run against a real headless Chrome.
+  edited to accommodate a new one. 44 fixtures today, run against a real headless Chrome.
 
   Worked example, issue #59: on Wikipedia the translations inside a floated infobox became an
   extra table column, doubling the table's width and collapsing the prose beside it to ~115px.
@@ -352,7 +352,7 @@ podcast feed's `<podcast:transcript>`.
 
 ```bash
 npm test              # pure-logic suite, zero dependencies, Node ≥18
-npm run test:layout   # 42 layout fixtures against real headless Chrome (Node ≥22)
+npm run test:layout   # 44 layout fixtures against real headless Chrome (Node ≥22)
 ```
 
 `npm run test:layout` is **mandatory** before any push touching `extension/content/**` or

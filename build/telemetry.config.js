@@ -108,7 +108,14 @@ const EVENTS = {
   sync_on: {},
   // 第六问（telemetry-design §1，2026-09-10）：我们的提示被看见了吗、有人点吗。
   // 只有一个枚举属性，永不带页面、文案或输入。
-  rate_prompt: { action: ['shown', 'tap', 'dismiss'] },   // 译文末尾的评分行
+  // 2026-09-25（§3.12，三轮）：译文末尾那一行不再要评分（Safari 撞苹果 5.6.1；Chrome / Firefox 同样 0 点击、
+  // 商店评分对量几乎无影响）。shown / tap / dismiss 只剩**老版本客户端**还会发，服务端照收；
+  // requested = App 在收获时刻向系统发出了评分请求（requestReview 不回调，所以不是曝光）。
+  rate_prompt: { action: ['shown', 'tap', 'dismiss', 'requested'] },
+  // 译文末尾「今天读过的句子，去复习 →」（§3.12）。目的地由公共字段 host 区分：safari → App 的复习屏，
+  // chrome / firefox → 扩展自己的复习页。seen = 行至少一半进入视口、连续 ≥1 秒（shown 只说明插进了页面）；
+  // no_app = Safari 那一跳的 AppLink.open 兜底被触发（没有人接住 scheme）。
+  review_nudge: { action: ['shown', 'seen', 'tap', 'dismiss', 'no_app'] },
   ext_banner: { action: ['shown', 'setup', 'done', 'check'] },     // App 首页「扩展还没打开」横幅；check = 「打开检测页」那一行（§3.7 B）
   // 扩展在自家域名上检测到自己（亮绿灯那一刻），每装机一次（§3.7 B）。
   setup_detected: {},
@@ -209,8 +216,13 @@ const SEAMS = {
   grant_exhausted: SHARED('extension/learn/telemetry.js'),
   sync_on: SHARED('extension/learn/sync.js'),
   rate_prompt: [
+    { host: 'ext', none: '§3.12 第三轮：译文末尾不再主动要评分，评分只留常驻链接（不发事件）；老版本客户端仍会发 shown/tap/dismiss，服务端照收' },
+    // §3.12：App 在收获时刻向系统请求评分，发 requested。
+    { host: 'app', file: 'extension/learn/feedback.js', match: "action: 'requested'" },
+  ],
+  review_nudge: [
     { host: 'ext', file: 'extension/content/content-webpage.js' },
-    { host: 'app', none: '评分提示挂在网页译文末尾，App 没有这个表面' },
+    { host: 'app', none: '「去复习」那一行挂在网页译文末尾；content-webpage 不进 App 包，App 里没有它' },
   ],
   setup_detected: [
     { host: 'ext', file: 'extension/content/content-main.js' },
