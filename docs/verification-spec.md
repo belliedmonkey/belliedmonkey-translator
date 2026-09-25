@@ -286,10 +286,19 @@ china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
 1. **`TEST_RUNNER_` 前缀**：要把环境变量传进**设备上的测试进程**，必须写成 `TEST_RUNNER_MT_URL=…`。
    直接 `MT_URL=…` 只进 `xcodebuild` 自己的环境，测试里 `ProcessInfo.processInfo.environment` 读不到。
    **症状很欺骗**：测试「passed」，但只跑了 14 秒走默认分支 —— 判据要看附件，不看 passed。
-2. **别卸 runner。** 卸掉之后新装的包起不来：`profile has not been explicitly trusted by the user`，
-   而同一开发者身份签的**主 App 照样能起**（它的信任早就建立过，卸载不影响）。开发者模式开着也不管用，
-   `devicectl` 没有「信任证书」这个能力 ⇒ **只能人在手机上点一次**。09-23 我为排查一次启动失败卸了 runner，
-   把当天唯一还有效的那份信任删掉，后半程直接失去了真机。**启动失败先查别的，最后才动 runner。**
+2. **重建 runner 会触发一次联网证书校验；把校验端点放直连，它就不再要人。**
+   装上新二进制就要联网重校验开发者证书，这次请求**走代理走不通**时报
+   `profile has not been explicitly trusted by the user` / `Developer App Certificate is not trusted`，
+   而 `devicectl` 没有「信任证书」这个能力 ⇒ 当场只能**人在手机主屏点一下 `S56UITests-Runner` 图标**
+   （「VPN与设备管理」里**没有**「开发者App」那一节，别去那儿找）。
+   **2026-09-25 钉死的真因两层**：① 变的只有可执行文件的 CDHash —— 证书与描述文件两个月一个字节没动，
+   所以「卸了 runner」和「重装主 App」都只是相关，不是原因；② 校验失败是因为**代理劫走了那次请求**。
+   ⇒ **根治：手机的 Shadowrocket 导入 `tools/ios-runner/shadowrocket-apple-dev-bypass.module`**
+   （只放行 `ppq.apple.com` 与几个 OCSP/CRL 域名）。同日对照实验：导入前重建后失败两次、每次都要人点；
+   导入后重建立刻 `TEST EXECUTE SUCCEEDED`，附件里有 `[0-launch]` 与截图，**一下都没点**（详见 §2.I）。
+   ⇒ 即便如此仍然优先少重建：加新流程用脚本驱动的 `testDrive`（`tools/ios-runner/README.md`），写 JSON 不改 Swift。
+   09-23 我为排查一次启动失败卸了 runner，把当天唯一还有效的那份信任删掉，后半程直接失去了真机。
+   **启动失败先查别的，最后才动 runner。**
 3. **锁屏做不到，所以 iPhone 镜像在无人值守时不可用。** `devicectl` 没有 lock 子命令；XCUITest 的私有选择器
    `pressLockButton` 调用成功但**没有效果**（截图回读手机仍亮着）。而镜像自己要求「连接前请锁定 iPhone」
    （窗口原话），加上 §0.2.1 的密码前提 —— 两道都得人来。
@@ -1458,15 +1467,59 @@ has not been explicitly trusted by the user
 `Apple Development: … (DT6MT97DP4)` 签名、**照常启动**；runner 的描述文件有效到 2027、这台设备在
 `ProvisionedDevices` 里、`codesign` 读回同一个 TeamIdentifier。**只有测试程序被挡。**
 
-要人在手机上点一次：设置 → 通用 → VPN 与设备管理 → 开发者 App → 信任。
+要人在手机上点一次 —— **在主屏点那个 `S56UITests-Runner` 图标**（灰色空白图标，点开可能一闪就退，
+那是正常的）。**不要去「设置 → 通用 → VPN 与设备管理」找「开发者 App」那一节：开发者模式开着时
+那一节根本不存在**（2026-09-25 实测，此前这里写的路径是错的）。
 
 **卸载 runner 再装一遍偶尔能绕过一次，但不可靠。** 同一天里：第一次这么做通了，之后每次重装主 App
 它就又被挡，再用同样的办法（卸载 + `build-for-testing` + `test-without-building`、`xcodebuild test`
-整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。**触发条件像是「重装了主 App」** ——
-所以真机那一轮要一次装好、一次跑完，别边改边装。
+整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。
 
-**这一步没有自动化的替代**：镜像那条路也不行（ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上
-镜像）。排验证计划时把它当成一个「要人」的步骤，别排在无人值守的那一段里。
+> **2026-09-25 把真因钉死了：触发条件是「runner 的二进制变了」，不是「卸了 runner」也不是
+> 「重装了主 App」。** 那天既没卸 runner、也没重装主 App，只改了 `S56UITests.swift` 重建，照样被挡。
+> 逐项回读过（同一天）：
+>
+> | 项 | 读数 |
+> |---|---|
+> | 签名证书 | 钥匙串里**只有一张**有效的 iOS 开发证书（`Apple Development: ZHAO ZHANG`，2026-06-27 签发、2027-06 到期），两个月没变 |
+> | 描述文件 | Host 与 Runner 嵌的是**同一份**（UUID `9607f946…`，2026-09-12 建、2027-09 到期），`embedded.mobileprovision` 的 md5 两者相同，且 09-21 之后一个新 profile 都没生成 |
+> | 每次重建变的 | **只有可执行文件的 CDHash 与签名时间戳** |
+>
+> ⇒ 装上新二进制就要**联网重新校验一次开发者证书**（记忆 `ios-dev-cert-online-verification`），
+> 校验没当场完成就报这个错，而点图标正是在前台触发那次校验。
+>
+> **对策不是「修签名」。** 当天先落的是「少重建」：runner 里有脚本驱动的通用用例
+> `testDrive`（`tools/ios-runner/README.md`），加新流程写 JSON、不改 Swift、不重建，
+> 也就不会触发这一关。改 Swift 之前先问一句「这个能不能用 testDrive 表达」。
+
+#### 根治：把校验链路放直连（2026-09-25 当天解决）
+
+上面那一层只是把次数降下来。**真因还差一层**，是用户一句话点破的：
+
+> 「这一次也是先关 shadowrocket vpn 再打开 app 再开 shadowrocket vpn 才可以。」
+
+那次联网校验**被代理劫走了**，所以永远完不成，于是永远报「证书不受信任」。放行它即可 ——
+手机的 Shadowrocket 导入 `tools/ios-runner/shadowrocket-apple-dev-bypass.module`
+（配置 → 模块 → + → 填地址 → 打开开关）。它只放行 `ppq.apple.com` 与几个 OCSP/CRL 域名，
+**故意不写 `DOMAIN-SUFFIX,apple.com`**（那会把一大片流量一起放走，远超这件事需要的范围）。
+
+对照实验（同一天、同一台机器、同一条命令序列「改一行 → `build-for-testing` → 立刻
+`test-without-building`」）：
+
+| | 结果 |
+|---|---|
+| 导入模块前 | 失败两次，每次都要用户在主屏点图标 |
+| 导入模块后 | `TEST EXECUTE SUCCEEDED`（12.5 s），附件里有 `[0-launch] 起了 com.belliedmonkeytranslator` + 整页 dump + 两张截图 —— **一下都没点** |
+
+判据是**附件**而不是 `passed`：这个 runner 会「passed 但什么都没做」（§0.2.3 第 1 条）。
+
+**方法论上这一条比结论更值钱。** 我先后给出过两个错误归因（「卸了 runner」、「Xcode 轮换了证书」），
+第二个是靠逐项回读自己推翻的；而真因来自用户对自己动作的一句观察，我当时把它当成旁证放过了。
+**人在回路里的时候，他的动作是最便宜的一次测量 ——「异常先问再查」（记忆
+`ask-before-investigating-anomalies`）说的就是这件事。**
+
+**镜像那条路仍然不行**（ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上镜像）——
+但那与本条无关了：证书校验这一关现在不需要人。
 
 ### J. macOS 快速翻译（真机、签名构建）— ✅ verified 2026-09-19（配方来自尖刺 T2）
 

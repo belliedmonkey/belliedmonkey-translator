@@ -22,8 +22,31 @@ description: 录并合成 App Store 的预览片（Mac 的 DESKTOP 两支、iPho
 | 画中画窗里有英文 | 「真字幕 ✓」 | 那是**原文**，每句下面都写着「译文失败 · 重试」 | 原文**下面有译文**，且没有「译文失败」 |
 | `cap screenshot --window` 出了张漂亮的手机图 | 「取景器是活的 ✓」 | 冻住的一帧，录了 155 秒全是同一张 | **两帧、不同时刻、md5 不同** |
 | `list_windows` 里没有快速翻译面板 | 「快捷键没生效」 | 面板是**浮动 panel**，不在 layer 0 | 整屏截图 |
+| AX 返回 0 个窗口、窗口渲染全黑、`System Events` 报 `-1719` | 「AX 这一层塌了，要重启 cua-driver 或重启 Mac」 | **屏幕锁了** —— 解锁之后一切照旧 | 见下 |
 
 前两条是用户当场指出来的（「翻译其实失败的」）。**这一类错的共同形状：盯着「有反应」，没盯「反应对不对」。**
+
+### 开工前先确认屏幕是醒的 —— 锁屏的表现像「什么都坏了」
+
+录屏这条路上**最会骗人的一件事**：屏幕一锁，窗口渲染全黑、AX 返回 0 个窗口、
+`System Events` 报 `-1719「无效的索引」`、`cap screenshot` 出纯黑图 —— 每一项单独看
+都像被测对象坏了。2026-09-25 我为此判过两次错：先判「QuickTime 卡死」，后判
+「辅助功能层塌了，得重启 cua-driver 或重启 Mac」。**两次都只是屏幕锁了。**
+
+三条判据，都是一秒钟的事：
+
+```bash
+# ① 整屏截图的**字节数**：锁屏时约 11 万，醒着时 100 万以上
+cap screenshot --screen 1 --path /tmp/t.png && ls -l /tmp/t.png
+# ② 对照组：拿一个**已知正常**的窗口问 AX。它也返回 0 ⇒ 不是被测对象的问题
+# ③ check_permissions 仍说 accessibility: true ⇒ 权限没掉，那就是锁屏
+```
+
+**「任何 AX 判据都要先跑一个已知正常的 App 当对照」**（`docs/verification-spec.md` §2.G 第 5 条）
+就是为这一类写的 —— 不跑对照，量到的是自己这一侧的状态，不是被测对象。
+
+录屏动辄十几分钟，中途锁屏会废掉整条 take。**开工前把「息屏/锁屏」推远**，
+或者每次开录前先跑一次上面的①。
 
 ## Mac 两支（DESKTOP 2560×1600，28.5 s）
 
@@ -124,6 +147,7 @@ TestFlight 新装的包容器是空的，而 runner 一上来就点「以后再�
 | App + 画中画 | `testPiPClose` | 开 App → 跳过引导 → 实时字幕 → 开始 → 开 Safari 测试页 → 点播放 → 画中画浮出 |
 | 系统翻译 | `testT1Safari` / `testT1Default` | 设成默认翻译 App → 在别的 App 里选字 → 翻译 |
 | 配 key | `testFillKey` | 见上 |
+| **任何新流程** | **`testDrive`** | **脚本驱动：步骤用 JSON 从 `MT_SCRIPT` 传进去，不用改 Swift、不用重建 runner** —— 也就不会触发上面那道证书重校验。步骤表见 `tools/ios-runner/README.md` |
 
 ```bash
 cd .local/spike/S6
@@ -151,12 +175,14 @@ AUDIO=… AUD_T0=… bash store-assets/src/compose-preview-ios.sh zh
 
 | 现象 | 真因 | 判据 / 对策 |
 |---|---|---|
+| 窗口全黑 / AX 0 窗口 / `System Events -1719` | **屏幕锁了** | 整屏截图字节数 + 已知正常窗口当对照 |
 | 录出来 155 秒是同一张图 | QuickTime 的手机镜像冻了 | 两帧 md5 必须不同；冻了就拔插数据线 |
+| QuickTime 重启后来源退回内建摄像头 | 它不记住 iPhone 那个来源 | 那个 ⌄ **悬停才浮出**，AX 上 `AXPress` 报 `-25204` ⇒ 用元素报出来的 frame 做**像素点击**，别自己算坐标 |
 | 录到的是自己的终端 | 取景器窗口**被别的窗口盖住**（坐标对 ≠ 在最上层） | 先 `activate`，再拿探针帧确认 |
 | `ffmpeg -i "7:none"` 报 I/O error | `avfoundation` 的**屏幕设备号会变**（7 ↔ 5） | 每次录前重新 `-list_devices` |
 | 「"某某iPhone"的相机」打不开 | 那是**连续互通相机**，不是手机屏幕 | 手机屏幕只能走 QuickTime |
 | QuickTime 存不出文件、⌘S 没反应 | 沙盒只认存储面板；脚本路径一律无权限 | 别让它录，只当取景器 |
-| runner 起不来 `Developer App Certificate is not trusted` | 证书信任掉了 | **「VPN与设备管理」里没有「开发者App」那一节** —— 让用户在主屏点一下 `S56UITests-Runner` 图标 |
+| runner 起不来 `Developer App Certificate is not trusted` | **重建了 runner** ⇒ 新二进制要联网重校验证书（证书与描述文件其实两个月没变，只有 CDHash 变了），而**那次请求被手机上的代理劫走了** | **根治：Shadowrocket 导入 `tools/ios-runner/shadowrocket-apple-dev-bypass.module`**（只放行 `ppq.apple.com` + OCSP/CRL）⇒ 09-25 实测重建后不用点图标。没装模块时只能让用户在主屏点一下 `S56UITests-Runner` 图标；**「VPN与设备管理」里没有「开发者App」那一节** |
 | 画中画里只有原文 | 手机上没配翻译引擎 | 见上；判据是原文**下面**有译文 |
 | Safari 里视频没播 | 本机测试页**被 Safari 缓存**了 | URL 加 `?v=N`；页面 `<video autoplay muted>`（镜像时喇叭本来就静音，静音不损失） |
 | Chrome 弹「翻译此页？」进了录屏 | `--disable-translate` / `--disable-features=Translate` **都拦不住** | 页面自己 `translate="no"` + `<meta name="google" content="notranslate">` |

@@ -1,0 +1,38 @@
+name: S56Runner
+options:
+  bundleIdPrefix: cc.belliedmonkey.spike
+  deploymentTarget:
+    iOS: "16.4"
+settings:
+  base:
+    DEVELOPMENT_TEAM: X2Q85MABWK
+    CODE_SIGN_STYLE: Automatic
+    GENERATE_INFOPLIST_FILE: YES
+    SWIFT_VERSION: "5.0"
+targets:
+  S56Host:
+    type: application
+    platform: iOS
+    sources: [Host]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cc.belliedmonkey.spike.s56host
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  S56UITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: S56Host
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cc.belliedmonkey.spike.s56uitests
+        TEST_TARGET_NAME: S56Host
+schemes:
+  S56Runner:
+    build:
+      targets:
+        S56Host: all
+        S56UITests: [test]
+    test:
+      targets: [S56UITests]
