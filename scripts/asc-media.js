@@ -354,10 +354,21 @@ async function findVersionLocalization(bundleId, platform, locale) {
   const apps = await api('GET', '/apps?limit=200');
   const app = apps.data.find((a) => a.attributes.bundleId === bundleId);
   if (!app) throw new Error(`找不到 app ${bundleId}`);
-  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=10`
+  // **必须按平台过滤。** 两个平台的版本记录混在同一个 app 下，不过滤的话 `limit=10`
+  // 会被其中一个平台整个占满，另一个平台的记录**一条都看不到** —— 与 build 号那个坑
+  // 同一族（`asc.js builds` 早就按平台分开问了，这里当时漏了）。
+  //
+  // 症状特别会骗人：2026-09-25 实测，1.16.0 四条线全部 READY_FOR_SALE，而这里报的是
+  // 「没有 1.16.0 版本记录」—— 把「没查到」说成了「不存在」，正是本文件下面那段注释
+  // 警告过的形状（「让人以为是 ASC 的问题」）。真相是它该报「状态是 READY_FOR_SALE」。
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=20`
+    + `&filter[platform]=${platform}`
     + '&fields[appStoreVersions]=versionString,appStoreState,platform');
   const v = vs.data.find((x) => x.attributes.versionString === VERSION && x.attributes.platform === platform);
-  if (!v) throw new Error(`${bundleId} ${platform} 没有 ${VERSION} 版本记录`);
+  if (!v) {
+    const seen = vs.data.map((x) => `${x.attributes.versionString}(${x.attributes.appStoreState})`).join(', ');
+    throw new Error(`${bundleId} ${platform} 没有 ${VERSION} 版本记录 —— 该平台现有：${seen || '（一条都没有）'}`);
+  }
   // 只有 PREPARE_FOR_SUBMISSION 能动。
   //
   // 2026-08-22 实测：版本进 WAITING_FOR_REVIEW 之后，`POST /appScreenshotSets` 被
