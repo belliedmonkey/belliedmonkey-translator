@@ -95,7 +95,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
 | `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
-| `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条，挂上即等于 `mtRatingAskedAt` 落盘，所以一装机 90 天内至多一组 |
+| `rate_prompt` | `action: shown \| tap \| dismiss` | 译文末尾那一行评分提示被挂上 / 被点 / 被关（2026-09-10，§3.1） | `content-webpage.js` `tick()` 挂行处（shown）与行内两个 click handler；`shown` 每装机每次挂上一条。~~挂上即等于 `mtRatingAskedAt` 落盘~~ —— **这半句从来不成立**：代码与 `interaction-spec.md` §评分提示都是点或 × 才写冷却，所以不理它就每页都出（09-25 回读：Safari 37 台 / 389 次，最多一台 98 次）。口径改动见 §3.12 |
 | `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出，§3.7 B） | `app/app.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与三个 listener |
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `app/app.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
@@ -308,7 +308,7 @@ App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有�
    是两件事（§3.3），两件都要核。
 2. 某个宿主**有意**不发的，写 `{ host, none: '<一句理由>' }`，不许留空。例：`subtitle_on`
    在 App 是 `none`（App 的入口由 `asr_entry{surface:'app_home'}` 回答）；`rate_prompt` 在
-   App 是 `none`（评分提示挂在网页译文末尾，App 没有这个表面）；`ext_banner` 在扩展是 `none`。
+   App 是 `none`（评分提示挂在网页译文末尾，App 没有这个表面 —— **§3.12 起不再成立**，App 的系统评分请求也要发）；`ext_banner` 在扩展是 `none`。
    §3.3 裁定 2（补译文不发 `translate_ok`）也落成这样一项，于是「不做」第一次有了机器可读的形状。
 3. 新门禁（并入 `test/telemetry-registry.test.js`）：① 每个事件、每个宿主，要么有 `seams`
    项要么有 `none`；② 每个 `seams` 项的 `file` 里真的有 `track('<事件>'` / `once('<事件>'`
@@ -587,7 +587,7 @@ edge function neither stores nor logs them as a field).
 以及 `dailyNew: 15` / `deckSize: 20` 这两个默认值都该重估 —— 一个每天都清不完的任务，
 对「养成习惯」是反作用。但那动的是交互与领域设计，按 `AGENTS.md` 要**画布先行**，另开。
 
-### 3.11 2026-09-24 amendment（**提案，待人评审**）：两个读数在骗人
+### 3.11 2026-09-24 amendment（**同日用户评审通过并已落地**：规约 #436、代码 #438）：两个读数在骗人
 
 09-24 查激活漏斗时被自己的表带偏了两次。两处都不是数错，是**字段的含义与它看起来的含义
 不一样**，而表上没有一个字写明。一个读表的人（这次是模型，下次可能是人）会按字面去理解。
@@ -667,6 +667,66 @@ if (MT_SITES.test(location.hostname)) { … MTTelemetry.once('setup_detected'); 
 「表与注册表不许对不上」。**但没有任何东西管住「字段的含义有没有被写清楚」** ——
 而这次两个误读都出在这里，且都是在有表、有门禁、全绿的情况下发生的。
 所以判据只能是文档：**每个字段写清它量的是哪一段时间、覆盖的是哪一群人。**
+
+### 3.12 2026-09-25 amendment（**同日用户评审通过**，两轮裁定）：评分提示换口径 —— Safari 改「回 App」，App 的系统评分请求第一次被量到
+
+**起因（09-25 回读）**：星级评分两条线 12 个店面全是 0，文字评论 0，而 App Store 曝光 ~99% 来自搜索 ——
+评分是排序的权重项。评分画布（https://claude.ai/artifact/RmJMXH1TF59zKm66xgs54y ，源 `design/rating-moments/`）
+算清了三件事：
+
+- **机会在 Safari 扩展，不在 App**：成功翻译过的设备 Safari 58 / App 9；「成功 ≥3 次且跨 ≥2 天」Safari 17 / App 1。
+- **网页评分行在打扰人却没换来点击**：Safari 37 台见过 389 次、Chrome 12 台 90 次，合计点 1 次、关 3 次；
+  那 1 次发生在第 98 次展示、第 4 天 —— **而它很可能是我们自己点的**（用户 09-25：「不太记得了，但很可能是我点的」）
+  ⇒ **真实用户的点击约为 0**。
+- **我们其实不知道有没有人看见过它**：`shown` 在行被插进页面的那一刻就记了（`content-webpage.js` 的
+  `placeRateRow()`，没有任何可见判断），而行挂在「文档里最靠后的已译段落」之后 —— 网页翻译会提前翻视线下方的内容，
+  所以这个位置通常在屏幕下面、还跟着往下挪。479 次「展示」里谁真的看见过，一个数都没有。
+
+**苹果审核指南 5.6.1**（原文）：*Use the provided API to prompt users to review your app; this functionality allows
+customers to provide an App Store rating and review without the inconvenience of leaving your app, and we will disallow
+custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主动出现的「去商店给个评分」就是自定义评分提示。
+「没看到」与「看到没点」两个分支的自然修法，在 Safari 上一个撞这条、一个撞「浏览器里没有一键打星」—— 两条都把答案
+推到同一处：**Safari 那一行不该再要评分，而是把真在用的人带回 App，由 App 在收获时刻调系统评分 API。**
+
+**用户裁定（2026-09-25，两轮，画布板 C）**：
+① **Safari 那一行改成「回 App」**：「今天读过的句子，去 App 里复习 →」，点了走现成的 `AppLink.open(uid, …, 'review')`。
+   **只给已登录的人**（句子要同步过去，否则把人送进一个必然空着的屏 —— 与 `review.js` `renderGoApp` 同一条规矩）；
+   09-25：17 台真在用的里 11 台已登录。
+② **Chrome / Firefox 那一行照旧要评分**（苹果的规则管不到、去的也不是 App Store），口径改为
+   **每个本地日至多出现一次、最多出现在 5 个不同的日子**，第 5 个日子挂过后自动进 90 天冷却；点或 × 立刻进 90 天冷却。
+   Safari 的「回 App」行用同一节奏。
+③ 两种行都只对**成功 ≥3 次、且出现在 ≥2 个不同本地日**的装机出现。
+④ **App 的系统评分请求**从「一轮复习 ≥3 张」挪到真实的收获时刻：从 Safari 那一行进来、在复习里评完 ≥5 张
+   （iOS 上最主要的一条）· 听译 / 实时字幕结束且有句子 · Mac 快速翻译成功 · 系统翻译收件箱进卡 · 复习 opened；
+   同③的门槛；**只在事件回调里调，不在任何按钮点击里调**（点「回 App」是按钮，评完卡片才是收获）。
+⑤ 扩展与 App 的冷却**不打通**，各自 90 天 —— 交互规约里「共用同一个键与同一个冷却」改成实话。
+
+**遥测改什么**：
+
+| | 现在 | 裁定 |
+|---|---|---|
+| `rate_prompt.action` 取值 | `shown \| tap \| dismiss` | 加 **`seen`**、**`requested`** |
+| `rate_prompt` 在各宿主 | ext：`content-webpage.js`；app：`none` | ext：仍是 `content-webpage.js`，但 **Safari 不再发**（那一行换成 `app_nudge`）；app：`extension/learn/feedback.js` `maybeRequestRating` 真发出 `request-review` 那一刻发 `requested` |
+| **新事件 `app_nudge`** | — | `action: shown \| seen \| tap \| dismiss \| no_app`；只在 Safari 的「回 App」行发（`host='safari'`）；`no_app` = `AppLink.open` 的兜底被触发（没有人接住 scheme） |
+| `shown` 的上限 | 名义「90 天一组」，实际每页一条 | 每装机每个本地日至多 1 条、每 90 天至多 5 条（两种行都是） |
+
+**`seen` 的定义**：行至少一半进入视口、连续停留 ≥1 秒，每一行至多记一次。从此「展示」分成两层：`shown` = 插进了页面，
+`seen` = 真的进了视线。**历史上的 `shown` 只能按「插进了页面」读**，不能与 `seen` 相比，也不能当曝光。
+
+**`requested` 为什么不能记成 `shown` / 曝光**：`SKStoreReviewController.requestReview` 不回调，Apple 每 365 天最多弹 3 次、
+其余静默丢弃 —— App 只知道「请求了」。所以 `requested` 只回答「门槛有没有被跨过、那个时刻有没有发生」；
+评分效果只看商店的 `userRatingCount`（`scripts/store-stats.js`）。
+
+**为什么 Safari 的新行用新事件、不复用 `rate_prompt`**：它不再是评分提示。复用会让 Safari 的 `tap` 不再等于「去评分」，
+把第六问（「提示被看见了吗、有人理吗」）的数据搅浑。
+
+**口径与隐私不变**：仍然只有枚举，没有内容、没有页面地址、没有句数；「跨 ≥2 天」的日期集合只存本机
+（与 `mtOkSessions` 同处），**不上报**。中国版照旧一条不发。
+
+**顺序**（与 §3.6 同一套）：本节评审通过 → 一个 PR 同时改 §3 表（`rate_prompt` 行 + 新增 `app_nudge` 行）+
+`build/telemetry.config.js`（取值、送出点、新事件）+ 生成物 → **先部署 `bt-ingest` 并回读它接受 `seen` / `requested` /
+`app_nudge`** → 代码 PR（`feedback.js` 门槛与冷却、`content-webpage.js` 两种行与 `seen`、App 各时刻接线、
+`interaction-spec.md` §评分提示同提交改写）。
 
 ## 4. Transport
 
