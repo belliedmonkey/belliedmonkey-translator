@@ -149,7 +149,9 @@ were deleted at runtime, translation output must be byte-for-byte identical.
 
 **Governance rule (mandatory):** any change that touches the domain design — the
 model, the extractor/engine/renderer boundary, the device principle, the
-`DomSegmenter` rules, or the learning layer's Collector boundary / scheduler
+`DomSegmenter` rules, the UI framework layer (`docs/domain-design.md` §10 — the
+store contract, the shared-surface single-source rule, the hidden discipline, the
+injected-UI boundary), or the learning layer's Collector boundary / scheduler
 contract / storage tiers — **must first update `docs/domain-design.md` (and
 `docs/learning-design.md` where it applies) and pass human domain-design review
 before the code changes.** Do not refactor the architecture or add per-site /
@@ -336,7 +338,8 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
 **Every change must pass regression tests before it is pushed — a hard gate.** The
 full procedure is in [`docs/verification-spec.md`](docs/verification-spec.md); in short:
 
-1. **Automated logic suite — `npm test`** (zero-dep, `node test/run.js`) **must be green**
+1. **Automated logic suite — `npm test`** (`node test/run.js`; no test framework, no jsdom —
+   build-time devDependencies only, per `docs/domain-design.md` §10) **must be green**
    before you push; add/update tests in the same commit when you change logic.
 2. **Full-matrix manual/device verification** — for any change with a runtime surface,
    work the relevant [`docs/regression-tests.md`](docs/regression-tests.md) scenarios on

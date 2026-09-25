@@ -28,6 +28,13 @@ element existing is not proof the user sees it (see AGENTS.md).
   强制同步），豁免失效，照常禁用。
   新增任何 IO 操作时，这条默认适用，不适用要在本文注明理由。
 
+- **React 迁移期：行为与像素双不变** *(2026-09-25，随 domain-design §10 采纳)*。
+  UI 层向 React 迁移（`docs/domain-design.md` §10）的每一个 PR，其验收基线是
+  **本规范描述的一切交互效果与现有像素一字不变**：现有端到端门零改动即绿是默认
+  要求，改了断言的 PR 必须逐条列「不变量 → 旧锚点 → 新锚点」。**任何借迁移之机的
+  行为变化必须拆出独立 PR**，照常走画布 / 本规范流程 —— 迁移 PR 里出现行为 diff
+  即拆出去。因此迁移本身不触发「改交互画布先行」，本条就是那个边界。
+
 ---
 
 ## YouTube bilingual subtitles
