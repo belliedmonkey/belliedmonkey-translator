@@ -75,32 +75,6 @@ describe('MTFeedback.mailtoUrl — 主题是路标，不是数据', () => {
   });
 });
 
-describe('MTFeedback.maybeRequestRating — 只在 App 里、只在成功之后、且有冷却', () => {
-  test('浏览器扩展里永远 false，不碰存储', async () => {
-    const { F, store } = load({ ua: SAFARI_IPHONE });
-    eq(await F.maybeRequestRating(10), false);
-    eq(store[F.RATING_KEY], undefined);
-  });
-  test('App 里做的张数不够 ⇒ false', async () => {
-    const { F, window } = load({ app: true });
-    eq(await F.maybeRequestRating(F.RATING_MIN_DONE - 1), false);
-    eq((window.__sent || []).length, 0);
-  });
-  test('App 里够张数 ⇒ 向系统提一次，并记下时间', async () => {
-    const { F, window, store } = load({ app: true });
-    eq(await F.maybeRequestRating(F.RATING_MIN_DONE, 1000), true);
-    eq(window.__sent[0], 'request-review');
-    eq(store[F.RATING_KEY], 1000);
-  });
-  test('冷却期内第二次不提；过了冷却期再提', async () => {
-    const { F, window } = load({ app: true, store: { mtRatingAskedAt: 1000 } });
-    eq(await F.maybeRequestRating(10, 1000 + F.RATING_COOLDOWN_MS - 1), false);
-    eq((window.__sent || []).length, 0);
-    eq(await F.maybeRequestRating(10, 1000 + F.RATING_COOLDOWN_MS + 1), true);
-    eq(window.__sent.length, 1);
-  });
-});
-
 describe('MTFeedback.open — 宿主 App 走原生桥，浏览器走 window.open', () => {
   test('App：发 open-url: 前缀的消息，不碰 window.open', () => {
     const { F, window } = load({ app: true });
@@ -112,43 +86,141 @@ describe('MTFeedback.open — 宿主 App 走原生桥，浏览器走 window.open
   test('空地址 ⇒ false，什么都不做', () => eq(load({ app: true }).F.open(null), false));
 });
 
-// 第八期 C（2026-09-10）：浏览器侧的评分提示 —— 成功会话计数 + 要不要问。
-describe('MTFeedback.noteOkSession / shouldOfferRating / markRatingAsked — 浏览器侧评分提示', () => {
-  test('noteOkSession 累加并落盘，返回新值', async () => {
+// 2026-09-25 评分画布两轮裁定（telemetry-design §3.12，design/rating-moments）：
+//   · 「真在用」= 成功 ≥3 次、且出现在 ≥2 个不同本地日（浏览器侧与 App 侧同一条）
+//   · 译文末尾那一行：Safari 是「回 App 复习」（只给已登录且开了学习的人），Chrome / Firefox 是「去扩展复习页」
+//     （开了学习即可）—— 第三轮起没有一种再要评分；
+//     每本地日至多一次、最多 5 个日子，第 5 个日子后自动冷却；点或 × 立刻 90 天冷却
+//   · App 在收获时刻调系统评分，门槛同上，只发 requested
+const DAY = 24 * 3600 * 1000;
+const T0 = new Date(2026, 8, 20, 10, 0, 0).getTime();   // 本地时间 2026-09-20 10:00
+
+describe('MTFeedback 成功会话：次数 + 不同的本地日', () => {
+  test('noteOkSession 累加次数，并按本地日去重记日子', async () => {
     const { F, store } = load({ ua: CHROME_MAC });
-    eq(await F.noteOkSession(), 1);
-    eq(await F.noteOkSession(), 2);
-    eq(store[F.OK_SESSIONS_KEY], 2);
+    eq(await F.noteOkSession(T0), 1);
+    eq(await F.noteOkSession(T0 + 3600 * 1000), 2);          // 同一天
+    eq(await F.noteOkSession(T0 + DAY), 3);                   // 第二天
+    eq(store[F.OK_SESSIONS_KEY], 3);
+    eq(JSON.stringify(store[F.OK_DAYS_KEY]), JSON.stringify([F.localDay(T0), F.localDay(T0 + DAY)]));
   });
-  test('第 RATING_MIN_DONE 次才问；之前不问', async () => {
+  test('qualifies：≥3 次且 ≥2 个日子 —— 第一天连刷三页不算', () => {
     const { F } = load({ ua: CHROME_MAC });
-    eq(await F.shouldOfferRating(F.RATING_MIN_DONE - 1), false);
-    eq(await F.shouldOfferRating(F.RATING_MIN_DONE), true);
-    eq(await F.shouldOfferRating(F.RATING_MIN_DONE + 7), true);
+    eq(F.qualifies(3, ['2026-09-20']), false);
+    eq(F.qualifies(2, ['2026-09-20', '2026-09-21']), false);
+    eq(F.qualifies(3, ['2026-09-20', '2026-09-21']), true);
   });
-  test('中国版 Chrome / Firefox 没有商店条目 ⇒ 永远不问（rateUrl 为 null）', async () => {
-    eq(await load({ flavor: 'china', ua: CHROME_MAC }).F.shouldOfferRating(99), false);
-    eq(await load({ flavor: 'china', ua: FIREFOX, firefox: true }).F.shouldOfferRating(99), false);
-    // 中国版 Safari 有 App Store 条目 ⇒ 照问
-    eq(await load({ flavor: 'china', ua: SAFARI_IPHONE }).F.shouldOfferRating(3), true);
+});
+
+describe('MTFeedback.rowKind —— 哪个宿主挂哪一种行', () => {
+  test('Safari：已登录且开了学习 ⇒ 回 App；缺一样 ⇒ 不挂（不把人送进空屏）', () => {
+    const { F } = load({ ua: SAFARI_IPHONE });
+    eq(F.rowKind({ userId: 'u1', learnEnabled: true }), 'app');
+    eq(F.rowKind({ userId: '', learnEnabled: true }), null);
+    eq(F.rowKind({ userId: 'u1', learnEnabled: false }), null);
   });
-  test('冷却：点了或关了都记 mtRatingAskedAt，90 天内不再问，过了再问', async () => {
-    const { F, store } = load({ ua: CHROME_MAC });
-    await F.markRatingAsked(1000);
-    eq(store[F.RATING_KEY], 1000);
-    eq(await F.shouldOfferRating(10, 1000 + F.RATING_COOLDOWN_MS - 1), false);
-    eq(await F.shouldOfferRating(10, 1000 + F.RATING_COOLDOWN_MS + 1), true);
+  test('Chrome / Firefox ⇒ 去扩展复习页，只要开了学习（不需要登录）；没开学习 ⇒ 不挂', () => {
+    eq(load({ ua: CHROME_MAC }).F.rowKind({ learnEnabled: true }), 'review');
+    eq(load({ ua: FIREFOX, firefox: true }).F.rowKind({ learnEnabled: true }), 'review');
+    eq(load({ ua: CHROME_MAC }).F.rowKind({}), null);
+    eq(load({ ua: CHROME_MAC }).F.rowKind({ userId: 'u1', learnEnabled: false }), null);
   });
-  test('storage 永不回调时 3 s 内落定（内容脚本里 Safari 后台死掉的形状）', async () => {
-    const { F } = load({ ua: CHROME_MAC });
-    // 换成一个永不回调的 storage
+  test('中国版 Chrome / Firefox 也一样（复习页在扩展里，不依赖商店条目）', () => {
+    eq(load({ flavor: 'china', ua: CHROME_MAC }).F.rowKind({ learnEnabled: true }), 'review');
+    eq(load({ flavor: 'china', ua: FIREFOX, firefox: true }).F.rowKind({ learnEnabled: true }), 'review');
+  });
+  test('中国版 Safari 照样有「回 App」（它有 App）', () => {
+    eq(load({ flavor: 'china', ua: SAFARI_IPHONE }).F.rowKind({ userId: 'u1', learnEnabled: true }), 'app');
+  });
+  test('宿主 App 里没有这一行', () => eq(load({ app: true }).F.rowKind({ userId: 'u1', learnEnabled: true }), null));
+});
+
+describe('MTFeedback.rowToOffer / noteRowShown / markRatingAsked —— 节奏与冷却', () => {
+  const LEARN = { learnEnabled: true };
+  const qualified = () => ({ mtOkSessions: 3, mtOkDays: ['2026-09-18', '2026-09-19'] });
+  test('没到「真在用」⇒ 不挂', async () => {
+    const { F } = load({ ua: CHROME_MAC, store: { mtOkSessions: 5, mtOkDays: ['2026-09-20'] } });
+    eq(await F.rowToOffer(LEARN, T0), null);
+  });
+  test('到了 ⇒ Chrome 挂「去扩展复习页」', async () => {
+    eq(await load({ ua: CHROME_MAC, store: qualified() }).F.rowToOffer(LEARN, T0), 'review');
+  });
+  test('每个本地日至多一次：今天挂过了 ⇒ 今天不再挂，明天再挂', async () => {
+    const { F } = load({ ua: CHROME_MAC, store: qualified() });
+    await F.noteRowShown(T0);
+    eq(await F.rowToOffer(LEARN, T0 + 3600 * 1000), null);
+    eq(await F.rowToOffer(LEARN, T0 + DAY), 'review');
+  });
+  test('第 5 个日子挂过之后自动进 90 天冷却，并清掉日子计数', async () => {
+    const { F, store } = load({ ua: CHROME_MAC, store: qualified() });
+    for (let d = 0; d < F.ROW_MAX_DAYS - 1; d++) await F.noteRowShown(T0 + d * DAY);
+    eq(store[F.RATING_KEY], undefined);
+    const fifth = T0 + (F.ROW_MAX_DAYS - 1) * DAY;
+    await F.noteRowShown(fifth);
+    eq(store[F.RATING_KEY], fifth);
+    eq(JSON.stringify(store[F.ROW_DAYS_KEY]), '[]');
+    eq(await F.rowToOffer(LEARN, fifth + DAY), null);
+    eq(await F.rowToOffer(LEARN, fifth + F.RATING_COOLDOWN_MS + DAY), 'review');
+  });
+  test('点了或关了 ⇒ 立刻冷却 90 天，过了再挂', async () => {
+    const { F, store } = load({ ua: CHROME_MAC, store: qualified() });
+    await F.markRatingAsked(T0);
+    eq(store[F.RATING_KEY], T0);
+    eq(await F.rowToOffer(LEARN, T0 + F.RATING_COOLDOWN_MS - 1), null);
+    eq(await F.rowToOffer(LEARN, T0 + F.RATING_COOLDOWN_MS + 1), 'review');
+  });
+  test('Safari 已登录且开了学习 ⇒ 挂「回 App」', async () => {
+    eq(await load({ ua: SAFARI_IPHONE, store: qualified() }).F.rowToOffer({ userId: 'u1', learnEnabled: true }, T0), 'app');
+  });
+  test('storage 永不回调时 7 s 内落定（内容脚本里 Safari 后台死掉的形状）', async () => {
     const ctx = loadModule(['learn/app-link.js', 'learn/feedback.js'], {
       window: { MT_FLAVOR: 'global' }, navigator: { userAgent: CHROME_MAC, platform: '' },
       chrome: { runtime: { getManifest: () => ({ version: '1' }) }, storage: { local: { get: () => {}, set: () => {} } } },
     });
     const t0 = Date.now();
     eq(await ctx.MTFeedback.noteOkSession(), 1);      // 读不到 ⇒ 当 0，+1
-    ok(Date.now() - t0 < 7000, '两次 storage 各 3 s 上限，不能挂死');
-    void F;
+    ok(Date.now() - t0 < 7000, '并行读 3 s + 写 3 s，不能挂死');
+  });
+});
+
+describe('MTFeedback.noteValueMoment —— App 在收获时刻请求系统评分', () => {
+  test('浏览器里永远 false，不碰存储', async () => {
+    const { F, store } = load({ ua: SAFARI_IPHONE });
+    eq(await F.noteValueMoment('review', T0), false);
+    eq(store[F.VALUE_COUNT_KEY], undefined);
+  });
+  test('同一天三次不够（要跨 ≥2 天）', async () => {
+    const { F, window } = load({ app: true });
+    for (let k = 0; k < 3; k++) eq(await F.noteValueMoment('listen', T0 + k * 60000), false);
+    eq((window.__sent || []).length, 0);
+  });
+  test('≥3 次且跨 ≥2 天 ⇒ 向系统提一次，记下时间', async () => {
+    const { F, window, store } = load({ app: true });
+    await F.noteValueMoment('review', T0);
+    await F.noteValueMoment('review', T0 + 60000);
+    eq(await F.noteValueMoment('quick', T0 + DAY), true);
+    eq(window.__sent[0], 'request-review');
+    eq(store[F.RATING_KEY], T0 + DAY);
+  });
+  test('冷却期内不再提；过了冷却期再提', async () => {
+    const { F, window } = load({ app: true, store: { mtValueCount: 5, mtValueDays: ['2026-09-18', '2026-09-19'], mtRatingAskedAt: T0 } });
+    eq(await F.noteValueMoment('systrans', T0 + F.RATING_COOLDOWN_MS - 1), false);
+    eq((window.__sent || []).length, 0);
+    eq(await F.noteValueMoment('systrans', T0 + F.RATING_COOLDOWN_MS + 1), true);
+    eq(window.__sent.length, 1);
+  });
+  test('发出请求时记 rate_prompt{requested}（不是 shown —— 系统弹没弹我们不知道）', async () => {
+    const tracked = [];
+    const store = { mtValueCount: 5, mtValueDays: ['2026-09-18', '2026-09-19'] };
+    const window = { MT_FLAVOR: 'global', webkit: { messageHandlers: { controller: { postMessage() {} } } } };
+    const ctx = loadModule(['learn/app-link.js', 'learn/feedback.js'], {
+      window, navigator: { userAgent: '', platform: '' },
+      MTTelemetry: { track: (name, props) => tracked.push([name, props.action]) },
+      chrome: { runtime: { getManifest: () => ({ version: '1' }) }, storage: { local: {
+        get: (keys, cb) => cb(Object.fromEntries(keys.map((k) => [k, store[k]]))),
+        set: (obj, cb) => { Object.assign(store, obj); cb && cb(); } } } },
+    });
+    eq(await ctx.MTFeedback.noteValueMoment('review', T0), true);
+    eq(JSON.stringify(tracked), JSON.stringify([['rate_prompt', 'requested']]));
   });
 });

@@ -181,7 +181,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 - **页面文本与排版** —— 每个站点专属的排版修复都必须带一个新的回归 fixture，从该站点最小的
   排版模式提炼而来，而且**这个 fixture 必须在修复之前是红的**，红色运行记录进 issue。
-  已有的 fixture 永远不会为了迁就新修复而被改动。目前 42 个，跑在真实的无头 Chrome 上。
+  已有的 fixture 永远不会为了迁就新修复而被改动。目前 44 个，跑在真实的无头 Chrome 上。
 
   一个实例，issue #59：维基百科上，浮动信息框里的译文变成了表格的一个新列，把表格撑宽近一倍，
   旁边的正文被压到约 115px。修法是通用的 —— 分段器里没有出现任何域名或选择器 ——
@@ -304,7 +304,7 @@ token 限制；播客则用页内的 WebVTT/SRT 或 feed 里的 `<podcast:transc
 
 ```bash
 npm test              # 纯逻辑测试套件，零依赖，Node ≥18
-npm run test:layout   # 42 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
+npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
 ```
 
 任何改动 `extension/content/**` 或 `extension/styles/**` 的推送**必须**先跑

@@ -40,10 +40,21 @@ describe('评分提示行', () => {
       ok(i('learn/feedback.js') < i('content/content-webpage.js'), 'feedback 要在 content-webpage 之前');
     }
   });
-  test('点击评分行：先 open 再 markRatingAsked（手势只在第一次 await 之前有效）', () => {
+  // 2026-09-25 起这一行有两个目的地（§3.12）：Safari 走 AppLink.open（自定义 scheme），
+  // Chrome / Firefox 用 window.open 打开扩展复习页。两条都必须先开再记 —— 第一版落地时
+  // Safari 那一支写反了，是这条测试抓到的。
+  test('点击那一行：两个目的地都先打开、再 markRatingAsked（手势只在第一次 await 之前有效）', () => {
     const src = fs.readFileSync(path.join(ROOT, 'extension/content/content-webpage.js'), 'utf8');
-    const i = src.indexOf('MTFeedback.open(MTFeedback.rateUrl())');
-    const j = src.indexOf('MTFeedback.markRatingAsked()', i);
-    ok(i > 0 && j > i, 'open 必须在 markRatingAsked 之前');
+    for (const opener of ['AppLink.open(settings.learnUserId', "window.open(chrome.runtime.getURL('learn/review.html')"]) {
+      const i = src.indexOf(opener);
+      const j = src.indexOf('MTFeedback.markRatingAsked()', i);
+      ok(i > 0, '找不到打开目的地的那一行：' + opener);
+      // 在同一个 onclick 里：从打开处往回找最近的 onclick，markRatingAsked 必须在打开之后、下一个 onclick 之前
+      const nextHandler = src.indexOf('.onclick = (ev)', i);
+      ok(j > i && (nextHandler < 0 || j < nextHandler), 'markRatingAsked 必须在打开之后：' + opener);
+      const k = src.lastIndexOf('.onclick = (ev)', i);
+      const before = src.slice(k, i);
+      ok(!before.includes('markRatingAsked'), '打开之前不许先写存储：' + opener);
+    }
   });
 });

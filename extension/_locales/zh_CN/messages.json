@@ -2701,6 +2701,12 @@
   "rate_prompt_text": {
     "message": "觉得好用？去商店给个评分 →"
   },
+  "app_nudge_text": {
+    "message": "今天读过的句子，去 App 里复习 →"
+  },
+  "review_nudge_text": {
+    "message": "今天读过的句子，去复习 →"
+  },
   "doc_title": {
     "message": "文档翻译"
   },

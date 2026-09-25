@@ -2,27 +2,28 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Rating prompt row: after the last translation, once, once the install has 3+ successes across 2+ days</title>
+<title>End-of-translation row: qualified install but learning is off ⇒ no row (2026-09-25, telemetry-design §3.12 round 3)</title>
 <style>
   body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 720px; }
   p { margin: 0 0 14px; line-height: 1.7; }
-  aside { margin-top: 24px; padding: 12px; background: #f3f3f3; }
 </style>
 </head>
 <body>
 
+<!-- 这台装机已经「真在用」（≥3 次、跨 2 天），但**没开学习** —— 没有句子可复习，
+     「今天读过的句子，去复习 →」就是把人送进一个空屏，所以不挂。
+     修之前这一行是「去商店给个评分」，不看学习开没开：这一张在那时会挂出一行。 -->
 <p id="p1">Spaced repetition schedules each review just before you would forget it.</p>
 <p id="p2">The forgetting curve describes how memory fades over time without practice.</p>
 <p id="p3">Reading in two languages keeps the original in view while the translation sits beneath it.</p>
-<aside id="side">Editorial note: this box is the page's own footer content.</aside>
 
 <script type="application/json" id="mt-expect">
 {
-  "name": "rate-row",
-  "unitCount": 4,
-  "cfg": { "learnEnabled": true },
+  "name": "review-row-no-learning",
+  "unitCount": 3,
+  "cfg": { "learnEnabled": false },
   "storage": { "mtOkSessions": 2, "mtOkDays": ["2020-01-01"] },
-  "rateRow": { "count": 1 }
+  "rateRow": { "count": 0 }
 }
 </script>
 </body>

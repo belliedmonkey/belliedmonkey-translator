@@ -164,6 +164,8 @@
     // 这是唯一能证明它的事实（画布第 7 页 DiscoverWhen）。首页那张发现横幅据此变态。
     if (out.written > 0) {
       try { chrome.storage.local.set({ systransSeenAt: Date.now() }); } catch (_) {}
+      // 收获时刻（telemetry-design §3.12 ④）：系统翻译真的在用 —— 这也是它唯一的证据。
+      try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) MTFeedback.noteValueMoment('systrans').catch(() => {}); } catch (_) {}
     }
     return out;
   }

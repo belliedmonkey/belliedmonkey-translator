@@ -125,7 +125,12 @@
     const ms = Number.isInteger(m.ms) && m.ms >= 0 ? m.ms : 0;
     const provider = String(m.provider || '');
     try {
-      if (m.ok === true) { T.track('translate_ok', { provider, kind: 'quick', ms }); return 'ok'; }
+      if (m.ok === true) {
+        T.track('translate_ok', { provider, kind: 'quick', ms });
+        // 收获时刻（telemetry-design §3.12 ④）：Mac 快速翻译出了译文。
+        try { if (typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) MTFeedback.noteValueMoment('quick').catch(() => {}); } catch (_) {}
+        return 'ok';
+      }
       T.track('translate_fail', {
         provider, code: typeof m.code === 'string' && m.code ? m.code : 'network',
         status: Number.isInteger(m.status) ? m.status : 0,

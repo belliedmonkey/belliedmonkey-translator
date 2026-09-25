@@ -18,7 +18,8 @@ var WebpageTranslator = (() => {
   let enabledAt = 0, okSent = false;   // 用量事件：本次会话的起点 + translate_ok 只发一次
   // 评分提示（第八期 C，interaction-spec「评分提示」）：onOk 只置旗，tick 里 painted 之后
   // 再挂 —— onOk 在译文落地时触发，早于绘制，那时最后一段还没有 DOM。
-  let rateNoted = false, rateArmed = false, rateRow = null;
+  // rateArmed：false | 'app'（Safari：回 App 复习）| 'review'（Chrome / Firefox：打开扩展复习页）。
+  let rateNoted = false, rateArmed = false, rateRow = null, rateKind = '', rateSeenObs = null, rateSeenTimer = 0;
   let tickCount = 0;
   let domObs = null;              // SPA re-render fix-up (see installDomObserver)
 
@@ -40,9 +41,11 @@ var WebpageTranslator = (() => {
       onOk: () => {
         if (!rateNoted && typeof MTFeedback !== 'undefined' && MTFeedback.noteOkSession) {
           rateNoted = true;
+          // 记一次成功会话，再问这一页要不要挂那一行、挂哪一种（telemetry-design §3.12）：
+          // Safari 是「回 App 复习」、Chrome / Firefox 是「去扩展复习页」，门槛与节奏都在 feedback.js。
           MTFeedback.noteOkSession()
-            .then((n) => MTFeedback.shouldOfferRating(n))
-            .then((yes) => { if (yes && active) rateArmed = true; })
+            .then(() => MTFeedback.rowToOffer({ userId: settings.learnUserId, learnEnabled: settings.learnEnabled }))
+            .then((kind) => { if (kind && active) rateArmed = kind; })
             .catch(() => {});
         }
         if (okSent || !(typeof MTTelemetry !== 'undefined')) return;
@@ -1185,33 +1188,85 @@ var WebpageTranslator = (() => {
     }
     return best;
   }
+  // 两种行同一个事件 review_nudge：它们都是「去复习」，目的地由公共字段 host 区分（safari → App，
+  // chrome / firefox → 扩展复习页），不另加取值（telemetry-design §3.12 第三轮）。事件名写成字面量：
+  // 遥测门禁按字面量核对每个发送点。
   function rateTrack(action) {
-    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('rate_prompt', { action }); } catch (_) {}
+    if (typeof MTTelemetry === 'undefined') return;
+    try { MTTelemetry.track('review_nudge', { action }); } catch (_) {}
+  }
+  function stopSeenWatch() {
+    if (rateSeenTimer) { clearTimeout(rateSeenTimer); rateSeenTimer = 0; }
+    if (rateSeenObs) { try { rateSeenObs.disconnect(); } catch (_) {} rateSeenObs = null; }
   }
   function removeRateRow() {
+    stopSeenWatch();
     if (rateRow) { try { rateRow.remove(); } catch (_) {} }
     rateRow = null; rateArmed = false;
+  }
+  // 「真的看见了」：行至少一半进入视口、连续停留 ≥1 秒，每一行至多记一次。
+  // `shown` 只说明行被插进了页面 —— 它挂在已译内容的最前沿，常常在屏幕下方（09-25 那 479 次
+  // 「展示」里谁真看见过，一个数都没有）。没有 IntersectionObserver 的环境就不记，宁缺勿假。
+  function watchSeen(row) {
+    if (typeof IntersectionObserver === 'undefined') return;
+    try {
+      rateSeenObs = new IntersectionObserver((entries) => {
+        const vis = entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5);
+        if (vis && !rateSeenTimer) {
+          rateSeenTimer = setTimeout(() => { rateSeenTimer = 0; rateTrack('seen'); stopSeenWatch(); }, 1000);
+        } else if (!vis && rateSeenTimer) { clearTimeout(rateSeenTimer); rateSeenTimer = 0; }
+      }, { threshold: [0, 0.5, 1] });
+      rateSeenObs.observe(row);
+    } catch (_) { rateSeenObs = null; }
   }
   function placeRateRow() {
     const ref = rateAnchor();
     if (!ref) return;
     if (!rateRow) {
+      rateKind = rateArmed === 'app' ? 'app' : 'review';
       const row = document.createElement('div');
       row.className = 'mt-rate-row';
       row.setAttribute('translate', 'no');           // 自家 UI 契约：hardSkip + 采集器跳过
       row.setAttribute('data-mt-skip-region', '');
+      row.dataset.mtRowKind = rateKind;               // 门禁与排查读它：挂的是哪一种
       const text = document.createElement('span');
       text.className = 'mt-rate-text';
       text.setAttribute('role', 'link');
-      text.textContent = TranslationCore.t('rate_prompt_text', '觉得好用？去商店给个评分 →');
-      text.onclick = (ev) => {
-        ev.preventDefault(); ev.stopPropagation();
-        // window.open 必须同步发生在点击里（test/user-gesture.test.js）—— 先开再记。
-        MTFeedback.open(MTFeedback.rateUrl());
-        MTFeedback.markRatingAsked();
-        rateTrack('tap');
-        removeRateRow();
-      };
+      if (rateKind === 'app') {
+        // Safari：不再要评分（苹果 5.6.1 禁止自定义评分提示），把真在用的人带回 App 复习；
+        // 评分由 App 在收获时刻调系统 API（feedback.js noteValueMoment）。
+        text.textContent = TranslationCore.t('app_nudge_text', '今天读过的句子，去 App 里复习 →');
+        text.onclick = (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          let fell = false;
+          // 先开再记：scheme 必须同步发生在点击里（手势只在第一次 await 之前有效）。
+          // 地址与「没人接」的判据都在 AppLink 里。
+          AppLink.open(settings.learnUserId, (kind) => {
+            fell = true;
+            rateTrack('no_app');
+            text.onclick = null;
+            text.removeAttribute('role');
+            text.textContent = kind === 'store'
+              ? TranslationCore.t('app_open_failed', '这台设备上没能打开 App。')
+              : TranslationCore.t('app_not_on_platform', '这个 App 只有 iPhone、iPad 和 Mac 版。在这台设备上，就在浏览器里复习。');
+          }, 1400, 'review');
+          MTFeedback.markRatingAsked();
+          rateTrack('tap');
+          setTimeout(() => { if (!fell) removeRateRow(); }, 1700);
+        };
+      } else {
+        // Chrome / Firefox：打开扩展自己的复习页（web_accessible，content-main 的学习面入口也这么链）。
+        // 不需要登录、Windows 上也有。评分不再在这里要 —— 只留常驻链接（§3.12 第三轮）。
+        text.textContent = TranslationCore.t('review_nudge_text', '今天读过的句子，去复习 →');
+        text.onclick = (ev) => {
+          ev.preventDefault(); ev.stopPropagation();
+          // window.open 必须同步发生在点击里（test/user-gesture.test.js）—— 先开再记。
+          try { window.open(chrome.runtime.getURL('learn/review.html'), '_blank'); } catch (_) {}
+          MTFeedback.markRatingAsked();
+          rateTrack('tap');
+          removeRateRow();
+        };
+      }
       const x = document.createElement('button');
       x.className = 'mt-rate-x';
       x.type = 'button';
@@ -1225,7 +1280,12 @@ var WebpageTranslator = (() => {
       };
       row.append(text, x);
       rateRow = row;
+      // 挂上 = 今天用掉了这一次（每个本地日至多一次；第 5 个日子后自动进冷却）。
+      try { MTFeedback.noteRowShown(); } catch (_) {}
       rateTrack('shown');
+      if (ref.nextElementSibling !== rateRow) ref.insertAdjacentElement('afterend', rateRow);
+      watchSeen(row);
+      return;
     }
     if (ref.nextElementSibling !== rateRow) ref.insertAdjacentElement('afterend', rateRow);
   }

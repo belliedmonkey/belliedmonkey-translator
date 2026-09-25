@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "도움이 되셨나요? 스토어에서 평가하기 →"
   },
+  "app_nudge_text": {
+    "message": "오늘 읽은 문장, 앱에서 복습하기 →"
+  },
+  "review_nudge_text": {
+    "message": "오늘 읽은 문장 복습하기 →"
+  },
   "doc_title": {
     "message": "문서 번역"
   },

@@ -846,6 +846,15 @@ var AppListen = (() => {
     closeShow();
     renderSummary();
     paint();
+    // 收获时刻（telemetry-design §3.12 ④）：听译 / 实时字幕结束、而且真的出过句子。
+    // 发生在会话结束的回调里（包括自动结束），与「结束」按钮本身是否被点无关 —— 门槛
+    // 与节奏都在 feedback.js，这里只报「发生了」。
+    try {
+      const s = C.summary(session, now());
+      if (s && Number(s.them) > 0 && typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) {
+        MTFeedback.noteValueMoment('listen').catch(() => {});
+      }
+    } catch (_) {}
   }
   // 返回 = 结束会话（语料已逐句写了，不丢）；还在听时先确认一下（用户 09-07 裁定 B）。
   // 页内确认（LearnDialog）：App 的 WKWebView 没有原生确认框，window.confirm 恒为 false。

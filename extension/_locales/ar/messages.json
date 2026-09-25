@@ -2700,6 +2700,12 @@
   "rate_prompt_text": {
     "message": "هل أعجبك؟ قيّمنا في المتجر ←"
   },
+  "app_nudge_text": {
+    "message": "الجمل التي قرأتها اليوم — راجعها في التطبيق ←"
+  },
+  "review_nudge_text": {
+    "message": "الجمل التي قرأتها اليوم — راجعها ←"
+  },
   "doc_title": {
     "message": "ترجمة المستندات"
   },

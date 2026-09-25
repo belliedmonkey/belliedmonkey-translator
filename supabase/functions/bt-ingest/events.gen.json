@@ -158,7 +158,17 @@
       "action": [
         "shown",
         "tap",
-        "dismiss"
+        "dismiss",
+        "requested"
+      ]
+    },
+    "review_nudge": {
+      "action": [
+        "shown",
+        "seen",
+        "tap",
+        "dismiss",
+        "no_app"
       ]
     },
     "ext_banner": {

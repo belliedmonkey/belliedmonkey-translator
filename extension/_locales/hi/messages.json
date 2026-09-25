@@ -2533,6 +2533,12 @@
   "rate_prompt_text": {
     "message": "उपयोगी लगा? स्टोर पर रेटिंग दें →"
   },
+  "app_nudge_text": {
+    "message": "आज पढ़े गए वाक्य — ऐप में दोहराएँ →"
+  },
+  "review_nudge_text": {
+    "message": "आज पढ़े गए वाक्य — दोहराएँ →"
+  },
   "doc_title": {
     "message": "दस्तावेज़ अनुवाद"
   },

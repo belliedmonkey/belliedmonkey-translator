@@ -750,10 +750,12 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       mode.auth401 = false;
     }
 
-    // ── 7. 第 3 次成功会话之后，译文末尾出一行「觉得好用？给个评分」（第八期 C）────
+    // ── 7. 真在用之后，译文末尾出一行「今天读过的句子，去复习 →」（第八期 C 起；2026-09-25 §3.12 三轮改写）──
     //
-    // 种 mtOkSessions:2 → 翻一页 → 行恰好一条、在最后一段之下 → 点 × → mtRatingAskedAt 落盘、
-    // 行消失、遥测桩收到 rate_prompt{shown} 与 {dismiss}。Chrome 上 rateUrl 是 CWS 评论页。
+    // 种 mtOkSessions:2 + 一个过去的日子（「真在用」= ≥3 次且 ≥2 个本地日）→ 翻一页 → 行恰好一条、
+    // 在最后一段之下、今天记进 mtRowDays → 滚进视口停 1.5 s → 点 × → mtRatingAskedAt 落盘、行消失、
+    // 遥测桩收到 review_nudge{shown}、{seen}、{dismiss}。`seen` 是这一幕唯一能证明「真被看见」的数：
+    // 09-25 之前只有 shown，而 shown 在行被插进页面时就记了。Chrome 上这一行打开扩展复习页（开了学习才出）。
     if (swSession) {
       const t7 = await cdp.send('Target.createTarget', { url: 'about:blank' });
       const s7 = (await cdp.send('Target.attachToTarget', { targetId: t7.targetId, flatten: true })).sessionId;
@@ -773,10 +775,11 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       }
       if (!c7) problems.push('第七幕：内容脚本从未就绪（MTFeedback 没进 <all_urls> 那块？）');
       else {
-        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.set({ mtOkSessions: 2 }, () => chrome.storage.local.remove('mtRatingAskedAt', () => r(true))))`, c7);
+        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.set({ mtOkSessions: 2, mtOkDays: ['2020-01-01'] }, () => chrome.storage.local.remove(['mtRatingAskedAt', 'mtRowDays'], () => r(true))))`, c7);
         await evalIn(cdp, s7, `WebpageTranslator.enable(${JSON.stringify({
           provider: 'custom_chat', apiKey: 'smoke-key',
           apiBaseUrl: `${base}/v1/chat/completions`, apiModel: 'smoke-model', targetLang: 'zh-CN',
+          learnEnabled: true,
         })}); true`, c7);
         let st = null;
         for (let i = 0; i < 60; i++) {
@@ -795,7 +798,14 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         else {
           if (!st.afterLast) problems.push('第七幕：评分行不在最后一段译文之后');
           if (!st.text) problems.push('第七幕：评分行文案为空');
-          notes.push(`评分行出现在第 3 次成功会话、最后一段译文之下：「${st.text}」`);
+          notes.push(`「去复习」行出现在真在用之后、最后一段译文之下：「${st.text}」`);
+          const kind = await evalIn(cdp, s7, `document.querySelector('.mt-rate-row').dataset.mtRowKind`, c7);
+          if (kind !== 'review') problems.push(`第七幕：Chrome 上应当是「去扩展复习页」那一种（review），实际 ${kind}`);
+          const days = JSON.parse(await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.get(['mtRowDays'], (o) => r(JSON.stringify((o && o.mtRowDays) || []))))`, c7));
+          if (days.length !== 1) problems.push(`第七幕：挂上之后 mtRowDays 应记下今天（1 个日子），实际 ${JSON.stringify(days)}`);
+          // 滚进视口、停够 1 秒 —— seen 的判据
+          await evalIn(cdp, s7, `document.querySelector('.mt-rate-row').scrollIntoView({ block: 'center' }); true`, c7);
+          await sleep(1500);
           await evalIn(cdp, s7, `document.querySelector('.mt-rate-x').click(); true`, c7);
           await sleep(200);
           const after = JSON.parse(await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.get(['mtRatingAskedAt', 'mtOkSessions'], (o) => r(JSON.stringify({ asked: !!(o && o.mtRatingAskedAt), n: o && o.mtOkSessions, rows: document.querySelectorAll('.mt-rate-row').length }))))`, c7));
@@ -808,13 +818,14 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         await evalIn(cdp, s7, `MTTelemetry.flush()`, c7);
         let acts = [];
         for (let i = 0; i < 40; i++) {
-          acts = ingest.filter((e) => e.name === 'rate_prompt').map((e) => e.props && e.props.action);
+          acts = ingest.filter((e) => e.name === 'review_nudge').map((e) => e.props && e.props.action);
+          if (ingest.some((e) => e.name === 'rate_prompt')) problems.push('第七幕：新版本不该再从网页发 rate_prompt');
           if (acts.includes('dismiss')) break;
           await sleep(200);
         }
-        if (!acts.includes('shown') || !acts.includes('dismiss')) problems.push(`第七幕：遥测桩应收到 rate_prompt{shown} 与 {dismiss}，实际 ${JSON.stringify(acts)}`);
-        else notes.push(`遥测: rate_prompt ${acts.join(' → ')}`);
-        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.remove(['mtOkSessions', 'mtRatingAskedAt'], () => r(true)))`, c7);
+        if (!acts.includes('shown') || !acts.includes('seen') || !acts.includes('dismiss')) problems.push(`第七幕：遥测桩应收到 review_nudge{shown}、{seen} 与 {dismiss}，实际 ${JSON.stringify(acts)}`);
+        else notes.push(`遥测: review_nudge ${acts.join(' → ')}`);
+        await evalIn(cdp, s7, `new Promise((r) => chrome.storage.local.remove(['mtOkSessions', 'mtOkDays', 'mtRatingAskedAt', 'mtRowDays'], () => r(true)))`, c7);
       }
       off7();
     }
@@ -837,5 +848,5 @@ async function evalIn(cdp, sessionId, expression, contextId) {
     for (const p of problems) console.log('   ' + p);
     process.exit(1);
   }
-  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文 → 遥测到达 → 401 停机带出口 → 第 3 次会话出评分行，全通（通路：扩展后台）');
+  console.log('✓ 真实安装 → 严格 CORS 端点 → 表外走最小必要集（陷阱 0 次命中）→ 页面出译文 → 遥测到达 → 401 停机带出口 → 真在用之后出「去复习」行，全通（通路：扩展后台）');
 })().catch((e) => { console.error('smoke failed:', (e && e.stack) || e); process.exit(1); });
