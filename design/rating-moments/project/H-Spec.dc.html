@@ -14,7 +14,7 @@
     a { color:#8c491a; } a:hover { color:#643312; }
   </style>
 </helmet>
-<div class="page" style="width:1320px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="page" style="width:1320px; height:880px; padding:24px; display:flex; flex-direction:column; gap:18px">
 
 <div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">定稿时一起改掉 —— 否则下一个读规约的人会照着错的那份实现</h1></div></div>
 <table class="tbl">
@@ -26,12 +26,14 @@
 <table class="tbl">
   <tr><th>要补的埋点（随 docs PR 过评审）</th><th>为什么</th></tr>
   <tr><td><code class="code">rate_prompt</code> 在 App 的送出点：<code class="code">none</code> → 实际位置</td><td>现在 App 端一个数都没有，挪了也不知道有没有触发</td></tr>
+  <tr><td>所有行加 <code class="code">seen</code>（至少一半进入视线、停留 ≥1 秒）</td><td><code class="code">shown</code> 在行被插进页面时就记了 —— 479 次里真看见几次，一个数都没有</td></tr>
+  <tr><td>Safari「回 App」行用新事件 <code class="code">app_nudge</code></td><td>它不再是评分提示；复用 <code class="code">rate_prompt</code> 会搅浑第六问</td></tr>
   <tr><td><code class="code">action</code> 加 <code class="code">requested</code></td><td>App 拿不到系统到底弹没弹，<b>不能记成 shown</b>，看板上也不能当曝光</td></tr>
 </table>
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":760}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":880}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }

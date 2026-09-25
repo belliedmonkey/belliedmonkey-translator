@@ -175,17 +175,36 @@ ${grid(2, `
 ${ask('唯一那次点击是个反例，也是个疑点', '它发生在第 <b>98</b> 次展示、第 <b>4</b> 天 —— 如果一刀切成「最多 5 次」，这一次就不会有。<br>但它是 iPhone · 中文界面 · 1.14→1.15 · 4 天里 101 次成功翻译，<b>不能排除是我们自己的测试机</b>。你 09-25 在手机上点过这一行吗？是的话，真实点击数就是 0。<br><b>用户 09-25 答：「不太记得了，但很可能是我点的」⇒ 真实点击按 0 算。</b>')}
 `, { page: 'p1' });
 
-board('C-Ask.dc.html', 1320, 820, '要你裁定的四件', `
-${head('每件都给了建议 —— 点头或改哪几条都行', '裁定后按规约：写 interaction-spec → 遥测 docs PR 过评审 → 代码')}
-${ask('① 评分行的冷却口径（板 D）', '建议 <b>「每天至多一次、最多出现在 5 个不同的日子」</b>，点或 × 仍然立刻进 90 天冷却。<br>按现有数据：Safari 曝光 389 → 约 60（-85%），而那台点了的设备在第 4 天依然会看到它。')}
-${ask('② 只问真在用的人（板 E）', '建议评分行只在<b>成功过 ≥3 次、且跨 ≥2 天</b>之后才出现（现在是「第 3 个成功的网页会话」，同一天刷 3 页就会被问）。Safari 那 58 台里符合的是 17 台。')}
-${ask('③ App 的系统评分挪不挪（板 F）', '建议<b>挪</b>，但别指望它：挪到「听译 / 实时字幕结束且有句子」「Mac 快速翻译第 3 次成功」「系统翻译收件箱进卡」，门槛同②。它便宜、方向对，只是今天的 App 用户太少。<b>绝不在按钮回调里调</b>（Apple 明文禁止）。')}
-${ask('④ 扩展与 App 的冷却要不要打通', '建议<b>不打通</b>，把规约改成实话：两边各自 90 天。打通要走 App Group，属于领域设计；而同一个人两边都被问到的概率，按上表几乎为 0。')}
+board('C-Ask.dc.html', 1320, 900, '第二轮要你裁定的（09-25 下午）', `
+${head('上午那四件已按建议裁定；推到「看到了没点 / 根本没看到」两个分支之后，Safari 那一行要改方向', '改动用绿色标出。每件带建议')}
+${ask('①′ Safari 那一行不再要评分，改成「回 App」（板 J）', '<b>改</b>：「觉得好用？去商店给个评分 →」→「今天读过的句子，去 App 里复习 →」。只给已登录的人（句子要同步过去，否则把人送进一个必然空着的屏）。点了走现成的 <code class="code">AppLink.open(uid, …, \'review\')</code>。<br>理由见板 I：苹果 5.6.1 不许自定义评分提示；且 iOS 上唯一低门槛的评分路是 App 里的系统弹层。')}
+${ask('①″ Chrome / Firefox 那一行照旧要评分，按上午的冷却口径', '每天至多一次、最多 5 个不同日子（板 D，范围收窄到这两个浏览器）。苹果的规则管不到它们，去的也不是 App Store。')}
+${ask('② 只问真在用的人 —— 不变', '成功 ≥3 次且跨 ≥2 天。新的「回 App」行同一门槛、同一冷却（每天至多一次、最多 5 个日子）。')}
+${ask('③ App 系统评分 —— 地位升高：它成了 iOS 上唯一的评分路', '时刻照上午：听译结束 / 快速翻译 / 系统翻译收件箱 / 复习。<b>新增一个</b>：从 Safari 那一行进来、在复习里评完 ≥5 张。仍然只在事件回调里调，<b>不在那一次点击里调</b> —— 点「回 App」是按钮，评完卡片才是收获。')}
+${ask('⑤ 新行用新事件，别复用 rate_prompt', '建议新事件 <code class="code">app_nudge {action: shown | seen | tap | dismiss | no_app}</code>。复用 <code class="code">rate_prompt</code> 会让 Safari 的 tap 不再等于「去评分」，把第六问的数据搅浑。另给所有行加 <code class="code">seen</code>（至少一半进入视线且停留 ≥1 秒）——上午那 479 次只是「插进了页面」，谁真看见过一个数都没有。')}
+${hint('④ 冷却不打通 —— 不变。')}
+`, { page: 'p1' });
+
+board('I-Rule.dc.html', 1320, 900, '两个分支推下去，汇到同一处', `
+${head('假设「没看到」和假设「看到了没点」，修法最后都不是「把这一行做得更好」', 'Safari 是唯一影响 App Store 排名、又真有人在用的地方')}
+<table class="tbl">
+  <tr><th>分支</th><th>自然的修法</th><th>在 Safari 上撞到什么</th></tr>
+  <tr><td><b>没看到</b>（行挂在已译内容的最前沿，通常在屏幕下方，还跟着往下跑；颜色和译文一样）</td><td>挪到读者停下的地方、做得可辨认</td><td class="no">= 把一个可能违规的提示做得更显眼</td></tr>
+  <tr><td><b>看到了没点</b>（离开 Safari → App Store → 找写评价入口，门槛太高）</td><td>换成一次点击就能打星</td><td class="no">浏览器里做不到；唯一的一键打星是 App 里的 <code class="code">requestReview</code></td></tr>
+  <tr><td><b>点了走不通</b></td><td>修路径</td><td>这条路从没端到端验过 —— 但就算通，也还是撞上面两条</td></tr>
+</table>
+${ask('苹果 App Store 审核指南 5.6.1（原文）', '<i>Use the provided API to prompt users to review your app; this functionality allows customers to provide an App Store rating and review without the inconvenience of leaving your app, and <b>we will disallow custom review prompts.</b></i><br>Safari 扩展是 App 的一部分；主动出现在网页里的「去商店给个评分」就是自定义评分提示。之前没被拒，多半是审核员没刷到第 3 个网页。设置里常驻的「给我们评分」链接不是主动提示，风险小得多。')}
+${grid(3, `
+  ${cell('所以 Safari 那一行', '', hint('不再要评分，改成把真在用的人<b>带回 App</b>。'))}
+  ${cell('App 里', '', hint('在收获时刻用系统弹层要评分 —— 合规、一键、不离开。'))}
+  ${cell('顺带', '', hint('App 里真正用出效果的只有 9 台、复习闭环几乎为 0 —— 这正是激活的缺口，同一步一起补。'))}
+`)}
+${hint('规模要说实话：Safari 真在用的是 17 台（其中 11 台已登录）。就算一半给了评分，也是个位数 —— <b>评分的量最终跟着「真在用」的人数走</b>，也就是激活漏斗。')}
 `, { page: 'p1' });
 
 // ══════ 第 2 页 · 提议 ══════════════════════════════════════════════════════
 
-board('D-Cooldown.dc.html', 2040, 960, '评分行的冷却：三种口径，按真实数据估算', `
+board('D-Cooldown.dc.html', 2040, 960, 'Chrome / Firefox 评分行的冷却：三种口径（Safari 那一行改走板 J）', `
 ${head('差别只在「不理它的人，接下来几天看见几次」', '点或 × 在三种口径下都一样：立刻进 90 天冷却')}
 <div>
   <span class="tag-now">现在</span>
@@ -227,18 +246,45 @@ ${hint('实现只需要多记一个「成功出现在哪几天」的去重集合
 ${ask('为什么要跨天', 'App Store 的评分弹窗和网页这一行，问的都是「你觉得它好不好」。第一天的人还没资格回答这个问题 —— 问早了，最好的结果是被 ×，最坏的是一颗星。')}
 `, { page: 'p2' });
 
-board('F-App.dc.html', 1320, 800, 'App 系统评分：挪到真实的收获时刻', `
+board('F-App.dc.html', 1320, 860, 'App 系统评分：挪到真实的收获时刻', `
 ${head('现在只在「一轮复习 ≥3 张」后 —— review_session 在 1.16.0 之前全历史 0 行', '系统弹窗：Apple 每 365 天最多弹 3 次、不告诉我们弹没弹')}
 <table class="tbl">
   <tr><th>候选时刻</th><th>位置</th><th>至今发生过的 App 设备</th><th>建议</th></tr>
   <tr><td>听译 / 实时字幕结束，小结里有句子</td><td class="code">app/listen.js 结束小结</td><td>9</td><td class="yes">用</td></tr>
   <tr><td>Mac 快速翻译成功</td><td class="code">app/handoff.js translate_ok{quick}</td><td>1</td><td class="yes">用（第 3 次起）</td></tr>
   <tr><td>系统翻译：收件箱进了卡</td><td class="code">app/vault-mirror.js</td><td>量不到（没有埋点）</td><td class="yes">用 —— 唯一能证明「真的在用」的事实</td></tr>
+  <tr><td><b>从 Safari 那一行进来，复习评完 ≥5 张</b>（第二轮新增）</td><td class="code">extension/learn/review.js</td><td>—（新入口）</td><td class="yes">用 —— iOS 上最主要的一条</td></tr>
   <tr><td>复习：今天打开过（§3.10 opened）</td><td class="code">extension/learn/review.js</td><td>2</td><td>用，替换现在的「一轮 ≥3 张」</td></tr>
   <tr><td>配置回执全通过</td><td class="code">app/setup-done.js</td><td>—</td><td class="no">不用：那时还没真正用过</td></tr>
 </table>
 ${hint('门槛与板 E 同一条：这些时刻累计 ≥3 次、跨 ≥2 天，才调一次 <code class="code">maybeRequestRating</code>。调用都发生在事件回调里，<b>不在任何按钮的点击里</b>。')}
 ${ask('坦白说它能带来多少', '按今天的数据：约 1 台设备够门槛。挪它是因为方向对、成本低（四处各加一行），不是因为它能解决评分为 0。')}
+`, { page: 'p2' });
+
+board('J-BackToApp.dc.html', 2040, 960, 'Safari 那一行：从「去商店评分」改成「回 App 复习」', `
+${head('同一个位置、同一个节奏，换一个目的地', '只给已登录的人（17 台真在用的里 11 台）· 每天至多一次、最多 5 个不同日子 · 点或 × 立刻 90 天冷却')}
+<div>
+  <span class="tag-now">现在</span>
+  <div class="tl" style="margin-top:8px">
+    ${step('Safari 网页', pageWithRow(), '')}<span class="arr">→</span>
+    ${step('点了之后', `<div class="ph-sm" style="min-height:170px"><div class="empty"><div class="homeline w3"></div><div class="homeline w2"></div></div><p class="hint" style="margin:0">跳出 Safari → App Store 商品页的「写评价」→ 还要自己点星、再找提交</p></div>`, '三四步，离开当前阅读。')}
+  </div>
+</div>
+<div>
+  <span class="tag-new">提议</span>
+  <div class="tl diff" style="margin-top:8px">
+    ${step('Safari 网页', pageWithRow(rateRow('今天读过的句子，去 App 里复习 →')), '只在已登录、句子已同步的前提下出现。')}<span class="arr">→</span>
+    ${step('点了之后', `<div class="ph-sm" style="min-height:170px"><p class="hint" style="margin:0">系统询问「在大肚猴翻译中打开？」→ 落在 App 的复习屏</p>${para()}${tr()}</div>`, '走现成的 AppLink.open(uid, …, \'review\')；没接住就说出口（下载 / 本平台没有 App）。')}<span class="arr">→</span>
+    ${step('在 App 里评完 ≥5 张', `<div class="ph-sm" style="min-height:170px"><div class="ban" style="background:var(--card)"><h4>喜欢大肚猴翻译吗？</h4><p>★ ★ ★ ★ ★</p><p class="hint" style="margin:0">（系统弹层，样子由 Apple 决定）</p></div></div>`, '这才是收获时刻 —— 事件回调里调 requestReview，不是那一次点击。')}
+  </div>
+</div>
+<table class="tbl">
+  <tr><th></th><th>现在</th><th>提议</th></tr>
+  <tr><td>合规</td><td class="no">自定义评分提示（5.6.1）</td><td class="yes">应用内入口 + 系统评分 API</td></tr>
+  <tr><td>评分那一步的门槛</td><td class="no">离开 Safari、跳商店、自己找写评价</td><td class="yes">一次点星，不离开 App</td></tr>
+  <tr><td>顺带</td><td>—</td><td class="yes">把扩展用户带回 App（复习闭环今天几乎为 0）</td></tr>
+</table>
+${hint('文案里不带具体句数：内容脚本拿不到扩展学习库里「今天几句」，为它另开通道不值。以后能便宜拿到再加。')}
 `, { page: 'p2' });
 
 // ══════ 第 3 页 · 现状与规约矛盾（备查）══════════════════════════════════════
@@ -254,7 +300,7 @@ ${head('一个会打扰人、一个几乎不出现、一个没人找得到', '')
 ${hint('网页那一行点下去要<b>离开 Safari、跳进 App Store、找到写评论的地方</b> —— 路径长。App 里的系统弹层只要点一颗星，但 App 里几乎没有真在用的人。两者正好错开。')}
 `);
 
-board('H-Spec.dc.html', 1320, 760, '规约自相矛盾的三处，和要补的埋点', `
+board('H-Spec.dc.html', 1320, 880, '规约自相矛盾的三处，和要补的埋点', `
 ${head('定稿时一起改掉 —— 否则下一个读规约的人会照着错的那份实现', '')}
 <table class="tbl">
   <tr><th>哪里</th><th>写的</th><th>实际</th></tr>
@@ -265,6 +311,8 @@ ${head('定稿时一起改掉 —— 否则下一个读规约的人会照着错�
 <table class="tbl">
   <tr><th>要补的埋点（随 docs PR 过评审）</th><th>为什么</th></tr>
   <tr><td><code class="code">rate_prompt</code> 在 App 的送出点：<code class="code">none</code> → 实际位置</td><td>现在 App 端一个数都没有，挪了也不知道有没有触发</td></tr>
+  <tr><td>所有行加 <code class="code">seen</code>（至少一半进入视线、停留 ≥1 秒）</td><td><code class="code">shown</code> 在行被插进页面时就记了 —— 479 次里真看见几次，一个数都没有</td></tr>
+  <tr><td>Safari「回 App」行用新事件 <code class="code">app_nudge</code></td><td>它不再是评分提示；复用 <code class="code">rate_prompt</code> 会搅浑第六问</td></tr>
   <tr><td><code class="code">action</code> 加 <code class="code">requested</code></td><td>App 拿不到系统到底弹没弹，<b>不能记成 shown</b>，看板上也不能当曝光</td></tr>
 </table>
 `);
@@ -303,6 +351,8 @@ idx.notes.why = { x: NX, y: 0, w: 540, maxH: 520, page: 'p1', color: 'orange',
 idx.notes.rule = { x: NX, y: 600, w: 540, maxH: 360, page: 'p1', color: 'purple',
   text: '流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。' };
 
+idx.notes.round2 = { x: NX, y: 1560, w: 540, maxH: 420, page: 'p1', color: 'blue',
+  text: '第二轮（09-25 下午）：用户问「为什么这么多人看到却没人评分？没有这个答案做什么都意义不大」→ 推两个分支（板 I）→ 发现苹果 5.6.1 禁止自定义评分提示 ⇒ Safari 那一行改「回 App」（板 J），Chrome / Firefox 照旧。\n\n板 C 已改成第二轮的五件，等你点头。' };
 idx.notes.ruled = { x: NX, y: 1040, w: 540, maxH: 460, page: 'p1', color: 'green',
   text: '✓ 2026-09-25 用户裁定：板 C 四件**全部按建议**。\n\n① 评分行：每天至多一次、最多 5 个不同日子，点或 × 立刻进 90 天冷却\n② 只问成功 ≥3 次且跨 ≥2 天的人\n③ App 系统评分挪到听译结束 / 快速翻译 / 系统翻译收件箱 / 复习 opened，同一门槛\n④ 扩展与 App 冷却不打通，规约改成实话\n\n补记：板 B 那次唯一的点击，用户答「很可能是我点的」⇒ 真实点击按 0 算。① 选「按日」而不是「按次」的理由里，「保住第 4 天那次点击」这条不再成立；剩下的理由仍够：同样的曝光预算分散到回访的日子，比堆在同一天的连续页面合理，且最多一台从 98 次降到 5 次。不需要重新裁定。\n\n下一步：遥测 docs PR（§3.12）过评审 → 部署 bt-ingest → 代码 PR（interaction-spec 同提交改）。' };
 fs.writeFileSync(path.join(OUT, 'canvas.json'), JSON.stringify(idx, null, 2) + '\n');

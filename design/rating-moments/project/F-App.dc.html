@@ -14,7 +14,7 @@
     a { color:#8c491a; } a:hover { color:#643312; }
   </style>
 </helmet>
-<div class="page" style="width:1320px; height:800px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="page" style="width:1320px; height:860px; padding:24px; display:flex; flex-direction:column; gap:18px">
 
 <div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">现在只在「一轮复习 ≥3 张」后 —— review_session 在 1.16.0 之前全历史 0 行</h1><span>系统弹窗：Apple 每 365 天最多弹 3 次、不告诉我们弹没弹</span></div></div>
 <table class="tbl">
@@ -22,6 +22,7 @@
   <tr><td>听译 / 实时字幕结束，小结里有句子</td><td class="code">app/listen.js 结束小结</td><td>9</td><td class="yes">用</td></tr>
   <tr><td>Mac 快速翻译成功</td><td class="code">app/handoff.js translate_ok{quick}</td><td>1</td><td class="yes">用（第 3 次起）</td></tr>
   <tr><td>系统翻译：收件箱进了卡</td><td class="code">app/vault-mirror.js</td><td>量不到（没有埋点）</td><td class="yes">用 —— 唯一能证明「真的在用」的事实</td></tr>
+  <tr><td><b>从 Safari 那一行进来，复习评完 ≥5 张</b>（第二轮新增）</td><td class="code">extension/learn/review.js</td><td>—（新入口）</td><td class="yes">用 —— iOS 上最主要的一条</td></tr>
   <tr><td>复习：今天打开过（§3.10 opened）</td><td class="code">extension/learn/review.js</td><td>2</td><td>用，替换现在的「一轮 ≥3 张」</td></tr>
   <tr><td>配置回执全通过</td><td class="code">app/setup-done.js</td><td>—</td><td class="no">不用：那时还没真正用过</td></tr>
 </table>
@@ -30,7 +31,7 @@
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":860}}'>
 class Component extends DCLogic {
   renderVals() { return {}; }
 }
