@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>第二轮要你裁定的（09-25 下午）</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">上午那四件已按建议裁定；推到「看到了没点 / 根本没看到」两个分支之后，Safari 那一行要改方向</h1><span>改动用绿色标出。每件带建议</span></div></div>
+<div class="ask"><b>①′ Safari 那一行不再要评分，改成「回 App」（板 J）</b><b>改</b>：「觉得好用？去商店给个评分 →」→「今天读过的句子，去 App 里复习 →」。只给已登录的人（句子要同步过去，否则把人送进一个必然空着的屏）。点了走现成的 <code class="code">AppLink.open(uid, …, 'review')</code>。<br>理由见板 I：苹果 5.6.1 不许自定义评分提示；且 iOS 上唯一低门槛的评分路是 App 里的系统弹层。</div>
+<div class="ask"><b>①″ Chrome / Firefox 那一行照旧要评分，按上午的冷却口径</b>每天至多一次、最多 5 个不同日子（板 D，范围收窄到这两个浏览器）。苹果的规则管不到它们，去的也不是 App Store。</div>
+<div class="ask"><b>② 只问真在用的人 —— 不变</b>成功 ≥3 次且跨 ≥2 天。新的「回 App」行同一门槛、同一冷却（每天至多一次、最多 5 个日子）。</div>
+<div class="ask"><b>③ App 系统评分 —— 地位升高：它成了 iOS 上唯一的评分路</b>时刻照上午：听译结束 / 快速翻译 / 系统翻译收件箱 / 复习。<b>新增一个</b>：从 Safari 那一行进来、在复习里评完 ≥5 张。仍然只在事件回调里调，<b>不在那一次点击里调</b> —— 点「回 App」是按钮，评完卡片才是收获。</div>
+<div class="ask"><b>⑤ 新行用新事件，别复用 rate_prompt</b>建议新事件 <code class="code">app_nudge {action: shown | seen | tap | dismiss | no_app}</code>。复用 <code class="code">rate_prompt</code> 会让 Safari 的 tap 不再等于「去评分」，把第六问的数据搅浑。另给所有行加 <code class="code">seen</code>（至少一半进入视线且停留 ≥1 秒）——上午那 479 次只是「插进了页面」，谁真看见过一个数都没有。</div>
+<p class="hint">④ 冷却不打通 —— 不变。</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

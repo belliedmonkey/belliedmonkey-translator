@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>只问真在用的人</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">从「第 3 个成功的网页会话」改成「成功 ≥3 次、且跨 ≥2 天」</h1><span>一个人第一天连刷三页就被问，那不是「喜欢」，是「还在试」</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>现在</b><span>mtOkSessions ≥ 3（同一天也算）</span></div><div class="num"><div class="stat"><b>58</b><span>Safari 成功过</span></div><div class="stat"><b>43</b><span>≥3 次 → 现在就会被问</span></div></div></div>
+  <div class="cell"><div class="cap"><b>提议</b><span>成功 ≥3 次 且 出现在 ≥2 个不同日子</span></div><div class="num"><div class="stat good"><b>17</b><span>会被问</span></div><div class="stat"><b>26</b><span>暂时不问（多半还在试）</span></div></div></div>
+</div>
+<p class="hint">实现只需要多记一个「成功出现在哪几天」的去重集合（按本地日期），与现在的 <code class="code">mtOkSessions</code> 放在同一处（<code class="code">extension/learn/feedback.js</code>）。</p>
+<div class="ask"><b>为什么要跨天</b>App Store 的评分弹窗和网页这一行，问的都是「你觉得它好不好」。第一天的人还没资格回答这个问题 —— 问早了，最好的结果是被 ×，最坏的是一颗星。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

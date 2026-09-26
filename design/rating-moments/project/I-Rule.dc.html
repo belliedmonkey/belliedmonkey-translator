@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>两个分支推下去，汇到同一处</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">假设「没看到」和假设「看到了没点」，修法最后都不是「把这一行做得更好」</h1><span>Safari 是唯一影响 App Store 排名、又真有人在用的地方</span></div></div>
+<table class="tbl">
+  <tr><th>分支</th><th>自然的修法</th><th>在 Safari 上撞到什么</th></tr>
+  <tr><td><b>没看到</b>（行挂在已译内容的最前沿，通常在屏幕下方，还跟着往下跑；颜色和译文一样）</td><td>挪到读者停下的地方、做得可辨认</td><td class="no">= 把一个可能违规的提示做得更显眼</td></tr>
+  <tr><td><b>看到了没点</b>（离开 Safari → App Store → 找写评价入口，门槛太高）</td><td>换成一次点击就能打星</td><td class="no">浏览器里做不到；唯一的一键打星是 App 里的 <code class="code">requestReview</code></td></tr>
+  <tr><td><b>点了走不通</b></td><td>修路径</td><td>这条路从没端到端验过 —— 但就算通，也还是撞上面两条</td></tr>
+</table>
+<div class="ask"><b>苹果 App Store 审核指南 5.6.1（原文）</b><i>Use the provided API to prompt users to review your app; this functionality allows customers to provide an App Store rating and review without the inconvenience of leaving your app, and <b>we will disallow custom review prompts.</b></i><br>Safari 扩展是 App 的一部分；主动出现在网页里的「去商店给个评分」就是自定义评分提示。之前没被拒，多半是审核员没刷到第 3 个网页。设置里常驻的「给我们评分」链接不是主动提示，风险小得多。</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>所以 Safari 那一行</b></div><p class="hint">不再要评分，改成把真在用的人<b>带回 App</b>。</p></div>
+  <div class="cell"><div class="cap"><b>App 里</b></div><p class="hint">在收获时刻用系统弹层要评分 —— 合规、一键、不离开。</p></div>
+  <div class="cell"><div class="cap"><b>顺带</b></div><p class="hint">App 里真正用出效果的只有 9 台、复习闭环几乎为 0 —— 这正是激活的缺口，同一步一起补。</p></div>
+</div>
+<p class="hint">规模要说实话：Safari 真在用的是 17 台（其中 11 台已登录）。就算一半给了评分，也是个位数 —— <b>评分的量最终跟着「真在用」的人数走</b>，也就是激活漏斗。</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
