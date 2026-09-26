@@ -21,6 +21,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > Gate D. The event whitelist there is the only registry — adding an event or a
 > property is a domain-design change. The China flavor sends nothing.
 >
+> **Two hosts（双宿主）:** this repo is driven by **Claude Code** *and* **Reasonix**,
+> and the working tree is the only place their configuration lives — see
+> [`AGENTS.md`](AGENTS.md) → "Two hosts, one project". Shared surface (one source
+> read by both): `AGENTS.md` / `CLAUDE.md`, `.claude/skills/<name>/SKILL.md`, and
+> project-root `.mcp.json`. Keep `REASONIX.md`, `.reasonix/skills/` and
+> `.agents/skills/` **absent** — a second copy is the drift that rule exists to
+> prevent. Read it back (`reasonix doctor capabilities --json`; `/mcp` here), never
+> judge it by the file existing.
+>
 > **Verification & testing:** governed by
 > [`docs/verification-spec.md`](docs/verification-spec.md) (the single source of truth).
 > Every verification runs the **full matrix of adapted surfaces** — iPhone + iPad
