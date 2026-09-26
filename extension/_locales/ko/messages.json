@@ -71,9 +71,6 @@
   "settings": {
     "message": "설정"
   },
-  "popup_status_off": {
-    "message": "꺼짐"
-  },
   "popup_target_lang": {
     "message": "번역 언어"
   },

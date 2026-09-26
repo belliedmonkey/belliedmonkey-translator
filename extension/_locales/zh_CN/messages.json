@@ -71,9 +71,6 @@
   "settings": {
     "message": "设置"
   },
-  "popup_status_off": {
-    "message": "已关闭"
-  },
   "popup_target_lang": {
     "message": "目标语言"
   },

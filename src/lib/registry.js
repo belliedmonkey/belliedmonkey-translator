@@ -27,8 +27,16 @@ const Registry = (() => {
   const messages = () => get('MT_I18N_MESSAGES') || {};
   const modelParams = () => get('MT_MODEL_PARAMS') || {};
   const version = () => get('MT_VERSION') || '';
+  // 免费额度规格（providers.gen.js 顺带发射，§8.10）；null = 本版没有额度（中国版）。
+  const grant = () => get('MT_GRANT') || null;
+  // 转写引擎注册表（stt.gen.js，中国版生成物无品牌词）；[] = 没加载，调用方收起那一节。
+  const sttEngines = () => get('MT_STT_ENGINES') || [];
+  // 同步后端开关（backend.config.js，var 挂 window）。null = 中国版没有后端 —— 心跳的
+  // 守卫读它，而不是让 src/ 直接摸 MT_BACKEND（src-boundaries 门）。
+  const backend = () => get('MT_BACKEND') || null;
 
-  return { get, providers, palette, langs, messages, modelParams, version };
+  return { get, providers, palette, langs, messages, modelParams, version,
+    grant, sttEngines, backend };
 })();
 
 export default Registry;

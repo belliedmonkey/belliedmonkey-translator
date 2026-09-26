@@ -1932,3 +1932,47 @@ React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **�
 见 `interaction-spec.md` 全局原则新增条。测试纪律：**不变量不能丢，只能换锚点**；
 每个迁移 PR 的描述附「不变量 → 旧锚点 → 新锚点」表；没有任何测试被删除后不留
 等强度替代；禁止为组件测试引 jsdom（组件渲染走真 Chrome CDP 门）。
+
+### 10.9 页面迁移范式 — 每页怎么搬（popup 是范本，PR3）
+
+后续每页照此搬，**不要每页重新发明一遍**。范本：`src/pages/popup.jsx`
+（494 行 IIFE → React，全部 id 保留、行为不变）。
+
+1. **产出形态**：源码进 `src/pages/<page>.jsx`，登记进
+   `build/ui-entries.config.js`；esbuild 产物**覆盖 dist 里同名 .js**，HTML 的
+   script 标签、路径、顺序一字不动。静态 DOM 全删，换 `<div id="root">` +
+   一段说明注释；原 HTML 注释搬成 `{/* */}`。
+2. **id 全保留**。可见性走派生布尔值挂 `hidden` 属性，元素**始终挂载**——
+   不许条件卸载今天在 DOM 里的节点（§10.4）。唯一豁免：原版本来就用
+   create/remove 的瞬态节点。
+3. **设置读取**：`SETTINGS_SCHEMA.keysFor('<surface>')` 取键 +
+   `useSettings()` 订阅；**手抄键清单在本 PR 删掉**，并在
+   `test/store-schema-i18n.test.js` 加一条正向断言（清单名不许回潮）。
+   文案走 `lib/i18n.js` 的 `t()`，本页的 t()/applyI18n 拷贝删掉。
+4. **注册表与命令式孤岛**：`window.MT_*` 一律经 `lib/registry.js` getter
+   （`Registry.grant()/sttEngines()/backend()`）；尚未迁移的模块
+   （`EngineState`、`LearnGrant`、`AsrEntry`… 仍是 bundle 外全局）直接用
+   裸名 + `typeof x !== 'undefined'` 守卫——它们是互操作对象，不是要消灭的
+   全局。遥测 `MTTelemetry.track(...)` 的**字面量保真**：seed 检查
+   （`test/telemetry-registry.test.js`）按 stripComments 后的源文本匹配，
+   改写调用形状会红。
+5. **首帧门控**：`status !== 'loading'`（store 初始化完成）之前不渲染依赖
+   设置的派生区块，防 schema 默认值抢闪。行为变化要声明：原版先画 HTML 里的
+   中文兜底再 `applyI18n` 换语言（闪一次），React 版首帧即按生效语言渲染，
+   **无闪烁**——这算改善，仍要在 PR 描述里写明。
+6. **事件处理器**：`chrome.*` 调用原样保留（tabs.sendMessage、action.setBadge…）；
+   失败路径 `catch → null` 的静默语义照旧，不许顺手「修好」。异步 UX 状态
+   （busy/toast）进 useState，计时器进 ref 防叠。
+7. **测试锚点跟着搬**（见 §10.8 与 PR3 描述的锚点表）：
+   - 源文件路径改了 → grep 型测试的文件清单同步（`engine-state`、
+     `ext-ob-seen`、`no-hardcoded-copy`、`engine-fields` 的语言项对账面）。
+   - **effect 在 JSX 之前**（文本顺序）：原来锚在「某 id 的 DOM 读点」的顺序
+     断言会错位——换成 effect 里的**带实参调用**（如 `setDue(n > 0`），
+     渲染点存在性单独断言。
+   - JSX 文本节点的中文没有引号，字面量扫描看不见 → `no-hardcoded-copy`
+     对 `.jsx` 加「`>…中文…<`」文本形状扫描；`stripComments` 对 JSX 安全
+     （`{/* */}` 走块注释态，`</tag>` 的 `/` 短暂进正则态即退）。
+   - 扫描面扩到 `src/` 的门（`ext-ob-seen`）记得排除 `src/store/schema.js`
+     —— 键的**登记处**出现键名不是「读取」。
+8. **死代码就地死**：搬移时发现「定义了但没有任何调用点」的旧代码
+   （popup 的 `PROVIDERS`/`providerById`）不搬、在 PR 描述里点名，不留进 JSX。
