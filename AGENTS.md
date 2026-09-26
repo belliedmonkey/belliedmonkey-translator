@@ -269,6 +269,53 @@ In Claude Code, `/mcp` must list the same server names.
   an HTTP MCP endpoint whose OAuth grant is per-host, so its first Reasonix use may
   need its own authorization.
 
+## Parallel agent sessions — one worktree each
+
+This repo is routinely worked by **several agent sessions at once** (Claude Code and
+Reasonix). They must not share a working tree. On 2026-09-26/27 that broke twice in one
+night, and neither failure announced itself:
+
+- Two Claude Code sessions both ran with `cwd = <the main tree>`. A prompt meant for one of
+  them landed in the other; within the same minute **both** started the same PR and both
+  `cd`-ed into the *same* worktree — two agents about to write the same files. Caught by
+  the user minutes in; that tree was still clean.
+- A third session `git switch`ed the shared main tree from `release/1.16.1` onto its own
+  feature branch (one based on `main`, so the tree's *code* changed generation too),
+  silently changing the environment of the other two.
+
+**Why a shared tree is not "just a directory they share":**
+
+- **The HEAD is shared.** One session's `git switch` / `checkout` / `stash` / `commit`
+  moves the floor under every other session in that tree. Claude Code records `gitBranch`
+  in *every* message, so the change is invisible in prose and total in effect — the only
+  trace of the switch above was a `gitBranch` field flipping between two consecutive
+  messages.
+- **`.local/TODO.md` is shared across branches *and* sessions** (it is gitignored, so it is
+  the same file whichever branch each tree is on), and the opening ritual in
+  [`CLAUDE.md`](CLAUDE.md) requires reading it. So a line there is **not** a task addressed
+  to one session: any session that reads it may claim the work. That is how a session on a
+  different line of work picked up the React migration's "next step".
+- **`~/.claude/plans/*.md` is likewise global**, not scoped to a session.
+
+**The rules:**
+
+1. **One parallel task = one worktree.** The repo already works this way (main tree,
+   `-1170`, `-hotfix`, `-react`); a new parallel line of work starts with
+   `git worktree add`, not with a second session in the main tree.
+2. **Never switch branches in a shared tree.** To work on a branch, give it its own
+   worktree. The section above was added by a change that itself `git switch`ed the shared
+   tree — that is the bug this rule exists to prevent, not a hypothetical.
+3. **Route work by talking to the session, not by writing it into `.local/TODO.md`.** TODO
+   records what the *repo* owes; it does not address a particular agent.
+4. **Verify the split — two sessions in one tree are invisible until something collides:**
+
+   ```bash
+   git worktree list                       # the trees that exist
+   for f in "$HOME"/.claude/sessions/*.json; do
+     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("name"),"->",d.get("cwd"))' "$f"
+   done                                    # every live session name must map to a DIFFERENT tree
+   ```
+
 ## Verification — governed by the verification spec
 
 **All verification / testing is governed by the single source of truth,

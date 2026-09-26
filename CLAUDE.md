@@ -30,6 +30,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > prevent. Read it back (`reasonix doctor capabilities --json`; `/mcp` here), never
 > judge it by the file existing.
 >
+> **Parallel sessions（并行 session）:** **one worktree each** — never two sessions in
+> one tree, and never `git switch` in a shared tree. 2026-09-26/27 那一夜踩了两次：两个
+> session 同 cwd，一条给其中一个的指令落进了另一个，两个同时开工同一个 PR；另一个
+> session 在共享主树里切了分支，把另外两个 session 的环境一起改掉（Claude Code 每条
+> 消息都记 `gitBranch`，所以只有元数据变了，话里看不出来）。`.local/TODO.md` 跨 session
+> 共享，**不是**给某一个 session 派活的地方。见 [`AGENTS.md`](AGENTS.md) →
+> "Parallel agent sessions — one worktree each"。
+>
 > **Verification & testing:** governed by
 > [`docs/verification-spec.md`](docs/verification-spec.md) (the single source of truth).
 > Every verification runs the **full matrix of adapted surfaces** — iPhone + iPad
