@@ -1,8 +1,8 @@
 // test/quick-setup.test.js — 「一把 key 配好全部」的判据（QuickSetup）。
 //
-// 这个模块的价值几乎全在**它不写什么**上：写多一个键，saveAll() 读不回来，下次任何
-// 字段变更就会把它清掉 —— 静默且必然。所以这里的断言大量是 deepEq 整个 writes，
-// 而不是「包含某个键」。
+// 这个模块的价值几乎全在**它不写什么**上：写多一个键，设置页的保存路径读不回来，
+// 下次任何字段变更就会把它清掉 —— 静默且必然。所以这里的断言大量是 deepEq 整个
+// writes，而不是「包含某个键」。
 //
 // 分组那一组**对真实产物跑**，不是手写 fixture：dist/ 与 dist-china/ 的 *.gen.js 才是
 // 用户手上的那份表，而 build/*.config.js 是作者视角（同一个 qwen 在两个 flavor 里
@@ -10,7 +10,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
+const { loadModule, loadSrc, describe, test, ok, eq, deepEq } = require('./harness');
+const { stripComments, stripJsx } = require('./lib/strip-comments');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -356,23 +357,19 @@ describe('QuickSetup.plan — 只填空，不覆盖', () => {
   });
 });
 
-describe('QuickSetup — 写的每个键都必须是 saveAll() 读得回来的', () => {
-  test('writes 的键 ⊆ options.js 的 SETTINGS_KEYS', () => {
-    // 不在 SETTINGS_KEYS 里的键，saveAll() 读不回来，下次任何字段变更就会把它清掉。
-    // 静默，且必然 —— 所以这条断言直接从出货代码里抽那张表，而不是抄一份。
-    const src = fs.readFileSync(path.join(ROOT, 'extension/options/options.js'), 'utf8');
-    const m = /const SETTINGS_KEYS = \[([\s\S]*?)\];/.exec(src);
-    ok(m, '在 options.js 里找不到 SETTINGS_KEYS —— 它改名了？这条断言就空过了');
-    // 先剥行注释再抽引号。第一版没剥，被注释里的 `engine's` 那个撇号骗了：它开启
-    // 一个假字符串，把 stt 那四个键整段吃掉，于是断言以一个**错误的理由**变红。
-    // 一条会因为解析失误而红/绿的断言，和没有这条断言一样不可信。
-    const body = m[1].split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
-    const known = new Set((body.match(/'([A-Za-z][A-Za-z0-9_]*)'/g) || []).map((x) => x.slice(1, -1)));
-    ok(known.size >= 30, `只抽到 ${known.size} 个键 —— 抽取本身坏了，这条断言就空过了`);
+describe('QuickSetup — 写的每个键都必须是设置页保存路径读得回来的', () => {
+  test('writes 的键 ⊆ OptionsModel.SAVE_KEYS', () => {
+    // 不在键域里的键，写下去也留不住，下次任何字段变更就会把它清掉。
+    // 静默，且必然 —— 所以这条断言直接读那张表，而不是抄一份。
+    // （原锚点是 options.js 的 SETTINGS_KEYS；PR5 起由 SAVE_KEYS 接任，它与
+    // schema 的对账在 test/options-model.test.js。）
+    const { OptionsModel } = loadSrc('src/pages/options-model.js', 'OptionsModel');
+    const known = new Set(OptionsModel.SAVE_KEYS);
+    ok(known.size >= 30, `只抽到 ${known.size} 个键 —— 键域本身坏了，这条断言就空过了`);
     const { Q } = load();
     const r = Q.plan({ platform: PLATFORM, key: KEY, settings: {} });
     for (const k of Object.keys(r.writes)) {
-      ok(known.has(k), `写了一个 SETTINGS_KEYS 里没有的键：${k}`);
+      ok(known.has(k), `写了一个键域里没有的键：${k}`);
     }
   });
 });
@@ -392,53 +389,44 @@ describe('QuickSetup.summarize', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// saveAll 的存在性断言
+// saveNow 的存在性断言
 //
-// options.js 的 saveAll() 是整体覆盖式的，按字面量读 28 个控件、零 null 保护。
-// 少一个元素就在 null 上抛，而所有调用点都是无 catch 的 `await saveAll()` ——
-// 于是每次保存都静默什么都不存，且 smoke 里「一键配置扛住整体覆盖」那条断言会
-// 因为「什么都没写」而变绿。
-//
-// 那道断言本身在 smoke 里够不着（saveAll 读的每张卡，smoke 或 applyQuickSetup
-// 都会更早碰到并先抛）。所以这里守的是它的**前提**：SAVE_FIELDS 必须与 saveAll
-// 的函数体逐个对得上。漂了，断言就会漏掉真正缺的那个元素 —— 一道漏检的断言比
-// 没有断言更坏，因为它让人以为有人在看着。
+// 旧世界的 saveAll() 是整体覆盖式的，按字面量读 28 个控件、零 null 保护：少一个
+// 元素就在 null 上抛，而调用点全是无 catch 的 await —— 于是每次保存都静默什么都不
+// 存。React 版没有这个失效类：页面 state 即镜像，saveNow 只把防抖窗口里的 patch
+// 与六个不受控框收割成 patch，按 SAVE_KEYS 过滤后走 setMany。这里守它的**前提**：
+// 键域过滤长在函数体里、过滤先于落盘；旧标识符不许回来。
+// 动态行为（先 saveNow 落盘、一键卡才现读）归 scripts/verify-extension-smoke.js。
 // ─────────────────────────────────────────────────────────────────────────────
-describe('options.saveAll — 存在性断言不许与函数体漂开', () => {
-  const src = () => fs.readFileSync(path.join(ROOT, 'extension/options/options.js'), 'utf8');
+describe('options.saveNow — 保存路径的前提不许漂', () => {
+  const src = () => stripComments(fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8'));
 
-  test('SAVE_FIELDS 恰好等于 saveAll 里读到的元素集合', () => {
+  test('旧世界的四个标识符一个都不许回来', () => {
     const s = src();
-    const m = /const SAVE_FIELDS = \[([\s\S]*?)\];/.exec(s);
-    ok(m, '找不到 SAVE_FIELDS —— 它改名了？这条断言就空过了');
-    const declared = new Set((m[1].match(/'([a-z0-9-]+)'/g) || []).map((x) => x.slice(1, -1)));
-    ok(declared.size >= 20, `只抽到 ${declared.size} 个 —— 抽取本身坏了`);
-
-    const i = s.indexOf('async function saveAll() {');
-    ok(i > 0, '找不到 saveAll');
-    const j = s.indexOf('\n}', i);
-    const body = s.slice(i, j);
-    const used = new Set((body.match(/\$\('([a-z0-9-]+)'\)/g) || [])
-      .map((x) => x.slice(3, -2)));
-
-    for (const id of used) ok(declared.has(id), `saveAll 读了 ${id}，但 SAVE_FIELDS 没有它 —— 断言会漏掉它`);
-    for (const id of declared) ok(used.has(id), `SAVE_FIELDS 有 ${id}，但 saveAll 不读它 —— 多余的断言会在无害的重构上误报`);
-  });
-
-  test('saveAll 第一行就是那道断言 —— 放在读值之后等于没放', () => {
-    const s = src();
-    const i = s.indexOf('async function saveAll() {');
-    const head = s.slice(i, i + 200);
-    ok(/assertSaveFields\(\);/.test(head), 'saveAll 开头没有 assertSaveFields()');
-    ok(head.indexOf('assertSaveFields()') < head.indexOf("$('"), '断言必须在第一次读元素之前');
-  });
-
-  test('这张页面不许 remove() 任何 section（sync-section 是唯一例外）', () => {
-    // sync-section 安全只因为它一个字段都不进 saveAll。照抄到别的卡上就是静默清零。
-    const s = src();
-    const removes = (s.match(/\$\('([a-z0-9-]+)'\)\.remove\(\)/g) || []);
-    for (const r of removes) {
-      ok(/sync-section/.test(r), `发现 ${r} —— 收起一张卡要用 hidden，remove() 会让 saveAll 每次都静默失败`);
+    for (const id of ['saveAll', 'SAVE_FIELDS', 'assertSaveFields', 'SETTINGS_KEYS']) {
+      ok(!s.includes(id), `${id} 在 options.jsx 里复活了 —— 整体覆盖式保存的失效类跟着回来`);
     }
+  });
+
+  test('saveNow 按键域过滤、过滤先于 setMany', () => {
+    const s = src();
+    const i = s.indexOf('const saveNow = async () => {');
+    ok(i > 0, '找不到 saveNow —— 保存路径被改名了？这条断言就空过了');
+    const j = s.indexOf('\n  };', i);
+    ok(j > i, 'saveNow 的函数体截不出来 —— 缩进变了？');
+    const body = s.slice(i, j);
+    const f = body.indexOf('for (const k of SAVE_KEYS)');
+    const m = body.indexOf('SettingsStore.setMany(');
+    ok(f >= 0, 'saveNow 不再按 SAVE_KEYS 过滤 —— 键域外的键会混进 setMany 被整单拒绝，一次保存全灭');
+    ok(m >= 0, 'saveNow 不走 SettingsStore.setMany 落盘了 —— 它是谁的后继？');
+    ok(f < m, '键域过滤发生在落盘之后 —— 等于没滤');
+  });
+
+  test('这张页面不许手动 remove() 节点（收起一张卡走 hidden；sync-section 走条件渲染）', () => {
+    // 旧判据是 $().remove()。React 里同族的破坏是手动 DOM 摘除 —— 绕开渲染、
+    // 留下悬空 state；卸载一律走声明式路径。stripJsx 先把 JSX 注释抹掉 ——
+    // 注释里提到的 sec.remove() 字样不算数，代码里真调才算。
+    const removes = (stripJsx(fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8')).js.match(/\.remove\(\)/g) || []);
+    eq(removes.length, 0, 'options.jsx 里有手动 .remove() —— 摘除节点要走渲染，不许绕过 React');
   });
 });

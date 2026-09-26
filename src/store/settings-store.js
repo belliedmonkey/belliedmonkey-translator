@@ -125,7 +125,49 @@ const SettingsStore = (() => {
     });
   }
 
-  // ── the one bus subscription ──────────────────────────────────────────────
+  // ── batch write: one optimistic update, one storage write ────────────────
+  // Options' saveAll() used to write 30+ keys as 30+ single set() calls — each
+  // its own publish and its own storage round-trip. setMany() is the same
+  // contract over a patch: validate every key up front (nothing is applied if
+  // one is unknown), apply optimistically in one publish, write once. On
+  // failure each key rolls back independently — only the ones whose pending
+  // entry is still ours, each restored to its exact prior shape, same rule as
+  // set().
+  function setMany(patch) {
+    const keys = Object.keys(patch || {});
+    const unknown = keys.filter((k) => !(k in SETTINGS_SCHEMA.spec));
+    if (unknown.length) {
+      return Promise.resolve({ ok: false, error: `unknown settings key(s): ${unknown.join(', ')}` });
+    }
+    if (!keys.length) return Promise.resolve({ ok: true, error: null });
+
+    const before = new Map();   // key -> {old (effective), raw (storage shape), hadKey}
+    const changes = {};
+    for (const k of keys) {
+      before.set(k, { old: get(k), hadKey: k in values });
+      changes[k] = { old: get(k), new: patch[k] };
+    }
+    values = Object.freeze(Object.assign({}, values, patch));
+    for (const k of keys) pending.set(k, j(patch[k]));
+    publish(changes);
+    return PageSettings.write(patch).then((r) => {
+      if (r.ok) return { ok: true, error: null };
+      const rolled = Object.assign({}, values);
+      const rolledChanges = {};
+      for (const k of keys) {
+        if (pending.get(k) !== j(patch[k])) continue;   // somebody wrote this key since us
+        pending.delete(k);
+        const b = before.get(k);
+        if (b.hadKey) rolled[k] = b.old; else delete rolled[k];
+        rolledChanges[k] = { old: get(k), new: get(k) };
+      }
+      values = Object.freeze(rolled);
+      if (Object.keys(rolledChanges).length) publish(rolledChanges);
+      return { ok: false, error: r.error || 'settings write failed' };
+    });
+  }
+
+  // ── the one bus subscription ──────────────────────────────────────────────────
   function onStorageChanged(changes, area) {
     if (area !== 'local' || !changes) return;
     const out = {};
@@ -160,7 +202,7 @@ const SettingsStore = (() => {
   }
 
   bindStorage();
-  return { init, get, getSnapshot, isReady, set, subscribe, subscribeKey };
+  return { init, get, getSnapshot, isReady, set, setMany, subscribe, subscribeKey };
 })();
 
 export default SettingsStore;

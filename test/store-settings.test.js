@@ -179,8 +179,91 @@ describe('settings-store: 写失败回滚', () => {
   });
 });
 
-describe('settings-store: 总线订阅纪律', () => {
-  test('只认 local 区、只认 schema 键；subscribeKey 精准通知', async () => {
+describe('settings-store: setMany 批量写入', () => {
+  test('一次乐观发布、一次真实写盘；patch 全部生效', async () => {
+    let writes = 0;
+    const { S, store } = bootStore({ initial: { targetLang: 'zh-CN' }, write: async (patch) => { writes++; Object.assign(store, patch); return { ok: true }; } });
+    await S.init();
+    let notices = 0; let last = null;
+    S.subscribe((c) => { notices++; last = c; });
+    const p = S.setMany({ targetLang: 'en', uiLang: 'en', showFab: false });
+    eq(notices, 1, '整个 patch 只发一次通知');
+    deepEq(last, { targetLang: { old: 'zh-CN', new: 'en' }, uiLang: { old: 'auto', new: 'en' }, showFab: { old: true, new: false } });
+    eq(S.get('targetLang'), 'en');
+    const r = await p;
+    ok(r.ok);
+    eq(writes, 1, '一次 PageSettings.write，不是每键一次');
+    eq(store.targetLang, 'en');
+  });
+
+  test('空 patch 与未知键：不发布不写盘', async () => {
+    let writes = 0;
+    const { S, store } = bootStore({ write: async (patch) => { writes++; Object.assign(store, patch); return { ok: true }; } });
+    await S.init();
+    let notices = 0; S.subscribe(() => notices++);
+    const empty = await S.setMany({});
+    ok(empty.ok);
+    const bad = await S.setMany({ madeUpKey: 1, provider: 'openai' });
+    ok(!bad.ok);
+    ok(/madeUpKey/.test(bad.error), '点名是哪个键不认识');
+    eq(notices, 0, '未知键一个字节都不许先应用');
+    eq(S.get('provider'), 'google', '合法键也不许跟着一起应用');
+    eq(writes, 0);
+    deepEq(store, {});
+  });
+
+  test('写失败：每个键独立回滚，恢复精确原形状', async () => {
+    const { S } = bootStore({ initial: { provider: 'google' }, write: async () => ({ ok: false, error: 'quota' }) });
+    await S.init();
+    let notices = 0; S.subscribe(() => notices++);
+    const r = await S.setMany({ provider: 'openai', fontSize: '1.4' });
+    ok(!r.ok);
+    eq(r.error, 'quota');
+    eq(S.get('provider'), 'google');
+    eq(S.get('fontSize'), '1.0');
+    eq('fontSize' in S.getSnapshot().values, false, '原本不在存储里的键回滚后不许留「恰好等于默认值」的假键');
+    eq('provider' in S.getSnapshot().values, true, '原本在存储里的键回滚后要恢复旧值，不是消失');
+    eq(notices, 2, '乐观一次 + 回滚一次');
+  });
+
+  test('写挂在半路时外部写入插队：那个键让位给外部值，其余照常回滚', async () => {
+    let release;
+    const { S, emit } = bootStore({
+      write: () => new Promise((res) => { release = () => res({ ok: false, error: 'late' }); }),
+    });
+    await S.init();
+    const p = S.setMany({ provider: 'openai', showFab: false });
+    emit({ provider: { oldValue: 'google', newValue: 'deepseek' } });   // 外部写入插队
+    release();
+    const r = await p;
+    ok(!r.ok);
+    eq(S.get('provider'), 'deepseek', '插队的外部写入不许被回滚覆盖');
+    eq(S.get('showFab'), true, '没被插队的键照常回滚');
+  });
+
+  test('插队后我们随后又写同一个键：批量回滚让位，不碰在途的第二次写入', async () => {
+    const releases = [];
+    const { S, emit } = bootStore({
+      write: () => new Promise((res) => { releases.push(() => res({ ok: false, error: 'late' })); }),
+    });
+    await S.init();
+    const p1 = S.setMany({ provider: 'openai' });
+    emit({ provider: { oldValue: 'google', newValue: 'deepseek' } });   // 外部写入插队
+    const p2 = S.set('provider', 'qwen');                                // 第二次写入把 pending 顶成自己的新值
+    eq(S.get('provider'), 'qwen');
+    eq(releases.length, 2);
+    await releases[0]();
+    const r1 = await p1;
+    ok(!r1.ok);
+    eq(S.get('provider'), 'qwen', '批量回滚发现 pending 已不是自己的值 —— 让位');
+    await releases[1]();
+    const r2 = await p2;
+    ok(!r2.ok);
+    eq(S.get('provider'), 'deepseek', '第二次写入自己的回滚照常回到插队后的外部值');
+  });
+});
+
+describe('settings-store: 总线订阅纪律', () => {  test('只认 local 区、只认 schema 键；subscribeKey 精准通知', async () => {
     const { S, emit } = bootStore({});
     await S.init();
     let any = 0; S.subscribe(() => any++);

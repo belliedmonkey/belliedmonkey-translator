@@ -68,7 +68,7 @@ describe('EngineState — 先归一化，再判；免费通道不再享特例', 
 
 describe('没有人再另写一份判据', () => {
   // 仓库根相对（PR3 起弹窗源码在 src/pages/，条目跟着搬家；extension/ 前缀照旧写全）。
-  const FILES = ['src/pages/popup.jsx', 'extension/options/options.js',
+  const FILES = ['src/pages/popup.jsx', 'src/pages/options.jsx',
     'extension/content/content-main.js', 'extension/content/translation-api.js'];
 
   // needsKey 与 needsSetup 是**两个问题**。混用的后果是对着一个写着

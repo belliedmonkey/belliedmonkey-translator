@@ -21,14 +21,15 @@ const { stripComments } = require('./lib/strip-comments');
 const ROOT = path.join(__dirname, '..');
 const { PASSAGES, TARGETS } = require(path.join(ROOT, 'build/try-pages.config.js'));
 
-// 设置页下拉里的目标语言。读 HTML 而不是维护第二份清单 —— 那份清单和界面分家的
-// 那天，这道门禁就变成了摆设。
+// 设置页下拉里的目标语言。读源码而不是维护第二份清单 —— 那份清单和界面分家的
+// 那天，这道门禁就变成了摆设。（PR5 起下拉的源码在 src/pages/options.jsx，
+// JSX 的 option 与 HTML 同形：value="…" 字面量。）
 function optionLangs() {
-  const html = fs.readFileSync(path.join(ROOT, 'extension/options/options.html'), 'utf8');
-  const i = html.indexOf('id="target-lang"');
-  const j = html.indexOf('</select>', i);
-  ok(i > 0 && j > i, 'options.html 里找不到 #target-lang 的 <select> —— 读法走歪了');
-  return [...html.slice(i, j).matchAll(/value="([^"]+)"/g)].map((m) => m[1]);
+  const src = fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8');
+  const i = src.indexOf('id="target-lang"');
+  const j = src.indexOf('</select>', i);
+  ok(i > 0 && j > i, 'options.jsx 里找不到 #target-lang 的 <select> —— 读法走歪了');
+  return [...src.slice(i, j).matchAll(/value="([^"]+)"/g)].map((m) => m[1]);
 }
 
 function runtimeLangs() {

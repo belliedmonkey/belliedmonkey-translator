@@ -162,10 +162,11 @@ describe('EngineFields.populate — 哨兵项与回落', () => {
   });
 });
 
-describe('options.js 里不许再有第二份同能力的判断', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'extension', 'options', 'options.js'), 'utf8');
+describe('options.jsx 里不许再有第二份同能力的判断', () => {
+  // PR5 迁移：设置页源码是 src/pages/options.jsx，四组引擎以命令式孤岛挂载（§10.9）。
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'options.jsx'), 'utf8');
 
-  test('抽完之后 options.js 不再自己判 supportsBaseUrl / supportsModel / supportsKey', () => {
+  test('抽完之后设置页不再自己判 supportsBaseUrl / supportsModel / supportsKey', () => {
     const hits = src.split('\n')
       .map((l, i) => [i + 1, l])
       .filter(([, l]) => /supportsBaseUrl|supportsModel|supportsKey/.test(l));
@@ -175,22 +176,19 @@ describe('options.js 里不许再有第二份同能力的判断', () => {
   });
 
   // 判据不是「调了几次」——那是个会随迁移不断失效的代理。要守的是：**四组引擎配置
-  // 一组都不许自己另写一套**。每一组要么整块由组件渲染（render），要么至少用组件的
-  // 判据（visibility）。两者相加必须正好是四组：翻译 / 朗读 / 解析 / 转写。
+  // 一组都不许自己另写一套**。孤岛形态下这等于：容器表正好四个槽各一次，且全页
+  // 唯一的 EngineFields.render 长在遍历这张表的循环上（翻译 / 朗读 / 解析 / 转写）。
   test('四组引擎配置全都接在组件上，一组都不落', () => {
-    // 不能用 [^)]*? —— 第一个实参就是 $('stt-core')，里面有括号。限长的懒惰匹配。
-    const rendered = [...src.matchAll(/EngineFields\.render\([\s\S]{0,240}?slot:\s*'(\w+)'/g)].map((m) => m[1]);
-    const ruleOnly = (src.match(/EngineFields\.visibility\(/g) || []).length;
-    ok(rendered.length + ruleOnly === 4,
-      `只接上了 ${rendered.length + ruleOnly} 组（组件渲染 ${rendered.length} 组：`
-      + `${rendered.join('/') || '无'}；只用判据 ${ruleOnly} 组），期望 4 组`
-      + ' —— 翻译/朗读/解析/转写，漏掉的那一组会另写一套并慢慢漂走');
-    // 四组现在全部由组件渲染。退回「只用判据」也算接着，但那意味着又有一份手写
-    // markup —— 加字段时它不会自己长出来。
-    ok(new Set(rendered).size === 4,
-      '不是四组都由组件渲染，实际：' + (rendered.join('/') || '一组都没有'));
-    ok(new Set(rendered).size === rendered.length,
-      '同一个 slot 渲染了两次：' + rendered.join('/'));
+    const slots = [...src.matchAll(/\[\s*\w+Ref,\s*'(\w+)'/g)].map((m) => m[1]);
+    eq(slots.length, 4,
+      `孤岛容器表是 ${slots.length} 项（${slots.join('/') || '空'}），期望 chat/tts/notes/stt 四组`
+      + ' —— 漏掉的那一组会另写一套并慢慢漂走');
+    eq(new Set(slots).size, 4, '同一个 slot 挂了两次：' + slots.join('/'));
+    const renders = (src.match(/EngineFields\.render\(/g) || []).length;
+    eq(renders, 1, `EngineFields.render 出现 ${renders} 次 —— 绕开容器表单挂的那一个，就是第二套判据`);
+    const loop = src.indexOf('for (const [ref, slot, entriesFn] of containers)');
+    ok(loop >= 0 && loop < src.indexOf('EngineFields.render('),
+      'render 没有长在容器表的循环上 —— 有人开始按组手写了？');
   });
 
   test('两个 host 都加载了它，且在自己的脚本之前', () => {
@@ -388,7 +386,8 @@ describe('界面语言 = build/ui-langs.config.js', () => {
   });
 
   const optionsOf = (html) => {
-    const m = html.match(/<select id="ui-lang">([\s\S]*?)<\/select>/);
+    // [^>]*：React 版开标签带 value/onChange（PR5 起设置页源码在 src/pages/options.jsx）。
+    const m = html.match(/<select id="ui-lang"[^>]*>([\s\S]*?)<\/select>/);
     ok(!!m, '找不到 ui-lang 选择器');
     return [...m[1].matchAll(/value="([^"]+)"[^>]*>([^<]*)</g)].map((x) => [x[1], x[2].trim()]);
   };
@@ -396,7 +395,7 @@ describe('界面语言 = build/ui-langs.config.js', () => {
   // 两个宿主的 <option> 用的是 **chrome 那一列**（两边共用 uiLang 这个存储键，
   // 而它的取值一直是 Chrome 的 locale 码）。官网用 id 那一列。
   for (const [label, file] of [
-    ['扩展设置页', path.join('extension', 'options', 'options.html')],
+    ['扩展设置页', path.join('src', 'pages', 'options.jsx')],
     ['宿主 App 设置页', path.join('app', 'index.html')],
   ]) {
     test(label + '：auto 在最前，其余逐项等于注册表（含顺序与 endonym）', () => {
@@ -432,7 +431,9 @@ describe('目标语言 = build/target-langs.config.js', () => {
     eq(new Set(ids).size, ids.length); eq(new Set(REG.map((l) => l.endonym)).size, REG.length);
   });
   for (const [label, file, follow] of [
-    ['扩展设置页', path.join('extension', 'options', 'options.html'), false],
+    // 设置页的语言项随 React 迁移（PR5）搬进 JSX —— 对账面跟着搬：静态 option
+    // 就是渲染出的全部选项，源码文本照样逐项可对。
+    ['扩展设置页', path.join('src', 'pages', 'options.jsx'), false],
     // 弹窗的语言项随 React 迁移（PR3）搬进 JSX —— 对账面跟着搬：静态 option
     // 就是渲染出的全部选项，源码文本照样逐项可对。
     ['扩展弹窗', path.join('src', 'pages', 'popup.jsx'), false],

@@ -31,6 +31,8 @@ const Registry = (() => {
   const grant = () => get('MT_GRANT') || null;
   // 转写引擎注册表（stt.gen.js，中国版生成物无品牌词）；[] = 没加载，调用方收起那一节。
   const sttEngines = () => get('MT_STT_ENGINES') || [];
+  // 语音引擎注册表（tts.gen.js）—— 与 sttEngines 同形同理由。
+  const ttsEngines = () => get('MT_TTS_ENGINES') || [];
   // 同步后端开关（backend.config.js，var 挂 window）。null = 中国版没有后端 —— 心跳的
   // 守卫读它，而不是让 src/ 直接摸 MT_BACKEND（src-boundaries 门）。
   const backend = () => get('MT_BACKEND') || null;
@@ -42,7 +44,7 @@ const Registry = (() => {
   const telemetryEnabled = () => !!get('MT_TELEMETRY');
 
   return { get, providers, palette, langs, messages, modelParams, version,
-    grant, sttEngines, backend, flavor, telemetryEnabled };
+    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled };
 })();
 
 export default Registry;

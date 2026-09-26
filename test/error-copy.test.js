@@ -44,7 +44,8 @@ describe('同步层的每个错误 code 都有人话', () => {
   const codes = new Set([...codesFrom(read('extension/learn/sync.js')),
     ...codesFrom(read('extension/learn/auth.js'))]);
   const app = read('app/app.js');
-  const opt = read('extension/options/options.js');
+  // PR5 迁移后扩展侧的 syncError 逐码表搬进了纯逻辑层 options-model.js。
+  const opt = read('src/pages/options-model.js');
 
   test('扫到了 code —— 扫不到东西的断言不是门禁', () => {
     ok(codes.size >= 5, `只扫到 ${codes.size} 个 code：${[...codes].join(' ')} —— 扫法走歪了？`);
@@ -77,7 +78,7 @@ describe('同步层的每个错误 code 都有人话', () => {
 // （设置页 / App / App 设置）的改动，漏一处的形状恰恰是最难被发现的那种，
 // 所以用静态断言钉住，而不是靠记性。
 describe('登录身份的显示口径', () => {
-  const files = ['extension/options/options.js', 'app/app.js', 'app/settings.js',
+  const files = ['src/pages/options.jsx', 'app/app.js', 'app/settings.js',
     'extension/learn/review.js'];
   for (const f of files) {
     test(f + ' 不直接渲染 session.email', () => {
@@ -127,7 +128,7 @@ describe('回调只带 code —— 不许再往回跳地址上加东西', () => 
 // 兑换失败会作废 verifier（一次性，对的）。不重新备一份的话，按钮到刷新页面前
   // 都是死的：第一次报真实原因，之后永远 pkce_missing。
   test('两个宿主在兑换失败后都重新备一份 PKCE', () => {
-    for (const f of ['app/app.js', 'extension/options/options.js']) {
+    for (const f of ['app/app.js', 'src/pages/options.jsx']) {
       const src = read(f);
       const n = (src.match(/prepareProviderSignIn/g) || []).length;
       ok(n >= 2, `${f} 里 prepareProviderSignIn 只出现 ${n} 次 —— `

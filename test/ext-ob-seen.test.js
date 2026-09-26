@@ -4,7 +4,7 @@
 // 方向都能拆开：
 //
 //   什么都没配、它却已置位  —— 任何一次「以后再设置」都会写它（onboard.jsx 的 finish）
-//   配得好好的、它却没置位  —— 设置页点一下「重看引导」就会删掉它（options.js）
+//   配得好好的、它却没置位  —— 设置页点一下「重看引导」就会删掉它（options.jsx）
 //
 // 所以拿它当「配好了」的信号会立刻出错。2026-09-01 的全流程图把它列为十个判据里
 // 唯一一个**与配置状态正交却被当成信号**的，用户裁定：钉住它只在一处被读。
@@ -84,7 +84,7 @@ describe('extObSeen 只回答「看过引导没有」', () => {
   test('删它的只有设置页的「重看引导」', () => {
     const removers = all.filter((h) => /storage\.local\.remove/.test(h.text));
     eq(removers.length, 1, '删 extObSeen 的地方不止一处');
-    ok(removers[0].file === path.join('extension', 'options', 'options.js'),
+    ok(removers[0].file === path.join('src', 'pages', 'options.jsx'),
       '删它的应当是设置页，实际在 ' + removers[0].file);
   });
 

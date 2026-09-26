@@ -18,4 +18,7 @@ module.exports = { ENTRIES: [
   // PR4：extension/onboard/onboard.js 的后继。三个命令式渲染器（LearnGrant /
   // QuickSetup / EngineFields）按 §10.9 规则 4 以孤岛挂载，仍在独立 <script> 里。
   { entry: 'src/pages/onboard.jsx', out: 'onboard/onboard.js' },
+  // PR5：extension/options/options.js 的后继（saveAll → saveNow 的键域收进
+  // src/pages/options-model.js 的 SAVE_KEYS，test/options-model.test.js 对账 schema）。
+  { entry: 'src/pages/options.jsx', out: 'options/options.js' },
 ] };

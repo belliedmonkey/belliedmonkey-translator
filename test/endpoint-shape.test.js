@@ -123,8 +123,10 @@ describe('宿主不许绕过 EngineTest', () => {
   });
 
   test('扩展设置页的翻译自检走 EngineTest，不再自留一份', () => {
-    const src = strip(read('extension/options/options.js'));
-    ok(handlerOf(src, 'btn-test-provider').includes('EngineTest.translation('),
+    // PR5 迁移后源码是 src/pages/options.jsx，监听不再是 $().addEventListener ——
+    // 锚点换成 handler 的声明行（const btnTestProvider =），取函数体头部。
+    const src = strip(read('src/pages/options.jsx'));
+    ok(blockAfter(src, 'const btnTestProvider =', 1200).includes('EngineTest.translation('),
       'btn-test-provider 又自己拼了一份');
     // TranslationAPI.translate 在这个文件里只剩一处合法用途：§4.2d 长段卡的逐句重译。
     const direct = (src.match(/TranslationAPI\.translate\(/g) || []).length;
@@ -134,7 +136,7 @@ describe('宿主不许绕过 EngineTest', () => {
   });
 
   test('两个宿主的「试听」都先判地址（它是播放不是探活，所以只补这一句）', () => {
-    ok(handlerOf(strip(read('extension/options/options.js')), 'btn-tts-test').includes('EngineTest.shapeHint('),
+    ok(blockAfter(strip(read('src/pages/options.jsx')), 'const btnTtsTest =', 1200).includes('EngineTest.shapeHint('),
       '扩展的试听没判地址');
     ok(handlerOf(strip(read('app/settings.js')), 'btn-tts-test').includes('EngineTest.shapeHint('),
       'App 的试听没判地址');

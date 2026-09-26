@@ -197,10 +197,12 @@ async function evalIn(cdp, sessionId, expression, contextId) {
 
     // ── 2b. 设置页真的能用：面板展开、值存得住、重开还在 ─────────────────────
     //
-    // 上面那一轮只证明页面没炸。它证明不了 saveAll() 这条路 —— 那是**整体覆盖式**的：
-    // 每次从 DOM 读全部字段写回存储，所以任何一个新控件只要 init() 里漏了回填，用户
-    // 下一次改别的字段就会把它悄悄清空。这种坏法在「页面能打开」这个断言下完全隐形，
-    // 而它正是 1.5.4 那种「全门禁绿着发出去、结果是空转」的形状。
+    // 上面那一轮只证明页面没炸。它证明不了「改了字段 → 存储里真的有」这条路 ——
+    // 1.5.4 那次事故的形状：全门禁绿着发出去，配置却是空转。写入方式换过几代
+    // （旧世界 saveAll 整体覆盖、PR5 起逐字段即写），但「存得住、重开回填、改别的
+    // 字段不冲掉」这三条判据对每一代都成立，所以这里只钉判据，不钉机制。
+    // 打字仿真的形状跟着写入契约走：真实用户敲键盘发的是 input 事件（见下方
+    // API Key 那次真机事故），这里的驱动一律派发 input，不再派发 change。
     {
       const { targetId } = await cdp.send('Target.createTarget', { url: 'about:blank' });
       const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: true });
@@ -230,15 +232,22 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       const hidden0 = await evalIn(cdp, sessionId, `document.getElementById('advanced-config').hidden`);
       if (hidden0 !== true) problems.push('高级参数面板默认不是折叠的');
 
-      // 点开 → 填值 → 触发 change（saveAll 挂在 change 上，不是 input）
+      // 点开 → 填值 → 派发 input（真实打字的形状）。数字框是 React 受控框：React
+      // 给它们装了 value 跟踪器，普通 el.value=… 会把跟踪器一起更新到新值，随后的
+      // input 事件被判成「没有变化」而吞掉 —— 必须走原型上的原生 setter 让跟踪器
+      // 看见一次跳变（Playwright/Puppeteer 内部同款手法）。api-key 那条不受此限，
+      // 它是 engine-fields 命令式孤岛，直接 addEventListener，不经跟踪器。
+      // 2026-09-27 实测：先派 change（六条红），再普通赋值派 input（仍红），
+      // 原生 setter + input 才落盘。
       await evalIn(cdp, sessionId, `(() => {
+        const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
         document.getElementById('btn-advanced').click();
         const t = document.getElementById('adv-temperature');
-        t.value = '0.7';
-        t.dispatchEvent(new Event('change', { bubbles: true }));
+        set.call(t, '0.7');
+        t.dispatchEvent(new Event('input', { bubbles: true }));
         const c = document.getElementById('adv-concurrency');
-        c.value = '3';
-        c.dispatchEvent(new Event('change', { bubbles: true }));
+        set.call(c, '3');
+        c.dispatchEvent(new Event('input', { bubbles: true }));
         return 1;
       })()`);
       await sleep(1200);
@@ -277,17 +286,17 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       } else {
         notes.push('API Key 只敲 input、不失焦 → 已落盘 ✓');
       }
-      // 收尾：清掉这个假 Key，别污染后面的用例
+      // 收尾：清掉这个假 Key，别污染后面的用例（清空也走 input —— 落盘契约是 input）
       await evalIn(cdp, sessionId, `(() => {
         const k = document.getElementById('api-key');
         k.value = '';
-        k.dispatchEvent(new Event('change', { bubbles: true }));
+        k.dispatchEvent(new Event('input', { bubbles: true }));
         return 1;
       })()`);
       await sleep(800);
 
-      // 重开页面 —— init() 的回填。漏了这步，值还在存储里，但下一次任何 change 都会
-      // 把它写成空。所以这里再改一个**别的**字段，然后回来看这两个键还在不在。
+      // 重开页面 —— 回填。漏了这步，用户看到的输入框是空的，下一次改动还会把空值
+      // 写回去。所以这里再改一个**别的**字段，然后回来看这两个键还在不在。
       await cdp.send('Page.navigate', { url: `chrome-extension://${extId}/options/options.html` }, sessionId);
       await sleep(2500);
       const back = await evalIn(cdp, sessionId, `document.getElementById('adv-temperature').value`);
@@ -302,7 +311,7 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       const after = JSON.parse(await evalIn(cdp, sessionId,
         `new Promise(r => chrome.storage.local.get(['reqTemperature','reqConcurrency'], v => r(JSON.stringify(v))))`));
       if (Number(after.reqTemperature) !== 0.7 || Number(after.reqConcurrency) !== 3) {
-        problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— saveAll 是整体覆盖式的，回填漏了`);
+        problems.push(`改别的字段把高级参数冲掉了: ${JSON.stringify(after)} —— 别的字段的写入路径覆盖了它们`);
       }
 
       // ── 一把 key 配好全部：写进去的三组，必须扛得住下一次 saveAll ──────────
@@ -344,7 +353,9 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         if (!wrote.ttsEngine || !wrote.sttEngine || wrote.ttsMode !== 'assist') {
           problems.push(`一键配置没把三组写进去: ${JSON.stringify(wrote)}`);
         } else {
-          // 改一个完全无关的字段，触发整体覆盖式的 saveAll()
+          // 改一个完全无关的字段 —— 旧世界这会触发整体覆盖式的 saveAll()，
+          // 一键配置只要少回填一个控件就被冲掉；现在逐字段写入，这一幕退守为
+          // 回归钉：写入路径不许重新长出「改 A 丢 B」的形状。
           await evalIn(cdp, sessionId, `(() => {
             const f = document.getElementById('font-size');
             f.value = f.options[0].value;
@@ -490,10 +501,14 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         return 1;
       })()`);
       await sleep(900);
+      // 输入 + 失焦：这一框「输入只更新提示，失焦才落盘」（JSON 打到一半不许
+      // 入库），所以打字仿真 = input 事件 + focusout 事件（React 的 onBlur 走
+      // 会冒泡的 focusout）。
       await evalIn(cdp, sessionId, `(() => {
         const c = document.getElementById('adv-custom');
         c.value = ${JSON.stringify(CUSTOM)};
-        c.dispatchEvent(new Event('change', { bubbles: true }));
+        c.dispatchEvent(new Event('input', { bubbles: true }));
+        c.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
         return 1;
       })()`);
       await sleep(900);
