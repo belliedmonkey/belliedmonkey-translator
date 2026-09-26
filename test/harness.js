@@ -59,6 +59,11 @@ function loadSrc(relFile, globalName, sandbox = {}) {
   const base = { console, setTimeout, clearTimeout, setInterval, clearInterval };
   const ctx = vm.createContext(Object.assign(base, sandbox));
   vm.runInContext(r.outputFiles[0].text, ctx, { filename: relFile });
+  // esbuild 的 IIFE+globalName 把入口模块的 exports 对象绑到全局名上：`export default X`
+  // 拿到的是 {default: X}，这里拆掉一层，让测试直接写 ctx.SettingsStore.init。
+  // 纯命名导出的模块（hooks.js）本来就是扁平对象，原样保留。
+  const api = ctx[globalName];
+  if (api && typeof api === 'object' && api.default !== undefined) ctx[globalName] = api.default;
   return ctx;
 }
 
