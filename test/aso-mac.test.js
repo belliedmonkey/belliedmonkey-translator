@@ -14,7 +14,7 @@ const SECTION = JSON.parse(fs.readFileSync(path.join(ROOT, 'store-assets', 'aso-
 const descs = (md) => [...md.matchAll(/^##\s+(国际版|中国版)\s*·\s*([A-Za-z-]+)\s*·\s*description\s*\n\n```\n([\s\S]*?)\n```/gm)].map((m) => ({ flavor: m[1], loc: m[2], text: m[3] }));
 
 describe('aso-mac.md —— 由 aso.md 生成，只多一节', () => {
-  test('与生成器此刻的输出逐字相同（改了 aso.md 没重新生成 ⇒ 红；修法：node scripts/gen-aso-mac.js）', () => {
+  test('与生成器此刻的输出逐字相同（改了 aso.md 没重新生成 ⇒ 红；修法：node scripts/gen-aso-platforms.js）', () => {
     eq(G.build(ios).text, mac);
   });
   test('每段描述恰好多一节，且那一节就是表里的那一节；其余逐字相同；不超商店的 4000 字', () => {
@@ -29,7 +29,7 @@ describe('aso-mac.md —— 由 aso.md 生成，只多一节', () => {
       ok(b[i].text.length <= G.LIMIT, `${b[i].loc} ${b[i].text.length} 字`);
     }
   });
-  test('★ 共用的那份（iOS 两线）一个字都不提快速翻译', () => {
+  test('★ 共用的底稿 aso.md（iOS 那份由它派生）一个字都不提快速翻译', () => {
     ok(!/Quick Translate|快速翻译|快速翻譯|⌃⌥T/i.test(ios), 'aso.md 里出现了快速翻译 —— iPhone 的商店页不该描述一个它没有的功能');
   });
   test('多出来的那一节也过口径红线：不点名服务商、不说没有追踪、不说不加限定的完全免费', () => {

@@ -1,5 +1,5 @@
-> **生成的文件，不要手改。** 由 `node scripts/gen-aso-platforms.js` 从 `aso.md` + `aso-mac-section.json` 生成：
-> 只比 `aso.md` 多一节「快速翻译（Mac App）」，别的逐字相同。**macOS 两线用这一份**（Gate J-1）；`aso.md` 是底稿，不直接上传。
+> **生成的文件，不要手改。** 由 `node scripts/gen-aso-platforms.js` 从 `aso.md` + `aso-ios-section.json` 生成：
+> 只比 `aso.md` 多一节「系统翻译（iPhone）」，别的逐字相同。**iOS 两线用这一份**（Gate J-2）；`aso.md` 是底稿，不直接上传。
 
 # App Store 商店文案（ASO）
 
@@ -65,8 +65,8 @@ Bilingual subtitles for whatever your device is playing. On Mac, the app listens
 CONVERSATION · LIVE INTERPRETER (APP)
 Talk across a language gap. Both sides speak freely; each sentence is transcribed, translated and can be read aloud. Speech is recognised on the device, so the audio never leaves it. Requires iOS 26 / macOS 26.
 
-QUICK TRANSLATE (MAC APP)
-Select text in any app and press ⌃⌥T, use the right-click Services menu, or type; for text you can’t select, drag a box on screen (⌃⌥S). The translation appears in a small panel by the pointer without taking focus. On-screen text is recognised on your Mac and the screenshot is not saved. Shortcuts are configurable; it lives in the menu bar and can be turned off.
+SYSTEM TRANSLATION (IPHONE)
+Select text in any app and tap Translate — BelliedMonkey answers with the engine you configured, in a small sheet, without leaving the app. Choose BelliedMonkey once in Settings › Apps › Translate › Default Translate App. Sentences you translate this way can go straight into your review deck. Requires iOS 18.4 or later.
 
 WEB PAGES, SIDE BY SIDE
 The Safari extension (also on Chrome and Firefox) keeps every paragraph's original text with the translation right below it. No switching tabs, no losing your place.
@@ -124,8 +124,8 @@ New: Live Subtitles for anything playing on your Mac or iPhone, plus a conversat
 【对话 · 实时听译（App）】
 跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。声音只在你的设备上识别，不上传；需要 iOS 26 / macOS 26。
 
-【快速翻译（Mac App）】
-在任何 App 里选中文字按 ⌃⌥T，或用右键「服务」、直接输入；选不了、复制不了的字就在屏幕上框一块（截图翻译，⌃⌥S）。译文出现在鼠标旁的小面板里，不抢焦点；屏幕上的字在本机识别，截图不保存。快捷键可改，常驻菜单栏、可以关。
+【系统翻译（iPhone）】
+在任何 App 里选中文字、点「翻译」，由你配好的引擎在一个小弹层里给出译文，不用离开当前 App。先在「设置 › App › 翻译 › 默认翻译 App」里选一次大肚猴翻译。这样翻过的句子可以直接进复习库。需要 iOS 18.4 及以上。
 
 【网页双语对照】
 Safari 扩展（也支持 Chrome、Firefox）在每段原文下方显示译文，不跳转、不丢阅读位置。
@@ -183,8 +183,8 @@ YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频�
 【对话 · 实时听译（App）】
 跨语言面对面交流：双方自由说话，每句自动转写、翻译，还能朗读出来。声音只在你的设备上识别，不上传；需要 iOS 26 / macOS 26。
 
-【快速翻译（Mac App）】
-在任何 App 里选中文字按 ⌃⌥T，或用右键「服务」、直接输入；选不了、复制不了的字就在屏幕上框一块（截图翻译，⌃⌥S）。译文出现在鼠标旁的小面板里，不抢焦点；屏幕上的字在本机识别，截图不保存。快捷键可改，常驻菜单栏、可以关。
+【系统翻译（iPhone）】
+在任何 App 里选中文字、点「翻译」，由你配好的引擎在一个小弹层里给出译文，不用离开当前 App。先在「设置 › App › 翻译 › 默认翻译 App」里选一次大肚猴翻译。这样翻过的句子可以直接进复习库。需要 iOS 18.4 及以上。
 
 【网页双语对照】
 Safari 扩展在每段原文下方即时显示译文，边读边对照，不打断阅读节奏。
@@ -241,8 +241,8 @@ BelliedMonkey 翻訳
 【会話 · リアルタイム通訳（アプリ）】
 言葉の壁を越えて対面で話せます。双方が自由に話し、一文ごとに文字起こし・翻訳し、読み上げもできます。音声は端末の中だけで認識され、外に出ません。iOS 26 / macOS 26 が必要です。
 
-【クイック翻訳（Mac App）】
-どの App でもテキストを選択して ⌃⌥T を押すか、右クリックの「サービス」、または直接入力。選択できない文字は画面上で範囲を囲みます（⌃⌥S）。訳文はポインタのそばの小さなパネルに表示され、フォーカスを奪いません。画面の文字はこの Mac 上で認識し、スクリーンショットは保存しません。ショートカットは変更可能。メニューバーに常駐し、オフにもできます。
+【システム翻訳（iPhone）】
+どの App でもテキストを選択して「翻訳」をタップすると、設定したエンジンが小さなシートで訳文を返します。App を離れる必要はありません。最初に「設定」で BelliedMonkey をデフォルトの翻訳 App に選んでください。こうして翻訳した文はそのまま復習カードに入れられます。iOS 18.4 以降が必要です。
 
 【対訳ウェブページ】
 Safari 拡張機能（Chrome・Firefox にも対応）が段落ごとに原文を残し、すぐ下に訳文を表示します。
@@ -300,8 +300,8 @@ BelliedMonkey 번역
 【대화 · 실시간 통역（앱）】
 언어가 달라도 마주 보고 이야기하세요. 양쪽이 자유롭게 말하면 문장마다 받아쓰고 번역하며, 읽어주기도 합니다. 음성은 기기 안에서만 인식되며 밖으로 나가지 않습니다. iOS 26 / macOS 26이 필요합니다.
 
-【빠른 번역(Mac 앱)】
-어떤 앱에서든 텍스트를 선택하고 ⌃⌥T를 누르거나, 오른쪽 클릭 「서비스」, 또는 직접 입력하세요. 선택할 수 없는 글자는 화면에서 영역을 드래그합니다(⌃⌥S). 번역은 포인터 옆의 작은 패널에 표시되며 포커스를 빼앗지 않습니다. 화면의 글자는 이 Mac에서 인식하고 스크린샷은 저장하지 않습니다. 단축키는 변경할 수 있고, 메뉴 막대에 상주하며 끌 수 있습니다.
+【시스템 번역(iPhone)】
+어떤 앱에서든 텍스트를 선택하고 '번역'을 탭하면, 설정한 엔진이 작은 시트에 번역을 보여 줍니다. 앱을 벗어날 필요가 없습니다. 먼저 '설정'에서 BelliedMonkey를 기본 번역 앱으로 선택하세요. 이렇게 번역한 문장은 바로 복습 카드에 넣을 수 있습니다. iOS 18.4 이상이 필요합니다.
 
 【대역 웹페이지】
 Safari 확장 프로그램(Chrome·Firefox도 지원)이 문단마다 원문을 두고 바로 아래에 번역을 표시합니다.
@@ -359,8 +359,8 @@ PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽
 【對話 · 即時聽譯（App）】
 跨語言面對面溝通：雙方自由說話，每句自動轉寫、翻譯，還能朗讀出來。聲音只在你的裝置上辨識，不上傳；需要 iOS 26 / macOS 26。
 
-【快速翻譯（Mac App）】
-在任何 App 裡選取文字按 ⌃⌥T，或用右鍵「服務」、直接輸入；選不了、複製不了的字就在螢幕上框一塊（螢幕截圖翻譯，⌃⌥S）。譯文出現在游標旁的小面板裡，不搶焦點；螢幕上的字在本機辨識，截圖不保存。快速鍵可改，常駐選單列、可以關。
+【系統翻譯（iPhone）】
+在任何 App 裡選取文字、點「翻譯」，由你設定好的引擎在小視窗裡給出譯文，不用離開目前的 App。先到「設定」把大肚猴翻譯選為預設翻譯 App。這樣翻過的句子可以直接進入複習庫。需要 iOS 18.4 或以上版本。
 
 【網頁雙語對照】
 Safari 擴充功能（也支援 Chrome、Firefox）在每段原文下方顯示譯文，不跳轉、不弄丟閱讀位置。
@@ -418,8 +418,8 @@ Zweisprachige Untertitel für alles, was dein Gerät gerade abspielt. Auf dem Ma
 GESPRÄCH · LIVE-DOLMETSCHER (APP)
 Unterhalte dich über Sprachgrenzen hinweg. Beide Seiten sprechen frei; jeder Satz wird transkribiert, übersetzt und auf Wunsch vorgelesen. Die Sprache wird auf dem Gerät erkannt, der Ton verlässt es nicht. Benötigt iOS 26 / macOS 26.
 
-SCHNELLÜBERSETZUNG (MAC-APP)
-Text in einer beliebigen App auswählen und ⌃⌥T drücken, das Dienste-Menü per Rechtsklick nutzen oder tippen; für nicht auswählbaren Text einen Bereich auf dem Bildschirm aufziehen (⌃⌥S). Die Übersetzung erscheint in einem kleinen Fenster beim Zeiger, ohne den Fokus zu übernehmen. Bildschirmtext wird auf dem Mac erkannt, das Bildschirmfoto wird nicht gespeichert. Kurzbefehle sind anpassbar; die App sitzt in der Menüleiste und lässt sich dort abschalten.
+SYSTEMÜBERSETZUNG (IPHONE)
+Text in einer beliebigen App markieren und auf „Übersetzen“ tippen – BelliedMonkey antwortet mit der von dir eingerichteten Engine in einem kleinen Fenster, ohne die App zu verlassen. Wähle BelliedMonkey dazu einmal in den Einstellungen als Standard-Übersetzungs-App. So übersetzte Sätze können direkt in deine Wiederholungskarten wandern. Erfordert iOS 18.4 oder neuer.
 
 ZWEISPRACHIGE WEBSEITEN
 Die Safari-Erweiterung (auch für Chrome und Firefox) lässt jeden Absatz im Original stehen und zeigt die Übersetzung direkt darunter.
@@ -477,8 +477,8 @@ Des sous-titres bilingues pour tout ce que votre appareil diffuse. Sur Mac, l'ap
 CONVERSATION · INTERPRÈTE EN DIRECT (APP)
 Parlez par-delà la barrière de la langue. Chacun parle librement ; chaque phrase est transcrite, traduite et peut être lue à voix haute. La parole est reconnue sur l'appareil, le son ne le quitte jamais. Nécessite iOS 26 / macOS 26.
 
-TRADUCTION RAPIDE (APP MAC)
-Sélectionnez du texte dans n’importe quelle app et appuyez sur ⌃⌥T, utilisez le menu Services du clic droit, ou saisissez ; pour du texte non sélectionnable, tracez un cadre à l’écran (⌃⌥S). La traduction s’affiche dans un petit panneau près du pointeur, sans prendre le focus. Le texte à l’écran est reconnu sur votre Mac et la capture n’est pas enregistrée. Raccourcis personnalisables ; l’app reste dans la barre des menus et peut être désactivée.
+TRADUCTION SYSTÈME (IPHONE)
+Sélectionnez du texte dans n’importe quelle app et touchez « Traduire » : BelliedMonkey répond avec le moteur que vous avez configuré, dans une petite fenêtre, sans quitter l’app. Choisissez une fois BelliedMonkey comme app de traduction par défaut dans Réglages. Les phrases traduites ainsi peuvent aller directement dans vos cartes de révision. Nécessite iOS 18.4 ou ultérieur.
 
 PAGES WEB BILINGUES
 L'extension Safari (aussi pour Chrome et Firefox) garde chaque paragraphe d'origine avec la traduction juste en dessous.
@@ -536,8 +536,8 @@ Subtítulos bilingües para todo lo que suena en tu dispositivo. En Mac, la app 
 CONVERSACIÓN · INTÉRPRETE EN VIVO (APP)
 Habla por encima de la barrera del idioma. Las dos partes hablan con libertad; cada frase se transcribe, se traduce y se puede leer en voz alta. La voz se reconoce en el dispositivo y el audio nunca sale de él. Requiere iOS 26 / macOS 26.
 
-TRADUCCIÓN RÁPIDA (APP PARA MAC)
-Selecciona texto en cualquier app y pulsa ⌃⌥T, usa el menú Servicios del clic derecho o escribe; para texto que no se puede seleccionar, dibuja un recuadro en la pantalla (⌃⌥S). La traducción aparece en un pequeño panel junto al puntero sin quitar el foco. El texto de la pantalla se reconoce en tu Mac y la captura no se guarda. Los atajos son configurables; la app vive en la barra de menús y se puede desactivar.
+TRADUCCIÓN DEL SISTEMA (IPHONE)
+Selecciona texto en cualquier app y toca «Traducir»: BelliedMonkey responde con el motor que configuraste, en una pequeña ventana, sin salir de la app. Elige una vez BelliedMonkey como app de traducción predeterminada en Ajustes. Las frases traducidas así pueden ir directamente a tus tarjetas de repaso. Requiere iOS 18.4 o posterior.
 
 PÁGINAS WEB BILINGÜES
 La extensión de Safari (también para Chrome y Firefox) conserva cada párrafo original con la traducción justo debajo.
@@ -595,8 +595,8 @@ BelliedMonkey Переводчик
 РАЗГОВОР · ЖИВОЙ ПЕРЕВОДЧИК (ПРИЛОЖЕНИЕ)
 Общайтесь, несмотря на языковой барьер. Обе стороны говорят свободно; каждая фраза расшифровывается, переводится и может быть озвучена. Речь распознаётся на устройстве, звук его не покидает. Требуются iOS 26 / macOS 26.
 
-БЫСТРЫЙ ПЕРЕВОД (ПРИЛОЖЕНИЕ ДЛЯ MAC)
-Выделите текст в любом приложении и нажмите ⌃⌥T, используйте меню «Службы» по правому клику или введите текст; если текст нельзя выделить, обведите область на экране (⌃⌥S). Перевод появляется в небольшой панели рядом с указателем и не забирает фокус. Текст с экрана распознаётся на вашем Mac, снимок не сохраняется. Сочетания клавиш настраиваются; приложение живёт в строке меню, его можно отключить.
+СИСТЕМНЫЙ ПЕРЕВОД (IPHONE)
+Выделите текст в любом приложении и нажмите «Перевести» — BelliedMonkey ответит с помощью настроенного вами движка в небольшом окне, не покидая приложение. Один раз выберите BelliedMonkey приложением перевода по умолчанию в «Настройках». Переведённые так предложения можно сразу отправить в карточки для повторения. Требуется iOS 18.4 или новее.
 
 ДВУЯЗЫЧНЫЕ СТРАНИЦЫ
 Расширение Safari (а также для Chrome и Firefox) сохраняет каждый абзац оригинала и показывает перевод прямо под ним.
@@ -654,8 +654,8 @@ Legendas bilíngues para tudo o que toca no seu aparelho. No Mac, o app ouve o �
 CONVERSA · INTÉRPRETE AO VIVO (APP)
 Converse apesar da barreira do idioma. Os dois lados falam livremente; cada frase é transcrita, traduzida e pode ser lida em voz alta. A fala é reconhecida no aparelho e o áudio nunca sai dele. Exige iOS 26 / macOS 26.
 
-TRADUÇÃO RÁPIDA (APP PARA MAC)
-Selecione um texto em qualquer app e pressione ⌃⌥T, use o menu Serviços do clique direito ou digite; para texto que não dá para selecionar, arraste um quadro na tela (⌃⌥S). A tradução aparece em um pequeno painel ao lado do ponteiro, sem tirar o foco. O texto da tela é reconhecido no seu Mac e a captura não é salva. Atalhos configuráveis; o app fica na barra de menus e pode ser desativado.
+TRADUÇÃO DO SISTEMA (IPHONE)
+Selecione um texto em qualquer app e toque em “Traduzir”: o BelliedMonkey responde com o mecanismo que você configurou, numa pequena janela, sem sair do app. Escolha uma vez o BelliedMonkey como app de tradução padrão em Ajustes. As frases traduzidas assim podem ir direto para os seus cartões de revisão. Requer iOS 18.4 ou posterior.
 
 PÁGINAS WEB BILÍNGUES
 A extensão do Safari (também para Chrome e Firefox) mantém cada parágrafo original com a tradução logo abaixo.
@@ -713,8 +713,8 @@ BelliedMonkey مترجم
 محادثة · مترجم فوري (التطبيق)
 تحدّث رغم اختلاف اللغة. يتكلم الطرفان بحرية، وتُفرَّغ كل جملة وتُترجَم ويمكن قراءتها بصوت مسموع. يُتعرَّف على الكلام داخل الجهاز فلا يخرج الصوت منه. يتطلب iOS 26 / macOS 26.
 
-الترجمة السريعة (تطبيق Mac)
-حدّد نصًا في أي تطبيق واضغط ⌃⌥T، أو استخدم قائمة «الخدمات» بالنقر بالزر الأيمن، أو اكتب؛ وللنص الذي لا يمكن تحديده ارسم إطارًا على الشاشة (⌃⌥S). تظهر الترجمة في لوحة صغيرة بجوار المؤشر دون أن تأخذ التركيز. يُتعرَّف على نص الشاشة على جهاز Mac ولا تُحفظ لقطة الشاشة. الاختصارات قابلة للتعديل، ويبقى التطبيق في شريط القوائم ويمكن إيقافه.
+الترجمة من النظام (iPhone)
+حدّد نصًا في أي تطبيق واضغط «ترجمة»، فيرد BelliedMonkey بالمحرّك الذي أعددته في نافذة صغيرة دون مغادرة التطبيق. اختر BelliedMonkey مرة واحدة كتطبيق الترجمة الافتراضي من «الإعدادات». يمكن أن تنتقل الجمل التي تترجمها بهذه الطريقة مباشرة إلى بطاقات المراجعة. يتطلب iOS 18.4 أو أحدث.
 
 صفحات ويب بلغتين
 تُبقي إضافة Safari (وكذلك Chrome وFirefox) كل فقرة بنصها الأصلي وتعرض الترجمة أسفلها مباشرةً.
@@ -772,8 +772,8 @@ Sottotitoli bilingui per tutto ciò che il tuo dispositivo sta riproducendo. Su 
 CONVERSAZIONE · INTERPRETE LIVE (APP)
 Parla oltre la barriera della lingua. Entrambi parlano liberamente; ogni frase viene trascritta, tradotta e può essere letta ad alta voce. La voce viene riconosciuta sul dispositivo e l'audio non lo lascia mai. Richiede iOS 26 / macOS 26.
 
-TRADUZIONE RAPIDA (APP PER MAC)
-Seleziona del testo in qualsiasi app e premi ⌃⌥T, usa il menu Servizi del clic destro oppure scrivi; per il testo non selezionabile, traccia un riquadro sullo schermo (⌃⌥S). La traduzione compare in un piccolo pannello accanto al puntatore senza togliere il focus. Il testo sullo schermo viene riconosciuto sul Mac e lo screenshot non viene salvato. Scorciatoie configurabili; l’app resta nella barra dei menu e si può disattivare.
+TRADUZIONE DI SISTEMA (IPHONE)
+Seleziona del testo in qualsiasi app e tocca «Traduci»: BelliedMonkey risponde con il motore che hai configurato, in una piccola finestra, senza uscire dall’app. Scegli una volta BelliedMonkey come app di traduzione predefinita in Impostazioni. Le frasi tradotte così possono finire direttamente nelle tue schede di ripasso. Richiede iOS 18.4 o successivo.
 
 PAGINE WEB BILINGUI
 L'estensione per Safari (anche per Chrome e Firefox) mantiene ogni paragrafo originale con la traduzione subito sotto.
@@ -831,8 +831,8 @@ Cihazında çalan her şey için iki dilli altyazı. Mac'te uygulama sistem sesi
 SOHBET · CANLI TERCÜMAN (UYGULAMA)
 Dil engelini aşarak yüz yüze konuş. İki taraf da serbestçe konuşur; her cümle yazıya dökülür, çevrilir ve sesli okunabilir. Konuşma cihazda tanınır, ses cihazından çıkmaz. iOS 26 / macOS 26 gerektirir.
 
-HIZLI ÇEVİRİ (MAC UYGULAMASI)
-Herhangi bir uygulamada metni seçip ⌃⌥T’ye basın, sağ tık Servisler menüsünü kullanın veya yazın; seçilemeyen metinler için ekranda bir alan çizin (⌃⌥S). Çeviri, odağı almadan imlecin yanındaki küçük bir panelde görünür. Ekrandaki metin Mac’inizde tanınır, ekran görüntüsü kaydedilmez. Kısayollar değiştirilebilir; uygulama menü çubuğunda durur ve kapatılabilir.
+SİSTEM ÇEVİRİSİ (IPHONE)
+Herhangi bir uygulamada metni seçip “Çevir”e dokunun; BelliedMonkey, ayarladığınız motorla küçük bir pencerede yanıt verir, uygulamadan çıkmanız gerekmez. Ayarlar’da BelliedMonkey’i bir kez varsayılan çeviri uygulaması olarak seçin. Bu şekilde çevirdiğiniz cümleler doğrudan tekrar kartlarınıza eklenebilir. iOS 18.4 veya üstü gerekir.
 
 İKİ DİLLİ WEB SAYFALARI
 Safari eklentisi (Chrome ve Firefox için de var) her paragrafın özgün metnini korur, çevirisini hemen altında gösterir.
@@ -890,8 +890,8 @@ Phụ đề song ngữ cho mọi thứ đang phát trên thiết bị. Trên Mac
 HỘI THOẠI · PHIÊN DỊCH TRỰC TIẾP (ỨNG DỤNG)
 Trò chuyện vượt rào cản ngôn ngữ. Hai bên nói tự do; mỗi câu được chép lời, dịch và có thể đọc thành tiếng. Giọng nói được nhận dạng ngay trên thiết bị, âm thanh không rời khỏi máy. Cần iOS 26 / macOS 26.
 
-DỊCH NHANH (ỨNG DỤNG MAC)
-Chọn văn bản trong bất kỳ ứng dụng nào rồi nhấn ⌃⌥T, dùng menu Dịch vụ khi nhấp chuột phải, hoặc gõ trực tiếp; với chữ không chọn được, hãy kéo một khung trên màn hình (⌃⌥S). Bản dịch hiện trong một bảng nhỏ cạnh con trỏ và không chiếm tiêu điểm. Chữ trên màn hình được nhận dạng ngay trên máy Mac, ảnh chụp không được lưu. Phím tắt có thể đổi; ứng dụng nằm trên thanh menu và có thể tắt.
+DỊCH HỆ THỐNG (IPHONE)
+Chọn văn bản trong bất kỳ ứng dụng nào và chạm “Dịch” — BelliedMonkey trả lời bằng công cụ bạn đã cấu hình, trong một cửa sổ nhỏ, không cần rời ứng dụng. Chọn BelliedMonkey một lần làm ứng dụng dịch mặc định trong Cài đặt. Những câu dịch theo cách này có thể vào thẳng thẻ ôn tập của bạn. Yêu cầu iOS 18.4 trở lên.
 
 TRANG WEB SONG NGỮ
 Tiện ích Safari (có cả cho Chrome và Firefox) giữ nguyên từng đoạn gốc và hiện bản dịch ngay bên dưới.
@@ -949,8 +949,8 @@ Dwujęzyczne napisy do wszystkiego, co gra na Twoim urządzeniu. Na Macu aplikac
 ROZMOWA · TŁUMACZ NA ŻYWO (APLIKACJA)
 Rozmawiaj ponad barierą językową. Obie strony mówią swobodnie; każde zdanie jest spisywane, tłumaczone i może zostać odczytane na głos. Mowa jest rozpoznawana na urządzeniu, dźwięk go nie opuszcza. Wymaga iOS 26 / macOS 26.
 
-SZYBKIE TŁUMACZENIE (APLIKACJA NA MACA)
-Zaznacz tekst w dowolnej aplikacji i naciśnij ⌃⌥T, użyj menu Usługi pod prawym przyciskiem albo wpisz tekst; gdy tekstu nie da się zaznaczyć, zaznacz obszar na ekranie (⌃⌥S). Tłumaczenie pojawia się w małym panelu obok wskaźnika i nie przejmuje fokusu. Tekst z ekranu jest rozpoznawany na Macu, a zrzut nie jest zapisywany. Skróty można zmieniać; aplikacja działa w pasku menu i można ją wyłączyć.
+TŁUMACZENIE SYSTEMOWE (IPHONE)
+Zaznacz tekst w dowolnej aplikacji i stuknij „Przetłumacz” — BelliedMonkey odpowie wybranym przez ciebie silnikiem w małym oknie, bez wychodzenia z aplikacji. Raz wybierz BelliedMonkey jako domyślną aplikację do tłumaczenia w Ustawieniach. Zdania przetłumaczone w ten sposób mogą trafić prosto do twoich fiszek. Wymaga iOS 18.4 lub nowszego.
 
 DWUJĘZYCZNE STRONY
 Rozszerzenie Safari (także dla Chrome i Firefox) zostawia każdy akapit w oryginale, a tłumaczenie pokazuje tuż pod nim.

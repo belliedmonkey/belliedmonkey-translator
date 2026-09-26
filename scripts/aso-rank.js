@@ -27,7 +27,8 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const LIST = path.join(ROOT, 'store-assets', 'aso-keywords.json');
-const SNAPDIR = path.join(ROOT, '.local', 'stats');
+// 主仓库的 .local/stats —— 在 worktree 里跑也写回主树（scripts/lib/local-dir.js）。
+const SNAPDIR = path.join(require('./lib/local-dir').mainLocalDir(ROOT), 'stats');
 
 // 目标 → 找哪个 app、用哪个 entity。Mac 版在 `software` 里搜不到，必须 `macSoftware`。
 const TARGETS = {
