@@ -173,7 +173,7 @@ const SEAMS = {
     { host: 'app', file: 'app/app.js', match: "surface: 'app_resume'" },
   ],
   engine_set: [
-    { host: 'ext', file: 'extension/options/options.js' },
+    { host: 'ext', file: 'src/pages/options.jsx' },
     // 一键卡与领免费额度两条路都走 trackEngineSet()；后者由 verify-onboard 的行为断言守着。
     { host: 'app', file: 'app/settings.js' },
   ],

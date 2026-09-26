@@ -321,9 +321,12 @@ describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
   });
 
   test('两个界面都按这张表出按钮，而不是写死', () => {
-    const opt = fs.readFileSync(path.join(ROOT, 'extension/options/options.js'), 'utf8');
+    // PR5 迁移：设置页经 src/lib/registry.js 的 Registry.backend() 读表，
+    // 不直接摸 window.MT_BACKEND —— 判据跟着换锚点。
+    const opt = fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8');
     const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
-    ok(/MT_BACKEND\.providers/.test(opt), '设置页没读 providers —— 会发一个必然失败的按钮');
+    ok(/Registry\.backend\(\)/.test(opt) && /BE\.providers/.test(opt),
+      '设置页没读 providers —— 会发一个必然失败的按钮');
     ok(/MT_BACKEND\.providers/.test(app), 'App 没读 providers');
   });
 

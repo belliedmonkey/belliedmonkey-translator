@@ -11,7 +11,8 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 describe('回归 2026-09 · F06 退出登录要先确认并清掉免费额度令牌', () => {
   test('扩展设置页的退出登录走 LearnGrant.clearOnSignOut', () => {
-    ok(/clearOnSignOut/.test(read('extension/options/options.js')), 'options.js 的 btn-sync-out 处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
+    // PR5 迁移：设置页源码在 src/pages/options.jsx（构建覆盖 dist 同名 .js）。
+    ok(/clearOnSignOut/.test(read('src/pages/options.jsx')), 'options.jsx 的退出登录处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
   });
   test('App 的退出登录也走 LearnGrant.clearOnSignOut', () => {
     ok(/clearOnSignOut/.test(read('app/app.js')), 'app.js 的 onSignOut 没调 LearnGrant.clearOnSignOut');
@@ -31,8 +32,8 @@ describe('回归 2026-09 · F07 一键卡粘自己的 key 时免费槽可覆盖'
     ok(/replaceKeyTail/.test(call.slice(0, 400)), 'quick-setup.js render 里的 plan({...}) 调用没有 replaceKeyTail');
   });
   test('三个宿主都给 render 提供 replaceKeyTail（额度令牌尾八位）', () => {
-    // onboard 的宿主脚本已是 React 版（src/pages/onboard.jsx，构建覆盖 dist 同名 .js）。
-    for (const f of ['extension/options/options.js', 'src/pages/onboard.jsx', 'app/settings.js']) {
+    // onboard / options 的宿主脚本已是 React 版（src/pages/*.jsx，构建覆盖 dist 同名 .js）。
+    for (const f of ['src/pages/options.jsx', 'src/pages/onboard.jsx', 'app/settings.js']) {
       ok(/replaceKeyTail/.test(read(f)), f + ' 的 QuickSetup.render 没传 replaceKeyTail');
     }
   });

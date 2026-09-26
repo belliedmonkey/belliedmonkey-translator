@@ -10,22 +10,24 @@ const fs = require('fs');
 const path = require('path');
 const { describe, test, ok } = require('./harness');
 const { stripComments } = require('./lib/strip-comments');
-const ROOT = path.join(__dirname, '..', 'extension');
+const ROOT = path.join(__dirname, '..');
 
 function walk(dir, out) {
   for (const f of fs.readdirSync(dir)) {
     const p = path.join(dir, f);
-    if (fs.statSync(p).isDirectory()) { if (!/_locales|styles|icons/.test(f)) walk(p, out); }
-    else if (/\.js$/.test(f) && !/\.gen\.js$|i18n-messages\.js/.test(f)) out.push(p);
+    if (fs.statSync(p).isDirectory()) { if (!/_locales|styles|icons|node_modules/.test(f)) walk(p, out); }
+    else if (/\.(js|jsx)$/.test(f) && !/\.gen\.js$|i18n-messages\.js/.test(f)) out.push(p);
   }
   return out;
 }
 
 describe('PageSettings.read 的每一处调用都要 await（或 return / .then）', () => {
-  for (const file of walk(ROOT, [])) {
+  // PR5 起设置页源码在 src/pages/options.jsx —— src/ 一起扫，.jsx 一起扫。
+  for (const dir of ['extension', 'src']) {
+  for (const file of walk(path.join(ROOT, dir), [])) {
     const src = stripComments(fs.readFileSync(file, 'utf8'));
     if (!src.includes('PageSettings.read(')) continue;
-    test(path.relative(ROOT, file), () => {
+    test(path.join(dir, path.relative(path.join(ROOT, dir), file)), () => {
       const bad = [];
       const re = /PageSettings\.read\(/g;
       let m;
@@ -42,5 +44,6 @@ describe('PageSettings.read 的每一处调用都要 await（或 return / .then�
       }
       ok(bad.length === 0, `PageSettings.read 的返回值被当成设置对象用了：${bad.join('、')} —— 它是 Promise<{ok,data}>`);
     });
+  }
   }
 });

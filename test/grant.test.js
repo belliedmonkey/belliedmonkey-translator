@@ -1,13 +1,13 @@
 // test/grant.test.js — 免费额度的客户端核心（docs/learning-design.md §8.10）。
 //
 // 三件事只有纯逻辑测得住，而它们全都会**静默**出错：
-//   · plan 写出来的键必须落在宿主认得的集合里 —— 不在里面的键 saveAll() 读不回来，
+//   · plan 写出来的键必须落在宿主认得的集合里 —— 不在里面的键写下去也留不住，
 //     下一次任何字段变更就会把它清掉。不报错，只是配置自己消失。
 //   · 「可覆盖」的判据是尾号命中，不是「反正是我们写的」。判宽了就会盖掉**用户自己
 //     粘的 key**，而那是他花时间申请来的东西。
 //   · 状态机的顺序即优先级。「池子空了」排在「你用完了」前面 —— 后者会让用户去查
 //     自己的账户，查一晚上也查不出来，因为那边根本没问题。
-const { describe, test, eq, ok, deepEq, loadModule } = require('./harness');
+const { describe, test, eq, ok, deepEq, loadModule, loadSrc } = require('./harness');
 
 const SPEC = {
   vendor: 'openrouter', vendorLabel: 'OpenRouter', limitUsd: 0.2,
@@ -66,22 +66,20 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     eq(r.writes.apiBaseUrl, '', '端点必须写空 —— 留着上一个引擎的地址配新 key 是明文禁止的');
   });
 
-  test('★ writes 的每个键都在宿主的 SETTINGS_KEYS 里', () => {
-    // 这条是整份文件里最贵的一条。不在集合里的键 saveAll() 读不回来，
-    // 下一次任何字段变更就会把它清掉 —— 不报错，配置自己消失。
-    const fs = require('fs');
-    const path = require('path');
-    const src = fs.readFileSync(path.join(__dirname, '..', 'extension/options/options.js'), 'utf8');
-    const m = src.match(/SETTINGS_KEYS\s*=\s*\[([\s\S]*?)\]/);
-    ok(m, 'options.js 里找不到 SETTINGS_KEYS —— 这条断言在空转');
-    const known = new Set((m[1].match(/'([A-Za-z0-9_]+)'/g) || []).map((x) => x.slice(1, -1)));
-    ok(known.size > 10, `只解出 ${known.size} 个键，扫法走歪了`);
+  test('★ writes 的每个键都在设置页 saveNow 的键域里', () => {
+    // 这条是整份文件里最贵的一条。不在集合里的键写下去也留不住 —— 下一次任何
+    // 字段变更就会把它清掉 —— 不报错，配置自己消失。
+    // PR5 起「宿主认得的集合」是 OptionsModel.SAVE_KEYS（原 options.js 的
+    // SETTINGS_KEYS；它与 schema 的对账在 test/options-model.test.js）。
+    const { OptionsModel } = loadSrc('src/pages/options-model.js', 'OptionsModel');
+    const known = new Set(OptionsModel.SAVE_KEYS);
+    ok(known.size > 10, `键域只有 ${known.size} 个键 —— OptionsModel 被动过了？`);
     const r = G.plan(claimed, {}, REG);
     const miss = Object.keys(r.writes).filter((k) => !known.has(k));
-    eq(miss.length, 0, '这些键不在 SETTINGS_KEYS 里，会被静默清掉：' + miss.join(', '));
+    eq(miss.length, 0, '这些键不在 saveNow 的键域里，会被静默清掉：' + miss.join(', '));
   });
 
-  test('marks 三件**不进** SETTINGS_KEYS —— 宿主单独写', () => {
+  test('marks 三件**不进**持久化键域 —— 宿主单独写', () => {
     const r = G.plan(claimed, {}, REG);
     deepEq(Object.keys(r.marks).sort(), ['grant', 'grantBalance', 'grantTail']);
     eq(r.marks.grantTail, TOKEN.slice(-8));

@@ -71,7 +71,6 @@ describe('SETTINGS_SCHEMA', () => {
 
   // ── 手抄清单 ⊆ schema 的对账门（本文件存在的理由）───────────────────────
   const HAND_LISTS = [
-    ['extension/options/options.js', 'SETTINGS_KEYS', 'options'],
     ['extension/learn/review.js', 'READ_KEYS', 'review'],
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
     ['app/listen.js', 'READ_KEYS', 'listen'],
@@ -96,6 +95,16 @@ describe('SETTINGS_SCHEMA', () => {
     ok(src.includes("keysFor('popup')"),
       'src/pages/popup.jsx 不再用 keysFor(\'popup\') 取键 —— 手抄清单又要长回来了');
     ok(!/POPUP_KEYS/.test(code), 'POPUP_KEYS 在 popup.jsx 里复活了 —— 它已被 schema 收编');
+  });
+
+  // options 是第二个（PR5）：SETTINGS_KEYS 删掉，SAVE_KEYS 是「本页负责持久化」的
+  // 键域（saveNow 收口面），对 schema 的对账搬进了 test/options-model.test.js。
+  test('options 的 React 页经 keysFor(\'options\') 取键（SETTINGS_KEYS 已删，不许回潮）', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8');
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    ok(src.includes("keysFor('options')"),
+      'src/pages/options.jsx 不再用 keysFor(\'options\') 取键 —— 手抄清单又要长回来了');
+    ok(!/SETTINGS_KEYS/.test(code), 'SETTINGS_KEYS 在 options.jsx 里复活了 —— 它已被 schema 收编');
   });
 
   test('handoff.js 的内联读取 ⊆ keysFor(\'handoff\')', () => {
