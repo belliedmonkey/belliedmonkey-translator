@@ -36,39 +36,40 @@ const SETTINGS_SCHEMA = (() => {
   const S = {
     // ── translation engine ────────────────────────────────────────────────
     enabled:         { default: false,    surfaces: ['background', 'options', 'popup'] },
-    targetLang:      { default: 'zh-CN',  surfaces: ['background', 'options', 'popup', 'docs', 'quick'] },
-    uiLang:          { default: 'auto',   surfaces: ['background', 'options', 'popup', 'review', 'docs', 'quick', 'listen'] },
-    provider:        { default: 'google', surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick'] },
-    apiKey:          { default: '',       surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick'] },
-    apiBaseUrl:      { default: '',       surfaces: ['options', 'review', 'docs', 'listen', 'quick'] },
-    apiModel:        { default: '',       surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick'] },
-    engineChosen:    { default: false,    surfaces: ['options', 'popup'] },
+    targetLang:      { default: 'zh-CN',  surfaces: ['background', 'options', 'popup', 'docs', 'quick', 'onboard'] },
+    uiLang:          { default: 'auto',   surfaces: ['background', 'options', 'popup', 'review', 'docs', 'quick', 'listen', 'onboard'] },
+    provider:        { default: 'google', surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
+    apiKey:          { default: '',       surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
+    apiBaseUrl:      { default: '',       surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'onboard'] },
+    apiModel:        { default: '',       surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
+    engineChosen:    { default: false,    surfaces: ['options', 'popup', 'onboard'] },
     textColor:       { default: textColor, surfaces: ['background', 'options', 'popup'] },
     ytTextColor:     { default: ytColor,  surfaces: ['options', 'review', 'content', 'popup'] },
     fontSize:        { default: '1.0',    surfaces: ['background', 'options', 'popup'] },
     showFab:         { default: true,     surfaces: ['background', 'options', 'popup'] },
     bilingualMode:   { default: 'below',  surfaces: ['background', 'options'] },
     // ── learning layer ────────────────────────────────────────────────────
-    learnEnabled:    { default: false, surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen'] },
+    learnEnabled:    { default: false, surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard'] },
     learnDailyNew:   { default: 15,    surfaces: ['options', 'popup', 'review'] },  // = LearnScheduler.DEFAULTS.dailyNew
-    learnRules:      { default: null,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen'] },
+    learnRules:      { default: null,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard'] },
     docCapture:      { default: true,  surfaces: ['options', 'docs'] },
     docPrefetch:     { default: false, surfaces: ['docs'] },
     // ── speech: TTS ───────────────────────────────────────────────────────
-    ttsMode:         { default: 'off', surfaces: ['options', 'review'] },
-    ttsAutoPlay:     { default: false, surfaces: ['options', 'review'] },
-    ttsEngine:       { default: '',    surfaces: ['options', 'review'] },
-    ttsBaseUrl:      { default: '',    surfaces: ['options', 'review'] },
-    ttsApiKey:       { default: '',    surfaces: ['options', 'review'] },
-    ttsModel:        { default: '',    surfaces: ['options', 'review'] },
-    ttsVoice:        { default: '',    surfaces: ['options', 'review'] },
+    ttsMode:         { default: 'off', surfaces: ['options', 'review', 'onboard'] },
+    ttsAutoPlay:     { default: false, surfaces: ['options', 'review', 'onboard'] },
+    ttsEngine:       { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    ttsBaseUrl:      { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    ttsApiKey:       { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    ttsModel:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    // onboard 的 tts 自检要现读 voice（原版手抄清单漏了它，现读路径补上——见 pages/onboard.jsx）。
+    ttsVoice:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
     ttsRate:         { default: 1,     surfaces: ['options', 'review'] },
     // ── speech: STT ───────────────────────────────────────────────────────
     // popup reads the first three read-only (「配了没有实时接口」行), never writes them.
-    sttEngine:       { default: '',    surfaces: ['options', 'popup', 'review'] },
-    sttBaseUrl:      { default: '',    surfaces: ['options', 'popup', 'review'] },
-    sttApiKey:       { default: '',    surfaces: ['options', 'popup', 'review'] },
-    sttModel:        { default: '',    surfaces: ['options', 'review'] },
+    sttEngine:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
+    sttBaseUrl:      { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
+    sttApiKey:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
+    sttModel:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
     // ── notes provider (listen translation target) ────────────────────────
     // listen.js and quick.js read the whole engine group + notes override group
     // through LearnNotes.resolveConfig — four keys each, all read-only there.
@@ -88,7 +89,7 @@ const SETTINGS_SCHEMA = (() => {
     reqCustomParams: { default: '', surfaces: ['options'], note: 'read-only: surfaced, never written by saveAll' },
     // ── flow markers ──────────────────────────────────────────────────────
     extObSeen:       { default: false, surfaces: ['popup'], note: '[flow] onboarding seen' },
-    grantTail:       { default: '',    surfaces: ['popup', 'docs', 'quick'], note: '[flow] masked key tail' },
+    grantTail:       { default: '',    surfaces: ['popup', 'docs', 'quick', 'onboard'], note: '[flow] masked key tail' },
     grantBalance:    { default: null,  surfaces: ['popup'], note: '[flow]' },
     grant:           { default: '',    surfaces: ['docs'], note: '[flow]' },
     // 「以后再设置」裁定（2026-09-22，interaction-spec）：note 走 ASCII，中文引文放行注释 ——

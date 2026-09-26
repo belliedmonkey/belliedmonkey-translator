@@ -34,9 +34,15 @@ const Registry = (() => {
   // 同步后端开关（backend.config.js，var 挂 window）。null = 中国版没有后端 —— 心跳的
   // 守卫读它，而不是让 src/ 直接摸 MT_BACKEND（src-boundaries 门）。
   const backend = () => get('MT_BACKEND') || null;
+  // 构建期 flavor 名。原样透传不兜底：onboard 把它喂给 LearnGrant.render，与旧版传
+  // window.MT_FLAVOR 的 undefined 语义逐字相同（grant.js 自己决定 undefined 走哪张卡）。
+  const flavor = () => get('MT_FLAVOR');
+  // 遥测开关（telemetry.js 顶上的布尔；中国版没有该脚本）。!! 归一 —— src/ 的字符串
+  // 字面量过不了 src-boundaries 的 MT_ 门，收口在 registry 的命中区里。
+  const telemetryEnabled = () => !!get('MT_TELEMETRY');
 
   return { get, providers, palette, langs, messages, modelParams, version,
-    grant, sttEngines, backend };
+    grant, sttEngines, backend, flavor, telemetryEnabled };
 })();
 
 export default Registry;

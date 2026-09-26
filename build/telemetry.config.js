@@ -33,7 +33,7 @@ const EVENTS = {
   //
   // `step` = 离开引导时停在哪一屏，**只在离开的那一刻记一条**，不是每屏一条 ——
   // 每屏一条回答不了 §1 的任何一问，只是噪声。取值与两个宿主的屏序数组**同源**
-  // （`app/app.js` 的 OB 与 `extension/onboard/onboard.js` 的 OB），所以是并集；
+  // （`app/app.js` 的 OB 与 `src/pages/onboard.jsx` 的 OB），所以是并集；
   // 屏序改了这里要跟着改（加枚举值，门禁只认事件名，不会自己红）。
   onboarding_done: {
     // app_resume / shown / dismissed / expired（2026-09-22，§3.8，用户评审通过）：「继续设置」卡 ——
@@ -161,10 +161,12 @@ const SEAMS = {
   installed: SHARED('extension/learn/telemetry.js'),
   heartbeat: SHARED('extension/learn/telemetry.js'),
   onboarding_done: [
-    { host: 'ext', file: 'extension/onboard/onboard.js', match: "surface: 'ext'" },
+    // ext 侧的发送点已迁 src/pages/onboard.jsx（React 版，§10.9）—— file 指源码，
+    // 门禁对源码核 track/once 与 match 字面量。
+    { host: 'ext', file: 'src/pages/onboard.jsx', match: "surface: 'ext'" },
     // dwell（§3.9 提案 A）：属性也钉住。少带一个诊断属性不会让任何门禁自己红 ——
     // 事件照发、表照样合法，只是那一列永远是空的（§3.4 那条教训的属性版）。
-    { host: 'ext', file: 'extension/onboard/onboard.js', match: 'dwell: d' },
+    { host: 'ext', file: 'src/pages/onboard.jsx', match: 'dwell: d' },
     { host: 'app', file: 'app/app.js', match: "surface: 'app'" },
     { host: 'app', file: 'app/app.js', match: 'dwell: d' },
     { host: 'app', file: 'app/app.js', match: "obTrackLeave('web_only')" },

@@ -15,4 +15,7 @@ module.exports = { ENTRIES: [
   // PR3 试点页：extension/popup/popup.js 的后继（同名覆盖，popup.html 的 script
   // 标签不变）。旧 IIFE 已删 —— 迁移一页 = 加一条 + 删旧 .js。
   { entry: 'src/pages/popup.jsx', out: 'popup/popup.js' },
+  // PR4：extension/onboard/onboard.js 的后继。三个命令式渲染器（LearnGrant /
+  // QuickSetup / EngineFields）按 §10.9 规则 4 以孤岛挂载，仍在独立 <script> 里。
+  { entry: 'src/pages/onboard.jsx', out: 'onboard/onboard.js' },
 ] };

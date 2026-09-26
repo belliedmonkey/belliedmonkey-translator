@@ -21,21 +21,13 @@
 // 首帧行为差异（记入 PR 描述）：settings 读回之前，setup-note / first-run 不显示
 // （原版 HTML 静态 display:none，等 JS 读完才动）——读回前我们什么都不知道，不猜。
 
-import { useState, useEffect, useRef, useMemo, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import SettingsStore from '../store/settings-store.js';
-import { useSettings } from '../store/hooks.js';
-
-// settings-store 的 status（'loading' | 'ok' | 'error'）。原始值快照，
-// useSyncExternalStore 拿它当 React 的状态源是安全的。
-function useSettingsStatus() {
-  return useSyncExternalStore(SettingsStore.subscribe,
-    () => SettingsStore.getSnapshot().status,
-    () => SettingsStore.getSnapshot().status);
-}
+import { useSettings, useSettingsStatus } from '../store/hooks.js';
 
 async function sendToPage(action) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
