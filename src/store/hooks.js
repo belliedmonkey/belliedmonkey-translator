@@ -51,9 +51,19 @@ function useView() {
   return { current: snapshot.current, depth: snapshot.depth, navigate, back };
 }
 
+// settings-store 的 status（'loading' | 'ok' | 'error'）。原始值快照，
+// useSyncExternalStore 拿它当 React 的状态源是安全的。首帧门控用：读回前页面不猜
+// （popup 的 setup-note、onboard 的全部文案都是这个语义）。原是 popup.jsx 的就地
+// 定义；onboard 出现第二份拷贝时收编到这里（第三份出现前不再动）。
+function useSettingsStatus() {
+  return useSyncExternalStore(SettingsStore.subscribe,
+    () => SettingsStore.getSnapshot().status,
+    () => SettingsStore.getSnapshot().status);
+}
+
 // uiLang as a reactive value — i18n's useT() is built on this.
 function useUiLang() {
   return useSyncExternalStore(PageText.subscribe, PageText.getUiLang, PageText.getUiLang);
 }
 
-export { useSetting, useSettings, useView, useUiLang };
+export { useSetting, useSettings, useSettingsStatus, useView, useUiLang };

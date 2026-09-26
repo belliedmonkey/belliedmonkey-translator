@@ -3,7 +3,7 @@
 // 它只回答一句话：「这个人看过扩展的引导页没有。」它与「配好了没有」正交，而且两个
 // 方向都能拆开：
 //
-//   什么都没配、它却已置位  —— 任何一次「以后再设置」都会写它（onboard.js 的 finish）
+//   什么都没配、它却已置位  —— 任何一次「以后再设置」都会写它（onboard.jsx 的 finish）
 //   配得好好的、它却没置位  —— 设置页点一下「重看引导」就会删掉它（options.js）
 //
 // 所以拿它当「配好了」的信号会立刻出错。2026-09-01 的全流程图把它列为十个判据里
@@ -72,10 +72,12 @@ describe('extObSeen 只回答「看过引导没有」', () => {
   });
 
   test('写它的只有引导页的 finish()', () => {
-    const writers = all.filter((h) => /storageSet\(|storage\.local\.set/.test(h.text));
+    // SettingsStore.set 是 React 页面的写入口（§10.9 范式）—— 不认它的话，引导页的
+    // 写入会被误归进读者，下面的「只读一处」断言红给你看。
+    const writers = all.filter((h) => /storageSet\(|storage\.local\.set|SettingsStore\.set/.test(h.text));
     eq(writers.length, 1, '写 extObSeen 的地方不止一处：\n  '
       + writers.map((h) => `${h.file}:${h.line}  ${h.text}`).join('\n  '));
-    ok(writers[0].file === path.join('extension', 'onboard', 'onboard.js'),
+    ok(writers[0].file === path.join('src', 'pages', 'onboard.jsx'),
       '写它的应当是引导页的 finish()，实际在 ' + writers[0].file);
   });
 
@@ -87,7 +89,7 @@ describe('extObSeen 只回答「看过引导没有」', () => {
   });
 
   test('★ 读它的只有弹窗一处 —— 多一处就是在拿它当「配好了」的信号', () => {
-    const readers = all.filter((h) => !/storageSet\(|storage\.local\.(set|remove)/.test(h.text));
+    const readers = all.filter((h) => !/storageSet\(|storage\.local\.(set|remove)|SettingsStore\.set/.test(h.text));
     const files = [...new Set(readers.map((h) => h.file))];
     eq(files.join(','), path.join('src', 'pages', 'popup.jsx'),
       'extObSeen 被别的地方读了：\n  '
