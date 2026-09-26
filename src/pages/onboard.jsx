@@ -4,7 +4,7 @@
 // 内容是 App 六屏的**逆**：App 做了它能做的三屏（选语言 / 去装扩展 / 去登录），
 // 这里做 App 结构上做不到的那三件事 —— 配引擎、开采集、翻第一页。
 //
-// 每一屏都是**真控件**，不是说明文字。理由在 app/app.js:256-262 那段注释里已经论证过：
+// 每一屏都是**真控件**，不是说明文字。理由在 src/app/shell-model.js（原 app/app.js:256-262）那段注释里已经论证过：
 // 一个「告诉你去哪里点」的引导，把用户送出去之后就失去了他；一个「就在这里点」的引导
 // 不会。所以第 2 屏直接写 chrome.storage、第 3 屏直接开采集开关。
 //
@@ -355,7 +355,7 @@ function Onboard() {
 
   // 这一屏该不该出分流？判据是 **LearnGrant.enabled()**，即注册表里有没有
   // `MT_GRANT` —— 「我们代领的额度」这条路存不存在。按注册表内容判、不按 flavor 名
-  // （沿用本文件顶部与 app/app.js:308-312 已确立的规则）。
+  // （沿用本文件顶部与 src/app/shell-model.js，原 app/app.js:308-312，已确立的规则）。
   //
   // ⚠️ **不能用额度卡的显隐当判据**。它只回答「有没有一张卡要画」，而中国版画的是
   // 另一张卡（grant.js 的 officialCard：「去阿里云注册领额度，然后把 key 粘到下面」）——
@@ -529,7 +529,7 @@ function Onboard() {
             <h2 id="ob-title">{title}</h2>
             <p id="ob-text">{text}</p>
 
-            {/* 第 1 屏：三步带插图。形状与 App 引导那屏同构（app/app.js 的 obSteps）。
+            {/* 第 1 屏：三步带插图。形状与 App 引导那屏同构（src/app/shell-model.js 的 obSteps）。
                 三步讲的是**这个产品怎么用**，不是怎么配 —— 配置是下一屏的事。 */}
             <ol id="ob-steps" hidden={step !== 'welcome' || !ready}>
               <li>

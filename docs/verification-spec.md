@@ -241,7 +241,7 @@ Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18
 **配方（脚本在 `.local/spike/ctl/`：`ctl-server.js` 服务端 + `run '<js>'` 客户端、`inject-ctl.js` 注入器，`MT_CTL_LAN=<Mac 局域网 IP>` 给真机）：**
 
 1. `node build.js`（**两个 flavor 都出**，否则 `app:sync` 的产物过期守卫会拦）→ 往 `dist-app/Script.js` 的
-   `// ─── app/app.js ─` 标记**之前**插控制通道：每 600 ms `fetch('http://<Mac 局域网 IP>:8766/cmd')` → `eval` →
+   `// ─── src/app/main.jsx (esbuild bundle — React runtime included) ─` 标记**之前**插控制通道：每 600 ms `fetch('http://<Mac 局域网 IP>:8766/cmd')` → `eval` →
    POST `/report`；Mac 端一个 30 行的 node 服务（`/enqueue` `/cmd` `/report` `/result`），**listen `0.0.0.0`**，并按
    `req.socket.remoteAddress` 打一行日志。
 2. `npm run app:sync` → `xcodebuild build -destination id=<UDID> -derivedDataPath … DEVELOPMENT_TEAM=X2Q85MABWK
@@ -2003,7 +2003,7 @@ iPhone 镜像占着。所以出货的原生采集路只能用**按 `mtAudio` 协
 
 ### 3.1.6 `npm run test:quick` — macOS「快速翻译」面板页端到端（2026-09-19）
 
-**何时必跑：** 改 `app/quick.js`、`app/quick-core.js`、`app/app.js` 的 `#quick` 分流、`build/app-bundle.js` 的
+**何时必跑：** 改 `app/quick.js`、`app/quick-core.js`、`src/app/main.jsx` 的 `#quick` 分叉（原 `app/app.js`，PR6a）、`build/app-bundle.js` 的
 `MODULES` / `MAIN_ONLY`，或面板用到的共享样式 token。
 
 面板是同一份 `Main.html` 以 `#quick` 加载的第二个 WKWebView（`learning-design.md` §9.9）。这条门用出货布局

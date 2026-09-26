@@ -1,20 +1,39 @@
-// app/app.js — the host app's Stage 2 surface: sign in, then pull.
+// src/app/shell-model.js — the app shell's imperative logic, moved VERBATIM from
+// app/app.js (PR6a of the React migration, docs/domain-design.md §10).
 //
-// This runs LAST in the built `Script.js`, after the shared modules it depends on
-// (LearnStore / LearnAuth / LearnChunk / LearnSync). Those are the SAME files the
-// extension ships — not ports of them. `docs/learning-design.md` §9 is explicit that
-// the app is not a second engine, and the moment a behaviour is retyped here the two
-// surfaces start disagreeing about what a corpus is.
+// The React boundary in this PR is the DOM: AppShell.jsx renders the ten static
+// sections inside <main id="app"> (text leaves left empty — the painters below
+// write them, exactly as they wrote against the static HTML). Everything here is
+// the shell's BEHAVIOUR — show(), the onboarding state machine, the ext banner,
+// sign-in forms, deep links, sync — untouched so the test anchors that grep these
+// bytes keep asserting the same invariants (their read() paths move in the same
+// PR; the PR description carries the anchor table).
 //
-// Verified before any of this was written (verification-spec, Stage 2 spike): on the
-// app's `file://` origin, IndexedDB, `crypto.subtle`, `CompressionStream` and `fetch`
-// to Supabase all work, identically on macOS, iOS 17.2 and iOS 26.5. None of it needs
-// a shim, which is why there is none.
+// Two deliberate movements, both declared in the PR description:
+//   · the #quick fork (AppQuick.boot(); return) lives in main.jsx now — it must
+//     run AFTER the React mount, because quick.js clones its language dropdown
+//     from the static #target-lang options (app/quick.js), which only exist once
+//     AppShell is on the page. The mount is side-effect-free (html.quick-mode CSS
+//     hides #app; nothing opens idb or sends telemetry before the fork).
+//   · the MTTelemetry.init tail lives at the end of main.jsx — it ran outside the
+//     IIFE there, it runs outside bootShell() here.
+//
+// One mechanical rewrite, semantics-preserving: bare/window MT_* globals become
+// Registry.* reads (src/lib/registry.js — the only place src/ may touch the
+// window.MT_* registries; test/src-boundaries.test.js enforces this). Call-time
+// getters return null/[] where the bare global was undefined, which is exactly
+// the falsy the `typeof MT_BACKEND !== 'undefined'` guards branched on. MTTelemetry
+// has no underscore — it stays a bare global that resolves to window, as before.
+//
+// NOT done in this PR (each declared in the PR description): window.show keeps
+// its verbatim signature instead of moving to installBridgeGlobals (PR9 unifies
+// the bridge surface), and view hand-off still writes section .hidden directly
+// instead of going through the view-store (PR6b-d migrate the islands one at a
+// time).
 
-(() => {
-  // 快速翻译的面板页（learning-design §9.9）：同一份页面以 #quick 加载时只启动 AppQuick —— 不登录、不同步、
-  // 不开学习库、不发心跳。主壳的一切副作用都在这个 IIFE 里，所以在这里返回就是全部。
-  if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) { AppQuick.boot(); return; }
+import Registry from '../lib/registry.js';
+
+export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
   // Declared up here, not beside the sign-in code: `show()` reads it and is defined
@@ -425,7 +444,7 @@
   }
 
   function setupPageUrl() {
-    const host = (window.MT_FLAVOR === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
+    const host = (Registry.flavor() === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
     return 'https://' + host + '/setup.html';
   }
 
@@ -524,7 +543,7 @@
   // ③ **扩展降到最后一屏** —— 它是唯一会把人送出 App 的动作，而送出去就不回来
   //    （18 台点过「我已打开」的里 16 台点完再没有任何事件）。
   const OB = ['welcome']
-    .concat((typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) ? ['signin'] : [])
+    .concat((Registry.backend() && Registry.backend().enabled) ? ['signin'] : [])
     .concat(['firstuse', 'ext']);
   let obAt = 0;
   // 引导**出现**的时刻（telemetry-design §3.9 的 dwell）。App 与扩展不一样：这里引导是
@@ -640,7 +659,7 @@
       // 匿名用量事件说在前面（docs/telemetry-design.md §5）。中国版 App 同一份 bundle，
       // 但 MT_TELEMETRY 为 null，这一句藏掉。
       const tn = $('ob-telemetry');
-      if (tn) { tn.hidden = !window.MT_TELEMETRY; tn.textContent = t('telemetry_onboard', '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。'); }
+      if (tn) { tn.hidden = !Registry.telemetryEnabled(); tn.textContent = t('telemetry_onboard', '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。'); }
     }
   }
 
@@ -677,7 +696,7 @@
   //   · 后面那个标签若以前面某个开头就跳过 —— 同一家的第二条（如 MT 版）不重复占位。
   function obEngineChips() {
     const out = [];
-    for (const p of (typeof MT_PROVIDERS !== 'undefined' ? MT_PROVIDERS : [])) {
+    for (const p of Registry.providers()) {
       if (!p || /^custom_/.test(p.id) || p.id === 'grant') continue;
       const label = String(p.label || '').split(/\s*[(（]/)[0].trim();
       if (!label || out.some((s) => label.startsWith(s))) continue;
@@ -810,9 +829,10 @@
   const XB_KEY = 'xbConsent';
   const xbNeeded = (() => {
     try {
-      if (window.MT_FLAVOR !== 'china') return false;
-      if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) return false;
-      return /\.supabase\.co$/i.test(new URL(MT_BACKEND.url).hostname);
+      if (Registry.flavor() !== 'china') return false;
+      const B = Registry.backend();
+      if (!B || !B.enabled) return false;
+      return /\.supabase\.co$/i.test(new URL(B.url).hostname);
     } catch (_) { return false; }
   })();
   let xbAgreed = false;
@@ -1025,7 +1045,7 @@
         && window.webkit.messageHandlers.mtAppleSignIn);
     } catch (_) { return false; }
   })();
-  if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('apple')) {
+  if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
     $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
     $('btn-apple').hidden = false;
     $('btn-apple').addEventListener('click', () => {
@@ -1043,8 +1063,8 @@
   // Google 禁止在内嵌 WebView 里跑 OAuth，所以 App 里这条交给系统的
   // ASWebAuthenticationSession。**URL 在这一侧算**（PKCE 的 verifier 只能在这里），
   // 原生只负责把会话开起来、把 code 带回来 —— 与扩展那条路是同一套 auth.js 入口。
-  if (appleBridge && MT_BACKEND.enabled && (MT_BACKEND.providers || []).includes('google')) {
-    const scheme = (window.MT_FLAVOR === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
+  if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('google')) {
+    const scheme = (Registry.flavor() === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
     const g = $('btn-google');
     $('btn-google-label').textContent = t('sync_with_google', '用 Google 登录');
     g.hidden = false;
@@ -1556,7 +1576,7 @@
     // — and an app whose entire job is signing in and pulling is exactly such a path.
     // Gating only the extension's settings page would have left that promise true in
     // the place anyone checks and false in the place it mattered.
-    if (!MT_BACKEND.enabled) {
+    if (!Registry.backend() || !Registry.backend().enabled) {
       $('signed-out').hidden = true;
       $('signed-in').hidden = true;
       say(t('app_sync_disabled', '同步尚未在这个版本中启用。浏览器扩展的采集与复习不受影响，全部存在本机。'));
@@ -1773,7 +1793,4 @@
       say(humanError(err), true);
     }
   })();
-})();
-
-// 用量事件：App 打开即 flush + 当日心跳。
-try { if (typeof MTTelemetry !== 'undefined' && !(typeof AppQuick !== 'undefined' && AppQuick.isQuickMode())) MTTelemetry.init({ flushNow: true }); } catch (_) {}
+}

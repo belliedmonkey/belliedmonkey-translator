@@ -22,7 +22,7 @@
 // learning layer's write paths stay on the review surface, where the user can see
 // what they are grading. §12 keeps the record.
 //
-// The app shell owns view SWITCHING (app/app.js, same split as #review-view);
+// The app shell owns view SWITCHING (src/app/shell-model.js, same split as #review-view);
 // everything inside #app-drive is owned here.
 
 var AppDriving = (() => {

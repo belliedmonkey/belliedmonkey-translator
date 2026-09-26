@@ -33,10 +33,12 @@ ok(FILES.length >= 7, `src/ 只找到 ${FILES.length} 个文件 —— 目录挪
 
 function rel(p) { return path.relative(SRC, p).replace(/\\/g, '/'); }
 
-// 去掉行注释，避免「注释里提到注册表名」被误伤（i18n.js 的头注释就合法地提到
+// 去掉注释，避免「注释里提到注册表名」被误伤（i18n.js 的头注释就合法地提到
 // MT_I18N_MESSAGES 在哪）。字符串里的 // 不处理 —— src/ 没有 URL 字面量，够用。
-function stripLineComments(src) {
-  return src.split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
+// React 迁移后 src/ 里还有 JSX 注释（{/* … */}），一并剥掉。
+function stripComments(src) {
+  return src.replace(/\{\/\*[\s\S]*?\*\//g, '')
+    .split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n');
 }
 
 describe('src/ 边界门禁', () => {
@@ -44,7 +46,7 @@ describe('src/ 边界门禁', () => {
     const offenders = [];
     for (const f of FILES) {
       if (rel(f) === 'lib/registry.js') continue;
-      if (/\b(window|globalThis|self)\s*\.\s*MT_/.test(stripLineComments(fs.readFileSync(f, 'utf8')))) {
+      if (/\b(window|globalThis|self)\s*\.\s*MT_/.test(stripComments(fs.readFileSync(f, 'utf8')))) {
         offenders.push(rel(f));
       }
     }
@@ -55,7 +57,7 @@ describe('src/ 边界门禁', () => {
     const offenders = [];
     for (const f of FILES) {
       if (rel(f) === 'lib/registry.js') continue;
-      if (/\bMT_[A-Za-z]/.test(stripLineComments(fs.readFileSync(f, 'utf8')))) {
+      if (/\bMT_[A-Za-z]/.test(stripComments(fs.readFileSync(f, 'utf8')))) {
         offenders.push(rel(f));
       }
     }
@@ -81,7 +83,7 @@ describe('src/ 边界门禁', () => {
     for (const f of FILES) {
       const r = rel(f);
       if (allowed.has(r) || componentLayer.test(r)) continue;
-      if (/\bfrom\s+['"]react(-dom)?(\/[^'"]*)?['"]/.test(stripLineComments(fs.readFileSync(f, 'utf8')))) {
+      if (/\bfrom\s+['"]react(-dom)?(\/[^'"]*)?['"]/.test(stripComments(fs.readFileSync(f, 'utf8')))) {
         offenders.push(r);
       }
     }

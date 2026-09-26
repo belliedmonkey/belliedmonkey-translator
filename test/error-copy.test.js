@@ -43,7 +43,7 @@ const GENERIC_OK = new Map([
 describe('同步层的每个错误 code 都有人话', () => {
   const codes = new Set([...codesFrom(read('extension/learn/sync.js')),
     ...codesFrom(read('extension/learn/auth.js'))]);
-  const app = read('app/app.js');
+  const app = read('src/app/shell-model.js');
   // PR5 迁移后扩展侧的 syncError 逐码表搬进了纯逻辑层 options-model.js。
   const opt = read('src/pages/options-model.js');
 
@@ -56,7 +56,7 @@ describe('同步层的每个错误 code 都有人话', () => {
 
   test('★ App 的 humanError 认得每一个', () => {
     const miss = [...codes].filter((c) => !GENERIC_OK.has(c) && !app.includes(`'${c}'`));
-    eq(miss.length, 0, 'app/app.js 的 humanError 没有这些 code 的分支，它们会以英文原文'
+    eq(miss.length, 0, 'src/app/shell-model.js 的 humanError 没有这些 code 的分支，它们会以英文原文'
       + '出现在状态行：' + miss.join(', '));
   });
 
@@ -78,7 +78,7 @@ describe('同步层的每个错误 code 都有人话', () => {
 // （设置页 / App / App 设置）的改动，漏一处的形状恰恰是最难被发现的那种，
 // 所以用静态断言钉住，而不是靠记性。
 describe('登录身份的显示口径', () => {
-  const files = ['src/pages/options.jsx', 'app/app.js', 'app/settings.js',
+  const files = ['src/pages/options.jsx', 'src/app/shell-model.js', 'app/settings.js',
     'extension/learn/review.js'];
   for (const f of files) {
     test(f + ' 不直接渲染 session.email', () => {
@@ -128,7 +128,7 @@ describe('回调只带 code —— 不许再往回跳地址上加东西', () => 
 // 兑换失败会作废 verifier（一次性，对的）。不重新备一份的话，按钮到刷新页面前
   // 都是死的：第一次报真实原因，之后永远 pkce_missing。
   test('两个宿主在兑换失败后都重新备一份 PKCE', () => {
-    for (const f of ['app/app.js', 'src/pages/options.jsx']) {
+    for (const f of ['src/app/shell-model.js', 'src/pages/options.jsx']) {
       const src = read(f);
       const n = (src.match(/prepareProviderSignIn/g) || []).length;
       ok(n >= 2, `${f} 里 prepareProviderSignIn 只出现 ${n} 次 —— `

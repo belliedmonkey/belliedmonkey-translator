@@ -106,7 +106,8 @@ describe('setup-done: 「配好了」的回执（画布第 7 页）', () => {
 });
 
 describe('setup-done: 接线（深链、两条配置路、engineChosen）', () => {
-  const app = fs.readFileSync(path.join(ROOT, 'app', 'app.js'), 'utf8');
+  // PR6a：App 壳正文迁 src/app/shell-model.js（原 app/app.js，构建时 esbuild 进 Script.js）。
+  const app = fs.readFileSync(path.join(ROOT, 'src', 'app', 'shell-model.js'), 'utf8');
   const settings = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
 
   test('★ 深链的 from 不再被丢掉 —— 那句「回到刚才的 App」全靠它', () => {
@@ -248,7 +249,8 @@ describe('sys-banner: 首页的发现横幅（画布第 7 页）', () => {
       .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
     ok(!/openSettingsURLString|prefs:root|App-prefs/.test(src),
       'openSettingsURLString 打开的是我们自己 App 的设置页，不是「设置 › App › 翻译」');
-    const html = fs.readFileSync(path.join(ROOT2, 'app', 'index.html'), 'utf8');
+    // PR6a：页面标记迁 src/app/AppShell.jsx（JSX）。
+    const html = fs.readFileSync(path.join(ROOT2, 'src', 'app', 'AppShell.jsx'), 'utf8');
     const at = html.indexOf('id="systrans-banner"');
     const sec = html.slice(at, html.indexOf('</section>', at));
     eq((sec.match(/<button/g) || []).length, 2, '只有「我已设好」与「在复习库里看」两个按钮');

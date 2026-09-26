@@ -340,8 +340,10 @@ describe('App 读得到的设置，设置页必须管得到', () => {
   });
 
   test('App 从不写 notes* —— 回落分支恒成立，靠的是这一条', () => {
-    for (const f of ['settings.js', 'app.js', 'driving.js', 'translate-fill.js']) {
-      const src = fs.readFileSync(path.join(ROOT, 'app', f), 'utf8');
+    // app.js 的正文已迁 src/app/shell-model.js（PR6a）—— f 只是报错用的旧名。
+    for (const [f, p] of [['settings.js', 'app/settings.js'], ['app.js', 'src/app/shell-model.js'],
+      ['driving.js', 'app/driving.js'], ['translate-fill.js', 'app/translate-fill.js']]) {
+      const src = fs.readFileSync(path.join(ROOT, p), 'utf8');
       const writes = src.split('\n')
         .map((l, i) => [i + 1, l])
         .filter(([, l]) => !/^\s*\/\//.test(l))
@@ -396,7 +398,8 @@ describe('界面语言 = build/ui-langs.config.js', () => {
   // 而它的取值一直是 Chrome 的 locale 码）。官网用 id 那一列。
   for (const [label, file] of [
     ['扩展设置页', path.join('src', 'pages', 'options.jsx')],
-    ['宿主 App 设置页', path.join('app', 'index.html')],
+    // 宿主 App 的标记随 PR6a 迁 src/app/AppShell.jsx —— 对账面跟着搬（同 options.jsx 先例）。
+    ['宿主 App 设置页', path.join('src', 'app', 'AppShell.jsx')],
   ]) {
     test(label + '：auto 在最前，其余逐项等于注册表（含顺序与 endonym）', () => {
       const list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'));
@@ -437,7 +440,8 @@ describe('目标语言 = build/target-langs.config.js', () => {
     // 弹窗的语言项随 React 迁移（PR3）搬进 JSX —— 对账面跟着搬：静态 option
     // 就是渲染出的全部选项，源码文本照样逐项可对。
     ['扩展弹窗', path.join('src', 'pages', 'popup.jsx'), false],
-    ['宿主 App 设置页', path.join('app', 'index.html'), true],
+    // 宿主 App 的标记随 PR6a 迁 src/app/AppShell.jsx —— 对账面跟着搬（同上）。
+    ['宿主 App 设置页', path.join('src', 'app', 'AppShell.jsx'), true],
   ]) {
     test(label + '：逐项等于注册表（含顺序与 endonym）' + (follow ? '，且第一项是空值「跟随界面语言」' : ''), () => {
       let list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'), label);
