@@ -11,4 +11,8 @@
 // 一律经 src/lib/registry.js 读 window.MT_*，不直接摸全局、不 import gen 文件。
 'use strict';
 
-module.exports = { ENTRIES: [] };
+module.exports = { ENTRIES: [
+  // PR3 试点页：extension/popup/popup.js 的后继（同名覆盖，popup.html 的 script
+  // 标签不变）。旧 IIFE 已删 —— 迁移一页 = 加一条 + 删旧 .js。
+  { entry: 'src/pages/popup.jsx', out: 'popup/popup.js' },
+] };

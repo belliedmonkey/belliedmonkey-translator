@@ -71,7 +71,6 @@ describe('SETTINGS_SCHEMA', () => {
 
   // ── 手抄清单 ⊆ schema 的对账门（本文件存在的理由）───────────────────────
   const HAND_LISTS = [
-    ['extension/popup/popup.js', 'POPUP_KEYS', 'popup'],
     ['extension/options/options.js', 'SETTINGS_KEYS', 'options'],
     ['extension/learn/review.js', 'READ_KEYS', 'review'],
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
@@ -87,6 +86,17 @@ describe('SETTINGS_SCHEMA', () => {
       deepEq(missing, [], `${surface} 面的 schema surfaces 漏了这些键 —— 补 schema，别抄清单`);
     });
   }
+
+  // popup 是第一个删掉手抄清单的页面（PR3）：它的键读取直接走 schema.keysFor('popup')。
+  // 这条正向断言防的是反向退化 —— 有人在 JSX 里手抄一份键表回来。
+  // 只看代码行：头注释里讲「POPUP_KEYS → schema」的对应关系是文档，不是复活。
+  test('popup 的 React 页经 keysFor(\'popup\') 取键（POPUP_KEYS 已删，不许回潮）', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'src/pages/popup.jsx'), 'utf8');
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    ok(src.includes("keysFor('popup')"),
+      'src/pages/popup.jsx 不再用 keysFor(\'popup\') 取键 —— 手抄清单又要长回来了');
+    ok(!/POPUP_KEYS/.test(code), 'POPUP_KEYS 在 popup.jsx 里复活了 —— 它已被 schema 收编');
+  });
 
   test('handoff.js 的内联读取 ⊆ keysFor(\'handoff\')', () => {
     const S = bootSchema({});

@@ -10,6 +10,12 @@
 //   1. 心跳还在      —— 有人「精简弹窗依赖」时会第一个删它
 //   2. 心跳在数字之后 —— 挪到前面就是让弹窗等一次网络往返才显示待复习数
 //   3. 不带 force    —— 带上就绕过 10 分钟节流，每开一次弹窗打一次全量同步
+//
+// PR3 起弹窗是 React 页（src/pages/popup.jsx），锚点随迁移换过两处（不变量没变）：
+//   · 旧 `$('review-count')` 是命令式「画数」的位置；React 版画数是 setState ——
+//     锚改为 `setDue(n > 0`（带实参，避免撞上 useState 的解构行）。
+//   · 后端守卫不再摸 MT_BACKEND 全局（src-boundaries 门）：src/ 一律经
+//     Registry.backend() 读，正则跟着换。
 
 const fs = require('fs');
 const path = require('path');
@@ -17,7 +23,7 @@ const { describe, test, ok, eq } = require('./harness');
 const { stripComments } = require('./lib/strip-comments');
 
 const ROOT = path.join(__dirname, '..');
-const JS = stripComments(fs.readFileSync(path.join(ROOT, 'extension/popup/popup.js'), 'utf8'));
+const JS = stripComments(fs.readFileSync(path.join(ROOT, 'src/pages/popup.jsx'), 'utf8'));
 const HTML = fs.readFileSync(path.join(ROOT, 'extension/popup/popup.html'), 'utf8');
 
 describe('弹窗心跳', () => {
@@ -33,18 +39,19 @@ describe('弹窗心跳', () => {
     }
   });
 
-  test('★ 心跳还在，而且带 MT_BACKEND 守卫（中国版没有后端，不该有死代码在跑）', () => {
-    ok(/LearnSync\.autoSync\(/.test(JS), 'popup.js 里没有 LearnSync.autoSync —— 心跳被删了');
+  test('★ 心跳还在，而且带后端开关守卫（中国版没有后端，不该有死代码在跑）', () => {
+    ok(/LearnSync\.autoSync\(/.test(JS), 'popup.jsx 里没有 LearnSync.autoSync —— 心跳被删了');
     const call = JS.indexOf('LearnSync.autoSync(');
     const before = JS.slice(Math.max(0, call - 300), call);
-    ok(/MT_BACKEND[\s\S]*enabled/.test(before),
-      '心跳没有 MT_BACKEND.enabled 守卫 —— 中国版构建里 sync.js 仍会被调到');
+    ok(/Registry\.backend\(\)[\s\S]*enabled/.test(before),
+      '心跳没有 Registry.backend().enabled 守卫 —— 中国版构建里 sync.js 仍会被调到');
   });
 
   test('★ 心跳排在待复习数字之后 —— 弹窗的第一职责是快点给出那个数', () => {
-    const paint = JS.indexOf("$('review-count')");
+    const paint = JS.indexOf('setDue(n > 0');
     const beat = JS.indexOf('LearnSync.autoSync(');
-    ok(paint >= 0, "找不到 $('review-count') —— 断言的基准错了，这条门禁在空转");
+    ok(paint >= 0, '找不到 setDue 画数那一行 —— 断言的基准错了，这条门禁在空转');
+    ok(JS.includes('id="review-count"'), '待复习数的渲染点（#review-count）没了 —— 数字画给谁看');
     ok(beat > paint, '心跳排在了画计数之前：弹窗会先等一次网络往返才显示待复习数');
   });
 
@@ -56,6 +63,6 @@ describe('弹窗心跳', () => {
 
   test('弹窗仍然不跑账号→语料库那条策略（bindCorpus 属于有界面解释结果的面）', () => {
     ok(!/bindCorpus/.test(JS),
-      'popup.js 调了 bindCorpus —— 它要读会话、要判认领，失败时弹窗无处解释');
+      'popup.jsx 调了 bindCorpus —— 它要读会话、要判认领，失败时弹窗无处解释');
   });
 });

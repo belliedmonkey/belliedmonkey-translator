@@ -67,8 +67,9 @@ describe('EngineState — 先归一化，再判；免费通道不再享特例', 
 });
 
 describe('没有人再另写一份判据', () => {
-  const FILES = ['popup/popup.js', 'options/options.js', 'content/content-main.js',
-    'content/translation-api.js'];
+  // 仓库根相对（PR3 起弹窗源码在 src/pages/，条目跟着搬家；extension/ 前缀照旧写全）。
+  const FILES = ['src/pages/popup.jsx', 'extension/options/options.js',
+    'extension/content/content-main.js', 'extension/content/translation-api.js'];
 
   // needsKey 与 needsSetup 是**两个问题**。混用的后果是对着一个写着
   // 「免费，无需 API」的引擎说「这个引擎需要 API Key」——2026-09-02 真机截图实证，
@@ -92,7 +93,7 @@ describe('没有人再另写一份判据', () => {
   test('四个面都不再自己算 needsKey && !apiKey', () => {
     const bad = [];
     for (const rel of FILES) {
-      const src = fs.readFileSync(path.join(ROOT, 'extension', rel), 'utf8');
+      const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
       for (const [i, line] of src.split('\n').entries()) {
         if (line.trim().startsWith('//')) continue;
         // 「自己判 needsKey」的形状：读到 .needsKey 而不是走 EngineState
@@ -106,8 +107,8 @@ describe('没有人再另写一份判据', () => {
 
   test('归一化也只有一份 —— 不许再出现硬写的默认引擎 id', () => {
     const bad = [];
-    for (const rel of FILES.concat(['background.js'])) {
-      const src = fs.readFileSync(path.join(ROOT, 'extension', rel), 'utf8');
+    for (const rel of FILES.concat(['extension/background.js'])) {
+      const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
       for (const [i, line] of src.split('\n').entries()) {
         if (line.trim().startsWith('//')) continue;
         if (/\|\|\s*'(google|deepseek|openai|openrouter|qwen)'/.test(line)) {

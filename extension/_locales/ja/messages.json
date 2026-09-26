@@ -71,9 +71,6 @@
   "settings": {
     "message": "設定"
   },
-  "popup_status_off": {
-    "message": "オフ"
-  },
   "popup_target_lang": {
     "message": "翻訳先の言語"
   },

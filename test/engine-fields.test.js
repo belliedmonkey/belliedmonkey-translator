@@ -433,7 +433,9 @@ describe('目标语言 = build/target-langs.config.js', () => {
   });
   for (const [label, file, follow] of [
     ['扩展设置页', path.join('extension', 'options', 'options.html'), false],
-    ['扩展弹窗', path.join('extension', 'popup', 'popup.html'), false],
+    // 弹窗的语言项随 React 迁移（PR3）搬进 JSX —— 对账面跟着搬：静态 option
+    // 就是渲染出的全部选项，源码文本照样逐项可对。
+    ['扩展弹窗', path.join('src', 'pages', 'popup.jsx'), false],
     ['宿主 App 设置页', path.join('app', 'index.html'), true],
   ]) {
     test(label + '：逐项等于注册表（含顺序与 endonym）' + (follow ? '，且第一项是空值「跟随界面语言」' : ''), () => {

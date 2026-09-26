@@ -91,7 +91,9 @@ const SETTINGS_SCHEMA = (() => {
     grantTail:       { default: '',    surfaces: ['popup', 'docs', 'quick'], note: '[flow] masked key tail' },
     grantBalance:    { default: null,  surfaces: ['popup'], note: '[flow]' },
     grant:           { default: '',    surfaces: ['docs'], note: '[flow]' },
-    onboardSeen:     { default: 0,     surfaces: ['app'], note: '[flow] 1 = done; see app.js "以后再设置" ruling' },
+    // 「以后再设置」裁定（2026-09-22，interaction-spec）：note 走 ASCII，中文引文放行注释 ——
+    // no-hardcoded-copy 对字符串字面量零豁免（注释会被剥掉，不误伤）。
+    onboardSeen:     { default: 0,     surfaces: ['app'], note: '[flow] 1 = done; see the later-set ruling in app.js' },
     onboardResume:   { default: null,  surfaces: ['app'], note: '[flow] {step, shows} — "later" must not mean "never" (2026-09-22)' },
     // ── quick translate / system-translate handoff ────────────────────────
     quickCapture:    { default: true,  surfaces: ['quick', 'handoff'] },

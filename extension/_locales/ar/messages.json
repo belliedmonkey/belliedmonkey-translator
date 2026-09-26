@@ -71,9 +71,6 @@
   "settings": {
     "message": "الإعدادات"
   },
-  "popup_status_off": {
-    "message": "مُعطّل"
-  },
   "popup_target_lang": {
     "message": "اللغة الهدف"
   },

@@ -71,9 +71,6 @@
   "settings": {
     "message": "Configurações"
   },
-  "popup_status_off": {
-    "message": "Desligado"
-  },
   "popup_target_lang": {
     "message": "Idioma de destino"
   },

@@ -235,7 +235,7 @@ const SEAMS = {
   asr_entry: [
     { host: 'ext', file: 'extension/content/asr-source.js' },
     { host: 'ext', file: 'extension/content/content-main.js', match: "surface: 'popup'" },
-    { host: 'ext', file: 'extension/popup/popup.js', match: "surface: 'popup_app_row'" },
+    { host: 'ext', file: 'src/pages/popup.jsx', match: "surface: 'popup_app_row'" },
     { host: 'app', file: 'app/listen.js', match: "surface: 'app_home'" },
   ],
   telemetry_off: SHARED('extension/learn/telemetry.js'),

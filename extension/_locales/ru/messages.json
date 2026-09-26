@@ -71,9 +71,6 @@
   "settings": {
     "message": "Настройки"
   },
-  "popup_status_off": {
-    "message": "Выключено"
-  },
   "popup_target_lang": {
     "message": "Целевой язык"
   },

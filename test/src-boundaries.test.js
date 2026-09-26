@@ -6,8 +6,10 @@
 //    哪里直接摸了 window.MT_，哪里就是第二个会随 flavor 漂移的消费点。
 // ② src/ 不 import 任何 gen / i18n-messages / backend.config —— 它们不进 bundle
 //    （domain-design §10.7），import 得动就会在 build 时才炸或静默 fork。
-// ③ import react 只许 src/store/hooks.js 与 src/lib/i18n.js —— store 其余文件
-//    保持纯 JS、双宿主可单测（vm 里没有 renderer）。
+// ③ import react 只许两层：store/hooks.js 与 lib/i18n.js（store 其余文件保持纯 JS、
+//    双宿主可单测 —— vm 里没有 renderer），以及 pages/、app/、content/ 的组件层
+//    （React 页面，import react 是它们的本职）。src/ 根下与 shared/ 以后出现新目录
+//    时要显式加进来，不许悄悄扩散。
 // ④ 不许 dangerouslySetInnerHTML —— YouTube 的 Trusted Types 禁 innerHTML，
 //    React 注入 UI 永远走 JSX 子元素，这条从第一天就钉死。
 const fs = require('fs');
@@ -72,13 +74,15 @@ describe('src/ 边界门禁', () => {
     deepEq(offenders, [], '生成注册表是 bundle 外的 script 段 —— 经 Registry 在运行时读');
   });
 
-  test('import react 只许 store/hooks.js 与 lib/i18n.js', () => {
+  test('import react 只许 hooks/i18n 与组件层（pages/app/content）', () => {
     const allowed = new Set(['store/hooks.js', 'lib/i18n.js']);
+    const componentLayer = /^(pages|app|content)\//;
     const offenders = [];
     for (const f of FILES) {
-      if (allowed.has(rel(f))) continue;
+      const r = rel(f);
+      if (allowed.has(r) || componentLayer.test(r)) continue;
       if (/\bfrom\s+['"]react(-dom)?(\/[^'"]*)?['"]/.test(stripLineComments(fs.readFileSync(f, 'utf8')))) {
-        offenders.push(rel(f));
+        offenders.push(r);
       }
     }
     deepEq(offenders, [], 'store/lib 其余文件必须保持无 React —— vm 单测与双宿主复用的前提');
