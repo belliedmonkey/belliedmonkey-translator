@@ -218,6 +218,57 @@ versions ahead of it.
 The same asymmetry applies inside a release: `package.json` is the source of truth
 for the *version*, but only the store knows the last accepted *build number*.
 
+## Two hosts, one project (Claude Code + Reasonix)
+
+This repo is driven by **two agent hosts**, and the working tree is the only place
+their configuration lives. Claude Code is the original host; Reasonix runs the same
+repo and must stay able to do everything the rules here demand — chiefly that
+verification is cua-driver-driven ("Verification" below) and that release state is
+read from gbrain, never inferred from the repo.
+
+**Shared surface — one source, both hosts read it. Never add a second copy.**
+
+| What | Single source | How each host reads it |
+|---|---|---|
+| Instructions | [`AGENTS.md`](AGENTS.md) (primary) + [`CLAUDE.md`](CLAUDE.md) (host-neutral supplement) | Both hosts load `AGENTS.md` / `CLAUDE.md` from the project root, in that order. Reasonix *also* recognizes `REASONIX.md` — **do not create one**; a third copy is exactly the drift this table exists to prevent. |
+| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. |
+| MCP servers | project-root `.mcp.json` | Claude Code reads it natively at **project** scope; Reasonix reads a Claude-Code `.mcp.json` **as-is**. |
+
+The list of servers is in `.mcp.json` and nowhere else — do not restate it here, in
+a host config, or in a doc (same one-registry rule as the provider list).
+
+**Host-local surface — never copy these into the other host's file.**
+
+| Host | Files (both host-specific) | Holds |
+|---|---|---|
+| Claude Code | `.claude/settings.json`; `.claude/settings.local.json` (gitignored, per-machine) | plugins, per-machine permission allowlist |
+| Reasonix | `.reasonix/settings.json` (project hooks); `reasonix.toml` (project config) | hooks, project-scoped config |
+
+**Verify by reading back the resolution, not the file's existence:**
+
+```bash
+reasonix doctor capabilities --json   # instructions: 2 · every project skill present · mcp_servers == the count in .mcp.json
+```
+
+In Claude Code, `/mcp` must list the same server names.
+
+**Rules that keep the two from drifting:**
+
+- Change the shared surface once, then read it back **in both hosts** before pushing.
+  A `.mcp.json` edit verified only in Reasonix is not verified.
+- Claude Code resolves MCP by name with **local > project > user** precedence and does
+  **not** field-merge definitions, so an entry for this project in `~/.claude.json`
+  shadows the `.mcp.json` entry of the same name. Name them identically so resolution
+  is a no-op, and keep this project's servers defined in `.mcp.json` alone.
+- A skill Reasonix must index needs `name:` and `description:` in its YAML frontmatter;
+  without `description` it still loads, but with a weak index entry. `npm test`
+  enforces both for every project skill.
+- **Known gaps, deliberate:** Reasonix does not read `.claude/settings.json` hooks and
+  gstack ships no Reasonix host (see `.claude/skills/gstack/hosts/`), so the global
+  gstack `Stop` hook is not ported — it is not a project capability. `bt-supabase` is
+  an HTTP MCP endpoint whose OAuth grant is per-host, so its first Reasonix use may
+  need its own authorization.
+
 ## Verification — governed by the verification spec
 
 **All verification / testing is governed by the single source of truth,

@@ -21,6 +21,15 @@ test/layout/artifacts-*/
 .claude/settings.local.json
 .claude/worktrees/
 
+# 双宿主（Claude Code + Reasonix）：共享面提交，本机覆盖不提交。两个宿主都认
+# `<指令文件>.local.md` 作为「本目录的、只属于这台机器」的补充（Reasonix
+# 的 load order 是 user → ancestor → project → **project-local**，后加载者更具体），
+# 所以一份机器专属的覆盖一旦提交，就会变成所有人的规则。见 AGENTS.md 的
+# "Two hosts, one project"。
+AGENTS.local.md
+CLAUDE.local.md
+REASONIX.local.md
+
 # Local secrets — provider API keys for verification runs live in the shell
 # environment (MT_API_KEY), never in the repo.
 .env
