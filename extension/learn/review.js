@@ -1305,7 +1305,17 @@
       // 清空 = done。原来只在这里发、而且要 doneThisRun 非零 —— 中途离开从来没有记录（#386：
       // 52 台存过语料、0 条）。现在离开也发（sessEnd('left')），两种结果互斥、每轮一条。
       // sess 开过 = 他刚把牌堆清空（done）；没开过 = 他一进来就没有到期卡（nothing_due）。
+      const wasOpen = sess.open;
       if (sess.open) sessEnd('done'); else sessNothingDue();
+      // 正好清空（或不满一组就做完了）不经 showGroupDone（见 1005 行），收获时刻不能在这条
+      // 最常见的完成路径上漏掉 —— 真机 1.17.0 验证三轮全落在清空屏、rate_prompt 零条
+      // （2026-09-27 修）。门槛与 showGroupDone 对齐：本轮 ≥3 张才算收获；wasOpen 守卫
+      // 保证一轮只计一次（sessEnd 已把 open 置 false，停在这一屏不会重复计）。
+      // host 守卫在 noteValueMoment 自己身上（host!=='app' 返回）。
+      if (wasOpen && typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment &&
+          doneThisRun >= MTFeedback.RATING_MIN_DONE) {
+        try { MTFeedback.noteValueMoment('review').catch(() => {}); } catch (_) {}
+      }
       return;
     }
 
