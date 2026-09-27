@@ -66,7 +66,21 @@ describe('内容脚本能打开的扩展页，必须在 web_accessible_resources
   });
 
   test('声明了的资源都真的存在 —— 列一个不存在的路径等于没列', () => {
-    const missing = [...listed].filter((r) => !r.includes('*') && !fs.existsSync(path.join(EXT, r)));
+    // 构建产物（esbuild bundle，如 PR8a 的懒加载菜单）只存在于 dist/，源树里没有
+    // 是正常的。判据三选一：源树里有；或它是 ui-entries 登记处的产物输出
+    // （build.js 会真的产出它）；dist/ 在场时还必须回读到 dist 里的真身 ——
+    // 「登记了但构建没产出」同样算缺失。
+    const artifacts = new Set(require('../build/ui-entries.config.js').ENTRIES.map((e) => e.out));
+    const dist = path.join(ROOT, 'dist');
+    const distHasManifest = fs.existsSync(path.join(dist, 'manifest.json'));
+    const missing = [...listed].filter((r) => {
+      if (r.includes('*')) return false;
+      if (fs.existsSync(path.join(EXT, r))) return false;
+      if (artifacts.has(r)) {
+        return distHasManifest && !fs.existsSync(path.join(dist, r));
+      }
+      return true;
+    });
     eq(missing.length, 0, 'web_accessible_resources 里的这些文件不存在：' + missing.join(', '));
   });
 });

@@ -39,10 +39,14 @@ function buildOptions(extra = {}) {
 function bundleUiEntries({ entries, dist, log }) {
   if (!entries || !entries.length) return 0;
   const es = esbuild();
-  for (const { entry, out } of entries) {
+  for (const { entry, out, format, globalName } of entries) {
     es.buildSync(buildOptions({
       entryPoints: [path.join(ROOT, entry)],
       outfile: path.join(dist, out),
+      // per-entry 覆盖（PR8a：content 懒加载 bundle 要 ESM；IIFE 回退经 globalName
+      // 挂 window.MTSubMenuBundle）。缺省仍 iife —— 既有页面产物形态不变。
+      ...(format ? { format } : {}),
+      ...(globalName ? { globalName } : {}),
     }));
     if (log) log(`UI bundle: ${entry} → ${out}`);
   }

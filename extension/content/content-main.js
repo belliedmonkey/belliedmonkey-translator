@@ -522,3 +522,8 @@
   // Safari 同帧二次注入时两个并发 init() 在首装/日切那一刻会各写一条（2026-09-10 评审）。
   try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init(); } catch (_) {}
 })();
+
+// 同步注入面预算门的测量点：本文件是 manifest content_scripts 列表的最后一个，
+// 执行到这里 = 同步注入完成。isolated world 写、页面主世界可读（Attribute 是共享 DOM），
+// scripts/verify-content-inject.js 回读它算冷注入耗时。
+try { document.documentElement.setAttribute('data-mt-injected', String(performance.now())); } catch (_) {}

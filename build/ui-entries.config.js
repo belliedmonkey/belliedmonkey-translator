@@ -41,4 +41,14 @@ module.exports = { ENTRIES: [
   // src/shared/（§9.4 对账门按目录集合对两宿主，单侧组合根放 src/pages/ 与 popup 同族）。
   { entry: 'src/pages/review-host.js', out: 'learn/review.js' },
   { entry: 'src/pages/doc-view-host.js', out: 'learn/doc-view.js' },
+  // PR8a：字幕控制菜单的行渲染 —— content 的第一个 React root。**懒加载**：产物
+  // 是 ESM、不进 manifest 的 content_scripts 列表，subtitle-adapter.js 在用户第一
+  // 次点开菜单时 import(chrome.runtime.getURL(...))（web_accessible_resources 有
+  // 登记），同步注入面零新增字节；scripts/verify-content-inject.js 与 build.js 的
+  // 同步字节门守着这条边界（test/content-ui.test.js 咬「esm 产物不得进 js 列表」
+  // 的一致式）。
+  // 回退开关（Firefox/Safari 的 content-script 动态 import 实测不过时）：本条改
+  // format:'iife' + globalName:'MTSubMenuBundle'，并把 'content/sub-menu.bundle.js'
+  // 插进 manifest 两块 js 列表尾部 —— 两个动作必须同一 PR（一致性门会咬半吊子）。
+  { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'esm' },
 ] };
