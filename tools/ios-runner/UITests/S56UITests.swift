@@ -2015,4 +2015,343 @@ final class S56UITests: XCTestCase {
         }
         note("启动后 10 s 仍在前台运行"); shot("cn-10s", full: true)
     }
+
+    // 2026-09-26：1.17.0 真机两验的前置 —— 把**国际线**大肚猴翻译（com.belliedmonkeytranslator）
+    // 经 TestFlight 升到 1.17.0 (build 115)。testTFInstall 装的是中国版（.cn），别混。
+    // TestFlight 列表里国际线与中国线**同名**「大肚猴翻译」——上一轮点到的就是中国线
+    // （1.16.1 Build 57）。国际线认 label 里的 **1.17**（build 115 才有），没有就 dump 全列表再人判。
+    func testTFUpdate1170() throws {
+        let tf = XCUIApplication(bundleIdentifier: "com.apple.TestFlight")
+        tf.terminate()   // 上一轮可能停在某个 App 详情页；重启回列表
+        sleep(1)
+        tf.activate(); sleep(4); shot("tf1170-open", full: true)
+        for _ in 0..<3 {   // 首次使用的介绍 / 条款 / 通知
+            allowSystemAlerts("tf1170", timeout: 2)
+            if let c = waitAny(tf, ["label == '继续'", "label == 'Continue'", "label == '接受'", "label == 'Accept'", "label == '以后'", "label == 'Not Now'"], 2) { note("tf intro tap \(c.label)"); c.tap(); sleep(2) } else { break }
+        }
+        dump(tf, "tf1170-list")
+        // 国际线在 TestFlight 里叫 **BelliedMonkey Translator**（英文名），中国线才是「大肚猴翻译」；
+        // 国际线那行自带版本号 1.17.0 (115) ⇒ 认 1.17 最稳。
+        guard let row = waitAny(tf, ["label CONTAINS '1.17.0'"], 15) else {
+            shot("tf1170-no1170", full: true)
+            XCTFail("TestFlight 列表里没有带 1.17.0 的国际线条目"); return
+        }
+        row.tap(); sleep(3); shot("tf1170-detail", full: true); dump(tf, "tf1170-detail")
+        let versions = tf.staticTexts.allElementsBoundByIndex.map { $0.label }.filter { $0.contains("1.1") }
+        note("tf1170 version texts: " + versions.joined(separator: " ‖ "))
+        if let upd = waitAny(tf, ["label == '更新'", "label == 'Update'", "label == '安装'", "label == 'Install'"], 8) {
+            note("tf1170 tap \(upd.label)"); upd.tap()
+            // 手机上已有同 bundle id 的开发签名 1.16.0 ⇒ TestFlight 弹「替换现有 App」确认框。
+            // 实测它不是 SpringBoard 系统框（文字出现在 tf 自己的 staticTexts 里），是 App 内弹层 —— 两边都试。
+            var replaced = false
+            for _ in 0..<4 {
+                let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+                if sb.alerts.firstMatch.waitForExistence(timeout: 2) {
+                    let btns = sb.alerts.firstMatch.buttons
+                    if btns["Install"].exists { note("tf1170 replace-alert(sb) → Install"); btns["Install"].tap(); replaced = true; break }
+                    if btns["安装"].exists { note("tf1170 replace-alert(sb) → 安装"); btns["安装"].tap(); replaced = true; break }
+                }
+                if let b = waitAny(tf, ["label == 'Install'", "label == '安装'"], 2) {
+                    note("tf1170 replace-alert(tf) → \(b.label)"); b.tap(); replaced = true; break
+                }
+            }
+            if !replaced { note("tf1170 没等到替换确认框（可能不弹）") }
+            sleep(2)
+        } else {
+            note("tf1170 没有 更新/安装 键（可能已是最新）")
+        }
+        guard waitAny(tf, ["label == '打开'", "label == 'Open'", "label == '打開'"], 300) != nil else { shot("tf1170-stuck", full: true); dump(tf, "tf1170-stuck"); XCTFail("大肚猴翻译 300 s 内没装完"); return }
+        shot("tf1170-installed", full: true)
+    }
+
+    // 2026-09-26：1.17.0 真机验② —— 产品名回读。前提：系统语言英文（ZHAO的iPhone 保持英文）+
+    // App 界面语言 English + 杀掉重开 ⇒ 首页 dump（texts=）里一条中文都没有，含产品名「大肚猴翻译」。
+    // 修的是 1.17.0 的三处「界面语言」：首页启动路径没调 setUiLang / Mac 快翻面板 / index.html 裸 h1。
+    // 中文判据不在这里做 —— 导出的 dump 文本回 Mac 上 grep [一-鿿]。
+    func testHomeEn1170() throws {
+        let app = XCUIApplication(bundleIdentifier: "com.belliedmonkeytranslator")
+        app.terminate(); sleep(1)
+        app.activate(); sleep(5)
+        for _ in 0..<3 {   // 启动可能碰到的系统框（网络权限等）
+            allowSystemAlerts("home1170", timeout: 2)
+        }
+        dump(app, "home1170-first"); shot("home1170-first", full: true)
+        app.terminate(); sleep(1)
+        app.activate(); sleep(5)
+        allowSystemAlerts("home1170b", timeout: 2)
+        dump(app, "home1170-relaunch"); shot("home1170-relaunch", full: true)
+    }
+
+    // 2026-09-26：评分三步的前置探测 —— 手机 Safari 里扩展的现场状态：
+    // 有没有 FAB（#mt-fab）、能不能翻、学习开关在不在。先打开 example.com dump 一眼再定下一步。
+    func testSafariProbe1170() throws {
+        let ok = XCUIDevice.shared.system.open(URL(string: "https://example.com/")!)
+        note("safari open example.com → \(ok)")
+        sleep(7)
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        allowSystemAlerts("safari-probe", timeout: 3)
+        dump(safari, "safari-probe"); shot("safari-probe", full: true)
+        // 找 FAB：扩展的悬浮按钮是 #mt-fab，XCUITest 里多半是带 identifier 的 Other/Button
+        let fab = safari.descendants(matching: .any).matching(NSPredicate(format: "identifier == 'mt-fab' OR label CONTAINS '翻译' OR label CONTAINS 'Translate'")).allElementsBoundByIndex
+        note("fab candidates(\(fab.count)): " + fab.prefix(8).map { "\($0.elementType.rawValue):\($0.label)|\($0.identifier)" }.joined(separator: " ;; "))
+    }
+
+    // 2026-09-26：评分三步 ② —— 用 XCUITest 把复习组（5 张）做完，看收获时刻会不会向系统请求评分。
+    // 背景（feedback.js noteValueMoment）：mtValueCount 是 1.17.0 新键、无历史回填，手机今天才升 115，
+    // 所以今天只做 1 组必然 n=1/days=1，门槛（≥3 次、≥2 个本地日）不够 ⇒ 打星层**不该**弹。
+    // 本用例连做 2 组（group-more 把 inGroup 清零，n=2），明天再 1 组（n=3、跨 2 天）才会真弹。
+    // 判据分三层：界面（group-done 屏出现）· 打星层（今天预期【不】出现；出现即记录，不代点星星）·
+    // 遥测（回 Mac 用 SQL 读 review_session / rate_prompt）。
+    private func ratingSheetProbe(_ tag: String) {
+        sleep(4)   // requestReview 是异步的，留它一点时间
+        let sb = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let sbAlert = sb.alerts.firstMatch.exists ? sb.alerts.firstMatch.label : "(none)"
+        let appAlert = app1170.alerts.firstMatch.exists ? app1170.alerts.firstMatch.label : "(none)"
+        note("ratingsheet[\(tag)] springboard=\(sbAlert) app=\(appAlert)")
+        shot("ratingsheet-\(tag)", full: true)
+    }
+    private let app1170 = XCUIApplication(bundleIdentifier: "com.belliedmonkeytranslator")
+
+    // 复习屏上的按钮文字都走 i18n，系统语言英文 ⇒ 界面是英文；两语都试，稳。
+    private func reviewTap(_ preds: [String], _ tag: String, timeout: TimeInterval = 6) -> Bool {
+        if let el = waitAny(app1170, preds, timeout) {
+            if !el.isHittable { app1170.swipeUp(); usleep(500_000) }
+            guard el.isHittable else { note("review[\(tag)] 不可点: \(el.label)"); return false }
+            el.tap(); sleep(1)
+            return true
+        }
+        note("review[\(tag)] 没等到: " + preds.joined(separator: " / "))
+        return false
+    }
+
+    // 界面固定件（导航/评分键/已知按钮），点「选项」时排除 —— 选项标签是成句的译文。
+    private let reviewChrome: Set<String> = [
+        "Got it", "Hard", "Forgot", "Too easy", "记得", "有点难", "不记得", "太简单",
+        "Check", "检查", "Confirm choices", "确认选择",
+        "Show translation", "显示译文", "Show the text", "Play",
+        "Review", "Free practice", "Settings", "复习", "自由练习", "设置",
+        "One more group", "That is it for today", "再来一组", "今天就到这儿",
+        "Start review", "开始复习",
+        // App 首页登录卡（未登录时它就在复习入口上方，且标签长度 ≥6 会被当成选项）
+        "Continue with Apple", "Continue with Google", "Or sign in with email",
+        "通过 Apple 登录", "通过 Google 登录", "用 Apple 继续", "用 Google 继续",
+        // Listen 区入口 / 导航 / 技能页签 —— 上一轮就是它们把测试带进对话模式的
+        "Conversation · live interpreter", "对话 · 实时听译",
+        "Live Subtitles", "实时字幕", "Read", "Write", "听", "读", "写",
+        "‹ Back", "Cancel", "Done", "Close", "返回", "完成", "关闭",
+        "How review works", "复习怎么用", "See them in review", "去 App 里复习",
+    ]
+    // 前缀级排除（标签带动态尾巴，等值匹配不住）
+    private let reviewChromePrefixes: [String] = [
+        "Continue with", "通过 ", "Conversation ·", "对话 ·",
+        "Live Subtitles", "实时字幕", "System translation", "系统翻译",
+        // 卡片头部的「…」按钮（AX 标签 Source actions）及其菜单项 —— 09-26 那轮
+        // 它被当成选项点中，下一步点进了菜单里的 Delete saved，差点删卡
+        "Source actions", "Delete ", "删除",
+    ]
+
+    // 复习卡的锚点：「Progress n / 4」行。选项与评分键都只在它上下 ~600pt 内 ——
+    // 这是长页上区分 MCQ 选项和文档区按钮（Upload a document / Photo Library…）的唯一可靠办法。
+    private func cardRegionY() -> CGFloat? {
+        let p = ["label CONTAINS 'Progress'", "label CONTAINS '进度'"]
+        guard let el = waitAny(app1170, p, 0.5) else { return nil }
+        return el.frame.minY
+    }
+    private func inCardRegion(_ f: CGRect, _ py: CGFloat) -> Bool {
+        f.minY > py - 620 && f.minY < py + 120
+    }
+
+    // MCQ / 理解题：选项是 button.ex-option，点第一下就是作答+揭晓。按「不在固定件
+    // 名单里、够长、且在卡片区域内」找。**上限不能小**：App 是一张长页，
+    // 选项排在 Listen 区按钮之后，上次 40 的上限把它们整个截掉了。
+    // 含 CJK 的标签阈值放宽到 3：09-26 卡 3 的选项是「周五之前」「下周二之前」
+    // 这类 4–5 字短中文，`< 6` 把它们整个滤掉，扫描三轮全空。2 字以内的
+    // chrome（听/读/写）在 reviewChrome 名单里，不受影响。
+    private func looksLikeOptionLabel(_ lb: String) -> Bool {
+        let cjk = lb.unicodeScalars.contains { ($0.value >= 0x4E00 && $0.value <= 0x9FFF) || ($0.value >= 0x3400 && $0.value <= 0x4DBF) }
+        return lb.count >= (cjk ? 3 : 6)
+    }
+
+    private func tapReviewOption(_ gi: Int, _ step: Int) -> Bool {
+        // 选项可能折在视口外（isHittable=false 被跳过）：扫不到就上滑再扫，最多三轮
+        for round in 0..<3 {
+            guard let py = cardRegionY() else {
+                app1170.swipeUp(); usleep(500_000); continue
+            }
+            let btns = app1170.buttons
+            let n = min(btns.count, 200)
+            for i in 0..<n {
+                let b = btns.element(boundBy: i)
+                let lb = b.label
+                if !looksLikeOptionLabel(lb) { continue }
+                if reviewChrome.contains(lb) { continue }
+                if reviewChromePrefixes.contains(where: lb.hasPrefix) { continue }
+                guard b.isHittable && b.isEnabled else { continue }  // 已作答的选项被禁用，跳过
+                guard inCardRegion(b.frame, py) else { continue }    // 卡片区域外的按钮一律不是选项
+                note("review[g\(gi)] 点选项@\(step)#\(i)r\(round): \(lb.prefix(40))")
+                b.tap(); sleep(1)
+                return true
+            }
+            if round < 2 { app1170.swipeUp(); usleep(500_000) }
+        }
+        return false
+    }
+
+    // 评分键按可用性挑：答错后 cloze 规则会禁掉部分键（applyGradeGate），滚动两次兜底折叠。
+    private func tapReviewGrade(_ gi: Int) -> Bool {
+        // waitAny 的每一项是 NSPredicate 格式串 —— 传裸标签会直接崩（"Unable to parse the format string"）。
+        // 评分键里还有 <small class="when">（下次间隔），标签是「Got it10m」这种 ⇒ 只能 CONTAINS。
+        let grades = [["Got it", "记得"], ["Hard", "有点难"], ["Forgot", "不记得"]]
+        for labels in grades {
+            let preds = labels.map { "label CONTAINS '\($0)'" }
+            guard let el = waitAny(app1170, preds, 0.4) else { continue }
+            var scrolls = 0
+            while (!el.isHittable || !el.isEnabled) && scrolls < 2 {
+                app1170.swipeUp(); usleep(400_000); scrolls += 1
+            }
+            guard el.isHittable && el.isEnabled else { continue }
+            note("review[g\(gi)] 评分: \(el.label)")
+            el.tap(); sleep(1)
+            return true
+        }
+        return false
+    }
+
+    // 保险：上一轮留下的「删除 N 张卡」确认框只许 Cancel —— OK 不可逆。
+    // 误点过的删除菜单会在树上留这个框，每步开头先扫一遍。
+    @discardableResult
+    private func cancelAnyDeleteDialog() -> Bool {
+        let del = app1170.staticTexts.matching(NSPredicate(format: "label CONTAINS 'cannot be undone' OR label CONTAINS '无法撤销'"))
+        guard del.firstMatch.exists else { return false }
+        let c = app1170.buttons.matching(NSPredicate(format: "label == 'Cancel' OR label == '取消'")).firstMatch
+        if c.exists {
+            note("发现删除确认框 → 点 Cancel（绝不点 OK）")
+            c.tap(); sleep(1)
+            return true
+        }
+        note("删除确认框存在但没找到 Cancel —— 停下等人处理")
+        return false
+    }
+
+    // 做完一组：循环【选项/检查 → 显示译文 → 评分】，直到「这一组做完了」；24 步（多技能卡会重考）。
+    private func reviewOneGroup(_ gi: Int) -> Bool {
+        // 09-26 实测真文案：en "Done for now"（learn_alldone_title），zh「今天的复习做完了」
+        // —— 原来写的 'done for today' / '这一组做完了' 在界面上根本不存在，组已做完
+        // 测试却停在 stuck。
+        let done = ["label CONTAINS 'Done for now'", "label CONTAINS '做完了'"]
+        let reveal = ["label == 'Show translation'", "label == '显示译文'", "label == 'Show the text'"]
+        let check = ["label == 'Confirm choices'", "label == '确认选择'", "label == 'Check'", "label == '检查'"]
+        // 80 步：一张卡不止一问（Read/Write 多技能重考），09-26 那轮 24 步在最后一张卡
+        // 评分完的一步耗尽 —— 上限提到能覆盖整组剩余队列为止。
+        for step in 0..<80 {
+            _ = cancelAnyDeleteDialog()
+            if waitAny(app1170, done, 1) != nil {
+                note("review[g\(gi)] group-done @step\(step)")
+                dump(app1170, "review-g\(gi)-done"); shot("review-g\(gi)-done", full: true)
+                ratingSheetProbe("g\(gi)")
+                return true
+            }
+            if reviewTap(check, "g\(gi)-check", timeout: 0.5) { continue }  // 盲听选词：确认后揭晓
+            if reviewTap(reveal, "g\(gi)-reveal", timeout: 0.5) { continue }
+            // 评分先于选项：答完但还没评分时，选项都已被禁用，先点选项只会空耗一步
+            if tapReviewGrade(gi) { continue }
+            if tapReviewOption(gi, step) { continue }                        // 选择题：点选项即揭晓
+            sleep(1)  // 卡片切换动画里树一直在变，上一轮 dump 就是被快照竞态打断的
+            dump(app1170, "review-g\(gi)-stuck@\(step)"); shot("review-g\(gi)-stuck@\(step)", full: true)
+            return false
+        }
+        note("review[g\(gi)] 80 步没到 group-done")
+        dump(app1170, "review-g\(gi)-overflow"); shot("review-g\(gi)-overflow", full: true)
+        return false
+    }
+
+    // 今日卡用尽（Due 0 + 日限 15 张打满）时，把设置里的「每天新卡上限」调大再回来。
+    // 09-26 三轮试跑把日额度用完了，而收获时刻只在做完一组（5 张）的组完成屏记
+    // （review.js showGroupDone → noteValueMoment），今天还是 0 ⇒ 凑不出「跨两天 ≥3 次」。
+    // XCUITest 在 WKWebView 里 typeText 只能追加（密码框那次的教训）—— 这里**利用**追加：
+    // 现值 15，敲一个 0 变 "150"，settings.js 的 change 处理器夹 ≤200 ⇒ 落 150，正够两组。
+    // 判据：敲完回读 f.value。
+    @discardableResult
+    private func raiseDailyCapIfDry() -> Bool {
+        let dry = ["label CONTAINS 'Nothing to review today'", "label CONTAINS '今天没有要复习的'"]
+        guard waitAny(app1170, dry, 1) != nil else { return false }
+        note("今日卡已用尽 → 调大每日上限")
+        guard reviewTap(["label == 'Settings'", "label == '设置'"], "cap-settings") else { return false }
+        sleep(2)
+        let anchors = ["label CONTAINS 'Max new cards per day'", "label CONTAINS '每天最多学几张新卡'"]
+        // rev1170f 的教训：AX 树里有 ≠ 在屏内。锚点在屏外时 f.tap() 空转、typeText 落不进
+        // 键盘 ⇒ 回读恒 15。先滚到锚点可点，再找它下方 120pt 内**可点**的输入框。
+        guard let a = waitAny(app1170, anchors, 4) else {
+            note("cap 没找到锚点标签"); dump(app1170, "cap-noanchor"); shot("cap-noanchor", full: true)
+            return false
+        }
+        var anchor = a
+        for _ in 0..<8 where !anchor.isHittable {
+            app1170.swipeUp(); sleep(1)
+            if let n = waitAny(app1170, anchors, 2) { anchor = n } else { break }
+        }
+        note("cap 锚点 hittable=\(anchor.isHittable) y=\(Int(anchor.frame.minY))")
+        var target: XCUIElement? = nil
+        let fields = app1170.textFields
+        for i in 0..<min(fields.count, 60) {
+            let el = fields.element(boundBy: i)
+            let y = el.frame.minY
+            if y > anchor.frame.minY && y < anchor.frame.minY + 120 && el.isHittable { target = el; break }
+        }
+        guard let f = target else {
+            note("cap 没找到 daily 输入框（屏内可点的）"); dump(app1170, "cap-nofield"); shot("cap-nofield", full: true)
+            return false
+        }
+        note("cap 输入框 y=\(Int(f.frame.minY)) value=\(f.value ?? "?")")
+        f.tap(); sleep(2)
+        f.typeText("0")   // 15 → "150"
+        // 让 change 落地得先 blur：label 包着 input，点 label 反而聚焦 ⇒ 点页面顶部空白
+        app1170.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+        sleep(1)
+        let after = (f.value as? String) ?? "?"
+        note("cap daily 回读: \(after)")
+        if after == "15" {
+            // 追加没落进键盘（rev1170f 实测过一次）—— 兜底：数字键盘直接敲 0
+            note("typeText 没落地 → 试 app.keys[\"0\"]")
+            f.tap(); sleep(1)
+            app1170.keys["0"].tap(); sleep(1)
+            app1170.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+            sleep(1)
+            note("cap daily 回读(兜底): \(f.value ?? "?")")
+        }
+        dump(app1170, "cap-after"); shot("cap-after", full: true)
+        // 关闭钮是 settings-back（app_review_back = "← Back"/"← 返回"），不是 Done/Close
+        _ = reviewTap(["label == '← Back'", "label == '← 返回'"], "cap-close")
+        sleep(1)
+        return true
+    }
+
+    func testReviewGroup1170() throws {
+        app1170.terminate(); sleep(1)
+        app1170.activate(); sleep(5)
+        for _ in 0..<2 { allowSystemAlerts("rev1170", timeout: 2) }
+        dump(app1170, "rev1170-home"); shot("rev1170-home", full: true)
+        // 入口：首页「Start review」（app_review_start）或系统翻译区那行「See them in review →」
+        let entry = ["label CONTAINS 'Start review'", "label CONTAINS '开始复习'", "label CONTAINS 'See them in review'", "label CONTAINS '去 App 里复习'"]
+        guard reviewTap(entry, "rev1170-entry") else { XCTFail("首页找不到复习入口"); return }
+        sleep(2); dump(app1170, "rev1170-review-open"); shot("rev1170-review-open", full: true)
+        // 卡用尽就调大上限；关设置后可能已回复习屏，也可能要再点一次入口 —— 两种都接受
+        if raiseDailyCapIfDry() {
+            if !reviewTap(entry, "rev1170-entry2", timeout: 4) {
+                note("rev1170 调完上限后入口不在了（可能已在复习屏）")
+            }
+            sleep(2); dump(app1170, "rev1170-review-reopen")
+        }
+        // 第一组
+        guard reviewOneGroup(1) else { XCTFail("第一组没做完"); return }
+        // 第二组：「One more group」
+        if reviewTap(["label == 'One more group'", "label == '再来一组'"], "rev1170-more") {
+            sleep(2)
+            guard reviewOneGroup(2) else { XCTFail("第二组没做完"); return }
+            _ = reviewTap(["label == 'That is it for today'", "label == '今天就到这儿'"], "rev1170-stop")
+        } else {
+            note("rev1170 没找到再来一组（可能今日卡不够两组）")
+        }
+        sleep(2); dump(app1170, "rev1170-final"); shot("rev1170-final", full: true)
+    }
 }
