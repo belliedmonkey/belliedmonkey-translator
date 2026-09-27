@@ -57,7 +57,7 @@ describe('回归 2026-09 · F12 pdf.js 垫片不能靠 eval；阅读器打开失
     ok(typeof ctx.ReadableStream.prototype[Symbol.asyncIterator] === 'function', 'ReadableStream 异步迭代没补上');
   });
   test('doc-view 的 gotoPage 把 unitsForPage 的异常接住并显示 doc_open_failed', () => {
-    const src = read('extension/learn/doc-view.js');
+    const src = read('src/shared/doc-view.js');
     const fn = src.slice(src.indexOf('async function gotoPage'), src.indexOf('async function unitsForPage'));
     ok(/try\s*\{[\s\S]*unitsForPage\(n, s, epoch\)[\s\S]*catch/.test(fn) && /doc_open_failed/.test(fn), 'gotoPage 没接住 unitsForPage 的异常（Safari 上 pdf.js 抛错时页面空白、无提示）');
   });

@@ -42,6 +42,8 @@
   <script src="doc-reader.js"></script>
   <script src="doc-store.js"></script>
   <script src="pdfjs-loader.js"></script>
+  <!-- PR7c：learn/doc-view.js 产物改由 src/shared/doc-view-host.js bundle（同名覆盖），
+       挂回 window.DocView（docs-page.js 的裸全局读取照常）。 -->
   <script src="doc-view.js"></script>
   <script src="docs-page.js"></script>
 </body>

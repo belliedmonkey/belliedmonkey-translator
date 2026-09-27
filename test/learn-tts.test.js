@@ -932,7 +932,7 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
     ok(/还没配语音引擎/.test(TTS.reason('not_configured', t)), '');
     ok(/暂时读不出来/.test(TTS.reason('这不是任何一个码', t)), '兜底也要是人话');
     // 消费者不许再自己长一张表出来。判据是 fallback 文案 —— 它是表的指纹。
-    for (const rel of ['src/pages/options.jsx', 'extension/learn/review.js',
+    for (const rel of ['src/pages/options.jsx', 'src/shared/review.js',
                        'src/app/settings-view.jsx']) {
       ok(!/tts_no_voice_und/.test(codeOf(rel)),
         rel + ' 又自己写了一份 tts reason 表 —— 上一次的代价是 options 缺 '

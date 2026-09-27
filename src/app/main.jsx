@@ -34,6 +34,9 @@ import '../shared/engine-fields-host.js'; // PR7b 副作用：挂 window.EngineF
 import '../shared/grant-host.jsx';    // PR7b 副作用：挂 window.LearnGrant 纯逻辑 ABI ——
                                       // shell-model / settings-model / docs-model / quick-model
                                       // 与 verify-listen / verify-quick 的裸全局调用靠它。
+import { boot as bootReview } from '../shared/review.js'; // PR7c：复习面（boot()，体内与扩展
+                                      // 同一份字节）。只在下面 #quick 分流的 else 分支调 ——
+                                      // quick 模式整段不执行（原 MAIN_ONLY 的组合根接棒）。
 
 // ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
 // PageI18n（extension/learn/i18n.js，原样共享字节）服务还没翻转的孤岛
@@ -99,6 +102,7 @@ window.AppDriving = drivingModel;
 if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) {
   AppQuick.boot();
 } else {
+  bootReview();   // 先于 bootShell：旧包里 review.js 段也在 APP_ENTRY 之前执行（时序就近保留）
   bootShell();
 }
 if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) {

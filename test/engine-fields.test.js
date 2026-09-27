@@ -297,7 +297,7 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
 // 设置页写的 `provider` —— 而 App 设置页没有那一档控件，用户既看不见也清不掉。
 //
 // ⚠️ **不能靠「把 notes* 从 driving.js 删掉」来修**（2026-09-04 差点这么做）：
-// `extension/learn/review.js` 是与扩展**同一份字节**打进 App 包的，它自己那份读取
+// `src/shared/review.js` 与扩展是**同一份源**（PR7c 起 ESM 单源、各自编译进包），它自己那份读取
 // 清单里也有 notes*，也调 resolveConfig。只删一处的结果是同一个 App 里播客模式回落
 // 到基础组、复习页仍用 notes 组 —— 从「一个静默赢」变成「两处解出两个不同引擎」。
 // 而 review.js 那份不能动：扩展那边 notes 组是真实可配的。

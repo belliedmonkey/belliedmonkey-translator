@@ -120,7 +120,13 @@ const MODULES = [
   // PR7a 起不在 MODULES：'extension/learn/dialog.js' 收编为 src/shared/dialog.jsx
   // （组件）+ dialog-host.jsx（入口壳，main.jsx import —— 挂回 window.LearnDialog ABI，
   // review.js / listen-model / shell-model / docs-model 的裸全局调用照常）。
-  'extension/learn/review.js',           // the review surface — SAME bytes as the extension
+  // extension/learn/review.js（复习面，加载即开学习库并发心跳）PR7c 起不在 MODULES：
+  // 收编为 src/shared/review.js（boot()，体内与扩展同一份字节），扩展经 review-host.js
+  // 同名覆盖产物在原标签位调 boot；App 由 main.jsx 在 #quick 分流的 else 分支调。
+  // 求值时机从「APP_ENTRY 之前的拼接段」移到「组合根分叉处」：裸全局依赖（PageI18n /
+  // PageSettings / LearnStore / MTTelemetry / LearnDialog…）都是先于 APP_ENTRY 的拼接
+  // 段或 *-host 壳挂的 ABI，不受影响；window.LearnReview 在 boot() 内同步挂，
+  // shell-model 全部 call-time 读取（if (window.LearnReview)）。
   'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
   // PR6d 起不在 MODULES：'app/quick.js' 收编为 src/app/quick-model.js（状态）+ quick-view.jsx
   // （画布），随 APP_ENTRY 的 esbuild bundle 拼进尾部；window.AppQuick 由 main.jsx 挂。
@@ -161,7 +167,9 @@ const MODULES = [
   'extension/learn/doc-reader.js',       // DocReader —— PDF / docx / 文本 / 图片读取（IO）
   'extension/learn/doc-store.js',        // DocStore —— 独立 IDB mt-docs
   'extension/learn/pdfjs-loader.js',     // PdfJsLoader —— 按宿主装 pdf.js（App 走 blob，见下方 __MT_PDFJS）
-  'extension/learn/doc-view.js',         // DocView —— 文档阅读器渲染器（与扩展页同一份字节）
+  // extension/learn/doc-view.js（DocView 渲染器）PR7c 起不在 MODULES：收编为
+  // src/shared/doc-view.js（哑视图，deps 注入），docs-model 直接 import；扩展页
+  // docs.html 的标签经 doc-view-host.js 同名覆盖产物挂回 window.DocView。
   // app/docs.js（AppDocs）PR6d 起不在 MODULES：收编为 src/app/docs-model.js（编排/读设置/
   // 接线，逐字）+ src/app/docs-view.jsx（页骨架），随 src/app/main.jsx 拼 Script.js 尾部 ——
   // 所有对它的引用都是 call-time（shell-model 的异步流），求值时机后移无影响。
@@ -185,10 +193,12 @@ const APP_ENTRY = 'src/app/main.jsx';
 
 // 加载即自启动的模块（不是「定义一个对象等人来调」）。快速翻译的面板页是同一份包以 #quick 加载的第二个
 // WKWebView（learning-design §9.9），它不该打开学习库、不该发心跳 —— 学习库按账号分库，第二个打开者会握着
-// 过期的库名。main.jsx 自己在入口处分流；这里的模块与扩展**同字节**，不能为 App 的一个模式去改它们，
-// 所以由包来包一层：字节不动，只是 #quick 下整段不执行。漏列的由 test:quick 抓（它数 indexedDB.open 与
-// MTTelemetry.init 的次数），2026-09-19 第一次跑就抓到了 review.js。
-const MAIN_ONLY = new Set(['extension/learn/review.js']);
+// 过期的库名。main.jsx 自己在入口处分流；曾以「加载即自启动」进包的共享段（review.js）由包来包一层：
+// 字节不动，只是 #quick 下整段不执行。漏列的由 test:quick 抓（它数 indexedDB.open 与
+// MTTelemetry.init 的次数），2026-09-19 第一次跑就抓到了 review.js。PR7c 起 review 收编
+// src/shared/review.js（boot()），门移到组合根（main.jsx 的 #quick 分流 else 分支）——
+// 集合空置，机制与 PANEL_HASH_TEST 保留给未来同类段。
+const MAIN_ONLY = new Set([]);
 const PANEL_HASH_TEST = "/^#quick\\b/.test(String(location.hash || ''))";
 
 function buildAppBundle(outDir, log, opts) {

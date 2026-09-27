@@ -15,7 +15,7 @@ const { describe, test, ok, eq } = require('./harness');
 const ROOT = path.join(__dirname, '..');
 const SHELL = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
 const JSSX = fs.readFileSync(path.join(ROOT, 'src/app/AppShell.jsx'), 'utf8');
-const REVIEW = fs.readFileSync(path.join(ROOT, 'extension/learn/review.js'), 'utf8');
+const REVIEW = fs.readFileSync(path.join(ROOT, 'src/shared/review.js'), 'utf8');
 const LOCALES = path.join(ROOT, 'extension', '_locales');
 
 function section(text, from, to) {

@@ -71,7 +71,7 @@ describe('SETTINGS_SCHEMA', () => {
 
   // ── 手抄清单 ⊆ schema 的对账门（本文件存在的理由）───────────────────────
   const HAND_LISTS = [
-    ['extension/learn/review.js', 'READ_KEYS', 'review'],
+    ['src/shared/review.js', 'READ_KEYS', 'review'],
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
     // PR6c：app/listen.js 拆分后，listen-model 的 READ_KEYS 是 listen 面的手抄清单。
     ['src/app/listen-model.js', 'READ_KEYS', 'listen'],
