@@ -1051,6 +1051,65 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
       AppSettings.paintStatic(); await AppSettings.paint(null, () => {}); return 'ok'; })()`, '#app-settings');
+    // ─── 未登录复习入口（#386，2026-09-27）：走**真实启动路径**的判据 ────────────────────
+    // 0 卡 ⇒ 不出现；未登录 + 有卡 ⇒ 出现且副行带数字；点它 ⇒ 进复习页 + 「← 返回」回来路。
+    //
+    // ⚠️ **不许用 window.show('ios') 触发这条判据。** 它只做 setExtState → paintExtBanner,
+    // 即**只重画横幅**，不调 paintCounts —— 而入口是在 paintCounts 里画的。
+    // 第一版判据就是这么写错的：它报了 4 条红、看着像产品缺陷，其实是判据从没触发过那段代码。
+    // 所以这里一律 reload 页面，走 init → show(session) → paintCounts 那条真实的路。
+    //
+    // 为什么值得单独占一段：macOS 真机上这个入口**没有出现**，而本机有个库里有 64 张卡 ——
+    // 光看截图分不清「当前激活库为空」（正确）与「判据坏了」（缺陷）。判据写在 DOM 上才分得清。
+    if (o.syncEnabled) {
+      const reload = async (ms) => { await cdp.send('Page.reload', {}, sessionId); await new Promise((r) => setTimeout(r, ms || 1700)); };
+      const ev2 = async (expr) => JSON.parse((await cdp.send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
+      const STATE = `(async () => JSON.stringify({
+        exists: !!document.getElementById('signed-out-review'),
+        hidden: document.getElementById('signed-out-review') ? document.getElementById('signed-out-review').hidden : null,
+        btn: document.getElementById('signed-out-review-btn') ? document.getElementById('signed-out-review-btn').textContent.trim() : null,
+        desc: document.getElementById('signed-out-review-desc') ? document.getElementById('signed-out-review-desc').textContent.trim() : null,
+        total: (await LearnStore.stats()).total,
+        authed: !!(await LearnAuth.current()) }))()`;
+      const clearCards = `(async () => { const all = await LearnStore.allItems(); if (all.length) await LearnStore.deleteItems(all.map((i) => i.id), Date.now()); return 'ok'; })()`;
+
+      // ① 0 张卡 ⇒ 不出现
+      await cdp.send('Runtime.evaluate', { expression: clearCards, awaitPromise: true }, sessionId);
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ onboardSeen: 1 }, r))`, awaitPromise: true }, sessionId);
+      await reload();
+      const a = await ev2(STATE);
+      need(a.exists, '#signed-out-review 根本不在 DOM 里 —— AppShell 的标记没进包');
+      need(a.hidden === true, '本机一张卡都没有，未登录复习入口却出现了（那是个必然空着的入口）');
+
+      // ② 播 1 张卡 ⇒ 入口出现（reload = 真实启动路径）
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { const now = Date.now(), day = 86400e3;
+        await LearnStore.putItem({ id: 'sorev1', text: 'A probe sentence for the signed-out entry.', tr: '未登录入口的探针句。',
+          lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 9 * day, lastSeenAt: now - day,
+          seenCount: 3, salience: 0.3, skills: { listen: now, speak: now, write: now },
+          sched: { s: 1.5, d: 5, lastReviewAt: now - 2 * day, dueAt: now - 3600e3, reps: 2, lapses: 0 } });
+        return 'ok'; })()`, awaitPromise: true }, sessionId);
+      await reload();
+      const b = await ev2(STATE);
+      need(b.hidden === false, '未登录 + 本机有卡，入口没出现（#386 的正向判据）：' + JSON.stringify(b));
+      need(b.btn && b.btn.length > 0, '入口按钮没有文案（i18n 键没进包？）：' + JSON.stringify(b));
+      need(b.desc && /\d/.test(b.desc), '入口副行没带数字：' + JSON.stringify(b.desc));
+
+      // ③ 点它 ⇒ 进复习页；「← 返回」⇒ 回**未登录**首页，不是登录态首页
+      const c = await ev2(`(async () => { const $ = (id) => document.getElementById(id);
+        $('signed-out-review-btn').click(); await new Promise((r) => setTimeout(r, 400));
+        const inReview = !$('review-view').hidden;
+        $('review-back').click(); await new Promise((r) => setTimeout(r, 400));
+        return JSON.stringify({ inReview, backSo: !$('signed-out').hidden, backSi: !$('signed-in').hidden, reviewHidden: $('review-view').hidden }); })()`);
+      need(c.inReview, '点未登录复习入口没有进复习页');
+      need(c.reviewHidden && c.backSo && !c.backSi, '「← 返回」的来路分流不对（应当回未登录首页）：' + JSON.stringify(c));
+
+      // ④ 清卡 + reload ⇒ 入口再次消失
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { await LearnStore.deleteItems(['sorev1'], Date.now()); return 'ok'; })()`, awaitPromise: true }, sessionId);
+      await reload();
+      const d = await ev2(STATE);
+      need(d.hidden === true, '删掉卡之后入口还在 —— 可见性没跟着计数走');
+    }
+
     // ─── 「译成」（2026-09-19）：选了落盘、选回「跟随界面语言」是**删键**、读取走同一个出口 ─────
     // App 此前没有目标语言设置，文档翻译默默译成界面语言。补上之后最要紧的是老用户行为不变：
     // 存储里没有这个键 ⇒ AppTargetLang.resolve 给出的仍是界面语言。

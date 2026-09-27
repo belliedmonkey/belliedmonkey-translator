@@ -337,6 +337,13 @@ export function bootShell() {
       // 登录路径经 paintCounts 会再画一次，未登录路径此前没有 —— 于是点过「我已打开」
       // 的人每次重开 App 都再看一遍横幅（2026-09-11 全回归 F 面，模拟器实测）。
       paintExtBanner(extState);
+      // 未登录也要跑一次 paintCounts —— 它算的两件事**都不是登录态的函数**：
+      //   ① `browserSideOk`（「材料来源通没通」）：只在 paintCounts 里被赋值 ⇒ 未登录时恒为假，
+      //      于是**本机明明有卡**（卡只可能是扩展写的）的人仍被告知「扩展还没启用」。
+      //   ② 本机有几张卡 —— 未登录复习入口（#386，2026-09-27）的可见性判据就是它。
+      //      它此前挂在只有已登录才跑的路径上，于是在**唯一该出现**的场景里永不出现。
+      //      2026-09-27 真 Chrome 实测：total=1、未登录、`#signed-out-review` 仍是 hidden。
+      await paintCounts();
     }
     if (session) {
       $('who').textContent = LearnAuth.displayName(session);
