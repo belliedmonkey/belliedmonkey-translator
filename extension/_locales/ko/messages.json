@@ -3666,6 +3666,12 @@
   "ob_web_only": {
     "message": "웹페이지 번역만 쓰고 싶어요"
   },
+  "ob_intent_listen": {
+    "message": "주로 듣기 · 실시간 자막"
+  },
+  "ob_intent_both": {
+    "message": "읽기와 듣기 둘 다"
+  },
   "qs_base": {
     "message": "엔드포인트 URL(전체)"
   },

@@ -249,6 +249,11 @@ function AppShell() {
           <a id="ob-webonly" className="ob-exit" href="#" hidden>
             <span id="ob-webonly-text"></span><span className="ob-exit-arrow" aria-hidden="true">→</span>
           </a>
+          {/* 意图分叉（2026-09-28，#486/#487，用户评审通过）：把上面那条出口扩成三分。
+               选「听」的人不需要浏览器扩展 ⇒ 跳过 ext 屏、首页也不挂扩展横幅
+               （interaction-spec「迎新页意图分叉」）。 */}
+          <button id="ob-intent-listen" type="button" className="ob-exit" hidden></button>
+          <button id="ob-intent-both" type="button" className="ob-exit" hidden></button>
         </div>
         {/* 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
              #ob-setup 就是那一屏的前进键（docs/interaction-spec.md）——

@@ -3666,6 +3666,12 @@
   "ob_web_only": {
     "message": "Ich will nur die Webseiten-Übersetzung"
   },
+  "ob_intent_listen": {
+    "message": "Vor allem hören · Live-Untertitel"
+  },
+  "ob_intent_both": {
+    "message": "Beides — lesen und hören"
+  },
   "qs_base": {
     "message": "Endpunkt-URL (vollständig)"
   },
