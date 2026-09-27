@@ -50,13 +50,14 @@ describe('content-ui — PR8a 懒加载边界（结构门）', () => {
     ok(t.includes('getElementById(ID.menu)'), 'closeMenu 的 DOM 兜底丢了 —— import 竞态窗口里要能关');
   });
 
-  // PR8b 判据的守门一半（报告一半在 PR 描述）：overlay 保留命令式的三个理由之一是
-  // 它没有 Trusted Types 面 —— 这里把「没有」钉成不变量。匹配的是**写入汇**
-  // （赋值 / insertAdjacentHTML / document.write），不是字面量：content-podcast.js
-  // 合法地**读** documentElement.innerHTML 扫字幕地址，那不是注入面
-  // （负向断言被自己的注释绊倒的教训 → 门要咬行为不咬词）。
-  test('字幕三站点注入面零 HTML 写入汇 —— overlay 不迁 React 的前提，回潮即红', () => {
-    for (const f of ['subtitle-adapter.js', 'content-youtube.js', 'content-podcast.js', 'content-twitter.js']) {
+  // PR8b/PR8c 判据的守门一半（报告一半在各自 PR 描述与 domain-design §10.6 补记）：
+  // 注入面保留命令式的前提之一是零 Trusted Types 写入汇 —— 这里把「没有」钉成
+  // 不变量。匹配的是**写入汇**（赋值 / insertAdjacentHTML / document.write），
+  // 不是字面量：content-podcast.js 合法地**读** documentElement.innerHTML 扫字幕
+  // 地址，那不是注入面（负向断言被自己的注释绊倒的教训 → 门要咬行为不咬词）。
+  test('content 注入面零 HTML 写入汇 —— 注入 UI 维持命令式的前提，回潮即红', () => {
+    const files = ['subtitle-adapter.js', 'content-youtube.js', 'content-podcast.js', 'content-twitter.js', 'content-webpage.js', 'dom-processor.js'];
+    for (const f of files) {
       const t = fs.readFileSync(path.join(ROOT, 'extension', 'content', f), 'utf8');
       eq(/\b(?:innerHTML|outerHTML)\s*\+?=[^=]/.test(t), false, `${f} 出现 HTML 写入汇（赋值）—— 注入面 TT 隐患回潮`);
       eq(/insertAdjacentHTML|document\.write\s*\(/.test(t), false, `${f} 出现 HTML 写入汇（insertAdjacentHTML/document.write）—— 注入面 TT 隐患回潮`);
