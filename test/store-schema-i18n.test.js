@@ -70,14 +70,13 @@ describe('SETTINGS_SCHEMA', () => {
   });
 
   // ── 手抄清单 ⊆ schema 的对账门（本文件存在的理由）───────────────────────
+  // PR9 之后 src/ 的五份清单（review/listen/quick/settings/driving）全部删掉、
+  // 消费端改走 keysFor —— 见下面的「不许回潮」断言。唯一剩下的是扩展侧
+  // docs-page.js：IIFE 独立加载（不在任何 bundle 清单里，src/store/schema.js 是
+  // ESM 进不了它的页面），它的 KEYS 迁走之日就是这条对账门退役之时 —— 在那之前
+  // 它仍咬着「扩展 docs 页读的键 schema 要认账」。
   const HAND_LISTS = [
-    ['src/shared/review.js', 'READ_KEYS', 'review'],
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
-    // PR6c：app/listen.js 拆分后，listen-model 的 READ_KEYS 是 listen 面的手抄清单。
-    ['src/app/listen-model.js', 'READ_KEYS', 'listen'],
-    ['src/app/quick-model.js', 'READ_KEYS', 'quick'],
-    // PR6b：app/settings.js 拆分后，settings-model 的 KEYS 是设置面的第五份手抄清单。
-    ['src/app/settings-model.js', 'KEYS', 'app'],
   ];
   for (const [file, varName, surface] of HAND_LISTS) {
     test(`${file} ${varName} ⊆ keysFor('${surface}')`, () => {
@@ -88,6 +87,27 @@ describe('SETTINGS_SCHEMA', () => {
       deepEq(missing, [], `${surface} 面的 schema surfaces 漏了这些键 —— 补 schema，别抄清单`);
     });
   }
+
+  // 五面消费端的「不许回潮」：清单删了，名字和数组字面量都不许回来。
+  // 只看代码行：头注释里讲「清单 → schema」的对应关系是文档，不是复活。
+  test('review/listen/quick/settings/driving 经 keysFor 取键（手抄清单已删，不许回潮）', () => {
+    const CASES = [
+      ['src/shared/review.js', 'READ_KEYS', 'review'],
+      ['src/app/listen-model.js', 'READ_KEYS', 'listen'],
+      ['src/app/quick-model.js', 'READ_KEYS', 'quick'],
+      ['src/app/settings-model.js', 'KEYS', 'app'],
+      ['src/app/driving-model.js', 'SETTINGS_KEYS', 'app'],
+    ];
+    for (const [file, name, surface] of CASES) {
+      const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
+      const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      ok(src.includes(`keysFor('${surface}')`),
+        `${file} 不再用 keysFor('${surface}') 取键 —— 手抄清单又要长回来了`);
+      ok(!new RegExp('const ' + name + '\\s*=\\s*\\[').test(code),
+        `${name} 数组字面量在 ${file} 里复活了 —— 它已被 schema 收编（docs-page.js 那份是` +
+        '扩展侧 IIFE，另当别论）');
+    }
+  });
 
   // popup 是第一个删掉手抄清单的页面（PR3）：它的键读取直接走 schema.keysFor('popup')。
   // 这条正向断言防的是反向退化 —— 有人在 JSX 里手抄一份键表回来。

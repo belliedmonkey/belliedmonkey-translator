@@ -18,10 +18,15 @@
 // PR7b 的 grant.js 同一先例）—— getter 运行时读 window.MT_BACKEND、absent 归 null，
 // 真值分支与 typeof 守卫逐字等价（:1124 的注释也提到 MT_BACKEND，门只扫代码不扫注释）。
 import Registry from '../lib/registry.js';
+import PageText from '../lib/i18n.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 export function boot() {
 (async () => {
   const $ = (id) => document.getElementById(id);
-  const t = (k, fb) => PageI18n.t(k, fb);
+  // PR9：t 翻 PageText（本文件的 t 与 React 树同一 locale 源）。PageI18n 在本文件
+  // 只剩一处职责：给扩展侧 review.html 的 44 处静态 data-i18n 标记与 document.title
+  // 涂装（下面的双喂点）—— App 侧那些选择器空转，无害。
+  const t = (k, fb) => PageText.t(k, fb);
 
   let deck = [];
   let idx = 0;
@@ -174,17 +179,9 @@ export function boot() {
   // Explicit keys, never get(null): the same bucket holds the unbounded `tr:`
   // cache and the `lq:` outbox, and reading the whole thing here would drag
   // both along. (docs/learning-design.md §7.) 读的键 = 订阅的键（WATCHED）。
-  const READ_KEYS = [
-    'uiLang', 'learnEnabled', 'learnDailyNew', 'learnRules',
-    'ttsMode', 'ttsAutoPlay', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-    // §9.2 — the translator's engine config, plus the dedicated notes-engine
-    // override group (notesProvider set ⇒ notes group wins; resolveConfig).
-    'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-    'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    // §9.4 — the transcription engine group. NEVER follows the translation or
-    // notes group: where a recording goes is an explicit choice.
-    'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-  ];
+  // PR9：READ_KEYS 手抄清单已删，键表 = schema 的 review 面 —— 双宿主同一份字节
+  // 读同一张表（宽出的 ytTextColor 是字幕颜色，本页 onChanged 过滤时多认一个键，无害）。
+  const READ_KEYS = SETTINGS_SCHEMA.keysFor('review');
 
   // Returns {ok, data}: a FAILED read is not an empty profile (page-settings 的契约，
   // §8.4.1）—— 启动时拿它当默认值是没办法，但热刷新时绝不能用「读失败」覆盖上一份。
@@ -1393,6 +1390,9 @@ export function boot() {
     if (!r || !r.ok) return;
     applySettings(r.data);
     if ((settings.uiLang || 'auto') !== prevLang) {
+      // 双喂（PR9 翻转后）：PageText 管 React 树与本文件的 t；PageI18n 只剩扩展侧
+      // 静态标记与 document.title —— applyI18n 读它自己的内部 locale，setUiLang 必须在前。
+      PageText.setUiLang(settings.uiLang);
       PageI18n.setUiLang(settings.uiLang);
       PageI18n.applyI18n('learn_title_full');
     }
@@ -1456,6 +1456,9 @@ export function boot() {
 
   const boot = await loadSettings();
   applySettings(boot && boot.data);
+  // 双喂（PR9 翻转后，同 reloadSettings）：PageText 管 React 树与本文件的 t，
+  // PageI18n 涂扩展侧 44 处静态标记与 document.title。
+  PageText.setUiLang(settings.uiLang);
   PageI18n.setUiLang(settings.uiLang);
   PageI18n.applyI18n('learn_title_full');
   watchSettings();

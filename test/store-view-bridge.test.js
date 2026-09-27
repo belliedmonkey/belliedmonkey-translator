@@ -122,6 +122,45 @@ describe('native-bridge', () => {
     eq(n, 1);
   });
 
+  test('订阅前到达的调用不丢：订阅时补发一次，之后实时派发（PR9 槽语义）', () => {
+    // Swift didFinish 的 window.show 早于 bootShell 的 onNative 订阅 —— 旧世界
+    // dispatch 给空集就是永久丢失。槽语义兜住这个窗口。
+    const { NB, w } = bootBridge();
+    NB.installBridgeGlobals();
+    const seen = [];
+    w.show('mac', true, true);
+    const off = NB.onNative('show', (...a) => seen.push(a));
+    deepEq(seen, [['mac', true, true]], '订阅前的事件在订阅时补发恰一次');
+    w.show('ios', false, false);
+    deepEq(seen[1], ['ios', false, false], '之后的调用照常实时派发');
+    eq(seen.length, 2, '不重复补发');
+    off();
+  });
+
+  test('订阅前多次调用取最新值：show 是状态不是队列', () => {
+    const { NB, w } = bootBridge();
+    NB.installBridgeGlobals();
+    const seen = [];
+    w.show('mac', false, false);   // 初次「还不知道状态」
+    w.show('mac', true, true);     // Swift 回报真实状态 —— 只该送这份
+    NB.onNative('show', (...a) => seen.push(a));
+    deepEq(seen, [['mac', true, true]]);
+  });
+
+  test('补发与 pending 回放互不叠加：pending 走同一 dispatch 管道', () => {
+    const { NB, w } = bootBridge({ __mtApplePending: { ok: true } });
+    const seen = [];
+    // 订阅发生在 install 之前 —— pending 回放时已有订阅者，走实时派发，不入槽。
+    NB.onNative('apple-result', (r) => seen.push(['live', r]));
+    NB.installBridgeGlobals();
+    deepEq(seen, [['live', { ok: true }]]);
+    // 另一个事件在订阅前到达 → 入槽 → 订阅时补发
+    w.__mtWebAuthResult({ ok: false });
+    NB.onNative('webauth-result', (r) => seen.push(['replayed', r]));
+    deepEq(seen[1], ['replayed', { ok: false }]);
+    eq(seen.length, 2);
+  });
+
   test('onNative 退订后不再收到；非函数入参给回安全 no-op', () => {
     const { NB, w } = bootBridge();
     NB.installBridgeGlobals();

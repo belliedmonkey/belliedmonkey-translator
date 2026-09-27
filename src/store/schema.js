@@ -5,6 +5,9 @@
 // review.js READ_KEYS, docs-page.js KEYS, plus further copies in quick.js,
 // quick-settings.js, handoff.js and listen.js. Eight lists that drift silently —
 // the same failure class as the provider registry before `providers.gen.js`.
+// PR9 收编完成：src/ 侧的清单已全部删掉（消费端一律 keysFor(面)，回潮由
+// store-schema-i18n 的不许回潮门咬住）；extension/learn/docs-page.js 的 KEYS 是
+// 仅存的一份 —— 扩展页 IIFE 独立加载，ESM 的 schema 进不了它，对账门留到它迁走。
 //
 // `default` is the EFFECTIVE value when the key is absent from storage — the same
 // value the consumer-side `s.x || fallback` falls back to today. useSetting()
@@ -73,12 +76,17 @@ const SETTINGS_SCHEMA = (() => {
     sttApiKey:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard', 'app'] },
     sttModel:        { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
     // ── notes provider (listen translation target) ────────────────────────
-    // listen.js and quick.js read the whole engine group + notes override group
-    // through LearnNotes.resolveConfig — four keys each, all read-only there.
-    notesProvider:   { default: '',    surfaces: ['options', 'review', 'listen', 'quick'] },
-    notesApiKey:     { default: '',    surfaces: ['options', 'review', 'listen', 'quick'] },
-    notesBaseUrl:    { default: '',    surfaces: ['options', 'review', 'listen', 'quick'] },
-    notesModel:      { default: '',    surfaces: ['options', 'review', 'listen', 'quick'] },
+    // The listen / quick / driving / docs surfaces read the whole engine group +
+    // notes override group through LearnNotes.resolveConfig — four keys each,
+    // all read-only there (engine-fields.test.js pins "App never writes them").
+    // PR9: these were missing from 'docs' and 'app' until the hand-copied lists
+    // retired — a keysFor()-based read would have silently dropped the group and
+    // resolved the notes engine from the base group instead (the exact incident
+    // shape engine-fields.test.js exists to prevent).
+    notesProvider:   { default: '',    surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'app'] },
+    notesApiKey:     { default: '',    surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'app'] },
+    notesBaseUrl:    { default: '',    surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'app'] },
+    notesModel:      { default: '',    surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'app'] },
     // ── advanced request params ───────────────────────────────────────────
     // All five default to '' = "not set". Consumer fallbacks (20 s timeout,
     // concurrency 5, budget-based maxTokens) live at the call sites that apply
@@ -115,8 +123,12 @@ const SETTINGS_SCHEMA = (() => {
     subtitleCapture: { default: true,  surfaces: ['listen', 'app'] },
     subtitleVideoLang: { default: 'en', surfaces: ['listen', 'app'] },
     subtitleFontScale: { default: '',  surfaces: ['listen'] },
-    // ── drive mode（App 设置页的驾驶一节；driving.js 自己的 SETTINGS_KEYS 不在
-    // schema 审计内，PR6d 迁移 driving 时再收编）─────────────────────────────
+    // ── drive mode（App 设置页的驾驶一节）────────────────────────────────
+    // PR9：driving-model 的 SETTINGS_KEYS 已收编 —— 播客模式自己读的键全部在此
+    // 登记，消费端经 keysFor('app') 取（「不在 schema 审计内」的旧豁免废除）。
+    // 播放顺序由播放界面上的按钮写、读取侧按 LearnDriving.MODES 校验 —— 设置页
+    // 只管要花钱的 drivePlayNotes 与预载视野 drivePreloadDays。
+    drivePlaybackMode: { default: 'shuffle', surfaces: ['app'], note: "= LearnDriving.DEFAULT_MODE; player-controlled, validated against LearnDriving.MODES at read" },
     drivePlayNotes:   { default: true, surfaces: ['app'], note: "read as `!== false` — default IS the effective value" },
     drivePreloadDays: { default: 0,    surfaces: ['app'], note: '0 = today only; horizon in days' },
   };

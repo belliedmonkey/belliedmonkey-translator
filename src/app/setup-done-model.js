@@ -20,9 +20,11 @@
 // 是同一条：领免费额度此前一次自检都不跑（`plan.tests` 只用来数槽位），却直接说
 // 「免费额度已配好」—— 那句话没有证据。现在两条路都跑同一份自检。
 'use strict';
+import PageText from '../lib/i18n.js';
 const $ = (id) => document.getElementById(id);
-// vm 单测的沙箱里没有 PageI18n（App 包才有）—— typeof 守卫让测试走兜底中文。
-const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);
+// PR9：t 翻 PageText。loadSrc 的 esbuild 会把 PageText（连同 react）打进 vm 沙箱
+// 产物 —— test/setup-done.test.js 就是这条链的回归。
+const t = (k, fb) => PageText.t(k, fb);
 
 // 人是从哪被推过来的。只影响**下一步那一个按钮**，不影响回执本身。
 // 默认 'settings' —— 自己走进设置页的人没有「刚才那件事」可回。

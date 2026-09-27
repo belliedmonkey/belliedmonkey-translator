@@ -25,13 +25,16 @@
 // the falsy the `typeof MT_BACKEND !== 'undefined'` guards branched on. MTTelemetry
 // has no underscore — it stays a bare global that resolves to window, as before.
 //
-// NOT done in this PR (each declared in the PR description): window.show keeps
-// its verbatim signature instead of moving to installBridgeGlobals (PR9 unifies
-// the bridge surface), and view hand-off still writes section .hidden directly
-// instead of going through the view-store (PR6b-d migrate the islands one at a
-// time).
+// The bridge surface moved in PR9: the four window-level ABI names (show /
+// __mtAppleResult / __mtWebAuthResult / __mtDeepLink) are hung by
+// native-bridge.installBridgeGlobals() (main.jsx, before the #quick fork) and
+// this file SUBSCRIBES via NativeBridge.onNative — the hand-rolled pending
+// replays (webauth/apple) are gone, and the deeplink one PR6a had dropped on
+// the floor is back via the bridge's hold-and-replay (native-bridge.js header).
 
 import Registry from '../lib/registry.js';
+import NativeBridge from '../lib/native-bridge.js';
+import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 
 export function bootShell() {
@@ -43,13 +46,14 @@ export function bootShell() {
   let currentSession = null;
 
   // Same i18n as every other surface (interaction-spec 「界面语言」: no hardcoded
-  // copy, anywhere). The bundle has carried MT_I18N_MESSAGES + PageI18n from the
-  // start — the shim's getUILanguage hands it the system locale — so the app shell
-  // localizes exactly like the extension pages do. The Chinese here is the FALLBACK
-  // argument only, per the standing convention: a missing key must never blank the
-  // UI, and the literal beside the key is what the translator's source of truth
-  // (_locales/zh_CN) says.
-  const t = (k, fb) => PageI18n.t(k, fb);
+  // copy, anywhere). The bundle has carried MT_I18N_MESSAGES from the start — the
+  // shim's getUILanguage hands it the system locale — so the app shell localizes
+  // exactly like the extension pages do. The Chinese here is the FALLBACK argument
+  // only, per the standing convention: a missing key must never blank the UI, and
+  // the literal beside the key is what the translator's source of truth
+  // (_locales/zh_CN) says. (PR9: PageI18n.t → PageText.t — src/ has left the
+  // shared-byte i18n; test/src-boundaries.test.js pins the whitelist.)
+  const t = (k, fb) => PageText.t(k, fb);
 
   const say = (msg, isErr) => {
     const el = $('status');
@@ -511,8 +515,10 @@ export function bootShell() {
 
   function setExtState(next) { extState = next; paintExtBanner(extState); }
 
-  // ViewController 在页面加载完时调它。签名跟转换器模板一致，别改 —— 改了 Swift 侧就对不上。
-  window.show = function (platform, isEnabled, useSettingsDeepLink) {
+  // ViewController 在页面加载完时调它（Swift 调 window.show；window 名由
+  // native-bridge.installBridgeGlobals 统一挂载，这里订阅 show 事件）。参数跟
+  // 转换器模板一致，别改 —— 改了 Swift 侧就对不上。
+  NativeBridge.onNative('show', function (platform, isEnabled, useSettingsDeepLink) {
     if (platform === 'mac') {
       setExtState({
         known: typeof isEnabled === 'boolean',
@@ -527,7 +533,7 @@ export function bootShell() {
       // iOS：查不到状态，也没有深链。
       setExtState({ known: false, enabled: false, canOpenPrefs: false });
     }
-  };
+  });
 
   function openSafariPrefs() {
     try {
@@ -1140,7 +1146,9 @@ export function bootShell() {
 
   // 系统鉴权会话回来的 code。与扩展那条路唯一的不同是票不经内容脚本 ——
   // 它直接从原生进到这一页，而这一页本来就持有 verifier。
-  window.__mtWebAuthResult = async (r) => {
+  // 冷启动时结果可能先到：pending 槽由 install 回放、早到的调用由桥的
+  // hold-and-replay 补发（native-bridge.js 头注释），这里不再自兜。
+  NativeBridge.onNative('webauth-result', async (r) => {
     const g = $('btn-google'); if (g) g.disabled = false;
     if (!r || r.error) {
       if (r && r.error === 'canceled') { say(''); return; }
@@ -1160,16 +1168,10 @@ export function bootShell() {
       // 第二次开始永远 pkce_missing。
       LearnAuth.prepareProviderSignIn().catch(() => {});
     }
-  };
-  try {
-    if (window.__mtWebAuthPending) {
-      const p = window.__mtWebAuthPending; window.__mtWebAuthPending = null;
-      window.__mtWebAuthResult(p);
-    }
-  } catch (_) {}
+  });
 
-  // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），所以两边都兜。
-  window.__mtAppleResult = async (r) => {
+  // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），兜法同上。
+  NativeBridge.onNative('apple-result', async (r) => {
     $('btn-apple').disabled = false;
     if (!r || r.error) {
       // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。
@@ -1185,13 +1187,7 @@ export function bootShell() {
       // 等于这个 App 承认自己不知道自己是干什么的。
       await doSync();
     } catch (err) { say(humanError(err), true); }
-  };
-  try {
-    if (window.__mtApplePending) {
-      const p = window.__mtApplePending; window.__mtApplePending = null;
-      window.__mtAppleResult(p);
-    }
-  } catch (_) {}
+  });
 
   $('email').addEventListener('input', refreshPwEntry);
 
@@ -1631,16 +1627,17 @@ export function bootShell() {
     // 上面那一遍是按**系统**语言画的（存储还没读回来）。补这一次重画，否则首页
     // 永远不跟随「界面语言」—— 而设置页会跟随（它经 review.js 调过 setUiLang），
     // 于是同一个 App 里一半英文一半中文。非中文用户的第一屏就是这块。
-    PageI18n.applyStoredUiLang(paintStatic);
+    // （PR9：从 PageI18n 翻到 PageText —— React 视图靠 setUiLang 的通知重画，
+    // paintStatic 这一遍命令式重涂照旧。）
+    PageText.applyStoredUiLang(paintStatic);
     // 改语言当场生效的那一半。设置页是写入方，它只重画自己那一节（settings.js 的
     // paintStatic），而首页这一层的文字是这里画的 —— 走 onChanged 总线接，不在
-    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。PageText 的跟随不在这一处做
-    // —— main.jsx 顶部把两个 i18n 状态耦合在一起（喂 PageI18n 即喂 PageText），
-    // 这里再喂一遍就成了第二处要维护的接线。
+    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。setUiLang 的通知会把已迁的
+    // React 视图整树重画；main.jsx 顶部的 PageI18n 耦合段已随 PR9 退役。
     try {
       chrome.storage.onChanged.addListener((ch) => {
         if (!ch || !ch.uiLang) return;
-        PageI18n.setUiLang(ch.uiLang.newValue || 'auto');
+        PageText.setUiLang(ch.uiLang.newValue || 'auto');
         paintStatic();
       });
     } catch (_) {}
@@ -1711,7 +1708,9 @@ export function bootShell() {
     // 「先在浏览器里采集一些」，反过来指责一个已经采集了一周的人。
     //
     // Swift 侧（app/native/open-url-bridge.swift）两头都兜：页面没就绪时它写
-    // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。所以这里两样都读。
+    // window.__mtDeepLinkPending，就绪之后调 window.__mtDeepLink。pending 的回放
+    // 与早到调用的补发都在桥里（native-bridge.js）—— 这里只订阅 deeplink 事件。
+    // （PR6a 迁移时把旧 app.js 的 pending 回放半边弄丢了，PR9 随桥收编补回。）
     try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.wire({ close: () => closeSettings() }); } catch (_) {}
     try { if (typeof AppSysBanner !== 'undefined') AppSysBanner.wire({ openReview: () => { const r = $('review'); if (r) r.click(); } }); } catch (_) {}
 
@@ -1729,7 +1728,7 @@ export function bootShell() {
           hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
       } catch (_) { return null; }
     }
-    window.__mtDeepLink = (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); };
+    NativeBridge.onNative('deeplink', (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); });
 
     // 「从哪来」的那一行。只有真的被推过来时才出现 —— 自己走进设置页的人不需要它。
     // 配好之后它不必自己变：回执块就在同一屏上，那才是「你可以回去了」的载体。

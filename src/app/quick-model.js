@@ -28,6 +28,7 @@
 // 同一份文档、同一个选择器，仍不另抄一份清单。
 
 import PageText from '../lib/i18n.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 
 const t = (k, fb) => PageText.t(k, fb);
 const CHANNEL = 'mtQuick';
@@ -39,8 +40,8 @@ const PROTOCOL = {
 const SLOW_MS = 5000;
 const SRC_MAX_PX = 168;      // 与 style.css 的 #qk-src max-height 同值。固定像素，不按窗口高度算：窗口高度是内容决定的
 const SHOT_ASKED = 'quickShotAsked';   // 录屏权限：我们自己那句话说过没有（说过之后直接是「等重开」那一态）
-const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-  'uiLang', 'targetLang', 'learnEnabled', 'quickCapture', 'grantTail'];
+// PR9：READ_KEYS 手抄清单已删，键表 = schema 的 quick 面（含 notes×4，resolveConfig 用）。
+const READ_KEYS = SETTINGS_SCHEMA.keysFor('quick');
 const $ = (id) => document.getElementById(id);
 const C = () => window.HandoffCore;
 

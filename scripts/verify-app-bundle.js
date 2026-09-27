@@ -1230,7 +1230,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       const view = `JSON.stringify({ onboard: !document.getElementById('onboard').hidden, step: document.body.dataset.obStep || '',
         card: !document.getElementById('ob-resume').hidden, title: document.getElementById('ob-resume-title').textContent,
         banner: !document.getElementById('ext-banner').hidden })`;
-      const reset = (extra) => `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set(${extra || '{}'}, r)))`;
+      // engineChosen 也要清（PR9）：「继续设置」卡判「这台设备配好没有」走
+      // EngineState.needsSetup，它读 engineChosen。旧手抄 KEYS 恰好漏了这个键，
+      // 卡永远看不见它；schema 收编后 readObSettings 读全了，前面块里领额度 /
+      // 一键卡写下的 engineChosen:1 会让这张卡（正确地）判定「已配好」而收起 ——
+      // 夹具要的既是「全新设备」，就得把判据的每个输入都清掉。
+      const reset = (extra) => `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'engineChosen', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set(${extra || '{}'}, r)))`;
       // 原生侧在 didFinish 里调 show('ios')：不照样复刻，横幅在无头环境里本来就不出，
       //「卡在场时横幅让路」那条断言会空转（第一版证伪时摘掉让路逻辑它照样绿）。
       const injR = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
