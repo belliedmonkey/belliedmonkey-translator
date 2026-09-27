@@ -21,9 +21,11 @@
 //   track(name, props)             遥测（可缺省）
 //   engineTriple(settings) → 'provider|base|model'
 //   confirm(msg) → Promise<bool>
-'use strict';
-
-var DocView = (() => {
+// ── PR7c 翻转（§9.4 单源）────────────────────────────────────────────────────
+// 本体（哑视图 IIFE）原样未动。旧文件尾部的 window.DocView 挂载与 module.exports
+// 兼容行退役：扩展页经 doc-view-host.js（同名覆盖产物）挂回 window.DocView，App 的
+// docs-model 直接 import 本文件。ESM 天然严格模式，旧 'use strict' 指令随之去掉。
+const DocView = (() => {
   const TICK_MS = 350;
   const STYLE = `
     .docv-wrap { display:flex; flex-direction:column; gap:12px; }
@@ -382,5 +384,4 @@ var DocView = (() => {
   return { mount };
 })();
 
-if (typeof window !== 'undefined') window.DocView = DocView;
-if (typeof module !== 'undefined' && module.exports) module.exports = DocView;
+export default DocView;

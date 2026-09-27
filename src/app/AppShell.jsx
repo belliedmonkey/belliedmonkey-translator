@@ -334,8 +334,8 @@ function AppShell() {
            与 #app-drive 的分工相同。 PR6c 起整段由 listen-view.jsx 渲染（含本注释所述全部）。 */}
       <ListenView />
 
-      {/* 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 extension/learn/doc-view.js
-           （与扩展页同一份字节），编排在 src/app/docs-model.js。文件选择是原生 <input type=file>：
+      {/* 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 src/shared/doc-view.js
+           （与扩展页同一份源，PR7c 起 ESM 单源），编排在 src/app/docs-model.js。文件选择是原生 <input type=file>：
            iOS 由 WKWebView 弹系统选择器；macOS 要宿主实现 runOpenPanel（D5），否则是死按钮。
            PR6d 起骨架由 docs-view.jsx 渲染（back/title 进 useT；#app-docs-root 是孤岛容器）。 */}
       <DocsView />

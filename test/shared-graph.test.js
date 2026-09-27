@@ -18,12 +18,14 @@ describe('§9.4 对账门', () => {
     const r = checkSharedParity({ appEntry: APP_ENTRY, entries: ENTRIES });
     ok(r.app.length >= 3, '共享集合只有 ' + r.app.length + ' 个 —— 门在近似空转: ' + r.app.join(', '));
     // dialog-host 不在 App 入口图里 ⇒ window.LearnDialog 裸全局 ABI 断（main.jsx 副作用 import）。
-    // PR7b 后 App 入口图必须含全部四组共享件：纯逻辑四文件、两个入口壳（main.jsx
-    // 副作用 import 挂回纯逻辑 ABI）、三个渲染视图（settings-view import 进图）。
+    // PR7c 后 App 入口图必须含全部共享件：纯逻辑层、main.jsx 副作用 import 的入口壳、
+    // 渲染视图（settings-view import 进图）、review（main.jsx 调 boot）/ doc-view
+    // （docs-model import）。
     for (const must of ['src/shared/dialog.jsx', 'src/shared/dialog-host.jsx', 'src/shared/dep-line.js',
       'src/shared/engine-fields.js', 'src/shared/engine-fields-host.js', 'src/shared/quick-setup.js',
       'src/shared/quick-setup-view.jsx', 'src/shared/grant.js', 'src/shared/grant-host.jsx',
-      'src/shared/grant-view.jsx', 'src/shared/sources-view.js', 'src/shared/sources-view-view.jsx']) {
+      'src/shared/grant-view.jsx', 'src/shared/sources-view.js', 'src/shared/sources-view-view.jsx',
+      'src/shared/review.js', 'src/shared/doc-view.js']) {
       ok(r.app.includes(must), 'App 侧缺 ' + must + ': ' + r.app.join(', '));
     }
   });

@@ -2227,8 +2227,19 @@ describe('app bundle — 面板页不启动主壳（MAIN_ONLY）', () => {
     const a = src.indexOf("'app/quick-core.js'"), b = src.indexOf("'app/quick.js'");
     ok(a > 0 && b > a, '顺序：quick-core → quick');
   });
-  test('review.js 被列为 MAIN_ONLY —— 它与扩展同字节、加载即开学习库并发心跳', () => {
-    ok(/const MAIN_ONLY = new Set\(\[[^\]]*'extension\/learn\/review\.js'/.test(src));
+  test('review.js 不在 MODULES —— PR7c 起收编 src/shared/review.js（boot()），门移到组合根', () => {
+    ok(!src.includes("'extension/learn/review.js'"),
+      'review.js 又以 IIFE 模块身份回流 MODULES —— 组合根分流之外的第二份实现');
+    ok(/const MAIN_ONLY = new Set\(\[\]\)/.test(src), 'MAIN_ONLY 应空置（机制保留给未来同类段）');
+  });
+  test('main.jsx 把 review 的 boot 锁在 #quick 分流的 else 分支里 —— quick 模式不启动复习面', () => {
+    const entry = fs.readFileSync(path.join(ROOT, 'src/app/main.jsx'), 'utf8');
+    ok(/import \{ boot as bootReview \} from '\.\.\/shared\/review\.js';/.test(entry),
+      'bootReview 没从组合根 import');
+    const calls = entry.match(/bootReview\(\)/g) || [];
+    eq(calls.length, 1, 'bootReview() 应恰好调一次');
+    ok(entry.indexOf('bootReview()') > entry.indexOf('AppQuick.boot();'),
+      'bootReview() 不在 #quick 分流的 else 分支 —— quick 模式会误启动复习面（开学习库 + 心跳）');
   });
   test('包出来的守卫是一段能执行的正则（转义没有在模板里丢一层）', () => {
     const m = src.match(/const PANEL_HASH_TEST = (".*");/); ok(m, '找不到 PANEL_HASH_TEST');

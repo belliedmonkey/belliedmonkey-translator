@@ -1,7 +1,7 @@
 // src/app/docs-model.js — 宿主 App 的「文档翻译」（learning-design §9.7 / domain-design §2.5）。
 // （原 app/docs.js，PR6d 起 ESM 化收进 React bundle。）
 //
-// 渲染器是 extension/learn/doc-view.js（与扩展页同一份字节）；这里只做扩展页 docs-page.js
+// 渲染器是 src/shared/doc-view.js（与扩展页同一份源，PR7c 起 ESM 单源）；这里只做扩展页 docs-page.js
 // 在 App 里的对应物：视图进出、首页两份入口、文件选择、读设置、接翻译/语料/存储。
 // 与 listen.js 同一套纪律：视图切换归 shell-model 的分工（这里只动 #app-docs 与来处两个
 // section），设置只读不播种，语料写本机库（LearnAuth.bindCorpus 已在 shell-model 里先做）。
@@ -12,6 +12,8 @@
 // pdf.js 在 App 里走 blob 路（build/app-bundle.js 把 vendor 文本编进 Script.js 的
 // window.__MT_PDFJS），PdfJsLoader 按宿主自己分派 —— 这里不关心。
 import Registry from '../lib/registry.js';
+import DocView from '../shared/doc-view.js'; // PR7c：渲染器收编 src/shared/doc-view.js（哑视图，
+                                             // deps 注入同前）—— 裸全局 DocView 换组合根 import。
 
 const $ = (id) => document.getElementById(id);
 const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);

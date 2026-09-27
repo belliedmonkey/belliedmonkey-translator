@@ -261,6 +261,9 @@
   <script src="app-link.js"></script>
   <script src="telemetry.js"></script>
   <script src="dialog.js"></script>
+  <!-- PR7c：learn/review.js 产物改由 src/shared/review-host.js bundle（同名覆盖），
+       在本标签位调 boot() —— 旧 IIFE「加载即执行」的时序不变。App 里本页 body 内联进
+       主 HTML 的 REVIEW 槽（script 标签剥离），boot 由 main.jsx 在 #quick 分支外调。 -->
   <script src="review.js"></script>
 </body>
 </html>

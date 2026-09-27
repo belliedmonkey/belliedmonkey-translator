@@ -137,7 +137,7 @@ const FAKE_BRIDGES = `(() => {
     const built = fs.statSync(path.join(SRC, 'Main.html')).mtimeMs;
     const srcs = ['app/index.html', 'src/app/listen-model.js', 'src/app/listen-view.jsx', 'app/listen-core.js',
       'src/app/main.jsx', 'src/app/AppShell.jsx', 'src/app/shell-model.js', 'src/app/settings-model.js', 'src/app/settings-view.jsx', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
-      'src/shared/sources-view.js', 'src/shared/sources-view-view.jsx', 'extension/learn/review.js'];
+      'src/shared/sources-view.js', 'src/shared/sources-view-view.jsx', 'src/shared/review.js'];
     const stale = srcs.filter((f) => {
       const q = path.join(ROOT, f);
       return fs.existsSync(q) && fs.statSync(q).mtimeMs > built;

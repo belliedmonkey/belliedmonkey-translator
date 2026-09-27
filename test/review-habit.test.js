@@ -4,13 +4,14 @@
 // 于是复习面记的是**来过的日子**，不是刷了多少张。这个文件只测那两个纯函数：
 // 连续天数（差一天就全错）与最近 7 天的窗口。**界面与存储由 test:learn 那边守。**
 //
-// review.js 是一个自执行的页面模块（要 DOM、要 chrome.storage），不能整份 require。
+// review.js 是一个页面模块（要 DOM、要 chrome.storage；PR7c 起收编 src/shared/ 下的
+// ESM boot()），不能整份 require。
 // 这里把那两个函数按源码原样取出来跑 —— 与 dist 比对的那条断言保证它们没有分叉。
 const fs = require('fs');
 const path = require('path');
 const { describe, test, eq, deepEq, ok } = require('./harness');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', 'extension/learn/review.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(__dirname, '..', 'src/shared/review.js'), 'utf8');
 
 function extract(name) {
   const at = SRC.indexOf('function ' + name + '(');

@@ -6,6 +6,19 @@
 // source at the timestamp, since YouTube refuses to embed from an extension origin
 // (see renderMedia).
 
+// ── PR7c 翻转（§9.4 单源）────────────────────────────────────────────────────
+// 上面整段 IIFE 与尾部那行 MTTelemetry.init 原样包进 boot()：体内逐字未动、缩进保持
+// 原列 —— 一批文本锚点门（review-habit / growth-386 / handoff / error-copy /
+// store-schema-i18n）逐行 grep 这份源码，重排缩进会把整个 diff 变成全文重写。
+// 两个宿主在各自的组合根调用：扩展由 review-host.js（同名覆盖 learn/review.js 产物）
+// 在原 <script> 标签位调 boot()，时序与旧「加载即执行」一致；App 由 main.jsx 在
+// #quick 分流的 else 分支调（quick 模式整段不执行 —— 原 MAIN_ONLY 机制的接棒，
+// test:quick 数 indexedDB.open / MTTelemetry.init 的行为门不变）。
+// 体内唯一例外：5 处裸 MT_BACKEND 守卫改读 Registry.backend()（src-boundaries 门禁，
+// PR7b 的 grant.js 同一先例）—— getter 运行时读 window.MT_BACKEND、absent 归 null，
+// 真值分支与 typeof 守卫逐字等价（:1124 的注释也提到 MT_BACKEND，门只扫代码不扫注释）。
+import Registry from '../lib/registry.js';
+export function boot() {
 (async () => {
   const $ = (id) => document.getElementById(id);
   const t = (k, fb) => PageI18n.t(k, fb);
@@ -254,7 +267,7 @@
         await LearnStore.deleteSourcesIfOrphan(doomed.sourceIds);
         // Account intent must reach the server promptly (§7.4); then rebuild —
         // the card on screen may no longer exist.
-        if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+        if (typeof LearnSync !== 'undefined' && Registry.backend()?.enabled) {
           LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
         }
         await refreshCounts();
@@ -281,7 +294,7 @@
         if ((base.block || []).indexOf(host) < 0) {
           const next = LearnRules.withUpdate(base, { block: (base.block || []).concat([host]) });
           await new Promise((r) => chrome.storage.local.set({ learnRules: next }, r));
-          if (typeof LearnSync !== 'undefined' && typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+          if (typeof LearnSync !== 'undefined' && Registry.backend()?.enabled) {
             LearnSync.autoSync(Date.now(), { force: true }).catch(() => {});
           }
         }
@@ -1137,7 +1150,7 @@
     // （2026-09-06 报障：宿主 App 的复习页头长出了「在 App 里继续复习 →」）。
     // 宿主真值只有一个：AppLink.inApp()。
     if (AppLink.inApp()) { btn.hidden = true; return; }
-    if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) { btn.hidden = true; return; }
+    if (!Registry.backend()?.enabled) { btn.hidden = true; return; }
     const s = await LearnAuth.current().catch(() => null);
     // 未登录不给：没有 id 可带，而 App 那边此刻也拉不到任何东西 ——
     // 给一个按钮把人送去一个必然空着的界面，是把失败推迟到下一屏。
@@ -1175,7 +1188,7 @@
   function renderSyncStatus(ev) {
     const line = $('sync-line');
     if (!line) return;
-    if (typeof MT_BACKEND === 'undefined' || !MT_BACKEND.enabled) { line.hidden = true; return; }
+    if (!Registry.backend()?.enabled) { line.hidden = true; return; }
     line.hidden = false;
     switch (ev.state) {
       case 'running':
@@ -1736,7 +1749,7 @@
     });
     // 初始态：还没跑同步之前，用上一次成功时间铺底；无记录且已登录则等首跑覆盖。
     (async () => {
-      if (typeof MT_BACKEND !== 'undefined' && MT_BACKEND.enabled) {
+      if (Registry.backend()?.enabled) {
         const lastOk = await LearnStore.getMeta(LearnSync.LAST_OK, 0).catch(() => 0);
         const session = await LearnAuth.current().catch(() => null);
         // Storage-read failure ≠ signed out (§8.4.1): the session may be fine
@@ -1776,3 +1789,4 @@
 
 // 用量事件：扩展页打开即 flush + 当日心跳（docs/telemetry-design.md §4）。
 try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.init({ flushNow: true }); } catch (_) {}
+}

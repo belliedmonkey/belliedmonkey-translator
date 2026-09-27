@@ -33,4 +33,12 @@ module.exports = { ENTRIES: [
   // bundle（grant 的 render 不再是公共 ABI）。App 侧 main.jsx import 同两个壳。
   { entry: 'src/shared/engine-fields-host.js', out: 'learn/engine-fields.js' },
   { entry: 'src/shared/grant-host.jsx', out: 'learn/grant.js' },
+  // PR7c「同名产物覆盖」×2：learn/review.js（review.html:264）与 learn/doc-view.js
+  // （docs.html:45）的 <script> 标签一个不改，产物改由 *-host 壳 bundle —— review
+  // 壳在原标签位调 boot()（加载即执行的时序不变），doc-view 壳挂回 window.DocView。
+  // 纯逻辑源在 src/shared/{review,doc-view}.js；App 侧不走这两个壳（main.jsx 在
+  // #quick 分流的 else 分支调 boot，docs-model 直接 import DocView）—— 壳也因此不住
+  // src/shared/（§9.4 对账门按目录集合对两宿主，单侧组合根放 src/pages/ 与 popup 同族）。
+  { entry: 'src/pages/review-host.js', out: 'learn/review.js' },
+  { entry: 'src/pages/doc-view-host.js', out: 'learn/doc-view.js' },
 ] };

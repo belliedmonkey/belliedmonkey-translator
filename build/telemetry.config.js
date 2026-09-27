@@ -183,7 +183,7 @@ const SEAMS = {
   translate_ok: [
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
-    ...SHARED('extension/learn/doc-view.js', { match: "kind: 'doc'" }),
+    ...SHARED('src/shared/doc-view.js', { match: "kind: 'doc'" }),
     { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
     // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
     { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
@@ -193,7 +193,7 @@ const SEAMS = {
   translate_fail: [
     { host: 'ext', file: 'extension/content/content-webpage.js' },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
-    ...SHARED('extension/learn/doc-view.js'),
+    ...SHARED('src/shared/doc-view.js'),
     { host: 'app', file: 'src/app/listen-model.js' },
     { host: 'app', file: 'app/handoff.js' },
   ],
@@ -206,15 +206,15 @@ const SEAMS = {
     { host: 'app', file: 'src/app/docs-model.js' },
     { host: 'app', file: 'src/app/listen-model.js' },
   ],
-  doc_open: SHARED('extension/learn/doc-view.js'),
-  review_session: SHARED('extension/learn/review.js')
+  doc_open: SHARED('src/shared/doc-view.js'),
+  review_session: SHARED('src/shared/review.js')
     // §3.10：少带一个取值不会让任何门禁自己红 —— 事件照发、表照样合法，只是那一列
     // 永远是空的。所以两个新取值各钉一条（同 onboarding_done 的 dwell）。
     .concat([
-      { host: 'ext', file: 'extension/learn/review.js', match: "sessOpened()" },
-      { host: 'app', file: 'extension/learn/review.js', match: "sessOpened()" },
-      { host: 'ext', file: 'extension/learn/review.js', match: "'nothing_due'" },
-      { host: 'app', file: 'extension/learn/review.js', match: "'nothing_due'" },
+      { host: 'ext', file: 'src/shared/review.js', match: "sessOpened()" },
+      { host: 'app', file: 'src/shared/review.js', match: "sessOpened()" },
+      { host: 'ext', file: 'src/shared/review.js', match: "'nothing_due'" },
+      { host: 'app', file: 'src/shared/review.js', match: "'nothing_due'" },
     ]),
   // PR7b：claim 逻辑与发送点（grant.js:96 track）一起进了 src/shared/grant.js（纯逻辑
   // 层，两宿主同一次编译）。file 指源码，门禁对源码核 track 字面量 —— 同 onboarding_done 先例。

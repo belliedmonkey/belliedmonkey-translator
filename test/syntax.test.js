@@ -42,7 +42,9 @@ describe('出货的 JS 都解析得了', () => {
     // 点名几个**由 HTML 加载、不进 vm harness** 的，它们正是这道门禁的理由。
     // （onboard.js、options.js、app.js 已迁 src/ —— vm.Script 解析不了 JSX 与 ESM，
     // 本门禁也不扫 src/；那边的解析保证来自 build.js 的 esbuild 门 + ui-bundle 冒烟。）
-    for (const must of ['extension/learn/review.js',
+    // （review.js PR7c 起收编 src/shared/review.js 随 esbuild 进包，解析由构建门管；
+    // 这里改点 docs-page.js —— 仍是 HTML 加载的旧式页面逻辑。）
+    for (const must of ['extension/learn/docs-page.js',
       'extension/content/content-main.js']) {
       ok(rel.includes(must), `没扫到 ${must}`);
     }

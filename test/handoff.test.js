@@ -92,7 +92,7 @@ describe('AppHandoff.ingest — 先写库后删文件；关着就丢弃并清空
 // 「未知 kind 静默落进默认分支才是坑」。去掉注释再找，免得一句注释冒充分支。
 describe('锚点 k:handoff —— 三个读者各有显式分支', () => {
   const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
-  for (const f of ['extension/learn/review.js', 'src/shared/sources-view.js', 'src/app/driving-model.js']) {
+  for (const f of ['src/shared/review.js', 'src/shared/sources-view.js', 'src/app/driving-model.js']) {
     test(f, () => ok(/handoff/.test(strip(fs.readFileSync(path.join(ROOT, f), 'utf8'))), f + ' 里没有对 handoff 的显式处理'));
   }
   test('来源管理：handoff 来源不进「按站点」分组', () => {
