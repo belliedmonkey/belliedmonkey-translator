@@ -39,8 +39,8 @@ const TARGETS = {
 };
 const LIMIT = 200;
 const GAP_MS = 3000;
-const TIERS = [10, 50, 100, 200];
-const tierOf = (r) => (r == null ? '200+' : `前${TIERS.find((t) => r <= t)}`);
+// 分档（10/50/100/200）与中位数只有一处实现 —— growth-digest.js 用同一份。
+const { tierOf, medianRank: median } = require('./lib/rank-tiers');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -65,13 +65,6 @@ function history() {
     .map((f) => ({ f, d: JSON.parse(fs.readFileSync(path.join(SNAPDIR, f), 'utf8')) }));
 }
 const key = (t, c, term) => `${t}|${c}|${term}`;
-function median(xs) {
-  // 200 名外按 201 参与排序，这样「一半时候没排上」的中位数会诚实地落在 200+。
-  const v = xs.map((x) => (x == null ? 201 : x)).sort((a, b) => a - b);
-  if (!v.length) return undefined;
-  const m = v[Math.floor((v.length - 1) / 2)];
-  return m > LIMIT ? null : m;
-}
 
 (async () => {
   const argv = process.argv.slice(2);

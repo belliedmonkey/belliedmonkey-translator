@@ -10,7 +10,8 @@
 **读数口径**：结果指标是**各地区来自 App Store 搜索的曝光**（`node scripts/asc.js sources`）与**各国首次下载**
 （`node scripts/asc.js installs`；即 `1F`/`1T`/`F1`，**不含更新** —— 见下方更正）；名次（`npm run aso:rank`，iTunes Search API）只是近似、只当趋势，
 取多日中位数、只记跨档（200+ → 前 100 → 前 50 → 前 10）。星级按店面读 `node scripts/store-stats.js`。
-快照都在主仓库的 `.local/stats/`（在 worktree 里跑也写回主树）。
+快照都在主仓库的 `.local/stats/`（在 worktree 里跑也写回主树）。**一页汇总用 `npm run digest`**
+（读同一批快照；加 `--live` 会先刷新 store-stats 与 sources 再出）。
 
 ---
 
