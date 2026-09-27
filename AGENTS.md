@@ -218,6 +218,104 @@ versions ahead of it.
 The same asymmetry applies inside a release: `package.json` is the source of truth
 for the *version*, but only the store knows the last accepted *build number*.
 
+## Two hosts, one project (Claude Code + Reasonix)
+
+This repo is driven by **two agent hosts**, and the working tree is the only place
+their configuration lives. Claude Code is the original host; Reasonix runs the same
+repo and must stay able to do everything the rules here demand — chiefly that
+verification is cua-driver-driven ("Verification" below) and that release state is
+read from gbrain, never inferred from the repo.
+
+**Shared surface — one source, both hosts read it. Never add a second copy.**
+
+| What | Single source | How each host reads it |
+|---|---|---|
+| Instructions | [`AGENTS.md`](AGENTS.md) (primary) + [`CLAUDE.md`](CLAUDE.md) (host-neutral supplement) | Both hosts load `AGENTS.md` / `CLAUDE.md` from the project root, in that order. Reasonix *also* recognizes `REASONIX.md` — **do not create one**; a third copy is exactly the drift this table exists to prevent. |
+| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. |
+| MCP servers | project-root `.mcp.json` | Claude Code reads it natively at **project** scope; Reasonix reads a Claude-Code `.mcp.json` **as-is**. |
+
+The list of servers is in `.mcp.json` and nowhere else — do not restate it here, in
+a host config, or in a doc (same one-registry rule as the provider list).
+
+**Host-local surface — never copy these into the other host's file.**
+
+| Host | Files (both host-specific) | Holds |
+|---|---|---|
+| Claude Code | `.claude/settings.json`; `.claude/settings.local.json` (gitignored, per-machine) | plugins, per-machine permission allowlist |
+| Reasonix | `.reasonix/settings.json` (project hooks); `reasonix.toml` (project config) | hooks, project-scoped config |
+
+**Verify by reading back the resolution, not the file's existence:**
+
+```bash
+reasonix doctor capabilities --json   # instructions: 2 · every project skill present · mcp_servers == the count in .mcp.json
+```
+
+In Claude Code, `/mcp` must list the same server names.
+
+**Rules that keep the two from drifting:**
+
+- Change the shared surface once, then read it back **in both hosts** before pushing.
+  A `.mcp.json` edit verified only in Reasonix is not verified.
+- Claude Code resolves MCP by name with **local > project > user** precedence and does
+  **not** field-merge definitions, so an entry for this project in `~/.claude.json`
+  shadows the `.mcp.json` entry of the same name. Name them identically so resolution
+  is a no-op, and keep this project's servers defined in `.mcp.json` alone.
+- A skill Reasonix must index needs `name:` and `description:` in its YAML frontmatter;
+  without `description` it still loads, but with a weak index entry. `npm test`
+  enforces both for every project skill.
+- **Known gaps, deliberate:** Reasonix does not read `.claude/settings.json` hooks and
+  gstack ships no Reasonix host (see `.claude/skills/gstack/hosts/`), so the global
+  gstack `Stop` hook is not ported — it is not a project capability. `bt-supabase` is
+  an HTTP MCP endpoint whose OAuth grant is per-host, so its first Reasonix use may
+  need its own authorization.
+
+## Parallel agent sessions — one worktree each
+
+This repo is routinely worked by **several agent sessions at once** (Claude Code and
+Reasonix). They must not share a working tree. On 2026-09-26/27 that broke twice in one
+night, and neither failure announced itself:
+
+- Two Claude Code sessions both ran with `cwd = <the main tree>`. A prompt meant for one of
+  them landed in the other; within the same minute **both** started the same PR and both
+  `cd`-ed into the *same* worktree — two agents about to write the same files. Caught by
+  the user minutes in; that tree was still clean.
+- A third session `git switch`ed the shared main tree from `release/1.16.1` onto its own
+  feature branch (one based on `main`, so the tree's *code* changed generation too),
+  silently changing the environment of the other two.
+
+**Why a shared tree is not "just a directory they share":**
+
+- **The HEAD is shared.** One session's `git switch` / `checkout` / `stash` / `commit`
+  moves the floor under every other session in that tree. Claude Code records `gitBranch`
+  in *every* message, so the change is invisible in prose and total in effect — the only
+  trace of the switch above was a `gitBranch` field flipping between two consecutive
+  messages.
+- **`.local/TODO.md` is shared across branches *and* sessions** (it is gitignored, so it is
+  the same file whichever branch each tree is on), and the opening ritual in
+  [`CLAUDE.md`](CLAUDE.md) requires reading it. So a line there is **not** a task addressed
+  to one session: any session that reads it may claim the work. That is how a session on a
+  different line of work picked up the React migration's "next step".
+- **`~/.claude/plans/*.md` is likewise global**, not scoped to a session.
+
+**The rules:**
+
+1. **One parallel task = one worktree.** The repo already works this way (main tree,
+   `-1170`, `-hotfix`, `-react`); a new parallel line of work starts with
+   `git worktree add`, not with a second session in the main tree.
+2. **Never switch branches in a shared tree.** To work on a branch, give it its own
+   worktree. The section above was added by a change that itself `git switch`ed the shared
+   tree — that is the bug this rule exists to prevent, not a hypothetical.
+3. **Route work by talking to the session, not by writing it into `.local/TODO.md`.** TODO
+   records what the *repo* owes; it does not address a particular agent.
+4. **Verify the split — two sessions in one tree are invisible until something collides:**
+
+   ```bash
+   git worktree list                       # the trees that exist
+   for f in "$HOME"/.claude/sessions/*.json; do
+     python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));print(d.get("name"),"->",d.get("cwd"))' "$f"
+   done                                    # every live session name must map to a DIFFERENT tree
+   ```
+
 ## Verification — governed by the verification spec
 
 **All verification / testing is governed by the single source of truth,
