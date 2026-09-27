@@ -3499,6 +3499,12 @@
   "ob_web_only": {
     "message": "मुझे सिर्फ़ वेब पेज अनुवाद चाहिए"
   },
+  "ob_intent_listen": {
+    "message": "मुख्य रूप से सुनना · लाइव सबटाइटल"
+  },
+  "ob_intent_both": {
+    "message": "दोनों — पढ़ना और सुनना"
+  },
   "qs_base": {
     "message": "एंडपॉइंट URL (पूरा)"
   },

@@ -54,6 +54,10 @@ const EVENTS = {
     // 只有 surface ext / app 带它；app_resume 那张卡没有「停留」可言，不带（键缺席是合法的）。
     dwell: ['0-2', '3-9', '10-29', '30+'],
   },
+  // onboard_intent（2026-09-28，#486/#487，用户评审通过）：迎新首屏「你想怎么用」的选择。
+  // 粗粒度枚举，只回答「他第一目的是什么」—— 此前没有这条读数（#384 调查里那句「缺的第一目的」）。
+  // 选 'listen' 的人首页不挂扩展横幅（interaction-spec「迎新页意图分叉」）。只记选择，不含内容。
+  onboard_intent: { goal: ['read', 'listen', 'both'] },
   engine_set: { provider: 'id' },
   // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」
   // 这一整段此前零遥测，而 learn/engine-test.js 的四个调用方全在激活路径上（设置页、
@@ -172,6 +176,11 @@ const SEAMS = {
     { host: 'app', file: 'src/app/shell-model.js', match: 'dwell: d' },
     { host: 'app', file: 'src/app/shell-model.js', match: "obTrackLeave('web_only')" },
     { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app_resume'" },
+  ],
+  onboard_intent: [
+    // 迎新页只在 App：扩展引导里人已经在浏览器里，没有「你想怎么用」这一步。
+    { host: 'ext', none: '迎新页只在 App：扩展引导里人已经在浏览器里，没有「你想怎么用」这一步' },
+    { host: 'app', file: 'src/app/shell-model.js', match: "track('onboard_intent'" },
   ],
   engine_set: [
     { host: 'ext', file: 'src/pages/options.jsx' },

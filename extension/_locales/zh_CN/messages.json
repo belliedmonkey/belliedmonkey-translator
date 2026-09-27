@@ -3667,6 +3667,12 @@
   "ob_web_only": {
     "message": "我只要网页翻译"
   },
+  "ob_intent_listen": {
+    "message": "主要想听 · 即时字幕"
+  },
+  "ob_intent_both": {
+    "message": "读网页 + 听，都要"
+  },
   "qs_base": {
     "message": "接口地址（完整）"
   },

@@ -59,6 +59,13 @@
         "30+"
       ]
     },
+    "onboard_intent": {
+      "goal": [
+        "read",
+        "listen",
+        "both"
+      ]
+    },
     "engine_set": {
       "provider": "id"
     },

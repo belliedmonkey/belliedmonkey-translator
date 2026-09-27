@@ -3667,6 +3667,12 @@
   "ob_web_only": {
     "message": "我只要網頁翻譯"
   },
+  "ob_intent_listen": {
+    "message": "主要想聽 · 即時字幕"
+  },
+  "ob_intent_both": {
+    "message": "讀網頁 + 聽，都要"
+  },
   "qs_base": {
     "message": "介面位址（完整）"
   },

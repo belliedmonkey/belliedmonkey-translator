@@ -3666,6 +3666,12 @@
   "ob_web_only": {
     "message": "I only want web page translation"
   },
+  "ob_intent_listen": {
+    "message": "Mainly to listen · Live Subtitles"
+  },
+  "ob_intent_both": {
+    "message": "Both — reading and listening"
+  },
   "qs_base": {
     "message": "Endpoint URL (full)"
   },

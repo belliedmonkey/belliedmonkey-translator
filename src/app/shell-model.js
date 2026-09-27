@@ -380,6 +380,9 @@ export function bootShell() {
   const EXT_DONE = 'extBannerDoneAt';
   let extBannerDone = false;
   let extBannerShownDay = '';
+  // 迎新页的意图（2026-09-28，#486/#487）：'read' / 'listen' / 'both'。选 'listen' 的人
+  // 首页不挂扩展横幅（他不要浏览器扩展）。同 extBannerDone，init 预读进内存。
+  let onboardIntent = '';
   // 启动时「当天记过没有」与「继续设置卡在不在」都还没读出来之前，横幅照画、但不记 shown。
   // 原生的 show('ios') 常在预读之前就到 ⇒ extBannerShownDay 还是空串，每次启动都记一条
   // （1.12.1–1.14.0 线上约四成「装机·天」记了多条，最多一天 52 条）；而且继续设置卡要等
@@ -408,7 +411,7 @@ export function bootShell() {
     // 用它会让「已经开好扩展、只是还没抓到卡」的人继续被告知「还没打开」（模拟器实测）。macOS 有真实
     // 状态（`getStateOfSafariExtension`），维持 `browserSideOk` 那一半。
     const ios = !!(state && !state.canOpenPrefs && !state.known);
-    if (away || (browserSideOk && !ios) || extBannerDone) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen') { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
@@ -596,7 +599,7 @@ export function bootShell() {
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
     for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box',
-      'ob-engines', 'ob-webonly', 'ob-hint']) $(id).hidden = true;
+      'ob-engines', 'ob-webonly', 'ob-intent-listen', 'ob-intent-both', 'ob-hint']) $(id).hidden = true;
     // 主/次逐屏重设，不留状态（同扩展 onboard.js）。默认「继续」是这一屏的主行动；
     // 有自己主行动的屏（「就地试一句」）在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
     $('ob-next').classList.remove('secondary');
@@ -631,6 +634,10 @@ export function bootShell() {
       // 出口只在第一屏给：它回答的是「你是不是只想要网页翻译」，后面几屏问这个已经晚了。
       $('ob-webonly-text').textContent = t('ob_web_only', '我只要网页翻译');
       $('ob-webonly').hidden = false;
+      $('ob-intent-listen').textContent = t('ob_intent_listen', '主要想听 · 即时字幕');
+      $('ob-intent-listen').hidden = false;
+      $('ob-intent-both').textContent = t('ob_intent_both', '读网页 + 听，都要');
+      $('ob-intent-both').hidden = false;
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
       // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
@@ -1050,9 +1057,26 @@ export function bootShell() {
   // obLeft：这一次引导**只记一条** onboarding_done（§3 表的定义是「离开时一条」）。
   // 点了这里之后，ext 屏上的收尾不再重复记 —— 否则同一个人会出现两行，
   // 「有多少人只要网页翻译」和「有多少人走完了」两个数同时变虚。
+  // 意图分叉（2026-09-28，#486/#487，用户评审通过）：记一个粗粒度枚举 `onboard_intent{goal}`，
+  // 并把选择落盘 —— 首页的扩展横幅据此给「听」的人让路（他不要浏览器扩展）。
+  function trackIntent(goal) {
+    onboardIntent = goal;
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('onboard_intent', { goal }); } catch (_) {}
+    try { chrome.storage.local.set({ onboardIntent: goal }, () => {}); } catch (_) {}
+    paintExtBanner(extState);
+  }
   $('ob-webonly').addEventListener('click', (ev) => {
     ev.preventDefault();
     obTrackLeave('web_only');
+    trackIntent('read');
+    const at = OB.indexOf('ext');
+    if (at >= 0) { obAt = at; obPaint(); } else obFinish();
+  });
+  // 「听」⇒ 收尾：ext 屏与他无关（他不开扩展），首页也不再念「还没打开」。
+  $('ob-intent-listen').addEventListener('click', () => { trackIntent('listen'); obFinish('done'); });
+  // 「都要」⇒ 与「我只要网页翻译」一样送到 ext 屏。
+  $('ob-intent-both').addEventListener('click', () => {
+    trackIntent('both');
     const at = OB.indexOf('ext');
     if (at >= 0) { obAt = at; obPaint(); } else obFinish();
   });
@@ -1805,9 +1829,10 @@ export function bootShell() {
       const session = await LearnAuth.current();
       // 横幅的 UI 状态键预读进内存（paintExtBanner 是同步的）。读失败按「没点过」。
       try {
-        const o = await new Promise((r) => chrome.storage.local.get([EXT_DONE, 'tm:extBannerDay'], r));
+        const o = await new Promise((r) => chrome.storage.local.get([EXT_DONE, 'tm:extBannerDay', 'onboardIntent'], r));
         extBannerDone = !!(o && o[EXT_DONE]);
         extBannerShownDay = (o && o['tm:extBannerDay']) || '';
+        onboardIntent = (o && o.onboardIntent) || '';
       } catch (_) {}
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
       const obState = await new Promise((r) => chrome.storage.local.get([OB_SEEN, OB_RESUME], r)).catch(() => null);

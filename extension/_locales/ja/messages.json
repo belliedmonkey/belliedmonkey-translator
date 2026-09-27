@@ -3666,6 +3666,12 @@
   "ob_web_only": {
     "message": "ウェブページの翻訳だけでいい"
   },
+  "ob_intent_listen": {
+    "message": "主に聴く · リアルタイム字幕"
+  },
+  "ob_intent_both": {
+    "message": "読むのも聴くのも両方"
+  },
   "qs_base": {
     "message": "エンドポイント URL（完全）"
   },

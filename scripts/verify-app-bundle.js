@@ -1230,7 +1230,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       const view = `JSON.stringify({ onboard: !document.getElementById('onboard').hidden, step: document.body.dataset.obStep || '',
         card: !document.getElementById('ob-resume').hidden, title: document.getElementById('ob-resume-title').textContent,
         banner: !document.getElementById('ext-banner').hidden })`;
-      const reset = (extra) => `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'provider', 'apiKey'], () => chrome.storage.local.set(${extra || '{}'}, r)))`;
+      const reset = (extra) => `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set(${extra || '{}'}, r)))`;
       // 原生侧在 didFinish 里调 show('ios')：不照样复刻，横幅在无头环境里本来就不出，
       //「卡在场时横幅让路」那条断言会空转（第一版证伪时摘掉让路逻辑它照样绿）。
       const injR = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
@@ -1318,6 +1318,41 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // 中国版：产物里根本没有 MT_TELEMETRY（Gate D 的承诺是「一个字节都不发」）。
         // 这里的判据因此反过来：点完出口，队列必须仍然是空的 —— 与扩展侧 verify-onboard 同一条。
         need(wo.n === 0, '中国版产物里竟然攒出了 ' + wo.n + ' 条 onboarding_done —— Gate D 说好一条都不发');
+      }
+
+      // ─── 迎新页意图分叉（2026-09-28，#486/#487）：三个出口，选「听」⇒ 首页不挂扩展横幅 ────
+      // 判据是**队列里真有那条** + **落盘** + **首页真的没横幅**，不是「代码里有 track 调用」。
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      await reopen();
+      const it = await E(`(async () => {
+        try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
+        await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
+        await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
+        const $ = (id) => document.getElementById(id);
+        const vis = (el) => !!(el && el.getClientRects().length);
+        const step0 = document.body.dataset.obStep || '';
+        const chips = { listen: vis($('ob-intent-listen')), both: vis($('ob-intent-both')), web: vis($('ob-webonly')) };
+        $('ob-intent-listen').click();
+        await new Promise((r) => setTimeout(r, 400));
+        const q = await new Promise((r) => chrome.storage.local.get(['tm:queue', 'onboardIntent'], (v) => r(v || {})));
+        const intents = (q['tm:queue'] || []).filter((x) => x && x.name === 'onboard_intent');
+        const onboard = !$('onboard').hidden;
+        window.show('ios'); await new Promise((r) => setTimeout(r, 30));
+        const banner = !$('ext-banner').hidden;
+        return JSON.stringify({ step0, chips, onboard, banner, stored: q.onboardIntent || '',
+          n: intents.length, props: intents.length ? intents[0].props : null,
+          hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
+      })()`);
+      need(it.step0 === 'welcome', '意图分叉探针没从第 1 屏开始：' + JSON.stringify(it));
+      need(it.chips.listen && it.chips.both && it.chips.web, '第一屏三个出口没齐：' + JSON.stringify(it.chips));
+      need(!it.onboard, '选「听」之后引导没收尾：' + JSON.stringify(it));
+      need(it.stored === 'listen', '选「听」没把 onboardIntent 落盘：' + JSON.stringify(it));
+      need(!it.banner, '选「听」的人首页仍挂着扩展横幅 —— 他不要浏览器扩展（interaction-spec「迎新页意图分叉」）');
+      if (it.hasSpec) {
+        need(it.props && it.props.goal === 'listen', '选「听」没记下 onboard_intent{goal:listen}：' + JSON.stringify(it));
+        need(it.n === 1, '一次选择记了 ' + it.n + ' 条 onboard_intent —— 应当只有一条');
+      } else {
+        need(it.n === 0, '中国版产物里竟然攒出了 ' + it.n + ' 条 onboard_intent');
       }
 
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
