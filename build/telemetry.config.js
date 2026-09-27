@@ -184,7 +184,7 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
     ...SHARED('extension/learn/doc-view.js', { match: "kind: 'doc'" }),
-    { host: 'app', file: 'app/listen.js', match: "kind: 'subtitle'" },
+    { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
     // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
     { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
     { host: 'ext', surface: 'translate-fill', none: '补译文是学习层给已捕获的卡片补一个译文，不是一次用户发起的翻译会话（§3.3 裁定 2）' },
@@ -194,7 +194,7 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-webpage.js' },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
     ...SHARED('extension/learn/doc-view.js'),
-    { host: 'app', file: 'app/listen.js' },
+    { host: 'app', file: 'src/app/listen-model.js' },
     { host: 'app', file: 'app/handoff.js' },
   ],
   subtitle_on: [
@@ -204,7 +204,7 @@ const SEAMS = {
   capture_first: [
     { host: 'ext', file: 'extension/content/learn-collector.js' },
     { host: 'app', file: 'app/docs.js' },
-    { host: 'app', file: 'app/listen.js' },
+    { host: 'app', file: 'src/app/listen-model.js' },
   ],
   doc_open: SHARED('extension/learn/doc-view.js'),
   review_session: SHARED('extension/learn/review.js')
@@ -240,7 +240,7 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/asr-source.js' },
     { host: 'ext', file: 'extension/content/content-main.js', match: "surface: 'popup'" },
     { host: 'ext', file: 'src/pages/popup.jsx', match: "surface: 'popup_app_row'" },
-    { host: 'app', file: 'app/listen.js', match: "surface: 'app_home'" },
+    { host: 'app', file: 'src/app/listen-model.js', match: "surface: 'app_home'" },
   ],
   telemetry_off: SHARED('extension/learn/telemetry.js'),
 };

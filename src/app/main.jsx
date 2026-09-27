@@ -16,6 +16,7 @@ import { flushSync } from 'react-dom';
 import AppShell from './AppShell.jsx';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
+import listenModel from './listen-model.js';
 import { bootShell } from './shell-model.js';
 
 // ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
@@ -56,6 +57,9 @@ chrome.storage.local.get(['uiLang'], (r) => PageText.setUiLang((r && r.uiLang) |
 // verify 脚本 ABI：verify-listen / verify-app-bundle 经 window.settingsModel 调
 // notifySettingsShown（旧 window.AppSettings 全局的后继）。
 window.settingsModel = settingsModel;
+// PR6c：listen 的旧全局 ABI。shell-model.js 的 bootShell 里 `AppListen.wire()` 等
+// 裸全局引用照旧工作；test:listen 的 59 处 `AppListen._debug` 断言也吃这个名字。
+window.AppListen = listenModel;
 
 // 快速翻译的面板页（learning-design §9.9）：同一份页面以 #quick 加载时只启动
 // AppQuick —— 不登录、不同步、（原 app.js:15-17 逐字；return 换 if/else）。

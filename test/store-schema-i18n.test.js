@@ -73,7 +73,8 @@ describe('SETTINGS_SCHEMA', () => {
   const HAND_LISTS = [
     ['extension/learn/review.js', 'READ_KEYS', 'review'],
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
-    ['app/listen.js', 'READ_KEYS', 'listen'],
+    // PR6c：app/listen.js 拆分后，listen-model 的 READ_KEYS 是 listen 面的手抄清单。
+    ['src/app/listen-model.js', 'READ_KEYS', 'listen'],
     ['app/quick.js', 'READ_KEYS', 'quick'],
     // PR6b：app/settings.js 拆分后，settings-model 的 KEYS 是设置面的第五份手抄清单。
     ['src/app/settings-model.js', 'KEYS', 'app'],

@@ -341,11 +341,12 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     ok(r && !/silence-permission/.test(r[1]), '「继续」那一支不含 silence-permission');
     ok(!/private var listening: Bool \{[^}]*silence-permission/.test(body), 'silence-permission 是停下的态，不算在听（悬停控件显示「继续」）');
   });
-  test('条上按钮发的命令，listen.js 都认（§9.8 协议补充决定 9）', () => {
-    const listen = fs.readFileSync(path.join(R, 'app', 'listen.js'), 'utf8');
+  test('条上按钮发的命令，listen 页都认（§9.8 协议补充决定 9）', () => {
+    // PR6c：listen 页 UI 半边从 app/listen.js 迁到 src/app/listen-model.js（onNative 命令处理随迁）
+    const listen = fs.readFileSync(path.join(R, 'src', 'app', 'listen-model.js'), 'utf8');
     for (const cmd of ['font-up', 'font-down', 'end', 'pause', 'play']) {
       ok(tpl.includes(`"${cmd}"`), `条会发 ${cmd}`);
-      ok(listen.includes(`'${cmd}'`), `listen.js 的 onNative 认 ${cmd}`);
+      ok(listen.includes(`'${cmd}'`), `listen 的 onNative 认 ${cmd}`);
     }
   });
   test('会话中关窗 = 隐藏、点 Dock 找回（协议补充决定 14）', () => {
@@ -393,7 +394,7 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
   const tpl = fs.readFileSync(path.join(R, 'app', 'native', 'subtitle-pip.swift'), 'utf8');
   const audio = fs.readFileSync(path.join(R, 'app', 'native', 'audio-bridge.swift'), 'utf8');
   const sync = fs.readFileSync(path.join(R, 'scripts', 'sync-app-assets.js'), 'utf8');
-  const listen = fs.readFileSync(path.join(R, 'app', 'listen.js'), 'utf8');
+  const listen = fs.readFileSync(path.join(R, 'src', 'app', 'listen-model.js'), 'utf8');   // PR6c：app/listen.js 的 UI 半边迁到 src/app/listen-model.js
   const { BLOCKS } = require('../scripts/sync-app-assets.js');
   const code = (src) => src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
   test('登记成标记块；整份只在 iOS 编译', () => {

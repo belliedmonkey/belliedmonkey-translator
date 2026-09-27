@@ -1,26 +1,39 @@
-// app/listen.js — 「对话 · 实时听译」(learning-design §9.6 / interaction-spec 同名一节) — App-only.
+// src/app/listen-model.js — 「对话 · 实时听译」(learning-design §9.6 / interaction-spec 同名一节) — App-only.
 //
 // 线下听外语：对方说 → 手机上看中文；按住「我说」说中文 → 松手译成外语，放大给对方看并朗读。
 // 双显与扩展的直播字幕同型：上卡是**当下**（逐词原文 + 边说边译的临时译文），下面是
 // **整句定稿历史**（原文 + 整句译文，可加星）。定稿句对进复习，来源「对话」（默认开）。
 //
-// 分工（与 driving.js / learn-driving.js 相同）：
-//   · app/listen-core.js —— 纯逻辑：归属、门、语料形状、静音、计时、边说边译策略。
-//   · 这个文件 —— IO：麦克风（原生桥）、socket（WsTranscribe）、翻译、TTS、界面、语料写入、
-//     锁屏卡片、停止态。
+// 分工（PR6c，原 app/listen.js 拆两半）：
+//   · app/listen-core.js —— 纯逻辑：归属、门、语料形状、静音、计时、边说边译策略（不动）。
+//   · 这个文件 —— 模型：麦克风（原生桥）、socket、翻译、TTS、语料写入、锁屏卡、停止态，
+//     以及全部渲染决策（entryView/historyView/pillView… 把「该画什么」算成数据）。
+//   · src/app/listen-view.jsx —— 画布：把数据映射成 JSX，唯一 import React 的一半。
+//
+// **画布回调（canvas）**：原 renderX()/note()/paint* 的每个调用点，在这里换成
+// canvas.view(area) / canvas.entry() —— 画布实现里 flushSync 落 DOM，与原代码逐调用点
+// 同时序（verify-listen 的 0 段 / M 段都在 `await AppListen.refreshEntry()` 的**下一条
+// 同步语句**里读 DOM，通知不能走异步总线）。画布未挂载时是 no-op（模型单独被测试引入）。
+// 入口卡与主视图分两个 store（视图侧）：storage.onChanged 的 refreshEntry 只 bump 入口，
+// 不会连坐重渲染主 section —— 页外脚本（verify-listen T2）直写的 #app-listen.hidden 不被盖回。
+//
+// **直写保留**：#app-listen 与首页 section 的 hidden 切换（open/leave）沿用原直写 —— 它是
+// shell 级视图互斥（shell-model 也读它），ListenView 的 JSX 把 hidden 恒写 true，vdom 不变
+// React 就永不覆盖真实 DOM（与「孤岛承诺」同一条纪律）。
 //
 // 麦克风为什么走原生桥（PR-L0，2026-09-07 真机三轮）：WebKit 在 App 不可见时一律静音页内的
 // getUserMedia —— 锁屏期间采集帧恒为 0，页内音频保活只能保住 JS。所以 PCM 由 Swift 的
 // AVAudioEngine tap 采、重采样、经 mtAudio 桥送进来（NativeAudio.micStart）；socket、翻译、
-// 界面留在这里，与扩展共用同一份 ws-transcribe.js。没有桥的宿主（Chrome 里的 test:app、
+// 语料写在这里，与扩展共用同一份 ws-transcribe 的收法。没有桥的宿主（Chrome 里的 test:app、
 // 扩展页）退回页内 getUserMedia —— 那里没有锁屏问题，能力语义。
 //
 // 音频只发往用户配置的转写端点（§2.4 规则 5 / §10 Gate E）；不保存任何录音，只保留文字。
-'use strict';
+import PageText from '../lib/i18n.js';
+import Registry from '../lib/registry.js';
 
-var AppListen = (() => {
+const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
-  const t = (k, fb) => PageI18n.t(k, fb);
+  const t = (k, fb) => PageText.t(k, fb);
   // macOS 宿主：有物理键盘、没有触屏 —— 「按住」的提示要把空格说出来（interaction-spec「macOS」）。
   const isMacHost = () => { try { return /^Mac/.test(navigator.platform || '') && !(navigator.maxTouchPoints > 0); } catch (_) { return false; } };
   const C = ListenCore;
@@ -77,6 +90,26 @@ var AppListen = (() => {
   // 页内麦克风（无桥宿主的退路）
   let audioCtx = null, stream = null, proc = null, srcNode = null;
 
+  // ── 原来从 DOM 读的四处，提取为模型状态（PR6c）────────────────────────────
+  let noteMsg = '', noteErr = true;       // app-listen-note（onMicState 'sound' 与 paintClock 撤销分支要比较它的现值）；初始 err 类对齐原 DOM 的静态 className="note err"
+  let speakingShow = false;               // app-listen-flip-speaking（speakOut 异步前点亮、异步后熄灭）
+  let ephemeralChecked = false;           // app-listen-ephemeral（start() 在开始那一刻钉住它）
+  let mySelVal = '', otherSelVal = '';    // 语言对两个下拉的受控值
+  let autoSpeakVal = false;               // 自动朗读勾选框
+  let subsCaptureVal = true;              // 「字幕进复习」勾选框（paintMode 的 storage 回填）
+  let summaryShown = false;               // 小结卡（open/start 收起、renderSummary 展开）
+  let showShown = false;                  // 放大展示卡（renderShow/closeShow）
+  // 历史卡外框（app-listen-history-wrap）原 DOM 没有 hidden 属性 —— 恒可见，start() 里那句
+  // hidden=false 是空操作。视图静态渲染，不需要状态。
+
+  // 画布：视图挂载时赋实现（listen-view.jsx），默认 no-op。
+  const canvas = {
+    entry() {},                       // 入口卡（独立 store，不连坐主视图）
+    view(_area) {},                   // 'mode' | 'clock' | 'state' | 'note' | 'now' | 'history' | 'show' | 'summary' | 'pip' | 'langs'
+    pipRectOn() {},                   // 视图挂载时覆盖：启/停 pip 预览矩形的几何监听
+    pipRectOff() {},
+  };
+
   const now = () => Date.now();
 
   // ── 设置 ──────────────────────────────────────────────────────────────────
@@ -110,7 +143,7 @@ var AppListen = (() => {
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
-          registry: window.MT_LANGS || [],
+          registry: Registry.langs(),
           label: sub ? SUBTITLE_LABEL() : SOURCE_LABEL(),
         });
       });
@@ -141,20 +174,21 @@ var AppListen = (() => {
       : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
   }
   let trackedNoLive = false;
-  let langSelFill = null;   // 会话内两个语言下拉的重填（探到本机支持的语种清单后调）
 
   // ── 首页入口（门控与播客模式同规矩：门不过入口不存在，留一条去设置的路）──────
   // 入口在登录前后两个首页上都有（对话不依赖账号：语料写本机，§9.6），同一门控。
   const ENTRY_SUFFIXES = ['', '2'];
+  // 入口卡的**数据**（entryView），视图按它渲染。键按 sfx 分存。
+  const entryState = { '': null, '2': null };
   async function refreshEntry() {
-    let ok = false, c = null;
+    let ok = false;
     try {
-      c = await readCfg();
+      const c = await readCfg();
       // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门
       if (deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
       ok = liveCapable();
     } catch (_) { ok = false; }
-    try { if (langSelFill) langSelFill(); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
+    try { canvas.view('langs'); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
     const reason = ok ? '' : unavailableReason();
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
@@ -164,46 +198,53 @@ var AppListen = (() => {
       trackedNoLive = true;
       try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'no_live' }); } catch (_) {}
     }
+    // 写序同原文的 DOM 写序：refreshEntry **先**写对话行，refreshSubtitleEntry 在里面读它
+    // 刚写的文案做「合成一句」比对 —— 所以这里先落 listen 数据，再 await 字幕行，最后统一 bump。
+    // 形状与 subsEntryState 平齐（entryView 原样转发）：对话行的 ok 也要在顶层 ——
+    // 隐私句的 hidden=!ok 由它驱动。此前误包了一层 listen:{}，视图读到的全是 undefined。
     for (const sfx of ENTRY_SUFFIXES) {
-      const btn = $('app-listen-entry' + sfx); if (btn) { btn.hidden = false; btn.disabled = !ok; }
-      const hint = $('app-listen-entry-hint' + sfx);
-      if (hint) { hint.hidden = false; hint.textContent = t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'); }
-      const priv = $('modes-privacy' + sfx); if (priv) {
-        priv.hidden = !ok;
-        priv.textContent = t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。');
-      }
-      const need = $('app-listen-need-live' + sfx); if (need) need.hidden = ok;
-      const why = $('app-listen-need-live-why' + sfx);
-      if (why && !ok) why.textContent = needText(reason);
-      const go = $('app-listen-need-live-go' + sfx); if (go) go.hidden = true;
+      entryState[sfx] = {
+        ok,
+        hidden: false, disabled: !ok,
+        hint: t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'),
+        privacy: t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。'),
+        needShown: !ok,                      // 原 need.hidden = ok
+        why: ok ? '' : needText(reason),     // 原 `if (why && !ok) why.textContent = needText(reason)`
+      };
     }
     await refreshSubtitleEntry(ok, reason);
+    canvas.entry();
   }
 
   // 实时字幕入口（learning-design §9.8 + 协议补充决定 3）：原生不回 audio-caps ⇒ 整行不显示（老壳）；
   // 回了就按 ListenCore.entryGate 的顺序给灰态原因（本机识别器不可用 → Mac 系统声音版本）。
+  const subsEntryState = { '': null, '2': null };
   async function refreshSubtitleEntry(ok, deviceReason) {
     let caps = null;
     try { caps = bridged() ? await NativeAudio.capsProbe(1500) : null; } catch (_) { caps = null; }
     const reason = C.entryGate({ caps, deviceOk: ok, deviceReason });
     subsReason = reason;
     for (const sfx of ENTRY_SUFFIXES) {
-      const btn = $('app-subs-entry' + sfx);
-      if (btn) { btn.hidden = reason === 'hidden'; btn.disabled = !!reason; }
-      const hint = $('app-subs-entry-hint' + sfx);
-      if (hint) hint.textContent = t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕');
-      const need = $('app-subs-need' + sfx);
-      if (need) need.hidden = !reason || reason === 'hidden';
-      const why = $('app-subs-need-why' + sfx);
-      if (why) why.textContent = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
-        : needText(reason === 'locale' ? 'locale' : 'os');
-      // 没有任何一种灰态是「去设置」能解决的（系统版本 / 语言）—— 不给一个点了也没用的按钮
-      const go = $('app-subs-need-go' + sfx);
-      if (go) go.hidden = true;
+      const subs = {
+        hidden: reason === 'hidden', disabled: !!reason,
+        hint: t('subtitle_entry_hint', '给正在播放的视频、直播、会议配双语字幕'),
+        needShown: false, needWhy: '',
+        // 没有任何一种灰态是「去设置」能解决的（系统版本 / 语言）—— 不给一个点了也没用的按钮
+      };
+      if (reason && reason !== 'hidden') {
+        subs.needShown = true;
+        subs.needWhy = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
+          : needText(reason === 'locale' ? 'locale' : 'os');
+      }
       // 两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），首页只说一次 —— 同一句连写两遍像出错了
       // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
-      const listenNeed = $('app-listen-need-live' + sfx), listenWhy = $('app-listen-need-live-why' + sfx);
-      if (need && !need.hidden && listenNeed && !listenNeed.hidden && listenWhy && why && listenWhy.textContent === why.textContent) need.hidden = true;
+      // 原代码比对的是 refreshEntry 刚写上 DOM 的 listen 行文案；entryState 里躺的就是同一份
+      // 数据（listen.needShown = !ok，why = needText(listenReason)），直接比字符串。
+      const listen = entryState[sfx];
+      if (subs.needShown && listen && listen.needShown && listen.why === subs.needWhy) {
+        subs.needShown = false;
+      }
+      subsEntryState[sfx] = subs;
     }
   }
 
@@ -261,7 +302,7 @@ var AppListen = (() => {
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
   async function translateRow(row, toLang, quiet) {
     const myGen = gen;
-    row.trErr = false; row.trBusy = true; renderHistory();
+    row.trErr = false; row.trBusy = true; canvas.view('history');
     const t0 = now();
     const eo = {};
     const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang, eo);
@@ -269,7 +310,7 @@ var AppListen = (() => {
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     if (row.tr) tmOk(); else tmFail(eo.err);
-    renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
+    canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
   }
@@ -282,9 +323,9 @@ var AppListen = (() => {
     return n || langLabel(c) || c;
   }
   async function passRow(row, quiet) {
-    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; renderHistory(); return; }
+    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
-    row.trErr = false; row.trBusy = true; renderHistory();
+    row.trErr = false; row.trBusy = true; canvas.view('history');
     const srcLang = row.who === 'me' ? cfg.myLang : cfg.otherLang;
     const dstLang = targetLangFor(row);
     const prompt = C.buildListenPrompt({
@@ -303,7 +344,7 @@ var AppListen = (() => {
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
     if (row.tr) tmOk(); else tmFail(passErr);
-    renderHistory(); paintNowPlaying(); if (showRid === row.rid) renderShow();
+    canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
   }
@@ -334,11 +375,11 @@ var AppListen = (() => {
       // 同 app/docs.js：内容脚本 learn-collector.js 不进 App 包，App 的采集 seam 只有这里。
       try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.once('capture_first'); } catch (_) {}
     } catch (_) { row.written = false; }
-    renderHistory();
+    canvas.view('history');
   }
   async function toggleStar(row) {
     row.starred = !row.starred;
-    renderHistory();
+    canvas.view('history');
     if (!row.starred) return;   // 取消星不删卡：卡已经是用户的了（同复习页的规则）
     if (row.written) {
       // 已写过：再合并一次，mergeItem 的 starred 是 OR，state 随之升为 learning
@@ -376,7 +417,7 @@ var AppListen = (() => {
         if (!sock && (kind === 'partial' || kind === 'final')) return;
         if (kind === 'ready') { socketRetried = false; }
         else if (kind === 'partial') { if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text); }
-        else if (kind === 'final') { if (cutter === cut) for (const t of gate.push(ev)) cut.add(ev.locale, t); }
+        else if (kind === 'final') { if (cutter === cut) for (const tt of gate.push(ev)) cut.add(ev.locale, tt); }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
@@ -398,16 +439,16 @@ var AppListen = (() => {
     // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
     // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
     // 对方在我朗读时插话不会被误杀：他的话与我读的内容重合度低，够不上门限。
-    if (partial && echo.isEcho(partial, now())) { renderNow(); return; }
+    if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
     if (inc) inc.onPartial(partial);
-    renderNow();
+    canvas.view('now');
     subShow(partial, '', true);
   }
   function onFinal(text, meta) {
     // 回声闸第一层：我们自己刚读出去的那句被麦克风录回来了 ⇒ **整句丢弃** —— 不进历史、
     // 不翻译、不写语料、不朗读、不算进小结。它根本不是一句话。
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
-    if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; renderNow(); return; }
+    if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; canvas.view('now'); return; }
     // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
@@ -417,16 +458,16 @@ var AppListen = (() => {
     // 两边的定稿走同一条路，只是目标语言相反（targetLangFor）。2026-09-08 之前
     // 「我说的」在这里直接 return，等松手时整段处理 —— 那条路随按住一起没了。
     const reuse = inc ? inc.close(row.text) : '';
-    renderNow(); renderHistory();
+    canvas.view('now'); canvas.view('history');
     if (meta && meta.locale) {
       // 本机路：原始句立即上屏；复用的临时译文斜体，等修正稿回来换正体；修正契约必发
       row.raw = row.text; row.alts = Array.isArray(meta.alts) ? meta.alts : [];
-      if (reuse) { row.tr = reuse; row.trTemp = true; renderHistory(); }
+      if (reuse) { row.tr = reuse; row.trTemp = true; canvas.view('history'); }
       subShow(row.text, row.tr || '', true);
       passRow(row);
       return;
     }
-    if (reuse) { row.tr = reuse; renderHistory(); paintNowPlaying(); subFinal(row); maybeWrite(row); autoSpeak(row); }
+    if (reuse) { row.tr = reuse; canvas.view('history'); paintNowPlaying(); subFinal(row); maybeWrite(row); autoSpeak(row); }
     else { subShow(row.text, '', true); translateRow(row); }
   }
 
@@ -469,12 +510,10 @@ var AppListen = (() => {
     return !!(session && session.mode === 'subtitle' && c && c.system === 'unsupported');
   }
   let pipOff = null, pipLastRect = '';
-  function pipSendRect() {
+  // 预览占位块的几何从**画布**来（rect 感知在视图）：视图装 ResizeObserver/滚动监听，
+  // 节流后把算好的矩形（或 null）递回来，去重与发桥留在这里。
+  function pipRectUpdate(rect) {
     if (!pipHost()) return;
-    const el = $('app-subs-pip'); if (!el) return;
-    const r = el.getBoundingClientRect();
-    const on = !el.hidden && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
-    const rect = on ? { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) } : null;
     const key = JSON.stringify(rect);
     if (key === pipLastRect) return;
     pipLastRect = key;
@@ -482,28 +521,18 @@ var AppListen = (() => {
   }
   function pipRectOn() {
     if (!pipHost()) return;
-    pipRectOff();   // 重入安全：✕ 暂停后点「继续」会再调一次，别叠第二份监听
-    let timer = 0;
-    const later = () => { if (timer) return; timer = setTimeout(() => { timer = 0; pipSendRect(); }, 120); };
-    const el = $('app-subs-pip');
-    const ro = (typeof ResizeObserver !== 'undefined' && el) ? new ResizeObserver(later) : null;
-    if (ro) ro.observe(el);
-    window.addEventListener('scroll', later, true);
-    window.addEventListener('resize', later);
-    pipOff = () => { if (ro) ro.disconnect(); window.removeEventListener('scroll', later, true); window.removeEventListener('resize', later); clearTimeout(timer); };
-    pipLastRect = '';
-    pipSendRect();
+    pipLastRect = '';     // 先清（原 :495 同序）：首发矩形与上一场相同也不能被去重吃掉
+    canvas.pipRectOn();   // 视图实现：装监听 + 首发一次（会回调 pipRectUpdate）
   }
-  function pipRectOff() { if (pipOff) { pipOff(); pipOff = null; } pipLastRect = ''; }
+  function pipRectOff() { if (pipOff) { pipOff(); pipOff = null; } canvas.pipRectOff(); pipLastRect = ''; }
   function paintPipFloat() {
-    const b = $('app-subs-float'); if (!b) return;
     // 只有**小窗没浮出来**（failed / not-active）才给这个按钮；用户自己 ✕ 关掉的那次是暂停，回来的路是主按钮「继续」
-    b.hidden = !(pipHost() && phase !== 'ended' && pipWindow === 'closed' && !!pipReason);
+    canvas.view('pip');
   }
+  function pipFloatShown() { return !!(pipHost() && phase !== 'ended' && pipWindow === 'closed' && !!pipReason); }
   // 预览占位块上的一句话：开始前 / 结束后原生预览不在（会话中它盖在这句上面）——不是一块莫名其妙的黑（用户 2026-09-14 手测）
-  function paintPipNote() {
-    const n = $('app-subs-pip-note'); if (!n) return;
-    n.textContent = phase === 'ended' ? t('subtitle_pip_note_ended', '这次字幕已结束，小窗已关闭')
+  function pipNoteText() {
+    return phase === 'ended' ? t('subtitle_pip_note_ended', '这次字幕已结束，小窗已关闭')
       : (!session || phase === 'idle') ? t('subtitle_pip_note_idle', '点「开始」后，这里是字幕小窗的预览；离开本 App 时它会浮在其它 App 上')
         : t('subtitle_pip_note_live', '字幕小窗的预览 —— 离开 App 时会浮在其它 App 上');
   }
@@ -586,8 +615,7 @@ var AppListen = (() => {
       // 不发 PCM，两边都记进同一个 heardAny，免得同一场里两套判据打架。
       if (session) session.heardAny = true;
       if (phase === 'listening' && sysSilent) {
-        const el = $('app-listen-note');
-        if (el && el.textContent === silentHint()) note('');
+        if (noteMsg === silentHint()) note('');
         subState('listening');
       }
       return;
@@ -601,7 +629,7 @@ var AppListen = (() => {
       if (now() - startedAt < 3000 && earlyRetries < 3) {
         const wait = 800 * Math.pow(2, earlyRetries); earlyRetries++;
         micStop(); closeSocket();
-        phase = 'preparing'; paint();
+        phase = 'preparing'; canvas.view('state');
         setTimeout(() => { if (phase === 'preparing') beginPipeline(); }, wait);
         return;
       }
@@ -610,7 +638,7 @@ var AppListen = (() => {
     else if (state === 'granted') {
       earlyRetries = 0;
       if (session) session.lastVoiceAt = now();   // 静音计时从麦克风真正开始出帧算起，不从点按算起
-      if (phase === 'preparing') { phase = 'listening'; note(''); paint(); subState('listening'); }
+      if (phase === 'preparing') { phase = 'listening'; note(''); canvas.view('state'); subState('listening'); }
     }
   }
   async function micStart() {
@@ -694,13 +722,13 @@ var AppListen = (() => {
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
     // 用户会以为在留记录而其实没有。
-    session.ephemeral = !!($('app-listen-ephemeral') && $('app-listen-ephemeral').checked);
+    session.ephemeral = ephemeralChecked;
     // 边说边译的方向也按半句的语言实时判：我说中文时译成外语，对方说外语时译成中文。
     // 判不出就按「对方」走 —— 与 attributeByLang 的兜底同向，免得半句和定稿打架。
     // 实时字幕单向：半句一律译成我的语言
     inc = C.makeIncremental((text) => translate(text,
       (!C.modeOf(session).oneWay && C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
-    inc.result((text, tr) => { if (text === partial) { partialTr = tr; renderNow(); subShow(partial, partialTr, true); } });
+    inc.result((text, tr) => { if (text === partial) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
     partial = ''; partialTr = '';
     if (bridged()) {
       // 再挂一次监听（onEvent 按引用去重）：桥晚于 wire() 出现的宿主（test:listen 的假桥）也收得到字幕条的「结束」
@@ -709,9 +737,8 @@ var AppListen = (() => {
       NativeAudio.sessionStart();
       if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
     }
-    $('app-listen-summary').hidden = true;
-    $('app-listen-history-wrap').hidden = false;
-    renderHistory();
+    summaryShown = false;
+    canvas.view('history'); canvas.view('summary');   // 「再来一段」收小结卡：原 :887 直写 hidden=true
     if (!clockTimer) clockTimer = setInterval(paintClock, 1000);
     await beginPipeline();
   }
@@ -730,14 +757,14 @@ var AppListen = (() => {
       if (phase !== 'preparing') return;
       if (!r.ok) { halt('device', r.reason || ''); return; }
       if (r.assets !== 'installed') {
-        phase = 'downloading'; dlPct = 0; dlLang = ''; paint();
+        phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state');
         try {
           await NativeSpeech.ensureAssets('stt', deviceLocales(cfg), (m) => {
             dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
           });
         } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return; }
         if (phase !== 'downloading') return;
-        phase = 'preparing'; paint();
+        phase = 'preparing'; canvas.view('state');
       }
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
@@ -745,17 +772,17 @@ var AppListen = (() => {
       // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
       // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
       const rd = await LearnTTS.ensureDeviceReady((m) => {
-        if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; paint(); }
+        if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state'); }
         if (phase !== 'downloading') return;
         dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
       });
       if (phase !== 'preparing' && phase !== 'downloading') return;
       if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return; }
-      if (phase === 'downloading') { phase = 'preparing'; paint(); }
+      if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
       // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
     }
     openSocket();
-    paint();
+    canvas.view('state');
     startedAt = now();
     await keepAliveOn();
     if (phase !== 'preparing') return;   // 等保活的这一拍里被停掉了
@@ -763,7 +790,7 @@ var AppListen = (() => {
     if (!ok) return;
     // 桥的路：granted 事件把 preparing 切成 listening；页内的路：这里就切
     if (!bridged() && phase === 'preparing') phase = 'listening';
-    paint();
+    canvas.view('state');
   }
   let startedAt = 0, earlyRetries = 0;
   // 本场收到过 silent / sound 没有（决定 10 修订二）：决定静音门的暂停句指不指向权限
@@ -794,7 +821,7 @@ var AppListen = (() => {
       : deaf ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
       : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
     subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf ? 'silence-permission' : 'silence');
-    paint();
+    canvas.view('state');
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
   function halt(reason, why) {
@@ -821,7 +848,7 @@ var AppListen = (() => {
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
     note(msg, true);
     subState(reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
-    paint();
+    canvas.view('state');
   }
   async function resume() {
     if (phase !== 'paused' && phase !== 'halted') return;
@@ -845,7 +872,7 @@ var AppListen = (() => {
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     closeShow();
     renderSummary();
-    paint();
+    canvas.view('state');
     // 收获时刻（telemetry-design §3.12 ④）：听译 / 实时字幕结束、而且真的出过句子。
     // 发生在会话结束的回调里（包括自动结束），与「结束」按钮本身是否被点无关 —— 门槛
     // 与节奏都在 feedback.js，这里只报「发生了」。
@@ -867,7 +894,7 @@ var AppListen = (() => {
     gen++;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
     session = null; phase = 'idle';
-    $('app-listen').hidden = true;
+    $('app-listen').hidden = true;   // shell 级直写（JSX 恒 true，React 不覆盖 —— 头注释）
     $(cameFrom).hidden = false;
   }
   // m === 'subtitle' 打开实时字幕（§9.8）：先停在准备态，点「开始」才开始（画布 M3 / I2）；
@@ -883,14 +910,14 @@ var AppListen = (() => {
     } catch (_) {}
     cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
     $(cameFrom).hidden = true;
-    $('app-listen').hidden = false;
-    $('app-listen-summary').hidden = true;
+    $('app-listen').hidden = false;   // shell 级直写（同上）
+    summaryShown = false;
     note('');
     paintMode();
-    renderHistory(); renderNow();
+    canvas.view('history'); canvas.view('now'); canvas.view('summary');   // 原开页收小结卡：原 :712 直写 hidden=true
     if (mode === 'subtitle') {
-      readCfg().then((c) => { if (mode === 'subtitle' && !session) { cfg = c; paint(); } });
-      paint();
+      readCfg().then((c) => { if (mode === 'subtitle' && !session) { cfg = c; canvas.view('state'); } });
+      canvas.view('state');
       return;
     }
     start();
@@ -902,44 +929,47 @@ var AppListen = (() => {
     const caps = bridged() ? NativeAudio.audioCaps() : null;
     // 文案按原生报的能力分 Mac / iPhone（有系统声音 = Mac）；还不知道时退回宿主形态
     const macLike = caps ? caps.system !== 'unsupported' : isMacHost();
-    $('app-listen-title').textContent = sub ? t('subtitle_title', '实时字幕') : t('listen_title', '对话');
-    $('app-listen-summary-title').textContent = sub ? t('subtitle_summary_title', '这次字幕') : t('listen_summary_title', '这次对话');
-    $('app-listen-summary-note').textContent = sub
-      ? t('subtitle_summary_note', '声音没有保存，只保留文字。进复习的句子可在「来源 › 实时字幕」里管理或整段删除。')
-      : t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。');
-    $('app-listen-my-label').textContent = sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我');
-    $('app-listen-other-label').textContent = sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方');
-    const arrow = document.querySelector('#app-listen-pair .listen-pair-arrow'); if (arrow) arrow.textContent = sub ? '←' : '⇄';
-    const asRow = $('app-listen-autospeak-row'); if (asRow) asRow.hidden = sub;
-    const mn = $('app-listen-mac-note'); if (mn) mn.hidden = sub || !isMacHost();
-    const prep = $('app-subs-prep'); if (prep) prep.hidden = !sub;
-    // iPhone（原生报 system:'unsupported'）：「现在」卡里的半句换成画中画小窗预览占位（协议补充决定（三）17）
-    const pipOn = sub && !!caps && caps.system === 'unsupported';
-    const pipEl = $('app-subs-pip'); if (pipEl) pipEl.hidden = !pipOn;
-    for (const id of ['app-listen-partial', 'app-listen-partial-tr']) { const e = $(id); if (e) e.hidden = pipOn; }
-    const flt = $('app-subs-float'); if (flt) flt.textContent = t('subtitle_pip_float', '浮出字幕窗');
-    const priv = $('app-subs-privacy');
-    if (priv) {
-      priv.hidden = !sub;
-      if (sub) priv.textContent = macLike
-        ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
-        : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。');
-    }
-    const tip = $('app-subs-tip');
-    if (tip && sub) tip.textContent = macLike
-      ? t('subtitle_tip_mac', '开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。')
-      : t('subtitle_tip_ios', '先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。');
     try {
       chrome.storage.local.get(['listenOtherLang', 'subtitleVideoLang', 'subtitleCapture'], (st) => {
         st = st || {};
-        const sel = $('app-listen-other');
-        if (sel) sel.value = C.baseCode(sub ? st.subtitleVideoLang : st.listenOtherLang) || 'en';
-        const cap = $('app-subs-capture'); if (cap) cap.checked = st.subtitleCapture !== false;
+        otherSelVal = C.baseCode(sub ? st.subtitleVideoLang : st.listenOtherLang) || 'en';
+        subsCaptureVal = st.subtitleCapture !== false;
+        canvas.view('mode');
       });
     } catch (_) {}
+    canvas.view('mode');
+  }
+  // modeView：paintMode 的静态部分数据化（macLike 在渲染时现算，与原同步涂写同一时点）。
+  function modeView() {
+    const sub = mode === 'subtitle';
+    const caps = bridged() ? NativeAudio.audioCaps() : null;
+    const macLike = caps ? caps.system !== 'unsupported' : isMacHost();
+    const pipOn = sub && !!caps && caps.system === 'unsupported';
+    return {
+      title: sub ? t('subtitle_title', '实时字幕') : t('listen_title', '对话'),
+      summaryTitle: sub ? t('subtitle_summary_title', '这次字幕') : t('listen_summary_title', '这次对话'),
+      summaryNote: sub
+        ? t('subtitle_summary_note', '声音没有保存，只保留文字。进复习的句子可在「来源 › 实时字幕」里管理或整段删除。')
+        : t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。'),
+      myLabel: sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我'),
+      otherLabel: sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方'),
+      arrow: sub ? '←' : '⇄',
+      autospeakRowHidden: sub,
+      macNoteShown: !sub && isMacHost(),
+      prepHidden: !sub,
+      pipShown: pipOn,
+      pipFloatLabel: t('subtitle_pip_float', '字幕'),   // 原 paintMode 恒写 #app-subs-float
+      partialsHidden: pipOn,   // 半句两行被小窗预览占位顶掉（协议补充决定（三）17）
+      subsPrivacyShown: sub,
+      subsPrivacyText: sub ? (macLike
+        ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
+        : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')) : '',
+      subsTipText: sub ? (macLike
+        ? t('subtitle_tip_mac', '开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。')
+        : t('subtitle_tip_ios', '先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。')) : '',
+    };
   }
 
-  // ── 我说（按住说话）────────────────────────────────────────────────────────
   // ── ↔ 改边（归属判错时用户点一下）──────────────────────────────────────────
   //
   // 一次点击要做完五件事，顺序是硬的：**先按旧方向算出已写进语料的那张卡，再翻转** ——
@@ -956,8 +986,8 @@ var AppListen = (() => {
     row.tr = ''; row.trErr = false;
     if (speakingRid === row.rid) { speakingRid = 0; if (typeof LearnTTS !== 'undefined') LearnTTS.stop(); }
     sq.drop(row.rid);
-    renderHistory();
-    if (showRid === row.rid) renderShow();
+    canvas.view('history');
+    if (showRid === row.rid) canvas.view('show');
 
     // ② 立刻按新方向重译。**不自动重读**：用户翻历史点 ↔ 时突然大声念一句是最吓人的
     //    副作用，而且改边这个动作本身说明前一次朗读已经发生过了。
@@ -977,6 +1007,8 @@ var AppListen = (() => {
       } catch (_) { /* 删不掉不该挡住改边本身 */ }
     }
   }
+  // 「识别原文」展开开关（原视图内 r.showRaw=!r.showRaw; renderHistory()）
+  function toggleShowRaw(row) { row.showRaw = !row.showRaw; canvas.view('history'); }
 
   // ── 放大给对方看（历史行叠层，底下照常在听）────────────────────────────────
   function ttsReady() { return typeof LearnTTS !== 'undefined' && !!(LearnTTS.engine && LearnTTS.engine()); }
@@ -986,22 +1018,26 @@ var AppListen = (() => {
   function openShow(row) {
     if (!row) return;
     showRid = row.rid;
-    renderShow();
+    canvas.view('show');
   }
-  function renderShow() {
-    const box = $('app-listen-flip');
+  // showView：renderShow 的数据版。row 缺失时收卡并清 showRid（与原 renderShow 同一副作用）。
+  function showView() {
     const row = session && session.rows.find((r) => r.rid === showRid);
-    if (!row) { box.hidden = true; showRid = 0; return; }
+    if (!row) { showShown = false; if (showRid) showRid = 0; return { shown: false }; }
     const big = foreignOf(row), small = nativeOf(row);
-    $('app-listen-flip-text').textContent = big || (row.trErr ? t('listen_tr_failed', '译文失败 · 重试') : t('listen_pending', '⏳ 译文准备中…'));
-    $('app-listen-flip-sub').textContent = small || '';
-    $('app-listen-flip-again').hidden = !(ttsReady() && big);
-    box.hidden = false;
+    return {
+      shown: true,
+      big: big || (row.trErr ? t('listen_tr_failed', '译文失败 · 重试') : t('listen_pending', '⏳ 译文准备中…')),
+      sub: small || '',
+      againShown: !!(ttsReady() && big),
+      speakingShown: speakingShow,
+    };
   }
   function closeShow() {
     showRid = 0;
-    $('app-listen-flip').hidden = true;
-    $('app-listen-flip-speaking').hidden = true;
+    showShown = false;
+    speakingShow = false;
+    canvas.view('show');
     // 关卡片只掐**一次性**的那种朗读（队列空 = 用户手点读了一句）。整场排队的自动朗读
     // 不该因为关了一张卡就断掉 —— 它读的是整段对话，不是这张卡。
     if (!sq.size() && typeof LearnTTS !== 'undefined') LearnTTS.stop();
@@ -1012,22 +1048,21 @@ var AppListen = (() => {
     if (!ttsReady() || !text) return null;
     const my = ++speakOutGen;
     const rid = (opts && opts.rid) || 0;
-    const mark = $('app-listen-flip-speaking');
     let r = null;
     try {
-      // 展示卡上的「朗读中」只在这一行正被放大时点亮；行内的那个由 renderHistory 按
+      // 展示卡上的「朗读中」只在这一行正被放大时点亮；行内的那个由 historyView 按
       // speakingRid 画。原来无条件点亮，展示卡关着时是个不可见的空操作。
-      if (showRid && showRid === rid) mark.hidden = false;
+      if (showRid && showRid === rid) { speakingShow = true; canvas.view('show'); }
       const t0 = now();
       r = await LearnTTS.speak(text, lang || (cfg && cfg.otherLang));
       // 出声耗时：从要求朗读到引擎报「已开始出声」（browser 是 start 事件、device 是 tts-start）
       if (session && rid) { const row = session.rows.find((x) => x.rid === rid); if (row && row.lat) { row.lat.ttsStart = now() - t0; row.lat.ttsEngine = (r && r.engine) || ''; row.lat.ttsOk = !!(r && r.ok); } }
     } catch (_) { r = null; }
-    if (my === speakOutGen) mark.hidden = true;
+    if (my === speakOutGen) { speakingShow = false; canvas.view('show'); }
     // 设备内置朗读回落到系统语音（模型不含这个语言）：行上具名，不静默
     if (r && r.ok && r.fallback === 'lang' && session && rid) {
       const row = session.rows.find((x) => x.rid === rid);
-      if (row && !row.ttsFallback) { row.ttsFallback = lang || (cfg && cfg.otherLang) || ''; renderHistory(); }
+      if (row && !row.ttsFallback) { row.ttsFallback = lang || (cfg && cfg.otherLang) || ''; canvas.view('history'); }
     }
     return r;
   }
@@ -1041,7 +1076,7 @@ var AppListen = (() => {
     try {
       for (let job; (job = sq.next());) {
         if (job.gen !== gen) continue;            // 旧会话的残留
-        speakingRid = job.rid; renderHistory();
+        speakingRid = job.rid; canvas.view('history');
         const at = now();
         echo.speaking(job.text, at);              // 登记：这段话正在从扬声器出去
         sq.noteSpoken(job.text, at);
@@ -1052,7 +1087,7 @@ var AppListen = (() => {
         speakingRid = 0;
         onSpeakResult(r);
       }
-    } finally { speakPumping = false; renderHistory(); }
+    } finally { speakPumping = false; canvas.view('history'); }
   }
 
   // 失败要出错，但要有节制：no_voice / http 这类会**每一句都复现**，不设门槛就是满屏
@@ -1082,11 +1117,11 @@ var AppListen = (() => {
     if (autoAt.length > 6) {
       autoSpeakOff = true; sq.clear(); autoAt = [];
       note(t('listen_autospeak_echo', '自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开'), false);
-      renderHistory();
+      canvas.view('history');
       return;
     }
     sq.push({ rid: row.rid, text: row.tr, lang: targetLangFor(row), gen });
-    renderHistory();
+    canvas.view('history');
     speakPump();
   }
 
@@ -1115,7 +1150,7 @@ var AppListen = (() => {
     });
   }
   function onNative(msg) {
-    if (!msg || $('app-listen').hidden || !session) return;
+    if (!msg || ($('app-listen') && $('app-listen').hidden) || !session) return;
     if (msg.type === 'subtitle-window') {
       pipWindow = String(msg.state || ''); pipReason = String(msg.reason || '');
       // ✕ 关掉小窗 = 暂停听（§9.8 协议补充决定（三）19 修订，2026-09-15 用户裁定）：关掉后屏幕上一个字都看不到，
@@ -1145,28 +1180,21 @@ var AppListen = (() => {
     }
   }
 
-  // ── 界面 ──────────────────────────────────────────────────────────────────
+  // ── 界面（涂写点全部换成 canvas.view；数据在下方 *View() getter 里）─────────
   function note(msg, isErr) {
-    const el = $('app-listen-note'); if (!el) return;
-    el.textContent = msg || '';
-    el.classList.toggle('err', !!isErr);
+    noteMsg = msg || '';
+    noteErr = !!isErr;
+    canvas.view('note');
   }
   function paintClock() {
     if (!session) return;
-    const ms = C.listenedMs(session, now());
-    const pill = $('app-listen-pill');
-    const listening = phase === 'listening';
-    pill.textContent = phase === 'downloading' ? t('listen_downloading', '正在下载{lang}离线模型 · {pct}%').replace('{lang}', langLabel(dlLang)).replace('{pct}', String(dlPct))
-      : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
-      : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
-      : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
-      : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms));
-    pill.classList.toggle('live', listening);
-    if (phase === 'downloading') subState('downloading', dlPct);
     // 早说一句（#424）：字幕档听了 DEAF_HINT_MS 还**一个非零样本都没收到** ⇒ 采集链路多半
     // 是死的（Mac 上通常是系统录音权限），不是环境安静。原来这句话只在原生报 silent 时出，
     // 而那条判据只在开始后 3 秒量一次；等不到它的人要一直等到 30 秒静音门，然后收到一句
     // 指错方向的「没有声音」。不中断会话、不改计费，只是把话说对，并给一条去系统设置的路。
+    const ms = C.listenedMs(session, now());
+    const listening = phase === 'listening';
+    if (phase === 'downloading') subState('downloading', dlPct);
     if (listening && session.mode === 'subtitle' && !session.heardAny && !deafHinted
         && ms >= DEAF_HINT_MS) {
       deafHinted = true;
@@ -1176,205 +1204,255 @@ var AppListen = (() => {
       // 声音终于来了 ⇒ 把那句话撤掉（同原生 'sound' 那一支的做法：只撤**我们自己写的**
       // 那一句，别把用户看到的别的提示一并清了）。
       deafHinted = false;
-      const el = $('app-listen-note');
-      if (el && el.textContent === silentHint()) note('');
+      if (noteMsg === silentHint()) note('');
       if (!sysSilent || sysSound) subState('listening');
     }
-    // Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行
-    const dp = $('app-listen-device-privacy');
-    if (dp) { dp.hidden = false; dp.textContent = t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'); }
-    $('app-listen-cost').textContent = t('listen_cost_line_device', '已听 {t} · 音频不离开设备').replace('{t}', C.fmtClock(ms));
+    canvas.view('clock');
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
+  // pillView：paintClock 的胶囊数据版（视图每秒随 clock bump 重画）。
+  function pillView() {
+    if (!session) return null;
+    const ms = C.listenedMs(session, now());
+    const listening = phase === 'listening';
+    return {
+      text: phase === 'downloading' ? t('listen_downloading', '正在下载{lang}离线模型 · {pct}%').replace('{lang}', langLabel(dlLang)).replace('{pct}', String(dlPct))
+        : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
+        : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
+        : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
+        : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms)),
+      live: listening,
+    };
+  }
+  // footView：paintClock 尾部两行（Gate H 披露 + 用量行）。
+  function footView() {
+    const ms = session ? C.listenedMs(session, now()) : 0;
+    return {
+      privacyShown: !!session,
+      privacyText: t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'),
+      cost: t('listen_cost_line_device', '已听 {t} · 音频不离开设备').replace('{t}', C.fmtClock(ms)),
+    };
+  }
+  // paint：paintPipNote → 表 1 全量 → paintClock/paintNowPlaying/renderNow。
   function paint() {
-    paintPipNote();
-    const active = phase === 'listening';
-    const ended = phase === 'ended';
-    // 表 1（画布「状态与转移」）：每个状态下每个控件的样子。灰 = 45% 透明 + 文案不变，
-    // 且屏上一定有原因（胶囊或红字行）。
-    const eph = $('app-listen-ephemeral-row');
-    if (eph) {
-      const live = !!session && phase !== 'ended';
-      $('app-listen-ephemeral').disabled = live;      // 中途不可改
-      eph.classList.toggle('off', live);
-      $('app-listen-ephemeral-pill').hidden = !(session && session.ephemeral);
-      // 没勾又在会话中 ⇒ 一个纯灰的勾选框；家规是「灰 = 45% 透明 + 文案不变，且屏上一定有原因」
-      // （2026-09-08 用户实测发现没原因）。勾上了的那种情况由上面的胶囊说话。
-      const why = $('app-listen-ephemeral-why');
-      if (why) { const show = live && !(session && session.ephemeral); why.hidden = !show; if (show) why.textContent = t('listen_ephemeral_locked', '这一场已经开始，要不留记录请先结束再重开'); }
-    }
-    const tog = $('app-listen-toggle');
-    tog.textContent = phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
-      : (phase === 'preparing' || phase === 'downloading') ? t('listen_toggle_preparing', '准备中…')
-      : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
-      : mode === 'subtitle' ? (session && phase !== 'ended' ? t('subtitle_ctl_resume', '继续') : t('subtitle_start', '开始'))
-      : t('listen_toggle_start', '开始听');
-    tog.disabled = phase === 'preparing' || phase === 'downloading' || (phase === 'halted' && pauseReason === 'socket-retry');
-    // 结束后两个按钮不出现（要说话就「再来一段」）；小结卡替换上卡，历史留着
-    const grid = $('app-listen-actions'); if (grid) grid.hidden = ended;
-    const nowCard = $('app-listen-now'); if (nowCard) nowCard.hidden = ended;
-    $('app-listen-end').hidden = !session || ended;
-    // 双向，所以是 ⇄ 而不是 → ：两边都可能说话，没有固定的「从」和「到」。
-    $('app-listen-lang').textContent = mode === 'subtitle'
+    canvas.view('state');
+    canvas.view('clock');
+    canvas.view('now');
+    paintNowPlaying();
+  }
+  // paint 的数据版（视图渲染时逐项取）。
+  function langLineText() {
+    return mode === 'subtitle'
       ? t('subtitle_lang_line', '{a} → {b}').replace('{a}', langLabel(cfg && cfg.otherLang)).replace('{b}', langLabel(cfg && cfg.myLang))
       : t('listen_lang_pair', '{a} ⇄ {b}').replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang));
+  }
+  function nowLabel() {
+    const sub = mode === 'subtitle';
     // 上卡的归属**按半句实时判**：句子还没定稿就先给出归属，判错了用户当场看得见，
     // 而不是等整句出来才发现。判不出就说「正在说…」，不假装知道。
     const side = partial ? C.sideOf(partial, cfg, routeDeps) : '';
-    $('app-listen-now-label').textContent = mode === 'subtitle' ? t('subtitle_now_label', '现在') : side === 'me' ? t('listen_now_me', '我正在说')
+    return sub ? t('subtitle_now_label', '现在') : side === 'me' ? t('listen_now_me', '我正在说')
       : side === 'them' ? t('listen_now_them', '对方正在说')
         : t('listen_now_any', '正在说…');
-    $('app-listen-live').textContent = t('listen_live_badge', '● 实时');
-    $('app-listen-live').hidden = !active;
-    paintClock();
-    paintNowPlaying();
-    renderNow();
+  }
+  function ephemeralView() {
+    const live = !!session && phase !== 'ended';
+    const pillShown = !!(session && session.ephemeral);
+    // 没勾又在会话中 ⇒ 一个纯灰的勾选框；家规是「灰 = 45% 透明 + 文案不变，且屏上一定有原因」
+    // （2026-09-08 用户实测发现没原因）。勾上了的那种情况由胶囊说话。
+    const whyShown = live && !(session && session.ephemeral);
+    return {
+      live,
+      pillShown,
+      whyShown,
+      whyText: t('listen_ephemeral_locked', '这一场已经开始，要不留记录请先结束再重开'),
+    };
+  }
+  function toggleView() {
+    const ended = phase === 'ended';
+    return {
+      text: phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
+        : (phase === 'preparing' || phase === 'downloading') ? t('listen_toggle_preparing', '准备中…')
+        : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
+        : mode === 'subtitle' ? (session && phase !== 'ended' ? t('subtitle_ctl_resume', '继续') : t('subtitle_start', '开始'))
+        : t('listen_toggle_start', '开始听'),
+      disabled: phase === 'preparing' || phase === 'downloading' || (phase === 'halted' && pauseReason === 'socket-retry'),
+      ended,                                       // 结束后主按钮与上卡都不出现（要说话就「再来一段」）
+      endHidden: !session || ended,                // 「结束」按钮：没有会话或已结束时藏（原 :1216）
+    };
   }
   function langLabel(code) {
     const c = String(code || '');
     const base = c.split('-')[0].toLowerCase();
-    const e = (window.MT_LANGS || []).find((l) => l.code === base || l.code === c);
+    const e = Registry.langs().find((l) => l.code === base || l.code === c);
     return e ? (e.labelKey ? t(e.labelKey, e.label) : e.label) : c;
   }
-  function renderNow() {
-    const p = $('app-listen-partial'), q = $('app-listen-partial-tr');
-    if (!p) return;
-    p.textContent = partial || '';
-    q.textContent = partial && partialTr ? partialTr + '…' : '';
+  // 语言下拉的选项（wire 里 fillLangSel 的数据版）：只列本机识别器支持的语种（清单由桥在
+  // stt-probe 时报出；没探过就不过滤），正选中的照旧留着 —— 与设置页同一条规则。
+  function langOptions(keep) {
+    let allowed = null;
+    try { const l = deviceBridge() ? NativeSpeech.supportedLocales() : []; if (l.length) allowed = new Set(l.map((x) => String(x).split(/[-_]/)[0].toLowerCase())); } catch (_) { allowed = null; }
+    const out = [];
+    for (const l of Registry.langs()) {
+      if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
+      out.push({ code: l.code, label: l.labelKey ? t(l.labelKey, l.label) : l.label });
+    }
+    return out;
   }
-  function renderHistory() {
-    const list = $('app-listen-history'); if (!list) return;
-    const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 12;
-    list.textContent = '';
+  // 语言对状态从盘上回填（wire 里 paintLangs 的存储读；wire 时调一次，storage.onChanged 的
+  // listenMyLang/listenOtherLang 分支也会顺路经 refreshEntry 重探 —— 下拉的值以这里为准）。
+  function keepLangSel() {
+    try {
+      chrome.storage.local.get(['listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'uiLang'], (s) => {
+        s = s || {};
+        const B = C.baseCode;
+        otherSelVal = B(s.listenOtherLang) || 'en';
+        mySelVal = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
+          || B(navigator.language) || 'zh';
+        autoSpeakVal = s.listenAutoSpeak !== false;
+        canvas.view('mode');
+      });
+    } catch (_) {}
+  }
+  // 行内「↔ 改语言」（原 wire 里两个 select 的 change handler）：对调规则在 ListenCore.langPatch。
+  function langChange(which, value) {
+    const prev = which === 'my'
+      ? { myLang: (cfg && cfg.myLang) || '', otherLang: otherSelVal }
+      : { myLang: mySelVal, otherLang: (cfg && cfg.otherLang) || '' };
+    const p = C.langPatch(which, value, prev);
+    const swapped = p.swapped; delete p.swapped;
+    const otherVal = p.listenOtherLang;
+    // 实时字幕里右边那个是「视频的语言」：同一套对调规则，存到 subtitleVideoLang（不动对话的语言对）
+    if (mode === 'subtitle' && otherVal !== undefined) { p.subtitleVideoLang = otherVal; delete p.listenOtherLang; }
+    chrome.storage.local.set(p);
+    if (p.listenMyLang !== undefined) mySelVal = C.baseCode(p.listenMyLang);
+    if (otherVal !== undefined) otherSelVal = C.baseCode(otherVal);
+    if (cfg) {
+      cfg.myLang = mySelVal; cfg.targetLang = mySelVal;
+      cfg.otherLang = otherSelVal; cfg.lang = otherSelVal;
+    }
+    // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
+    // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
+    if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+    // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）
+    if (session && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
+    canvas.view('mode');   // 受控 select：mySelVal/otherSelVal 变了必须 bump，否则 React 把 DOM 值拉回去
+    if (session) canvas.view('state');
+  }
+  function setAutoSpeak(on) {
+    autoSpeakVal = on;
+    chrome.storage.local.set({ listenAutoSpeak: on });
+    if (cfg) cfg.autoSpeak = on;
+    canvas.view('mode');   // 受控 checkbox：不 bump 会被 React 拉回旧值
+  }
+  function setSubsCapture(on) {
+    subsCaptureVal = on;
+    chrome.storage.local.set({ subtitleCapture: on });
+    if (cfg && mode === 'subtitle') cfg.captureOn = on;
+    canvas.view('mode');
+  }
+  function setEphemeral(on) { ephemeralChecked = !!on; canvas.view('state'); }
+
+  // historyView：renderHistory 的数据版（视图映射 JSX；行动作经 model 动作回流）。
+  function historyView() {
     const rows = session ? session.rows : [];
     const sub = mode === 'subtitle';   // 单向：不画归属标、↔、朗读、给对方看（§9.8）
-    if (!rows.length) {
-      // 刚开始、还没有一句定稿：一句引导，不是空白
-      const e = document.createElement('div'); e.className = 'listen-empty';
-      e.textContent = sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边');
-      list.appendChild(e);
-    }
-    for (const r of rows) {
-      const row = document.createElement('div'); row.className = 'listen-row' + (r.who === 'me' ? ' me' : '');
-      // 归属标。判不出、靠粘性或兜底得来的标虚线 —— 用户一眼看得出哪几行是猜的。
-      const who = document.createElement('span');
-      who.className = 'listen-who' + (r.guessed && !r.pinned ? ' guessed' : '');
-      who.textContent = r.who === 'me' ? t('listen_who_me', '我') : t('listen_who_them', '对方');
-      if (r.guessed && !r.pinned) who.title = t('listen_who_guessed', '按语言猜的 · 点 ↔ 改');
-      if (!sub) row.appendChild(who);
-      const body = document.createElement('div'); body.className = 'listen-body';
-      body.setAttribute('role', 'button');
-      const o = document.createElement('div'); o.className = 'listen-orig';
-      o.textContent = r.text;
-      body.appendChild(o);
-      // 本机路：修正后与识别原文不同时，行尾小字「识别原文」可点，展开一行原文（不静默改字）
-      if (r.raw != null && r.raw !== r.text) {
-        const tg = document.createElement('button'); tg.type = 'button'; tg.className = 'listen-raw-toggle';
-        tg.textContent = t('listen_raw_label', '识别原文');
-        tg.setAttribute('aria-expanded', r.showRaw ? 'true' : 'false');
-        tg.addEventListener('click', (e) => { e.stopPropagation(); r.showRaw = !r.showRaw; renderHistory(); });
-        body.appendChild(tg);
-        if (r.showRaw) { const rw = document.createElement('div'); rw.className = 'listen-raw'; rw.textContent = r.raw; body.appendChild(rw); }
-      }
-      if (r.trErr) {
-        // 翻译失败要留下出口，不是永远的 ⏳
-        const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'listen-tr-retry';
-        retry.textContent = t('listen_tr_failed', '译文失败 · 重试');
-        retry.addEventListener('click', (e) => { e.stopPropagation(); retranslate(r, true); });
-        body.appendChild(retry);
-      } else {
-        const tr = document.createElement('div'); tr.className = 'listen-tr' + (r.tr ? (r.trTemp ? ' temp' : '') : ' pending');
-        tr.textContent = r.tr || t('listen_pending', '⏳ 译文准备中…');
-        body.appendChild(tr);
-      }
-      if (r.tr && !sub) {
-        // 两边的行都给「朗读」与「给对方看」：洽谈里我可能要把对方那句的中文放大给
-        // 自己看，也可能要把我这句的外语再读一遍给对方听。
-        const acts = document.createElement('div'); acts.className = 'listen-row-acts';
-        if (ttsReady()) {
-          const rd = document.createElement('button'); rd.type = 'button';
-          rd.className = 'listen-act' + (speakingRid === r.rid ? ' on' : '');
-          rd.textContent = speakingRid === r.rid ? t('listen_reading', '朗读中') : t('listen_read_aloud', '朗读');
-          rd.addEventListener('click', (e) => { e.stopPropagation(); speakNow(r); });
-          acts.appendChild(rd);
-        }
-        const sh = document.createElement('button'); sh.type = 'button'; sh.className = 'listen-act';
-        sh.textContent = t('listen_show_other', '给对方看');
-        sh.addEventListener('click', (e) => { e.stopPropagation(); openShow(r); });
-        acts.appendChild(sh);
-        if (r.ttsFallback) {
-          const fb = document.createElement('span'); fb.className = 'listen-tts-fallback';
-          fb.textContent = t('tts_device_lang_fallback', '用系统语音朗读（离线模型不含{lang}）').replace('{lang}', langLabel(r.ttsFallback));
-          acts.appendChild(fb);
-        }
-        body.appendChild(acts);
-      }
-      if (!sub) body.addEventListener('click', () => { openShow(r); });
-      // ↔ 改边。无障碍名说的是**结果**（改成谁说的），不是符号本身。
-      const swap = document.createElement('button'); swap.type = 'button'; swap.className = 'listen-swap';
-      swap.textContent = '↔';
-      swap.setAttribute('aria-label', r.who === 'me'
-        ? t('listen_swap_to_them', '改成对方说的') : t('listen_swap_to_me', '改成我说的'));
-      swap.addEventListener('click', (e) => { e.stopPropagation(); flipRow(r); });
-      row.appendChild(body); if (!sub) row.appendChild(swap);
-      // 「这次不留记录」时**星整个不出现**：星的唯一语义是「绕过一切门确保进复习」，
-      // 在一个不写盘的会话里给一颗按了没用的星，就是那种「界面说它做了、其实没做」。
-      if (!(session && session.ephemeral)) {
-        const star = document.createElement('button'); star.type = 'button'; star.className = 'listen-star' + (r.starred ? ' on' : '');
-        star.textContent = r.starred ? '★' : '☆';
-        star.setAttribute('aria-label', t('listen_star', '加星'));
-        star.addEventListener('click', (e) => { e.stopPropagation(); toggleStar(r); });
-        row.appendChild(star);
-      }
-      list.appendChild(row);
-    }
-    $('app-listen-history-title').textContent = t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : '');
-    // 排队时说清还剩几句 —— 对方说得快时朗读会拖后，不说就成了「怎么读的不是刚才那句」
-    const qn = $('app-listen-queue');
-    if (qn) {
-      const n = sq.size();
-      qn.hidden = !n;
-      if (n) qn.textContent = t('listen_read_queue_n', '朗读中 · 还有 {n} 句待读').replace('{n}', String(n));
-    }
-    const cp = $('app-listen-copy'); if (cp) { cp.hidden = !rows.length; if (!cp.dataset.flash) cp.textContent = t('listen_copy_all', '复制全文'); }
-    if (atBottom) list.scrollTop = list.scrollHeight;
+    const starable = !(session && session.ephemeral);
+    const out = rows.map((r) => ({
+      row: r,
+      who: r.who,
+      guessed: !!(r.guessed && !r.pinned),
+      whoTitle: t('listen_who_guessed', '按语言猜的 · 点 ↔ 改'),
+      text: r.text,
+      hasRaw: r.raw != null && r.raw !== r.text,
+      showRaw: !!r.showRaw,
+      raw: r.raw,
+      trErr: !!r.trErr,
+      tr: r.tr,
+      trTemp: !!r.trTemp,
+      trBusy: !!r.trBusy,
+      canSpeak: !!(r.tr && !sub && ttsReady()),
+      speaking: speakingRid === r.rid,
+      ttsFallback: r.ttsFallback || '',
+      starred: !!r.starred,
+      starable,
+    }));
+    const qn = sq.size();
+    return {
+      rows: out,
+      sub,
+      emptyText: sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边'),
+      title: t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : ''),
+      queueShown: !!qn,
+      queueText: t('listen_read_queue_n', '朗读中 · 还有 {n} 句待读').replace('{n}', String(qn)),
+      copyShown: !!rows.length,
+      // 复制闪字期间视图自己持有 copied 态，这里不给文本（原 dataset.flash 的语义）
+      swapToThem: t('listen_swap_to_them', '改成对方说的'),
+      swapToMe: t('listen_swap_to_me', '改成我说的'),
+      rawLabel: t('listen_raw_label', '识别原文'),
+      trFailed: t('listen_tr_failed', '译文失败 · 重试'),
+      pending: t('listen_pending', '⏳ 译文准备中…'),
+      whoMe: t('listen_who_me', '我'),
+      whoThem: t('listen_who_them', '对方'),
+      reading: t('listen_reading', '朗读中'),
+      readAloud: t('listen_read_aloud', '朗读'),
+      showOther: t('listen_show_other', '给对方看'),
+      ttsFallbackText: (lang) => t('tts_device_lang_fallback', '用系统语音朗读（离线模型不含{lang}）').replace('{lang}', langLabel(lang)),
+      starLabel: t('listen_star', '加星'),
+    };
   }
-  function renderSummary() {
+  function copyText() { return t('listen_copy_all', '复制全文'); }
+  async function copyAll() {
+    const text = C.transcriptText(session, t('listen_me_prefix', '我：'));
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
+      // 无剪贴板 API 的宿主：退到选区复制
+      try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (_2) { ok = false; }
+    }
+    return ok;
+  }
+  // summaryView：renderSummary 的数据版。shown 收口在 summaryShown（open/start 收起、end 展开）——
+  // 只看 session 的话，会话进行中小结卡会错误地亮出来（原 open :712 / start :887 都 hidden=true）。
+  function summaryView() {
+    if (!session || !summaryShown) return { shown: false };
     const s = C.summary(session, now());
+    let body;
     if (session.mode === 'subtitle') {
       const keptSub = s.ephemeral ? t('listen_ephemeral_summary', '这次没有留下记录')
         : t('subtitle_summary_kept', '进复习（来源「实时字幕」）{k} 句 · 含 {s} 句加星').replace('{k}', String(s.written)).replace('{s}', String(s.starred));
-      $('app-listen-summary-body').textContent = t('subtitle_summary_body', '时长 {t} · 共 {n} 句 · {kept}')
+      body = t('subtitle_summary_body', '时长 {t} · 共 {n} 句 · {kept}')
         .replace('{t}', C.fmtClock(s.seconds * 1000)).replace('{n}', String(s.them)).replace('{kept}', keptSub);
-      $('app-listen-summary').hidden = false;
-      return;
+    } else {
+      // 不留记录的那一场：把「进复习 N 句」换成一句话，**不显示 0** —— 0 会让人以为是
+      // 没采集到，而不是「这一场本来就不留」。
+      const kept = s.ephemeral
+        ? t('listen_ephemeral_summary', '这次没有留下记录')
+        : t('listen_summary_kept', '进复习（来源「对话」）{n} 句 · 含 {s} 句加星')
+          .replace('{n}', String(s.written)).replace('{s}', String(s.starred));
+      body = t('listen_summary_body2', '时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}')
+        .replace('{t}', C.fmtClock(s.seconds * 1000)).replace('{them}', String(s.them)).replace('{me}', String(s.me))
+        .replace('{kept}', kept)
+        // 改过边的次数是「归属判得准不准」的唯一体感指标：一直很大就说明这个语言对不适合自动判
+        + (s.flips ? ' · ' + t('listen_summary_flips', '改过边 {n} 句').replace('{n}', String(s.flips)) : '');
     }
-    // 不留记录的那一场：把「进复习 N 句」换成一句话，**不显示 0** —— 0 会让人以为是
-    // 没采集到，而不是「这一场本来就不留」。
-    const kept = s.ephemeral
-      ? t('listen_ephemeral_summary', '这次没有留下记录')
-      : t('listen_summary_kept', '进复习（来源「对话」）{n} 句 · 含 {s} 句加星')
-        .replace('{n}', String(s.written)).replace('{s}', String(s.starred));
-    $('app-listen-summary-body').textContent = t('listen_summary_body2', '时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}')
-      .replace('{t}', C.fmtClock(s.seconds * 1000)).replace('{them}', String(s.them)).replace('{me}', String(s.me))
-      .replace('{kept}', kept)
-      // 改过边的次数是「归属判得准不准」的唯一体感指标：一直很大就说明这个语言对不适合自动判
-      + (s.flips ? ' · ' + t('listen_summary_flips', '改过边 {n} 句').replace('{n}', String(s.flips)) : '');
-    $('app-listen-summary').hidden = false;
+    return { shown: true, body };
+  }
+  function renderSummary() {
+    summaryShown = true;
+    canvas.view('summary');
+  }
+  function summaryAgain() { phase = 'idle'; start(); }
+  function floatBtn() { if (bridged()) NativeAudio.subtitleFloat(); }
+  function speakShownRow() {
+    const row = session && session.rows.find((r) => r.rid === showRid);
+    if (row) speakOut(foreignOf(row));
   }
 
   // ── 接线 ──────────────────────────────────────────────────────────────────
+  // 原 wire() 的事件挂载与静态文案全部落到 listen-view.jsx（JSX + onClick）；
+  // 这里只留 IO 订阅与初始探询。回调经 model 动作（导出的 open 等），与原 addEventListener
+  // 挂的是同一批函数。
   function wire() {
-    for (const sfx of ENTRY_SUFFIXES) {
-      const entry = $('app-listen-entry' + sfx);
-      if (entry) { const title = entry.querySelector('.mode-title'); (title || entry).textContent = t('listen_entry', '对话 · 实时听译'); entry.addEventListener('click', open); }
-      const why = $('app-listen-need-live-why' + sfx); if (why) why.textContent = needText('os');
-      const go = $('app-listen-need-live-go' + sfx); if (go) go.hidden = true;   // 灰态不是配置问题，没有「去设置」
-      const se = $('app-subs-entry' + sfx);
-      if (se) { const st = se.querySelector('.mode-title'); (st || se).textContent = t('subtitle_entry', '实时字幕'); se.addEventListener('click', () => open('subtitle')); }
-    }
-    const floatBtn = $('app-subs-float');
-    if (floatBtn) floatBtn.addEventListener('click', () => { if (bridged()) NativeAudio.subtitleFloat(); });
     refreshEntry();
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -1383,129 +1461,36 @@ var AppListen = (() => {
         if (['listenMyLang', 'listenOtherLang', 'subtitleVideoLang', 'uiLang'].some((k) => k in (changes || {}))) refreshEntry();
       });
     } catch (_) {}
-
-    $('app-listen-back').textContent = t('app_listen_back', '‹ 返回');
-    $('app-listen-title').textContent = t('listen_title', '对话');
-    $('app-listen-history-title').textContent = t('listen_history', '整句定稿');
-    $('app-listen-end').textContent = t('listen_end', '结束');
-    $('app-listen-copy').textContent = t('listen_copy_all', '复制全文');
-    const mn = $('app-listen-mac-note'); mn.textContent = t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。'); mn.hidden = !isMacHost();
-    $('app-listen-flip-hint').textContent = t('listen_flip_hint', '给对方看 · 点任意处返回');
-    $('app-listen-flip-speaking').textContent = t('listen_flip_speaking', '朗读中');
-    $('app-listen-flip-again').textContent = t('listen_read_aloud', '朗读');
-    $('app-listen-flip-back').textContent = t('listen_close', '关闭');
-    $('app-listen-summary-title').textContent = t('listen_summary_title', '这次对话');
-    $('app-listen-summary-note').textContent = t('listen_summary_note', '录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。');
-    $('app-listen-summary-home').textContent = t('listen_summary_home', '回到首页');
-    $('app-listen-summary-again').textContent = t('listen_summary_again', '再来一段');
-    $('app-listen-my-label').textContent = t('listen_lang_me_label', '我');
-    $('app-listen-other-label').textContent = t('listen_lang_other_label', '对方');
-    $('app-listen-autospeak-label').textContent = t('listen_autospeak_label', '自动朗读译文');
-    $('app-listen-ephemeral-label').textContent = t('listen_ephemeral_label', '这次不留记录');
-    $('app-listen-ephemeral-pill').textContent = t('listen_ephemeral_pill', '这次不留记录');
-    if ($('app-subs-capture-label')) $('app-subs-capture-label').textContent = t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）');
-    if ($('app-subs-capture')) $('app-subs-capture').addEventListener('change', () => {
-      const on = $('app-subs-capture').checked;
-      chrome.storage.local.set({ subtitleCapture: on });
-      if (cfg && mode === 'subtitle') cfg.captureOn = on;
-    });
-
-    // 语言对：两个下拉从语言注册表列，与设置页那两个是同一份设置（listenMyLang /
-    // listenOtherLang）。选重了不是拒绝而是对调 —— 判据在 ListenCore.langPatch。
-    const selMy = $('app-listen-my'), selOther = $('app-listen-other');
-    // 2026-09-17：只列本机识别器支持的语种（清单由桥在 stt-probe 时报出；没探过就不过滤）。
-    // 与设置页那两个下拉同一条规则（src/app/settings-view.jsx fillLangs）；正选中的照旧留着。
-    function fillLangSel(sel) {
-      const keep = sel.value;
-      let allowed = null;
-      try { const l = deviceBridge() ? NativeSpeech.supportedLocales() : []; if (l.length) allowed = new Set(l.map((x) => String(x).split(/[-_]/)[0].toLowerCase())); } catch (_) { allowed = null; }
-      sel.textContent = '';
-      for (const l of (window.MT_LANGS || [])) {
-        if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
-        const o = document.createElement('option'); o.value = l.code;
-        o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
-        sel.appendChild(o);
-      }
-      if (keep) sel.value = keep;
-    }
-    for (const sel of [selMy, selOther]) fillLangSel(sel);
-    langSelFill = () => { for (const sel of [selMy, selOther]) fillLangSel(sel); };
-    function paintLangs(s) {
-      const B = C.baseCode;
-      selOther.value = B(s.listenOtherLang) || 'en';
-      selMy.value = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
-        || B(navigator.language) || 'zh';
-      $('app-listen-autospeak').checked = s.listenAutoSpeak !== false;
-    }
-    chrome.storage.local.get(['listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'uiLang'], (s) => paintLangs(s || {}));
-    for (const [which, sel] of [['my', selMy], ['other', selOther]]) {
-      sel.addEventListener('change', () => {
-        const prev = which === 'my'
-          ? { myLang: (cfg && cfg.myLang) || '', otherLang: selOther.value }
-          : { myLang: selMy.value, otherLang: (cfg && cfg.otherLang) || '' };
-        const p = C.langPatch(which, sel.value, prev);
-        const swapped = p.swapped; delete p.swapped;
-        const otherVal = p.listenOtherLang;
-        // 实时字幕里右边那个是「视频的语言」：同一套对调规则，存到 subtitleVideoLang（不动对话的语言对）
-        if (mode === 'subtitle' && otherVal !== undefined) { p.subtitleVideoLang = otherVal; delete p.listenOtherLang; }
-        chrome.storage.local.set(p);
-        if (p.listenMyLang !== undefined) selMy.value = C.baseCode(p.listenMyLang);
-        if (otherVal !== undefined) selOther.value = C.baseCode(otherVal);
-        if (cfg) {
-          cfg.myLang = selMy.value; cfg.targetLang = selMy.value;
-          cfg.otherLang = selOther.value; cfg.lang = selOther.value;
-        }
-        // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
-        // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
-        if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
-        // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）
-        if (session && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
-        if (session) paint();
-      });
-    }
-    $('app-listen-autospeak').addEventListener('change', () => {
-      const on = $('app-listen-autospeak').checked;
-      chrome.storage.local.set({ listenAutoSpeak: on });
-      if (cfg) cfg.autoSpeak = on;
-    });
-
-    $('app-listen-back').addEventListener('click', leave);
-    $('app-listen-toggle').addEventListener('click', toggle);
-    $('app-listen-end').addEventListener('click', end);
-    $('app-listen-copy').addEventListener('click', async () => {
-      const cp = $('app-listen-copy');
-      const text = ListenCore.transcriptText(session, t('listen_me_prefix', '我：'));
-      let ok = false;
-      try { await navigator.clipboard.writeText(text); ok = true; } catch (_) {
-        // 无剪贴板 API 的宿主：退到选区复制
-        try { const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(ta); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (_2) { ok = false; }
-      }
-      cp.dataset.flash = '1';
-      cp.textContent = ok ? t('listen_copied', '已复制') : t('listen_copy_failed', '复制失败');
-      setTimeout(() => { delete cp.dataset.flash; cp.textContent = t('listen_copy_all', '复制全文'); }, 1500);
-    });
-    $('app-listen-summary-home').addEventListener('click', leave);
-    $('app-listen-summary-again').addEventListener('click', () => { phase = 'idle'; start(); });
-
-    // 按住说话：pointer 三件套 + 键盘（macOS：按住空格）
-
-    const flip = $('app-listen-flip');
-    flip.addEventListener('click', (e) => { if (e.target.closest('button')) return; closeShow(); });
-    $('app-listen-flip-back').addEventListener('click', closeShow);
-    $('app-listen-flip-again').addEventListener('click', () => {
-      const row = session && session.rows.find((r) => r.rid === showRid);
-      if (row) speakOut(foreignOf(row));
-    });
-
+    keepLangSel();
     if (bridged()) NativeAudio.onEvent(onNative);
     // tick（尖刺 S3）：主窗口隐藏时页面计时器被钳到 1 Hz，时钟改吃原生每 250 ms 一条的 tick
     if (bridged() && NativeAudio.onTick) NativeAudio.onTick(() => { if (document.hidden && session && phase !== 'ended') paintClock(); });
     document.addEventListener('visibilitychange', () => { if (!document.hidden && session) paint(); });
   }
 
-  return { wire, open, leave, start, pause, resume, end, refreshEntry,
+  return {
+    canvas,
+    wire, open, leave, start, pause, resume, end, refreshEntry,
+    // 视图动作（原 addEventListener 的 handler 们）
+    toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
+    summaryAgain, copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
+    retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
+    // 渲染数据（listen-view.jsx 渲染期调用）
+    modeView, pillView, footView, langLineText, nowLabel, ephemeralView, toggleView,
+    nowView: () => ({ partial: partial || '', partialTr: partial && partialTr ? partialTr + '…' : '' }),   // renderNow 的数据版
+    // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
+    formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),
+    noteView: () => ({ text: noteMsg, err: noteErr }),
+    historyView, summaryView, showView, pipNoteText, pipFloatShown,
+    entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
+    langOptions, langLabel, copyText, isMacHost,
+    // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
+    pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
-    lat: C.latencySummary(session ? session.rows : []) }) };
+    lat: C.latencySummary(session ? session.rows : []) }),
+  };
 })();
+
+export default listenModel;

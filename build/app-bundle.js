@@ -153,7 +153,8 @@ const MODULES = [
                                          // 注册回调。桥不在时全是 no-op，所以它在
                                          // Chrome 的 test:learn 里也照常加载。
   'app/listen-core.js',                  // ListenCore — §9.6 对话·实时听译的纯逻辑（归属、门、小结）
-  'app/listen.js',                       // AppListen — §9.6 对话·实时听译（IO：麦克风桥、socket、界面、语料）
+                                         // （app/listen.js 的 UI 半边 PR6c 起归 src/app/listen-model.js +
+                                         // listen-view.jsx，进 app-ui.js bundle，不再单独拼接。）
   'extension/learn/doc-core.js',         // DocCore —— §9.7 文档翻译的纯逻辑（分段、分页、七门）
   'extension/learn/doc-reader.js',       // DocReader —— PDF / docx / 文本 / 图片读取（IO）
   'extension/learn/doc-store.js',        // DocStore —— 独立 IDB mt-docs
