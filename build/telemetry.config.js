@@ -216,7 +216,9 @@ const SEAMS = {
       { host: 'ext', file: 'extension/learn/review.js', match: "'nothing_due'" },
       { host: 'app', file: 'extension/learn/review.js', match: "'nothing_due'" },
     ]),
-  grant_claimed: SHARED('extension/learn/grant.js'),
+  // PR7b：claim 逻辑与发送点（grant.js:96 track）一起进了 src/shared/grant.js（纯逻辑
+  // 层，两宿主同一次编译）。file 指源码，门禁对源码核 track 字面量 —— 同 onboarding_done 先例。
+  grant_claimed: SHARED('src/shared/grant.js'),
   grant_exhausted: SHARED('extension/learn/telemetry.js'),
   sync_on: SHARED('extension/learn/sync.js'),
   rate_prompt: [

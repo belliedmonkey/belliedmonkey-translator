@@ -7,7 +7,7 @@
 //     粘的 key**，而那是他花时间申请来的东西。
 //   · 状态机的顺序即优先级。「池子空了」排在「你用完了」前面 —— 后者会让用户去查
 //     自己的账户，查一晚上也查不出来，因为那边根本没问题。
-const { describe, test, eq, ok, deepEq, loadModule, loadSrc } = require('./harness');
+const { describe, test, eq, ok, deepEq, loadSrc } = require('./harness');
 
 const SPEC = {
   vendor: 'openrouter', vendorLabel: 'OpenRouter', limitUsd: 0.2,
@@ -25,14 +25,20 @@ const REG = {
     defaultEndpoint: 'https://backend.example/functions/v1/bt-relay/audio/transcriptions',
     defaultModel: 'openai/gpt-4o-mini-transcribe' }],
 };
+// platform(reg) 的参数契约（PR7b 收编成 ESM 后）是 Registry **同形**：providers/tts/stt，
+// 不是 window 同形的 MT_*。给 plan 当第三参用；REG 只继续当 window 垫片（load() 铺 window）。
+const REGISTRY = { providers: REG.MT_PROVIDERS, tts: REG.MT_TTS_ENGINES, stt: REG.MT_STT_ENGINES };
 
 function load(spec) {
   const win = Object.assign({ MT_GRANT: spec === undefined ? SPEC : spec }, REG);
-  const ctx = loadModule(['learn/quick-setup.js', 'learn/grant.js'], {
+  // PR7b：源从 extension/learn/grant.js（IIFE）换到 src/shared/grant.js（ESM 纯逻辑，
+  // import 的 quick-setup / registry 一并 bundle）。grant.js 不读 WireFormat —— 与旧
+  // 测试一样跑在无 WireFormat 的兜底路径上。
+  const ctx = loadSrc('src/shared/grant.js', 'grant', {
     window: win, document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
     chrome: { i18n: { getMessage: () => '' } },
   });
-  return { G: ctx.LearnGrant, QS: ctx.QuickSetup, win };
+  return { G: ctx.grant, win };
 }
 
 const TOKEN = 'bmg_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAtail1234';
@@ -55,7 +61,7 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
   const { G } = load();
 
   test('空配置：三槽都写，模型被钉住（留空会撞 403）', () => {
-    const r = G.plan(claimed, {}, REG);
+    const r = G.plan(claimed, {}, REGISTRY);
     eq(r.writes.provider, 'grant');
     eq(r.writes.apiKey, TOKEN);
     eq(r.writes.apiModel, 'deepseek/deepseek-v4-flash', '模型必须写死 —— 中继按白名单放行');
@@ -74,13 +80,13 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     const { OptionsModel } = loadSrc('src/pages/options-model.js', 'OptionsModel');
     const known = new Set(OptionsModel.SAVE_KEYS);
     ok(known.size > 10, `键域只有 ${known.size} 个键 —— OptionsModel 被动过了？`);
-    const r = G.plan(claimed, {}, REG);
+    const r = G.plan(claimed, {}, REGISTRY);
     const miss = Object.keys(r.writes).filter((k) => !known.has(k));
     eq(miss.length, 0, '这些键不在 saveNow 的键域里，会被静默清掉：' + miss.join(', '));
   });
 
   test('marks 三件**不进**持久化键域 —— 宿主单独写', () => {
-    const r = G.plan(claimed, {}, REG);
+    const r = G.plan(claimed, {}, REGISTRY);
     deepEq(Object.keys(r.marks).sort(), ['grant', 'grantBalance', 'grantTail']);
     eq(r.marks.grantTail, TOKEN.slice(-8));
     eq(r.marks.grantTail.length, 8, '只存尾八位：判定不需要更多，而少一份完整凭证就少一处泄漏面');
@@ -89,7 +95,7 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
 
   test('用户自己粘的 key 一个字节都不动', () => {
     const s = { apiKey: 'sk-users-own-key', ttsApiKey: 'sk-users-own-key', sttEngine: 'openai_transcribe' };
-    const r = G.plan(claimed, s, REG);
+    const r = G.plan(claimed, s, REGISTRY);
     ok(!('apiKey' in r.writes), '盖掉了用户自己的翻译 key');
     ok(!('ttsApiKey' in r.writes), '盖掉了用户自己的朗读 key');
     ok(!('sttEngine' in r.writes), '盖掉了用户自己的转写引擎');
@@ -100,7 +106,7 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
   test('上一枚令牌可以被盖掉，且**如实报告是替换**', () => {
     const OLD = 'bmg_oldoldoldoldoldoldoldoldoldoldoldoldOLDTAIL9';
     const s = { apiKey: OLD, ttsApiKey: OLD, sttEngine: 'grant_stt', sttApiKey: OLD, grantTail: OLD.slice(-8) };
-    const r = G.plan(claimed, s, REG);
+    const r = G.plan(claimed, s, REGISTRY);
     eq(r.writes.apiKey, TOKEN);
     eq(r.writes.ttsApiKey, TOKEN);
     eq(r.writes.sttApiKey, TOKEN);
@@ -112,26 +118,26 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     // 「改回」走同一条不覆盖的路 —— 一个死按钮。转写那一槽的「已配」看引擎不看 key，
     // 尾号比对对它必然落空，overwrite 下必须一并换掉。
     const s = { apiKey: 'sk-users-own-key', ttsApiKey: 'sk-users-own-key', sttEngine: 'local', sttApiKey: '' };
-    const r = G.plan(claimed, s, REG, { overwrite: true });
+    const r = G.plan(claimed, s, REGISTRY, { overwrite: true });
     eq(r.writes.apiKey, TOKEN); eq(r.writes.ttsApiKey, TOKEN); eq(r.writes.sttApiKey, TOKEN);
     eq(r.writes.provider, 'grant');
     deepEq(r.replaced.sort(), ['chat', 'stt', 'tts']);
     eq(r.skipped.length, 0);
     eq(r.tests.length, 3);
     // 不带 overwrite 的普通领取仍然一个字节都不动
-    const r2 = G.plan(claimed, s, REG);
+    const r2 = G.plan(claimed, s, REGISTRY);
     eq(r2.tests.length, 0, '普通领取写了用户自己的槽');
   });
 
   test('尾号只差一位就不许覆盖 —— 判宽了会盖掉别人的 key', () => {
     const NEAR = 'sk-something-OLDTAIL8';                 // 与 grantTail 差一位
     const s = { apiKey: NEAR, grantTail: 'OLDTAIL9' };
-    const r = G.plan(claimed, s, REG);
+    const r = G.plan(claimed, s, REGISTRY);
     ok(!('apiKey' in r.writes), '尾号不同却覆盖了');
   });
 
   test('只有翻译那一条（中国版额度，方案 C）：只写翻译槽，朗读 / 转写一个键都不碰', () => {
-    const reg = { MT_PROVIDERS: REG.MT_PROVIDERS, MT_TTS_ENGINES: [], MT_STT_ENGINES: [] };
+    const reg = { providers: REGISTRY.providers, tts: [], stt: [] };
     const r = G.plan(claimed, {}, reg);
     eq(r.writes.provider, 'grant', '翻译槽没写 —— 中国版领了额度等于没领');
     eq(r.writes.apiKey, TOKEN);
@@ -143,7 +149,7 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
   });
 
   test('注册表里没有那三条时不产出任何 writes（中国版 / 老产物）', () => {
-    const r = G.plan(claimed, {}, { MT_PROVIDERS: [], MT_TTS_ENGINES: [], MT_STT_ENGINES: [] });
+    const r = G.plan(claimed, {}, { providers: [], tts: [], stt: [] });
     deepEq(r.writes, {});
   });
 });
@@ -276,11 +282,11 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     // 取不到显示名时退到厂商 id，而不是把整段丢掉：那等于在没有披露的情况下
     // 让人点「领取」，而这段是 Gate F 的构成要件。
     const win = Object.assign({ MT_GRANT: { vendor: 'somevendor', limitUsd: 0.2, claimUrl: 'x', models: {} } }, REG);
-    const ctx = loadModule(['learn/quick-setup.js', 'learn/grant.js'], {
+    const ctx = loadSrc('src/shared/grant.js', 'grant', {
       window: win, document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
       chrome: { i18n: { getMessage: () => '' } },
     });
-    const c = ctx.LearnGrant.cardFor('unclaimed', { t });
+    const c = ctx.grant.cardFor('unclaimed', { t });
     ok(c.note && c.note.length > 40, '没有 vendorLabel 时披露段被丢掉了');
     ok(!/\{vendor\}/.test(c.note), '占位符没被代掉');
     ok(/somevendor/.test(c.note), '没退到厂商 id');
@@ -400,14 +406,14 @@ describe('§3.4 grant_claimed —— claim() 自己记，两个宿主一处覆�
   const run = async (body, status) => {
     const seen = [];
     const win = Object.assign({ MT_GRANT: SPEC }, REG);
-    const ctx = loadModule(['learn/quick-setup.js', 'learn/grant.js'], {
+    const ctx = loadSrc('src/shared/grant.js', 'grant', {
       window: win, document: { createElement: () => ({ style: {}, appendChild() {}, setAttribute() {} }) },
       chrome: { i18n: { getMessage: () => '' } },
       MTTelemetry: { track: (n, p) => { seen.push([n, p]); return Promise.resolve(true); } },
     });
     let err = null;
     try {
-      await ctx.LearnGrant.claim({
+      await ctx.grant.claim({
         auth: { token: async () => 'jwt' }, backend: { anonKey: 'anon' },
         fetch: async () => ({ ok: (status || 200) < 300, status: status || 200, json: async () => body }),
       });

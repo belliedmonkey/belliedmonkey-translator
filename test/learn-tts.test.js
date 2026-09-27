@@ -7,7 +7,7 @@
 //   · the second play of a sentence must issue NO network request, because
 //     synthesis costs the user money. Only a call count can see that.
 
-const { loadModule, describe, test, ok, eq } = require('./harness');
+const { loadModule, loadSrc, describe, test, ok, eq } = require('./harness');
 
 const REGISTRY = require('../build/tts.config.js');
 const WireFormat = require('../extension/content/wire-format.js');
@@ -909,7 +909,7 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
   });
 
   test('tts 槽有哨兵项，与 stt 同形 —— 没有它，下拉会默默停在第一个引擎上', () => {
-    const EF = require('../extension/learn/engine-fields.js');
+    const EF = loadSrc('src/shared/engine-fields.js', 'EngineFields').EngineFields;
     ok(!!EF.SLOTS.tts.sentinelKey,
       'EngineFields.SLOTS.tts 没有 sentinelKey —— 「未配置」在选择器里就没有位置可待');
     eq(EF.SLOTS.tts.sentinelKey, 'tts_engine_none', '');

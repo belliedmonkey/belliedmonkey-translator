@@ -8,7 +8,7 @@
 //     依赖行、来源治理、额度卡、一键卡、动态下拉）保持空 JSX，由 addEventListener
 //     时代的同一批函数涂写 —— React 对「vdom 值没变的属性」不写 DOM，所以常量
 //     hidden（telemetry-block、app-settings 本身…）与命令式揭开共存，命令式孤岛
-//     （QuickSetup.render 塞进 #quick-setup 的子树）不会被重渲染清掉。
+//     （renderQuickSetup 塞进 #quick-setup 的子树）不会被重渲染清掉。
 //   · 派生 hidden 用布尔公式挂在始终挂载的元素上；「快速 | 详细」两档的 DOM 终态
 //     必须与旧 applyDetailMode 一致（见 setDetailFn 与 applyFields/paintTtsPack 里
 //     那条两套机制写同一个 hidden 的时序注释）。
@@ -26,6 +26,18 @@ import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
+
+// PR7b：共享模块从「HTML script 标签挂 window + typeof 守卫」改成 ESM import
+// （§9.4：两宿主 import 同一份源、同一次编译）。四个渲染宿主在本页仍是命令式孤岛
+// （见头注释）——变了的只有全局查找这一层：render 经各 view 文件的 named export 进来
+// （它们保留旧 render 的 `box.hidden` 写入与返回句柄语义，孤岛读回判据不变），
+// 纯逻辑经各自的源文件进来。
+import EngineFields from '../shared/engine-fields.js';
+import QuickSetup from '../shared/quick-setup.js';
+import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
+import * as LearnGrant from '../shared/grant.js';
+import { render as renderGrant } from '../shared/grant-view.jsx';
+import * as SourcesView from '../shared/sources-view-view.jsx';
 
 const $ = (id) => document.getElementById(id);
 
@@ -467,7 +479,7 @@ export default function SettingsView() {
   // 四个功能块共用的组件入参（JSX 里 <DepLineView {...depProps} slots={…} />）。
   const depProps = {
     settings: depsSettings,
-    quick: !!depsSettings && !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(depsSettings),
+    quick: !!depsSettings && !detail && !!QuickSetup.represents(depsSettings),
     live: (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) ? NativeSpeech.probeResult() : { ok: false, reason: 'os' },
     onGo: goDeps,
     t,
@@ -483,7 +495,7 @@ export default function SettingsView() {
     await settingsModel.trackEngineSet();
     // 回执**不在这里显示**。这一刻自检还没跑（onApply 在自检之前调用），此时说任何
     // 结论都是猜的 —— 2026-09-20 真机实测：标题「可以用了」与一个 ✗ 并排挂了几十秒。
-    // 回执改由 onResults 触发（见 QuickSetup.render 的 onResults）。
+    // 回执改由 onResults 触发（见 renderQuickSetup 的 onResults）。
   }
 
   // ── 免费额度（§8.10）─────────────────────────────────────────────────
@@ -494,10 +506,10 @@ export default function SettingsView() {
   async function paintGrant(session) {
     const box = $('grant-box');
     const card = $('grant-card');
-    if (!box || typeof LearnGrant === 'undefined') return;
+    if (!box) return;
     let cur = {};
     try { cur = await settingsModel.get(settingsModel.KEYS.concat(['grant', 'grantTail', 'grantBalance'])); } catch (_) {}
-    LearnGrant.render(box, {
+    renderGrant(box, {
       t,
       status: LearnGrant.status(cur, { signedIn: !!session, unavailable: grantUnavailable.current }),
       flavor: Registry.flavor(),       // 中国版：官方免费额度那张卡（G5）
@@ -506,7 +518,7 @@ export default function SettingsView() {
       busy: grantBusy.current,
       onAction: (id) => grantAction(id, session),
     });
-    // grant-card 的 hidden 是 React 派生的（grantVisible）；LearnGrant 刚在 box 上
+    // grant-card 的 hidden 是 React 派生的（grantVisible）；renderGrant 刚在 box 上
     // 写完 box.hidden —— flushSync 让卡片同一帧跟上，不等下一次渲染。
     // 安全性：paintGrant 只从 paintNow / grantAction 的 async 链调用，从不在 React
     // 渲染生命周期里跑（渲染中不能 flushSync）。
@@ -549,7 +561,7 @@ export default function SettingsView() {
   async function setupQuickCard(session, say) {
     if (!$('quick-setup')) return;
     // **已经挂上的卡不重画。** paintNow 在每次写盘之后都会跑一遍（一键配好 → 写盘 → 重画
-    // 详细档的三组字段），而 QuickSetup.render 是清空重建 —— 于是用户刚粘进去的 key、
+    // 详细档的三组字段），而 renderQuickSetup 是清空重建 —— 于是用户刚粘进去的 key、
     // 正在跑的「测试中…」三行，在按下按钮的那一瞬间一起消失，看起来像密码被吃掉了
     // （2026-09-06 用户报，1.7.14 起带入，1.7.16 已上架）。读设置本来就是现读的
     // （readSettings），卡不需要靠重建来保持新鲜。
@@ -565,7 +577,7 @@ export default function SettingsView() {
     // 2026-09-07 用户报「详细里有、快速里空」—— App 这里原来根本没传 prefill。
     let pre = null;
     try { pre = QuickSetup.prefill(await settingsModel.get(settingsModel.KEYS)); } catch (_) { pre = null; }
-    QuickSetup.render($('quick-setup'), {
+    renderQuickSetup($('quick-setup'), {
       t,
       prefill: pre,
       // 现读而不是快照：拿旧快照判「配没配过」会覆盖用户刚在「详细」里输入的 key。

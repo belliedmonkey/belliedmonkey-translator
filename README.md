@@ -392,7 +392,7 @@ extension/
 │   ├── learn-*.js          Capture, scheduling, exercises (6 files)
 │   ├── *.gen.js            Generated registries: providers, langs, stt, tts, palette
 │   └── content-main.js     Entry point: reads settings, routes
-├── learn/                  29 files — the learning layer, sync, documents, free
+├── learn/                  25 files — the learning layer, sync, documents, free
 │                           credit, telemetry, read-aloud (docs/learning-design.md)
 ├── onboard/ · popup/ · options/   Onboarding and settings UI
 ├── styles/ · icons/ · vendor/

@@ -9,10 +9,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
+const { loadModule, loadSrc, describe, test, ok, eq, deepEq } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
-const EF = loadModule(['learn/engine-fields.js']).EngineFields;
+const EF = loadSrc('src/shared/engine-fields.js', 'EngineFields').EngineFields;
 
 // 真实生成物。没跑过 build 就跳过，并说清楚 —— 一个静默跳过的断言等于没有断言。
 function registries(dir) {
@@ -177,17 +177,17 @@ describe('options.jsx 里不许再有第二份同能力的判断', () => {
 
   // 判据不是「调了几次」——那是个会随迁移不断失效的代理。要守的是：**四组引擎配置
   // 一组都不许自己另写一套**。孤岛形态下这等于：容器表正好四个槽各一次，且全页
-  // 唯一的 EngineFields.render 长在遍历这张表的循环上（翻译 / 朗读 / 解析 / 转写）。
+  // 唯一的 renderEngineFields 长在遍历这张表的循环上（翻译 / 朗读 / 解析 / 转写）。
   test('四组引擎配置全都接在组件上，一组都不落', () => {
     const slots = [...src.matchAll(/\[\s*\w+Ref,\s*'(\w+)'/g)].map((m) => m[1]);
     eq(slots.length, 4,
       `孤岛容器表是 ${slots.length} 项（${slots.join('/') || '空'}），期望 chat/tts/notes/stt 四组`
       + ' —— 漏掉的那一组会另写一套并慢慢漂走');
     eq(new Set(slots).size, 4, '同一个 slot 挂了两次：' + slots.join('/'));
-    const renders = (src.match(/EngineFields\.render\(/g) || []).length;
-    eq(renders, 1, `EngineFields.render 出现 ${renders} 次 —— 绕开容器表单挂的那一个，就是第二套判据`);
+    const renders = (src.match(/renderEngineFields\(/g) || []).length;
+    eq(renders, 1, `renderEngineFields 出现 ${renders} 次 —— 绕开容器表单挂的那一个，就是第二套判据`);
     const loop = src.indexOf('for (const [ref, slot, entriesFn] of containers)');
-    ok(loop >= 0 && loop < src.indexOf('EngineFields.render('),
+    ok(loop >= 0 && loop < src.indexOf('renderEngineFields('),
       'render 没有长在容器表的循环上 —— 有人开始按组手写了？');
   });
 
@@ -263,10 +263,17 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
   });
 
   test('组件真的在 App 包里，且 app/settings.js 已退出模块清单', () => {
-    for (const m of ['engine-fields.js', 'quick-setup.js', 'engine-test.js']) {
+    for (const m of ['engine-test.js']) {
       const a = bundle.indexOf('extension/learn/' + m);
       ok(a >= 0, `build/app-bundle.js 的 MODULES 里没有 ${m} —— App 包里没有这个模块，`
         + '设置视图就只能继续手抄');
+    }
+    // PR7b：engine-fields / quick-setup 退出 MODULES —— 它们随 APP_ENTRY 的 esbuild
+    // 依赖图进包（settings-view 直接 import），源集合由 §9.4 对账门（shared-graph）管。
+    // 这里守反向：不许以 IIFE 模块身份回流 MODULES（回流 = 两份实现并存）。
+    for (const m of ['learn/engine-fields.js', 'learn/quick-setup.js']) {
+      ok(!bundle.includes(`'extension/${m}'`), `build/app-bundle.js 的 MODULES 里又出现了 '${m}'`
+        + ' —— PR7b 起它随 APP_ENTRY 的 import 图进包，回流 IIFE 就是第二份实现');
     }
     ok(!bundle.includes("'app/settings.js'"),
       "build/app-bundle.js 的 MODULES 里还有 'app/settings.js' —— PR6b 起设置页已拆成 "

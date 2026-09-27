@@ -4,7 +4,7 @@
 // 一篇两千多字的文章变成一张卡；译文等于原文的「翻译」进了复习；收件箱文件在写库之前就被删了。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, eq, ok, deepEq } = require('./harness');
+const { describe, test, eq, ok, deepEq, loadSrc } = require('./harness');
 const ROOT = path.join(__dirname, '..');
 const H = require(path.join(ROOT, 'app', 'handoff.js'));
 
@@ -92,11 +92,11 @@ describe('AppHandoff.ingest — 先写库后删文件；关着就丢弃并清空
 // 「未知 kind 静默落进默认分支才是坑」。去掉注释再找，免得一句注释冒充分支。
 describe('锚点 k:handoff —— 三个读者各有显式分支', () => {
   const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
-  for (const f of ['extension/learn/review.js', 'extension/learn/sources-view.js', 'src/app/driving-model.js']) {
+  for (const f of ['extension/learn/review.js', 'src/shared/sources-view.js', 'src/app/driving-model.js']) {
     test(f, () => ok(/handoff/.test(strip(fs.readFileSync(path.join(ROOT, f), 'utf8'))), f + ' 里没有对 handoff 的显式处理'));
   }
   test('来源管理：handoff 来源不进「按站点」分组', () => {
-    const src = strip(fs.readFileSync(path.join(ROOT, 'extension/learn/sources-view.js'), 'utf8'));
+    const src = strip(fs.readFileSync(path.join(ROOT, 'src/shared/sources-view.js'), 'utf8'));
     ok(/!isConv\(s\) && !isDoc\(s\) && !isHandoff\(s\)/.test(src), 'groupByHost 没有排除 handoff 来源 —— hostOf 会把入口名当成域名');
   });
   test('App 包里有这个模块', () => {
@@ -106,10 +106,8 @@ describe('锚点 k:handoff —— 三个读者各有显式分支', () => {
 });
 
 describe('SourcesView.groupHandoff —— 按入口 + 月份一行，新月份在前，不串进站点分组', () => {
-  const hadWindow = 'window' in global;
-  if (!hadWindow) global.window = { MT_PALETTE: require('../build/palette.config.js').runtime };
-  const SV = require('../extension/learn/sources-view.js');
-  if (!hadWindow) delete global.window;
+  // PR7b：sources-view 换 src/shared 纯逻辑层（palette 垫片退役，见 app-listen.test.js 同处）。
+  const SV = loadSrc('src/shared/sources-view.js', 'SourcesView').SourcesView;
   const sources = [
     { id: 'handoff:system:2026-08', url: 'handoff://system/2026-08', title: '系统翻译 · 2026-08' },
     { id: 'handoff:system:2026-09', url: 'handoff://system/2026-09', title: '系统翻译 · 2026-09' },

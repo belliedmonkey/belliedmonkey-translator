@@ -61,8 +61,9 @@
   <script src="../learn/page-settings.js"></script>
   <script src="../learn/engine-fields.js"></script>
   <script src="../learn/engine-test.js"></script>
-  <script src="../learn/quick-setup.js"></script>
-  <script src="../learn/grant.js"></script>   <!-- 免费额度（§8.10）。必须在 quick-setup.js 之后：它调 QuickSetup.plan -->
+  <!-- QuickSetup 随 PR7b 进 onboard.js bundle（src/shared/quick-setup-view.jsx），
+       不再是独立 script 标签。 -->
+  <script src="../learn/grant.js"></script>   <!-- 现由 src/shared/grant-host.jsx bundle（同名覆盖）：只挂纯逻辑 ABI；卡面在 onboard.js 里经 renderGrant（grant-view.jsx 的 named export）画 -->
   <script src="../learn/app-link.js"></script>
   <script src="../learn/feedback.js"></script>
   <script src="../learn/telemetry.js"></script>

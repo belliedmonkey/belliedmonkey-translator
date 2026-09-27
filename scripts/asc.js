@@ -380,7 +380,7 @@ async function cmdAso(bundleId, platform, versionString, file, apply, promoOnly)
 //
 // 期望值按 flavor 分：中国版必须落在 belliedmonkey.com（EdgeOne，境内，浙ICP备），
 // 国际版落在 belliedmonkey.cc（Vercel）。与 src/app/shell-model.js（原 app/app.js:292）和
-// extension/learn/quick-setup.js:114 的分叉判据一致 —— 那两处是同一件事的另一半。
+// src/shared/quick-setup.js:147 的分叉判据一致 —— 那两处是同一件事的另一半。
 const PRIVACY_URL = {
   'com.belliedmonkeytranslator': 'https://belliedmonkey.cc/privacy.html',
   'com.belliedmonkeytranslator.cn': 'https://belliedmonkey.com/privacy.html',

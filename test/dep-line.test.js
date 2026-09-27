@@ -5,7 +5,8 @@
 // （纯 ESM，§9.4 两宿主单源）。items() 五槽四态断言零改；旧 render(el,…) 的 DOM 拼接
 // 退成纯映射 segments(list, onGo) —— 换成数据断言（' · ' 前缀、'：'、' ✓' 后缀、go 字段），
 // 视觉输出本身由 dep-line-view.jsx 组件承担、走真 Chrome 的 CDP 门（vm 不测组件，§10）。
-// EngineState / EngineFields 仍是全局兜底（PR7b 翻），按生产同构把真源码跑进同一 context。
+// EngineState 仍是全局兜底（按生产同构把真源码跑进同一 context）；EngineFields 不再垫 ——
+// PR7b 起 dep-line 经 ESM import src/shared/engine-fields.js，loadSrc 的 bundle 已带上它。
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -22,9 +23,9 @@ function load() {
   const ctx = loadSrc('src/shared/dep-line.js', 'DepLine', {
     window: { MT_PROVIDERS: PROVIDERS, MT_TTS_ENGINES: TTS, MT_STT_ENGINES: STT },
   });
-  // 生产里 EngineState / EngineFields 是先于 dep-line 的独立 <script>/拼接段（全局兜底）；
-  // 这里把同两份真源码跑进同一 context，与生产同构。
-  for (const f of ['content/engine-state.js', 'learn/engine-fields.js']) {
+  // 生产里 EngineState 仍是先于 dep-line 的独立 <script>/拼接段（全局兜底）；
+  // 这里把它的真源码跑进同一 context，与生产同构。EngineFields 不再垫（见头注释）。
+  for (const f of ['content/engine-state.js']) {
     vm.runInContext(fs.readFileSync(path.join(EXT_ROOT, f), 'utf8'), ctx, { filename: f });
   }
   return ctx.DepLine;

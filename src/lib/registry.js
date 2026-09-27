@@ -36,15 +36,20 @@ const Registry = (() => {
   // 同步后端开关（backend.config.js，var 挂 window）。null = 中国版没有后端 —— 心跳的
   // 守卫读它，而不是让 src/ 直接摸 MT_BACKEND（src-boundaries 门）。
   const backend = () => get('MT_BACKEND') || null;
-  // 构建期 flavor 名。原样透传不兜底：onboard 把它喂给 LearnGrant.render，与旧版传
+  // 构建期 flavor 名。原样透传不兜底：onboard 把它喂给 renderGrant，与旧版传
   // window.MT_FLAVOR 的 undefined 语义逐字相同（grant.js 自己决定 undefined 走哪张卡）。
   const flavor = () => get('MT_FLAVOR');
   // 遥测开关（telemetry.js 顶上的布尔；中国版没有该脚本）。!! 归一 —— src/ 的字符串
   // 字面量过不了 src-boundaries 的 MT_ 门，收口在 registry 的命中区里。
   const telemetryEnabled = () => !!get('MT_TELEMETRY');
+  // 一键配置的推荐平台序（providers.gen.js 顺带发射）：platforms() 按它把推荐平台排前。
+  const recommendedHosts = () => get('MT_RECOMMENDED_HOSTS') || [];
+  // 目标语言的默认值（langs.gen.js 发射）。tryUrl() 认不出 targetLang 时拿它兜底。
+  const defaultTargetLang = () => get('MT_DEFAULT_TARGET_LANG') || '';
 
   return { get, providers, palette, langs, messages, modelParams, version,
-    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled };
+    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled,
+    recommendedHosts, defaultTargetLang };
 })();
 
 export default Registry;
