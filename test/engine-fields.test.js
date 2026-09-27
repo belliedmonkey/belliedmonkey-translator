@@ -284,7 +284,8 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
 // (`provider/apiKey/apiBaseUrl/apiModel`)。这本身是对的 —— App 没有网页翻译，
 // 没有第二个 chat 引擎要区分，`LearnNotes.resolveConfig` 的回落分支正是为它准备的。
 //
-// **真正的隐患是不对称**：`app/driving.js` 的读取清单里还有 notes* 四个键，而
+// **真正的隐患是不对称**：`src/app/driving-model.js`（原 app/driving.js，PR6d 迁）的
+// 读取清单里还有 notes* 四个键，而
 // `LearnNotes.resolveConfig` 一旦看见 `notesProvider` 就会**优先用它**，静默赢过
 // 设置页写的 `provider` —— 而 App 设置页没有那一档控件，用户既看不见也清不掉。
 //
@@ -302,7 +303,7 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
 // 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
 // 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
-  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['../src/app/listen-model.js', 'READ_KEYS'], ['docs.js', 'READ_KEYS']];   // PR6c：listen 的 READ_KEYS 随 UI 半边迁到 src/app/listen-model.js
+  const SOURCES = [['../src/app/driving-model.js', 'SETTINGS_KEYS'], ['../src/app/listen-model.js', 'READ_KEYS'], ['../src/app/docs-model.js', 'READ_KEYS']];   // PR6c/6d：listen、docs、driving 的清单随 UI 半边迁到 src/app/*-model.js
   const set = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-model.js'), 'utf8');
   const listOf = (src, name) => {
     const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
@@ -336,7 +337,7 @@ describe('App 读得到的设置，设置页必须管得到', () => {
     const gap = [...read].filter((k) => !known.has(k)).sort();
     const allow = Object.keys(ALLOW).sort();
     eq(gap.join(','), allow.join(','),
-      'App 读得到但设置页管不到的键变了（driving.js 的 SETTINGS_KEYS + listen.js / docs.js 的 READ_KEYS）。\n'
+      'App 读得到但设置页管不到的键变了（driving-model.js 的 SETTINGS_KEYS + listen.js / docs.js 的 READ_KEYS）。\n'
       + '  实际：' + (gap.join(' ') || '（无）') + '\n'
       + '  白名单：' + allow.join(' ') + '\n'
       + '  多出来的那个会**静默赢过**设置页写的值，而用户看不见也清不掉它 ——'
@@ -347,7 +348,7 @@ describe('App 读得到的设置，设置页必须管得到', () => {
     // settings.js 已拆成 settings-view.jsx + settings-model.js（PR6b）；app.js 的正文
     // 已迁 src/app/shell-model.js（PR6a）—— 这里列的一律是**现在**的写路径。
     for (const p of ['src/app/settings-view.jsx', 'src/app/settings-model.js',
-      'src/app/shell-model.js', 'app/driving.js', 'app/translate-fill.js']) {
+      'src/app/shell-model.js', 'src/app/driving-model.js', 'app/translate-fill.js']) {
       const src = fs.readFileSync(path.join(ROOT, p), 'utf8');
       const writes = src.split('\n')
         .map((l, i) => [i + 1, l])

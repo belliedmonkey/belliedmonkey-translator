@@ -12,7 +12,7 @@
 // PURE, like learn-exercises.js: the playlist order (`buildOrder` / `advance`), the
 // per-card plan, the notes-to-speech rendering and the session state machine
 // (`reduce`) are all deterministic functions of their inputs — the app orchestrator
-// (app/driving.js) executes the effects and feeds events back. That split is what lets
+// (now src/app/driving-model.js) executes the effects and feeds events back. That split is what lets
 // the vm harness walk the whole session without a DOM or a voice.
 //
 // ─── What this mode is, and what it is NOT ──────────────────────────────────
@@ -326,7 +326,7 @@ var LearnDriving = (() => {
     previous: 'tap_repeat',
   };
 
-  // 用户看来仍然「停着」的几个状态。播放/暂停切换键要按这个判断往哪边倒，而 app/driving.js
+  // 用户看来仍然「停着」的几个状态。播放/暂停切换键要按这个判断往哪边倒，而 src/app/driving-model.js（原 app/driving.js，PR6d 迁）
   // 的按钮显隐也读它 —— 一处定义，两个表面，免得遥控和按钮对同一个状态给出相反的动作。
   const PAUSED_LIKE = ['paused', 'stopped_error', 'explain_fetch', 'explain_speak'];
   function isPausedLike(stateName) { return PAUSED_LIKE.indexOf(stateName) >= 0; }

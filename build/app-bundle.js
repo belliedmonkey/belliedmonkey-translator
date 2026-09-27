@@ -126,12 +126,18 @@ const MODULES = [
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
-  'app/quick.js',                     // AppQuick —— #quick 模式的面板页（macOS 快速翻译；平时不启动）
+  // PR6d 起不在 MODULES：'app/quick.js' 收编为 src/app/quick-model.js（状态）+ quick-view.jsx
+  // （画布），随 APP_ENTRY 的 esbuild bundle 拼进尾部；window.AppQuick 由 main.jsx 挂。
+  // 所有对它的引用都是 call-time（main.jsx 的 #quick 分叉、原生中继的 _fromNative、
+  // verify-quick 的 ABI），求值时机后移无影响。
   'app/hotkey-core.js',               // HotkeyCore —— 快捷键的键码表 / 校验 / 显示（纯逻辑；quick-host 与 quick-settings 都用）
   'app/quick-host.js',                // AppQuickHost —— 快速翻译在主页面这一侧的接线（mtQuick；macOS 才有原生半边）
   'app/vault-mirror.js',              // AppVault —— 引擎配置镜像给系统翻译扩展（mtVault；iOS 才有原生半边）
   'app/sys-settings.js',              // AppSysSettings —— 设置里「系统翻译」那一块（iOS 才显示）
-  'app/setup-done.js',                // AppSetupDone —— 「配好了」的回执（四个落点一种回执）
+  // app/setup-done.js（AppSetupDone）PR6d 起不在 MODULES：收编为 src/app/setup-done-model.js
+  // （「配好了」的回执，四个落点一种回执；命令式 DOM 写保留），随 src/app/main.jsx 拼 Script.js
+  // 尾部 —— 所有对它的引用都是 call-time（settings-model/settings-view/shell-model 的异步流），
+  // 求值时机后移无影响。
   'app/sys-banner.js',                // AppSysBanner —— 首页「把系统翻译设成默认」横幅（iOS 才显示）
   'app/quick-settings.js',            // AppQuickSettings —— 设置里「快速翻译」块的 M-7 那几行
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
@@ -160,9 +166,14 @@ const MODULES = [
   'extension/learn/doc-store.js',        // DocStore —— 独立 IDB mt-docs
   'extension/learn/pdfjs-loader.js',     // PdfJsLoader —— 按宿主装 pdf.js（App 走 blob，见下方 __MT_PDFJS）
   'extension/learn/doc-view.js',         // DocView —— 文档阅读器渲染器（与扩展页同一份字节）
-  'app/docs.js',                         // AppDocs —— §9.7 文档翻译的 App 宿主（视图进出、入口、接线）
-  'app/driving.js',                      // AppDriving — §9.5 orchestrator (app-only;
-                                         // the extension page cannot autoplay)
+  // app/docs.js（AppDocs）PR6d 起不在 MODULES：收编为 src/app/docs-model.js（编排/读设置/
+  // 接线，逐字）+ src/app/docs-view.jsx（页骨架），随 src/app/main.jsx 拼 Script.js 尾部 ——
+  // 所有对它的引用都是 call-time（shell-model 的异步流），求值时机后移无影响。
+  // app/driving.js（AppDriving — §9.5 orchestrator, app-only; the extension page cannot
+  // autoplay）PR6d 起不在 MODULES：收编为 src/app/driving-model.js（状态/效果/会话编排，
+  // 逐字）+ src/app/driving-view.jsx（#app-drive 骨架与按钮），随 src/app/main.jsx 拼
+  // Script.js 尾部 —— shell-model 对它的引用全是 call-time（异步流与监听回调），求值
+  // 时机后移无影响。
 ];
 
 // `drain.js` ships even though the app has no outbox: with the shim's empty

@@ -7,9 +7,12 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { describe, test, ok, eq, deepEq } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
+// PR6d：模块本体 ESM 化收进 React bundle（src/app/setup-done-model.js，逐字移植），
+// vm 加载改走 loadSrc（esbuild buildSync → vm）。切片断言（接线/锚点）读的还是同一份字节。
+const SRC = path.join(ROOT, 'src', 'app', 'setup-done-model.js');
 
 function load(opts) {
   const o = opts || {};
@@ -24,8 +27,7 @@ function load(opts) {
   for (const id of ['setup-done', 'setup-done-title', 'setup-done-rows', 'setup-done-note', 'setup-done-act']) els[id] = mk(id);
   const tested = [];
   const dual = (fn) => (arg, cb) => { const v = fn(arg); if (cb) { cb(v); return undefined; } return Promise.resolve(v); };
-  const ctx = {
-    console,
+  const sandbox = {
     document: {
       getElementById: (id) => els[id] || null,
       createElement: (tag) => mk(tag),
@@ -38,9 +40,7 @@ function load(opts) {
       format: (r, e) => (e ? '✗ ' + (e.code || '') : '✓ 通了 · ' + r.ms + 'ms'),
     },
   };
-  ctx.window = ctx;
-  vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8'), ctx, { filename: 'setup-done.js' });
+  const ctx = loadSrc('src/app/setup-done-model.js', 'AppSetupDone', sandbox);
   return { ctx, els, tested, D: ctx.AppSetupDone };
 }
 
@@ -94,7 +94,7 @@ describe('setup-done: 「配好了」的回执（画布第 7 页）', () => {
   });
 
   test('★ 文案键在 12 个语种里都有', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8');
+    const src = fs.readFileSync(SRC, 'utf8');
     // 只认 `t('key', '兜底')` 这个形状 —— 光匹配 t('…') 会把 createElement('div') 也算进来。
     const keys = [...new Set((src.match(/\bt\('([a-z0-9_]+)',/g) || []).map((s) => s.slice(3, -2)))];
     ok(keys.length >= 8, '至少八个键，实际 ' + keys.length);
@@ -134,7 +134,7 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
   test('★ 同一次配置只测一遍 —— 两块自检并排，既矛盾又是两倍的钱', () => {
     const qs = fs.readFileSync(path.join(ROOT, 'extension', 'learn', 'quick-setup.js'), 'utf8');
     ok(/opts\.onResults\(p, results\)/.test(qs), '一键卡要把结果交出去');
-    const done = fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8');
+    const done = fs.readFileSync(SRC, 'utf8');
     const body = done.slice(done.indexOf('async function show('));
     ok(/opts && Array\.isArray\(opts\.results\)/.test(body), 'show 要认 opts.results');
     // 给了结果就不许进自测分支：runSlot 只能在 else 里被调用
@@ -144,7 +144,7 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
   });
 
   test('★ 测完之前标题不许说「可以用了」', () => {
-    const done = fs.readFileSync(path.join(ROOT, 'app', 'setup-done.js'), 'utf8');
+    const done = fs.readFileSync(SRC, 'utf8');
     const body = done.slice(done.indexOf('async function show('));
     // 自测那一支：初始标题必须是中性的
     ok(/setup_done_checking/.test(body), '自测时初始标题要中性（正在检查…）');

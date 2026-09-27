@@ -35,6 +35,8 @@
 import PageText from '../lib/i18n.js';
 import SettingsView from './settings-view.jsx';
 import { ListenView, ListenEntryButtons, ListenEntryPrivacy, ListenEntryNeeds } from './listen-view.jsx';
+import DocsView from './docs-view.jsx';
+import DrivingView from './driving-view.jsx';
 
 // mount 时点的 t：模块 uiLang 尚为 auto → 系统语言 —— 与今天 review.js
 // applyI18n(document) 跑在同一时点、同一模块态，首屏语义不变。
@@ -312,35 +314,10 @@ function AppShell() {
       </section>
 
       {/* 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属
-           免提听读会话。文本全程可见（音频优先，从不藏字）；超大按钮；语音问答环
-           仅在 STT + 解析引擎 + uiLang 音色三门全开时存在。视图切换归 shell-model
-           （同 #review-view 的分工），内部全归 app/driving.js。 */}
-      <section id="app-drive" hidden>
-        <button id="app-drive-back" type="button" className="link"></button>
-        <h2 id="app-drive-title"></h2>
-        <p className="note" id="app-drive-progress"></p>
-        <div className="drive-card">
-          <p id="app-drive-text"></p>
-          <p id="app-drive-tr"></p>
-          {/* 解析文本：耳朵优先，但从不藏起来 —— 停车时看得见刚才播的是什么。 */}
-          <p className="note" id="app-drive-notes"></p>
-        </div>
-        <p className="note" id="app-drive-status" role="status" aria-live="polite"></p>
-        <p className="note err" id="app-drive-note"></p>
-        <div className="drive-grid">
-          <button id="app-drive-pause" type="button" hidden></button>
-          <button id="app-drive-next" type="button" hidden></button>
-          <button id="app-drive-repeat" type="button" hidden></button>
-          {/* 播放顺序：随机 / 顺序 / 循环 / 单曲循环，点一下轮换。它只改变**这张卡
-               结束之后**发生什么，永不打断正在播的音频 —— 所以开车时按它是安全的。 */}
-          <button id="app-drive-mode" type="button" hidden></button>
-          {/* 「解析这句」：只在暂停时出现。解析 + 显示 + 朗读，读完回到暂停 ——
-               暂停的语义是「我在控制」，读完一段解析不该顺势把整场恢复。 */}
-          <button id="app-drive-explain" type="button" hidden></button>
-        </div>
-        <button id="app-drive-more" type="button" className="secondary" hidden></button>
-        <p className="note" id="app-drive-cost"></p>
-      </section>
+           免提听读会话。PR6d 起整段由 driving-view.jsx 渲染（含本注释所述全部）；
+           首页入口行（#app-drive-start）仍在上面静态区，由 AppDriving.refreshEntry /
+           paintStatic 命令式涂写（React 对「vdom 没变的属性」不写 DOM，两套写入不打架）。 */}
+      <DrivingView />
 
       {/* 对话 · 实时听译（learning-design §9.6 / interaction-spec 同名一节）：App 专属。
            上卡 = 当下（逐词原文 + 临时译文），下面 = 整句定稿历史（可加星）；按住「我说」
@@ -349,16 +326,10 @@ function AppShell() {
       <ListenView />
 
       {/* 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 extension/learn/doc-view.js
-           （与扩展页同一份字节），编排在 app/docs.js。文件选择是原生 <input type=file>：iOS 由 WKWebView
-           弹系统选择器；macOS 要宿主实现 runOpenPanel（D5），否则是死按钮。 */}
-      <section id="app-docs" hidden>
-        <div className="docs-head">
-          <button id="app-docs-back" className="link" type="button"></button>
-          <h2 id="app-docs-title"></h2>
-        </div>
-        <div id="app-docs-root"></div>
-        <input type="file" id="app-docs-file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp" hidden />
-      </section>
+           （与扩展页同一份字节），编排在 src/app/docs-model.js。文件选择是原生 <input type=file>：
+           iOS 由 WKWebView 弹系统选择器；macOS 要宿主实现 runOpenPanel（D5），否则是死按钮。
+           PR6d 起骨架由 docs-view.jsx 渲染（back/title 进 useT；#app-docs-root 是孤岛容器）。 */}
+      <DocsView />
 
       <SettingsView />
 
