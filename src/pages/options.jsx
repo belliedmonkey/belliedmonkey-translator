@@ -52,6 +52,9 @@ import {
   SAVE_KEYS, scaleValue, advNum as advNumClamp, learnDailyNew as dailyNewClamp,
   apiHint as apiHintStr, syncError as syncErrorText,
 } from './options-model.js';
+import LearnDialog from '../shared/dialog.jsx';
+import DepLineView from '../shared/dep-line-view.jsx';
+import '../shared/dialog-host.jsx';   // 副作用：挂 DialogHost 宿主 div + uiLang 就位 + window.LearnDialog ABI
 
 // 这一行是「有哪些键」的唯一来源（schema）。保存动作的键域是 SAVE_KEYS（33），
 // 两者差集由 test/options-model.test.js 钉死。
@@ -348,8 +351,6 @@ function Options() {
   const grantBoxRef = useRef(null);
   const quickRef = useRef(null);
   const quickMountedRef = useRef(false);
-  const depReviewRef = useRef(null);
-  const depDocsRef = useRef(null);
   const learnLangsRef = useRef(null);
   const sourcesRef = useRef(null);
   const fileRef = useRef(null);
@@ -607,7 +608,9 @@ function Options() {
     if (id !== 'claim' && id !== 'restore') return;
 
     // 「改回免费额度」会覆盖用户自己粘的 key —— 必须先问一句（页内确认框）。
-    if (id === 'restore' && typeof LearnDialog !== 'undefined') {
+    // （import 进来的实现不会缺席，旧 typeof 守卫的静默跳过路径随之退役 —— 那条
+    // 路径正是 options.html 老注释里记过的 2026-09-10 事故形状。）
+    if (id === 'restore') {
       const okGo = await LearnDialog.confirm(t('grant_restore_confirm', '改回免费额度会替换掉你现在填的 key。要继续吗？'));
       if (!okGo) return;
     }
@@ -1093,24 +1096,23 @@ function Options() {
     paintGrant().catch(() => {});
   }, [ready, uiLangNow]);
 
-  // ── 依赖行（DepLine ×2）────────────────────────────────────────────────────
-  useLayoutEffect(() => {
-    if (!ready || typeof DepLine === 'undefined') return;
-    const cur = readSnapshot(READ_KEYS);
-    const quick = !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(cur);
-    const go = (slot) => {
-      flushSync(() => setDetailState(true));
-      try { chrome.storage.local.set({ [DETAIL_KEY]: true }); } catch (_) {}
-      const el = document.getElementById(
-        slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'provider',
-      );
-      if (!el) return;
-      try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
-      try { el.focus({ preventScroll: true }); } catch (_) {}
-    };
-    if (depReviewRef.current) DepLine.render(depReviewRef.current, cur, { slots: ['tts', 'notes'], quick, t, onGo: go });
-    if (depDocsRef.current) DepLine.render(depDocsRef.current, cur, { slots: ['chat'], quick, t, onGo: go });
-  });
+  // ── 依赖行（DepLineView ×2，JSX 里挂在复习卡与文档卡首行）──────────────────
+  // PR7a 前是「无依赖数组的 useLayoutEffect、每次渲染现读快照重画」；组件化后同一
+  // 份新鲜度由页面本来就有的 useSettings(READ_KEYS) 订阅承担：任何一次 store 写入
+  // ⇒ 快照换 identity ⇒ 重渲染 ⇒ 这里现读、DepLineView 重画。ready 之前给 null
+  // （组件输出空 div），与旧 effect 的 ready 早退一致。
+  const depSettings = ready ? readSnapshot(READ_KEYS) : null;
+  const depQuick = !!depSettings && !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(depSettings);
+  const goDeps = (slot) => {
+    flushSync(() => setDetailState(true));
+    try { chrome.storage.local.set({ [DETAIL_KEY]: true }); } catch (_) {}
+    const el = document.getElementById(
+      slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'provider',
+    );
+    if (!el) return;
+    try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+    try { el.focus({ preventScroll: true }); } catch (_) {}
+  };
 
   // ── boot ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -1932,7 +1934,7 @@ function Options() {
           {/* 复习：怎么听、每天多少张。这些是复习的偏好，不是引擎配置。 */}
           <section className="card" id="review-card">
             <h2>{T('review_section', '复习')}</h2>
-            <div className="dep" id="dep-review" ref={depReviewRef} />
+            <DepLineView id="dep-review" settings={depSettings} slots={['tts', 'notes']} quick={depQuick} onGo={goDeps} t={t} />
             <div className="field">
               <label htmlFor="tts-mode">{T('tts_mode', '语音模式')}</label>
               <select id="tts-mode" value={s.ttsMode || 'off'}
@@ -2007,7 +2009,7 @@ function Options() {
               在 btn-open-review 的首次点击里（怪癖），这里修正为两个独立按钮。 */}
           <section className="card" id="docs-card">
             <h2>{T('doc_title', '文档翻译')}</h2>
-            <div className="dep" id="dep-docs" ref={depDocsRef} />
+            <DepLineView id="dep-docs" settings={depSettings} slots={['chat']} quick={depQuick} onGo={goDeps} t={t} />
             <button id="btn-open-docs" onClick={btnOpenDocs}>{T('doc_open_page', '翻译文档（PDF / Word / 图片）')}</button>
           </section>
         </div>

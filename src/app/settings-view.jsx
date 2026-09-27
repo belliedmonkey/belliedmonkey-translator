@@ -24,6 +24,8 @@ import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
+import LearnDialog from '../shared/dialog.jsx';
+import DepLineView from '../shared/dep-line-view.jsx';
 
 const $ = (id) => document.getElementById(id);
 
@@ -50,7 +52,7 @@ export default function SettingsView() {
   const listenPackBusy = useRef(false);
   const grantBusy = useRef(false);
   const grantUnavailable = useRef(false);
-  const depsRef = useRef(null);
+  const [depsSettings, setDepsSettings] = useState(null);   // 依赖行的设置快照（旧 depsRef）
   const detailRef = useRef(false);
 
   // ─── 对话模式语言下拉（§9.6）──────────────────────────────────────────────
@@ -436,7 +438,8 @@ export default function SettingsView() {
     detailRef.current = !!on;
     setDetailState(!!on);
     repaintEngineFields();
-    paintDeps();   // 快速档只说「由一键配置提供」，详细档逐个列 —— 档位一换要重画
+    // 快速档只说「由一键配置提供」，详细档逐个列 —— 档位一换要重画：setDetailState
+    // 已经触发重渲染，DepLineView 的 quick 派生自 detail，不需要第二笔。
     if (persist !== false) {
       // 挂到 ref 上：paintNow 尾部的 setupQuickCard 要先等在途的这次写入落地再读盘，
       // 否则读到旧值会把用户刚点的档位静默盖回去（verify-listen S3 偶发红的就是它：
@@ -447,33 +450,28 @@ export default function SettingsView() {
   }
 
   // ── 功能块首行的「依赖」行（interaction-spec「设置页信息架构」②）──────────
-  // 判据与标签都来自既有的地方（learn/dep-line.js 只是把它们摆到功能块首行）；
+  // 判据与标签都来自既有的地方（src/shared/dep-line.js 只是把它们摆到功能块首行）；
   // 实时转写不是引擎，它的结论来自 NativeSpeech.probe。「去配置 →」切到详细档并落到那个槽的下拉上；
   // 翻译在 App 里没有逐项控件，落到快速档的一键卡。
   //
-  // 本页是写入方，但**也订阅 store 总线**（组件底部）：任何一次 set() 落盘都会把
-  // 新快照送回来、触发 useLayoutEffect 重画依赖行 —— 旧 depsOnWrite 正则的那件事
-  // （「引擎一换，依赖行要在这里跟着重画」）现在由总线代劳，不再有第二份快照。
-  function paintDeps(cur) {
-    if (cur) depsRef.current = Object.assign({}, cur);
-    const s = depsRef.current || {};
-    if (typeof DepLine === 'undefined') return;
-    const detailNow = detailRef.current;
-    const quick = !detailNow && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(s);
-    const live = (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) ? NativeSpeech.probeResult() : { ok: false, reason: 'os' };
-    const go = (slot) => {
-      const id = slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'quick-setup-card';
-      setDetailFn(slot !== 'chat');
-      const el = $(id); if (!el) return;
-      try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
-      if (slot !== 'chat') { try { el.focus({ preventScroll: true }); } catch (_) {} }
-    };
-    const o = (slots) => ({ slots, quick, live, t, onGo: go });
-    DepLine.render($('dep-review'), s, o(['tts', 'notes']));
-    DepLine.render($('dep-drive'), s, o(['tts', 'notes']));
-    DepLine.render($('dep-listen'), s, o(['live', 'chat', 'tts']));
-    DepLine.render($('dep-docs'), s, o(['chat']));
+  // PR7a 起这一行是 DepLineView 组件（JSX 里挂在四个功能块首），不再命令式重画：
+  // 快照是 depsSettings state（paintNow 与总线 effect 各自送新），档位/引擎一换
+  // setDetailState 或 store 订阅触发重渲染，组件自己重算 quick / live。
+  function goDeps(slot) {
+    const id = slot === 'notes' ? 'notes-provider' : slot === 'stt' ? 'stt-engine' : slot === 'tts' ? 'tts-engine' : 'quick-setup-card';
+    setDetailFn(slot !== 'chat');
+    const el = $(id); if (!el) return;
+    try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+    if (slot !== 'chat') { try { el.focus({ preventScroll: true }); } catch (_) {} }
   }
+  // 四个功能块共用的组件入参（JSX 里 <DepLineView {...depProps} slots={…} />）。
+  const depProps = {
+    settings: depsSettings,
+    quick: !!depsSettings && !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(depsSettings),
+    live: (typeof NativeSpeech !== 'undefined' && NativeSpeech.available()) ? NativeSpeech.probeResult() : { ok: false, reason: 'os' },
+    onGo: goDeps,
+    t,
+  };
 
   // 组件只返回 patch，写盘归本页 —— 与扩展设置页同一条分工。写完重画：一键配好的
   // 三组必须在「详细」里立刻看得见，否则用户下一次改任何一个字段都会用旧 DOM 覆盖回去。
@@ -529,7 +527,8 @@ export default function SettingsView() {
     }
     if (id !== 'claim' && id !== 'restore') return;
     // 页内确认框，不用 window.confirm —— App 的宿主没实现确认回调，它恒为 false。
-    if (id === 'restore' && typeof LearnDialog !== 'undefined') {
+    // （import 进来的实现不会缺席，旧 typeof 守卫的静默跳过路径随之退役。）
+    if (id === 'restore') {
       const ok = await LearnDialog.confirm(t('grant_restore_confirm',
         '改回免费额度会替换掉你现在填的 key。要继续吗？'));
       if (!ok) return;
@@ -588,7 +587,6 @@ export default function SettingsView() {
       detailRef.current = true;
       setDetailState(true);
       repaintEngineFields();
-      paintDeps();
       return;
     }
     let on = false;
@@ -728,7 +726,7 @@ export default function SettingsView() {
     $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
     $('subtitle-video-lang').value = ListenCore.baseCode(cur.subtitleVideoLang) || 'en';
     paintListenPack();
-    paintDeps(cur);
+    setDepsSettings(Object.assign({}, cur));
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
     $('doc-capture').checked = cur.docCapture !== false;
     if ($('quick-enabled')) $('quick-enabled').checked = cur.quickEnabled !== false;
@@ -1204,13 +1202,12 @@ export default function SettingsView() {
     let alive = true;
     settingsModel.get(settingsModel.KEYS).then((cur) => {
       if (!alive) return;
-      depsRef.current = Object.assign({}, cur);
+      setDepsSettings(Object.assign({}, cur));
       const stored = cur.uiLang || 'auto';
       if (stored !== uiLangNow.current) {
         uiLangNow.current = stored;
         populateStatic();
       }
-      paintDeps();
     });
     return () => { alive = false; };
   }, [detail, busGen]);
@@ -1415,7 +1412,7 @@ export default function SettingsView() {
         {/* 复习：怎么听、每天多少张。语音模式 / 自动朗读 / 语速此前混在「语音」组里，与引擎字段同屏。 */}
         <div className="sgroup" id="g-review">
           <h3 id="app-review-title">{t('review_section', '复习')}</h3>
-          <div className="dep" id="dep-review"></div>
+          <DepLineView id="dep-review" {...depProps} slots={['tts', 'notes']} />
           <label className="field" id="app-tts-section">
             <span id="tts-mode-label">{t('tts_mode', '语音模式')}</span>
             <select id="tts-mode">
@@ -1453,7 +1450,7 @@ export default function SettingsView() {
         {/* 播客模式（learning-design §9.5）。这里只放**要花钱**的那个开关与出发前预载。 */}
         <div className="sgroup" id="g-drive">
           <h3 id="drive-title">{t('drive_entry', '播客模式')}</h3>
-          <div className="dep" id="dep-drive"></div>
+          <DepLineView id="dep-drive" {...depProps} slots={['tts', 'notes']} />
           <label className="check">
             <input id="drive-play-notes" type="checkbox" />
             <span id="drive-play-notes-label">{t('drive_play_notes', '播放时朗读句子解析')}</span>
@@ -1489,7 +1486,7 @@ export default function SettingsView() {
         {/* 对话 · 实时听译 与 实时字幕（§9.6 / §9.8）：实时转写固定为设备内置 —— 依赖行说它在不在，语言包行说包在不在。 */}
         <div className="sgroup" id="g-listen">
           <h3 id="listen-title">{t('listen_settings_title', '对话 · 实时听译')}</h3>
-          <div className="dep" id="dep-listen"></div>
+          <DepLineView id="dep-listen" {...depProps} slots={['live', 'chat', 'tts']} />
           <label className="check">
             <input id="listen-capture" type="checkbox" />
             <span id="listen-capture-label">{t('listen_capture_label', '对话进复习（来源「对话」）')}</span>
@@ -1617,7 +1614,7 @@ export default function SettingsView() {
 
         <div className="sgroup" id="g-docs">
           <h3 id="docs-title">{t('doc_title', '文档翻译')}</h3>
-          <div className="dep" id="dep-docs"></div>
+          <DepLineView id="dep-docs" {...depProps} slots={['chat']} />
           <label className="check">
             <input id="doc-capture" type="checkbox" />
             <span id="doc-capture-label">{t('doc_capture_label', '文档译文进复习（来源「文档」）')}</span>

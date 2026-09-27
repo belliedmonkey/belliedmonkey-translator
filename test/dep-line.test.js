@@ -1,15 +1,33 @@
 // test/dep-line.test.js — 功能块首行的「依赖」行（interaction-spec「设置页信息架构」②，2026-09-17）。
 // 判据来自既有判据，标签来自注册表，快速档一句话，不可用的实时转写没有「去配置」。
-const { loadModule, describe, test, ok, eq, deepEq } = require('./harness');
+//
+// PR7a 锚点迁移：源从 extension/learn/dep-line.js（IIFE）换到 src/shared/dep-line.js
+// （纯 ESM，§9.4 两宿主单源）。items() 五槽四态断言零改；旧 render(el,…) 的 DOM 拼接
+// 退成纯映射 segments(list, onGo) —— 换成数据断言（' · ' 前缀、'：'、' ✓' 后缀、go 字段），
+// 视觉输出本身由 dep-line-view.jsx 组件承担、走真 Chrome 的 CDP 门（vm 不测组件，§10）。
+// EngineState / EngineFields 仍是全局兜底（PR7b 翻），按生产同构把真源码跑进同一 context。
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const { loadSrc, describe, test, ok, eq, deepEq } = require('./harness');
 
 const PROVIDERS = [{ id: 'google', label: 'Google', needsKey: false }, { id: 'deepseek', label: 'DeepSeek', needsKey: true }];
 const TTS = [{ id: 'browser', label: '设备内置语音', labelKey: 'tts_engine_browser' }, { id: 'device', label: '设备内置朗读', type: 'device-speech' }];
 const STT = [{ id: 'openrouter_transcribe', label: 'OpenRouter · transcription' }];
 const T = (k, d) => (k === 'tts_engine_browser' ? '系统语音' : d);
 
+const EXT_ROOT = path.join(__dirname, '..', 'extension');
+
 function load() {
-  const window = { MT_PROVIDERS: PROVIDERS, MT_TTS_ENGINES: TTS, MT_STT_ENGINES: STT };
-  return loadModule(['content/engine-state.js', 'learn/engine-fields.js', 'learn/dep-line.js'], { window }).DepLine;
+  const ctx = loadSrc('src/shared/dep-line.js', 'DepLine', {
+    window: { MT_PROVIDERS: PROVIDERS, MT_TTS_ENGINES: TTS, MT_STT_ENGINES: STT },
+  });
+  // 生产里 EngineState / EngineFields 是先于 dep-line 的独立 <script>/拼接段（全局兜底）；
+  // 这里把同两份真源码跑进同一 context，与生产同构。
+  for (const f of ['content/engine-state.js', 'learn/engine-fields.js']) {
+    vm.runInContext(fs.readFileSync(path.join(EXT_ROOT, f), 'utf8'), ctx, { filename: f });
+  }
+  return ctx.DepLine;
 }
 
 describe('DepLine.items — 五种槽、四种状态', () => {
@@ -43,29 +61,31 @@ describe('DepLine.items — 五种槽、四种状态', () => {
   });
 });
 
-describe('DepLine.render — 只读，未配置的槽才有「去配置 →」，实时转写不可用没有', () => {
-  function fakeEl() {
-    const kids = [];
-    const mk = () => ({ children: [], className: '', textContent: '', dataset: {}, listeners: {}, appendChild(c) { this.children.push(c); }, addEventListener(ev, fn) { this.listeners[ev] = fn; } });
-    return { ownerDocument: { createElement: () => mk() }, classList: { add() {} }, textContent: '', appendChild: (c) => kids.push(c), kids };
-  }
-  test('渲染出「依赖」+ 每槽一段；unset 的带按钮、ok 的不带、na 的不带', () => {
+describe('DepLine.segments — 旧 render 的文本拼接现在是数据；go 只给 unset', () => {
+  test('每槽一段：ok 带 ✓、unset 带 go、na 没有 go；文本逐字同构', () => {
     const D = load();
-    const el = fakeEl(); const gone = [];
-    D.render(el, { ttsEngine: 'browser', sttEngine: '' }, { slots: ['tts', 'stt', 'live'], live: { ok: false, reason: 'os' }, t: T, onGo: (s) => gone.push(s) });
-    eq(el.kids[0].textContent, '依赖');
-    const segs = el.kids.slice(1);
+    const segs = D.segments(
+      D.items({ ttsEngine: 'browser', sttEngine: '' }, { slots: ['tts', 'stt', 'live'], live: { ok: false, reason: 'os' }, t: T }),
+      (s) => s,
+    );
     eq(segs.length, 3);
-    ok(/朗读：系统语音 ✓/.test(segs[0].textContent), segs[0].textContent);
-    eq(segs[0].children.length, 0, 'ok 的槽不带「去配置」');
-    eq(segs[1].children.length, 1, 'unset 的槽带「去配置」');
-    segs[1].children[0].listeners.click();
-    deepEq(gone, ['stt']);
-    eq(segs[2].children.length, 0, '实时转写不可用不是配置问题，没有「去配置」');
-    ok(/iOS 26/.test(segs[2].textContent));
+    ok(/· 朗读：系统语音 ✓$/.test(segs[0].text), segs[0].text);
+    eq(segs[0].go, '', 'ok 的槽不带「去配置」');
+    eq(segs[1].state, 'unset');
+    eq(segs[1].go, 'stt', 'unset 的槽才有「去配置」');
+    eq(segs[2].state, 'na');
+    eq(segs[2].go, '', '实时转写不可用不是配置问题，没有「去配置」');
+    ok(/iOS 26/.test(segs[2].text));
+    // 快速档：' · ' 前缀 + 一句话，无名字段、无 go
+    const q = D.segments(D.items({ provider: 'deepseek', apiKey: 'k' }, { slots: ['chat'], quick: true, t: T }), (s) => s);
+    eq(q[0].text, ' · 由一键配置提供 ✓');
+    eq(q[0].go, '');
   });
-  test('元素为空 ⇒ 不抛、返回空表', () => {
+  test('onGo 未传 ⇒ 连 unset 也没有 go；空表 ⇒ 空数据', () => {
     const D = load();
-    deepEq(D.render(null, {}, {}), []);
+    const segs = D.segments(D.items({ provider: 'deepseek' }, { slots: ['chat'], t: T }));
+    eq(segs[0].go, '');
+    deepEq(D.segments(null), []);
+    deepEq(D.segments([]), []);
   });
 });
