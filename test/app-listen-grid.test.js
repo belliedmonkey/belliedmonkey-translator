@@ -17,12 +17,14 @@ const path = require('path');
 const { describe, test, ok } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
-const HTML = fs.readFileSync(path.join(ROOT, 'app', 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+// PR6a：页面标记迁 src/app/AppShell.jsx（JSX）—— 剥 JSX 注释再解析；className 与 class 同认。
+const HTML = fs.readFileSync(path.join(ROOT, 'src', 'app', 'AppShell.jsx'), 'utf8')
+  .replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/<!--[\s\S]*?-->/g, '');
 const CSS = fs.readFileSync(path.join(ROOT, 'app', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 function directChildren() {
   const start = HTML.indexOf('<section id="app-listen"');
-  ok(start >= 0, 'app/index.html 里找不到 section#app-listen');
+  ok(start >= 0, 'src/app/AppShell.jsx 里找不到 section#app-listen');
   const re = /<(\/?)([a-zA-Z][\w-]*)\b([^>]*)>/g;
   re.lastIndex = HTML.indexOf('>', start) + 1;
   const VOID = /^(input|br|img|hr|meta|link|source|wbr)$/i;
@@ -35,7 +37,7 @@ function directChildren() {
       out.push({
         tag,
         id: (attrs.match(/\bid="([^"]+)"/) || [])[1],
-        cls: ((attrs.match(/\bclass="([^"]+)"/) || [])[1] || '').split(/\s+/).filter(Boolean),
+        cls: ((attrs.match(/\b(?:className|class)="([^"]+)"/) || [])[1] || '').split(/\s+/).filter(Boolean),
       });
     }
     if (!VOID.test(tag)) depth++;

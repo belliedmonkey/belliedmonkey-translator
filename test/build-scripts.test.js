@@ -2235,10 +2235,10 @@ describe('app bundle — 面板页不启动主壳（MAIN_ONLY）', () => {
     const run = (hash) => new Function('location', 'return ' + expr)({ hash });
     eq(run('#quick'), true); eq(run('#quick?x'), true); eq(run(''), false); eq(run('#quickly'), false); eq(run('#settings'), false);
   });
-  test('app.js 的两处副作用都在 #quick 下让路：IIFE 第一行返回 + 末尾的遥测初始化', () => {
-    const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
-    ok(/AppQuick\.isQuickMode\(\)\) \{ AppQuick\.boot\(\); return; \}/.test(app));
-    ok(/MTTelemetry !== 'undefined' && !\(typeof AppQuick !== 'undefined' && AppQuick\.isQuickMode\(\)\)\) MTTelemetry\.init/.test(app));
+  test('main.jsx 的两处副作用都在 #quick 下让路：boot 前分流 + 末尾的遥测初始化', () => {
+    const entry = fs.readFileSync(path.join(ROOT, 'src/app/main.jsx'), 'utf8');
+    ok(/AppQuick\.isQuickMode\(\)\) \{\s*AppQuick\.boot\(\);\s*\} else \{/.test(entry));
+    ok(/MTTelemetry !== 'undefined' && !\(typeof AppQuick !== 'undefined' && AppQuick\.isQuickMode\(\)\)\) MTTelemetry\.init/.test(entry));
   });
 });
 

@@ -20,7 +20,7 @@ const fs = require('fs');
 const path = require('path');
 const { describe, test, ok, eq } = require('./harness');
 const { stripComments } = require('./lib/strip-comments');
-const { MODULES, APP_JS } = require('../build/app-bundle.js');
+const { MODULES } = require('../build/app-bundle.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -57,7 +57,10 @@ function allGlobals() {
 
 describe('App 包里引用到的模块全局，都得在包里', () => {
   const globals = allGlobals();
-  const bundled = MODULES.concat([APP_JS]);
+  // app/app.js 已迁 src/app/（PR6a）：正文（现 src/app/shell-model.js）进包清单
+  // 做同样的引用核对；入口 src/app/main.jsx 经 esbuild 打成 IIFE，顶层名字不再落
+  // window —— 它不定义任何模块全局，不进这份清单。
+  const bundled = MODULES.concat(['src/app/shell-model.js']);
   const bundledSet = new Set(bundled);
   // 包里定义了哪些全局。
   const provided = new Set([...globals].filter(([, f]) => bundledSet.has(f)).map(([n]) => n));

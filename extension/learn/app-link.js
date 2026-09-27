@@ -27,7 +27,7 @@ var AppLink = (() => {
   // （verification-spec §2.0 为「跑的是哪一份没有确定答案」付过代价）。
   // action 决定落到 App 的哪一屏。App 侧 parseDeepLink 早就在解析它
   // （`u.hostname || u.pathname`，默认 'review'），只是此前三支分发都直奔复习 ——
-  // 2026-09-16 加 'listen' 时才第一次真正用上（app/app.js 的 applyDeepLink）。
+  // 2026-09-16 加 'listen' 时才第一次真正用上（src/app/shell-model.js 的 applyDeepLink）。
   // 白名单而不是任意透传：拼错的 action 落到 App 会是一屏静默的什么都没发生。
   const ACTIONS = ['review', 'listen'];
   function deepLink(userId, action) {

@@ -2107,7 +2107,8 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `AppDriving` | `app/driving.js` *(§9.5)* | App 专属编排器：执行状态机 effects（TTS 链 / 解析补全 / 视图）、开卡并行预热、出发前预载 `preload()`，进 bundle 不进扩展。**不调用 `putItem` / `recordReview`** |
 | `LearnTranslateFill` | `app/translate-fill.js` *(§9.5 补译文)* | App 专属：给没有 `tr` 的卡按需补一条译文，骑 `TranslationAPI.translate` + §9.2 的引擎组。缓存进现有 `notes` 表，key `itemId + '\0tr'`（无新表 ⇒ 无 `DB_VERSION` bump），带 `TR_VERSION`、in-flight 去重。**永不写 `items`、永不同步** |
 | `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
-| Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `app/app.js`. Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
+| Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `src/app/shell-model.js` (since PR6a the React UI bundle built from
+`src/app/main.jsx` lands in the same segment). Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
 
 > **Why the app is exactly three files.** `safari-project/` is gitignored and gets
 > regenerated, which resets the Xcode project's file list (release-checklist #72). The

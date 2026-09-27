@@ -31,7 +31,7 @@
 //
 // ── 必须挂在 window 上 ──────────────────────────────────────────────────────
 // 原生侧靠 `evaluateJavaScript("window.NativeAudio && …")` 回话。转换器模板自带的
-// `show('ios')` 就是反面教材：`app/app.js` 的 `show` 在 IIFE 里、从来不是全局，
+// `show('ios')` 就是反面教材：`src/app/shell-model.js` 的 `show` 在 IIFE 里、从来不是全局，
 // 于是那一句一直在静默抛 ReferenceError（`evaluateJavaScript` 没有 completion
 // handler，错误无人接）。这条通道**从没通过**，所以这里不假设它「本来就通」。
 var NativeAudio = (() => {

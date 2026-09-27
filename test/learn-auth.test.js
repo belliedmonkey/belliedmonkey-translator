@@ -324,10 +324,11 @@ describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
     // PR5 迁移：设置页经 src/lib/registry.js 的 Registry.backend() 读表，
     // 不直接摸 window.MT_BACKEND —— 判据跟着换锚点。
     const opt = fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8');
-    const app = fs.readFileSync(path.join(ROOT, 'app/app.js'), 'utf8');
+    // PR6a 迁移：App 壳的逐字原文在 src/app/shell-model.js，同样经 Registry 读表。
+    const app = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
     ok(/Registry\.backend\(\)/.test(opt) && /BE\.providers/.test(opt),
       '设置页没读 providers —— 会发一个必然失败的按钮');
-    ok(/MT_BACKEND\.providers/.test(app), 'App 没读 providers');
+    ok(/Registry\.backend\(\)\.providers/.test(app), 'App 没读 providers');
   });
 
   test('表里的每一个都是 auth.js 支持的 provider', () => {

@@ -1198,7 +1198,7 @@ Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到
 
 ## 首次运行引导（App 侧）— 2026-09-01 补记
 
-`app/app.js` 与 `app/index.html` 长期引用「§引导」，而这一节直到今天都不存在。
+`src/app/shell-model.js`（PR6a 前是 `app/app.js`）与 `app/index.html` 长期引用「§引导」，而这一节直到今天都不存在。
 
 **2026-09-22 重排为三到四屏**：`welcome → signin → firstuse → ext`（`signin` 仍按
 `MT_BACKEND.enabled` 决定在不在）。三件事同时发生，理由都在读数里：

@@ -43,7 +43,9 @@ function shipped() {
       else if (/\.(js|jsx)$/.test(e.name)) out.push(p);
     }
   })(path.join(ROOT, 'src'));
-  return out;
+  // src/app/shell-model.js 是 App 壳正文（原 app/app.js，PR6a 搬进 src/）—— App 用的是
+  // 自己的 onboardSeen，本来就不在扫描面里（见上「不含 App」），别因搬家被扫进来。
+  return out.filter((f) => f !== path.join(ROOT, 'src', 'app', 'shell-model.js'));
 }
 
 function hits() {

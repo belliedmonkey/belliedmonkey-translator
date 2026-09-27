@@ -30,18 +30,18 @@ describe('免费额度：领取 → 写槽 → 回执，只有一份实现', () 
     ok(/return \{[^}]*claimAndApply[^}]*\}/.test(src), 'claimAndApply 没有被导出，别处拿不到');
   });
 
-  test('app.js 不自己调 LearnGrant.claim —— 它走共用层', () => {
-    const src = strip(read('app/app.js'));
+  test('main 壳（shell-model.js）不自己调 LearnGrant.claim —— 它走共用层', () => {
+    const src = strip(read('src/app/shell-model.js'));
     ok(!src.includes('LearnGrant.claim('),
-      'app/app.js 又直接调 LearnGrant.claim() 了 —— 那是第二份实现的开头');
+      'src/app/shell-model.js 又直接调 LearnGrant.claim() 了 —— 那是第二份实现的开头');
     ok(!src.includes('LearnGrant.plan('),
-      'app/app.js 又自己 plan() 了 —— overwrite 的语义会在这里走样');
+      'src/app/shell-model.js 又自己 plan() 了 —— overwrite 的语义会在这里走样');
     ok(src.includes('AppSettings.claimAndApply('),
-      'app/app.js 没有走共用层');
+      'src/app/shell-model.js 没有走共用层');
   });
 
   test('自动领取有三个闸，而且一次会话只试一次', () => {
-    const src = strip(read('app/app.js'));
+    const src = strip(read('src/app/shell-model.js'));
     const i = src.indexOf('async function autoClaimGrant');
     ok(i >= 0, '找不到 autoClaimGrant');
     const body = src.slice(i, i + 1400);

@@ -15,7 +15,8 @@ describe('回归 2026-09 · F06 退出登录要先确认并清掉免费额度令
     ok(/clearOnSignOut/.test(read('src/pages/options.jsx')), 'options.jsx 的退出登录处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
   });
   test('App 的退出登录也走 LearnGrant.clearOnSignOut', () => {
-    ok(/clearOnSignOut/.test(read('app/app.js')), 'app.js 的 onSignOut 没调 LearnGrant.clearOnSignOut');
+    // PR6a 迁移：App 壳正文在 src/app/shell-model.js（原 app/app.js，esbuild 进 Script.js）。
+    ok(/clearOnSignOut/.test(read('src/app/shell-model.js')), 'shell-model.js 的 onSignOut 没调 LearnGrant.clearOnSignOut');
   });
   test('12 份 locale 都有退出确认文案 grant_signout_confirm', () => {
     for (const loc of fs.readdirSync(path.join(ROOT, 'extension/_locales'))) {

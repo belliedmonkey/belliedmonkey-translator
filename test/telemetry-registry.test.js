@@ -89,7 +89,8 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
   // §3.9 提案 A：dwell 的「开始计时」那一半没有任何门禁能自己发现 —— 少打一处，
   // 事件照发、值照样合法（只是算成了「从启动到现在」），表上看不出来。所以单独钉住。
   test('dwell：App 的**两条**进场路都记了引导出现的时刻（§3.9）', () => {
-    const app = stripComments(read('app/app.js'));
+    // PR6a：正文迁 src/app/shell-model.js（原 app/app.js）。
+    const app = stripComments(read('src/app/shell-model.js'));
     const starts = (app.match(/obShownAt\s*=\s*Date\.now\(\)/g) || []).length;
     eq(starts, 2, 'App 引导有两条进场路（首次运行、从「继续设置」卡点进来），'
       + '少打一处 ⇒ 那批人的停留时长会被算成「从启动到现在」，全落进 30+');

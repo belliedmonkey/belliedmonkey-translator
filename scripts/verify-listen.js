@@ -136,7 +136,7 @@ const FAKE_BRIDGES = `(() => {
   {
     const built = fs.statSync(path.join(SRC, 'Main.html')).mtimeMs;
     const srcs = ['app/index.html', 'app/listen.js', 'app/listen-core.js', 'app/settings.js',
-      'app/app.js', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
+      'src/app/main.jsx', 'src/app/AppShell.jsx', 'src/app/shell-model.js', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
       'extension/learn/sources-view.js', 'extension/learn/review.js'];
     const stale = srcs.filter((f) => {
       const q = path.join(ROOT, f);

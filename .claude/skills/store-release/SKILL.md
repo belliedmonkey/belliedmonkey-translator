@@ -246,7 +246,7 @@ node scripts/asc.js privacy --apply  # 有进行中的版本时才改得动
 
 期望值在 `scripts/asc.js` 的 `PRIVACY_URL` 表里，按 flavor 分（中国版
 `belliedmonkey.com`／EdgeOne 境内备案，国际版 `belliedmonkey.cc`／Vercel）——
-与 `app/app.js:292`、`extension/learn/quick-setup.js:114` 的分叉判据同源。
+与 `src/app/shell-model.js`（原 `app/app.js:292`）、`extension/learn/quick-setup.js:114` 的分叉判据同源。
 
 ### 4.6 隐私标签与数据披露（Gate D，2026-09-05 起）
 

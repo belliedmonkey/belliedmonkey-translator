@@ -40,10 +40,10 @@ describe('出货的 JS 都解析得了', () => {
     ok(files.length >= 40, `只扫到 ${files.length} 个 js，扫法走歪了？`);
     const rel = files.map((f) => path.relative(ROOT, f));
     // 点名几个**由 HTML 加载、不进 vm harness** 的，它们正是这道门禁的理由。
-    // （onboard.js、options.js 已迁 src/pages/*.jsx —— vm.Script 解析不了 JSX，
+    // （onboard.js、options.js、app.js 已迁 src/ —— vm.Script 解析不了 JSX 与 ESM，
     // 本门禁也不扫 src/；那边的解析保证来自 build.js 的 esbuild 门 + ui-bundle 冒烟。）
     for (const must of ['extension/learn/review.js',
-      'extension/content/content-main.js', 'app/app.js']) {
+      'extension/content/content-main.js']) {
       ok(rel.includes(must), `没扫到 ${must}`);
     }
   });
