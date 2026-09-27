@@ -343,6 +343,62 @@ describe('TranslationCore — createEngine (state machine)', () => {
     eq(units[0]._tries, 0);
   });
 
+  // ── 连续 timeout 的熔断（domain-design §7，2026-09-27 裁定；取证 issue #472）──────────
+  // 单个单元的 timeout 是「瞬时、可能自己好」，所以它按设计走重试计数。但**一串**单元连续
+  // 超时是另一回事：bt_events 里 grant 路径 28 天 1 109 次 timeout，98% 来自 10 台，最极端那台
+  // 一天 397 次、挤在两小时（≈每 18 秒一次），而同期中继 avg 只有 1.4 s ⇒ 服务端没慢，
+  // 是客户端在高频面上自己把自己打垮。达阈值即置 halted（与 402 / auth 同一套）。
+  const timeoutErr = () => { const e = new Error('timeout'); e.code = 'timeout'; return e; };
+  // MAX_PER_TICK: 1 ⇒ 每 tick 只推一个单元，「连续」于是可确定地构造。
+  const streakWin = (n) => Object.assign({}, FAST, { MAX_PER_TICK: 1, MAX_RETRIES: 1, RETRY_GAP_MS: 5, TIMEOUT_STREAK_MAX: n });
+
+  test('连续 TIMEOUT_STREAK_MAX 次单元级 timeout ⇒ halted，之后一个请求都不再发', async () => {
+    const { TC } = loadCore();
+    let calls = 0;
+    const eng = TC.createEngine({
+      translate: async () => { calls++; throw timeoutErr(); },
+      window: streakWin(3),
+    });
+    const units = [{ text: 'a' }, { text: 'b' }, { text: 'c' }];
+    eng.setUnits(units);
+    for (let i = 0; i < 12 && !eng.halted; i++) { eng.pump(); await tick(FAST.RETRY_GAP_MS + 8); }
+    eq(eng.halted, true, '连续 3 次 timeout 之后应当停机');
+    eq(units.every((u) => u._err), true, '停机后未译单元应全部置 error（渲染器据此给可点重试）');
+    const before = calls;
+    eng.pump(); await tick(30);
+    eq(calls, before, '停机之后 pump() 不该再发出任何请求 —— 这正是这条要治的那个正反馈');
+    eng.retry(units[0]);
+    eq(eng.halted, false, 'retry() 解锁停机（与 402 / auth 两族一致）');
+  });
+
+  test('中途成功过一次 ⇒ 连续计数清零，不熔断', async () => {
+    const { TC } = loadCore();
+    const eng = TC.createEngine({
+      translate: async (t) => { if (t === 'ok') return 'OK'; throw timeoutErr(); },
+      window: streakWin(3),
+    });
+    const units = [{ text: 't1' }, { text: 't2' }, { text: 'ok' }, { text: 't3' }, { text: 't4' }];
+    eng.setUnits(units);
+    for (let i = 0; i < 40 && !eng.halted && !units.every((u) => u._err || u.tr); i++) {
+      eng.pump(); await tick(FAST.RETRY_GAP_MS + 8);
+    }
+    eq(units[2].tr, 'OK', '中间那一张应当翻出来了');
+    eq(eng.halted, false, '中间成功过 ⇒ 计数被清零，两次连续失败不该熔断');
+  });
+
+  test('非 timeout 的失败不算进这条链', async () => {
+    const { TC } = loadCore();
+    const eng = TC.createEngine({
+      translate: async () => { const e = new Error('boom'); e.code = 'http'; throw e; },
+      window: streakWin(2),
+    });
+    const units = [{ text: 'a' }, { text: 'b' }, { text: 'c' }];
+    eng.setUnits(units);
+    for (let i = 0; i < 12 && !units.every((u) => u._err); i++) { eng.pump(); await tick(FAST.RETRY_GAP_MS + 8); }
+    eq(units.every((u) => u._err), true, '三张都该进 error');
+    eq(eng.halted, false, 'http 失败是别的问题（配置/端点），不该触发「网络一直不通」的停机');
+  });
+
   test('reset() clears all per-unit state', async () => {
     const { TC } = loadCore();
     const eng = TC.createEngine({ translate: async (t) => t.toUpperCase(), window: FAST });

@@ -24,7 +24,11 @@ var TranslationCore = (() => {
   // §2.4). 0 = today's behaviour for every fetched transcript; the live ASR source sets
   // it because a sentence can only close after it was spoken, so its pair would
   // otherwise never be on screen while its own time range is.
-  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, HOLD_MS: 0 };
+  const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, HOLD_MS: 0,
+    // 连续多少次「单元级 timeout」就把整台引擎停下来（domain-design §7，2026-09-27 裁定；
+    // 取证 issue #472）。5 的意思是「不止一个单元、也不止一次重试都超时了」——
+    // 单个单元已经允许 MAX_RETRIES(3) 次重试，所以 5 次单元级失败约为 2 个单元的彻底失败。
+    TIMEOUT_STREAK_MAX: 5 };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
@@ -350,6 +354,9 @@ var TranslationCore = (() => {
     // 引擎级停机。只有「额度用完」这一族会置上 —— 它与别的失败不同：重试**必然**
     // 再失败，而且每一次都花掉一个来回。其余错误仍走每单元的重试计数。
     let halted = false;
+    // 「连续超时」的计数：任一单元成功即清零。它是 halted 的第三种触发器
+    // （前两种是 402 credit_exhausted 与 401/403 auth）—— 见下面 catch 里的注释。
+    let timeoutStreak = 0;
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
     // MERGE, not replace: an adapter's override lists only the knobs it cares about,
@@ -457,7 +464,8 @@ var TranslationCore = (() => {
           stallTimer = setTimeout(() => { const e = new Error('translate stalled'); e.stalled = true; reject(e); }, win.STALL_MS);
         });
         Promise.race([translate(it.text), stall]).then((t) => {
-          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
+          // 成功即清零「连续超时」—— 熔断只认**连成一条**的失败（§7，2026-09-27）。
+          if (isTranslated(it.text, t)) { it.tr = t; it._tries = 0; timeoutStreak = 0; if (cfg.onOk) { try { cfg.onOk(); } catch (_) {} } return; }
           // 空正文是失败，不是「这段没东西可翻」——两者必须分开（2026-08-13 真机）。
           // 请求发出**之前**判定不用翻（同语言跳过）才可以静默终结；请求发出**之后**
           // 拿回空正文，说明这一段确实需要译文而我们没拿到。此前这里写的是
@@ -480,7 +488,21 @@ var TranslationCore = (() => {
           }
           if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout' }); } catch (_) {} } return; }  // 卡死 → 直接可重试
           it._tries = (it._tries || 0) + 1;
-          if (it._tries >= win.MAX_RETRIES) { it._err = true; if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} } } // exhausted → error UI
+          if (it._tries >= win.MAX_RETRIES) {
+            it._err = true;   // exhausted → error UI
+            // 连续 timeout 的熔断（domain-design §7，2026-09-27 裁定；取证 issue #472）。
+            // 单个单元的 timeout 是「瞬时、可能自己好」——所以它按设计走重试计数。但**一串**
+            // 单元连续超时是另一回事：bt_events 里 grant 路径 28 天 1 109 次 timeout，98% 来自
+            // 10 台，最极端那台一天 397 次、挤在两小时（≈每 18 秒一次），而同期中继 avg 只有
+            // 1.4 s（服务端与上游都没慢）—— 是客户端在高频面上自己把自己打垮。
+            // 达阈值即置 halted：与 402 / auth 同一套（未译单元置 error、不再发请求、retry() 解锁）。
+            // 非 timeout 的失败清零这条链：它说的是别的问题，不该算进「网络一直不通」。
+            // 边界：`e.stalled`（单单元卡死 120 s）**不计入** —— 它上面已经直接给可点重试，
+            // 且是「一个 promise 不落地」，与「一连串请求都超时」不是同一件事。
+            timeoutStreak = (e && e.code === 'timeout') ? timeoutStreak + 1 : 0;
+            if (timeoutStreak >= win.TIMEOUT_STREAK_MAX) halted = true;
+            if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+          } // exhausted → error UI
         }).finally(() => {
           clearTimeout(stallTimer);
           setTimeout(() => { it._fetching = false; }, win.RETRY_GAP_MS);
@@ -497,9 +519,9 @@ var TranslationCore = (() => {
     }
 
     // 用户点重试 = 他自己决定再试一次（可能刚配好自带 key），解锁停机。
-    function retry(it) { halted = false; if (it) { it._err = false; it._tries = 0; } }
+    function retry(it) { halted = false; timeoutStreak = 0; if (it) { it._err = false; it._tries = 0; } }
     function reset() {
-      halted = false;
+      halted = false; timeoutStreak = 0;
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
         it._detectWaits = 0;
