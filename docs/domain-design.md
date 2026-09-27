@@ -1945,18 +1945,47 @@ React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **�
 
 ### 10.6 Content 注入 UI 的边界
 
-- **岛式 root**：悬浮球、字幕 overlay、翻译 chip 各一个 React root —— 自包含、
-  不参与宿主文档流。
+> **2026-09-28 as-built 补记（PR8a–PR8c 落地后）**：计划原列「悬浮球、字幕
+> overlay、翻译 chip 各一个 React root」，落地后 **React root 只给字幕控制菜单**
+> —— 其余注入面维持命令式，判据逐条如下；测试锚点见
+> `test/content-ui.test.js`（结构门）与 `scripts/verify-content-inject.js`
+> / `scripts/verify-content-menu.js`（真 Chrome 门）。
+
+- **字幕控制菜单 = 唯一的 React root**（PR8a）：`src/content/sub-menu.jsx` →
+  `content/sub-menu.bundle.js`（ESM），不在 manifest 的 content_scripts 列表
+  —— 用户第一次开菜单才动态 `import()`，同步注入面零新增字节；行判据（行序 /
+  文案 / 勾选 / 定位公式）留在 `subtitle-adapter.js`，bundle 只拿行数据。
+- **悬浮球 FAB + 翻译 chip 维持命令式**（PR8a 偏离声明）：FAB 的 SVG 改
+  `createElementNS` 逐节点构建 —— 消掉 YouTube Trusted Types 面上最后一个字符
+  串内联 HTML 注入点；chip 本就 `textContent`。FAB 是一次性静态子树，为它引
+  框架没有响应式收益。
+- **字幕 overlay 维持命令式**（PR8b 判据报告）：① 全路径零 HTML 写入汇（下方
+  结构门钉死）；② 懒加载降级不对称 —— 菜单开不出可接受，字幕不显示是核心功能
+  死；静态注入 +677KB 又击穿 +150KB 同步预算门，**回退开关与预算门互斥**；
+  ③ overlay DOM 结构是外部契约（win-matrix 读回判据、`dom-processor` 的排除、
+  `verify-asr`、商店素材脚本都盯着 `#mt-yt-overlay` / `.mt-yt-orig` /
+  `.mt-yt-trans`）。
 - **`.mt-translation` 译文块保留 createElement 直插**（不 React 化）：它是插进
   宿主文档流的兄弟节点，宿主框架随时删搬，与 React 所有权模型冲突；42 个布局
   fixture 按结构断言；本质 write-once 文本，无响应式需求。只把状态读取换成
   store 订阅。**去留判据**（满足任一即维持命令式）：(a) 真机上逐节点 root 超
   内存/首译延迟预算；(b) 结构被迫变动致 fixture 改断言 > 5 个；(c) `__mtTrans`
-  背引用需要绕过 reconciler 的 hack。
-- **懒加载**：content UI bundle 构建为 ESM 进 `web_accessible_resources`，由极小
-  IIFE loader 在第一次要画 UI 时 `import(chrome.runtime.getURL(...))`；Firefox
-  实测不过则回退静态 IIFE 注入。**预算门**：content 产物总量增幅 ≤ +150KB 且
-  冷注入中位耗时增幅 ≤ 10ms，超了构建即红。
+  背引用需要绕过 reconciler 的 hack。PR8c 裁定：三条全中 —— (a) 每段一个
+  root（长文数百个）本身就是预算灾难；(b) 邻接兄弟结构正是 fixture 的断言目标
+  （portal 出去即全灭）；(c) `__mtTrans` 是引擎单元模型、孤儿重挂与 assert-lib
+  的共同背引用，「单 root + portal」在此不存在可行形态。
+- **注入面零 HTML 写入汇**（PR8b/PR8c 结构门）：`subtitle-adapter.js`、
+  `content-youtube/podcast/twitter.js`、`content-webpage.js`、
+  `dom-processor.js` 不得出现 HTML 写入汇（赋值 / `insertAdjacentHTML` /
+  `document.write`；读不咬 —— podcast 读 `documentElement.innerHTML` 扫字幕
+  地址是合法的）。这是「维持命令式」面能安全保留的**前提不变量**。
+- **懒加载**：content UI bundle 构建为 ESM 进 `web_accessible_resources`，由
+  引用方在第一次要画 UI 时 `import(chrome.runtime.getURL(...))`（PR8a 起没有
+  独立 loader 文件，import 点在 `subtitle-adapter.js`）。Firefox/Safari 实测
+  不过则回退静态 IIFE 注入 —— 注意这只对**菜单**成立（降级可接受）；overlay
+  / `.mt-translation` 不在此回退路径上（见上，预算门互斥）。**预算门**：
+  同步注入面 ≤ 基线 +150KB（`contentSyncBytesGate`）且冷注入中位耗时增幅
+  ≤ 10ms（`verify-content-inject`），超了构建/门即红。
 - Trusted Types：React 不走 innerHTML；`src/` 全域禁 `dangerouslySetInnerHTML`
   （grep 门）；图标用 JSX `<svg>` 子元素，不用字符串注入。
 
