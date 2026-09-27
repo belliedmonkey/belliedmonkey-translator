@@ -34,7 +34,7 @@ describe('回归 2026-09 · F07 一键卡粘自己的 key 时免费槽可覆盖'
   });
   test('三个宿主都给 render 提供 replaceKeyTail（额度令牌尾八位）', () => {
     // onboard / options 的宿主脚本已是 React 版（src/pages/*.jsx，构建覆盖 dist 同名 .js）。
-    for (const f of ['src/pages/options.jsx', 'src/pages/onboard.jsx', 'app/settings.js']) {
+    for (const f of ['src/pages/options.jsx', 'src/pages/onboard.jsx', 'src/app/settings-view.jsx']) {
       ok(/replaceKeyTail/.test(read(f)), f + ' 的 QuickSetup.render 没传 replaceKeyTail');
     }
   });

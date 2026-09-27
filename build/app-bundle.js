@@ -136,7 +136,9 @@ const MODULES = [
   'app/quick-settings.js',            // AppQuickSettings —— 设置里「快速翻译」块的 M-7 那几行
   'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
   'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
-  'app/settings.js',                     // AppSettings — the learning layer's own knobs
+  // app/settings.js（AppSettings）PR6b 起不在 MODULES：模型层收编为 src/app/settings-model.js、
+  // 视图层为 src/app/settings-view.jsx，随 src/app/main.jsx（APP_ENTRY 的 esbuild bundle）
+  // 拼在 Script.js 尾部 —— 所有对它的引用都是 call-time（bootShell 的异步流），求值时机后移无影响。
   'app/now-playing-art.js',              // NowPlayingArt — §9.5 锁屏封面：把当前卡片画成
                                          // 一张 1024² 的图交给原生。纯 canvas 图元（file://
                                          // 下画外部图会污染 canvas），颜色读 CSS token。

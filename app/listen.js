@@ -1414,7 +1414,7 @@ var AppListen = (() => {
     // listenOtherLang）。选重了不是拒绝而是对调 —— 判据在 ListenCore.langPatch。
     const selMy = $('app-listen-my'), selOther = $('app-listen-other');
     // 2026-09-17：只列本机识别器支持的语种（清单由桥在 stt-probe 时报出；没探过就不过滤）。
-    // 与设置页那两个下拉同一条规则（app/settings.js fillLangs）；正选中的照旧留着。
+    // 与设置页那两个下拉同一条规则（src/app/settings-view.jsx fillLangs）；正选中的照旧留着。
     function fillLangSel(sel) {
       const keep = sel.value;
       let allowed = null;

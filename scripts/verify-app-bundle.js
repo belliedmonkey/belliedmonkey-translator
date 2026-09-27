@@ -118,7 +118,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         sendLabel: (document.getElementById('send').textContent || '').length,
         styled: getComputedStyle(document.body).getPropertyValue('--accent').trim(),
         globals: ['MT_BACKEND','LearnModel','LearnScheduler','LearnStore','LearnAuth','LearnChunk','LearnSync',
-          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','AppSettings',
+          'LearnTTS','LearnDrain','MT_I18N_MESSAGES','PageI18n','PageSettings','settingsModel',
           // §8.8 — app.js rebuilds the deck through this on every review-view entry;
           // if review.js stops exporting it, the app silently loses deck freshness.
           'LearnReview',
@@ -1050,7 +1050,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       $('onboard').hidden = true; $('signed-out').hidden = false; return 'ok'; })()`, 'body');
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
-      AppSettings.paintStatic(); await AppSettings.paint(null, () => {}); return 'ok'; })()`, '#app-settings');
+      await settingsModel.notifySettingsShown(null); return 'ok'; })()`, '#app-settings');
     // ─── 「译成」（2026-09-19）：选了落盘、选回「跟随界面语言」是**删键**、读取走同一个出口 ─────
     // App 此前没有目标语言设置，文档翻译默默译成界面语言。补上之后最要紧的是老用户行为不变：
     // 存储里没有这个键 ⇒ AppTargetLang.resolve 给出的仍是界面语言。

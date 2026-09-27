@@ -215,8 +215,8 @@ describe('options.jsx 里不许再有第二份同能力的判断', () => {
 //
 // 三条都不报错、都不被任何门禁看见 —— 这正是「静默漂移」的形状，也是这一组断言
 // 存在的全部理由。规则只能有一份，而守它的门禁必须覆盖**每一个** host。
-describe('app/settings.js 也不许有第二份同能力的判断', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
+describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-view.jsx'), 'utf8');
   const bundle = fs.readFileSync(path.join(ROOT, 'build', 'app-bundle.js'), 'utf8');
 
   test('App 不再自己判 supportsBaseUrl / supportsModel / supportsKey / needsKey', () => {
@@ -253,7 +253,7 @@ describe('app/settings.js 也不许有第二份同能力的判断', () => {
 
   test('输入框 id 从 SLOTS 取，不是第八份手抄表', () => {
     ok(/EngineFields\.SLOTS\[/.test(src),
-      'app/settings.js 没有从 EngineFields.SLOTS 取 id —— 这个仓库已经有七份手抄的'
+      'src/app/settings-view.jsx 没有从 EngineFields.SLOTS 取 id —— 这个仓库已经有七份手抄的'
       + '设置键表了，第八份只会让「改一处、另外七处不红」再发生一次');
     for (const id of ['notes-key', 'notes-base', 'stt-key', 'stt-base']) {
       ok(!new RegExp(`['"]${id}['"]`).test(src),
@@ -262,14 +262,18 @@ describe('app/settings.js 也不许有第二份同能力的判断', () => {
     }
   });
 
-  test('组件真的在 App 包里，且排在 app/settings.js 之前', () => {
+  test('组件真的在 App 包里，且 app/settings.js 已退出模块清单', () => {
     for (const m of ['engine-fields.js', 'quick-setup.js', 'engine-test.js']) {
       const a = bundle.indexOf('extension/learn/' + m);
       ok(a >= 0, `build/app-bundle.js 的 MODULES 里没有 ${m} —— App 包里没有这个模块，`
-        + 'settings.js 就只能继续手抄');
-      ok(a < bundle.indexOf("'app/settings.js'"),
-        `${m} 排在了 app/settings.js 后面 —— MODULES 的顺序就是依赖顺序`);
+        + '设置视图就只能继续手抄');
     }
+    ok(!bundle.includes("'app/settings.js'"),
+      "build/app-bundle.js 的 MODULES 里还有 'app/settings.js' —— PR6b 起设置页已拆成 "
+      + 'src/app/settings-view.jsx（视图）+ src/app/settings-model.js（模型），随 src/app/main.jsx'
+      + '（APP_ENTRY 的 esbuild bundle）拼进 Script.js 尾部，不许再以 IIFE 模块回来');
+    ok(bundle.includes("APP_ENTRY = 'src/app/main.jsx'"),
+      "build/app-bundle.js 里找不到 APP_ENTRY = 'src/app/main.jsx' —— 设置视图靠它拼进包");
   });
 });
 
@@ -299,7 +303,7 @@ describe('app/settings.js 也不许有第二份同能力的判断', () => {
 // 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
   const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['listen.js', 'READ_KEYS'], ['docs.js', 'READ_KEYS']];
-  const set = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
+  const set = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-model.js'), 'utf8');
   const listOf = (src, name) => {
     const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
     ok(!!m, '找不到 ' + name + ' —— 这道门禁靠解析它，改名要同步改这里');
@@ -340,9 +344,10 @@ describe('App 读得到的设置，设置页必须管得到', () => {
   });
 
   test('App 从不写 notes* —— 回落分支恒成立，靠的是这一条', () => {
-    // app.js 的正文已迁 src/app/shell-model.js（PR6a）—— f 只是报错用的旧名。
-    for (const [f, p] of [['settings.js', 'app/settings.js'], ['app.js', 'src/app/shell-model.js'],
-      ['driving.js', 'app/driving.js'], ['translate-fill.js', 'app/translate-fill.js']]) {
+    // settings.js 已拆成 settings-view.jsx + settings-model.js（PR6b）；app.js 的正文
+    // 已迁 src/app/shell-model.js（PR6a）—— 这里列的一律是**现在**的写路径。
+    for (const p of ['src/app/settings-view.jsx', 'src/app/settings-model.js',
+      'src/app/shell-model.js', 'app/driving.js', 'app/translate-fill.js']) {
       const src = fs.readFileSync(path.join(ROOT, p), 'utf8');
       const writes = src.split('\n')
         .map((l, i) => [i + 1, l])
@@ -350,7 +355,7 @@ describe('App 读得到的设置，设置页必须管得到', () => {
         .filter(([, l]) => /\bnotes(Provider|ApiKey|BaseUrl|Model)\b/.test(l))
         .filter(([, l]) => !/SETTINGS_KEYS|^\s*'notes/.test(l));
       eq(writes.length, 0,
-        `app/${f} 动了 notes* 键 —— 一旦 App 存储里出现 notesProvider，`
+        `${p} 动了 notes* 键 —— 一旦 App 存储里出现 notesProvider，`
         + 'resolveConfig 会优先用它，而设置页读不回它：\n  '
         + writes.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
     }
@@ -398,8 +403,8 @@ describe('界面语言 = build/ui-langs.config.js', () => {
   // 而它的取值一直是 Chrome 的 locale 码）。官网用 id 那一列。
   for (const [label, file] of [
     ['扩展设置页', path.join('src', 'pages', 'options.jsx')],
-    // 宿主 App 的标记随 PR6a 迁 src/app/AppShell.jsx —— 对账面跟着搬（同 options.jsx 先例）。
-    ['宿主 App 设置页', path.join('src', 'app', 'AppShell.jsx')],
+    // 宿主 App 的标记随 PR6b 拆进 src/app/settings-view.jsx（设置节离开 AppShell）—— 对账面跟着搬。
+    ['宿主 App 设置页', path.join('src', 'app', 'settings-view.jsx')],
   ]) {
     test(label + '：auto 在最前，其余逐项等于注册表（含顺序与 endonym）', () => {
       const list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'));
@@ -440,8 +445,8 @@ describe('目标语言 = build/target-langs.config.js', () => {
     // 弹窗的语言项随 React 迁移（PR3）搬进 JSX —— 对账面跟着搬：静态 option
     // 就是渲染出的全部选项，源码文本照样逐项可对。
     ['扩展弹窗', path.join('src', 'pages', 'popup.jsx'), false],
-    // 宿主 App 的标记随 PR6a 迁 src/app/AppShell.jsx —— 对账面跟着搬（同上）。
-    ['宿主 App 设置页', path.join('src', 'app', 'AppShell.jsx'), true],
+    // 宿主 App 的标记随 PR6b 拆进 src/app/settings-view.jsx（设置节离开 AppShell）—— 对账面跟着搬。
+    ['宿主 App 设置页', path.join('src', 'app', 'settings-view.jsx'), true],
   ]) {
     test(label + '：逐项等于注册表（含顺序与 endonym）' + (follow ? '，且第一项是空值「跟随界面语言」' : ''), () => {
       let list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'), label);

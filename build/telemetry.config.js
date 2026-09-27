@@ -176,7 +176,8 @@ const SEAMS = {
   engine_set: [
     { host: 'ext', file: 'src/pages/options.jsx' },
     // 一键卡与领免费额度两条路都走 trackEngineSet()；后者由 verify-onboard 的行为断言守着。
-    { host: 'app', file: 'app/settings.js' },
+    // PR6b：trackEngineSet 落在 src/app/settings-model.js（原 app/settings.js）。
+    { host: 'app', file: 'src/app/settings-model.js' },
   ],
   engine_test: SHARED('extension/learn/engine-test.js'),
   translate_ok: [

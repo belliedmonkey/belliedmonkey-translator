@@ -876,7 +876,7 @@ describe('LearnTTS.sniffAudioType — 服务器说的类型不可信', () => {
 //
 //   extension/learn/tts.js        engine()      `|| engineById('browser')`
 //   src/pages/options.jsx         updateTtsUI   `|| TTS_ENGINES[0]`   （原 extension/options/options.js）
-//   app/settings.js               engineById    `|| (MT_TTS_ENGINES||[])[0]`
+//   src/app/settings-model.js     engineById    `|| (MT_TTS_ENGINES||[])[0]`
 //
 // 三处都不报错、都不被任何既有门禁看见 —— 只是把一次产品裁定悄悄撤销掉。
 // 所以这里钉的是**源码里不许再出现这种形状**，而不是某一处的行为。
@@ -896,11 +896,11 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
     const CASES = [
       ['extension/learn/tts.js', /\|\|\s*engineById\(\s*'browser'\s*\)/,
         "engine() 又回落到 browser —— 「未配置」会静默变成「用系统语音」"],
-      ['app/settings.js', /\$\('tts-engine'\)\.value\s*\|\|/,
+      ['src/app/settings-view.jsx', /\$\('tts-engine'\)\.value\s*\|\|/,
         "liveTtsConfigure 又给 tts-engine 的值加了回落 —— 试听会绕过「用户填了才有」"],
       ['src/pages/options.jsx', /ttsEngineById\([^)]*\)\s*\|\|\s*TTS_ENGINES\[0\]/,
         'updateTtsUI 又回落到第一个引擎 —— 界面会把「未配置」显示成「已选 browser」'],
-      ['app/settings.js', /MT_TTS_ENGINES\s*\|\|\s*\[\]\)\[0\]/,
+      ['src/app/settings-model.js', /MT_TTS_ENGINES\s*\|\|\s*\[\]\)\[0\]/,
         'app 的 engineById 又回落到第一个引擎 —— 同一个谎的第三处'],
     ];
     for (const [rel, re, why] of CASES) {
@@ -933,7 +933,7 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
     ok(/暂时读不出来/.test(TTS.reason('这不是任何一个码', t)), '兜底也要是人话');
     // 消费者不许再自己长一张表出来。判据是 fallback 文案 —— 它是表的指纹。
     for (const rel of ['src/pages/options.jsx', 'extension/learn/review.js',
-                       'app/settings.js']) {
+                       'src/app/settings-view.jsx']) {
       ok(!/tts_no_voice_und/.test(codeOf(rel)),
         rel + ' 又自己写了一份 tts reason 表 —— 上一次的代价是 options 缺 '
         + 'not_configured，把「还没配」说成「暂时读不出来」');

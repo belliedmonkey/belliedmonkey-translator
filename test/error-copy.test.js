@@ -78,7 +78,7 @@ describe('同步层的每个错误 code 都有人话', () => {
 // （设置页 / App / App 设置）的改动，漏一处的形状恰恰是最难被发现的那种，
 // 所以用静态断言钉住，而不是靠记性。
 describe('登录身份的显示口径', () => {
-  const files = ['src/pages/options.jsx', 'src/app/shell-model.js', 'app/settings.js',
+  const files = ['src/pages/options.jsx', 'src/app/shell-model.js', 'src/app/settings-view.jsx',
     'extension/learn/review.js'];
   for (const f of files) {
     test(f + ' 不直接渲染 session.email', () => {

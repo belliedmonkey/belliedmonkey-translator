@@ -150,7 +150,7 @@
   function start(h) {
     hooks = h || {};
     post({ type: 'quick-probe' });
-    // 开关或界面语言变了 ⇒ 菜单与常驻状态跟着变（设置总线，同 app/settings.js 的约定）
+    // 开关或界面语言变了 ⇒ 菜单与常驻状态跟着变（设置总线，同 src/app/settings-view.jsx 的约定）
     try { chrome.storage.onChanged.addListener((ch) => { if (ch && (ch.quickEnabled || ch.quickResidentSeen || ch.quickEnhanced || ch.quickHotkeys || ch.uiLang)) pushConfig(); }); } catch (_) {}
   }
 

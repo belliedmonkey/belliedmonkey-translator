@@ -2,8 +2,9 @@
 // engines. See docs/learning-design.md §9.4.
 //
 // Consumed at BUILD time by build.js, which writes extension/content/stt.gen.js
-// (`window.MT_STT_ENGINES`). The runtime (learn/speech-input.js, options.js,
-// app/settings.js) reads only that generated file — never this one.
+// (`window.MT_STT_ENGINES`). The runtime (learn/speech-input.js,
+// src/pages/options.jsx, src/app/settings-view.jsx) reads only that generated
+// file — never this one.
 //
 // A THIRD registry, deliberately (same reasoning as build/tts.config.js): speech
 // INPUT is a different capability from speech output and from translation, and

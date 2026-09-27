@@ -190,8 +190,8 @@ var LearnRules = (() => {
   //     `updatedAt > since`，所以它也**永远不会被推上去**。用户的选择就这么没了，
   //     而全程没有一行报错。
   //
-  // 这个函数存在是因为同一段逻辑已经被抄了三份（options.js / review.js /
-  // app/settings.js），而第四份（引导页）抄错了 —— 它两个字段都没写。
+  // 这个函数存在是因为同一段逻辑已经被抄了三份（src/pages/options.jsx / review.js /
+  // src/app/settings-model.js），而第四份（引导页）抄错了 —— 它两个字段都没写。
   //
   // ⚠️ **同步收到的记录不要走这里**：chunk.js 写的是远端那一份，重新盖时间戳会让
   // 每一次入站都显得更新，last-writer-wins 就此失效。那条路故意原样落盘。
