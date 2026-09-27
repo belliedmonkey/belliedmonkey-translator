@@ -596,6 +596,17 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           window.show('ios'); await sleep(20);
           out.afterReshow = !sec.hidden;
           out.reviewAfter = $('review').classList.contains('secondary');
+          // ⑤ 一次动作即视为问过（2026-09-28，#384 重定）：点**主按钮**也算，此后不再出现。
+          // 先走设置页的复位键 —— 它同时清内存里的 extBannerDone 与存储，横幅才会回来
+          // （只 srm 存储不动内存，④ 之后 extBannerDone 还是 true，⑤ 的前置会假失败）。
+          $('extb-restore').click(); await sleep(60);
+          window.show('ios'); await sleep(20);
+          out.beforeSetup = !sec.hidden;
+          $('ext-banner-setup').click(); await sleep(60);
+          out.afterSetup = !sec.hidden;
+          out.storedBySetup = !!(await sget(['extBannerDoneAt'])).extBannerDoneAt;
+          window.show('ios'); await sleep(20);
+          out.afterSetupReshow = !sec.hidden;
           await srm(['extBannerDoneAt', 'tm:extBannerDay']);
           return JSON.stringify(out);
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
@@ -618,6 +629,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(v.stored, '点了「我已打开」而 extBannerDoneAt 没落盘 —— 下次打开又会出现');
       need(!v.afterReshow, '点过「我已打开」之后 show(\'ios\') 又把横幅画回来了');
       need(!v.reviewAfter, '横幅收起后 #review 没有恢复为主按钮');
+      need(v.beforeSetup, '清空后横幅没回来，⑤ 的前置不成立');
+      need(!v.afterSetup, '点了「在 Safari 里打开扩展」横幅还在 —— 一次动作即视为问过（#384 重定）');
+      need(v.storedBySetup, '点了主按钮而 extBannerDoneAt 没落盘 —— 重开 App 横幅又会出现');
+      need(!v.afterSetupReshow, '点过主按钮之后 show(\'ios\') 又把横幅画回来了');
       await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
     }
     // A3：未登录首屏不能是登录墙。40 个外部用户全部经 App 进来、0 激活，

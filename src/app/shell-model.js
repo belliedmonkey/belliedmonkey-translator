@@ -403,7 +403,12 @@ export function bootShell() {
     // 区块都还没被 show() 决定归属的那一刻（首帧、以及测试直接调 show() 时）会把
     // 横幅误伤掉。
     const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden || !$('app-docs').hidden || !$('app-settings').hidden;
-    if (away || browserSideOk || extBannerDone) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    // iOS 形态（`canOpenPrefs` / `known` 都为假）拿不到扩展状态，所以**不再拿「有没有材料」当判据**
+    // （2026-09-28，Issue #384 重定）：材料要「开启 + 允许网站 + 开采集 + 登录 + 同步」全走完才出现，
+    // 用它会让「已经开好扩展、只是还没抓到卡」的人继续被告知「还没打开」（模拟器实测）。macOS 有真实
+    // 状态（`getStateOfSafariExtension`），维持 `browserSideOk` 那一半。
+    const ios = !!(state && !state.canOpenPrefs && !state.known);
+    if (away || (browserSideOk && !ios) || extBannerDone) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
@@ -417,7 +422,6 @@ export function bootShell() {
     // iOS 形态（2026-09-10）：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人
     // 大多没把扩展打开，而这里 iOS 唯一能用的动作曾是一个次级按钮。改成标题 + 三步
     // （与引导 ext 屏同一份文案与插图）+ 填色主按钮 + 「我已打开」。macOS 形态不变。
-    const ios = !state.canOpenPrefs && !state.known;
     $('ext-banner-title').textContent = ios
       ? t('app_ext_banner_title_ios', 'Safari 扩展还没打开')
       : (state.known ? t('app_ext_off_title', '扩展还没启用') : t('app_ext_unknown_title', '先把浏览器那半边打通'));
@@ -1546,7 +1550,15 @@ export function bootShell() {
   });
 
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
-  $('ext-banner-setup').addEventListener('click', () => { extBannerTrack('setup'); openExternal(setupPageUrl()); });
+  // 一次动作即视为问过（2026-09-28，Issue #384 重定）：点过主按钮后就不再出现「还没打开」横幅。
+  // iOS 上 App 判不了扩展开没开，反复说「还没打开」只会打扰已经照做的人；要再确认走设置页的复位键。
+  $('ext-banner-setup').addEventListener('click', () => {
+    extBannerTrack('setup');
+    extBannerDone = true;
+    try { chrome.storage.local.set({ [EXT_DONE]: Date.now() }, () => {}); } catch (_) {}
+    openExternal(setupPageUrl());
+    paintExtBanner(extState);
+  });
   $('ext-banner-done').addEventListener('click', () => {
     extBannerDone = true;
     extBannerTrack('done');
