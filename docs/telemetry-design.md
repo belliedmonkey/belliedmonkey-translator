@@ -97,7 +97,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
 | `rate_prompt` | `action: shown \| tap \| dismiss \| requested`（`requested` 2026-09-25，§3.12） | **App** 在收获时刻向系统发出评分请求（`requested`，requestReview 不回调，**不是曝光**）。`shown` / `tap` / `dismiss` 是**旧口径**（1.16.x 及更早：译文末尾「去商店给个评分」那一行）—— §3.12 第三轮起新版本不再发，服务端为老客户端照收 | `learn/feedback.js` `noteValueMoment()`（requested，App）。~~挂上即等于 `mtRatingAskedAt` 落盘~~ —— 这半句从来不成立，见 §3.12 |
 | `review_nudge` | `action: shown \| seen \| tap \| dismiss \| no_app` | 译文末尾「今天读过的句子，去复习 →」被挂上 / 真进入视线（至少一半、连续 ≥1 秒）/ 被点 / 被关 / 点了但没人接住 scheme（`no_app`，只 Safari）。**目的地由 `host` 区分**：`safari` → App 的复习屏（只给已登录且开了学习的人），`chrome` / `firefox` → 扩展自己的复习页（开了学习即可）。每装机每本地日至多 1 条 `shown`、每 90 天至多 5 条（2026-09-25，§3.12） | `content-webpage.js` `placeRateRow()`、`watchSeen()` 与行内两个 click handler；Safari 那一跳的 `AppLink.open` 兜底回调 |
-| `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出，§3.7 B） | `src/app/shell-model.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与三个 listener |
+| `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出；**2026-09-27 UI 已淘汰**，枚举照留以收老客户端的行，§3.7 B） | `src/app/shell-model.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个 listener |
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
@@ -483,7 +483,7 @@ Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走
 
 **提案**：把这一段补成三节漏斗，**只新增一个事件**：
 
-1. **App 里点了哪个**：`ext_banner.action` 加一个值 `check`（「打开检测页」那一行），`setup` 只留给主按钮。加枚举值，不加事件。
+1. **App 里点了哪个**：`ext_banner.action` 加一个值 `check`（「打开检测页」那一行），`setup` 只留给主按钮。加枚举值，不加事件。（2026-09-27：`check` 那一行的 UI 已淘汰 —— 30 天只有 1 台点过；枚举保留，照收老客户端的行。）
 2. **到没到检测页**：**不新增采集**。`belliedmonkey.cc` 已有 Vercel Web Analytics（09-20 起），
    `/setup` 的访问量就是这一节。只读汇总数、不与 `bt_events` join（原则 7）。
 3. **看没看见绿灯**：新事件 **`setup_detected`**，无属性，**每装机一次**（`once`）。发送点是

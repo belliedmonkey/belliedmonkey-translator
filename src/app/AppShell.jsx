@@ -76,7 +76,6 @@ function AppShell() {
         {/* 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
              用户裁定：只有点了它才收起（extBannerDoneAt）。 */}
         <button id="ext-banner-done" type="button" className="secondary" hidden></button>
-        <p id="ext-banner-check" className="note" hidden><a href="#" id="ext-banner-check-link"></a></p>
       </section>
       {/* 系统翻译的发现横幅（画布第 7 页 Discover）。形状与 #ext-banner 逐样对齐，
            连「iOS 上 App 判不了，由用户告诉我们」那条纪律也是从它继承的。
@@ -111,6 +110,16 @@ function AppShell() {
         {/* 未登录也要能进设置（2026-09-17）：此前这张首页通向设置的唯一路径是对话入口灰态下的「去设置里选择 →」，
              实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 */}
         <p className="note" id="signed-out-actions"><button id="gear2" type="button" className="link"></button></p>
+
+        {/* 未登录也能复习（2026-09-27，Issue #386）：卡片是**本机**数据，登录只影响跨设备同步
+             （learning-design §7.2），所以本机有卡的人不该被登录墙挡在复习外面。
+             只在真有卡时出现（src/app/shell-model.js 的 paintSignedOutReview），没有卡时不给一个
+             必然空着的入口。次级按钮：这一屏的主行动仍是「把扩展 / 登录打通」，
+             与「每屏至多一个填色按钮」那条家规一致（横幅在场时 #review 同样降次级）。 */}
+        <div id="signed-out-review" hidden>
+          <p className="note" id="signed-out-review-desc"></p>
+          <button id="signed-out-review-btn" type="button" className="secondary"></button>
+        </div>
 
         {/* A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
              #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。

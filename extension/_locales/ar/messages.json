@@ -1700,11 +1700,17 @@
   "app_ext_open_safari": {
     "message": "فعِّل الإضافة في Safari ←"
   },
+  "app_so_review_title": {
+    "message": "مراجعة الجُمل المحفوظة على هذا الجهاز"
+  },
+  "app_so_review_due": {
+    "message": "لديك {n} بطاقة للمراجعة اليوم"
+  },
+  "app_so_review_total": {
+    "message": "تم حفظ {n} جملة"
+  },
   "app_ext_done": {
     "message": "لقد فعّلتها"
-  },
-  "app_ext_check_hint": {
-    "message": "غير متأكد؟ افتح صفحة التحقق وابحث عن الضوء الأخضر ←"
   },
   "app_signin_why": {
     "message": "تلتقط البطاقات إضافةُ المتصفح. سجّل الدخول بالحساب نفسه فتتم مزامنتها مع هذا الجهاز."

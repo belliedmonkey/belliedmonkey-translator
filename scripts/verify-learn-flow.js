@@ -773,6 +773,14 @@ async function runHost(host) {
         const hb2 = await ev(`document.getElementById('habit').hidden ? '' : document.getElementById('habit-line').textContent.trim()`);
         need((await hidden('#card')) && !(await hidden('#nothing-due')), '点「今天就到这儿」之后既没有卡也没有收尾屏 —— 那就是空屏');
         need(t2.length > 0 && hb2.length > 0, '收尾屏没有标题或习惯条：' + JSON.stringify({ t2, hb2 }));
+        // 2026-09-27 裁定：做满一组后主动收尾是**善终**（`done`），不再是半途离开（`left`）。
+        const rowsStop = await sessRows();
+        if (tmOn.spec) {
+          need(rowsStop.some((x) => x.result === 'done'),
+            '点「今天就到这儿」之后队列里没有 done：' + JSON.stringify(rowsStop));
+          need(!rowsStop.some((x) => x.result === 'left'),
+            '做满一组后收尾仍记成 left —— 2026-09-27 的口径改成 done：' + JSON.stringify(rowsStop));
+        }
       }
       await sweep('一组做完', '#group-done');
       // 收拾干净：探针卡不能影响后面的断言
@@ -792,6 +800,34 @@ async function runHost(host) {
             '没有卡可露，却记了一条 opened：' + JSON.stringify(rows));
         } else need(rows.length === 0, '中国版产物里竟然攒出了 review_session');
       }
+
+      // ---- 2026-09-27 用户裁定：善终门槛是「学过」，不是「清空」 ----
+      // 原话：「完成 1 卡也要记，只要进入了学习学了一小会都算学了。」⇒ 评过 1 张就离开记
+      // `done{graded:1}`，只有**一张都没评**才记 `left`。判据读的是队列里真的发了什么。
+      await ev(`new Promise((r) => chrome.storage.local.remove(['tm:queue'], r))`);
+      await ev(`(async () => { const now = Date.now(), day = 86400e3;
+        await LearnStore.putItem({ id: 'onecard', text: 'One card probe sentence.', tr: '一张卡探针。',
+          lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 9 * day, lastSeenAt: now - day,
+          seenCount: 3, salience: 0.3, skills: { listen: now, speak: now, write: now },
+          sched: { s: 1.5, d: 5, lastReviewAt: now - 2 * day, dueAt: now - 3600e3, reps: 2, lapses: 0 } });
+        return 'ok'; })()`);
+      await ev(`LearnReview.start().then(() => 'ok')`);
+      await new Promise((r) => setTimeout(r, 350));
+      if (!(await hidden('#reveal'))) await click('#reveal');
+      await new Promise((r) => setTimeout(r, 80));
+      await click('.grade[data-grade="2"]');
+      await new Promise((r) => setTimeout(r, 200));
+      await ev(`LearnReview.leave(); 'ok'`);
+      {
+        const rows = await sessRows();
+        if (tmOn.spec) {
+          const d = rows.filter((x) => x.result === 'done');
+          need(d.length === 1 && d[0].graded === 1,
+            '评过一张就离开应记 done{graded:1} —— 门槛是「学了一小会」不是「清空」：' + JSON.stringify(rows));
+          need(!rows.some((x) => x.result === 'left'), '评过卡的离开不该再记 left：' + JSON.stringify(rows));
+        } else need(rows.length === 0, '中国版产物里竟然攒出了 review_session');
+      }
+      await ev(`LearnStore.deleteItems(['onecard'], Date.now()).then(() => 'ok')`);
     }
 
     // 8 · Notes gate opens live and renders from the (mocked) engine, cached.

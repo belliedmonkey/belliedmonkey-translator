@@ -1550,11 +1550,17 @@
   "app_ext_open_safari": {
     "message": "Safari में एक्सटेंशन चालू करें →"
   },
+  "app_so_review_title": {
+    "message": "इस डिवाइस में सहेजे गए वाक्य दोहराएँ"
+  },
+  "app_so_review_due": {
+    "message": "आज {n} कार्ड दोहराने हैं"
+  },
+  "app_so_review_total": {
+    "message": "{n} वाक्य सहेजे गए"
+  },
   "app_ext_done": {
     "message": "मैंने चालू कर दिया"
-  },
-  "app_ext_check_hint": {
-    "message": "पक्का नहीं? जाँच पेज खोलकर हरी बत्ती देखें →"
   },
   "app_signin_why": {
     "message": "कार्ड ब्राउज़र एक्सटेंशन द्वारा कैप्चर किए जाते हैं। उसी खाते से साइन इन करें और वे इस डिवाइस पर सिंक हो जाएँगे।"
