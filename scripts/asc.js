@@ -657,9 +657,11 @@ async function cmdNotes(bundleId, platform, versionString, file, apply) {
 //     否则拉 40 天会在第一个安静的日子里炸掉。
 //   · **周报表的 reportDate 必须落在那一周里**（Apple 的周以周日结束）。
 //
-// 免费 app 的 Units 就是下载次数。Device 列是真实设备（iPhone / iPad / Desktop），
-// 而 Supported Platforms 那列写的是「iOS and macOS」——是包支持什么，不是用户用什么。
-// 拿后者当设备分布会得到一个「100% 全平台」的废话。
+// **`Units` 里混着首次下载 / 重新下载 / 更新，靠 `Product Type Identifier` 区分**
+// （分类表在 lib/asc-client.js 的 kindOf）—— 这里只报首次下载，更新与重下另列一行。
+// Device 列是真实设备（iPhone / iPad / Desktop），而 Supported Platforms 那列写的是
+// 「iOS and macOS」——是包支持什么，不是用户用什么。拿后者当设备分布会得到一个
+// 「100% 全平台」的废话。
 async function cmdInstalls(days) {
   const APPS = {};
   for (const a of await apps()) APPS[a.id] = a.name;
@@ -669,10 +671,10 @@ async function cmdInstalls(days) {
     console.log(`最近 ${days} 天没有任何下载记录（${quiet} 天无报表）。`);
     return;
   }
-  const { total, byApp, byDev, terr } = aggregateSales(rows, APPS);
+  const { total, updates, redownloads, byApp, byDev, terr } = aggregateSales(rows, APPS);
 
   console.log(`\n下载量 · 最近 ${days} 天（${from} → ${to}；`
-    + `${live} 天有下载，${quiet} 天安静）· 合计 ${total}\n`);
+    + `${live} 天有下载，${quiet} 天安静）· 合计 ${total} 次首次下载\n`);
 
   console.log('■ 按 app');
   for (const [k, v] of [...byApp].sort((a, b) => b[1] - a[1])) {
@@ -691,6 +693,7 @@ async function cmdInstalls(days) {
     console.log(`  ${cc.padEnd(4)} ${String(s).padStart(4)}  ${(100 * s / total).toFixed(1).padStart(5)}%  ${parts}`);
   }
   console.log(`\n  共 ${terr.size} 个国家/地区`);
+  console.log(`  另有更新 ${updates} 次、重新下载 ${redownloads} 次 —— 不计入上面的下载`);
 }
 
 // ─── sources：商店曝光从哪来（按地区 × 来源）──────────────────────────────────

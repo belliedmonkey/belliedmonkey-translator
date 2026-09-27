@@ -7,8 +7,8 @@
 （测过、说不清 —— 通常是观察窗被下一次改动盖掉了）。还没上线的条目写 **planned**。
 「测过且否定」与「从没测过」是两件事，只有台账能把它们分开（形状照 `build/perf-ledger.config.js`）。
 
-**读数口径**：结果指标是**各地区来自 App Store 搜索的曝光**（`node scripts/asc.js sources`）与**各国下载**
-（`node scripts/asc.js installs`）；名次（`npm run aso:rank`，iTunes Search API）只是近似、只当趋势，
+**读数口径**：结果指标是**各地区来自 App Store 搜索的曝光**（`node scripts/asc.js sources`）与**各国首次下载**
+（`node scripts/asc.js installs`；即 `1F`/`1T`/`F1`，**不含更新** —— 见下方更正）；名次（`npm run aso:rank`，iTunes Search API）只是近似、只当趋势，
 取多日中位数、只记跨档（200+ → 前 100 → 前 50 → 前 10）。星级按店面读 `node scripts/store-stats.js`。
 快照都在主仓库的 `.local/stats/`（在 worktree 里跑也写回主树）。
 
@@ -18,8 +18,13 @@
 
 线上版本 1.16.0；关键词 / subtitle 自 09-15（`4b8471e`）起没动过。
 
-- **获客面**：30 天 1596 次下载（约 100/天）；曝光约 99% 来自 App Store 搜索，外部引荐 0。
-  国际版的搜索曝光里 US 占 76%。
+> ⚠️ **2026-09-27 口径更正（#476）**：下面「30 天 1596 次下载」把 Apple 报表里的**更新**
+> （Product Type Identifier `7*`/`F7`）也算成了下载，虚高约 3 倍。同口径的**首次下载**
+> 约 550/30 天。原始 salesReports 一个字没变 —— 是 `aggregateSales()` 的汇总错了，已修。
+> 名次与星级读数不受影响（另两个数据源）。
+
+- **获客面**：30 天 **~550 次首次下载**（修复前口径记的是 1596，含更新 —— 见上）；曝光约 99%
+  来自 App Store 搜索，外部引荐 0。国际版的搜索曝光里 US 占 76%。
 - **星级**：11 个主要店面（us tw ca gb it au jp tr kr sa de）+ 中国区，`userRatingCount` **全部 0**。
   评分触发点的改动（#453）随 1.17.0 上线，之后每周读一次。
 - **近似名次**（`.local/stats/aso-rank-2026-09-25.json`，83 个词，40 个进前 200；单日读数）：

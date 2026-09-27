@@ -97,9 +97,13 @@ const cut = (k) => { const i = k.indexOf(SEP); return [k.slice(0, i), k.slice(i 
 //   · **不是 JSON**。返回的是 gzip 的 TSV，所以不走 api()；Accept 要 a-gzip。
 //   · **没数据的那天返回 404**，不是空报表。404 必须当成「那天没人下载」而不是错误，
 //     否则拉 40 天会在第一个安静的日子里炸掉。
-//   · 免费 app 的 Units 就是下载次数。Device 列是真实设备（iPhone / iPad / Desktop），
-//     而 Supported Platforms 那列写的是「iOS and macOS」—— 是包支持什么，不是用户用
-//     什么。拿后者当设备分布会得到一个「100% 全平台」的废话。
+//   · **`Units` 一列里混着三种东西，靠 `Product Type Identifier` 区分**：首次下载
+//     （`1F`/`1T`/`F1`…）、重新下载（`3F`/`F3`…）、**更新**（`7`/`7F`/`7T`/`F7`…）。
+//     不加区分地加总，更新会被算成下载 —— 2026-09-27 实测：30 天 1776 里只有 549 是
+//     首次下载、1156 是更新。官方对照表：developer.apple.com/help/app-store-connect/
+//     reference/reporting/product-type-identifiers/。Device 列是真实设备
+//     （iPhone / iPad / Desktop），而 Supported Platforms 那列写的是「iOS and macOS」
+//     —— 是包支持什么，不是用户用什么。拿后者当设备分布会得到一个「100% 全平台」的废话。
 async function salesDay(vendor, date) {
   const u = API + '/salesReports?filter[frequency]=DAILY&filter[reportType]=SALES'
     + '&filter[reportSubType]=SUMMARY&filter[vendorNumber]=' + vendor
@@ -140,15 +144,38 @@ async function salesRows(days) {
   return { rows, live, quiet, from: dates[0] || null, to: dates[dates.length - 1] || null };
 }
 
+// 产品类型标识 → 语义。Apple 官方对照表见上面 salesDay 的注释。
+//
+// **认不出的一律归 `other`，绝不默认算下载** —— 宁可少算，也不能把更新算成下载
+// （那正是 2026-09-27 修掉的那个 3.2 倍）。认出新类型时加进对应的集合，别改成前缀匹配。
+const PRODUCT_KINDS = {
+  install: new Set(['1', '1F', '1T', '1EU', 'F1', 'F1-B']),   // 首次下载
+  update: new Set(['7', '7F', '7T', 'F7']),                    // 更新
+  redownload: new Set(['3', '3F', 'F3']),                      // 重新下载
+};
+function kindOf(productTypeIdentifier) {
+  const t = String(productTypeIdentifier == null ? '' : productTypeIdentifier).trim();
+  for (const [kind, set] of Object.entries(PRODUCT_KINDS)) if (set.has(t)) return kind;
+  return 'other';
+}
+
 // 三个维度的汇总。同样一处实现 —— 两个调用方展示不同，但「怎么算」必须只有一份，
 // 否则两张报表会给出两个总数，而没人知道该信哪个。
+//
+// **`total`（以及 byApp / byDev / byTerr / terr）只统计首次下载**；更新与重新下载
+// 单独返回，调用方各自决定要不要显示 —— 但它们绝不会混进「下载」这个数里。
 function aggregateSales(rows, appNames) {
   const nameOf = (r) => (appNames && appNames[r['Apple Identifier']]) || r['Apple Identifier'];
   const add = (m, k, n) => m.set(k, (m.get(k) || 0) + n);
   const byApp = new Map(); const byDev = new Map(); const byTerr = new Map();
-  let total = 0;
+  let installs = 0, updates = 0, redownloads = 0, other = 0;
   for (const r of rows) {
-    const n = Number(r.Units || 0); total += n;
+    const n = Number(r.Units || 0);
+    const kind = kindOf(r['Product Type Identifier']);
+    if (kind === 'update') { updates += n; continue; }
+    if (kind === 'redownload') { redownloads += n; continue; }
+    if (kind === 'other') { other += n; continue; }
+    installs += n;
     add(byApp, nameOf(r), n);
     add(byDev, nameOf(r) + SEP + (r.Device || '?'), n);
     add(byTerr, r['Country Code'] + SEP + nameOf(r), n);
@@ -160,7 +187,8 @@ function aggregateSales(rows, appNames) {
     if (!terr.has(cc)) terr.set(cc, new Map());
     add(terr.get(cc), app, v);
   }
-  return { total, byApp, byDev, byTerr, terr };
+  return { total: installs, installs, updates, redownloads, other, byApp, byDev, byTerr, terr };
 }
 
-module.exports = { ROOT, KEYS, API, SEP, cut, slot, jwt, api, apps, salesDay, salesRows, aggregateSales };
+module.exports = { ROOT, KEYS, API, SEP, cut, slot, jwt, api, apps, salesDay, salesRows,
+  aggregateSales, kindOf, PRODUCT_KINDS };
