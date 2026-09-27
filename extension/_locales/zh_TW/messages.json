@@ -1701,11 +1701,17 @@
   "app_ext_open_safari": {
     "message": "在 Safari 裡打開擴充功能 →"
   },
+  "app_so_review_title": {
+    "message": "複習本機收藏的句子"
+  },
+  "app_so_review_due": {
+    "message": "今天有 {n} 張卡片待複習"
+  },
+  "app_so_review_total": {
+    "message": "共儲存了 {n} 個句子"
+  },
   "app_ext_done": {
     "message": "我已打開"
-  },
-  "app_ext_check_hint": {
-    "message": "不確定？打開檢測頁看綠燈 →"
   },
   "app_signin_why": {
     "message": "卡片是瀏覽器擴充功能採集的。登入同一個帳號，它們就會同步到這台裝置。"

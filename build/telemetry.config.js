@@ -116,7 +116,7 @@ const EVENTS = {
   // chrome / firefox → 扩展自己的复习页。seen = 行至少一半进入视口、连续 ≥1 秒（shown 只说明插进了页面）；
   // no_app = Safari 那一跳的 AppLink.open 兜底被触发（没有人接住 scheme）。
   review_nudge: { action: ['shown', 'seen', 'tap', 'dismiss', 'no_app'] },
-  ext_banner: { action: ['shown', 'setup', 'done', 'check'] },     // App 首页「扩展还没打开」横幅；check = 「打开检测页」那一行（§3.7 B）
+  ext_banner: { action: ['shown', 'setup', 'done', 'check'] },     // App 首页「扩展还没打开」横幅；check（「打开检测页」那一行）2026-09-27 已从 UI 淘汰，枚举照留以收老客户端（§3.7 B）
   // 扩展在自家域名上检测到自己（亮绿灯那一刻），每装机一次（§3.7 B）。
   setup_detected: {},
   // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。

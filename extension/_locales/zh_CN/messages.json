@@ -1701,11 +1701,17 @@
   "app_ext_open_safari": {
     "message": "在 Safari 里打开扩展 →"
   },
+  "app_so_review_title": {
+    "message": "复习本地收藏的句子"
+  },
+  "app_so_review_due": {
+    "message": "今天有 {n} 张卡片待复习"
+  },
+  "app_so_review_total": {
+    "message": "共保存了 {n} 个句子"
+  },
   "app_ext_done": {
     "message": "我已打开"
-  },
-  "app_ext_check_hint": {
-    "message": "不确定？打开检测页看绿灯 →"
   },
   "app_signin_why": {
     "message": "卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。"

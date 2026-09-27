@@ -193,6 +193,7 @@ export function bootShell() {
     // 得往同步里加一种新行，那是 domain design 的改动。
     browserSideOk = stats.total > 0 || (!!currentSession && Number(lastOk) > 0);
     paintExtBanner(extState);
+    paintSignedOutReview(stats.total, due);
     $('app-counts').innerHTML = '';
     // cls = semantic hook for style.css's stat-tile colors (never color by
     // position — a reordered/hidden tile would silently mis-color).
@@ -222,6 +223,27 @@ export function bootShell() {
     $('last').textContent = last
       ? t('app_last_sync', '上次同步 {t}').replace('{t}', new Date(last).toLocaleString())
       : t('app_never_synced', '还没有同步过');
+  }
+
+  // 未登录也能复习（2026-09-27，Issue #386）。
+  //
+  // 卡片是本机数据，登录只影响**跨设备同步**（learning-design §7.2）—— 而此前 `#review`
+  // 只长在 `#signed-in` 里，所以一个存了卡却没登录的人，首页根本没有复习入口
+  // （interaction-spec「复习 / Entry points」）。只在真有卡时出现：没有卡却给一个必然
+  // 空着的入口，比不给更糟。
+  function paintSignedOutReview(total, due) {
+    const box = $('signed-out-review');
+    if (!box) return;
+    box.hidden = !!currentSession || !(total > 0);
+    if (box.hidden) return;
+    const btn = $('signed-out-review-btn');
+    const desc = $('signed-out-review-desc');
+    if (btn) btn.textContent = t('app_so_review_title', '复习本地收藏的句子');
+    if (desc) {
+      desc.textContent = due > 0
+        ? t('app_so_review_due', '今天有 {n} 张卡片待复习').replace('{n}', String(due))
+        : t('app_so_review_total', '共保存了 {n} 个句子').replace('{n}', String(total));
+    }
   }
 
   // 密码登录只服务「服务端已设过密码」的账号 —— 产品内没有任何设密码的面，
@@ -316,6 +338,13 @@ export function bootShell() {
       // 登录路径经 paintCounts 会再画一次，未登录路径此前没有 —— 于是点过「我已打开」
       // 的人每次重开 App 都再看一遍横幅（2026-09-11 全回归 F 面，模拟器实测）。
       paintExtBanner(extState);
+      // 未登录也要跑一次 paintCounts —— 它算的两件事**都不是登录态的函数**：
+      //   ① `browserSideOk`（「材料来源通没通」）：只在 paintCounts 里被赋值 ⇒ 未登录时恒为假，
+      //      于是**本机明明有卡**（卡只可能是扩展写的）的人仍被告知「扩展还没启用」。
+      //   ② 本机有几张卡 —— 未登录复习入口（#386，2026-09-27）的可见性判据就是它。
+      //      它此前挂在只有已登录才跑的路径上，于是在**唯一该出现**的场景里永不出现。
+      //      2026-09-27 真 Chrome 实测：total=1、未登录、`#signed-out-review` 仍是 hidden。
+      await paintCounts();
     }
     if (session) {
       $('who').textContent = LearnAuth.displayName(session);
@@ -398,8 +427,6 @@ export function bootShell() {
     }
     const done = $('ext-banner-done');
     if (done) { done.hidden = !ios; done.textContent = t('app_ext_done', '我已打开'); }
-    const check = $('ext-banner-check');
-    if (check) { check.hidden = !ios; $('ext-banner-check-link').textContent = t('app_ext_check_hint', '不确定？打开检测页看绿灯 →'); }
     if (ios && extBannerPrimed) {
       // 每装机每天至多一条 shown（telemetry-design §3.1）。
       const today = new Date().toISOString().slice(0, 10);
@@ -1365,6 +1392,12 @@ export function bootShell() {
   // `review.js` runs its own boot on load and owns everything inside #review-view.
   // The app only shows and hides that view — reaching into its internals here would
   // be the start of the second implementation §9 exists to prevent.
+  // 未登录首页的复习入口走的是同一条路（2026-09-27，Issue #386）：不在这里抄第二份视图切换，
+  // 直接点那个真正的按钮 —— 同 AppSysBanner 的做法（见本文件下方 openReview 的桥）。
+  if ($('signed-out-review-btn')) {
+    $('signed-out-review-btn').addEventListener('click', () => { const r = $('review'); if (r) r.click(); });
+  }
+
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;
     $('review-view').hidden = false;
@@ -1414,7 +1447,9 @@ export function bootShell() {
       // 离开复习面 = 这一轮结束（telemetry-design §3.7 A）。App 是长驻单页，没有 pagehide 可挂。
       try { if (window.LearnReview && LearnReview.leave) LearnReview.leave(); } catch (_) {}
       $('review-view').hidden = true;
-      $('signed-in').hidden = false;
+      // 「从哪来、回哪去」（2026-09-27，Issue #386）：未登录也能进复习了，返回就不能无条件
+      // 回到登录态首页 —— 那会把一个从没登录过的人丢进他从没见过的界面。
+      if (currentSession) { $('signed-in').hidden = false; } else { $('signed-out').hidden = false; }
       // Grades given in there changed the corpus, so the counts on the way out must
       // not be the ones from the way in.
       await paintCounts();
@@ -1518,8 +1553,6 @@ export function bootShell() {
     try { chrome.storage.local.set({ [EXT_DONE]: Date.now() }, () => {}); } catch (_) {}
     paintExtBanner(extState);
   });
-  // `check` 与主按钮的 `setup` 分开记（telemetry-design §3.7 B）：两处原来共用 setup，分不出人是从哪儿走的。
-  $('ext-banner-check-link').addEventListener('click', (ev) => { ev.preventDefault(); extBannerTrack('check'); openExternal(setupPageUrl()); });
   $('ob-setup').addEventListener('click', () => {
     openExternal(setupPageUrl());
     // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做
@@ -1758,7 +1791,7 @@ export function bootShell() {
 
     try {
       const session = await LearnAuth.current();
-      // 横幅的两个 UI 状态键预读进内存（paintExtBanner 是同步的）。读失败按「没点过」。
+      // 横幅的 UI 状态键预读进内存（paintExtBanner 是同步的）。读失败按「没点过」。
       try {
         const o = await new Promise((r) => chrome.storage.local.get([EXT_DONE, 'tm:extBannerDay'], r));
         extBannerDone = !!(o && o[EXT_DONE]);

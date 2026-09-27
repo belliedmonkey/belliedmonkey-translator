@@ -1700,11 +1700,17 @@
   "app_ext_open_safari": {
     "message": "Erweiterung in Safari aktivieren →"
   },
+  "app_so_review_title": {
+    "message": "Auf diesem Gerät gespeicherte Sätze wiederholen"
+  },
+  "app_so_review_due": {
+    "message": "Heute {n} Karten fällig"
+  },
+  "app_so_review_total": {
+    "message": "{n} Sätze gespeichert"
+  },
   "app_ext_done": {
     "message": "Ich habe sie aktiviert"
-  },
-  "app_ext_check_hint": {
-    "message": "Unsicher? Prüfseite öffnen und auf das grüne Licht achten →"
   },
   "app_signin_why": {
     "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
