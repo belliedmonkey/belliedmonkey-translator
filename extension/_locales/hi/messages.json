@@ -1550,6 +1550,21 @@
   "app_ext_open_safari": {
     "message": "Safari में एक्सटेंशन चालू करें →"
   },
+  "app_ext_recheck_title": {
+    "message": "Safari एक्सटेंशन अभी भी कनेक्ट नहीं हुआ?"
+  },
+  "app_ext_recheck_body": {
+    "message": "आपने बताया था कि इसे चालू कर दिया है, लेकिन इस डिवाइस पर अब तक कोई वाक्य या कार्ड नहीं आया। एक बार फिर देखें?"
+  },
+  "app_so_review_title": {
+    "message": "इस डिवाइस में सहेजे गए वाक्य दोहराएँ"
+  },
+  "app_so_review_due": {
+    "message": "आज {n} कार्ड दोहराने हैं"
+  },
+  "app_so_review_total": {
+    "message": "{n} वाक्य सहेजे गए"
+  },
   "app_ext_done": {
     "message": "मैंने चालू कर दिया"
   },

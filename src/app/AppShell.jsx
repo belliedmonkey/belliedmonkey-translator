@@ -105,6 +105,16 @@ function AppShell() {
              实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 */}
         <p className="note" id="signed-out-actions"><button id="gear2" type="button" className="link"></button></p>
 
+        {/* 未登录也能复习（2026-09-27，Issue #386）：卡片是**本机**数据，登录只影响跨设备同步
+             （learning-design §7.2），所以本机有卡的人不该被登录墙挡在复习外面。
+             只在真有卡时出现（src/app/shell-model.js 的 paintSignedOutReview），没有卡时不给一个
+             必然空着的入口。次级按钮：这一屏的主行动仍是「把扩展 / 登录打通」，
+             与「每屏至多一个填色按钮」那条家规一致（横幅在场时 #review 同样降次级）。 */}
+        <div id="signed-out-review" hidden>
+          <p className="note" id="signed-out-review-desc"></p>
+          <button id="signed-out-review-btn" type="button" className="secondary"></button>
+        </div>
+
         {/* A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
              #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
              但**不假装登录是可选的**：App 结构上不采集，材料只能经同步进来

@@ -1700,6 +1700,21 @@
   "app_ext_open_safari": {
     "message": "Activar la extensión en Safari →"
   },
+  "app_ext_recheck_title": {
+    "message": "¿La extensión de Safari sigue sin conectarse?"
+  },
+  "app_ext_recheck_body": {
+    "message": "Nos dijiste que ya la habías activado, pero este dispositivo aún no ha recibido ninguna frase ni tarjeta. ¿Quieres revisarlo?"
+  },
+  "app_so_review_title": {
+    "message": "Repasar las frases guardadas en este dispositivo"
+  },
+  "app_so_review_due": {
+    "message": "Hoy tienes {n} tarjetas para repasar"
+  },
+  "app_so_review_total": {
+    "message": "{n} frases guardadas"
+  },
   "app_ext_done": {
     "message": "Ya la activé"
   },

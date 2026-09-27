@@ -1145,6 +1145,54 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['extBannerDoneAt', 'onboardSeen'], r))`, awaitPromise: true }, sessionId);
     }
 
+    // ─── 温和复核：点过「我已打开」3 天后仍一张卡都没有 ⇒ 横幅**再出现一次**，且只有点过
+    //     复核态的按钮才永久静音（2026-09-27，Issue #384）────────────────────────────────
+    // 改前是一次性永久静音：155 台看过横幅里 76% 没动作，而点过的那 20% 只要误触一次就再也
+    // 见不到引导。判据必须**真的重开 App**（重载页面），因为是 init 里的预读在决定这一帧画什么。
+    if (o.syncEnabled) {
+      const injR = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
+      const seedDone = (ms) => `new Promise((r) => chrome.storage.local.set({ extBannerDoneAt: Date.now() - ${ms}, onboardSeen: 1 }, r))`;
+      const readBanner = async () => JSON.parse((await cdp.send('Runtime.evaluate', {
+        expression: `JSON.stringify({ banner: !document.getElementById('ext-banner').hidden, title: document.getElementById('ext-banner-title').textContent, body: document.getElementById('ext-banner-body').textContent })`,
+        returnByValue: true }, sessionId)).result.value);
+
+      // ① 静音未满 3 天 ⇒ 不打扰（这正是既有冷启动测试覆盖的形状，这里正面钉一次）
+      await cdp.send('Runtime.evaluate', { expression: seedDone(86400e3), awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const v1 = await readBanner();
+      need(!v1.banner, `静音才过 1 天，横幅就回来了（应当安静满 3 天）：${JSON.stringify(v1)}`);
+
+      // ② 3 天已过、本机仍 0 张卡 ⇒ 复核形态再出现一次
+      await cdp.send('Runtime.evaluate', { expression: seedDone(4 * 86400e3), awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const v2 = await readBanner();
+      need(v2.banner, `点过「我已打开」4 天后本机仍一张卡都没有，复核横幅没有回来：#384 没生效（${JSON.stringify(v2)}）`);
+      need(v2.title !== v1.title && v2.title.length > 0,
+        `复核形态的标题没有变奏（还是「${v2.title}」）—— 用户看不出来这是「上次说打开了但其实没通」：${JSON.stringify(v2)}`);
+
+      // ③ 复核态下点「我已打开」⇒ 落 extBannerRecheckedAt，此后**永久**静音
+      const v3 = JSON.parse((await cdp.send('Runtime.evaluate', {
+        expression: `(async () => {
+          document.getElementById('ext-banner-done').click();
+          await new Promise((r) => setTimeout(r, 80));
+          const o = await new Promise((r) => chrome.storage.local.get(['extBannerRecheckedAt'], (v) => r(v || {})));
+          return JSON.stringify({ banner: !document.getElementById('ext-banner').hidden, rechecked: !!o.extBannerRecheckedAt });
+        })()`, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
+      need(!v3.banner && v3.rechecked,
+        `复核态点「我已打开」没有落 extBannerRecheckedAt / 没有收起横幅：${JSON.stringify(v3)}`);
+
+      await cdp.send('Runtime.evaluate', { expression: seedDone(30 * 86400e3), awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const v4 = await readBanner();
+      need(!v4.banner, `点过复核之后横幅又回来了（隔了 30 天）—— 复核本该是这一支的终点：${JSON.stringify(v4)}`);
+
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: injR.identifier }, sessionId).catch(() => {});
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['extBannerDoneAt', 'extBannerRecheckedAt', 'onboardSeen'], r))`, awaitPromise: true }, sessionId);
+    }
+
     // ─── 「以后再设置」只记这一次（2026-09-22，画布「以后再设置只记这一次」，用户点头）────────────
     // 判据要**真的重开 App**（重载页面；存储是 localStorage，重载后还在），逐次读回：
     //   跳过 → 不写 onboardSeen、记下停在哪屏 → 重开出「继续设置」卡而不是整条引导、横幅让路 →

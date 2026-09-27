@@ -135,7 +135,10 @@
   }
   // 离开复习面：扩展是关页 / 跳走（pagehide），App 是返回首页或从复习页进设置（app.js 调 leave()）。
   // 练习模式不算 —— 那是另一条路，没有「清完」这件事。
-  function leave() { if (!practicing) sessEnd('left'); }
+  // 善终门槛是「学了一小会」，不是「清空」（2026-09-27 用户裁定：「完成 1 卡也要记，只要进入了
+  // 学习学了一小会都算学了」）—— 评过 ≥1 张就走记 `done`，一张都没评才记 `left`
+  // （telemetry-design §3 的 `review_session.result` 口径）。
+  function leave() { if (!practicing) sessEnd(sess.graded > 0 ? 'done' : 'left'); }
   window.addEventListener('pagehide', leave);
   // App（长驻 WKWebView）里 pagehide 几乎不触发 —— 直接杀掉 App 时一条都发不出去，
   // 而那是 iOS / macOS 上最常见的退出方式（§3.10 零行的三层原因之一）。
@@ -1422,7 +1425,9 @@
   });
   $('group-stop').addEventListener('click', async () => {
     inGroup = 0;
-    sessEnd('left');
+    // 做满一组（5 张）后主动收尾是**目标达成**，不是半途离开（2026-09-27 裁定：
+    // 5 张一组记一条、完成 1 张也算 —— 门槛是「学了一小会」）。见 telemetry-design §3。
+    sessEnd('done');
     $('group-done').hidden = true;
     $('card').hidden = true;
     $('nothing-due').hidden = false;

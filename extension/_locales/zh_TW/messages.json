@@ -1701,6 +1701,21 @@
   "app_ext_open_safari": {
     "message": "在 Safari 裡打開擴充功能 →"
   },
+  "app_ext_recheck_title": {
+    "message": "Safari 擴充功能似乎還沒連上？"
+  },
+  "app_ext_recheck_body": {
+    "message": "你先前點過「我已開啟」，但這台裝置至今沒收到任何劃詞或卡片。要不要再看一眼？"
+  },
+  "app_so_review_title": {
+    "message": "複習本機收藏的句子"
+  },
+  "app_so_review_due": {
+    "message": "今天有 {n} 張卡片待複習"
+  },
+  "app_so_review_total": {
+    "message": "共儲存了 {n} 個句子"
+  },
   "app_ext_done": {
     "message": "我已打開"
   },
