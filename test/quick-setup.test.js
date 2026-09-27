@@ -10,14 +10,23 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { loadModule, loadSrc, describe, test, ok, eq, deepEq } = require('./harness');
 const { stripComments, stripJsx } = require('./lib/strip-comments');
 
 const ROOT = path.join(__dirname, '..');
+const EXT_ROOT = path.join(__dirname, '..', 'extension');
 
 function load(reg) {
   const window = {};
-  const ctx = loadModule(['content/wire-format.js', 'learn/quick-setup.js'], { window });
+  // PR7b：源从 extension/learn/quick-setup.js（IIFE）换到 src/shared/quick-setup.js
+  // （ESM 纯逻辑）。wire-format.js 仍是页面 <script> 挂的 window.WireFormat，而
+  // quick-setup 走裸标识符 typeof 兜底读（vm 里裸名解析到 ctx 顶层、不是 window
+  // 属性），所以把真源码跑进同一 context 后再补挂一层 —— 惰性读取，求值后补有效。
+  const ctx = loadSrc('src/shared/quick-setup.js', 'QuickSetup', { window });
+  vm.runInContext(fs.readFileSync(path.join(EXT_ROOT, 'content/wire-format.js'), 'utf8'),
+    ctx, { filename: 'content/wire-format.js' });
+  ctx.WireFormat = ctx.window.WireFormat;
   return { Q: ctx.QuickSetup, window };
 }
 
@@ -30,10 +39,13 @@ function fromDist(dir) {
   if (!files.every((f) => fs.existsSync(f))) return null;
   const window = {};
   const ctx = loadModule(
-    ['content/wire-format.js'].concat(files.map((f) => path.relative(path.join(ROOT, 'extension'), f))),
+    files.map((f) => path.relative(path.join(ROOT, 'extension'), f)),
     { window });
   // gen 文件写的是 window.MT_*，而 quick-setup 也读 window.*，同一个对象即可
-  const ctx2 = loadModule(['learn/quick-setup.js'], { window: ctx.window, WireFormat: ctx.WireFormat });
+  const ctx2 = loadSrc('src/shared/quick-setup.js', 'QuickSetup', { window: ctx.window });
+  vm.runInContext(fs.readFileSync(path.join(EXT_ROOT, 'content/wire-format.js'), 'utf8'),
+    ctx2, { filename: 'content/wire-format.js' });
+  ctx2.WireFormat = ctx2.window.WireFormat;
   return { Q: ctx2.QuickSetup, window: ctx.window };
 }
 

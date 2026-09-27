@@ -38,6 +38,17 @@ import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import SettingsStore from '../store/settings-store.js';
 import { useSettings, useSettingsStatus, useUiLang } from '../store/hooks.js';
+// PR7b：共享模块从「HTML script 标签挂 window + typeof 守卫」改成 ESM import
+// （§9.4：两宿主 import 同一份源、同一次编译）。三个渲染宿主在本页仍是命令式孤岛
+// （见头注释）——变了的只有全局查找这一层：render 经各 view 文件的 named export 进来
+// （grant-view 的 `box.hidden` 写入与返回句柄语义逐字保留，孤岛读回判据不变），
+// 纯逻辑经各自的源文件进来。
+import EngineFields from '../shared/engine-fields.js';
+import QuickSetup from '../shared/quick-setup.js';
+import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
+import * as LearnGrant from '../shared/grant.js';
+import { render as renderGrant } from '../shared/grant-view.jsx';
+import { render as renderEngineFields } from './engine-fields-view.jsx';
 
 // 引导页是独立的一页，打开即出现 ⇒ 这一行就是「引导出现」的时刻（telemetry-design §3.9）。
 const shownAt = Date.now();
@@ -151,7 +162,7 @@ function Art3() {
 // 中国版走的是另一张卡（官方免费额度）—— flavor 与地址都从生成的注册表来，
 // 不在这一页判 flavor 名。
 //
-// LearnGrant.render 画不出卡时自己会把容器 hidden 置真（「有没有卡要画」是它的
+// renderGrant 画不出卡时自己会把容器 hidden 置真（「有没有卡要画」是它的
 // 判断，不是调用方的）；画得出时它会把 hidden 置假 —— 这一步发生在 React 的
 // DOM 之外，React 的 diff 看不见。所以 render 之后必须**立刻**把 hidden 对齐回
 // props 的值（复刻原版 paintQuick 的分工：渲染器画内容，调用方定显隐），否则
@@ -166,8 +177,7 @@ function GrantIsland({ t, onShown, hidden }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
     if (!ref.current) return;
-    if (typeof LearnGrant === 'undefined') { onShown(false); return; }
-    LearnGrant.render(ref.current, {
+    renderGrant(ref.current, {
       t,
       status: LearnGrant.status(readSnapshot(ONBOARD_KEYS), { signedIn: false }),
       flavor: Registry.flavor(),
@@ -195,7 +205,7 @@ function GrantIsland({ t, onShown, hidden }) {
 // 一次性语义：mount effect 跑一次。onApply 写完盘后回调 onApplied —— 手动区那页要
 // 按新值重画（原版 manualMounted=false + textContent=''）。
 //
-// QuickSetup.render 末尾会按清单非空把容器 hidden 置假（quick-setup.js:401）——
+// renderQuickSetup 末尾会按清单非空把容器 hidden 置假（quick-setup-view.jsx:62）——
 // 发生在 React 的 DOM 之外，React 的 diff 看不见。render 之后必须立刻对齐回
 // props.hidden（分工同 GrantIsland：渲染器画内容，调用方定显隐），否则从挂载屏
 // 起这张卡就在每一屏漏出来 —— 2026-09-26 的 test:onboard 四连红就是这么来的。
@@ -204,10 +214,10 @@ function QuickIsland({ t, onApplied, hidden }) {
   const ref = useRef(null);
   const mounted = useRef(false);
   useLayoutEffect(() => {
-    if (mounted.current || !ref.current || typeof QuickSetup === 'undefined') return;
+    if (mounted.current || !ref.current) return;
     mounted.current = true;
     const snap = readSnapshot(ONBOARD_KEYS);
-    QuickSetup.render(ref.current, {
+    renderQuickSetup(ref.current, {
       t,
       readSettings,
       replaceKeyTail: () => new Promise((res) => chrome.storage.local.get(['grantTail'], (v) => res((v && v.grantTail) || ''))),
@@ -233,20 +243,20 @@ function QuickIsland({ t, onApplied, hidden }) {
   return <div id="ob-quick" ref={ref} hidden={hidden} />;
 }
 
-// ── 三引擎分别配孤岛（EngineFields.render ×3）───────────────────────────────
+// ── 三引擎分别配孤岛（renderEngineFields ×3）───────────────────────────────
 // 控件与设置页**是同一批** —— 同一个组件、同一套 id，所以两边以后是一起改的。
 // epoch 变化（一键卡刚写完盘）= 原版 manualMounted=false + 清空：三槽按新值重画。
 function ManualIsland({ t, visible, epoch }) {
   const ref = useRef(null);
   // useLayoutEffect：visible 翻真的那一刻，三槽的控件要在**同步**落进 DOM ——
-  // 验收门点完 tab 立刻数 select；异步 effect 赶不上（EngineFields.render 本身
+  // 验收门点完 tab 立刻数 select；异步 effect 赶不上（renderEngineFields 本身
   // 是同步的，原版 handler 里的重画也是同步的）。
   useLayoutEffect(() => {
-    if (!visible || !ref.current || typeof EngineFields === 'undefined') return;
+    if (!visible || !ref.current) return;
     const values = readSnapshot(ONBOARD_KEYS);
     ref.current.textContent = '';
     for (const slot of ['chat', 'tts', 'stt']) {
-      EngineFields.render(ref.current, {
+      renderEngineFields(ref.current, {
         slot,
         t,
         values,
@@ -371,16 +381,15 @@ function Onboard() {
   const bootSnap = useRef(null);
   if (ready && bootSnap.current === null) bootSnap.current = readSnapshot(ONBOARD_KEYS);
   const forkOpen = forkPick !== 'key'
-    && typeof LearnGrant !== 'undefined' && LearnGrant.enabled()
+    && LearnGrant.enabled()
     && !String((bootSnap.current && bootSnap.current.grantTail) || '').trim();
   const fork = step === 'engine' && forkOpen;
   const waiting = fork && forkPick === 'grant';
 
-  // 一键卡渲染不出来的 flavor：没有可选的东西，就不给一个只有一边的二选一。
-  // 原版判据是「render 后容器里有 children」—— render 一次挂上后恒真，等价于
-  // QuickSetup 存在与否。
-  const quickShown = typeof QuickSetup !== 'undefined';
-  const manual = manualMode || !quickShown;
+  // 原版这里还有一个 quickShown 守卫：模块缺失时不给只有一边的二选一。PR7b 起
+  // QuickSetup 是 ESM import —— bundle 里没有它就编不过，「缺席」这个状态在结构上
+  // 不存在了，manual 只剩用户选的 tab 一个来源。
+  const manual = manualMode;
 
   // grantTail 到账：领取在设置页发生，但人不必自己走回来。只认**从空变非空**
   // （onChanged 也会因为别的写入触发；首帧的初始读不算「变化」）。
@@ -512,7 +521,7 @@ function Onboard() {
   }
 
   const grantBoxHidden = step !== 'engine' || fork || manualMode || !grantShown;
-  const quickBoxHidden = step !== 'engine' || fork || manual || !quickShown;
+  const quickBoxHidden = step !== 'engine' || fork || manual;
   const manualBoxHidden = step !== 'engine' || fork || !manual;
 
   return (
@@ -608,7 +617,7 @@ function Onboard() {
                 在下面改了引擎，上面那张卡显示的状态就成了谎话。形状照设置页的
                 #mode-tabs，不新造一套。 */}
             <div id="ob-modes" className="mode-tabs" role="tablist"
-              hidden={step !== 'engine' || fork || !quickShown}>
+              hidden={step !== 'engine' || fork}>
               <button id="ob-mode-quick" type="button" role="tab"
                 aria-selected={String(!manual)} onClick={() => flushSync(() => setManualMode(false))}>
                 {T('extob_mode_quick', '一键配置')}
@@ -630,7 +639,7 @@ function Onboard() {
             {/* 一把 key 配好全部（QuickSetup） */}
             {ready && <QuickIsland t={t} onApplied={() => setEpoch((e) => e + 1)} hidden={quickBoxHidden} />}
 
-            {/* 三引擎分别配（EngineFields.render ×3） */}
+            {/* 三引擎分别配（renderEngineFields ×3） */}
             {ready && <ManualIsland t={t} visible={!manualBoxHidden} epoch={epoch} />}
 
           </div>

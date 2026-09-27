@@ -7,7 +7,7 @@
 //   4. 静音计时与会话计时：30 s 没声音才算静，暂停不计入已听时长。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 const C = require('../app/listen-core.js');
 const LANGS = require('../build/langs.config.js');
 const LearnRules = require('../extension/content/learn-rules.js');
@@ -727,11 +727,9 @@ describe('ListenCore — 实时字幕条字号三档（§9.8 协议补充决定 
 });
 
 describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
-  // 模块求值时读 window.MT_PALETTE 拼样式；给它构建产出的同一份注册表，读完即撤。
-  const hadWindow = 'window' in global;
-  if (!hadWindow) global.window = { MT_PALETTE: require('../build/palette.config.js').runtime };
-  const SV = require('../extension/learn/sources-view.js');
-  if (!hadWindow) delete global.window;
+  // PR7b：源从 extension/learn/sources-view.js（IIFE，模块求值期读 MT_PALETTE 拼样式，
+  // 所以要先垫）换到 src/shared/sources-view.js —— 纯逻辑层不再读调色板，垫片随之退役。
+  const SV = loadSrc('src/shared/sources-view.js', 'SourcesView').SourcesView;
   test('conv:// 来源按卡上的 anchor.mode 分成「对话」与「实时字幕」两组，互不串', () => {
     const sources = [{ id: 'conv:a', url: 'conv://a', title: '对话 · 1' }, { id: 'conv:b', url: 'conv://b', title: '实时字幕 · 2' }];
     const items = [

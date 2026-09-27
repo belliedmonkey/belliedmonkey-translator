@@ -34,7 +34,7 @@ const MODULES = [
   'extension/learn/page-settings.js',    // settings reader (uses chrome.storage)
   'extension/content/i18n-messages.js',  // MT_I18N_MESSAGES
   'extension/content/palette.gen.js',    // MT_PALETTE — generated brand palette
-                                         // (sources-view chips read it)
+                                         // (shared views read it via Registry.palette())
   'extension/learn/i18n.js',             // t() / applyI18n()
   'extension/content/learn-model.js',    // LearnModel — ids, merge semantics, touchedAt
   'extension/content/learn-rules.js',    // LearnRules — 来源治理 pure logic (§4.1/§7.4/§8.9)
@@ -110,23 +110,16 @@ const MODULES = [
                                          // TranslationAPI/WireFormat，都排在它前面。
   // PR7a 起不在 MODULES：'extension/learn/dep-line.js' 收编为 src/shared/dep-line.js
   // （纯逻辑）+ dep-line-view.jsx（组件），随 APP_ENTRY 的 esbuild bundle 拼进尾部。
-  'extension/learn/engine-fields.js',    // EngineFields —— 「这个引擎该露出哪几个框」的
-                                         // **唯一**实现。它抽出来正是因为规则已经漂了，
-                                         // 而它自己的文件头点名了 app/settings.js 的三处
-                                         // 手抄。不进这个列表，App 那边就只能继续手抄
-                                         // —— 2026-09-04 用户报的「App 设置页与扩展不一致」
-                                         // 就是这么来的。
-  'extension/learn/quick-setup.js',      // QuickSetup —— 「一把 key 配好全部」。它自述
-                                         // 「一个渲染器，两个 host」，且不碰 chrome.storage
-                                         // （算出 patch 交给 host 写盘），App 是第三个 host。
-                                         // 必须在 engine-fields.js 之后：快速档收起的正是
-                                         // 它渲染的那些字段。
-  'extension/learn/grant.js',           // LearnGrant —— 免费额度（§8.10）。必须排在
-                                         // quick-setup.js 之后：它调 QuickSetup.plan，不写第二份 plan。
+  // PR7b 起不在 MODULES：learn/ 下四个共享模块（engine-fields、quick-setup、grant、
+  // sources-view —— 文件名故意不带路径引号，engine-fields.test.js 的防回潮断言
+  // 会扫这份文本）收编为 src/shared/ 的纯逻辑 + 视图组件，随 APP_ENTRY 的 esbuild
+  // bundle 拼进尾部（settings-view 直接 import，无全局 ABI 可查）。
+  // window.EngineFields / window.LearnGrant 两个**纯逻辑** ABI 由 main.jsx 副作用
+  // import 的 *-host 壳挂回 —— 前者给 verify-app-bundle 的 §8.10 回读，后者给
+  // shell-model / settings-model / docs-model / quick-model 的裸全局调用。
   // PR7a 起不在 MODULES：'extension/learn/dialog.js' 收编为 src/shared/dialog.jsx
   // （组件）+ dialog-host.jsx（入口壳，main.jsx import —— 挂回 window.LearnDialog ABI，
   // review.js / listen-model / shell-model / docs-model 的裸全局调用照常）。
-  'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
   // PR6d 起不在 MODULES：'app/quick.js' 收编为 src/app/quick-model.js（状态）+ quick-view.jsx

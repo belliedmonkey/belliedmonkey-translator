@@ -18,9 +18,11 @@
 // PR7a 拆分：items()/slotName() 逐字保留；旧 render(el,…) 的 DOM 拼接退成本文件里的纯映射
 // segments(items 结果, t, onGo) + dep-line-view.jsx 的组件 —— 视觉输出逐字同构（' · ' 前缀、
 // '：'、' ✓' 后缀、按钮文案的前导空格都在 segments 里）。注册表经 lib/registry.js 读
-//（src/ 边界门禁）；EngineState / EngineFields 仍是全局兜底（PR7b 翻 engine-fields 时
-// 一起换），所以本文件不 import 它们 —— vm 测试按生产同构注入真源码（test/dep-line.test.js）。
+//（src/ 边界门禁）；标签的既有单实现（EngineFields.labelOf）PR7b 起直接 import —— 同一次
+// 翻转里 engine-fields 的全局兜底退役。EngineState 仍是全局兜底（它是 MODULES 里的
+// IIFE，两宿主同字节，不归本 PR 翻）。
 import Registry from '../lib/registry.js';
+import { labelOf } from './engine-fields.js';
 
 // 槽位名（与一键卡结果区同一组键：qs_slot_*）
 export function slotName(slot, t) {
@@ -34,8 +36,6 @@ export function slotName(slot, t) {
   }
 }
 const byId = (list, id) => list.find((e) => e && e.id === id) || null;
-const label = (e, t) => (typeof EngineFields !== 'undefined' && EngineFields.labelOf ? EngineFields.labelOf(e, t)
-  : ((e && e.labelKey && t) ? t(e.labelKey, e.label) : ((e && (typeof e.label === 'string' ? e.label : (e.label && e.label.global))) || (e && e.id) || '')));
 
 // items(settings, o) → [{ slot, name, label, state, text }]
 //   state ∈ 'ok' | 'unset' | 'follow' | 'quick' | 'na'
@@ -49,16 +49,16 @@ export function items(settings, o) {
     if (slot === 'chat') {
       const need = typeof EngineState !== 'undefined' ? EngineState.needsSetup(s) : !String(s.apiKey || '').trim();
       const e = typeof EngineState !== 'undefined' ? EngineState.entry(s) : byId(Registry.providers(), s.provider);
-      out.push(need ? { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') } : { slot, name, label: label(e, t), state: 'ok', text: '' });
+      out.push(need ? { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') } : { slot, name, label: labelOf(e, t), state: 'ok', text: '' });
     } else if (slot === 'tts') {
       const e = byId(Registry.ttsEngines(), s.ttsEngine);
-      out.push(e ? { slot, name, label: label(e, t), state: 'ok', text: '' } : { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') });
+      out.push(e ? { slot, name, label: labelOf(e, t), state: 'ok', text: '' } : { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') });
     } else if (slot === 'stt') {
       const e = byId(Registry.sttEngines(), s.sttEngine);
-      out.push(e ? { slot, name, label: label(e, t), state: 'ok', text: '' } : { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') });
+      out.push(e ? { slot, name, label: labelOf(e, t), state: 'ok', text: '' } : { slot, name, label: '', state: 'unset', text: t('dep_unset', '未配置') });
     } else if (slot === 'notes') {
       if (!s.notesProvider) out.push({ slot, name, label: '', state: 'follow', text: t('dep_follow', '跟随翻译引擎') });
-      else { const e = byId(Registry.providers(), s.notesProvider); out.push({ slot, name, label: label(e, t), state: e ? 'ok' : 'unset', text: e ? '' : t('dep_unset', '未配置') }); }
+      else { const e = byId(Registry.providers(), s.notesProvider); out.push({ slot, name, label: labelOf(e, t), state: e ? 'ok' : 'unset', text: e ? '' : t('dep_unset', '未配置') }); }
     } else if (slot === 'live') {
       const l = o.live || { ok: false, reason: 'no-bridge' };
       out.push(l.ok ? { slot, name, label: t('dep_live_device', '设备内置（本机 · iOS 26 / macOS 26）'), state: 'ok', text: '' }

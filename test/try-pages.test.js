@@ -33,7 +33,7 @@ function optionLangs() {
 }
 
 function runtimeLangs() {
-  const src = stripComments(fs.readFileSync(path.join(ROOT, 'extension/learn/quick-setup.js'), 'utf8'));
+  const src = stripComments(fs.readFileSync(path.join(ROOT, 'src/shared/quick-setup.js'), 'utf8'));
   const m = src.match(/const TRY_LANGS = \[([^\]]+)\]/);
   ok(!!m, 'quick-setup.js 里找不到 TRY_LANGS');
   return m[1].split(',').map((s) => s.trim().replace(/^'|'$/g, '')).filter(Boolean);

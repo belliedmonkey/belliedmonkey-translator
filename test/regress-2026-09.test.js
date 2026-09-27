@@ -1,7 +1,7 @@
 // test/regress-2026-09.test.js — 2026-09-11 全回归抓到的缺陷，各留一条「先红后绿」的用例。
 //
 // F06 退出登录不清免费额度令牌、不先确认（interaction-spec L716–719，用户 09-08 裁定 D4）
-// F07 额度激活时在一键卡粘自己的 key 被当成「已配过」（quick-setup.js render 没把 replaceKeyTail 传给 plan）
+// F07 额度激活时在一键卡粘自己的 key 被当成「已配过」（quick-setup-view.jsx render 没把 replaceKeyTail 传给 plan）
 // F12 Safari 扩展页 pdf.js getTextContent 抛错：垫片用 eval 注入，扩展页 CSP 禁 eval；且阅读器吞掉异常什么都不显示
 const fs = require('fs');
 const path = require('path');
@@ -28,14 +28,14 @@ describe('回归 2026-09 · F06 退出登录要先确认并清掉免费额度令
 
 describe('回归 2026-09 · F07 一键卡粘自己的 key 时免费槽可覆盖', () => {
   test('render 的 apply 把 replaceKeyTail 传给 plan（否则免费槽永远算「已配过」）', () => {
-    const src = read('extension/learn/quick-setup.js');
+    const src = read('src/shared/quick-setup-view.jsx');
     const call = src.slice(src.indexOf('const p = plan({ platform: current'));
-    ok(/replaceKeyTail/.test(call.slice(0, 400)), 'quick-setup.js render 里的 plan({...}) 调用没有 replaceKeyTail');
+    ok(/replaceKeyTail/.test(call.slice(0, 400)), 'quick-setup-view.jsx render 里的 plan({...}) 调用没有 replaceKeyTail');
   });
   test('三个宿主都给 render 提供 replaceKeyTail（额度令牌尾八位）', () => {
     // onboard / options 的宿主脚本已是 React 版（src/pages/*.jsx，构建覆盖 dist 同名 .js）。
     for (const f of ['src/pages/options.jsx', 'src/pages/onboard.jsx', 'src/app/settings-view.jsx']) {
-      ok(/replaceKeyTail/.test(read(f)), f + ' 的 QuickSetup.render 没传 replaceKeyTail');
+      ok(/replaceKeyTail/.test(read(f)), f + ' 的 renderQuickSetup 没传 replaceKeyTail');
     }
   });
 });

@@ -28,6 +28,12 @@ import { bootShell } from './shell-model.js';
 import '../shared/dialog-host.jsx';   // PR7a 副作用：挂 DialogHost 宿主 div + window.LearnDialog
                                       // ABI —— listen-model / shell-model / docs-model / review.js
                                       // 的裸全局调用靠它；uiLang 预读与下面 main 里那次幂等。
+import '../shared/engine-fields-host.js'; // PR7b 副作用：挂 window.EngineFields 纯逻辑 ABI ——
+                                          // verify-app-bundle 的 §8.10 回读在页面里取
+                                          // SLOTS / visibility / isDevice。
+import '../shared/grant-host.jsx';    // PR7b 副作用：挂 window.LearnGrant 纯逻辑 ABI ——
+                                      // shell-model / settings-model / docs-model / quick-model
+                                      // 与 verify-listen / verify-quick 的裸全局调用靠它。
 
 // ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
 // PageI18n（extension/learn/i18n.js，原样共享字节）服务还没翻转的孤岛

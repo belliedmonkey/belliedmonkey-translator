@@ -145,8 +145,8 @@ describe('宿主不许绕过 EngineTest', () => {
 
 describe('每个地址输入框都挂了失焦判定', () => {
   test('扩展：共用组件一处挂全（options + 引导页）', () => {
-    const src = strip(read('extension/learn/engine-fields.js'));
-    ok(src.includes('EngineTest.shapeHint('), 'engine-fields.js 没有失焦判定');
+    const src = strip(read('src/pages/engine-fields-view.jsx'));
+    ok(src.includes('EngineTest.shapeHint('), 'engine-fields-view.jsx 没有失焦判定');
     ok(blockAfter(src, "addEventListener('blur'", 200).length > 0, '没有挂 blur');
   });
 

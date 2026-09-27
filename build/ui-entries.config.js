@@ -26,4 +26,11 @@ module.exports = { ENTRIES: [
   // 原样挂回，未迁移的 review.js / docs-page.js 照常吃页内确认框。旧
   // extension/learn/dialog.js 已删（同一 PR）。
   { entry: 'src/shared/dialog-host.jsx', out: 'learn/dialog.js' },
+  // PR7b「同名产物覆盖」×2：learn/engine-fields.js（options:44 / onboard:62）与
+  // learn/grant.js（popup:30 / options:53 / onboard:65 / review:239 / docs:38）的
+  // <script> 标签一个不改，产物改由 *-host 壳 bundle —— 只挂纯逻辑 ABI
+  // （window.EngineFields / window.LearnGrant），渲染翻转成 React 组件随各自页面
+  // bundle（grant 的 render 不再是公共 ABI）。App 侧 main.jsx import 同两个壳。
+  { entry: 'src/shared/engine-fields-host.js', out: 'learn/engine-fields.js' },
+  { entry: 'src/shared/grant-host.jsx', out: 'learn/grant.js' },
 ] };

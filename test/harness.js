@@ -56,7 +56,9 @@ function loadSrc(relFile, globalName, sandbox = {}) {
     entryPoints: [path.join(__dirname, '..', relFile)],
     write: false, globalName, sourcemap: false,
   }));
-  const base = { console, setTimeout, clearTimeout, setInterval, clearInterval };
+  // URL 同样是浏览器恒在的全局（hostOf 一族 new URL 解析来源地址）—— vm context 不自带，
+  // 缺了会让 try/catch 包着的 ReferenceError 变成静默空串（hostOf → ''），整组门假绿。
+  const base = { console, setTimeout, clearTimeout, setInterval, clearInterval, URL };
   const ctx = vm.createContext(Object.assign(base, sandbox));
   vm.runInContext(r.outputFiles[0].text, ctx, { filename: relFile });
   // esbuild 的 IIFE+globalName 把入口模块的 exports 对象绑到全局名上：`export default X`

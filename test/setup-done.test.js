@@ -124,7 +124,7 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
     // 与一个 ✗ 并排挂了几十秒）。
     const quick = settings.slice(settings.indexOf('async function applyQuickSetup'), settings.indexOf('async function paintGrant'));
     ok(!/AppSetupDone\.show/.test(quick), 'applyQuickSetup 里不许显示回执 —— 那时候还没测');
-    const render = settings.slice(settings.indexOf('QuickSetup.render('), settings.indexOf('QuickSetup.render(') + 900);
+    const render = settings.slice(settings.indexOf('renderQuickSetup('), settings.indexOf('renderQuickSetup(') + 900);
     ok(/onResults:/.test(render), '一键卡要传 onResults');
     ok(/AppSetupDone\.show\(plan && plan\.tests, \{ results \}\)/.test(render), '回执要拿卡的结果，不自己再测一遍');
     const grant = model.slice(model.indexOf('grant_claimed_toast'));
@@ -132,7 +132,7 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
   });
 
   test('★ 同一次配置只测一遍 —— 两块自检并排，既矛盾又是两倍的钱', () => {
-    const qs = fs.readFileSync(path.join(ROOT, 'extension', 'learn', 'quick-setup.js'), 'utf8');
+    const qs = fs.readFileSync(path.join(ROOT, 'src', 'shared', 'quick-setup-view.jsx'), 'utf8');
     ok(/opts\.onResults\(p, results\)/.test(qs), '一键卡要把结果交出去');
     const done = fs.readFileSync(SRC, 'utf8');
     const body = done.slice(done.indexOf('async function show('));

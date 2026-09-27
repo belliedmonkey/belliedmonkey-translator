@@ -53,6 +53,19 @@ import {
   apiHint as apiHintStr, syncError as syncErrorText,
 } from './options-model.js';
 import LearnDialog from '../shared/dialog.jsx';
+
+// PR7b：共享模块从「HTML script 标签挂 window + typeof 守卫」改成 ESM import
+// （§9.4：两宿主 import 同一份源、同一次编译）。四个渲染宿主在本页仍是命令式孤岛
+// （§10.9 规则 4）——变了的只有全局查找这一层：render 经各 view 文件的 named export
+// 进来（它们保留旧 render 的 `box.hidden` 写入与返回句柄语义，孤岛读回判据不变），
+// 纯逻辑经各自的源文件进来。
+import EngineFields from '../shared/engine-fields.js';
+import QuickSetup from '../shared/quick-setup.js';
+import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
+import { render as renderEngineFields } from './engine-fields-view.jsx';
+import * as LearnGrant from '../shared/grant.js';
+import { render as renderGrant } from '../shared/grant-view.jsx';
+import * as SourcesView from '../shared/sources-view-view.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
 import '../shared/dialog-host.jsx';   // 副作用：挂 DialogHost 宿主 div + uiLang 就位 + window.LearnDialog ABI
 
@@ -548,7 +561,7 @@ function Options() {
   // await，所以整段留在异步函数里、由 effect 与各动作显式调用。
   const paintGrant = async () => {
     const box = grantBoxRef.current;
-    if (!box || typeof LearnGrant === 'undefined') return;
+    if (!box) return;
     const gs = LearnGrant.enabled() ? await LearnAuth.current().catch(() => null) : null;
     // **必须 await 并取 .data**：PageSettings.read 是异步的、返回 {ok, data}。把
     // Promise 当设置传给 status() 的那次事故：领完额度卡上永远显示「你在用自己的 key」。
@@ -560,7 +573,7 @@ function Options() {
     } catch (_) {}
     const st = LearnGrant.status(Object.assign({}, cur, marks),
       { signedIn: !!gs, unavailable: grantUnavailableRef.current });
-    LearnGrant.render(box, {
+    renderGrant(box, {
       t: tRef.current, status: st, balance: marks.grantBalance || null, busy: grantBusyRef.current,
       flavor: Registry.flavor(),
       keyUrl: (Registry.providers().find((x) => x.keyUrl) || {}).keyUrl || '',
@@ -743,12 +756,12 @@ function Options() {
     await withBusy('btn-sync-out', async () => {
       // 免费额度在用时先确认一次；退出清掉三槽令牌与 grantTail / grantBalance。
       const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
-      if (typeof LearnGrant !== 'undefined' && LearnGrant.active(cur)) {
+      if (LearnGrant.active(cur)) {
         const go = await LearnDialog.confirm(t('grant_signout_confirm', '退出登录后免费额度会停用（余额保留，再登录就回来）。要退出吗？'), { ok: t('sync_signout', '退出登录') });
         if (!go) return;
       }
       await LearnAuth.signOut();
-      if (typeof LearnGrant !== 'undefined' && cur.grantTail) {
+      if (cur.grantTail) {
         const c = LearnGrant.clearOnSignOut(cur);
         await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
       }
@@ -795,7 +808,7 @@ function Options() {
 
   const renderLangChipsUI = () => {
     const box = learnLangsRef.current;
-    if (!box || typeof SourcesView === 'undefined') return;
+    if (!box) return;
     const rules = sRef.current.learnRules || null;
     SourcesView.renderLangChips(box, {
       registry: Registry.langs(),
@@ -811,7 +824,7 @@ function Options() {
 
   const renderSourcesManager = async () => {
     const box = sourcesRef.current;
-    if (!box || !sourcesOpen || typeof SourcesView === 'undefined') return;
+    if (!box || !sourcesOpen) return;
     let items = []; let sources = [];
     try {
       [items, sources] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
@@ -854,7 +867,7 @@ function Options() {
   };
 
   // ── 孤岛：四个引擎槽 + 委托监听 ────────────────────────────────────────────
-  // EngineFields.render 的 onChange 在这一页**不写存储** —— 只记下组件有没有帮我们
+  // renderEngineFields 的 onChange 在这一页**不写存储** —— 只记下组件有没有帮我们
   // 清掉端点（写盘走下面的委托监听，store 即真相源）。挂进孤岛的那几行（眼睛按钮、
   // 三条提示）从 React 渲染的 <template> 克隆 —— 克隆体脱离 React 所有权，随便挂。
 
@@ -979,9 +992,9 @@ function Options() {
     const disposers = [];
     for (const [ref, slot, entriesFn] of containers) {
       const box = ref.current;
-      if (!box || typeof EngineFields === 'undefined') continue;
+      if (!box) continue;
       box.textContent = '';
-      const handle = EngineFields.render(box, {
+      const handle = renderEngineFields(box, {
         slot, t, head: false, values,
         entries: entriesFn ? entriesFn() : undefined,
         onChange: (patch) => {
@@ -1038,12 +1051,12 @@ function Options() {
 
   // ── 一键卡孤岛（QuickSetup）────────────────────────────────────────────────
   useLayoutEffect(() => {
-    if (!ready || !quickRef.current || typeof QuickSetup === 'undefined') return;
+    if (!ready || !quickRef.current) return;
     if (quickMountedRef.current) return;
     quickMountedRef.current = true;
     const s0 = bootSnapRef.current || readSnapshot(READ_KEYS);
     quickRef.current.textContent = '';
-    QuickSetup.render(quickRef.current, {
+    renderQuickSetup(quickRef.current, {
       t,
       // 现读而不是快照：启动快照会变旧。拿旧快照判「配没配过」会覆盖用户刚在
       // 「详细」里输入的 key。
@@ -1090,9 +1103,9 @@ function Options() {
     if (quickRef.current) quickRef.current.hidden = detail || !quickAvail;
   }, [detail, quickAvail]);
 
-  // ── 额度卡孤岛（LearnGrant.render；异步 paint，见 paintGrant）──────────────
+  // ── 额度卡孤岛（renderGrant；异步 paint，见 paintGrant）──────────────────────
   useLayoutEffect(() => {
-    if (!ready || typeof LearnGrant === 'undefined') return;
+    if (!ready) return;
     paintGrant().catch(() => {});
   }, [ready, uiLangNow]);
 
@@ -1102,7 +1115,7 @@ function Options() {
   // ⇒ 快照换 identity ⇒ 重渲染 ⇒ 这里现读、DepLineView 重画。ready 之前给 null
   // （组件输出空 div），与旧 effect 的 ready 早退一致。
   const depSettings = ready ? readSnapshot(READ_KEYS) : null;
-  const depQuick = !!depSettings && !detail && typeof QuickSetup !== 'undefined' && !!QuickSetup.represents(depSettings);
+  const depQuick = !!depSettings && !detail && !!QuickSetup.represents(depSettings);
   const goDeps = (slot) => {
     flushSync(() => setDetailState(true));
     try { chrome.storage.local.set({ [DETAIL_KEY]: true }); } catch (_) {}
@@ -1141,7 +1154,7 @@ function Options() {
       const s0 = readSnapshot(READ_KEYS);
       bootSnapRef.current = s0;
       // 这份已存的配置，一键卡表示得了吗（null = 表示不了 / 还没配过）。
-      quickShowsRef.current = (typeof QuickSetup !== 'undefined') ? QuickSetup.represents(s0) : null;
+      quickShowsRef.current = QuickSetup.represents(s0);
       // provider 归一：另一 flavor 存来的 id 可能不存在于此构建 → 落到注册表第一个。
       // 只写这一键，不走 saveNow（boot 不是一次用户保存）。
       const cur = SettingsStore.get('provider');
@@ -1704,13 +1717,14 @@ function Options() {
           </div>
 
           {/* 免费额度（§8.10）：与一键卡并排在同一个 tab 里（裁定 D2：登录永远不是墙）。
-              中国版与开关未翻时 LearnGrant.render 把整块藏起来（grantCardHidden 回读）。 */}
+              中国版与开关未翻时 renderGrant 把整块藏起来（grantCardHidden 回读）。 */}
           <section className="card quick-only" id="grant-card" hidden={quickOnlyHidden || grantCardHidden}>
             <div id="grant-box" ref={grantBoxRef} />
           </section>
 
-          {/* 一把 key 配好全部（QuickSetup）：渲染在 learn/quick-setup.js，与扩展引导
-              第 2 屏是**同一个组件**。它只返回 patch，写盘由 applyQuickSetup 负责。 */}
+          {/* 一把 key 配好全部（QuickSetup）：渲染在 src/shared/quick-setup-view.jsx
+              （PR7b 起 named import 它的 render），与扩展引导第 2 屏是**同一个组件**。
+              它只返回 patch，写盘由 applyQuickSetup 负责。 */}
           <section className="card quick-only" id="quick-setup-card" hidden={quickOnlyHidden}>
             <h2>{T('qs_title', '用一把 key 配好全部')}</h2>
             <div id="quick-setup" ref={quickRef} />

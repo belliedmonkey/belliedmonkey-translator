@@ -110,15 +110,18 @@ describe('i18n: 11 份 messages.json 是同一个键集', () => {
 // 跨行、要处理任意实参，解析器本身就会成为下一个假绿的来源。兜底串是作者对「这条
 // 消息有哪些槽」的声明，拿它当基准既准确又便宜。
 describe('i18n: 占位符在兜底串与 11 份译文之间必须一致', () => {
-  const SRC = path.join(__dirname, '..', 'extension');
+  // PR7b：t() 的家从 extension/learn 四个 IIFE 搬进了 src/（页面与共享视图是 .jsx），
+  // 扫描面跟着搬 —— 不跟上，200 下限就会随每次搬-home 假红，或者反向静默空转。
+  const ROOTS = [path.join(__dirname, '..', 'extension'), path.join(__dirname, '..', 'src')];
   const jsFiles = [];
-  (function walk(d) {
+  function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
       if (e.isDirectory()) { if (e.name !== '_locales') walk(p); }
-      else if (e.name.endsWith('.js') && !e.name.endsWith('.gen.js')) jsFiles.push(p);
+      else if ((e.name.endsWith('.js') || e.name.endsWith('.jsx')) && !e.name.endsWith('.gen.js')) jsFiles.push(p);
     }
-  })(SRC);
+  }
+  for (const root of ROOTS) walk(root);
 
   // t('key', '兜底串') —— 兜底串里不含单引号的那些（含转义引号的极少，漏掉它们
   // 只是少验几条，不会造成假绿）。
@@ -130,7 +133,7 @@ describe('i18n: 占位符在兜底串与 11 份译文之间必须一致', () => 
     const src = fs.readFileSync(f, 'utf8');
     let m;
     while ((m = CALL.exec(src))) {
-      if (!seen.has(m[1])) seen.set(m[1], { file: path.relative(SRC, f), fallback: m[2] });
+      if (!seen.has(m[1])) seen.set(m[1], { file: path.relative(__dirname, f), fallback: m[2] });
     }
   }
 
