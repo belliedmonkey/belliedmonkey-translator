@@ -1324,6 +1324,35 @@ legacyBrandGate(DIST, path.basename(DIST),
 // Validate
 validateManifest(DIST, isFirefox);
 
+// Content 同步注入面的字节预算门（React 迁移 PR8a 起，计划 §C）。manifest
+// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 懒加载
+// （动态 import）是给新 UI 字节的唯一通道；把新字节塞进同步列表的改动在这里红，
+// 正当增长（如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// 基线 2026-09-28（PR7c 代码，global flavor）：3381059 字节。i18n-messages.js 在
+// 两个匹配块各出现一次，和按清单字面求和 —— 同步面执行几次就计几次。
+function contentSyncBytesGate(distDir) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
+  let total = 0;
+  for (const block of manifest.content_scripts || []) {
+    for (const js of block.js || []) {
+      if (!js.startsWith("content/")) continue;
+      const p = path.join(distDir, js);
+      if (!fs.existsSync(p)) {
+        throw new Error(`contentSyncBytesGate: ${js} 在 manifest 里但不在产物里 —— 列表与产物脱节`);
+      }
+      total += fs.statSync(p).size;
+    }
+  }
+  const PIN = 3381059;
+  const BUDGET = 150 * 1024;
+  if (total > PIN + BUDGET) {
+    throw new Error(`contentSyncBytesGate: 同步注入面 ${total} 字节 > 基线 ${PIN}+150KB。` +
+      " 新 UI 字节走懒加载（动态 import）；进同步列表的正当增长在 PR 里给数字并重新钉 PIN。");
+  }
+  log(`contentSyncBytesGate: 同步注入面 ${total} 字节 ≤ ${PIN}+150KB`);
+}
+contentSyncBytesGate(DIST);
+
 // China compliance gate (after all DIST content is final)
 if (FLAVOR === 'china') complianceGateChina(DIST);
 

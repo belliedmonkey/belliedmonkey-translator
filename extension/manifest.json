@@ -172,6 +172,14 @@
   "web_accessible_resources": [
     {
       "resources": [
+        "content/sub-menu.bundle.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
         "content/content-injected.js"
       ],
       "matches": [

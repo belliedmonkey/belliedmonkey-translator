@@ -415,66 +415,61 @@ var SubtitleAdapter = (() => {
       // the active video — §2.3.6/§5). Backends without the hook keep the body-fixed default.
       if (spec.anchorButton) spec.anchorButton(btn);
     }
-    function closeMenu() { document.getElementById(ID.menu)?.remove(); }
+    // ── 菜单 → React root（PR8a）────────────────────────────────────────
+    // 行渲染翻转进 src/content/sub-menu.jsx（content/sub-menu.bundle.js，React）；
+    // 行序/文案/勾选判据留在 toggleMenu（逐字未动）。bundle 不进 manifest 的
+    // content_scripts 列表 —— 第一次点开菜单才动态 import，同步注入面零新增字节。
+    // import 失败（个别宿主内容脚本动态 import 不受支持，PR8b 矩阵实测）⇒ 菜单
+    // 开不出 + console 警告；回退开关（IIFE 静态注入）见 build/ui-entries.config.js。
+    let menuHost = null;
+    let menuBundlePromise = null;
+    function loadMenuBundle() {
+      if (!menuBundlePromise) {
+        menuBundlePromise = import(chrome.runtime.getURL('content/sub-menu.bundle.js'))
+          .then((m) => {
+            menuHost = (m && m.default) || null;
+            if (!menuHost) throw new Error('sub-menu bundle exports no default host');
+            return menuHost;
+          })
+          .catch((e) => { menuBundlePromise = null; throw e; });
+      }
+      return menuBundlePromise;
+    }
+    function closeMenu() {
+      // 宿主已就位走 React 卸载；否则兜底直接摘节点（import 竞态窗口里也要能关，
+      // 与旧实现同一行）。
+      if (menuHost) { menuHost.close(); return; }
+      document.getElementById(ID.menu)?.remove();
+    }
     function toggleMenu(btn) {
       if (document.getElementById(ID.menu)) { closeMenu(); return; }
-      const menu = document.createElement('div');
-      menu.id = ID.menu;
-      menu.setAttribute('translate', 'no');
-      const r = btn.getBoundingClientRect();
-      const right = Math.max(10, Math.round(window.innerWidth - r.right));
-      // Open the menu DOWNWARD when the button sits in the top half of the viewport
-      // (e.g. Twitter's 译 embedded at the video's top-right, §2.3.6) so the menu's top
-      // items never clip above the viewport/header; open UPWARD otherwise (YouTube /
-      // podcast float their button near the bottom).
-      const openDown = r.top < window.innerHeight / 2;
-      const vpos = openDown
-        ? `top:${Math.max(10, Math.round(r.bottom + 8))}px`
-        : `bottom:${Math.max(10, Math.round(window.innerHeight - r.top + 8))}px`;
-      menu.style.cssText = `position:fixed;right:${right}px;${vpos};max-height:calc(100vh - 72px);overflow-y:auto;` +
-        'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
-        'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
       const T = TranslationCore.t;
       // Some backends (podcast) have no on/off row in the menu — they are toggled by
       // the page FAB. spec.menuToggle === false omits it (zero-behavior-change parity).
+      // 行数据 = 开菜单那一刻的快照（active / displayMode / streamAbort），与旧命令
+      // 式版逐字一致 —— 菜单挂着不重渲染也是旧行为。
       const withToggle = spec.menuToggle !== false;
-      const row = (label, opts = {}) => {
-        const rr = document.createElement('div');
-        rr.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;white-space:nowrap;';
-        rr.addEventListener('mouseenter', () => (rr.style.background = 'rgba(255,255,255,.1)'));
-        rr.addEventListener('mouseleave', () => (rr.style.background = 'none'));
-        const tk = document.createElement('span'); tk.textContent = opts.checked ? '✓' : '';
-        tk.style.cssText = 'width:12px;display:inline-block;color:#4caf50;';
-        const t = document.createElement('span'); t.textContent = label; t.style.flex = '1';
-        rr.appendChild(tk); rr.appendChild(t);
-        if (opts.onClick) rr.addEventListener('click', (e) => { e.stopPropagation(); opts.onClick(); });
-        return rr;
-      };
-      const sep = () => { const s = document.createElement('div'); s.style.cssText = 'height:1px;background:rgba(255,255,255,.12);margin:5px 0;'; return s; };
+      const rows = [];
       if (withToggle) {
-        menu.appendChild(row(active ? spec.labels.subOff : spec.labels.subOn, { checked: active, onClick: () => setActive(!active) }));
-        menu.appendChild(sep());
+        rows.push(
+          { kind: 'row', label: active ? spec.labels.subOff : spec.labels.subOn, checked: active, onClick: () => setActive(!active) },
+          { kind: 'sep' });
       }
       if (streamAbort) {
         // 「字幕历史面板」与「边说边译」两项随 Tier B 一起下掉（2026-09-16）。
-        menu.appendChild(row(T('asr_stop', '停止转写'), { onClick: () => { stopAsr(); closeMenu(); } }));
-        menu.appendChild(sep());
+        rows.push(
+          { kind: 'row', label: T('asr_stop', '停止转写'), onClick: () => { stopAsr(); closeMenu(); } },
+          { kind: 'sep' });
       }
-      const head = document.createElement('div');
-      head.textContent = T('yt_display_type', '字幕显示类型');
-      head.style.cssText = 'padding:6px 16px 2px;font-size:11px;color:#9a9a9a;';
-      menu.appendChild(head);
-      menu.appendChild(row(T('yt_mode_both', '双语字幕'), { checked: displayMode === 'both', onClick: () => setMode('both') }));
-      menu.appendChild(row(T('yt_mode_trans', '仅译文'), { checked: displayMode === 'trans', onClick: () => setMode('trans') }));
-      menu.appendChild(row(T('yt_mode_orig', '仅原文'), { checked: displayMode === 'orig', onClick: () => setMode('orig') }));
-      menu.appendChild(sep());
-      menu.appendChild(row(T('yt_download_srt', '下载字幕 (.srt)'), { onClick: () => { downloadSrt(); closeMenu(); } }));
-      menu.appendChild(row(T('settings', '设置'), { onClick: () => { openSettings(); closeMenu(); } }));
-      document.body.appendChild(menu);
-      setTimeout(() => {
-        const off = (e) => { if (!menu.contains(e.target) && e.target.id !== ID.btn) { closeMenu(); document.removeEventListener('click', off); } };
-        document.addEventListener('click', off);
-      }, 0);
+      rows.push({ kind: 'head', label: T('yt_display_type', '字幕显示类型') });
+      rows.push({ kind: 'row', label: T('yt_mode_both', '双语字幕'), checked: displayMode === 'both', onClick: () => setMode('both') });
+      rows.push({ kind: 'row', label: T('yt_mode_trans', '仅译文'), checked: displayMode === 'trans', onClick: () => setMode('trans') });
+      rows.push({ kind: 'row', label: T('yt_mode_orig', '仅原文'), checked: displayMode === 'orig', onClick: () => setMode('orig') });
+      rows.push({ kind: 'sep' });
+      rows.push({ kind: 'row', label: T('yt_download_srt', '下载字幕 (.srt)'), onClick: () => { downloadSrt(); closeMenu(); } });
+      rows.push({ kind: 'row', label: T('settings', '设置'), onClick: () => { openSettings(); closeMenu(); } });
+      loadMenuBundle().then((host) => host.open({ id: ID.menu, btn, rows, closeMenu }))
+        .catch((e) => console.warn('[mt] sub-menu bundle unavailable:', e && e.message));
     }
     function setMode(mode) { displayMode = mode; clearOverlay(); closeMenu(); tick(); }
 
