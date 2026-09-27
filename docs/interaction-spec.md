@@ -1336,6 +1336,17 @@ Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到
 横幅在场时首页 `#review` 降为次级 —— 「每屏至多一个填色按钮」这条家规同样管首页，而扩展没开
 的人本来也没有复习材料。三个动作各发一条 `ext_banner`（telemetry-design §3.1）。
 
+**「温和复核」（2026-09-27，Issue #384）**：`extBannerDoneAt` 原来是**一次性永久静音**，
+而 09-21 回读的 155 台「看过横幅」里 76% 什么都没点 —— 点过的那 20% 只要有一次是误触，
+就**永久**失去引导（这正是「半数 App 用户从未打开扩展」的形状）。改成带状态感知的复核：
+点「我已打开」照旧写 `extBannerDoneAt` 并**立刻收起**，但只静音 **3 天**；3 天后若
+`stats.total === 0`（本机一张卡都没收到）、扩展仍没开、且没点过复核态的按钮，横幅以复核
+形态**再出现一次**（标题变奏为「Safari 扩展似乎还没连上？」，正文说明「之前点过已打开，
+但本地还没收到任何划词或卡片」）。复核态下点「我已打开」写 `extBannerRecheckedAt`，
+**此后永久静音**。两个键都是 UI 状态键（同 `onboardSeen` 先例，不进 `settings.js KEYS`）；
+设置页的「在首页重新显示『打开扩展』提示」复位键**同时清掉两个**。app-bundle 门禁里
+「点 `ext-banner-done` 立即收起 + 落 `extBannerDoneAt`」的断言不变 —— 首次点击的行为一字未改。
+
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
 menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此
@@ -1432,11 +1443,20 @@ Three user-authored controls over *what enters and stays in* the learning layer
 - **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
   still shows, reading 「复习」 with no count — never hidden, or the feature becomes
   undiscoverable. Below it, the 「本站」 section (see 来源治理).
+- **App 首页，未登录也算**（2026-09-27 · Issue #386）：本机 `stats.total > 0` 时，首页在
+  「设置」链接与登录卡之间多一行「复习本地收藏的句子」，副行按到期与否显示「今天有 N 张卡片
+  待复习」或「共保存了 N 个句子」。**没有卡片时这一行不存在** —— 不给一个必然空着的入口。
+  未登录也能进：卡片是本机数据，登录只影响跨设备同步（`learning-design.md` §7.2）。
+  · 从复习面返回按「从哪来、回哪去」分流：`currentSession` 在 ⇒ 回登录态首页，否则回未登录
+  首页。此前无条件回登录态，未登录的人点「← 返回」会落到一个他从没见过的界面。
 - **options**: a 学习 section (master switch, 学习语言 whitelist, daily new-card
   cap, corpus size / usage, 来源管理, export, purge).
 - **Never the action badge.** The service worker dies on Safari iOS, so a badge count
   would be silently wrong there (domain-design §5.3.1). Counts are rendered by the
   page that shows them.
+- **一轮的善终**（2026-09-27 用户裁定）：做满 5 张后点「今天就到这儿」记 `done`（此前记
+  `left`）；评过 ≥1 张后离开复习面同样记 `done`；只有**一张都没评**才记 `left`。完整取值
+  口径见 `telemetry-design.md` §3，理由见 `learning-design.md` §5.1。
 
 ### The review card
 Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
