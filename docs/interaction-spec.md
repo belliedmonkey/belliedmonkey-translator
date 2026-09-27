@@ -1323,9 +1323,10 @@ Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到
   高度链是断的，靠 `overflow` 会静默失效。判据是渲染坐标，不是 CSS 里写了什么。
 
 `#ext-banner` 说的是「材料来源没开」，**不是「你没登录」**——两件事不许混。它的出现
-条件是：没有别的视图开着、`browserSideOk === false`、引导没在进行中、`state.enabled`
-不为真、**且用户没点过「我已打开」**（2026-09-10 加，键 `extBannerDoneAt`，UI 状态键，不进
-`settings.js KEYS`，同 `onboardSeen` 先例）。
+条件是：没有别的视图开着、引导没在进行中、`state.enabled` 不为真、**且用户没点过
+「我已打开」/「在 Safari 里打开扩展」**（2026-09-10 加，键 `extBannerDoneAt`，UI 状态键，不进
+`settings.js KEYS`，同 `onboardSeen` 先例）。macOS 上「`browserSideOk === false`」仍是判据之一
+（那边有真实扩展状态）；**iOS 上不再是** —— 见下面「问过就不再问」。
 
 **iOS 形态（2026-09-10 重做）**：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人大多
 没把扩展打开，而横幅上 iOS 唯一能用的动作是一个次级按钮。改成：标题「Safari 扩展还没打开」+
@@ -1337,16 +1338,24 @@ Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到
 横幅在场时首页 `#review` 降为次级 —— 「每屏至多一个填色按钮」这条家规同样管首页，而扩展没开
 的人本来也没有复习材料。两个动作各发一条 `ext_banner`（telemetry-design §3.1）。
 
-**「温和复核」（2026-09-27，Issue #384）**：`extBannerDoneAt` 原来是**一次性永久静音**，
-而 09-21 回读的 155 台「看过横幅」里 76% 什么都没点 —— 点过的那 20% 只要有一次是误触，
-就**永久**失去引导（这正是「半数 App 用户从未打开扩展」的形状）。改成带状态感知的复核：
-点「我已打开」照旧写 `extBannerDoneAt` 并**立刻收起**，但只静音 **3 天**；3 天后若
-`stats.total === 0`（本机一张卡都没收到）、扩展仍没开、且没点过复核态的按钮，横幅以复核
-形态**再出现一次**（标题变奏为「Safari 扩展似乎还没连上？」，正文说明「之前点过已打开，
-但本地还没收到任何划词或卡片」）。复核态下点「我已打开」写 `extBannerRecheckedAt`，
-**此后永久静音**。两个键都是 UI 状态键（同 `onboardSeen` 先例，不进 `settings.js KEYS`）；
-设置页的「在首页重新显示『打开扩展』提示」复位键**同时清掉两个**。app-bundle 门禁里
-「点 `ext-banner-done` 立即收起 + 落 `extBannerDoneAt`」的断言不变 —— 首次点击的行为一字未改。
+**「问过就不再问」+ 不再拿材料冒充启用状态（2026-09-28，Issue #384 重定）**：
+2026-09-27 的原设计想让「点过『我已打开』却没材料」的人 3 天后被**复核**一次。模拟器实测
+（2026-09-28，iPhone 17 Pro / iOS 27）**证伪了它**：真把扩展在 Safari 里开起来
+（设置 → App → Safari浏览器 → 扩展 → 大肚猴翻译 →「允许扩展」拨到绿）之后回到 App，
+横幅**照样**写「Safari 扩展还没打开 / 它还没启用」—— 因为横幅的清除判据是 `browserSideOk`
+（**有没有材料同步进 App**），而 iOS 上 App 拿不到扩展状态（`getStateOfSafariExtension`
+是 macOS-only）。材料要「开启 + 允许网站 + 开采集 + 登录 + 同步」全走完才出现，所以复核会
+**再次打扰已经开好扩展、只是还没抓到卡/没登录的人**。改成：
+
+- **一次动作即视为问过。** iOS 上点过「在 Safari 里打开扩展」**或**「我已打开」之后，就不再出现
+  「还没打开」形态的横幅（写 `extBannerDoneAt`）。**不设 3 天窗口，不做复核** ——
+  `extBannerRecheckedAt` 这套不再引入。
+- **不用材料冒充启用状态。** iOS 上 `browserSideOk` 不再是横幅的判据（本机 0 张卡不再让横幅
+  继续出现）。macOS 有真实状态（`getStateOfSafariExtension`），维持原样。
+- 想再确认的人走设置页那条**常驻**入口（「在首页重新显示『打开扩展』提示」复位键保留，清
+  `extBannerDoneAt` + 当天计数 `tm:extBannerDay`）。
+- app-bundle 门禁里「点 `ext-banner-done` 立即收起 + 落 `extBannerDoneAt`」的断言不变；
+  新增一条：**iOS 上点过主按钮后重开 App，横幅不再出现**（哪怕本机 0 张卡）。
 
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
