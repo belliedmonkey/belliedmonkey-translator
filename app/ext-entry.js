@@ -7,7 +7,7 @@
 // 一切与「怎么发请求」有关的判断（四种 wire format、发哪些可选字段、中继、停机码）
 // 都在下面那几个模块里，两个宿主同一份字节 —— 这里多一行判断，就是第二份实现的开始。
 //
-// 与 Mac 快速翻译面板（app/quick.js）同形：同样先 resolveConfig、同样先问 needsSetup、
+// 与 Mac 快速翻译面板（src/app/quick-model.js，原 app/quick.js）同形：同样先 resolveConfig、同样先问 needsSetup、
 // 同样用 AppTargetLang 决定译入语言。那边是 WKWebView，这边是 JSC，形状一致是有意的。
 'use strict';
 

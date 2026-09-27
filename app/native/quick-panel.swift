@@ -5,7 +5,7 @@
 // 界面语言、「译成」直接共享。面板页只显示与翻译；「进复习库」与「翻成了 / 失败了」经这里中继给主页面
 // （MTResident.relay）—— 主页面那个 WebView 在主窗口收起后仍然活着，桥消息 1–2 ms 送达（S3 读数）。
 //
-// 协议（通道 mtQuick；与 app/quick.js 的 PROTOCOL 逐字对表，npm test 守着）：
+// 协议（通道 mtQuick；与 src/app/quick-model.js 的 PROTOCOL 逐字对表，npm test 守着）：
 //   原生 → 面板页  quick-show {via, origin, text?, concealed?, own?, blocked?, fresh}
 //                 quick-ocr {lines}                         截图识别出的行框（screen-ocr.swift）
 //                 quick-image {dataUri}                     只在用户点了「用我的识图引擎再试」之后

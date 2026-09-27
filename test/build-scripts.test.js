@@ -1931,12 +1931,12 @@ describe('sync-app-assets: 快速翻译的菜单栏常驻（learning-design §9.
 });
 
 // ── 快速翻译面板（M-3）：面板页 ↔ quick-panel.swift 的协议镜像、零权限路径的三条纪律 ─────────────────
-describe('quick panel — app/quick.js ↔ app/native/quick-panel.swift', () => {
+describe('quick panel — src/app/quick-model.js ↔ app/native/quick-panel.swift', () => {
   const R2 = path.join(__dirname, '..');
   const strip = (s) => s.replace(/\/\/.*$/gm, '');
   const swift = fs.readFileSync(path.join(R2, 'app', 'native', 'quick-panel.swift'), 'utf8');
   const hot = fs.readFileSync(path.join(R2, 'app', 'native', 'hotkey.swift'), 'utf8');
-  const js = fs.readFileSync(path.join(R2, 'app', 'quick.js'), 'utf8');
+  const js = fs.readFileSync(path.join(R2, 'src', 'app', 'quick-model.js'), 'utf8');
   const grab = (k) => (js.match(new RegExp(k + ':\\s*\\[([^\\]]*)\\]')) || [])[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1));
   test('面板页发的每一条，原生都有 case；原生发的每一条，面板页都认', () => {
     const body = strip(swift);

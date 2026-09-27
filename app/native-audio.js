@@ -251,7 +251,7 @@ var NativeAudio = (() => {
     return post({ type: 'playing-state', playing: v });
   }
 
-  // 由 app/driving.js 在 wire() 里注册。一个监听者，不是一串 —— 会话只有一个。
+  // 由 src/app/driving-model.js 在 wire() 里注册（原 app/driving.js，PR6d 迁）。一个监听者，不是一串 —— 会话只有一个。
   // 实时听译（§9.6）：请求一个**可录音**的音频会话（.playAndRecord），让锁屏后麦克风
   // 还活着。要在 sessionStart 之前发；关掉时回到只放不录。
   // profile（§9.8 协议补充决定 2）：'subtitle' = 字幕档会话（可混音、外放、不带蓝牙）。不传 / 'conv' 时

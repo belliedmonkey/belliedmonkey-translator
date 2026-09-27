@@ -12,7 +12,7 @@
 // Two deliberate movements, both declared in the PR description:
 //   · the #quick fork (AppQuick.boot(); return) lives in main.jsx now — it must
 //     run AFTER the React mount, because quick.js clones its language dropdown
-//     from the static #target-lang options (app/quick.js), which only exist once
+//     from the static #target-lang options (quick-model.js boot), which only exist once
 //     AppShell is on the page. The mount is side-effect-free (html.quick-mode CSS
 //     hides #app; nothing opens idb or sends telemetry before the fork).
 //   · the MTTelemetry.init tail lives at the end of main.jsx — it ran outside the

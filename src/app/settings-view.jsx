@@ -714,7 +714,7 @@ export default function SettingsView() {
     $('notes-base-url').value = cur.apiBaseUrl || '';
     $('notes-model').value = cur.apiModel || '';
     paintNotesFields(cur.provider || '');
-    // `!== false`：默认开，且不需要往存储里播种默认值（见 app/driving.js 同款读法）。
+    // `!== false`：默认开，且不需要往存储里播种默认值（见 src/app/driving-model.js 同款读法）。
     $('drive-play-notes').checked = cur.drivePlayNotes !== false;
     $('listen-capture').checked = cur.listenCapture !== false;
     if ($('subtitle-capture')) $('subtitle-capture').checked = cur.subtitleCapture !== false;

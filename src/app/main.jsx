@@ -2,10 +2,11 @@
 //
 // 从 app/app.js 搬来的只有两件（其余全在 ./shell-model.js，逐字）：
 //   · quick 分叉（原 15-17 行）—— 挪到这里是因为它必须发生在 bootShell() **之前**，
-//     而它判定的前提是 #target-lang 已经在 DOM 里：app/quick.js:81 会从它克隆
-//     #qk-lang 的选项。原页面靠静态 HTML 天然满足；React 的 root.render 默认是
-//     **异步**调度，直接跟着跑 bootShell 会在 #target-lang 出现之前判分叉 ——
-//     所以用 flushSync 把 mount 钉成同步，再走分叉，时序与静态 HTML 完全对齐。
+//     而它判定的前提是 #target-lang 已经在 DOM 里：quick-model 的 boot() 会从它读
+//     #qk-lang 的选项（原 app/quick.js 的克隆）。原页面靠静态 HTML 天然满足；React
+//     的 root.render 默认是**异步**调度，直接跟着跑 bootShell 会在 #target-lang 出现
+//     之前判分叉 —— 所以用 flushSync 把 mount 钉成同步，再走分叉，时序与静态 HTML
+//     完全对齐。
 //   · 遥测尾（原 1779 行）—— 原样顶层语句，自守卫：quick 模式下 no-op。
 //
 // 执行顺序不变：这里仍是 Script.js 拼接的**最后**一段（build/app-bundle.js），
@@ -17,6 +18,12 @@ import AppShell from './AppShell.jsx';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
+import setupDoneModel from './setup-done-model.js';
+import docsModel from './docs-model.js';
+import quickModel from './quick-model.js';
+import QuickView from './quick-view.jsx';
+import drivingModel from './driving-model.js';
+import DrivingView from './driving-view.jsx';
 import { bootShell } from './shell-model.js';
 
 // ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
@@ -60,13 +67,35 @@ window.settingsModel = settingsModel;
 // PR6c：listen 的旧全局 ABI。shell-model.js 的 bootShell 里 `AppListen.wire()` 等
 // 裸全局引用照旧工作；test:listen 的 59 处 `AppListen._debug` 断言也吃这个名字。
 window.AppListen = listenModel;
+// PR6d：setup-done 的旧全局 ABI（settings-model/settings-view/shell-model 的 call-time
+// 裸全局引用 + test:app 的全局存在性检查）。必须在 bootShell() 之前挂好 —— shell 的
+// 同步初始化链（populateStatic 等）会摸到它们。
+window.AppSetupDone = setupDoneModel;
+// PR6d：docs 的旧全局 ABI（shell-model bootShell 里 `AppDocs.wire({ openSettings })`）。
+window.AppDocs = docsModel;
+// PR6d：quick 的旧全局 ABI。原生中继直接调 window.AppQuick._fromNative；verify-quick
+// 读 AppQuick.CHANNEL / PROTOCOL / boot / isQuickMode；下面的分叉也判这个名字。
+window.AppQuick = quickModel;
+// PR6d：driving 的旧全局 ABI（shell-model 的 start/back 监听与 paintStatic 链摸裸全局
+// AppDriving；verify-learn-flow 读 _debug/refreshEntry/start/stop）。必须在 bootShell()
+// 之前挂好 —— shell 的同步初始化链会摸到它。
+window.AppDriving = drivingModel;
 
 // 快速翻译的面板页（learning-design §9.9）：同一份页面以 #quick 加载时只启动
 // AppQuick —— 不登录、不同步、（原 app.js:15-17 逐字；return 换 if/else）。
+// MAIN_ONLY 门（test/build-scripts）钉着这个分叉的形状：`isQuickMode()) {` 与
+// `AppQuick.boot();` 之间只许空白。所以画布挂载放在分叉**之后**（boot() 先把状态
+// 备好 —— 语种选项、quick-ready —— 随后 flushSync 挂 QuickView，第一帧就是完整
+// 面板；原生对 quick-ready 的任何回包都排在 JS 当前任务之后，赶不到挂载前面）。
 if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) {
   AppQuick.boot();
 } else {
   bootShell();
+}
+if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) {
+  flushSync(() => {
+    createRoot(document.getElementById('quick-root')).render(<QuickView />);
+  });
 }
 
 // 用量事件：App 打开即 flush + 当日心跳。（原 app.js:1779 逐字。）

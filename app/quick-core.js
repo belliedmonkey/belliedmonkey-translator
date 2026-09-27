@@ -1,5 +1,5 @@
 // app/quick-core.js — 「交来的文字」这一种来源的纯逻辑（docs/domain-design.md §2.6；模块表里的 HandoffCore）。
-// 没有 DOM、没有存储、没有网络 —— 全部可在 vm 里测。面板页（app/quick.js）与之后的原生接线只调这里。
+// 没有 DOM、没有存储、没有网络 —— 全部可在 vm 里测。面板页（src/app/quick-model.js，原 app/quick.js）与之后的原生接线只调这里。
 (function (root) {
   'use strict';
 

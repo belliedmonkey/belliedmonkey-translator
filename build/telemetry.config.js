@@ -203,7 +203,7 @@ const SEAMS = {
   ],
   capture_first: [
     { host: 'ext', file: 'extension/content/learn-collector.js' },
-    { host: 'app', file: 'app/docs.js' },
+    { host: 'app', file: 'src/app/docs-model.js' },
     { host: 'app', file: 'src/app/listen-model.js' },
   ],
   doc_open: SHARED('extension/learn/doc-view.js'),
