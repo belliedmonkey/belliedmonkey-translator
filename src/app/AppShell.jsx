@@ -16,7 +16,8 @@
 //     mount 后随 boot 的 applyStoredUiLang/paintStatic 重涂照旧发生；
 //   · 语言 endonym 选项照抄（简体中文 / 繁體中文 / 日本語 / 한국語 在 VERBATIM
 //     豁免清单里）—— 语言自己的名字不是文案。
-// `● 实时` 徽标同样留空：app/listen.js:1227 涂它（t('listen_live_badge', …)）。
+// `● 实时` 徽标 PR6c 前同样留空：app/listen.js:1227 涂它（t('listen_live_badge', …)）；
+// PR6c 起整段由 listen-view.jsx 接管，见该文件头注释。
 //
 // 不迁出 index.html 的两块（都在 </main> 之后或被移出，见本 PR 的 index.html diff）：
 //   · #review-view —— 构建时从 extension/learn/review.html 注入 `<!--REVIEW-->`
@@ -27,11 +28,13 @@
 //
 // id 全部保留；初始 hidden 与原标记一致；`app-listen-autospeak` /
 // `app-listen-autospeak-label` 与设置页 g-listen 里那对**重复 id** 是现有 DOM
-// 事实（getElementById 取第一份），不是本文件的笔误 —— PR6c 迁 listen.js 时收编。
+// 事实（getElementById 取第一份）—— PR6c 后 listen 页那份由 listen-view.jsx 渲染，
+// 重复依旧存在（设置页 g-listen 仍在），getElementById 仍取 DOM 序第一份。
 // SVG 属性走 React 的 camelCase（strokeWidth 等，输出仍是 stroke-width）。
 
 import PageText from '../lib/i18n.js';
 import SettingsView from './settings-view.jsx';
+import { ListenView, ListenEntryButtons, ListenEntryPrivacy, ListenEntryNeeds } from './listen-view.jsx';
 
 // mount 时点的 t：模块 uiLang 尚为 auto → 系统语言 —— 与今天 review.js
 // applyI18n(document) 跑在同一时点、同一模块态，首屏语义不变。
@@ -177,17 +180,8 @@ function AppShell() {
         <div className="modes">
           <span className="modes-label" id="modes-label2"></span>
           <div className="mode-list">
-            <button id="app-listen-entry2" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /><path d="M9 21h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-listen-entry-hint2"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-            {/* 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 */}
-            <button id="app-subs-entry2" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M7 13h4" /><path d="M13 13h4" /><path d="M8 21h8" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-subs-entry-hint2"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
+            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
+            <ListenEntryButtons sfx="2" />
             {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
             <button id="app-docs-entry2" type="button" className="mode" hidden>
               <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
@@ -195,15 +189,8 @@ function AppShell() {
               <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
-          <p className="note" id="modes-privacy2"></p>
-          <p className="note" id="app-listen-need-live2" hidden>
-            <span id="app-listen-need-live-why2"></span>
-            <button id="app-listen-need-live-go2" type="button" className="link"></button>
-          </p>
-          <p className="note" id="app-subs-need2" hidden>
-            <span id="app-subs-need-why2"></span>
-            <button id="app-subs-need-go2" type="button" className="link"></button>
-          </p>
+          <ListenEntryPrivacy sfx="2" />
+          <ListenEntryNeeds sfx="2" />
         </div>
       </section>
 
@@ -306,17 +293,8 @@ function AppShell() {
               <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-drive-desc"></span></span>
               <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
             </button>
-            <button id="app-listen-entry" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /><path d="M9 21h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-listen-entry-hint"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-            {/* 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 */}
-            <button id="app-subs-entry" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M7 13h4" /><path d="M13 13h4" /><path d="M8 21h8" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-subs-entry-hint"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
+            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
+            <ListenEntryButtons />
             {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
             <button id="app-docs-entry" type="button" className="mode" hidden>
               <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
@@ -324,19 +302,12 @@ function AppShell() {
               <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
-          <p className="note" id="modes-privacy"></p>
+          <ListenEntryPrivacy />
           <p className="note" id="app-drive-need-tts" hidden>
             <span id="app-drive-need-tts-why"></span>
             <button id="app-drive-need-tts-go" type="button" className="link"></button>
           </p>
-          <p className="note" id="app-listen-need-live" hidden>
-            <span id="app-listen-need-live-why"></span>
-            <button id="app-listen-need-live-go" type="button" className="link"></button>
-          </p>
-          <p className="note" id="app-subs-need" hidden>
-            <span id="app-subs-need-why"></span>
-            <button id="app-subs-need-go" type="button" className="link"></button>
-          </p>
+          <ListenEntryNeeds />
         </div>
       </section>
 
@@ -374,89 +345,8 @@ function AppShell() {
       {/* 对话 · 实时听译（learning-design §9.6 / interaction-spec 同名一节）：App 专属。
            上卡 = 当下（逐词原文 + 临时译文），下面 = 整句定稿历史（可加星）；按住「我说」
            走 walkie-talkie；松手 → 翻面大字给对方看 + 朗读。视图切换归本模块（open/leave），
-           与 #app-drive 的分工相同。 */}
-      <section id="app-listen" hidden>
-        <div className="listen-head">
-          <button id="app-listen-back" className="link" type="button"></button>
-          <h2 id="app-listen-title"></h2>
-          <span id="app-listen-pill" className="listen-pill"></span>
-        </div>
-        <p className="note listen-langline"><span id="app-listen-lang"></span> <span id="app-listen-ephemeral-pill" className="listen-eph-pill" hidden></span></p>
-        <p className="note listen-mac-note" id="app-listen-mac-note" hidden></p>
-        <div className="drive-card listen-now" id="app-listen-now">
-          <div className="listen-now-head"><span id="app-listen-now-label"></span><span id="app-listen-live" className="listen-live" hidden></span></div>
-          <p id="app-listen-partial" className="listen-partial"></p>
-          <p id="app-listen-partial-tr" className="listen-partial-tr"></p>
-          {/* iPhone 实时字幕：画中画小窗预览的占位块（原生在同一矩形上叠预览，§9.8 协议补充决定（三）17） */}
-          <div id="app-subs-pip" className="listen-subs-pip" hidden><p id="app-subs-pip-note" className="listen-subs-pip-note"></p></div>
-          <button id="app-subs-float" type="button" className="link" hidden></button>
-        </div>
-        <div id="app-listen-history-wrap" className="drive-card listen-history-wrap">
-          <div className="listen-now-head"><span id="app-listen-history-title"></span><span className="listen-head-acts"><button id="app-listen-copy" type="button" className="link" hidden></button><button id="app-listen-end" type="button" className="link" hidden></button></span></div>
-          <div id="app-listen-history" className="listen-history"></div>
-        </div>
-        <p className="note" id="app-listen-queue" hidden></p>
-        <p className="note err" id="app-listen-note"></p>
-        {/* 只剩一个主按钮：不再有「按住 · 我说」，双方自由说话（2026-09-08）。 */}
-        <div id="app-listen-actions">
-          <button id="app-listen-toggle" type="button"></button>
-        </div>
-        {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
-        <p className="note" id="app-subs-privacy" hidden></p>
-        {/* 语言对摊在外面而不是收进设置里（画布画板 6，2026-09-08 定 A 版）：语言对是这个
-             模式唯一的必填配置，而它选错之后**不会报错** —— 每句都判成对方、译文语言不对，
-             只会「看起来怪」。摊在外面等于让这个错误自己暴露。 */}
-        <div className="listen-pair" id="app-listen-pair">
-          <label className="note"><span id="app-listen-my-label"></span> <select id="app-listen-my"></select></label>
-          <span className="listen-pair-arrow" aria-hidden="true">⇄</span>
-          <label className="note"><span id="app-listen-other-label"></span> <select id="app-listen-other"></select></label>
-        </div>
-        <label className="check listen-autospeak" id="app-listen-autospeak-row">
-          <input id="app-listen-autospeak" type="checkbox" />
-          <span id="app-listen-autospeak-label"></span>
-        </label>
-        {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储** ——
-             记住上次的勾选反而危险，用户会以为在留记录而其实没有。 */}
-        <label className="check listen-autospeak" id="app-listen-ephemeral-row">
-          <input id="app-listen-ephemeral" type="checkbox" />
-          <span id="app-listen-ephemeral-label"></span>
-        </label>
-        {/* 灰掉时屏上一定有原因（表 1 的家规）：会话进行中且没勾上，说清为什么改不了。 */}
-        <p className="note" id="app-listen-ephemeral-why" hidden></p>
-        {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页那个是同一份设置）+ 一句按平台的提示。 */}
-        <div id="app-subs-prep" hidden>
-          <label className="check listen-autospeak">
-            <input id="app-subs-capture" type="checkbox" />
-            <span id="app-subs-capture-label"></span>
-          </label>
-          <p className="note" id="app-subs-tip"></p>
-        </div>
-        <p className="note" id="app-listen-cost"></p>
-        <p className="note" id="app-listen-device-privacy" hidden></p>
-
-        <div id="app-listen-summary" className="drive-card" hidden>
-          <h3 id="app-listen-summary-title"></h3>
-          <p id="app-listen-summary-body"></p>
-          <p className="note" id="app-listen-summary-note"></p>
-          <div className="drive-grid">
-            <button id="app-listen-summary-home" type="button"></button>
-            <button id="app-listen-summary-again" type="button" className="secondary"></button>
-          </div>
-        </div>
-
-        {/* 放大展示卡（给对方看）：点任一历史行打开，底下照常在听；「朗读」只在有 TTS 引擎时存在；
-             点任意处关闭。不是一个 phase，是历史行上的叠层（画布「交互逻辑」表 1 showing）。 */}
-        <div id="app-listen-flip" className="listen-flip" hidden>
-          <p className="listen-flip-hint" id="app-listen-flip-hint"></p>
-          <p className="listen-flip-text" id="app-listen-flip-text"></p>
-          <p className="listen-flip-sub" id="app-listen-flip-sub"></p>
-          <p className="listen-flip-speaking" id="app-listen-flip-speaking" hidden></p>
-          <div className="drive-grid">
-            <button id="app-listen-flip-again" type="button" className="secondary"></button>
-            <button id="app-listen-flip-back" type="button"></button>
-          </div>
-        </div>
-      </section>
+           与 #app-drive 的分工相同。 PR6c 起整段由 listen-view.jsx 渲染（含本注释所述全部）。 */}
+      <ListenView />
 
       {/* 文档翻译（learning-design §9.7 / domain-design §2.5）：渲染器是 extension/learn/doc-view.js
            （与扩展页同一份字节），编排在 app/docs.js。文件选择是原生 <input type=file>：iOS 由 WKWebView

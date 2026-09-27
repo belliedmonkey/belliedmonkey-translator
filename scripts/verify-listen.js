@@ -135,7 +135,7 @@ const FAKE_BRIDGES = `(() => {
   // 在那个功能被删掉之后仍然是绿的。产物比源文件旧 ⇒ 当场停，不给绿。
   {
     const built = fs.statSync(path.join(SRC, 'Main.html')).mtimeMs;
-    const srcs = ['app/index.html', 'app/listen.js', 'app/listen-core.js',
+    const srcs = ['app/index.html', 'src/app/listen-model.js', 'src/app/listen-view.jsx', 'app/listen-core.js',
       'src/app/main.jsx', 'src/app/AppShell.jsx', 'src/app/shell-model.js', 'src/app/settings-model.js', 'src/app/settings-view.jsx', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
       'extension/learn/sources-view.js', 'extension/learn/review.js'];
     const stale = srcs.filter((f) => {
@@ -372,8 +372,10 @@ const FAKE_BRIDGES = `(() => {
     need(stats.chatCalls >= callsG + 2, 'G: 两句都该走「修正 + 翻译」一次调用，实际 chatCalls ' + (stats.chatCalls - callsG));
     const rawUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = [...document.querySelectorAll('#app-listen-history .listen-raw-toggle')]; if (!b.length) return { toggles: 0 }; b[0].click(); const rw = document.querySelector('#app-listen-history .listen-raw'); return { toggles: b.length, raw: rw && rw.textContent }; })())`));
     need(rawUi.toggles === 1 && rawUi.raw === '会议室在几搂？', 'G: 修正过的那一行该有「识别原文」可点展开，实际 ' + JSON.stringify(rawUi));
-    // 改语言 ⇒ 重连（一路一个 locale）
-    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('app-listen-other'); s.value = 'ja'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    // 改语言 ⇒ 重连（一路一个 locale）。app-listen-other 是 React 受控 select（listen-view.jsx）：
+    // 直接 `s.value=` 会先过 React 的 value tracker，随后派发的 change 被 React 判「值没变」丢弃、
+    // DOM 还被拉回旧值 —— 必须经原型原生 setter 赋值（PR5 实测配方，input 的同款坑）。
+    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('app-listen-other'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'ja'); s.dispatchEvent(new Event('change', { bubbles: true })); return 'ok'; })()`);
     const g4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeSpeech.started, stopped: __fakeSpeech.stopped, locales: __fakeSpeech.lastLocales, mic: __fakeBridge.stopped })`)); return r.started >= 3 ? r : null; }, 5000, 'G: 改语言后重连');
     need(JSON.stringify(g4.locales) === JSON.stringify(['zh-CN', 'ja-JP']) && g4.stopped >= 1, 'G: 重连后该是 zh-CN + ja-JP，实际 ' + JSON.stringify(g4));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);

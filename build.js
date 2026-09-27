@@ -979,7 +979,9 @@ function validateManifest(distDir, isFirefox) {
   // 实时字幕听的是「这台设备正在播放的声音」—— 又一个新披露面。App 页用着 subtitle_privacy ⇒
   // README ×2 有那一段（英文提 Live Subtitles 且说「不录音不保存」，中文同）、12 份 locale 有页内那句、
   // macOS 的系统录音权限说明在 sync-app-assets 的 plist 行里（缺了它系统弹窗没有说明句，审核会问）。
-  if (fs.readFileSync(path.join(__dirname, 'app', 'listen.js'), 'utf8').includes("'subtitle_privacy'")) {
+  // PR6c：条件源随 listen 页迁移换锚点（app/listen.js → src/app/listen-model.js），不变量不丢：
+  // 只要页里用着 subtitle_privacy，README ×2 与 12 份 locale 的披露就必须在。
+if (fs.readFileSync(path.join(__dirname, 'src', 'app', 'listen-model.js'), 'utf8').includes("'subtitle_privacy'")) {
     const miss = [];
     const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
     const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');

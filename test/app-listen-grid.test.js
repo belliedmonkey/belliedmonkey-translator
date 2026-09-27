@@ -18,13 +18,16 @@ const { describe, test, ok } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 // PR6a：页面标记迁 src/app/AppShell.jsx（JSX）—— 剥 JSX 注释再解析；className 与 class 同认。
-const HTML = fs.readFileSync(path.join(ROOT, 'src', 'app', 'AppShell.jsx'), 'utf8')
+// PR6c：section#app-listen 整体再迁 src/app/listen-view.jsx。标签正则不识别自闭合组件与
+// JSX 表达式，但本文件里 <HistoryRows /> 与 map 出的 <option> 都开合守恒，直接子元素
+// 集合与迁移前的静态标记一致（18 个，一个不多不少）。
+const HTML = fs.readFileSync(path.join(ROOT, 'src', 'app', 'listen-view.jsx'), 'utf8')
   .replace(/\{\/\*[\s\S]*?\*\/\}/g, '').replace(/<!--[\s\S]*?-->/g, '');
 const CSS = fs.readFileSync(path.join(ROOT, 'app', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 function directChildren() {
   const start = HTML.indexOf('<section id="app-listen"');
-  ok(start >= 0, 'src/app/AppShell.jsx 里找不到 section#app-listen');
+  ok(start >= 0, 'src/app/listen-view.jsx 里找不到 section#app-listen');
   const re = /<(\/?)([a-zA-Z][\w-]*)\b([^>]*)>/g;
   re.lastIndex = HTML.indexOf('>', start) + 1;
   const VOID = /^(input|br|img|hr|meta|link|source|wbr)$/i;

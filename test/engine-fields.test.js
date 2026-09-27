@@ -302,7 +302,7 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
 // 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
 // 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
-  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['listen.js', 'READ_KEYS'], ['docs.js', 'READ_KEYS']];
+  const SOURCES = [['driving.js', 'SETTINGS_KEYS'], ['../src/app/listen-model.js', 'READ_KEYS'], ['docs.js', 'READ_KEYS']];   // PR6c：listen 的 READ_KEYS 随 UI 半边迁到 src/app/listen-model.js
   const set = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-model.js'), 'utf8');
   const listOf = (src, name) => {
     const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
