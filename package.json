@@ -20,6 +20,7 @@
     "perf:probe": "node scripts/perf-probe.js",
     "perf:status": "node scripts/perf-probe.js --status",
     "store:stats": "node scripts/store-stats.js",
+    "digest": "node scripts/growth-digest.js",
     "test:smoke": "node scripts/verify-extension-smoke.js",
     "test:learn": "node scripts/verify-learn-flow.js",
     "test:inbox": "node scripts/verify-ext-inbox.js",
