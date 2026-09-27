@@ -145,8 +145,8 @@ async function apple(days) {
   const byDev = {};      // 跨 app 按设备相加 —— 分 app 的明细在 `asc.js installs` 里
   for (const [k, v] of agg.byDev) { const dev = ASC.cut(k)[1]; byDev[dev] = (byDev[dev] || 0) + v; }
 
-  return { ok: true, days, total: agg.total, from: sales.from, to: sales.to,
-    live: sales.live, quiet: sales.quiet, byApp, byDev, terr, ratings };
+  return { ok: true, days, total: agg.total, updates: agg.updates, redownloads: agg.redownloads,
+    from: sales.from, to: sales.to, live: sales.live, quiet: sales.quiet, byApp, byDev, terr, ratings };
 }
 
 // 我自己的测试账号，统计时排除。清单在 .local/stats/own-accounts.txt（gitignored），
@@ -370,8 +370,15 @@ function delta(now, then) {
   // ── Apple ──
   console.log('\nApple App Store');
   if (!ap.ok) { console.log('  ✗ ' + ap.why); } else {
-    console.log(`  ${days} 天下载 ${ap.total}${delta(ap.total, P.apple && P.apple.total)}`
+    // 2026-09-27 修口径：旧的快照把「更新」也算进了下载。跨过这次定义改动的**第一份**
+    // 不能画 ↑↓（那是两个定义相减，会显示一个假的暴跌），并说清楚 —— 同 Supabase 那处。
+    const prevSameUnits = !!(P.apple && typeof P.apple.updates === 'number');
+    console.log(`  ${days} 天首次下载 ${ap.total}${prevSameUnits ? delta(ap.total, P.apple.total) : ''}`
       + `　（${ap.from} → ${ap.to}；${ap.live} 天有量，${ap.quiet} 天安静）`);
+    console.log(`    另有更新 ${ap.updates} 次、重新下载 ${ap.redownloads} 次（不计入下载）`);
+    if (P.apple && !prevSameUnits) {
+      console.log('    ⚠️ 上一份快照是修复前口径（下载里含更新），这次不画 ↑↓；下一份起对齐');
+    }
     for (const [k, v] of Object.entries(ap.byApp).sort((a, b) => b[1] - a[1])) {
       console.log(`    ${k.padEnd(26)} ${String(v).padStart(4)}  ${(100 * v / ap.total).toFixed(0)}%`);
     }

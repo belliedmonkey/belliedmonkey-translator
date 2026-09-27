@@ -129,7 +129,8 @@
    是哪一次改动起的作用。
 3. **成败看搜索曝光与下载，不看名次。** 名次（`npm run aso:rank`）来自 iTunes Search API，不是商店 App 的个性化排序、
    只给前 200，**只当趋势**：取多次快照中位数、只认跨档（200+ → 前 100 → 前 50 → 前 10）。判据是
-   `npm run asc:sources`（各地区来自搜索的曝光）与 `node scripts/asc.js installs`（各国下载）。
+   `npm run asc:sources`（各地区来自搜索的曝光）与 `node scripts/asc.js installs`
+   （各国**首次**下载 —— 不含更新与重新下载，口径见 `docs/` / #476）。
 4. **Apple 的搜索只索引名称、副标题、关键词字段**，不索引描述。所以改描述影响的是转化，不是排名 ——
    别在台账里把描述改动当排名实验记。`promotionalText` 随时可改（`asc.js aso … --promo-only`）、不影响排名，
    适合当不用发版的转化实验。
