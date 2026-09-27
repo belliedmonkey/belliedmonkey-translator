@@ -1296,9 +1296,15 @@ if (FLAVOR === 'china') {
 // 清单（build/ui-entries.config.js）为空时这里是严格 no-op —— 连 esbuild 都不 require。
 {
   const { ENTRIES } = require('./build/ui-entries.config.js');
-  const { bundleUiEntries } = require('./build/run-esbuild.js');
+  const { bundleUiEntries, checkSharedParity } = require('./build/run-esbuild.js');
   const n = bundleUiEntries({ entries: ENTRIES, dist: DIST, log });
-  if (n) log(`esbuild: ${n} 个 UI bundle 已写入 ${path.basename(DIST)}/`);
+  if (n) {
+    log(`esbuild: ${n} 个 UI bundle 已写入 ${path.basename(DIST)}/`);
+    // §9.4 对账门（PR7a 起）：App 单入口与扩展全部 bundle 的 src/shared 输入集合
+    // 必须相等 —— 两宿主挂的共享组件各奔东西即红。清单非空才有对账可言，故在 if 内。
+    checkSharedParity({ appEntry: require('./build/app-bundle.js').APP_ENTRY, entries: ENTRIES });
+    log('§9.4 对账门：两宿主 src/shared 集合一致');
+  }
 }
 
 // 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。

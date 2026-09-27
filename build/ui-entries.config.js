@@ -21,4 +21,9 @@ module.exports = { ENTRIES: [
   // PR5：extension/options/options.js 的后继（saveAll → saveNow 的键域收进
   // src/pages/options-model.js 的 SAVE_KEYS，test/options-model.test.js 对账 schema）。
   { entry: 'src/pages/options.jsx', out: 'options/options.js' },
+  // PR7a「同名产物覆盖」：learn/dialog.js 的 HTML <script> 标签（review.html / docs.html）
+  // 一个不改，产物改由 dialog-host.jsx bundle —— 旧 IIFE 的 window.LearnDialog ABI
+  // 原样挂回，未迁移的 review.js / docs-page.js 照常吃页内确认框。旧
+  // extension/learn/dialog.js 已删（同一 PR）。
+  { entry: 'src/shared/dialog-host.jsx', out: 'learn/dialog.js' },
 ] };

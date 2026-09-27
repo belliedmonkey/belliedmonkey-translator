@@ -42,13 +42,14 @@
   <script src="../learn/auth.js"></script>
   <script src="../learn/sync.js"></script>
   <script src="../learn/engine-fields.js"></script>
-  <script src="../learn/dep-line.js"></script>
   <script src="../learn/app-link.js"></script>
   <script src="../learn/feedback.js"></script>
   <script src="../learn/telemetry.js"></script>
   <script src="../learn/engine-test.js"></script>
   <script src="../learn/quick-setup.js"></script>
-  <script src="../learn/dialog.js"></script>  <!-- LearnDialog.confirm：「改回免费额度」替换用户自己的 key 前要问一句；2026-09-10 前这里没载入，typeof 守卫让确认被静默跳过 -->
+  <!-- LearnDialog.confirm（「改回免费额度」替换用户自己的 key 前要问一句）随 PR7a 进
+       options.js bundle（src/shared/dialog.jsx），不再是独立 script 标签；2026-09-10
+       那次「没载入 ⇒ typeof 守卫静默跳过」的坑已随 import 连根拔掉。 -->
   <script src="../learn/grant.js"></script>
   <script src="../learn/doc-store.js"></script>   <!-- 文档翻译的本机库（§9.7）：只为「清除本机全部数据」与来源管理里删文档 -->   <!-- 免费额度（§8.10）。必须在 quick-setup.js 之后：它调 QuickSetup.plan -->
   <script src="../learn/tts.js"></script>

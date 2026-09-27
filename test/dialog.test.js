@@ -3,19 +3,27 @@
 // 它被注入到三个宿主页（App、复习页、设置页），每个宿主都有自己的按钮样式。2026-09-07
 // TestFlight 87：确定键用了裸类名 `danger`，App 的 `button.danger { color: var(--danger) }`
 // 以更高的特异度盖过 `.ld-ok { color:#fff }`，红字红底 —— 删除账号的确定键看着是空的。
-// 所以：dialog.js 里出现的每个类名必须带 ld- 前缀，且宿主样式表里一个都不能出现。
+// 所以：dialog 里出现的每个类名必须带 ld- 前缀，且宿主样式表里一个都不能出现。
+//
+// PR7a 锚点迁移：源从 extension/learn/dialog.js（createElement IIFE）换到
+// src/shared/dialog.jsx（React，§9.4 两宿主单源）。断言不变量照旧 —— 类名卫生、
+// 宿主隔离、`.ld-row` 特异度 —— 只是「赋出去的类名」现在来自两种 JSX 形态：
+// className="…" 静态串与 className={'…' + (o.danger ? ' …' : '')} 模板。
 
 const fs = require('fs');
 const path = require('path');
 const { describe, test, ok, eq } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
-const src = fs.readFileSync(path.join(ROOT, 'extension/learn/dialog.js'), 'utf8');
+const src = fs.readFileSync(path.join(ROOT, 'src/shared/dialog.jsx'), 'utf8');
 
-// 代码里赋出去的类名（className = '…' / ' …'）与样式块里的选择器类名，取并集。
+// 代码里写出的类名（JSX 两种形态）与 STYLE 样式块里的选择器类名，取并集。
 function classesUsed() {
   const out = new Set();
-  for (const m of src.matchAll(/className = '([^']+)'(?: \+ \(o\.danger \? ' ([^']+)' : ''\))?/g)) {
+  for (const m of src.matchAll(/className=(["'])([^"']+)\1/g)) {
+    m[2].split(/\s+/).forEach((c) => out.add(c));
+  }
+  for (const m of src.matchAll(/className=\{'([^']+)'(?: \+ \(o\.danger \? ' ([^']+)' : ''\))?\}/g)) {
     m[1].split(/\s+/).forEach((c) => out.add(c));
     if (m[2]) out.add(m[2]);
   }

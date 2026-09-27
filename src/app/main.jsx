@@ -25,6 +25,9 @@ import QuickView from './quick-view.jsx';
 import drivingModel from './driving-model.js';
 import DrivingView from './driving-view.jsx';
 import { bootShell } from './shell-model.js';
+import '../shared/dialog-host.jsx';   // PR7a 副作用：挂 DialogHost 宿主 div + window.LearnDialog
+                                      // ABI —— listen-model / shell-model / docs-model / review.js
+                                      // 的裸全局调用靠它；uiLang 预读与下面 main 里那次幂等。
 
 // ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
 // PageI18n（extension/learn/i18n.js，原样共享字节）服务还没翻转的孤岛

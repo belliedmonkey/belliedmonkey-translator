@@ -343,7 +343,7 @@ extension/
 │   ├── learn-*.js          采集、排程、题型（6 个文件）
 │   ├── *.gen.js            生成的注册表：providers、langs、stt、tts、palette
 │   └── content-main.js     入口：读设置、路由
-├── learn/                  31 个文件 —— 记忆层、同步、文档翻译、免费额度、
+├── learn/                  29 个文件 —— 记忆层、同步、文档翻译、免费额度、
 │                           遥测、朗读（见 docs/learning-design.md）
 ├── onboard/ · popup/ · options/   引导与设置界面
 ├── styles/ · icons/ · vendor/

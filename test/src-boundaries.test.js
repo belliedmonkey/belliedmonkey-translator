@@ -7,8 +7,10 @@
 // ② src/ 不 import 任何 gen / i18n-messages / backend.config —— 它们不进 bundle
 //    （domain-design §10.7），import 得动就会在 build 时才炸或静默 fork。
 // ③ import react 只许两层：store/hooks.js 与 lib/i18n.js（store 其余文件保持纯 JS、
-//    双宿主可单测 —— vm 里没有 renderer），以及 pages/、app/、content/ 的组件层
-//    （React 页面，import react 是它们的本职）。src/ 根下与 shared/ 以后出现新目录
+//    双宿主可单测 —— vm 里没有 renderer），以及 pages/、app/、content/、shared/ 的
+//    组件层（React 页面与 §9.4 共享组件，import react 是它们的本职；shared/ 是
+//    PR7a 起的两宿主共享组件面，其中的纯逻辑件如 dep-line.js 仍然不 import react ——
+//    那 §10.2 的 vm 纪律靠自觉+本文件 ①② 的连带覆盖）。src/ 根下以后出现新目录
 //    时要显式加进来，不许悄悄扩散。
 // ④ 不许 dangerouslySetInnerHTML —— YouTube 的 Trusted Types 禁 innerHTML，
 //    React 注入 UI 永远走 JSX 子元素，这条从第一天就钉死。
@@ -78,7 +80,7 @@ describe('src/ 边界门禁', () => {
 
   test('import react 只许 hooks/i18n 与组件层（pages/app/content）', () => {
     const allowed = new Set(['store/hooks.js', 'lib/i18n.js']);
-    const componentLayer = /^(pages|app|content)\//;
+    const componentLayer = /^(pages|app|content|shared)\//;
     const offenders = [];
     for (const f of FILES) {
       const r = rel(f);

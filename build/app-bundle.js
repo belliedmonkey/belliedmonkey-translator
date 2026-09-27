@@ -108,7 +108,8 @@ const MODULES = [
                                          // ReferenceError —— 同 engine-state.js 那次。
                                          // 依赖 LearnNotes/LearnTTS/LearnSpeech/
                                          // TranslationAPI/WireFormat，都排在它前面。
-  'extension/learn/dep-line.js',         // DepLine —— 功能块首行的「依赖」行（两宿主共用，2026-09-17）；用 EngineFields.labelOf
+  // PR7a 起不在 MODULES：'extension/learn/dep-line.js' 收编为 src/shared/dep-line.js
+  // （纯逻辑）+ dep-line-view.jsx（组件），随 APP_ENTRY 的 esbuild bundle 拼进尾部。
   'extension/learn/engine-fields.js',    // EngineFields —— 「这个引擎该露出哪几个框」的
                                          // **唯一**实现。它抽出来正是因为规则已经漂了，
                                          // 而它自己的文件头点名了 app/settings.js 的三处
@@ -122,7 +123,9 @@ const MODULES = [
                                          // 它渲染的那些字段。
   'extension/learn/grant.js',           // LearnGrant —— 免费额度（§8.10）。必须排在
                                          // quick-setup.js 之后：它调 QuickSetup.plan，不写第二份 plan。
-  'extension/learn/dialog.js',           // LearnDialog — 页内确认框（App 的 WKWebView 没有 window.confirm）
+  // PR7a 起不在 MODULES：'extension/learn/dialog.js' 收编为 src/shared/dialog.jsx
+  // （组件）+ dialog-host.jsx（入口壳，main.jsx import —— 挂回 window.LearnDialog ABI，
+  // review.js / listen-model / shell-model / docs-model 的裸全局调用照常）。
   'extension/learn/sources-view.js',     // SourcesView — shared 来源管理 renderer
   'extension/learn/review.js',           // the review surface — SAME bytes as the extension
   'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
