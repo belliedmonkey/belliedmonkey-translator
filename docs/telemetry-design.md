@@ -153,6 +153,25 @@ URL、不带 frame href（探针上报给弹窗的 href 只在客户端用于「
 | `review_session` | `review.js` 在 App 包里，能发 | ✅ 真的没人刷完一轮 |
 | `doc_open` | `doc-view.js`，两宿主的 `track` 都接了 | ✅ 真的没人开过文档 |
 
+**2026-09-27 复核：上表四条缺口全部已接线**（本表自此是历史诊断，不是待办）。
+
+09-27 逐条到代码里核。这次核对的起因不是「补缺口」，而是**有人（一个 agent 会话）照着它去补** ——
+差一点补出一次回归；记在这里是因为「照过时的文档做事」和「照没接线的表读数」是同一类错的两种形状：
+
+| 事件 | 09-16 | 2026-09-27 实际 | 证据 |
+|---|---|---|---|
+| `engine_set` | ❌ App 无发送点 | ✅ | `app/settings.js` 的 `trackEngineSet()`，注释写着「与扩展那侧**同一个出口**」 |
+| `capture_first` | ❌ 只在内容脚本 | ✅ | `app/docs.js` · `app/handoff.js` · `app/listen.js` 三处各接一条 —— App 结构上不采集，所以接的是「**第一张卡到了**」那三条路 |
+| `translate_ok` | ❌ 听译 / 实时字幕 / 补译文零 seam | ✅ 两条已接，一条**有意不发** | `app/listen.js`（`kind:'subtitle'`，听译与实时字幕共用）· `app/handoff.js`（`kind:'quick'`）；补译文按 §3.3 裁定 2 不发 |
+| `asr_entry` | ❌ App 是另一套 | ✅ | `app/listen.js`（`surface:'app_home'`，`started` / `no_live`） |
+| `review_session` | ✅ | ✅ 不变 | `extension/learn/review.js`（两宿主同一份字节） |
+| `doc_open` | ✅ | ✅ 不变 | `extension/learn/doc-view.js` |
+
+**为什么这次不用照表补：** §3.4 的修法已经落地 —— 每个事件 × 每个宿主的接线位置（或「有意不发」
+的理由）登记在 `build/telemetry.config.js` 的 `SEAMS`，`test/telemetry-registry.test.js` 对着代码核：
+登记了却没接线、或接线了却没登记，`npm test` 都会红。**所以本文档的每一张 Seam 表都只是历史诊断
+记录，现状一律以注册表为准**（§3.4 修法第 4 条）。
+
 **这是 §3.1 第 1 条那次 `<all_urls>` 漏统计的第二次发作**，而且更贵：漏掉的是装机最多的面，
 后果是 §1 第一问的激活漏斗在 App 上整条是黑的，而且数字看上去像「用户不活跃」——
 一个从未被接线的 seam 与一个没人触发的 seam，在表里都记成 0，这正是 §1 第六问那条教训的
@@ -287,6 +306,24 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 同一次核对里顺带查到、需要裁定的两处（不是漏接线，是从未决定过）：`translate_fail` 在
 App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有发送点 —— 于是这两条路只有成功数、
 没有失败数，成功率算不出来。
+
+**2026-09-27 复核：上表四条 + 顺带查到的两处，全部已接线。** 上表写于 09-19；09-27 逐条到代码
+里核，六条无一残留：
+
+| 事件 | 09-19 代码里实际的 | 2026-09-27 实际 | 证据 |
+|---|---|---|---|
+| `grant_claimed` | 只在扩展设置页领取按钮的 handler | ✅ 已挪进 `learn/grant.js` 的 `claim()` 落定处 | 正是 §3 表写的那个 seam；两宿主同一份字节，App 与扩展都经过它 |
+| `engine_set`（领取这条路） | 不经 `applyQuickSetup` | ✅ `app/settings.js` 的 `trackEngineSet()` | 与扩展那侧走**同一个出口判据**（`EngineState.needsSetup`），所以两宿主的 `engine_set` 表示同一件事 |
+| `translate_ok{kind:'subtitle'}`（App） | 没有 | ✅ `app/listen.js` | 听译与实时字幕共用一条（§3.3 裁定 1：不新增 kind） |
+| `grant_exhausted` | **全仓库零发送点** | ✅ `learn/telemetry.js` 内部 | 由 `translate_fail{code:'credit_exhausted'}` 带出（`once` ⇒ 每装机一次），正是 §3 表写的位置；挂在这一行是因为四条路都经过它 |
+| `translate_fail`（App 听译 / 实时字幕） | 没有 | ✅ `app/listen.js` | 与上面那条 `translate_ok` 同一处 |
+| `translate_fail`（文档阅读器，两宿主） | 没有 | ✅ `extension/learn/doc-view.js` | 与 `translate_ok{kind:'doc'}` 同一处 |
+
+**本节的价值不在表，在它逼出来的那道门禁。**「一个登记了却没接线的事件」现在会让 `npm test`
+变红（`build/telemetry.config.js` 的 `SEAMS` + `test/telemetry-registry.test.js`），所以
+「上表还要不要重核一遍」**不该再由人回答** —— 注册表与代码一旦不一致，门禁先红。这两张表自此是
+历史记录；两者打架时改文档（修法第 4 条），而 **2026-09-27 这次正是打架状态：表里写着 ❌ /
+「全仓库零发送点」，注册表里六条全部有接线。**
 
 **为什么每一道门禁都是绿的。** 现有的遥测门禁守三件事：白名单与服务端一致、白名单里没有
 内容/身份字段（`telemetry-registry.test.js`）、`MTTelemetry` 模块自己的行为
