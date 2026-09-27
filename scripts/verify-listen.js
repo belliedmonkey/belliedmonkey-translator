@@ -135,8 +135,8 @@ const FAKE_BRIDGES = `(() => {
   // 在那个功能被删掉之后仍然是绿的。产物比源文件旧 ⇒ 当场停，不给绿。
   {
     const built = fs.statSync(path.join(SRC, 'Main.html')).mtimeMs;
-    const srcs = ['app/index.html', 'app/listen.js', 'app/listen-core.js', 'app/settings.js',
-      'src/app/main.jsx', 'src/app/AppShell.jsx', 'src/app/shell-model.js', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
+    const srcs = ['app/index.html', 'app/listen.js', 'app/listen-core.js',
+      'src/app/main.jsx', 'src/app/AppShell.jsx', 'src/app/shell-model.js', 'src/app/settings-model.js', 'src/app/settings-view.jsx', 'app/style.css', 'app/native-audio.js', 'app/native-speech.js', 'extension/content/learn-rules.js', 'extension/learn/tts.js',
       'extension/learn/sources-view.js', 'extension/learn/review.js'];
     const stale = srcs.filter((f) => {
       const q = path.join(ROOT, f);
@@ -413,7 +413,7 @@ const FAKE_BRIDGES = `(() => {
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);
     // 朗读引擎下拉是启动时按「桥在不在」填的（本机条目只在桥在时出现）；假桥是页面起来之后才装的，所以重填一次
-    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSources.asked = 0; localStorage.removeItem('mt:deviceModelSources'); AppSettings.paintStatic(); document.getElementById('gear').click(); return 'ok'; })()`);
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSources.asked = 0; localStorage.removeItem('mt:deviceModelSources'); document.getElementById('gear').click(); return 'ok'; })()`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S: 设置页打开');
     await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
     await sleep(200);
@@ -713,7 +713,7 @@ const FAKE_BRIDGES = `(() => {
       await new Promise((r) => chrome.storage.local.remove(['apiKey', 'provider', 'apiBaseUrl', 'apiModel', 'grant', 'grantTail', 'grantBalance', 'engineChosen'], r));
       __tm.length = 0;
       $('signed-out').hidden = true; $('app-listen').hidden = true; $('app-settings').hidden = false;
-      await AppSettings.paint({ user: { id: 'u-test' } }, () => {});
+      await settingsModel.notifySettingsShown({ user: { id: 'u-test' } });
       const btn = document.querySelector('#grant-box button.gr-action');
       const label = btn ? btn.textContent : null;
       if (btn) btn.click();

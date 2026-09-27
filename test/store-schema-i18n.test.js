@@ -75,6 +75,8 @@ describe('SETTINGS_SCHEMA', () => {
     ['extension/learn/docs-page.js', 'KEYS', 'docs'],
     ['app/listen.js', 'READ_KEYS', 'listen'],
     ['app/quick.js', 'READ_KEYS', 'quick'],
+    // PR6b：app/settings.js 拆分后，settings-model 的 KEYS 是设置面的第五份手抄清单。
+    ['src/app/settings-model.js', 'KEYS', 'app'],
   ];
   for (const [file, varName, surface] of HAND_LISTS) {
     test(`${file} ${varName} ⊆ keysFor('${surface}')`, () => {

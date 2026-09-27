@@ -32,6 +32,7 @@
 // time).
 
 import Registry from '../lib/registry.js';
+import settingsModel from './settings-model.js';
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -132,7 +133,8 @@ export function bootShell() {
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
     $('gear2').textContent = t('app_settings_link', '设置');   // 未登录首页的设置入口（2026-09-17）
-    AppSettings.paintStatic();
+    // 设置页的静态文字不再在这里重画：SettingsView（PR6b）的标签由 useT 驱动，
+    // PageText.setUiLang 触发它自己的重渲染 —— 首页这层 paintStatic 只管自己的文字。
     $('review').textContent = t('app_review_start', '开始复习');
     $('review-back').textContent = t('app_review_back', '← 返回');
     $('sync').textContent = t('app_sync', '同步');
@@ -249,7 +251,6 @@ export function bootShell() {
   }
   async function autoClaimOnce() {
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
-    if (typeof AppSettings === 'undefined' || !AppSettings.claimAndApply) return;
     // 「配好了没有」的判据只有一个出口（EngineState.needsSetup），不在这里另写一份。
     try {
       if (typeof EngineState !== 'undefined' && EngineState.needsSetup) {
@@ -259,10 +260,10 @@ export function bootShell() {
     } catch (_) { return; }
     // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；那一刻的回执就是引导下一屏
     // 「就地试一句」本身（真的翻一句，比三行「通了」更像证据）。
-    await AppSettings.claimAndApply({ overwrite: false, selfTest: false });
+    await settingsModel.claimAndApply({ overwrite: false, selfTest: false });
   }
   const readObSettings = () => new Promise((r) => {
-    try { chrome.storage.local.get(AppSettings.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
+    try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
   });
 
   async function show(session) {
@@ -1442,7 +1443,9 @@ export function bootShell() {
     $('signed-out').hidden = true;
     $('review-view').hidden = true;
     $('app-settings').hidden = false;
-    await AppSettings.paint(currentSession, say);
+    // 旧 AppSettings.paint(session, say) 的时序位：现在走通知制 —— 视图订阅
+    // onSettingsShown，这里等所有订阅者的重画 promise 收齐（「paint 之后再滚」不变）。
+    await settingsModel.notifySettingsShown(currentSession);
     paintExtRestore();
     say('');
     if (!anchorId) return;
@@ -1450,8 +1453,8 @@ export function bootShell() {
     if (!el) return;
     // 落点在「引擎与密钥」的某一档里 ⇒ 先切到那一档（2026-09-17 设置页信息架构：档位只管第一节，
     // 但那一节里的东西在另一档下是 hidden 的，滚过去只会落到一片看不见的东西上）。
-    if (el.closest('.adv-only')) await AppSettings.setDetail(true);
-    else if (el.closest('.quick-only')) await AppSettings.setDetail(false);
+    if (el.closest('.adv-only')) await settingsModel.requestDetail(true);
+    else if (el.closest('.quick-only')) await settingsModel.requestDetail(false);
     // paint 之后再滚：paint 会增删 .adv-only 的 hidden，滚在它之前会落到旧布局上。
     try { el.scrollIntoView({ block: 'center' }); } catch (_) { el.scrollIntoView(); }
     el.classList.add('anchor-flash');
@@ -1562,7 +1565,9 @@ export function bootShell() {
     PageI18n.applyStoredUiLang(paintStatic);
     // 改语言当场生效的那一半。设置页是写入方，它只重画自己那一节（settings.js 的
     // paintStatic），而首页这一层的文字是这里画的 —— 走 onChanged 总线接，不在
-    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。
+    // 设置页里手写第二处显式重绘（2026-09-06 裁定）。PageText 的跟随不在这一处做
+    // —— main.jsx 顶部把两个 i18n 状态耦合在一起（喂 PageI18n 即喂 PageText），
+    // 这里再喂一遍就成了第二处要维护的接线。
     try {
       chrome.storage.onChanged.addListener((ch) => {
         if (!ch || !ch.uiLang) return;
@@ -1588,7 +1593,7 @@ export function bootShell() {
     // believed.
     try { await LearnAuth.bindCorpus(); } catch (_) {}
 
-    await AppSettings.ensureDefaults();
+    await settingsModel.ensureDefaults();
     await migrateSttDevice();
     AppDriving.wire();
     AppListen.wire();
@@ -1603,7 +1608,7 @@ export function bootShell() {
         AppQuickHost.start({ openSettings, confirm: (m, o) => (typeof LearnDialog !== 'undefined' ? LearnDialog.confirm(m, o) : Promise.resolve(true)) });
       }
     } catch (_) {}
-    AppSettings.wire({
+    settingsModel.bind({
       say,
       session: () => currentSession,
       // 免费额度那张卡要的两样。开外链必须走原生桥（WKWebView 里 window.open 是哑的），

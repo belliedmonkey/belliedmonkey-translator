@@ -1,6 +1,6 @@
 // app/quick-settings.js — App 设置里「快速翻译」块的 M-7 那几行（docs/learning-design.md §9.9）：
 // 三个快捷键的录制控件、存入复习库、登录时启动、屏幕录制状态、给右键「服务」绑快捷键的直达。
-// 「在菜单栏常驻」与「增强取词」两行是 M-1 / M-5 的，仍在 app/settings.js。
+// 「在菜单栏常驻」与「增强取词」两行是 M-1 / M-5 的，仍在 src/app/settings-view.jsx。
 //
 // 录制控件五态（画布「快捷键录制 · 五态」）：空 / 录制中 / 已设 / 冲突 / 被拒绝的组合。
 //   · 录制中按 Esc = 取消，不是把 Esc 设成快捷键；录制期间全局快捷键全部放开（AppQuickHost.setRecording）。

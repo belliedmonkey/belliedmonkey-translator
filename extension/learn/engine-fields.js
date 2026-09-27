@@ -3,7 +3,7 @@
 // 抽出来的理由不是代码复用，是**它已经漂了**。同一条规则在仓库里有八份：
 //
 //   options.js  updateProviderUI / updateTtsUI 头部 / updateSttUI / updateNotesUI
-//   app/settings.js  三处（tts / stt / notes，注释里明写「mirroring the extension
+//   src/app/settings-view.jsx  三处（tts / stt / notes，注释里明写「mirroring the extension
 //                    options page」）
 //   onboard.js  syncKeyRow（退化版：只有引擎 + Key）
 //
@@ -351,7 +351,7 @@ var EngineFields = (() => {
     }
 
     // 换引擎时清端点，而且**看得见地清**（interaction-spec 「接口地址字段」）。
-    // 地址不能跨端点沿用 —— 同 app/settings.js 换语音引擎要重置音色的理由
+    // 地址不能跨端点沿用 —— 同 src/app/settings-view.jsx 换语音引擎要重置音色的理由
     // （「音色名不跨引擎」）。带默认端点的条目清空后落在一个能工作的配置上；要求自填
     // 地址的条目本来也得重填。
     //

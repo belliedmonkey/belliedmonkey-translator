@@ -23,7 +23,7 @@
   function available() { try { return !!(V() && V().available()); } catch (_) { return false; } }
 
   // 引擎的展示名。注册表是唯一来源 —— 这里绝不另写一份 id → 名字的表。
-  // `labelKey` 有就走 t()，没有就用字面值（与 app/settings.js:43、listen.js:1197 同一条）。
+  // `labelKey` 有就走 t()，没有就用字面值（与 src/app/settings-view.jsx、listen.js:1197 同一条）。
   function engineName(id) {
     try {
       const e = typeof EngineState !== 'undefined' ? EngineState.byId(id) : null;

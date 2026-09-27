@@ -821,9 +821,8 @@ async function runHost(host) {
     // sibling checks and the layout suite — not re-hosted here.
     if (host.isApp) {
       await ev(`(document.getElementById('review-view').hidden = true,
-                document.getElementById('app-settings').hidden = false,
-                AppSettings.paintStatic(), 'ok')`);
-      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+                document.getElementById('app-settings').hidden = false, 'ok')`);
+      await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await new Promise((r) => setTimeout(r, 200));
       await sweep('设置页', '#app-settings');
       need((await ev(`document.getElementById('tts-voice').options.length`)) >= 2,
@@ -1268,11 +1267,12 @@ async function runHost(host) {
         await LearnStore.clearAudio();
         return 'ok';
       })()`);
-      // **不要**在这里调 AppSettings.wire —— app.js 启动时已经接过一次线了（app.js:440）。
-      // 再接一次就是同一个按钮上挂两个监听器：一次点击跑两遍处理函数，于是「第二下开跑」
+      // **不要**在这里调 settingsModel.bind —— shell 启动时已经接过一次线了
+      // （shell-model.js bootShell 尾上的 settingsModel.bind）。再接一次就是同一个按钮
+      // 上挂两个监听器：一次点击跑两遍处理函数，于是「第二下开跑」
       // 的那一下里，第二遍处理函数看到状态已经是 running，立刻把刚开跑的这一轮停掉。
       // （事件计数器看不见这件事：事件只有一个，处理函数跑了两遍。）
-      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await new Promise((r) => setTimeout(r, 200));
 
       // 第一下 = 只算账。**零请求**是这一步的全部内容：账单要是靠发请求算出来的，
@@ -1348,7 +1348,7 @@ async function runHost(host) {
                 localStorage.removeItem('mt:notesApiKey'), 'ok')`);
       await ev(`(document.getElementById('app-drive').hidden = true,
                 document.getElementById('app-settings').hidden = false, 'ok')`);
-      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await ev(`(window.__mtSpeechCount = 0, window.__mtChatBodies = [], 'ok')`);
       await click('#btn-drive-preload');
       await new Promise((r) => setTimeout(r, 1500));
@@ -1371,7 +1371,7 @@ async function runHost(host) {
       // 于是账单本来会只说「没有可听读的卡」—— 一句正确但没用的话。
       await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify(${JSON.stringify(epEngine)})),
                 localStorage.removeItem('mt:ttsBaseUrl'), 'ok')`);
-      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await ev(`(window.__mtSpeechCount = 0, 'ok')`);
       await click('#btn-drive-preload');
       await new Promise((r) => setTimeout(r, 1500));
@@ -1388,7 +1388,7 @@ async function runHost(host) {
       await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')),
                 localStorage.setItem('mt:provider', JSON.stringify('openai')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
-      await ev(`AppSettings.paint(null, () => {}).then(() => 'ok')`);
+      await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await ev(`(window.__mtSpeechCount = 0, 'ok')`);
       await click('#btn-drive-preload');
       await new Promise((r) => setTimeout(r, 1500));

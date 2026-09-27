@@ -45,7 +45,7 @@
   // **点了必然失败的播放键**，仓库里有前科。默认回到 'off'，与扩展一致。
   //
   // ⚠️ **但那段注释记的竞态仍然成立，别把它一起丢掉**：`review.js` 在 bundle
-  // 加载时**只读一次**设置，而 `AppSettings.ensureDefaults` 是异步的、会输掉这场
+  // 加载时**只读一次**设置，而 `settingsModel.ensureDefaults`（src/app/settings-model.js）是异步的、会输掉这场
   // 竞速。所以将来若又需要给 App 一个**非默认**的初始值，它必须播种在**这里**
   // （同步、在 review.js 之前），而不是 ensureDefaults 里。
 

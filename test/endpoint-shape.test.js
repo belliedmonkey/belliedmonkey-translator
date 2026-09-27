@@ -115,9 +115,9 @@ describe('四条传输都经过形状检查（源码，去注释）', () => {
 
 describe('宿主不许绕过 EngineTest', () => {
   test('App 的自检按钮走 EngineTest，不直接调底层', () => {
-    const src = strip(read('app/settings.js'));
-    ok(!src.includes('LearnNotes.test()'), 'app/settings.js 又直接调 LearnNotes.test()');
-    ok(!src.includes('LearnSpeech.test()'), 'app/settings.js 又直接调 LearnSpeech.test()');
+    const src = strip(read('src/app/settings-view.jsx'));
+    ok(!src.includes('LearnNotes.test()'), 'src/app/settings-view.jsx 又直接调 LearnNotes.test()');
+    ok(!src.includes('LearnSpeech.test()'), 'src/app/settings-view.jsx 又直接调 LearnSpeech.test()');
     ok(handlerOf(src, 'btn-test-notes').includes('EngineTest.notes('), 'btn-test-notes 没走 EngineTest');
     ok(handlerOf(src, 'btn-test-stt').includes('EngineTest.stt('), 'btn-test-stt 没走 EngineTest');
   });
@@ -138,7 +138,7 @@ describe('宿主不许绕过 EngineTest', () => {
   test('两个宿主的「试听」都先判地址（它是播放不是探活，所以只补这一句）', () => {
     ok(blockAfter(strip(read('src/pages/options.jsx')), 'const btnTtsTest =', 1200).includes('EngineTest.shapeHint('),
       '扩展的试听没判地址');
-    ok(handlerOf(strip(read('app/settings.js')), 'btn-tts-test').includes('EngineTest.shapeHint('),
+    ok(handlerOf(strip(read('src/app/settings-view.jsx')), 'btn-tts-test').includes('EngineTest.shapeHint('),
       'App 的试听没判地址');
   });
 });
@@ -150,8 +150,8 @@ describe('每个地址输入框都挂了失焦判定', () => {
     ok(blockAfter(src, "addEventListener('blur'", 200).length > 0, '没有挂 blur');
   });
 
-  test('App：三个槽各挂一次（静态 HTML，进不了那个组件）', () => {
-    const src = strip(read('app/settings.js'));
+  test('App：三个槽各挂一次（settings-view.jsx 的接线段，进不了那个组件）', () => {
+    const src = strip(read('src/app/settings-view.jsx'));
     for (const id of ['notes-base-url', 'stt-base-url', 'tts-base-url']) {
       ok(src.includes("wireShapeHint('" + id + "'"), id + ' 没挂失焦判定');
     }

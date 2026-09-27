@@ -82,11 +82,11 @@ describe('EngineTest.device — 本机识别器的测试', () => {
 });
 
 describe('App 设置页不许再自留一份失败原因表', () => {
-  const src = fs.readFileSync(path.join(ROOT, 'app/settings.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'src/app/settings-view.jsx'), 'utf8');
 
   test('engineTestReason 这份副本已删除', () => {
     ok(!/function\s+engineTestReason\s*\(/.test(src),
-      'app/settings.js 又定义了自己的原因表 —— 它会再次漏掉新码，把原始代码显示给用户（2026-09-17「✗ device_no_file」）');
+      'src/app/settings-view.jsx 又定义了自己的原因表 —— 它会再次漏掉新码，把原始代码显示给用户（2026-09-17「✗ device_no_file」）');
   });
 
   test('测试结果走 EngineTest.format（成功与失败都走）', () => {

@@ -36,40 +36,42 @@ const SETTINGS_SCHEMA = (() => {
   const S = {
     // ── translation engine ────────────────────────────────────────────────
     enabled:         { default: false,    surfaces: ['background', 'options', 'popup'] },
-    targetLang:      { default: 'zh-CN',  surfaces: ['background', 'options', 'popup', 'docs', 'quick', 'onboard'] },
-    uiLang:          { default: 'auto',   surfaces: ['background', 'options', 'popup', 'review', 'docs', 'quick', 'listen', 'onboard'] },
-    provider:        { default: 'google', surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
-    apiKey:          { default: '',       surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
-    apiBaseUrl:      { default: '',       surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'onboard'] },
-    apiModel:        { default: '',       surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard'] },
-    engineChosen:    { default: false,    surfaces: ['options', 'popup', 'onboard'] },
+    // PR6b 起 'app' 面 = App 设置页（src/app/settings-view.jsx + settings-model.js），
+    // 键表 = 旧 app/settings.js KEYS 32 键逐键登记（见 store-schema-i18n 的对账门）。
+    targetLang:      { default: 'zh-CN',  surfaces: ['background', 'options', 'popup', 'docs', 'quick', 'onboard', 'app'] },
+    uiLang:          { default: 'auto',   surfaces: ['background', 'options', 'popup', 'review', 'docs', 'quick', 'listen', 'onboard', 'app'] },
+    provider:        { default: 'google', surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
+    apiKey:          { default: '',       surfaces: ['background', 'options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
+    apiBaseUrl:      { default: '',       surfaces: ['options', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
+    apiModel:        { default: '',       surfaces: ['options', 'popup', 'review', 'docs', 'listen', 'quick', 'onboard', 'app'] },
+    engineChosen:    { default: false,    surfaces: ['options', 'popup', 'onboard', 'app'] },
     textColor:       { default: textColor, surfaces: ['background', 'options', 'popup'] },
     ytTextColor:     { default: ytColor,  surfaces: ['options', 'review', 'content', 'popup'] },
     fontSize:        { default: '1.0',    surfaces: ['background', 'options', 'popup'] },
     showFab:         { default: true,     surfaces: ['background', 'options', 'popup'] },
     bilingualMode:   { default: 'below',  surfaces: ['background', 'options'] },
     // ── learning layer ────────────────────────────────────────────────────
-    learnEnabled:    { default: false, surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard'] },
-    learnDailyNew:   { default: 15,    surfaces: ['options', 'popup', 'review'] },  // = LearnScheduler.DEFAULTS.dailyNew
-    learnRules:      { default: null,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard'] },
-    docCapture:      { default: true,  surfaces: ['options', 'docs'] },
-    docPrefetch:     { default: false, surfaces: ['docs'] },
+    learnEnabled:    { default: false, surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard', 'app'] },
+    learnDailyNew:   { default: 15,    surfaces: ['options', 'popup', 'review', 'app'] },  // = LearnScheduler.DEFAULTS.dailyNew
+    learnRules:      { default: null,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard', 'app'] },
+    docCapture:      { default: true,  surfaces: ['options', 'docs', 'app'] },
+    docPrefetch:     { default: false, surfaces: ['docs', 'app'] },
     // ── speech: TTS ───────────────────────────────────────────────────────
-    ttsMode:         { default: 'off', surfaces: ['options', 'review', 'onboard'] },
-    ttsAutoPlay:     { default: false, surfaces: ['options', 'review', 'onboard'] },
-    ttsEngine:       { default: '',    surfaces: ['options', 'review', 'onboard'] },
-    ttsBaseUrl:      { default: '',    surfaces: ['options', 'review', 'onboard'] },
-    ttsApiKey:       { default: '',    surfaces: ['options', 'review', 'onboard'] },
-    ttsModel:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    ttsMode:         { default: 'off', surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsAutoPlay:     { default: false, surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsEngine:       { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsBaseUrl:      { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsApiKey:       { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsModel:        { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
     // onboard 的 tts 自检要现读 voice（原版手抄清单漏了它，现读路径补上——见 pages/onboard.jsx）。
-    ttsVoice:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
-    ttsRate:         { default: 1,     surfaces: ['options', 'review'] },
+    ttsVoice:        { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
+    ttsRate:         { default: 1,     surfaces: ['options', 'review', 'app'] },
     // ── speech: STT ───────────────────────────────────────────────────────
     // popup reads the first three read-only (「配了没有实时接口」行), never writes them.
-    sttEngine:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
-    sttBaseUrl:      { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
-    sttApiKey:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard'] },
-    sttModel:        { default: '',    surfaces: ['options', 'review', 'onboard'] },
+    sttEngine:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard', 'app'] },
+    sttBaseUrl:      { default: '',    surfaces: ['options', 'popup', 'review', 'onboard', 'app'] },
+    sttApiKey:       { default: '',    surfaces: ['options', 'popup', 'review', 'onboard', 'app'] },
+    sttModel:        { default: '',    surfaces: ['options', 'review', 'onboard', 'app'] },
     // ── notes provider (listen translation target) ────────────────────────
     // listen.js and quick.js read the whole engine group + notes override group
     // through LearnNotes.resolveConfig — four keys each, all read-only there.
@@ -89,8 +91,8 @@ const SETTINGS_SCHEMA = (() => {
     reqCustomParams: { default: '', surfaces: ['options'], note: 'read-only: surfaced, never written by saveAll' },
     // ── flow markers ──────────────────────────────────────────────────────
     extObSeen:       { default: false, surfaces: ['popup'], note: '[flow] onboarding seen' },
-    grantTail:       { default: '',    surfaces: ['popup', 'docs', 'quick', 'onboard'], note: '[flow] masked key tail' },
-    grantBalance:    { default: null,  surfaces: ['popup'], note: '[flow]' },
+    grantTail:       { default: '',    surfaces: ['popup', 'docs', 'quick', 'onboard', 'app'], note: '[flow] masked key tail' },
+    grantBalance:    { default: null,  surfaces: ['popup', 'app'], note: '[flow]' },
     grant:           { default: '',    surfaces: ['docs'], note: '[flow]' },
     // 「以后再设置」裁定（2026-09-22，interaction-spec）：note 走 ASCII，中文引文放行注释 ——
     // no-hardcoded-copy 对字符串字面量零豁免（注释会被剥掉，不误伤）。
@@ -99,15 +101,24 @@ const SETTINGS_SCHEMA = (() => {
     // ── quick translate / system-translate handoff ────────────────────────
     quickCapture:    { default: true,  surfaces: ['quick', 'handoff'] },
     quickHotkeys:    { default: null,  surfaces: ['quick'], note: '{translate,shot,input} — null = HotkeyCore.normalize defaults' },
+    // App 设置页的快捷翻译总开关（quick-host.js 也读它）。读法是 `!== false`：缺键 = 开，
+    // 所以 default: true 本身就是有效值，不需要播种。
+    quickEnabled:    { default: true,  surfaces: ['app'] },
     handoffCapture:  { default: true,  surfaces: ['handoff'] },
     // ── listen mode / live subtitles ──────────────────────────────────────
-    listenCapture:   { default: true,  surfaces: ['listen'] },
-    listenMyLang:    { default: '',    surfaces: ['listen'], note: "'' = follow uiLang" },
-    listenOtherLang: { default: 'en',  surfaces: ['listen'] },
-    listenAutoSpeak: { default: true,  surfaces: ['listen'] },
-    subtitleCapture: { default: true,  surfaces: ['listen'] },
-    subtitleVideoLang: { default: 'en', surfaces: ['listen'] },
+    // 六键 App 设置页也读写（旧 app/settings.js KEYS → src/app/settings-model.js）：
+    // 对话页底部两个下拉与设置页这两个是**同一份设置**（learning-design §9.6）。
+    listenCapture:   { default: true,  surfaces: ['listen', 'app'] },
+    listenMyLang:    { default: '',    surfaces: ['listen', 'app'], note: "'' = follow uiLang" },
+    listenOtherLang: { default: 'en',  surfaces: ['listen', 'app'] },
+    listenAutoSpeak: { default: true,  surfaces: ['listen', 'app'] },
+    subtitleCapture: { default: true,  surfaces: ['listen', 'app'] },
+    subtitleVideoLang: { default: 'en', surfaces: ['listen', 'app'] },
     subtitleFontScale: { default: '',  surfaces: ['listen'] },
+    // ── drive mode（App 设置页的驾驶一节；driving.js 自己的 SETTINGS_KEYS 不在
+    // schema 审计内，PR6d 迁移 driving 时再收编）─────────────────────────────
+    drivePlayNotes:   { default: true, surfaces: ['app'], note: "read as `!== false` — default IS the effective value" },
+    drivePreloadDays: { default: 0,    surfaces: ['app'], note: '0 = today only; horizon in days' },
   };
 
   const KEYS = Object.keys(S);

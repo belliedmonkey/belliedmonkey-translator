@@ -107,8 +107,10 @@ describe('setup-done: 「配好了」的回执（画布第 7 页）', () => {
 
 describe('setup-done: 接线（深链、两条配置路、engineChosen）', () => {
   // PR6a：App 壳正文迁 src/app/shell-model.js（原 app/app.js，构建时 esbuild 进 Script.js）。
+  // PR6b：设置页拆 settings-view.jsx（两条配置路的接线在这里）+ settings-model.js（领取流程）。
   const app = fs.readFileSync(path.join(ROOT, 'src', 'app', 'shell-model.js'), 'utf8');
-  const settings = fs.readFileSync(path.join(ROOT, 'app', 'settings.js'), 'utf8');
+  const settings = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-view.jsx'), 'utf8');
+  const model = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-model.js'), 'utf8');
 
   test('★ 深链的 from 不再被丢掉 —— 那句「回到刚才的 App」全靠它', () => {
     ok(/from: String\(u\.searchParams\.get\('from'\)/.test(app), 'parseDeepLink 要读 from');
@@ -120,12 +122,12 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
     // 一键卡这条路走 onResults（自检跑完、拿着卡自己的结果），**不在 onApply 里显示**：
     // onApply 在自检之前调用，那一刻说任何结论都是猜的（2026-09-20 真机：标题「可以用了」
     // 与一个 ✗ 并排挂了几十秒）。
-    const quick = settings.slice(settings.indexOf('async function applyQuickSetup'), settings.indexOf('async function markEngineChosen'));
+    const quick = settings.slice(settings.indexOf('async function applyQuickSetup'), settings.indexOf('async function paintGrant'));
     ok(!/AppSetupDone\.show/.test(quick), 'applyQuickSetup 里不许显示回执 —— 那时候还没测');
     const render = settings.slice(settings.indexOf('QuickSetup.render('), settings.indexOf('QuickSetup.render(') + 900);
     ok(/onResults:/.test(render), '一键卡要传 onResults');
     ok(/AppSetupDone\.show\(plan && plan\.tests, \{ results \}\)/.test(render), '回执要拿卡的结果，不自己再测一遍');
-    const grant = settings.slice(settings.indexOf('grant_claimed_toast'));
+    const grant = model.slice(model.indexOf('grant_claimed_toast'));
     ok(/AppSetupDone\.show/.test(grant.slice(0, 900)), '领免费额度配完也要给回执（此前一次自检都不跑）');
   });
 
@@ -153,8 +155,8 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
   });
 
   test('★ engineChosen 在 App 里要写 —— 不写就会在选了免费引擎之后仍说「没配过」', () => {
-    ok(/engineChosen: 1/.test(settings), 'App 侧要有写入点');
-    const fn = settings.slice(settings.indexOf('async function markEngineChosen'));
+    ok(/engineChosen: 1/.test(model), 'App 侧要有写入点');
+    const fn = model.slice(model.indexOf('async function markEngineChosen'));
     ok(/if \(!w\.provider\) return;/.test(fn.slice(0, 400)), '只在真的写了 provider 时才算「选过」');
   });
 
