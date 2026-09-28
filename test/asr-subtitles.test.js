@@ -447,6 +447,76 @@ describe("playbackLatch: a video that has not started must not burn the acquisit
   });
 });
 
+// ─── 请求纪律（EF-1，2026-09-28）：同一条签名 URL 空结果即终态，每条视频最多发 3 次请求 ──
+//
+// 现场：YouTube 会对反复的字幕请求封掉整条字幕管线（同一会话连原生字幕一起 200/空体；用户
+// 口径约 >5 次即封，广告期间更容易触发）。旧实现在空体时清掉 ttFetchedUrl 下一拍重发同一
+// URL，maxAttempts:8 ⇒ 每条视频最多 8 发同一 URL —— 恰好就是触发封禁的行为。2026-09-28
+// 的复现全部发生在服务端闸下（Chrome CDP 抓到 9 条 timedtext 全 200/0 字节），happy path
+// 无法在闸下复现，但纪律本身可以在这张桌子上钉死：直接装载真模块、数它发出的请求。
+describe('EF-1 request discipline: an empty transcript is terminal; ≤3 requests per video', () => {
+  const EMPTY = JSON.stringify({ events: [] });
+  const CUE = JSON.stringify({ events: [{ tStartMs: 0, dDurationMs: 1000, segs: [{ utf8: 'Hello.' }] }] });
+  function loadYt(fetchLog, body) {
+    const vm = require('vm');
+    let spec = null;
+    const win = { addEventListener() {}, __mtTimedTextUrls: [] };
+    win.top = win; win.self = win;
+    const ctx = {
+      console, URL, URLSearchParams,
+      fetch: (url) => { fetchLog.push(url); return Promise.resolve({ ok: true, text: async () => body }); },
+      location: { search: '?v=V1', href: 'https://www.youtube.com/watch?v=V1' },
+      document: { querySelector: () => null, getElementById: () => null, createElement: () => ({ style: {}, setAttribute() {}, appendChild() {} }), head: { appendChild() {} } },
+      performance: { getEntriesByType: () => [] },
+      SubtitleAdapter: {
+        createSubtitleUI: (s) => { spec = s; return { engine: { items: [] }, settings: {}, init() {}, enable() {}, disable() {}, updateSettings() {} }; },
+        playbackLatch: () => () => true,
+      },
+      TranslationCore: { t: (k, f) => f, DEFAULT_TARGET_LANG: 'zh', isMobileLayout: () => false },
+      TranslationAPI: { translate: async () => '', resolveProvider: () => '' },
+      AsrSource: { offerFor: () => () => {}, startFrom: () => ({}) },
+      window: win,
+    };
+    vm.createContext(ctx);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'extension/content/content-youtube.js'), 'utf8'), ctx);
+    return { spec, urls: win.__mtTimedTextUrls };
+  }
+  const u = (n) => `https://www.youtube.com/api/timedtext?v=V1&pot=p${n}&sig=s${n}`;
+
+  test('★ empty body ⇒ terminal: acquire() × 6 hits the network exactly once (the old code refetched the same URL every tick)', async () => {
+    const log = []; const { spec, urls } = loadYt(log, EMPTY);
+    urls.push(u(1));
+    for (let i = 0; i < 6; i++) eq(await spec.acquire(), null);
+    eq(log.length, 1, 'the same signed URL must never be refetched');
+    ok(log[0].indexOf('pot=p1') !== -1, 'fetched the observed URL: ' + log[0]);
+  });
+
+  test('★ ≤3 requests per video: 4 distinct freshly-signed URLs yield exactly 3 fetches (the 4th is refused)', async () => {
+    const log = []; const { spec, urls } = loadYt(log, EMPTY);
+    for (const n of [1, 2, 3, 4]) { urls.push(u(n)); await spec.acquire(); }
+    eq(log.length, 3, 'budget is 3 per video — 宁可字幕不可用，也不踩封禁线');
+  });
+
+  test('★ the per-video budget is the hard cap: a toggle-boundary reset (onActiveChange/onMediaKeyChange clears ttFetchedUrl) cannot mint a 4th request', async () => {
+    const log = []; const { spec, urls } = loadYt(log, EMPTY);
+    for (const n of [1, 2, 3]) { urls.push(u(n)); await spec.acquire(); }
+    eq(log.length, 3);
+    spec.onMediaKeyChange(); spec.onActiveChange(true); // 边界清 ttFetchedUrl，但预算跟着视频 id 走
+    urls.push(u(9));
+    await spec.acquire(); await spec.acquire();
+    eq(log.length, 3, 'budget is keyed to the video id — clearing ttFetchedUrl must not bypass it');
+  });
+
+  test('a good transcript is cached in-module: the second acquire() returns null and does not refetch', async () => {
+    const log = []; const { spec, urls } = loadYt(log, CUE);
+    urls.push(u(1));
+    const cues = await spec.acquire();
+    eq(cues.length, 1); eq(cues[0].text, 'Hello.');
+    eq(await spec.acquire(), null);
+    eq(log.length, 1);
+  });
+});
+
 function loadRS() {
   const vm = require('vm');
   const WireFormat = require('../extension/content/wire-format.js');

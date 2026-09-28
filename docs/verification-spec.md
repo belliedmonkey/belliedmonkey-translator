@@ -3255,7 +3255,7 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 | 面 | 症状 | 根因 | 处置 |
 |---|---|---|---|
-| E Firefox | YouTube 双字幕整链断：双语模式播 3 分钟+ 无 overlay；屏幕上是 YouTube **原生**自动翻译中文字幕（CC 被 `ensureCaptionsOn` 自动打开），完美掩盖故障；「下载 .srt」弹原生 alert（引擎零句子，subtitle-adapter 的空态）才露馅 | Firefox isolated world 看不到页面的 resource entries——`yt-timedtext-observer` 与 `getEntriesByType` 兜底两处 `catch(_){}` 吞掉观察失败；`yt-hook` 的 `world:"MAIN"` Firefox 不支持（已知，设计如此） | **未修，后续 PR**：给 Firefox 换 timedtext URL 来源（observational webRequest）或实证可见性后换 buffered 姿势；另议「原生 CC 与本扩展 overlay 共存」的视觉策略——引擎空转超时后不该让原生 CC 独自扮演译文（「静默失败要给用户出口」的又一例） |
+| E Firefox | YouTube 双字幕整链断：双语模式播 3 分钟+ 无 overlay；屏幕上是 YouTube **原生**自动翻译中文字幕（CC 被 `ensureCaptionsOn` 自动打开），完美掩盖故障；「下载 .srt」弹原生 alert（引擎零句子，subtitle-adapter 的空态）才露馅 | **2026-09-28 深挖改判：不是 Firefox 回归。** 复现全部发生在 YouTube 服务端字幕封锁下——匿名会话本就被闸（未登录拿不到字幕），而扩展自己的重试循环在踩 YouTube 的封禁线（用户口径：反复请求约 >5 次即封，广告期间更易触发）：空结果清 `ttFetchedUrl`，下一 tick 重发同一签名 URL，`maxAttempts:8` ⇒ 每视频最多 8 发同一 URL——恰好就是触发封禁的行为。铁证：Chrome 同环境 CDP 抓到 9 条 timedtext 全 200/0 字节、原生字幕双浏览器同亡；上表旧根因两条均被证伪（隔离世界能看到 resource entries——refetch 循环在跑；`world:MAIN` 在 Firefox 156 可用——`__mtYtHookInstalled=true`） | **已修（EF-1 请求纪律，2026-09-28）**：同签名 URL 空结果终态，绝不重发；扩展每视频最多 3 次请求——宁可「字幕不可用」，不踩封禁线；广告结束/正片开始重置 one-shot 标记但不清 URL 记忆。行为测试钉在 `test/asr-subtitles.test.js`（vm 装真模块数 fetch）。happy path 的最终确认留在登录环境（用户日常 Chrome）。另议「原生 CC 与本扩展 overlay 共存」的视觉策略——引擎空转超时后不该让原生 CC 独自扮演译文（画布先行，另开 PR） |
 
 ### 本轮顺手修的工具链（回归路上一红一绿，随 regress 分支提交）
 
@@ -3274,7 +3274,7 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 | 2 | iPad Safari（模拟器 iOS 26.5） | ✅ 双栏 plato 全双语（ms:1531 + 17 键）、宽屏 options/onboard；iOS 27 补充观察：注入正常但 safaridriver 桥断，主判据在 26.5 拿全 |
 | 3 | macOS Safari | ⬜ 待跑（需人工输密码勾「未签名扩展」开关） |
 | 4 | macOS Chrome | ✅ 5/6：React options / DeepSeek 配置+测试连接（✓877ms，storage+note 双判据）/ plato 双语（14 行 + 13 缓存键）/ popup + **状态一致性正向证据**（options 改 targetLang，未刷新的 popup 即时跟随）/ onboard 三步卡；YouTube 判「环境受限不可判」——未登录自动化实例两次播到 60s 整被 YouTube 服务端掐断（连 timedtext pot 都不铸），Firefox 同姿势不被掐 ⇒ 环境差异非回归；扩展侧注入 / CC 自动开 / gate 抑制均成立。**Chrome 153 已删尽 --load-extension**，本轮配方：`--remote-debugging-port=0 --enable-unsafe-extension-debugging` + CDP `Extensions.loadUnpacked`（test/layout/chrome.js 同款）；storage 回读必须走扩展页 target（内容页是主世界，MV3 SW target 常不存在） |
-| 5 | Firefox | ✅ 3/4 + 上表 EF-1：React options + DeepSeek 测试连接 1470ms / plato 双语 / 字幕菜单懒加载（React ui.bundle）全过 |
+| 5 | Firefox | ✅ 3/4：React options + DeepSeek 测试连接 1470ms / plato 双语 / 字幕菜单懒加载（React ui.bundle）全过；第 4 项（YouTube 双字幕）= 上表 EF-1，深挖后改判为 YouTube 服务端字幕封锁 + 扩展重试循环踩封禁线，已修（请求纪律） |
 | 6 | iOS 宿主 App（模拟器 iPhone 18 Pro） | ✅ 新引导四屏逐屏（obStep 自报）、就地试一句无引擎（领额度分支）与 DeepSeek（真译文 2.0s）、继续设置卡 3 次后收起（重启 4 次状态回读）、卡 ✕ 永久收起、找回横幅三步指引与让路、首页三行、ext 屏 iOS 形态（8/8） |
 | 7 | macOS 宿主 App | ⬜ 待跑 |
 | 8 | Windows 11 虚拟机 | ⬜ 待 /win-matrix（需在 VM 里粘一行 PowerShell 启动浏览器） |
@@ -3283,5 +3283,5 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 ### 遗留
 
-- EF-1 修复（后续 PR）；D 面 YouTube 完整链路可在用户日常 Chrome（已登录、不被 60s 掐）人工复核，但日常 profile 的扩展指向主树旧 dist，验不了 react dist——留到下版装新 dist 后顺带看。
+- EF-1 已修（请求纪律，见上表）；YouTube happy path 最终确认需要登录环境（闸下能验的只有纪律：同 URL 不重发、每视频 ≤3 次封顶，已钉进行为测试），日常 Chrome 人工复核即可；D 面 React dist 的 YouTube 链路留到下版装新 dist 后顺带看。
 - 本轮三处新驱动配方（Chrome 153 loadUnpacked、safaridriver 不注入的存储直写替代、Firefox foreground 像素点菜单）已沉淀在各面 README，下次回归直接用。

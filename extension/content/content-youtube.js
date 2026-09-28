@@ -19,6 +19,10 @@ var YouTubeTranslator = (() => {
   let subActiveSince = 0;
   let ttObservedUrl = '';
   let ttFetchedUrl = '';
+  // 请求纪律（2026-09-28，EF-1）：YouTube 会对反复的字幕请求封掉整条字幕管线（同会话连
+  // 原生字幕一起 200/空体；用户口径约 >5 次即封，广告期间更容易触发）。所以：同一条签名
+  // URL 空结果即终态，绝不重发；扩展自己每条视频最多发 3 次。
+  let ttBudgetVid = '', ttBudget = 0;
   let ccForceToggled = false;
   let hookCues = null, hookVideoId = ''; // world:MAIN hook (Chrome) delivers cues async
 
@@ -105,11 +109,15 @@ var YouTubeTranslator = (() => {
       return null;
     }
     const url = normalizeTimedTextUrl(best);
-    if (url === ttFetchedUrl) return null; // already (re)fetched this exact URL
+    if (url === ttFetchedUrl) return null; // already fetched — an empty result is TERMINAL for this signed URL
+    if (vid !== ttBudgetVid) { ttBudgetVid = vid; ttBudget = 0; }
+    if (ttBudget >= 3) return null; // 这条视频的请求预算用完 —— 宁可字幕不可用，也不踩封禁线
+    ttBudget += 1;
     ttFetchedUrl = url;
     const body = await fetch(url, { credentials: 'include' }).then((r) => (r.ok ? r.text() : Promise.reject(r.status)));
     let cues; try { cues = parseJson3(body); } catch (_) { cues = []; }
-    if (!cues.length) { ttFetchedUrl = ''; return null; } // empty (pot?) — let a fresh URL retry
+    if (!cues.length) return null; // 空体 = 被闸（pot/封禁）。旧实现在这里清掉 ttFetchedUrl 下一拍重发同一 URL，
+                                   // 恰好就是触发封禁的行为；现在只有新铸的签名 URL（CC 重开/换轨）才再试。
     return cues;
   }
 
@@ -212,7 +220,7 @@ var YouTubeTranslator = (() => {
       // 广告结束、或正片刚播起来的那一拍：把一次性标记还原，「3 s 宽限后强制重取」从正片开始算（#325 / #345）——
       // 否则宽限在暂停的那段时间里就过完了，强制重开 CC 的那一次机会也用在了 YouTube 还不会去取字幕的时候。
       const started = mainStarted();
-      if ((adWas && !ad) || (!startedWas && started)) { ccTried = false; ttFetchedUrl = ''; ccForceToggled = false; subActiveSince = Date.now(); }
+      if ((adWas && !ad) || (!startedWas && started)) { ccTried = false; ccForceToggled = false; subActiveSince = Date.now(); }
       adWas = ad; startedWas = started;
       if (active && !ad) ensureCaptionsOn(); // per-tick until CC is on
     },
