@@ -132,6 +132,23 @@ The YouTube subtitle path follows **one** logic, identical on every platform
    drawn (no 「字幕加载中…」 over a video nobody has started); the tick it turns true re-arms
    the same one-shots as the end of an ad.
 
+   **Request discipline: an empty transcript is TERMINAL, and we send at most 3 requests
+   per video** (2026-09-28, EF-1). YouTube rate-limits repeated caption fetches: past a
+   handful of requests (≈5, per user report; easier to trip during ads) it cuts off the
+   whole caption pipeline for the session — every `/api/timedtext` answers `200` with a
+   0-byte body, YouTube's own captions included. The old acquire loop made that easy to
+   trip: an empty body cleared `ttFetchedUrl`, so the next tick re-fetched the SAME signed
+   URL, up to `maxAttempts` (8) times per video — precisely the pattern that trips the
+   limit. Measured 2026-09-28 under the block, Chrome 153 via CDP: 9 timedtext responses,
+   all 200/0 bytes, native captions dead in two browsers. So: an empty body no longer
+   clears the recorded URL (terminal for that signature — only a freshly minted one from
+   a CC re-enable, a track switch, or a video change may be tried), and the extension
+   itself spends at most 3 fetches per video id, keyed to the video so toggle boundaries
+   (`onMediaKeyChange`/`onActiveChange` clear the URL memory) cannot mint more. 宁可
+   「字幕不可用」，不踩封禁线。 The ad-end/first-start transition resets the one-shot
+   flags but NOT the URL memory — an ad-end refetch of an already-dead signature is
+   exactly the request we no longer send.
+
 If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
 show a one-line notice — **do not** silently regress to per-caption translation.
 
