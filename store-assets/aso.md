@@ -25,7 +25,9 @@
    但顶满会让下次微调必须先删词 —— 而 keywords 随版本锁定，下次能改是下一版。
 4. **口径红线**（2026-09-15 起由 `test/lib/copy-redlines.js` 拦）：不说「没有追踪 / 没有埋点」
    （我们发匿名用量事件，可关）；不说不加限定的「完全免费」；国际版不说「路径上没有我们的服务器」
-   （免费额度经我们的中继）。iPhone 的实时字幕写「任意 App」，不点名 Safari。中国版不提 YouTube。
+   （App 内免费额度路径经我们的中继——2026-09-28 起商店文案不再提免费额度：国际 iOS 1.17.0
+   被 Guideline 2.3.7 以「free 也算价格引用」拒审，用户裁定免费额度不当卖点、只做 App 内
+   landing 用）。iPhone 的实时字幕写「任意 App」，不点名 Safari。中国版不提 YouTube。
 
 > 2026-09-15（1.11.0）整份重写：主叙事从「扩展 + 复习卡」换成「实时字幕 · 对话听译 · 网页 · 视频 ·
 > 文档 · 复习卡」。此前 1.8.0 的对话、1.9.0 的免费额度、1.10.0 的文档翻译在商店页上都一个字没有。
@@ -75,10 +77,10 @@ LEARN AS YOU READ
 Sentences you actually read can become review cards on a forgetting curve — read, listen and write practice, sentence notes and read-aloud. Optional sync lets your phone review what you read on your computer.
 
 YOUR ENGINE, YOUR CHOICE
-Bring your own AI service key, or any compatible endpoint. Once signed in, you can also try a small free credit from us.
+Bring your own AI service key, or any compatible endpoint.
 
 PRIVACY, SPELLED OUT
-Your keys and settings stay on your device. With your own key, text goes straight to the provider you chose; with the free credit, it passes through our relay and is not stored. Live Subtitles and on-device transcription never record audio. We send anonymous usage events (which features are used, never page content), and you can turn them off in Settings. No ads. The whole app is open source and free to download.
+Your keys and settings stay on your device. With your own key, text goes straight to the provider you chose and is not stored. Live Subtitles and on-device transcription never record audio. We send anonymous usage events (which features are used, never page content), and you can turn them off in Settings. No ads. The whole app is open source and free to download.
 ```
 
 ## 国际版 · en-US · promotionalText
@@ -131,10 +133,10 @@ YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频�
 真正读完的句子按遗忘曲线回来：读 / 听 / 写三档练习，配句子解析与朗读。可选同步，电脑上读、手机上复习。
 
 【引擎你自己选】
-填入你自己的 AI 服务密钥，或任何兼容的接口；登录后也可以先用我们提供的一小份免费额度。
+填入你自己的 AI 服务密钥，或任何兼容的接口。
 
 【隐私，说清楚】
-密钥与设置只存在你的设备上。用自己的密钥时，文字直接发往你选的服务商；用免费额度时，经我们的中继转发，不保存。实时字幕与设备内置转写都不录音。我们会发送匿名用量事件（用了哪些功能，不含网页内容），可在设置里关闭。没有广告，完整开源，免费下载。
+密钥与设置只存在你的设备上。用自己的密钥时，文字直接发往你选的服务商，不保存。实时字幕与设备内置转写都不录音。我们会发送匿名用量事件（用了哪些功能，不含网页内容），可在设置里关闭。没有广告，完整开源，免费下载。
 ```
 
 ## 国际版 · zh-Hans · promotionalText
@@ -242,10 +244,10 @@ PDF・Word・画像を開き、ページごとに原文と訳文を並べて読�
 実際に読んだ文が忘却曲線に沿った復習カードになります。読む・聞く・書くの練習、文の解説、読み上げ。同期は任意で、パソコンで読んだ文をスマートフォンで復習できます。
 
 【エンジンは自分で選ぶ】
-お使いの AI サービスのキー、または互換性のある任意のエンドポイントを設定できます。サインインすると、当方の少額の無料クレジットも試せます。
+お使いの AI サービスのキー、または互換性のある任意のエンドポイントを設定できます。
 
 【プライバシーを明確に】
-キーと設定は端末に保存されます。自分のキーを使うとテキストは選んだ提供元へ直接送られ、無料クレジットを使う場合は当方の中継を経由し、保存はしません。ライブ字幕と端末内蔵の文字起こしは録音しません。匿名の利用データ（使った機能のみ、ページ内容は含まず）を送信し、設定でオフにできます。広告なし。アプリ全体がオープンソースで、ダウンロードは無料です。
+キーと設定は端末に保存されます。自分のキーを使うとテキストは選んだ提供元へ直接送られ、保存はしません。ライブ字幕と端末内蔵の文字起こしは録音しません。匿名の利用データ（使った機能のみ、ページ内容は含まず）を送信し、設定でオフにできます。広告なし。アプリ全体がオープンソースで、ダウンロードは無料です。
 ```
 
 ## 国际版 · ja · promotionalText
@@ -298,10 +300,10 @@ PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽
 실제로 읽은 문장이 망각 곡선에 맞춘 복습 카드가 됩니다. 읽기·듣기·쓰기 연습, 문장 해설, 읽어주기. 동기화는 선택이며, 컴퓨터에서 읽은 문장을 휴대폰에서 복습할 수 있습니다.
 
 【엔진은 직접 고릅니다】
-사용 중인 AI 서비스의 키나 호환되는 엔드포인트를 넣으세요. 로그인하면 저희가 제공하는 소량의 무료 크레딧도 써 볼 수 있습니다.
+사용 중인 AI 서비스의 키나 호환되는 엔드포인트를 넣으세요.
 
 【프라이버시, 분명하게】
-키와 설정은 기기에 저장됩니다. 내 키를 쓰면 텍스트는 고른 제공자에게 곧바로 가고, 무료 크레딧을 쓰면 저희 중계를 거치며 저장하지 않습니다. 실시간 자막과 기기 내장 받아쓰기는 녹음하지 않습니다. 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용 제외)를 보내며 설정에서 끌 수 있습니다. 광고 없음. 앱 전체가 오픈 소스이며 무료로 내려받을 수 있습니다.
+키와 설정은 기기에 저장됩니다. 내 키를 쓰면 텍스트는 고른 제공자에게 곧바로 가고 저장하지 않습니다. 실시간 자막과 기기 내장 받아쓰기는 녹음하지 않습니다. 익명 사용 데이터(어떤 기능을 썼는지만, 페이지 내용 제외)를 보내며 설정에서 끌 수 있습니다. 광고 없음. 앱 전체가 오픈 소스이며 무료로 내려받을 수 있습니다.
 ```
 
 ## 国际版 · ko · promotionalText
@@ -410,10 +412,10 @@ GELESENES BLEIBT
 Sätze, die du wirklich gelesen hast, werden zu Wiederholungskarten nach der Vergessenskurve: Lese-, Hör- und Schreibübungen, Satzerklärungen und Vorlesen. Die Synchronisierung ist optional.
 
 DEINE ENGINE, DEINE WAHL
-Trage den Schlüssel deines eigenen KI-Dienstes oder einen kompatiblen Endpunkt ein. Angemeldet kannst du auch ein kleines Gratis-Guthaben von uns ausprobieren.
+Trage den Schlüssel deines eigenen KI-Dienstes oder einen kompatiblen Endpunkt ein.
 
 DATENSCHUTZ, KLAR GESAGT
-Schlüssel und Einstellungen bleiben auf deinem Gerät. Mit eigenem Schlüssel geht der Text direkt an den gewählten Anbieter; mit dem Gratis-Guthaben läuft er über unser Relay und wird nicht gespeichert. Live-Untertitel und geräteinterne Transkription nehmen nichts auf. Wir senden anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), abschaltbar in den Einstellungen. Keine Werbung. Die gesamte App ist quelloffen und kostenlos herunterzuladen.
+Schlüssel und Einstellungen bleiben auf deinem Gerät. Mit eigenem Schlüssel geht der Text direkt an den gewählten Anbieter und wird nicht gespeichert. Live-Untertitel und geräteinterne Transkription nehmen nichts auf. Wir senden anonyme Nutzungsdaten (welche Funktionen, nie Seiteninhalte), abschaltbar in den Einstellungen. Keine Werbung. Die gesamte App ist quelloffen und kostenlos herunterzuladen.
 ```
 
 ## 国际版 · de-DE · promotionalText
@@ -466,10 +468,10 @@ CE QUE VOUS LISEZ RESTE
 Les phrases vraiment lues deviennent des cartes de révision selon la courbe de l'oubli : lecture, écoute, écriture, explications de phrase et lecture à voix haute. Synchronisation facultative.
 
 VOTRE MOTEUR, VOTRE CHOIX
-Renseignez la clé de votre propre service d'IA ou un endpoint compatible. Une fois connecté, vous pouvez aussi essayer un petit crédit gratuit offert par nous.
+Renseignez la clé de votre propre service d'IA ou un endpoint compatible.
 
 LA CONFIDENTIALITÉ, CLAIREMENT
-Vos clés et réglages restent sur votre appareil. Avec votre clé, le texte va directement au fournisseur choisi ; avec le crédit gratuit, il passe par notre relais et n'est pas conservé. Les sous-titres en direct et la transcription intégrée n'enregistrent rien. Nous envoyons des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables dans les réglages. Aucune publicité. L'app est open source et gratuite à télécharger.
+Vos clés et réglages restent sur votre appareil. Avec votre clé, le texte va directement au fournisseur choisi et n'est pas conservé. Les sous-titres en direct et la transcription intégrée n'enregistrent rien. Nous envoyons des données d'usage anonymes (quelles fonctions, jamais le contenu des pages), désactivables dans les réglages. Aucune publicité. L'app est open source et gratuite à télécharger.
 ```
 
 ## 国际版 · fr-FR · promotionalText
@@ -522,10 +524,10 @@ LO QUE LEES SE QUEDA
 Las frases que lees de verdad se convierten en tarjetas de repaso según la curva del olvido: lectura, escucha, escritura, notas de frase y lectura en voz alta. Sincronización opcional.
 
 TU MOTOR, TU ELECCIÓN
-Introduce la clave de tu propio servicio de IA o un endpoint compatible. Con sesión iniciada, también puedes probar un pequeño crédito gratuito nuestro.
+Introduce la clave de tu propio servicio de IA o un endpoint compatible.
 
 PRIVACIDAD, SIN RODEOS
-Tus claves y ajustes se quedan en tu dispositivo. Con tu clave, el texto va directo al proveedor que elegiste; con el crédito gratuito, pasa por nuestro relé y no se guarda. Los subtítulos en vivo y la transcripción integrada no graban nada. Enviamos datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables en Ajustes. Sin anuncios. Toda la app es de código abierto y se descarga gratis.
+Tus claves y ajustes se quedan en tu dispositivo. Con tu clave, el texto va directo al proveedor que elegiste y no se guarda. Los subtítulos en vivo y la transcripción integrada no graban nada. Enviamos datos de uso anónimos (qué funciones, nunca el contenido de las páginas), desactivables en Ajustes. Sin anuncios. Toda la app es de código abierto y se descarga gratis.
 ```
 
 ## 国际版 · es-ES · promotionalText
@@ -578,10 +580,10 @@ YouTube, подкасты и веб-видео получают двуязычн
 Действительно прочитанные фразы становятся карточками по кривой забывания: чтение, аудирование, письмо, разборы предложений и озвучивание. Синхронизация — по желанию.
 
 ВАШ ДВИЖОК, ВАШ ВЫБОР
-Укажите ключ своего ИИ-сервиса или совместимую конечную точку. После входа можно попробовать и небольшой бесплатный лимит от нас.
+Укажите ключ своего ИИ-сервиса или совместимую конечную точку.
 
 ПРИВАТНОСТЬ БЕЗ НЕДОМОЛВОК
-Ключи и настройки хранятся на устройстве. Со своим ключом текст идёт напрямую выбранному поставщику; с бесплатным лимитом — через наш ретранслятор и не сохраняется. Живые субтитры и встроенная расшифровка ничего не записывают. Мы отправляем анонимные данные об использовании (какие функции, никогда не содержимое страниц), их можно отключить в настройках. Без рекламы. Всё приложение с открытым исходным кодом и скачивается бесплатно.
+Ключи и настройки хранятся на устройстве. Со своим ключом текст идёт напрямую выбранному поставщику и не сохраняется. Живые субтитры и встроенная расшифровка ничего не записывают. Мы отправляем анонимные данные об использовании (какие функции, никогда не содержимое страниц), их можно отключить в настройках. Без рекламы. Всё приложение с открытым исходным кодом и скачивается бесплатно.
 ```
 
 ## 国际版 · ru · promotionalText
@@ -634,10 +636,10 @@ O QUE VOCÊ LÊ FICA
 As frases que você realmente leu viram cartões de revisão pela curva do esquecimento: leitura, escuta, escrita, notas de frase e leitura em voz alta. Sincronização opcional.
 
 SEU MOTOR, SUA ESCOLHA
-Coloque a chave do seu próprio serviço de IA ou um endpoint compatível. Com login, você também pode experimentar um pequeno crédito gratuito nosso.
+Coloque a chave do seu próprio serviço de IA ou um endpoint compatível.
 
 PRIVACIDADE, SEM RODEIOS
-Suas chaves e ajustes ficam no aparelho. Com a sua chave, o texto vai direto para o provedor escolhido; com o crédito gratuito, passa pelo nosso relé e não é armazenado. As legendas ao vivo e a transcrição integrada não gravam nada. Enviamos dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis nos Ajustes. Sem anúncios. O app inteiro é de código aberto e gratuito para baixar.
+Suas chaves e ajustes ficam no aparelho. Com a sua chave, o texto vai direto para o provedor escolhido e não é armazenado. As legendas ao vivo e a transcrição integrada não gravam nada. Enviamos dados de uso anônimos (quais recursos, nunca o conteúdo das páginas), desligáveis nos Ajustes. Sem anúncios. O app inteiro é de código aberto e gratuito para baixar.
 ```
 
 ## 国际版 · pt-BR · promotionalText
@@ -746,10 +748,10 @@ LEGGI E TI RESTA
 Le frasi che hai davvero letto diventano carte di ripasso sulla curva dell'oblio: lettura, ascolto, scrittura, note sulla frase e lettura ad alta voce. Sincronizzazione facoltativa.
 
 IL TUO MOTORE, LA TUA SCELTA
-Inserisci la chiave del tuo servizio di IA o un endpoint compatibile. Dopo l'accesso puoi provare anche un piccolo credito gratuito offerto da noi.
+Inserisci la chiave del tuo servizio di IA o un endpoint compatibile.
 
 PRIVACY, DETTA CHIARA
-Chiavi e impostazioni restano sul tuo dispositivo. Con la tua chiave il testo va direttamente al fornitore scelto; con il credito gratuito passa dal nostro relay e non viene conservato. I sottotitoli live e la trascrizione sul dispositivo non registrano nulla. Inviamo dati d'uso anonimi (quali funzioni, mai il contenuto delle pagine), disattivabili nelle impostazioni. Nessuna pubblicità. Tutta l'app è open source e si scarica gratis.
+Chiavi e impostazioni restano sul tuo dispositivo. Con la tua chiave il testo va direttamente al fornitore scelto e non viene conservato. I sottotitoli live e la trascrizione sul dispositivo non registrano nulla. Inviamo dati d'uso anonimi (quali funzioni, mai il contenuto delle pagine), disattivabili nelle impostazioni. Nessuna pubblicità. Tutta l'app è open source e si scarica gratis.
 ```
 
 ## 国际版 · it · promotionalText
@@ -802,10 +804,10 @@ OKU, AKLINDA KALSIN
 Gerçekten okuduğun cümleler unutma eğrisine göre tekrar kartlarına dönüşür: okuma, dinleme, yazma, cümle açıklamaları ve sesli okuma. Eşitleme isteğe bağlıdır.
 
 MOTORU SEN SEÇ
-Kendi yapay zekâ servisinin anahtarını ya da uyumlu bir uç noktayı gir. Giriş yaptıktan sonra bizim sunduğumuz küçük bir ücretsiz krediyi de deneyebilirsin.
+Kendi yapay zekâ servisinin anahtarını ya da uyumlu bir uç noktayı gir.
 
 GİZLİLİK, AÇIKÇA
-Anahtarların ve ayarların cihazında kalır. Kendi anahtarınla metin doğrudan seçtiğin sağlayıcıya gider; ücretsiz krediyle bizim aktarma sunucumuzdan geçer ve saklanmaz. Canlı altyazı ve cihaz içi transkripsiyon hiçbir şey kaydetmez. Anonim kullanım verisi (hangi özellikler, asla sayfa içeriği) göndeririz; ayarlardan kapatabilirsin. Reklam yok. Uygulamanın tamamı açık kaynaktır ve ücretsiz indirilir.
+Anahtarların ve ayarların cihazında kalır. Kendi anahtarınla metin doğrudan seçtiğin sağlayıcıya gider ve saklanmaz. Canlı altyazı ve cihaz içi transkripsiyon hiçbir şey kaydetmez. Anonim kullanım verisi (hangi özellikler, asla sayfa içeriği) göndeririz; ayarlardan kapatabilirsin. Reklam yok. Uygulamanın tamamı açık kaynaktır ve ücretsiz indirilir.
 ```
 
 ## 国际版 · tr · promotionalText
@@ -858,10 +860,10 @@ Mở PDF, tệp Word hoặc hình ảnh và đọc từng trang bản gốc cạ
 Những câu bạn thực sự đã đọc thành thẻ ôn tập theo đường cong quên: đọc, nghe, viết, ghi chú câu và đọc thành tiếng. Đồng bộ là tùy chọn.
 
 TỰ CHỌN CỖ MÁY DỊCH
-Điền khóa dịch vụ AI của riêng bạn hoặc một điểm cuối tương thích. Sau khi đăng nhập, bạn cũng có thể dùng thử một khoản tín dụng miễn phí nhỏ từ chúng tôi.
+Điền khóa dịch vụ AI của riêng bạn hoặc một điểm cuối tương thích.
 
 QUYỀN RIÊNG TƯ, NÓI RÕ RÀNG
-Khóa và cài đặt ở lại trên thiết bị. Dùng khóa của bạn thì văn bản đi thẳng tới nhà cung cấp bạn chọn; dùng tín dụng miễn phí thì đi qua máy chủ chuyển tiếp của chúng tôi và không được lưu. Phụ đề trực tiếp và chép lời trên thiết bị không ghi âm. Chúng tôi gửi dữ liệu sử dụng ẩn danh (tính năng nào được dùng, không bao giờ là nội dung trang), có thể tắt trong Cài đặt. Không quảng cáo. Toàn bộ ứng dụng là mã nguồn mở và tải về miễn phí.
+Khóa và cài đặt ở lại trên thiết bị. Dùng khóa của bạn thì văn bản đi thẳng tới nhà cung cấp bạn chọn và không được lưu. Phụ đề trực tiếp và chép lời trên thiết bị không ghi âm. Chúng tôi gửi dữ liệu sử dụng ẩn danh (tính năng nào được dùng, không bao giờ là nội dung trang), có thể tắt trong Cài đặt. Không quảng cáo. Toàn bộ ứng dụng là mã nguồn mở và tải về miễn phí.
 ```
 
 ## 国际版 · vi · promotionalText
@@ -914,10 +916,10 @@ PRZECZYTANE ZOSTAJE
 Zdania, które naprawdę przeczytasz, stają się fiszkami na krzywej zapominania: czytanie, słuchanie, pisanie, objaśnienia zdań i czytanie na głos. Synchronizacja jest opcjonalna.
 
 SILNIK WYBIERASZ TY
-Wpisz klucz własnej usługi AI albo zgodny endpoint. Po zalogowaniu możesz też wypróbować mały darmowy kredyt od nas.
+Wpisz klucz własnej usługi AI albo zgodny endpoint.
 
 PRYWATNOŚĆ, JASNO
-Klucze i ustawienia zostają na urządzeniu. Z własnym kluczem tekst trafia prosto do wybranego dostawcy; z darmowym kredytem przechodzi przez nasz serwer pośredniczący i nie jest zapisywany. Napisy na żywo i transkrypcja na urządzeniu niczego nie nagrywają. Wysyłamy anonimowe dane o użyciu (które funkcje, nigdy treść stron), do wyłączenia w ustawieniach. Bez reklam. Cała aplikacja jest open source i do pobrania za darmo.
+Klucze i ustawienia zostają na urządzeniu. Z własnym kluczem tekst trafia prosto do wybranego dostawcy i nie jest zapisywany. Napisy na żywo i transkrypcja na urządzeniu niczego nie nagrywają. Wysyłamy anonimowe dane o użyciu (które funkcje, nigdy treść stron), do wyłączenia w ustawieniach. Bez reklam. Cała aplikacja jest open source i do pobrania za darmo.
 ```
 
 ## 国际版 · pl · promotionalText
