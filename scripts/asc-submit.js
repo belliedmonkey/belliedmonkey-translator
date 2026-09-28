@@ -287,10 +287,12 @@ async function cancelReview(version, bundleIds, apply) {
             await api('PATCH', `/reviewSubmissionItems/${it.id}`, {
               data: { type: 'reviewSubmissionItems', id: it.id, attributes: { resolved: true } },
             });
-            // reviewSubmissionItems 不允许 GET_INSTANCE（只有 CREATE/DELETE/UPDATE）—— 回读走提交的 items 列表
-            const again = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=10&fields[reviewSubmissionItems]=state,resolved`);
+            // reviewSubmissionItems 不允许 GET_INSTANCE（只有 CREATE/DELETE/UPDATE）—— 回读走提交的 items 列表。
+            // fields 里不能带 resolved（2026-09-28 实测：PARAMETER_ERROR「'resolved' is not a valid
+            // field name」），PATCH 明明成功了、回读却 400 把整次提审打死 —— 只回读 state。
+            const again = await api('GET', `/reviewSubmissions/${cand.id}/items?limit=10&fields[reviewSubmissionItems]=state`);
             const me = (again.data || []).find((x) => x.id === it.id);
-            console.log(`    （条目标 resolved → state=${me && me.attributes.state} resolved=${me && me.attributes.resolved}）`);
+            console.log(`    （条目标 resolved → state=${me && me.attributes.state}）`);
           }
         }
         break;
