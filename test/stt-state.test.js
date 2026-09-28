@@ -54,7 +54,9 @@ describe('三个消费者都转调它，不再各算一遍', () => {
     });
   }
   test('除 stt-state.js 外，扩展与 App 里没有第二份「needsKey && !sttApiKey」判断', () => {
-    const walk = (d, out) => { for (const n of fs.readdirSync(d)) { const p = path.join(d, n); const st = fs.statSync(p); if (st.isDirectory()) { if (!/node_modules|_locales/.test(n)) walk(p, out); } else if (/\.js$/.test(n) && !/\.gen\.js$|i18n-messages\.js/.test(n)) out.push(p); } return out; };
+    // 只走我们自己的源码：native/vendor 是 gitignored 的第三方 xcframework（2026-09-28 实证——
+    // 上游重打的包里 Headers/ 内有坏符号链接，statSync 直接 ENOENT），符号链接一律跳过。
+    const walk = (d, out) => { if (/native[/\\]vendor/.test(d)) return out; for (const n of fs.readdirSync(d)) { const p = path.join(d, n); const st = fs.lstatSync(p); if (st.isSymbolicLink()) continue; if (st.isDirectory()) { if (!/node_modules|_locales/.test(n)) walk(p, out); } else if (/\.js$/.test(n) && !/\.gen\.js$|i18n-messages\.js/.test(n)) out.push(p); } return out; };
     const files = walk(path.join(ROOT, 'extension'), []).concat(walk(path.join(ROOT, 'app'), []));
     const bad = files.filter((p) => !p.endsWith('content/stt-state.js') && /needsKey\s*&&\s*!\s*(s|cfg|settings)\.sttApiKey|requiresEndpoint\s*&&\s*!\s*(s|cfg|settings)\.sttBaseUrl/.test(fs.readFileSync(p, 'utf8')));
     eq(bad.length, 0, '又有人自己判转写配好了没有：\n  ' + bad.map((p) => path.relative(ROOT, p)).join('\n  '));
