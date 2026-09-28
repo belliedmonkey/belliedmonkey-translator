@@ -55,7 +55,9 @@ describe('asc-media 上传清单 — 与渲染脚本、aso.md 对得上', () => 
     // 因为只有它有原料 —— iPad 没有硬件可拍、Mac 根本没有这个功能。
     // ORDER_MAC 是 2026-09-23 加的第四张，镜像对称：Mac 那一集多一帧（11 快速翻译），
     // 因为这个功能只有 Mac 有，而原料也只有 desk 档。
-    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|CN|CN_IPHONE|IPHONE|MAC),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
+    // ORDER_APP_GLOBAL 是 2026-09-28 加的第五张（2.3.7 拒审后 App 集撤帧 6），
+    // ORDER_GLOBAL 原样留给扩展两店。
+    for (const s of sets) ok(/frames\(ORDER_(GLOBAL|APP_GLOBAL|CN|CN_IPHONE|IPHONE|MAC),/.test(s[1]), `这组没走 ORDER：${s[0].slice(0, 80)}`);
   });
 
   test('aso.md 里的每个语种，在 iOS 与 macOS 各有一条截图线', () => {
@@ -112,8 +114,9 @@ describe('asc-media 导出 expectedCounts —— asc-submit 的提审门禁靠�
   });
 
   // ⚠️ **期望是按 locale 分的，不是按档分的**：帧 10（系统翻译）只进 en-US 与 zh-Hans
-  // 两份 iPhone 集，另外九种语言的 iPhone 走 ORDER_GLOBAL（9 张，用英文那套图）。
-  // Mac 相反 —— 所有 locale 都走 ORDER_MAC（10 张）。
+  // 两份 iPhone 集，另外九种语言的 iPhone 走 ORDER_APP_GLOBAL（8 张，用英文那套图）。
+  // Mac 相反 —— 所有 locale 都走 ORDER_MAC（9 张）。
+  // 2026-09-28 起 App 集全部不含帧 6（2.3.7 拒审：截图价格引用），张数各减一。
   // 我第一版测试断言「同一档各 locale 张数一致」，当场被这里证伪。
   test('张数与 ORDER_* 一致（按 locale 取，因为各 locale 并不相同）', () => {
     const rows = expectedCounts();
@@ -124,12 +127,12 @@ describe('asc-media 导出 expectedCounts —— asc-submit 的提审门禁靠�
       return hit[0].count;
     };
     const GL = 'com.belliedmonkeytranslator', CN = 'com.belliedmonkeytranslator.cn';
-    eq(at(GL, 'IOS', 'en-US', 'APP_IPHONE_65'), 10);           // ORDER_IPHONE（含帧 10 系统翻译）
-    eq(at(GL, 'IOS', 'zh-Hans', 'APP_IPHONE_65'), 10);         // 同上
-    eq(at(GL, 'IOS', 'ru', 'APP_IPHONE_65'), 9);               // ORDER_GLOBAL —— 其余语种没有帧 10
-    eq(at(GL, 'IOS', 'en-US', 'APP_IPAD_PRO_3GEN_129'), 9);    // ORDER_GLOBAL（iPad 没原料）
-    eq(at(GL, 'MAC_OS', 'en-US', 'APP_DESKTOP'), 10);          // ORDER_MAC（含帧 11 快速翻译）
-    eq(at(GL, 'MAC_OS', 'ru', 'APP_DESKTOP'), 10);             // Mac 所有 locale 都是 10
+    eq(at(GL, 'IOS', 'en-US', 'APP_IPHONE_65'), 9);            // ORDER_IPHONE（含帧 10 系统翻译，帧 6 已撤）
+    eq(at(GL, 'IOS', 'zh-Hans', 'APP_IPHONE_65'), 9);          // 同上
+    eq(at(GL, 'IOS', 'ru', 'APP_IPHONE_65'), 8);               // ORDER_APP_GLOBAL —— 其余语种没有帧 10
+    eq(at(GL, 'IOS', 'en-US', 'APP_IPAD_PRO_3GEN_129'), 8);    // ORDER_APP_GLOBAL（iPad 没原料）
+    eq(at(GL, 'MAC_OS', 'en-US', 'APP_DESKTOP'), 9);           // ORDER_MAC（含帧 11 快速翻译，帧 6 已撤）
+    eq(at(GL, 'MAC_OS', 'ru', 'APP_DESKTOP'), 9);              // Mac 所有 locale 都是 9
     eq(at(CN, 'IOS', 'zh-Hans', 'APP_IPHONE_65'), 8);          // ORDER_CN_IPHONE（含帧 8 系统翻译）
     eq(at(CN, 'IOS', 'zh-Hans', 'APP_IPAD_PRO_3GEN_129'), 7);  // ORDER_CN
     eq(at(CN, 'MAC_OS', 'zh-Hans', 'APP_DESKTOP'), 7);         // ORDER_CN

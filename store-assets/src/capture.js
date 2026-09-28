@@ -132,7 +132,43 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       localStorage.setItem('mt:provider', JSON.stringify('google'));
       // 不写 apiKey：免费通道不需要，商店图也不该出现任何像密钥的东西。
       localStorage.setItem('mt:ttsMode', JSON.stringify('assist'));
+      // staging 已登录（2026-09-28）：未登录态会在复习页画「未登录…登录还能领一份
+      // 免费额度 →」横幅（review.js case 'signed_out'），被苹果 2.3.7 判为截图价格
+      // 引用（「free 也算」）。真实用户登录后这行本来就不渲染，这里种一个只存在于
+      // 截图机里的会话（expires 远期、userId 留空 ⇒ renderGoApp 的「在 App 里继续
+      // 复习」按钮也不出）—— 是把截图对齐到更典型的真实状态，不是造假。
+      localStorage.setItem('mt:learnAuth', JSON.stringify({
+        accessToken: 'staging-screenshot-not-a-real-token',
+        refreshToken: null,
+        expiresAt: Date.now() + 10 * 365 * 86400 * 1000,
+        email: null, phone: null, userId: null,
+        backend: 'https://staging.invalid',
+      }));
+      // staging：藏掉两处不需要上商店图的元素。#practice-open 是页脚的
+      // 「Free practice」链接（review.html，中文原文「自由练习」）—— 英文审核员只看
+      // 得到 "Free"，配上 2.3.7 的「free 也算价格引用」就是第二颗雷；#sync-line 是
+      // sync 状态行，截图会停在「与服务器同步中…」（网络被下面的桩按住，永不落定），
+      // 而真实用户常态看到的是「同步完成 · 时间」——都不上图为净。App 一字不动。
+      const st = document.createElement('style');
+      st.textContent = '#practice-open,#sync-line{display:none!important}';
+      // document_start 时 head 可能还没解析出来（null 时 appendChild 会抛，被本块
+      // 的 catch 吞掉就成了静默失效——2026-09-28 实拍抓到过一次），挂 ready 兜底。
+      const putSt = () => (document.head || document.documentElement).appendChild(st);
+      if (document.head || document.documentElement) { try { putSt(); } catch (_) {} }
+      else document.addEventListener('DOMContentLoaded', putSt, { once: true });
     } catch (_) {}
+    // staging：凡是不发往本地 http 服务的请求一律永不应答。sync 的 autoSync 拿上面
+    // 那个假会话跑时不能真打 api.belliedmonkey.com —— 401 判死会把「已登录」打回
+    // 「未登录」，拍摄窗口就成了一场竞态；翻译 backfill 的外联也不该决定截图成败。
+    (() => {
+      const orig = window.fetch;
+      window.fetch = function (input, init) {
+        const u = typeof input === 'string' ? input : (input && input.url) || '';
+        let host = ''; try { host = new URL(u, location.href).host; } catch (_) {}
+        if (host !== '127.0.0.1' && host !== 'localhost') return new Promise(() => {});
+        return orig.apply(this, arguments);
+      };
+    })();
   ` }, sessionId);
   const ev = async (expression) => {
     const r = await cdp.send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true }, sessionId);
@@ -152,7 +188,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     for (const tier of TIERS) {
       await cdp.send('Emulation.setDeviceMetricsOverride', METRICS[tier], sessionId);
       const P = `${lang}-${tier}-`;
-      // ── stats：复习页首屏（计数 header + 首卡）。不登录，页面显示「未登录，仅本机数据」──
+      // ── stats：复习页首屏（计数 header + 首卡）。staging 已登录（见注入段），
+      //    sync 状态区不渲染任何横幅 ──
       await go(BASE + '/learn/review.html'); await sleep(800);
       await ev(DISMISS); await sleep(500); await ev('window.scrollTo(0, 0)');
       await shot(P + 'stats.png');
