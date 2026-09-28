@@ -310,41 +310,31 @@ describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', ()
 // 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
 // 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
 describe('App 读得到的设置，设置页必须管得到', () => {
-  const SOURCES = [['../src/app/driving-model.js', 'SETTINGS_KEYS'], ['../src/app/listen-model.js', 'READ_KEYS'], ['../src/app/docs-model.js', 'READ_KEYS']];   // PR6c/6d：listen、docs、driving 的清单随 UI 半边迁到 src/app/*-model.js
-  const set = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-model.js'), 'utf8');
-  const listOf = (src, name) => {
-    const m = src.match(new RegExp('const ' + name + ' = \\[([\\s\\S]*?)\\];'));
-    ok(!!m, '找不到 ' + name + ' —— 这道门禁靠解析它，改名要同步改这里');
-    return [...m[1].matchAll(/'([A-Za-z][A-Za-z0-9]*)'/g)].map((x) => x[1]);
-  };
+  // PR9：三份消费清单（driving 的 SETTINGS_KEYS、listen/docs 的 READ_KEYS）已收编
+  // schema，settings-model 的 KEYS 同步收编 —— 「App 读得到」改由 schema 的面并集
+  // 表达，「设置页管得到」= keysFor('app')。消费端取键已被 keysFor 门咬住
+  // （store-schema-i18n）：App 侧想多读一个键，就必须先动 schema 的 surfaces，
+  // 而这一动就落进本门的差集里 —— 门还在原地，只是锚点从手抄清单换成了登记处。
+  const S = loadSrc('src/store/schema.js', 'SETTINGS_SCHEMA', { MT_PALETTE: {} }).SETTINGS_SCHEMA;
+  const known = new Set(S.keysFor('app'));
+  const read = new Set();
+  for (const f of ['app', 'listen', 'docs']) for (const k of S.keysFor(f)) read.add(k);
 
-  // 读得到、但设置页管不到 —— 每一条都要有理由。
+  // 读得到、但设置页管不到 —— 每一条都要有理由。PR9 前的白名单还有
+  // drivePlaybackMode（收编时登记了 app 面）、notes×4 与 grantTail（schema 本就
+  // 有 options 面）—— surfaces 一登记，它们就从「无人管辖」变成「设置页管得到」。
   const ALLOW = {
-    drivePlaybackMode: '播放顺序：由播放器里的按钮写，不属于设置页。用户看得见也改得到，'
-      + '只是入口在播放界面 —— 与「看不见也清不掉」是两回事。',
-    notesProvider: '见本段开头。App 从不写它（grep 可证），所以回落分支恒成立；'
-      + '它留在读取清单里是因为 review.js 是共享字节、两处必须解出同一个引擎。',
-    notesApiKey: '同 notesProvider。',
-    notesBaseUrl: '同 notesProvider。',
-    notesModel: '同 notesProvider。',
-    grantTail: '免费额度令牌的尾八位：由 LearnGrant 在领取 / 退出登录时写与清，设置页上那张额度卡'
-      + '就是它的控件（不是一个可编辑字段）。docs.js 只读它判「额度在用」以拦住图片上传（用户裁定 2026-09-11）。',
-    // subtitleVideoLang：2026-09-17 起设置页「对话与字幕」块有它的控件（两处一份设置），不再需要白名单。
     subtitleFontScale: '实时字幕条的字号：由 Mac 字幕条上的 A− / A+ 写（原生发 remote font-down / font-up，页面落盘并重发 '
       + 'subtitle-config，§9.8 协议补充决定 9）。控件在字幕条上，看得见也改得到。',
+    grant: '免费额度的领取回执（[flow] 标记）：docs 页只读它判「额度在用」，领取与清退由'
+      + ' LearnGrant 在登录面上做 —— 不是可编辑配置（grantTail 同族，但它有 options 面的额度卡）。',
   };
 
   test('差集恰好等于白名单 —— 多一个少一个都要说明', () => {
-    const read = new Set();
-    for (const [file, name] of SOURCES) {
-      const src = fs.readFileSync(path.join(ROOT, 'app', file), 'utf8');
-      for (const k of listOf(src, name)) read.add(k);
-    }
-    const known = new Set(listOf(set, 'KEYS'));
     const gap = [...read].filter((k) => !known.has(k)).sort();
     const allow = Object.keys(ALLOW).sort();
     eq(gap.join(','), allow.join(','),
-      'App 读得到但设置页管不到的键变了（driving-model.js 的 SETTINGS_KEYS + listen.js / docs.js 的 READ_KEYS）。\n'
+      'App 读得到但设置页管不到的键变了（schema 的 app/listen/docs 三面并集，减去 app 面）。\n'
       + '  实际：' + (gap.join(' ') || '（无）') + '\n'
       + '  白名单：' + allow.join(' ') + '\n'
       + '  多出来的那个会**静默赢过**设置页写的值，而用户看不见也清不掉它 ——'

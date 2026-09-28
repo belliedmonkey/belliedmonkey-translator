@@ -25,6 +25,7 @@ import QuickView from './quick-view.jsx';
 import drivingModel from './driving-model.js';
 import DrivingView from './driving-view.jsx';
 import { bootShell } from './shell-model.js';
+import NativeBridge from '../lib/native-bridge.js';
 import '../shared/dialog-host.jsx';   // PR7a 副作用：挂 DialogHost 宿主 div + window.LearnDialog
                                       // ABI —— listen-model / shell-model / docs-model / review.js
                                       // 的裸全局调用靠它；uiLang 预读与下面 main 里那次幂等。
@@ -37,30 +38,9 @@ import '../shared/grant-host.jsx';    // PR7b 副作用：挂 window.LearnGrant 
 import { boot as bootReview } from '../shared/review.js'; // PR7c：复习面（boot()，体内与扩展
                                       // 同一份字节）。只在下面 #quick 分流的 else 分支调 ——
                                       // quick 模式整段不执行（原 MAIN_ONLY 的组合根接棒）。
-
-// ── 迁移期活约束：App 页里有两份 i18n 状态，必须同进同退 ─────────────────────
-// PageI18n（extension/learn/i18n.js，原样共享字节）服务还没翻转的孤岛
-// （review/listen/driving/quick/setup-done，PR6c/6d 收）；PageText（src/lib/i18n.js）
-// 服务已迁的 React 视图。旧代码画什么都经 PageI18n，所以「谁变了」无所谓；设置页
-// 拆到 PageText 之后，「喂了老的没喂新的」就成了一半中文一半英文 —— 2026-09-27
-// test:learn 预载三红就是这么来的：夹具裸写 localStorage 的 uiLang 谁也没通知，
-// 之后预载里补译文的缓存写入走到总线，review.js 的 reloadSettings 重读存储、
-// 调 PageI18n.setUiLang('en')，PageText 没人喂，按钮/账单停在中文而判据读 PageI18n
-// （en），三个断言全红。这条改uiLang 的路不止一条（总线、review 的重读、原生桥、
-// 未来的直接写），逐条对喂就是逐条漏 —— 所以在组合根耦合一次：
-// **喂 PageI18n 的任何地方都自动喂到 PageText**。等最后一个 PageI18n 消费者翻转
-// （PR9），这段连同 PageI18n 一起退役。
-//
-// 覆盖不到的只有 applyStoredUiLang 内部那次闭包直调（extension/learn/i18n.js:69
-// 不过导出方法）—— 它只在 boot 跑，boot 时两个状态各自读同一份存储，本来就一致。
-// 整段只存在于 App 包：扩展页没有 main.jsx，共享字节零改动（§9.4）。
-if (typeof PageI18n !== 'undefined' && typeof PageI18n.setUiLang === 'function') {
-  const feedOld = PageI18n.setUiLang.bind(PageI18n);
-  PageI18n.setUiLang = (v) => {
-    feedOld(v);
-    try { PageText.setUiLang(v); } catch (_) {}
-  };
-}
+                                      // （其顶部的 PageI18n→PageText 耦合段已随 PR9 退役：
+                                      // src/ 的 i18n 消费者全部翻到 PageText，review.js
+                                      // 对 PageI18n 只剩扩展侧静态标记的涂装，自带双喂。）
 
 // AppShell 是常量 vdom（零 props/state，见 AppShell.jsx 头注释），只渲染这一次；
 // flushSync 保证返回时 DOM 已在 —— 下面的分叉与 bootShell 都同步摸得到它。
@@ -72,6 +52,13 @@ flushSync(() => {
 // useT 驱动，locale 要在第一次整页重画之前就位（AppShell 的 mount 时点 t 不受
 // 影响，它的重涂随 boot 照旧 —— 原 applyStoredUiLang 的时序位）。
 chrome.storage.local.get(['uiLang'], (r) => PageText.setUiLang((r && r.uiLang) || 'auto'));
+
+// PR9：四个 window 级桥名（show / __mtAppleResult / __mtWebAuthResult / __mtDeepLink）
+// 由桥统一挂载（此前 shell-model 直挂四个 window 属性 + 手写两处 pending 回放）；
+// shell-model 的 bootShell 经 NativeBridge.onNative 接事件。挂在分叉前 —— quick
+// 面板不订阅这些事件，但 Swift 若调用也照常入槽不炸；pending 槽与早到调用的
+// hold-and-replay 语义见 native-bridge.js 头注释。
+NativeBridge.installBridgeGlobals();
 
 // verify 脚本 ABI：verify-listen / verify-app-bundle 经 window.settingsModel 调
 // notifySettingsShown（旧 window.AppSettings 全局的后继）。

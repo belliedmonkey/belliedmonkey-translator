@@ -24,30 +24,17 @@
 
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 
 // Same i18n as everything else (interaction-spec 「界面语言」: no hardcoded copy).
 // Chinese literals below are FALLBACKS beside their keys, never the only copy.
 const t = PageText.t;
 
-// The keys `review.js` and `tts.js` actually read (review.js:28-29). Named here so
-// a rename over there fails loudly at the next read rather than silently reverting
-// a user's setting to a default.
-const KEYS = ['learnEnabled', 'learnDailyNew', 'learnRules', 'uiLang', 'targetLang', 'quickEnabled',
-  'subtitleVideoLang',   // 实时字幕「视频的语言」进设置页（2026-09-17，§9.8）；与准备页那处是两处一份设置
-  'ttsMode', 'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsAutoPlay', 'ttsRate',
-  // §9.2 — the notes gate reads these (review.js:35). Same keys, same storage.
-  'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-  // §9.4 — the transcription group review.js reads. Device-local (§7.2).
-  'sttEngine', 'sttBaseUrl', 'sttApiKey', 'sttModel',
-  // 「地址按新语义存的」的戳，每个地址字段一个（content/wire-format.js）。
-  // §9.5 播客模式。播放顺序由播放器里的按钮改，这里只管要花钱的那个开关，
-  // 以及出发前预载的天数视野（`drivePreloadDays`，0 = 今天的牌库）。
-  'drivePlayNotes', 'drivePreloadDays',
-  // §9.6 对话 · 实时听译：定稿句进复习的开关（默认开）、语言对、自动朗读。
-  // 语言对两个键都在这里 —— 对话页底部那两个下拉与设置页这两个是**同一份设置**。
-  'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'docCapture', 'docPrefetch',
-  // §9.8 实时字幕：字幕句子进复习（默认开，与「对话进复习」分开）。
-  'subtitleCapture'];
+// PR9：KEYS 手抄清单已删，键表 = schema 的 app 面（App 设置页 + 各 App 模型共用一个
+// 面；每键为何在这里的逐键说明随 surfaces 住进了 schema.js）。宽出的 5 键全是
+// [flow] 标记（engineChosen/grantTail/grantBalance/onboardSeen/onboardResume），
+// 一次 get 无害。
+const KEYS = SETTINGS_SCHEMA.keysFor('app');
 
 // 「快速 | 详细」两档的模式键。UI 状态不是配置，不进 SETTINGS_SCHEMA（options.jsx
 // 同一条裁定）—— 也因此 SettingsStore 的 onStorageChanged 会跳过它：读写必须走 raw。

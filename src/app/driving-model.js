@@ -39,6 +39,7 @@
 //     不写 DOM，两套写入互不打架（listen-view 同款）。
 
 import PageText from '../lib/i18n.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 
 const $ = (id) => document.getElementById(id);
 const t = (k, fb) => PageText.t(k, fb);
@@ -95,16 +96,10 @@ const vs = { cardText: '', cardTr: '', cardNotes: '', noteText: '' };
 // view() 里优先于 statusText()。start() / stop() 里显式清空。
 let statusOverride = '';
 
-const SETTINGS_KEYS = [
-  'uiLang', 'learnDailyNew',
-  'ttsEngine', 'ttsBaseUrl', 'ttsApiKey', 'ttsModel', 'ttsVoice', 'ttsRate',
-  'provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-  'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-  // §9.5 — this mode's own knobs. All persist: a driver sets them once.
-  // `drivePreloadDays` is the 出发前预载 horizon (0 = 今天的牌库).
-  'drivePlaybackMode', 'drivePlayNotes', 'drivePreloadDays',
-];
-
+// PR9：读取键收编 schema（SETTINGS_KEYS 手抄清单已删）。keysFor('app') 覆盖本模块
+// 读过的全部键（旧清单 19 键，现面宽 42 —— notes×4 与 drivePlaybackMode 的 surfaces
+// 是收编时补登记的，此前 schema 不认账，正是一份清单漂在审计门外的实底）；多读的键
+// 是别的面的配置，一次 get 无害。
 // Returns { ok, data }. The `ok` is NOT decoration: `page-settings.js`'s whole
 // contract is that a FAILED read is not an empty profile, and this used to throw
 // that away — a storage failure came back as "every setting is at its default",
@@ -112,7 +107,7 @@ const SETTINGS_KEYS = [
 // A driving session started on defaults would silently drop the user's engine, so
 // the caller refuses to start instead.
 function loadSettings() {
-  return PageSettings.read(SETTINGS_KEYS);
+  return PageSettings.read(SETTINGS_SCHEMA.keysFor('app'));
 }
 
 function applySettings(s) {
@@ -175,7 +170,9 @@ async function refreshEntry() {
 // 还是「没配」时的结论，要重启 App（2026-09-06 报障）。会话进行中不重算：那时能改设置
 // 的只有本视图自己的按钮，它们写的值就是 applySettings 会读回来的值。
 let entryTimer = 0;
-const WATCHED = new Set(SETTINGS_KEYS);
+// 触发面随 keysFor('app') 比旧清单宽（19 → 42 键）：会话中不重算（idle 守卫）、
+// 150ms debounce、refreshEntry 本身幂等（只刷入口卡的显隐与文案），多触发无害。
+const WATCHED = new Set(SETTINGS_SCHEMA.keysFor('app'));
 function watchSettings() {
   try {
     chrome.storage.onChanged.addListener((changes, area) => {

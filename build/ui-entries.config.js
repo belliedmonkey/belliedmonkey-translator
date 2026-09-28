@@ -47,8 +47,14 @@ module.exports = { ENTRIES: [
   // 登记），同步注入面零新增字节；scripts/verify-content-inject.js 与 build.js 的
   // 同步字节门守着这条边界（test/content-ui.test.js 咬「esm 产物不得进 js 列表」
   // 的一致式）。
-  // 回退开关（Firefox/Safari 的 content-script 动态 import 实测不过时）：本条改
-  // format:'iife' + globalName:'MTSubMenuBundle'，并把 'content/sub-menu.bundle.js'
-  // 插进 manifest 两块 js 列表尾部 —— 两个动作必须同一 PR（一致性门会咬半吊子）。
+  // PR9 按 #491 §② 收紧此条目的两个边界：
+  //   · 懒加载**仅许可菜单这一类条目** —— 它的降级不对称可接受（动态 import 失败 =
+  //     菜单开不出，FAB 还在，翻译功能无恙）。凡「失败即核心功能死」的注入面
+  //     （overlay 三站点，#491 的正主）静态与懒加载两条路都不走。
+  //   · **没有回退开关** —— 「改 format:'iife' 静态注入」与预算门互斥：bundle
+  //     677KB 进同步注入面，超 +150KB 预算 4 倍多，contentSyncBytesGate 直接红；
+  //     content-ui 的结构门也咬着 format==='esm'。这条路在设计上就不存在，不是
+  //     「Firefox/Safari 实测不过时再启用」的备用路 —— 若矩阵真的红了，要回答的
+  //     是「菜单改回命令式」这个新设计，不是翻开这行注释。
   { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'esm' },
 ] };

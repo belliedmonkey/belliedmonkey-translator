@@ -70,6 +70,23 @@ const PageText = (() => {
     return () => subscribers.delete(fn);
   }
 
+  // The boot ritual, logic-identical to extension/learn/i18n.js (PR9 moved the
+  // shell's and review's calls onto this module — the PageI18n copy stays only
+  // for pages outside the migration). Storage is async, so every page paints the
+  // system locale first; without this second pass a page stays on the system
+  // language forever — the symptom is not a missing string but "whole blocks in
+  // the wrong language" (2026-09-25 device finding). For React subscribers the
+  // setUiLang notification IS the repaint; `repaint` remains for the shell's
+  // imperative painters (shell-model paintStatic). Done-flag: fire once, however
+  // the storage read resolves.
+  function applyStoredUiLang(repaint) {
+    let done = false;
+    const fire = () => { if (done) return; done = true; try { repaint && repaint(); } catch (_) {} };
+    try {
+      chrome.storage.local.get(['uiLang'], (v) => { setUiLang((v && v.uiLang) || 'auto'); fire(); });
+    } catch (_) { fire(); }   // no chrome.storage in this host: the system-locale paint is final
+  }
+
   // The string uiLang is a stable snapshot value, so useSyncExternalStore cannot
   // loop; the returned t is the same module function every render — it reads the
   // module locale at call time, and the re-render is what makes callers re-run it.
@@ -78,7 +95,7 @@ const PageText = (() => {
     return t;
   }
 
-  return { t, useT, setUiLang, getUiLang, subscribe, effectiveLocale, normalizeLocale };
+  return { t, useT, setUiLang, getUiLang, subscribe, applyStoredUiLang, effectiveLocale, normalizeLocale };
 })();
 
 export default PageText;

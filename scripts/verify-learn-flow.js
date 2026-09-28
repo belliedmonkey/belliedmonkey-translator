@@ -1339,8 +1339,12 @@ async function runHost(host) {
       const ran = await (async () => {
         const until = Date.now() + 90000;
         while (Date.now() < until) {
-          const label = await text('#btn-drive-preload');
-          if (label === (await ev(`PageI18n.t('drive_preload', '预载离线资源')`))) return true;
+          // PR9：完成态不再 ev t() 判 label（PageText 是 bundle 内模块，页面取不到
+          // 裸全局）—— 改 DOM 形状判：note 变成与核算行（priceLine）不同的**非进度**
+          // 新行。进度行以省略号结尾被排除；resetPreload 复位瞬间 note 为空串也不算，
+          // 命中时的那行就是结算行。真验收在下面的 __mtSpeechCount / cached 两判。
+          const note = await text('#drive-preload-note');
+          if (note !== '' && note !== priceLine && !/(…|\.\.\.)\s*$/.test(note)) return true;
           await new Promise((r) => setTimeout(r, 400));
         }
         return false;

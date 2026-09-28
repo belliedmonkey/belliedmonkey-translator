@@ -30,6 +30,7 @@
 // 音频只发往用户配置的转写端点（§2.4 规则 5 / §10 Gate E）；不保存任何录音，只保留文字。
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -114,8 +115,8 @@ const listenModel = (() => {
 
   // ── 设置 ──────────────────────────────────────────────────────────────────
   // 2026-09-17：不再读 stt* 四键 —— 那是说题（整段转写）的槽；对话 · 实时字幕固定走本机识别器。
-  const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-    'uiLang', 'learnRules', 'listenCapture', 'listenOtherLang', 'listenMyLang', 'listenAutoSpeak', 'subtitleCapture', 'subtitleVideoLang', 'subtitleFontScale'];
+  // PR9：READ_KEYS 手抄清单已删，键表 = schema 的 listen 面（含 notes×4，resolveConfig 用）。
+  const READ_KEYS = SETTINGS_SCHEMA.keysFor('listen');
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS, (s) => {

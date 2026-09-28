@@ -12,17 +12,18 @@
 // pdf.js 在 App 里走 blob 路（build/app-bundle.js 把 vendor 文本编进 Script.js 的
 // window.__MT_PDFJS），PdfJsLoader 按宿主自己分派 —— 这里不关心。
 import Registry from '../lib/registry.js';
+import PageText from '../lib/i18n.js';
+import SETTINGS_SCHEMA from '../store/schema.js';
 import DocView from '../shared/doc-view.js'; // PR7c：渲染器收编 src/shared/doc-view.js（哑视图，
                                              // deps 注入同前）—— 裸全局 DocView 换组合根 import。
 
 const $ = (id) => document.getElementById(id);
-const t = (k, fb) => (typeof PageI18n !== 'undefined' ? PageI18n.t(k, fb) : fb);
+// PR9：t 翻 PageText（src/ 已离开共享字节的 PageI18n；白名单见 test/src-boundaries.test.js）。
+const t = (k, fb) => PageText.t(k, fb);
 
-// 读得到的键（test/engine-fields.test.js 解析这份清单：读得到的，设置页必须管得到）。
-// notes* 四个与 listen.js 同理：从不写，只为 LearnNotes.resolveConfig 解出同一个引擎。
-const READ_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel',
-  'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
-  'uiLang', 'targetLang', 'learnRules', 'learnEnabled', 'docCapture', 'docPrefetch', 'grantTail'];
+// PR9：READ_KEYS 手抄清单已删，键表 = schema 的 docs 面。notes×4 与 listen.js 同理：
+// 从不写，只为 LearnNotes.resolveConfig 解出同一个引擎（surfaces 是收编时补登记的）。
+const READ_KEYS = SETTINGS_SCHEMA.keysFor('docs');
 
 let view = null;
 let cameFrom = 'signed-in';
