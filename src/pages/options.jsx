@@ -2111,7 +2111,9 @@ function Options() {
                 </p>
                 )}
                 <button id="btn-sync-cards" type="button" onClick={btnSyncCards}>{T('sync_next_cards', '去看你的卡')}</button>
-                <button id="btn-sync-app" type="button" className="secondary" hidden={!appUid} data-href={appUid ? AppLink.deepLink(appUid) : ''} onClick={openAppViaLink}>{T('review_go_app', '在 App 里继续复习 →')}</button>
+                {/* data-uid 是门禁锚点（verify-signin-flow 读 dataset.uid）：旧 IIFE 在 paint
+                    时写、PR5 翻转时丢了 —— 2026-09-28 全回归的 test:signin 抓回来的。 */}
+                <button id="btn-sync-app" type="button" className="secondary" hidden={!appUid} data-uid={appUid || ''} data-href={appUid ? AppLink.deepLink(appUid) : ''} onClick={openAppViaLink}>{T('review_go_app', '在 App 里继续复习 →')}</button>
               </div>
               <button id="btn-sync-now" disabled={isBusy('btn-sync-now')} onClick={runSync}>{T('sync_now', '立即同步')}</button>
               <button id="btn-sync-out" disabled={isBusy('btn-sync-out')} onClick={btnSyncOut}>{T('sync_signout', '退出登录')}</button>
