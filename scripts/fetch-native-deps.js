@@ -33,10 +33,12 @@ const ARTIFACTS = [
     sha256: '93f7a064abe99e0d6185a88c5b36ce18c4bff35cd0d5e4e81f81151de8e3e7e5' },
   { pkg: 'onnxruntime-libs', slice: 'ios', name: 'onnxruntime.xcframework',
     url: `https://github.com/csukuangfj/onnxruntime-libs/releases/download/v${ORT_VERSION}/onnxruntime-ios-static-xcframework-${ORT_VERSION}.xcframework.zip`,
-    sha256: '306b740d513a1af5c9f1c3a7d2ca98d8bf5491a558a45ef2b14cbed4fde64059' },
+    // 2026-09-28：上游在 09-17 重打了同名 asset（tag 不动、包重传，内容同为 1.28.2 xcframework，
+    // 结构与头文件核过），sha 跟进。旧值 306b740d…（ios）/ 39f816ca…（macos）。
+    sha256: '2c2299acbb461d26d4bac4bc85985d40e7c7177ed6072703ae0846d88b0b4599' },
   { pkg: 'onnxruntime-libs', slice: 'macos', name: 'onnxruntime.xcframework',
     url: `https://github.com/csukuangfj/onnxruntime-libs/releases/download/v${ORT_VERSION}/onnxruntime-macos-static-xcframework-${ORT_VERSION}.xcframework.zip`,
-    sha256: '39f816cac19cb76e0f504b2d7c91fec3e889c25bf5b9b474297b19eb0bd69a31' },
+    sha256: 'cb0b0bec912c77229517c463e28a3fac9674c521f9599919efff1ef2b42f3da0' },
 ];
 // 上游的 Swift 包装（一个文件，把 C API 包成 Swift 类）。同样钉住。
 const SHERPA_SWIFT = {

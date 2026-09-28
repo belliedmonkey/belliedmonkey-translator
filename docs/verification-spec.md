@@ -3242,3 +3242,46 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | 9 | iOS 系统翻译（真机 ZHAO的iPhone / iOS 27） | ✅ 装包与 entitlements、配 DeepSeek（882 ms）、设为默认、Safari 选字出译文、进复习库（系统翻译 · 2026-09 · 2 张卡）；◐「替换原文」：WKWebView 输入框里 XCUITest 选不中文字，本版 `app/native/` 零改动，沿用 09-21 |
 | 10 | macOS 快速翻译 | ✅ ⌃⌥T 出面板；未开增强取词时先说「先 ⌘C」；复制后「大家早上好。会议九点开始。」+「已存入复习库」 |
 | — | 中国版真机登录 | ✅ 邮箱验证码（QQ 邮箱发信）→ 登录后拉到 4661 张卡；Apple 登录真机用户决定先不测（无锁屏密码时要输 Apple 账户密码） |
+
+## 矩阵执行记录：全回归（2026-09-28，React 迁移 #494 合入后）
+
+基线 `main` @ 5265cab3（PR9 清扫合入，React 迁移 PR0–PR9 收官），回归分支 `regress/2026-09-28`。
+改动面：UI 全栈 React 化（popup / options / onboard / App 壳与各 View / 共享组件翻转 / content 注入 UI
+root 化 + ui.bundle 懒加载），非 UI 纯逻辑模块（translation-core/api、wire-format、request-shape、
+dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。证据与驱动脚本在
+`.local/regress-2026-09-28/`（不提交；各面细节见同目录 AB-README / D-README / E-README / F/README）。
+
+### 本轮发现的产品缺陷（先红后绿）
+
+| 面 | 症状 | 根因 | 处置 |
+|---|---|---|---|
+| E Firefox | YouTube 双字幕整链断：双语模式播 3 分钟+ 无 overlay；屏幕上是 YouTube **原生**自动翻译中文字幕（CC 被 `ensureCaptionsOn` 自动打开），完美掩盖故障；「下载 .srt」弹原生 alert（引擎零句子，subtitle-adapter 的空态）才露馅 | Firefox isolated world 看不到页面的 resource entries——`yt-timedtext-observer` 与 `getEntriesByType` 兜底两处 `catch(_){}` 吞掉观察失败；`yt-hook` 的 `world:"MAIN"` Firefox 不支持（已知，设计如此） | **未修，后续 PR**：给 Firefox 换 timedtext URL 来源（observational webRequest）或实证可见性后换 buffered 姿势；另议「原生 CC 与本扩展 overlay 共存」的视觉策略——引擎空转超时后不该让原生 CC 独自扮演译文（「静默失败要给用户出口」的又一例） |
+
+### 本轮顺手修的工具链（回归路上一红一绿，随 regress 分支提交）
+
+| 文件 | 症状 | 修 |
+|---|---|---|
+| `build-safari.sh` | 新版 converter 默认 app id 是双点的 `com.yourCompany.BelliedMonkey-Translator`，旧正则 `[A-Za-z0-9-]+` 匹配不到第二个点 → 替换静默失效 → 嵌入扩展与父 App 前缀不匹配，ValidateEmbeddedBinary 报 3 failures | 字符类加 `.` + `\Q\E` 精确引用；扩展行（`.Extension`）必须先于通配行处理，否则后缀被一起吃掉、扩展与 App 同 id |
+| `scripts/fetch-native-deps.js` | 上游 csukuangfj/onnxruntime-libs 09-17 重打同名 release asset（tag 不动），sha256 校验失败 | ios/macos 两个 sha 跟进，旧值留注释 |
+| `test/stt-state.test.js` | walk() 扫进 gitignored 的 `native/vendor` xcframework，上游包里 Headers/ 有坏符号链接，`statSync` ENOENT 测试红 | 跳过 `native/vendor` + `lstatSync` 遇符号链接 continue |
+
+### 各行结果
+
+| # | 面 | 结果 |
+|---|---|---|
+| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
+| 1 | iPhone Safari（模拟器 iOS 26.5） | ✅ plato 整页双语（translate_ok{deepseek,page,ms:2364} + tr: 缓存 9 键）、React options、React onboard；safaridriver 会话不注入扩展（Xcode 27 新断点）⇒ 改 LocalStorage.db 直写 + appex 测试钩子 + sqlite 回读配方（AB-README §工具链） |
+| 2 | iPad Safari（模拟器 iOS 26.5） | ✅ 双栏 plato 全双语（ms:1531 + 17 键）、宽屏 options/onboard；iOS 27 补充观察：注入正常但 safaridriver 桥断，主判据在 26.5 拿全 |
+| 3 | macOS Safari | ⬜ 待跑（需人工输密码勾「未签名扩展」开关） |
+| 4 | macOS Chrome | ✅ 5/6：React options / DeepSeek 配置+测试连接（✓877ms，storage+note 双判据）/ plato 双语（14 行 + 13 缓存键）/ popup + **状态一致性正向证据**（options 改 targetLang，未刷新的 popup 即时跟随）/ onboard 三步卡；YouTube 判「环境受限不可判」——未登录自动化实例两次播到 60s 整被 YouTube 服务端掐断（连 timedtext pot 都不铸），Firefox 同姿势不被掐 ⇒ 环境差异非回归；扩展侧注入 / CC 自动开 / gate 抑制均成立。**Chrome 153 已删尽 --load-extension**，本轮配方：`--remote-debugging-port=0 --enable-unsafe-extension-debugging` + CDP `Extensions.loadUnpacked`（test/layout/chrome.js 同款）；storage 回读必须走扩展页 target（内容页是主世界，MV3 SW target 常不存在） |
+| 5 | Firefox | ✅ 3/4 + 上表 EF-1：React options + DeepSeek 测试连接 1470ms / plato 双语 / 字幕菜单懒加载（React ui.bundle）全过 |
+| 6 | iOS 宿主 App（模拟器 iPhone 18 Pro） | ✅ 新引导四屏逐屏（obStep 自报）、就地试一句无引擎（领额度分支）与 DeepSeek（真译文 2.0s）、继续设置卡 3 次后收起（重启 4 次状态回读）、卡 ✕ 永久收起、找回横幅三步指引与让路、首页三行、ext 屏 iOS 形态（8/8） |
+| 7 | macOS 宿主 App | ⬜ 待跑 |
+| 8 | Windows 11 虚拟机 | ⬜ 待 /win-matrix（需在 VM 里粘一行 PowerShell 启动浏览器） |
+| 9 | 真机（ZHAO的iPhone） | ⬜ 待用户安排 |
+| — | 中国版关键行 | ✅ 拆包判据直接读 `dist-china/`：default_locale=zh_CN；OpenAI/ChatGPT/Claude 零命中（「anthropic」仅存于 Messages 线格式协议头与第三方 DOM 注释，非 provider 引用，与已出货版本一致）；MT_PROVIDERS 仅 deepseek/glm/qwen/qwen_mt/kimi/custom_*（global 的 google/openai/claude/anthropic/grant/grok/minimax/openrouter 全不在）；默认引擎 = 注册表首项 deepseek（EngineState.defaultId()=MT_PROVIDERS[0]，构建期 defaultProviderGate 已查 background.js）；MT_TELEMETRY=null（中国版不发）；MT_SYNC_ENABLED=true 为当前正确状态（1.16.1 已更正「中国版 sync 关」的过时判据）；dist-app-china 后端=api.belliedmonkey.com |
+
+### 遗留
+
+- EF-1 修复（后续 PR）；D 面 YouTube 完整链路可在用户日常 Chrome（已登录、不被 60s 掐）人工复核，但日常 profile 的扩展指向主树旧 dist，验不了 react dist——留到下版装新 dist 后顺带看。
+- 本轮三处新驱动配方（Chrome 153 loadUnpacked、safaridriver 不注入的存储直写替代、Firefox foreground 像素点菜单）已沉淀在各面 README，下次回归直接用。

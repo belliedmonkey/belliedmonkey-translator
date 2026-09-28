@@ -131,9 +131,14 @@ set_app_key() {
 # converter 的 --bundle-identifier 只作用于扩展；app 的 id 是从 app 名派生的
 # （macOS 上会变成 com.BelliedMonkey-Translator）。不修就会被当成一个全新的 App，
 # 而不是给现有 app 记录加平台。
-perl -0pi -e 's/PRODUCT_BUNDLE_IDENTIFIER = "com\.[A-Za-z0-9-]+";/PRODUCT_BUNDLE_IDENTIFIER = '"$BUNDLE_ID"';/g' "$PBX"
-# 扩展 id 统一小写 .extension（converter 给的是 .Extension）
-sed -i '' "s/PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID\.Extension;/PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID.extension;/g" "$PBX"
+# 2026-09-28 回归发现：新版 converter 的默认 id 是双点的
+# "com.yourCompany.BelliedMonkey-Translator"，旧正则 [A-Za-z0-9-]+ 匹配不到第二个点，
+# 替换静默失效 → 嵌入扩展(com.belliedmonkeytranslator.*)与父 App 前缀不匹配，
+# ValidateEmbeddedBinary 报 3 failures。字符类加 . 修掉。
+# 扩展行必须先于 app 行处理：下面的通配替换会把 ".Extension" 后缀一起吃进 [A-Za-z0-9.-]+，
+# 扩展 id 就与 App 同名（同 id 的嵌入二进制连签名校验都过不了）。
+perl -0pi -e "s/PRODUCT_BUNDLE_IDENTIFIER = \"?\\Q$BUNDLE_ID\\E\\.Extension\"?;/PRODUCT_BUNDLE_IDENTIFIER = $BUNDLE_ID.extension;/g" "$PBX"
+perl -0pi -e 's/PRODUCT_BUNDLE_IDENTIFIER = "com\.[A-Za-z0-9.-]+";/PRODUCT_BUNDLE_IDENTIFIER = '"$BUNDLE_ID"';/g' "$PBX"
 # 主屏显示名（用 perl 而非 sed —— 这行含中文，BSD sed 对非 ASCII 更脆弱）
 perl -0pi -e "s/INFOPLIST_KEY_CFBundleDisplayName = [^;]*;/INFOPLIST_KEY_CFBundleDisplayName = \"$DISPLAY_NAME\";/g" "$PBX"
 # 版本号跟随 package.json
