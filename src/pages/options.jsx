@@ -562,7 +562,7 @@ function Options() {
   const paintGrant = async () => {
     const box = grantBoxRef.current;
     if (!box) return;
-    const gs = LearnGrant.enabled() ? await LearnAuth.current().catch(() => null) : null;
+    const gs = LearnGrant.enabled() ? await LearnAuth.currentStable() : null;
     // **必须 await 并取 .data**：PageSettings.read 是异步的、返回 {ok, data}。把
     // Promise 当设置传给 status() 的那次事故：领完额度卡上永远显示「你在用自己的 key」。
     const rd = await PageSettings.read(READ_KEYS);
@@ -658,7 +658,7 @@ function Options() {
   const refreshSyncUI = async () => {
     // 额度卡跟着登录态走；refreshSyncUI 在页面加载与每次登录/退出后都会跑。
     try { await paintGrant(); } catch (_) {}
-    const gs = await LearnAuth.current().catch(() => null);
+    const gs = await LearnAuth.currentStable();
     try { await LearnAuth.bindCorpus(gs); } catch (_) {}
     setSess(gs);
     if (!gs) {

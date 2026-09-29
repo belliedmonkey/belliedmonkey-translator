@@ -794,7 +794,7 @@ export function bootShell() {
     } catch (_) {}
     $('onboard').hidden = true;
     paintExtBanner(extState);   // 引导退场，横幅按真实状态回来
-    await show(await LearnAuth.current().catch(() => null));
+    await show(await LearnAuth.currentStable());
   }
 
   // ── 「继续设置」卡 ─────────────────────────────────────────────────────────
@@ -1387,6 +1387,12 @@ export function bootShell() {
     if (!currentSession) return false;
     let s = null;
     try { s = await LearnAuth.current(); } catch (_) { return false; }   // 读不到 ≠ 已退出（§8.4.1）
+    // 同一条 §8.4.1 的另一半：load() 读失败**不抛**，而是返回 null 并记 loadError —— 上面
+    // 那个 catch 挡不住它。不加这道守卫，一次存储瞬断（#335：宿主 App 的 WKWebView 启动
+    // 早期 localStorage 可能短暂读不出）会把还登着的人判成「登录已失效」画回登录卡。
+    // 只有**确认读到空**（服务端判死已经 store(null)，load 已闩）才回登录卡；读失败 ⇒
+    // 维持现状 —— 同步那行的错误文案自己会说话。
+    if (!s && LearnAuth.lastLoadError()) return false;
     if (s) return false;
     await show(null);
     say(t('sync_err_signed_out', '登录已失效，请重新登录。'), true);
@@ -1825,7 +1831,7 @@ export function bootShell() {
     $('dl-mismatch-keep').addEventListener('click', () => { $('dl-mismatch').hidden = true; });
 
     try {
-      const session = await LearnAuth.current();
+      const session = await LearnAuth.currentStable();
       // 横幅的 UI 状态键预读进内存（paintExtBanner 是同步的）。读失败按「没点过」。
       try {
         const o = await new Promise((r) => chrome.storage.local.get([EXT_DONE, 'tm:extBannerDay', 'onboardIntent'], r));
