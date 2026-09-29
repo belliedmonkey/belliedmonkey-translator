@@ -1711,6 +1711,106 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
   });
 });
 
+// ─── macOS 切片符号链接整理（ITMS-90332，issue #500）─────────────────────────────
+// 2026-09-28 发版实测：上游 09-17 重打的 onnxruntime macOS 切片带三条解析不了的链接，altool 报
+// 成功、ASC 静默消失。整理规则见 scripts/fetch-native-deps.js 的 normalizeMacosBundleShape。
+describe('fetch-native-deps: macOS 切片符号链接整理（ITMS-90332 / #500）', () => {
+  const deps = require('../scripts/fetch-native-deps.js');
+  const R = path.resolve(__dirname, '..');
+
+  // 上游 2026-09-17 重打的 macOS 切片**原样**：deep bundle 骨架本来就对，但 Versions/A 里
+  // 多三条解析不了的链接（形状取自当天的真实解包，非示意）。
+  function badFramework(root) {
+    const fw = mk(root, 'onnxruntime-libs', 'macos', 'onnxruntime.xcframework', 'macos-arm64_x86_64', 'onnxruntime.framework');
+    const A = mk(fw, 'Versions', 'A');
+    fs.writeFileSync(path.join(A, 'onnxruntime'), 'fake-static-binary');
+    fs.mkdirSync(path.join(A, 'Headers'));
+    fs.writeFileSync(path.join(A, 'Headers', 'cpu_provider_factory.h'), 'h');
+    fs.mkdirSync(path.join(A, 'Modules'));
+    fs.writeFileSync(path.join(A, 'Modules', 'module.modulemap'), 'm');
+    fs.mkdirSync(path.join(A, 'Resources'));
+    fs.writeFileSync(path.join(A, 'Resources', 'Info.plist'), 'p');
+    fs.symlinkSync('A', path.join(A, 'A'));                                     // 自指循环（Versions/A/A）
+    fs.symlinkSync('Versions/Current/Headers', path.join(A, 'Headers', 'Headers'));     // 相对自身目录解析 ⇒ 悬空
+    fs.symlinkSync('Versions/Current/Resources', path.join(A, 'Resources', 'Resources')); // 同上
+    fs.symlinkSync('A', path.join(fw, 'Versions', 'Current'));
+    fs.symlinkSync('Versions/Current/Headers', path.join(fw, 'Headers'));
+    fs.symlinkSync('Versions/Current/Modules', path.join(fw, 'Modules'));
+    fs.symlinkSync('Versions/Current/Resources', path.join(fw, 'Resources'));
+    fs.symlinkSync('Versions/Current/onnxruntime', path.join(fw, 'onnxruntime'));
+    return fw;
+  }
+  const fwOf = (root) => path.join(root, 'onnxruntime-libs', 'macos', 'onnxruntime.xcframework', 'macos-arm64_x86_64', 'onnxruntime.framework');
+
+  test('★ 三条自指/悬空链接删掉，结构链接一根不动；幂等', () => {
+    const root = tmpdir();
+    badFramework(root);
+    const problems = [];
+    deps.normalizeMacosBundleShape(false, problems, root);
+    eq(problems.join('\n'), '', '清完不报问题');
+    const fw = fwOf(root);
+    for (const junk of ['Versions/A/A', 'Versions/A/Headers/Headers', 'Versions/A/Resources/Resources'])
+      ok(!fs.existsSync(path.join(fw, junk)), `${junk} 已删`);
+    for (const keep of ['Headers', 'Modules', 'Resources', 'onnxruntime', 'Versions/Current'])
+      ok(fs.existsSync(path.join(fw, keep)), `结构位 ${keep} 仍在且解析得了`);
+    const again = [];
+    deps.normalizeMacosBundleShape(false, again, root);
+    eq(again.join('\n'), '', '第二次零动作（幂等）');
+  });
+
+  test('--check 只报不删', () => {
+    const root = tmpdir();
+    badFramework(root);
+    const problems = [];
+    deps.normalizeMacosBundleShape(true, problems, root);
+    eq(problems.length, 3, `三条各报一条（实得 ${problems.length}）`);
+    ok(problems.every((p) => p.includes('ITMS-90332')), '报文指向 ITMS-90332');
+    ok(fs.lstatSync(path.join(fwOf(root), 'Versions', 'A', 'A')).isSymbolicLink(), 'check 模式不许动文件（自指链 existsSync 恒 false，用 lstat 判在）');
+  });
+
+  test('顶层结构链接解析不了 ⇒ 报问题而不是删（上游换形状要人看，删了就成了丢文件）', () => {
+    const root = tmpdir();
+    badFramework(root);
+    const fw = fwOf(root);
+    fs.rmSync(path.join(fw, 'Versions', 'A', 'Headers'), { recursive: true }); // 顶层 Headers 从此悬空
+    const problems = [];
+    deps.normalizeMacosBundleShape(false, problems, root);
+    ok(problems.some((p) => p.includes('Headers') && p.includes('解析不了')), '顶层 Headers 悬空被报出');
+    ok(fs.lstatSync(path.join(fw, 'Headers')).isSymbolicLink(), '顶层 Headers 没被删');
+  });
+
+  test('导出 ＋ main 每次都跑（含 --check）＋ 本机 vendor 形状必须干净', () => {
+    const src = fs.readFileSync(path.join(R, 'scripts', 'fetch-native-deps.js'), 'utf8');
+    ok(typeof deps.normalizeMacosBundleShape === 'function', '导出 normalizeMacosBundleShape');
+    ok(/normalizeMacosBundleShape\(checkOnly, problems\);/.test(src), 'main 里每次都跑（含 --check）');
+    const problems = [];
+    deps.normalizeMacosBundleShape(true, problems);   // vendor 未就位时自然零问题（CI 上跳过）
+    eq(problems.join('\n'), '', '本机已拉取的 macOS 切片不许有解析不了的链接');
+  });
+});
+
+describe('verify-ios-bundle: ITMS-90332 门（.app 里不许有解析不了的符号链接）', () => {
+  const { checkBundleSymlinks } = require('../scripts/verify-ios-bundle.js');
+
+  test('★ 悬空与自指 ⇒ 拦；合法链接（哪怕指向目录）⇒ 过', () => {
+    const root = tmpdir();
+    const app = mk(root, 'Host.app');
+    fs.writeFileSync(path.join(app, 'real.dylib'), 'x');
+    fs.mkdirSync(path.join(app, 'RealDir'));
+    fs.writeFileSync(path.join(app, 'RealDir', 'f'), 'f');
+    fs.symlinkSync('real.dylib', path.join(app, 'good.dylib'));          // 合法：指文件
+    fs.symlinkSync('RealDir', path.join(app, 'good-dir'));               // 合法：指目录
+    fs.symlinkSync('nowhere.dylib', path.join(app, 'dangling.dylib'));   // 悬空
+    fs.symlinkSync('loop-b', path.join(app, 'loop-a'));                  // 两链接互指成环
+    fs.symlinkSync('loop-a', path.join(app, 'loop-b'));
+    fs.symlinkSync('self', path.join(app, 'self'));                      // 自指
+    ok(!checkBundleSymlinks(app), '三种坏链接都得拦');
+    for (const b of ['dangling.dylib', 'loop-a', 'loop-b', 'self']) fs.unlinkSync(path.join(app, b));
+    ok(checkBundleSymlinks(app), '清掉后过门');
+  });
+});
+
+
 // ─── 系统下限（build/os-floor.config.js）：部署目标钉住 + 解析期语法门 ─────────────────
 describe('os-floor: 部署目标与解析期语法门', () => {
   const OSF = require(path.join(__dirname, '..', 'build', 'os-floor.config.js'));
