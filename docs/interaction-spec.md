@@ -2337,6 +2337,8 @@ CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2
 
 ### 翻译命令
 - `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
+  `--capture` 时把这段 `(原文, 译文)` 按句采集进本地语料（默认**关**；采集是 sink，绝不改译文，
+  §3 law 1）；采集结果与「跳过几对」打一行 stderr。
 - `doc <file>`：pdf / docx / txt / md，**一页一页**翻并输出（默认 stdout，`-o` 写文件）。
   图片页 / 扫描页 v1 CLI 不接（domain-design §2.7 / §8），**明说不支持**而不是静默跳过。
 - `batch <path>`：文件或目录逐个翻，`-o <dir>` 输出，进度走 stderr。

@@ -26,6 +26,8 @@ const OPTIONS = {
   'ui-lang': { type: 'string' },
   only: { type: 'boolean' },
   json: { type: 'boolean' },
+  capture: { type: 'boolean' },
+  corpus: { type: 'string' },
   out: { type: 'string', short: 'o' },
   days: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
@@ -37,14 +39,17 @@ function usage() {
     `${NAME} ${VERSION} — 大肚猴翻译命令行`,
     '',
     '用法：',
-    `  ${NAME} translate [文本|-] [--lang <语言码>] [--only] [--json]   翻译一段文本（缺省读 stdin）`,
+    `  ${NAME} translate [文本|-] [--lang <语言码>] [--only] [--json] [--capture]   翻译（缺省读 stdin）`,
     `  ${NAME} detect [文本|-]                                        识别语言`,
     `  ${NAME} providers                                              列出可用引擎`,
-    `  ${NAME} config get [键]                                        查看配置（key 打码）`,
-    `  ${NAME} config set <键> <值>                                   写入配置`,
-    `  ${NAME} config path                                            显示配置文件路径`,
+    `  ${NAME} plan [--days N]                                        今日牌库 + 未来 N 天（只读）`,
+    `  ${NAME} review                                                 交互式复习（0-3 打分，q 保存退出）`,
+    `  ${NAME} import <file.mtlearn>                                  合并一份导出进本地语料`,
+    `  ${NAME} export [-o <file>]                                     导出本地语料`,
+    `  ${NAME} config get [键] / set <键> <值> / path                  配置（key 打码）`,
     '',
-    '选项：--lang <code> · --only（只出译文）· --json · -o/--out <file> · --ui-lang <code>',
+    '选项：--lang <code> · --only · --json · --capture（翻译时采集进语料）·',
+    '      --corpus <file> · -o/--out <file> · --days <N> · --ui-lang <code>',
     `版本：${VERSION}`,
   ].join('\n');
 }
@@ -93,6 +98,77 @@ async function cmdTranslate(positionals, values) {
   const r = await eng.translate(text, { lang: values.lang, uiLang: uiLang(cfg, values) });
   if (!r.ok) printFail(r, cfg, values);
   writeResult(text, r, values);
+  // 采集是 sink：只读已经翻好的 (text, tr)，绝不改译文（§3 law 1）。默认关，`--capture` 才采。
+  if (values.capture) {
+    const corpus = await openCorpus(values);
+    const res = corpus.capture(text, r.text, {
+      lang: '', targetLang: r.lang, anchor: { k: 'handoff', via: 'input', at: Date.now() },
+    }, Date.now());
+    await corpus.save();
+    stderr(`已采集 +${res.added} 张（跳过 ${res.skipped}），语料 ${corpus.path}`);
+  }
+}
+
+async function openCorpus(values) {
+  const { Corpus } = require('../corpus.js');
+  const c = new Corpus(values.corpus);
+  try { await c.load(); }
+  catch (e) { stderr(`${NAME}: ${e.message}`); process.exit(4); }
+  return c;
+}
+
+async function cmdPlan(positionals, values) {
+  const lang = values['ui-lang'] || '';
+  const corpus = await openCorpus(values);
+  const { buildPlan } = require('../plan.js');
+  const p = buildPlan(corpus, Date.now(), values.days);
+  if (values.json) {
+    process.stdout.write(JSON.stringify({
+      total: p.total, due: p.due, newToday: p.newToday, horizon: p.horizon,
+      deck: p.deck.map((c) => ({ id: c.id, text: c.text, tr: c.tr })),
+      ahead: p.ahead ? p.ahead.map((c) => c.id) : null,
+    }) + '\n');
+    return;
+  }
+  if (!p.total) { process.stdout.write(messages.t('cli_dict_empty', lang) + '\n'); return; }
+  if (!p.deck.length) { process.stdout.write(messages.t('cli_no_plan', lang) + '\n'); }
+  else {
+    process.stdout.write(`今日 ${p.deck.length} 张 · 到期 ${p.due} · 今日新卡 ${p.newToday}\n`);
+    for (const c of p.deck) process.stdout.write(`  · ${c.text}\n    ${c.tr}\n`);
+  }
+  if (p.ahead) process.stdout.write(`未来 ${p.horizon} 天合计 ${p.ahead.length} 张\n`);
+}
+
+async function cmdReview(positionals, values) {
+  const lang = values['ui-lang'] || '';
+  if (!process.stdin.isTTY) { stderr('review 需要交互终端（stdin 不是 TTY）'); process.exit(1); }
+  const corpus = await openCorpus(values);
+  const { runReview } = require('../review.js');
+  const readline = require('node:readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+  const ask = (item, n, total) => new Promise((resolve) => {
+    process.stderr.write(`\n(${n}/${total}) ${item.text}\n  ${item.tr}\n  ${messages.t('cli_press_grade', lang)} > `);
+    rl.question('', (a) => resolve(a.trim()));
+  });
+  const res = await runReview(corpus, Date.now(), ask);
+  rl.close();
+  stderr(messages.t('cli_saved', lang) + ` (${res.graded}/${res.total})`);
+}
+
+async function cmdImport(positionals, values) {
+  const file = positionals[1];
+  if (!file) { stderr(`用法：${NAME} import <file.mtlearn> [--corpus <file>]`); process.exit(1); }
+  const corpus = await openCorpus(values);
+  let stats;
+  try { stats = await corpus.importFrom(file); }
+  catch (e) { stderr(`${NAME}: ${e.message}`); process.exit(4); }
+  process.stdout.write(JSON.stringify(stats) + '\n');
+}
+
+async function cmdExport(positionals, values) {
+  const corpus = await openCorpus(values);
+  const r = await corpus.exportTo(values.out, Date.now());
+  process.stdout.write(r.path + '\n');
 }
 
 async function cmdDetect(positionals, values) {
@@ -163,6 +239,10 @@ async function main() {
     case 'translate': return cmdTranslate(positionals, values);
     case 'detect': return cmdDetect(positionals, values);
     case 'providers': return cmdProviders(values);
+    case 'plan': return cmdPlan(positionals, values);
+    case 'review': return cmdReview(positionals, values);
+    case 'import': return cmdImport(positionals, values);
+    case 'export': return cmdExport(positionals, values);
     case 'config': return cmdConfig(positionals, values);
     case undefined: process.stdout.write(usage() + '\n'); process.exit(1); break;
     default: stderr(`未知命令：${cmd}`); stderr(usage()); process.exit(1);
