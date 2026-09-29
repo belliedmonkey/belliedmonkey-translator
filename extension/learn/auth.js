@@ -342,6 +342,29 @@ var LearnAuth = (() => {
   // row of the owner truth table, not a failure.
   async function userId() { const s = await load(); return (s && s.userId) || null; }
 
+  // #335（2026-09-19 观察到）：首页与设置页对「登录了没有」给出相反答案。两处其实都从
+  // current() 读，但 current() 在「真没登录」和「存储读失败」两种情况下**都返回 null**
+  // （load() 对失败不闩锁、只记 loadError，§8.4.1），只有 lastLoadError() 能区分 ——
+  // 宿主 App 的 localStorage 在 WKWebView 启动早期可能短暂读不出，首页把那一次瞬断
+  // 画成了未登录，稍后设置页重读成功又是已登录。修法：把「带重试的读」做成 auth 侧的
+  // 出口 currentStable()，两个页面的初次读都走它 ——
+  //   · 读成功（含确认没登录，loadError 为空）⇒ 立即返回，零重试，正常启动零开销；
+  //   · 读失败 ⇒ 退避重试（瞬断通常亚秒级恢复；默认 5 次 × 500ms，最坏 2.5s，只发生在
+  //     存储真坏的机器上）；耗尽仍失败 ⇒ 返回 null，调用方按 lastLoadError() 把状态行
+  //     写成「读不到 ≠ 已退出」，而不是画一张登录表单冒充「已退出」。
+  async function currentStable(opts) {
+    const o = opts || {};
+    const tries = Math.max(0, o.tries != null ? o.tries : 5);
+    const delay = Math.max(0, o.delayMs != null ? o.delayMs : 500);
+    const sleep = o.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+    let s = await current().catch(() => null);
+    for (let i = 0; !s && lastLoadError() && i < tries; i++) {
+      await sleep(delay);
+      s = await current().catch(() => null);
+    }
+    return s;
+  }
+
   // ─── Which corpus this account uses (§ account switch) ───────────────────
   // The policy needs both halves — the session (this file) and chrome.storage
   // (PageSettings) — so it lives here. LearnStore owns only the MECHANISM
@@ -568,7 +591,7 @@ var LearnAuth = (() => {
   return {
     signIn, verify, signInPassword, token, expireAccess, signOut, deleteAccount,
     prepareProviderSignIn, providerSignInUrl, completeProviderSignIn, signInWithIdToken,
-    current, userId, displayName, bindCorpus, takeRehome, otherAccountOnDevice,
+    current, currentStable, userId, displayName, bindCorpus, takeRehome, otherAccountOnDevice,
     cachedSession, lastLoadError, onChange,
     _reset,
   };
