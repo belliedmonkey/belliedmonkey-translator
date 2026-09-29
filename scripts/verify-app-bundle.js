@@ -1360,6 +1360,46 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         need(it.n === 0, '中国版产物里竟然攒出了 ' + it.n + ' 条 onboard_intent');
       }
 
+      // ─── 「都要」分支（#486/#487 的第三支，2026-09-29 补）：与「听」对照 —— 它**不**收尾，
+      //      直送 ext 屏（他要的不只是听），横幅语义与 web 一致。ext 屏的主行动「在网页上完成
+      //      设置」兼作收尾键：真点它，断言完成路径的存储副作用（onboardSeen 落盘 + 引导退场 +
+      //      横幅回来）。headless 里 openExternal 的原生桥不存在（抛异常被吞）、window.open 无手势
+      //      静默失败 —— 外链开不了，但收尾逻辑照跑，正是要验的那一半。
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      await reopen();
+      const bo = await E(`(async () => {
+        try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
+        await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
+        await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
+        const $ = (id) => document.getElementById(id);
+        $('ob-intent-both').click();
+        await new Promise((r) => setTimeout(r, 300));
+        const step = document.body.dataset.obStep || '';
+        const g = (k) => new Promise((r) => chrome.storage.local.get([k], (v) => r((v || {})[k])));
+        const stored = await g('onboardIntent');
+        const before = !!(await g('onboardSeen'));
+        $('ob-setup').click();
+        await new Promise((r) => setTimeout(r, 500));
+        const after = !!(await g('onboardSeen'));
+        window.show('ios'); await new Promise((r) => setTimeout(r, 30));
+        const q = await g('tm:queue');
+        return JSON.stringify({ step, stored, before, after, onboardHidden: $('onboard').hidden,
+          banner: !$('ext-banner').hidden,
+          intents: (Array.isArray(q) ? q : []).filter((x) => x && x.name === 'onboard_intent').map((x) => x.props),
+          hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
+      })()`);
+      need(bo.step === 'ext', '「都要」没有直送 ext 屏（实到「' + bo.step + '」）—— 它不收尾，他要的不只是听：' + JSON.stringify(bo));
+      need(bo.stored === 'both', '选「都要」没把 onboardIntent 落成 both：' + JSON.stringify(bo));
+      need(!bo.before && bo.after, 'ext 屏主行动（在网页上完成设置）没有把 onboardSeen 落盘 —— 完成路径的存储副作用丢了：' + JSON.stringify(bo));
+      need(bo.onboardHidden, '收尾之后引导还挂在屏上');
+      need(bo.banner, '「都要」收尾后首页没有扩展横幅 —— 他要浏览器扩展（与「听」那支相反）：' + JSON.stringify(bo));
+      if (bo.hasSpec) {
+        need(bo.intents.length === 1 && bo.intents[0] && bo.intents[0].goal === 'both',
+          'onboard_intent 应恰好一条 goal:both：' + JSON.stringify(bo.intents));
+      } else {
+        need(bo.intents.length === 0, '中国版产物里攒出了 ' + bo.intents.length + ' 条 onboard_intent（Gate D）');
+      }
+
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
       await reopen();

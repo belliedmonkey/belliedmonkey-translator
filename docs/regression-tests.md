@@ -491,6 +491,115 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 - [ ] **`node build.js firefox`.** Run it. **Expected:** `dist-firefox/` +
   `belliedmonkeytranslator-firefox.xpi` produced. *(AGENTS.md Build & run.)*
 
+## 9. App host — 引导 · 账号 · 额度 · 听面 · 语音包（矩阵行 6/7/9；国际版 + 中国版双跑）
+
+> **为什么有这一节（2026-09-29）**：App 宿主（iPhone/iPad/Mac）此前没有任何成文的手工场景——
+> 场景散在 verification-spec 的执行记录里，中国版 App 甚至从未在模拟器/真机上走过引导。
+> 本节是 App 侧的逐项清单；扩展侧引导页不在此（`test:onboard` + §1–5 已覆盖）。
+>
+> **证据规约**：视觉项截图；**时序行为录屏**；状态用 XCUITest `evaluateJavaScript` 读回
+> （storage / `AppListen._debug().lat` / 桥事件 `tts-start` / `assets-progress`）；遥测走
+> `bt_events` SQL（flush：terminate+activate 后等几分钟）。**[H]** = 只能人做（输密码、人耳听声）。
+> **双 flavor**：两台模拟器各装一版（§2.0 一机一版）；标注「intl-only / cn-only」的除外，
+> 中国版的判据见各项尾注（chips 无 google/openai/claude、无额度话术、遥测零发送 Gate D）。
+> 声源一律用播放代替真人（§0.3：Mac `afplay` conv 语料 / 外放英语视频）。
+
+### 9.0 前置（每次开跑前）
+
+- [ ] **两台模拟器各装一版 + 真机国际版 Debug 包。** `bash build-safari.sh global|china` →
+  `app:sync` → xcodebuild Debug → simctl / devicectl 装。**Expected:** `dist-app` 与
+  `dist-app-china` 都过 `test:app` / `test:app:china`。
+- [ ] **重置手段就位。** 全新安装 = 卸载重装；只重置引导 =
+  `chrome.storage.local.remove(['onboardSeen','onboardResume','extBannerDoneAt','engineChosen','onboardIntent'])`。
+- [ ] **素材与网络。** 播客/听译要学习卡（模拟器 `LearnStore.putItem` 播种带 `text`+`tr`；真机登录同步）；
+  语音包下载 china 关 VPN（ModelScope）、intl 走 GitHub（境内需代理，或反向验失败分支）。
+
+### 9.1 新手引导（App OB：welcome → [signin·后端开] → firstuse → ext）
+
+- [ ] **全新安装·意图「都要」全流程。** 选「读网页 + 听，都要」→ **直送 ext 屏**（跳过
+  signin/firstuse）→ 点「在网页上完成设置」收尾。**Expected:** `onboardIntent='both'` 落盘、
+  `onboardSeen=1`、首页**挂**扩展横幅、重启不再出引导。（录屏收尾前后）
+- [ ] **意图「听」。** **Expected:** 当场收尾（不经 ext）、`onboardIntent='listen'`、首页**无**横幅、重启仍无。
+- [ ] **出口「我只要网页翻译」。** **Expected:** 记 `onboarding_done{result:web_only,step:welcome}`
+  一条 + `onboard_intent{goal:read}`，**落到 ext 屏继续**；之后收尾**不**发第二条 `onboarding_done`。
+- [ ] **登录屏三支。** 邮箱 OTP（发码 [H] 读码 → 登录自动前进一屏）；「先不登录」（只翻页不写登录态）；
+  Apple 一键 **[H·真机]**。**Expected:** intl 标题「登录，顺手领一份免费额度」/ cn「登录（可选）」；
+  此屏无「以后再设置」。
+- [ ] **就地试一句三态。** 无引擎（intl 提额度文案 / cn 提 key 文案，具名不空转）；有引擎真网络
+  （译文落结果行 ~2s，「翻这一句」是主行动填色）；离线（具名连不上文案）。(录屏)
+- [ ] **「听这一句」。** 未配 TTS 具名错误；配了出声 **[H·人耳]**。
+- [ ] **跳过 → 继续设置卡。** 「以后再设置」记屏不写 `onboardSeen` → 卡出现 3 次（横幅让路）→
+  第 4 次自动收起（expired）；✕ 当场永久（dismissed）；已配引擎根本不出。
+- [ ] **冷启动两支。** 已配引擎 / 已登录 ⇒ 无引导无卡。已登录者登出再进不重弹引导。
+- [ ] **flavor 面。** cn：引擎 chips 无 google/openai/claude（有即红）；「免费通道」话术零出现；
+  登录屏**无**出境同意框（境内后端）；全程 `tm:queue` 恒空 + SQL 零行（Gate D）。
+- [ ] **语言与布局。** zh（模拟器默认）+ en（真机系统语言，期望文案以 `_locales/en` 为准）；
+  iPad 布局抽查；系统 Dynamic Type +2 档 welcome 屏主行动完整可见。
+
+### 9.2 登录与注册（含 #335 回归）
+
+- [ ] **OTP 首登即注册。** 新邮箱收码登录。**Expected:** 建号成功、登录态三处一致
+  （首页 / 设置账号块 / 复习返回去向）。
+- [ ] **验证码错/过期。** **Expected:** 具名文案、可重发、不卡死。
+- [ ] **退出重开登录态保持（#335 原场景）。** 正常使用 → 退进程 → 重开。**Expected:** 首页与
+  设置页**同答**（都登录）、重启 5 次全一致。
+- [ ] **境内后端联通（cn）。** 发码可达、同步成功（`api.belliedmonkey.com`）。
+- [ ] **换账号归属闸。** 库属 A、登录 B。**Expected:** `owner_mismatch` 具名 + 两动作
+  （换回 / 清除重来），不自动切换。
+
+### 9.3 免费额度（intl-only）
+
+- [ ] **登录即自动领取。** **Expected:** 额度卡变已领、`grant_claimed` 恰一条；二次登录不重复。
+- [ ] **额度卡三态与改回。** 未领→已领带余额；用尽（可 SQL 造态）`credit_exhausted` 停机可重试；
+  「改回免费额度」先出确认框再覆盖。
+- [ ] **用额度真翻一句。** **Expected:** `translate_ok{provider:grant}` ≥1；`translate_fail{grant,timeout}`
+  = 0（1.18.0 timeout 熔断不误触发，#475 回归）。
+- [ ] **cn 无此路。** 设置页无额度卡、无额度话术，翻译路只有自带 key。
+
+### 9.4 对话 · 实时听译（§9.6）
+
+- [ ] **设备内置转写·对方说。** 播放 conv 语料。**Expected:** 时序四预算（volatile ≤2s · 停顿→final
+  ≤1.0s · final→修正+译文 ≤1.0s · 译文→开口 ≤0.5s，`_debug().lat` 时间戳）；先 raw 后修正；语料存
+  **修正后**文本；`mic-level.rms` 非恒 0。
+- [ ] **「我说」翻面。** 按住说 [H·人声]。**Expected:** 翻面卡归属正确、译文大字在上。
+- [ ] **语言对切换。** 底部下拉与设置页同一份；**设备路换语言必须重连**（静默无操作即缺陷）。
+- [ ] **TTS 三档。** off（无朗读动作）/ 设备内置语音 AVSpeech / 设备内置朗读 Piper —— 出声 [H·人耳]。
+- [ ] **锁屏两验（真机）。** M24（设备 STT 锁屏 60s 续听，时间戳落在锁屏窗内）+ M25-sys（系统语音
+  锁屏出声 [H]）。
+- [ ] **采集开关。** 开 ⇒ 语料 `k:'conv'`；关 ⇒ 零写入零积压。
+- [ ] **中断族具名。** 拒权限（带系统设置路径）/ 戴耳机 / socket 断（已听句子还在）/ 30s 静音 paused。
+
+### 9.5 实时字幕（§9.8；真机为主）
+
+- [ ] **入口门控。** 26 下限那句（`subtitle_need_os` 已删，2026-09-29）；设备路可用时入口在。
+- [ ] **真机外放视频出双语字幕。** 离开 App **自动**浮出 PiP 小窗（4:5）、双语滚动、Safari 不暂停。(录屏)
+- [ ] **A−/A+ 与历史。** 三档 0.85/1/1.2 到头不动；系统后/前进翻历史，顶部标「历史 · 点前进回到最新」。
+- [ ] **⏸ 语义（维持现状裁定）。** ⏸ 连带暂停源视频；结束会话源视频续播。
+- [ ] **采集。** `subtitleCapture` 开 ⇒ 语料 `mode:'subtitle'`；关 ⇒ 丢弃并清。
+- [ ] **戴耳机具名提示。** 摘下耳机用外放。
+
+### 9.6 播客模式（§9.5）
+
+- [ ] **入口门控与进出。** uiLang 能开口才渲染；返回后首页计数刷新。
+- [ ] **播放。** 逐卡念原文/译文、上一曲=再听一遍、进度与跳过；出声 [H·人耳]。
+- [ ] **后台/锁屏继续播（双 flavor，A 级）。** Home/锁屏 60s+ 不断 —— **中国版同判据**
+  （2026-08-24 裁定：无阉割版）。
+- [ ] **锁屏/车机遥控 + 解析跟读。** tap_* 映射；锁屏封面逐行高亮。
+- [ ] **补译文。** 无 `tr` 卡联网补上（至多一次/设备，重开不重译）；断网具名失败、正文照念。
+- [ ] **预载离线。** 「出发前预载」（今天+未来 N 天）→ **断网**完整播一轮（含前瞻）。
+- [ ] **播放器零写入（A 级）。** 播 N 张后 SQL 对账：复习行数不变、无 skill 戳、卡 `lastSeenAt` 不动。
+
+### 9.7 语音包（设备内置朗读离线模型 + STT 资产）
+
+- [ ] **zh 包首下。** 首用自动触发；进度胶囊「正在下载{lang}离线模型 · {pct}%」→ `installed`；
+  67MB 量级。**cn 走 ModelScope（关 VPN 直连成功 = A 级**，托管切换的回归点）；intl 走 GitHub。
+- [ ] **en 包同上；两包共存按句语言选用。**
+- [ ] **失败分支。** 断网/断点 ⇒ `listen_assets_failed` 具名 + 系统/云端出口可见。
+- [ ] **sha 不符自动重下。** 篡改安装戳/删半个包 ⇒ 视为未安装重下成功。
+- [ ] **非覆盖语言回落。** 如 ja ⇒ 系统语音且**行上具名**（不许无声）。
+- [ ] **下载中杀 App 重开。** 状态恢复、不半包假成功。
+- [ ] **STT 资产。** `assets-progress{kind:stt}` 同通道可观测（SpeechAnalyzer locale）。
+
 ---
 
 ## How to run
