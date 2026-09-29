@@ -87,13 +87,14 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `launch` / `activate` / `terminate` | `s` | 目标 App；`bundle` 可临时切换 |
 | `alerts` | `s` | 吃掉系统权限弹窗 |
 | `open` | `url` `s` | `XCUIDevice.system.open` |
-| `tap` | `text` `exact` `swipes` | 滚动着找文字并点 |
+| `tap` | `text` `exact` `swipes` | 滚动着找文字并点。**webview 里元素常 `isHittable=false`（`el.tap()` 直接抛）——2026-09-29 起自动退一档按 frame 中心坐标真点** |
+| `tapxy` | `at` `[x,y]` | **整窗归一化坐标**的真点。给没有 AX 标签的元素用（例：只画了个「✕」的关闭键、SVG 悬浮球） |
 | `menu` | `item` `s` | 点选中菜单里的一项（拷贝/查询/翻译/查找）|
 | `drag` | `text` `from` `to` | **选整句**：长按只选一个词、三连点不扩选，只能按住拖 |
 | `dragxy` | `from` `to` `press` | **整窗归一化坐标**的按住拖。原生表格的重排手柄（≡）在 AX 上没有可点的动作，只能这样 |
 | `select` | `label` `value` | 下拉：**按标签找，不按值找**（四个下拉的值都是「中文」或「English」）|
 | `selects` | `tag` | 整页下拉**边滚边收**（只看当前屏会误判「那几档不存在」）|
-| `key` | `value` `expectLen` | 填密钥框；判据是**圆点数 == key 长度** |
+| `key` | `value` `expectLen` `tfLabel` | 填密钥框；判据是**圆点数 == key 长度**。webview 的 password 框在 iOS 上常只以 textField 暴露——给 `tfLabel`（如 `"API Key"`）就退到按 label 找 textField（**不滑动**，滑动会把字段滚出 AX 视口） |
 | `wait` / `shot` / `dump` | `s` / `name` / `tag` | |
 
 **没有 `MT_SCRIPT` 会直接 `XCTFail`** —— 「passed 但什么都没做」是这个 runner 的老毛病
