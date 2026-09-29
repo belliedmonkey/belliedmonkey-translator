@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node test/run.js",
+    "test:cli": "node test/run.js cli",
     "test:layout": "node test/layout/run-layout.js",
     "test:inject": "node scripts/verify-content-inject.js",
     "test:menu": "node scripts/verify-content-menu.js",

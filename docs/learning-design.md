@@ -3710,6 +3710,9 @@ CLI 的卡片，反之亦然。
 - v1 **不发遥测**；将来若要发，属 `telemetry-design.md` 白名单改动（治理门）。
 - 中国版：同一功能集（`AGENTS.md` 规则 10），差异仍只有既有的三处（无免费额度、无遥测、
   brand-free 文案），并过同一合规门。披露随代码同版（§10）。
+- **发布面**：CLI 走 GitHub Release / 包管理器，**不进 App Store 六面**；发布时 README（安装与
+  `config set` 说明）与两站隐私页随同版（`release-checklist`）。它把文字发到**用户自配的端点**，
+  与扩展同一条免费路径，不新增披露面。
 
 **模块。** `CliApp`（`cli/`）、`CliEngine`（`build/cli-bundle.js` → `dist-cli/engine.js` +
 `cli/node-shim.js` + `cli/entry.js`）；纯逻辑复用 `LearnModel` / `LearnScheduler` / `LearnChunk` /
