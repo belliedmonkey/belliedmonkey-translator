@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **待评审（本 PR，docs-only）** |
 | 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
 | 2026-09-22（待人评审） | belliedmonkey | **引导屏序重排 + 额度发放三件**（由 2026-09-21/22 的线上读数驱动）。用户当日已裁定：① 登录从 App 引导第 5 屏**提到第 2 屏** ② 登录之后**自动**领额度、不再问 ③ 扩展引导第 3 屏（采集，默认已开）**砍掉** ④ 中国版**也给免费额度**，模型走**通义千问** ⑤ 中继按**方案 C**（身份走现有后端、只传令牌不含原文；**原文只走境内中继 → 千问，一步不出境**）。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf （3 页 13 板）。本行涉及**额度发放规则**与**跨境路径**，按 `AGENTS.md` 规则 2/4 与治理条属领域设计改动 ⇒ 先出本提案（§8.10.1）过评审，代码不先走。 |
 | 2026-09-19 | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | **通过（2026-09-19，用户评审 PR #331；五个重点判断全部按原文）** |
@@ -831,6 +832,12 @@ Three consequences that surprise people, so state them where they will be read:
    showing an empty deck. The extension's review page is the signed-out path (§8.1).
 3. **The extension owns the upload** — it holds `syncPushedAt` and can therefore tell
    the user what has and has not reached the server. Nothing else can.
+
+**2026-09-30 — 第三个语料：CLI 的文件库（提案，§9.10）。** CLI 的语料是一个 `mt-learn/1`
+文件，不属于任何浏览器源，也没有 `IndexedDB`。它与上面两份的连接方式仍是 §8.2 既有的
+**导出/导入**：CLI 读扩展 / App 导出的 `.mtlearn`，也能把自己采集的卡片导出回去。这**不是**
+2026-08-07 被否的那条「用导出/导入当扩展↔App 的日常同步」（§12）——那条否的是**替代**同步的
+手动仪式；这里文件只是 CLI 这个无浏览器宿主**唯一可能的本地载体**，而跨设备仍由 §8 服务端承担。
 
 **App 侧凭证（2026-08-08 (二) 放宽，边界如下；同日稍晚扩至语音引擎）。** 此前的
 边界是「翻译引擎 / API key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。
@@ -2116,6 +2123,8 @@ These rows are mirrored into `docs/domain-design.md` §6.
 | `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
 | Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `src/app/shell-model.js` (since PR6a the React UI bundle built from
 `src/app/main.jsx` lands in the same segment). Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
+| `CliApp` | `cli/` *(§9.10)* | the command-line host: translation commands (text / document / batch / subtitle) and the learning surface (`plan` read-only, `review` interactive). Config under `~/.config/belliedmonkey/`; corpus is an `mt-learn/1` file. Reuses `LearnModel` / `LearnScheduler` / `LearnChunk`; **never `LearnStore`**. Adding `putItem` / `recordReview` is the review host's write path; `plan` writes nothing |
+| `CliEngine` | `build/cli-bundle.js` → `dist-cli/engine.js` (+ `cli/node-shim.js`, `cli/entry.js`) | the CLI host's translation engine: the §7 transport files, unmodified, behind a Node shim. Request byte-equality with the extension / App is a `npm test` gate (domain-design §2.7) |
 
 > **Why the app is exactly three files.** `safari-project/` is gitignored and gets
 > regenerated, which resets the Xcode project's file list (release-checklist #72). The
@@ -3660,6 +3669,55 @@ flavor 的 App 名不同而它必须等于 App 名）；菜单名 12 个语种�
 telemetry seams。新真 Chrome 门 `npm run test:quick`（`Main.html#quick` + 假 `mtQuick` 桥：读回译文与出站消息，
 确认没有启动同步 / 心跳 / `LearnStore`）。`test:listen` 式假桥门里加 `vault-sync` 是全量快照、清除 ⇒
 `vault-clear` + `inbox-clear`。真机：verification-spec 矩阵第 9、10 行与配方 I / J。
+
+## 9.10 命令行宿主 (CLI) — 第三个宿主（2026-09-30，提案 · 待人评审）
+
+> **状态**：用户 2026-09-30 确认范围，docs-only PR 待人评审后生效。CLI 是产品第三个宿主，
+> 翻译侧约束在 `docs/domain-design.md` §2.7，本节只写学习侧。
+
+**它是什么。** 一个独立的命令行程序（`cli/` + `build/cli-bundle.js` → `dist-cli/`，按 flavor
+两个产物），既是**翻译面**（文本 / 文档 / 批量 / 本地字幕，domain-design §2.7），也是**学习面的
+一个 Reviewer 宿主**：读语料 → 算复习计划 → 打印或交互式复习。
+
+**语料：一个 `mt-learn/1` 文件，不用 `LearnStore`。** `LearnStore` 绑 IndexedDB（§7），CLI
+没有；改用 `learn/chunk.js` 的 `build` / `toJsonl` / `fromJsonl` / `deflate` / `inflate`，把语料
+存成一个文件。三条来源：
+
+1. **导入 / 导出** `mt-learn/1`（§8.1 / §8.2）：读扩展 / App 导出的 `.mtlearn`，也能导出回去。
+2. **翻译时采集**：CLI 翻译文本 / 文档时，把 `(text, tr)` 交给 `LearnModel.splitPair` 切句、
+   `makeItem` 造卡、并入文件语料。与扩展同一套采集规则（§4.2）与同一道 salience 门（§6）。这是
+   §3 law 1 的又一次应用：**采集是 sink**，绝不改译文。
+3. **登录后同步**（§8）：复用 `learn/auth.js` + `learn/sync.js`，在文件语料上包一层适配器；
+   语料仍属于账号，文件只是本机副本。
+
+**它写什么。**
+
+- `plan`（只读）：`LearnScheduler.buildDeck`（今日牌库）+ `introducedToday`（§8.4 账号级日界）+
+  `dueCount` + `buildDeckAhead(days)`（「出发前预载」同款预测）。**不写任何数据**——与 §9.5 预载
+  同一条纪律。
+- `review`（交互式）：展示卡片 → 收评分 `0..3`（§5）→ `applyReview` 推进 `sched` →
+  `recordReview` 追加日志 → 回写语料文件。技能轮换（§5.4）v1 走 `mode:'read'`，其余技能随后补
+  （`pickSkills` / `skillFresh` 已是纯函数）。
+
+**anchor kind 不新增。** CLI 文本用 `k:'handoff'`（`via:'input'`，§9.9 同一 union），文档用
+`k:'doc'`（§9.7），字幕用现有媒体 / 对话锚点或 `handoff`。语料格式因此不改，扩展 / App 读得懂
+CLI 的卡片，反之亦然。
+
+**门控与披露。**
+
+- 免费路径完整：不登录、不付费也能翻译与复习（语料来自本地文件）。
+- v1 **不接免费额度中继**（§8.10）；将来若要接，属 §2.1 / Gate F 的改动。
+- v1 **不发遥测**；将来若要发，属 `telemetry-design.md` 白名单改动（治理门）。
+- 中国版：同一功能集（`AGENTS.md` 规则 10），差异仍只有既有的三处（无免费额度、无遥测、
+  brand-free 文案），并过同一合规门。披露随代码同版（§10）。
+
+**模块。** `CliApp`（`cli/`）、`CliEngine`（`build/cli-bundle.js` → `dist-cli/engine.js` +
+`cli/node-shim.js` + `cli/entry.js`）；纯逻辑复用 `LearnModel` / `LearnScheduler` / `LearnChunk` /
+`LearnRules`。不引入新的调度或存储实现。
+
+**验证。** `npm test`：CLI 传输包与扩展 / App **请求逐字节相等**（照 `test/ext-bundle.test.js`），
+`learn/chunk.js` 往返，调度 / 采集纯逻辑。新增 verification-spec 矩阵第 11 行（CLI）与一条
+`npm run test:cli` 端到端（默认 mock fetch）。
 
 ## 10. Privacy statement changes — a release gate, not a follow-up
 

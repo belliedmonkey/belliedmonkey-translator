@@ -569,6 +569,43 @@ Module consequences are in §6 (`HandoffCore` / `AppHandoff` / `AppQuick` / `MTE
 learning-side contract (anchor kind `handoff`, inbox format, the two bridge protocols)
 is `docs/learning-design.md` §9.9.
 
+### 2.7 命令行 (CLI) — 第三个宿主，同一份传输 (核心约束 — do not break)
+
+新增 2026-09-30（**提案 · 待人评审**）。CLI 是产品继浏览器扩展与配套 App 之后的**第三个
+宿主**，不是一个新管线。它存在的理由与 §2.6 规则 2 逐字相同：传输层每一处调参（四种 wire
+format、可选字段三态、停机码、重试、注册表）只能有一份实现，每多一个宿主就多一处要同时改的
+地方，而漂开的症状是「扩展好好的、CLI 少一个字段」且没有一行日志会说。
+
+1. **同一份传输字节，Node 垫片。** CLI 把 §7 的传输文件
+   （`providers.gen.js` → `engine-state.js` → `wire-format.js` → `request-shape.js` →
+   `translation-api.js`）在 Node 里拼成 `dist-cli/engine.js`（`build/cli-bundle.js`，照
+   `build/ext-bundle.js`），垫片提供 `window` / `chrome.storage.local` / Node 全局 `fetch` /
+   `AbortController` / 定时器，**刻意不给 `runtime.sendMessage`**（代理探测立即失败 ⇒ 直连
+   提供方，与 `app/ext-shim.js` 同一条）。CLI 的请求与扩展 / App **逐字节同形**是 `npm test`
+   的门禁。
+2. **它引入三种来源，都是既有 source kind，不给管线加分支。**
+   - **命令行文本** —— §2.6 `HandoffSource` 的 CLI 形态（`via:'input'`）：参数 / stdin / 文件
+     里的文字，一段一 unit；译入语言取设置的 `targetLang`，源语言我们猜，已是目标语言则反向
+     （中↔英）。长文本按段落拆开依次翻译。
+   - **本地文档** —— §2.5 `DocumentSource`：`DocReader` 打开 pdf/docx/txt/md，**打开一页翻
+     一页**，`DocCore.unitsFor` 出 unit，同一个 Engine。文档本体与页文本在 CLI 上是本地文件，
+     不是 `mt-docs` IndexedDB；§2.5 规则 5「文件留在设备上」逐字成立。
+   - **本地字幕文件** —— §2.2/§2.3 `SubtitleSource` 的文件档：读一整份 `.vtt`/`.srt` →
+     cues → `mergeSentences` → 同一个 Engine → 译文字幕文件。**不含 YouTube 实时抓取**
+     （依赖浏览器，见 §8）。
+3. **Renderer 是 stdout / 文件，不是注入的 DOM。** 双语排版（原文一段、译文一段）的交互约定
+   在 `docs/interaction-spec.md`「命令行」；本节只固定「它仍是管线末端的 Renderer」。
+4. **词汇表仍只有一个注册表，CLI 是第五个消费者。** `build/providers.config.js` 不动；CLI 按
+   构建期 flavor 读生成物（`dist-cli/` 国际、`dist-cli-china/` 中国），**两个独立产物、同一
+   合规门**，与扩展 / App 的 flavor 纪律一致（§7）。CLI 里不得出现第二张 provider 表。
+5. **免费路径完整、默认自带 key、CLI → 提供方直连。** v1 不接免费额度中继（§8.10 of
+   `learning-design`）；不登录也能翻译与复习（语料来自本地文件）。与 `AGENTS.md` 规则 2/11 同形。
+6. **不发遥测。** v1 CLI 不实现遥测（中国版本来就零发送）；将来若要发，属
+   `docs/telemetry-design.md` 的白名单改动，走治理门，不是代码决定。
+
+模块后果在 §6（`CliEngine` / `CliApp`）；学习侧契约（CLI 作为 Reviewer ± Collector、语料用
+`mt-learn/1` 文件交换）在 `docs/learning-design.md` §9.10。
+
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
 `DomSegmenter` relies on: block/inline classification (by computed `display` —
@@ -1200,6 +1237,8 @@ in PR3, not assumed.
 | `AppHandoff` | `app/handoff.js` | the single corpus writer for §2.6 (app main page only): `ingest(records)` runs the ordinary gates and `LearnStore.mergeBatch`; drains the iOS App Group inbox on launch / foreground and receives the macOS panel's relayed captures. Anchor kind `handoff` (`learning-design` §9.9) |
 | `AppQuick` | `app/quick.js` | the macOS quick-translate panel page: the shipped bundle in `#quick` mode (boots only `TranslationAPI` + i18n + error copy — no sync, no telemetry init, no `LearnStore`); talks to native over `mtQuick` |
 | `MTExt` | `build/ext-bundle.js` → `dist-app/ExtEngine.js` (+ `app/ext-shim.js`, `app/ext-entry.js`) | the iOS system-translation extension's engine: the transport files of §7, unmodified, behind a JavaScriptCore shim. One export, `MTExt.translate(text, cfg)`. Byte-equality of the request with the app bundle's is a `npm test` gate |
+| `CliEngine` | `build/cli-bundle.js` → `dist-cli/engine.js` (+ `cli/node-shim.js`, `cli/entry.js`) | the CLI host's engine (§2.7): the transport files of §7, unmodified, behind a Node shim. Exposes `translate` / `detectLanguage` / the provider list; byte-equality of the request with the extension/App is a `npm test` gate |
+| `CliApp` | `cli/` | the CLI host (§2.7; learning-side contract `learning-design` §9.10): commands `translate` / `detect` / `providers` / `config` / `doc` / `batch` / `subtitle` / `plan` / `review` / `import` / `export` / `sync`, config under `~/.config/belliedmonkey/`, corpus as an `mt-learn/1` file. Reuses `LearnModel` / `LearnScheduler` / `LearnChunk`; **never `LearnStore`** |
 | `VaultMirror` | `app/vault-mirror.js` + `app/native/vault-bridge.swift` (`mtVault`) | one-way, full-snapshot mirror of the *resolved* engine configuration into App Group `UserDefaults` and of the key into the shared Keychain group, for the extension to read (§2.6 rule 7) |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
@@ -1238,8 +1277,8 @@ is a build-time concern, not a runtime one.
   lists (the two HTML `<select>`s, the two settings scripts, and the transport's own
   provider table). The build generates `content/providers.gen.js`
   (`window.MT_FLAVOR` + `window.MT_PROVIDERS`), which every runtime surface reads —
-  `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), so they can never
-  drift.
+   `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), and, since §2.7, the
+   CLI host — so they can never drift.
 
 - **The endpoint is used EXACTLY as stored. We concatenate nothing, ever.**
   `defaultEndpoint` is a COMPLETE request URL, path included, and a user-supplied
@@ -1655,6 +1694,11 @@ system's Translate action, a shortcut, the Services menu, a region of the screen
 scope for the host app. Still out of scope, permanently: reading other apps' selections
 through the Accessibility API, Apple Events, a resident clipboard or keyboard monitor,
 and anything that observes the user when they did not invoke us.
+*(Added 2026-09-30, §2.7 — the CLI host:)* out of scope for the CLI are the surfaces that
+need a browser or media we do not have: live YouTube/podcast caption acquisition, in-page
+OCR, and microphone/system-audio capture. The CLI reads **files the user names** and text
+the user pipes in; it never watches a page, a player or a microphone. The free-grant relay
+is also out for v1 (§8.10 of `learning-design`), and the CLI sends no telemetry.
 
 **In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
 browser itself is infeasible on Safari iOS, and the learning layer's optional backend

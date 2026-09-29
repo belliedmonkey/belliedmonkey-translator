@@ -2320,6 +2320,37 @@ toast over an article.
   `translate="no"` **and** `data-mt-skip-region`, so we never translate, re-render, or
   re-capture our own interface.
 
+## 命令行 (CLI) — 2026-09-30（提案 · 待人评审）
+
+CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2.7 与
+`docs/learning-design.md` §9.10，本节定它**长什么样**。
+
+### 全局
+- 默认**双语并排**：原文一段、译文紧跟一段；`--only` 只出译文，`--json` 出结构
+  （`{src, tr, provider, ms}`）供脚本消费。
+- 结果走 stdout，进度 / 诊断走 stderr；**管道里 stdout 只有结果**。
+- 退出码：`0` 成功 · `1` 用法 / 参数错 · `2` 引擎未配置 · `3` 翻译失败（带 `code`）·
+  `4` 语料 / 文件错。失败行说人话并指向「配置引擎」。
+- 界面语言跟随系统 `LANG`，可 `--lang` 覆盖；文案源仍是 `_locales`（CLI 只取需要的几十个键，
+  与 `build/ext-bundle.js` 的 `ExtCopy` 同法，不抄第二份）。
+- **绝不回显 API key**；`config get` 对 key 打码。
+
+### 翻译命令
+- `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
+- `doc <file>`：pdf / docx / txt / md，**一页一页**翻并输出（默认 stdout，`-o` 写文件）。
+  图片页 / 扫描页 v1 CLI 不接（domain-design §2.7 / §8），**明说不支持**而不是静默跳过。
+- `batch <path>`：文件或目录逐个翻，`-o <dir>` 输出，进度走 stderr。
+- `subtitle <file.vtt|.srt>`：整份读入 → 译 → `-o` 写译文字幕（默认同名 `.zh.vtt`）。
+
+### 复习命令
+- `plan [--days N]`：打印今日牌库与未来 N 天，**只读、不写**。空库 / 无到期照「复习 /
+  Review › States」四条说清楚，不编造工作量。
+- `review`：逐张出卡，`0/1/2/3` 打分（`q` 退出并保存）；每张显示来源与本次技能（v1 只读）。
+- `import <file.mtlearn>` / `export [-o file]`：§8.2 的导出 / 导入。
+
+### 遥测
+v1 不发任何事件；见 `docs/telemetry-design.md` §2。
+
 ## General
 - **Screenshot-verify** every visual change against the built/loaded extension.
 - Don't cover more of the frame/page than necessary.
