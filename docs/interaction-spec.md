@@ -2320,7 +2320,7 @@ toast over an article.
   `translate="no"` **and** `data-mt-skip-region`, so we never translate, re-render, or
   re-capture our own interface.
 
-## 命令行 (CLI) — 2026-09-30（提案 · 待人评审）
+## 命令行 (CLI) — 2026-09-30（已评审通过）
 
 CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2.7 与
 `docs/learning-design.md` §9.10，本节定它**长什么样**。

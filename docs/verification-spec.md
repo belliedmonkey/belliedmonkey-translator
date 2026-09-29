@@ -77,7 +77,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
 | 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。**模拟器承载不了这个扩展点**（2026-09-20 量过：里面没有苹果的「翻译」App，因此没有「默认翻译App」那一行）—— 但收件箱摄入那一半可以在模拟器上验，见 §2.I | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
 | 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
-| 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 提案）。自动化门见 §3.1.13 `npm run test:cli` |
+| 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 设计通过）。自动化门见 §3.1.13 `npm run test:cli` |
 > **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
 > 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
 > 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
@@ -2160,7 +2160,7 @@ Node ≥22）。本机假 chat 端点记下**每一次请求**，断言：3 页 
 
 ⚠️ 它有**产物过期守卫**，触发时会**静默丢掉 Swift 补丁** —— 见 §0.2.2 与 §F 的记录。
 
-### 3.1.13 `npm run test:cli` — 命令行宿主端到端（未出货，2026-09-30 提案）
+### 3.1.13 `npm run test:cli` — 命令行宿主端到端（未出货，2026-09-30 设计通过）
 
 新宿主（learning-design §9.10）的三件必测，落在 `npm test` 或此门里：
 
