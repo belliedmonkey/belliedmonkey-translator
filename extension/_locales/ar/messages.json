@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "تدخل الجمل المترجمة إلى المراجعة تحت المصدر «ترجمة النظام». عند الإيقاف تستمر الترجمة، لكنها لا تُحفظ."
   },
+  "systrans_font_label": {
+    "message": "حجم النص"
+  },
+  "systrans_font_small": {
+    "message": "صغير"
+  },
+  "systrans_font_std": {
+    "message": "قياسي"
+  },
+  "systrans_font_large": {
+    "message": "كبير"
+  },
+  "systrans_font_hint": {
+    "message": "حجم النص الأصلي والمترجم في النافذة (الأزرار والملاحظات لا تتغير). يسري عند فتح النافذة مرة أخرى."
+  },
   "sys_disclose_direct": {
     "message": "يُرسَل النص المحدّد مباشرةً إلى المحرّك الذي أعددته ({name})، ولا يمر عبر خوادمنا إطلاقًا."
   },

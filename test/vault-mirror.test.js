@@ -167,6 +167,25 @@ describe('vault-mirror: 把引擎配置镜像给系统翻译扩展（I-4）', ()
     eq(JSON.stringify(snap).includes('SECRET'), false, '登录令牌绝不进快照');
   });
 
+  test('★ 弹层字号三档进快照：缺省落 1，档上的原样走（#495）', () => {
+    const { V } = load({});
+    eq(V.snapshot({ sysTranslateFontScale: '' }).nonSecret.sysTranslateFontScale, 1, "''（缺省）= 标准");
+    eq(V.snapshot({ sysTranslateFontScale: 0.85 }).nonSecret.sysTranslateFontScale, 0.85);
+    eq(V.snapshot({ sysTranslateFontScale: 1.2 }).nonSecret.sysTranslateFontScale, 1.2);
+    eq(V.snapshot({}).nonSecret.sysTranslateFontScale, 1, '没有这个键也是标准');
+  });
+
+  test('★ 弹层字号变了要重新镜像 —— 弹层下次拉起读到的是新档', async () => {
+    const { V, sent, ctx } = load({ store: { provider: 'deepseek', apiKey: 'sk-x' } });
+    V.start();
+    await new Promise((r) => setTimeout(r, 5));
+    const n = sent.length;
+    await new Promise((r) => ctx.chrome.storage.local.set({ sysTranslateFontScale: 1.2 }, r));
+    await new Promise((r) => setTimeout(r, 5));
+    ok(sent.length > n, '在 WATCH 表里');
+    eq(sent[sent.length - 1].nonSecret.sysTranslateFontScale, 1.2);
+  });
+
   // ── 收件箱（§9.9 / iOS 线 I-6）─────────────────────────────────────────────
   // 这一段守的是**别把用户翻过的句子弄丢**，以及反过来**别在用户关了开关之后还留着积压**。
 

@@ -31,10 +31,11 @@
   //   req*                    超时、重试、并发 —— translation-api 从 storage 读它们
   //   grantTail               免费额度的尾号（只为显示「额度在用」，不是令牌本身）
   //   learnEnabled/learnLangs/handoffCapture  进不进复习库，由同一套门裁定
+  //   sysTranslateFontScale   弹层字号三档（#495；0.85/1/1.2，缺省 1）
   //   flavor                  国际版 / 中国版（未配置态的主按钮不同）
   const NON_SECRET = ['provider', 'baseUrl', 'model', 'targetLang', 'uiLang',
     'reqTimeoutSec', 'reqRetries', 'reqConcurrency', 'reqBackoffMs', 'reqMaxChars',
-    'grantTail', 'learnEnabled', 'learnLangs', 'handoffCapture', 'flavor'];
+    'grantTail', 'learnEnabled', 'learnLangs', 'handoffCapture', 'sysTranslateFontScale', 'flavor'];
 
   // 读哪些原始键才能算出上面那些。`LearnNotes.resolveConfig` 的「解析引擎优先」规则
   // 留在 JS 里 —— Swift 不重写解析（§9.9：镜像的是**解析后的结果**）。
@@ -42,7 +43,7 @@
     'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel',
     'targetLang', 'uiLang', 'reqTimeoutSec', 'reqRetries', 'reqConcurrency',
     'reqBackoffMs', 'reqMaxChars', 'grantTail', 'learnEnabled', 'learnRules',
-    'handoffCapture'];
+    'handoffCapture', 'sysTranslateFontScale'];
 
   // onChanged 上哪些键变了要重新镜像。别的键变了不发 —— 每一次 sync 都是一次
   // Keychain 写入，跟着无关的键抖没有意义。
@@ -99,6 +100,8 @@
       learnEnabled: s.learnEnabled !== false,
       learnLangs: rules.langs || null,
       handoffCapture: s.handoffCapture !== false,
+      // 弹层字号（#495）：''（缺省）与 0 都落 1；传数字，Swift 侧不用再解析字符串。
+      sysTranslateFontScale: Number(s.sysTranslateFontScale) || 1,
       // 哪个 flavor：**按注册表实际内容判定，不按名字**（同 app.js 485 行那条纪律）。
       // 中国版的注册表里没有 google —— 那是 global-only 的免费通道，也是未配置态里
       // 「领免费额度」那个主按钮存在的前提。注册表哪天变了，这里自动跟着变。

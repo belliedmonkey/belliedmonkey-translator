@@ -3479,6 +3479,21 @@
   "systrans_capture_hint": {
     "message": "翻過的句子進複習，來源「系統翻譯」。關掉後照常翻譯，只是不存。"
   },
+  "systrans_font_label": {
+    "message": "彈出視窗字號"
+  },
+  "systrans_font_small": {
+    "message": "小"
+  },
+  "systrans_font_std": {
+    "message": "標準"
+  },
+  "systrans_font_large": {
+    "message": "大"
+  },
+  "systrans_font_hint": {
+    "message": "選取文字翻譯時原文與譯文的字號（按鈕與說明不變）。改完下次彈出視窗生效。"
+  },
   "sys_disclose_direct": {
     "message": "選取的文字會直接傳送給你設定的引擎（{name}），不經過我們的伺服器。"
   },

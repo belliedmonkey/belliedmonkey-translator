@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "Las frases traducidas van a repaso, con la fuente «Traducción del sistema». Si lo desactivas, la traducción sigue funcionando, solo que no se guarda."
   },
+  "systrans_font_label": {
+    "message": "Tamaño del texto"
+  },
+  "systrans_font_small": {
+    "message": "Pequeño"
+  },
+  "systrans_font_std": {
+    "message": "Estándar"
+  },
+  "systrans_font_large": {
+    "message": "Grande"
+  },
+  "systrans_font_hint": {
+    "message": "Tamaño del texto original y traducido en el panel (botones y notas no cambian). Surte efecto la próxima vez que se abra."
+  },
   "sys_disclose_direct": {
     "message": "El texto seleccionado se envía directamente al motor que configuraste ({name}); nunca pasa por nuestros servidores."
   },

@@ -15,10 +15,12 @@ function load(opts) {
   const o = opts || {};
   const store = Object.assign({}, o.store || {});
   const els = {};
-  const mk = () => ({ textContent: '', checked: false, disabled: false, hidden: false, addEventListener() {} });
+  const mk = () => ({ textContent: '', checked: false, disabled: false, hidden: false, value: '', addEventListener() {} });
   for (const id of ['g-systrans', 'systrans-title', 'systrans-state', 'systrans-intro',
     'systrans-step1', 'systrans-step2', 'systrans-step3', 'systrans-need',
-    'systrans-capture', 'systrans-capture-label', 'systrans-capture-hint']) els[id] = mk();
+    'systrans-capture', 'systrans-capture-label', 'systrans-capture-hint',
+    'systrans-font', 'systrans-font-label', 'systrans-font-small', 'systrans-font-std',
+    'systrans-font-large', 'systrans-font-hint']) els[id] = mk();
   const dual = (fn) => (arg, cb) => { const v = fn(arg); if (cb) { cb(v); return undefined; } return Promise.resolve(v); };
   const ctx = {
     console,
@@ -122,5 +124,31 @@ describe('sys-settings: 设置里「系统翻译」那一块（I-7）', () => {
       ok(m.systrans_state_ok.message.includes('{name}'), l + ' 的 systrans_state_ok 丢了 {name}');
       ok(m.systrans_state_failed.message.includes('{code}'), l + ' 的 systrans_state_failed 丢了 {code}');
     }
+  });
+
+  // ── 弹层字号（#495，2026-09-29 裁定：三档与字幕条 FONT_STEPS 同族）──────────
+  test('★ 存值落三档再显示：缺省=标准；不在档上（手改过/老版本）就近落档', async () => {
+    const a = load({ store: { sysTranslateFontScale: 1.2 }, ack: { status: 0 } });
+    await a.S.paint();
+    eq(a.els['systrans-font'].value, '1.2');
+    const b = load({ store: {}, ack: { status: 0 } });
+    await b.S.paint();
+    eq(b.els['systrans-font'].value, '1', '缺省 = 标准');
+    const c = load({ store: { sysTranslateFontScale: 1.05 }, ack: { status: 0 } });
+    await c.S.paint();
+    ok(c.els['systrans-font'].value === '1', '不在档上就近落档（1.05 → 1）');
+  });
+
+  test('★ 选档只写三档上的数（select 的 option 值就是档位），写完进 vault 快照的 READ/WATCH', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'app', 'sys-settings.js'), 'utf8');
+    ok(/sysTranslateFontScale: Number\(\$\('systrans-font'\)\.value\) \|\| 1/.test(src), 'change 落库的是档上的数');
+    const vmjs = fs.readFileSync(path.join(ROOT, 'app', 'vault-mirror.js'), 'utf8');
+    ok(vmjs.includes("'sysTranslateFontScale', 'flavor'"), 'NON_SECRET 清单里有它');
+    ok(vmjs.includes("'handoffCapture', 'sysTranslateFontScale'"), 'READ（⇒ WATCH）里有它 —— 改完立刻重新镜像');
+    const vault = fs.readFileSync(path.join(ROOT, 'app', 'native', 'translate-ext', 'ExtVault.swift'), 'utf8');
+    ok(vault.includes('"sysTranslateFontScale"'), 'Swift 侧真的读这个键');
+    const view = fs.readFileSync(path.join(ROOT, 'app', 'native', 'translate-ext', 'TranslateExt.swift'), 'utf8');
+    ok(view.includes('bodyPT * config.fontScale'), '字号 = ScaledMetric(系统 Dynamic Type) × 档位');
+    ok(!/Text\((source|translated)\)\s*\n\s*\.font\(\.body\)/.test(view), '原文/译文不再用裸 .body');
   });
 });

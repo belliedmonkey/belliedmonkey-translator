@@ -3479,6 +3479,21 @@
   "systrans_capture_hint": {
     "message": "翻过的句子进复习，来源「系统翻译」。关掉后照常翻译，只是不存。"
   },
+  "systrans_font_label": {
+    "message": "弹层字号"
+  },
+  "systrans_font_small": {
+    "message": "小"
+  },
+  "systrans_font_std": {
+    "message": "标准"
+  },
+  "systrans_font_large": {
+    "message": "大"
+  },
+  "systrans_font_hint": {
+    "message": "选中文字翻译时原文与译文的字号（按钮与说明不变）。改完下次弹层生效。"
+  },
   "sys_disclose_direct": {
     "message": "选中的文字会直接发送给你配置的引擎（{name}），不经过我们的服务器。"
   },

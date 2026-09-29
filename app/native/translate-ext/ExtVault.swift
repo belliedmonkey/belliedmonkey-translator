@@ -15,6 +15,9 @@ struct MTExtConfig {
     var flavor = "global"
     var learnEnabled = true
     var handoffCapture = true
+    /// 弹层字号（#495，2026-09-29 裁定）：三档 0.85 / 1 / 1.2，与字幕条的 FONT_STEPS
+    /// 同族。缺省 1（标准）；只缩放原文+译文正文，叠加系统 Dynamic Type（相乘）。
+    var fontScale: CGFloat = 1
     /// 没配引擎。判据留给 JS（EngineState.needsSetup，与设置页、Mac 面板同一个函数）——
     /// 这里只在**连快照都没有**时抢答，那是「App 还没同步过来」，不是「没配」。
     var hasSnapshot = false
@@ -30,6 +33,9 @@ struct MTExtConfig {
         c.flavor = (obj["flavor"] as? String) ?? "global"
         c.learnEnabled = (obj["learnEnabled"] as? Bool) ?? true
         c.handoffCapture = (obj["handoffCapture"] as? Bool) ?? true
+        // 快照给的是数字；不在合理区间（手改过 / 损坏）就落回标准档，不猜。
+        let fs = (obj["sysTranslateFontScale"] as? NSNumber)?.doubleValue ?? 1
+        c.fontScale = (fs > 0.5 && fs <= 2) ? CGFloat(fs) : 1
 
         var seed: [String: Any] = [
             "provider": c.provider,

@@ -113,6 +113,10 @@ const SETTINGS_SCHEMA = (() => {
     // 所以 default: true 本身就是有效值，不需要播种。
     quickEnabled:    { default: true,  surfaces: ['app'] },
     handoffCapture:  { default: true,  surfaces: ['handoff'] },
+    // 系统翻译弹层字号（#495，2026-09-29 裁定）：三档 0.85 / 1 / 1.2，与字幕条的
+    // FONT_STEPS 同族（listen-core.js）。''=标准。只缩放弹层里原文+译文正文，叠加
+    // 系统 Dynamic Type（相乘）；经 vault 快照传给扩展，改完**下次**弹层生效。
+    sysTranslateFontScale: { default: '', surfaces: ['app', 'handoff'] },
     // ── listen mode / live subtitles ──────────────────────────────────────
     // 六键 App 设置页也读写（旧 app/settings.js KEYS → src/app/settings-model.js）：
     // 对话页底部两个下拉与设置页这两个是**同一份设置**（learning-design §9.6）。
