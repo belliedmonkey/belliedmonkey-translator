@@ -2339,10 +2339,14 @@ CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2
 - `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
   `--capture` 时把这段 `(原文, 译文)` 按句采集进本地语料（默认**关**；采集是 sink，绝不改译文，
   §3 law 1）；采集结果与「跳过几对」打一行 stderr。
-- `doc <file>`：pdf / docx / txt / md，**一页一页**翻并输出（默认 stdout，`-o` 写文件）。
+- `doc <file> [--pages <N|A-B|列表>]`：pdf / docx / txt / md，**打开一页翻一页**（§2.5 规则 4）——
+  **默认只翻第 1 页**，要更多页必须显式给 `--pages`（如 `1-3`、`2`、`1,3-5`）；**没有「翻整份」**。
+  默认 stdout，`-o` 写文件；页数多于本次范围时在 stderr 说明还剩多少页。
   图片页 / 扫描页 v1 CLI 不接（domain-design §2.7 / §8），**明说不支持**而不是静默跳过。
-- `batch <path>`：文件或目录逐个翻，`-o <dir>` 输出，进度走 stderr。
-- `subtitle <file.vtt|.srt>`：整份读入 → 译 → `-o` 写译文字幕（默认同名 `.zh.vtt`）。
+- `subtitle <file.vtt|.srt> [--only] [-o <file>]`：整份读入 → 逐条翻译 → 输出译文字幕
+  （保持时间轴；默认双语两行，`--only` 只出译文；不给 `-o` 输出到 stdout）。
+- `batch <file|dir> [--pages <spec>] [-o <dir>]`：文件或目录逐个翻，默认每个文档同样只翻第 1 页；
+  `-o` 给目录则逐个写文件（`<名>.<lang>.<ext>`），否则拼接输出到 stdout；每个文件一行进度走 stderr。
 
 ### 复习命令
 - `plan [--days N]`：打印今日牌库与未来 N 天，**只读、不写**。空库 / 无到期照「复习 /

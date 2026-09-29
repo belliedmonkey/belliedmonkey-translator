@@ -30,6 +30,7 @@ const OPTIONS = {
   corpus: { type: 'string' },
   state: { type: 'string' },
   code: { type: 'string' },
+  pages: { type: 'string' },
   out: { type: 'string', short: 'o' },
   days: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
@@ -43,6 +44,9 @@ function usage() {
     '用法：',
     `  ${NAME} translate [文本|-] [--lang <语言码>] [--only] [--json] [--capture]   翻译（缺省读 stdin）`,
     `  ${NAME} detect [文本|-]                                        识别语言`,
+    `  ${NAME} doc <file> [--pages 1-3] [-o <file>]                   文档翻译（pdf/docx/txt/md，默认只翻第 1 页）`,
+    `  ${NAME} subtitle <file.vtt|.srt> [--only] [-o <file>]          本地字幕翻译`,
+    `  ${NAME} batch <file|dir> [--pages 1] [-o <dir>]                批量翻译文件 / 目录`,
     `  ${NAME} providers                                              列出可用引擎`,
     `  ${NAME} plan [--days N]                                        今日牌库 + 未来 N 天（只读）`,
     `  ${NAME} review                                                 交互式复习（0-3 打分，q 保存退出）`,
@@ -54,8 +58,8 @@ function usage() {
     `  ${NAME} sync                                                   同步语料（登录后）`,
     `  ${NAME} config get [键] / set <键> <值> / path                  配置（key 打码）`,
     '',
-    '选项：--lang <code> · --only · --json · --capture（翻译时采集进语料）·',
-    '      --corpus <file> · --state <file> · --code <N> · -o/--out <file> ·',
+    '选项：--lang <code> · --only · --json · --capture（翻译时采集进语料）· --pages <N|A-B|列表> ·',
+    '      --corpus <file> · --state <file> · --code <N> · -o/--out <file|dir> ·',
     '      --days <N> · --ui-lang <code>',
     `版本：${VERSION}`,
   ].join('\n');
@@ -114,6 +118,92 @@ async function cmdTranslate(positionals, values) {
     await corpus.save();
     stderr(`已采集 +${res.added} 张（跳过 ${res.skipped}），语料 ${corpus.path}`);
   }
+}
+
+// ── 文档 / 字幕 / 批量（Phase 3）：翻译引擎来自 dist-cli/engine.js（同一份传输）──
+function makeTranslate(eng, cfg, values) {
+  return (t, o) => eng.translate(t, Object.assign({ uiLang: uiLang(cfg, values) }, o || {}));
+}
+
+function renderDoc(res, values) {
+  const lines = [];
+  for (const pg of res.out) {
+    lines.push(`— 第 ${pg.page} 页 —`);
+    if (pg.scanned) { lines.push('（本页无文本层：扫描页，CLI v1 不识别图片 —— domain-design §2.7 / §8）'); lines.push(''); continue; }
+    for (const u of pg.units) {
+      if (!values.only) lines.push(u.src);
+      lines.push(u.tr || '');
+      lines.push('');
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
+async function cmdDoc(positionals, values) {
+  const file = positionals[1];
+  if (!file) { stderr(`用法：${NAME} doc <file> [--pages 1-3] [-o <file>]`); process.exit(1); }
+  const { engine: eng, cfg } = engine();
+  const { translateDoc } = require('../doc.js');
+  let res;
+  try { res = await translateDoc(file, values.pages, makeTranslate(eng, cfg, values), { lang: values.lang }); }
+  catch (e) { stderr(`${NAME}: 文档错误${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`); process.exit(4); }
+  const text = values.json ? JSON.stringify(res) + '\n' : renderDoc(res, values);
+  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(`${NAME}: 已写入 ${o}`); }
+  else process.stdout.write(text);
+  if (res.total > res.range.length) stderr(`（共 ${res.total} 页，本次翻了 ${res.range.join(',') || '无'}；要更多页给 --pages）`);
+}
+
+async function cmdSubtitle(positionals, values) {
+  const file = positionals[1];
+  if (!file) { stderr(`用法：${NAME} subtitle <file.vtt|.srt> [--only] [-o <file>]`); process.exit(1); }
+  const { engine: eng, cfg } = engine();
+  const { translateSubtitle, toVtt, toSrt, fmtText } = require('../subtitle.js');
+  let res;
+  try { res = await translateSubtitle(file, makeTranslate(eng, cfg, values), { lang: values.lang }); }
+  catch (e) { stderr(`${NAME}: 字幕错误 ${(e && e.message) || e}`); process.exit(4); }
+  const ext = path.extname(file).toLowerCase();
+  const text = values.json ? JSON.stringify(res.cues) + '\n'
+    : ext === '.srt' ? toSrt(res.cues, values.only)
+      : ext === '.vtt' ? toVtt(res.cues, values.only)
+        : fmtText(res.cues, values.only);
+  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(`${NAME}: 已写入 ${o}`); }
+  else process.stdout.write(text);
+}
+
+async function cmdBatch(positionals, values) {
+  const target = positionals[1];
+  if (!target) { stderr(`用法：${NAME} batch <file|dir> [--pages 1] [-o <dir>]`); process.exit(1); }
+  const { engine: eng, cfg } = engine();
+  const { collect, SUB_EXT } = require('../batch.js');
+  const { translateDoc } = require('../doc.js');
+  const { translateSubtitle, toVtt, toSrt, fmtText } = require('../subtitle.js');
+  let files;
+  try { files = collect(target); } catch (e) { stderr(`${NAME}: 找不到 ${target}`); process.exit(4); }
+  if (!files.length) { stderr(`${NAME}: 没有可翻的文件（pdf/docx/txt/md/vtt/srt）`); process.exit(1); }
+  const outDir = values.out ? path.resolve(values.out) : null;
+  if (outDir) fs.mkdirSync(outDir, { recursive: true });
+  const translate = makeTranslate(eng, cfg, values);
+  const suffix = values.lang || 'out';
+  let done = 0, failed = 0;
+  for (const f of files) {
+    try {
+      let text, outExt;
+      if (SUB_EXT.test(f)) {
+        const res = await translateSubtitle(f, translate, { lang: values.lang });
+        const ext = path.extname(f).toLowerCase();
+        text = ext === '.srt' ? toSrt(res.cues, values.only) : ext === '.vtt' ? toVtt(res.cues, values.only) : fmtText(res.cues, values.only);
+        outExt = ext;
+      } else {
+        text = renderDoc(await translateDoc(f, values.pages, translate, { lang: values.lang }), values);
+        outExt = '.txt';
+      }
+      if (outDir) fs.writeFileSync(path.join(outDir, path.basename(f, path.extname(f)) + '.' + suffix + outExt), text);
+      else process.stdout.write(text);
+      done++; stderr(`✓ ${path.basename(f)}`);
+    } catch (e) { failed++; stderr(`✗ ${path.basename(f)}: ${e && e.code ? e.code + ' ' : ''}${(e && e.message) || e}`); }
+  }
+  stderr(`完成 ${done} · 失败 ${failed}`);
+  if (failed && !done) process.exit(4);
 }
 
 async function openCorpus(values) {
@@ -312,6 +402,9 @@ async function main() {
   switch (cmd) {
     case 'translate': return cmdTranslate(positionals, values);
     case 'detect': return cmdDetect(positionals, values);
+    case 'doc': return cmdDoc(positionals, values);
+    case 'subtitle': return cmdSubtitle(positionals, values);
+    case 'batch': return cmdBatch(positionals, values);
     case 'providers': return cmdProviders(values);
     case 'plan': return cmdPlan(positionals, values);
     case 'review': return cmdReview(positionals, values);

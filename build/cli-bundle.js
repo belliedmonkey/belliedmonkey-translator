@@ -78,6 +78,21 @@ function buildCliBundle(outDir, log, opts) {
   const out = parts.join('\n');
   fs.writeFileSync(path.join(outDir, 'engine.js'), out);
   if (log) log(`  ✓ engine.js（${MODULES.length} 个模块，${Math.round(out.length / 1024)} KB）`);
+
+  // vendored pdf.js 跟着产物走（文档翻译在 Node 里用它读文本层，cli/pdfjs.js 优先从这里加载）。
+  // 文件**逐字节拷贝**，不改 —— AMO 会比对第三方库哈希（与 extension/vendor 同一条纪律）。
+  const vt = path.join(ROOT, 'extension', 'vendor', 'pdfjs', 'legacy');
+  if (fs.existsSync(vt)) {
+    const vd = path.join(outDir, 'vendor', 'pdfjs', 'legacy');
+    fs.mkdirSync(vd, { recursive: true });
+    for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) {
+      const src = path.join(vt, f);
+      if (fs.existsSync(src)) fs.copyFileSync(src, path.join(vd, f));
+    }
+    if (log) log('  ✓ vendor/pdfjs/legacy（文本层用，2 文件）');
+  } else if (log) {
+    log('  · extension/vendor/pdfjs 不存在，跳过（PDF 文档翻译将不可用）');
+  }
   return out.length;
 }
 
