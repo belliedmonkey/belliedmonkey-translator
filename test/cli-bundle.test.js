@@ -241,4 +241,17 @@ describe('cli-bin: 启动器端到端（本地端点，§3.1.13）', () => {
     eq(r.code, 0);
     ok(/deepseek/.test(r.stdout), '注册表里要有引擎');
   });
+
+  test('★ 仓库根 ./bm 是等价短入口', () => {
+    const bm = path.join(ROOT, 'bm');
+    ok(fs.existsSync(bm), './bm 要存在');
+    ok((fs.statSync(bm).mode & 0o111) !== 0, './bm 要可执行');
+    return new Promise((resolve, reject) => {
+      execFile(process.execPath, [bm, '--version'], (err, stdout) => {
+        if (err) return reject(err);
+        try { ok(/\d+\.\d+\.\d+/.test(stdout), 'bm --version 要出版本号，实际 ' + stdout); resolve(); }
+        catch (e) { reject(e); }
+      });
+    });
+  });
 });

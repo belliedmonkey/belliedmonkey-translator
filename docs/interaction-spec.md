@@ -2325,6 +2325,8 @@ toast over an article.
 CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2.7 与
 `docs/learning-design.md` §9.10，本节定它**长什么样**。
 
+**调用名**：`belliedmonkey`（安装后），以及**等价的短入口 `bm`**（仓库根 `./bm`，或 `npm link` 后直接敲 `bm`）。两者同一实现。
+
 ### 全局
 - 默认**双语并排**：原文一段、译文紧跟一段；`--only` 只出译文，`--json` 出结构
   （`{src, tr, provider, ms}`）供脚本消费。

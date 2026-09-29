@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+// bm — 大肚猴翻译 CLI 的短入口。等价于 `node cli/bin/belliedmonkey.js`，用法逐字相同：
+//   ./bm translate "Hello." --only
+//   ./bm plan && ./bm sync
+// 装到 PATH（`npm link`，package.json 的 bin 里有 bm）后直接敲 `bm`。
+//
+// require 的相对路径按**本文件所在目录**解析，所以从任何 cwd 调用都对。
+require('./cli/bin/belliedmonkey.js');

@@ -62,6 +62,8 @@ function usage() {
     '      --corpus <file> · --state <file> · --code <N> · -o/--out <file|dir> ·',
     '      --days <N> · --ui-lang <code>',
     `版本：${VERSION}`,
+    '',
+    '短入口：仓库根目录的 ./bm（等价），或 `npm link` 后用 `bm`。',
   ].join('\n');
 }
 

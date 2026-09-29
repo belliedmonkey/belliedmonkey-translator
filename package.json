@@ -4,7 +4,8 @@
   "description": "Safari iOS browser extension for bilingual translation — fully open source, free, configurable LLM APIs",
   "license": "GPL-3.0-or-later",
   "bin": {
-    "belliedmonkey": "cli/bin/belliedmonkey.js"
+    "belliedmonkey": "cli/bin/belliedmonkey.js",
+    "bm": "cli/bin/belliedmonkey.js"
   },
   "scripts": {
     "test": "node test/run.js",
