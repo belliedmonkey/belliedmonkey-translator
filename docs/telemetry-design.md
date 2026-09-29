@@ -72,6 +72,10 @@ If a proposed event does not serve one of these rows, it does not go in.
    转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
    且服务器上没有任何一列能把 `install_id` 连到 `bt_grants`。
 
+**8. 命令行宿主（CLI，2026-09-30 设计通过）v1 不发任何事件。** 它是新的 `host` 值（`cli`）的候选，
+但 v1 不实现遥测模块：没有 `install_id`、没有心跳、没有 `translate_ok`。将来若要发，先在这里进
+白名单、过 §6 Gate D，再写代码 —— 与「事件集是白名单」（原则 5）同一条。
+
 ## 3. Event whitelist v1
 
 **On every event:** `install_id` · `ts` (client time, rounded to the minute) · `v`
