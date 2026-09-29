@@ -1404,6 +1404,14 @@ nameLengthGate(DIST);
   legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]
     .concat(fs.existsSync(path.join(ROOT, 'src')) ? [path.join(ROOT, 'src')] : []));
   if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
+
+  // 命令行宿主的引擎（learning-design §9.10 / domain-design §2.7）。与 App / 系统翻译扩展
+  // 同一条 flavor 纪律：中国版从 dist-china/ 取生成物，并过同一道合规门。产物是 Node 目标，
+  // 不进 OS-floor（Safari）那道门 —— 那条下限管的是浏览器，与 CLI 无关。
+  const { buildCliBundle } = require('./build/cli-bundle.js');
+  const CLI_OUT = FLAVOR === 'china' ? 'dist-cli-china' : 'dist-cli';
+  buildCliBundle(path.join(ROOT, CLI_OUT), log, FLAVOR === 'china' ? { genRoot: DIST } : {});
+  if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, CLI_OUT), CLI_OUT);
 }
 
 // ─── 系统下限的解析期语法门（build/os-floor.config.js）────────────────────
