@@ -127,6 +127,7 @@ function main() {
     console.log(`  ✓ ${a.pkg}/${a.slice}/${a.name}`);
   }
   normalizeIosMinOS(checkOnly, problems);
+  normalizeMacosBundleShape(checkOnly, problems);
   // Swift 包装源
   if (!(fs.existsSync(SHERPA_SWIFT.dst) && sha256(SHERPA_SWIFT.dst) === SHERPA_SWIFT.sha256)) {
     if (checkOnly) problems.push('SherpaOnnx.swift 缺失或校验和不符');
@@ -182,5 +183,71 @@ function normalizeIosMinOS(checkOnly, problems) {
   }
 }
 
+// macOS 切片里各 .framework 的符号链接整理（ITMS-90332，issue #500）。
+//
+// 2026-09-28 发版实测：上游 csukuangfj/onnxruntime-libs 09-17 重打的 macOS 切片在 Versions/A 里
+// 带三条解析不了的符号链接 —— Versions/A/A（自指循环）、Versions/A/Headers/Headers 与
+// Versions/A/Resources/Resources（按自身目录解析后悬空）。altool 上传报「No errors」（那只覆盖
+// 传输），ASC 侧 build 静默消失、不进 PROCESSING，只有收件箱「Action needed」邮件里躺着
+// ITMS-90332。当天手工删链接救急；这里根治：解压后自动做同样的事，每次跑都重判，幂等。
+//
+// 判定按「链接解析后是否存在」（悬空与自指循环 fs.existsSync 都为假），不点名三条路径 ——
+// 上游再重打时坏链可能换名字。规则只有两条：
+//   · Versions/<ver>/ 内部解析不了的链接：删（就是那次的三条）；
+//   · 其它位置（框架顶层四链接、Versions/Current）解析不了：**不删**，报问题 —— 那说明上游
+//     换了形状，删顶层链接只会把「形状坏了」变成「文件丢了」。macOS 合法形状不止一种
+//     （deep bundle 与扁平都行），所以这道门只钉「没有解析不了的链接」，不钉骨架。
+function normalizeMacosBundleShape(checkOnly, problems, vendorDir = VENDOR) {
+  for (const a of ARTIFACTS.filter((x) => x.slice === 'macos')) {
+    const xc = path.join(vendorDir, a.pkg, a.slice, a.name);
+    if (!fs.existsSync(xc)) continue;
+    for (const slice of fs.readdirSync(xc)) {
+      const sliceDir = path.join(xc, slice);
+      if (!fs.statSync(sliceDir).isDirectory()) continue;
+      for (const fw of fs.readdirSync(sliceDir).filter((n) => n.endsWith('.framework'))) {
+        normalizeOneMacosFramework(path.join(sliceDir, fw), `${a.pkg}/${a.slice}/${a.name}/${slice}/${fw}`, checkOnly, problems);
+      }
+    }
+  }
+}
+
+// 收集一个 framework 里全部符号链接（不跟进 —— 跟进会在自指循环上转圈）。
+function frameworkSymlinks(fwDir) {
+  const out = [];
+  const walk = (d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isSymbolicLink()) out.push(p);
+      else if (e.isDirectory()) walk(p);
+    }
+  };
+  walk(fwDir);
+  return out;
+}
+
+function normalizeOneMacosFramework(fwDir, where, checkOnly, problems) {
+  const rel = (p) => path.relative(fwDir, p);
+  const links = frameworkSymlinks(fwDir);
+  const junk = new Set();
+  for (const link of links) {
+    if (fs.existsSync(link)) continue; // 解析得了的不归这道门管
+    // 链接自身在 Versions/<ver>/ 或更深才算内部垃圾；顶层与 Versions/ 直下（如 Current 选择符）是
+    // 结构位，走下面的只报不删。parent 相对深度 ≥2 ⇔ 链接至少在某个版本目录之内。
+    const depthInVersions = rel(link).split(path.sep)[0] === 'Versions' && rel(path.dirname(link)).split(path.sep).length >= 2;
+    if (depthInVersions) junk.add(link);
+  }
+  for (const link of junk) {
+    if (checkOnly) { problems.push(`${where}: 符号链接 ${rel(link)} 悬空/自指（ITMS-90332：上传后 ASC 静默拒包）—— 跑 node scripts/fetch-native-deps.js 修`); continue; }
+    fs.unlinkSync(link);
+    console.log(`  ✓ ${where}: 删悬空/自指符号链接 ${rel(link)}`);
+  }
+  // 结构校验（只报，不删）：除内部垃圾外，框架里仍不许有解析不了的链接 —— 顶层结构坏了说明
+  // 上游换了形状，删顶层链接只会把「形状坏了」变成「文件丢了」。
+  for (const link of links) {
+    if (junk.has(link) || fs.existsSync(link)) continue;
+    problems.push(`${where}: 结构符号链接 ${rel(link)} 解析不了 —— 上游形状变了，先比对 #500 记录的形状再定`);
+  }
+}
+
 if (require.main === module) main();
-module.exports = { ARTIFACTS, SHERPA_SWIFT, PACKAGE_SWIFT, VENDOR, SHERPA_VERSION, ORT_VERSION, normalizeIosMinOS };
+module.exports = { ARTIFACTS, SHERPA_SWIFT, PACKAGE_SWIFT, VENDOR, SHERPA_VERSION, ORT_VERSION, normalizeIosMinOS, normalizeMacosBundleShape };

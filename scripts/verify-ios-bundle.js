@@ -155,6 +155,35 @@ function checkPbxprojDirs() {
   return ok;
 }
 
+// ITMS-90332（issue #500）：.app 里带悬空/自指符号链接，altool 上传报「No errors」（只覆盖传输），
+// ASC 侧 build 静默消失、不进 PROCESSING，只有收件箱「Action needed」邮件知道。1.18.0 发版当天
+// onnxruntime 的 macOS 切片就这么丢了两个 build。fetch-native-deps.js 已在解压后根治源头；这道门
+// 是**归档后**的最后一道 —— .app（含其内嵌的 .appex / Frameworks）里任何解析不了的符号链接都是
+// 缺陷，在这里红，别等苹果的邮件。合法符号链接（Versions/Current、顶层四链接）都解析得了，不会误伤。
+function checkBundleSymlinks(app) {
+  const bad = [];
+  const stack = [app];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { continue; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (e.isSymbolicLink()) { if (!fs.existsSync(p)) bad.push(path.relative(app, p)); } // 悬空与自指循环都是 false
+      else if (e.isDirectory()) stack.push(p); // 不跟进符号链接：既防循环，也防走出 .app
+    }
+  }
+  if (bad.length) {
+    console.error(`✗ ${path.basename(app)} 里有 ${bad.length} 条悬空/自指符号链接（ITMS-90332：上传后 ASC 静默拒包）：`);
+    for (const b of bad.slice(0, 20)) console.error('    ' + b);
+    if (bad.length > 20) console.error(`    …还有 ${bad.length - 20} 条`);
+    console.error('  修法：node scripts/fetch-native-deps.js（解压后自动整理），然后重新归档。');
+    return false;
+  }
+  console.log(`✓ ${path.basename(app)} 无悬空/自指符号链接（ITMS-90332 门）`);
+  return true;
+}
+
 function main() {
   // Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
   // (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
@@ -200,9 +229,10 @@ function main() {
     process.exit(1);
   }
   if (!checkBackgroundAudio(app, appex)) process.exit(1);
+  if (!checkBundleSymlinks(app)) process.exit(1);
   if (!checkPbxprojDirs()) process.exit(1);
 }
 
 if (require.main === module) main();
 
-module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs };
+module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs, checkBundleSymlinks };
