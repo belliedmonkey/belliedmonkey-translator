@@ -514,6 +514,27 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 - [ ] **素材与网络。** 播客/听译要学习卡（模拟器 `LearnStore.putItem` 播种带 `text`+`tr`；真机登录同步）；
   语音包下载 china 关 VPN（ModelScope）、intl 走 GitHub（境内需代理，或反向验失败分支）。
 
+### 9.0.1 驱动配方（2026-09-30 模拟器实测踩实；runner 与证据在 `.local/regress-1.19.0/runner/`）
+
+- **驱动方式**：XCUITest 走**无障碍树**（`app.webViews.buttons/staticTexts` 按文案匹配），坐标兜底点击。
+  runner 脚本 `run-ob.sh`（单用例 + 卸载重装 + 证据导出）与 `seed-tts.sh`（存储播种）在本 worktree 的 `.local`，
+  **不进仓库**——它们是本机驱动件，不是产物。
+- **模拟器 locale ≠ flavor**：国际版模拟器也可能是中文 locale（2026-09-30 实测），文案锚点一律**双语匹配**，
+  否则「语言不对」会误报成「界面没出现」。
+- **容器 label 会把子元素文案拼起来**：`CONTAINS firstMatch` 可能命中容器，tap 落点滑到邻居（中国版「听」那次
+  点了没反应、界面停在 welcome）。匹配顺序固定为「按钮·精确 label → 任意·精确 → 按钮·CONTAINS → 任意·CONTAINS」。
+- **屏外元素在树里但点不动**：WKWebView 长页里，断言能读到屏外文本，点击前必须先滑动到 `isHittable`
+  （`tapAny` 内置最多 8 次 swipeUp）。断言与点击的可见性口径**不是同一件事**。
+- **WKWebView 的 `<select>` 驱动不了**（无障碍里只是一个 label=字段名的按钮，点了不出 picker）⇒ 需要「先选引擎」
+  才能验的面（语音包等）用**直写 localStorage 播种**绕过：值为 `JSON.stringify(v)` 的 **UTF-16LE**，
+  键带 `mt:` 前缀，位置 `…/Library/WebKit/<bundle>/WebsiteData/Default/<hash>/<hash>/LocalStorage/localstorage.sqlite3`，
+  **必须在 App 未运行时写**（App 在跑会以内存缓存覆盖）。引擎键：`mt:ttsEngine` = `"device"`。
+  播种后 `OB_SKIP_FRESH=1` 跑用例（跳过一次性的卸载重装，保住种子）。
+- **快结束的状态不许只盯瞬间**：129 MB 离线模型实测 <30 s 装完，「正在下载」可能一闪而过 ——
+  判据写成「见过进度 **或** 已安装」，只有「下载失败」与「一直没动静」才是红。
+- **证据**：`XCTAttachment(.keepAlways)` 截图 → xcresult → `xcresulttool export attachments` 导出并按
+  manifest 重命名为可读名，每用例一个子目录（`.local/regress-1.19.0/{onboard,deep}/<面>/shots/<用例>/`）。
+
 ### 9.1 新手引导（App OB：welcome → [signin·后端开] → firstuse → ext）
 
 - [ ] **全新安装·意图「都要」全流程。** 选「读网页 + 听，都要」→ **直送 ext 屏**（跳过
