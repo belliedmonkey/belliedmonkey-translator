@@ -2884,9 +2884,6 @@
   "subtitle_need_key_go": {
     "message": "去设置里填写 →"
   },
-  "subtitle_need_os": {
-    "message": "系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来"
-  },
   "subtitle_title": {
     "message": "实时字幕"
   },

@@ -998,7 +998,8 @@ baseline promises. Rule 2 applied literally: the page asks the native bridge onc
 request the bridge has not reported, because an older native shell would silently
 ignore the field and open the microphone instead. Degradation is **named**, under the
 same carve-out as the fourth instance (the user opted in by tapping the entry): the
-entry is greyed with the reason (no live engine / no key /「系统声音字幕需要 macOS 14.4 或更新」),
+entry is greyed with the reason (no live engine / no key /「对话 · 实时字幕需要 iOS 26 / macOS 26」; the
+macOS 14.4 line was removed 2026-09-29 — the on-device recognizer's iOS/macOS 26 floor always gates first),
 a denied permission is a named line with the path to System Settings, and on iOS
 phase 1 the headphones case is named because the microphone cannot hear it.
 

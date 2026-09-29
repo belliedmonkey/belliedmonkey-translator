@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "設定で入力 →"
   },
-  "subtitle_need_os": {
-    "message": "システム音声の字幕には macOS 14.4 以降が必要です —— または「会話」でスピーカーから音を出してください"
-  },
   "subtitle_title": {
     "message": "ライブ字幕"
   },

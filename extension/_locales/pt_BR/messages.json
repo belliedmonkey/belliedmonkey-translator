@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "Adicionar nos Ajustes →"
   },
-  "subtitle_need_os": {
-    "message": "Legendas do áudio do sistema exigem macOS 14.4 ou mais recente — ou use “Conversa” tocando o som pelos alto-falantes"
-  },
   "subtitle_title": {
     "message": "Legendas ao vivo"
   },

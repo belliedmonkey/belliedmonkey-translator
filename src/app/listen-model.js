@@ -234,8 +234,13 @@ const listenModel = (() => {
       };
       if (reason && reason !== 'hidden') {
         subs.needShown = true;
-        subs.needWhy = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
-          : needText(reason === 'locale' ? 'locale' : 'os');
+        // 2026-09-29 清理（1.19.0）：删掉了「系统声音字幕需要 macOS 14.4 或更新」那句 ——
+        // 2026-09-17 §9.6 修订后实时转写只走设备内置识别器（iOS/macOS 26 下限），而 26 ≥ 14.4，
+        // 所以 caps.system='os' 只可能出现在 deviceOk=false 的机器上，那时 entryGate 先回
+        // 'device-os'，这里显示的已经是 needText('os') 那句**真**的「需要 iOS 26 / macOS 26」。
+        // 万一未来哪条路真把 'os' 送进来（deviceOk=true 而 caps 却说 'os'），也落同一句，
+        // 不再有第二份版本号要维护。
+        subs.needWhy = needText(reason === 'locale' ? 'locale' : 'os');
       }
       // 两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），首页只说一次 —— 同一句连写两遍像出错了
       // （用户 2026-09-15 裁定「合成一句」）。留对话那一行：它在上面，「去设置里选择 →」去的是同一个地方。
@@ -836,8 +841,7 @@ const listenModel = (() => {
     if (inc) inc.reset();
     partial = ''; partialTr = '';
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
-    const msg = reason === 'os' ? t('subtitle_need_os', '系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来')
-      : reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
+    const msg = reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
         ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
         : t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。'))
@@ -845,7 +849,9 @@ const listenModel = (() => {
       : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
       : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
       : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。').replace('{why}', why1)
-      : reason === 'device' ? needText(why1 === 'locale' ? 'locale' : 'os')
+      // 'os' 与 'device' 同归 needText（2026-09-29 清理）：那句「macOS 14.4」已删 —— 26 下限
+      // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
+      : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
     note(msg, true);
     subState(reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');

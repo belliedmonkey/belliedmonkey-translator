@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "L’ajouter dans les réglages →"
   },
-  "subtitle_need_os": {
-    "message": "Les sous-titres du son système nécessitent macOS 14.4 ou plus récent — ou utilisez « Conversation » en diffusant le son sur les haut-parleurs"
-  },
   "subtitle_title": {
     "message": "Sous-titres en direct"
   },

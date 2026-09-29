@@ -2716,9 +2716,6 @@
   "subtitle_need_key_go": {
     "message": "सेटिंग्स में भरें →"
   },
-  "subtitle_need_os": {
-    "message": "सिस्टम ऑडियो के सबटाइटल के लिए macOS 14.4 या नया चाहिए — या «बातचीत» में आवाज़ स्पीकर से चलाएँ"
-  },
   "subtitle_title": {
     "message": "लाइव सबटाइटल"
   },
