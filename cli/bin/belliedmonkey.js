@@ -28,6 +28,8 @@ const OPTIONS = {
   json: { type: 'boolean' },
   capture: { type: 'boolean' },
   corpus: { type: 'string' },
+  state: { type: 'string' },
+  code: { type: 'string' },
   out: { type: 'string', short: 'o' },
   days: { type: 'string' },
   help: { type: 'boolean', short: 'h' },
@@ -46,10 +48,15 @@ function usage() {
     `  ${NAME} review                                                 交互式复习（0-3 打分，q 保存退出）`,
     `  ${NAME} import <file.mtlearn>                                  合并一份导出进本地语料`,
     `  ${NAME} export [-o <file>]                                     导出本地语料`,
+    `  ${NAME} login <邮箱|手机号> [--code <六位码>]                   登录（同步用）`,
+    `  ${NAME} logout                                                 退出登录`,
+    `  ${NAME} whoami                                                 当前登录身份`,
+    `  ${NAME} sync                                                   同步语料（登录后）`,
     `  ${NAME} config get [键] / set <键> <值> / path                  配置（key 打码）`,
     '',
     '选项：--lang <code> · --only · --json · --capture（翻译时采集进语料）·',
-    '      --corpus <file> · -o/--out <file> · --days <N> · --ui-lang <code>',
+    '      --corpus <file> · --state <file> · --code <N> · -o/--out <file> ·',
+    '      --days <N> · --ui-lang <code>',
     `版本：${VERSION}`,
   ].join('\n');
 }
@@ -171,6 +178,73 @@ async function cmdExport(positionals, values) {
   process.stdout.write(r.path + '\n');
 }
 
+// ── 账号与同步（Phase 2b）：复用 learn/auth.js + learn/sync.js（§9.10）──────
+function isChina() { return process.env.BM_CLI_FLAVOR === 'china'; }
+function refuseChina(cmd) {
+  if (!isChina()) return;
+  stderr(`${NAME}: 中国版 CLI 的 ${cmd} 尚未开放 —— 跨境同步需单独评估（对齐扩展侧中国版 sync 关闭）`);
+  process.exit(2);
+}
+function setupSync(corpus, values) {
+  const { setup } = require('../sync-runtime.js');
+  return setup(corpus, { flavor: isChina() ? 'china' : 'global', stateFile: values.state });
+}
+
+async function cmdLogin(positionals, values) {
+  refuseChina('login');
+  const who = positionals[1];
+  if (!who) { stderr(`用法：${NAME} login <邮箱|手机号> [--code <六位码>]`); process.exit(1); }
+  const rt = setupSync(await openCorpus(values), values);
+  try {
+    if (!values.code) {
+      await rt.auth.signIn(who);
+      rt.saveState();
+      process.stderr.write(`${NAME}: 验证码已发往 ${who}\n`);
+      process.stderr.write(`  收到后跑：${NAME} login ${who} --code <六位码>\n`);
+      return;
+    }
+    const sess = await rt.auth.verify(who, values.code);
+    rt.saveState();
+    process.stdout.write(`已登录：${rt.auth.displayName(sess) || sess.userId}\n`);
+  } catch (e) {
+    stderr(`${NAME}: 登录失败${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`);
+    process.exit(5);
+  }
+}
+
+async function cmdLogout(positionals, values) {
+  refuseChina('logout');
+  const rt = setupSync(await openCorpus(values), values);
+  try { await rt.auth.signOut(); rt.saveState(); process.stdout.write('已退出登录\n'); }
+  catch (e) { stderr(`${NAME}: 退出失败 ${(e && e.message) || e}`); process.exit(5); }
+}
+
+async function cmdWhoami(positionals, values) {
+  refuseChina('whoami');
+  const rt = setupSync(await openCorpus(values), values);
+  const s = await rt.auth.current();
+  if (!s) { stderr(`${NAME}: 未登录`); process.exit(2); }
+  process.stdout.write((rt.auth.displayName(s) || s.userId) + '\n');
+}
+
+async function cmdSync(positionals, values) {
+  refuseChina('sync');
+  const corpus = await openCorpus(values);
+  const rt = setupSync(corpus, values);
+  try {
+    const res = await rt.sync.sync(Date.now());
+    await corpus.save();
+    rt.saveState();
+    if (values.json) { process.stdout.write(JSON.stringify(res) + '\n'); return; }
+    process.stdout.write(`已同步：拉取 ${res.pulled.cards} 张 · 推送 ${res.pushed.pushed} 张\n`);
+  } catch (e) {
+    stderr(`${NAME}: 同步失败${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`);
+    if (e && e.code === 'signed_out') stderr(`  先登录：${NAME} login <邮箱>`);
+    if (e && e.code === 'owner_mismatch') stderr('  这份语料属于另一个账号（语料归属 = 认领它的账号）。');
+    process.exit(5);
+  }
+}
+
 async function cmdDetect(positionals, values) {
   const rest = positionals.slice(1);
   const piped = !rest.length || rest[0] === '-';
@@ -243,10 +317,17 @@ async function main() {
     case 'review': return cmdReview(positionals, values);
     case 'import': return cmdImport(positionals, values);
     case 'export': return cmdExport(positionals, values);
+    case 'login': return cmdLogin(positionals, values);
+    case 'logout': return cmdLogout(positionals, values);
+    case 'whoami': return cmdWhoami(positionals, values);
+    case 'sync': return cmdSync(positionals, values);
     case 'config': return cmdConfig(positionals, values);
     case undefined: process.stdout.write(usage() + '\n'); process.exit(1); break;
     default: stderr(`未知命令：${cmd}`); stderr(usage()); process.exit(1);
   }
 }
+
+// 管道下游先关（`... | head`）会让 stdout 抛 EPIPE —— 这是正常结束，不是崩溃。
+process.stdout.on('error', (e) => { if (e && e.code === 'EPIPE') process.exit(0); });
 
 main().catch((e) => { stderr(`${NAME}: ${(e && e.message) || e}`); process.exit(1); });

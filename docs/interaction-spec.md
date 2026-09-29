@@ -2330,7 +2330,7 @@ CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2
   （`{src, tr, provider, ms}`）供脚本消费。
 - 结果走 stdout，进度 / 诊断走 stderr；**管道里 stdout 只有结果**。
 - 退出码：`0` 成功 · `1` 用法 / 参数错 · `2` 引擎未配置 · `3` 翻译失败（带 `code`）·
-  `4` 语料 / 文件错。失败行说人话并指向「配置引擎」。
+  `4` 语料 / 文件错 · `5` 账号 / 同步错。失败行说人话并指出下一步。
 - 界面语言跟随系统 `LANG`，可 `--lang` 覆盖；文案源仍是 `_locales`（CLI 只取需要的几十个键，
   与 `build/ext-bundle.js` 的 `ExtCopy` 同法，不抄第二份）。
 - **绝不回显 API key**；`config get` 对 key 打码。
@@ -2349,6 +2349,17 @@ CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2
   Review › States」四条说清楚，不编造工作量。
 - `review`：逐张出卡，`0/1/2/3` 打分（`q` 退出并保存）；每张显示来源与本次技能（v1 只读）。
 - `import <file.mtlearn>` / `export [-o file]`：§8.2 的导出 / 导入。
+
+### 账号与同步
+- `login <邮箱|手机号>`：发验证码到该地址；`login <…> --code <六位码>` 完成登录
+  （复用扩展的 GoTrue 一次性验证码流程，§8.4.1）。`logout` 退出；`whoami` 显示当前身份。
+- `sync`：拉取 + 推送语料（复用 `learn/sync.js`，§8）。失败具名（`signed_out` 提示先登录，
+  `owner_mismatch` 说明语料属于另一个账号）。
+- **会话与同步台账落在 `state.json`（0600，`--state` / `BM_STATE` 可改位置），明文，
+  与扩展的 `chrome.storage.local` 同级** —— `learning-design` §7.2 规则 3 的既有事实，不假装更安全。
+- **中国版 CLI 不开 login/sync**（退出码 2，具名）：境内后端与跨境同步需单独评估，
+  与扩展侧中国版 sync 关闭一致（AGENTS 规则 10 不是靠阉割，是靠「同一功能集、不同后端」，
+  这里后端尚未就绪，所以是明确的「暂未开放」而不是静默失败）。
 
 ### 遥测
 v1 不发任何事件；见 `docs/telemetry-design.md` §2。

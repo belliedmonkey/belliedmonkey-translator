@@ -146,8 +146,14 @@ class Corpus {
     for (const inc of cards || []) {
       if (!inc || !inc.id) continue;
       const prev = this.items.get(inc.id);
-      if (!prev) { added++; this.items.set(inc.id, inc); continue; }
-      this.items.set(inc.id, LearnModel.mergeItem(prev, inc, opts));
+      if (!prev) added++;
+      const merged = prev ? LearnModel.mergeItem(prev, inc, opts) : inc;
+      // 与 store.js 的 mergeBatch 同一处：同步拉回来的物料打上「服务器已知」戳，
+      // 按 touchedAt(inc) 而不是合并后的状态（否则本机新复习会被错误地标成已上传）。
+      if (opts && opts.markSynced) {
+        merged.syncedAt = Math.max(merged.syncedAt || 0, LearnModel.touchedAt(inc));
+      }
+      this.items.set(merged.id, merged);
     }
     return added;
   }
