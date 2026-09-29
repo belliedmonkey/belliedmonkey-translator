@@ -65,7 +65,17 @@ final class S56UITests: XCTestCase {
     private func dump(_ app: XCUIApplication, _ tag: String) {
         let cells = app.cells.allElementsBoundByIndex.prefix(40).map { $0.label }.filter { !$0.isEmpty }
         let texts = app.staticTexts.allElementsBoundByIndex.prefix(60).map { $0.label }.filter { !$0.isEmpty }
-        note("dump[\(tag)] cells=\(cells.joined(separator: " | ")) ‖ texts=\(texts.joined(separator: " | "))")
+        // 2026-09-29：btns 带 frame —— webview 里的按钮常 isHittable=false 只能按坐标点，
+        // 没有 frame 就只能瞎猜归一化坐标（当轮 Get started 卡了两轮就是这么来的）。
+        let btns = app.buttons.allElementsBoundByIndex.prefix(60)
+            .filter { !$0.label.isEmpty }
+            .map { "\($0.label)@\(Int($0.frame.minX)),\(Int($0.frame.minY)) \(Int($0.frame.width))x\(Int($0.frame.height))" }
+        // 2026-09-29 二补：webview 的 password 框在 iOS 上不总以 secureTextField 暴露——
+        // 把两类输入框也带 frame 打出来，不然「没找到密钥框」之后无从下手。
+        let tfs = (app.textFields.allElementsBoundByIndex.prefix(20) + app.secureTextFields.allElementsBoundByIndex.prefix(20))
+            .filter { !$0.label.isEmpty || !($0.placeholderValue ?? "").isEmpty }
+            .map { "tf:\($0.label.isEmpty ? ($0.placeholderValue ?? "?") : $0.label)@\(Int($0.frame.minX)),\(Int($0.frame.minY)) \(Int($0.frame.width))x\(Int($0.frame.height))" }
+        note("dump[\(tag)] cells=\(cells.joined(separator: " | ")) ‖ texts=\(texts.joined(separator: " | ")) ‖ btns=\(btns.joined(separator: " | ")) ‖ tfs=\(tfs.joined(separator: " | "))")
     }
     // iOS 27 的设置页里行不是 cell：按文字找任意可点的后代
     private func find(_ app: XCUIApplication, _ pred: String) -> XCUIElement { app.descendants(matching: .any).matching(NSPredicate(format: pred)).firstMatch }
@@ -73,6 +83,17 @@ final class S56UITests: XCTestCase {
         var el = find(app, pred)
         for _ in 0..<swipes where !(el.exists && el.isHittable) { app.swipeUp(); usleep(600_000); el = find(app, pred) }
         guard el.waitForExistence(timeout: 4) else { note("没找到[\(tag)]: \(pred)"); dump(app, tag); shot("t1-miss-\(tag)", full: true); return false }
+        // 2026-09-29：webview（Safari 扩展页）里的按钮 frame 在、isHittable=false，
+        // el.tap() 会直接抛 "Failed to not hittable" 把整轮测试打死 —— 退一档按
+        // frame 中心的归一化坐标真点（coordinate.tap 算用户手势，content script 认）。
+        if !el.isHittable {
+            let f = el.frame
+            let rf = app.frame
+            note("not-hittable[\(tag)]，按坐标点 frame=\(f)")
+            guard rf.width > 0, rf.height > 0, f.width > 0, f.height > 0 else { return false }
+            app.coordinate(withNormalizedOffset: CGVector(dx: (f.midX - rf.minX) / rf.width, dy: (f.midY - rf.minY) / rf.height)).tap()
+            sleep(2); return true
+        }
         el.tap(); sleep(2); return true
     }
     func testT1Default() throws {
@@ -501,7 +522,11 @@ final class S56UITests: XCTestCase {
     /// 而界面上那一框圆点看起来和正常的一模一样。判据是**圆点数 == key 长度**。
     @discardableResult
     private func enterKey(_ app: XCUIApplication, _ field: XCUIElement, _ k: String, _ tag: String) -> Bool {
-        field.tap(); sleep(1)
+        // 2026-09-29：webview 的输入框被坐标点聚焦后 isHittable 仍为 false（实测
+        // "SecureTextField …, Keyboard Focused" 状态下 tap() 直接抛）—— 键盘已在时跳过 tap。
+        if field.isHittable { field.tap(); sleep(1) }
+        else if app.keyboards.element.exists { note("[\(tag)] 键盘已在、框已聚焦，跳过 tap（not-hittable）") }
+        else { note("[\(tag)] 键盘没起、框也点不了"); return false }
         // **必须先清空。** 一键卡与详细档的 key 框都会回显已保存的 key，直接 typeText 是
         // 往后面追加 —— 实测追到 347 个字符（应为 35），服务端回 401，而界面上那一框圆点
         // 看起来和正常的完全一样。判据是**圆点数 == key 长度**（密码框的 value 就是圆点）。
@@ -1850,6 +1875,13 @@ final class S56UITests: XCTestCase {
                 let pred = exact ? "label == '\(t)'" : "label CONTAINS '\(t)'"
                 let ok = tapText(app, pred, swipes: i(step, "swipes") ?? 0, tag)
                 note("[\(tag)] tap「\(t)」→ " + (ok ? "点了" : "没找到"))
+            case "tapxy":
+                // 归一化坐标的**真点**（`dragxy` 是「按住拖」，等于长按，按不动按钮）。给没有
+                // AX 标签的元素用（例：只画了个「✕」的关闭键）。
+                let tp = vec(step, "at") ?? CGVector(dx: 0.5, dy: 0.5)
+                app.coordinate(withNormalizedOffset: tp).tap()
+                sleep(UInt32(i(step, "s") ?? 1))
+                note("[\(tag)] tapxy (\(tp.dx),\(tp.dy))")
             case "menu":
                 guard let it = s(step, "item") else { note("[\(tag)] 缺 item"); break }
                 let m = app.menuItems.matching(NSPredicate(format: "label CONTAINS %@", it)).firstMatch
@@ -1885,9 +1917,29 @@ final class S56UITests: XCTestCase {
                 // 追到几百字符界面上一模一样而服务端回 401（09-23 的 347 字符那次）。
                 guard let k = s(step, "value"), !k.isEmpty else { note("[\(tag)] 缺 value"); break }
                 let want = i(step, "expectLen") ?? k.count
-                let field = scrollTo(app, { app.secureTextFields.firstMatch }, 8)
-                guard field.exists && field.isHittable else { note("[\(tag)] 没找到密钥框"); shot("drive-\(tag)-nokey", full: true); break }
-                field.tap(); sleep(1)
+                var field = scrollTo(app, { app.secureTextFields.firstMatch }, 8)
+                // 2026-09-29：iOS Safari 扩展页（WKWebView）的 password 框只以 textField
+                // 暴露（实测 dump：tf:API Key@98,51）—— 给 tfLabel 就退到按 label 找 textField。
+                // **这一支不滑动**：webview 元素恒 not-hittable，scrollTo 会为找 hittable
+                // 连滑 8 次把字段滑出 AX 视口，最后反而 exists=false（r22-r24 三轮的教训）。
+                if !(field.exists && field.isHittable), let lb = s(step, "tfLabel") {
+                    note("[\(tag)] secureTextField 不可用，退 textField「\(lb)」（不滑动）")
+                    // 2026-09-29 三补：谓词 matching 在这个 webview 上查不到（dump 枚举却有，
+                    // r25 实测）—— 改用与 dump 完全相同的枚举手筛。
+                    let cands = app.textFields.allElementsBoundByIndex.filter { $0.label.contains(lb) }
+                    note("[\(tag)] textField 枚举 \(app.textFields.count) 个，命中 \(cands.count)")
+                    if let f2 = cands.first { field = f2 }
+                }
+                guard field.exists else { note("[\(tag)] 没找到密钥框"); shot("drive-\(tag)-nokey", full: true); break }
+                // 2026-09-29 二补：webview 里输入框同样 isHittable=false —— 按当前 frame 中心
+                // 坐标真点（scrollTo 已把页面滚到它附近，frame 是当下的）。
+                if field.isHittable { field.tap(); sleep(1) }
+                else {
+                    let f = field.frame; let rf = app.frame
+                    note("[\(tag)] 输入框 not-hittable，按坐标点 frame=\(f)")
+                    app.coordinate(withNormalizedOffset: CGVector(dx: (f.midX - rf.minX) / rf.width, dy: (f.midY - rf.minY) / rf.height)).tap()
+                    sleep(1)
+                }
                 if !app.keyboards.element.waitForExistence(timeout: 8) { note("[\(tag)] 键盘没起来，再点一次"); field.tap(); _ = app.keyboards.element.waitForExistence(timeout: 8) }
                 _ = enterKey(app, field, k, tag)
                 let after = ((field.value as? String) ?? "").count

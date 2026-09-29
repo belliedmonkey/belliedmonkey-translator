@@ -72,8 +72,8 @@ setTimeout(async () => { process.stderr.write('WATCHDOG 240s\n'); fs.writeFileSy
       step('在扩展页里执行…');
       log.extPage = val(await evalIn(extCtx, 'location.pathname'));
       log.optionsText = val(await evalIn(extCtx, 'document.body.innerText.trim().length'));
-      log.voices = val(await evalIn(extCtx, `new Promise(r => { const go = () => { const v = speechSynthesis.getVoices(); if (v.length) r(v.map(x => x.name + ' | ' + x.lang + ' | ' + x.localService)); }; go(); speechSynthesis.onvoiceschanged = go; setTimeout(() => r(speechSynthesis.getVoices().map(x => x.name + ' | ' + x.lang + ' | ' + x.localService)), 4000); })`));
-      await evalIn(extCtx, `browser.storage.local.set(${JSON.stringify({ provider: 'deepseek', apiKey: keys.apiKey, targetLang: 'zh-CN', enabled: true, showFab: true })}).then(() => true)`); step('storage 已种 deepseek（经扩展页）');
+      log.voices = val(await evalIn(extCtx, "speechSynthesis.getVoices().map(x => x.name + ' | ' + x.lang + ' | ' + x.localService)")); // 2026-09-29：Promise 型求值在 VM Firefox 的 BiDi 上挂死（watchdog），改同步
+      val(await evalIn(extCtx, "(() => { try { browser.storage.local.set(" + JSON.stringify({ provider: 'deepseek', apiKey: keys.apiKey, targetLang: 'zh-CN', enabled: true, showFab: true }) + ").catch(() => 0); return 'queued'; } catch (e) { return 'err:' + e; } })()")); step('storage 已种 deepseek（fire-and-forget）'); await sleep(1500);
       const shot = await send('browsingContext.captureScreenshot', { context: extCtx }); fs.writeFileSync(path.join(OUT, 'firefox-extpage.png'), Buffer.from(shot.data, 'base64'));
     } catch (e) { log.problems.push('扩展页执行失败: ' + e.message.slice(0, 160)); }
   } else log.problems.push('拿不到扩展内部 UUID，没能种 DeepSeek 配置');
