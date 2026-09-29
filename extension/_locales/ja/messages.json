@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "翻訳した文は「システム翻訳」という出典で復習に入ります。オフにしても翻訳はできますが、保存されません。"
   },
+  "systrans_font_label": {
+    "message": "ポップアップの文字サイズ"
+  },
+  "systrans_font_small": {
+    "message": "小"
+  },
+  "systrans_font_std": {
+    "message": "標準"
+  },
+  "systrans_font_large": {
+    "message": "大"
+  },
+  "systrans_font_hint": {
+    "message": "テキストを選んで翻訳するときの原文と訳文の文字サイズ（ボタンと注記は変わりません）。次回ポップアップから有効になります。"
+  },
   "sys_disclose_direct": {
     "message": "選択したテキストは、設定したエンジン（{name}）に直接送られます。当社のサーバーを経由しません。"
   },

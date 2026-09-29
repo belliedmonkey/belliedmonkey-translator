@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "번역한 문장이 「시스템 번역」 출처로 복습에 들어갑니다. 꺼도 번역은 되지만 저장되지 않습니다."
   },
+  "systrans_font_label": {
+    "message": "팝업 글자 크기"
+  },
+  "systrans_font_small": {
+    "message": "작게"
+  },
+  "systrans_font_std": {
+    "message": "표준"
+  },
+  "systrans_font_large": {
+    "message": "크게"
+  },
+  "systrans_font_hint": {
+    "message": "텍스트를 선택해 번역할 때 원문과 번역문의 글자 크기입니다(버튼과 안내는 그대로). 다음에 팝업이 열릴 때 적용됩니다."
+  },
   "sys_disclose_direct": {
     "message": "선택한 텍스트는 직접 설정한 엔진({name})으로 바로 전송되며, 당사 서버를 거치지 않습니다."
   },

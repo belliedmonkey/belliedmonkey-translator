@@ -37,6 +37,10 @@ struct MTTranslateSheet: View {
     @State private var slow = false
     @State private var started = false
     @Environment(\.openURL) private var openURL
+    // 弹层字号（#495）：@ScaledMetric 跟系统 Dynamic Type 走，档位在它之上**相乘** ——
+    // 「跟随系统」与「单 App 微调」两个都成立。只用于原文与译文正文；状态、披露、
+    // 按钮保持系统字阶（弹层高度有限，整层放大会把操作区挤走）。
+    @ScaledMetric(relativeTo: .body) private var bodyPT: CGFloat = 17
 
     private let engine = MTExtEngine()
     private let config = MTExtConfig.load()
@@ -50,7 +54,7 @@ struct MTTranslateSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 Text(source)
-                    .font(.body)
+                    .font(.system(size: bodyPT * config.fontScale))
                     .textSelection(.enabled)
 
                 if busy {
@@ -70,7 +74,7 @@ struct MTTranslateSheet: View {
                         .foregroundStyle(.secondary)
                 } else {
                     Text(translated)
-                        .font(.body)
+                        .font(.system(size: bodyPT * config.fontScale))
                         .textSelection(.enabled)
                 }
 

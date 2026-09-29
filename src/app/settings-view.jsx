@@ -1613,6 +1613,17 @@ export default function SettingsView() {
             <span id="systrans-capture-label"></span>
           </label>
           <p className="note" id="systrans-capture-hint"></p>
+          {/* 弹层字号（#495）：三档与字幕条 FONT_STEPS 同族（0.85/1/1.2），select 的
+               option 值就是存储里的数。只缩放原文+译文正文；改完经 vault 快照，下次弹层生效。 */}
+          <label className="field">
+            <span id="systrans-font-label"></span>
+            <select id="systrans-font">
+              <option value="0.85" id="systrans-font-small"></option>
+              <option value="1" id="systrans-font-std"></option>
+              <option value="1.2" id="systrans-font-large"></option>
+            </select>
+          </label>
+          <p className="note" id="systrans-font-hint"></p>
         </div>
 
         {/* 误点了「我已打开」能把首页横幅找回来（2026-09-22，画布 YEDD4VmT9Pv2htUpoWZ9ZB 第 2 页板 ⑤，用户点头）。

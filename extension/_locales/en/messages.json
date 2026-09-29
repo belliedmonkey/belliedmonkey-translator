@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "Sentences you translate go into review, under the source \"System translation\". Turn it off and translation still works, it just isn't saved."
   },
+  "systrans_font_label": {
+    "message": "Sheet text size"
+  },
+  "systrans_font_small": {
+    "message": "Small"
+  },
+  "systrans_font_std": {
+    "message": "Standard"
+  },
+  "systrans_font_large": {
+    "message": "Large"
+  },
+  "systrans_font_hint": {
+    "message": "Size of the original and translated text in the translation sheet (buttons and notes stay as they are). Takes effect the next time the sheet opens."
+  },
   "sys_disclose_direct": {
     "message": "The selected text goes straight to the engine you configured ({name}); it never passes through our servers."
   },

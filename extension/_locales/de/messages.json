@@ -3478,6 +3478,21 @@
   "systrans_capture_hint": {
     "message": "Übersetzte Sätze landen in der Wiederholung, Quelle „Systemübersetzung“. Ausgeschaltet wird weiterhin übersetzt, nur nichts gespeichert."
   },
+  "systrans_font_label": {
+    "message": "Textgröße im Fenster"
+  },
+  "systrans_font_small": {
+    "message": "Klein"
+  },
+  "systrans_font_std": {
+    "message": "Standard"
+  },
+  "systrans_font_large": {
+    "message": "Groß"
+  },
+  "systrans_font_hint": {
+    "message": "Größe von Original und Übersetzung im Fenster (Knöpfe und Hinweise bleiben unverändert). Wirkt beim nächsten Öffnen."
+  },
   "sys_disclose_direct": {
     "message": "Der markierte Text geht direkt an die von Ihnen eingerichtete Engine ({name}) und niemals über unsere Server."
   },

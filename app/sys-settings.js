@@ -48,13 +48,22 @@
     if (!box) return;
     box.hidden = !available();
     if (box.hidden) return;
-    const s = await get(['provider', 'handoffCapture', 'learnEnabled']);
+    const s = await get(['provider', 'handoffCapture', 'learnEnabled', 'sysTranslateFontScale']);
     const ack = V().ack();
     if ($('systrans-state')) $('systrans-state').textContent = stateText(ack, s.provider || '');
     if ($('systrans-capture')) {
       $('systrans-capture').checked = s.handoffCapture !== false;
       // 学习总闸关着时这一行跟着灰 —— 与文档 / 听译 / 字幕那几个开关同一条。
       $('systrans-capture').disabled = s.learnEnabled === false;
+    }
+    // 弹层字号（#495）：存值不在三档上（手改过 / 老版本）时就近落档再显示 —— 与
+    // listen-core fontStep 同一条规则。''（缺省）= 1（标准），写回也统一成档上的数。
+    if ($('systrans-font')) {
+      const STEPS = [0.85, 1, 1.2];
+      const v = Number(s.sysTranslateFontScale) || 1;
+      let best = STEPS[0];
+      for (const st of STEPS) if (Math.abs(st - v) < Math.abs(best - v)) best = st;
+      $('systrans-font').value = String(best);
     }
   }
 
@@ -70,6 +79,11 @@
     put('systrans-need', t('systrans_need', '需要 iOS 或 iPadOS 18.4 及以上。系统版本低于它时，那个列表里不会出现大肚猴翻译。'));
     put('systrans-capture-label', t('systrans_capture_label', '存入复习库'));
     put('systrans-capture-hint', t('systrans_capture_hint', '翻过的句子进复习，来源「系统翻译」。关掉后照常翻译，只是不存。'));
+    put('systrans-font-label', t('systrans_font_label', '弹层字号'));
+    if ($('systrans-font-small')) $('systrans-font-small').textContent = t('systrans_font_small', '小');
+    if ($('systrans-font-std')) $('systrans-font-std').textContent = t('systrans_font_std', '标准');
+    if ($('systrans-font-large')) $('systrans-font-large').textContent = t('systrans_font_large', '大');
+    put('systrans-font-hint', t('systrans_font_hint', '选中文字翻译时原文与译文的字号（按钮与说明不变）。改完下次弹层生效。'));
   }
 
   function wire() {
@@ -78,13 +92,19 @@
     $('systrans-capture').addEventListener('change', () => {
       chrome.storage.local.set({ handoffCapture: $('systrans-capture').checked });
     });
+    if ($('systrans-font')) {
+      $('systrans-font').addEventListener('change', () => {
+        // 只写三档上的数 —— select 的 option 值就是档位，别的值进不来。
+        chrome.storage.local.set({ sysTranslateFontScale: Number($('systrans-font').value) || 1 });
+      });
+    }
     // 回执到了要重画：同步是异步的，先画出来的那一版必然是「还没同步」。
     try { if (V() && V().onAck) V().onAck(() => paint()); } catch (_) {}
     try {
       chrome.storage.onChanged.addListener((ch) => {
         if (!ch) return;
         if (ch.uiLang) paintStatic();
-        if (ch.uiLang || ch.provider || ch.handoffCapture || ch.learnEnabled) paint();
+        if (ch.uiLang || ch.provider || ch.handoffCapture || ch.learnEnabled || ch.sysTranslateFontScale) paint();
       });
     } catch (_) {}
     paint();
