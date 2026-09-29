@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "In den Einstellungen eintragen →"
   },
-  "subtitle_need_os": {
-    "message": "Untertitel für den Systemton brauchen macOS 14.4 oder neuer — oder nutze „Gespräch“ und spiele den Ton über die Lautsprecher ab"
-  },
   "subtitle_title": {
     "message": "Live-Untertitel"
   },

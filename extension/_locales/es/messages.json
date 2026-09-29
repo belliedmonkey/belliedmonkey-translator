@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "Añádela en Ajustes →"
   },
-  "subtitle_need_os": {
-    "message": "Los subtítulos del audio del sistema requieren macOS 14.4 o posterior — o usa «Conversación» y reproduce el sonido por los altavoces"
-  },
   "subtitle_title": {
     "message": "Subtítulos en vivo"
   },

@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "أدخله في الإعدادات ←"
   },
-  "subtitle_need_os": {
-    "message": "تحتاج ترجمة صوت النظام إلى macOS 14.4 أو أحدث — أو استخدم «المحادثة» وشغّل الصوت عبر السماعات"
-  },
   "subtitle_title": {
     "message": "ترجمة مباشرة"
   },

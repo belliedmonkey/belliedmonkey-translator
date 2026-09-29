@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "Add it in Settings →"
   },
-  "subtitle_need_os": {
-    "message": "Subtitles for system audio need macOS 14.4 or later — or use Conversation and play the sound through the speakers"
-  },
   "subtitle_title": {
     "message": "Live Subtitles"
   },

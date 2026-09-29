@@ -2883,9 +2883,6 @@
   "subtitle_need_key_go": {
     "message": "설정에서 입력 →"
   },
-  "subtitle_need_os": {
-    "message": "시스템 오디오 자막은 macOS 14.4 이상이 필요합니다 — 또는 「대화」에서 스피커로 소리를 내 주세요"
-  },
   "subtitle_title": {
     "message": "실시간 자막"
   },
