@@ -501,7 +501,8 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 > （storage / `AppListen._debug().lat` / 桥事件 `tts-start` / `assets-progress`）；遥测走
 > `bt_events` SQL（flush：terminate+activate 后等几分钟）。**[H]** = 只能人做（输密码、人耳听声）。
 > **双 flavor**：两台模拟器各装一版（§2.0 一机一版）；标注「intl-only / cn-only」的除外，
-> 中国版的判据见各项尾注（chips 无 google/openai/claude、无额度话术、遥测零发送 Gate D）。
+> 中国版的判据见各项尾注（chips 无 google/openai/claude、额度位置放的是**阿里云官方**那张卡而不是
+> 我们那张、遥测零发送 Gate D）。
 > 声源一律用播放代替真人（§0.3：Mac `afplay` conv 语料 / 外放英语视频）。
 
 ### 9.0 前置（每次开跑前）
@@ -613,7 +614,14 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   「改回免费额度」先出确认框再覆盖。
 - [ ] **用额度真翻一句。** **Expected:** `translate_ok{provider:grant}` ≥1；`translate_fail{grant,timeout}`
   = 0（1.18.0 timeout 熔断不误触发，#475 回归）。
-- [ ] **cn 无此路。** 设置页无额度卡、无额度话术，翻译路只有自带 key。
+- [ ] **cn 的额度是「阿里云官方免费额度」那张卡，不是我们这张。**（2026-09-30 更正：先前这里写成
+  「cn 无此路」，把「没有**我们的**中继额度」误读成「没有额度」——仓库的权威口径一直是官方卡，
+  见 `test/grant.test.js`「中国版那个位置放的是官方免费额度卡」与 `scripts/verify-onboard.js`
+  的「官方免费额度三步卡在、链接是真地址、没有登录字样」。）
+  **Expected:** 快速档出现「先领一份官方免费额度」+「去开通 ↗」+ 三步（注册并打开控制台 → 领免费额度
+  → 把 API Key 粘到下面一键配好三槽）；**不出现**我们的卡（「领取」/余额行 `$x / $0.20`/
+  「改回免费额度」）；粘上百炼 key 后三槽配好、`engine_test` 走通；全程遥测零行（Gate D）。
+  登录本身照常（境内后端）。
 
 ### 9.4 对话 · 实时听译（§9.6）
 
