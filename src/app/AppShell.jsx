@@ -166,6 +166,32 @@ function AppShell() {
         </div>
       </section>
 
+      {/* 屏 2 · 资源包（2026-10-01，#532）。
+           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 这一屏**不许有跳过按钮**
+           （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
+           ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
+           文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
+      <section id="firstrun-packs" hidden>
+        <h1 id="packs-title"></h1>
+        <p className="lede" id="packs-lede"></p>
+        <div className="pack-list">
+          <div className="pack-row" id="pack-row-asr">
+            <div className="pack-name" id="pack-asr-name"></div>
+            <p className="note" id="pack-asr-state"></p>
+            <progress id="pack-asr-bar" hidden></progress>
+          </div>
+          <div className="pack-row" id="pack-row-tts">
+            <div className="pack-name" id="pack-tts-name"></div>
+            <p className="note" id="pack-tts-state"></p>
+            <progress id="pack-tts-bar" hidden></progress>
+          </div>
+        </div>
+        <p className="note" id="packs-net"></p>
+        <p className="note" id="packs-err" hidden></p>
+        <button id="packs-go" type="button"></button>
+      </section>
+
+
       {/* 首次运行引导（§引导）。
            设计稿里是九屏，这里只落四到五屏 —— 另外几屏 App 做不到：配翻译引擎、
            打开采集、看第一张卡，全都发生在扩展那一侧，而 App 与扩展**不共享存储**
