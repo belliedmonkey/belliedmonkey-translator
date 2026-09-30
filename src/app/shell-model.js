@@ -288,6 +288,7 @@ export function bootShell() {
   let packTtsReady = false;
   let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
   let packsBusy = false;
+  let firstRunScreen = '';   // '' | 'login' | 'packs' | 'onboarding' | 'home' —— 横幅要据此让位
 
   const readObSeen = () => new Promise((r) => {
     try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
@@ -346,12 +347,15 @@ export function bootShell() {
   async function paintFirstRun(session) {
     const sec = $('firstrun-packs');
     if (!sec) return;
-    if (!session) { sec.hidden = true; return; }          // 未登录：屏 1 就是那张登录卡
+    // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
+    // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
+    if (!session) { sec.hidden = true; firstRunScreen = 'login'; return; }
     await probePacks();
     const seen = await readObSeen();
     const state = Object.assign(packsState(session), { onboardingSeen: seen });
     // 引擎不通（额度用尽且没有自带 key）时按 firstrun.step() 回到屏 1，不另造一屏。
-    if (FirstRun.step(state) !== 'packs') { sec.hidden = true; return; }
+    if (FirstRun.step(state) !== 'packs') { sec.hidden = true; firstRunScreen = 'home'; return; }
+    firstRunScreen = 'packs';
     sec.hidden = false;
     $('signed-out').hidden = true;
     $('signed-in').hidden = true;
@@ -537,7 +541,11 @@ export function bootShell() {
     // 用它会让「已经开好扩展、只是还没抓到卡」的人继续被告知「还没打开」（模拟器实测）。macOS 有真实
     // 状态（`getStateOfSafariExtension`），维持 `browserSideOk` 那一半。
     const ios = !!(state && !state.canOpenPrefs && !state.known);
-    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen') { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    // 首屏让位（#532）：**不看 firstRunScreen，因为它可能还没被算出**（横幅由原生状态
+    // 推送先画，早于 show()）。判据直接读事实：没登录 ⇒ 屏 1（只有登录）；
+    // 已登录但屏 2 在场 ⇒ 资源包。2026-10-01 模拟器实测：不让位时这张横幅把首屏整屏占满。
+    const firstRunActive = !currentSession || firstRunScreen === 'packs';
+    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。

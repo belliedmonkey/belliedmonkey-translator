@@ -161,6 +161,14 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     deepEq(offenders, [], 'App 侧文案里仍有「不登录也能…」一类旧承诺（该改的是这些键，不是删这句门）');
   });
 
+  test('R1b · 首屏不许被别的 section 占满（Safari 横幅在屏 1/屏 2 让位）', () => {
+    // 2026-10-01 模拟器实测抓到：全新安装的第一屏是「Safari 扩展还没打开」那张横幅
+    // （三步教程 + 插图占满一屏），登录卡被挤到屏幕外。R1 当时只查了 #signed-out
+    // **里面**，所以没拦住 —— 这一条把判据扩到「屏幕上」。
+    ok(/const firstRunActive = !currentSession \|\| firstRunScreen === 'packs'/.test(read('src/app/shell-model.js')),
+      'paintExtBanner 没有在首屏让位（未登录 / 屏 2 期间）—— 首屏会被那张横幅占满');
+  });
+
   test('R6 · 每屏至多一个填色按钮', () => {
     for (const [id, seg] of [['signed-out', signedOut], ['firstrun-packs', packs]]) {
       if (!seg) continue;
