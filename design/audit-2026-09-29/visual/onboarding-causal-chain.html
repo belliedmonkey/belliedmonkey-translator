@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>iOS 引导因果链 · 视觉稿</title>
+<meta name="description" content="大肚猴翻译 iOS App 新手引导四步因果链的单页视觉稿：判不了 → 送出去 → 假完成 → 再说一遍。每步锚定 app/app.js 行号。">
+<style>
+  :root {
+    --bg: #ffffff;
+    --well: #f6f6f5;
+    --line: #e4e1da;
+    --line-soft: #efede8;
+    --ink: #1b1a18;
+    --ink-2: #55524c;
+    --ink-3: #7a756c;
+    --p0: #b3261e;
+    --p0-bg: #fdf1f0;
+    --accent: #2f5d50;
+    --r: 10px;
+    --r-sm: 6px;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171614;
+      --well: #1f1e1b;
+      --line: #35332e;
+      --line-soft: #2a2925;
+      --ink: #f2f0ec;
+      --ink-2: #b6b1a8;
+      --ink-3: #8d8880;
+      --p0: #f2837a;
+      --p0-bg: #2e1a18;
+      --accent: #7fbfae;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.6 var(--sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sheet { max-width: 1240px; margin: 0 auto; padding: 56px 32px 64px; }
+
+  code { font-family: var(--mono); font-size: .92em; }
+
+  /* ── 页头 ───────────────────────────────────── */
+  .kicker {
+    font: 600 12px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 14px;
+  }
+  h1 {
+    font-size: 40px; line-height: 1.2; margin: 0 0 18px;
+    letter-spacing: -.015em; max-width: 22ch;
+  }
+  .answer {
+    font-size: 18px; line-height: 1.65; color: var(--ink-2);
+    max-width: 62ch; margin: 0 0 22px;
+  }
+  .answer b { color: var(--ink); font-weight: 650; }
+
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 44px; }
+  .meta span {
+    font: 500 12px/1 var(--mono); padding: 6px 9px;
+    border: 1px solid var(--line); border-radius: var(--r-sm);
+    color: var(--ink-2); background: var(--well);
+  }
+
+  /* ── 四步流程 ───────────────────────────────── */
+  .chain {
+    display: grid; align-items: stretch; gap: 12px;
+    grid-template-columns: 1fr 24px 1fr 24px 1fr 24px 1fr;
+  }
+
+  .stage {
+    display: grid; gap: 10px; align-content: start;
+    padding: 20px 18px 18px;
+    border: 1px solid var(--line); border-top: 2px solid var(--p0);
+    border-radius: var(--r); background: var(--bg);
+  }
+  .stage-top { display: flex; align-items: center; gap: 10px; }
+  .num {
+    display: grid; place-items: center; flex: none;
+    width: 30px; height: 30px; border-radius: 999px;
+    background: var(--p0-bg); border: 1px solid var(--p0);
+    font: 700 14px/1 var(--mono); color: var(--p0);
+  }
+  .tag {
+    font: 600 12px/1 var(--sans); padding: 5px 9px;
+    border: 1px solid var(--p0); border-radius: var(--r-sm);
+    color: var(--p0); background: var(--p0-bg);
+  }
+  .stage h2 { margin: 0; font-size: 24px; line-height: 1.3; font-weight: 650; letter-spacing: -.01em; }
+  .mech { margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--ink-2); }
+  .mech code { color: var(--accent); }
+  .src {
+    display: block; margin: 0; padding-top: 10px; border-top: 1px solid var(--line-soft);
+    font: 500 12px/1.4 var(--mono); color: var(--ink-3);
+  }
+
+  .arw { display: grid; place-items: center; color: var(--ink-3); }
+  .arw svg { display: block; }
+
+  /* ── 循环回路 ───────────────────────────────── */
+  .loop { display: block; width: 100%; height: auto; margin: 6px 0 0; }
+
+  /* ── 三个出口 ───────────────────────────────── */
+  .exits { margin: 34px 0 0; }
+  .exits h3 {
+    margin: 0 0 4px; font: 700 12px/1.4 var(--sans);
+    letter-spacing: .09em; text-transform: uppercase; color: var(--ink-3);
+  }
+  .exits > p { margin: 0 0 18px; font-size: 14.5px; color: var(--ink-2); max-width: 62ch; }
+  .exit-grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .exit {
+    display: grid; gap: 6px; align-content: start;
+    padding: 16px; border: 1px dashed var(--line); border-radius: var(--r); background: var(--well);
+  }
+  .exit b { font-size: 15.5px; font-weight: 650; line-height: 1.4; }
+  .exit span { font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
+
+  /* ── 页脚 ───────────────────────────────────── */
+  footer {
+    margin: 40px 0 0; padding-top: 22px; border-top: 1px solid var(--line);
+    display: grid; gap: 20px; grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  footer h4 {
+    margin: 0 0 7px; font: 700 12px/1.4 var(--sans);
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3);
+  }
+  footer p { margin: 0; font-size: 13.5px; line-height: 1.65; color: var(--ink-2); }
+  footer code { color: var(--accent); }
+
+  @media (max-width: 1020px) {
+    .chain { grid-template-columns: 1fr; gap: 10px; }
+    .arw { height: 24px; }
+    .arw svg { transform: rotate(90deg); }
+    .exit-grid { grid-template-columns: 1fr; }
+    footer { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 640px) {
+    .sheet { padding: 32px 18px 40px; }
+    h1 { font-size: 30px; }
+    .answer { font-size: 16.5px; }
+    .stage h2 { font-size: 21px; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .sheet { max-width: none; padding: 0; }
+    .stage, .exit { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <p class="kicker">设计审计 · 新手引导专项</p>
+    <h1>iOS 引导为什么闭不了环</h1>
+    <p class="answer">
+      App <b>判不了</b>扩展启没启用 → 只能<b>把人送出 App</b> → 却被<b>当场标记为已完成</b> → 回来时横幅<b>把同一句话说一遍</b>。
+      用户照做的每一步都不会被承认为「做对了」。
+    </p>
+    <div class="meta">
+      <span>4 步因果链</span>
+      <span>8 处 app/app.js 锚点</span>
+      <span>iOS / macOS 共用一份 app.js</span>
+      <span>静态源码分析 · 未在真机运行</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="chain">
+
+      <section class="stage">
+        <div class="stage-top">
+          <span class="num">1</span>
+          <span class="tag">根因</span>
+        </div>
+        <h2>判不了</h2>
+        <p class="mech">iOS 上 <code>state.enabled</code> 不可信。代码自述：真正能确认的只有官网检测页。</p>
+        <p class="src">app/app.js:601</p>
+      </section>
+
+      <span class="arw" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M12 6l7 6-7 6"/></svg>
+      </span>
+
+      <section class="stage">
+        <div class="stage-top">
+          <span class="num">2</span>
+          <span class="tag">无回路</span>
+        </div>
+        <h2>送出去</h2>
+        <p class="mech">ext 屏在 iOS 上隐藏「继续」，唯一动作 <code>openExternal()</code> 开系统浏览器，人真的离开 App。</p>
+        <p class="src">app/app.js:604 · :435-441</p>
+      </section>
+
+      <span class="arw" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M12 6l7 6-7 6"/></svg>
+      </span>
+
+      <section class="stage">
+        <div class="stage-top">
+          <span class="num">3</span>
+          <span class="tag">无确认</span>
+        </div>
+        <h2>假完成</h2>
+        <p class="mech">同一个按钮无参调 <code>obFinish()</code>：写 <code>OB_SEEN=1</code> 标记完成，并删掉 <code>OB_RESUME</code> 续做入口。</p>
+        <p class="src">app/app.js:1500-1508 · :727</p>
+      </section>
+
+      <span class="arw" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h13M12 6l7 6-7 6"/></svg>
+      </span>
+
+      <section class="stage">
+        <div class="stage-top">
+          <span class="num">4</span>
+          <span class="tag">无收敛</span>
+        </div>
+        <h2>再说一遍</h2>
+        <p class="mech">退场即 <code>paintExtBanner()</code>，横幅与引导屏共用 <code>iosSteps()</code> 的同一份文案和插图。</p>
+        <p class="src">app/app.js:732 · :361-377</p>
+      </section>
+
+    </div>
+
+    <svg class="loop" viewBox="0 0 1200 62" role="img" aria-labelledby="loop-t">
+      <title id="loop-t">循环：第 4 步回到第 2 步。iOS 上 state.enabled 不可信，横幅几乎必然回来，用户被反复要求做同一件事。</title>
+      <defs>
+        <marker id="lp" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 Z" fill="#b3261e" />
+        </marker>
+      </defs>
+      <path d="M1050 8 V44" fill="none" stroke="#b3261e" stroke-width="1.4" stroke-dasharray="5 4" />
+      <path d="M1050 44 H724" fill="none" stroke="#b3261e" stroke-width="1.4" stroke-dasharray="5 4" />
+      <path d="M476 44 H462" fill="none" stroke="#b3261e" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#lp)" />
+      <path d="M450 44 V8" fill="none" stroke="#b3261e" stroke-width="1.4" stroke-dasharray="5 4" />
+      <text x="600" y="50" text-anchor="middle" fill="#b3261e"
+        style="font: 650 15px var(--sans)">循环 · 照做不会被告认为做对了</text>
+    </svg>
+
+    <section class="exits">
+      <h3>三个出口，都不构成闭环</h3>
+      <p>用户离开这一步后能去的地方有三个，没有一个能把「已完成」变成真的。</p>
+      <div class="exit-grid">
+        <div class="exit">
+          <b>「我已打开」</b>
+          <span>iOS 判不了扩展状态，这个确认在 iOS 上可能不实 —— 却仍然把横幅关掉。</span>
+        </div>
+        <div class="exit">
+          <b>官网检测页绿灯</b>
+          <span>唯一真实答案，但它只是横幅里的一句链接，不是引导的最后一屏。</span>
+        </div>
+        <div class="exit">
+          <b>次日再挂</b>
+          <span>每装机每天至多一条提示，循环重来，没有一个状态被真正记住。</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div>
+      <h4>平台身份</h4>
+      <p><code>safari-project/.../project.pbxproj</code> 同时含 <code>SDKROOT = iphoneos</code> 与 <code>SDKROOT = macosx</code>；<code>build-safari.sh</code> 接受 <code>platform: ios | macos</code>。两端共用同一份 <code>app/index.html</code> + <code>app/app.js</code>，所以上面的平台不对称是代码里真实存在的路径差异，不是推测。</p>
+    </div>
+    <div>
+      <h4>方法边界</h4>
+      <p>本页全部结论来自静态源码分析，每条都能回到 <code>app/app.js</code> 的行号复核。<strong>未在真机或模拟器运行引导，未验证官网检测页的实际交互</strong>，因此不对运行时表现作任何断言。</p>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
