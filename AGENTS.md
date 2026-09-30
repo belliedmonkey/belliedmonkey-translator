@@ -36,11 +36,23 @@ these in order when designing anything new:
    路：已登录用户可以用我们出的 0.2 美元额度，请求经**我们的服务端中继**转发到提供方，
    服务端计量、到顶即停。它是登录的附带权益、我们选择承担的封顶成本（规则 8 注），
    不是免费路径的替代，也不降级它：用完之后回到的仍是自带 key 与免费引擎。
+   *(Note 2026-10-01 — App 的登录前提。)* 上面那条不动点（**永远不付费的人有完整产品**）保持不变；
+   被削掉的是它的后半句「**也永远不登录**」：**App** 现在要求先登录才给用（issue #532 的实测 ——
+   不登录的那条路无法保证「配好了」：引擎随登录到账、两个设备包要下到本机，而首页却把三个
+   用不了的功能入口摆在同一屏）。**浏览器扩展不受影响**：它仍然免登录、自带 key 可用，所以
+   「免费路径不依赖我们的服务端」这条承重线没有动 —— 免费路径的家仍在扩展侧。
+   代价如实写：App 的未登录用户不再有完整产品。这与规则 3 的旧措辞直接冲突，见那条的注。
 3. **Accounts and sync are free.** The server carries only what genuinely cannot work
    without it — and the product must be complete for a signed-out user.
    *(Note 2026-09-08:)* 免费额度是**登录的附带权益**，不是登录换来的功能。用户裁定
    「必须登录才能用」：退出登录时额度令牌从本机清掉，翻译路径回到自带 key / 免费引擎，
    产品仍然完整；再登录自动领回。
+   *(Note 2026-10-01.)* 「产品必须对未登录用户完整」这句，自 2026-10-01 起**只对浏览器扩展成立**。
+   **App** 侧改为「**登录是前提**」（issue #532）：免费额度随登录自动到账（规则 8 注），识别语言包
+   与朗读离线模型要下载到本机，两者都挂在账号与一份「配好了」的判据上 —— 在那之前，未登录的
+   首页只会把人引向一堆用不了的入口。服务器仍然只承担真正无法在本机完成的事；账号与同步仍然
+   免费；**不付费仍然完整** —— 变的只是「不登录」。三屏序列与判据见
+   `docs/interaction-spec.md`「App 首屏三段式」。
 4. **No tracking, no content, no identity in telemetry — and server-side computation
    only as a paid, opt-in exception.** The product sends **anonymous usage events**
    (`docs/telemetry-design.md`): a fixed whitelist of event names, a random per-install
