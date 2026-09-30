@@ -451,6 +451,9 @@ Never push on a red suite; never claim coverage of a matrix surface you didn't r
 - **Never brand or describe this product with another product's name.** Use our
   own naming for the product and its features (no other product's brand in code,
   docs, or UI).
-- Commit messages: conventional style (`fix(youtube): …`), and end with
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+- Commit messages: conventional style (`fix(youtube): …`), and end with the
+  co-author line(s) of the agent host that made the commit. For opencode +
+  DeepSeek that is `Co-Authored-By: opencode <noreply@opencode.ai>` and
+  `Co-Authored-By: deepseek-v4.1-flash <noreply@deepseek.com>` (the Claude Code
+  host uses its own `Co-Authored-By: Claude …` line).
 - Don't commit to `main` directly; use a feature branch.
