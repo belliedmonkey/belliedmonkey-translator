@@ -104,6 +104,29 @@ describe('cli-corpus: 采集 / 保存 / 计划 / 复习（§9.10）', () => {
     eq(d.allReviews().length, 1, '复习行要落盘');
   });
 
+  test('★ 技能轮换：够久的卡走 write（填空）并盖章（§5.4）', async () => {
+    const c = new Corpus(tmpFile());
+    c.capture('The quick brown fox jumps over the lazy dog.', '敏捷的棕色狐狸跳过懒狗。', { targetLang: 'zh-CN' }, NOW);
+    const id = c.allItems()[0].id;
+    const it = c.itemById(id);
+    // 把它推到 write 档的门槛（s ≥ TIER_WRITE_S = 30 天），且到期（R ≤ targetR）。
+    it.sched = { s: 40, d: 5, lastReviewAt: NOW - 40 * LearnScheduler.DAY, dueAt: NOW - LearnScheduler.DAY, reps: 5, lapses: 0 };
+    let sawWrite = false;
+    const io = {
+      read: () => Promise.resolve('2'),
+      write: (item, cloze) => {
+        sawWrite = true;
+        return Promise.resolve(cloze.parts.filter((p) => p.t === 'blank').map((p) => p.answer).join('|'));
+      },
+      note: () => {},
+    };
+    const res = await runReview(c, NOW, io);
+    eq(res.graded, 1);
+    ok(sawWrite, 's ≥ 30 的卡应触发 write 档');
+    eq(c.allReviews()[0].mode, 'write');
+    ok(c.itemById(id).skills && c.itemById(id).skills.write, 'write 技能要盖章');
+  });
+
   test('★ 删除台账（§7.4）：删掉的卡再导入不会复活', async () => {
     const a = new Corpus(tmpFile('a.mtlearn'));
     a.capture('Delete me.', '删了我。', { targetLang: 'zh-CN' }, NOW);

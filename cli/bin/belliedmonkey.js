@@ -83,6 +83,8 @@ function engine() {
 }
 
 function uiLang(cfg, values) { return (values && values['ui-lang']) || cfg.uiLang || ''; }
+// 没有 engine() 的命令（setup/plan/sync/...）也要能定语言。
+function langOf(values) { return (values && values['ui-lang']) || config.get().uiLang || ''; }
 
 const FAIL_EXIT = { needs_setup: 2, unknown_provider: 2, no_base: 2 };
 
@@ -93,7 +95,7 @@ function printFail(r, cfg, values) {
   if (r.code === 'needs_setup') stderr('  ' + messages.t('cli_setup_hint', lang));
   if (r.code === 'credit_exhausted') {
     const url = require('../setup.js').pageUrl();
-    stderr('  ' + messages.t('cli_exhausted_hint', lang).replace('{url}', url));
+    stderr('  ' + messages.fmt('cli_exhausted_hint', lang, { url }));
   }
   process.exit(FAIL_EXIT[r.code] || 3);
 }
@@ -136,7 +138,7 @@ async function cmdTranslate(positionals, values) {
       lang: '', targetLang: r.lang, anchor: { k: 'handoff', via: 'input', at: Date.now() },
     }, Date.now());
     await corpus.save();
-    stderr(`已采集 +${res.added} 张（跳过 ${res.skipped}），语料 ${corpus.path}`);
+    stderr(messages.fmt('cli_capture_added', langOf(values), { n: res.added, skipped: res.skipped, path: corpus.path }));
   }
 }
 
@@ -168,7 +170,7 @@ async function cmdDoc(positionals, values) {
   try { res = await translateDoc(file, values.pages, makeTranslate(eng, cfg, values), { lang: values.lang }); }
   catch (e) { stderr(`${NAME}: 文档错误${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`); process.exit(4); }
   const text = values.json ? JSON.stringify(res) + '\n' : renderDoc(res, values);
-  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(`${NAME}: 已写入 ${o}`); }
+  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(messages.fmt('cli_wrote', langOf(values), { path: o })); }
   else process.stdout.write(text);
   if (res.total > res.range.length) stderr(`（共 ${res.total} 页，本次翻了 ${res.range.join(',') || '无'}；要更多页给 --pages）`);
 }
@@ -186,7 +188,7 @@ async function cmdSubtitle(positionals, values) {
     : ext === '.srt' ? toSrt(res.cues, values.only)
       : ext === '.vtt' ? toVtt(res.cues, values.only)
         : fmtText(res.cues, values.only);
-  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(`${NAME}: 已写入 ${o}`); }
+  if (values.out) { const o = path.resolve(values.out); fs.writeFileSync(o, text); stderr(messages.fmt('cli_wrote', langOf(values), { path: o })); }
   else process.stdout.write(text);
 }
 
@@ -248,26 +250,32 @@ async function cmdPlan(positionals, values) {
     return;
   }
   if (!p.total) { process.stdout.write(messages.t('cli_dict_empty', lang) + '\n'); return; }
-  if (!p.deck.length) { process.stdout.write(messages.t('cli_no_plan', lang) + '\n'); }
+  if (!p.deck.length) { process.stdout.write(messages.t('cli_plan_none', lang) + '\n'); }
   else {
-    process.stdout.write(`今日 ${p.deck.length} 张 · 到期 ${p.due} · 今日新卡 ${p.newToday}\n`);
+    process.stdout.write(messages.fmt('cli_plan_summary', lang, { n: p.deck.length, due: p.due, new: p.newToday }) + '\n');
     for (const c of p.deck) process.stdout.write(`  · ${c.text}\n    ${c.tr}\n`);
   }
-  if (p.ahead) process.stdout.write(`未来 ${p.horizon} 天合计 ${p.ahead.length} 张\n`);
+  if (p.ahead) process.stdout.write(messages.fmt('cli_plan_ahead', lang, { days: p.horizon, n: p.ahead.length }) + '\n');
 }
 
 async function cmdReview(positionals, values) {
-  const lang = values['ui-lang'] || '';
+  const lang = langOf(values);
   if (!process.stdin.isTTY) { stderr('review 需要交互终端（stdin 不是 TTY）'); process.exit(1); }
   const corpus = await openCorpus(values);
-  const { runReview } = require('../review.js');
+  const { runReview, clozeText } = require('../review.js');
   const readline = require('node:readline');
   const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
-  const ask = (item, n, total) => new Promise((resolve) => {
+  const read = (item, n, total) => new Promise((resolve) => {
     process.stderr.write(`\n(${n}/${total}) ${item.text}\n  ${item.tr}\n  ${messages.t('cli_press_grade', lang)} > `);
     rl.question('', (a) => resolve(a.trim()));
   });
-  const res = await runReview(corpus, Date.now(), ask);
+  const write = (item, cloze, n, total) => new Promise((resolve) => {
+    process.stderr.write(`\n(${n}/${total}) ${messages.t('cli_fill_blanks', lang)}\n  ${clozeText(cloze)}\n> `);
+    rl.question('', (a) => resolve(a.trim()));
+  });
+  const res = await runReview(corpus, Date.now(), {
+    read, write, note: (s) => process.stderr.write('  ' + s + '\n'),
+  });
   rl.close();
   stderr(messages.t('cli_saved', lang) + ` (${res.graded}/${res.total})`);
 }
@@ -309,15 +317,16 @@ async function cmdLogin(positionals, values) {
     if (!values.code) {
       await rt.auth.signIn(who);
       rt.saveState();
-      process.stderr.write(`${NAME}: 验证码已发往 ${who}\n`);
-      process.stderr.write(`  收到后跑：${NAME} login ${who} --code <六位码>\n`);
+      const lang = langOf(values);
+      process.stderr.write(messages.fmt('cli_setup_sent', lang, { who }) + '\n');
+      process.stderr.write(`  ${NAME} login ${who} --code <code>\n`);
       return;
     }
     const sess = await rt.auth.verify(who, values.code);
     rt.saveState();
-    process.stdout.write(`已登录：${rt.auth.displayName(sess) || sess.userId}\n`);
+    process.stdout.write(messages.fmt('cli_setup_logged_in', langOf(values), { who: rt.auth.displayName(sess) || sess.userId || who }) + '\n');
   } catch (e) {
-    stderr(`${NAME}: 登录失败${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`);
+    stderr(messages.fmt('cli_login_failed', langOf(values), { msg: (e && e.message) || e }));
     process.exit(5);
   }
 }
@@ -325,15 +334,15 @@ async function cmdLogin(positionals, values) {
 async function cmdLogout(positionals, values) {
   refuseChina('logout');
   const rt = setupSync(await openCorpus(values), values);
-  try { await rt.auth.signOut(); rt.saveState(); process.stdout.write('已退出登录\n'); }
-  catch (e) { stderr(`${NAME}: 退出失败 ${(e && e.message) || e}`); process.exit(5); }
+  try { await rt.auth.signOut(); rt.saveState(); process.stdout.write(messages.t('cli_logged_out', langOf(values)) + '\n'); }
+  catch (e) { stderr(messages.fmt('cli_logout_failed', langOf(values), { msg: (e && e.message) || e })); process.exit(5); }
 }
 
 async function cmdWhoami(positionals, values) {
   refuseChina('whoami');
   const rt = setupSync(await openCorpus(values), values);
   const s = await rt.auth.current();
-  if (!s) { stderr(`${NAME}: 未登录`); process.exit(2); }
+  if (!s) { stderr(messages.t('cli_whoami_none', langOf(values))); process.exit(2); }
   process.stdout.write((rt.auth.displayName(s) || s.userId) + '\n');
 }
 
@@ -346,11 +355,12 @@ async function cmdSync(positionals, values) {
     await corpus.save();
     rt.saveState();
     if (values.json) { process.stdout.write(JSON.stringify(res) + '\n'); return; }
-    process.stdout.write(`已同步：拉取 ${res.pulled.cards} 张 · 推送 ${res.pushed.pushed} 张\n`);
+    process.stdout.write(messages.fmt('cli_sync_done', langOf(values), { pulled: res.pulled.cards, pushed: res.pushed.pushed }) + '\n');
   } catch (e) {
-    stderr(`${NAME}: 同步失败${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`);
-    if (e && e.code === 'signed_out') stderr(`  先登录：${NAME} login <邮箱>`);
-    if (e && e.code === 'owner_mismatch') stderr('  这份语料属于另一个账号（语料归属 = 认领它的账号）。');
+    stderr(messages.fmt('cli_sync_failed', langOf(values), { code: (e && e.code) || 'error' }));
+    if (e && e.message) stderr('  ' + e.message);
+    if (e && e.code === 'signed_out') stderr(`  ${NAME} login <email>`);
+    if (e && e.code === 'owner_mismatch') stderr('  this corpus belongs to another account');
     process.exit(5);
   }
 }

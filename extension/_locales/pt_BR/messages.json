@@ -3725,5 +3725,80 @@
   },
   "learn_group_bye": {
     "message": "O resto pode esperar — é só voltar."
+  },
+  "cli_setup_hint": {
+    "message": "Execute primeiro bm setup (ao entrar, o crédito grátis é adicionado automaticamente, sem configuração). Ou use sua própria key: bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "Crédito grátis esgotado. Configure sua própria key (bm config set provider <id> && bm config set apiKey <key>) — ou veja {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "E-mail (entre para o crédito grátis): "
+  },
+  "cli_setup_code_prompt": {
+    "message": "Código de seis dígitos: "
+  },
+  "cli_setup_sent": {
+    "message": "Código enviado para {who} — verifique sua caixa de entrada"
+  },
+  "cli_setup_logged_in": {
+    "message": "Conectado: {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "Crédito grátis recebido: ${limit} (restante ${left})"
+  },
+  "cli_setup_done": {
+    "message": "Pronto — traduza agora: bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "Falha na configuração ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "A versão para a China não oferece crédito grátis. Use sua própria key: bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "Falha ao entrar {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "Não conectado"
+  },
+  "cli_logged_out": {
+    "message": "Desconectado"
+  },
+  "cli_logout_failed": {
+    "message": "Falha ao sair {msg}"
+  },
+  "cli_sync_done": {
+    "message": "Sincronizado: recebidos {pulled} · enviados {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "Falha na sincronização ({code})"
+  },
+  "cli_capture_added": {
+    "message": "Capturados +{n} (ignorados {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "Hoje {n} · vencidos {due} · novos {new}"
+  },
+  "cli_plan_none": {
+    "message": "Nenhum cartão vencido agora, e sem novos para hoje."
+  },
+  "cli_plan_ahead": {
+    "message": "Próximos {days} dias: {n} cartões"
+  },
+  "cli_dict_empty": {
+    "message": "O corpus está vazio — importe um .mtlearn ou traduza com --capture."
+  },
+  "cli_press_grade": {
+    "message": "Nota: 0 de novo · 1 difícil · 2 bom · 3 fácil · q salvar e sair"
+  },
+  "cli_fill_blanks": {
+    "message": "Preencha os espaços (vários: separe com | ou espaços):"
+  },
+  "cli_saved": {
+    "message": "Salvo"
+  },
+  "cli_wrote": {
+    "message": "Gravado em {path}"
   }
 }

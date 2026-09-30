@@ -2,42 +2,15 @@
 //
 // 读一整份 `.vtt` / `.srt` → cues → 逐条翻译 → 写译文字幕（保持时间轴）。
 //
-// **时间轴解析与 `content/podcast.js` 的 `parseTimedText` 同规则**（那边内嵌在内容脚本里、
-// 不导出，CLI 够不着）。这段解析是 25 行的稳定纯函数，这里照抄一份；合并回一个共享纯模块
-// 列为后续项（PR 里点名）。翻译走 CLI engine 的 `translate`（同一份传输字节）。
+// 时间轴解析是**共享的同一份实现**：`extension/content/timed-text.js`（内容脚本
+// podcast / twitter 与 CLI 共用）。翻译走 CLI engine 的 `translate`（同一份传输字节）。
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
-function tcToMs(tc) {
-  tc = (tc || '').trim().replace(',', '.').split(' ')[0];
-  const p = tc.split(':');
-  let h = 0, m = 0, s = 0;
-  if (p.length === 3) { h = +p[0]; m = +p[1]; s = parseFloat(p[2]); }
-  else if (p.length === 2) { m = +p[0]; s = parseFloat(p[1]); }
-  else { s = parseFloat(p[0]); }
-  return Math.round(((h * 3600 + m * 60 + s) || 0) * 1000);
-}
-function stripCueTags(t) { return t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/[^\S\n]+/g, ' ').trim(); }
-
-function parseTimedText(text) {
-  const out = [];
-  const blocks = String(text || '').replace(/\r/g, '').split(/\n\n+/);
-  for (const b of blocks) {
-    const lines = b.split('\n').filter((l) => l.length);
-    const tl = lines.find((l) => l.indexOf('-->') !== -1);
-    if (!tl) continue;
-    const parts = tl.split('-->');
-    if (parts.length < 2) continue;
-    const start = tcToMs(parts[0]);
-    const end = tcToMs(parts[1]);
-    if (!(end > start)) continue;
-    const txt = stripCueTags(lines.slice(lines.indexOf(tl) + 1).join(' '));
-    if (txt) out.push({ start, end, text: txt });
-  }
-  out.sort((a, b) => a.start - b.start);
-  return out;
-}
+const ROOT = path.join(__dirname, '..');
+const TimedText = require(path.join(ROOT, 'extension/content/timed-text.js'));
+const parseTimedText = (text) => TimedText.parseTimedText(text);
 
 function pad(n, w) { return String(n).padStart(w, '0'); }
 function fmt(ms, comma) {

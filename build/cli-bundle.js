@@ -99,6 +99,26 @@ function buildCliBundle(outDir, log, opts) {
   } else if (log) {
     log('  · extension/vendor/pdfjs 不存在，跳过（PDF 文档翻译将不可用）');
   }
+
+  // CLI 的文案真源是 extension/_locales（12 语种）；跟产物走，装到别处也读得到。
+  // **中国版从 dist-china/_locales 取** —— 那已由 build.js 的 applyChinaLocales 去掉品牌词；
+  // 照取 extension/ 会让 dist-cli-china 里出现 `hint_openai`，合规门当场红。
+  const locSrc = (opts.genRoot && fs.existsSync(path.join(opts.genRoot, '_locales')))
+    ? path.join(opts.genRoot, '_locales')
+    : path.join(ROOT, 'extension', '_locales');
+  const locDst = path.join(outDir, '_locales');
+  let langs = 0;
+  if (fs.existsSync(locSrc)) {
+    fs.mkdirSync(locDst, { recursive: true });
+    for (const d of fs.readdirSync(locSrc)) {
+      const f = path.join(locSrc, d, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      fs.mkdirSync(path.join(locDst, d), { recursive: true });
+      fs.copyFileSync(f, path.join(locDst, d, 'messages.json'));
+      langs++;
+    }
+    if (log) log(`  ✓ _locales（${langs} 语种）`);
+  }
   return out.length;
 }
 

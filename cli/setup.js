@@ -6,6 +6,7 @@
 // 「领 → 写槽」用的是同一份实现（src/shared/grant.js，见 cli/grant.js / cli/bootstrap.js）。
 'use strict';
 const configMod = require('./config.js');
+const messages = require('./messages.js');
 
 function pageUrl() {
   const host = process.env.BM_CLI_FLAVOR === 'china' ? 'belliedmonkey.com' : 'belliedmonkey.cc';
@@ -18,10 +19,10 @@ async function guidedSetup(values, deps) {
   const out = deps.out || (() => {});
   const err = deps.err || (() => {});
   const flavor = process.env.BM_CLI_FLAVOR === 'china' ? 'china' : 'global';
+  const lang = values['ui-lang'] || configMod.load().uiLang || '';
 
   if (flavor === 'china') {
-    err('中国版不提供代领的免费额度（境内后端未就绪）。');
-    err('  自带一把 key 即可：bm config set provider qwen && bm config set apiKey <key>');
+    err(messages.t('cli_china_no_grant', lang));
     return { ok: false, code: 'grant_unavailable' };
   }
 
@@ -34,8 +35,7 @@ async function guidedSetup(values, deps) {
   catch (e) { err(`初始化失败：${(e && e.message) || e}`); return { ok: false, code: e && e.code }; }
 
   if (!rt.grant || !rt.grant.enabled()) {
-    err('这个构建没有打开免费额度。');
-    err('  自带一把 key：bm config set provider <id> && bm config set apiKey <key>');
+    err(messages.t('cli_setup_hint', lang));
     return { ok: false, code: 'grant_unavailable' };
   }
 
@@ -47,22 +47,22 @@ async function guidedSetup(values, deps) {
   // 1) 登录 —— 引导流程的第一步，必须完成（免费额度是登录的附带权益）
   let sess = await rt.auth.current();
   if (!sess) {
-    const who = String((await ask('邮箱（登录后领免费额度）: ')) || '').trim();
-    if (!who) { err('需要一个邮箱。'); return { ok: false, code: 'no_email' }; }
+    const who = String((await ask(messages.t('cli_setup_email_prompt', lang))) || '').trim();
+    if (!who) { err(messages.t('cli_whoami_none', lang)); return { ok: false, code: 'no_email' }; }
     await rt.auth.signIn(who);
-    out(`验证码已发往 ${who} —— 去邮箱收一下`);
-    const code = String((await ask('六位验证码: ')) || '').trim();
+    out(messages.fmt('cli_setup_sent', lang, { who }));
+    const code = String((await ask(messages.t('cli_setup_code_prompt', lang))) || '').trim();
     sess = await rt.auth.verify(who, code);
     rt.saveState();
-    out(`已登录：${rt.auth.displayName(sess) || sess.userId || who}`);
+    out(messages.fmt('cli_setup_logged_in', lang, { who: rt.auth.displayName(sess) || sess.userId || who }));
   } else {
-    out(`已登录：${rt.auth.displayName(sess) || sess.userId}`);
+    out(messages.fmt('cli_setup_logged_in', lang, { who: rt.auth.displayName(sess) || sess.userId }));
   }
 
   // 2) 领取（幂等：服务端以 user_id 为主键，第二次回传同一枚令牌）
   let claimed;
   try { claimed = await rt.grant.claim({ auth: rt.auth, backend: rt.backend, fetch }); }
-  catch (e) { err(`领取失败${e && e.code ? '（' + e.code + '）' : ''} ${(e && e.message) || e}`); return { ok: false, code: e && e.code }; }
+  catch (e) { err(messages.fmt('cli_setup_failed', lang, { code: (e && e.code) || 'error', msg: (e && e.message) || e })); return { ok: false, code: e && e.code }; }
 
   // 3) 把令牌写进配置。overwrite=true 是这里的明确语义：设置这个动作就是「用免费额度」，
   //    旧的 key 该被换掉（与扩展「改回免费额度」同一个入参）。
@@ -73,8 +73,8 @@ async function guidedSetup(values, deps) {
 
   const limit = Number(claimed.limitUsd || 0);
   const left = Math.max(0, limit - Number(claimed.spentUsd || 0));
-  out(`已领取免费额度：$${limit.toFixed(2)}（当前余额 $${left.toFixed(2)}）`);
-  out('配置完成 —— 直接翻译即可：bm translate "Hello."');
+  out(messages.fmt('cli_setup_claimed', lang, { limit: limit.toFixed(2), left: left.toFixed(2) }));
+  out(messages.t('cli_setup_done', lang));
   return { ok: true, provider: writes.provider, limitUsd: limit };
 }
 

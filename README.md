@@ -376,7 +376,7 @@ green badge imply coverage it doesn't have.
 extension/
 ├── manifest.json           Manifest V3 — Chrome / Safari / Firefox
 ├── background.js           State only. Never translation. (See above.)
-├── content/                37 files — the ones worth knowing:
+├── content/                38 files — the ones worth knowing:
 │   ├── translation-core.js Platform-agnostic engine: subtitle state machine,
 │   │                       60s sliding window, sentence merge, paging, i18n
 │   ├── translation-api.js  Every provider fetch() — runs in the content script

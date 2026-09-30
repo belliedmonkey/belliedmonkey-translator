@@ -86,7 +86,7 @@ describe('cli-sync: 登录 + 同步闭环（§9.10）', () => {
       // A 登录 + 同步。
       const loginA = await runCli(['login', 'me@example.com', '--code', '123456'], envA);
       eq(loginA.code, 0, 'login A stderr=' + loginA.stderr);
-      ok(/已登录/.test(loginA.stdout), 'login 要报身份，实际 ' + loginA.stdout);
+      ok(/Signed in|已登录/.test(loginA.stdout), 'login 要报身份，实际 ' + loginA.stdout);
       const syncA = await runCli(['sync', '--json'], envA);
       eq(syncA.code, 0, 'sync A stderr=' + syncA.stderr);
       const pushedA = JSON.parse(syncA.stdout);

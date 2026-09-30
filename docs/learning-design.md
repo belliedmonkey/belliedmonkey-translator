@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-09-30（三） | belliedmonkey | **CLI 三项收尾**（用户裁定）：① 字幕时间轴解析统一为 `content/timed-text.js`（podcast / twitter / CLI 共用，不再各抄一份）；② CLI 运行文案迁进 `extension/_locales` 的 `cli_*` 键（12 语种，随产物拷进 `dist-cli/_locales`，中国版取品牌已清的 `dist-china/_locales`）；③ 复习接上技能轮换（§5.4）：`write` 填空档（`clozeFor`/`clozeCheck`）自动出现，`listen`/`speak` 由 caps 挡住（终端无音频/麦克风）。见 §9.10、interaction-spec「命令行」、verification-spec §3.1.13 | **已评审通过（2026-09-30，用户裁定；本 PR）** |
 | 2026-09-30（二，**用户裁定**） | belliedmonkey | **CLI 引导配置：先登录再自动领免费额度。** 新增 `bm setup`：打印 Gate F 披露 → 登录 → 经我们的中继领 0.2 美元额度（§8.10）→ 令牌写进配置，用户不必先去厂商申请 key；额度用完（402 `credit_exhausted`）引导去配自带 key + 官网配置页。**复用 `src/shared/grant.js` 的 claim/plan，不重写领取流程。** 中国版不代领、具名拒绝。**修正同日 CLI 行的「不接免费额度中继」。** 见 §9.10、domain-design §2.7 规则 5（修订）与 §8、interaction-spec「首次配置」 | **已评审通过（2026-09-30，用户裁定；本 PR）** |
 | 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
 | 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
@@ -3697,8 +3698,14 @@ telemetry seams。新真 Chrome 门 `npm run test:quick`（`Main.html#quick` + �
   `dueCount` + `buildDeckAhead(days)`（「出发前预载」同款预测）。**不写任何数据**——与 §9.5 预载
   同一条纪律。
 - `review`（交互式）：展示卡片 → 收评分 `0..3`（§5）→ `applyReview` 推进 `sched` →
-  `recordReview` 追加日志 → 回写语料文件。技能轮换（§5.4）v1 走 `mode:'read'`，其余技能随后补
-  （`pickSkills` / `skillFresh` 已是纯函数）。
+  `recordReview` 追加日志 → 回写语料文件。**技能轮换（§5.4）已接上**：每张卡先问
+  `LearnScheduler.pickSkills` 这次考哪一项；`read` 自评，卡片够熟（`s ≥ TIER_WRITE_S`）时出
+  **`write` 填空档**（`LearnModel.clozeFor` / `clozeCheck`，客观判分）。`listen` / `speak` 由
+  `caps={listen:false,speak:false,write:true}` 挡在外面 —— 终端没有音频与麦克风（§5.2：缺能力
+  等于题型不存在，不是卡失败）；`caps` 一旦具备它们会自动出现。
+- **文案与解析各只有一份实现**：CLI 的运行文案取自 `extension/_locales`（`cli_*` 键，12 语种，
+  随产物拷进 `dist-cli/_locales`）；字幕时间轴解析是 `extension/content/timed-text.js`，
+  podcast / twitter / CLI 共用。
 
 **anchor kind 不新增。** CLI 文本用 `k:'handoff'`（`via:'input'`，§9.9 同一 union），文档用
 `k:'doc'`（§9.7），字幕用现有媒体 / 对话锚点或 `handoff`。语料格式因此不改，扩展 / App 读得懂

@@ -91,7 +91,7 @@ describe('cli-setup: 登录 → 领免费额度 → 写配置（§9.10）', () =
       BM_STATE: path.join(dir, 'state.json'),
     });
     eq(r.code, 5, '中国版应拒绝（退出 5）');
-    ok(/中国版/.test(r.stdout + r.stderr), '要说清楚是中国版没有代领额度');
+    ok(/China build|中国版/.test(r.stdout + r.stderr), '要说清楚是中国版没有代领额度');
     ok(!fs.existsSync(path.join(dir, 'conf', 'config.json')), '拒绝时不该写配置');
   });
 

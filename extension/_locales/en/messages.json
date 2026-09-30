@@ -3725,5 +3725,80 @@
   },
   "learn_group_bye": {
     "message": "The rest can wait — just come back."
+  },
+  "cli_setup_hint": {
+    "message": "First run:  bm setup   (sign in, then free credit is added automatically). Or bring your own key:  bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "Free credit used up. Configure your own key (bm config set provider <id> && bm config set apiKey <key>) — or see {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "Email (sign in to get free credit): "
+  },
+  "cli_setup_code_prompt": {
+    "message": "Six-digit code: "
+  },
+  "cli_setup_sent": {
+    "message": "Code sent to {who} — check your inbox"
+  },
+  "cli_setup_logged_in": {
+    "message": "Signed in: {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "Free credit claimed: ${limit} (remaining ${left})"
+  },
+  "cli_setup_done": {
+    "message": "Done — translate now:  bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "Setup failed ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "The China build does not relay free credit. Bring your own key:  bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "Sign-in failed {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "Not signed in"
+  },
+  "cli_logged_out": {
+    "message": "Signed out"
+  },
+  "cli_logout_failed": {
+    "message": "Sign-out failed {msg}"
+  },
+  "cli_sync_done": {
+    "message": "Synced: pulled {pulled} · pushed {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "Sync failed ({code})"
+  },
+  "cli_capture_added": {
+    "message": "Captured +{n} (skipped {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "Today {n} · due {due} · new {new}"
+  },
+  "cli_plan_none": {
+    "message": "No cards due right now, and no new cards left for today."
+  },
+  "cli_plan_ahead": {
+    "message": "Next {days} days: {n} cards"
+  },
+  "cli_dict_empty": {
+    "message": "The corpus is empty — import a .mtlearn export, or translate with --capture."
+  },
+  "cli_press_grade": {
+    "message": "Grade: 0 again · 1 hard · 2 good · 3 easy · q save & quit"
+  },
+  "cli_fill_blanks": {
+    "message": "Fill in the blank(s) (separate several with | or spaces):"
+  },
+  "cli_saved": {
+    "message": "Saved"
+  },
+  "cli_wrote": {
+    "message": "Wrote {path}"
   }
 }
