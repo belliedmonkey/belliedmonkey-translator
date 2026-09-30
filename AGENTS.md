@@ -451,6 +451,15 @@ Never push on a red suite; never claim coverage of a matrix surface you didn't r
 - **Never brand or describe this product with another product's name.** Use our
   own naming for the product and its features (no other product's brand in code,
   docs, or UI).
-- Commit messages: conventional style (`fix(youtube): …`), and end with
-  `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>`.
+- Commit messages: conventional style (`fix(youtube): …`), and end with the
+  project's agent collaborators — all three lines:
+
+  ```
+  Co-Authored-By: opencode <noreply@opencode.ai>
+  Co-Authored-By: DeepSeek V4.1 Flash <noreply@deepseek.com>
+  Co-Authored-By: GLM 5.3 <noreply@zhipuai.cn>
+  ```
+
+  *(2026-09-30 更正：这一行此前写的是 `Co-Authored-By: Claude 4.8 <noreply@anthropic.com>`，
+  与实际干活的宿主/模型不符 —— 用户裁定按上面三位署名。已合进 main 的历史**不重写**。)*
 - Don't commit to `main` directly; use a feature branch.
