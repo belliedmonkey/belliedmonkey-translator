@@ -10,6 +10,8 @@
 //     定格（setMode 后 ✓ 不实时挪位，重开才刷新），保真优先；实时化是迁移之后
 //     的独立改进，不属于这个 PR。
 //   - 零 MT_ 全局、零 i18n、零 adapter 逻辑（src-boundaries 门禁扫本文件）。
+//     注入层的颜色经 `lib/registry.js` 的 `palette()` getter 读（2026-09-30，审计
+//     OVL-01：颜色原先写死在本文件里，整片漏过 palette 门禁）。
 //
 // 加载方式：不在 manifest content_scripts 列表里 —— subtitle-adapter.js 在用户
 // 第一次点开菜单时才 import(chrome.runtime.getURL('content/sub-menu.bundle.js'))，
@@ -17,21 +19,24 @@
 // 实测不过时的回退开关见 build/ui-entries.config.js 这一条的注释。
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom'; // flushSync 不在 /client 子入口（19 只导 createRoot/hydrateRoot）
+import Registry from '../lib/registry.js';
+
+const PAL = Registry.palette();   // 注入层颜色经注册表桥读（src-boundaries 门禁：本文件零 MT_ 全局，2026-09-30 OVL-01）
 
 // 旧 row() 的行 cssText 拆成 style 对象，值逐字相同 —— 拆分即文档。
 const ROW_CSS = {
   display: 'flex', alignItems: 'center', gap: '10px',
   padding: '9px 16px', cursor: 'pointer', whiteSpace: 'nowrap',
 };
-const TICK_CSS = { width: '12px', display: 'inline-block', color: '#4caf50' };
-const SEP_CSS = { height: '1px', background: 'rgba(255,255,255,.12)', margin: '5px 0' };
-const HEAD_CSS = { padding: '6px 16px 2px', fontSize: '11px', color: '#9a9a9a' };
+const TICK_CSS = { width: '12px', display: 'inline-block', color: PAL.overlayTick };
+const SEP_CSS = { height: '1px', background: PAL.overlayMenuSep, margin: '5px 0' };
+const HEAD_CSS = { padding: '6px 16px 2px', fontSize: '11px', color: PAL.overlayMenuDim };
 
 function MenuRow({ row }) {
   return (
     <div
       style={ROW_CSS}
-      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,.1)'; }}
+      onMouseEnter={(e) => { e.currentTarget.style.background = PAL.overlayMenuHover; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
       onClick={(e) => { e.stopPropagation(); row.onClick(); }}
     >
@@ -71,8 +76,8 @@ export function open({ id, btn, rows, closeMenu }) {
   container.id = id;
   container.setAttribute('translate', 'no');
   container.style.cssText = `position:fixed;right:${right}px;${vpos};max-height:calc(100vh - 72px);overflow-y:auto;` +
-    'z-index:2147483000;min-width:210px;background:rgba(28,28,28,.97);border-radius:10px;' +
-    'padding:6px 0;font-size:14px;color:#eee;box-shadow:0 2px 12px rgba(0,0,0,.5);';
+    `z-index:2147483000;min-width:210px;background:${PAL.overlayMenuBg};border-radius:${PAL.overlayPanelRadius};` +
+    `padding:6px 0;font-size:14px;color:${PAL.overlayMenuText};box-shadow:0 2px 12px rgba(0,0,0,.5);`;
   document.body.appendChild(container);
   const root = createRoot(container);
   // flushSync 契约：旧实现在点击处理器里同步追加行，host.open() 返回时行必须在

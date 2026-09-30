@@ -50,3 +50,9 @@
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 }
+
+/* 基础 UI 基线（POP-01，2026-09-30）：键盘焦点在四个面是同一条 —— 扩展三页各自
+   link 这份 sheet，App 壳由 build/app-bundle.js 把它 prepend 进 Style.css。
+   放在 token 之后、页面样式之前：页面自己的 :focus 规则（options / review / app
+   各有）在后，仍然覆盖它。 */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
