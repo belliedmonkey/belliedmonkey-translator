@@ -70,6 +70,7 @@
         "content/ws-transcribe.js",
         "content/asr-source.js",
         "content/content-youtube.js",
+        "content/timed-text.js",
         "content/content-podcast.js",
         "content/content-main.js"
       ],
@@ -137,6 +138,7 @@
         "content/ws-transcribe.js",
         "content/asr-source.js",
         "content/content-youtube.js",
+        "content/timed-text.js",
         "content/content-podcast.js",
         "content/content-twitter.js",
         "content/site-twitter.js",

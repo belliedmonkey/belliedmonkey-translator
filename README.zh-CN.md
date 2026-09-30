@@ -327,7 +327,7 @@ npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（N
 extension/
 ├── manifest.json           Manifest V3 —— Chrome / Safari / Firefox 通用
 ├── background.js           只管状态，从不翻译（原因见上）
-├── content/                37 个文件，值得知道的这些：
+├── content/                38 个文件，值得知道的这些：
 │   ├── translation-core.js 平台无关引擎：字幕状态机、60 秒预译窗口、
 │   │                       句子合并、分页、i18n
 │   ├── translation-api.js  所有服务商 fetch()，在 content script 中执行

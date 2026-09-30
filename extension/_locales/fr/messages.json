@@ -3725,5 +3725,80 @@
   },
   "learn_group_bye": {
     "message": "Le reste peut attendre — revenez, c’est tout."
+  },
+  "cli_setup_hint": {
+    "message": "Lancez d'abord bm setup (après connexion, le crédit offert est ajouté automatiquement, aucune configuration). Ou votre propre key : bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "Crédit offert épuisé. Configurez votre propre key (bm config set provider <id> && bm config set apiKey <key>) — ou voir {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "E-mail (connexion pour le crédit offert) : "
+  },
+  "cli_setup_code_prompt": {
+    "message": "Code à six chiffres : "
+  },
+  "cli_setup_sent": {
+    "message": "Code envoyé à {who} — consultez votre boîte"
+  },
+  "cli_setup_logged_in": {
+    "message": "Connecté : {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "Crédit offert reçu : ${limit} (restant ${left})"
+  },
+  "cli_setup_done": {
+    "message": "Terminé — traduisez : bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "Échec de la configuration ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "La version Chine ne fournit pas de crédit offert. Utilisez votre propre key : bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "Échec de connexion {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "Non connecté"
+  },
+  "cli_logged_out": {
+    "message": "Déconnecté"
+  },
+  "cli_logout_failed": {
+    "message": "Échec de déconnexion {msg}"
+  },
+  "cli_sync_done": {
+    "message": "Synchronisé : reçus {pulled} · envoyés {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "Échec de synchronisation ({code})"
+  },
+  "cli_capture_added": {
+    "message": "Capturés +{n} (ignorés {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "Aujourd'hui {n} · à revoir {due} · nouvelles {new}"
+  },
+  "cli_plan_none": {
+    "message": "Aucune carte à revoir pour l'instant, et plus de nouvelles pour aujourd'hui."
+  },
+  "cli_plan_ahead": {
+    "message": "{days} prochains jours : {n} cartes"
+  },
+  "cli_dict_empty": {
+    "message": "Le corpus est vide — importez un .mtlearn ou traduisez avec --capture."
+  },
+  "cli_press_grade": {
+    "message": "Note : 0 encore · 1 difficile · 2 bien · 3 facile · q enregistrer et quitter"
+  },
+  "cli_fill_blanks": {
+    "message": "Complétez le(s) blanc(s) (plusieurs : séparez par | ou espaces) :"
+  },
+  "cli_saved": {
+    "message": "Enregistré"
+  },
+  "cli_wrote": {
+    "message": "Écrit dans {path}"
   }
 }

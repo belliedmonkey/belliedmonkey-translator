@@ -40,6 +40,11 @@ dist-app/
 # `node build.js --flavor china` 都会弄脏工作树，还带着 1MB 生成物进版本库。
 dist-app-china/
 
+# 命令行宿主的产物（build/cli-bundle.js，learning-design §9.10）。与 dist/ 同族：
+# 生成物不进版本库，构建期按 flavor 各出一份。
+dist-cli/
+dist-cli-china/
+
 # 本地凭证（scripts/local-keys.js 生成，永不提交）
 .local/
 design/.thumbnail

@@ -3726,5 +3726,80 @@
   },
   "learn_group_bye": {
     "message": "剩下的明天再說 —— 回來就好。"
+  },
+  "cli_setup_hint": {
+    "message": "先跑：bm setup（登入後自動領免費額度，免設定）。或自備 key：bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "免費額度用完了。設定自己的 key 繼續（bm config set provider <id> && bm config set apiKey <key>），或看 {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "電子郵件（登入後領免費額度）: "
+  },
+  "cli_setup_code_prompt": {
+    "message": "六位驗證碼: "
+  },
+  "cli_setup_sent": {
+    "message": "驗證碼已寄至 {who} —— 請至信箱收取"
+  },
+  "cli_setup_logged_in": {
+    "message": "已登入：{who}"
+  },
+  "cli_setup_claimed": {
+    "message": "已領取免費額度：${limit}（目前餘額 ${left}）"
+  },
+  "cli_setup_done": {
+    "message": "設定完成 —— 直接翻譯即可：bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "領取失敗（{code}）{msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "中國版不提供代領的免費額度。自備一把 key 即可：bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "登入失敗 {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "未登入"
+  },
+  "cli_logged_out": {
+    "message": "已登出"
+  },
+  "cli_logout_failed": {
+    "message": "登出失敗 {msg}"
+  },
+  "cli_sync_done": {
+    "message": "已同步：拉取 {pulled} 張 · 推送 {pushed} 張"
+  },
+  "cli_sync_failed": {
+    "message": "同步失敗（{code}）"
+  },
+  "cli_capture_added": {
+    "message": "已擷取 +{n} 張（略過 {skipped}）→ {path}"
+  },
+  "cli_plan_summary": {
+    "message": "今日 {n} 張 · 到期 {due} · 今日新卡 {new}"
+  },
+  "cli_plan_none": {
+    "message": "現在沒有到期卡，今天的新卡也用完了。"
+  },
+  "cli_plan_ahead": {
+    "message": "未來 {days} 天合計 {n} 張"
+  },
+  "cli_dict_empty": {
+    "message": "語料是空的 —— 匯入一份 .mtlearn，或開著擷取翻一點東西。"
+  },
+  "cli_press_grade": {
+    "message": "評分：0 重來 · 1 難 · 2 好 · 3 易 · q 儲存並退出"
+  },
+  "cli_fill_blanks": {
+    "message": "填空（多個空用 | 或空格分隔）："
+  },
+  "cli_saved": {
+    "message": "語料已儲存。"
+  },
+  "cli_wrote": {
+    "message": "已寫入 {path}"
   }
 }

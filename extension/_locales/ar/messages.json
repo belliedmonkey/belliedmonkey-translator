@@ -3725,5 +3725,80 @@
   },
   "learn_group_bye": {
     "message": "الباقي ينتظر —— يكفي أن تعود."
+  },
+  "cli_setup_hint": {
+    "message": "ابدأ بتنفيذ bm setup (بعد تسجيل الدخول يُمنح الرصيد المجاني تلقائيًا دون إعداد). أو استخدم مفتاحك: bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "نفد الرصيد المجاني. أعِدّ مفتاحك (bm config set provider <id> && bm config set apiKey <key>) — أو راجع {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "البريد الإلكتروني (سجّل الدخول للحصول على الرصيد المجاني): "
+  },
+  "cli_setup_code_prompt": {
+    "message": "الرمز المكوّن من ستة أرقام: "
+  },
+  "cli_setup_sent": {
+    "message": "أُرسل الرمز إلى {who} — تحقق من بريدك"
+  },
+  "cli_setup_logged_in": {
+    "message": "تم تسجيل الدخول: {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "تم استلام الرصيد المجاني: ${limit} (المتبقي ${left})"
+  },
+  "cli_setup_done": {
+    "message": "تم — ابدأ الترجمة: bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "فشل الإعداد ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "نسخة الصين لا تمنح رصيدًا مجانيًا. استخدم مفتاحك: bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "فشل تسجيل الدخول {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "لم تسجّل الدخول"
+  },
+  "cli_logged_out": {
+    "message": "تم تسجيل الخروج"
+  },
+  "cli_logout_failed": {
+    "message": "فشل تسجيل الخروج {msg}"
+  },
+  "cli_sync_done": {
+    "message": "تمت المزامنة: ورد {pulled} · أُرسل {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "فشلت المزامنة ({code})"
+  },
+  "cli_capture_added": {
+    "message": "تم الالتقاط +{n} (تم تخطي {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "اليوم {n} · مستحق {due} · جديد {new}"
+  },
+  "cli_plan_none": {
+    "message": "لا توجد بطاقات مستحقة الآن، ولم يتبقَّ جديد لهذا اليوم."
+  },
+  "cli_plan_ahead": {
+    "message": "الأيام {days} القادمة: {n} بطاقة"
+  },
+  "cli_dict_empty": {
+    "message": "المجموعة فارغة — استورد ملف .mtlearn أو ترجم مع --capture."
+  },
+  "cli_press_grade": {
+    "message": "التقييم: 0 مرة أخرى · 1 صعب · 2 جيد · 3 سهل · q حفظ وخروج"
+  },
+  "cli_fill_blanks": {
+    "message": "املأ الفراغات (افصل بينها بـ | أو مسافة):"
+  },
+  "cli_saved": {
+    "message": "تم الحفظ"
+  },
+  "cli_wrote": {
+    "message": "تم الكتابة إلى {path}"
   }
 }

@@ -71,32 +71,11 @@ var TwitterTranslator = (() => {
     return key || (cached ? cached.key : '');
   }
 
-  // ─── Timed-text parsing (WebVTT; X wraps words in <X-word-ms> — stripped) ─
-  function tcToMs(tc) {
-    tc = (tc || '').trim().replace(',', '.').split(' ')[0];
-    const p = tc.split(':');
-    let h = 0, m = 0, s = 0;
-    if (p.length === 3) { h = +p[0]; m = +p[1]; s = parseFloat(p[2]); }
-    else if (p.length === 2) { m = +p[0]; s = parseFloat(p[1]); }
-    else { s = parseFloat(p[0]); }
-    return Math.round(((h * 3600 + m * 60 + s) || 0) * 1000);
-  }
-  function stripCueTags(t) { return t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/[^\S\n]+/g, ' ').trim(); }
+  // Timed-text parsing lives in content/timed-text.js (one implementation, shared with
+  // content-podcast.js and the CLI). X wraps words in <X-word-ms> — stripped there too.
+  // sort:false keeps segment order (offsets already applied per segment).
   function parseVtt(text, offsetMs) {
-    const out = [];
-    for (const b of text.replace(/\r/g, '').split(/\n\n+/)) {
-      const lines = b.split('\n').filter((l) => l.length);
-      const tl = lines.find((l) => l.indexOf('-->') !== -1);
-      if (!tl) continue;
-      const parts = tl.split('-->');
-      if (parts.length < 2) continue;
-      const start = tcToMs(parts[0]) + (offsetMs || 0);
-      const end = tcToMs(parts[1]) + (offsetMs || 0);
-      if (!(end > start)) continue;
-      const txt = stripCueTags(lines.slice(lines.indexOf(tl) + 1).join(' '));
-      if (txt) out.push({ start, end, text: txt });
-    }
-    return out;
+    return TimedText.parseTimedText(text, { offsetMs: offsetMs || 0, sort: false });
   }
   function fetchWithTimeout(url, ms) {
     const ctl = new AbortController();

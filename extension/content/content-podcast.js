@@ -45,35 +45,9 @@ var PodcastTranslator = (() => {
     return (mediaEl()?.currentTime || 0) * 1000;
   }
 
-  // ─── Timed-text parsing (WebVTT / SRT) ─────────────────────────────────
-  function tcToMs(tc) {
-    tc = (tc || '').trim().replace(',', '.').split(' ')[0];
-    const p = tc.split(':');
-    let h = 0, m = 0, s = 0;
-    if (p.length === 3) { h = +p[0]; m = +p[1]; s = parseFloat(p[2]); }
-    else if (p.length === 2) { m = +p[0]; s = parseFloat(p[1]); }
-    else { s = parseFloat(p[0]); }
-    return Math.round(((h * 3600 + m * 60 + s) || 0) * 1000);
-  }
-  function stripCueTags(t) { return t.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/[^\S\n]+/g, ' ').trim(); }
-  function parseTimedText(text) {
-    const out = [];
-    const blocks = text.replace(/\r/g, '').split(/\n\n+/);
-    for (const b of blocks) {
-      const lines = b.split('\n').filter((l) => l.length);
-      const tl = lines.find((l) => l.indexOf('-->') !== -1);
-      if (!tl) continue;
-      const parts = tl.split('-->');
-      if (parts.length < 2) continue;
-      const start = tcToMs(parts[0]);
-      const end = tcToMs(parts[1]);
-      if (!(end > start)) continue;
-      const txt = stripCueTags(lines.slice(lines.indexOf(tl) + 1).join(' '));
-      if (txt) out.push({ start, end, text: txt });
-    }
-    out.sort((a, b) => a.start - b.start);
-    return out;
-  }
+  // Timed-text parsing (WebVTT / SRT) lives in content/timed-text.js (one implementation,
+  // shared with content-twitter.js and the CLI). Loaded before this file in the manifest.
+  const parseTimedText = (text) => TimedText.parseTimedText(text);
   // 10 s 上限一直管到正文读完（全回归 09-14 F12）：原来的计时器在响应头到达时就清掉了，头到了、正文挂住
   // （macOS Safari 上跨域取 feed 的形状）就永远等下去 —— acquire 不落定，叠层永远「字幕加载中」、offer 永远不出。
   async function fetchTextWithTimeout(url) {

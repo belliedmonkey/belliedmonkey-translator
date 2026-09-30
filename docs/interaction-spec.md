@@ -2325,28 +2325,59 @@ toast over an article.
 CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2.7 与
 `docs/learning-design.md` §9.10，本节定它**长什么样**。
 
+**调用名**：`belliedmonkey`（安装后），以及**等价的短入口 `bm`**（仓库根 `./bm`，或 `npm link` 后直接敲 `bm`）。两者同一实现。
+
 ### 全局
 - 默认**双语并排**：原文一段、译文紧跟一段；`--only` 只出译文，`--json` 出结构
   （`{src, tr, provider, ms}`）供脚本消费。
 - 结果走 stdout，进度 / 诊断走 stderr；**管道里 stdout 只有结果**。
 - 退出码：`0` 成功 · `1` 用法 / 参数错 · `2` 引擎未配置 · `3` 翻译失败（带 `code`）·
-  `4` 语料 / 文件错。失败行说人话并指向「配置引擎」。
+  `4` 语料 / 文件错 · `5` 账号 / 同步错。失败行说人话并指出下一步。
 - 界面语言跟随系统 `LANG`，可 `--lang` 覆盖；文案源仍是 `_locales`（CLI 只取需要的几十个键，
   与 `build/ext-bundle.js` 的 `ExtCopy` 同法，不抄第二份）。
 - **绝不回显 API key**；`config get` 对 key 打码。
 
+### 首次配置 (bm setup)
+- **先登录，再自动领免费额度**：`bm setup` 依次 —— 打印 Gate F 披露 → 输邮箱收验证码登录 →
+  自动领取 0.2 美元额度 → 把令牌写进配置。做完即可 `bm translate`，**无需先去厂商申请 key**。
+- 没配置就 `translate` / `doc` / `subtitle` / `batch`（退出码 2）指向 `bm setup`；
+  **额度用完**（402 `credit_exhausted`）给出两条出口：`bm config set` 配自己的 key，或官网
+  配置页 `belliedmonkey.cc/setup.html`（中国版为 `.com`）。
+- 中国版不代领（境内后端未就绪）：`bm setup` 具名拒绝并指向自带 key。
+- 自带 key 的路一条没少：`bm config set provider/apiKey/...` 照旧，不登录也能用（免费路径完整）。
+
 ### 翻译命令
 - `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
-- `doc <file>`：pdf / docx / txt / md，**一页一页**翻并输出（默认 stdout，`-o` 写文件）。
+  `--capture` 时把这段 `(原文, 译文)` 按句采集进本地语料（默认**关**；采集是 sink，绝不改译文，
+  §3 law 1）；采集结果与「跳过几对」打一行 stderr。
+- `doc <file> [--pages <N|A-B|列表>]`：pdf / docx / txt / md，**打开一页翻一页**（§2.5 规则 4）——
+  **默认只翻第 1 页**，要更多页必须显式给 `--pages`（如 `1-3`、`2`、`1,3-5`）；**没有「翻整份」**。
+  默认 stdout，`-o` 写文件；页数多于本次范围时在 stderr 说明还剩多少页。
   图片页 / 扫描页 v1 CLI 不接（domain-design §2.7 / §8），**明说不支持**而不是静默跳过。
-- `batch <path>`：文件或目录逐个翻，`-o <dir>` 输出，进度走 stderr。
-- `subtitle <file.vtt|.srt>`：整份读入 → 译 → `-o` 写译文字幕（默认同名 `.zh.vtt`）。
+- `subtitle <file.vtt|.srt> [--only] [-o <file>]`：整份读入 → 逐条翻译 → 输出译文字幕
+  （保持时间轴；默认双语两行，`--only` 只出译文；不给 `-o` 输出到 stdout）。
+- `batch <file|dir> [--pages <spec>] [-o <dir>]`：文件或目录逐个翻，默认每个文档同样只翻第 1 页；
+  `-o` 给目录则逐个写文件（`<名>.<lang>.<ext>`），否则拼接输出到 stdout；每个文件一行进度走 stderr。
 
 ### 复习命令
 - `plan [--days N]`：打印今日牌库与未来 N 天，**只读、不写**。空库 / 无到期照「复习 /
   Review › States」四条说清楚，不编造工作量。
-- `review`：逐张出卡，`0/1/2/3` 打分（`q` 退出并保存）；每张显示来源与本次技能（v1 只读）。
+- `review`：逐张出卡（`q` 退出并保存）。**技能轮换**（§5.4）：`read` 档显示原句与译文、`0/1/2/3`
+  打分；卡片够熟（`s ≥ TIER_WRITE_S`）时自动出 **`write` 填空档** —— 把句子挖空，填一行（多个空用
+  `|` 或空格分隔），客观判对错后自动给分。`listen` / `speak` **不在 CLI 能力内**（终端没有音频与
+  麦克风）—— 按 §5.2，缺能力等于该题型不存在，不是这张卡失败。
 - `import <file.mtlearn>` / `export [-o file]`：§8.2 的导出 / 导入。
+
+### 账号与同步
+- `login <邮箱|手机号>`：发验证码到该地址；`login <…> --code <六位码>` 完成登录
+  （复用扩展的 GoTrue 一次性验证码流程，§8.4.1）。`logout` 退出；`whoami` 显示当前身份。
+- `sync`：拉取 + 推送语料（复用 `learn/sync.js`，§8）。失败具名（`signed_out` 提示先登录，
+  `owner_mismatch` 说明语料属于另一个账号）。
+- **会话与同步台账落在 `state.json`（0600，`--state` / `BM_STATE` 可改位置），明文，
+  与扩展的 `chrome.storage.local` 同级** —— `learning-design` §7.2 规则 3 的既有事实，不假装更安全。
+- **中国版 CLI 不开 login/sync**（退出码 2，具名）：境内后端与跨境同步需单独评估，
+  与扩展侧中国版 sync 关闭一致（AGENTS 规则 10 不是靠阉割，是靠「同一功能集、不同后端」，
+  这里后端尚未就绪，所以是明确的「暂未开放」而不是静默失败）。
 
 ### 遥测
 v1 不发任何事件；见 `docs/telemetry-design.md` §2。

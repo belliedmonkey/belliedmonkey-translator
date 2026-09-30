@@ -3558,5 +3558,80 @@
   },
   "learn_group_bye": {
     "message": "बाकी कल सही —— बस लौटकर आते रहिए।"
+  },
+  "cli_setup_hint": {
+    "message": "पहले bm setup चलाएँ (साइन इन करने पर मुफ़्त क्रेडिट अपने आप मिल जाता है, कोई सेटअप नहीं)। या अपनी key लाएँ: bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "मुफ़्त क्रेडिट खत्म। अपनी key सेट करें (bm config set provider <id> && bm config set apiKey <key>) — या देखें {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "ईमेल (मुफ़्त क्रेडिट के लिए साइन इन करें): "
+  },
+  "cli_setup_code_prompt": {
+    "message": "छह अंकों का कोड: "
+  },
+  "cli_setup_sent": {
+    "message": "{who} पर कोड भेजा गया — अपना इनबॉक्स देखें"
+  },
+  "cli_setup_logged_in": {
+    "message": "साइन इन: {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "मुफ़्त क्रेडिट प्राप्त: ${limit} (शेष ${left})"
+  },
+  "cli_setup_done": {
+    "message": "तैयार — अब अनुवाद करें: bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "सेटअप विफल ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "चीन संस्करण मुफ़्त क्रेडिट नहीं देता। अपनी key लाएँ: bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "साइन इन विफल {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "साइन इन नहीं"
+  },
+  "cli_logged_out": {
+    "message": "साइन आउट"
+  },
+  "cli_logout_failed": {
+    "message": "साइन आउट विफल {msg}"
+  },
+  "cli_sync_done": {
+    "message": "सिंक पूर्ण: प्राप्त {pulled} · भेजे {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "सिंक विफल ({code})"
+  },
+  "cli_capture_added": {
+    "message": "कैप्चर +{n} (छोड़े {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "आज {n} · देय {due} · नया {new}"
+  },
+  "cli_plan_none": {
+    "message": "अभी कोई देय कार्ड नहीं, और आज के नए कार्ड भी खत्म।"
+  },
+  "cli_plan_ahead": {
+    "message": "अगले {days} दिन: {n} कार्ड"
+  },
+  "cli_dict_empty": {
+    "message": "कॉर्पस खाली है — कोई .mtlearn आयात करें, या --capture के साथ अनुवाद करें।"
+  },
+  "cli_press_grade": {
+    "message": "रेटिंग: 0 फिर से · 1 कठिन · 2 ठीक · 3 आसान · q सहेजें और बाहर"
+  },
+  "cli_fill_blanks": {
+    "message": "रिक्त स्थान भरें (कई हों तो | या स्पेस से अलग करें):"
+  },
+  "cli_saved": {
+    "message": "सहेजा गया"
+  },
+  "cli_wrote": {
+    "message": "{path} पर लिखा"
   }
 }

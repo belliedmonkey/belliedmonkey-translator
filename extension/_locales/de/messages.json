@@ -3725,5 +3725,80 @@
   },
   "learn_group_bye": {
     "message": "Der Rest kann warten — komm einfach wieder."
+  },
+  "cli_setup_hint": {
+    "message": "Zuerst bm setup ausführen (nach der Anmeldung wird das Gratis-Guthaben automatisch gutgeschrieben, keine Einrichtung nötig). Oder eigenen Key: bm config set provider <id> && bm config set apiKey <key>"
+  },
+  "cli_exhausted_hint": {
+    "message": "Gratis-Guthaben aufgebraucht. Richte einen eigenen Key ein (bm config set provider <id> && bm config set apiKey <key>) — oder siehe {url}"
+  },
+  "cli_setup_email_prompt": {
+    "message": "E-Mail (Anmelden für Gratis-Guthaben): "
+  },
+  "cli_setup_code_prompt": {
+    "message": "Sechsstelliger Code: "
+  },
+  "cli_setup_sent": {
+    "message": "Code an {who} gesendet — prüfe dein Postfach"
+  },
+  "cli_setup_logged_in": {
+    "message": "Angemeldet: {who}"
+  },
+  "cli_setup_claimed": {
+    "message": "Gratis-Guthaben erhalten: ${limit} (verbleibend ${left})"
+  },
+  "cli_setup_done": {
+    "message": "Fertig — jetzt übersetzen: bm translate \"Hello.\""
+  },
+  "cli_setup_failed": {
+    "message": "Einrichtung fehlgeschlagen ({code}) {msg}"
+  },
+  "cli_china_no_grant": {
+    "message": "Die China-Version stellt kein Gratis-Guthaben bereit. Eigenen Key verwenden: bm config set provider qwen && bm config set apiKey <key>"
+  },
+  "cli_login_failed": {
+    "message": "Anmeldung fehlgeschlagen {msg}"
+  },
+  "cli_whoami_none": {
+    "message": "Nicht angemeldet"
+  },
+  "cli_logged_out": {
+    "message": "Abgemeldet"
+  },
+  "cli_logout_failed": {
+    "message": "Abmelden fehlgeschlagen {msg}"
+  },
+  "cli_sync_done": {
+    "message": "Synchronisiert: empfangen {pulled} · gesendet {pushed}"
+  },
+  "cli_sync_failed": {
+    "message": "Synchronisierung fehlgeschlagen ({code})"
+  },
+  "cli_capture_added": {
+    "message": "Erfasst +{n} (übersprungen {skipped}) → {path}"
+  },
+  "cli_plan_summary": {
+    "message": "Heute {n} · fällig {due} · neu {new}"
+  },
+  "cli_plan_none": {
+    "message": "Derzeit keine fälligen Karten, und für heute keine neuen mehr."
+  },
+  "cli_plan_ahead": {
+    "message": "Nächste {days} Tage: {n} Karten"
+  },
+  "cli_dict_empty": {
+    "message": "Der Korpus ist leer — ein .mtlearn importieren oder mit --capture übersetzen."
+  },
+  "cli_press_grade": {
+    "message": "Bewerten: 0 nochmal · 1 schwer · 2 gut · 3 leicht · q speichern & beenden"
+  },
+  "cli_fill_blanks": {
+    "message": "Lücken ausfüllen (mehrere mit | oder Leerzeichen trennen):"
+  },
+  "cli_saved": {
+    "message": "Gespeichert"
+  },
+  "cli_wrote": {
+    "message": "Geschrieben: {path}"
   }
 }
