@@ -3673,7 +3673,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "Two steps, about 30 seconds"
+    "message": "Just two steps"
   },
   "ob_web_only": {
     "message": "I only want web page translation"

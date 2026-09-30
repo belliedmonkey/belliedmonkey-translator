@@ -3673,7 +3673,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "خطوتان، نحو 30 ثانية"
+    "message": "خطوتان فقط"
   },
   "ob_web_only": {
     "message": "أريد ترجمة صفحات الويب فقط"

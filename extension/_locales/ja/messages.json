@@ -3673,7 +3673,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "2 ステップ、約 30 秒"
+    "message": "2 ステップだけ"
   },
   "ob_web_only": {
     "message": "ウェブページの翻訳だけでいい"

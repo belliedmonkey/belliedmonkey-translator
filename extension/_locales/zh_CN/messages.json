@@ -3674,7 +3674,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "两步，约 30 秒"
+    "message": "两步就好"
   },
   "ob_web_only": {
     "message": "我只要网页翻译"
