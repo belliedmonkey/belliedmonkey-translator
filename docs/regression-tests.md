@@ -537,6 +537,19 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 - **首页「设置」在屏外**：裸点会静默落在首页上，后面所有断言都在错页面跑（2026-09-30 真踩）——
   任何入口点击都走同一套滑动揭示，别在助手函数里写裸 tap。
 
+- **OTP 登录可以全自助**（2026-09-30 跑通 D1/D2/D5/D6）：`generate_link {type:'magiclink', email}`
+  返回的 `email_otp` 就是 App 那条路要的码 —— **App 的 verify 用 `type:'email'`，正好接受它**
+  （用 `type:'magiclink'` 验会被 403）。三条纪律：①**必须在 App 的「发送验证码」之后铸**（后落的
+  token 才有效，先铸会被 App 那次发送顶掉）；②输码前必须先清空字段（WebKit 不会自己清，追加会变成
+  `000000<otp>`）；③service key 走 `TEST_RUNNER_OB_*` 环境变量透传（**不进 argv**，别写进命令行）。
+- **字段/按钮的定位两招**：`<label for>` 会映射成输入框的无障碍 label ⇒ **按标签找字段**比
+  `textFields.firstMatch` 稳（后者会命中屏外的旧字段）；同文案的按钮（验证键与登录链接都叫「登录」）
+  用**几何位置**消歧 —— 但键盘会推走布局，**点之前先收键盘**（点页面空白处），否则「字段下 40pt」
+  会落到键盘上（2026-09-30 三次失败都出在这）。
+- **`-only-testing` 指向不存在的用例会「静默通过」**：xcodebuild 退出 0、xcresult 里
+  `result: unknown`、0 个用例 —— 驱动脚本必须回读 `passedTests`（>0 才算过了），否则「测试没跑」
+  会被读成「通过」（2026-09-30 真踩，D5 第一次就是这么「过」的）。
+
 ### 9.0.2 测试账号与额度造态（全自助，2026-09-30 跑通；驱动件同在上面的 `.local`）
 
 - **会话铸造**：`seed-auth.js` 用 `.local/keys.md` 的 `supabase_test_refresh_token` 续期（**轮转**：新 token 写回
