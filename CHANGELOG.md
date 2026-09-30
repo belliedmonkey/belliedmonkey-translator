@@ -19,6 +19,38 @@
 
 </details>
 
+## 1.18.0
+
+- Browser extension · Fixed: When a YouTube transcript can't be fetched, the extension no longer retries the same request over and over — repeated requests are exactly what triggers YouTube's transcript blocking, which takes down even the native captions that still worked. At most 3 requests per video now, with a clear "subtitles unavailable" instead of a broken pipeline.
+- App & browser extension · Fixed: When the network keeps timing out, translation stops by itself after 5 consecutive timeouts instead of retrying forever — tap "Retry" to resume. No more endless spinning.
+- App (iPhone / iPad / Mac) · New: The first screen asks what you came for — "read web pages", "listen", or "both" — and picks the path to match; if you only want listening, it no longer pushes you toward the extension.
+- App (iPhone / iPad) · Fixed: The "open the extension in Safari" banner no longer keeps coming back — one tap counts as asked; and an extension you already set up is no longer treated as missing just because it hasn't captured sentences yet.
+- App & browser extension · Improved: Review opens without signing in; finishing a session ends more clearly (one graded card completes it); the hardly-used "check page" link is gone.
+- App & browser extension · Internal: The entire UI layer now runs on React — same behavior, same look — so future interface work moves faster.
+
+<details><summary>中文</summary>
+
+- 浏览器扩展 · 修复：YouTube 字幕拿不到时不再反复重试 —— 反复请求恰好会触发 YouTube 对字幕的封锁，连原生字幕都会跟着失效；现在每个视频至多请求 3 次，拿不到就明确显示「字幕不可用」，不再拖垮你本来能用的字幕。
+- App 与浏览器扩展 · 修复：网络一直超时时，连续 5 次超时就自动停下来（不再无限重试），点一下「重试」即恢复 —— 不再白白转圈。
+- App（iPhone / iPad / Mac）· 新：第一屏先问你要什么 —— 「读网页」「听」或「都要」，按你的选择走不同的路；只想听的人不再被引导去装扩展。
+- App（iPhone / iPad）· 修复：「在 Safari 里打开扩展」的横幅不再反复出现 —— 点过一次就算问过了；也不再因为还没抓到句子，就把你已经装好的扩展当成没打开。
+- App 与浏览器扩展 · 改进：没有登录也能进复习页；复习收尾更明确（评过一张就算完成）；去掉了几乎没人用的「检测页」入口。
+- App 与浏览器扩展 · 内部：界面层整体迁移到了 React —— 行为与外观不变，为的是后面把界面改得更快更稳。
+
+</details>
+
+## 1.17.0
+
+- App & browser extension · Improved: The line under translations no longer asks for a store rating. It now reads "Review the sentences you read today →" and takes you straight back to review — and it only appears after you have really used it a few days running, at most once a day.
+- App (iPhone / iPad / Mac) · Improved: Rating requests now happen at moments you actually got something — a review group finished, a live-translation or live-subtitle session that captured sentences, quick translations that came in handy, new sentences in the system-translation inbox — asked by the system's own prompt, never a custom popup.
+
+<details><summary>中文</summary>
+
+- App 与浏览器扩展 · 改进：译文末尾那行不再请你评分，改成了「今天读过的句子，去 App 里复习 →」—— 一键回到 App 的复习。而且只在你真的连用了几天之后才出现，每天至多一次。
+- App（iPhone / iPad / Mac）· 改进：评分请求挪到真正的收获时刻 —— 一组复习做完、听译或实时字幕结束有句子、Mac 快速翻译用顺手之后、系统翻译收件箱有新句子，由系统自带的评分弹窗来问，我们不再自己画一个。
+
+</details>
+
 ## 1.16.0 — 2026-09-24
 
 - App (iPhone / iPad / Mac) & browser extension · New: Review now counts showing up — five cards make a group, finishing one is a real stopping point, and days with nothing due still count. You can see how many days in a row you have come back.
