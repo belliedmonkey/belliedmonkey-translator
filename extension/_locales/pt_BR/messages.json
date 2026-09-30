@@ -3713,5 +3713,15 @@
   },
   "learn_group_bye": {
     "message": "O resto pode esperar — é só voltar."
-  }
+  },
+  "firstrun_packs_title": { "message": "Baixe primeiro os dois pacotes de voz" },
+  "firstrun_packs_lede": { "message": "Com isso você não precisa configurar mais nada: tradução, interpretação, legendas e leitura em voz alta funcionam na hora. O áudio é processado só no seu aparelho." },
+  "firstrun_packs_asr": { "message": "Pacote de reconhecimento (interpretação / legendas ao vivo)" },
+  "firstrun_packs_tts": { "message": "Pacote de voz de alta qualidade (leitura / podcast)" },
+  "firstrun_packs_done": { "message": "Pronto" },
+  "firstrun_packs_net": { "message": "Recomendamos Wi-Fi; dados móveis também servem — você decide." },
+  "firstrun_packs_busy": { "message": "Baixando…" },
+  "firstrun_packs_go": { "message": "Baixar e continuar" },
+  "firstrun_packs_go_tts": { "message": "Baixar só o pacote de voz e continuar" },
+  "firstrun_packs_err": { "message": "O download não terminou: {why} — verifique a conexão e toque de novo." }
 }

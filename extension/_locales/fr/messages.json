@@ -3713,5 +3713,15 @@
   },
   "learn_group_bye": {
     "message": "Le reste peut attendre — revenez, c’est tout."
-  }
+  },
+  "firstrun_packs_title": { "message": "Téléchargez d'abord les deux packs vocaux" },
+  "firstrun_packs_lede": { "message": "Ensuite, plus rien à configurer : traduction, interprétation, sous-titres et lecture à voix haute fonctionnent tout de suite. L'audio est traité uniquement sur votre appareil." },
+  "firstrun_packs_asr": { "message": "Pack de reconnaissance vocale (interprétation / sous-titres en direct)" },
+  "firstrun_packs_tts": { "message": "Pack de voix haute qualité (lecture / podcast)" },
+  "firstrun_packs_done": { "message": "Prêt" },
+  "firstrun_packs_net": { "message": "Le Wi-Fi est conseillé ; les données mobiles conviennent aussi, à vous de voir." },
+  "firstrun_packs_busy": { "message": "Téléchargement…" },
+  "firstrun_packs_go": { "message": "Télécharger et continuer" },
+  "firstrun_packs_go_tts": { "message": "Prendre seulement le pack vocal et continuer" },
+  "firstrun_packs_err": { "message": "Le téléchargement n'a pas abouti : {why} — vérifiez la connexion et réessayez." }
 }

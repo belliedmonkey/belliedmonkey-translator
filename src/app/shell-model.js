@@ -36,6 +36,7 @@ import Registry from '../lib/registry.js';
 import NativeBridge from '../lib/native-bridge.js';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
+import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -280,6 +281,136 @@ export function bootShell() {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
   });
 
+  // ── 首屏三段式（2026-10-01，#532）──────────────────────────────────────────
+  // 判定是**纯函数**（`src/app/firstrun.js`）：四个输入 → step()。这一块只做两件事 ——
+  // 把四个输入算出来、把该显示的那一屏显示出来。判据：test/app-firstrun.test.js（R1–R6）。
+  let packAsrReady = false;
+  let packTtsReady = false;
+  let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
+  let packsBusy = false;
+
+  const readObSeen = () => new Promise((r) => {
+    try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
+  });
+
+  // 首次要下的语种：界面语言 + 目标语言（用户还没配过任何东西，这是能有意义的默认）。
+  function firstRunLocales(s) {
+    const ui = (() => { try { return (chrome.i18n.getUILanguage() || 'en').split('-')[0]; } catch (_) { return 'en'; } })();
+    const target = ListenCore.toLocale((s && s.targetLang) || '') || '';
+    return target && target !== ui ? [ui, target] : [ui];
+  }
+
+  function firstRunEngineOk(s) {
+    // 引擎「可解析」＝**能用**，不是「apiKey 非空」——后者会把残值 key 的设备判成已配
+    // （§8.10.3 / #513；`test/grant-one-implementation.test.js` 反向钉着「不许再拿
+    // needsSetup 当引擎判据」）。两条路：① 登录后自动到账的额度在用；② 用户自己的
+    // key 落在一个**真能解析出来**的引擎上（provider 认得出 + 有 key 或自定义地址）。
+    try {
+      if (typeof LearnGrant !== 'undefined' && LearnGrant.enabled() && LearnGrant.active(s)) return true;
+    } catch (_) {}
+    try {
+      const entry = EngineState.resolve(s && s.provider);
+      return !!(entry && (((s.apiKey || '').trim()) || ((s.baseUrl || '').trim())));
+    } catch (_) { return false; }
+  }
+
+  // 探两个包。缺桥 / 探不通一律当「没就绪」，不去猜 —— 猜错会让硬门形同虚设。
+  async function probePacks() {
+    const s = await readObSettings();
+    if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
+      try {
+        LearnTTS.configure(Object.assign({}, LearnTTS.config, {
+          engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
+          model: s.ttsModel || '', voice: s.ttsVoice || '',
+        }));
+        const st = await LearnTTS.deviceStatus(s.ttsEngine || '');
+        packTtsReady = !!(st && st.ready);
+      } catch (_) { packTtsReady = false; }
+    } else { packTtsReady = false; }
+    if (typeof NativeSpeech !== 'undefined' && NativeSpeech.probe) {
+      try {
+        const r = await NativeSpeech.probe(firstRunLocales(s));
+        packAsrReady = !!(r && (r.ready === true || r.ok === true));
+        packAsrUnsupported = !!(r && (r.unsupported === true || r.reason === 'unsupported'));
+      } catch (_) { packAsrReady = false; packAsrUnsupported = false; }
+    } else { packAsrReady = false; packAsrUnsupported = false; }
+  }
+
+  function packsState(s) {
+    return {
+      loggedIn: !!s, engine: firstRunEngineOk(s),
+      asrPack: packAsrReady, ttsPack: packTtsReady, onboardingSeen: false,
+    };
+  }
+
+  async function paintFirstRun(session) {
+    const sec = $('firstrun-packs');
+    if (!sec) return;
+    if (!session) { sec.hidden = true; return; }          // 未登录：屏 1 就是那张登录卡
+    await probePacks();
+    const seen = await readObSeen();
+    const state = Object.assign(packsState(session), { onboardingSeen: seen });
+    // 引擎不通（额度用尽且没有自带 key）时按 firstrun.step() 回到屏 1，不另造一屏。
+    if (FirstRun.step(state) !== 'packs') { sec.hidden = true; return; }
+    sec.hidden = false;
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = true;
+    $('packs-title').textContent = t('firstrun_packs_title', '先把两个语音包下好');
+    $('packs-lede').textContent = t('firstrun_packs_lede', '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。');
+    $('pack-asr-name').textContent = t('firstrun_packs_asr', '识别语言包（听译 / 实时字幕）');
+    $('pack-tts-name').textContent = t('firstrun_packs_tts', '高质量朗读包（朗读 / 播客）');
+    const rowAsr = $('pack-row-asr'), rowTts = $('pack-row-tts');
+    if (rowAsr) rowAsr.hidden = packAsrUnsupported;
+    $('pack-asr-state').textContent = packAsrReady
+      ? t('firstrun_packs_done', '已就绪')
+      : t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载').replace('{langs}', firstRunLocales(await readObSettings()).join(' · '));
+    $('pack-tts-state').textContent = packTtsReady ? t('firstrun_packs_done', '已就绪') : t('tts_pack_missing', '离线模型未下载 · {langs} · {size}').replace('{langs}', '').replace('{size}', '');
+    $('packs-net').textContent = t('firstrun_packs_net', '建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。');
+    const go = $('packs-go');
+    go.disabled = packsBusy;
+    go.textContent = packsBusy
+      ? t('firstrun_packs_busy', '正在下载…')
+      : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读包，继续') : t('firstrun_packs_go', '下载并继续'));
+  }
+
+  // 下载 → 重新探 → 前进。失败留在这一屏并说明原因；唯一能绕过的是「该语种不支持识别」。
+  async function runFirstRunPacks() {
+    if (packsBusy) return;
+    packsBusy = true;
+    try { await paintFirstRun(currentSession); } catch (_) {}
+    const err = $('packs-err');
+    if (err) err.hidden = true;
+    try {
+      const s = await readObSettings();
+      // 朗读包：与复习 ▶ / 播客 / 对话 / 设置试听**同一个**入口（learning-design §9.1.1）
+      if (!packTtsReady && typeof LearnTTS !== 'undefined' && LearnTTS.ensureDeviceReady) {
+        LearnTTS.configure(Object.assign({}, LearnTTS.config, {
+          engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
+          model: s.ttsModel || '', voice: s.ttsVoice || '',
+        }));
+        await LearnTTS.ensureDeviceReady(() => {});
+      }
+      if (!packAsrReady && !packAsrUnsupported && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
+        await NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {});
+      }
+    } catch (e) {
+      if (err) { err.hidden = false; err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)); }
+    }
+    packsBusy = false;
+    await probePacks();
+    const seen = await readObSeen();
+    const state = Object.assign(packsState(currentSession), { onboardingSeen: seen });
+    if (FirstRun.step(state) === 'packs' && !packAsrUnsupported) {
+      await paintFirstRun(currentSession);   // 还缺 ⇒ 留在屏 2（按钮变「重试」）
+      return;
+    }
+    // 就绪（或降级：识别不支持时只下朗读包）⇒ 按 step() 落到下一屏
+    const sec = $('firstrun-packs');
+    if (sec) sec.hidden = true;
+    if (!seen) { $('signed-out').hidden = true; $('onboard').hidden = false; }
+    else { $('signed-out').hidden = true; $('signed-in').hidden = false; }
+  }
+
   async function show(session) {
     currentSession = session;
     // Bind the corpus BEFORE anything reads it. Every path that changes who is
@@ -290,6 +421,9 @@ export function bootShell() {
     catch (_) { /* storage read failed — keep the corpus we are on rather than guess */ }
     $('signed-out').hidden = !!session;
     $('signed-in').hidden = !session;
+    // 首屏三段式（#532）：四个输入 → step()。缺任一设备包时把上面那两行覆盖掉，
+    // 显示屏 2（硬门）。判定本身在 src/app/firstrun.js，这里只落屏。
+    try { await paintFirstRun(session); } catch (_) {}
     // 登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
     // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配
     // 引擎也没领额度** —— 我们让他们登了，却没顺手把额度给他们。
@@ -1414,6 +1548,8 @@ export function bootShell() {
   // 未登录首页的复习入口走的是同一条路（2026-09-27，Issue #386）：不在这里抄第二份视图切换，
   // 直接点那个真正的按钮 —— 同 AppSysBanner 的做法（见本文件下方 openReview 的桥）。
   // （未登录复习入口的监听随该入口一起退役，2026-10-01 #532）
+  // 屏 2 的主按钮：下载 → 重探 → 前进；失败留在原地并说明原因（#532）。
+  if ($('packs-go')) $('packs-go').addEventListener('click', () => { runFirstRunPacks(); });
 
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;

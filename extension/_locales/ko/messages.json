@@ -3713,5 +3713,15 @@
   },
   "learn_group_bye": {
     "message": "나머지는 내일도 괜찮아요 —— 다시 오기만 하면 돼요."
-  }
+  },
+  "firstrun_packs_title": { "message": "음성 팩 두 개를 먼저 받아 두세요" },
+  "firstrun_packs_lede": { "message": "이것만 받아 두면 이후에는 아무 설정도 필요 없습니다 — 번역, 통역, 자막, 읽어주기가 바로 됩니다. 음성은 기기 안에서만 처리됩니다." },
+  "firstrun_packs_asr": { "message": "음성 인식 팩(통역 / 실시간 자막)" },
+  "firstrun_packs_tts": { "message": "고품질 읽어주기 팩(읽어주기 / 팟캐스트)" },
+  "firstrun_packs_done": { "message": "준비됨" },
+  "firstrun_packs_net": { "message": "Wi-Fi로 받는 걸 권합니다. 셀룰러도 괜찮습니다 — 선택은 본인입니다." },
+  "firstrun_packs_busy": { "message": "내려받는 중…" },
+  "firstrun_packs_go": { "message": "내려받고 계속" },
+  "firstrun_packs_go_tts": { "message": "읽어주기 팩만 받고 계속" },
+  "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." }
 }

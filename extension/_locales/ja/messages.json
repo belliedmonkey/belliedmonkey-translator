@@ -3713,5 +3713,15 @@
   },
   "learn_group_bye": {
     "message": "残りは明日で大丈夫 —— また来てください。"
-  }
+  },
+  "firstrun_packs_title": { "message": "先に音声パックを2つダウンロード" },
+  "firstrun_packs_lede": { "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内だけで処理します。" },
+  "firstrun_packs_asr": { "message": "音声認識パック（通訳 / リアルタイム字幕）" },
+  "firstrun_packs_tts": { "message": "高品質読み上げパック（読み上げ / ポッドキャスト）" },
+  "firstrun_packs_done": { "message": "準備完了" },
+  "firstrun_packs_net": { "message": "Wi-Fi でのダウンロードがおすすめです。モバイル通信でも構いません。" },
+  "firstrun_packs_busy": { "message": "ダウンロード中…" },
+  "firstrun_packs_go": { "message": "ダウンロードして続ける" },
+  "firstrun_packs_go_tts": { "message": "読み上げパックだけ入れて続ける" },
+  "firstrun_packs_err": { "message": "ダウンロードできませんでした：{why} —— 通信を確認してもう一度。" }
 }
