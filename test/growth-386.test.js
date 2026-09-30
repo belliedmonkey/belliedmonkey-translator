@@ -10,7 +10,7 @@
 // `#ext-banner-check`（30 天只有 1 台点过）不再回来。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq } = require('./harness');
+const { describe, test, ok, eq, deepEq } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
@@ -56,7 +56,7 @@ describe('#386 退役 —— 未登录不再有复习入口（2026-10-01，#532�
       const d = JSON.parse(fs.readFileSync(path.join(LOCALES, loc, 'messages.json'), 'utf8'));
       for (const k of ['app_so_review_title', 'app_so_review_due', 'app_so_review_total']) if (d[k]) dead.push(`${loc}/${k}`);
     }
-    eq(dead, [], '退役入口的三个文案键还在（死文案）—— 12 份一起删');
+    deepEq(dead, [], '退役入口的三个文案键还在（死文案）—— 12 份一起删');
   });
 });
 
