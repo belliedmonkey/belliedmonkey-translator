@@ -598,8 +598,11 @@ format、可选字段三态、停机码、重试、注册表）只能有一份�
 4. **词汇表仍只有一个注册表，CLI 是第五个消费者。** `build/providers.config.js` 不动；CLI 按
    构建期 flavor 读生成物（`dist-cli/` 国际、`dist-cli-china/` 中国），**两个独立产物、同一
    合规门**，与扩展 / App 的 flavor 纪律一致（§7）。CLI 里不得出现第二张 provider 表。
-5. **免费路径完整、默认自带 key、CLI → 提供方直连。** v1 不接免费额度中继（§8.10 of
-   `learning-design`）；不登录也能翻译与复习（语料来自本地文件）。与 `AGENTS.md` 规则 2/11 同形。
+5. **引导配置：先登录，再自动领免费额度。** `bm setup` 登录后经我们的中继领取 0.2 美元额度
+   （`learning-design` §8.10），令牌写进配置，用户不必先去厂商申请 key。**免费路径不变**：不登录
+   也能自带 key 翻译（CLI → 提供方直连）与复习（语料来自本地文件）；额度用完（402
+   `credit_exhausted`）引导去配自己的 key 或看官网配置页。与 `AGENTS.md` 规则 2/11 同形：
+   登录不是前提，额度是登录的附带权益。中国版不代领（境内后端未就绪，与扩展侧一致）。
 6. **不发遥测。** v1 CLI 不实现遥测（中国版本来就零发送）；将来若要发，属
    `docs/telemetry-design.md` 的白名单改动，走治理门，不是代码决定。
 
@@ -1697,8 +1700,11 @@ and anything that observes the user when they did not invoke us.
 *(Added 2026-09-30, §2.7 — the CLI host:)* out of scope for the CLI are the surfaces that
 need a browser or media we do not have: live YouTube/podcast caption acquisition, in-page
 OCR, and microphone/system-audio capture. The CLI reads **files the user names** and text
-the user pipes in; it never watches a page, a player or a microphone. The free-grant relay
-is also out for v1 (§8.10 of `learning-design`), and the CLI sends no telemetry.
+the user pipes in; it never watches a page, a player or a microphone. The CLI sends no
+telemetry. *(Amended 2026-09-30, §2.7 规则 5:)* the free-grant relay is now **in** for the
+CLI — `bm setup` signs in and claims the 0.2 USD sample through the same §8.10 path the app
+uses; what stays out is only the **China** flavor's relay (its domestic backend is not
+ready, matching the extension).
 
 **In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
 browser itself is infeasible on Safari iOS, and the learning layer's optional backend

@@ -28,7 +28,9 @@ const CODE_KEY = {
 // CLI 独有的短句（**待迁 _locales**）。键名加 cli_ 前缀，迁移时一一对应。
 const CLI_ONLY = {
   en: {
-    cli_needs_setup_hint: 'Set an engine first:  belliedmonkey config set provider <id> && belliedmonkey config set apiKey <key>',
+    cli_needs_setup_hint: 'Set up first:  bm setup   (sign in, free credit is added automatically)',
+    cli_setup_hint: 'First run:  bm setup   (sign in → free credit, no configuration).  Or bring your own key:  bm config set provider <id> && bm config set apiKey <key>',
+    cli_exhausted_hint: 'Free credit used up. Continue by configuring your own key (bm config set provider <id> && bm config set apiKey <key>) — or see {url}',
     cli_usage_translate: 'Usage: belliedmonkey translate [text|-] [--lang <code>] [--only] [--json]',
     cli_wrote: 'Wrote',
     cli_no_plan: 'No cards due right now, and no new cards left for today.',
@@ -37,7 +39,9 @@ const CLI_ONLY = {
     cli_saved: 'Saved corpus.',
   },
   zh: {
-    cli_needs_setup_hint: '先配置引擎：  belliedmonkey config set provider <id> && belliedmonkey config set apiKey <key>',
+    cli_needs_setup_hint: '先跑：bm setup（登录后自动领免费额度，无需配置）',
+    cli_setup_hint: '先跑：bm setup（登录 → 自动领免费额度，无需配置）。或用自带 key：bm config set provider <id> && bm config set apiKey <key>',
+    cli_exhausted_hint: '免费额度用完了。配置自己的 key 继续（bm config set provider <id> && bm config set apiKey <key>），或看 {url}',
     cli_usage_translate: '用法：belliedmonkey translate [文本|-] [--lang <语言码>] [--only] [--json]',
     cli_wrote: '已写入',
     cli_no_plan: '现在没有到期卡，今天的新卡也用完了。',

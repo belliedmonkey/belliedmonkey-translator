@@ -2337,6 +2337,15 @@ CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2
   与 `build/ext-bundle.js` 的 `ExtCopy` 同法，不抄第二份）。
 - **绝不回显 API key**；`config get` 对 key 打码。
 
+### 首次配置 (bm setup)
+- **先登录，再自动领免费额度**：`bm setup` 依次 —— 打印 Gate F 披露 → 输邮箱收验证码登录 →
+  自动领取 0.2 美元额度 → 把令牌写进配置。做完即可 `bm translate`，**无需先去厂商申请 key**。
+- 没配置就 `translate` / `doc` / `subtitle` / `batch`（退出码 2）指向 `bm setup`；
+  **额度用完**（402 `credit_exhausted`）给出两条出口：`bm config set` 配自己的 key，或官网
+  配置页 `belliedmonkey.cc/setup.html`（中国版为 `.com`）。
+- 中国版不代领（境内后端未就绪）：`bm setup` 具名拒绝并指向自带 key。
+- 自带 key 的路一条没少：`bm config set provider/apiKey/...` 照旧，不登录也能用（免费路径完整）。
+
 ### 翻译命令
 - `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
   `--capture` 时把这段 `(原文, 译文)` 按句采集进本地语料（默认**关**；采集是 sink，绝不改译文，

@@ -42,6 +42,7 @@ function usage() {
     `${NAME} ${VERSION} — 大肚猴翻译命令行`,
     '',
     '用法：',
+    `  ${NAME} setup                                                  首次配置：登录后自动领免费额度`,
     `  ${NAME} translate [文本|-] [--lang <语言码>] [--only] [--json] [--capture]   翻译（缺省读 stdin）`,
     `  ${NAME} detect [文本|-]                                        识别语言`,
     `  ${NAME} doc <file> [--pages 1-3] [-o <file>]                   文档翻译（pdf/docx/txt/md，默认只翻第 1 页）`,
@@ -89,7 +90,11 @@ function printFail(r, cfg, values) {
   const lang = uiLang(cfg, values);
   const text = messages.t(r.code, lang);
   stderr(`${NAME}: ${text}${r.code === 'unknown' && r.status ? ` (HTTP ${r.status})` : ''}`);
-  if (r.code === 'needs_setup') stderr('  ' + messages.t('cli_needs_setup_hint', lang));
+  if (r.code === 'needs_setup') stderr('  ' + messages.t('cli_setup_hint', lang));
+  if (r.code === 'credit_exhausted') {
+    const url = require('../setup.js').pageUrl();
+    stderr('  ' + messages.t('cli_exhausted_hint', lang).replace('{url}', url));
+  }
   process.exit(FAIL_EXIT[r.code] || 3);
 }
 
@@ -100,6 +105,19 @@ function writeResult(text, r, values) {
   }
   if (values.only) { process.stdout.write(r.text + '\n'); return; }
   process.stdout.write(text.trim() + '\n\n' + r.text + '\n');
+}
+
+// 首次配置：登录 → 自动领免费额度 → 写好配置（learning-design §9.10）。
+async function cmdSetup(positionals, values) {
+  if (!process.stdin.isTTY) { stderr('setup 需要交互终端（在真实终端里运行 bm setup）'); process.exit(1); }
+  const readline = require('node:readline');
+  const rl = readline.createInterface({ input: process.stdin, output: process.stderr });
+  const ask = (q) => new Promise((res) => rl.question(q, (a) => res(a)));
+  const { guidedSetup } = require('../setup.js');
+  let r;
+  try { r = await guidedSetup(values, { ask, out: (s) => process.stdout.write(s + '\n'), err: stderr }); }
+  finally { rl.close(); }
+  if (!r || !r.ok) process.exit(r && r.code === 'grant_unavailable' ? 2 : 5);
 }
 
 async function cmdTranslate(positionals, values) {
@@ -402,6 +420,7 @@ async function main() {
 
   const cmd = positionals[0];
   switch (cmd) {
+    case 'setup': return cmdSetup(positionals, values);
     case 'translate': return cmdTranslate(positionals, values);
     case 'detect': return cmdDetect(positionals, values);
     case 'doc': return cmdDoc(positionals, values);

@@ -79,6 +79,12 @@ function buildCliBundle(outDir, log, opts) {
   fs.writeFileSync(path.join(outDir, 'engine.js'), out);
   if (log) log(`  ✓ engine.js（${MODULES.length} 个模块，${Math.round(out.length / 1024)} KB）`);
 
+  // 免费额度（§8.10）的领取流程：**同一份实现**（src/shared/grant.js），esbuild 编成
+  // 一个 IIFE 挂 `MTGrantCli`。CLI 只调它的 claim()/plan()，不重写「领 → 写槽」——
+  // test/grant-one-implementation.test.js 守的就是这条。依赖 registry.js / quick-setup.js
+  // 一并打进这个 bundle。
+  bundleGrant(outDir, log);
+
   // vendored pdf.js 跟着产物走（文档翻译在 Node 里用它读文本层，cli/pdfjs.js 优先从这里加载）。
   // 文件**逐字节拷贝**，不改 —— AMO 会比对第三方库哈希（与 extension/vendor 同一条纪律）。
   const vt = path.join(ROOT, 'extension', 'vendor', 'pdfjs', 'legacy');
@@ -96,4 +102,25 @@ function buildCliBundle(outDir, log, opts) {
   return out.length;
 }
 
-module.exports = { buildCliBundle, MODULES, GENERATED };
+// src/shared/grant.js → outDir/grant.js。esbuild 的 IIFE 产物用一个尾部把导出挂到
+// module.exports / globalThis（Node require 拿得到）。target / JSX 选项走 run-esbuild.js 的
+// 单一来源（与 App、扩展同一套）。
+function bundleGrant(outDir, log) {
+  let esbuild;
+  try { esbuild = require('esbuild'); }
+  catch { throw new Error('cli bundle: grant.js 需要 esbuild —— 先 `npm ci`（构建期 devDependencies，domain-design §10）'); }
+  const { buildOptions } = require('./run-esbuild.js');
+  const r = esbuild.buildSync(buildOptions({
+    entryPoints: [path.join(ROOT, 'src', 'shared', 'grant.js')],
+    write: false,
+    globalName: 'MTGrantCli',
+    sourcemap: false,   // write:false 且无 outfile 时不能要 external sourcemap
+  }));
+  const text = (r.outputFiles && r.outputFiles.length) ? r.outputFiles[0].text : (r.text || '');
+  const epilogue = '\nif (typeof module !== "undefined" && module.exports) module.exports = MTGrantCli;\n'
+    + 'if (typeof globalThis !== "undefined") globalThis.MTGrantCli = MTGrantCli;\n';
+  fs.writeFileSync(path.join(outDir, 'grant.js'), text + epilogue);
+  if (log) log('  ✓ grant.js（免费额度领取，src/shared/grant.js 的编译产物）');
+}
+
+module.exports = { buildCliBundle, bundleGrant, MODULES, GENERATED };
