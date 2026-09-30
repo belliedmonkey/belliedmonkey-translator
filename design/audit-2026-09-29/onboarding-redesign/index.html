@@ -1,0 +1,264 @@
+<!doctype html>
+<!--
+  Open Design · OD Next handheld shell — iPhone (Dynamic Island, left silent/volume keys, right power key).
+  Presentation shell for a phone-app prototype: keep the handset markup and
+  CSS, put the product inside the APP CONTENT slot (`.phone-content`). The
+  shell sets no typography, palette, spacing, or navigation for the app.
+  Derived from the Open Design mobile-app template (Apache-2.0).
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>大肚猴翻译 · iOS 引导改版设计稿</title>
+  <style>
+    /* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio.
+       Put this @layer first; product CSS outside the layer always wins. */
+    @layer od-layout {
+      :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+      /* containers */
+      .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+      .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+      .od-row-top { display: flex; align-items: start; gap: var(--od-gap, 8px); }
+      .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+      .od-fill    { flex: 1 1 0; min-width: 0; }
+      .od-fixed   { flex: none; }
+      .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+      /* stacked information: each piece is its own line — never sibling inline spans */
+      .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+      :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+      .od-tile { display: grid; grid-template-rows: auto 1fr; }
+      :where(.od-tile) > :where(*) { display: block; }
+
+      /* media keeps its intrinsic ratio by default; never a distorted or cropped
+         cover by accident. height:auto lets the ratio win over an <img height="…">
+         attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+         AND add .od-media-cover together (per the core rule, only where a crop is
+         deliberate — tile thumbs, decorative fills — never on full-frame content). */
+      .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+      .od-media-cover { object-fit: cover; }
+
+      /* data text only — authored copy is rewritten to its budget instead */
+      .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+      .od-clamp-2 { -webkit-line-clamp: 2; }
+      .od-clamp-3 { -webkit-line-clamp: 3; }
+      .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+      .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+      .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+      /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+      .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+      .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+      /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+      .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+                 padding-inline: var(--od-rail-pad, 16px); scroll-scroll-padding-inline: var(--od-rail-pad, 16px); }
+      .od-rail::-webkit-scrollbar { display: none; }
+      :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+      :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+      .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+      .od-touch  { min-width: 44px; min-height: 44px; }
+    }
+    /* /OD-LAYOUT-PRIMITIVES v1 */
+
+    :root {
+      --phone-screen-width: 393px;
+      --phone-screen-height: 852px;
+      --phone-bezel: 12px;
+      --phone-outer-radius: 60px;
+      --phone-screen-radius: 48px;
+      --phone-safe-top: 59px;
+      --phone-safe-bottom: 34px;
+      --phone-system-fg: #111214;
+      --phone-screen-bg: #f7f7f8;
+      --phone-stage-bg: #e9ebee;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(255,255,255,.92), transparent 34%),
+        var(--phone-stage-bg);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      color: #17181a;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: calc(var(--phone-screen-width) + var(--phone-bezel) * 2);
+      height: calc(var(--phone-screen-height) + var(--phone-bezel) * 2);
+      padding: var(--phone-bezel);
+      border-radius: var(--phone-outer-radius);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.18), transparent 17%),
+        linear-gradient(160deg, #3a3a3d 0%, #1d1d20 47%, #09090b 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.13),
+        inset 0 0 0 2px rgba(0,0,0,.9),
+        0 34px 70px -20px rgba(0,0,0,.55),
+        0 12px 28px -12px rgba(0,0,0,.36);
+      isolation: isolate;
+    }
+
+    .phone-frame::before,
+    .phone-frame::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 102px;
+      bottom: 102px;
+      width: 3px;
+      border-radius: 3px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255,255,255,.13) 12%,
+        transparent 22%,
+        transparent 78%,
+        rgba(255,255,255,.08) 90%,
+        transparent
+      );
+    }
+    .phone-frame::before { left: -1px; }
+    .phone-frame::after { right: -1px; }
+
+    .hardware-button {
+      position: absolute;
+      width: 4px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #050506, #242428 58%, #08080a);
+      box-shadow: inset 0 1px rgba(255,255,255,.08);
+    }
+    .hardware-button.silent { left: -3px; top: 175px; height: 34px; }
+    .hardware-button.volume-up { left: -3px; top: 225px; height: 62px; }
+    .hardware-button.volume-down { left: -3px; top: 299px; height: 62px; }
+    .hardware-button.power { right: -3px; top: 252px; height: 104px; }
+
+    .phone-screen {
+      position: relative;
+      width: var(--phone-screen-width);
+      height: var(--phone-screen-height);
+      overflow: hidden;
+      border-radius: var(--phone-screen-radius);
+      background: var(--phone-screen-bg);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .phone-content {
+      position: absolute;
+      inset: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-top: var(--phone-safe-top);
+      padding-bottom: var(--phone-safe-bottom);
+      background: var(--phone-screen-bg);
+    }
+    .phone-content::-webkit-scrollbar { display: none; }
+
+    .dynamic-island {
+      position: absolute;
+      z-index: 20;
+      top: 11px;
+      left: 50%;
+      width: 126px;
+      height: 37px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: #000;
+      box-shadow: inset 0 -1px 1px rgba(255,255,255,.05);
+      pointer-events: none;
+    }
+
+    .status-bar {
+      position: absolute;
+      z-index: 15;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--phone-safe-top);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 18px 27px 0;
+      color: var(--phone-system-fg);
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+      pointer-events: none;
+    }
+    .status-icons { display: inline-flex; align-items: center; gap: 6px; }
+    .status-icons svg { display: block; width: 17px; height: 11px; fill: currentColor; }
+    .status-icons .battery { width: 25px; }
+
+    .home-indicator {
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      bottom: 8px;
+      width: 134px;
+      height: 5px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: var(--phone-system-fg);
+      opacity: .9;
+      pointer-events: none;
+    }
+
+    /* Presentation scaling: keep the whole handset visible on short viewports. */
+    @media (max-height: 939px) { .phone-frame { zoom: 0.9; } }
+    @media (max-height: 851px) { .phone-frame { zoom: 0.82; } }
+    @media (max-height: 781px) { .phone-frame { zoom: 0.74; } }
+    @media (max-height: 711px) { .phone-frame { zoom: 0.66; } }
+    /* Narrow viewports: the handset chrome collapses and the screen fills the
+       viewport, so the app behaves like a real phone page instead of
+       scrolling sideways. */
+    @media (max-width: 480px) {
+      body { padding: 0; display: block; }
+      .phone-frame { width: 100%; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; zoom: 1; }
+      .phone-frame::before, .phone-frame::after, .hardware-button { display: none; }
+      .phone-screen { width: 100%; height: 100%; border-radius: 0; }
+    }
+  </style>
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <div class="phone-frame" data-phone-shell data-platform="iphone">
+    <span class="hardware-button silent" aria-hidden="true"></span>
+    <span class="hardware-button volume-up" aria-hidden="true"></span>
+    <span class="hardware-button volume-down" aria-hidden="true"></span>
+    <span class="hardware-button power" aria-hidden="true"></span>
+
+    <section class="phone-screen" data-phone-screen>
+      <main class="phone-content" data-phone-content>
+        <!-- APP CONTENT START: the product mounts here and nowhere else. -->
+        <div class="app od-screen" id="root"></div>
+        <!-- APP CONTENT END -->
+      </main>
+
+      <div class="status-bar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="status-icons">
+          <svg viewBox="0 0 18 12"><path d="M1 10.5h2V8H1v2.5Zm4 0h2V5.5H5v5Zm4 0h2V3H9v7.5Zm4 0h2V.5h-2v10Z"/></svg>
+          <svg viewBox="0 0 18 12"><path d="M9 11.2 7.2 9.4a2.55 2.55 0 0 1 3.6 0L9 11.2Zm4.1-4.1-1.35 1.35a3.9 3.9 0 0 0-5.5 0L4.9 7.1a5.8 5.8 0 0 1 8.2 0Zm3-3-1.35 1.35a8.15 8.15 0 0 0-11.5 0L1.9 4.1a10.05 10.05 0 0 1 14.2 0Z"/></svg>
+          <svg class="battery" viewBox="0 0 27 12"><path fill-rule="evenodd" d="M2.5 1h19A2.5 2.5 0 0 1 24 3.5v5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 8.5v-5A2.5 2.5 0 0 1 2.5 1Zm0 1A1.5 1.5 0 0 0 1 3.5v5A1.5 1.5 0 0 0 2.5 10h19A1.5 1.5 0 0 0 23 8.5v-5A1.5 1.5 0 0 0 21.5 2h-19Zm.5 1h17.5A1.5 1.5 0 0 1 22 4.5v3A1.5 1.5 0 0 0 20.5 9H3V3Zm22 1.5a1.5 1.5 0 0 1 0 3v-3Z"/></svg>
+        </span>
+      </div>
+      <div class="dynamic-island" aria-hidden="true"></div>
+      <div class="home-indicator" aria-hidden="true"></div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
