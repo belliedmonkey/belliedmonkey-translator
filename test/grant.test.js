@@ -103,6 +103,23 @@ describe('§8.10 plan —— 只算 patch，且键必须是宿主认得的', () 
     ok(r.skipped.length >= 3, '跳过了却没如实报告 —— 界面会假装配好了');
   });
 
+  // §8.10.3（2026-09-30，issue #513）：回执只在**翻译槽真被写了**时才许可「配好了」。
+  test('★ 回执说真话：翻译槽没被写就不许说「已配好」', () => {
+    // 空设置：三槽都写 ⇒ 配好
+    eq(G.toastKey(G.plan(claimed, {}, REGISTRY)), 'grant_claimed_toast');
+    // 残值 key（provider 空）：chat 槽按设计跳过、只有朗读/转写被写 ⇒ **不许说配好**
+    // （旧判据看 tests.length，会错说「已配好」而翻译仍用那把死 key）
+    const stale = G.plan(claimed, { apiKey: 'sk-stale-1234' }, REGISTRY);
+    ok(stale.tests.includes('tts') || stale.tests.includes('stt'), '前提：朗读/转写确实被写了');
+    ok(stale.skipped.some((x) => x.slot === 'chat'), '前提：chat 槽确实被跳过');
+    eq(G.toastKey(stale), 'grant_claimed_kept_toast');
+    // 用户三槽都是自己的 ⇒ 同样「领到/保留」
+    eq(G.toastKey(G.plan(claimed, { apiKey: 'sk-own', ttsApiKey: 'sk-own', sttEngine: 'local' }, REGISTRY)),
+      'grant_claimed_kept_toast');
+    // 「改回免费额度」（overwrite）⇒ 翻译槽真被写 ⇒ 配好
+    eq(G.toastKey(G.plan(claimed, { apiKey: 'sk-own' }, REGISTRY, { overwrite: true })), 'grant_claimed_toast');
+  });
+
   test('上一枚令牌可以被盖掉，且**如实报告是替换**', () => {
     const OLD = 'bmg_oldoldoldoldoldoldoldoldoldoldoldoldOLDTAIL9';
     const s = { apiKey: OLD, ttsApiKey: OLD, sttEngine: 'grant_stt', sttApiKey: OLD, grantTail: OLD.slice(-8) };

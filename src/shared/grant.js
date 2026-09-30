@@ -151,6 +151,15 @@ export function plan(claimed, settings, reg, opts) {
   });
 }
 
+// §8.10.3（2026-09-30，issue #513）：回执只在**翻译槽真被写了**时才能说「配好了」。
+// 今天两处宿主按「有没有写过任何一槽」（plan.tests.length > 0）判 —— 一把残值 key 的用户
+// 会看到「免费额度已配好」，而翻译仍是那把旧 key（朗读/转写倒是换成了额度）：一句假成功，
+// 界面上没有第二处会说不。判据改成看 chat 槽本身，两个宿主共用这一处。
+export function toastKey(plan) {
+  const wroteChat = !!(plan && plan.writes && ('apiKey' in plan.writes));
+  return wroteChat ? 'grant_claimed_toast' : 'grant_claimed_kept_toast';
+}
+
 // ── 现在用的是不是额度 ─────────────────────────────────────────────────
 //
 // 判据是**尾号命中**，不是「provider 等于 grant」：用户可能只把翻译换成了自己的
@@ -370,5 +379,5 @@ export function popupRow(settings, opts) {
 
 export default {
   spec, enabled, claim, plan, platform, status, active, activeIn,
-  fresh, leftUsd, clearOnSignOut, tail, cardFor, officialCard, popupRow, CACHE_MS, LOW_USD,
+  fresh, leftUsd, clearOnSignOut, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
 };

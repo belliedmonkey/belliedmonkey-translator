@@ -277,13 +277,15 @@ export function bootShell() {
   }
   async function autoClaimOnce() {
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
-    // 「配好了没有」的判据只有一个出口（EngineState.needsSetup），不在这里另写一份。
-    try {
-      if (typeof EngineState !== 'undefined' && EngineState.needsSetup) {
-        const cur = await readObSettings();
-        if (!EngineState.needsSetup(cur)) return;   // 已经有引擎 —— 不碰
-      }
-    } catch (_) { return; }
+    // 2026-09-30（§8.10.3，issue #513）：这里原来有一道守卫
+    //   if (!EngineState.needsSetup(cur)) return;   // 「已经有引擎 —— 不碰」
+    // 而 needsSetup 的判据是「apiKey 非空」——它是**引导门**的问题（该不该把用户送回引导），
+    // 不是「这台设备有没有一个能用的引擎」。于是设备上留着一把残值 key（失效/被替换/手写错的）
+    // 时，整条领取被跳过：不写额度、引擎坏着也不自愈，而登录即领取是它唯一的自愈路径。
+    // 去掉的理由：`claimAndApply` 传的是 overwrite:false —— 它只写**空槽**，用户自己有效的
+    // 配置一个字节都不会动（这是既有门禁，见 test/grant.test.js）。守卫是多余的，且它挡住的
+    // 恰恰是坏配置的人。副作用是想要的：每次登录都会 claim 一次（服务端以 user_id 为主键、
+    // 幂等），余额因此每次登录刷新 —— 「用尽后卡片显示旧余额」随之消失。
     // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；那一刻的回执就是引导下一屏
     // 「就地试一句」本身（真的翻一句，比三行「通了」更像证据）。
     await settingsModel.claimAndApply({ overwrite: false, selfTest: false });

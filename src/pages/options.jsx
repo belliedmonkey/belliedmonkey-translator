@@ -641,8 +641,9 @@ function Options() {
       await applyQuickSetup(plan);
       try { chrome.storage.local.set(plan.marks); } catch (_) {}
       // grant_claimed 由 LearnGrant.claim() 自己记（telemetry-design §3.4）—— 不在调用方。
-      const wroteAny = plan.tests && plan.tests.length > 0;
-      showToast(wroteAny
+      // §8.10.3（2026-09-30）：判据从「写过任何一槽」改成「**翻译槽**真被写了」（grant.toastKey）。
+      // 两句文案各自留在静态 t() 的 fallback 位 —— no-hardcoded-copy 门禁要能核对「键 ↔ 文案」。
+      showToast(LearnGrant.toastKey(plan) === 'grant_claimed_toast'
         ? t('grant_claimed_toast', '免费额度已配好')
         : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
     } catch (e) {

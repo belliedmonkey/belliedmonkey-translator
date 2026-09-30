@@ -127,7 +127,9 @@ describe('setup-done: 接线（深链、两条配置路、engineChosen）', () =
     const render = settings.slice(settings.indexOf('renderQuickSetup('), settings.indexOf('renderQuickSetup(') + 900);
     ok(/onResults:/.test(render), '一键卡要传 onResults');
     ok(/AppSetupDone\.show\(plan && plan\.tests, \{ results \}\)/.test(render), '回执要拿卡的结果，不自己再测一遍');
-    const grant = model.slice(model.indexOf('grant_claimed_toast'));
+    // 锚点 2026-09-30 跟着 §8.10.3 换了一次：回执文案由 LearnGrant.toastKey(plan) 决定
+    // （翻译槽真被写了才说「配好了」），不再是写死的 'grant_claimed_toast' 字面量。
+    const grant = model.slice(model.indexOf('LearnGrant.toastKey(plan)'));
     ok(/AppSetupDone\.show/.test(grant.slice(0, 900)), '领免费额度配完也要给回执（此前一次自检都不跑）');
   });
 
