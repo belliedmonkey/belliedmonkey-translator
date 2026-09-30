@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 首屏与首次使用流程画布</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/firstrun.css">
+</head>
+<body>
+<main class="canvas">
+  <header class="canvas-head">
+    <div>
+      <div class="canvas-mark">
+        <span class="tile">译</span>
+        <span>
+          <h1>大肚猴翻译 · 首屏与首次使用流程</h1>
+          <p>屏 1 登录（硬门） → 屏 2 资源包（硬门，无跳过） → 屏 3 引导（可跳过） → 就绪判据决定进门或补齐。老用户已登录且已就绪时直进首页。数字（体积、额度、进度）均为占位，标注见各板注。</p>
+        </span>
+      </div>
+      <div class="swatches" aria-label="品牌色板">
+        <span class="swatch" style="background:#f5ead8" title="奶油底 #f5ead8"></span>
+        <span class="swatch" style="background:#fff" title="面板白 #fff"></span>
+        <span class="swatch" style="background:#201e1d" title="正文 #201e1d"></span>
+        <span class="swatch" style="background:#c67139" title="terra 主色 #c67139"></span>
+        <span class="swatch" style="background:#ac6231" title="按钮 #ac6231"></span>
+        <span class="swatch" style="background:#56633f" title="译文/成功 #56633f"></span>
+        <span class="swatch" style="background:#728157" title="已开启 #728157"></span>
+        <span class="swatch" style="background:#b3261e" title="危险 #b3261e"></span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <a class="tab" href="firstrun-prototype.html" data-od-id="go-prototype">可点击原型 →</a>
+      <a class="tab" href="firstrun-spec.html" data-od-id="go-spec">一页规格 →</a>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="分组"></nav>
+  <div class="rule"></div>
+  <div id="groups"></div>
+</main>
+
+<script src="assets/boards.js"></script>
+<script>
+  const tabs = document.getElementById('tabs');
+  const host = document.getElementById('groups');
+
+  GROUPS.forEach((g, i) => {
+    const b = document.createElement('button');
+    b.className = 'tab';
+    b.type = 'button';
+    b.setAttribute('role', 'tab');
+    b.setAttribute('data-od-id', 'tab-' + g.id);
+    b.setAttribute('aria-selected', i === 0 ? 'true' : 'false');
+    b.textContent = g.n;
+    b.dataset.g = g.id;
+    b.addEventListener('click', () => select(g.id));
+    tabs.appendChild(b);
+  });
+
+  // 宽板（表格 / 路径图）的内容本身就是完整 HTML 片段，先给它包一层容器
+  BOARDS.forEach(b => {
+    b.node = () => {
+      const d = document.createElement('div');
+      d.className = 'board wide';
+      d.style.gridColumn = '1 / -1';
+      d.setAttribute('data-od-id', 'board-' + b.code.toLowerCase());
+      const tmp = document.createElement('div');
+      tmp.innerHTML = b.html;
+      d.appendChild(tmp.firstElementChild);
+      const cap = document.createElement('p');
+      cap.className = 'board-note';
+      cap.style.marginTop = '10px';
+      cap.innerHTML = `<b>${b.t}</b>　<code style="font-size:12px">${b.code}</code>`;
+      d.appendChild(cap);
+      return d;
+    };
+  });
+
+  GROUPS.forEach((g, i) => {
+    const sec = document.createElement('section');
+    sec.className = 'group';
+    sec.id = 'group-' + g.id;
+    sec.setAttribute('data-od-id', 'group-' + g.id);
+    sec.innerHTML = `<h2>${g.n}</h2><p>${g.d}</p><div class="grid"></div>`;
+    const grid = sec.querySelector('.grid');
+    BOARDS.filter(b => b.g === g.id).forEach(b => {
+      if (b.wide) { grid.appendChild(b.node()); return; }
+      const d = document.createElement('div');
+      d.className = 'board';
+      d.setAttribute('data-od-id', 'board-' + b.code.toLowerCase());
+      d.innerHTML = `
+        <div class="board-head">
+          <h3>${b.t}</h3><code>${b.code}</code>
+          ${b.flag ? `<span class="flag flag-${b.flag}">${b.flagText}</span>` : ''}
+        </div>
+        ${b.html}
+        ${b.note ? `<p class="board-note">${b.note}</p>` : ''}`;
+      grid.appendChild(d);
+    });
+    host.appendChild(sec);
+  });
+
+  function select(gid) {
+    [...tabs.children].forEach(t => t.setAttribute('aria-selected', t.dataset.g === gid ? 'true' : 'false'));
+    GROUPS.forEach(g => {
+      document.getElementById('group-' + g.id).style.display = g.id === gid ? '' : 'none';
+    });
+  }
+
+  select(GROUPS[0].id);
+</script>
+</body>
+</html>
