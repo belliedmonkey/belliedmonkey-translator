@@ -181,6 +181,13 @@ const has = (v) => !!String(v == null ? '' : v).trim();
 //   转写：这一组不一样 —— '' 是 options.html 明确设计的哨兵（「未配置（不出说题）」），
 //         所以空 engine id 就是无歧义的「从没配过」。反过来，engine 已选而 key 为空
 //         的**半配**状态也算已配、不覆盖：录音去处是用户碰过的东西。
+//
+// 2026-09-30（§8.10.3，issue #513）：chat 的占用判据**保持**「key 非空」，不改。
+// 改过一版（provider 解析不出来就算「没配」），被 test/grant.test.js 拦下：
+// **空 provider 是能用的配置**（走注册表默认；老安装里 provider 常常就是空的），
+// 判它「没配」会让额度覆盖掉用户自己那把 key —— 那正是「绝不静默换掉别人的 key」
+// 这条门禁守的东西。于是这次只改两处：去掉 shell-model 的守卫、让回执说真话
+// （grantToast：chat 槽没被写就不许说「配好」）。
 function state(s, reg) {
   s = s || {};
   const sttId = String(s.sttEngine || '');

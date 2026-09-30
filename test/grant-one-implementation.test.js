@@ -40,15 +40,20 @@ describe('免费额度：领取 → 写槽 → 回执，只有一份实现', () 
       'src/app/shell-model.js 没有走共用层');
   });
 
-  test('自动领取有三个闸，而且一次会话只试一次', () => {
+  // 2026-09-30（§8.10.3，issue #513）：这条门禁原来钉的是「三个闸」——其中第二闸
+  // `EngineState.needsSetup` 已被证明是错的（它只看 apiKey 非空，把残值 key 的设备
+  // 判成「配好了」，整条领取被跳过、也没有自愈）。现在只剩两闸，并把「不许再拿
+  // needsSetup 当引擎判据」写成反向断言 —— 门禁换了，它守的东西（enabled /
+  // overwrite:false / 一次会话一试）一条没少。
+  test('自动领取只有两个闸（配没配过不再问），而且一次会话只试一次', () => {
     const src = strip(read('src/app/shell-model.js'));
     const i = src.indexOf('async function autoClaimGrant');
     ok(i >= 0, '找不到 autoClaimGrant');
     const body = src.slice(i, i + 1400);
     ok(body.includes('LearnGrant.enabled()'),
       '没判「这个 flavor 有没有额度这条路」—— 中国版 MT_GRANT 恒为 null');
-    ok(body.includes('EngineState.needsSetup'),
-      '没用 EngineState.needsSetup 判「配好了没有」—— 那是唯一出口，不许另写一份');
+    ok(!body.includes('EngineState.needsSetup'),
+      '又拿 needsSetup 判「配好了没有」—— 它只看 apiKey 非空，会把残值 key 的设备判成已配（§8.10.3）');
     ok(/overwrite:\s*false/.test(body),
       'overwrite 不是 false —— 自动领取绝不能碰用户自己的 key');
     ok(/_autoClaimed/.test(body), '没有「一次会话只试一次」的闸');

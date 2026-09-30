@@ -225,9 +225,10 @@ async function claimAndApply(opts) {
   // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。
   if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
   // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
+  // §8.10.3（2026-09-30）：判据从「写过任何一槽」改成「**翻译槽**真被写了」——见 grant.toastKey。
   const wroteAny = plan.tests && plan.tests.length > 0;
   await markEngineChosen(plan);
-  if (o.say) o.say(wroteAny
+  if (o.say) o.say(LearnGrant.toastKey(plan) === 'grant_claimed_toast'
     ? t('grant_claimed_toast', '免费额度已配好')
     : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
   // **这句「已配好」此前没有证据** —— 领取这条路一次自检都不跑（plan.tests 只用来
