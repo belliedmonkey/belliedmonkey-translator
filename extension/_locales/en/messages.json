@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "Use a different email"
   },
-  "app_local_note": {
-    "message": "Optional. Everything works signed out — capture and review stay on this device; signing in only syncs to your other devices."
-  },
   "app_signout": {
     "message": "Sign out"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Open the extension in Safari →"
-  },
-  "app_so_review_title": {
-    "message": "Review sentences saved on this device"
-  },
-  "app_so_review_due": {
-    "message": "{n} cards due today"
-  },
-  "app_so_review_total": {
-    "message": "{n} sentences saved"
   },
   "app_ext_done": {
     "message": "I've turned it on"
@@ -3725,5 +3713,15 @@
   },
   "learn_group_bye": {
     "message": "The rest can wait — just come back."
-  }
+  },
+  "firstrun_packs_title": { "message": "Download the two speech packs first" },
+  "firstrun_packs_lede": { "message": "Once these are in place you won't need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Audio is processed only on your device." },
+  "firstrun_packs_asr": { "message": "Speech recognition pack (interpreting / live subtitles)" },
+  "firstrun_packs_tts": { "message": "High-quality voice pack (read-aloud / podcast)" },
+  "firstrun_packs_done": { "message": "Ready" },
+  "firstrun_packs_net": { "message": "Wi-Fi is recommended; cellular works too — your call." },
+  "firstrun_packs_busy": { "message": "Downloading…" },
+  "firstrun_packs_go": { "message": "Download and continue" },
+  "firstrun_packs_go_tts": { "message": "Get the voice pack only and continue" },
+  "firstrun_packs_err": { "message": "The download didn't finish: {why} — check your connection and try again." }
 }
