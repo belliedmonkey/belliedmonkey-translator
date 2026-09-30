@@ -197,7 +197,7 @@ export function bootShell() {
     // 得往同步里加一种新行，那是 domain design 的改动。
     browserSideOk = stats.total > 0 || (!!currentSession && Number(lastOk) > 0);
     paintExtBanner(extState);
-    paintSignedOutReview(stats.total, due);
+    // 未登录的复习入口已退役（2026-10-01，#532）：App 以登录为前提。
     $('app-counts').innerHTML = '';
     // cls = semantic hook for style.css's stat-tile colors (never color by
     // position — a reordered/hidden tile would silently mis-color).
@@ -232,23 +232,9 @@ export function bootShell() {
   // 未登录也能复习（2026-09-27，Issue #386）。
   //
   // 卡片是本机数据，登录只影响**跨设备同步**（learning-design §7.2）—— 而此前 `#review`
-  // 只长在 `#signed-in` 里，所以一个存了卡却没登录的人，首页根本没有复习入口
-  // （interaction-spec「复习 / Entry points」）。只在真有卡时出现：没有卡却给一个必然
-  // 空着的入口，比不给更糟。
-  function paintSignedOutReview(total, due) {
-    const box = $('signed-out-review');
-    if (!box) return;
-    box.hidden = !!currentSession || !(total > 0);
-    if (box.hidden) return;
-    const btn = $('signed-out-review-btn');
-    const desc = $('signed-out-review-desc');
-    if (btn) btn.textContent = t('app_so_review_title', '复习本地收藏的句子');
-    if (desc) {
-      desc.textContent = due > 0
-        ? t('app_so_review_due', '今天有 {n} 张卡片待复习').replace('{n}', String(due))
-        : t('app_so_review_total', '共保存了 {n} 个句子').replace('{n}', String(total));
-    }
-  }
+  // paintSignedOutReview 已退役（2026-10-01，#532）：App 以登录为前提，未登录首页
+  // 只留登录，所以「本机有卡就在未登录首页给个复习入口」这条 #386 的规矩作废。
+  // 同一条判据在 test/app-firstrun.test.js 的 R1 与 test/growth-386.test.js 里各钉一次。
 
   // 密码登录只服务「服务端已设过密码」的账号 —— 产品内没有任何设密码的面，
   // 所以对普通用户它 100% 会失败。2026-08-28 的 GoTrue 日志里实证撞了两次：
@@ -826,6 +812,7 @@ export function bootShell() {
   // 启动时调一次（每次启动至多计一次）。返回卡是否在场。
   async function paintObResume(session) {
     const card = $('ob-resume');
+    if (!card) return false;   // 屏 1 改成「只有登录」后这张卡不再存在（#532）—— 不许在这里抛
     card.hidden = true;
     if (!obResume) return false;
     let needs = true;
@@ -1426,9 +1413,7 @@ export function bootShell() {
   // be the start of the second implementation §9 exists to prevent.
   // 未登录首页的复习入口走的是同一条路（2026-09-27，Issue #386）：不在这里抄第二份视图切换，
   // 直接点那个真正的按钮 —— 同 AppSysBanner 的做法（见本文件下方 openReview 的桥）。
-  if ($('signed-out-review-btn')) {
-    $('signed-out-review-btn').addEventListener('click', () => { const r = $('review'); if (r) r.click(); });
-  }
+  // （未登录复习入口的监听随该入口一起退役，2026-10-01 #532）
 
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;

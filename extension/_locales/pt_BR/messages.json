@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "Usar outro e-mail"
   },
-  "app_local_note": {
-    "message": "Opcional. Tudo funciona sem entrar — captura e revisão ficam neste aparelho; entrar serve apenas para sincronizar com seus outros dispositivos."
-  },
   "app_signout": {
     "message": "Sair"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Ativar a extensão no Safari →"
-  },
-  "app_so_review_title": {
-    "message": "Revisar frases salvas neste dispositivo"
-  },
-  "app_so_review_due": {
-    "message": "{n} cartões para revisar hoje"
-  },
-  "app_so_review_total": {
-    "message": "{n} frases salvas"
   },
   "app_ext_done": {
     "message": "Já ativei"

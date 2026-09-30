@@ -18,6 +18,9 @@ const JSSX = fs.readFileSync(path.join(ROOT, 'src/app/AppShell.jsx'), 'utf8');
 const REVIEW = fs.readFileSync(path.join(ROOT, 'src/shared/review.js'), 'utf8');
 const LOCALES = path.join(ROOT, 'extension', '_locales');
 
+// 源码判据先去掉注释：注释里会提到被退役的东西（说明它为什么退役），把说明当违规是误伤。
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
 function section(text, from, to) {
   const a = text.indexOf(from);
   ok(a >= 0, '找不到锚点：' + from);
@@ -38,55 +41,22 @@ describe('#386 · 一轮的善终门槛是「学过」，不是「清空」（20
   });
 });
 
-describe('#386 · 未登录也能复习（本机卡就是本机的）', () => {
-  test('入口容器初始 hidden —— 没有卡时一行都不该出现', () => {
-    ok(JSSX.includes('<div id="signed-out-review" hidden>'), '#signed-out-review 不是 hidden 初始态');
-  });
-  test('按钮是次级 —— 这一屏的主行动仍是「把扩展 / 登录打通」', () => {
-    ok(JSSX.includes('<button id="signed-out-review-btn" type="button" className="secondary">'),
-      '未登录复习按钮不是 secondary：它会和横幅的填色按钮抢「每屏至多一个」那条家规');
-  });
-  test('长在 #signed-out 段里，且在登录卡之前', () => {
-    const so = JSSX.indexOf('<section id="signed-out"');
-    const entry = JSSX.indexOf('id="signed-out-review"');
-    const signin = JSSX.indexOf('id="signin-prompt"');
-    ok(so > 0 && entry > so && signin > entry, '未登录复习入口不在 #signed-out 里，或位置不在登录卡之前');
-  });
-  test('判据两个方向都要对：已登录不显示、本机 0 张卡不显示', () => {
-    const fn = section(SHELL, 'function paintSignedOutReview(', '\n  }\n');
-    ok(/box\.hidden = !!currentSession \|\| !\(total > 0\);/.test(fn),
-      'paintSignedOutReview 的可见性判据变了 —— 要么会显示给已登录的人，要么会给一个必然空着的入口：' + fn.slice(0, 200));
-  });
-  test('入口走的是同一个 #review 按钮，没有第二份视图切换', () => {
-    ok(/\$\('signed-out-review-btn'\)[\s\S]{0,160}?\$\('review'\)[\s\S]{0,40}?\.click\(\)/.test(SHELL),
-      '未登录入口没有复用 #review 的点击路径 —— 视图切换抄了第二份');
-  });
-  test('「← 返回」按来路分流：未登录进来的人回未登录首页', () => {
-    const seg = section(SHELL, "$('review-back').addEventListener('click'", '// ─── Settings ─');
-    ok(/if \(currentSession\) \{ \$\('signed-in'\)\.hidden = false; \} else \{ \$\('signed-out'\)\.hidden = false; \}/.test(seg),
-      'review-back 仍无条件回 #signed-in —— 未登录的人点返回会落到他没见过的界面');
-  });
-});
-
-describe('#386 · 新增的 UI 文案在 12 份 locale 里都有', () => {
-  const KEYS = ['app_so_review_title', 'app_so_review_due', 'app_so_review_total'];
-  const locs = fs.readdirSync(LOCALES).filter((l) => fs.existsSync(path.join(LOCALES, l, 'messages.json')));
-  test('12 份一个不少', () => { eq(locs.length, 12); });
-  for (const loc of locs) {
-    test(loc, () => {
-      const d = JSON.parse(fs.readFileSync(path.join(LOCALES, loc, 'messages.json'), 'utf8'));
-      for (const k of KEYS) {
-        ok(d[k] && typeof d[k].message === 'string' && d[k].message.length > 0, `${loc} 缺 ${k}（或缺成空串——运行时与缺键一字不差）`);
-      }
-    });
-  }
-  test('带 {n} 的两条在各自译文里都留着占位符', () => {
+// ── 2026-10-01 更新（#532）：本节方向**反转** ────────────────────────────────
+// #386 当初立的规矩是「未登录也能复习」（卡片是本机数据，登录只影响同步）。
+// 2026-10-01 的裁定把 App 改成「**登录是前提**」（AGENTS.md 规则 2/3 的注），
+// 所以那条入口**整条退役**：未登录的首页只有登录，复习只能从登录后的首页进。
+// 同一件事在 test/app-firstrun.test.js 的 R1 里以结构门再钉一次。
+describe('#386 退役 —— 未登录不再有复习入口（2026-10-01，#532）', () => {
+  test('入口、判定函数、三个文案键全部退役', () => {
+    ok(!JSSX.includes('signed-out-review'), 'AppShell 里还有 #signed-out-review —— 未登录首页只许有登录');
+    ok(!stripComments(SHELL).includes('paintSignedOutReview'), 'shell-model 里 paintSignedOutReview 还在 —— 入口退役了，函数与调用点也该删');
+    const locs = fs.readdirSync(LOCALES).filter((l) => fs.existsSync(path.join(LOCALES, l, 'messages.json')));
+    const dead = [];
     for (const loc of locs) {
       const d = JSON.parse(fs.readFileSync(path.join(LOCALES, loc, 'messages.json'), 'utf8'));
-      for (const k of ['app_so_review_due', 'app_so_review_total']) {
-        ok(d[k].message.includes('{n}'), `${loc} 的 ${k} 丢了 {n} 占位符 —— 计数会显示不出来`);
-      }
+      for (const k of ['app_so_review_title', 'app_so_review_due', 'app_so_review_total']) if (d[k]) dead.push(`${loc}/${k}`);
     }
+    eq(dead, [], '退役入口的三个文案键还在（死文案）—— 12 份一起删');
   });
 });
 

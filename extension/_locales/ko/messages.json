@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "다른 이메일 사용"
   },
-  "app_local_note": {
-    "message": "선택 사항입니다. 로그인 없이도 모두 사용할 수 있습니다 — 수집과 복습은 이 기기에서 이루어지며, 로그인은 다른 기기와 동기화하기 위한 것일 뿐입니다."
-  },
   "app_signout": {
     "message": "로그아웃"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Safari에서 확장 프로그램 켜기 →"
-  },
-  "app_so_review_title": {
-    "message": "이 기기에 저장된 문장 복습"
-  },
-  "app_so_review_due": {
-    "message": "오늘 복습할 카드 {n}장"
-  },
-  "app_so_review_total": {
-    "message": "문장 {n}개 저장됨"
   },
   "app_ext_done": {
     "message": "켰어요"

@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "استخدام بريد آخر"
   },
-  "app_local_note": {
-    "message": "اختياري. كل شيء يعمل دون تسجيل الدخول — يبقى الالتقاط والمراجعة على هذا الجهاز؛ تسجيل الدخول فقط للمزامنة مع أجهزتك الأخرى."
-  },
   "app_signout": {
     "message": "تسجيل الخروج"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "فعِّل الإضافة في Safari ←"
-  },
-  "app_so_review_title": {
-    "message": "مراجعة الجُمل المحفوظة على هذا الجهاز"
-  },
-  "app_so_review_due": {
-    "message": "لديك {n} بطاقة للمراجعة اليوم"
-  },
-  "app_so_review_total": {
-    "message": "تم حفظ {n} جملة"
   },
   "app_ext_done": {
     "message": "لقد فعّلتها"

@@ -96,30 +96,10 @@ function AppShell() {
         {/* 品牌行由 paintStatic 涂（app-action-title 键）—— 原标记里的中文只在那里出现。 */}
         <h1 id="app-brand"></h1>
         <p className="lede" id="lede"></p>
-        {/* 「继续设置」卡（2026-09-22，画布 PTAr3ymseUw7s1sKvUX7Kf 第 1 页「以后再设置只记这一次」，用户点头）：
-             点「以后再设置」只关这一次；下次打开、还没登录也没引擎时，回来的是这张卡，不是整条引导。
-             ✕ = 永久收起；最多跟着 3 次启动。显隐由 app.js paintObResume() 决定。 */}
-        <div id="ob-resume" hidden>
-          <div className="ob-resume-head">
-            <p id="ob-resume-title"></p>
-            <button id="ob-resume-close" type="button" className="link">✕</button>
-          </div>
-          <p id="ob-resume-body" className="note"></p>
-          <button id="ob-resume-go" type="button"></button>
-        </div>
-        {/* 未登录也要能进设置（2026-09-17）：此前这张首页通向设置的唯一路径是对话入口灰态下的「去设置里选择 →」，
-             实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 */}
-        <p className="note" id="signed-out-actions"><button id="gear2" type="button" className="link"></button></p>
-
-        {/* 未登录也能复习（2026-09-27，Issue #386）：卡片是**本机**数据，登录只影响跨设备同步
-             （learning-design §7.2），所以本机有卡的人不该被登录墙挡在复习外面。
-             只在真有卡时出现（src/app/shell-model.js 的 paintSignedOutReview），没有卡时不给一个
-             必然空着的入口。次级按钮：这一屏的主行动仍是「把扩展 / 登录打通」，
-             与「每屏至多一个填色按钮」那条家规一致（横幅在场时 #review 同样降次级）。 */}
-        <div id="signed-out-review" hidden>
-          <p className="note" id="signed-out-review-desc"></p>
-          <button id="signed-out-review-btn" type="button" className="secondary"></button>
-        </div>
+        {/* 屏 1 只留登录（2026-10-01，#532）。这里原先有四样东西，全部删除：
+            「继续设置」卡（ob-resume）、未登录也能进设置的 gear2、「未登录也能复习」块（#386）、
+            以及下面那段「不登录也能完整使用」的 local-note —— 未登录的人在这屏上看到的每一件
+            都用不了，而它们把「先登录」这件事埋掉了。判据见 test/app-firstrun.test.js（R1/R6）。 */}
 
         {/* A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
              #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
@@ -183,25 +163,6 @@ function AppShell() {
                  根本不会调用 show()，那时它就会一直露着。 */}
             <button id="app-use-pw" type="button" className="link" hidden></button>
           </div>
-        </div>
-
-        <p className="note" id="local-note"></p>
-        {/* 对话 · 实时听译（§9.6）在未登录时也存在：它不依赖同步进来的牌库，语料写本机。
-             与播客模式不同（那个要牌库，只在登录后的首页）。同一门控、同一条去设置的路。 */}
-        <div className="modes">
-          <span className="modes-label" id="modes-label2"></span>
-          <div className="mode-list">
-            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
-            <ListenEntryButtons sfx="2" />
-            {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
-            <button id="app-docs-entry2" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint2"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-          </div>
-          <ListenEntryPrivacy sfx="2" />
-          <ListenEntryNeeds sfx="2" />
         </div>
       </section>
 

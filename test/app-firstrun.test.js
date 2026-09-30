@@ -14,7 +14,7 @@
 //   R6 每屏至多一个填色按钮
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = 'src/app/AppShell.jsx';
@@ -57,6 +57,10 @@ function listFiles(dir) {
   return out;
 }
 
+// 去掉注释再扫源码：注释里写着「不看 flavor」这类说明，把说明当成违规会误伤
+// （src-boundaries.test.js 同样先 stripComments 再判）。
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+
 describe('App 首屏三段式 —— 六条红线（#532）', () => {
   const shell = read(SHELL);
   const signedOut = section(shell, 'signed-out');
@@ -68,9 +72,12 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       '未登录首屏出现了功能入口（.mode）—— 这一屏只许有登录');
     ok(!/id="gear2"/.test(signedOut), '未登录首屏出现了「设置」入口（gear2）');
     ok(!/id="signed-out-review"/.test(signedOut), '未登录首屏出现了复习入口');
-    const allowed = new Set(['btn-apple', 'btn-google', 'btn-signin', 'xb-check']);
+    // 允许的只有**登录这一件事**的元素：Apple / Google / 邮箱那一步，以及邮箱表单
+    // 展开后的两步（验证码、密码），它们都是登录流程内部。
+    const allowed = new Set(['btn-apple', 'btn-google', 'btn-signin', 'xb-check',
+      'send', 'verify', 'resend', 'back', 'app-pw-login', 'app-pw-back', 'app-use-pw']);
     const extra = buttonIds(signedOut).filter((x) => !allowed.has(x));
-    eq(extra, [], '未登录首屏出现了登录以外的可点元素');
+    deepEq(extra, [], '未登录首屏出现了登录以外的可点元素');
   });
 
   test('R2 · 屏序可达，且屏 2 无跳过、屏 3 有跳过', () => {
@@ -86,10 +93,10 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(/export function readyInputs/.test(src), 'firstrun.js 缺 readyInputs()');
     ok(/export function isReady/.test(src), 'firstrun.js 缺 isReady()');
     ok(/export function step/.test(src), 'firstrun.js 缺 step()');
-    ok(!/extBanner|EXT_DONE|browserSideOk|extState|extObSeen/.test(src),
+    ok(!/extBanner|EXT_DONE|browserSideOk|extState|extObSeen/.test(stripComments(src)),
       'firstrun.js 读了扩展状态 —— 就绪判据不含扩展（#485 口径）');
     const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
-    eq(FR.readyInputs().slice().sort(), ['asrPack', 'engine', 'loggedIn', 'ttsPack'].sort(),
+    deepEq(FR.readyInputs().slice().sort(), ['asrPack', 'engine', 'loggedIn', 'ttsPack'].sort(),
       '就绪判据的可观测输入不是那四个');
     let n = 0;
     for (const a of [false, true]) for (const b of [false, true]) for (const c of [false, true]) for (const d of [false, true]) {
@@ -121,12 +128,17 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
   });
 
   test('R4 · 两 flavor 逐条同构（首屏模块不读 flavor）', () => {
-    const src = read(FIRST);
+    const src = stripComments(read(FIRST));
     ok(!/\bflavor\b/i.test(src), 'firstrun.js 里出现 flavor 分支 —— 两版必须逐条同构');
     ok(!/Registry/.test(src), 'firstrun.js 引了 Registry —— 首屏判定应当是纯函数');
   });
 
   test('R5 · 旧承诺防复活（App 侧文案）', () => {
+    // 两条一起用：
+    //  ① 语言无关的那条 —— `app_local_note` 这个键存在的唯一理由就是那句「不登录也能完整
+    //     使用」，所以它必须整条消失（12 语种一起）。按**键**判，不看语言，漏不掉。
+    //  ② 中/英措辞扫描 —— 防的是「换个键把同一句话写回来」。局限如实写在这里：另 10 个
+    //     语种的措辞它认不出来，所以 ① 才是主判据。
     const FORBIDDEN = [/不登[录入]也能完整/, /不登[录入]也能一直用/, /不登[录入]也(?:能|可)用/,
       /without signing in/i, /no account (?:is )?required/i];
     const keys = new Set();
@@ -136,14 +148,17 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     }
     ok(keys.size > 10, `只从 src/app 收集到 ${keys.size} 个文案键 —— 解析写错了？`);
     const offenders = [];
+    const stillHasKey = [];
     for (const loc of fs.readdirSync(path.join(ROOT, 'extension', '_locales'))) {
       const m = JSON.parse(read(`extension/_locales/${loc}/messages.json`));
+      if (m.app_local_note) stillHasKey.push(loc);
       for (const k of keys) {
         const v = (m[k] || {}).message || '';
         for (const re of FORBIDDEN) if (re.test(v)) offenders.push(`${loc}/${k}: ${v.slice(0, 50)}`);
       }
     }
-    eq(offenders, [], 'App 侧文案里仍有「不登录也能…」一类旧承诺（该改的是这些键，不是删这句门）');
+    deepEq(stillHasKey, [], 'app_local_note 还在 —— 那个键存在的唯一理由就是「不登录也能完整使用」这句旧承诺');
+    deepEq(offenders, [], 'App 侧文案里仍有「不登录也能…」一类旧承诺（该改的是这些键，不是删这句门）');
   });
 
   test('R6 · 每屏至多一个填色按钮', () => {

@@ -897,9 +897,6 @@
   "app_back_email": {
     "message": "換一個電子郵件"
   },
-  "app_local_note": {
-    "message": "可選。不登入也能完整使用 —— 採集和複習都在本機，登入只是為了同步到別的裝置。"
-  },
   "app_signout": {
     "message": "登出"
   },
@@ -1700,15 +1697,6 @@
   },
   "app_ext_open_safari": {
     "message": "在 Safari 裡打開擴充功能 →"
-  },
-  "app_so_review_title": {
-    "message": "複習本機收藏的句子"
-  },
-  "app_so_review_due": {
-    "message": "今天有 {n} 張卡片待複習"
-  },
-  "app_so_review_total": {
-    "message": "共儲存了 {n} 個句子"
   },
   "app_ext_done": {
     "message": "我已打開"
