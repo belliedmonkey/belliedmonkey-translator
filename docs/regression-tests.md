@@ -534,6 +534,26 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   判据写成「见过进度 **或** 已安装」，只有「下载失败」与「一直没动静」才是红。
 - **证据**：`XCTAttachment(.keepAlways)` 截图 → xcresult → `xcresulttool export attachments` 导出并按
   manifest 重命名为可读名，每用例一个子目录（`.local/regress-1.19.0/{onboard,deep}/<面>/shots/<用例>/`）。
+- **首页「设置」在屏外**：裸点会静默落在首页上，后面所有断言都在错页面跑（2026-09-30 真踩）——
+  任何入口点击都走同一套滑动揭示，别在助手函数里写裸 tap。
+
+### 9.0.2 测试账号与额度造态（全自助，2026-09-30 跑通；驱动件同在上面的 `.local`）
+
+- **会话铸造**：`seed-auth.js` 用 `.local/keys.md` 的 `supabase_test_refresh_token` 续期（**轮转**：新 token 写回
+  同槽位），把 `sessionFrom` 形状（`accessToken/refreshToken/expiresAt/email/userId`）写成 `mt:learnAuth`
+  （同样 UTF-16LE 直写，App 须先停）。槽位里的 token 全部失效时，可用 **service key 的管理端路径**重铸：
+  `POST /auth/v1/admin/generate_link {type:'magiclink', email}` → 拿 `email_otp` → `POST /auth/v1/verify` →
+  把返回的 refresh token 写回槽位。此后每次跑都自助，不需要验证码。
+- **额度服务端造态/回读**：`grant-state.sh show | fresh | spent <usd>`（service key 走 REST；
+  `bt_grants / bt_grant_usage / bt_events` 都可这么读）。
+- **复现「首次领取」的必要条件**：**同时** 清服务端行 **和** 客户端 `engineChosen`。只删行不够 ——
+  autoClaimGrant 的守卫是「已经配好引擎的不碰」，`engineChosen=1` 时整条领取被跳过，
+  界面停在旧状态，**看起来像「领取写坏了」**（2026-09-30 为此查了半小时）。
+- **额度卡在快速档**（`详细` 档只显示「一键配置在「快速」里 →」）；断言时先切档。
+- **`apiBaseUrl` 写空是设计**（`test/grant.test.js:72`：端点必须写空，留着上一个引擎的地址配新 key 是明文禁止的）——
+  「引擎」行据此报「还没填端点地址」不一定是缺陷，先对着测试的期望值核。
+- **观察（待裁定）**：客户端余额读的是存储里的 `grantBalance`，刷新只在 claim（领取/改回免费额度）时发生 ——
+  服务端把额度用尽后，App 的卡片可能仍显示旧余额直到下一次 claim。是设计还是显示滞后，1.19.0 回归时一并定。
 
 ### 9.1 新手引导（App OB：welcome → [signin·后端开] → firstuse → ext）
 
