@@ -395,7 +395,7 @@ extension/
 ├── learn/                  23 files — the learning layer, sync, documents, free
 │                           credit, telemetry, read-aloud (docs/learning-design.md)
 ├── onboard/ · popup/ · options/   Onboarding and settings UI
-├── styles/ · icons/ · vendor/
+├── styles/ · fonts/ · icons/ · vendor/
 └── _locales/               12 languages
 ```
 

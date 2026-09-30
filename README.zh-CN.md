@@ -346,7 +346,7 @@ extension/
 ├── learn/                  23 个文件 —— 记忆层、同步、文档翻译、免费额度、
 │                           遥测、朗读（见 docs/learning-design.md）
 ├── onboard/ · popup/ · options/   引导与设置界面
-├── styles/ · icons/ · vendor/
+├── styles/ · fonts/ · icons/ · vendor/
 └── _locales/               12 种语言
 ```
 
