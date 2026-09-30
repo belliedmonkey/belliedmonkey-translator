@@ -129,7 +129,7 @@ export function bootShell() {
     $('signin-why').textContent = t('app_signin_why',
       '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
     $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
-    $('local-note').textContent = t('app_local_note', '可选。不登录也能完整使用 —— 采集和复习都在本机，登录只是为了同步到别的设备。');
+    // local-note 已随 #532 退役（屏 1 只剩登录；那句「不登录也能完整使用」也不再成立）。
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
     $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
     $('app-pw-label').textContent = t('app_pw_label', '密码');
@@ -137,7 +137,7 @@ export function bootShell() {
     $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
-    $('gear2').textContent = t('app_settings_link', '设置');   // 未登录首页的设置入口（2026-09-17）
+    // gear2（未登录首页的设置入口）随 #532 退役：屏 1 不许有设置入口。
     // 设置页的静态文字不再在这里重画：SettingsView（PR6b）的标签由 useT 驱动，
     // PageText.setUiLang 触发它自己的重渲染 —— 首页这层 paintStatic 只管自己的文字。
     $('review').textContent = t('app_review_start', '开始复习');
@@ -411,7 +411,15 @@ export function bootShell() {
     // 就绪（或降级：识别不支持时只下朗读包）⇒ 按 step() 落到下一屏
     const sec = $('firstrun-packs');
     if (sec) sec.hidden = true;
-    if (!seen) { $('signed-out').hidden = true; $('onboard').hidden = false; }
+    if (!seen) {
+      // 引导的**第一条进场路**（#532 起是「屏 2 完成之后」；另一条是「继续设置」卡）。
+      // §3.9 的 dwell 必须在这里开始计时 —— 否则这批人的停留时长会被算成「从启动到现在」，
+      // 全落进 30+ 那一档（test/telemetry-registry.test.js 单独钉住这一处，它当场抓到了本次改动）。
+      $('signed-out').hidden = true;
+      $('onboard').hidden = false;
+      firstRunScreen = 'onboarding';
+      obShownAt = Date.now(); obLeft = false; obAt = 0; obPaint();
+    }
     else { $('signed-out').hidden = true; $('signed-in').hidden = false; }
   }
 
@@ -551,7 +559,10 @@ export function bootShell() {
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
     // 「继续设置」卡在场时也让路：它继续的那条引导最后一屏就是这件事（首页不挂两张「还差一步」）。
-    const resuming = $('ob-resume') && !$('ob-resume').hidden;
+    // （取法写成局部变量：`$('ob-resume') && !$('ob-resume').hidden` 这种短路判空虽然安全，
+    //  但 test/app-shell-dom.test.js 认不出「它在短路保护里」，会把退役 id 的直接取属性一律拦下。）
+    const resumeCard = $('ob-resume');
+    const resuming = !!resumeCard && !resumeCard.hidden;
     if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
@@ -945,7 +956,8 @@ export function bootShell() {
   }
   async function obResumeRetire() {
     obResume = null;
-    $('ob-resume').hidden = true;
+    const card = $('ob-resume');
+    if (card) card.hidden = true;   // #532 之后这张卡不在 DOM 里（同 brew：别在退役元素上无条件访问）
     try {
       await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r));
       await new Promise((r) => chrome.storage.local.remove(OB_RESUME, r));
@@ -964,26 +976,40 @@ export function bootShell() {
     obResume = { step: obResume.step, shows: (Number(obResume.shows) || 0) + 1 };
     try { await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: obResume }, r)); } catch (_) {}
     const at = Math.max(0, OB.indexOf(obResume.step));
-    $('ob-resume-title').textContent = t('ob_resume_title', '继续设置 · 还差 {n} 步').replace('{n}', String(OB.length - at));
-    $('ob-resume-body').textContent = t('ob_resume_body', '从上次停下的那一屏接着来，一两分钟就好。');
-    $('ob-resume-go').textContent = t('ob_resume_go', '从上次停下的地方继续');
-    $('ob-resume-close').setAttribute('aria-label', t('ob_resume_close', '不再提示'));
+    // 卡内文字一律**从 card 往下找**：这些 id 已不在 App 页面源码里（#532 退役），
+    // 用 `$('ob-resume-title')` 这种全局取法会让「元素没了」这件事永远看不见。
+    const put = (sel, text) => { const e = card.querySelector(sel); if (e) e.textContent = text; };
+    put('#ob-resume-title', t('ob_resume_title', '继续设置 · 还差 {n} 步').replace('{n}', String(OB.length - at)));
+    put('#ob-resume-body', t('ob_resume_body', '从上次停下的那一屏接着来，一两分钟就好。'));
+    put('#ob-resume-go', t('ob_resume_go', '从上次停下的地方继续'));
+    const closeBtn = card.querySelector('#ob-resume-close');
+    if (closeBtn) closeBtn.setAttribute('aria-label', t('ob_resume_close', '不再提示'));
     card.hidden = false;
     obResumeTrack('shown');
     paintExtBanner(extState);
     return true;
   }
-  $('ob-resume-go').addEventListener('click', () => {
-    const at = Math.max(0, OB.indexOf(obResume && obResume.step));
-    $('ob-resume').hidden = true;
-    $('signed-out').hidden = true;
-    $('signed-in').hidden = true;
-    $('onboard').hidden = false;
-    paintExtBanner(extState);
-    obShownAt = Date.now(); obLeft = false;
-    obAt = at; obPaint();
-  });
-  $('ob-resume-close').addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
+  // 「继续设置」卡随 #532 退役（屏 1 只剩登录，卡不再有落脚处），但这段监听留在原处 ——
+  // 于是 `$('ob-resume-go')` 为 **null** 时 `.addEventListener` 抛出，**整个壳的启动就此中断**：
+  // 2026-10-01 实测，装机后是一屏奶油色空白（样式在、内容空），console 第一行就是
+  // `Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')`。
+  // 教训与门禁：`test/app-shell-dom.test.js` 现在静态钉住「shell-model 引用的 id 必须在
+  // AppShell.jsx 里存在」—— 这七个（ob-resume 一族 / gear2 / local-note）当时一个都没被拦住，
+  // 因为套件跑在无 DOM 环境里，看不见「元素没了但代码还在引用」。
+  if ($('ob-resume-go') && $('ob-resume-close')) {
+    const resumeGo = $('ob-resume-go');
+    const resumeClose = $('ob-resume-close');
+    resumeGo.addEventListener('click', () => {
+      const at = Math.max(0, OB.indexOf(obResume && obResume.step));
+      $('signed-out').hidden = true;
+      $('signed-in').hidden = true;
+      $('onboard').hidden = false;
+      paintExtBanner(extState);
+      obShownAt = Date.now(); obLeft = false;
+      obAt = at; obPaint();
+    });
+    resumeClose.addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
+  }
 
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
@@ -1732,7 +1758,8 @@ export function bootShell() {
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); } else obFinish();
   });
   $('gear').addEventListener('click', openSettings);
-  $('gear2').addEventListener('click', openSettings);
+  // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
+  // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
   $('settings-back').addEventListener('click', closeSettings);
   // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
   // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
@@ -1971,20 +1998,13 @@ export function bootShell() {
         onboardIntent = (o && o.onboardIntent) || '';
       } catch (_) {}
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
+      // 首屏三段式（#532）：全新安装的第一屏是**屏 1（登录）**，不再是引导 ——
+      // 引导要等「登录 + 两个设备包就绪」之后（`firstrun.step()` 说 'onboarding' 才进）。
+      // 这里只做预读；显隐交给下面的 show() → paintFirstRun()。
       const obState = await new Promise((r) => chrome.storage.local.get([OB_SEEN, OB_RESUME], r)).catch(() => null);
       const seen = !obState || !!obState[OB_SEEN];
       obResume = (!seen && obState && obState[OB_RESUME] && typeof obState[OB_RESUME] === 'object') ? obState[OB_RESUME] : null;
-      // 跳过过的人回来：不重弹整条引导（被跳过的东西再挡一次路是打扰），首页出「继续设置」卡。
-      if (!session && !seen && !obResume) {
-        $('signed-out').hidden = true;
-        $('signed-in').hidden = true;
-        $('onboard').hidden = false;
-        extBannerPrimed = true;
-        paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
-        obShownAt = Date.now(); obLeft = false;
-        obAt = 0; obPaint();
-        return;
-      }
+      void seen;
       await show(session);
       if (obResume) await paintObResume(session);
       extBannerPrimed = true;

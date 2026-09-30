@@ -169,6 +169,18 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'paintExtBanner 没有在首屏让位（未登录 / 屏 2 期间）—— 首屏会被那张横幅占满');
   });
 
+  test('R2b · 出场顺序：冷启动先进屏 1（登录），引导不许抢在前面', () => {
+    // 2026-10-01 Release 实测抓到：全新安装出来的是**引导欢迎屏**，不是屏 1 ——
+    // 启动路径里有一段「首次运行且未登录 ⇒ 直接显示 #onboard 并 return」的老捷径。
+    // R2 只查了「段存在 / 屏 2 无跳过 / 屏 3 有跳过」，**没查顺序**，所以它漏了
+    // （与 R1 漏掉横幅同一类：判据不够宽）。这条钉住顺序本身。
+    const model = read('src/app/shell-model.js');
+    ok(!/if \(!session && !seen && !obResume\)/.test(model),
+      '启动路径里还有「首次运行未登录 ⇒ 直接显示引导」的老捷径 —— 屏 3 会抢在屏 1 前面');
+    ok(/firstRunScreen = 'onboarding'/.test(model),
+      '没有一处把 firstRunScreen 置成 onboarding —— 引导的出场没有经过第一屏判定');
+  });
+
   test('R6 · 每屏至多一个填色按钮', () => {
     for (const [id, seg] of [['signed-out', signedOut], ['firstrun-packs', packs]]) {
       if (!seg) continue;

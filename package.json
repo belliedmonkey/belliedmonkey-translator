@@ -11,6 +11,7 @@
     "build": "node build.js",
     "clean": "rm -rf dist belliedmonkeytranslator.zip",
     "verify:ios": "node scripts/verify-ios-bundle.js",
+    "verify:app-fresh": "node scripts/check-app-freshness.js",
     "verify:sim-audio": "node scripts/verify-sim-audio.js",
     "test:idb": "node scripts/verify-idb-upgrade.js",
     "app:sync": "node scripts/sync-app-assets.js",
