@@ -187,9 +187,10 @@ var SubtitleAdapter = (() => {
       return ov;
     }
     function lineCss(fp, color) {
+      const PAL = window.MT_PALETTE;
       return 'display:inline-block;max-width:100%;box-sizing:border-box;' +
         `color:${color};font-size:${fp}px;line-height:1.3;` +
-        'padding:2px 10px;background:rgba(8,8,8,0.82);border-radius:3px;' +
+        `padding:2px 10px;background:${PAL.overlayRowBg};border-radius:${PAL.overlayChipRadius};` +
         'text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;' +
         'text-shadow:1px 1px 2px rgba(0,0,0,0.85);';
     }
@@ -210,18 +211,18 @@ var SubtitleAdapter = (() => {
       const zhEl = ov.querySelector('.' + ID.trans);
       const fp = spec.fontPx();
       if (displayMode === 'trans' || !en) { enEl.style.display = 'none'; enEl.textContent = ''; }
-      else { enEl.style.cssText = lineCss(fp, '#fff'); enEl.textContent = en; }
+      else { enEl.style.cssText = lineCss(fp, window.MT_PALETTE.overlayEnText); enEl.textContent = en; }
       zhEl.onclick = null;
       if (displayMode === 'orig') { zhEl.style.display = 'none'; zhEl.textContent = ''; }
       else if (zh) { zhEl.style.cssText = lineCss(Math.round(fp * 0.95), settings.ytTextColor || window.MT_PALETTE.ytTextColor); zhEl.textContent = zh; }
       else if (state === 'error') {
-        zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#ffb3b3') + 'pointer-events:auto;cursor:pointer;';
+        zhEl.style.cssText = lineCss(Math.round(fp * 0.85), window.MT_PALETTE.overlayFailText) + 'pointer-events:auto;cursor:pointer;';
         // 停机（额度用完 / key 被拒）时重试没有意义 —— 这一行说停机那句，点了去设置页。
         const halt = haltCode ? TranslationCore.haltMessage(haltCode) : '';
         zhEl.textContent = halt || TranslationCore.MSG.error;
         zhEl.onclick = halt ? openHaltSettings : () => { engine.retry(sentence); lastShownKey = ''; };
       } else if (state === 'pending') {
-        zhEl.style.cssText = lineCss(Math.round(fp * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
+        zhEl.style.cssText = lineCss(Math.round(fp * 0.85), window.MT_PALETTE.overlayPendingText) + 'opacity:.85;font-style:italic;';
         zhEl.textContent = TranslationCore.MSG.preparing;
       } else { zhEl.style.display = 'none'; zhEl.textContent = ''; }
     }
@@ -239,7 +240,7 @@ var SubtitleAdapter = (() => {
       if (key === lastNoticeKey && zhEl.style.display !== 'none') return;
       lastNoticeKey = key;
       zhEl.onclick = null;
-      zhEl.style.cssText = lineCss(Math.round(spec.fontPx() * 0.85), '#d6d6d6') + 'opacity:.85;font-style:italic;';
+      zhEl.style.cssText = lineCss(Math.round(spec.fontPx() * 0.85), window.MT_PALETTE.overlayPendingText) + 'opacity:.85;font-style:italic;';
       zhEl.textContent = msg;
       if (action) {
         const btn = document.createElement('button');
@@ -248,7 +249,7 @@ var SubtitleAdapter = (() => {
         btn.textContent = action.label;
         // The podcast overlay is pointer-events:none so it never blocks the page; the
         // button is the one thing inside it that must be tappable.
-        btn.style.cssText = 'pointer-events:auto;margin-left:10px;padding:2px 10px;border-radius:12px;border:0;' +
+        btn.style.cssText = 'pointer-events:auto;margin-left:10px;padding:2px 10px;border-radius:' + window.MT_PALETTE.overlayControlRadius + ';border:0;' +
           'font:inherit;font-style:normal;cursor:pointer;' + window.MT_PALETTE.roundBtnCss(Math.round(spec.fontPx() * 0.8));
         btn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); action.onClick(); });
         zhEl.appendChild(btn);

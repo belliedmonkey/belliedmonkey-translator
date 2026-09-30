@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 设计审计报告</title>
+<meta name="description" content="对 mobiletranslator 全量设计面的交互与视觉问题审计：每条结论附源码证据锚点、严重度与修复方向。">
+<link rel="stylesheet" href="report.css">
+<style>
+  /* 本文件内联的少量版式：只服务于「基线附录」这一节，报告骨架仍由 report.css 负责。 */
+  .keep { min-width: 0; }
+  .nowrap { white-space: nowrap; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+
+  .panel { border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .panel > h3 {
+    margin: 0; padding: 11px 14px; font-size: 12px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--ink-3); background: var(--well); border-bottom: 1px solid var(--line); font-weight: 700;
+  }
+  .sw { display: flex; align-items: center; gap: 11px; padding: 9px 14px; border-top: 1px solid var(--line-soft); }
+  .sw:first-of-type { border-top: 0; }
+  .sw i {
+    width: 26px; height: 26px; border-radius: 6px; flex: none;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.14);
+  }
+  .sw .nm { font: 500 12.5px/1.4 var(--mono); color: var(--ink); }
+  .sw .vv { font: 400 12px/1.4 var(--mono); color: var(--ink-3); }
+  .sw .role { font-size: 12px; color: var(--ink-3); margin-left: auto; text-align: right; }
+  .sw .pair { display: flex; gap: 5px; flex: none; }
+  .sw .pair i { width: 17px; height: 17px; }
+
+  .kv { font-size: 13.5px; }
+  .kv dt { font: 500 12.5px/1.5 var(--mono); color: var(--accent); margin-top: 10px; }
+  .kv dd { margin: 1px 0 0; color: var(--ink-2); }
+
+  .callout {
+    border-left: 3px solid var(--p1); background: var(--p1-bg);
+    padding: 13px 16px; border-radius: 0 var(--r) var(--r) 0; font-size: 13.5px; margin: 0 0 18px;
+  }
+  .callout strong { color: var(--ink); }
+
+  .legend { display: grid; gap: 9px; }
+  .legend div { display: grid; grid-template-columns: 118px 1fr; gap: 12px; align-items: baseline; font-size: 13.5px; }
+  .legend p { margin: 0; color: var(--ink-2); }
+
+  /* 引导因果链流程图：竖向排布，窄屏不缩字号，宽屏与文字说明并排。 */
+  .flow { display: grid; gap: 20px; min-width: 0; }
+  @media (min-width: 920px) { .flow { grid-template-columns: minmax(0, 348px) minmax(0, 1fr); align-items: start; } }
+  .flowside { display: grid; gap: 20px; min-width: 0; }
+  .flowfig { margin: 0; }
+  .flowfig figcaption {
+    font: 500 12.5px/1.5 var(--mono); color: var(--ink-3);
+    padding-bottom: 9px; margin-bottom: 12px; border-bottom: 1px solid var(--line);
+  }
+  .flowfig svg { display: block; width: 100%; height: auto; }
+
+  .fn { fill: var(--well); stroke: var(--line); stroke-width: 1; }
+  .fn-bad { stroke: var(--p0); }
+  .fn-ghost { fill: var(--bg); stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
+  .fa { stroke: var(--ink-3); stroke-width: 1.4; fill: none; }
+  .fa-loop { stroke: var(--p0); stroke-width: 1.3; fill: none; stroke-dasharray: 5 4; }
+  .ft { font: 650 13.5px/1 var(--sans); fill: var(--ink); }
+  .fl { font: 400 11.5px/1 var(--sans); fill: var(--ink-2); }
+  .fm { font: 600 10.5px/1 var(--mono); fill: var(--p0); }
+  .fh { font: 650 12.5px/1 var(--sans); fill: var(--ink-2); }
+  .fb { font: 700 12.5px/1 var(--mono); fill: var(--p0); }
+  .fbc { fill: var(--p0-bg); stroke: var(--p0); stroke-width: 1; }
+  #ah path { fill: var(--ink-3); }
+  #ah-loop path { fill: var(--p0); }
+
+  .loc { display: block; margin-top: 4px; font: 500 11.5px/1.4 var(--mono); color: var(--ink-3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>大肚猴翻译 · 设计审计报告</h1>
+    <p class="sub">
+      对 <strong>设计系统 / 扩展三页 / 页内注入层 / App 壳</strong> 四个面的全量梳理。
+      每条结论都锚定到可复核的源码位置，并给出严重度与修复方向。本报告不修改任何产品代码。
+    </p>
+    <div class="meta">
+      <span>审计对象 mobiletranslator</span>
+      <span>只读 · 未改动产品代码</span>
+      <span>28 条结论 · 117 处源码锚点</span>
+      <span>5 个面 · 1 条引导因果链</span>
+      <span>2026-09-29</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="tally">
+      <div class="p0"><b id="t-p0">–</b><span>P0 · 先修</span></div>
+      <div class="p1"><b id="t-p1">–</b><span>P1 · 该修</span></div>
+      <div class="p2"><b id="t-p2">–</b><span>P2 · 可排期</span></div>
+      <div class="pos"><b id="t-pos">–</b><span>正面样本</span></div>
+    </div>
+
+    <h2>判级口径</h2>
+    <p class="lede">严重度按「影响范围 × 修复成本」定，不按发现顺序。同一根因在不同面的表现合并成一条，不重复计数。</p>
+    <div class="legend">
+      <div>
+        <span class="sev" data-s="P0">P0 · 先修</span>
+        <p>用户跨面能直接看到的不一致，或让某类用户无法完成任务的缺陷。这三条都集中在<strong>页内注入层</strong>与<strong>键盘可达性</strong>。</p>
+      </div>
+      <div>
+        <span class="sev" data-s="P1">P1 · 该修</span>
+        <p>系统性问题：一个缺失的 token 层或一条缺失的基线，会在每次新增界面时继续放大。修的是源头，不是症状。</p>
+      </div>
+      <div>
+        <span class="sev" data-s="P2">P2 · 可排期</span>
+        <p>局部不一致与遗留债。单点可见、影响面收敛，适合搭车清理。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>引导专项 · iOS App 新手引导到底乱不乱</h2>
+    <p class="lede">乱，而且不是文案或排版的问题 —— 是引导在 iOS 上<b>结构性地无法闭环</b>。下面四步是它的因果链，另有五条是入口层面的放大。</p>
+
+    <div class="callout">
+      <strong>一句话答案：</strong>iOS 上 App 读不到 Safari 扩展的启用状态（<code>app/app.js:601</code> 代码自述）。
+      于是引导的最后一屏只能把人送出 App，点一下就当场标记「已完成」并删掉续做记录，
+      人回来时横幅又用<b>同一份文案和同一组插图</b>把这句话再说一遍。
+      用户照做的每一步都在加深困惑，因为照做本身不会被承认为「做对了」。
+    </div>
+
+    <div class="flow">
+      <figure class="flowfig">
+        <figcaption>iOS 上的引导收敛失败 · 一个不可判定的状态被当成可推进的步骤</figcaption>
+        <svg viewBox="0 0 348 764" role="img" aria-labelledby="fc-t fc-d" xmlns="http://www.w3.org/2000/svg">
+          <title id="fc-t">iOS 新手引导的四步因果链</title>
+          <desc id="fc-d">进入 welcome、firstuse、ext 三屏之后：第一步判不了，iOS 读不到 Safari 扩展的启用状态；第二步送出去，ext 屏隐藏「继续」，唯一按钮打开系统浏览器，人真的离开 App；第三步假完成，同一个按钮调用 obFinish，写入 OB_SEEN 并删除 OB_RESUME；第四步再说一遍，退场即调用 paintExtBanner，横幅复用 iosSteps 的文案与插图。随后进入一个循环：iOS 上 state.enabled 不可信，横幅几乎必然回来，用户被反复要求做同一件事，且不会被承认为做对了。三个出口都不构成闭环。</desc>
+
+          <defs>
+            <marker id="ah" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" />
+            </marker>
+            <marker id="ah-loop" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+              <path d="M0,0 L8,4 L0,8 Z" />
+            </marker>
+          </defs>
+
+          <rect class="fn" x="8" y="0" width="304" height="44" rx="22" />
+          <text class="fh" x="160" y="27" text-anchor="middle">进入引导 · welcome → firstuse → ext</text>
+
+          <path class="fa" d="M160 48 V70" marker-end="url(#ah)" />
+
+          <rect class="fn fn-bad" x="8" y="74" width="304" height="84" rx="10" />
+          <circle class="fbc" cx="30" cy="98" r="14" />
+          <text class="fb" x="30" y="102" text-anchor="middle">1</text>
+          <text class="ft" x="54" y="102">判不了</text>
+          <text class="fl" x="54" y="123">iOS 读不到 Safari 扩展的启用状态</text>
+          <text class="fl" x="54" y="141">app/app.js:601 · 代码自述此限制</text>
+
+          <path class="fa" d="M160 162 V184" marker-end="url(#ah)" />
+
+          <rect class="fn fn-bad" x="8" y="188" width="304" height="84" rx="10" />
+          <circle class="fbc" cx="30" cy="212" r="14" />
+          <text class="fb" x="30" y="216" text-anchor="middle">2</text>
+          <text class="ft" x="54" y="216">送出去</text>
+          <text class="fl" x="54" y="237">ext 屏藏了「继续」，唯一按钮</text>
+          <text class="fl" x="54" y="255">开系统浏览器，人真的离开 App</text>
+          <text class="fm" x="304" y="255" text-anchor="end">无回路</text>
+
+          <path class="fa" d="M160 276 V298" marker-end="url(#ah)" />
+
+          <rect class="fn fn-bad" x="8" y="302" width="304" height="102" rx="10" />
+          <circle class="fbc" cx="30" cy="325" r="14" />
+          <text class="fb" x="30" y="329" text-anchor="middle">3</text>
+          <text class="ft" x="54" y="329">假完成</text>
+          <text class="fl" x="54" y="348">点一下就调 obFinish()：</text>
+          <text class="fl" x="54" y="367">· 写 OB_SEEN = 1（标记完成）</text>
+          <text class="fl" x="54" y="386">· 删 OB_RESUME（续做入口消失）</text>
+          <text class="fm" x="304" y="386" text-anchor="end">无确认</text>
+
+          <path class="fa" d="M160 408 V430" marker-end="url(#ah)" />
+
+          <rect class="fn fn-bad" x="8" y="434" width="304" height="102" rx="10" />
+          <circle class="fbc" cx="30" cy="457" r="14" />
+          <text class="fb" x="30" y="461" text-anchor="middle">4</text>
+          <text class="ft" x="54" y="461">再说一遍</text>
+          <text class="fl" x="54" y="480">退场即调 paintExtBanner()：</text>
+          <text class="fl" x="54" y="499">· 横幅与引导屏共用 iosSteps()</text>
+          <text class="fl" x="54" y="518">· 文案 + 插图一字不差</text>
+          <text class="fm" x="304" y="518" text-anchor="end">无收敛</text>
+
+          <path class="fa" d="M160 540 V562" marker-end="url(#ah)" />
+
+          <rect class="fn-ghost" x="8" y="566" width="304" height="72" rx="10" />
+          <text class="fl" x="20" y="594">↺ iOS 上 state.enabled 不可信，横幅</text>
+          <text class="fl" x="20" y="613">几乎必然回来，用户被反复要求做同</text>
+          <text class="fl" x="20" y="631">一件事，且不会被承认为「做对了」</text>
+
+          <path class="fa-loop" d="M312 602 H330 V230 H316" marker-end="url(#ah-loop)" />
+
+          <path class="fa" d="M160 642 V664" marker-end="url(#ah)" />
+
+          <rect class="fn-ghost" x="8" y="668" width="304" height="88" rx="10" />
+          <text class="ft" x="20" y="695">三个出口，都不构成闭环</text>
+          <text class="fl" x="20" y="714">· 「我已打开」可能不实</text>
+          <text class="fl" x="20" y="732">· 检测页绿灯是唯一真实答案</text>
+          <text class="fl" x="20" y="750">· 但它只是横幅里的一句链接</text>
+        </svg>
+      </figure>
+
+      <div class="flowside">
+        <div class="panel">
+          <h3>四个环节与证据</h3>
+          <dl class="kv">
+            <dt>1 · 判不了</dt>
+            <dd>App 的 <code>state.enabled</code> 在 iOS 上不可信，代码里直接写明「真正能确认的只有检测页」。
+              <span class="loc">app/app.js:601</span></dd>
+            <dt>2 · 送出去</dt>
+            <dd>ext 屏在 iOS 上隐藏 <code>ob-next</code>，唯一动作是 <code>openExternal()</code>，人真的离开 App。
+              <span class="loc">app/app.js:604 · :435-441</span></dd>
+            <dt>3 · 假完成</dt>
+            <dd>同一个按钮无参调用 <code>obFinish()</code>，写 <code>OB_SEEN=1</code> 并删 <code>OB_RESUME</code>。
+              <span class="loc">app/app.js:1500-1508 · :721-733</span></dd>
+            <dt>4 · 再说一遍</dt>
+            <dd><code>obFinish()</code> 内部调 <code>paintExtBanner()</code>，横幅复用 <code>iosSteps()</code> 的文案与插图。
+              <span class="loc">app/app.js:732 · :361-377</span></dd>
+          </dl>
+        </div>
+
+        <div class="panel">
+          <h3>两种引导范式并存</h3>
+          <dl class="kv">
+            <dt>App 引导 · 定长脚本</dt>
+            <dd><code>['welcome'] + [signin] + ['firstuse','ext']</code>，线性无分支，不看现状 —— 假设用户什么都没配</dd>
+            <dt>扩展引导 · 活状态驱动</dt>
+            <dd><code>['welcome','engine','try']</code>，engine 屏有 grant / key 分叉，<code>forkLanded</code> 订阅真实到账</dd>
+            <dt>后果</dt>
+            <dd>同一产品两套引导心智。App 侧那条恰恰是 iOS 体验崩掉的起点 —— 已配好的用户也被照演一遍</dd>
+            <dt>另有一处反向</dt>
+            <dd>「我只要网页翻译」的落点是 <code>ext</code> 屏：语义上推辞，落点上却把人送去手工开扩展的死胡同</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>面目录</h2>
+    <p class="lede">点击进入对应面并自动筛选。问题最密集的是<strong>新手引导</strong>与<strong>页内注入层</strong> —— 前者是结构性的，后者是治理覆盖不到的。</p>
+    <nav class="surfaces" id="surfaces"></nav>
+  </section>
+
+  <section>
+    <h2>结论</h2>
+    <p class="lede">按严重度、类别或面筛选；点开任意一条查看源码锚点与修复方向。</p>
+
+    <div class="filters" role="group" aria-label="筛选结论">
+      <span class="lab">严重度</span>
+      <button class="chip" type="button" data-group="sev" data-val="all" aria-pressed="true">全部</button>
+      <button class="chip" type="button" data-group="sev" data-val="P0" aria-pressed="false">P0</button>
+      <button class="chip" type="button" data-group="sev" data-val="P1" aria-pressed="false">P1</button>
+      <button class="chip" type="button" data-group="sev" data-val="P2" aria-pressed="false">P2</button>
+      <button class="chip" type="button" data-group="sev" data-val="POS" aria-pressed="false">正面样本</button>
+
+      <span class="lab" style="margin-left:8px">类别</span>
+      <button class="chip" type="button" data-group="kind" data-val="all" aria-pressed="true">全部</button>
+      <button class="chip" type="button" data-group="kind" data-val="visual" aria-pressed="false">视觉</button>
+      <button class="chip" type="button" data-group="kind" data-val="interaction" aria-pressed="false">交互</button>
+
+      <span class="count" id="count"></span>
+    </div>
+
+    <div id="list"></div>
+  </section>
+
+  <section>
+    <h2>设计基线 · Organic 色板</h2>
+    <p class="lede">
+      以下是产品的<strong>真实</strong>品牌色值，直接取自 <code>extension/styles/organic-tokens.gen.css</code> 与
+      <code>build/palette.config.js</code>。它们是本次审计判断「一致 / 不一致」的参照物，不是推荐色。
+    </p>
+
+    <div class="callout">
+      <strong>注意这组色值本身有两套，不要混用。</strong>
+      设计系统 demo（<code>design/_ds/organic-…/styles.css</code>）用的是奶油底
+      <code>#f5ead8</code> 与陶土 <code>#c67139</code>；而产品实际注入的生成 token 是暖白底
+      <code>#faf5ed</code> 与 <code>#ac6231</code>。后者带 WCAG 测试钉住，是产品真源；
+      前者只活在设计稿里。<strong>这正是 DS-01 的根因</strong>——设计系统与实现各说各话。
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <h3>生成 token · 浅色（产品真源）</h3>
+        <div class="sw"><i style="background:#faf5ed"></i><div class="keep"><div class="nm">--bg</div><div class="vv">#faf5ed</div></div><span class="role">页面底</span></div>
+        <div class="sw"><i style="background:#ffffff"></i><div class="keep"><div class="nm">--card-bg</div><div class="vv">#ffffff</div></div><span class="role">卡片</span></div>
+        <div class="sw"><i style="background:#1c1917"></i><div class="keep"><div class="nm">--fg</div><div class="vv">#1c1917</div></div><span class="role">正文</span></div>
+        <div class="sw"><i style="background:#6a6255"></i><div class="keep"><div class="nm">--text-secondary</div><div class="vv">#6a6255</div></div><span class="role">次要文字</span></div>
+        <div class="sw"><i style="background:#ac6231"></i><div class="keep"><div class="nm">--accent</div><div class="vv">#ac6231</div></div><span class="role">主色 / 主按钮</span></div>
+        <div class="sw"><i style="background:#8c491a"></i><div class="keep"><div class="nm">--accent-deep</div><div class="vv">#8c491a</div></div><span class="role">强调数字 / 深态</span></div>
+        <div class="sw"><i style="background:#56633f"></i><div class="keep"><div class="nm">--sage-strong</div><div class="vv">#56633f</div></div><span class="role">译文 / 强调</span></div>
+        <div class="sw"><i style="background:#e7dfd4"></i><div class="keep"><div class="nm">--border</div><div class="vv">#e7dfd4</div></div><span class="role">描边</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>生成 token · 暗色（同一注册表派生）</h3>
+        <div class="sw"><i style="background:#0f172a"></i><div class="keep"><div class="nm">--bg</div><div class="vv">#0f172a</div></div><span class="role">页面底</span></div>
+        <div class="sw"><i style="background:#1e293b"></i><div class="keep"><div class="nm">--card-bg</div><div class="vv">#1e293b</div></div><span class="role">卡片</span></div>
+        <div class="sw"><i style="background:#f9fafb"></i><div class="keep"><div class="nm">--fg</div><div class="vv">#f9fafb</div></div><span class="role">正文</span></div>
+        <div class="sw"><i style="background:#9ca3af"></i><div class="keep"><div class="nm">--text-secondary</div><div class="vv">#9ca3af</div></div><span class="role">次要文字</span></div>
+        <div class="sw"><i style="background:#f6a06b"></i><div class="keep"><div class="nm">--accent</div><div class="vv">#f6a06b</div></div><span class="role">主色 / 主按钮</span></div>
+        <div class="sw"><i style="background:#aebf92"></i><div class="keep"><div class="nm">--sage-strong</div><div class="vv">#aebf92</div></div><span class="role">译文 / 强调</span></div>
+        <div class="sw"><i style="background:#374151"></i><div class="keep"><div class="nm">--border</div><div class="vv">#374151</div></div><span class="role">描边</span></div>
+        <div class="sw"><i style="background:transparent;box-shadow:inset 0 0 0 1px var(--p0)"></i><div class="keep"><div class="nm">— 覆盖缺口 —</div><div class="vv">review.css / floating-button.css</div></div><span class="role" style="color:var(--p0)">无暗色分支</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>设计基线 · 现状与缺口</h2>
+    <div class="grid2">
+      <div class="panel">
+        <h3>排版现状（实测）</h3>
+        <dl class="kv">
+          <dt>基准字号 · 4 套</dt>
+          <dd>弹窗 14px ／ 设置页 15px ／ 复习页 15px ／ App 壳 16px</dd>
+          <dt>font-size 取值 · 36 个</dt>
+          <dd>跨四个面统计。rem 与 px 混写同一名义尺寸：12px / 0.75rem / 0.78rem≈12.5px</dd>
+          <dt>展示字体落地 · 0 处</dt>
+          <dd>Caprasimo 与 Figtree 只存在于设计系统 demo，四个实现文件全部使用系统字体栈</dd>
+          <dt>胶囊圆角 · 21 处</dt>
+          <dd>主语言，但同时散落 2 / 3 / 6 / 10 / 12 / 14 / 16px</dd>
+          <dt>间距节奏 · 3 套</dt>
+          <dd>12/14/16/18/22/24 并存，无共同基线；内容宽度 640px 与 680px 也不一致</dd>
+        </dl>
+      </div>
+
+      <div class="panel">
+        <h3>治理覆盖面（这是问题集中出现的原因）</h3>
+        <dl class="kv">
+          <dt>已覆盖 · 颜色注册表</dt>
+          <dd>颜色唯一真源；build.js 的 legacyBrandGate 拒收未注册 hex</dd>
+          <dt>已覆盖 · WCAG 比值</dt>
+          <dd>test/palette-contrast.test.js 钉住，走 token 的路不会不达标</dd>
+          <dt>已覆盖 · 链接色</dt>
+          <dd>单一来源 --link，并记下了默认蓝在深色卡上只有 1.56:1 那次事故</dd>
+          <dt>未覆盖 · JS 内联样式</dt>
+          <dd>字幕叠层、历史面板、译按钮菜单的色值与圆角写在 cssText 里</dd>
+          <dt>未覆盖 · 焦点态</dt>
+          <dd>全站仅 1 处 focus-visible，设计系统里本来有这条基线</dd>
+          <dt>未覆盖 · 暗色覆盖</dt>
+          <dd>handoff 已记「Organic 暗色未提供」，两个文件至今没有补</dd>
+          <dt>未覆盖 · 触控目标</dt>
+          <dd>全站仅 1 处 44px 规则，没有全局下限</dd>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>如果只做四件事</h2>
+    <div class="grid2">
+      <div class="panel">
+        <h3>1 · 让 iOS 引导能闭环</h3>
+        <p style="padding:14px;font-size:13.5px;margin:0;color:var(--ink-2)">
+          把官网检测页做成引导的<strong>最后一屏本身</strong>，而不是横幅里的一句链接。
+          用户看到绿灯才算走完。这一条关掉 ONB-01 / 02 / 03 三条 P0 ——
+          它们是同一条因果链的三个环节。
+        </p>
+      </div>
+      <div class="panel">
+        <h3>2 · 让注入层进入门禁</h3>
+        <p style="padding:14px;font-size:13.5px;margin:0;color:var(--ink-2)">
+          抽 <code>overlay.css</code>，色值改从 <code>palette.gen.js</code> 取。
+          同时关掉 OVL-01、OVL-02、OVL-03，而且<strong>不需要新建任何机制</strong> ——
+          现有对比度测试会自动接管这一层。
+        </p>
+      </div>
+      <div class="panel">
+        <h3>3 · 定 type scale</h3>
+        <p style="padding:14px;font-size:13.5px;margin:0;color:var(--ink-2)">
+          一个基准字号 + 五档字号 token，四个文件统一引用。
+          同时关掉 DS-01、DS-02、DS-03、POP-02、APP-02 五条 ——
+          投入产出比最高的一次改动。
+        </p>
+      </div>
+      <div class="panel">
+        <h3>4 · 抄回焦点态基线</h3>
+        <p style="padding:14px;font-size:13.5px;margin:0;color:var(--ink-2)">
+          设计系统里已经有 <code>:focus-visible</code> 这条规则，实现层没抄。
+          四个文件共用一条，再给隐藏的 checkbox 补代理焦点环。
+          改动量最小，收益最直接。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>审计范围</strong>：mobiletranslator 全量设计面 —— <code>design/_ds/</code>、<code>build/palette.config.js</code>、<code>extension/</code>（popup / options / learn / onboard / content / styles）、<code>app/</code>（含 15 个 Swift 原生桥）、<code>src/pages/</code>、<code>docs/interaction-spec.md</code>、<code>design/handoff.md</code>。</p>
+    <p><strong>关于 iOS</strong>：<code>safari-project/</code> 的 <code>project.pbxproj</code> 同时含 <code>SDKROOT = iphoneos</code> 与 <code>SDKROOT = macosx</code>，<code>build-safari.sh</code> 接受 <code>platform: ios | macos</code>；两个平台共用同一份 <code>app/index.html</code> 与 <code>app/app.js</code>。因此引导专项里的平台不对称是真实存在的代码路径差异，不是推测。</p>
+    <p><strong>证据口径</strong>：每条结论均锚定 <code>file:line</code> 或仓库内既有文档条款。已存在的治理机制（颜色注册表、WCAG 测试、链接色单一来源）不作为缺陷记入。运行时状态与视觉渲染未在本次范围内，相关项标注为「待运行验证」，未以推测替代观测。</p>
+    <p><strong>未做的事</strong>：未修改任何产品代码，未做渲染回归，未在真机或模拟器上跑引导，未验证检测页的实际交互。</p>
+  </footer>
+
+</div>
+
+<script src="findings.js"></script>
+<script src="report.js"></script>
+</body>
+</html>

@@ -133,6 +133,26 @@ learning-design §9.6 门控 2026-09-17 修订）。商店描述、官网功能�
 （learning-design §12 2026-09-17 否决记录）。判据：`asc.js versions` 读回的 `minimumOsVersion` 仍是 16.4 / 13.3，
 且描述里两项功能旁有那句。
 
+### 发布说明要带齐历史版本 —— **先生成、后提交**（2026-09-30 踩中）
+
+`CHANGELOG.md` 与官网 `changelog.html` 都由 `node scripts/gen-changelog.js` 从
+`store-assets/release-notes-*.md` 生成（发布说明是唯一真源）。而**发布说明只活在各自的
+release 分支上**（main 不带它们）——于是从 main 切出的新 release 分支里缺少上两版：
+
+- **症状**：生成出来的 CHANGELOG / 官网页从本版**直接跳到上上版**（2026-09-30 那条是
+  1.19.0 → 1.16.0），等于把 1.17.0/1.18.0 从公开页面**删掉**。生成器写站点那份时的 diff
+  是「14 增 44 删」，差点就这么推上去。
+- **做法**（沿用 1.18.0 分支当年的先例）：把缺的说明从各自 release 分支 checkout 进本树
+  ——`git checkout origin/release/<上两版> -- store-assets/release-notes-<版本>*.md` ——
+  再生成。
+- **顺序**：**先生成、后提交**。生成器的日期取「该说明**首次进本树**的提交日」；先提交
+  再跑，会给历史上本来没有日期的版本补上今天的日期（线上对 1.17.0/1.18.0 就没有日期），
+  那是一次没必要的页面改动。
+- **判据**：`grep -n '^## ' CHANGELOG.md | head -5` 里本版下面**紧邻**上一版，中间不跳号；
+  `node scripts/gen-changelog.js --check` 绿。
+- **站点那半**：生成器会顺手写 `~/belliedmonkey-cc/changelog.html`；**只在发版那刻随版
+  提交推送**（跨仓同版义务），平时保持工作区干净。
+
 ## 4. Issue 与 PR
 
 AGENTS.md 要求每个改动一个 issue。**修复合并进 `main` 之后才关闭 issue**——分支上就关，

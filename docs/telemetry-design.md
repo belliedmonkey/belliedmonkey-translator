@@ -583,6 +583,10 @@ edge function neither stores nor logs them as a field).
 「以后再设置」降成文字链、加「两步，约 30 秒」）**已经选定**。**先补这两条，再改交互** ——
 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。与 §3.6 当日写下的是同一句话。
 
+> **2026-09-30 补记（#528）**：上面那句「两步，约 30 秒」的**时长承诺已去掉**（12 语种改成
+> 「两步就好」一类）。原因：点了「我只要网页翻译」之后的 ext 屏要人**离开 App、去手工点 Safari
+> 设置**，「约 30 秒」与事实不符（设计审计 `ONB-04` 抓到的就是这一点）。出口本身维持 #493 不变。
+
 ### 3.10 2026-09-24 amendment（**同日用户评审通过并已落地**）：复习的判据从「刷完」换成「有没有回来」
 
 **读数（2026-09-24 回读）**：`review_session` **全历史零行** —— 不是 14 天窗口里少，是这个事件
@@ -781,6 +785,34 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
 `build/telemetry.config.js`（取值、送出点、新事件）+ 生成物 → **先部署 `bt-ingest` 并回读它接受 `seen` / `requested` /
 `app_nudge`** → 代码 PR（`feedback.js` 门槛与冷却、`content-webpage.js` 两种行与 `seen`、App 各时刻接线、
 `interaction-spec.md` §评分提示同提交改写）。
+
+### 3.13 2026-09-30 amendment（**提案，待用户评审**）：`ext_banner` 的两条平台缺口 —— macOS 的曝光与一键直达都没被量到
+
+> **状态**：提案。评审通过后按 §3.6 / §3.12 同一套顺序落地 —— ② 不改白名单，可与 ③ 一起走一个 PR；
+> ③ 加枚举值 ⇒ **先改注册表与生成物、重部署 `bt-ingest` 并回读它接受 `prefs`**，再改代码。
+
+**起因**（ext-banner 画布 `design/ext-banner/` 板 E-Measure / Telemetry）：画布共列四个埋点缺口，
+两个已落地（① 检测页那一侧改用官网 Vercel Web Analytics、**不与 `bt_events` join**，§3.7 B 第 2 节；
+④ 「打开检测页」那一行与主按钮分开计 —— 该行 2026-09-27 已从 UI 淘汰，`check` 只收老客户端的行，§3.7 B 第 1 节）。
+**剩下两个都在 macOS**：
+
+| # | 缺口 | 现在的形状 | 补上之后能回答 |
+|---|---|---|---|
+| ② | `ext_banner{shown}` **只在 iOS 发** | `src/app/shell-model.js` `paintExtBanner()` 里写的是 `if (ios && extBannerPrimed)`；而 `ios` 的定义是「拿不到扩展真实状态」（`!canOpenPrefs && !known`）⇒ macOS 一条不发 | Mac 那边（装机 54）的横幅到底有多少**曝光** —— 今天的 0 不是「没人看到」，是「没发」 |
+| ③ | macOS 的**一键直达按钮不记** | `ext-banner-act`（文案「打开 Safari 扩展设置」→ `openSafariPrefs`）的 listener 只有接线、没有 `extBannerTrack()` | Mac 上「一键直达 Safari 扩展设置」这条路**有没有人走** |
+
+**提案**：
+
+- **② 不新增取值、不新增字段**：把 `if (ios && extBannerPrimed)` 里的 `ios &&` 去掉，让 `shown` 在两个平台
+  都按 `tm:extBannerDay` 每装机每本地日至多一条。随之改变的是**这一条事件的含义**（从「iOS 横幅曝光」变成
+  「横幅曝光 · 两平台」）—— 所以 §3 表那一行要在落地 PR 里同时写明（§3.11 B 的教训：**字段的含义必须写在表上**）。
+  **历史数据只能按「只有 iOS」读，与改后不可直接比较。**
+- **③ 加一个取值 `prefs`**（`ext_banner.action: shown | setup | done | check | prefs`），只有 `ext-banner-act` 发它。
+  **不复用 `setup`**：两者是不同的动作 —— `setup` = 去检测页，且**一次动作即写 `extBannerDoneAt`**（「问过就不再问」，#485）；
+  `prefs` = 打开 macOS 的 Safari 扩展设置，**不写这个键**。合并会让「问过多少人」与「走的是哪条路」重新搅在一起
+  —— 与 §3.7 B 把 `check` 从 `setup` 拆出来是同一条理由。
+
+**边界与隐私**：两条都只发枚举值 —— 不带内容、不带页面地址、不带系统版本、不加字段；中国版照旧一条不发（规则 4）。
 
 ## 4. Transport
 

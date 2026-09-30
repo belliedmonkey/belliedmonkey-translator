@@ -478,17 +478,19 @@ function legacyBrandGate(dir, label, extraSrcDirs) {
 
   // Membership pin for the files that MUST keep literal brand hexes (page-injected
   // CSS and the mascot can't read a JS registry; the page stylesheets keep only
-  // registry-known hexes): every 6-digit hex they use has to be a value the
-  // registry knows, so a registry recolour turns this gate red instead of
-  // letting those files silently keep the old brand.
+  // registry-known hexes). 2026-09-30（审计 OVL-01）：**页内注入层也进名单** ——
+  // 字幕叠层与控制菜单原先整片漏过门禁（`#ffb3b3` / `#d6d6d6` / `#4caf50` 就是这么
+  // 躲过 registry 的）；它们现在读 `window.MT_PALETTE`，这里只用来钉住「不许再冒出
+  // 未登记的 hex」。rgba() 字面量仍不受门禁约束（阴影等合法用法太多），改色搜注册表。
+  const pinned = ['styles/floating-button.css', 'styles/bilingual.css', 'icons/icon.svg',
+    'options/options.html', 'popup/popup.css', 'options/options.css', 'learn/review.css',
+    'content/subtitle-adapter.js', 'content/sub-menu.bundle.js',
+    'background.js'].filter((f) => fs.existsSync(path.join(dir, f)));
   const known = new Set(
     [...Object.values(P.ramps), ...Object.values(P.runtime), ...Object.values(P.migration)]
       .filter((v) => typeof v === 'string' && v.startsWith('#'))
       .map((v) => v.toLowerCase()));
   ['#ffffff', '#000000'].forEach((n) => known.add(n));
-  const pinned = ['styles/floating-button.css', 'styles/bilingual.css', 'icons/icon.svg',
-    'options/options.html', 'popup/popup.css', 'options/options.css', 'learn/review.css',
-    'background.js'].filter((f) => fs.existsSync(path.join(dir, f)));
   const drift = [];
   for (const f of pinned) {
     const text = fs.readFileSync(path.join(dir, f), 'utf8').toLowerCase();

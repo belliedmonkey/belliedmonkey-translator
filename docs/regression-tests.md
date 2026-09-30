@@ -501,7 +501,8 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 > （storage / `AppListen._debug().lat` / 桥事件 `tts-start` / `assets-progress`）；遥测走
 > `bt_events` SQL（flush：terminate+activate 后等几分钟）。**[H]** = 只能人做（输密码、人耳听声）。
 > **双 flavor**：两台模拟器各装一版（§2.0 一机一版）；标注「intl-only / cn-only」的除外，
-> 中国版的判据见各项尾注（chips 无 google/openai/claude、无额度话术、遥测零发送 Gate D）。
+> 中国版的判据见各项尾注（chips 无 google/openai/claude、额度位置放的是**阿里云官方**那张卡而不是
+> 我们那张、遥测零发送 Gate D）。
 > 声源一律用播放代替真人（§0.3：Mac `afplay` conv 语料 / 外放英语视频）。
 
 ### 9.0 前置（每次开跑前）
@@ -536,6 +537,24 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   manifest 重命名为可读名，每用例一个子目录（`.local/regress-1.19.0/{onboard,deep}/<面>/shots/<用例>/`）。
 - **首页「设置」在屏外**：裸点会静默落在首页上，后面所有断言都在错页面跑（2026-09-30 真踩）——
   任何入口点击都走同一套滑动揭示，别在助手函数里写裸 tap。
+
+- **OTP 登录可以全自助**（2026-09-30 跑通 D1/D2/D5/D6）：`generate_link {type:'magiclink', email}`
+  返回的 `email_otp` 就是 App 那条路要的码 —— **App 的 verify 用 `type:'email'`，正好接受它**
+  （用 `type:'magiclink'` 验会被 403）。三条纪律：①**必须在 App 的「发送验证码」之后铸**（后落的
+  token 才有效，先铸会被 App 那次发送顶掉）；②输码前必须先清空字段（WebKit 不会自己清，追加会变成
+  `000000<otp>`）；③service key 走 `TEST_RUNNER_OB_*` 环境变量透传（**不进 argv**，别写进命令行）。
+- **字段/按钮的定位两招**：`<label for>` 会映射成输入框的无障碍 label ⇒ **按标签找字段**比
+  `textFields.firstMatch` 稳（后者会命中屏外的旧字段）；同文案的按钮（验证键与登录链接都叫「登录」）
+  用**几何位置**消歧 —— 但键盘会推走布局，**点之前先收键盘**（点页面空白处），否则「字段下 40pt」
+  会落到键盘上（2026-09-30 三次失败都出在这）。
+- **「未覆盖语言回落具名」怎么确定性触发**（2026-09-30 跑通 D40）：设置页「试听一句」固定说 **en**，
+  而离线模型表里 en 是覆盖语言 ⇒ 正常永远走不到回落分支。壳把**已装包**里那一条的
+  `lang: 'en', dir: 'piper-en'` 改成 `lang: 'xx'`（包仍是「已安装」⇒ 引擎 ready，只是不再覆盖 en）
+  ⇒ 试听必然走回落，行上出现「…用系统语音」（`tts_test_ok_fallback`）。跑完把包还原。
+  复习页的 ▶ 与播客模式**不**印这句（只有设置页与听译行会具名）—— 要验那两处得按库序/到期把卡摆好。
+- **`-only-testing` 指向不存在的用例会「静默通过」**：xcodebuild 退出 0、xcresult 里
+  `result: unknown`、0 个用例 —— 驱动脚本必须回读 `passedTests`（>0 才算过了），否则「测试没跑」
+  会被读成「通过」（2026-09-30 真踩，D5 第一次就是这么「过」的）。
 
 ### 9.0.2 测试账号与额度造态（全自助，2026-09-30 跑通；驱动件同在上面的 `.local`）
 
@@ -595,7 +614,14 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   「改回免费额度」先出确认框再覆盖。
 - [ ] **用额度真翻一句。** **Expected:** `translate_ok{provider:grant}` ≥1；`translate_fail{grant,timeout}`
   = 0（1.18.0 timeout 熔断不误触发，#475 回归）。
-- [ ] **cn 无此路。** 设置页无额度卡、无额度话术，翻译路只有自带 key。
+- [ ] **cn 的额度是「阿里云官方免费额度」那张卡，不是我们这张。**（2026-09-30 更正：先前这里写成
+  「cn 无此路」，把「没有**我们的**中继额度」误读成「没有额度」——仓库的权威口径一直是官方卡，
+  见 `test/grant.test.js`「中国版那个位置放的是官方免费额度卡」与 `scripts/verify-onboard.js`
+  的「官方免费额度三步卡在、链接是真地址、没有登录字样」。）
+  **Expected:** 快速档出现「先领一份官方免费额度」+「去开通 ↗」+ 三步（注册并打开控制台 → 领免费额度
+  → 把 API Key 粘到下面一键配好三槽）；**不出现**我们的卡（「领取」/余额行 `$x / $0.20`/
+  「改回免费额度」）；粘上百炼 key 后三槽配好、`engine_test` 走通；全程遥测零行（Gate D）。
+  登录本身照常（境内后端）。
 
 ### 9.4 对话 · 实时听译（§9.6）
 

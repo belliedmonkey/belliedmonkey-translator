@@ -23,9 +23,18 @@
 
 ## 2. 形态与字体
 
-- 圆角：容器 16–28px，按钮/输入框一律胶囊 `border-radius: 999px`；打分按钮 16–18px。
+- 圆角三档（2026-09-30，审计 OVL-02 收口）：**指示性小元件 8px** · **卡片与面板 16px** ·
+  **可交互控件与输入框一律胶囊 999px**。页内注入层原先自成一档（字幕行 3px、控制菜单
+  面板 10px、行内按钮 12px），已并入这三档。
+- 页内注入层的颜色（字幕叠层 · 字幕控制菜单）登记在 `build/palette.config.js` 的
+  `overlay*` 一组、运行时读 `window.MT_PALETTE`；这两个文件已进 palette 门禁的 pinned
+  名单（审计 OVL-01：它们原先整片漏过门禁）。
 - 图标：Lucide，`stroke-width: 2.75`。
 - 展示字体 Caprasimo（仅拉丁，CJK 自动回落系统字体，效果即设计稿所示）、正文 Figtree；扩展端不引入外部字体也可接受——形象靠图形不靠字体。
+  **（2026-09-30 DS-01 落地，`#528`）**：两个家族都引进了扩展页 ——
+  `extension/styles/typography.css` + `extension/fonts/`，都只带拉丁子集，Figtree 用可变字重
+  （一份文件覆盖 400–700）；变量名取设计稿的 `--font-heading` / `--font-body`。展示字只给
+  `h1/h2/h3`（onboarding 的 `ob-title`、设置页四节、弹窗与复习页的标题都在这条上）。
 - 禁用态：45% 不透明度（原 0.45/0.55 统一为 0.45）。
 
 ## 3. 图标 icon.svg（替换 extension/icons/icon.svg，重新导出全部 png）

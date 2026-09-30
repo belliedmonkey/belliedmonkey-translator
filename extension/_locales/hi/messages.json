@@ -3506,7 +3506,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "दो चरण, लगभग 30 सेकंड"
+    "message": "बस दो चरण"
   },
   "ob_web_only": {
     "message": "मुझे सिर्फ़ वेब पेज अनुवाद चाहिए"

@@ -71,6 +71,27 @@ const runtime = {
   chipOn: ramps.sage700,           // sources-view language chip on-state（白字压在上面 6.5:1；
                                    // sage600 只有 4.2:1，2026-09-06 深浅色核查）
   chipOnHover: 'rgba(114,129,87,.08)',
+  // ── 页内注入层（OVL-01/02，2026-09-30 审计 #524）─────────────────────────
+  // 字幕叠层 / 字幕控制菜单这两个注入界面的颜色原先写死在 content/subtitle-adapter.js
+  // 与 src/content/sub-menu.jsx 里 —— palette 门禁的 pinned 名单只管页面 CSS，注入层
+  // 整片漏过去（审计 OVL-01：「palette 门禁管不到」）。登记到注册表后这两个文件也进了
+  // pinned 名单（build.js legacyBrandGate）。
+  // 注意：pinned 只校验六位 hex，rgba() 登记在这里但不受门禁约束 —— 改色要搜注册表。
+  overlayEnText: '#ffffff',             // 原文行
+  overlayFailText: '#ffb3b3',           // 行内失败态
+  overlayPendingText: '#d6d6d6',        // 占位 / 待重试 / 半句
+  overlayRowBg: 'rgba(8,8,8,0.82)',     // 叠层行底
+  overlayMenuBg: 'rgba(28,28,28,.97)',  // 字幕控制菜单面板
+  overlayMenuText: '#eeeeee',
+  overlayMenuDim: '#9a9a9a',            // 菜单表头
+  overlayMenuSep: 'rgba(255,255,255,.12)',
+  overlayMenuHover: 'rgba(255,255,255,.1)',
+  overlayTick: ramps.sage600,           // 勾选 / 已开启（原 Material 绿 #4caf50，OVL-03）
+  // 圆角三档（design/handoff.md §2）：指示性小元件 8 / 卡片与面板 16 / 控件胶囊。
+  // OVL-02：注入层原先的 3 / 10 / 12px 是第四套语言。
+  overlayChipRadius: '8px',
+  overlayPanelRadius: '16px',
+  overlayControlRadius: '999px',
 };
 
 // ── The shared CSS token sheet ─────────────────────────────────────────────
@@ -130,6 +151,12 @@ function tokensCss() {
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   }
 }
+
+/* 基础 UI 基线（POP-01，2026-09-30）：键盘焦点在四个面是同一条 —— 扩展三页各自
+   link 这份 sheet，App 壳由 build/app-bundle.js 把它 prepend 进 Style.css。
+   放在 token 之后、页面样式之前：页面自己的 :focus 规则（options / review / app
+   各有）在后，仍然覆盖它。 */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 `;
 }
 

@@ -3673,7 +3673,7 @@
     "description": "App settings: confirmation after restoring the banner"
   },
   "ob_welcome_hint": {
-    "message": "두 단계, 약 30초"
+    "message": "두 단계면 끝"
   },
   "ob_web_only": {
     "message": "웹페이지 번역만 쓰고 싶어요"
