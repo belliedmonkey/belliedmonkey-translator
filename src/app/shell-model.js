@@ -267,6 +267,10 @@ export function bootShell() {
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
   }
+  // 本次会话里领取失败过没有（真机反馈 ① 的真因，2026-10-01）：删号之后旧会话还在，claim 会 401
+  // ⇒ 一槽都没写 ⇒ 而状态行只会说「翻译引擎未配置」✗ —— 那句话把用户指向设置页，而那里救不了他。
+  // 记住失败之后，状态行改说「额度没领到 / 已停用」并给一条**重领**的路（判据 J07：缺失项要有恢复路径）。
+  let claimFailed = false;
   async function autoClaimOnce() {
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
     // 2026-09-30（§8.10.3，issue #513）：这里原来有一道守卫
@@ -280,7 +284,13 @@ export function bootShell() {
     // 幂等），余额因此每次登录刷新 —— 「用尽后卡片显示旧余额」随之消失。
     // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；那一刻的回执就是引导下一屏
     // 「就地试一句」本身（真的翻一句，比三行「通了」更像证据）。
-    await settingsModel.claimAndApply({ overwrite: false, selfTest: false });
+    try {
+      await settingsModel.claimAndApply({ overwrite: false, selfTest: false });
+      claimFailed = false;
+    } catch (e) {
+      claimFailed = true;          // 交给状态行去说人话；错误本身仍然由 autoClaimGrant 的 catch 吞掉
+      throw e;
+    }
   }
   const readObSettings = () => new Promise((r) => {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
@@ -351,6 +361,20 @@ export function bootShell() {
     txt.textContent = t('engine_status_missing', '还差一样：');
     if (!chip) return;
     chip.hidden = false;
+    // 翻译缺项有两种成因，界面必须分开说（真机反馈 ①）：
+    //   · 领取失败（删号 / 额度停用 / 网络）⇒ 说「没领到」并给**重领**（点一下真的再领一次）；
+    //   · 本来就没配 ⇒ 说「去设置里选一个」。
+    if (miss === 'translate' && claimFailed) {
+      chip.textContent = t('grant_err_revoked',
+        '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+      chip.setAttribute('aria-label', t('grant_signin_again', '重新登录'));
+      chip.onclick = async () => {
+        _autoClaimed = null;                       // 清掉「本次会话只领一次」的记忆 ⇒ 允许重领
+        try { await autoClaimGrant(); } catch (_) {}
+        try { await paintEngineStatus(); } catch (_) {}
+      };
+      return;
+    }
     chip.textContent = miss === 'tts'
       ? t('engine_status_fix_tts', '朗读引擎未配置，前往 设置 › 朗读 选择语音')
       : t('engine_status_fix_translate', '翻译引擎未配置，前往 设置 › 引擎 选一个');

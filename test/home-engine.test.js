@@ -68,6 +68,16 @@ describe('登录后的引擎就位（真机反馈 ①，2026-10-01）', () => {
       'App 没有把朗读补成设备内置 —— 中国版登录后仍是「未配置」');
   });
 
+  test('★ 领取失败时，状态行必须说「没领到」并给一条重领的路（不许只说「未配置」）', () => {
+    const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
+    ok(/claimFailed = true/.test(model), '领取失败没有被记住 —— 界面无从区分「没领到」与「没配」');
+    const fn = model.slice(model.indexOf('async function paintEngineStatus'));
+    ok(/miss === 'translate' && claimFailed/.test(fn.slice(0, 2000)),
+      '状态行没有把「领取失败」这一支分出来 —— 真机上它会说「翻译引擎未配置」，把人指向救不了他的设置页');
+    ok(/_autoClaimed = null/.test(fn.slice(0, 2200)),
+      '缺项不可重领 —— 判据 J07 要求缺失项带恢复路径');
+  });
+
   test('★ App 侧：登录汇合点必须补上朗读引擎（设备内置），且状态行的「未配置」分支只在那之后才可能为真', () => {
     const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
     ok(/ensureDeviceTts\(\)/.test(model), 'show() 里没有补朗读引擎那一步 —— 真机上就会显示「未配置」');
