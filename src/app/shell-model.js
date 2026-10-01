@@ -316,15 +316,22 @@ export function bootShell() {
   }
 
   // 探两个包。缺桥 / 探不通一律当「没就绪」，不去猜 —— 猜错会让硬门形同虚设。
+  // 首屏三段式的两个设备包 = **设备引擎**那一套（`device` / 本地识别）。
+  // 2026-10-01 裁定（用户）：「只要是 App 里用实时字幕/听译的都需要这个设备引擎」⇒ **必选**。
+  // 所以探与下都**钉在设备引擎上**，不看当前默认选的是哪个引擎 —— 否则「登录即领额度」把 TTS
+  // 引擎写成 `grant_speech` 之后，`deviceStatus(s.ttsEngine)` 会判 `not_device`、
+  // `ensureDeviceReady` 以 skipped 返回（额度引擎本来就没有设备包要下），而硬门却仍要求设备包
+  // ⇒ 屏 2 永远过不去（实测探针：`id="grant_speech" device=false reason=not_device`）。
+  const DEVICE_TTS_ENGINE = 'device';
+
   async function probePacks() {
     const s = await readObSettings();
     if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
       try {
         LearnTTS.configure(Object.assign({}, LearnTTS.config, {
-          engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
-          model: s.ttsModel || '', voice: s.ttsVoice || '',
+          engineId: DEVICE_TTS_ENGINE, apiKey: '', baseUrl: '', model: '', voice: '',
         }));
-        const st = await LearnTTS.deviceStatus(s.ttsEngine || '');
+        const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE);
         packTtsReady = !!(st && st.ready);
       } catch (_) { packTtsReady = false; }
     } else { packTtsReady = false; }
@@ -398,17 +405,11 @@ export function bootShell() {
     if (err) err.hidden = true;
     try {
       const s = await readObSettings();
-      // 朗读包：与复习 ▶ / 播客 / 对话 / 设置试听**同一个**入口（learning-design §9.1.1）
+      // 朗读包：与复习 ▶ / 播客 / 对话 / 设置试听**同一个**入口（learning-design §9.1.1）。
+      // 引擎**钉在设备引擎上**（同 probePacks 的理由：这两个包是 App 的必备件，与当前默认
+      // 选的是哪个引擎无关）。设置页与听译两处也是显式传引擎的。
       if (!packTtsReady && typeof LearnTTS !== 'undefined' && LearnTTS.ensureDeviceReady) {
-        LearnTTS.configure(Object.assign({}, LearnTTS.config, {
-          engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
-          model: s.ttsModel || '', voice: s.ttsVoice || '',
-        }));
-        // **把引擎显式传进去**（设置页与听译两处都传 `$('tts-engine').value` / opts）：只靠
-        // 上面那次 configure 的话，一旦它没生效，`deviceStatus()` 判 `device=false`，
-        // `ensureDeviceReady` 就以 `{ok:true, skipped:true}` **立刻返回** —— 看着像「成功了」，
-        // 其实一个字节都没下（2026-10-01 实测：屏 2 卡在下一步、容器里没有 mt-speech）。
-        const r = await LearnTTS.ensureDeviceReady(() => {}, s.ttsEngine || '');
+        const r = await LearnTTS.ensureDeviceReady(() => {}, DEVICE_TTS_ENGINE);
         // **返回值必须看**。设置页那条链一直是 `if (!r.ok) … '离线模型下载失败'`（settings-view），
         // 我这条以前把返回值丢了 ⇒「没下成」是**静默**的：容器里没有 mt-speech、屏上一句话也没有，
         // 然后还接着去走下一条（2026-10-01 实测就是这么把 15 分钟的挂住追出来的）。

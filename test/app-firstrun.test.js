@@ -161,6 +161,13 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'ensureDeviceReady 的返回值没接住 —— 失败会静默');
     ok(/mtTtsFailed/.test(model) && /tts_pack_failed/.test(model),
       'ensureDeviceReady 返回 ok:false 时没有具名失败（该用设置页同一条 tts_pack_failed）');
+    // ④ 两个设备包按**设备引擎**探与下（2026-10-01 裁定：实时字幕/听译要用它 ⇒ 必选），
+    //    不看当前默认选的是哪个引擎 —— 否则「登录即领额度」把 TTS 引擎写成 grant_speech 之后，
+    //    deviceStatus 判 not_device、下载 skipped，而硬门仍要求设备包 ⇒ 屏 2 永远过不去。
+    ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
+      'probePacks 没把探测钉在设备引擎上 —— 额度到账后设备包会被判「不适用」，硬门永远过不去');
+    ok(/ensureDeviceReady\(\(\) => \{\}, DEVICE_TTS_ENGINE\)/.test(model),
+      '下载没钉在设备引擎上 —— 额度引擎下 ensureDeviceReady 会以 skipped 返回，一个字节都不下');
   });
 
   test('R3c · 降级只开一个口（该语种不支持识别 ⇒ 只下朗读包）', () => {
