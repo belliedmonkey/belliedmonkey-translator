@@ -409,7 +409,20 @@ export function bootShell() {
       // 引擎**钉在设备引擎上**（同 probePacks 的理由：这两个包是 App 的必备件，与当前默认
       // 选的是哪个引擎无关）。设置页与听译两处也是显式传引擎的。
       if (!packTtsReady && typeof LearnTTS !== 'undefined' && LearnTTS.ensureDeviceReady) {
-        const r = await LearnTTS.ensureDeviceReady(() => {}, DEVICE_TTS_ENGINE);
+        // 进度要画在**这一行**上（与设置页同一个做法）：包现在是硬门，而默认地址（global 走
+        // GitHub）在国内可能先失败再换备用 —— 那几分钟不能只是一句「正在下载…」。
+        const onProg = (m) => {
+          const el = $('pack-tts-state');
+          if (!el) return;
+          if (m && m.state === 'switching') {
+            el.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…');
+            return;
+          }
+          const pct = Math.round((Number(m && m.fraction) || 0) * 100);
+          el.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%')
+            .replace('{lang}', (m && m.locale) || '').replace('{pct}', String(pct));
+        };
+        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE);
         // **返回值必须看**。设置页那条链一直是 `if (!r.ok) … '离线模型下载失败'`（settings-view），
         // 我这条以前把返回值丢了 ⇒「没下成」是**静默**的：容器里没有 mt-speech、屏上一句话也没有，
         // 然后还接着去走下一条（2026-10-01 实测就是这么把 15 分钟的挂住追出来的）。

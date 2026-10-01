@@ -36,6 +36,12 @@ insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) val
    '中国版：默认魔搭 ModelScope（真机 18.7 MB/s），备用 hf-mirror（≈580 KB/s）')
 on conflict (kind, flavor, path) do nothing;
 
+-- 2026-10-01（#532）：**国际版那两行不在这里** —— 它们在东京库里是当年直接用 SQL 建的。
+--   今天把它们的 `url_alt` 从 huggingface.co 换成了 hf-mirror.com（同一个 zip、同一个 sha256）：
+--   包在 1.19.0 起是**首启硬门**，而国内实测 GitHub 拉不动（HEAD 超时 / 下载停在 1%），
+--   备用若也不可达 ⇒ 屏 2 过不去、App 用不了（以前只是朗读降级）。改法见上：换一行 url。
+
+
 -- 回读断言：别拿「没报错」当成功。
 do $$ begin
   if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 2 then

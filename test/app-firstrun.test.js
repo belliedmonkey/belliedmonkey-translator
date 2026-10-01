@@ -149,7 +149,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     //  ② 系统语音包 NativeSpeech.ensureAssets('stt') 只等原生事件、**没有上限** ⇒ 系统那边
     //     不回来就永远挂住（模拟器下不完系统识别包）。
     const model = stripComments(read('src/app/shell-model.js'));
-    ok(/ensureDeviceReady\(\s*\(\)\s*=>\s*\{\}\s*,/.test(model),
+    ok(/ensureDeviceReady\(\s*onProg\s*,\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
       'ensureDeviceReady 没显式传引擎 —— 设置页与听译都传，只靠 configure() 会让它 skipped 返回');
     const i = model.indexOf("ensureAssets('stt'");
     ok(i > -1, "shell-model.js 里找不到 NativeSpeech.ensureAssets('stt'");
@@ -166,8 +166,9 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     //    deviceStatus 判 not_device、下载 skipped，而硬门仍要求设备包 ⇒ 屏 2 永远过不去。
     ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
       'probePacks 没把探测钉在设备引擎上 —— 额度到账后设备包会被判「不适用」，硬门永远过不去');
-    ok(/ensureDeviceReady\(\(\) => \{\}, DEVICE_TTS_ENGINE\)/.test(model),
-      '下载没钉在设备引擎上 —— 额度引擎下 ensureDeviceReady 会以 skipped 返回，一个字节都不下');
+    // ⑤ 进度要画在那一行上（硬门 + 国内先失败再换备用 ⇒ 那几分钟不能静默）
+    ok(/tts_pack_downloading/.test(model) && /tts_pack_fallback/.test(model),
+      '朗读包下载没把进度/换地址画到行上 —— 硬门下用户只能看着「正在下载…」等');
   });
 
   test('R3c · 降级只开一个口（该语种不支持识别 ⇒ 只下朗读包）', () => {
