@@ -25,6 +25,14 @@
 		root * /srv
 		file_server
 	}
+	# PostgREST 也要从内部可达（2026-10-01 补）：免费额度的两个函数（bt-grant / bt-grant-ledger）
+	# 跑在 compose 里，它们的 `SUPABASE_URL` 指的就是这个内部入口，然后打 `/rest/v1/rpc/bt_grant_*`。
+	# 没有这一块时它们拿到的是下面那句 `respond 404`（**空体 404**，看起来像「函数没实现」）——
+	# 2026-10-01 实装时就是这么卡住的：外部路径 `https://<域名>/rest/v1/rpc/...` 是 200，
+	# 而容器里同样的调用是 404，差别只在这一块。
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
 	respond 404
 }
 

@@ -144,6 +144,15 @@ revoke all on function public.bt_grant_check(text) from public, anon, authentica
 revoke all on function public.bt_grant_charge(text, text, text, numeric, int) from public, anon, authenticated;
 revoke all on function public.bt_grant_stats() from public, anon, authenticated;
 
+-- ⚠️ 撤了 PUBLIC 就必须**显式**授给 service_role —— PostgREST 以 authenticator 进来、按 JWT
+-- 切到 service_role，而 EXECUTE 的默认来源正是 PUBLIC。2026-10-01 实装时漏了这四行，症状是
+-- `403 {"code":"42501","message":"permission denied for function bt_grant_check"}`，
+-- 而中继那头表现为 500 server（它把账本的失败统一收成 500）。
+grant execute on function public.bt_grant_claim(uuid, text, text, text, numeric, int) to service_role;
+grant execute on function public.bt_grant_check(text) to service_role;
+grant execute on function public.bt_grant_charge(text, text, text, numeric, int) to service_role;
+grant execute on function public.bt_grant_stats() to service_role;
+
 -- 流水 90 天保留（额度本身与账号同寿，删号 cascade 带走）。
 -- 境内这台没有 pg_cron ⇒ 用宿主机 crontab 跑同一句（与东京等价）：
 --   37 3 * * *  psql "$DATABASE_URL" -c "delete from public.bt_grant_usage where at < now() - interval '90 days'"

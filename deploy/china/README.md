@@ -196,3 +196,20 @@ curl -s -X POST https://api.belliedmonkey.com/functions/v1/bt-grant-ledger/check
 ```
 
 `LEDGER_KEY` 的**同一个值**还要填进云函数（中继）的环境变量 —— 两边必须逐字相同。
+
+### 2026-10-01 实装时踩到的五处（都已在上面写好，这里只记症状，便于对照）
+
+1. **`bt-grant` / `bt-grant-ledger` 的目录被 Docker 建成了空的**：bind mount 的源不存在时
+   Docker 会**自动建一个空目录**再挂上去，症状是容器日志里 `Module not found "file:///app/index.ts"`
+   循环刷。判据：`wc -c /opt/bt/supabase/functions/bt-grant/index.ts` 有值。
+2. **直接用 psql 建了函数，PostgREST 不知道**：症状是 RPC 404（`/rest/v1/rpc/bt_grant_check`），
+   重启 `rest` 容器后变 200。用 SQL 改过 schema 就 `docker compose restart rest`。
+3. **撤了 PUBLIC 的 EXECUTE 就要显式授 `service_role`**：症状是
+   `403 {"code":"42501","message":"permission denied for function bt_grant_check"}`，
+   而中继那头统一收成 `500 {"error":"server"}`。见 `grants.sql` 末尾那四行 `grant execute`。
+4. **内部入口 `:8081` 原来只挂了 `/auth/v1/*`**：额度两个函数的 `SUPABASE_URL` 指的就是它，
+   打 `/rest/v1/rpc/*` 会拿到那句 `respond 404`（**空体 404**，看起来像「函数没实现」）。
+   已补 `handle_path /rest/v1/*`。
+5. **腾讯云 API 网关触发器已停止售卖**（`FailedOperation.LimitingResourceCreated`）：
+   老的 `Type: apigw` 建不出来，公网访问要走**函数 URL**（`CreateTrigger --Type http`，
+   与触发器共用接口）。中继地址因此形如 `https://<app-id>-<url-id>.<region>.tencentscf.com`。

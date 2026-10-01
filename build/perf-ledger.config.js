@@ -833,4 +833,19 @@ module.exports = [
     verdict: 'rejected',
     why: '走 /audio/transcriptions。英文很好（3.6s 音频 $0.00026，约 $0.26/小时，比 whisper 便宜）且 verbose_json 带 segments。**但非英语上不可用**，三种参数各坏一种：不带 language ⇒ 中文回 **HTTP 200 而 text 为空**（静默失败，最坏的一种）；`language=zh` ⇒ 正确；`language=multi` ⇒ 中文变成乱码「你好、我情めいじゃ、甚tien tien chi hen buzón」，中英混说的音频里**整段中文被丢掉**只留英文；`detect_language=true` ⇒ 仍然空。而字幕那条路（asr-source.js:359）**故意不发 language** —— 媒体的语言无从得知，那是设计裁定不是疏漏。所以钉它等于让所有非英语媒体静默无字幕。同一段音频 openai/whisper-1 不带任何参数就把中英三段全部转对。⇒ 免费额度的转写档保持 openai/gpt-4o-mini-transcribe。',
   },
+  {
+    // 中国版免费额度的中继（腾讯云 Web 函数，ap-beijing）。2026-10-01 上线当天量过：
+    // 从北京那台机器上 /spec 五次 0.07–0.16 s、/claim 0.28 s、窄口一跳 0.085 s。
+    // verdict=reachable 的意思就是这一行：**打通了、量了耗时，参数层一次都没扫过**。
+    // 真正发出去的模型是 qwen-plus，参数结论在 dashscope 那一行，不在这里重复。
+    host: '1320551096-0kh88p4r7e.ap-beijing.tencentscf.com', model: 'qwen-plus', date: '2026-10-01',
+    baseline: { ms: 100, thinkTokens: null, outChars: 0, finish: 'stop' },
+    tried: [
+      { params: {}, ms: 100, thinkTokens: null, outChars: 0,
+        note: '只量了控制面（/spec、/claim、账本一跳），没有发过翻译请求 —— 那是 dashscope 那一行的事' },
+    ],
+    verdict: 'reachable',
+    why: '中国版额度的境内中继；额度翻转（grant.china.ready）依赖它。延迟从境内量（判据 <1 s）。'
+      + '**参数层面一次都没扫过** —— 它转发的是 qwen-plus，参数结论在 dashscope 那一行',
+  },
 ];

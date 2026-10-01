@@ -158,7 +158,7 @@ var MT_BACKEND = {
     // 在境内手机网络下回读通过（首选腾讯云云函数的默认地址，不绑域名就不涉及备案）、出境单独同意已随版上线（#399）。
     // **只有翻译这一槽**：百炼没有与中继同形状的朗读 / 转写接口，中国版额度不含那两槽。
     // 披露文案里的 {vendor} 不在这里写：取注册表 qwen 条目的中国区 label（build.js chinaGrant）。
-    china: { ready: false, relayUrl: '', vendor: 'dashscope' },
+    china: { ready: true, relayUrl: 'https://1320551096-0kh88p4r7e.ap-beijing.tencentscf.com', vendor: 'dashscope' },
   },
 };
 
