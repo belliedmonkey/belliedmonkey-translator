@@ -58,8 +58,8 @@ Node 18+ 自带 fetch / Request / Response / FormData，缺的只有那两个入
 scp supabase/functions/bt-relay/index.ts relay:/opt/bt-relay/index.ts
 
 # /opt/bt-relay/relay.env（权限 600）
-SUPABASE_URL=<境内后端地址>                            # **账本与账号同库**（2026-09-22 裁定）：指境内那台，不是东京
-LEDGER_URL=<境内后端地址>/functions/v1/bt-grant-ledger  # 境内那份窄口（deploy/china/grants.sql 建的表）
+SUPABASE_URL=https://api.belliedmonkey.com            # **账本与账号同库**（2026-09-22 裁定）：境内那台（#405），不是东京
+LEDGER_URL=https://api.belliedmonkey.com/functions/v1/bt-grant-ledger  # 境内那份窄口（deploy/china/grants.sql 建的表）
 LEDGER_KEY=<境内后端的 LEDGER_KEY>                      # **不放 service_role**，见下
 UPSTREAM=dashscope
 UPSTREAM_KEY=<百炼 key>
