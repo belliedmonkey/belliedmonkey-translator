@@ -327,6 +327,14 @@ export function bootShell() {
   // ⇒ 屏 2 永远过不去（实测探针：`id="grant_speech" device=false reason=not_device`）。
   const DEVICE_TTS_ENGINE = 'device';
 
+  // 登录即就位：朗读那格钉到设备内置（2026-10-01 裁定）。用户选过就不动 —— 与额度领取
+  // 「不碰用户自己的 key」同一条纪律。
+  async function ensureDeviceTts() {
+    const s = await readObSettings();
+    if (s && s.ttsEngine) return;
+    await new Promise((r) => { try { chrome.storage.local.set({ ttsEngine: 'device' }, r); } catch (_) { r(); } });
+  }
+
   async function probePacks() {
     const s = await readObSettings();
     if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
@@ -354,8 +362,7 @@ export function bootShell() {
     };
   }
 
-  async function paintFirstRun(session) {
-    const sec = $('firstrun-packs');
+  async function paintFirstRun(session) {    const sec = $('firstrun-packs');
     if (!sec) return;
     // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
     // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
@@ -509,6 +516,13 @@ export function bootShell() {
     // 就还是 false。屏序已经不靠引擎（firstrun.js 的口径），但 `isReady()` 与首页状态要看它 ——
     // 刚登进来的人否则会被读成「引擎不通」。
     if (session) { try { await autoClaimGrant(); } catch (_) { /* 领不到不挡首屏 */ } }
+    // 登录即把**朗读**引擎钉到设备内置（2026-10-01 裁定：登录完三样都该就位，这一屏直接能用）。
+    // 三样的来源各不相同，所以只有这一格要写：
+    //   · 翻译 —— 随额度到账（上面那次 claim）；
+    //   · 转写 —— 本来就是**设备内置**（注册表里那条 2026-09-17 已删 ⇒ 系统识别器是默认路）；
+    //   · 朗读 —— 空的，而屏 2 要下的离线模型正是它的（`ttsEngine='device'`）。
+    // **不覆盖用户自己的选择**（选了别的引擎就不动）。
+    if (session) { try { await ensureDeviceTts(); } catch (_) { /* 写不进去不挡首屏 */ } }
     try { await paintFirstRun(session); } catch (_) {}
     // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：

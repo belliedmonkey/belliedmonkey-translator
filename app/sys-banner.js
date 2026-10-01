@@ -30,6 +30,15 @@
   // 出不出现。每一条都答得上来「凭什么」——
   // 判不了的那一条（是不是默认）不在这里，它由用户自己点「我已设好」回答。
   async function decide(opts) {
+    // 2026-10-01 裁定（#532）：**系统翻译的设置引导只放设置页** —— 不进首页、也不进新手引导。
+    // 所以这条横幅在首页**永不出现**；设置页那一块（`settings-view.jsx` 的 `#g-systrans`）不受影响。
+    // 保留本函数是为了不惊动调用点（`paintSysBanner` 仍在各视图切换时被调，见 shell-model），
+    // 也留着 decide 的原始判据给「以后若要在别处复用」时参考。
+    if (opts) { /* 判据不再参与决定 */ }
+    return 'none';
+  }
+
+  async function decideLegacy(opts) {
     const o = opts || {};
     if (!available()) return 'none';                       // 这台设备上没有这个扩展点
     if (o.away) return 'none';                             // 别的视图开着
