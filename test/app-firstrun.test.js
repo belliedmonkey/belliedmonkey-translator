@@ -111,11 +111,35 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
     const base = { loggedIn: true, engine: true, asrPack: true, ttsPack: true, onboardingSeen: true };
     eq(FR.step({ ...base, loggedIn: false }), 'login', '未登录 ⇒ 屏 1');
-    eq(FR.step({ ...base, engine: false }), 'login', '引擎不可解析 ⇒ 回屏 1（不新造一屏）');
+    eq(FR.step({ ...base, engine: false }), 'home', '引擎可解析**不参与屏序** —— 包齐 ⇒ 首页（引擎在那里用「设置」修）');
+    eq(FR.step({ ...base, engine: false, asrPack: false }), 'packs',
+      '引擎不可解析也不许跳过屏 2 的硬门（2026-10-01 模拟器实测的死角：判到屏 1 时实际露出首页，两个包一个没下）');
     eq(FR.step({ ...base, asrPack: false }), 'packs', '缺识别包 ⇒ 屏 2');
     eq(FR.step({ ...base, ttsPack: false }), 'packs', '缺朗读包 ⇒ 屏 2');
     eq(FR.step({ ...base, onboardingSeen: false }), 'onboarding', '就绪且没看过引导 ⇒ 屏 3');
     eq(FR.step(base), 'home', '全就绪 ⇒ 直进首页');
+  });
+
+  test('R2c · 领取额度排在首屏判定之前（否则刚登录的人被读成「引擎不通」）', () => {
+    // 2026-10-01 模拟器实测：`show()` 里 paintFirstRun 排在 autoClaimGrant 之前，
+    // 额度令牌还没落地 ⇒ 引擎那格 false。屏序已经不靠引擎了（R3b），但 isReady 与首页
+    // 状态要看它 —— 所以这一句必须排在前面。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const claim = model.indexOf('await autoClaimGrant()');
+    const paint = model.indexOf('await paintFirstRun(session)');
+    ok(claim > -1, 'shell-model.js 里找不到 `await autoClaimGrant()`');
+    ok(paint > -1, 'shell-model.js 里找不到 `await paintFirstRun(session)`');
+    ok(claim < paint, 'autoClaimGrant 排在 paintFirstRun 之后 —— 额度令牌晚一步落地，首屏判定会读成「引擎不通」');
+  });
+
+  test('R1c · 屏 1 / 屏 2 在场上时，系统翻译横幅也要让位（三屏是独占的）', () => {
+    // 2026-10-01 模拟器实测：屏 2 的截图**上方**挂着 #systrans-banner（iOS「翻译」App
+    // 那三步 +「我已设好」），与屏 2 挤在同一页。R1b 只收掉了 Safari 扩展横幅，漏了这张同族的。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const i = model.indexOf('function paintSysBanner');
+    ok(i > -1, 'shell-model.js 里找不到 paintSysBanner');
+    ok(/firstRunScreen/.test(model.slice(i, i + 900)),
+      'paintSysBanner 里没有 firstRunScreen —— 屏 1/屏 2 时那张横幅会与首屏挤在同一页');
   });
 
   test('R3c · 降级只开一个口（该语种不支持识别 ⇒ 只下朗读包）', () => {

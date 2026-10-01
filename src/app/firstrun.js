@@ -32,13 +32,20 @@ export function degradeAllowed(reason) {
 
 /**
  * boot 判定（规格 §1）。顺序即优先级：
- *   未登录 或 引擎不可解析 → 'login'      （同一屏，不为引擎不可解析另造一屏）
- *   缺任一设备包            → 'packs'      （硬门；降级由屏内处理，不在这里放行）
+ *   未登录                  → 'login'      （屏 1 只有登录）
+ *   缺任一设备包            → 'packs'      （**硬门**；降级由屏内处理，不在这里放行）
  *   就绪但没看过引导        → 'onboarding' （软门，可跳过）
  *   否则                    → 'home'
+ *
+ * 引擎可解析**不参与屏序**（2026-10-01 模拟器实测改的口径）：
+ *   原来写的是「未登录 **或** 引擎不可解析 → 'login'，同一屏，不为引擎另造一屏」。实测下来
+ *   它不是「同一屏」：带着会话的人落在 'login' 时，屏 1 的登录卡不适用，实际露出来的是**首页**，
+ *   于是**屏 2 的硬门被跳过**（两个包一个都没下），而首页上也没有任何东西能用 —— 死角。
+ *   引擎仍是 `isReady()` 的输入（「配好了」的判据不放松），但它决定的是**能不能算就绪**，
+ *   不是**先看哪一屏**。引擎不通且包已就绪的人落首页，由那里的「设置」出去 —— 比卡在死角诚实。
  */
 export function step(s) {
-  if (!s.loggedIn || !s.engine) return 'login';
+  if (!s.loggedIn) return 'login';
   if (!s.asrPack || !s.ttsPack) return 'packs';
   if (!s.onboardingSeen) return 'onboarding';
   return 'home';

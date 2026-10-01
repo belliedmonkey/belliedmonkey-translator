@@ -3078,7 +3078,7 @@
     "message": "辨識語言包已就緒 · {langs}"
   },
   "listen_pack_missing": {
-    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下"
+    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下載"
   },
   "listen_pack_dl": {
     "message": "下載"

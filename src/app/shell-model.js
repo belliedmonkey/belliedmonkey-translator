@@ -368,7 +368,14 @@ export function bootShell() {
     $('pack-asr-state').textContent = packAsrReady
       ? t('firstrun_packs_done', '已就绪')
       : t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载').replace('{langs}', firstRunLocales(await readObSettings()).join(' · '));
-    $('pack-tts-state').textContent = packTtsReady ? t('firstrun_packs_done', '已就绪') : t('tts_pack_missing', '离线模型未下载 · {langs} · {size}').replace('{langs}', '').replace('{size}', '');
+    // 朗读包那行：没有 langs/size 时别留孤零零的分隔点 —— 2026-10-01 模拟器实测读到
+    // 「离线模型未下载 · · 」（两个空 replace 留下的尾巴）。
+    $('pack-tts-state').textContent = packTtsReady
+      ? t('firstrun_packs_done', '已就绪')
+      : t('tts_pack_missing', '离线模型未下载 · {langs} · {size}')
+        .replace('{langs}', '').replace('{size}', '')
+        .replace(/(\s*·\s*)+$/, '')
+        .replace(/·\s*·/g, '·');
     $('packs-net').textContent = t('firstrun_packs_net', '建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。');
     const go = $('packs-go');
     go.disabled = packsBusy;
@@ -435,20 +442,23 @@ export function bootShell() {
     $('signed-in').hidden = !session;
     // 首屏三段式（#532）：四个输入 → step()。缺任一设备包时把上面那两行覆盖掉，
     // 显示屏 2（硬门）。判定本身在 src/app/firstrun.js，这里只落屏。
-    try { await paintFirstRun(session); } catch (_) {}
+    //
+    // **领取额度排在这里、且在首屏判定之前**（2026-10-01 模拟器实测）：
     // 登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
     // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配
     // 引擎也没领额度** —— 我们让他们登了，却没顺手把额度给他们。
-    //
-    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合
-    // 点（见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必
-    // 重新登录一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，
-    // 所以重复调用是幂等的（它同时就是读余额那个调用）。
-    //
-    // 三个闸：没登录不做 · 没有额度这条路不做（中国版 MT_GRANT 恒为 null）·
-    // **已经配好引擎的不做** —— overwrite 传 false，不碰用户自己的 key。
-    // 静默失败：领不到额度不该挡住首页（grant_unavailable 等）。
-    if (session) autoClaimGrant().catch(() => {});
+    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合点
+    // （见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必重新登录
+    // 一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，重复调用幂等
+    // （它同时就是读余额那个调用）。三个闸：没登录不做 · 没有额度这条路不做（中国版
+    // MT_GRANT 恒为 null）· **已经配好引擎的不做**（overwrite 传 false，不碰用户自己的 key）。
+    // 静默失败：领不到额度不该挡住首屏。
+    // 为什么要**等**它（而不是像原来那样 `catch()` 掉不等）：额度令牌晚一步落地，引擎那格
+    // 就还是 false。屏序已经不靠引擎（firstrun.js 的口径），但 `isReady()` 与首页状态要看它 ——
+    // 刚登进来的人否则会被读成「引擎不通」。
+    if (session) { try { await autoClaimGrant(); } catch (_) { /* 领不到不挡首屏 */ } }
+    try { await paintFirstRun(session); } catch (_) {}
+    // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
     // Apple / Google / 邮箱三条路最后都到这儿，只写一处就三条都对。
     try {
@@ -645,7 +655,11 @@ export function bootShell() {
   function paintSysBanner() {
     if (typeof AppSysBanner === 'undefined') return;
     const ext = $('ext-banner');
-    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
+    // 首屏三段式（#532）：屏 1 / 屏 2 在场上时，这一张也**不许**在场 —— 三屏是独占的。
+    // 2026-10-01 模拟器实测：屏 2 的截图上方挂着这张（iOS「翻译」App 那三步 +「我已设好」），
+    // 与屏 2 的内容挤在同一页 —— R1b 那次只收掉了 Safari 扩展横幅，漏了这张同族的。
+    const firstRun = firstRunScreen === 'login' || firstRunScreen === 'packs';
+    const away = firstRun || !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
       || !$('app-docs').hidden || !$('app-settings').hidden;
     AppSysBanner.paint({
       away,
