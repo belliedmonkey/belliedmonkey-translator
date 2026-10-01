@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "你在浏览器里读到的句子，会同步到这里来复习。"
+    "message": "视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。"
   },
   "app_email_label": {
     "message": "邮箱"
@@ -1702,7 +1702,7 @@
     "message": "我已打开"
   },
   "app_signin_why": {
-    "message": "卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。"
+    "message": "登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。"
   },
   "app_signin_open": {
     "message": "登录"

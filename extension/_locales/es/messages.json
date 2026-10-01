@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Las frases que lees en el navegador se sincronizan aquí para repasar."
+    "message": "Vídeos, conversaciones, documentos — traducidos mientras escuchas. El audio se procesa solo en tu dispositivo."
   },
   "app_email_label": {
     "message": "Correo electrónico"
@@ -1701,7 +1701,7 @@
     "message": "Ya la activé"
   },
   "app_signin_why": {
-    "message": "Las tarjetas las captura la extensión del navegador. Inicia sesión con la misma cuenta y se sincronizan con este dispositivo."
+    "message": "Al iniciar sesión llega el crédito gratuito y se descargan los dos paquetes de voz en este dispositivo — nada más que configurar."
   },
   "app_signin_open": {
     "message": "Iniciar sesión"

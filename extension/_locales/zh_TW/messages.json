@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "你在瀏覽器裡讀到的句子，會同步到這裡來複習。"
+    "message": "影片、對話、文件 —— 邊聽邊翻，聲音只在你的裝置上處理。"
   },
   "app_email_label": {
     "message": "電子郵件"
@@ -1702,7 +1702,7 @@
     "message": "我已打開"
   },
   "app_signin_why": {
-    "message": "卡片是瀏覽器擴充功能採集的。登入同一個帳號，它們就會同步到這台裝置。"
+    "message": "登入後免費額度自動到帳，兩個語音包下到本機，之後不用再做設定。"
   },
   "app_signin_open": {
     "message": "登入"

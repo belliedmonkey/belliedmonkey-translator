@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Sentences you read in the browser sync here for review."
+    "message": "Video, conversations, documents — translated as you listen, processed only on your device."
   },
   "app_email_label": {
     "message": "Email"
@@ -1701,7 +1701,7 @@
     "message": "I've turned it on"
   },
   "app_signin_why": {
-    "message": "Cards are captured by the browser extension. Sign in with the same account and they sync to this device."
+    "message": "Signing in brings the free credit and downloads the two speech packs to this device — no further setup."
   },
   "app_signin_open": {
     "message": "Sign in"

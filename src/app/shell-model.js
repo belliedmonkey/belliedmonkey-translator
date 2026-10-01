@@ -119,7 +119,10 @@ export function bootShell() {
     // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
     // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
     $('app-brand').textContent = t('action_title', '大肚猴翻译');
-    $('lede').textContent = t('app_lede', '你在浏览器里读到的句子，会同步到这里来复习。');
+    // 屏 1 的主句讲 **App 自己的卖点**（2026-10-01 用户裁定）：原来那句「你在浏览器里读到的句子，
+    // 会同步到这里来复习」把 App 写成扩展的下游 —— 而「边听边翻 + 声音只在设备上处理」是扩展
+    // 给不了的。卡内那句同理：登录换来的是额度与两个设备包，不是「替扩展做同步」。
+    $('lede').textContent = t('app_lede', '视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。');
     $('email-label').textContent = t('app_email_label', '邮箱');
     $('send').textContent = t('app_send', '发送验证码');
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
@@ -127,7 +130,7 @@ export function bootShell() {
     $('back').textContent = t('app_back_email', '换一个邮箱');
     $('resend').textContent = t('sync_resend', '重新发送');
     $('signin-why').textContent = t('app_signin_why',
-      '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
+      '登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。');
     $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
     // local-note 已随 #532 退役（屏 1 只剩登录；那句「不登录也能完整使用」也不再成立）。
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');

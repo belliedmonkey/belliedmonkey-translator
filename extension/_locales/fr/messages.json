@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Les phrases que vous lisez dans le navigateur se synchronisent ici pour révision."
+    "message": "Vidéos, conversations, documents — traduits pendant que vous écoutez. L’audio est traité uniquement sur votre appareil."
   },
   "app_email_label": {
     "message": "E-mail"
@@ -1701,7 +1701,7 @@
     "message": "Je l'ai activée"
   },
   "app_signin_why": {
-    "message": "Les cartes sont capturées par l'extension de navigateur. Connectez-vous avec le même compte et elles se synchronisent sur cet appareil."
+    "message": "Se connecter apporte le crédit offert et télécharge les deux packs vocaux sur cet appareil — rien d’autre à configurer."
   },
   "app_signin_open": {
     "message": "Se connecter"

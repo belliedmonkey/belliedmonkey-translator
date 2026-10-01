@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Sätze, die du im Browser liest, werden zum Wiederholen hierher synchronisiert."
+    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Audio wird nur auf deinem Gerät verarbeitet."
   },
   "app_email_label": {
     "message": "E-Mail"
@@ -1701,7 +1701,7 @@
     "message": "Ich habe sie aktiviert"
   },
   "app_signin_why": {
-    "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
+    "message": "Beim Anmelden kommt das Gratis-Guthaben und die beiden Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
   },
   "app_signin_open": {
     "message": "Anmelden"

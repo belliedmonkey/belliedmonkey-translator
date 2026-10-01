@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "ブラウザで読んだ文がここに同期され、復習できます。"
+    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末の上だけで処理します。"
   },
   "app_email_label": {
     "message": "メールアドレス"
@@ -1701,7 +1701,7 @@
     "message": "オンにしました"
   },
   "app_signin_why": {
-    "message": "カードはブラウザ拡張機能が集めます。同じアカウントでサインインすると、この端末に同期されます。"
+    "message": "サインインすると無料クレジットが届き、2 つの音声パックをこの端末にダウンロードします。以降の設定は要りません。"
   },
   "app_signin_open": {
     "message": "サインイン"

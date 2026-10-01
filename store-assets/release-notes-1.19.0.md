@@ -30,6 +30,110 @@
 · Extension · Improved: The in-page subtitle line and its control menu now follow the shape language the rest of the product uses — radii collapsed onto the same three steps, and the menu's checkmark is no longer a green that belongs to nobody.
 ```
 
+## 国际版 · ja
+
+```
+· App（iPhone / iPad / Mac）· 新：初回起動を 3 ステップに —— サインイン、2 つの音声パックを端末にダウンロード、そしてガイド。以前は初めて使うときに落ちていました。
+· App（iPhone / iPad / Mac）· 変更：App はサインインが前提になりました（ブラウザ拡張は対象外 —— 従来どおり未ログインで使えます）。
+· App とブラウザ拡張 · 新：書体をデザインシステムの 2 ファミリーに、キーボード操作時のフォーカスリングを全面に。
+```
+
+## 国际版 · ko
+
+```
+· App(iPhone / iPad / Mac) · 새 기능: 첫 실행이 3단계로 — 로그인, 두 음성 팩 내려받기, 안내. 예전에는 처음 쓸 때 내려받다 실패했습니다.
+· App(iPhone / iPad / Mac) · 변경: 이제 로그인이 필요합니다(브라우저 확장은 해당 없음 — 로그인 없이 그대로 사용).
+· App 및 브라우저 확장 · 새 기능: 디자인 시스템 서체 두 종, 키보드 사용 시 모든 화면에 포커스 링.
+```
+
+## 国际版 · zh-Hant
+
+```
+· App（iPhone / iPad / Mac）· 新：首次開啟改成三步 —— 先登入，再把兩個語音包下到本機，最後才是引導。以前是第一次用到才下，失敗正好發生在你已經開始用的那一刻。
+· App（iPhone / iPad / Mac）· 變化：App 現在要先登入才給用（瀏覽器擴充功能不受影響，仍然免登入、自帶 key 可用）。
+· App 與瀏覽器擴充功能 · 新：介面字體換成設計系統的兩個字族；用鍵盤 Tab 走一遍時，每個面都有焦點環。
+```
+
+## 国际版 · de-DE
+
+```
+· App (iPhone / iPad / Mac) · Neu: Der erste Start hat jetzt drei Schritte — anmelden, die zwei Sprachpakete laden, dann Onboarding. Vorher luden sie beim ersten Bedarf, also genau dann, wenn du schon angefangen hattest.
+· App (iPhone / iPad / Mac) · Geändert: Die App setzt jetzt eine Anmeldung voraus (die Browser-Erweiterung nicht — sie läuft weiterhin ohne Anmeldung mit eigenem Schlüssel).
+· App und Browser-Erweiterung · Neu: Die Schriften des Designsystems, und ein Fokusring auf jeder Oberfläche beim Tabben.
+```
+
+## 国际版 · fr-FR
+
+```
+· App (iPhone / iPad / Mac) · Nouveau : le premier lancement se fait en trois étapes — connexion, téléchargement des deux packs vocaux, puis l'accueil. Avant, ils se téléchargeaient au premier usage, donc au pire moment.
+· App (iPhone / iPad / Mac) · Changement : l'app demande désormais une connexion (l'extension de navigateur, non — elle fonctionne toujours sans connexion avec votre clé).
+· App et extension de navigateur · Nouveau : les deux familles de polices du design system, et un anneau de focus sur chaque écran au clavier.
+```
+
+## 国际版 · es-ES
+
+```
+· App (iPhone / iPad / Mac) · Nuevo: el primer arranque ahora son tres pasos — iniciar sesión, descargar los dos paquetes de voz y la guía. Antes se descargaban al primer uso, justo cuando ya habías empezado.
+· App (iPhone / iPad / Mac) · Cambio: la app ahora requiere iniciar sesión (la extensión del navegador no — sigue funcionando sin sesión con tu clave).
+· App y extensión del navegador · Nuevo: las dos familias tipográficas del sistema de diseño y un anillo de foco en cada pantalla al usar el teclado.
+```
+
+## 国际版 · ru
+
+```
+· App (iPhone / iPad / Mac) · Новое: первый запуск теперь три шага — вход, загрузка двух голосовых пакетов, затем знакомство. Раньше они качались при первом использовании — то есть когда вы уже начали.
+· App (iPhone / iPad / Mac) · Изменение: приложению теперь нужен вход (расширение браузера — нет, оно по-прежнему работает без входа со своим ключом).
+· App и расширение браузера · Новое: два семейства шрифтов дизайн-системы и кольцо фокуса на каждом экране при работе с клавиатурой.
+```
+
+## 国际版 · pt-BR
+
+```
+· App (iPhone / iPad / Mac) · Novo: a primeira abertura agora tem três passos — entrar, baixar os dois pacotes de voz e a introdução. Antes eles baixavam no primeiro uso, bem quando você já tinha começado.
+· App (iPhone / iPad / Mac) · Mudança: o app agora exige entrar (a extensão do navegador não — continua funcionando sem login com a sua chave).
+· App e extensão do navegador · Novo: as duas famílias tipográficas do design system e um anel de foco em todas as telas pelo teclado.
+```
+
+## 国际版 · ar-SA
+
+```
+· App (iPhone / iPad / Mac) · جديد: التشغيل الأول صار ثلاث خطوات — تسجيل الدخول، تنزيل حزمتي الصوت، ثم التعريف. سابقًا كانتا تُنزَّلان عند أول استخدام، أي بعد أن تبدأ فعلًا.
+· App (iPhone / iPad / Mac) · تغيير: التطبيق الآن يتطلب تسجيل الدخول (إضافة المتصفح لا — ما زالت تعمل دون تسجيل بمفتاحك).
+· App وإضافة المتصفح · جديد: عائلتا الخطوط في نظام التصميم، وحلقة تركيز في كل شاشة عند استخدام لوحة المفاتيح.
+```
+
+## 国际版 · it
+
+```
+· App (iPhone / iPad / Mac) · Novità: il primo avvio ora ha tre passaggi — accedi, scarica i due pacchetti vocali, poi l'introduzione. Prima si scaricavano al primo uso, cioè quando avevi già iniziato.
+· App (iPhone / iPad / Mac) · Cambiamento: l'app ora richiede l'accesso (l'estensione del browser no — continua a funzionare senza accesso con la tua chiave).
+· App ed estensione del browser · Novità: le due famiglie di caratteri del design system e un anello di focus su ogni schermata da tastiera.
+```
+
+## 国际版 · tr
+
+```
+· App (iPhone / iPad / Mac) · Yeni: ilk açılış artık üç adım — giriş yap, iki ses paketini indir, sonra tanıtım. Eskiden ilk kullanımda indiriliyordu, yani tam başladığın anda.
+· App (iPhone / iPad / Mac) · Değişiklik: uygulama artık giriş istiyor (tarayıcı uzantısı değil — kendi anahtarınla girişsiz çalışmaya devam ediyor).
+· App ve tarayıcı uzantısı · Yeni: tasarım sisteminin iki yazı tipi ailesi ve klavyeyle gezinirken her ekranda odak halkası.
+```
+
+## 国际版 · vi
+
+```
+· App (iPhone / iPad / Mac) · Mới: lần mở đầu tiên nay gồm ba bước — đăng nhập, tải hai gói giọng nói, rồi phần giới thiệu. Trước đây chúng tải ở lần dùng đầu tiên, đúng lúc bạn đã bắt đầu.
+· App (iPhone / iPad / Mac) · Thay đổi: ứng dụng nay yêu cầu đăng nhập (tiện ích trình duyệt thì không — vẫn dùng được khi chưa đăng nhập với key của bạn).
+· App và tiện ích trình duyệt · Mới: hai họ chữ của hệ thống thiết kế và vòng lấy nét trên mọi màn hình khi dùng bàn phím.
+```
+
+## 国际版 · pl
+
+```
+· App (iPhone / iPad / Mac) · Nowość: pierwsze uruchomienie to teraz trzy kroki — zaloguj się, pobierz dwa pakiety głosu, potem wprowadzenie. Wcześniej pobierały się przy pierwszym użyciu, czyli gdy już zacząłeś.
+· App (iPhone / iPad / Mac) · Zmiana: aplikacja wymaga teraz zalogowania (rozszerzenie przeglądarki nie — nadal działa bez logowania z Twoim kluczem).
+· App i rozszerzenie przeglądarki · Nowość: dwie rodziny krojów z systemu projektowego i obwódka fokusu na każdym ekranie przy pracy z klawiaturą.
+```
+
 ## 中国版 · zh-Hans
 
 ```
