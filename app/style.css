@@ -697,3 +697,43 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 #ob-resume-body { margin: 0; }
 #ob-resume-close { min-width: 44px; min-height: 44px; margin: -12px -12px 0 0; padding: 0; background: none;
   border: 0; color: var(--muted, var(--fg)); font-size: 1rem; text-decoration: none; }
+
+/* ─── 首页重排（2026-10-01 裁定 + OpenDesign 设计稿）────────────────────────────
+   主角是「实时字幕」与「实时听译」（判据 J01/J02/J03），复习降级为一条（J10），
+   系统翻译段不再出现在首页（J05），文档入口独立分区（J11）。
+   设计稿：design/home-reorder-2026-10-01/od/（一页规格里有 14 条判据与「怎么测」）。 */
+
+/* 引擎状态行（J07/J08）：唯一的前置条件说明位。就位 = 低对比绿摘要；缺失 = 原地可点 chip。 */
+.status { display: flex; align-items: center; gap: 8px; min-height: 32px; margin: 0 0 10px; }
+.status-text { font-size: 0.85rem; color: var(--ok, #56633f); }
+.status-text.miss { color: var(--muted, var(--fg)); }
+.status-chip { min-height: 44px; min-width: 44px; margin: -6px 0; padding: 6px 12px; border-radius: 999px;
+  background: color-mix(in oklab, #c67139 11%, transparent); color: #7a4318; border: 0; font: inherit; text-align: left; }
+
+/* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
+.heroes { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
+#app-listen-entry, #app-subs-entry {
+  position: relative; min-height: 236px; padding: 18px 18px 78px; border-radius: var(--radius-lg);
+  background: var(--card-bg); border: 1.5px solid var(--line); box-shadow: 0 1px 2px rgba(32, 30, 29, .05);
+}
+#app-listen-entry .mode-title, #app-subs-entry .mode-title { font-size: 1.25rem; font-weight: 700; color: var(--fg); }
+#app-listen-entry .mode-desc, #app-subs-entry .mode-desc { font-size: 0.85rem; color: var(--muted, var(--fg)); }
+#app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; }
+#app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
+/* 卡底那一条实心「启动带」：两卡完全同款（判据 J02 钉的就是这个 —— 不许把听译悄悄降级）。 */
+#app-listen-entry::after, #app-subs-entry::after {
+  content: ''; position: absolute; left: 18px; right: 18px; bottom: 18px; height: 50px;
+  border-radius: var(--radius-md, 12px); background: var(--accent, #ac6231); pointer-events: none;
+}
+
+/* 复习条（J10）：从整屏大卡压到一条 —— 看得见、一眼能开始，但不抢主角。
+   主按钮走**淡色档**（J03：折叠线以内实心按钮恰好是两位主角）。 */
+.today { padding: 12px 14px; gap: 8px; }
+.today .counts { font-size: 0.85rem; }
+.today .row #review { background: color-mix(in oklab, #c67139 14%, transparent); color: #7a4318; border: 0; min-height: 40px; }
+.today .today-bar { height: 4px; }
+
+/* 文档分区（J11）：与「听」分开。 */
+.docs { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 0; }
+.docs .modes-label { font-size: 0.85rem; color: var(--dim); padding: 0 4px; }
+.docs .mode { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); }

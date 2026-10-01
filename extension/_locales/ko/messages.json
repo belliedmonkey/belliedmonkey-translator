@@ -3724,5 +3724,9 @@
   "firstrun_packs_go": { "message": "내려받고 계속" },
   "firstrun_packs_go_tts": { "message": "읽어주기 팩만 받고 계속" },
   "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." },
-  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." }
+  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." },
+  "engine_status_ok": { "message": "로그인으로 설정 완료: 번역 · 받아쓰기 · 읽어주기 — 이 화면에서 바로 쓸 수 있습니다" },
+  "engine_status_missing": { "message": "하나 남았습니다: " },
+  "engine_status_fix_tts": { "message": "읽어주기 엔진이 설정되지 않음 — 설정 › 읽어주기에서 음성 선택" },
+  "engine_status_fix_translate": { "message": "번역 엔진이 설정되지 않음 — 설정 › 엔진에서 선택" }
 }

@@ -3725,5 +3725,9 @@
   "firstrun_packs_go": { "message": "下載並繼續" },
   "firstrun_packs_go_tts": { "message": "只下朗讀包，繼續" },
   "firstrun_packs_err": { "message": "下載沒成功：{why} —— 檢查網路再點一次。" },
-  "firstrun_packs_stt_slow": { "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。" }
+  "firstrun_packs_stt_slow": { "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。" },
+  "engine_status_ok": { "message": "登入已配好：翻譯 · 轉寫 · 朗讀 —— 這一屏可以直接用" },
+  "engine_status_missing": { "message": "還差一樣：" },
+  "engine_status_fix_tts": { "message": "朗讀引擎未設定，前往 設定 › 朗讀 選擇語音" },
+  "engine_status_fix_translate": { "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個" }
 }

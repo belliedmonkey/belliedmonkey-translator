@@ -3724,5 +3724,9 @@
   "firstrun_packs_go": { "message": "Laden und weiter" },
   "firstrun_packs_go_tts": { "message": "Nur das Stimm-Paket laden und weiter" },
   "firstrun_packs_err": { "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen." },
-  "firstrun_packs_stt_slow": { "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen." }
+  "firstrun_packs_stt_slow": { "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen." },
+  "engine_status_ok": { "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar" },
+  "engine_status_missing": { "message": "Eines fehlt: " },
+  "engine_status_fix_tts": { "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen" },
+  "engine_status_fix_translate": { "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen" }
 }

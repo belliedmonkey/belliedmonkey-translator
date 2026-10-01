@@ -272,9 +272,21 @@ function AppShell() {
           </span>
         </header>
 
-        {/* 今日一张卡（design: 大肚猴翻译 App 首页 · 主推）：待复习是唯一的大数字，其余四个
-             计数缩成小字，开始复习是卡内唯一主按钮，同步收成小胶囊 + 上次同步时间。
-             计数由 app.js 的 cell() 按语义类落格，CSS 按类而不是按位置排版。 */}
+        {/* 引擎状态行（2026-10-01 设计稿 · 判据 J07/J08）：唯一的前置条件说明位。
+            就位时是一行低对比绿摘要；某一样真缺时**原地**变成可点 chip（待办必须前置，
+            不再把它扔在页脚 —— 现状那句「还没配语音引擎」在 y≈1275）。 */}
+        <div className="status" id="engine-status">
+          <span className="status-text" id="engine-status-text"></span>
+          <button className="status-chip" id="engine-status-fix" type="button" hidden></button>
+        </div>
+
+        {/* 两位主角（2026-10-01 设计稿）：实时字幕与实时听译 —— 这一页唯一「别处做不到」的能力，
+            登录后即可用。它们由 listen-view.jsx 渲染（整行可点），CSS 把它们做成等高同权的主角卡。 */}
+        <div className="heroes">
+          <ListenEntryButtons />
+        </div>
+
+        {/* 复习条（降级：从整屏大卡到一条 76pt）—— 裁定「看得见、一眼能开始，但不抢戏」。 */}
         <section className="today">
           <div className="today-head"><span className="today-label" id="today-label"></span><span className="note" id="last"></span></div>
           <div id="app-counts" className="counts"></div>
@@ -285,23 +297,23 @@ function AppShell() {
           </div>
         </section>
 
-        {/* 「听」：两个模式做成带图标与一句说明的列表行。门控不过时整行不存在
-             （AppDriving.refreshEntry / AppListen.refreshEntry 切 hidden），两行都不在时整组
-             隐藏（CSS :has）；门没过时留一条可见、有标签、直达设置页那个控件的路。 */}
+        {/* 文档翻译：独立分区（判据 J11 —— 实时音频入口与文档类入口不得同区）。 */}
+        <div className="docs">
+          <span className="modes-label" id="docs-label"></span>
+          <button id="app-docs-entry" type="button" className="mode" hidden>
+            <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
+            <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint"></span></span>
+            <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+        </div>
+
+        {/* 播客模式入口 + 门控原因行（原「听」分区剩下的部分）。 */}
         <div className="modes">
           <span className="modes-label" id="modes-label"></span>
           <div className="mode-list">
             <button id="app-drive-start" type="button" className="mode" hidden>
               <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z" /><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z" /></svg></span>
               <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-drive-desc"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
-            <ListenEntryButtons />
-            {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
-            <button id="app-docs-entry" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint"></span></span>
               <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>

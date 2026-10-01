@@ -150,6 +150,8 @@ export function bootShell() {
     for (const id of ['modes-label', 'modes-label2']) { const e = $(id); if (e) e.textContent = t('app_modes_label', '听'); }
     AppDriving.paintStatic();
     paintAppEmptyState();
+    // 引擎状态行跟着每一次重绘走（它是唯一的前置条件说明位，判据 J07/J08）。
+    paintEngineStatus().catch(() => {});
   }
 
   // 复习页的空态整段是从扩展的 review.html 原样嵌进来的（build/app-bundle.js 的
@@ -326,6 +328,35 @@ export function bootShell() {
   // `ensureDeviceReady` 以 skipped 返回（额度引擎本来就没有设备包要下），而硬门却仍要求设备包
   // ⇒ 屏 2 永远过不去（实测探针：`id="grant_speech" device=false reason=not_device`）。
   const DEVICE_TTS_ENGINE = 'device';
+
+  // 引擎状态行（2026-10-01 设计稿 · 判据 J07/J08）：唯一的前置条件说明位。
+  // 三样来源不同 ⇒ 判据分开写：翻译 = 引擎可解析（额度或自带 key）；朗读 = ttsEngine 有值；
+  // 转写 = 设备内置（注册表那条已删 ⇒ 默认路，不需要配）。缺哪样就把哪样**原地**变成可点 chip。
+  async function paintEngineStatus() {
+    const txt = $('engine-status-text');
+    const chip = $('engine-status-fix');
+    if (!txt) return;
+    let s = {};
+    try { s = await readObSettings(); } catch (_) {}
+    const engineOk = firstRunEngineOk(s);
+    const ttsOk = !!(s && s.ttsEngine);
+    const miss = !engineOk ? 'translate' : (!ttsOk ? 'tts' : '');
+    if (!miss) {
+      txt.classList.remove('miss');
+      txt.textContent = t('engine_status_ok', '登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用');
+      if (chip) chip.hidden = true;
+      return;
+    }
+    txt.classList.add('miss');
+    txt.textContent = t('engine_status_missing', '还差一样：');
+    if (!chip) return;
+    chip.hidden = false;
+    chip.textContent = miss === 'tts'
+      ? t('engine_status_fix_tts', '朗读引擎未配置，前往 设置 › 朗读 选择语音')
+      : t('engine_status_fix_translate', '翻译引擎未配置，前往 设置 › 引擎 选一个');
+    chip.setAttribute('aria-label', chip.textContent);
+    chip.onclick = () => openSettings(miss === 'tts' ? 'tts-engine' : 'engine');
+  }
 
   // 登录即就位：朗读那格钉到设备内置（2026-10-01 裁定）。用户选过就不动 —— 与额度领取
   // 「不碰用户自己的 key」同一条纪律。

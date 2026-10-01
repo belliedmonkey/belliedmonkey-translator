@@ -3724,5 +3724,9 @@
   "firstrun_packs_go": { "message": "Download and continue" },
   "firstrun_packs_go_tts": { "message": "Get the voice pack only and continue" },
   "firstrun_packs_err": { "message": "The download didn't finish: {why} — check your connection and try again." },
-  "firstrun_packs_stt_slow": { "message": "The system voice pack download stalled — check your connection and try again." }
+  "firstrun_packs_stt_slow": { "message": "The system voice pack download stalled — check your connection and try again." },
+  "engine_status_ok": { "message": "Set up with your account: translation · speech-to-text · read-aloud — usable right here" },
+  "engine_status_missing": { "message": "One thing missing: " },
+  "engine_status_fix_tts": { "message": "Read-aloud engine not set — go to Settings › Read-aloud to pick a voice" },
+  "engine_status_fix_translate": { "message": "Translation engine not set — go to Settings › Engine to pick one" }
 }

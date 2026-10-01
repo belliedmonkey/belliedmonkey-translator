@@ -3557,5 +3557,9 @@
   "firstrun_packs_go": { "message": "डाउनलोड करें और जारी रखें" },
   "firstrun_packs_go_tts": { "message": "सिर्फ़ वॉइस पैक लेकर जारी रखें" },
   "firstrun_packs_err": { "message": "डाउनलोड पूरा नहीं हुआ: {why} — कनेक्शन जाँचें और फिर दबाएँ।" },
-  "firstrun_packs_stt_slow": { "message": "सिस्टम वॉइस पैक का डाउनलोड रुक गया — कनेक्शन जाँचें और फिर से आज़माएँ।" }
+  "firstrun_packs_stt_slow": { "message": "सिस्टम वॉइस पैक का डाउनलोड रुक गया — कनेक्शन जाँचें और फिर से आज़माएँ।" },
+  "engine_status_ok": { "message": "आपके खाते से सेट: अनुवाद · ट्रांसक्रिप्शन · पढ़कर सुनाना — यहीं इस्तेमाल करें" },
+  "engine_status_missing": { "message": "एक चीज़ बाकी है: " },
+  "engine_status_fix_tts": { "message": "पढ़कर सुनाने का इंजन सेट नहीं — सेटिंग्स › पढ़कर सुनाना, आवाज़ चुनें" },
+  "engine_status_fix_translate": { "message": "अनुवाद इंजन सेट नहीं — सेटिंग्स › इंजन में चुनें" }
 }
