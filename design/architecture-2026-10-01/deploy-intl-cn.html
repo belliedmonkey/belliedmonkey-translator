@@ -52,7 +52,7 @@
   <h1>大肚猴翻译 · 部署架构（国际 / 中国）</h1>
   <p class="sub">2026-10-01。**两套完全独立的分发与后端**，不是同一个 App 的区域配置。分发状态取自 gbrain 权威页
   「各商店发布状态」（**最后实测 2026-09-30**，`node scripts/asc.js versions` 直读 ASC）+ 今天的现场复验；
-  中国版额度链路是**今天新上线的**（`grant.china.ready = true`，issue #532）。</p>
+  中国版额度链路是**今天新上线的**（`grant.china.ready = true`，issue #532）；版本面另有 1.19.0 在途（§0.5）。</p>
   <div class="legend">
     <span><i class="dot" style="background:var(--intl)"></i>国际（东京）</span>
     <span><i class="dot" style="background:var(--cn)"></i>中国（北京）</span>
@@ -77,6 +77,25 @@
     <tr><td class="k">遥测</td><td>匿名白名单事件（<span class="mono">bt-ingest</span>）</td><td><b>一个字节都不发</b>（官网写明）</td></tr>
     <tr><td class="k">离线朗读包托管</td><td>GitHub Releases（默认）· <b>hf-mirror</b>（备用，今天改）</td><td>ModelScope（默认）· hf-mirror（备用）</td></tr>
   </table>
+
+  <div class="rule"></div>
+
+  <!-- ── 版本：线上 vs 在途 ─────────────────────────────────────── -->
+  <h2>0.5 · 版本：线上 vs 在途（1.19.0）</h2>
+  <p class="sub">线上取自 gbrain 权威页（2026-09-30 实测）。1.19.0 **在途**：内容已合入 main，TestFlight 包已传且 ASC VALID；
+  本轮（首屏三段式 + 中国版额度翻转 + 系统翻译字号三档 + 审计 P0 + 引导文案 + DS-01 字体）落在 1.19.0 里，
+  所以四线要**重打**一次。构建号按平台各计，四线互不共享。</p>
+  <table style="margin-top:10px">
+    <tr><th style="width:110px">面</th><th>线上</th><th>1.19.0 在途</th><th>本轮改动后待重打</th></tr>
+    <tr><td class="k">iOS 国际</td><td>1.18.0 <b>b117</b></td><td>1.19.0 <b>b119</b> <span class="tag ok">ASC VALID</span></td><td><b>b120</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">iOS 中国</td><td>1.18.0 <b>b59</b></td><td>1.19.0 <b>b61</b> <span class="tag ok">ASC VALID</span></td><td><b>b62</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">macOS 中国</td><td>1.18.0 <b>b59</b></td><td>1.19.0 <b>b61</b> <span class="tag ok">ASC VALID</span></td><td><b>b62</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">macOS 国际</td><td>1.18.0 <b>b68</b> <span class="tag warn">在审</span></td><td>1.19.0 <b>b69</b>（本地签名已装 <span class="mono">/Applications</span>；ASC 线等 b68 过审）</td><td><b>b70</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">扩展三面</td><td>CWS <b>1.18.0</b> · AMO <b>public 1.18.0</b> · GitHub <b>v1.18.0</b></td><td>随 1.19.0 一起发（**跨仓同版**：两站 changelog + 隐私页）</td><td>—</td></tr>
+    <tr><td class="k">两站</td><td><span class="mono">.cc</span> / <span class="mono">.com</span> VERSION <b>1.18.0</b></td><td>changelog 已生成、随版推</td><td>同版推</td></tr>
+  </table>
+  <p class="sub" style="margin-top:8px">1.19.0 的 headline 是「改版发布」：App 首屏三段式（登录硬门 → 资源包硬门 → 引导）
+  + **中国版免费额度上线**（今天翻转，回读判据见 §3）。</p>
 
   <div class="rule"></div>
 
