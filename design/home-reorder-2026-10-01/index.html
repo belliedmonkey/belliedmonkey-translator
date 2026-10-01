@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App 首页重排 · 听译/字幕为主角，系统翻译段让位（2026-10-01）</title>
+<style>
+  :root{--cream:#f5ead8;--panel:#fff;--ink:#201e1d;--muted:#6b645c;--line:#e0d5c2;--terra:#c67139;--btn:#ac6231;--green:#56633f;--bad:#b3261e;--mono:ui-monospace,SFMono-Regular,Menlo,monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);font:15px/1.62 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  main{max-width:1180px;margin:0 auto;padding:30px 22px 70px}
+  h1{font-size:25px;margin:0 0 6px} h2{font-size:19px;margin:0 0 6px} h3{font-size:15px;margin:0 0 6px;font-weight:600}
+  p{margin:0 0 8px} .sub{color:var(--muted);max-width:84ch}
+  .rule{height:1px;background:var(--line);margin:22px 0}
+  .grid{display:grid;gap:16px} .g2{grid-template-columns:1fr 1fr} @media(max-width:980px){.g2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+  .phone{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;font-size:13px}
+  .row{display:flex;align-items:center;gap:8px;justify-content:space-between}
+  .box{border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:#fffdf9;margin:7px 0}
+  .box.hi{border-color:#e9c39a;background:#fdf3e6}
+  .box.hero{border:2px solid var(--terra);background:#fdf6ec}
+  .box.dim{opacity:.55}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:#fff;margin-left:5px}
+  .tag.ok{border-color:#cfe0c6;color:#3f5330;background:#f4f8f0}
+  .tag.bad{border-color:#e6c9c6;color:var(--bad);background:#fdf1f0}
+  .tag.hero{border-color:#e9c39a;color:#8a4f1c;background:#fdf3e6}
+  .big{font-size:26px;font-weight:700;color:var(--btn)}
+  .mono{font-family:var(--mono);font-size:12px}
+  ul{margin:6px 0 0;padding-left:18px} li{margin:2px 0}
+  .pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:3px 10px;background:#fff;font-size:12.5px}
+  .pill.fill{background:var(--btn);color:#fff;border-color:var(--btn)}
+</style>
+</head>
+<body>
+<main>
+  <h1>App 首页重排：听译 / 字幕当主角，系统翻译段让位</h1>
+  <p class="sub">2026-10-01 用户裁定（附 TestFlight 首页截图）。两条：
+  ① 顶部那段「让 iPhone 自带的『翻译』用上大肚猴」**太乱**，而且**不该出现在这里** —— 它可以在用户把引擎**完整配好之后**才出现，并且版面要重做；
+  ② **登录完就该所有引擎都配好**（含转写与朗读），并且**这一屏上实时字幕与听译要能直接用** —— 它们才是这页的主角；**单词卡可以放到更次要的位置**。</p>
+  <div class="rule"></div>
+
+  <h2>1 · 现在的首页（问题）</h2>
+  <div class="grid g2">
+    <div class="phone">
+      <div class="box dim"><b>让 iPhone 自带的「翻译」用上大肚猴</b><br><span class="mono">三步大块 + 「我已设好」</span><span class="tag bad">占满首屏 · 与主角无关</span></div>
+      <div class="row mono" style="color:var(--muted)"><span>belliedmonkey@gmail.com</span><span>设置 退出</span></div>
+      <div class="box dim" style="padding:12px"><span class="mono">今天待复习 · 上次同步</span><div class="big">190</div><span class="mono">190 学习中 · 4664 总计 · 4474 候选 · 0 已掌握</span><br><span class="pill fill">开始复习</span> <span class="pill">同步</span><span class="tag bad">占了整屏的大卡</span></div>
+      <div class="box dim"><b>听</b><br><span class="mono">翻译文档（PDF / Word / 图片）</span></div>
+      <div class="box dim" style="color:var(--bad)">还没配语音引擎 —— 到「设置 › 朗读」里选一个 <span class="mono">设置</span><span class="tag bad">登录后不该出现</span></div>
+    </div>
+    <div class="card">
+      <h3>三个问题（逐条）</h3>
+      <ul>
+        <li><b>主角错位</b>：这一页能做的事里，**只有 App 能做**的是<b>实时字幕</b>与<b>听译</b>（系统音频 + 麦克风），可它们在最下面、还带着「没配引擎」的警告 ✗；占屏最多的却是复习卡。</li>
+        <li><b>系统翻译段太大且太早</b>：它是「锦上添花」的一步（把 iPhone 自带「翻译」指向我们），却占了首屏最贵的位置 ✗。</li>
+        <li><b>登录没配全引擎</b>：底部那句「还没配语音引擎」说明领取额度时**只配了翻译引擎** ✗ —— 转写与朗读没配，于是「这一屏上直接能用」做不到 ✗。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <h2>2 · 建议的新首页（主角先行）</h2>
+  <div class="grid g2">
+    <div class="phone">
+      <div class="row mono" style="color:var(--muted)"><span>belliedmonkey@gmail.com</span><span>设置 退出</span></div>
+      <div class="box hi" style="font-size:12.5px">登录已配好：<b>翻译 · 转写 · 朗读</b> —— 三个引擎都就位，不用再设 <span class="tag ok">新的状态行</span></div>
+
+      <div class="box hero">
+        <b>听 · 实时字幕</b><span class="tag hero">主角</span><br>
+        <span class="mono">这台设备正在播放的声音，双语字幕</span><br>
+        <span class="pill fill">开始</span> <span class="pill">设置声音来源</span>
+      </div>
+      <div class="box hero">
+        <b>听 · 实时听译</b><span class="tag hero">主角</span><br>
+        <span class="mono">面对面：双方说话，逐句转写 + 翻译 + 朗读</span><br>
+        <span class="pill fill">开始</span>
+      </div>
+
+      <div class="box"><b>翻译文档</b> <span class="mono">PDF / Word / 图片</span></div>
+      <div class="box"><b>播客模式</b> <span class="mono">把牌库连着读、放着听</span></div>
+      <div class="box dim"><b>系统翻译（iPhone 自带「翻译」）</b><span class="tag">引擎配好后才出现</span></div>
+
+      <div class="box" style="font-size:12.5px">
+        <span class="mono">今天待复习</span> <span class="big" style="font-size:19px">190</span>
+        <span class="mono">· 4664 总计</span><br>
+        <span class="pill fill">开始复习</span> <span class="pill">同步</span><span class="tag">降为次要</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>排布原则（可当判据）</h3>
+      <ul>
+        <li><b>首屏前两块 = 实时字幕 + 听译</b>：它们是这一页唯一「别处做不到」的能力，且**登录后即可用**（不需要再去设置里配引擎）。</li>
+        <li><b>状态行代替警告</b>：顶部一行说清「翻译 / 转写 / 朗读 都已就位」；只有当某一样真的缺时才变成一句可点的提示。</li>
+        <li><b>复习卡降级</b>：从「整屏大卡」变成一张 1/4 高的小卡（数字 + 开始复习 + 同步），仍在首屏可见，但不再抢主角。</li>
+        <li><b>系统翻译段</b>：默认**不出现**；等引擎全部就位后，以**一行**形态出现在次级区（见 §3）。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <h2>3 · 系统翻译段：重做 + 后置</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>① 引擎没配全时 —— 不出现</h3>
+      <p class="sub">判定与「登录后三引擎就位」是同一条：<span class="mono">翻译 ∧ 转写 ∧ 朗读</span>。任一缺失时，这一段整块隐藏（把位置让给真正要用的东西）。</p>
+    </div>
+    <div class="card">
+      <h3>② 配全之后 —— 一行形态（重做后的版面）</h3>
+      <div class="box" style="background:#fff">
+        <div class="row">
+          <div><b>让 iPhone 自带的「翻译」也用上它</b><br><span class="mono">在任何 App 里选中文字 › 翻译，弹出来的就是你配的引擎</span></div>
+          <span class="pill">去设置</span>
+        </div>
+      </div>
+      <p class="sub">要点：**一行标题 + 一行说明 + 一个次级按钮**；三步说明移到设置页里（那里才是做事的地方），首页只留入口。用户点过「我已设好」或已从系统翻译收进过句子，就**永不再出现**。</p>
+    </div>
+  </div>
+  <div class="rule"></div>
+
+  <h2>4 · 这一轮要动的（实施清单）</h2>
+  <div class="grid g2">
+    <div class="card">
+      <h3>代码 / 规约</h3>
+      <ul>
+        <li><b>领取额度时把三个引擎都配上</b>：翻译（已有）· <b>转写</b>（<span class="mono">sttEngine</span>）· <b>朗读</b>（<span class="mono">ttsEngine</span>）—— 用额度自带的那两条（<span class="mono">grant_stt</span> / <span class="mono">grant_speech</span>）。这是「这一屏直接能用」的前提。</li>
+        <li><b>系统翻译段后置</b>：判定 = 三引擎就位 ∧ 未设过 ∧ 未用过。</li>
+        <li><b>首页重排</b>：主角两块上移，复习卡降级（<span class="mono">docs/interaction-spec.md</span> 的首页一节先改，再改代码 —— 仓库规矩）。</li>
+        <li>既有门禁 R1（屏 1 只有登录）不受影响；新增一条「首页首屏必须有实时字幕与听译入口」的判据。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>顺序</h3>
+      <ul>
+        <li>① 你看这份画布，指出要改的（尤其：主角两块的具体形态、复习卡降到什么程度）。</li>
+        <li>② 我按你的定稿更新 <span class="mono">docs/interaction-spec.md</span>（首页一节 + 系统翻译段的出现条件）。</li>
+        <li>③ 再动代码（引擎配置 + 后置 + 重排），并补门禁。</li>
+        <li>④ 重出四线包 → TestFlight（**只传，不提审** —— 按你的口径）。</li>
+      </ul>
+    </div>
+  </div>
+</main>
+</body>
+</html>
