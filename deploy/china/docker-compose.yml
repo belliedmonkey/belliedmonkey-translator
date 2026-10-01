@@ -100,6 +100,44 @@ services:
     expose:
       - "8000"
 
+  # 免费额度的两个函数（2026-10-01 补：翻 `grant.china.ready` 之前**必须**有它们）。
+  # 与 fn 同构：各挂一个函数目录、只听默认 8000；路径分派交给 Caddy 那一层（见 Caddyfile）。
+  # 不写 depends_on: [proxy] —— 同 fn 的理由（proxy 依赖它们，写了就是循环）。
+  grant:
+    image: denoland/deno:alpine-2.1.4
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../supabase/functions/bt-grant:/app:ro
+    command: ["run", "--allow-net", "--allow-env", "index.ts"]
+    environment:
+      SUPABASE_URL: http://proxy:8081
+      SUPABASE_ANON_KEY: ${ANON_KEY:?必须设置}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?必须设置}
+      # KEK 只在领取这一侧（中继从不解密）。境内这份**可以现生成**，不必与东京相同：
+      #   openssl rand -base64 32
+      GRANT_KEK: ${GRANT_KEK:?必须设置}
+      GRANT_LIMIT_USD: "0.2"
+      GRANT_DAILY_CAP: "50"
+    expose:
+      - "8000"
+
+  # 额度窄口：只认 LEDGER_KEY，只做 `/check` 与 `/charge`。中继经 LEDGER_URL 打它，
+  # **不拿 service_role**（那把权限只在容器里）。生成：openssl rand -hex 32
+  ledger:
+    image: denoland/deno:alpine-2.1.4
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../supabase/functions/bt-grant-ledger:/app:ro
+    command: ["run", "--allow-net", "--allow-env", "index.ts"]
+    environment:
+      SUPABASE_URL: http://proxy:8081
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?必须设置}
+      LEDGER_KEY: ${LEDGER_KEY:?必须设置}
+    expose:
+      - "8000"
+
   # 把 GoTrue 与 PostgREST 挂在**同一个域名**下，路径与 Supabase 逐字相同
   # （/auth/v1/* 与 /rest/v1/*）—— 客户端因此一个字节都不用改。
   proxy:

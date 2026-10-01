@@ -162,3 +162,37 @@ docker compose exec -T db pg_dump -U postgres -Fc postgres > backup-$(date +%F).
 **至少每季度做一次恢复演练** —— 在一台临时实例上把 dump 恢复出来、起服务、跑通第 4 节
 的第 1 和第 3 条。判据是**恢复出来的库能登录能同步**，不是「备份文件存在」。
 备份存在 ≠ 能恢复，这两件事之间隔着的正是这次演练。
+
+---
+
+## 6. 免费额度的两个函数（2026-10-01 补；翻 `grant.china.ready` 之前**必须**有）
+
+`docker-compose.yml` 里新增两个服务，`Caddyfile` 里新增两条**具名**路由（必须写在
+`handle_path /functions/v1/*` 兜底之前 —— Caddy 的 handle 按书写顺序匹配）：
+
+| 服务 | 挂的函数 | 环境 |
+|---|---|---|
+| `grant` | `supabase/functions/bt-grant`（领取） | `GRANT_KEK`（**只在这一侧**，中继从不解密）、`GRANT_LIMIT_USD=0.2`、`GRANT_DAILY_CAP=50` |
+| `ledger` | `supabase/functions/bt-grant-ledger`（窄口 `/check`、`/charge`） | `LEDGER_KEY`（中继用它打窄口） |
+
+`.env` 里补两个值（**现生成即可**，不需要与东京相同 —— 账本与账号同库，两边各一份）：
+
+```bash
+cat >> .env <<EOF
+GRANT_KEK=$(openssl rand -base64 32)     # 32 字节 base64
+LEDGER_KEY=$(openssl rand -hex 32)       # 64 位 hex
+EOF
+docker compose up -d grant ledger
+docker compose up -d --force-recreate proxy   # Caddyfile 改了要重载
+```
+
+回读（**别拿「没报错」当成功**）：
+
+```bash
+K=$(grep '^LEDGER_KEY=' .env | cut -d= -f2); H=$(printf 'a%.0s' $(seq 64))
+curl -s -X POST https://api.belliedmonkey.com/functions/v1/bt-grant-ledger/check \
+  -H "x-ledger-key: $K" -H 'Content-Type: application/json' -d "{\"p_hash\":\"$H\"}"
+# 期望 []（这枚 hash 不存在 ⇒ 零行）。403 = 钥匙不一致；503 ledger_misconfigured = 没配钥匙。
+```
+
+`LEDGER_KEY` 的**同一个值**还要填进云函数（中继）的环境变量 —— 两边必须逐字相同。
