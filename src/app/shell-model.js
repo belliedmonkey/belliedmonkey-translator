@@ -36,6 +36,7 @@ import Registry from '../lib/registry.js';
 import NativeBridge from '../lib/native-bridge.js';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
+import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -128,7 +129,7 @@ export function bootShell() {
     $('signin-why').textContent = t('app_signin_why',
       '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
     $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
-    $('local-note').textContent = t('app_local_note', '可选。不登录也能完整使用 —— 采集和复习都在本机，登录只是为了同步到别的设备。');
+    // local-note 已随 #532 退役（屏 1 只剩登录；那句「不登录也能完整使用」也不再成立）。
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
     $('app-pw-email-label').textContent = t('app_email_label', '邮箱');
     $('app-pw-label').textContent = t('app_pw_label', '密码');
@@ -136,7 +137,7 @@ export function bootShell() {
     $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
-    $('gear2').textContent = t('app_settings_link', '设置');   // 未登录首页的设置入口（2026-09-17）
+    // gear2（未登录首页的设置入口）随 #532 退役：屏 1 不许有设置入口。
     // 设置页的静态文字不再在这里重画：SettingsView（PR6b）的标签由 useT 驱动，
     // PageText.setUiLang 触发它自己的重渲染 —— 首页这层 paintStatic 只管自己的文字。
     $('review').textContent = t('app_review_start', '开始复习');
@@ -197,7 +198,7 @@ export function bootShell() {
     // 得往同步里加一种新行，那是 domain design 的改动。
     browserSideOk = stats.total > 0 || (!!currentSession && Number(lastOk) > 0);
     paintExtBanner(extState);
-    paintSignedOutReview(stats.total, due);
+    // 未登录的复习入口已退役（2026-10-01，#532）：App 以登录为前提。
     $('app-counts').innerHTML = '';
     // cls = semantic hook for style.css's stat-tile colors (never color by
     // position — a reordered/hidden tile would silently mis-color).
@@ -232,23 +233,9 @@ export function bootShell() {
   // 未登录也能复习（2026-09-27，Issue #386）。
   //
   // 卡片是本机数据，登录只影响**跨设备同步**（learning-design §7.2）—— 而此前 `#review`
-  // 只长在 `#signed-in` 里，所以一个存了卡却没登录的人，首页根本没有复习入口
-  // （interaction-spec「复习 / Entry points」）。只在真有卡时出现：没有卡却给一个必然
-  // 空着的入口，比不给更糟。
-  function paintSignedOutReview(total, due) {
-    const box = $('signed-out-review');
-    if (!box) return;
-    box.hidden = !!currentSession || !(total > 0);
-    if (box.hidden) return;
-    const btn = $('signed-out-review-btn');
-    const desc = $('signed-out-review-desc');
-    if (btn) btn.textContent = t('app_so_review_title', '复习本地收藏的句子');
-    if (desc) {
-      desc.textContent = due > 0
-        ? t('app_so_review_due', '今天有 {n} 张卡片待复习').replace('{n}', String(due))
-        : t('app_so_review_total', '共保存了 {n} 个句子').replace('{n}', String(total));
-    }
-  }
+  // paintSignedOutReview 已退役（2026-10-01，#532）：App 以登录为前提，未登录首页
+  // 只留登录，所以「本机有卡就在未登录首页给个复习入口」这条 #386 的规矩作废。
+  // 同一条判据在 test/app-firstrun.test.js 的 R1 与 test/growth-386.test.js 里各钉一次。
 
   // 密码登录只服务「服务端已设过密码」的账号 —— 产品内没有任何设密码的面，
   // 所以对普通用户它 100% 会失败。2026-08-28 的 GoTrue 日志里实证撞了两次：
@@ -294,6 +281,204 @@ export function bootShell() {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
   });
 
+  // ── 首屏三段式（2026-10-01，#532）──────────────────────────────────────────
+  // 判定是**纯函数**（`src/app/firstrun.js`）：四个输入 → step()。这一块只做两件事 ——
+  // 把四个输入算出来、把该显示的那一屏显示出来。判据：test/app-firstrun.test.js（R1–R6）。
+  let packAsrReady = false;
+  let packTtsReady = false;
+  let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
+  let packsBusy = false;
+  let firstRunScreen = '';   // '' | 'login' | 'packs' | 'onboarding' | 'home' —— 横幅要据此让位
+
+  const readObSeen = () => new Promise((r) => {
+    try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
+  });
+
+  // 首次要下的语种：界面语言 + 目标语言（用户还没配过任何东西，这是能有意义的默认）。
+  function firstRunLocales(s) {
+    const ui = (() => { try { return (chrome.i18n.getUILanguage() || 'en').split('-')[0]; } catch (_) { return 'en'; } })();
+    const target = ListenCore.toLocale((s && s.targetLang) || '') || '';
+    return target && target !== ui ? [ui, target] : [ui];
+  }
+
+  function firstRunEngineOk(s) {
+    // 引擎「可解析」＝**能用**，不是「apiKey 非空」——后者会把残值 key 的设备判成已配
+    // （§8.10.3 / #513；`test/grant-one-implementation.test.js` 反向钉着「不许再拿
+    // needsSetup 当引擎判据」）。两条路：① 登录后自动到账的额度在用；② 用户自己的
+    // key 落在一个**真能解析出来**的引擎上（provider 认得出 + 有 key 或自定义地址）。
+    try {
+      if (typeof LearnGrant !== 'undefined' && LearnGrant.enabled() && LearnGrant.active(s)) return true;
+    } catch (_) {}
+    try {
+      const entry = EngineState.resolve(s && s.provider);
+      return !!(entry && (((s.apiKey || '').trim()) || ((s.baseUrl || '').trim())));
+    } catch (_) { return false; }
+  }
+
+  // 探两个包。缺桥 / 探不通一律当「没就绪」，不去猜 —— 猜错会让硬门形同虚设。
+  // 首屏三段式的两个设备包 = **设备引擎**那一套（`device` / 本地识别）。
+  // 2026-10-01 裁定（用户）：「只要是 App 里用实时字幕/听译的都需要这个设备引擎」⇒ **必选**。
+  // 所以探与下都**钉在设备引擎上**，不看当前默认选的是哪个引擎 —— 否则「登录即领额度」把 TTS
+  // 引擎写成 `grant_speech` 之后，`deviceStatus(s.ttsEngine)` 会判 `not_device`、
+  // `ensureDeviceReady` 以 skipped 返回（额度引擎本来就没有设备包要下），而硬门却仍要求设备包
+  // ⇒ 屏 2 永远过不去（实测探针：`id="grant_speech" device=false reason=not_device`）。
+  const DEVICE_TTS_ENGINE = 'device';
+
+  async function probePacks() {
+    const s = await readObSettings();
+    if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
+      try {
+        LearnTTS.configure(Object.assign({}, LearnTTS.config, {
+          engineId: DEVICE_TTS_ENGINE, apiKey: '', baseUrl: '', model: '', voice: '',
+        }));
+        const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE);
+        packTtsReady = !!(st && st.ready);
+      } catch (_) { packTtsReady = false; }
+    } else { packTtsReady = false; }
+    if (typeof NativeSpeech !== 'undefined' && NativeSpeech.probe) {
+      try {
+        const r = await NativeSpeech.probe(firstRunLocales(s));
+        packAsrReady = !!(r && (r.ready === true || r.ok === true));
+        packAsrUnsupported = !!(r && (r.unsupported === true || r.reason === 'unsupported'));
+      } catch (_) { packAsrReady = false; packAsrUnsupported = false; }
+    } else { packAsrReady = false; packAsrUnsupported = false; }
+  }
+
+  function packsState(s) {
+    return {
+      loggedIn: !!s, engine: firstRunEngineOk(s),
+      asrPack: packAsrReady, ttsPack: packTtsReady, onboardingSeen: false,
+    };
+  }
+
+  async function paintFirstRun(session) {
+    const sec = $('firstrun-packs');
+    if (!sec) return;
+    // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
+    // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
+    if (!session) { sec.hidden = true; firstRunScreen = 'login'; return; }
+    await probePacks();
+    const seen = await readObSeen();
+    const state = Object.assign(packsState(session), { onboardingSeen: seen });
+    // 引擎不通（额度用尽且没有自带 key）时按 firstrun.step() 回到屏 1，不另造一屏。
+    if (FirstRun.step(state) !== 'packs') { sec.hidden = true; firstRunScreen = 'home'; return; }
+    firstRunScreen = 'packs';
+    sec.hidden = false;
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = true;
+    $('packs-title').textContent = t('firstrun_packs_title', '先把两个语音包下好');
+    $('packs-lede').textContent = t('firstrun_packs_lede', '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。');
+    $('pack-asr-name').textContent = t('firstrun_packs_asr', '识别语言包（听译 / 实时字幕）');
+    $('pack-tts-name').textContent = t('firstrun_packs_tts', '高质量朗读包（朗读 / 播客）');
+    const rowAsr = $('pack-row-asr'), rowTts = $('pack-row-tts');
+    if (rowAsr) rowAsr.hidden = packAsrUnsupported;
+    $('pack-asr-state').textContent = packAsrReady
+      ? t('firstrun_packs_done', '已就绪')
+      : t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载').replace('{langs}', firstRunLocales(await readObSettings()).join(' · '));
+    // 朗读包那行：没有 langs/size 时别留孤零零的分隔点 —— 2026-10-01 模拟器实测读到
+    // 「离线模型未下载 · · 」（两个空 replace 留下的尾巴）。
+    $('pack-tts-state').textContent = packTtsReady
+      ? t('firstrun_packs_done', '已就绪')
+      : t('tts_pack_missing', '离线模型未下载 · {langs} · {size}')
+        .replace('{langs}', '').replace('{size}', '')
+        .replace(/(\s*·\s*)+$/, '')
+        .replace(/·\s*·/g, '·');
+    $('packs-net').textContent = t('firstrun_packs_net', '建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。');
+    const go = $('packs-go');
+    go.disabled = packsBusy;
+    go.textContent = packsBusy
+      ? t('firstrun_packs_busy', '正在下载…')
+      : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读包，继续') : t('firstrun_packs_go', '下载并继续'));
+  }
+
+  // 系统语音包（SFSpeechRecognizer 的资产）由 iOS 自己下，原生回一个 stt-assets 事件才算完。
+  // **没有上限就会挂住**：2026-10-01 模拟器实测，按钮停在「正在下载…」15 分钟、无错误、
+  // 容器里连 mt-speech 都没有。上限内没落地就按「没动静」交给重试 —— 不绕过硬门。
+  const ASR_PACK_TIMEOUT_MS = 120000;
+
+  // 下载 → 重新探 → 前进。失败留在这一屏并说明原因；唯一能绕过的是「该语种不支持识别」。
+  async function runFirstRunPacks() {
+    if (packsBusy) return;
+    packsBusy = true;
+    try { await paintFirstRun(currentSession); } catch (_) {}
+    const err = $('packs-err');
+    if (err) err.hidden = true;
+    try {
+      const s = await readObSettings();
+      // 朗读包：与复习 ▶ / 播客 / 对话 / 设置试听**同一个**入口（learning-design §9.1.1）。
+      // 引擎**钉在设备引擎上**（同 probePacks 的理由：这两个包是 App 的必备件，与当前默认
+      // 选的是哪个引擎无关）。设置页与听译两处也是显式传引擎的。
+      if (!packTtsReady && typeof LearnTTS !== 'undefined' && LearnTTS.ensureDeviceReady) {
+        // 进度要画在**这一行**上（与设置页同一个做法）：包现在是硬门，而默认地址（global 走
+        // GitHub）在国内可能先失败再换备用 —— 那几分钟不能只是一句「正在下载…」。
+        const onProg = (m) => {
+          const el = $('pack-tts-state');
+          if (!el) return;
+          if (m && m.state === 'switching') {
+            el.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…');
+            return;
+          }
+          const pct = Math.round((Number(m && m.fraction) || 0) * 100);
+          el.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%')
+            .replace('{lang}', (m && m.locale) || '').replace('{pct}', String(pct));
+        };
+        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE);
+        // **返回值必须看**。设置页那条链一直是 `if (!r.ok) … '离线模型下载失败'`（settings-view），
+        // 我这条以前把返回值丢了 ⇒「没下成」是**静默**的：容器里没有 mt-speech、屏上一句话也没有，
+        // 然后还接着去走下一条（2026-10-01 实测就是这么把 15 分钟的挂住追出来的）。
+        if (r && r.ok === false) {
+          const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
+          throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+        }
+        // 下完就先让它显「已就绪」，别等两包都完 —— 这一屏的用途就是给人看进度。
+        try { await paintFirstRun(currentSession); } catch (_) {}
+      }
+      if (!packAsrReady && !packAsrUnsupported && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
+        let timer = null;
+        const timeout = new Promise((_res, rej) => {
+          timer = setTimeout(() => {
+            const e = new Error('stt-timeout');
+            e.mtSttTimeout = true;
+            rej(e);
+          }, ASR_PACK_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {}), timeout]);
+        } finally { clearTimeout(timer); }
+      }
+    } catch (e) {
+      if (err) {
+        err.hidden = false;
+        err.textContent = (e && e.mtSttTimeout)
+          ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+          : ((e && e.mtTtsFailed)
+            ? t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''))
+            : t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)));
+      }
+    }
+    packsBusy = false;
+    await probePacks();
+    const seen = await readObSeen();
+    const state = Object.assign(packsState(currentSession), { onboardingSeen: seen });
+    if (FirstRun.step(state) === 'packs' && !packAsrUnsupported) {
+      await paintFirstRun(currentSession);   // 还缺 ⇒ 留在屏 2（按钮变「重试」）
+      return;
+    }
+    // 就绪（或降级：识别不支持时只下朗读包）⇒ 按 step() 落到下一屏
+    const sec = $('firstrun-packs');
+    if (sec) sec.hidden = true;
+    if (!seen) {
+      // 引导的**第一条进场路**（#532 起是「屏 2 完成之后」；另一条是「继续设置」卡）。
+      // §3.9 的 dwell 必须在这里开始计时 —— 否则这批人的停留时长会被算成「从启动到现在」，
+      // 全落进 30+ 那一档（test/telemetry-registry.test.js 单独钉住这一处，它当场抓到了本次改动）。
+      $('signed-out').hidden = true;
+      $('onboard').hidden = false;
+      firstRunScreen = 'onboarding';
+      obShownAt = Date.now(); obLeft = false; obAt = 0; obPaint();
+    }
+    else { $('signed-out').hidden = true; $('signed-in').hidden = false; }
+  }
+
   async function show(session) {
     currentSession = session;
     // Bind the corpus BEFORE anything reads it. Every path that changes who is
@@ -304,19 +489,25 @@ export function bootShell() {
     catch (_) { /* storage read failed — keep the corpus we are on rather than guess */ }
     $('signed-out').hidden = !!session;
     $('signed-in').hidden = !session;
+    // 首屏三段式（#532）：四个输入 → step()。缺任一设备包时把上面那两行覆盖掉，
+    // 显示屏 2（硬门）。判定本身在 src/app/firstrun.js，这里只落屏。
+    //
+    // **领取额度排在这里、且在首屏判定之前**（2026-10-01 模拟器实测）：
     // 登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
     // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配
     // 引擎也没领额度** —— 我们让他们登了，却没顺手把额度给他们。
-    //
-    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合
-    // 点（见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必
-    // 重新登录一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，
-    // 所以重复调用是幂等的（它同时就是读余额那个调用）。
-    //
-    // 三个闸：没登录不做 · 没有额度这条路不做（中国版 MT_GRANT 恒为 null）·
-    // **已经配好引擎的不做** —— overwrite 传 false，不碰用户自己的 key。
-    // 静默失败：领不到额度不该挡住首页（grant_unavailable 等）。
-    if (session) autoClaimGrant().catch(() => {});
+    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合点
+    // （见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必重新登录
+    // 一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，重复调用幂等
+    // （它同时就是读余额那个调用）。三个闸：没登录不做 · 没有额度这条路不做（中国版
+    // MT_GRANT 恒为 null）· **已经配好引擎的不做**（overwrite 传 false，不碰用户自己的 key）。
+    // 静默失败：领不到额度不该挡住首屏。
+    // 为什么要**等**它（而不是像原来那样 `catch()` 掉不等）：额度令牌晚一步落地，引擎那格
+    // 就还是 false。屏序已经不靠引擎（firstrun.js 的口径），但 `isReady()` 与首页状态要看它 ——
+    // 刚登进来的人否则会被读成「引擎不通」。
+    if (session) { try { await autoClaimGrant(); } catch (_) { /* 领不到不挡首屏 */ } }
+    try { await paintFirstRun(session); } catch (_) {}
+    // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
     // Apple / Google / 邮箱三条路最后都到这儿，只写一处就三条都对。
     try {
@@ -417,13 +608,20 @@ export function bootShell() {
     // 用它会让「已经开好扩展、只是还没抓到卡」的人继续被告知「还没打开」（模拟器实测）。macOS 有真实
     // 状态（`getStateOfSafariExtension`），维持 `browserSideOk` 那一半。
     const ios = !!(state && !state.canOpenPrefs && !state.known);
-    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen') { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    // 首屏让位（#532）：**不看 firstRunScreen，因为它可能还没被算出**（横幅由原生状态
+    // 推送先画，早于 show()）。判据直接读事实：没登录 ⇒ 屏 1（只有登录）；
+    // 已登录但屏 2 在场 ⇒ 资源包。2026-10-01 模拟器实测：不让位时这张横幅把首屏整屏占满。
+    const firstRunActive = !currentSession || firstRunScreen === 'packs';
+    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
     const onboarding = $('onboard') && !$('onboard').hidden;
     // 「继续设置」卡在场时也让路：它继续的那条引导最后一屏就是这件事（首页不挂两张「还差一步」）。
-    const resuming = $('ob-resume') && !$('ob-resume').hidden;
+    // （取法写成局部变量：`$('ob-resume') && !$('ob-resume').hidden` 这种短路判空虽然安全，
+    //  但 test/app-shell-dom.test.js 认不出「它在短路保护里」，会把退役 id 的直接取属性一律拦下。）
+    const resumeCard = $('ob-resume');
+    const resuming = !!resumeCard && !resumeCard.hidden;
     if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
@@ -506,7 +704,11 @@ export function bootShell() {
   function paintSysBanner() {
     if (typeof AppSysBanner === 'undefined') return;
     const ext = $('ext-banner');
-    const away = !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
+    // 首屏三段式（#532）：屏 1 / 屏 2 在场上时，这一张也**不许**在场 —— 三屏是独占的。
+    // 2026-10-01 模拟器实测：屏 2 的截图上方挂着这张（iOS「翻译」App 那三步 +「我已设好」），
+    // 与屏 2 的内容挤在同一页 —— R1b 那次只收掉了 Safari 扩展横幅，漏了这张同族的。
+    const firstRun = firstRunScreen === 'login' || firstRunScreen === 'packs';
+    const away = firstRun || !$('review-view').hidden || !$('app-drive').hidden || !$('app-listen').hidden
       || !$('app-docs').hidden || !$('app-settings').hidden;
     AppSysBanner.paint({
       away,
@@ -817,7 +1019,8 @@ export function bootShell() {
   }
   async function obResumeRetire() {
     obResume = null;
-    $('ob-resume').hidden = true;
+    const card = $('ob-resume');
+    if (card) card.hidden = true;   // #532 之后这张卡不在 DOM 里（同 brew：别在退役元素上无条件访问）
     try {
       await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r));
       await new Promise((r) => chrome.storage.local.remove(OB_RESUME, r));
@@ -826,6 +1029,7 @@ export function bootShell() {
   // 启动时调一次（每次启动至多计一次）。返回卡是否在场。
   async function paintObResume(session) {
     const card = $('ob-resume');
+    if (!card) return false;   // 屏 1 改成「只有登录」后这张卡不再存在（#532）—— 不许在这里抛
     card.hidden = true;
     if (!obResume) return false;
     let needs = true;
@@ -835,26 +1039,40 @@ export function bootShell() {
     obResume = { step: obResume.step, shows: (Number(obResume.shows) || 0) + 1 };
     try { await new Promise((r) => chrome.storage.local.set({ [OB_RESUME]: obResume }, r)); } catch (_) {}
     const at = Math.max(0, OB.indexOf(obResume.step));
-    $('ob-resume-title').textContent = t('ob_resume_title', '继续设置 · 还差 {n} 步').replace('{n}', String(OB.length - at));
-    $('ob-resume-body').textContent = t('ob_resume_body', '从上次停下的那一屏接着来，一两分钟就好。');
-    $('ob-resume-go').textContent = t('ob_resume_go', '从上次停下的地方继续');
-    $('ob-resume-close').setAttribute('aria-label', t('ob_resume_close', '不再提示'));
+    // 卡内文字一律**从 card 往下找**：这些 id 已不在 App 页面源码里（#532 退役），
+    // 用 `$('ob-resume-title')` 这种全局取法会让「元素没了」这件事永远看不见。
+    const put = (sel, text) => { const e = card.querySelector(sel); if (e) e.textContent = text; };
+    put('#ob-resume-title', t('ob_resume_title', '继续设置 · 还差 {n} 步').replace('{n}', String(OB.length - at)));
+    put('#ob-resume-body', t('ob_resume_body', '从上次停下的那一屏接着来，一两分钟就好。'));
+    put('#ob-resume-go', t('ob_resume_go', '从上次停下的地方继续'));
+    const closeBtn = card.querySelector('#ob-resume-close');
+    if (closeBtn) closeBtn.setAttribute('aria-label', t('ob_resume_close', '不再提示'));
     card.hidden = false;
     obResumeTrack('shown');
     paintExtBanner(extState);
     return true;
   }
-  $('ob-resume-go').addEventListener('click', () => {
-    const at = Math.max(0, OB.indexOf(obResume && obResume.step));
-    $('ob-resume').hidden = true;
-    $('signed-out').hidden = true;
-    $('signed-in').hidden = true;
-    $('onboard').hidden = false;
-    paintExtBanner(extState);
-    obShownAt = Date.now(); obLeft = false;
-    obAt = at; obPaint();
-  });
-  $('ob-resume-close').addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
+  // 「继续设置」卡随 #532 退役（屏 1 只剩登录，卡不再有落脚处），但这段监听留在原处 ——
+  // 于是 `$('ob-resume-go')` 为 **null** 时 `.addEventListener` 抛出，**整个壳的启动就此中断**：
+  // 2026-10-01 实测，装机后是一屏奶油色空白（样式在、内容空），console 第一行就是
+  // `Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')`。
+  // 教训与门禁：`test/app-shell-dom.test.js` 现在静态钉住「shell-model 引用的 id 必须在
+  // AppShell.jsx 里存在」—— 这七个（ob-resume 一族 / gear2 / local-note）当时一个都没被拦住，
+  // 因为套件跑在无 DOM 环境里，看不见「元素没了但代码还在引用」。
+  if ($('ob-resume-go') && $('ob-resume-close')) {
+    const resumeGo = $('ob-resume-go');
+    const resumeClose = $('ob-resume-close');
+    resumeGo.addEventListener('click', () => {
+      const at = Math.max(0, OB.indexOf(obResume && obResume.step));
+      $('signed-out').hidden = true;
+      $('signed-in').hidden = true;
+      $('onboard').hidden = false;
+      paintExtBanner(extState);
+      obShownAt = Date.now(); obLeft = false;
+      obAt = at; obPaint();
+    });
+    resumeClose.addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
+  }
 
   // ─── Sign in ──────────────────────────────────────────────────────────────
 
@@ -1426,9 +1644,9 @@ export function bootShell() {
   // be the start of the second implementation §9 exists to prevent.
   // 未登录首页的复习入口走的是同一条路（2026-09-27，Issue #386）：不在这里抄第二份视图切换，
   // 直接点那个真正的按钮 —— 同 AppSysBanner 的做法（见本文件下方 openReview 的桥）。
-  if ($('signed-out-review-btn')) {
-    $('signed-out-review-btn').addEventListener('click', () => { const r = $('review'); if (r) r.click(); });
-  }
+  // （未登录复习入口的监听随该入口一起退役，2026-10-01 #532）
+  // 屏 2 的主按钮：下载 → 重探 → 前进；失败留在原地并说明原因（#532）。
+  if ($('packs-go')) $('packs-go').addEventListener('click', () => { runFirstRunPacks(); });
 
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;
@@ -1603,7 +1821,8 @@ export function bootShell() {
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); } else obFinish();
   });
   $('gear').addEventListener('click', openSettings);
-  $('gear2').addEventListener('click', openSettings);
+  // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
+  // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
   $('settings-back').addEventListener('click', closeSettings);
   // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
   // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
@@ -1842,20 +2061,13 @@ export function bootShell() {
         onboardIntent = (o && o.onboardIntent) || '';
       } catch (_) {}
       // 首次运行且未登录 ⇒ 走引导。已登录的人显然已经过了这一关，别再挡他。
+      // 首屏三段式（#532）：全新安装的第一屏是**屏 1（登录）**，不再是引导 ——
+      // 引导要等「登录 + 两个设备包就绪」之后（`firstrun.step()` 说 'onboarding' 才进）。
+      // 这里只做预读；显隐交给下面的 show() → paintFirstRun()。
       const obState = await new Promise((r) => chrome.storage.local.get([OB_SEEN, OB_RESUME], r)).catch(() => null);
       const seen = !obState || !!obState[OB_SEEN];
       obResume = (!seen && obState && obState[OB_RESUME] && typeof obState[OB_RESUME] === 'object') ? obState[OB_RESUME] : null;
-      // 跳过过的人回来：不重弹整条引导（被跳过的东西再挡一次路是打扰），首页出「继续设置」卡。
-      if (!session && !seen && !obResume) {
-        $('signed-out').hidden = true;
-        $('signed-in').hidden = true;
-        $('onboard').hidden = false;
-        extBannerPrimed = true;
-        paintExtBanner(extState);   // 收掉横幅：引导第 3 屏就是它要说的话
-        obShownAt = Date.now(); obLeft = false;
-        obAt = 0; obPaint();
-        return;
-      }
+      void seen;
       await show(session);
       if (obResume) await paintObResume(session);
       extBannerPrimed = true;

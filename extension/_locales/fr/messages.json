@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "Changer d'adresse e-mail"
   },
-  "app_local_note": {
-    "message": "Facultatif. Tout fonctionne sans connexion — la capture et la révision restent sur cet appareil ; la connexion sert uniquement à synchroniser vos autres appareils."
-  },
   "app_signout": {
     "message": "Se déconnecter"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Activer l'extension dans Safari →"
-  },
-  "app_so_review_title": {
-    "message": "Réviser les phrases enregistrées sur cet appareil"
-  },
-  "app_so_review_due": {
-    "message": "{n} cartes à réviser aujourd’hui"
-  },
-  "app_so_review_total": {
-    "message": "{n} phrases enregistrées"
   },
   "app_ext_done": {
     "message": "Je l'ai activée"
@@ -2866,7 +2854,7 @@
     "message": "Ouvrir la console ↗"
   },
   "grant_cn_why": {
-    "message": "Nous ne distribuons pas encore de crédit ici : cela demande un serveur dans le pays, pas encore prêt."
+    "message": "Nous ne distribuons pas encore de crédit nous-mêmes : cela demande un relais exploité dans le pays, pas encore ouvert."
   },
   "subtitle_source_label": {
     "message": "Sous-titres en direct"
@@ -3725,5 +3713,16 @@
   },
   "learn_group_bye": {
     "message": "Le reste peut attendre — revenez, c’est tout."
-  }
+  },
+  "firstrun_packs_title": { "message": "Téléchargez d'abord les deux packs vocaux" },
+  "firstrun_packs_lede": { "message": "Ensuite, plus rien à configurer : traduction, interprétation, sous-titres et lecture à voix haute fonctionnent tout de suite. L'audio est traité uniquement sur votre appareil." },
+  "firstrun_packs_asr": { "message": "Pack de reconnaissance vocale (interprétation / sous-titres en direct)" },
+  "firstrun_packs_tts": { "message": "Pack de voix haute qualité (lecture / podcast)" },
+  "firstrun_packs_done": { "message": "Prêt" },
+  "firstrun_packs_net": { "message": "Le Wi-Fi est conseillé ; les données mobiles conviennent aussi, à vous de voir." },
+  "firstrun_packs_busy": { "message": "Téléchargement…" },
+  "firstrun_packs_go": { "message": "Télécharger et continuer" },
+  "firstrun_packs_go_tts": { "message": "Prendre seulement le pack vocal et continuer" },
+  "firstrun_packs_err": { "message": "Le téléchargement n'a pas abouti : {why} — vérifiez la connexion et réessayez." },
+  "firstrun_packs_stt_slow": { "message": "Le téléchargement du pack vocal système est bloqué — vérifiez la connexion et réessayez." }
 }

@@ -58,9 +58,9 @@ Node 18+ 自带 fetch / Request / Response / FormData，缺的只有那两个入
 scp supabase/functions/bt-relay/index.ts relay:/opt/bt-relay/index.ts
 
 # /opt/bt-relay/relay.env（权限 600）
-SUPABASE_URL=https://cavezcufztzqsohpjmup.supabase.co    # 账本在东京
-LEDGER_URL=https://cavezcufztzqsohpjmup.supabase.co/functions/v1/bt-grant-ledger
-LEDGER_KEY=<与东京 supabase secret LEDGER_KEY 相同>     # **不放 service_role**，见下
+SUPABASE_URL=https://api.belliedmonkey.com            # **账本与账号同库**（2026-09-22 裁定）：境内那台（#405），不是东京
+LEDGER_URL=https://api.belliedmonkey.com/functions/v1/bt-grant-ledger  # 境内那份窄口（deploy/china/grants.sql 建的表）
+LEDGER_KEY=<境内后端的 LEDGER_KEY>                      # **不放 service_role**，见下
 UPSTREAM=dashscope
 UPSTREAM_KEY=<百炼 key>
 CLAIM_PROXY=1
@@ -92,10 +92,11 @@ node -e "const L=require('./build/providers.config.js');console.log(L.find(p=>p.
 
 ### 为什么中继不拿 service_role（2026-09-22 用户裁定）
 
-service_role 是东京那个库的最高权限。中继只需要「查额度、扣额度」两个动作，所以东京加了一个窄口
+service_role 是那个库的最高权限。中继只需要「查额度、扣额度」两个动作，所以每个部署都加了一个窄口
 `supabase/functions/bt-grant-ledger`：只认一把专用钥匙 `LEDGER_KEY`，只做 `/check` 与 `/charge`，
 单次记账 ≤ $0.05、hash 必须是 64 位 hex。这把钥匙泄露的最坏后果是「某个令牌被多记账、提前用完」，
 读不到任何内容、加不了额度、碰不到别的表。中继设了 `LEDGER_URL` 就走它，不再直连 RPC。
+**境内这套的钥匙是境内后端自己那把**（不是东京那把）—— 账本同库之后，两边各有一份窄口与一把钥匙。
 
 东京那边设钥匙（值取 `.local/keys.md` 的 `ledger_key`，不回显）：
 

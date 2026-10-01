@@ -27,9 +27,10 @@
 // ── 同一份代码的第二个部署：中国版的境内中继（方案 C，learning-design §8.10.1）──
 //
 // 原文只走境内：境内机器上用 Deno 跑**这同一个文件**，上游换成阿里云百炼的兼容模式。
-// 账本仍在东京（SUPABASE_URL 指东京）—— 过境的只有令牌 hash 与每次的花费数字，没有原文。
-// 领取也由它代转（POST /claim → 东京 bt-grant，只带登录令牌），所以中国版产物里一个东京的
-// 额度路径都没有（build/china-gate.js 按这一条验）。部署契约：deploy/china-relay/README.md。
+// **账本与账号同库**（2026-09-22 用户裁定）：`SUPABASE_URL` 指**部署处那台** —— 境内中继部署在
+// 境内时，账本就是境内后端那份（`deploy/china/grants.sql` 建的表）。过境的只有身份，没有原文。
+// 领取也由它代转（POST /claim → `SUPABASE_URL` 的 bt-grant，只带登录令牌），所以中国版产物里
+// 一个东京的额度路径都没有（build/china-gate.js 按这一条验）。部署契约：deploy/china-relay/README.md。
 //
 //   UPSTREAM=dashscope  UPSTREAM_KEY=sk-...  CLAIM_PROXY=1
 //   GRANT_MODELS='{"chat":"<注册表 qwen 的中国区 defaultModel>"}'
@@ -48,6 +49,7 @@ const OR_BASE = IS_OR
   ? (Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1')
   : (Deno.env.get('UPSTREAM_BASE') || 'https://dashscope.aliyuncs.com/compatible-mode/v1');
 // 代转领取（只给境内中继开）。东京那个部署不设它 —— 那里客户端直接打 bt-grant。
+// 代转的目标是 `SUPABASE_URL`（部署处那台）⇒ 境内部署时领取落在**境内**库，账本同库。
 const CLAIM_PROXY = Deno.env.get('CLAIM_PROXY') === '1';
 // 密钥里的 JSON 写错一个字符，模块加载期就抛 —— 整个函数变成一个没有正文的 500，
 // 而 500 不会告诉任何人「你的 GRANT_MODELS 少了个引号」。解析失败要能说出是哪一个。
@@ -79,8 +81,8 @@ async function sha256Hex(s: string) {
 }
 
 // 账本的两种走法。境内中继设 LEDGER_URL + LEDGER_KEY：只经 bt-grant-ledger 那个窄口查 / 扣额度，
-// **不持有 service_role**（那是整个库的最高权限，不出东京这个项目 —— 用户 2026-09-22 裁定）。
-// 东京这个部署不设它，照旧直连 RPC，行为不变。
+// **不持有 service_role**（那是整个库的最高权限 —— 用户 2026-09-22 裁定：中继不拿它）。
+// 东京那个部署不设它，照旧直连 RPC，行为不变。境内部署时 LEDGER_URL 指境内后端的窄口。
 const LEDGER_URL = (Deno.env.get('LEDGER_URL') || '').replace(/\/+$/, '');
 const LEDGER_KEY = Deno.env.get('LEDGER_KEY') || '';
 const LEDGER_PATH: Record<string, string> = { bt_grant_check: '/check', bt_grant_charge: '/charge' };
@@ -155,7 +157,8 @@ serve(async (req) => {
   // 境内部署没有 /functions/v1/bt-relay 这段前缀，替换不命中，路径原样就是后缀。
   const p = url.pathname.replace(/^.*\/bt-relay/, '');
 
-  // 代转领取：原样把登录令牌交给东京的 bt-grant，原样把回答交回去。不看、不存、不改。
+  // 代转领取：原样把登录令牌交给 `SUPABASE_URL` 的 bt-grant（境内部署时就是境内那台，
+  // 账本与账号同库），原样把回答交回去。不看、不存、不改。
   // 过境的是身份（登录本身就已经过境，且有出境单独同意 #399），不是原文。
   if (CLAIM_PROXY && req.method === 'POST' && p === '/claim') {
     try {

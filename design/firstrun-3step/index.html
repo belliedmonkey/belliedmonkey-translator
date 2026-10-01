@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 首屏与首次使用流程</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/firstrun.css">
+<style>
+  .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 26px; }
+  .linkcard { display: block; text-decoration: none; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 20px; transition: border-color .15s, transform .12s, box-shadow .15s; }
+  .linkcard:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+  .linkcard b { display: block; font-size: 17px; margin-bottom: 6px; }
+  .linkcard span { font-size: 13.5px; line-height: 1.6; color: var(--muted); display: block; }
+  .linkcard .go { margin-top: 14px; color: #96531f; font-size: 13.5px; font-weight: 700; }
+  .flowline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 22px; font-size: 13px; }
+  .pill { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-ctl); padding: 8px 14px; font-weight: 700; }
+  .pill.gate { border-color: var(--accent); background: rgba(198,113,57,.08); }
+  .pill.soft { border-color: var(--sage-on); background: rgba(113,129,87,.1); }
+  .arr { color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="canvas" style="max-width:1080px" data-od-id="overview">
+  <div class="canvas-mark">
+    <span class="tile">译</span>
+    <div>
+      <h1 style="font-family:var(--f-display);font-weight:400;font-size:32px;margin:0 0 6px">大肚猴翻译 · 首屏与首次使用流程</h1>
+      <p class="muted" style="margin:0;max-width:66ch;line-height:1.65">交互原型 + 红线规格。三段：屏 1 登录（硬门）→ 屏 2 资源包（硬门，无跳过）→ 屏 3 引导（可跳过）。就绪 = 登录 ∧ 引擎 ∧ 识别语言包 ∧ 朗读包，不含 Safari 扩展。体积与额度为占位数字。</p>
+    </div>
+  </div>
+
+  <div class="flowline">
+    <span class="pill">未登录启动</span><span class="arr">→</span>
+    <span class="pill gate">屏 1 登录 · 硬门</span><span class="arr">→</span>
+    <span class="pill gate">屏 2 资源包 · 硬门 · 无跳过</span><span class="arr">→</span>
+    <span class="pill soft">屏 3 引导 · 可跳过</span><span class="arr">→</span>
+    <span class="pill">首页</span>
+    <span class="arr">｜</span>
+    <span class="pill">已登录 + 已就绪 ⇒ 直进首页</span>
+  </div>
+
+  <div class="cards">
+    <a class="linkcard" href="firstrun-canvas.html" data-od-id="to-canvas">
+      <b>画布 · 每屏每态一板</b>
+      <span>按屏 1 / 屏 2 / 屏 3 / 就绪与首页 / 边界与失败分页，含全部状态、失败与降级路径。</span>
+      <span class="go">打开画布 →</span>
+    </a>
+    <a class="linkcard" href="firstrun-prototype.html" data-od-id="to-prototype">
+      <b>可点击原型 · 走通三段</b>
+      <span>登录（含中国版勾选）→ 资源包（独立进度、蜂窝确认、重试、降级）→ 引导（可跳过）→ 首页两形态 → 补齐屏。</span>
+      <span class="go">打开原型 →</span>
+    </a>
+    <a class="linkcard" href="firstrun-spec.html" data-od-id="to-spec">
+      <b>一页规格 · 红线判据</b>
+      <span>判定顺序与状态机、就绪判据表、端到端路径、失败矩阵、六条红线的「怎么判红」。</span>
+      <span class="go">打开规格 →</span>
+    </a>
+  </div>
+
+  <div class="rule"></div>
+  <p class="muted" style="font-size:13px;margin:0">品牌 token 见 <a class="tab" style="display:inline-block;padding:6px 12px;min-height:0" href="brand-spec.md">brand-spec.md</a>。中文 + 英文文案，12 语种按文案槽位表自落。</p>
+</main>
+</body>
+</html>

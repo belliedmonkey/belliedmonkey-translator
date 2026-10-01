@@ -10,7 +10,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq } = require('./harness');
+const { describe, test, ok, eq, deepEq } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const CFG_PATH = path.join(ROOT, 'extension', 'learn', 'backend.config.js');
@@ -76,10 +76,21 @@ describe('backend.config.js — 境内后端（§C）', () => {
     const P = require('../build/providers.config.js');
     const g = P.find((x) => x.id === 'grant');
     ok(g, 'providers 注册表里没有 grant 那一档');
-    eq(g.defaultEndpoint, B.url + B.grant.relayPath + '/chat/completions',
+    // 2026-10-01 翻转后：中国版那条额度走**境内云函数**，主机名同样只写在 backend.config.js
+    // 一处（grant.china.relayUrl）。所以判据按 flavor 分，两边都从那一处拼出来。
+    const CN = (B.grant.china || {});
+    const cnReady = CN.ready === true && !!CN.relayUrl;
+    const expected = cnReady
+      ? {
+        global: B.url + B.grant.relayPath + '/chat/completions',
+        china: String(CN.relayUrl).replace(/\/+$/, '') + '/chat/completions',
+      }
+      : B.url + B.grant.relayPath + '/chat/completions';
+    deepEq(g.defaultEndpoint, expected,
       '中继地址没有从 backend.config.js 拼出来 —— 那就是第二份主机名，换后端时必漏一处');
     eq(g.grantOnly, true, 'grant 那一档必须 grantOnly（不进任何下拉）');
-    ok(!g.flavors.includes('china'), 'grant 那一档不许进中国版');
+    eq(g.flavors.includes('china'), cnReady,
+      cnReady ? '翻转后 grant 必须进中国版' : '未翻转时不许进中国版');
   });
 
   test('朗读与转写两档同规矩', () => {

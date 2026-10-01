@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "Usar otro correo"
   },
-  "app_local_note": {
-    "message": "Opcional. Todo funciona sin iniciar sesión: la captura y el repaso se quedan en este dispositivo; iniciar sesión solo sirve para sincronizar con tus otros dispositivos."
-  },
   "app_signout": {
     "message": "Cerrar sesión"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Activar la extensión en Safari →"
-  },
-  "app_so_review_title": {
-    "message": "Repasar las frases guardadas en este dispositivo"
-  },
-  "app_so_review_due": {
-    "message": "Hoy tienes {n} tarjetas para repasar"
-  },
-  "app_so_review_total": {
-    "message": "{n} frases guardadas"
   },
   "app_ext_done": {
     "message": "Ya la activé"
@@ -2866,7 +2854,7 @@
     "message": "Abrir la consola ↗"
   },
   "grant_cn_why": {
-    "message": "Aquí todavía no repartimos crédito propio: hace falta un servidor en el país y aún no está listo."
+    "message": "Todavía no repartimos crédito nosotros: eso requiere un relé dentro del país, aún no abierto."
   },
   "subtitle_source_label": {
     "message": "Subtítulos en vivo"
@@ -3725,5 +3713,16 @@
   },
   "learn_group_bye": {
     "message": "El resto puede esperar: basta con que vuelvas."
-  }
+  },
+  "firstrun_packs_title": { "message": "Descarga primero los dos paquetes de voz" },
+  "firstrun_packs_lede": { "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El audio se procesa solo en tu dispositivo." },
+  "firstrun_packs_asr": { "message": "Paquete de reconocimiento (interpretación / subtítulos en vivo)" },
+  "firstrun_packs_tts": { "message": "Paquete de voz de alta calidad (lectura / pódcast)" },
+  "firstrun_packs_done": { "message": "Listo" },
+  "firstrun_packs_net": { "message": "Se recomienda Wi-Fi; con datos móviles también vale, tú decides." },
+  "firstrun_packs_busy": { "message": "Descargando…" },
+  "firstrun_packs_go": { "message": "Descargar y continuar" },
+  "firstrun_packs_go_tts": { "message": "Descargar solo el paquete de voz y continuar" },
+  "firstrun_packs_err": { "message": "La descarga no terminó: {why}: comprueba la conexión y vuelve a tocar." },
+  "firstrun_packs_stt_slow": { "message": "La descarga del paquete de voz del sistema está bloqueada — revisa la conexión e inténtalo de nuevo." }
 }

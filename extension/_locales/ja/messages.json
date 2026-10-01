@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "別のメールアドレスを使う"
   },
-  "app_local_note": {
-    "message": "任意です。サインインしなくても全機能が使えます — 収集と復習は端末内で完結し、サインインは他の端末と同期するためだけのものです。"
-  },
   "app_signout": {
     "message": "ログアウト"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Safari で拡張機能をオンにする →"
-  },
-  "app_so_review_title": {
-    "message": "この端末に保存した文を復習"
-  },
-  "app_so_review_due": {
-    "message": "今日は {n} 枚のカードが復習対象です"
-  },
-  "app_so_review_total": {
-    "message": "{n} 件の文を保存しました"
   },
   "app_ext_done": {
     "message": "オンにしました"
@@ -2866,7 +2854,7 @@
     "message": "コンソールを開く ↗"
   },
   "grant_cn_why": {
-    "message": "こちらで代わりにクレジットを配ることは今はできません。国内のサーバーが必要で、まだ用意できていません。"
+    "message": "無料クレジットの代行提供はまだです。それには国内で中継を動かす必要があり、まだ開通していません。"
   },
   "subtitle_source_label": {
     "message": "ライブ字幕"
@@ -3725,5 +3713,16 @@
   },
   "learn_group_bye": {
     "message": "残りは明日で大丈夫 —— また来てください。"
-  }
+  },
+  "firstrun_packs_title": { "message": "先に音声パックを2つダウンロード" },
+  "firstrun_packs_lede": { "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内だけで処理します。" },
+  "firstrun_packs_asr": { "message": "音声認識パック（通訳 / リアルタイム字幕）" },
+  "firstrun_packs_tts": { "message": "高品質読み上げパック（読み上げ / ポッドキャスト）" },
+  "firstrun_packs_done": { "message": "準備完了" },
+  "firstrun_packs_net": { "message": "Wi-Fi でのダウンロードがおすすめです。モバイル通信でも構いません。" },
+  "firstrun_packs_busy": { "message": "ダウンロード中…" },
+  "firstrun_packs_go": { "message": "ダウンロードして続ける" },
+  "firstrun_packs_go_tts": { "message": "読み上げパックだけ入れて続ける" },
+  "firstrun_packs_err": { "message": "ダウンロードできませんでした：{why} —— 通信を確認してもう一度。" },
+  "firstrun_packs_stt_slow": { "message": "システム音声パックのダウンロードが進みません — 通信を確認して、もう一度。" }
 }

@@ -896,9 +896,6 @@
   "app_back_email": {
     "message": "다른 이메일 사용"
   },
-  "app_local_note": {
-    "message": "선택 사항입니다. 로그인 없이도 모두 사용할 수 있습니다 — 수집과 복습은 이 기기에서 이루어지며, 로그인은 다른 기기와 동기화하기 위한 것일 뿐입니다."
-  },
   "app_signout": {
     "message": "로그아웃"
   },
@@ -1699,15 +1696,6 @@
   },
   "app_ext_open_safari": {
     "message": "Safari에서 확장 프로그램 켜기 →"
-  },
-  "app_so_review_title": {
-    "message": "이 기기에 저장된 문장 복습"
-  },
-  "app_so_review_due": {
-    "message": "오늘 복습할 카드 {n}장"
-  },
-  "app_so_review_total": {
-    "message": "문장 {n}개 저장됨"
   },
   "app_ext_done": {
     "message": "켰어요"
@@ -2866,7 +2854,7 @@
     "message": "콘솔 열기 ↗"
   },
   "grant_cn_why": {
-    "message": "저희가 대신 크레딧을 드리는 건 아직 안 됩니다. 국내 서버가 필요한데 준비되지 않았습니다."
+    "message": "무료 크레딧 대행 제공은 아직입니다. 그러려면 국내에서 중계를 돌려야 하는데, 아직 열지 않았습니다."
   },
   "subtitle_source_label": {
     "message": "실시간 자막"
@@ -3725,5 +3713,16 @@
   },
   "learn_group_bye": {
     "message": "나머지는 내일도 괜찮아요 —— 다시 오기만 하면 돼요."
-  }
+  },
+  "firstrun_packs_title": { "message": "음성 팩 두 개를 먼저 받아 두세요" },
+  "firstrun_packs_lede": { "message": "이것만 받아 두면 이후에는 아무 설정도 필요 없습니다 — 번역, 통역, 자막, 읽어주기가 바로 됩니다. 음성은 기기 안에서만 처리됩니다." },
+  "firstrun_packs_asr": { "message": "음성 인식 팩(통역 / 실시간 자막)" },
+  "firstrun_packs_tts": { "message": "고품질 읽어주기 팩(읽어주기 / 팟캐스트)" },
+  "firstrun_packs_done": { "message": "준비됨" },
+  "firstrun_packs_net": { "message": "Wi-Fi로 받는 걸 권합니다. 셀룰러도 괜찮습니다 — 선택은 본인입니다." },
+  "firstrun_packs_busy": { "message": "내려받는 중…" },
+  "firstrun_packs_go": { "message": "내려받고 계속" },
+  "firstrun_packs_go_tts": { "message": "읽어주기 팩만 받고 계속" },
+  "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." },
+  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." }
 }

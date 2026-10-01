@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 首屏流程 可点击原型</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/firstrun.css">
+<style>
+  #flow .scr { overflow-y: auto; }
+  .toast { position: absolute; left: 20px; right: 20px; bottom: 96px; background: var(--fg); color: #fff; border-radius: var(--r-ctl); padding: 10px 14px; font-size: 13px; font-weight: 600; display: flex; gap: 8px; align-items: center; animation: rise .25s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+  .idx { display: flex; flex-wrap: wrap; gap: 6px; }
+  .idx button { border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-ctl); padding: 7px 12px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; min-height: 40px; }
+  .idx button:hover { border-color: var(--accent); color: var(--fg); }
+  .idx button[aria-current="true"] { background: var(--accent-press); border-color: var(--accent-press); color: #fff; }
+  .dash { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: var(--danger); }
+</style>
+</head>
+<body>
+<main class="proto" data-od-id="proto">
+  <header style="margin-bottom:22px">
+    <div class="canvas-mark">
+      <span class="tile">译</span>
+      <div>
+        <h1 style="font-family:var(--f-display);font-weight:400;font-size:26px;margin:0">可点击原型 · 首屏三段</h1>
+        <p class="sub" style="margin:4px 0 0;color:var(--muted);font-size:14px;line-height:1.6;max-width:64ch">从冷启动走通：屏 1 登录（硬门）→ 屏 2 资源包（硬门，无跳过）→ 屏 3 引导（可跳过）→ 首页。老用户已登录且已就绪时直进首页。体积与额度为占位数字。</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="proto-grid">
+    <div>
+      <div class="phone" id="flow" data-od-id="proto-phone"></div>
+      <p class="legend" style="text-align:center;margin-top:12px">iPhone · 390 × 800 · 中国版（可勾选出境同意）</p>
+    </div>
+
+    <aside class="inspector" data-od-id="proto-inspector">
+      <h2 id="i-name">S1 登录</h2>
+      <p id="i-guard" class="mono" style="display:inline-block;background:rgba(32,30,29,.06);padding:3px 8px;border-radius:6px;font-size:12.5px">!isLoggedIn</p>
+      <div class="lbl">这一屏要证明什么</div>
+      <p id="i-body"></p>
+      <div class="lbl">出口</div>
+      <p id="i-exit"></p>
+      <div class="lbl">红线判据</div>
+      <p id="i-rule"></p>
+      <div class="lbl">演示直达（评审用，非产品界面）</div>
+      <div class="idx" id="idx"></div>
+    </aside>
+  </div>
+</main>
+
+<script src="assets/boards.js"></script>
+<script>
+/* ---------- 状态与判据 ---------- */
+const INFO = {
+  login:      { n: 'S1 登录 · 默认',        g: '!isLoggedIn',                  b: '未登录首屏只有登录：品牌 + 一句话 + Apple/Google/邮箱。没有设置、没有功能入口、没有复习入口。免费额度作为告知出现，不问不勾。', e: '成功 → 额度到账过渡；失败/取消/Apple 不可用 → 留在屏 1 内的对应态', r: '红线 1：可点击元素 ⊆ {Apple, Google, 邮箱}，实心按钮 == 1。' },
+  loading:    { n: 'S1 登录中',             g: 'auth.inFlight',                b: '按钮内联 spinner，其余入口置灰但不移除。', e: '成功 → granted；超时 → errNet', r: '屏内不得出现第二个实心按钮。' },
+  errNet:     { n: 'S1 失败 · 网络',        g: 'auth.error = network',         b: '只说明「什么都没变」，避免用户以为额度或包被扣。', e: '重试 → loading', r: '失败说明必须含「未发生什么变化」。' },
+  errCancel:  { n: 'S1 失败 · 用户取消',     g: 'auth.cancelled',               b: '取消是中性态，用灰底说明而不是红色报错。', e: '重新登录 / 改邮箱', r: '取消不得使用 danger 色。' },
+  noApple:    { n: 'S1 Apple 不可用',        g: '!appleSignInAvailable',        b: '降级：只留邮箱，实心按钮也换成邮箱，不留点不动的空位。', e: '邮箱 → email', r: '降级后实心按钮仍为 1 个。' },
+  cn:         { n: 'S1 中国版 · 出境同意',   g: 'flavor = cn',                  b: '未勾选时唯一实心按钮不可用（全设计唯一允许降对比的状态）；勾选后即时可点。', e: '勾选 → 登录', r: '红线 4：cn 与 intl 的屏序、文案、按钮顺序逐条同构。' },
+  email:      { n: 'S1 邮箱 · 输入',         g: 'auth.method = email',          b: '邮箱与第三方登录同级，不折叠进「更多」。', e: '发送验证码 → emailCode', r: '红线 1：邮箱也是登录方式之一，仍只允许一个实心按钮。' },
+  emailCode:  { n: 'S1 邮箱 · 验证码',       g: 'code.sent',                    b: '重发 60 秒冷却、连错 5 次等待 15 分钟，避免无限重试。', e: '验证 → granted', r: '—' },
+  granted:    { n: 'S1 成功过渡 · 额度到账', g: 'auth.ok && quota.granted',      b: '同时交代：额度到账了、接下来要下包。额度数字为占位。', e: '自动 → packsStart', r: '红线 5：不得出现「不登录也能完整使用」一类表述。' },
+  packsStart: { n: 'S2 资源包 · 进入',       g: 'loggedIn && (!asr || !tts)',    b: '识别语言包 + 高质量朗读包。包名与用途一句话、体积、独立进度、总进度、网络前提。', e: '开始下载 → packsDl', r: '红线 2：本屏不得出现任何跳过出口。' },
+  packsDl:    { n: 'S2 资源包 · 下载中',     g: 'downloading',                  b: '两包各自独立进度 + 一个总进度；网络方式由用户决定。离开 App 继续下载。', e: '完成 → done；断网 → offline', r: '红线 3：完成的判据是引擎 + 识别包 + 朗读包。' },
+  cell:       { n: 'S2 蜂窝确认',            g: 'network.requested = cellular', b: '切到蜂窝时先问：剩余体积 + 费用提示 + 断点续传说明。', e: '继续 → packsDl；等 Wi‑Fi → packsDl(wifi)', r: 'sheet 里的实心按钮与屏内合计仍为 1 个（sheet 覆盖态）。' },
+  partial:    { n: 'S2 部分成功',            g: 'tts.done && !asr.done',         b: '朗读成功 / 识别失败。重试只针对失败的那个包。', e: '重试识别包 → retry', r: '红线 2：部分成功也不给跳过，只能重试或换网络。' },
+  retry:      { n: 'S2 重试中',              g: 'retry.inFlight',               b: '断点续传，文案必须说明「已下载部分不重下」。', e: '成功 → done / partial', r: '连续 3 次失败必须停下并给两个出口。' },
+  offline:    { n: 'S2 失败 · 离线',         g: '!online',                      b: '两个包标「等待网络」而不是红色失败：没网不是用户的错。进度保留。', e: '重试 → retry', r: '失败屏只有一个实心按钮，且是「让这件事继续」的那一个。' },
+  space:      { n: 'S2 失败 · 空间不足',      g: 'freeSpace < required',         b: '所需 / 当前可用 / 建议清理三个数字（占位）。', e: '重新检测 → packsStart', r: '不得提供「忽略并继续」。' },
+  unsupported:{ n: 'S2 失败 · 系统不支持识别', g: '!systemASR(lang)',             b: '归因到系统语言包，我们无法补。这是唯一允许绕过屏 2 的情形。', e: '只装朗读包 → degrade', r: '红线 3：降级不等于就绪，首页必须是未就绪形态。' },
+  degrade:    { n: 'S2 降级完成',            g: 'degraded(ttsOnly)',            b: '说清两件事：哪几件暂时用不了、怎么补（一步系统操作）。', e: '进入首页 → homeNotReady', r: '不可用清单必须逐件列出，不许只写一句「部分功能受限」。' },
+  done:       { n: 'S2 全部完成',            g: 'asr && tts && engine',         b: '完成的判据在此落定；Safari 扩展明确写成不在判据内。', e: '自动 → onb1', r: '红线 3：完成摘要不得把扩展列为条件。' },
+  onb1:       { n: 'S3 引导 · 欢迎',         g: 'ready && !onboardingSeen',      b: '复用现有引导第一步。右上角常驻「跳过引导」。', e: '下一步 → onb2；跳过 → homeReady', r: '红线 2：屏 3 必须有跳过，且跳过不落阻塞态。' },
+  onb2:       { n: 'S3 引导 · 试一句',       g: 'onboarding.step = 2',          b: '一句真实语料 + 朗读试听，顺带证明朗读包可用。', e: '下一步 → onb3；跳过 → homeReady', r: '跳过不写「稍后」这类含糊词。' },
+  onb3:       { n: 'S3 引导 · 打开扩展',      g: 'onboarding.step = 3',          b: '扩展属于屏 3 的引导，不是就绪条件；文案明说「不开也能用」。', e: '完成 / 以后再说 → homeReady', r: '红线 3：扩展开关不得进入就绪函数。' },
+  homeReady:  { n: '首页 · 就绪',            g: 'ready',                        b: '全部能力按判据亮起，主行动是「开始复习」。', e: '重看引导 → onb1', r: '红线 6：整屏实心按钮 1 个。' },
+  homeNotReady:{ n: '首页 · 未就绪',          g: '!ready',                       b: '不空转：可用功能照常可用，缺的那件给原因与去处。', e: '去补齐 → topup', r: '未就绪时仍不得出现空壳首页。' },
+  topup:      { n: '老用户 · 补齐屏',        g: 'loggedIn && engine && (!asr || !tts)', b: '已登录 + 缺包 ⇒ 只有这一屏，不重走三段、不重新登录。', e: '补齐 → homeReady；先回首页 → homeNotReady', r: '补齐屏不得出现登录或引导的任何一步。' },
+  straight:   { n: '老用户 · 直进首页',       g: 'loggedIn && engine && asr && tts', b: '不出现任何一屏，冷启动直接构造首页；屏 3 也不重放。', e: '—', r: '红线 3 + 屏 2 不可达性测试。' }
+};
+
+/* ---------- 状态 ---------- */
+const S = { route: 'login', cn: false, email: '', asr: 0, tts: 0, net: 'wifi', timer: null, seen: false, toast: '' };
+
+const wrap = (inner) => `${sb()}<div class="scr">${inner}</div>`;
+const foot = (inner) => `<div class="scr-bottom">${inner}</div>`;
+const headRow = (chip, right) => `<div class="row-between" style="margin-bottom:2px">${chip}<span class="small muted">${right}</span></div>`;
+const totalBar = (p) => `<div class="total"><span>总进度</span><b>${p}%</b></div><div class="bar" style="height:10px"><i style="width:${p}%"></i></div>`;
+
+/* ---------- 各屏 ---------- */
+const VIEWS = {
+  login: () => wrap(`
+    <div class="pad" style="padding-top:34px">
+      <div class="brandline"><span class="tile">译</span><span class="strong">大肚猴翻译</span></div>
+      ${S.cn ? '<span class="chip chip-run" style="margin-top:14px">中国版</span>' : ''}
+      <h2 class="t">登录后开始</h2>
+      <p class="en">Sign in to begin</p>
+      <p class="p mt">登录即获得一份免费额度，翻译、朗读、听写都能用。语音识别与朗读包随后下载到本机，<strong>音频不出设备</strong>。</p>
+      <div class="note note--mute mt">${ico('spark')}<span>免费额度自动到账，不需要填写任何信息。</span></div>
+      ${S.cn ? `<div class="checkline ${S.consent ? 'on' : ''} mt" data-act="consent">
+        <span class="box">${S.consent ? ico('check', '') : ''}</span>
+        <span class="t">我同意把待翻译文本发送至境外服务处理<small>免费额度经我们的中继转发；识别与朗读仍在本机完成。</small></span></div>` : ''}
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="apple" ${S.cn && !S.consent ? 'disabled' : ''}>${LOGO_APPLE}使用 Apple 继续</button>
+      <button class="btn btn--ghost" data-act="google">${LOGO_GOOGLE}使用 Google 继续</button>
+      <button class="btn btn--ghost" data-act="email">${ico('mail')}使用邮箱登录</button>
+    </div>
+    <p class="en center" style="margin:12px 0 0">浏览器扩展免登录、可自带 API Key；App 需要登录。</p>`)}`),
+
+  loading: () => wrap(`
+    <div class="pad" style="padding-top:34px">
+      <div class="brandline"><span class="tile">译</span><span class="strong">大肚猴翻译</span></div>
+      <h2 class="t">登录后开始</h2>
+      <div class="note note--info mt">${ico('shield')}<span>正在建立安全会话，音频仍留在本机。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" disabled><span class="spinner"></span>正在通过 Apple 登录…</button>
+      <button class="btn btn--ghost" disabled>${LOGO_GOOGLE}使用 Google 继续</button>
+      <button class="btn btn--ghost" disabled>${ico('mail')}使用邮箱登录</button>
+    </div>`)}`),
+
+  errNet: () => wrap(`
+    <div class="pad" style="padding-top:34px">
+      <div class="brandline"><span class="tile">译</span><span class="strong">大肚猴翻译</span></div>
+      <h2 class="t">登录后开始</h2>
+      <div class="note note--err mt">${ico('alert')}<span><b>网络连接失败。</b>没有连上登录服务，你的额度与设置都没变。检查网络后重试。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="retry-auth">${ico('refresh')}重试</button>
+      <button class="btn btn--ghost" data-act="email">使用邮箱登录</button>
+    </div>`)}`),
+
+  errCancel: () => wrap(`
+    <div class="pad" style="padding-top:34px">
+      <div class="brandline"><span class="tile">译</span><span class="strong">大肚猴翻译</span></div>
+      <h2 class="t">登录后开始</h2>
+      <div class="note note--mute mt">${ico('info')}<span>你取消了 Apple 登录。没有创建账号，也没有扣任何额度。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="apple">${LOGO_APPLE}重新使用 Apple 登录</button>
+      <button class="btn btn--ghost" data-act="email">${ico('mail')}改用邮箱登录</button>
+    </div>`)}`),
+
+  noApple: () => wrap(`
+    <div class="pad" style="padding-top:34px">
+      <div class="brandline"><span class="tile">译</span><span class="strong">大肚猴翻译</span></div>
+      <h2 class="t">用邮箱登录</h2>
+      <p class="p mt">这台设备上 Apple 登录不可用（未登录 iCloud 或系统版本过低），已只保留邮箱方式。</p>
+      <div class="note note--mute mt">${ico('info')}<span>换一台登录了 iCloud 的设备，Apple 方式会重新出现。</span></div>
+    </div>
+    ${foot(`<div class="stack"><button class="btn btn--primary" data-act="email">${ico('mail')}使用邮箱登录</button></div>`)}`),
+
+  email: () => wrap(`
+    <div class="pad" style="padding-top:20px">
+      <div class="row-between"><button class="link" style="color:var(--muted)" data-act="back-login">${ico('chevR', '').replace('M9.5 5.5l6.5 6.5-6.5 6.5', 'M14.5 5.5L8 12l6.5 6.5')}返回</button><h3 class="t" style="margin:0">邮箱登录</h3><span style="width:34px"></span></div>
+      <h2 class="t">输入邮箱</h2>
+      <p class="p mt">我们会把一次性验证码发到这个邮箱。</p>
+      <div class="field mt" contenteditable="true" spellcheck="false" data-act="mailfield">name@example.com</div>
+      <p class="en" style="margin-top:8px">演示占位邮箱，不代表真实账号。</p>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="send-code">发送验证码</button>`)}`),
+
+  emailCode: () => wrap(`
+    <div class="pad" style="padding-top:20px">
+      <div class="row-between"><button class="link" style="color:var(--muted)" data-act="back-login">${ico('chevR', '').replace('M9.5 5.5l6.5 6.5-6.5 6.5', 'M14.5 5.5L8 12l6.5 6.5')}返回</button><h3 class="t" style="margin:0">邮箱登录</h3><span style="width:34px"></span></div>
+      <h2 class="t">输入验证码</h2>
+      <p class="p mt">已发送至 <strong>name@example.com</strong>（占位）</p>
+      <div class="row mt" style="gap:8px">${[1,2,3,4,5,6].map(i => `<span class="grow center strong" style="border:1.5px solid ${i < 4 ? 'var(--accent)' : 'var(--border)'};border-radius:8px;padding:12px 0;background:var(--surface)">${i < 4 ? '•' : ''}</span>`).join('')}</div>
+      <div class="note note--info mt">${ico('clock')}<span>没收到？60 秒后可重发。连续输错 5 次需等待 15 分钟。</span></div>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="verify">登录并开通免费额度</button>`)}`),
+
+  granted: () => wrap(`
+    <div class="pad center" style="padding-top:80px">
+      <span class="tile" style="margin:0 auto;width:56px;height:56px;display:grid;place-items:center">${ico('check', 'ico-l')}</span>
+      <h2 class="t">登录成功</h2><p class="p">免费额度已到账。</p>
+      <div class="card mt" style="text-align:left">
+        <div class="kv"><span class="k">额度</span><span class="v">翻译 / 朗读 / 听写 各 000 次（占位）</span></div>
+        <div class="kv"><span class="k">有效期</span><span class="v">登录后 30 天（占位）</span></div>
+        <div class="kv"><span class="k">来源</span><span class="v">${S.cn ? '中国版 · 境内中继 · 通义千问' : '国际版 · 免费额度'}</span></div>
+      </div>
+      <div class="note note--ok mt">${ico('arrowR')}<span>下一步：下载识别与朗读包（必做，一次性）。</span></div>
+    </div>
+    ${foot(`<div class="strobe center" style="justify-content:center"><span class="spinner spinner--ink"></span><span class="small muted">正在前往资源包…</span></div>`)}`),
+
+  packsStart: () => wrap(`
+    ${steps('on', '', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">下载本机语音包</h2>
+      <p class="p">识别与朗读都在你的设备上完成，音频不出设备。这一步需要一次，不做就用不了听译与朗读。</p>
+      <div class="card mt">
+        ${pkgRow({ tone: 'idle', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕、语音输入', chip: '<span class="chip chip-wait">待下载</span>', sub: MB })}
+        ${pkgRow({ tone: 'idle', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式、发音示范', chip: '<span class="chip chip-wait">待下载</span>', sub: MB })}
+      </div>
+      <div class="note note--mute mt">${ico('wifi')}<span>当前网络：<strong>${S.net === 'wifi' ? 'Wi‑Fi' : '蜂窝数据'}</strong>。可随时切换。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="start-dl">开始下载</button>
+      <button class="btn btn--quiet" data-act="pick-lang">更换识别语言</button>
+    </div>`)}`),
+
+  packsDl: () => {
+    const total = Math.round((S.asr + S.tts) / 2);
+    return wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <div class="row-between"><h2 class="t" style="margin:0">正在下载</h2><span class="small muted tnum">0.0 / 000 MB</span></div>
+      <div class="card mt">
+        ${pkgRow({ tone: S.asr >= 100 ? 'ok' : 'run', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕、语音输入', chip: S.asr >= 100 ? '<span class="chip chip-ok">已完成</span>' : `<span class="chip chip-run">${S.asr}%</span>`, bar: true, pct: S.asr, barTone: S.asr >= 100 ? 'ok' : 'thin' })}
+        ${pkgRow({ tone: S.tts >= 100 ? 'ok' : 'run', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式、发音示范', chip: S.tts >= 100 ? '<span class="chip chip-ok">已完成</span>' : `<span class="chip chip-run">${S.tts}%</span>`, bar: true, pct: S.tts, barTone: S.tts >= 100 ? 'ok' : 'thin' })}
+      </div>
+      <div class="hr"></div>
+      ${totalBar(total)}
+      <div class="seg mt">
+        <button aria-pressed="${S.net === 'wifi'}" data-act="net-wifi">${ico('wifi')} Wi‑Fi</button>
+        <button aria-pressed="${S.net === 'cell'}" data-act="net-cell">${ico('cell')} 蜂窝数据</button>
+      </div>
+      <p class="en" style="margin-top:8px">离开 App 也会继续下载，回到 App 自动续传。</p>
+    </div>
+    ${foot(`<button class="btn btn--quiet" data-act="bg">隐藏到后台继续下载</button>`)}`);
+  },
+
+  cell: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px;filter:blur(1.5px);opacity:.55">
+      <h2 class="t">正在下载</h2>
+      <div class="card mt">${pkgRow({ tone: 'run', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕', chip: `<span class="chip chip-run">${S.asr}%</span>`, bar: true, pct: S.asr })}</div>
+    </div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <h3 class="t">用蜂窝数据继续？</h3>
+      <p class="p mt">还剩 <strong>000 MB（占位）</strong>，按你的套餐可能产生流量费用。断点续传，不会重复下载。</p>
+      <div class="note note--mute mt">${ico('wifi')}<span>等待 Wi‑Fi 也可以：连上 Wi‑Fi 后自动继续。</span></div>
+      <div class="stack mt">
+        <button class="btn btn--primary" data-act="cell-go">用蜂窝数据继续</button>
+        <button class="btn btn--ghost" data-act="cell-wait">等 Wi‑Fi</button>
+      </div>
+    </div>`),
+
+  partial: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">一个包完成了，另一个没成</h2>
+      <p class="p">朗读包已装好，可以先开始读。识别包还差一步。</p>
+      <div class="card mt">
+        ${pkgRow({ tone: 'ok', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式、发音示范', chip: '<span class="chip chip-ok">已完成</span>', bar: true, pct: 100, barTone: 'ok' })}
+        ${pkgRow({ tone: 'err', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕、语音输入', chip: '<span class="chip chip-err">失败</span>', sub: '<span class="danger">网络中断，进度保留在 68%</span>' })}
+      </div>
+      <div class="note note--err mt">${ico('alert')}<span>重试只需要识别包；朗读包不会重下。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="retry-asr">${ico('refresh')}重试识别包</button>
+      <button class="btn btn--ghost" data-act="later">稍后再说</button>
+    </div>`)}`),
+
+  retry: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">正在重试</h2>
+      <p class="p">朗读包中断了，我们从断点继续，已下载的部分不重下。</p>
+      <div class="card mt">
+        ${pkgRow({ tone: 'run', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕', chip: '<span class="chip chip-run">${S.asr}%</span>', bar: true, pct: S.asr, barTone: 'thin' })}
+        ${pkgRow({ tone: 'run', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式', chip: '<span class="chip chip-run">第 2 次尝试 · 12%</span>', bar: true, pct: 12, barTone: 'thin' })}
+      </div>
+      <div class="note note--info mt">${ico('info')}<span>连续 3 次失败会停在这一屏，让你选网络或稍后再试。</span></div>
+    </div>
+    ${foot(`<div class="strobe center" style="justify-content:center"><span class="spinner spinner--ink"></span><span class="small muted">自动重试中…</span></div>`)}`),
+
+  offline: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">下载没完成</h2>
+      <div class="note note--err mt">${ico('alert')}<span><b>设备当前离线。</b>两个包都没有完成，进度已保留。</span></div>
+      <div class="card mt">
+        ${pkgRow({ tone: 'idle', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕', chip: '<span class="chip chip-wait">等待网络</span>', bar: true, pct: S.asr, barTone: 'thin' })}
+        ${pkgRow({ tone: 'idle', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式', chip: '<span class="chip chip-wait">等待网络</span>', bar: true, pct: S.tts, barTone: 'thin' })}
+      </div>
+      <p class="p mt">连上网后会自动继续，也可以立刻手动重试。</p>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="retry-dl">${ico('refresh')}重试下载</button>
+      <button class="btn btn--ghost" data-act="open-settings">打开网络设置</button>
+    </div>`)}`),
+
+  space: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">空间不够</h2>
+      <div class="note note--err mt">${ico('alert')}<span><b>还差 000 MB（占位）。</b>设备可用空间不足，两个包都没有开始写入。</span></div>
+      <div class="card mt">
+        <div class="kv"><span class="k">识别语言包需要</span><span class="v">000 MB（占位）</span></div>
+        <div class="kv"><span class="k">朗读包需要</span><span class="v">000 MB（占位）</span></div>
+        <div class="kv"><span class="k">设备当前可用</span><span class="v danger">000 MB（占位）</span></div>
+        <div class="kv"><span class="k">建议清理到</span><span class="v">000 MB（占位）</span></div>
+      </div>
+      <p class="p mt">清理后可继续。已下载部分不会浪费。</p>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="recheck-space">重新检测空间</button>
+      <button class="btn btn--ghost" data-act="open-settings">去系统设置清理</button>
+    </div>`)}`),
+
+  unsupported: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">这个语言暂不支持识别</h2>
+      <div class="note note--err mt">${ico('alert')}<span><b>系统没有「冰岛语」的语音识别包。</b>离线识别在系统层不可用，我们无法补上。</span></div>
+      <div class="card mt">
+        ${pkgRow({ tone: 'err', icon: 'mic', name: '识别语言包 · 冰岛语', use: '对话实时听译、实时字幕', chip: '<span class="chip chip-err">系统不支持</span>' })}
+        ${pkgRow({ tone: 'run', icon: 'wave', name: '高质量朗读包 · 冰岛语', use: '朗读、播客模式、发音示范', chip: '<span class="chip chip-run">下载中 40%</span>', bar: true, pct: 40, barTone: 'thin' })}
+      </div>
+      <div class="note note--info mt">${ico('info')}<span>建议：先用朗读包；识别换成系统支持的语种，或改用云端识别（自备 Key）。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="degrade-go">只装朗读包，继续</button>
+      <button class="btn btn--ghost" data-act="pick-lang">换一个识别语种</button>
+    </div>`)}`),
+
+  degrade: () => wrap(`
+    ${steps('done', 'on', '')}
+    <div class="pad" style="padding-top:6px">
+      <h2 class="t">已降级：先给你能用的</h2>
+      <p class="p">朗读包已装好。下面几件暂时用不了，其余功能不受影响。</p>
+      <div class="card mt">
+        <div class="row-between" style="padding:8px 0"><span class="row">${ico('check', 'ico-l')}<span class="pkg-name">朗读、播客模式</span></span><span class="chip chip-ok">可用</span></div>
+        <div class="hr" style="margin:6px 0"></div>
+        <div class="row-between" style="padding:8px 0"><span class="row muted">${ico('x', 'ico-l')}<span class="pkg-name muted">对话实时听译</span></span><span class="chip chip-off">暂不可用</span></div>
+        <div class="row-between" style="padding:8px 0"><span class="row muted">${ico('x', 'ico-l')}<span class="pkg-name muted">实时字幕</span></span><span class="chip chip-off">暂不可用</span></div>
+        <div class="row-between" style="padding:8px 0"><span class="row muted">${ico('x', 'ico-l')}<span class="pkg-name muted">语音输入</span></span><span class="chip chip-off">暂不可用</span></div>
+        <div class="row-between" style="padding:8px 0"><span class="row">${ico('check', 'ico-l')}<span class="pkg-name">复习卡片、翻译文档</span></span><span class="chip chip-ok">可用</span></div>
+      </div>
+      <div class="note note--info mt">${ico('folder')}<span><b>怎么补：</b>iOS 设置 → 通用 → 语言与地区 → 添加「冰岛语」，装好语音识别包后回到这里点补齐。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="home-notready">进入首页</button>
+      <button class="btn btn--ghost" data-act="open-settings">去系统设置添加语言</button>
+    </div>`)}`),
+
+  done: () => wrap(`
+    ${steps('done', 'done', 'on')}
+    <div class="pad center" style="padding-top:56px">
+      <span class="tile" style="margin:0 auto;width:56px;height:56px;display:grid;place-items:center">${ico('check', 'ico-l')}</span>
+      <h2 class="t">都装好了</h2>
+      <p class="p">引擎、识别包、朗读包齐了，全部功能可用。</p>
+      <div class="card mt" style="text-align:left">
+        <div class="kv"><span class="k">引擎</span><span class="v sage">已连通 · 免费额度</span></div>
+        <div class="kv"><span class="k">识别语言包</span><span class="v sage">英语（美国）</span></div>
+        <div class="kv"><span class="k">朗读包</span><span class="v sage">英语 · 高质量</span></div>
+        <div class="kv"><span class="k">Safari 扩展</span><span class="v na">不在就绪判据内</span></div>
+      </div>
+      <div class="note note--ok mt">${ico('arrowR')}<span>下一步是引导，不做也不影响使用。</span></div>
+    </div>
+    ${foot(`<div class="strobe center" style="justify-content:center"><span class="spinner spinner--ink"></span><span class="small muted">正在前往引导…</span></div>`)}`),
+
+  onb1: () => wrap(`
+    ${steps('done', 'done', 'on')}
+    <div class="pad" style="padding-top:6px">
+      ${headRow('<span class="chip chip-ok">就绪</span>', '<button class="link" data-act="skip">跳过引导</button>')}
+      <h2 class="t" style="margin-top:14px">欢迎</h2>
+      <p class="p mt">你在网页上读过的那些句子，我们记下来了。它们会变成卡片等你来复习。</p>
+      <div class="card mt">
+        <div class="row" style="padding:9px 0">${ico('eye', 'ico-l')}<span class="grow pkg-name">读网页时，扩展悄悄收下你停留最久的句子</span></div>
+        <div class="row" style="padding:9px 0">${ico('card', 'ico-l')}<span class="grow pkg-name">App 里变成卡片，随时复习</span></div>
+        <div class="row" style="padding:9px 0">${ico('wave', 'ico-l')}<span class="grow pkg-name">听译与朗读都在本机跑，音频不出设备</span></div>
+      </div>
+      <div class="dots mt-lg"><i class="on"></i><i></i><i></i></div>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="next">下一步</button>`)}`),
+
+  onb2: () => wrap(`
+    ${steps('done', 'done', 'on')}
+    <div class="pad" style="padding-top:6px">
+      ${headRow('<span class="chip chip-ok">就绪</span>', '<button class="link" data-act="skip">跳过引导</button>')}
+      <h2 class="t" style="margin-top:14px">试一句</h2>
+      <p class="p">这是你今天读到的一句话，点一下听听看。</p>
+      <div class="card mt">
+        <p class="p" style="color:var(--fg);font-size:15px;margin:0">The best way out is always through.</p>
+        <p class="en" style="margin:6px 0 12px">走出困境最好的办法，永远是穿过去。</p>
+        <div class="row"><button class="btn btn--ghost btn--sm" data-act="play">${ico('wave', 'ico-l')}听英语</button><button class="btn btn--sm btn--quiet">看译文</button></div>
+      </div>
+      <div class="note note--mute mt">${ico('lock')}<span>朗读用的是刚下好的高质量朗读包。</span></div>
+      <div class="dots mt-lg"><i style="background:var(--sage-on)"></i><i class="on"></i><i></i></div>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="next">下一步</button>`)}`),
+
+  onb3: () => wrap(`
+    ${steps('done', 'done', 'on')}
+    <div class="pad" style="padding-top:6px">
+      ${headRow('<span class="chip chip-ok">就绪</span>', '<button class="link" data-act="skip">跳过引导</button>')}
+      <h2 class="t" style="margin-top:14px">把 Safari 扩展打开</h2>
+      <p class="p">扩展负责在网页上做双语翻译，并把句子送进你的卡片。<strong>不开也能用</strong>：复习、文档翻译、听译、朗读都不依赖它。</p>
+      <div class="card mt">
+        <div class="row" style="padding:8px 0"><span class="abn" style="background:rgba(32,30,29,.06)">1</span><span class="grow pkg-name">设置 → Safari → 扩展</span></div>
+        <div class="row" style="padding:8px 0"><span class="abn" style="background:rgba(32,30,29,.06)">2</span><span class="grow pkg-name">打开「大肚猴翻译」</span></div>
+        <div class="row" style="padding:8px 0"><span class="abn" style="background:rgba(32,30,29,.06)">3</span><span class="grow pkg-name">在网页上点一下扩展图标</span></div>
+      </div>
+      <div class="dots mt-lg"><i style="background:var(--sage-on)"></i><i style="background:var(--sage-on)"></i><i class="on"></i></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="next">完成</button>
+      <button class="btn btn--quiet" data-act="skip">以后再说</button>
+    </div>`)}`),
+
+  homeReady: () => wrap(`
+    <div class="pad" style="padding-top:12px">
+      <div class="row-between">
+        <span class="row"><span class="tile tile-ghost" style="width:32px;height:32px;font-size:15px">译</span><span class="strong">大肚猴翻译</span></span>
+        <span class="chip chip-ok">就绪</span>
+      </div>
+      <h2 class="t" style="margin-top:16px">今天读 12 张</h2>
+      <p class="p">从你在网页上停下来读完的句子里挑的。</p>
+      <div class="card mt">
+        <div class="row-between" style="padding:6px 0"><span class="row">${ico('card', 'ico-l')}<span class="pkg-name">今日复习</span></span><span class="small muted">约 6 分钟</span></div>
+        <div class="bar bar--ok" style="height:6px"><i style="width:33%"></i></div>
+        <p class="en" style="margin-top:6px">已复习 4 / 12</p>
+      </div>
+      <div class="hr"></div>
+      <p class="small muted strong" style="margin:0 0 8px">设备能力</p>
+      <div class="card-flat" style="padding:4px 14px">
+        ${[['对话 · 实时听译','mic'],['实时字幕','wave'],['翻译文档','doc'],['朗读（含播客）','eye'],['系统翻译弹层','globe'],['Mac 快速翻译面板','device']].map(([n,i]) => `<div class="row-between" style="padding:10px 0;border-bottom:1px solid var(--border)"><span class="row">${ico(i, 'ico-l')}<span class="pkg-name">${n}</span></span><span class="chip chip-ok">可用</span></div>`).join('')}
+      </div>
+      <button class="link mt" style="display:block" data-act="replay">重看引导</button>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="review">开始复习</button>`)}`),
+
+  homeNotReady: () => wrap(`
+    <div class="pad" style="padding-top:12px">
+      <div class="row-between">
+        <span class="row"><span class="tile tile-ghost" style="width:32px;height:32px;font-size:15px">译</span><span class="strong">大肚猴翻译</span></span>
+        <span class="chip chip-run">未就绪</span>
+      </div>
+      <h2 class="t" style="margin-top:16px">还差一步</h2>
+      <div class="card card--warn mt">
+        <div class="row" style="align-items:flex-start">
+          <span style="color:var(--danger);margin-top:2px">${ico('alert', 'ico-l')}</span>
+          <span class="grow"><span class="pkg-name">识别语言包没装好</span><span class="pkg-use">对话实时听译、实时字幕、语音输入还用不了。朗读与其他功能不受影响。</span></span>
+        </div>
+        <button class="btn btn--ghost btn--sm mt" data-act="topup">去补齐</button>
+      </div>
+      <div class="hr"></div>
+      <p class="small muted strong" style="margin:0 0 8px">设备能力</p>
+      <div class="card-flat" style="padding:4px 14px">
+        ${[['对话 · 实时听译','mic','off'],['实时字幕','wave','off'],['翻译文档','doc','ok'],['朗读（含播客）','eye','ok'],['系统翻译弹层','globe','ok']].map(([n,i,s]) => `<div class="row-between" style="padding:10px 0;border-bottom:1px solid var(--border)"><span class="row" style="${s==='off'?'color:var(--muted)':''}">${ico(i, 'ico-l')}<span class="pkg-name" style="${s==='off'?'color:var(--muted)':''}">${n}</span></span><span class="chip chip-${s}">${s==='ok'?'可用':'缺识别包'}</span></div>`).join('')}
+      </div>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="review">开始复习（12 张）</button>`)}`),
+
+  topup: () => wrap(`
+    <div class="pad" style="padding-top:18px">
+      <span class="chip chip-wait">老用户补齐</span>
+      <h2 class="t" style="margin-top:12px">补齐语音包</h2>
+      <p class="p">你已登录，引擎也通着，只差语音包。补完直接用首页，不重走三段。</p>
+      <div class="card mt">
+        ${pkgRow({ tone: 'run', icon: 'mic', name: '识别语言包 · 英语（美国）', use: '对话实时听译、实时字幕', chip: `<span class="chip chip-run">下载中 ${S.asr}%</span>`, bar: true, pct: S.asr, barTone: 'thin', sub: MB })}
+        ${pkgRow({ tone: 'ok', icon: 'wave', name: '高质量朗读包 · 英语', use: '朗读、播客模式', chip: '<span class="chip chip-ok">已完成</span>' })}
+      </div>
+      <div class="note note--mute mt">${ico('info')}<span>这一屏不出现登录，也不出现三段流程的任何一步。</span></div>
+    </div>
+    ${foot(`<div class="stack">
+      <button class="btn btn--primary" data-act="topup-go">继续下载（${S.asr}%）</button>
+      <button class="btn btn--quiet" data-act="home-notready">先回首页</button>
+    </div>`)}`),
+
+  straight: () => wrap(`
+    <div class="pad" style="padding-top:12px">
+      <div class="row-between">
+        <span class="row"><span class="tile tile-ghost" style="width:32px;height:32px;font-size:15px">译</span><span class="strong">大肚猴翻译</span></span>
+        <span class="chip chip-ok">就绪</span>
+      </div>
+      <h2 class="t" style="margin-top:16px">今天读 12 张</h2>
+      <div class="card mt"><div class="row-between" style="padding:6px 0"><span class="row">${ico('card','ico-l')}<span class="pkg-name">今日复习</span></span><span class="small muted">约 6 分钟</span></div></div>
+      <div class="note note--ok mt">${ico('shield')}<span>老用户已登录且已就绪：屏 1 / 屏 2 / 屏 3 <b>都不出现</b>，直接到这一屏。</span></div>
+    </div>
+    ${foot(`<button class="btn btn--primary" data-act="review">开始复习</button>`)}`)
+};
+
+/* ---------- 渲染 ---------- */
+const flow = document.getElementById('flow');
+function render() {
+  const v = (VIEWS[S.route] || VIEWS.login)();
+  flow.innerHTML = `<div class="view on">${v}</div>` + (S.toast ? `<div class="toast">${ico('check', 'ico-l')}<span>${S.toast}</span></div>` : '');
+  const info = INFO[S.route] || INFO.login;
+  document.getElementById('i-name').textContent = info.n;
+  document.getElementById('i-guard').textContent = info.g;
+  document.getElementById('i-body').textContent = info.b;
+  document.getElementById('i-exit').textContent = info.e;
+  document.getElementById('i-rule').textContent = info.r;
+  [...document.querySelectorAll('#idx button')].forEach(b => b.setAttribute('aria-current', b.dataset.route === S.route ? 'true' : 'false'));
+}
+const go = (r) => { S.route = r; S.toast = ''; render(); };
+const after = (r, ms = 900, next = 'packsStart') => { S.route = r; render(); setTimeout(() => { if (S.route === r) go(next); }, ms); };
+const startTimer = () => { if (!S.timer) S.timer = setInterval(tick, 160); };
+
+function tick() {
+  S.asr = Math.min(100, S.asr + (S.net === 'cell' ? 1.6 : 2.4));
+  S.tts = Math.min(100, S.tts + (S.net === 'cell' ? 2.2 : 3.6));
+  if (S.route === 'topup') {
+    S.asr = Math.min(100, S.asr + 3); render();
+    if (S.asr >= 100) { clearInterval(S.timer); S.timer = null; S.route = 'homeReady'; render(); }
+    return;
+  }
+  render();
+  if (S.asr >= 100 && S.tts >= 100) { clearInterval(S.timer); S.timer = null; after('done', 1000, 'onb1'); }
+}
+const startDl = () => { startTimer(); go('packsDl'); };
+const stopDl = () => { if (S.timer) { clearInterval(S.timer); S.timer = null; } };
+
+/* ---------- 事件 ---------- */
+const ACT = {
+  consent: () => { S.consent = !S.consent; render(); },
+  apple: () => { go('loading'); setTimeout(() => { Math.random() < .25 ? go('errNet') : after('granted', 900); }, 1100); },
+  google: () => { go('loading'); setTimeout(() => after('granted', 900), 1100); },
+  'retry-auth': () => { go('loading'); setTimeout(() => after('granted', 900), 1100); },
+  email: () => go('email'),
+  'back-login': () => go('login'),
+  'send-code': () => go('emailCode'),
+  verify: () => after('granted', 900),
+  'start-dl': () => startDl(),
+  'net-wifi': () => { S.net = 'wifi'; render(); },
+  'net-cell': () => { S.net = 'cell'; go('cell'); },
+  'cell-go': () => { S.net = 'cell'; startDl(); },
+  'cell-wait': () => { S.net = 'wifi'; startDl(); },
+  bg: () => { stopDl(); S.toast = '已切到后台继续下载'; render(); },
+  'retry-asr': () => { S.asr = 0; S.tts = 100; go('retry'); setTimeout(() => { S.asr = 100; S.tts = 100; go('done'); setTimeout(() => go('onb1'), 1000); }, 1400); },
+  'retry-dl': () => { startDl(); },
+  later: () => { stopDl(); go('homeNotReady'); },
+  'recheck-space': () => { S.asr = 0; S.tts = 0; startDl(); },
+  'degrade-go': () => go('degrade'),
+  'home-notready': () => go('homeNotReady'),
+  'pick-lang': () => go('unsupported'),
+  'open-settings': () => { S.toast = '已打开系统设置'; render(); },
+  skip: () => { S.seen = true; S.route = 'homeReady'; render(); S.toast = '已跳过引导，随时可在首页重看'; render(); },
+  next: () => go(S.route === 'onb1' ? 'onb2' : S.route === 'onb2' ? 'onb3' : 'homeReady'),
+  replay: () => { S.seen = false; go('onb1'); },
+  play: () => { S.toast = '正在用高质量朗读包朗读'; render(); },
+  review: () => { S.toast = '复习进行中（原型到此为止）'; render(); },
+  topup: () => { S.asr = 24; S.tts = 100; go('topup'); startTimer(); },
+  'topup-go': () => { go('topup'); startTimer(); }
+};
+
+flow.addEventListener('click', (e) => {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const fn = ACT[t.dataset.act];
+  if (fn) fn();
+});
+
+/* 演示直达 */
+const idx = document.getElementById('idx');
+[['login','S1 登录'],['cn','S1 中国版'],['errNet','S1 网络失败'],['errCancel','S1 用户取消'],['noApple','S1 Apple 不可用'],['emailCode','S1 验证码'],
+ ['packsStart','S2 资源包'],['cell','S2 蜂窝确认'],['partial','S2 部分成功'],['offline','S2 离线'],['space','S2 空间不足'],['unsupported','S2 不支持识别'],['degrade','S2 降级'],
+ ['onb1','S3 引导'],['homeReady','首页·就绪'],['homeNotReady','首页·未就绪'],['topup','补齐屏'],['straight','老用户直进']]
+ .forEach(([r, label]) => {
+   const b = document.createElement('button');
+   b.type = 'button'; b.textContent = label; b.dataset.route = r;
+   b.addEventListener('click', () => { stopDl(); S.asr = 24; S.tts = 0; S.cn = r === 'cn'; S.consent = false; go(r); });
+   idx.appendChild(b);
+ });
+
+render();
+</script>
+</body>
+</html>
