@@ -2854,7 +2854,7 @@
     "message": "Open the console ↗"
   },
   "grant_cn_why": {
-    "message": "We do not hand out credit ourselves here yet: that needs a server inside the country, and it is not ready."
+    "message": "We do not hand out credit ourselves here yet: that needs a relay running inside the country, and it is not open yet."
   },
   "subtitle_source_label": {
     "message": "Live Subtitles"

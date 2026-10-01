@@ -2855,7 +2855,7 @@
     "message": "去開通 ↗"
   },
   "grant_cn_why": {
-    "message": "我們暫時不提供代領的免費額度：那需要一台境內的伺服器，還沒就緒。"
+    "message": "我們暫時不提供代領的免費額度：代領要在境內跑一個中繼，還沒開通。"
   },
   "subtitle_source_label": {
     "message": "即時字幕"

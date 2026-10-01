@@ -2854,7 +2854,7 @@
     "message": "Abrir la consola ↗"
   },
   "grant_cn_why": {
-    "message": "Aquí todavía no repartimos crédito propio: hace falta un servidor en el país y aún no está listo."
+    "message": "Todavía no repartimos crédito nosotros: eso requiere un relé dentro del país, aún no abierto."
   },
   "subtitle_source_label": {
     "message": "Subtítulos en vivo"

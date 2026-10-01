@@ -10,6 +10,9 @@
 >   取回本机的只有公开的 anon key。
 > - 邮件模板 `GOTRUE_MAILER_TEMPLATES_*` 要的是**网址**：由 Caddy 内部入口 `:8081/templates/otp.html` 提供。
 > - 离线朗读模型地址表 `bt_model_sources` 不在 `schema.sql` 里，单独 `model-sources.sql`。
+> - 免费额度**台账**（`bt_grants` / `bt_grant_usage` + 四个函数）同样不在 `schema.sql` 里，
+>   单独 `grants.sql` —— 翻 `grant.china.ready` 之前必须先跑它，否则中继的 `/check`、`/charge`
+>   与领取都没有落点（**账本与账号同库**，2026-09-22 裁定）。
 > - 删号服务只听 8000（共享文件 `Deno.serve(handler)` 不读 PORT）—— 原配置的 8080 已改。
 > - **不做迁移**（用户裁定，读数：东京里大陆 IP 的外部账号 11 个，有像样数据的 2 个且与用户本人同网段）。
 >   切过去那一版的版本说明 + 隐私页写清「需重新登录、东京旧卡片不自动过来、本机卡片会重新同步」。

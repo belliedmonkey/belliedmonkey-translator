@@ -2854,7 +2854,7 @@
     "message": "Konsole öffnen ↗"
   },
   "grant_cn_why": {
-    "message": "Wir geben hier noch kein eigenes Guthaben aus: dafür braucht es einen Server im Land, der noch nicht steht."
+    "message": "Wir vergeben noch kein Guthaben selbst: Dafür braucht es einen Relay im Land, der noch nicht läuft."
   },
   "subtitle_source_label": {
     "message": "Live-Untertitel"

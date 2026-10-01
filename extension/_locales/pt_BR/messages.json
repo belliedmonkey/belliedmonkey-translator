@@ -2854,7 +2854,7 @@
     "message": "Abrir o console ↗"
   },
   "grant_cn_why": {
-    "message": "Aqui ainda não distribuímos crédito nosso: isso exige um servidor no país, e ele não está pronto."
+    "message": "Ainda não distribuímos crédito nós mesmos: isso exige um relay dentro do país, ainda não aberto."
   },
   "subtitle_source_label": {
     "message": "Legendas ao vivo"

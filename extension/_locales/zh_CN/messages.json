@@ -2855,7 +2855,7 @@
     "message": "去开通 ↗"
   },
   "grant_cn_why": {
-    "message": "我们暂时不提供代领的免费额度：那需要一台境内的服务器，还没就绪。"
+    "message": "我们暂时不提供代领的免费额度：代领要在境内跑一个中继，还没开通。"
   },
   "subtitle_source_label": {
     "message": "实时字幕"

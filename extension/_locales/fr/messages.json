@@ -2854,7 +2854,7 @@
     "message": "Ouvrir la console ↗"
   },
   "grant_cn_why": {
-    "message": "Nous ne distribuons pas encore de crédit ici : cela demande un serveur dans le pays, pas encore prêt."
+    "message": "Nous ne distribuons pas encore de crédit nous-mêmes : cela demande un relais exploité dans le pays, pas encore ouvert."
   },
   "subtitle_source_label": {
     "message": "Sous-titres en direct"
