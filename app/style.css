@@ -704,11 +704,13 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
    设计稿：design/home-reorder-2026-10-01/od/（一页规格里有 14 条判据与「怎么测」）。 */
 
 /* 引擎状态行（J07/J08）：唯一的前置条件说明位。就位 = 低对比绿摘要；缺失 = 原地可点 chip。 */
-.status { display: flex; align-items: center; gap: 8px; min-height: 32px; margin: 0 0 10px; }
-.status-text { font-size: 0.85rem; color: var(--ok, #56633f); }
+.status { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 10px;
+  min-height: 32px; margin: 2px 0 12px; }   /* 真机反馈 ②：不许贴/压上面的边线，也不许用负外边距拉回去 */
+.status-text { font-size: 0.85rem; color: var(--ok, #56633f); padding-top: 11px; }
 .status-text.miss { color: var(--muted, var(--fg)); }
-.status-chip { min-height: 44px; min-width: 44px; margin: -6px 0; padding: 6px 12px; border-radius: 999px;
-  background: color-mix(in oklab, #c67139 11%, transparent); color: #7a4318; border: 0; font: inherit; text-align: left; }
+.status-chip { min-height: 44px; min-width: 44px; flex: 1 1 auto; max-width: 100%; padding: 8px 14px;
+  border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: #7a4318;
+  border: 0; font: inherit; line-height: 1.35; text-align: left; white-space: normal; overflow-wrap: anywhere; }
 
 /* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
 .heroes { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
