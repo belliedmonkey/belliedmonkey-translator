@@ -3723,5 +3723,6 @@
   "firstrun_packs_busy": { "message": "Baixando…" },
   "firstrun_packs_go": { "message": "Baixar e continuar" },
   "firstrun_packs_go_tts": { "message": "Baixar só o pacote de voz e continuar" },
-  "firstrun_packs_err": { "message": "O download não terminou: {why} — verifique a conexão e toque de novo." }
+  "firstrun_packs_err": { "message": "O download não terminou: {why} — verifique a conexão e toque de novo." },
+  "firstrun_packs_stt_slow": { "message": "O download do pacote de voz do sistema travou — verifique a conexão e tente de novo." }
 }

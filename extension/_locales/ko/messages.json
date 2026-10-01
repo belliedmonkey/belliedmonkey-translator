@@ -3723,5 +3723,6 @@
   "firstrun_packs_busy": { "message": "내려받는 중…" },
   "firstrun_packs_go": { "message": "내려받고 계속" },
   "firstrun_packs_go_tts": { "message": "읽어주기 팩만 받고 계속" },
-  "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." }
+  "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." },
+  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." }
 }

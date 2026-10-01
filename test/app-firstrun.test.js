@@ -142,6 +142,27 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'paintSysBanner 里没有 firstRunScreen —— 屏 1/屏 2 时那张横幅会与首屏挤在同一页');
   });
 
+  test('R3d · 屏 2 的下载：引擎要显式传、系统包要有上限', () => {
+    // 2026-10-01 实测两个坑（P2 卡住 15 分钟、无错误、容器里没有 mt-speech）：
+    //  ① 只靠 configure() 不把引擎传进 ensureDeviceReady ⇒ deviceStatus 判 device=false ⇒
+    //     它以 `{ok:true, skipped:true}` **立刻返回**，看着像成功、其实一个字节都没下；
+    //  ② 系统语音包 NativeSpeech.ensureAssets('stt') 只等原生事件、**没有上限** ⇒ 系统那边
+    //     不回来就永远挂住（模拟器下不完系统识别包）。
+    const model = stripComments(read('src/app/shell-model.js'));
+    ok(/ensureDeviceReady\(\s*\(\)\s*=>\s*\{\}\s*,/.test(model),
+      'ensureDeviceReady 没显式传引擎 —— 设置页与听译都传，只靠 configure() 会让它 skipped 返回');
+    const i = model.indexOf("ensureAssets('stt'");
+    ok(i > -1, "shell-model.js 里找不到 NativeSpeech.ensureAssets('stt'");
+    ok(/Promise\.race/.test(model.slice(Math.max(0, i - 700), i + 300)),
+      '系统语音包下载没有 Promise.race 上限 —— 原生不回来就永远挂住');
+    // ③ 返回值必须看：设置页那条链一直有 `if (!r.ok) … '离线模型下载失败'`，把返回值丢掉就变成
+    //    静默失败（容器里没 mt-speech、屏上一句话也没有，然后还接着走下一条）。
+    ok(/const r = await LearnTTS\.ensureDeviceReady\(/.test(model),
+      'ensureDeviceReady 的返回值没接住 —— 失败会静默');
+    ok(/mtTtsFailed/.test(model) && /tts_pack_failed/.test(model),
+      'ensureDeviceReady 返回 ok:false 时没有具名失败（该用设置页同一条 tts_pack_failed）');
+  });
+
   test('R3c · 降级只开一个口（该语种不支持识别 ⇒ 只下朗读包）', () => {
     const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
     ok(typeof FR.degradeAllowed === 'function', 'firstrun.js 缺 degradeAllowed(reason)');

@@ -384,6 +384,11 @@ export function bootShell() {
       : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读包，继续') : t('firstrun_packs_go', '下载并继续'));
   }
 
+  // 系统语音包（SFSpeechRecognizer 的资产）由 iOS 自己下，原生回一个 stt-assets 事件才算完。
+  // **没有上限就会挂住**：2026-10-01 模拟器实测，按钮停在「正在下载…」15 分钟、无错误、
+  // 容器里连 mt-speech 都没有。上限内没落地就按「没动静」交给重试 —— 不绕过硬门。
+  const ASR_PACK_TIMEOUT_MS = 120000;
+
   // 下载 → 重新探 → 前进。失败留在这一屏并说明原因；唯一能绕过的是「该语种不支持识别」。
   async function runFirstRunPacks() {
     if (packsBusy) return;
@@ -399,13 +404,43 @@ export function bootShell() {
           engineId: s.ttsEngine || '', apiKey: s.ttsApiKey || '', baseUrl: s.ttsBaseUrl || '',
           model: s.ttsModel || '', voice: s.ttsVoice || '',
         }));
-        await LearnTTS.ensureDeviceReady(() => {});
+        // **把引擎显式传进去**（设置页与听译两处都传 `$('tts-engine').value` / opts）：只靠
+        // 上面那次 configure 的话，一旦它没生效，`deviceStatus()` 判 `device=false`，
+        // `ensureDeviceReady` 就以 `{ok:true, skipped:true}` **立刻返回** —— 看着像「成功了」，
+        // 其实一个字节都没下（2026-10-01 实测：屏 2 卡在下一步、容器里没有 mt-speech）。
+        const r = await LearnTTS.ensureDeviceReady(() => {}, s.ttsEngine || '');
+        // **返回值必须看**。设置页那条链一直是 `if (!r.ok) … '离线模型下载失败'`（settings-view），
+        // 我这条以前把返回值丢了 ⇒「没下成」是**静默**的：容器里没有 mt-speech、屏上一句话也没有，
+        // 然后还接着去走下一条（2026-10-01 实测就是这么把 15 分钟的挂住追出来的）。
+        if (r && r.ok === false) {
+          const why = String(r.why || r.reason || 'failed') + (r.attempts ? ' · ' + r.attempts : '');
+          throw Object.assign(new Error(why), { mtTtsFailed: true, why });
+        }
+        // 下完就先让它显「已就绪」，别等两包都完 —— 这一屏的用途就是给人看进度。
+        try { await paintFirstRun(currentSession); } catch (_) {}
       }
       if (!packAsrReady && !packAsrUnsupported && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
-        await NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {});
+        let timer = null;
+        const timeout = new Promise((_res, rej) => {
+          timer = setTimeout(() => {
+            const e = new Error('stt-timeout');
+            e.mtSttTimeout = true;
+            rej(e);
+          }, ASR_PACK_TIMEOUT_MS);
+        });
+        try {
+          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {}), timeout]);
+        } finally { clearTimeout(timer); }
       }
     } catch (e) {
-      if (err) { err.hidden = false; err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)); }
+      if (err) {
+        err.hidden = false;
+        err.textContent = (e && e.mtSttTimeout)
+          ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+          : ((e && e.mtTtsFailed)
+            ? t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''))
+            : t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)));
+      }
     }
     packsBusy = false;
     await probePacks();
