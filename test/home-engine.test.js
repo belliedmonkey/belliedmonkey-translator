@@ -96,11 +96,16 @@ describe('登录后的引擎就位（真机反馈 ①，2026-10-01）', () => {
     // 纯函数/静态判据看不见它，这正是加这一条的理由。
     const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
     const show = model.slice(model.indexOf('async function show('));
-    const claim = show.indexOf('await autoClaimGrant()');
+    const claim = show.indexOf('autoClaimGrant()');
     ok(claim > -1, 'show() 里找不到 autoClaimGrant —— 领取不在登录汇合点上了');
-    const repaint = show.indexOf('paintEngineStatus()', claim);
-    ok(repaint > claim && repaint - claim < 1500,
-      '登录汇合点在领取之后没有重画引擎状态行 —— 它会一直停在「翻译引擎未配置」（2026-10-02 真机）');
+    // 2026-10-02：领取改为**并行启动**（`const claimP = … autoClaimGrant()…`），落地在
+    // `await claimP`（那次网络往返不再挡揭屏）。状态行必须在**落地之后**画 ——
+    // 否则它会读成「引擎不通」，正是这条要防的那件事。
+    const landed = show.indexOf('await claimP', claim);
+    ok(landed > claim, 'show() 里没有 await 领取的落地 —— 状态行会读成「引擎不通」');
+    const repaint = show.indexOf('paintEngineStatus()', landed);
+    ok(repaint > landed,
+      '登录汇合点在领取落地之后没有重画引擎状态行 —— 它会一直停在「翻译引擎未配置」（2026-10-02 真机）');
     // 同一类漏重画：在设置里配好引擎/改回额度后回首页，状态行要跟着变。
     const close = model.slice(model.indexOf('async function closeSettings'));
     const closeBody = close.slice(0, close.indexOf("say('"));
