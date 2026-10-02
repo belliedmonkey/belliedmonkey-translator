@@ -16,8 +16,15 @@ http.get({ host, port, path: '/json/version' }, (r) => { let d = ''; r.on('data'
     const probe = `JSON.stringify({ t: (() => { const v = document.querySelector('video'); return v ? [Math.round(v.currentTime), v.paused] : null; })(), playerAd: (() => { const p = document.querySelector('#movie_player'); return p ? [p.classList.contains('ad-showing'), p.classList.contains('ad-interrupting')] : null; })(), sel: ['.ytp-ad-player-overlay', '.ytp-ad-player-overlay-layout', '.ad-showing', '.ad-interrupting'].map(s => { const e = document.querySelector(s); return e ? (e.id || e.tagName) + ':' + (e.getClientRects().length ? 'vis' : 'hidden') : null; }), active: !!document.getElementById('mt-yt-style'), btn: !!document.getElementById('mt-yt-btn'), overlay: !!document.getElementById('mt-yt-overlay'), trans: ((document.querySelector('.mt-yt-trans') || {}).textContent || '').slice(0, 40), orig: ((document.querySelector('.mt-yt-orig') || {}).textContent || '').slice(0, 40) })`;
     console.log('before:', await ev(probe));
     for (let k = 0; k < 25; k++) { if (await ev("!!document.getElementById('mt-yt-btn')")) break; await sleep(1000); }
-    console.log('btn click:', await ev("(() => { const b = document.getElementById('mt-yt-btn'); if (!b) return 'no btn'; b.click(); return 'ok'; })()")); await sleep(600);
-    console.log('menu row:', await ev("(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()"));
+    console.log('btn click:', await ev("(() => { const b = document.getElementById('mt-yt-btn'); if (!b) return 'no btn'; b.click(); return 'ok'; })()"));
+    // 菜单由 React bundle 异步渲染（v1.19.0 起）；固定 600ms 常来不及，菜单还在加载 ⇒ querySelector 返回 null。
+    // 轮询等开关行出现再点，不要用固定延时。
+    let menuRow = null;
+    for (let m = 0; m < 25 && !menuRow; m++) {
+      await sleep(400);
+      menuRow = await ev("(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()");
+    }
+    console.log('menu row:', menuRow);
     const t0 = Date.now(); const el = () => ((Date.now() - t0) / 1000).toFixed(0) + 's'; let adEndedAt = null, firstSubAt = null, skips = 0, last = '';
     const trusted = async (x, y) => { for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) await send('Input.dispatchMouseEvent', { type, x, y, button: type === 'mouseMoved' ? 'none' : 'left', clickCount: type === 'mouseMoved' ? 0 : 1 }, sessionId); };
     for (let i = 0; i < 170; i++) {
