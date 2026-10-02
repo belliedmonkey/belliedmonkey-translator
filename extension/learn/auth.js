@@ -96,7 +96,7 @@ var LearnAuth = (() => {
   // 令牌 / 正文**（注册表 FORBIDDEN_KEY_WORDS 是机器判据）。取值为空的那几个会被服务端整条
   // 拒，所以这里先把 provider / stage / code 归一化。发送点只有这一处 —— App 原生那一步
   // （apple-result 带 error）也调回这里（noteAuthFail），不另写一份白名单或归一化。
-  const AUTH_STAGES = ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'unknown'];
+  const AUTH_STAGES = ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'];
   const AUTH_PROVIDERS = ['apple', 'google', 'email', 'phone', 'unknown'];
   let authFails = 0;
   // err 可以是 Error（带 code / status）或一个字面字符串码。永不抛 —— 埋点不能挡住登录。
@@ -267,11 +267,16 @@ var LearnAuth = (() => {
   // in-product "set password" surface, so OTP remains the path every real user
   // takes; this grant simply accepts an account that HAS one.
   async function signInPassword(email, password) {
-    const json = await post('/token?grant_type=password', {
-      email: String(email || '').trim(),
-      password: String(password || ''),
-    });
-    return store(sessionFrom(json));
+    try {
+      const json = await post('/token?grant_type=password', {
+        email: String(email || '').trim(),
+        password: String(password || ''),
+      });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail('email', 'password', e);
+      throw e;
+    }
   }
 
   // Returns a currently-valid access token, refreshing if needed, or null when signed

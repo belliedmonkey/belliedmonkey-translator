@@ -18,6 +18,7 @@ const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const SHELL = 'src/app/AppShell.jsx';
+const SETTINGS = 'src/app/settings-view.jsx';
 const FIRST = 'src/app/firstrun.js';
 const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
@@ -160,6 +161,34 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       '判定完成后没有把首页露出来（非 packs 时）—— 判定完就没人露首页了');
     ok(/firstRunScreen !== 'packs'/.test(after),
       '露首页没有以「判定结果不是 packs」为条件 —— 会把屏 2 盖掉');
+  });
+
+  test('R2e · 每次判定都从「还没定」开始（firstRunScreen 先清空）', () => {
+    // show() 靠 `firstRunScreen !== 'packs'` 决定判完之后露不露首页。留上一次的 'packs'
+    // 会在这次判定失败（元素不在 / 提前 return）时把首页一直藏着 —— 那是「空白一屏」的病。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const fn = model.slice(model.indexOf('async function paintFirstRun'));
+    ok(/firstRunScreen = ''/.test(fn.slice(0, 500)),
+      'paintFirstRun 没把 firstRunScreen 清空 —— 上一次的 packs 会让首页一直藏着');
+  });
+
+  test('R2f · 首屏不再给选项；默认「听」；网页翻译入口只在设置页（#547，2026-10-02 用户裁定）', () => {
+    const shell = read(SHELL);
+    for (const id of ['ob-webonly', 'ob-webonly-text', 'ob-intent-listen', 'ob-intent-both', 'ob-engines']) {
+      ok(!new RegExp(`id="${id}"`).test(shell), `AppShell 里还有 #${id} —— 首屏不该再给选项/模型清单`);
+    }
+    const model = stripComments(read('src/app/shell-model.js'));
+    for (const id of ['ob-webonly', 'ob-intent-listen', 'ob-intent-both', 'ob-engines']) {
+      ok(!new RegExp(`\\$\\('${id}'\\)`).test(model), `shell-model 还在引 #${id}`);
+    }
+    ok(/OB\[obAt\] === 'welcome'\) trackIntent\('listen'\)/.test(model),
+      '首屏离开时没有记默认意图 listen —— 首页的扩展横幅就不会让路');
+    ok(!/\.concat\(\['firstuse', 'ext'\]\)/.test(model),
+      "OB 里还有 'ext' —— 网页翻译配置引导应只在设置页");
+    ok(!/obEngineChips/.test(model), 'obEngineChips 还留着 —— 首屏不再有模型清单');
+    ok(/id="webext-setup"/.test(read(SETTINGS)), '设置页没有 #webext-setup —— 网页翻译配置入口不见了');
+    ok(/webext-setup'\)\.addEventListener\('click', \(\) => openExternal\(setupPageUrl\(\)\)\)/.test(model),
+      '设置页那个入口没接到 setupPageUrl —— 点了不会打开设置页');
   });
 
   test('R1c · 系统翻译横幅在首页永不出现（2026-10-01 裁定：引导只放设置页）', () => {

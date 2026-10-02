@@ -191,7 +191,9 @@ function AppShell() {
                不写死任何牌子 —— 一注册表原则。副作用是好的：两个 flavor 各自显示自己
                注册表里的那几家，一份文案都对。（注释本身也进中国版产物，所以这里
                一个厂商名都不许写：build/china-gate.js 会红。） */}
-          <div id="ob-engines" className="ob-chips" hidden></div>
+          {/* 引擎 chips 2026-10-02 摘掉（#547）：这一屏不再让用户挑模型 ——
+               默认「主要想听 · 即时字幕」，引擎随登录自动到账（免费额度）。
+               要换引擎去设置页。 */}
           <ol id="ob-steps" className="ob-steps" hidden></ol>
           <div id="ob-kv" hidden></div>
           {/* 「就地试一句」（2026-09-22，画布 #392 第 2 页）：素材内置，不让人自己找、自己粘；
@@ -211,19 +213,11 @@ function AppShell() {
             <p className="xb-err" hidden></p>
           </div>
           <p className="note" id="ob-telemetry" hidden></p>
-          {/* 「我只要网页翻译 →」（画布板 B2，telemetry-design §3.9 提案 B）。
-               它**首先是对用户有用的**：只想要网页翻译的人本来在这一屏只能二选一 ——
-               走完一段与他无关的引导，或者点「以后再设置」然后自己去找。其次才是证据：
-               点了记 result:'web_only'，于是「用户只想要网页翻译」这个假说第一次可证伪。
-               放在 ob-body 末尾 ⇒ 渲染在页脚按钮**上方**，与画布一致。 */}
-          <a id="ob-webonly" className="ob-exit" href="#" hidden>
-            <span id="ob-webonly-text"></span><span className="ob-exit-arrow" aria-hidden="true">→</span>
-          </a>
-          {/* 意图分叉（2026-09-28，#486/#487，用户评审通过）：把上面那条出口扩成三分。
-               选「听」的人不需要浏览器扩展 ⇒ 跳过 ext 屏、首页也不挂扩展横幅
-               （interaction-spec「迎新页意图分叉」）。 */}
-          <button id="ob-intent-listen" type="button" className="ob-exit" hidden></button>
-          <button id="ob-intent-both" type="button" className="ob-exit" hidden></button>
+          {/* 2026-10-02 用户裁定（#547）：这一屏**不再问用途**。原来那条「我只要网页翻译」
+               出口与 2026-09-28 的三分（我只要网页翻译 / 主要想听 · 即时字幕 / 读网页 + 听，都要）
+               都删掉了 —— 默认就是「主要想听 · 即时字幕」，不需要用户选；网页翻译的配置引导
+               **只留在设置页**（#g-webext）。理由与残留影响见
+               docs/interaction-spec.md「迎新页意图分叉」。 */}
         </div>
         {/* 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
              #ob-setup 就是那一屏的前进键（docs/interaction-spec.md）——

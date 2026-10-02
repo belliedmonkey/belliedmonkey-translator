@@ -100,6 +100,20 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
     ok(!/seams|"file"|"none"/i.test(gen), 'events.gen.json 里出现了发送点元数据');
   });
 
+  test('auth_fail.stage：客户端归一化的白名单必须 ⊇ 注册表枚举（差一个就把真值变成 unknown）', () => {
+    // 2026-10-02：auth.js 的 authFail() 先把 stage 归一化（不在白名单里就落 unknown）再发。
+    // 客户端白名单与注册表枚举是两份手抄的清单 —— 只加一边，线上那一列会**静默**变成 unknown，
+    // 而事件照发、表照样合法（§3.4 那条教训的枚举版）。这里把两边钉在一起。
+    const auth = stripComments(read('extension/learn/auth.js'));
+    const m = /const AUTH_STAGES = \[([^\]]+)\]/.exec(auth);
+    ok(m, 'auth.js 里找不到 AUTH_STAGES');
+    const client = new Set([...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]));
+    const missing = cfg.EVENTS.auth_fail.stage.filter((s) => !client.has(s));
+    eq(missing.join(','), '', '注册表允许、但客户端会归一化成 unknown 的 stage：' + missing.join(','));
+    const extra = [...client].filter((s) => !cfg.EVENTS.auth_fail.stage.includes(s));
+    eq(extra.join(','), '', '客户端白名单里有注册表不允许的 stage（服务端会整条拒）：' + extra.join(','));
+  });
+
   // 门禁自己要能红。下面四种都是真发生过的形状（§3.3 / §3.4），不是想象出来的。
   const one = (ev, list, files, modules) => checkSeams({ [ev]: {} }, { [ev]: list }, (f) => (f in files ? files[f] : null), modules || []);
   test('红：发送点挂在调用方、共用模块里没有（09-19 的 grant_claimed）', () => {

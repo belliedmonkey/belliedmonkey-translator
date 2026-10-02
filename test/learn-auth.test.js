@@ -524,4 +524,26 @@ describe('登录失败埋点 auth_fail（§3.14）', () => {
     ok(/noteAuthFail\('apple',\s*'native'/.test(app),
       'shell-model.js 没接 noteAuthFail —— 原生失败仍是黑的');
   });
+
+  test('密码 grant 失败：stage=password（此前完全没有记录）', async () => {
+    const { A, sent } = loadT(async () => errResponse(400, { error_code: 'invalid_credentials' }));
+    let e = null;
+    try { await A.signInPassword('a@b.c', 'pw'); } catch (x) { e = x; }
+    ok(e, '应抛错');
+    eq(sent.length, 1);
+    eq(sent[0].props.provider, 'email');
+    eq(sent[0].props.stage, 'password');
+    eq(sent[0].props.http, 400);
+  });
+
+  test('★「登录之后」那一步也接了线（静态）：四条登录路都要分得出 post_login', () => {
+    // 真机「登录已完成却报连不上服务器」最可能落在这里 —— 而它此前一条记录都没有。
+    const fs = require('fs');
+    const path = require('path');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'src/app/shell-model.js'), 'utf8');
+    const n = (app.match(/noteAuthFail\([^,]+,\s*'post_login'/g) || []).length;
+    ok(n >= 4, `只有 ${n} 处 post_login —— apple / google / 验证码 / 密码 四条路都要分出来`);
+    ok(/noteAuthFail\('google',\s*'native'/.test(app), 'Google 原生失败没接线 —— 那条路仍然全黑');
+    ok(/noteAuthFail\('apple',\s*'native'/.test(app), 'Apple 原生失败那条断了');
+  });
 });

@@ -1635,6 +1635,14 @@ export default function SettingsView() {
           <p className="note" id="extb-done" role="status" aria-live="polite" hidden></p>
         </div>
 
+        {/* 网页翻译配置引导（2026-10-02 用户裁定 #547：从引导首屏撤掉，**只留这里**）。
+            文案复用引导 ext 屏那几个既有键 —— 12 语种已经在位，不必新造。 */}
+        <div className="sgroup" id="g-webext">
+          <h3 id="webext-title">{t('app_ext_unknown_title', '先把浏览器那半边打通')}</h3>
+          <p className="note" id="webext-note">{t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。')}</p>
+          <button id="webext-setup" type="button" className="secondary">{t('app_ext_open_setup', '在网页上完成设置')}</button>
+        </div>
+
         <div className="sgroup" id="g-docs">
           <h3 id="docs-title">{t('doc_title', '文档翻译')}</h3>
           <DepLineView id="dep-docs" {...depProps} slots={['chat']} />

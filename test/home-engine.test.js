@@ -138,3 +138,19 @@ describe('状态行 chip 不许与上方的线重合（真机反馈 ②，2026-1
       'chip 没有任何宽度/换行约束 —— 长文案会溢出或压住邻居');
   });
 });
+
+describe('登录屏的错误文案：表外 code 不透出服务端原文（2026-10-02，用户）', () => {
+  // 交换失败撞到不在表里的 code（`validation_failed` / `user_already_exists` / `signup_disabled`…）
+  // 时，humanError 原来最后是 `return msg` —— 而 msg 多半是英文的 GoTrue 串（"Validation failed"），
+  // App 的规矩是「绝不把提供方的原文摆给用户」。这一条钉住兜底是**文案**，不是原文。
+  test('★ humanError 的兜底必须是一条具名文案，不是 `return msg`', () => {
+    const model = read('src/app/shell-model.js');
+    const i = model.indexOf('function humanError');
+    ok(i >= 0, 'shell-model.js 里找不到 humanError');
+    const tail = model.slice(i, i + 4000).split('\n  }')[0];
+    ok(!/return\s+msg\s*;/.test(tail),
+      '兜底又写成 `return msg` —— 表外 code 会把服务端英文原文甩到登录屏');
+    ok(/return t\('app_apple_failed'/.test(tail),
+      '兜底没有复用已有的具名文案键（app_apple_failed）');
+  });
+});
