@@ -41,6 +41,7 @@
 | [Audio8 ASR Infinite](audio8-asr-infinite.md) | ASR · 流式（中 / 英） | 自托管（需 GPU） | Apache-2.0 | `spike` | 2026-09-30 |
 | [Confucius4-R2T2](confucius4-r2t2.md) | ASR · 真流式（中 / 英） | 自托管（GPU；另有 GGUF / llama.cpp） | 代码 Apache-2.0 · **权重自定义许可** | `watch` | 2026-09-30 |
 | [Confucius4-T3PO](confucius4-t3po.md) | 同传 · 文本流式（中 ↔ 英） | 自托管（14B，需 GPU） | 代码 Apache-2.0 · **权重许可未核实** | `spike` | 2026-09-30 |
+| [Microsoft MAI-Voice-2.1](mai-voice-2.1.md) | TTS · 朗读（多语种，**含中文**） | OpenRouter 托管（专有，不自托管） | 专有 | `candidate` | 2026-10-02 |
 
 ## 每条必须有的字段（`test/models-index.test.js` 会拦）
 
