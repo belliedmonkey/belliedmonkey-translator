@@ -58,4 +58,22 @@ describe('免费额度：领取 → 写槽 → 回执，只有一份实现', () 
       'overwrite 不是 false —— 自动领取绝不能碰用户自己的 key');
     ok(/_autoClaimed/.test(body), '没有「一次会话只试一次」的闸');
   });
+
+  // 2026-10-02：用户报「登录后扩展端需要手动领取免费额度」。App 侧早就在登录汇合点
+  // 自动领了，扩展侧只有设置页那张卡的「领取」按钮 —— 这一段把扩展侧也钉上，且用
+  // **同一套闸**（两闸 + overwrite:false + 一次只试一次），免得两宿主又各写各的。
+  test('扩展端登录后也自动领取（options.jsx）：同样两闸 + overwrite:false + 一次只试一次', () => {
+    const src = strip(read('src/pages/options.jsx'));
+    const i = src.indexOf('const autoClaimGrant');
+    ok(i >= 0, 'src/pages/options.jsx 里没有 autoClaimGrant —— 扩展端登录后仍要手点「领取」');
+    const body = src.slice(i, i + 1600);
+    ok(body.includes('LearnGrant.enabled()'), '没判「这个 flavor 有没有额度这条路」（中国版 MT_GRANT 可能为 null）');
+    ok(!body.includes('EngineState.needsSetup'), '又拿 needsSetup 判「配好了没有」（§8.10.3：只看 apiKey 非空会把残值 key 判成已配）');
+    ok(/overwrite:\s*false/.test(body), 'overwrite 不是 false —— 自动领取会碰用户自己的 key');
+    ok(/autoClaimRef/.test(body), '没有「一次只试一次」的闸');
+    // 挂在登录汇合点（refreshSyncUI）里 —— 邮箱验证码 / 第三方回跳 / 打开设置页时已登录，三条路都会走到。
+    const rs = src.slice(src.indexOf('const refreshSyncUI'), src.indexOf('const runSync'));
+    ok(/autoClaimGrant\(\)/.test(rs),
+      '自动领取没有挂在 refreshSyncUI 上 —— 登录后不会自动领取，仍要手点');
+  });
 });
