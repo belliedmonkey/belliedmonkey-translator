@@ -715,10 +715,18 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 /* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
 .heroes { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
 #app-listen-entry, #app-subs-entry {
-  position: relative; min-height: 236px; padding: 18px 18px 78px; border-radius: var(--radius-lg);
+  /* J15（2026-10-02 真机修订）：卡高是**常量**，不是 min-height —— 文案长度 / 字体回退 / Dynamic Type
+     都不得改变它。真机上听译卡标题折成两行把卡撑高、与字幕卡不等高，就是这条复发。
+     纵向 flex + overflow:hidden 让卡内任何多余内容只能被裁掉，不能撑开卡片。 */
+  position: relative; height: 236px; padding: 18px 18px 78px; border-radius: var(--radius-lg);
   background: var(--card-bg); border: 1.5px solid var(--line); box-shadow: 0 1px 2px rgba(32, 30, 29, .05);
+  display: flex; flex-direction: column; overflow: hidden;
 }
-#app-listen-entry .mode-title, #app-subs-entry .mode-title { font-size: 1.25rem; font-weight: 700; color: var(--fg); }
+#app-listen-entry .mode-title, #app-subs-entry .mode-title {
+  /* J16：标题单行（中文一行 + 英文一行），超长在块内截断 —— 折行不得撑高卡片。 */
+  font-size: 1.25rem; font-weight: 700; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
 #app-listen-entry .mode-desc, #app-subs-entry .mode-desc { font-size: 0.85rem; color: var(--muted, var(--fg)); }
 #app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; }
 #app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
