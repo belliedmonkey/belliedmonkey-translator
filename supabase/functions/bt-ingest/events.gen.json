@@ -161,6 +161,31 @@
     "grant_claimed": {},
     "grant_exhausted": {},
     "sync_on": {},
+    "auth_fail": {
+      "provider": [
+        "apple",
+        "google",
+        "email",
+        "phone",
+        "unknown"
+      ],
+      "stage": [
+        "prepare",
+        "authorize",
+        "exchange",
+        "id_token",
+        "native",
+        "otp",
+        "verify",
+        "unknown"
+      ],
+      "code": "id",
+      "http": "int",
+      "attempt": [
+        "1",
+        "2+"
+      ]
+    },
     "rate_prompt": {
       "action": [
         "shown",

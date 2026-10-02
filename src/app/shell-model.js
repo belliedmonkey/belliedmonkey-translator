@@ -1498,6 +1498,9 @@ export function bootShell() {
     if (!r || r.error) {
       // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。
       if (r && r.error === 'canceled') { say(''); return; }
+      // 原生那一步的失败要留档（telemetry-design §3.14）：它发生在 id_token 之前，
+      // auth.js 看不到 —— 经同一个出口回 auth_fail，不另写白名单/归一化。
+      try { LearnAuth.noteAuthFail('apple', 'native', (r && r.error) ? String(r.error) : 'native_error'); } catch (_) {}
       say(t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。'), true);
       return;
     }
