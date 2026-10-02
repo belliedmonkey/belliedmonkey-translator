@@ -1330,6 +1330,38 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 默认「听」⇒ 首页不挂扩展横幅（interaction-spec「迎新页意图分叉」）。
       need(!it.banner, '默认「听」的人首页仍挂着扩展横幅 —— 他不要浏览器扩展');
 
+      // ─── 登录失败埋点（telemetry-design §3.14）：交换那条路真的会记一条 auth_fail ──────
+      // 判据是**队列里真有那条**，不是「代码里有 track 调用」—— 客户端 shape() 会把白名单外的
+      // 值整条丢掉，服务端也会整条拒（同上面 onboarding 两条的理由）。打断 fetch = 真机上
+      // 「连不上服务器」那一类（code:offline / http:0），正是要能读出来的那一种。
+      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      await reopen();
+      const af = await E(`(async () => {
+        try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
+        await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
+        await new Promise((r) => chrome.storage.local.remove(['tm:queue'], r));
+        const realFetch = window.fetch;
+        window.fetch = () => Promise.reject(new Error('Load failed'));   // 模拟连不上
+        let err = null;
+        try { await window.LearnAuth.signInWithIdToken('apple', 'tok', 'nonce'); } catch (e) { err = String(e && e.code); }
+        window.fetch = realFetch;
+        // track() 是**异步**入队（先 await enabled()，再读-改-写队列）—— 不等一下读到的永远是空。
+        await new Promise((r) => setTimeout(r, 400));
+        const q = await new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r((v || {})['tm:queue'] || [])));
+        const rows = q.filter((x) => x && x.name === 'auth_fail');
+        return JSON.stringify({ err, n: rows.length, props: rows.length ? rows[0].props : null,
+          hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
+      })()`);
+      need(af.err === 'offline', '把 fetch 打断之后 signInWithIdToken 没抛 offline：' + JSON.stringify(af));
+      if (af.hasSpec) {
+        need(af.props && af.props.provider === 'apple' && af.props.stage === 'id_token'
+          && af.props.code === 'offline' && af.props.http === 0,
+          'auth_fail 没记对（provider/stage/code/http）：' + JSON.stringify(af));
+        need(af.n === 1, '一次失败记了 ' + af.n + ' 条 auth_fail —— 应当只有一条');
+      } else {
+        need(af.n === 0, '中国版产物里竟然攒出了 auth_fail —— Gate D 说好一个字节都不发');
+      }
+
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
       await reopen();
