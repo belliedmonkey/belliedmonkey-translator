@@ -329,7 +329,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #ext-banner-row .note {
-  margin: 0; color: var(--accent-deep); opacity: .85; font-size: 0.85rem;
+  /* 不再压 0.85：那一档把它压到 4.07:1（浅）/ 4.10:1（深），刚好差过 4.5 的门槛
+     （2026-10-02 test:app 深浅扫描）。颜色本身已是 --accent-deep，够看。 */
+  margin: 0; color: var(--accent-deep); font-size: 0.85rem;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #ext-banner-row .mode-chev { flex: none; color: var(--accent-deep); transition: transform .15s ease; }
@@ -748,10 +750,12 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 /* 引擎状态行（J07/J08）：唯一的前置条件说明位。就位 = 低对比绿摘要；缺失 = 原地可点 chip。 */
 .status { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 10px;
   min-height: 32px; margin: 2px 0 12px; }   /* 真机反馈 ②：不许贴/压上面的边线，也不许用负外边距拉回去 */
-.status-text { font-size: 0.85rem; color: var(--ok, #56633f); padding-top: 11px; }
+/* 深色也要够看：--sage-strong 有 dark 变体（#56633f → #aebf92）。原来写死 #56633f，
+   深色底上只有 2.76:1 —— 2026-10-02 深浅两色扫描（test:app）抓到。 */
+.status-text { font-size: 0.85rem; color: var(--sage-strong); padding-top: 11px; }
 .status-text.miss { color: var(--muted, var(--fg)); }
 .status-chip { min-height: 44px; min-width: 44px; flex: 1 1 auto; max-width: 100%; padding: 8px 14px;
-  border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: #7a4318;
+  border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: var(--accent-deep);
   border: 0; font: inherit; line-height: 1.35; text-align: left; white-space: normal; overflow-wrap: anywhere; }
 
 /* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
@@ -795,7 +799,9 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
    主按钮走**淡色档**（J03：折叠线以内实心按钮恰好是两位主角）。 */
 .today { padding: 12px 14px; gap: 8px; }
 .today .counts { font-size: 0.85rem; }
-.today .row #review { background: color-mix(in oklab, #c67139 14%, transparent); color: #7a4318; border: 0; min-height: 40px; }
+/* 深色也要够看：--accent-deep 有 dark 变体（#8c491a → #f6a06b）。写死 #7a4318 时
+   深色底上只有 1.84:1（2026-10-02 深浅两色扫描 test:app 抓到）。 */
+.today .row #review { background: color-mix(in oklab, #c67139 14%, transparent); color: var(--accent-deep); border: 0; min-height: 40px; }
 .today .today-bar { height: 4px; }
 
 /* 文档分区（J11）：与「听」分开。 */
