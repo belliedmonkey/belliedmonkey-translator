@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "브라우저에서 읽은 문장이 여기로 동기화되어 복습할 수 있습니다."
+    "message": "영상도 대화도 문서도 — 들으면서 번역. 음성은 이 기기에서만 처리합니다."
   },
   "app_email_label": {
     "message": "이메일"
@@ -1701,7 +1701,7 @@
     "message": "켰어요"
   },
   "app_signin_why": {
-    "message": "카드는 브라우저 확장이 수집합니다. 같은 계정으로 로그인하면 이 기기로 동기화됩니다."
+    "message": "로그인하면 무료 크레딧이 들어오고 두 개의 음성 팩을 이 기기에 내려받습니다. 그 뒤로는 설정할 것이 없습니다."
   },
   "app_signin_open": {
     "message": "로그인"
@@ -2528,6 +2528,12 @@
   },
   "app_today_due": {
     "message": "오늘 복습"
+  },
+  "home_cta_subs": {
+    "message": "실시간 자막 시작"
+  },
+  "home_cta_listen": {
+    "message": "실시간 통역 시작"
   },
   "app_last_sync": {
     "message": "마지막 동기화 {t}"
@@ -3724,5 +3730,9 @@
   "firstrun_packs_go": { "message": "내려받고 계속" },
   "firstrun_packs_go_tts": { "message": "읽어주기 팩만 받고 계속" },
   "firstrun_packs_err": { "message": "내려받지 못했습니다: {why} — 연결을 확인하고 다시 눌러 주세요." },
-  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." }
+  "firstrun_packs_stt_slow": { "message": "시스템 음성 팩 다운로드가 멈췄습니다 — 네트워크를 확인하고 다시 눌러 주세요." },
+  "engine_status_ok": { "message": "로그인으로 설정 완료: 번역 · 받아쓰기 · 읽어주기 — 이 화면에서 바로 쓸 수 있습니다" },
+  "engine_status_missing": { "message": "하나 남았습니다: " },
+  "engine_status_fix_tts": { "message": "읽어주기 엔진이 설정되지 않음 — 설정 › 읽어주기에서 음성 선택" },
+  "engine_status_fix_translate": { "message": "번역 엔진이 설정되지 않음 — 설정 › 엔진에서 선택" }
 }

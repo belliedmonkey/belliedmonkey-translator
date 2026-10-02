@@ -1770,7 +1770,7 @@ final class S56UITests: XCTestCase {
     ///
     /// 步骤只覆盖**今天真用过的动作**，不预造：
     ///   launch / activate / terminate / alerts / open / wait / shot / dump
-    ///   tap / menu / drag / select / selects / key
+    ///   tap / menu / drag / select / selects / key / type
     func testDrive() throws {
         continueAfterFailure = true
         let env = ProcessInfo.processInfo.environment
@@ -1880,6 +1880,28 @@ final class S56UITests: XCTestCase {
             case "select":
                 guard let l = s(step, "label"), let v = s(step, "value") else { note("[\(tag)] 缺 label/value"); break }
                 setSelect(l, v, tag)
+            case "type":
+                // 通用「往可见文本框里打字」：`key` 只认 secureTextFields，而登录邮箱、
+                // 验证码这类是普通 field。定位：默认第一个可点文本框；可给
+                // `index`（第几个）或 `placeholder`（按占位文字找）。**只追加、不清空**，
+                // 所以目标框必须本来就是空的（登录表单就是）。
+                guard let v = s(step, "value") else { note("[\(tag)] 缺 value"); break }
+                var pool = app.textFields.allElementsBoundByIndex.filter { $0.isHittable }
+                var field: XCUIElement? = pool.first
+                if let ph = s(step, "placeholder") {
+                    field = app.textFields.matching(NSPredicate(format: "placeholderValue CONTAINS %@", ph)).firstMatch
+                } else if let n = i(step, "index"), n >= 0, n < pool.count {
+                    field = pool[n]
+                }
+                guard let f = field, f.exists, f.isHittable else { note("[\(tag)] 没有可点的输入框（可见 \(pool.count) 个）"); shot("drive-\(tag)-nofield", full: true); break }
+                f.tap(); sleep(1)
+                if !app.keyboards.element.waitForExistence(timeout: 6) { f.tap(); _ = app.keyboards.element.waitForExistence(timeout: 6) }
+                if (step["clear"] as? Bool) == true {
+                    // WKWebView 的 value 回读不可靠（实测清空后仍读到旧长度），所以固定退格 80 下，不看回读。
+                    f.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 80)); sleep(1)
+                }
+                f.typeText(v)
+                note("[\(tag)] 输入 \(v.count) 字符（回读长度 \((f.value as? String)?.count ?? 0)）")
             case "key":
                 // 判据是**圆点数 == key 长度**：密码框会回显旧值、typeText 是追加，
                 // 追到几百字符界面上一模一样而服务端回 401（09-23 的 347 字符那次）。

@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Sätze, die du im Browser liest, werden zum Wiederholen hierher synchronisiert."
+    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Audio wird nur auf deinem Gerät verarbeitet."
   },
   "app_email_label": {
     "message": "E-Mail"
@@ -1701,7 +1701,7 @@
     "message": "Ich habe sie aktiviert"
   },
   "app_signin_why": {
-    "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
+    "message": "Beim Anmelden kommt das Gratis-Guthaben und die beiden Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
   },
   "app_signin_open": {
     "message": "Anmelden"
@@ -2528,6 +2528,12 @@
   },
   "app_today_due": {
     "message": "Heute fällig"
+  },
+  "home_cta_subs": {
+    "message": "Live-Untertitel starten"
+  },
+  "home_cta_listen": {
+    "message": "Gespräch starten"
   },
   "app_last_sync": {
     "message": "Zuletzt synchronisiert {t}"
@@ -3724,5 +3730,9 @@
   "firstrun_packs_go": { "message": "Laden und weiter" },
   "firstrun_packs_go_tts": { "message": "Nur das Stimm-Paket laden und weiter" },
   "firstrun_packs_err": { "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen." },
-  "firstrun_packs_stt_slow": { "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen." }
+  "firstrun_packs_stt_slow": { "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen." },
+  "engine_status_ok": { "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar" },
+  "engine_status_missing": { "message": "Eines fehlt: " },
+  "engine_status_fix_tts": { "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen" },
+  "engine_status_fix_translate": { "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen" }
 }

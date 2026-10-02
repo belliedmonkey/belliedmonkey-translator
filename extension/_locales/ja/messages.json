@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "ブラウザで読んだ文がここに同期され、復習できます。"
+    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末の上だけで処理します。"
   },
   "app_email_label": {
     "message": "メールアドレス"
@@ -1701,7 +1701,7 @@
     "message": "オンにしました"
   },
   "app_signin_why": {
-    "message": "カードはブラウザ拡張機能が集めます。同じアカウントでサインインすると、この端末に同期されます。"
+    "message": "サインインすると無料クレジットが届き、2 つの音声パックをこの端末にダウンロードします。以降の設定は要りません。"
   },
   "app_signin_open": {
     "message": "サインイン"
@@ -2528,6 +2528,12 @@
   },
   "app_today_due": {
     "message": "今日の復習"
+  },
+  "home_cta_subs": {
+    "message": "リアルタイム字幕を開始"
+  },
+  "home_cta_listen": {
+    "message": "リアルタイム通訳を開始"
   },
   "app_last_sync": {
     "message": "最終同期 {t}"
@@ -3724,5 +3730,9 @@
   "firstrun_packs_go": { "message": "ダウンロードして続ける" },
   "firstrun_packs_go_tts": { "message": "読み上げパックだけ入れて続ける" },
   "firstrun_packs_err": { "message": "ダウンロードできませんでした：{why} —— 通信を確認してもう一度。" },
-  "firstrun_packs_stt_slow": { "message": "システム音声パックのダウンロードが進みません — 通信を確認して、もう一度。" }
+  "firstrun_packs_stt_slow": { "message": "システム音声パックのダウンロードが進みません — 通信を確認して、もう一度。" },
+  "engine_status_ok": { "message": "サインインで設定済み：翻訳・文字起こし・読み上げ —— この画面ですぐ使えます" },
+  "engine_status_missing": { "message": "あと 1 つ：" },
+  "engine_status_fix_tts": { "message": "読み上げエンジンが未設定 — 設定 › 読み上げ で音声を選ぶ" },
+  "engine_status_fix_translate": { "message": "翻訳エンジンが未設定 — 設定 › エンジン で選ぶ" }
 }

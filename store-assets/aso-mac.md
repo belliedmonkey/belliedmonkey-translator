@@ -59,7 +59,7 @@ interpreter,conversation,captions,youtube,transcribe,flashcards,language,learnin
 ## 国际版 · en-US · description
 
 ```
-BelliedMonkey Translator puts two languages on screen wherever you read, watch or talk — and the sentences you actually read come back as review cards.
+Meetings, videos, documents — translated as you listen, processed only on your device; the sentences you actually read come back as review cards.
 
 LIVE SUBTITLES (APP)
 Bilingual subtitles for whatever your device is playing. On Mac, the app listens to system audio and shows a floating subtitle bar that stays on top of any app, even full-screen video (macOS 26 or later). On iPhone, play a video or podcast out loud in any app, and a picture-in-picture window scrolls the original and the translation, sentence by sentence. Recognition happens on the device; Live Subtitles need iOS 26 / macOS 26.
@@ -92,7 +92,7 @@ Your keys and settings stay on your device. With your own key, text goes straigh
 ## 国际版 · en-US · promotionalText
 
 ```
-New: Live Subtitles for anything playing on your Mac or iPhone, plus a conversation interpreter. Bilingual web pages, documents and review cards, all in one app.
+First launch redesigned: sign in, the two speech packs download to your device, then you're set. Live subtitles, interpreting, documents and review cards all still here.
 ```
 
 ---
@@ -118,7 +118,7 @@ New: Live Subtitles for anything playing on your Mac or iPhone, plus a conversat
 ## 国际版 · zh-Hans · description
 
 ```
-读网页、看视频、开会聊天，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
+开会、看视频、读文档 —— 边听边翻，声音只在你的设备上处理；你真正读过的句子，还会变成复习卡回来找你。
 
 【实时字幕（App）】
 给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 26 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。声音在设备上识别；实时字幕需要 iOS 26 / macOS 26。
@@ -151,7 +151,7 @@ YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频�
 ## 国际版 · zh-Hans · promotionalText
 
 ```
-新增实时字幕：Mac 与 iPhone 上正在播放的任何声音都能配双语字幕；对话听译支持设备内置转写。网页对照、文档翻译、复习卡照旧好用。
+首次打开改版：先登录，两个语音包下到本机，之后直接用。实时字幕、对话听译、文档翻译、复习卡照旧。
 ```
 
 ---
@@ -177,7 +177,7 @@ YouTube、播客与网页视频逐句对齐双语字幕；没有字幕的视频�
 ## 中国版 · zh-Hans · description
 
 ```
-大肚猴翻译是一款开源的双语翻译工具：读网页、看视频、面对面交流，原文和译文同屏；你真正读过的句子，还会变成复习卡回来找你。
+开会、看视频、读文档 —— 边听边翻，声音只在你的设备上处理；你真正读过的句子，还会变成复习卡回来找你。
 
 【实时字幕（App）】
 给设备上正在播放的声音配双语字幕。Mac 上听系统声音，悬浮字幕条盖在任意 App 与全屏视频之上（需 macOS 26 或更新）；iPhone 上在任意 App 里外放视频或播客，画中画小窗逐句滚动原文与译文。声音在设备上识别；实时字幕需要 iOS 26 / macOS 26。
@@ -209,7 +209,7 @@ Safari 扩展在每段原文下方即时显示译文，边读边对照，不打�
 ## 中国版 · zh-Hans · promotionalText
 
 ```
-新增实时字幕：Mac 与 iPhone 上正在播放的任何声音都能配双语字幕；对话听译支持设备内置转写。自带大模型 Key，翻译请求不经过我们的服务器，免费下载、完整开源。
+中国版也有了免费额度：登录后自动到账，不必先申请 key。首次打开改版：先登录、把语音包下好，之后直接用。
 ```
 
 ---
@@ -235,7 +235,7 @@ BelliedMonkey 翻訳
 ## 国际版 · ja · description
 
 ```
-見る・読む・話す、そのすべてを二言語で。実際に読んだ文は復習カードになって戻ってきます。
+会議も動画も書類も —— 聞きながら翻訳。音声は端末の上だけで処理されます。本当に読んだ文は復習カードになって戻ってきます。
 
 【ライブ字幕（アプリ）】
 端末で再生中の音声に二言語字幕を付けます。Mac ではシステム音声を聞き取り、どのアプリや全画面動画の上にも字幕バーを表示します（macOS 26 以降）。iPhone では任意のアプリで動画やポッドキャストをスピーカー再生すると、ピクチャ・イン・ピクチャの小窓に原文と訳文が一文ずつ流れます。音声は端末内で認識します。ライブ字幕には iOS 26 / macOS 26 が必要です。
@@ -268,7 +268,7 @@ PDF・Word・画像を開き、ページごとに原文と訳文を並べて読�
 ## 国际版 · ja · promotionalText
 
 ```
-新機能：Mac と iPhone で再生中のあらゆる音声にライブ字幕。会話通訳は端末内蔵の文字起こしに対応。対訳ウェブ、文書翻訳、復習カードもそのまま。
+初回起動を刷新：サインインして音声パックを端末にダウンロード、すぐ使えます。リアルタイム字幕・会話の同時通訳・書類翻訳・復習カードはそのまま。
 ```
 
 ---
@@ -294,7 +294,7 @@ BelliedMonkey 번역
 ## 国际版 · ko · description
 
 ```
-보고, 읽고, 말하는 모든 순간을 두 언어로. 실제로 읽은 문장은 복습 카드가 되어 돌아옵니다.
+회의도 영상도 문서도 — 들으면서 번역. 음성은 이 기기에서만 처리됩니다. 실제로 읽은 문장은 복습 카드로 다시 돌아옵니다.
 
 【실시간 자막（앱）】
 기기에서 재생 중인 소리에 이중 언어 자막을 붙입니다. Mac에서는 시스템 오디오를 듣고, 어떤 앱이나 전체 화면 영상 위에도 떠 있는 자막 바를 표시합니다(macOS 26 이상). iPhone에서는 아무 앱에서나 영상이나 팟캐스트를 스피커로 재생하면 PIP 창에 원문과 번역이 문장 단위로 흐릅니다. 음성은 기기 안에서 인식합니다. 실시간 자막은 iOS 26 / macOS 26이 필요합니다.
@@ -327,7 +327,7 @@ PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽
 ## 国际版 · ko · promotionalText
 
 ```
-새 기능: Mac과 iPhone에서 재생 중인 모든 소리에 실시간 자막. 대화 통역은 기기 내장 받아쓰기를 지원합니다. 대역 웹, 문서 번역, 복습 카드도 그대로.
+첫 실행 화면을 새로 만들었습니다: 로그인하고 두 음성 팩을 내려받으면 바로 사용. 실시간 자막, 대화 통역, 문서 번역, 복습 카드는 그대로입니다.
 ```
 
 ---
@@ -353,7 +353,7 @@ PDF, Word, 이미지를 열어 페이지마다 원문과 번역을 나란히 읽
 ## 国际版 · zh-Hant · description
 
 ```
-讀網頁、看影片、開會交談，原文與譯文同屏；你真正讀過的句子，還會變成複習卡回來找你。
+開會、看影片、讀文件 —— 邊聽邊翻，聲音只在你的裝置上處理；你真正讀過的句子，還會變成複習卡回來找你。
 
 【即時字幕（App）】
 為裝置上正在播放的聲音配上雙語字幕。Mac 上聽系統聲音，懸浮字幕列蓋在任何 App 與全螢幕影片之上（需 macOS 26 或更新版本）；iPhone 上在任何 App 裡外放影片或 Podcast，子母畫面小窗逐句捲動原文與譯文。聲音在裝置上辨識；即時字幕需要 iOS 26 / macOS 26。
@@ -386,7 +386,7 @@ YouTube、Podcast 與網頁影片逐句對齊雙語字幕；沒有字幕的影�
 ## 国际版 · zh-Hant · promotionalText
 
 ```
-新增即時字幕：Mac 與 iPhone 上正在播放的任何聲音都能配雙語字幕；對話聽譯支援裝置內建轉寫。網頁對照、文件翻譯、複習卡一樣好用。
+首次開啟改版：先登入，兩個語音包下到本機，之後直接用。即時字幕、對話聽譯、文件翻譯、複習卡照舊。
 ```
 
 ---
@@ -412,7 +412,7 @@ vokabeln,karteikarten,englisch,wortschatz,sprachen,gespräch,transkription,pdf,p
 ## 国际版 · de-DE · description
 
 ```
-Lesen, schauen, sprechen – in zwei Sprachen gleichzeitig. Und die Sätze, die du wirklich gelesen hast, kommen als Wiederholungskarten zurück.
+Meetings, Videos, Dokumente — übersetzt, während du zuhörst, nur auf deinem Gerät verarbeitet; die Sätze, die du wirklich liest, kommen als Wiederholungskarten zurück.
 
 LIVE-UNTERTITEL (APP)
 Zweisprachige Untertitel für alles, was dein Gerät gerade abspielt. Auf dem Mac hört die App den Systemton und zeigt eine schwebende Untertitelleiste über jeder App, auch über Vollbildvideos (ab macOS 26). Auf dem iPhone spielst du ein Video oder einen Podcast in einer beliebigen App über den Lautsprecher ab, und ein Bild-in-Bild-Fenster zeigt Original und Übersetzung Satz für Satz. Die Erkennung läuft auf dem Gerät; Live-Untertitel benötigen iOS 26 / macOS 26.
@@ -445,7 +445,7 @@ Schlüssel und Einstellungen bleiben auf deinem Gerät. Mit eigenem Schlüssel g
 ## 国际版 · de-DE · promotionalText
 
 ```
-Neu: Live-Untertitel für alles, was auf Mac oder iPhone läuft, und ein Gesprächsdolmetscher. Dazu zweisprachige Webseiten, Dokumente und Lernkarten.
+Neuer Erststart: anmelden, die zwei Sprachpakete laden, fertig. Live-Untertitel, Gesprächsdolmetscher, Dokumente und Wiederholungskarten bleiben.
 ```
 
 ---
@@ -471,7 +471,7 @@ traduction,vocabulaire,fiches,révision,langues,anglais,conversation,transcripti
 ## 国际版 · fr-FR · description
 
 ```
-Lire, regarder, parler — en deux langues à la fois. Et les phrases que vous avez vraiment lues reviennent en cartes de révision.
+Réunions, vidéos, documents — traduits pendant que vous écoutez, traités uniquement sur votre appareil ; les phrases que vous lisez vraiment reviennent en fiches de révision.
 
 SOUS-TITRES EN DIRECT (APP)
 Des sous-titres bilingues pour tout ce que votre appareil diffuse. Sur Mac, l'app écoute le son du système et affiche une barre de sous-titres flottante au-dessus de n'importe quelle app, même en vidéo plein écran (macOS 26 ou ultérieur). Sur iPhone, lancez une vidéo ou un podcast sur le haut-parleur dans n'importe quelle app : une fenêtre en image dans l'image fait défiler l'original et la traduction, phrase par phrase. La reconnaissance se fait sur l'appareil ; les sous-titres en direct nécessitent iOS 26 / macOS 26.
@@ -504,7 +504,7 @@ Vos clés et réglages restent sur votre appareil. Avec votre clé, le texte va 
 ## 国际版 · fr-FR · promotionalText
 
 ```
-Nouveau : sous-titres en direct pour tout ce qui joue sur Mac ou iPhone, et un interprète de conversation. Plus pages web bilingues, documents et cartes de révision.
+Nouveau premier lancement : connexion, téléchargement des deux packs vocaux, c'est prêt. Sous-titres en direct, interprétation, documents et fiches restent.
 ```
 
 ---
@@ -530,7 +530,7 @@ traducción,vocabulario,tarjetas,repaso,idiomas,inglés,intérprete,transcripci�
 ## 国际版 · es-ES · description
 
 ```
-Lee, mira y habla en dos idiomas a la vez. Y las frases que has leído de verdad vuelven como tarjetas de repaso.
+Reuniones, vídeos, documentos — traducidos mientras escuchas, procesados solo en tu dispositivo; las frases que de verdad lees vuelven como tarjetas de repaso.
 
 SUBTÍTULOS EN VIVO (APP)
 Subtítulos bilingües para todo lo que suena en tu dispositivo. En Mac, la app escucha el audio del sistema y muestra una barra de subtítulos flotante sobre cualquier app, incluso con vídeo a pantalla completa (macOS 26 o posterior). En iPhone, reproduce un vídeo o pódcast por el altavoz en cualquier app y una ventana de imagen en imagen muestra original y traducción, frase a frase. El reconocimiento se hace en el dispositivo; los subtítulos en directo requieren iOS 26 / macOS 26.
@@ -563,7 +563,7 @@ Tus claves y ajustes se quedan en tu dispositivo. Con tu clave, el texto va dire
 ## 国际版 · es-ES · promotionalText
 
 ```
-Novedad: subtítulos en vivo para todo lo que suena en Mac o iPhone, y un intérprete de conversación. Además, web bilingüe, documentos y tarjetas de repaso.
+Nuevo primer arranque: inicia sesión, se descargan los dos paquetes de voz y listo. Subtítulos en directo, interpretación, documentos y tarjetas siguen.
 ```
 
 ---
@@ -589,7 +589,7 @@ BelliedMonkey Переводчик
 ## 国际版 · ru · description
 
 ```
-Читайте, смотрите и говорите сразу на двух языках. А фразы, которые вы действительно прочитали, вернутся карточками для повторения.
+Совещания, видео, документы — перевод по ходу прослушивания, обработка только на вашем устройстве; прочитанные предложения возвращаются карточками для повторения.
 
 ЖИВЫЕ СУБТИТРЫ (ПРИЛОЖЕНИЕ)
 Двуязычные субтитры для всего, что звучит на вашем устройстве. На Mac приложение слушает системный звук и показывает плавающую строку субтитров поверх любого приложения, даже полноэкранного видео (macOS 26 или новее). На iPhone включите видео или подкаст через динамик в любом приложении — окно «картинка в картинке» покажет оригинал и перевод по фразам. Распознавание идёт на устройстве; живым субтитрам нужны iOS 26 / macOS 26.
@@ -622,7 +622,7 @@ YouTube, подкасты и веб-видео получают двуязычн
 ## 国际版 · ru · promotionalText
 
 ```
-Новое: живые субтитры для всего, что звучит на Mac или iPhone, и переводчик для разговора. А ещё двуязычные страницы, документы и карточки для повторения.
+Новый первый запуск: вход, загрузка двух голосовых пакетов — и всё готово. Субтитры, перевод разговоров, документы и карточки на месте.
 ```
 
 ---
@@ -648,7 +648,7 @@ tradução,vocabulário,flashcards,revisão,idiomas,inglês,memória,conversa,tr
 ## 国际版 · pt-BR · description
 
 ```
-Leia, assista e converse em dois idiomas ao mesmo tempo. E as frases que você realmente leu voltam como cartões de revisão.
+Reuniões, vídeos, documentos — traduzidos enquanto você ouve, processados apenas no seu aparelho; as frases que você realmente lê voltam como cartões de revisão.
 
 LEGENDAS AO VIVO (APP)
 Legendas bilíngues para tudo o que toca no seu aparelho. No Mac, o app ouve o áudio do sistema e mostra uma barra de legendas flutuante sobre qualquer app, até em vídeo em tela cheia (macOS 26 ou posterior). No iPhone, toque um vídeo ou podcast pelo alto-falante em qualquer app e uma janela picture-in-picture mostra original e tradução, frase a frase. O reconhecimento acontece no aparelho; as legendas ao vivo exigem iOS 26 / macOS 26.
@@ -681,7 +681,7 @@ Suas chaves e ajustes ficam no aparelho. Com a sua chave, o texto vai direto par
 ## 国际版 · pt-BR · promotionalText
 
 ```
-Novidade: legendas ao vivo para tudo o que toca no Mac ou no iPhone, e um intérprete de conversa. Além de web bilíngue, documentos e cartões de revisão.
+Nova primeira abertura: entrar, baixar os dois pacotes de voz e pronto. Legendas ao vivo, interpretação, documentos e cartões continuam.
 ```
 
 ---
@@ -707,7 +707,7 @@ BelliedMonkey مترجم
 ## 国际版 · ar-SA · description
 
 ```
-اقرأ وشاهد وتحدّث بلغتين في آنٍ واحد. والجُمل التي قرأتها فعلاً تعود إليك بطاقاتِ مراجعة.
+اجتماعات وفيديو ومستندات — تُترجَم أثناء الاستماع، وتُعالَج على جهازك وحده؛ والجمل التي تقرأها فعلًا تعود إليك كبطاقات مراجعة.
 
 ترجمة مباشرة (التطبيق)
 ترجمة ثنائية اللغة لكل ما يُشغَّل على جهازك. على Mac يستمع التطبيق إلى صوت النظام ويعرض شريط ترجمة عائمًا فوق أي تطبيق، حتى فوق الفيديو بملء الشاشة (macOS 26 أو أحدث). وعلى iPhone شغّل فيديو أو بودكاست عبر مكبّر الصوت في أي تطبيق، فتعرض نافذة صورة داخل صورة النص الأصلي والترجمة جملةً بجملة. يتم التعرّف على الكلام داخل الجهاز؛ وتحتاج الترجمة المباشرة إلى iOS 26 / macOS 26.
@@ -740,7 +740,7 @@ BelliedMonkey مترجم
 ## 国际版 · ar-SA · promotionalText
 
 ```
-جديد: ترجمة مباشرة لكل ما يُشغَّل على Mac أو iPhone، ومترجم للمحادثات. إضافة إلى صفحات ويب بلغتين والمستندات وبطاقات المراجعة.
+تشغيل أول مُعاد تصميمه: سجّل الدخول، تُنزَّل حزمتا الصوت، ثم تبدأ. الترجمة الفورية والمحادثات والمستندات وبطاقات المراجعة كما هي.
 ```
 
 ---
@@ -766,7 +766,7 @@ inglese,tradurre,vocaboli,ripasso,video,imparare,flashcard,podcast,conversazione
 ## 国际版 · it · description
 
 ```
-Leggi, guarda e parla in due lingue insieme. E le frasi che hai davvero letto tornano come carte di ripasso.
+Riunioni, video, documenti — tradotti mentre ascolti, elaborati solo sul tuo dispositivo; le frasi che leggi davvero tornano come schede di ripasso.
 
 SOTTOTITOLI LIVE (APP)
 Sottotitoli bilingui per tutto ciò che il tuo dispositivo sta riproducendo. Su Mac l'app ascolta l'audio di sistema e mostra una barra di sottotitoli fluttuante sopra qualsiasi app, anche sui video a schermo intero (macOS 26 o successivo). Su iPhone riproduci un video o un podcast dall'altoparlante in qualsiasi app e una finestra picture-in-picture mostra originale e traduzione, frase per frase. Il riconoscimento avviene sul dispositivo; i sottotitoli dal vivo richiedono iOS 26 / macOS 26.
@@ -799,7 +799,7 @@ Chiavi e impostazioni restano sul tuo dispositivo. Con la tua chiave il testo va
 ## 国际版 · it · promotionalText
 
 ```
-Novità: sottotitoli live per tutto ciò che suona su Mac o iPhone e un interprete per conversare. In più pagine web bilingui, documenti e carte di ripasso.
+Nuovo primo avvio: accedi, scarica i due pacchetti vocali e sei pronto. Sottotitoli in diretta, interpretariato, documenti e schede restano.
 ```
 
 ---
@@ -825,7 +825,7 @@ Canlı altyazı ve tercüman
 ## 国际版 · tr · description
 
 ```
-Oku, izle ve konuş — aynı anda iki dilde. Gerçekten okuduğun cümleler de tekrar kartı olarak geri gelir.
+Toplantılar, videolar, belgeler — dinlerken çevrilir, yalnızca cihazında işlenir; gerçekten okuduğun cümleler tekrar kartı olarak geri gelir.
 
 CANLI ALTYAZI (UYGULAMA)
 Cihazında çalan her şey için iki dilli altyazı. Mac'te uygulama sistem sesini dinler ve her uygulamanın, hatta tam ekran videonun üstünde duran yüzen bir altyazı çubuğu gösterir (macOS 26 veya sonrası). iPhone'da herhangi bir uygulamada videoyu ya da podcast'i hoparlörden çal; resim içinde resim penceresi özgün metni ve çeviriyi cümle cümle gösterir. Tanıma cihazda yapılır; Canlı Altyazı iOS 26 / macOS 26 gerektirir.
@@ -858,7 +858,7 @@ Anahtarların ve ayarların cihazında kalır. Kendi anahtarınla metin doğruda
 ## 国际版 · tr · promotionalText
 
 ```
-Yeni: Mac ya da iPhone'da çalan her şey için canlı altyazı ve sohbet tercümanı. Ayrıca iki dilli web sayfaları, belgeler ve tekrar kartları.
+İlk açılış yenilendi: giriş yap, iki ses paketi indirilsin, hazırsın. Canlı altyazı, sohbet çevirisi, belgeler ve tekrar kartları yerinde.
 ```
 
 ---
@@ -884,7 +884,7 @@ tiếng Anh,ngoại ngữ,từ vựng,ôn tập,đọc,ghi nhớ,video,học,pod
 ## 国际版 · vi · description
 
 ```
-Đọc, xem và nói chuyện bằng hai ngôn ngữ cùng lúc. Những câu bạn thực sự đã đọc sẽ quay lại thành thẻ ôn tập.
+Cuộc họp, video, tài liệu — dịch ngay khi bạn nghe, chỉ xử lý trên thiết bị của bạn; những câu bạn thật sự đọc sẽ trở lại thành thẻ ôn tập.
 
 PHỤ ĐỀ TRỰC TIẾP (ỨNG DỤNG)
 Phụ đề song ngữ cho mọi thứ đang phát trên thiết bị. Trên Mac, ứng dụng nghe âm thanh hệ thống và hiện một thanh phụ đề nổi trên mọi ứng dụng, kể cả video toàn màn hình (macOS 26 trở lên). Trên iPhone, phát video hoặc podcast qua loa ngoài trong bất kỳ ứng dụng nào, cửa sổ hình trong hình sẽ chạy bản gốc và bản dịch theo từng câu. Nhận dạng diễn ra ngay trên thiết bị; Phụ đề trực tiếp cần iOS 26 / macOS 26.
@@ -917,7 +917,7 @@ Khóa và cài đặt ở lại trên thiết bị. Dùng khóa của bạn thì
 ## 国际版 · vi · promotionalText
 
 ```
-Mới: phụ đề trực tiếp cho mọi thứ đang phát trên Mac hoặc iPhone, cùng trình phiên dịch hội thoại. Thêm web song ngữ, tài liệu và thẻ ôn tập.
+Khởi động lại lần đầu: đăng nhập, hai gói giọng nói được tải về máy, thế là xong. Phụ đề trực tiếp, phiên dịch, tài liệu và thẻ ôn tập vẫn còn nguyên.
 ```
 
 ---
@@ -943,7 +943,7 @@ angielski,języki,słówka,powtórki,czytanie,pamięć,fiszki,nauka,podcast,rozm
 ## 国际版 · pl · description
 
 ```
-Czytaj, oglądaj i rozmawiaj w dwóch językach naraz. A zdania, które naprawdę przeczytasz, wracają jako fiszki do powtórek.
+Spotkania, filmy, dokumenty — tłumaczone w trakcie słuchania, przetwarzane tylko na Twoim urządzeniu; zdania, które naprawdę czytasz, wracają jako fiszki do powtórek.
 
 NAPISY NA ŻYWO (APLIKACJA)
 Dwujęzyczne napisy do wszystkiego, co gra na Twoim urządzeniu. Na Macu aplikacja słucha dźwięku systemowego i pokazuje pływający pasek napisów nad każdą aplikacją, także nad filmem na pełnym ekranie (macOS 26 lub nowszy). Na iPhonie odtwórz film lub podcast przez głośnik w dowolnej aplikacji, a okno obraz w obrazie pokaże oryginał i tłumaczenie zdanie po zdaniu. Rozpoznawanie odbywa się na urządzeniu; napisy na żywo wymagają iOS 26 / macOS 26.
@@ -976,5 +976,5 @@ Klucze i ustawienia zostają na urządzeniu. Z własnym kluczem tekst trafia pro
 ## 国际版 · pl · promotionalText
 
 ```
-Nowość: napisy na żywo do wszystkiego, co gra na Macu lub iPhonie, oraz tłumacz rozmów. Do tego dwujęzyczne strony, dokumenty i fiszki.
+Nowy pierwszy start: zaloguj się, dwa pakiety głosu pobiorą się na urządzenie i gotowe. Napisy na żywo, tłumaczenie rozmów, dokumenty i fiszki zostają.
 ```

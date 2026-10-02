@@ -80,7 +80,7 @@ listenModel.canvas.pipRectOff = () => {
 // ── 首页入口卡（登录前后两个首页同构，sfx = '' | '2'）──────────────────────────
 // 初始态（refreshEntry 未返回）：按钮 hidden、need 行 hidden —— 与原静态 JSX 相同；
 // entryState 到位后由 entryVersion 驱动揭开。节点恒挂载（hidden 纪律）。
-function ListenEntryButtons({ sfx }) {
+function ListenEntryButtons({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const t = PageText.useT();
   const ev = listenModel.entryView(sfx);
@@ -94,6 +94,15 @@ function ListenEntryButtons({ sfx }) {
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /><path d="M9 21h6" /></svg></span>
         <span className="mode-text"><span className="mode-title">{t('listen_entry', '对话 · 实时听译')}</span><span className="mode-desc" id={`app-listen-entry-hint${sfx}`}>{listen ? listen.hint : ''}</span></span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        {/* 实心 CTA 带（J17，2026-10-02 真机修订）：带本身是卡内一个真实节点，
+            不是 ::after 装饰层 —— 空橙块的根因就是「带是装饰层、文字在带外」。
+            卡本身已是 button，这里绝不嵌套 button，所以它只能是 span（整卡仍可点）。
+            两行：第 1 行 = 界面语言的动作（走 i18n），第 2 行 = 固定英文（与译名对齐），
+            两个子节点都必须非空、颜色各自显式声明 —— J17 的判据。 */}
+        <span className="cta">
+          <span className="cn">{t('home_cta_listen', '开始听译')}</span>
+          <span className="en">Start Conversation</span>
+        </span>
       </button>
       {/* 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 */}
       <button id={`app-subs-entry${sfx}`} type="button" className="mode"
@@ -102,13 +111,17 @@ function ListenEntryButtons({ sfx }) {
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M7 13h4" /><path d="M13 13h4" /><path d="M8 21h8" /></svg></span>
         <span className="mode-text"><span className="mode-title">{t('subtitle_entry', '实时字幕')}</span><span className="mode-desc" id={`app-subs-entry-hint${sfx}`}>{subs ? subs.hint : ''}</span></span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+        <span className="cta">
+          <span className="cn">{t('home_cta_subs', '开始实时字幕')}</span>
+          <span className="en">Start Live Subtitles</span>
+        </span>
       </button>
     </>
   );
 }
 
 // 设备隐私句（modes-privacy{sfx}）：refreshEntry 写 hidden=!ok（原 :171-173）。mode-list 外面那行。
-function ListenEntryPrivacy({ sfx }) {
+function ListenEntryPrivacy({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const ev = listenModel.entryView(sfx);
   const listen = ev.listen;
@@ -121,7 +134,7 @@ function ListenEntryPrivacy({ sfx }) {
 
 // 两条灰态原因行：对话（need-live）+ 字幕（subs-need）。go 按钮恒藏 —— 原因都不是「去设置」
 // 能解决的（系统版本 / 语言），不给一个点了也没用的按钮（原 :1372/:203）。
-function ListenEntryNeeds({ sfx }) {
+function ListenEntryNeeds({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const ev = listenModel.entryView(sfx);
   const listen = ev.listen;

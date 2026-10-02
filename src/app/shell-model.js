@@ -119,7 +119,12 @@ export function bootShell() {
     // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
     // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
     $('app-brand').textContent = t('action_title', '大肚猴翻译');
-    $('lede').textContent = t('app_lede', '你在浏览器里读到的句子，会同步到这里来复习。');
+    // 顶栏品牌（2026-10-02）：账号行收进 44×44 圆键后，顶栏左侧只留品牌。
+    $('acct-brand').textContent = t('action_title', '大肚猴翻译');
+    // 屏 1 的主句讲 **App 自己的卖点**（2026-10-01 用户裁定）：原来那句「你在浏览器里读到的句子，
+    // 会同步到这里来复习」把 App 写成扩展的下游 —— 而「边听边翻 + 声音只在设备上处理」是扩展
+    // 给不了的。卡内那句同理：登录换来的是额度与两个设备包，不是「替扩展做同步」。
+    $('lede').textContent = t('app_lede', '视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。');
     $('email-label').textContent = t('app_email_label', '邮箱');
     $('send').textContent = t('app_send', '发送验证码');
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
@@ -127,7 +132,7 @@ export function bootShell() {
     $('back').textContent = t('app_back_email', '换一个邮箱');
     $('resend').textContent = t('sync_resend', '重新发送');
     $('signin-why').textContent = t('app_signin_why',
-      '卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。');
+      '登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。');
     $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
     // local-note 已随 #532 退役（屏 1 只剩登录；那句「不登录也能完整使用」也不再成立）。
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
@@ -137,6 +142,8 @@ export function bootShell() {
     $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
+    // 账号键的可读名（VoiceOver：「账户与数据，按钮」）。圆键里是一个字母，靠它才有名字。
+    $('acct').setAttribute('aria-label', t('opt_sec_account', '账户与数据'));
     // gear2（未登录首页的设置入口）随 #532 退役：屏 1 不许有设置入口。
     // 设置页的静态文字不再在这里重画：SettingsView（PR6b）的标签由 useT 驱动，
     // PageText.setUiLang 触发它自己的重渲染 —— 首页这层 paintStatic 只管自己的文字。
@@ -147,6 +154,8 @@ export function bootShell() {
     for (const id of ['modes-label', 'modes-label2']) { const e = $(id); if (e) e.textContent = t('app_modes_label', '听'); }
     AppDriving.paintStatic();
     paintAppEmptyState();
+    // 引擎状态行跟着每一次重绘走（它是唯一的前置条件说明位，判据 J07/J08）。
+    paintEngineStatus().catch(() => {});
   }
 
   // 复习页的空态整段是从扩展的 review.html 原样嵌进来的（build/app-bundle.js 的
@@ -262,6 +271,10 @@ export function bootShell() {
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
   }
+  // 本次会话里领取失败过没有（真机反馈 ① 的真因，2026-10-01）：删号之后旧会话还在，claim 会 401
+  // ⇒ 一槽都没写 ⇒ 而状态行只会说「翻译引擎未配置」✗ —— 那句话把用户指向设置页，而那里救不了他。
+  // 记住失败之后，状态行改说「额度没领到 / 已停用」并给一条**重领**的路（判据 J07：缺失项要有恢复路径）。
+  let claimFailed = false;
   async function autoClaimOnce() {
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
     // 2026-09-30（§8.10.3，issue #513）：这里原来有一道守卫
@@ -275,7 +288,13 @@ export function bootShell() {
     // 幂等），余额因此每次登录刷新 —— 「用尽后卡片显示旧余额」随之消失。
     // selfTest:false —— 登录那一刻弹一张三行自检卡会盖住引导；那一刻的回执就是引导下一屏
     // 「就地试一句」本身（真的翻一句，比三行「通了」更像证据）。
-    await settingsModel.claimAndApply({ overwrite: false, selfTest: false });
+    try {
+      await settingsModel.claimAndApply({ overwrite: false, selfTest: false });
+      claimFailed = false;
+    } catch (e) {
+      claimFailed = true;          // 交给状态行去说人话；错误本身仍然由 autoClaimGrant 的 catch 吞掉
+      throw e;
+    }
   }
   const readObSettings = () => new Promise((r) => {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
@@ -324,6 +343,57 @@ export function bootShell() {
   // ⇒ 屏 2 永远过不去（实测探针：`id="grant_speech" device=false reason=not_device`）。
   const DEVICE_TTS_ENGINE = 'device';
 
+  // 引擎状态行（2026-10-01 设计稿 · 判据 J07/J08）：唯一的前置条件说明位。
+  // 三样来源不同 ⇒ 判据分开写：翻译 = 引擎可解析（额度或自带 key）；朗读 = ttsEngine 有值；
+  // 转写 = 设备内置（注册表那条已删 ⇒ 默认路，不需要配）。缺哪样就把哪样**原地**变成可点 chip。
+  async function paintEngineStatus() {
+    const txt = $('engine-status-text');
+    const chip = $('engine-status-fix');
+    if (!txt) return;
+    let s = {};
+    try { s = await readObSettings(); } catch (_) {}
+    const engineOk = firstRunEngineOk(s);
+    const ttsOk = !!(s && s.ttsEngine);
+    const miss = !engineOk ? 'translate' : (!ttsOk ? 'tts' : '');
+    if (!miss) {
+      txt.classList.remove('miss');
+      txt.textContent = t('engine_status_ok', '登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用');
+      if (chip) chip.hidden = true;
+      return;
+    }
+    txt.classList.add('miss');
+    txt.textContent = t('engine_status_missing', '还差一样：');
+    if (!chip) return;
+    chip.hidden = false;
+    // 翻译缺项有两种成因，界面必须分开说（真机反馈 ①）：
+    //   · 领取失败（删号 / 额度停用 / 网络）⇒ 说「没领到」并给**重领**（点一下真的再领一次）；
+    //   · 本来就没配 ⇒ 说「去设置里选一个」。
+    if (miss === 'translate' && claimFailed) {
+      chip.textContent = t('grant_err_revoked',
+        '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+      chip.setAttribute('aria-label', t('grant_signin_again', '重新登录'));
+      chip.onclick = async () => {
+        _autoClaimed = null;                       // 清掉「本次会话只领一次」的记忆 ⇒ 允许重领
+        try { await autoClaimGrant(); } catch (_) {}
+        try { await paintEngineStatus(); } catch (_) {}
+      };
+      return;
+    }
+    chip.textContent = miss === 'tts'
+      ? t('engine_status_fix_tts', '朗读引擎未配置，前往 设置 › 朗读 选择语音')
+      : t('engine_status_fix_translate', '翻译引擎未配置，前往 设置 › 引擎 选一个');
+    chip.setAttribute('aria-label', chip.textContent);
+    chip.onclick = () => openSettings(miss === 'tts' ? 'tts-engine' : 'engine');
+  }
+
+  // 登录即就位：朗读那格钉到设备内置（2026-10-01 裁定）。用户选过就不动 —— 与额度领取
+  // 「不碰用户自己的 key」同一条纪律。
+  async function ensureDeviceTts() {
+    const s = await readObSettings();
+    if (s && s.ttsEngine) return;
+    await new Promise((r) => { try { chrome.storage.local.set({ ttsEngine: 'device' }, r); } catch (_) { r(); } });
+  }
+
   async function probePacks() {
     const s = await readObSettings();
     if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
@@ -351,8 +421,7 @@ export function bootShell() {
     };
   }
 
-  async function paintFirstRun(session) {
-    const sec = $('firstrun-packs');
+  async function paintFirstRun(session) {    const sec = $('firstrun-packs');
     if (!sec) return;
     // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
     // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
@@ -435,25 +504,42 @@ export function bootShell() {
       }
       if (!packAsrReady && !packAsrUnsupported && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
         let timer = null;
+        let asrLast = '';
         const timeout = new Promise((_res, rej) => {
           timer = setTimeout(() => {
             const e = new Error('stt-timeout');
             e.mtSttTimeout = true;
+            e.mtAsrLast = asrLast;
             rej(e);
           }, ASR_PACK_TIMEOUT_MS);
         });
         try {
-          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {}), timeout]);
+          // 收原生每一条 assets-progress（含 probing 的 status/avail、downloading 的 bytes）——
+          // 超时那行会显示最后一条，否则真机上只剩「没动静」，原因不可见（2026-10-02 实测）。
+          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), (m) => {
+            if (!m) return;
+            const pct = (typeof m.fraction === 'number') ? ' ' + Math.round(m.fraction * 100) + '%' : '';
+            const extra = [];
+            if (m.status) extra.push('status=' + m.status);
+            if (typeof m.ready === 'boolean') extra.push('avail=' + m.ready);
+            if (typeof m.supported === 'boolean') extra.push('supported=' + m.supported);
+            if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
+            asrLast = String(m.state || '') + pct + (extra.length ? ' · ' + extra.join(' ') : (m.reason ? ' · ' + m.reason : ''));
+          }), timeout]);
         } finally { clearTimeout(timer); }
       }
     } catch (e) {
       if (err) {
         err.hidden = false;
-        err.textContent = (e && e.mtSttTimeout)
-          ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
-          : ((e && e.mtTtsFailed)
-            ? t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''))
-            : t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)));
+        if (e && e.mtSttTimeout) {
+          err.textContent = t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+            + (e.mtAsrLast ? ' [' + e.mtAsrLast + ']' : '');
+        } else if (e && e.mtTtsFailed) {
+          err.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''));
+        } else {
+          err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。')
+            .replace('{why}', String((e && (e.reason || e.message)) || e));
+        }
       }
     }
     packsBusy = false;
@@ -506,6 +592,13 @@ export function bootShell() {
     // 就还是 false。屏序已经不靠引擎（firstrun.js 的口径），但 `isReady()` 与首页状态要看它 ——
     // 刚登进来的人否则会被读成「引擎不通」。
     if (session) { try { await autoClaimGrant(); } catch (_) { /* 领不到不挡首屏 */ } }
+    // 登录即把**朗读**引擎钉到设备内置（2026-10-01 裁定：登录完三样都该就位，这一屏直接能用）。
+    // 三样的来源各不相同，所以只有这一格要写：
+    //   · 翻译 —— 随额度到账（上面那次 claim）；
+    //   · 转写 —— 本来就是**设备内置**（注册表里那条 2026-09-17 已删 ⇒ 系统识别器是默认路）；
+    //   · 朗读 —— 空的，而屏 2 要下的离线模型正是它的（`ttsEngine='device'`）。
+    // **不覆盖用户自己的选择**（选了别的引擎就不动）。
+    if (session) { try { await ensureDeviceTts(); } catch (_) { /* 写不进去不挡首屏 */ } }
     try { await paintFirstRun(session); } catch (_) {}
     // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
@@ -544,7 +637,11 @@ export function bootShell() {
       await paintCounts();
     }
     if (session) {
-      $('who').textContent = LearnAuth.displayName(session);
+      const dn = LearnAuth.displayName(session);
+      $('who').textContent = dn;
+      // 圆键里那一个字母（2026-10-02）：取邮箱/手机号的首个字母或数字；都没有就一个点，
+      // 免得圆键看起来是坏掉的空框。它只是装饰，可读名来自 #acct 的 aria-label。
+      $('acct-initials').textContent = ((dn.match(/[A-Za-z0-9]/) || ['·'])[0]).toUpperCase();
       await paintCounts();
       // 播客模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
       // 计数与登录绝不等一次语音列表加载。
@@ -612,7 +709,7 @@ export function bootShell() {
     // 推送先画，早于 show()）。判据直接读事实：没登录 ⇒ 屏 1（只有登录）；
     // 已登录但屏 2 在场 ⇒ 资源包。2026-10-01 模拟器实测：不让位时这张横幅把首屏整屏占满。
     const firstRunActive = !currentSession || firstRunScreen === 'packs';
-    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; collapseExtPanel(); syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
@@ -622,7 +719,7 @@ export function bootShell() {
     //  但 test/app-shell-dom.test.js 认不出「它在短路保护里」，会把退役 id 的直接取属性一律拦下。）
     const resumeCard = $('ob-resume');
     const resuming = !!resumeCard && !resumeCard.hidden;
-    if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; collapseExtPanel(); syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
     paintSysBanner();   // 扩展那张在场 ⇒ 这一张让位（AppSysBanner.decide 读的就是它）
@@ -1514,6 +1611,8 @@ export function bootShell() {
   });
 
   $('signout').addEventListener('click', async (e) => {
+    // 菜单里的「退出」：先把菜单收起，再走登录态切换（视图会整屏换掉）。
+    closeAcctMenu();
     // interaction-spec 全局原则: network sign-out + repaint are in flight.
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -1798,6 +1897,22 @@ export function bootShell() {
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
   // 一次动作即视为问过（2026-09-28，Issue #384 重定）：点过主按钮后就不再出现「还没打开」横幅。
   // iOS 上 App 判不了扩展开没开，反复说「还没打开」只会打扰已经照做的人；要再确认走设置页的复位键。
+  // 扩展引导行（2026-10-02 真机修订 J18/J19）：点行展开/收起二级面板（动作 + 三步）。
+  // 首屏只看得到这一行；步骤不再占首屏。收起由行自己与 paintExtBanner（隐藏整段时）驱动。
+  // 取元素写在函数里（不在模块初始化期绑 const）：paintExtBanner 会在别处提前调到
+  // collapseExtPanel，懒查避免任何初始化顺序问题。
+  function collapseExtPanel() {
+    const panel = $('ext-banner-panel');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    const row = $('ext-banner-row');
+    if (row) row.setAttribute('aria-expanded', 'false');
+  }
+  $('ext-banner-row').addEventListener('click', () => {
+    const panel = $('ext-banner-panel');
+    panel.hidden = !panel.hidden;
+    $('ext-banner-row').setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+  });
   $('ext-banner-setup').addEventListener('click', () => {
     extBannerTrack('setup');
     extBannerDone = true;
@@ -1820,7 +1935,28 @@ export function bootShell() {
     if (OB[obAt] !== 'ext') return;
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); } else obFinish();
   });
-  $('gear').addEventListener('click', openSettings);
+  // ── 顶栏账号键（2026-10-02 真机修订 J04）──────────────────────────────────
+  // 点键开合菜单；点菜单外或按 Esc 收起；进设置/退出前先收起（动作自己会切视图）。
+  // closeAcctMenu 用函数声明（会被提升），登录处理器在文件更靠前也要调它。
+  const acctMenu = $('acct-menu');
+  const acctBtn = $('acct');
+  function closeAcctMenu() {
+    if (!acctMenu || acctMenu.hidden) return;
+    acctMenu.hidden = true;
+    acctBtn.setAttribute('aria-expanded', 'false');
+  }
+  acctBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    acctMenu.hidden = !acctMenu.hidden;
+    acctBtn.setAttribute('aria-expanded', acctMenu.hidden ? 'false' : 'true');
+  });
+  document.addEventListener('click', (e) => {
+    if (!acctMenu.hidden && e.target !== acctBtn && !acctBtn.contains(e.target) && !acctMenu.contains(e.target)) {
+      closeAcctMenu();
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAcctMenu(); });
+  $('gear').addEventListener('click', () => { closeAcctMenu(); openSettings(); });
   // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
   // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
   $('settings-back').addEventListener('click', closeSettings);

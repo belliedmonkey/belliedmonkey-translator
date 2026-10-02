@@ -130,6 +130,22 @@ these in order when designing anything new:
 
 ## Interaction / UX constraints
 
+**Interaction changes are OpenDesign-designed and human-reviewed before release (mandatory, 2026-10-01).**
+
+Any change to how the product **looks or behaves on screen** — a new screen, a re-layout, a moved or
+restyled control, copy that changes what a surface promises — **must first be designed in OpenDesign
+and pass human review**, and only then implemented. The order is fixed:
+**design draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
+Two corollaries, both load-bearing:
+
+- **OpenDesign must be connected; if it is not, the task waits.** A session that cannot reach
+  OpenDesign does **not** proceed with interaction work "in the meantime" — it stops and says so.
+  The failure this prevents is specific and cheap to fall into: an agent hand-writes a layout, calls
+  it "designed", and the human review happens on the **code** instead of on a design.
+- **The artifact under review is the design draft, not the diff.** A canvas / prototype in
+  OpenDesign is what a human approves; the implementation then has to match it — not the other way
+  round.
+
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
 — the single source of truth (YouTube subtitle layout, line/paging rules, loading
 state, control menu, webpage injection). When you change how translations look or

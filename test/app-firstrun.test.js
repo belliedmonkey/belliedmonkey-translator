@@ -132,14 +132,13 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(claim < paint, 'autoClaimGrant 排在 paintFirstRun 之后 —— 额度令牌晚一步落地，首屏判定会读成「引擎不通」');
   });
 
-  test('R1c · 屏 1 / 屏 2 在场上时，系统翻译横幅也要让位（三屏是独占的）', () => {
-    // 2026-10-01 模拟器实测：屏 2 的截图**上方**挂着 #systrans-banner（iOS「翻译」App
-    // 那三步 +「我已设好」），与屏 2 挤在同一页。R1b 只收掉了 Safari 扩展横幅，漏了这张同族的。
-    const model = stripComments(read('src/app/shell-model.js'));
-    const i = model.indexOf('function paintSysBanner');
-    ok(i > -1, 'shell-model.js 里找不到 paintSysBanner');
-    ok(/firstRunScreen/.test(model.slice(i, i + 900)),
-      'paintSysBanner 里没有 firstRunScreen —— 屏 1/屏 2 时那张横幅会与首屏挤在同一页');
+  test('R1c · 系统翻译横幅在首页永不出现（2026-10-01 裁定：引导只放设置页）', () => {
+    // 原来这条钉的是「屏 1 / 屏 2 在场上时横幅让位」；裁定之后更强：**首页根本不出现**。
+    // 设置页那一块（settings-view.jsx 的 #g-systrans）不受影响 —— 判据只针对首页横幅。
+    const banner = stripComments(read('app/sys-banner.js'));
+    ok(/async function decide\(opts\)/.test(banner), 'sys-banner.js 里找不到 decide()');
+    const body = banner.slice(banner.indexOf('async function decide(opts)'));
+    ok(/return 'none'/.test(body.slice(0, 600)), "decide() 不再无条件返回 'none' —— 首页横幅会回来");
   });
 
   test('R3d · 屏 2 的下载：引擎要显式传、系统包要有上限', () => {

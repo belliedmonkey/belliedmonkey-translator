@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "As frases que você lê no navegador são sincronizadas aqui para revisão."
+    "message": "Vídeos, conversas, documentos — traduzidos enquanto você ouve. O áudio é processado apenas no seu aparelho."
   },
   "app_email_label": {
     "message": "E-mail"
@@ -1701,7 +1701,7 @@
     "message": "Já ativei"
   },
   "app_signin_why": {
-    "message": "Os cartões são capturados pela extensão do navegador. Entre com a mesma conta e eles sincronizam com este aparelho."
+    "message": "Entrar traz o crédito grátis e baixa os dois pacotes de voz neste aparelho — nada mais para configurar."
   },
   "app_signin_open": {
     "message": "Entrar"
@@ -2528,6 +2528,12 @@
   },
   "app_today_due": {
     "message": "Para hoje"
+  },
+  "home_cta_subs": {
+    "message": "Iniciar legendas ao vivo"
+  },
+  "home_cta_listen": {
+    "message": "Iniciar conversa"
   },
   "app_last_sync": {
     "message": "Última sincronização {t}"
@@ -3724,5 +3730,9 @@
   "firstrun_packs_go": { "message": "Baixar e continuar" },
   "firstrun_packs_go_tts": { "message": "Baixar só o pacote de voz e continuar" },
   "firstrun_packs_err": { "message": "O download não terminou: {why} — verifique a conexão e toque de novo." },
-  "firstrun_packs_stt_slow": { "message": "O download do pacote de voz do sistema travou — verifique a conexão e tente de novo." }
+  "firstrun_packs_stt_slow": { "message": "O download do pacote de voz do sistema travou — verifique a conexão e tente de novo." },
+  "engine_status_ok": { "message": "Configurado com a sua conta: tradução · transcrição · leitura — usável aqui" },
+  "engine_status_missing": { "message": "Falta uma coisa: " },
+  "engine_status_fix_tts": { "message": "Motor de leitura não configurado — Ajustes › Leitura, escolher uma voz" },
+  "engine_status_fix_translate": { "message": "Motor de tradução não configurado — Ajustes › Motor" }
 }

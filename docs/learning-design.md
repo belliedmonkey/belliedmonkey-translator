@@ -2347,8 +2347,15 @@ provider 常常就是空的），判它「没配」会让额度**覆盖掉用户
 
 | flavor | `url`（默认） | `url_alt`（备用） |
 |---|---|---|
-| `global` | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip` | huggingface.co `…/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-{zh,en}.zip`（直连，不走镜像） |
+| `global` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（**2026-10-01 改**：美国出口 6.4–6.9 MB/s、国内 6.4 MB/s） | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip`（国外 13–14 MB/s，国内只有 20–40 KB/s） |
 | `china` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（真机 18.7 MB/s） | hf-mirror.com 同名仓库（真机 ≈580 KB/s） |
+
+**为什么 global 也改指魔搭（2026-10-01）：** 原先 global 默认 GitHub —— 国外快，但**国内直连只有 20–40 KB/s**，
+真机上 67 MB 要下约 1 小时（ZHAO的iPhone 实测 ≈1%/分钟），而屏 2 是硬门 ⇒ 国内的国际版用户卡死在这一屏。
+魔搭换过去后：国内 6.4 MB/s（≈10 s）、美国出口 6.4–6.9 MB/s（≈10 s，比 GitHub 慢约一倍、首字节多约 1 s）。
+即用「国外慢约一倍」换掉最坏的那一格。字节来自 `cdn-lfs-cn-1.modelscope.cn`（中国 CDN，**没有国际节点**；
+`modelscope.com` 只是 `.cn` 的英文入口，`modelscope.ai` 上这个仓库 404）。清单默认值与服务器表两处同改。
+
 
 Supabase 公开桶 `device-models` 也传了同一份，按流量计费（Pro 250 GB/月后 0.09 美元/GB），**不进表**，留作两处都倒下时手工切换的最后一手。
 不记录谁来问过（不是事件，不进 `bt_events`；telemetry-design 白名单不动）。

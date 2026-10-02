@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Las frases que lees en el navegador se sincronizan aquí para repasar."
+    "message": "Vídeos, conversaciones, documentos — traducidos mientras escuchas. El audio se procesa solo en tu dispositivo."
   },
   "app_email_label": {
     "message": "Correo electrónico"
@@ -1701,7 +1701,7 @@
     "message": "Ya la activé"
   },
   "app_signin_why": {
-    "message": "Las tarjetas las captura la extensión del navegador. Inicia sesión con la misma cuenta y se sincronizan con este dispositivo."
+    "message": "Al iniciar sesión llega el crédito gratuito y se descargan los dos paquetes de voz en este dispositivo — nada más que configurar."
   },
   "app_signin_open": {
     "message": "Iniciar sesión"
@@ -2528,6 +2528,12 @@
   },
   "app_today_due": {
     "message": "Para hoy"
+  },
+  "home_cta_subs": {
+    "message": "Iniciar subtítulos en vivo"
+  },
+  "home_cta_listen": {
+    "message": "Iniciar conversación"
   },
   "app_last_sync": {
     "message": "Última sincronización {t}"
@@ -3724,5 +3730,9 @@
   "firstrun_packs_go": { "message": "Descargar y continuar" },
   "firstrun_packs_go_tts": { "message": "Descargar solo el paquete de voz y continuar" },
   "firstrun_packs_err": { "message": "La descarga no terminó: {why}: comprueba la conexión y vuelve a tocar." },
-  "firstrun_packs_stt_slow": { "message": "La descarga del paquete de voz del sistema está bloqueada — revisa la conexión e inténtalo de nuevo." }
+  "firstrun_packs_stt_slow": { "message": "La descarga del paquete de voz del sistema está bloqueada — revisa la conexión e inténtalo de nuevo." },
+  "engine_status_ok": { "message": "Configurado con tu cuenta: traducción · transcripción · lectura — usable aquí mismo" },
+  "engine_status_missing": { "message": "Falta una cosa: " },
+  "engine_status_fix_tts": { "message": "Motor de lectura sin configurar — Ajustes › Lectura, elegir una voz" },
+  "engine_status_fix_translate": { "message": "Motor de traducción sin configurar — Ajustes › Motor" }
 }

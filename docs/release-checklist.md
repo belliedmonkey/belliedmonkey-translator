@@ -13,6 +13,14 @@
 > **清单比闸门弱。** 它依赖有人在发版时打开它。凡是能变成闸门的项，都应该从这里搬进
 > `build.js` 然后从这里删掉——这份文件越短越好。
 
+## 交互改动：先有 OpenDesign 设计稿，再有人工评审（**2026-10-01 起强制**）
+
+**任何交互改动，没有「OpenDesign 设计稿 + 人工签署」就不发版。** 顺序固定：设计稿 → 人工签署 →
+`docs/interaction-spec.md` → 代码 → 门禁。当前会话连不上 OpenDesign 时**停下**，不要先写代码
+（理由与两条推论见 `AGENTS.md` 的「Interaction / UX constraints」）。
+
+---
+
 ## 各商店状态：**别从这里读，去复验**（2026-08-08）
 
 权威页是 gbrain 的 `belliedmonkey-translator-release-state`，**但它自己写着会过时**，
