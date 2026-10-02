@@ -177,6 +177,8 @@
         "native",
         "otp",
         "verify",
+        "password",
+        "post_login",
         "unknown"
       ],
       "code": "id",

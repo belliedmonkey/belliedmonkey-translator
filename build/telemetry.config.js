@@ -122,13 +122,16 @@ const EVENTS = {
   //   exchange  = completeProviderSignIn 换票失败（扩展托管回调 / App 系统鉴权会话那条路）
   //   id_token  = signInWithIdToken 失败（App 原生 Sign in with Apple）
   //   native    = 原生那一步本身失败（App 的 apple-result 带 error），由宿主 App 报
-  //   otp       = 邮箱/手机号发码失败   verify = 验码失败
+  //   otp       = 邮箱/手机号发码失败   verify = 验码失败   password = 密码 grant 失败
+  //   post_login= 交换成功、但「登录之后」那一步失败（show() / doSync()）。2026-10-02 补：
+  //               App 的红字「连不上服务器」也可能从这条来，而它此前完全没有记录 ——
+  //               用户很确定自己装的是带埋点的包，却没有一条 auth_fail，这就是那个洞。
   // code 用 'id' 型（小写字母数字下划线连字符，≤32）：`errorFrom()` 的 GoTrue error_code，
   // 或调用方传的字面码（pkce_missing / storage_error / native_error…）。没归一化的会**静默
   // 丢掉**（同 translate_fail.code 那条教训），所以 authFail() 负责归一化。
   auth_fail: {
     provider: ['apple', 'google', 'email', 'phone', 'unknown'],
-    stage: ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'unknown'],
+    stage: ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'],
     code: 'id',
     http: 'int',              // 没有 HTTP 响应（网络不通 / 本地失败）时为 0
     attempt: ['1', '2+'],     // 本页面/会话里第几次 auth_fail（'1' = 第一次）

@@ -1450,6 +1450,7 @@ export function bootShell() {
       say(t('app_apple_waiting', '正在打开 Apple 登录…'));
       try { window.webkit.messageHandlers.mtAppleSignIn.postMessage({}); } catch (err) {
         $('btn-apple').disabled = false;
+        try { LearnAuth.noteAuthFail('apple', 'native', err); } catch (_) {}
         say(humanError(err), true);
       }
     });
@@ -1475,7 +1476,7 @@ export function bootShell() {
       say(t('app_apple_waiting', '正在打开登录…'));
       try {
         window.webkit.messageHandlers.mtAppleSignIn.postMessage({ url, scheme });
-      } catch (err) { g.disabled = false; say(humanError(err), true); }
+      } catch (err) { g.disabled = false; try { LearnAuth.noteAuthFail('google', 'native', err); } catch (_) {} say(humanError(err), true); }
     });
   }
 
@@ -1487,14 +1488,17 @@ export function bootShell() {
     const g = $('btn-google'); if (g) g.disabled = false;
     if (!r || r.error) {
       if (r && r.error === 'canceled') { say(''); return; }
+      try { LearnAuth.noteAuthFail('google', 'native', (r && r.error) ? String(r.error) : 'native_error'); } catch (_) {}
       say(t('app_apple_failed', '登录没能完成。可以改用下面的邮箱或手机号。'), true);
       return;
     }
     say(t('app_verifying', '正在登录…'));
+    // 交换与「登录之后」分开埋（telemetry-design §3.14）：交换那条路 auth.js 自己记；
+    // show()/doSync() 抛的错以前没有任何记录 —— 真机上「登录已完成却报连不上服务器」
+    // 最可能就是它。
+    let session = null;
     try {
-      const session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
-      await show(session);
-      await doSync();
+      session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
     } catch (err) {
       say(humanError(err), true);
       // 兑换失败会把 verifier 作废（它是一次性的），**必须重新备一份** ——
@@ -1502,6 +1506,14 @@ export function bootShell() {
       // 2026-09-03 用户实测「重试也没成功」就是这个：第一次 pkce_state，
       // 第二次开始永远 pkce_missing。
       LearnAuth.prepareProviderSignIn().catch(() => {});
+      return;
+    }
+    try {
+      await show(session);
+      await doSync();
+    } catch (err) {
+      try { LearnAuth.noteAuthFail('google', 'post_login', err); } catch (_) {}
+      say(humanError(err), true);
     }
   });
 
@@ -1518,13 +1530,20 @@ export function bootShell() {
       return;
     }
     say(t('app_verifying', '正在登录…'));
+    // 交换 / 「登录之后」分开埋（telemetry-design §3.14）：同 webauth-result 那条。
+    let session = null;
     try {
-      const session = await LearnAuth.signInWithIdToken('apple', r.idToken, r.nonce);
+      session = await LearnAuth.signInWithIdToken('apple', r.idToken, r.nonce);
+    } catch (err) { say(humanError(err), true); return; }
+    try {
       await show(session);
       // 与验证码那条路逐字相同：刚登录的人要的就是他的材料，让他再去找一个按钮，
       // 等于这个 App 承认自己不知道自己是干什么的。
       await doSync();
-    } catch (err) { say(humanError(err), true); }
+    } catch (err) {
+      try { LearnAuth.noteAuthFail('apple', 'post_login', err); } catch (_) {}
+      say(humanError(err), true);
+    }
   });
 
   $('email').addEventListener('input', refreshPwEntry);
@@ -1557,16 +1576,25 @@ export function bootShell() {
     $('verify').disabled = true;
     $('verify').textContent = t('app_verifying', '正在登录…');
     say('');
+    let session = null;
     try {
-      const session = await LearnAuth.verify(pendingEmail, $('code').value);
-      $('code').value = '';
-      await show(session);
-      // Pull immediately. A user who just signed in is asking for their material —
-      // making them find a second button to get it would be the app admitting it does
-      // not know what it is for.
-      await doSync();
-    } catch (err) {
-      say(humanError(err), true);
+      try {
+        session = await LearnAuth.verify(pendingEmail, $('code').value);
+        $('code').value = '';
+      } catch (err) {
+        say(humanError(err), true);   // 交换那条已由 auth.js 记过
+        return;
+      }
+      try {
+        await show(session);
+        // Pull immediately. A user who just signed in is asking for their material —
+        // making them find a second button to get it would be the app admitting it does
+        // not know what it is for.
+        await doSync();
+      } catch (err) {
+        try { LearnAuth.noteAuthFail('email', 'post_login', err); } catch (_) {}
+        say(humanError(err), true);
+      }
     } finally {
       $('verify').disabled = false;
       $('verify').textContent = t('app_verify', '登录');
@@ -1616,15 +1644,24 @@ export function bootShell() {
     $('app-pw-login').disabled = true;
     $('app-pw-login').textContent = t('app_verifying', '正在登录…');
     say('');
+    let session = null;
     try {
-      const session = await LearnAuth.signInPassword($('app-pw-email').value, $('app-pw').value);
-      $('app-pw').value = '';
-      await show(session);
-      // Same as the OTP path: a user who just signed in is asking for their
-      // material — pull immediately.
-      await doSync();
-    } catch (err) {
-      say(humanError(err), true);
+      try {
+        session = await LearnAuth.signInPassword($('app-pw-email').value, $('app-pw').value);
+        $('app-pw').value = '';
+      } catch (err) {
+        say(humanError(err), true);   // 交换那条已由 auth.js 记过
+        return;
+      }
+      try {
+        await show(session);
+        // Same as the OTP path: a user who just signed in is asking for their
+        // material — pull immediately.
+        await doSync();
+      } catch (err) {
+        try { LearnAuth.noteAuthFail('email', 'post_login', err); } catch (_) {}
+        say(humanError(err), true);
+      }
     } finally {
       $('app-pw-login').disabled = false;
       $('app-pw-login').textContent = t('app_verify', '登录');
