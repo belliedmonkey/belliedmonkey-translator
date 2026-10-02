@@ -111,7 +111,12 @@ export function bootShell() {
     if (/invalid login credentials/i.test(msg)) return t('app_pw_bad', '邮箱或密码不对，重新试一次。');
     if (/expired|invalid|otp/i.test(msg)) return codeBad();
     if (/network|fetch|load failed/i.test(msg)) return offline();
-    return msg;
+    // 兜底**绝不把服务端原文甩给用户**（那一句多半是英文的 GoTrue 串，如 "Validation failed" /
+    // "User already registered"）。2026-10-02（用户）：表外 code 走这里 —— 复用 App 已有的
+    // 「登录没能完成」那句（12 语种已在位），不新造文案。
+    // ⚠️ 它是 Apple 专用措辞（「改用下面的邮箱或手机号」在登录屏上任何一条路都成立，
+    // 但「Apple 登录」这个前缀对 Google / 邮箱那条路不准）。等设计门出稿换成一条通用句。
+    return t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。');
   }
 
   function paintStatic() {
