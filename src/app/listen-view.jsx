@@ -80,7 +80,7 @@ listenModel.canvas.pipRectOff = () => {
 // ── 首页入口卡（登录前后两个首页同构，sfx = '' | '2'）──────────────────────────
 // 初始态（refreshEntry 未返回）：按钮 hidden、need 行 hidden —— 与原静态 JSX 相同；
 // entryState 到位后由 entryVersion 驱动揭开。节点恒挂载（hidden 纪律）。
-function ListenEntryButtons({ sfx }) {
+function ListenEntryButtons({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const t = PageText.useT();
   const ev = listenModel.entryView(sfx);
@@ -108,7 +108,7 @@ function ListenEntryButtons({ sfx }) {
 }
 
 // 设备隐私句（modes-privacy{sfx}）：refreshEntry 写 hidden=!ok（原 :171-173）。mode-list 外面那行。
-function ListenEntryPrivacy({ sfx }) {
+function ListenEntryPrivacy({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const ev = listenModel.entryView(sfx);
   const listen = ev.listen;
@@ -121,7 +121,7 @@ function ListenEntryPrivacy({ sfx }) {
 
 // 两条灰态原因行：对话（need-live）+ 字幕（subs-need）。go 按钮恒藏 —— 原因都不是「去设置」
 // 能解决的（系统版本 / 语言），不给一个点了也没用的按钮（原 :1372/:203）。
-function ListenEntryNeeds({ sfx }) {
+function ListenEntryNeeds({ sfx = '' }) {
   useSyncExternalStore(subEntry, () => entryVersion);
   const ev = listenModel.entryView(sfx);
   const listen = ev.listen;

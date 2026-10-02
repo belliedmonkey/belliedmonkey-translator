@@ -500,25 +500,42 @@ export function bootShell() {
       }
       if (!packAsrReady && !packAsrUnsupported && typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
         let timer = null;
+        let asrLast = '';
         const timeout = new Promise((_res, rej) => {
           timer = setTimeout(() => {
             const e = new Error('stt-timeout');
             e.mtSttTimeout = true;
+            e.mtAsrLast = asrLast;
             rej(e);
           }, ASR_PACK_TIMEOUT_MS);
         });
         try {
-          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), () => {}), timeout]);
+          // 收原生每一条 assets-progress（含 probing 的 status/avail、downloading 的 bytes）——
+          // 超时那行会显示最后一条，否则真机上只剩「没动静」，原因不可见（2026-10-02 实测）。
+          await Promise.race([NativeSpeech.ensureAssets('stt', firstRunLocales(s), (m) => {
+            if (!m) return;
+            const pct = (typeof m.fraction === 'number') ? ' ' + Math.round(m.fraction * 100) + '%' : '';
+            const extra = [];
+            if (m.status) extra.push('status=' + m.status);
+            if (typeof m.ready === 'boolean') extra.push('avail=' + m.ready);
+            if (typeof m.supported === 'boolean') extra.push('supported=' + m.supported);
+            if (typeof m.total === 'number') extra.push('bytes=' + (m.completed || 0) + '/' + m.total);
+            asrLast = String(m.state || '') + pct + (extra.length ? ' · ' + extra.join(' ') : (m.reason ? ' · ' + m.reason : ''));
+          }), timeout]);
         } finally { clearTimeout(timer); }
       }
     } catch (e) {
       if (err) {
         err.hidden = false;
-        err.textContent = (e && e.mtSttTimeout)
-          ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
-          : ((e && e.mtTtsFailed)
-            ? t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''))
-            : t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。').replace('{why}', String((e && e.message) || e)));
+        if (e && e.mtSttTimeout) {
+          err.textContent = t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+            + (e.mtAsrLast ? ' [' + e.mtAsrLast + ']' : '');
+        } else if (e && e.mtTtsFailed) {
+          err.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''));
+        } else {
+          err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。')
+            .replace('{why}', String((e && (e.reason || e.message)) || e));
+        }
       }
     }
     packsBusy = false;

@@ -59,4 +59,17 @@ describe('App 首页出场顺序（2026-10-01 设计稿 · J01/J03/J05/J07）', 
     ok(/\.today \.row #review[\s\S]{0,160}color-mix/.test(css),
       '复习键仍是实心 —— 判据 J03 要求折叠线以内实心 CTA 只有两位主角');
   });
+
+  test('J01 · 主角卡的 sfx 必须默认成登录后那一份（否则两张卡永远 hidden）', () => {
+    // 2026-10-02 真机实测：AppShell 不传 sfx ⇒ entryView(undefined) ⇒ entryState[undefined] 是空的
+    // ⇒ hidden={listen ? … : true} 恒为 true ⇒ 首页上两位主角根本不出现（设计稿 J01 要求它们在）。
+    const lv = read('src/app/listen-view.jsx');
+    for (const c of ['ListenEntryButtons', 'ListenEntryPrivacy', 'ListenEntryNeeds']) {
+      ok(new RegExp("function " + c + "\\(\\{ sfx = '' \\}\\)").test(lv),
+        c + " 的 sfx 没默认成 '' —— AppShell 不传它，会取到 undefined，卡永远 hidden");
+    }
+    ok(/<ListenEntryButtons \/>/.test(shell), '前提：AppShell 确实不传 sfx（所以默认值就是登录后那一份）');
+    ok(/const btn = \['app-subs-entry', 'app-subs-entry2'\]/.test(read('src/app/shell-model.js')),
+      '无后缀 id 是登录后那一份 —— 命令式写入的锚点，必须与默认 sfx 对齐');
+  });
 });

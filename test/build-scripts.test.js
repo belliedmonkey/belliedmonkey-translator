@@ -1618,6 +1618,21 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     }
   });
 
+  test('locale 归一化（2026-10-02 真机）：三处构造都不许直接吃短码，必须过 mtSpeechLocale', () => {
+    const body = stripComments(tpl);
+    ok(!/SpeechTranscriber\(locale: Locale\(identifier:/.test(body),
+      '不许直接 Locale(identifier:) 构造 —— 短码 "en" 会抛 SFSpeechErrorDomain Code=4（屏 2 的识别包永远装不上）');
+    eq((body.match(/await mtSpeechLocale\(/g) || []).length, 3, '三处构造（probe / assets / transcriber）都要归一化');
+    ok(/func mtSpeechLocale\(/.test(body) && /supportedLocale\(equivalentTo:/.test(body),
+      '助手要用 Apple 配方的 supportedLocale(equivalentTo:)');
+  });
+  test('识别包装不上时 fail fast（2026-10-02 真机）：failed 之后必须补一条 stt-state', () => {
+    const body = stripComments(tpl);
+    const failIdx = body.indexOf('"state": "failed", "reason": String(describing: error)');
+    const fastIdx = body.indexOf('"state": "ready", "assets": "missing"');
+    ok(failIdx > 0, '要有 assets-progress 的 failed 分支');
+    ok(fastIdx > failIdx, 'failed 之后要立刻发 stt-state（否则 JS 只能干等 120 s 超时，真因不可见）');
+  });
   test('it carries no user-visible copy — states and reasons are protocol ids', () => {
     const strings = stripComments(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"mtSpeech"',
@@ -1634,6 +1649,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
+      '"ready"', '"total"', '"completed"',   // assets-progress 的诊断字段（2026-10-02）：AssetInventory 的可用性/字节数，文案由 JS 拼
       '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
       // 状态 / 原因 id
       '"ready"', '"unsupported"', '"failed"', '"ended"', '"installed"', '"missing"', '"downloading"',

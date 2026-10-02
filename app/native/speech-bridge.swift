@@ -30,6 +30,15 @@ import SherpaOnnx
 import SherpaOnnxC
 #endif
 
+/// 归一化到 SpeechTranscriber 认的 locale（Apple 配方第一条，2026-10-02 真机实测）。
+/// 传短码（"en"）会抛 SFSpeechErrorDomain Code=4「Some modules are configured with an unsupported
+/// configuration.」—— 屏 2 的识别包于是永远装不上；归一化后是 "en-US" ✓。
+/// 归一化不到 ⇒ nil，调用方按 unsupported 处理（不让它走到抛错那一步）。
+@available(iOS 26.0, macOS 26.0, *)
+func mtSpeechLocale(_ id: String) async -> Locale? {
+    await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: id))
+}
+
 final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     static let shared = MTSpeechBridge()
@@ -99,7 +108,13 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             let supported = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
             var allInstalled = true
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), preset: .transcription)
+                // 归一化（2026-10-02）：短码 "en" 在 SpeechTranscriber 里是不受支持的配置 ⇒ 先归一化成 "en-US"。
+                guard let loc = await mtSpeechLocale(id) else {
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
+                    return
+                }
+                let t = SpeechTranscriber(locale: loc, preset: .transcription)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
@@ -123,18 +138,30 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         }
         Task {
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), preset: .transcription)
+                // 归一化（2026-10-02）：短码会让 assetInstallationRequest 抛 SFSpeechErrorDomain Code=4。
+                guard let loc = await mtSpeechLocale(id) else {
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale"])
+                    return
+                }
+                let t = SpeechTranscriber(locale: loc, preset: .transcription)
+                // 诊断（2026-10-02）：真机上识别资产装不上时，屏上只剩「没动静」——这里把当场读到的
+                // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
+                let st0 = await AssetInventory.status(forModules: [t])
+                let supportedIds = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing",
+                           "status": String(describing: st0), "ready": SpeechTranscriber.isAvailable, "supported": supportedIds.contains(id)])
                 do {
                     guard let req = try await AssetInventory.assetInstallationRequest(supporting: [t]) else {
                         self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"]); continue
                     }
                     let p = req.progress
                     let watcher = Task {
-                        var last = -1.0
                         while !Task.isCancelled {
                             let f = p.fractionCompleted
-                            if f != last { last = f; self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading"]) }
-                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading",
+                                       "total": p.totalUnitCount, "completed": p.completedUnitCount])
+                            try? await Task.sleep(nanoseconds: 1_000_000_000)
                         }
                     }
                     try await req.downloadAndInstall()
@@ -142,6 +169,9 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
                 } catch {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": String(describing: error)])
+                    // fail fast（2026-10-02）：以前这里直接 return，JS 只能干等满 120 s 超时（屏上只剩
+                    // 「没动静」，真因不可见）；补一条带 assets 的 stt-state 立刻唤醒它，错误当场显示。
+                    self.emit(["type": "stt-state", "state": "ready", "assets": "missing"])
                     return
                 }
             }
@@ -211,7 +241,10 @@ final class MTDeviceTranscriber {
         Task {
             var mods: [SpeechTranscriber] = []
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), transcriptionOptions: [],
+                guard let loc = await mtSpeechLocale(id) else {
+                    emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                }
+                let t = SpeechTranscriber(locale: loc, transcriptionOptions: [],
                                           reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
                                           attributeOptions: [.audioTimeRange, .transcriptionConfidence])
                 if await AssetInventory.status(forModules: [t]) != .installed {

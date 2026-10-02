@@ -5,11 +5,15 @@
 // Application Support/mt-speech/<dir>/。换模型 = 用 scripts/pack-device-models.js 重打包、改这里的
 // sha256/size/url；旧包因安装戳名含 sha256 会被视为未安装、自动重下。
 //
-// url 分 flavor：全球走 GitHub Release 附件；中国版走 belliedmonkey.com（EdgeOne，境内可达）——
-// 在中国版托管就绪之前两边先指同一处（release-state 与 .local/TODO.md 里有这条欠账）。
-// 运行时按 window.MT_FLAVOR（providers.gen.js）取对应地址。
+// url 分 flavor（运行时按 window.MT_FLAVOR / providers.gen.js 取）：**两个 flavor 现在都走魔搭 ModelScope**
+// （2026-10-01 改；同一份 zip、同一个 sha256，只换托管）。原先 global 走 GitHub Releases ——
+// 美国出口实测 13–14 MB/s，但国内直连只有 20–40 KB/s（2026-10-01 在 ZHAO的iPhone 上实测 ≈1%/分钟，
+// 67 MB 要下约 1 小时）。魔搭实测：国内 6.4 MB/s、美国出口 6.4–6.9 MB/s（67 MB ≈ 10 s），
+// 首字节比 GitHub 多约 1 s ⇒ 用「国外慢约一倍」换掉最坏的那一格（国际版包 + 国内网络）。
+// 字节来自 cdn-lfs-cn-1.modelscope.cn（中国 CDN，没有国际节点；modelscope.com 只是 .cn 的英文入口）。
 //
 // 只覆盖 zh / en（Piper，sherpa-onnx 的 vits 形状）；不在表里的语言由 tts.js 回落到系统语音并在行上具名。
+var MT_MODELSCOPE_BASE = 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/';
 var MT_DEVICE_TTS_MODELS = [
   {
     lang: 'zh', dir: 'piper-zh', model: 'zh_CN-huayan-medium.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
@@ -17,11 +21,9 @@ var MT_DEVICE_TTS_MODELS = [
       path: 'piper-zh.zip', size: 67411393,
       sha256: '071b226531f829851c0df15ac5f5050d8c56e9a24e479c9f3b531cd377e84c92',
       url: {
-        global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-zh.zip',
-        // 境内走魔搭 ModelScope（2026-09-17 真机实测：GitHub Releases 境内 HEAD 超时、下载停在 1%；hf-mirror ≈580 KB/s；
-        // ModelScope 67 MB 用 3.4 s ≈ 18.7 MB/s）。同一份 zip、同一个 sha256，只是换了托管：
-        // https://modelscope.cn/models/belliedmonkey/belliedmonkey-device-models（备选 hf-mirror.com/belliedmonkey/belliedmonkey-device-models）
-        china: 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-zh.zip',
+        // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
+        global: MT_MODELSCOPE_BASE + 'piper-zh.zip',
+        china: MT_MODELSCOPE_BASE + 'piper-zh.zip',
       },
     }],
   },
@@ -31,11 +33,8 @@ var MT_DEVICE_TTS_MODELS = [
       path: 'piper-en.zip', size: 67388973,
       sha256: '1c69a1f2332238e52594c22beeac204430740bff549bf0e58701e730d2c34c1c',
       url: {
-        global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-1/piper-en.zip',
-        // 境内走魔搭 ModelScope（2026-09-17 真机实测：GitHub Releases 境内 HEAD 超时、下载停在 1%；hf-mirror ≈580 KB/s；
-        // ModelScope 67 MB 用 3.4 s ≈ 18.7 MB/s）。同一份 zip、同一个 sha256，只是换了托管：
-        // https://modelscope.cn/models/belliedmonkey/belliedmonkey-device-models（备选 hf-mirror.com/belliedmonkey/belliedmonkey-device-models）
-        china: 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-en.zip',
+        global: MT_MODELSCOPE_BASE + 'piper-en.zip',
+        china: MT_MODELSCOPE_BASE + 'piper-en.zip',
       },
     }],
   },

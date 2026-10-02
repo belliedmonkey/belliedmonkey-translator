@@ -125,15 +125,17 @@ var NativeSpeech = (() => {
     if (!available()) return Promise.reject({ reason: 'no-bridge' });
     return new Promise((resolve, reject) => {
       let failed = false;
+      let failReason = '';
       const fn = (m) => {
         if (m.kind !== kind) return;
         try { onProgress && onProgress(m); } catch (_) {}
-        if (m.state === 'failed') { failed = true; }
+        if (m.state === 'failed') { failed = true; failReason = String(m.reason || 'download'); }
       };
       progressListeners.push(fn);
       const finish = (r) => {
         const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
-        if (failed || !r.ok) reject({ reason: failed ? 'download' : (r.reason || 'failed') }); else resolve(r);
+        // 原生报了 failed 就把它的 reason 带出去（以前丢成 'download'，屏上只剩一句「没动静」✗）
+        if (failed || !r.ok) reject({ reason: failed ? (failReason || 'download') : (r.reason || 'failed') }); else resolve(r);
       };
       if (kind === 'stt') { sttWaiters.push(finish); post({ type: 'stt-assets', locales: spec }); }
       else { ttsWaiters.push(finish); post({ type: 'tts-assets', models: spec }); }
