@@ -417,3 +417,111 @@ describe('后端换了 ⇒ 主库由这次登录的人接管（中国版切境�
     eq(stored.learnDbOwnerBackend, CN); ok(!('learnRehome' in stored), '首次认领不是改户');
   });
 });
+
+// ─── 登录失败埋点（telemetry-design §3.14，2026-10-02）──────────────────────────
+//
+// 用户报「新账号第三方登录第一次失败、第二次成功」，扩展与 App 都有。这一组守的是
+// 「失败真的会被记下来，而且记的是形状而不是内容」：六个断点里最常见的三条（兑换 /
+// id_token / 原生）各发一条，属性是枚举 / id / int，归一化不合法就落 'unknown'，
+// 且**没有遥测端点时也绝不抛**（埋点不能挡住登录）。
+describe('登录失败埋点 auth_fail（§3.14）', () => {
+  function loadT(fetchImpl, seed) {
+    const stored = Object.assign({}, seed || {});
+    const PageSettings = {
+      read: async (keys) => ({ ok: true,
+        data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+      write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+      removeKeys: async (keys) => { for (const k of keys) delete stored[k]; return { ok: true }; },
+    };
+    const LearnStore = { getMeta: async () => null, setMeta: async () => {} };
+    const sent = [];
+    const ctx = loadModule('learn/auth.js', {
+      window: {},
+      MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+      PageSettings, LearnStore,
+      crypto: require('crypto').webcrypto,
+      TextEncoder,
+      btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+      MTTelemetry: { track: (name, props) => sent.push({ name, props }) },
+      fetch: async (url, init) => fetchImpl(url, init),
+    });
+    return { A: ctx.LearnAuth, sent, stored };
+  }
+
+  test('第三方兑换失败：provider / stage=exchange / code / http 全部落到位', async () => {
+    const { A, sent } = loadT(async () => errResponse(500, { error_code: 'unexpected_failure' }), {
+      learnAuthCode: { code: 'c' },
+    });
+    // provider 只在内存里（点击时记下）—— 先走一遍真实的点击形状，再兑换。
+    await A.prepareProviderSignIn();
+    A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
+    let e = null;
+    try { await A.completeProviderSignIn(); } catch (x) { e = x; }
+    ok(e, '应抛错');
+    eq(sent.length, 1);
+    eq(sent[0].name, 'auth_fail');
+    eq(sent[0].props.provider, 'google');
+    eq(sent[0].props.stage, 'exchange');
+    eq(sent[0].props.code, 'unexpected_failure');
+    eq(sent[0].props.http, 500);
+    eq(sent[0].props.attempt, '1');
+  });
+
+  test('App 原生 id_token 失败：stage=id_token，provider 是 apple', async () => {
+    const { A, sent } = loadT(async () => errResponse(400, { error_code: 'validation_failed' }));
+    try { await A.signInWithIdToken('apple', 'tok', 'nonce'); } catch (_) {}
+    eq(sent.length, 1);
+    eq(sent[0].props.provider, 'apple');
+    eq(sent[0].props.stage, 'id_token');
+    eq(sent[0].props.code, 'validation_failed');
+    eq(sent[0].props.http, 400);
+  });
+
+  test('原生那一步失败（apple-result 带 error）经 noteAuthFail 回同一个出口', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('apple', 'native', 'native_error');
+    eq(sent.length, 1);
+    eq(sent[0].props.stage, 'native');
+    eq(sent[0].props.code, 'native_error');
+    eq(sent[0].props.http, 0, '没有 HTTP 响应时应是 0，不是 undefined');
+  });
+
+  test('authorize 断点：没备好就点，记 pkce_missing', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    eq(A.providerSignInUrl('google', 'https://x'), null);
+    eq(sent[0].props.stage, 'authorize');
+    eq(sent[0].props.code, 'pkce_missing');
+  });
+
+  test('归一化：枚举外的 provider / stage 落 unknown，非法字符落下划线', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('Dropbox', 'weird', 'Weird Code!');
+    eq(sent[0].props.provider, 'unknown');
+    eq(sent[0].props.stage, 'unknown');
+    eq(sent[0].props.code, 'weird_code_');
+  });
+
+  test('attempt 是本页面第几次失败：1 → 2+（「第一次失败」的直接读数）', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('apple', 'native', 'e1');
+    A.noteAuthFail('apple', 'native', 'e2');
+    eq(sent[0].props.attempt, '1');
+    eq(sent[1].props.attempt, '2+');
+  });
+
+  test('★ 没有遥测端点时也不抛 —— 埋点不能挡住登录', async () => {
+    // loadWith（本文件上方那个）**不带** MTTelemetry，走的是同一段 authFail。
+    const { A } = loadWith(async () => errResponse(400, { error_code: 'invalid_credentials' }));
+    let e = null;
+    try { await A.signInPassword('a@b.c', 'wrong'); } catch (x) { e = x; }
+    eq(e && e.code, 'invalid_credentials', 'authFail 把错误吃掉了');
+  });
+
+  test('App 原生那一步确实接了线（静态）', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'src/app/shell-model.js'), 'utf8');
+    ok(/noteAuthFail\('apple',\s*'native'/.test(app),
+      'shell-model.js 没接 noteAuthFail —— 原生失败仍是黑的');
+  });
+});

@@ -2004,6 +2004,14 @@ Lighthouse 三件外部事（§8.4.1.2）；用东京的中继就是把中国用
 > 实测留档：境内网络经中继翻译中位 1.73 s（直连百炼 0.82 s，多出的主要是去东京查账记账的两个往返）；
 > 中国版扩展没有登录，「额度」判据须带上「这个构建有登录」（未合，stash 在本机）。
 
+> **（一·补）2026-10-02**：这条 2026-09-22 就写明「**两个宿主**共用 `learn/grant.js` 的同一份
+> 字节、不在调用方各写一遍」，但落地（#396–#398）只做了 App（`shell-model.js` 的
+> `autoClaimGrant`）—— 扩展侧一直只有设置页那张卡的「领取」按钮，登录后要用户自己点
+> （用户 2026-10-02 报障「登录后扩展端需要手动领取」）。现补齐：`src/pages/options.jsx` 加
+> `autoClaimGrant`，**同一套闸**（`LearnGrant.enabled()` + `overwrite:false` + 一次只试一次），
+> 挂在登录汇合点 `refreshSyncUI`（邮箱验证码 / 第三方回跳 / 打开设置页时已登录三条路都会走到）。
+> 判据：`test/grant-one-implementation.test.js`。
+
 > **（一）已落地**（#396–#398：登录成功自动领取）。**（二）（三）的代码 2026-09-22 已落地、开关未翻**：
 > `grant.china.ready` 仍是 `false`，此时中国版 `MT_GRANT` 恒为 null、产物除注释外逐字不变。
 > 落地的是：`backend.config.js` 的 `grant.china { ready, relayUrl, vendor }`；`build.js`

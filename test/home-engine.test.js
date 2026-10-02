@@ -87,6 +87,26 @@ describe('登录后的引擎就位（真机反馈 ①，2026-10-01）', () => {
     ok(/chip\.hidden = true/.test(fn.slice(0, 1200)),
       '就绪时没有把 chip 收起来 —— 它会一直挂着');
   });
+
+  test('★ 领取/补朗读之后必须**重画**状态行；离开设置页回首页也要重画（2026-10-02 真机）', () => {
+    // 真机现象：登录成功后首页状态行仍写着「翻译引擎未配置，前往 设置 › 引擎 选一个」。
+    // 根因不是判定（firstRunEngineOk / plan 都对，前面几条已经钉住），而是**没人重画**：
+    // 状态行由 paintStatic 画，而 boot 的那次 paintStatic 跑在登录之前（存储里还没令牌）；
+    // 领取写盘之后没有任何东西再画一次。两个「各自正确」的单元拼起来漏了一根线 ——
+    // 纯函数/静态判据看不见它，这正是加这一条的理由。
+    const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
+    const show = model.slice(model.indexOf('async function show('));
+    const claim = show.indexOf('await autoClaimGrant()');
+    ok(claim > -1, 'show() 里找不到 autoClaimGrant —— 领取不在登录汇合点上了');
+    const repaint = show.indexOf('paintEngineStatus()', claim);
+    ok(repaint > claim && repaint - claim < 1500,
+      '登录汇合点在领取之后没有重画引擎状态行 —— 它会一直停在「翻译引擎未配置」（2026-10-02 真机）');
+    // 同一类漏重画：在设置里配好引擎/改回额度后回首页，状态行要跟着变。
+    const close = model.slice(model.indexOf('async function closeSettings'));
+    const closeBody = close.slice(0, close.indexOf("say('"));
+    ok(/paintEngineStatus\(\)/.test(closeBody),
+      '离开设置页回首页没有重画状态行 —— 在那里配好引擎后首页仍显示旧状态');
+  });
 });
 
 describe('状态行 chip 不许与上方的线重合（真机反馈 ②，2026-10-01）', () => {
