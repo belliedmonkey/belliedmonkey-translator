@@ -74,7 +74,7 @@ browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot
 | 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
 | 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
 | 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
-| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **KVM 虚拟机（宿主机 `omarchy`）**：libvirt 域 `win11`，Windows 11 Pro 26H2，macvtap 静态 IP `192.168.50.237`。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）；包与命令经 QEMU guest agent 送入 | ✅ **verified 2026-10-02**（Chrome 154 · Edge 154 · Firefox 157，均 1.19.0：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Chrome 420–1497 ms、Edge 1047 ms；Chrome 语音 zh/en 本地声、YouTube 字幕、全屏叠层通过；Firefox YouTube 真字幕仍是已知缺口。Windows 专属读数见 §2.H）— see §2.H |
 | 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。**模拟器承载不了这个扩展点**（2026-09-20 量过：里面没有苹果的「翻译」App，因此没有「默认翻译App」那一行）—— 但收件箱摄入那一半可以在模拟器上验，见 §2.I | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
 | 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
 | 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 设计通过）。自动化门见 §3.1.13 `npm run test:cli` |
@@ -1149,17 +1149,109 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
+### H. Windows 11 Chrome / Edge / Firefox (KVM VM on the Omarchy desktop) — ✅ verified 2026-10-02
 
 > **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
 > read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
 >
-> **Target: the VM only (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」).** The same
-> day a second target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and
-> measured once (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real
-> subtitles** ✅ — it is where #325 was found) and then retired; its scripts are not in the repo (see the
-> first commit of PR #327). Readings from it stay in this section as records, marked "real desktop".
-> The test page address is `MT_WIN_PAGE` (default `http://192.168.2.1:8765/page.html`, the VM's view of the Mac).
+> **Target (user ruling 2026-10-02): the VM moved off the Mac onto the Omarchy desktop.** `win11`
+> is a libvirt/KVM domain on `omarchy` (`100.69.15.88` tailscale / `192.168.50.5` LAN), IP
+> `192.168.50.237` (**static**, macvtap on `enp4s0`), Windows 11 Pro 26H2 (`26300.9457`) in
+> Simplified Chinese. The Mac reaches it directly on the LAN; **everything still runs from the Mac**.
+> The 2026-09-18 VMware Fusion record is kept below as history. The test page address is `MT_WIN_PAGE`
+> (default `http://192.168.2.1:8765/page.html`; on this topology the Mac is `192.168.50.231`).
+>
+> **Tracking: #542** (this migration + the harness fixes). The Firefox YouTube gap is tracked in #543.
+
+**Why KVM on the Omarchy box (2026-10-02):** the desktop already had `/dev/kvm`, and it is the machine
+the row's `win-desktop` ssh alias pointed at. Running Windows there keeps the row off the user's Mac
+and gives a root-managed, always-on VM. macvtap keeps host↔guest L2 isolated while the VM stays on the
+LAN, so the Mac drives it exactly as before (the host itself cannot reach the guest — the drivers
+never need it to).
+
+**Commands in — the QEMU guest agent, not a human pasting PowerShell.** `virtio-serial` +
+`qemu-guest-agent` are installed in the guest; helper scripts live in `/root/win11/` on the host:
+`ga.sh <cmd>` runs `cmd.exe /c`, `gps.sh <script>` runs PowerShell, both over
+`virsh qemu-agent-command win11 …`. The agent channel is **independent of the network**, so a mis-set
+guest IP is always recoverable. This replaces the old "paste a line into the VM" step.
+
+**Building the VM (unattended).** Official zh-CN ISO (`Windows11_Client_x64_zh-cn_26300_9457.iso`,
+`install.wim` index 4 = Pro), UEFI (OVMF 4m) + swtpm TPM 2.0, **SATA** disk + **e1000e** NIC (inbox
+drivers — no virtio-win needed to boot), autounattend.xml on a **Joliet CD** (not a USB disk — a USB
+disk shifts `DiskID 0` and the disk config fails). Traps paid for: 26H2 requires Secure Boot (bypassed
+with windowsPE `RunSynchronous` writing `HKLM\SYSTEM\Setup\LabConfig` `Bypass*Check=1`); the product-key
+page needs a `<ProductKey>` (generic Pro key, installs unactivated); the answer-file keyboard is
+hijacked by the zh-CN IME (tap **Shift** in each new window before typing); Chrome's standalone
+installer crashes as SYSTEM `0xC0000005` (use the enterprise MSI).
+
+**YouTube needs the user's proxy.** The VM's own macvtap egress is in China ⇒ `youtube.com` is
+blocked, and the symptom looks like a **frozen renderer** (the page never loads, CDP
+`Runtime.evaluate` times out). A second NIC on libvirt `default` (`192.168.122.50`) plus
+`mt-proxy-relay.service` on the host (`socat TCP-LISTEN:7897,bind=192.168.122.1,fork,reuseaddr
+TCP:127.0.0.1:7897` — the host's mihomo mixed port, reached through the host's TUN) gives the VM a
+proxy. Chrome/Edge launch with
+`--proxy-server=http://192.168.122.1:7897 --proxy-bypass-list=192.168.50.*;192.168.122.*;<local>`;
+Firefox sets `network.proxy.type=1` with `http` **and `ssl`** pointing at `192.168.122.1:7897` —
+without the `ssl` pref the HTTPS leg goes direct and is `NS_ERROR_NET_RESET`.
+
+**English speech needs the en-US voice.** A zh-CN Windows ships **only local zh-CN voices**
+(Huihui / Kangkang / Yaoyao); en-US falls back to Google's online voice, which is unreachable, so the
+first `speak()` produces no `start`/`end`/`error` (silence with no signal — the shape §1.0 warns
+about). Install the `Language.TextToSpeech~~~en-US~0.0.1.0` capability; then `Microsoft Mark` is
+local and the en-US reading is takeable.
+
+**Getting `dist/` into the VM:** serve from the Mac (`python3 -m http.server 8765 --bind 0.0.0.0`
+over `dist-chrome.zip` / `dist-firefox.zip` / `page.html`), then from the guest agent download and
+`Expand-Archive` into `C:\mt\dist` / `C:\mt\dist-firefox`. **No shared folders**; the guest fetches
+from the Mac's LAN address directly.
+
+**Mac side, all three:** run with the shell's proxy variables cleared — this Mac's shell points
+`http_proxy` at a local proxy that answers 503 / drops LAN requests, and Node honours
+`NODE_USE_ENV_PROXY`; `curl` needs `--noproxy '*'`:
+
+```bash
+clean() { env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy -u ALL_PROXY "$@"; }
+MT_WIN_PAGE=http://192.168.50.231:8765/page.html clean node scripts/win-matrix/chromium.js 192.168.50.237 9223 'C:\mt\dist' chrome
+MT_WIN_PAGE=…                                          clean node scripts/win-matrix/chromium.js 192.168.50.237 9223 'C:\mt\dist' edge
+MT_WIN_PAGE=…                                          clean node scripts/win-matrix/firefox.js  192.168.50.237 9223 'C:\mt\dist-firefox'
+```
+
+**Launching the browsers — in the user session, not session 0.** The guest agent runs as SYSTEM
+(session 0); a browser started there has no desktop, never paints, and **every CDP
+`Page.captureScreenshot` / `Runtime.evaluate` times out**. Launch via a scheduled task with
+`-LogonType Interactive` as `WIN11-MT\win`, and add `--hide-crash-restore-bubble
+--disable-session-crashed-bubble`: killing Chrome leaves a 「要恢复页面吗」 bubble that blocks the
+renderer. Chrome 154 takes `Extensions.loadUnpacked`; Edge 154 answers 「Method not available」 and
+needs `--enable-unsafe-extension-debugging --load-extension=C:\mt\dist` at launch.
+
+**The YouTube control menu is React-rendered since v1.19.0** (`content/sub-menu.bundle.js`): after
+clicking `#mt-yt-btn`, **poll** for `#mt-yt-menu > div` (the first row is the on/off switch) — a fixed
+600 ms wait is not enough and the row is read as `null`.
+
+**2026-10-02 readings (v1.19.0, all three browsers):**
+
+| item | reading |
+|---|---|
+| Chrome 154.0.8037.98 core | ✅ `problems: []`, 4 translations, **420–1497 ms**, scrollbar 0 px, 9 voices, service worker → DeepSeek ×4 all 200 |
+| Edge 154.0.4258.53 core | ✅ `problems: []`, 4 translations, 1047 ms, 324 voices |
+| Firefox 157.0 core | ✅ `problems: []`, 4 translations, 519 ms, 9 voices |
+| Chrome speech (`start`/`end` on the utterance) | ✅ zh-CN `Microsoft Huihui` 134 / 3659; en-US `Microsoft Mark` 68 / 3070 — both **local** |
+| Chrome fullscreen (YouTube watch page) | ✅ trusted click on `.ytp-fullscreen-button`, overlay inside `document.fullscreenElement` and visible, translation advances between t = 8 s and 16 s, overlay survives `exitFullscreen()` |
+| Chrome YouTube subtitles (`yt-subtitles.js`) | ✅ `subtitleAfterAdMs = 1` (no pre-roll this run); 「译」toggled on via the menu's first row |
+| Firefox 157 speech | ✅ zh-CN `Microsoft Huihui` 159 / 3663; en-US `Microsoft Mark` 66 / 3066 |
+| Firefox YouTube fullscreen | ❌ overlay shows 「字幕不可用，先在设置里选择转写引擎」 — Firefox cannot get the YouTube caption track here; this is the pre-#325 gap (`speech-fullscreen-firefox.js` predates the ad-skip fix). **Tracked in #543** |
+| AI 转写字幕 (§1.0 table) | ⬜ not run |
+
+**Reading the screen without feeding images.** Screenshots are OCR'd to text on the Mac
+(`.local/win/vmocr.sh` → macOS Vision via `.local/win/ocrit.swift`) so a long verification run does
+not accumulate images in the agent conversation.
+
+**Firefox caveats carried over:** one BiDi session at a time (restart Firefox if a killed driver
+leaves 「Maximum number of active sessions」 — the port proxy holds the inner leg); the WS upgrade must
+carry `Host: 127.0.0.1:9222` (`lib/raw-ws.js`); `captureScreenshot` of a `moz-extension://` page is
+refused on Firefox 157 (「privileged scope」) — `firefox.js` treats that screenshot as optional.
+
+#### Historical record — VMware Fusion VM (2026-09-18) — retired 2026-10-02
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
 exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
