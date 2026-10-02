@@ -162,6 +162,15 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       '露首页没有以「判定结果不是 packs」为条件 —— 会把屏 2 盖掉');
   });
 
+  test('R2e · 每次判定都从「还没定」开始（firstRunScreen 先清空）', () => {
+    // show() 靠 `firstRunScreen !== 'packs'` 决定判完之后露不露首页。留上一次的 'packs'
+    // 会在这次判定失败（元素不在 / 提前 return）时把首页一直藏着 —— 那是「空白一屏」的病。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const fn = model.slice(model.indexOf('async function paintFirstRun'));
+    ok(/firstRunScreen = ''/.test(fn.slice(0, 500)),
+      'paintFirstRun 没把 firstRunScreen 清空 —— 上一次的 packs 会让首页一直藏着');
+  });
+
   test('R1c · 系统翻译横幅在首页永不出现（2026-10-01 裁定：引导只放设置页）', () => {
     // 原来这条钉的是「屏 1 / 屏 2 在场上时横幅让位」；裁定之后更强：**首页根本不出现**。
     // 设置页那一块（settings-view.jsx 的 #g-systrans）不受影响 —— 判据只针对首页横幅。
