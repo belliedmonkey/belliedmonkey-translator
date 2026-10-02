@@ -120,16 +120,46 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     eq(FR.step(base), 'home', '全就绪 ⇒ 直进首页');
   });
 
-  test('R2c · 领取额度排在首屏判定之前（否则刚登录的人被读成「引擎不通」）', () => {
-    // 2026-10-01 模拟器实测：`show()` 里 paintFirstRun 排在 autoClaimGrant 之前，
-    // 额度令牌还没落地 ⇒ 引擎那格 false。屏序已经不靠引擎了（R3b），但 isReady 与首页
-    // 状态要看它 —— 所以这一句必须排在前面。
+  test('R2c · 领取额度与首屏判定**并行**：判定前启动、状态行前 await（2026-10-02 改序）', () => {
+    // 2026-10-01 原判据：`await autoClaimGrant()` 排在 `await paintFirstRun(session)` 之前 ——
+    // 理由是「额度令牌晚一步落地 ⇒ 引擎那格 false」。2026-10-02 真机反馈推翻了那个形状：
+    // 那次网络往返把**揭屏**拖住了 1–2 秒，首页当了替身（现象见 R2d）。
+    // 而理由本身已经被接走：`step()` 不看引擎（R3b），`isReady()` 全仓没有生产调用方，
+    // 首页状态由 `paintEngineStatus()` 在领取落地后重画（test/home-engine.test.js）。
+    // 改序后要守的是**两件事**，缺一不可：
+    //   ① 领取在判定之前**启动**（不能挪到判定之后 —— 冷启动那一帧里它得跑得到）；
+    //   ② 引擎状态行在领取**落地之后**画（否则「登录后仍显示翻译引擎未配置」从另一边回来）。
     const model = stripComments(read('src/app/shell-model.js'));
-    const claim = model.indexOf('await autoClaimGrant()');
-    const paint = model.indexOf('await paintFirstRun(session)');
-    ok(claim > -1, 'shell-model.js 里找不到 `await autoClaimGrant()`');
-    ok(paint > -1, 'shell-model.js 里找不到 `await paintFirstRun(session)`');
-    ok(claim < paint, 'autoClaimGrant 排在 paintFirstRun 之后 —— 额度令牌晚一步落地，首屏判定会读成「引擎不通」');
+    const show = model.slice(model.indexOf('async function show('));
+    const claim = show.indexOf('autoClaimGrant()');
+    const paint = show.indexOf('await paintFirstRun(session)');
+    const status = show.indexOf('await paintEngineStatus()');
+    ok(claim > -1, 'show() 里找不到 autoClaimGrant() —— 领取不在登录汇合点上了');
+    ok(paint > -1 && status > -1, 'show() 里找不到首屏判定或引擎状态行');
+    ok(claim < paint, '领取没有排在首屏判定**之前启动** —— 它会挡揭屏，或被冷启动那一帧漏掉');
+    ok(paint < status, '引擎状态行排在首屏判定之前 —— 顺序乱了');
+    ok(/await claimP\b/.test(show.slice(paint, status)),
+      '引擎状态行之前没有 await 领取的落地 —— 令牌晚一步落地，状态会读成「引擎不通」');
+  });
+
+  test('R2d · 判定期间不许先露出首页（2026-10-02 真机：登录后先闪一下首页，1–2 秒后才跳屏 2）', () => {
+    // 真机现象：登录后第一个画面不是屏 2（资源包），而是**首页**停了 1–2 秒，然后才跳过去。
+    // 根因是揭屏顺序 —— 旧代码在判定之前就 `$('signed-in').hidden = !session`（露首页），
+    // 判定要等两个设备包探完 + 那次额度领取的网络往返。这一条钉住「判定之前两个内容面都不露」。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const show = model.slice(model.indexOf('async function show('));
+    const paint = show.indexOf('await paintFirstRun(session)');
+    ok(paint > -1, 'show() 里找不到 `await paintFirstRun(session)`');
+    const before = show.slice(0, paint);
+    ok(/\$\('signed-in'\)\.hidden = true/.test(before),
+      '首屏判定之前没有把 #signed-in 藏起来 —— 登录后先看到首页，1–2 秒后才跳屏 2');
+    ok(!/\$\('signed-in'\)\.hidden = false/.test(before),
+      '首屏判定之前就把首页露出来了 —— 那 1–2 秒的替身就是它');
+    const after = show.slice(paint);
+    ok(/\$\('signed-in'\)\.hidden = false/.test(after),
+      '判定完成后没有把首页露出来（非 packs 时）—— 判定完就没人露首页了');
+    ok(/firstRunScreen !== 'packs'/.test(after),
+      '露首页没有以「判定结果不是 packs」为条件 —— 会把屏 2 盖掉');
   });
 
   test('R1c · 系统翻译横幅在首页永不出现（2026-10-01 裁定：引导只放设置页）', () => {

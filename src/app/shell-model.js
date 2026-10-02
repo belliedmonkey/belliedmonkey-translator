@@ -421,7 +421,11 @@ export function bootShell() {
     };
   }
 
-  async function paintFirstRun(session) {    const sec = $('firstrun-packs');
+  async function paintFirstRun(session) {
+    const sec = $('firstrun-packs');
+    // 每一次判定都从「还没定」开始 —— show() 靠 `firstRunScreen !== 'packs'` 决定判完之后
+    // 要不要露首页；留着上一次的 'packs' 会在这次判定失败（元素不在）时把首页一直藏着。
+    firstRunScreen = '';
     if (!sec) return;
     // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
     // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
@@ -573,25 +577,40 @@ export function bootShell() {
     // place that could disagree.
     try { await LearnAuth.bindCorpus(session); }
     catch (_) { /* storage read failed — keep the corpus we are on rather than guess */ }
-    $('signed-out').hidden = !!session;
-    $('signed-in').hidden = !session;
-    // 首屏三段式（#532）：四个输入 → step()。缺任一设备包时把上面那两行覆盖掉，
-    // 显示屏 2（硬门）。判定本身在 src/app/firstrun.js，这里只落屏。
+    // ── 揭屏推迟到首屏三段式判定**之后**（2026-10-02 真机：登录后先闪一下首页、1–2 秒后
+    // 才跳到语音包页）。旧顺序是「先露出 #signed-in（首页）→ 再领取额度（一次网络往返）→
+    // 再 paintFirstRun 判定」，于是揭屏发生在判定之前，首页当了那 1–2 秒的替身。
     //
-    // **领取额度排在这里、且在首屏判定之前**（2026-10-01 模拟器实测）：
-    // 登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
-    // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配
-    // 引擎也没领额度** —— 我们让他们登了，却没顺手把额度给他们。
-    // 挂在 show() 上而不是登录表单的回调里：这里是**所有**改变登录态的路径的唯一汇合点
-    // （见上面那段注释），所以启动时带着旧会话进来的人也会被补上 —— 那 47 台不必重新登录
-    // 一次才能拿到。claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，重复调用幂等
-    // （它同时就是读余额那个调用）。三个闸：没登录不做 · 没有额度这条路不做（中国版
-    // MT_GRANT 恒为 null）· **已经配好引擎的不做**（overwrite 传 false，不碰用户自己的 key）。
-    // 静默失败：领不到额度不该挡住首屏。
-    // 为什么要**等**它（而不是像原来那样 `catch()` 掉不等）：额度令牌晚一步落地，引擎那格
-    // 就还是 false。屏序已经不靠引擎（firstrun.js 的口径），但 `isReady()` 与首页状态要看它 ——
-    // 刚登进来的人否则会被读成「引擎不通」。
-    if (session) { try { await autoClaimGrant(); } catch (_) { /* 领不到不挡首屏 */ } }
+    // 现在：**判定先行**（只探两个设备包 —— 原生往返，快），额度领取与它**并行**启动、
+    // 稍后再 await。判定不看引擎（`firstrun.step` 只吃 loggedIn / 两个包 / seen），所以并行安全。
+    if (!session) {
+      $('signed-out').hidden = false;
+      $('signed-in').hidden = true;
+    } else {
+      // 判定出结果前，两个内容面都不露 —— paintFirstRun 会露出对的那一个（首页 / 屏 2）。
+      $('signed-out').hidden = true;
+      $('signed-in').hidden = true;
+    }
+    // 领取额度：登录了就把免费额度装上，不再让人自己去点一次「领取」（2026-09-22 裁定，
+    // learning-design §8.10.1）。读数：54 台登录并同步过的里 **47 台（87%）既没配引擎也没领
+    // 额度** —— 我们让他们登了，却没顺手把额度给他们。挂在 show() 上而不是登录表单的回调里：
+    // 这里是**所有**改变登录态的路径的唯一汇合点，所以带着旧会话启动的人也会被补上。
+    // claim() 服务端以 user_id 为主键、第二次回传同一枚令牌，重复调用幂等（也顺带刷新余额）。
+    // 三个闸：没登录不做 · 没有额度这条路不做（中国版 MT_GRANT 恒为 null）· 已经配好引擎的也做
+    // （overwrite:false 只写空槽，不碰用户自己的 key）。
+    //
+    // **在判定之前启动、在状态行之前 await**（2026-10-02）：启动早于判定，冷启动那一帧里它
+    // 一定跑得到；但等待晚于判定与揭屏，那次网络往返不再把揭屏拖住 1–2 秒（R2c / R2d）。
+    const claimP = session ? autoClaimGrant().catch(() => { /* 领不到不挡首屏 */ }) : Promise.resolve();
+    try { await paintFirstRun(session); } catch (_) {}
+    // paintFirstRun 非 packs 时只判定、不揭屏；这里把首页露出来（屏 2 由它自己露）。
+    if (session && firstRunScreen !== 'packs') { $('signed-in').hidden = false; }
+    // 引擎状态行要**在领取（+ 补朗读）之后**重画一次（2026-10-02 真机反馈）：boot 的那次
+    // paintStatic 跑在登录之前，那时存储里还没有额度令牌 / ttsEngine，而状态行只由
+    // paintStatic 与「界面语言」切换重画 —— 不补这一句，登录成功后它会一直停在
+    // 「翻译引擎未配置，前往 设置 › 引擎 选一个」。判据：test/home-engine.test.js。
+    // 领取已并行启动，这里等它落地 —— 令牌晚一步落地，状态行就会读成「引擎不通」。
+    await claimP;
     // 登录即把**朗读**引擎钉到设备内置（2026-10-01 裁定：登录完三样都该就位，这一屏直接能用）。
     // 三样的来源各不相同，所以只有这一格要写：
     //   · 翻译 —— 随额度到账（上面那次 claim）；
@@ -599,13 +618,7 @@ export function bootShell() {
     //   · 朗读 —— 空的，而屏 2 要下的离线模型正是它的（`ttsEngine='device'`）。
     // **不覆盖用户自己的选择**（选了别的引擎就不动）。
     if (session) { try { await ensureDeviceTts(); } catch (_) { /* 写不进去不挡首屏 */ } }
-    // 引擎状态行要**在领取（+ 补朗读）之后**重画一次（2026-10-02 真机反馈）：boot 的那次
-    // paintStatic 跑在登录之前，那时存储里还没有额度令牌 / ttsEngine，而状态行只由
-    // paintStatic 与「界面语言」切换重画 —— 不补这一句，登录成功后它会一直停在
-    // 「翻译引擎未配置，前往 设置 › 引擎 选一个」。判据：test/home-engine.test.js。
     if (session) { try { await paintEngineStatus(); } catch (_) {} }
-    try { await paintFirstRun(session); } catch (_) {}
-    // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
     // Apple / Google / 邮箱三条路最后都到这儿，只写一处就三条都对。
     try {
