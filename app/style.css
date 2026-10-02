@@ -55,7 +55,7 @@ body {
 
 h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
-.note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; }
+.note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
 /* The engine self-check results print a second line carrying the URL actually
    requested; `.note` collapses newlines, and an endpoint URL is long enough to push
    the column sideways unless it may break mid-token. */
@@ -243,10 +243,23 @@ header #who { min-width: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
 #app-settings > button { align-self: flex-start; }
 #settings-back { align-self: flex-start; }
-.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; min-width: 0; }
+/* 2026-10-03（设计稿 `app-settings-layout-2026-10-03`，**用户已签署**）：设置页文字不许出界。
+   真机截图里「听译 · 实时字幕」的「自动朗读译文」那一行越过了卡片右边界。
+   根因：flex item 默认 `min-width:auto` ⇒ **不肯收缩到内容宽度以下**；文案一长（12 语种里
+   德/俄/阿最长）+ 小屏，整行就被顶出 `.sgroup` 的圆角边界。三条规则：
+     · 文字侧可收缩：`flex:1; min-width:0; overflow-wrap:anywhere`
+     · 控件不收缩：`input/select/button` 一律 `flex:none`（仍 44px 点击区、整行可点）
+     · 长串可断：`.note` 与标题侧都允许 `overflow-wrap:anywhere`
+   判据：`test/app-settings-layout.test.js`（静态）+ `test:app` 里 320px 视口 × 12 语种不溢出。 */
+.field > span { min-width: 0; overflow-wrap: anywhere; }
+.field select, .field input:not([type=range]) { min-width: 0; max-width: 100%; }
 .field input[type=number] { max-width: 8em; }
 .field input[type=range] { width: 100%; }
-.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.field > button { flex: none; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; min-width: 0; }
+.check > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.check > input { flex: none; }
 .check input { width: 22px; height: 22px; }
 /* Range and checkbox render in the SYSTEM accent (blue) otherwise — the only
    off-brand pixels on the page, and the kind of detail that reads as unfinished. */
@@ -658,7 +671,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings .sec-title h3 { margin: 0; color: var(--fg); font-size: 1.02rem; font-weight: 700; }
 #app-settings .sec-n { width: 22px; height: 22px; border-radius: 999px; background: var(--accent); color: #fff; font-size: .8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 #app-settings .sec-head .mode-tabs { margin: 0; }
-#app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+#app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+#app-settings .sgroup > * { min-width: 0; }
 #app-settings .sgroup h3 { margin: 0; color: var(--fg); }
 /* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句） */
 #app-settings #g-listen.na > :not(h3):not(#listen-pack-row) { display: none; }
