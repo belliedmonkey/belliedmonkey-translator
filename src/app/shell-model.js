@@ -361,11 +361,15 @@ export function bootShell() {
     const ttsOk = !!(s && s.ttsEngine);
     const miss = !engineOk ? 'translate' : (!ttsOk ? 'tts' : '');
     if (!miss) {
-      txt.classList.remove('miss');
-      txt.textContent = t('engine_status_ok', '登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用');
+      // 2026-10-03 用户裁定：配好之后首页**不出现这行** —— 「登录已配好…」是一句状态汇报，
+      // 而配好的人打开就是要用功能。整行藏掉，只有缺东西时才露（下面那一支）。
+      const row = $('engine-status');
+      if (row) row.hidden = true;
       if (chip) chip.hidden = true;
       return;
     }
+    const row = $('engine-status');
+    if (row) row.hidden = false;
     txt.classList.add('miss');
     txt.textContent = t('engine_status_missing', '还差一样：');
     if (!chip) return;
@@ -559,19 +563,20 @@ export function bootShell() {
       await paintFirstRun(currentSession);   // 还缺 ⇒ 留在屏 2（按钮变「重试」）
       return;
     }
-    // 就绪（或降级：识别不支持时只下朗读包）⇒ 按 step() 落到下一屏
+    // 就绪（或降级：识别不支持时只下朗读包）⇒ **直接落首页**（2026-10-03 用户裁定）：
+    // 不再开引导屏 —— 那一屏只剩「开始设置 / 以后再设置」，而它下面什么都没有
+    // （引擎随登录到账、两个包刚下完）。首页就是「对话 · 实时听译」那两张主角卡。
     const sec = $('firstrun-packs');
     if (sec) sec.hidden = true;
-    if (!seen) {
-      // 引导的**第一条进场路**（#532 起是「屏 2 完成之后」；另一条是「继续设置」卡）。
-      // §3.9 的 dwell 必须在这里开始计时 —— 否则这批人的停留时长会被算成「从启动到现在」，
-      // 全落进 30+ 那一档（test/telemetry-registry.test.js 单独钉住这一处，它当场抓到了本次改动）。
-      $('signed-out').hidden = true;
-      $('onboard').hidden = false;
-      firstRunScreen = 'onboarding';
-      obShownAt = Date.now(); obLeft = false; obAt = 0; obPaint();
-    }
-    else { $('signed-out').hidden = true; $('signed-in').hidden = false; }
+    // 老的 `onboardingSeen` 标记照旧落一次：老客户端读它、遥测的 step 枚举也留着。
+    if (!seen) { try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {} }
+    // 默认意图「听」（2026-10-02 裁定 → 2026-10-03 跟着引导屏一起改到这儿）：引导屏撤了，
+    // 那句 `trackIntent('listen')` 原本挂在它的「开始设置」上。现在落首页就记一次 ——
+    // 首页的扩展横幅据此给「不要浏览器扩展」的人让路（interaction-spec「迎新页意图分叉」）。
+    try { trackIntent('listen'); } catch (_) {}
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = false;
+    firstRunScreen = 'home';
   }
 
   async function show(session) {
@@ -1150,20 +1155,9 @@ export function bootShell() {
   // 教训与门禁：`test/app-shell-dom.test.js` 现在静态钉住「shell-model 引用的 id 必须在
   // AppShell.jsx 里存在」—— 这七个（ob-resume 一族 / gear2 / local-note）当时一个都没被拦住，
   // 因为套件跑在无 DOM 环境里，看不见「元素没了但代码还在引用」。
-  if ($('ob-resume-go') && $('ob-resume-close')) {
-    const resumeGo = $('ob-resume-go');
-    const resumeClose = $('ob-resume-close');
-    resumeGo.addEventListener('click', () => {
-      const at = Math.max(0, OB.indexOf(obResume && obResume.step));
-      $('signed-out').hidden = true;
-      $('signed-in').hidden = true;
-      $('onboard').hidden = false;
-      paintExtBanner(extState);
-      obShownAt = Date.now(); obLeft = false;
-      obAt = at; obPaint();
-    });
-    resumeClose.addEventListener('click', async () => { obResumeTrack('dismissed'); await obResumeRetire(); paintExtBanner(extState); });
-  }
+  // 2026-10-03：这一块**删了**。它 2026-10-01 就已成死代码（`#ob-resume-go` 随 #532 退役），
+  // 只因为 `if` 守卫为假才没炸；而它是最后两处把 `#onboard` 打开的代码之一。引导屏撤掉
+  //（2026-10-03 裁定）之后，留着它等于给「引导还会回来」留一条线。教训见上面那段注释。
 
   // ─── Sign in ──────────────────────────────────────────────────────────────
 

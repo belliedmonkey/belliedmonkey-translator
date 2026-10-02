@@ -154,3 +154,24 @@ describe('登录屏的错误文案：表外 code 不透出服务端原文（2026
       '兜底没有复用已有的具名文案键（app_apple_failed）');
   });
 });
+
+describe('配好之后不再报状态；额度在用就不再让人配 key（2026-10-03 用户裁定）', () => {
+  test('★ 首页那行状态：配好就**整行不出现**（不再写「登录已配好…」）', () => {
+    const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
+    const fn = model.slice(model.indexOf('async function paintEngineStatus'));
+    const okBranch = fn.slice(0, 900);
+    ok(/engine-status'\)/.test(okBranch) && /hidden = true/.test(okBranch),
+      '就绪分支没有把 #engine-status 整行藏掉 —— 首页还在报「登录已配好…」');
+    ok(!/engine_status_ok/.test(okBranch), '就绪分支还在写「登录已配好」那句');
+    ok(/hidden = false/.test(fn.slice(0, 1400)),
+      '「缺东西」那一支没有把状态行放回来 —— 该露的时候它得在');
+  });
+
+  test('★ 额度在用 ⇒ 设置页收起「用一把 key 配好全部」（两条路互斥）', () => {
+    const sv = read('src/app/settings-view.jsx');
+    ok(/id="quick-setup-card"[\s\S]{0,90}grantActive/.test(sv),
+      '一键卡没有按 grantActive 收起 —— 额度正在用的时候设置页还挂着「用一把 key 配好全部」');
+    ok(/setGrantActive\(/.test(sv) && /LearnGrant\.active\(/.test(sv),
+      'settings-view 没有从 LearnGrant.active 算出 grantActive');
+  });
+});

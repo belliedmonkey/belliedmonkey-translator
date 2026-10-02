@@ -50,6 +50,9 @@ export default function SettingsView() {
   const [detail, setDetailState] = useState(false);
   const [quickAvail, setQuickAvail] = useState(true);
   const [grantVisible, setGrantVisible] = useState(false);
+  // 2026-10-03：额度**正在用**时为真 —— 一键卡（「用一把 key 配好全部」）随之收起
+  // （额度在用与自己填 key 是互斥的两条路）。
+  const [grantActive, setGrantActive] = useState(false);
   const [followLabel, setFollowLabel] = useState('');
 
   const uiLangNow = useRef('auto');
@@ -522,7 +525,14 @@ export default function SettingsView() {
     // 写完 box.hidden —— flushSync 让卡片同一帧跟上，不等下一次渲染。
     // 安全性：paintGrant 只从 paintNow / grantAction 的 async 链调用，从不在 React
     // 渲染生命周期里跑（渲染中不能 flushSync）。
-    flushSync(() => { setGrantVisible(!box.hidden); });
+    flushSync(() => {
+      setGrantVisible(!box.hidden);
+      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。
+      try {
+        setGrantActive(!!(typeof LearnGrant !== 'undefined' && LearnGrant.enabled && LearnGrant.enabled()
+          && LearnGrant.active && LearnGrant.active(cur)));
+      } catch (_) { setGrantActive(false); }
+    });
   }
 
   async function grantAction(id, session) {
@@ -1248,7 +1258,7 @@ export default function SettingsView() {
           <div id="grant-box"></div>
         </section>
 
-        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail}>
+        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail || grantActive}>
           <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
           <div id="quick-setup"></div>
         </section>

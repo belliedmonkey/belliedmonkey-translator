@@ -88,12 +88,18 @@ describe('telemetry seams — 每个事件在每个宿主上真的有发送点�
   });
   // §3.9 提案 A：dwell 的「开始计时」那一半没有任何门禁能自己发现 —— 少打一处，
   // 事件照发、值照样合法（只是算成了「从启动到现在」），表上看不出来。所以单独钉住。
-  test('dwell：App 的**两条**进场路都记了引导出现的时刻（§3.9）', () => {
-    // PR6a：正文迁 src/app/shell-model.js（原 app/app.js）。
+  test('dwell 的「开始计时」：引导屏已撤（2026-10-03）⇒ App 侧不再有进场路', () => {
+    // §3.9 提案 A 当年钉的是「App 有两条进场路（首次运行、从『继续设置』卡点进来），
+    // 少打一处就会被算成从启动到现在」。2026-10-03 用户裁定把引导屏整个撤掉（它只剩
+    // 两个没有内容的键），于是 App 侧**不再产生** onboarding_done{dwell}。
+    // 这条随之翻面：不再要求两处，而是不许再出现**新的**进场路。
     const app = stripComments(read('src/app/shell-model.js'));
+    ok(!/\$\('onboard'\)\.hidden = false/.test(app),
+      '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接落首页');
+    ok(!/firstRunScreen = 'onboarding'/.test(app),
+      '还有一处把 firstRunScreen 置成 onboarding');
     const starts = (app.match(/obShownAt\s*=\s*Date\.now\(\)/g) || []).length;
-    eq(starts, 2, 'App 引导有两条进场路（首次运行、从「继续设置」卡点进来），'
-      + '少打一处 ⇒ 那批人的停留时长会被算成「从启动到现在」，全落进 30+');
+    ok(starts <= 1, `App 出现了 ${starts} 处 obShownAt —— 引导屏撤了，不该再有新的进场路`);
   });
   test('SEAMS 不出注册表：不进 events.gen.json', () => {
     const gen = fs.readFileSync(path.join(ROOT, 'supabase/functions/bt-ingest/events.gen.json'), 'utf8');
