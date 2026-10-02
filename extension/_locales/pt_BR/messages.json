@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "Para hoje"
   },
+  "home_cta_subs": {
+    "message": "Iniciar legendas ao vivo"
+  },
+  "home_cta_listen": {
+    "message": "Iniciar conversa"
+  },
   "app_last_sync": {
     "message": "Última sincronização {t}"
   },

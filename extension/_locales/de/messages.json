@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "Heute fällig"
   },
+  "home_cta_subs": {
+    "message": "Live-Untertitel starten"
+  },
+  "home_cta_listen": {
+    "message": "Gespräch starten"
+  },
   "app_last_sync": {
     "message": "Zuletzt synchronisiert {t}"
   },

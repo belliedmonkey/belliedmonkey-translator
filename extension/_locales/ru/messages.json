@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "На сегодня"
   },
+  "home_cta_subs": {
+    "message": "Начать живые субтитры"
+  },
+  "home_cta_listen": {
+    "message": "Начать разговор"
+  },
   "app_last_sync": {
     "message": "Последняя синхронизация {t}"
   },

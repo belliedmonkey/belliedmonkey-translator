@@ -60,23 +60,6 @@ function AppShell() {
         <button id="dl-mismatch-keep" type="button" className="secondary">{t('app_dl_keep', '保持当前账号')}</button>
       </section>
 
-      <section id="ext-banner" hidden>
-        <p id="ext-banner-title"></p>
-        <p id="ext-banner-body" className="note"></p>
-        <button id="ext-banner-act" type="button" hidden></button>
-        {/* 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
-             注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
-             App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 */}
-        {/* iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
-             #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 */}
-        <button id="ext-banner-setup" type="button" className="secondary"></button>
-        {/* 三步放在主按钮**之后**：320×480 下三张插图会把按钮顶出首屏（引导 ext 屏
-             靠 sticky 页脚解决，横幅在可滚动的首页里没有页脚），先给动作再给佐证。 */}
-        <ol id="ext-banner-steps" className="ob-steps" hidden></ol>
-        {/* 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
-             用户裁定：只有点了它才收起（extBannerDoneAt）。 */}
-        <button id="ext-banner-done" type="button" className="secondary" hidden></button>
-      </section>
       {/* 系统翻译的发现横幅（画布第 7 页 Discover）。形状与 #ext-banner 逐样对齐，
            连「iOS 上 App 判不了，由用户告诉我们」那条纪律也是从它继承的。
            **没有「打开设置」按钮**：openSettingsURLString 只会打开我们自己 App 的设置页，
@@ -265,11 +248,19 @@ function AppShell() {
            an unproven pull would hide exactly the failure worth seeing. */}
       <section id="signed-in" hidden>
         <header>
-          <span id="who"></span>
-          <span className="head-actions">
-            <button id="gear" type="button" className="link"></button>
-            <button id="signout" type="button" className="link"></button>
-          </span>
+          <span className="topbar-brand" id="acct-brand"></span>
+          {/* 账号行收进 44×44 圆键（2026-10-02 真机评审裁定，判据 J04）。
+              以前「邮箱 + 设置 + 退出」占顶栏整行；账号是全局动作，不该占首屏版面 ——
+              点这个键才展开菜单，邮箱与设置/退出都收进去。按钮本身是唯一的顶栏控件，
+              命中区就是 44×44（够 J04 的下限）。菜单里的元素恒挂载，靠 hidden 显隐。 */}
+          <button id="acct" type="button" className="acct" aria-haspopup="true" aria-expanded="false">
+            <span id="acct-initials" aria-hidden="true"></span>
+          </button>
+          <div id="acct-menu" role="menu" hidden>
+            <p id="who"></p>
+            <button id="gear" type="button" className="link" role="menuitem"></button>
+            <button id="signout" type="button" className="link" role="menuitem"></button>
+          </div>
         </header>
 
         {/* 引擎状态行（2026-10-01 设计稿 · 判据 J07/J08）：唯一的前置条件说明位。
@@ -324,6 +315,35 @@ function AppShell() {
           </p>
           <ListenEntryNeeds />
         </div>
+
+        {/* 扩展引导行（J18/J19，2026-10-02 真机评审修订）：以前它是一张占满首屏的卡
+            （三步教程 + 插图），把两位主角挤到屏幕外。现在降级为**折叠线以下的一行** ——
+            首屏只看得见「Safari 扩展还没打开」这句事实，点开这一行才是动作与三步说明；
+            首页本身不含步骤教学。卡片只能从 Safari 扩展经同步进来，所以这条说的是
+            「材料的来源还没开」；状态由 ViewController 在 didFinish 里调 show() 灌进来
+            （macOS 查得到，iOS 查不到 —— getStateOfSafariExtension 是 macOS-only）。 */}
+        <section id="ext-banner" hidden>
+          <button id="ext-banner-row" type="button" aria-expanded="false">
+            <span className="row-text">
+              <span id="ext-banner-title"></span>
+              <span className="note" id="ext-banner-body"></span>
+            </span>
+            <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+          <div id="ext-banner-panel" hidden>
+            {/* 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
+                  注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
+                  App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 */}
+            <button id="ext-banner-act" type="button" hidden></button>
+            {/* iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
+                 #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 */}
+            <button id="ext-banner-setup" type="button" className="secondary"></button>
+            <ol id="ext-banner-steps" className="ob-steps" hidden></ol>
+            {/* 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
+                  用户裁定：只有点了它才收起（extBannerDoneAt）。 */}
+            <button id="ext-banner-done" type="button" className="secondary" hidden></button>
+          </div>
+        </section>
       </section>
 
       {/* 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属

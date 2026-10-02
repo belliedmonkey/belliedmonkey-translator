@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "Para hoy"
   },
+  "home_cta_subs": {
+    "message": "Iniciar subtítulos en vivo"
+  },
+  "home_cta_listen": {
+    "message": "Iniciar conversación"
+  },
   "app_last_sync": {
     "message": "Última sincronización {t}"
   },

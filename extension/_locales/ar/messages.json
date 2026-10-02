@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "مستحق اليوم"
   },
+  "home_cta_subs": {
+    "message": "بدء الترجمة المباشرة"
+  },
+  "home_cta_listen": {
+    "message": "بدء المحادثة"
+  },
   "app_last_sync": {
     "message": "آخر مزامنة {t}"
   },

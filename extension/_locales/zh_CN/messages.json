@@ -2530,6 +2530,12 @@
   "app_today_due": {
     "message": "今天待复习"
   },
+  "home_cta_subs": {
+    "message": "开始实时字幕"
+  },
+  "home_cta_listen": {
+    "message": "开始听译"
+  },
   "app_last_sync": {
     "message": "上次同步 {t}"
   },

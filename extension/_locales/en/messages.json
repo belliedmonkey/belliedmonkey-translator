@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "Due today"
   },
+  "home_cta_subs": {
+    "message": "Start Live Subtitles"
+  },
+  "home_cta_listen": {
+    "message": "Start Conversation"
+  },
   "app_last_sync": {
     "message": "Last synced {t}"
   },

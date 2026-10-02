@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "À réviser aujourd’hui"
   },
+  "home_cta_subs": {
+    "message": "Lancer les sous-titres"
+  },
+  "home_cta_listen": {
+    "message": "Lancer la conversation"
+  },
   "app_last_sync": {
     "message": "Dernière synchro {t}"
   },

@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "今日の復習"
   },
+  "home_cta_subs": {
+    "message": "リアルタイム字幕を開始"
+  },
+  "home_cta_listen": {
+    "message": "リアルタイム通訳を開始"
+  },
   "app_last_sync": {
     "message": "最終同期 {t}"
   },

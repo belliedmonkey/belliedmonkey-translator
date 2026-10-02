@@ -119,6 +119,8 @@ export function bootShell() {
     // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
     // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
     $('app-brand').textContent = t('action_title', '大肚猴翻译');
+    // 顶栏品牌（2026-10-02）：账号行收进 44×44 圆键后，顶栏左侧只留品牌。
+    $('acct-brand').textContent = t('action_title', '大肚猴翻译');
     // 屏 1 的主句讲 **App 自己的卖点**（2026-10-01 用户裁定）：原来那句「你在浏览器里读到的句子，
     // 会同步到这里来复习」把 App 写成扩展的下游 —— 而「边听边翻 + 声音只在设备上处理」是扩展
     // 给不了的。卡内那句同理：登录换来的是额度与两个设备包，不是「替扩展做同步」。
@@ -140,6 +142,8 @@ export function bootShell() {
     $('app-pw-back').textContent = t('app_pw_back', '改用验证码登录');
     $('signout').textContent = t('app_signout', '退出');
     $('gear').textContent = t('app_settings_link', '设置');
+    // 账号键的可读名（VoiceOver：「账户与数据，按钮」）。圆键里是一个字母，靠它才有名字。
+    $('acct').setAttribute('aria-label', t('opt_sec_account', '账户与数据'));
     // gear2（未登录首页的设置入口）随 #532 退役：屏 1 不许有设置入口。
     // 设置页的静态文字不再在这里重画：SettingsView（PR6b）的标签由 useT 驱动，
     // PageText.setUiLang 触发它自己的重渲染 —— 首页这层 paintStatic 只管自己的文字。
@@ -633,7 +637,11 @@ export function bootShell() {
       await paintCounts();
     }
     if (session) {
-      $('who').textContent = LearnAuth.displayName(session);
+      const dn = LearnAuth.displayName(session);
+      $('who').textContent = dn;
+      // 圆键里那一个字母（2026-10-02）：取邮箱/手机号的首个字母或数字；都没有就一个点，
+      // 免得圆键看起来是坏掉的空框。它只是装饰，可读名来自 #acct 的 aria-label。
+      $('acct-initials').textContent = ((dn.match(/[A-Za-z0-9]/) || ['·'])[0]).toUpperCase();
       await paintCounts();
       // 播客模式入口是能力门控的（§9.5）：uiLang 能开口才渲染。Fire-and-forget —
       // 计数与登录绝不等一次语音列表加载。
@@ -701,7 +709,7 @@ export function bootShell() {
     // 推送先画，早于 show()）。判据直接读事实：没登录 ⇒ 屏 1（只有登录）；
     // 已登录但屏 2 在场 ⇒ 资源包。2026-10-01 模拟器实测：不让位时这张横幅把首屏整屏占满。
     const firstRunActive = !currentSession || firstRunScreen === 'packs';
-    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    if (away || (browserSideOk && !ios) || extBannerDone || onboardIntent === 'listen' || firstRunActive) { sec.hidden = true; collapseExtPanel(); syncReview(); paintSysBanner(); return; }
     // 引导进行中不挂横幅：引导第 3 屏本身就是这件事，两个一起显示会把同一句话
     // 一字不差地说两遍（2026-08-28 模拟器实测看到的，自动化断言看不出来 ——
     // 它只查内容对不对，不查有没有重复）。
@@ -711,7 +719,7 @@ export function bootShell() {
     //  但 test/app-shell-dom.test.js 认不出「它在短路保护里」，会把退役 id 的直接取属性一律拦下。）
     const resumeCard = $('ob-resume');
     const resuming = !!resumeCard && !resumeCard.hidden;
-    if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; syncReview(); paintSysBanner(); return; }
+    if (onboarding || resuming || !state || state.enabled === true) { sec.hidden = true; collapseExtPanel(); syncReview(); paintSysBanner(); return; }
     sec.hidden = false;
     syncReview();
     paintSysBanner();   // 扩展那张在场 ⇒ 这一张让位（AppSysBanner.decide 读的就是它）
@@ -1603,6 +1611,8 @@ export function bootShell() {
   });
 
   $('signout').addEventListener('click', async (e) => {
+    // 菜单里的「退出」：先把菜单收起，再走登录态切换（视图会整屏换掉）。
+    closeAcctMenu();
     // interaction-spec 全局原则: network sign-out + repaint are in flight.
     const btn = e.currentTarget;
     btn.disabled = true;
@@ -1887,6 +1897,22 @@ export function bootShell() {
   $('ext-banner-act').addEventListener('click', openSafariPrefs);
   // 一次动作即视为问过（2026-09-28，Issue #384 重定）：点过主按钮后就不再出现「还没打开」横幅。
   // iOS 上 App 判不了扩展开没开，反复说「还没打开」只会打扰已经照做的人；要再确认走设置页的复位键。
+  // 扩展引导行（2026-10-02 真机修订 J18/J19）：点行展开/收起二级面板（动作 + 三步）。
+  // 首屏只看得到这一行；步骤不再占首屏。收起由行自己与 paintExtBanner（隐藏整段时）驱动。
+  // 取元素写在函数里（不在模块初始化期绑 const）：paintExtBanner 会在别处提前调到
+  // collapseExtPanel，懒查避免任何初始化顺序问题。
+  function collapseExtPanel() {
+    const panel = $('ext-banner-panel');
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    const row = $('ext-banner-row');
+    if (row) row.setAttribute('aria-expanded', 'false');
+  }
+  $('ext-banner-row').addEventListener('click', () => {
+    const panel = $('ext-banner-panel');
+    panel.hidden = !panel.hidden;
+    $('ext-banner-row').setAttribute('aria-expanded', panel.hidden ? 'false' : 'true');
+  });
   $('ext-banner-setup').addEventListener('click', () => {
     extBannerTrack('setup');
     extBannerDone = true;
@@ -1909,7 +1935,28 @@ export function bootShell() {
     if (OB[obAt] !== 'ext') return;
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); } else obFinish();
   });
-  $('gear').addEventListener('click', openSettings);
+  // ── 顶栏账号键（2026-10-02 真机修订 J04）──────────────────────────────────
+  // 点键开合菜单；点菜单外或按 Esc 收起；进设置/退出前先收起（动作自己会切视图）。
+  // closeAcctMenu 用函数声明（会被提升），登录处理器在文件更靠前也要调它。
+  const acctMenu = $('acct-menu');
+  const acctBtn = $('acct');
+  function closeAcctMenu() {
+    if (!acctMenu || acctMenu.hidden) return;
+    acctMenu.hidden = true;
+    acctBtn.setAttribute('aria-expanded', 'false');
+  }
+  acctBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    acctMenu.hidden = !acctMenu.hidden;
+    acctBtn.setAttribute('aria-expanded', acctMenu.hidden ? 'false' : 'true');
+  });
+  document.addEventListener('click', (e) => {
+    if (!acctMenu.hidden && e.target !== acctBtn && !acctBtn.contains(e.target) && !acctMenu.contains(e.target)) {
+      closeAcctMenu();
+    }
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAcctMenu(); });
+  $('gear').addEventListener('click', () => { closeAcctMenu(); openSettings(); });
   // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
   // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
   $('settings-back').addEventListener('click', closeSettings);

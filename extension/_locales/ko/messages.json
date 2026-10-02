@@ -2529,6 +2529,12 @@
   "app_today_due": {
     "message": "오늘 복습"
   },
+  "home_cta_subs": {
+    "message": "실시간 자막 시작"
+  },
+  "home_cta_listen": {
+    "message": "실시간 통역 시작"
+  },
   "app_last_sync": {
     "message": "마지막 동기화 {t}"
   },

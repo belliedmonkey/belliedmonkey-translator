@@ -2362,6 +2362,12 @@
   "app_today_due": {
     "message": "आज देय"
   },
+  "home_cta_subs": {
+    "message": "लाइव सबटाइटल शुरू करें"
+  },
+  "home_cta_listen": {
+    "message": "बातचीत शुरू करें"
+  },
   "app_last_sync": {
     "message": "अंतिम सिंक {t}"
   },
