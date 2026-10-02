@@ -42,6 +42,7 @@ const EVENTS = {
     // web_only（2026-09-24，§3.9 提案 B，用户评审通过）：第一屏那条「我只要网页翻译 →」。
     // 它与 done / skipped **并列**，不是 skipped 的子类 —— 说的是「他自己讲了要哪一半」，
     // 不是「他放弃了」。只有 surface:'app' 会发（扩展引导里人已经在浏览器里，没有这条出口）。
+    // **2026-10-02（#547）那条出口撤了 ⇒ 这个取值不再产生**；枚举照留，收老客户端的行。
     result: ['done', 'skipped', 'shown', 'dismissed', 'expired', 'web_only'],
     // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
     // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
@@ -200,7 +201,8 @@ const SEAMS = {
     // app 侧正文已迁 src/app/shell-model.js（原 app/app.js，PR6a）—— 同 ext 侧，file 指源码。
     { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app'" },
     { host: 'app', file: 'src/app/shell-model.js', match: 'dwell: d' },
-    { host: 'app', file: 'src/app/shell-model.js', match: "obTrackLeave('web_only')" },
+    // 2026-10-02（#547）：`obTrackLeave('web_only')` 那条出口撤了 —— 这个 seam 随之删掉。
+    // 枚举里的 `web_only` 照留（收老客户端的行），但**不再有发送点**。
     { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app_resume'" },
   ],
   onboard_intent: [

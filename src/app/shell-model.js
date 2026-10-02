@@ -904,7 +904,8 @@ export function bootShell() {
   //    （18 台点过「我已打开」的里 16 台点完再没有任何事件）。
   const OB = ['welcome']
     .concat((Registry.backend() && Registry.backend().enabled) ? ['signin'] : [])
-    .concat(['firstuse', 'ext']);
+    // 'ext'（网页翻译配置引导）2026-10-02 撤出引导（#547）：它**只留在设置页**（#g-webext）。
+    .concat(['firstuse']);
   let obAt = 0;
   // 引导**出现**的时刻（telemetry-design §3.9 的 dwell）。App 与扩展不一样：这里引导是
   // 首页里的一屏，有两条进场路（首次运行、从「继续设置」卡点进来），两条都要打点，
@@ -923,8 +924,7 @@ export function bootShell() {
     // 「登录屏点了只翻页、根本不登录」。自报之后门禁问的是「现在是哪一屏」。
     try { document.body.dataset.obStep = step; } catch (_) {}
     $('ob-fill').style.width = Math.round(((obAt + 1) / OB.length) * 100) + '%';
-    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box',
-      'ob-engines', 'ob-webonly', 'ob-intent-listen', 'ob-intent-both', 'ob-hint']) $(id).hidden = true;
+    for (const id of ['ob-steps', 'ob-kv', 'ob-prefs', 'ob-setup', 'ob-try', 'ob-alt', 'ob-xb-box', 'ob-hint']) $(id).hidden = true;
     // 主/次逐屏重设，不留状态（同扩展 onboard.js）。默认「继续」是这一屏的主行动；
     // 有自己主行动的屏（「就地试一句」）在下面把它降级 —— 两个填色按钮并排时，用户看不出该点哪个。
     $('ob-next').classList.remove('secondary');
@@ -935,34 +935,17 @@ export function bootShell() {
       ? t('app_signin_open', '登录') : t('ob_next', '继续');
 
     if (step === 'welcome') {
-      // 2026-09-24（画布板 B2 + 文案 1，用户点头）：这一屏改成讲**用户要办的事** ——
-      // 挑一个翻译模型。1.15.0 的读数是 skipped@welcome 占装机一半还多（telemetry-design §3.9），
-      // 而原来那句「网页翻译在浏览器那半边」是在第一屏就先讲我们内部的分工。
-      // 三处变化，各有各的理由：
-      //   · 标题/正文换成「模型你说了算」—— 与系统自带翻译的差别就在这一句；
-      //   · 引擎名一行从注册表渲染（见 obEngineChips）；
-      //   · 主按钮下补一句「两步，约 30 秒」，把「这要花多久」先答了。
-      $('ob-title').textContent = t('ob_welcome_title', '翻译用哪个模型，你说了算');
-      $('ob-text').textContent = t('ob_welcome_body',
-        '系统只有它自己那一个引擎。这里你挑一个 —— 译文直接从它来，不经过我们的服务器。');
-      const chips = obEngineChips();
-      if (chips.length) {
-        const box = $('ob-engines');
-        box.textContent = '';
-        for (const name of chips) { const s = document.createElement('span'); s.textContent = name; box.append(s); }
-        const more = document.createElement('span'); more.textContent = '…'; box.append(more);
-        box.hidden = false;
-      }
+      // 2026-10-02 用户裁定（#547）：这一屏**不再给选项** —— 模型 chips 与用途三分都撤了。
+      // 默认就是「主要想听 · 即时字幕」，点「开始设置」按它走；网页翻译那条配置引导
+      // **只在设置页**（settings-view 的 #g-webext）。
+      //
+      // 文案两个都用**既有键**（12 语种已经在位）：标题 = 那条默认路的名字，正文 =
+      // 「配好之后不用再做设置」。正式的屏级文案等 OpenDesign 出稿再换 —— 本次设计门卡住
+      // （三个 agent：限额 / 未登录 / 空手），按用户授权先落最小可用版，见 issue #547。
+      $('ob-title').textContent = t('ob_intent_listen', '主要想听 · 即时字幕');
+      $('ob-text').textContent = t('firstrun_packs_lede',
+        '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。');
       $('ob-next').textContent = t('ob_start', '开始设置');
-      $('ob-hint').textContent = t('ob_welcome_hint', '两步，约 30 秒');
-      $('ob-hint').hidden = false;
-      // 出口只在第一屏给：它回答的是「你是不是只想要网页翻译」，后面几屏问这个已经晚了。
-      $('ob-webonly-text').textContent = t('ob_web_only', '我只要网页翻译');
-      $('ob-webonly').hidden = false;
-      $('ob-intent-listen').textContent = t('ob_intent_listen', '主要想听 · 即时字幕');
-      $('ob-intent-listen').hidden = false;
-      $('ob-intent-both').textContent = t('ob_intent_both', '读网页 + 听，都要');
-      $('ob-intent-both').hidden = false;
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');
       // 平台不对称照实呈现：macOS 有直达入口和真实状态，iOS 两样都没有。
@@ -1058,18 +1041,6 @@ export function bootShell() {
   // 两条过滤都是通用规则，不是牌子名单：
   //   · custom_* 与 grant 不是牌子（一个是「自己填地址」，一个是我们的免费额度）；
   //   · 后面那个标签若以前面某个开头就跳过 —— 同一家的第二条（如 MT 版）不重复占位。
-  function obEngineChips() {
-    const out = [];
-    for (const p of Registry.providers()) {
-      if (!p || /^custom_/.test(p.id) || p.id === 'grant') continue;
-      const label = String(p.label || '').split(/\s*[(（]/)[0].trim();
-      if (!label || out.some((s) => label.startsWith(s))) continue;
-      out.push(label);
-      if (out.length === 4) break;
-    }
-    return out;
-  }
-
   function obKv(rows) {
     const box = $('ob-kv');
     box.textContent = '';
@@ -1379,6 +1350,9 @@ export function bootShell() {
 
   $('ob-next').addEventListener('click', () => {
     if (OB[obAt] === 'signin') { obStartSignIn(); return; }
+    // 首屏（welcome）：默认「主要想听 · 即时字幕」，不再问（#547）。记一次 —— 首页的
+    // 扩展横幅据此给「不要浏览器扩展」的人让路（interaction-spec「迎新页意图分叉」）。
+    if (OB[obAt] === 'welcome') trackIntent('listen');
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
     // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
     // 引导收尾落到未登录首屏的说明卡上：一键登录在卡上，邮箱是卡上那行链接 ——
@@ -1406,21 +1380,9 @@ export function bootShell() {
     try { chrome.storage.local.set({ onboardIntent: goal }, () => {}); } catch (_) {}
     paintExtBanner(extState);
   }
-  $('ob-webonly').addEventListener('click', (ev) => {
-    ev.preventDefault();
-    obTrackLeave('web_only');
-    trackIntent('read');
-    const at = OB.indexOf('ext');
-    if (at >= 0) { obAt = at; obPaint(); } else obFinish();
-  });
-  // 「听」⇒ 收尾：ext 屏与他无关（他不开扩展），首页也不再念「还没打开」。
-  $('ob-intent-listen').addEventListener('click', () => { trackIntent('listen'); obFinish('done'); });
-  // 「都要」⇒ 与「我只要网页翻译」一样送到 ext 屏。
-  $('ob-intent-both').addEventListener('click', () => {
-    trackIntent('both');
-    const at = OB.indexOf('ext');
-    if (at >= 0) { obAt = at; obPaint(); } else obFinish();
-  });
+  // 2026-10-02（#547）：这一屏不再给选项 ⇒ 默认就是「听」，在 ob-next 离开 welcome 时记。
+  // 原来那三条 handler（我只要网页翻译 / 主要想听 / 都要）随之删掉；网页翻译的配置引导
+  // 移到设置页（#g-webext / #webext-setup）。
   $('ob-prefs').addEventListener('click', openSafariPrefs);
 
   // 邮箱是备选：展开表单时一键登录仍留在卡上；只有那行链接自己消失。
@@ -1981,6 +1943,8 @@ export function bootShell() {
     openExternal(setupPageUrl());
     paintExtBanner(extState);
   });
+  // 网页翻译配置引导（2026-10-02 #547）：从引导首屏搬到设置页 —— 这里开外链同样走原生桥。
+  if ($('webext-setup')) $('webext-setup').addEventListener('click', () => openExternal(setupPageUrl()));
   $('ext-banner-done').addEventListener('click', () => {
     extBannerDone = true;
     extBannerTrack('done');
