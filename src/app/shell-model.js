@@ -599,6 +599,11 @@ export function bootShell() {
     //   · 朗读 —— 空的，而屏 2 要下的离线模型正是它的（`ttsEngine='device'`）。
     // **不覆盖用户自己的选择**（选了别的引擎就不动）。
     if (session) { try { await ensureDeviceTts(); } catch (_) { /* 写不进去不挡首屏 */ } }
+    // 引擎状态行要**在领取（+ 补朗读）之后**重画一次（2026-10-02 真机反馈）：boot 的那次
+    // paintStatic 跑在登录之前，那时存储里还没有额度令牌 / ttsEngine，而状态行只由
+    // paintStatic 与「界面语言」切换重画 —— 不补这一句，登录成功后它会一直停在
+    // 「翻译引擎未配置，前往 设置 › 引擎 选一个」。判据：test/home-engine.test.js。
+    if (session) { try { await paintEngineStatus(); } catch (_) {} }
     try { await paintFirstRun(session); } catch (_) {}
     // （额度领取已上移到首屏判定之前 —— 见上面那段注释，那里是唯一的调用点。）
     // 引导停在登录屏时登上了 ⇒ 往下翻一屏。挂在这里而不是某个登录按钮的回调里，理由同上：
@@ -1864,6 +1869,9 @@ export function bootShell() {
     if ($('setup-from')) $('setup-from').hidden = true;
     $(settingsFrom).hidden = false;
     await paintCounts();
+    // 在设置里配好引擎（或改回额度）再回首页时，状态行也该跟着变 —— 它只在
+    // paintStatic / 语言切换时画，不补这一句就会停在进设置前的样子（同一类漏重画）。
+    paintEngineStatus().catch(() => {});
     say('');
   }
 
