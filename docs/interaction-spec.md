@@ -1452,6 +1452,25 @@ app 最大卡点」。
 
 </details>
 
+### App 设置页：文字不出界（2026-10-03，设计稿 `app-settings-layout-2026-10-03`，**用户已签**）
+
+真机截图：「听译 · 实时字幕」段的「自动朗读译文」那一行**越过卡片右边界**。根因是 flex item 默认
+`min-width:auto` —— **不肯收缩到内容宽度以下**；长文案（12 语种里德 / 俄 / 阿最长）+ 最窄视口，
+整行就被顶出 `.sgroup` 的圆角边界。三条规则（`app/style.css`，复习 / 听译 / 快速三段同类行一并适用）：
+
+1. **文字侧可收缩**：`.check > span` / `.field > span` / `.note` 一律 `min-width:0` + `overflow-wrap:anywhere`；
+2. **控件不收缩**：`.check > input` / `.field > button` 一律 `flex:none`（44px 点击区、整行可点不变）；
+3. **卡片不被顶破**：`#app-settings .sgroup` 及其直接子元素 `min-width:0`。
+
+判据：`test/app-settings-layout.test.js`（静态四条）+ `test:app` 的「**320px × 全部语种**」探针
+（逐张 `.sgroup` 量 `scrollWidth <= clientWidth + 1`）。
+
+> **⚠️ 2026-10-03 记录：这一稿没有走 OpenDesign 的生成流水线。** 四次尝试全部失败 ——
+> Claude（周/月限额 429）、Codex（401 未登录）、Reasonix（跑完 `artifactCount:0`）、
+> opencode（stall 600s 超时）。画布是**人（agent）直接写进 OpenDesign** 的，
+> 因此「设计稿 → 人工签署」这一步的**审核对象是画布，不是 OD 生成物** —— 用户签的就是那份画布。
+> 流水线恢复后应让它重出正式稿并 diff。
+
 ## Interface language (界面语言)
 The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
 menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此
