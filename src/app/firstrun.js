@@ -34,8 +34,11 @@ export function degradeAllowed(reason) {
  * boot 判定（规格 §1）。顺序即优先级：
  *   未登录                  → 'login'      （屏 1 只有登录）
  *   缺任一设备包            → 'packs'      （**硬门**；降级由屏内处理，不在这里放行）
- *   就绪但没看过引导        → 'onboarding' （软门，可跳过）
  *   否则                    → 'home'
+ *
+ * **2026-10-03 用户裁定**：'onboarding' 这一档撤了 —— 那一屏只剩两个键、下面没有可设的东西。
+ * 就绪即落首页（首页就是「对话 · 实时听译」那两张主角卡）。`onboardingSeen` 仍是 `isReady` 的
+ * 无关字段（它不参与就绪判据），只是不再决定屏序。
  *
  * 引擎可解析**不参与屏序**（2026-10-01 模拟器实测改的口径）：
  *   原来写的是「未登录 **或** 引擎不可解析 → 'login'，同一屏，不为引擎另造一屏」。实测下来
@@ -47,6 +50,8 @@ export function degradeAllowed(reason) {
 export function step(s) {
   if (!s.loggedIn) return 'login';
   if (!s.asrPack || !s.ttsPack) return 'packs';
-  if (!s.onboardingSeen) return 'onboarding';
+  // 2026-10-03 用户裁定：引导首屏只剩「开始设置 / 以后再设置」两个键，而**它下面什么都没有**
+  // —— 引擎随登录到账、两个包刚下完。一个没有内容可设的「设置」屏就是多余的。
+  // 就绪 ⇒ **直接落首页**（那里就是「对话 · 实时听译」两张主角卡）。引导屏不再出现在屏序里。
   return 'home';
 }

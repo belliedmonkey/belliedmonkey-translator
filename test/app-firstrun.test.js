@@ -117,7 +117,8 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       '引擎不可解析也不许跳过屏 2 的硬门（2026-10-01 模拟器实测的死角：判到屏 1 时实际露出首页，两个包一个没下）');
     eq(FR.step({ ...base, asrPack: false }), 'packs', '缺识别包 ⇒ 屏 2');
     eq(FR.step({ ...base, ttsPack: false }), 'packs', '缺朗读包 ⇒ 屏 2');
-    eq(FR.step({ ...base, onboardingSeen: false }), 'onboarding', '就绪且没看过引导 ⇒ 屏 3');
+    eq(FR.step({ ...base, onboardingSeen: false }), 'home',
+      '2026-10-03 裁定：引导屏撤了 —— 就绪就落首页（那不是「跳过」，是这一档没了）');
     eq(FR.step(base), 'home', '全就绪 ⇒ 直进首页');
   });
 
@@ -280,16 +281,22 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'paintExtBanner 没有在首屏让位（未登录 / 屏 2 期间）—— 首屏会被那张横幅占满');
   });
 
-  test('R2b · 出场顺序：冷启动先进屏 1（登录），引导不许抢在前面', () => {
+  test('R2b · 出场顺序：冷启动先进屏 1（登录）；引导屏已撤（2026-10-03）', () => {
     // 2026-10-01 Release 实测抓到：全新安装出来的是**引导欢迎屏**，不是屏 1 ——
     // 启动路径里有一段「首次运行且未登录 ⇒ 直接显示 #onboard 并 return」的老捷径。
-    // R2 只查了「段存在 / 屏 2 无跳过 / 屏 3 有跳过」，**没查顺序**，所以它漏了
-    // （与 R1 漏掉横幅同一类：判据不够宽）。这条钉住顺序本身。
+    // R2 只查了「段存在 / 屏 2 无跳过 / 屏 3 有跳过」，**没查顺序**，所以它漏了。
+    //
+    // 2026-10-03（用户裁定）：那一屏**整个撤了** —— 它只剩「开始设置 / 以后再设置」两个键、
+    // 下面没有任何可设的东西（引擎随登录到账、两个包刚下完），登录屏那一版还会再问一次
+    // 「登录，顺手领一份免费额度」+「扩展里也要登录一次」（用户已经登录过了）。
+    // 所以这条现在的判据是：**谁都不许把 firstRunScreen 置成 onboarding、也不许开 #onboard**。
     const model = read('src/app/shell-model.js');
     ok(!/if \(!session && !seen && !obResume\)/.test(model),
       '启动路径里还有「首次运行未登录 ⇒ 直接显示引导」的老捷径 —— 屏 3 会抢在屏 1 前面');
-    ok(/firstRunScreen = 'onboarding'/.test(model),
-      '没有一处把 firstRunScreen 置成 onboarding —— 引导的出场没有经过第一屏判定');
+    ok(!/firstRunScreen = 'onboarding'/.test(model),
+      '还有一处把 firstRunScreen 置成 onboarding —— 引导屏应当已经撤了');
+    ok(!/\$\('onboard'\)\.hidden = false/.test(model),
+      '还有一处在开 #onboard —— 引导屏应当已经撤了');
   });
 
   test('R6 · 每屏至多一个填色按钮', () => {
