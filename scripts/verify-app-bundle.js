@@ -1131,16 +1131,26 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             const cs = getComputedStyle(c);
             const L = cr.left + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0);
             const R = cr.right - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0);
+            // 2026-10-03 真机**第二例**：上下也要比。已签稿的原话是「文字和控件都不能出卡片」，
+            // 而这条当时只被实现成了左右两轴 —— 底部卡片「先把浏览器那半边打通」的按钮
+            // 就是从卡片**下沿**溢出去的（卡片被容器压扁，不是内容太长）。判据与左右同一形状。
+            const T = cr.top + (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.borderTopWidth) || 0);
+            const B = cr.bottom - (parseFloat(cs.paddingBottom) || 0) - (parseFloat(cs.borderBottomWidth) || 0);
             for (const el of c.querySelectorAll('*')) {
               if (!el.getClientRects().length) continue;
               const r = el.getBoundingClientRect();
-              if (!r.width) continue;
-              if (r.left < L - 1 || r.right > R + 1) {
+              if (r.width && (r.left < L - 1 || r.right > R + 1)) {
                 bad.push({ i, tag: el.tagName, id: el.id || '', left: Math.round(r.left - L), right: Math.round(r.right - R) });
+                break;
+              }
+              if (r.height && (r.top < T - 1 || r.bottom > B + 1)) {
+                bad.push({ i, tag: el.tagName, id: el.id || '', top: Math.round(r.top - T), bottom: Math.round(r.bottom - B) });
                 break;
               }
             }
             if (c.scrollWidth > c.clientWidth + 1) bad.push({ i, hint: 'scrollWidth', sw: c.scrollWidth, cw: c.clientWidth });
+            // 纵向出界的第二个读数：卡片自己被压到内容以下（按钮出下沿时，这里是第一个红的）。
+            if (c.scrollHeight > c.clientHeight + 1) bad.push({ i, hint: 'scrollHeight', sh: c.scrollHeight, ch: c.clientHeight });
           });
           return JSON.stringify({ n: cards.length, bad });
         })()`));
@@ -1149,7 +1159,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       }
       await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
       need(over.length === 0,
-        '这些语种在 320px 下卡片被文字顶破（scrollWidth > clientWidth）：' + over.join(' | '));
+        '这些语种在 320px 下卡片被顶破（纵向 top/bottom 或横向 left/right 越界，或 scrollW/H > clientW/H）：' + over.join(' | '));
 
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
