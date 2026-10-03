@@ -61,6 +61,32 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     }
   }
 
+  // 2026-10-03：**先确认产物是新的**。探针只服务 dist-app*/，从不重建 —— 我加了一条结构判据、
+  // 跑了一次「绿」，其实那条 CSS 规则根本不在被服务的 Style.css 里（判据是空的），差一点把
+  // 「没测到」当成「验过了」。同型坑：docs/verification-spec.md §9.0.1 那条「装进去的是上一轮的 .app」。
+  {
+    const newestUnder = (dir) => {
+      let t = 0;
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+        const p = path.join(dir, e.name);
+        const m = e.isDirectory() ? newestUnder(p) : fs.statSync(p).mtimeMs;
+        if (m > t) t = m;
+      }
+      return t;
+    };
+    const srcJs = Math.max(newestUnder(path.join(ROOT, 'src')), newestUnder(path.join(ROOT, 'app')));
+    const stale = [
+      ['Style.css', fs.statSync(path.join(ROOT, 'app/style.css')).mtimeMs],
+      ['Script.js', srcJs],
+    ].filter(([f, src]) => fs.statSync(path.join(SRC, f)).mtimeMs < src).map(([f]) => f);
+    if (stale.length) {
+      console.error(`✗ ${APP_DIR}/${stale.join(', ')} 比源码旧 —— 探针只服务产物、从不重建，`
+        + `现在测的是旧包。先跑 node build.js${FLAVOR === 'china' ? ' --flavor china' : ''}。`);
+      process.exit(1);
+    }
+  }
+
   const missed = [];
   const srv = http.createServer((req, res) => {
     // Bundle layout: /Base.lproj/Main.html, /Script.js, /Style.css
@@ -1142,6 +1168,21 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             }
             if (c.scrollWidth > c.clientWidth + 1) bad.push({ i, hint: 'scrollWidth', sw: c.scrollWidth, cw: c.clientWidth });
           });
+          // 2026-10-03 真机第二例（**列表编号**）：上面那条逐元素几何比较**看不见标记** ——
+          // 标记不是元素，排版引擎把它画在内容盒之外（真机上编号 x≈44–64，卡片左沿 x=60，
+          // 于是左半截画在卡片外的奶油底上）。判据只能写成**结构**：卡片里的 ol/ul 一律
+          // 用我们自己的计数器（list-style:none），不许把编号交给引擎。
+          // 查**整个 #app-settings**、不按可见性过滤：那张卡在探针里是 hidden 的，
+          // 而真机上它是可见的 —— 上一版只在可见卡片里查，于是这条判据是空的（没红过）。
+          // 反面样本：把 app/style.css 里 "#app-settings .sgroup ol.steps" 那条改成
+          // list-style: decimal，这里必须红；不红就说明判据是摆设。
+          for (const l of document.querySelectorAll('#app-settings .sgroup ol, #app-settings .sgroup ul')) {
+            const ls = getComputedStyle(l);
+            if (ls.listStyleType !== 'none') {
+              bad.push({ hint: 'UA 列表标记', tag: l.tagName, id: l.id || '', listStyleType: ls.listStyleType });
+              break;
+            }
+          }
           return JSON.stringify({ n: cards.length, bad });
         })()`));
         if (r1.n === 0) over.push(loc + ':没有量到卡片');

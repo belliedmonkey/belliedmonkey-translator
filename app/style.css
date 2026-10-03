@@ -265,6 +265,22 @@ header #who { min-width: 0; }
    off-brand pixels on the page, and the kind of detail that reads as unfinished. */
 .field input[type=range], .check input { accent-color: var(--sage); }
 #settings-counts { display: block; color: var(--dim); font-size: 0.9rem; }
+/* 2026-10-03 真机第二例（**列表编号**）：卡片里的 <ol> 不许用浏览器默认标记。
+   根因：`<ol class="steps">` 全仓库没有任何规则 ⇒ 走 UA 默认 `list-style-position: outside`，
+   而**标记不是元素** —— 排版引擎把它画在内容盒**之外**。真机量到的数：编号占 x≈44–64，
+   卡片左沿 x=60，于是编号左半截画在卡片外的奶油底上（正文从 x≈117 起，卡内正常）。
+   为什么一直没红：现有探针是「逐元素比左右边」，**结构上看不见标记**。
+   做法与仓库既有的 `.ob-steps`（迎新页步骤）同一套 —— `list-style:none` + 自己的计数器，
+   编号是**行内内容**，跟着内容盒走，因此永远进不了卡片外。
+   ⚠️ 不许用 `overflow:hidden` 「修」它 —— 那是把编号切掉，不是放回卡里。 */
+#app-settings .sgroup ol.steps {
+  margin: 0; padding: 0 0 0 1.7em; text-indent: -1.7em;
+  list-style: none; counter-reset: mt-step;
+  font-size: 0.95rem; color: var(--fg);
+}
+#app-settings .sgroup ol.steps > li::before {
+  counter-increment: mt-step; content: counter(mt-step) ". ";
+}
 /* Destructive, and it must LOOK destructive — a delete that shares the primary
    button style is a delete someone presses by muscle memory. */
 button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }
