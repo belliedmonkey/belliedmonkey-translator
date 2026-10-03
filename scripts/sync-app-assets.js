@@ -1575,8 +1575,14 @@ function patchExtensionTarget(sharedDir, spec) {
   const deployMatch = src.match(/IPHONEOS_DEPLOYMENT_TARGET = ([0-9.]+);/);
   const marketing = (src.match(/MARKETING_VERSION = ([^;]+);/) || [null, '1.0'])[1];
   const current = (src.match(/CURRENT_PROJECT_VERSION = ([^;]+);/) || [null, '1'])[1];
+  // 宿主 App 的 bundle 前缀：取工程里第一个 PRODUCT_BUNDLE_IDENTIFIER，**去掉尾巴上的
+  // `.extension`**。2026-10-03 修：新版 converter 写的 target 叫 `Extension`（大写 E），
+  // 而这里原来只 strip 小写 ⇒ 前缀变成 `com.belliedmonkeytranslator.Extension`，
+  // 拼出来的扩展 id 是 `…Extension.MTTranslateExt` —— **父前缀之后带点，iOS 直接拒装**
+  // （IXUserPresentableErrorDomain：「contains a '.' in the portion after the parent app's
+  // prefix」）。症状是装不上，而不是报某个 id 非法，所以只能靠真装一次才发现。
   const bundlePrefix = (src.match(/PRODUCT_BUNDLE_IDENTIFIER = ([a-zA-Z0-9.]+);/) || [null, 'com.belliedmonkeytranslator'])[1]
-    .replace(/\.extension$/, '');
+    .replace(/\.extension$/i, '');
 
   // 打进扩展 bundle 的资源（ExtEngine.js）。号段 40 起，与源文件（10/11、20…）不重。
   const resIds = (spec.resources || []).map((r, i) => ({

@@ -12,31 +12,37 @@
 // 首字节比 GitHub 多约 1 s ⇒ 用「国外慢约一倍」换掉最坏的那一格（国际版包 + 国内网络）。
 // 字节来自 cdn-lfs-cn-1.modelscope.cn（中国 CDN，没有国际节点；modelscope.com 只是 .cn 的英文入口）。
 //
-// 只覆盖 zh / en（Piper，sherpa-onnx 的 vits 形状）；不在表里的语言由 tts.js 回落到系统语音并在行上具名。
+// 2026-10-03：**换成 Kokoro（int8 多语）**。zh 与 en 两条共用同一个包与同一个目录 ——
+// 原生按 `dir` 里的安装戳判「装过没有」，所以只会下一次。为什么是一份多语模型：
+// sherpa-onnx 的 kokoro 词表按**字符区间**自己分流中英（kokoro-multi-lang-lexicon.cc 的
+// expr_chinese / expr_not_chinese），一个引擎就够，而 `lang` 只是给 espeak 的语言提示
+// （cmn / en-us）⇒ 两条清单各带一个提示、共用一份权重。
+// 装机实测（本机 Mac + Python sherpa-onnx，见 docs/learning-design.md §9.6.1）：
+// int8 一个引擎峰值 RSS ≈460 MB、24 kHz、RTF 0.5–1.1；**所以原生侧只留当前语言那一个引擎**
+// （切语言重装 1–2 s），两个语言同时驻留会被 iOS jetsam 杀。
+// 尺寸：老 Piper 两条 67 MB×2=134 MB，新包 140 MB 一条覆盖中英 —— 下载量与原来同量级。
 var MT_MODELSCOPE_BASE = 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/';
+var MT_KOKORO_PACK = {
+  path: 'kokoro-zh-en.zip', size: 146767700,
+  sha256: '5bab4f620353a5d80f98f8bd0a5e68cbeedccfb1c68c53baa83b834a0e926326',
+  url: {
+    // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
+    global: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
+    china: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
+  },
+};
 var MT_DEVICE_TTS_MODELS = [
   {
-    lang: 'zh', dir: 'piper-zh', model: 'zh_CN-huayan-medium.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
-    files: [{
-      path: 'piper-zh.zip', size: 67411393,
-      sha256: '071b226531f829851c0df15ac5f5050d8c56e9a24e479c9f3b531cd377e84c92',
-      url: {
-        // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
-        global: MT_MODELSCOPE_BASE + 'piper-zh.zip',
-        china: MT_MODELSCOPE_BASE + 'piper-zh.zip',
-      },
-    }],
+    lang: 'zh', dir: 'kokoro-zh-en', type: 'kokoro', kokoroLang: 'cmn',
+    model: 'model.int8.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
+    voices: 'voices.bin', dictDir: 'dict', lexicon: 'lexicon-us-en.txt,lexicon-zh.txt',
+    files: [MT_KOKORO_PACK],
   },
   {
-    lang: 'en', dir: 'piper-en', model: 'en_US-lessac-medium.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
-    files: [{
-      path: 'piper-en.zip', size: 67388973,
-      sha256: '1c69a1f2332238e52594c22beeac204430740bff549bf0e58701e730d2c34c1c',
-      url: {
-        global: MT_MODELSCOPE_BASE + 'piper-en.zip',
-        china: MT_MODELSCOPE_BASE + 'piper-en.zip',
-      },
-    }],
+    lang: 'en', dir: 'kokoro-zh-en', type: 'kokoro', kokoroLang: 'en-us',
+    model: 'model.int8.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
+    voices: 'voices.bin', dictDir: 'dict', lexicon: 'lexicon-us-en.txt,lexicon-zh.txt',
+    files: [MT_KOKORO_PACK],
   },
 ];
 

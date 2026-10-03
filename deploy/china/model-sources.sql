@@ -26,14 +26,10 @@ revoke all on public.bt_model_sources from anon, authenticated;
 grant select on public.bt_model_sources to anon, authenticated;
 
 insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) values
-  ('tts', 'china', 'piper-zh.zip',
-   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-zh.zip',
-   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-zh.zip',
-   '中国版：默认魔搭 ModelScope（真机 18.7 MB/s），备用 hf-mirror（≈580 KB/s）'),
-  ('tts', 'china', 'piper-en.zip',
-   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-en.zip',
-   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-en.zip',
-   '中国版：默认魔搭 ModelScope（真机 18.7 MB/s），备用 hf-mirror（≈580 KB/s）')
+  ('tts', 'china', 'kokoro-zh-en.zip',
+   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip',
+   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/kokoro-zh-en.zip',
+   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）')
 on conflict (kind, flavor, path) do nothing;
 
 -- 2026-10-01（#532）：**国际版那两行不在这里** —— 它们在东京库里是当年直接用 SQL 建的。
@@ -44,8 +40,8 @@ on conflict (kind, flavor, path) do nothing;
 
 -- 回读断言：别拿「没报错」当成功。
 do $$ begin
-  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 2 then
-    raise exception 'bt_model_sources：中国版应有 2 行 active，实际 %',
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 1 then
+    raise exception 'bt_model_sources：中国版应有 1 行 active（kokoro-zh-en.zip 一条覆盖中英），实际 %',
       (select count(*) from public.bt_model_sources where flavor = 'china' and active);
   end if;
 end $$;

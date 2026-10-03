@@ -348,6 +348,10 @@ final class MTDeviceSpeech {
     private struct Model {
         let lang: String; let dir: String
         let model: String; let tokens: String; let dataDir: String
+        // 2026-10-03（高质量语音）：Kokoro 不是 vits 那一套。多出来的四样按 type 取，
+        // 缺省即 vits（老条目逐字节不变）。
+        let type: String
+        let voices: String; let dictDir: String; let lexicon: String; let voiceLang: String
         let files: [(path: String, url: String, sha256: String, size: Int)]
     }
     private var models: [String: Model] = [:]          // lang → 清单
@@ -376,7 +380,13 @@ final class MTDeviceSpeech {
                 guard let p = f["path"] as? String, let u = f["url"] as? String, let s = f["sha256"] as? String else { return nil }
                 return (p, u, s, (f["size"] as? Int) ?? 0)
             }
-            return Model(lang: lang, dir: dir, model: model, tokens: tokens, dataDir: dataDir, files: fs)
+            return Model(lang: lang, dir: dir, model: model, tokens: tokens, dataDir: dataDir,
+                         type: (m["type"] as? String) ?? "vits",
+                         voices: (m["voices"] as? String) ?? "",
+                         dictDir: (m["dictDir"] as? String) ?? "",
+                         lexicon: (m["lexicon"] as? String) ?? "",
+                         voiceLang: (m["kokoroLang"] as? String) ?? "",
+                         files: fs)
         }
     }
 
@@ -492,14 +502,36 @@ final class MTDeviceSpeech {
             let tts: SherpaOnnxOfflineTtsWrapper
             if let t = loaded[lang] { tts = t } else {
                 let d = root.appendingPathComponent(m.dir, isDirectory: true)
-                let vits = sherpaOnnxOfflineTtsVitsModelConfig(
-                    model: d.appendingPathComponent(m.model).path,
-                    tokens: d.appendingPathComponent(m.tokens).path,
-                    dataDir: d.appendingPathComponent(m.dataDir).path)
-                let model = sherpaOnnxOfflineTtsModelConfig(vits: vits, numThreads: 2)
+                let model: SherpaOnnxOfflineTtsModelConfig
+                if m.type == "kokoro" {
+                    // Kokoro 多语（sherpa-onnx 的 kokoro 清单）：**一个引擎同时念中英** ——
+                    // 词表按字符区间自己分流（kokoro-multi-lang-lexicon.cc 的
+                    // expr_chinese / expr_not_chinese），所以中英各一条清单也共用同一份模型。
+                    // lang 是给 espeak 的语言提示（cmn / en-us），词典两本都要给。
+                    let k = sherpaOnnxOfflineTtsKokoroModelConfig(
+                        model: d.appendingPathComponent(m.model).path,
+                        voices: d.appendingPathComponent(m.voices).path,
+                        tokens: d.appendingPathComponent(m.tokens).path,
+                        dataDir: d.appendingPathComponent(m.dataDir).path,
+                        dictDir: d.appendingPathComponent(m.dictDir).path,
+                        lexicon: m.lexicon.split(separator: ",").map { d.appendingPathComponent(String($0)).path }.joined(separator: ","),
+                        lang: m.voiceLang)
+                    model = sherpaOnnxOfflineTtsModelConfig(kokoro: k, numThreads: 2)
+                } else {
+                    let vits = sherpaOnnxOfflineTtsVitsModelConfig(
+                        model: d.appendingPathComponent(m.model).path,
+                        tokens: d.appendingPathComponent(m.tokens).path,
+                        dataDir: d.appendingPathComponent(m.dataDir).path)
+                    model = sherpaOnnxOfflineTtsModelConfig(vits: vits, numThreads: 2)
+                }
                 var cfg = sherpaOnnxOfflineTtsConfig(model: model, maxNumSentences: 1)
                 let t = SherpaOnnxOfflineTtsWrapper(config: &cfg)
                 guard t.tts != nil else { DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": "load"]) }; return }
+                // 内存封顶：Kokoro int8 一个引擎峰值 RSS ≈460 MB（2026-10-03 在本机实测，
+                // 见 docs/learning-design.md §9.6.1）。两个语言同时驻留就是两倍，iOS 上会被
+                // jetsam 杀掉 —— 所以只留当前语言这一个；切语言的代价是重新装载（约 1–2 s），
+                // 而交替朗读本来就慢于这个量级。
+                if m.type == "kokoro" { for k in loaded.keys where k != lang { loaded.removeValue(forKey: k) } }
                 loaded[lang] = t; tts = t
             }
             let sampleRate = Double(tts.sampleRate)

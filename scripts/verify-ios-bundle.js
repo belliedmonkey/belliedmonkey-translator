@@ -160,6 +160,32 @@ function checkPbxprojDirs() {
 // onnxruntime 的 macOS 切片就这么丢了两个 build。fetch-native-deps.js 已在解压后根治源头；这道门
 // 是**归档后**的最后一道 —— .app（含其内嵌的 .appex / Frameworks）里任何解析不了的符号链接都是
 // 缺陷，在这里红，别等苹果的邮件。合法符号链接（Versions/Current、顶层四链接）都解析得了，不会误伤。
+// 2026-10-03（**真机上装不上才发现**）：扩展 bundle id 必须是「宿主 id + 一段**不含点**的后缀」。
+// 写成 `…translator.Extension.MTTranslateExt` 时 iOS 直接拒装，报的是
+// IXUserPresentableErrorDomain（「contains a '.' in the portion after the parent app's prefix」），
+// 而不是「id 非法」—— 而两棵工程都是本机态（gitignored），CI 里根本没有它 ⇒ 只能靠
+// **读装出来的包**来守。
+function checkExtensionIds(app) {
+  const parent = (readPlist(plistPath(app)) || {}).CFBundleIdentifier;
+  if (!parent) { console.error('✗ 读不到宿主 App 的 CFBundleIdentifier'); return false; }
+  const extDir = path.join(app, 'Extensions');
+  const exts = fs.existsSync(extDir) ? fs.readdirSync(extDir).filter((x) => x.endsWith('.appex')) : [];
+  const bad = [];
+  for (const e of exts) {
+    const id = (readPlist(plistPath(path.join(extDir, e))) || {}).CFBundleIdentifier;
+    const rest = id && id.startsWith(parent + '.') ? id.slice(parent.length + 1) : null;
+    if (!rest || rest.includes('.') || !/^[A-Za-z0-9-]+$/.test(rest)) bad.push(`${e} = ${id}（宿主 ${parent}）`);
+  }
+  if (bad.length) {
+    console.error('✗ 扩展 bundle id 不合法 —— iOS 会拒装（IXUserPresentableErrorDomain）：');
+    for (const b of bad) console.error('    ' + b);
+    console.error('  父前缀之后**不能有点**。查 scripts/sync-app-assets.js 里 bundlePrefix 的推导。');
+    return false;
+  }
+  console.log(`✓ 扩展 bundle id 合法（${parent} + 一段无点后缀，共 ${exts.length} 个）`);
+  return true;
+}
+
 function checkBundleSymlinks(app) {
   const bad = [];
   const stack = [app];
@@ -230,9 +256,10 @@ function main() {
   }
   if (!checkBackgroundAudio(app, appex)) process.exit(1);
   if (!checkBundleSymlinks(app)) process.exit(1);
+  if (!checkExtensionIds(app)) process.exit(1);
   if (!checkPbxprojDirs()) process.exit(1);
 }
 
 if (require.main === module) main();
 
-module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs, checkBundleSymlinks };
+module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs, checkBundleSymlinks, checkExtensionIds };

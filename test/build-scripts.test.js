@@ -1648,6 +1648,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
+      // 引擎类型（2026-10-03，高质量语音）：清单里的 `type` 值与 Kokoro 多出来的字段名 ——
+      // 都是**协议值**（清单字段），不是文案。
+      '"vits"', '"kokoro"', '"voices"', '"dictDir"', '"lexicon"', '"kokoroLang"', '","',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
       '"ready"', '"total"', '"completed"',   // assets-progress 的诊断字段（2026-10-02）：AssetInventory 的可用性/字节数，文案由 JS 拼
       '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
