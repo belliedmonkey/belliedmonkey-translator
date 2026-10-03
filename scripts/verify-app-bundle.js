@@ -952,7 +952,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(/简体中文/.test(tl.follow), '「译成」：第一项该写明跟随的是哪门语言，实际「' + tl.follow + '」');
       need(tl.ja === 'ja' && tl.resolvedJa === 'ja', '「译成」：选日语后该落盘并生效，实际 ' + JSON.stringify(tl));
       need(tl.keyGone && tl.resolvedFollow === 'zh-CN', '「译成」：选回「跟随界面语言」该删键并回到界面语言，实际 ' + JSON.stringify(tl));
-      need(tl.options === 13, '「译成」：该是 1 + 12 项，实际 ' + tl.options);
+      // 2026-10-04：期望值**从注册表推导** —— 写死 13 在 #556 给「译成」加泰语之后过期了
+      // （它只在这个 App 包探针里，不在 npm test 里，所以一直没红）。
+      const wantOptions = require('../build/target-langs.config.js').length + 1;
+      need(tl.options === wantOptions, '「译成」：该是 1 + ' + (wantOptions - 1) + ' 项，实际 ' + tl.options);
     }
 
     // ─── 界面语言：**首页也要跟随**，冷启动就跟随（2026-09-25）────────────────────────

@@ -157,6 +157,18 @@ function AppShell() {
       <section id="firstrun-packs" hidden>
         <h1 id="packs-title"></h1>
         <p className="lede" id="packs-lede"></p>
+        {/* 「我的语言 / 目标语言」（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按界面语言+默认
+            目标硬下（China 版上就看到写死的 zh）。两个选择器与听译页共用同一对存储键
+            （listenMyLang / listenOtherLang）——「同一件事只写一份」；选项由 listenModel.langOptions
+            给出（注册表全量、含泰语；引擎不支持的灰显而不是拿掉）。 */}
+        <div className="packs-langs" id="packs-langs">
+          <label className="note"><span id="packs-my-lang-label"></span>{' '}
+            <select id="packs-my-lang"></select>
+          </label>
+          <label className="note"><span id="packs-other-lang-label"></span>{' '}
+            <select id="packs-other-lang"></select>
+          </label>
+        </div>
         <div className="pack-list">
           <div className="pack-row" id="pack-row-asr">
             <div className="pack-name" id="pack-asr-name"></div>

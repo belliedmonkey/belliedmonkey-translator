@@ -298,3 +298,25 @@ global 132/80、china 75/73 均为 VALID ⇒ 本批取 +1）。
 **这一批包含**：泰语第 13 门语言（#556，1193 键 + 四个消费面 + 中国版描述 + 13 lproj + 可学习语言白名单）、
 Kokoro int8 多语离线朗读（#558 + #557）、一键卡随界面语言重画（#559）。
 矩阵结论见上一节：四绿 / Firefox 页面绿 / **macOS Safari 人工阻塞（不挡 TF）** / 音质 A/B 留给落地后。
+
+---
+
+## 2026-10-04 · TestFlight 第四批（泰语可选 + Kokoro + 离线包后台续传）
+
+驱动 `.local/build-1190e-four.sh`（号码跑前从 ASC 回读确定：global 133/81、china 76/74 均为 VALID）。
+**只上传 TestFlight，全程没有 `asc.js bind` / `asc-submit`。** ASC 回读（监督实读）：
+
+| 面 | 构建号 | ASC | 上传时间（CST） |
+|---|---|---|---|
+| 国际 iOS | **134** | **VALID** | 04:50 |
+| 国际 macOS | **82** | **VALID** | 04:53 |
+| 中国 iOS | **77** | **VALID** | 04:55 |
+| 中国 macOS | **75** | **VALID** | 04:57 |
+
+包体回读：国际 iOS `com.belliedmonkeytranslator 1.19.0 134` / **`lproj: 14`**（泰语在包内）；
+中国 iOS `…cn 1.19.0 77` / `lproj: 14`；两个 macOS 的 `lproj: 0` 是正常形状（lproj 在 `Contents/Resources/` 下）。
+
+这一批含：泰语在语言列表可选（#561，识别侧 `DictationTranscriber` 回落）+ Kokoro 中英离线朗读（#558/#557）
++ 离线包**后台续传**（#561，真机 -1005 之后）+ 一键卡随界面语言重画（#559）。
+
+⚠️ 本批**未重跑全矩阵**（用户明确要求），矩阵状态仍沿用 2026-10-03 那一节。

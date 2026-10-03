@@ -631,16 +631,30 @@ var LearnAuth = (() => {
 
   // App 侧的原生登录（Sign in with Apple / Google），走 id_token grant。
   // 原生那边拿到 identityToken 与 nonce，桥进来的只有这两样。
+  // 2026-10-04：**第一发自动重试**。真机反复是「第一次 Apple 登录报『连不上服务器』、第二次就好」，
+  // 而境内后端在用户报错的那一分钟里记到的是**成功**的 `POST /token`（2026-10-03T21:02:15Z = 05:02:15 CST，
+  // 200、provider=apple、泰国 IP），近 6h 非 2xx 为空 ⇒ 失败发生在**换会话这一发 POST 的网络层**
+  // （`code network|offline`，服务端因此无痕，§0）。
+  // 这个兑换对同一个用户是**幂等**的（同一 id_token、同一账号），所以自动重试安全 —— 与 §1.8
+  // 记的「把那一次重试自动化，就是这个症状的对症修法」一致。
+  // 只重试**网络类**失败：4xx/5xx 是服务端给了答复，重试没有意义。
   async function signInWithIdToken(provider, idToken, nonce) {
     const body = { provider: String(provider), id_token: String(idToken) };
     if (nonce) body.nonce = String(nonce);
-    try {
-      const json = await post('/token?grant_type=id_token', body);
-      return store(sessionFrom(json));
-    } catch (e) {
-      authFail(String(provider), 'id_token', e);
-      throw e;
+    const retryable = (e) => !!(e && (e.code === 'network' || e.code === 'offline'));
+    let last = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const json = await post('/token?grant_type=id_token', body);
+        return store(sessionFrom(json));
+      } catch (e) {
+        last = e;
+        if (!retryable(e) || attempt === 2) break;
+        await new Promise((r) => setTimeout(r, 400 + attempt * 800));
+      }
     }
+    authFail(String(provider), 'id_token', last);
+    throw last;
   }
 
   function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }

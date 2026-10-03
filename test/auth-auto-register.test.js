@@ -41,7 +41,10 @@ describe('登录即注册（2026-10-02）', () => {
   test('App 原生 id_token：不带「不建号」的字段（GoTrue 默认按 id_token 建号）', () => {
     const i = auth.indexOf('async function signInWithIdToken(');
     ok(i >= 0, '找不到 signInWithIdToken');
-    const body = auth.slice(i, i + 300);
+    // 2026-10-04：切片改成「到下一个顶层 function 为止」—— 固定 300 字在加重试循环（嵌套花括号）之后
+    // 会提前截断，症状是这条门禁莫名其妙报「没打这个端点」。
+    const j = auth.indexOf('\n  function ', i + 10);
+    const body = auth.slice(i, j > i ? j : i + 1200);
     ok(/grant_type=id_token/.test(body), 'signInWithIdToken 没打 /token?grant_type=id_token');
     ok(/provider/.test(body) && /id_token/.test(body), 'signInWithIdToken 少了 provider / id_token 字段');
     ok(!/create_user\s*:\s*false|shouldCreateUser\s*:\s*false/.test(body),

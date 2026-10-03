@@ -318,8 +318,15 @@ export function bootShell() {
     try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
   });
 
-  // 首次要下的语种：界面语言 + 目标语言（用户还没配过任何东西，这是能有意义的默认）。
+  // 包屏选的「我的语言 / 对方的语言」（2026-10-04）：与听译页**共用** listenMyLang /
+  // listenOtherLang 两个键（同一件事只写一份）。缓存一份在这里，是因为 firstRunLocales 是**同步**的
+  // （probePacks 与 paintFirstRun 都要用），而存储是异步的 —— paintFirstRun 每次刷它。
+  let langPair = ['', ''];
+
+  // 首次要下的语种：**用户选的那一对**优先；没选过才回落到 界面语言 + 目标语言。
   function firstRunLocales(s) {
+    const picked = langPair.filter(Boolean).map((x) => String(x).split(/[-_]/)[0].toLowerCase());
+    if (picked.length) return Array.from(new Set(picked));
     const ui = (() => { try { return (chrome.i18n.getUILanguage() || 'en').split('-')[0]; } catch (_) { return 'en'; } })();
     const target = ListenCore.toLocale((s && s.targetLang) || '') || '';
     return target && target !== ui ? [ui, target] : [ui];
@@ -475,7 +482,37 @@ export function bootShell() {
         .replace(/(\s*·\s*)+$/, '')
         .replace(/·\s*·/g, '·');
     $('packs-net').textContent = t('firstrun_packs_net', '建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。');
-    const go = $('packs-go');
+    // 语言对（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按 界面语言+默认目标 硬下
+    // （China 版上就看到写死的 zh）。现在与听译页共用同一对存储键、同一份选项
+    // （listenModel.langOptions：注册表全量、含泰语；引擎不支持的灰显而不是拿掉）。
+    // 用户没选过时，默认与「界面语言 + 目标语言」一致 —— 就是原来那一对，所以老用户行为不变。
+    try {
+      const pair = await new Promise((res) => chrome.storage.local.get(['listenMyLang', 'listenOtherLang'], (v) => res(v || {})));
+      langPair = [String(pair.listenMyLang || ''), String(pair.listenOtherLang || '')];
+      const defaults = firstRunLocales(s);
+      const opts = (typeof AppListen !== 'undefined' && AppListen.langOptions) ? AppListen.langOptions(null) : [];
+      const wire = (id, labelId, labelText, cur) => {
+        const sel = $(id); if (!sel) return;
+        $(labelId).textContent = labelText;
+        sel.textContent = '';
+        for (const o of opts) {
+          const el = document.createElement('option');
+          el.value = o.code; el.textContent = o.label; el.disabled = !!o.disabled;
+          sel.appendChild(el);
+        }
+        sel.value = cur;
+        sel.onchange = () => {
+          const slot = id === 'packs-my-lang' ? 0 : 1;
+          try { chrome.storage.local.set(slot === 0 ? { listenMyLang: sel.value } : { listenOtherLang: sel.value }); } catch (_) {}
+          const next = [langPair[0], langPair[1]];
+          next[slot] = sel.value;
+          langPair = next;             // 下载（firstRunLocales）读的就是它，下一次「下载并继续」即生效
+        };
+      };
+      // fallback 字面量必须留在 t() 调用点上（no-hardcoded-copy 门禁的判据，也是 translator 的取样点）。
+      wire('packs-my-lang', 'packs-my-lang-label', t('listen_my_lang_label', '我的语言'), langPair[0] || defaults[0] || '');
+      wire('packs-other-lang', 'packs-other-lang-label', t('listen_other_lang_label', '对方的语言'), langPair[1] || defaults[1] || '');
+    } catch (_) {}    const go = $('packs-go');
     go.disabled = packsBusy;
     go.textContent = packsBusy
       ? t('firstrun_packs_busy', '正在下载…')
