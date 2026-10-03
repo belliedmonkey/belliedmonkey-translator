@@ -258,7 +258,7 @@ suppressed.
 | **macOS Chrome（CDP `Extensions.loadUnpacked`）** | ✅ | options 页 **3155 个泰文字符**、缺键回落汉字 **0**（脚本 `.local/chrome-thai-check.js`，判据豁免语言自名与品牌名）。截图 `.local/regress-1.19.0/thai/chrome-macos/` |
 | **macOS Safari** | ⬜ **未跑** | 本机 Safari 被**另一个会话**占着（窗口标题是一串布局测量调试串且不变）—— 按「并行会话不抢共享资源」的规矩**没有去抢**。配方见 verification-spec §2.C 路径 A |
 | **Firefox desktop** | ✅ **页面正常**（#560 是我的驱动 bug，已关闭） | 等 `web-ext` 打出 `Installed … as a temporary add-on` 之后**用地址栏导航**到 `moz-extension://<uuid>/options/options.html` ⇒ 窗口标题变「大肚猴翻译 — 设置」，整页正常渲染（引擎与密钥/免费额度/显示样式/复习/学习/缓存管理/关于），页面里能看到**学习语言的 13 个 chip 含「ไทย」**。截图 `.local/regress-1.19.0/thai/firefox-options-FIXED.png`。硬经验见 verification-spec §2.E |
-| **macOS Safari** | ⛔ **阻塞（我解不开）** | 扩展**已装但未启用**：Safari → 设置 → **扩展**页里能看到「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」，勾选框 `value=0`（1Password 那条是 1）。用 cua-driver 点它（background 与 foreground 都试）**值不变**（`refusal`/无效果），启用这一步没做成 ⇒ 没往下走（其后还要「在每个网站上始终允许」+ 打开 options 页 + 切语言）。下次可用 GUI 手点，或查 Safari 对未签名/未启用扩展的启用条件 |
+| **macOS Safari** | 🧑 **人工阻塞 —— 明确记录为「不挡 TestFlight」** | 扩展**已装但未启用**：Safari → 设置 → **扩展**页里能看到「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」，勾选框 `value=0`（1Password 那条是 1）。用 cua-driver 点它（background 与 foreground 都试）**值不变**（`refusal`/无效果），启用这一步没做成 ⇒ 没往下走（其后还要「在每个网站上始终允许」+ 打开 options 页 + 切语言）。下次可用 GUI 手点，或查 Safari 对未签名/未启用扩展的启用条件。**2026-10-03 飞行窗监督裁定**：勾选需人手点、飞行窗内无人可点，而同一扩展在 Chrome（3155 个泰文字符、0 缺键回落）与 Firefox（整页渲染 + 13 个学习语言 chip 含 ไทย）两行已绿、iOS/iPad/macOS 三个宿主面亦绿 ⇒ **这一行按人工阻塞记账，不挡 TestFlight**；落地后补一次勾选即可闭合 |
 
 **未验证**（两个都要如实带上）：
 
@@ -273,4 +273,6 @@ suppressed.
 2. **试听（续）**：macOS App 的**设置页里没有那一行** —— AX 树（369 元素、`elements_complete:false`）里只有「โหมดเสียงพูด / อ่านออกเสียงอัตโนมัติ / จำนวนการ์ดใหม่สูงสุดต่อวัน」等，
    没有 `เล่นตัวอย่าง`（试听）也没有「离线模型」那行；滚动也没让树变化。⇒ **Kokoro 的装载+出声仍未被端上验证**。
    可走的两条：① App 的**播客模式**（它朗读走同一个引擎，首页那张卡可见）；② 设置页里那行（需要先弄清它在哪个档/为什么没渲染）。
-3. **音质**：判据是耳朵。WAV 样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句）。
+3. **音质 A/B**：**按裁定留给落地后的耳朵**（飞行窗内无法主观听判）。
+   样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句，24 kHz WAV）；
+   判据是「Kokoro 与 Piper 谁更好听」—— 不好听就把 `device-models.config.js` 换回 piper 两行（vits 分支仍在）。
