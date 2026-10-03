@@ -1123,8 +1123,25 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           const gear = document.getElementById('gear'); if (gear) gear.click();
           await new Promise((r) => setTimeout(r, 500));
           const cards = [...document.querySelectorAll('#app-settings .sgroup')].filter((c) => c.getClientRects().length);
-          const bad = cards.map((c, i) => ({ i, sw: c.scrollWidth, cw: c.clientWidth }))
-            .filter((x) => x.sw > x.cw + 1);
+          // 主判据＝**几何越界**（设计稿：scrollWidth 在 direction:rtl 下不记左侧溢出，只能作第二重）。
+          // 每个可见后代都与卡片的内容盒（padding/border 之内）比左右两边，任一边超出 1px 即出界。
+          const bad = [];
+          cards.forEach((c, i) => {
+            const cr = c.getBoundingClientRect();
+            const cs = getComputedStyle(c);
+            const L = cr.left + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0);
+            const R = cr.right - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0);
+            for (const el of c.querySelectorAll('*')) {
+              if (!el.getClientRects().length) continue;
+              const r = el.getBoundingClientRect();
+              if (!r.width) continue;
+              if (r.left < L - 1 || r.right > R + 1) {
+                bad.push({ i, tag: el.tagName, id: el.id || '', left: Math.round(r.left - L), right: Math.round(r.right - R) });
+                break;
+              }
+            }
+            if (c.scrollWidth > c.clientWidth + 1) bad.push({ i, hint: 'scrollWidth', sw: c.scrollWidth, cw: c.clientWidth });
+          });
           return JSON.stringify({ n: cards.length, bad });
         })()`));
         if (r1.n === 0) over.push(loc + ':没有量到卡片');
