@@ -243,3 +243,23 @@ suppressed.
 | 再点「上传文档」→ 取消 | 不报错、页面无变化 |
 | 取消之后再点一次 | **还能再弹**（取消分支必须 `completionHandler(nil)`；漏了这一下 `<input>` 永远卡住，且没有任何错误） |
 | iOS（模拟器即可） | 点「上传文档」弹「照片 / 浏览」；不需要这段桥 |
+
+---
+
+## 2026-10-03 · 泰语（#556）+ 高质量语音 Kokoro（#558）矩阵记录
+
+一次**未跑完**的矩阵，如实记录每一行的判据与证据，供下一位接着跑。
+
+| 行 | 结果 | 证据 |
+|---|---|---|
+| **iPhone Safari（iPhone 18 Pro 模拟器）** | ✅ 泰语 ✓ · Kokoro 装包 ✓ | 首启屏**整屏泰文**（含「ชุดเสียงคุณภาพสูง…พร้อมแล้ว」= 高质量语音包**已就绪**）；盘上 `…/mt-speech/kokoro-zh-en/` **206 MB**、安装戳 `.installed-5bab4f62…` 与清单 sha256 逐字相同。截图 `.local/regress-1.19.0/thai/evidence/` |
+| **iPad Safari（iPad Pro 13" M5 模拟器）** | ✅ | `testDbgThaiUi` **passed**（判据 = 朗读包到「พร้อมแล้ว」+ 首页/设置全泰文 + 无缺键回落汉字）。截图 `.local/regress-1.19.0/thai/sim-ipad/shots/` |
+| **macOS host app（Debug 构建）** | ✅ 泰语 ✓ · Kokoro 装包 ✓ | AX 树整页泰文；首启给的是 **「รับเฉพาะชุดเสียงแล้วดำเนินการต่อ」（只下朗读包、继续）** —— #553 的降级路径；点完进首页（「โหมดพอดแคสต์」卡）。盘上同 iOS：206 MB + 同一个 sha256 戳。截图 `.local/regress-1.19.0/thai/macos-app/` |
+| **macOS Chrome（CDP `Extensions.loadUnpacked`）** | ✅ | options 页 **3155 个泰文字符**、缺键回落汉字 **0**（脚本 `.local/chrome-thai-check.js`，判据豁免语言自名与品牌名）。截图 `.local/regress-1.19.0/thai/chrome-macos/` |
+| **macOS Safari** | ⬜ **未跑** | 本机 Safari 被**另一个会话**占着（窗口标题是一串布局测量调试串且不变）—— 按「并行会话不抢共享资源」的规矩**没有去抢**。配方见 verification-spec §2.C 路径 A |
+| **Firefox desktop** | ❌ **红** | options 页**整页空白**（刷新后依旧）⇒ issue **#560**。已排除：文件齐、HTML 与 `dist/` 逐字相同、同包在 Chrome 正常。`web-ext --verbose` 连不上 Firefox 的调试端口（`ECONNREFUSED 127.0.0.1:64898`）⇒ **console 读不到**，定位到此为止 |
+
+**未验证**（两个都要如实带上）：
+
+1. **试听（引擎装载 + 合成）**：iOS 模拟器到不了设置页（首启的识别包在模拟器上必然 `reason='locale'` 失败 ⇒ App 停在包屏）；macOS App 的设置页里没滚到「试听一句」那一行。⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
+2. **音质**：判据是耳朵。WAV 样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句）。
