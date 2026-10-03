@@ -34,4 +34,10 @@ module.exports = [
   { code: 'it', labelKey: 'lang_it', label: 'Italiano',   scripts: ['Latin'] },
   { code: 'ru', labelKey: 'lang_ru', label: 'Русский',    scripts: ['Cyrillic'] },
   { code: 'ar', labelKey: 'lang_ar', label: 'العربية',    scripts: ['Arabic'] },
+  // 2026-10-03（用户裁定「加」，随 #556 的泰国语一起）：泰语进白名单。
+  // 泰文是**无空格文字** —— 采集门的脚本判定照旧（`LearnRules.dominantScript` 早就有
+  // `['Thai', /\p{Script=Thai}/u]`，`guessLang` 也早就会猜 `th`），这里补的是「可学」这一格：
+  // 不在这里列出来，泰语用户采集到的泰文卡会被白名单挡掉（`langs: null` 时除外）。
+  // 脚本名照 §4.1 的 `scripts` 表；泰文不与别的语言共享脚本（Han/Latin 那种互相放行在这里不发生）。
+  { code: 'th', labelKey: 'lang_th', label: 'ไทย',        scripts: ['Thai'] },
 ];

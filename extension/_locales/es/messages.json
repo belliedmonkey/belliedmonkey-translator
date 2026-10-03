@@ -1139,6 +1139,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "No se pudo leer el estado de sesión (fallo de lectura del almacenamiento); se reintentará en breve — esto no significa que hayas cerrado sesión."
   },

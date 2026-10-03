@@ -323,6 +323,17 @@ per §3 law 2, over-capture is recoverable (delete), silent under-capture is not
 A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
 gesture outranks a standing filter.
 
+**2026-10-03（泰国语进白名单，随 #556 的界面语言泰语一起）。** `build/langs.config.js` 加一门：
+`{ code:'th', labelKey:'lang_th', label:'ไทย', scripts:['Thai'] }` —— 用户裁定「加」。三点与本段相关：
+- **泰文不与别的语言共享脚本。** 上面那句「known looseness」在泰语这里**不适用**：Han/Latin/Kana
+  那种互相放行只发生在共享脚本的语言之间，泰文是独一份，所以「纯泰文」的判定是干净的 ——
+  白名单里有 `th` 就收，没有就不收，没有中间态。
+- **判定链的两端早就认得泰语**，缺的一直只是白名单这一格：`LearnRules.dominantScript` 有
+  `['Thai', /\p{Script=Thai}/u]`，`guessLang` 会猜 `th`（见下面 2026-09-13 那条）。
+- 泰文**无词间空格**，所以泰语卡的切句/切词完全依赖 `Intl.Segmenter`（`LearnModel.splitSentences`）；
+  WebKit/Safari 的 ICU 支持泰语，但它与拉丁语系的切分不是同一档确定性 —— 泰语卡的分段质量
+  比中英更容易受实现差异影响，这一条留作已知项。
+
 **2026-09-13 修订（用户裁定「不知道为啥会有语言未知；就算真的未知，也应该靠 AI 推断语言出来」）。** 「stored
 `lang` stays `'und'`」这句收窄为：**采集门不改它，但两个地方会补上它**——
 - **文档打开时**（`doc-view.startEngine`）：用户没手选语言的文档，先按第一段的主导脚本猜（`LearnRules.guessLang`：

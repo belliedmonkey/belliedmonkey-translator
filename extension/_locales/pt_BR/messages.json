@@ -1139,6 +1139,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "Não foi possível ler o estado de login (falha de leitura do armazenamento); tentaremos novamente em breve — isso não significa que você foi desconectado."
   },

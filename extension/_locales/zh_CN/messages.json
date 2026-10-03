@@ -1140,6 +1140,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。"
   },

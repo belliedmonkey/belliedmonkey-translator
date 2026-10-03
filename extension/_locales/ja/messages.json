@@ -1139,6 +1139,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "ログイン状態を読み取れません（ストレージ読み取り失敗）。まもなく再試行します —— ログアウトされたわけではありません。"
   },

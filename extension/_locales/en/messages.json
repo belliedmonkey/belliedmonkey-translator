@@ -1139,6 +1139,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "Couldn't read the sign-in state (storage read failed); will retry shortly — this does not mean you were signed out."
   },

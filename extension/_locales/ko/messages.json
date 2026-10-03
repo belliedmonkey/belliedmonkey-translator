@@ -1139,6 +1139,9 @@
   "lang_ar": {
     "message": "العربية"
   },
+  "lang_th": {
+    "message": "ไทย"
+  },
   "sync_status_storage_error": {
     "message": "로그인 상태를 읽을 수 없습니다(저장소 읽기 실패). 곧 다시 시도합니다 — 로그아웃된 것이 아닙니다."
   },
