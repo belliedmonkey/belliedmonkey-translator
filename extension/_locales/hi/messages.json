@@ -2341,6 +2341,12 @@
   "listen_lang_note": {
     "message": "दोनों भाषाएँ अलग होनी चाहिए। इन्हें बातचीत स्क्रीन के नीचे भी बदल सकते हैं — वही सेटिंग है।"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "वर्तमान इंजन द्वारा समर्थित नहीं"
+  },
+  "listen_lang_change_engine": {
+    "message": "इंजन बदलें"
+  },
   "listen_lang_swapped": {
     "message": "दोनों भाषाएँ अलग होनी चाहिए — बदल दी गईं"
   },
@@ -3556,19 +3562,49 @@
   "learn_group_bye": {
     "message": "बाकी कल सही —— बस लौटकर आते रहिए।"
   },
-  "firstrun_packs_title": { "message": "पहले दोनों स्पीच पैक डाउनलोड करें" },
-  "firstrun_packs_lede": { "message": "इसके बाद कुछ भी सेट करने की ज़रूरत नहीं — अनुवाद, लाइव व्याख्या, सबटाइटल और पढ़कर सुनाना सीधे काम करेंगे। ऑडियो सिर्फ़ आपके डिवाइस पर प्रोसेस होता है।" },
-  "firstrun_packs_asr": { "message": "स्पीच पहचान पैक (व्याख्या / लाइव सबटाइटल)" },
-  "firstrun_packs_tts": { "message": "उच्च गुणवत्ता वॉइस पैक (पढ़कर सुनाना / पॉडकास्ट)" },
-  "firstrun_packs_done": { "message": "तैयार" },
-  "firstrun_packs_net": { "message": "Wi-Fi से डाउनलोड करना बेहतर है; मोबाइल डेटा भी चलेगा — फ़ैसला आपका।" },
-  "firstrun_packs_busy": { "message": "डाउनलोड हो रहा है…" },
-  "firstrun_packs_go": { "message": "डाउनलोड करें और जारी रखें" },
-  "firstrun_packs_go_tts": { "message": "सिर्फ़ वॉइस पैक लेकर जारी रखें" },
-  "firstrun_packs_err": { "message": "डाउनलोड पूरा नहीं हुआ: {why} — कनेक्शन जाँचें और फिर दबाएँ।" },
-  "firstrun_packs_stt_slow": { "message": "सिस्टम वॉइस पैक का डाउनलोड रुक गया — कनेक्शन जाँचें और फिर से आज़माएँ।" },
-  "engine_status_ok": { "message": "आपके खाते से सेट: अनुवाद · ट्रांसक्रिप्शन · पढ़कर सुनाना — यहीं इस्तेमाल करें" },
-  "engine_status_missing": { "message": "एक चीज़ बाकी है: " },
-  "engine_status_fix_tts": { "message": "पढ़कर सुनाने का इंजन सेट नहीं — सेटिंग्स › पढ़कर सुनाना, आवाज़ चुनें" },
-  "engine_status_fix_translate": { "message": "अनुवाद इंजन सेट नहीं — सेटिंग्स › इंजन में चुनें" }
+  "firstrun_packs_title": {
+    "message": "पहले दोनों स्पीच पैक डाउनलोड करें"
+  },
+  "firstrun_packs_lede": {
+    "message": "इसके बाद कुछ भी सेट करने की ज़रूरत नहीं — अनुवाद, लाइव व्याख्या, सबटाइटल और पढ़कर सुनाना सीधे काम करेंगे। ऑडियो सिर्फ़ आपके डिवाइस पर प्रोसेस होता है।"
+  },
+  "firstrun_packs_asr": {
+    "message": "स्पीच पहचान पैक (व्याख्या / लाइव सबटाइटल)"
+  },
+  "firstrun_packs_tts": {
+    "message": "उच्च गुणवत्ता वॉइस पैक (पढ़कर सुनाना / पॉडकास्ट)"
+  },
+  "firstrun_packs_done": {
+    "message": "तैयार"
+  },
+  "firstrun_packs_net": {
+    "message": "Wi-Fi से डाउनलोड करना बेहतर है; मोबाइल डेटा भी चलेगा — फ़ैसला आपका।"
+  },
+  "firstrun_packs_busy": {
+    "message": "डाउनलोड हो रहा है…"
+  },
+  "firstrun_packs_go": {
+    "message": "डाउनलोड करें और जारी रखें"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "सिर्फ़ वॉइस पैक लेकर जारी रखें"
+  },
+  "firstrun_packs_err": {
+    "message": "डाउनलोड पूरा नहीं हुआ: {why} — कनेक्शन जाँचें और फिर दबाएँ।"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "सिस्टम वॉइस पैक का डाउनलोड रुक गया — कनेक्शन जाँचें और फिर से आज़माएँ।"
+  },
+  "engine_status_ok": {
+    "message": "आपके खाते से सेट: अनुवाद · ट्रांसक्रिप्शन · पढ़कर सुनाना — यहीं इस्तेमाल करें"
+  },
+  "engine_status_missing": {
+    "message": "एक चीज़ बाकी है: "
+  },
+  "engine_status_fix_tts": {
+    "message": "पढ़कर सुनाने का इंजन सेट नहीं — सेटिंग्स › पढ़कर सुनाना, आवाज़ चुनें"
+  },
+  "engine_status_fix_translate": {
+    "message": "अनुवाद इंजन सेट नहीं — सेटिंग्स › इंजन में चुनें"
+  }
 }

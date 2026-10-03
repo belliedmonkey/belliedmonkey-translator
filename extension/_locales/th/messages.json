@@ -2336,6 +2336,12 @@
   "listen_lang_note": {
     "message": "สองภาษาต้องแตกต่างกัน คุณยังเปลี่ยนได้ที่ด้านล่างของหน้าจอบทสนทนา — เป็นการตั้งค่าเดียวกัน"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "ไม่รองรับโดยเอนจินปัจจุบัน"
+  },
+  "listen_lang_change_engine": {
+    "message": "เปลี่ยนเอนจิน"
+  },
   "listen_lang_swapped": {
     "message": "สองภาษาต้องแตกต่างกัน — สลับให้แล้ว"
   },

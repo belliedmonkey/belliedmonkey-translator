@@ -302,15 +302,21 @@ export function ListenView() {
       <div className="listen-pair" id="app-listen-pair">
         <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
           <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-            {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
+            {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
           </select>
         </label>
         <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
         <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
           <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-            {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
+            {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
           </select>
         </label>
+      </div>
+      {/* 「换引擎」（2026-10-04 用户裁定）：语言列表**始终列全**，被引擎挡住的那些灰显并带一句
+          「当前引擎不支持」—— 出路**就地**给，不是一句「去设置里选」。只在真有被挡住的语言时出现。 */}
+      <div className="listen-engine-hint" id="app-listen-engine-hint" hidden={!listenModel.anyLangUnsupported()}>
+        <button type="button" id="app-listen-change-engine" className="linkish"
+          onClick={() => listenModel.changeEngine()}>{t('listen_lang_change_engine', '换引擎')}</button>
       </div>
       <label className="check listen-autospeak" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
         <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />

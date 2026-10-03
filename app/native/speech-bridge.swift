@@ -30,13 +30,56 @@ import SherpaOnnx
 import SherpaOnnxC
 #endif
 
-/// 归一化到 SpeechTranscriber 认的 locale（Apple 配方第一条，2026-10-02 真机实测）。
+/// 归一化到 Apple 转写器认的 locale（Apple 配方第一条，2026-10-02 真机实测）。
 /// 传短码（"en"）会抛 SFSpeechErrorDomain Code=4「Some modules are configured with an unsupported
 /// configuration.」—— 屏 2 的识别包于是永远装不上；归一化后是 "en-US" ✓。
 /// 归一化不到 ⇒ nil，调用方按 unsupported 处理（不让它走到抛错那一步）。
+///
+/// **2026-10-04 起问两台转写器**：Apple 在 iOS 26 给了第二个模块 `DictationTranscriber`，
+/// 它与 `SpeechTranscriber` 共用 `SpeechAnalyzer` 宿主，但语言集**更宽**（本机实测 54 门 ⊃ 45 门，
+/// 多出 th-TH / ru-RU / ar-SA / vi-VN / id-ID / tr-TR …）。只问前者时，泰语在听译页根本列不出来
+/// （45 门 ∩ 我们 12 门注册表 = 9 门 —— 与真机截图那 9 个语言完全吻合）。
 @available(iOS 26.0, macOS 26.0, *)
 func mtSpeechLocale(_ id: String) async -> Locale? {
     await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: id))
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+func mtDictationLocale(_ id: String) async -> Locale? {
+    await DictationTranscriber.supportedLocale(equivalentTo: Locale(identifier: id))
+}
+
+/// 这门语言该用哪台转写器：**能用窄的（SpeechTranscriber）就用窄的**
+/// （它是 Apple 的新模型，长文/对话场景更好），窄的不支持才落回 `DictationTranscriber`。
+/// 返回 nil = 两台都不认 ⇒ 调用方按 unsupported 处理。
+@available(iOS 26.0, macOS 26.0, *)
+enum MTTranscriberKind { case speech, dictation }
+
+@available(iOS 26.0, macOS 26.0, *)
+func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: Locale)? {
+    if let l = await mtSpeechLocale(id) { return (.speech, l) }
+    if let l = await mtDictationLocale(id) { return (.dictation, l) }
+    return nil
+}
+
+/// 报给 JS 的「本机识别器支持哪些 locale」= **两台之并**（不写死，当场问设备）。
+@available(iOS 26.0, macOS 26.0, *)
+func mtSupportedLocalesUnion() async -> [String] {
+    let a = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+    let b = await DictationTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+    return Array(Set(a).union(b)).sorted()
+}
+
+/// 给 `AssetInventory` 用的探针模块：按上面选出来的那台转写器造一个。
+/// （资产按**模块**管理，所以探测也得用同一种模块，否则读到的状态不是它真会用的那份。）
+@available(iOS 26.0, macOS 26.0, *)
+func mtProbeModule(_ kind: MTTranscriberKind, _ locale: Locale) -> any SpeechModule {
+    switch kind {
+    case .speech:
+        return SpeechTranscriber(locale: locale, preset: .transcription)
+    case .dictation:
+        return DictationTranscriber(locale: locale, preset: .progressiveLongDictation)
+    }
 }
 
 final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
@@ -104,17 +147,19 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             guard SpeechTranscriber.isAvailable else {
                 self.emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
             }
-            // 本机识别器支持的 locale 清单（2026-09-17）：JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
-            let supported = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+            // 本机识别器支持的 locale 清单（2026-09-17，2026-10-04 起取两台的并集）：
+            // JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
+            let supported = await mtSupportedLocalesUnion()
             var allInstalled = true
             for id in locales {
-                // 归一化（2026-10-02）：短码 "en" 在 SpeechTranscriber 里是不受支持的配置 ⇒ 先归一化成 "en-US"。
-                guard let loc = await mtSpeechLocale(id) else {
+                // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
+                // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
+                guard let pick = await mtTranscriberFor(id) else {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
                     self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
                     return
                 }
-                let t = SpeechTranscriber(locale: loc, preset: .transcription)
+                let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
@@ -139,16 +184,17 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         Task {
             for id in locales {
                 // 归一化（2026-10-02）：短码会让 assetInstallationRequest 抛 SFSpeechErrorDomain Code=4。
-                guard let loc = await mtSpeechLocale(id) else {
+                // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语等靠它）。
+                guard let pick = await mtTranscriberFor(id) else {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
                     self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale"])
                     return
                 }
-                let t = SpeechTranscriber(locale: loc, preset: .transcription)
+                let t = mtProbeModule(pick.kind, pick.locale)
                 // 诊断（2026-10-02）：真机上识别资产装不上时，屏上只剩「没动静」——这里把当场读到的
                 // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
                 let st0 = await AssetInventory.status(forModules: [t])
-                let supportedIds = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+                let supportedIds = await mtSupportedLocalesUnion()
                 self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing",
                            "status": String(describing: st0), "ready": SpeechTranscriber.isAvailable, "supported": supportedIds.contains(id)])
                 do {
@@ -239,18 +285,41 @@ final class MTDeviceTranscriber {
 
     func start() {
         Task {
-            var mods: [SpeechTranscriber] = []
+            // 2026-10-04：**一个会话只用一种转写器**。两台的 result 类型不同 ⇒ 混排要两套读取；
+            // 而 DictationTranscriber 覆盖我们注册表全部 12 门（本机实测 54 ⊃ 12，含 th/ru/ar），
+            // 所以「只要有一门需要它，整个会话就用它」不会丢任何语言；反过来仍用窄的（Apple 的新模型）。
+            var needDictation = false
             for id in locales {
-                guard let loc = await mtSpeechLocale(id) else {
+                guard let p = await mtTranscriberFor(id) else {
                     emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
                 }
-                let t = SpeechTranscriber(locale: loc, transcriptionOptions: [],
-                                          reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
-                                          attributeOptions: [.audioTimeRange, .transcriptionConfidence])
-                if await AssetInventory.status(forModules: [t]) != .installed {
-                    emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                if p.kind == .dictation { needDictation = true }
+            }
+            var mods: [any SpeechModule] = []
+            var speechMods: [SpeechTranscriber] = []
+            var dictMods: [DictationTranscriber] = []
+            for id in locales {
+                if needDictation {
+                    guard let l = await mtDictationLocale(id) else {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                    }
+                    let t = DictationTranscriber(locale: l, preset: .progressiveLongDictation)
+                    if await AssetInventory.status(forModules: [t]) != .installed {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                    }
+                    mods.append(t); dictMods.append(t)
+                } else {
+                    guard let l = await mtSpeechLocale(id) else {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                    }
+                    let t = SpeechTranscriber(locale: l, transcriptionOptions: [],
+                                              reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
+                                              attributeOptions: [.audioTimeRange, .transcriptionConfidence])
+                    if await AssetInventory.status(forModules: [t]) != .installed {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                    }
+                    mods.append(t); speechMods.append(t)
                 }
-                mods.append(t)
             }
             guard let fmt = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: mods) else {
                 emit?(["type": "stt-state", "state": "failed", "reason": "format"]); return
@@ -263,11 +332,21 @@ final class MTDeviceTranscriber {
             }
             if stopped { return }
             analyzer = an; continuation = cont; format = fmt
-            for (i, t) in mods.enumerated() {
+            for (i, t) in speechMods.enumerated() {
                 let id = locales[i]
                 readers.append(Task { [weak self] in
                     do {
                         for try await r in t.results { self?.deliver(id, r) }
+                    } catch {
+                        self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
+                    }
+                })
+            }
+            for (i, t) in dictMods.enumerated() {
+                let id = locales[i]
+                readers.append(Task { [weak self] in
+                    do {
+                        for try await r in t.results { self?.deliverDictation(id, r) }
                     } catch {
                         self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
                     }
@@ -293,6 +372,16 @@ final class MTDeviceTranscriber {
             payload["t1"] = Int(r.range.end.seconds * 1000)
         }
         emit?(payload)
+    }
+
+    /// 落回 `DictationTranscriber` 的会话走这一条（2026-10-04）。
+    /// 与 `deliver` 的差别是**它没有 audioTimeRange / 置信度**（那两样是 SpeechTranscriber 的属性），
+    /// 所以字幕时间戳与备选译法在这条路上为空 —— 语言能力优先，代价如实记在 learning-design 里。
+    private func deliverDictation(_ locale: String, _ r: DictationTranscriber.Result) {
+        emit?(["type": r.isFinal ? "stt-final" : "stt-partial",
+               "locale": locale,
+               "text": String(r.text.characters),
+               "conf": -1])
     }
 
     /// 由 MTAudioBridge 的 tap 线程调用：转格式、喂 analyzer、顺手做静音检测。
@@ -404,9 +493,11 @@ final class MTDeviceSpeech {
             guard let attrs = try? fm.attributesOfItem(atPath: p.path), (attrs[.size] as? Int) == f.size else { return false }
         }
         guard !m.files.isEmpty else { return false }
+        // MMS-TTS 没有 espeak-ng-data（`dataDir` 为空串）—— 不要因此把它判成「没装」。
+        let dataOk = m.dataDir.isEmpty || fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
         return fm.fileExists(atPath: d.appendingPathComponent(m.model).path)
             && fm.fileExists(atPath: d.appendingPathComponent(m.tokens).path)
-            && fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
+            && dataOk
     }
 
     /// tts-state 同时带系统语音后端的可用语言（`system` / `systemLangs`），JS 的 `browser` 引擎据此决定走原生还是 WebKit。

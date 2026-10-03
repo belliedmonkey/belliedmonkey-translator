@@ -2508,6 +2508,12 @@
   "listen_lang_note": {
     "message": "Die beiden Sprachen müssen verschieden sein. Auch unten im Gesprächsbildschirm änderbar — dieselbe Einstellung."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "von der aktuellen Engine nicht unterstützt"
+  },
+  "listen_lang_change_engine": {
+    "message": "Engine wechseln"
+  },
   "listen_lang_swapped": {
     "message": "Die Sprachen müssen verschieden sein — getauscht"
   },
@@ -3723,19 +3729,49 @@
   "learn_group_bye": {
     "message": "Der Rest kann warten — komm einfach wieder."
   },
-  "firstrun_packs_title": { "message": "Zuerst die beiden Sprachpakete laden" },
-  "firstrun_packs_lede": { "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Audio wird nur auf deinem Gerät verarbeitet." },
-  "firstrun_packs_asr": { "message": "Spracherkennung (Dolmetschen / Live-Untertitel)" },
-  "firstrun_packs_tts": { "message": "Hochwertige Stimme (Vorlesen / Podcast)" },
-  "firstrun_packs_done": { "message": "Bereit" },
-  "firstrun_packs_net": { "message": "Am besten über WLAN; mobil geht auch — deine Entscheidung." },
-  "firstrun_packs_busy": { "message": "Wird geladen…" },
-  "firstrun_packs_go": { "message": "Laden und weiter" },
-  "firstrun_packs_go_tts": { "message": "Nur das Stimm-Paket laden und weiter" },
-  "firstrun_packs_err": { "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen." },
-  "firstrun_packs_stt_slow": { "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen." },
-  "engine_status_ok": { "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar" },
-  "engine_status_missing": { "message": "Eines fehlt: " },
-  "engine_status_fix_tts": { "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen" },
-  "engine_status_fix_translate": { "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen" }
+  "firstrun_packs_title": {
+    "message": "Zuerst die beiden Sprachpakete laden"
+  },
+  "firstrun_packs_lede": {
+    "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Audio wird nur auf deinem Gerät verarbeitet."
+  },
+  "firstrun_packs_asr": {
+    "message": "Spracherkennung (Dolmetschen / Live-Untertitel)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Hochwertige Stimme (Vorlesen / Podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Bereit"
+  },
+  "firstrun_packs_net": {
+    "message": "Am besten über WLAN; mobil geht auch — deine Entscheidung."
+  },
+  "firstrun_packs_busy": {
+    "message": "Wird geladen…"
+  },
+  "firstrun_packs_go": {
+    "message": "Laden und weiter"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Nur das Stimm-Paket laden und weiter"
+  },
+  "firstrun_packs_err": {
+    "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen."
+  },
+  "engine_status_ok": {
+    "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar"
+  },
+  "engine_status_missing": {
+    "message": "Eines fehlt: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen"
+  },
+  "engine_status_fix_translate": {
+    "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen"
+  }
 }

@@ -29,7 +29,11 @@ insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) val
   ('tts', 'china', 'kokoro-zh-en.zip',
    'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip',
    'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/kokoro-zh-en.zip',
-   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）')
+   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）'),
+  ('tts', 'china', 'vits-mms-tha.zip',
+   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/vits-mms-tha.zip',
+   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/vits-mms-tha.zip',
+   '中国版：泰语朗读包（MMS-TTS，100 MB）。⚠️ 权重 CC-BY-NC 4.0，上商店前需处理许可（见 device-models.config.js）')
 on conflict (kind, flavor, path) do nothing;
 
 -- 2026-10-03（**应用时才发现**）：App 从 1.19.0 起请求的是 `kokoro-zh-en.zip`，
@@ -47,8 +51,8 @@ update public.bt_model_sources set active = false, updated_at = now()
 
 -- 回读断言：别拿「没报错」当成功。
 do $$ begin
-  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 1 then
-    raise exception 'bt_model_sources：中国版应有 1 行 active（kokoro-zh-en.zip 一条覆盖中英），实际 %',
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 2 then
+    raise exception 'bt_model_sources：中国版应有 2 行 active（kokoro 中英 + 泰语 MMS），实际 %',
       (select count(*) from public.bt_model_sources where flavor = 'china' and active);
   end if;
 end $$;

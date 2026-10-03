@@ -472,7 +472,9 @@ describe('设备内置朗读条目（learning-design §9.6.1）', () => {
   test('离线模型清单：每条有 lang/dir/model/tokens/dataDir，每个文件带 64 位 sha256、正整数 size、两个 flavor 的 https 地址', () => {
     ok(M.MT_DEVICE_TTS_MODELS.length >= 2, 'zh + en');
     for (const m of M.MT_DEVICE_TTS_MODELS) {
-      for (const k of ['lang', 'dir', 'model', 'tokens', 'dataDir']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      // `dataDir` 允许为空串：MMS-TTS（泰语）没有 espeak-ng-data —— 只有 model + tokens。
+      for (const k of ['lang', 'dir', 'model', 'tokens']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      ok(typeof m.dataDir === 'string', m.lang + ' 缺 dataDir（可以为空串，但不能没有这个字段）');
       ok(Array.isArray(m.files) && m.files.length, m.lang + ' 没有文件');
       for (const f of m.files) {
         ok(/^[0-9a-f]{64}$/.test(f.sha256), m.lang + ' sha256 不是 64 位十六进制');

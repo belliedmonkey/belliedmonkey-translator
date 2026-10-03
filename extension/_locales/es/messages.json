@@ -2508,6 +2508,12 @@
   "listen_lang_note": {
     "message": "Los dos idiomas deben ser distintos. También se cambian abajo en la pantalla de conversación: es el mismo ajuste."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "no compatible con el motor actual"
+  },
+  "listen_lang_change_engine": {
+    "message": "Cambiar motor"
+  },
   "listen_lang_swapped": {
     "message": "Los idiomas deben ser distintos: los intercambiamos"
   },
@@ -3723,19 +3729,49 @@
   "learn_group_bye": {
     "message": "El resto puede esperar: basta con que vuelvas."
   },
-  "firstrun_packs_title": { "message": "Descarga primero los dos paquetes de voz" },
-  "firstrun_packs_lede": { "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El audio se procesa solo en tu dispositivo." },
-  "firstrun_packs_asr": { "message": "Paquete de reconocimiento (interpretación / subtítulos en vivo)" },
-  "firstrun_packs_tts": { "message": "Paquete de voz de alta calidad (lectura / pódcast)" },
-  "firstrun_packs_done": { "message": "Listo" },
-  "firstrun_packs_net": { "message": "Se recomienda Wi-Fi; con datos móviles también vale, tú decides." },
-  "firstrun_packs_busy": { "message": "Descargando…" },
-  "firstrun_packs_go": { "message": "Descargar y continuar" },
-  "firstrun_packs_go_tts": { "message": "Descargar solo el paquete de voz y continuar" },
-  "firstrun_packs_err": { "message": "La descarga no terminó: {why}: comprueba la conexión y vuelve a tocar." },
-  "firstrun_packs_stt_slow": { "message": "La descarga del paquete de voz del sistema está bloqueada — revisa la conexión e inténtalo de nuevo." },
-  "engine_status_ok": { "message": "Configurado con tu cuenta: traducción · transcripción · lectura — usable aquí mismo" },
-  "engine_status_missing": { "message": "Falta una cosa: " },
-  "engine_status_fix_tts": { "message": "Motor de lectura sin configurar — Ajustes › Lectura, elegir una voz" },
-  "engine_status_fix_translate": { "message": "Motor de traducción sin configurar — Ajustes › Motor" }
+  "firstrun_packs_title": {
+    "message": "Descarga primero los dos paquetes de voz"
+  },
+  "firstrun_packs_lede": {
+    "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El audio se procesa solo en tu dispositivo."
+  },
+  "firstrun_packs_asr": {
+    "message": "Paquete de reconocimiento (interpretación / subtítulos en vivo)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Paquete de voz de alta calidad (lectura / pódcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Listo"
+  },
+  "firstrun_packs_net": {
+    "message": "Se recomienda Wi-Fi; con datos móviles también vale, tú decides."
+  },
+  "firstrun_packs_busy": {
+    "message": "Descargando…"
+  },
+  "firstrun_packs_go": {
+    "message": "Descargar y continuar"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Descargar solo el paquete de voz y continuar"
+  },
+  "firstrun_packs_err": {
+    "message": "La descarga no terminó: {why}: comprueba la conexión y vuelve a tocar."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "La descarga del paquete de voz del sistema está bloqueada — revisa la conexión e inténtalo de nuevo."
+  },
+  "engine_status_ok": {
+    "message": "Configurado con tu cuenta: traducción · transcripción · lectura — usable aquí mismo"
+  },
+  "engine_status_missing": {
+    "message": "Falta una cosa: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Motor de lectura sin configurar — Ajustes › Lectura, elegir una voz"
+  },
+  "engine_status_fix_translate": {
+    "message": "Motor de traducción sin configurar — Ajustes › Motor"
+  }
 }

@@ -1618,13 +1618,19 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     }
   });
 
-  test('locale 归一化（2026-10-02 真机）：三处构造都不许直接吃短码，必须过 mtSpeechLocale', () => {
+  test('locale 归一化（2026-10-02 真机；2026-10-04 扩到两台转写器）：构造都不许直接吃短码', () => {
     const body = stripComments(tpl);
     ok(!/SpeechTranscriber\(locale: Locale\(identifier:/.test(body),
       '不许直接 Locale(identifier:) 构造 —— 短码 "en" 会抛 SFSpeechErrorDomain Code=4（屏 2 的识别包永远装不上）');
-    eq((body.match(/await mtSpeechLocale\(/g) || []).length, 3, '三处构造（probe / assets / transcriber）都要归一化');
-    ok(/func mtSpeechLocale\(/.test(body) && /supportedLocale\(equivalentTo:/.test(body),
-      '助手要用 Apple 配方的 supportedLocale(equivalentTo:)');
+    ok(!/DictationTranscriber\(locale: Locale\(identifier:/.test(body),
+      'DictationTranscriber 同样不许直接吃 Locale(identifier:)');
+    // 2026-10-04：选择改由 `mtTranscriberFor` 统一做（窄的不支持就问宽的），三处仍必须经过它。
+    eq((body.match(/await mtTranscriberFor\(/g) || []).length, 3,
+      '三处（probe / assets / transcriber）都要经 mtTranscriberFor 选与归一化');
+    ok(/func mtSpeechLocale\(/.test(body) && /func mtDictationLocale\(/.test(body),
+      '两台各自的归一化助手都要在（2026-10-04 起不只有 SpeechTranscriber）');
+    eq((body.match(/supportedLocale\(equivalentTo:/g) || []).length, 2,
+      '两个助手都要用 Apple 配方的 supportedLocale(equivalentTo:)');
   });
   test('识别包装不上时 fail fast（2026-10-02 真机）：failed 之后必须补一条 stt-state', () => {
     const body = stripComments(tpl);

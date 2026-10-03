@@ -620,6 +620,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
 :where(#app-listen) .listen-pair select { font: inherit; }
 :where(#app-listen) .listen-pair-arrow { color: var(--accent); }
+/* 「换引擎」就地入口（2026-10-04）：语言列表被引擎挡住时才出现的一行文字按钮 —— 沿用强调色，
+   不新造控件样式（卡片里不许再套卡片、也不加第二个实心按钮）。 */
+:where(#app-listen) .listen-engine-hint { margin: -2px 0 2px; font-size: inherit; }
+:where(#app-listen) .listen-engine-hint button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }

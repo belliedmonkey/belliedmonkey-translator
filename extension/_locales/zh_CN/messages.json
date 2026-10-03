@@ -2509,6 +2509,12 @@
   "listen_lang_note": {
     "message": "两边不能是同一种语言。对话页底部也能改，两处是同一份设置。"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "当前引擎不支持"
+  },
+  "listen_lang_change_engine": {
+    "message": "换引擎"
+  },
   "listen_lang_swapped": {
     "message": "两边不能是同一种语言 — 已对调"
   },
@@ -3724,19 +3730,49 @@
   "learn_group_bye": {
     "message": "剩下的明天再说 —— 回来就好。"
   },
-  "firstrun_packs_title": { "message": "先把两个语音包下好" },
-  "firstrun_packs_lede": { "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。" },
-  "firstrun_packs_asr": { "message": "识别语言包（听译 / 实时字幕）" },
-  "firstrun_packs_tts": { "message": "高质量朗读包（朗读 / 播客）" },
-  "firstrun_packs_done": { "message": "已就绪" },
-  "firstrun_packs_net": { "message": "建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。" },
-  "firstrun_packs_busy": { "message": "正在下载…" },
-  "firstrun_packs_go": { "message": "下载并继续" },
-  "firstrun_packs_go_tts": { "message": "只下朗读包，继续" },
-  "firstrun_packs_err": { "message": "下载没成功：{why} —— 检查网络再点一次。" },
-  "firstrun_packs_stt_slow": { "message": "系统语音包下载没动静 — 检查网络，再点一次。" },
-  "engine_status_ok": { "message": "登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用" },
-  "engine_status_missing": { "message": "还差一样：" },
-  "engine_status_fix_tts": { "message": "朗读引擎未配置，前往 设置 › 朗读 选择语音" },
-  "engine_status_fix_translate": { "message": "翻译引擎未配置，前往 设置 › 引擎 选一个" }
+  "firstrun_packs_title": {
+    "message": "先把两个语音包下好"
+  },
+  "firstrun_packs_lede": {
+    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。"
+  },
+  "firstrun_packs_asr": {
+    "message": "识别语言包（听译 / 实时字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高质量朗读包（朗读 / 播客）"
+  },
+  "firstrun_packs_done": {
+    "message": "已就绪"
+  },
+  "firstrun_packs_net": {
+    "message": "建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。"
+  },
+  "firstrun_packs_busy": {
+    "message": "正在下载…"
+  },
+  "firstrun_packs_go": {
+    "message": "下载并继续"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "只下朗读包，继续"
+  },
+  "firstrun_packs_err": {
+    "message": "下载没成功：{why} —— 检查网络再点一次。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "系统语音包下载没动静 — 检查网络，再点一次。"
+  },
+  "engine_status_ok": {
+    "message": "登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用"
+  },
+  "engine_status_missing": {
+    "message": "还差一样："
+  },
+  "engine_status_fix_tts": {
+    "message": "朗读引擎未配置，前往 设置 › 朗读 选择语音"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻译引擎未配置，前往 设置 › 引擎 选一个"
+  }
 }

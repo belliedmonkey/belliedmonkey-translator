@@ -2509,6 +2509,12 @@
   "listen_lang_note": {
     "message": "兩邊不能是同一種語言。對話頁底部也能改，兩處是同一份設定。"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "目前引擎不支援"
+  },
+  "listen_lang_change_engine": {
+    "message": "換引擎"
+  },
   "listen_lang_swapped": {
     "message": "兩邊不能是同一種語言 — 已對調"
   },
@@ -3724,19 +3730,49 @@
   "learn_group_bye": {
     "message": "剩下的明天再說 —— 回來就好。"
   },
-  "firstrun_packs_title": { "message": "先把兩個語音包下好" },
-  "firstrun_packs_lede": { "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音只在你的裝置上處理。" },
-  "firstrun_packs_asr": { "message": "辨識語言包（聽譯 / 即時字幕）" },
-  "firstrun_packs_tts": { "message": "高品質朗讀包（朗讀 / 播客）" },
-  "firstrun_packs_done": { "message": "已就緒" },
-  "firstrun_packs_net": { "message": "建議在 Wi-Fi 下下載；用行動網路也行，你自己決定。" },
-  "firstrun_packs_busy": { "message": "正在下載…" },
-  "firstrun_packs_go": { "message": "下載並繼續" },
-  "firstrun_packs_go_tts": { "message": "只下朗讀包，繼續" },
-  "firstrun_packs_err": { "message": "下載沒成功：{why} —— 檢查網路再點一次。" },
-  "firstrun_packs_stt_slow": { "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。" },
-  "engine_status_ok": { "message": "登入已配好：翻譯 · 轉寫 · 朗讀 —— 這一屏可以直接用" },
-  "engine_status_missing": { "message": "還差一樣：" },
-  "engine_status_fix_tts": { "message": "朗讀引擎未設定，前往 設定 › 朗讀 選擇語音" },
-  "engine_status_fix_translate": { "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個" }
+  "firstrun_packs_title": {
+    "message": "先把兩個語音包下好"
+  },
+  "firstrun_packs_lede": {
+    "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音只在你的裝置上處理。"
+  },
+  "firstrun_packs_asr": {
+    "message": "辨識語言包（聽譯 / 即時字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高品質朗讀包（朗讀 / 播客）"
+  },
+  "firstrun_packs_done": {
+    "message": "已就緒"
+  },
+  "firstrun_packs_net": {
+    "message": "建議在 Wi-Fi 下下載；用行動網路也行，你自己決定。"
+  },
+  "firstrun_packs_busy": {
+    "message": "正在下載…"
+  },
+  "firstrun_packs_go": {
+    "message": "下載並繼續"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "只下朗讀包，繼續"
+  },
+  "firstrun_packs_err": {
+    "message": "下載沒成功：{why} —— 檢查網路再點一次。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。"
+  },
+  "engine_status_ok": {
+    "message": "登入已配好：翻譯 · 轉寫 · 朗讀 —— 這一屏可以直接用"
+  },
+  "engine_status_missing": {
+    "message": "還差一樣："
+  },
+  "engine_status_fix_tts": {
+    "message": "朗讀引擎未設定，前往 設定 › 朗讀 選擇語音"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個"
+  }
 }

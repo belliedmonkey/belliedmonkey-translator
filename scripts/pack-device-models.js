@@ -29,7 +29,10 @@ const KOKORO = [
   'dict', 'espeak-ng-data', 'LICENSE',
 ];
 const isKokoro = /^kokoro/.test(name);
-const want = isKokoro ? KOKORO : [modelFile, 'tokens.txt', 'espeak-ng-data'];
+// MMS-TTS（facebook/mms-tts-*，VITS 形状）：只有 model.onnx + tokens.txt，
+// **没有 espeak-ng-data**（Python 实测 data_dir 传空即可正常合成泰语，2026-10-04）。
+const isMms = /^vits-mms/.test(name);
+const want = isKokoro ? KOKORO : isMms ? [modelFile, 'tokens.txt'] : [modelFile, 'tokens.txt', 'espeak-ng-data'];
 for (const f of want) {
   if (!fs.existsSync(path.join(srcDir, f))) { console.error('✗ 缺 ' + f); process.exit(1); }
 }
@@ -41,7 +44,7 @@ const sha = crypto.createHash('sha256').update(buf).digest('hex');
 const row = {
   file: name + '.zip', size: buf.length, sha256: sha,
   type: isKokoro ? 'kokoro' : 'vits',
-  model: modelFile, tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
+  model: modelFile, tokens: 'tokens.txt', dataDir: isMms ? '' : 'espeak-ng-data',
 };
 if (isKokoro) { row.voices = 'voices.bin'; row.dictDir = 'dict'; row.lexicon = 'lexicon-us-en.txt,lexicon-zh.txt'; }
 console.log(JSON.stringify(row, null, 2));

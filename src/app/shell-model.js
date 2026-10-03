@@ -2058,7 +2058,7 @@ export function bootShell() {
     await settingsModel.ensureDefaults();
     await migrateSttDevice();
     AppDriving.wire();
-    AppListen.wire();
+    AppListen.wire({ openSettings });
     AppDocs.wire({ openSettings });
     // 快速翻译（§9.9）：macOS 才有原生半边；别的壳上 quick-probe 没人回，这一行就是空操作。
     // 确认框用页内的 LearnDialog —— App 里 window.confirm 恒为 false。

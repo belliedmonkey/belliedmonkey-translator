@@ -2508,6 +2508,12 @@
   "listen_lang_note": {
     "message": "يجب أن تكون اللغتان مختلفتين. يمكن تغييرهما أيضًا أسفل شاشة المحادثة — نفس الإعداد."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "غير مدعوم بواسطة المحرك الحالي"
+  },
+  "listen_lang_change_engine": {
+    "message": "تغيير المحرك"
+  },
   "listen_lang_swapped": {
     "message": "يجب أن تختلف اللغتان — تم التبديل"
   },
@@ -3723,19 +3729,49 @@
   "learn_group_bye": {
     "message": "الباقي ينتظر —— يكفي أن تعود."
   },
-  "firstrun_packs_title": { "message": "نزّل حزمتي الصوت أولًا" },
-  "firstrun_packs_lede": { "message": "بعد ذلك لن تحتاج إلى أي إعداد آخر — الترجمة والترجمة الفورية والترجمات المرئية والقراءة الصوتية تعمل مباشرة. تتم معالجة الصوت على جهازك فقط." },
-  "firstrun_packs_asr": { "message": "حزمة التعرّف على الكلام (الترجمة الفورية / الترجمات المباشرة)" },
-  "firstrun_packs_tts": { "message": "حزمة صوت عالية الجودة (القراءة الصوتية / البودكاست)" },
-  "firstrun_packs_done": { "message": "جاهز" },
-  "firstrun_packs_net": { "message": "يُفضّل التنزيل عبر Wi-Fi، ويمكن استخدام بيانات الجوال — القرار لك." },
-  "firstrun_packs_busy": { "message": "جارٍ التنزيل…" },
-  "firstrun_packs_go": { "message": "تنزيل ومتابعة" },
-  "firstrun_packs_go_tts": { "message": "تنزيل حزمة الصوت فقط ومتابعة" },
-  "firstrun_packs_err": { "message": "لم يكتمل التنزيل: {why} — تحقق من الاتصال وحاول مرة أخرى." },
-  "firstrun_packs_stt_slow": { "message": "توقّف تنزيل حزمة الصوت في النظام — تحقّق من الاتصال ثم أعد المحاولة." },
-  "engine_status_ok": { "message": "مضبوط بحسابك: ترجمة · تفريغ · قراءة — جاهز هنا مباشرة" },
-  "engine_status_missing": { "message": "ينقص شيء واحد: " },
-  "engine_status_fix_tts": { "message": "محرّك القراءة غير مضبوط — الإعدادات › القراءة، اختر صوتًا" },
-  "engine_status_fix_translate": { "message": "محرّك الترجمة غير مضبوط — الإعدادات › المحرّك" }
+  "firstrun_packs_title": {
+    "message": "نزّل حزمتي الصوت أولًا"
+  },
+  "firstrun_packs_lede": {
+    "message": "بعد ذلك لن تحتاج إلى أي إعداد آخر — الترجمة والترجمة الفورية والترجمات المرئية والقراءة الصوتية تعمل مباشرة. تتم معالجة الصوت على جهازك فقط."
+  },
+  "firstrun_packs_asr": {
+    "message": "حزمة التعرّف على الكلام (الترجمة الفورية / الترجمات المباشرة)"
+  },
+  "firstrun_packs_tts": {
+    "message": "حزمة صوت عالية الجودة (القراءة الصوتية / البودكاست)"
+  },
+  "firstrun_packs_done": {
+    "message": "جاهز"
+  },
+  "firstrun_packs_net": {
+    "message": "يُفضّل التنزيل عبر Wi-Fi، ويمكن استخدام بيانات الجوال — القرار لك."
+  },
+  "firstrun_packs_busy": {
+    "message": "جارٍ التنزيل…"
+  },
+  "firstrun_packs_go": {
+    "message": "تنزيل ومتابعة"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "تنزيل حزمة الصوت فقط ومتابعة"
+  },
+  "firstrun_packs_err": {
+    "message": "لم يكتمل التنزيل: {why} — تحقق من الاتصال وحاول مرة أخرى."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "توقّف تنزيل حزمة الصوت في النظام — تحقّق من الاتصال ثم أعد المحاولة."
+  },
+  "engine_status_ok": {
+    "message": "مضبوط بحسابك: ترجمة · تفريغ · قراءة — جاهز هنا مباشرة"
+  },
+  "engine_status_missing": {
+    "message": "ينقص شيء واحد: "
+  },
+  "engine_status_fix_tts": {
+    "message": "محرّك القراءة غير مضبوط — الإعدادات › القراءة، اختر صوتًا"
+  },
+  "engine_status_fix_translate": {
+    "message": "محرّك الترجمة غير مضبوط — الإعدادات › المحرّك"
+  }
 }
