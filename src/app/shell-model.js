@@ -418,7 +418,16 @@ export function bootShell() {
       try {
         const r = await NativeSpeech.probe(firstRunLocales(s));
         packAsrReady = !!(r && (r.ready === true || r.ok === true));
-        packAsrUnsupported = !!(r && (r.unsupported === true || r.reason === 'unsupported'));
+        // 这条判据跨了**三层**，词表各不同 —— 2026-10-03 就是在这里连错两次：
+        //   桥（app/native/speech-bridge.swift）发 `stt-state {state:'unsupported', reason:'locale'|'os'}`
+        //   → 包装器（app/native-speech.js）**吃掉 state**，规范化成 `{ok:false, reason, assets, locales}`
+        //   → 这里能读到的只有 `{ok, reason}`。
+        // 原来读的是 `r.reason === 'unsupported'`（桥不发）、我改成 `r.state === …`（包装器不给）
+        // —— 两次都恒为 false，于是 firstrun.js 设计的**唯一降级**（识别器不支持这门语言 ⇒
+        // 只下朗读包、其余照用）一次都没触发过：出不了屏 2。
+        // 判据按 firstrun.js 的裁定收紧：只有「这个语种不支持」（reason='locale'）可降级；
+        // OS 太旧（'os'）、缺桥（'no-bridge'）、还在探（'pending'）都不行。
+        packAsrUnsupported = !!(r && r.ok === false && r.reason === 'locale');
       } catch (_) { packAsrReady = false; packAsrUnsupported = false; }
     } else { packAsrReady = false; packAsrUnsupported = false; }
   }

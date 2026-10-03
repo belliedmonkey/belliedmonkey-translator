@@ -306,4 +306,34 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       ok(f.length <= 1, `#${id} 有 ${f.length} 个填色按钮（${f.join(', ')}）`);
     }
   });
+
+  // R7（2026-10-03 实测加）：降级的判据词表**必须与它真正读到的那一层一致**。
+  //
+  // 背景：`firstrun.js` 只允许一种绕过屏 2 的情形 —— 「这台设备的识别器不支持这个语种」
+  // （「只下朗读包，继续」）。这条判据跨**三层**、词表各不同：
+  //   桥 `app/native/speech-bridge.swift` 发 `stt-state {state:'unsupported', reason:'locale'|'os'}`
+  //   → 包装器 `app/native-speech.js` 吃掉 state，规范化成 `{ok:false, reason, assets, locales}`
+  //   → `shell-model.js` 只能读 `{ok, reason}`。
+  // 当时的实现读 `r.reason === 'unsupported'`：桥不发、包装器也不给 ⇒ 恒 false，
+  // 这条降级**一次都没触发过**（模拟器与「语种不支持」的设备永远卡在屏 2）。
+  // 判据盯**三层各自的词表**，任何一层换词、或实现读错层，都会红。
+  test('R7 · 降级判据读的是它真正拿到的那一层（不支持这个语种必须能触发）', () => {
+    const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
+    const model = strip(fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8'));
+    const wrap = strip(fs.readFileSync(path.join(ROOT, 'app/native-speech.js'), 'utf8'));
+    const bridge = strip(fs.readFileSync(path.join(ROOT, 'app/native/speech-bridge.swift'), 'utf8'));
+    // 第一层：桥发 state + reason
+    ok(/state": "unsupported"/.test(bridge) && /reason": "locale"/.test(bridge),
+      '桥的词表变了（不再发 state:"unsupported" / reason:"locale"）—— 下面两层要跟着改');
+    // 第二层：包装器把它规范化成 {ok:false, reason}
+    ok(/ok: false, reason: msg\.reason/.test(wrap),
+      '包装器不再把 state:"unsupported" 规范化成 {ok:false, reason} —— 判据要跟着改');
+    // 第三层：实现只能读 {ok, reason}，且必须认 'locale'
+    ok(/r\.ok === false && r\.reason === 'locale'/.test(model),
+      "probePacks 没有按 {ok:false, reason:'locale'} 判降级 —— 这条路径会永远不触发（2026-10-03 真踩）");
+    ok(!/reason === 'unsupported'/.test(model),
+      "probePacks 在读 reason === 'unsupported' —— 桥与包装器都不发这个值");
+    ok(!/r\.state === 'unsupported'/.test(model),
+      'probePacks 在读 r.state —— 包装器把 state 吃掉了，这里读不到');
+  });
 });
