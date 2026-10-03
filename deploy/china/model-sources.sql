@@ -29,12 +29,13 @@ insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) val
   ('tts', 'china', 'kokoro-zh-en.zip',
    'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip',
    'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/kokoro-zh-en.zip',
-   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）'),
-  ('tts', 'china', 'vits-mms-tha.zip',
-   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/vits-mms-tha.zip',
-   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/vits-mms-tha.zip',
-   '中国版：泰语朗读默认包（MMS-TTS，100 MB）。权重 CC-BY-NC 4.0 —— 2026-10-04 用户拍板：知情的决定，就用它当正式分发的默认包')
+   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）')
 on conflict (kind, flavor, path) do nothing;
+
+-- 2026-10-04 用户拍板：**不再把 CC-BY-NC 的 vits-mms-tha 当正式默认包**（要换成达摩院
+-- iic/speech_sambert-hifigan_tts_waan_Thai_16k，Apache 2.0 —— 但那要 ONNX 导出 + 两段式运行时，
+-- 见 app/device-models.config.js 里那段说明）。这一行因此撤下；泰语朗读回落系统语音。
+delete from public.bt_model_sources where kind = 'tts' and flavor = 'china' and path = 'vits-mms-tha.zip';
 
 -- 2026-10-03（**应用时才发现**）：App 从 1.19.0 起请求的是 `kokoro-zh-en.zip`，
 -- 而这张表里还是当年那两行 piper。**只插新行不够** —— 旧两行仍 active ⇒
@@ -51,8 +52,8 @@ update public.bt_model_sources set active = false, updated_at = now()
 
 -- 回读断言：别拿「没报错」当成功。
 do $$ begin
-  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 2 then
-    raise exception 'bt_model_sources：中国版应有 2 行 active（kokoro 中英 + 泰语 MMS），实际 %',
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 1 then
+    raise exception 'bt_model_sources：中国版应有 1 行 active（kokoro 中英；泰语默认包撤下，要换达摩院需先做 ONNX+两段式运行时），实际 %',
       (select count(*) from public.bt_model_sources where flavor = 'china' and active);
   end if;
 end $$;

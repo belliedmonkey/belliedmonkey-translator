@@ -54,22 +54,21 @@ var MT_DEVICE_TTS_MODELS = [
   // Piper 官方没有泰语声；sherpa-onnx 的 #3028 也仍把泰语列为缺失。找到许可干净、体积可接受的
   // 泰语模型后再按 Kokoro 那套（打包 → 双托管 → sha256/尺寸 → 中国版地址表 → verify:model-urls）替换。
   //
-  // ── 2026-10-04 用户拍板（覆盖上面那段保守处理）──────────────────────────────────
-  // 「继续用这个 CC-BY-NC 4.0 的 vits-mms-tha 当正式分发的默认泰语朗读包。不要再另找、不要再问许可证。」
-  // ⇒ 它**就是**默认包（下面这条），两处托管已恢复。许可证事实留在这里只为将来换模型时知道这一步为什么这样：
-  // **CC-BY-NC 4.0（禁商用）是所有者知情的决定**，不是疏漏。
-  {
-    lang: 'th', dir: 'vits-mms-tha', type: 'vits', dataDir: '',
-    model: 'model.onnx', tokens: 'tokens.txt',
-    files: [{
-      path: 'vits-mms-tha.zip', size: 105167496,
-      sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
-      url: {
-        global: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
-        china: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
-      },
-    }],
-  },
+  // ── 泰语朗读（2026-10-04 用户拍板：**不再把 CC-BY-NC 的 vits-mms-tha 当正式默认包**）──────
+  // 目标换成 ModelScope 达摩院 `iic/speech_sambert-hifigan_tts_waan_Thai_16k`
+  // （SAMBERT + HiFi-GAN、发音人 waan、16 kHz、**Apache 2.0**、resource.zip 248 MB）。
+  //
+  // **但它今天进不了这条流程 —— 卡在三点（都实测过，不是推测）**：
+  //   ① 仓库里**一个 `.onnx` 都没有**（199 个文件：`.pth` 权重 sambert 162.8 MB + hifigan 865.6 MB、
+  //      `.scm` 词典、yaml/conf、festival 资源，外加 resource.zip 248 MB）⇒ 这是 PyTorch 的
+  //      **DAMO pipeline** 模型，而设备端朗读走的是 sherpa-onnx（只吃 ONNX）。
+  //   ② sherpa-onnx 的 TTS 家族只有 vits / matcha / kokoro / kitten / supertonic / pocket / zipvoice，
+  //      **没有 SAMBERT+HiFi-GAN**；它是「声学 + 声码器」**两段式**，不是端到端单图 ⇒ 即使导出了 ONNX，
+  //      也得先在原生侧写一套两段式推理（或把它推给 sherpa-onnx 上游）—— 那是工程，不是配置。
+  //   ③ 它的 pipeline 包装是 Linux/Python（同族中文模型写明 pipeline 只支持 Linux），本机跑不了。
+  // ⇒ 泰语朗读此刻回落**系统语音**（`tts_device_lang_fallback` 会在行上具名说明）。
+  //    真要换上：先做 ONNX 导出 + 两段式运行时，再按 Kokoro 那套接（打包 → 双托管 → sha256/尺寸 →
+  //    中国版地址表 → verify:model-urls）。许可证届时按 **Apache 2.0** 记。
 ];
 
 // 给原生的形状：url 按 flavor 解开成一个字符串（原生不认 flavor）。
