@@ -44,27 +44,15 @@ var MT_DEVICE_TTS_MODELS = [
     voices: 'voices.bin', dictDir: 'dict', lexicon: 'lexicon-us-en.txt,lexicon-zh.txt',
     files: [MT_KOKORO_PACK],
   },
-  {
-    // 泰语朗读（2026-10-04，用户裁定「朗读包用我们自己打的、由服务器预制下发」）。
-    // 形状：**MMS-TTS**（Meta 的 VITS，facebook/mms-tts-tha）—— 只有 model.onnx + tokens.txt，
-    // 没有 espeak-ng-data ⇒ `dataDir` 是空串（`installed()` 与打包脚本都为此放行）。
-    //
-    // ⚠️ **许可证 CC-BY-NC 4.0（禁商用）** —— 这是目前唯一能直接打进手机的泰语 TTS：
-    // sherpa-onnx 没有泰语 Piper；社区那个泰语 Piper 也是从 MMS 转的、同样 NC。
-    // **商业分发是否可接受由用户拍板，不由代码替它定**；在用户明确许可之前，
-    // 不要把这一条当成「可上架的默认朗读包」写进任何对外说明。
-    // 要上商店发行需要先解决这件事（换许可干净的模型 / 自训 / 或只作端侧可选来源）。
-    lang: 'th', dir: 'vits-mms-tha', type: 'vits', dataDir: '',
-    model: 'model.onnx', tokens: 'tokens.txt',
-    files: [{
-      path: 'vits-mms-tha.zip', size: 105167496,
-      sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
-      url: {
-        global: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
-        china: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
-      },
-    }],
-  },
+  // ── 泰语朗读：**暂时没有默认离线包**（2026-10-04 用户裁定按保守处理）────────────
+  // 我们打过、也托管过 `vits-mms-tha`（Meta MMS-TTS），但它权重是 **CC-BY-NC 4.0（禁商用）**
+  // ⇒ 不能当成可上架的默认分发包，也不进构建。**已从两处托管与这张清单里摘掉**（附件在
+  // `.local/device-models/` 留着，将来换到许可干净的模型时可直接用）。
+  // 泰语朗读因此回落到**系统语音**（`tts_device_lang_fallback` 那行会在界面上具名说明）——
+  // 这条路径许可干净、且本来就有。
+  // 商用候选（2026-10-04 查证）：**没有** —— MMS / F5-Thonburian 都是 NC；MeloTTS 是 MIT 但不含泰语；
+  // Piper 官方没有泰语声；sherpa-onnx 的 #3028 也仍把泰语列为缺失。找到许可干净、体积可接受的
+  // 泰语模型后再按 Kokoro 那套（打包 → 双托管 → sha256/尺寸 → 中国版地址表 → verify:model-urls）替换。
 ];
 
 // 给原生的形状：url 按 flavor 解开成一个字符串（原生不认 flavor）。
