@@ -173,6 +173,35 @@ docker compose logs --since 72h auth 2>&1 | grep -F '<IP>' | tail -60
 | 屏幕上「连不上服务器」 | **设备侧**：Xcode Console / `devicectl` / 抓包。服务端和遥测都指望不上 |
 | 「第一次失败第二次成功」 | 先数后端日志里同 IP 的序列 —— 大半是**输入问题**（码过期、邮箱写错） |
 
+### 1.6 设备侧复现（2026-10-03 模拟器实测，中国版）
+
+配方：`.local/regress-1.19.0/runner/run-ob.sh`，用例 `testD2OtpBadCode`（坏码，不需要 service key）。
+
+| 面 | 看到什么 |
+|---|---|
+| **屏上**（`.local/cn-login-549/shots/testD2OtpBadCode/D2-bad-code_*.png`） | **「验证码不对或已过期，重新试一次。」**（红字，在登录卡下方） |
+| **同一刻后端**（§1.3 的 TAT 回读） | `POST /otp` → 200 `user_confirmation_requested`；`POST /verify` → **403 `token has expired or is invalid`** |
+
+**两者一一对应** ⇒ 这条路上「报错」是真的在说「码不对/过期」，**文案与服务端事实一致**。
+「连不上服务器」不出现在这条路上 —— 它只有 `code === 'network' \| 'offline'` 一个来源（§1.4 第 3 条），
+要抓它得让请求**根本发不出去**（§0 的表）。
+
+### 1.7 中国版模拟器包怎么编（本轮踩出来的，之前没有）
+
+```bash
+node build.js --flavor china && npm run app:sync      # 必须都跑：app:sync 读 dist-app-china/
+xcodebuild -project "safari-project-china/BelliedMonkey Translator CN/BelliedMonkey Translator CN.xcodeproj" \
+  -scheme "BelliedMonkey Translator CN (iOS)" -configuration Debug -sdk iphonesimulator \
+  -derivedDataPath /tmp/mt1190-dd-china \
+  -destination "platform=iOS Simulator,id=<UDID>" build
+npm run verify:app-fresh -- "<…/BelliedMonkey Translator CN.app>" china   # 必过，否则别下结论
+```
+
+- scheme 名带 flavor：中国版是 `… CN (iOS)`，国际版是 `… (iOS)`；**工程在 `safari-project-china/<App 名>/` 里**，
+  不在 `safari-project-china/` 根下（`ls safari-project-china/*.xcodeproj` 会 no-match，别据此以为工程没了）。
+- 中国版包的 `.app` 名是 `BelliedMonkey Translator CN.app`；`app:sync` 会按工程树自动选 `dist-app-china/`，
+  **没有 flavor 参数**。
+
 ---
 
 ## 2. 不要做的事
