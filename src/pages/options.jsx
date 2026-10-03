@@ -1081,8 +1081,15 @@ function Options() {
   // ── 一键卡孤岛（QuickSetup）────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (!ready || !quickRef.current) return;
-    if (quickMountedRef.current) return;
-    quickMountedRef.current = true;
+    // 界面语言变了要**重画**（2026-10-03，issue #559）：这批命令式孤岛是在
+    // `PageText.setUiLang` 落地**之前**画的一次，而哨兵只放行一次 —— 于是把界面语言
+    // 选成泰语的用户，在这张卡上看到的是 `chrome.i18n` 的兜底语言（本机 Chrome 是中文
+    // ⇒ 页面上泰文与中文混排）。引擎字段那批孤岛的 deps 里早就有 uiLangNow（见上面
+    // 「四槽挂载」的注释），只有这张卡漏了。代价：换语言会清掉卡里未保存的输入 ——
+    // 换语言是低频动作，而且与「重画」本来就是同一件事。
+    const quickLang = uiLangNow || 'auto';
+    if (quickMountedRef.current === quickLang) return;
+    quickMountedRef.current = quickLang;
     const s0 = bootSnapRef.current || readSnapshot(READ_KEYS);
     quickRef.current.textContent = '';
     renderQuickSetup(quickRef.current, {
