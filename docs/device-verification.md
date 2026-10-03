@@ -265,7 +265,9 @@ suppressed.
    **不是推测，是失败原文**（`testDbgTtsSample` 的 `XCTAssertTrue` 文案，xcresult 里读回来的）：
    屏上停在首启包屏 —— `ชุดเสียงคุณภาพสูง … พร้อมแล้ว`（朗读包已就绪）而
    `ชุดรู้จำเสียงพูด … ยังไม่ได้ดาวน์โหลด · zh`（识别包未下载）⇒ 根本没进设置页。
-   顺带修了一条记录口径：`run-ob.sh` 里那句 `xcresulttool get test-results summary --path` 在**新版 Xcode**
-   下"没报错但也没值"（脚本里 `2>/dev/null || echo 0` 吞掉了）——读回证据时别只看脚本打印的 `passedTests`。
-   注意 zsh 不对未加引号的变量分词，手敲 `$v --path` 会把子命令拼成一个参数而报 `Unknown option '--path'`。⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
+   读回这条的口径坑（**更正**：我一开始把它写成"`run-ob.sh` 那句一直静默失败"，是错的）：
+   `xcresulttool get test-results summary` 在 Xcode 27 里**语法没变**（`--path <bundle>` 照旧），
+   `run-ob.sh` 用的是 bash、显式传参，所以它**是好的**。踩的是我自己：在 **zsh** 里写
+   `xcrun xcresulttool $v --path "$R"`，而 **zsh 不对未加引号的变量分词** ⇒ `get test-results summary`
+   被当成**一个**参数 ⇒ 报 `Unknown option '--path'`。写脚本时要么显式传参、要么 `bash -c`。⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
 2. **音质**：判据是耳朵。WAV 样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句）。
