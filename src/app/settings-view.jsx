@@ -237,7 +237,7 @@ export default function SettingsView() {
       ttsPackBusy.current = false;
       if (!r.ok) {
         prog.hidden = true;
-        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', r.why || r.reason || '');
+        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(r.why || r.reason || '', t));
         dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
         return;
       }

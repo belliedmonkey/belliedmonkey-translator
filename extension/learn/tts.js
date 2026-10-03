@@ -764,6 +764,13 @@ var LearnTTS = (() => {
       // 变得比清理前更没信息 —— 那是把清理做成回归。
       case 'timeout': return t('tts_timeout', '语音服务超时了 —— 检查网络，或换一个语音端点');
       case 'network': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
+      // 离线包下载的三个协议码（2026-10-04）。**界面永远不该看到系统原文** ——
+      // 真机上那句「Error Domain=NSURLErrorDomain Code=-1005…」就是这么漏出去的；
+      // 原生改成只送码，这里负责把它拼成人话。`offline` 只在原生把重试**用完**之后才到得了这里
+      // （它自己会带 resume data 续传、按退避重试约 100 分钟）。
+      case 'offline': return t('tts_network', '连不上语音服务 —— 检查网络和端点地址');
+      case 'sha': return t('tts_assets', '离线模型还没下载好 —— 到「设置 › 朗读」里下载，或换系统语音');
+      case 'load': return t('tts_assets', '离线模型还没下载好 —— 到「设置 › 朗读」里下载，或换系统语音');
       case 'empty': return t('tts_empty', '这张卡没有可朗读的文字');
       default: return t('tts_failed', '这句暂时读不出来');
     }

@@ -463,8 +463,12 @@ final class MTDeviceSpeech {
                         done += f.size
                         emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": Double(done) / Double(total), "state": "downloading"])
                     } catch {
-                        try? FileManager.default.removeItem(at: d)
-                        emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": 0, "state": "failed", "reason": String(describing: error)])
+                        // **不删整个模型目录**（那会把同一次里已经下好的文件一起抹掉，下次从零再来 ——
+                        // 而这一次失败很可能只是网络抖了一下），也**不把 `String(describing: error)` 送出去**
+                        // —— 真机上那句「Error Domain=NSURLErrorDomain Code=-1005…」就是从这儿去的界面。
+                        // 送协议码，人话由 JS 用既有 i18n 键拼（仓库的协议规矩：reasons 是 id，不是文案）。
+                        emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang,
+                               "fraction": 0, "state": "failed", "reason": mtdlCode(error)])
                         emit?(["type": "tts-state", "state": "failed", "reason": "download", "langs": Array(self.loadedLangs())])
                         return
                     }
@@ -476,16 +480,12 @@ final class MTDeviceSpeech {
         }
     }
 
-    /// 带进度的下载（一个模型就是一个 60 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
-    /// 2026-09-12 真机实测就是这样）。委托式 URLSession，进度按字节比例回调，调用方限频。
-    /// `URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS 部署目标是 10.15，所以是回调包成 async。
+    /// 带进度的下载（一个模型就是一个几十到一百多 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
+    /// 2026-09-12 真机实测就是这样）。调用方限频。
+    /// **2026-10-04 起走 `MTBackgroundDownloader`**（后台会话 + 断点续传 + 自动重试），
+    /// 原因见那个类的注释 —— 真机上最小化 + 断网会以 -1005 收场，而 resume data 明明就在手边。
     static func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
-        try await withCheckedThrowingContinuation { c in
-            let d = MTDownloadDelegate(progress: progress) { result in c.resume(with: result) }
-            let session = URLSession(configuration: .default, delegate: d, delegateQueue: nil)
-            d.session = session
-            session.downloadTask(with: url).resume()
-        }
+        try await MTBackgroundDownloader.shared.fetch(url, progress: progress)
     }
 
     private func loadedLangs() -> [String] { models.values.filter { installed($0) }.map { $0.lang }.sorted() }
@@ -813,29 +813,136 @@ enum MTZip {
 }
 
 /// 下载委托：进度按字节比例回调；完成时把临时文件挪到自己的位置再落定（回调返回后系统就删它）。
-final class MTDownloadDelegate: NSObject, URLSessionDownloadDelegate {
-    private let progress: (Double) -> Void
-    private var finish: ((Result<URL, Error>) -> Void)?
-    var session: URLSession?
-    init(progress: @escaping (Double) -> Void, finish: @escaping (Result<URL, Error>) -> Void) {
-        self.progress = progress; self.finish = finish
+/// 后台可续传的下载器（2026-10-04，真机 -1005 之后）。
+///
+/// 为什么不是「起一个一次性会话、下完就丢」：那个会话活在调用栈里，App 一挂起就被冻住 ——
+/// 真机上最小化 + 断网收场是 `NSURLErrorDomain -1005`，而 UserInfo 里**明明带着 11862 字节的
+/// `NSURLSessionDownloadTaskResumeData`**，我们却既没用它、也没给用户留出路（停在一个失败态等人再点）。
+///
+/// 所以：① **background** 配置的会话 —— 传输由系统守护进程代跑，App 挂起/被回收都不影响；
+/// ② 失败先留 **resume data**，再按退避**自动重试**（只有网络类才重试：校验不过、HTTP 4xx 重试一万次也一样）；
+/// ③ 重试期间**不动界面**（不发明细、也不报失败）⇒ 用户看到的是「还在下」。
+///
+/// 不往界面送任何错误原文 —— 只送协议码（见 `mtdlCode`），人话由 JS 用既有 i18n 键拼。
+final class MTBackgroundDownloader: NSObject, URLSessionDownloadDelegate {
+    static let shared = MTBackgroundDownloader()
+
+    private struct Job {
+        let url: URL
+        let progress: (Double) -> Void
+        let completion: (Result<URL, Error>) -> Void
+        let attempt: Int
     }
-    private func settle(_ r: Result<URL, Error>) {
-        guard let f = finish else { return }
-        finish = nil
-        f(r)
-        session?.finishTasksAndInvalidate()
+
+    private var jobs: [Int: Job] = [:]
+    private let q = DispatchQueue(label: "mt.speech.download")
+    private var session: URLSession!
+
+    /// 重试节奏：2s / 5s / 15s / 60s / 120s，之后每 5 分钟，最多 20 次（≈ 100 分钟）。
+    /// 为什么给这么长：这两个包是**首启硬门**，而网络中断常是过隧道/切网，几十秒就回来。
+    private static let backoff: [TimeInterval] = [2, 5, 15, 60, 120]
+    private static let maxAttempts = 20
+
+    private override init() {
+        super.init()
+        let cfg = URLSessionConfiguration.background(withIdentifier: "com.belliedmonkeytranslator.mt-speech.download")
+        cfg.isDiscretionary = false          // 「蜂窝也行，你自己定」⇒ 不等 Wi-Fi
+        cfg.sessionSendsLaunchEvents = true
+        cfg.waitsForConnectivity = true      // 系统等到网络回来自动继续，不必我们轮询
+        cfg.timeoutIntervalForResource = 3600
+        session = URLSession(configuration: cfg, delegate: self, delegateQueue: nil)
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        progress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+
+    func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
+        try await withCheckedThrowingContinuation { c in
+            q.async {
+                self.start(url, attempt: 0, resumeData: nil, progress: progress) { r in c.resume(with: r) }
+            }
+        }
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { settle(.failure(URLError(.badServerResponse))); return }
+
+    private func start(_ url: URL, attempt: Int, resumeData: Data?, progress: @escaping (Double) -> Void,
+                       completion: @escaping (Result<URL, Error>) -> Void) {
+        let task: URLSessionDownloadTask
+        if let rd = resumeData, !rd.isEmpty {
+            task = session.downloadTask(withResumeData: rd)   // ← 断点续传：接着下，不从零开始
+        } else {
+            task = session.downloadTask(with: url)
+        }
+        jobs[task.taskIdentifier] = Job(url: url, progress: progress, completion: completion, attempt: attempt)
+        task.resume()
+    }
+
+    private func settle(_ task: URLSessionTask, _ r: Result<URL, Error>) {
+        var job: Job?
+        q.sync { job = jobs.removeValue(forKey: task.taskIdentifier) }
+        job?.completion(r)
+    }
+
+    func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask,
+                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        var p: ((Double) -> Void)?
+        q.sync { p = jobs[downloadTask.taskIdentifier]?.progress }
+        guard totalBytesExpectedToWrite > 0, let p else { return }
+        p(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+    }
+
+    func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) {
+            settle(downloadTask, .failure(URLError(.badServerResponse))); return
+        }
         let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        do { try FileManager.default.moveItem(at: location, to: keep); settle(.success(keep)) } catch { settle(.failure(error)) }
+        do { try FileManager.default.moveItem(at: location, to: keep); settle(downloadTask, .success(keep)) }
+        catch { settle(downloadTask, .failure(error)) }
     }
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if let error { settle(.failure(error)) }
+
+    func urlSession(_ s: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let error else { return }
+        var job: Job?
+        q.sync { job = jobs[task.taskIdentifier] }
+        guard let job else { return }
+        guard mtdlRetryable(error), job.attempt + 1 < Self.maxAttempts else {
+            settle(task, .failure(error)); return
+        }
+        // 手边的 resume data —— 真机上就是这个字段带着 11862 字节，以前被我们丢掉了。
+        let rd = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        let n = job.attempt + 1
+        let delay = (n - 1) < Self.backoff.count ? Self.backoff[n - 1] : 300
+        q.asyncAfter(deadline: .now() + delay) {
+            self.q.sync { _ = self.jobs.removeValue(forKey: task.taskIdentifier) }
+            self.start(job.url, attempt: n, resumeData: rd, progress: job.progress) { r in job.completion(r) }
+        }
+    }
+}
+
+/// 可重试的失败：网络类。校验不过、HTTP 4xx 这类重试没有意义（重试一万次也一样）。
+private func mtdlRetryable(_ error: Error) -> Bool {
+    let e = error as NSError
+    guard e.domain == NSURLErrorDomain else { return false }
+    switch e.code {
+    case NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+         NSURLErrorTimedOut, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+         NSURLErrorDataNotAllowed, NSURLErrorSecureConnectionFailed,
+         NSURLErrorDNSLookupFailed, NSURLErrorInternationalRoamingOff:
+        return true
+    default: return false
+    }
+}
+
+/// 下载失败 ⇒ **协议码**（不是文案、也不是系统原文）。人话由 JS 用既有 i18n 键拼。
+private func mtdlCode(_ error: Error) -> String {
+    let e = error as NSError
+    guard e.domain == NSURLErrorDomain else { return "load" }
+    switch e.code {
+    case NSURLErrorCannotDecodeContentData:
+        return "sha"                       // 我校验对不上（download() 里自己抛的）
+    case NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+         NSURLErrorTimedOut, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+         NSURLErrorDataNotAllowed, NSURLErrorDNSLookupFailed, NSURLErrorInternationalRoamingOff:
+        return "offline"
+    case NSURLErrorBadServerResponse, NSURLErrorBadURL, NSURLErrorUnsupportedURL:
+        return "http"
+    default:
+        return "load"
     }
 }

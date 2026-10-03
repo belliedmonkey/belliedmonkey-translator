@@ -557,7 +557,7 @@ export function bootShell() {
           err.textContent = t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
             + (e.mtAsrLast ? ' [' + e.mtAsrLast + ']' : '');
         } else if (e && e.mtTtsFailed) {
-          err.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', String(e.why || ''));
+          err.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(String(e.why || ''), t));
         } else {
           err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。')
             .replace('{why}', String((e && (e.reason || e.message)) || e));

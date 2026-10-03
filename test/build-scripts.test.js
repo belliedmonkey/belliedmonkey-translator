@@ -1651,6 +1651,11 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // 引擎类型（2026-10-03，高质量语音）：清单里的 `type` 值与 Kokoro 多出来的字段名 ——
       // 都是**协议值**（清单字段），不是文案。
       '"vits"', '"kokoro"', '"voices"', '"dictDir"', '"lexicon"', '"kokoroLang"', '","',
+      // 后台续传（2026-10-04）：会话标识 + 下载失败的协议码（offline/http/sha/load）。
+      // 界面只认码，人话在 JS 侧用既有 i18n 键拼 —— 真机上那句 Error Domain=… 就是从
+      // 「reason 送 String(describing: error)」漏出去的。
+      '"com.belliedmonkeytranslator.mt-speech.download"', '"mt.speech.download"',
+      '"offline"', '"http"', '"sha"', '"load"',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
       '"ready"', '"total"', '"completed"',   // assets-progress 的诊断字段（2026-10-02）：AssetInventory 的可用性/字节数，文案由 JS 拼
       '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
