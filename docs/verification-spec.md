@@ -1072,7 +1072,18 @@ cheap — just do it).
 > loaders floating over the article). Cleanup: `pkill -f "$PROF"; rm -rf "$PROF"` + remove any
 > staged `dist/` copy.
 
-### E. Firefox desktop (real Mac, throwaway profile) — ✅ verified
+### E. Firefox desktop
+> **⚠️ `--start-url` 早于扩展安装（2026-10-03 实测，差点误报成产品缺陷）。**
+> `web-ext run --start-url moz-extension://<uuid>/…` 是**先起浏览器、后装临时扩展** ⇒ 那一跳落在
+> **还没人认领的 URL** 上 ⇒ **白屏**，此后一直白着（手动刷新也可能没送达页面）。
+> 症状具有极强的误导性：白屏 + 页面脚本一条都不执行 + 连**静态文件**（如 `manifest.json`）都取不出来 ——
+> 看起来像「扩展的页面全废了」，实际只是 URL 在那个会话里没有主人。
+> **正确做法**：`--start-url about:blank`，等日志出现 `Installed … as a temporary add-on`，
+> **再用地址栏导航**（⌘L → 输 URL → 回车）到 `moz-extension://<uuid>/<page>`。
+> 判据：窗口标题应变成该页的 `<title>`（如「大肚猴翻译 — 设置」）。
+> 附：Firefox 的清单错误只从这里露出 —— `_locales/` 存在时 `default_locale` 必填，否则
+> `installTemporaryAddon: Extension is invalid`。
+ (real Mac, throwaway profile) — ✅ verified
 
 ```bash
 node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
