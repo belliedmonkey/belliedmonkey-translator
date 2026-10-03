@@ -1072,7 +1072,7 @@ cheap — just do it).
 > loaders floating over the article). Cleanup: `pkill -f "$PROF"; rm -rf "$PROF"` + remove any
 > staged `dist/` copy.
 
-### E. Firefox desktop
+### E. Firefox desktop (real Mac, throwaway profile) — ✅ verified
 > **⚠️ `--start-url` 早于扩展安装（2026-10-03 实测，差点误报成产品缺陷）。**
 > `web-ext run --start-url moz-extension://<uuid>/…` 是**先起浏览器、后装临时扩展** ⇒ 那一跳落在
 > **还没人认领的 URL** 上 ⇒ **白屏**，此后一直白着（手动刷新也可能没送达页面）。
@@ -1083,7 +1083,7 @@ cheap — just do it).
 > 判据：窗口标题应变成该页的 `<title>`（如「大肚猴翻译 — 设置」）。
 > 附：Firefox 的清单错误只从这里露出 —— `_locales/` 存在时 `default_locale` 必填，否则
 > `installTemporaryAddon: Extension is invalid`。
- (real Mac, throwaway profile) — ✅ verified
+(real Mac, throwaway profile) — ✅ verified
 
 ```bash
 node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
