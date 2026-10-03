@@ -108,6 +108,14 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
+**`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版按规则 4 一个字节都不发，
+于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到
+（`docs/troubleshooting.md` §1）。折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**
+（`extension/learn/telemetry.js`，`localStorage['mt:diag']`，上限 20 条，**只记 `auth_fail`** ——
+其余事件没有「查一个具体故障」的用途，留了只是噪声）。判定用 `spec() === null`（＝这个 build
+根本没有遥测），**不是** `enabled()`：用户自己关掉遥测（有 spec、`tm:on=false`）**不写**。
+承诺一个字没动（仍然一个字节都不发），读法见 `docs/troubleshooting.md` §1.9。
+
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
 `grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
 `translate_fail.code` 的枚举同时加了 `credit_exhausted`（402）、`model_not_allowed`

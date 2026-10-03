@@ -232,6 +232,34 @@ npm run verify:app-fresh -- "<…/BelliedMonkey Translator CN.app>" china   # �
 `ASAuthorizationController` 的面板出不来 ⇒ **Apple 这条路本机复现不了**，只能真机
 （仓库里一直记着「未验：真机中国版 Apple 登录」，见 `deploy/china/README.md` §4 第 2 条）。
 
+### 1.9 中国版怎么留证据：本机诊断 `mt:diag`（2026-10-03 加）
+
+中国版按承诺一个字节都不发（规则 4），于是**登录失败在那个 flavor 里原本不留任何痕迹** ——
+而境内后端只有那个 flavor 会碰到。折中：**同样的记录，换个落点 —— 留在本机、绝不外发**。
+
+`extension/learn/telemetry.js`：当 `spec() === null`（＝**这个 build 根本没有遥测**）时，
+把 `auth_fail` 追加到本机 `localStorage['mt:diag']`（JSON 数组，**上限 20 条**，只记 auth_fail）。
+
+- **判定用 `spec() === null`，不是 `enabled()`** —— 用户自己关掉遥测（有 spec、`tm:on=false`）
+  **不写**：那是他的选择，不该被一个本机副本绕过。
+- 记录形状与遥测那条相同（`{name, props, ts}`），props 就是 `auth_fail` 的白名单键
+  （`provider` / `stage` / `code` / `http` / `attempt`）。没有 install id、没有 URL、没有邮箱。
+- **仍然一个字节都不发** —— 回归钉住了：`test/telemetry.test.js` 的 ⑤ / ⑤b / ⑤c。
+
+**怎么读出来**（真机、USB 连着、**解锁**）：
+
+```bash
+xcrun devicectl device info files --device <UDID> \
+  --domain-type appDataContainer --domain-identifier com.belliedmonkeytranslator.cn
+```
+
+拿到 WebKit 的 LocalStorage sqlite 后 copy 出来，`sqlite3` 查 key = `mt:diag`（值是 UTF-16 或 UTF-8，
+按 `strings` 兜底也行）。**别用模拟器验这条** —— 中国版模拟器包的 `MT_TELEMETRY` 同样是 `null`，
+行为一致，但模拟器碰不到境内后端。
+
+`stage` 读出来怎么分：`native` = 原生那步没给出 id_token；`id_token` = 换会话那个 POST 失败
+（`code='offline'` 就是「连不上服务器」那句）。
+
 ---
 
 ## 2. 不要做的事

@@ -4,15 +4,21 @@
 //   ② 属性值含 http / @ / 超过 64 字符 ⇒ 不入队 —— 没人能把 URL、邮箱、原文塞进来
 //   ③ 关掉开关 ⇒ track 是空操作，队列与 install id 一并清掉；发出的最后一条是 telemetry_off
 //   ④ heartbeat 同一天只入队一次；installed 只在 id 首次生成时
-//   ⑤ 中国版（MT_TELEMETRY = null）⇒ 一切都是空操作，什么都不发
+//   ⑤ 中国版（MT_TELEMETRY = null）⇒ 一个字节都不发；但 auth_fail 留在本机（mt:diag）
 const { loadModule, describe, test, ok, eq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
 function load({ china = false, sends = [] } = {}) {
   const store = {};
+  const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
   const window = { MT_VERSION: '9.9.9', MT_TELEMETRY: china ? null : { url: 'https://x.test/functions/v1/bt-ingest', spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } };
   const sandbox = {
     window,
+    localStorage: {
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(ls, k) ? ls[k] : null),
+      setItem: (k, v) => { ls[k] = String(v); },
+      removeItem: (k) => { delete ls[k]; },
+    },
     navigator: { userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1', platform: 'iPhone', language: 'zh-CN' },
     crypto: require('crypto').webcrypto,
     fetch: async (url, init) => { sends.push({ url, body: JSON.parse(init.body) }); return { ok: true }; },
@@ -23,7 +29,7 @@ function load({ china = false, sends = [] } = {}) {
     } } },
   };
   const ctx = loadModule(['learn/telemetry.js'], sandbox);
-  return { T: ctx.MTTelemetry, store, sends };
+  return { T: ctx.MTTelemetry, store, sends, ls };
 }
 const q = (store, T) => store[T.KEYS.queue] || [];
 
@@ -125,13 +131,38 @@ describe('MTTelemetry — 开关与心跳', () => {
     await ctx.MTTelemetry.init({ flushNow: true });
     eq(sends.length, 0); ok(T);
   });
-  test('⑤ 中国版：MT_TELEMETRY 为 null ⇒ 全部空操作，什么都不发', async () => {
-    const { T, store, sends } = load({ china: true });
+  test('⑤ 中国版：MT_TELEMETRY 为 null ⇒ 一律不发；只有 auth_fail 留在本机', async () => {
+    const { T, store, sends, ls } = load({ china: true });
     eq(await T.enabled(), false);
     eq(await T.track('heartbeat'), false);
     await T.init({ flushNow: true });
     eq(await T.flush(), false);
     eq(sends.length, 0); eq(Object.keys(store).length, 0);
+
+    // 唯一留在本机的东西：登录失败。境内后端只有中国版会碰到，而那条路原本不留任何痕迹。
+    eq(await T.track('auth_fail', { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' }), false);
+    const d = JSON.parse(ls[T.DIAG_KEY] || '[]');
+    eq(d.length, 1); eq(d[0].name, 'auth_fail'); eq(d[0].props.stage, 'id_token');
+    eq(sends.length, 0);                                  // 仍然一个字节都不发
+
+    const before = ls[T.DIAG_KEY];
+    eq(await T.track('heartbeat'), false);
+    eq(ls[T.DIAG_KEY], before);                           // 其余事件不写 —— 留了只是噪声
+  });
+  test('⑤b 用户**自己**关掉遥测 ⇒ 本机也不写（不拿本机副本绕过他的选择）', async () => {
+    const { T, ls } = load();
+    await T.setEnabled(false);
+    eq(await T.track('auth_fail', { provider: 'apple', stage: 'native', code: 'apple_failed', http: 0, attempt: '1' }), false);
+    eq(ls[T.DIAG_KEY], undefined);
+  });
+  test('⑤c 本机诊断有上限，且里面没有 URL / 邮箱', async () => {
+    const { T, ls } = load({ china: true });
+    for (let i = 0; i < T.DIAG_CAP + 5; i++) {
+      await T.track('auth_fail', { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' });
+    }
+    const d = JSON.parse(ls[T.DIAG_KEY]);
+    eq(d.length, T.DIAG_CAP, '上限没生效：' + d.length);
+    ok(!/https?:\/\/|@/.test(JSON.stringify(d)), '本机诊断里出现了 URL 或邮箱');
   });
 });
 
