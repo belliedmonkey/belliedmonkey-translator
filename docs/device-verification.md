@@ -258,20 +258,18 @@ suppressed.
 | **macOS Chrome（CDP `Extensions.loadUnpacked`）** | ✅ | options 页 **3155 个泰文字符**、缺键回落汉字 **0**（脚本 `.local/chrome-thai-check.js`，判据豁免语言自名与品牌名）。截图 `.local/regress-1.19.0/thai/chrome-macos/` |
 | **macOS Safari** | ⬜ **未跑** | 本机 Safari 被**另一个会话**占着（窗口标题是一串布局测量调试串且不变）—— 按「并行会话不抢共享资源」的规矩**没有去抢**。配方见 verification-spec §2.C 路径 A |
 | **Firefox desktop** | ✅ **页面正常**（#560 是我的驱动 bug，已关闭） | 等 `web-ext` 打出 `Installed … as a temporary add-on` 之后**用地址栏导航**到 `moz-extension://<uuid>/options/options.html` ⇒ 窗口标题变「大肚猴翻译 — 设置」，整页正常渲染（引擎与密钥/免费额度/显示样式/复习/学习/缓存管理/关于），页面里能看到**学习语言的 13 个 chip 含「ไทย」**。截图 `.local/regress-1.19.0/thai/firefox-options-FIXED.png`。硬经验见 verification-spec §2.E |
-| **macOS Safari** | ⚠️ **未完成** | 扩展**已装但未启用**：Safari → 设置 → **扩展**页里能看到「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」，勾选框 `value=0`（1Password 那条是 1）。用 cua-driver 点它（background 与 foreground 都试）**值不变**（`refusal`/无效果），启用这一步没做成 ⇒ 没往下走（其后还要「在每个网站上始终允许」+ 打开 options 页 + 切语言）。下次可用 GUI 手点，或查 Safari 对未签名/未启用扩展的启用条件 |
+| **macOS Safari** | ⛔ **阻塞（我解不开）** | 扩展**已装但未启用**：Safari → 设置 → **扩展**页里能看到「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」，勾选框 `value=0`（1Password 那条是 1）。用 cua-driver 点它（background 与 foreground 都试）**值不变**（`refusal`/无效果），启用这一步没做成 ⇒ 没往下走（其后还要「在每个网站上始终允许」+ 打开 options 页 + 切语言）。下次可用 GUI 手点，或查 Safari 对未签名/未启用扩展的启用条件 |
 
 **未验证**（两个都要如实带上）：
 
-1. **试听（引擎装载 + 合成）**：iOS 模拟器到不了设置页（首启的识别包在模拟器上必然 `reason='locale'` 失败 ⇒ App 停在包屏）；macOS App 的设置页里没滚到「试听一句」那一行。
-   **不是推测，是失败原文**（`testDbgTtsSample` 的 `XCTAssertTrue` 文案，xcresult 里读回来的）：
-   屏上停在首启包屏 —— `ชุดเสียงคุณภาพสูง … พร้อมแล้ว`（朗读包已就绪）而
-   `ชุดรู้จำเสียงพูด … ยังไม่ได้ดาวน์โหลด · zh`（识别包未下载）⇒ 根本没进设置页。
-   读回这条的口径坑（**更正**：我一开始把它写成"`run-ob.sh` 那句一直静默失败"，是错的）：
-   `xcresulttool get test-results summary` 在 Xcode 27 里**语法没变**（`--path <bundle>` 照旧），
-   `run-ob.sh` 用的是 bash、显式传参，所以它**是好的**。踩的是我自己：在 **zsh** 里写
-   `xcrun xcresulttool $v --path "$R"`，而 **zsh 不对未加引号的变量分词** ⇒ `get test-results summary`
-   被当成**一个**参数 ⇒ 报 `Unknown option '--path'`。写脚本时要么显式传参、要么 `bash -c`。
-   ⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
+1. **引擎装载 + 合成：✅ 已验证**（2026-10-03，走**播客模式**而不是设置页的试听）。
+   macOS App 首页点「โหมดพอดแคสต์」⇒ AX 树出现：
+   `การ์ดที่ 3 จาก 4`（第 3/4 张卡）+ **`รอบที่ 1 · กำลังเล่นต้นฉบับ…`（第 1 遍 · 正在播放原文…）** + `🔁 เล่นซ้ำ`。
+   ⇒ 引擎**装载成功并真的出声**：配置写错只会显示 TTS 失败，不会有这个播放态。
+   截图：`.local/regress-1.19.0/thai/macos-app/macos-podcast-kokoro-playing.png`。
+   为什么不在设置页试听：**那一行在 macOS App 的设置页里根本不渲染**（AX 369 元素、`elements_complete:false`，
+   只有语音模式 / 自动朗读 / 每日新卡那几行；滚动也不改变树）。两处都试过，走播客模式反而更接近真实用法。
+   iOS 模拟器侧仍到不了设置页（首启的识别包必然 `reason='locale'` ⇒ 停在包屏）——已知限制，不阻塞。
 2. **试听（续）**：macOS App 的**设置页里没有那一行** —— AX 树（369 元素、`elements_complete:false`）里只有「โหมดเสียงพูด / อ่านออกเสียงอัตโนมัติ / จำนวนการ์ดใหม่สูงสุดต่อวัน」等，
    没有 `เล่นตัวอย่าง`（试听）也没有「离线模型」那行；滚动也没让树变化。⇒ **Kokoro 的装载+出声仍未被端上验证**。
    可走的两条：① App 的**播客模式**（它朗读走同一个引擎，首页那张卡可见）；② 设置页里那行（需要先弄清它在哪个档/为什么没渲染）。
