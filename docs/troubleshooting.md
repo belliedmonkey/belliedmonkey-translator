@@ -202,6 +202,36 @@ npm run verify:app-fresh -- "<…/BelliedMonkey Translator CN.app>" china   # �
 - 中国版包的 `.app` 名是 `BelliedMonkey Translator CN.app`；`app:sync` 会按工程树自动选 `dist-app-china/`，
   **没有 flavor 参数**。
 
+### 1.8 Apple 登录这条（2026-10-03 收窄，**未定论**）
+
+**用户给的复现条件：这一条只有 Apple 登录会复现。** 这与代码形状一致 —— Apple 是唯一
+「先弹系统面板 → 回来立刻 `POST /auth/v1/token?grant_type=id_token`」的入口（Google 同形，
+`ASWebAuthenticationSession`，用户没报）。
+
+**已经排除的**：
+
+| 假设 | 判据 | 结果 |
+|---|---|---|
+| 服务端出不了网去 `appleid.apple.com` 取 JWKS | 宿主机与 `auth` 容器 curl `/auth/keys` 各 3 次 | **都 200，0.55 s** ⇒ 排除 |
+| 服务端真拒过 Apple | 近 7 天日志 `jwks|appleid|apple`（滤掉 `provider":"apple"` 这类正常行） | **零条** ⇒ 排除 |
+| 「回前台后的第一发 fetch 必失败」 | 模拟器 DBG13：压后台 12 s → 回前台 → 立刻发验证码 | **第一次请求成功** ⇒ **证伪** |
+
+**还没排除 / 一句话就能定**：`humanError`（`src/app/shell-model.js`）对 Apple 有两个出口，
+**屏上那一句把它一分为二**：
+
+| 屏上写的是 | 含义 |
+|---|---|
+| 「连不上服务器，检查网络后重试。」（`app_offline`） | id_token **拿到了**，是**换会话那个 POST 在网络层抛了**（`auth.js` 的 `post()` catch → `code='offline'`） |
+| 「Apple 登录没能完成。可以改用下面的邮箱或手机号。」（`app_apple_failed`） | **原生那一步没给出 id_token**（`ASAuthorizationControllerDelegate.didCompleteWithError` → `error:"apple_failed"`） |
+
+**代码侧确定的一条**：`LearnAuth.signInWithIdToken()` **没有重试** —— 一次 `post()`，抛了就抛。
+而用户的观察是「**第二次就成功**」⇒ 把那一次重试**自动化**，就是这个症状的对症修法
+（对 id_token 兑换是安全的：同一用户、幂等）。
+
+**模拟器的硬限制**：模拟器**没有登录 Apple ID**（`MobileMeAccounts` 域不存在），
+`ASAuthorizationController` 的面板出不来 ⇒ **Apple 这条路本机复现不了**，只能真机
+（仓库里一直记着「未验：真机中国版 Apple 登录」，见 `deploy/china/README.md` §4 第 2 条）。
+
 ---
 
 ## 2. 不要做的事
