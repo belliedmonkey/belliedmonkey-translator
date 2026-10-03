@@ -573,7 +573,7 @@ export function bootShell() {
     // 默认意图「听」（2026-10-02 裁定 → 2026-10-03 跟着引导屏一起改到这儿）：引导屏撤了，
     // 那句 `trackIntent('listen')` 原本挂在它的「开始设置」上。现在落首页就记一次 ——
     // 首页的扩展横幅据此给「不要浏览器扩展」的人让路（interaction-spec「迎新页意图分叉」）。
-    try { trackIntent('listen'); } catch (_) {}
+    if (!obIntentRecorded) { obIntentRecorded = true; try { trackIntent('listen'); } catch (_) {} }
     $('signed-out').hidden = true;
     $('signed-in').hidden = false;
     firstRunScreen = 'home';
@@ -924,6 +924,7 @@ export function bootShell() {
   // 这一次引导是否已经记过「离开」那一条。两条进场路都要清掉它 —— 跳过之后从
   // 「继续设置」卡回来是**新的一次**引导，它的结局要照样记一条。
   let obLeft = false;
+  let obIntentRecorded = false;   // 默认意图只记一条（2026-10-03：原来挂在引导按钮上，每次点击一条）
 
   function obPaint() {
     if ($('ob-telemetry')) $('ob-telemetry').hidden = true;   // 只在最后一屏露出
@@ -1349,9 +1350,8 @@ export function bootShell() {
 
   $('ob-next').addEventListener('click', () => {
     if (OB[obAt] === 'signin') { obStartSignIn(); return; }
-    // 首屏（welcome）：默认「主要想听 · 即时字幕」，不再问（#547）。记一次 —— 首页的
-    // 扩展横幅据此给「不要浏览器扩展」的人让路（interaction-spec「迎新页意图分叉」）。
-    if (OB[obAt] === 'welcome') trackIntent('listen');
+    // 2026-10-03：welcome 那句 trackIntent('listen') 挪走了 —— 引导屏已撤，这条按钮不可达，
+    // 留着会让「默认意图」在真跑与测试里各记一条（实测 n=2）。现在记在落首页那一刻。
     if (obAt < OB.length - 1) { obAt += 1; obPaint(); return; }
     // 最后一屏的主按钮直接进登录表单 —— 引导走到这儿，人是准备好的。
     // 引导收尾落到未登录首屏的说明卡上：一键登录在卡上，邮箱是卡上那行链接 ——

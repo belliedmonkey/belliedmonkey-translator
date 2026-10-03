@@ -182,8 +182,8 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     for (const id of ['ob-webonly', 'ob-intent-listen', 'ob-intent-both', 'ob-engines']) {
       ok(!new RegExp(`\\$\\('${id}'\\)`).test(model), `shell-model 还在引 #${id}`);
     }
-    ok(/OB\[obAt\] === 'welcome'\) trackIntent\('listen'\)/.test(model),
-      '首屏离开时没有记默认意图 listen —— 首页的扩展横幅就不会让路');
+    ok(/obIntentRecorded[\s\S]{0,80}trackIntent\('listen'\)/.test(model),
+      '落首页时没有记默认意图 listen —— 首页的扩展横幅就不会让路');
     ok(!/\.concat\(\['firstuse', 'ext'\]\)/.test(model),
       "OB 里还有 'ext' —— 网页翻译配置引导应只在设置页");
     ok(!/obEngineChips/.test(model), 'obEngineChips 还留着 —— 首屏不再有模型清单');

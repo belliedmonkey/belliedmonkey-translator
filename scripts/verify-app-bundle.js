@@ -1033,6 +1033,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 网页翻译的配置引导只留在设置页（#webext-setup）。
       // 判据是**页面上的结构** + **队列里真有那条** + **落盘** + **首页真的没横幅**。
       await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      // reset() 只清 onboardSeen 那几个键，**不清 tm:queue** —— 前面几块攒下的行会跟着进来，
+      // 于是 `n` 数出来是 2（2026-10-03 实测）。这一块只关心自己这几秒，先把队列清空。
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['tm:queue'], r))`, awaitPromise: true }, sessionId);
       await reopen();
       const it = await E(`(async () => {
         try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
@@ -1104,6 +1107,49 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       } else {
         need(af.n === 0, '中国版产物里竟然攒出了 auth_fail —— Gate D 说好一个字节都不发');
       }
+
+      // ─── 设置页文字不许出界：**12 语种 × 最窄视口**（2026-10-03，设计稿已签）────────────
+      // 真机截图：长文案把 .sgroup 顶破。这里逐语种把设置页打开，量每张卡片的
+      // scrollWidth 是否超过 clientWidth（>1px 就是出界）。语种取自 #ui-lang 的真实 option。
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
+      const uiLangs = await E(`JSON.stringify([...document.getElementById('ui-lang').options].map((o) => o.value).filter(Boolean))`);
+      const over = [];
+      for (const loc of uiLangs) {
+        await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ uiLang: '${loc}' }, r))`, awaitPromise: true }, sessionId);
+        await cdp.send('Page.reload', {}, sessionId);
+        await new Promise((r) => setTimeout(r, 900));
+        const r1 = (await E(`(async () => {
+          const gear = document.getElementById('gear'); if (gear) gear.click();
+          await new Promise((r) => setTimeout(r, 500));
+          const cards = [...document.querySelectorAll('#app-settings .sgroup')].filter((c) => c.getClientRects().length);
+          // 主判据＝**几何越界**（设计稿：scrollWidth 在 direction:rtl 下不记左侧溢出，只能作第二重）。
+          // 每个可见后代都与卡片的内容盒（padding/border 之内）比左右两边，任一边超出 1px 即出界。
+          const bad = [];
+          cards.forEach((c, i) => {
+            const cr = c.getBoundingClientRect();
+            const cs = getComputedStyle(c);
+            const L = cr.left + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0);
+            const R = cr.right - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0);
+            for (const el of c.querySelectorAll('*')) {
+              if (!el.getClientRects().length) continue;
+              const r = el.getBoundingClientRect();
+              if (!r.width) continue;
+              if (r.left < L - 1 || r.right > R + 1) {
+                bad.push({ i, tag: el.tagName, id: el.id || '', left: Math.round(r.left - L), right: Math.round(r.right - R) });
+                break;
+              }
+            }
+            if (c.scrollWidth > c.clientWidth + 1) bad.push({ i, hint: 'scrollWidth', sw: c.scrollWidth, cw: c.clientWidth });
+          });
+          return JSON.stringify({ n: cards.length, bad });
+        })()`));
+        if (r1.n === 0) over.push(loc + ':没有量到卡片');
+        else if (r1.bad.length) over.push(loc + ':' + JSON.stringify(r1.bad));
+      }
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+      need(over.length === 0,
+        '这些语种在 320px 下卡片被文字顶破（scrollWidth > clientWidth）：' + over.join(' | '));
 
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
