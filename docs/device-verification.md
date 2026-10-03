@@ -276,3 +276,25 @@ suppressed.
 3. **音质 A/B**：**按裁定留给落地后的耳朵**（飞行窗内无法主观听判）。
    样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句，24 kHz WAV）；
    判据是「Kokoro 与 Piper 谁更好听」—— 不好听就把 `device-models.config.js` 换回 piper 两行（vits 分支仍在）。
+
+---
+
+## 2026-10-03 · TestFlight 第三批（泰语 #556 + Kokoro #558）
+
+四个包，**只传 TestFlight，未提审**（驱动全程只用 `xcodebuild archive → exportArchive → altool --upload-app`，
+没有任何 `asc.js bind` / `asc-submit` 调用）。驱动：`.local/build-1190d-four.sh`（号码在跑之前从 ASC 回读确定：
+global 132/80、china 75/73 均为 VALID ⇒ 本批取 +1）。
+
+| 面 | 构建号 | ASC 回读 | 备注 |
+|---|---|---|---|
+| 国际 iOS | **133** | **VALID**（2026-10-03 08:10） | 包体回读 `com.belliedmonkeytranslator 1.19.0 133`、**`lproj: 14`**（Base + 13 门，泰语在包内） |
+| 国际 macOS | **81** | **VALID**（08:12） | `lproj: 0` 是 macOS 的正常形状（lproj 在 `Contents/Resources/` 下，脚本数直接子项） |
+| 中国 iOS | **76** | **VALID**（08:21） | 包体 `com.belliedmonkeytranslator.cn 1.19.0 76`、`lproj: 14` |
+| 中国 macOS | **74** | **VALID**（08:18） | |
+
+上传返回：四条都是 `UPLOAD SUCCEEDED with no errors` + Delivery UUID；china iOS 的 build 在 ASC 里晚约 7 分钟出现（处理中），
+所以回读是**轮询到 VALID 才记**的，不是上传成功就记。
+
+**这一批包含**：泰语第 13 门语言（#556，1193 键 + 四个消费面 + 中国版描述 + 13 lproj + 可学习语言白名单）、
+Kokoro int8 多语离线朗读（#558 + #557）、一键卡随界面语言重画（#559）。
+矩阵结论见上一节：四绿 / Firefox 页面绿 / **macOS Safari 人工阻塞（不挡 TF）** / 音质 A/B 留给落地后。
