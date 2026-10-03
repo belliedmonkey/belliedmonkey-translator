@@ -29,12 +29,12 @@ insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) val
   ('tts', 'china', 'kokoro-zh-en.zip',
    'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip',
    'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/kokoro-zh-en.zip',
-   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）')
+   '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）'),
+  ('tts', 'china', 'vits-mms-tha.zip',
+   'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/vits-mms-tha.zip',
+   'https://hf-mirror.com/belliedmonkey/belliedmonkey-device-models/resolve/main/vits-mms-tha.zip',
+   '中国版：泰语朗读默认包（MMS-TTS，100 MB）。权重 CC-BY-NC 4.0 —— 2026-10-04 用户拍板：知情的决定，就用它当正式分发的默认包')
 on conflict (kind, flavor, path) do nothing;
-
--- 2026-10-04：`vits-mms-tha.zip` 那一行**撤下**（权重 CC-BY-NC 4.0，按保守处理不当默认分发包）。
--- 行留在这里是**故意的**：它记录着「打过、测过、因为许可撤下」，也说明泰语朗读此刻走系统语音。
-delete from public.bt_model_sources where kind = 'tts' and flavor = 'china' and path = 'vits-mms-tha.zip';
 
 -- 2026-10-03（**应用时才发现**）：App 从 1.19.0 起请求的是 `kokoro-zh-en.zip`，
 -- 而这张表里还是当年那两行 piper。**只插新行不够** —— 旧两行仍 active ⇒
@@ -51,8 +51,8 @@ update public.bt_model_sources set active = false, updated_at = now()
 
 -- 回读断言：别拿「没报错」当成功。
 do $$ begin
-  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 1 then
-    raise exception 'bt_model_sources：中国版应有 1 行 active（kokoro 中英；泰语 MMS 已按许可撤下），实际 %',
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 2 then
+    raise exception 'bt_model_sources：中国版应有 2 行 active（kokoro 中英 + 泰语 MMS），实际 %',
       (select count(*) from public.bt_model_sources where flavor = 'china' and active);
   end if;
 end $$;

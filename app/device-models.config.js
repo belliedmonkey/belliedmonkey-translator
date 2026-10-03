@@ -53,6 +53,23 @@ var MT_DEVICE_TTS_MODELS = [
   // 商用候选（2026-10-04 查证）：**没有** —— MMS / F5-Thonburian 都是 NC；MeloTTS 是 MIT 但不含泰语；
   // Piper 官方没有泰语声；sherpa-onnx 的 #3028 也仍把泰语列为缺失。找到许可干净、体积可接受的
   // 泰语模型后再按 Kokoro 那套（打包 → 双托管 → sha256/尺寸 → 中国版地址表 → verify:model-urls）替换。
+  //
+  // ── 2026-10-04 用户拍板（覆盖上面那段保守处理）──────────────────────────────────
+  // 「继续用这个 CC-BY-NC 4.0 的 vits-mms-tha 当正式分发的默认泰语朗读包。不要再另找、不要再问许可证。」
+  // ⇒ 它**就是**默认包（下面这条），两处托管已恢复。许可证事实留在这里只为将来换模型时知道这一步为什么这样：
+  // **CC-BY-NC 4.0（禁商用）是所有者知情的决定**，不是疏漏。
+  {
+    lang: 'th', dir: 'vits-mms-tha', type: 'vits', dataDir: '',
+    model: 'model.onnx', tokens: 'tokens.txt',
+    files: [{
+      path: 'vits-mms-tha.zip', size: 105167496,
+      sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
+      url: {
+        global: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
+        china: MT_MODELSCOPE_BASE + 'vits-mms-tha.zip',
+      },
+    }],
+  },
 ];
 
 // 给原生的形状：url 按 flavor 解开成一个字符串（原生不认 flavor）。
