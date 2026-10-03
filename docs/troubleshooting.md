@@ -262,6 +262,59 @@ xcrun devicectl device info files --device <UDID> \
 
 ---
 
+### 1.10 2026-10-04 复查（用户报「连不上服务器又出来了」+「查中国数据库」）
+
+**结论：后端与库都健康；服务端没有可修的东西。真正挖出来的是一条我自己的漏动作（见下）。**
+
+上机读数（§1.2/§1.3 的配方，全部回读）：
+
+| 项 | 读数 |
+|---|---|
+| 服务 | 七个全 `Up`（`db` healthy；`auth`/`db`/`fn` 11 天，`grant`/`ledger`/`proxy`/`rest` 2 天） |
+| 宿主机 | 磁盘 **20%**（7.5G/40G）、内存 686/1967 MB、load 0.13 |
+| 数据库 | `pg_isready` accepting；连接 **9 / 100**；库大小 **11 MB**；未授予锁 **0** |
+| proxy | 502/503/504 **0 条**（近 24h 只有蜘蛛/扫描器打 IP 的 308） |
+| auth | panic/5xx **0 条**；近 6h **零个非 2xx** |
+| 7 天非 2xx | 与 §1.4 记录的**完全一致**（23×403 `/user` 内网、12×400 `/token` invalid_grant、2×302 authorize、2×403 verify、2×400 otp、1×403 generate_link）⇒ **没有新增失败** |
+| grant / ledger / fn | 日志里 error/fail/panic **0 条** |
+| 用户自己 | **Apple 登录 24h 内 3 次全 200**，最后一次 `2026-10-03T19:10:05Z`（= 10-04 03:10 CST） |
+
+⇒ 「连不上服务器」按 §0 是 `code=network|offline`（**请求根本没到**），服务端与遥测都指望不上；
+而用户同一条登录路径在同一时段是 200 ⇒ **没有任何服务端侧要修的东西**。下一步只能在设备侧取证据：
+中国版的 `mt:diag`（§1.9）。**本次取不到** —— 真机 `00008130-000474622EE0001C`（张大本事）是 `unavailable`，
+人机不在一起；`devicectl` 只看到模拟器。
+
+#### 真正修掉的：`bt_model_sources` 里还是两行 piper（我的漏动作）
+
+用户说「查中国数据库」，于是逐个看表 —— 挖出一条**我在 #558 里自己制造的缺口**：
+
+- 中国版 App 从 1.19.0 起请求的是 `kokoro-zh-en.zip`，但库里的 `bt_model_sources` **仍是 `piper-zh.zip` / `piper-en.zip` 两行、且都 `active`**；
+- 我改了 `deploy/china/model-sources.sql` 却**从没应用它**（那份文件是给境内后端用的部署脚本，不是快照）；
+- 更糟的是那份脚本**只插新行、不停用旧行** ⇒ 它自带的「恰好 1 行 active」回读断言**会直接报错**（`psql rc≠0`）。
+  也就是说：照它跑一遍，结果是**失败**，而失败的原因看起来像「数据不对」而不是「脚本没写全」。
+
+修法（已应用并回读）：
+
+```sql
+update public.bt_model_sources set active = false, updated_at = now()
+ where kind = 'tts' and flavor = 'china' and path in ('piper-zh.zip', 'piper-en.zip');
+```
+
+应用结果：`INSERT 0 1` + `UPDATE 2` + 断言 `DO` 通过（`psql rc=0`）；回读 `kokoro-zh-en.zip active=t`、
+两条 piper `active=f`。**两个地址都实测可下**：魔搭 206 `bytes 0-0/146767700`、**hf-mirror 备用同样 206 且总长一致**
+（备用是 #532 那条「包是首启硬门」的安全网，缺了它国内网络下 ModelScope 不可达就会卡在屏 2）。
+
+**对老版本没有回归**：还在用 piper 的旧中国版构建会请求 piper 两行 ⇒ 表里查不到 ⇒ 回落到**内置地址**
+（`device-models.config.js` 里的魔搭 piper URL，实测 206）⇒ 照旧能下。
+
+#### 记账（别把这两条当成产品错误）
+
+- 本次查库时我在 `db` 日志里留下了 2 条：`FATAL: role "root" does not exist` 与
+  `ERROR: syntax error at or near "\"`（时间 `19:10:29Z`）—— **是我自己第一次 psql 的引号写坏**，
+  不是应用行为。查日志看到它们时以时间戳排除。
+- 一条口径：`docker compose exec -T db psql` **不给 `-U`** 会以 host 用户连（`root`）；
+  给 `-U postgres` 才对。远端脚本里别套单引号（§1.2 坑 4），SQL 的引号用**双引号**。
+
 ## 2. 读「用户给的截图」：**同比例 ≠ 整屏**
 
 2026-10-03：用户报「设置页底部卡片的按钮被卡片下沿切掉」。截图 886×1920 —— 与 iPhone 14 Pro

@@ -32,6 +32,13 @@ insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) val
    '中国版：默认魔搭 ModelScope，备用 hf-mirror。2026-10-03 换成 Kokoro int8 多语（中英一个包 140 MB）')
 on conflict (kind, flavor, path) do nothing;
 
+-- 2026-10-03（**应用时才发现**）：App 从 1.19.0 起请求的是 `kokoro-zh-en.zip`，
+-- 而这张表里还是当年那两行 piper。**只插新行不够** —— 旧两行仍 active ⇒
+-- 下面那条「恰好 1 行 active」的回读断言会直接报错，而且「这个 flavor 有哪些包」这件事失真。
+-- 停用而不是删除：它们指向的包还在托管上，留着当历史；`active=false` 就不再参与下载决策。
+update public.bt_model_sources set active = false, updated_at = now()
+ where kind = 'tts' and flavor = 'china' and path in ('piper-zh.zip', 'piper-en.zip');
+
 -- 2026-10-01（#532）：**国际版那两行不在这里** —— 它们在东京库里是当年直接用 SQL 建的。
 --   今天把它们的 `url_alt` 从 huggingface.co 换成了 hf-mirror.com（同一个 zip、同一个 sha256）：
 --   包在 1.19.0 起是**首启硬门**，而国内实测 GitHub 拉不动（HEAD 超时 / 下载停在 1%），
