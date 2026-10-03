@@ -269,5 +269,6 @@ suppressed.
    `xcresulttool get test-results summary` 在 Xcode 27 里**语法没变**（`--path <bundle>` 照旧），
    `run-ob.sh` 用的是 bash、显式传参，所以它**是好的**。踩的是我自己：在 **zsh** 里写
    `xcrun xcresulttool $v --path "$R"`，而 **zsh 不对未加引号的变量分词** ⇒ `get test-results summary`
-   被当成**一个**参数 ⇒ 报 `Unknown option '--path'`。写脚本时要么显式传参、要么 `bash -c`。⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
+   被当成**一个**参数 ⇒ 报 `Unknown option '--path'`。写脚本时要么显式传参、要么 `bash -c`。
+   ⇒ **Kokoro 的下载/校验/解包已验证，装载+出声未验证**。可减少风险的旁证：Swift 侧**编译通过**（参数标签正确）+ 配置值与原型 Python 实测逐字相同。
 2. **音质**：判据是耳朵。WAV 样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句）。
