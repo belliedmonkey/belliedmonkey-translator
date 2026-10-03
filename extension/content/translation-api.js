@@ -20,7 +20,8 @@ var TranslationAPI = (() => {
     'zh-CN': '简体中文', 'zh-TW': '繁體中文', 'en': 'English',
     'ja': '日本語', 'ko': '한국어', 'fr': 'Français',
     'de': 'Deutsch', 'es': 'Español', 'ar': 'العربية',
-    'pt': 'Português', 'ru': 'Русский', 'it': 'Italiano'
+    'pt': 'Português', 'ru': 'Русский', 'it': 'Italiano',
+    'th': 'ไทย'
   };
 
   // ─── LLM system prompt (English — the lingua franca for LLM instructions,

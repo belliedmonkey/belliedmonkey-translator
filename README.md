@@ -396,7 +396,7 @@ extension/
 │                           credit, telemetry, read-aloud (docs/learning-design.md)
 ├── onboard/ · popup/ · options/   Onboarding and settings UI
 ├── styles/ · fonts/ · icons/ · vendor/
-└── _locales/               12 languages
+└── _locales/               13 languages
 ```
 
 The host app is a sibling tree:

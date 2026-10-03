@@ -1906,6 +1906,7 @@ function Options() {
                 <option value="pt">Português</option>
                 <option value="ru">Русский</option>
                 <option value="it">Italiano</option>
+                <option value="th">ไทย</option>
               </select>
             </div>
 
@@ -1927,6 +1928,7 @@ function Options() {
                 <option value="ar">العربية</option>
                 <option value="pt_BR">Português</option>
                 <option value="ru">Русский</option>
+                <option value="th">ไทย</option>
               </select>
             </div>
           </section>

@@ -34,4 +34,5 @@ module.exports = [
   { id: 'pt', endonym: 'Português' },
   { id: 'ru', endonym: 'Русский' },
   { id: 'it', endonym: 'Italiano' },
+  { id: 'th', endonym: 'ไทย' },
 ];

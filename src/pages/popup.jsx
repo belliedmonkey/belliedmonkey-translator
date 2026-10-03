@@ -455,6 +455,7 @@ function Popup() {
             <option value="pt">Português</option>
             <option value="ru">Русский</option>
             <option value="it">Italiano</option>
+            <option value="th">ไทย</option>
           </select>
         </div>
       </div>

@@ -2494,7 +2494,7 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     const out = path.join(ROOT, 'dist-app', 'ExtCopy.json');
     if (!fs.existsSync(out)) return;   // 还没构建过
     const j = JSON.parse(fs.readFileSync(out, 'utf8'));
-    eq(Object.keys(j).length, 12, '12 个语种');
+    eq(Object.keys(j).length, 13, '13 个语种');
     ok(j['zh-Hans'] && j['zh-Hant'] && j['pt-BR'], '目录名要换成系统的语言码');
     for (const lang of Object.keys(j)) for (const k of COPY_KEYS) ok(j[lang][k], lang + ' 缺 ' + k);
   });
@@ -2625,7 +2625,7 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     }
     const { COPY_KEYS } = require('../build/ext-bundle.js');
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
-    eq(locales.length, 12);
+    eq(locales.length, 13);
     for (const l of locales) {
       const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
       for (const k of COPY_KEYS) ok(m[k] && m[k].message, `${l} 缺 ${k}`);

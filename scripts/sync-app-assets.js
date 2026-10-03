@@ -570,7 +570,7 @@ const MIC_TEXT_EN = 'Read-aloud practice, Conversation · Live Interpreter and i
 const SPEECH_TEXT_EN = 'On-device transcription recognizes speech on your device. Audio is never sent to any server.';
 const AUDIO_CAPTURE_TEXT_EN = 'Live Subtitles recognizes the audio this Mac is playing after you press Start. Audio is recognized only on this Mac or sent only to the transcription endpoint you configured; nothing is recorded or saved.';
 
-// lproj 名 → 三句。键顺序：麦克风 / 语音识别 / macOS 系统录音。清单 = extension/_locales 的 12 个
+// lproj 名 → 三句。键顺序：麦克风 / 语音识别 / macOS 系统录音。清单 = extension/_locales 的 13 个
 // （zh_CN→zh-Hans、zh_TW→zh-Hant、pt_BR→pt-BR，其余同名）；test/build-scripts.test.js 钉住两边一致。
 const PLIST_L10N = {
   en: [MIC_TEXT_EN, SPEECH_TEXT_EN, AUDIO_CAPTURE_TEXT_EN],
@@ -625,6 +625,13 @@ const PLIST_L10N = {
     '«डिवाइस पर ट्रांसक्रिप्शन» आपके डिवाइस पर ही बोली पहचानता है; आवाज़ किसी सर्वर को नहीं भेजी जाती।',
     '«लाइव सबटाइटल» आपके «शुरू करें» दबाने के बाद इस Mac पर चल रही आवाज़ को पहचानता है। आवाज़ केवल इसी Mac पर पहचानी जाती है या केवल आपके सेट किए गए ट्रांसक्रिप्शन एंडपॉइंट को भेजी जाती है; कुछ भी रिकॉर्ड या सहेजा नहीं जाता।',
   ],
+  // 2026-10-03：泰国语（临时加入，机翻）。三句与英文逐条对应：设备内识别 / 只发你配的端点 /
+  // 不录音不保存 —— 门禁要它们与英文不同且非空（test/build-scripts.test.js）。
+  th: [
+    'การฝึกอ่านออกเสียง บทสนทนา · ล่ามสด และคำบรรยายสดบน iPhone (การฟังวิดีโอที่เล่นออกเสียง) จำเป็นต้องใช้ไมโครโฟน เสียงจะถูกรู้จำเฉพาะบนอุปกรณ์ของคุณ หรือส่งเฉพาะไปยังปลายทางการถอดเสียงที่คุณกำหนดค่าไว้เท่านั้น และจะถูกลบทิ้งทันทีหลังการรู้จำ ไม่มีการบันทึกเสียงเก็บไว้ และจะไม่มีการจัดเก็บหรืออัปโหลดไปยังเซิร์ฟเวอร์ของเราเลย',
+    'การถอดเสียงบนอุปกรณ์จะรู้จำคำพูดบนอุปกรณ์ของคุณ เสียงจะไม่ถูกส่งไปยังเซิร์ฟเวอร์ใด ๆ เลย',
+    'คำบรรยายสดจะรู้จำเสียงที่ Mac เครื่องนี้กำลังเล่นอยู่หลังจากคุณกดเริ่ม เสียงจะถูกรู้จำเฉพาะบน Mac เครื่องนี้ หรือส่งเฉพาะไปยังปลายทางการถอดเสียงที่คุณกำหนดค่าไว้เท่านั้น ไม่มีการบันทึกหรือจัดเก็บสิ่งใด',
+  ],
 };
 const PLIST_L10N_KEYS = [MIC_KEY, SPEECH_KEY, AUDIO_CAPTURE_KEY];
 
@@ -646,6 +653,7 @@ const SERVICES_L10N = {
   'pt-BR': 'Traduzir com BelliedMonkey',
   ru: 'Перевести в BelliedMonkey',
   hi: 'BelliedMonkey से अनुवाद करें',
+  th: 'แปลด้วย BelliedMonkey',
 };
 function servicesXml() {
   return '<array>\n\t\t<dict>\n'

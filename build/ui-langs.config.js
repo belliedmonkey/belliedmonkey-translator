@@ -45,4 +45,7 @@ module.exports = [
   { id: 'ar',    chrome: 'ar',    endonym: 'العربية' },
   { id: 'pt',    chrome: 'pt_BR', endonym: 'Português' },
   { id: 'ru',    chrome: 'ru',    endonym: 'Русский' },
+  // 2026-10-03：泰国语 **临时**加入（用户裁定「所有多语言的地方都支持泰国语」）。
+  // 与其余 12 门同权：全量 1193 条译文（机翻，标为待润色），不是回落英文的占位。
+  { id: 'th',    chrome: 'th',    endonym: 'ไทย' },
 ];

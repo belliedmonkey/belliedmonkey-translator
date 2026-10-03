@@ -1405,6 +1405,7 @@ export default function SettingsView() {
             <option value="ar">العربية</option>
             <option value="pt_BR">Português</option>
             <option value="ru">Русский</option>
+            <option value="th">ไทย</option>
           </select>
         </label>
 
@@ -1427,6 +1428,7 @@ export default function SettingsView() {
             <option value="pt">Português</option>
             <option value="ru">Русский</option>
             <option value="it">Italiano</option>
+            <option value="th">ไทย</option>
           </select>
           <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
         </label>
