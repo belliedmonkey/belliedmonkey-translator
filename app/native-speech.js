@@ -17,6 +17,9 @@ var NativeSpeech = (() => {
   // 形状：{ ok, reason, assets, locales }；reason ∈ os | locale | no-bridge | pending
   let sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: [] };
   let sttSupported = [];   // 原生报的本机识别器支持的 locale（BCP-47）；空 = 还没探过 / 老壳不报
+  // [诊断 · 内测] 最近一次 stt-probe 的中间值（原生 stt-state.probe）：见 speech-bridge.swift。
+  // 屏幕浮层用它；稳定后连同原生那半一起删。
+  let lastProbeDebug = [];
   let ttsProbe = { ok: false, reason: 'no-bridge', langs: [] };
   // 一次 stt-start 之后的事件接收者；`sttOpen` 返回的句柄关掉时清空。
   let sttSession = null;
@@ -49,6 +52,7 @@ var NativeSpeech = (() => {
       if (msg.state === 'ended' && sttStopsPending > 0) { sttStopsPending--; return; }
       // 本机识别器支持的 locale 清单（2026-09-17）：对话的语言下拉只列它支持的，由设备当场报出、不写死
       if (Array.isArray(msg.supported)) sttSupported = msg.supported.map(String);
+      if (Array.isArray(msg.probe)) lastProbeDebug = msg.probe.map(String);   // [诊断 · 内测]
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
       else if (msg.state === 'ready' && msg.assets) sttProbe = { ok: true, reason: '', assets: msg.assets, locales: sttProbe.locales };
       if (msg.state === 'unsupported' || msg.assets) wake(sttWaiters, sttProbe);
@@ -218,5 +222,5 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative };
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, probeDebug: () => lastProbeDebug.slice() };
 })();

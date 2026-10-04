@@ -1663,6 +1663,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"com.belliedmonkeytranslator.mt-speech.download"', '"mt.speech.download"',
       '"offline"', '"http"', '"sha"', '"load"',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
+      '"probe"', '"nil"',   // [诊断 · 内测 2026-10-04] stt-state.probe：每门语言选了哪台/资产状态；定位 #563 后删
       '"ready"', '"total"', '"completed"',   // assets-progress 的诊断字段（2026-10-02）：AssetInventory 的可用性/字节数，文案由 JS 拼
       '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
       // 状态 / 原因 id
