@@ -493,3 +493,27 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 （验证新选法），用户确认后删。
 
 `npm test` 2384 passed / 0 failed（R2g 改判 + 新增 R2h + thai 资产判据）；`test:app` global/china 绿。
+
+---
+
+## 2026-10-04 · TestFlight 第十一批（#565 回声闸泰语修复；诊断浮层删除）
+
+驱动 `.local/build-1190l-four.sh`，从 `1e2bdf0e`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十批 140/88/83/81 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **141** | **VALID** |
+| 国际 macOS | **89** | **VALID** |
+| 中国 iOS | **84** | **VALID** |
+| 中国 macOS | **82** | **VALID** |
+
+这一批一处：**#565 回声闸对泰语失明** —— `echoTokens` 只认「中日韩按字 / 其余按词」，泰文没有词间
+空格 ⇒ 整句一个巨型 token，包含度退化成整串相等 ⇒ 自己念的泰语被当成新句子翻回中文。修：无空格
+文字（泰/老挝/高棉/缅甸）按字符 bigram 切。**同时删除 #563 的临时诊断浮层**（`stt-state.probe` /
+`paintProbeDebug` / 白名单 `"probe"/"nil"`，包内 grep 残留 0）。
+
+**进包已回读**：`dist-app-china/Script.js` 有 `NOSPACE_SCRIPT`（2 处），`probeDbg`/`paintProbeDebug`
+残留 0。`npm test` 2386 passed / 0 failed（回声闸新增泰语两条门禁）；`test:app` global/china 绿。
+
+**待用户验（84）**：zh↔th 听译里泰语译文念完后不再被自己识别翻回中文；中文句照常自动朗读。
