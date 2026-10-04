@@ -1682,8 +1682,12 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     ok(/muteUntil/.test(a) && /frameCapacity: raw\.frameLength/.test(a), '静音是同长度的零帧，不是丢帧');
     const on = (sp.match(/MTAudioBridge\.shared\.muteInput = true/g) || []).length;
     const off = (sp.match(/MTAudioBridge\.shared\.muteInput = false/g) || []).length;
-    eq(on, 2, 'Piper 首块 + 系统语音 didStart 各一处置 true，实际 ' + on);
-    ok(off >= 5, 'Piper finish/stop + 系统语音 didFinish/didCancel/stop 都要放开，实际 ' + off);
+    // 2026-10-05（#565 三轮）：系统语音从 delegate 回调改成 write() 管线 —— 它的置 true/放开
+    // 与 Piper 同形（首块 onFirst / finish+stop），各一对。
+    eq(on, 2, 'Piper 首块 + 系统语音首块（write() 管线）各一处置 true，实际 ' + on);
+    ok(off >= 4, 'Piper finish/stop + 系统语音 finish/stop 都要放开，实际 ' + off);
+    ok(sp.includes('MTSpeechChunkBox(player: p, rate: r)'), '系统语音没有走 write()→MTSpeechChunkBox 管线 —— delegate 时序不精确正是 #565 回声的根');
+    ok(sp.includes('synth.write(u)'), '系统语音没用 synth.write() 拿 PCM —— 静麦就只能猜时机');
   });
 
   test('本机路 mic-start {deliver: level} 不发 PCM，只发 mic-level；tap 只装一次、sink 共享', () => {

@@ -179,10 +179,6 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// JS 的电平表也如实显示 0；朗读一结束麦克风立刻恢复，不用重开会话。
     var muteInput = false { didSet { if oldValue && !muteInput { muteUntil = Date().timeIntervalSince1970 + 0.35 } } }
     private var muteUntil: TimeInterval = 0
-    /// 把静麦尾再延长到 s 秒（从现在起，只加不减）。系统语音（AVSpeechSynthesizer）的**出声比
-    /// didFinish 晚** —— 0.35 s 的默认尾盖不住它，麦克风在放开后又听到尾音（#565 二轮，2026-10-05
-    /// 真机：泰语念完仍被自己认成新句子）。它那条路放开静麦后调用这个把尾加长。
-    func extendMuteTail(_ s: Double) { muteUntil = max(muteUntil, Date().timeIntervalSince1970 + s) }
     /// 与 tap 共享一份缓冲的第二个消费者（speech-bridge.swift 的设备内置转写）。
     /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
     var micSink: ((AVAudioPCMBuffer) -> Void)?

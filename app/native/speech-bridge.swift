@@ -718,16 +718,20 @@ final class MTDeviceSpeech {
 /// 70 个、全是 compact / super-compact —— WebKit 那条路永远拿不到增强/优质档。所以 App 里的「设备内置语音」
 /// （注册表 `browser`）经这里合成：按 优质 > 增强 > 默认 挑同语言的声音，走 App 自己的音频会话（锁屏可出声）。
 /// 协议与 Piper 后端完全相同（tts-speak 带 `backend:"system"` → tts-start / tts-end / tts-failed），JS 不分。
-/// 合成器必须是存储属性（上面 MTSpeechChunkBox 的教训：局部量一释放，委托回调全打在 nil 上）。
-final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
+///
+/// **2026-10-05（#565 三轮）改走 `write()` 管线**：原来 `synth.speak(u)` 让系统在内部渲染播放，静麦只能
+/// 跟着 delegate 回调（didStart/didFinish）走 —— 而那些回调比**实际出声**早/晚（真机：泰语念完仍被自己认成
+/// 新句子），中文（Piper）那条自己渲染、自己排队、静麦对齐到「首块出声 + 总样本数」的路从不回声。
+/// 现在 `write(_:toBuffer:)` 把合成出的 PCM 块交给**我们**，用与 Piper 完全相同的
+/// `MTSpeechChunkBox` + `AVAudioPlayerNode` 播放 —— 系统语音从此走那条从不回声的通道。
+final class MTSystemSpeech: NSObject {
     var emit: (([String: Any]) -> Void)?
     private var synth = AVSpeechSynthesizer()
     private var currentId = ""
-
-    override init() {
-        super.init()
-        synth.delegate = self
-    }
+    private var cancelled = false
+    private var engine: AVAudioEngine?
+    private var player: AVAudioPlayerNode?
+    private var playerRate: Double = 0
 
     /// 有声音的语言（小写、去地区），给 JS 判「这个语言原生能不能读」。
     func langs() -> [String] {
@@ -766,8 +770,9 @@ final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
         let rate = (body["rate"] as? Double) ?? 1.0
         let preferred = (body["voice"] as? String) ?? ""
         guard let voice = MTSystemSpeech.pick(lang: lang, preferred: preferred) else { emit?(["type": "tts-failed", "id": id, "reason": "lang"]); return }
-        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        cancelled = false
         currentId = id
+        synth.stopSpeaking(at: .immediate)   // 也终止在途的 write()（合成即刻停）
 #if os(iOS)
         // 会话类别由 MTAudioBridge 钉（听译一律 .playAndRecord + mixWithOthers）；这里只保证它是活的。
         try? AVAudioSession.sharedInstance().setActive(true)
@@ -775,37 +780,70 @@ final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
         let u = AVSpeechUtterance(string: text)
         u.voice = voice
         u.rate = min(AVSpeechUtteranceMaximumSpeechRate, max(AVSpeechUtteranceMinimumSpeechRate, AVSpeechUtteranceDefaultSpeechRate * Float(rate)))
-        synth.speak(u)
+        // 与 Piper 同一条管线：write() 把合成的 PCM 块交给**我们**，排进自己的 AVAudioPlayerNode，
+        // 静麦由 MTSpeechChunkBox 对齐到「首块出声 + 总样本数/采样率」—— 不再猜 delegate 回调的时机。
+        var box: MTSpeechChunkBox?
+        synth.write(u) { [weak self] buffer in
+            guard let self else { return }
+            // 空块 = 合成结束（write() 的收尾信号）
+            guard let pcm = buffer as? AVAudioPCMBuffer, pcm.frameLength > 0, pcm.floatChannelData != nil else {
+                box?.finish { MTAudioBridge.shared.muteInput = false
+                    guard self.currentId == id else { return }
+                    self.emit?(["type": "tts-end", "id": id]) }
+                return
+            }
+            if self.cancelled { return }
+            if box == nil {
+                do {
+                    let (p, r) = try self.ensurePlayer(rate: pcm.format.sampleRate)
+                    let b = MTSpeechChunkBox(player: p, rate: r)
+                    b.onFirst = { MTAudioBridge.shared.muteInput = true; self.emit?(["type": "tts-start", "id": id]) }
+                    b.isCancelled = { self.cancelled }
+                    box = b
+                } catch {
+                    self.currentId = ""
+                    self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)])
+                    return
+                }
+            }
+            let n = Int(pcm.frameLength)
+            if pcm.channelCount > 1 {
+                var mono = [Float](repeating: 0, count: n)
+                for ch in 0..<Int(pcm.channelCount) {
+                    let src = pcm.floatChannelData![ch]
+                    for i in 0..<n { mono[i] += src[i] / Float(pcm.channelCount) }
+                }
+                box?.schedule(mono, n)
+            } else {
+                box?.schedule(pcm.floatChannelData![0], n)
+            }
+        }
     }
 
     func stop() {
+        cancelled = true
+        let id = currentId
         currentId = ""
-        if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
+        synth.stopSpeaking(at: .immediate)
+        player?.stop()
+        player?.play()
         MTAudioBridge.shared.muteInput = false
-        MTAudioBridge.shared.extendMuteTail(0.9)
+        if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
     }
 
-    // 出声 → 静麦；念完 / 被停 → 放开（audio-bridge 再静 350 ms 吃尾音）。回声闸的第一道在这里，JS 的四道是兜底。
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        MTAudioBridge.shared.muteInput = true
-        let id = currentId
-        if !id.isEmpty { emit?(["type": "tts-start", "id": id]) }
-    }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        // 系统语音的出声比 didFinish 晚（#565 二轮，2026-10-05 真机）：0.35 s 的默认尾盖不住，
-        // 麦克风放开后又听到尾音。这里把尾加长到 0.9 s。
-        MTAudioBridge.shared.muteInput = false
-        MTAudioBridge.shared.extendMuteTail(0.9)
-        let id = currentId
-        currentId = ""
-        if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
-    }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        MTAudioBridge.shared.muteInput = false
-        MTAudioBridge.shared.extendMuteTail(0.9)
-        let id = currentId
-        currentId = ""
-        if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
+    /// 与 MTSpeech.ensurePlayer 同一套：引擎/播放器按**这一嗓音的采样率**建（write() 的块原样排入，
+    /// 不做重采样 —— 采样率只有拿到第一块才知道，所以引擎在第一块到达时才建）。
+    private func ensurePlayer(rate: Double) throws -> (AVAudioPlayerNode, Double) {
+        if let p = player, let e = engine, e.isRunning, playerRate == rate { return (p, rate) }
+        engine?.stop()
+        let e = AVAudioEngine()
+        let p = AVAudioPlayerNode()
+        e.attach(p)
+        e.connect(p, to: e.mainMixerNode, format: AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1))
+        try e.start()
+        p.play()
+        engine = e; player = p; playerRate = rate
+        return (p, rate)
     }
 }
 
