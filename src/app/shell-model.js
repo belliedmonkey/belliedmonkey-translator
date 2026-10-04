@@ -455,6 +455,24 @@ export function bootShell() {
     // 屏 1（未登录）：这一屏只有登录 —— 横幅等一切都不许在场（#532 的 R1；
     // 2026-10-01 模拟器实测：全新安装时 Safari 横幅会把整屏占满，登录卡被挤到屏幕外）。
     if (!session) { sec.hidden = true; firstRunScreen = 'login'; return; }
+    // 语言对先定（2026-10-04）：「我的语言 / 对方的语言」这一对 probePacks 与两处状态文案都要按它
+    // 算（下面只把它画进两个下拉）。原来这一步在画完状态行之后 —— 识别包那行只会报界面语言一门
+    // （「· zh」），而下载却按整对（zh · en），显示与下载对不上。
+    // 两个槽都必须有值：空值让原生 <select> 选不中任何一项、显示成空白（用户 2026-10-04：
+    // 「两个下拉框都应该是我们支持的所有语言的列表」）。「我的语言」= 界面语言；「对方的语言」
+    // = 另一门，默认英文（我的语言就是英文时回落中文）—— 与 Pencil 稿 `稿 · 下载页 · 自选语言对`
+    // 的「简体中文 / English」一致。
+    let myLang = 'en', otherLang = 'zh';
+    try {
+      const pair = await new Promise((res) => chrome.storage.local.get(['listenMyLang', 'listenOtherLang'], (v) => res(v || {})));
+      langPair = [String(pair.listenMyLang || ''), String(pair.listenOtherLang || '')];
+      let defaults = ['', ''];
+      try { defaults = firstRunLocales(await readObSettings()); } catch (_) { defaults = ['', '']; }
+      myLang = langPair[0] || defaults[0] || 'en';
+      otherLang = langPair[1] || defaults[1] || '';
+      if (!otherLang || otherLang === myLang) otherLang = myLang === 'en' ? 'zh' : 'en';
+    } catch (_) {}
+    langPair = [myLang, otherLang];   // 下载（firstRunLocales）读的就是它 —— 显示与下载一致
     await probePacks();
     const seen = await readObSeen();
     const state = Object.assign(packsState(session), { onboardingSeen: seen });
@@ -482,19 +500,20 @@ export function bootShell() {
         .replace(/(\s*·\s*)+$/, '')
         .replace(/·\s*·/g, '·');
     $('packs-net').textContent = t('firstrun_packs_net', '建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。');
-    // 语言对（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按 界面语言+默认目标 硬下
-    // （China 版上就看到写死的 zh）。现在与听译页共用同一对存储键、同一份选项
-    // （listenModel.langOptions：注册表全量、含泰语；引擎不支持的灰显而不是拿掉）。
-    // 用户没选过时，默认与「界面语言 + 目标语言」一致 —— 就是原来那一对，所以老用户行为不变。
+    // 语言对下拉（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按 界面语言+默认目标 硬下
+    // （China 版上就看到写死的 zh）。与听译页共用同一对存储键、同一份选项
+    // （listenModel.langOptions：**注册表全量**、含泰语）—— 用户 2026-10-04：「两个下拉框都
+    // 应该是我们支持的所有语言的列表」。布局见 `稿 · 下载页 · 自选语言对`（Pencil h1KZdJ）：
+    // 两个全宽选择器块、标签在上、纵向排开（`app/style.css` 的 `#firstrun-packs .packs-lang`）。
+    // 这一对**已经**在 probePacks 之前定好（见上），这里只把它画出来。
     try {
-      const pair = await new Promise((res) => chrome.storage.local.get(['listenMyLang', 'listenOtherLang'], (v) => res(v || {})));
-      langPair = [String(pair.listenMyLang || ''), String(pair.listenOtherLang || '')];
-      const defaults = firstRunLocales(s);
-      const opts = (typeof AppListen !== 'undefined' && AppListen.langOptions) ? AppListen.langOptions(null) : [];
       const wire = (id, labelId, labelText, cur) => {
         const sel = $(id); if (!sel) return;
         $(labelId).textContent = labelText;
         sel.textContent = '';
+        // 选项按**这一格当前值**求（keep=cur）：正选中的那门即使在设备识别器之外也照样留着
+        // （与听译页同一条规则，免得「我明明选过」显示成空）。列表仍是注册表全量。
+        const opts = (typeof AppListen !== 'undefined' && AppListen.langOptions) ? AppListen.langOptions(cur) : [];
         for (const o of opts) {
           const el = document.createElement('option');
           el.value = o.code; el.textContent = o.label; el.disabled = !!o.disabled;
@@ -510,9 +529,10 @@ export function bootShell() {
         };
       };
       // fallback 字面量必须留在 t() 调用点上（no-hardcoded-copy 门禁的判据，也是 translator 的取样点）。
-      wire('packs-my-lang', 'packs-my-lang-label', t('listen_my_lang_label', '我的语言'), langPair[0] || defaults[0] || '');
-      wire('packs-other-lang', 'packs-other-lang-label', t('listen_other_lang_label', '对方的语言'), langPair[1] || defaults[1] || '');
-    } catch (_) {}    const go = $('packs-go');
+      wire('packs-my-lang', 'packs-my-lang-label', t('listen_my_lang_label', '我的语言'), myLang);
+      wire('packs-other-lang', 'packs-other-lang-label', t('listen_other_lang_label', '对方的语言'), otherLang);
+    } catch (_) {}
+    const go = $('packs-go');
     go.disabled = packsBusy;
     go.textContent = packsBusy
       ? t('firstrun_packs_busy', '正在下载…')

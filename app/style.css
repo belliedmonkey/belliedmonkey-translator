@@ -627,6 +627,26 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+
+/* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
+   两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
+   紧贴下面的包列表（build 78 用户截图里就剩两个空小方框）。颜色只走共享 token，不写裸 hex。 */
+:where(#firstrun-packs) .packs-langs { display: flex; flex-direction: column; gap: 14px; margin: 0 0 18px; }
+:where(#firstrun-packs) .packs-lang { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+:where(#firstrun-packs) .packs-lang-label { color: var(--text-secondary); font-size: 0.85rem; }
+:where(#firstrun-packs) .packs-lang select {
+  width: 100%; min-height: 44px; font: inherit; color: var(--fg);
+  background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 0 12px;
+}
+/* 两个包各自一张白卡（稿里就是 16px 圆角、16px 内边距、包名加粗、状态下一行）。 */
+:where(#firstrun-packs) .pack-list { display: flex; flex-direction: column; gap: 14px; }
+:where(#firstrun-packs) .pack-row {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card-bg); border-radius: var(--radius-md); padding: 16px;
+}
+:where(#firstrun-packs) .pack-name { font-size: 1rem; font-weight: 600; color: var(--fg); }
+:where(#firstrun-packs) .pack-row .note { margin: 0; }
 :where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }

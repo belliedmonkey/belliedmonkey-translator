@@ -173,6 +173,40 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'paintFirstRun 没把 firstRunScreen 清空 —— 上一次的 packs 会让首页一直藏着');
   });
 
+  test('R2g · 包屏语言对必须真的画出来（build 78 回归：两个下拉只剩空框）', () => {
+    // 2026-10-04 build 78 实测：`paintFirstRun` 里引用了只在**别的函数**里存在的 `s`
+    // （`firstRunLocales(s)`），严格模式下抛 ReferenceError，被外层 `catch (_) {}` 吞掉 ——
+    // 控件在、标签与选项全空（用户截图里就剩两个空小方框）。这条把那个形状静态钉住：
+    //   ① 默认语言对从 `await readObSettings()` 读（同 R2c 的读法），不许裸传 `s`；
+    //   ② 下拉的标签与选项来自 `AppListen.langOptions`（注册表全量、含泰语 —— 用户
+    //      2026-10-04「两个下拉框都应该是我们支持的所有语言的列表」），按**当前值**求（keep）；
+    //   ③ 两个下拉都拿定好的 `myLang` / `otherLang` 画 —— 空值会让原生 select 显示成空白；
+    //   ④ 第二个下拉仍叫「对方的语言」（2026-10-04 用户拍板，不改「目标语言」）；
+    //   ⑤ 布局是设计稿里的两个全宽选择器块（`packs-langs` / `packs-lang` / `packs-lang-label`）。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const fn = model.slice(model.indexOf('async function paintFirstRun'),
+                           model.indexOf('async function runFirstRunPacks'));
+    ok(fn.length > 200, '切不出 paintFirstRun 的函数体 —— 函数名变了？');
+    ok(!/firstRunLocales\(\s*s\s*\)/.test(fn),
+      'paintFirstRun 里 firstRunLocales 又传了未声明的 s —— ReferenceError 会被静默吞掉，两个下拉变空框（build 78）');
+    ok(/firstRunLocales\(\s*await readObSettings\(\)\s*\)/.test(fn),
+      'paintFirstRun 的默认语言对没有从 readObSettings() 读 —— 用户没选过时没有回落');
+    ok(/AppListen\.langOptions\(/.test(fn),
+      '首启包屏的两个下拉没有用 AppListen.langOptions —— 选项不会含泰语/注册表全量');
+    ok(/wire\('packs-my-lang'[^;]*?\bmyLang\)/.test(fn) && /wire\('packs-other-lang'[^;]*?\botherLang\)/.test(fn),
+      '两个下拉不是用定好的 myLang/otherLang 画的 —— 空值会让原生 select 显示成空白');
+    const shellSrc = read(SHELL);
+    for (const id of ['packs-my-lang', 'packs-my-lang-label', 'packs-other-lang', 'packs-other-lang-label']) {
+      ok(new RegExp(`id="${id}"`).test(shellSrc), `AppShell 里缺 #${id} —— 下拉/标签被删了`);
+    }
+    for (const cls of ['packs-langs', 'packs-lang', 'packs-lang-label']) {
+      ok(new RegExp(`className="${cls}"`).test(shellSrc),
+        `AppShell 里缺 class="${cls}" —— 包屏语言对的全宽堆叠布局（设计稿 h1KZdJ）被改回行内了`);
+    }
+    ok(/listen_other_lang_label',\s*'对方的语言'/.test(fn),
+      '第二个下拉的文案不是「对方的语言」—— 2026-10-04 用户拍板保持该命名');
+  });
+
   test('R2f · 首屏不再给选项；默认「听」；网页翻译入口只在设置页（#547，2026-10-02 用户裁定）', () => {
     const shell = read(SHELL);
     for (const id of ['ob-webonly', 'ob-webonly-text', 'ob-intent-listen', 'ob-intent-both', 'ob-engines']) {

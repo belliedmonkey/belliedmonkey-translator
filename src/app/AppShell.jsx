@@ -157,15 +157,19 @@ function AppShell() {
       <section id="firstrun-packs" hidden>
         <h1 id="packs-title"></h1>
         <p className="lede" id="packs-lede"></p>
-        {/* 「我的语言 / 目标语言」（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按界面语言+默认
+        {/* 「我的语言 / 对方的语言」（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按界面语言+默认
             目标硬下（China 版上就看到写死的 zh）。两个选择器与听译页共用同一对存储键
             （listenMyLang / listenOtherLang）——「同一件事只写一份」；选项由 listenModel.langOptions
-            给出（注册表全量、含泰语；引擎不支持的灰显而不是拿掉）。 */}
+            给出（**注册表全量**、含泰语 —— 用户 2026-10-04：「两个下拉都应该是我们支持的所有语言的列表」）。
+            布局按 Pencil 稿 `稿 · 下载页 · 自选语言对 2026-10-04`：两个**全宽**选择器块、标签在上、
+            选择器在下、纵向排开（原来是行内 label+select 挤成一行、紧贴下面的包列表）。 */}
         <div className="packs-langs" id="packs-langs">
-          <label className="note"><span id="packs-my-lang-label"></span>{' '}
+          <label className="packs-lang">
+            <span className="packs-lang-label" id="packs-my-lang-label"></span>
             <select id="packs-my-lang"></select>
           </label>
-          <label className="note"><span id="packs-other-lang-label"></span>{' '}
+          <label className="packs-lang">
+            <span className="packs-lang-label" id="packs-other-lang-label"></span>
             <select id="packs-other-lang"></select>
           </label>
         </div>

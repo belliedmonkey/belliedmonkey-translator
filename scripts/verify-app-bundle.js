@@ -519,9 +519,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `
         (() => {
           const patch = () => { try {
-            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = async () => ({ ready: true, ok: true });
+            // 默认两个设备包「就绪」（boot 落首页）。window.__mtPacksReady === false 时切到
+            // 「未就绪」——首启包屏（屏 2）只有在未就绪时才画，包屏的语言下拉判据要那一次重载。
+            const ready = window.__mtPacksReady !== false;
+            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true }) : async () => ({ ready: false, ok: false });
             if (window.NativeSpeech && window.NativeSpeech.ensureAssets) window.NativeSpeech.ensureAssets = async () => ({ ok: true });
-            if (window.LearnTTS && window.LearnTTS.deviceStatus) window.LearnTTS.deviceStatus = async () => ({ ready: true });
+            if (window.LearnTTS && window.LearnTTS.deviceStatus) window.LearnTTS.deviceStatus = ready ? async () => ({ ready: true }) : async () => ({ ready: false });
             // 夹具会话是假 token：boot 的同步会 401，App 会自己登出并把会话删掉。
             // 门禁要测的不是登录，所以把 signOut 桩成空操作，让会话在场即可。
             // 直接在页面里把「当前会话」钉住：两个 flavor 的 auth 后端不同（global 直连
@@ -573,6 +576,59 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       if (!sv.signedIn) {
         console.log('  · 会话夹具没落到首页：' + JSON.stringify(sv));
       }
+      // 首启包屏的语言对：两个下拉必须**真的画出**标签与选项（含泰语）。
+      // 2026-10-04 build 78 实测过的缺陷：paintFirstRun 里 firstRunLocales(s) 的 `s` 不在
+      // 作用域（形参叫 session），ReferenceError 被那层 `catch (_) {}` 吞掉 ⇒ wire() 没跑，
+      // 控件在、标签与选项全空（用户截图里就剩并排两个空小方框）。所以断言的是**有内容**，
+      // 不是「元素存在」。
+      //
+      // 这一段要的是**两个包未就绪**的屏 2，而上面的正常夹具把两个包桩成就绪（boot 落首页）——
+      // 临时装一个「包未就绪」的文档脚本重载一次，测完摘下、重载回就绪态，免得影响后面依赖
+      // 「已就绪 + 落首页」的横幅 / 引导各块。
+      const nr = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+        { source: 'window.__mtPacksReady = false;' }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const dg = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify((() => {
+        const $ = (id) => document.getElementById(id);
+        const my = $('packs-my-lang'), ot = $('packs-other-lang');
+        const codes = (list) => list ? Array.from(list.options).map((o) => o.value) : [];
+        const labels = (list) => list ? Array.from(list.options).map((o) => o.textContent) : [];
+        let regLen = -1; try { regLen = AppListen.langOptions(null).length; } catch (_) {}
+        return {
+          packsHidden: $('firstrun-packs').hidden,
+          myLabel: ($('packs-my-lang-label') || {}).textContent || '',
+          otLabel: ($('packs-other-lang-label') || {}).textContent || '',
+          myCodes: codes(my), otCodes: codes(ot),
+          myVal: my ? my.value : '', otVal: ot ? ot.value : '',
+          blankLabels: labels(my).filter((x) => !x).length,
+          myDisabledAll: my ? Array.from(my.options).every((o) => o.disabled) : null,
+          myW: my ? Math.round(my.getBoundingClientRect().width) : 0,
+          regLen,
+        };
+      })())`, returnByValue: true }, sessionId);
+      const g = JSON.parse(dg.result.value);
+      need(!g.packsHidden, '包桩成「未就绪」后首启包屏（屏 2）没显示 —— 这一段的前置不成立');
+      need(!!(g.myLabel && g.otLabel),
+        `首启包屏的语言下拉没有标签（build 78 的回归）：我的语言=「${g.myLabel}」对方的语言=「${g.otLabel}」`);
+      need(g.myCodes.length > 0 && g.otCodes.length > 0,
+        `首启包屏的语言下拉没有选项（build 78 的回归）：我的语言 ${g.myCodes.length} 项、对方的语言 ${g.otCodes.length} 项`);
+      need(g.myCodes.length === g.regLen && g.otCodes.length === g.regLen && g.regLen >= 12,
+        `首启包屏语言下拉的选项数与注册表不一致（注册表 ${g.regLen}、两个下拉 ${g.myCodes.length}/${g.otCodes.length}）—— 两个下拉都应是「我们支持的所有语言」`);
+      need(g.myCodes.includes('th') && g.otCodes.includes('th'),
+        '首启包屏语言下拉里没有泰语（th）—— 「所有选语言的地方都要有泰语」');
+      need(!!g.myVal && !!g.otVal,
+        `首启包屏的语言下拉有空框（选不中任何语言）：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
+      need(g.myCodes.includes(g.myVal) && g.otCodes.includes(g.otVal),
+        `首启包屏语言下拉的选中值不在选项里：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
+      need(g.myW > 150,
+        `首启包屏语言下拉宽度只有 ${g.myW}px —— 应当是设计稿里的整行宽度，不是挤在一行的小方框`);
+      need(g.blankLabels === 0, `首启包屏语言下拉有 ${g.blankLabels} 个选项没有名字`);
+      need(g.myDisabledAll !== true,
+        '首启包屏语言下拉的选项全部不可选 —— 那样列表点不开');
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr.identifier }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
     }
 
     // 扩展未启用横幅（§引导）。转换器模板的两端接线都在工程里、都接着空气：
