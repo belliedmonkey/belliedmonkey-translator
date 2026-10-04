@@ -466,3 +466,30 @@ packAsrUnsupported` ⇒ 探针仍回 `unsupported/locale`）。修复确实进�
 
 （本轮插曲：当时本机 `127.0.0.1:1082` 本地代理已死 + NAS 上 mihomo 栈 8317/18080/19090/19091 全
 CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d82b05..59f3acbc` 已补。）
+
+---
+
+## 2026-10-04 · TestFlight 第十批（#564 语言对对调修复 + #563 探针两台按资产选）
+
+驱动 `.local/build-1190k-four.sh`，从 `03e5728a`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第九批 139/87/82/80 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **140** | **VALID** |
+| 国际 macOS | **88** | **VALID** |
+| 中国 iOS | **83** | **VALID** |
+| 中国 macOS | **81** | **VALID** |
+
+这一批两处：① **#564 语言对对调** —— 包屏默认值把 `firstRunLocales()`（去重集合）当槽位一对用，
+且「选默认值不触发 change」令 `listenMyLang` 恒空 ⇒ 点下载后「我=中文、对方=ไทย」跳成
+「我=ไทย、对方=English」。修：槽位默认各算（我的=界面语言，对方的=targetLang∥一门不同的）+
+「下载并继续」先落盘。② **#563 追踪** —— `mtTranscriberFor` 两台都按 `AssetInventory.status`
+问（`mtModuleUsable`），先可用者胜；依据 15 Pro/26.6.2 浮层数据（speechN=30 dictN=54、
+`th dictation installed`）：名单说支持 ≠ 资产说可用，未就绪模块会被 26.x 报 `.unsupported`。
+
+**进包已回读**：`ViewController.swift` 有 `func mtModuleUsable`；`dist-app-china/Script.js` 有
+`listenMyLang: langPair[0]`（下载落盘）与 `getUILanguage()`（槽位默认）。诊断浮层**再留一轮**
+（验证新选法），用户确认后删。
+
+`npm test` 2384 passed / 0 failed（R2g 改判 + 新增 R2h + thai 资产判据）；`test:app` global/china 绿。
