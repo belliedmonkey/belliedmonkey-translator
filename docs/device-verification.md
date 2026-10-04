@@ -418,3 +418,33 @@ iOS 27.0 的 14 Pro 上 `supportedLocale("th")` 本就回 nil、落 dict，端�
 
 **待补**：15 Pro（26.6.2）真机端到端 —— 本批 china iOS 80 由用户验（首页两卡是否恢复可点、
 选 ไทย 是否可用）。`npm test` 2382 passed / 0 failed；新增门禁见 `test/listen-langs-thai.test.js`。
+
+⚠️ **第七批在 15 Pro / iOS 26.6.2 上没修好**（用户 16:12–16:13 报）：首页两卡仍灰（CTA 带像素
+`(215,177,148)` ≈ 主色 `#ac6231` 压 0.45）、包屏「识别语言包」整行不见（`rowAsr.hidden =
+packAsrUnsupported` ⇒ 探针仍回 `unsupported/locale`）。修复确实进了 80（`app:sync` 日志 =
+`speech bridge block replaced`；china 归档重编了 `ViewController.swift`）⇒ **名单判据不够**，
+需要设备上的中间值。
+
+---
+
+## 2026-10-04 · TestFlight 第八批（**诊断批**：探针中间值上屏幕，定位 #563）
+
+驱动 `.local/build-1190i-four.sh`，从 `bc173c3e`（feat/firstrun-gates，临时诊断提交）出，版本 1.19.0。
+号码按 ASC 回读定（第七批 137/85/80/78 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **138** | **VALID** |
+| 国际 macOS | **86** | **VALID** |
+| 中国 iOS | **81** | **VALID** |
+| 中国 macOS | **79** | **VALID** |
+
+这一批**只多了一条诊断**（不改产品行为）：原生 `stt-probe` 把中间值发回 JS，页面底部一条绿色固定浮层
+`[mt-probe]` 显示 —— 输入语言对 / `ok·reason·assets` / `isAvail·speechN·dictN` / `unionN·unionHasTh`
+/ 每门语言 `(id, 选中哪台, 资产状态)`。用来钉死「26.6.2 上泰语为什么仍被判不支持」。
+
+**进包已回读**：`safari-project-china/…/ViewController.swift` 里搜得到 `"probe": probeDbg`（3 处）。
+**浮层渲染已在 14 Pro（iOS 27.0）验过**：`isAvail=true speechN=45 dictN=54 unionN=68 unionHasTh=true`、
+`probe: en-US speech installed`。
+
+⚠️ **这一批是临时的**：定位完成后删诊断（`bc173c3e` + `build-scripts` 白名单里的 `"probe"/"nil"`）。
