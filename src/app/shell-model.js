@@ -489,19 +489,25 @@ export function bootShell() {
     // 语言对先定（2026-10-04）：「我的语言 / 对方的语言」这一对 probePacks 与两处状态文案都要按它
     // 算（下面只把它画进两个下拉）。原来这一步在画完状态行之后 —— 识别包那行只会报界面语言一门
     // （「· zh」），而下载却按整对（zh · en），显示与下载对不上。
-    // 两个槽都必须有值：空值让原生 <select> 选不中任何一项、显示成空白（用户 2026-10-04：
-    // 「两个下拉框都应该是我们支持的所有语言的列表」）。「我的语言」= 界面语言；「对方的语言」
-    // = 另一门，默认英文（我的语言就是英文时回落中文）—— 与 Pencil 稿 `稿 · 下载页 · 自选语言对`
-    // 的「简体中文 / English」一致。
-    let myLang = 'en', otherLang = 'zh';
+    // **槽位语义（2026-10-04 晚，#564 真机教训）**：`firstRunLocales()` 是**去重集合**，没有槽位
+    // 之分 —— 此前拿它当 [我的, 对方的] 的默认值，用户只设过「对方的 = ไทย」时集合是 ['th']，
+    // 「我的语言」就被填成泰语、「对方的」被挤成 English（下载重画时肉眼可见地对调）。默认值必须
+    // 按槽位各算各的：我的 = 存储 ∥ 界面语言；对方的 = 存储 ∥ 目标语言（与我的不同时）∥ 一门
+    // 与「我的」不同的。两个槽都必须有值：空值会让原生 <select> 选不中任何一项、显示成空白。
+    let myLang = 'zh', otherLang = 'en';
     try {
       const pair = await new Promise((res) => chrome.storage.local.get(['listenMyLang', 'listenOtherLang'], (v) => res(v || {})));
       langPair = [String(pair.listenMyLang || ''), String(pair.listenOtherLang || '')];
-      let defaults = ['', ''];
-      try { defaults = firstRunLocales(await readObSettings()); } catch (_) { defaults = ['', '']; }
-      myLang = langPair[0] || defaults[0] || 'en';
-      otherLang = langPair[1] || defaults[1] || '';
-      if (!otherLang || otherLang === myLang) otherLang = myLang === 'en' ? 'zh' : 'en';
+      const B = (x) => String(x || '').split(/[-_]/)[0].toLowerCase();
+      const ui = (() => { try { return B(chrome.i18n.getUILanguage()); } catch (_) { return ''; } })();
+      myLang = B(langPair[0]) || ui || 'zh';
+      let other = B(langPair[1]);
+      if (!other || other === myLang) {
+        let target = '';
+        try { target = B(ListenCore.toLocale((await readObSettings()).targetLang || '')); } catch (_) {}
+        other = (target && target !== myLang) ? target : (myLang === 'en' ? 'zh' : 'en');
+      }
+      otherLang = other;
     } catch (_) {}
     langPair = [myLang, otherLang];   // 下载（firstRunLocales）读的就是它 —— 显示与下载一致
     await probePacks();
@@ -580,6 +586,10 @@ export function bootShell() {
   async function runFirstRunPacks() {
     if (packsBusy) return;
     packsBusy = true;
+    // 把当前显示的一对**落盘**（#564）：用户选「默认值」不触发 change 事件，`listenMyLang` 可能
+    // 一直是空 —— 不落盘的话，每次重画都按「未设置」重算默认，下载前后就可能跳（对调）。
+    // 从这一刻起显示、存储、下载三者锁死。
+    try { chrome.storage.local.set({ listenMyLang: langPair[0], listenOtherLang: langPair[1] }, () => {}); } catch (_) {}
     try { await paintFirstRun(currentSession); } catch (_) {}
     const err = $('packs-err');
     if (err) err.hidden = true;

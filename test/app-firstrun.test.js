@@ -189,8 +189,16 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(fn.length > 200, '切不出 paintFirstRun 的函数体 —— 函数名变了？');
     ok(!/firstRunLocales\(\s*s\s*\)/.test(fn),
       'paintFirstRun 里 firstRunLocales 又传了未声明的 s —— ReferenceError 会被静默吞掉，两个下拉变空框（build 78）');
-    ok(/firstRunLocales\(\s*await readObSettings\(\)\s*\)/.test(fn),
-      'paintFirstRun 的默认语言对没有从 readObSettings() 读 —— 用户没选过时没有回落');
+    // 2026-10-04 晚（#564）：默认语言对**不再**取自 firstRunLocales —— 它是去重集合、没有槽位
+    // 之分，用户只设过「对方的=ไทย」时集合是 ['th']，「我的」会被填成泰语（对调）。
+    // 改按槽位各算：我的 = getUILanguage；对方的 = targetLang（readObSettings）∥ 一门不同的。
+    // （状态行「识别语言包未下载 · {langs}」仍可用 firstRunLocales —— 那是集合语义的正确用法。）
+    ok(!/defaults\[0\]/.test(fn) && !/defaults\[1\]/.test(fn),
+      'paintFirstRun 又把 firstRunLocales() 的返回当 [我的,对方的] 槽位默认 —— 集合没有槽位之分，会把「对方的」错填进「我的」（#564 对调回归）');
+    ok(/getUILanguage\(\)/.test(fn),
+      '「我的语言」的默认不是界面语言（getUILanguage）—— 槽位默认各算各的（#564）');
+    ok(/targetLang/.test(fn) && /readObSettings\(\)/.test(fn),
+      '「对方的语言」的默认没有读 targetLang —— 用户没选过时没有回落');
     ok(/AppListen\.langOptions\(/.test(fn),
       '首启包屏的两个下拉没有用 AppListen.langOptions —— 选项不会含泰语/注册表全量');
     ok(/wire\('packs-my-lang'[^;]*?\bmyLang\)/.test(fn) && /wire\('packs-other-lang'[^;]*?\botherLang\)/.test(fn),
@@ -205,6 +213,21 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     }
     ok(/listen_other_lang_label',\s*'对方的语言'/.test(fn),
       '第二个下拉的文案不是「对方的语言」—— 2026-10-04 用户拍板保持该命名');
+  });
+
+  test('R2h · 语言对不再对调：默认按槽位算 + 「下载并继续」把当前一对落盘（#564）', () => {
+    // 2026-10-04 晚真机（15 Pro / 82）：用户选「我=中文、对方=ไทย」，点下载后跳成「我=ไทย、
+    // 对方=English」。两个成因：① 选「默认值」不触发 change ⇒ listenMyLang 一直空；
+    // ② 重画把集合 firstRunLocales() 的 ['th'] 当 defaults[0] 填进「我的」。
+    // R2g 已钉住 ① 之后的槽位默认；这条钉 ② 之外的另一半 —— 下载时必须把显示的一对落盘，
+    // 显示/存储/下载三者锁死，重画不可能再跳。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const i = model.indexOf('async function runFirstRunPacks');
+    ok(i > 0, '找不到 runFirstRunPacks');
+    const fn = model.slice(i, model.indexOf('\n  }', i));
+    const persist = fn.slice(0, fn.indexOf('paintFirstRun'));   // 必须在重画**之前**落盘
+    ok(/listenMyLang:\s*langPair\[0\]/.test(persist) && /listenOtherLang:\s*langPair\[1\]/.test(persist),
+      '「下载并继续」没有先把 langPair 落到 listenMyLang/listenOtherLang —— 重画会按「未设置」重算，语言对会跳（#564）');
   });
 
   test('R2f · 首屏不再给选项；默认「听」；网页翻译入口只在设置页（#547，2026-10-02 用户裁定）', () => {

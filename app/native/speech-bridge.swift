@@ -56,22 +56,36 @@ func mtDictationLocale(_ id: String) async -> Locale? {
 /// **2026-10-04 真机（iOS 26.x）修正**：`SpeechTranscriber.supportedLocale(equivalentTo:)`
 /// 在 **iOS 26.x 上对「窄的那台并不支持」的语言也会归一化出一个 locale**（27.0 才改成回 nil）。
 /// 只信它，就会把泰/俄/阿错分给窄的那台 —— 而那台的 `AssetInventory.status` 是 `unsupported`
-/// ⇒ 整个探针回 `unsupported/locale` ⇒ 首页「对话/实时字幕」两个入口一起变灰、且说「本机识别器
-/// 不支持这门语言」。判据：必须**真出现在 `SpeechTranscriber.supportedLocales` 清单里**才认窄的这台；
-/// 否则落回语言集更宽的 `DictationTranscriber`。（两台上实测：26.5 → `speech(th-TH)=unsupported`
-/// / `dict(th-TH)=supported`；27.0 上 `supportedLocale("th")` 本就回 nil。）
+/// ⇒ 整个探针回 `unsupported/locale` ⇒ 首页「对话/实时字幕」两个入口一起变灰。判据：必须真出现在
+/// `SpeechTranscriber.supportedLocales` 清单里才认窄的这台。
+///
+/// **2026-10-04 晚（#563 追踪，15 Pro/26.6.2 浮层数据）再修**：名单说支持 ≠ 资产说可用 ——
+/// 未就绪（未下载/元数据未同步）的模块会被 `AssetInventory` 报成 `.unsupported`，只看名单会把
+/// 「没下载好」误判成「语言不支持」，包屏随即藏掉「识别语言包」行、永远不去下它（死循环）。
+/// 所以两台**都**按资产状态问一遍，先用「资产不是 unsupported」的那台；都不行才返回原选
+/// （调用方按 status 报真因）。实测 26.6.2：`speechN=30 dictN=54`，泰语 `dictation installed`。
 @available(iOS 26.0, macOS 26.0, *)
 enum MTTranscriberKind { case speech, dictation }
 
 @available(iOS 26.0, macOS 26.0, *)
+func mtModuleUsable(_ kind: MTTranscriberKind, _ l: Locale) async -> Bool {
+    let st = await AssetInventory.status(forModules: [mtProbeModule(kind, l)])
+    if case .unsupported = st { return false }
+    return true
+}
+
+@available(iOS 26.0, macOS 26.0, *)
 func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: Locale)? {
     let speechLocales = await SpeechTranscriber.supportedLocales
+    var speech: (MTTranscriberKind, Locale)? = nil
     if let l = await mtSpeechLocale(id),
        speechLocales.contains(where: { $0.identifier(.bcp47) == l.identifier(.bcp47) }) {
-        return (.speech, l)
+        speech = (.speech, l)
     }
-    if let l = await mtDictationLocale(id) { return (.dictation, l) }
-    return nil
+    let dict = await mtDictationLocale(id).map { (MTTranscriberKind.dictation, $0) }
+    if let s = speech, await mtModuleUsable(s.0, s.1) { return s }
+    if let d = dict, await mtModuleUsable(d.0, d.1) { return d }
+    return speech ?? dict
 }
 
 /// 报给 JS 的「本机识别器支持哪些 locale」= **两台之并**（不写死，当场问设备）。

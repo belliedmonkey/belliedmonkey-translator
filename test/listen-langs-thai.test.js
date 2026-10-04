@@ -73,6 +73,21 @@ describe('本机识别：不只问 SpeechTranscriber', () => {
       '核对必须在「返回 .speech」之前 —— 否则仍旧只信 supportedLocale()');
   });
 
+  test('★ 名单说支持 ≠ 资产说可用：两台都按资产状态问，先可用者胜（#563 追踪，15 Pro/26.6.2）', () => {
+    // 2026-10-04 晚，浮层数据（speechN=30 dictN=54，th dictation installed）：80 失败、82 好转
+    // 之间没有代码差异 ⇒ 名单之外还有一层 —— 未就绪（未下载/元数据未同步）的模块会被
+    // AssetInventory 报 .unsupported，只看名单会把「没下载好」误判成「语言不支持」，包屏随即
+    // 藏掉「识别语言包」行、永远不去下它（死循环）。选择必须两台都问资产状态。
+    const body = SWIFT.replace(/\/\/.*$/gm, '');
+    const i = body.indexOf('func mtTranscriberFor');
+    const fn = body.slice(i, body.indexOf('\n}', i));
+    ok(/mtModuleUsable/.test(fn) && /AssetInventory\.status/.test(body),
+      'mtTranscriberFor 没有按 AssetInventory.status 判「这台能不能用」—— 名单之外还得看资产（#563）');
+    ok((fn.match(/mtModuleUsable\(/g) || []).length >= 2,
+      '窄/宽两台都要按资产状态问一遍 —— 只问一台仍会把「没下载好」判成「不支持」');
+    ok(/mtDictationLocale/.test(fn), '窄的那台不行时没有回落到宽的那台');
+  });
+
   test('报给 JS 的支持集是**两台之并**（否则列表里的泰语会被判成不支持）', () => {
     ok(/func mtSupportedLocalesUnion/.test(SWIFT), '没有并集函数');
     const i = SWIFT.indexOf('func mtSupportedLocalesUnion');
