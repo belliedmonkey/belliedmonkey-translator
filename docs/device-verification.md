@@ -386,3 +386,35 @@ issue #562）。根因：`paintFirstRun(session)` 里语言对那段写的是 `f
 `runFirstRunPacks` 两处（那两处作用域里确有 `const s`）。
 
 CI：PR #535 合并前 run 37176397751 5/5 pass；并入 main（`748e9b46`）后 run 37179080329 5/5 pass。
+
+---
+
+## 2026-10-04 · TestFlight 第七批（iOS 26.x 上「选窄转写器」错判泰/俄/阿的修复 #563）
+
+驱动 `.local/build-1190h-four.sh`，从 `246b1342`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码跑前从 ASC 回读确定（第六批 136/84/79/77 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **137** | **VALID** |
+| 国际 macOS | **85** | **VALID** |
+| 中国 iOS | **80** | **VALID** |
+| 中国 macOS | **78** | **VALID** |
+
+**这一批补的一处**（第六批 136/84/79/77 里没有）：
+
+**iPhone 15 Pro / iOS 26.6.2（听译语言 ไทย）首页两个入口一起灰**（issue #563）。根因：
+`mtTranscriberFor` 先问 `SpeechTranscriber.supportedLocale(equivalentTo:)`，而它在 **iOS 26.x 上对
+「窄的那台并不支持」的语言也会归一化出一个 locale**（27.0 才改成回 nil）⇒ 泰/俄/阿被错分给窄的
+那台、其 `AssetInventory.status=unsupported` ⇒ 探针回 `unsupported/locale` ⇒ `ok=false` ⇒
+`entryState.disabled` ⇒ 两张卡一起灰。修：认窄的那台前核对 `SpeechTranscriber.supportedLocales`，
+不在清单里就落回 `DictationTranscriber`。
+
+**实测对照（系统 API，非推测）**：iOS 26.5 模拟器 `speech(th-TH)=unsupported` / `dict(th-TH)=supported`；
+iOS 27.0 的 14 Pro 上 `supportedLocale("th")` 本就回 nil、落 dict，端到端首页两张卡 CTA 带像素 =
+实心 `#ac6231`（启用）⇒ 这是 26.x 线独有的缺陷。
+
+**进包已回读**：`safari-project{,-china}/…/ViewController.swift` 里都搜得到 `speechLocales.contains`。
+
+**待补**：15 Pro（26.6.2）真机端到端 —— 本批 china iOS 80 由用户验（首页两卡是否恢复可点、
+选 ไทย 是否可用）。`npm test` 2382 passed / 0 failed；新增门禁见 `test/listen-langs-thai.test.js`。
