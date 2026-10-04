@@ -782,6 +782,7 @@ final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
         currentId = ""
         if synth.isSpeaking { synth.stopSpeaking(at: .immediate) }
         MTAudioBridge.shared.muteInput = false
+        MTAudioBridge.shared.extendMuteTail(0.9)
     }
 
     // 出声 → 静麦；念完 / 被停 → 放开（audio-bridge 再静 350 ms 吃尾音）。回声闸的第一道在这里，JS 的四道是兜底。
@@ -791,13 +792,17 @@ final class MTSystemSpeech: NSObject, AVSpeechSynthesizerDelegate {
         if !id.isEmpty { emit?(["type": "tts-start", "id": id]) }
     }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        // 系统语音的出声比 didFinish 晚（#565 二轮，2026-10-05 真机）：0.35 s 的默认尾盖不住，
+        // 麦克风放开后又听到尾音。这里把尾加长到 0.9 s。
         MTAudioBridge.shared.muteInput = false
+        MTAudioBridge.shared.extendMuteTail(0.9)
         let id = currentId
         currentId = ""
         if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
     }
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         MTAudioBridge.shared.muteInput = false
+        MTAudioBridge.shared.extendMuteTail(0.9)
         let id = currentId
         currentId = ""
         if !id.isEmpty { emit?(["type": "tts-end", "id": id]) }
