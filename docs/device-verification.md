@@ -448,3 +448,21 @@ packAsrUnsupported` ⇒ 探针仍回 `unsupported/locale`）。修复确实进�
 `probe: en-US speech installed`。
 
 ⚠️ **这一批是临时的**：定位完成后删诊断（`bc173c3e` + `build-scripts` 白名单里的 `"probe"/"nil"`）。
+
+---
+
+## 2026-10-04 · TestFlight 第九批（第八批原样重发：81 在 15 Pro 上卡「准备中」）
+
+用户在 15 Pro 装 81 时 TestFlight 卡「准备中」不动；ASC 上 81 是 VALID 的（CDN/端侧问题）。
+按用户裁定「重来」重发一批：**同一 HEAD `59f3acbc`，内容与 138/86/81/79 完全相同**（诊断浮层那版）。
+驱动 `.local/build-1190j-four.sh`。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **139** | **VALID** |
+| 国际 macOS | **87** | **VALID** |
+| 中国 iOS | **82** | **VALID** |
+| 中国 macOS | **80** | **VALID** |
+
+（本轮插曲：当时本机 `127.0.0.1:1082` 本地代理已死 + NAS 上 mihomo 栈 8317/18080/19090/19091 全
+CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d82b05..59f3acbc` 已补。）
