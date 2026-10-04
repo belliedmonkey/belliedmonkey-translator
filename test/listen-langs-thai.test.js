@@ -58,6 +58,21 @@ describe('本机识别：不只问 SpeechTranscriber', () => {
     ok(/DictationTranscriber\(locale:/.test(SWIFT), '没有真的构造过它');
   });
 
+  test('★ 选窄的那台前必须核对支持清单 —— iOS 26.x 会为不支持的语言也归一化出 locale', () => {
+    // 2026-10-04 真机：iOS 26.x 上 `SpeechTranscriber.supportedLocale(equivalentTo: "th")` 返回
+    // `th-TH`（其实不含泰语），27.0 才改成回 nil。只信它会把泰/俄/阿错分给窄的那台，那台的资产
+    // 状态是 unsupported ⇒ 探针回 unsupported/locale ⇒ 首页两个入口一起灰。
+    const body = SWIFT.replace(/\/\/.*$/gm, '');
+    const i = body.indexOf('func mtTranscriberFor');
+    ok(i > 0, '没有 mtTranscriberFor');
+    const fn = body.slice(i, body.indexOf('\n}', i));
+    ok(/supportedLocales/.test(fn),
+      'mtTranscriberFor 选 speech 前没有核对 SpeechTranscriber.supportedLocales');
+    ok(/contains\(where:/.test(fn), '没有用「在清单里」这条判据');
+    ok(fn.indexOf('supportedLocales') < fn.indexOf('.speech'),
+      '核对必须在「返回 .speech」之前 —— 否则仍旧只信 supportedLocale()');
+  });
+
   test('报给 JS 的支持集是**两台之并**（否则列表里的泰语会被判成不支持）', () => {
     ok(/func mtSupportedLocalesUnion/.test(SWIFT), '没有并集函数');
     const i = SWIFT.indexOf('func mtSupportedLocalesUnion');

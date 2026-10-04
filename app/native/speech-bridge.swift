@@ -52,12 +52,24 @@ func mtDictationLocale(_ id: String) async -> Locale? {
 /// 这门语言该用哪台转写器：**能用窄的（SpeechTranscriber）就用窄的**
 /// （它是 Apple 的新模型，长文/对话场景更好），窄的不支持才落回 `DictationTranscriber`。
 /// 返回 nil = 两台都不认 ⇒ 调用方按 unsupported 处理。
+///
+/// **2026-10-04 真机（iOS 26.x）修正**：`SpeechTranscriber.supportedLocale(equivalentTo:)`
+/// 在 **iOS 26.x 上对「窄的那台并不支持」的语言也会归一化出一个 locale**（27.0 才改成回 nil）。
+/// 只信它，就会把泰/俄/阿错分给窄的那台 —— 而那台的 `AssetInventory.status` 是 `unsupported`
+/// ⇒ 整个探针回 `unsupported/locale` ⇒ 首页「对话/实时字幕」两个入口一起变灰、且说「本机识别器
+/// 不支持这门语言」。判据：必须**真出现在 `SpeechTranscriber.supportedLocales` 清单里**才认窄的这台；
+/// 否则落回语言集更宽的 `DictationTranscriber`。（两台上实测：26.5 → `speech(th-TH)=unsupported`
+/// / `dict(th-TH)=supported`；27.0 上 `supportedLocale("th")` 本就回 nil。）
 @available(iOS 26.0, macOS 26.0, *)
 enum MTTranscriberKind { case speech, dictation }
 
 @available(iOS 26.0, macOS 26.0, *)
 func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: Locale)? {
-    if let l = await mtSpeechLocale(id) { return (.speech, l) }
+    let speechLocales = await SpeechTranscriber.supportedLocales
+    if let l = await mtSpeechLocale(id),
+       speechLocales.contains(where: { $0.identifier(.bcp47) == l.identifier(.bcp47) }) {
+        return (.speech, l)
+    }
     if let l = await mtDictationLocale(id) { return (.dictation, l) }
     return nil
 }
