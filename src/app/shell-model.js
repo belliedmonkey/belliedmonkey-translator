@@ -446,37 +446,6 @@ export function bootShell() {
     };
   }
 
-  // [诊断 · 内测] 把本机识别探针的中间值打到屏幕浮层（用户截图取证）。
-  // 数据来自原生 `stt-state.probe`（speech-bridge.swift）：0=isAvailable 1=speech 门数 2=dict 门数，
-  // 之后每门三点 (id, 选中哪台, 资产状态)。排查 26.x 上「泰语被判不支持」用；定位完删。
-  function paintProbeDebug() {
-    try {
-      if (typeof document === 'undefined' || typeof NativeSpeech === 'undefined') return;
-      let el = document.getElementById('mt-probe-debug');
-      if (!el) {
-        el = document.createElement('pre');
-        el.id = 'mt-probe-debug';
-        el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:2147483647;margin:0;'
-          + 'padding:6px 8px 22px;background:rgba(0,0,0,.86);color:#7CFC00;'
-          + 'font:12px/1.35 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;'
-          + 'max-height:46%;overflow:auto;pointer-events:none;';
-        document.body.appendChild(el);
-      }
-      const r = NativeSpeech.probeResult ? NativeSpeech.probeResult() : {};
-      const sup = NativeSpeech.supportedLocales ? NativeSpeech.supportedLocales() : [];
-      const p = NativeSpeech.probeDebug ? NativeSpeech.probeDebug() : [];
-      const hasTh = sup.some((x) => /^th([-_]|$)/i.test(String(x)));
-      el.textContent = [
-        '[mt-probe]',
-        'in=' + (((r && r.locales) || []).join(',') || '(none)'),
-        'ok=' + (r.ok === true) + ' reason=' + ((r && r.reason) || '') + ' assets=' + ((r && r.assets) || ''),
-        'isAvail=' + (p[0] || '?') + ' speechN=' + (p[1] || '?') + ' dictN=' + (p[2] || '?'),
-        'unionN=' + sup.length + ' unionHasTh=' + hasTh,
-        'probe: ' + (p.length > 3 ? p.slice(3).join(' ') : '(none)'),
-      ].join('\n');
-    } catch (_) {}
-  }
-
   async function paintFirstRun(session) {
     const sec = $('firstrun-packs');
     // 每一次判定都从「还没定」开始 —— show() 靠 `firstRunScreen !== 'packs'` 决定判完之后
@@ -511,7 +480,6 @@ export function bootShell() {
     } catch (_) {}
     langPair = [myLang, otherLang];   // 下载（firstRunLocales）读的就是它 —— 显示与下载一致
     await probePacks();
-    paintProbeDebug();   // [诊断 · 内测] 探针中间值上屏幕（用户截图）
     const seen = await readObSeen();
     const state = Object.assign(packsState(session), { onboardingSeen: seen });
     // 引擎不通（额度用尽且没有自带 key）时按 firstrun.step() 回到屏 1，不另造一屏。

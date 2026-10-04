@@ -176,30 +176,21 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             // 本机识别器支持的 locale 清单（2026-09-17，2026-10-04 起取两台的并集）：
             // JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
             let supported = await mtSupportedLocalesUnion()
-            // [诊断 · 内测] 把探针的中间值也发回 JS（屏幕浮层显示，用户截图）：
-            //   0=isAvailable 1=speech 门数 2=dict 门数，之后每门三点 (id, 选中哪台, 资产状态)。
-            // 排查「26.x 上泰语被判不支持」用；不是文案，是协议值。稳定后删。
-            var probeDbg: [String] = []
-            probeDbg.append(String(SpeechTranscriber.isAvailable))
-            probeDbg.append(String((await SpeechTranscriber.supportedLocales).count))
-            probeDbg.append(String((await DictationTranscriber.supportedLocales).count))
             var allInstalled = true
             for id in locales {
                 // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
-                    probeDbg.append(id); probeDbg.append("nil"); probeDbg.append("")
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "probe": probeDbg])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
                     return
                 }
                 let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
-                probeDbg.append(id); probeDbg.append(String(describing: pick.kind)); probeDbg.append(String(describing: st))
                 switch st {
                 case .unsupported:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "probe": probeDbg])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
                     return
                 case .installed:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
@@ -208,7 +199,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing"])
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "probe": probeDbg])
+            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported])
         }
     }
 

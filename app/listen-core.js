@@ -206,9 +206,14 @@ var ListenCore = (() => {
   const ECHO_MAX = 4;            // 最多同时记几条
 
   const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+  // 无词间空格的文字（泰/老挝/高棉/缅甸）：正字法只在句间用空格，整句会被下面的循环拼成**一个**
+  // 巨型「词」，包含度判定退化成「整串一字不差才命中」—— 语音识别自己念出去的话几乎必然有
+  // 字符/分词差异 ⇒ 回声闸对泰语失明（2026-10-04 真机：自己念的泰语被当成新句子翻回中文）。
+  // 按**字符二元组（bigram）**切：识别差异只丢几个 bigram，60% 门限照常工作。
+  const NOSPACE_SCRIPT = /[\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
   const DROP_PUNCT = /[\s.,!?;:'"()\[\]{}—–\-。，！？；：、「」『』（）《》…]+/gu;
 
-  // 归一化成词/字的集合。中日韩按字切，其余按词切。
+  // 归一化成词/字的集合。中日韩按字切，无空格文字（泰文等）按字符二元组切，其余按词切。
   // 混排（一句里既有汉字又有拉丁词）按**段**切：汉字逐字、拉丁按词。原来只要有一个汉字就整句逐字符切，
   // 于是「译：Delivery takes…」被切成一堆字母，和任何一句英文都有六成字母重合 —— 60 秒窗里的第二句
   // 英文译文被当成「刚读过」跳掉（2026-09-12 门禁 G6 抓到）。
@@ -216,14 +221,24 @@ var ListenCore = (() => {
     const t = String(text == null ? '' : text).toLowerCase().replace(DROP_PUNCT, ' ').trim();
     if (!t) return new Set();
     const out = new Set();
-    let word = '';
-    const flush = () => { if (word) { out.add(word); word = ''; } };
+    let word = '';   // 拉丁/其他按词积累
+    let ns = '';     // 无空格文字的连续段，段断时按二元组展开
+    const flushWord = () => { if (word) { out.add(word); word = ''; } };
+    const flushNs = () => {
+      if (!ns) return;
+      if (ns.length === 1) out.add(ns);
+      else for (let i = 0; i + 1 < ns.length; i++) out.add(ns.slice(i, i + 2));
+      ns = '';
+    };
     for (const c of t) {
-      if (/\s/.test(c)) { flush(); continue; }
-      if (CJK_CHAR.test(c)) { flush(); out.add(c); continue; }
+      if (/\s/.test(c)) { flushWord(); flushNs(); continue; }
+      if (CJK_CHAR.test(c)) { flushWord(); flushNs(); out.add(c); continue; }
+      if (NOSPACE_SCRIPT.test(c)) { flushWord(); ns += c; continue; }
+      flushNs();
       word += c;
     }
-    flush();
+    flushWord();
+    flushNs();
     return out;
   }
 
