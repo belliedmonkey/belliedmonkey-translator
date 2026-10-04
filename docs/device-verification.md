@@ -356,3 +356,33 @@ Kokoro int8 多语离线朗读（#558 + #557）、一键卡随界面语言重画
 沿用既有键也避免给同一件事起第二个名字。**用户 2026-10-04 拍板：保持「对方的语言」，不改成帧上的「目标语言」，代码不再为这个用词改动，
 也不再为它打版。** 理由与决定已记进 `docs/interaction-spec.md`（首启屏那一节）——
 这一页的两个包要的是**被识别的语言**，与「译成」是两个概念。
+
+---
+
+## 2026-10-04 · TestFlight 第六批（首启语音包页语言下拉空框的修复 #562）
+
+驱动 `.local/build-1190g-four.sh`，从 `a9c84c03`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码跑前从 ASC 回读确定（第五批 135/83/78/76 全 VALID；`node scripts/asc.js builds`）。
+**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **136** | **VALID** |
+| 国际 macOS | **84** | **VALID** |
+| 中国 iOS | **79** | **VALID** |
+| 中国 macOS | **77** | **VALID** |
+
+**这一批补的一处**（第五批 135/83/78/76 里没有）：
+
+**首启语音包页「我的语言 / 对方的语言」两个下拉只剩空框**（用户 2026-10-04 build 78 实机截图，
+issue #562）。根因：`paintFirstRun(session)` 里语言对那段写的是 `firstRunLocales(s)`，作用域里只有
+形参 `session` ⇒ 严格模式抛 `ReferenceError`、被外层 `catch (_) {}` 静默吞掉，`wire(...)` 没跑，
+两个 `<select>` 既无标签也无选项。改：默认语言对从 `readObSettings()` 读并单独兜底、两个槽都保证
+有值；语言对提前到 `probePacks()` 之前（显示与下载一致）；选项 = 注册表全量；并按 Pencil 稿
+`稿 · 下载页 · 自选语言对` 落地两个全宽选择器 + 包卡片。
+
+**进包已回读**（不是只看 git）：`dist-app/Script.js` 与 `dist-app-china/Script.js` 都能搜到
+`let defaults = ["", ""]` 与 `packs-lang-label`；`firstRunLocales(s)` 只剩 `probePacks` /
+`runFirstRunPacks` 两处（那两处作用域里确有 `const s`）。
+
+CI：PR #535 合并前 run 37176397751 5/5 pass；并入 main（`748e9b46`）后 run 37179080329 5/5 pass。
