@@ -807,11 +807,12 @@ final class MTSystemSpeech: NSObject {
                 }
             }
             let n = Int(pcm.frameLength)
-            if pcm.channelCount > 1 {
+            let chs = Int(pcm.format.channelCount)
+            if chs > 1 {
                 var mono = [Float](repeating: 0, count: n)
-                for ch in 0..<Int(pcm.channelCount) {
-                    let src = pcm.floatChannelData![ch]
-                    for i in 0..<n { mono[i] += src[i] / Float(pcm.channelCount) }
+                for c in 0..<chs {
+                    let src = pcm.floatChannelData![c]
+                    for i in 0..<n { mono[i] += src[i] / Float(chs) }
                 }
                 box?.schedule(mono, n)
             } else {
