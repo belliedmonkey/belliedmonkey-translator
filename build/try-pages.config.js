@@ -65,6 +65,7 @@ const TARGETS = [
   { code: 'pt', src: 'en' },
   { code: 'ru', src: 'en' },
   { code: 'it', src: 'en' },
+  { code: 'th', src: 'en' },
 ];
 
 module.exports = { PASSAGES, TARGETS };

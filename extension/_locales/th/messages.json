@@ -1,0 +1,3590 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: สองภาษา + ทบทวน"
+  },
+  "extension_description": {
+    "message": "หน้าเว็บสองภาษาและคำบรรยายคู่ ประโยคที่คุณอ่านจริงจะกลายเป็นการ์ดทบทวนแบบเว้นระยะ ใช้คีย์ของคุณเอง"
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ กำลังแปล…"
+  },
+  "msg_preparing": {
+    "message": "⏳ กำลังเตรียมการแปล…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ แปลไม่สำเร็จ — แตะเพื่อลองใหม่"
+  },
+  "fab_translate": {
+    "message": "แปล"
+  },
+  "fab_toggle": {
+    "message": "สลับการแปล"
+  },
+  "fab_enable": {
+    "message": "เปิดการแปล"
+  },
+  "fab_disable": {
+    "message": "ปิดการแปล"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey Translator · คำบรรยายวิดีโอ"
+  },
+  "yt_sub_on": {
+    "message": "เปิดการแปลคำบรรยาย"
+  },
+  "yt_sub_off": {
+    "message": "ปิดการแปลคำบรรยาย"
+  },
+  "yt_display_type": {
+    "message": "การแสดงคำบรรยาย"
+  },
+  "yt_mode_both": {
+    "message": "สองภาษา"
+  },
+  "yt_mode_trans": {
+    "message": "แปลเท่านั้น"
+  },
+  "yt_mode_orig": {
+    "message": "ต้นฉบับเท่านั้น"
+  },
+  "yt_download_srt": {
+    "message": "ดาวน์โหลดคำบรรยาย (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "คำบรรยายยังไม่พร้อม — ลองอีกครั้งหลังการแปลโหลดเสร็จ"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ กำลังโหลดคำบรรยาย…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "คำบรรยายไม่พร้อมใช้งาน"
+  },
+  "podcast_sub_on": {
+    "message": "เปิดคำบรรยายพอดแคสต์"
+  },
+  "podcast_sub_off": {
+    "message": "ปิดคำบรรยายพอดแคสต์"
+  },
+  "settings": {
+    "message": "การตั้งค่า"
+  },
+  "popup_target_lang": {
+    "message": "ภาษาเป้าหมาย"
+  },
+  "popup_provider": {
+    "message": "เครื่องมือแปล"
+  },
+  "provider_google_free": {
+    "message": "Google Translate (ฟรี)"
+  },
+  "placeholder_api_key": {
+    "message": "ป้อน API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "แสดง/ซ่อน"
+  },
+  "label_custom_api": {
+    "message": "URL ปลายทาง (แบบเต็ม)"
+  },
+  "label_optional": {
+    "message": "(ไม่บังคับ)"
+  },
+  "btn_translate_page": {
+    "message": "แปลหน้าเว็บ"
+  },
+  "btn_view_original": {
+    "message": "ดูต้นฉบับ"
+  },
+  "btn_more_settings": {
+    "message": "การตั้งค่าเพิ่มเติม"
+  },
+  "status_translated": {
+    "message": "แปลแล้ว"
+  },
+  "status_untranslated": {
+    "message": "ยังไม่ได้แปล"
+  },
+  "toast_lang_switched": {
+    "message": "เปลี่ยนภาษาแล้ว"
+  },
+  "toast_provider_switched": {
+    "message": "เปลี่ยนเอนจินแล้ว"
+  },
+  "toast_restored_original": {
+    "message": "คืนค่าต้นฉบับแล้ว"
+  },
+  "toast_translating": {
+    "message": "กำลังแปล…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — การตั้งค่า"
+  },
+  "options_engine_section": {
+    "message": "เอนจินแปลภาษา"
+  },
+  "options_engine_label": {
+    "message": "เอนจิน"
+  },
+  "provider_google_free_long": {
+    "message": "Google Translate (ฟรี ไม่ต้องใช้ API Key)"
+  },
+  "options_custom_api_hint": {
+    "message": "เว้นว่างไว้เพื่อใช้ endpoint เริ่มต้นของเอนจินนี้ หากกรอก ให้ใส่ URL คำขอแบบเต็มรวมพาธด้วย — เราจะส่งตามที่พิมพ์ทุกตัวอักษรและไม่ต่อเติมสิ่งใด ใช้ได้กับพร็อกซีและบริการที่โฮสต์เอง"
+  },
+  "options_lang_section": {
+    "message": "ภาษา"
+  },
+  "options_style_section": {
+    "message": "สไตล์การแสดงผล"
+  },
+  "options_webpage_color": {
+    "message": "สีการแปลหน้าเว็บ"
+  },
+  "options_color_preview": {
+    "message": "นี่คือตัวอย่างสไตล์การแปล"
+  },
+  "options_yt_color": {
+    "message": "สีคำบรรยาย YouTube"
+  },
+  "options_yt_preview": {
+    "message": "ตัวอย่างคำบรรยายสองภาษา"
+  },
+  "options_font_size": {
+    "message": "ขนาดการแปล (เทียบกับต้นฉบับ)"
+  },
+  "options_font_s": {
+    "message": "เล็กกว่า (0.8×)"
+  },
+  "options_font_m": {
+    "message": "เล็ก (0.9×)"
+  },
+  "options_font_body": {
+    "message": "เท่าต้นฉบับ (1.0×)"
+  },
+  "options_font_l": {
+    "message": "ใหญ่กว่า (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "แสดงปุ่มลอย"
+  },
+  "options_cache_section": {
+    "message": "แคช"
+  },
+  "options_cache_hint": {
+    "message": "แคชคำแปลไว้ 12 ชั่วโมงเพื่อลดจำนวนคำขอ API"
+  },
+  "options_clear_cache": {
+    "message": "ล้างแคชคำแปล"
+  },
+  "options_about_section": {
+    "message": "เกี่ยวกับ"
+  },
+  "options_about_desc": {
+    "message": "การแปลสองภาษา + วงจรการเรียนรู้: ประโยคที่คุณอ่านจริงจะกลายเป็นการ์ดทบทวน"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: เปิดใช้งานใน Settings → Safari → Extensions"
+  },
+  "toast_provider_saved": {
+    "message": "บันทึกเอนจินแล้ว"
+  },
+  "toast_endpoint_cleared": {
+    "message": "เปลี่ยนเอนจินแล้ว — URL ปลายทางถูกล้าง"
+  },
+  "toast_apikey_saved": {
+    "message": "บันทึก API Key แล้ว"
+  },
+  "toast_apiurl_saved": {
+    "message": "บันทึก API URL แล้ว"
+  },
+  "toast_lang_saved": {
+    "message": "บันทึกภาษาแล้ว"
+  },
+  "toast_fontsize_saved": {
+    "message": "บันทึกขนาดตัวอักษรแล้ว"
+  },
+  "toast_color_saved": {
+    "message": "บันทึกสีแล้ว"
+  },
+  "toast_yt_color_saved": {
+    "message": "บันทึกสีคำบรรยาย YouTube แล้ว"
+  },
+  "toast_clearing": {
+    "message": "กำลังล้าง…"
+  },
+  "toast_cache_empty": {
+    "message": "แคชว่างเปล่า"
+  },
+  "toast_cache_cleared": {
+    "message": "ล้างแคชแล้ว"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key (sk-…)"
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key (sk-ant-…)"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key"
+  },
+  "hint_glm": {
+    "message": "GLM (Zhipu AI) API Key (มีแพ็กเกจฟรี)"
+  },
+  "ui_lang_label": {
+    "message": "ภาษาของอินเทอร์เฟซ"
+  },
+  "ui_lang_auto": {
+    "message": "ตามระบบ"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "ใหญ่ที่สุด (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key"
+  },
+  "hint_qwen_mt": {
+    "message": "Qwen MT (DashScope) API Key โมเดลที่เชี่ยวชาญด้านการแปล — ถูกและเร็วกว่าโมเดลแชตทั่วไป ใช้คีย์เดียวกับ Qwen"
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key จากแพลตฟอร์มของภูมิภาคที่ตรงกัน"
+  },
+  "label_default_model": {
+    "message": "โมเดลเริ่มต้น:"
+  },
+  "hint_custom_chat": {
+    "message": "ปลายทางแชตแบบ Chat-Completions ใดก็ได้ กรอก URL ปลายทางแบบเต็ม โมเดล และคีย์ หากที่อยู่ลงท้ายด้วย responses ระบบจะส่งรูปแบบ Responses แทน"
+  },
+  "hint_custom_msg": {
+    "message": "ปลายทางแชตแบบ Messages ใดก็ได้ กรอก URL ปลายทางแบบเต็ม โมเดล และคีย์"
+  },
+  "label_custom_model": {
+    "message": "โมเดล"
+  },
+  "options_custom_model_hint": {
+    "message": "เว้นว่างไว้เพื่อใช้โมเดลเริ่มต้นของเอนจิน"
+  },
+  "options_advanced": {
+    "message": "พารามิเตอร์ขั้นสูง"
+  },
+  "label_adv_temperature": {
+    "message": "ความสุ่ม (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "ถ้าเว้นว่างจะใช้ 0.3 ค่ายิ่งต่ำยิ่งคงที่"
+  },
+  "label_adv_max_tokens": {
+    "message": "จำนวนเอาต์พุตสูงสุดต่อคำขอ"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "ถ้าเว้นว่างจะใช้ 2000 เพิ่มค่านี้หากย่อหน้ายาว ๆ ถูกตัดขาด"
+  },
+  "label_adv_timeout": {
+    "message": "หมดเวลาเรียกคำขอ (วินาที)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "ถ้าเว้นว่างจะใช้ 20 วินาที เพิ่มค่านี้สำหรับเซิร์ฟเวอร์ที่โฮสต์เองหรือโมเดลที่ใช้การให้เหตุผลซึ่งตอบช้า"
+  },
+  "label_adv_concurrency": {
+    "message": "คำขอแบบขนาน"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "ถ้าเว้นว่างจะใช้ 5 ลดค่านี้หากคุณถูกจำกัดอัตราการเรียกใช้ การเพิ่มค่าไม่ทำให้คำขอที่รออยู่แล้วเร็วขึ้น"
+  },
+  "options_adv_unsupported": {
+    "message": "โมเดลนี้ไม่รองรับพารามิเตอร์นี้ จึงจะไม่ถูกส่งไป"
+  },
+  "label_adv_custom": {
+    "message": "พารามิเตอร์คำขอแบบกำหนดเอง"
+  },
+  "options_adv_custom_hint": {
+    "message": "ออบเจ็กต์ JSON ที่จะถูกรวมเข้ากับเนื้อหาคำขอและเขียนทับฟิลด์ด้านบน สำหรับปลายทางที่โฮสต์เองหรือภายในที่เรายังไม่ได้วัดผล"
+  },
+  "options_adv_custom_bad": {
+    "message": "แยกวิเคราะห์ไม่ได้ จึงจะไม่ส่งสิ่งใดเลย:"
+  },
+  "options_adv_custom_notobj": {
+    "message": "ต้องเป็นออบเจ็กต์ JSON เท่านั้น จึงจะไม่ส่งสิ่งใดเลย"
+  },
+  "options_adv_custom_ok": {
+    "message": "จะส่ง:"
+  },
+  "options_adv_custom_dropped": {
+    "message": "เขียนทับไม่ได้ ถูกเพิกเฉย:"
+  },
+  "options_adv_custom_none": {
+    "message": "(ไม่มี)"
+  },
+  "err_reasoning_starved": {
+    "message": "โมเดลใช้โควต้าเอาต์พุตทั้งหมดไปกับการให้เหตุผลและไม่ได้แปลผลลัพธ์ใด ๆ เพิ่ม \"จำนวนเอาต์พุตสูงสุดต่อคำขอ\" ในพารามิเตอร์ขั้นสูง หรือเปลี่ยนไปใช้โมเดลที่ไม่ใช้การให้เหตุผล"
+  },
+  "toast_model_saved": {
+    "message": "บันทึกโมเดลแล้ว"
+  },
+  "setup_need_key": {
+    "message": "เอนจินนี้ต้องใช้ API key การแปลจะไม่ทำงานจนกว่าคุณจะป้อนคีย์ด้านล่าง"
+  },
+  "popup_need_setup": {
+    "message": "ยังไม่ได้ตั้งค่าการแปล — แตะที่นี่เพื่อเปิดการตั้งค่า ใช้คีย์เดียวตั้งค่าได้ทั้งหมด"
+  },
+  "learn_title": {
+    "message": "ทบทวน"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — ทบทวน"
+  },
+  "learn_review": {
+    "message": "ทบทวน"
+  },
+  "learn_reveal": {
+    "message": "แสดงคำแปล"
+  },
+  "learn_grade_again": {
+    "message": "ลืม"
+  },
+  "learn_grade_hard": {
+    "message": "ยาก"
+  },
+  "learn_grade_good": {
+    "message": "เข้าใจแล้ว"
+  },
+  "learn_grade_easy": {
+    "message": "ง่ายเกินไป"
+  },
+  "learn_empty_title": {
+    "message": "ยังไม่มีเนื้อหาการเรียนรู้"
+  },
+  "learn_empty_body": {
+    "message": "เปิดการเก็บข้อมูล แล้วท่องเว็บและแปลตามปกติ ประโยคที่คุณอ่านจริงจะถูกบันทึกไว้ ส่วนประโยคที่เลื่อนผ่านไปจะไม่ถูกบันทึก"
+  },
+  "learn_open_settings": {
+    "message": "เปิดการเก็บข้อมูลในการตั้งค่า"
+  },
+  "learn_alldone_title": {
+    "message": "เสร็จแล้วสำหรับตอนนี้"
+  },
+  "learn_alldone_body": {
+    "message": "ท่องเว็บและแปลต่อไปได้เลย เนื้อหาใหม่จะเข้ามาเอง"
+  },
+  "learn_next_due": {
+    "message": "การ์ดใบถัดไปจะถึงกำหนด {when}"
+  },
+  "learn_in_minutes": {
+    "message": "ในอีกประมาณ {n} นาที"
+  },
+  "learn_in_hours": {
+    "message": "ในอีกประมาณ {n} ชม."
+  },
+  "learn_in_days": {
+    "message": "ในอีกประมาณ {n} วัน"
+  },
+  "learn_progress": {
+    "message": "ความคืบหน้า"
+  },
+  "learn_done_run": {
+    "message": "เสร็จแล้ว {n} รายการในเซสชันนี้"
+  },
+  "learn_settings": {
+    "message": "การตั้งค่า"
+  },
+  "learn_unknown_source": {
+    "message": "ไม่ทราบแหล่งที่มา"
+  },
+  "learn_count_due": {
+    "message": "ถึงกำหนด"
+  },
+  "learn_count_learning": {
+    "message": "กำลังเรียนรู้"
+  },
+  "learn_count_new": {
+    "message": "รายการที่รอ"
+  },
+  "learn_count_known": {
+    "message": "รู้แล้ว"
+  },
+  "learn_count_total": {
+    "message": "ทั้งหมด"
+  },
+  "learn_section": {
+    "message": "การเรียนรู้"
+  },
+  "learn_section_hint": {
+    "message": "เมื่อเปิด ประโยคที่คุณอ่านจริงจะถูกเก็บไว้ในอุปกรณ์นี้ พร้อมที่อยู่หน้าเว็บ ชื่อเรื่อง และระยะเวลาที่ข้อความอยู่บนหน้าจอ แล้วนำกลับมาแสดงตามเส้นโค้งการลืม การเลื่อนผ่านไม่นับเป็นอ่าน จะไม่มีการอัปโหลดใด ๆ เว้นแต่คุณเปิดการซิงค์ และปุ่มเดียวสามารถลบทั้งหมดได้"
+  },
+  "learn_enable": {
+    "message": "เก็บเนื้อหาสำหรับการเรียนรู้"
+  },
+  "learn_daily_new": {
+    "message": "การ์ดใหม่ต่อวัน (สูงสุด)"
+  },
+  "learn_open_review": {
+    "message": "เปิดหน้าทบทวน"
+  },
+  "learn_clear": {
+    "message": "ลบคลังการเรียนรู้"
+  },
+  "learn_clear_confirm": {
+    "message": "ลบคลังการเรียนรู้หรือไม่ ทุกประโยคที่เก็บไว้และความคืบหน้าการทบทวนทั้งหมดจะถูกลบ และไม่สามารถกู้คืนได้"
+  },
+  "learn_stats": {
+    "message": "{n} รายการ · ถึงกำหนด {due} · ประมาณ {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "คลังการเรียนรู้ว่างเปล่า"
+  },
+  "toast_learn_on": {
+    "message": "กำลังเก็บเนื้อหาสำหรับการเรียนรู้"
+  },
+  "toast_learn_off": {
+    "message": "หยุดการเก็บข้อมูลแล้ว (สิ่งที่เก็บไว้ก่อนหน้านี้ยังคงอยู่)"
+  },
+  "toast_learn_cleared": {
+    "message": "ลบคลังการเรียนรู้แล้ว"
+  },
+  "toast_learn_clear_failed": {
+    "message": "ลบไม่สำเร็จ"
+  },
+  "toast_saved": {
+    "message": "บันทึกแล้ว"
+  },
+  "learn_replay": {
+    "message": "▶ เล่นคลิปนี้อีกครั้ง"
+  },
+  "learn_replay_hint": {
+    "message": "เปิดต้นฉบับในแท็บใหม่ที่เวลานั้น — คำบรรยายสองภาษาก็ใช้ได้ที่นั่นด้วย"
+  },
+  "tts_section": {
+    "message": "อ่านออกเสียง"
+  },
+  "tts_section_hint": {
+    "message": "เปลี่ยนการ์ดทบทวนให้เป็นการฝึกฟัง ใช้เสียงของอุปกรณ์คุณเองโดยค่าเริ่มต้น — ไม่ต้องต่อเน็ต ไม่มีค่าใช้จ่าย และยังชี้ไปที่เซิร์ฟเวอร์เสียงที่คุณรันเองได้ด้วย"
+  },
+  "tts_mode": {
+    "message": "โหมดเสียงพูด"
+  },
+  "tts_mode_off": {
+    "message": "ปิด"
+  },
+  "tts_mode_assist": {
+    "message": "แสดงข้อความ พร้อมปุ่มเล่น"
+  },
+  "tts_mode_audio_first": {
+    "message": "ฟังก่อน (ซ่อนข้อความจนกว่าจะขอ)"
+  },
+  "tts_engine": {
+    "message": "เอนจินเสียงพูด"
+  },
+  "tts_engine_browser": {
+    "message": "เสียงในอุปกรณ์ (ฟรี · ออฟไลน์)"
+  },
+  "tts_engine_local": {
+    "message": "ปลายทางเสียงแบบโลคอล / โฮสต์เอง"
+  },
+  "tts_hint_browser": {
+    "message": "ใช้เสียงที่ระบบปฏิบัติการของคุณมีอยู่แล้ว ไม่มีการส่งข้อมูลไปที่ใดและไม่มีการแคช — เอนจินนี้พูดได้อย่างเดียว ไม่สามารถส่งไฟล์เสียงกลับมาได้"
+  },
+  "tts_hint_local": {
+    "message": "เซิร์ฟเวอร์เสียงบนเครื่องของคุณเองหรือใน LAN — กรอกที่อยู่แบบเต็มตามตัวอย่างที่แสดงในช่อง การสังเคราะห์เสียงจะถูกแคชไว้ในเครื่อง ประโยคหนึ่งจึงเสียค่าใช้จ่ายเพียงครั้งเดียว"
+  },
+  "tts_hint_openai": {
+    "message": "ใช้ API key ของคุณเอง เสียงที่สังเคราะห์จะถูกแคชไว้ในเครื่อง การ์ดหนึ่งใบจึงเสียค่าใช้จ่ายเพียงครั้งเดียว"
+  },
+  "tts_base_url": {
+    "message": "URL ปลายทางเสียง"
+  },
+  "tts_api_key": {
+    "message": "API key ของเสียง"
+  },
+  "tts_model": {
+    "message": "โมเดลเสียง"
+  },
+  "tts_voice": {
+    "message": "เสียง"
+  },
+  "tts_voice_auto": {
+    "message": "อัตโนมัติ (จับคู่กับภาษาของการ์ด)"
+  },
+  "tts_voice_hint": {
+    "message": "เสียงจะถูกจับคู่กับภาษาของแต่ละการ์ด เสียงที่คุณเลือกที่นี่จะใช้เฉพาะเมื่อมันพูดภาษานั้นจริง ๆ"
+  },
+  "tts_rate": {
+    "message": "ความเร็ว"
+  },
+  "tts_autoplay": {
+    "message": "เล่นอัตโนมัติเมื่อเปิดการ์ด"
+  },
+  "tts_test": {
+    "message": "เล่นประโยคทดสอบ"
+  },
+  "tts_test_sample": {
+    "message": "การ์ดทบทวนของคุณจะมีเสียงแบบนี้"
+  },
+  "tts_testing": {
+    "message": "กำลังสังเคราะห์…"
+  },
+  "tts_test_ok": {
+    "message": "กำลังเล่น"
+  },
+  "tts_play": {
+    "message": "▶ ฟัง"
+  },
+  "tts_replay": {
+    "message": "▶ ฟังอีกครั้ง"
+  },
+  "tts_playing": {
+    "message": "กำลังเล่น…"
+  },
+  "tts_loading": {
+    "message": "กำลังโหลดเสียง…"
+  },
+  "tts_no_voice": {
+    "message": "ระบบของคุณไม่มีเสียงสำหรับภาษานี้"
+  },
+  "tts_unsupported": {
+    "message": "เบราว์เซอร์นี้ไม่รองรับการพูดในตัว"
+  },
+  "tts_no_base": {
+    "message": "ยังไม่มี URL ปลายทางบริการเสียง"
+  },
+  "tts_no_key": {
+    "message": "ยังไม่มี API Key สำหรับบริการเสียง"
+  },
+  "tts_blocked": {
+    "message": "เบราว์เซอร์บล็อกการเล่นอัตโนมัติ — แตะเพื่อเล่น"
+  },
+  "tts_http": {
+    "message": "บริการเสียงส่งคืนข้อผิดพลาด"
+  },
+  "tts_failed": {
+    "message": "ไม่สามารถอ่านประโยคนี้ได้ในขณะนี้"
+  },
+  "tts_cache": {
+    "message": "แคชเสียง: {n} คลิป · ประมาณ {mb} MB (จำกัด {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "แคชเสียงว่างเปล่า"
+  },
+  "tts_cache_na": {
+    "message": "เสียงในอุปกรณ์แบบในตัวไม่สร้างแคช"
+  },
+  "tts_clear_cache": {
+    "message": "ล้างแคชเสียง"
+  },
+  "toast_tts_cleared": {
+    "message": "ล้างแคชเสียงแล้ว"
+  },
+  "learn_reveal_orig": {
+    "message": "แสดงข้อความ"
+  },
+  "learn_clean_known": {
+    "message": "ล้างการ์ดที่คุณเชี่ยวชาญแล้ว"
+  },
+  "learn_clean_known_n": {
+    "message": "ล้างการ์ดที่เชี่ยวชาญแล้ว {n} ใบ"
+  },
+  "learn_pressure_dropped": {
+    "message": "ไม่สามารถบันทึก {n} รายการที่เก็บได้ — เกิดขึ้นเมื่อคลังข้อมูลเต็ม"
+  },
+  "learn_pressure_evicted": {
+    "message": "คลังข้อมูลเต็ม — การ์ดเก่า {n} ใบถูกลบอัตโนมัติเพื่อเพิ่มพื้นที่"
+  },
+  "learn_pressure_near": {
+    "message": "คลังข้อมูลใกล้เต็ม ({n} / {cap})"
+  },
+  "toast_learn_cleaned": {
+    "message": "ล้างการ์ดที่เชี่ยวชาญแล้ว {n} ใบ"
+  },
+  "learn_export": {
+    "message": "ส่งออกคลังข้อมูล"
+  },
+  "learn_import": {
+    "message": "นำเข้าจากไฟล์"
+  },
+  "toast_exported": {
+    "message": "ส่งออกแล้ว {n} ใบ"
+  },
+  "toast_export_empty": {
+    "message": "ยังไม่มีข้อมูลให้ส่งออก"
+  },
+  "toast_export_failed": {
+    "message": "ส่งออกไม่สำเร็จ"
+  },
+  "toast_imported": {
+    "message": "นำเข้าแล้ว {n} ใบ"
+  },
+  "toast_import_skipped": {
+    "message": "ข้ามบรรทัดที่อ่านไม่ได้ {n} บรรทัด"
+  },
+  "toast_import_bad_format": {
+    "message": "ไฟล์นี้ไม่ใช่ไฟล์ส่งออกคลังการเรียนรู้"
+  },
+  "toast_import_failed": {
+    "message": "นำเข้าไม่สำเร็จ"
+  },
+  "sync_section": {
+    "message": "ลงชื่อเข้าใช้ · ซิงค์ข้ามอุปกรณ์"
+  },
+  "sync_section_hint": {
+    "message": "ไม่บังคับ ทุกอย่างใช้งานได้แม้ไม่ได้ลงชื่อเข้าใช้ — การซิงค์เพียงทำให้ประโยคที่คุณอ่านในเบราว์เซอร์ปรากฏในแอปและอุปกรณ์อื่นของคุณด้วย เมื่อลงชื่อเข้าใช้แล้ว ทุกอย่างที่คุณบันทึก (รวมถึงรายการที่ยังไม่ได้รับการตรวจสอบ) จะซิงค์ข้ามอุปกรณ์"
+  },
+  "sync_email": {
+    "message": "อีเมล"
+  },
+  "sync_send_code": {
+    "message": "ส่งรหัส"
+  },
+  "sync_code": {
+    "message": "รหัส 6 หลักจากอีเมล"
+  },
+  "sync_verify": {
+    "message": "ลงชื่อเข้าใช้"
+  },
+  "sync_now": {
+    "message": "ซิงค์ตอนนี้"
+  },
+  "sync_signout": {
+    "message": "ออกจากระบบ"
+  },
+  "sync_delete": {
+    "message": "ลบข้อมูลบนคลาวด์และบัญชี"
+  },
+  "sync_err_offline": {
+    "message": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ จะลองใหม่ภายหลัง ข้อมูลทั้งหมดที่คุณเรียนอยู่บนอุปกรณ์นี้"
+  },
+  "sync_err_quota": {
+    "message": "พื้นที่จัดเก็บบนคลาวด์เต็ม จึงไม่สามารถอัปโหลดเนื้อหาใหม่ได้ (อุปกรณ์นี้ไม่ได้รับผลกระทบ) การลบการ์ดที่เรียนจน mastered แล้วจะช่วยเพิ่มพื้นที่"
+  },
+  "sync_err_signed_out": {
+    "message": "เซสชันของคุณหมดอายุ กรุณาลงชื่อเข้าใช้อีกครั้ง"
+  },
+  "sync_err_rate": {
+    "message": "ขอรหัสบ่อยเกินไป ลองอีกครั้งในอีกสักครู่"
+  },
+  "sync_err_generic": {
+    "message": "การซิงค์ไม่สำเร็จ"
+  },
+  "sync_signed_in": {
+    "message": "ลงชื่อเข้าใช้เป็น {email}"
+  },
+  "sync_usage": {
+    "message": "ใช้ไป {used} จาก {quota} · {n} chunks"
+  },
+  "sync_need_email": {
+    "message": "กรุณากรอกอีเมลก่อน"
+  },
+  "sync_sending": {
+    "message": "กำลังส่ง…"
+  },
+  "sync_code_sent": {
+    "message": "ส่งรหัสไปที่ {email} แล้ว กรุณากรอกรหัสด้านล่าง"
+  },
+  "sync_verifying": {
+    "message": "กำลังตรวจสอบ…"
+  },
+  "sync_signed_in_now": {
+    "message": "ลงชื่อเข้าใช้แล้ว การซิงค์ครั้งแรกอาจใช้เวลาสักครู่"
+  },
+  "sync_bad_code": {
+    "message": "รหัสไม่ถูกต้องหรือหมดอายุ กรุณาขอรหัสใหม่"
+  },
+  "sync_running": {
+    "message": "กำลังซิงค์…"
+  },
+  "sync_done": {
+    "message": "ซิงค์เสร็จสิ้น · รับ {in} · อัปโหลด {out}"
+  },
+  "sync_status_running": {
+    "message": "กำลังซิงค์กับเซิร์ฟเวอร์…"
+  },
+  "sync_status_done_at": {
+    "message": "ซิงค์แล้ว · {time}"
+  },
+  "sync_status_offline": {
+    "message": "ออฟไลน์อยู่ — จะลองใหม่โดยอัตโนมัติ ข้อมูลการเรียนของคุณถูกบันทึกไว้บนอุปกรณ์นี้"
+  },
+  "sync_status_error": {
+    "message": "การซิงค์ล้มเหลว — จะลองใหม่โดยอัตโนมัติ"
+  },
+  "sync_status_signed_out": {
+    "message": "ยังไม่ได้ลงชื่อเข้าใช้ — ใช้ข้อมูลในเครื่องเท่านั้น"
+  },
+  "sync_signed_out": {
+    "message": "ออกจากระบบแล้ว คลังการเรียนของคุณยังคงอยู่บนอุปกรณ์นี้โดยไม่ถูกแตะต้อง"
+  },
+  "sync_delete_confirm": {
+    "message": "ลบข้อมูลบนคลาวด์และบัญชี? ทุกอย่างบนเซิร์ฟเวอร์และบัญชีนี้จะถูกลบอย่างถาวร คลังของคุณบนอุปกรณ์นี้จะยังคงอยู่"
+  },
+  "sync_deleting": {
+    "message": "กำลังลบ…"
+  },
+  "sync_deleted": {
+    "message": "ลบข้อมูลบนคลาวด์และบัญชีแล้ว คลังของคุณบนอุปกรณ์นี้ยังคงอยู่"
+  },
+  "sync_deleted_partial": {
+    "message": "ลบข้อมูลบนคลาวด์แล้ว แต่ไม่สามารถลบบัญชีได้ ({why}) คุณสามารถลองใหม่หรือติดต่อเรา"
+  },
+  "sync_err_upgrade": {
+    "message": "มีบางอย่างบนคลาวด์ที่เวอร์ชันนี้ยังอ่านไม่ได้ (อาจเขียนโดยเวอร์ชันใหม่กว่า) อัปเดตส่วนขยายแล้วซิงค์อีกครั้ง — ไม่มีข้อมูลสูญหาย เพียงแต่ยังอ่านไม่ได้ในตอนนี้"
+  },
+  "toast_import_upgrade": {
+    "message": "ไฟล์นี้เขียนโดยส่วนขยายเวอร์ชันใหม่กว่า อัปเดตแล้วนำเข้าไฟล์อีกครั้ง ไฟล์ไม่มีปัญหาใด ๆ"
+  },
+  "options_init_failed": {
+    "message": "หน้า Settings โหลดไม่สำเร็จ ({err}) เปิดหน้านี้อีกครั้ง หากยังเกิดซ้ำ โปรดรายงานข้อความนี้ให้เรา"
+  },
+  "settings_read_failed": {
+    "message": "ไม่สามารถอ่านการตั้งค่าที่บันทึกไว้ได้ จึงแสดงค่าเริ่มต้นด้านล่าง อย่าบันทึกจากหน้านี้ — จะเขียนทับค่าที่คุณมีอยู่ ({why})"
+  },
+  "learn_relearn": {
+    "message": "เรียนใหม่"
+  },
+  "learn_strength": {
+    "message": "ความแข็งแรงของความจำ"
+  },
+  "learn_days_unit": {
+    "message": "วัน"
+  },
+  "learn_howto_title": {
+    "message": "การทบทวนทำงานอย่างไร"
+  },
+  "learn_howto_1": {
+    "message": "จำได้ → ช่วงเวลาจะยาวขึ้น การ์ดจะกลับมาทีหลัง"
+  },
+  "learn_howto_2": {
+    "message": "ลืม → จะเริ่มใหม่และกลับมาเร็ว ๆ นี้"
+  },
+  "learn_howto_3": {
+    "message": "เมื่อความแข็งแรงถึง 180 วัน การ์ดจะจบหลักสูตร"
+  },
+  "learn_howto_ok": {
+    "message": "เข้าใจแล้ว"
+  },
+  "learn_cap_hint": {
+    "message": "สูงสุด {n} การ์ดใหม่ต่อวัน — ปรับได้ใน Settings"
+  },
+  "learn_practice": {
+    "message": "ฝึกฟรี"
+  },
+  "learn_practice_rule": {
+    "message": "การฝึกไม่สามารถสร้างความเชี่ยวชาญได้ แต่ช่วยเผยให้เห็นสิ่งที่ลืม"
+  },
+  "learn_pool_learning": {
+    "message": "กำลังเรียน"
+  },
+  "learn_pool_all": {
+    "message": "ทั้งหมด (รวมการ์ดใหม่และที่รู้แล้ว)"
+  },
+  "learn_batch_unlimited": {
+    "message": "ไม่จำกัด"
+  },
+  "learn_practice_start": {
+    "message": "เริ่มฝึก"
+  },
+  "learn_practice_progress": {
+    "message": "ฝึก {i} / {n}"
+  },
+  "learn_practice_done": {
+    "message": "ฝึกเสร็จแล้ว — {n} การ์ด"
+  },
+  "learn_badge_read": {
+    "message": "อ่าน"
+  },
+  "learn_badge_listen": {
+    "message": "ฟัง"
+  },
+  "learn_badge_write": {
+    "message": "เขียน"
+  },
+  "learn_mastered_full": {
+    "message": "เชี่ยวชาญเต็มที่"
+  },
+  "learn_shadow_hint": {
+    "message": "พูดออกเสียง (ฝึก — ไม่คิดคะแนน)"
+  },
+  "learn_check": {
+    "message": "ตรวจสอบ"
+  },
+  "learn_write_prompt": {
+    "message": "เติมประโยคให้สมบูรณ์"
+  },
+  "learn_write_replaced": {
+    "message": "แทนที่ด้วยคำตอบที่ถูกต้อง"
+  },
+  "learn_notes_btn": {
+    "message": "อธิบายประโยคนี้"
+  },
+  "learn_notes_cost": {
+    "message": "ใช้ API ที่คุณตั้งค่าไว้ — เรียกหนึ่งครั้ง แคชถาวร"
+  },
+  "learn_notes_loading": {
+    "message": "กำลังวิเคราะห์…"
+  },
+  "learn_notes_failed": {
+    "message": "วิเคราะห์ไม่สำเร็จ — ลองใหม่ภายหลัง"
+  },
+  "learn_notes_failed_empty": {
+    "message": "โมเดลไม่ได้ส่งข้อความคำตอบกลับมา — โมเดลแบบ thinking/reasoner ไม่เหมาะกับโน้ตประโยค โปรดเลือกโมเดลแบบแชตในการตั้งค่า"
+  },
+  "learn_notes_words": {
+    "message": "คำศัพท์"
+  },
+  "learn_notes_phrases": {
+    "message": "วลี"
+  },
+  "learn_notes_grammar": {
+    "message": "ไวยากรณ์"
+  },
+  "app_lede": {
+    "message": "วิดีโอ บทสนทนา เอกสาร — แปลขณะคุณฟัง ประมวลผลบนอุปกรณ์ของคุณเท่านั้น"
+  },
+  "app_email_label": {
+    "message": "อีเมล"
+  },
+  "app_send": {
+    "message": "ส่งรหัส"
+  },
+  "app_sending": {
+    "message": "กำลังส่ง…"
+  },
+  "app_code_label": {
+    "message": "รหัส (ตรวจสอบอีเมลของคุณ)"
+  },
+  "app_verify": {
+    "message": "เข้าสู่ระบบ"
+  },
+  "app_verifying": {
+    "message": "กำลังเข้าสู่ระบบ…"
+  },
+  "app_back_email": {
+    "message": "ใช้อีเมลอื่น"
+  },
+  "app_signout": {
+    "message": "ออกจากระบบ"
+  },
+  "app_settings_link": {
+    "message": "การตั้งค่า"
+  },
+  "app_review_start": {
+    "message": "เริ่มทบทวน"
+  },
+  "app_review_back": {
+    "message": "← กลับ"
+  },
+  "app_sync": {
+    "message": "ซิงค์"
+  },
+  "app_syncing": {
+    "message": "กำลังซิงค์…"
+  },
+  "app_unit_cards": {
+    "message": "การ์ด"
+  },
+  "app_unit_reviews": {
+    "message": "การทบทวน"
+  },
+  "app_unit_sources": {
+    "message": "แหล่งที่มา"
+  },
+  "app_never_synced": {
+    "message": "ยังไม่ได้ซิงค์"
+  },
+  "app_sync_empty": {
+    "message": "ซิงค์แล้ว แต่เซิร์ฟเวอร์ยังไม่มีข้อมูล — เก็บประโยคในเบราว์เซอร์ก่อน แล้วซิงค์อีกครั้ง"
+  },
+  "app_up_to_date": {
+    "message": "เป็นเวอร์ชันล่าสุดแล้ว"
+  },
+  "app_code_sent": {
+    "message": "ส่งรหัสแล้ว — ตรวจสอบอีเมลของคุณ"
+  },
+  "app_code_bad": {
+    "message": "รหัสไม่ถูกต้องหรือหมดอายุ — ลองอีกครั้ง"
+  },
+  "app_offline": {
+    "message": "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — ตรวจสอบการเชื่อมต่อแล้วลองใหม่"
+  },
+  "app_needs_upgrade": {
+    "message": "เซิร์ฟเวอร์มีเนื้อหาที่เวอร์ชันนี้ไม่สามารถอ่านได้ — กรุณาอัปเดตแอป"
+  },
+  "app_received": {
+    "message": "ได้รับ {n} การ์ด · {m} รีวิว"
+  },
+  "app_uploaded_n": {
+    "message": "อัปโหลด {n} รีวิวแล้ว"
+  },
+  "app_uploaded_only": {
+    "message": "อัปโหลด {n} รีวิวแล้ว"
+  },
+  "app_sync_disabled": {
+    "message": "การซิงค์ไม่ได้เปิดใช้งานในบิลด์นี้ การจับภาพและรีวิวของส่วนขยายเบราว์เซอร์ไม่ได้รับผลกระทบ — ทุกอย่างยังคงอยู่ในอุปกรณ์ของคุณ"
+  },
+  "app_set_title": {
+    "message": "การตั้งค่า"
+  },
+  "app_set_daily": {
+    "message": "จำนวนการ์ดใหม่สูงสุดต่อวัน"
+  },
+  "app_set_tts_auto": {
+    "message": "อ่านออกเสียงอัตโนมัติเมื่อแสดงคำแปล"
+  },
+  "app_set_tts_rate": {
+    "message": "ความเร็วในการอ่าน"
+  },
+  "app_set_tts_note": {
+    "message": "การ์ดที่มีภาษาที่ไม่รู้จัก (เช่น ที่จับภาพใน Safari ซึ่งไม่มีการตรวจจับภาษา) จะเล่นด้วยเสียงที่เลือกไว้ด้านบนเท่านั้น หากไม่ได้เลือกไว้จะไม่สามารถอ่านออกเสียงได้ API Key สำหรับการอ่านออกเสียงทำงานเหมือนกับคีย์สำหรับบันทึกประโยค คือเก็บไว้ในอุปกรณ์นี้เท่านั้น ไม่ซิงค์กับบัญชีของคุณ และจัดเก็บเป็นข้อความธรรมดา"
+  },
+  "app_set_notes_title": {
+    "message": "คำแปลและบันทึกประโยค"
+  },
+  "app_set_notes_provider": {
+    "message": "เอนจิน"
+  },
+  "app_set_notes_none": {
+    "message": "ไม่มี"
+  },
+  "app_set_notes_key": {
+    "message": "API Key"
+  },
+  "app_set_notes_base": {
+    "message": "URL ปลายทางที่กำหนดเอง"
+  },
+  "app_set_notes_model": {
+    "message": "โมเดล"
+  },
+  "app_set_notes_note": {
+    "message": "เอนจินนี้ทำคำแปลทั้งหมดในแอป: คำแปลระบบ แปลด่วน แปลเอกสาร คำแปลในการสนทนาและคำบรรยายสด — รวมถึงบันทึกประโยค (คำ / วลี / ไวยากรณ์) โดยเรียก API ของคุณเอง คีย์จะเก็บไว้ในอุปกรณ์นี้เท่านั้นและไม่ซิงค์กับบัญชีของคุณ แยกจากคีย์ในส่วนขยายเบราว์เซอร์ และปลอดภัยเช่นเดียวกัน ทั้งคู่จัดเก็บเป็นข้อความธรรมดาในอุปกรณ์"
+  },
+  "app_set_corpus": {
+    "message": "คลัง"
+  },
+  "app_set_clean_known": {
+    "message": "ล้างการ์ดที่เชี่ยวชาญแล้ว"
+  },
+  "app_set_cleaned": {
+    "message": "ล้างการ์ดแล้ว {n} ใบ"
+  },
+  "app_set_clean_none": {
+    "message": "ไม่มีอะไรต้องล้าง"
+  },
+  "app_set_account": {
+    "message": "บัญชี"
+  },
+  "app_set_signout": {
+    "message": "ออกจากระบบ"
+  },
+  "app_set_delete": {
+    "message": "ลบบัญชีและข้อมูลบนคลาวด์"
+  },
+  "app_set_delete_note": {
+    "message": "การลบจะนำเนื้อหาและประวัติการรีวิวของคุณออกจากเซิร์ฟเวอร์อย่างถาวรและปิดบัญชี เนื้อหาที่ดาวน์โหลดไปยังอุปกรณ์นี้แล้วไม่ได้รับผลกระทบ — หากต้องการลบด้วย ให้ลบแอป"
+  },
+  "app_set_confirm_delete": {
+    "message": "ลบบัญชีของคุณ? ทุกอย่างบนเซิร์ฟเวอร์จะถูกลบอย่างถาวรและไม่สามารถกู้คืนได้"
+  },
+  "app_set_deleting": {
+    "message": "กำลังลบ…"
+  },
+  "app_set_deleted": {
+    "message": "ลบบัญชีแล้ว"
+  },
+  "app_unit_known": {
+    "message": "เชี่ยวชาญแล้ว"
+  },
+  "tts_no_voice_und": {
+    "message": "ไม่ทราบภาษาของการ์ดนี้ — เลือกเสียงในตั้งค่าแล้วจะเล่นได้"
+  },
+  "app_set_tts_voice": {
+    "message": "เสียง"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "อัตโนมัติ (ตามภาษาของการ์ด)"
+  },
+  "learn_langs_label": {
+    "message": "ภาษาที่ต้องการเรียน"
+  },
+  "learn_langs_all": {
+    "message": "ทั้งหมด (ค่าเริ่มต้น)"
+  },
+  "learn_langs_hint": {
+    "message": "ระบบจะเก็บเฉพาะประโยคในภาษาที่เลือกไว้ หาก Safari ตรวจภาษไม่ได้ ระบบจะดูจากอักษรที่ใช้ ส่วนการบันทึกด้วยการกดค้างจะไม่ถูกกรอง"
+  },
+  "learn_sources_manage": {
+    "message": "จัดการแหล่งที่มา"
+  },
+  "learn_sources_empty": {
+    "message": "ยังไม่มีแหล่งที่มาที่ถูกเก็บ"
+  },
+  "learn_sources_count": {
+    "message": "{n} การ์ด"
+  },
+  "learn_src_delete": {
+    "message": "ลบที่บันทึกไว้"
+  },
+  "learn_src_block": {
+    "message": "หยุดเก็บ"
+  },
+  "learn_src_unblock": {
+    "message": "กลับมาเก็บต่อ"
+  },
+  "learn_src_blocked": {
+    "message": "ถูกบล็อก"
+  },
+  "learn_src_blocked_by": {
+    "message": "ถูกบล็อกโดยกฎ {pattern}"
+  },
+  "learn_block_title": {
+    "message": "กฎการบล็อก"
+  },
+  "learn_block_hint": {
+    "message": "รองรับไวลด์การ์ด: example.com จะตรงกับทั้งโดเมน (รวมซับโดเมน) ส่วน *.example.com/news/* จะตรงกับพาธ"
+  },
+  "learn_block_add": {
+    "message": "เพิ่ม"
+  },
+  "learn_block_placeholder": {
+    "message": "เช่น *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "ไม่ใช่กฎที่ถูกต้อง"
+  },
+  "learn_delete_confirm": {
+    "message": "ลบ {n} การ์ดจาก {host}? การลบนี้จะซิงก์ไปยังทุกอุปกรณ์และไม่สามารถย้อนกลับได้"
+  },
+  "learn_delete_done": {
+    "message": "ลบแล้ว {n} การ์ด"
+  },
+  "learn_delete_none": {
+    "message": "ไม่มีอะไรเหลือให้ลบจากแหล่งที่มานี้"
+  },
+  "popup_site_section": {
+    "message": "ไซต์นี้"
+  },
+  "popup_site_capture": {
+    "message": "เก็บข้อมูลบนไซต์นี้"
+  },
+  "popup_site_manage": {
+    "message": "จัดการ…"
+  },
+  "learn_card_src_actions": {
+    "message": "การดำเนินการกับแหล่งที่มา"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "ไม่สามารถอ่านสถานะการลงชื่อเข้าใช้ได้ (การอ่านที่จัดเก็บล้มเหลว) จะลองใหม่ในอีกสักครู่ — นี่ไม่ได้หมายความว่าคุณถูกออกจากระบบ"
+  },
+  "learn_backup_failed": {
+    "message": "ไม่สามารถเขียนข้อมูลสำรองในเครื่องได้ ({why}) คลังการเรียนรู้เองไม่ได้รับผลกระทบ"
+  },
+  "notes_engine": {
+    "message": "เอนจินโน้ต"
+  },
+  "notes_engine_hint": {
+    "message": "เอนจินแชตที่ใช้โดย “อธิบายประโยคนี้” ใช้ตามเอนจินแปลด้านบนเป็นค่าเริ่มต้น โมเดลแบบ thinking/reasoner ไม่เหมาะกับโน้ต"
+  },
+  "notes_follow": {
+    "message": "ใช้ตามเอนจินแปล (ค่าเริ่มต้น)"
+  },
+  "notes_api_key": {
+    "message": "API Key ของโน้ต"
+  },
+  "notes_base_url": {
+    "message": "ปลายทาง API ของโน้ต"
+  },
+  "notes_model": {
+    "message": "โมเดลของโน้ต"
+  },
+  "learn_badge_speak": {
+    "message": "พูด"
+  },
+  "learn_second_exercise": {
+    "message": "อีกหนึ่งทักษะ · ไม่กระทบช่วงเวลา"
+  },
+  "learn_mcq_prompt": {
+    "message": "เลือกคำแปลที่ถูกต้อง"
+  },
+  "learn_listen_once": {
+    "message": "ฟังก่อน แล้วเลือกคำที่คุณได้ยิน"
+  },
+  "learn_check_pick": {
+    "message": "ยืนยันตัวเลือก"
+  },
+  "learn_pack_loading": {
+    "message": "กำลังสร้างคำถามของการ์ดนี้ด้วย API ของคุณ (เรียกหนึ่งครั้ง แคชไว้ตลอดไป)…"
+  },
+  "learn_pack_failed": {
+    "message": "สร้างคำถามล้มเหลว — ใช้แบบฝึกหัดในเครื่องแทน"
+  },
+  "stt_engine": {
+    "message": "เอนจินถอดเสียง"
+  },
+  "stt_engine_none": {
+    "message": "ยังไม่ได้ตั้งค่า (ไม่มีแบบฝึกหัดการพูด)"
+  },
+  "stt_engine_local": {
+    "message": "ปลายทางการถอดเสียงในเครื่อง / โฮสต์เอง"
+  },
+  "stt_hint": {
+    "message": "การบันทึกเสียงของแบบฝึกหัดการพูดจะถูกส่งไปยังปลายทางที่ตั้งค่าไว้ที่นี่เพื่อถอดเสียง แล้วจะถูกลบทิ้ง — ไม่ถูกจัดเก็บ ไม่ถูกซิงค์ หากไม่มีเอนจินก็จะไม่มีแบบฝึกหัดการพูด คีย์จะอยู่บนอุปกรณ์นี้เท่านั้น เซิร์ฟเวอร์ที่โฮสต์เองต้องอนุญาตคำขอข้ามโดเมน (CORS)"
+  },
+  "stt_api_key": {
+    "message": "API key ของการถอดเสียง"
+  },
+  "stt_base_url": {
+    "message": "URL ปลายทางการถอดเสียง"
+  },
+  "stt_model": {
+    "message": "โมเดลถอดเสียง"
+  },
+  "learn_speak_prompt": {
+    "message": "อ่านประโยคนี้ aloud"
+  },
+  "learn_speak_record": {
+    "message": "🎙 เริ่มบันทึก"
+  },
+  "learn_speak_again": {
+    "message": "🎙 บันทึกอีกครั้ง"
+  },
+  "learn_speak_stop": {
+    "message": "■ หยุด"
+  },
+  "learn_speak_recording": {
+    "message": "กำลังบันทึก — อ่านประโยคด้านบน"
+  },
+  "learn_speak_busy": {
+    "message": "กำลังถอดเสียง…"
+  },
+  "learn_speak_score": {
+    "message": "ตรงกับประโยค {n}%"
+  },
+  "learn_speak_missed": {
+    "message": "พลาด:"
+  },
+  "learn_speak_cost": {
+    "message": "ใช้ transcription endpoint ที่ตั้งค่าไว้ — หนึ่งครั้งต่อการบันทึก"
+  },
+  "stt_no_base": {
+    "message": "ยังไม่ได้ตั้งค่า transcription endpoint"
+  },
+  "stt_no_key": {
+    "message": "ยังไม่มี transcription API key"
+  },
+  "stt_no_mic": {
+    "message": "เบราว์เซอร์นี้ไม่สามารถเข้าถึงไมโครโฟน"
+  },
+  "stt_mic_denied": {
+    "message": "การอนุญาตใช้ไมโครโฟนถูกปฏิเสธ — จะใช้แบบฝึกหัดอื่นในเซสชันนี้"
+  },
+  "stt_http": {
+    "message": "บริการถอดเสียงส่งข้อผิดพลาดกลับมา"
+  },
+  "stt_empty": {
+    "message": "ไม่รู้จำเสียงพูด — ลองอีกครั้ง"
+  },
+  "stt_unsupported": {
+    "message": "เบราว์เซอร์นี้ไม่รองรับการบันทึกเสียง"
+  },
+  "stt_failed": {
+    "message": "การถอดเสียงล้มเหลว"
+  },
+  "stt_network": {
+    "message": "ไม่สามารถเชื่อมต่อ transcription endpoint — ตรวจสอบ URL และโปรดทราบว่าเซิร์ฟเวอร์ที่โฮสต์เองต้องอนุญาต cross-origin requests (CORS)"
+  },
+  "engine_test": {
+    "message": "ทดสอบการเชื่อมต่อ"
+  },
+  "engine_test_running": {
+    "message": "กำลังทดสอบ…"
+  },
+  "engine_test_ok": {
+    "message": "✓ ใช้งานได้ · {ms}ms"
+  },
+  "engine_test_sample": {
+    "message": "ตอบกลับ:"
+  },
+  "engine_test_failed": {
+    "message": "ใช้งานไม่ได้"
+  },
+  "engine_test_no_base": {
+    "message": "ยังไม่มี endpoint URL"
+  },
+  "engine_test_no_key": {
+    "message": "ยังไม่มี API key"
+  },
+  "engine_test_no_engine": {
+    "message": "ยังไม่ได้เลือก engine"
+  },
+  "engine_test_unknown_provider": {
+    "message": "เวอร์ชันนี้ไม่รู้จัก engine ที่บันทึกไว้ — เลือกอันด้านบน"
+  },
+  "engine_test_bad_output": {
+    "message": "endpoint ตอบกลับ แต่ไม่สามารถแยกวิเคราะห์เนื้อหาได้"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}"
+  },
+  "engine_test_hint_key": {
+    "message": "คีย์ไม่ถูกต้องหรือไม่มีสิทธิ์"
+  },
+  "engine_test_hint_404": {
+    "message": "URL ของ endpoint (รวม path) หรือชื่อโมเดลไม่ถูกต้อง"
+  },
+  "engine_test_hint_other": {
+    "message": "เซิร์ฟเวอร์ปฏิเสธคำขอนี้"
+  },
+  "engine_test_no_path": {
+    "message": "ที่อยู่นี้มีแค่ host ไม่มี path ของ endpoint — กรอก URL คำขอแบบเต็ม (ดูตัวอย่างในช่อง)"
+  },
+  "engine_test_bad_url": {
+    "message": "ที่อยู่ไม่ได้ขึ้นต้นด้วย http:// หรือ https:// — ถ้าไม่มี scheme จะถือเป็น relative path และไม่มีคำขอถูกส่งออกไปเลย"
+  },
+  "engine_test_timeout": {
+    "message": "endpoint ไม่ตอบกลับภายในเวลาที่กำหนด"
+  },
+  "engine_test_url": {
+    "message": "ร้องขอ: {url}"
+  },
+  "engine_test_route": {
+    "message": "ส่งผ่าน: {route}"
+  },
+  "engine_test_route_proxy": {
+    "message": "background ของส่วนขยาย (ไม่ติด CORS ไม่มี preflight)"
+  },
+  "engine_test_route_direct": {
+    "message": "ตัวหน้าเพจเอง (ส่ง OPTIONS preflight ก่อน)"
+  },
+  "engine_test_server_said": {
+    "message": "เซิร์ฟเวอร์ตอบว่า: {msg}"
+  },
+  "engine_test_via_proxy": {
+    "message": "(ลองใหม่จาก background ของส่วนขยายอัตโนมัติแล้วก็ยังล้มเหลว — ดังนั้นนี่ไม่ใช่ปัญหา CORS แต่ที่อยู่นี้เข้าถึงไม่ได้จากเครื่องนี้จริง ๆ)"
+  },
+  "notes_test_empty": {
+    "message": "โมเดลไม่ส่งเนื้อหากลับมา — โมเดลแบบ reasoning ใช้ที่นี่ไม่ได้ ให้เปลี่ยนไปใช้โมเดลแบบ chat"
+  },
+  "learn_split_long": {
+    "message": "แยกการ์ดยาว"
+  },
+  "learn_split_failed": {
+    "message": "แยกไม่สำเร็จ"
+  },
+  "learn_split_none": {
+    "message": "ไม่มีการ์ดยาวให้แยก"
+  },
+  "learn_split_done": {
+    "message": "แยกการ์ดยาว {p} ใบเป็นประโยค {c} ใบ"
+  },
+  "learn_split_skipped": {
+    "message": "(เก็บไว้ทั้งใบ {k} ใบ — คำแปลไม่ตรงกัน)"
+  },
+  "app_use_pw": {
+    "message": "เข้าสู่ระบบด้วยรหัสผ่าน"
+  },
+  "app_pw_label": {
+    "message": "รหัสผ่าน"
+  },
+  "app_pw_back": {
+    "message": "ใช้รหัสแทน"
+  },
+  "app_pw_bad": {
+    "message": "อีเมลหรือรหัสผ่านไม่ถูกต้อง — ลองอีกครั้ง"
+  },
+  "drive_entry": {
+    "message": "โหมดพอดแคสต์"
+  },
+  "drive_pause": {
+    "message": "⏸ หยุดชั่วคราว"
+  },
+  "drive_resume": {
+    "message": "▶ เล่นต่อ"
+  },
+  "drive_next": {
+    "message": "⏭ ถัดไป"
+  },
+  "drive_repeat": {
+    "message": "🔁 เล่นซ้ำ"
+  },
+  "drive_progress": {
+    "message": "การ์ดที่ {i} จาก {n}"
+  },
+  "drive_explain": {
+    "message": "🔍 อธิบายอันนี้"
+  },
+  "drive_pass": {
+    "message": "รอบที่ {i}"
+  },
+  "drive_status_explaining": {
+    "message": "กำลังวิเคราะห์…"
+  },
+  "drive_notes_engine_missing": {
+    "message": "การอ่านโน้ตออกเสียงต้องมีเอนจินก่อน — ตั้งค่าได้ที่ การตั้งค่า → การแปลและโน้ตประโยค"
+  },
+  "drive_notes_empty": {
+    "message": "การ์ดนี้ไม่มีโน้ตให้อ่าน"
+  },
+  "settings_read_failed_short": {
+    "message": "อ่านการตั้งค่าที่บันทึกไว้ไม่ได้ — ลองอีกครั้งในอีกสักครู่"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 สุ่ม"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ ตามลำดับ"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 เล่นซ้ำทั้งหมด"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 เล่นซ้ำอันเดียว"
+  },
+  "drive_restart": {
+    "message": "เล่นอีกครั้ง"
+  },
+  "drive_status_notes": {
+    "message": "กำลังอ่านโน้ต…"
+  },
+  "drive_status_parsing": {
+    "message": "กำลังวิเคราะห์ประโยคนี้…"
+  },
+  "drive_play_notes": {
+    "message": "อ่านโน้ตประโยคออกเสียง"
+  },
+  "drive_play_notes_note": {
+    "message": "แต่ละการ์ดจะตามด้วยโน้ตของมัน (คำ วลี และหลักไวยากรณ์หนึ่งข้อ) เปิดไว้เป็นค่าเริ่มต้น: การ์ดที่ยังไม่เคยถูกวิเคราะห์จะถูกวิเคราะห์ทันทีโดยใช้เอนจินที่คุณตั้งค่าไว้ — คิดค่าใช้จ่ายครั้งเดียวต่อการ์ด แล้วแคชไว้ตั้งแต่นั้นเป็นต้นไป ปิดได้ถ้าไม่อยากเสียค่าใช้จ่ายส่วนนี้ เมื่อปิด จะอ่านเฉพาะประโยคและคำแปลเท่านั้น"
+  },
+  "drive_notes_cost": {
+    "message": "การอ่านโน้ต: การ์ดที่ยังไม่เคยถูกวิเคราะห์จะเรียกใช้เอนจินที่คุณตั้งค่าไว้ — คิดค่าใช้จ่ายครั้งเดียวต่อการ์ด"
+  },
+  "drive_notes_words": {
+    "message": "คำ:"
+  },
+  "drive_notes_phrases": {
+    "message": "วลี:"
+  },
+  "drive_notes_grammar": {
+    "message": "ไวยากรณ์:"
+  },
+  "drive_notes_failed": {
+    "message": "วิเคราะห์การ์ดนี้ไม่ได้ — ข้ามไปแล้ว"
+  },
+  "drive_notes_no_base": {
+    "message": "ยังไม่ได้ตั้งค่าเอนจินโน้ต — ข้ามโน้ตของการ์ดนี้"
+  },
+  "drive_skip_card": {
+    "message": "การ์ดนี้อ่านออกเสียงไม่ได้ — ข้ามไปการ์ดถัดไป"
+  },
+  "drive_status_source": {
+    "message": "กำลังเล่นต้นฉบับ…"
+  },
+  "drive_status_tr": {
+    "message": "กำลังเล่นคำแปล…"
+  },
+  "drive_status_paused": {
+    "message": "หยุดชั่วคราว"
+  },
+  "drive_done": {
+    "message": "จบรอบนี้แล้ว"
+  },
+  "drive_empty": {
+    "message": "ไม่มีการ์ดที่อ่านออกเสียงได้"
+  },
+  "drive_preload_days": {
+    "message": "ช่วงโหลดล่วงหน้า"
+  },
+  "drive_preload_days_0": {
+    "message": "เด็คของวันนี้"
+  },
+  "drive_preload_days_3": {
+    "message": "วันนี้ + 3 วันถัดไป"
+  },
+  "drive_preload_days_7": {
+    "message": "วันนี้ + 7 วันถัดไป"
+  },
+  "drive_preload": {
+    "message": "โหลดล่วงหน้าเพื่อใช้แบบออฟไลน์"
+  },
+  "drive_preload_hint": {
+    "message": "แตะก่อนออกเดินทาง แล้วเสียง คำจด และคำแปลที่คุณกำลังจะได้ยินจะถูกดาวน์โหลดลงอุปกรณ์นี้ ทำให้เล่นได้ทั้งเซสชันโดยไม่ต้องใช้เครือข่าย การแตะครั้งแรกเพียงประเมินราคาและไม่เสียค่าใช้จ่ายใด ๆ — ตรวจดูว่าจะมีการเรียกใช้กี่ครั้งก่อนแตะอีกครั้ง"
+  },
+  "drive_preload_pricing": {
+    "message": "กำลังตรวจสอบสิ่งที่มีอยู่แล้วบนอุปกรณ์นี้…"
+  },
+  "drive_preload_cards": {
+    "message": "{n} การ์ด"
+  },
+  "drive_preload_audio": {
+    "message": "{n} คลิปที่ต้องสังเคราะห์"
+  },
+  "drive_preload_notes": {
+    "message": "{n} การ์ดที่ต้องวิเคราะห์"
+  },
+  "drive_preload_tr": {
+    "message": "{n} การ์ดที่ต้องแปล"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "เสียงในอุปกรณ์ไม่มีการแคชและทำงานออฟไลน์อยู่แล้ว จึงโหลดเฉพาะคำจดและคำแปลไว้ล่วงหน้าที่นี่"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องมือวิเคราะห์ การ์ดที่ไม่มีคำแปลจึงไม่สามารถแปลได้ในครั้งนี้ (ตั้งค่า → คำจดประโยค)"
+  },
+  "drive_preload_ready": {
+    "message": "ทั้งหมดนี้อยู่บนอุปกรณ์แล้ว — คุณจะไม่ต้องใช้เครือข่ายระหว่างเดินทาง"
+  },
+  "drive_preload_confirm": {
+    "message": "ยืนยันการโหลดล่วงหน้า (ประมาณ {n} ครั้งที่คิดค่าใช้จ่าย)"
+  },
+  "drive_preload_stop": {
+    "message": "หยุด"
+  },
+  "drive_preload_progress": {
+    "message": "กำลังโหลดล่วงหน้า {done}/{total}…"
+  },
+  "drive_preload_done": {
+    "message": "เสร็จแล้ว {done}/{total}"
+  },
+  "drive_preload_stopped": {
+    "message": "หยุดแล้ว: เสร็จ {done}/{total}"
+  },
+  "drive_preload_failed": {
+    "message": "ล้มเหลว {n} ครั้ง ({reasons})"
+  },
+  "drive_preload_tts_bad": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องมือเสียง ({reason}) จึงไม่สามารถสังเคราะห์เสียงได้ในครั้งนี้ (ตั้งค่า → เครื่องมือเสียง)"
+  },
+  "drive_tts_not_configured": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องมือเสียง จึงไม่สามารถอ่านออกเสียงได้ในรอบนี้ (ตั้งค่า → เครื่องมือเสียง)"
+  },
+  "drive_tts_blocked": {
+    "message": "ระบบบล็อกการเล่นอัตโนมัติ — แตะเพื่อดำเนินการต่อ"
+  },
+  "drive_tts_unsupported": {
+    "message": "ไม่มีเครื่องมือเสียงที่ใช้งานได้บนอุปกรณ์นี้"
+  },
+  "drive_tts_unreachable": {
+    "message": "ไม่สามารถเข้าถึงเครื่องมือเสียง จึงไม่สามารถอ่านออกเสียงได้ในรอบนี้ เฉพาะการ์ดที่โหลดล่วงหน้าเท่านั้นที่เล่นออฟไลน์ได้ (ตั้งค่า → โหลดล่วงหน้าสำหรับออฟไลน์)"
+  },
+  "tts_timeout": {
+    "message": "บริการเสียงหมดเวลา — ตรวจสอบเครือข่าย หรือลองใช้ปลายทางอื่น"
+  },
+  "tts_network": {
+    "message": "ไม่สามารถเข้าถึงบริการเสียง — ตรวจสอบเครือข่ายและที่อยู่ปลายทาง"
+  },
+  "tts_empty": {
+    "message": "การ์ดนี้ไม่มีข้อความให้อ่านออกเสียง"
+  },
+  "drive_bg_session_failed": {
+    "message": "อุปกรณ์นี้ไม่สามารถเริ่มเซสชันเสียงเบื้องหลังได้ในขณะนี้ การเล่นจะหยุดชั่วคราวเมื่อแอปออกจากหน้าจอ"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "เสียงในอุปกรณ์จะหยุดเมื่อแอปออกจากหน้าจอ หากต้องการฟังต่อ ให้ตั้งค่าปลายทางเสียง (ตั้งค่า → เครื่องมือเสียง)"
+  },
+  "drive_awake_note": {
+    "message": "หน้าจอจะไม่ล็อกอัตโนมัติขณะโหมดพอดแคสต์อยู่ด้านหน้า หากต้องการเห็นการ์ดต่อหลังล็อกโทรศัพท์ ให้เปิด Always-On display ของระบบ: ตั้งค่า → จอภาพและความสว่าง → Always On"
+  },
+  "app_empty_body": {
+    "message": "สื่อการเรียนรู้มาจากส่วนขยายเบราว์เซอร์ — แอปนี้เป็นที่สำหรับทบทวน"
+  },
+  "app_empty_how": {
+    "message": "เปิดใช้งาน BelliedMonkey Translator ใน ตั้งค่า → Safari → ส่วนขยาย เปิดการเก็บข้อมูล แล้วท่องเว็บและแปลตามปกติ"
+  },
+  "app_ext_off_title": {
+    "message": "ยังไม่ได้เปิดส่วนขยาย"
+  },
+  "app_ext_off_body": {
+    "message": "การ์ดมาจากส่วนขยาย Safari ซึ่งยังไม่ได้เปิดใช้งาน จึงยังว่างอยู่"
+  },
+  "app_ext_unknown_title": {
+    "message": "ตั้งค่าฝั่งเบราว์เซอร์ก่อน"
+  },
+  "app_ext_ios_body": {
+    "message": "การ์ดมาจากส่วนขยาย Safari: ใน Safari แตะไอคอนส่วนขยายทางซ้ายของแถบที่อยู่ → “จัดการส่วนขยาย” → เปิด BelliedMonkey Translator"
+  },
+  "app_ext_open_prefs": {
+    "message": "เปิดการตั้งค่าส่วนขยาย Safari"
+  },
+  "app_ext_open_setup": {
+    "message": "ตั้งค่าให้เสร็จบนเว็บ"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "ยังไม่ได้เปิดส่วนขยาย Safari"
+  },
+  "app_ext_open_safari": {
+    "message": "เปิดส่วนขยายใน Safari →"
+  },
+  "app_ext_done": {
+    "message": "เปิดแล้ว"
+  },
+  "app_signin_why": {
+    "message": "การลงชื่อเข้าใช้จะให้เครดิตฟรีและดาวน์โหลดแพ็กเสียงพูดสองชุดลงอุปกรณ์นี้ — ไม่ต้องตั้งค่าเพิ่ม"
+  },
+  "app_signin_open": {
+    "message": "ลงชื่อเข้าใช้"
+  },
+  "ob_next": {
+    "message": "ดำเนินการต่อ"
+  },
+  "ob_skip": {
+    "message": "ตั้งค่าทีหลัง"
+  },
+  "ob_start": {
+    "message": "เริ่มต้นใช้งาน"
+  },
+  "ob_welcome_title": {
+    "message": "คุณเลือกโมเดลที่ใช้แปลเอง"
+  },
+  "ob_welcome_body": {
+    "message": "ระบบมีแค่เอนจินของตัวเอง ที่นี่คุณเลือกหนึ่งตัว — คำแปลมาจากตัวนั้นโดยตรง ไม่ผ่านเซิร์ฟเวอร์ของเรา"
+  },
+  "ob_ios_1": {
+    "message": "ใน Safari แตะไอคอนส่วนขยายทางซ้ายของแถบที่อยู่"
+  },
+  "ob_ios_2": {
+    "message": "เลือก “จัดการส่วนขยาย” แล้วเปิด BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "ตั้งสิทธิ์เป็น อนุญาต สำหรับทุกเว็บไซต์"
+  },
+  "ob_browser_title": {
+    "message": "อีกสองอย่างในเบราว์เซอร์"
+  },
+  "ob_browser_body": {
+    "message": "สวิตช์ทั้งสองอยู่ในตั้งค่าของส่วนขยายเอง — แอปนี้เปลี่ยนไม่ได้ ทั้งสองฝั่งแยกพื้นที่จัดเก็บกัน"
+  },
+  "ob_kv_engine": {
+    "message": "เพิ่ม API Key สำหรับแปล"
+  },
+  "ob_kv_capture": {
+    "message": "เปิดการเก็บประโยค"
+  },
+  "ob_kv_capture_note": {
+    "message": "เปิดอยู่แล้ว ประโยคที่คุณหยุดอ่านจริง ๆ จะกลายเป็นการ์ด — ปิดได้ที่นี่ถ้าไม่ต้องการ"
+  },
+  "ob_read_title": {
+    "message": "ไปอ่านอะไรสักอย่าง"
+  },
+  "ob_read_body": {
+    "message": "ตั้งค่าเสร็จแล้ว — แค่อ่านและแปลตามปกติ สิ่งที่คุณอ่านจะสะสมไว้ ถ้าอยากเก็บประโยคทันที ให้กดค้างที่คำแปล"
+  },
+  "ob_signin_title": {
+    "message": "ขั้นสุดท้าย: ลงชื่อเข้าใช้"
+  },
+  "ob_kv_twice": {
+    "message": "คุณต้องลงชื่อเข้าใช้ในส่วนขยายด้วย"
+  },
+  "ob_kv_twice_note": {
+    "message": "ทั้งสองฝั่งเก็บข้อมูลแยกกัน — ลงชื่อเข้าใช้ด้วยบัญชีเดียวกันทั้งสองที่"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "ตั้งค่าส่วนขยาย → เอนจินแปล อันนี้เลี่ยงไม่ได้: ถ้าไม่มี Key จะแปลไม่ได้เลย"
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · เริ่มต้นใช้งาน"
+  },
+  "extob_welcome_title": {
+    "message": "อ่านและจดจำได้โดยไม่ต้องออกจากหน้า"
+  },
+  "extob_welcome_body": {
+    "message": "ต้นฉบับอยู่ที่เดิม ส่วนคำแปลจะปรากฏด้านล่างทันที ประโยคที่คุณหยุดอ่านจริง ๆ จะกลายเป็นการ์ดทบทวนที่กลับมาให้ทบทวนตามช่วงเวลาการลืม"
+  },
+  "extob_use_1": {
+    "message": "เปิดหน้าเว็บในภาษาอื่น"
+  },
+  "extob_use_2": {
+    "message": "แตะปุ่มลอยที่มุมขวาล่าง"
+  },
+  "extob_use_3": {
+    "message": "คำแปลจะปรากฏใต้ต้นฉบับ ประโยคที่คุณอ่านจบจริง ๆ จะกลายเป็นการ์ดทบทวน"
+  },
+  "ob_fork_title": {
+    "message": "คุณอยากเริ่มต้นแบบไหน?"
+  },
+  "ob_fork_sub": {
+    "message": "ใช้ได้ทั้งสองแบบ สลับได้ทุกเมื่อ"
+  },
+  "ob_fork_grant_title": {
+    "message": "เริ่มด้วยเครดิตฟรี"
+  },
+  "ob_fork_grant_badge": {
+    "message": "แนะนำ"
+  },
+  "ob_fork_grant_desc": {
+    "message": "ไม่ต้องใช้ API Key — แค่ลงชื่อเข้าใช้แล้วแปลได้เลย เพียงพอสำหรับหน้าเว็บและคำบรรยายหลายร้อยย่อหน้า"
+  },
+  "ob_fork_grant_cta": {
+    "message": "เริ่มฟรี →"
+  },
+  "ob_fork_key_title": {
+    "message": "ฉันมี API Key ของตัวเอง"
+  },
+  "ob_fork_key_desc": {
+    "message": "คีย์เดียวตั้งค่าการแปล เสียงพูด และการถอดเสียง — หรือตั้งค่าแต่ละเอนจินแยกกันก็ได้"
+  },
+  "ob_fork_key_cta": {
+    "message": "ตั้งค่าเลย →"
+  },
+  "ob_fork_foot": {
+    "message": "เครดิตหมด? สลับมาใช้คีย์ของคุณเองได้ทุกเมื่อ — ทำได้ในขั้นตอนเดียวที่การตั้งค่า"
+  },
+  "ob_fork_waiting": {
+    "message": "กำลังรับเครดิตในแท็บใหม่… กลับมาที่นี่เมื่อลงชื่อเข้าใช้แล้ว ระบบจะดำเนินการต่ออัตโนมัติ"
+  },
+  "ob_fork_landed": {
+    "message": "ได้รับเครดิตแล้ว — กำลังพาคุณไปขั้นตอนถัดไป…"
+  },
+  "ob_fork_reopen": {
+    "message": "เปิดหน้ารับเครดิตอีกครั้ง"
+  },
+  "extob_engine_title": {
+    "message": "เลือกเอนจินการแปล"
+  },
+  "extob_engine_body_key": {
+    "message": "เลี่ยงไม่ได้เลย: ถ้าไม่มีคีย์ ก็แปลอะไรไม่ได้"
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "สิ่งที่คุณอ่านจะกลายเป็นการ์ดทบทวน"
+  },
+  "extob_capture_body": {
+    "message": "เปิดอยู่แล้ว ประโยคที่คุณอ่านจบจริง ๆ (แค่เลื่อนผ่านไม่นับ) จะถูกบันทึกเป็นการ์ดทบทวนไว้บนอุปกรณ์นี้เท่านั้น — ปิดได้ที่นี่ถ้าไม่ต้องการ"
+  },
+  "extob_capture_toggle": {
+    "message": "บันทึกประโยคที่ฉันอ่านเป็นการ์ดทบทวน"
+  },
+  "extob_capture_note": {
+    "message": "เฉพาะประโยคที่คุณอ่านจบจริง ๆ เท่านั้น ปิดได้ทุกเมื่อ และลบทุกอย่างจากเว็บไซต์หนึ่ง ๆ ได้ในครั้งเดียว"
+  },
+  "extob_try_title": {
+    "message": "ลองแปลหน้าเว็บเลย"
+  },
+  "extob_try_body": {
+    "message": "เปิดหน้าเว็บจริงแล้วแตะปุ่มลอยที่มุม — คำแปลจะปรากฏใต้แต่ละย่อหน้า"
+  },
+  "extob_try_cta": {
+    "message": "เปิดหน้าเว็บตัวอย่าง"
+  },
+  "extob_finish": {
+    "message": "เสร็จสิ้น"
+  },
+  "extob_done_title": {
+    "message": "ตั้งค่าเรียบร้อยแล้ว"
+  },
+  "extob_done_text": {
+    "message": "เปิดหน้าเว็บใดก็ได้ในภาษาอื่นแล้วแตะปุ่มลอย การตั้งค่าและคำแนะนำนี้อยู่ในหน้าการตั้งค่าของส่วนขยาย"
+  },
+  "extob_done_close": {
+    "message": "เข้าใจแล้ว"
+  },
+  "extob_reonboard": {
+    "message": "แสดงคำแนะนำเริ่มต้นใช้งานอีกครั้ง"
+  },
+  "extob_unpacked_note": {
+    "message": "ติดตั้งจากไฟล์ ZIP: สำเนานี้จะไม่อัปเดตตัวเอง กรุณาดาวน์โหลดเวอร์ชันใหม่จากเว็บไซต์ หรือติดตั้งจากสโตร์เพื่อรับการอัปเดตอัตโนมัติ"
+  },
+  "extob_first_run": {
+    "message": "ใช้ครั้งแรกใช่ไหม? ตั้งค่าเสร็จในสองนาที →"
+  },
+  "qs_title": {
+    "message": "ตั้งค่าทุกอย่างด้วยคีย์เดียว"
+  },
+  "qs_sub": {
+    "message": "คีย์เดียวบนแพลตฟอร์มเหล่านี้จะตั้งค่าการแปล เสียงพูด และการถอดเสียงพร้อมกัน สำหรับเอนจินอื่น ๆ ให้สลับไปที่โหมดละเอียดด้านบน"
+  },
+  "qs_platform": {
+    "message": "แพลตฟอร์ม"
+  },
+  "qs_only_one": {
+    "message": "แพลตฟอร์ม: {p}"
+  },
+  "qs_key": {
+    "message": "คีย์ API"
+  },
+  "qs_get_key": {
+    "message": "ยังไม่มีคีย์? รับได้ที่ {p} ↗"
+  },
+  "qs_try": {
+    "message": "แปลหน้าเว็บตอนนี้"
+  },
+  "qs_try_note": {
+    "message": "เปิดหน้าเว็บจริงแล้วแตะปุ่มลอย — คำแปลจะปรากฏใต้แต่ละย่อหน้า"
+  },
+  "extob_quick_sub": {
+    "message": "คีย์เดียวตั้งค่าการแปล เสียงพูด และการถอดเสียงพร้อมกัน"
+  },
+  "extob_mode_quick": {
+    "message": "คีย์เดียว"
+  },
+  "extob_mode_manual": {
+    "message": "ตั้งค่าแต่ละเอนจิน"
+  },
+  "qs_key_ph": {
+    "message": "วางครั้งเดียว — ตั้งค่าทั้งสามอย่าง"
+  },
+  "qs_privacy": {
+    "message": "การถอดเสียงจะส่งไฟล์บันทึกของคุณไปที่ {host} ข้อมูลจะถูกลบทันทีเมื่อถอดเสียงเสร็จ — ไม่จัดเก็บ ไม่ซิงก์"
+  },
+  "qs_grant_replaced": {
+    "message": "(แทนที่คีย์เครดิตฟรีแล้ว)"
+  },
+  "stt_device_no_file": {
+    "message": "การถอดเสียงบนอุปกรณ์ใช้ได้เฉพาะการสนทนาและคำบรรยายสดเท่านั้น ยังไม่รองรับการฝึกพูด"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ การรู้จำบนอุปกรณ์ทำงานได้ · แพ็กภาษาพร้อมแล้ว (ไม่ต้องใช้เครือข่าย ไม่มีปลายทางให้ทดสอบ)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ การรู้จำบนอุปกรณ์ทำงานได้ · แพ็กภาษาจะดาวน์โหลดเมื่อคุณเริ่มฟังครั้งแรก"
+  },
+  "engine_test_device_timeout": {
+    "message": "การรู้จำบนอุปกรณ์ไม่ตอบสนอง — ปิดและเปิดแอปใหม่ แล้วลองอีกครั้ง"
+  },
+  "listen_downloading": {
+    "message": "กำลังดาวน์โหลดโมเดลออฟไลน์ {lang} · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "ดาวน์โหลดโมเดลออฟไลน์ล้มเหลว: {why} — มักเกิดจากปัญหาเครือข่าย ลองใหม่ภายหลัง — แตะ “เริ่มฟัง” อีกครั้งเพื่อลองใหม่ หรือเลือกเอนจินสดบนคลาวด์ในตั้งค่า"
+  },
+  "listen_entry_privacy_device": {
+    "message": "เสียงจะถูกรู้จำบนอุปกรณ์ของคุณและไม่ถูกส่งไปยังเซิร์ฟเวอร์ใด ๆ ข้อความที่รู้จำได้จะถูกส่งไปยังเอนจินแปลที่คุณตั้งค่าไว้"
+  },
+  "listen_cost_line_device": {
+    "message": "ฟังไป {t} · เสียงไม่ออกจากอุปกรณ์"
+  },
+  "listen_device_privacy": {
+    "message": "เมื่อใช้การถอดเสียงบนอุปกรณ์ เสียงจะถูกรู้จำบนอุปกรณ์ของคุณและไม่ถูกส่งไปยังเซิร์ฟเวอร์ใด ๆ ข้อความที่รู้จำได้พร้อมประโยคก่อนหน้าสองสามประโยคเพื่อเป็นบริบท จะถูกส่งไปยังเอนจินแปลที่คุณตั้งค่าไว้เพื่อแก้ไขและแปล — เซิร์ฟเวอร์ของเราไม่มีส่วนเกี่ยวข้อง เมื่อใช้เสียงพูดบนอุปกรณ์ เสียงจะถูกสังเคราะห์บนอุปกรณ์ของคุณ การใช้ครั้งแรกจะดาวน์โหลดโมเดลออฟไลน์หนึ่งครั้ง (เฉพาะไฟล์โมเดล) ไม่มีการเก็บไฟล์บันทึก เก็บเฉพาะข้อความ"
+  },
+  "listen_raw_label": {
+    "message": "ข้อความที่รู้จำได้"
+  },
+  "tts_device_lang_fallback": {
+    "message": "อ่านด้วยเสียงของระบบ (โมเดลออฟไลน์ไม่รองรับ {lang})"
+  },
+  "qs_apply": {
+    "message": "ตั้งค่าการแปล อ่านออกเสียง และการถอดเสียง"
+  },
+  "qs_testing": {
+    "message": "กำลังทดสอบ…"
+  },
+  "qs_untouched": {
+    "message": "— ไม่แตะต้อง · คุณตั้งค่านี้ไว้แล้ว ({cur})"
+  },
+  "qs_unknown": {
+    "message": "การตั้งค่าที่มีอยู่"
+  },
+  "qs_slot_chat": {
+    "message": "การแปล"
+  },
+  "qs_slot_tts": {
+    "message": "อ่านออกเสียง"
+  },
+  "qs_slot_stt": {
+    "message": "การถอดเสียง"
+  },
+  "qs_slot_notes": {
+    "message": "บันทึกประโยค"
+  },
+  "qs_notes_follow": {
+    "message": "ใช้เอนจินแปลเดียวกัน (ไม่เปลี่ยนแปลง)"
+  },
+  "qs_tts_untried": {
+    "message": "(ยังไม่ได้เล่น — ใช้ “เล่นตัวอย่าง” ในบัตรเสียงด้านล่างเพื่อฟัง)"
+  },
+  "qs_stt_failed_note": {
+    "message": "การบันทึกเสียงไม่ได้เปิดใช้งานจากสิ่งนี้ สิ่งที่เพิ่งส่งไปคือเสียงไซน์ 0.6 วินาที ไม่ใช่เสียงของคุณ"
+  },
+  "qs_retry": {
+    "message": "ลองอีกครั้ง"
+  },
+  "engine_test_empty_audio": {
+    "message": "ปลายทางตอบกลับแต่ไม่มีเสียงส่งกลับมา"
+  },
+  "opt_mode_quick": {
+    "message": "ด่วน"
+  },
+  "opt_mode_detail": {
+    "message": "การตั้งค่าทั้งหมด"
+  },
+  "options_wipe_all": {
+    "message": "ลบข้อมูลทั้งหมดบนอุปกรณ์นี้"
+  },
+  "options_wipe_hint": {
+    "message": "การลบแอปไม่ได้ลบข้อมูลนี้ หากต้องการลบถาวร ให้ลบที่นี่ก่อน"
+  },
+  "options_wipe_confirm": {
+    "message": "ลบข้อมูลทั้งหมดบนอุปกรณ์นี้หรือไม่? API Key ของคุณ การตั้งค่าทั้งหมด ทุกประโยคที่บันทึกไว้ และความคืบหน้าการทบทวนทั้งหมดจะถูกลบ และคุณจะถูกออกจากระบบ การกระทำนี้ไม่สามารถย้อนกลับได้\n\nสิ่งที่ซิงค์กับคลาวด์แล้วจะไม่ได้รับผลกระทบ — การเข้าสู่ระบบอีกครั้งจะนำกลับมา"
+  },
+  "toast_wipe_failed": {
+    "message": "ลบไม่หมด — โปรดลองอีกครั้ง"
+  },
+  "app_sync_empty_who": {
+    "message": "ซิงค์เสร็จแล้ว แต่ยังไม่มีอะไรภายใต้ {email} หากคุณบันทึกประโยคในส่วนขยายเบราว์เซอร์ ตรวจสอบว่าได้เข้าสู่ระบบด้วยอีเมลเดียวกัน"
+  },
+  "app_owner_mismatch": {
+    "message": "คลังข้อมูลบนอุปกรณ์นี้เป็นของบัญชีอื่น เข้าสู่ระบบด้วยอีเมลนั้น หรือลบข้อมูลของอุปกรณ์นี้ในการตั้งค่าส่วนขยายแล้วเริ่มใหม่"
+  },
+  "app_owner_unknown": {
+    "message": "คลังข้อมูลบนอุปกรณ์นี้มีเจ้าของ แต่คุณยังไม่ได้เข้าสู่ระบบ เข้าสู่ระบบเพื่อซิงค์ต่อ"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "คลังข้อมูลบนอุปกรณ์นี้เป็นของบัญชีอื่น เข้าสู่ระบบด้วยอีเมลนั้น หรือลบข้อมูลทั้งหมดบนอุปกรณ์นี้แล้วเริ่มใหม่"
+  },
+  "sync_err_owner_unknown": {
+    "message": "คลังข้อมูลบนอุปกรณ์นี้มีเจ้าของ แต่คุณยังไม่ได้เข้าสู่ระบบ เข้าสู่ระบบเพื่อซิงค์ต่อ"
+  },
+  "app_err_upgrade": {
+    "message": "คลาวด์มีเนื้อหาที่เวอร์ชันนี้อ่านไม่ได้ (อาจมาจากส่วนขยายที่ใหม่กว่า) อัปเดตแอปแล้วซิงค์อีกครั้ง — ไม่มีอะไรสูญหาย เพียงแต่ยังอ่านไม่ได้ในตอนนี้"
+  },
+  "site_next_title": {
+    "message": "แปลแล้ว ขั้นต่อไป: นำการ์ดเหล่านี้เข้าแอป"
+  },
+  "site_next_body": {
+    "message": "ประโยคที่คุณหยุดอ่านกลายเป็นการ์ดทบทวนแล้ว ในเบราว์เซอร์นี้ การ์ดจะไปถึงแอปเมื่อคุณเข้าสู่ระบบเท่านั้น คุณยังใช้ทุกอย่างได้โดยไม่เข้าสู่ระบบ แอปจะแค่ว่างเปล่า"
+  },
+  "site_next_body_off": {
+    "message": "“รวบรวมเนื้อหาการเรียนรู้” ยังปิดอยู่ จึงยังไม่มีการสร้างการ์ด เปิดใช้งานในการตั้งค่าส่วนขยายก่อน"
+  },
+  "site_next_cta": {
+    "message": "ดูการ์ดของคุณ"
+  },
+  "site_next_cta_off": {
+    "message": "เปิด “รวบรวมเนื้อหาการเรียนรู้”"
+  },
+  "site_next_signin": {
+    "message": "เข้าสู่ระบบตอนนี้ →"
+  },
+  "sync_next_app": {
+    "message": "ถัดไป: ลงชื่อเข้าใช้แอป iPhone / Mac ด้วยอีเมลเดียวกันนี้ ({email}) — นั่นคือสิ่งที่นำการ์ดเหล่านี้มา"
+  },
+  "app_dl_mismatch_title": {
+    "message": "นี่คือสองบัญชีที่แตกต่างกัน"
+  },
+  "app_dl_mismatch_body": {
+    "message": "ส่วนขยายเบราว์เซอร์ลงชื่อเข้าใช้ด้วยบัญชีอื่น ส่วนแอปนี้ลงชื่อเข้าใช้เป็น {email} การ์ดเป็นของบัญชี ดังนั้นเมื่อทั้งสองต่างกัน สิ่งที่คุณเก็บไว้ที่นั่นจะไม่ปรากฏที่นี่"
+  },
+  "app_dl_switch": {
+    "message": "ออกจากระบบและใช้บัญชีของส่วนขยาย"
+  },
+  "app_dl_keep": {
+    "message": "ใช้บัญชีนี้ต่อไป"
+  },
+  "app_dl_signin": {
+    "message": "ส่วนขยายเบราว์เซอร์ลงชื่อเข้าใช้แล้ว ลงชื่อเข้าใช้ที่นี่ด้วยบัญชีเดียวกัน แล้วการ์ดจะซิงค์มาให้"
+  },
+  "app_dl_signin_none": {
+    "message": "ลงชื่อเข้าใช้ส่วนขยายเบราว์เซอร์ก่อน แล้วกลับมาลงชื่อเข้าใช้ที่นี่ด้วยบัญชีเดียวกัน — การ์ดถูกเก็บไว้ที่นั่น"
+  },
+  "review_go_app": {
+    "message": "ดำเนินการต่อในแอป →"
+  },
+  "site_setup_next_engine": {
+    "message": "ตั้งค่าเครื่องมือแปลภาษา →"
+  },
+  "setup_not_configured": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องมือแปลภาษา ใช้การตั้งค่าแบบปุ่มเดียวด้านบน หรือสลับไปที่ “ละเอียด” เพื่อเลือกเครื่องมือและป้อนคีย์"
+  },
+  "toast_wipe_failed_what": {
+    "message": "ลบไม่หมด — ยังเหลืออยู่: {what} โปรดลองอีกครั้ง"
+  },
+  "wipe_left_unreadable": {
+    "message": "ไม่สามารถอ่านข้อมูลที่จัดเก็บกลับมาได้"
+  },
+  "site_next_title_off": {
+    "message": "มันแปลแล้ว — แต่ยังไม่มีการบันทึกเป็นการ์ด"
+  },
+  "drive_skipped_media": {
+    "message": "ข้ามการ์ดคำบรรยายวิดีโอ {n} ใบ — ไม่มีข้อความเนื้อหาให้อ่านออกเสียง"
+  },
+  "drive_skipped_voice": {
+    "message": "ข้าม {n}: อุปกรณ์นี้ไม่มีเสียงที่อ่านได้ ตั้งค่าได้ที่การตั้งค่า → เครื่องมือเสียง หรือเลือกเสียงระบบอื่น"
+  },
+  "sync_next_cards": {
+    "message": "ดูการ์ดของคุณ"
+  },
+  "site_next_body_local": {
+    "message": "ประโยคที่คุณหยุดอ่านกลายเป็นการ์ดทบทวนแล้ว ที่นี่ในเบราว์เซอร์นี้ ไปดูได้เลย"
+  },
+  "learn_empty_on": {
+    "message": "การเก็บข้อมูลเปิดอยู่แล้ว เรียกดูและแปลต่อไป — ประโยคที่คุณหยุดอ่านจะปรากฏที่นี่ ส่วนประโยคที่คุณเลื่อนผ่านจะไม่ปรากฏ"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "ออกจากระบบแล้ว ใช้เฉพาะในเครื่อง — ลงชื่อเข้าใช้เพื่อทบทวนในแอปด้วย →"
+  },
+  "app_open_failed": {
+    "message": "ไม่สามารถเปิดแอปบนอุปกรณ์นี้ได้"
+  },
+  "app_open_store": {
+    "message": "รับได้ที่ App Store →"
+  },
+  "app_not_on_platform": {
+    "message": "แอปนี้มีเฉพาะ iPhone, iPad และ Mac บนอุปกรณ์นี้ ทบทวนได้ที่นี่ในเบราว์เซอร์"
+  },
+  "product_name": {
+    "message": "BelliedMonkey นักแปล"
+  },
+  "sync_err_pkce_missing": {
+    "message": "การลงชื่อเข้าใช้นั้นไม่กลับมา — เบราว์เซอร์เปลี่ยนไป หรือข้อมูลไซต์ถูกล้าง เพียงเริ่มใหม่จากหน้านี้"
+  },
+  "sync_err_pkce_state": {
+    "message": "การลงชื่อเข้าใช้นั้นกลับมาจากที่ที่เราไม่ได้เริ่มไว้ หยุดแล้ว โปรดเริ่มใหม่"
+  },
+  "sync_err_storage": {
+    "message": "ไม่สามารถอ่านที่จัดเก็บในเครื่องได้ ดังนั้นขั้นตอนนี้จึงไม่สามารถเสร็จสิ้นได้ เปิดหน้านี้ใหม่แล้วลองอีกครั้ง หากยังเกิดขึ้นซ้ำ บอกเราเกี่ยวกับเรื่องนี้"
+  },
+  "sync_with_apple": {
+    "message": "ดำเนินการต่อด้วย Apple"
+  },
+  "sync_with_google": {
+    "message": "ดำเนินการต่อด้วย Google"
+  },
+  "sync_or": {
+    "message": "หรือใช้อีเมล / เบอร์โทร:"
+  },
+  "sync_email_or_phone": {
+    "message": "อีเมลหรือเบอร์โทร"
+  },
+  "sync_code_any": {
+    "message": "รหัส 6 หลัก"
+  },
+  "app_apple_waiting": {
+    "message": "กำลังเปิดการลงชื่อเข้าใช้ด้วย Apple…"
+  },
+  "app_apple_failed": {
+    "message": "การลงชื่อเข้าใช้ด้วย Apple ไม่สำเร็จ คุณสามารถใช้อีเมลหรือเบอร์โทรศัพท์ด้านล่างแทนได้"
+  },
+  "learn_empty_other_account": {
+    "message": "อุปกรณ์นี้ยังมีเนื้อหาของบัญชีอื่นอยู่ด้วย ตอนนี้คุณลงชื่อเข้าใช้เป็นบัญชีอื่นอยู่ — ไม่มีอะไรสูญหาย ลงชื่อเข้าใช้ด้วยบัญชีเดิมแล้วเนื้อหาจะกลับมา"
+  },
+  "sync_or_email": {
+    "message": "หรือใช้อีเมล:"
+  },
+  "sync_need_id_dyn": {
+    "message": "กรอก {what} ก่อน"
+  },
+  "tts_engine_none": {
+    "message": "ยังไม่ได้ตั้งค่า (ไม่มีเสียงอ่านออกเสียง)"
+  },
+  "tts_not_configured": {
+    "message": "ยังไม่ได้ตั้งค่าระบบเสียง — เลือกเอนจินใน การตั้งค่า › อ่านออกเสียง"
+  },
+  "feedback_section": {
+    "message": "ข้อเสนอแนะ"
+  },
+  "feedback_row": {
+    "message": "ส่งข้อเสนอแนะ"
+  },
+  "feedback_rate": {
+    "message": "ให้คะแนนบนสโตร์"
+  },
+  "feedback_discuss": {
+    "message": "พูดคุยบน GitHub"
+  },
+  "feedback_hint": {
+    "message": "เปิดแอปอีเมลของคุณ หัวข้ออีเมลจะระบุเวอร์ชันและแพลตฟอร์ม ไม่มีการส่งข้อมูลอื่น"
+  },
+  "extob_done_feedback": {
+    "message": "มีอะไรใช้งานไม่ได้ใช่ไหม? เขียนมาหาฉันได้ — ฉันอ่านทุกข้อความ"
+  },
+  "sync_why": {
+    "message": "ลงชื่อเข้าใช้ด้วยบัญชีเดียวกัน แล้วประโยคที่คุณอ่านในเบราว์เซอร์จะซิงค์ไปยังแอปและอุปกรณ์อื่นๆ ของคุณ"
+  },
+  "sync_use_email": {
+    "message": "หรือลงชื่อเข้าใช้ด้วยอีเมล"
+  },
+  "sync_change_email": {
+    "message": "ใช้อีเมลอื่น"
+  },
+  "sync_resend": {
+    "message": "ส่งรหัสอีกครั้ง"
+  },
+  "telemetry_section": {
+    "message": "ข้อมูลการใช้งานแบบไม่ระบุตัวตน"
+  },
+  "telemetry_toggle": {
+    "message": "แชร์ข้อมูลการใช้งานแบบไม่ระบุตัวตน"
+  },
+  "telemetry_what": {
+    "message": "สิ่งที่ส่งไป"
+  },
+  "telemetry_hint": {
+    "message": "ส่งเฉพาะฟีเจอร์ที่ถูกใช้งาน ใช้เบราว์เซอร์ใด และการแปลสำเร็จหรือล้มเหลวเท่านั้น — ไม่ส่งหน้าเว็บที่คุณอ่าน ข้อความ ที่อยู่ คีย์ หรือบัญชีของคุณ การปิดจะลบข้อมูลที่อุปกรณ์นี้ส่งไป"
+  },
+  "telemetry_onboard": {
+    "message": "มีการส่งข้อมูลการใช้งานแบบไม่ระบุตัวตนเพื่อช่วยพัฒนาผลิตภัณฑ์ (ไม่ส่งเนื้อหาหน้าหรือที่อยู่) คุณปิดได้ใน การตั้งค่า"
+  },
+  "asr_offer": {
+    "message": "🎙 คำบรรยาย AI"
+  },
+  "asr_needs_engine": {
+    "message": "เลือกเอนจินถอดเสียงใน การตั้งค่า ก่อน"
+  },
+  "asr_status_file": {
+    "message": "⏳ กำลังถอดเสียงทั้งไฟล์…"
+  },
+  "asr_stop": {
+    "message": "หยุดถอดเสียง"
+  },
+  "asr_err_silent": {
+    "message": "ไม่ได้ยินเสียง — หยุดถอดเสียงแล้ว"
+  },
+  "asr_err_mse": {
+    "message": "Safari ไม่สามารถบันทึกเสียงของวิดีโอสตรีมมิ่งนี้ได้ จึงถอดเสียงหน้านี้ไม่ได้"
+  },
+  "asr_err_media": {
+    "message": "อ่านเสียงนี้ไม่ได้"
+  },
+  "asr_err_ws": {
+    "message": "การเชื่อมต่อการถอดเสียงขาดหาย"
+  },
+  "asr_err_toolarge": {
+    "message": "ไฟล์เสียงใหญ่เกินไปสำหรับถอดเสียงในครั้งเดียว"
+  },
+  "asr_err_nocues": {
+    "message": "เอนจินนี้ไม่คืนค่าเวลากำกับ จึงไม่สามารถสร้างคำบรรยายได้"
+  },
+  "asr_gesture_needed": {
+    "message": "แตะที่นี่เพื่อเริ่มถอดเสียงแบบสด"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ แตะเพื่อเริ่มถอดเสียงแบบสด"
+  },
+  "asr_err_settings": {
+    "message": "เอนจินถอดเสียงเปลี่ยนไป — หยุดแล้ว"
+  },
+  "popup_asr_go": {
+    "message": "🎙 ถอดเสียงแบบสด + แปล"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 ถอดเสียงสื่อนี้ + แปล"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 ถอดเสียงสื่อนี้ — เลือกเอนจินก่อน →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 ใช้แอปเพื่อฟังเสียงจากอุปกรณ์ของคุณ"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "เริ่มที่แอปก่อน แล้วค่อยเล่น"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "ใช้ได้กับไลฟ์สตรีมและเว็บวิดีโอ"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 ใช้แอปเพื่อฟังเสียงจากอุปกรณ์ของคุณ →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 เริ่มในแอปก่อน แล้วกลับมาเล่น →"
+  },
+  "asr_media_app_only": {
+    "message": "ส่วนขยายไม่สามารถดึงเสียงจากสื่อนี้ได้ (เว็บวิดีโอและไลฟ์สตรีมเป็นแบบนี้ทั้งหมด) ใช้แอปเพื่อฟังเสียงที่อุปกรณ์ของคุณกำลังเล่น — ใช้ได้กับทุกแหล่ง"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 ถอดเสียงแบบสด + แปล — เลือกเอนจินก่อน →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} ไม่มีอินเทอร์เฟซแบบสด: สตรีมถอดเสียงไม่ได้ แต่ไฟล์เสียงที่ดาวน์โหลดได้ยังทำได้ · ตั้งค่าเอนจินแบบสด →"
+  },
+  "popup_asr_no_media": {
+    "message": "ไม่พบวิดีโอหรือเสียงที่กำลังเล่นในหน้านี้ — กดเล่น แล้วแตะที่นี่เพื่อค้นหาอีกครั้ง"
+  },
+  "popup_asr_none_found": {
+    "message": "ไม่พบวิดีโอหรือเสียงที่ถอดเสียงได้ ตัวเล่นอาจอยู่ในเฟรมอื่น หรือยังไม่เริ่มเล่น"
+  },
+  "popup_asr_iframe": {
+    "message": "ตัวเล่นอยู่ในเฟรมอื่นของหน้านี้ เปิดในแท็บใหม่เพื่อถอดเสียง ↗"
+  },
+  "popup_asr_live": {
+    "message": "สด"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "ไม่ทราบความยาว"
+  },
+  "asr_incremental": {
+    "message": "แปลขณะพูด (เร็ว แต่อาจมีการแก้ไข)"
+  },
+  "asr_history": {
+    "message": "แผงประวัติคำบรรยาย"
+  },
+  "asr_history_title": {
+    "message": "ประวัติ · ประโยคเต็ม"
+  },
+  "app_listen_back": {
+    "message": "‹ ย้อนกลับ"
+  },
+  "listen_source_label": {
+    "message": "บทสนทนา"
+  },
+  "listen_entry": {
+    "message": "บทสนทนา · ล่ามสด"
+  },
+  "listen_entry_hint": {
+    "message": "สองคนคุยกันแบบเห็นหน้า: ทั้งคู่เพียงพูด ภาษาทั้งสองจะแสดงบนหน้าจอ และอ่านคำแปลออกเสียง เสียงจะส่งไปยังปลายทางการถอดเสียงที่คุณตั้งค่าไว้เท่านั้น"
+  },
+  "listen_title": {
+    "message": "บทสนทนา"
+  },
+  "listen_history": {
+    "message": "ประโยคที่สรุปแล้ว"
+  },
+  "listen_pending": {
+    "message": "⏳ กำลังแปล…"
+  },
+  "listen_me_prefix": {
+    "message": "ฉัน:"
+  },
+  "listen_me_badge": {
+    "message": "ฉันพูด"
+  },
+  "listen_star": {
+    "message": "ติดดาว"
+  },
+  "listen_now_them": {
+    "message": "อีกฝ่ายกำลังพูด"
+  },
+  "listen_now_me": {
+    "message": "ฉันกำลังพูด"
+  },
+  "listen_lang_me": {
+    "message": "{to} สำหรับอีกฝ่าย"
+  },
+  "listen_other_lang_label": {
+    "message": "ภาษาของอีกฝ่าย"
+  },
+  "listen_pill_listening": {
+    "message": "กำลังฟัง · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "หยุดชั่วคราว · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "สิ้นสุด · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● กำลังฟัง · หยุดชั่วคราว"
+  },
+  "listen_toggle_start": {
+    "message": "เริ่มฟัง"
+  },
+  "listen_copy_all": {
+    "message": "คัดลอกทั้งหมด"
+  },
+  "listen_copied": {
+    "message": "คัดลอกแล้ว"
+  },
+  "listen_copy_failed": {
+    "message": "คัดลอกไม่สำเร็จ"
+  },
+  "listen_mac_use": {
+    "message": "ใช้ได้กับการประชุมออนไลน์และวิดีโอคอลด้วย เพียงเปิดเสียงของอีกฝ่ายให้ออกทางลำโพง"
+  },
+  "listen_end": {
+    "message": "จบ"
+  },
+  "listen_cost_line": {
+    "message": "ฟังไป {t} · เสียงส่งไปยังปลายทางการถอดเสียงของคุณเท่านั้น"
+  },
+  "listen_flip_hint": {
+    "message": "ให้อีกฝ่ายดู · แตะที่ใดก็ได้เพื่อกลับ"
+  },
+  "listen_flip_speaking": {
+    "message": "กำลังพูดออกเสียง"
+  },
+  "listen_stop_denied": {
+    "message": "ไมโครโฟนถูกปฏิเสธ — โปรดอนุญาต BelliedMonkey Translator ที่ การตั้งค่า › ความเป็นส่วนตัว › ไมโครโฟน"
+  },
+  "listen_stop_socket": {
+    "message": "การเชื่อมต่อถอดเสียงขาดหาย: {why} — สิ่งที่ได้ยินยังถูกเก็บไว้"
+  },
+  "listen_stop_locked": {
+    "message": "ระบบหยุดการบันทึก (มีสายหรือแอปอื่นใช้ไมโครโฟน) — จะกลับมาทำงานเมื่อสิ้นสุด หรือแตะ “เริ่มฟัง”"
+  },
+  "listen_stop_silence": {
+    "message": "ไม่มีเสียงเป็นเวลา 30 วินาที — หยุดชั่วคราวเพื่อหลีกเลี่ยงค่าใช้จ่าย"
+  },
+  "listen_stop_failed": {
+    "message": "ไมโครโฟนเริ่มทำงานไม่สำเร็จ: {why} — แตะ “เริ่มฟัง” อีกครั้ง"
+  },
+  "listen_summary_title": {
+    "message": "บทสนทนานี้"
+  },
+  "listen_summary_note": {
+    "message": "การบันทึกจะถูกละทิ้ง เก็บไว้เฉพาะข้อความ ประโยคที่เพิ่มไปยังรายการตรวจทานสามารถจัดการหรือลบทั้งหมดได้ที่ แหล่งที่มา › บทสนทนา"
+  },
+  "listen_summary_home": {
+    "message": "กลับหน้าหลัก"
+  },
+  "listen_summary_again": {
+    "message": "อีกครั้ง"
+  },
+  "listen_np_title": {
+    "message": "บทสนทนา · ล่ามสด"
+  },
+  "listen_np_album": {
+    "message": "บทสนทนา · กำลังฟัง · {t} · {n} ประโยค"
+  },
+  "listen_settings_title": {
+    "message": "บทสนทนา · ล่ามสด"
+  },
+  "listen_capture_label": {
+    "message": "เพิ่มบทสนทนาไปยังรายการทบทวน (แหล่งที่มา “บทสนทนา”)"
+  },
+  "listen_capture_note": {
+    "message": "“บทสนทนา · ล่ามสด” จะสตรีมไมโครโฟนไปยังปลายทางการถอดเสียงที่คุณตั้งค่าไว้ เฉพาะหลังจากที่คุณแตะ “เริ่มฟัง” และไปยังปลายทางนั้นเท่านั้น เซิร์ฟเวอร์ของเราไม่แตะต้องเสียงเลย ไม่มีการบันทึกเสียงเก็บไว้ มีเพียงข้อความ — และเฉพาะขณะที่สวิตช์นี้เปิดอยู่เท่านั้น"
+  },
+  "listen_who_them": {
+    "message": "ฝ่ายเขา"
+  },
+  "listen_who_me": {
+    "message": "ฝ่ายฉัน"
+  },
+  "listen_who_guessed": {
+    "message": "คาดเดาจากภาษา — แตะ ↔ เพื่อเปลี่ยน"
+  },
+  "listen_swap_to_them": {
+    "message": "เปลี่ยนเป็น: เขาพูดสิ่งนี้"
+  },
+  "listen_swap_to_me": {
+    "message": "เปลี่ยนเป็น: ฉันพูดสิ่งนี้"
+  },
+  "listen_flip_kept_card": {
+    "message": "เปลี่ยนฝ่ายแล้ว — การ์ดก่อนหน้านี้ถูกทบทวนไปแล้ว จึงยังคงอยู่ภายใต้แหล่งที่มา › บทสนทนา"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "กำลังพูด…"
+  },
+  "listen_live_badge": {
+    "message": "● สด"
+  },
+  "listen_reading": {
+    "message": "กำลังอ่านออกเสียง"
+  },
+  "listen_autospeak_off": {
+    "message": "หยุดอ่านออกเสียงอัตโนมัติแล้ว · {why} — ปุ่มต่อแถวยังใช้งานได้"
+  },
+  "listen_autospeak_echo": {
+    "message": "หยุดอ่านออกเสียงอัตโนมัติชั่วคราว — ตรวจพบการวนซ้ำของเสียงสะท้อน ลดระดับเสียงหรือใช้หูฟัง แล้วเปิดอีกครั้ง"
+  },
+  "listen_read_queue_n": {
+    "message": "กำลังอ่านออกเสียง · เหลืออีก {n} รายการในคิว"
+  },
+  "listen_ephemeral_label": {
+    "message": "ไม่ต้องเก็บรายการนี้"
+  },
+  "listen_ephemeral_locked": {
+    "message": "เซสชันนี้เริ่มไปแล้ว — หากไม่ต้องการเก็บอะไรเลย ให้จบเซสชันแล้วเริ่มใหม่"
+  },
+  "listen_ephemeral_pill": {
+    "message": "ไม่เก็บ"
+  },
+  "listen_ephemeral_summary": {
+    "message": "ไม่มีอะไรถูกเก็บจากรายการนี้"
+  },
+  "listen_summary_kept": {
+    "message": "{n} เข้าสู่การทบทวน (แหล่งที่มา บทสนทนา) · ติดดาว {s}"
+  },
+  "listen_summary_body2": {
+    "message": "{t} · เขาพูด {them} · ฉันพูด {me} · {kept}"
+  },
+  "listen_summary_flips": {
+    "message": "แก้ไขฝ่าย {n} ครั้ง"
+  },
+  "listen_my_lang_label": {
+    "message": "ภาษาของฉัน"
+  },
+  "listen_lang_note": {
+    "message": "สองภาษาต้องแตกต่างกัน คุณยังเปลี่ยนได้ที่ด้านล่างของหน้าจอบทสนทนา — เป็นการตั้งค่าเดียวกัน"
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "ไม่รองรับโดยเอนจินปัจจุบัน"
+  },
+  "listen_lang_change_engine": {
+    "message": "เปลี่ยนเอนจิน"
+  },
+  "listen_lang_swapped": {
+    "message": "สองภาษาต้องแตกต่างกัน — สลับให้แล้ว"
+  },
+  "listen_autospeak_label": {
+    "message": "อ่านคำแปลออกเสียง"
+  },
+  "listen_autospeak_note": {
+    "message": "ทุกประโยคที่พูดจบจะถูกอ่านออกเสียงหนึ่งครั้งหลังแปล — ของฝั่งคุณสำหรับคุณ ของฝั่งเขาให้เขา"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "เลือกเครื่องมืออ่านออกเสียงที่ ตั้งค่า › อ่านออกเสียง ก่อน"
+  },
+  "listen_lang_me_label": {
+    "message": "ฉัน"
+  },
+  "listen_lang_other_label": {
+    "message": "อีกฝ่าย"
+  },
+  "listen_sources_note": {
+    "message": "แต่ละประโยคมาจากการถอดเสียง และคำแปลมาจากเครื่องมือของคุณ ทั้งสองอย่างอาจผิดพลาดได้ — ประโยคที่ติดดาวจะถูกส่งไปตรวจสอบก่อน"
+  },
+  "app_today_due": {
+    "message": "ครบกำหนดวันนี้"
+  },
+  "home_cta_subs": {
+    "message": "เริ่มคำบรรยายสด"
+  },
+  "home_cta_listen": {
+    "message": "เริ่มบทสนทนา"
+  },
+  "app_last_sync": {
+    "message": "ซิงค์ล่าสุด {t}"
+  },
+  "app_modes_label": {
+    "message": "ฟัง"
+  },
+  "drive_entry_hint": {
+    "message": "อ่านชุดคำวันนี้ให้ฟัง แบบไม่ต้องใช้มือ"
+  },
+  "listen_entry_short": {
+    "message": "สองคนคุยกันแบบเห็นหน้า — ต่างคนต่างพูด แล้วคำแปลจะถูกอ่านออกเสียง"
+  },
+  "listen_entry_privacy": {
+    "message": "เสียงจะถูกส่งไปยังปลายทางการถอดเสียงที่คุณตั้งค่าไว้เท่านั้น"
+  },
+  "listen_pill_preparing": {
+    "message": "กำลังเตรียมพร้อม"
+  },
+  "listen_toggle_preparing": {
+    "message": "กำลังเตรียมพร้อม…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "กำลังเชื่อมต่อใหม่…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "การเชื่อมต่อถอดเสียงขาดหาย: {why} — กำลังเชื่อมต่อใหม่…"
+  },
+  "listen_history_empty": {
+    "message": "ทั้งสองคนแค่พูดกัน — ทุกประโยคที่พูดจบจะมาอยู่ที่นี่ แตะ ↔ หากฝั่งไม่ถูกต้อง"
+  },
+  "listen_tr_failed": {
+    "message": "แปลไม่สำเร็จ · ลองใหม่"
+  },
+  "listen_read_aloud": {
+    "message": "อ่านออกเสียง"
+  },
+  "listen_show_other": {
+    "message": "แสดงให้อีกฝ่าย"
+  },
+  "listen_close": {
+    "message": "ปิด"
+  },
+  "listen_leave_confirm": {
+    "message": "ยังฟังอยู่ การออกจะจบบทสนทนานี้ สิ่งที่ได้ยินจะถูกเก็บไว้"
+  },
+  "dialog_ok": {
+    "message": "ตกลง"
+  },
+  "dialog_cancel": {
+    "message": "ยกเลิก"
+  },
+  "listen_leave_ok": {
+    "message": "จบและออก"
+  },
+  "grant_err_exhausted": {
+    "message": "เครดิตฟรีของคุณใช้หมดแล้ว คุณสามารถเพิ่ม API key ของคุณเองเพื่อใช้งานต่อได้ (หนึ่ง key ใช้ได้ทั้งการแปล เสียง และการถอดเสียง) หรือสอบถามในคอมมูนิตี้"
+  },
+  "grant_err_unavailable": {
+    "message": "นี่ไม่ใช่คุณที่ใช้หมด — เครดิตฟรีของเราหมดและกำลังเติมให้ ใช้ key ของคุณเองไปก่อน หรือกลับมาใหม่ภายหลัง"
+  },
+  "grant_err_misconfigured": {
+    "message": "มีการตั้งค่าผิดพลาดในระบบเครดิตฟรีของเรา และเราได้บันทึกไว้แล้ว นี่ไม่ใช่ความผิดของคุณ ใช้ key ของคุณเองไปก่อน"
+  },
+  "grant_err_revoked": {
+    "message": "เครดิตฟรีนี้ถูกปิดใช้งานแล้ว (การออกจากระบบหรือลบบัญชีจะปิดใช้งาน) เข้าสู่ระบบบัญชีเดิมอีกครั้งแล้วมันจะกลับมาพร้อมยอดคงเหลือเดิม"
+  },
+  "grant_err_invalid": {
+    "message": "เครดิตฟรีนี้ไม่สามารถใช้งานได้แล้ว เปิดการตั้งค่าและรับอีกครั้ง"
+  },
+  "grant_err_model": {
+    "message": "เครดิตฟรีใช้ได้เฉพาะกับโมเดลที่กำหนดไว้เท่านั้น คุณเปลี่ยนโมเดลในส่วนขั้นสูง — เปลี่ยนกลับ หรือเพิ่มคีย์ของคุณเอง"
+  },
+  "grant_err_busy": {
+    "message": "มีคำขอมากเกินไปในขณะนี้ รอสักครู่แล้วลองอีกครั้ง"
+  },
+  "grant_title": {
+    "message": "เครดิตฟรี"
+  },
+  "grant_body_signin": {
+    "message": "ลงชื่อเข้าใช้แล้วคุณจะรับเครดิตฟรีได้ — เพียงพอสำหรับหลายร้อยหน้า ครอบคลุมการแปล เสียง และการถอดเสียง"
+  },
+  "grant_signin": {
+    "message": "ลงชื่อเข้าใช้เพื่อรับเครดิตฟรี"
+  },
+  "grant_signin_again": {
+    "message": "ลงชื่อเข้าใช้อีกครั้ง"
+  },
+  "grant_body_signed_out": {
+    "message": "การลงชื่อออกทำให้เครดิตฟรีของคุณถูกปิดใช้งาน ยอดคงเหลือยังอยู่ — ลงชื่อเข้าใช้บัญชีเดิมแล้วจะกลับมา"
+  },
+  "grant_body_unclaimed": {
+    "message": "คุณยังไม่ได้รับเครดิตฟรีของคุณ ใช้ได้สำหรับหลายร้อยหน้า ครอบคลุมการแปล เสียง และการถอดเสียง"
+  },
+  "grant_claim": {
+    "message": "รับ"
+  },
+  "grant_claiming": {
+    "message": "กำลังรับ…"
+  },
+  "grant_privacy": {
+    "message": "เครดิตฟรี (ไม่บังคับ) เมื่อคุณลงชื่อเข้าใช้และรับแล้ว คุณสามารถใช้เครดิต $0.20 ที่เราจ่ายให้ ครอบคลุมการแปล เสียง และการถอดเสียง ในเส้นทางนี้ ข้อความของคุณจะผ่านเซิร์ฟเวอร์ของเราระหว่างทางไปยังผู้ให้บริการโมเดล ({vendor}) เราไม่จัดเก็บหรือบันทึกเนื้อหา เก็บเฉพาะจำนวนที่แต่ละครั้งใช้ไป เครดิตจะหยุดเมื่อหมดและจะไม่เรียกเก็บเงินคุณ เส้นทางการใช้คีย์ของคุณเองไม่เปลี่ยนแปลง: ข้อความนั้นยังคงส่งจากเบราว์เซอร์ของคุณตรงไปยังผู้ให้บริการ และเราไม่เห็นเลย การลงชื่อออกจะปิดใช้งานเครดิตบนอุปกรณ์นี้ การลบบัญชีของคุณจะลบบันทึกเครดิตด้วย"
+  },
+  "grant_body_active": {
+    "message": "เครดิตฟรีของคุณกำลังถูกใช้งาน เมื่อหมดคุณสามารถเพิ่ม API key ของคุณเองและใช้งานต่อได้"
+  },
+  "grant_body_low": {
+    "message": "เครดิตฟรีของคุณใกล้หมดแล้ว เมื่อหมดคุณสามารถเพิ่ม API key ของคุณเองและใช้งานต่อได้"
+  },
+  "grant_body_exhausted": {
+    "message": "เครดิตฟรีของคุณใช้หมดแล้ว เพิ่ม API key ของคุณเองเพื่อใช้งานต่อ — คีย์เดียวครอบคลุมการแปล เสียง และการถอดเสียง"
+  },
+  "grant_body_unavailable": {
+    "message": "นี่ไม่ใช่เพราะคุณใช้จนหมด — เครดิตฟรีของเราหมดชั่วคราวและกำลังเติมให้ ใช้คีย์ของคุณเองไปก่อน หรือกลับมาใหม่ภายหลัง"
+  },
+  "grant_body_replaced": {
+    "message": "คุณกำลังใช้คีย์ของคุณเองอยู่ในขณะนี้ เครดิตฟรียังอยู่ คุณสามารถสลับกลับได้ทุกเมื่อ"
+  },
+  "grant_restore": {
+    "message": "สลับกลับไปใช้เครดิตฟรี"
+  },
+  "grant_byo": {
+    "message": "ใช้คีย์ของคุณเอง"
+  },
+  "grant_community": {
+    "message": "สอบถามในคอมมูนิตี้"
+  },
+  "grant_engine_label": {
+    "message": "เครดิตฟรี BelliedMonkey"
+  },
+  "grant_restore_confirm": {
+    "message": "การสลับกลับไปใช้เครดิตฟรีจะแทนที่คีย์ที่คุณป้อนไว้ ดำเนินการต่อหรือไม่"
+  },
+  "grant_signout_confirm": {
+    "message": "การลงชื่อออกจะปิดใช้งานเครดิตฟรีบนอุปกรณ์นี้ (ยอดคงเหลือจะถูกเก็บไว้ ลงชื่อเข้าใช้อีกครั้งเพื่อรับคืน) ลงชื่อออกหรือไม่"
+  },
+  "grant_claimed_toast": {
+    "message": "ตั้งค่าเครดิตฟรีเรียบร้อยแล้ว"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "รับเครดิตฟรีแล้ว คีย์ของคุณเองยังคงอยู่ — แตะ “สลับกลับไปใช้เครดิตฟรี” เพื่อใช้เครดิตแทน"
+  },
+  "grant_page_halt": {
+    "message": "เครดิตฟรีใช้หมดแล้ว — แตะเพื่อดูวิธีใช้งานต่อ"
+  },
+  "grant_page_halt_ours": {
+    "message": "เครดิตฟรีไม่พร้อมใช้งานในขณะนี้ (ไม่ใช่เพราะคุณใช้จนหมด) — แตะเพื่อดูวิธีใช้งานต่อ"
+  },
+  "auth_page_halt": {
+    "message": "คีย์นี้ถูกปฏิเสธโดยผู้ให้บริการ (HTTP 401/403) — แตะเพื่อตรวจสอบ"
+  },
+  "halt_open_settings": {
+    "message": "เปิดการตั้งค่า"
+  },
+  "auth_err_key": {
+    "message": "ผู้ให้บริการปฏิเสธคีย์นี้ (HTTP 401/403) ตรวจสอบว่าคีย์ถูกต้องและมีสิทธิ์สำหรับโมเดลนี้"
+  },
+  "rate_prompt_text": {
+    "message": "ใช้งานสะดวกไหม? ฝากคะแนนในสโตร์ →"
+  },
+  "app_nudge_text": {
+    "message": "ประโยคที่คุณอ่านวันนี้ — ทบทวนได้ในแอป →"
+  },
+  "review_nudge_text": {
+    "message": "ประโยคที่คุณอ่านวันนี้ — ทบทวนเลย →"
+  },
+  "doc_title": {
+    "message": "แปลเอกสาร"
+  },
+  "doc_to_review": {
+    "message": "ไปที่การทบทวน →"
+  },
+  "doc_upload": {
+    "message": "อัปโหลดเอกสาร (PDF / Word / รูปภาพ)"
+  },
+  "doc_privacy": {
+    "message": "เอกสารเก็บอยู่บนอุปกรณ์นี้เท่านั้น — ไม่ซิงก์ ไม่ส่งออก เมื่อแปล ข้อความของหน้าที่คุณเปิดจะถูกส่งไปยังปลายทางการแปลที่คุณตั้งค่าไว้ — ไม่ใช่ทั้งไฟล์ และไม่ส่งตอนอัปโหลด ส่วนรูปภาพและหน้าที่สแกนจะถูกส่งเป็นรูปภาพไปยังปลายทางเดียวกัน เฉพาะเมื่อเอนจินของคุณรองรับรูปภาพ"
+  },
+  "doc_privacy_grant": {
+    "message": "เอกสารเก็บอยู่บนอุปกรณ์นี้เท่านั้น เมื่อแปล หน้าที่คุณเปิดจะผ่านรีเลย์ของเราไปยังผู้ให้บริการโมเดล (ไม่จัดเก็บ ไม่บันทึก) เครดิตฟรีไม่รองรับการรู้จำรูปภาพ — รูปภาพและหน้าที่สแกนต้องใช้ API key ของคุณเอง"
+  },
+  "doc_list_empty": {
+    "message": "ยังไม่มีเอกสาร รองรับ PDF, Word (.docx), ข้อความล้วน และรูปภาพ"
+  },
+  "doc_row_meta": {
+    "message": "{pages} หน้า · อยู่ที่หน้า {page} · เก็บได้ {n} ประโยค"
+  },
+  "doc_delete": {
+    "message": "ลบ"
+  },
+  "doc_delete_confirm": {
+    "message": "ลบเอกสารนี้? การ์ดของเอกสารจะถูกลบด้วย (ซิงก์ไปยังทุกอุปกรณ์) และกู้คืนไม่ได้"
+  },
+  "doc_unsupported_kind": {
+    "message": "รูปแบบไม่รองรับ (รองรับ PDF, .docx, ข้อความล้วน และรูปภาพ) สำหรับ .doc ให้บันทึกเป็น .docx ใน Word"
+  },
+  "doc_too_large": {
+    "message": "ไฟล์ใหญ่เกินไป (จำกัด 30 MB)"
+  },
+  "doc_grant_no_image": {
+    "message": "เครดิตฟรีไม่รองรับการรู้จำรูปภาพ — ใช้ API key ของคุณเอง"
+  },
+  "doc_no_vision": {
+    "message": "เอนจินปัจจุบันของคุณไม่รองรับการรู้จำรูปภาพ · เปลี่ยนโมเดลในตั้งค่า"
+  },
+  "doc_store_failed": {
+    "message": "บันทึกเอกสารไม่สำเร็จ:"
+  },
+  "doc_missing": {
+    "message": "เอกสารนี้ไม่อยู่บนอุปกรณ์นี้อีกแล้ว"
+  },
+  "doc_opening": {
+    "message": "กำลังอ่าน…"
+  },
+  "doc_open_failed": {
+    "message": "อ่านเอกสารนี้ไม่สำเร็จ:"
+  },
+  "doc_back": {
+    "message": "เอกสาร"
+  },
+  "doc_lang": {
+    "message": "ภาษาของเอกสาร"
+  },
+  "doc_lang_auto": {
+    "message": "อัตโนมัติ"
+  },
+  "doc_prev": {
+    "message": "ก่อนหน้า"
+  },
+  "doc_next": {
+    "message": "ถัดไป"
+  },
+  "doc_ocr_running": {
+    "message": "กำลังรู้จำหน้านี้…"
+  },
+  "doc_ocr_failed": {
+    "message": "การรู้จำล้มเหลว:"
+  },
+  "doc_page_empty": {
+    "message": "ไม่มีข้อความที่ดึงออกได้ในหน้านี้"
+  },
+  "doc_old_engine": {
+    "message": "หน้านี้แปลด้วยเอนจินเก่า — แปลใหม่ด้วยเอนจินปัจจุบันแล้ว"
+  },
+  "doc_page_stat": {
+    "message": "หน้านี้: {units} ย่อหน้า · ประมาณ {chars} ตัวอักษร"
+  },
+  "doc_go_settings": {
+    "message": "การตั้งค่า →"
+  },
+  "doc_translating": {
+    "message": "⏳ กำลังแปล…"
+  },
+  "doc_star": {
+    "message": "เพิ่มในรายการรีวิว"
+  },
+  "doc_translate_failed": {
+    "message": "แปลไม่สำเร็จ · แตะเพื่อลองใหม่"
+  },
+  "doc_popup_row": {
+    "message": "📄 แปลเอกสาร (PDF / Word / รูปภาพ)"
+  },
+  "doc_open_page": {
+    "message": "แปลเอกสาร (PDF / Word / รูปภาพ)"
+  },
+  "doc_review_entry": {
+    "message": "📄 แปลเอกสาร"
+  },
+  "doc_source_label": {
+    "message": "เอกสาร"
+  },
+  "doc_page_n": {
+    "message": "หน้า {n}"
+  },
+  "doc_sources_note": {
+    "message": "การลบจะลบเอกสารนั้นด้วย"
+  },
+  "doc_app_entry_hint": {
+    "message": "แปลทีละหน้า; คำแปลจะเข้ารายการรีวิว"
+  },
+  "doc_app_back": {
+    "message": "‹ ย้อนกลับ"
+  },
+  "doc_capture_label": {
+    "message": "คำแปลเอกสารจะเข้ารายการรีวิว (แหล่งที่มา “เอกสาร”)"
+  },
+  "doc_prefetch_label": {
+    "message": "แยกวิเคราะห์หน้าถัดไปล่วงหน้า (ไม่แปล)"
+  },
+  "rate_prompt_dismiss": {
+    "message": "ไม่ต้องถามอีก"
+  },
+  "grant_popup_model": {
+    "message": "เครดิตฟรีใช้ได้เฉพาะกับโมเดลที่ผูกไว้ — แตะเพื่อเปลี่ยนกลับ"
+  },
+  "grant_popup_exhausted": {
+    "message": "เครดิตฟรีใช้หมดแล้ว — แตะเพื่อดูวิธีดำเนินการต่อ"
+  },
+  "grant_popup_low": {
+    "message": "เครดิตฟรีใกล้หมดแล้ว — แตะเพื่อดู"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "ออกจากระบบแล้ว — ใช้ได้เฉพาะอุปกรณ์นี้ การเข้าสู่ระบบยังช่วยให้คุณได้เครดิตฟรี →"
+  },
+  "grant_cn_title": {
+    "message": "เริ่มต้นด้วยเครดิตฟรีของผู้ให้บริการเอง"
+  },
+  "grant_cn_body": {
+    "message": "หลังจากสมัครแล้ว แต่ละโมเดลจะมีเครดิตฟรีที่ใช้ได้ระยะหนึ่ง ซึ่งมาจากผู้ให้บริการ ไม่ใช่จากเรา"
+  },
+  "grant_cn_step1": {
+    "message": "สมัครและเปิดคอนโซล"
+  },
+  "grant_cn_step2": {
+    "message": "รับเครดิตฟรี (หน้าของพวกเขาระบุจำนวนที่แน่นอน)"
+  },
+  "grant_cn_step3": {
+    "message": "วาง API key ด้านล่างเพื่อตั้งค่าการแปล เสียงพูด และการถอดเสียงในครั้งเดียว"
+  },
+  "grant_cn_open": {
+    "message": "เปิดคอนโซล ↗"
+  },
+  "grant_cn_why": {
+    "message": "เรายังไม่แจกเครดิตเองที่นี่: ต้องมี relay ที่ทำงานในประเทศ ซึ่งยังไม่เปิด"
+  },
+  "subtitle_source_label": {
+    "message": "คำบรรยายสด"
+  },
+  "subtitle_entry": {
+    "message": "คำบรรยายสด"
+  },
+  "subtitle_entry_hint": {
+    "message": "คำบรรยายสองภาษาสำหรับวิดีโอ สตรีม หรือการประชุมที่กำลังเล่นอยู่"
+  },
+  "subtitle_need_key": {
+    "message": "เครื่องมือถอดเสียงยังไม่มี API key"
+  },
+  "subtitle_need_key_go": {
+    "message": "เพิ่มได้ใน Settings →"
+  },
+  "subtitle_title": {
+    "message": "คำบรรยายสด"
+  },
+  "subtitle_start": {
+    "message": "เริ่ม"
+  },
+  "subtitle_capture_label": {
+    "message": "เพิ่มคำบรรยายในรายการรีวิว (แหล่งที่มา “คำบรรยายสด”)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "ภาษาของวิดีโอ"
+  },
+  "subtitle_tip_mac": {
+    "message": "หลังจากเริ่ม คำบรรยายจะแสดงในแถบลอยที่ด้านล่างของหน้าจอ และทุกประโยคที่จบแล้วจะแสดงในรายการนี้ด้วย"
+  },
+  "subtitle_tip_ios": {
+    "message": "แตะเริ่มก่อน แล้วเล่นเสียงออกลำโพงในแอปใดก็ได้ (เบราว์เซอร์ วิดีโอ พอดแคสต์…) คำบรรยายจะลอยอยู่ในหน้าต่าง picture-in-picture หากใส่หูฟังจะไม่ได้ยินเสียง"
+  },
+  "subtitle_privacy": {
+    "message": "จะเริ่มฟังเสียงที่ Mac เครื่องนี้เล่นหลังจากคุณแตะ “เริ่ม” เท่านั้น เสียงจะถูกถอดความบนอุปกรณ์นี้ (หรือส่งไปยังปลายทางการถอดความที่คุณตั้งค่าไว้เท่านั้น) ไม่มีการบันทึกหรือจัดเก็บ และเซิร์ฟเวอร์ของเราไม่เกี่ยวข้องเลย ข้อความที่ถอดความจะอยู่ในรายการรีวิวของคุณเฉพาะขณะที่ “เพิ่มคำบรรยายในรายการรีวิว” เปิดอยู่"
+  },
+  "subtitle_privacy_ios": {
+    "message": "จะเริ่มฟังเสียงที่ iPhone เครื่องนี้เล่นผ่านลำโพงหลังจากคุณแตะ “เริ่ม” เท่านั้น เสียงจะถูกถอดความบนอุปกรณ์นี้ (หรือส่งไปยังปลายทางการถอดความที่คุณตั้งค่าไว้เท่านั้น) ไม่มีการบันทึกหรือจัดเก็บ และเซิร์ฟเวอร์ของเราไม่เกี่ยวข้องเลย ข้อความที่ถอดความจะอยู่ในรายการรีวิวของคุณเฉพาะขณะที่ “เพิ่มคำบรรยายในรายการรีวิว” เปิดอยู่"
+  },
+  "subtitle_pill_live": {
+    "message": "● กำลังทำคำบรรยาย · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "ตอนนี้"
+  },
+  "subtitle_history_empty": {
+    "message": "ทุกประโยคที่จบแล้วจะแสดงที่นี่"
+  },
+  "subtitle_stop_silence": {
+    "message": "ไม่มีเสียงเป็นเวลา 30 วินาที — หยุดชั่วคราวเพื่อหลีกเลี่ยงค่าใช้จ่าย แตะ “ทำต่อ” เมื่อวิดีโอเล่นอีกครั้ง"
+  },
+  "subtitle_leave_confirm": {
+    "message": "ยังคงฟังอยู่ หากออกจะสิ้นสุดคำบรรยายนี้ โดยประโยคที่ได้มาจนถึงตอนนี้จะถูกเก็บไว้"
+  },
+  "subtitle_summary_title": {
+    "message": "เซสชันคำบรรยายนี้"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} ประโยค · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "เพิ่ม {k} รายการในรายการรีวิว (แหล่งที่มา “คำบรรยายสด”) · ติดดาว {s} รายการ"
+  },
+  "subtitle_summary_note": {
+    "message": "ไม่มีการเก็บเสียง เก็บเฉพาะข้อความ จัดการหรือลบประโยคเหล่านี้ได้ที่ Sources › คำบรรยายสด"
+  },
+  "subtitle_bar_waiting": {
+    "message": "กำลังรอสิทธิ์ — คลิก “อนุญาต” ในข้อความแจ้งของระบบ"
+  },
+  "subtitle_bar_listening": {
+    "message": "กำลังฟังเสียงระบบ…"
+  },
+  "subtitle_bar_paused": {
+    "message": "หยุดชั่วคราว"
+  },
+  "subtitle_bar_silence": {
+    "message": "ไม่มีเสียงเป็นเวลา 30 วินาที — หยุดชั่วคราวเพื่อหลีกเลี่ยงค่าใช้จ่าย"
+  },
+  "subtitle_bar_denied": {
+    "message": "ไม่ได้ยินเสียงระบบ — อนุญาต BelliedMonkey Translator ใน System Settings › Privacy & Security › Screen & System Audio Recording"
+  },
+  "subtitle_bar_socket": {
+    "message": "การเชื่อมต่อถอดความขาดหาย"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "กำลังเชื่อมต่อใหม่…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "กำลังดาวน์โหลดข้อมูลการรู้จำภาษา{lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "การแปลนี้ล้มเหลว · ลองใหม่ในหน้าต่างหลัก"
+  },
+  "subtitle_bar_headphones": {
+    "message": "ไม่ได้ยินเสียงวิดีโอ · ถอดหูฟังและใช้ลำโพง"
+  },
+  "subtitle_ctl_pause": {
+    "message": "หยุดชั่วคราว"
+  },
+  "subtitle_ctl_resume": {
+    "message": "ดำเนินการต่อ"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "คลิกทะลุ"
+  },
+  "subtitle_ctl_main": {
+    "message": "หน้าต่างหลัก"
+  },
+  "subtitle_ctl_end": {
+    "message": "สิ้นสุด"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "เปิดการตั้งค่าระบบ"
+  },
+  "subtitle_menu_show_main": {
+    "message": "แสดงหน้าต่างหลัก"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "ปิดการคลิกทะลุของแถบคำบรรยาย"
+  },
+  "subtitle_menu_end": {
+    "message": "สิ้นสุดคำบรรยายสด"
+  },
+  "subtitle_pip_float": {
+    "message": "แสดงหน้าต่างคำบรรยาย"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "กำลังฟังผู้พูด…"
+  },
+  "subtitle_pip_title": {
+    "message": "คำบรรยายสด"
+  },
+  "subtitle_pip_hint": {
+    "message": "เล่นวิดีโอหรือเสียงออกลำโพงในแอปใดก็ได้ — คำบรรยายจะปรากฏที่นี่"
+  },
+  "subtitle_pip_close": {
+    "message": "แตะที่หน้าต่าง: ⏸ หยุดชั่วคราว · ⏪⏩ เรียกดูประวัติ · ✕ ปิด (เปิดใหม่ได้จากแอป)"
+  },
+  "subtitle_pip_history": {
+    "message": "ประวัติ · แตะ ⏩ เพื่อดูล่าสุด"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "หลังจากแตะ “เริ่ม” นี่คือตัวอย่างหน้าต่างคำบรรยาย — จะลอยอยู่เหนือแอปอื่นเมื่อคุณออกไป"
+  },
+  "subtitle_pip_note_live": {
+    "message": "ตัวอย่างหน้าต่างคำบรรยาย — จะลอยอยู่เหนือแอปอื่นเมื่อคุณออกไป"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "คำบรรยายนี้สิ้นสุดแล้วและหน้าต่างถูกปิด"
+  },
+  "subtitle_bar_silent": {
+    "message": "ยังไม่ได้ยินเสียงจากระบบ — วิดีโอเล่นอยู่แต่ไม่มีคำบรรยาย? อาจไม่ได้รับอนุญาตให้บันทึกเสียงระบบ"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "ไม่มีเสียง 30 วินาที — หยุดชั่วคราว หากวิดีโอเล่นอยู่แต่ไม่มีคำบรรยาย อาจไม่ได้รับอนุญาตให้บันทึกเสียงระบบ: ไปที่ การตั้งค่าระบบ › ความเป็นส่วนตัวและความปลอดภัย › การบันทึกหน้าจอและเสียงระบบ อนุญาต BelliedMonkey Translator แล้วแตะ “ดำเนินการต่อ”"
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "ไม่มีเสียง 30 วินาที — หยุดชั่วคราว วิดีโอเล่นอยู่แต่ไม่มีคำบรรยาย? อาจไม่ได้รับอนุญาตให้บันทึกเสียงระบบ"
+  },
+  "listen_need_os": {
+    "message": "การสนทนาและคำบรรยายสดต้องใช้ iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "ตัวรู้จำบนอุปกรณ์ไม่รองรับภาษานี้ — ลองภาษาอื่น"
+  },
+  "listen_assets_failed2": {
+    "message": "ดาวน์โหลดโมเดลออฟไลน์ล้มเหลว: {why} — มักเป็นปัญหาเครือข่าย ลองใหม่ภายหลัง — แตะ “เริ่มฟัง” อีกครั้งเพื่อลองใหม่"
+  },
+  "tts_engine_device": {
+    "message": "เสียงพูดบนอุปกรณ์ (โมเดลออฟไลน์ · เฉพาะแอป)"
+  },
+  "tts_hint_device": {
+    "message": "เสียงพูดถูกสังเคราะห์บนอุปกรณ์ของคุณ การใช้ครั้งแรกจะดาวน์โหลดโมเดลออฟไลน์หนึ่งครั้ง (เฉพาะไฟล์โมเดล) ภาษาที่โมเดลไม่รองรับจะใช้เสียงระบบแทน และแถวนั้นจะระบุไว้"
+  },
+  "tts_pack_label": {
+    "message": "โมเดลออฟไลน์"
+  },
+  "tts_pack_installed": {
+    "message": "ติดตั้งโมเดลออฟไลน์แล้ว · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "ยังไม่ได้ดาวน์โหลดโมเดลออฟไลน์ · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "การอ่านออกเสียงครั้งแรกจะดาวน์โหลดโดยอัตโนมัติเช่นกัน ดาวน์โหลดเฉพาะไฟล์โมเดล ไม่มีการอัปโหลดใด ๆ"
+  },
+  "tts_pack_dl": {
+    "message": "ดาวน์โหลด"
+  },
+  "tts_pack_fallback": {
+    "message": "ที่อยู่นั้นเข้าถึงไม่ได้ — กำลังลองที่อื่น…"
+  },
+  "tts_pack_retry": {
+    "message": "ลองใหม่"
+  },
+  "tts_pack_downloading": {
+    "message": "กำลังดาวน์โหลดโมเดลออฟไลน์ · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "ดาวน์โหลดโมเดลออฟไลน์ไม่สำเร็จ: {why} — มักเกิดจากปัญหาเครือข่าย ลองใหม่ภายหลัง"
+  },
+  "tts_pack_no_bridge": {
+    "message": "การอ่านออกเสียงบนอุปกรณ์ใช้ได้เฉพาะในแอปเท่านั้น"
+  },
+  "tts_test_dl": {
+    "message": "ดาวน์โหลดและเล่นตัวอย่าง ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "กำลังเล่น · โมเดลออฟไลน์ไม่มีเสียงสำหรับภาษานี้ ใช้เสียงของระบบแทน"
+  },
+  "tts_assets": {
+    "message": "ยังไม่ได้ดาวน์โหลดโมเดลออฟไลน์ — ดาวน์โหลดได้ที่การตั้งค่า › อ่านออกเสียง หรือเปลี่ยนไปใช้เสียงของระบบ"
+  },
+  "listen_pack_ready": {
+    "message": "ชุดภาษาสำหรับการรู้จำพร้อมแล้ว · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "ยังไม่ได้ดาวน์โหลดชุดภาษาสำหรับการรู้จำ · {langs} · ระบบเป็นผู้ดาวน์โหลด เมื่อเริ่มฟังระบบจะดาวน์โหลดให้ด้วย"
+  },
+  "listen_pack_dl": {
+    "message": "ดาวน์โหลด"
+  },
+  "listen_pack_downloading": {
+    "message": "กำลังดาวน์โหลดชุดภาษาสำหรับการรู้จำ · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "ดาวน์โหลดชุดภาษาสำหรับการรู้จำไม่สำเร็จ: {why} — มักเกิดจากปัญหาเครือข่าย ลองใหม่ภายหลัง"
+  },
+  "opt_sec_engines": {
+    "message": "เอนจินและคีย์"
+  },
+  "opt_sec_features": {
+    "message": "ฟีเจอร์"
+  },
+  "opt_sec_account": {
+    "message": "บัญชีและข้อมูล"
+  },
+  "opt_adv_hint": {
+    "message": "การตั้งค่าด้วยปุ่มเดียวอยู่ที่ “ด่วน” →"
+  },
+  "stt_section": {
+    "message": "ถอดเสียงทั้งคลิป"
+  },
+  "stt_section_use": {
+    "message": "ฝึกพูด · ถอดเสียงจากไฟล์เสียง/วิดีโอทั้งคลิป"
+  },
+  "review_section": {
+    "message": "ทบทวน"
+  },
+  "data_section": {
+    "message": "คลังการเรียนรู้"
+  },
+  "notes_block_title": {
+    "message": "อธิบายประโยคนี้ (ไม่บังคับ)"
+  },
+  "grant_summary_claimed": {
+    "message": "รับเครดิตฟรีแล้ว · จัดการ →"
+  },
+  "dep_label": {
+    "message": "สิ่งที่ต้องมี"
+  },
+  "dep_unset": {
+    "message": "ยังไม่ได้ตั้งค่า"
+  },
+  "dep_go": {
+    "message": "ตั้งค่า →"
+  },
+  "dep_follow": {
+    "message": "ใช้ตามเอนจินแปล"
+  },
+  "dep_quick": {
+    "message": "ตั้งค่าด้วยปุ่มเดียวเสร็จแล้ว ✓"
+  },
+  "dep_live": {
+    "message": "ถอดเสียงแบบเรียลไทม์"
+  },
+  "dep_live_device": {
+    "message": "บนอุปกรณ์ (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "แปลเป็น"
+  },
+  "target_lang_follow": {
+    "message": "ใช้ภาษาของอินเทอร์เฟซ ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "ใช้สำหรับการแปลเอกสาร การแปลระบบ และการแปลด่วน การสนทนาและคำบรรยายสดมีการตั้งค่าภาษาแยกต่างหาก"
+  },
+  "handoff_source_label": {
+    "message": "ข้อความที่ส่งมา"
+  },
+  "src_handoff_system": {
+    "message": "การแปลระบบ"
+  },
+  "src_handoff_select": {
+    "message": "แปลจากข้อความที่เลือก"
+  },
+  "src_handoff_shot": {
+    "message": "แปลจากภาพหน้าจอ"
+  },
+  "src_handoff_input": {
+    "message": "แปลจากข้อความที่พิมพ์"
+  },
+  "quick_title": {
+    "message": "แปลด่วน"
+  },
+  "quick_enabled_label": {
+    "message": "อยู่ในแถบเมนู"
+  },
+  "quick_enabled_note": {
+    "message": "เมื่อปิด ไอคอนในแถบเมนูจะหายไป และการปิดหน้าต่างจะเป็นการออกจากแอป"
+  },
+  "quick_menu_open": {
+    "message": "เปิด BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "การตั้งค่าการแปลด่วน…"
+  },
+  "quick_menu_quit": {
+    "message": "ออก"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey ยังอยู่ในแถบเมนู"
+  },
+  "quick_resident_body": {
+    "message": "ปุ่มลัดยังใช้งานได้ตามปกติ หากต้องการออกอย่างสมบูรณ์ ให้ใช้ “ออก” ในไอคอนแถบเมนู หรือกด ⌘Q"
+  },
+  "quick_resident_ok": {
+    "message": "เข้าใจแล้ว"
+  },
+  "quick_resident_off": {
+    "message": "ไม่ต้องอยู่ในแถบเมนู"
+  },
+  "quick_tag_selection": {
+    "message": "ข้อความที่เลือก"
+  },
+  "quick_tag_clipboard": {
+    "message": "คลิปบอร์ด"
+  },
+  "quick_tag_service": {
+    "message": "บริการ"
+  },
+  "quick_tag_shot": {
+    "message": "ภาพหน้าจอ"
+  },
+  "quick_tag_input": {
+    "message": "ข้อความที่พิมพ์"
+  },
+  "quick_pin": {
+    "message": "ปักหมุด"
+  },
+  "quick_close": {
+    "message": "ปิด"
+  },
+  "quick_copy": {
+    "message": "คัดลอกคำแปล"
+  },
+  "quick_src_label": {
+    "message": "ต้นฉบับ"
+  },
+  "quick_src_placeholder": {
+    "message": "พิมพ์หรือวางข้อความที่ต้องการแปล"
+  },
+  "quick_clip_concealed": {
+    "message": "เนื้อหาในคลิปบอร์ดถูกทำเครื่องหมายว่าปกปิด (น่าจะเป็นรหัสผ่าน) ระบบไม่ได้อ่านและไม่ได้ส่งข้อมูลใดๆ"
+  },
+  "quick_clip_empty": {
+    "message": "ไม่มีข้อความในคลิปบอร์ด ให้เลือกข้อความ กด ⌘C แล้วกดปุ่มลัด — หรือเปิด Enhanced Capture ในการตั้งค่าเพื่อข้ามขั้นตอน ⌘C"
+  },
+  "quick_clip_same": {
+    "message": "ข้อความเดิมเหมือนครั้งก่อน — ลืมกด ⌘C หรือเปล่า?"
+  },
+  "quick_no_selection": {
+    "message": "ดึงข้อความที่เลือกไม่ได้ — อาจไม่มีข้อความถูกเลือก หรือแอปนี้ไม่อนุญาตให้คัดลอก"
+  },
+  "quick_use_shot": {
+    "message": "ใช้การแปลจากภาพหน้าจอแทน"
+  },
+  "quick_same_lang": {
+    "message": "เป็น {lang} อยู่แล้ว"
+  },
+  "sys_empty": {
+    "message": "ไม่มีข้อความให้แปล"
+  },
+  "sys_slow": {
+    "message": "กำลังแปลอยู่ — เครดิตฟรีส่งผ่านรีเลย์ของเรา ซึ่งช้ากว่าการใช้คีย์ของคุณเอง"
+  },
+  "quick_slow": {
+    "message": "กำลังแปลอยู่…"
+  },
+  "quick_unconfigured": {
+    "message": "ยังไม่มีเครื่องมือแปล รับเครดิตฟรี หรือใส่ API key ของคุณเอง"
+  },
+  "quick_open_settings": {
+    "message": "เปิดการตั้งค่า"
+  },
+  "quick_retry": {
+    "message": "ลองใหม่"
+  },
+  "quick_saved": {
+    "message": "บันทึกไปยังคลังทบทวนแล้ว"
+  },
+  "quick_saved_off": {
+    "message": "ไม่ได้บันทึก · ปิดการเก็บข้อความอยู่"
+  },
+  "quick_saved_long": {
+    "message": "ยาวเกินไปที่จะบันทึกไปยังคลังทบทวน"
+  },
+  "quick_shot_nothing": {
+    "message": "ไม่พบข้อความในพื้นที่นี้"
+  },
+  "quick_shot_again": {
+    "message": "เลือกอีกครั้ง"
+  },
+  "quick_menu_clip": {
+    "message": "แปลจากคลิปบอร์ด"
+  },
+  "quick_menu_input": {
+    "message": "พิมพ์เพื่อแปล"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS ไม่อนุญาตให้เราอ่านคลิปบอร์ด เปิดอนุญาตใน System Settings › Privacy & Security › Paste from Other Apps หรือใช้เมนู Services ด้วยการคลิกขวาแทน"
+  },
+  "quick_enh_label": {
+    "message": "การเก็บข้อความแบบพิเศษ"
+  },
+  "quick_enh_hint": {
+    "message": "เลือกข้อความแล้วกดปุ่มลัด — ไม่ต้องกด ⌘C ก่อน ต้องอนุญาตสิทธิ์ระบบหนึ่งรายการ ปิดไว้เป็นค่าเริ่มต้น"
+  },
+  "quick_enh_explain_title": {
+    "message": "เปิดการเก็บข้อความแบบพิเศษ"
+  },
+  "quick_enh_explain_does": {
+    "message": "สิ่งที่มันทำ: เมื่อคุณกดปุ่มลัด มันจะกด ⌘C ให้หนึ่งครั้ง อ่านข้อความที่เลือก แล้วคืนค่าคลิปบอร์ดของคุณกลับไปเหมือนเดิมทุกประการ"
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "สิ่งที่มันไม่ทำเด็ดขาด: มันไม่เฝ้าดูแป้นพิมพ์ของคุณ และจะไม่อ่านสิ่งใดเลยเว้นแต่คุณกดปุ่มลัด"
+  },
+  "quick_enh_continue": {
+    "message": "ดำเนินการต่อ"
+  },
+  "quick_enh_not_now": {
+    "message": "ไว้ทีหลัง"
+  },
+  "quick_enh_relaunch": {
+    "message": "เปิดใหม่ตอนนี้"
+  },
+  "quick_enh_open_privacy": {
+    "message": "เปิด System Settings"
+  },
+  "quick_enh_pending": {
+    "message": "ในหน้าต่างระบบที่ปรากฏขึ้น ให้เลือก Open System Settings ค้นหา “{app}” ในรายการ แล้วเปิดสวิตช์ของมัน จะมีผลหลังคุณเปิดแอปใหม่"
+  },
+  "quick_enh_denied": {
+    "message": "macOS ยังไม่ได้อนุญาตสิทธิ์ การเก็บข้อความแบบพิเศษจึงปิดอยู่ การกด ⌘C แล้วกดปุ่มลัดยังใช้ได้ตามปกติ"
+  },
+  "quick_enh_lost": {
+    "message": "สิทธิ์สำหรับการเก็บข้อความแบบพิเศษถูกปิดไป ครั้งนี้จึงแปลจากคลิปบอร์ดแทน เปิดกลับใน Settings เพื่อให้ใช้งานได้เหมือนเดิม"
+  },
+  "quick_menu_shot": {
+    "message": "แปลภาพหน้าจอ"
+  },
+  "quick_shot_busy": {
+    "message": "กำลังรู้จำข้อความบน Mac เครื่องนี้…"
+  },
+  "quick_shot_first": {
+    "message": "ครั้งแรกบน Mac เครื่องนี้ ต้องใช้เวลาประมาณ 20 วินาทีในการเตรียมพร้อม หลังจากนั้นจะใช้เวลาไม่ถึงครึ่งวินาที"
+  },
+  "quick_shot_perm_explain": {
+    "message": "การแปลภาพหน้าจอต้องได้รับสิทธิ์การบันทึกหน้าจอ ระบบจะจับภาพเฉพาะพื้นที่ที่คุณเลือก เฉพาะในขณะนั้น รู้จำบน Mac เครื่องนี้ และลบทิ้งทันทีหลังจากนั้น"
+  },
+  "quick_shot_perm_pending": {
+    "message": "อีกหนึ่งขั้นตอน: ใน System Settings ให้เปิดสวิตช์สำหรับ “{app}” ในรายการ จะมีผลหลังจากคุณเปิดแอปใหม่"
+  },
+  "quick_shot_cloud": {
+    "message": "ลองอีกครั้งด้วยเอนจินที่รองรับรูปภาพของฉัน"
+  },
+  "quick_shot_cloud_note": {
+    "message": "“ลองอีกครั้งด้วยเอนจินที่รองรับรูปภาพของฉัน” จะส่งภาพหน้าจอนี้ไปยังเอนจินที่คุณตั้งค่าไว้ ({engine})"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "กำลังรู้จำด้วยเอนจินของคุณ…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "ภาพหน้าจอนี้ถูกลบทิ้งไปแล้ว โปรดเลือกพื้นที่อีกครั้ง"
+  },
+  "quick_hk_title": {
+    "message": "ปุ่มลัด"
+  },
+  "quick_hk_reset": {
+    "message": "คืนค่าเริ่มต้น"
+  },
+  "quick_hk_translate": {
+    "message": "แปลข้อความที่เลือกหรือคลิปบอร์ด"
+  },
+  "quick_hk_shot": {
+    "message": "แปลภาพหน้าจอ"
+  },
+  "quick_hk_input": {
+    "message": "พิมพ์เพื่อแปล"
+  },
+  "quick_hk_unset": {
+    "message": "ยังไม่ได้ตั้งค่า"
+  },
+  "quick_hk_record": {
+    "message": "บันทึก"
+  },
+  "quick_hk_cancel": {
+    "message": "ยกเลิก"
+  },
+  "quick_hk_change": {
+    "message": "เปลี่ยน"
+  },
+  "quick_hk_clear": {
+    "message": "ล้าง"
+  },
+  "quick_hk_press": {
+    "message": "กดคีย์ผสมที่คุณต้องการ…"
+  },
+  "quick_hk_clash": {
+    "message": "แอปอื่นใช้คีย์ผสมนี้อยู่แล้ว ดังนั้นการกดจะไม่มาถึงเรา โปรดเลือกคีย์ผสมอื่น"
+  },
+  "quick_hk_deny": {
+    "message": "คีย์ผสมที่ใช้เฉพาะ ⌥ ไม่น่าเชื่อถือ โปรดเลือกที่รวม ⌃ หรือ ⌘"
+  },
+  "quick_hk_system": {
+    "message": "คีย์ผสมนี้ถูกใช้โดย macOS หรือโดยตัวแอปเอง โปรดเลือกคีย์ผสมอื่น"
+  },
+  "quick_hk_nomod": {
+    "message": "โปรดใส่ปุ่มปรับแต่ง เช่น ⌃ หรือ ⌘"
+  },
+  "quick_hk_dup": {
+    "message": "นี่เป็นคีย์ผสมเดียวกับ “{name}”"
+  },
+  "quick_capture_label": {
+    "message": "บันทึกไปยังคลังทบทวน"
+  },
+  "quick_capture_hint": {
+    "message": "ประโยคที่คุณแปลจะถูกเก็บไว้ในทบทวน ภายใต้ Selection, Screenshot หรือ Typed ปิดไว้การแปลก็ยังทำงานได้ — จะไม่มีการบันทึกสิ่งใด"
+  },
+  "quick_login_label": {
+    "message": "เปิดเมื่อเข้าสู่ระบบ"
+  },
+  "quick_login_hint": {
+    "message": "เริ่มทำงานในแถบเมนูเมื่อคุณเข้าสู่ระบบ ปิดไว้เป็นค่าเริ่มต้น"
+  },
+  "quick_login_approval": {
+    "message": "คุณยังต้องอนุญาตอีกครั้งใน System Settings › Login Items"
+  },
+  "quick_screen_ok": {
+    "message": "การบันทึกหน้าจอ · อนุญาตแล้ว ✓ (ใช้สำหรับการแปลภาพหน้าจอ)"
+  },
+  "quick_screen_off": {
+    "message": "การบันทึกหน้าจอ · ยังไม่อนุญาต ระบบจะถามในครั้งแรกที่คุณใช้การแปลภาพหน้าจอ"
+  },
+  "quick_shot_needs14": {
+    "message": "การแปลภาพหน้าจอต้องใช้ macOS 14 หรือใหม่กว่า"
+  },
+  "quick_services_link": {
+    "message": "กำหนดคีย์ลัดให้กับรายการในเมนู Services →"
+  },
+  "quick_more": {
+    "message": "ตัวเลือกเพิ่มเติม"
+  },
+  "quick_shot_perm_second": {
+    "message": "ครั้งแรกที่คุณเลือกพื้นที่ macOS จะขอการยืนยันอีกครั้ง เพียงอนุญาตก็พอ หลังจากนั้น macOS จะถามซ้ำเป็นระยะ ซึ่งเป็นพฤติกรรมปกติสำหรับทุกแอปที่จับภาพหน้าจอ"
+  },
+  "systrans_title": {
+    "message": "การแปลของระบบ"
+  },
+  "systrans_intro": {
+    "message": "เลือกข้อความในแอปใดก็ได้แล้วแตะ Translate เพื่อแปลด้วยเอนจินที่คุณตั้งค่าไว้ ก่อนอื่นให้ตั้ง BelliedMonkey Translator เป็นค่าเริ่มต้น:"
+  },
+  "systrans_step1": {
+    "message": "เปิดแอป Settings"
+  },
+  "systrans_step2": {
+    "message": "ไปที่ Apps → Translate"
+  },
+  "systrans_step3": {
+    "message": "แตะ Default Translation App แล้วเลือก BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "ต้องใช้ iOS หรือ iPadOS 18.4 หรือใหม่กว่า บนระบบเก่ากว่าเราจะไม่ปรากฏในรายการนั้น"
+  },
+  "systrans_state_pending": {
+    "message": "ยังไม่ได้ซิงค์ จะซิงค์อัตโนมัติเมื่อคุณเปิดแอปนี้"
+  },
+  "systrans_state_ok": {
+    "message": "ซิงค์เอนจินแล้ว: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "ยังไม่ได้ตั้งค่าเอนจิน จะซิงค์อัตโนมัติเมื่อคุณตั้งค่าเสร็จ"
+  },
+  "systrans_state_failed": {
+    "message": "ซิงค์ล้มเหลว ({code}) ลองบันทึกอีกครั้งใน Engines & keys"
+  },
+  "systrans_capture_label": {
+    "message": "บันทึกเข้าคลังทบทวน"
+  },
+  "systrans_capture_hint": {
+    "message": "ประโยคที่คุณแปลจะถูกเก็บเข้าคลังทบทวนภายใต้แหล่งที่มา \"การแปลของระบบ\" ปิดไว้ก็ยังแปลได้ตามปกติ เพียงแต่จะไม่ถูกบันทึก"
+  },
+  "systrans_font_label": {
+    "message": "ขนาดข้อความในแผง"
+  },
+  "systrans_font_small": {
+    "message": "เล็ก"
+  },
+  "systrans_font_std": {
+    "message": "มาตรฐาน"
+  },
+  "systrans_font_large": {
+    "message": "ใหญ่"
+  },
+  "systrans_font_hint": {
+    "message": "ขนาดของข้อความต้นฉบับและคำแปลในแผงแปล (ปุ่มและหมายเหตุคงเดิม) จะมีผลเมื่อเปิดแผงครั้งถัดไป"
+  },
+  "sys_disclose_direct": {
+    "message": "ข้อความที่เลือกจะถูกส่งตรงไปยังเอนจินที่คุณตั้งค่าไว้ ({name}) โดยไม่ผ่านเซิร์ฟเวอร์ของเรา"
+  },
+  "sys_disclose_grant": {
+    "message": "การใช้เครดิตฟรี: ข้อความที่เลือกจะถูกส่งต่อโดยเรไปยังผู้ให้บริการ เราไม่เก็บเนื้อหา"
+  },
+  "sys_fail_network": {
+    "message": "เชื่อมต่อเอนจินแปลไม่ได้ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
+  },
+  "sys_fail_timeout": {
+    "message": "เอนจินไม่ตอบสนองภายในเวลาที่กำหนด"
+  },
+  "sys_fail_http": {
+    "message": "เอนจินส่งคืนข้อผิดพลาด"
+  },
+  "sys_fail_no_base": {
+    "message": "เอนจินนี้ต้องใช้ที่อยู่แต่ยังไม่ได้ตั้งค่า เปิด BelliedMonkey Translator แล้วกรอกข้อมูล"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "เอนจินนี้ไม่พร้อมใช้งานแล้ว โปรดเลือกเอนจินอื่นใน BelliedMonkey Translator"
+  },
+  "sys_fail_needs_setup": {
+    "message": "ยังไม่ได้ตั้งค่าภาษาแปล เปิด BelliedMonkey Translator สักครั้งแล้วจะใช้งานตรงนี้ได้"
+  },
+  "sys_fail_not_synced": {
+    "message": "เปิด BelliedMonkey Translator สักครั้งเพื่อให้แชร์การตั้งค่าภาษาแปลกับชีตนี้"
+  },
+  "sys_fail_empty": {
+    "message": "ไม่มีข้อความให้แปลในส่วนที่เลือก"
+  },
+  "sys_fail_empty_result": {
+    "message": "ครั้งนี้ภาษาแปลไม่ส่งผลลัพธ์กลับมา"
+  },
+  "sys_fail_engine": {
+    "message": "ภาษาแปลไม่เริ่มทำงาน"
+  },
+  "sys_fail_unknown": {
+    "message": "แปลไม่สำเร็จ"
+  },
+  "sys_ui_translating": {
+    "message": "กำลังแปล…"
+  },
+  "sys_ui_slow": {
+    "message": "ยังทำงานอยู่ — เครดิตฟรีอาจช้า"
+  },
+  "sys_ui_replace": {
+    "message": "แทนที่"
+  },
+  "sys_ui_open_app": {
+    "message": "เปิด BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "พร้อมใช้งาน"
+  },
+  "setup_done_checking": {
+    "message": "กำลังตรวจสอบ…"
+  },
+  "setup_done_failed_title": {
+    "message": "ยังใช้งานไม่ได้"
+  },
+  "setup_done_failed": {
+    "message": "รายการที่ทำเครื่องหมาย ✗ ด้านบนยังไม่ผ่าน แก้ไขแล้วจะทดสอบอีกครั้ง"
+  },
+  "setup_done_settings": {
+    "message": "ตั้งค่าภาษาแปลเรียบร้อยแล้ว การแปลเอกสาร การแปลสด และคำบรรยายสดใช้งานได้ทั้งหมดแล้ว"
+  },
+  "setup_done_systrans": {
+    "message": "ตั้งค่าภาษาแปลเรียบร้อยแล้ว กลับไปที่แอปที่คุณเปิดอยู่แล้วแตะแปลอีกครั้ง — ไม่ต้องทำอะไรเพิ่มตรงนี้"
+  },
+  "setup_done_quick": {
+    "message": "ตั้งค่าภาษาแปลเรียบร้อยแล้ว กลับไปที่แผงแปลด่วนแล้วแปลประโยคนั้นอีกครั้ง"
+  },
+  "setup_done_home": {
+    "message": "กลับหน้าหลัก"
+  },
+  "setup_from_systrans": {
+    "message": "คุณมาจากการแปลของระบบ เมื่อตั้งค่าเสร็จแล้ว กลับไปที่แอปนั้นแล้วแตะแปลอีกครั้ง"
+  },
+  "systrans_discover_title": {
+    "message": "ให้แปลในตัวของ iPhone ใช้ BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "เลือกข้อความในแอปใดก็ได้แล้วแตะแปล — แผงที่เปิดขึ้นจะใช้ภาษาแปลที่คุณตั้งค่าไว้ ตั้งค่าครั้งเดียวก็พอ"
+  },
+  "systrans_discover_done": {
+    "message": "ตั้งค่าแล้ว"
+  },
+  "systrans_discover_used_title": {
+    "message": "การแปลของระบบ · กำลังใช้งาน"
+  },
+  "systrans_discover_used": {
+    "message": "เลือกข้อความในแอปใดก็ได้แล้วแตะแปล — จะใช้ภาษาแปลที่คุณตั้งค่าไว้ ประโยคที่คุณแปลจะอยู่ในคลังทบทวนของคุณ"
+  },
+  "systrans_discover_see": {
+    "message": "ดูในคลังทบทวน →"
+  },
+  "ob_signin_grant_title": {
+    "message": "ลงชื่อเข้าใช้แล้วรับเครดิตฟรี"
+  },
+  "ob_signin_grant_body": {
+    "message": "เครดิตนี้เราให้ฟรีและเพียงพอสำหรับเริ่มต้น คุณยังใช้คีย์ของคุณเองได้ด้วย การลงชื่อเข้าใช้ยังซิงก์การ์ดของคุณไปยังอุปกรณ์อื่น"
+  },
+  "ob_signin_sync_title": {
+    "message": "ลงชื่อเข้าใช้ (ไม่บังคับ)"
+  },
+  "ob_signin_sync_body": {
+    "message": "การลงชื่อเข้าใช้จะซิงก์การ์ดของคุณไปยังอุปกรณ์อื่น สำหรับการแปล ให้เพิ่มคีย์ของคุณเองในตั้งค่า"
+  },
+  "ob_signin_later": {
+    "message": "ไว้ทีหลัง"
+  },
+  "ob_signin_email": {
+    "message": "ลงชื่อเข้าใช้ด้วยอีเมล"
+  },
+  "ob_try_title": {
+    "message": "ลองแปลประโยคสักประโยค"
+  },
+  "ob_try_body": {
+    "message": "ไม่ต้องหาให้ยุ่งยาก — นี่ไงหนึ่งประโยค ลองแปลหรือฟังดูก็ได้"
+  },
+  "ob_try_translate": {
+    "message": "แปลประโยคนี้"
+  },
+  "ob_try_listen": {
+    "message": "ฟังประโยคนี้"
+  },
+  "ob_try_working": {
+    "message": "กำลังแปล…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "ยังไม่มีระบบแปลภาษา ลงชื่อเข้าใช้แล้วจะได้รับเครดิตฟรีโดยอัตโนมัติ — หรือจะเพิ่มคีย์ของคุณเองใน Settings ก็ได้"
+  },
+  "ob_try_noengine_key": {
+    "message": "ยังไม่มีระบบแปลภาษา — เพิ่มคีย์ใน Settings แล้วก็พร้อมใช้เลย"
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "ข้าพเจ้ายินยอมแยกต่างหากว่า เมื่อข้าพเจ้าลงชื่อเข้าใช้ รายละเอียดบัญชีของข้าพเจ้า (อีเมลหรือตัวระบุบัญชี Apple) และการ์ดเรียน (ประโยคที่ข้าพเจ้าอ่าน คำแปล ที่อยู่และชื่อของหน้าเว็บต้นทาง) จะถูกส่งไปและจัดเก็บบนเซิร์ฟเวอร์ในกรุงโตเกียว ประเทศญี่ปุ่น ซึ่งดำเนินการโดย Supabase Pte. Ltd."
+  },
+  "xb_consent_link": {
+    "message": "ผู้รับ วัตถุประสงค์ และวิธีถอนความยินยอม: นโยบายความเป็นส่วนตัว ข้อ 3"
+  },
+  "xb_need": {
+    "message": "หากต้องการลงชื่อเข้าใช้ กรุณาติ๊กช่องด้านบนก่อน คุณยังใช้แอปได้โดยไม่ติ๊ก — เพียงแต่การ์ดของคุณจะไม่ซิงก์"
+  },
+  "ob_resume_title": {
+    "message": "ตั้งค่าให้เสร็จ · เหลืออีก {n} ขั้นตอน"
+  },
+  "ob_resume_body": {
+    "message": "ทำต่อจากที่ค้างไว้ — ใช้เวลาแค่หนึ่งถึงสองนาที"
+  },
+  "ob_resume_go": {
+    "message": "ทำต่อจากที่ค้างไว้"
+  },
+  "ob_resume_close": {
+    "message": "ไม่ต้องแสดงอีก"
+  },
+  "extb_title": {
+    "message": "ส่วนขยาย Safari"
+  },
+  "extb_note": {
+    "message": "คุณแตะ “{done}” ไปก่อนหน้านี้ คำแนะนำบนหน้าจอหลักจึงถูกซ่อนไว้ หากยังไม่ได้เปิดใช้งานจริง ให้เรียกคำแนะนำกลับมาที่นี่"
+  },
+  "extb_restore": {
+    "message": "แสดงคำแนะนำ “เปิดส่วนขยาย” อีกครั้ง"
+  },
+  "extb_done": {
+    "message": "เรียกกลับแล้ว — กลับไปที่หน้าจอหลักเพื่อดู"
+  },
+  "ob_welcome_hint": {
+    "message": "แค่สองขั้นตอน"
+  },
+  "ob_web_only": {
+    "message": "ฉันต้องการแปลเฉพาะหน้าเว็บ"
+  },
+  "ob_intent_listen": {
+    "message": "เน้นฟัง · คำบรรยายสด"
+  },
+  "ob_intent_both": {
+    "message": "ทั้งสองอย่าง — ทั้งอ่านและฟัง"
+  },
+  "qs_base": {
+    "message": "URL ปลายทาง (แบบเต็ม)"
+  },
+  "qs_key_ph_one": {
+    "message": "วางครั้งเดียว ตั้งค่าการแปลเสร็จ"
+  },
+  "qs_apply_one": {
+    "message": "ตั้งค่าการแปลด้วยปลายทางนี้"
+  },
+  "qs_absent": {
+    "message": "— แพลตฟอร์มนี้ไม่รองรับ"
+  },
+  "qs_absent_custom": {
+    "message": "— ปลายทางนี้ไม่รองรับ"
+  },
+  "learn_habit_streak": {
+    "message": "คุณกลับมาแล้ววันนี้ · ติดต่อกัน {n} วัน"
+  },
+  "learn_habit_today": {
+    "message": "คุณกลับมาแล้ววันนี้"
+  },
+  "learn_nothing_due_title": {
+    "message": "วันนี้ไม่มีอะไรต้องทบทวน"
+  },
+  "learn_group_done": {
+    "message": "กลุ่มนี้เสร็จสำหรับวันนี้แล้ว"
+  },
+  "learn_group_left": {
+    "message": "วันนี้เหลืออีก {n} — ไม่จำเป็นต้องทำให้หมดในทีเดียว"
+  },
+  "learn_group_left_none": {
+    "message": "ที่เหลือรอไว้พรุ่งนี้ได้"
+  },
+  "learn_group_more": {
+    "message": "อีกหนึ่งกลุ่ม"
+  },
+  "learn_group_stop": {
+    "message": "พอแค่นี้สำหรับวันนี้"
+  },
+  "learn_group_bye": {
+    "message": "ที่เหลือรอได้ — แค่กลับมาอีกครั้ง"
+  },
+  "firstrun_packs_title": {
+    "message": "ดาวน์โหลดชุดเสียงพูดสองชุดก่อน"
+  },
+  "firstrun_packs_lede": {
+    "message": "เมื่อติดตั้งครบแล้ว คุณไม่ต้องตั้งค่าอย่างอื่นอีก — การแปล การแปลสด คำบรรยาย และการอ่านออกเสียงใช้งานได้ทันที ระบบประมวลผลเสียงบนอุปกรณ์ของคุณเท่านั้น"
+  },
+  "firstrun_packs_asr": {
+    "message": "ชุดรู้จำเสียงพูด (การแปลสด / คำบรรยายสด)"
+  },
+  "firstrun_packs_tts": {
+    "message": "ชุดเสียงคุณภาพสูง (การอ่านออกเสียง / พอดแคสต์)"
+  },
+  "firstrun_packs_done": {
+    "message": "พร้อมแล้ว"
+  },
+  "firstrun_packs_net": {
+    "message": "แนะนำให้ใช้ Wi-Fi ใช้เครือข่ายมือถือก็ได้ — แล้วแต่คุณ"
+  },
+  "firstrun_packs_busy": {
+    "message": "กำลังดาวน์โหลด…"
+  },
+  "firstrun_packs_go": {
+    "message": "ดาวน์โหลดและดำเนินการต่อ"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "รับเฉพาะชุดเสียงแล้วดำเนินการต่อ"
+  },
+  "firstrun_packs_err": {
+    "message": "ดาวน์โหลดไม่สำเร็จ: {why} — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "การดาวน์โหลดชุดเสียงพูดของระบบหยุดชะงัก — ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง"
+  },
+  "engine_status_ok": {
+    "message": "ตั้งค่าด้วยบัญชีของคุณแล้ว: การแปล · แปลงเสียงเป็นข้อความ · การอ่านออกเสียง — ใช้งานได้ที่นี่เลย"
+  },
+  "engine_status_missing": {
+    "message": "ขาดอีกหนึ่งอย่าง:"
+  },
+  "engine_status_fix_tts": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องอ่านออกเสียง — ไปที่ การตั้งค่า › การอ่านออกเสียง เพื่อเลือกเสียง"
+  },
+  "engine_status_fix_translate": {
+    "message": "ยังไม่ได้ตั้งค่าเครื่องแปล — ไปที่ การตั้งค่า › เครื่องแปล เพื่อเลือกหนึ่งตัว"
+  }
+}

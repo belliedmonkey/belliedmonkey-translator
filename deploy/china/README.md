@@ -10,6 +10,9 @@
 >   取回本机的只有公开的 anon key。
 > - 邮件模板 `GOTRUE_MAILER_TEMPLATES_*` 要的是**网址**：由 Caddy 内部入口 `:8081/templates/otp.html` 提供。
 > - 离线朗读模型地址表 `bt_model_sources` 不在 `schema.sql` 里，单独 `model-sources.sql`。
+> - 免费额度**台账**（`bt_grants` / `bt_grant_usage` + 四个函数）同样不在 `schema.sql` 里，
+>   单独 `grants.sql` —— 翻 `grant.china.ready` 之前必须先跑它，否则中继的 `/check`、`/charge`
+>   与领取都没有落点（**账本与账号同库**，2026-09-22 裁定）。
 > - 删号服务只听 8000（共享文件 `Deno.serve(handler)` 不读 PORT）—— 原配置的 8080 已改。
 > - **不做迁移**（用户裁定，读数：东京里大陆 IP 的外部账号 11 个，有像样数据的 2 个且与用户本人同网段）。
 >   切过去那一版的版本说明 + 隐私页写清「需重新登录、东京旧卡片不自动过来、本机卡片会重新同步」。
@@ -159,3 +162,54 @@ docker compose exec -T db pg_dump -U postgres -Fc postgres > backup-$(date +%F).
 **至少每季度做一次恢复演练** —— 在一台临时实例上把 dump 恢复出来、起服务、跑通第 4 节
 的第 1 和第 3 条。判据是**恢复出来的库能登录能同步**，不是「备份文件存在」。
 备份存在 ≠ 能恢复，这两件事之间隔着的正是这次演练。
+
+---
+
+## 6. 免费额度的两个函数（2026-10-01 补；翻 `grant.china.ready` 之前**必须**有）
+
+`docker-compose.yml` 里新增两个服务，`Caddyfile` 里新增两条**具名**路由（必须写在
+`handle_path /functions/v1/*` 兜底之前 —— Caddy 的 handle 按书写顺序匹配）：
+
+| 服务 | 挂的函数 | 环境 |
+|---|---|---|
+| `grant` | `supabase/functions/bt-grant`（领取） | `GRANT_KEK`（**只在这一侧**，中继从不解密）、`GRANT_LIMIT_USD=0.2`、`GRANT_DAILY_CAP=50` |
+| `ledger` | `supabase/functions/bt-grant-ledger`（窄口 `/check`、`/charge`） | `LEDGER_KEY`（中继用它打窄口） |
+
+`.env` 里补两个值（**现生成即可**，不需要与东京相同 —— 账本与账号同库，两边各一份）：
+
+```bash
+cat >> .env <<EOF
+GRANT_KEK=$(openssl rand -base64 32)     # 32 字节 base64
+LEDGER_KEY=$(openssl rand -hex 32)       # 64 位 hex
+EOF
+docker compose up -d grant ledger
+docker compose up -d --force-recreate proxy   # Caddyfile 改了要重载
+```
+
+回读（**别拿「没报错」当成功**）：
+
+```bash
+K=$(grep '^LEDGER_KEY=' .env | cut -d= -f2); H=$(printf 'a%.0s' $(seq 64))
+curl -s -X POST https://api.belliedmonkey.com/functions/v1/bt-grant-ledger/check \
+  -H "x-ledger-key: $K" -H 'Content-Type: application/json' -d "{\"p_hash\":\"$H\"}"
+# 期望 []（这枚 hash 不存在 ⇒ 零行）。403 = 钥匙不一致；503 ledger_misconfigured = 没配钥匙。
+```
+
+`LEDGER_KEY` 的**同一个值**还要填进云函数（中继）的环境变量 —— 两边必须逐字相同。
+
+### 2026-10-01 实装时踩到的五处（都已在上面写好，这里只记症状，便于对照）
+
+1. **`bt-grant` / `bt-grant-ledger` 的目录被 Docker 建成了空的**：bind mount 的源不存在时
+   Docker 会**自动建一个空目录**再挂上去，症状是容器日志里 `Module not found "file:///app/index.ts"`
+   循环刷。判据：`wc -c /opt/bt/supabase/functions/bt-grant/index.ts` 有值。
+2. **直接用 psql 建了函数，PostgREST 不知道**：症状是 RPC 404（`/rest/v1/rpc/bt_grant_check`），
+   重启 `rest` 容器后变 200。用 SQL 改过 schema 就 `docker compose restart rest`。
+3. **撤了 PUBLIC 的 EXECUTE 就要显式授 `service_role`**：症状是
+   `403 {"code":"42501","message":"permission denied for function bt_grant_check"}`，
+   而中继那头统一收成 `500 {"error":"server"}`。见 `grants.sql` 末尾那四行 `grant execute`。
+4. **内部入口 `:8081` 原来只挂了 `/auth/v1/*`**：额度两个函数的 `SUPABASE_URL` 指的就是它，
+   打 `/rest/v1/rpc/*` 会拿到那句 `respond 404`（**空体 404**，看起来像「函数没实现」）。
+   已补 `handle_path /rest/v1/*`。
+5. **腾讯云 API 网关触发器已停止售卖**（`FailedOperation.LimitingResourceCreated`）：
+   老的 `Type: apigw` 建不出来，公网访问要走**函数 URL**（`CreateTrigger --Type http`，
+   与触发器共用接口）。中继地址因此形如 `https://<app-id>-<url-id>.<region>.tencentscf.com`。

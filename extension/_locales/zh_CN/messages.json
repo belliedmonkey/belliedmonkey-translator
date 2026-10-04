@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "你在浏览器里读到的句子，会同步到这里来复习。"
+    "message": "视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。"
   },
   "app_email_label": {
     "message": "邮箱"
@@ -896,9 +896,6 @@
   },
   "app_back_email": {
     "message": "换一个邮箱"
-  },
-  "app_local_note": {
-    "message": "可选。不登录也能完整使用 —— 采集和复习都在本机，登录只是为了同步到别的设备。"
   },
   "app_signout": {
     "message": "退出"
@@ -1142,6 +1139,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "读不到登录状态（存储读取失败），稍后自动重试 —— 这不代表已退出登录。"
@@ -1701,20 +1701,11 @@
   "app_ext_open_safari": {
     "message": "在 Safari 里打开扩展 →"
   },
-  "app_so_review_title": {
-    "message": "复习本地收藏的句子"
-  },
-  "app_so_review_due": {
-    "message": "今天有 {n} 张卡片待复习"
-  },
-  "app_so_review_total": {
-    "message": "共保存了 {n} 个句子"
-  },
   "app_ext_done": {
     "message": "我已打开"
   },
   "app_signin_why": {
-    "message": "卡片是浏览器扩展采集的。登录同一个账号，它们就会同步到这台设备。"
+    "message": "登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。"
   },
   "app_signin_open": {
     "message": "登录"
@@ -2518,6 +2509,12 @@
   "listen_lang_note": {
     "message": "两边不能是同一种语言。对话页底部也能改，两处是同一份设置。"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "当前引擎不支持"
+  },
+  "listen_lang_change_engine": {
+    "message": "换引擎"
+  },
   "listen_lang_swapped": {
     "message": "两边不能是同一种语言 — 已对调"
   },
@@ -2541,6 +2538,12 @@
   },
   "app_today_due": {
     "message": "今天待复习"
+  },
+  "home_cta_subs": {
+    "message": "开始实时字幕"
+  },
+  "home_cta_listen": {
+    "message": "开始听译"
   },
   "app_last_sync": {
     "message": "上次同步 {t}"
@@ -2867,7 +2870,7 @@
     "message": "去开通 ↗"
   },
   "grant_cn_why": {
-    "message": "我们暂时不提供代领的免费额度：那需要一台境内的服务器，还没就绪。"
+    "message": "我们暂时不提供代领的免费额度：代领要在境内跑一个中继，还没开通。"
   },
   "subtitle_source_label": {
     "message": "实时字幕"
@@ -3090,7 +3093,7 @@
     "message": "识别语言包已就绪 · {langs}"
   },
   "listen_pack_missing": {
-    "message": "识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下"
+    "message": "识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下载"
   },
   "listen_pack_dl": {
     "message": "下载"
@@ -3726,5 +3729,50 @@
   },
   "learn_group_bye": {
     "message": "剩下的明天再说 —— 回来就好。"
+  },
+  "firstrun_packs_title": {
+    "message": "先把两个语音包下好"
+  },
+  "firstrun_packs_lede": {
+    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。"
+  },
+  "firstrun_packs_asr": {
+    "message": "识别语言包（听译 / 实时字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高质量朗读包（朗读 / 播客）"
+  },
+  "firstrun_packs_done": {
+    "message": "已就绪"
+  },
+  "firstrun_packs_net": {
+    "message": "建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。"
+  },
+  "firstrun_packs_busy": {
+    "message": "正在下载…"
+  },
+  "firstrun_packs_go": {
+    "message": "下载并继续"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "只下朗读包，继续"
+  },
+  "firstrun_packs_err": {
+    "message": "下载没成功：{why} —— 检查网络再点一次。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "系统语音包下载没动静 — 检查网络，再点一次。"
+  },
+  "engine_status_ok": {
+    "message": "登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用"
+  },
+  "engine_status_missing": {
+    "message": "还差一样："
+  },
+  "engine_status_fix_tts": {
+    "message": "朗读引擎未配置，前往 设置 › 朗读 选择语音"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻译引擎未配置，前往 设置 › 引擎 选一个"
   }
 }

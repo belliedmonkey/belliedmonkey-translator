@@ -55,7 +55,7 @@ body {
 
 h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
-.note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; }
+.note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
 /* The engine self-check results print a second line carrying the URL actually
    requested; `.note` collapses newlines, and an endpoint URL is long enough to push
    the column sideways unless it may break mid-token. */
@@ -127,13 +127,42 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 
 header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 10px;
+  min-height: 52px;    /* 顶栏高 52（设计稿 H2）：首屏预算靠它才容得下两位主角 */
+  position: relative;  /* #acct-menu 的定位上下文 */
 }
 #who { color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
+
+/* 顶栏品牌 + 44×44 账号键（2026-10-02 真机评审裁定，判据 J04）。
+   账号从「顶栏一整行」收进这个圆键：邮箱与设置/退出都在键展开的菜单里。
+   键本身的可点区就是 44×44 —— J04 的下限。 */
+.topbar-brand { font-weight: 700; font-size: 1.0625rem; color: var(--fg); }
+#acct {
+  flex: none; width: 44px; height: 44px; min-height: 44px; padding: 0;
+  border-radius: 50%; border: 1.5px solid var(--line); background: var(--accent-track);
+  color: var(--accent-deep); font-size: 0.9rem; font-weight: 700;
+  display: grid; place-items: center; cursor: pointer;
+}
+#acct:hover { background: color-mix(in oklab, var(--accent) 18%, transparent); }
+#acct:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; }
+#acct-menu {
+  position: absolute; right: 0; top: calc(100% - 4px); z-index: 40;
+  min-width: 232px; max-width: 88vw; padding: 8px; margin: 0;
+  background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-md);
+  box-shadow: 0 18px 40px -22px rgba(32, 30, 29, .55);
+  display: flex; flex-direction: column; gap: 2px;
+}
+#acct-menu[hidden] { display: none; }
+#acct-menu #who { margin: 0; padding: 8px 10px 10px; border-bottom: 1px solid var(--line); font-size: 0.85rem; color: var(--dim); }
+#acct-menu button.link {
+  min-height: 44px; padding: 10px 12px; border-radius: var(--radius-sm);
+  text-decoration: none; text-align: left; font-size: 1rem; color: var(--fg);
+}
+#acct-menu button.link:hover { background: var(--section-bg); }
 
 /* ─── 今日一张卡（2026-09-07 首页重设计，画布「大肚猴翻译 App 首页 · 主推」）────
    待复习是唯一的大数字；学习中挨着它；总计/候选/已掌握缩成第二行小字。
@@ -208,22 +237,50 @@ header {
 }
 
 /* ─── Settings ───────────────────────────────────────────────────────────── */
-.head-actions { display: flex; gap: 14px; flex-shrink: 0; white-space: nowrap; }
 header #who { min-width: 0; }
 #app-settings { display: flex; flex-direction: column; gap: 14px; }
 #app-settings h2 { font-size: 1.25rem; margin: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
 #app-settings > button { align-self: flex-start; }
 #settings-back { align-self: flex-start; }
-.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; min-width: 0; }
+/* 2026-10-03（设计稿 `app-settings-layout-2026-10-03`，**用户已签署**）：设置页文字不许出界。
+   真机截图里「听译 · 实时字幕」的「自动朗读译文」那一行越过了卡片右边界。
+   根因：flex item 默认 `min-width:auto` ⇒ **不肯收缩到内容宽度以下**；文案一长（12 语种里
+   德/俄/阿最长）+ 小屏，整行就被顶出 `.sgroup` 的圆角边界。三条规则：
+     · 文字侧可收缩：`flex:1; min-width:0; overflow-wrap:anywhere`
+     · 控件不收缩：`input/select/button` 一律 `flex:none`（仍 44px 点击区、整行可点）
+     · 长串可断：`.note` 与标题侧都允许 `overflow-wrap:anywhere`
+   判据：`test/app-settings-layout.test.js`（静态）+ `test:app` 里 320px 视口 × 12 语种不溢出。 */
+.field > span { min-width: 0; overflow-wrap: anywhere; }
+.field select, .field input:not([type=range]) { min-width: 0; max-width: 100%; }
 .field input[type=number] { max-width: 8em; }
 .field input[type=range] { width: 100%; }
-.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+.field > button { flex: none; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; min-width: 0; }
+.check > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.check > input { flex: none; }
 .check input { width: 22px; height: 22px; }
 /* Range and checkbox render in the SYSTEM accent (blue) otherwise — the only
    off-brand pixels on the page, and the kind of detail that reads as unfinished. */
 .field input[type=range], .check input { accent-color: var(--sage); }
 #settings-counts { display: block; color: var(--dim); font-size: 0.9rem; }
+/* 2026-10-03 真机第二例（**列表编号**）：卡片里的 <ol> 不许用浏览器默认标记。
+   根因：`<ol class="steps">` 全仓库没有任何规则 ⇒ 走 UA 默认 `list-style-position: outside`，
+   而**标记不是元素** —— 排版引擎把它画在内容盒**之外**。真机量到的数：编号占 x≈44–64，
+   卡片左沿 x=60，于是编号左半截画在卡片外的奶油底上（正文从 x≈117 起，卡内正常）。
+   为什么一直没红：现有探针是「逐元素比左右边」，**结构上看不见标记**。
+   做法与仓库既有的 `.ob-steps`（迎新页步骤）同一套 —— `list-style:none` + 自己的计数器，
+   编号是**行内内容**，跟着内容盒走，因此永远进不了卡片外。
+   ⚠️ 不许用 `overflow:hidden` 「修」它 —— 那是把编号切掉，不是放回卡里。 */
+#app-settings .sgroup ol.steps {
+  margin: 0; padding: 0 0 0 1.7em; text-indent: -1.7em;
+  list-style: none; counter-reset: mt-step;
+  font-size: 0.95rem; color: var(--fg);
+}
+#app-settings .sgroup ol.steps > li::before {
+  counter-increment: mt-step; content: counter(mt-step) ". ";
+}
 /* Destructive, and it must LOOK destructive — a delete that shares the primary
    button style is a delete someone presses by muscle memory. */
 button.danger { background: none; color: var(--danger); border: 1.5px solid currentColor; }
@@ -278,19 +335,38 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* interaction-spec 全局原则: disabled must be VISIBLE (same 45% as the shell). */
 :where(#app-drive) button:disabled { opacity: 0.45; cursor: default; }
 
-/* 扩展未启用横幅（§引导）。琥珀调用的是 accent 家族的浅阶，与 popup 的
-   .setup-note.warn 同一套语义：这是「还差一步」，不是错误。 */
+/* 扩展引导行（J18/J19，2026-10-02 真机评审修订）。
+   它以前是一张占满首屏的卡（三步 + 插图）—— 两位主角被挤到屏幕外。现在缩成一行：
+   首屏只看得到标题与一句事实，点开才是动作与三步说明（首页本身不含步骤教学）。
+   琥珀调用 accent 家族的浅阶，与 popup 的 .setup-note.warn 同一套语义：这是
+   「还差一步」，不是错误。位置由 AppShell 放在 .modes 之后 —— 折叠线以下。 */
 #ext-banner {
+  margin: 14px 0 0;
   background: var(--accent-track);
   border: 1.5px solid var(--accent);
   border-radius: var(--radius-md);
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  overflow: hidden;
 }
-#ext-banner-title { margin: 0; font-weight: 600; font-size: 0.95rem; color: var(--accent-deep); }
-#ext-banner .note { margin: 0; color: var(--accent-deep); opacity: .85; }
+#ext-banner-row {
+  width: 100%; min-height: 56px; margin: 0; padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  background: none; color: inherit; border: 0; border-radius: 0; cursor: pointer;
+}
+#ext-banner-row .row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#ext-banner-title {
+  font-weight: 600; font-size: 0.95rem; color: var(--accent-deep);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ext-banner-row .note {
+  /* 不再压 0.85：那一档把它压到 4.07:1（浅）/ 4.10:1（深），刚好差过 4.5 的门槛
+     （2026-10-02 test:app 深浅扫描）。颜色本身已是 --accent-deep，够看。 */
+  margin: 0; color: var(--accent-deep); font-size: 0.85rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#ext-banner-row .mode-chev { flex: none; color: var(--accent-deep); transition: transform .15s ease; }
+#ext-banner-row[aria-expanded="true"] .mode-chev { transform: rotate(90deg); }
+#ext-banner-panel { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+#ext-banner-panel[hidden] { display: none; }
 #ext-banner-act {
   align-self: flex-start;
   background: var(--accent);
@@ -304,8 +380,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 #ext-banner-act:hover { background: var(--accent-hover); }
 /* iOS 形态：#ext-banner-setup 是填色主按钮（macOS 上它带 .secondary，退回次级）。
-   #ext-banner 与 #signed-in 平级，:where(#signed-in) 那套按钮基样式够不到这里 ——
-   2026-09-10 评审证伪：只摘掉 secondary 类不会变成填色，规则要自己给。 */
+   只摘掉 secondary 类不会自动变成填色 —— 规则要自己给（2026-09-10 评审证伪）。 */
 #ext-banner-setup:not(.secondary) {
   align-self: flex-start;
   background: var(--accent);
@@ -329,8 +404,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   font: inherit;
   font-weight: 600;
 }
-#ext-banner-check { font-size: 0.85rem; }
-#ext-banner-check a { color: var(--accent-deep); text-decoration: underline; }
 
 /* A3：未登录首屏的登录邀请。它是一张说明卡，不是一道闸门 —— 一键登录就在卡上，
    邮箱表单按需展开（design/signin/，2026-09-05）。 */
@@ -547,9 +620,33 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
 :where(#app-listen) .listen-pair select { font: inherit; }
 :where(#app-listen) .listen-pair-arrow { color: var(--accent); }
+/* 「换引擎」就地入口（2026-10-04）：语言列表被引擎挡住时才出现的一行文字按钮 —— 沿用强调色，
+   不新造控件样式（卡片里不许再套卡片、也不加第二个实心按钮）。 */
+:where(#app-listen) .listen-engine-hint { margin: -2px 0 2px; font-size: inherit; }
+:where(#app-listen) .listen-engine-hint button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+
+/* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
+   两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
+   紧贴下面的包列表（build 78 用户截图里就剩两个空小方框）。颜色只走共享 token，不写裸 hex。 */
+:where(#firstrun-packs) .packs-langs { display: flex; flex-direction: column; gap: 14px; margin: 0 0 18px; }
+:where(#firstrun-packs) .packs-lang { display: flex; flex-direction: column; gap: 8px; margin: 0; }
+:where(#firstrun-packs) .packs-lang-label { color: var(--text-secondary); font-size: 0.85rem; }
+:where(#firstrun-packs) .packs-lang select {
+  width: 100%; min-height: 44px; font: inherit; color: var(--fg);
+  background: var(--card-bg); border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 0 12px;
+}
+/* 两个包各自一张白卡（稿里就是 16px 圆角、16px 内边距、包名加粗、状态下一行）。 */
+:where(#firstrun-packs) .pack-list { display: flex; flex-direction: column; gap: 14px; }
+:where(#firstrun-packs) .pack-row {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--card-bg); border-radius: var(--radius-md); padding: 16px;
+}
+:where(#firstrun-packs) .pack-name { font-size: 1rem; font-weight: 600; color: var(--fg); }
+:where(#firstrun-packs) .pack-row .note { margin: 0; }
 :where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
@@ -614,7 +711,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings .sec-title h3 { margin: 0; color: var(--fg); font-size: 1.02rem; font-weight: 700; }
 #app-settings .sec-n { width: 22px; height: 22px; border-radius: 999px; background: var(--accent); color: #fff; font-size: .8rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
 #app-settings .sec-head .mode-tabs { margin: 0; }
-#app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+#app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
+#app-settings .sgroup > * { min-width: 0; }
 #app-settings .sgroup h3 { margin: 0; color: var(--fg); }
 /* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句） */
 #app-settings #g-listen.na > :not(h3):not(#listen-pack-row) { display: none; }
@@ -697,3 +795,70 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 #ob-resume-body { margin: 0; }
 #ob-resume-close { min-width: 44px; min-height: 44px; margin: -12px -12px 0 0; padding: 0; background: none;
   border: 0; color: var(--muted, var(--fg)); font-size: 1rem; text-decoration: none; }
+
+/* ─── 首页重排（2026-10-01 裁定 + OpenDesign 设计稿）────────────────────────────
+   主角是「实时字幕」与「实时听译」（判据 J01/J02/J03），复习降级为一条（J10），
+   系统翻译段不再出现在首页（J05），文档入口独立分区（J11）。
+   设计稿：design/home-reorder-2026-10-01/od/（一页规格里有 14 条判据与「怎么测」）。 */
+
+/* 引擎状态行（J07/J08）：唯一的前置条件说明位。就位 = 低对比绿摘要；缺失 = 原地可点 chip。 */
+.status { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 8px 10px;
+  min-height: 32px; margin: 2px 0 12px; }   /* 真机反馈 ②：不许贴/压上面的边线，也不许用负外边距拉回去 */
+/* 深色也要够看：--sage-strong 有 dark 变体（#56633f → #aebf92）。原来写死 #56633f，
+   深色底上只有 2.76:1 —— 2026-10-02 深浅两色扫描（test:app）抓到。 */
+.status-text { font-size: 0.85rem; color: var(--sage-strong); padding-top: 11px; }
+.status-text.miss { color: var(--muted, var(--fg)); }
+.status-chip { min-height: 44px; min-width: 44px; flex: 1 1 auto; max-width: 100%; padding: 8px 14px;
+  border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: var(--accent-deep);
+  border: 0; font: inherit; line-height: 1.35; text-align: left; white-space: normal; overflow-wrap: anywhere; }
+
+/* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
+.heroes { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
+#app-listen-entry, #app-subs-entry {
+  /* J15（2026-10-02 真机修订）：卡高是**常量**，不是 min-height —— 文案长度 / 字体回退 / Dynamic Type
+     都不得改变它。真机上听译卡标题折成两行把卡撑高、与字幕卡不等高，就是这条复发。
+     纵向 flex + overflow:hidden 让卡内任何多余内容只能被裁掉，不能撑开卡片。 */
+  position: relative; height: 236px; padding: 18px; border-radius: var(--radius-lg);
+  background: var(--card-bg); border: 1.5px solid var(--line); box-shadow: 0 1px 2px rgba(32, 30, 29, .05);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#app-listen-entry .mode-title, #app-subs-entry .mode-title {
+  /* J16：标题单行（中文一行 + 英文一行），超长在块内截断 —— 折行不得撑高卡片。 */
+  font-size: 1.25rem; font-weight: 700; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+#app-listen-entry .mode-desc, #app-subs-entry .mode-desc { font-size: 0.85rem; color: var(--muted, var(--fg)); }
+#app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; }
+#app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
+/* 卡底那一条实心「启动带」：两卡完全同款（判据 J02 钉的就是这个 —— 不许把听译悄悄降级）。
+   J17（2026-10-02 真机修订）：它以前是一条 `::after` 装饰层，卡内那个 78px 的下内边距就是
+   给它留的位 —— 真机上是一条**空橙块**（文字在带外，根本没有文字）。现在把它做成卡内一个
+   真实的 <span class="cta">（卡是 <button>，不能嵌套 button），中英两行各自显式声明颜色。
+   根因消散：带与「按钮」是同一个元素，文案不可能是带外的东西。 */
+#app-listen-entry .cta, #app-subs-entry .cta {
+  flex: none; align-self: stretch; margin-top: auto; height: 50px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: var(--accent, #ac6231); border-radius: var(--radius-md, 12px); overflow: hidden;
+}
+#app-listen-entry .cta .cn, #app-subs-entry .cta .cn {
+  max-width: 100%; color: #fff; font-size: 1.0625rem; font-weight: 600; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#app-listen-entry .cta .en, #app-subs-entry .cta .en {
+  max-width: 100%; color: rgba(255, 255, 255, .86); font-size: 0.78125rem; font-weight: 500; line-height: 1.25;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* 复习条（J10）：从整屏大卡压到一条 —— 看得见、一眼能开始，但不抢主角。
+   主按钮走**淡色档**（J03：折叠线以内实心按钮恰好是两位主角）。 */
+.today { padding: 12px 14px; gap: 8px; }
+.today .counts { font-size: 0.85rem; }
+/* 深色也要够看：--accent-deep 有 dark 变体（#8c491a → #f6a06b）。写死 #7a4318 时
+   深色底上只有 1.84:1（2026-10-02 深浅两色扫描 test:app 抓到）。 */
+.today .row #review { background: color-mix(in oklab, #c67139 14%, transparent); color: var(--accent-deep); border: 0; min-height: 40px; }
+.today .today-bar { height: 4px; }
+
+/* 文档分区（J11）：与「听」分开。 */
+.docs { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 0; }
+.docs .modes-label { font-size: 0.85rem; color: var(--dim); padding: 0 4px; }
+.docs .mode { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); }

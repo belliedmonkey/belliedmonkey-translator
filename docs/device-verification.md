@@ -243,3 +243,116 @@ suppressed.
 | 再点「上传文档」→ 取消 | 不报错、页面无变化 |
 | 取消之后再点一次 | **还能再弹**（取消分支必须 `completionHandler(nil)`；漏了这一下 `<input>` 永远卡住，且没有任何错误） |
 | iOS（模拟器即可） | 点「上传文档」弹「照片 / 浏览」；不需要这段桥 |
+
+---
+
+## 2026-10-03 · 泰语（#556）+ 高质量语音 Kokoro（#558）矩阵记录
+
+一次**未跑完**的矩阵，如实记录每一行的判据与证据，供下一位接着跑。
+
+| 行 | 结果 | 证据 |
+|---|---|---|
+| **iPhone Safari（iPhone 18 Pro 模拟器）** | ✅ 泰语 ✓ · Kokoro 装包 ✓ | 首启屏**整屏泰文**（含「ชุดเสียงคุณภาพสูง…พร้อมแล้ว」= 高质量语音包**已就绪**）；盘上 `…/mt-speech/kokoro-zh-en/` **206 MB**、安装戳 `.installed-5bab4f62…` 与清单 sha256 逐字相同。截图 `.local/regress-1.19.0/thai/evidence/` |
+| **iPad Safari（iPad Pro 13" M5 模拟器）** | ✅ | `testDbgThaiUi` **passed**（判据 = 朗读包到「พร้อมแล้ว」+ 首页/设置全泰文 + 无缺键回落汉字）。截图 `.local/regress-1.19.0/thai/sim-ipad/shots/` |
+| **macOS host app（Debug 构建）** | ✅ 泰语 ✓ · Kokoro 装包 ✓ | AX 树整页泰文；首启给的是 **「รับเฉพาะชุดเสียงแล้วดำเนินการต่อ」（只下朗读包、继续）** —— #553 的降级路径；点完进首页（「โหมดพอดแคสต์」卡）。盘上同 iOS：206 MB + 同一个 sha256 戳。截图 `.local/regress-1.19.0/thai/macos-app/` |
+| **macOS Chrome（CDP `Extensions.loadUnpacked`）** | ✅ | options 页 **3155 个泰文字符**、缺键回落汉字 **0**（脚本 `.local/chrome-thai-check.js`，判据豁免语言自名与品牌名）。截图 `.local/regress-1.19.0/thai/chrome-macos/` |
+| **macOS Safari** | ⬜ **未跑** | 本机 Safari 被**另一个会话**占着（窗口标题是一串布局测量调试串且不变）—— 按「并行会话不抢共享资源」的规矩**没有去抢**。配方见 verification-spec §2.C 路径 A |
+| **Firefox desktop** | ✅ **页面正常**（#560 是我的驱动 bug，已关闭） | 等 `web-ext` 打出 `Installed … as a temporary add-on` 之后**用地址栏导航**到 `moz-extension://<uuid>/options/options.html` ⇒ 窗口标题变「大肚猴翻译 — 设置」，整页正常渲染（引擎与密钥/免费额度/显示样式/复习/学习/缓存管理/关于），页面里能看到**学习语言的 13 个 chip 含「ไทย」**。截图 `.local/regress-1.19.0/thai/firefox-options-FIXED.png`。硬经验见 verification-spec §2.E |
+| **macOS Safari** | 🧑 **人工阻塞 —— 明确记录为「不挡 TestFlight」** | 扩展**已装但未启用**：Safari → 设置 → **扩展**页里能看到「大肚猴翻译：双语对照 + 视频双字幕 + 生词复习」，勾选框 `value=0`（1Password 那条是 1）。用 cua-driver 点它（background 与 foreground 都试）**值不变**（`refusal`/无效果），启用这一步没做成 ⇒ 没往下走（其后还要「在每个网站上始终允许」+ 打开 options 页 + 切语言）。下次可用 GUI 手点，或查 Safari 对未签名/未启用扩展的启用条件。**2026-10-03 飞行窗监督裁定**：勾选需人手点、飞行窗内无人可点，而同一扩展在 Chrome（3155 个泰文字符、0 缺键回落）与 Firefox（整页渲染 + 13 个学习语言 chip 含 ไทย）两行已绿、iOS/iPad/macOS 三个宿主面亦绿 ⇒ **这一行按人工阻塞记账，不挡 TestFlight**；落地后补一次勾选即可闭合 |
+
+**未验证**（两个都要如实带上）：
+
+1. **引擎装载 + 合成：✅ 已验证**（2026-10-03，走**播客模式**而不是设置页的试听）。
+   macOS App 首页点「โหมดพอดแคสต์」⇒ AX 树出现：
+   `การ์ดที่ 3 จาก 4`（第 3/4 张卡）+ **`รอบที่ 1 · กำลังเล่นต้นฉบับ…`（第 1 遍 · 正在播放原文…）** + `🔁 เล่นซ้ำ`。
+   ⇒ 引擎**装载成功并真的出声**：配置写错只会显示 TTS 失败，不会有这个播放态。
+   截图：`.local/regress-1.19.0/thai/macos-app/macos-podcast-kokoro-playing.png`。
+   为什么不在设置页试听：**那一行在 macOS App 的设置页里根本不渲染**（AX 369 元素、`elements_complete:false`，
+   只有语音模式 / 自动朗读 / 每日新卡那几行；滚动也不改变树）。两处都试过，走播客模式反而更接近真实用法。
+   iOS 模拟器侧仍到不了设置页（首启的识别包必然 `reason='locale'` ⇒ 停在包屏）——已知限制，不阻塞。
+2. **试听（续）**：macOS App 的**设置页里没有那一行** —— AX 树（369 元素、`elements_complete:false`）里只有「โหมดเสียงพูด / อ่านออกเสียงอัตโนมัติ / จำนวนการ์ดใหม่สูงสุดต่อวัน」等，
+   没有 `เล่นตัวอย่าง`（试听）也没有「离线模型」那行；滚动也没让树变化。⇒ **Kokoro 的装载+出声仍未被端上验证**。
+   可走的两条：① App 的**播客模式**（它朗读走同一个引擎，首页那张卡可见）；② 设置页里那行（需要先弄清它在哪个档/为什么没渲染）。
+3. **音质 A/B**：**按裁定留给落地后的耳朵**（飞行窗内无法主观听判）。
+   样本生成脚本在 `.local/kokoro-probe.py`（en/zh 各两句，24 kHz WAV）；
+   判据是「Kokoro 与 Piper 谁更好听」—— 不好听就把 `device-models.config.js` 换回 piper 两行（vits 分支仍在）。
+
+---
+
+## 2026-10-03 · TestFlight 第三批（泰语 #556 + Kokoro #558）
+
+四个包，**只传 TestFlight，未提审**（驱动全程只用 `xcodebuild archive → exportArchive → altool --upload-app`，
+没有任何 `asc.js bind` / `asc-submit` 调用）。驱动：`.local/build-1190d-four.sh`（号码在跑之前从 ASC 回读确定：
+global 132/80、china 75/73 均为 VALID ⇒ 本批取 +1）。
+
+| 面 | 构建号 | ASC 回读 | 备注 |
+|---|---|---|---|
+| 国际 iOS | **133** | **VALID**（2026-10-03 08:10） | 包体回读 `com.belliedmonkeytranslator 1.19.0 133`、**`lproj: 14`**（Base + 13 门，泰语在包内） |
+| 国际 macOS | **81** | **VALID**（08:12） | `lproj: 0` 是 macOS 的正常形状（lproj 在 `Contents/Resources/` 下，脚本数直接子项） |
+| 中国 iOS | **76** | **VALID**（08:21） | 包体 `com.belliedmonkeytranslator.cn 1.19.0 76`、`lproj: 14` |
+| 中国 macOS | **74** | **VALID**（08:18） | |
+
+上传返回：四条都是 `UPLOAD SUCCEEDED with no errors` + Delivery UUID；china iOS 的 build 在 ASC 里晚约 7 分钟出现（处理中），
+所以回读是**轮询到 VALID 才记**的，不是上传成功就记。
+
+**这一批包含**：泰语第 13 门语言（#556，1193 键 + 四个消费面 + 中国版描述 + 13 lproj + 可学习语言白名单）、
+Kokoro int8 多语离线朗读（#558 + #557）、一键卡随界面语言重画（#559）。
+矩阵结论见上一节：四绿 / Firefox 页面绿 / **macOS Safari 人工阻塞（不挡 TF）** / 音质 A/B 留给落地后。
+
+---
+
+## 2026-10-04 · TestFlight 第四批（泰语可选 + Kokoro + 离线包后台续传）
+
+驱动 `.local/build-1190e-four.sh`（号码跑前从 ASC 回读确定：global 133/81、china 76/74 均为 VALID）。
+**只上传 TestFlight，全程没有 `asc.js bind` / `asc-submit`。** ASC 回读（监督实读）：
+
+| 面 | 构建号 | ASC | 上传时间（CST） |
+|---|---|---|---|
+| 国际 iOS | **134** | **VALID** | 04:50 |
+| 国际 macOS | **82** | **VALID** | 04:53 |
+| 中国 iOS | **77** | **VALID** | 04:55 |
+| 中国 macOS | **75** | **VALID** | 04:57 |
+
+包体回读：国际 iOS `com.belliedmonkeytranslator 1.19.0 134` / **`lproj: 14`**（泰语在包内）；
+中国 iOS `…cn 1.19.0 77` / `lproj: 14`；两个 macOS 的 `lproj: 0` 是正常形状（lproj 在 `Contents/Resources/` 下）。
+
+这一批含：泰语在语言列表可选（#561，识别侧 `DictationTranscriber` 回落）+ Kokoro 中英离线朗读（#558/#557）
++ 离线包**后台续传**（#561，真机 -1005 之后）+ 一键卡随界面语言重画（#559）。
+
+⚠️ 本批**未重跑全矩阵**（用户明确要求），矩阵状态仍沿用 2026-10-03 那一节。
+
+---
+
+## 2026-10-04 · TestFlight 第五批（登录第一发自动重试 + 首启包页语言对）
+
+驱动 `.local/build-1190f-four.sh`，从 `ced7ff9a`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码跑前从 ASC 回读确定（第四批 134/82/77/75 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **135** | **VALID** |
+| 国际 macOS | **83** | **VALID** |
+| 中国 iOS | **78** | **VALID** |
+| 中国 macOS | **76** | **VALID** |
+
+**这一批补的两处**（第四批 134/82/77/75 里没有 —— 用户手里是 CN iOS 77，所以必须进包）：
+
+1. **Apple 登录「连不上服务器」的第一发自动重试**（`extension/learn/auth.js` 的 `signInWithIdToken`）：
+   换会话那发 POST 在网络层失败时重试 3 次、仅网络类（`network|offline`）、退避 400/1200 ms。
+   定位依据：境内后端在用户报错的**同一分钟**（`2026-10-03T21:02:15Z` = 05:02:15 CST）记到的是
+   **成功**的 Apple 登录 200（provider=apple、泰国 IP），近 6h 非 2xx 为空 ⇒ 失败在换会话那一跳、
+   服务端无痕（§0），而原实现不重试。
+2. **首启语音包页的语言对**：「我的语言 / 对方的语言」两个下拉（`src/app/AppShell.jsx` +
+   `src/app/shell-model.js`），选项走 `AppListen.langOptions`（注册表全量、含泰语；引擎不支持的
+   灰显而不是拿掉），与听译页**共用** `listenMyLang`/`listenOtherLang` 两键；
+   `firstRunLocales` 改成优先用选中的那一对 ⇒ 识别包按所选语言下，不再写死 zh。
+
+**进包已回读**（不是只看 git）：`dist-app/Script.js` 与 `dist-app-china/Script.js` 里都能搜到
+`attempt < 3` + `400 + attempt * 800` 的完整重试循环，以及 `packs-my-lang` / `packs-other-lang`。
+
+⚠️ 与本批一起记的**一处措辞偏差**（留给评审）：Pencil 已通过的「下载页 · 自选语言对」帧里第二个
+选择器写作「目标语言（译成哪一种）」，而实现用的是听译页既有的「**对方的语言**」——
+因为这一页的两个包要的是**被识别的语言**（ASR 包按口语语言下），与「译成」是两个概念；
+沿用既有键也避免给同一件事起第二个名字。**用户 2026-10-04 拍板：保持「对方的语言」，不改成帧上的「目标语言」，代码不再为这个用词改动，
+也不再为它打版。** 理由与决定已记进 `docs/interaction-spec.md`（首启屏那一节）——
+这一页的两个包要的是**被识别的语言**，与「译成」是两个概念。

@@ -655,6 +655,32 @@ function Options() {
     }
   };
 
+  // 登录即自动领取（2026-10-02，用户要求）。与 App 侧的 autoClaimGrant 同一条纪律：
+  //   · 只判「这个 flavor 有没有额度这条路」（中国版 MT_GRANT 可能为 null）；
+  //   · overwrite:false —— 只写空槽，绝不碰用户自己粘的 key；
+  //   · 一次页面会话只试一次；失败静默（手动「领取」按钮仍在，错误交给它说）。
+  // 挂在 refreshSyncUI 上：那是所有登录路径的汇合点（邮箱验证码 / 第三方回跳 /
+  // 打开设置页时已经登录）。判据：test/grant-one-implementation.test.js。
+  const autoClaimRef = useRef(false);
+  const autoClaimGrant = async () => {
+    if (autoClaimRef.current) return;
+    autoClaimRef.current = true;
+    try {
+      if (!LearnGrant.enabled()) return;
+      const rd = await PageSettings.read(READ_KEYS);
+      // 读不出已存设置就不写 —— 往一份读不出来的档案上盖配置，正是「你的 key 静默变成
+      // 免费通道」那一类事故（与手动「领取」同一条纪律）。
+      if (!rd || !rd.ok) return;
+      const cur = rd.data || {};
+      if (LearnGrant.active(cur)) return;              // 已经在用额度，不必再领
+      const claimed = await LearnGrant.claim();
+      const plan = LearnGrant.plan(claimed, cur, window, { overwrite: false });
+      await applyQuickSetup(plan);
+      try { chrome.storage.local.set(plan.marks); } catch (_) {}
+      await paintGrant();
+    } catch (_) { /* 自动领取失败不打断页面；手动「领取」仍在 */ }
+  };
+
   // ── 同步（可选）────────────────────────────────────────────────────────────
   const refreshSyncUI = async () => {
     // 额度卡跟着登录态走；refreshSyncUI 在页面加载与每次登录/退出后都会跑。
@@ -681,6 +707,8 @@ function Options() {
       '接下来：在 iPhone / Mac 的 App 里用同一个邮箱（{email}）登录，这些卡才会出现在那边。')
       .replace('{email}', LearnAuth.displayName(gs)));
     setAppUid(gs.userId || '');
+    // 登录即自动领取免费额度。不 await：它不该挡住同步与状态刷新（失败静默）。
+    autoClaimGrant().catch(() => {});
   };
 
   const runSync = async () => {
@@ -1053,8 +1081,15 @@ function Options() {
   // ── 一键卡孤岛（QuickSetup）────────────────────────────────────────────────
   useLayoutEffect(() => {
     if (!ready || !quickRef.current) return;
-    if (quickMountedRef.current) return;
-    quickMountedRef.current = true;
+    // 界面语言变了要**重画**（2026-10-03，issue #559）：这批命令式孤岛是在
+    // `PageText.setUiLang` 落地**之前**画的一次，而哨兵只放行一次 —— 于是把界面语言
+    // 选成泰语的用户，在这张卡上看到的是 `chrome.i18n` 的兜底语言（本机 Chrome 是中文
+    // ⇒ 页面上泰文与中文混排）。引擎字段那批孤岛的 deps 里早就有 uiLangNow（见上面
+    // 「四槽挂载」的注释），只有这张卡漏了。代价：换语言会清掉卡里未保存的输入 ——
+    // 换语言是低频动作，而且与「重画」本来就是同一件事。
+    const quickLang = uiLangNow || 'auto';
+    if (quickMountedRef.current === quickLang) return;
+    quickMountedRef.current = quickLang;
     const s0 = bootSnapRef.current || readSnapshot(READ_KEYS);
     quickRef.current.textContent = '';
     renderQuickSetup(quickRef.current, {
@@ -1878,6 +1913,7 @@ function Options() {
                 <option value="pt">Português</option>
                 <option value="ru">Русский</option>
                 <option value="it">Italiano</option>
+                <option value="th">ไทย</option>
               </select>
             </div>
 
@@ -1899,6 +1935,7 @@ function Options() {
                 <option value="ar">العربية</option>
                 <option value="pt_BR">Português</option>
                 <option value="ru">Русский</option>
+                <option value="th">ไทย</option>
               </select>
             </div>
           </section>

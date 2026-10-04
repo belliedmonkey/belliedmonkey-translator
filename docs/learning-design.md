@@ -323,6 +323,17 @@ per §3 law 2, over-capture is recoverable (delete), silent under-capture is not
 A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
 gesture outranks a standing filter.
 
+**2026-10-03（泰国语进白名单，随 #556 的界面语言泰语一起）。** `build/langs.config.js` 加一门：
+`{ code:'th', labelKey:'lang_th', label:'ไทย', scripts:['Thai'] }` —— 用户裁定「加」。三点与本段相关：
+- **泰文不与别的语言共享脚本。** 上面那句「known looseness」在泰语这里**不适用**：Han/Latin/Kana
+  那种互相放行只发生在共享脚本的语言之间，泰文是独一份，所以「纯泰文」的判定是干净的 ——
+  白名单里有 `th` 就收，没有就不收，没有中间态。
+- **判定链的两端早就认得泰语**，缺的一直只是白名单这一格：`LearnRules.dominantScript` 有
+  `['Thai', /\p{Script=Thai}/u]`，`guessLang` 会猜 `th`（见下面 2026-09-13 那条）。
+- 泰文**无词间空格**，所以泰语卡的切句/切词完全依赖 `Intl.Segmenter`（`LearnModel.splitSentences`）；
+  WebKit/Safari 的 ICU 支持泰语，但它与拉丁语系的切分不是同一档确定性 —— 泰语卡的分段质量
+  比中英更容易受实现差异影响，这一条留作已知项。
+
 **2026-09-13 修订（用户裁定「不知道为啥会有语言未知；就算真的未知，也应该靠 AI 推断语言出来」）。** 「stored
 `lang` stays `'und'`」这句收窄为：**采集门不改它，但两个地方会补上它**——
 - **文档打开时**（`doc-view.startEngine`）：用户没手选语言的文档，先按第一段的主导脚本猜（`LearnRules.guessLang`：
@@ -2004,6 +2015,14 @@ Lighthouse 三件外部事（§8.4.1.2）；用东京的中继就是把中国用
 > 实测留档：境内网络经中继翻译中位 1.73 s（直连百炼 0.82 s，多出的主要是去东京查账记账的两个往返）；
 > 中国版扩展没有登录，「额度」判据须带上「这个构建有登录」（未合，stash 在本机）。
 
+> **（一·补）2026-10-02**：这条 2026-09-22 就写明「**两个宿主**共用 `learn/grant.js` 的同一份
+> 字节、不在调用方各写一遍」，但落地（#396–#398）只做了 App（`shell-model.js` 的
+> `autoClaimGrant`）—— 扩展侧一直只有设置页那张卡的「领取」按钮，登录后要用户自己点
+> （用户 2026-10-02 报障「登录后扩展端需要手动领取」）。现补齐：`src/pages/options.jsx` 加
+> `autoClaimGrant`，**同一套闸**（`LearnGrant.enabled()` + `overwrite:false` + 一次只试一次），
+> 挂在登录汇合点 `refreshSyncUI`（邮箱验证码 / 第三方回跳 / 打开设置页时已登录三条路都会走到）。
+> 判据：`test/grant-one-implementation.test.js`。
+
 > **（一）已落地**（#396–#398：登录成功自动领取）。**（二）（三）的代码 2026-09-22 已落地、开关未翻**：
 > `grant.china.ready` 仍是 `false`，此时中国版 `MT_GRANT` 恒为 null、产物除注释外逐字不变。
 > 落地的是：`backend.config.js` 的 `grant.china { ready, relayUrl, vendor }`；`build.js`
@@ -2347,8 +2366,15 @@ provider 常常就是空的），判它「没配」会让额度**覆盖掉用户
 
 | flavor | `url`（默认） | `url_alt`（备用） |
 |---|---|---|
-| `global` | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip` | huggingface.co `…/belliedmonkey/belliedmonkey-device-models/resolve/main/piper-{zh,en}.zip`（直连，不走镜像） |
+| `global` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（**2026-10-01 改**：美国出口 6.4–6.9 MB/s、国内 6.4 MB/s） | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip`（国外 13–14 MB/s，国内只有 20–40 KB/s） |
 | `china` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（真机 18.7 MB/s） | hf-mirror.com 同名仓库（真机 ≈580 KB/s） |
+
+**为什么 global 也改指魔搭（2026-10-01）：** 原先 global 默认 GitHub —— 国外快，但**国内直连只有 20–40 KB/s**，
+真机上 67 MB 要下约 1 小时（ZHAO的iPhone 实测 ≈1%/分钟），而屏 2 是硬门 ⇒ 国内的国际版用户卡死在这一屏。
+魔搭换过去后：国内 6.4 MB/s（≈10 s）、美国出口 6.4–6.9 MB/s（≈10 s，比 GitHub 慢约一倍、首字节多约 1 s）。
+即用「国外慢约一倍」换掉最坏的那一格。字节来自 `cdn-lfs-cn-1.modelscope.cn`（中国 CDN，**没有国际节点**；
+`modelscope.com` 只是 `.cn` 的英文入口，`modelscope.ai` 上这个仓库 404）。清单默认值与服务器表两处同改。
+
 
 Supabase 公开桶 `device-models` 也传了同一份，按流量计费（Pro 250 GB/月后 0.09 美元/GB），**不进表**，留作两处都倒下时手工切换的最后一手。
 不记录谁来问过（不是事件，不进 `bt_events`；telemetry-design 白名单不动）。

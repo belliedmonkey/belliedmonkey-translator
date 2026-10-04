@@ -110,7 +110,7 @@ describe('sys-settings: 设置里「系统翻译」那一块（I-7）', () => {
     const keys = [...new Set((src.match(/t\('([a-z0-9_]+)'/g) || []).map((s) => s.slice(3, -1)))];
     ok(keys.length >= 10, '至少十来个键，实际 ' + keys.length);
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
-    eq(locales.length, 12);
+    eq(locales.length, 13);
     for (const l of locales) {
       const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
       for (const k of keys) ok(m[k] && m[k].message, `${l} 缺 ${k}`);

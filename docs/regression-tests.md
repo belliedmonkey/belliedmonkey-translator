@@ -520,6 +520,12 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 - **驱动方式**：XCUITest 走**无障碍树**（`app.webViews.buttons/staticTexts` 按文案匹配），坐标兜底点击。
   runner 脚本 `run-ob.sh`（单用例 + 卸载重装 + 证据导出）与 `seed-tts.sh`（存储播种）在本 worktree 的 `.local`，
   **不进仓库**——它们是本机驱动件，不是产物。
+- **装之前先过 `npm run verify:app-fresh -- "<… .app>"`，且构建链一律不要吞输出（2026-10-01，#536）。**
+  这条是 2026-10-01 那轮「白屏」误判的直接教训：`node build.js && npm run app:sync && rm -rf DD && xcodebuild`
+  里 `app:sync` 返回了 `exit 1`，`&&` 在**构建之前**就断了，而分号后面的 `simctl install` 照跑 ——
+  装进去的是上一轮的 `.app`，截图与结论全都来自旧包（「Debug 白屏 / Release 正常」「首屏是引导欢迎屏」
+  都是这么来的）。新鲜度判据是逐字节比 `.app` 里的资源与 `dist-app/`（`Main.html` 在 `Base.lproj/`、
+  扩展那两个在 `…/Extensions/MTTranslateExt.appex/`）。三步缺一不可，`>/dev/null` 会把断链变成无声。
 - **模拟器 locale ≠ flavor**：国际版模拟器也可能是中文 locale（2026-09-30 实测），文案锚点一律**双语匹配**，
   否则「语言不对」会误报成「界面没出现」。
 - **容器 label 会把子元素文案拼起来**：`CONTAINS firstMatch` 可能命中容器，tap 落点滑到邻居（中国版「听」那次

@@ -61,6 +61,32 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     }
   }
 
+  // 2026-10-03：**先确认产物是新的**。探针只服务 dist-app*/，从不重建 —— 我加了一条结构判据、
+  // 跑了一次「绿」，其实那条 CSS 规则根本不在被服务的 Style.css 里（判据是空的），差一点把
+  // 「没测到」当成「验过了」。同型坑：docs/verification-spec.md §9.0.1 那条「装进去的是上一轮的 .app」。
+  {
+    const newestUnder = (dir) => {
+      let t = 0;
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+        const p = path.join(dir, e.name);
+        const m = e.isDirectory() ? newestUnder(p) : fs.statSync(p).mtimeMs;
+        if (m > t) t = m;
+      }
+      return t;
+    };
+    const srcJs = Math.max(newestUnder(path.join(ROOT, 'src')), newestUnder(path.join(ROOT, 'app')));
+    const stale = [
+      ['Style.css', fs.statSync(path.join(ROOT, 'app/style.css')).mtimeMs],
+      ['Script.js', srcJs],
+    ].filter(([f, src]) => fs.statSync(path.join(SRC, f)).mtimeMs < src).map(([f]) => f);
+    if (stale.length) {
+      console.error(`✗ ${APP_DIR}/${stale.join(', ')} 比源码旧 —— 探针只服务产物、从不重建，`
+        + `现在测的是旧包。先跑 node build.js${FLAVOR === 'china' ? ' --flavor china' : ''}。`);
+      process.exit(1);
+    }
+  }
+
   const missed = [];
   const srv = http.createServer((req, res) => {
     // Bundle layout: /Base.lproj/Main.html, /Script.js, /Style.css
@@ -169,7 +195,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'feedback-title','feedback-mail','feedback-rate','feedback-note',
           // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
           'telemetry-block','telemetry-on','telemetry-note',
-          'clean-known','settings-signout','delete-account','gear','gear2',
+          'clean-known','settings-signout','delete-account','gear',
           // 2026-09-17 设置页信息架构：四节节头、依赖行、视频的语言、离线模型行、识别语言包行
           'sec-engines','sec-features','sec-account','sec-about','dep-review','dep-drive','dep-listen','dep-docs',
           'subtitle-video-lang','tts-offline-row','listen-pack-row','app-adv-hint-go']
@@ -479,6 +505,132 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(ev.tag && ev.tag !== 'A',
         '空态那个「去设置」还是个链接 —— 它在 App 里指向没有采集开关的设置页，是死路');
     }
+    // ── 会话夹具（2026-10-02，#532）：App 现在以**登录为前提** ────────────────────────────
+    // #532 之前，未登录首页就是首页；现在 firstrun.step() 未登录恒为 'login'，横幅与引导
+    // 都不渲染。无头环境既没有原生桥，也没有「两个设备包已就绪」。所以这一段给页面造一个
+    // 「已登录 + 两个包就绪」的状态（假 token，只驱动渲染、不打后端），好让下面的横幅/引导
+    // 判据仍然测得到 —— 它们测的是自己的逻辑，不是登录本身。
+    //   会话 → `learnAuth`（chrome.storage.local，shim 垫在 localStorage 上）；
+    //   设备包 → 注入脚本把 NativeSpeech.probe / LearnTTS.deviceStatus 桩成 ready。
+    if (o.syncEnabled) {
+      // 注入脚本在**文档开始**跑，而 bundle 是之后才定义 NativeSpeech / LearnTTS 的 ——
+      // 所以不能只设一次（会被 bundle 覆盖回去），要持续把两个「设备包就绪」入口打桩，
+      // 覆盖整个 boot 窗口（10s 封顶，免得留在后面）。
+      await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `
+        (() => {
+          const patch = () => { try {
+            // 默认两个设备包「就绪」（boot 落首页）。window.__mtPacksReady === false 时切到
+            // 「未就绪」——首启包屏（屏 2）只有在未就绪时才画，包屏的语言下拉判据要那一次重载。
+            const ready = window.__mtPacksReady !== false;
+            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true }) : async () => ({ ready: false, ok: false });
+            if (window.NativeSpeech && window.NativeSpeech.ensureAssets) window.NativeSpeech.ensureAssets = async () => ({ ok: true });
+            if (window.LearnTTS && window.LearnTTS.deviceStatus) window.LearnTTS.deviceStatus = ready ? async () => ({ ready: true }) : async () => ({ ready: false });
+            // 夹具会话是假 token：boot 的同步会 401，App 会自己登出并把会话删掉。
+            // 门禁要测的不是登录，所以把 signOut 桩成空操作，让会话在场即可。
+            // 直接在页面里把「当前会话」钉住：两个 flavor 的 auth 后端不同（global 直连
+            // Supabase，china 走 api.belliedmonkey.com，JWT 密钥也不同），任何一方的 token
+            // 另一方都不认 —— 而门禁只关心「已登录」这个状态，不关心是哪个后端签的。
+            // boot 的 LearnAuth.currentStable() 是唯一读会话的入口，钉它就够。（模板字符串里
+            // 注释不许出现反引号。）
+            if (window.LearnAuth) {
+              const mk = () => ({ accessToken: 'gate-token', refreshToken: null, expiresAt: Date.now() + 60 * 86400e3,
+                email: 'gate@example.com', phone: null, userId: 'gate-uid-0001',
+                backend: (window.MT_BACKEND && MT_BACKEND.url) || '' });
+              window.LearnAuth.current = async () => mk();
+              window.LearnAuth.currentStable = async () => mk();
+              window.LearnAuth.signOut = async () => {};
+            }
+            // 后端请求一律按**网络错**拒绝（不是 401）：这样 boot 的同步拿不到 lastOk，
+            // browserSideOk 保持 false，macOS 的「扩展未启用 ⇒ 横幅」才有得测；401 会让
+            // 会话被清掉、整段夹具塌掉。只包一次，别叠 wrapper。（这段是模板字符串，注释里
+            // 不许出现反引号。）
+            if (!window.__mtFixtureFetch) {
+              window.__mtFixtureFetch = 1;
+              const _f = window.fetch;
+              window.fetch = function (input) {
+                const u = typeof input === 'string' ? input : (input && input.url) || '';
+                if (u.indexOf('supabase.co') >= 0) return Promise.reject(new TypeError('fixture: backend blocked'));
+                return _f.apply(this, arguments);
+              };
+            }
+          } catch (_) {} };
+          patch();
+          const iv = setInterval(patch, 10);
+          setTimeout(() => clearInterval(iv), 10000);
+        })();
+      ` }, sessionId);
+      // 会话是**假 token**：下面注入脚本把后端请求按网络错拒掉，boot 的同步不会拿到 401，
+      // 所以 App 不会自己登出（早先没有那段屏蔽时，假 token 会被 401 清掉）。`backend` 取
+      // 页面自己的 MT_BACKEND.url —— 两个 flavor 不同（global 直连 supabase，china 走
+      // api.belliedmonkey.com），写死一个另一个就登不进去。真 token 那条路（服务端密钥铸造）
+      // 会撞 Supabase 的 OTP 限流、把门禁跑成 flaky，还只对 global 有效。
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({
+        learnAuth: { accessToken: 'gate-token', refreshToken: null, expiresAt: Date.now() + 60 * 86400e3,
+          email: 'gate@example.com', phone: null, userId: 'gate-uid-0001',
+          backend: (window.MT_BACKEND && MT_BACKEND.url) || '' },
+        'tm:on': false, onboardSeen: 1 }, r))`, awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const sess = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({ signedIn: !document.getElementById('signed-in').hidden, signedOut: !document.getElementById('signed-out').hidden, packs: !document.getElementById('firstrun-packs').hidden, onboard: !document.getElementById('onboard').hidden, backend: (window.MT_BACKEND && MT_BACKEND.url) || '', enabled: !!(window.MT_BACKEND && MT_BACKEND.enabled) })`, returnByValue: true }, sessionId);
+      const sv = JSON.parse(sess.result.value);
+      if (!sv.signedIn) {
+        console.log('  · 会话夹具没落到首页：' + JSON.stringify(sv));
+      }
+      // 首启包屏的语言对：两个下拉必须**真的画出**标签与选项（含泰语）。
+      // 2026-10-04 build 78 实测过的缺陷：paintFirstRun 里 firstRunLocales(s) 的 `s` 不在
+      // 作用域（形参叫 session），ReferenceError 被那层 `catch (_) {}` 吞掉 ⇒ wire() 没跑，
+      // 控件在、标签与选项全空（用户截图里就剩并排两个空小方框）。所以断言的是**有内容**，
+      // 不是「元素存在」。
+      //
+      // 这一段要的是**两个包未就绪**的屏 2，而上面的正常夹具把两个包桩成就绪（boot 落首页）——
+      // 临时装一个「包未就绪」的文档脚本重载一次，测完摘下、重载回就绪态，免得影响后面依赖
+      // 「已就绪 + 落首页」的横幅 / 引导各块。
+      const nr = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+        { source: 'window.__mtPacksReady = false;' }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const dg = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify((() => {
+        const $ = (id) => document.getElementById(id);
+        const my = $('packs-my-lang'), ot = $('packs-other-lang');
+        const codes = (list) => list ? Array.from(list.options).map((o) => o.value) : [];
+        const labels = (list) => list ? Array.from(list.options).map((o) => o.textContent) : [];
+        let regLen = -1; try { regLen = AppListen.langOptions(null).length; } catch (_) {}
+        return {
+          packsHidden: $('firstrun-packs').hidden,
+          myLabel: ($('packs-my-lang-label') || {}).textContent || '',
+          otLabel: ($('packs-other-lang-label') || {}).textContent || '',
+          myCodes: codes(my), otCodes: codes(ot),
+          myVal: my ? my.value : '', otVal: ot ? ot.value : '',
+          blankLabels: labels(my).filter((x) => !x).length,
+          myDisabledAll: my ? Array.from(my.options).every((o) => o.disabled) : null,
+          myW: my ? Math.round(my.getBoundingClientRect().width) : 0,
+          regLen,
+        };
+      })())`, returnByValue: true }, sessionId);
+      const g = JSON.parse(dg.result.value);
+      need(!g.packsHidden, '包桩成「未就绪」后首启包屏（屏 2）没显示 —— 这一段的前置不成立');
+      need(!!(g.myLabel && g.otLabel),
+        `首启包屏的语言下拉没有标签（build 78 的回归）：我的语言=「${g.myLabel}」对方的语言=「${g.otLabel}」`);
+      need(g.myCodes.length > 0 && g.otCodes.length > 0,
+        `首启包屏的语言下拉没有选项（build 78 的回归）：我的语言 ${g.myCodes.length} 项、对方的语言 ${g.otCodes.length} 项`);
+      need(g.myCodes.length === g.regLen && g.otCodes.length === g.regLen && g.regLen >= 12,
+        `首启包屏语言下拉的选项数与注册表不一致（注册表 ${g.regLen}、两个下拉 ${g.myCodes.length}/${g.otCodes.length}）—— 两个下拉都应是「我们支持的所有语言」`);
+      need(g.myCodes.includes('th') && g.otCodes.includes('th'),
+        '首启包屏语言下拉里没有泰语（th）—— 「所有选语言的地方都要有泰语」');
+      need(!!g.myVal && !!g.otVal,
+        `首启包屏的语言下拉有空框（选不中任何语言）：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
+      need(g.myCodes.includes(g.myVal) && g.otCodes.includes(g.otVal),
+        `首启包屏语言下拉的选中值不在选项里：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
+      need(g.myW > 150,
+        `首启包屏语言下拉宽度只有 ${g.myW}px —— 应当是设计稿里的整行宽度，不是挤在一行的小方框`);
+      need(g.blankLabels === 0, `首启包屏语言下拉有 ${g.blankLabels} 个选项没有名字`);
+      need(g.myDisabledAll !== true,
+        '首启包屏语言下拉的选项全部不可选 —— 那样列表点不开');
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr.identifier }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+    }
+
     // 扩展未启用横幅（§引导）。转换器模板的两端接线都在工程里、都接着空气：
     // Swift 调 show(...) 而 bundle 里没有全局 show()，ReferenceError 被静默吞掉；
     // "open-preferences" 处理器现成而全仓库零处发送。这里断言两端都接上了。
@@ -575,6 +727,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           $('onboard').hidden = true;
           if (!$('review-view').hidden) { $('review-back').click(); await sleep(200); }
           window.show('ios'); await sleep(20);
+          // J18（2026-10-02 真机修订）：扩展引导现在默认**收起**成一行，点开才露出
+          // 动作与三步。所以可见性判据要先展开，否则 doneVis / filled 全是 0。
+          $('ext-banner-row').click(); await sleep(40);
           const sec = $('ext-banner');
           const bg = (el) => getComputedStyle(el).backgroundColor;
           const vis = (el) => !!(el && el.getClientRects().length);
@@ -623,8 +778,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(v.doneVis, 'iOS 横幅上没有「我已打开」');
 
       need(v.steps === 3, `iOS 横幅三步不齐（${v.steps}）`);
-      need(v.setupBottom !== null && v.setupBottom <= v.vh,
-        `320×480 下横幅主按钮底边在 ${v.setupBottom}px，视口只有 ${v.vh}px —— 插图把动作顶出首屏了`);
+      // 2026-10-02（#540 / J18-J19）：扩展引导**故意**降到折叠线以下一行 —— 它的动作
+      // 不再要求落在 320×480 首屏内（旧断言 `setupBottom <= vh` 已作废），只要这一行
+      // 存在、展开后面板里的动作在 DOM 里就够了。首屏实心按钮的预算由英雄卡那两条管。
       need(!v.afterDone, '点了「我已打开」横幅还在');
       need(v.stored, '点了「我已打开」而 extBannerDoneAt 没落盘 —— 下次打开又会出现');
       need(!v.afterReshow, '点过「我已打开」之后 show(\'ios\') 又把横幅画回来了');
@@ -661,8 +817,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       const wv = JSON.parse(w.result.value);
       need(wv.formsHidden, '未登录首屏直接摊开了登录表单 —— 那就是一堵墙');
       need(wv.promptShown, '未登录首屏没有任何说明 —— 用户不知道这是什么、也不知道下一步');
-      need(/同步|sync|同期|동기|synchron|sincroniz|синхрон|مزامنة/i.test(wv.why),
-        '登录说明没讲清「材料只能靠同步过来」—— 那会让登录看起来像可选的');
+      // 2026-10-01（#532）：登录说明改成讲**登录换来了什么**（额度到账 + 两个语音包下到本机），
+      // 不再是「材料只能靠同步过来」那句。判据只要求它把「为什么」说清楚（非空、够长），
+      // 具体措辞由文案评审管 —— 写死某一句会随每次文案调整假红。
+      need((wv.why || '').trim().length > 8,
+        '登录说明是空的 —— 用户不知道登录换来了什么（#532 之前那句「材料只能靠同步」已改）');
       need(wv.formsAfterClick, '点了登录却展不开表单');
       need(wv.providersInPrompt, '一键登录（Apple / Google）没在说明卡上 —— 又躲回邮箱表单后面了');
       need(wv.emailLinkInPrompt, '「或用邮箱登录」那行链接不在说明卡上');
@@ -733,273 +892,29 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 而那个余量在真机上根本不存在（2026-09-01 用户截图里按钮就是没了）。
       await cdp.send('Emulation.setDeviceMetricsOverride',
         { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
-      const ob = await cdp.send('Runtime.evaluate', {
+      // ─── 首跑：资源包下完 ⇒ **直接落首页**（2026-10-03 用户裁定）─────────────────
+      // 这一块原来靠「走完整个引导、逐屏采」—— 引导屏已整块撤掉（它只剩两个没有内容的键，
+      // 外加一屏「登录，顺手领一份免费额度」+「扩展里也要登录一次」，而用户已经登录过了）。
+      // 现在采的是**新形状**：不开 #onboard、直接落首页，并把 onboardSeen 落一次。
+      // 内联 reset/reopen（它们在本块**之后**才定义 —— 这里引用会踩 TDZ）。
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'engineChosen', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set({}, r)))`, awaitPromise: true }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1500));
+      const frOb = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
           const $ = (id) => document.getElementById(id);
-          const sec = $('onboard');
-          sec.hidden = false; $('signed-out').hidden = true;
-          window.show('ios');                        // 先把平台设成 iOS
-          await new Promise((r) => setTimeout(r, 20));
-          const seen = [];
-          const vis = (el) => !!(el && el.getClientRects().length);
-          // 按**页面自报的屏名**走（document.body.dataset.obStep），不是固定点 5 次。
-          // 原来的写法「for (i < 5)」再断言「seen.length === 5」，数的是循环次数不是屏数 ——
-          // 屏数变了它照样是 5（最后一屏被采两遍），**结构上就红不了**。2026-09-22 登录屏
-          // 挪到第 2 屏之后，「那一屏点了只翻页、根本不登录」就是这样溜进 main 的。
-          for (let i = 0; i < 8; i++) {
-            const step = document.body.dataset.obStep || '';
-            const kv = $('ob-kv').hidden ? [] : $('ob-kv').querySelectorAll('div span');
-            // 「就地试一句」：没有引擎时点「翻这一句」，必须**说出一句话**，不是空着、不是一直「正在翻译…」。
-            let tryRes = null;
-            if (step === 'firstuse') {
-              const src = $('ob-try-src'), out = $('ob-try-out');
-              tryRes = { shown: vis($('ob-try')), src: src ? src.textContent : '',
-                         tr: vis($('ob-try-tr')), say: vis($('ob-try-say')) };
-              const setS = (o) => new Promise((r) => chrome.storage.local.set(o, r));
-              const clickAndWait = async () => {
-                $('ob-try-tr').click();
-                for (let k = 0; k < 60; k++) {
-                  await new Promise((r) => setTimeout(r, 50));
-                  if (!out.hidden && !$('ob-try-tr').disabled) break;
-                }
-                return { out: out.hidden ? '' : out.textContent, cls: out.className,
-                         stuck: $('ob-try-tr').disabled };
-              };
-              // **两个场景都钉死状态**，不靠环境碰巧。第一版只点一次、断言「结果是 bad」——
-              // 而这里设置是空的、国际版默认引擎是不用 key 的 Google，于是它走的根本不是
-              // 「没有引擎」那一支，是「真去翻、无头环境连不上外网、报错」：测的是环境。
-              const keep = await new Promise((r) => chrome.storage.local.get(['provider', 'apiKey'], (v) => r(v || {})));
-              // ① 没有引擎：选一个必须填 key 的引擎、key 留空
-              await setS({ provider: 'deepseek', apiKey: '' });
-              tryRes.none = await clickAndWait();
-              // ② 有引擎：给 key、把传输桩掉 —— 判据是「译文落到结果行」，不是去打外网
-              const realTr = TranslationAPI.translate;
-              TranslationAPI.translate = async () => '【桩】这是一句译文';
-              await setS({ provider: 'deepseek', apiKey: 'sk-gate-0123456789' });
-              try { tryRes.okRun = await clickAndWait(); } finally { TranslationAPI.translate = realTr; }
-              await new Promise((r) => chrome.storage.local.remove(['provider', 'apiKey'], r));
-              if (keep.provider || keep.apiKey) await setS(keep);
-            }
-            // 出境同意：登录屏上那一份在不在；不勾点主按钮，必须**原地不动**（不登录、不结束引导）。
-            let xbOb = null;
-            if (step === 'signin') {
-              xbOb = { vis: !!$('ob-xb-box').getClientRects().length };
-              if (xbOb.vis && !$('ob-xb-check').checked) {
-                $('ob-next').click(); await new Promise((r) => setTimeout(r, 50));
-                xbOb.stayed = document.body.dataset.obStep === 'signin' && !sec.hidden;
-                xbOb.err = !!$('ob-xb-box').querySelector('.xb-err').getClientRects().length;
-              }
-            } else xbOb = { vis: !!$('ob-xb-box').getClientRects().length };
-            seen.push({ step, tryRes, xbOb, nextText: vis($('ob-next')) ? $('ob-next').textContent : '',
-                        // 第一屏改版（画布板 B2，2026-09-24）：引擎名一行、出口、主按钮下那句话。
-                        // 逐屏采，不是走完之后回头找 —— 回头找会读到最后一屏（同上面那条教训）。
-                        chips: $('ob-engines').hidden ? [] : [...$('ob-engines').querySelectorAll('span')].map((x) => x.textContent),
-                        exitText: vis($('ob-webonly')) ? $('ob-webonly-text').textContent : '',
-                        hintText: $('ob-hint').hidden ? '' : $('ob-hint').textContent,
-                        alt: vis($('ob-alt')) ? $('ob-alt').textContent : '',
-                        title: $('ob-title').textContent, text: $('ob-text').textContent,
-                        w: $('ob-fill').style.width, prefs: !$('ob-prefs').hidden,
-                        steps: $('ob-steps').hidden ? 0 : $('ob-steps').children.length,
-                        next: !$('ob-next').hidden,
-                        // 每个可见行动键的**渲染背景**，以及页面自己解析出来的 accent。
-                        // 判据不能是类名：secondary 挂对了而 CSS 没命中，正是
-                        // 2026-09-02 扩展侧那个 bug 的形状。
-                        // e977a51 那次「实测背景是 rgb(198,113,57)」是人工验的，
-                        // 没落成门禁 —— 这就是补上的那一条。
-                        accentBg: (() => {
-                          const d = document.createElement('div');
-                          d.style.cssText = 'background:var(--accent);position:absolute;left:-9999px';
-                          document.body.appendChild(d);
-                          const v = getComputedStyle(d).backgroundColor; d.remove(); return v;
-                        })(),
-                        // ob-alt / ob-try-* 是 2026-09-22 加的：页脚外的按钮不纳入，
-                        // 这一条就看不见「翻这一句」与「继续」两个填色按钮并排。
-                        btns: ['ob-prefs', 'ob-setup', 'ob-next', 'ob-alt', 'ob-skip', 'ob-try-tr', 'ob-try-say']
-                          .filter((id) => !!($(id) && $(id).getClientRects().length))
-                          .map((id) => ({ id, bg: getComputedStyle($(id)).backgroundColor })),
-                        // 「以后再设置」必须**渲染成文字链**，不是第三个等宽按钮（#386 画布，
-                        // 照 ext 屏 2026-09-02「等宽灰按钮」那次先例）。判据是渲染出来的样子，
-                        // 不是类名 —— class="link" 挂着而规则没命中，正是 2026-09-24 真机
-                        // 上看到的那个形状（#onboard 不在 button.link 的 :where 名单里）。
-                        // ⚠️ 这一整段在模板字符串里，注释里也不许出现反引号。
-                        skip: (() => {
-                          const el = $('ob-skip');
-                          if (!el || !el.getClientRects().length) return null;
-                          const cs = getComputedStyle(el);
-                          return { bg: cs.backgroundColor, border: cs.borderTopWidth,
-                                   deco: cs.textDecorationLine,
-                                   w: Math.round(el.getBoundingClientRect().width),
-                                   nextW: $('ob-next') && $('ob-next').getClientRects().length
-                                     ? Math.round($('ob-next').getBoundingClientRect().width) : 0 };
-                        })(),
-                        // 「首屏看不看得见能点的东西」。判据是渲染坐标：#onboard 的父级
-                        // #app 是普通 block，所以 flex 那条高度链是断的，overflow 也好
-                        // sticky 也好，都可能静默失效 —— 失效的样子就是这个数字大过视口。
-                        fold: (() => {
-                          const vis = (el) => !!(el && el.getClientRects().length);
-                          const n = $('ob-next'), t = $('ob-setup');
-                          const key = vis(n) ? n : (vis(t) ? t : null);
-                          return { vh: innerHeight,
-                            key: key ? Math.round(key.getBoundingClientRect().bottom) : null };
-                        })(),
-                        // 引擎说明只在「浏览器里的两件事」那屏存在，必须当场取 ——
-                        // 循环结束后再读会读到最后一屏的卡片，断言就永远空转。
-                        kv0: kv.length ? kv[0].textContent : '' });
-            // 'ext' 那一屏**没有「继续」**：主行动是「在网页上完成设置」，它同时前进
-            // 一屏。所以遍历也得走那个按钮 —— 照旧点 ob-next 会卡死在那一屏，而门禁
-            // 会报成「屏数不对」，指向完全错误的原因。
-            // 最后一屏（ext）不点：它的主按钮是收尾键，点了会结束引导、开外链。
-            if (step === 'ext' || sec.hidden) break;
-            // 登录屏走「先不登录」：它的主按钮是**真的去登录**（无头环境里没有 Apple 桥，
-            // 会退到邮箱 = 结束引导），而那正是这一屏该有的样子。
-            const btn = step === 'signin' ? $('ob-alt')
-              : ($('ob-next').hidden ? $('ob-setup') : $('ob-next'));
-            btn.click(); await new Promise((r) => setTimeout(r, 30));
-          }
-          // 「继续」在不在，必须在**主循环里逐屏采**。原来我另起了一个循环回头找那一屏
-          // —— 它会把引导又点走一遍，于是这一条和横幅那一条读到的都是走完之后的状态，
-          // 两条一起报假失败，而报的原因完全指向别处。
-          const extScreen = seen.find((x) => x.steps > 0);
-          const out2 = { seen,
-            extScreenHasNext: extScreen ? extScreen.next : null,
-            hasLangScreen: seen.some((x) => x.title === '学习语言'),
-            bannerDuringOb: !document.getElementById('ext-banner').hidden };
-          // 收拾干净：这一段把 #onboard 打开了，不还原的话后面的横幅断言会被
-          // paintExtBanner 的「引导进行中不挂横幅」抑制掉，报成假失败。
-          sec.hidden = true;
-          // 「可以先用免费通道」这句只有在注册表真有 needsKey:false 的引擎时才成立。
-          // 中国版一个都没有（google 是 global-only），说了就是假话 ——
-          // 与 1.6.4 那次「中国版默认引擎不在自己注册表里」同一种形状。
-          out2.backendOn = !!(window.MT_BACKEND && window.MT_BACKEND.enabled);
-          out2.providerCount = (window.MT_PROVIDERS || []).length;
-          out2.providerLabels = (window.MT_PROVIDERS || []).map((x) => String((x && x.label) || ''));
-          out2.freeChannel = (window.MT_PROVIDERS || []).some((x) => x && !x.needsKey);
-          out2.engineNote = seen.map((x) => x.kv0).filter(Boolean).join(' | ');
-          return JSON.stringify(out2);
+          const g = (k) => new Promise((r) => chrome.storage.local.get([k], (v) => r((v || {})[k])));
+          $('packs-go').click();
+          await new Promise((r) => setTimeout(r, 400));
+          return JSON.stringify({ onboardHidden: $('onboard').hidden, home: !$('signed-in').hidden,
+            packsHidden: $('firstrun-packs').hidden, outHidden: $('signed-out').hidden,
+            seen: !!(await g('onboardSeen')) });
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
-      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
-      const ov = JSON.parse(ob.result.value);
-      const seen = ov.seen;
-      // 引导进行中不能同时挂着扩展横幅 —— 那会把同一句话说两遍。
-      // 这条是模拟器实测抓出来的：断言查内容对不对，查不出重复。
-      // 引导里不许再推荐免费通道 —— 无论这个 flavor 的注册表里有没有免费条目。
-      //
-      // 这条原来只在**没有**免费条目时才检查（防「中国版说着一个它没有的东西」）。
-      // 2026-09-01 裁定之后它对两个 flavor 都成立：决策不为免费通道开特例，第一优先级
-      // 是一键配置，而「没有 Key 也能先用」这句话的作用正是劝人别配。
-      // 免费引擎仍然选得到，只是不再由我们推荐 —— 那是用户的选择，不是我们的建议。
-      need(ov.providerCount > 0, 'window.MT_PROVIDERS 读不到 —— 下面那条断言会空转');
-      need(!!ov.engineNote, '没抓到引擎说明文案 —— 断言会空转');
-      need(!/免费通道|free channel|無料|무료|gratuit|kostenlos|gratis|бесплат|المجانية/i.test(ov.engineNote || ''),
-        '引导里又出现了「可以先用免费通道」—— 2026-09-01 裁定：不再推荐它');
-      need(!ov.bannerDuringOb, '引导进行中还挂着扩展横幅 —— 第 3 屏说的就是这件事，'
-        + '两个一起显示等于把同一句话一字不差地重复一遍');
-      // 2026-09-22 屏序：welcome → signin → firstuse → ext（signin 按 MT_BACKEND.enabled）。
-      const order = seen.map((x) => x.step).join(' → ');
-      const want = ov.backendOn ? 'welcome → signin → firstuse → ext' : 'welcome → firstuse → ext';
-      need(order === want, `引导屏序是「${order}」，期望「${want}」`);
-      // ★ 登录屏的主按钮**不许是「继续」**。它原来能登录，是因为它是最后一屏、那个按钮其实
-      //   是「结束引导、落到首页登录卡上」；挪到中间之后若没跟着改，这一屏就只是一张说明，
-      //   点了只翻页。判据与语种无关：拿「就地试一句」那屏的「继续」来比。
-      const si = seen.find((x) => x.step === 'signin');
-      const fu = seen.find((x) => x.step === 'firstuse');
-      if (ov.backendOn) {
-        need(si && si.nextText && fu && si.nextText !== fu.nextText,
-          '登录屏的主按钮是「' + (si && si.nextText) + '」—— 与普通的「继续」一样，点了只会翻页、不会登录');
-        need(si && !!si.alt, '登录屏没有「先不登录」—— 不想登录的人只能整条引导跳过');
-        need(si && !/最后一步/.test(si.title), '登录屏标题还写着「最后一步」—— 它已经不是最后一屏了');
-        const xbWant = XB_WANT;
-        need(si && si.xbOb && si.xbOb.vis === xbWant,
-          `引导登录屏${xbWant ? '没有' : '出现了'}出境单独同意框（${FLAVOR} 包）`);
-        if (xbWant) {
-          need(si.xbOb.stayed, '引导登录屏上没勾出境同意就点了登录，引导却往下走了 —— 没拦住');
-          need(si.xbOb.err, '引导登录屏上没勾就点登录，拦下了却没说为什么');
-        }
-        need(!seen.some((x) => x.step !== 'signin' && x.xbOb && x.xbOb.vis),
-          '出境同意框漏到了登录屏以外的引导屏上');
-      }
-      // ★ 「就地试一句」：素材内置、两个动作都在；没有引擎时点「翻这一句」必须说出一句话。
-      // ★ **填色的是哪一个**，不只是「至多一个」。那条计数门禁在「就地试一句」上是绿的 ——
-      //   填色的确实只有一个，只是填成了「继续」而不是「翻这一句」，人一眼看到的主行动是
-      //   「跳过去」。2026-09-22 截图才看出来。
-      const filledIds = (x) => (x && x.btns || []).filter((b) => x.accentBg && b.bg === x.accentBg).map((b) => b.id);
-      need(fu && filledIds(fu).join() === 'ob-try-tr',
-        '「就地试一句」那一屏填色的是「' + (fu ? filledIds(fu).join('、') : '') + '」—— 主行动应当是「翻这一句」，不是「继续」');
-      if (ov.backendOn) {
-        need(si && filledIds(si).join() === 'ob-next',
-          '登录屏填色的是「' + (si ? filledIds(si).join('、') : '') + '」—— 主行动应当是登录那个按钮');
-        need(si && !(si.btns || []).some((b) => b.id === 'ob-skip'),
-          '登录屏又挂着「以后再设置」—— 与「先不登录」两个相近的「不」并排，分不清哪个是跳过这一屏');
-      }
-      // ★ 第一屏（画布板 B2 / telemetry-design §3.9 提案 B）：引擎名**从注册表来**、出口在、时长那句在。
-      //   写死牌子名的后果只有中国版看得见（它的注册表里没有 GPT / Claude），所以判据不是
-      //   「有没有 chip」，是「每个 chip 都能在 MT_PROVIDERS 的 label 里找到」。
-      const we = seen.find((x) => x.step === 'welcome');
-      const chips = (we && we.chips || []).filter((c) => c !== '…');
-      need(chips.length >= 2, '第一屏没渲染引擎名：' + JSON.stringify(we && we.chips));
-      const stray = chips.filter((c) => !(ov.providerLabels || []).some((l) => String(l).startsWith(c)));
-      need(stray.length === 0, '第一屏的引擎名不是从 MT_PROVIDERS 来的（写死了？）：' + JSON.stringify(stray));
-      need(we && we.exitText.trim().length > 1, '第一屏没有「我只要网页翻译 →」那条出口');
-      need(we && /\d/.test(we.hintText || ''), '主按钮下那句「两步，约 30 秒」没出来：' + JSON.stringify(we && we.hintText));
-      need(!seen.some((x) => x.step !== 'welcome' && (x.exitText || (x.chips || []).length)),
-        '引擎名或那条出口漏到了第一屏以外的屏上');
-      // ★「以后再设置」是文字链，不是第三个等宽按钮（2026-09-24 Mac 真机上抓到的：
-      //   `#onboard` 不在 app/style.css 里 `button.link` 那条 :where 名单中，于是类名挂着、
-      //   规则没命中）。三条判据各自独立：没有填色、没有边框、和主按钮不一样宽。
-      for (const s of seen.map((x) => x.skip).filter(Boolean)) {
-        need(/rgba\(0, 0, 0, 0\)|transparent/.test(s.bg),
-          '「以后再设置」被渲染成了填色按钮（背景 ' + s.bg + '）—— 它该是文字链');
-        need(parseFloat(s.border) === 0,
-          '「以后再设置」有边框（' + s.border + '）—— 那是按钮的样子，不是文字链');
-        need(!(s.nextW && Math.abs(s.w - s.nextW) < 8),
-          '「以后再设置」和主按钮一样宽（' + s.w + 'px）—— 等宽的两个键分不出主次，正是 ext 屏 2026-09-02 那次的坑');
-      }
-      need(fu && fu.tryRes && fu.tryRes.shown, '「就地试一句」那一屏没有露出试一句的区块');
-      need(fu && fu.tryRes && fu.tryRes.src.trim().length > 10, '「就地试一句」没有内置的示例句');
-      need(fu && fu.tryRes && fu.tryRes.tr && fu.tryRes.say, '「翻这一句 / 听这一句」两个按钮不全');
-      const none = fu && fu.tryRes && fu.tryRes.none, okRun = fu && fu.tryRes && fu.tryRes.okRun;
-      need(none && !none.stuck && okRun && !okRun.stuck, '点了「翻这一句」之后按钮一直是禁用的 —— 请求没落定');
-      // 没有引擎：要**具名**说出来，而且不带 ✗ —— 带 ✗ 的是传输失败，那是另一件事。
-      need(none && none.cls === 'bad' && none.out && !/^✗/.test(none.out),
-        '没有引擎时点「翻这一句」，结果行是「' + (none && none.out) + '」(' + (none && none.cls) + ') —— '
-        + '应当具名说「还没有可用的翻译引擎」，不是空着、不是一直「正在翻译…」、也不是一条传输报错');
-      need(okRun && okRun.cls === 'ok' && okRun.out === '【桩】这是一句译文',
-        '有引擎时点「翻这一句」，结果行是「' + (okRun && okRun.out) + '」—— 译文没有落到结果行');
-      const blank = seen.map((x, i) => (x.title && x.text) ? null : i).filter((x) => x !== null);
-      need(blank.length === 0, '这几屏标题或正文是空的（i18n 键没落到）：' + blank.join(','));
-      need(seen[0].w !== seen[seen.length - 1].w, '进度条从头到尾没动');
-      const iosStep = seen.find((x) => x.steps > 0);
-      need(iosStep && iosStep.steps === 3, 'iOS 的启用扩展屏应当念三步，实际 '
-        + (iosStep ? iosStep.steps : 0) + ' 步');
-      need(!seen.some((x) => x.prefs), 'iOS 上出现了「打开 Safari 扩展设置」按钮 —— '
-        + 'SFSafariApplication 是 macOS-only，那个按钮点了跳不过去');
-      // 启用扩展那一屏不许有「继续」：App 在 iOS 上判不了扩展启没启用，一个「继续」
-      // 只能是「假装你做完了」。主行动是「在网页上完成设置」，它同时前进一屏。
-      need(ov.extScreenHasNext === false, '启用扩展那一屏又出现了「继续」按钮 —— '
-        + '没设置好就该去网站设置，不该给一个原地跳过的口子');
-      // 选语言只该有一处（扩展引导的采集屏，chips 就在开关旁边）。App 引导里那一屏
-      // 2026-09-01 删了：给一个还没启用的功能配过滤器，而且排在登录之前、根本没同步。
-      need(ov.hasLangScreen === false, 'App 引导里又出现了选语言那一屏 —— 与扩展引导重复');
-      // ★ 每一屏的行动键都要落在首屏之内。'ext' 屏上它是 #ob-setup（那一屏没有「继续」），
-      //   而那一屏恰恰是内容最多的一屏：三张插图 + 三行步骤。2026-09-01 真机上正是它
-      //   把按钮顶出了视口，用户看到的是一屏图，没有任何能点的东西。
-      // ★ 任一屏至多一个填色按钮。两个并排时用户看不出该点哪个 —— 这一族问题在
-      //   两个面上各犯过一次（App 是两个白按钮，扩展是两个填色按钮），而两侧门禁
-      //   当时都只数个数、从不看长相。
-      const filled = seen.map((x, i) => ({ i,
-        on: (x.btns || []).filter((b) => x.accentBg && b.bg === x.accentBg) }))
-        .filter((x) => x.on.length > 1);
-      need(filled.length === 0, filled.length
-        ? `第 ${filled[0].i + 1} 屏有 ${filled[0].on.length} 个填色按钮：`
-          + filled[0].on.map((b) => b.id).join('、') + ' —— 并排的两个主行动'
-        : '');
-
-      const below = seen.map((x, i) => ({ i, f: x.fold }))
-        .filter((x) => x.f && x.f.key !== null && x.f.key > x.f.vh);
-      need(below.length === 0, below.length
-        ? `第 ${below[0].i + 1} 屏的行动键在首屏之外（底边 ${below[0].f.key} > 视口 `
-          + `${below[0].f.vh}）—— 页脚没吸住，用户看到的是一屏图，没有能点的东西`
-        : '');
+      const fr = JSON.parse(frOb.result.value);
+      need(fr.packsHidden && fr.home, '资源包下完之后没有落首页：' + JSON.stringify(fr));
+      need(fr.onboardHidden, '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接落首页');
+      need(fr.outHidden, '首页出现时登录屏还露着');
+      need(fr.seen, '落首页时没有把 onboardSeen 落一次（老客户端与遥测的 step 枚举还读它）');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
@@ -1066,64 +981,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
       await settingsModel.notifySettingsShown(null); return 'ok'; })()`, '#app-settings');
-    // ─── 未登录复习入口（#386，2026-09-27）：走**真实启动路径**的判据 ────────────────────
-    // 0 卡 ⇒ 不出现；未登录 + 有卡 ⇒ 出现且副行带数字；点它 ⇒ 进复习页 + 「← 返回」回来路。
-    //
-    // ⚠️ **不许用 window.show('ios') 触发这条判据。** 它只做 setExtState → paintExtBanner,
-    // 即**只重画横幅**，不调 paintCounts —— 而入口是在 paintCounts 里画的。
-    // 第一版判据就是这么写错的：它报了 4 条红、看着像产品缺陷，其实是判据从没触发过那段代码。
-    // 所以这里一律 reload 页面，走 init → show(session) → paintCounts 那条真实的路。
-    //
-    // 为什么值得单独占一段：macOS 真机上这个入口**没有出现**，而本机有个库里有 64 张卡 ——
-    // 光看截图分不清「当前激活库为空」（正确）与「判据坏了」（缺陷）。判据写在 DOM 上才分得清。
-    if (o.syncEnabled) {
-      const reload = async (ms) => { await cdp.send('Page.reload', {}, sessionId); await new Promise((r) => setTimeout(r, ms || 1700)); };
-      const ev2 = async (expr) => JSON.parse((await cdp.send('Runtime.evaluate', { expression: expr, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
-      const STATE = `(async () => JSON.stringify({
-        exists: !!document.getElementById('signed-out-review'),
-        hidden: document.getElementById('signed-out-review') ? document.getElementById('signed-out-review').hidden : null,
-        btn: document.getElementById('signed-out-review-btn') ? document.getElementById('signed-out-review-btn').textContent.trim() : null,
-        desc: document.getElementById('signed-out-review-desc') ? document.getElementById('signed-out-review-desc').textContent.trim() : null,
-        total: (await LearnStore.stats()).total,
-        authed: !!(await LearnAuth.current()) }))()`;
-      const clearCards = `(async () => { const all = await LearnStore.allItems(); if (all.length) await LearnStore.deleteItems(all.map((i) => i.id), Date.now()); return 'ok'; })()`;
-
-      // ① 0 张卡 ⇒ 不出现
-      await cdp.send('Runtime.evaluate', { expression: clearCards, awaitPromise: true }, sessionId);
-      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ onboardSeen: 1 }, r))`, awaitPromise: true }, sessionId);
-      await reload();
-      const a = await ev2(STATE);
-      need(a.exists, '#signed-out-review 根本不在 DOM 里 —— AppShell 的标记没进包');
-      need(a.hidden === true, '本机一张卡都没有，未登录复习入口却出现了（那是个必然空着的入口）');
-
-      // ② 播 1 张卡 ⇒ 入口出现（reload = 真实启动路径）
-      await cdp.send('Runtime.evaluate', { expression: `(async () => { const now = Date.now(), day = 86400e3;
-        await LearnStore.putItem({ id: 'sorev1', text: 'A probe sentence for the signed-out entry.', tr: '未登录入口的探针句。',
-          lang: 'en', sourceId: 'src1', state: 'learning', createdAt: now - 9 * day, lastSeenAt: now - day,
-          seenCount: 3, salience: 0.3, skills: { listen: now, speak: now, write: now },
-          sched: { s: 1.5, d: 5, lastReviewAt: now - 2 * day, dueAt: now - 3600e3, reps: 2, lapses: 0 } });
-        return 'ok'; })()`, awaitPromise: true }, sessionId);
-      await reload();
-      const b = await ev2(STATE);
-      need(b.hidden === false, '未登录 + 本机有卡，入口没出现（#386 的正向判据）：' + JSON.stringify(b));
-      need(b.btn && b.btn.length > 0, '入口按钮没有文案（i18n 键没进包？）：' + JSON.stringify(b));
-      need(b.desc && /\d/.test(b.desc), '入口副行没带数字：' + JSON.stringify(b.desc));
-
-      // ③ 点它 ⇒ 进复习页；「← 返回」⇒ 回**未登录**首页，不是登录态首页
-      const c = await ev2(`(async () => { const $ = (id) => document.getElementById(id);
-        $('signed-out-review-btn').click(); await new Promise((r) => setTimeout(r, 400));
-        const inReview = !$('review-view').hidden;
-        $('review-back').click(); await new Promise((r) => setTimeout(r, 400));
-        return JSON.stringify({ inReview, backSo: !$('signed-out').hidden, backSi: !$('signed-in').hidden, reviewHidden: $('review-view').hidden }); })()`);
-      need(c.inReview, '点未登录复习入口没有进复习页');
-      need(c.reviewHidden && c.backSo && !c.backSi, '「← 返回」的来路分流不对（应当回未登录首页）：' + JSON.stringify(c));
-
-      // ④ 清卡 + reload ⇒ 入口再次消失
-      await cdp.send('Runtime.evaluate', { expression: `(async () => { await LearnStore.deleteItems(['sorev1'], Date.now()); return 'ok'; })()`, awaitPromise: true }, sessionId);
-      await reload();
-      const d = await ev2(STATE);
-      need(d.hidden === true, '删掉卡之后入口还在 —— 可见性没跟着计数走');
-    }
+    // ─── 未登录复习入口（#386）已退役（2026-10-01，#532）───────────────────────────────
+    // App 现在以登录为前提：未登录首屏只剩登录，没有复习入口（材料只能经同步进来）。
+    // 那一段 DOM 级判据（#signed-out-review / -btn / -desc）随之删除 —— 「未登录也能用」
+    // 这条口径已由 test/app-firstrun.test.js 的 R1（未登录首屏只有登录）接管。
 
     // ─── 「译成」（2026-09-19）：选了落盘、选回「跟随界面语言」是**删键**、读取走同一个出口 ─────
     // App 此前没有目标语言设置，文档翻译默默译成界面语言。补上之后最要紧的是老用户行为不变：
@@ -1147,7 +1008,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(/简体中文/.test(tl.follow), '「译成」：第一项该写明跟随的是哪门语言，实际「' + tl.follow + '」');
       need(tl.ja === 'ja' && tl.resolvedJa === 'ja', '「译成」：选日语后该落盘并生效，实际 ' + JSON.stringify(tl));
       need(tl.keyGone && tl.resolvedFollow === 'zh-CN', '「译成」：选回「跟随界面语言」该删键并回到界面语言，实际 ' + JSON.stringify(tl));
-      need(tl.options === 13, '「译成」：该是 1 + 12 项，实际 ' + tl.options);
+      // 2026-10-04：期望值**从注册表推导** —— 写死 13 在 #556 给「译成」加泰语之后过期了
+      // （它只在这个 App 包探针里，不在 npm test 里，所以一直没红）。
+      const wantOptions = require('../build/target-langs.config.js').length + 1;
+      need(tl.options === wantOptions, '「译成」：该是 1 + ' + (wantOptions - 1) + ' 项，实际 ' + tl.options);
     }
 
     // ─── 界面语言：**首页也要跟随**，冷启动就跟随（2026-09-25）────────────────────────
@@ -1162,17 +1026,20 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
     // 会在「根本没调 setUiLang」时**照样绿** —— 系统回落恰好也给英文。'ja' 既不是
     // 系统语言也不是回落值（回落是 zh_CN），只有真的读了 uiLang 才可能出现。
     {
-      const jaLede = 'ブラウザで読んだ文がここに同期され、復習できます。';
+      // 期望值**从随包的文案表里取**（`MT_I18N_MESSAGES`），不写死某一句：lede 的文案
+      // 2026-10-01 随 #532 换过一次（旧的两句「ブラウザで読んだ文が…」/「Sentences you read…」
+      // 已作废）—— 写死就会每改一次文案假红一次。
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ uiLang: 'ja' }, r))`, awaitPromise: true }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
       const cold = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({
         brand: (document.getElementById('app-brand') || {}).textContent || '',
         lede: (document.getElementById('lede') || {}).textContent || '',
+        ledeJa: (window.MT_I18N_MESSAGES && MT_I18N_MESSAGES.ja && MT_I18N_MESSAGES.ja.app_lede) || '',
         modes: (document.getElementById('modes-label') || {}).textContent || '',
         gear: (document.getElementById('gear') || {}).textContent || '' })`, returnByValue: true }, sessionId);
       const cv = JSON.parse(cold.result.value);
-      need(cv.lede === jaLede, `界面语言：冷启动后首页的 lede 该是日文，实际「${cv.lede}」—— 首页没跟随 uiLang`);
+      need(cv.lede && cv.lede === cv.ledeJa, `界面语言：冷启动后首页的 lede 该跟随 uiLang（ja），实际「${cv.lede}」—— 首页没跟随 uiLang`);
       // 产品名原来是写死的 h1（没有 id、没有 data-i18n），整屏都变了它还是中文。
       need(cv.brand === '大肚猴翻訳', `界面语言：首页的产品名该跟随，实际「${cv.brand}」—— 它是不是又变回写死的 h1 了`);
       // 不只量一处：lede 对了而别处没跟上，说明补的那次重画没覆盖整页。
@@ -1186,9 +1053,11 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         const sel = document.getElementById('ui-lang');
         sel.value = 'en'; sel.dispatchEvent(new Event('change', { bubbles: true }));
         await new Promise((r) => setTimeout(r, 600));
-        return JSON.stringify({ lede: (document.getElementById('lede') || {}).textContent || '' });
+        return JSON.stringify({
+          lede: (document.getElementById('lede') || {}).textContent || '',
+          ledeEn: (window.MT_I18N_MESSAGES && MT_I18N_MESSAGES.en && MT_I18N_MESSAGES.en.app_lede) || '' });
       })()`, awaitPromise: true, returnByValue: true }, sessionId)).result.value);
-      need(/^Sentences you read/.test(live.lede),
+      need(live.lede && live.lede === live.ledeEn,
         `界面语言：换成 English 后首页该当场变，实际「${live.lede}」—— onChanged 那条总线没接上`);
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['uiLang'], r))`, awaitPromise: true }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
@@ -1239,95 +1108,19 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 原生侧在 didFinish 里调 show('ios')：不照样复刻，横幅在无头环境里本来就不出，
       //「卡在场时横幅让路」那条断言会空转（第一版证伪时摘掉让路逻辑它照样绿）。
       const injR = await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: `document.addEventListener('DOMContentLoaded', () => { try { window.show('ios'); } catch (_) {} });` }, sessionId);
+      // ─── 「以后再设置」/「继续设置」卡（#386 时代）已退役（2026-10-01，#532）──────────────
+      // 跳过引导不再留一张「继续设置」卡；onboardResume 那套判据连同 #ob-resume 的 DOM 一起删。
+      // 下面「我只要网页翻译 / 意图分叉 / 都要」几段仍然有效：它们走 reset() + reopen() 的
+      // 真实启动路径，落到引导第 1 屏后读 dataset.obStep。
+      // ─── 首屏默认「听」（2026-10-02 用户裁定 #547）───────────────────────────────
+      // 这一屏**不再给选项**：没有引擎 chips、没有三条用途出口。离开首屏那一下记
+      // onboard_intent{goal:'listen'} + 落盘 onboardIntent，首页的扩展横幅据此让路；
+      // 网页翻译的配置引导只留在设置页（#webext-setup）。
+      // 判据是**页面上的结构** + **队列里真有那条** + **落盘** + **首页真的没横幅**。
       await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
-      await reopen();
-      const v0 = await E(view);
-      need(v0.onboard && v0.step === 'welcome', '全新状态下引导没从第 1 屏开始：' + JSON.stringify(v0));
-      // 走到第 2 屏再跳过 —— 停在哪屏要被记住，不能一律回到开头。第 2 屏（登录屏）不挂「以后再设置」
-      //（它有自己的「先不登录」），所以在第 1 屏跳过：判据是记下的 step 与卡上的「还差几步」对得上。
-      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-skip').click()`, awaitPromise: true }, sessionId);
-      await new Promise((r) => setTimeout(r, 300));
-      const s1 = (await E(store));
-      need(!s1.onboardSeen, '点「以后再设置」又写了 onboardSeen —— 那就是「永远不」，不是「以后」');
-      need(s1.onboardResume && s1.onboardResume.step === 'welcome' && s1.onboardResume.shows === 0,
-        '跳过后没记下停在哪一屏：' + JSON.stringify(s1));
-      await reopen();
-      const v1 = await E(view);
-      need(!v1.onboard, '跳过过的人重开 App 又被整条引导挡住了 —— 回来的应当是一张卡');
-      need(v1.card, '跳过过的人重开 App，首页没有「继续设置」卡');
-      need(/\d/.test(v1.title), '「继续设置」卡标题没说还差几步：「' + v1.title + '」');
-      need(!v1.banner, '「继续设置」卡与扩展横幅同时挂在首页 —— 两张「还差一步」');
-      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-resume-go').click()`, awaitPromise: true }, sessionId);
-      await new Promise((r) => setTimeout(r, 200));
-      const v2 = await E(view);
-      need(v2.onboard && v2.step === 'welcome' && !v2.card, '点「从上次停下的地方继续」没回到停下的那一屏：' + JSON.stringify(v2));
-      // 次数上限：已经出现过 1 次；再重开 2 次（第 2、3 次）仍在，第 4 次自己收起并永久记上。
-      await reopen(); await reopen();
-      const v3 = await E(view), s3 = (await E(store));
-      need(v3.card && s3.onboardResume && s3.onboardResume.shows === 3, '第 3 次重开时卡应当还在、计数为 3：' + JSON.stringify({ v3, s3 }));
-      await reopen();
-      const v4 = await E(view), s4 = (await E(store));
-      need(!v4.card && !v4.onboard && s4.onboardSeen && !s4.onboardResume, '第 4 次重开卡还在纠缠，或没永久收起：' + JSON.stringify({ v4, s4 }));
-      // ✕ = 当场永久。
-      await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardResume: { step: 'firstuse', shows: 0 } }`), awaitPromise: true }, sessionId);
-      await reopen();
-      const v5 = await E(view);
-      need(v5.card && /2/.test(v5.title), '停在最后一屏之前的「还差几步」不对（firstuse 之后还剩 2 屏）：' + JSON.stringify(v5));
-      await cdp.send('Runtime.evaluate', { expression: `document.getElementById('ob-resume-close').click()`, awaitPromise: true }, sessionId);
-      await new Promise((r) => setTimeout(r, 200));
-      const s5 = (await E(store));
-      await reopen();
-      const v6 = await E(view);
-      need(s5.onboardSeen && !s5.onboardResume && !v6.card && !v6.onboard, '点 ✕ 没有永久收起：' + JSON.stringify({ s5, v6 }));
-      // 已经配好引擎（自己去设置里填了 key）⇒ 什么都不出，并永久收起。
-      await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardResume: { step: 'welcome', shows: 0 }, provider: 'deepseek', apiKey: 'sk-gate-0123456789' }`), awaitPromise: true }, sessionId);
-      await reopen();
-      const v7 = await E(view), s7 = (await E(store));
-      need(!v7.card && !v7.onboard && s7.onboardSeen, '已经配好引擎还在提示「继续设置」：' + JSON.stringify({ v7, s7 }));
-      // 反面：卡收起之后横幅要能回来（否则上面那条「让路」可能只是横幅整个坏了）。v6：✕ 之后、没引擎。
-      need(v6.banner, '✕ 收起卡之后扩展横幅没回来 —— 「让路」那条断言可能是空转的');
-      // ─── 「我只要网页翻译 →」：记一条 web_only，并把人送到讲扩展那一屏（telemetry-design §3.9 B）────
-      // 判据是**队列里真的有那条**，不是「代码里有 track 调用」—— 客户端的 shape() 会把
-      // 白名单外的属性整条丢掉，少生成一次 providers.gen.js 这一行就凭空消失而没人看得见
-      // （同扩展侧 verify-onboard 里那条的理由）。顺带钉住「一次引导只记一条」。
-      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
-      await reopen();
-      const wo = await E(`(async () => {
-        try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
-        await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
-        await new Promise((r) => chrome.storage.local.remove(['tm:queue'], r));
-        const step0 = document.body.dataset.obStep || '';
-        document.getElementById('ob-webonly').click();
-        await new Promise((r) => setTimeout(r, 400));
-        const after = document.body.dataset.obStep || '';
-        // 再走一次收尾：这一次**不许**再记第二条（§3 表：离开时一条）。
-        const fin = document.getElementById('ob-setup');
-        if (fin && !fin.hidden) fin.click();
-        await new Promise((r) => setTimeout(r, 400));
-        const q = await new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r((v || {})['tm:queue'] || [])));
-        const all = q.filter((x) => x && x.name === 'onboarding_done');
-        return JSON.stringify({ step0, after, n: all.length, props: all.length ? all[0].props : null,
-          hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec),
-          onboard: !document.getElementById('onboard').hidden });
-      })()`);
-      need(wo.step0 === 'welcome', '「我只要网页翻译」探针没有从第 1 屏开始：' + JSON.stringify(wo));
-      // 出口本身两个 flavor 都要有：它首先是给用户的一条路，其次才是证据。
-      need(wo.after === 'ext', '点完没把人送到讲扩展那一屏，而是停在「' + wo.after + '」');
-      if (wo.hasSpec) {
-        need(wo.props && wo.props.result === 'web_only' && wo.props.surface === 'app' && wo.props.step === 'welcome',
-          '点「我只要网页翻译」没记下 result:web_only：' + JSON.stringify(wo));
-        need(wo.props && ['0-2', '3-9', '10-29', '30+'].includes(wo.props.dwell),
-          '那一条没带 dwell（§3.9 提案 A）：' + JSON.stringify(wo.props));
-        need(wo.n === 1, '一次引导记了 ' + wo.n + ' 条 onboarding_done —— 应当只有一条（离开时那一条）');
-      } else {
-        // 中国版：产物里根本没有 MT_TELEMETRY（Gate D 的承诺是「一个字节都不发」）。
-        // 这里的判据因此反过来：点完出口，队列必须仍然是空的 —— 与扩展侧 verify-onboard 同一条。
-        need(wo.n === 0, '中国版产物里竟然攒出了 ' + wo.n + ' 条 onboarding_done —— Gate D 说好一条都不发');
-      }
-
-      // ─── 迎新页意图分叉（2026-09-28，#486/#487）：三个出口，选「听」⇒ 首页不挂扩展横幅 ────
-      // 判据是**队列里真有那条** + **落盘** + **首页真的没横幅**，不是「代码里有 track 调用」。
-      await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
+      // reset() 只清 onboardSeen 那几个键，**不清 tm:queue** —— 前面几块攒下的行会跟着进来，
+      // 于是 `n` 数出来是 2（2026-10-03 实测）。这一块只关心自己这几秒，先把队列清空。
+      await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['tm:queue'], r))`, awaitPromise: true }, sessionId);
       await reopen();
       const it = await E(`(async () => {
         try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
@@ -1335,70 +1128,128 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
         const $ = (id) => document.getElementById(id);
         const vis = (el) => !!(el && el.getClientRects().length);
+        // packs 就绪 ⇒ boot 落首页，引导要经屏 2 的 handler 才打开。
+        $('packs-go').click();
+        await new Promise((r) => setTimeout(r, 300));
         const step0 = document.body.dataset.obStep || '';
-        const chips = { listen: vis($('ob-intent-listen')), both: vis($('ob-intent-both')), web: vis($('ob-webonly')) };
-        $('ob-intent-listen').click();
+        const exits = ['ob-webonly', 'ob-intent-listen', 'ob-intent-both'].filter((id) => vis($(id))).length;
+        const hasChips = !!$('ob-engines');
+        $('ob-next').click();
         await new Promise((r) => setTimeout(r, 400));
+        const after = document.body.dataset.obStep || '';
         const q = await new Promise((r) => chrome.storage.local.get(['tm:queue', 'onboardIntent'], (v) => r(v || {})));
         const intents = (q['tm:queue'] || []).filter((x) => x && x.name === 'onboard_intent');
-        const onboard = !$('onboard').hidden;
         window.show('ios'); await new Promise((r) => setTimeout(r, 30));
         const banner = !$('ext-banner').hidden;
-        return JSON.stringify({ step0, chips, onboard, banner, stored: q.onboardIntent || '',
-          n: intents.length, props: intents.length ? intents[0].props : null,
+        return JSON.stringify({ step0, exits, hasChips, after, stored: q.onboardIntent || '', n: intents.length,
+          props: intents.length ? intents[0].props : null, banner,
+          settingsEntry: !!$('webext-setup'),
           hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
       })()`);
-      need(it.step0 === 'welcome', '意图分叉探针没从第 1 屏开始：' + JSON.stringify(it));
-      need(it.chips.listen && it.chips.both && it.chips.web, '第一屏三个出口没齐：' + JSON.stringify(it.chips));
-      need(!it.onboard, '选「听」之后引导没收尾：' + JSON.stringify(it));
-      need(it.stored === 'listen', '选「听」没把 onboardIntent 落盘：' + JSON.stringify(it));
-      need(!it.banner, '选「听」的人首页仍挂着扩展横幅 —— 他不要浏览器扩展（interaction-spec「迎新页意图分叉」）');
+      need(it.step0 === '', '引导屏撤了之后不该再有 obStep：' + JSON.stringify(it));
+      need(it.exits === 0, '首屏还有用途出口 —— 2026-10-02 裁定「不再给选项」：' + JSON.stringify(it));
+      need(!it.hasChips, '首屏还有引擎 chips（#ob-engines）—— 不再让用户挑模型：' + JSON.stringify(it));
+      // 2026-10-03：没有「离开首屏」这回事了 —— 资源包下完就落首页（上面那一段钉着）。
+      need(it.stored === 'listen', '离开首屏没把默认 onboardIntent=listen 落盘：' + JSON.stringify(it));
+      need(it.settingsEntry, '设置页没有网页翻译配置入口（#webext-setup）—— 它只该在设置页');
       if (it.hasSpec) {
-        need(it.props && it.props.goal === 'listen', '选「听」没记下 onboard_intent{goal:listen}：' + JSON.stringify(it));
-        need(it.n === 1, '一次选择记了 ' + it.n + ' 条 onboard_intent —— 应当只有一条');
+        need(it.props && it.props.goal === 'listen', '没记下 onboard_intent{goal:listen}：' + JSON.stringify(it));
+        need(it.n === 1, '一次离开记了 ' + it.n + ' 条 onboard_intent —— 应当只有一条');
       } else {
         need(it.n === 0, '中国版产物里竟然攒出了 ' + it.n + ' 条 onboard_intent');
       }
+      // 默认「听」⇒ 首页不挂扩展横幅（interaction-spec「迎新页意图分叉」）。
+      need(!it.banner, '默认「听」的人首页仍挂着扩展横幅 —— 他不要浏览器扩展');
 
-      // ─── 「都要」分支（#486/#487 的第三支，2026-09-29 补）：与「听」对照 —— 它**不**收尾，
-      //      直送 ext 屏（他要的不只是听），横幅语义与 web 一致。ext 屏的主行动「在网页上完成
-      //      设置」兼作收尾键：真点它，断言完成路径的存储副作用（onboardSeen 落盘 + 引导退场 +
-      //      横幅回来）。headless 里 openExternal 的原生桥不存在（抛异常被吞）、window.open 无手势
-      //      静默失败 —— 外链开不了，但收尾逻辑照跑，正是要验的那一半。
+      // ─── 登录失败埋点（telemetry-design §3.14）：交换那条路真的会记一条 auth_fail ──────
+      // 判据是**队列里真有那条**，不是「代码里有 track 调用」—— 客户端 shape() 会把白名单外的
+      // 值整条丢掉，服务端也会整条拒（同上面 onboarding 两条的理由）。打断 fetch = 真机上
+      // 「连不上服务器」那一类（code:offline / http:0），正是要能读出来的那一种。
       await cdp.send('Runtime.evaluate', { expression: reset(), awaitPromise: true }, sessionId);
       await reopen();
-      const bo = await E(`(async () => {
+      const af = await E(`(async () => {
         try { window.MT_TELEMETRY.allowAutomation = true; } catch (_) {}
         await new Promise((r) => chrome.storage.local.set({ 'tm:on': true }, r));
-        await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
-        const $ = (id) => document.getElementById(id);
-        $('ob-intent-both').click();
-        await new Promise((r) => setTimeout(r, 300));
-        const step = document.body.dataset.obStep || '';
-        const g = (k) => new Promise((r) => chrome.storage.local.get([k], (v) => r((v || {})[k])));
-        const stored = await g('onboardIntent');
-        const before = !!(await g('onboardSeen'));
-        $('ob-setup').click();
-        await new Promise((r) => setTimeout(r, 500));
-        const after = !!(await g('onboardSeen'));
-        window.show('ios'); await new Promise((r) => setTimeout(r, 30));
-        const q = await g('tm:queue');
-        return JSON.stringify({ step, stored, before, after, onboardHidden: $('onboard').hidden,
-          banner: !$('ext-banner').hidden,
-          intents: (Array.isArray(q) ? q : []).filter((x) => x && x.name === 'onboard_intent').map((x) => x.props),
+        await new Promise((r) => chrome.storage.local.remove(['tm:queue'], r));
+        const realFetch = window.fetch;
+        window.fetch = () => Promise.reject(new Error('Load failed'));   // 模拟连不上
+        let err = null;
+        try { await window.LearnAuth.signInWithIdToken('apple', 'tok', 'nonce'); } catch (e) { err = String(e && e.code); }
+        window.fetch = realFetch;
+        // track() 是**异步**入队（先 await enabled()，再读-改-写队列）—— 不等一下读到的永远是空。
+        await new Promise((r) => setTimeout(r, 400));
+        const q = await new Promise((r) => chrome.storage.local.get(['tm:queue'], (v) => r((v || {})['tm:queue'] || [])));
+        const rows = q.filter((x) => x && x.name === 'auth_fail');
+        return JSON.stringify({ err, n: rows.length, props: rows.length ? rows[0].props : null,
           hasSpec: !!(window.MT_TELEMETRY && window.MT_TELEMETRY.spec) });
       })()`);
-      need(bo.step === 'ext', '「都要」没有直送 ext 屏（实到「' + bo.step + '」）—— 它不收尾，他要的不只是听：' + JSON.stringify(bo));
-      need(bo.stored === 'both', '选「都要」没把 onboardIntent 落成 both：' + JSON.stringify(bo));
-      need(!bo.before && bo.after, 'ext 屏主行动（在网页上完成设置）没有把 onboardSeen 落盘 —— 完成路径的存储副作用丢了：' + JSON.stringify(bo));
-      need(bo.onboardHidden, '收尾之后引导还挂在屏上');
-      need(bo.banner, '「都要」收尾后首页没有扩展横幅 —— 他要浏览器扩展（与「听」那支相反）：' + JSON.stringify(bo));
-      if (bo.hasSpec) {
-        need(bo.intents.length === 1 && bo.intents[0] && bo.intents[0].goal === 'both',
-          'onboard_intent 应恰好一条 goal:both：' + JSON.stringify(bo.intents));
+      need(af.err === 'offline', '把 fetch 打断之后 signInWithIdToken 没抛 offline：' + JSON.stringify(af));
+      if (af.hasSpec) {
+        need(af.props && af.props.provider === 'apple' && af.props.stage === 'id_token'
+          && af.props.code === 'offline' && af.props.http === 0,
+          'auth_fail 没记对（provider/stage/code/http）：' + JSON.stringify(af));
+        need(af.n === 1, '一次失败记了 ' + af.n + ' 条 auth_fail —— 应当只有一条');
       } else {
-        need(bo.intents.length === 0, '中国版产物里攒出了 ' + bo.intents.length + ' 条 onboard_intent（Gate D）');
+        need(af.n === 0, '中国版产物里竟然攒出了 auth_fail —— Gate D 说好一个字节都不发');
       }
+
+      // ─── 设置页文字不许出界：**12 语种 × 最窄视口**（2026-10-03，设计稿已签）────────────
+      // 真机截图：长文案把 .sgroup 顶破。这里逐语种把设置页打开，量每张卡片的
+      // scrollWidth 是否超过 clientWidth（>1px 就是出界）。语种取自 #ui-lang 的真实 option。
+      await cdp.send('Emulation.setDeviceMetricsOverride',
+        { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
+      const uiLangs = await E(`JSON.stringify([...document.getElementById('ui-lang').options].map((o) => o.value).filter(Boolean))`);
+      const over = [];
+      for (const loc of uiLangs) {
+        await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.set({ uiLang: '${loc}' }, r))`, awaitPromise: true }, sessionId);
+        await cdp.send('Page.reload', {}, sessionId);
+        await new Promise((r) => setTimeout(r, 900));
+        const r1 = (await E(`(async () => {
+          const gear = document.getElementById('gear'); if (gear) gear.click();
+          await new Promise((r) => setTimeout(r, 500));
+          const cards = [...document.querySelectorAll('#app-settings .sgroup')].filter((c) => c.getClientRects().length);
+          // 主判据＝**几何越界**（设计稿：scrollWidth 在 direction:rtl 下不记左侧溢出，只能作第二重）。
+          // 每个可见后代都与卡片的内容盒（padding/border 之内）比左右两边，任一边超出 1px 即出界。
+          const bad = [];
+          cards.forEach((c, i) => {
+            const cr = c.getBoundingClientRect();
+            const cs = getComputedStyle(c);
+            const L = cr.left + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.borderLeftWidth) || 0);
+            const R = cr.right - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0);
+            for (const el of c.querySelectorAll('*')) {
+              if (!el.getClientRects().length) continue;
+              const r = el.getBoundingClientRect();
+              if (!r.width) continue;
+              if (r.left < L - 1 || r.right > R + 1) {
+                bad.push({ i, tag: el.tagName, id: el.id || '', left: Math.round(r.left - L), right: Math.round(r.right - R) });
+                break;
+              }
+            }
+            if (c.scrollWidth > c.clientWidth + 1) bad.push({ i, hint: 'scrollWidth', sw: c.scrollWidth, cw: c.clientWidth });
+          });
+          // 2026-10-03 真机第二例（**列表编号**）：上面那条逐元素几何比较**看不见标记** ——
+          // 标记不是元素，排版引擎把它画在内容盒之外（真机上编号 x≈44–64，卡片左沿 x=60，
+          // 于是左半截画在卡片外的奶油底上）。判据只能写成**结构**：卡片里的 ol/ul 一律
+          // 用我们自己的计数器（list-style:none），不许把编号交给引擎。
+          // 查**整个 #app-settings**、不按可见性过滤：那张卡在探针里是 hidden 的，
+          // 而真机上它是可见的 —— 上一版只在可见卡片里查，于是这条判据是空的（没红过）。
+          // 反面样本：把 app/style.css 里 "#app-settings .sgroup ol.steps" 那条改成
+          // list-style: decimal，这里必须红；不红就说明判据是摆设。
+          for (const l of document.querySelectorAll('#app-settings .sgroup ol, #app-settings .sgroup ul')) {
+            const ls = getComputedStyle(l);
+            if (ls.listStyleType !== 'none') {
+              bad.push({ hint: 'UA 列表标记', tag: l.tagName, id: l.id || '', listStyleType: ls.listStyleType });
+              break;
+            }
+          }
+          return JSON.stringify({ n: cards.length, bad });
+        })()`));
+        if (r1.n === 0) over.push(loc + ':没有量到卡片');
+        else if (r1.bad.length) over.push(loc + ':' + JSON.stringify(r1.bad));
+      }
+      await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
+      need(over.length === 0,
+        '这些语种在 320px 下卡片被文字顶破（scrollWidth > clientWidth）：' + over.join(' | '));
 
       // ─── 误点了「我已打开」：设置里能把首页横幅找回来（画布 YEDD4VmT9Pv2htUpoWZ9ZB 板 ⑤）────
       await cdp.send('Runtime.evaluate', { expression: reset(`{ onboardSeen: 1, extBannerDoneAt: Date.now() }`), awaitPromise: true }, sessionId);
@@ -1409,7 +1260,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         doneText: document.getElementById('extb-done').textContent, label: TranslationCore.t('app_ext_done', '我已打开') })`;
       const r0 = await E(bview);
       need(!r0.banner, '点过「我已打开」重开 App，横幅又出现了（前提不成立，下面几条会空转）：' + JSON.stringify(r0));
-      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear2').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
       const r1 = await E(bview);
       need(r1.settings && r1.group && r1.btn, '点过「我已打开」之后，设置里没有「Safari 扩展」那一组：' + JSON.stringify(r1));
       need(!/\{done\}/.test(r1.note) && r1.note.includes(r1.label), '「Safari 扩展」那一组说明没把按钮原话填进去：' + JSON.stringify(r1));
@@ -1420,7 +1271,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('settings-back').click(); await new Promise((r) => setTimeout(r, 300)); return 1; })()`, awaitPromise: true }, sessionId);
       const r3 = await E(bview);
       need(r3.banner, '在设置里恢复之后回到首页，横幅没有当场出现：' + JSON.stringify(r3));
-      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear2').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
+      await cdp.send('Runtime.evaluate', { expression: `(async () => { document.getElementById('gear').click(); await new Promise((r) => setTimeout(r, 400)); return 1; })()`, awaitPromise: true }, sessionId);
       const r4 = await E(bview);
       need(!r4.group, '没点过「我已打开」（已恢复）时设置里还挂着那一组 —— 一个什么都不会发生的按钮');
       await cdp.send('Runtime.evaluate', { expression: `document.getElementById('settings-back').click()`, awaitPromise: true }, sessionId);

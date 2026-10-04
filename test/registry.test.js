@@ -472,7 +472,9 @@ describe('设备内置朗读条目（learning-design §9.6.1）', () => {
   test('离线模型清单：每条有 lang/dir/model/tokens/dataDir，每个文件带 64 位 sha256、正整数 size、两个 flavor 的 https 地址', () => {
     ok(M.MT_DEVICE_TTS_MODELS.length >= 2, 'zh + en');
     for (const m of M.MT_DEVICE_TTS_MODELS) {
-      for (const k of ['lang', 'dir', 'model', 'tokens', 'dataDir']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      // `dataDir` 允许为空串：MMS-TTS（泰语）没有 espeak-ng-data —— 只有 model + tokens。
+      for (const k of ['lang', 'dir', 'model', 'tokens']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      ok(typeof m.dataDir === 'string', m.lang + ' 缺 dataDir（可以为空串，但不能没有这个字段）');
       ok(Array.isArray(m.files) && m.files.length, m.lang + ' 没有文件');
       for (const f of m.files) {
         ok(/^[0-9a-f]{64}$/.test(f.sha256), m.lang + ' sha256 不是 64 位十六进制');
@@ -482,5 +484,29 @@ describe('设备内置朗读条目（learning-design §9.6.1）', () => {
     }
     const zh = M.mtDeviceTtsModelsFor('china').find((m) => m.lang === 'zh');
     ok(typeof zh.files[0].url === 'string', '按 flavor 解开成字符串');
+  });
+
+  // 2026-10-03（#557 高质量语音）：Kokoro 不是 vits 那一套 —— 多出来的字段必须有，
+  // 而且**原生侧要真读它**（清单加了、Swift 没读，就是「装好了但不出声」，且不报错）。
+  test('Kokoro 条目：带 voices/dictDir/lexicon/kokoroLang，且 speech-bridge 真的按 type 分支', () => {
+    const kok = M.MT_DEVICE_TTS_MODELS.filter((m) => m.type === 'kokoro');
+    ok(kok.length > 0, '一条 Kokoro 条目都没有 —— 版本回退了？');
+    for (const m of kok) {
+      for (const k of ['voices', 'dictDir', 'lexicon', 'kokoroLang']) ok(typeof m[k] === 'string' && m[k], m.lang + ' 缺 ' + k);
+      ok(/^model\..*\.onnx$/.test(m.model), m.lang + ' 的 model 不像 Kokoro 模型名：' + m.model);
+    }
+    // 中英共用同一个 dir + 同一个包：原生按 dir 里的安装戳判「装过没有」⇒ 只下一次。
+    const dirs = new Set(kok.map((m) => m.dir));
+    eq(dirs.size, 1, 'Kokoro 的中英两条应共用同一个 dir（否则 140 MB 会下两遍）');
+    const paths = new Set(kok.map((m) => m.files[0].path));
+    eq(paths.size, 1, 'Kokoro 的中英两条应共用同一个包文件');
+
+    const swift = require('fs').readFileSync(
+      require('path').join(__dirname, '..', 'app', 'native', 'speech-bridge.swift'), 'utf8');
+    ok(/type == "kokoro"/.test(swift), 'speech-bridge.swift 没有按 type 分支 —— 清单里的 Kokoro 字段没人读');
+    ok(/sherpaOnnxOfflineTtsKokoroModelConfig\(/.test(swift), 'speech-bridge.swift 没有构造 Kokoro 配置');
+    ok(/voices:/.test(swift) && /lexicon:/.test(swift) && /dictDir:/.test(swift), '四个 Kokoro 字段没有全部透传');
+    // 内存封顶：一个引擎峰值 RSS ≈460 MB，两个语言同时驻留会被 jetsam 杀。
+    ok(/loaded\.removeValue\(forKey: k\)/.test(swift), '引擎缓存没有封顶 —— 中英同时驻留会占约 0.9 GB');
   });
 });

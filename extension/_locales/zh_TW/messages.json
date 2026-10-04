@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "你在瀏覽器裡讀到的句子，會同步到這裡來複習。"
+    "message": "影片、對話、文件 —— 邊聽邊翻，聲音只在你的裝置上處理。"
   },
   "app_email_label": {
     "message": "電子郵件"
@@ -896,9 +896,6 @@
   },
   "app_back_email": {
     "message": "換一個電子郵件"
-  },
-  "app_local_note": {
-    "message": "可選。不登入也能完整使用 —— 採集和複習都在本機，登入只是為了同步到別的裝置。"
   },
   "app_signout": {
     "message": "登出"
@@ -1142,6 +1139,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "讀不到登入狀態（儲存讀取失敗），稍後自動重試 —— 這不代表已登出。"
@@ -1701,20 +1701,11 @@
   "app_ext_open_safari": {
     "message": "在 Safari 裡打開擴充功能 →"
   },
-  "app_so_review_title": {
-    "message": "複習本機收藏的句子"
-  },
-  "app_so_review_due": {
-    "message": "今天有 {n} 張卡片待複習"
-  },
-  "app_so_review_total": {
-    "message": "共儲存了 {n} 個句子"
-  },
   "app_ext_done": {
     "message": "我已打開"
   },
   "app_signin_why": {
-    "message": "卡片是瀏覽器擴充功能採集的。登入同一個帳號，它們就會同步到這台裝置。"
+    "message": "登入後免費額度自動到帳，兩個語音包下到本機，之後不用再做設定。"
   },
   "app_signin_open": {
     "message": "登入"
@@ -2518,6 +2509,12 @@
   "listen_lang_note": {
     "message": "兩邊不能是同一種語言。對話頁底部也能改，兩處是同一份設定。"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "目前引擎不支援"
+  },
+  "listen_lang_change_engine": {
+    "message": "換引擎"
+  },
   "listen_lang_swapped": {
     "message": "兩邊不能是同一種語言 — 已對調"
   },
@@ -2541,6 +2538,12 @@
   },
   "app_today_due": {
     "message": "今天待複習"
+  },
+  "home_cta_subs": {
+    "message": "開始即時字幕"
+  },
+  "home_cta_listen": {
+    "message": "開始即時聽譯"
   },
   "app_last_sync": {
     "message": "上次同步 {t}"
@@ -2867,7 +2870,7 @@
     "message": "去開通 ↗"
   },
   "grant_cn_why": {
-    "message": "我們暫時不提供代領的免費額度：那需要一台境內的伺服器，還沒就緒。"
+    "message": "我們暫時不提供代領的免費額度：代領要在境內跑一個中繼，還沒開通。"
   },
   "subtitle_source_label": {
     "message": "即時字幕"
@@ -3090,7 +3093,7 @@
     "message": "辨識語言包已就緒 · {langs}"
   },
   "listen_pack_missing": {
-    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下"
+    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下載"
   },
   "listen_pack_dl": {
     "message": "下載"
@@ -3726,5 +3729,50 @@
   },
   "learn_group_bye": {
     "message": "剩下的明天再說 —— 回來就好。"
+  },
+  "firstrun_packs_title": {
+    "message": "先把兩個語音包下好"
+  },
+  "firstrun_packs_lede": {
+    "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音只在你的裝置上處理。"
+  },
+  "firstrun_packs_asr": {
+    "message": "辨識語言包（聽譯 / 即時字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高品質朗讀包（朗讀 / 播客）"
+  },
+  "firstrun_packs_done": {
+    "message": "已就緒"
+  },
+  "firstrun_packs_net": {
+    "message": "建議在 Wi-Fi 下下載；用行動網路也行，你自己決定。"
+  },
+  "firstrun_packs_busy": {
+    "message": "正在下載…"
+  },
+  "firstrun_packs_go": {
+    "message": "下載並繼續"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "只下朗讀包，繼續"
+  },
+  "firstrun_packs_err": {
+    "message": "下載沒成功：{why} —— 檢查網路再點一次。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。"
+  },
+  "engine_status_ok": {
+    "message": "登入已配好：翻譯 · 轉寫 · 朗讀 —— 這一屏可以直接用"
+  },
+  "engine_status_missing": {
+    "message": "還差一樣："
+  },
+  "engine_status_fix_tts": {
+    "message": "朗讀引擎未設定，前往 設定 › 朗讀 選擇語音"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個"
   }
 }

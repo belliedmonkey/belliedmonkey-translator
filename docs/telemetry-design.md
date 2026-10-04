@@ -87,10 +87,11 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 |---|---|---|---|
 | `installed` | — | the id is first generated | telemetry module first init |
 | `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
-| `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B） | `extension/onboard/onboard.js` `finish()` · `src/app/shell-model.js` `obFinish()` 与 `obResumeTrack()` |
+| `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B）。**← 2026-10-02（#547）：那条出口撤了 ⇒ `web_only` 不再产生**（枚举照留，用来收老客户端的行） | `extension/onboard/onboard.js` `finish()` · `src/app/shell-model.js` `obFinish()` 与 `obResumeTrack()` |
 | `onboard_intent` | `goal: read \| listen \| both` | 迎新首屏「你想怎么用」的选择（2026-09-28，#486/#487，用户评审通过；`interaction-spec.md`「迎新页意图分叉」）。只记选择，不含任何内容。选 `listen` 的人首页不挂扩展横幅 | `src/app/shell-model.js`（用户选定时） |
 | `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
 | `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
+| `auth_fail` | `provider: apple \| google \| email \| phone \| unknown` · `stage: prepare \| authorize \| exchange \| id_token \| native \| otp \| verify \| password \| post_login \| unknown` · `code`（归一化的错误码，`id` 型）· `http`（int，没有响应就 0）· `attempt: 1 \| 2+`（**本页面/会话里第几次失败**，`1` = 第一次） | 一次登录失败（2026-10-02，§3.14；用户报「新账号第一次登录失败、第二次成功」，第三方登录，扩展与 App 都有）。此前登录失败只在用户眼前一闪，服务端零行 | `extension/learn/auth.js` 的六个断点（prepare / authorize / exchange / id_token / otp / verify）——两宿主同一份字节。App 原生那一步（`apple-result` 带 error）由 `src/app/shell-model.js` 调 `LearnAuth.noteAuthFail('apple','native',…)` |
 | `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
 | `translate_fail` | `provider` `code` `status` (number only) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
 | `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
@@ -106,6 +107,14 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
+
+**`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版按规则 4 一个字节都不发，
+于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到
+（`docs/troubleshooting.md` §1）。折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**
+（`extension/learn/telemetry.js`，`localStorage['mt:diag']`，上限 20 条，**只记 `auth_fail`** ——
+其余事件没有「查一个具体故障」的用途，留了只是噪声）。判定用 `spec() === null`（＝这个 build
+根本没有遥测），**不是** `enabled()`：用户自己关掉遥测（有 spec、`tm:on=false`）**不写**。
+承诺一个字没动（仍然一个字节都不发），读法见 `docs/troubleshooting.md` §1.9。
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
 `grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
@@ -813,6 +822,36 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
   —— 与 §3.7 B 把 `check` 从 `setup` 拆出来是同一条理由。
 
 **边界与隐私**：两条都只发枚举值 —— 不带内容、不带页面地址、不带系统版本、不加字段；中国版照旧一条不发（规则 4）。
+
+### 3.14 2026-10-02 amendment（**当日用户评审通过**）：登录失败是黑的 —— 扩展与 App 都补一条 `auth_fail`
+
+**起因**：用户真机报「**新账号第三方登录（Apple 等）第一次失败、第二次成功**」，扩展与 App 都有。
+而登录失败此前**没有任何读数** —— 它在用户眼前一闪（`say(humanError(err))` / `setSyncMsg(syncErrorText(…))`），
+`bt_events` 里一行都没有。于是「断在哪一步、什么码」只能靠猜。
+
+**为什么不是本地日志**：用户在真机上复现，而 iPhone 取本地日志要 Safari 网页检查器 —— 门槛高、容易记错。
+匿名事件是**唯一**能在下一次真机复现时自动留档的机制（2026-10-02 用户裁定走遥测）。
+
+**加一个事件 `auth_fail`**，不复用 `translate_fail`（登录不是一次翻译，`provider` / `stage` 两张表也不同源）。
+五个属性都是枚举 / `id` / `int`，**没有一个内容或身份字段**：
+
+- `provider` = `apple | google | email | phone | unknown` —— 哪条登录路。
+- `stage` = `prepare | authorize | exchange | id_token | native | otp | verify | password | post_login | unknown` —— 断在哪个断点。
+  **2026-10-02（同日补，用户真机）**：`post_login` = 交换成功、但「登录之后」那一步失败（`show()` / `doSync()`）。
+  App 的红字「连不上服务器，检查网络后重试。」有两条来源 —— 交换本身（`exchange`/`id_token`）与登录之后（`post_login`），
+  后者此前**完全没有记录**：用户很确定自己装的是带埋点的包，`auth_fail` 却 0 行，这就是那个洞。
+  同批补上的还有 `password`（密码 grant）与 Google 原生失败（`native`）两条路。
+- `code` = `id` 型（GoTrue `error_code`，或 `pkce_missing` / `storage_error` / `native_error`… 字面码）—— 什么错。
+- `http` = int（无 HTTP 响应时 0）—— 服务端怎么看。
+- `attempt` = `1 | 2+` —— 本页面/会话里第几次失败。
+
+**发送点只有一处半**：`extension/learn/auth.js` 的六个断点包在 `authFail()` 一处覆盖两个宿主；
+App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('apple','native',…)` 回同一个出口
+—— 不另写一份白名单与归一化（同 §3.4「发布点跟着共用层，不挂调用方」）。`test/telemetry-registry.test.js`
+钉住两宿主的发送点。
+
+**边界与隐私**：不带账号、邮箱、手机号、令牌、任何正文或地址；只有枚举与数字。中国版照旧一条不发（规则 4）。
+注册表的 `FORBIDDEN_KEY_WORDS` 是机器判据 —— 谁往属性名里塞内容/身份类的词，测试直接红。
 
 ## 4. Transport
 

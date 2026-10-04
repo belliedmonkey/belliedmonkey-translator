@@ -42,6 +42,7 @@ const EVENTS = {
     // web_only（2026-09-24，§3.9 提案 B，用户评审通过）：第一屏那条「我只要网页翻译 →」。
     // 它与 done / skipped **并列**，不是 skipped 的子类 —— 说的是「他自己讲了要哪一半」，
     // 不是「他放弃了」。只有 surface:'app' 会发（扩展引导里人已经在浏览器里，没有这条出口）。
+    // **2026-10-02（#547）那条出口撤了 ⇒ 这个取值不再产生**；枚举照留，收老客户端的行。
     result: ['done', 'skipped', 'shown', 'dismissed', 'expired', 'web_only'],
     // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
     // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
@@ -110,6 +111,32 @@ const EVENTS = {
   grant_claimed: {},
   grant_exhausted: {},
   sync_on: {},
+  // auth_fail（2026-10-02，telemetry-design §3.14，用户报障 + 评审通过）：**新账号第三方登录
+  // 第一次失败、第二次成功**，扩展与 App 都有。此前登录失败只在用户眼前一闪，我们这边零行。
+  // 只记形状 —— 哪条路（provider）、断在哪个断点（stage）、什么码（code）、HTTP 几位、本页面/
+  // 会话里第几次失败（attempt）。**永不带账号 / 邮箱 / 令牌 / 正文**：那几样在注册表的
+  // FORBIDDEN_KEY_WORDS 里，是机器判据（原则 1）。
+  //
+  // stage 与 `extension/learn/auth.js` 的断点同源：
+  //   prepare   = prepareProviderSignIn 没备好 PKCE（还没点开登录页）
+  //   authorize = providerSignInUrl 返回空（点下去开不了登录页）
+  //   exchange  = completeProviderSignIn 换票失败（扩展托管回调 / App 系统鉴权会话那条路）
+  //   id_token  = signInWithIdToken 失败（App 原生 Sign in with Apple）
+  //   native    = 原生那一步本身失败（App 的 apple-result 带 error），由宿主 App 报
+  //   otp       = 邮箱/手机号发码失败   verify = 验码失败   password = 密码 grant 失败
+  //   post_login= 交换成功、但「登录之后」那一步失败（show() / doSync()）。2026-10-02 补：
+  //               App 的红字「连不上服务器」也可能从这条来，而它此前完全没有记录 ——
+  //               用户很确定自己装的是带埋点的包，却没有一条 auth_fail，这就是那个洞。
+  // code 用 'id' 型（小写字母数字下划线连字符，≤32）：`errorFrom()` 的 GoTrue error_code，
+  // 或调用方传的字面码（pkce_missing / storage_error / native_error…）。没归一化的会**静默
+  // 丢掉**（同 translate_fail.code 那条教训），所以 authFail() 负责归一化。
+  auth_fail: {
+    provider: ['apple', 'google', 'email', 'phone', 'unknown'],
+    stage: ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'],
+    code: 'id',
+    http: 'int',              // 没有 HTTP 响应（网络不通 / 本地失败）时为 0
+    attempt: ['1', '2+'],     // 本页面/会话里第几次 auth_fail（'1' = 第一次）
+  },
   // 第六问（telemetry-design §1，2026-09-10）：我们的提示被看见了吗、有人点吗。
   // 只有一个枚举属性，永不带页面、文案或输入。
   // 2026-09-25（§3.12，三轮）：译文末尾那一行不再要评分（Safari 撞苹果 5.6.1；Chrome / Firefox 同样 0 点击、
@@ -174,7 +201,8 @@ const SEAMS = {
     // app 侧正文已迁 src/app/shell-model.js（原 app/app.js，PR6a）—— 同 ext 侧，file 指源码。
     { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app'" },
     { host: 'app', file: 'src/app/shell-model.js', match: 'dwell: d' },
-    { host: 'app', file: 'src/app/shell-model.js', match: "obTrackLeave('web_only')" },
+    // 2026-10-02（#547）：`obTrackLeave('web_only')` 那条出口撤了 —— 这个 seam 随之删掉。
+    // 枚举里的 `web_only` 照留（收老客户端的行），但**不再有发送点**。
     { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app_resume'" },
   ],
   onboard_intent: [
@@ -189,6 +217,10 @@ const SEAMS = {
     { host: 'app', file: 'src/app/settings-model.js' },
   ],
   engine_test: SHARED('extension/learn/engine-test.js'),
+  // auth_fail（§3.14）：两个宿主都走 extension/learn/auth.js 的同一份字节（该文件在 App 包的
+  // MODULES 里）。App 原生那一步（apple-result 带 error）另外经 LearnAuth.noteAuthFail 报，
+  // 仍落在这个文件里 —— 发送点只有一处，与「登录即注册」只有一份实现同一条纪律。
+  auth_fail: SHARED('extension/learn/auth.js'),
   translate_ok: [
     { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
     { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },

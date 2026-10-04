@@ -18,13 +18,34 @@ if (!name || !srcDir || !modelFile) { console.error('usage: pack-device-models.j
 const OUT = path.join(__dirname, '..', '.local', 'device-models');
 fs.mkdirSync(OUT, { recursive: true });
 const zip = path.join(OUT, name + '.zip');
-for (const f of [modelFile, 'tokens.txt', 'espeak-ng-data']) {
+
+// Kokoro 多语包不是 vits 那三样：模型 + voices.bin + 三本词典 + 中文三个 fst + jieba dict/ +
+// espeak-ng-data/。**全部打进去** —— 少一样在设备上就是「装好了但念不出来」，
+// 而那种失败在真机上只表现为「某个语言不出声」，不报错（2026-10-03 接入时定）。
+const KOKORO = [
+  modelFile, 'voices.bin', 'tokens.txt',
+  'lexicon-gb-en.txt', 'lexicon-us-en.txt', 'lexicon-zh.txt',
+  'date-zh.fst', 'number-zh.fst', 'phone-zh.fst',
+  'dict', 'espeak-ng-data', 'LICENSE',
+];
+const isKokoro = /^kokoro/.test(name);
+// MMS-TTS（facebook/mms-tts-*，VITS 形状）：只有 model.onnx + tokens.txt，
+// **没有 espeak-ng-data**（Python 实测 data_dir 传空即可正常合成泰语，2026-10-04）。
+const isMms = /^vits-mms/.test(name);
+const want = isKokoro ? KOKORO : isMms ? [modelFile, 'tokens.txt'] : [modelFile, 'tokens.txt', 'espeak-ng-data'];
+for (const f of want) {
   if (!fs.existsSync(path.join(srcDir, f))) { console.error('✗ 缺 ' + f); process.exit(1); }
 }
 fs.rmSync(zip, { force: true });
 // -X 去掉 macOS 的扩展属性；-r 递归；在源目录里打，路径才是扁平的
-execFileSync('zip', ['-q', '-r', '-X', zip, modelFile, 'tokens.txt', 'espeak-ng-data'], { cwd: srcDir, stdio: 'inherit' });
+execFileSync('zip', ['-q', '-r', '-X', zip, ...want], { cwd: srcDir, stdio: 'inherit' });
 const buf = fs.readFileSync(zip);
 const sha = crypto.createHash('sha256').update(buf).digest('hex');
-console.log(JSON.stringify({ file: name + '.zip', size: buf.length, sha256: sha, model: modelFile, tokens: 'tokens.txt', dataDir: 'espeak-ng-data' }, null, 2));
+const row = {
+  file: name + '.zip', size: buf.length, sha256: sha,
+  type: isKokoro ? 'kokoro' : 'vits',
+  model: modelFile, tokens: 'tokens.txt', dataDir: isMms ? '' : 'espeak-ng-data',
+};
+if (isKokoro) { row.voices = 'voices.bin'; row.dictDir = 'dict'; row.lexicon = 'lexicon-us-en.txt,lexicon-zh.txt'; }
+console.log(JSON.stringify(row, null, 2));
 console.log('→ ' + path.relative(process.cwd(), zip));

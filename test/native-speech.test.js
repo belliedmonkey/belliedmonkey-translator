@@ -55,3 +55,32 @@ describe('NativeSpeech.sttOpen —— ended 回执与会话生命周期', () => 
     deepEq(ev, []);
   });
 });
+
+describe('NativeSpeech.ensureAssets —— 失败理由与收尾（2026-10-02 真机：系统识别包装不上）', () => {
+  test('原生报 failed ⇒ reason 带出来；stt-state 一到就收尾（不等 120 s 超时）', async () => {
+    const { NS, posted } = setup();
+    const seen = [];
+    const p = NS.ensureAssets('stt', ['en'], (m) => seen.push(m));
+    eq(posted[posted.length - 1].type, 'stt-assets');
+    NS._fromNative({ type: 'assets-progress', kind: 'stt', locale: 'en', fraction: 0, state: 'missing',
+      status: 'supported', ready: true, supported: true, total: 0, completed: 0 });
+    NS._fromNative({ type: 'assets-progress', kind: 'stt', locale: 'en', fraction: 0, state: 'failed',
+      reason: 'Error Domain=SFSpeechErrorDomain Code=4 "Some modules are configured with an unsupported configuration."' });
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'missing' });
+    let err = null;
+    await p.then(() => {}, (e) => { err = e; });
+    ok(err && /SFSpeechErrorDomain/.test(String(err.reason)),
+      '要把原生 reason 带出来（以前丢成 "download"，屏上只剩「没动静」）：' + JSON.stringify(err));
+    eq(seen.length, 2, '进度回调收到两条');
+    eq(seen[0].status, 'supported', '结构化诊断字段原样透传（status）');
+    eq(seen[0].ready, true, '结构化诊断字段原样透传（ready）');
+    eq(seen[0].total, 0, '结构化诊断字段原样透传（total）');
+  });
+  test('原生没报 failed ⇒ stt-state 正常 resolve，不误判成失败', async () => {
+    const { NS } = setup();
+    const p = NS.ensureAssets('stt', ['en-US'], () => {});
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
+    const r = await p;
+    eq(r.assets, 'installed');
+  });
+});

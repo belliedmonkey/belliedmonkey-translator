@@ -94,6 +94,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `select` | `label` `value` | 下拉：**按标签找，不按值找**（四个下拉的值都是「中文」或「English」）|
 | `selects` | `tag` | 整页下拉**边滚边收**（只看当前屏会误判「那几档不存在」）|
 | `key` | `value` `expectLen` | 填密钥框；判据是**圆点数 == key 长度** |
+| `type` | `value` `index`\|`placeholder` `clear` | 往**可见普通文本框**打字（`key` 只认密码框）；`clear:true` 先退格清空 |
 | `wait` / `shot` / `dump` | `s` / `name` / `tag` | |
 
 **没有 `MT_SCRIPT` 会直接 `XCTFail`** —— 「passed 但什么都没做」是这个 runner 的老毛病

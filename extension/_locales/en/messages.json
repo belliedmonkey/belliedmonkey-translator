@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Sentences you read in the browser sync here for review."
+    "message": "Video, conversations, documents — translated as you listen, processed only on your device."
   },
   "app_email_label": {
     "message": "Email"
@@ -895,9 +895,6 @@
   },
   "app_back_email": {
     "message": "Use a different email"
-  },
-  "app_local_note": {
-    "message": "Optional. Everything works signed out — capture and review stay on this device; signing in only syncs to your other devices."
   },
   "app_signout": {
     "message": "Sign out"
@@ -1141,6 +1138,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "Couldn't read the sign-in state (storage read failed); will retry shortly — this does not mean you were signed out."
@@ -1700,20 +1700,11 @@
   "app_ext_open_safari": {
     "message": "Open the extension in Safari →"
   },
-  "app_so_review_title": {
-    "message": "Review sentences saved on this device"
-  },
-  "app_so_review_due": {
-    "message": "{n} cards due today"
-  },
-  "app_so_review_total": {
-    "message": "{n} sentences saved"
-  },
   "app_ext_done": {
     "message": "I've turned it on"
   },
   "app_signin_why": {
-    "message": "Cards are captured by the browser extension. Sign in with the same account and they sync to this device."
+    "message": "Signing in brings the free credit and downloads the two speech packs to this device — no further setup."
   },
   "app_signin_open": {
     "message": "Sign in"
@@ -2517,6 +2508,12 @@
   "listen_lang_note": {
     "message": "The two languages must differ. You can also change them at the bottom of the conversation screen — same setting."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "not supported by the current engine"
+  },
+  "listen_lang_change_engine": {
+    "message": "Change engine"
+  },
   "listen_lang_swapped": {
     "message": "The two languages must differ — swapped them"
   },
@@ -2540,6 +2537,12 @@
   },
   "app_today_due": {
     "message": "Due today"
+  },
+  "home_cta_subs": {
+    "message": "Start Live Subtitles"
+  },
+  "home_cta_listen": {
+    "message": "Start Conversation"
   },
   "app_last_sync": {
     "message": "Last synced {t}"
@@ -2866,7 +2869,7 @@
     "message": "Open the console ↗"
   },
   "grant_cn_why": {
-    "message": "We do not hand out credit ourselves here yet: that needs a server inside the country, and it is not ready."
+    "message": "We do not hand out credit ourselves here yet: that needs a relay running inside the country, and it is not open yet."
   },
   "subtitle_source_label": {
     "message": "Live Subtitles"
@@ -3725,5 +3728,50 @@
   },
   "learn_group_bye": {
     "message": "The rest can wait — just come back."
+  },
+  "firstrun_packs_title": {
+    "message": "Download the two speech packs first"
+  },
+  "firstrun_packs_lede": {
+    "message": "Once these are in place you won't need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Audio is processed only on your device."
+  },
+  "firstrun_packs_asr": {
+    "message": "Speech recognition pack (interpreting / live subtitles)"
+  },
+  "firstrun_packs_tts": {
+    "message": "High-quality voice pack (read-aloud / podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Ready"
+  },
+  "firstrun_packs_net": {
+    "message": "Wi-Fi is recommended; cellular works too — your call."
+  },
+  "firstrun_packs_busy": {
+    "message": "Downloading…"
+  },
+  "firstrun_packs_go": {
+    "message": "Download and continue"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Get the voice pack only and continue"
+  },
+  "firstrun_packs_err": {
+    "message": "The download didn't finish: {why} — check your connection and try again."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "The system voice pack download stalled — check your connection and try again."
+  },
+  "engine_status_ok": {
+    "message": "Set up with your account: translation · speech-to-text · read-aloud — usable right here"
+  },
+  "engine_status_missing": {
+    "message": "One thing missing: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Read-aloud engine not set — go to Settings › Read-aloud to pick a voice"
+  },
+  "engine_status_fix_translate": {
+    "message": "Translation engine not set — go to Settings › Engine to pick one"
   }
 }

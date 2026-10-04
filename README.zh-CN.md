@@ -347,7 +347,7 @@ extension/
 │                           遥测、朗读（见 docs/learning-design.md）
 ├── onboard/ · popup/ · options/   引导与设置界面
 ├── styles/ · fonts/ · icons/ · vendor/
-└── _locales/               12 种语言
+└── _locales/               13 种语言
 ```
 
 宿主 App 是并列的另一棵树：

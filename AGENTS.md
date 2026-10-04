@@ -130,6 +130,22 @@ these in order when designing anything new:
 
 ## Interaction / UX constraints
 
+**Interaction changes are OpenDesign-designed and human-reviewed before release (mandatory, 2026-10-01).**
+
+Any change to how the product **looks or behaves on screen** — a new screen, a re-layout, a moved or
+restyled control, copy that changes what a surface promises — **must first be designed in OpenDesign
+and pass human review**, and only then implemented. The order is fixed:
+**design draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
+Two corollaries, both load-bearing:
+
+- **OpenDesign must be connected; if it is not, the task waits.** A session that cannot reach
+  OpenDesign does **not** proceed with interaction work "in the meantime" — it stops and says so.
+  The failure this prevents is specific and cheap to fall into: an agent hand-writes a layout, calls
+  it "designed", and the human review happens on the **code** instead of on a design.
+- **The artifact under review is the design draft, not the diff.** A canvas / prototype in
+  OpenDesign is what a human approves; the implementation then has to match it — not the other way
+  round.
+
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
 — the single source of truth (YouTube subtitle layout, line/paging rules, loading
 state, control menu, webpage injection). When you change how translations look or
@@ -348,6 +364,26 @@ the **cua-driver-only** dev norm (never `claude-in-chrome`), and the cua-driver
 tooling reference. The itemized manual scenarios remain in
 [`docs/regression-tests.md`](docs/regression-tests.md); the historical device-run log
 is in [`docs/device-verification.md`](docs/device-verification.md).
+
+## Troubleshooting — governed by the troubleshooting handbook
+
+**When something misbehaves at runtime** — network, backend, real-device behaviour, an
+intermittent failure — the single source of truth is
+[`docs/troubleshooting.md`](docs/troubleshooting.md). Every such investigation MUST follow
+it, and MUST write its findings back into it. The load-bearing rule there:
+
+> **Where the evidence lives decides what you can find out.** A failure the server never
+> saw — a fetch that timed out, a DNS/TLS error, anything the UI shows as
+> 「连不上服务器」 — leaves **no server log and no telemetry** (the report rides the same
+> broken network). "The logs are clean" is therefore **not** "there was no problem"; that
+> class is diagnosed **on the device**.
+
+It carries: the **China-backend access recipe** (the box is reached through Tencent Cloud
+TAT via `uvx tccli` + the credentials in `.local/keys.md` — **SSH is a dead end**, there is
+no password), the log-reading recipes with their read-back criteria, and the findings
+already established so the next session does not re-run them. Anything there that can
+become a gate moves into `build.js` / `test/` and is **deleted from the handbook** — a
+checklist is weaker than a gate.
 
 ## Build & run
 

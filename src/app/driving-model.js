@@ -40,6 +40,11 @@
 
 import PageText from '../lib/i18n.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
+// 2026-10-03：正文按句念。切分**只有这一个来源** —— 播放与预热必须枚举同一批文本，
+// 否则预热的是另一段话、缓存永远打不中（见本文件那条警告）。
+// 放在 src/app/ 而不是 src/shared/：**播客模式是 app-only**，而 src/shared 有对账门
+// 要求两宿主都挂（`build/run-esbuild.js` 的 §9.4）。纯逻辑、可单测，与 firstrun.js 同类。
+import { speechChunks, SPEECH_GAP_MS } from './speech-chunks.js';
 
 const $ = (id) => document.getElementById(id);
 const t = (k, fb) => PageText.t(k, fb);
@@ -442,15 +447,27 @@ async function execSpeak(fx) {
 
   const { text, lang } = speechFor(fx.what, item || {}, fx);
   if (!text) { dispatch('tts_done'); return; }
-  const r = await LearnTTS.speak(text, lang);
-  if (myGen !== gen || mySeq !== speakSeq) return;
-  if (!r.ok) {
-    // `superseded` means a newer speak owns the session — not a failure here.
-    if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
-    return;
+  // 2026-10-03（用户反馈「段落朗读基本没有断句」）：**按句念，句间留停顿**。
+  // 以前是整张卡一次喂进去，合成器没有句间停顿的依据，段落就被读成一条平线。
+  // 切分来自 speech-chunks（唯一来源：预热那条路枚举的是同一批文本，缓存才打得中）。
+  // **只动音频**：屏上仍按现在的高亮走，没有新的屏上行为。
+  const chunks = speechChunks(text, lang);
+  for (let i = 0; i < chunks.length; i++) {
+    const r = await LearnTTS.speak(chunks[i], lang);
+    if (myGen !== gen || mySeq !== speakSeq) return;
+    if (!r.ok) {
+      // `superseded` means a newer speak owns the session — not a failure here.
+      if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
+      return;
+    }
+    await (r.done || Promise.resolve());
+    if (myGen !== gen || mySeq !== speakSeq) return;
+    if (i < chunks.length - 1) {
+      // 句间呼吸。这里也要守一次：等在停顿里被暂停 / 顶掉时，不能把这批读完。
+      await new Promise((res) => setTimeout(res, SPEECH_GAP_MS));
+      if (myGen !== gen || mySeq !== speakSeq) return;
+    }
   }
-  await (r.done || Promise.resolve());
-  if (myGen !== gen || mySeq !== speakSeq) return;
   dispatch('tts_done');
 }
 
@@ -583,7 +600,11 @@ async function openCard() {
 function warmCard(item, myGen, mySeq) {
   const warm = (text, lang) => {
     if (!text) return;
-    try { Promise.resolve(LearnTTS.prefetch(text, lang)).catch(() => {}); } catch (_) {}
+    // 2026-10-03：与**播放**枚举同一批文本（speech-chunks 是唯一来源）。
+    // 整段预热会打不中逐句播放的缓存 —— 那正是本文件一直警告的那件事。
+    for (const chunk of speechChunks(text, lang)) {
+      try { Promise.resolve(LearnTTS.prefetch(chunk, lang)).catch(() => {}); } catch (_) {}
+    }
   };
   warm(item.text, item.lang || '');
   warm(item.tr || filledTr, item.targetLang || uiLang);

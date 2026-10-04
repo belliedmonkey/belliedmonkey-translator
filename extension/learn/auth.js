@@ -88,6 +88,34 @@ var LearnAuth = (() => {
     return json;
   }
 
+  // ─── 登录失败埋点（telemetry-design §3.14，2026-10-02）──────────────────────
+  //
+  // 用户报「新账号第一次登录失败、第二次成功」（第三方登录，扩展 + App）。此前登录失败只在
+  // 用户眼前一闪，`bt_events` 零行 —— 这一条是唯一能回答「断在哪一步」的读数。只记形状：
+  // 哪条路、哪个断点、什么码、HTTP 几位、本页面/会话里第几次失败。**永不带账号 / 邮箱 /
+  // 令牌 / 正文**（注册表 FORBIDDEN_KEY_WORDS 是机器判据）。取值为空的那几个会被服务端整条
+  // 拒，所以这里先把 provider / stage / code 归一化。发送点只有这一处 —— App 原生那一步
+  // （apple-result 带 error）也调回这里（noteAuthFail），不另写一份白名单或归一化。
+  const AUTH_STAGES = ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'];
+  const AUTH_PROVIDERS = ['apple', 'google', 'email', 'phone', 'unknown'];
+  let authFails = 0;
+  // err 可以是 Error（带 code / status）或一个字面字符串码。永不抛 —— 埋点不能挡住登录。
+  function authFail(provider, stage, err) {
+    try {
+      authFails += 1;
+      const e = (typeof err === 'string') ? { code: err } : (err || {});
+      const code = String(e.code || 'other').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32) || 'other';
+      const p = AUTH_PROVIDERS.includes(provider) ? provider : 'unknown';
+      const s = AUTH_STAGES.includes(stage) ? stage : 'unknown';
+      const http = Number(e.status) > 0 ? Number(e.status) : 0;
+      if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.track) {
+        MTTelemetry.track('auth_fail', {
+          provider: p, stage: s, code: code, http: http, attempt: authFails <= 1 ? '1' : '2+',
+        });
+      }
+    } catch (_) { /* 埋点永远不能挡住登录 */ }
+  }
+
   // ─── Session persistence (chrome.storage.local, §8.4.1) ──────────────────
   //
   // The one rule both functions obey: a FAILED read/write is never latched as
@@ -213,15 +241,22 @@ var LearnAuth = (() => {
     const body = field === 'phone'
       ? { phone: normPhone(who), create_user: true }
       : { email: String(who || '').trim(), create_user: true };
-    return post('/otp', body).then(() => ({ ok: true, via: field }));
+    return post('/otp', body)
+      .then(() => ({ ok: true, via: field }))
+      .catch((e) => { authFail(field, 'otp', e); throw e; });
   }
 
   async function verify(who, code) {
     const field = idField(who);
-    const json = await post('/verify', field === 'phone'
-      ? { type: 'sms', phone: normPhone(who), token: String(code || '').trim() }
-      : { type: 'email', email: String(who || '').trim(), token: String(code || '').trim() });
-    return store(sessionFrom(json));
+    try {
+      const json = await post('/verify', field === 'phone'
+        ? { type: 'sms', phone: normPhone(who), token: String(code || '').trim() }
+        : { type: 'email', email: String(who || '').trim(), token: String(code || '').trim() });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail(field, 'verify', e);
+      throw e;
+    }
   }
 
   // Password sign-in (2026-08-17, §8.4.1) — the SAME provider, a second grant
@@ -232,11 +267,16 @@ var LearnAuth = (() => {
   // in-product "set password" surface, so OTP remains the path every real user
   // takes; this grant simply accepts an account that HAS one.
   async function signInPassword(email, password) {
-    const json = await post('/token?grant_type=password', {
-      email: String(email || '').trim(),
-      password: String(password || ''),
-    });
-    return store(sessionFrom(json));
+    try {
+      const json = await post('/token?grant_type=password', {
+        email: String(email || '').trim(),
+        password: String(password || ''),
+      });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail('email', 'password', e);
+      throw e;
+    }
   }
 
   // Returns a currently-valid access token, refreshing if needed, or null when signed
@@ -504,17 +544,25 @@ var LearnAuth = (() => {
   let prepared = null;      // { verifier, state, challenge }
 
   async function prepareProviderSignIn() {
-    const verifier = randomB64(64);
-    const state = randomB64(16);
-    const challenge = await challengeOf(verifier);
-    await PageSettings.write({ [PKCE_KEY]: { verifier, state, at: Date.now() } });
-    prepared = { verifier, state, challenge };
-    return true;
+    try {
+      const verifier = randomB64(64);
+      const state = randomB64(16);
+      const challenge = await challengeOf(verifier);
+      await PageSettings.write({ [PKCE_KEY]: { verifier, state, at: Date.now() } });
+      prepared = { verifier, state, challenge };
+      return true;
+    } catch (e) {
+      authFail('unknown', 'prepare', e);
+      throw e;
+    }
   }
 
   // **同步**。没备好就返回 null —— 调用方据此让按钮先不可点，而不是开一个空窗。
   function providerSignInUrl(provider, redirectTo) {
-    if (!prepared) return null;
+    if (!prepared) { authFail(String(provider), 'authorize', 'pkce_missing'); return null; }
+    // 记下这次点的是哪家 —— 回跳兑换时（completeProviderSignIn）才知道该把失败记到谁头上。
+    // 只存在内存里（同一页完成兑换）；prepared 在 finally 里被重建，不会跨次串味。
+    prepared.provider = String(provider);
     // **回跳地址必须与 Supabase 白名单里登记的那条逐字相同 —— 不许带查询串。**
     //
     // 这里曾经往 redirect_to 上拼过一个 `?st=<state>`，想让自己的 state 绕一圈回来。
@@ -540,24 +588,25 @@ var LearnAuth = (() => {
   // **不经内容脚本**（那一侧根本不存在）。两条路之后完全合流 —— 同一个 state 校验、
   // 同一个兑换、同一个 sessionFrom。
   async function completeProviderSignIn(direct) {
+    const provider = (prepared && prepared.provider) || 'unknown';
     const r = await PageSettings.read([PKCE_KEY, CODE_KEY]);
     // 存储读失败不是「没有票」。混同的话，一次读失败会被画成「登录没发生」，
     // 而用户明明刚走完一整圈 —— 同 load() 里 loadError 的那条纪律。
-    if (!r.ok) { const e = new Error(r.error || 'storage read failed'); e.code = 'storage_error'; throw e; }
+    if (!r.ok) { const e = new Error(r.error || 'storage read failed'); e.code = 'storage_error'; authFail(provider, 'exchange', e); throw e; }
     const pending = r.data[PKCE_KEY];
     const ticket = direct || r.data[CODE_KEY];
     if (!ticket || !ticket.code) return null;               // 没有票，什么都不做
     // 票用过就作废，无论后面成不成 —— 留着会在下次开设置页时重放一次必然失败的兑换。
     if (!direct) await PageSettings.removeKeys([CODE_KEY]);
     if (!pending || !pending.verifier) {
-      const e = new Error('no pending sign-in'); e.code = 'pkce_missing'; throw e;
+      const e = new Error('no pending sign-in'); e.code = 'pkce_missing'; authFail(provider, 'exchange', e); throw e;
     }
     // state 只在**两边都有**时才校验。它现在不再绕一圈回来（回跳地址不许带查询串，
     // 见 providerSignInUrl），所以常态是没有 —— 绑定由 verifier 承担。留着这个分支
     // 是因为 App 那条路（自定义 scheme）将来若要带回 state，判据不该另写一份。
     if (ticket.state && pending.state && ticket.state !== pending.state) {
       await PageSettings.removeKeys([PKCE_KEY]);
-      const e = new Error('state mismatch'); e.code = 'pkce_state'; throw e;
+      const e = new Error('state mismatch'); e.code = 'pkce_state'; authFail(provider, 'exchange', e); throw e;
     }
     try {
       const json = await post('/token?grant_type=pkce', {
@@ -565,6 +614,9 @@ var LearnAuth = (() => {
         code_verifier: pending.verifier,
       });
       return store(sessionFrom(json));
+    } catch (e) {
+      authFail(provider, 'exchange', e);
+      throw e;
     } finally {
       // verifier 是一次性的：成败都作废，**并且当场备下一份**。内存里那份 `prepared`
       // 与 storage 里那份是同一个东西，不能只清一半 —— 2026-09-07 TestFlight 87：
@@ -579,11 +631,30 @@ var LearnAuth = (() => {
 
   // App 侧的原生登录（Sign in with Apple / Google），走 id_token grant。
   // 原生那边拿到 identityToken 与 nonce，桥进来的只有这两样。
+  // 2026-10-04：**第一发自动重试**。真机反复是「第一次 Apple 登录报『连不上服务器』、第二次就好」，
+  // 而境内后端在用户报错的那一分钟里记到的是**成功**的 `POST /token`（2026-10-03T21:02:15Z = 05:02:15 CST，
+  // 200、provider=apple、泰国 IP），近 6h 非 2xx 为空 ⇒ 失败发生在**换会话这一发 POST 的网络层**
+  // （`code network|offline`，服务端因此无痕，§0）。
+  // 这个兑换对同一个用户是**幂等**的（同一 id_token、同一账号），所以自动重试安全 —— 与 §1.8
+  // 记的「把那一次重试自动化，就是这个症状的对症修法」一致。
+  // 只重试**网络类**失败：4xx/5xx 是服务端给了答复，重试没有意义。
   async function signInWithIdToken(provider, idToken, nonce) {
     const body = { provider: String(provider), id_token: String(idToken) };
     if (nonce) body.nonce = String(nonce);
-    const json = await post('/token?grant_type=id_token', body);
-    return store(sessionFrom(json));
+    const retryable = (e) => !!(e && (e.code === 'network' || e.code === 'offline'));
+    let last = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const json = await post('/token?grant_type=id_token', body);
+        return store(sessionFrom(json));
+      } catch (e) {
+        last = e;
+        if (!retryable(e) || attempt === 2) break;
+        await new Promise((r) => setTimeout(r, 400 + attempt * 800));
+      }
+    }
+    authFail(String(provider), 'id_token', last);
+    throw last;
   }
 
   function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
@@ -593,6 +664,7 @@ var LearnAuth = (() => {
     prepareProviderSignIn, providerSignInUrl, completeProviderSignIn, signInWithIdToken,
     current, currentStable, userId, displayName, bindCorpus, takeRehome, otherAccountOnDevice,
     cachedSession, lastLoadError, onChange,
+    noteAuthFail: authFail,
     _reset,
   };
 })();

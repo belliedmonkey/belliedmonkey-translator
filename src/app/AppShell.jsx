@@ -60,23 +60,6 @@ function AppShell() {
         <button id="dl-mismatch-keep" type="button" className="secondary">{t('app_dl_keep', '保持当前账号')}</button>
       </section>
 
-      <section id="ext-banner" hidden>
-        <p id="ext-banner-title"></p>
-        <p id="ext-banner-body" className="note"></p>
-        <button id="ext-banner-act" type="button" hidden></button>
-        {/* 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
-             注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
-             App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 */}
-        {/* iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
-             #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 */}
-        <button id="ext-banner-setup" type="button" className="secondary"></button>
-        {/* 三步放在主按钮**之后**：320×480 下三张插图会把按钮顶出首屏（引导 ext 屏
-             靠 sticky 页脚解决，横幅在可滚动的首页里没有页脚），先给动作再给佐证。 */}
-        <ol id="ext-banner-steps" className="ob-steps" hidden></ol>
-        {/* 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
-             用户裁定：只有点了它才收起（extBannerDoneAt）。 */}
-        <button id="ext-banner-done" type="button" className="secondary" hidden></button>
-      </section>
       {/* 系统翻译的发现横幅（画布第 7 页 Discover）。形状与 #ext-banner 逐样对齐，
            连「iOS 上 App 判不了，由用户告诉我们」那条纪律也是从它继承的。
            **没有「打开设置」按钮**：openSettingsURLString 只会打开我们自己 App 的设置页，
@@ -96,30 +79,10 @@ function AppShell() {
         {/* 品牌行由 paintStatic 涂（app-action-title 键）—— 原标记里的中文只在那里出现。 */}
         <h1 id="app-brand"></h1>
         <p className="lede" id="lede"></p>
-        {/* 「继续设置」卡（2026-09-22，画布 PTAr3ymseUw7s1sKvUX7Kf 第 1 页「以后再设置只记这一次」，用户点头）：
-             点「以后再设置」只关这一次；下次打开、还没登录也没引擎时，回来的是这张卡，不是整条引导。
-             ✕ = 永久收起；最多跟着 3 次启动。显隐由 app.js paintObResume() 决定。 */}
-        <div id="ob-resume" hidden>
-          <div className="ob-resume-head">
-            <p id="ob-resume-title"></p>
-            <button id="ob-resume-close" type="button" className="link">✕</button>
-          </div>
-          <p id="ob-resume-body" className="note"></p>
-          <button id="ob-resume-go" type="button"></button>
-        </div>
-        {/* 未登录也要能进设置（2026-09-17）：此前这张首页通向设置的唯一路径是对话入口灰态下的「去设置里选择 →」，
-             实时转写固定为设备内置后那个按钮常藏 —— 没登录的人就再也进不了设置页。 */}
-        <p className="note" id="signed-out-actions"><button id="gear2" type="button" className="link"></button></p>
-
-        {/* 未登录也能复习（2026-09-27，Issue #386）：卡片是**本机**数据，登录只影响跨设备同步
-             （learning-design §7.2），所以本机有卡的人不该被登录墙挡在复习外面。
-             只在真有卡时出现（src/app/shell-model.js 的 paintSignedOutReview），没有卡时不给一个
-             必然空着的入口。次级按钮：这一屏的主行动仍是「把扩展 / 登录打通」，
-             与「每屏至多一个填色按钮」那条家规一致（横幅在场时 #review 同样降次级）。 */}
-        <div id="signed-out-review" hidden>
-          <p className="note" id="signed-out-review-desc"></p>
-          <button id="signed-out-review-btn" type="button" className="secondary"></button>
-        </div>
+        {/* 屏 1 只留登录（2026-10-01，#532）。这里原先有四样东西，全部删除：
+            「继续设置」卡（ob-resume）、未登录也能进设置的 gear2、「未登录也能复习」块（#386）、
+            以及下面那段「不登录也能完整使用」的 local-note —— 未登录的人在这屏上看到的每一件
+            都用不了，而它们把「先登录」这件事埋掉了。判据见 test/app-firstrun.test.js（R1/R6）。 */}
 
         {/* A3：首屏不再是登录墙。不登录也进得来 —— 能读懂这是什么、能看见
              #ext-banner 说的「浏览器那半边还没打通」、能自己去把设置做完。
@@ -184,26 +147,49 @@ function AppShell() {
             <button id="app-use-pw" type="button" className="link" hidden></button>
           </div>
         </div>
-
-        <p className="note" id="local-note"></p>
-        {/* 对话 · 实时听译（§9.6）在未登录时也存在：它不依赖同步进来的牌库，语料写本机。
-             与播客模式不同（那个要牌库，只在登录后的首页）。同一门控、同一条去设置的路。 */}
-        <div className="modes">
-          <span className="modes-label" id="modes-label2"></span>
-          <div className="mode-list">
-            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
-            <ListenEntryButtons sfx="2" />
-            {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
-            <button id="app-docs-entry2" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint2"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-          </div>
-          <ListenEntryPrivacy sfx="2" />
-          <ListenEntryNeeds sfx="2" />
-        </div>
       </section>
+
+      {/* 屏 2 · 资源包（2026-10-01，#532）。
+           硬门：**识别语言包** + **高质量朗读包** 下完才放行 —— 这一屏**不许有跳过按钮**
+           （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
+           ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
+           文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
+      <section id="firstrun-packs" hidden>
+        <h1 id="packs-title"></h1>
+        <p className="lede" id="packs-lede"></p>
+        {/* 「我的语言 / 对方的语言」（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按界面语言+默认
+            目标硬下（China 版上就看到写死的 zh）。两个选择器与听译页共用同一对存储键
+            （listenMyLang / listenOtherLang）——「同一件事只写一份」；选项由 listenModel.langOptions
+            给出（**注册表全量**、含泰语 —— 用户 2026-10-04：「两个下拉都应该是我们支持的所有语言的列表」）。
+            布局按 Pencil 稿 `稿 · 下载页 · 自选语言对 2026-10-04`：两个**全宽**选择器块、标签在上、
+            选择器在下、纵向排开（原来是行内 label+select 挤成一行、紧贴下面的包列表）。 */}
+        <div className="packs-langs" id="packs-langs">
+          <label className="packs-lang">
+            <span className="packs-lang-label" id="packs-my-lang-label"></span>
+            <select id="packs-my-lang"></select>
+          </label>
+          <label className="packs-lang">
+            <span className="packs-lang-label" id="packs-other-lang-label"></span>
+            <select id="packs-other-lang"></select>
+          </label>
+        </div>
+        <div className="pack-list">
+          <div className="pack-row" id="pack-row-asr">
+            <div className="pack-name" id="pack-asr-name"></div>
+            <p className="note" id="pack-asr-state"></p>
+            <progress id="pack-asr-bar" hidden></progress>
+          </div>
+          <div className="pack-row" id="pack-row-tts">
+            <div className="pack-name" id="pack-tts-name"></div>
+            <p className="note" id="pack-tts-state"></p>
+            <progress id="pack-tts-bar" hidden></progress>
+          </div>
+        </div>
+        <p className="note" id="packs-net"></p>
+        <p className="note" id="packs-err" hidden></p>
+        <button id="packs-go" type="button"></button>
+      </section>
+
 
       {/* 首次运行引导（§引导）。
            设计稿里是九屏，这里只落四到五屏 —— 另外几屏 App 做不到：配翻译引擎、
@@ -221,7 +207,9 @@ function AppShell() {
                不写死任何牌子 —— 一注册表原则。副作用是好的：两个 flavor 各自显示自己
                注册表里的那几家，一份文案都对。（注释本身也进中国版产物，所以这里
                一个厂商名都不许写：build/china-gate.js 会红。） */}
-          <div id="ob-engines" className="ob-chips" hidden></div>
+          {/* 引擎 chips 2026-10-02 摘掉（#547）：这一屏不再让用户挑模型 ——
+               默认「主要想听 · 即时字幕」，引擎随登录自动到账（免费额度）。
+               要换引擎去设置页。 */}
           <ol id="ob-steps" className="ob-steps" hidden></ol>
           <div id="ob-kv" hidden></div>
           {/* 「就地试一句」（2026-09-22，画布 #392 第 2 页）：素材内置，不让人自己找、自己粘；
@@ -241,19 +229,11 @@ function AppShell() {
             <p className="xb-err" hidden></p>
           </div>
           <p className="note" id="ob-telemetry" hidden></p>
-          {/* 「我只要网页翻译 →」（画布板 B2，telemetry-design §3.9 提案 B）。
-               它**首先是对用户有用的**：只想要网页翻译的人本来在这一屏只能二选一 ——
-               走完一段与他无关的引导，或者点「以后再设置」然后自己去找。其次才是证据：
-               点了记 result:'web_only'，于是「用户只想要网页翻译」这个假说第一次可证伪。
-               放在 ob-body 末尾 ⇒ 渲染在页脚按钮**上方**，与画布一致。 */}
-          <a id="ob-webonly" className="ob-exit" href="#" hidden>
-            <span id="ob-webonly-text"></span><span className="ob-exit-arrow" aria-hidden="true">→</span>
-          </a>
-          {/* 意图分叉（2026-09-28，#486/#487，用户评审通过）：把上面那条出口扩成三分。
-               选「听」的人不需要浏览器扩展 ⇒ 跳过 ext 屏、首页也不挂扩展横幅
-               （interaction-spec「迎新页意图分叉」）。 */}
-          <button id="ob-intent-listen" type="button" className="ob-exit" hidden></button>
-          <button id="ob-intent-both" type="button" className="ob-exit" hidden></button>
+          {/* 2026-10-02 用户裁定（#547）：这一屏**不再问用途**。原来那条「我只要网页翻译」
+               出口与 2026-09-28 的三分（我只要网页翻译 / 主要想听 · 即时字幕 / 读网页 + 听，都要）
+               都删掉了 —— 默认就是「主要想听 · 即时字幕」，不需要用户选；网页翻译的配置引导
+               **只留在设置页**（#g-webext）。理由与残留影响见
+               docs/interaction-spec.md「迎新页意图分叉」。 */}
         </div>
         {/* 三个行动键在**页脚**，不在可滚的 ob-body 里。'ext' 屏藏掉 ob-next，
              #ob-setup 就是那一屏的前进键（docs/interaction-spec.md）——
@@ -278,16 +258,36 @@ function AppShell() {
            an unproven pull would hide exactly the failure worth seeing. */}
       <section id="signed-in" hidden>
         <header>
-          <span id="who"></span>
-          <span className="head-actions">
-            <button id="gear" type="button" className="link"></button>
-            <button id="signout" type="button" className="link"></button>
-          </span>
+          <span className="topbar-brand" id="acct-brand"></span>
+          {/* 账号行收进 44×44 圆键（2026-10-02 真机评审裁定，判据 J04）。
+              以前「邮箱 + 设置 + 退出」占顶栏整行；账号是全局动作，不该占首屏版面 ——
+              点这个键才展开菜单，邮箱与设置/退出都收进去。按钮本身是唯一的顶栏控件，
+              命中区就是 44×44（够 J04 的下限）。菜单里的元素恒挂载，靠 hidden 显隐。 */}
+          <button id="acct" type="button" className="acct" aria-haspopup="true" aria-expanded="false">
+            <span id="acct-initials" aria-hidden="true"></span>
+          </button>
+          <div id="acct-menu" role="menu" hidden>
+            <p id="who"></p>
+            <button id="gear" type="button" className="link" role="menuitem"></button>
+            <button id="signout" type="button" className="link" role="menuitem"></button>
+          </div>
         </header>
 
-        {/* 今日一张卡（design: 大肚猴翻译 App 首页 · 主推）：待复习是唯一的大数字，其余四个
-             计数缩成小字，开始复习是卡内唯一主按钮，同步收成小胶囊 + 上次同步时间。
-             计数由 app.js 的 cell() 按语义类落格，CSS 按类而不是按位置排版。 */}
+        {/* 引擎状态行（2026-10-01 设计稿 · 判据 J07/J08）：唯一的前置条件说明位。
+            就位时是一行低对比绿摘要；某一样真缺时**原地**变成可点 chip（待办必须前置，
+            不再把它扔在页脚 —— 现状那句「还没配语音引擎」在 y≈1275）。 */}
+        <div className="status" id="engine-status">
+          <span className="status-text" id="engine-status-text"></span>
+          <button className="status-chip" id="engine-status-fix" type="button" hidden></button>
+        </div>
+
+        {/* 两位主角（2026-10-01 设计稿）：实时字幕与实时听译 —— 这一页唯一「别处做不到」的能力，
+            登录后即可用。它们由 listen-view.jsx 渲染（整行可点），CSS 把它们做成等高同权的主角卡。 */}
+        <div className="heroes">
+          <ListenEntryButtons />
+        </div>
+
+        {/* 复习条（降级：从整屏大卡到一条 76pt）—— 裁定「看得见、一眼能开始，但不抢戏」。 */}
         <section className="today">
           <div className="today-head"><span className="today-label" id="today-label"></span><span className="note" id="last"></span></div>
           <div id="app-counts" className="counts"></div>
@@ -298,23 +298,23 @@ function AppShell() {
           </div>
         </section>
 
-        {/* 「听」：两个模式做成带图标与一句说明的列表行。门控不过时整行不存在
-             （AppDriving.refreshEntry / AppListen.refreshEntry 切 hidden），两行都不在时整组
-             隐藏（CSS :has）；门没过时留一条可见、有标签、直达设置页那个控件的路。 */}
+        {/* 文档翻译：独立分区（判据 J11 —— 实时音频入口与文档类入口不得同区）。 */}
+        <div className="docs">
+          <span className="modes-label" id="docs-label"></span>
+          <button id="app-docs-entry" type="button" className="mode" hidden>
+            <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
+            <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint"></span></span>
+            <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+        </div>
+
+        {/* 播客模式入口 + 门控原因行（原「听」分区剩下的部分）。 */}
         <div className="modes">
           <span className="modes-label" id="modes-label"></span>
           <div className="mode-list">
             <button id="app-drive-start" type="button" className="mode" hidden>
               <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 14v-3a8 8 0 0 1 16 0v3" /><path d="M4 14h3v6H5a1 1 0 0 1-1-1v-5z" /><path d="M20 14h-3v6h2a1 1 0 0 0 1-1v-5z" /></svg></span>
               <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-drive-desc"></span></span>
-              <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-            </button>
-            {/* PR6c：对话 · 实时听译 + 实时字幕两行归 listen-view.jsx（refreshEntry 探针驱动揭盖）。 */}
-            <ListenEntryButtons />
-            {/* 文档翻译（§9.7 / D4）：不依赖账号，语料写本机；不设门，没配引擎时页内那一行会说去哪配。 */}
-            <button id="app-docs-entry" type="button" className="mode" hidden>
-              <span className="mode-icon mode-icon-sage"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /><path d="M9 13h6" /><path d="M9 17h6" /></svg></span>
-              <span className="mode-text"><span className="mode-title"></span><span className="mode-desc" id="app-docs-entry-hint"></span></span>
               <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
             </button>
           </div>
@@ -325,6 +325,35 @@ function AppShell() {
           </p>
           <ListenEntryNeeds />
         </div>
+
+        {/* 扩展引导行（J18/J19，2026-10-02 真机评审修订）：以前它是一张占满首屏的卡
+            （三步教程 + 插图），把两位主角挤到屏幕外。现在降级为**折叠线以下的一行** ——
+            首屏只看得见「Safari 扩展还没打开」这句事实，点开这一行才是动作与三步说明；
+            首页本身不含步骤教学。卡片只能从 Safari 扩展经同步进来，所以这条说的是
+            「材料的来源还没开」；状态由 ViewController 在 didFinish 里调 show() 灌进来
+            （macOS 查得到，iOS 查不到 —— getStateOfSafariExtension 是 macOS-only）。 */}
+        <section id="ext-banner" hidden>
+          <button id="ext-banner-row" type="button" aria-expanded="false">
+            <span className="row-text">
+              <span id="ext-banner-title"></span>
+              <span className="note" id="ext-banner-body"></span>
+            </span>
+            <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+          <div id="ext-banner-panel" hidden>
+            {/* 官网的启用教程页是**唯一**能回答「扩展到底启用了没」的地方：它被扩展
+                  注入后会自己亮绿灯（content-main.js 的 dataset.mtExtension）。iOS 上
+                  App 自己查不到状态，所以正确的动作不是猜，是把人送到查得到的那一页。 */}
+            <button id="ext-banner-act" type="button" hidden></button>
+            {/* iOS 形态（2026-09-10）：三步与引导 ext 屏同一份文案与插图，但容器另建 ——
+                 #ob-steps 那个节点被门禁钉着「恰好三个子元素」，不搬它。 */}
+            <button id="ext-banner-setup" type="button" className="secondary"></button>
+            <ol id="ext-banner-steps" className="ob-steps" hidden></ol>
+            {/* 「我已打开」：iOS 上 App 判不了扩展启没启用，诚实的做法是由用户告诉我们。
+                  用户裁定：只有点了它才收起（extBannerDoneAt）。 */}
+            <button id="ext-banner-done" type="button" className="secondary" hidden></button>
+          </div>
+        </section>
       </section>
 
       {/* 播客模式（learning-design §9.5 / interaction-spec 「播客模式」）：App 专属

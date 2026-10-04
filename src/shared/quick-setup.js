@@ -155,7 +155,7 @@ function siteUrl(path) {
 // 与设置页那个下拉逐条一致（test/try-pages.test.js 钉住）。
 // 认不出的目标语言**回落 setup.html** —— 那一页永远存在，落一个 404 比落一页
 // 语言不对的示例更糟。
-const TRY_LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ar', 'pt', 'ru', 'it'];
+const TRY_LANGS = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'ar', 'pt', 'ru', 'it', 'th'];
 function tryUrl(targetLang) {
   let l = String(targetLang || '').trim();
   // **没值 ≠ 认不出。** 存储里没有 targetLang 的人（全新安装、或刚清过本机数据）

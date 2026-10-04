@@ -50,6 +50,9 @@ export default function SettingsView() {
   const [detail, setDetailState] = useState(false);
   const [quickAvail, setQuickAvail] = useState(true);
   const [grantVisible, setGrantVisible] = useState(false);
+  // 2026-10-03：额度**正在用**时为真 —— 一键卡（「用一把 key 配好全部」）随之收起
+  // （额度在用与自己填 key 是互斥的两条路）。
+  const [grantActive, setGrantActive] = useState(false);
   const [followLabel, setFollowLabel] = useState('');
 
   const uiLangNow = useRef('auto');
@@ -234,7 +237,7 @@ export default function SettingsView() {
       ttsPackBusy.current = false;
       if (!r.ok) {
         prog.hidden = true;
-        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', r.why || r.reason || '');
+        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(r.why || r.reason || '', t));
         dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
         return;
       }
@@ -522,7 +525,14 @@ export default function SettingsView() {
     // 写完 box.hidden —— flushSync 让卡片同一帧跟上，不等下一次渲染。
     // 安全性：paintGrant 只从 paintNow / grantAction 的 async 链调用，从不在 React
     // 渲染生命周期里跑（渲染中不能 flushSync）。
-    flushSync(() => { setGrantVisible(!box.hidden); });
+    flushSync(() => {
+      setGrantVisible(!box.hidden);
+      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。
+      try {
+        setGrantActive(!!(typeof LearnGrant !== 'undefined' && LearnGrant.enabled && LearnGrant.enabled()
+          && LearnGrant.active && LearnGrant.active(cur)));
+      } catch (_) { setGrantActive(false); }
+    });
   }
 
   async function grantAction(id, session) {
@@ -1248,7 +1258,7 @@ export default function SettingsView() {
           <div id="grant-box"></div>
         </section>
 
-        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail}>
+        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail || grantActive}>
           <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
           <div id="quick-setup"></div>
         </section>
@@ -1395,6 +1405,7 @@ export default function SettingsView() {
             <option value="ar">العربية</option>
             <option value="pt_BR">Português</option>
             <option value="ru">Русский</option>
+            <option value="th">ไทย</option>
           </select>
         </label>
 
@@ -1417,6 +1428,7 @@ export default function SettingsView() {
             <option value="pt">Português</option>
             <option value="ru">Русский</option>
             <option value="it">Italiano</option>
+            <option value="th">ไทย</option>
           </select>
           <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
         </label>
@@ -1633,6 +1645,14 @@ export default function SettingsView() {
           <p className="note" id="extb-note"></p>
           <button id="extb-restore" type="button" className="secondary"></button>
           <p className="note" id="extb-done" role="status" aria-live="polite" hidden></p>
+        </div>
+
+        {/* 网页翻译配置引导（2026-10-02 用户裁定 #547：从引导首屏撤掉，**只留这里**）。
+            文案复用引导 ext 屏那几个既有键 —— 12 语种已经在位，不必新造。 */}
+        <div className="sgroup" id="g-webext">
+          <h3 id="webext-title">{t('app_ext_unknown_title', '先把浏览器那半边打通')}</h3>
+          <p className="note" id="webext-note">{t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。')}</p>
+          <button id="webext-setup" type="button" className="secondary">{t('app_ext_open_setup', '在网页上完成设置')}</button>
         </div>
 
         <div className="sgroup" id="g-docs">

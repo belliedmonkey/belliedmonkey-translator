@@ -37,6 +37,15 @@ Corollaries:
   原来那道只 grep `options.js`，于是 App 那三份从来不会让任何测试变红。见 §3.1.4。
 - **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
   browser/computer-use tools — for every surface, including desktop Chrome.
+- **装 App 之前先验资源新鲜度，且构建输出一律不许吞掉（2026-10-01，#536）。** App 的资源是
+  `node build.js` → `npm run app:sync` → `xcodebuild` 三步灌进去的。**任何一步被跳过或失败，
+  `simctl install` 仍会照装一份旧包** —— 而截图、观察、结论全都来自旧包。2026-10-01 那轮
+  「白屏」排查正是这样得出两个**假结论**（「Debug 白屏 / Release 正常」与「首屏是引导欢迎屏」）：
+  链里的 `npm run app:sync` 返回了 `exit 1`（`dist-app-china/` 比源码旧），`&&` 断了、构建没跑，
+  而分号后面的 `simctl install` 照跑；输出被 `>/dev/null` 吞掉，所以断链无声。
+  判据是可执行的：**`npm run verify:app-fresh -- "<… .app>"` 必须绿**（`.app` 里每一份由
+  `dist-app/` 灌进去的资源都与它逐字节相同）。陈旧构建**不许**作为任何结论的依据。
+  `app:sync` 的非零退出码是真的要处理的，不是可以重定向掉的东西。
 - **Configure DeepSeek on every surface before verifying — never verify on the free
   Google endpoint (mandatory, 2026-07-27).** The free `translate_a/single` is not a
   stable baseline and derailed one full-matrix pass three separate ways: it returned a
@@ -1064,6 +1073,17 @@ cheap — just do it).
 > staged `dist/` copy.
 
 ### E. Firefox desktop (real Mac, throwaway profile) — ✅ verified
+> **⚠️ `--start-url` 早于扩展安装（2026-10-03 实测，差点误报成产品缺陷）。**
+> `web-ext run --start-url moz-extension://<uuid>/…` 是**先起浏览器、后装临时扩展** ⇒ 那一跳落在
+> **还没人认领的 URL** 上 ⇒ **白屏**，此后一直白着（手动刷新也可能没送达页面）。
+> 症状具有极强的误导性：白屏 + 页面脚本一条都不执行 + 连**静态文件**（如 `manifest.json`）都取不出来 ——
+> 看起来像「扩展的页面全废了」，实际只是 URL 在那个会话里没有主人。
+> **正确做法**：`--start-url about:blank`，等日志出现 `Installed … as a temporary add-on`，
+> **再用地址栏导航**（⌘L → 输 URL → 回车）到 `moz-extension://<uuid>/<page>`。
+> 判据：窗口标题应变成该页的 `<title>`（如「大肚猴翻译 — 设置」）。
+> 附：Firefox 的清单错误只从这里露出 —— `_locales/` 存在时 `default_locale` 必填，否则
+> `installTemporaryAddon: Extension is invalid`。
+(real Mac, throwaway profile) — ✅ verified
 
 ```bash
 node build.js firefox        # → dist-firefox/ (MV3, gecko id set)

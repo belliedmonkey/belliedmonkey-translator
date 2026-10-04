@@ -30,6 +30,58 @@ import SherpaOnnx
 import SherpaOnnxC
 #endif
 
+/// 归一化到 Apple 转写器认的 locale（Apple 配方第一条，2026-10-02 真机实测）。
+/// 传短码（"en"）会抛 SFSpeechErrorDomain Code=4「Some modules are configured with an unsupported
+/// configuration.」—— 屏 2 的识别包于是永远装不上；归一化后是 "en-US" ✓。
+/// 归一化不到 ⇒ nil，调用方按 unsupported 处理（不让它走到抛错那一步）。
+///
+/// **2026-10-04 起问两台转写器**：Apple 在 iOS 26 给了第二个模块 `DictationTranscriber`，
+/// 它与 `SpeechTranscriber` 共用 `SpeechAnalyzer` 宿主，但语言集**更宽**（本机实测 54 门 ⊃ 45 门，
+/// 多出 th-TH / ru-RU / ar-SA / vi-VN / id-ID / tr-TR …）。只问前者时，泰语在听译页根本列不出来
+/// （45 门 ∩ 我们 12 门注册表 = 9 门 —— 与真机截图那 9 个语言完全吻合）。
+@available(iOS 26.0, macOS 26.0, *)
+func mtSpeechLocale(_ id: String) async -> Locale? {
+    await SpeechTranscriber.supportedLocale(equivalentTo: Locale(identifier: id))
+}
+
+@available(iOS 26.0, macOS 26.0, *)
+func mtDictationLocale(_ id: String) async -> Locale? {
+    await DictationTranscriber.supportedLocale(equivalentTo: Locale(identifier: id))
+}
+
+/// 这门语言该用哪台转写器：**能用窄的（SpeechTranscriber）就用窄的**
+/// （它是 Apple 的新模型，长文/对话场景更好），窄的不支持才落回 `DictationTranscriber`。
+/// 返回 nil = 两台都不认 ⇒ 调用方按 unsupported 处理。
+@available(iOS 26.0, macOS 26.0, *)
+enum MTTranscriberKind { case speech, dictation }
+
+@available(iOS 26.0, macOS 26.0, *)
+func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: Locale)? {
+    if let l = await mtSpeechLocale(id) { return (.speech, l) }
+    if let l = await mtDictationLocale(id) { return (.dictation, l) }
+    return nil
+}
+
+/// 报给 JS 的「本机识别器支持哪些 locale」= **两台之并**（不写死，当场问设备）。
+@available(iOS 26.0, macOS 26.0, *)
+func mtSupportedLocalesUnion() async -> [String] {
+    let a = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+    let b = await DictationTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+    return Array(Set(a).union(b)).sorted()
+}
+
+/// 给 `AssetInventory` 用的探针模块：按上面选出来的那台转写器造一个。
+/// （资产按**模块**管理，所以探测也得用同一种模块，否则读到的状态不是它真会用的那份。）
+@available(iOS 26.0, macOS 26.0, *)
+func mtProbeModule(_ kind: MTTranscriberKind, _ locale: Locale) -> any SpeechModule {
+    switch kind {
+    case .speech:
+        return SpeechTranscriber(locale: locale, preset: .transcription)
+    case .dictation:
+        return DictationTranscriber(locale: locale, preset: .progressiveLongDictation)
+    }
+}
+
 final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     static let shared = MTSpeechBridge()
@@ -95,11 +147,19 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             guard SpeechTranscriber.isAvailable else {
                 self.emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
             }
-            // 本机识别器支持的 locale 清单（2026-09-17）：JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
-            let supported = await SpeechTranscriber.supportedLocales.map { $0.identifier(.bcp47) }
+            // 本机识别器支持的 locale 清单（2026-09-17，2026-10-04 起取两台的并集）：
+            // JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
+            let supported = await mtSupportedLocalesUnion()
             var allInstalled = true
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), preset: .transcription)
+                // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
+                // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
+                guard let pick = await mtTranscriberFor(id) else {
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
+                    return
+                }
+                let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
@@ -123,18 +183,31 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         }
         Task {
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), preset: .transcription)
+                // 归一化（2026-10-02）：短码会让 assetInstallationRequest 抛 SFSpeechErrorDomain Code=4。
+                // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语等靠它）。
+                guard let pick = await mtTranscriberFor(id) else {
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale"])
+                    return
+                }
+                let t = mtProbeModule(pick.kind, pick.locale)
+                // 诊断（2026-10-02）：真机上识别资产装不上时，屏上只剩「没动静」——这里把当场读到的
+                // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
+                let st0 = await AssetInventory.status(forModules: [t])
+                let supportedIds = await mtSupportedLocalesUnion()
+                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing",
+                           "status": String(describing: st0), "ready": SpeechTranscriber.isAvailable, "supported": supportedIds.contains(id)])
                 do {
                     guard let req = try await AssetInventory.assetInstallationRequest(supporting: [t]) else {
                         self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"]); continue
                     }
                     let p = req.progress
                     let watcher = Task {
-                        var last = -1.0
                         while !Task.isCancelled {
                             let f = p.fractionCompleted
-                            if f != last { last = f; self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading"]) }
-                            try? await Task.sleep(nanoseconds: 500_000_000)
+                            self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading",
+                                       "total": p.totalUnitCount, "completed": p.completedUnitCount])
+                            try? await Task.sleep(nanoseconds: 1_000_000_000)
                         }
                     }
                     try await req.downloadAndInstall()
@@ -142,6 +215,9 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
                 } catch {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": String(describing: error)])
+                    // fail fast（2026-10-02）：以前这里直接 return，JS 只能干等满 120 s 超时（屏上只剩
+                    // 「没动静」，真因不可见）；补一条带 assets 的 stt-state 立刻唤醒它，错误当场显示。
+                    self.emit(["type": "stt-state", "state": "ready", "assets": "missing"])
                     return
                 }
             }
@@ -209,15 +285,41 @@ final class MTDeviceTranscriber {
 
     func start() {
         Task {
-            var mods: [SpeechTranscriber] = []
+            // 2026-10-04：**一个会话只用一种转写器**。两台的 result 类型不同 ⇒ 混排要两套读取；
+            // 而 DictationTranscriber 覆盖我们注册表全部 12 门（本机实测 54 ⊃ 12，含 th/ru/ar），
+            // 所以「只要有一门需要它，整个会话就用它」不会丢任何语言；反过来仍用窄的（Apple 的新模型）。
+            var needDictation = false
             for id in locales {
-                let t = SpeechTranscriber(locale: Locale(identifier: id), transcriptionOptions: [],
-                                          reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
-                                          attributeOptions: [.audioTimeRange, .transcriptionConfidence])
-                if await AssetInventory.status(forModules: [t]) != .installed {
-                    emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                guard let p = await mtTranscriberFor(id) else {
+                    emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
                 }
-                mods.append(t)
+                if p.kind == .dictation { needDictation = true }
+            }
+            var mods: [any SpeechModule] = []
+            var speechMods: [SpeechTranscriber] = []
+            var dictMods: [DictationTranscriber] = []
+            for id in locales {
+                if needDictation {
+                    guard let l = await mtDictationLocale(id) else {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                    }
+                    let t = DictationTranscriber(locale: l, preset: .progressiveLongDictation)
+                    if await AssetInventory.status(forModules: [t]) != .installed {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                    }
+                    mods.append(t); dictMods.append(t)
+                } else {
+                    guard let l = await mtSpeechLocale(id) else {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                    }
+                    let t = SpeechTranscriber(locale: l, transcriptionOptions: [],
+                                              reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
+                                              attributeOptions: [.audioTimeRange, .transcriptionConfidence])
+                    if await AssetInventory.status(forModules: [t]) != .installed {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                    }
+                    mods.append(t); speechMods.append(t)
+                }
             }
             guard let fmt = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: mods) else {
                 emit?(["type": "stt-state", "state": "failed", "reason": "format"]); return
@@ -230,11 +332,21 @@ final class MTDeviceTranscriber {
             }
             if stopped { return }
             analyzer = an; continuation = cont; format = fmt
-            for (i, t) in mods.enumerated() {
+            for (i, t) in speechMods.enumerated() {
                 let id = locales[i]
                 readers.append(Task { [weak self] in
                     do {
                         for try await r in t.results { self?.deliver(id, r) }
+                    } catch {
+                        self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
+                    }
+                })
+            }
+            for (i, t) in dictMods.enumerated() {
+                let id = locales[i]
+                readers.append(Task { [weak self] in
+                    do {
+                        for try await r in t.results { self?.deliverDictation(id, r) }
                     } catch {
                         self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
                     }
@@ -260,6 +372,16 @@ final class MTDeviceTranscriber {
             payload["t1"] = Int(r.range.end.seconds * 1000)
         }
         emit?(payload)
+    }
+
+    /// 落回 `DictationTranscriber` 的会话走这一条（2026-10-04）。
+    /// 与 `deliver` 的差别是**它没有 audioTimeRange / 置信度**（那两样是 SpeechTranscriber 的属性），
+    /// 所以字幕时间戳与备选译法在这条路上为空 —— 语言能力优先，代价如实记在 learning-design 里。
+    private func deliverDictation(_ locale: String, _ r: DictationTranscriber.Result) {
+        emit?(["type": r.isFinal ? "stt-final" : "stt-partial",
+               "locale": locale,
+               "text": String(r.text.characters),
+               "conf": -1])
     }
 
     /// 由 MTAudioBridge 的 tap 线程调用：转格式、喂 analyzer、顺手做静音检测。
@@ -315,6 +437,10 @@ final class MTDeviceSpeech {
     private struct Model {
         let lang: String; let dir: String
         let model: String; let tokens: String; let dataDir: String
+        // 2026-10-03（高质量语音）：Kokoro 不是 vits 那一套。多出来的四样按 type 取，
+        // 缺省即 vits（老条目逐字节不变）。
+        let type: String
+        let voices: String; let dictDir: String; let lexicon: String; let voiceLang: String
         let files: [(path: String, url: String, sha256: String, size: Int)]
     }
     private var models: [String: Model] = [:]          // lang → 清单
@@ -343,7 +469,13 @@ final class MTDeviceSpeech {
                 guard let p = f["path"] as? String, let u = f["url"] as? String, let s = f["sha256"] as? String else { return nil }
                 return (p, u, s, (f["size"] as? Int) ?? 0)
             }
-            return Model(lang: lang, dir: dir, model: model, tokens: tokens, dataDir: dataDir, files: fs)
+            return Model(lang: lang, dir: dir, model: model, tokens: tokens, dataDir: dataDir,
+                         type: (m["type"] as? String) ?? "vits",
+                         voices: (m["voices"] as? String) ?? "",
+                         dictDir: (m["dictDir"] as? String) ?? "",
+                         lexicon: (m["lexicon"] as? String) ?? "",
+                         voiceLang: (m["kokoroLang"] as? String) ?? "",
+                         files: fs)
         }
     }
 
@@ -361,9 +493,11 @@ final class MTDeviceSpeech {
             guard let attrs = try? fm.attributesOfItem(atPath: p.path), (attrs[.size] as? Int) == f.size else { return false }
         }
         guard !m.files.isEmpty else { return false }
+        // MMS-TTS 没有 espeak-ng-data（`dataDir` 为空串）—— 不要因此把它判成「没装」。
+        let dataOk = m.dataDir.isEmpty || fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
         return fm.fileExists(atPath: d.appendingPathComponent(m.model).path)
             && fm.fileExists(atPath: d.appendingPathComponent(m.tokens).path)
-            && fm.fileExists(atPath: d.appendingPathComponent(m.dataDir).path)
+            && dataOk
     }
 
     /// tts-state 同时带系统语音后端的可用语言（`system` / `systemLangs`），JS 的 `browser` 引擎据此决定走原生还是 WebKit。
@@ -420,8 +554,12 @@ final class MTDeviceSpeech {
                         done += f.size
                         emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": Double(done) / Double(total), "state": "downloading"])
                     } catch {
-                        try? FileManager.default.removeItem(at: d)
-                        emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang, "fraction": 0, "state": "failed", "reason": String(describing: error)])
+                        // **不删整个模型目录**（那会把同一次里已经下好的文件一起抹掉，下次从零再来 ——
+                        // 而这一次失败很可能只是网络抖了一下），也**不把 `String(describing: error)` 送出去**
+                        // —— 真机上那句「Error Domain=NSURLErrorDomain Code=-1005…」就是从这儿去的界面。
+                        // 送协议码，人话由 JS 用既有 i18n 键拼（仓库的协议规矩：reasons 是 id，不是文案）。
+                        emit?(["type": "assets-progress", "kind": "tts", "locale": m.lang,
+                               "fraction": 0, "state": "failed", "reason": mtdlCode(error)])
                         emit?(["type": "tts-state", "state": "failed", "reason": "download", "langs": Array(self.loadedLangs())])
                         return
                     }
@@ -433,16 +571,12 @@ final class MTDeviceSpeech {
         }
     }
 
-    /// 带进度的下载（一个模型就是一个 60 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
-    /// 2026-09-12 真机实测就是这样）。委托式 URLSession，进度按字节比例回调，调用方限频。
-    /// `URLSession.download(from:)` 的 async 版要 macOS 12，而 App 的 macOS 部署目标是 10.15，所以是回调包成 async。
+    /// 带进度的下载（一个模型就是一个几十到一百多 MB 的 zip，「下载完才回调」的接口会让进度条只有 0% 和 100% ——
+    /// 2026-09-12 真机实测就是这样）。调用方限频。
+    /// **2026-10-04 起走 `MTBackgroundDownloader`**（后台会话 + 断点续传 + 自动重试），
+    /// 原因见那个类的注释 —— 真机上最小化 + 断网会以 -1005 收场，而 resume data 明明就在手边。
     static func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
-        try await withCheckedThrowingContinuation { c in
-            let d = MTDownloadDelegate(progress: progress) { result in c.resume(with: result) }
-            let session = URLSession(configuration: .default, delegate: d, delegateQueue: nil)
-            d.session = session
-            session.downloadTask(with: url).resume()
-        }
+        try await MTBackgroundDownloader.shared.fetch(url, progress: progress)
     }
 
     private func loadedLangs() -> [String] { models.values.filter { installed($0) }.map { $0.lang }.sorted() }
@@ -459,14 +593,36 @@ final class MTDeviceSpeech {
             let tts: SherpaOnnxOfflineTtsWrapper
             if let t = loaded[lang] { tts = t } else {
                 let d = root.appendingPathComponent(m.dir, isDirectory: true)
-                let vits = sherpaOnnxOfflineTtsVitsModelConfig(
-                    model: d.appendingPathComponent(m.model).path,
-                    tokens: d.appendingPathComponent(m.tokens).path,
-                    dataDir: d.appendingPathComponent(m.dataDir).path)
-                let model = sherpaOnnxOfflineTtsModelConfig(vits: vits, numThreads: 2)
+                let model: SherpaOnnxOfflineTtsModelConfig
+                if m.type == "kokoro" {
+                    // Kokoro 多语（sherpa-onnx 的 kokoro 清单）：**一个引擎同时念中英** ——
+                    // 词表按字符区间自己分流（kokoro-multi-lang-lexicon.cc 的
+                    // expr_chinese / expr_not_chinese），所以中英各一条清单也共用同一份模型。
+                    // lang 是给 espeak 的语言提示（cmn / en-us），词典两本都要给。
+                    let k = sherpaOnnxOfflineTtsKokoroModelConfig(
+                        model: d.appendingPathComponent(m.model).path,
+                        voices: d.appendingPathComponent(m.voices).path,
+                        tokens: d.appendingPathComponent(m.tokens).path,
+                        dataDir: d.appendingPathComponent(m.dataDir).path,
+                        dictDir: d.appendingPathComponent(m.dictDir).path,
+                        lexicon: m.lexicon.split(separator: ",").map { d.appendingPathComponent(String($0)).path }.joined(separator: ","),
+                        lang: m.voiceLang)
+                    model = sherpaOnnxOfflineTtsModelConfig(kokoro: k, numThreads: 2)
+                } else {
+                    let vits = sherpaOnnxOfflineTtsVitsModelConfig(
+                        model: d.appendingPathComponent(m.model).path,
+                        tokens: d.appendingPathComponent(m.tokens).path,
+                        dataDir: d.appendingPathComponent(m.dataDir).path)
+                    model = sherpaOnnxOfflineTtsModelConfig(vits: vits, numThreads: 2)
+                }
                 var cfg = sherpaOnnxOfflineTtsConfig(model: model, maxNumSentences: 1)
                 let t = SherpaOnnxOfflineTtsWrapper(config: &cfg)
                 guard t.tts != nil else { DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": "load"]) }; return }
+                // 内存封顶：Kokoro int8 一个引擎峰值 RSS ≈460 MB（2026-10-03 在本机实测，
+                // 见 docs/learning-design.md §9.6.1）。两个语言同时驻留就是两倍，iOS 上会被
+                // jetsam 杀掉 —— 所以只留当前语言这一个；切语言的代价是重新装载（约 1–2 s），
+                // 而交替朗读本来就慢于这个量级。
+                if m.type == "kokoro" { for k in loaded.keys where k != lang { loaded.removeValue(forKey: k) } }
                 loaded[lang] = t; tts = t
             }
             let sampleRate = Double(tts.sampleRate)
@@ -748,29 +904,136 @@ enum MTZip {
 }
 
 /// 下载委托：进度按字节比例回调；完成时把临时文件挪到自己的位置再落定（回调返回后系统就删它）。
-final class MTDownloadDelegate: NSObject, URLSessionDownloadDelegate {
-    private let progress: (Double) -> Void
-    private var finish: ((Result<URL, Error>) -> Void)?
-    var session: URLSession?
-    init(progress: @escaping (Double) -> Void, finish: @escaping (Result<URL, Error>) -> Void) {
-        self.progress = progress; self.finish = finish
+/// 后台可续传的下载器（2026-10-04，真机 -1005 之后）。
+///
+/// 为什么不是「起一个一次性会话、下完就丢」：那个会话活在调用栈里，App 一挂起就被冻住 ——
+/// 真机上最小化 + 断网收场是 `NSURLErrorDomain -1005`，而 UserInfo 里**明明带着 11862 字节的
+/// `NSURLSessionDownloadTaskResumeData`**，我们却既没用它、也没给用户留出路（停在一个失败态等人再点）。
+///
+/// 所以：① **background** 配置的会话 —— 传输由系统守护进程代跑，App 挂起/被回收都不影响；
+/// ② 失败先留 **resume data**，再按退避**自动重试**（只有网络类才重试：校验不过、HTTP 4xx 重试一万次也一样）；
+/// ③ 重试期间**不动界面**（不发明细、也不报失败）⇒ 用户看到的是「还在下」。
+///
+/// 不往界面送任何错误原文 —— 只送协议码（见 `mtdlCode`），人话由 JS 用既有 i18n 键拼。
+final class MTBackgroundDownloader: NSObject, URLSessionDownloadDelegate {
+    static let shared = MTBackgroundDownloader()
+
+    private struct Job {
+        let url: URL
+        let progress: (Double) -> Void
+        let completion: (Result<URL, Error>) -> Void
+        let attempt: Int
     }
-    private func settle(_ r: Result<URL, Error>) {
-        guard let f = finish else { return }
-        finish = nil
-        f(r)
-        session?.finishTasksAndInvalidate()
+
+    private var jobs: [Int: Job] = [:]
+    private let q = DispatchQueue(label: "mt.speech.download")
+    private var session: URLSession!
+
+    /// 重试节奏：2s / 5s / 15s / 60s / 120s，之后每 5 分钟，最多 20 次（≈ 100 分钟）。
+    /// 为什么给这么长：这两个包是**首启硬门**，而网络中断常是过隧道/切网，几十秒就回来。
+    private static let backoff: [TimeInterval] = [2, 5, 15, 60, 120]
+    private static let maxAttempts = 20
+
+    private override init() {
+        super.init()
+        let cfg = URLSessionConfiguration.background(withIdentifier: "com.belliedmonkeytranslator.mt-speech.download")
+        cfg.isDiscretionary = false          // 「蜂窝也行，你自己定」⇒ 不等 Wi-Fi
+        cfg.sessionSendsLaunchEvents = true
+        cfg.waitsForConnectivity = true      // 系统等到网络回来自动继续，不必我们轮询
+        cfg.timeoutIntervalForResource = 3600
+        session = URLSession(configuration: cfg, delegate: self, delegateQueue: nil)
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
-        guard totalBytesExpectedToWrite > 0 else { return }
-        progress(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+
+    func fetch(_ url: URL, progress: @escaping (Double) -> Void) async throws -> URL {
+        try await withCheckedThrowingContinuation { c in
+            q.async {
+                self.start(url, attempt: 0, resumeData: nil, progress: progress) { r in c.resume(with: r) }
+            }
+        }
     }
-    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
-        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) { settle(.failure(URLError(.badServerResponse))); return }
+
+    private func start(_ url: URL, attempt: Int, resumeData: Data?, progress: @escaping (Double) -> Void,
+                       completion: @escaping (Result<URL, Error>) -> Void) {
+        let task: URLSessionDownloadTask
+        if let rd = resumeData, !rd.isEmpty {
+            task = session.downloadTask(withResumeData: rd)   // ← 断点续传：接着下，不从零开始
+        } else {
+            task = session.downloadTask(with: url)
+        }
+        jobs[task.taskIdentifier] = Job(url: url, progress: progress, completion: completion, attempt: attempt)
+        task.resume()
+    }
+
+    private func settle(_ task: URLSessionTask, _ r: Result<URL, Error>) {
+        var job: Job?
+        q.sync { job = jobs.removeValue(forKey: task.taskIdentifier) }
+        job?.completion(r)
+    }
+
+    func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask,
+                    didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        var p: ((Double) -> Void)?
+        q.sync { p = jobs[downloadTask.taskIdentifier]?.progress }
+        guard totalBytesExpectedToWrite > 0, let p else { return }
+        p(Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))
+    }
+
+    func urlSession(_ s: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {
+        if let h = downloadTask.response as? HTTPURLResponse, !(200..<300).contains(h.statusCode) {
+            settle(downloadTask, .failure(URLError(.badServerResponse))); return
+        }
         let keep = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        do { try FileManager.default.moveItem(at: location, to: keep); settle(.success(keep)) } catch { settle(.failure(error)) }
+        do { try FileManager.default.moveItem(at: location, to: keep); settle(downloadTask, .success(keep)) }
+        catch { settle(downloadTask, .failure(error)) }
     }
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if let error { settle(.failure(error)) }
+
+    func urlSession(_ s: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let error else { return }
+        var job: Job?
+        q.sync { job = jobs[task.taskIdentifier] }
+        guard let job else { return }
+        guard mtdlRetryable(error), job.attempt + 1 < Self.maxAttempts else {
+            settle(task, .failure(error)); return
+        }
+        // 手边的 resume data —— 真机上就是这个字段带着 11862 字节，以前被我们丢掉了。
+        let rd = (error as NSError).userInfo[NSURLSessionDownloadTaskResumeData] as? Data
+        let n = job.attempt + 1
+        let delay = (n - 1) < Self.backoff.count ? Self.backoff[n - 1] : 300
+        q.asyncAfter(deadline: .now() + delay) {
+            self.q.sync { _ = self.jobs.removeValue(forKey: task.taskIdentifier) }
+            self.start(job.url, attempt: n, resumeData: rd, progress: job.progress) { r in job.completion(r) }
+        }
+    }
+}
+
+/// 可重试的失败：网络类。校验不过、HTTP 4xx 这类重试没有意义（重试一万次也一样）。
+private func mtdlRetryable(_ error: Error) -> Bool {
+    let e = error as NSError
+    guard e.domain == NSURLErrorDomain else { return false }
+    switch e.code {
+    case NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+         NSURLErrorTimedOut, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+         NSURLErrorDataNotAllowed, NSURLErrorSecureConnectionFailed,
+         NSURLErrorDNSLookupFailed, NSURLErrorInternationalRoamingOff:
+        return true
+    default: return false
+    }
+}
+
+/// 下载失败 ⇒ **协议码**（不是文案、也不是系统原文）。人话由 JS 用既有 i18n 键拼。
+private func mtdlCode(_ error: Error) -> String {
+    let e = error as NSError
+    guard e.domain == NSURLErrorDomain else { return "load" }
+    switch e.code {
+    case NSURLErrorCannotDecodeContentData:
+        return "sha"                       // 我校验对不上（download() 里自己抛的）
+    case NSURLErrorNetworkConnectionLost, NSURLErrorNotConnectedToInternet,
+         NSURLErrorTimedOut, NSURLErrorCannotConnectToHost, NSURLErrorCannotFindHost,
+         NSURLErrorDataNotAllowed, NSURLErrorDNSLookupFailed, NSURLErrorInternationalRoamingOff:
+        return "offline"
+    case NSURLErrorBadServerResponse, NSURLErrorBadURL, NSURLErrorUnsupportedURL:
+        return "http"
+    default:
+        return "load"
     }
 }

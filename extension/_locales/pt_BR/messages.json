@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "As frases que você lê no navegador são sincronizadas aqui para revisão."
+    "message": "Vídeos, conversas, documentos — traduzidos enquanto você ouve. O áudio é processado apenas no seu aparelho."
   },
   "app_email_label": {
     "message": "E-mail"
@@ -895,9 +895,6 @@
   },
   "app_back_email": {
     "message": "Usar outro e-mail"
-  },
-  "app_local_note": {
-    "message": "Opcional. Tudo funciona sem entrar — captura e revisão ficam neste aparelho; entrar serve apenas para sincronizar com seus outros dispositivos."
   },
   "app_signout": {
     "message": "Sair"
@@ -1141,6 +1138,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "Não foi possível ler o estado de login (falha de leitura do armazenamento); tentaremos novamente em breve — isso não significa que você foi desconectado."
@@ -1700,20 +1700,11 @@
   "app_ext_open_safari": {
     "message": "Ativar a extensão no Safari →"
   },
-  "app_so_review_title": {
-    "message": "Revisar frases salvas neste dispositivo"
-  },
-  "app_so_review_due": {
-    "message": "{n} cartões para revisar hoje"
-  },
-  "app_so_review_total": {
-    "message": "{n} frases salvas"
-  },
   "app_ext_done": {
     "message": "Já ativei"
   },
   "app_signin_why": {
-    "message": "Os cartões são capturados pela extensão do navegador. Entre com a mesma conta e eles sincronizam com este aparelho."
+    "message": "Entrar traz o crédito grátis e baixa os dois pacotes de voz neste aparelho — nada mais para configurar."
   },
   "app_signin_open": {
     "message": "Entrar"
@@ -2517,6 +2508,12 @@
   "listen_lang_note": {
     "message": "Os dois idiomas precisam ser diferentes. Também dá para mudar no rodapé da tela de conversa — é o mesmo ajuste."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "não suportado pelo mecanismo atual"
+  },
+  "listen_lang_change_engine": {
+    "message": "Alterar mecanismo"
+  },
   "listen_lang_swapped": {
     "message": "Os idiomas precisam ser diferentes — trocamos"
   },
@@ -2540,6 +2537,12 @@
   },
   "app_today_due": {
     "message": "Para hoje"
+  },
+  "home_cta_subs": {
+    "message": "Iniciar legendas ao vivo"
+  },
+  "home_cta_listen": {
+    "message": "Iniciar conversa"
   },
   "app_last_sync": {
     "message": "Última sincronização {t}"
@@ -2866,7 +2869,7 @@
     "message": "Abrir o console ↗"
   },
   "grant_cn_why": {
-    "message": "Aqui ainda não distribuímos crédito nosso: isso exige um servidor no país, e ele não está pronto."
+    "message": "Ainda não distribuímos crédito nós mesmos: isso exige um relay dentro do país, ainda não aberto."
   },
   "subtitle_source_label": {
     "message": "Legendas ao vivo"
@@ -3725,5 +3728,50 @@
   },
   "learn_group_bye": {
     "message": "O resto pode esperar — é só voltar."
+  },
+  "firstrun_packs_title": {
+    "message": "Baixe primeiro os dois pacotes de voz"
+  },
+  "firstrun_packs_lede": {
+    "message": "Com isso você não precisa configurar mais nada: tradução, interpretação, legendas e leitura em voz alta funcionam na hora. O áudio é processado só no seu aparelho."
+  },
+  "firstrun_packs_asr": {
+    "message": "Pacote de reconhecimento (interpretação / legendas ao vivo)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Pacote de voz de alta qualidade (leitura / podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Pronto"
+  },
+  "firstrun_packs_net": {
+    "message": "Recomendamos Wi-Fi; dados móveis também servem — você decide."
+  },
+  "firstrun_packs_busy": {
+    "message": "Baixando…"
+  },
+  "firstrun_packs_go": {
+    "message": "Baixar e continuar"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Baixar só o pacote de voz e continuar"
+  },
+  "firstrun_packs_err": {
+    "message": "O download não terminou: {why} — verifique a conexão e toque de novo."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "O download do pacote de voz do sistema travou — verifique a conexão e tente de novo."
+  },
+  "engine_status_ok": {
+    "message": "Configurado com a sua conta: tradução · transcrição · leitura — usável aqui"
+  },
+  "engine_status_missing": {
+    "message": "Falta uma coisa: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Motor de leitura não configurado — Ajustes › Leitura, escolher uma voz"
+  },
+  "engine_status_fix_translate": {
+    "message": "Motor de tradução não configurado — Ajustes › Motor"
   }
 }

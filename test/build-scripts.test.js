@@ -1618,6 +1618,27 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     }
   });
 
+  test('locale 归一化（2026-10-02 真机；2026-10-04 扩到两台转写器）：构造都不许直接吃短码', () => {
+    const body = stripComments(tpl);
+    ok(!/SpeechTranscriber\(locale: Locale\(identifier:/.test(body),
+      '不许直接 Locale(identifier:) 构造 —— 短码 "en" 会抛 SFSpeechErrorDomain Code=4（屏 2 的识别包永远装不上）');
+    ok(!/DictationTranscriber\(locale: Locale\(identifier:/.test(body),
+      'DictationTranscriber 同样不许直接吃 Locale(identifier:)');
+    // 2026-10-04：选择改由 `mtTranscriberFor` 统一做（窄的不支持就问宽的），三处仍必须经过它。
+    eq((body.match(/await mtTranscriberFor\(/g) || []).length, 3,
+      '三处（probe / assets / transcriber）都要经 mtTranscriberFor 选与归一化');
+    ok(/func mtSpeechLocale\(/.test(body) && /func mtDictationLocale\(/.test(body),
+      '两台各自的归一化助手都要在（2026-10-04 起不只有 SpeechTranscriber）');
+    eq((body.match(/supportedLocale\(equivalentTo:/g) || []).length, 2,
+      '两个助手都要用 Apple 配方的 supportedLocale(equivalentTo:)');
+  });
+  test('识别包装不上时 fail fast（2026-10-02 真机）：failed 之后必须补一条 stt-state', () => {
+    const body = stripComments(tpl);
+    const failIdx = body.indexOf('"state": "failed", "reason": String(describing: error)');
+    const fastIdx = body.indexOf('"state": "ready", "assets": "missing"');
+    ok(failIdx > 0, '要有 assets-progress 的 failed 分支');
+    ok(fastIdx > failIdx, 'failed 之后要立刻发 stt-state（否则 JS 只能干等 120 s 超时，真因不可见）');
+  });
   test('it carries no user-visible copy — states and reasons are protocol ids', () => {
     const strings = stripComments(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"mtSpeech"',
@@ -1633,7 +1654,16 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
+      // 引擎类型（2026-10-03，高质量语音）：清单里的 `type` 值与 Kokoro 多出来的字段名 ——
+      // 都是**协议值**（清单字段），不是文案。
+      '"vits"', '"kokoro"', '"voices"', '"dictDir"', '"lexicon"', '"kokoroLang"', '","',
+      // 后台续传（2026-10-04）：会话标识 + 下载失败的协议码（offline/http/sha/load）。
+      // 界面只认码，人话在 JS 侧用既有 i18n 键拼 —— 真机上那句 Error Domain=… 就是从
+      // 「reason 送 String(describing: error)」漏出去的。
+      '"com.belliedmonkeytranslator.mt-speech.download"', '"mt.speech.download"',
+      '"offline"', '"http"', '"sha"', '"load"',
       '"supported"',   // stt-state 里本机识别器支持的 locale 清单（2026-09-17）：JS 据此只列支持的语言
+      '"ready"', '"total"', '"completed"',   // assets-progress 的诊断字段（2026-10-02）：AssetInventory 的可用性/字节数，文案由 JS 拼
       '"url-probe"', '"https"', '"Range"', '"bytes=0-0"', '"ok"', '"status"',   // 地址可用性探测（learning-design §9.6.1.1，2026-09-17）：Range 0-0，回 ok/status
       // 状态 / 原因 id
       '"ready"', '"unsupported"', '"failed"', '"ended"', '"installed"', '"missing"', '"downloading"',
@@ -2478,7 +2508,7 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     const out = path.join(ROOT, 'dist-app', 'ExtCopy.json');
     if (!fs.existsSync(out)) return;   // 还没构建过
     const j = JSON.parse(fs.readFileSync(out, 'utf8'));
-    eq(Object.keys(j).length, 12, '12 个语种');
+    eq(Object.keys(j).length, 13, '13 个语种');
     ok(j['zh-Hans'] && j['zh-Hant'] && j['pt-BR'], '目录名要换成系统的语言码');
     for (const lang of Object.keys(j)) for (const k of COPY_KEYS) ok(j[lang][k], lang + ' 缺 ' + k);
   });
@@ -2609,7 +2639,7 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     }
     const { COPY_KEYS } = require('../build/ext-bundle.js');
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
-    eq(locales.length, 12);
+    eq(locales.length, 13);
     for (const l of locales) {
       const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
       for (const k of COPY_KEYS) ok(m[k] && m[k].message, `${l} 缺 ${k}`);

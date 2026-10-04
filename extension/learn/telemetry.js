@@ -9,7 +9,9 @@
 //   ③ **可关且关了即删**：tm:on=false 之后 track() 是空操作；关的那一刻发唯一一条
 //      telemetry_off（服务端据此删掉这个 id 的全部行），本机 id 与队列一并清掉。
 //
-// 中国版：build.js 把 MT_TELEMETRY 发成 null，这个文件在那个 flavor 里从头到尾是空操作。
+// 中国版：build.js 把 MT_TELEMETRY 发成 null。那个 flavor 里这个文件**不发任何东西**，
+// 但**不是**空操作：`auth_fail` 会留在本机（`mt:diag`，上限 20 条，见 trackOne 的注释）。
+// 理由：境内后端只有中国版会碰到，而那条路上「登录失败」原本不留任何痕迹。
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
 // 距上次 ≥ 60 s、或扩展页打开时 flush 一次。请求体用 text/plain —— 简单请求，不触发
@@ -151,6 +153,26 @@ var MTTelemetry = (() => {
     };
   }
 
+  // ── 本机诊断（只有「这个 build 根本没有遥测」时才写）────────────────────────
+  // 中国版**按承诺一个字节都不发**（AGENTS.md 规则 4；belliedmonkey.com 写死）。代价是
+  // 「登录失败」在那个 flavor 里不留任何痕迹 —— 而境内后端恰恰只有那个 flavor 会碰到。
+  // 折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**。
+  //
+  // 判定用 `spec() === null`（＝这个 build 压根没有遥测），**不是** `enabled()`：
+  // 用户自己把遥测关掉（有 spec、`tm:on=false`）**不写** —— 那是他的选择，
+  // 不该被一个本机副本绕过。
+  const DIAG_KEY = 'mt:diag', DIAG_CAP = 20;
+  function diag(name, props, now) {
+    try {
+      if (typeof localStorage === 'undefined') return;
+      const prev = JSON.parse(localStorage.getItem(DIAG_KEY) || '[]');
+      const q = Array.isArray(prev) ? prev : [];
+      q.push({ name: name, props: props || {}, ts: ts(now) });
+      while (q.length > DIAG_CAP) q.shift();
+      localStorage.setItem(DIAG_KEY, JSON.stringify(q));
+    } catch (_) {}
+  }
+
   // ── 入队 / 发送 ─────────────────────────────────────────────────────────────
   // 同一页面里的入队串行化：队列是「读-改-写」，两条 track 交错会互相覆盖（页面上
   // translate_fail 一段一条，401 那种一拍五条并发正好撞上）。跨标签页的交错仍在 ——
@@ -163,6 +185,12 @@ var MTTelemetry = (() => {
   }
   async function trackOne(name, props, now) {
     try {
+      // 这个 build 没有遥测（中国版）：不发，但把登录失败留在本机（见上）。
+      // 只记 auth_fail —— 其余事件没有「查一个具体故障」的用途，留了只是噪声。
+      if (!spec()) {
+        if (name === 'auth_fail') diag(name, props, now);
+        return false;
+      }
       if (!(await enabled())) return false;
       const e = shape(name, props, now);
       if (!e) return false;
@@ -301,6 +329,8 @@ var MTTelemetry = (() => {
     track, once, flush, init, enabled, setEnabled, installId, dwell,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
+    // 本机诊断（中国版那条路）：只读出口，给测试与「从设备容器里读回来」用。
+    _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
 })();
 

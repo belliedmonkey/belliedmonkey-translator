@@ -1330,8 +1330,13 @@ validateManifest(DIST, isFirefox);
 // content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 懒加载
 // （动态 import）是给新 UI 字节的唯一通道；把新字节塞进同步列表的改动在这里红，
 // 正当增长（如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
-// 基线 2026-09-28（PR7c 代码，global flavor）：3381059 字节。i18n-messages.js 在
-// 两个匹配块各出现一次，和按清单字面求和 —— 同步面执行几次就计几次。
+// 基线 2026-10-03（第 13 门界面语言「泰国语」加入后，global flavor）：3756331 字节。
+//   上一次钉 3381059（2026-09-28，PR7c）。本次 +375272 字节，其中**泰国语 ≈ 336 KB** ——
+//   生成表里 `"th":{…}` 一段 168107 字节，而 i18n-messages.js 在同步清单里出现两次，
+//   和按清单字面求和（同一门语言的字节算两遍，见下面那句）。加泰语之前 ≈ 3420117，
+//   本就在 +150 KB 预算内；**一门语言一个人就超了预算**，所以这次必须显式重新钉。
+//   这是正当增长（同步面本来就该有的东西：一门语言的界面文案），不是把新 UI 塞进同步列表。
+// i18n-messages.js 在两个匹配块各出现一次，和按清单字面求和 —— 同步面执行几次就计几次。
 function contentSyncBytesGate(distDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
   let total = 0;
@@ -1345,7 +1350,7 @@ function contentSyncBytesGate(distDir) {
       total += fs.statSync(p).size;
     }
   }
-  const PIN = 3381059;
+  const PIN = 3756331;
   const BUDGET = 150 * 1024;
   if (total > PIN + BUDGET) {
     throw new Error(`contentSyncBytesGate: 同步注入面 ${total} 字节 > 基线 ${PIN}+150KB。` +

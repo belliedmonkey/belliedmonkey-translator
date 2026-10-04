@@ -1294,18 +1294,36 @@ const listenModel = (() => {
     const e = Registry.langs().find((l) => l.code === base || l.code === c);
     return e ? (e.labelKey ? t(e.labelKey, e.label) : e.label) : c;
   }
-  // 语言下拉的选项（wire 里 fillLangSel 的数据版）：只列本机识别器支持的语种（清单由桥在
-  // stt-probe 时报出；没探过就不过滤），正选中的照旧留着 —— 与设置页同一条规则。
+  // 语言下拉的选项（wire 里 fillLangSel 的数据版）：**始终列全注册表**。
+  // 2026-10-04 用户裁定「所有选语言的地方都要有泰语（ไทย）……不能只在部分入口有」——
+  // 引擎当下不支持的语言**不从列表里拿掉**，而是标记出来（`disabled` + 后缀），
+  // 并在这一行旁边给「换引擎」的出路（见 ListenView）。
   function langOptions(keep) {
     let allowed = null;
     try { const l = deviceBridge() ? NativeSpeech.supportedLocales() : []; if (l.length) allowed = new Set(l.map((x) => String(x).split(/[-_]/)[0].toLowerCase())); } catch (_) { allowed = null; }
     const out = [];
     for (const l of Registry.langs()) {
-      if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
-      out.push({ code: l.code, label: l.labelKey ? t(l.labelKey, l.label) : l.label });
+      const code = String(l.code).toLowerCase();
+      const name = l.labelKey ? t(l.labelKey, l.label) : l.label;
+      // 正选中那门照旧留着（与设置页同一条规则：不能把用户当前的选择从列表里抹掉）。
+      const bad = !!(allowed && !allowed.has(code) && l.code !== keep);
+      out.push({
+        code: l.code,
+        label: bad ? name + ' · ' + t('listen_lang_engine_unsupported', '当前引擎不支持') : name,
+        disabled: bad,
+        note: bad ? t('listen_lang_engine_unsupported', '当前引擎不支持') : '',
+      });
     }
     return out;
   }
+
+  /// 行上的「换引擎」由 shell 注入（它才拥有 openSettings）—— 与 §10 里「模型画控件、shell 管跳转」
+  /// 同一条分工。听译页原来的出路只是一句「去设置里选」，用户 2026-10-04 裁定要**就地**给入口。
+  let openEnginePicker = null;
+  function setOpenEnginePicker(fn) { openEnginePicker = fn; }
+  function changeEngine() { try { if (openEnginePicker) openEnginePicker(); } catch (_) {} }
+  /// 这一页此刻有没有被引擎挡住的语言（有才显示「换引擎」）。
+  function anyLangUnsupported() { return langOptions(null).some((o) => o.disabled); }
   // 语言对状态从盘上回填（wire 里 paintLangs 的存储读；wire 时调一次，storage.onChanged 的
   // listenMyLang/listenOtherLang 分支也会顺路经 refreshEntry 重探 —— 下拉的值以这里为准）。
   function keepLangSel() {
@@ -1459,7 +1477,12 @@ const listenModel = (() => {
   // 原 wire() 的事件挂载与静态文案全部落到 listen-view.jsx（JSX + onClick）；
   // 这里只留 IO 订阅与初始探询。回调经 model 动作（导出的 open 等），与原 addEventListener
   // 挂的是同一批函数。
-  function wire() {
+  function wire(opts) {
+    // 「换引擎」就地入口（2026-10-04）：shell 拥有 openSettings，所以由它注入 —— 与
+    // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
+    if (opts && typeof opts.openSettings === 'function') {
+      setOpenEnginePicker(() => opts.openSettings('stt-engine'));
+    }
     refreshEntry();
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
@@ -1491,6 +1514,7 @@ const listenModel = (() => {
     historyView, summaryView, showView, pipNoteText, pipFloatShown,
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,
+    setOpenEnginePicker, changeEngine, anyLangUnsupported,
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,

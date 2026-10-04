@@ -3,6 +3,64 @@
 > **生成的文件，不要手改。** 来源是 `store-assets/release-notes-*.md`（App Store「新功能」栏的唯一真源）；
 > 改内容请改那里，然后跑 `node scripts/gen-changelog.js`。日期是该版发布说明首次进仓库的那天。
 
+## 1.19.0 — 2026-09-30
+
+- App (iPhone / iPad / Mac) · New: First launch is now three steps — sign in, download the two speech packs to this device, then onboarding. Those packs used to download the first time you needed them, which meant a failure landed exactly when you had started using the app; now it happens at the door, with progress and a retry.
+- App (iPhone / iPad / Mac) · Changed: The app now requires signing in before it can be used — the engine arrives with your account and the two speech packs have to live on this device, so signing in is what "set up" means. The browser extension is unaffected: it still works signed-out with your own key.
+- App (iPhone / iPad / Mac) · New: The system translation sheet now has three text sizes — Small, Standard, Large — on top of your system text size. Pick it in Settings › System translation; it takes effect the next time the sheet opens.
+- App (iPhone / iPad / Mac) · Fixed: After quitting and reopening, the home screen could show "not signed in" while Settings still showed you signed in. Both now read the same state, and a momentary storage hiccup is no longer treated as a sign-out.
+- App (iPhone / iPad / Mac) · Fixed: If the device still had an old (expired or mistyped) API key, signing in could skip claiming the free credit entirely — and the claim toast could still say "ready" while translation kept using that old key. Claiming now always happens, your own key is never touched, and the message says what actually happened.
+- App (iPhone / iPad / Mac) · Improved: The greyed-out Live Subtitles entry no longer mentions macOS 14.4 — that requirement was replaced by the on-device recognizer's iOS / macOS 26 floor.
+- App and browser extension · New: The interface now uses the two type families from our design system — Figtree for body text and Caprasimo for headings. Latin script only; CJK keeps the system font, so Chinese looks exactly as before.
+- App and browser extension · Accessibility: Tabbing through the UI now shows a focus ring on every surface — before this only the settings page had one, so the popup, the review page and the app gave no clue where you were.
+- Extension · Improved: The in-page subtitle line and its control menu now follow the shape language the rest of the product uses — radii collapsed onto the same three steps, and the menu's checkmark is no longer a green that belongs to nobody.
+
+<details><summary>中文</summary>
+
+- App（iPhone / iPad / Mac）· 新：首次打开改成三步 —— 先登录，再把两个语音包下到本机，最后才是引导。以前这两样是「第一次用到才下」，失败正好发生在你已经开始用的那一刻；现在它在门口一次说清，可重试、有进度。
+- App（iPhone / iPad / Mac）· 变化：App 现在要先登录才给用 —— 引擎随登录到账、两个语音包要下到本机，登录是「配好了」的前提。浏览器扩展不受影响：仍然免登录、自带 key 可用。
+- App（iPhone / iPad / Mac）· 新：系统翻译弹层的字号可以调了 —— 小 / 标准 / 大三档，叠在你系统的文字大小之上。在「设置 › 系统翻译」里选，选完下次弹出生效。
+- App（iPhone / iPad / Mac）· 修复：退出重开后，首页有时会显示「未登录」，而同一次运行里设置页还是已登录 —— 两处现在读同一个状态；存储的一次瞬时读失败也不再被当成「已退出登录」。
+- App（iPhone / iPad / Mac）· 修复：设备上留着一把旧 key（失效的、或写错的）时，登录可能整个跳过领取免费额度，而「领取」还会回你一句「已配好」—— 翻译其实仍在用那把旧 key。现在领取一定会发生、你自己填的 key 一个字都不会被动、回执说的是实际发生的事。
+- App（iPhone / iPad / Mac）· 改进：实时字幕入口灰掉时那句过时的「需要 macOS 14.4 或更新」删了 —— 那条要求早已被设备内置识别器的 iOS / macOS 26 下限取代，现在只说真的那一句。
+- App 与浏览器扩展 · 新：界面字体换成了设计稿的那两个字族 —— 拉丁字母用 Figtree（正文）与 Caprasimo（标题）；中文仍是系统字，所以中文的观感一点没变。
+- App 与浏览器扩展 · 无障碍：用键盘 Tab 走一遍时，焦点环现在每个面都有 —— 此前只有设置页一处，弹窗、复习页与 App 里都看不出自己在哪。
+- 扩展 · 改进：网页里的字幕条与字幕控制菜单并进全站形态语言 —— 圆角统一到三档（小元件 / 面板 / 胶囊），控制菜单里那个勾选号原先是一种不属于本站配色的绿，现在是品牌绿。
+
+</details>
+
+## 1.18.0 — 2026-09-30
+
+- Browser extension · Fixed: When a YouTube transcript can't be fetched, the extension no longer retries the same request over and over — repeated requests are exactly what triggers YouTube's transcript blocking, which takes down even the native captions that still worked. At most 3 requests per video now, with a clear "subtitles unavailable" instead of a broken pipeline.
+- App & browser extension · Fixed: When the network keeps timing out, translation stops by itself after 5 consecutive timeouts instead of retrying forever — tap "Retry" to resume. No more endless spinning.
+- App (iPhone / iPad / Mac) · New: The first screen asks what you came for — "read web pages", "listen", or "both" — and picks the path to match; if you only want listening, it no longer pushes you toward the extension.
+- App (iPhone / iPad) · Fixed: The "open the extension in Safari" banner no longer keeps coming back — one tap counts as asked; and an extension you already set up is no longer treated as missing just because it hasn't captured sentences yet.
+- App & browser extension · Improved: Review opens without signing in; finishing a session ends more clearly (one graded card completes it); the hardly-used "check page" link is gone.
+- App & browser extension · Internal: The entire UI layer now runs on React — same behavior, same look — so future interface work moves faster.
+
+<details><summary>中文</summary>
+
+- 浏览器扩展 · 修复：YouTube 字幕拿不到时不再反复重试 —— 反复请求恰好会触发 YouTube 对字幕的封锁，连原生字幕都会跟着失效；现在每个视频至多请求 3 次，拿不到就明确显示「字幕不可用」，不再拖垮你本来能用的字幕。
+- App 与浏览器扩展 · 修复：网络一直超时时，连续 5 次超时就自动停下来（不再无限重试），点一下「重试」即恢复 —— 不再白白转圈。
+- App（iPhone / iPad / Mac）· 新：第一屏先问你要什么 —— 「读网页」「听」或「都要」，按你的选择走不同的路；只想听的人不再被引导去装扩展。
+- App（iPhone / iPad）· 修复：「在 Safari 里打开扩展」的横幅不再反复出现 —— 点过一次就算问过了；也不再因为还没抓到句子，就把你已经装好的扩展当成没打开。
+- App 与浏览器扩展 · 改进：没有登录也能进复习页；复习收尾更明确（评过一张就算完成）；去掉了几乎没人用的「检测页」入口。
+- App 与浏览器扩展 · 内部：界面层整体迁移到了 React —— 行为与外观不变，为的是后面把界面改得更快更稳。
+
+</details>
+
+## 1.17.0 — 2026-09-30
+
+- App & browser extension · Improved: The line under translations no longer asks for a store rating. It now reads "Review the sentences you read today →" and takes you straight back to review — and it only appears after you have really used it a few days running, at most once a day.
+- App (iPhone / iPad / Mac) · Improved: Rating requests now happen at moments you actually got something — a review group finished, a live-translation or live-subtitle session that captured sentences, quick translations that came in handy, new sentences in the system-translation inbox — asked by the system's own prompt, never a custom popup.
+
+<details><summary>中文</summary>
+
+- App 与浏览器扩展 · 改进：译文末尾那行不再请你评分，改成了「今天读过的句子，去 App 里复习 →」—— 一键回到 App 的复习。而且只在你真的连用了几天之后才出现，每天至多一次。
+- App（iPhone / iPad / Mac）· 改进：评分请求挪到真正的收获时刻 —— 一组复习做完、听译或实时字幕结束有句子、Mac 快速翻译用顺手之后、系统翻译收件箱有新句子，由系统自带的评分弹窗来问，我们不再自己画一个。
+
+</details>
+
 ## 1.16.0 — 2026-09-24
 
 - App (iPhone / iPad / Mac) & browser extension · New: Review now counts showing up — five cards make a group, finishing one is a real stopping point, and days with nothing due still count. You can see how many days in a row you have come back.

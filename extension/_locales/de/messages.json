@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Sätze, die du im Browser liest, werden zum Wiederholen hierher synchronisiert."
+    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Audio wird nur auf deinem Gerät verarbeitet."
   },
   "app_email_label": {
     "message": "E-Mail"
@@ -895,9 +895,6 @@
   },
   "app_back_email": {
     "message": "Andere E-Mail verwenden"
-  },
-  "app_local_note": {
-    "message": "Optional. Alles funktioniert auch ohne Anmeldung — Sammeln und Wiederholen bleiben auf diesem Gerät; die Anmeldung dient nur der Synchronisierung mit Ihren anderen Geräten."
   },
   "app_signout": {
     "message": "Abmelden"
@@ -1141,6 +1138,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "Anmeldestatus konnte nicht gelesen werden (Speicher-Lesefehler); es wird gleich erneut versucht — das bedeutet nicht, dass Sie abgemeldet wurden."
@@ -1700,20 +1700,11 @@
   "app_ext_open_safari": {
     "message": "Erweiterung in Safari aktivieren →"
   },
-  "app_so_review_title": {
-    "message": "Auf diesem Gerät gespeicherte Sätze wiederholen"
-  },
-  "app_so_review_due": {
-    "message": "Heute {n} Karten fällig"
-  },
-  "app_so_review_total": {
-    "message": "{n} Sätze gespeichert"
-  },
   "app_ext_done": {
     "message": "Ich habe sie aktiviert"
   },
   "app_signin_why": {
-    "message": "Karten werden von der Browser-Erweiterung gesammelt. Mit demselben Konto anmelden, und sie werden auf dieses Gerät synchronisiert."
+    "message": "Beim Anmelden kommt das Gratis-Guthaben und die beiden Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
   },
   "app_signin_open": {
     "message": "Anmelden"
@@ -2517,6 +2508,12 @@
   "listen_lang_note": {
     "message": "Die beiden Sprachen müssen verschieden sein. Auch unten im Gesprächsbildschirm änderbar — dieselbe Einstellung."
   },
+  "listen_lang_engine_unsupported": {
+    "message": "von der aktuellen Engine nicht unterstützt"
+  },
+  "listen_lang_change_engine": {
+    "message": "Engine wechseln"
+  },
   "listen_lang_swapped": {
     "message": "Die Sprachen müssen verschieden sein — getauscht"
   },
@@ -2540,6 +2537,12 @@
   },
   "app_today_due": {
     "message": "Heute fällig"
+  },
+  "home_cta_subs": {
+    "message": "Live-Untertitel starten"
+  },
+  "home_cta_listen": {
+    "message": "Gespräch starten"
   },
   "app_last_sync": {
     "message": "Zuletzt synchronisiert {t}"
@@ -2866,7 +2869,7 @@
     "message": "Konsole öffnen ↗"
   },
   "grant_cn_why": {
-    "message": "Wir geben hier noch kein eigenes Guthaben aus: dafür braucht es einen Server im Land, der noch nicht steht."
+    "message": "Wir vergeben noch kein Guthaben selbst: Dafür braucht es einen Relay im Land, der noch nicht läuft."
   },
   "subtitle_source_label": {
     "message": "Live-Untertitel"
@@ -3725,5 +3728,50 @@
   },
   "learn_group_bye": {
     "message": "Der Rest kann warten — komm einfach wieder."
+  },
+  "firstrun_packs_title": {
+    "message": "Zuerst die beiden Sprachpakete laden"
+  },
+  "firstrun_packs_lede": {
+    "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Audio wird nur auf deinem Gerät verarbeitet."
+  },
+  "firstrun_packs_asr": {
+    "message": "Spracherkennung (Dolmetschen / Live-Untertitel)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Hochwertige Stimme (Vorlesen / Podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Bereit"
+  },
+  "firstrun_packs_net": {
+    "message": "Am besten über WLAN; mobil geht auch — deine Entscheidung."
+  },
+  "firstrun_packs_busy": {
+    "message": "Wird geladen…"
+  },
+  "firstrun_packs_go": {
+    "message": "Laden und weiter"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Nur das Stimm-Paket laden und weiter"
+  },
+  "firstrun_packs_err": {
+    "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen."
+  },
+  "engine_status_ok": {
+    "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar"
+  },
+  "engine_status_missing": {
+    "message": "Eines fehlt: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen"
+  },
+  "engine_status_fix_translate": {
+    "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen"
   }
 }

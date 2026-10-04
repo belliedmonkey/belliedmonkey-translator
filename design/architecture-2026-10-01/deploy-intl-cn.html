@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 部署架构（国际 / 中国）· 2026-10-01</title>
+<style>
+  :root{
+    --cream:#f5ead8; --panel:#fff; --ink:#201e1d; --muted:#6b645c; --line:#e0d5c2;
+    --terra:#c67139; --btn:#ac6231; --green:#56633f; --danger:#b3261e;
+    --intl:#3a5a78;      /* 国际：冷蓝 */
+    --cn:#8a4f1c;        /* 中国：暖褐 */
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--cream);color:var(--ink);
+    font:15px/1.62 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  main{max-width:1240px;margin:0 auto;padding:32px 24px 72px}
+  h1{font-size:27px;margin:0 0 6px}
+  h2{font-size:20px;margin:0 0 4px}
+  h3{font-size:15px;margin:0 0 6px;font-weight:600}
+  p{margin:0 0 8px}
+  .sub{color:var(--muted);max-width:82ch}
+  .rule{height:1px;background:var(--line);margin:24px 0}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  @media (max-width:980px){.g2{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .intl{border-top:4px solid var(--intl)}
+  .cn{border-top:4px solid var(--cn)}
+  .tag{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);background:#fff;margin-left:5px;vertical-align:1px}
+  .tag.i{border-color:#c9d6e2;color:var(--intl);background:#f3f7fa}
+  .tag.c{border-color:#e9c39a;color:var(--cn);background:#fdf3e6}
+  .tag.ok{border-color:#cfe0c6;color:#3f5330;background:#f4f8f0}
+  .tag.warn{border-color:#e6c9c6;color:var(--danger);background:#fdf1f0}
+  .mono{font-family:var(--mono);font-size:12.5px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  th{background:#fbf4e8;font-weight:600}
+  td.k{background:#fdfaf4;white-space:nowrap;color:var(--muted)}
+  .tree{font-family:var(--mono);font-size:12.5px;line-height:1.95;white-space:pre;overflow-x:auto;background:#fffdf9;border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .band{background:#201e1d;color:#f7f1e6;border-radius:14px;padding:16px 18px}
+  .band h3{color:#f7f1e6}
+  .band .mono{color:#f0dcc2}
+  ul{margin:6px 0 0;padding-left:18px} li{margin:2px 0}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:10px}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+</style>
+</head>
+<body>
+<main>
+  <h1>大肚猴翻译 · 部署架构（国际 / 中国）</h1>
+  <p class="sub">2026-10-01。**两套完全独立的分发与后端**，不是同一个 App 的区域配置。分发状态取自 gbrain 权威页
+  「各商店发布状态」（**最后实测 2026-09-30**，`node scripts/asc.js versions` 直读 ASC）+ 今天的现场复验；
+  中国版额度链路是**今天新上线的**（`grant.china.ready = true`，issue #532）；版本面另有 1.19.0 在途（§0.5）。</p>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--intl)"></i>国际（东京）</span>
+    <span><i class="dot" style="background:var(--cn)"></i>中国（北京）</span>
+    <span><i class="dot" style="background:#cfe0c6"></i>今天新上线 / 已回读</span>
+    <span><i class="dot" style="background:#e6c9c6"></i>在途 / 待复验</span>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── 一览表 ─────────────────────────────────────────────────── -->
+  <h2>0 · 两侧一览</h2>
+  <table style="margin-top:10px">
+    <tr><th style="width:150px"></th><th>国际版</th><th>中国版</th></tr>
+    <tr><td class="k">App bundle id</td><td class="mono">com.belliedmonkeytranslator</td><td class="mono">com.belliedmonkeytranslator.cn</td></tr>
+    <tr><td class="k">App Store</td><td>id <span class="mono">6787190032</span> · iOS <b>1.18.0 b117</b> 已上架 · macOS b68 <span class="tag warn">在审</span></td><td>独立 app 记录 · iOS <b>1.18.0 b59</b> 已上架 · macOS <b>b59</b> 已上架</td></tr>
+    <tr><td class="k">扩展分发</td><td>Chrome Web Store <b>1.18.0</b> · Firefox AMO <b>public 1.18.0</b> · GitHub Release <b>v1.18.0</b></td><td>中国版产物 <span class="mono">dist-china/</span>（品牌无关，合规门把关）· 随中国版 App 的 Safari 扩展一起分发</td></tr>
+    <tr><td class="k">官网</td><td><span class="mono">belliedmonkey.cc</span>（Vercel）· 8 语言运行时 i18n · 主体 BelliedMonkey, LLC</td><td><span class="mono">belliedmonkey.com</span>（腾讯云 EdgeOne Pages）· 中文单语 · 个人非经营性备案</td></tr>
+    <tr><td class="k">后端</td><td>Supabase 项目 <span class="mono">cavezcufztzqsohpjmup</span>（东京）</td><td>腾讯云轻量 <span class="mono">lhins-6amaoj8m</span>（北京）+ 腾讯云云函数（ap-beijing）</td></tr>
+    <tr><td class="k">域名</td><td><span class="mono">*.supabase.co</span></td><td><span class="mono">api.belliedmonkey.com</span>（ICP 备案接入这台机器）</td></tr>
+    <tr><td class="k">额度上游</td><td>OpenRouter（<span class="mono">deepseek/deepseek-v4-flash</span>）</td><td>阿里云百炼 <span class="mono">dashscope · qwen-plus</span></td></tr>
+    <tr><td class="k">账本</td><td>东京库 <span class="mono">bt_grants / bt_grant_usage</span></td><td><b>境内库</b>同名两张表（与账号同库）</td></tr>
+    <tr><td class="k">遥测</td><td>匿名白名单事件（<span class="mono">bt-ingest</span>）</td><td><b>一个字节都不发</b>（官网写明）</td></tr>
+    <tr><td class="k">离线朗读包托管</td><td>GitHub Releases（默认）· <b>hf-mirror</b>（备用，今天改）</td><td>ModelScope（默认）· hf-mirror（备用）</td></tr>
+  </table>
+
+  <div class="rule"></div>
+
+  <!-- ── 版本：线上 vs 在途 ─────────────────────────────────────── -->
+  <h2>0.5 · 版本：线上 vs 在途（1.19.0）</h2>
+  <p class="sub">线上取自 gbrain 权威页（2026-09-30 实测）。1.19.0 **在途**：内容已合入 main，TestFlight 包已传且 ASC VALID；
+  本轮（首屏三段式 + 中国版额度翻转 + 系统翻译字号三档 + 审计 P0 + 引导文案 + DS-01 字体）落在 1.19.0 里，
+  所以四线要**重打**一次。构建号按平台各计，四线互不共享。</p>
+  <table style="margin-top:10px">
+    <tr><th style="width:110px">面</th><th>线上</th><th>1.19.0 在途</th><th>本轮改动后待重打</th></tr>
+    <tr><td class="k">iOS 国际</td><td>1.18.0 <b>b117</b></td><td>1.19.0 <b>b119</b> <span class="tag ok">ASC VALID</span></td><td><b>b120</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">iOS 中国</td><td>1.18.0 <b>b59</b></td><td>1.19.0 <b>b61</b> <span class="tag ok">ASC VALID</span></td><td><b>b62</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">macOS 中国</td><td>1.18.0 <b>b59</b></td><td>1.19.0 <b>b61</b> <span class="tag ok">ASC VALID</span></td><td><b>b62</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">macOS 国际</td><td>1.18.0 <b>b68</b> <span class="tag warn">在审</span></td><td>1.19.0 <b>b69</b>（本地签名已装 <span class="mono">/Applications</span>；ASC 线等 b68 过审）</td><td><b>b70</b> <span class="tag">待打</span></td></tr>
+    <tr><td class="k">扩展三面</td><td>CWS <b>1.18.0</b> · AMO <b>public 1.18.0</b> · GitHub <b>v1.18.0</b></td><td>随 1.19.0 一起发（**跨仓同版**：两站 changelog + 隐私页）</td><td>—</td></tr>
+    <tr><td class="k">两站</td><td><span class="mono">.cc</span> / <span class="mono">.com</span> VERSION <b>1.18.0</b></td><td>changelog 已生成、随版推</td><td>同版推</td></tr>
+  </table>
+  <p class="sub" style="margin-top:8px">1.19.0 的 headline 是「改版发布」：App 首屏三段式（登录硬门 → 资源包硬门 → 引导）
+  + **中国版免费额度上线**（今天翻转，回读判据见 §3）。</p>
+
+  <div class="rule"></div>
+
+  <!-- ── 两块部署图 ─────────────────────────────────────────────── -->
+  <h2>1 · 部署拓扑</h2>
+  <div class="grid g2" style="margin-top:10px">
+
+    <!-- 国际 -->
+    <div class="card intl">
+      <h3 style="color:var(--intl)">国际版 · 东京（Supabase 托管）</h3>
+      <div class="tree">客户端（扩展 / App）
+  │
+  ├─ 免费路径：自带 key ──────────────────► 提供方直连
+  │    （Google · OpenAI · Claude · DeepSeek · GLM · Qwen · Kimi · OpenRouter）
+  │
+  ├─ 登录 / 同步 ─► https://cavezcufztzqsohpjmup.supabase.co
+  │      ├─ GoTrue            /auth/v1/*
+  │      ├─ PostgREST         /rest/v1/*
+  │      │    ├─ bt_chunks        语料（50 MB 配额，数据库强制）
+  │      │    ├─ bt_usage · bt_daily
+  │      │    ├─ bt_events · bt_optouts   遥测与退订
+  │      │    ├─ bt_grants · bt_grant_usage   额度台账
+  │      │    └─ bt_model_sources         朗读包的默认/备用地址
+  │      └─ Edge Functions（与国内同一份代码）
+  │           ├─ bt-grant         领取（KEK 只在函数密钥里）
+  │           ├─ bt-grant-ledger  窄口 /check · /charge（只认 LEDGER_KEY）
+  │           ├─ bt-relay         额度中继 → OpenRouter
+  │           ├─ bt-ingest        遥测入库
+  │           └─ bt-delete-account 删号（service_role 不出库）
+  │
+  └─ 额度路径：token bmg_… ─► bt-relay ─► OpenRouter</div>
+      <p class="sub" style="margin-top:10px">额度规格：<span class="mono">MT_GRANT.claimUrl = https://cavezcufztzqsohpjmup.supabase.co/functions/v1/bt-grant</span>；
+      台账直连 RPC（该部署不设 <span class="mono">LEDGER_URL</span>）。</p>
+    </div>
+
+    <!-- 中国 -->
+    <div class="card cn">
+      <h3 style="color:var(--cn)">中国版 · 北京（自建，2026-09-22 上线；额度今天翻转）</h3>
+      <div class="tree">客户端（中国版 App / dist-china 扩展）
+  │
+  ├─ 免费路径：自带 key ──────────────────► 提供方直连
+  │    （通义千问 · DeepSeek · GLM · Kimi —— 不含任何境外品牌）
+  │
+  ├─ 登录 / 同步 / 领取 / 窄口 ─► https://api.belliedmonkey.com
+  │      ┌─ 轻量应用服务器 lhins-6amaoj8m（北京 · Ubuntu 24.04 · 2C2G）
+  │      │   Caddy  :443 对外 · :8081 内部（函数用的带前缀入口）
+  │      │     ├─ auth    GoTrue        /auth/v1/*
+  │      │     ├─ rest    PostgREST     /rest/v1/*   ← 内部也补了这一条
+  │      │     ├─ fn      bt-delete-account
+  │      │     ├─ grant   bt-grant      领取              ★ 今天新增
+  │      │     └─ ledger  bt-grant-ledger 窄口 /check /charge ★ 今天新增
+  │      │   db  Postgres = schema.sql + grants.sql + model-sources.sql
+  │      │        └─ bt_grants / bt_grant_usage   ← 账本与账号同库
+  │      └─ 邮件走 QQ SMTP（境内；Gmail 会把收件人带出境）
+  │
+  └─ 额度路径：token bmg_… ─► 云函数 bt-relay ─► 阿里云百炼
+        腾讯云 Web 函数 · ap-beijing · 函数 URL（公网 + CORS）
+        https://1320551096-0kh88p4r7e.ap-beijing.tencentscf.com
+          ├─ /spec     巡检回读（模型必须与注册表同名）
+          ├─ /claim    代转 → 它自己的 SUPABASE_URL（即境内那台）
+          └─ /chat/completions → dashscope · qwen-plus
+              └─ 记账 → LEDGER_URL（境内窄口）→ 境内库</div>
+      <p class="sub" style="margin-top:10px">额度规格：<span class="mono">MT_GRANT.claimUrl = …tencentscf.com/claim</span>；
+      合规门逐条断言中国版产物里**每一个额度地址都在这台云函数主机上**（东京的 bt-grant / bt-relay / bt-ingest 一条都不许有）。</p>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── 边界 ──────────────────────────────────────────────────── -->
+  <h2>2 · 两侧之间的边界（可验证，不是承诺）</h2>
+  <div class="band" style="margin-top:10px">
+    <h3>中国版与东京**没有任何运行时连接**</h3>
+    <div class="grid g2" style="margin-top:8px">
+      <div>
+        <p><b>三条闸门/判据</b></p>
+        <ul>
+          <li><b>构建期</b>：<span class="mono">build/china-gate.js</span> 扫 <span class="mono">dist-china/</span>，出现东京主机即失败（今天仍绿）</li>
+          <li><b>规格期</b>：中国版 <span class="mono">MT_GRANT.claimUrl</span> 指向云函数；<span class="mono">bt-relay</span> 的 <span class="mono">/claim</span> 打它自己的 <span class="mono">SUPABASE_URL</span>（= 境内那台）</li>
+          <li><b>运行期</b>：中国版客户端只连 <span class="mono">api.belliedmonkey.com</span> 与云函数；两份账本各在各的库里</li>
+        </ul>
+      </div>
+      <div>
+        <p><b>为什么这样分</b></p>
+        <ul>
+          <li>App Store 一条记录只能对所有区域发同一个二进制，而大陆合规不允许内置境外 AI 服务 ⇒ 两个 app 记录</li>
+          <li>隐私承诺按 flavor 分开写：<span class="mono">belliedmonkey.com</span> 承诺中国版**不发遥测**——这条只要中国版不连东京就成立</li>
+          <li>账本与账号同库（2026-09-22 裁定）⇒ 删号 cascade 一并带走额度，中继下一次查就是零行</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── 今天新上线的部分 ───────────────────────────────────────── -->
+  <h2>3 · 今天新上线的额度链路：回读判据</h2>
+  <table style="margin-top:10px">
+    <tr><th>判据</th><th>实测</th></tr>
+    <tr><td>云函数 <span class="mono">/spec</span></td><td><b>200</b> · <span class="mono">{"models":{"chat":"qwen-plus"}}</span>（与注册表同名）</td></tr>
+    <tr><td><span class="mono">/claim</span>（无令牌）</td><td><b>401 session</b> —— 这句是境内那台回的 ⇒ 代转通</td></tr>
+    <tr><td>中继带假令牌</td><td><b>401 grant_invalid</b> ⇒ 账本打通、令牌不存在</td></tr>
+    <tr><td>窄口 <span class="mono">/check</span> · <span class="mono">/charge</span></td><td><b>[]</b> · <b>null</b>（200）· 错钥匙 <b>403</b></td></tr>
+    <tr><td>既有链路未受影响</td><td>删号 <b>401</b> · 登录预检 <b>204</b></td></tr>
+    <tr><td>境内延迟（从北京那台量）</td><td><b>0.07–0.16 s</b>（判据 &lt;1 s）· <span class="mono">/claim</span> 0.28 s · 窄口一跳 0.085 s</td></tr>
+  </table>
+  <p class="sub" style="margin-top:8px">实装踩到五处（bind mount 空目录 · PostgREST schema 缓存 · 撤 PUBLIC 后要显式授 service_role · 内部入口缺 <span class="mono">/rest/v1/*</span> ·
+  API 网关触发器已停售改走函数 URL），都写进 <span class="mono">deploy/china/README.md §6</span>。</p>
+
+  <div class="rule"></div>
+
+  <!-- ── 客户端与首屏 ───────────────────────────────────────────── -->
+  <h2>4 · 客户端三条出口 与 App 首屏三段式</h2>
+  <div class="grid g2" style="margin-top:10px">
+    <div class="card">
+      <h3>三条出口（两个 flavor 都有）</h3>
+      <ul>
+        <li><b>① 自带 key 直连</b> —— 浏览器/设备 → 提供方，一个字节不经过我们（**免费路径永远在**）</li>
+        <li><b>② 免费额度</b> —— 0.2 USD/账号、服务端计量封顶；用完回到 ① 与社群</li>
+        <li><b>③ 账号与同步</b> —— 免费；50 MB 硬配额由数据库约束强制</li>
+      </ul>
+      <p class="sub" style="margin-top:8px">扩展**免登录**即可用；App 自 2026-10-01 起**登录是前提**（引擎随登录到账、两个设备包要下到本机）。</p>
+    </div>
+    <div class="card">
+      <h3>App 首屏三段式（#532）</h3>
+      <div class="tree">屏 1 · 登录（硬门：只有登录）
+   → 屏 2 · 资源包（硬门 · 无跳过 · 进度 / 具名失败 / 换址重试）
+      → 屏 3 · 引导（可跳过）→ 首页
+
+就绪 = 登录 ∧ 引擎可解析 ∧ 识别语言包 ∧ 朗读包（不含 Safari 扩展）
+两个设备包**按设备引擎**探与下（与当前默认引擎无关）</div>
+      <p class="sub" style="margin-top:8px">朗读包：<span class="mono">ModelSources</span> 向后端表取默认/备用地址 → 原生逐文件 sha256 → <span class="mono">mt-speech/</span>；
+      识别包：系统资产，120 s 无进展给具名出口（模拟器装不了 ⇒ 屏 3 只能在真机验）。</p>
+    </div>
+  </div>
+
+  <div class="rule"></div>
+
+  <!-- ── 数据边界 ──────────────────────────────────────────────── -->
+  <h2>5 · 数据边界（写在代码与文案里的承诺）</h2>
+  <table style="margin-top:10px">
+    <tr><td class="k">原文</td><td>中继只转发、**不落盘**；日志只有 <span class="mono">relay &lt;hash前8位&gt; chat 200 …</span></td></tr>
+    <tr><td class="k">台账</td><td>账号级，只记令牌 hash 与花费；与遥测**永不 join**</td></tr>
+    <tr><td class="k">遥测</td><td>匿名白名单事件（国际）；**中国版一个字节都不发**</td></tr>
+    <tr><td class="k">第三方媒体</td><td>只存指针（media id + 起止偏移），不存字节</td></tr>
+    <tr><td class="k">用户自产语音</td><td>默认不上传；选择上传才计数、可一键删</td></tr>
+    <tr><td class="k">配额</td><td>50 MB/账号，数据库约束强制；到顶明说、**不静默丢**</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:16px">事实来源：gbrain <span class="mono">belliedmonkey-translator-release-state</span>（2026-09-30 实测）与
+  <span class="mono">belliedmonkey-dual-distribution</span>；代码与契约：<span class="mono">extension/learn/backend.config.js</span> ·
+  <span class="mono">deploy/china/README.md</span>（§6 五处坑）· <span class="mono">deploy/china-relay/README.md</span> ·
+  <span class="mono">docs/interaction-spec.md</span>「App 首屏三段式」· <span class="mono">docs/learning-design.md §8.10</span>。
+  今天的翻转记录（含全部实测数字）在 issue <b>#532</b>。</p>
+</main>
+</body>
+</html>

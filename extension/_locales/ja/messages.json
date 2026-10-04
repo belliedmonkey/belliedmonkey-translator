@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "ブラウザで読んだ文がここに同期され、復習できます。"
+    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末の上だけで処理します。"
   },
   "app_email_label": {
     "message": "メールアドレス"
@@ -895,9 +895,6 @@
   },
   "app_back_email": {
     "message": "別のメールアドレスを使う"
-  },
-  "app_local_note": {
-    "message": "任意です。サインインしなくても全機能が使えます — 収集と復習は端末内で完結し、サインインは他の端末と同期するためだけのものです。"
   },
   "app_signout": {
     "message": "ログアウト"
@@ -1141,6 +1138,9 @@
   },
   "lang_ar": {
     "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
   },
   "sync_status_storage_error": {
     "message": "ログイン状態を読み取れません（ストレージ読み取り失敗）。まもなく再試行します —— ログアウトされたわけではありません。"
@@ -1700,20 +1700,11 @@
   "app_ext_open_safari": {
     "message": "Safari で拡張機能をオンにする →"
   },
-  "app_so_review_title": {
-    "message": "この端末に保存した文を復習"
-  },
-  "app_so_review_due": {
-    "message": "今日は {n} 枚のカードが復習対象です"
-  },
-  "app_so_review_total": {
-    "message": "{n} 件の文を保存しました"
-  },
   "app_ext_done": {
     "message": "オンにしました"
   },
   "app_signin_why": {
-    "message": "カードはブラウザ拡張機能が集めます。同じアカウントでサインインすると、この端末に同期されます。"
+    "message": "サインインすると無料クレジットが届き、2 つの音声パックをこの端末にダウンロードします。以降の設定は要りません。"
   },
   "app_signin_open": {
     "message": "サインイン"
@@ -2517,6 +2508,12 @@
   "listen_lang_note": {
     "message": "2 つは別の言語である必要があります。会話画面の下でも変更でき、設定は共通です。"
   },
+  "listen_lang_engine_unsupported": {
+    "message": "現在のエンジンでは対応していません"
+  },
+  "listen_lang_change_engine": {
+    "message": "エンジンを変更"
+  },
   "listen_lang_swapped": {
     "message": "2 つは別の言語である必要があります — 入れ替えました"
   },
@@ -2540,6 +2537,12 @@
   },
   "app_today_due": {
     "message": "今日の復習"
+  },
+  "home_cta_subs": {
+    "message": "リアルタイム字幕を開始"
+  },
+  "home_cta_listen": {
+    "message": "リアルタイム通訳を開始"
   },
   "app_last_sync": {
     "message": "最終同期 {t}"
@@ -2866,7 +2869,7 @@
     "message": "コンソールを開く ↗"
   },
   "grant_cn_why": {
-    "message": "こちらで代わりにクレジットを配ることは今はできません。国内のサーバーが必要で、まだ用意できていません。"
+    "message": "無料クレジットの代行提供はまだです。それには国内で中継を動かす必要があり、まだ開通していません。"
   },
   "subtitle_source_label": {
     "message": "ライブ字幕"
@@ -3725,5 +3728,50 @@
   },
   "learn_group_bye": {
     "message": "残りは明日で大丈夫 —— また来てください。"
+  },
+  "firstrun_packs_title": {
+    "message": "先に音声パックを2つダウンロード"
+  },
+  "firstrun_packs_lede": {
+    "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内だけで処理します。"
+  },
+  "firstrun_packs_asr": {
+    "message": "音声認識パック（通訳 / リアルタイム字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高品質読み上げパック（読み上げ / ポッドキャスト）"
+  },
+  "firstrun_packs_done": {
+    "message": "準備完了"
+  },
+  "firstrun_packs_net": {
+    "message": "Wi-Fi でのダウンロードがおすすめです。モバイル通信でも構いません。"
+  },
+  "firstrun_packs_busy": {
+    "message": "ダウンロード中…"
+  },
+  "firstrun_packs_go": {
+    "message": "ダウンロードして続ける"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "読み上げパックだけ入れて続ける"
+  },
+  "firstrun_packs_err": {
+    "message": "ダウンロードできませんでした：{why} —— 通信を確認してもう一度。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "システム音声パックのダウンロードが進みません — 通信を確認して、もう一度。"
+  },
+  "engine_status_ok": {
+    "message": "サインインで設定済み：翻訳・文字起こし・読み上げ —— この画面ですぐ使えます"
+  },
+  "engine_status_missing": {
+    "message": "あと 1 つ："
+  },
+  "engine_status_fix_tts": {
+    "message": "読み上げエンジンが未設定 — 設定 › 読み上げ で音声を選ぶ"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻訳エンジンが未設定 — 設定 › エンジン で選ぶ"
   }
 }
