@@ -517,3 +517,28 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 残留 0。`npm test` 2386 passed / 0 failed（回声闸新增泰语两条门禁）；`test:app` global/china 绿。
 
 **待用户验（84）**：zh↔th 听译里泰语译文念完后不再被自己识别翻回中文；中文句照常自动朗读。
+
+---
+
+## 2026-10-05 · TestFlight 第十二批（#565 回声闸二轮：窗 1500→3000ms + 系统语音静麦尾 0.9s）
+
+驱动 `.local/build-1190m-four.sh`，从 `e39eb397`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十一批 141/89/84/82 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **142** | **VALID** |
+| 国际 macOS | **90** | **VALID** |
+| 中国 iOS | **85** | **VALID** |
+| 中国 macOS | **83** | **VALID** |
+
+**84 上 bigram 切词已对、回声仍漏** —— 漏的不是「比对」是「时间」：系统语音（AVSpeechSynthesizer）
+出声比 `didFinish` 晚（静麦放开后又听到尾音）+ Dictation 定稿晚落（落在 JS 回声窗 1500ms 之外）。
+修：`ECHO_TAIL_MS` 1500→3000；`MTSystemSpeech` 的 didFinish/didCancel/stop 放开静麦后
+`extendMuteTail(0.9)`（audio-bridge 新增，Piper 路的 0.35 不动）。
+
+**进包已回读**：`ViewController.swift` 有 `extendMuteTail`（4 处）；`dist-app-china/Script.js` 有
+`ECHO_TAIL_MS = 3000`。`npm test` 2387 passed / 0 failed（念完 2.5s 才到的泰语定稿 ⇒ 仍判回声）；
+`test:app` global/china 绿。
+
+**待用户验（85）**：zh↔th 听译里泰语念完后不再冒出「新句子翻成中文」。
