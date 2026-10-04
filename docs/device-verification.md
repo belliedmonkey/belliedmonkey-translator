@@ -542,3 +542,30 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 `test:app` global/china 绿。
 
 **待用户验（85）**：zh↔th 听译里泰语念完后不再冒出「新句子翻成中文」。
+
+---
+
+## 2026-10-05 · TestFlight 第十三批（#565 三轮 · 路 A：系统语音走 write() 自有管线）
+
+驱动 `.local/build-1190n-four.sh`，从 `e52a98e1`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十二批 142/90/85/83 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **143** | **VALID** |
+| 国际 macOS | **91** | **VALID** |
+| 中国 iOS | **86** | **VALID** |
+| 中国 macOS | **84** | **VALID** |
+
+这一批：**系统语音从 `synth.speak()`（系统内部渲染、静麦跟 delegate 回调猜时机）改为
+`write(_:toBuffer:)` → `MTSpeechChunkBox` → 自有 `AVAudioPlayerNode`** —— 与 Piper（中文）同一条
+从不回声的管线；tts-start/tts-end/静麦全部对齐「首块出声 + 总样本数/采样率」。JS/协议零改动。
+
+**插曲（第一次跑全红）**：`pcm.channelCount` 写错（在 `pcm.format.channelCount` 上）——本地只跑了
+`swiftc -parse`（查语法不查类型）没拦住；四个归档全失败、**未上传任何坏包**（号码 143/91/86/84 在
+ASC 从未出现，重跑直接复用）。补了真类型检查（`swiftc -typecheck` 组合三个 native 文件）进本地流程。
+
+**进包已回读**：`ViewController.swift` 有 `synth.write(u)`（1）与 `format.channelCount`（2），
+delegate 三回调与 `extendMuteTail` 残留 0。
+
+**待用户验（86）**：zh↔th 听译里泰语念完后不再被自己认成新句子。
