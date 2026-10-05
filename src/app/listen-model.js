@@ -777,11 +777,15 @@ const listenModel = (() => {
     if (deviceTts() && deviceBridge()) {
       // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
       // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
+      // **按当前语言对过滤**（2026-10-06，90 号包真机）：不传 langOpt = 探注册表全量（zh+en+th）
+      // —— 包屏按 zh/en 正确地没下泰语之后，这里会把它补判成「未就绪」、开下 105MB 泰语并把
+      // 会话堵在「准备中」。与 probePacks/runFirstRunPacks（a1e9a232）、speak()（tts.js）同一条
+      // 纪律：这一场要念哪些语言，就只探/只下哪些。
       const rd = await LearnTTS.ensureDeviceReady((m) => {
         if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state'); }
         if (phase !== 'downloading') return;
         dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
-      });
+      }, undefined, deviceLocales(cfg));
       if (phase !== 'preparing' && phase !== 'downloading') return;
       if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return; }
       if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }

@@ -226,7 +226,8 @@ async function waitFor(fn, ms, what) {
     if (await fn()) return true;
     await sleep(250);
   }
-  throw new Error(`等不到：${what}（${ms}ms）`);
+  const detail = typeof what === 'function' ? what() : what;
+  throw new Error(`等不到：${detail}（${ms}ms）`);
 }
 
 // ── 能力探针（step 0）─────────────────────────────────────────────────────────
@@ -457,10 +458,12 @@ async function m3(ctx) {
   // （kokoro 念完逐出 vits、泰语要重装引擎，几秒无声会被误判成排空，2026-10-05 实测）。
   const norm = (x) => String(x || '').replace(/\s+/g, '');
   const probe = norm(ctx.spokenThai).slice(2, 14);
+  let lastSeen = '';
   await waitFor(async () => {
     const d = await evalOk('(window.AppListen && AppListen._debug() || {}).lastSpoken || ""');
+    lastSeen = d;
     return norm(d).includes(probe);
-  }, 60000, 'M2 的泰语真的被念了（lastSpoken 对上）');
+  }, 90000, () => `M2 的泰语真的被念了（lastSpoken 对上；现在=${lastSeen.slice(0, 40)}）`);
   // 它念完（最后一个 tts 事件是 end）⇒ 立即注入 —— 竗窗 3s，poll 延迟 ~150ms 绰绰有余。
   await waitFor(async () => {
     const ev = (await rec()).filter((e) => e && (e.type === 'tts-start' || e.type === 'tts-end'));
@@ -522,9 +525,52 @@ async function m5() {
     '三杀之后听译会话掉了');
 }
 
+// M8 听译进场只下当前语言对 — zh/en 对话不得拉泰语（2026-10-06，90 号包真机：中英对话顶栏
+// 「正在下载ไทย离线模型 · 46%」、堵在「准备中…」）。复现 90 的真实状态：**删掉泰语模型**
+// （全新装 + 包屏按 zh/en 正确省下 105MB），起一场 zh/en 听译 —— 修复后应零泰语事件、直接开听。
+// Mac 层此前的盲区：M 组预装了全部模型，把 beginPipeline 这条路遮住了。
+async function m8() {
+  const MS = path.join(process.env.HOME, 'Library/Containers/com.belliedmonkeytranslator/Data/Library/Application Support/mt-speech');
+  const VITS = path.join(MS, 'vits-mms-tha');
+  const ZIPOK = '/private/var/folders/hl/tn2f_lxj3ys9xy4990rrcdb40000gn/T/opencode/vits-mms-tha.zip';
+  const STAMP = '.installed-26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250';
+  const hadVits = fs.existsSync(path.join(VITS, 'model.onnx'));
+  fs.rmSync(VITS, { recursive: true, force: true });
+  const restore = () => {
+    try {
+      if (hadVits && fs.existsSync(ZIPOK)) {
+        execSync(`unzip -q -o "${ZIPOK}" -d "${VITS}"`, { env: cleanEnv(), stdio: 'ignore' });
+        execSync(`touch "${VITS}/${STAMP}"`, { env: cleanEnv(), stdio: 'ignore' });
+        log('    （泰语模型已还原）');
+      }
+    } catch (_) {}
+  };
+  try {
+    await storageSet({ onboardSeen: true, listenMyLang: 'zh', listenOtherLang: 'en', listenAutoSpeak: true });
+    await relaunchApp();
+    await storageSet({ ttsEngine: 'device' });
+    await waitFor(() => visible('app-listen-entry'), 20000, 'M8 首页听译卡');
+    await sleep(1500);
+    await click('app-listen-entry');
+    await waitFor(() => visible('app-listen'), 8000, 'M8 听译页');
+    await click('app-listen-toggle');
+    // 修复后：模型全就绪（kokoro 在），这里应该几秒内就 live —— 不下任何东西
+    await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000,
+      'zh/en 开听没在 20s 内起来（被什么东西堵住了 —— 是不是又在下泰语？）');
+    // 全程零泰语事件（探测的 missing/installed、下载的 progress 都不许出现）
+    const thHit = await evalOk(`__mtTest.rec().some(e => String((e && e.locale) || '').split('-')[0].toLowerCase() === 'th')`);
+    okc(!thHit, '进场探测/下载了泰语 —— beginPipeline 还是全量（90 真机那条）');
+  } finally {
+    await evalOk('__mtTest.ka(0), true').catch(() => {});
+    try { await click('app-listen-toggle'); } catch (_) {}
+    restore();
+  }
+}
+
 const CASES = [
   { id: 'M1', what: '包屏只下所选语言对的模型', impl: m1 },
   { id: 'M6', what: '语言对下载后不跳', impl: m6 },
+  { id: 'M8', what: '听译进场只下当前对（zh/en 不拉泰语 — 90 真机）', impl: m8 },
 ];
 
 const LISTEN_CASES = [

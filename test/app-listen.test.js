@@ -356,6 +356,15 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     ok(!/if \(autoSkip\) return;/.test(model), 'autoSkip 的早退把提示吞了 —— 早退分支里必须先判 tts 那一类');
   });
 
+  test('★ 听译进场只探/只下当前语言对的模型 — 中英对话不得拉泰语（2026-10-06，90 号包真机）', () => {
+    // a1e9a232 修了包屏两条路（probePacks/runFirstRunPacks），漏了 beginPipeline：不传
+    // langOpt = 探注册表全量（zh+en+th）⇒ 包屏按 zh/en 省下的泰语 105MB 在进场时被补判
+    // 「未就绪」开下，会话堵在「准备中…」。与 speak()、包屏同一条纪律：这场念什么就下什么。
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/\}, undefined, deviceLocales\(cfg\)\)/.test(model),
+      'beginPipeline 的 ensureDeviceReady 没传 deviceLocales(cfg) —— 全量探测会把包屏按对省下的泰语在进场时补下');
+  });
+
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
     // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
     // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示
