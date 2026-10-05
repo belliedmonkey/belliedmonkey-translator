@@ -593,3 +593,28 @@ vits-mms-tha**（Meta MMS-TTS，105 MB，此前因 CC-BY-NC 4.0 于 484cc8c5 撤
 `verify:model-urls`：th global 200 / th china 200 / zh/en 各 206 ✓。
 
 **待用户验（88）**：泰语念完不再被翻回中文；泰语能出声（首次从 GitHub 下载 ~105 MB）；中文照常。
+
+---
+
+## 2026-10-05 · TestFlight 第十六批（#565 六轮：TTS 不堵死 + 模型地址不明文 + ensureDeviceReady 按语言过滤）
+
+驱动 `.local/build-1190q-four.sh`，从 `640f4fa7`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十五批 145/93/88/86 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **146** | **VALID** |
+| 国际 macOS | **94** | **VALID** |
+| 中国 iOS | **89** | **VALID** |
+| 中国 macOS | **87** | **VALID** |
+
+四处修复（用户 2026-10-05 报的 build 88 回归「中文和泰文都没朗读」+「没有对话历史」）：
+① ensureDeviceReady **按语言过滤**（泰语 105 MB 没下好不堵死中文）；② speakPump **每句 30 s 超时**
+（下载卡死不再阻塞整条队列）；③ assets/timeout **第一次就说**（不是瞬态错误，不等 3 次）；
+④ 模型地址**不明文进包**（device-models.config.js 一律 api.belliedmonkey.com/models/ 中继，
+真实地址在 bt_model_sources 表和 Caddyfile /models/* 302）。
+
+bt_model_sources 已插 vits-mms-tha 行（中国版用户手动 + 国际版 API 插入）。
+verification-spec 新增「硬编码禁令」+「TTS 不得静默堵死」两节；新增 model-urls-not-plaintext 门禁。
+
+**待用户验（89）**：中文朗读正常 / 泰语朗读正常（首次下载 ~105 MB）/ 回声没了 / 语言对不跳 / 有对话历史。
