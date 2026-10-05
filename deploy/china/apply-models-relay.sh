@@ -38,8 +38,11 @@ ins = '''
 open(p, 'w').write(s[:j+1] + ins + s[j+1:])
 print('✓ 已插入 /models 块')
 PY
-  if docker compose version >/dev/null 2>&1; then DC="docker compose"; else DC="docker-compose"; fi
-  "$DC" exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+  if docker compose version >/dev/null 2>&1; then
+    docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+  else
+    docker-compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+  fi
   echo '✓ Caddy 已热重载'
 else
   echo '• /models 块已存在，跳过插入与重载'
