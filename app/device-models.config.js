@@ -33,6 +33,21 @@ var MT_KOKORO_PACK = {
 };
 var MT_DEVICE_TTS_MODELS = [
   {
+    lang: 'th', dir: 'vits-mms-tha', type: 'vits', dataDir: '',
+    model: 'model.onnx', tokens: 'tokens.txt',
+    files: [{
+      path: 'vits-mms-tha.zip', size: 105167496,
+      sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
+      url: {
+        global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip',
+        // 境内走 ModelScope（2026-10-05 恢复：用户裁定「先忽略商用问题」—— CC-BY-NC 的事后续再定。
+        // ModelScope 的文件在撤回时被删了（404），重新上传需要 token；先两边都指 GitHub，
+        // 境内拉不动时备一个 hf-mirror（learning-design §9.6.1 已有备用切换机制）。
+        china: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip',
+      },
+    }],
+  },
+  {
     lang: 'zh', dir: 'kokoro-zh-en', type: 'kokoro', kokoroLang: 'cmn',
     model: 'model.int8.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
     voices: 'voices.bin', dictDir: 'dict', lexicon: 'lexicon-us-en.txt,lexicon-zh.txt',
