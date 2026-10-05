@@ -38,21 +38,25 @@ ins = '''
 open(p, 'w').write(s[:j+1] + ins + s[j+1:])
 print('✓ 已插入 /models 块')
 PY
-  if docker compose version >/dev/null 2>&1; then
-    docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
-  else
-    docker-compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
-  fi
-  echo '✓ Caddy 已热重载'
 else
-  echo '• /models 块已存在，跳过插入与重载'
+  echo '• /models 块已存在，跳过插入'
 fi
 
+# 重载**永远跑**：插入与重载不是原子的 —— 上一回可能插了没重载成（2026-10-05 实测就是）。
+if docker compose version >/dev/null 2>&1; then
+  docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+else
+  docker-compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
+fi
+echo '✓ Caddy 已热重载'
+
 echo
-echo '── 验证（期望两条都是 302 + location）──'
+echo '── 验证（必须是 302 + location，200 不算过）──'
 fail=0
 for f in kokoro-zh-en.zip vits-mms-tha.zip; do
   echo "== $f =="
-  curl -sI --max-time 10 "https://api.belliedmonkey.com/models/$f" | grep -iE '^HTTP|^location' || fail=1
+  h=$(curl -sI --max-time 10 "https://api.belliedmonkey.com/models/$f")
+  echo "$h" | grep -iE '^HTTP|^location'
+  echo "$h" | head -1 | grep -qE 'HTTP/[0-9.]+ 302' || fail=1
 done
 [ "$fail" = 0 ] && echo '✓ 全部 302，中继修好了' || { echo '✗ 有不是 302 的 —— 回滚：'; echo "  cp $DIR/Caddyfile.bak-$STAMP $DIR/Caddyfile && docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile"; exit 1; }
