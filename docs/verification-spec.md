@@ -3321,3 +3321,21 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 - EF-1 已修（请求纪律，见上表）；YouTube happy path 最终确认需要登录环境（闸下能验的只有纪律：同 URL 不重发、每视频 ≤3 次封顶，已钉进行为测试），日常 Chrome 人工复核即可；D 面 React dist 的 YouTube 链路留到下版装新 dist 后顺带看。
 - 本轮三处新驱动配方（Chrome 153 loadUnpacked、safaridriver 不注入的存储直写替代、Firefox foreground 像素点菜单）已沉淀在各面 README，下次回归直接用。
+
+---
+
+## 硬编码禁令（2026-10-05 用户裁定）
+
+**模型下载地址不得以明文出现在编译进客户端包的任何文件里。**
+
+理由：反编译二进制/Script.js 能看到全部字符串 —— 真实托管地址（GitHub Release / ModelScope / hf-mirror）写在那里，等于把 CC-BY-NC 模型的来源暴露给任何人（vits-mms-tha 是 Meta 的 MMS-TTS，许可是 CC-BY-NC 4.0）。用户裁定：避免被服务提供商告侵权。
+
+**地址的正确存放位置（按优先级）：**
+
+1. **`bt_model_sources` 表**（运行时查询替换，`app/model-sources.js` 的优先路）
+2. **Caddy `/models/*` 重定向**（`deploy/china/Caddyfile`，部署侧文件，不进客户端包）
+3. `app/device-models.config.js` 的兜底 URL 只允许 `api.belliedmonkey.com/models/` 前缀（自家域名中继，反编译看不出实际指向）
+
+**sha256 / size 不在此限** —— 它们是「下什么」的校验（客户端必须知道），不是「去哪下」（客户端不该知道）。
+
+**LLM 提供方端点不在此限** —— 用户自己配 key 时需要看见 `api.deepseek.com` 等地址；它们是产品功能，不是需要隐藏的托管。

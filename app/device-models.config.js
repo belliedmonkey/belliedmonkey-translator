@@ -21,14 +21,20 @@
 // int8 一个引擎峰值 RSS ≈460 MB、24 kHz、RTF 0.5–1.1；**所以原生侧只留当前语言那一个引擎**
 // （切语言重装 1–2 s），两个语言同时驻留会被 iOS jetsam 杀。
 // 尺寸：老 Piper 两条 67 MB×2=134 MB，新包 140 MB 一条覆盖中英 —— 下载量与原来同量级。
-var MT_MODELSCOPE_BASE = 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/';
+// 模型下载地址（2026-10-05 起对客户端不可见）：编译进包的兜底值一律走 api.belliedmonkey.com/models/
+// 中继 —— 反编译只看到自家域名，不知道实际从哪拉的。真实地址存在两处：
+//   1. bt_model_sources 表（优先路，model-sources.js 运行时查询替换）
+//   2. Caddyfile 的 /models/* 重定向（deploy/china/Caddyfile，部署侧）
+// 这里的 URL 是「服务器连不上时的最后兜底」—— 而服务器连不上时这个地址也连不上，
+// 所以它唯一的作用就是不暴露真实托管。
+var MT_MODEL_RELAY = 'https://api.belliedmonkey.com/models/';
 var MT_KOKORO_PACK = {
   path: 'kokoro-zh-en.zip', size: 146767700,
   sha256: '5bab4f620353a5d80f98f8bd0a5e68cbeedccfb1c68c53baa83b834a0e926326',
   url: {
     // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
-    global: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
-    china: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
+    global: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
+    china: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
   },
 };
 var MT_DEVICE_TTS_MODELS = [
@@ -39,11 +45,9 @@ var MT_DEVICE_TTS_MODELS = [
       path: 'vits-mms-tha.zip', size: 105167496,
       sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
       url: {
-        global: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip',
-        // 境内走 ModelScope（2026-10-05 恢复：用户裁定「先忽略商用问题」—— CC-BY-NC 的事后续再定。
-        // ModelScope 的文件在撤回时被删了（404），重新上传需要 token；先两边都指 GitHub，
-        // 境内拉不动时备一个 hf-mirror（learning-design §9.6.1 已有备用切换机制）。
-        china: 'https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip',
+        // 两 flavor 都走中继（2026-10-05）：客户端不暴露真实托管。
+        global: MT_MODEL_RELAY + 'vits-mms-tha.zip',
+        china: MT_MODEL_RELAY + 'vits-mms-tha.zip',
       },
     }],
   },

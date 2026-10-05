@@ -83,6 +83,21 @@
 		handle_path /functions/v1/* {
 			reverse_proxy fn:8000
 		}
+
+		# ── 模型下载中继（2026-10-05，#565）：客户端只见 api.belliedmonkey.com，不见真实托管 ──
+		# 理由：反编译二进制能看到 device-models.config.js 的兜底 URL；把真实 GitHub/ModelScope
+		# 地址写在那里等于把 CC-BY-NC 模型的来源暴露给任何人。这一块把它变成 302 —— 客户端
+		# 拿到的是 Location 头，真实地址只存在于服务端（Caddyfile 也是部署侧，不进客户端包）。
+		#
+		# Caddy 的 redir 会发 302；客户端的下载器（MTBackgroundDownloader）跟重定向。
+		# 真实地址也在 bt_model_sources 表里（model-sources.js 的优先路）；这一块是
+		# 「服务器表 reachable + Caddy 也能直出」的双保险，不是唯一路。
+		handle /models/vits-mms-tha.zip {
+			redir https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip 302
+		}
+		handle /models/kokoro-zh-en.zip {
+			redir https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip 302
+		}
 	}
 
 	header {
