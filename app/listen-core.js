@@ -205,7 +205,11 @@ var ListenCore = (() => {
                                  // 的出声比 didFinish 晚、Dictation 转写器的定稿又晚落，回声定稿经常落在
                                  // 窗外被当成新句子。3000 覆盖「念完 → 定稿」这一整段；误杀仍由 60% 包含度挡着。
   const ECHO_KEEP_MS = 20000;    // 一条登记项活多久
-  const ECHO_SIM = 0.6;          // 包含度门限
+  const ECHO_SIM = 0.35;         // 包含度门限。
+                                 // 2026-10-05（#565 四轮）从 0.6 降：扬声器→空气→麦克风→DictationTranscriber
+                                 // 一圈的识别质量劣化让 bigram 重合度掉到 0.6 以下（三轮静麦/时序修复都没解决，
+                                 // 说明不是时间窗的问题，是文本本身对不上）。0.35 仍然足够高 —— 两个完全不同的
+                                 // 句子（对方说的话 vs 我们念的译文）的 bigram 重合度几乎不可能超过 0.2。
   const ECHO_MAX = 4;            // 最多同时记几条
 
   const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
