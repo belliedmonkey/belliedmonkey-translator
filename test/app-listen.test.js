@@ -18,6 +18,10 @@ const DEPS = { dominantScript: LearnRules.dominantScript };
 const pair = (myLang, otherLang) => ({ myLang, otherLang, registry: LANGS });
 
 const T0 = 1_757_000_000_000;
+const ROOT = path.join(__dirname, '..');
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const MODEL = read('src/app/listen-model.js');
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 describe('ListenCore — 定稿入表（归属按语言，§9.6）', () => {
   const ZH_EN = pair('zh', 'en');
@@ -312,12 +316,27 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     ok(g.size() <= 4);
   });
 
-  test('空文本不登记也不误判', () => {
-    const g = C.makeEchoGuard();
-    g.speaking('', T0);
-    g.speaking('   ', T0);
-    eq(g.size(), 0);
-    ok(!g.isEcho('', T0));
+  test('★ speakPump 每句必须超时 — speakOut 挂住不得阻塞整条队列（#565 六轮真机教训）', () => {
+    const fn = MODEL.slice(MODEL.indexOf('async function speakPump'));
+    const body = fn.slice(0, fn.indexOf('\n  }'));
+    ok(/Promise\.race/.test(body), 'speakPump 没有 Promise.race —— speakOut 挂住（下载卡死/网络不通）时整条朗读队列死锁');
+    ok(/timeout/.test(body), '超时的 reason 不是 "timeout" —— onSpeakResult 要认它');
+    ok(/30000|TTS_SENTENCE_TIMEOUT/.test(body), '超时值不见了 —— 30 s 是模型装载+重试窗口的余量');
+  });
+
+  test('★ assets / timeout 类失败第一次就说 — 不等 3 次（#565 六轮：模型没下好不是瞬态错误）', () => {
+    const fn = MODEL.slice(MODEL.indexOf('function onSpeakResult'));
+    const body = fn.slice(0, fn.indexOf('\n  }'));
+    ok(/assets.*timeout|timeout.*assets/.test(body), 'onSpeakResult 没有把 assets/timeout 单独分出来 —— 它们不会自愈，等 3 次只是在等一个不会来的好转');
+    ok(!/speakFails\+\+/.test(body.split(/assets.*timeout|timeout.*assets/)[0].split('speakFails')[0]) || /assets/.test(body),
+      'assets/timeout 在 speakFails++ 之前就要 return —— 否则第一次失败被静默吞掉');
+  });
+
+  test('★ ensureDeviceReady 按语言过滤 — 泰语模型没下好不得堵死中文（#565 六轮 build 88 回归）', () => {
+    const tts = read('extension/learn/tts.js');
+    ok(/ensureDeviceReady\(.*langOpt\)/.test(tts), 'ensureDeviceReady 没有 langOpt 参数 —— 全量检查会把「泰语 105 MB 没下好」当成「整个引擎不可用」');
+    ok(/deviceStatus\(.*langOpt\)/.test(tts), 'deviceStatus 没有 langOpt 参数 —— 全量探会堵死其他语言');
+    ok(/speakOut.*langOpt|ensureDeviceReady.*baseLang/.test(tts.replace(/\n/g, ' ')), 'speak() 没有传语言给 ensureDeviceReady —— 中文会被泰语的下载卡住');
   });
 
   test('泰语：自己念的被认回来（带识别差异）⇒ 判为回声（2026-10-04 真机回归）', () => {

@@ -3339,3 +3339,27 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 **sha256 / size 不在此限** —— 它们是「下什么」的校验（客户端必须知道），不是「去哪下」（客户端不该知道）。
 
 **LLM 提供方端点不在此限** —— 用户自己配 key 时需要看见 `api.deepseek.com` 等地址；它们是产品功能，不是需要隐藏的托管。
+
+---
+
+## TTS 不得静默堵死（2026-10-05 用户裁定，#565 六轮真机教训）
+
+**任何 TTS 失败必须在 3 秒内让用户知道，任何 TTS 卡住不得阻塞整条队列。**
+
+build 88 真机：加了泰语模型后 `ensureDeviceReady` 检查全部模型（含 105 MB 泰语），GitHub 境内
+不通 → 下载挂住 → `speakOut` 永不返回 → `speakPump` 死锁在第一句上 → **中文也全哑、
+没有一行报错、手工重试也排不进队列**。用户原话："tts 堵死为什么没有报错和手工重试"。
+
+三条判据（`test/app-listen.test.js` 钉住形状）：
+
+### 1. speakPump 每句必须超时
+`speakOut` 挂住（下载卡死 / 网络不通）不得阻塞后续句子。超时后**跳过该句、标失败、继续下一句**。
+判据：源码里 `speakPump` 的 `await speakOut(...)` 必须带 `Promise.race` 超时。
+
+### 2. assets 类失败第一次就说
+`reason === 'assets'`（模型没下好）**不是瞬态错误** —— 它不会自愈，用户等 3 次只是在等一个
+不会来的好转。判据：`onSpeakResult` 里 `assets` 类不等 `speakFails >= 3`，第一次就出提示。
+
+### 3. 听译页要有下载进度/卡住的出口
+下载中 → 行上画进度（包屏那套 `onProgress` 已有）；卡住 → 给「重试」按钮。
+判据：源码里 `speakPump` 或 `speakOut` 必须把 `onProgress` 透传到 UI。

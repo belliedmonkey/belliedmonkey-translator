@@ -1088,7 +1088,13 @@ const listenModel = (() => {
         echo.speaking(job.text, at);              // 登记：这段话正在从扬声器出去
         sq.noteSpoken(job.text, at);
         lastSpoken = job.text;
-        const r = await speakOut(job.text, job.lang, { rid: job.rid, auto: true });
+        // 每句必须超时（#565 六轮真机教训）：speakOut 挂住（下载卡死 / 网络不通）不得阻塞
+        // 后续句子。超时后跳过该句、标失败、继续下一句。30 s = 模型装载上限（1–2 s）+
+        // 网络重试窗口（MTBackgroundDownloader 默认 3 次退避）的余量。
+        const r = await Promise.race([
+          speakOut(job.text, job.lang, { rid: job.rid, auto: true }),
+          new Promise((res) => setTimeout(() => res({ ok: false, reason: 'timeout' }), 30000)),
+        ]);
         if (r && r.done) { try { await r.done; } catch (_) {} }
         echo.spoke(now());                        // 播完：回声窗口从这里开始倒计时
         speakingRid = 0;
@@ -1099,10 +1105,18 @@ const listenModel = (() => {
 
   // 失败要出错，但要有节制：no_voice / http 这类会**每一句都复现**，不设门槛就是满屏
   // 错误行。三次之后只关这一场的自动朗读，行内的单句朗读照常可用。
+  // **assets / timeout 例外（#565 六轮真机）**：模型没下好 / 下载卡死**不是瞬态错误** ——
+  // 它不会自愈，用户等 3 次只是在等一个不会来的好转。第一次就说。
   function onSpeakResult(r) {
     if (!r) return;
     if (r.ok) { speakFails = 0; return; }
     if (r.reason === 'superseded' || r.reason === 'empty') return;   // tts.js 明说调用方不该报错
+    if (r.reason === 'assets' || r.reason === 'timeout') {
+      autoSpeakOff = true; sq.clear();
+      const why = (typeof LearnTTS !== 'undefined' && LearnTTS.reason) ? LearnTTS.reason(r.reason, t) : r.reason;
+      note(t('listen_autospeak_off', '自动朗读已停 · {why} — 行尾的朗读仍可单句用').replace('{why}', why), false);
+      return;
+    }
     speakFails++;
     if (speakFails < 3) return;
     autoSpeakOff = true; sq.clear();
