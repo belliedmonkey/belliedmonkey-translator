@@ -569,3 +569,27 @@ ASC 从未出现，重跑直接复用）。补了真类型检查（`swiftc -type
 delegate 三回调与 `extendMuteTail` 残留 0。
 
 **待用户验（86）**：zh↔th 听译里泰语念完后不再被自己认成新句子。
+
+---
+
+## 2026-10-05 · TestFlight 第十五批（#565 五轮 · 路 B：恢复 vits-mms-tha 离线朗读包）
+
+驱动 `.local/build-1190p-four.sh`，从 `e18ee5b2`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十四批 144/92/87/85 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **145** | **VALID** |
+| 国际 macOS | **93** | **VALID** |
+| 中国 iOS | **88** | **VALID** |
+| 中国 macOS | **86** | **VALID** |
+
+用户 2026-10-05 裁定：「换一个方案吧。直接用 Hugging Face 那个，先忽略商用问题」—— **恢复
+vits-mms-tha**（Meta MMS-TTS，105 MB，此前因 CC-BY-NC 4.0 于 484cc8c5 撤回）。泰语朗读从
+「系统语音回落」改为**离线模型**，与中文（Kokoro）走同一条 sherpa-onnx → MTSpeechChunkBox →
+自有 AVAudioPlayerNode 管线 —— **那条路从不回声**。系统语音回落对泰语不再触发（ttsLangs 有 th）。
+
+托管：GitHub Release `device-models-2`（两 flavor 同地址）；ModelScope 被删了（重传需 token，后续补）。
+`verify:model-urls`：th global 200 / th china 200 / zh/en 各 206 ✓。
+
+**待用户验（88）**：泰语念完不再被翻回中文；泰语能出声（首次从 GitHub 下载 ~105 MB）；中文照常。
