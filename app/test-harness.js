@@ -24,6 +24,10 @@
   // 异步结果的落点：端点的 evaluateJavaScript 是同步回执（不等 Promise），异步操作由
   // runAsync() 存进来、驱动侧轮询 last() 取 —— 端点保持极简。
   let lastAsync = null;
+  // 事件记录器的账本（rec()）。
+  let recOn = false, recLog = [];
+  // 保活定时器（ka()）。
+  let kaTimer = null;
 
   window.__mtTest = {
     v: 1,
@@ -64,6 +68,46 @@
     },
 
     last() { return lastAsync; },
+
+    // 事件记录器：旁听两个桥的 _fromNative（NativeSpeech=识别/朗读，NativeAudio=麦克风/
+    // 会话状态），只记录、原样转发。M2 靠它看 tts-start/tts-end（朗读真走了管线），M3 靠它
+    // 掐回声窗的时机，听译 setup 靠 mic-state 找授权/输入卡在哪。
+    // rec(1) 开始（清空旧账）· rec(0) 停 · rec() 取副本。
+    rec(state) {
+      for (const n of [ns(), (typeof NativeAudio !== 'undefined' && NativeAudio) || null]) {
+        if (n && !n.__mtRecWrapped && typeof n._fromNative === 'function') {
+          const orig = n._fromNative;
+          n._fromNative = function wrapped(msg) {
+            if (recOn && msg && msg.type !== 'mic-level' && msg.type !== 'mic-pcm') {
+              try { recLog.push(msg); if (recLog.length > 400) recLog.shift(); } catch (_) {}
+            }
+            return orig.call(this, msg);
+          };
+          n.__mtRecWrapped = true;
+        }
+      }
+      if (state === 1) { recLog = []; recOn = true; return true; }
+      if (state === 0) { recOn = false; return true; }
+      return recLog.slice();
+    },
+
+    // 保活：每 8s 注入一条健康的 mic-level（rms 0.2）。30 秒静音自动暂停按「底噪之上
+    // 没有人声」算 —— 长等待的 case（M5 等 tts-start 最长 60s）不该被它误收。与 say()
+    // 同类：只注入事件，App 的规则照常自己判。ka(1) 开 · ka(0) 停。
+    ka(on) {
+      if (on) {
+        if (kaTimer) return true;
+        kaTimer = setInterval(() => {
+          try {
+            const n = (typeof NativeAudio !== 'undefined' && NativeAudio) || null;
+            if (n && n._fromNative) n._fromNative({ type: 'mic-level', rms: 0.2 });
+          } catch (_) {}
+        }, 8000);
+        return true;
+      }
+      if (kaTimer) { clearInterval(kaTimer); kaTimer = null; }
+      return false;
+    },
 
     // 读状态：屏幕 / 历史 / 语言对 —— 全部从 DOM 与公开对象读，不复制 App 逻辑。
     state() {
