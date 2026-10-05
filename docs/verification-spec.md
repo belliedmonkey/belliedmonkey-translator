@@ -413,6 +413,88 @@ dist/ 与 dist-app/ 的每个 .js（比下限更新的解析期语法 ⇒ 红）
 
 **云端转写两条在测试机上打不到（2026-09-13）。** 同机同料的「本机路 vs 云端路」并排只做成了一半：`openai_transcribe` 两次都 `socket error`（会话停在 halted，句子还在），`gemini_transcribe` 8 s 超时，`qwen_asr` 国际版包里没有；同一时刻 `api.deepseek.com` 103 ms、`openrouter.ai` 608 ms 都通。这是家用 Wi-Fi 无代理的真实网络，不是环境故障 —— **在这种网络下本机路是唯一能用的转写**，准确率并排只能拿 Mac 侧直喂 PCM 的旧读数（OpenAI 实时 zh 3.9% / en 3.7%、千问 5.2% / 3.6%）对本机路修正后的 zh 4.3%。云端两档在真机的读数是欠条，等有代理的网络补。
 
+### 0.4 分层验证矩阵：Mac 版当自动化音频验证台（2026-10-05 用户拍板）
+
+**音频链路的改动（STT / TTS / 回声闸 / 模型下载）先在 Mac 版 App 上自验通过，才准出
+TestFlight 包。** 用户原话（2026-10-05）：「如果某 iOS 真机才能验证的功能，恰好 mac app
+模拟，两边代码逻辑本来就一样。」这是规则，不是建议 —— 88/89 号包那种「出包 → 用户在
+TestFlight 上发现哑 / 回声 / 语言对跳掉 → 再出包」的循环，从这条起断掉。
+
+为什么 Mac 版能替真机（2026-10-05 逐文件数的，不是推断）：
+
+- **Web 层同一份包。** `dist-app/Script.js` 两平台加载同一文件，逐字节相同。
+- **语音桥逐字共享。** `app/native/speech-bridge.swift`（STT/TTS/回声整条管线）里只有
+  2 处 `#if os(iOS)`，内容都只是一句 `AVAudioSession.setActive(true)`；mtTranscriberFor、
+  MTSystemSpeech 的 write()→MTSpeechChunkBox→自有 AVAudioPlayerNode（#565 六轮修的那条）
+  两平台跑同一份代码。
+- **一个工程四个 scheme**（iOS/macOS × global/CN，`safari-project*/`），macOS 现役 build 94/87。
+
+| 层 | 跑在哪 | 覆盖 | 驱动 |
+|---|---|---|---|
+| 逻辑 | `npm test` | 纯函数：回声闸 token、firstrun、语言对 | CI / 一键 |
+| Web | Chrome + CDP（`test:app`） | 页面起得来、模块齐、样式载入 | 自动 |
+| UI | iOS 模拟器 | 界面、导航、Dictation 回落路径 | `__mtTest` + DEBUG 端点 |
+| **音频** | **Mac 版 App（`test:mac`）** | **识别→翻译→朗读→回声 端到端，真扬声器 + 真麦克风** | DEBUG 端点 + `say`/`afplay` |
+| 抽查 | iPhone 14 Pro（USB） | iOS 硬件差异点 | devicectl / XCUITest |
+| 终验 | iPhone 15 Pro（TestFlight） | 听感、中断、锁屏 | 用户 |
+
+**机制（三件，全部 DEBUG-only，Release 包里符号不存在）：**
+
+1. `app/test-harness.js` → `window.__mtTest`（`say` / `partial` / `runAsync` / `state` /
+   `waitFor`）。只在 `buildAppBundle` 收到 `opts.testHarness` 时进包；正常 `node build.js`
+   不带它（npm test 有门：不带该 opt 构建出的 Script.js 出现 `__mtTest` 即红）。它自己
+   不发起任何网络请求 —— 没有端点的包里它是死代码。**只注入事件、只读状态，不替 App
+   做决定**：`say()` 伪装的是「麦克风听到了这句」（原生事件 `stt-final`），朗读走页面
+   自己的真管线 —— 模拟器层（无声学回环）与 Mac 层（真回环）因此能用同一份 case。
+2. `app/native/test-bridge.swift` → `MTTestBridge`：DEBUG-only 的 localhost 控制端点，
+   只绑 127.0.0.1，在 127.0.0.1:8790–8799 扫第一个空口（开发机上固定口会被占 ——
+   2026-10-05 实测本机 8790 躺着一个 Python http.server；驱动对同一段范围逐个 /ping
+   找活的），`GET /ping` 探活、`POST /eval` 在 WKWebView 里求值 JS 回 JSON。
+   整份 `#if DEBUG` —— 编译器裁掉，不是运行时关掉。抽查（发版前随手跑一次）：
+   `strings <Release 可执行文件> | grep MTTestBridge` ⇒ 必须为空。
+3. `scripts/test-mac.js`（`npm run test:mac`）：重建带 harness 的 App 包 → `app:sync` →
+   xcodebuild macOS Debug → 起 App → 等 `/ping` → 跑 case → `screencapture` 留证。
+   iOS 模拟器层复用同一个端点：模拟器进程就是 Mac 进程，它的 127.0.0.1 就是宿主的。
+   沙盒注意：App Store 包是 sandboxed，**监听端口要 `ENABLE_INCOMING_NETWORK_CONNECTIONS`**
+   —— 驱动只在这条 Debug 命令行上给；Release 归档不带它，App Store 的 entitlement 一个
+   字节不变。判据是端点真的 /ping 得通，不是「构建没报错」。
+
+**step 0 实测（2026-10-05，MacBook M2 Pro · macOS 26.x）**：`say` 语音 zh 21 / en 45 /
+**th 1（Kanya）** —— 泰语音源不必依赖 afplay 或 App 自身 vits，`say -v Kanya` 直接可用；
+STT 探测 zh / en / th 全部 `ok:true`（本机识别资产已装）。macOS 上 SpeechTranscriber 可用，
+#563 那个 iOS 假阳性在 Mac 上未复现 —— 恰好是「Mac 替代不了的四样」第 4 条的佐证。
+
+**音源三板斧**（接 §0.3「播放代替真人」—— 同一条规则的延伸，不是第二条）：
+
+- zh / en：`say -v Ting-Ting` / `say -v Samantha`
+- th：**`say -v Kanya`**（本机实测有，step 0）；或 `afplay` 泰语语料；或**用 App 自己的
+  vits-mms-tha 当音源**（App 念泰语 → 扬声器 → 麦克风 → 识别 → 回声闸），完全自包含
+- 对照重放：同一段波形放两遍 —— §0.3 的可比性论据（A/B 之间只差被测变量）原样成立
+
+**M 系列 case**（对着 2026-10 的未验证项，进 `test:mac`；跑一条勾一条）：
+
+| # | 验什么 | 对应 |
+|---|---|---|
+| M1 | 包屏只下所选语言对的模型（zh/en 对**不出现** th 下载） | a1e9a232（2026-10-05） |
+| M2 | zh 输入 → th 译文 → 朗读出声 | #565 |
+| M3 | 自己念的被认回来 → 拦住（真回声） | #565 四轮 |
+| M4 | 对方说不同的话 → 放行（不误杀） | 裁定 5 |
+| M5 | TTS 失败 3 秒内报、不静默阻塞 | #565 六轮（88 号包） |
+| M6 | 语言对下载后不跳 | #564 |
+| M7 | 多轮对话历史逐行累积 | 89 号包待验 |
+
+**Mac 替代不了的四样**（仍走真机行；列在这里防止「Mac 绿了就当全绿」）：
+
+1. **会话中断**（来电 / Siri 抢音频）—— audio-bridge 的 iOS 半边，Mac 上不存在这条代码路径
+2. **锁屏 / 灵动岛** —— Mac 无此形态
+3. **蓝牙路由** —— 两边都要真实蓝牙设备
+4. **#563 的原始触发**（iOS 26 `supportedLocale` 假阳性）—— macOS 若无此毛病，坏分支在
+   Mac 上不会自然触发；防御代码在包里，触发条件本身验不了
+
+**同步更新规则（用户 2026-10-05 原话：「要修改也同步更新文档」）：** 改这套流程的任何
+一处 —— harness 接口、端点行为、音源、case 清单 —— 同一 commit 更新本节。矩阵只增不减
+（§0 总规则）；Mac 层是**新增的自动化层**，不替代任何既有行，也不豁免任何一次全矩阵回归。
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been

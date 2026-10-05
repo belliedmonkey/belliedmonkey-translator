@@ -296,6 +296,16 @@ function buildAppBundle(outDir, log, opts) {
   parts.push(appUi);
   parts.push('');
 
+  // §0.4 分层验证矩阵：页面侧驱动接口，只在**显式要求**时进包（scripts/test-mac.js 传
+  // opts.testHarness）。正常 `node build.js` 不带它 —— 出货包的 Script.js 里出现
+  // __mtTest 即红（test/app-test-bridge.test.js 双向门：不带 opt 构建 ⇒ 无；带 ⇒ 有）。
+  // 追加在尾部的理由与上面那些段相同：它引用的一切（NativeSpeech、DOM）都是 call-time。
+  if (opts.testHarness) {
+    parts.push('// ─── app/test-harness.js (testHarness build only — docs/verification-spec.md §0.4) ' + '─'.repeat(4));
+    parts.push(fs.readFileSync(path.join(ROOT, 'app', 'test-harness.js'), 'utf8').trimEnd());
+    parts.push('');
+  }
+
   fs.writeFileSync(path.join(outDir, 'Script.js'), parts.join('\n'));
 
   // ─── The review surface is INLINED, not a second page ────────────────────

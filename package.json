@@ -18,6 +18,7 @@
     "app:sync": "node scripts/sync-app-assets.js",
     "test:app": "node scripts/verify-app-bundle.js",
     "test:app:china": "node scripts/verify-app-bundle.js --flavor china",
+    "test:mac": "node scripts/test-mac.js",
     "amo:check": "node scripts/amo-publish.js --check",
     "cws:check": "node scripts/cws-publish.js --check",
     "gh:check": "node scripts/gh-release.js",
