@@ -417,7 +417,7 @@ export function bootShell() {
         LearnTTS.configure(Object.assign({}, LearnTTS.config, {
           engineId: DEVICE_TTS_ENGINE, apiKey: '', baseUrl: '', model: '', voice: '',
         }));
-        const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE);
+        const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE, firstRunLocales(s));
         packTtsReady = !!(st && st.ready);
       } catch (_) { packTtsReady = false; }
     } else { packTtsReady = false; }
@@ -580,7 +580,7 @@ export function bootShell() {
           el.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%')
             .replace('{lang}', (m && m.locale) || '').replace('{pct}', String(pct));
         };
-        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE);
+        const r = await LearnTTS.ensureDeviceReady(onProg, DEVICE_TTS_ENGINE, firstRunLocales(s));
         // **返回值必须看**。设置页那条链一直是 `if (!r.ok) … '离线模型下载失败'`（settings-view），
         // 我这条以前把返回值丢了 ⇒「没下成」是**静默**的：容器里没有 mt-speech、屏上一句话也没有，
         // 然后还接着去走下一条（2026-10-01 实测就是这么把 15 分钟的挂住追出来的）。

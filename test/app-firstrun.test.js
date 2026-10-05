@@ -265,7 +265,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     //  ② 系统语音包 NativeSpeech.ensureAssets('stt') 只等原生事件、**没有上限** ⇒ 系统那边
     //     不回来就永远挂住（模拟器下不完系统识别包）。
     const model = stripComments(read('src/app/shell-model.js'));
-    ok(/ensureDeviceReady\(\s*onProg\s*,\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
+    ok(/ensureDeviceReady\(\s*onProg\s*,\s*DEVICE_TTS_ENGINE\b/.test(model),
       'ensureDeviceReady 没显式传引擎 —— 设置页与听译都传，只靠 configure() 会让它 skipped 返回');
     const i = model.indexOf("ensureAssets('stt'");
     ok(i > -1, "shell-model.js 里找不到 NativeSpeech.ensureAssets('stt'");
@@ -280,7 +280,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     // ④ 两个设备包按**设备引擎**探与下（2026-10-01 裁定：实时字幕/听译要用它 ⇒ 必选），
     //    不看当前默认选的是哪个引擎 —— 否则「登录即领额度」把 TTS 引擎写成 grant_speech 之后，
     //    deviceStatus 判 not_device、下载 skipped，而硬门仍要求设备包 ⇒ 屏 2 永远过不去。
-    ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
+    ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\b/.test(model),
       'probePacks 没把探测钉在设备引擎上 —— 额度到账后设备包会被判「不适用」，硬门永远过不去');
     // ⑤ 进度要画在那一行上（硬门 + 国内先失败再换备用 ⇒ 那几分钟不能静默）
     ok(/tts_pack_downloading/.test(model) && /tts_pack_fallback/.test(model),

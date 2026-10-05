@@ -339,6 +339,22 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     ok(/speakOut.*langOpt|ensureDeviceReady.*baseLang/.test(tts.replace(/\n/g, ' ')), 'speak() 没有传语言给 ensureDeviceReady —— 中文会被泰语的下载卡住');
   });
 
+  test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
+    // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
+    // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示
+    // 「正在下载离线模型 · th · 9%」，语言对里根本没有泰语）。
+    const model = read('src/app/shell-model.js');
+    ok(/deviceStatus\(DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
+      'probePacks 没有把 firstRunLocales(s) 传给 deviceStatus —— 会去探全部模型（含没选的泰语）');
+    ok(/ensureDeviceReady\(onProg,\s*DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
+      'runFirstRunPacks 没有把 firstRunLocales(s) 传给 ensureDeviceReady —— 会去下载全部模型（含没选的泰语 105 MB）');
+    const tts = read('extension/learn/tts.js');
+    ok(/Array\.isArray\(langOpt\)/.test(tts),
+      'deviceStatus 没有接受数组形式的 langOpt —— 语言对是一对（两个语言），单个 string 不够');
+    ok(/models\.length === 0/.test(tts),
+      '过滤后模型列表为空时没有视为就绪 —— 选了 fr↔de 这类没有离线模型的语言会被当成「没准备好」');
+  });
+
   test('泰语：自己念的被认回来（带识别差异）⇒ 判为回声（2026-10-04 真机回归）', () => {
     // 泰文无词间空格、又不在 CJK_CHAR 里 —— 原来的切法把整句拼成一个巨型「词」，包含度退化成
     // 整串相等，识别差异哪怕一个字符都放行 ⇒ 自己念的泰语被当成新句子翻回中文。

@@ -90,19 +90,27 @@ var LearnTTS = (() => {
   //   reason: 'assets'（缺模型）| 'no-bridge' | 'not_device' | 其它原生原因
   //   engineIdOpt：设置页在**保存之前**就要画这一行（下拉刚换、cfg 还是旧的），所以允许指定引擎；不给就看当前配置。
   // deviceStatus() → { device, bridge, ready, langs, size, models, reason }
-  //   langOpt（2026-10-05，#565 回归修复）：只探**这门语言**的模型 —— 全量探会把「泰语 105 MB
-  //   没下好」当成「整个设备引擎不可用」，中文也跟着不朗读（build 88 真机：中/泰全哑）。
-  //   不传 ⇒ 全量（包屏 / 设置试听用）。
+  //   langOpt（2026-10-05，#565 六轮）：只探**这些语言**的模型 —— 全量探会把「泰语 105 MB
+  //   没下好」当成「整个设备引擎不可用」，中文也跟着不朗读。接受 string 或 string[]。
+  //   过滤后为空（选了 fr↔de 这门没有离线模型的语言）⇒ 视为就绪（走系统语音，不缺什么）。
   async function deviceStatus(engineIdOpt, langOpt) {
     const e = engineIdOpt ? engineById(engineIdOpt) : engine();
     const device = !!(e && e.type === 'device-speech');
     const all = deviceModels();
-    const models = langOpt
-      ? (all || []).filter((m) => String(m.lang || '').split('-')[0].toLowerCase() === String(langOpt).split('-')[0].toLowerCase())
+    const langList = langOpt
+      ? (Array.isArray(langOpt) ? langOpt : [langOpt]).map((x) => String(x || '').split('-')[0].toLowerCase())
+      : null;
+    const models = langList
+      ? (all || []).filter((m) => langList.includes(String(m.lang || '').split('-')[0].toLowerCase()))
       : all;
     const out = { device, bridge: deviceBridge(), ready: false, langs: [], size: deviceSize(models), models, reason: '' };
     if (!device) { out.reason = 'not_device'; return out; }
     if (!out.bridge || !models) { out.reason = 'no-bridge'; return out; }
+    if (langList && models.length === 0) {
+      // 选的语言没有离线模型（fr/de/es 等）⇒ 走系统语音，不缺什么 —— 视为就绪
+      out.ready = true; out.reason = '';
+      return out;
+    }
     const r = await NativeSpeech.ttsProbe(models);
     out.ready = !!(r && r.ok);
     out.langs = (r && r.langs) || [];
