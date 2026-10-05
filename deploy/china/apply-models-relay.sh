@@ -1,32 +1,28 @@
 #!/usr/bin/env bash
-# deploy/china/apply-models-relay.sh — 一条命令把 /models/* 的 302 中继部署到腾讯机（#566/#565）。
+# deploy/china/apply-models-relay.sh — /models/* 302 中继（v3：能修复 v1 劈坏的文件）。
 #
-# 用法（服务器上）：
-#   curl -fsSL https://raw.githubusercontent.com/belliedmonkey/belliedmonkey-translator/feat/firstrun-gates/deploy/china/apply-models-relay.sh | bash
-#
-# 做四件事：备份 Caddyfile → 在 /functions/v1/* 块后插入两个 handle /models/*.zip → redir 302 →
-# 热重载（docker compose exec proxy caddy reload）→ curl 验证回 302。幂等：已有 /models 块则只验证。
-# 出任何问题：cp Caddyfile.bak-<日期> Caddyfile && docker compose exec proxy caddy reload --config /etc/caddy/Caddyfile
+# v1 的括号计数在起点 depth=0 就判「配对完成」，把插入点落在 anchor 第一个字符之后 ——
+# `handle_path` 被劈成 `h` + 块 + `andle_path`，Caddy 报 unrecognized directive: h。
+# v3 三条路：
+#   ① 检测到损伤签名（孤行 h … andle_path）⇒ 把块挪回正确位置、拼回 anchor；
+#   ② 没有 /models 块 ⇒ 全新插入（计数器已修：见过 { 才允许判配对）；
+#   ③ 已正确 ⇒ 只重载。
+# 之后永远：热重载 + 严格验证 302（200 判红）。
 set -euo pipefail
 
 DIR="${1:-/opt/bt/deploy/china}"
 cd "$DIR"
 
-STAMP=$(date +%F)
-if ! grep -q '/models/' Caddyfile; then
-  cp Caddyfile "Caddyfile.bak-$STAMP"
-  python3 - <<'PY'
+# 只在要动文件前留备份（修复损伤 / 全新插入）；今天服务器上已有一份，不覆盖。
+if ! grep -q '/models/' Caddyfile; then cp Caddyfile "Caddyfile.bak-$(date +%F)"; fi
+
+python3 - <<'PY'
 p = 'Caddyfile'
 s = open(p).read()
-anchor = 'handle_path /functions/v1/* {'
-i = s.index(anchor)
-depth = 0; j = i
-while True:
-    if s[j] == '{': depth += 1
-    elif s[j] == '}': depth -= 1
-    if depth == 0: break
-    j += 1
-ins = '''
+MODELS = '\t\thandle /models/'
+
+import re
+INS = '''
 		# ── 模型下载中继（2026-10-05，#565）：客户端只见 api.belliedmonkey.com，不见真实托管 ──
 		handle /models/vits-mms-tha.zip {
 			redir https://github.com/belliedmonkey/belliedmonkey-translator/releases/download/device-models-2/vits-mms-tha.zip 302
@@ -35,14 +31,35 @@ ins = '''
 			redir https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip 302
 		}
 '''
-open(p, 'w').write(s[:j+1] + ins + s[j+1:])
-print('✓ 已插入 /models 块')
-PY
-else
-  echo '• /models 块已存在，跳过插入'
-fi
 
-# 重载**永远跑**：插入与重载不是原子的 —— 上一回可能插了没重载成（2026-10-05 实测就是）。
+# ── ① 修复 v1 的损伤：孤行 h …<坏块>… andle_path —— 丢弃坏块字节，确定性重建 ──
+m = re.search(r'(?m)^([ \t]*)h[ \t]*$\n', s)
+if m and 'andle_path /functions/v1/* {' in s:
+    b = s.index('andle_path /functions/v1/* {')
+    after = s[b + len('andle_path /functions/v1/* {'):]
+    c = after.index('}')            # functions 块的闭合
+    s = s[:m.start()] + m.group(1) + 'handle_path /functions/v1/* {' + after[:c+1] + INS + after[c+1:]
+    open(p, 'w').write(s)
+    print('✓ 已修复 v1 劈坏的插入（anchor 拼回、规范块重建）')
+    raise SystemExit
+
+# ── ② 全新插入 ──
+if '/models/' not in s:
+    anchor = 'handle_path /functions/v1/* {'
+    i = s.index(anchor)
+    depth = 0; j = i; seen = False
+    while True:
+        if s[j] == '{': depth += 1; seen = True
+        elif s[j] == '}': depth -= 1
+        if seen and depth == 0: break   # v1 的 bug：seen 之前不许判配对
+        j += 1
+    open(p, 'w').write(s[:j+1] + INS + s[j+1:])
+    print('✓ 已插入 /models 块')
+    raise SystemExit
+
+print('• /models 块已在正确位置，无需改动')
+PY
+
 if docker compose version >/dev/null 2>&1; then
   docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile
 else
@@ -59,4 +76,4 @@ for f in kokoro-zh-en.zip vits-mms-tha.zip; do
   echo "$h" | grep -iE '^HTTP|^location'
   echo "$h" | head -1 | grep -qE 'HTTP/[0-9.]+ 302' || fail=1
 done
-[ "$fail" = 0 ] && echo '✓ 全部 302，中继修好了' || { echo '✗ 有不是 302 的 —— 回滚：'; echo "  cp $DIR/Caddyfile.bak-$STAMP $DIR/Caddyfile && docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile"; exit 1; }
+[ "$fail" = 0 ] && echo '✓ 全部 302，中继修好了' || { echo '✗ 有不是 302 的 —— 回滚：'; echo "  cp $DIR/Caddyfile.bak-* $DIR/Caddyfile && docker compose exec -T proxy caddy reload --config /etc/caddy/Caddyfile"; exit 1; }
