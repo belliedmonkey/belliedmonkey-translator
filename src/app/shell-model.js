@@ -404,10 +404,20 @@ export function bootShell() {
 
   // 登录即就位：朗读那格钉到设备内置（2026-10-01 裁定）。用户选过就不动 —— 与额度领取
   // 「不碰用户自己的 key」同一条纪律。
+  // 2026-10-06（中国版中泰全哑真机）：**只填空不够**。存储里可能躺着注册表解析不了的 id ——
+  // 09-09~09-22 之间「登录即领取」给中国版写进过 grant_speech，而它自方案 C（8748ada2，
+  // 09-22）起只在国际版注册表里 ⇒ engine() 为 null ⇒ 听译每一句都被 ttsReady() 静默跳过，
+  // 零提示、且更新安装永远不会再过首启（首启才会写 device）。「选过就不动」保护的是**能解析
+  // 的选择**；解析不了的 id 不是选择，是脏数据 —— 重写成 device（设备引擎本就是必选项，
+  // #532 裁定），key 一并清掉（它们属于那个不存在的引擎）。
   async function ensureDeviceTts() {
     const s = await readObSettings();
-    if (s && s.ttsEngine) return;
-    await new Promise((r) => { try { chrome.storage.local.set({ ttsEngine: 'device' }, r); } catch (_) { r(); } });
+    const resolvable = (id) => !!(Registry.ttsEngines() || []).some((e) => e.id === id);
+    if (s && s.ttsEngine && resolvable(s.ttsEngine)) return;
+    await new Promise((r) => { try { chrome.storage.local.set({ ttsEngine: 'device', ttsApiKey: '', ttsBaseUrl: '', ttsModel: '', ttsVoice: '' }, r); } catch (_) { r(); } });
+    try {
+      LearnTTS.configure(Object.assign({}, LearnTTS.config, { engineId: 'device', apiKey: '', baseUrl: '', model: '', voice: '' }));
+    } catch (_) {}
   }
 
   async function probePacks() {

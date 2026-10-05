@@ -2475,6 +2475,9 @@
   "listen_autospeak_off": {
     "message": "Leitura automática parada · {why} — o botão de cada linha continua funcionando"
   },
+  "listen_tts_unusable": {
+    "message": "Leitura automática indisponível — o mecanador de voz não está configurado. Escolha um em Ajustes › Voz"
+  },
   "listen_autospeak_echo": {
     "message": "Leitura automática pausada — detectamos um laço de eco. Abaixe o volume ou use fones e ligue de novo."
   },

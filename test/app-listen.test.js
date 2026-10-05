@@ -339,6 +339,23 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     ok(/speakOut.*langOpt|ensureDeviceReady.*baseLang/.test(tts.replace(/\n/g, ' ')), 'speak() 没有传语言给 ensureDeviceReady —— 中文会被泰语的下载卡住');
   });
 
+  test('★ 朗读引擎不可用不得静默 — 脏 id 自愈 + 听译第一句就说（2026-10-06 中国版中泰全哑真机）', () => {
+    // 根因：09-09~09-22 之间「登录即领取」给中国版写进过 grant_speech；方案 C（8748ada2）起
+    // 它只在国际版注册表里 ⇒ engine() 为 null ⇒ 听译每句被 ttsReady() 哑跳、零提示，且
+    // 更新安装永不再过首启。两道修：ensureDeviceTts 把「解析不了的 id」当脏数据重写成
+    // device；autoSpeak 的 'tts' 跳过第一句就出可见提示。
+    const shell = stripComments(read('src/app/shell-model.js'));
+    ok(/resolvable = \(id\).*Registry\.ttsEngines\(\)/.test(shell.replace(/\n/g, ' ')),
+      'ensureDeviceTts 没有按注册表判「能不能解析」—— 脏 id 会被当成「用户选过」而永不自愈（中泰全哑的根）');
+    ok(/ttsEngine: 'device', ttsApiKey: ''/.test(shell),
+      '自愈重写 device 时没有清掉脏引擎的 key 残留');
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/autoSkip === 'tts' && !ttsHinted/.test(model),
+      'autoSpeak 对引擎不可用还是静默跳过 —— #565 六轮「不静默」漏了这一类');
+    ok(/listen_tts_unusable/.test(model), '引擎不可用的提示没有走具名文案键');
+    ok(!/if \(autoSkip\) return;/.test(model), 'autoSkip 的早退把提示吞了 —— 早退分支里必须先判 tts 那一类');
+  });
+
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
     // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
     // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示

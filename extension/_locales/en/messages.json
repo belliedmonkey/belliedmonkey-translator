@@ -2475,6 +2475,9 @@
   "listen_autospeak_off": {
     "message": "Auto read-aloud stopped · {why} — the per-row button still works"
   },
+  "listen_tts_unusable": {
+    "message": "Auto-speak unavailable — the speech engine is not configured. Pick one in Settings › Speech"
+  },
   "listen_autospeak_echo": {
     "message": "Auto read-aloud paused — an echo loop was detected. Lower the volume or use earphones, then turn it back on."
   },

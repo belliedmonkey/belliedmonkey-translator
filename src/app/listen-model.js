@@ -724,7 +724,7 @@ const listenModel = (() => {
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
-    sysSilent = false; sysSound = false; deafHinted = false;
+    sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
     // 用户会以为在留记录而其实没有。
@@ -1125,10 +1125,20 @@ const listenModel = (() => {
   }
 
   // 译文首次落地时自动入队。改边后的重译与手动重试**不走这里**（裁定：不自动重读）。
-  let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看）
+  let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看；'tts' 那一类会另出一次可见提示）
+  let ttsHinted = false;   // 「朗读引擎不可用」的提示每场只说一次（autoSpeak）
   function autoSpeak(row) {
     autoSkip = !cfg ? 'cfg' : !cfg.autoSpeak ? 'off' : autoSpeakOff ? 'fuse' : !ttsReady() ? 'tts' : !row || !row.tr ? 'row' : '';
-    if (autoSkip) return;
+    if (autoSkip) {
+      // #565 六轮「TTS 的问题不许静默」漏了这一类：引擎不可用（存了注册表解析不了的 id /
+      // 没配）不会自愈、用户等到的是一整场没有声音。第一句就说，指到设置去；只说一次。
+      // （2026-10-06 中国版中泰全哑真机：这里曾是零提示的哑跳。）
+      if (autoSkip === 'tts' && !ttsHinted) {
+        ttsHinted = true;
+        note(t('listen_tts_unusable', '自动朗读不可用 —— 朗读引擎没配置好，到 设置 › 朗读 里选一个'), true);
+      }
+      return;
+    }
     // 回声第二道闸：这段话我们刚读过 ⇒ 不再读第二遍。漏过第一层的回声，环在这里断掉。
     if (sq.spokenRecently(row.tr, now())) { autoSkip = 'recent'; return; }
     // 保险丝：任何会自己往前跑的东西都要有一个人能按下的停止。

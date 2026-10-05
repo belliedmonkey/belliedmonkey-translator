@@ -2475,6 +2475,9 @@
   "listen_autospeak_off": {
     "message": "Automatisches Vorlesen gestoppt · {why} — die Taste in jeder Zeile geht weiter"
   },
+  "listen_tts_unusable": {
+    "message": "Automatisches Vorlesen nicht verfügbar — die Sprach-Engine ist nicht konfiguriert. Wähle eine unter Einstellungen › Sprache"
+  },
   "listen_autospeak_echo": {
     "message": "Automatisches Vorlesen pausiert — Echo-Schleife erkannt. Lautstärke senken oder Kopfhörer nutzen, dann wieder einschalten."
   },

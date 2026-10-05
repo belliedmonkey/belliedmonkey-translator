@@ -2476,6 +2476,9 @@
   "listen_autospeak_off": {
     "message": "自动朗读已停 · {why} — 行尾的朗读仍可单句用"
   },
+  "listen_tts_unusable": {
+    "message": "自动朗读不可用 —— 朗读引擎没配置好，到 设置 › 朗读 里选一个"
+  },
   "listen_autospeak_echo": {
     "message": "自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开"
   },

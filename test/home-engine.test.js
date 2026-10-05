@@ -62,9 +62,10 @@ describe('登录后的引擎就位（真机反馈 ①，2026-10-01）', () => {
     const w = (g.plan({ token: 'bmg_x', limitUsd: 0.2, spentUsd: 0 }, {}, cnReg, {}).writes) || {};
     ok(!!w.apiKey && w.provider === 'grant', '中国版连翻译槽都没写');
     ok(!w.ttsEngine && !w.sttEngine, '中国版不该凭空写出朗读/转写槽（中继没有那两条）');
-    // App 侧必须补上（否则真机就是「还没配语音引擎」）
+    // App 侧必须补上（否则真机就是「还没配语音引擎」）。2026-10-06 起 set 里还一并清
+    // 脏引擎的 key 残留（ensureDeviceTts 修脏不只修空），判据跟着放宽成前缀匹配。
     const model = read('src/app/shell-model.js').replace(/\/\/.*$/gm, '');
-    ok(/chrome\.storage\.local\.set\(\{ ttsEngine: 'device' \}/.test(model),
+    ok(/chrome\.storage\.local\.set\(\{ ttsEngine: 'device'/.test(model),
       'App 没有把朗读补成设备内置 —— 中国版登录后仍是「未配置」');
   });
 

@@ -2475,6 +2475,9 @@
   "listen_autospeak_off": {
     "message": "Lectura automática detenida · {why}: el botón de cada línea sigue funcionando"
   },
+  "listen_tts_unusable": {
+    "message": "Lectura automática no disponible — el motor de voz no está configurado. Elige uno en Ajustes › Voz"
+  },
   "listen_autospeak_echo": {
     "message": "Lectura automática en pausa: se detectó un bucle de eco. Baja el volumen o usa auriculares y vuelve a activarla."
   },
