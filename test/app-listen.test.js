@@ -749,6 +749,74 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     eq(h2.ms, 4000);
     ok(h2.id !== h1.id, '是新的计时，不是旧的');
   });
+  // §9.6.1.2 跨语言定稿仲裁：两路对同一段音频都出 final 时，用置信度压掉错语言那一路。
+  test('跨语言仲裁：高置信压掉错语言那一路；同文字系/同分不仲裁', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const mk = () => C.makeFinalArbiter((f) => out.push(f), DEPS, {
+      windowMs: 600,
+      setTimeout: (fn) => { timers.push({ id: ++id, fn }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    const drain = () => { for (const t of timers.splice(0)) t.fn(); };
+    const locs = () => out.map((f) => f.locale);
+
+    // 三档判据
+    eq(C.arbScore({ conf: 0.9 }), 2, '高置信＝可信');
+    eq(C.arbScore({ conf: 0.12 }), 0, '已知低置信＝可疑');
+    eq(C.arbScore({ conf: -1 }), 1, '无置信（Dictation）＝中性');
+    eq(C.arbScore({}), 1);
+
+    // 中文语音：zh 高置信 + 泰文假字 ⇒ 留 zh（错语言那一路被压掉）
+    let a = mk();
+    a.push({ locale: 'zh-CN', text: '我想订一间房间', conf: 0.9 });
+    a.push({ locale: 'th-TH', text: 'ฉันต้องการจองห้อง', conf: -1 });
+    deepEq(locs(), ['zh-CN'], '泰文假字被压掉');
+    out.length = 0; timers.length = 0;
+
+    // 泰语音频：zh 路低置信假字 + 泰文真话 ⇒ 留 th
+    a = mk();
+    a.push({ locale: 'zh-CN', text: '我在那', conf: 0.12 });
+    a.push({ locale: 'th-TH', text: 'สวัสดีครับ', conf: -1 });
+    deepEq(locs(), ['th-TH'], '低置信的中文假字被压掉');
+    out.length = 0; timers.length = 0;
+
+    // 两边都无置信度（都 Dictation）：同分 ⇒ 都放行（已知缺口，不猜）
+    a = mk();
+    a.push({ locale: 'th-TH', text: 'หนึ่ง', conf: -1 });
+    a.push({ locale: 'ru-RU', text: 'один', conf: -1 });
+    drain();
+    deepEq(locs().sort(), ['ru-RU', 'th-TH']);
+    out.length = 0; timers.length = 0;
+
+    // 同文字系（拉丁）不仲裁：en 的低置信句头不能被 zh 路的拉丁垃圾压掉（护住句头救回）
+    a = mk();
+    a.push({ locale: 'en-US', text: 'we', conf: 0.05 });
+    a.push({ locale: 'zh-CN', text: 'We can', conf: 0.9 });
+    drain();
+    deepEq(locs().sort(), ['en-US', 'zh-CN'], '同拉丁文字系不仲裁');
+    out.length = 0; timers.length = 0;
+
+    // 同一路连续两片：都要放行（不能互相吞）
+    a = mk();
+    a.push({ locale: 'zh-CN', text: '前半句', conf: 0.9 });
+    a.push({ locale: 'zh-CN', text: '后半句', conf: 0.9 });
+    drain();
+    deepEq(locs(), ['zh-CN', 'zh-CN']);
+    out.length = 0; timers.length = 0;
+
+    // 孤独一片：窗口到点放行；flushAll 也能立刻放行扣住的那片
+    a = mk();
+    a.push({ locale: 'zh-CN', text: '就一句', conf: 0.9 });
+    eq(out.length, 0, '扣住等着');
+    drain();
+    deepEq(locs(), ['zh-CN']);
+    out.length = 0; timers.length = 0;
+    a = mk();
+    a.push({ locale: 'zh-CN', text: '收尾前的一片', conf: 0.9 });
+    a.flushAll();
+    deepEq(locs(), ['zh-CN'], '会话结束时扣着的片不能丢');
+  });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
     const r1 = C.addFinal(s, 'Bonjour, vous êtes prêt ?', T0 + 1000, pair('en', 'fr'), Object.assign({}, DEPS, { who: 'them' }));

@@ -323,40 +323,35 @@ final class MTDeviceTranscriber {
 
     func start() {
         Task {
-            // 2026-10-04：**一个会话只用一种转写器**。两台的 result 类型不同 ⇒ 混排要两套读取；
-            // 而 DictationTranscriber 覆盖我们注册表全部 12 门（本机实测 54 ⊃ 12，含 th/ru/ar），
-            // 所以「只要有一门需要它，整个会话就用它」不会丢任何语言；反过来仍用窄的（Apple 的新模型）。
-            var needDictation = false
+            // 2026-10-06（#570 / §9.6.1.2）：**每种语言各按自己的引擎定，不再整体降级。**
+            // 旧规则「只要有一门需要 DictationTranscriber，整个会话都用它」会把 zh 从更准的
+            // SpeechTranscriber 拖走，而 Dictation 不报置信度 ⇒ 中泰会话里错语言那一路（泰语路把
+            // 中文硬解成泰文）既过文字系、又无置信度可判，直接成为一行假译（真机 94 号）。
+            // 现在两种模块混装在**同一个** SpeechAnalyzer 里（它收的就是 `[any SpeechModule]`，
+            // 而读取本来就是「每模块一个 reader」），Speech 那一路拿回置信度，交给 JS 的跨语言
+            // 仲裁（listen-core 的 makeFinalArbiter）用。
+            var mods: [any SpeechModule] = []
+            var speechMods: [(String, SpeechTranscriber)] = []
+            var dictMods: [(String, DictationTranscriber)] = []
             for id in locales {
                 guard let p = await mtTranscriberFor(id) else {
                     emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
                 }
-                if p.kind == .dictation { needDictation = true }
-            }
-            var mods: [any SpeechModule] = []
-            var speechMods: [SpeechTranscriber] = []
-            var dictMods: [DictationTranscriber] = []
-            for id in locales {
-                if needDictation {
-                    guard let l = await mtDictationLocale(id) else {
-                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
-                    }
-                    let t = DictationTranscriber(locale: l, preset: .progressiveLongDictation)
-                    if await AssetInventory.status(forModules: [t]) != .installed {
-                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
-                    }
-                    mods.append(t); dictMods.append(t)
-                } else {
-                    guard let l = await mtSpeechLocale(id) else {
-                        emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
-                    }
-                    let t = SpeechTranscriber(locale: l, transcriptionOptions: [],
+                switch p.kind {
+                case .speech:
+                    let t = SpeechTranscriber(locale: p.locale, transcriptionOptions: [],
                                               reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
                                               attributeOptions: [.audioTimeRange, .transcriptionConfidence])
                     if await AssetInventory.status(forModules: [t]) != .installed {
                         emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
                     }
-                    mods.append(t); speechMods.append(t)
+                    mods.append(t); speechMods.append((id, t))
+                case .dictation:
+                    let t = DictationTranscriber(locale: p.locale, preset: .progressiveLongDictation)
+                    if await AssetInventory.status(forModules: [t]) != .installed {
+                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
+                    }
+                    mods.append(t); dictMods.append((id, t))
                 }
             }
             guard let fmt = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: mods) else {
@@ -370,8 +365,8 @@ final class MTDeviceTranscriber {
             }
             if stopped { return }
             analyzer = an; continuation = cont; format = fmt
-            for (i, t) in speechMods.enumerated() {
-                let id = locales[i]
+            // reader 与 locale 必须成对带出：混装后 speechMods 的下标不再等于 locales 的下标。
+            for (id, t) in speechMods {
                 readers.append(Task { [weak self] in
                     do {
                         for try await r in t.results { self?.deliver(id, r) }
@@ -380,8 +375,7 @@ final class MTDeviceTranscriber {
                     }
                 })
             }
-            for (i, t) in dictMods.enumerated() {
-                let id = locales[i]
+            for (id, t) in dictMods {
                 readers.append(Task { [weak self] in
                     do {
                         for try await r in t.results { self?.deliverDictation(id, r) }

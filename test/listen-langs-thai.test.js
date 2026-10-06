@@ -97,9 +97,20 @@ describe('本机识别：不只问 SpeechTranscriber', () => {
     ok(/\.union\(/.test(body), '没有取并集');
   });
 
-  test('识别会话按语言选模块类型，且**一个会话只用一种**（两台的结果类型不同，混排要两套读取）', () => {
-    ok(/needDictation/.test(SWIFT), '会话没有判定「要不要整场改用 DictationTranscriber」');
-    ok(/deliverDictation/.test(SWIFT), '没有 dictation 的投递分支');
+  test('识别会话**每种语言各按自己的引擎定**（不再整场降级），两种模块混装在一个 analyzer 里', () => {
+    // 2026-10-06（#570 / §9.6.1.2）：旧规则「任一门需要 Dictation 就整场换」会把 zh 从更准的
+    // SpeechTranscriber 拖走、丢掉置信度，泰语路的假字于是没有任何仲裁依据。改为每门语言各自选，
+    // Speech 那一路拿回置信度，交给 JS 的 makeFinalArbiter。
+    const body = SWIFT.replace(/\/\/.*$/gm, '');
+    ok(!/needDictation/.test(body), '不该再有整场降级的 needDictation');
+    const cls = body.indexOf('final class MTDeviceTranscriber');
+    const i = body.indexOf('func start()', cls);
+    const fn = body.slice(i, body.indexOf('let (stream, cont)', i));
+    ok(/mtTranscriberFor\(/.test(fn), 'start 里没有按语言选引擎');
+    ok(/case \.speech:/.test(fn) && /case \.dictation:/.test(fn), '两种引擎没有各自分支');
+    ok(/speechMods: \[\(String, SpeechTranscriber\)\]/.test(fn) && /dictMods: \[\(String, DictationTranscriber\)\]/.test(fn),
+      '模块没有按 (locale, 引擎) 成对保存 —— 混装后下标不再等于 locales 的下标');
+    ok(/deliver\(/.test(SWIFT) && /deliverDictation\(/.test(SWIFT), '两种投递分支都要在');
     ok(/var mods: \[any SpeechModule\]/.test(SWIFT), '模块数组没有放宽到 any SpeechModule');
   });
 });

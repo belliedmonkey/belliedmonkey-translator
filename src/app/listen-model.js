@@ -72,6 +72,8 @@ const listenModel = (() => {
   let socketRetried = false; // socket 断开后自动重连过一次了吗（成功 ready 时清零）
   // 本机转写路（§9.6.1）：final 按 locale 串句的切句器；离线资产下载进度（downloading 态的胶囊）
   let cutter = null, dlPct = 0, dlLang = '';
+  // 跨语言定稿仲裁（§9.6.1.2）：两路对同一段音频都出 final 时，用置信度压掉错语言那一路。
+  let arb = null;
   let session = null;
   let cfg = null;
   let sock = null;
@@ -403,7 +405,13 @@ const listenModel = (() => {
   // 只剩本机路；`sock` 这个名字与生命周期（open / close / socketLost 重连一次）原样保留 ——
   // NativeSpeech.sttOpen 本来就是照 socket 的返回形状做的。
   function openSocket() { openDevice(gen); }
-  function closeSocket() { const s = sock; sock = null; cutter = null; try { if (s) s.close(); } catch (_) {} }
+  function closeSocket() {
+    const s = sock; sock = null;
+    // 还扣在仲裁器里的定稿先放出去（走 gate → cutter），别让它随会话一起丢。
+    if (arb) { try { arb.flushAll(); } catch (_) {} arb = null; }
+    cutter = null;
+    try { if (s) s.close(); } catch (_) {}
+  }
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
   // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
   // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
@@ -426,6 +434,11 @@ const listenModel = (() => {
     });
     cutter = cut;
     const gate = C.makeFinalGate(routeDeps);   // 低置信的拉丁句头先扣住，紧接的高置信片来了再接回（listen-core 注释）
+    // 跨语言仲裁（§9.6.1.2）：final 先过它，错语言那一路被置信度压掉，剩下的才进 gate/cutter。
+    arb = C.makeFinalArbiter((f) => {
+      if (myGen !== gen || cutter !== cut || !sock) return;
+      for (const tt of gate.push(f)) cut.add(f.locale, tt);
+    }, routeDeps);
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -439,7 +452,7 @@ const listenModel = (() => {
           const sticky = lastFinalLocale && base && base !== lastFinalLocale && (Date.now() - lastFinalAt < PARTIAL_STICKY_MS);
           if (!sticky && C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text);
         }
-        else if (kind === 'final') { if (cutter === cut) for (const tt of gate.push(ev)) cut.add(ev.locale, tt); }
+        else if (kind === 'final') { if (arb) arb.push(ev); }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
