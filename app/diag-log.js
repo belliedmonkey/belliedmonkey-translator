@@ -19,8 +19,11 @@ var DiagLog = (() => {
     tts_engine: ['lang', 'model_type', 'phase', 'fail_reason'],
     // 朗读链结局：ok/reason/engine/fallback/到出声耗时（#568 在途失败不可见）
     speak: ['lang', 'ok', 'reason', 'engine', 'fallback', 'start_ms'],
-    // 探测结果：识别/朗读探针的结论
-    probe: ['kind', 'ok', 'reason', 'langs', 'assets'],
+    // 探测结果：识别/朗读探针的结论（engines = 每门语言选了哪台识别器 st/dt，2026-10-06 加）
+    probe: ['kind', 'ok', 'reason', 'langs', 'assets', 'engines'],
+    // 识别定稿摘要（2026-10-06 加，转写质量的量化数据）：哪路、多长、置信度 —— 零内容。
+    // 时序上「zh 定稿后紧跟着 th 定稿」= 泰语路对中文语音的垃圾硬解，比例由此可测。
+    stt_final: ['locale', 'chars', 'conf'],
     // 登录里程碑：provider + 阶段 + 错误 code（无 token；504-Apple 那类）
     auth: ['provider', 'phase', 'code'],
     // 引擎 id 自愈：脏值被重写（ensureDeviceTts）

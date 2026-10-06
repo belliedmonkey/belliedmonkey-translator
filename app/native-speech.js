@@ -51,6 +51,11 @@ var NativeSpeech = (() => {
       if (Array.isArray(msg.supported)) sttSupported = msg.supported.map(String);
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
       else if (msg.state === 'ready' && msg.assets) sttProbe = { ok: true, reason: '', assets: msg.assets, locales: sttProbe.locales };
+      // 诊断（§0.4.1）：单点记录（stt-state ready 只有一条）——engines = 每门语言选了哪台
+      // 识别器（st/dt），转写质量「混对被拖回旧引擎」的量化数据。原 per-waiter 记法重复，已撤。
+      if (msg.state === 'ready') {
+        try { DiagLog.push('probe', { kind: 'stt', ok: sttProbe.ok, reason: sttProbe.reason || '', assets: sttProbe.assets || '', engines: Array.isArray(msg.engines) ? msg.engines.join('|') : '' }); } catch (_) {}
+      }
       if (msg.state === 'unsupported' || msg.assets) wake(sttWaiters, sttProbe);
       if (sttSession) {
         if (msg.state === 'ready' && !msg.assets) sttSession.fire('ready', {});
@@ -70,6 +75,10 @@ var NativeSpeech = (() => {
       return;
     }
     if (t === 'stt-partial' || t === 'stt-final') {
+      if (t === 'stt-final') {
+        // 诊断（§0.4.1，2026-10-06 转写质量量化）：哪路出了定稿、多长、置信度 —— 零内容
+        try { DiagLog.push('stt_final', { locale: String(msg.locale || ''), chars: String(msg.text || '').length, conf: (typeof msg.conf === 'number') ? msg.conf : undefined }); } catch (_) {}
+      }
       if (sttSession) sttSession.fire(t === 'stt-final' ? 'final' : 'partial', msg);
       return;
     }
@@ -95,6 +104,13 @@ var NativeSpeech = (() => {
     }
   }
 
+  // §0.4.1 诊断录音（2026-10-06）：JS 武装/收尾原生采集（默认关；文本 sidecar 只随音频包走）。
+  function diagAudio(on, session, url, sidecar) {
+    const body = { type: 'diag-audio', on: on ? 1 : 0 };
+    if (on) { body.session = session || ''; body.url = url || ''; } else { body.sidecar = sidecar || ''; }
+    return post(body);
+  }
+
   // ── 转写 ─────────────────────────────────────────────────────────────────
   /** 探本机转写：{ ok, reason, assets, locales }。桥不在 ⇒ 立即 no-bridge。 */
   function probe(locales) {
@@ -102,7 +118,7 @@ var NativeSpeech = (() => {
     if (!available()) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; return Promise.resolve(sttProbe); }
     sttProbe = { ok: false, reason: 'pending', assets: 'missing', locales: ls };
     return new Promise((resolve) => {
-      sttWaiters.push((r) => { try { DiagLog.push('probe', { kind: 'stt', ok: !!(r && r.ok), reason: (r && r.reason) || '', assets: (r && r.assets) || '' }); } catch (_) {} resolve(r); });
+      sttWaiters.push(resolve);
       if (!post({ type: 'stt-probe', locales: ls })) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; wake(sttWaiters, sttProbe); }
     });
   }
@@ -224,5 +240,5 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative };
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio };
 })();

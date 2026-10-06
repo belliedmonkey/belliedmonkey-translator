@@ -1173,6 +1173,13 @@ export default function SettingsView() {
       const done = $('diag-copied'); if (done) { done.hidden = !okFlag; setTimeout(() => { done.hidden = true; }, 1600); }
     });
     $('diag-clear').addEventListener('click', () => { try { DiagLog.clear(); } catch (_) {} });
+    const diagAudioToggle = $('diag-audio-on');
+    if (diagAudioToggle) {
+      try { chrome.storage.local.get(['mtDiagAudio'], (v) => { diagAudioToggle.checked = !!(v && v.mtDiagAudio); }); } catch (_) {}
+      diagAudioToggle.addEventListener('change', () => {
+        try { chrome.storage.local.set({ mtDiagAudio: diagAudioToggle.checked }, () => {}); } catch (_) {}
+      });
+    }
     $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
     // 匿名用量事件的开关：独立键（tm:on），不进任何 saveAll。
     // 遥测脚本的在位与否经注册表读（中国版没有脚本，整块藏掉）。
@@ -1732,6 +1739,8 @@ export default function SettingsView() {
           <button id="diag-clear" type="button" className="secondary">{t('diag_clear', '清空')}</button>
           <p className="note" id="diag-note">{t('diag_hint', '排障用的本机记录（模型下载 / 语音引擎 / 登录阶段，约 200 条）。不含你说过或翻译过的任何文字。只在你点「复制」并主动粘贴给别人时才会离开这台设备。')}</p>
           <span id="diag-copied" className="ok" hidden>{t('diag_copied', '已复制')}</span>
+          <label className="row-toggle"><span id="diag-audio-label">{t('diag_audio_toggle', '上传诊断录音（排查转写质量）')}</span><input type="checkbox" id="diag-audio-on" /></label>
+          <p className="note" id="diag-audio-note">{t('diag_audio_hint', '开启后，听译会话的麦克风声音、朗读声音和对应文字会打包上传到我们的服务器（仅用于排查转写问题，72 小时后自动删除）。默认关闭；关闭即刻停止采集。')}</p>
         </div>
       </div>
     </section>

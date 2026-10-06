@@ -2230,6 +2230,12 @@
   "diag_copied": {
     "message": "Copiado"
   },
+  "diag_audio_toggle": {
+    "message": "Subir audio de diagnóstico (depurar transcripción)"
+  },
+  "diag_audio_hint": {
+    "message": "Al activarlo, el audio del micrófono, el audio leído y el texto correspondiente de las sesiones de interpretación se empaquetan y suben a nuestro servidor (solo para depurar la transcripción, se borra automáticamente a las 72 horas). Desactivado por defecto; al desactivarlo se detiene la recolección de inmediato."
+  },
   "telemetry_onboard": {
     "message": "Se envían datos de uso anónimos para mejorar el producto (nunca el contenido ni las direcciones de las páginas). Se puede desactivar en Ajustes."
   },

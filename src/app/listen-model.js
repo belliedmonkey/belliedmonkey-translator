@@ -407,11 +407,18 @@ const listenModel = (() => {
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
   // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
   // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
+  // 半句粘滞（2026-10-06，92 真机「说中文先显示泰文再改中文」）：两路识别器同时听，泰语路把
+  // 中文语音硬解成泰文垃圾、先到先画 —— onPartial 此前不认语言。规则：某语言出过定稿后的
+  // STICKY_MS 内，**另一语言**的半句不再上屏（定稿才说话）；窗口过后自动放松（说话人切换）。
+  const PARTIAL_STICKY_MS = 8000;
+  let lastFinalLocale = '', lastFinalAt = 0;
   function openDevice(myGen) {
     const locales = deviceLocales(cfg);
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
+      lastFinalLocale = String(locale || '').split('-')[0];
+      lastFinalAt = Date.now();
       onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
     });
     cutter = cut;
@@ -422,7 +429,13 @@ const listenModel = (() => {
         if (myGen !== gen) return;
         if (!sock && (kind === 'partial' || kind === 'final')) return;
         if (kind === 'ready') { socketRetried = false; }
-        else if (kind === 'partial') { if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text); }
+        else if (kind === 'partial') {
+          // 半句粘滞：见 openDevice 头注释。粘滞只挡「另一语言的半句上屏」，定稿照常走
+          // （gate + cutter 仍按自己的规则处理）—— 误粘滞最多损失一句的实时预览，不丢行。
+          const base = String(ev && ev.locale || '').split('-')[0];
+          const sticky = lastFinalLocale && base && base !== lastFinalLocale && (Date.now() - lastFinalAt < PARTIAL_STICKY_MS);
+          if (!sticky && C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text);
+        }
         else if (kind === 'final') { if (cutter === cut) for (const tt of gate.push(ev)) cut.add(ev.locale, tt); }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
@@ -456,6 +469,7 @@ const listenModel = (() => {
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
     if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; canvas.view('now'); return; }
     // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
+    if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
@@ -724,6 +738,7 @@ const listenModel = (() => {
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
+    diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
@@ -882,6 +897,7 @@ const listenModel = (() => {
   }
   function end() {
     if (!session || phase === 'ended') return;
+    diagAudioDisarm();
     C.pause(session, now());
     phase = 'ended';
     micStop(); closeSocket(); keepAliveOff();
@@ -1065,6 +1081,7 @@ const listenModel = (() => {
   let speakOutGen = 0;
   // 语言从参数来（对方的话读给我听、我的话读给对方听），不再写死一个方向。
   async function speakOut(text, lang, opts) {
+    if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'tts', lang: String(lang || ''), text: String(text || '').slice(0, 500) }); } catch (_) {} }
     if (!ttsReady() || !text) return null;
     const my = ++speakOutGen;
     const rid = (opts && opts.rid) || 0;
@@ -1138,6 +1155,23 @@ const listenModel = (() => {
   }
 
   // 译文首次落地时自动入队。改边后的重译与手动重试**不走这里**（裁定：不自动重读）。
+  // §0.4.1 诊断录音（2026-10-06 用户拍板）：设置里显式开启才武装。sidecar 收「stt_final 文本/
+  // speak 文本」—— 只随音频包上传（对齐回放用），零内容事件通道一个字节不变。
+  let diagAudioOn = false;
+  let diagSidecar = [];
+  const diagAudioUrl = () => {
+    // 尾斜杠是 Caddy 路由的硬前提：/diag-audio/* 不匹配裸 /diag-audio（2026-10-06 部署实测）
+    try { return String(Registry.backend().url || '') + '/diag-audio/'; } catch (_) { return ''; }
+  };
+  function diagAudioArm(sessionId) {
+    diagSidecar = [];
+    try { chrome.storage.local.get(['mtDiagAudio'], (v) => { diagAudioOn = !!(v && v.mtDiagAudio); }); } catch (_) {}
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.diagAudio) NativeSpeech.diagAudio(true, sessionId, diagAudioUrl()); } catch (_) {}
+  }
+  function diagAudioDisarm() {
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.diagAudio) NativeSpeech.diagAudio(false, '', '', JSON.stringify(diagSidecar)); } catch (_) {}
+    diagSidecar = []; diagAudioOn = false;
+  }
   let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看；'tts' 那一类会另出一次可见提示）
   let ttsHinted = false;   // 「朗读引擎不可用」的提示每场只说一次（autoSpeak）
   function autoSpeak(row) {

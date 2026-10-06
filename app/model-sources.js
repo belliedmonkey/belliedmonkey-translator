@@ -112,7 +112,7 @@ var ModelSources = (() => {
       const t0 = Date.now();
       // 诊断（§0.4.1，2026-10-06）：tier 失败链是真机「下不动」的唯一现场证据
       // （2026-10-06 泰国：server/server-alt 双挂、兜到 builtin 才成 —— 服务器日志只看得见最后一级）
-      const diagPath = (models || []).map((m) => m.path).join(',');
+      const diagPath = (models || []).map((m) => (m.files || []).map((x) => x && x.path).filter(Boolean).join('+') || m.path || '').filter(Boolean).join(',');
       try {
         await download(spec);
         attempts.push({ source, urls, ok: true });

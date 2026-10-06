@@ -2230,6 +2230,12 @@
   "diag_copied": {
     "message": "Copié"
   },
+  "diag_audio_toggle": {
+    "message": "Importer l’audio de diagnostic (débogage de transcription)"
+  },
+  "diag_audio_hint": {
+    "message": "Si activé, l’audio du micro, l’audio lu et le texte correspondant des sessions d’interprétation sont empaquetés et importés sur notre serveur (uniquement pour déboguer la transcription, suppression automatique après 72 h). Désactivé par défaut ; le désactiver arrête immédiatement la collecte."
+  },
   "telemetry_onboard": {
     "message": "Des données d’usage anonymes sont envoyées pour améliorer le produit (jamais le contenu ni les adresses des pages). Désactivable dans les réglages."
   },

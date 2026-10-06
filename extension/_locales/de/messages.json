@@ -2230,6 +2230,12 @@
   "diag_copied": {
     "message": "Kopiert"
   },
+  "diag_audio_toggle": {
+    "message": "Diagnose-Audio hochladen (Transkription-Debugging)"
+  },
+  "diag_audio_hint": {
+    "message": "Wenn aktiviert, werden Mikrofon-Audio, Vorlese-Audio und die passenden Texte der Dolmetsch-Sitzungen gepackt und auf unseren Server hochgeladen (nur zur Fehlersuche bei der Transkription, automatische Löschung nach 72 Std.). Standardmäßig aus; beim Ausschalten endet die Erfassung sofort."
+  },
   "telemetry_onboard": {
     "message": "Zur Verbesserung werden anonyme Nutzungsdaten gesendet (nie Seiteninhalte oder Adressen). In den Einstellungen abschaltbar."
   },

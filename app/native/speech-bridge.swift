@@ -133,6 +133,14 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
         case "stt-probe":  sttProbe(locales: strings(body["locales"]))
+        case "diag-audio":
+            // §0.4.1 诊断录音（2026-10-06）：JS 武装/收尾。文本 sidecar 只随音频包走。
+            if let on = body["on"] as? Int, on == 1,
+               let s = body["session"] as? String, let url = body["url"] as? String {
+                MTDiagAudio.shared.arm(session: s, url: url)
+            } else {
+                MTDiagAudio.shared.disarm(sidecar: (body["sidecar"] as? String) ?? "")
+            }
         case "stt-assets": sttAssets(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
@@ -177,6 +185,9 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             // JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
             let supported = await mtSupportedLocalesUnion()
             var allInstalled = true
+            var enginePicks: [String] = []   // 诊断（§0.4.1，2026-10-06）：每门语言实际选了哪台识别器
+                                             // （st=SpeechTranscriber 窄引擎 / dt=DictationTranscriber）——
+                                             // 「混对会话把好引擎拖回旧引擎」的量化数据
             for id in locales {
                 // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
@@ -185,6 +196,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
                     return
                 }
+                enginePicks.append((pick.kind == .dictation ? "dt:" : "st:") + id)
                 let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
@@ -199,7 +211,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing"])
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported])
+            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks])
         }
     }
 
@@ -660,6 +672,7 @@ final class MTDeviceSpeech {
                 DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)]) }; return
             }
             let box = MTSpeechChunkBox(player: player, rate: sampleRate)
+            box.ttsStream = "tts-\(id)"
             DispatchQueue.main.async { self.emit?(["type": "tts-debug", "id": id, "step": "player"]) }
             box.onFirst = { [weak self] in MTAudioBridge.shared.muteInput = true; self?.emit?(["type": "tts-start", "id": id]) }
             box.isCancelled = { [weak self] in self?.cancelled ?? true }
@@ -799,7 +812,7 @@ final class MTSystemSpeech: NSObject {
             if box == nil {
                 do {
                     let (p, r) = try self.ensurePlayer(rate: pcm.format.sampleRate)
-                    let b = MTSpeechChunkBox(player: p, rate: r)
+                    let b = MTSpeechChunkBox(player: p, rate: r); b.ttsStream = "tts-\(id)"
                     b.onFirst = { MTAudioBridge.shared.muteInput = true; self.emit?(["type": "tts-start", "id": id]) }
                     b.isCancelled = { self.cancelled }
                     box = b
@@ -859,6 +872,7 @@ final class MTSystemSpeech: NSObject {
 final class MTSpeechChunkBox {
     private let player: AVAudioPlayerNode
     private let rate: Double
+    var ttsStream = "tts"   // §0.4.1 诊断录音：speak() 侧按语言+序号命名（mic 与 tts 区分、多轮不混）
     private var chunks = 0
     private var pending = 0
     private var frames = 0
@@ -877,6 +891,9 @@ final class MTSpeechChunkBox {
               let buf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(n)) else { return }
         buf.frameLength = AVAudioFrameCount(n)
         memcpy(buf.floatChannelData![0], samples, n * MemoryLayout<Float>.size)
+        // §0.4.1 诊断录音（2026-10-06）：TTS 合成 PCM 的采集点 —— 所有引擎（vits/kokoro/
+        // 系统语音）都经这里进播放器。默认关，写失败静默。
+        MTDiagAudio.shared.write(ttsStream, buf)
         lock.lock(); chunks += 1; pending += 1; frames += n; let first = chunks == 1; if first { firstAt = Date() }; lock.unlock()
         if first { DispatchQueue.main.async { self.onFirst?() } }
         // 强引用：box 是 speak() 那个队列块里的局部量，generate 一返回它就会被释放 —— 弱引用的回调

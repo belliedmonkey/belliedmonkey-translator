@@ -2230,6 +2230,12 @@
   "diag_copied": {
     "message": "Copied"
   },
+  "diag_audio_toggle": {
+    "message": "Upload diagnostic audio (transcription debugging)"
+  },
+  "diag_audio_hint": {
+    "message": "When on, microphone audio, read-aloud audio and the matching text of interpretation sessions are packaged and uploaded to our server (only for troubleshooting transcription, auto-deleted after 72 hours). Off by default; turning it off stops collection immediately."
+  },
   "telemetry_onboard": {
     "message": "Anonymous usage data is sent to help improve the product (never page content or addresses). You can turn it off in Settings."
   },

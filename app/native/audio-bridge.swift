@@ -284,6 +284,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             buffer = z
         }
         micSink?(buffer)
+        // §0.4.1 诊断录音（2026-10-06）：麦克风的同一 PCM 顺手落盘（默认关；文本 sidecar
+        // 只随音频包走，零内容事件通道不变）。写失败静默 —— 排障仪器绝不影响主功能。
+        #if canImport(AVFoundation)
+        MTDiagAudio.shared.write("mic", buffer)
+        #endif
         if !micDeliverPcm {
             let now = Date().timeIntervalSince1970
             guard now - lastLevelAt >= 0.1 else { return }

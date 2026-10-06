@@ -1672,7 +1672,11 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"mt-speech"', '"mt.speech.tts"', '"%02x"',
       // zip 解包（MTZip）：错误码与路径片段
       '".zip"', '".installed-"', '"/"', '".."', '"."', '"eocd"', '"cdir"', '"name"', '"local"', '"range"', '"method"', '"inflate"',
-      '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"']);
+      '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"',
+      // 诊断录音通道（§0.4.1，2026-10-06）：协议 id
+      '"diag-audio"', '"mic"', '"on"', '"session"', '"url"', '"sidecar"',
+      // 引擎选择标记（st/dt 前缀，§0.4.1 转写质量量化）
+      '"dt:"', '"st:"', '"engines"', '"tts-\\(id)"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });
 
