@@ -954,3 +954,26 @@ switch, never your content". **Benefit:** funnel, retention and failure codes, o
 we have none today. **Cost of not doing it:** already being paid — #174's table, plus
 a whole day on 2026-09-05 spent asking users by email what a heartbeat would have said.
 The China flavor pays nothing and breaks no promise.
+
+
+## 诊断上报（diagnostic upload）—— **独立通道，不进遥测白名单**（2026-10-06，L2）
+
+> 与 §3 的事件白名单**并列**，不是它的一部分。加事件才动白名单；这条通道**没有 `track()` 调用**，
+> 是设备把本机环形日志**原样搬运**到自有后端信箱，因此纪律写在这里，而不是 §3 的表里。
+
+**它发什么。** `app/diag-log.js` 的环形日志（六类：`dl` 下载 tier 链 / `tts_engine` 装载失败 /
+`speak` 结局 / `probe` / `auth` 里程碑 / `engine_fix` 自愈），外加安装 id、flavor、App 版本与构建号、OS。
+**字段白名单在 `push` 处强制** —— 文本、译文、URL、账号、密钥一个键都进不来；上报器只搬运、不再加工。
+
+**它发到哪。** 自有后端的 `bt_diag_events`（`deploy/diag-events.sql`）：**write-only 信箱** ——
+`anon` 只有 `INSERT`，没有 `SELECT` / `UPDATE` / `DELETE`；服务端 cron 30 天清理。
+
+**什么时候发。** 启动后 5 秒 + 每 40 条 + 失败类（`tts_engine` / `dl`）快发；时间戳游标只发增量；失败静默。
+排障读回走 `npm run diag:latest` / `diag:dump -- <uuid>`（SSH 直连，不经 anon）。
+
+**披露与开关。** **单独披露**的一条路径（§2.1 第 3 条的形状）：设置页「诊断日志」（复制 / 清空），
+默认开、可关，关掉即停止上报。**中国版同样只发这一类，且不含任何内容** —— 因此
+`belliedmonkey.com` 的隐私页措辞必须同版本改写（#569），不再写「一个字节都不发」。
+
+**为什么不做成遥测事件。** 遥测白名单的门禁要求「每个事件在每个宿主有真实发送点」——
+诊断上报没有这样的发送点，硬塞进去只会逼出一个假的 `track()` 调用，把「白名单 = 真发的东西」这条判据做虚。

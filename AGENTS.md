@@ -59,8 +59,12 @@ these in order when designing anything new:
    id that is never joined to an account, and never any page content, URL, hostname,
    API key, email or server error text. It is on by default, disclosed at first run,
    switchable off in settings, and switching it off erases that install's rows. The
-   **China flavor sends nothing** — `belliedmonkey.com` promises that in writing, and
-   the promise stays literally true. Adding an event, a property, or a join is a
+   *(Note 2026-10-06 — 诊断日志 L2，`36465e49`.)* **中国版不再「一个字节都不发」。** 诊断上报把
+    **匿名诊断事件**（随机安装 id + 事件名 + 计数；字段白名单在 `app/diag-log.js` 的 `push` 处强制 ——
+    内容 / URL / 账号 / 密钥一个键都进不来）POST 到自有后端信箱 `bt_diag_events`（**INSERT-only**）。
+    它**不走遥测白名单**（没有 `track()`），是**单独披露**的一条通道：默认开、设置里可关、
+    启动后 5 秒或每 40 条一批、失败静默。⇒ 两站隐私页措辞必须**同版本**改写（不再写「一个字节都不发」）；
+    改这句承诺本身是域设计变更，见 #569。 Adding an event, a property, or a join is a
    domain-design change (governance rule below), not a code change. Model inference on
    user content (translation, quiz generation, grading) is allowed **only** when the
    user chose it and is paying for it, because it is a real recurring cost (rule 8).
