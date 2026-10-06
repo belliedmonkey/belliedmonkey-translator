@@ -365,6 +365,14 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
       'beginPipeline 的 ensureDeviceReady 没传 deviceLocales(cfg) —— 全量探测会把包屏按对省下的泰语在进场时补下');
   });
 
+  test('★ vits 的 dataDir 为空必须传空串 — 传目录会被当 espeak 数据目录校验 phontab 而拒载（#567 真凶，2026-10-06 sherpa stderr 实锤）', () => {
+    // 后果链：vits 在任何包里都没装载成功过（tts-failed reason:load）⇒ 泰语全靠系统语音兜底
+    // ⇒ iOS 没装泰语系统语音 ⇒ 真机泰语全哑。Mac 压测：修复前 12/12 必败，修复后 24/24 全绿。
+    const swift = read('app/native/speech-bridge.swift');
+    ok(/dataDir: m\.dataDir\.isEmpty \? "" : d\.appendingPathComponent\(m\.dataDir\)\.path/.test(swift),
+      'vits dataDir 没有按「空即传空串」处理 —— appendingPathComponent("") 会把模型目录传成 espeak 数据目录，sherpa 找不到 phontab 直接拒载');
+  });
+
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
     // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
     // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示

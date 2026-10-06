@@ -638,7 +638,10 @@ final class MTDeviceSpeech {
                     let vits = sherpaOnnxOfflineTtsVitsModelConfig(
                         model: d.appendingPathComponent(m.model).path,
                         tokens: d.appendingPathComponent(m.tokens).path,
-                        dataDir: d.appendingPathComponent(m.dataDir).path)
+                        // **dataDir 为空必须传空串**（#567 真凶，2026-10-06 sherpa stderr 实锤：
+                        // 传目录会被当 espeak 数据目录校验 phontab，不存在即拒载 —— vits 在任何
+                        // 包里都没装载成功过，此前泰语全靠系统语音兜底；iOS 无泰语语音 ⇒ 全哑）。
+                        dataDir: m.dataDir.isEmpty ? "" : d.appendingPathComponent(m.dataDir).path)
                     model = sherpaOnnxOfflineTtsModelConfig(vits: vits, numThreads: 2)
                 }
                 var cfg = sherpaOnnxOfflineTtsConfig(model: model, maxNumSentences: 1)
