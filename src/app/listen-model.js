@@ -410,7 +410,10 @@ const listenModel = (() => {
   // 半句粘滞（2026-10-06，92 真机「说中文先显示泰文再改中文」）：两路识别器同时听，泰语路把
   // 中文语音硬解成泰文垃圾、先到先画 —— onPartial 此前不认语言。规则：某语言出过定稿后的
   // STICKY_MS 内，**另一语言**的半句不再上屏（定稿才说话）；窗口过后自动放松（说话人切换）。
-  const PARTIAL_STICKY_MS = 8000;
+  // 2026-10-06 收紧 8000 → 2000：8 秒窗里中泰来回，对方说泰语的实时预览会被整段藏掉（真机
+  // 「看不见对方在说什么」）。粘滞只是挡「同一句话的两路识别器串色」，那是几百毫秒级的事，
+  // 2 秒足够；真正收干净错语言的定稿是另一条（定稿仲裁，见本文件头注释与 #issue）。
+  const PARTIAL_STICKY_MS = 2000;
   let lastFinalLocale = '', lastFinalAt = 0;
   function openDevice(myGen) {
     const locales = deviceLocales(cfg);
@@ -1165,8 +1168,16 @@ const listenModel = (() => {
   };
   function diagAudioArm(sessionId) {
     diagSidecar = [];
-    try { chrome.storage.local.get(['mtDiagAudio'], (v) => { diagAudioOn = !!(v && v.mtDiagAudio); }); } catch (_) {}
-    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.diagAudio) NativeSpeech.diagAudio(true, sessionId, diagAudioUrl()); } catch (_) {}
+    diagAudioOn = false;
+    // 先读出开关、再武装原生录音。**顺序不能反**：原录音同步立刻开始写盘，而开关是异步读的；
+    // 老写法（先武装、回调里才置 diagAudioOn）会让会话开头几秒的定稿被录到、却漏进 sidecar ——
+    // 音频没有对齐文本，判分时对不上（2026-10-06 自检）。开关关着就干脆不武装（默认关）。
+    const arm = () => {
+      try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.diagAudio) NativeSpeech.diagAudio(true, sessionId, diagAudioUrl()); } catch (_) {}
+    };
+    try {
+      chrome.storage.local.get(['mtDiagAudio'], (v) => { diagAudioOn = !!(v && v.mtDiagAudio); if (diagAudioOn) arm(); });
+    } catch (_) { /* 读不到开关就不武装：默认关是安全的一侧 */ }
   }
   function diagAudioDisarm() {
     try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.diagAudio) NativeSpeech.diagAudio(false, '', '', JSON.stringify(diagSidecar)); } catch (_) {}

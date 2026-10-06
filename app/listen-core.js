@@ -569,11 +569,20 @@ var ListenCore = (() => {
   // 每个 locale 的文字系（决定「这路识别器认出来的字对不对得上它的语言」）。
   const LATIN_LOCALE = /^(en|fr|de|es|it|pt|nl|sv|da|nb|fi|pl|cs|tr|id|ms|vi)\b/i;
   const CJK_OF = { zh: 'Han', yue: 'Han', ja: 'Han', ko: 'Hangul' };
+  // 非拉丁、非 CJK 的脚本。**名字必须与 LearnRules.dominantScript 返回的一致**，也要与
+  // build/langs.config.js 的 scripts 字段一致（注册表里 th=Thai、ru=Cyrillic、ar=Arabic）。
+  // 2026-10-06（真机「说中文转成泰文」追根）：老表**只有** CJK + 拉丁，泰/俄/阿 locale 的
+  // want 恒为空 ⇒ 文字系这道检查对整条泰语路**跳过一次都不做**。
+  const SCRIPT_OF_BASE = {
+    th: 'Thai',
+    ru: 'Cyrillic', uk: 'Cyrillic', be: 'Cyrillic', bg: 'Cyrillic', sr: 'Cyrillic',
+    ar: 'Arabic', fa: 'Arabic', ur: 'Arabic', he: 'Hebrew', hi: 'Devanagari', el: 'Greek',
+  };
   function scriptOfLocale(locale) {
     const base = String(locale || '').split(/[-_]/)[0].toLowerCase();
     if (CJK_OF[base]) return CJK_OF[base];
     if (LATIN_LOCALE.test(base)) return 'Latin';
-    return '';
+    return SCRIPT_OF_BASE[base] || '';
   }
   // 两路识别器都会对同一段音频出 final：zh 路会把英文音频「认」成一串英文（错得离谱但置信度
   // 0.7–0.9），en 路对中文音频吐「Rugua, Ting」（置信度 0.05–0.27）—— 2026-09-12 实测。
@@ -589,11 +598,11 @@ var ListenCore = (() => {
     if (!text) return 'empty';
     const want = scriptOfLocale(f.locale);
     const got = deps && deps.dominantScript ? deps.dominantScript(text) : null;
+    // want/got 都是已知脚本名且不同 ⇒ 文字系不对。dominantScript 对纯标点/数字回 null，
+    // 所以这里不需要再用白名单兜（老白名单只列了 5 种，泰/俄/阿文字漏网）。
     if (want && got && got !== want) {
-      // 标点/数字之类判不出文字系时 dominantScript 会给别的值；只在两边都是「字」时才否
-      if (got === 'Latin' || got === 'Han' || got === 'Hangul' || got === 'Hiragana' || got === 'Katakana') {
-        if (!(want === 'Han' && (got === 'Hiragana' || got === 'Katakana'))) return 'script';
-      }
+      // ja 写在 Han 与 Kana 两种文字里，本表给 ja 的 want 是 Han ⇒ Kana 放行。
+      if (!(want === 'Han' && got === 'Kana')) return 'script';
     }
     if (want === 'Latin' && typeof f.conf === 'number' && f.conf >= 0 && f.conf < LATIN_MIN_CONF) return 'conf';
     return '';
@@ -645,12 +654,19 @@ var ListenCore = (() => {
   // 切句；尾巴等不到标点就按超时放出（我们自己收口后的 final 常常不带句号）。
   // cut(text) 由调用方注入（生产里是 WsTranscribe.splitSentences 这类），返回 { done: [...], rest }。
   const STREAM_FLUSH_MS = 1200;
+  // 一段缓冲**最多**滞留多久。尾部防抖有一个致命形态（2026-10-06 真机「说完很久都不进对话
+  // 历史，也就不播放译文朗读」）：只要识别器持续吐片（人不停地说），add 每来一片就把定时器往后
+  // 推 ⇒ 定时器永远不触发 ⇒ 整段话永不落行、不翻译、不朗读。泰文还没有句末标点，emitDone 也切不动。
+  // 所以除「最后一片之后 flushMs」的闲置防抖外，再给缓冲一个**绝对上限**：到点就发出去，
+  // 无论后面还来不来的新片。上限只管「迟迟等不到标点/停顿」的尾巴，正常停顿仍按 idle 走。
+  const STREAM_MAX_MS = 4000;
   const CJK_JOIN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}，。！？、；：]$/u;
   function makeStreamCutter(onSentence, opts) {
     const o = opts || {};
     const flushMs = o.flushMs || STREAM_FLUSH_MS;
+    const maxAgeMs = o.maxAgeMs || STREAM_MAX_MS;
     const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
-    const streams = {};   // locale → { buf, timer }
+    const streams = {};   // locale → { buf, timer, hard }
     const join = (a, b) => (!a ? b : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b));
     // 只有标点/空白的「句子」（识别器把上一句的句号单独吐出来时常见）不算句子 —— 真机上会成一行「.」
     const HAS_WORD = /[\p{L}\p{N}]/u;
@@ -669,6 +685,7 @@ var ListenCore = (() => {
     function flush(locale) {
       const st = streams[locale]; if (!st) return;
       if (st.timer) { clearT(st.timer); st.timer = 0; }
+      if (st.hard) { clearT(st.hard); st.hard = 0; }
       emitDone(locale, st);
       const rest = st.buf.trim(); st.buf = '';
       if (rest && HAS_WORD.test(rest)) onSentence(locale, rest);
@@ -676,11 +693,15 @@ var ListenCore = (() => {
     return {
       add(locale, text) {
         const t = String(text || '').trim(); if (!t) return;
-        const st = streams[locale] || (streams[locale] = { buf: '', timer: 0 });
+        const st = streams[locale] || (streams[locale] = { buf: '', timer: 0, hard: 0 });
         st.buf = join(st.buf, t);
         emitDone(locale, st);
-        if (st.timer) clearT(st.timer);
-        st.timer = st.buf ? setT(() => { st.timer = 0; flush(locale); }, flushMs) : 0;
+        if (st.timer) { clearT(st.timer); st.timer = 0; }
+        if (!st.buf) { if (st.hard) { clearT(st.hard); st.hard = 0; } return; }
+        // 绝对上限：缓冲从「空」变「非空」时起算一次，之后**不再重置** —— 这一点正是
+        // 修「持续说话 ⇒ 定时器永远被推后 ⇒ 永不落行」的关键。落空后自动重新计时。
+        if (!st.hard) st.hard = setT(() => { st.hard = 0; flush(locale); }, maxAgeMs);
+        st.timer = setT(() => { st.timer = 0; flush(locale); }, flushMs);
       },
       flushAll() { for (const l of Object.keys(streams)) flush(l); },
       pending(locale) { const st = streams[locale]; return st ? st.buf : ''; },
@@ -767,7 +788,7 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
-    toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS,
+    toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,

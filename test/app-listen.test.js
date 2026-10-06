@@ -678,6 +678,17 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '。', conf: 0.42 }, DEPS), '标点不判文字系');
     ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: '   ', conf: 1 }, DEPS));
   });
+  // 2026-10-06（真机「说中文转成泰文」追根）：老表只有 CJK+拉丁，th/ru/ar 的 want 恒为空
+  // ⇒ 文字系这道检查对泰语路一个都不过；老「已知脚本」白名单也只列 5 种，zh 路吐泰文/西里尔没人拦。
+  test('文字系覆盖泰/俄/阿：locale 的 want 不再为空，跨文字系照样丢', () => {
+    ok(C.acceptDeviceFinal({ locale: 'th-TH', text: 'สวัสดีครับ', conf: -1 }, DEPS), '泰文 locale 收泰文');
+    ok(!C.acceptDeviceFinal({ locale: 'th-TH', text: 'Hello there', conf: -1 }, DEPS), '泰文 locale 吐拉丁：丢');
+    ok(C.acceptDeviceFinal({ locale: 'ru-RU', text: 'Спасибо', conf: -1 }, DEPS));
+    ok(!C.acceptDeviceFinal({ locale: 'ru-RU', text: '谢谢', conf: -1 }, DEPS), '俄文 locale 吐汉字：丢');
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: 'Спасибо', conf: 0.9 }, DEPS), '中文 locale 吐西里尔：丢（老白名单漏网）');
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: 'สวัสดี', conf: 0.9 }, DEPS), '中文 locale 吐泰文：丢');
+    ok(C.acceptDeviceFinal({ locale: 'ja-JP', text: 'これはにほんごです', conf: 0.9 }, DEPS), 'ja 路收假名');
+  });
   test('串句：时间片按 locale 串起来、按句末标点切；尾巴超时放出；两路互不串', () => {
     const timers = []; let id = 0;
     const out = [];
@@ -699,6 +710,44 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     sc.add('en-US', '.'); sc.add('zh-CN', '。');
     for (const t of timers.splice(0)) t.fn();
     eq(out.length, 3, '「.」「。」不该成行');
+  });
+  // 2026-10-06（真机「断句不生效 / 说完很久不进历史 / 不播放译文」）：尾部防抖在「一直在说」时
+  // 每次 add 都被重置 ⇒ 永不落行。泰文又没句末标点，emitDone 也切不动。绝对上限是唯一出路。
+  test('绝对上限：说话不停又没标点，也必须在 STREAM_MAX_MS 内落行', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const sc = C.makeStreamCutter((l, s) => out.push(l + '|' + s), {
+      flushMs: 1200, maxAgeMs: 4000,
+      setTimeout: (fn, ms) => { timers.push({ id: ++id, fn, ms }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    for (let i = 0; i < 20; i++) sc.add('th-TH', 'ครับ');   // 连续 20 片，每次都刷新闲置防抖
+    eq(out.length, 0, '没到绝对上限前先攒着');
+    eq(sc.pending('th-TH').split(/\s+/).filter(Boolean).length, 20, '20 片都还在缓冲里');
+    const hard = timers.reduce((a, b) => (a == null ? b : (b.ms > a.ms ? b : a)), null);
+    eq(hard.ms, 4000, '绝对上限就是 STREAM_MAX_MS');
+    hard.fn();
+    eq(out.length, 1, '到点必须发出去 —— 这就是「很久不进历史」的修法');
+    ok(/ครับ/.test(out[0]), out[0]);
+    eq(sc.pending('th-TH'), '', '发完清空');
+  });
+  test('绝对上限：落行后重新计时，不会被上一段的旧计时提前切', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const sc = C.makeStreamCutter((l, s) => out.push(l + '|' + s), {
+      flushMs: 1200, maxAgeMs: 4000,
+      setTimeout: (fn, ms) => { timers.push({ id: ++id, fn, ms }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    sc.add('th-TH', 'หนึ่ง');
+    const h1 = timers.reduce((a, b) => (b.ms > a.ms ? b : a));
+    h1.fn();                                   // 到上限，发出去
+    eq(out.length, 1);
+    timers.length = 0;                         // 两只定时器都已耗掉
+    sc.add('th-TH', 'สอง');                     // 新一段：重新起一个完整上限
+    const h2 = timers.reduce((a, b) => (b.ms > a.ms ? b : a));
+    eq(h2.ms, 4000);
+    ok(h2.id !== h1.id, '是新的计时，不是旧的');
   });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
