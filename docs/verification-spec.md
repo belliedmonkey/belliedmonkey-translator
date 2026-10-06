@@ -501,6 +501,30 @@ speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克
 一处 —— harness 接口、端点行为、音源、case 清单 —— 同一 commit 更新本节。矩阵只增不减
 （§0 总规则）；Mac 层是**新增的自动化层**，不替代任何既有行，也不豁免任何一次全矩阵回归。
 
+### 0.4.1 取证靠自己：观察项一律代理侧完成（2026-10-06 用户裁定）
+
+**人工验证时的一切观察由代理自己完成 —— SSH 读服务器日志、Debug 包仪器读设备状态 ——
+不依赖用户肉眼观察与口述反馈。** 用户原话：「这几条都应该是你自己打日志 我操作 你在
+服务器自己读日志完成，而不应该是靠我观察反馈」；「你要有证据，有确认的用户访问日志
+证据，我可以改架构。但是先要有证据」。
+
+由此落地的三条纪律：
+
+1. **证据通道前置**：每次验证设计先问「这件事的证据通道是什么」。没有通道的（如中国版
+   零遥测 ⇒ 下载完成率没有服务器侧真值，因为传输直连魔搭不过我们）必须**显式登记为
+   缺口**，要么补通道（设备侧「已就绪」态 / Debug 包仪器），要么写明不可观察 —— 不许拿
+   「进度条看起来动了」当证据。
+2. **服务器侧仪器（已就位）**：`ssh -i ~/.ssh/tencent_bt.key root@49.233.0.7`（轻量服务器
+   的密钥走**控制台绑定**；手改 authorized_keys 不是它的支持路径，2026-10-06 实测被平台
+   层拒绝）。Caddy 访问日志在 `china-proxy-1:/data/access.log`（JSON：源 IP/状态/耗时），
+   GoTrue 在 `docker logs china-auth-1`，DB 在 `china-db-1`。Apple 出海质量监控
+   `/var/log/bt-jwks-probe.log`（cron 每 5 分钟）。
+3. **改架构以日志为先**：链路类结论（「连不上」「下载失败」）必须先有访问日志里的实据
+   （源 IP 到没到、状态码、耗时分布）才许下判断。2026-10-06 首例：登录 504 的实据是
+   `87.124.74.53 … 504 10004ms /auth/v1/token?grant_type=id_token` + GoTrue 全程秒级
+   + 服务器直测 Apple JWKS 0.5–1.9s 抖动 —— 病根为**大陆服务器出海到 Apple**，与手机
+   网络无关；架构决策（出海代理/JWKS 镜像等）待 `bt-jwks-probe.log` 积累后定。
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been
