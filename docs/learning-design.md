@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms，窗口内对手置信度高者留、Dictation 的 `conf:-1` 垫底；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 由判分台（§0.3，whisper large-v3-turbo 当独立参考数伪行）在真机录音上校准，不拍脑袋。新增 §9.6.1.2。**第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570），本提案只管仲裁**。 | 待评审 |
 | 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
 | 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
 | 2026-09-22（待人评审） | belliedmonkey | **引导屏序重排 + 额度发放三件**（由 2026-09-21/22 的线上读数驱动）。用户当日已裁定：① 登录从 App 引导第 5 屏**提到第 2 屏** ② 登录之后**自动**领额度、不再问 ③ 扩展引导第 3 屏（采集，默认已开）**砍掉** ④ 中国版**也给免费额度**，模型走**通义千问** ⑤ 中继按**方案 C**（身份走现有后端、只传令牌不含原文；**原文只走境内中继 → 千问，一步不出境**）。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf （3 页 13 板）。本行涉及**额度发放规则**与**跨境路径**，按 `AGENTS.md` 规则 2/4 与治理条属领域设计改动 ⇒ 先出本提案（§8.10.1）过评审，代码不先走。 |
@@ -3363,6 +3364,50 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 | `NativeSpeech`（2026-09-12） | `app/native-speech.js` | `mtSpeech` 桥的 JS 半边：`probe()`、资产下载态、两路 `stt-partial` / `stt-final` 归并、`speak()` 队列 |
 | 原生识别与合成（2026-09-12） | `app/native/speech-bridge.swift` | SpeechAnalyzer 两路、静音检测 + `finalize(through:)`、资产下载（sha256 钉住）、Piper（sherpa-onnx）合成 → playerNode |
 | 修正 + 翻译（2026-09-12） | `app/listen-core.js`（纯函数） | `T:` / `X:` 解析、接受门（0.7–1.3 + `dominantScript`）、双语归属（文字系先、置信度后）、`LISTEN_PASS` |
+
+### 9.6.1.2 双语定稿仲裁：错语言那一路不许赢（2026-10-06，待人评审）
+
+**问题（真机 94 号，中国版中泰）。** 说中文时，泰语路把中文语音硬解成一串**泰文**，成为一行
+`who:'them'`（「说中文转成泰文」）。现有两道防线对这对语言**都失效**：
+
+- **文字系**：泰文假字本身是泰文字符，`script` 检查（`ListenCore.rejectDeviceFinal`）认它「对得上泰语」⇒ 放行。
+  （第一批已补全 `scriptOfLocale` 的泰/俄/阿等脚本，修掉的是**跨**文字系漏网，对泰文假字无效。）
+- **置信度**：`MTDeviceTranscriber.start` 的 `needDictation` —— 只要有一门语言需要 `DictationTranscriber`，
+  **整个会话**都换成它；`deliverDictation` 不报置信度（`conf:-1`）⇒ 置信度那道规则也永不触发。
+
+**根因两条**：①会话级引擎降级把 zh 从更准的 `SpeechTranscriber` 拖走、置信度信号整体丢失；
+②JS 侧没有跨语言仲裁 —— 两路对同一段音频都会出 final，各自按自己的 locale 建行。
+
+**设计。**
+
+**(a) 每种语言各按自己的引擎定，不整体降级。** 删掉会话级 `needDictation`；每个 locale 由
+`mtTranscriberFor(id)` 决定 `SpeechTranscriber` / `DictationTranscriber`，**同一个 `SpeechAnalyzer`
+里混装两种模块**（现有代码已是「每个模块一个 reader」的结构，只差不去强制统一）。zh 因此拿回置信度。
+这不是新机制 —— `SpeechAnalyzer(inputSequence:modules:)` 收的就是 `[any SpeechModule]`，两种转写器
+都符合。
+
+**(b) 定稿仲裁：高置信赢，无置信（Dictation）垫底。** 每个 final 到达时先**扣住 W ms**（初值 ~600 ms，
+覆盖两路对同一段的到达差）。扣住期间若**另一 locale** 也来了 final：谁置信度高谁留下（Dictation 的
+`conf:-1` 记为**最低**）；同等或都没有 ⇒ **都放行**（不猜）。窗口内没有对手 ⇒ 正常放行。
+
+- 中文语音：zh 路 conf 高 ⇒ 留 zh，泰文假字被压制。
+- 泰语音频：zh 路 conf 低（同 §9.6.1 注释里 en 路对中文 0.05–0.27 的现象）⇒ zh 被压制，留 th。
+- 真实的双语快切（两次发声相隔 ≥ 一个 final 的到达时延）不撞窗口，两句都留。
+- 判据位置：`app/listen-core.js` 新增一个纯函数（可单测），`listen-model.js` 的 `final` 分支改成经它出口。
+
+**(c) 已知缺口，不假装解决。** 两边**都只能用 Dictation** 的语言对（如 th↔ru）没有置信度可比，
+仲裁退化为「都放行」，症状可能残留。写在这里，作为下一批的输入。
+
+**(d) 校准是前提，不是事后。** 门限 T 与窗口 W 由 §0.3 判分台在真机录音上量：
+`npm run diag:judge` 用 whisper large-v3-turbo 独立转写当参考、数**伪行**（locale 与参考语种不符）
+与 CER/WER，T/W 取伪行最少的一组。没有这套读数之前不把常数写死。
+
+**为什么必须走评审。** 它动了转写器架构（「一个会话一种转写器」→ 每语言各自选）与定稿归属规则
+（新增跨语言仲裁），属 `AGENTS.md` 的领域设计治理条。**代码在本提案评审通过后才动。**
+
+**与既有规则的关系。** §9.6.1 的「先看文字系」保留为**第一判据**（快、零成本）；本节的置信度仲裁是
+**第二判据**，只在文字系分不开的场合生效。半句粘滞（`PARTIAL_STICKY_MS`）是**预览层**的事，已降为
+2000 ms（#570），不与仲裁耦合。
 
 ## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
 
