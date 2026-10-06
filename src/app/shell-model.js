@@ -701,6 +701,10 @@ export function bootShell() {
     try { await paintFirstRun(session); } catch (_) {}
     // paintFirstRun 非 packs 时只判定、不揭屏；这里把首页露出来（屏 2 由它自己露）。
     if (session && firstRunScreen !== 'packs') { $('signed-in').hidden = false; }
+    // 登录已落定 ⇒ 清登录等待文案（2026-10-06 真机：成功跳到「先把两个语音包下好」后，
+    // 页尾仍挂「正在登录…」—— #status 游离于各 section 之外，任何屏都看得见它，而成功
+    // 路径此前没人清。show() 是一切登录态变化的唯一汇合点，只写这一处三条路全对）。
+    if (session) say('');
     // 引擎状态行要**在领取（+ 补朗读）之后**重画一次（2026-10-02 真机反馈）：boot 的那次
     // paintStatic 跑在登录之前，那时存储里还没有额度令牌 / ttsEngine，而状态行只由
     // paintStatic 与「界面语言」切换重画 —— 不补这一句，登录成功后它会一直停在
@@ -732,6 +736,9 @@ export function bootShell() {
       $('app-use-pw').hidden = true;   // 只有 demo 地址才会把它揭出来（refreshPwEntry）
       $('email-form').hidden = false;
       $('code-form').hidden = true;
+      // 登出 ⇒ 登录锁必须复位（2026-10-06）：成功路径按裁定**不**解锁（屏已换），但如果
+      // 不在回到登录面时复位，下一次登录的按钮全是死的。
+      setLoginBusy(false);
       // A3：退出后回到可浏览的首页，表单收起来 —— 不要又变成一堵墙。
       $('signin-forms').hidden = true;
       $('signin-prompt').hidden = false;

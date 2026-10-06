@@ -387,6 +387,13 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
       '回调里还有裸的单按钮解锁 —— 那正是「登录中还能点」的窗口');
     ok((stripped.match(/setLoginBusy\(true\)/g) || []).length >= 4,
       '四个登录入口（Apple/Google/邮箱/验证码）没有都走 setLoginBusy 锁定');
+    // 成功路径复位（2026-10-06 真机 b92：登录成功跳到「先把两个语音包下好」后页尾仍挂
+    // 「正在登录…」—— #status 在 app/index.html 里游离于各 section 之外，任何屏都看得见）。
+    const showFn = stripped.slice(stripped.indexOf('async function show('), stripped.indexOf('async function show(') + 2600);
+    ok(/if \(session\) say\(''\)/.test(showFn),
+      'show() 成功落屏后没有清登录等待文案 —— 「正在登录…」会挂在后续每一屏的页尾');
+    ok(/setLoginBusy\(false\)/.test(showFn),
+      'show(null)（登出回登录面）没有复位登录锁 —— 成功路径按裁定不解锁，登出再不复位按钮就全死了');
   });
 
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
