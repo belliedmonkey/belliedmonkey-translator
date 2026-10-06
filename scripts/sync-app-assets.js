@@ -403,6 +403,9 @@ const BLOCKS = [
   // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
   // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
   { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
+  // §0.4.1 诊断录音（2026-10-06）：采集与上传（麦克风/TTS PCM → write-only 信箱）。无 attach ——
+  // speech-bridge 与 audio-bridge 直接调 MTDiagAudio.shared。
+  { name: 'mt-diag-audio', src: 'diag-audio.swift', label: 'diag audio' },
   // 实时字幕的 Mac 悬浮字幕条（learning-design §9.8）。整份 #if os(macOS)；无 attach —— 由 MTAudioBridge 在
   // subtitle-config 时带着主窗口调它；AppDelegate 那两处（关窗不退出 / 点 Dock 找回）见 DELEGATE_PATCHES。
   { name: 'mt-subtitle-bar', src: 'subtitle-bar.swift', label: 'subtitle bar' },
