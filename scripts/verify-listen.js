@@ -123,8 +123,13 @@ const FAKE_BRIDGES = `(() => {
     else if (msg.type === 'tts-speak') { (fs.spoken = fs.spoken || []).push({ id: msg.id, text: msg.text, lang: msg.lang }); setTimeout(() => { emit({ type: 'tts-start', id: msg.id }); emit({ type: 'tts-end', id: msg.id }); }, 30); }
     else if (msg.type === 'tts-stop') { fs.ttsStops = (fs.ttsStops || 0) + 1; }
   } };
-  // §9.6.1.1：离线模型下载地址由后端表决定 —— 这里接一个假后端（默认 srv / 备用 alt），ModelSources 只吃它，不碰真 Supabase
-  window.__fakeSources = { fail: false, asked: 0, rows: [ { path: 'piper-zh.zip', url: 'https://srv.example/piper-zh.zip', url_alt: 'https://alt.example/piper-zh.zip', sha256: 'EVIL' }, { path: 'piper-en.zip', url: 'https://srv.example/piper-en.zip', url_alt: 'https://alt.example/piper-en.zip' } ] };
+  // §9.6.1.1：离线模型下载地址由后端表决定 —— 这里接一个假后端（默认 srv / 备用 alt），ModelSources 只吃它，不碰真 Supabase。
+  // 行的 path 字段必须镜像 app/device-models.config.js 的当前文件名 —— 模型集换过之后这里的旧名
+  // （piper-*.zip）会让 ModelSources 按 path 匹配不到、静默兜回内置地址（2026-10-06 修 S4b/S4c）。
+  window.__fakeSources = { fail: false, asked: 0, rows: [
+    { path: 'vits-mms-tha.zip', url: 'https://srv.example/vits-mms-tha.zip', url_alt: 'https://alt.example/vits-mms-tha.zip', sha256: 'EVIL' },
+    { path: 'kokoro-zh-en.zip', url: 'https://srv.example/kokoro-zh-en.zip', url_alt: 'https://alt.example/kokoro-zh-en.zip' },
+  ] };
   if (window.ModelSources) ModelSources.configure({ backend: { url: 'https://fake-backend.example', anonKey: 'k' }, fetch: async (u) => { __fakeSources.asked++; __fakeSources.lastUrl = u; if (__fakeSources.fail) throw new Error('net'); return { ok: true, json: async () => __fakeSources.rows }; } });
   return 'ok';
 })()`;
@@ -448,22 +453,35 @@ const FAKE_BRIDGES = `(() => {
     const s2c = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden, prog: document.getElementById('listen-pack-progress').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 下载后语言包行回到「已就绪」');
     need(s2c.dl === true && s2c.prog === true, 'S2: 下载完该收起按钮与进度条，实际 ' + JSON.stringify(s2c));
     await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('listen-other-lang'); s.value = 'en'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
-    // S3. 离线模型行：选设备内置朗读 ⇒ 行出现「未下载 · 129 MB」+ 「下载」，试听按钮写「下载并试听（129 MB）」
+    // S3. 离线模型行：选设备内置朗读 ⇒ 行出现「未下载 · <总大小>」+ 「下载」，试听按钮写「下载并试听（<总大小>）」
+    // 期望值**从当前清单推导**（app/device-models.config.js）—— 模型集换过之后硬编码的
+    // 129 MB / zh·en 就过期了（2026-10-06 修 S3；现在是 th·zh·en 共 380 MB）。
     await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('tts-engine'); s.value = 'device'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
-    const s3a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('tts-offline-row').hidden, text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, dlText: document.getElementById('tts-offline-dl').textContent, test: document.getElementById('btn-tts-test').textContent })`)); return /未下载/.test(r.text) ? r : null; }, 5000, 'S3: 离线模型行说「未下载」');
-    need(s3a.hidden === false && /129 MB/.test(s3a.text) && /zh/.test(s3a.text) && /en/.test(s3a.text) && /自动下载/.test(s3a.text), 'S3: 未下载态该带大小、语言与「首次朗读也会自动下载」，实际 ' + JSON.stringify(s3a));
+    const s3exp = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => {
+      const ms = mtDeviceTtsModelsFor(window.MT_FLAVOR || 'global');
+      const size = ms.reduce((n, m) => n + (m.files || []).reduce((k, f) => k + (Number(f.size) || 0), 0), 0);
+      return { langs: ms.map((m) => m.lang), size: Math.round(size / 1048576) + ' MB' };
+    })())`));
+    const s3a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('tts-offline-row').hidden, text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, dlText: document.getElementById('tts-offline-dl').textContent, test: document.getElementById('btn-tts-test').textContent })`)); return (!r.hidden && /未下载/.test(r.text)) ? r : null; }, 5000, 'S3: 离线模型行说「未下载」');
+    need(s3exp.langs.every((l) => s3a.text.includes(l)) && s3a.text.includes(s3exp.size) && /自动下载/.test(s3a.text), 'S3: 未下载态该带大小(' + s3exp.size + ')、语言(' + s3exp.langs.join('/') + ')与「首次朗读也会自动下载」，实际 ' + JSON.stringify(s3a));
     need(s3a.dl === false && s3a.dlText === '下载', 'S3: 该有「下载」按钮，实际 ' + JSON.stringify(s3a));
-    need(/下载并试听（129 MB）/.test(s3a.test), 'S3: 模型未装时试听按钮该写「下载并试听（129 MB）」，实际 ' + JSON.stringify(s3a.test));
+    need(s3a.test.includes('下载并试听（' + s3exp.size + '）'), 'S3: 模型未装时试听按钮该写「下载并试听（' + s3exp.size + '）」，实际 ' + JSON.stringify(s3a.test));
     // S4. 点「下载」⇒ 进度 ⇒ 已安装；试听按钮回到「试听一句」；恰好下载了一次
     await evalIn(cdp, sessionId, `(document.getElementById('tts-offline-dl').click(), 'ok')`);
     const s4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, dl: document.getElementById('tts-offline-dl').hidden, prog: document.getElementById('tts-offline-progress').hidden, test: document.getElementById('btn-tts-test').textContent, n: __fakeSpeech.ttsDownloads })`)); return /已安装/.test(r.text) ? r : null; }, 8000, 'S4: 下载后离线模型行说「已安装」');
     need(s4.dl === true && s4.prog === true && s4.test === '试听一句' && s4.n === 1, 'S4: 已安装态该收起按钮与进度条、试听按钮回「试听一句」、恰好下载一次，实际 ' + JSON.stringify(s4));
     // S4b. 地址来源（§9.6.1.1）：没缓存 ⇒ 先问了服务器一次，原生收到的是服务器的默认地址，而 sha256 仍是清单里的；默认地址落进缓存、备用没有
-    const s4b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ asked: __fakeSources.asked, url: __fakeSources.lastUrl, urls: __fakeSpeech.assetsUrls, sha: __fakeSpeech.lastAssetsSha, cache: JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'), builtinSha: mtDeviceTtsModelsFor(window.MT_FLAVOR || 'global').map((m) => m.files[0].sha256) })`));
+    // 期望值从当前清单推导（假后端的行 = 每个 files[0].path → srv.example/<path>），不写死 piper-*.zip（2026-10-06 修）
+    const s4b = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => {
+      const ms = mtDeviceTtsModelsFor(window.MT_FLAVOR || 'global');
+      return { asked: __fakeSources.asked, url: __fakeSources.lastUrl, urls: __fakeSpeech.assetsUrls, sha: __fakeSpeech.lastAssetsSha,
+        cache: JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'), builtinSha: ms.map((m) => m.files[0].sha256),
+        paths: ms.map((m) => m.files[0].path), flavor: window.MT_FLAVOR || 'global', srv: ms.map((m) => 'https://srv.example/' + m.files[0].path) };
+    })())`));
     need(s4b.asked === 1 && /bt_model_sources\?select=path,url,url_alt&kind=eq\.tts&flavor=eq\./.test(s4b.url || ''), 'S4b: 没缓存该先问服务器一次（表 bt_model_sources），实际 ' + JSON.stringify({ asked: s4b.asked, url: s4b.url }));
-    need(JSON.stringify(s4b.urls[s4b.urls.length - 1]) === JSON.stringify(['https://srv.example/piper-zh.zip', 'https://srv.example/piper-en.zip']), 'S4b: 原生收到的该是服务器的默认地址，实际 ' + JSON.stringify(s4b.urls));
+    need(JSON.stringify(s4b.urls[s4b.urls.length - 1]) === JSON.stringify(s4b.srv), 'S4b: 原生收到的该是服务器的默认地址，实际 ' + JSON.stringify(s4b.urls) + ' 期望 ' + JSON.stringify(s4b.srv));
     need(JSON.stringify(s4b.sha) === JSON.stringify(s4b.builtinSha), 'S4b: sha256 该仍是清单里的（服务器给的 EVIL 被忽略），实际 ' + JSON.stringify(s4b.sha));
-    need(s4b.cache && Object.values(s4b.cache)[0] && Object.values(s4b.cache)[0]['piper-zh.zip'] === 'https://srv.example/piper-zh.zip' && !JSON.stringify(s4b.cache).includes('alt.example'), 'S4b: 默认地址该落缓存、备用不落，实际 ' + JSON.stringify(s4b.cache));
+    need(s4b.cache && s4b.cache[s4b.flavor] && s4b.paths.every((p) => s4b.cache[s4b.flavor][p] === 'https://srv.example/' + p) && !JSON.stringify(s4b.cache).includes('alt.example'), 'S4b: 默认地址该落缓存、备用不落，实际 ' + JSON.stringify(s4b.cache));
     // S4c. 有缓存 ⇒ 先探；探不通 ⇒ 重问；新默认下载失败 ⇒ 用备用；进度行中途说过「换一个重试」；最后仍「已安装」
     await evalIn(cdp, sessionId, `(() => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSpeech.probeOk = false; __fakeSpeech.ttsFailNext = 1; __fakeSources.asked = 0; window.__sawFallback = false; for (const r of __fakeSources.rows) r.url = r.url.replace('srv.example', 'srv2.example');
       const st = document.getElementById('tts-offline-state'); new MutationObserver(() => { if (/换一个重试/.test(st.textContent)) window.__sawFallback = true; }).observe(st, { childList: true, characterData: true, subtree: true });
@@ -473,7 +491,7 @@ const FAKE_BRIDGES = `(() => {
     const s4c = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('tts-offline-state').textContent, n: __fakeSpeech.ttsDownloads, urls: __fakeSpeech.assetsUrls, probed: __fakeSpeech.probed, asked: __fakeSources.asked, saw: window.__sawFallback })`)); return /已安装/.test(r.text) ? r : null; }, 8000, 'S4c: 换备用地址后仍到「已安装」');
     need(s4c.probed && s4c.probed.some((u) => u.startsWith('https://srv.example/')), 'S4c: 有缓存该先探缓存的地址，实际 ' + JSON.stringify(s4c.probed));
     need(s4c.asked === 1, 'S4c: 探不通该重新问服务器一次，实际 ' + s4c.asked);
-    need(s4c.n === 2 && JSON.stringify(s4c.urls.map((u) => u[0])) === JSON.stringify(['https://srv2.example/piper-zh.zip', 'https://alt.example/piper-zh.zip']), 'S4c: 缓存探不通 ⇒ 重问拿到新默认（srv2）先试、失败后用当次备用（alt），实际 ' + JSON.stringify(s4c.urls));
+    need(s4c.n === 2 && JSON.stringify(s4c.urls.map((u) => u[0])) === JSON.stringify(['https://srv2.example/' + s4b.paths[0], 'https://alt.example/' + s4b.paths[0]]), 'S4c: 缓存探不通 ⇒ 重问拿到新默认（srv2）先试、失败后用当次备用（alt），实际 ' + JSON.stringify(s4c.urls));
     need(s4c.saw === true, 'S4c: 换地址时进度行该说过「地址不可用，换一个重试…」');
     const s4cache = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'))`));
     need(s4cache && JSON.stringify(s4cache).includes('srv2.example') && !JSON.stringify(s4cache).includes('alt.example'), 'S4c: 重问后缓存该更新成新默认（srv2），备用仍不落缓存，实际 ' + JSON.stringify(s4cache));
