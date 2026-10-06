@@ -19,22 +19,30 @@ final class MTDiagAudio {
     private(set) var armed = false
     private var session = ""
     private var uploadBase = ""
+    // 落盘走独立串行队列（2026-10-06 真机回归：在实时音频 tap 线程里同步写 AVAudioFile
+    // 会饿死识别器 —— 一开诊断录音就「一句不定稿、一句不播放」。实时线程只做 armed 检查 +
+    // 拷贝 + 入队，IO 在后台）。
+    private let io = DispatchQueue(label: "mt.diag.audio.io", qos: .utility)
 
     // JS 经 mtSpeech 发 diag-audio {on:1, session, url} 武装；{on:0, sidecar} 收尾并上传。
     func arm(session: String, url: String) {
-        stop(writing: false)
-        self.session = session
-        self.uploadBase = url
-        self.armed = true
-        let d = FileManager.default.temporaryDirectory.appendingPathComponent("mt-diag-\(session)", isDirectory: true)
-        try? FileManager.default.removeItem(at: d)
-        try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
-        self.dir = d
+        io.sync {
+            self.files.removeAll()
+            self.session = session
+            self.uploadBase = url
+            self.armed = true
+            let d = FileManager.default.temporaryDirectory.appendingPathComponent("mt-diag-\(session)", isDirectory: true)
+            try? FileManager.default.removeItem(at: d)
+            try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+            self.dir = d
+        }
     }
 
     func disarm(sidecar: String) {
-        stop(writing: true)
-        armed = false
+        io.sync {
+            self.files.removeAll()
+            self.armed = false
+        }
         guard let d = dir else { return }
         // sidecar（识别/朗读文本，仅随音频包走）落盘后整目录上传
         let sc = d.appendingPathComponent("sidecar.json")
@@ -43,18 +51,23 @@ final class MTDiagAudio {
         dir = nil
     }
 
-    /// 任一 PCM 流写入（stream = "mic" / "tts-<lang>-<n>"）。首见建文件，采样率以 buffer 为准。
+    /// 任一 PCM 流写入（stream = "mic" / "tts-<id>"）。**实时线程零阻塞**：armed 检查 + 拷贝 +
+    /// 入队；建文件与 write 都在 io 队列（AVAudioPCMBuffer 会被调用方复用，必须先拷贝）。
     func write(_ stream: String, _ buf: AVAudioPCMBuffer) {
-        guard armed, let d = dir else { return }
-        if files[stream] == nil {
-            let url = d.appendingPathComponent("\(stream).caf")
-            files[stream] = try? AVAudioFile(forWriting: url, settings: buf.format.settings)
+        guard armed, buf.frameLength > 0 else { return }
+        guard let copy = AVAudioPCMBuffer(pcmFormat: buf.format, frameCapacity: buf.frameLength) else { return }
+        copy.frameLength = buf.frameLength
+        let ch = Int(buf.format.channelCount)
+        if let src = buf.floatChannelData, let dst = copy.floatChannelData {
+            for c in 0..<ch { memcpy(dst[c], src[c], Int(buf.frameLength) * MemoryLayout<Float>.size) }
         }
-        try? files[stream]?.write(from: buf)
-    }
-
-    private func stop(writing: Bool) {
-        if writing { files.removeAll() } else { files.removeAll(); }
+        io.async { [weak self] in
+            guard let self, self.armed, let d = self.dir else { return }
+            if self.files[stream] == nil {
+                self.files[stream] = try? AVAudioFile(forWriting: d.appendingPathComponent("\(stream).caf"), settings: copy.format.settings)
+            }
+            try? self.files[stream]?.write(from: copy)
+        }
     }
 
     private func upload(dir: URL) {
