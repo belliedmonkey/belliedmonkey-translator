@@ -748,6 +748,48 @@ const listenModel = (() => {
     if (!clockTimer) clockTimer = setInterval(paintClock, 1000);
     await beginPipeline();
   }
+  // 按当前语言对补齐识别资产与朗读模型（2026-10-06 抽出共用）：进场（beginPipeline）与
+  // 听译内改语言（langChange）都要走 —— 92 号包真机：首启 zh/en 只下英语包，听译里切泰语
+  // **不触发**泰语包下载，必须退出重进。进度复用同一个 downloading/「准备中」态。
+  // **按当前语言对过滤**（2026-10-06，90 号包真机）：不传 langOpt = 探注册表全量（zh+en+th）
+  // —— 包屏按 zh/en 正确地没下泰语之后，这里会把它补判成「未就绪」、开下 105MB 泰语并把
+  // 会话堵在「准备中」。与 probePacks/runFirstRunPacks（a1e9a232）、speak()（tts.js）同一条
+  // 纪律：这一场要念哪些语言，就只探/只下哪些。调用前提 phase==='preparing'；返回 false
+  // 表示已被 halt/改态接管，调用方直接返回。
+  async function ensurePacksForPair() {
+    {
+      if (!deviceBridge()) { halt('device', 'os'); return false; }
+      const r = await NativeSpeech.probe(deviceLocales(cfg));
+      if (phase !== 'preparing') return false;
+      if (!r.ok) { halt('device', r.reason || ''); return false; }
+      if (r.assets !== 'installed') {
+        phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state');
+        try {
+          await NativeSpeech.ensureAssets('stt', deviceLocales(cfg), (m) => {
+            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+          });
+        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return false; }
+        if (phase !== 'downloading') return false;
+        phase = 'preparing'; canvas.view('state');
+      }
+    }
+    // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
+    if (deviceTts() && deviceBridge()) {
+      // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
+      // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
+      const rd = await LearnTTS.ensureDeviceReady((m) => {
+        if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state'); }
+        if (phase !== 'downloading') return;
+        dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+      }, undefined, deviceLocales(cfg));
+      if (phase !== 'preparing' && phase !== 'downloading') return false;
+      if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return false; }
+      if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
+      // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
+    }
+    return true;
+  }
+
   // 起管线：麦克风 + socket。暂停/中断之后「开始听」也走这里（同一场会话继续）。
   async function beginPipeline() {
     phase = 'preparing';
@@ -757,40 +799,7 @@ const listenModel = (() => {
     // 恢复听 ⇒ 预览矩形重新发给原生（✕ 暂停时发过 rect:null 收起预览），之后离开 App 照旧自动浮出（19 修订）
     if (bridged() && session && session.mode === 'subtitle') pipRectOn();
     // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
-    {
-      if (!deviceBridge()) { halt('device', 'os'); return; }
-      const r = await NativeSpeech.probe(deviceLocales(cfg));
-      if (phase !== 'preparing') return;
-      if (!r.ok) { halt('device', r.reason || ''); return; }
-      if (r.assets !== 'installed') {
-        phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state');
-        try {
-          await NativeSpeech.ensureAssets('stt', deviceLocales(cfg), (m) => {
-            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
-          });
-        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return; }
-        if (phase !== 'downloading') return;
-        phase = 'preparing'; canvas.view('state');
-      }
-    }
-    // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
-    if (deviceTts() && deviceBridge()) {
-      // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
-      // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
-      // **按当前语言对过滤**（2026-10-06，90 号包真机）：不传 langOpt = 探注册表全量（zh+en+th）
-      // —— 包屏按 zh/en 正确地没下泰语之后，这里会把它补判成「未就绪」、开下 105MB 泰语并把
-      // 会话堵在「准备中」。与 probePacks/runFirstRunPacks（a1e9a232）、speak()（tts.js）同一条
-      // 纪律：这一场要念哪些语言，就只探/只下哪些。
-      const rd = await LearnTTS.ensureDeviceReady((m) => {
-        if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state'); }
-        if (phase !== 'downloading') return;
-        dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
-      }, undefined, deviceLocales(cfg));
-      if (phase !== 'preparing' && phase !== 'downloading') return;
-      if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return; }
-      if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
-      // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
-    }
+    if (!(await ensurePacksForPair())) return;
     openSocket();
     canvas.view('state');
     startedAt = now();
@@ -1387,8 +1396,20 @@ const listenModel = (() => {
     // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
     // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
     if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
-    // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）
-    if (session && sock && (phase === 'listening' || phase === 'preparing')) { closeSocket(); openSocket(); }
+    // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）。
+    // **先按新对补包再重连**（2026-10-06，92 号包真机）：zh/en 场里切泰语不触发泰语包下载、
+    // 必须退出重进 —— 现在与进场同一段（ensurePacksForPair，复用 downloading/「准备中」态），
+    // 缺什么下什么（只下新对），下好自动用新语言继续。
+    if (session && sock && (phase === 'listening' || phase === 'preparing')) {
+      closeSocket();
+      const wasListening = phase === 'listening';
+      if (wasListening) { phase = 'preparing'; }   // 与 beginPipeline 同一入口语义
+      ensurePacksForPair().then((ok) => {
+        if (!ok) return;             // halt 已接管（具名态，与进场失败一致）
+        openSocket();
+        if (wasListening && phase === 'preparing') { phase = 'listening'; canvas.view('state'); }
+      });
+    }
     canvas.view('mode');   // 受控 select：mySelVal/otherSelVal 变了必须 bump，否则 React 把 DOM 值拉回去
     if (session) canvas.view('state');
   }

@@ -396,6 +396,14 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
       'show(null)（登出回登录面）没有复位登录锁 —— 成功路径按裁定不解锁，登出再不复位按钮就全死了');
   });
 
+  test('★ 听译内切语言要按新对补包 — 不必退出重进（2026-10-06，92 号包真机）', () => {
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/async function ensurePacksForPair\(\)/.test(model), '没抽出共用的按对补包段（进场与改语言要用同一段）');
+    ok(/if \(!\(await ensurePacksForPair\(\)\)\) return;/.test(model), 'beginPipeline 没走共用的补包段');
+    const lc = model.slice(model.indexOf('function langChange'), model.indexOf('function setAutoSpeak'));
+    ok(/ensurePacksForPair\(\)/.test(lc), 'langChange 改语言没有按新对补包 —— zh/en 切泰语不触发下载，必须退出重进');
+  });
+
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
     // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
     // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示

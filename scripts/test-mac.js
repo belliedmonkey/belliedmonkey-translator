@@ -567,10 +567,49 @@ async function m8() {
   }
 }
 
+// M9 听译内切语言要按新对补包 — zh/en 起听后切泰语，泰语包当场下载并就绪（92 号包真机：
+// 此前必须退出重进才会下）。fixture 与 M8 同款：删掉 vits 模拟「首启 zh/en 只下英语包」。
+// 切完后 App 自己下载并安装（就绪后无需还原 —— 下载即还原）。
+async function m9() {
+  const MS = path.join(process.env.HOME, 'Library/Containers/com.belliedmonkeytranslator/Data/Library/Application Support/mt-speech');
+  fs.rmSync(path.join(MS, 'vits-mms-tha'), { recursive: true, force: true });
+  await storageSet({ onboardSeen: true, listenMyLang: 'zh', listenOtherLang: 'en', listenAutoSpeak: true });
+  await relaunchApp();
+  await storageSet({ ttsEngine: 'device' });
+  await waitFor(() => visible('app-listen-entry'), 20000, 'M9 首页听译卡');
+  await sleep(1500);
+  await click('app-listen-entry');
+  await waitFor(() => visible('app-listen'), 8000, 'M9 听译页');
+  await click('app-listen-toggle');
+  await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'M9 zh/en 开听');
+  await evalOk('__mtTest.rec(1), true');
+  // 切「对方的语言」到泰语 —— 应当场触发泰语包下载（复用「准备中/下载」态）
+  await setValue('app-listen-other', 'th');
+  const sawTh = await waitFor(async () => evalOk(`__mtTest.rec().some(e => String((e && e.locale) || '').split('-')[0].toLowerCase() === 'th')`), 60000,
+    () => '切泰语后 60s 内没有泰语包动作（探测/下载）—— 没按新对补包');
+  // 下载完成：th 模型就绪 + 会话回到 live（真实下载 ~105MB，给足时间）
+  await waitFor(async () => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 480000, '切泰语后会话没有恢复 live（下载卡住或没自动继续）');
+  // 完成判据 = 进度在推进（3 分钟内 fraction 上涨或已装）：App 下载器经这条网络实测
+  // 40s–30min 方差巨大，墙钟等不完整个 105MB。完成与就绪由紧随的 M2 证明 —— 它的
+  // setupListen ensure 会阻塞等同一个下载器收尾再念泰语。
+  const lastTh = async () => JSON.parse(await evalOk(`(()=>{const ev=__mtTest.rec().filter(e=>(e.type||"")==="assets-progress"&&String(e.locale||"").split("-")[0]==="th"); return JSON.stringify(ev[ev.length-1]||null)})()`) || 'null');
+  let baseline = await lastTh();
+  await waitFor(async () => {
+    const cur = await lastTh();
+    const adv = cur && (cur.state === 'installed' || (Number(cur.fraction) || 0) > (Number(baseline && baseline.fraction) || 0));
+    if (cur && cur.state === 'downloading') baseline = cur;
+    return !!adv;
+  }, 180000, '泰语包进度没有推进（没在真下载）');
+  // 只下新对：全程没有 en 的下载事件（en 已装，不该有任何 en 动作）
+  okc(!(await evalOk(`__mtTest.rec().some(e => String((e && e.locale) || '').split('-')[0].toLowerCase() === 'en' && (e.state === 'downloading' || e.fraction > 0 && e.fraction < 1))`)),
+    '切泰语时连带动了英语包 —— 只该下新对需要的');
+}
+
 const CASES = [
   { id: 'M1', what: '包屏只下所选语言对的模型', impl: m1 },
   { id: 'M6', what: '语言对下载后不跳', impl: m6 },
   { id: 'M8', what: '听译进场只下当前对（zh/en 不拉泰语 — 90 真机）', impl: m8 },
+  { id: 'M9', what: '听译内切语言按新对补包（zh/en 切泰语当场下 — 92 真机）', impl: m9 },
 ];
 
 const LISTEN_CASES = [
