@@ -71,18 +71,24 @@ export default function SettingsView() {
   const detailRef = useRef(false);
 
   // ─── 对话模式语言下拉（§9.6）──────────────────────────────────────────────
-  // 从语言注册表填（settings-model.sttSupportedBases 说为什么按本机识别器过滤）。
+  // 用 `AppListen.langOptions` —— 与听译页、首启包屏**同一份**选项：注册表全量、本机识别器
+  // 不支持的标 `disabled` + 「当前引擎不支持」后缀（用户 2026-10-04 裁定「所有选语言的地方都要
+  // 有泰语……不能只在部分入口有」⇒ 不是从列表里拿掉）。这里原来自己按 sttSupportedBases
+  // `continue` 掉不支持的语言，是唯一漏网的一处（2026-10-06 由 test:listen 的 S1 门禁抓出：
+  // 设置页 9 门、会话页 12 门，两处不一致）。
   function fillLangs(sel) {
     if (!sel) return;
     const keep = sel.value;
-    const allowed = settingsModel.sttSupportedBases();
     sel.textContent = '';
-    for (const l of (Registry.langs() || [])) {
-      if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
-      const o = document.createElement('option');
-      o.value = l.code;
-      o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
-      sel.appendChild(o);
+    const opts = (typeof AppListen !== 'undefined' && AppListen.langOptions)
+      ? AppListen.langOptions(keep)
+      : (Registry.langs() || []);
+    for (const o of opts) {
+      const el = document.createElement('option');
+      el.value = o.code;
+      el.textContent = o.labelKey ? t(o.labelKey, o.label) : o.label;
+      el.disabled = !!o.disabled;
+      sel.appendChild(el);
     }
     if (keep) sel.value = keep;
   }

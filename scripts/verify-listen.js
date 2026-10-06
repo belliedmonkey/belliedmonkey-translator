@@ -422,10 +422,21 @@ const FAKE_BRIDGES = `(() => {
     await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S: 设置页打开');
     await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
     await sleep(200);
-    // S1. 语言下拉只列本机识别器支持的语种（探过桥之后）：ar / ru 不在，en / ja 在；会话内的下拉同规则
-    const s1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ settings: [...document.getElementById('listen-other-lang').options].map((o) => o.value), session: [...document.getElementById('app-listen-other').options].map((o) => o.value) })`));
+    // S1. 语言下拉列**注册表全量**，但本机识别器不支持的标为**不可选**（2026-10-04 用户裁定：
+    // 「所有选语言的地方都要有泰语……不能只在部分入口有」⇒ 不从列表里拿掉，`disabled` + 后缀，
+    // 并在旁边给「换引擎」的出路。会话页 listen-view.jsx 与设置页 shell-model 都设 `option.disabled`）。
+    // 假桥支持 12 门（不含 ar/ru/th）：这三门**必须在列表里、且 disabled**；en/ja 在、且可选。
+    // （旧断言「该只列本机支持的」是 2026-10-04 之前的规则，已过期。）
+    const s1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({
+      settings: [...document.getElementById('listen-other-lang').options].map((o) => ({ v: o.value, d: o.disabled })),
+      session: [...document.getElementById('app-listen-other').options].map((o) => ({ v: o.value, d: o.disabled })),
+    })`));
+    const ALL_LANGS = ['en', 'ja', 'ko', 'zh', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
     for (const [name, list] of Object.entries(s1)) {
-      need(list.includes('en') && list.includes('ja') && !list.includes('ar') && !list.includes('ru'), 'S1: ' + name + ' 的语言下拉该只列本机支持的（有 en/ja、无 ar/ru），实际 ' + JSON.stringify(list));
+      const by = {}; for (const o of list) by[o.v] = o.d;
+      need(ALL_LANGS.every((c) => c in by), 'S1: ' + name + ' 语言下拉不是注册表全量（含泰语），实际 ' + JSON.stringify(list.map((o) => o.v)));
+      need(by.en === false && by.ja === false, 'S1: ' + name + ' 本机支持的 en/ja 不该被禁用，实际 ' + JSON.stringify(list));
+      need(by.ar === true && by.ru === true && by.th === true, 'S1: ' + name + ' 本机不支持的 ar/ru/th 该在列表里、但标为不可选，实际 ' + JSON.stringify(list));
     }
     // S2. 识别语言包行：语言包已装 ⇒ 「已就绪」无按钮；缺 ⇒ 「未下载」+ 下载按钮 ⇒ 点了进度 ⇒ 已就绪
     const s2a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('listen-pack-row').hidden, text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 语言包行说「已就绪」');

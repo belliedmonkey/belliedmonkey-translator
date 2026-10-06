@@ -41,6 +41,18 @@ describe('听译页语言列表：始终列全（含 ไทย）', () => {
     eq(opts, 2, '两个语言下拉都应当带 disabled={o.disabled}，实际 ' + opts);
   });
 
+  test('设置页的语言下拉同规则：全量 + disabled，不再 continue 掉（2026-10-06 由 S1 门禁抓出）', () => {
+    // 设置页原来的 fillLangs 自己按 sttSupportedBases `continue` ⇒ 只列 9 门，与听译页（12 门）
+    // 不一致 —— 正是裁定要消灭的那种「只在部分入口有」。现在两处共用 AppListen.langOptions。
+    const SV = read('src/app/settings-view.jsx');
+    const i = SV.indexOf('function fillLangs');
+    ok(i > 0, '没找到 settings-view 的 fillLangs');
+    const body = SV.slice(i, SV.indexOf('\n  }', i));
+    ok(!/continue;/.test(body), '设置页 fillLangs 又在跳过不支持的语言 —— 那是唯一漏网的一处');
+    ok(/AppListen\.langOptions\(/.test(body), '设置页没有用同一份 AppListen.langOptions（会与听译页/首启屏不一致）');
+    ok(/\.disabled = !!o\.disabled/.test(body), '设置页没有把不支持的语言标成 disabled');
+  });
+
   test('★ 出路就地给：有「换引擎」，且点击走 shell 注入的 openSettings', () => {
     ok(/listen_lang_change_engine/.test(VIEW), 'View 里没有「换引擎」');
     ok(/listenModel\.changeEngine\(\)/.test(VIEW), '按钮没接到 changeEngine()');
