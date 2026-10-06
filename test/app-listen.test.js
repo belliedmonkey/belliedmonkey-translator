@@ -817,6 +817,45 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     a.flushAll();
     deepEq(locs(), ['zh-CN'], '会话结束时扣着的片不能丢');
   });
+  // 半句层择一（2026-10-06，95 真机「说中文先闪泰文再改中文」）：定稿仲裁管定稿，半句是另一条路。
+  test('半句择一：文字系不同按三档分留高者；同文字系取最新；只有一路就它', () => {
+    eq(C.pickPartial([{ text: '我想订一间房间', conf: 0.9, at: 2 }, { text: 'ฉันต้องการจอง', conf: -1, at: 3 }], DEPS).text, '我想订一间房间', '说中文：高置信压过泰文假字');
+    eq(C.pickPartial([{ text: '我在那', conf: 0.12, at: 2 }, { text: 'สวัสดีครับ', conf: -1, at: 3 }], DEPS).text, 'สวัสดีครับ', '说泰语：低置信中文假字让位给泰文');
+    eq(C.pickPartial([{ text: 'we can', conf: 0.9, at: 2 }, { text: 'We can ship', conf: 0.9, at: 5 }], DEPS).text, 'We can ship', '同拉丁文字系取最新');
+    eq(C.pickPartial([{ text: 'สวัสดี', conf: -1, at: 1 }], DEPS).text, 'สวัสดี');
+    eq(C.pickPartial([], DEPS), null);
+    eq(C.pickPartial([{ text: '', conf: 1, at: 1 }], DEPS), null);
+  });
+  // 回声优先（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」）：窗口里任一路匹配我们刚读出去的
+  // 文本 ⇒ 整窗判成回声、两路都丢 —— 错语言那一路不匹配文字，靠正确语言那一路把整段判掉。
+  test('仲裁窗口回声优先：任一路是我们自己的朗读 ⇒ 两路都丢；不同句照常放行', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const HEARD = 'ราคานี้รวมภาษีและค่าขนส่งแล้ว';   // 我们刚读出去的泰文
+    const deps = Object.assign({}, DEPS, { isEcho: (s) => String(s).replace(/\s+/g, '') === HEARD });
+    const mk = () => C.makeFinalArbiter((f) => out.push(f), deps, {
+      windowMs: 600,
+      setTimeout: (fn) => { timers.push({ id: ++id, fn }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    // 我们朗读的泰文（正确语言那一路，conf -1）+ 中文路高置信假字（文字不匹配）⇒ 两路都丢
+    let a = mk();
+    a.push({ locale: 'th-TH', text: HEARD, conf: -1 });
+    a.push({ locale: 'zh-CN', text: '价格包含税和运费', conf: 0.9 });
+    deepEq(out.map((f) => f.locale), [], '整窗判成回声，不该出任何一行');
+    // 对方说另一句泰文（不是我们读的）⇒ 照常放行（不误杀）；zh 那一路低置信假字被压掉
+    out.length = 0; timers.length = 0;
+    a = mk();
+    a.push({ locale: 'th-TH', text: 'ฉันหิวข้าวมาก', conf: -1 });
+    a.push({ locale: 'zh-CN', text: '我饿了', conf: 0.3 });
+    deepEq(out.map((f) => f.locale), ['th-TH'], '对方的新句照常放行');
+    // 孤独一片：命中回声也要丢
+    out.length = 0; timers.length = 0;
+    a = mk();
+    a.push({ locale: 'th-TH', text: HEARD, conf: -1 });
+    for (const t of timers.splice(0)) t.fn();
+    deepEq(out.map((f) => f.locale), [], '孤独的回声片也要丢');
+  });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
     const r1 = C.addFinal(s, 'Bonjour, vous êtes prêt ?', T0 + 1000, pair('en', 'fr'), Object.assign({}, DEPS, { who: 'them' }));

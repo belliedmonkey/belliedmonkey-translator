@@ -415,30 +415,47 @@ const listenModel = (() => {
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
   // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
   // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
-  // 半句粘滞（2026-10-06，92 真机「说中文先显示泰文再改中文」）：两路识别器同时听，泰语路把
-  // 中文语音硬解成泰文垃圾、先到先画 —— onPartial 此前不认语言。规则：某语言出过定稿后的
-  // STICKY_MS 内，**另一语言**的半句不再上屏（定稿才说话）；窗口过后自动放松（说话人切换）。
-  // 2026-10-06 收紧 8000 → 2000：8 秒窗里中泰来回，对方说泰语的实时预览会被整段藏掉（真机
-  // 「看不见对方在说什么」）。粘滞只是挡「同一句话的两路识别器串色」，那是几百毫秒级的事，
-  // 2 秒足够；真正收干净错语言的定稿是另一条（定稿仲裁，见本文件头注释与 #issue）。
-  const PARTIAL_STICKY_MS = 2000;
-  let lastFinalLocale = '', lastFinalAt = 0;
+  // ── 半句层的跨语言仲裁（2026-10-06，95 真机「说中文先闪泰文再改中文」）────────────────
+  // 定稿仲裁只管定稿；半句是**另一条**显示路径。老办法只有一个「某语言出过定稿后 2s 内另一路
+  // 半句不上屏」的粘滞 —— 说话**开头**（还没有任何定稿）时，泰语路把中文语音硬解成泰文的半句仍会
+  // 先画上去，就是那次「闪现」。改成和定稿同一套判据：每路留最新半句，**文字系不同**时按三档分
+  // （高置信 / 已知低置信 / 无置信）留高分那一路；同一文字系取最新。粘滞随之取消（仲裁取代它）。
+  const PARTIAL_TTL_MS = 2500;
+  const PARTIAL_HOLD_MS = 300;   // 只有一路候选时先扣住这么久，等另一路（若有）到齐再择一 —— 不先闪错语言
+  let partialBy = {};   // locale base → { text, conf, at }
+  let partialHoldTimer = 0;
+  function pickPartial() {
+    const at = Date.now();
+    const fresh = Object.keys(partialBy).map((k) => partialBy[k]).filter((c) => c && (at - c.at) < PARTIAL_TTL_MS);
+    return C.pickPartial(fresh, routeDeps);   // 判据在 listen-core（纯函数、有单测）
+  }
+  function clearPartials() { partialBy = {}; if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; } partial = ''; partialTr = ''; }
+  // 画当前该显示的那一路半句（三档择一见 pickPartial）。
+  function refreshPartial() {
+    const pick = pickPartial();
+    partial = pick ? pick.text : '';
+    // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
+    // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
+    if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
+    if (inc) inc.onPartial(partial);
+    canvas.view('now');
+    subShow(partial, '', true);
+  }
   function openDevice(myGen) {
     const locales = deviceLocales(cfg);
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
-      lastFinalLocale = String(locale || '').split('-')[0];
-      lastFinalAt = Date.now();
       onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
     });
     cutter = cut;
     const gate = C.makeFinalGate(routeDeps);   // 低置信的拉丁句头先扣住，紧接的高置信片来了再接回（listen-core 注释）
     // 跨语言仲裁（§9.6.1.2）：final 先过它，错语言那一路被置信度压掉，剩下的才进 gate/cutter。
+    // 注入 isEcho：窗口里任一路匹配我们刚读出去的文本 ⇒ 整窗判成回声、两路都丢（95 真机回声修）。
     arb = C.makeFinalArbiter((f) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
       for (const tt of gate.push(f)) cut.add(f.locale, tt);
-    }, routeDeps);
+    }, Object.assign({}, routeDeps, { isEcho: (s) => { try { return echo.isEcho(s, Date.now()); } catch (_) { return false; } } }));
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -446,11 +463,7 @@ const listenModel = (() => {
         if (!sock && (kind === 'partial' || kind === 'final')) return;
         if (kind === 'ready') { socketRetried = false; }
         else if (kind === 'partial') {
-          // 半句粘滞：见 openDevice 头注释。粘滞只挡「另一语言的半句上屏」，定稿照常走
-          // （gate + cutter 仍按自己的规则处理）—— 误粘滞最多损失一句的实时预览，不丢行。
-          const base = String(ev && ev.locale || '').split('-')[0];
-          const sticky = lastFinalLocale && base && base !== lastFinalLocale && (Date.now() - lastFinalAt < PARTIAL_STICKY_MS);
-          if (!sticky && C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.text);
+          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev.conf);
         }
         else if (kind === 'final') { if (arb) arb.push(ev); }
         else if (kind === 'error') socketLost(ev.reason || '');
@@ -469,21 +482,27 @@ const listenModel = (() => {
     halt('socket', why);
   }
 
-  function onPartial(text) {
-    partial = text || '';
-    // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
-    // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
-    // 对方在我朗读时插话不会被误杀：他的话与我读的内容重合度低，够不上门限。
-    if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
-    if (inc) inc.onPartial(partial);
-    canvas.view('now');
-    subShow(partial, '', true);
+  function onPartial(locale, text, conf) {
+    const key = C.baseCode(locale);
+    const t = String(text || '').trim();
+    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, conf, at: Date.now() };
+    // 只有一路候选且刚到 ⇒ 先扣住一小段再画：说话**开头**两路识别器对同一段音频都会给半句，
+    // 谁先到就先画的话，说中文时泰语路的假半句会「先闪」一下（95 真机）。扣到另一路到齐再
+    // 按三档择一（高置信压中性、中性压低置信）；窗口内没有第二路 ⇒ 到点正常画它。
+    const freshN = Object.keys(partialBy).filter((k) => partialBy[k] && (Date.now() - partialBy[k].at) < PARTIAL_TTL_MS).length;
+    if (freshN <= 1) {
+      if (!partialHoldTimer) partialHoldTimer = setTimeout(() => { partialHoldTimer = 0; refreshPartial(); }, PARTIAL_HOLD_MS);
+      return;
+    }
+    if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; }
+    refreshPartial();
   }
   function onFinal(text, meta) {
+    if (meta && meta.locale) delete partialBy[C.baseCode(meta.locale)];   // 这一路定稿了，它的半句退休
     // 回声闸第一层：我们自己刚读出去的那句被麦克风录回来了 ⇒ **整句丢弃** —— 不进历史、
     // 不翻译、不写语料、不朗读、不算进小结。它根本不是一句话。
     const clean = String(text || '').replace(/\s+/g, ' ').trim();
-    if (clean && echo.isEcho(clean, now())) { partial = ''; partialTr = ''; canvas.view('now'); return; }
+    if (clean && echo.isEcho(clean, now())) { clearPartials(); canvas.view('now'); return; }
     // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
     if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
@@ -766,7 +785,7 @@ const listenModel = (() => {
     inc = C.makeIncremental((text) => translate(text,
       (!C.modeOf(session).oneWay && C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
     inc.result((text, tr) => { if (text === partial) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
-    partial = ''; partialTr = '';
+    clearPartials();
     if (bridged()) {
       // 再挂一次监听（onEvent 按引用去重）：桥晚于 wire() 出现的宿主（test:listen 的假桥）也收得到字幕条的「结束」
       NativeAudio.onEvent(onNative);
@@ -859,7 +878,7 @@ const listenModel = (() => {
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
     if (inc) inc.reset();
-    partial = ''; partialTr = '';
+    clearPartials();
     // 「没有声音」与「拿不到声音」是两回事，出口也相反（#424）。指向权限的条件有两个，
     // 任一成立即可：
     //   · 原生报过 silent 且从没报过 sound（决定 10 修订二 + O2，需要「别的 App 正在出声」）；
@@ -883,7 +902,7 @@ const listenModel = (() => {
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
     if (inc) inc.reset();
-    partial = ''; partialTr = '';
+    clearPartials();
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
     const msg = reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'

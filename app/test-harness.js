@@ -46,11 +46,11 @@
       return true;
     },
 
-    // 「麦克风正在听到半句」。
-    partial(text, locale) {
+    // 「麦克风正在听到半句」。conf 用来验半句层的跨语言仲裁（真机 partial 也带 conf）。
+    partial(text, locale, conf) {
       const n = ns();
       if (!n || !n._fromNative) return false;
-      n._fromNative({ type: 'stt-partial', locale: locale || 'zh', text: String(text) });
+      n._fromNative({ type: 'stt-partial', locale: locale || 'zh', text: String(text), conf: conf == null ? 0.95 : conf });
       return true;
     },
 

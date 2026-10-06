@@ -651,6 +651,22 @@ var ListenCore = (() => {
     };
   }
 
+  // 半句层的择一（与定稿仲裁同一套判据，2026-10-06）。cands = [{ text, conf, at }]。
+  // 文字系不同 ⇒ 留三档分最高的那一路（高置信压中性、中性压低置信）；同文字系 ⇒ 取最新。
+  // 说话开头只有一路半句时自然返回它；两路都在时这就是「说中文不再先闪泰文」的判据。
+  function pickPartial(cands, deps) {
+    const list = (cands || []).filter((c) => c && c.text);
+    if (!list.length) return null;
+    if (list.length === 1) return list[0];
+    const ds = deps && deps.dominantScript;
+    const scriptOf = (t) => { try { return (ds && ds(t)) || ''; } catch (_) { return ''; } };
+    if (new Set(list.map((c) => scriptOf(c.text))).size > 1) {
+      const max = Math.max(...list.map((c) => arbScore({ conf: c.conf })));
+      return list.filter((c) => arbScore({ conf: c.conf }) === max).reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
+    }
+    return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
+  }
+
   // ── 跨语言定稿仲裁（2026-10-06，§9.6.1.2）──────────────────────────────────
   // 两路识别器对**同一段音频**都会出 final（同一个 SpeechAnalyzer、同一次 finalize(through:) ⇒
   // 两片到达差只有几十毫秒）。当两片**文字系不同**时，它们必然是同一段声音的两种解读，而其中
@@ -660,6 +676,9 @@ var ListenCore = (() => {
   //   无置信＝中性。分高者留，同分都留（不猜）。
   // **只有文字系不同才仲裁**：同文字系的竞争（en 路的拉丁碎片 vs zh 路的拉丁垃圾）交给既有
   // script/conf 规则，否则会破坏 2026-09-18 的句头救回（低置信句头 vs 高置信拉丁垃圾）。
+  // **回声优先**：窗口里只要有一路匹配「我们自己刚读出去的文本」，这一整段音频就是我们的声音，
+  // 两路都丢（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」：错语言那一路不匹配文字、
+  // 原来的文字闸漏掉它；而同一段音频的正确语言那一路是匹配的 ⇒ 用它把整窗判成回声）。
   const ARB_TRUST_CONF = 0.4;
   const ARB_WINDOW_MS = 600;   // 扣住多久等对手；由 §0.3 判分台校准（§9.6.1.2(d)）
   function arbScore(f) {
@@ -668,25 +687,33 @@ var ListenCore = (() => {
     return c >= ARB_TRUST_CONF ? 2 : 0;        // 高置信：可信 / 低置信：可疑
   }
   // makeFinalArbiter(onFinal, deps, opts)：push(final) 之后，最终经 onFinal 放行。
+  //   deps { dominantScript, isEcho(text)→bool }
   function makeFinalArbiter(onFinal, deps, opts) {
     const o = opts || {};
     const W = o.windowMs || ARB_WINDOW_MS;
     const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
     const ds = deps && deps.dominantScript;
     const scriptOf = (f) => { try { return (ds && ds(String((f && f.text) || ''))) || ''; } catch (_) { return ''; } };
-    const pending = {};   // locale → { f, timer }（同时最多一路待决）
+    const echoOf = (f) => { try { const s = String((f && f.text) || '').replace(/\s+/g, ' ').trim(); return !!(deps && deps.isEcho && s && deps.isEcho(s)); } catch (_) { return false; } };
+    const pending = {};   // locale → { f, echo, timer }（同时最多一路待决）
     function flush(locale, drop) {
       const p = pending[locale]; if (!p) return;
       if (p.timer) clearT(p.timer);
       delete pending[locale];
-      if (!drop && onFinal) onFinal(p.f);
+      if (drop || p.echo) return;                  // 我们自己刚读出去的 ⇒ 丢（判定用**到达时刻**，见 push）
+      if (onFinal) onFinal(p.f);
     }
     return {
       push(f) {
         const locale = String((f && f.locale) || '');
+        // 回声判定在**到达时刻**做，不在放行时刻：窗口是「录音被识别的那会儿」，而放行要等 W ms，
+        // 用放行时刻会把判定推出 ECHO_TAIL（M3 抖动实证）。
+        const echo = echoOf(f);
         if (pending[locale]) flush(locale, false);          // 同一路连续定稿：前一片立即放行
         const other = Object.keys(pending)[0];
         if (other) {
+          // 只要有一路是我们自己的朗读 ⇒ 这一整段音频是我们自己的声音 ⇒ 两路都丢
+          if (deps && deps.isEcho && (pending[other].echo || echo)) { flush(other, true); return; }
           if (scriptOf(pending[other].f) === scriptOf(f)) {
             flush(other, false);                            // 同文字系：不仲裁，两片都放行
           } else {
@@ -696,7 +723,7 @@ var ListenCore = (() => {
             flush(other, false);                            // 同分：放旧的，新的照常挂
           }
         }
-        pending[locale] = { f, timer: setT(() => flush(locale, false), W) };
+        pending[locale] = { f, echo, timer: setT(() => flush(locale, false), W) };
       },
       // 会话结束时把还扣着的放出去（否则最后一片会丢）。
       flushAll() { for (const l of Object.keys(pending)) flush(l, false); },
@@ -842,7 +869,7 @@ var ListenCore = (() => {
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
-    arbScore, makeFinalArbiter, ARB_TRUST_CONF, ARB_WINDOW_MS,
+    arbScore, makeFinalArbiter, ARB_TRUST_CONF, ARB_WINDOW_MS, pickPartial,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
