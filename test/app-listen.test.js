@@ -373,6 +373,22 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
       'vits dataDir 没有按「空即传空串」处理 —— appendingPathComponent("") 会把模型目录传成 espeak 数据目录，sherpa 找不到 phontab 直接拒载');
   });
 
+  test('★ 登录进行中 = 入口全部锁定（2026-10-06 用户裁定）', () => {
+    // 此前 apple-result/webauth-result 回调第一行就 disabled=false，然后才进入秒级的
+    // 「正在登录…」验证等待 —— 窗口期 Apple/Google/邮箱全都能再点。原则：从点击到流程
+    // 终了（成功离屏 / 失败与取消才解锁），这一屏所有登录入口保持 disabled。
+    const src = read('src/app/shell-model.js');
+    ok(/const LOGIN_ENTRY_IDS = \['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify'/.test(src),
+      'setLoginBusy 没有覆盖全部登录入口（Apple/Google/邮箱展开/发送/验证码）');
+    ok(/function setLoginBusy\(busy\)/.test(src), '缺 setLoginBusy 统一入口');
+    const stripped = src.replace(/\/\/.*$/gm, '');
+    // 原 bug 的形状就是它：回调顶部裸的单按钮解锁（先解锁、后进入秒级验证等待）—— 禁绝
+    ok(!/\$\('btn-(apple|google)'\)\.disabled = false/.test(stripped),
+      '回调里还有裸的单按钮解锁 —— 那正是「登录中还能点」的窗口');
+    ok((stripped.match(/setLoginBusy\(true\)/g) || []).length >= 4,
+      '四个登录入口（Apple/Google/邮箱/验证码）没有都走 setLoginBusy 锁定');
+  });
+
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
     // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
     // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示

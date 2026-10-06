@@ -1489,14 +1489,27 @@ export function bootShell() {
         && window.webkit.messageHandlers.mtAppleSignIn);
     } catch (_) { return false; }
   })();
+  // ── 登录进行中 = 入口全部锁定（2026-10-06 用户裁定：登录按钮不能再点）──────────
+  // 此前 apple-result/webauth-result 回调第一行就 `disabled = false`，然后才进入
+  // 「正在登录…」的验证等待（Apple 验证是秒级链路）—— 窗口期 Apple/Google/邮箱全都
+  // 还能点，双开登录流。原则：从点击到流程终了（成功即离屏 / 失败与取消才解锁），
+  // 这一屏的所有登录入口保持 disabled。
+  const LOGIN_ENTRY_IDS = ['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify', 'app-use-pw', 'app-pw-login'];
+  function setLoginBusy(busy) {
+    for (const id of LOGIN_ENTRY_IDS) {
+      const e = $(id);
+      if (e) e.disabled = busy;
+    }
+  }
+
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
     $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
     $('btn-apple').hidden = false;
     $('btn-apple').addEventListener('click', () => {
-      $('btn-apple').disabled = true;
+      setLoginBusy(true);
       say(t('app_apple_waiting', '正在打开 Apple 登录…'));
       try { window.webkit.messageHandlers.mtAppleSignIn.postMessage({}); } catch (err) {
-        $('btn-apple').disabled = false;
+        setLoginBusy(false);
         try { LearnAuth.noteAuthFail('apple', 'native', err); } catch (_) {}
         say(humanError(err), true);
       }
@@ -1519,11 +1532,11 @@ export function bootShell() {
     g.addEventListener('click', () => {
       const url = LearnAuth.providerSignInUrl('google', scheme + '://auth');
       if (!url) { say(humanError({ code: 'pkce_missing' }), true); return; }
-      g.disabled = true;
+      setLoginBusy(true);
       say(t('app_apple_waiting', '正在打开登录…'));
       try {
         window.webkit.messageHandlers.mtAppleSignIn.postMessage({ url, scheme });
-      } catch (err) { g.disabled = false; try { LearnAuth.noteAuthFail('google', 'native', err); } catch (_) {} say(humanError(err), true); }
+      } catch (err) { setLoginBusy(false); try { LearnAuth.noteAuthFail('google', 'native', err); } catch (_) {} say(humanError(err), true); }
     });
   }
 
@@ -1532,8 +1545,8 @@ export function bootShell() {
   // 冷启动时结果可能先到：pending 槽由 install 回放、早到的调用由桥的
   // hold-and-replay 补发（native-bridge.js 头注释），这里不再自兜。
   NativeBridge.onNative('webauth-result', async (r) => {
-    const g = $('btn-google'); if (g) g.disabled = false;
     if (!r || r.error) {
+      setLoginBusy(false);
       if (r && r.error === 'canceled') { say(''); return; }
       try { LearnAuth.noteAuthFail('google', 'native', (r && r.error) ? String(r.error) : 'native_error'); } catch (_) {}
       say(t('app_apple_failed', '登录没能完成。可以改用下面的邮箱或手机号。'), true);
@@ -1547,6 +1560,7 @@ export function bootShell() {
     try {
       session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
     } catch (err) {
+      setLoginBusy(false);
       say(humanError(err), true);
       // 兑换失败会把 verifier 作废（它是一次性的），**必须重新备一份** ——
       // 不备的话，下一次点击拿到的是 pkce_missing，按钮直到刷新页面前都是死的。
@@ -1559,6 +1573,7 @@ export function bootShell() {
       await show(session);
       await doSync();
     } catch (err) {
+      setLoginBusy(false);
       try { LearnAuth.noteAuthFail('google', 'post_login', err); } catch (_) {}
       say(humanError(err), true);
     }
@@ -1566,8 +1581,8 @@ export function bootShell() {
 
   // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），兜法同上。
   NativeBridge.onNative('apple-result', async (r) => {
-    $('btn-apple').disabled = false;
     if (!r || r.error) {
+      setLoginBusy(false);
       // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。
       if (r && r.error === 'canceled') { say(''); return; }
       // 原生那一步的失败要留档（telemetry-design §3.14）：它发生在 id_token 之前，
@@ -1581,13 +1596,14 @@ export function bootShell() {
     let session = null;
     try {
       session = await LearnAuth.signInWithIdToken('apple', r.idToken, r.nonce);
-    } catch (err) { say(humanError(err), true); return; }
+    } catch (err) { setLoginBusy(false); say(humanError(err), true); return; }
     try {
       await show(session);
       // 与验证码那条路逐字相同：刚登录的人要的就是他的材料，让他再去找一个按钮，
       // 等于这个 App 承认自己不知道自己是干什么的。
       await doSync();
     } catch (err) {
+      setLoginBusy(false);
       try { LearnAuth.noteAuthFail('apple', 'post_login', err); } catch (_) {}
       say(humanError(err), true);
     }
@@ -1599,7 +1615,7 @@ export function bootShell() {
     e.preventDefault();
     const email = $('email').value.trim();
     if (!email) return;
-    $('send').disabled = true;
+    setLoginBusy(true);
     $('send').textContent = t('app_sending', '正在发送…');
     say('');
     try {
@@ -1613,14 +1629,14 @@ export function bootShell() {
     } catch (err) {
       say(humanError(err), true);
     } finally {
-      $('send').disabled = false;
+      setLoginBusy(false);
       $('send').textContent = t('app_send', '发送验证码');
     }
   });
 
   $('code-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    $('verify').disabled = true;
+    setLoginBusy(true);
     $('verify').textContent = t('app_verifying', '正在登录…');
     say('');
     let session = null;
@@ -1630,6 +1646,7 @@ export function bootShell() {
         $('code').value = '';
       } catch (err) {
         say(humanError(err), true);   // 交换那条已由 auth.js 记过
+        setLoginBusy(false);
         return;
       }
       try {
@@ -1639,11 +1656,12 @@ export function bootShell() {
         // not know what it is for.
         await doSync();
       } catch (err) {
+        setLoginBusy(false);
         try { LearnAuth.noteAuthFail('email', 'post_login', err); } catch (_) {}
         say(humanError(err), true);
       }
     } finally {
-      $('verify').disabled = false;
+      setLoginBusy(false);
       $('verify').textContent = t('app_verify', '登录');
     }
   });
