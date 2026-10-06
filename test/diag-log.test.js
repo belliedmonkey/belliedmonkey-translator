@@ -73,15 +73,20 @@ test('★ 接线在位：六个捕获点都在（引擎装载 / 探测 / 朗读�
     'tts.js 的 DiagLog 调用没有 try/catch 宿主守卫 —— 扩展页会 ReferenceError');
 });
 
-test('★ 导出面：设置页有复制/清空，且不上传', () => {
+test('★ 导出面：设置页有复制/清空；上报只投 write-only 信箱（L2，2026-10-06 用户拍板提前启用）', () => {
   const sv = read('src/app/settings-view.jsx');
   ok(/id="diag-copy"/.test(sv) && /id="diag-clear"/.test(sv), '设置页缺诊断日志的复制/清空入口');
-  ok(!/fetch\(|XMLHttpRequest/.test(sv.slice(sv.indexOf('g-diag'), sv.indexOf('g-diag') + 900)), '诊断块里出现了网络调用 —— 选项 A 是零网络，导出走剪贴板');
   const dl = read('app/diag-log.js');
-  ok(!/\bfetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon/.test(dl), 'diag-log.js 里出现了网络调用 —— 它是纯本机环形日志（零内容纪律的执行点）');
+  // 上报形状钉死：唯一 fetch、地址是信箱表、POST、凭证只用 backend 的 anonKey、失败静默
+  const hits = (dl.match(/fetch\(/g) || []).length;
+  ok(hits === 1, `diag-log.js 里应有且仅有一次 fetch（实际 ${hits}）—— 上报器只有信箱一个出口`);
+  ok(/\/rest\/v1\/bt_diag_events/.test(dl), '上报地址不是 bt_diag_events 信箱');
+  ok(/method: 'POST'/.test(dl), '上报不是 POST');
+  ok(/apikey: b\.anonKey/.test(dl) && !/service_role|supabase_service/i.test(dl), '上报凭证用了 anon 之外的钥匙');
+  ok(dl.slice(dl.indexOf('async function doUpload')).includes('catch (_) {}'), '上报失败不静默 —— 会打扰用户或挡功能');
 });
 
-test('★ L2 信箱表 write-only：永远没有 SELECT/DELETE policy（预埋，未部署）', () => {
+test('★ L2 信箱表 write-only：永远没有 SELECT/DELETE policy（中国库已部署 2026-10-06；东京库待建）', () => {
   const sql = read('deploy/diag-events.sql');
   ok(/for insert with check/.test(sql), '信箱表缺 INSERT policy');
   ok(!/for select|for delete|for update/i.test(sql), '信箱表出现了 SELECT/DELETE/UPDATE policy —— 破坏 write-only 形状');

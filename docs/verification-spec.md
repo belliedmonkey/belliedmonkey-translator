@@ -520,6 +520,12 @@ speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克
    层拒绝）。Caddy 访问日志在 `china-proxy-1:/data/access.log`（JSON：源 IP/状态/耗时），
    GoTrue 在 `docker logs china-auth-1`，DB 在 `china-db-1`。Apple 出海质量监控
    `/var/log/bt-jwks-probe.log`（cron 每 5 分钟）。
+3. **设备侧仪器（L2 已启用，2026-10-06 用户拍板）**：诊断日志自动上报到自有后端的
+   write-only 信箱 `bt_diag_events`（六类事件、字段白名单零内容、失败静默；启动后 5s +
+   每 40 条 + 失败类快发）。**中国库已部署并端到端验通**（真包 POST→201→SSH 读回，
+   `npm run diag:latest` / `diag:dump -- <uuid>` 自查）；东京库待建。**上架 App Store 前
+   必须回来处理**：国际版遥测白名单加 diag 事件类 + 中国版隐私页措辞同版本更新
+   （「正式版一个字节不发」的承诺随 L2 生效需要改写；TestFlight 期间为内测通道）。
 3. **改架构以日志为先**：链路类结论（「连不上」「下载失败」）必须先有访问日志里的实据
    （源 IP 到没到、状态码、耗时分布）才许下判断。2026-10-06 首例：登录 504 的实据是
    `87.124.74.53 … 504 10004ms /auth/v1/token?grant_type=id_token` + GoTrue 全程秒级

@@ -216,6 +216,8 @@ function buildAppBundle(outDir, log, opts) {
     // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
     // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
     "window.MT_HOST = 'app';",
+    // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
+    'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
     '',
     // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
     // Worker / fetch 对 file:// 一律拒绝而 blob: 三样都通（D0 探针 2026-09-11）。PdfJsLoader 看到

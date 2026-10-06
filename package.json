@@ -51,7 +51,9 @@
     "test:grant": "node scripts/verify-grant.js",
     "test:docs": "node scripts/verify-docs.js",
     "test:chrome-cleanup": "node scripts/verify-chrome-cleanup.js",
-    "issues": "node scripts/issues-triage.js"
+    "issues": "node scripts/issues-triage.js",
+    "diag:latest": "node scripts/diag-query.js",
+    "diag:dump": "node scripts/diag-query.js dump"
   },
   "engines": {
     "node": ">=20.0.0"

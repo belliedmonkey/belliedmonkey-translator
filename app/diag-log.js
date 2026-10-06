@@ -58,6 +58,7 @@ var DiagLog = (() => {
     buf.push({ t: Date.now(), k: kind, f });
     if (buf.length > MAX) buf.splice(0, buf.length - MAX);
     persist();
+    try { note(kind); } catch (_) {}              // L2：按节奏上报（见 doUpload）
   }
 
   function all() { ensure(); return buf.slice(); }
@@ -76,7 +77,82 @@ var DiagLog = (() => {
 
   function clear() { ensure(); buf = []; try { chrome.storage.local.set({ [KEY]: [] }, () => {}); } catch (_) {} }
 
-  return { push, all, exportText, clear, SCHEMA, MAX, KEY };
+  // ── L2 自动上报（2026-10-06 用户拍板提前启用：上传到自有后端，排障自己查）─────────
+  // 形状：write-only 信箱（deploy/diag-events.sql）——anon 只有 INSERT；零内容由 push 处的
+  // 字段白名单保证（这里只搬运，不再加工）。失败静默：上报永远不打扰用户、不挡任何功能。
+  // 节奏：启动后 5s 一发 + 每 40 条一发 + 失败类事件（tts_engine/dl fail）即时一发；只上传
+  // lastUploaded 之后的新条目（时间戳游标，重复无害——服务端按 install 取最新）。
+  const UPKEY = 'mtDiagUploadedAt';
+  const BATCH = 40;
+  let uploading = false;
+
+  function backend() {
+    const b = (typeof window !== 'undefined' && window.MT_BACKEND) || null;
+    return (b && b.url && b.anonKey) ? b : null;
+  }
+
+  async function doUpload() {
+    if (uploading) return;
+    const b = backend();
+    if (!b) return;
+    ensure();
+    const since = (await new Promise((res) => { try { chrome.storage.local.get([UPKEY], (v) => res((v && v[UPKEY]) || 0)); } catch (_) { res(0); } })) || 0;
+    const fresh = buf.filter((e) => e.t > since);
+    if (!fresh.length) return;
+    uploading = true;
+    try {
+      const r = await fetch(b.url + '/rest/v1/bt_diag_events', {
+        method: 'POST',
+        headers: { apikey: b.anonKey, Authorization: 'Bearer ' + b.anonKey, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+        body: JSON.stringify([{
+          install_id: installId(),
+          flavor: (typeof window !== 'undefined' && window.MT_FLAVOR) || '',
+          app_version: (typeof window !== 'undefined' && window.MT_APP_VERSION) || '',
+          app_build: '',
+          os: ((typeof navigator !== 'undefined' && navigator.userAgent) || '').slice(0, 200),
+          events: { head: { what: 'mt-diag', count: fresh.length }, entries: fresh },
+        }]),
+      });
+      if (r.ok || r.status === 201) {
+        const now = Date.now();
+        try { chrome.storage.local.set({ [UPKEY]: now }, () => {}); } catch (_) {}
+        lastUploadedAt = now;
+      }
+    } catch (_) {}
+    uploading = false;
+  }
+
+  let lastUploadedAt = 0;
+  let scheduled = false;
+  function schedule(delay) {
+    if (scheduled) return;
+    scheduled = true;
+    setTimeout(() => { scheduled = false; doUpload(); }, delay || 1200);
+  }
+
+  function installId() {
+    if (installId.v) return installId.v;
+    let id = '';
+    try { id = localStorage.getItem('mtDiagInstall') || ''; } catch (_) {}
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID()
+        : 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('mtDiagInstall', id); } catch (_) {}
+    }
+    installId.v = id;
+    return id;
+  }
+
+  // 对外：事件落盘后调用（捕获点不用知道节奏）
+  function note(kind) {
+    if (kind === 'tts_engine' || kind === 'dl') { schedule(400); return; }   // 失败类：快发
+    if (buf && buf.length % BATCH === 0) schedule();
+  }
+
+  return { push, all, exportText, clear, doUpload, SCHEMA, MAX, KEY };
 })();
+
+// 启动后 5s 一发（把上一场留下的、以及开机探测先发走）；此后由事件节奏驱动。
+try { setTimeout(() => { DiagLog.doUpload(); }, 5000); } catch (_) {}
 try { window.DiagLog = DiagLog; } catch (_) {}
 if (typeof module !== 'undefined' && module.exports) module.exports = DiagLog;
