@@ -2215,6 +2215,21 @@
   "telemetry_hint": {
     "message": "Solo qué funciones se usan, en qué navegador y si una traducción tuvo éxito o falló; nunca las páginas que lees, el texto, las direcciones, tus claves ni tu cuenta. Desactivarlo borra lo que envió este dispositivo."
   },
+  "diag_section": {
+    "message": "Registro de diagnóstico"
+  },
+  "diag_copy": {
+    "message": "Copiar registro"
+  },
+  "diag_clear": {
+    "message": "Borrar"
+  },
+  "diag_hint": {
+    "message": "Registros locales para resolver problemas (descargas de modelos / motores de voz / etapas de inicio de sesión, unas 200 entradas). No contiene nada de lo que hayas dicho o traducido. Solo sale de este dispositivo cuando tú lo copias y lo pegas a alguien."
+  },
+  "diag_copied": {
+    "message": "Copiado"
+  },
   "telemetry_onboard": {
     "message": "Se envían datos de uso anónimos para mejorar el producto (nunca el contenido ni las direcciones de las páginas). Se puede desactivar en Ajustes."
   },

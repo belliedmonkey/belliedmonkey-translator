@@ -2215,6 +2215,21 @@
   "telemetry_hint": {
     "message": "Seulement quelles fonctions sont utilisées, sur quel navigateur, et si une traduction a réussi ou échoué — jamais les pages lues, le texte, les adresses, vos clés ni votre compte. Désactiver supprime ce que cet appareil a envoyé."
   },
+  "diag_section": {
+    "message": "Journal de diagnostic"
+  },
+  "diag_copy": {
+    "message": "Copier le journal"
+  },
+  "diag_clear": {
+    "message": "Effacer"
+  },
+  "diag_hint": {
+    "message": "Enregistrements locaux pour le dépannage (téléchargements de modèles / moteurs vocaux / étapes de connexion, ~200 entrées). Ne contient aucun de vos textes parlés ou traduits. Ne quitte l’appareil que si vous le copiez et le collez vous-même."
+  },
+  "diag_copied": {
+    "message": "Copié"
+  },
   "telemetry_onboard": {
     "message": "Des données d’usage anonymes sont envoyées pour améliorer le produit (jamais le contenu ni les adresses des pages). Désactivable dans les réglages."
   },

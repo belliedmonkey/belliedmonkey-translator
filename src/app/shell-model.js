@@ -414,6 +414,7 @@ export function bootShell() {
     const s = await readObSettings();
     const resolvable = (id) => !!(Registry.ttsEngines() || []).some((e) => e.id === id);
     if (s && s.ttsEngine && resolvable(s.ttsEngine)) return;
+    try { DiagLog.push('engine_fix', { from: String(s && s.ttsEngine || '(empty)'), to: 'device' }); } catch (_) {}
     await new Promise((r) => { try { chrome.storage.local.set({ ttsEngine: 'device', ttsApiKey: '', ttsBaseUrl: '', ttsModel: '', ttsVoice: '' }, r); } catch (_) { r(); } });
     try {
       LearnTTS.configure(Object.assign({}, LearnTTS.config, { engineId: 'device', apiKey: '', baseUrl: '', model: '', voice: '' }));
@@ -1552,6 +1553,7 @@ export function bootShell() {
   // 冷启动时结果可能先到：pending 槽由 install 回放、早到的调用由桥的
   // hold-and-replay 补发（native-bridge.js 头注释），这里不再自兜。
   NativeBridge.onNative('webauth-result', async (r) => {
+    try { DiagLog.push('auth', { provider: 'google', phase: (r && r.error) ? 'fail' : 'done', code: String((r && r.error) || '') }); } catch (_) {}
     if (!r || r.error) {
       setLoginBusy(false);
       if (r && r.error === 'canceled') { say(''); return; }
@@ -1588,6 +1590,7 @@ export function bootShell() {
 
   // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），兜法同上。
   NativeBridge.onNative('apple-result', async (r) => {
+    try { DiagLog.push('auth', { provider: 'apple', phase: (r && r.error) ? 'fail' : 'done', code: String((r && r.error) || '') }); } catch (_) {}
     if (!r || r.error) {
       setLoginBusy(false);
       // 用户自己取消不是错误，别画成失败 —— 那会让人以为登录坏了。

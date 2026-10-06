@@ -552,7 +552,7 @@ var LearnTTS = (() => {
   // took over while this one was in flight — the caller should show NOTHING for
   // it (the newer call owns the UI).
   // speak(text, lang[, opts]) — opts.onProgress：设备内置朗读首次要下载模型时的进度回调（§9.1.1）
-  async function speak(text, lang, opts) {
+  async function speakImpl(text, lang, opts) {
     stop();   // records the interrupt (if any) and bumps the epoch
     const myEpoch = epoch;
     const stale = () => epoch !== myEpoch;
@@ -597,6 +597,20 @@ var LearnTTS = (() => {
     currentDone = doneResolve;
     job.done.then(() => doneResolve(), () => doneResolve());
     return { ok: true, engine: engineId, done };
+  }
+
+  // 诊断包装（§0.4.1，2026-10-06）：一切朗读结局（含在途失败 #568 那类）进环形日志。
+  // 零内容：只有语言码/结局/原因/引擎 —— 文本一个字节不进。
+  async function speak(text, lang, opts) {
+    const r = await speakImpl(text, lang, opts);
+    try {
+      DiagLog.push('speak', {
+        lang: baseLang(lang) || String(lang || ''),
+        ok: !!(r && r.ok), reason: (r && r.reason) || '',
+        engine: (r && r.engine) || '', fallback: (r && r.fallback) || '',
+      });
+    } catch (_) {}
+    return r;
   }
 
   // 系统语音（Web Speech）那一支；device 引擎在模型不含该语言时也回落到这里。

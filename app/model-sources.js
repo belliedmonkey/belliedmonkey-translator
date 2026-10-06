@@ -109,8 +109,21 @@ var ModelSources = (() => {
       const urls = urlsOf(spec);
       if (!urls.length || attempts.some((a) => JSON.stringify(a.urls) === JSON.stringify(urls))) return null;   // 同一组地址不重试
       if (attempts.length && typeof onSwitch === 'function') { try { onSwitch(source); } catch (_) {} }
-      try { await download(spec); attempts.push({ source, urls, ok: true }); return { ok: true, attempts, source }; }
-      catch (e) { attempts.push({ source, urls, ok: false, why: (e && e.reason) || (e && e.message) || 'download' }); return null; }
+      const t0 = Date.now();
+      // 诊断（§0.4.1，2026-10-06）：tier 失败链是真机「下不动」的唯一现场证据
+      // （2026-10-06 泰国：server/server-alt 双挂、兜到 builtin 才成 —— 服务器日志只看得见最后一级）
+      const diagPath = (models || []).map((m) => m.path).join(',');
+      try {
+        await download(spec);
+        attempts.push({ source, urls, ok: true });
+        try { DiagLog.push('dl', { path: diagPath, tier: source, phase: 'done', dur_ms: Date.now() - t0 }); } catch (_) {}
+        return { ok: true, attempts, source };
+      } catch (e) {
+        const why = (e && e.reason) || (e && e.message) || 'download';
+        attempts.push({ source, urls, ok: false, why });
+        try { DiagLog.push('dl', { path: diagPath, tier: source, phase: 'fail', why: String(why).slice(0, 120), dur_ms: Date.now() - t0 }); } catch (_) {}
+        return null;
+      }
     };
     const fromCache = (f) => cache[f.path];
     const fromServer = (f) => server && server[f.path] && server[f.path].url;

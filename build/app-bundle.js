@@ -153,6 +153,7 @@ const MODULES = [
                                          // 必须在 driving.js 之前：openCard 会调它。
   'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
   'app/native-speech.js',                // NativeSpeech — §9.6.1 设备内置转写/朗读的桥（只在 App 里有桥）
+  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.4.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
   'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）
   'app/model-sources.js',                // ModelSources — 离线模型下载地址从后端表来：探测 / 默认 / 备用 / 清单兜底（§9.6.1.1，只有 App 用）
                                          // 适配器。无依赖（锁屏上的字由调用方传入，

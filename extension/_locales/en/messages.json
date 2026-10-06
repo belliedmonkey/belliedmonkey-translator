@@ -2215,6 +2215,21 @@
   "telemetry_hint": {
     "message": "Only which features are used, on which browser, and whether a translation succeeded or failed — never the pages you read, the text, the addresses, your keys or your account. Turning it off deletes what this device sent."
   },
+  "diag_section": {
+    "message": "Diagnostic log"
+  },
+  "diag_copy": {
+    "message": "Copy diagnostic log"
+  },
+  "diag_clear": {
+    "message": "Clear"
+  },
+  "diag_hint": {
+    "message": "Local records for troubleshooting (model downloads / speech engines / sign-in stages, about 200 entries). Contains none of your spoken or translated text. It leaves this device only when you tap Copy and paste it to someone yourself."
+  },
+  "diag_copied": {
+    "message": "Copied"
+  },
   "telemetry_onboard": {
     "message": "Anonymous usage data is sent to help improve the product (never page content or addresses). You can turn it off in Settings."
   },

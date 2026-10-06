@@ -2215,6 +2215,21 @@
   "telemetry_hint": {
     "message": "Nur welche Funktionen genutzt werden, in welchem Browser, und ob eine Übersetzung gelang oder scheiterte — nie die gelesenen Seiten, den Text, die Adressen, Ihre Schlüssel oder Ihr Konto. Ausschalten löscht, was dieses Gerät gesendet hat."
   },
+  "diag_section": {
+    "message": "Diagnoseprotokoll"
+  },
+  "diag_copy": {
+    "message": "Protokoll kopieren"
+  },
+  "diag_clear": {
+    "message": "Leeren"
+  },
+  "diag_hint": {
+    "message": "Lokale Aufzeichnungen zur Fehlerbehebung (Modell-Downloads / Sprach-Engines / Anmeldephasen, ca. 200 Einträge). Enthält nichts von dem, was du gesagt oder übersetzt hast. Verlässt das Gerät nur, wenn du es selbst kopierst und jemandem einfügst."
+  },
+  "diag_copied": {
+    "message": "Kopiert"
+  },
   "telemetry_onboard": {
     "message": "Zur Verbesserung werden anonyme Nutzungsdaten gesendet (nie Seiteninhalte oder Adressen). In den Einstellungen abschaltbar."
   },

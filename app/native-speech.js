@@ -77,6 +77,7 @@ var NativeSpeech = (() => {
       ttsProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : (msg.reason || msg.state), langs: Array.isArray(msg.langs) ? msg.langs : [],
         system: !!msg.system, systemLangs: Array.isArray(msg.systemLangs) ? msg.systemLangs.map((l) => String(l).toLowerCase()) : [] };
       ttsProbed = true;
+      try { DiagLog.push('probe', { kind: 'tts', ok: ttsProbe.ok, reason: ttsProbe.reason, assets: ttsProbe.assets, langs: (ttsProbe.langs || []).length }); } catch (_) {}
       wake(ttsWaiters, ttsProbe);
       return;
     }
@@ -85,7 +86,12 @@ var NativeSpeech = (() => {
       if (!job || job.id !== msg.id) return;
       if (t === 'tts-start') job.started(true);
       else if (t === 'tts-end') { speakJob = null; job.started(true); job.done(); }
-      else { speakJob = null; job.started(false); job.fail(msg.reason || 'failed'); }
+      else {
+        speakJob = null;
+        // 诊断（§0.4.1）：#567 那类 reason:"load" 此前只进 WebKit 控制台 —— 真机上一个字节都回不来
+        try { DiagLog.push('tts_engine', { phase: 'failed', fail_reason: String(msg.reason || 'failed') }); } catch (_) {}
+        job.started(false); job.fail(msg.reason || 'failed');
+      }
     }
   }
 
@@ -96,7 +102,7 @@ var NativeSpeech = (() => {
     if (!available()) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; return Promise.resolve(sttProbe); }
     sttProbe = { ok: false, reason: 'pending', assets: 'missing', locales: ls };
     return new Promise((resolve) => {
-      sttWaiters.push(resolve);
+      sttWaiters.push((r) => { try { DiagLog.push('probe', { kind: 'stt', ok: !!(r && r.ok), reason: (r && r.reason) || '', assets: (r && r.assets) || '' }); } catch (_) {} resolve(r); });
       if (!post({ type: 'stt-probe', locales: ls })) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; wake(sttWaiters, sttProbe); }
     });
   }

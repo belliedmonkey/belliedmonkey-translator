@@ -1163,6 +1163,16 @@ export default function SettingsView() {
     // 反馈 / 评分。MTFeedback.open 在宿主 App 里走原生桥（window.open 在 WKWebView 里
     // 是哑的），且**同步**发生在点击里 —— 别在它前面 await。
     $('feedback-mail').addEventListener('click', () => { MTFeedback.open(MTFeedback.mailtoUrl('app')); });
+    // 诊断日志（§0.4.1）：复制 = 导出全文进剪贴板（按钮点击是手势，WKWebView 允许写剪贴板）
+    $('diag-copy').addEventListener('click', async () => {
+      const txt = (typeof DiagLog !== 'undefined' && DiagLog.exportText) ? DiagLog.exportText() : '';
+      let okFlag = false;
+      try { await navigator.clipboard.writeText(txt); okFlag = true; } catch (_) {
+        try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); okFlag = document.execCommand('copy'); ta.remove(); } catch (_) {}
+      }
+      const done = $('diag-copied'); if (done) { done.hidden = !okFlag; setTimeout(() => { done.hidden = true; }, 1600); }
+    });
+    $('diag-clear').addEventListener('click', () => { try { DiagLog.clear(); } catch (_) {} });
     $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
     // 匿名用量事件的开关：独立键（tm:on），不进任何 saveAll。
     // 遥测脚本的在位与否经注册表读（中国版没有脚本，整块藏掉）。
@@ -1713,6 +1723,15 @@ export default function SettingsView() {
           <h3 id="telemetry-title">{t('telemetry_section', '匿名用量数据')}</h3>
           <label className="row-toggle"><span id="telemetry-label">{t('telemetry_toggle', '分享匿名用量数据')}</span><input type="checkbox" id="telemetry-on" /></label>
           <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</p>
+        </div>
+        {/* 诊断日志（§0.4.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
+            内部排障面，不走产品稿（用户裁定：只有我们自己看）；不上传 —— 复制出来贴给排障的人。 */}
+        <div className="sgroup" id="g-diag">
+          <h3 id="diag-title">{t('diag_section', '诊断日志')}</h3>
+          <button id="diag-copy" type="button" className="secondary">{t('diag_copy', '复制诊断日志')}</button>
+          <button id="diag-clear" type="button" className="secondary">{t('diag_clear', '清空')}</button>
+          <p className="note" id="diag-note">{t('diag_hint', '排障用的本机记录（模型下载 / 语音引擎 / 登录阶段，约 200 条）。不含你说过或翻译过的任何文字。只在你点「复制」并主动粘贴给别人时才会离开这台设备。')}</p>
+          <span id="diag-copied" className="ok" hidden>{t('diag_copied', '已复制')}</span>
         </div>
       </div>
     </section>

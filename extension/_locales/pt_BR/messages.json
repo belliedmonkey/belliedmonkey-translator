@@ -2215,6 +2215,21 @@
   "telemetry_hint": {
     "message": "Só quais recursos são usados, em qual navegador e se uma tradução deu certo ou falhou — nunca as páginas que você lê, o texto, os endereços, suas chaves ou sua conta. Desligar apaga o que este aparelho enviou."
   },
+  "diag_section": {
+    "message": "Registro de diagnóstico"
+  },
+  "diag_copy": {
+    "message": "Copiar registro"
+  },
+  "diag_clear": {
+    "message": "Limpar"
+  },
+  "diag_hint": {
+    "message": "Registros locais para solucionar problemas (downloads de modelos / motores de voz / etapas de login, cerca de 200 entradas). Não contém nada do que você disse ou traduziu. Só sai do aparelho quando você mesmo copia e cola para alguém."
+  },
+  "diag_copied": {
+    "message": "Copiado"
+  },
   "telemetry_onboard": {
     "message": "Dados de uso anônimos são enviados para melhorar o produto (nunca o conteúdo nem os endereços das páginas). Dá para desligar nos Ajustes."
   },
