@@ -21,6 +21,12 @@ final class MTDiagAudio {
     private var uploadBase = ""
     private var startedAt = Date()
     private var written: [String: Int] = [:]   // 每流已写字节：到上限就停（真机 mic.caf 会超接收器 25MB 上限被整包拒）
+    // 麦克风降到 **16k 单声道 Float32** 再落盘：判分（whisper）要的就是 16k；真机上 20MB 的
+    // mic.caf 在 App 被切走时传不上来。**必须是 Float32** —— AVAudioFile 的 processingFormat 是
+    // Float32，建 Int16 文件再写 Int16 buffer 会触发 `ExtAudioFile::WriteInputProc` 断言
+    // （EXC_BREAKPOINT，2026-10-07 实测）。16k 单声道 ≈64 KB/s，一场 3 分钟 ≈12 MB。
+    private let micFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false)
+    private var convCache: [String: AVAudioConverter] = [:]
     // 接收器单文件上限 25MB（deploy/china/diagrecv/main.go）。真机麦克风是高采样率，几分钟就超，
     // 于是 mic.caf 被 413 拒掉、整场只剩 tts-*.caf（2026-10-06 实测）。上限卡在 20MB 留余量。
     private let perStreamCap = 20 << 20;
@@ -78,12 +84,32 @@ final class MTDiagAudio {
         io.async { [weak self] in
             guard let self, self.armed, let d = self.dir else { return }
             if (self.written[stream] ?? 0) >= self.perStreamCap { return }   // 到上限就停，别把整包撑过接收器上限
+            let out = (stream == "mic") ? (self.toMicFormat(copy) ?? copy) : copy   // 麦克风降到 16k 单声道
             if self.files[stream] == nil {
-                self.files[stream] = try? AVAudioFile(forWriting: d.appendingPathComponent("\(stream).caf"), settings: copy.format.settings)
+                self.files[stream] = try? AVAudioFile(forWriting: d.appendingPathComponent("\(stream).caf"), settings: out.format.settings)
             }
-            try? self.files[stream]?.write(from: copy)
-            self.written[stream] = (self.written[stream] ?? 0) + Int(copy.frameLength) * max(1, ch) * MemoryLayout<Float>.size
+            try? self.files[stream]?.write(from: out)
+            let bps = (out.format.commonFormat == .pcmFormatInt16) ? 2 : 4
+            self.written[stream] = (self.written[stream] ?? 0) + Int(out.frameLength) * max(1, Int(out.format.channelCount)) * bps
         }
+    }
+
+    /// 只在 io 队列上跑：把麦克风缓冲降到 16k 单声道 Int16（转换器按输入格式缓存）。
+    private func toMicFormat(_ buf: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let t = micFormat else { return nil }
+        if buf.format.sampleRate == t.sampleRate && buf.format.channelCount == t.channelCount && buf.format.commonFormat == t.commonFormat { return buf }
+        let key = "\(buf.format.sampleRate)|\(buf.format.channelCount)|\(buf.format.commonFormat.rawValue)"
+        let conv: AVAudioConverter
+        if let c = convCache[key] { conv = c }
+        else { guard let c = AVAudioConverter(from: buf.format, to: t) else { return nil }; convCache[key] = c; conv = c }
+        let cap = AVAudioFrameCount(Double(buf.frameLength) * t.sampleRate / max(1, buf.format.sampleRate)) + 64
+        guard let out = AVAudioPCMBuffer(pcmFormat: t, frameCapacity: cap) else { return nil }
+        var err: NSError?; var consumed = false
+        conv.convert(to: out, error: &err) { _, st in
+            if consumed { st.pointee = .noDataNow; return nil }
+            consumed = true; st.pointee = .haveData; return buf
+        }
+        return (err == nil && out.frameLength > 0) ? out : nil
     }
 
     private func upload(dir: URL) {
