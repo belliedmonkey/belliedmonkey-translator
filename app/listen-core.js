@@ -211,6 +211,8 @@ var ListenCore = (() => {
                                  // 说明不是时间窗的问题，是文本本身对不上）。0.35 仍然足够高 —— 两个完全不同的
                                  // 句子（对方说的话 vs 我们念的译文）的 bigram 重合度几乎不可能超过 0.2。
   const ECHO_MAX = 4;            // 最多同时记几条
+  // 「朗读进行中」兜底上限：正常由 spoke() 把 to 置上；万一没等到，也不能让这道闸永远拦下去。
+  const ECHO_PLAY_MAX_MS = 15000;
 
   const CJK_CHAR = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
   // 无词间空格的文字（泰/老挝/高棉/缅甸）：正字法只在句间用空格，整句会被下面的循环拼成**一个**
@@ -254,12 +256,12 @@ var ListenCore = (() => {
     let dropped = 0;
     function sweep(at) { items = items.filter((it) => at - (it.to || at) < ECHO_KEEP_MS); }
     return {
-      // 开始朗读一段文本
-      speaking(text, at) {
+      // 开始朗读一段文本（lang = 这门语言的短码；「朗读进行中」那道闸要用它）
+      speaking(text, at, lang) {
         const tokens = echoTokens(text);
         if (!tokens.size) return;
         sweep(at);
-        items.push({ tokens, from: at, to: 0 });
+        items.push({ tokens, from: at, to: 0, lang: String(lang || '').split(/[-_]/)[0].toLowerCase() });
         if (items.length > ECHO_MAX) items.shift();
       },
       // 播完（或被打断）
@@ -267,6 +269,20 @@ var ListenCore = (() => {
         for (let i = items.length - 1; i >= 0; i--) {
           if (!items[i].to) { items[i].to = at; break; }
         }
+      },
+      // 此刻**正在朗读**哪些语言。这道闸比文字比对硬 —— 真机（2026-10-06，95/96 号包）实测：
+      // 我们自己朗读的声音被扬声器→空气→麦克风采回时，识别会劣化到文字比对（ECHO_SIM）拦不住，
+      // 于是多出一行；但那条定稿**总在播放进行中到**（`speak` 记的是播放开始，回声约 +500ms），
+      // 且**与朗读同语言**。所以：播放进行中 + 同一门语言 ⇒ 这条识别就是我们自己的声音。
+      // 朗读**结束之后**的窗口仍走原来的文字比对（对方在我们念完后回话照收，M4 钉着）。
+      playingLangs(at) {
+        const out = new Set();
+        for (const it of items) {
+          if (it.to) continue;                              // 已播完
+          if (at - it.from >= ECHO_PLAY_MAX_MS) continue;   // 没等到 spoke() 的兜底
+          if (it.lang) out.add(it.lang);
+        }
+        return out;
       },
       // 这一句是不是我们自己刚读出去的？
       isEcho(text, at) {

@@ -856,6 +856,19 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     for (const t of timers.splice(0)) t.fn();
     deepEq(out.map((f) => f.locale), [], '孤独的回声片也要丢');
   });
+  // 「播放进行中 + 同语言 ⇒ 丢」（2026-10-06，95/96 真机时序：回声总在 speak 后 ~500ms、播放进行中到达）。
+  test('回声闸：playingLangs 报朗读进行中的语言；播完即空；没 spoke 也有兜底上限', () => {
+    const g = C.makeEchoGuard();
+    eq([...g.playingLangs(T0)].length, 0, '还没开口');
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0, 'th-TH');
+    ok(g.playingLangs(T0 + 500).has('th'), '朗读进行中该报 th（真机回声就在这段时间到）');
+    ok(!g.playingLangs(T0 + 500).has('zh'), '没在读 zh');
+    g.spoke(T0 + 2000);
+    eq([...g.playingLangs(T0 + 2100)].length, 0, '播完就不该再算「进行中」');
+    const g2 = C.makeEchoGuard();
+    g2.speaking('สวัสดีครับ', T0, 'th');
+    eq([...g2.playingLangs(T0 + 999999)].length, 0, '没收到 spoke 时的兜底上限');
+  });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);
     const r1 = C.addFinal(s, 'Bonjour, vous êtes prêt ?', T0 + 1000, pair('en', 'fr'), Object.assign({}, DEPS, { who: 'them' }));

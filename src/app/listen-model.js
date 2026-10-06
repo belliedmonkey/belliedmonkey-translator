@@ -463,9 +463,16 @@ const listenModel = (() => {
         if (!sock && (kind === 'partial' || kind === 'final')) return;
         if (kind === 'ready') { socketRetried = false; }
         else if (kind === 'partial') {
+          const base = C.baseCode(ev && ev.locale);
+          // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
+          if (base && echo.playingLangs(Date.now()).has(base)) return;
           if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev.conf);
         }
-        else if (kind === 'final') { if (arb) arb.push(ev); }
+        else if (kind === 'final') {
+          const base = C.baseCode(ev && ev.locale);
+          if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
+          if (arb) arb.push(ev);
+        }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
@@ -1150,7 +1157,7 @@ const listenModel = (() => {
         if (job.gen !== gen) continue;            // 旧会话的残留
         speakingRid = job.rid; canvas.view('history');
         const at = now();
-        echo.speaking(job.text, at);              // 登记：这段话正在从扬声器出去
+        echo.speaking(job.text, at, job.lang);   // lang 给「朗读进行中」那道闸用（回声修）
         sq.noteSpoken(job.text, at);
         lastSpoken = job.text;
         // 每句必须超时（#565 六轮真机教训）：speakOut 挂住（下载卡死 / 网络不通）不得阻塞
