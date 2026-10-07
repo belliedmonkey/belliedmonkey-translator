@@ -19,6 +19,7 @@ const APP = path.join(ROOT, '.local', 'mac-debug-dd', 'Build', 'Products', 'Debu
 const OUT = path.join(ROOT, '.local', 'listen-flash');
 const AUD = path.join(OUT, 'audio');
 const BIN = '/opt/homebrew/bin';
+const AFPLAY = fs.existsSync('/usr/bin/afplay') ? '/usr/bin/afplay' : `${BIN}/afplay`;   // 系统自带，不在 brew 里
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const sh = (c, o) => execSync(c, Object.assign({ stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8' }, o || {}));
 
@@ -57,8 +58,9 @@ async function enterListen() {
     await ev('location.reload()'); await sleep(9000);
     try {
       await ev('document.getElementById("app-listen-entry").click(), true'); await sleep(2500);
-      if (!(await live())) { await ev('document.getElementById("app-listen-toggle").click(), true'); await sleep(3000); }
-      if (await live()) { await ev('__mtTest.ka(1), true'); return; }
+      if (!(await live())) { await ev('document.getElementById("app-listen-toggle").click(), true'); }
+      // 首次进场要把 LID 模型下下来（~60MB，§9.6.1.3）⇒ 等「live」最多 120 s
+      for (let i = 0; i < 80; i++) { if (await live()) { await ev('__mtTest.ka(1), true'); return; } await sleep(1500); }
     } catch (_) {}
   }
   throw new Error('进不了听译');
@@ -70,6 +72,8 @@ async function recordCase(name, clips, expectNo, restart) {
   await enterListen();
   // 采样屏上半句（机器判据）
   await ev('window.__s=[]; window.__si=setInterval(()=>{ const p=(window.AppListen&&AppListen._debug()||{}).partial||""; if(p) window.__s.push(p); }, 200); "ok"');
+  // §9.6.1.3：LID 判词也采一份 —— 归属的判据就是它，回归里要能看到「这一场判成了什么语言」。
+  await ev('window.__lid=[]; window.__li=setInterval(()=>{ const d=(window.AppListen&&AppListen._debug()||{}); if(d.lid) window.__lid.push(d.lid); }, 200); "ok"');
   const WID = sh(`exec 2>/dev/null; cap record windows --json`).trim();
   const id = (() => { try { const w = JSON.parse(WID); const ws = Array.isArray(w) ? w : w.windows; return ws.find((x) => x.bundleIdentifier === 'com.belliedmonkeytranslator').id; } catch (_) { return ''; } })();
   sh(`osascript -e 'tell application "System Events" to set frontmost of (first process whose bundle identifier is "com.belliedmonkeytranslator") to true'`);
@@ -82,21 +86,26 @@ async function recordCase(name, clips, expectNo, restart) {
   const bg = require('child_process').spawn(path.join(process.env.HOME, '.cap/bin/cap'),
     ['record', 'start', '--window', String(id), '--duration', String(total), '--fps', '15', '--path', capDir, '--json'], { stdio: 'ignore' });
   await sleep(2000);
-  for (const c of clips) { try { execFileSync(`${BIN}/afplay`, [c]); } catch (_) {} await sleep(3); }
+  for (const c of clips) { try { execFileSync(AFPLAY, [c]); } catch (e) { console.log('  ! 播放失败：' + (e.message || '')); } await sleep(3); }
   await new Promise((res) => bg.on('exit', res));   // 等 cap 自己按 --duration 收尾（await bg 不会等）
-  await ev('clearInterval(window.__si); "ok"');
+  await ev('clearInterval(window.__si); clearInterval(window.__li); "ok"');
   const samples = JSON.parse(await ev('JSON.stringify(window.__s)'));
+  const lids = JSON.parse(await ev('JSON.stringify([...new Set(window.__lid)])'));
   const rows = JSON.parse(await ev('JSON.stringify((AppListen._debug().rows||[]).map(r=>r.who+":"+(r.text||"").slice(0,24)))'));
   sh(`${path.join(process.env.HOME, '.cap/bin/cap')} export ${JSON.stringify(capDir)} --output ${JSON.stringify(mp4)} --json`, { stdio: 'ignore' });
   const strip = path.join(OUT, `${name}-nowcard.png`);
   if (fs.existsSync(mp4)) sh(`${BIN}/ffmpeg -y -loglevel error -i ${JSON.stringify(mp4)} -vf "fps=2,crop=620:210:40:275,scale=430:-1,tile=4x10" -frames:v 1 ${JSON.stringify(strip)}`);
-  const bad = samples.map(script).filter((s) => s && s === expectNo);
+  const bad = expectNo ? samples.map(script).filter((s) => s && s === expectNo) : [];
   console.log(`\n[${name}] 音频 ${clips.length} 段 · 采样 ${samples.length} 条 · 错语言样本 ${bad.length}`);
+  console.log(`  LID 判到的语言（§9.6.1.3）: ${JSON.stringify(lids)}`);
   console.log(`  rows: ${JSON.stringify(rows)}`);
   console.log(`  屏上半句（去重前 20）: ${JSON.stringify([...new Set(samples)].slice(0, 20))}`);
   console.log(`  帧条: ${fs.existsSync(strip) ? strip : '（无）'}`);
   // 采样为 0 ⇒ App 没真听到音频（麦克风/前置/预热没到位）⇒ 这一例**无效**，判失败，不许假绿。
   if (samples.length === 0) { console.log('  ✗ 一条半句样本都没有 —— 这一例无效（App 没听到音频）'); return false; }
+  // 两路同时出声（多声重叠）：LID 判成哪一门都可能（它只有一个输入），这一例不判语言，
+  // 只要求「真的听到了、有半句上屏」。仍然记下 LID 判词，供人复核。
+  if (!expectNo) { console.log('  ✓ 有半句上屏（多声重叠不判语言；LID 判词见上）'); return true; }
   console.log(bad.length === 0 ? `  ✓ 没有出现「${expectNo === 'th' ? '泰文' : '汉字'}」半句` : `  ✗ 出现了 ${bad.length} 条错语言半句`);
   return bad.length === 0;
 }
@@ -110,7 +119,7 @@ async function main() {
   results.push(await recordCase('zh-long', [c.zh1], 'th', true));
   results.push(await recordCase('zh-multi', [c.zh1, c.zh2, c.zh1], 'th', true));
   results.push(await recordCase('th-long', [c.th1], 'zh', true));
-  results.push(await recordCase('mix-overlap', [c.mix], 'th', true));
+  results.push(await recordCase('mix-overlap', [c.mix], '', true));
   const n = results.filter(Boolean).length;
   console.log(`\n=== ${n}/${results.length} 通过 ===`);
   process.exit(n === results.length ? 0 : 1);

@@ -667,91 +667,26 @@ var ListenCore = (() => {
     };
   }
 
-  // 半句层的择一（与定稿仲裁同一套判据，2026-10-06）。cands = [{ text, conf, at, loc }]。
-  // 文字系不同 ⇒ 留三档分最高的那一路（高置信压中性、中性压低置信）；同文字系 ⇒ 取最新。
-  // **同分且文字系不同 ⇒ 不换语言**（2026-10-07 真音频复现）：partial 阶段两路都还没有置信度
-  // （conf -1），「取最新」会让后到的错语言把对的顶掉 —— 说中文时中文半句先到（Speech 先吐字），
-  // 泰文垃圾半句几秒后才到，一同分就把屏上翻成泰文。没有新信息就不该翻：保持现在显示的那一路
-  // （没显示过就取最早到的）。currentLocale = 此刻屏上那一半句用的 locale base。
-  function pickPartial(cands, deps, currentLocale) {
-    const list = (cands || []).filter((c) => c && c.text);
-    if (!list.length) return null;
-    if (list.length === 1) return list[0];
-    const ds = deps && deps.dominantScript;
-    const scriptOf = (t) => { try { return (ds && ds(t)) || ''; } catch (_) { return ''; } };
-    if (new Set(list.map((c) => scriptOf(c.text))).size > 1) {
-      const max = Math.max(...list.map((c) => arbScore({ conf: c.conf })));
-      const top = list.filter((c) => arbScore({ conf: c.conf }) === max);
-      if (top.length === 1) return top[0];
-      if (currentLocale) { const keep = top.find((c) => c.loc === currentLocale); if (keep) return keep; }
-      return top.reduce((a, b) => ((a.at || 0) <= (b.at || 0) ? a : b));   // 同分：留最早到的
-    }
-    return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
+  // 半句层的归属、跨语言定稿仲裁、置信度三档分（pickPartial / makeFinalArbiter / arbScore）
+  // **2026-10-07 全部退场** —— 判「这段音频是哪门语言」改由端上 LID 模型给（§9.6.1.3），
+  // 见下面的 lidBase / sideMatchesLid 与 src/app/listen-model.js 的两处闸。留下的是**同一路之内**
+  // 的文字质量闸（acceptDeviceFinal / makeFinalGate）与串句器（makeStreamCutter）。
+
+  // ── 语种识别（LID，§9.6.1.3）的归属判据 ────────────────────────────────────
+  // 端上模型（sherpa-onnx SLID）给的语言码与识别器 locale 的短码对齐（zh / th / en / yue…）。
+  function lidBase(lang) { return baseCode(lang); }
+  // 这一路识别器（locale）是不是 LID 判定的那门语言。**LID 还没判出来（空）⇒ false**：
+  // 宁可不显示，也不先按谁先到就先画 —— 「半句闪错语言」就是那么来的。
+  function sideMatchesLid(locale, lid) {
+    const b = baseCode(locale), l = baseCode(lid);
+    if (!b || !l) return false;
+    return b === l;
   }
 
-  // ── 跨语言定稿仲裁（2026-10-06，§9.6.1.2）──────────────────────────────────
-  // 两路识别器对**同一段音频**都会出 final（同一个 SpeechAnalyzer、同一次 finalize(through:) ⇒
-  // 两片到达差只有几十毫秒）。当两片**文字系不同**时，它们必然是同一段声音的两种解读，而其中
-  // 一路是错语言（泰语路把中文硬解成泰文）—— 既有的文字系规则分不开「泰文假字 vs 泰文真话」。
-  // 这时用**置信度**仲裁：SpeechTranscriber 报置信度，DictationTranscriber 不报（conf:-1）。
-  //   高置信（≥ ARB_TRUST_CONF）＝可信；已知低置信＝可疑（多半是别语言音频漏过来的假字）；
-  //   无置信＝中性。分高者留，同分都留（不猜）。
-  // **只有文字系不同才仲裁**：同文字系的竞争（en 路的拉丁碎片 vs zh 路的拉丁垃圾）交给既有
-  // script/conf 规则，否则会破坏 2026-09-18 的句头救回（低置信句头 vs 高置信拉丁垃圾）。
-  // **回声优先**：窗口里只要有一路匹配「我们自己刚读出去的文本」，这一整段音频就是我们的声音，
-  // 两路都丢（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」：错语言那一路不匹配文字、
-  // 原来的文字闸漏掉它；而同一段音频的正确语言那一路是匹配的 ⇒ 用它把整窗判成回声）。
-  const ARB_TRUST_CONF = 0.4;
-  const ARB_WINDOW_MS = 600;   // 扣住多久等对手；由 §0.3 判分台校准（§9.6.1.2(d)）
-  function arbScore(f) {
-    const c = (f && typeof f.conf === 'number') ? f.conf : -1;
-    if (c < 0) return 1;                       // 无置信度（Dictation）：中性
-    return c >= ARB_TRUST_CONF ? 2 : 0;        // 高置信：可信 / 低置信：可疑
-  }
-  // makeFinalArbiter(onFinal, deps, opts)：push(final) 之后，最终经 onFinal 放行。
-  //   deps { dominantScript, isEcho(text)→bool }
-  function makeFinalArbiter(onFinal, deps, opts) {
-    const o = opts || {};
-    const W = o.windowMs || ARB_WINDOW_MS;
-    const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
-    const ds = deps && deps.dominantScript;
-    const scriptOf = (f) => { try { return (ds && ds(String((f && f.text) || ''))) || ''; } catch (_) { return ''; } };
-    const echoOf = (f) => { try { const s = String((f && f.text) || '').replace(/\s+/g, ' ').trim(); return !!(deps && deps.isEcho && s && deps.isEcho(s)); } catch (_) { return false; } };
-    const pending = {};   // locale → { f, echo, timer }（同时最多一路待决）
-    function flush(locale, drop) {
-      const p = pending[locale]; if (!p) return;
-      if (p.timer) clearT(p.timer);
-      delete pending[locale];
-      if (drop || p.echo) return;                  // 我们自己刚读出去的 ⇒ 丢（判定用**到达时刻**，见 push）
-      if (onFinal) onFinal(p.f);
-    }
-    return {
-      push(f) {
-        const locale = String((f && f.locale) || '');
-        // 回声判定在**到达时刻**做，不在放行时刻：窗口是「录音被识别的那会儿」，而放行要等 W ms，
-        // 用放行时刻会把判定推出 ECHO_TAIL（M3 抖动实证）。
-        const echo = echoOf(f);
-        if (pending[locale]) flush(locale, false);          // 同一路连续定稿：前一片立即放行
-        const other = Object.keys(pending)[0];
-        if (other) {
-          // 只要有一路是我们自己的朗读 ⇒ 这一整段音频是我们自己的声音 ⇒ 两路都丢
-          if (deps && deps.isEcho && (pending[other].echo || echo)) { flush(other, true); return; }
-          if (scriptOf(pending[other].f) === scriptOf(f)) {
-            flush(other, false);                            // 同文字系：不仲裁，两片都放行
-          } else {
-            const a = arbScore(pending[other].f), b = arbScore(f);
-            if (a > b) { flush(other, false); return; }     // 旧的可信：放旧的，丢新的
-            if (a < b) { flush(other, true); if (onFinal) onFinal(f); return; }   // 新的可信：丢旧的，放新的
-            flush(other, false);                            // 同分：放旧的，新的照常挂
-          }
-        }
-        pending[locale] = { f, echo, timer: setT(() => flush(locale, false), W) };
-      },
-      // 会话结束时把还扣着的放出去（否则最后一片会丢）。
-      flushAll() { for (const l of Object.keys(pending)) flush(l, false); },
-      pending() { return Object.keys(pending); },
-    };
-  }
+  // （跨语言定稿仲裁 makeFinalArbiter / arbScore / ARB_TRUST_CONF / ARB_WINDOW_MS 已在
+  //   2026-10-07 随 LID 接入删除 —— 原来靠「置信度三档分」猜哪一路是对的，现在由端上 LID
+  //   模型直接给出语言，错语言那一路根本进不了串句器，见 src/app/listen-model.js。）
+
   // 识别器的 final 是时间片不是句子（会切在词中间），所以每个 locale 一路串起来、按句末标点
   // 切句；尾巴等不到标点就按超时放出（我们自己收口后的 final 常常不带句号）。
   // cut(text) 由调用方注入（生产里是 WsTranscribe.splitSentences 这类），返回 { done: [...], rest }。
@@ -891,7 +826,7 @@ var ListenCore = (() => {
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
-    arbScore, makeFinalArbiter, ARB_TRUST_CONF, ARB_WINDOW_MS, pickPartial,
+    lidBase, sideMatchesLid,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,

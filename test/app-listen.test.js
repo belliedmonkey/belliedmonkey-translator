@@ -749,124 +749,35 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     eq(h2.ms, 4000);
     ok(h2.id !== h1.id, '是新的计时，不是旧的');
   });
-  // §9.6.1.2 跨语言定稿仲裁：两路对同一段音频都出 final 时，用置信度压掉错语言那一路。
-  test('跨语言仲裁：高置信压掉错语言那一路；同文字系/同分不仲裁', () => {
-    const timers = []; let id = 0;
-    const out = [];
-    const mk = () => C.makeFinalArbiter((f) => out.push(f), DEPS, {
-      windowMs: 600,
-      setTimeout: (fn) => { timers.push({ id: ++id, fn }); return id; },
-      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
-    });
-    const drain = () => { for (const t of timers.splice(0)) t.fn(); };
-    const locs = () => out.map((f) => f.locale);
-
-    // 三档判据
-    eq(C.arbScore({ conf: 0.9 }), 2, '高置信＝可信');
-    eq(C.arbScore({ conf: 0.12 }), 0, '已知低置信＝可疑');
-    eq(C.arbScore({ conf: -1 }), 1, '无置信（Dictation）＝中性');
-    eq(C.arbScore({}), 1);
-
-    // 中文语音：zh 高置信 + 泰文假字 ⇒ 留 zh（错语言那一路被压掉）
-    let a = mk();
-    a.push({ locale: 'zh-CN', text: '我想订一间房间', conf: 0.9 });
-    a.push({ locale: 'th-TH', text: 'ฉันต้องการจองห้อง', conf: -1 });
-    deepEq(locs(), ['zh-CN'], '泰文假字被压掉');
-    out.length = 0; timers.length = 0;
-
-    // 泰语音频：zh 路低置信假字 + 泰文真话 ⇒ 留 th
-    a = mk();
-    a.push({ locale: 'zh-CN', text: '我在那', conf: 0.12 });
-    a.push({ locale: 'th-TH', text: 'สวัสดีครับ', conf: -1 });
-    deepEq(locs(), ['th-TH'], '低置信的中文假字被压掉');
-    out.length = 0; timers.length = 0;
-
-    // 两边都无置信度（都 Dictation）：同分 ⇒ 都放行（已知缺口，不猜）
-    a = mk();
-    a.push({ locale: 'th-TH', text: 'หนึ่ง', conf: -1 });
-    a.push({ locale: 'ru-RU', text: 'один', conf: -1 });
-    drain();
-    deepEq(locs().sort(), ['ru-RU', 'th-TH']);
-    out.length = 0; timers.length = 0;
-
-    // 同文字系（拉丁）不仲裁：en 的低置信句头不能被 zh 路的拉丁垃圾压掉（护住句头救回）
-    a = mk();
-    a.push({ locale: 'en-US', text: 'we', conf: 0.05 });
-    a.push({ locale: 'zh-CN', text: 'We can', conf: 0.9 });
-    drain();
-    deepEq(locs().sort(), ['en-US', 'zh-CN'], '同拉丁文字系不仲裁');
-    out.length = 0; timers.length = 0;
-
-    // 同一路连续两片：都要放行（不能互相吞）
-    a = mk();
-    a.push({ locale: 'zh-CN', text: '前半句', conf: 0.9 });
-    a.push({ locale: 'zh-CN', text: '后半句', conf: 0.9 });
-    drain();
-    deepEq(locs(), ['zh-CN', 'zh-CN']);
-    out.length = 0; timers.length = 0;
-
-    // 孤独一片：窗口到点放行；flushAll 也能立刻放行扣住的那片
-    a = mk();
-    a.push({ locale: 'zh-CN', text: '就一句', conf: 0.9 });
-    eq(out.length, 0, '扣住等着');
-    drain();
-    deepEq(locs(), ['zh-CN']);
-    out.length = 0; timers.length = 0;
-    a = mk();
-    a.push({ locale: 'zh-CN', text: '收尾前的一片', conf: 0.9 });
-    a.flushAll();
-    deepEq(locs(), ['zh-CN'], '会话结束时扣着的片不能丢');
+  // 归属改由端上 LID 模型给（§9.6.1.3，2026-10-07）：模型判出哪门语言，就只收那一路 ——
+  // 这就是「半句闪错语言」的根治（旧办法在没有信息时随机先画一路，再靠置信度仲裁往回改）。
+  test('归属由 LID 给：半句与定稿都只收 LID 判定的那一路；没判出来时什么都不上屏', () => {
+    ok(C.sideMatchesLid('zh-CN', 'zh'), 'zh 判词收 zh 路');
+    ok(C.sideMatchesLid('zh-TW', 'zh'), '地区变体同短码');
+    ok(C.sideMatchesLid('th-TH', 'th'));
+    ok(C.sideMatchesLid('yue-CN', 'yue'), '粤语短码对齐（识别器 locale 也是 yue-CN）');
+    ok(!C.sideMatchesLid('th-TH', 'zh'), 'LID 说中文 ⇒ 泰文路不上屏');
+    ok(!C.sideMatchesLid('zh-CN', 'th'), 'LID 说泰文 ⇒ 中文路不上屏');
+    ok(!C.sideMatchesLid('zh-CN', ''), 'LID 还没判出来 ⇒ 不上屏（不是先画一路）');
+    ok(!C.sideMatchesLid('', 'zh'));
+    eq(C.lidBase('zh-CN'), 'zh'); eq(C.lidBase('TH'), 'th');
   });
-  // 半句上屏要先被定稿「确立」（2026-10-07 真音频复现后定案）：半句阶段两路都没置信度，
-  // 谁先到谁上屏是随机；可靠证据只有仲裁过的定稿 ⇒ 一路赢过定稿后它的半句才准上屏。
-  test('半句上屏要先被定稿确立（说中文时泰文半句永不上屏）', () => {
-    ok(/partialEstablished\[c\.loc\]/.test(MODEL), 'pickPartial 没有按「已确立」过滤半句');
-    ok(/partialEstablished\[C\.baseCode\(meta\.locale\)\] = true/.test(MODEL), '定稿建行后没有把该路标记为已确立');
-    ok(/partialEstablished = \{\}/.test(MODEL), '新会话没有重置「已确立」');
+  test('模型里半句与定稿两处闸都接了 LID；旧的手写规则已退场', () => {
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidLang\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+    ok(/NativeSpeech\.onLid\(/.test(MODEL), '没有订阅 LID 判词');
+    ok(/NativeSpeech\.ensureLid\(/.test(MODEL), '没有把 LID 模型纳入下载');
+    ok(/lidOn\(\);/.test(MODEL), '新会话没有重置 LID 语言');
+    ok(!/partialEstablished/.test(MODEL), '手写的「定稿确立」启发式应已退场');
+    ok(!/makeFinalArbiter|arbScore/.test(MODEL), '置信度仲裁应已退场');
   });
-  // 半句层的择一（2026-10-06，95 真机「说中文先闪泰文再改中文」）：定稿仲裁管定稿，半句是另一条路。
-  test('半句择一：文字系不同按三档分留高者；同文字系取最新；只有一路就它', () => {
-    eq(C.pickPartial([{ text: '我想订一间房间', conf: 0.9, at: 2 }, { text: 'ฉันต้องการจอง', conf: -1, at: 3 }], DEPS).text, '我想订一间房间', '说中文：高置信压过泰文假字');
-    eq(C.pickPartial([{ text: '我在那', conf: 0.12, at: 2 }, { text: 'สวัสดีครับ', conf: -1, at: 3 }], DEPS).text, 'สวัสดีครับ', '说泰语：低置信中文假字让位给泰文');
-    eq(C.pickPartial([{ text: 'we can', conf: 0.9, at: 2 }, { text: 'We can ship', conf: 0.9, at: 5 }], DEPS).text, 'We can ship', '同拉丁文字系取最新');
-    eq(C.pickPartial([{ text: 'สวัสดี', conf: -1, at: 1 }], DEPS).text, 'สวัสดี');
-    eq(C.pickPartial([], DEPS), null);
-    eq(C.pickPartial([{ text: '', conf: 1, at: 1 }], DEPS), null);
-    // 同分且文字系不同 ⇒ **不换语言**（2026-10-07 真音频复现：中文半句先到、泰文垃圾 3s 后到，
-    // 两路 partial 置信度都还是 -1 ⇒ 同分；旧规则「取最新」会把屏上翻成泰文）。
-    eq(C.pickPartial([{ text: '今天下午', conf: -1, at: 1, loc: 'zh' }, { text: 'ชิงเชียง', conf: -1, at: 4, loc: 'th' }], DEPS, 'zh').loc, 'zh', '同分保持现在显示的中文');
-    eq(C.pickPartial([{ text: 'ชิงเชียง', conf: -1, at: 4, loc: 'th' }, { text: '今天下午', conf: -1, at: 1, loc: 'zh' }], DEPS, '').loc, 'zh', '没显示过 ⇒ 取最早到的中文');
+  test('旧的跨语言仲裁/半句择一已从 listen-core 退场（归属改由 LID 给）', () => {
+    eq(typeof C.makeFinalArbiter, 'undefined');
+    eq(typeof C.arbScore, 'undefined');
+    eq(typeof C.pickPartial, 'undefined');
+    eq(typeof C.lidBase, 'function');
+    eq(typeof C.sideMatchesLid, 'function');
   });
-  // 回声优先（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」）：窗口里任一路匹配我们刚读出去的
-  // 文本 ⇒ 整窗判成回声、两路都丢 —— 错语言那一路不匹配文字，靠正确语言那一路把整段判掉。
-  test('仲裁窗口回声优先：任一路是我们自己的朗读 ⇒ 两路都丢；不同句照常放行', () => {
-    const timers = []; let id = 0;
-    const out = [];
-    const HEARD = 'ราคานี้รวมภาษีและค่าขนส่งแล้ว';   // 我们刚读出去的泰文
-    const deps = Object.assign({}, DEPS, { isEcho: (s) => String(s).replace(/\s+/g, '') === HEARD });
-    const mk = () => C.makeFinalArbiter((f) => out.push(f), deps, {
-      windowMs: 600,
-      setTimeout: (fn) => { timers.push({ id: ++id, fn }); return id; },
-      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
-    });
-    // 我们朗读的泰文（正确语言那一路，conf -1）+ 中文路高置信假字（文字不匹配）⇒ 两路都丢
-    let a = mk();
-    a.push({ locale: 'th-TH', text: HEARD, conf: -1 });
-    a.push({ locale: 'zh-CN', text: '价格包含税和运费', conf: 0.9 });
-    deepEq(out.map((f) => f.locale), [], '整窗判成回声，不该出任何一行');
-    // 对方说另一句泰文（不是我们读的）⇒ 照常放行（不误杀）；zh 那一路低置信假字被压掉
-    out.length = 0; timers.length = 0;
-    a = mk();
-    a.push({ locale: 'th-TH', text: 'ฉันหิวข้าวมาก', conf: -1 });
-    a.push({ locale: 'zh-CN', text: '我饿了', conf: 0.3 });
-    deepEq(out.map((f) => f.locale), ['th-TH'], '对方的新句照常放行');
-    // 孤独一片：命中回声也要丢
-    out.length = 0; timers.length = 0;
-    a = mk();
-    a.push({ locale: 'th-TH', text: HEARD, conf: -1 });
-    for (const t of timers.splice(0)) t.fn();
-    deepEq(out.map((f) => f.locale), [], '孤独的回声片也要丢');
-  });
+
   // 「播放进行中 + 同语言 ⇒ 丢」（2026-10-06，95/96 真机时序：回声总在 speak 后 ~500ms、播放进行中到达）。
   test('回声闸：playingLangs 报朗读进行中的语言；播完即空；没 spoke 也有兜底上限', () => {
     const g = C.makeEchoGuard();

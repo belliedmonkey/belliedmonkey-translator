@@ -18,7 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
-| 2026-10-07（**提案 · 待人评审**） | belliedmonkey | **语种识别（LID）取代手写规则**（用户裁定「不要再用硬代码处理语言理解逻辑，直接上模型」）：半句/定稿的归属改由**端上 LID 模型**（sherpa-onnx 自带 SLID / whisper tiny，Swift API 已就绪、零新运行时、~103MB 走既有模型通道）判定；`dominantScript` 文字系比、置信度三档、`§9.6.1.2` 的「定稿确立」全部退场。代价如实记：半句预览延到 ~2–3s 才出；准确率 80–90%（非零错）。闭集 ⇒ VAD + 两门候选取最大 + 门限。新增 §9.6.1.3。 | 待评审 |
+| 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **语种识别（LID）取代手写规则**（用户裁定「不要再用硬代码处理语言理解逻辑，直接上模型」）：半句/定稿的归属改由**端上 LID 模型**（sherpa-onnx 自带 SLID / whisper tiny，Swift API 已就绪、零新运行时、模型 zip 60.3MB 走既有模型通道）判定；`dominantScript` 文字系比、置信度三档、`§9.6.1.2` 的「定稿确立」全部退场。代价如实记：半句预览延到 ~1–3s 才出；准确率 80–90%（非零错）。闭集 ⇒ VAD 门 + 静音不判。新增 §9.6.1.3。**实装（2026-10-07）**：模型已托管（ModelScope，sha256 校验过）+ Caddy 302 中转 + `MT_DEVICE_LID` 入清单 + `verify:model-urls` 覆盖；原生 `MTDeviceLid`（`lid-probe`/`lid-assets` → `assets-progress{kind:'lid'}`/`lid-state`/`lid-live`/`lid-result`）；JS `NativeSpeech.onLid/ensureLid/lidProbe`，`listen-model` 两处闸改 `sideMatchesLid`，`makeFinalArbiter`/`arbScore`/`pickPartial`/`partialEstablished` 已删。 | 待评审（代码先行，评审通过不改变实现方向） |
 | 2026-10-07 | belliedmonkey | **听译页文案：撤下「音频不离开设备 / 不发往任何服务器」的绝对声明**（用户裁定）：页内只讲转写/朗读的**行为**，也**不写「会上传服务器」**。改 `_locales ×12` 三键（`listen_entry_privacy_device` / `listen_device_privacy` / `listen_cost_line_device`）+ `src/app/listen-model.js` 兜底串 + `verify-listen` 的 B 断言 + interaction-spec。**Gate H 的披露正文不变**（README ×2 / 两个站点隐私页 / `NSMicrophoneUsageDescription` / 三类 usage 串）—— 页内撤下的只是绝对声明。 | 已按用户指名裁定执行（2026-10-07：「换成只讲转写效果」「入口提示一起改」） |
 | 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **半句层仲裁 + 回声优先**（95/96 号包真机反馈）：(e) 半句层改用与定稿同一套三档判据 `pickPartial` + 300 ms 扣留，取消「半句粘滞」—— 修「说中文先闪泰文再改中文」；(f) 仲裁窗口里任一路匹配我们自己朗读的文本 ⇒ 整窗判成回声、两路都丢，判定在**到达时刻**做；(g) 「**播放进行中 + 同语言 ⇒ 丢**」—— 真机时序实测回声总在 `speak` 后 ~500ms、播放中到达，文字比对不足以拦（代价：抢话那几秒同语言会丢，念完后回话照收，M4 已改）。另修诊断采集（真机 mic.caf 超接收器 25MB 被整包拒 → 每流 20MB 上限；sidecar 先传 + 写 meta.json）。§9.6.1.2 追加 (e)(f)(g)。 | 待评审 |
 | 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.3 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
@@ -3446,7 +3446,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 照常收（M4 钉着这个现实时机：现在 M4 等朗读念完再注入）。这道闸是拿真机数据换来的 —— 文字闸单独
 用时不稳，而回声是**每句必现**、抢话是**罕见**。
 
-### 9.6.1.3 语种识别（LID）：用模型判「这段是哪门语言」（2026-10-07，待人评审）
+### 9.6.1.3 语种识别（LID）：用模型判「这段是哪门语言」（2026-10-07，已实装 · 待评审复核）
 
 **问题。** 半句与定稿的归属一直靠**手写规则**：比文字系（`dominantScript`）、比置信度三档、再到
 `§9.6.1.2` 的「定稿确立后才上屏」。这些规则**只在「两路识别器都报了同一门语言的两种解读」时才有判据**，
@@ -3485,9 +3485,34 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 **范围与纪律。** 端上模型（**服务端不参与**；免费路径完整，满足规则 2/11）；不进扩展，只进宿主 App
 （本机转写本来就是 App 专属）；模型走既有下载通道、钉 sha256/size。
 
-**代码退场清单（实现时删）**：`listen-core.rejectDeviceFinal` / `acceptDeviceFinal` / `makeFinalGate`
-的文字系与置信度规则；`makeFinalArbiter`/`arbScore`/`pickPartial`；`listen-model` 的
-`partialEstablished`。**保留**：VAD/静音检测、切句器（`makeStreamCutter`）、回声闸、修正契约。
+**代码退场清单（实装时删掉/改掉的）**：
+- **删**：`listen-core.makeFinalArbiter` / `arbScore` / `ARB_TRUST_CONF` / `ARB_WINDOW_MS` / `pickPartial`
+  （跨语言仲裁与半句三档择一）；`listen-model` 的 `partialEstablished` / `partialHoldTimer` / `arb`。
+- **保留**：VAD/静音检测、切句器（`makeStreamCutter`）、回声闸、修正契约，以及**同一路之内**的文字质量闸
+  `acceptDeviceFinal`/`makeFinalGate`（它的文字系比现在只是「这一路自己的字对不对」的兜底，
+  **不再承担选语言**；句头救回仍靠它）。归属的唯一判据是新加的 `lidBase`/`sideMatchesLid`。
+
+**实装记录（2026-10-07）。**
+- **模型托管**：打包 **60.3MB** zip（`tiny-encoder.int8.onnx` 12.9MB + `tiny-decoder.int8.onnx` 89.9MB，
+  zip 压缩后 60.3MB），上传 **ModelScope** `belliedmonkey/belliedmonkey-device-models`（LFS），
+  sha256 `ae0ba8b75d2f0d299807a41915d66a329c01cb5459832879d22a28411a684501`（下载回验一致）；
+  `deploy/china/Caddyfile` 加 `/models/sherpa-onnx-whisper-tiny.zip` → ModelScope 302，
+  `api.belliedmonkey.com` 中转实测 302；`app/device-models.config.js` 加 `MT_DEVICE_LID` +
+  `mtDeviceLidModelsFor(flavor)`；`verify:model-urls` 把它纳入（8 个地址全通）。
+- **原生**（`app/native/speech-bridge.swift` 的 `MTDeviceLid`）：入口 `lid-probe` / `lid-assets`
+  （与 TTS 同一条下载/校验/安装戳通道，落 `Application Support/mt-lid/<dir>/`）；出口
+  `assets-progress {kind:'lid'}` / `lid-state` / **`lid-live {lang}`**（边说边判，≥1s 且有话音、
+  语言变了才发）/ **`lid-result {lang,ms}`**（与识别器 `finalize(through:)` 同一时刻判，给这一句定音）。
+  喂的是**同一段麦克风 PCM**（`MTDeviceLid.shared.feed`，tap 线程只做 16k 单声道转换 + 入队；
+  判定在专用串行队列上，不进 tap 线程）。**静音不判**：累计里没有话音（RMS ≤ 0.01）就不发判词——
+  闭集模型对静音会给 `nn` 这类垃圾。
+- **JS**：`app/native-speech.js` 加 `lidProbe` / `ensureLid` / `onLid` / `lidLatest`（协议两组字符串
+  与 `.swift` 的 case 逐字对表，`npm test` 有门禁）；`src/app/listen-model.js` 在
+  `ensurePacksForPair` 里把 LID 模型纳入下载（与转写资产/朗读模型共用 downloading 态），
+  会话开始订阅判词，**半句与定稿两处闸**都写成 `C.sideMatchesLid(ev.locale, lidLang)`。
+- **UI 文案**：一处没加（判词只在 `_debug()` 里露一个 `lid` 字段，给回归脚本读）。
+- **未做 / 待补**：真机多场录音下的门限校准（`scripts/lid-eval.py`，等服务端诊断录音）；首启屏 2
+  未把 LID 模型纳入（进场听译时才下）。
 
 ## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
 

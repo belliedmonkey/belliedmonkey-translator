@@ -35,15 +35,20 @@ describe('NativeSpeech.sttOpen —— ended 回执与会话生命周期', () => 
     NS._fromNative({ type: 'stt-final', locale: 'zh-CN', text: 'x', conf: 0.9 });
     deepEq(ev, ['ready', 'close'], '关了之后不再有事件');
   });
-  test('不 close 直接再开：原生会先停旧的并回一个 ended，也不得误杀新会话', () => {
+  test('不 close 直接再开：原生**静默**停掉旧的一路（不回 ended），新会话照常 ready', () => {
     const { NS, posted } = setup();
     const evB = [];
     NS.sttOpen({ locales: ['zh-CN'], onEvent: () => {} });
     NS.sttOpen({ locales: ['en-US'], onEvent: (k) => evB.push(k) });
     deepEq(posted.map((m) => m.type), ['stt-start', 'stt-start']);
-    NS._fromNative({ type: 'stt-state', state: 'ended' });     // 原生 sttStart 里 sttStop() 发出来的
     NS._fromNative({ type: 'stt-state', state: 'ready' });
     deepEq(evB, ['ready']);
+    // 2026-10-07：stt-start 里停旧的一路**不发 ended**。发了的话，页面在会话中被 reload（或原生里
+    // 还挂着上一场的 transcriber）时，下一个 start 会把自己立刻打回 halted/socket（Mac 实测）。
+    const fs = require('fs'), path = require('path');
+    const swift = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'speech-bridge.swift'), 'utf8');
+    ok(/mtStopCurrentTranscriber\(announce: false\)/.test(swift), 'sttStart 必须静默停旧的一路（announce: false）');
+    ok(!/private func sttStart[\s\S]{0,400}?\n        sttStop\(\)/.test(swift), 'sttStart 里不该再直接调 sttStop()（那会回 ended）');
   });
   test('两次 close 只发一个 stt-stop；close 之后 final 不再送达', () => {
     const { NS, posted } = setup();

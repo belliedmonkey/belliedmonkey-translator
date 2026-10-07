@@ -9,8 +9,8 @@ var NativeSpeech = (() => {
   const CHANNEL = 'mtSpeech';
 
   const PROTOCOL = {
-    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop'],
-    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed'],
+    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets'],
+    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -28,6 +28,11 @@ var NativeSpeech = (() => {
   // 等待中的探测 Promise —— 是一串不是一个：入口刷新与设置变更会并发探两次，只留最后一个
   // 会让第一个 await 永远不落定（2026-09-12 门禁里就是这么挂住的）。
   let sttWaiters = [], ttsWaiters = [];
+  // 语种识别（LID，§9.6.1.3）：模型 = 探/装一处；`lidLast` = 最近一条判词（listen-model 据此归属）。
+  let lidProbe = { ok: false, reason: 'no-bridge' };
+  let lidWaiters = [];
+  let lidLast = null;         // { lang, ms, at, kind: 'final'|'live' }
+  const lidListeners = [];
   let sttStopsPending = 0;   // 自己发出去、还没收到「ended」回执的 stt-stop 数（见 _fromNative 里的注释）
   const wake = (list, v) => { const ws = list.splice(0); for (const w of ws) { try { w(v); } catch (_) {} } };
 
@@ -67,6 +72,18 @@ var NativeSpeech = (() => {
     }
     if (t === 'assets-progress') {
       for (const fn of progressListeners) { try { fn(msg); } catch (_) {} }
+      return;
+    }
+    if (t === 'lid-state') {
+      lidProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : String(msg.reason || msg.state || 'assets') };
+      wake(lidWaiters, lidProbe);
+      return;
+    }
+    if (t === 'lid-result' || t === 'lid-live') {
+      lidLast = { lang: String(msg.lang || ''), ms: (typeof msg.ms === 'number') ? msg.ms : 0, at: Date.now(), kind: t === 'lid-live' ? 'live' : 'final' };
+      // 诊断（§0.4.1）：判词只记语言与时长 —— 零内容。
+      try { DiagLog.push('lid', { lang: lidLast.lang, ms: lidLast.ms, kind: lidLast.kind }); } catch (_) {}
+      for (const fn of lidListeners) { try { fn(lidLast); } catch (_) {} }
       return;
     }
     if (t === 'url-probe') {
@@ -164,6 +181,44 @@ var NativeSpeech = (() => {
     });
   }
 
+  // ── 语种识别（LID，§9.6.1.3）───────────────────────────────────────────────
+  // 听译里「谁在说哪门语言」由端上模型判（sherpa-onnx SLID）——不再用手写文字系/置信度规则。
+  // 模型 = sherpa-onnx-whisper-tiny（一个 zip 两个 onnx），走与 TTS 同一条下载/校验通道。
+  /** 探 LID 模型装没装。{ ok, reason }。桥不在 ⇒ 立即 no-bridge。 */
+  function lidProbeRun(model) {
+    if (!available()) { lidProbe = { ok: false, reason: 'no-bridge' }; return Promise.resolve(lidProbe); }
+    return new Promise((resolve) => {
+      lidWaiters.push(resolve);
+      if (!post({ type: 'lid-probe', models: [model] })) { lidProbe = { ok: false, reason: 'no-bridge' }; wake(lidWaiters, lidProbe); }
+    });
+  }
+  /** 下 LID 模型（缺才下）。onProgress 收 assets-progress 原样 { kind:'lid', fraction, state, reason? }。 */
+  function ensureLid(model, onProgress) {
+    if (!available()) return Promise.reject({ reason: 'no-bridge' });
+    return new Promise((resolve, reject) => {
+      let failed = false, failReason = '';
+      const fn = (m) => {
+        if (m.kind !== 'lid') return;
+        try { onProgress && onProgress(m); } catch (_) {}
+        if (m.state === 'failed') { failed = true; failReason = String(m.reason || 'download'); }
+      };
+      progressListeners.push(fn);
+      const finish = (r) => {
+        const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
+        if (failed || !r.ok) reject({ reason: failed ? (failReason || 'download') : (r.reason || 'failed') }); else resolve(r);
+      };
+      lidWaiters.push(finish);
+      if (!post({ type: 'lid-assets', models: [model] })) { const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1); reject({ reason: 'no-bridge' }); }
+    });
+  }
+  /** 订阅每一条判词（final = 一句定稿时判的；live = 边说边判的）。返回退订函数。 */
+  function onLid(fn) {
+    lidListeners.push(fn);
+    return () => { const i = lidListeners.indexOf(fn); if (i >= 0) lidListeners.splice(i, 1); };
+  }
+  /** 最近一条判词 { lang, ms, at, kind } | null。 */
+  function lidLatest() { return lidLast; }
+
   /**
    * 开一路本机转写。与 WsTranscribe.open 同一个返回形状：{ sendPcm(){}, close() }，
    * 事件 ready / partial / final / error / close 走 onEvent(kind, payload)。
@@ -176,7 +231,7 @@ var NativeSpeech = (() => {
       closed: false,
       fire(kind, payload) { if (this.closed && kind !== 'close') return; try { onEvent(kind, payload); } catch (_) {} },
     };
-    if (sttSession) { const s = sttSession; sttSession = null; s.closed = true; sttStopsPending++; }   // 原生的 stt-start 会先停掉在跑的那一路并回一个 ended
+    if (sttSession) { const s = sttSession; sttSession = null; s.closed = true; }   // 原生的 stt-start 静默停掉在跑的那一路（不回 ended，那是 stt-stop 的回执）
     sttSession = session;
     const body = { type: 'stt-start', locales: (o && o.locales) || [] };
     if (o && o.vadMs) body.vadMs = o.vadMs;
@@ -240,5 +295,6 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio };
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
+    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest };
 })();

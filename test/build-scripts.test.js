@@ -1676,8 +1676,30 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // 诊断录音通道（§0.4.1，2026-10-06）：协议 id
       '"diag-audio"', '"mic"', '"on"', '"session"', '"url"', '"sidecar"',
       // 引擎选择标记（st/dt 前缀，§0.4.1 转写质量量化）
-      '"dt:"', '"st:"', '"engines"', '"tts-\\(id)"']);
+      '"dt:"', '"st:"', '"engines"', '"tts-\\(id)"',
+      // 端上语种识别（LID，§9.6.1.3，2026-10-07）：协议 id 与清单字段名（都非文案）。
+      // lid-probe/lid-assets = 入口；lid-state/lid-result/lid-live = 出口；lid = kind 与 locale；
+      // encoder/decoder/dir = 清单字段；mt-lid/mt.lid = 目录与队列名；assets/ms = 状态与时长字段。
+      '"lid-probe"', '"lid-assets"', '"lid-state"', '"lid-result"', '"lid-live"',
+      '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
+  });
+
+  test('LID 喂音频（§9.6.1.3）：样本必须在 tap 线程上拷走、且只喂话音 —— 两个坑都是 Mac 实测踩出来的', () => {
+    const sp = stripComments(tpl);
+    ok(/MTDeviceLid\.shared\.feed\(buffer, speech: rms > vadLevel\)/.test(sp),
+      '识别器没把「这一段是不是话音」交给 LID（静音一起喂进去会把判词带跑）');
+    const lid = sp.slice(sp.indexOf('final class MTDeviceLid'));
+    ok(lid.length > 0, 'speech-bridge 里没有 MTDeviceLid');
+    const feed = lid.slice(lid.indexOf('func feed(_ bufIn'), lid.indexOf('func finish()'));
+    ok(feed.length > 0, 'MTDeviceLid.feed 找不到');
+    // 野指针（2026-10-07 Mac 实测：指针带进 q.async ⇒ 判词恒为 sq，同一段音频在 python 侧是 th）
+    const beforeAsync = feed.slice(0, feed.indexOf('q.async'));
+    ok(/let chunk = \[Float\]\(UnsafeBufferPointer\(start: ch\[0\]/.test(beforeAsync),
+      'LID 没有在 tap 线程上把样本拷成 [Float] —— 指针出了回调就是野的');
+    // 话音门（2026-10-07 Mac 实测：10 s 房间噪声 + 7 s 泰语 ⇒ sq；只喂话音 ⇒ th）
+    ok(/guard speech \|\| self\.quietRun <= 4000/.test(feed), 'LID 没有静音门：停顿还在往里累计');
+    ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');
   });
 
   test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {

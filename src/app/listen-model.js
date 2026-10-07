@@ -72,8 +72,10 @@ const listenModel = (() => {
   let socketRetried = false; // socket 断开后自动重连过一次了吗（成功 ready 时清零）
   // 本机转写路（§9.6.1）：final 按 locale 串句的切句器；离线资产下载进度（downloading 态的胶囊）
   let cutter = null, dlPct = 0, dlLang = '';
-  // 跨语言定稿仲裁（§9.6.1.2）：两路对同一段音频都出 final 时，用置信度压掉错语言那一路。
-  let arb = null;
+  // 语种识别（LID，§9.6.1.3，2026-10-07）：端上模型判「这段音频是哪门语言」，归属由它给。
+  // 半句与定稿都**只收 LID 判定的那一路**；'' = 还没判出来（此时什么都不上屏，不是随机先画一路）。
+  let lidLang = '';
+  let lidUnsub = null;
   let session = null;
   let cfg = null;
   let sock = null;
@@ -407,40 +409,44 @@ const listenModel = (() => {
   function openSocket() { openDevice(gen); }
   function closeSocket() {
     const s = sock; sock = null;
-    // 还扣在仲裁器里的定稿先放出去（走 gate → cutter），别让它随会话一起丢。
-    if (arb) { try { arb.flushAll(); } catch (_) {} arb = null; }
     cutter = null;
     try { if (s) s.close(); } catch (_) {}
   }
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
   // 两路识别器同时出 final，先按「文字系 + 置信度」收（C.acceptDeviceFinal），再按 locale 串句
   // （C.makeStreamCutter），归属直接由 locale 给（addFinal 的 deps.who）。
-  // ── 半句层的跨语言仲裁（2026-10-06，95 真机「说中文先闪泰文再改中文」）────────────────
-  // 定稿仲裁只管定稿；半句是**另一条**显示路径。老办法只有一个「某语言出过定稿后 2s 内另一路
-  // 半句不上屏」的粘滞 —— 说话**开头**（还没有任何定稿）时，泰语路把中文语音硬解成泰文的半句仍会
-  // 先画上去，就是那次「闪现」。改成和定稿同一套判据：每路留最新半句，**文字系不同**时按三档分
-  // （高置信 / 已知低置信 / 无置信）留高分那一路；同一文字系取最新。粘滞随之取消（仲裁取代它）。
+  // ── 半句与定稿的归属：由端上 LID 模型给（§9.6.1.3）────────────────────────────
+  // 这一条是「半句闪错语言」的根治（2026-10-07 真音频复现后定案）。旧办法在**没有信息**时做选择：
+  // 半句阶段两路识别器都没有置信度（conf -1），谁先到谁上屏就是随机 —— 说中文时泰语路把中文硬解成
+  // 泰文的半句先画上去，几秒后才被改回来。端上 LID（sherpa-onnx SLID / whisper tiny）直接给语言，
+  // 两路里只有那一路的半句/定稿能上屏；判出来之前**什么都不画**（显示「正在说…」）。
+  // 代价如实记（§9.6.1.3）：LID 要 ~1–2s 才稳 ⇒ 每句话的开头一小段没有实时预览，第一句最明显。
   const PARTIAL_TTL_MS = 2500;
-  const PARTIAL_HOLD_MS = 300;   // 只有一路候选时先扣住这么久，等另一路（若有）到齐再择一 —— 不先闪错语言
-  let partialBy = {};   // locale base → { text, conf, at, loc }
-  let partialHoldTimer = 0;
-  let partialLoc = '';   // 此刻屏上那一半句的 locale base（同分不换语言要用它）
-  // 「这一路真的在说这门语言」的**学习**（2026-10-07 真音频复现后定案）：半句阶段两路识别器都没有
-  // 置信度（conf -1），所以**没有任何信息**能判谁对 —— 谁先到谁上屏就是随机，两路都会把对方的音频
-  // 硬解成自己的文字（说中文时泰语路吐泰文假字）。可靠的证据只有**定稿**：定稿走仲裁（用置信度），
-  // 错语言那一路会被丢掉。所以：**一路只有在本场出过定稿（赢过仲裁）之后，它的半句才允许上屏。**
-  // 说中文 ⇒ 泰语的定稿永远赢不了 ⇒ 泰语半句根本不上屏（这就是「闪泰文」的根治）；先说泰语 ⇒
-  // 泰语先被确立，照常预览。代价如实记：每种语言在本场的**第一句**没有实时预览（显示「正在说…」），
-  // 定稿一到就恢复正常预览。
-  let partialEstablished = {};   // locale base → true（本场赢过定稿）
+  let partialBy = {};   // locale base → { text, at }（正常至多一条：只有 LID 那一路会进来）
+  let partialLoc = '';   // 此刻屏上那一半句的 locale base
+  // 当前该显示的那一条半句：只有 LID 那一路会进 partialBy，取最新即可（戴上时钟帽防挂死）。
   function pickPartial() {
     const at = Date.now();
-    const fresh = Object.keys(partialBy).map((k) => partialBy[k])
-      .filter((c) => c && (at - c.at) < PARTIAL_TTL_MS && partialEstablished[c.loc]);
-    return C.pickPartial(fresh, routeDeps, partialLoc);   // 判据在 listen-core（纯函数、有单测）
+    const list = Object.keys(partialBy).map((k) => partialBy[k]).filter((c) => c && (at - c.at) < PARTIAL_TTL_MS);
+    if (!list.length) return null;
+    return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
   }
-  function clearPartials() { partialBy = {}; if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; } partialLoc = ''; partial = ''; partialTr = ''; }
-  // 画当前该显示的那一路半句（三档择一见 pickPartial）。
+  function clearPartials() { partialBy = {}; partialLoc = ''; partial = ''; partialTr = ''; }
+  // LID 判词订阅（§9.6.1.3）。**本场归属的唯一判据**：判词到一条就把当前语言换成它。
+  // 订阅一次即可（会话结束麦克风也就停了，不会再判词），新会话只把语言清空从头来。
+  function lidOn() {
+    lidLang = '';
+    if (lidUnsub) return;
+    try { lidUnsub = NativeSpeech.onLid((r) => { lidLang = C.lidBase(r && r.lang); }); } catch (_) { lidUnsub = null; }
+  }
+  // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
+  function lidModel() {
+    try {
+      if (typeof mtDeviceLidModelsFor !== 'function') return null;
+      return mtDeviceLidModelsFor(Registry.flavor() || 'global');
+    } catch (_) { return null; }
+  }
+  // 画当前该显示的那一路半句（只有 LID 那一路会进 partialBy，见 pickPartial）。
   function refreshPartial() {
     const pick = pickPartial();
     partial = pick ? pick.text : '';
@@ -460,13 +466,12 @@ const listenModel = (() => {
       onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
     });
     cutter = cut;
-    const gate = C.makeFinalGate(routeDeps);   // 低置信的拉丁句头先扣住，紧接的高置信片来了再接回（listen-core 注释）
-    // 跨语言仲裁（§9.6.1.2）：final 先过它，错语言那一路被置信度压掉，剩下的才进 gate/cutter。
-    // 注入 isEcho：窗口里任一路匹配我们刚读出去的文本 ⇒ 整窗判成回声、两路都丢（95 真机回声修）。
-    arb = C.makeFinalArbiter((f) => {
+    const gate = C.makeFinalGate(routeDeps);   // 同一路之内的文字质量闸（低置信的拉丁句头先扣住、紧接的好片来了再接回）
+    // 收一片定稿：**归属已由 LID 定死**（只有 LID 那一路走得进来），再过文字闸、进串句器。
+    const takeFinal = (f) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
       for (const tt of gate.push(f)) cut.add(f.locale, tt);
-    }, Object.assign({}, routeDeps, { isEcho: (s) => { try { return echo.isEcho(s, Date.now()); } catch (_) { return false; } } }));
+    };
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -477,12 +482,14 @@ const listenModel = (() => {
           const base = C.baseCode(ev && ev.locale);
           // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
           if (base && echo.playingLangs(Date.now()).has(base)) return;
-          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev.conf);
+          if (!C.sideMatchesLid(ev && ev.locale, lidLang)) return;   // LID 判的不是这一路 ⇒ 半句不上屏（§9.6.1.3）
+          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text);
         }
         else if (kind === 'final') {
           const base = C.baseCode(ev && ev.locale);
           if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          if (arb) arb.push(ev);
+          if (!C.sideMatchesLid(ev && ev.locale, lidLang)) return;        // 错语言那一路对同一段音频的解读，丢
+          takeFinal(ev);
         }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
@@ -500,20 +507,11 @@ const listenModel = (() => {
     halt('socket', why);
   }
 
-  function onPartial(locale, text, conf) {
+  function onPartial(locale, text) {
     const key = C.baseCode(locale);
     const t = String(text || '').trim();
-    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, conf, at: Date.now(), loc: key };
-    // 只有一路候选且刚到 ⇒ 先扣住一小段再画：说话**开头**两路识别器对同一段音频都会给半句，
-    // 谁先到就先画的话，说中文时泰语路的假半句会「先闪」一下（95 真机）。扣到另一路到齐再
-    // 按三档择一（高置信压中性、中性压低置信）；窗口内没有第二路 ⇒ 到点正常画它。
-    const freshN = Object.keys(partialBy).filter((k) => partialBy[k] && (Date.now() - partialBy[k].at) < PARTIAL_TTL_MS).length;
-    if (freshN <= 1) {
-      if (!partialHoldTimer) partialHoldTimer = setTimeout(() => { partialHoldTimer = 0; refreshPartial(); }, PARTIAL_HOLD_MS);
-      return;
-    }
-    if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; }
-    refreshPartial();
+    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, at: Date.now() };
+    refreshPartial();   // 归属已由 LID 定死 ⇒ 不必再扣住等另一路（旧的三档择一随 LID 退场）
   }
   function onFinal(text, meta) {
     if (meta && meta.locale) delete partialBy[C.baseCode(meta.locale)];   // 这一路定稿了，它的半句退休
@@ -525,7 +523,6 @@ const listenModel = (() => {
     if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
-    if (meta && meta.locale) partialEstablished[C.baseCode(meta.locale)] = true;   // 这一路赢了定稿 ⇒ 它的半句从此可以上屏
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
     row.lat = { final: now(), engine: 'device' };   // 2026-09-17 起只有本机路
     partial = ''; partialTr = '';
@@ -792,7 +789,7 @@ const listenModel = (() => {
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
-    partialEstablished = {};   // 新会话：哪一路「真的在说」从头学（见 pickPartial 注释）
+    lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
     diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
@@ -841,6 +838,26 @@ const listenModel = (() => {
         } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return false; }
         if (phase !== 'downloading') return false;
         phase = 'preparing'; canvas.view('state');
+      }
+    }
+    // 语种识别（LID，§9.6.1.3）：端上模型判「这段音频是哪门语言」—— 半句与定稿的归属全靠它。
+    // 与转写资产/朗读模型共用同一个 downloading 态。缺了它就没有归属判据：宁可先说「下载中」，
+    // 也不退回「谁先到谁上屏」那套（那正是半句闪错语言的老病根）。
+    if (deviceBridge()) {
+      const lm = lidModel();
+      if (lm) {
+        try {
+          await NativeSpeech.ensureLid(lm, (m) => {
+            if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; canvas.view('state'); }
+            if (phase !== 'downloading') return;
+            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); paintClock();
+          });
+        } catch (e) {
+          if (phase === 'preparing' || phase === 'downloading') halt('assets', e && e.reason);
+          return false;
+        }
+        if (phase !== 'preparing' && phase !== 'downloading') return false;
+        if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
       }
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
@@ -1664,6 +1681,7 @@ const listenModel = (() => {
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+      lid: lidLang,   // §9.6.1.3：端上 LID 当前判定的语言（'' = 还没判出来）—— 归属的判据就是它
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }),
