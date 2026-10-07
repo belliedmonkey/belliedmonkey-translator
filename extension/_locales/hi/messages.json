@@ -3672,5 +3672,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "यह डिवाइस वह भाषा नहीं पहचान सकता — «{lang}» पर वापस"
+  },
+  "listen_speak_lang_label": {
+    "message": "जो भाषा मैं बोलता हूँ"
   }
 }

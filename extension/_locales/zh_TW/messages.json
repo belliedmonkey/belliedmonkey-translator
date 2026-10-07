@@ -3840,5 +3840,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "這門語言這台裝置辨識不了 — 已經回到「{lang}」"
+  },
+  "listen_speak_lang_label": {
+    "message": "我說的語言"
   }
 }

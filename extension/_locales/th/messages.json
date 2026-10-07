@@ -3652,5 +3652,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "อุปกรณ์นี้รู้จำภาษานั้นไม่ได้ — กลับไปใช้ «{lang}»"
+  },
+  "listen_speak_lang_label": {
+    "message": "ภาษาที่ฉันพูด"
   }
 }

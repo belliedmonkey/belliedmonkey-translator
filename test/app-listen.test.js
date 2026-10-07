@@ -787,12 +787,15 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('识别器失败按真实原因说：locales 有名额文案；assets 走协议码翻译', () => {
     ok(/LearnTTS\.reason\(why1, t\)/.test(MODEL), 'assets 失败没有把协议码翻成人话（会印出 offline/http）');
   });
-  // 2026-10-07 用户裁定（Pencil 稿已过）：「译成」在听译页有歧义 —— 它只指「我说的那门」
-  // （对方的话译成它、我的话译成对方的语言）。听译页改叫「我的语言」+ 一行两方向说明；
-  // 实时字幕那页没有「我」这一侧，仍叫「译成」。
-  test('语言区标签：听译 =「我的语言」+ 两方向说明；字幕仍「译成」', () => {
-    ok(/langTargetLabel: sub \? t\('target_lang_label', '译成'\) : t\('listen_my_lang_label', '我的语言'\)/.test(MODEL),
-      '听译页那格没有改叫「我的语言」（「译成」有歧义）');
+  // 2026-10-07 用户裁定 + Pencil 稿（评审打回一次）：「译成」在听译页有歧义 —— 它只指「我说的那门」
+  // （对方的话译成它、我的话译成对方的语言）。听译页改叫「**我说的语言**」+ 一行两方向说明；
+  // **不许复用「我的语言」**（`listen_my_lang_label` 是语音包页那个标签）；字幕那页没有「我」这一侧，
+  // 仍叫「译成」。
+  test('语言区标签：听译 =「我说的语言」+ 两方向说明；字幕仍「译成」', () => {
+    ok(/langTargetLabel: sub \? t\('target_lang_label', '译成'\) : t\('listen_speak_lang_label', '我说的语言'\)/.test(MODEL),
+      '听译页那格没有改叫「我说的语言」（「译成」有歧义）');
+    ok(!/langTargetLabel:[^\n]*listen_my_lang_label/.test(MODEL),
+      '复用了「我的语言」—— 那是语音包页的标签，不能拿来当听译页的');
     ok(/langDirsText: sub \? '' : t\('listen_lang_dirs'/.test(MODEL), '没有那行「对方的话翻译成它；你说的话翻译成对方的语言」');
     ok(/id="app-listen-dirs"/.test(read('src/app/listen-view.jsx')), '视图里没有渲染那行说明');
   });

@@ -3839,5 +3839,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "Este dispositivo no reconoce ese idioma — de vuelta a «{lang}»"
+  },
+  "listen_speak_lang_label": {
+    "message": "El idioma que hablo"
   }
 }

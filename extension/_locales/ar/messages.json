@@ -3839,5 +3839,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "هذا الجهاز لا يتعرّف على تلك اللغة — عدنا إلى «{lang}»"
+  },
+  "listen_speak_lang_label": {
+    "message": "اللغة التي أتحدّثها"
   }
 }

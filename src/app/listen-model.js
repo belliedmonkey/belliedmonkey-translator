@@ -1196,7 +1196,8 @@ const listenModel = (() => {
       // 语言区（§9.6.1.6，2026-10-07 真机反馈后定稿）：
       //   「译成」= 用户想读的语言（**下拉，看得见，默认系统语言**）；
       //   「对方说的」= 自动识别出来的那门，被动显示；认错点「语言不对？」去 sheet 里手改。
-      langTargetLabel: sub ? t('target_lang_label', '译成') : t('listen_my_lang_label', '我的语言'),
+      // 听译页：「我说的语言」（不是「我的语言」—— 那是**语音包页**的标签，不能复用）。
+      langTargetLabel: sub ? t('target_lang_label', '译成') : t('listen_speak_lang_label', '我说的语言'),
       langTargetOptions: langOptionsFor(cfg && cfg.myLang),
       langTargetValue: C.baseCode(cfg && cfg.myLang),
       partnerText: (() => {

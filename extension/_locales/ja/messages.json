@@ -3839,5 +3839,8 @@
   },
   "listen_lang_unsupported_revert": {
     "message": "この端末ではその言語を認識できません — 「{lang}」に戻しました"
+  },
+  "listen_speak_lang_label": {
+    "message": "私が話す言語"
   }
 }
