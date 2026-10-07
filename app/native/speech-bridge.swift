@@ -1289,9 +1289,12 @@ final class MTDeviceLid {
             self.buf.append(contentsOf: chunk)
             if self.buf.count > self.maxSamples { self.buf.removeFirst(self.buf.count - self.maxSamples) }
             if speech { self.sawSpeech = true }
-            // 边说边判（半句要归属就得在**本句进行中**知道语言）：≥1s 且有话音才判，语言变了才发。
+            // 边说边判（半句要归属就得在**本句进行中**知道语言）：**≥2s 才有话音才判**，语言变了才发。
+            // 为什么是 2s 不是 1s：12 门真语音实测（scripts/lid-eval-real.py，2026-10-07）
+            // **1s 只有 50%**、2s 83%、3s 83%、5s 92%、整段 100% —— 1s 的判词基本是掷硬币，
+            // 而判错一次就会让错语言那一路的半句上屏（正是要根治的那件事）。宁可晚 1s。
             let now = Date().timeIntervalSince1970
-            guard self.buf.count >= 16000, self.sawSpeech, now - self.lastLive >= 1.0 else { return }
+            guard self.buf.count >= 32000, self.sawSpeech, now - self.lastLive >= 1.0 else { return }
             self.lastLive = now
             let lang = slid.decode(samples: self.buf, sampleRate: 16000).lang
             if lang != self.lastLang {

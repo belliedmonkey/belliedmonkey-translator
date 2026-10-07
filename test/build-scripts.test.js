@@ -1700,6 +1700,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     // 话音门（2026-10-07 Mac 实测：10 s 房间噪声 + 7 s 泰语 ⇒ sq；只喂话音 ⇒ th）
     ok(/guard speech \|\| self\.quietRun <= 4000/.test(feed), 'LID 没有静音门：停顿还在往里累计');
     ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');
+    // 首次判定要 ≥2s（12 门真语音实测：1s 只有 50%、2s 83% —— 见 scripts/lid-eval-real.py）
+    ok(/self\.buf\.count >= 32000/.test(feed), 'live 判定的门槛应当是 2s（32000 样本），1s 基本是掷硬币');
   });
 
   test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {
