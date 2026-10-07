@@ -67,7 +67,8 @@ async function enterListen() {
 }
 const script = (t) => [...(t.match(/[\u0E00-\u0E7F]/g) || [])].length > 0 ? 'th' : /[\u4E00-\u9FFF]/.test(t) ? 'zh' : '';
 
-async function recordCase(name, clips, expectNo, restart) {
+async function recordCase(name, clips, expectNo, restart, opts) {
+  const o = opts || {};
   if (restart) await restartApp();
   await enterListen();
   // 采样屏上半句（机器判据）
@@ -102,10 +103,17 @@ async function recordCase(name, clips, expectNo, restart) {
   console.log(`  屏上半句（去重前 20）: ${JSON.stringify([...new Set(samples)].slice(0, 20))}`);
   console.log(`  帧条: ${fs.existsSync(strip) ? strip : '（无）'}`);
   // 采样为 0 ⇒ App 没真听到音频（麦克风/前置/预热没到位）⇒ 这一例**无效**，判失败，不许假绿。
-  if (samples.length === 0) { console.log('  ✗ 一条半句样本都没有 —— 这一例无效（App 没听到音频）'); return false; }
+  if (samples.length === 0 && !o.rowsMayBeEmpty) { console.log('  ✗ 一条半句样本都没有 —— 这一例无效（App 没听到音频）'); return false; }
   // 两路同时出声（多声重叠）：LID 判成哪一门都可能（它只有一个输入），这一例不判语言，
   // 只要求「真的听到了、有半句上屏」。仍然记下 LID 判词，供人复核。
-  if (!expectNo) { console.log('  ✓ 有半句上屏（多声重叠不判语言；LID 判词见上）'); return true; }
+  if (!expectNo && !o.wantScripts) { console.log('  ✓ 有半句上屏（多声重叠不判语言；LID 判词见上）'); return true; }
+  // 不同声音/语言交替：判据=**行的文字系集合**里两门语言都出现过（LID 逐句换判，两门都要落到行上）
+  if (o.wantScripts) {
+    const got = [...new Set(rows.map((r) => script(String(r).replace(/^[^:]*:/, ''))))].filter(Boolean).sort();
+    const miss = o.wantScripts.filter((s) => !got.includes(s));
+    console.log(miss.length === 0 ? `  ✓ 两门语言都出了行（${got.join('+')}）` : `  ✗ 缺 ${miss.join('+')} 的行（只有 ${got.join('+') || '空'}）`);
+    return miss.length === 0;
+  }
   console.log(bad.length === 0 ? `  ✓ 没有出现「${expectNo === 'th' ? '泰文' : '汉字'}」半句` : `  ✗ 出现了 ${bad.length} 条错语言半句`);
   return bad.length === 0;
 }
@@ -119,6 +127,10 @@ async function main() {
   results.push(await recordCase('zh-long', [c.zh1], 'th', true));
   results.push(await recordCase('zh-multi', [c.zh1, c.zh2, c.zh1], 'th', true));
   results.push(await recordCase('th-long', [c.th1], 'zh', true));
+  // 不同语言交替（用户 2026-10-07 指定的用例）：同一场里中文 → 泰语 → 中文。LID 应当**逐句**换判，
+  // 两门语言的行都要落到历史上、且互不冒充。判据 = 行的文字系集合里 zh 与 th 都出现过。
+  // （半句采样在这一例不判：LID 每一句都要重新听够，前面几秒本来就没有预览。）
+  results.push(await recordCase('zh-th-zh', [c.zh1, c.th1, c.zh1], '', true, { wantScripts: ['zh', 'th'] }));
   results.push(await recordCase('mix-overlap', [c.mix], '', true));
   const n = results.filter(Boolean).length;
   console.log(`\n=== ${n}/${results.length} 通过 ===`);

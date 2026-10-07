@@ -423,7 +423,6 @@ const listenModel = (() => {
   // 代价如实记（§9.6.1.3）：LID 要 ~1–2s 才稳 ⇒ 每句话的开头一小段没有实时预览，第一句最明显。
   const PARTIAL_TTL_MS = 2500;
   let partialBy = {};   // locale base → { text, at }（正常至多一条：只有 LID 那一路会进来）
-  let partialLoc = '';   // 此刻屏上那一半句的 locale base
   // 当前该显示的那一条半句：只有 LID 那一路会进 partialBy，取最新即可（戴上时钟帽防挂死）。
   function pickPartial() {
     const at = Date.now();
@@ -431,7 +430,7 @@ const listenModel = (() => {
     if (!list.length) return null;
     return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
   }
-  function clearPartials() { partialBy = {}; partialLoc = ''; partial = ''; partialTr = ''; }
+  function clearPartials() { partialBy = {}; partial = ''; partialTr = ''; }
   // LID 判词订阅（§9.6.1.3）。**本场归属的唯一判据**：判词到一条就把当前语言换成它。
   // 订阅一次即可（会话结束麦克风也就停了，不会再判词），新会话只把语言清空从头来。
   function lidOn() {
@@ -450,7 +449,6 @@ const listenModel = (() => {
   function refreshPartial() {
     const pick = pickPartial();
     partial = pick ? pick.text : '';
-    partialLoc = pick ? (pick.loc || '') : '';
     // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
     // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
     if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
