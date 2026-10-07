@@ -3610,5 +3610,20 @@
   },
   "engine_status_fix_translate": {
     "message": "ยังไม่ได้ตั้งค่าเครื่องแปล — ไปที่ การตั้งค่า › เครื่องแปล เพื่อเลือกหนึ่งตัว"
+  },
+  "listen_lang_detecting": {
+    "message": "กำลังตรวจจับภาษา…"
+  },
+  "listen_lang_detected": {
+    "message": "ตรวจพบ: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "ภาษาผิดหรือไม่?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "กำลังตรวจจับภาษาของวิดีโอ…"
+  },
+  "subtitle_lang_detected": {
+    "message": "ตรวจพบ: {lang}"
   }
 }

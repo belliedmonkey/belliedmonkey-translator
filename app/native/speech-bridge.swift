@@ -323,7 +323,9 @@ final class MTDeviceTranscriber {
     private let vadLevel: Double
     private var analyzer: SpeechAnalyzer?
     private var continuation: AsyncStream<AnalyzerInput>.Continuation?
-    private var readers: [Task<Void, Never>] = []
+    private var readers: [String: Task<Void, Never>] = [:]     // locale → reader
+    /// locale ↔ 引擎 **成对**带出（混装后下标不再等于 locales 的下标）。
+    private enum Mod { case speech(SpeechTranscriber); case dictation(DictationTranscriber) }
     private var converter: AVAudioConverter?
     private var format: AVAudioFormat?
     private var fed: Int64 = 0
@@ -345,28 +347,12 @@ final class MTDeviceTranscriber {
             // 而读取本来就是「每模块一个 reader」），Speech 那一路拿回置信度，交给 JS 的跨语言
             // 仲裁（listen-core 的 makeFinalArbiter）用。
             var mods: [any SpeechModule] = []
-            var speechMods: [(String, SpeechTranscriber)] = []
-            var dictMods: [(String, DictationTranscriber)] = []
+            var pairs: [(String, Mod)] = []
             for id in locales {
-                guard let p = await mtTranscriberFor(id) else {
+                guard let m = await makeModule(id) else {
                     emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
                 }
-                switch p.kind {
-                case .speech:
-                    let t = SpeechTranscriber(locale: p.locale, transcriptionOptions: [],
-                                              reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
-                                              attributeOptions: [.audioTimeRange, .transcriptionConfidence])
-                    if await AssetInventory.status(forModules: [t]) != .installed {
-                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
-                    }
-                    mods.append(t); speechMods.append((id, t))
-                case .dictation:
-                    let t = DictationTranscriber(locale: p.locale, preset: .progressiveLongDictation)
-                    if await AssetInventory.status(forModules: [t]) != .installed {
-                        emit?(["type": "stt-state", "state": "failed", "reason": "assets"]); return
-                    }
-                    mods.append(t); dictMods.append((id, t))
-                }
+                pairs.append(m); mods.append(module(m))
             }
             guard let fmt = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: mods) else {
                 emit?(["type": "stt-state", "state": "failed", "reason": "format"]); return
@@ -379,27 +365,43 @@ final class MTDeviceTranscriber {
             }
             if stopped { return }
             analyzer = an; continuation = cont; format = fmt
-            // reader 与 locale 必须成对带出：混装后 speechMods 的下标不再等于 locales 的下标。
-            for (id, t) in speechMods {
-                readers.append(Task { [weak self] in
-                    do {
-                        for try await r in t.results { self?.deliver(id, r) }
-                    } catch {
-                        self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
-                    }
-                })
-            }
-            for (id, t) in dictMods {
-                readers.append(Task { [weak self] in
-                    do {
-                        for try await r in t.results { self?.deliverDictation(id, r) }
-                    } catch {
-                        self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
-                    }
-                })
-            }
+            for (id, m) in pairs { startReader(id, m) }
             MTAudioBridge.shared.micSink = { [weak self] buf in self?.feed(buf) }
             emit?(["type": "stt-state", "state": "ready"])
+        }
+    }
+
+    /// 这门语言该用哪个模块（能窄的用窄的）；资产没装 / 语言不支持 ⇒ nil。
+    private func makeModule(_ id: String) async -> (String, Mod)? {
+        guard let p = await mtTranscriberFor(id) else { return nil }
+        switch p.kind {
+        case .speech:
+            let t = SpeechTranscriber(locale: p.locale, transcriptionOptions: [],
+                                      reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
+                                      attributeOptions: [.audioTimeRange, .transcriptionConfidence])
+            guard await AssetInventory.status(forModules: [t]) == .installed else { return nil }
+            return (id, .speech(t))
+        case .dictation:
+            let t = DictationTranscriber(locale: p.locale, preset: .progressiveLongDictation)
+            guard await AssetInventory.status(forModules: [t]) == .installed else { return nil }
+            return (id, .dictation(t))
+        }
+    }
+    private func module(_ m: (String, Mod)) -> any SpeechModule {
+        switch m.1 { case .speech(let t): return t; case .dictation(let t): return t }
+    }
+    /// 给一路起 reader（`deliver` 拿置信度、`deliverDictation` 没有）。
+    private func startReader(_ id: String, _ m: Mod) {
+        guard readers[id] == nil else { return }
+        readers[id] = Task { [weak self] in
+            do {
+                switch m {
+                case .speech(let t): for try await r in t.results { self?.deliver(id, r) }
+                case .dictation(let t): for try await r in t.results { self?.deliverDictation(id, r) }
+                }
+            } catch {
+                self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
+            }
         }
     }
 
@@ -475,7 +477,7 @@ final class MTDeviceTranscriber {
         continuation?.finish()
         let an = analyzer
         analyzer = nil; continuation = nil
-        let rs = readers; readers = []
+        let rs = Array(readers.values); readers = [:]
         Task {
             if let an { await an.cancelAndFinishNow() }
             for r in rs { r.cancel() }

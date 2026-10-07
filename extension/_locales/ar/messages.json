@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "محرّك الترجمة غير مضبوط — الإعدادات › المحرّك"
+  },
+  "listen_lang_detecting": {
+    "message": "جارٍ التعرّف على اللغة…"
+  },
+  "listen_lang_detected": {
+    "message": "تم التعرّف: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "اللغة غير صحيحة؟"
+  },
+  "subtitle_lang_detecting": {
+    "message": "جارٍ التعرّف على لغة الفيديو…"
+  },
+  "subtitle_lang_detected": {
+    "message": "تم التعرّف: {lang}"
   }
 }

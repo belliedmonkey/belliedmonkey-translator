@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "Движок перевода не выбран — Настройки › Движок"
+  },
+  "listen_lang_detecting": {
+    "message": "Определяем язык…"
+  },
+  "listen_lang_detected": {
+    "message": "Определено: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "Не тот язык?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Определяем язык видео…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Определено: {lang}"
   }
 }

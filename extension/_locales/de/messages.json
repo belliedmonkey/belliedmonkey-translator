@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen"
+  },
+  "listen_lang_detecting": {
+    "message": "Sprache wird erkannt…"
+  },
+  "listen_lang_detected": {
+    "message": "Erkannt: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "Falsche Sprache?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Sprache des Videos wird erkannt…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Erkannt: {lang}"
   }
 }

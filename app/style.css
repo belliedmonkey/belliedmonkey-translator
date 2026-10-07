@@ -616,6 +616,12 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-tts-fallback { color: var(--dim); font-size: 0.78rem; margin-left: 8px; }
 :where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
+/* 语言状态行（§9.6.1.4，2026-10-07 用户拍）：语言控件**不再常驻** —— 默认只有一行被动状态
+   （「正在识别语言…」/「已识别：中文 · English」）加一个「语言不对？」文字按钮；认错了才摊开
+   原来的两个下拉。包一层 wrap 是为了让 grid 里只占一格（收起时不改变布局）。 */
+:where(#app-listen) .listen-lang-wrap { display: flex; flex-direction: column; gap: 8px; }
+:where(#app-listen) .listen-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+:where(#app-listen) .listen-lang button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
 :where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 :where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
 :where(#app-listen) .listen-pair select { font: inherit; }
@@ -678,7 +684,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
-  :where(#app-listen) .listen-pair { grid-area: pair; }
+  :where(#app-listen) .listen-lang-wrap { grid-area: pair; }
   :where(#app-listen) .listen-autospeak { grid-area: speakrow; }
   #app-listen-queue { grid-area: queue; }
   #app-subs-privacy { grid-area: subspriv; }

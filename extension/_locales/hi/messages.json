@@ -3630,5 +3630,20 @@
   },
   "engine_status_fix_translate": {
     "message": "अनुवाद इंजन सेट नहीं — सेटिंग्स › इंजन में चुनें"
+  },
+  "listen_lang_detecting": {
+    "message": "भाषा पहचानी जा रही है…"
+  },
+  "listen_lang_detected": {
+    "message": "पहचानी गई: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "गलत भाषा?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "वीडियो की भाषा पहचानी जा रही है…"
+  },
+  "subtitle_lang_detected": {
+    "message": "पहचानी गई: {lang}"
   }
 }

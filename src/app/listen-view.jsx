@@ -298,19 +298,29 @@ export function ListenView() {
       </div>
       {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
       <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
-      {/* 语言对摊在外面（画布画板 6，2026-09-08 定 A 版）：选错不报错，摊出来让错误自己暴露。 */}
-      <div className="listen-pair" id="app-listen-pair">
-        <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
-          <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-            {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-          </select>
-        </label>
-        <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
-        <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
-          <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-            {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-          </select>
-        </label>
+      {/* 语言：**不再常驻**（§9.6.1.4，2026-10-07 用户拍）。默认只有一行被动状态；
+          LID 判出**稳住**的语言后「对方」那一格自动跟着走 —— 平时一个字都不用选。
+          认错了才点「语言不对？」摊开手动指定（就是原来的两个下拉）。 */}
+      <div className="listen-lang-wrap" id="app-listen-lang-wrap">
+        <div className="listen-lang" id="app-listen-lang">
+          <span className="note" id="app-listen-lang-state">{mv.langStateText}</span>
+          <button type="button" className="linkish" id="app-listen-lang-edit"
+            aria-expanded={mv.langEdit ? 'true' : 'false'}
+            onClick={listenModel.toggleLangEdit}>{mv.langEditLabel}</button>
+        </div>
+        <div className="listen-pair" id="app-listen-pair" hidden={!mv.langEdit}>
+          <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
+            <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+              {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+          <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
+          <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
+            <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChange('other', e.target.value)}>
+              {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+        </div>
       </div>
       {/* 「换引擎」（2026-10-04 用户裁定）：语言列表**始终列全**，被引擎挡住的那些灰显并带一句
           「当前引擎不支持」—— 出路**就地**给，不是一句「去设置里选」。只在真有被挡住的语言时出现。 */}

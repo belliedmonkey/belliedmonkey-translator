@@ -3798,5 +3798,20 @@
   },
   "engine_status_fix_translate": {
     "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個"
+  },
+  "listen_lang_detecting": {
+    "message": "正在辨識語言…"
+  },
+  "listen_lang_detected": {
+    "message": "已辨識：{a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "語言不對？"
+  },
+  "subtitle_lang_detecting": {
+    "message": "正在辨識影片語言…"
+  },
+  "subtitle_lang_detected": {
+    "message": "已辨識：{lang}"
   }
 }

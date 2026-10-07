@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "翻訳エンジンが未設定 — 設定 › エンジン で選ぶ"
+  },
+  "listen_lang_detecting": {
+    "message": "言語を識別しています…"
+  },
+  "listen_lang_detected": {
+    "message": "識別済み：{a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "言語が違う？"
+  },
+  "subtitle_lang_detecting": {
+    "message": "動画の言語を識別しています…"
+  },
+  "subtitle_lang_detected": {
+    "message": "識別済み：{lang}"
   }
 }

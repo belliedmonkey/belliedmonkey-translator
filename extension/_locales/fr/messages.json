@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "Moteur de traduction non défini — Réglages › Moteur"
+  },
+  "listen_lang_detecting": {
+    "message": "Détection de la langue…"
+  },
+  "listen_lang_detected": {
+    "message": "Détecté : {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "Mauvaise langue ?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Détection de la langue de la vidéo…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Détecté : {lang}"
   }
 }

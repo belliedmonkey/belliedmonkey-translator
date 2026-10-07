@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "Translation engine not set — go to Settings › Engine to pick one"
+  },
+  "listen_lang_detecting": {
+    "message": "Detecting language…"
+  },
+  "listen_lang_detected": {
+    "message": "Detected: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "Wrong language?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Detecting the video's language…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Detected: {lang}"
   }
 }

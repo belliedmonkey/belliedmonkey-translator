@@ -448,6 +448,13 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
+        canvas.view('state');
+        // §9.6.1.4：稳住之后自动跟随（对方那一格换成它）—— 用户一个字都不用选。
+        if (lidSettleTimer) clearTimeout(lidSettleTimer);
+        lidSettleTimer = setTimeout(() => {
+          lidSettleTimer = 0;
+          if (lidStable() === lang) autoFollow(lang);
+        }, LID_SETTLE_MS + 50);
       });
     } catch (_) { lidUnsub = null; }
   }
@@ -456,6 +463,37 @@ const listenModel = (() => {
     if (!lidLang) return '';
     return (Date.now() - lidLangAt) >= LID_SETTLE_MS ? lidLang : '';
   }
+  /** 语言状态给界面用：'' = 还没开始 / 'detecting' 正在识别 / 'ready' 已识别（mine/other 可读）。 */
+  function langState() {
+    if (!session) return '';
+    return lidStable() ? 'ready' : 'detecting';
+  }
+
+  // ── 自动跟随：「对方」那一格不再由用户选（§9.6.1.4，用户 2026-10-07 拍）──────────────
+  // LID 判出**稳住**的语言 L，且 L 既不是我的语言、也不是当前对方语言 ⇒ 把对方换成 L：
+  // ① 立刻 `sock.setLangs`（原生只换 SpeechAnalyzer 的模块，**不重连**、麦克风不停）；
+  // ② 资产没装的话原生静默跳过 ⇒ 后台补包，补好再换一次（下一次开口就能用）；
+  // ③ 记住它（listenOtherLang / subtitleVideoLang）—— 下次进场拿它当起点，紧接着又被 LID 修正。
+  // 防抖 2s：判词在难音频上会来回跳，别跟着疯换。
+  let langAutoAt = 0, lidSettleTimer = 0;
+  let langEdit = false;      // 「语言不对？」摊开手动指定的两个下拉（默认收起，§9.6.1.4）
+  function toggleLangEdit() { langEdit = !langEdit; canvas.view('state'); }
+  const AUTO_GAP_MS = 2000;
+  function autoFollow(lang) {
+    const L = C.baseCode(lang);
+    if (!L || !cfg || !session) return;
+    if (phase !== 'listening' && phase !== 'preparing') return;
+    if (L === C.baseCode(cfg.myLang) || L === C.baseCode(cfg.otherLang)) return;
+    const now = Date.now();
+    if (now - langAutoAt < AUTO_GAP_MS) return;
+    langAutoAt = now;
+    // 走**既有那条换语言的路**（补包 + 重连；只动识别器，麦克风不停）。
+    // 为什么不用 `SpeechAnalyzer.setModules` 就地换：2026-10-07 实测它在 macOS 27 SDK 上
+    // **直接 trap**（EXC_BREAKPOINT 在 Apple 内部 `TranscriberCommon.worker.setter`），
+    // 崩在 `setModules` → `prepareModulesIfNeeded` → `setWorkers`。重连这条是既有代码、验过的。
+    langChange('other', L);
+  }
+
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
   function lidModel() {
     try {
@@ -813,6 +851,8 @@ const listenModel = (() => {
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
+    langEdit = false;
+    langAutoAt = 0;
     diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
@@ -1092,6 +1132,16 @@ const listenModel = (() => {
       myLabel: sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我'),
       otherLabel: sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方'),
       arrow: sub ? '←' : '⇄',
+      // 语言：**不再常驻**（§9.6.1.4，2026-10-07 用户拍）—— 一行被动状态 + 「语言不对？」兜底。
+      langStateText: sub
+        ? (langState() === 'ready'
+          ? t('subtitle_lang_detected', '已识别：{lang}').replace('{lang}', langLabel(cfg && cfg.otherLang))
+          : t('subtitle_lang_detecting', '正在识别视频语言…'))
+        : (langState() === 'ready'
+          ? t('listen_lang_detected', '已识别：{a} · {b}').replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang))
+          : t('listen_lang_detecting', '正在识别语言…')),
+      langEditLabel: t('listen_lang_edit', '语言不对？'),
+      langEdit: !!langEdit,
       autospeakRowHidden: sub,
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
@@ -1708,6 +1758,7 @@ const listenModel = (() => {
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,
     setOpenEnginePicker, changeEngine, anyLangUnsupported,
+    toggleLangEdit,
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,

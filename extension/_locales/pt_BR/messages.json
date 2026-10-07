@@ -3797,5 +3797,20 @@
   },
   "engine_status_fix_translate": {
     "message": "Motor de tradução não configurado — Ajustes › Motor"
+  },
+  "listen_lang_detecting": {
+    "message": "Detectando o idioma…"
+  },
+  "listen_lang_detected": {
+    "message": "Detectado: {a} · {b}"
+  },
+  "listen_lang_edit": {
+    "message": "Idioma errado?"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Detectando o idioma do vídeo…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Detectado: {lang}"
   }
 }

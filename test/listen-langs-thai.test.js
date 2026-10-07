@@ -115,13 +115,20 @@ describe('本机识别：不只问 SpeechTranscriber', () => {
     // Speech 那一路拿回置信度，交给 JS 的 makeFinalArbiter。
     const body = SWIFT.replace(/\/\/.*$/gm, '');
     ok(!/needDictation/.test(body), '不该再有整场降级的 needDictation');
+    // 2026-10-07（§9.6.1.4）：建模块抽成 `makeModule`（会话中途换语言 `setLangs` 也要用它），
+    // 「每门语言各选引擎」这条判据跟着搬到那里。
     const cls = body.indexOf('final class MTDeviceTranscriber');
-    const i = body.indexOf('func start()', cls);
-    const fn = body.slice(i, body.indexOf('let (stream, cont)', i));
-    ok(/mtTranscriberFor\(/.test(fn), 'start 里没有按语言选引擎');
+    const mk = body.indexOf('private func makeModule', cls);
+    ok(mk > cls, '没有 makeModule（每门语言各选引擎 + 会话中途换语言共用）');
+    const fn = body.slice(mk, body.indexOf('private func module(', mk));
+    ok(/mtTranscriberFor\(/.test(fn), 'makeModule 里没有按语言选引擎');
     ok(/case \.speech:/.test(fn) && /case \.dictation:/.test(fn), '两种引擎没有各自分支');
-    ok(/speechMods: \[\(String, SpeechTranscriber\)\]/.test(fn) && /dictMods: \[\(String, DictationTranscriber\)\]/.test(fn),
-      '模块没有按 (locale, 引擎) 成对保存 —— 混装后下标不再等于 locales 的下标');
+    // locale 与引擎必须成对带出（混装后下标不再等于 locales 的下标）：
+    // 现在这一对放在 `mounted: [(String, Mod)]`（换语言时还要复用/停掉某一路），reader 按 locale 存。
+    ok(/return \(id, \.speech\(t\)\)/.test(fn) && /return \(id, \.dictation\(t\)\)/.test(fn),
+      'makeModule 没有把 (locale, 引擎) 成对返回');
+    const cls2 = body.slice(cls);
+    ok(/private var readers: \[String: Task/.test(cls2), 'reader 应当按 locale 存');
     ok(/deliver\(/.test(SWIFT) && /deliverDictation\(/.test(SWIFT), '两种投递分支都要在');
     ok(/var mods: \[any SpeechModule\]/.test(SWIFT), '模块数组没有放宽到 any SpeechModule');
   });
