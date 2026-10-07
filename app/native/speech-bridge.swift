@@ -331,6 +331,13 @@ final class MTDeviceTranscriber {
     private var fed: Int64 = 0
     private var quietFrames: Int64 = 0
     private var spokeSinceFinalize = false
+    /// 距上一次收口累计了多少毫秒（**不管中间有没有停顿**）。
+    private var utterMs: Double = 0
+    /// 一句话**最多**这么长就强制收口。为什么需要（2026-10-08 用户实测）：识别器的 final 是
+    /// **懒时间片**，而我们原来只按「停顿 ≥ `vadMs`」收口 —— **泰语这种句末是空格、没有标点的语言**，
+    /// 说话人不停顿就 25–56s 才吐一片（真机时间轴实测），切句器再快也没有东西可切（它的 4s 上限
+    /// 只在「已经有文本」时才开始计时）⇒ 一行都落不下来。停顿收口照旧，这一条只兜「一直不停」。
+    private let maxUtterMs: Double = 5000
     private var stopped = false
 
     init(locales: [String], vadMs: Double, vadLevel: Double) {
@@ -496,10 +503,15 @@ final class MTDeviceTranscriber {
         cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
         fed += Int64(out.frameLength)
         // 静音检测（在原生格式上算，不管它是 Float32 还是 Int16）—— rms 已在函数开头算过
+        utterMs += Double(buffer.frameLength) / buffer.format.sampleRate * 1000
         if rms > vadLevel { quietFrames = 0; spokeSinceFinalize = true }
         else { quietFrames += Int64(buffer.frameLength) }
-        if spokeSinceFinalize, Double(quietFrames) / buffer.format.sampleRate * 1000 >= vadMs {
+        let quietMs = Double(quietFrames) / buffer.format.sampleRate * 1000
+        // 收口两个条件：**停顿够久**（照旧）或**这句话已经太长了**（新增，见 `maxUtterMs` 的注释）。
+        if spokeSinceFinalize, quietMs >= vadMs || utterMs >= maxUtterMs {
             spokeSinceFinalize = false
+            quietFrames = 0
+            utterMs = 0
             let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
             Task { try? await an.finalize(through: through) }
             MTDeviceLid.shared.finish()   // 同一句结束：判一次语言（与识别器 finalize 同时刻）
@@ -1349,12 +1361,12 @@ final class MTDeviceLid {
             self.buf.append(contentsOf: chunk)
             if self.buf.count > self.maxSamples { self.buf.removeFirst(self.buf.count - self.maxSamples) }
             if speech { self.sawSpeech = true }
-            // 边说边判（半句要归属就得在**本句进行中**知道语言）：**≥2s 才有话音才判**，语言变了才发。
-            // 为什么是 2s 不是 1s：12 门真语音实测（scripts/lid-eval-real.py，2026-10-07）
-            // **1s 只有 50%**、2s 83%、3s 83%、5s 92%、整段 100% —— 1s 的判词基本是掷硬币，
-            // 而判错一次就会让错语言那一路的半句上屏（正是要根治的那件事）。宁可晚 1s。
+            // 边说边判（半句要归属就得在**本句进行中**知道语言）：**≥0.5s 有话音就判**，每 0.5s 一次，
+            // 语言变了才发。为什么敢从 2s 降到 0.5s（2026-10-07 用户拍）：**现在只在用户选的两门里选** ——
+            // 判词落在第三门上等于「还没判出来」（JS 侧 `lidPair()` 会丢掉），所以早判不会引入错答案，
+            // 只让「落在两门里」的那一刻更早到（实测第一句预览从 ~3.5s 提前到 ~0.5–1s）。
             let now = Date().timeIntervalSince1970
-            guard self.buf.count >= 32000, self.sawSpeech, now - self.lastLive >= 1.0 else { return }
+            guard self.buf.count >= 8000, self.sawSpeech, now - self.lastLive >= 0.5 else { return }
             self.lastLive = now
             let lang = slid.decode(samples: self.buf, sampleRate: 16000).lang
             if lang != self.lastLang {

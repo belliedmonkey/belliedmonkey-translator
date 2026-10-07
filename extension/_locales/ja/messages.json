@@ -2920,7 +2920,7 @@
     "message": "字幕を復習に追加（ソース「ライブ字幕」）"
   },
   "subtitle_video_lang_label": {
-    "message": "動画の言語"
+    "message": "動画の言語："
   },
   "subtitle_tip_mac": {
     "message": "開始すると、字幕は画面下部のフローティングバーに表示されます。確定した文はここにも一覧で残ります。"
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "動画の言語：{lang}（自動）"
   },
-  "listen_lang_dirs": {
-    "message": "相手の言葉はこれに、あなたの言葉は相手の言語に翻訳されます"
-  },
   "listen_need_locales": {
     "message": "オンデバイス認識器は同時に最大5言語までです。上限に達しました — 一度聞き取りを出て入り直してください。"
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "私が話す言語"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} を聞いたら {b} に、{b} を聞いたら {a} に翻訳"
+  },
+  "lang_auto": {
+    "message": "自動"
+  },
+  "listen_listening": {
+    "message": "聞き取り中…"
   }
 }

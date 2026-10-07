@@ -399,12 +399,10 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
   test('★ 听译内切语言要按新对补包 — 不必退出重进（2026-10-06，92 号包真机）', () => {
     const model = stripComments(read('src/app/listen-model.js'));
     ok(/async function ensurePacksForPair\(opts\)/.test(model), '没抽出共用的按对补包段（进场与改语言要用同一段）');
-    // 2026-10-07 真机批 28：自动识别换来的语言不在这里下朗读包（skipTts）——
-    // 用户什么都没点，不该因为 LID 听到一门新语言就悄悄下 105MB。
     ok(/if \(!epopts\.skipTts && deviceTts\(\)/.test(model), '朗读包下载没有 skipTts 开关');
     ok(/if \(!\(await ensurePacksForPair\(\)\)\) return;/.test(model), 'beginPipeline 没走共用的补包段');
     const lc = model.slice(model.indexOf('function langChange'), model.indexOf('function setAutoSpeak'));
-    ok(/ensurePacksForPair\(\)/.test(lc), 'langChange 改语言没有按新对补包 —— zh/en 切泰语不触发下载，必须退出重进');
+    ok(/ensurePacksForPair\(\{/.test(lc), 'langChange 改语言没有按新对补包 —— zh/en 切泰语不触发下载，必须退出重进');
   });
 
   test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
@@ -782,7 +780,6 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('「译成」只改方向：不重连、不补包；自动跟随换来的语言不下朗读包', () => {
     ok(/if \(which === 'my'\) \{ canvas\.view\('mode'\)/.test(MODEL), '「译成」没有短路，仍会重连/补包');
     ok(/ensurePacksForPair\(\{ skipTts: !!lo\.skipTts \}\)/.test(MODEL), '重连没有把 skipTts 传下去');
-    ok(/langChange\('other', L, \{ skipTts: true \}\)/.test(MODEL), 'autoFollow 没有跳过朗读包下载');
   });
   test('识别器失败按真实原因说：locales 有名额文案；assets 走协议码翻译', () => {
     ok(/LearnTTS\.reason\(why1, t\)/.test(MODEL), 'assets 失败没有把协议码翻成人话（会印出 offline/http）');
@@ -791,13 +788,25 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   // （对方的话译成它、我的话译成对方的语言）。听译页改叫「**我说的语言**」+ 一行两方向说明；
   // **不许复用「我的语言」**（`listen_my_lang_label` 是语音包页那个标签）；字幕那页没有「我」这一侧，
   // 仍叫「译成」。
-  test('语言区标签：听译 =「我说的语言」+ 两方向说明；字幕仍「译成」', () => {
-    ok(/langTargetLabel: sub \? t\('target_lang_label', '译成'\) : t\('listen_speak_lang_label', '我说的语言'\)/.test(MODEL),
-      '听译页那格没有改叫「我说的语言」（「译成」有歧义）');
-    ok(!/langTargetLabel:[^\n]*listen_my_lang_label/.test(MODEL),
-      '复用了「我的语言」—— 那是语音包页的标签，不能拿来当听译页的');
-    ok(/langDirsText: sub \? '' : t\('listen_lang_dirs'/.test(MODEL), '没有那行「对方的话翻译成它；你说的话翻译成对方的语言」');
-    ok(/id="app-listen-dirs"/.test(read('src/app/listen-view.jsx')), '视图里没有渲染那行说明');
+  // 2026-10-07 用户拍（Pencil 稿「两门语言对称互译」）：「让用户选两种语言……听到一种语言就译另一种。」
+  // 没有「我 / 对方」的角色、没有自动跟随、没有「语言不对？」那一层。
+  // 2026-10-08 用户拍（Pencil 稿「正在听…占位」）：开口到第一行有 3–12s，这段空白要看得出在干活。
+  test('「正在听…」占位：现在卡与整句定稿空态都用同一个词', () => {
+    ok(/listen_listening', '正在听…'/.test(MODEL), '没有「正在听…」这个键的用法');
+    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\) : t\('listen_now_any', '正在说…'\)/.test(MODEL),
+      '现在卡没有按「还在听」切到「正在听…」（暂停时说「正在听」是假的）');
+    ok(/listeningText: \(phase === 'listening' && !sub\)/.test(MODEL), '整句定稿空态没有那行占位');
+    ok(/id="app-listen-listening"/.test(read('src/app/listen-view.jsx')), '视图里没渲染那行占位');
+  });
+  test('语言区 = 两门对称（听到 A 译 B / 听到 B 译 A），字幕用角色标签', () => {
+    ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
+    ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
+    ok(/listen_lang_dirs2/.test(MODEL), '没有那行「听到{a} → 译成{b}；听到{b} → 译成{a}」');
+    ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
+    ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
+    const view = read('src/app/listen-view.jsx');
+    ok(/id="app-listen-my"/.test(view) && /id="app-listen-other"/.test(view), '两格的下拉不在了');
+    ok(/id="app-listen-dirs"/.test(view), '视图里没有渲染方向说明');
   });
   // 2026-10-07 真机批 28：改语言之后这场起不来 ⇒ 回到上一对，而不是把整场丢掉。
   // **hook 必须挂在 halt 上**（失败可能发生在 stt-start 之后，不只在补包那一步）。
@@ -813,16 +822,17 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(/why1 === 'assets'[\s\S]{0,160}listen_lang_assets_missing/.test(MODEL), '「包没装好」没有与「不支持」分开说');
   });
   test('模型：自动跟随只认支持的语言；存量坏值读取时自愈', () => {
-    ok(/if \(!langOk\(L\)\) return;/.test(MODEL), 'autoFollow 没有挡住不支持的短码');
-    ok(/NativeSpeech\.supportedLocales\(\)/.test(MODEL), 'langOk 没有问设备支持（本机清单里没有的语言会把整场 halt 掉）');
+
+
     ok(/reason === 'socket' && why1 === 'locale' \? needText\('locale'\)/.test(MODEL), '协议码 locale 会被当原文印出来');
     ok(/const otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
     ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
-    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidStable\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
-    ok(/const LID_SETTLE_MS = \d+/.test(MODEL), '判词要稳住才算数（难音频上 LID 会乱跳）');
-    ok(/function lidStable\(\)/.test(MODEL), '没有 lidStable');
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+    ok(/function lidPair\(\)/.test(MODEL), '没有 lidPair（只在两门里取）');
+    ok(/const LID_CONFIRM_MS = \d+/.test(MODEL), '两门之间也会错报，要有 0.5s 的确认');
+    ok(/Date\.now\(\) - lidLangAt\) >= LID_CONFIRM_MS/.test(MODEL), 'lidPair 没有那道确认');
     ok(/NativeSpeech\.onLid\(/.test(MODEL), '没有订阅 LID 判词');
     ok(/NativeSpeech\.ensureLid\(/.test(MODEL), '没有把 LID 模型纳入下载');
     ok(/lidOn\(\);/.test(MODEL), '新会话没有重置 LID 语言');

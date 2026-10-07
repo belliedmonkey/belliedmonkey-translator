@@ -2920,7 +2920,7 @@
     "message": "Untertitel zur Wiederholung hinzufügen (Quelle „Live-Untertitel“)"
   },
   "subtitle_video_lang_label": {
-    "message": "Sprache des Videos"
+    "message": "Sprache des Videos:"
   },
   "subtitle_tip_mac": {
     "message": "Nach dem Start erscheinen die Untertitel in einer schwebenden Leiste unten am Bildschirm; jeder fertige Satz steht auch hier."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "Sprache des Videos: {lang} (automatisch)"
   },
-  "listen_lang_dirs": {
-    "message": "Ihre Sprache wird darauf übersetzt, Ihre in ihre Sprache"
-  },
   "listen_need_locales": {
     "message": "Der lokale Erkennner kann höchstens 5 Sprachen gleichzeitig halten und ist voll – bitte Mithören verlassen und neu starten."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "Die Sprache, die ich spreche"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} gehört → auf {b}; {b} gehört → auf {a}"
+  },
+  "lang_auto": {
+    "message": "Automatisch"
+  },
+  "listen_listening": {
+    "message": "Höre zu…"
   }
 }

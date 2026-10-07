@@ -75,11 +75,7 @@ const listenModel = (() => {
   // 语种识别（LID，§9.6.1.3，2026-10-07）：端上模型判「这段音频是哪门语言」，归属由它给。
   // 半句与定稿都**只收 LID 判定的那一路**；'' = 还没判出来（此时什么都不上屏，不是随机先画一路）。
   let lidLang = '';
-  let lidLangAt = 0;       // 当前判词是什么时候换过来的（用来算「它稳定了多久」）
-  // **判词要稳住才算数**（`lidStable`）：难音频（演播室背景乐 / 多人交叠 / 低电平）上 LID 的判词
-  // 会在十几门语言之间**乱跳**（真泰语多人对谈实测 `zh→th→ko→fr→ja→es→la→ru→ur…`），而只要有一条
-  // 判成中文，中文路那条垃圾定稿就会上屏。稳不住的判词一律不认 —— 乱跳 ⇒ 什么都不上屏（宁可不显示）。
-  const LID_SETTLE_MS = 1500;
+  let lidLangAt = 0;      // 当前判词是什么时候换过来的（确认用，见 lidConfirm）
   let lidUnsub = null;
   let session = null;
   let cfg = null;
@@ -171,7 +167,19 @@ const listenModel = (() => {
   // 一个 locale 一路识别器：我方 + 对方（两边一样时只开一路）。
   function deviceLocales(c) {
     // 实时字幕只开「视频的语言」一路识别器（MODES.subtitle.recognizers = 1）
-    if (c && c.mode === 'subtitle') return [C.toLocale(c.otherLang)];
+    // 实时字幕：左边那格是**视频的语言**（A），右边是**译成**（B）。
+    //   · 用户指了视频语言 ⇒ 只开那一路；
+    //   · 「自动」（A = 'auto'）⇒ 开「上次认出来的那门（或 en）+ 译成」两路，由 LID 在两门里取，
+    //     并把认出来的那门记下来（下次「自动」的候选就是它）。
+    // 2026-10-07 修：以前这里用的是 `otherLang`（= 译成），而左格标的是「视频的语言」——
+    // **两格是挂反的**（识别器开在译成上、译文去了视频语言）。
+    if (c && c.mode === 'subtitle') {
+      const a = C.baseCode(c.myLang);
+      if (a && a !== 'auto') return [C.toLocale(a)];
+      const guess = C.baseCode(c.subtitleVideoLang) || 'en';
+      const tg = C.baseCode(c.otherLang);
+      return guess === tg ? [C.toLocale(guess)] : [C.toLocale(guess), C.toLocale(tg)];
+    }
     const a = C.toLocale(c && c.myLang), b = C.toLocale(c && c.otherLang);
     return a === b ? [a] : [a, b];
   }
@@ -318,7 +326,12 @@ const listenModel = (() => {
   }
   // 方向的唯一来源：我说的译成对方的语言，对方说的译成我的语言。改边（↔）之后同一行
   // 会换一个方向重译，所以它必须**按 row.who 现算**，不能记在行上。
-  function targetLangFor(row) { return row.who === 'me' ? cfg.otherLang : cfg.myLang; }
+  function targetLangFor(row) {
+    // 实时字幕是**单向**的（没有「我」这一侧）：视频的话 → 译成（右格）。
+    if (cfg && cfg.mode === 'subtitle') return cfg.otherLang;
+    // 听译是两门**对称**互译：听到 A 译 B、听到 B 译 A —— 行归属（who）本来就是「这一路是 A 还是 B」。
+    return row.who === 'me' ? cfg.otherLang : cfg.myLang;
+  }
 
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
   async function translateRow(row, toLang, quiet) {
@@ -454,69 +467,36 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
+        // 字幕处在「自动」时，把认出来的那门记下来 —— 下次进场的候选就是它（「自动」只能覆盖
+        // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。
+        try {
+          if (mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto') {
+            chrome.storage.local.get(['subtitleVideoLang'], (st) => {
+              if (C.baseCode(st && st.subtitleVideoLang) !== lang) chrome.storage.local.set({ subtitleVideoLang: lang });
+            });
+          }
+        } catch (_) {}
         canvas.view('state');
-        // §9.6.1.4：稳住之后自动跟随（对方那一格换成它）—— 用户一个字都不用选。
-        if (lidSettleTimer) clearTimeout(lidSettleTimer);
-        lidSettleTimer = setTimeout(() => {
-          lidSettleTimer = 0;
-          if (lidStable() === lang) autoFollow(lang);
-        }, LID_SETTLE_MS + 50);
+        // **不再自动跟随**（2026-10-07 用户拍：「让用户选两种语言……听到一种语言就译另一种」）——
+        // 两门语言由用户指定，LID 只负责判「这一段是其中哪一门」。
       });
     } catch (_) { lidUnsub = null; }
   }
-  /** 归属用的语言：**只认已经稳住 ≥LID_SETTLE_MS 的判词**，稳不住 ⇒ ''（不上屏）。 */
-  function lidStable() {
-    if (!lidLang) return '';
-    return (Date.now() - lidLangAt) >= LID_SETTLE_MS ? lidLang : '';
+  /** 归属用的语言：**只在用户选的那两门里取**（2026-10-07 用户拍）。
+   *  为什么不要「稳住 1.5s」了：判词落在**第三门**上不是「另一个答案」，只是「还没判到」——
+   *  丢掉继续听就是；而落在两门里那一条就是答案。这样第一句预览从 ~3.5s 提前到 ~0.5–1s。
+   *  代价（用户已在稿上接受）：判词在 A/B 之间翻错时，译文会译成另一门。 */
+  // 确认时长短：**0.5s**（原来 §9.6.1.4 是 1.5s）。为什么还要这一道：0.5s 那一条判词本来就会乱报
+  // （实测：泰语前 1–2s 会先报 `ms`/`id`/`zh`），而「落在两门里」只挡住了第三门，挡不住**两门之间的
+  // 错报** —— 一旦错报成另一门，那一路的半句立刻上屏（Mac 实测：2069ms 上屏的是一条中文垃圾）。
+  // 0.5s 的确认能把「一条就翻」滤掉，代价只是比「立刻用」晚半秒。
+  const LID_CONFIRM_MS = 500;
+  function lidPair() {
+    if (!lidLang || !cfg) return '';
+    const a = C.baseCode(cfg.myLang), b = C.baseCode(cfg.otherLang);
+    if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
+    return (Date.now() - lidLangAt) >= LID_CONFIRM_MS ? lidLang : '';
   }
-  /** 语言状态给界面用：'' = 还没开始 / 'detecting' 正在识别 / 'ready' 已识别（mine/other 可读）。 */
-  function langState() {
-    if (!session) return '';
-    return lidStable() ? 'ready' : 'detecting';
-  }
-
-  // ── 自动跟随：「对方」那一格不再由用户选（§9.6.1.4，用户 2026-10-07 拍）──────────────
-  // LID 判出**稳住**的语言 L，且 L 既不是我的语言、也不是当前对方语言 ⇒ 把对方换成 L：
-  // ① 立刻 `sock.setLangs`（原生只换 SpeechAnalyzer 的模块，**不重连**、麦克风不停）；
-  // ② 资产没装的话原生静默跳过 ⇒ 后台补包，补好再换一次（下一次开口就能用）；
-  // ③ 记住它（listenOtherLang / subtitleVideoLang）—— 下次进场拿它当起点，紧接着又被 LID 修正。
-  // 防抖 2s：判词在难音频上会来回跳，别跟着疯换。
-  let langAutoAt = 0, lidSettleTimer = 0;
-  let langEdit = false;      // 「语言不对？」半屏 sheet 开着（默认关，§9.6.1.5）
-  let langManual = false;    // true = 用户手动指定过语言 ⇒ 自动跟随停（§9.6.1.5）
-  function toggleLangEdit() { langEdit = !langEdit; canvas.view('state'); }
-  /** 手动指定（sheet 里那两个下拉）：一旦手动 ⇒ 关掉自动跟随，LID 不再改「对方」那一格。 */
-  function langChangeManual(which, value) {
-    if (!langManual) { langManual = true; chrome.storage.local.set({ listenLangManual: true }); }
-    langChange(which, value);
-  }
-  /** 回「自动识别」：清掉手动标记，之后 LID 又接管「对方」那一格。 */
-  function setLangAuto() {
-    langManual = false;
-    chrome.storage.local.set({ listenLangManual: false });
-    canvas.view('state');
-  }
-  const AUTO_GAP_MS = 2000;
-  function autoFollow(lang) {
-    const L = C.baseCode(lang);
-    if (!L || !cfg || !session) return;
-    if (phase !== 'listening' && phase !== 'preparing') return;
-    if (L === C.baseCode(cfg.myLang) || L === C.baseCode(cfg.otherLang)) return;
-    if (langManual) return;          // 用户手动指定过 ⇒ 自动跟随停（§9.6.1.5）
-    // **只认我们支持的语言**（2026-10-07 真机批 28）：LID 的 99 类闭集里有 `nn`/`cy` 这类
-    // 我们根本没有的语言（静音/噪声上很常见）。以前直接跟随 ⇒ 拿 `nn` 去探识别器 ⇒
-    // `unsupported/locale` ⇒ 整场 halt（「本机识别器不支持这门语言」+「对方说的：nn」）。
-    if (!langOk(L)) return;
-    const now = Date.now();
-    if (now - langAutoAt < AUTO_GAP_MS) return;
-    langAutoAt = now;
-    // 走**既有那条换语言的路**（补包 + 重连；只动识别器，麦克风不停）。
-    // 为什么不用 `SpeechAnalyzer.setModules` 就地换：2026-10-07 实测它在 macOS 27 SDK 上
-    // **直接 trap**（EXC_BREAKPOINT 在 Apple 内部 `TranscriberCommon.worker.setter`），
-    // 崩在 `setModules` → `prepareModulesIfNeeded` → `setWorkers`。重连这条是既有代码、验过的。
-    langChange('other', L, { skipTts: true });   // 只补识别资产，不因为「听到一门新语言」下朗读包
-  }
-
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
   function lidModel() {
     try {
@@ -566,13 +546,13 @@ const listenModel = (() => {
           const base = C.baseCode(ev && ev.locale);
           // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
           if (base && echo.playingLangs(Date.now()).has(base)) return;
-          if (!C.sideMatchesLid(ev && ev.locale, lidStable())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
+          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
           if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text);
         }
         else if (kind === 'final') {
           const base = C.baseCode(ev && ev.locale);
           if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          if (!C.sideMatchesLid(ev && ev.locale, lidStable())) return;     // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
+          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;     // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
           takeFinal(ev);
         }
         else if (kind === 'error') socketLost(ev.reason || '');
@@ -874,8 +854,6 @@ const listenModel = (() => {
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
-    langEdit = false;
-    langAutoAt = 0;
     try { chrome.storage.local.get(['listenLangManual'], (st) => { langManual = !!st.listenLangManual; canvas.view('state'); }); } catch (_) {}
     diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
@@ -1193,27 +1171,20 @@ const listenModel = (() => {
       myLabel: sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我'),
       otherLabel: sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方'),
       arrow: sub ? '←' : '⇄',
-      // 语言区（§9.6.1.6，2026-10-07 真机反馈后定稿）：
-      //   「译成」= 用户想读的语言（**下拉，看得见，默认系统语言**）；
-      //   「对方说的」= 自动识别出来的那门，被动显示；认错点「语言不对？」去 sheet 里手改。
-      // 听译页：「我说的语言」（不是「我的语言」—— 那是**语音包页**的标签，不能复用）。
-      langTargetLabel: sub ? t('target_lang_label', '译成') : t('listen_speak_lang_label', '我说的语言'),
-      langTargetOptions: langOptionsFor(cfg && cfg.myLang),
-      langTargetValue: C.baseCode(cfg && cfg.myLang),
-      partnerText: (() => {
-        const l = langLabel(cfg && cfg.otherLang);
-        if (langState() !== 'ready') {
-          return sub ? t('subtitle_lang_detecting', '正在识别视频语言…') : t('listen_lang_detecting', '正在识别语言…');
-        }
-        return sub ? t('subtitle_partner_auto', '视频语言：{lang}（自动）').replace('{lang}', l)
-                   : t('listen_partner_auto', '对方说的：{lang}（自动）').replace('{lang}', l);
-      })(),
-      langEditLabel: t('listen_lang_edit', '语言不对？'),
-      langDirsText: sub ? '' : t('listen_lang_dirs', '对方的话翻译成它；你说的话翻译成对方的语言'),
-      langEdit: !!langEdit,
-      langManual: !!langManual,
-      langSheetNote: t('listen_lang_sheet_note', '识别错了才需要动这里'),
-      langAutoLabel: t('listen_lang_auto', '自动识别'),
+      // 语言区（§9.6.1.8，2026-10-07 用户拍）：**两门对称互译** ——
+      // 「听到一种语言，就译另一种语言」。没有「我 / 对方」的角色，也没有自动跟随、没有 sheet。
+      // 字幕那页没有「我」这一侧，用角色标签（视频语言 → 译成），同一对键、同一个控件。
+      langPairLabels: sub ? [t('subtitle_video_lang_label', '视频语言：'), t('target_lang_label', '译成')] : ['', ''],
+      langDirArrow: sub ? '→' : '⇄',
+      // 字幕那页不再有说明行（`subtitle_lang_dirs` 撤了 —— 两格标签 + 箭头已经说清）；
+      // 听译那页保留「听到 A → 译成 B；听到 B → 译成 A」。
+      langDirsText: sub ? '' : t('listen_lang_dirs2', '听到{a} → 译成{b}；听到{b} → 译成{a}')
+        .replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang)),
+      // 字幕左格多一个「自动」（默认）：视频语言交给 LID 认（候选 = 上次认出来的 + 译成）。
+      langOptionsA: (sub ? [{ code: 'auto', label: t('lang_auto', '自动'), disabled: false }] : []).concat(langOptionsFor(cfg && cfg.myLang)),
+      langOptionsB: langOptionsFor(cfg && cfg.otherLang),
+      langValueA: C.baseCode(cfg && cfg.myLang),
+      langValueB: C.baseCode(cfg && cfg.otherLang),
       autospeakRowHidden: sub,
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
@@ -1561,9 +1532,12 @@ const listenModel = (() => {
     // 上卡的归属**按半句实时判**：句子还没定稿就先给出归属，判错了用户当场看得见，
     // 而不是等整句出来才发现。判不出就说「正在说…」，不假装知道。
     const side = partial ? C.sideOf(partial, cfg, routeDeps) : '';
+    // 没有半句时：**还在听**就说「正在听…」（2026-10-08 用户拍，Pencil 稿「正在听…占位」）——
+    // 识别器第一次出字有 3–12s，这段空白原来只挂一句「正在说…」，用户看不出在不在干活。
+    // 「正在说…」留给**不是 listening 的那些态**（暂停/准备），那时说「正在听」是假的。
+    const idle = phase === 'listening' ? t('listen_listening', '正在听…') : t('listen_now_any', '正在说…');
     return sub ? t('subtitle_now_label', '现在') : side === 'me' ? t('listen_now_me', '我正在说')
-      : side === 'them' ? t('listen_now_them', '对方正在说')
-        : t('listen_now_any', '正在说…');
+      : side === 'them' ? t('listen_now_them', '对方正在说') : idle;
   }
   function ephemeralView() {
     const live = !!session && phase !== 'ended';
@@ -1744,6 +1718,9 @@ const listenModel = (() => {
     return {
       rows: out,
       sub,
+      // 空态（§9.6.1.9，2026-10-08）：**还在听**时先给一行「正在听…」，下面才是原来那句说明 ——
+      // 第一行要等 3–12s（识别器第一次出字的延迟），这段空白得看得出在干活。
+      listeningText: (phase === 'listening' && !sub) ? t('listen_listening', '正在听…') : '',
       emptyText: sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边'),
       title: t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : ''),
       queueShown: !!qn,
@@ -1853,11 +1830,10 @@ const listenModel = (() => {
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,
     setOpenEnginePicker, changeEngine, anyLangUnsupported,
-    toggleLangEdit, langChangeManual, setLangAuto,
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
-      lid: lidStable(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词（诊断用）
+      lid: lidPair(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词（诊断用）
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }),

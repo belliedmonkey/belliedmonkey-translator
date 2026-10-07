@@ -2920,7 +2920,7 @@
     "message": "Añadir subtítulos al repaso (fuente «Subtítulos en vivo»)"
   },
   "subtitle_video_lang_label": {
-    "message": "Idioma del vídeo"
+    "message": "Idioma del vídeo:"
   },
   "subtitle_tip_mac": {
     "message": "Al iniciar, los subtítulos aparecen en una barra flotante en la parte inferior de la pantalla; cada frase terminada también se lista aquí."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "Idioma del vídeo: {lang} (auto)"
   },
-  "listen_lang_dirs": {
-    "message": "Lo que dicen se traduce a este idioma; lo tuyo, al suyo"
-  },
   "listen_need_locales": {
     "message": "El reconocedor admite 5 idiomas como máximo y ya está lleno; sal y vuelve a entrar."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "El idioma que hablo"
+  },
+  "listen_lang_dirs2": {
+    "message": "Se oye {a} → se traduce a {b}; se oye {b} → se traduce a {a}"
+  },
+  "lang_auto": {
+    "message": "Auto"
+  },
+  "listen_listening": {
+    "message": "Escuchando…"
   }
 }

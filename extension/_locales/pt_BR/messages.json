@@ -2920,7 +2920,7 @@
     "message": "Adicionar legendas à revisão (fonte “Legendas ao vivo”)"
   },
   "subtitle_video_lang_label": {
-    "message": "Idioma do vídeo"
+    "message": "Idioma do vídeo:"
   },
   "subtitle_tip_mac": {
     "message": "Depois de iniciar, as legendas aparecem numa barra flutuante na parte de baixo da tela; cada frase concluída também fica listada aqui."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "Idioma do vídeo: {lang} (automático)"
   },
-  "listen_lang_dirs": {
-    "message": "A fala deles é traduzida para este idioma; a sua, para o deles"
-  },
   "listen_need_locales": {
     "message": "O reconhecedor aceita no máximo 5 idiomas e já está cheio — saia e entre de novo."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "O idioma que eu falo"
+  },
+  "listen_lang_dirs2": {
+    "message": "Ouve {a} → traduz para {b}; ouve {b} → traduz para {a}"
+  },
+  "lang_auto": {
+    "message": "Automático"
+  },
+  "listen_listening": {
+    "message": "Ouvindo…"
   }
 }

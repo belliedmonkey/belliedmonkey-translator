@@ -1710,8 +1710,10 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     // 话音门（2026-10-07 Mac 实测：10 s 房间噪声 + 7 s 泰语 ⇒ sq；只喂话音 ⇒ th）
     ok(/guard speech \|\| self\.quietRun <= 4000/.test(feed), 'LID 没有静音门：停顿还在往里累计');
     ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');
-    // 首次判定要 ≥2s（12 门真语音实测：1s 只有 50%、2s 83% —— 见 scripts/lid-eval-real.py）
-    ok(/self\.buf\.count >= 32000/.test(feed), 'live 判定的门槛应当是 2s（32000 样本），1s 基本是掷硬币');
+    // 2026-10-07 用户拍「两门对称」之后的提速：**≥0.5s 就判、每 0.5s 一次** ——
+    // 只在用户选的两门里取（第三门 = 还没判到），所以早判不引入错答案。
+    ok(/self\.buf\.count >= 8000/.test(feed), 'live 判定的门槛应当是 0.5s（8000 样本）');
+    ok(/now - self\.lastLive >= 0\.5/.test(feed), 'live 判定的节奏应当是每 0.5s');
   });
 
   // 2026-10-07 真机批 28：English⇄한국어 点「开始听」失败 ——
@@ -1740,6 +1742,16 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     ok(/private func mtPrepareCode\(_ error: Error\) -> String/.test(sp), '没有 mtPrepareCode');
     ok(/e\.domain == "SFSpeechErrorDomain", e\.code == 11 \{ return "locales" \}/.test(sp), 'Code=11 没有映射成 locales');
     ok(/reason": mtPrepareCode\(error\)/.test(sp), 'prepare 失败没有走 mtPrepareCode');
+  });
+
+  // 2026-10-08 用户实测「泰文没有成功断句」：识别器的 final 是懒时间片，而收口只按「停顿 ≥vadMs」——
+  // 泰语句末是空格、没标点，说话人不停顿就 25–56s 才吐一片（真机时间轴实测）⇒ 一行都落不下来。
+  test('★ 一句话要有绝对上限（泰语连续说话 25–56s 才吐一片，切句器无从下手）', () => {
+    const sp = stripComments(tpl);
+    ok(/private let maxUtterMs: Double = \d+/.test(sp), '没有 maxUtterMs（一句话的绝对上限）');
+    ok(/private var utterMs: Double = 0/.test(sp), '没有 utterMs（距上次收口的累计）');
+    ok(/quietMs >= vadMs \|\| utterMs >= maxUtterMs/.test(sp), '收口没有按两个条件（停顿够久 或 这句话太长）');
+    ok(/utterMs = 0/.test(sp), '收口后没有重置累计');
   });
 
   test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {

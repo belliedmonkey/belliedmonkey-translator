@@ -2920,7 +2920,7 @@
     "message": "Add subtitles to review (source “Live Subtitles”)"
   },
   "subtitle_video_lang_label": {
-    "message": "Video language"
+    "message": "Video language:"
   },
   "subtitle_tip_mac": {
     "message": "After you start, subtitles appear in a floating bar at the bottom of the screen; every finished sentence is also listed here."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "Video language: {lang} (auto)"
   },
-  "listen_lang_dirs": {
-    "message": "Their speech is translated into it; yours into theirs"
-  },
   "listen_need_locales": {
     "message": "The on-device recognizer can hold at most 5 languages at once and is full — leave listening and come back."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "The language I speak"
+  },
+  "listen_lang_dirs2": {
+    "message": "Hear {a} → translated into {b}; hear {b} → translated into {a}"
+  },
+  "lang_auto": {
+    "message": "Auto"
+  },
+  "listen_listening": {
+    "message": "Listening…"
   }
 }

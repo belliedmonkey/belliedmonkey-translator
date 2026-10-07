@@ -2921,7 +2921,7 @@
     "message": "字幕进复习（来源「实时字幕」）"
   },
   "subtitle_video_lang_label": {
-    "message": "视频的语言"
+    "message": "视频语言："
   },
   "subtitle_tip_mac": {
     "message": "开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。"
@@ -3829,9 +3829,6 @@
   "subtitle_partner_auto": {
     "message": "视频语言：{lang}（自动）"
   },
-  "listen_lang_dirs": {
-    "message": "对方的话翻译成它；你说的话翻译成对方的语言"
-  },
   "listen_need_locales": {
     "message": "本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。"
   },
@@ -3843,5 +3840,14 @@
   },
   "listen_speak_lang_label": {
     "message": "我说的语言"
+  },
+  "listen_lang_dirs2": {
+    "message": "听到{a} → 译成{b}；听到{b} → 译成{a}"
+  },
+  "lang_auto": {
+    "message": "自动"
+  },
+  "listen_listening": {
+    "message": "正在听…"
   }
 }

@@ -2920,7 +2920,7 @@
     "message": "Ajouter les sous-titres aux révisions (source « Sous-titres en direct »)"
   },
   "subtitle_video_lang_label": {
-    "message": "Langue de la vidéo"
+    "message": "Langue de la vidéo :"
   },
   "subtitle_tip_mac": {
     "message": "Après le démarrage, les sous-titres s’affichent dans une barre flottante en bas de l’écran ; chaque phrase terminée est aussi listée ici."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "Langue de la vidéo : {lang} (auto)"
   },
-  "listen_lang_dirs": {
-    "message": "Leur parole est traduite vers celle-ci, la vôtre vers la leur"
-  },
   "listen_need_locales": {
     "message": "Le moteur embarqué tient au plus 5 langues à la fois et c'est plein — quittez l'écoute et revenez."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "La langue que je parle"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} entendu → traduit en {b} ; {b} entendu → traduit en {a}"
+  },
+  "lang_auto": {
+    "message": "Auto"
+  },
+  "listen_listening": {
+    "message": "Écoute…"
   }
 }

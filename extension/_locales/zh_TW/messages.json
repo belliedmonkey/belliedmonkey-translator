@@ -2921,7 +2921,7 @@
     "message": "字幕進複習（來源「即時字幕」）"
   },
   "subtitle_video_lang_label": {
-    "message": "影片的語言"
+    "message": "影片語言："
   },
   "subtitle_tip_mac": {
     "message": "開始後，字幕會出現在螢幕下方的浮動列上；每句定稿也會列在這裡。"
@@ -3829,9 +3829,6 @@
   "subtitle_partner_auto": {
     "message": "影片語言：{lang}（自動）"
   },
-  "listen_lang_dirs": {
-    "message": "對方的話翻譯成它；你說的話翻譯成對方的語言"
-  },
   "listen_need_locales": {
     "message": "本機辨識器一次最多只能開 5 種語言，已經佔滿了 — 退出聽譯再進一次就好。"
   },
@@ -3843,5 +3840,14 @@
   },
   "listen_speak_lang_label": {
     "message": "我說的語言"
+  },
+  "listen_lang_dirs2": {
+    "message": "聽到{a} → 譯成{b}；聽到{b} → 譯成{a}"
+  },
+  "lang_auto": {
+    "message": "自動"
+  },
+  "listen_listening": {
+    "message": "正在聽…"
   }
 }

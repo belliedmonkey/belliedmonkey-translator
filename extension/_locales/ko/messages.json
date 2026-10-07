@@ -2920,7 +2920,7 @@
     "message": "자막을 복습에 추가(출처 「실시간 자막」)"
   },
   "subtitle_video_lang_label": {
-    "message": "동영상 언어"
+    "message": "영상 언어:"
   },
   "subtitle_tip_mac": {
     "message": "시작하면 자막이 화면 아래 떠 있는 막대에 표시되고, 완성된 문장은 여기에도 목록으로 남습니다."
@@ -3828,9 +3828,6 @@
   "subtitle_partner_auto": {
     "message": "영상 언어: {lang} (자동)"
   },
-  "listen_lang_dirs": {
-    "message": "상대 말은 이 언어로, 내 말은 상대 언어로 번역됩니다"
-  },
   "listen_need_locales": {
     "message": "온디바이스 인식기는 한 번에 최대 5개 언어만 열 수 있고 이미 가득 찼습니다 — 나갔다 다시 들어오세요."
   },
@@ -3842,5 +3839,14 @@
   },
   "listen_speak_lang_label": {
     "message": "내가 말하는 언어"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a}를 들으면 {b}로, {b}를 들으면 {a}로 번역"
+  },
+  "lang_auto": {
+    "message": "자동"
+  },
+  "listen_listening": {
+    "message": "듣는 중…"
   }
 }
