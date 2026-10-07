@@ -258,7 +258,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     watcher.cancel()
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
                 } catch {
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": String(describing: error)])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": mtPrepareCode(error)])
                     // fail fast（2026-10-02）：以前这里直接 return，JS 只能干等满 120 s 超时（屏上只剩
                     // 「没动静」，真因不可见）；补一条带 assets 的 stt-state 立刻唤醒它，错误当场显示。
                     self.emit(["type": "stt-state", "state": "ready", "assets": "missing"])
@@ -337,8 +337,33 @@ final class MTDeviceTranscriber {
         self.locales = locales; self.vadMs = vadMs; self.vadLevel = vadLevel
     }
 
+    /// 进程内**已经 reserve 过的 locale**（短码 → Locale）。
+    /// Apple 对每个 App 有硬上限：超过就抛 `SFSpeechErrorDomain Code=11 "Too many allocated
+    /// locales, 5 maximum."` —— 2026-10-07 真机批 28：来回切语言之后点「开始听」就炸
+    /// （每次 `stt-start` 都新建一个 transcriber，旧那一对的 locale **从来没释放过**）。
+    /// 规矩：**每次 start 之前先把不再用的释放掉，只留当前这一对**。
+    private static let heldLock = NSLock()
+    private static var held: [String: Locale] = [:]
+    private static func heldKey(_ code: String) -> String {
+        String(code.lowercased().split(separator: "-").first ?? "")
+    }
+    /// 释放 `want` 之外的（**必须在建新模块之前调**：新模块自己也要占名额，先腾位置）。
+    static func releaseUnused(_ want: [String]) async {
+        let keep = Set(want.map { heldKey($0) })
+        heldLock.lock()
+        let drop = held.filter { !keep.contains($0.key) }
+        for k in drop.keys { held[k] = nil }
+        heldLock.unlock()
+        for (_, loc) in drop { _ = await AssetInventory.release(reservedLocale: loc) }
+    }
+    private static func noteHeld(_ code: String, _ locale: Locale) {
+        heldLock.lock(); held[heldKey(code)] = locale; heldLock.unlock()
+    }
+
     func start() {
         Task {
+            // 先释放不再用的 locale（上限 5 个；见 `releaseUnused` 的注释）。
+            await MTDeviceTranscriber.releaseUnused(locales)
             // 2026-10-06（#570 / §9.6.1.2）：**每种语言各按自己的引擎定，不再整体降级。**
             // 旧规则「只要有一门需要 DictationTranscriber，整个会话都用它」会把 zh 从更准的
             // SpeechTranscriber 拖走，而 Dictation 不报置信度 ⇒ 中泰会话里错语言那一路（泰语路把
@@ -361,7 +386,10 @@ final class MTDeviceTranscriber {
             let an = SpeechAnalyzer(inputSequence: stream, modules: mods, options: nil,
                                     analysisContext: AnalysisContext(), volatileRangeChangedHandler: nil)
             do { try await an.prepareToAnalyze(in: fmt) } catch {
-                emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)]); return
+                // **不要把系统原文送出去**（协议规矩：reason 是 id，人话由 JS 拼）。这条真机上
+                // 长这样：`Error Domain=SFSpeechErrorDomain Code=11 "Too many allocated locales,
+                // 5 maximum."` —— 而界面把它拼进「离线模型下载失败：…多半是网络问题」（误报）。
+                emit?(["type": "stt-state", "state": "failed", "reason": mtPrepareCode(error)]); return
             }
             if stopped { return }
             analyzer = an; continuation = cont; format = fmt
@@ -374,6 +402,7 @@ final class MTDeviceTranscriber {
     /// 这门语言该用哪个模块（能窄的用窄的）；资产没装 / 语言不支持 ⇒ nil。
     private func makeModule(_ id: String) async -> (String, Mod)? {
         guard let p = await mtTranscriberFor(id) else { return nil }
+        MTDeviceTranscriber.noteHeld(id, p.locale)   // 记下「这个 locale 被我们占着」（见 releaseUnused）
         switch p.kind {
         case .speech:
             let t = SpeechTranscriber(locale: p.locale, transcriptionOptions: [],
@@ -400,7 +429,7 @@ final class MTDeviceTranscriber {
                 case .dictation(let t): for try await r in t.results { self?.deliverDictation(id, r) }
                 }
             } catch {
-                self?.emit?(["type": "stt-state", "state": "failed", "reason": String(describing: error)])
+                self?.emit?(["type": "stt-state", "state": "failed", "reason": mtPrepareCode(error)])
             }
         }
     }
@@ -689,7 +718,7 @@ final class MTDeviceSpeech {
             let sampleRate = Double(tts.sampleRate)
             let player: AVAudioPlayerNode
             do { player = try self.ensurePlayer(rate: sampleRate) } catch {
-                DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)]) }; return
+                DispatchQueue.main.async { self.emit?(["type": "tts-failed", "id": id, "reason": mtdlCode(error)]) }; return
             }
             let box = MTSpeechChunkBox(player: player, rate: sampleRate)
             box.ttsStream = "tts-\(id)"
@@ -838,7 +867,7 @@ final class MTSystemSpeech: NSObject {
                     box = b
                 } catch {
                     self.currentId = ""
-                    self.emit?(["type": "tts-failed", "id": id, "reason": String(describing: error)])
+                    self.emit?(["type": "tts-failed", "id": id, "reason": mtdlCode(error)])
                     return
                 }
             }
@@ -1128,6 +1157,14 @@ private func mtdlRetryable(_ error: Error) -> Bool {
         return true
     default: return false
     }
+}
+
+/// 识别器装配失败 ⇒ **协议码**。`SFSpeechErrorDomain Code=11` 是「locale 分配超上限」（每 App 5 个），
+/// 与网络无关 —— 真机上被拼进「离线模型下载失败…多半是网络问题」是误报（2026-10-07 批 28）。
+private func mtPrepareCode(_ error: Error) -> String {
+    let e = error as NSError
+    if e.domain == "SFSpeechErrorDomain", e.code == 11 { return "locales" }
+    return "analyzer"
 }
 
 /// 下载失败 ⇒ **协议码**（不是文案、也不是系统原文）。人话由 JS 用既有 i18n 键拼。

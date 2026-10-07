@@ -135,11 +135,17 @@ const listenModel = (() => {
         const B = C.baseCode;
         const sub = mode === 'subtitle';
         // 实时字幕：「对方的语言」换成「视频的语言」（subtitleVideoLang，§9.8 协议补充决定 6）
-        const otherLang = (sub ? B(s.subtitleVideoLang) : B(s.listenOtherLang)) || 'en';
+        // **读的时候就要挡掉不支持的短码**（2026-10-07 真机：`nn` 被写进 listenOtherLang 之后，
+        // 每次进场都拿它去探识别器 ⇒ 整场 halt。存量坏值在这一层自愈）。
+        const storedOther = sub ? B(s.subtitleVideoLang) : B(s.listenOtherLang);
+        const otherLang = langOk(storedOther) ? storedOther : 'en';
         // 「译成」（= 用户想读的语言，2026-10-07 真机反馈后定名）：**默认系统语言** ——
         // 之前跟着界面语言走，界面语言不是中文的人拿到的译文就不是「自己读得懂的那门」。
         // 只在读取时回落，不往存储播种默认值（播种了，用户以后改系统语言这一项就不会跟着动）。
-        const myLang = B(s.listenMyLang) || B(navigator.language) || 'zh';
+        // 系统语言也要过 `langOk`：系统是 nn/cy 这类我们没有的语言时，落到英文而不是拿它去探识别器。
+        const storedTarget = B(s.listenMyLang);
+        const sysLang = B(navigator.language);
+        const myLang = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
         resolve({
           tr,
           // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
@@ -497,6 +503,10 @@ const listenModel = (() => {
     if (phase !== 'listening' && phase !== 'preparing') return;
     if (L === C.baseCode(cfg.myLang) || L === C.baseCode(cfg.otherLang)) return;
     if (langManual) return;          // 用户手动指定过 ⇒ 自动跟随停（§9.6.1.5）
+    // **只认我们支持的语言**（2026-10-07 真机批 28）：LID 的 99 类闭集里有 `nn`/`cy` 这类
+    // 我们根本没有的语言（静音/噪声上很常见）。以前直接跟随 ⇒ 拿 `nn` 去探识别器 ⇒
+    // `unsupported/locale` ⇒ 整场 halt（「本机识别器不支持这门语言」+「对方说的：nn」）。
+    if (!langOk(L)) return;
     const now = Date.now();
     if (now - langAutoAt < AUTO_GAP_MS) return;
     langAutoAt = now;
@@ -504,7 +514,7 @@ const listenModel = (() => {
     // 为什么不用 `SpeechAnalyzer.setModules` 就地换：2026-10-07 实测它在 macOS 27 SDK 上
     // **直接 trap**（EXC_BREAKPOINT 在 Apple 内部 `TranscriberCommon.worker.setter`），
     // 崩在 `setModules` → `prepareModulesIfNeeded` → `setWorkers`。重连这条是既有代码、验过的。
-    langChange('other', L);
+    langChange('other', L, { skipTts: true });   // 只补识别资产，不因为「听到一门新语言」下朗读包
   }
 
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
@@ -900,7 +910,8 @@ const listenModel = (() => {
   // 会话堵在「准备中」。与 probePacks/runFirstRunPacks（a1e9a232）、speak()（tts.js）同一条
   // 纪律：这一场要念哪些语言，就只探/只下哪些。调用前提 phase==='preparing'；返回 false
   // 表示已被 halt/改态接管，调用方直接返回。
-  async function ensurePacksForPair() {
+  async function ensurePacksForPair(opts) {
+    const epopts = opts || {};
     {
       if (!deviceBridge()) { halt('device', 'os'); return false; }
       const r = await NativeSpeech.probe(deviceLocales(cfg));
@@ -945,7 +956,11 @@ const listenModel = (() => {
       if (vm) { try { await NativeSpeech.ensureVad(vm); } catch (_) {} }
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
-    if (deviceTts() && deviceBridge()) {
+    // 设备内置朗读（§9.6.1）：**自动识别换来的语言不在这里下朗读包**（`skipTts`）——
+    // 用户什么都没点，不该因为 LID 听到一门新语言就悄悄下 105MB（2026-10-07 真机批 28：
+    // 首启按 zh/en 下好之后进听译，LID 认出泰语 ⇒ 又开下泰语朗读包、卡在「准备中…」）。
+    // 没有那个包不影响听译：朗读那一步会回落系统语音（既有行为）。
+    if (!epopts.skipTts && deviceTts() && deviceBridge()) {
       // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
       // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
       const rd = await LearnTTS.ensureDeviceReady((m) => {
@@ -1029,10 +1044,17 @@ const listenModel = (() => {
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
         ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
         : t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。'))
+      // `locale` 是「这台设备的识别器不支持这门语言」的协议码（原生刚来的 reason），
+      // 别把码当原文印出来（2026-10-07 批 28：屏上出现过「转写连接中断：locale」）。
+      : reason === 'socket' && why1 === 'locale' ? needText('locale')
       : reason === 'socket' ? t('listen_stop_socket', '转写连接中断：{why} — 已听的句子还在。').replace('{why}', why1)
       : reason === 'socket-retry' ? t('listen_stop_socket_retry', '转写连接中断：{why} — 正在重连…').replace('{why}', why1)
       : reason === 'locked' ? t('listen_stop_locked', '录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。')
-      : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。').replace('{why}', why1)
+      // 失败原因**按协议码**翻成人话（原生送的是 offline/http/sha/load，不是系统原文）——
+      // 真机批 28 上这里把 `Error Domain=SFSpeechErrorDomain Code=11 "Too many allocated locales"`
+      // 原样拼进「多半是网络问题」，既看不懂、又说错了原因。
+      : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。')
+        .replace('{why}', (typeof LearnTTS !== 'undefined' && LearnTTS.reason) ? LearnTTS.reason(why1, t) : why1)
       // 'os' 与 'device' 同归 needText（2026-09-29 清理）：那句「macOS 14.4」已删 —— 26 下限
       // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
       : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
@@ -1594,10 +1616,24 @@ const listenModel = (() => {
     } catch (_) {}
   }
   // 行内「↔ 改语言」（原 wire 里两个 select 的 change handler）：对调规则在 ListenCore.langPatch。
+  /** 注册表支持的语言短码（12 门）。LID 的闭集里有我们根本没有的（`nn`/`cy`/…），一律不认。 */
+  function supportedCodes() { try { return (Registry.langs() || []).map((l) => l.code); } catch (_) { return []; } }
+  function langOk(code) {
+    if (!C.langSupported(code, supportedCodes())) return false;   // 注册表那 12 门之外一律不认
+    // **设备支持**这一道（2026-10-07 批 28）：注册表里有、但这台设备的识别器没有的语言
+    // （实测 Mac 上 fr/de 不在本机清单里）—— 自动跟随选到它 ⇒ 探针 `locale` 失败 ⇒ 整场 halt。
+    // 设备报过清单就以它为准；没报过（老壳/还没探）只按注册表。
+    let dev = [];
+    try { dev = deviceBridge() ? NativeSpeech.supportedLocales() : []; } catch (_) { dev = []; }
+    if (!dev.length) return true;
+    return C.langSupported(code, dev);
+  }
+
   /** 视图要的选项清单（与 langOptions 同一份；这里只是包一层，视图不必再读全局）。 */
   function langOptionsFor(cur) { try { return langOptions(cur); } catch (_) { return []; } }
 
-  function langChange(which, value) {
+  function langChange(which, value, opts) {
+    const lo = opts || {};
     const prev = which === 'my'
       ? { myLang: (cfg && cfg.myLang) || '', otherLang: otherSelVal }
       : { myLang: mySelVal, otherLang: (cfg && cfg.otherLang) || '' };
@@ -1616,15 +1652,20 @@ const listenModel = (() => {
     // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
     // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
     if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+    // **「译成」只改译文方向，一个识别器都不动** ⇒ 不重连、不补包（2026-10-07 真机批 28：
+    // 改「译成」以前会走下面那条重连 ⇒ 顶部「正在下载离线模型 · 15%」、按钮卡在「准备中…」，
+    // 甚至误报「本机识别器不支持这门语言」）。识别器由 LID 管，和「译成」无关。
+    if (which === 'my') { canvas.view('mode'); if (session) canvas.view('state'); return; }
     // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）。
     // **先按新对补包再重连**（2026-10-06，92 号包真机）：zh/en 场里切泰语不触发泰语包下载、
     // 必须退出重进 —— 现在与进场同一段（ensurePacksForPair，复用 downloading/「准备中」态），
     // 缺什么下什么（只下新对），下好自动用新语言继续。
     if (session && sock && (phase === 'listening' || phase === 'preparing')) {
+      const prevOther = C.baseCode((prev || {}).otherLang || cfg.otherLang);
       closeSocket();
       const wasListening = phase === 'listening';
       if (wasListening) { phase = 'preparing'; }   // 与 beginPipeline 同一入口语义
-      ensurePacksForPair().then((ok) => {
+      ensurePacksForPair({ skipTts: !!lo.skipTts }).then((ok) => {
         if (!ok) return;             // halt 已接管（具名态，与进场失败一致）
         openSocket();
         if (wasListening && phase === 'preparing') { phase = 'listening'; canvas.view('state'); }

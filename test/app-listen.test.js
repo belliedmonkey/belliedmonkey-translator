@@ -398,7 +398,10 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
 
   test('★ 听译内切语言要按新对补包 — 不必退出重进（2026-10-06，92 号包真机）', () => {
     const model = stripComments(read('src/app/listen-model.js'));
-    ok(/async function ensurePacksForPair\(\)/.test(model), '没抽出共用的按对补包段（进场与改语言要用同一段）');
+    ok(/async function ensurePacksForPair\(opts\)/.test(model), '没抽出共用的按对补包段（进场与改语言要用同一段）');
+    // 2026-10-07 真机批 28：自动识别换来的语言不在这里下朗读包（skipTts）——
+    // 用户什么都没点，不该因为 LID 听到一门新语言就悄悄下 105MB。
+    ok(/if \(!epopts\.skipTts && deviceTts\(\)/.test(model), '朗读包下载没有 skipTts 开关');
     ok(/if \(!\(await ensurePacksForPair\(\)\)\) return;/.test(model), 'beginPipeline 没走共用的补包段');
     const lc = model.slice(model.indexOf('function langChange'), model.indexOf('function setAutoSpeak'));
     ok(/ensurePacksForPair\(\)/.test(lc), 'langChange 改语言没有按新对补包 —— zh/en 切泰语不触发下载，必须退出重进');
@@ -761,6 +764,35 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(!C.sideMatchesLid('zh-CN', ''), 'LID 还没判出来 ⇒ 不上屏（不是先画一路）');
     ok(!C.sideMatchesLid('', 'zh'));
     eq(C.lidBase('zh-CN'), 'zh'); eq(C.lidBase('TH'), 'th');
+  });
+  // 2026-10-07 真机（批 28）：「对方说的」显示成 `nn`，紧接着整场 halt（屏上「本机识别器不支持这门
+  // 语言」）。根因：LID 是 **99 类闭集**，`nn`（挪威尼诺斯克）是它在静音/噪声上给的垃圾标签；
+  // 自动跟随把它当成了「对方的语言」，再拿它去探本机识别器 ⇒ `unsupported/locale` ⇒ halt。
+  test('LID 的判词必须先过「我们支持吗」—— `nn` 这类闭集里的外来码不许当语言用', () => {
+    const LANGS = ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
+    ok(C.langSupported('th', LANGS), '泰语支持');
+    ok(C.langSupported('zh-CN', LANGS), '带地区后缀按短码归一');
+    ok(!C.langSupported('nn', LANGS), 'nn / Nynorsk = LID 的垃圾标签，我们不支持');
+    ok(!C.langSupported('cy', LANGS), 'cy 同理');
+    ok(!C.langSupported('', LANGS) && !C.langSupported(null, LANGS), '空值一律不支持');
+    ok(!C.langSupported('th', []), '没有清单时一律不支持（宁可不动）');
+  });
+  // 2026-10-07 真机批 28：①「译成」改动以前会走整条重连 + 补包（顶部「正在下载离线模型 · 15%」、
+  // 按钮卡「准备中…」）；②识别器语言名额用满时界面按「网络问题」说（误报）。
+  test('「译成」只改方向：不重连、不补包；自动跟随换来的语言不下朗读包', () => {
+    ok(/if \(which === 'my'\) \{ canvas\.view\('mode'\)/.test(MODEL), '「译成」没有短路，仍会重连/补包');
+    ok(/ensurePacksForPair\(\{ skipTts: !!lo\.skipTts \}\)/.test(MODEL), '重连没有把 skipTts 传下去');
+    ok(/langChange\('other', L, \{ skipTts: true \}\)/.test(MODEL), 'autoFollow 没有跳过朗读包下载');
+  });
+  test('识别器失败按真实原因说：locales 有名额文案；assets 走协议码翻译', () => {
+    ok(/LearnTTS\.reason\(why1, t\)/.test(MODEL), 'assets 失败没有把协议码翻成人话（会印出 offline/http）');
+  });
+  test('模型：自动跟随只认支持的语言；存量坏值读取时自愈', () => {
+    ok(/if \(!langOk\(L\)\) return;/.test(MODEL), 'autoFollow 没有挡住不支持的短码');
+    ok(/NativeSpeech\.supportedLocales\(\)/.test(MODEL), 'langOk 没有问设备支持（本机清单里没有的语言会把整场 halt 掉）');
+    ok(/reason === 'socket' && why1 === 'locale' \? needText\('locale'\)/.test(MODEL), '协议码 locale 会被当原文印出来');
+    ok(/const otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
+    ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
     eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidStable\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');

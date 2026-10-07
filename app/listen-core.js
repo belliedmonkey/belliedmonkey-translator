@@ -682,6 +682,17 @@ var ListenCore = (() => {
     if (!b || !l) return false;
     return b === l;
   }
+  /** 这门语言**我们支持**吗（`codes` 是注册表的短码清单）。
+   *  为什么必须有这一道：LID 是 **99 类闭集**，会吐我们根本没有的语言 —— 实测 **`nn`**
+   *  （挪威尼诺斯克）在静音/噪声/短音频上很常见。2026-10-07 真机（批 28）：
+   *  自动跟随把 `nn` 当成「对方的语言」，再拿它去探本机识别器 ⇒ `unsupported/locale`
+   *  ⇒ **整场 halt**（屏上「本机识别器不支持这门语言 —— 换一种语言试试」，而「对方说的」
+   *  显示成 `nn`）。归属与自动跟随都只认这里放行的语言。 */
+  function langSupported(code, codes) {
+    const b = baseCode(code);
+    if (!b) return false;
+    return (codes || []).some((c) => baseCode(c) === b);
+  }
 
   // （跨语言定稿仲裁 makeFinalArbiter / arbScore / ARB_TRUST_CONF / ARB_WINDOW_MS 已在
   //   2026-10-07 随 LID 接入删除 —— 原来靠「置信度三档分」猜哪一路是对的，现在由端上 LID
@@ -826,7 +837,7 @@ var ListenCore = (() => {
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
-    lidBase, sideMatchesLid,
+    lidBase, sideMatchesLid, langSupported,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,

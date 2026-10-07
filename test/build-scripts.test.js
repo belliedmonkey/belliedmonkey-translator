@@ -1634,7 +1634,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
   });
   test('识别包装不上时 fail fast（2026-10-02 真机）：failed 之后必须补一条 stt-state', () => {
     const body = stripComments(tpl);
-    const failIdx = body.indexOf('"state": "failed", "reason": String(describing: error)');
+    // reason 必须是**协议码**（2026-10-07 批 28：以前这里送系统原文，界面上把
+    // `Error Domain=SFSpeechErrorDomain Code=11 …` 拼进了「多半是网络问题」）。
+    const failIdx = body.indexOf('"state": "failed", "reason": mtPrepareCode(error)');
     const fastIdx = body.indexOf('"state": "ready", "assets": "missing"');
     ok(failIdx > 0, '要有 assets-progress 的 failed 分支');
     ok(fastIdx > failIdx, 'failed 之后要立刻发 stt-state（否则 JS 只能干等 120 s 超时，真因不可见）');
@@ -1682,6 +1684,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // encoder/decoder/dir = 清单字段；mt-lid/mt.lid = 目录与队列名；assets/ms = 状态与时长字段。
       '"lid-probe"', '"lid-assets"', '"lid-state"', '"lid-result"', '"lid-live"',
       '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"',
+      // 识别器装配失败的域判据（SFSpeechErrorDomain Code=11 = locale 名额用满，2026-10-07 批 28）。
+      '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
       '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
@@ -1708,6 +1712,27 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');
     // 首次判定要 ≥2s（12 门真语音实测：1s 只有 50%、2s 83% —— 见 scripts/lid-eval-real.py）
     ok(/self\.buf\.count >= 32000/.test(feed), 'live 判定的门槛应当是 2s（32000 样本），1s 基本是掷硬币');
+  });
+
+  // 2026-10-07 真机批 28：English⇄한국어 点「开始听」失败 ——
+  // `SFSpeechErrorDomain Code=11 "Too many allocated locales, 5 maximum."`。
+  // 根因：每次 stt-start 都新建 transcriber，旧那一对的 locale **从来没释放过**，来回切几次就撞上限。
+  test('★ locale 名额（真机批 28 Code=11）：建模块前先释放不再用的，只留当前语言对', () => {
+    const sp = stripComments(tpl);
+    ok(/static func releaseUnused\(/.test(sp), '没有 releaseUnused（不再用的 locale 要 AssetInventory.release）');
+    ok(/AssetInventory\.release\(reservedLocale:/.test(sp), 'releaseUnused 没真的调 AssetInventory.release');
+    // **顺序**：先释放再建模块（新模块自己也要占名额，先腾位置）
+    const iRel = sp.indexOf('await MTDeviceTranscriber.releaseUnused(');
+    const iMake = sp.indexOf('guard let m = await makeModule(id)');
+    ok(iRel > 0 && iMake > iRel, '释放必须在建模块**之前**（先腾位置再占）');
+    ok(/noteHeld\(id, p\.locale\)/.test(sp), '没记下「占着哪个 locale」（释放就无从谈起）');
+  });
+  test('★ 识别器失败的 reason 是协议码，不是系统原文（真机批 28 把 Code=11 原文拼进了「多半是网络问题」）', () => {
+    const sp = stripComments(tpl);
+    ok(!/"reason": String\(describing: error\)/.test(sp), '还有把系统原文当 reason 送出去的地方');
+    ok(/private func mtPrepareCode\(_ error: Error\) -> String/.test(sp), '没有 mtPrepareCode');
+    ok(/e\.domain == "SFSpeechErrorDomain", e\.code == 11 \{ return "locales" \}/.test(sp), 'Code=11 没有映射成 locales');
+    ok(/reason": mtPrepareCode\(error\)/.test(sp), 'prepare 失败没有走 mtPrepareCode');
   });
 
   test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {

@@ -3680,6 +3680,57 @@ whisper-tiny SLID **本身判不出来**（19%）—— 这不是门能修的，
 ④ 设置页那一项「译成」（只管文档 / 系统 / 快速翻译）**不动** —— 听译这一处是它自己的键
 （`listenMyLang`），两处不互相改。
 
+### 9.6.1.7 真机批 28 的四条反馈：locale 名额、重复下载、误报、误伤（2026-10-07）
+
+批 28 真机测出四条，**同源的多、独立的一条是 Apple 的 locale 名额**：
+
+**(1) ★ `SFSpeechErrorDomain Code=11 "Too many allocated locales, 5 maximum."`**（English⇄한국어 点
+「开始听」就失败）。**根因**：**每次 `stt-start` 都新建一个 transcriber，而旧那一对的 locale 从来没释放过** ——
+Apple 对每个 App 的已分配 locale 有硬上限 **5** 个，来回切几次语言就撞上。**修**：`MTDeviceTranscriber`
+持一份进程内的「已占 locale」表，**每次 start 之前先 `AssetInventory.release(reservedLocale:)` 掉不在
+当前这一对里的**（必须先释放再建新模块 —— 新模块自己也要占名额），只留当前语言对。
+
+**(2) 「对方说的：nn」**（LID 吐了 `nn` 就把对方语言换成了它）。**根因**：LID 是 **99 类闭集**，
+`nn`（挪威尼诺斯克）是它在静音/噪声/短音频上最常见的垃圾标签，而自动跟随**直接采纳**了它 ⇒ 拿 `nn`
+去探本机识别器 ⇒ `unsupported/locale` ⇒ 整场 halt。**修**：`langSupported(code, codes)`（`listen-core`）——
+归属与自动跟随**只认注册表里的 12 门**；顺带**读取时自愈**（存量的坏值 `listenOtherLang` 不再带进下一场）。
+
+**(3) 改「译成」触发下载 + 卡「准备中…」**（顶部「正在下载离线模型 · 15%」）。**根因**：「译成」走的是
+**语言对那条重连**（`langChange('my', …)` 以前无差别地 `closeSocket` + `ensurePacksForPair`），而它只改
+译文**方向**、一个识别器都不动。**修**：`which === 'my'` 直接短路（不重连、不补包）。
+
+**(4) 首启下过的包，进听译又被当成没下好**（重复下载、卡「准备中…」）。**根因**：自动识别换来的语言会
+走 `ensurePacksForPair` 的**朗读包**下载 —— 首启按 zh/en 下的，LID 认出泰语之后又要下泰语朗读包（105MB）。
+**修**：自动跟随走 `{ skipTts: true }` —— 只补识别资产，**不因为「听到一门新语言」悄悄下朗读包**；
+没有那个包不影响听译（朗读回落系统语音，既有行为）。
+
+**(5) 首启语音包页「什么都没点」就挂红字「连不上服务器，检查网络后重试。」**。**根因**：`bootShell`
+的兜底 catch 把**任何**异常都当成「会话坏了」→ `show(null)` + `say(humanError(err), true)`；而登录态刷新
+/额度领取之类**自动**请求在网络抖一下时抛的就是网络错 ⇒ 页尾红字（那一屏用户什么都还没点）。
+**修**：① 兜底 catch 里带 `code: network/offline`（或消息像网络错）的**不当登出、也不弹红字**；
+② `say()` 在首启屏（`firstRunScreen === 'packs'`）上不画错误 —— 那一屏有自己的错误行（`#packs-err`），
+只画**下载**的失败。
+
+**(6) 错误要说真实原因，不许误报网络。** 原生以前有 5 处把 `String(describing: error)` 当 `reason` 送出去
+（协议规矩是「reason 是 id，人话由 JS 拼」），于是 `Error Domain=SFSpeechErrorDomain Code=11 …` 被拼进
+「离线模型下载失败……多半是网络问题」。**修**：全部换成协议码（`mtdlCode` / 新的 `mtPrepareCode`，
+把 `SFSpeechErrorDomain Code=11` 映射成 `locales`），JS 侧：`locales` 有一条专门的文案
+（`listen_need_locales`：语言名额用满），`assets` 失败走 `LearnTTS.reason()` 把码翻成人话。
+
+**(7) 顺手补的两处（同一条回归里暴露的）**：
+- **自动跟随要过「设备支持」这一道**：`langOk` 以前只看注册表那 12 门，而**注册表里有、这台设备的
+  识别器没有**的语言（实测 Mac 上 `fr`/`de` 在注册表里但本机清单没有）会被自动跟随选中 ⇒ 探针
+  `locale` 失败 ⇒ 整场 halt。现在设备报过清单就以它为准（没报过才退回注册表）。
+- **切到设备没有的语言 ⇒ 回到上一对**，不是把整场丢掉：`langChange` 的重连失败且 `pauseReason` 是
+  `device` 时，把「对方」那一格**改回切换前那门**、用回旧那一对重起，并说一句
+  `listen_lang_unsupported_revert`（「这门语言这台设备识别不了 — 已经回到「X」」）。
+  另外「转写连接中断：localeway」这种**协议码当原文印**也修了（`locale` 走既有的「不支持这个语言」）。
+
+**验证**：`npm test` **2425 passed / 0 failed**（含新增：`releaseUnused` 必须在建模块之前、
+协议码不许回退成系统原文、`langSupported` 的闭集外来码、`skipTts`、「译成」短路）；
+Mac 真机路径回归 `.local/lid-yt/switch-langs.js` —— **连切 6 门（> 5 个名额）**不再出现
+「名额 / 网络」误报，切到设备没有的语言会**回到上一对**并说明；标准 5 例回归 5/5 · 错语言样本 0。
+
 ## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
 把 domain-design §2.5 那条「上传的文件是第四种来源」落到学习层：用户上传 PDF / Word /
 图片，阅读器**打开一页翻一页**；读过的页里的句对进语料，来源类别叫**「文档」**，默认开

@@ -2357,8 +2357,17 @@ export function bootShell() {
     } catch (err) {
       // A corrupt session must not leave a blank window with no way forward.
       extBannerPrimed = true;
-      await show(null);
-      say(humanError(err), true);
+      // **网络抖一下 ≠ 没登录**（2026-10-07 真机批 28）：这条兜底以前一律 `show(null)` + 红字，
+      // 表现成「刚进首启语音包页、什么都没点，页尾就挂『连不上服务器，检查网络后重试。』」。
+      // 带 `code: network/offline`（或消息像网络错）的失败不当登出：留在原屏、什么都不说。
+      const netErr = !!(err && (err.code === 'network' || err.code === 'offline'
+        || /network|fetch|load failed|timed out/i.test(String((err && err.message) || err || ''))));
+      if (netErr) {
+        try { await paintFirstRun(currentSession); } catch (_) {}
+      } else {
+        await show(null);
+        say(humanError(err), true);
+      }
     }
   })();
 }
