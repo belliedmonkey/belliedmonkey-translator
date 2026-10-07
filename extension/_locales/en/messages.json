@@ -1935,13 +1935,13 @@
     "message": "Offline model download failed: {why} — usually a network problem; try again later — tap “Start listening” again to retry, or pick a cloud live engine in Settings."
   },
   "listen_entry_privacy_device": {
-    "message": "Speech is recognised on your device and never sent to any server; the recognised text goes to the translation engine you configured."
+    "message": "On-device transcription: words appear as you speak; each finished sentence goes to the translation engine you configured."
   },
   "listen_cost_line_device": {
-    "message": "Listened {t} · audio never leaves the device"
+    "message": "Listened {t}"
   },
   "listen_device_privacy": {
-    "message": "With on-device transcription, speech is recognised on your device and never sent to any server; the recognised text, with a few preceding sentences for context, goes to the translation engine you configured for correction and translation — our servers are not involved. With on-device speech, audio is synthesised on your device; the first use downloads the offline model once (the model file only). No recording is kept, only text."
+    "message": "On-device transcription: words appear as you speak; each finished sentence, with the previous few for context, goes to the translation engine you configured for correction and translation. With on-device speech, the voice is synthesised on your device and a one-time offline model is downloaded on first use."
   },
   "listen_raw_label": {
     "message": "Recognised text"

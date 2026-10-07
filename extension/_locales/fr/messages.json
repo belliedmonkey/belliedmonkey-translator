@@ -1935,13 +1935,13 @@
     "message": "Échec du téléchargement du modèle hors ligne : {why} — le plus souvent un problème réseau ; réessayez plus tard — appuyez de nouveau sur « Commencer à écouter » ou choisissez un moteur cloud dans les réglages."
   },
   "listen_entry_privacy_device": {
-    "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu va au moteur de traduction que vous avez configuré."
+    "message": "Transcription sur l’appareil : le texte apparaît au fil de la parole ; chaque phrase terminée part vers le moteur de traduction que vous avez configuré."
   },
   "listen_cost_line_device": {
-    "message": "Écouté {t} · l’audio ne quitte jamais l’appareil"
+    "message": "Écouté {t}"
   },
   "listen_device_privacy": {
-    "message": "Avec la transcription sur l’appareil, la voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu, avec quelques phrases précédentes pour le contexte, va au moteur de traduction que vous avez configuré pour correction et traduction — nos serveurs n’interviennent pas. Avec la voix sur l’appareil, l’audio est synthétisé sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Aucun enregistrement n’est conservé, seulement du texte."
+    "message": "Transcription sur l’appareil : le texte apparaît au fil de la parole et, une fois la phrase terminée, elle part avec les précédentes vers le moteur de traduction que vous avez configuré, pour correction et traduction. Avec la synthèse vocale sur l’appareil, la voix est générée sur votre appareil et un modèle hors ligne est téléchargé une fois à la première utilisation."
   },
   "listen_raw_label": {
     "message": "Texte reconnu"

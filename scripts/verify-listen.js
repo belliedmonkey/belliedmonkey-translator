@@ -189,7 +189,7 @@ const FAKE_BRIDGES = `(() => {
     // ── A. 门控只看本机识别器（2026-09-17）：没配任何转写引擎也可用；旧系统 ⇒ 灰 + 具名，且没有「去设置」──
     const a1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = document.getElementById('app-listen-entry'); const n = document.getElementById('app-listen-need-live'); const p = document.getElementById('modes-privacy'); return { hidden: b.hidden, disabled: b.disabled, need: n ? !n.hidden : null, priv: p.textContent, privHidden: p.hidden }; })())`));
     need(a1.hidden === false && a1.disabled === false && a1.need === false, 'A: 桥探到 ready、没配转写引擎 ⇒ 入口该可用，实际 ' + JSON.stringify(a1));
-    need(!a1.privHidden && /不发往任何服务器|设备上识别/.test(a1.priv), 'A: 隐私句该是本机版，实际 ' + JSON.stringify(a1.priv));
+    need(!a1.privHidden && /本机转写|裝置內建|On-device transcription|端末内蔵|기기 내장|Transcription sur|Transcripción en|Transcrição no|Расшифровка на|التفريغ على|डिवाइस पर|ถอดเสียงบน/.test(a1.priv) && !/不发往任何服务器|不发往任何伺服器|never sent to any server|音频不离开|音訊不離開|audio never leaves/.test(a1.priv), 'A: 入口说明该是「只讲转写效果」的本机版、不含绝对声明，实际 ' + JSON.stringify(a1.priv));
     await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ sttEngine: 'openai_transcribe', sttApiKey: 'k' }, r)); await AppListen.refreshEntry(); return 'ok'; })()`);
     const a2 = await evalIn(cdp, sessionId, `document.getElementById('app-listen-entry').disabled`);
     need(a2 === false, 'A: 说题的转写槽配成什么都不影响对话入口（两个槽从此无关）');
@@ -207,7 +207,7 @@ const FAKE_BRIDGES = `(() => {
     const b0 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ deliver: __fakeBridge.deliver, started: __fakeSpeech.started, locales: __fakeSpeech.lastLocales, cost: document.getElementById('app-listen-cost').textContent })`));
     need(b0.deliver === 'level', 'B: mic-start 该带 deliver:level（PCM 留在原生），实际 ' + JSON.stringify(b0));
     need(b0.started === 1 && JSON.stringify(b0.locales) === JSON.stringify(['zh-CN', 'en-US']), 'B: 该按我方/对方各开一路（zh-CN, en-US），实际 ' + JSON.stringify(b0));
-    need(/不离开设备/.test(b0.cost), 'B: 费用行该说「音频不离开设备」，实际 ' + b0.cost);
+    need(/已听|Listened|Écouté|gehört|Escuchado|Ouvido|Прослушано|استمع|सुना|聞き取り|들음|ฟังไป/.test(b0.cost) && !/不离开设备|never leaves|不離開/.test(b0.cost), 'B: 费用行只报「已听 <t>」，不再有「音频不离开设备」的绝对说法，实际 ' + b0.cost);
     await say('en-US', 'Does this bus go to the airport?');
     const rowB = await waitFor(async () => { const rows = await rowsOf(); return rows.find((x) => x.text === 'Does this bus go to the airport?' && x.tr && !x.temp) || null; }, 10000, '定稿句带译文进历史');
     need(rowB.who === 'them', 'B: en 路的句子该归对方，实际 ' + rowB.who);

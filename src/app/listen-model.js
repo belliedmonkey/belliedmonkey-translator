@@ -210,7 +210,7 @@ const listenModel = (() => {
         ok,
         hidden: false, disabled: !ok,
         hint: t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'),
-        privacy: t('listen_entry_privacy_device', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。'),
+        privacy: t('listen_entry_privacy_device', '本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎。'),
         needShown: !ok,                      // 原 need.hidden = ok
         why: ok ? '' : needText(reason),     // 原 `if (why && !ok) why.textContent = needText(reason)`
       };
@@ -1357,8 +1357,8 @@ const listenModel = (() => {
     const ms = session ? C.listenedMs(session, now()) : 0;
     return {
       privacyShown: !!session,
-      privacyText: t('listen_device_privacy', '声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎做修正与翻译。'),
-      cost: t('listen_cost_line_device', '已听 {t} · 音频不离开设备').replace('{t}', C.fmtClock(ms)),
+      privacyText: t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发到你自己配置的翻译引擎做修正与翻译。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。'),
+      cost: t('listen_cost_line_device', '已听 {t}').replace('{t}', C.fmtClock(ms)),
     };
   }
   // paint：paintPipNote → 表 1 全量 → paintClock/paintNowPlaying/renderNow。

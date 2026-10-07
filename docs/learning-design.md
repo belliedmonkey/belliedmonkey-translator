@@ -18,6 +18,7 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-10-07 | belliedmonkey | **听译页文案：撤下「音频不离开设备 / 不发往任何服务器」的绝对声明**（用户裁定）：页内只讲转写/朗读的**行为**，也**不写「会上传服务器」**。改 `_locales ×12` 三键（`listen_entry_privacy_device` / `listen_device_privacy` / `listen_cost_line_device`）+ `src/app/listen-model.js` 兜底串 + `verify-listen` 的 B 断言 + interaction-spec。**Gate H 的披露正文不变**（README ×2 / 两个站点隐私页 / `NSMicrophoneUsageDescription` / 三类 usage 串）—— 页内撤下的只是绝对声明。 | 已按用户指名裁定执行（2026-10-07：「换成只讲转写效果」「入口提示一起改」） |
 | 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **半句层仲裁 + 回声优先**（95/96 号包真机反馈）：(e) 半句层改用与定稿同一套三档判据 `pickPartial` + 300 ms 扣留，取消「半句粘滞」—— 修「说中文先闪泰文再改中文」；(f) 仲裁窗口里任一路匹配我们自己朗读的文本 ⇒ 整窗判成回声、两路都丢，判定在**到达时刻**做；(g) 「**播放进行中 + 同语言 ⇒ 丢**」—— 真机时序实测回声总在 `speak` 后 ~500ms、播放中到达，文字比对不足以拦（代价：抢话那几秒同语言会丢，念完后回话照收，M4 已改）。另修诊断采集（真机 mic.caf 超接收器 25MB 被整包拒 → 每流 20MB 上限；sidecar 先传 + 写 meta.json）。§9.6.1.2 追加 (e)(f)(g)。 | 待评审 |
 | 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.3 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
 | 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
@@ -4170,7 +4171,7 @@ the gate requires the same key on all 12):
 | Surface | Gate H |
 |---|---|
 | `README.md` / `README.zh-CN.md` | the paragraph above under Privacy, beside Gate E's; Gate E's sentence stays and is scoped to the cloud engine |
-| `_locales` ×12 | `listen_device_privacy` on all 12 |
+| `_locales` ×12 | `listen_device_privacy` on all 12（**2026-10-07 起这句是页内的「转写效果」说明，不再承担绝对声明**；Gate H 的披露正文在 README ×2 + 两个站点，见下注） |
 | App home privacy line (`#modes-privacy`, today `listen_entry_privacy` 「音频只发往你配置的转写端点」) | the on-device variant whenever `device` is the selected transcription **or** speech engine — a second variant of the existing line, not a second line; the cloud wording must not be shown on the on-device path (it would be false in the reassuring direction) |
 | `NSMicrophoneUsageDescription` (`scripts/sync-app-assets.js`) | extended to name on-device recognition: on that path audio stays on the device |
 | **All three usage strings, localized** (`PLIST_L10N` in `scripts/sync-app-assets.js`, 2026-09-18) | Info.plist carries the **English** default (`CFBundleDevelopmentRegion = en`); every UI locale (the 12 of `extension/_locales`) gets a `<lproj>/InfoPlist.strings`. Reason: App Review rejected 1.12.1 iOS under Guideline 4 because the permission prompt was Chinese on an English iPad while the app UI was English — "permissions requests that are not written in the same language as the app's localization". A usage string is UI copy and follows the same 12-locale rule as every other string. |
@@ -4178,6 +4179,16 @@ the gate requires the same key on all 12):
 | `belliedmonkey.com` | the same paragraph; the model download is the only network access on this path and the China flavor makes it too (China-network download untested — a D2 reading, see §9.1) |
 | App Store privacy labels | no new category (audio is not collected; text goes to the user's endpoint as before); re-check at submission, **by hand** |
 | `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
+
+*(2026-10-07 用户裁定：**App 页内不再做「音频不离开设备 / 不发往任何服务器」的绝对声明。** 理由：
+`§0.4.1` 的「上传诊断录音」是一条**可选**通道（默认关、设置里单独披露），它存在时页内那句
+「音频不离开设备」不再**无条件**为真；用户同时裁定页内**也不写「会上传服务器」** ⇒ 页内只描述
+转写/朗读的**行为**（「边说边出字…自己配置的翻译引擎…语音在设备上合成、首次下离线模型」）。
+**Gate H 的披露正文不变**（README ×2、两个站点隐私页、`NSMicrophoneUsageDescription`、本地化的
+三类 usage 串）—— 页内撤下的只是那两句绝对声明，披露仍随功能同版上线。
+同 PR 改了：`_locales ×12` 的三条键（`listen_entry_privacy_device` / `listen_device_privacy` /
+`listen_cost_line_device`）、`src/app/listen-model.js` 的兜底串、`verify-listen` 的 B 断言
+（费用行不再含绝对说法）。`build.js` 的 Gate H 长度检查不变（页内句仍 ≥60 字）。)*
 
 ### Gate I — ships with 实时字幕 (§9.8)
 
