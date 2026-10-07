@@ -123,4 +123,30 @@ function mtDeviceLidModelsFor(flavor) {
   });
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor };
+// ── 语音活动检测（VAD，2026-10-07）─────────────────────────────────────────────
+// 听译里「这一段到底是不是人在说话」由 silero VAD 判：**只有它判为语音的片段才喂 LID**
+// （`MTDeviceLid`）。为什么需要它：难音频（演播室背景乐、多人交叠、电平低）上 LID 的判词会
+// 在十几门语言之间乱跳，而判错一次就会让错语言那一路的定稿上屏（真泰语多人对谈实测到
+// `那你你给我们也不`/`乌克兰。` 这种中文垃圾行）。644KB，走与 TTS/LID 同一条模型通道。
+// 拿不到它时听译不会瘫：退回原来的能量门（RMS）判「是不是话音」。
+var MT_DEVICE_VAD = {
+  kind: 'vad', dir: 'silero-vad',
+  model: 'silero_vad.onnx',
+  files: [{
+    path: 'silero_vad.onnx', size: 643854,
+    sha256: '9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6',
+    url: {
+      global: MT_MODEL_RELAY + 'silero_vad.onnx',
+      china: MT_MODEL_RELAY + 'silero_vad.onnx',
+    },
+  }],
+};
+
+function mtDeviceVadFor(flavor) {
+  const f = flavor === 'china' ? 'china' : 'global';
+  return Object.assign({}, MT_DEVICE_VAD, {
+    files: MT_DEVICE_VAD.files.map((x) => Object.assign({}, x, { url: typeof x.url === 'string' ? x.url : x.url[f] })),
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor, MT_DEVICE_VAD, mtDeviceVadFor };

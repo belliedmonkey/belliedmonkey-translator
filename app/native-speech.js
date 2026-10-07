@@ -9,8 +9,8 @@ var NativeSpeech = (() => {
   const CHANNEL = 'mtSpeech';
 
   const PROTOCOL = {
-    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets'],
-    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live'],
+    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets'],
+    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'vad-state'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -33,6 +33,10 @@ var NativeSpeech = (() => {
   let lidWaiters = [];
   let lidLast = null;         // { lang, ms, at, kind: 'final'|'live' }
   const lidListeners = [];
+  // 语音活动检测（VAD，2026-10-07）：难音频上 LID 的判词会乱跳，先让 silero VAD 判「是不是人说话」，
+  // 只有话音才累计进 LID。**装不上不影响听译**（原生退回能量门）。
+  let vadProbe = { ok: false, reason: 'no-bridge' };
+  let vadWaiters = [];
   let sttStopsPending = 0;   // 自己发出去、还没收到「ended」回执的 stt-stop 数（见 _fromNative 里的注释）
   const wake = (list, v) => { const ws = list.splice(0); for (const w of ws) { try { w(v); } catch (_) {} } };
 
@@ -77,6 +81,11 @@ var NativeSpeech = (() => {
     if (t === 'lid-state') {
       lidProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : String(msg.reason || msg.state || 'assets') };
       wake(lidWaiters, lidProbe);
+      return;
+    }
+    if (t === 'vad-state') {
+      vadProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : String(msg.reason || msg.state || 'assets') };
+      wake(vadWaiters, vadProbe);
       return;
     }
     if (t === 'lid-result' || t === 'lid-live') {
@@ -219,6 +228,37 @@ var NativeSpeech = (() => {
   /** 最近一条判词 { lang, ms, at, kind } | null。 */
   function lidLatest() { return lidLast; }
 
+  // ── 语音活动检测（VAD，2026-10-07）───────────────────────────────────────────
+  /** 探 VAD 装没装。{ ok, reason }。 */
+  function vadProbeRun(model) {
+    if (!available()) { vadProbe = { ok: false, reason: 'no-bridge' }; return Promise.resolve(vadProbe); }
+    return new Promise((resolve) => {
+      vadWaiters.push(resolve);
+      if (!post({ type: 'vad-probe', models: [model] })) { vadProbe = { ok: false, reason: 'no-bridge' }; wake(vadWaiters, vadProbe); }
+    });
+  }
+  /** 下 VAD 模型（644KB，缺才下）。**失败不该拦住听译** —— 调用方 catch 后照常走。 */
+  function ensureVad(model, onProgress) {
+    if (!available()) return Promise.reject({ reason: 'no-bridge' });
+    return new Promise((resolve, reject) => {
+      let failed = false, failReason = '';
+      const fn = (m) => {
+        if (m.kind !== 'vad') return;
+        try { onProgress && onProgress(m); } catch (_) {}
+        if (m.state === 'failed') { failed = true; failReason = String(m.reason || 'download'); }
+      };
+      progressListeners.push(fn);
+      const finish = (r) => {
+        const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
+        if (failed || !r.ok) reject({ reason: failed ? (failReason || 'download') : (r.reason || 'failed') }); else resolve(r);
+      };
+      vadWaiters.push(finish);
+      if (!post({ type: 'vad-assets', models: [model] })) { const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1); reject({ reason: 'no-bridge' }); }
+    });
+  }
+  /** 最近一次 VAD 探测结论。 */
+  function vadResult() { return vadProbe; }
+
   /**
    * 开一路本机转写。与 WsTranscribe.open 同一个返回形状：{ sendPcm(){}, close() }，
    * 事件 ready / partial / final / error / close 走 onEvent(kind, payload)。
@@ -296,5 +336,5 @@ var NativeSpeech = (() => {
   }
 
   return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
-    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest };
+    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, vadProbe: vadProbeRun, ensureVad, vadResult };
 })();

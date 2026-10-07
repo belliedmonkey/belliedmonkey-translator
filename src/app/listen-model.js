@@ -75,6 +75,11 @@ const listenModel = (() => {
   // 语种识别（LID，§9.6.1.3，2026-10-07）：端上模型判「这段音频是哪门语言」，归属由它给。
   // 半句与定稿都**只收 LID 判定的那一路**；'' = 还没判出来（此时什么都不上屏，不是随机先画一路）。
   let lidLang = '';
+  let lidLangAt = 0;       // 当前判词是什么时候换过来的（用来算「它稳定了多久」）
+  // **判词要稳住才算数**（`lidStable`）：难音频（演播室背景乐 / 多人交叠 / 低电平）上 LID 的判词
+  // 会在十几门语言之间**乱跳**（真泰语多人对谈实测 `zh→th→ko→fr→ja→es→la→ru→ur…`），而只要有一条
+  // 判成中文，中文路那条垃圾定稿就会上屏。稳不住的判词一律不认 —— 乱跳 ⇒ 什么都不上屏（宁可不显示）。
+  const LID_SETTLE_MS = 1500;
   let lidUnsub = null;
   let session = null;
   let cfg = null;
@@ -435,14 +440,34 @@ const listenModel = (() => {
   // 订阅一次即可（会话结束麦克风也就停了，不会再判词），新会话只把语言清空从头来。
   function lidOn() {
     lidLang = '';
+    lidLangAt = 0;
     if (lidUnsub) return;
-    try { lidUnsub = NativeSpeech.onLid((r) => { lidLang = C.lidBase(r && r.lang); }); } catch (_) { lidUnsub = null; }
+    try {
+      lidUnsub = NativeSpeech.onLid((r) => {
+        const lang = C.lidBase(r && r.lang);
+        if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
+        lidLang = lang;
+        lidLangAt = Date.now();
+      });
+    } catch (_) { lidUnsub = null; }
+  }
+  /** 归属用的语言：**只认已经稳住 ≥LID_SETTLE_MS 的判词**，稳不住 ⇒ ''（不上屏）。 */
+  function lidStable() {
+    if (!lidLang) return '';
+    return (Date.now() - lidLangAt) >= LID_SETTLE_MS ? lidLang : '';
   }
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
   function lidModel() {
     try {
       if (typeof mtDeviceLidModelsFor !== 'function') return null;
       return mtDeviceLidModelsFor(Registry.flavor() || 'global');
+    } catch (_) { return null; }
+  }
+  // VAD 模型清单（app/device-models.config.js 的 MT_DEVICE_VAD）；只在 App 包里。
+  function vadModel() {
+    try {
+      if (typeof mtDeviceVadFor !== 'function') return null;
+      return mtDeviceVadFor(Registry.flavor() || 'global');
     } catch (_) { return null; }
   }
   // 画当前该显示的那一路半句（只有 LID 那一路会进 partialBy，见 pickPartial）。
@@ -480,13 +505,13 @@ const listenModel = (() => {
           const base = C.baseCode(ev && ev.locale);
           // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
           if (base && echo.playingLangs(Date.now()).has(base)) return;
-          if (!C.sideMatchesLid(ev && ev.locale, lidLang)) return;   // LID 判的不是这一路 ⇒ 半句不上屏（§9.6.1.3）
+          if (!C.sideMatchesLid(ev && ev.locale, lidStable())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
           if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text);
         }
         else if (kind === 'final') {
           const base = C.baseCode(ev && ev.locale);
           if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          if (!C.sideMatchesLid(ev && ev.locale, lidLang)) return;        // 错语言那一路对同一段音频的解读，丢
+          if (!C.sideMatchesLid(ev && ev.locale, lidStable())) return;     // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
           takeFinal(ev);
         }
         else if (kind === 'error') socketLost(ev.reason || '');
@@ -857,6 +882,13 @@ const listenModel = (() => {
         if (phase !== 'preparing' && phase !== 'downloading') return false;
         if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
       }
+    }
+    // 语音活动检测（VAD，2026-10-07）：难音频（背景乐 / 多人交叠 / 低电平）上 LID 的判词会在十几门
+    // 语言之间乱跳，判错一次就让错语言那一路的定稿上屏（真泰语多人对谈实测）。装好 silero VAD 后，
+    // 只有它判为语音的片段才累计进 LID。**644KB，下不下来都不拦听译** —— 失败就退回能量门（原行为）。
+    if (deviceBridge()) {
+      const vm = vadModel();
+      if (vm) { try { await NativeSpeech.ensureVad(vm); } catch (_) {} }
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
     if (deviceTts() && deviceBridge()) {
@@ -1679,7 +1711,7 @@ const listenModel = (() => {
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
-      lid: lidLang,   // §9.6.1.3：端上 LID 当前判定的语言（'' = 还没判出来）—— 归属的判据就是它
+      lid: lidStable(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词（诊断用）
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }),

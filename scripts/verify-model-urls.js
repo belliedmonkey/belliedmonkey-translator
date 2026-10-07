@@ -10,7 +10,7 @@
 'use strict';
 const https = require('https');
 const crypto = require('crypto');
-const { MT_DEVICE_TTS_MODELS, MT_DEVICE_LID } = require('../app/device-models.config.js');
+const { MT_DEVICE_TTS_MODELS, MT_DEVICE_LID, MT_DEVICE_VAD } = require('../app/device-models.config.js');
 const ranged = process.argv.includes('--range');
 
 function request(url, opts, hops = 0) {
@@ -64,7 +64,7 @@ const getRange = (url, bytes) => new Promise((resolve) => {
 
 (async () => {
   let bad = 0, checked = 0;
-  for (const m of [...MT_DEVICE_TTS_MODELS, MT_DEVICE_LID]) {
+  for (const m of [...MT_DEVICE_TTS_MODELS, MT_DEVICE_LID, MT_DEVICE_VAD]) {
     for (const f of m.files) {
       const urls = ['global', 'china']
         .map((fl) => [fl, f.url[fl]])

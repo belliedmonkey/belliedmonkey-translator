@@ -762,8 +762,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(!C.sideMatchesLid('', 'zh'));
     eq(C.lidBase('zh-CN'), 'zh'); eq(C.lidBase('TH'), 'th');
   });
-  test('模型里半句与定稿两处闸都接了 LID；旧的手写规则已退场', () => {
-    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidLang\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+  test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidStable\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+    ok(/const LID_SETTLE_MS = \d+/.test(MODEL), '判词要稳住才算数（难音频上 LID 会乱跳）');
+    ok(/function lidStable\(\)/.test(MODEL), '没有 lidStable');
     ok(/NativeSpeech\.onLid\(/.test(MODEL), '没有订阅 LID 判词');
     ok(/NativeSpeech\.ensureLid\(/.test(MODEL), '没有把 LID 模型纳入下载');
     ok(/lidOn\(\);/.test(MODEL), '新会话没有重置 LID 语言');

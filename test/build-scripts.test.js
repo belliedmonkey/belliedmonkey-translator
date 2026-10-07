@@ -1681,22 +1681,28 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // lid-probe/lid-assets = 入口；lid-state/lid-result/lid-live = 出口；lid = kind 与 locale；
       // encoder/decoder/dir = 清单字段；mt-lid/mt.lid = 目录与队列名；assets/ms = 状态与时长字段。
       '"lid-probe"', '"lid-assets"', '"lid-state"', '"lid-result"', '"lid-live"',
-      '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"']);
+      '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"',
+      // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
+      '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });
 
-  test('LID 喂音频（§9.6.1.3）：样本必须在 tap 线程上拷走、且只喂话音 —— 两个坑都是 Mac 实测踩出来的', () => {
+  test('LID 喂音频（§9.6.1.3）：样本在 tap 线程拷走、先过 VAD、只喂话音 —— 两个坑都是 Mac 实测踩出来的', () => {
     const sp = stripComments(tpl);
-    ok(/MTDeviceLid\.shared\.feed\(buffer, speech: rms > vadLevel\)/.test(sp),
-      '识别器没把「这一段是不是话音」交给 LID（静音一起喂进去会把判词带跑）');
+    ok(/MTDeviceVad\.shared\.accept\(pcm, fallback: rms > vadLevel\)/.test(sp),
+      '喂 LID 之前必须先过 VAD（拿不到 VAD 才退回能量门）');
+    ok(/MTDeviceLid\.shared\.feed\(pcm, speech: speech\)/.test(sp), '识别器没有把 VAD 的判定交给 LID');
     const lid = sp.slice(sp.indexOf('final class MTDeviceLid'));
     ok(lid.length > 0, 'speech-bridge 里没有 MTDeviceLid');
-    const feed = lid.slice(lid.indexOf('func feed(_ bufIn'), lid.indexOf('func finish()'));
+    const feed = lid.slice(lid.indexOf('func feed(_ pcm'), lid.indexOf('func finish()'));
     ok(feed.length > 0, 'MTDeviceLid.feed 找不到');
     // 野指针（2026-10-07 Mac 实测：指针带进 q.async ⇒ 判词恒为 sq，同一段音频在 python 侧是 th）
-    const beforeAsync = feed.slice(0, feed.indexOf('q.async'));
-    ok(/let chunk = \[Float\]\(UnsafeBufferPointer\(start: ch\[0\]/.test(beforeAsync),
-      'LID 没有在 tap 线程上把样本拷成 [Float] —— 指针出了回调就是野的');
+    // ⇒ 转换 + 拷贝必须在 `pcm16` 里做完（tap 线程），`feed` 只收已经拷好的 [Float]。
+    ok(/func pcm16\(_ bufIn: AVAudioPCMBuffer\) -> \[Float\]\?/.test(lid), 'LID 没有 pcm16（tap 线程上的转换 + 拷贝）');
+    const p16 = lid.slice(lid.indexOf('func pcm16('), lid.indexOf('func feed('));
+    ok(/return \[Float\]\(UnsafeBufferPointer\(start: ch\[0\]/.test(p16), 'pcm16 没把样本拷成 [Float]');
+    ok(/func feed\(_ pcm: \[Float\]/.test(lid), 'feed 必须收已经拷好的 [Float]，不能收 AVAudioPCMBuffer');
+    ok(!/AVAudioPCMBuffer/.test(feed), 'feed 里不该再出现 AVAudioPCMBuffer（那意味着指针又被带进异步块）');
     // 话音门（2026-10-07 Mac 实测：10 s 房间噪声 + 7 s 泰语 ⇒ sq；只喂话音 ⇒ th）
     ok(/guard speech \|\| self\.quietRun <= 4000/.test(feed), 'LID 没有静音门：停顿还在往里累计');
     ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');

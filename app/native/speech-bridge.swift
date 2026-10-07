@@ -127,6 +127,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         speech.emit = { [weak self] in self?.emit($0) }
         system.emit = { [weak self] in self?.emit($0) }
         MTDeviceLid.shared.emit = { [weak self] in self?.emit($0) }
+        MTDeviceVad.shared.emit = { [weak self] in self?.emit($0) }
     }
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -149,6 +150,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "tts-assets": speech.download(models: body["models"])
         case "lid-probe":  MTDeviceLid.shared.probe(models: body["models"])
         case "lid-assets": MTDeviceLid.shared.install(models: body["models"])
+        case "vad-probe":  MTDeviceVad.shared.probe(models: body["models"])
+        case "vad-assets": MTDeviceVad.shared.install(models: body["models"])
         case "tts-speak":  if (body["backend"] as? String) == "system" { system.speak(body) } else { speech.speak(body) }
         case "tts-stop":   speech.stop(); system.stop()
         case "url-probe":  probeUrl(id: (body["id"] as? String) ?? "", url: (body["url"] as? String) ?? "")
@@ -429,10 +432,14 @@ final class MTDeviceTranscriber {
 
     /// 由 MTAudioBridge 的 tap 线程调用：转格式、喂 analyzer、顺手做静音检测。
     private func feed(_ buffer: AVAudioPCMBuffer) {
-        // §9.6.1.3：同一段麦克风 PCM 顺手喂语种识别。**只喂话音**（同一个 vadLevel 判定）——
-        // 把静音/房间噪声一起累计进去会把 whisper SLID 的判词带跑。
+        // §9.6.1.3：同一段麦克风 PCM 顺手喂语种识别。**先过 VAD**（silero）——「这段是不是人在说话」
+        // 由它判，只有真语音才累计进 LID（真泰语多人对谈实测：演播室背景乐 + 多人交叠时，LID 的判词
+        // 会在十几门语言之间乱跳，判错一次就让错语言那一路的定稿上屏）。拿不到 VAD ⇒ 退回能量门。
         let rms = MTAudioBridge.rms(buffer)
-        MTDeviceLid.shared.feed(buffer, speech: rms > vadLevel)
+        if let pcm = MTDeviceLid.shared.pcm16(buffer) {
+            let speech = MTDeviceVad.shared.accept(pcm, fallback: rms > vadLevel)
+            MTDeviceLid.shared.feed(pcm, speech: speech)
+        }
         guard !stopped, let fmt = format, let cont = continuation, let an = analyzer else { return }
         if converter == nil || converter!.inputFormat != buffer.format {
             converter = AVAudioConverter(from: buffer.format, to: fmt)   // 路由切换后格式会变：懒重建
@@ -464,6 +471,7 @@ final class MTDeviceTranscriber {
         stopped = true
         MTAudioBridge.shared.micSink = nil
         MTDeviceLid.shared.reset()   // 会话结束：丢掉没判完的那半句
+        MTDeviceVad.shared.reset()
         continuation?.finish()
         let an = analyzer
         analyzer = nil; continuation = nil
@@ -1262,28 +1270,33 @@ final class MTDeviceLid {
         self?.quietRun = 0
     } }
 
-    /// 麦克风 PCM（tap 的原生格式）→ 16k 单声道。
-    /// **两件必须在 tap 线程上做完的事**：① 转换；② 把样本**拷成 `[Float]`** —— `bufIn` 与转换
-    /// 出来的缓冲都只在这个回调里有效，把指针带进异步块就是野指针（2026-10-07 Mac 实测：带指针
-    /// 出去 ⇒ 判词恒为 `sq`，而同一段音频在 python 侧判成 `th`）。
-    /// **只累计话音**（`speech` 由识别器那层用同一个 vadLevel 判）：把静音/房间噪声也累计进去会把
-    /// whisper SLID 的判词带跑（实测：10 s 噪声 + 7 s 泰语 ⇒ `sq`；只喂话音 ⇒ `th`）。
-    func feed(_ bufIn: AVAudioPCMBuffer, speech: Bool) {
-        guard slid != nil, let t = fmt16, bufIn.frameLength > 0 else { return }
+    /// 麦克风 PCM（tap 的原生格式）→ 16k 单声道 Float32。
+    /// **必须在 tap 线程里调用**：`bufIn` 与转换缓冲都只在这个回调里有效，所以这里直接把样本拷成数组。
+    func pcm16(_ bufIn: AVAudioPCMBuffer) -> [Float]? {
+        guard let t = fmt16, bufIn.frameLength > 0 else { return nil }
         if conv == nil || conv?.inputFormat != bufIn.format { conv = AVAudioConverter(from: bufIn.format, to: t) }
-        guard let c = conv else { return }
+        guard let c = conv else { return nil }
         let cap = AVAudioFrameCount(Double(bufIn.frameLength) * t.sampleRate / max(1, bufIn.format.sampleRate)) + 64
-        guard let out = AVAudioPCMBuffer(pcmFormat: t, frameCapacity: cap) else { return }
+        guard let out = AVAudioPCMBuffer(pcmFormat: t, frameCapacity: cap) else { return nil }
         var err: NSError?
         var consumed = false
         c.convert(to: out, error: &err) { _, st in
             if consumed { st.pointee = .noDataNow; return nil }
             consumed = true; st.pointee = .haveData; return bufIn
         }
-        guard err == nil, out.frameLength > 0, let ch = out.floatChannelData else { return }
-        let chunk = [Float](UnsafeBufferPointer(start: ch[0], count: Int(out.frameLength)))   // ← tap 线程上拷走
+        guard err == nil, out.frameLength > 0, let ch = out.floatChannelData else { return nil }
+        return [Float](UnsafeBufferPointer(start: ch[0], count: Int(out.frameLength)))
+    }
+
+    /// 喂一段 16k 单声道。`speech` 由 VAD 判（拿不到 VAD 时退化为能量门）；
+    /// **`pcm` 必须已经在 tap 线程上拷好**（见 `pcm16`）。
+    /// **只累计话音**：把静音/房间噪声一起累计进去会把 whisper SLID 的判词带跑
+    /// （实测：10 s 噪声 + 7 s 泰语 ⇒ `sq`；只喂话音 ⇒ `th`）。
+    func feed(_ pcm: [Float], speech: Bool) {
+        guard !pcm.isEmpty else { return }
         q.async { [weak self] in
             guard let self, let slid = self.slid else { return }
+            let chunk = pcm
             if speech { self.quietRun = 0 } else { self.quietRun += chunk.count }
             guard speech || self.quietRun <= 4000 else { return }   // 停顿 >0.25 s 就不再累计（话音尾巴留一点）
             self.buf.append(contentsOf: chunk)
@@ -1318,6 +1331,140 @@ final class MTDeviceLid {
             self.lastLang = lang          // 下一句的 live 从这句的结论起步（同语言不再重复报）
             DispatchQueue.main.async { self.emit?(["type": "lid-result", "lang": lang, "ms": samples.count / 16]) }
         }
+    }
+}
+#endif
+
+// MARK: - 语音活动检测（VAD，2026-10-07）
+
+/// silero VAD：判「这一段到底是不是人在说话」。听译里只用它做一件事 —— **只把话音喂给 LID**。
+/// 为什么需要它（2026-10-07 真泰语多人对谈实测）：演播室背景乐 + 多人交叠 + 低电平的音频上，
+/// whisper SLID 的判词会在十几门语言之间乱跳（`zh→th→ko→fr→ja→es→la→ru→ur…`），而判错一次就让
+/// 错语言那一路的定稿上屏（实测出 `那你你给我们也不` / `乌克兰。` 这种中文垃圾行）。
+/// **拿不到它不影响听译**：`accept` 会退回调用方给的能量门判据（原来的行为）。
+#if canImport(SherpaOnnx)
+final class MTDeviceVad {
+    static let shared = MTDeviceVad()
+    var emit: (([String: Any]) -> Void)?
+
+    private struct Model {
+        let dir: String
+        let model: String
+        let files: [(path: String, url: String, sha256: String, size: Int)]
+    }
+    private var models: [Model] = []
+    private var vad: OpaquePointer?
+    private var pending: [Float] = []          // 不足一个窗的尾巴
+    private var lastSpeech = 0.0
+    private let window = 512                   // silero 的固定窗（16k）
+    private let hangover: Double = 0.6         // 说完 0.6s 内仍算「在人声里」（留给 LID 语尾）
+    private var root: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("mt-vad", isDirectory: true)
+    }
+
+    private func parse(_ v: Any?) -> [Model] {
+        guard let list = v as? [[String: Any]] else { return [] }
+        return list.compactMap { m in
+            guard let dir = m["dir"] as? String, let model = m["model"] as? String else { return nil }
+            let fs = (m["files"] as? [[String: Any]] ?? []).compactMap { f -> (String, String, String, Int)? in
+                guard let p = f["path"] as? String, let u = f["url"] as? String, let s = f["sha256"] as? String else { return nil }
+                return (p, u, s, (f["size"] as? Int) ?? 0)
+            }
+            return Model(dir: dir, model: model, files: fs)
+        }
+    }
+    private func installed(_ m: Model) -> Bool {
+        let fm = FileManager.default
+        let d = root.appendingPathComponent(m.dir, isDirectory: true)
+        for f in m.files {
+            let p = d.appendingPathComponent(f.path)
+            guard let a = try? fm.attributesOfItem(atPath: p.path), (a[.size] as? Int) == f.size else { return false }
+        }
+        return fm.fileExists(atPath: d.appendingPathComponent(m.model).path)
+    }
+
+    func probe(models v: Any?) {
+        models = parse(v)
+        let ok = models.contains(where: installed)
+        emit?(["type": "assets-progress", "kind": "vad", "locale": "vad", "fraction": ok ? 1 : 0, "state": ok ? "installed" : "missing"])
+        emit?(["type": "vad-state", "state": ok ? "ready" : "assets"])
+        load()
+    }
+
+    /// 单文件下载 + sha256 校验（与 LID 同形，但它是一个普通文件，不是 zip）。
+    func install(models v: Any?) {
+        models = parse(v)
+        Task {
+            for m in models where !installed(m) {
+                let d = root.appendingPathComponent(m.dir, isDirectory: true)
+                for f in m.files {
+                    do {
+                        try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
+                        guard let url = URL(string: f.url) else { throw URLError(.badURL) }
+                        var lastEmit = 0.0
+                        let tmp = try await MTDeviceSpeech.fetch(url) { [weak self] frac in
+                            let now = Date().timeIntervalSince1970
+                            guard now - lastEmit >= 0.25 else { return }
+                            lastEmit = now
+                            DispatchQueue.main.async { self?.emit?(["type": "assets-progress", "kind": "vad", "locale": "vad", "fraction": frac, "state": "downloading"]) }
+                        }
+                        let data = try Data(contentsOf: tmp)
+                        let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+                        guard digest == f.sha256.lowercased() else { try? FileManager.default.removeItem(at: tmp); throw URLError(.cannotDecodeContentData) }
+                        let dst = d.appendingPathComponent(f.path)
+                        try? FileManager.default.removeItem(at: dst)
+                        try FileManager.default.moveItem(at: tmp, to: dst)
+                    } catch {
+                        emit?(["type": "assets-progress", "kind": "vad", "locale": "vad", "fraction": 0, "state": "failed", "reason": mtdlCode(error)])
+                        emit?(["type": "vad-state", "state": "failed"])
+                        return
+                    }
+                }
+                emit?(["type": "assets-progress", "kind": "vad", "locale": "vad", "fraction": 1, "state": "installed"])
+            }
+            emit?(["type": "vad-state", "state": "ready"])
+            load()
+        }
+    }
+
+    /// 建检测器（幂等）。
+    func load() {
+        guard vad == nil, let m = models.first(where: installed) else { return }
+        let p = root.appendingPathComponent(m.dir, isDirectory: true).appendingPathComponent(m.model).path
+        let silero = sherpaOnnxSileroVadModelConfig(model: p, threshold: 0.5, minSilenceDuration: 0.25,
+                                                    minSpeechDuration: 0.25, windowSize: 512, maxSpeechDuration: 5.0)
+        var c = sherpaOnnxVadModelConfig(sileroVad: silero, sampleRate: 16000, numThreads: 1)
+        vad = SherpaOnnxCreateVoiceActivityDetector(&c, 30.0)
+    }
+
+    func reset() {
+        pending.removeAll(keepingCapacity: true)
+        lastSpeech = 0
+        if let v = vad { SherpaOnnxVoiceActivityDetectorReset(v) }
+    }
+
+    /// tap 线程调用。返回「此刻算不算在人声里」。**没装/没建成 ⇒ 返回调用方的 `fallback`**。
+    func accept(_ pcm: [Float], fallback: Bool) -> Bool {
+        guard let v = vad else { return fallback }
+        pending.append(contentsOf: pcm)
+        var i = 0
+        while pending.count - i >= window {
+            pending.withUnsafeBufferPointer { p in
+                SherpaOnnxVoiceActivityDetectorAcceptWaveform(v, p.baseAddress! + i, Int32(window))
+            }
+            i += window
+        }
+        if i > 0 { pending.removeFirst(i) }
+        // 段队列必须排空：只查 Detected 不排空的话，内部段只涨不落（内存）。
+        while SherpaOnnxVoiceActivityDetectorEmpty(v) == 0 {
+            if let seg = SherpaOnnxVoiceActivityDetectorFront(v) { SherpaOnnxDestroySpeechSegment(seg) }
+            SherpaOnnxVoiceActivityDetectorPop(v)
+        }
+        let now = Date().timeIntervalSince1970
+        let detected = SherpaOnnxVoiceActivityDetectorDetected(v) != 0
+        if detected { lastSpeech = now }
+        return detected || (now - lastSpeech) < hangover
     }
 }
 #endif
