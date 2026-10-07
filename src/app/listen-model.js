@@ -1029,8 +1029,25 @@ const listenModel = (() => {
     canvas.view('state');
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
+  /** 改语言之后这场起不来 ⇒ **回到改之前那一对**（2026-10-07 真机批 28）。
+   *  失败可能发生在补包那一步，也可能发生在 `stt-start` 之后（设备说支持、但识别包没装好）——
+   *  所以兜在 halt 上，而不是只兜在补包那一步。 */
+  let langRevert = null;     // { other }：一次改语言期间记下「改之前那门」
+  function revertLangIfNeeded() {
+    const r = langRevert; langRevert = null;
+    if (!r || !r.other || !session || !cfg) return;
+    if (C.baseCode(cfg.otherLang) === r.other) return;
+    cfg.otherLang = r.other; cfg.lang = r.other; otherSelVal = r.other;
+    const key = mode === 'subtitle' ? 'subtitleVideoLang' : 'listenOtherLang';
+    try { const patch = {}; patch[key] = r.other; chrome.storage.local.set(patch); } catch (_) {}
+    const back = t('listen_lang_unsupported_revert', '这门语言这台设备识别不了 — 已经回到「{lang}」').replace('{lang}', langLabel(r.other));
+    beginPipeline().then(() => { if (phase === 'listening' || phase === 'preparing') note(back); }).catch(() => {});
+  }
+
   function halt(reason, why) {
     if (phase === 'ended' || phase === 'idle') return;
+    // 「这门语言这台设备弄不了」⇒ 回到上一对，别把整场丢掉（见上面那段注释）。
+    if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets')) { revertLangIfNeeded(); return; }
     phase = 'halted'; pauseReason = reason;
     C.pause(session, now());
     // 停了听就别再读积压的译文 —— 那些话的上下文已经过去了
@@ -1055,6 +1072,14 @@ const listenModel = (() => {
       // 原样拼进「多半是网络问题」，既看不懂、又说错了原因。
       : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。')
         .replace('{why}', (typeof LearnTTS !== 'undefined' && LearnTTS.reason) ? LearnTTS.reason(why1, t) : why1)
+      // 识别器的语言名额用满（Apple 每 App 上限 5 个）：**与网络无关**，别按网络说
+      // （2026-10-07 真机批 28：来回切语言之后点「开始听」就撞上 Code=11）。
+      : (reason === 'device' || reason === 'socket') && why1 === 'locales'
+        ? t('listen_need_locales', '本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。')
+      // 「设备说支持、但它的识别包还没装好」是另一种情况（2026-10-07 查实：probe 回
+      // `{ok:true, assets:"missing"}`）—— 以前一律说成「不支持这门语言」，用户以为系统没有它。
+      : (reason === 'device' || reason === 'socket') && why1 === 'assets'
+        ? t('listen_lang_assets_missing', '这门语言的识别包还没装好 — 连上网再点一次「开始听」。')
       // 'os' 与 'device' 同归 needText（2026-09-29 清理）：那句「macOS 14.4」已删 —— 26 下限
       // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
       : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
@@ -1171,7 +1196,7 @@ const listenModel = (() => {
       // 语言区（§9.6.1.6，2026-10-07 真机反馈后定稿）：
       //   「译成」= 用户想读的语言（**下拉，看得见，默认系统语言**）；
       //   「对方说的」= 自动识别出来的那门，被动显示；认错点「语言不对？」去 sheet 里手改。
-      langTargetLabel: t('target_lang_label', '译成'),
+      langTargetLabel: sub ? t('target_lang_label', '译成') : t('listen_my_lang_label', '我的语言'),
       langTargetOptions: langOptionsFor(cfg && cfg.myLang),
       langTargetValue: C.baseCode(cfg && cfg.myLang),
       partnerText: (() => {
@@ -1183,6 +1208,7 @@ const listenModel = (() => {
                    : t('listen_partner_auto', '对方说的：{lang}（自动）').replace('{lang}', l);
       })(),
       langEditLabel: t('listen_lang_edit', '语言不对？'),
+      langDirsText: sub ? '' : t('listen_lang_dirs', '对方的话翻译成它；你说的话翻译成对方的语言'),
       langEdit: !!langEdit,
       langManual: !!langManual,
       langSheetNote: t('listen_lang_sheet_note', '识别错了才需要动这里'),
@@ -1662,6 +1688,7 @@ const listenModel = (() => {
     // 缺什么下什么（只下新对），下好自动用新语言继续。
     if (session && sock && (phase === 'listening' || phase === 'preparing')) {
       const prevOther = C.baseCode((prev || {}).otherLang || cfg.otherLang);
+      langRevert = { other: prevOther };
       closeSocket();
       const wasListening = phase === 'listening';
       if (wasListening) { phase = 'preparing'; }   // 与 beginPipeline 同一入口语义

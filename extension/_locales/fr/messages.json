@@ -3827,5 +3827,17 @@
   },
   "subtitle_partner_auto": {
     "message": "Langue de la vidéo : {lang} (auto)"
+  },
+  "listen_lang_dirs": {
+    "message": "Leur parole est traduite vers celle-ci, la vôtre vers la leur"
+  },
+  "listen_need_locales": {
+    "message": "Le moteur embarqué tient au plus 5 langues à la fois et c'est plein — quittez l'écoute et revenez."
+  },
+  "listen_lang_assets_missing": {
+    "message": "Le paquet de reconnaissance de cette langue n'est pas encore installé — connectez-vous et relancez l'écoute."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Cet appareil ne reconnaît pas cette langue — retour à « {lang} »"
   }
 }

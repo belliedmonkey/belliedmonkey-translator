@@ -787,6 +787,28 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('识别器失败按真实原因说：locales 有名额文案；assets 走协议码翻译', () => {
     ok(/LearnTTS\.reason\(why1, t\)/.test(MODEL), 'assets 失败没有把协议码翻成人话（会印出 offline/http）');
   });
+  // 2026-10-07 用户裁定（Pencil 稿已过）：「译成」在听译页有歧义 —— 它只指「我说的那门」
+  // （对方的话译成它、我的话译成对方的语言）。听译页改叫「我的语言」+ 一行两方向说明；
+  // 实时字幕那页没有「我」这一侧，仍叫「译成」。
+  test('语言区标签：听译 =「我的语言」+ 两方向说明；字幕仍「译成」', () => {
+    ok(/langTargetLabel: sub \? t\('target_lang_label', '译成'\) : t\('listen_my_lang_label', '我的语言'\)/.test(MODEL),
+      '听译页那格没有改叫「我的语言」（「译成」有歧义）');
+    ok(/langDirsText: sub \? '' : t\('listen_lang_dirs'/.test(MODEL), '没有那行「对方的话翻译成它；你说的话翻译成对方的语言」');
+    ok(/id="app-listen-dirs"/.test(read('src/app/listen-view.jsx')), '视图里没有渲染那行说明');
+  });
+  // 2026-10-07 真机批 28：改语言之后这场起不来 ⇒ 回到上一对，而不是把整场丢掉。
+  // **hook 必须挂在 halt 上**（失败可能发生在 stt-start 之后，不只在补包那一步）。
+  test('改语言失败 ⇒ 回到上一对（hook 在 halt 上，不是只在补包那步）', () => {
+    ok(/function revertLangIfNeeded\(\)/.test(MODEL), '没有 revertLangIfNeeded');
+    ok(/langRevert = \{ other: prevOther \}/.test(MODEL), 'langChange 没有记下「改之前那门」');
+    const haltFn = MODEL.slice(MODEL.indexOf('function halt(reason, why)'), MODEL.indexOf('function halt(reason, why)') + 900);
+    ok(/revertLangIfNeeded\(\); return;/.test(haltFn), 'halt 里没有兜住「这门语言弄不了」');
+    ok(/listen_lang_unsupported_revert/.test(MODEL), '回到上一对时没有说明');
+  });
+  test('失败按真实原因说：名额用满 / 识别包没装好 / 不支持，三句各不同', () => {
+    ok(/why1 === 'locales'[\s\S]{0,160}listen_need_locales/.test(MODEL), '名额用满没有专门文案');
+    ok(/why1 === 'assets'[\s\S]{0,160}listen_lang_assets_missing/.test(MODEL), '「包没装好」没有与「不支持」分开说');
+  });
   test('模型：自动跟随只认支持的语言；存量坏值读取时自愈', () => {
     ok(/if \(!langOk\(L\)\) return;/.test(MODEL), 'autoFollow 没有挡住不支持的短码');
     ok(/NativeSpeech\.supportedLocales\(\)/.test(MODEL), 'langOk 没有问设备支持（本机清单里没有的语言会把整场 halt 掉）');

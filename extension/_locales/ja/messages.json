@@ -3827,5 +3827,17 @@
   },
   "subtitle_partner_auto": {
     "message": "動画の言語：{lang}（自動）"
+  },
+  "listen_lang_dirs": {
+    "message": "相手の言葉はこれに、あなたの言葉は相手の言語に翻訳されます"
+  },
+  "listen_need_locales": {
+    "message": "オンデバイス認識器は同時に最大5言語までです。上限に達しました — 一度聞き取りを出て入り直してください。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "その言語の認識パックがまだ入っていません — ネットにつないで、もう一度「聞き取り開始」を。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "この端末ではその言語を認識できません — 「{lang}」に戻しました"
   }
 }

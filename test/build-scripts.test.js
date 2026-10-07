@@ -1727,6 +1727,13 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     ok(iRel > 0 && iMake > iRel, '释放必须在建模块**之前**（先腾位置再占）');
     ok(/noteHeld\(id, p\.locale\)/.test(sp), '没记下「占着哪个 locale」（释放就无从谈起）');
   });
+  test('★ 建不出模块要分「不支持」与「包没装好」（真机批 28 查实 probe 会回 assets:"missing"）', () => {
+    const sp = stripComments(tpl);
+    ok(/private var lastModuleFail = "locale"/.test(sp), '没有 lastModuleFail（分不出两种原因）');
+    ok(/st == .unsupported \? "locale" : "assets"/.test(sp), '没有按 AssetInventory 状态分「不支持 / 包没装好」');
+    ok(/reason": lastModuleFail/.test(sp), 'start 里没有用 lastModuleFail 报真因');
+  });
+
   test('★ 识别器失败的 reason 是协议码，不是系统原文（真机批 28 把 Code=11 原文拼进了「多半是网络问题」）', () => {
     const sp = stripComments(tpl);
     ok(!/"reason": String\(describing: error\)/.test(sp), '还有把系统原文当 reason 送出去的地方');

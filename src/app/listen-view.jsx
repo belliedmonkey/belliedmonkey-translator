@@ -309,6 +309,7 @@ export function ListenView() {
             </select>
           </label>
           <span className="note" id="app-listen-partner">{mv.partnerText}</span>
+          <span className="note" id="app-listen-dirs">{mv.langDirsText}</span>
           <button type="button" className="linkish" id="app-listen-lang-edit"
             aria-expanded={mv.langEdit ? 'true' : 'false'}
             onClick={listenModel.toggleLangEdit}>{mv.langEditLabel}</button>

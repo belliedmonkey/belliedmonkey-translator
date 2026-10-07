@@ -3827,5 +3827,17 @@
   },
   "subtitle_partner_auto": {
     "message": "Video language: {lang} (auto)"
+  },
+  "listen_lang_dirs": {
+    "message": "Their speech is translated into it; yours into theirs"
+  },
+  "listen_need_locales": {
+    "message": "The on-device recognizer can hold at most 5 languages at once and is full — leave listening and come back."
+  },
+  "listen_lang_assets_missing": {
+    "message": "That language's recognition pack isn't installed yet — get online and tap Start listening again."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "This device cannot recognize that language — back to “{lang}”."
   }
 }

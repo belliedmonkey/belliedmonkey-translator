@@ -3827,5 +3827,17 @@
   },
   "subtitle_partner_auto": {
     "message": "Sprache des Videos: {lang} (automatisch)"
+  },
+  "listen_lang_dirs": {
+    "message": "Ihre Sprache wird darauf übersetzt, Ihre in ihre Sprache"
+  },
+  "listen_need_locales": {
+    "message": "Der lokale Erkennner kann höchstens 5 Sprachen gleichzeitig halten und ist voll – bitte Mithören verlassen und neu starten."
+  },
+  "listen_lang_assets_missing": {
+    "message": "Das Erkennungspaket für diese Sprache fehlt noch – online gehen und erneut „Mithören starten“."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Dieses Gerät erkennt diese Sprache nicht – zurück zu „{lang}“"
   }
 }

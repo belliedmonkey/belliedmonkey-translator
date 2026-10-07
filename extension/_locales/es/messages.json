@@ -3827,5 +3827,17 @@
   },
   "subtitle_partner_auto": {
     "message": "Idioma del vídeo: {lang} (auto)"
+  },
+  "listen_lang_dirs": {
+    "message": "Lo que dicen se traduce a este idioma; lo tuyo, al suyo"
+  },
+  "listen_need_locales": {
+    "message": "El reconocedor admite 5 idiomas como máximo y ya está lleno; sal y vuelve a entrar."
+  },
+  "listen_lang_assets_missing": {
+    "message": "El paquete de reconocimiento de ese idioma aún no está instalado: conéctate y vuelve a empezar a escuchar."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Este dispositivo no reconoce ese idioma — de vuelta a «{lang}»"
   }
 }

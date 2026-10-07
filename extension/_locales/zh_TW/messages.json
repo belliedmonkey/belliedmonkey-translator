@@ -3828,5 +3828,17 @@
   },
   "subtitle_partner_auto": {
     "message": "影片語言：{lang}（自動）"
+  },
+  "listen_lang_dirs": {
+    "message": "對方的話翻譯成它；你說的話翻譯成對方的語言"
+  },
+  "listen_need_locales": {
+    "message": "本機辨識器一次最多只能開 5 種語言，已經佔滿了 — 退出聽譯再進一次就好。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "這門語言的辨識包還沒裝好 — 連上網再點一次「開始聽」。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "這門語言這台裝置辨識不了 — 已經回到「{lang}」"
   }
 }

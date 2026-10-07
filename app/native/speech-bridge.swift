@@ -375,7 +375,7 @@ final class MTDeviceTranscriber {
             var pairs: [(String, Mod)] = []
             for id in locales {
                 guard let m = await makeModule(id) else {
-                    emit?(["type": "stt-state", "state": "failed", "reason": "locale"]); return
+                    emit?(["type": "stt-state", "state": "failed", "reason": lastModuleFail]); return
                 }
                 pairs.append(m); mods.append(module(m))
             }
@@ -399,20 +399,28 @@ final class MTDeviceTranscriber {
         }
     }
 
-    /// 这门语言该用哪个模块（能窄的用窄的）；资产没装 / 语言不支持 ⇒ nil。
+    /// 上一次 `makeModule` 失败的原因，**分两种**（2026-10-07 真机批 28：以前一律说「不支持」，
+    /// 而实测 probe 会回 `{ok:true, assets:"missing"}` —— 设备**说支持**、只是**识别包没装好**）：
+    ///   `locale` = 设备根本不支持这门语言（两台转写器都不认）
+    ///   `assets` = 支持，但资产不是 `.installed`（没下载 / 正在下 / 装不上）
+    private var lastModuleFail = "locale"
+
+    /// 这门语言该用哪个模块（能窄的用窄的）；建不出来 ⇒ nil（原因见 `lastModuleFail`）。
     private func makeModule(_ id: String) async -> (String, Mod)? {
-        guard let p = await mtTranscriberFor(id) else { return nil }
+        guard let p = await mtTranscriberFor(id) else { lastModuleFail = "locale"; return nil }
         MTDeviceTranscriber.noteHeld(id, p.locale)   // 记下「这个 locale 被我们占着」（见 releaseUnused）
         switch p.kind {
         case .speech:
             let t = SpeechTranscriber(locale: p.locale, transcriptionOptions: [],
                                       reportingOptions: [.volatileResults, .fastResults, .alternativeTranscriptions],
                                       attributeOptions: [.audioTimeRange, .transcriptionConfidence])
-            guard await AssetInventory.status(forModules: [t]) == .installed else { return nil }
+            let st = await AssetInventory.status(forModules: [t])
+            guard st == .installed else { lastModuleFail = (st == .unsupported ? "locale" : "assets"); return nil }
             return (id, .speech(t))
         case .dictation:
             let t = DictationTranscriber(locale: p.locale, preset: .progressiveLongDictation)
-            guard await AssetInventory.status(forModules: [t]) == .installed else { return nil }
+            let st = await AssetInventory.status(forModules: [t])
+            guard st == .installed else { lastModuleFail = (st == .unsupported ? "locale" : "assets"); return nil }
             return (id, .dictation(t))
         }
     }

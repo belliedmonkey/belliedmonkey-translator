@@ -3828,5 +3828,17 @@
   },
   "subtitle_partner_auto": {
     "message": "视频语言：{lang}（自动）"
+  },
+  "listen_lang_dirs": {
+    "message": "对方的话翻译成它；你说的话翻译成对方的语言"
+  },
+  "listen_need_locales": {
+    "message": "本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "这门语言的识别包还没装好 — 连上网再点一次「开始听」。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "这门语言这台设备识别不了 — 已经回到「{lang}」"
   }
 }
