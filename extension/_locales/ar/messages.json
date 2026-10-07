@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "تحديد يدوي"
+  },
+  "listen_partner_auto": {
+    "message": "لغة الطرف الآخر: {lang} (تلقائي)"
+  },
+  "subtitle_partner_auto": {
+    "message": "لغة الفيديو: {lang} (تلقائي)"
   }
 }

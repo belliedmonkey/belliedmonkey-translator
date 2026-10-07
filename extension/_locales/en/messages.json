@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "Set by hand"
+  },
+  "listen_partner_auto": {
+    "message": "They're speaking: {lang} (auto)"
+  },
+  "subtitle_partner_auto": {
+    "message": "Video language: {lang} (auto)"
   }
 }

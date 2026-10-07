@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "Manuell festlegen"
+  },
+  "listen_partner_auto": {
+    "message": "Gegenüber spricht: {lang} (automatisch)"
+  },
+  "subtitle_partner_auto": {
+    "message": "Sprache des Videos: {lang} (automatisch)"
   }
 }

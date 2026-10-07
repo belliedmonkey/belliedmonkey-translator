@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "Définir à la main"
+  },
+  "listen_partner_auto": {
+    "message": "L'autre parle : {lang} (auto)"
+  },
+  "subtitle_partner_auto": {
+    "message": "Langue de la vidéo : {lang} (auto)"
   }
 }

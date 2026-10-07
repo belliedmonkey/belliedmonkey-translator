@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "직접 지정"
+  },
+  "listen_partner_auto": {
+    "message": "상대 언어: {lang} (자동)"
+  },
+  "subtitle_partner_auto": {
+    "message": "영상 언어: {lang} (자동)"
   }
 }

@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "手動で指定"
+  },
+  "listen_partner_auto": {
+    "message": "相手の言語：{lang}（自動）"
+  },
+  "subtitle_partner_auto": {
+    "message": "動画の言語：{lang}（自動）"
   }
 }

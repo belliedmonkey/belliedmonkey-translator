@@ -3822,5 +3822,11 @@
   },
   "listen_lang_manual": {
     "message": "手动指定"
+  },
+  "listen_partner_auto": {
+    "message": "对方说的：{lang}（自动）"
+  },
+  "subtitle_partner_auto": {
+    "message": "视频语言：{lang}（自动）"
   }
 }

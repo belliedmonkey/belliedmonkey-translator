@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "Fijar a mano"
+  },
+  "listen_partner_auto": {
+    "message": "La otra persona habla: {lang} (auto)"
+  },
+  "subtitle_partner_auto": {
+    "message": "Idioma del vídeo: {lang} (auto)"
   }
 }

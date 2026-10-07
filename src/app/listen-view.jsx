@@ -298,12 +298,17 @@ export function ListenView() {
       </div>
       {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
       <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
-      {/* 语言：**不再常驻**（§9.6.1.5，2026-10-07 用户拍）。默认只有一行被动状态；
-          LID 判出**稳住**的语言后「对方」那一格自动跟着走 —— 平时一个字都不用选。
-          认错了才点「语言不对？」，开半屏 sheet 手动指定（Pencil 稿通过的样子）。 */}
+      {/* 语言区（§9.6.1.6，2026-10-07 真机反馈后定稿）：**一处，就这里** ——
+          「译成」是**看得见的下拉**（你想读的语言，默认系统语言）；「对方说的」是自动识别出来的那门，
+          被动显示；认错了才点「语言不对？」，sheet 里只改「对方」那一格。 */}
       <div className="listen-lang-wrap" id="app-listen-lang-wrap">
         <div className="listen-lang" id="app-listen-lang">
-          <span className="note" id="app-listen-lang-state">{mv.langStateText}</span>
+          <label className="note" id="app-listen-my-label">{mv.langTargetLabel}{' '}
+            <select id="app-listen-my" value={mv.langTargetValue} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+              {mv.langTargetOptions.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+          <span className="note" id="app-listen-partner">{mv.partnerText}</span>
           <button type="button" className="linkish" id="app-listen-lang-edit"
             aria-expanded={mv.langEdit ? 'true' : 'false'}
             onClick={listenModel.toggleLangEdit}>{mv.langEditLabel}</button>
@@ -313,8 +318,8 @@ export function ListenView() {
         <div className="listen-sheet-mask" id="app-listen-lang-sheet-mask"
           onClick={(e) => { if (e.target === e.currentTarget) listenModel.toggleLangEdit(); }}>
           <div className="listen-sheet" id="app-listen-lang-sheet" role="dialog" aria-modal="true"
-            aria-label={mv.langSheetTitle}>
-            <h3 id="app-listen-lang-sheet-title">{mv.langSheetTitle}</h3>
+            aria-label={mv.langEditLabel}>
+            <h3 id="app-listen-lang-sheet-title">{mv.langEditLabel}</h3>
             <p className="note" id="app-listen-lang-sheet-note">{mv.langSheetNote}</p>
             <button type="button" className="listen-sheet-auto" id="app-listen-lang-auto"
               aria-pressed={mv.langManual ? 'false' : 'true'}
@@ -322,15 +327,9 @@ export function ListenView() {
               <span>{mv.langAutoLabel}</span>
               <span className="listen-sheet-dot">{mv.langManual ? '○' : '●'}</span>
             </button>
-            <p className="note listen-sheet-sub" id="app-listen-lang-manual-label">{mv.langManualLabel}</p>
+            <p className="note listen-sheet-sub" id="app-listen-other-label">{mv.otherLabel}</p>
             <div className="listen-pair" id="app-listen-pair">
-              <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
-                <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChangeManual('my', e.target.value)}>
-                  {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-                </select>
-              </label>
-              <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
-              <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
+              <label className="note">
                 <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChangeManual('other', e.target.value)}>
                   {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
                 </select>

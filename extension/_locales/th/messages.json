@@ -3634,5 +3634,11 @@
   },
   "listen_lang_manual": {
     "message": "กำหนดเอง"
+  },
+  "listen_partner_auto": {
+    "message": "ฝ่ายตรงข้ามพูด: {lang} (อัตโนมัติ)"
+  },
+  "subtitle_partner_auto": {
+    "message": "ภาษาของวิดีโอ: {lang} (อัตโนมัติ)"
   }
 }

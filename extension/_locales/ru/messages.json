@@ -3821,5 +3821,11 @@
   },
   "listen_lang_manual": {
     "message": "Задать вручную"
+  },
+  "listen_partner_auto": {
+    "message": "Собеседник говорит: {lang} (авто)"
+  },
+  "subtitle_partner_auto": {
+    "message": "Язык видео: {lang} (авто)"
   }
 }

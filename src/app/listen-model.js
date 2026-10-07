@@ -136,10 +136,10 @@ const listenModel = (() => {
         const sub = mode === 'subtitle';
         // 实时字幕：「对方的语言」换成「视频的语言」（subtitleVideoLang，§9.8 协议补充决定 6）
         const otherLang = (sub ? B(s.subtitleVideoLang) : B(s.listenOtherLang)) || 'en';
-        // 「我的语言」没选过就跟着界面语言走，界面语言也没选就跟系统。只在读取时回落，
-        // 不往存储播种默认值 —— 播种了，用户以后改界面语言这一项就不会跟着动。
-        const myLang = B(s.listenMyLang) || B(s.uiLang !== 'auto' ? s.uiLang : '')
-          || B(navigator.language) || 'zh';
+        // 「译成」（= 用户想读的语言，2026-10-07 真机反馈后定名）：**默认系统语言** ——
+        // 之前跟着界面语言走，界面语言不是中文的人拿到的译文就不是「自己读得懂的那门」。
+        // 只在读取时回落，不往存储播种默认值（播种了，用户以后改系统语言这一项就不会跟着动）。
+        const myLang = B(s.listenMyLang) || B(navigator.language) || 'zh';
         resolve({
           tr,
           // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
@@ -1146,21 +1146,25 @@ const listenModel = (() => {
       myLabel: sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我'),
       otherLabel: sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方'),
       arrow: sub ? '←' : '⇄',
-      // 语言：**不再常驻**（§9.6.1.4，2026-10-07 用户拍）—— 一行被动状态 + 「语言不对？」兜底。
-      langStateText: sub
-        ? (langState() === 'ready'
-          ? t('subtitle_lang_detected', '已识别：{lang}').replace('{lang}', langLabel(cfg && cfg.otherLang))
-          : t('subtitle_lang_detecting', '正在识别视频语言…'))
-        : (langState() === 'ready'
-          ? t('listen_lang_detected', '已识别：{a} · {b}').replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang))
-          : t('listen_lang_detecting', '正在识别语言…')),
+      // 语言区（§9.6.1.6，2026-10-07 真机反馈后定稿）：
+      //   「译成」= 用户想读的语言（**下拉，看得见，默认系统语言**）；
+      //   「对方说的」= 自动识别出来的那门，被动显示；认错点「语言不对？」去 sheet 里手改。
+      langTargetLabel: t('target_lang_label', '译成'),
+      langTargetOptions: langOptionsFor(cfg && cfg.myLang),
+      langTargetValue: C.baseCode(cfg && cfg.myLang),
+      partnerText: (() => {
+        const l = langLabel(cfg && cfg.otherLang);
+        if (langState() !== 'ready') {
+          return sub ? t('subtitle_lang_detecting', '正在识别视频语言…') : t('listen_lang_detecting', '正在识别语言…');
+        }
+        return sub ? t('subtitle_partner_auto', '视频语言：{lang}（自动）').replace('{lang}', l)
+                   : t('listen_partner_auto', '对方说的：{lang}（自动）').replace('{lang}', l);
+      })(),
       langEditLabel: t('listen_lang_edit', '语言不对？'),
       langEdit: !!langEdit,
       langManual: !!langManual,
-      langSheetTitle: t('listen_lang_edit', '语言不对？'),
       langSheetNote: t('listen_lang_sheet_note', '识别错了才需要动这里'),
       langAutoLabel: t('listen_lang_auto', '自动识别'),
-      langManualLabel: t('listen_lang_manual', '手动指定'),
       autospeakRowHidden: sub,
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
@@ -1590,6 +1594,9 @@ const listenModel = (() => {
     } catch (_) {}
   }
   // 行内「↔ 改语言」（原 wire 里两个 select 的 change handler）：对调规则在 ListenCore.langPatch。
+  /** 视图要的选项清单（与 langOptions 同一份；这里只是包一层，视图不必再读全局）。 */
+  function langOptionsFor(cur) { try { return langOptions(cur); } catch (_) { return []; } }
+
   function langChange(which, value) {
     const prev = which === 'my'
       ? { myLang: (cfg && cfg.myLang) || '', otherLang: otherSelVal }

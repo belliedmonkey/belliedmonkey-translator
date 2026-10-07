@@ -3654,5 +3654,11 @@
   },
   "listen_lang_manual": {
     "message": "हाथ से तय करें"
+  },
+  "listen_partner_auto": {
+    "message": "सामने वाला बोल रहा है: {lang} (अपने-आप)"
+  },
+  "subtitle_partner_auto": {
+    "message": "वीडियो की भाषा: {lang} (अपने-आप)"
   }
 }
