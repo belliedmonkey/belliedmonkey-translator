@@ -422,18 +422,29 @@ const listenModel = (() => {
   // （高置信 / 已知低置信 / 无置信）留高分那一路；同一文字系取最新。粘滞随之取消（仲裁取代它）。
   const PARTIAL_TTL_MS = 2500;
   const PARTIAL_HOLD_MS = 300;   // 只有一路候选时先扣住这么久，等另一路（若有）到齐再择一 —— 不先闪错语言
-  let partialBy = {};   // locale base → { text, conf, at }
+  let partialBy = {};   // locale base → { text, conf, at, loc }
   let partialHoldTimer = 0;
+  let partialLoc = '';   // 此刻屏上那一半句的 locale base（同分不换语言要用它）
+  // 「这一路真的在说这门语言」的**学习**（2026-10-07 真音频复现后定案）：半句阶段两路识别器都没有
+  // 置信度（conf -1），所以**没有任何信息**能判谁对 —— 谁先到谁上屏就是随机，两路都会把对方的音频
+  // 硬解成自己的文字（说中文时泰语路吐泰文假字）。可靠的证据只有**定稿**：定稿走仲裁（用置信度），
+  // 错语言那一路会被丢掉。所以：**一路只有在本场出过定稿（赢过仲裁）之后，它的半句才允许上屏。**
+  // 说中文 ⇒ 泰语的定稿永远赢不了 ⇒ 泰语半句根本不上屏（这就是「闪泰文」的根治）；先说泰语 ⇒
+  // 泰语先被确立，照常预览。代价如实记：每种语言在本场的**第一句**没有实时预览（显示「正在说…」），
+  // 定稿一到就恢复正常预览。
+  let partialEstablished = {};   // locale base → true（本场赢过定稿）
   function pickPartial() {
     const at = Date.now();
-    const fresh = Object.keys(partialBy).map((k) => partialBy[k]).filter((c) => c && (at - c.at) < PARTIAL_TTL_MS);
-    return C.pickPartial(fresh, routeDeps);   // 判据在 listen-core（纯函数、有单测）
+    const fresh = Object.keys(partialBy).map((k) => partialBy[k])
+      .filter((c) => c && (at - c.at) < PARTIAL_TTL_MS && partialEstablished[c.loc]);
+    return C.pickPartial(fresh, routeDeps, partialLoc);   // 判据在 listen-core（纯函数、有单测）
   }
-  function clearPartials() { partialBy = {}; if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; } partial = ''; partialTr = ''; }
+  function clearPartials() { partialBy = {}; if (partialHoldTimer) { clearTimeout(partialHoldTimer); partialHoldTimer = 0; } partialLoc = ''; partial = ''; partialTr = ''; }
   // 画当前该显示的那一路半句（三档择一见 pickPartial）。
   function refreshPartial() {
     const pick = pickPartial();
     partial = pick ? pick.text : '';
+    partialLoc = pick ? (pick.loc || '') : '';
     // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
     // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
     if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
@@ -492,7 +503,7 @@ const listenModel = (() => {
   function onPartial(locale, text, conf) {
     const key = C.baseCode(locale);
     const t = String(text || '').trim();
-    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, conf, at: Date.now() };
+    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, conf, at: Date.now(), loc: key };
     // 只有一路候选且刚到 ⇒ 先扣住一小段再画：说话**开头**两路识别器对同一段音频都会给半句，
     // 谁先到就先画的话，说中文时泰语路的假半句会「先闪」一下（95 真机）。扣到另一路到齐再
     // 按三档择一（高置信压中性、中性压低置信）；窗口内没有第二路 ⇒ 到点正常画它。
@@ -514,6 +525,7 @@ const listenModel = (() => {
     if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
     const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
     if (!row) return;
+    if (meta && meta.locale) partialEstablished[C.baseCode(meta.locale)] = true;   // 这一路赢了定稿 ⇒ 它的半句从此可以上屏
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
     row.lat = { final: now(), engine: 'device' };   // 2026-09-17 起只有本机路
     partial = ''; partialTr = '';
@@ -780,6 +792,7 @@ const listenModel = (() => {
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
+    partialEstablished = {};   // 新会话：哪一路「真的在说」从头学（见 pickPartial 注释）
     diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经

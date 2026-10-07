@@ -667,10 +667,13 @@ var ListenCore = (() => {
     };
   }
 
-  // 半句层的择一（与定稿仲裁同一套判据，2026-10-06）。cands = [{ text, conf, at }]。
+  // 半句层的择一（与定稿仲裁同一套判据，2026-10-06）。cands = [{ text, conf, at, loc }]。
   // 文字系不同 ⇒ 留三档分最高的那一路（高置信压中性、中性压低置信）；同文字系 ⇒ 取最新。
-  // 说话开头只有一路半句时自然返回它；两路都在时这就是「说中文不再先闪泰文」的判据。
-  function pickPartial(cands, deps) {
+  // **同分且文字系不同 ⇒ 不换语言**（2026-10-07 真音频复现）：partial 阶段两路都还没有置信度
+  // （conf -1），「取最新」会让后到的错语言把对的顶掉 —— 说中文时中文半句先到（Speech 先吐字），
+  // 泰文垃圾半句几秒后才到，一同分就把屏上翻成泰文。没有新信息就不该翻：保持现在显示的那一路
+  // （没显示过就取最早到的）。currentLocale = 此刻屏上那一半句用的 locale base。
+  function pickPartial(cands, deps, currentLocale) {
     const list = (cands || []).filter((c) => c && c.text);
     if (!list.length) return null;
     if (list.length === 1) return list[0];
@@ -678,7 +681,10 @@ var ListenCore = (() => {
     const scriptOf = (t) => { try { return (ds && ds(t)) || ''; } catch (_) { return ''; } };
     if (new Set(list.map((c) => scriptOf(c.text))).size > 1) {
       const max = Math.max(...list.map((c) => arbScore({ conf: c.conf })));
-      return list.filter((c) => arbScore({ conf: c.conf }) === max).reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
+      const top = list.filter((c) => arbScore({ conf: c.conf }) === max);
+      if (top.length === 1) return top[0];
+      if (currentLocale) { const keep = top.find((c) => c.loc === currentLocale); if (keep) return keep; }
+      return top.reduce((a, b) => ((a.at || 0) <= (b.at || 0) ? a : b));   // 同分：留最早到的
     }
     return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
   }

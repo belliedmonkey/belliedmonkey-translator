@@ -817,7 +817,14 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     a.flushAll();
     deepEq(locs(), ['zh-CN'], '会话结束时扣着的片不能丢');
   });
-  // 半句层择一（2026-10-06，95 真机「说中文先闪泰文再改中文」）：定稿仲裁管定稿，半句是另一条路。
+  // 半句上屏要先被定稿「确立」（2026-10-07 真音频复现后定案）：半句阶段两路都没置信度，
+  // 谁先到谁上屏是随机；可靠证据只有仲裁过的定稿 ⇒ 一路赢过定稿后它的半句才准上屏。
+  test('半句上屏要先被定稿确立（说中文时泰文半句永不上屏）', () => {
+    ok(/partialEstablished\[c\.loc\]/.test(MODEL), 'pickPartial 没有按「已确立」过滤半句');
+    ok(/partialEstablished\[C\.baseCode\(meta\.locale\)\] = true/.test(MODEL), '定稿建行后没有把该路标记为已确立');
+    ok(/partialEstablished = \{\}/.test(MODEL), '新会话没有重置「已确立」');
+  });
+  // 半句层的择一（2026-10-06，95 真机「说中文先闪泰文再改中文」）：定稿仲裁管定稿，半句是另一条路。
   test('半句择一：文字系不同按三档分留高者；同文字系取最新；只有一路就它', () => {
     eq(C.pickPartial([{ text: '我想订一间房间', conf: 0.9, at: 2 }, { text: 'ฉันต้องการจอง', conf: -1, at: 3 }], DEPS).text, '我想订一间房间', '说中文：高置信压过泰文假字');
     eq(C.pickPartial([{ text: '我在那', conf: 0.12, at: 2 }, { text: 'สวัสดีครับ', conf: -1, at: 3 }], DEPS).text, 'สวัสดีครับ', '说泰语：低置信中文假字让位给泰文');
@@ -825,6 +832,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     eq(C.pickPartial([{ text: 'สวัสดี', conf: -1, at: 1 }], DEPS).text, 'สวัสดี');
     eq(C.pickPartial([], DEPS), null);
     eq(C.pickPartial([{ text: '', conf: 1, at: 1 }], DEPS), null);
+    // 同分且文字系不同 ⇒ **不换语言**（2026-10-07 真音频复现：中文半句先到、泰文垃圾 3s 后到，
+    // 两路 partial 置信度都还是 -1 ⇒ 同分；旧规则「取最新」会把屏上翻成泰文）。
+    eq(C.pickPartial([{ text: '今天下午', conf: -1, at: 1, loc: 'zh' }, { text: 'ชิงเชียง', conf: -1, at: 4, loc: 'th' }], DEPS, 'zh').loc, 'zh', '同分保持现在显示的中文');
+    eq(C.pickPartial([{ text: 'ชิงเชียง', conf: -1, at: 4, loc: 'th' }, { text: '今天下午', conf: -1, at: 1, loc: 'zh' }], DEPS, '').loc, 'zh', '没显示过 ⇒ 取最早到的中文');
   });
   // 回声优先（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」）：窗口里任一路匹配我们刚读出去的
   // 文本 ⇒ 整窗判成回声、两路都丢 —— 错语言那一路不匹配文字，靠正确语言那一路把整段判掉。
