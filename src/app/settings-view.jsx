@@ -56,7 +56,6 @@ export default function SettingsView() {
   const [followLabel, setFollowLabel] = useState('');
 
   const uiLangNow = useRef('auto');
-  const lastLangs = useRef({ my: '', other: '' });
   // 出发前预载（§9.5）：两态按钮。`pending` 持有算好的账单，点第二下才开跑；
   // `running` 时按钮是「停止」。这不是 UI 花样，是 §9.2 修订后那条例外的构成要件之一。
   const preloadState = useRef('idle');     // idle | pending | running
@@ -126,9 +125,6 @@ export default function SettingsView() {
     EngineFields.populate($('stt-engine'), Registry.sttEngines() || [], {
       t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
     });
-    fillLangs($('subtitle-video-lang'));
-    fillLangs($('listen-my-lang'));
-    fillLangs($('listen-other-lang'));
     updateFollowLabel();
   }
 
@@ -251,12 +247,16 @@ export default function SettingsView() {
     } finally { ttsPackBusy.current = false; dl.disabled = false; }
   }
 
+  // 当前语言对（§9.6.1.5）：**语言是自动识别的**，设置页不再有下拉 —— 这两个值来自存储，
+  // 也就是最近一次自动识别/手动指定到的对。只用来给「识别语言包」行说包在不在。
+  let curLangs = { my: '', other: '' };
+
   // ── 识别语言包行（对话 · 实时字幕；§9.1.1 镜像 §9.6 的 downloading 态）──────
   // 语言包由**系统**下载（不是我们的文件服务器），换语言时系统也会自动下 —— 这一行只是
   // 让「在不在」在开始听之前就看得见，并给一个手动的「下载」。
   function listenLocales() {
     const L = ListenCore.toLocale;
-    const a = L($('listen-my-lang').value), b = L($('listen-other-lang').value);
+    const a = L(curLangs.my), b = L(curLangs.other);
     return a === b ? [a] : [a, b];
   }
   async function paintListenPack() {
@@ -747,12 +747,10 @@ export default function SettingsView() {
     // 「我的语言」没选过就跟着界面语言走 —— 只在读取时回落，不往存储播种默认值，
     // 这样用户改界面语言时它会跟着变，直到他自己选过一次。
     // 语言下拉在每次进设置页时重填：本机识别器支持的语种清单是探过桥才有的
-    fillLangs($('listen-my-lang'));
-    fillLangs($('listen-other-lang'));
-    fillLangs($('subtitle-video-lang'));
-    $('listen-my-lang').value = settingsModel.myLangOf(cur);
-    $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
-    $('subtitle-video-lang').value = ListenCore.baseCode(cur.subtitleVideoLang) || 'en';
+    curLangs = {
+      my: settingsModel.myLangOf(cur),
+      other: ListenCore.baseCode(cur.listenOtherLang) || 'en',
+    };
     paintListenPack();
     setDepsSettings(Object.assign({}, cur));
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
@@ -792,7 +790,6 @@ export default function SettingsView() {
     $('mode-quick').addEventListener('click', () => setDetailFn(false));
     $('mode-detail').addEventListener('click', () => setDetailFn(true));
     $('app-adv-hint-go').addEventListener('click', () => { setDetailFn(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
-    $('subtitle-video-lang').addEventListener('change', () => { settingsModel.set({ subtitleVideoLang: $('subtitle-video-lang').value }); });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
     // keep consistent here, and a Save button is one more thing to forget to press.
@@ -934,27 +931,8 @@ export default function SettingsView() {
       if (typeof AppSysSettings !== 'undefined') AppSysSettings.wire();
     }
     $('doc-prefetch').addEventListener('change', () => { settingsModel.set({ docPrefetch: $('doc-prefetch').checked }); });
-    for (const which of ['my', 'other']) {
-      const el = $('listen-' + which + '-lang');
-      el.addEventListener('change', () => {
-        const cur = { myLang: $('listen-my-lang').value, otherLang: $('listen-other-lang').value };
-        // 取变更**之前**的那一对：change 已经把 el 改了，所以把它换回旧值再算。
-        const prev = which === 'my'
-          ? { myLang: lastLangs.current.my, otherLang: cur.otherLang }
-          : { myLang: cur.myLang, otherLang: lastLangs.current.other };
-        const p = ListenCore.langPatch(which, el.value, prev);
-        const swapped = p.swapped; delete p.swapped;
-        settingsModel.set(p);
-        if (p.listenMyLang !== undefined) $('listen-my-lang').value = ListenCore.baseCode(p.listenMyLang);
-        if (p.listenOtherLang !== undefined) $('listen-other-lang').value = ListenCore.baseCode(p.listenOtherLang);
-        lastLangs.current = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
-        if (swapped) say(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'));
-        paintListenPack();   // 换了语言，语言包在不在要重新说
-      });
-    }
     $('listen-pack-dl').addEventListener('click', downloadListenPack);
     $('tts-offline-dl').addEventListener('click', downloadTtsPack);
-    lastLangs.current = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
     $('drive-play-notes').addEventListener('change', () => {
       settingsModel.set({ drivePlayNotes: $('drive-play-notes').checked });
       resetPreload();     // 开关变了，账单就过期了 —— 不能让它继续代表旧的计划
@@ -1543,19 +1521,10 @@ export default function SettingsView() {
             <input id="subtitle-capture" type="checkbox" />
             <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
           </label>
-          {/* 语言对（§9.6，2026-09-08）。两个下拉与对话页底部那两个是**同一份设置**：
-               洽谈现场发现语言选错要能立刻改，跳设置页等于中断会话，所以两处都有。
-               两边选成同一种语言时不是拒绝而是对调 —— 见 ListenCore.langPatch 的注释。 */}
-          <label className="field">
-            <span id="listen-my-lang-label">{t('listen_my_lang_label', '我的语言')}</span>
-            <select id="listen-my-lang"></select>
-          </label>
-          <label className="field">
-            <span id="listen-other-lang-label">{t('listen_other_lang_label', '对方的语言')}</span>
-            <select id="listen-other-lang"></select>
-          </label>
+          {/* 语言对**不再常驻**（§9.6.1.5，2026-10-07 用户拍）：端上 LID 认得出，用户不用先选。
+               这里只留一句说明 —— 手动指定在听译页的「语言不对？」里（兜底）。 */}
           <p className="note" id="listen-lang-note">{t('listen_lang_note',
-            '两边不能是同一种语言。对话页底部也能改，两处是同一份设置。')}</p>
+            '语言自动识别，不用先选。要手动指定，用听译页里的「语言不对？」。')}</p>
           {/* 识别语言包（§9.1.1，镜像 §9.6 的 downloading 态）：本机识别器的语言包由系统按需下载；
                换了语言先在这里说清在不在，而不是等到点「开始听」才发现要等。 */}
           <div className="field" id="listen-pack-row" hidden>
@@ -1563,11 +1532,6 @@ export default function SettingsView() {
             <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
             <button id="listen-pack-dl" type="button" className="secondary"></button>
           </div>
-          {/* 实时字幕「视频的语言」（§9.8 协议补充决定 6）进设置页（2026-09-17）：与准备页那处是「两处一份设置」。 */}
-          <label className="field">
-            <span id="subtitle-video-lang-label">{t('subtitle_video_lang_label', '视频的语言')}</span>
-            <select id="subtitle-video-lang"></select>
-          </label>
           <label className="check">
             <input id="listen-autospeak" type="checkbox" />
             <span id="listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>

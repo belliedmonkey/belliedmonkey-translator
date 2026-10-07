@@ -2530,7 +2530,7 @@
     "message": "Mi idioma"
   },
   "listen_lang_note": {
-    "message": "Los dos idiomas deben ser distintos. También se cambian abajo en la pantalla de conversación: es el mismo ajuste."
+    "message": "Los idiomas se detectan automáticamente; no hace falta elegir. Para fijarlos a mano, usa «¿Idioma incorrecto?» en la página de escucha."
   },
   "listen_lang_engine_unsupported": {
     "message": "no compatible con el motor actual"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "Detectado: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Tócalo solo si se equivocó de idioma"
+  },
+  "listen_lang_auto": {
+    "message": "Detección automática"
+  },
+  "listen_lang_manual": {
+    "message": "Fijar a mano"
   }
 }

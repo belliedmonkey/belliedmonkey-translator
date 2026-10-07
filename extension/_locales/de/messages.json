@@ -2530,7 +2530,7 @@
     "message": "Meine Sprache"
   },
   "listen_lang_note": {
-    "message": "Die beiden Sprachen müssen verschieden sein. Auch unten im Gesprächsbildschirm änderbar — dieselbe Einstellung."
+    "message": "Sprachen werden automatisch erkannt – keine Auswahl nötig. Manuell geht es über „Falsche Sprache?“ auf der Mithör-Seite."
   },
   "listen_lang_engine_unsupported": {
     "message": "von der aktuellen Engine nicht unterstützt"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "Erkannt: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Nur nötig, wenn die Sprache falsch erkannt wurde"
+  },
+  "listen_lang_auto": {
+    "message": "Automatisch erkennen"
+  },
+  "listen_lang_manual": {
+    "message": "Manuell festlegen"
   }
 }

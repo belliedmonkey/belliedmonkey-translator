@@ -2530,7 +2530,7 @@
     "message": "自分の言語"
   },
   "listen_lang_note": {
-    "message": "2 つは別の言語である必要があります。会話画面の下でも変更でき、設定は共通です。"
+    "message": "言語は自動で識別されます（選択不要）。手動で指定するには、聞き取りページの「言語が違う？」から。"
   },
   "listen_lang_engine_unsupported": {
     "message": "現在のエンジンでは対応していません"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "識別済み：{lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "認識を間違えたときだけ触ってください"
+  },
+  "listen_lang_auto": {
+    "message": "自動識別"
+  },
+  "listen_lang_manual": {
+    "message": "手動で指定"
   }
 }

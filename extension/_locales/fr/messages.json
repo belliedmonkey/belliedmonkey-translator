@@ -2530,7 +2530,7 @@
     "message": "Ma langue"
   },
   "listen_lang_note": {
-    "message": "Les deux langues doivent être différentes. Modifiable aussi en bas de l'écran de conversation — même réglage."
+    "message": "Les langues sont détectées automatiquement — inutile de choisir. Pour les définir à la main : « Mauvaise langue ? » sur la page d’écoute."
   },
   "listen_lang_engine_unsupported": {
     "message": "non pris en charge par le moteur actuel"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "Détecté : {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "À toucher seulement si la langue a été mal reconnue"
+  },
+  "listen_lang_auto": {
+    "message": "Détection automatique"
+  },
+  "listen_lang_manual": {
+    "message": "Définir à la main"
   }
 }

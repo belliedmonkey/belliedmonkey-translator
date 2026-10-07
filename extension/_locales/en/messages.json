@@ -2530,7 +2530,7 @@
     "message": "My language"
   },
   "listen_lang_note": {
-    "message": "The two languages must differ. You can also change them at the bottom of the conversation screen — same setting."
+    "message": "Languages are detected automatically — no need to choose. To set them by hand, use “Wrong language?” on the listen page."
   },
   "listen_lang_engine_unsupported": {
     "message": "not supported by the current engine"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "Detected: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Only touch this if it got the language wrong"
+  },
+  "listen_lang_auto": {
+    "message": "Detect automatically"
+  },
+  "listen_lang_manual": {
+    "message": "Set by hand"
   }
 }

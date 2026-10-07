@@ -476,14 +476,27 @@ const listenModel = (() => {
   // ③ 记住它（listenOtherLang / subtitleVideoLang）—— 下次进场拿它当起点，紧接着又被 LID 修正。
   // 防抖 2s：判词在难音频上会来回跳，别跟着疯换。
   let langAutoAt = 0, lidSettleTimer = 0;
-  let langEdit = false;      // 「语言不对？」摊开手动指定的两个下拉（默认收起，§9.6.1.4）
+  let langEdit = false;      // 「语言不对？」半屏 sheet 开着（默认关，§9.6.1.5）
+  let langManual = false;    // true = 用户手动指定过语言 ⇒ 自动跟随停（§9.6.1.5）
   function toggleLangEdit() { langEdit = !langEdit; canvas.view('state'); }
+  /** 手动指定（sheet 里那两个下拉）：一旦手动 ⇒ 关掉自动跟随，LID 不再改「对方」那一格。 */
+  function langChangeManual(which, value) {
+    if (!langManual) { langManual = true; chrome.storage.local.set({ listenLangManual: true }); }
+    langChange(which, value);
+  }
+  /** 回「自动识别」：清掉手动标记，之后 LID 又接管「对方」那一格。 */
+  function setLangAuto() {
+    langManual = false;
+    chrome.storage.local.set({ listenLangManual: false });
+    canvas.view('state');
+  }
   const AUTO_GAP_MS = 2000;
   function autoFollow(lang) {
     const L = C.baseCode(lang);
     if (!L || !cfg || !session) return;
     if (phase !== 'listening' && phase !== 'preparing') return;
     if (L === C.baseCode(cfg.myLang) || L === C.baseCode(cfg.otherLang)) return;
+    if (langManual) return;          // 用户手动指定过 ⇒ 自动跟随停（§9.6.1.5）
     const now = Date.now();
     if (now - langAutoAt < AUTO_GAP_MS) return;
     langAutoAt = now;
@@ -853,6 +866,7 @@ const listenModel = (() => {
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
     langEdit = false;
     langAutoAt = 0;
+    try { chrome.storage.local.get(['listenLangManual'], (st) => { langManual = !!st.listenLangManual; canvas.view('state'); }); } catch (_) {}
     diagAudioArm(session.id);
     sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
@@ -1142,6 +1156,11 @@ const listenModel = (() => {
           : t('listen_lang_detecting', '正在识别语言…')),
       langEditLabel: t('listen_lang_edit', '语言不对？'),
       langEdit: !!langEdit,
+      langManual: !!langManual,
+      langSheetTitle: t('listen_lang_edit', '语言不对？'),
+      langSheetNote: t('listen_lang_sheet_note', '识别错了才需要动这里'),
+      langAutoLabel: t('listen_lang_auto', '自动识别'),
+      langManualLabel: t('listen_lang_manual', '手动指定'),
       autospeakRowHidden: sub,
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
@@ -1758,7 +1777,7 @@ const listenModel = (() => {
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,
     setOpenEnginePicker, changeEngine, anyLangUnsupported,
-    toggleLangEdit,
+    toggleLangEdit, langChangeManual, setLangAuto,
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,

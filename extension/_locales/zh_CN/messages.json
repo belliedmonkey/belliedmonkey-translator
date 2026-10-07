@@ -2531,7 +2531,7 @@
     "message": "我的语言"
   },
   "listen_lang_note": {
-    "message": "两边不能是同一种语言。对话页底部也能改，两处是同一份设置。"
+    "message": "语言自动识别，不用先选。要手动指定，用听译页里的「语言不对？」。"
   },
   "listen_lang_engine_unsupported": {
     "message": "当前引擎不支持"
@@ -3813,5 +3813,14 @@
   },
   "subtitle_lang_detected": {
     "message": "已识别：{lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "识别错了才需要动这里"
+  },
+  "listen_lang_auto": {
+    "message": "自动识别"
+  },
+  "listen_lang_manual": {
+    "message": "手动指定"
   }
 }

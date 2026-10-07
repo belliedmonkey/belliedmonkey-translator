@@ -2530,7 +2530,7 @@
     "message": "내 언어"
   },
   "listen_lang_note": {
-    "message": "두 언어는 서로 달라야 합니다. 대화 화면 아래에서도 바꿀 수 있으며 같은 설정입니다."
+    "message": "언어는 자동으로 인식됩니다(선택 불필요). 직접 지정하려면 통역 화면의 「언어가 다른가요?」를 사용하세요."
   },
   "listen_lang_engine_unsupported": {
     "message": "현재 엔진에서 지원되지 않음"
@@ -3812,5 +3812,14 @@
   },
   "subtitle_lang_detected": {
     "message": "인식됨: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "인식이 틀렸을 때만 건드리세요"
+  },
+  "listen_lang_auto": {
+    "message": "자동 인식"
+  },
+  "listen_lang_manual": {
+    "message": "직접 지정"
   }
 }

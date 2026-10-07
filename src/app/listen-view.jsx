@@ -298,9 +298,9 @@ export function ListenView() {
       </div>
       {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
       <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
-      {/* 语言：**不再常驻**（§9.6.1.4，2026-10-07 用户拍）。默认只有一行被动状态；
+      {/* 语言：**不再常驻**（§9.6.1.5，2026-10-07 用户拍）。默认只有一行被动状态；
           LID 判出**稳住**的语言后「对方」那一格自动跟着走 —— 平时一个字都不用选。
-          认错了才点「语言不对？」摊开手动指定（就是原来的两个下拉）。 */}
+          认错了才点「语言不对？」，开半屏 sheet 手动指定（Pencil 稿通过的样子）。 */}
       <div className="listen-lang-wrap" id="app-listen-lang-wrap">
         <div className="listen-lang" id="app-listen-lang">
           <span className="note" id="app-listen-lang-state">{mv.langStateText}</span>
@@ -308,20 +308,43 @@ export function ListenView() {
             aria-expanded={mv.langEdit ? 'true' : 'false'}
             onClick={listenModel.toggleLangEdit}>{mv.langEditLabel}</button>
         </div>
-        <div className="listen-pair" id="app-listen-pair" hidden={!mv.langEdit}>
-          <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
-            <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-              {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
-          <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
-          <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
-            <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-              {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
-        </div>
       </div>
+      {mv.langEdit ? (
+        <div className="listen-sheet-mask" id="app-listen-lang-sheet-mask"
+          onClick={(e) => { if (e.target === e.currentTarget) listenModel.toggleLangEdit(); }}>
+          <div className="listen-sheet" id="app-listen-lang-sheet" role="dialog" aria-modal="true"
+            aria-label={mv.langSheetTitle}>
+            <h3 id="app-listen-lang-sheet-title">{mv.langSheetTitle}</h3>
+            <p className="note" id="app-listen-lang-sheet-note">{mv.langSheetNote}</p>
+            <button type="button" className="listen-sheet-auto" id="app-listen-lang-auto"
+              aria-pressed={mv.langManual ? 'false' : 'true'}
+              onClick={listenModel.setLangAuto}>
+              <span>{mv.langAutoLabel}</span>
+              <span className="listen-sheet-dot">{mv.langManual ? '○' : '●'}</span>
+            </button>
+            <p className="note listen-sheet-sub" id="app-listen-lang-manual-label">{mv.langManualLabel}</p>
+            <div className="listen-pair" id="app-listen-pair">
+              <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
+                <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChangeManual('my', e.target.value)}>
+                  {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+                </select>
+              </label>
+              <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
+              <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
+                <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChangeManual('other', e.target.value)}>
+                  {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+                </select>
+              </label>
+            </div>
+            <div className="listen-engine-hint" id="app-listen-engine-hint" hidden={!listenModel.anyLangUnsupported()}>
+              <button type="button" id="app-listen-change-engine" className="linkish"
+                onClick={() => listenModel.changeEngine()}>{t('listen_lang_change_engine', '换引擎')}</button>
+            </div>
+            <button type="button" className="listen-sheet-close" id="app-listen-lang-close"
+              onClick={listenModel.toggleLangEdit}>{t('listen_close', '关闭')}</button>
+          </div>
+        </div>
+      ) : null}
       {/* 「换引擎」（2026-10-04 用户裁定）：语言列表**始终列全**，被引擎挡住的那些灰显并带一句
           「当前引擎不支持」—— 出路**就地**给，不是一句「去设置里选」。只在真有被挡住的语言时出现。 */}
       <div className="listen-engine-hint" id="app-listen-engine-hint" hidden={!listenModel.anyLangUnsupported()}>

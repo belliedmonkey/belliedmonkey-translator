@@ -622,6 +622,15 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-lang-wrap { display: flex; flex-direction: column; gap: 8px; }
 :where(#app-listen) .listen-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 :where(#app-listen) .listen-lang button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+/* 「语言不对？」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
+   认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
+:where(#app-listen) .listen-sheet-mask { position: fixed; inset: 0; z-index: 2147483000; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+:where(#app-listen) .listen-sheet { background: var(--card-bg, #fff); color: var(--fg, var(--text, #201e1d)); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -8px 40px rgba(0,0,0,.18); }
+:where(#app-listen) .listen-sheet h3 { margin: 0; font-size: 1.05rem; }
+:where(#app-listen) .listen-sheet-auto { display: flex; justify-content: space-between; align-items: center; font: inherit; min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--line, var(--border, #dcd3c4)); border-radius: 12px; background: none; color: inherit; cursor: pointer; }
+:where(#app-listen) .listen-sheet-dot { color: var(--accent); }
+:where(#app-listen) .listen-sheet-sub { margin: 0; }
+:where(#app-listen) .listen-sheet-close { font: inherit; font-weight: 700; min-height: 44px; border-radius: 999px; border: 1.5px solid var(--line, var(--border, #dcd3c4)); background: none; color: var(--accent-deep, var(--accent)); cursor: pointer; }
 :where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 :where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
 :where(#app-listen) .listen-pair select { font: inherit; }
