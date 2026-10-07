@@ -10,7 +10,7 @@
 'use strict';
 const https = require('https');
 const crypto = require('crypto');
-const { MT_DEVICE_TTS_MODELS } = require('../app/device-models.config.js');
+const { MT_DEVICE_TTS_MODELS, MT_DEVICE_LID } = require('../app/device-models.config.js');
 const ranged = process.argv.includes('--range');
 
 function request(url, opts, hops = 0) {
@@ -64,7 +64,7 @@ const getRange = (url, bytes) => new Promise((resolve) => {
 
 (async () => {
   let bad = 0, checked = 0;
-  for (const m of MT_DEVICE_TTS_MODELS) {
+  for (const m of [...MT_DEVICE_TTS_MODELS, MT_DEVICE_LID]) {
     for (const f of m.files) {
       const urls = ['global', 'china']
         .map((fl) => [fl, f.url[fl]])
@@ -75,7 +75,7 @@ const getRange = (url, bytes) => new Promise((resolve) => {
         if (r.status !== 200 || r.len !== f.size) r = await probe(u);
         const ok = (r.status === 200 || r.status === 206) && r.len === f.size;
         if (!ok) bad++;
-        console.log(`${ok ? '✓' : '✗'} ${m.lang} ${tag} ${r.status} ${r.len === f.size ? '' : `len=${r.len} 期望 ${f.size} `}${r.err || ''}${r.cr ? ' [' + r.cr + ']' : ''}\n    ${u}`);
+        console.log(`${ok ? '✓' : '✗'} ${m.lang || m.kind || 'lid'} ${tag} ${r.status} ${r.len === f.size ? '' : `len=${r.len} 期望 ${f.size} `}${r.err || ''}${r.cr ? ' [' + r.cr + ']' : ''}\n    ${u}`);
         if (ok && ranged) {
           const g = await getRange(u, 1024 * 1024);
           const expect = require('fs').existsSync('.local/device-models/' + f.path)

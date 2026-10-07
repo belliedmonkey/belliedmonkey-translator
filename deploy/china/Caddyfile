@@ -98,6 +98,9 @@
 		handle /models/kokoro-zh-en.zip {
 			redir https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/kokoro-zh-en.zip 302
 		}
+		handle /models/sherpa-onnx-whisper-tiny.zip {
+			redir https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/sherpa-onnx-whisper-tiny.zip 302
+		}
 	}
 
 	header {

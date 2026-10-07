@@ -98,4 +98,29 @@ function mtDeviceTtsModelsFor(flavor) {
   }));
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor };
+// ── 语种识别（LID）模型（§9.6.1.3，2026-10-07）────────────────────────────────
+// 听译里「谁在说哪门语言」由它判（sherpa-onnx 自带 SLID，whisper tiny）—— 不再用手写文字系/置信度规则。
+// 一个 zip 装两个 onnx（encoder + decoder），App 解到 Application Support/mt-lid/<dir>/。
+// 托管与 TTS 模型同一处（ModelScope belliedmonkey-device-models，经 api.belliedmonkey.com/models/ 中转）。
+var MT_DEVICE_LID = {
+  kind: 'lid', dir: 'sherpa-onnx-whisper-tiny',
+  encoder: 'tiny-encoder.int8.onnx', decoder: 'tiny-decoder.int8.onnx',
+  files: [{
+    path: 'sherpa-onnx-whisper-tiny.zip', size: 60311200,
+    sha256: 'ae0ba8b75d2f0d299807a41915d66a329c01cb5459832879d22a28411a684501',
+    url: {
+      global: MT_MODEL_RELAY + 'sherpa-onnx-whisper-tiny.zip',
+      china: MT_MODEL_RELAY + 'sherpa-onnx-whisper-tiny.zip',
+    },
+  }],
+};
+
+// 给原生的形状：url 按 flavor 解开成一个字符串（同上）。
+function mtDeviceLidModelsFor(flavor) {
+  const f = flavor === 'china' ? 'china' : 'global';
+  return Object.assign({}, MT_DEVICE_LID, {
+    files: MT_DEVICE_LID.files.map((x) => Object.assign({}, x, { url: typeof x.url === 'string' ? x.url : x.url[f] })),
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor };
