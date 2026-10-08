@@ -3851,5 +3851,8 @@
   },
   "listen_ptt_need_start": {
     "message": "Available after you tap “Start listening”"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "Tap or hold to speak"
   }
 }

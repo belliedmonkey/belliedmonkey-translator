@@ -3664,5 +3664,8 @@
   },
   "listen_ptt_need_start": {
     "message": "ใช้ได้หลังแตะ «เริ่มฟัง»"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "แตะหรือกดค้างเพื่อพูด"
   }
 }

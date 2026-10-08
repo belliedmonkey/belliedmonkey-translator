@@ -299,35 +299,6 @@ export function ListenView() {
       <div id="app-listen-actions" hidden={tv.ended}>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
-      {/* 按住说 / 点一下（Pencil jERJ5 / gitVW 终稿 3）：左＝你这门「说中文」，右＝对方那门
-          （本名大字 + **那门语言**的小字）。按下 = 这一句按这门识别（不跑语种判定）；
-          松手不足 0.4s = 锁定（再点一下结束）；够 0.4s = 定稿。锁定时点另一个键 = 先定稿再切。
-          灰掉时就近说原因（未开始 / 已暂停同一句）。 */}
-      <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
-        <p className="note listen-ptt-locked" id="app-listen-ptt-locked" hidden={!pv.locked}>{pv.lockedText}</p>
-        <div className="listen-ptt" id="app-listen-ptt-bar">
-          <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
-            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.mineSide); }}
-            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.mineSide); }}
-            onPointerLeave={() => listenModel.pttUp(pv.mineSide)}
-            onPointerCancel={() => listenModel.pttUp(pv.mineSide)}>{pv.mineLabel}</button>
-          <span className="listen-ptt-sep" aria-hidden="true" />
-          <button id="app-listen-ptt-other" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.otherSide ? ' on' : '')}
-            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
-            onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.otherSide); }}
-            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.otherSide); }}
-            onPointerLeave={() => listenModel.pttUp(pv.otherSide)}
-            onPointerCancel={() => listenModel.pttUp(pv.otherSide)}>
-            <span className="listen-ptt-name" id="app-listen-ptt-other-name">{pv.otherLabel}</span>
-            {pv.otherHint ? <span className="listen-ptt-hint" id="app-listen-ptt-other-hint">{pv.otherHint}</span> : null}
-          </button>
-        </div>
-        <p className="note" id="app-listen-ptt-why" hidden={!pv.whyText}>{pv.whyText}</p>
-        <p className="note" id="app-listen-ptt-note" hidden={!pv.noteText}>{pv.noteText}</p>
-      </div>
       {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
       <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
       {/* 语言区（§9.6.1.8，2026-10-07 用户拍）：**两门对称互译** ——
@@ -380,6 +351,38 @@ export function ListenView() {
       {/* Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行。 */}
       <p className="note" id="app-listen-device-privacy" hidden={!fv2.privacyShown}>{fv2.privacyText}</p>
 
+      {/* 按住说 / 点一下（Pencil jERJ5 / gitVW 终稿 3）：左＝你这门「说中文」，右＝对方那门
+          （本名大字 + **那门语言**的小字）。按下 = 这一句按这门识别（不跑语种判定）；
+          松手不足 0.4s = 锁定（再点一下结束）；够 0.4s = 定稿。锁定时点另一个键 = 先定稿再切。
+          灰掉时就近说原因（未开始 / 已暂停同一句）。 */}
+      <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
+        <p className="note listen-ptt-locked" id="app-listen-ptt-locked" hidden={!pv.locked}>{pv.lockedText}</p>
+        <div className="listen-ptt" id="app-listen-ptt-bar">
+          <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
+            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.mineSide); }}
+            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.mineSide); }}
+            onPointerLeave={() => listenModel.pttUp(pv.mineSide)}
+            onPointerCancel={() => listenModel.pttUp(pv.mineSide)}>
+            <span className="listen-ptt-name" id="app-listen-ptt-mine-name">{pv.mineLabel}</span>
+            {pv.mineHint ? <span className="listen-ptt-hint" id="app-listen-ptt-mine-hint">{pv.mineHint}</span> : null}
+          </button>
+          <span className="listen-ptt-sep" aria-hidden="true" />
+          <button id="app-listen-ptt-other" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.otherSide ? ' on' : '')}
+            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
+            onContextMenu={(e) => e.preventDefault()}
+            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.otherSide); }}
+            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.otherSide); }}
+            onPointerLeave={() => listenModel.pttUp(pv.otherSide)}
+            onPointerCancel={() => listenModel.pttUp(pv.otherSide)}>
+            <span className="listen-ptt-name" id="app-listen-ptt-other-name">{pv.otherLabel}</span>
+            {pv.otherHint ? <span className="listen-ptt-hint" id="app-listen-ptt-other-hint">{pv.otherHint}</span> : null}
+          </button>
+        </div>
+        <p className="note" id="app-listen-ptt-why" hidden={!pv.whyText}>{pv.whyText}</p>
+        <p className="note" id="app-listen-ptt-note" hidden={!pv.noteText}>{pv.noteText}</p>
+      </div>
       <div id="app-listen-summary" className="drive-card" hidden={!sv.shown}>
         <h3 id="app-listen-summary-title">{mv.summaryTitle}</h3>
         <p id="app-listen-summary-body">{sv.body || ''}</p>

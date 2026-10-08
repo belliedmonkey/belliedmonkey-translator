@@ -3851,5 +3851,8 @@
   },
   "listen_ptt_need_start": {
     "message": "「듣기 시작」을 누르면 사용할 수 있습니다"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "탭하거나 길게 눌러 말하기"
   }
 }

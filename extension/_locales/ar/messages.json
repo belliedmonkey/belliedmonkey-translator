@@ -3851,5 +3851,8 @@
   },
   "listen_ptt_need_start": {
     "message": "متاح بعد الضغط على «ابدأ الاستماع»"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "اضغط أو استمر بالضغط للتحدث"
   }
 }

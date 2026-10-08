@@ -525,6 +525,10 @@ const listenModel = (() => {
   let ptt = null;                      // null | { mode:'hold'|'locked', side, at, heard, timer }
   let pttForce = null;                 // { side, at }：归属的强制语言（松手后留到这句 final）
   let pttNote = '', pttNoteAt = 0;     // 就近小字（「没听到声音，再试一次」）
+  /// 按住/锁定期间**朗读队列暂停**（2026-10-08 评审定）：按下时停掉正在播的那一句并把队列冻住，
+  /// 松手 / 退出锁定后按原顺序接着播。为什么必须冻住整队：只要后面还有一句在念，它的声音立刻
+  /// 又会被回声闸整门挡掉用户这句话 —— 那正是这个改动要解决的问题。
+  let pttSpeakPaused = false;
   let translateCalls = 0;              // 翻译请求计数（P-06/P-07：这些情况下必须是 0）
   const CJK_RE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/;
   function pttOn() { return !!ptt; }
@@ -574,6 +578,21 @@ const listenModel = (() => {
   }
   function pttForceOff() { pttForce = null; }
   function pttCut() { try { if (sock && sock.cut) sock.cut(); } catch (_) {} }
+  /// 按下时：停掉正在播的那一句 + 冻住队列（不 clear —— 松手要接着播）。
+  function pttSpeakPause() {
+    pttSpeakPaused = true;
+    speakingRid = 0;
+    try { if (typeof LearnTTS !== 'undefined') LearnTTS.stop(); } catch (_) {}
+    canvas.view('history');
+  }
+  /// 松手 / 退出锁定 / 被点掉时：解冻并按原顺序接着播。
+  function pttSpeakResume() {
+    if (!pttSpeakPaused) return;
+    pttSpeakPaused = false;
+    // 泵还在跑 ⇒ 它自己会在下一圈看到解冻、接着取；泵已经退出（stop 把当前那句结束了）⇒ 重新起。
+    if (!speakPumping && sq.size()) speakPump();
+    canvas.view('history');
+  }
   /** 开始按（idle ⇒ hold）。返回 false 表示没接（灰掉 / 两指的后按者）。 */
   function pttDown(side) {
     if (mode === 'subtitle') return false;                 // 字幕是单向的，没有按住说
@@ -595,6 +614,7 @@ const listenModel = (() => {
     ptt = { mode: 'hold', side, at: now(), heard: false, timer: null };
     pttNote = '';
     pttForceOn(side);
+    pttSpeakPause();          // 立刻停掉正在播的那一句 + 冻住队列（评审裁定）
     try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
     canvas.view('state');
     return true;
@@ -625,9 +645,10 @@ const listenModel = (() => {
     if (relock) {
       ptt = { mode: 'locked', side: relock, at: now(), heard: false, timer: null };
       pttForceOn(relock);
-      pttArmSilence();
+      pttArmSilence();          // 还在锁定 ⇒ 队列继续冻着
     } else {
       try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+      pttSpeakResume();         // 松手 / 退出锁定 ⇒ 队列按原顺序接着播
     }
     canvas.view('state');
     return true;
@@ -639,16 +660,20 @@ const listenModel = (() => {
     ptt = null;
     pttForceOff();
     try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+    pttSpeakResume();
   }
   function pttView() {
     const sub = mode === 'subtitle';
     const canUse = !sub && !!session && (phase === 'listening' || phase === 'preparing');
     const locked = !!(ptt && ptt.mode === 'locked');
     return {
-      shown: !sub,
+      // 会话结束后由小结卡接管：按钮条不出现（与主按钮同一处理）。
+      shown: !sub && !(session && phase === 'ended'),
       mineSide: 'me',
       otherSide: 'other',
       mineLabel: pttPhrase(t('listen_ptt_say', '说{lang}'), langLabel(cfg && cfg.myLang)),
+      // 左键小字：**跟界面语言**（C 案，2026-10-08 用户定）—— 与右键小字（那门语言，不翻）对称。
+      mineHint: t('listen_ptt_tap_hold', '点一下或按住说话'),
       otherLabel: langLabel(cfg && cfg.otherLang),
       otherHint: pttHintOf(cfg && cfg.otherLang),
       activeSide: ptt ? ptt.side : '',
@@ -1505,7 +1530,10 @@ const listenModel = (() => {
     if (speakPumping) return;
     speakPumping = true;
     try {
-      for (let job; (job = sq.next());) {
+      for (let job; ;) {
+        if (pttSpeakPaused) break;                // 按住/锁定期间冻住：不取新句，队列原样留着
+        job = sq.next();
+        if (!job) break;
         if (job.gen !== gen) continue;            // 旧会话的残留
         speakingRid = job.rid; canvas.view('history');
         const at = now();

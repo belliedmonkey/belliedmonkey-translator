@@ -3684,5 +3684,8 @@
   },
   "listen_ptt_need_start": {
     "message": "«सुनना शुरू करें» दबाने के बाद उपलब्ध"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "बोलने के लिए टैप करें या दबाए रखें"
   }
 }

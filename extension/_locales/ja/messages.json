@@ -3851,5 +3851,8 @@
   },
   "listen_ptt_need_start": {
     "message": "「聞き始める」を押すと使えます"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "タップまたは長押しで話す"
   }
 }

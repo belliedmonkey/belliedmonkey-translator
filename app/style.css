@@ -642,21 +642,26 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
-/* 按住说 / 点一下（2026-10-08 终稿 3）：主按钮下面、贴着底的一条两半按钮。
-   左＝你这门（「说中文」），右＝对方那门（本名大字 + 那门语言的小字）。
-   按下 = 这一句按这门识别；松手 <0.4s = 锁定（再点结束）；≥0.4s = 定稿。 */
-:where(#app-listen) .listen-ptt-wrap { display: flex; flex-direction: column; gap: 6px; }
+/* 按住说 / 点一下（2026-10-08 终稿 3 · C 案改稿）：**固定贴底**的一条两个大按钮。
+   两半等宽、实心底色 + 圆角、高 60pt（>=56）；控制区（主按钮 / 两个下拉 / 自动朗读 / 这次不留记录）
+   在它上方 —— 按钮条管「这一句谁在说」，控制区管「这一场怎么听」。
+   变量只许用调色板里**真实存在**的（2026-10-08 那次「纯文字」事故就是用了不存在的 --sage-weak）。 */
+:where(#app-listen) .listen-ptt-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg); border-top: 1px solid var(--border); }
 :where(#app-listen) .listen-ptt-locked { margin: 0; color: var(--accent-deep); font-weight: 600; }
-:where(#app-listen) .listen-ptt { display: flex; align-items: stretch; background: var(--sage-weak); border-radius: 27px; overflow: hidden; min-height: 58px; }
+:where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 60px; }
 :where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: none; color: var(--ink); border: 0; border-radius: 0; padding: 8px 6px; font: inherit; font-weight: 600; cursor: pointer;
-  touch-action: none; -webkit-user-select: none; user-select: none; }
-:where(#app-listen) .listen-ptt-btn.on { background: var(--accent); color: #fff; }
-:where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.82); }
+  background: var(--sage-light); color: var(--text); border: 1px solid var(--border); border-radius: 24px;
+  padding: 6px; font: inherit; font-weight: 600; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) .listen-ptt-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+:where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.85); }
 :where(#app-listen) .listen-ptt-btn:disabled { opacity: 0.45; cursor: default; }
 :where(#app-listen) .listen-ptt-name { font-size: 1.05rem; line-height: 1.2; }
-:where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--dim); line-height: 1.2; }
-:where(#app-listen) .listen-ptt-sep { width: 1px; background: var(--line); align-self: center; height: 60%; }
+:where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--text-secondary); line-height: 1.2; }
+/* 贴底的按钮条会盖住内容尾巴：给页面留出它的高度（60 + 上下内边距 + 安全区）。 */
+:where(#app-listen) { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、

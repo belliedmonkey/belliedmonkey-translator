@@ -3852,5 +3852,8 @@
   },
   "listen_ptt_need_start": {
     "message": "点「开始听」后可用"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "点一下或按住说话"
   }
 }

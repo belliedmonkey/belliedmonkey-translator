@@ -3851,5 +3851,8 @@
   },
   "listen_ptt_need_start": {
     "message": "Disponible après avoir touché « Commencer l’écoute »"
+  },
+  "listen_ptt_tap_hold": {
+    "message": "Appuyez ou maintenez pour parler"
   }
 }
