@@ -1750,7 +1750,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     const sp = stripComments(tpl);
     ok(/private let maxUtterMs: Double = \d+/.test(sp), '没有 maxUtterMs（一句话的绝对上限）');
     ok(/private var utterMs: Double = 0/.test(sp), '没有 utterMs（距上次收口的累计）');
-    ok(/quietMs >= vadMs \|\| utterMs >= maxUtterMs/.test(sp), '收口没有按两个条件（停顿够久 或 这句话太长）');
+    ok(/let byPause = quietMs >= vadMs/.test(sp) && /byPause \|\| utterMs >= maxUtterMs/.test(sp), '收口没有按两个条件（停顿够久 或 这句话太长）');
+    // 上限触发要**优先切在最近那次停顿上** —— 硬切会切出半个词（泰文实测）
+    ok(/let cut = byPause \? fed : \(pauseFed > utterStartFed \? pauseFed : fed\)/.test(sp), '上限触发没有优先切在停顿上');
     ok(/utterMs = 0/.test(sp), '收口后没有重置累计');
   });
 

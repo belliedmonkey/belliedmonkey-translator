@@ -791,9 +791,18 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   // 2026-10-07 用户拍（Pencil 稿「两门语言对称互译」）：「让用户选两种语言……听到一种语言就译另一种。」
   // 没有「我 / 对方」的角色、没有自动跟随、没有「语言不对？」那一层。
   // 2026-10-08 用户拍（Pencil 稿「正在听…占位」）：开口到第一行有 3–12s，这段空白要看得出在干活。
+  // 2026-10-08 用户拍（Pencil 稿「不分『说 / 听』，行标签改成语言名」）：
+  // 对 App 来说谁说话都是在听；两门对称之后「我 / 对方」既不可靠也没用。
+  test('不分「说 / 听」：现在卡永远「正在听…」；行标签 = 语言名', () => {
+    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\)/.test(MODEL), '现在卡还在分「说 / 听」');
+    ok(!/listen_now_me|listen_now_them/.test(MODEL), '「我正在说 / 对方正在说」应当退场');
+    ok(/langLabel: sub \? '' : \(r\.who === 'me' \? langLabel\(cfg && cfg\.myLang\) : langLabel\(cfg && cfg\.otherLang\)\)/.test(MODEL),
+      '行标签没有改成语言名');
+    ok(/r\.langLabel \|\| \(r\.who === 'me'/.test(read('src/app/listen-view.jsx')), '视图没有用语言名（回落到旧标签）');
+  });
   test('「正在听…」占位：现在卡与整句定稿空态都用同一个词', () => {
     ok(/listen_listening', '正在听…'/.test(MODEL), '没有「正在听…」这个键的用法');
-    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\) : t\('listen_now_any', '正在说…'\)/.test(MODEL),
+    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\)[\s\S]{0,40}?t\('listen_now_any', '正在说…'\)/.test(MODEL),
       '现在卡没有按「还在听」切到「正在听…」（暂停时说「正在听」是假的）');
     ok(/listeningText: \(phase === 'listening' && !sub\)/.test(MODEL), '整句定稿空态没有那行占位');
     ok(/id="app-listen-listening"/.test(read('src/app/listen-view.jsx')), '视图里没渲染那行占位');
@@ -802,6 +811,8 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
     ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
     ok(/listen_lang_dirs2/.test(MODEL), '没有那行「听到{a} → 译成{b}；听到{b} → 译成{a}」');
+    // 这串里 {a}/{b} 各两次 —— 用 replace 只会换第一处（真机显示成「听到中文 → 译成ไทย；听到{b} → 译成{a}」）
+    ok(/replaceAll\('\{a\}'/.test(MODEL) && /replaceAll\('\{b\}'/.test(MODEL), '方向说明没有用 replaceAll（{b}/{a} 会漏在屏上）');
     ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
     ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
     const view = read('src/app/listen-view.jsx');

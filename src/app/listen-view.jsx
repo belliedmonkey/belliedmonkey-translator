@@ -163,7 +163,7 @@ function HistoryRows({ hv }) {
         <div key={r.row.rid} className={'listen-row' + (r.who === 'me' ? ' me' : '')}>
           {!hv.sub && (
             <span className={'listen-who' + (r.guessed ? ' guessed' : '')} title={r.guessed ? r.whoTitle : undefined}>
-              {r.who === 'me' ? hv.whoMe : hv.whoThem}
+              {r.langLabel || (r.who === 'me' ? hv.whoMe : hv.whoThem)}
             </span>
           )}
           <div className="listen-body" role="button" onClick={hv.sub ? undefined : () => listenModel.openShow(r.row)}>

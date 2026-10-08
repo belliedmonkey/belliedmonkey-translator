@@ -1178,8 +1178,10 @@ const listenModel = (() => {
       langDirArrow: sub ? '→' : '⇄',
       // 字幕那页不再有说明行（`subtitle_lang_dirs` 撤了 —— 两格标签 + 箭头已经说清）；
       // 听译那页保留「听到 A → 译成 B；听到 B → 译成 A」。
+      // **必须 replaceAll**：这串里 `{a}`/`{b}` 各出现两次，`String.replace` 只换第一处
+      // ⇒ 真机上显示成「听到中文 → 译成ไทย；听到{b} → 译成{a}」（2026-10-08 截图实测）。
       langDirsText: sub ? '' : t('listen_lang_dirs2', '听到{a} → 译成{b}；听到{b} → 译成{a}')
-        .replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang)),
+        .replaceAll('{a}', langLabel(cfg && cfg.myLang)).replaceAll('{b}', langLabel(cfg && cfg.otherLang)),
       // 字幕左格多一个「自动」（默认）：视频语言交给 LID 认（候选 = 上次认出来的 + 译成）。
       langOptionsA: (sub ? [{ code: 'auto', label: t('lang_auto', '自动'), disabled: false }] : []).concat(langOptionsFor(cfg && cfg.myLang)),
       langOptionsB: langOptionsFor(cfg && cfg.otherLang),
@@ -1531,13 +1533,12 @@ const listenModel = (() => {
     const sub = mode === 'subtitle';
     // 上卡的归属**按半句实时判**：句子还没定稿就先给出归属，判错了用户当场看得见，
     // 而不是等整句出来才发现。判不出就说「正在说…」，不假装知道。
-    const side = partial ? C.sideOf(partial, cfg, routeDeps) : '';
-    // 没有半句时：**还在听**就说「正在听…」（2026-10-08 用户拍，Pencil 稿「正在听…占位」）——
-    // 识别器第一次出字有 3–12s，这段空白原来只挂一句「正在说…」，用户看不出在不在干活。
-    // 「正在说…」留给**不是 listening 的那些态**（暂停/准备），那时说「正在听」是假的。
-    const idle = phase === 'listening' ? t('listen_listening', '正在听…') : t('listen_now_any', '正在说…');
-    return sub ? t('subtitle_now_label', '现在') : side === 'me' ? t('listen_now_me', '我正在说')
-      : side === 'them' ? t('listen_now_them', '对方正在说') : idle;
+    // **不分「说 / 听」**（2026-10-08 用户拍）：「对 App 来说谁说话都是在听」——
+    // 所以「现在」卡在 listening 时永远只写「正在听…」，不再有「我正在说 / 对方正在说」。
+    // 不是 listening 的态（暂停 / 准备 / 结束）保留既有的那句「正在说…」（那时说「正在听」是假的）。
+    return sub ? t('subtitle_now_label', '现在')
+      : phase === 'listening' ? t('listen_listening', '正在听…')
+        : t('listen_now_any', '正在说…');
   }
   function ephemeralView() {
     const live = !!session && phase !== 'ended';
@@ -1698,8 +1699,12 @@ const listenModel = (() => {
     const out = rows.map((r) => ({
       row: r,
       who: r.who,
+      // 行的左侧标签 = **那门语言的名字**（2026-10-08 用户拍：两门对称之后「我 / 对方」没意义，
+      // 对 App 来说谁说话都是在听）。`who` 是从行归属推的 A/B，映射回两门里对应的那门；
+      // 判错就点 ↔ —— 语义就是「这句换到另一门去」。字幕模式不画（它是单向的）。
+      langLabel: sub ? '' : (r.who === 'me' ? langLabel(cfg && cfg.myLang) : langLabel(cfg && cfg.otherLang)),
       guessed: !!(r.guessed && !r.pinned),
-      whoTitle: t('listen_who_guessed', '按语言猜的 · 点 ↔ 改'),
+      whoTitle: t('listen_who_guessed', '判错了 · 点 ↔ 换到另一门'),
       text: r.text,
       hasRaw: r.raw != null && r.raw !== r.text,
       showRaw: !!r.showRaw,

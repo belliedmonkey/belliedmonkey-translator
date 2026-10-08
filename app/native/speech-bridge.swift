@@ -333,6 +333,13 @@ final class MTDeviceTranscriber {
     private var spokeSinceFinalize = false
     /// 距上一次收口累计了多少毫秒（**不管中间有没有停顿**）。
     private var utterMs: Double = 0
+    /// 本次收口周期里，**最近一次够长的停顿**结束时的样本位置（`fed`）。到上限时优先切这儿 ——
+    /// 识别器的切点落在停顿上，词就是完整的；硬切在词中间会切出半个词（泰文尤其明显）。
+    private var pauseFed: Int64 = 0
+    /// 本句开始时的样本位置（判断 `pauseFed` 是不是这一句里的）。
+    private var utterStartFed: Int64 = 0
+    /// 「够长的停顿」的门限：150ms（远小于 vadMs，只是为了找一个自然的切点，不是判句）。
+    private let pauseCutMs: Double = 150
     /// 一句话**最多**这么长就强制收口。为什么需要（2026-10-08 用户实测）：识别器的 final 是
     /// **懒时间片**，而我们原来只按「停顿 ≥ `vadMs`」收口 —— **泰语这种句末是空格、没有标点的语言**，
     /// 说话人不停顿就 25–56s 才吐一片（真机时间轴实测），切句器再快也没有东西可切（它的 4s 上限
@@ -507,12 +514,19 @@ final class MTDeviceTranscriber {
         if rms > vadLevel { quietFrames = 0; spokeSinceFinalize = true }
         else { quietFrames += Int64(buffer.frameLength) }
         let quietMs = Double(quietFrames) / buffer.format.sampleRate * 1000
+        // 记下「最近一次够长的停顿」在哪结束（到上限时优先切这儿，见 `pauseFed` 的注释）。
+        if quietMs >= pauseCutMs { pauseFed = fed }
         // 收口两个条件：**停顿够久**（照旧）或**这句话已经太长了**（新增，见 `maxUtterMs` 的注释）。
-        if spokeSinceFinalize, quietMs >= vadMs || utterMs >= maxUtterMs {
+        let byPause = quietMs >= vadMs
+        if spokeSinceFinalize, byPause || utterMs >= maxUtterMs {
             spokeSinceFinalize = false
             quietFrames = 0
             utterMs = 0
-            let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
+            // 停顿触发 ⇒ 本来就切在停顿处；**上限触发 ⇒ 优先切在最近那次停顿上**（词才是完整的），
+            // 这一句里没有可用停顿才硬切在当前。
+            let cut = byPause ? fed : (pauseFed > utterStartFed ? pauseFed : fed)
+            utterStartFed = cut
+            let through = CMTime(value: cut, timescale: CMTimeScale(fmt.sampleRate))
             Task { try? await an.finalize(through: through) }
             MTDeviceLid.shared.finish()   // 同一句结束：判一次语言（与识别器 finalize 同时刻）
         }
