@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "影片、對話、文件 —— 邊聽邊翻，聲音只在你的裝置上處理。"
+    "message": "影片、對話、文件 —— 邊聽邊翻，聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
   },
   "app_email_label": {
     "message": "電子郵件"
@@ -1942,7 +1942,7 @@
     "message": "已聽 {t}"
   },
   "listen_device_privacy": {
-    "message": "裝置內建轉寫：邊說邊出字；整句定稿後連同前幾句上下文一起傳到你自己設定的翻譯引擎做修正與翻譯。選「裝置內建朗讀」時，語音在你的裝置上合成，首次使用會下載一次離線模型。"
+    "message": "裝置內建轉寫：邊說邊出字；整句定稿後連同前幾句上下文一起送去翻譯：自己設了 key 時直接送給你設的服務商，用免費額度時經我們的伺服器轉發，不儲存文字。選「裝置內建朗讀」時，語音在你的裝置上合成，首次使用會下載一次離線模型。"
   },
   "listen_raw_label": {
     "message": "辨識原文"
@@ -2367,12 +2367,6 @@
   "listen_star": {
     "message": "加星"
   },
-  "listen_now_them": {
-    "message": "對方正在說"
-  },
-  "listen_now_me": {
-    "message": "我正在說"
-  },
   "listen_lang_me": {
     "message": "中文 → {to}"
   },
@@ -2471,7 +2465,7 @@
     "message": "我"
   },
   "listen_who_guessed": {
-    "message": "按語言猜的 · 點 ↔ 改"
+    "message": "判錯了？點 ↔ 換成另一種語言"
   },
   "listen_swap_to_them": {
     "message": "改成對方說的"
@@ -2480,7 +2474,7 @@
     "message": "改成我說的"
   },
   "listen_flip_kept_card": {
-    "message": "改邊了 · 之前那張卡你已經複習過，留在「來源 › 對話」裡"
+    "message": "換到另一種語言了 · 之前那張卡你已經複習過，留在「來源 › 對話」裡"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2531,7 +2525,7 @@
     "message": "我的語言"
   },
   "listen_lang_note": {
-    "message": "語言自動辨識，不用先選。要手動指定，用聽譯頁裡的「語言不對？」。"
+    "message": "在你選的兩門語言之間自動辨識。聽譯頁裡可以隨時改這兩門語言。"
   },
   "listen_lang_engine_unsupported": {
     "message": "目前引擎不支援"
@@ -2597,7 +2591,7 @@
     "message": "轉寫連線中斷：{why} — 正在重連…"
   },
   "listen_history_empty": {
-    "message": "雙方隨便說，每句定稿後會出現在這裡；判錯了點 ↔ 改邊"
+    "message": "雙方隨便說，每句定稿後會出現在這裡。判錯了？點 ↔ 換成另一種語言"
   },
   "listen_tr_failed": {
     "message": "譯文失敗 · 重試"
@@ -3758,7 +3752,7 @@
     "message": "先把兩個語音包下好"
   },
   "firstrun_packs_lede": {
-    "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音只在你的裝置上處理。"
+    "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
   },
   "firstrun_packs_asr": {
     "message": "辨識語言包（聽譯 / 即時字幕）"
@@ -3805,9 +3799,6 @@
   "listen_lang_detected": {
     "message": "已辨識：{a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "語言不對？"
-  },
   "subtitle_lang_detecting": {
     "message": "正在辨識影片語言…"
   },
@@ -3823,9 +3814,6 @@
   "listen_lang_manual": {
     "message": "手動指定"
   },
-  "listen_partner_auto": {
-    "message": "對方說的：{lang}（自動）"
-  },
   "subtitle_partner_auto": {
     "message": "影片語言：{lang}（自動）"
   },
@@ -3833,7 +3821,7 @@
     "message": "本機辨識器一次最多只能開 5 種語言，已經佔滿了 — 退出聽譯再進一次就好。"
   },
   "listen_lang_assets_missing": {
-    "message": "這門語言的辨識包還沒裝好 — 連上網再點一次「開始聽」。"
+    "message": "這門語言的辨識包還沒裝好。連上網後點一次「開始聽」就能補上。"
   },
   "listen_lang_unsupported_revert": {
     "message": "這門語言這台裝置辨識不了 — 已經回到「{lang}」"
@@ -3849,5 +3837,20 @@
   },
   "listen_listening": {
     "message": "正在聽…"
+  },
+  "listen_ptt_say": {
+    "message": "說{lang}"
+  },
+  "listen_listening_lang": {
+    "message": "正在聽{lang}…"
+  },
+  "listen_ptt_locked": {
+    "message": "● {lang} 正在說 · 再點一下結束"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "沒聽到聲音，再試一次"
+  },
+  "listen_ptt_need_start": {
+    "message": "點「開始聽」後可用"
   }
 }

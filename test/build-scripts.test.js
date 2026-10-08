@@ -1683,6 +1683,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // lid-probe/lid-assets = 入口；lid-state/lid-result/lid-live = 出口；lid = kind 与 locale；
       // encoder/decoder/dir = 清单字段；mt-lid/mt.lid = 目录与队列名；assets/ms = 状态与时长字段。
       '"lid-probe"', '"lid-assets"', '"lid-state"', '"lid-result"', '"lid-live"',
+      // 按住说 / 点一下（2026-10-08）：暂停/恢复判定 + 立刻收口 + 它们的回执（都是协议 id / 字段名）
+      '"lid-pause"', '"lid-resume"', '"stt-cut"', '"lid-paused"', '"on"',
       '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"',
       // 识别器装配失败的域判据（SFSpeechErrorDomain Code=11 = locale 名额用满，2026-10-07 批 28）。
       '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
@@ -1691,10 +1693,27 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // LID 引擎选择 + ECAPA 实验引擎的计时/诊断字段（2026-10-08，§9.6.1.3）。
       // engine/whisper/ecapa = 引擎 id；modelMs/feMs/judges/llr/speechMs = 诊断字段名。都非文案。
       '"engine"', '"whisper"', '"ecapa"', '"modelMs"', '"feMs"', '"judges"', '"llr"', '"speechMs"',
-      '"langs"', '"threshold"', '"cpuOnly"', '"feTotalMs"', '"frames"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
+      '"langs"', '"threshold"', '"cpuOnly"', '"trace"', '"lid-trace"',   // 只记录的日志开关与它的事件名
+      // lid-trace 的字段名（都非文案）：每一档窗长的分数 + 话音/喂入量 + 当前判词
+      '"quietMs"', '"speechMs"', '"fedMs"', '"melFrames"', '"caps"', '"decided"', '"verdict"', '"verdictLlr"',
+      '"pa"', '"pb"', '"top"', '"ms"', '"seq"', '"rewrites"', '"baseThreshold"', '"feTotalMs"', '"frames"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
       '"SpeechBrainECAPAVoxLingua107"', '"SpeechBrainECAPAVoxLingua107.mlmodelc"',   // 侧载产物名/目录名（非文案）
-      '"labels.json"', '"mel_features"']);
+      '"labels.json"', '"mel_features"', '"rewriteFix"',   // ECAPA 轻量修正开关（H2 / L-16）
+      // M-05 / H5：解压用的**同级暂存目录前缀**（原子换入），非文案
+      '".staging-"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
+  });
+
+  test('L-05：改写次数**按句清零**、`lastDecided` 按句保留（判定策略读的那份数', () => {
+    const lid = stripComments(tpl).slice(stripComments(tpl).indexOf('final class MTDeviceLid'));
+    const fin = lid.slice(lid.indexOf('func finish()'), lid.indexOf('func finish()') + 900);
+    ok(/self\.partialCount = \[:\]; self\.partialLast = \[:\]/.test(fin), 'finish() 没有把两路改写次数清零');
+    ok(!/lastDecided = ""/.test(fin), 'finish() 把 lastDecided 也清了 —— 短句就没法沿用上句判词');
+    // `lastDecided` 住在 MTEcapaLid 里（lid-ecapa.swift），MTDeviceLid.reset() 经 `ecapa?.reset()` 清它。
+    const ecapaSrc = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'lid-ecapa.swift'), 'utf8');
+    const rst = ecapaSrc.slice(ecapaSrc.indexOf('func reset()'), ecapaSrc.indexOf('func reset()') + 400);
+    ok(/lastDecided = ""/.test(rst), 'MTEcapaLid.reset() 没有清 lastDecided（新一场要能再用 1 s 窗）');
+    ok(/self\?\.ecapa\?\.reset\(\)/.test(lid), 'MTDeviceLid.reset() 没有把 reset 传给 ECAPA');
   });
 
   test('LID 喂音频（§9.6.1.3）：样本在 tap 线程拷走、先过 VAD、只喂话音 —— 两个坑都是 Mac 实测踩出来的', () => {

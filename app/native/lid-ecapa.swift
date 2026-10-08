@@ -21,6 +21,59 @@ import Accelerate
 import CoreML
 import AVFoundation
 
+/// 判定策略（H2）：**纯函数**，不碰模型、不碰音频 —— 输入是已经算好的分数，输出是判词或 nil。
+///
+/// 为什么抽出来单独放：这些数字（窗档 / 每档阈值 / 换判门槛 / 轻量修正）就是回归清单
+/// L-01…L-06 的判据，靠真音频「碰巧跑对」证明不了；抽成纯函数后 `scripts/test-lid-policy.swift`
+/// 直接喂数（`npm run test:lid`），边界值是断言出来的，不是试出来的。
+///
+/// 放在同一个文件里而不是新建一个：`lid-ecapa.swift` 已经在 Xcode 工程里，新建文件要改 pbxproj。
+enum MTLidPolicy {
+    /// 首判允许 1 s 窗（之后只用 2 s / 4 s）。
+    static let firstCaps: [Int] = [16000, 32000, 64000]
+    /// 首判之后只用这两档。
+    static let windowCaps: [Int] = [32000, 64000]
+    /// 换判看的那一档（2 s 窗）。
+    static let changeCap: Int = 32000
+    /// 换判要 2 s 窗 |LLR| ≥ 它（原来 8，2026-10-08 用户拍板 ②）。
+    static let changeThreshold: Float = 6.0
+    /// 基础阈值按窗长：1 s 档 6；2 s / 4 s 档 4。
+    static func baseThreshold(cap: Int) -> Float { cap >= 32000 ? 4.0 : 6.0 }
+
+    struct Input {
+        let lastDecided: String          // 本句之前已经定过的语言（"" = 本场首判）
+        let fedAudioSamples: Int          // 本句喂进来的样本数（16 k）
+        let langs: [String]              // 用户选的两门（只在这两门里取）
+        /// 取某档窗长时的 (llr, top)；算不出（帧数不够）就返回 nil。
+        let scores: (Int) -> (llr: Float, top: String)?
+        let rewrites: [String: Int]      // 本句两路的 partial 改写次数
+        let rewriteFix: Bool             // 轻量修正开关（`lidRewriteFix`，默认开）
+    }
+
+    /// 选窗档 → 基础阈值 → 轻量修正 → 换判门槛 → 出不出判词。
+    static func decide(_ i: Input) -> (lang: String, llr: Float, cap: Int, effThr: Float)? {
+        let caps = i.lastDecided.isEmpty ? firstCaps : windowCaps
+        guard let cap = caps.last(where: { $0 <= i.fedAudioSamples }) else { return nil }
+        guard let sc = i.scores(cap) else { return nil }
+        var effThr = baseThreshold(cap: cap)
+        // **轻量修正**：另一门的 partial 改写次数明显更多（→ 说话人更像在说它）就把阈值抬高一点，
+        // 让 ECAPA 拿出更多证据才改判。首判不加（还没有「本路」可比）。
+        if i.rewriteFix && !i.lastDecided.isEmpty {
+            let mine = i.rewrites[i.lastDecided] ?? 0
+            let other = i.rewrites[i.langs.first { $0 != i.lastDecided } ?? ""] ?? 0
+            effThr += Float(min(2.0, Double(max(0, other - mine)) / 4.0))
+        }
+        if abs(sc.llr) < effThr { return nil }
+        let pick = sc.llr >= 0 ? (i.langs.first ?? sc.top) : (i.langs.count > 1 ? i.langs[1] : sc.top)
+        // **换判**：已有判词时要另过一道 —— 2 s 窗 |LLR| ≥ 6。
+        if !i.lastDecided.isEmpty && pick != i.lastDecided {
+            guard let s2 = i.scores(changeCap), abs(s2.llr) >= changeThreshold else { return nil }
+        }
+        if pick == i.lastDecided { return nil }
+        return (pick, sc.llr, cap, effThr)
+    }
+}
+
 /// ECAPA 的 log-mel 前端 + 累积判定。线程约定：只在 MTDeviceLid 的串行队列上调用。
 final class MTEcapaLid {
     struct Decision {
@@ -37,15 +90,23 @@ final class MTEcapaLid {
     private var codes: [String] = []          // 索引 → 语言短码（labels.json）
     private var idx: [String: Int] = [:]      // 短码 → 索引
     private var langs: [String] = []          // 用户选的两门（短码）
-    private var threshold: Float = 6.0
+    private var threshold: Float = 4.0
     private var cpuOnly = false                 // 实验开关：只走 CPU（排查与系统 ASR 抢 ANE/GPU）
     private let judgeMs: Double = 250         // 重算节奏（报告建议 0.25–0.5 s）
-    /// **输入窗口只取这几档**（0.5/1.0/2.0/4.0 s，单位：样本）。为什么不是「窗口一直长大」：
+    /// 轻量修正开关（`lidRewriteFix`，默认开）。L-16 用「关」这一档做方向核实。
+    /// 阈值 / 窗档 / 换判门槛都在 `MTLidPolicy`（纯函数，`npm run test:lid` 守边界值）。
+    var rewriteFix = true
+    /// **输入窗口只取这几档**（1.0/2.0/4.0 s，单位：样本）。为什么不是「窗口一直长大」：
     /// CoreML 对**每一个没见过的输入形状**都要重新 plan —— 实测每个新形状冷启动 40–70 ms，
     /// 而每 0.25 s 话音就换一个形状 ⇒ 每 0.25 s 付一次冷启动，App 里实测 CPU 冲到 85–95%
     /// （既不是前端的错也不是模型算得慢：同一形状反复只要 8–38 ms）。四档固定窗口 ⇒ 只有 4 个形状。
-    /// 顺带：这四档正是调研报告离线评估用过的窗长（0.5/1.0/1.5/2/3 s 里的几档），可比。
-    private let windowCaps: [Int] = [8000, 16000, 32000, 64000]
+    /// 顺带：这几档正是调研报告离线评估用过的窗长（0.5/1.0/1.5/2/3 s 里的几档），可比。
+    /// **为什么最小档是 1.0 s 而不是 0.5 s**（2026-10-08 用户拍板「1+3」）：离线实测 0.5 s 时两门
+    /// **还没分开**（泰 −0.53、中 **+1.43** —— 符号都是错的），1.0 s 才分开（+5.36 / −10.58）。
+    /// 而识别器收口时那一小片常常只有几百毫秒 —— 拿 0.5 s 窗口判就会偶发翻到另一门，翻过去之后
+    /// 另一路识别器的半句立刻上屏（真机标准 5 例的 `zh-multi` 实测到 58 条错语言半句）。
+    /// **顺带得到「超短句沿用上句判词」**：构不出窗口（本句话音 < 1.0 s）就**不判**，判词保持上一条 ——
+    /// 这正是用户「1+3」里的第 3 条，不需要另写分支。
 
     // 前端表
     private var hamming = [Float]()
@@ -127,8 +188,9 @@ final class MTEcapaLid {
     // MARK: 生命周期
 
     /// 从 `<dir>/SpeechBrainECAPAVoxLingua107.mlmodelc` + `<dir>/labels.json` 装载。
-    func load(dir: URL, langs wanted: [String], threshold t: Float, cpuOnly co: Bool = false) -> Bool {
+    func load(dir: URL, langs wanted: [String], threshold t: Float, cpuOnly co: Bool = false, rewriteFix rw: Bool = true) -> Bool {
         cpuOnly = co
+        rewriteFix = rw
         let mURL = dir.appendingPathComponent("SpeechBrainECAPAVoxLingua107.mlmodelc", isDirectory: true)
         guard FileManager.default.fileExists(atPath: mURL.path) else { return false }
         if hamming.isEmpty { buildTables() }
@@ -203,7 +265,20 @@ final class MTEcapaLid {
             i += HOP
         }
         tail = []
-        return judge(force: true)
+        let d = judge(force: true)
+        // **每句结束就把累积清掉**（与 whisper 那条路 `MTDeviceLid.finish` 清 `buf` 同理）：
+        // 不重置的话窗口会一直锚在**会话开头**那几秒 ⇒ 换语言后判词永远换不了 —— 实测
+        // 「中→泰→中」的用例里整场只判了第一次 `zh`，泰语段落全被丢、而中文识别器在泰语音频上的
+        // 垃圾反而进来了（标准 5 例的 `zh-th-zh` 就是这么红的）。窗口语义 = 「从**本句**开口起累积」。
+        resetUtterance()
+        return d
+    }
+
+    /// 清掉本句的累积，但保留 `lastDecided`（同一门语言不重复报）。
+    private func resetUtterance() {
+        mel = []; melFrames = 0; fedSamples = 0; fedAudioSamples = 0
+        speechSamples = 0; lastJudgeSpeech = 0
+        tail = [Float](repeating: 0, count: NFFT / 2)   // 左补 200 个 0，同 frontend.py
     }
 
     private func appendAudio(_ pcm: [Float]) {
@@ -227,19 +302,17 @@ final class MTEcapaLid {
         tail = Array(data[i...])
     }
 
-    /// 判定：取两门的 log 概率差。
-    private func judge(force: Bool) -> Decision? {
-        debugInfo = "enter"
-        guard let model else { debugInfo = "no-model"; return nil }
-        // 取「当前音频量能填满的最大那一档」窗口（帧取自**开口**，即前缀）
-        guard let cap = windowCaps.last(where: { $0 <= fedAudioSamples }) else { debugInfo = "waiting cap=\(fedAudioSamples)"; return nil }
-        let capFrames = min(melFrames, (cap - NFFT / 2) / HOP + 1)
-        guard capFrames >= 10 else { debugInfo = "short \(capFrames)f"; return nil }   // 模型最少 10 帧
-        let speechSec = Double(speechSamples) / Double(SR)
-        judgeCount += 1
-        let tFe = Date()
-        // 10*log10(max(mel,1e-10))，再截到 (窗口内最大 − 80 dB) —— 与 frontend.py 一致（**整段**做，
-        // 不能逐帧：下限依赖整段最大值）。窗口 = 前 capFrames 帧。
+    /// **只记录用**的开关（2026-10-08，用户 15:35）：开时每次判定顺带把**每一档窗长**的 LLR 都算出来，
+    /// 放进 `lastTrace`，由 `MTDeviceLid` 发 `lid-trace`。它**不改任何行为**（不参与判定）。
+    var trace = false
+    private(set) var lastTrace: [String: Any]?
+    private(set) var judgeSeq = 0          // 判定序号（lid-trace 只在**新判定**时发一次，不重复）
+    /// 本句两路的 partial **改写次数**（由 `MTDeviceLid` 喂进来）—— 轻量修正用（用户拍板 ③）。
+    var rewrites: [String: Int] = [:]
+
+    /// 某一档窗长的两门结果：LLR（langs[0] − langs[1]）+ 各自的 log 概率 + 最高门。
+    private func scores(capFrames: Int) -> (llr: Float, pa: Float, pb: Float, top: String)? {
+        guard let model, capFrames >= 10, capFrames <= melFrames else { return nil }
         let n = capFrames * NMELS
         var feat = [Float](repeating: 0, count: n)
         for i in 0..<n { feat[i] = 10.0 * log10(max(mel[i], 1e-10)) }
@@ -247,10 +320,8 @@ final class MTEcapaLid {
             let floorDb = mx - 80.0
             for i in 0..<n where feat[i] < floorDb { feat[i] = floorDb }
         }
-        // 模型输入 [1, capFrames, 60]（**句级均值归一化在图里做**，这里不要再做一遍）；
-        // capFrames 只取 windowCaps 那几档 ⇒ 形状固定 ⇒ 不会每个新形状重新 plan。
         guard let arr = try? MLMultiArray(shape: [1, NSNumber(value: capFrames), NSNumber(value: NMELS)],
-                                          dataType: .float32) else { debugInfo = "no-multiarray"; return nil }
+                                          dataType: .float32) else { return nil }
         feat.withUnsafeBufferPointer { src in
             memcpy(arr.dataPointer, src.baseAddress!, n * MemoryLayout<Float>.size)
         }
@@ -258,9 +329,8 @@ final class MTEcapaLid {
         guard let prov = try? MLDictionaryFeatureProvider(dictionary: ["mel_features": MLFeatureValue(multiArray: arr)]),
               let out = try? model.prediction(from: prov),
               let key = out.featureNames.first,
-              let mv = out.featureValue(for: key)?.multiArrayValue else { debugInfo = "no-prediction"; return nil }
+              let mv = out.featureValue(for: key)?.multiArrayValue else { return nil }
         lastModelMs = Date().timeIntervalSince(tModel) * 1000
-        lastFrontendMs = (tModel.timeIntervalSince(tFe)) * 1000
         var best = -Float.greatestFiniteMagnitude
         var bestLang = ""
         for c in langs {
@@ -268,18 +338,60 @@ final class MTEcapaLid {
             let v = mv[i].floatValue
             if v > best { best = v; bestLang = c }
         }
-        // LLR = 两门之差（哪门大就是哪门）
-        var llr: Float = 0
+        var llr: Float = 0, pa: Float = 0, pb: Float = 0
         if langs.count >= 2, let i0 = idx[langs[0]], let i1 = idx[langs[1]], i0 < mv.count, i1 < mv.count {
-            llr = mv[i0].floatValue - mv[i1].floatValue
+            pa = mv[i0].floatValue; pb = mv[i1].floatValue; llr = pa - pb
         }
-        lastLLR = llr
-        debugInfo = "frames=\(melFrames) mv=\(mv.count) feat0=\(feat.first ?? 0)"
-        if abs(llr) < threshold { return nil }
-        let pick = llr >= 0 ? langs.first ?? bestLang : (langs.count > 1 ? langs[1] : bestLang)
-        if pick == lastDecided { return nil }
-        lastDecided = pick
-        lastText = pick
-        return Decision(lang: pick, llr: llr, speechSec: speechSec)
+        return (llr, pa, pb, bestLang)
+    }
+
+    /// 判定：取两门的 log 概率差。**策略本身在 `MTLidPolicy.decide`**（纯函数、可单测，H2）——
+    /// 这里只负责「从当前帧数算得出哪一档的分数」和记账（trace / lastLLR / lastDecided）。
+    private func judge(force: Bool) -> Decision? {
+        debugInfo = "enter"
+        guard let model else { debugInfo = "no-model"; return nil }
+        let speechSec = Double(speechSamples) / Double(SR)
+        judgeCount += 1
+        judgeSeq += 1
+        // 取「当前音频量能填满的最大那一档」窗口（帧取自**开口**，即前缀）；帧数不够（模型最少 10 帧）
+        // ⇒ 这一档算不出来，当作「没有这一档」。
+        let scoreAt = { [self] (cap: Int) -> (llr: Float, top: String)? in
+            let f = min(melFrames, (cap - NFFT / 2) / HOP + 1)
+            guard f >= 10 else { return nil }
+            guard let s = scores(capFrames: f) else { return nil }
+            return (s.llr, s.top)
+        }
+        // 只记录：把每一档窗长的分数都算一遍（**不参与判定**）。
+        var traceCaps: [[String: Any]] = []
+        if trace {
+            for c in MTLidPolicy.firstCaps where c <= fedAudioSamples {
+                let f = min(melFrames, (c - NFFT / 2) / HOP + 1)
+                guard f >= 10, let s2 = scores(capFrames: f) else { continue }
+                traceCaps.append(["ms": c / 16, "llr": Double(s2.llr), "pa": Double(s2.pa), "pb": Double(s2.pb), "top": s2.top])
+            }
+        }
+        let out = MTLidPolicy.decide(MTLidPolicy.Input(
+            lastDecided: lastDecided, fedAudioSamples: fedAudioSamples, langs: langs,
+            scores: { cap -> (llr: Float, top: String)? in
+                // trace 之外只算「选中的那档」与「换判那档」—— 纯函数要哪档我们事先不知道，
+                // 所以这里就按 cap 现算（`scores` 本身只在有新帧时才重算）。
+                guard let s = scoreAt(cap) else { return nil }
+                return (llr: s.llr, top: s.top)
+            },
+            rewrites: rewrites, rewriteFix: rewriteFix))
+        if trace {
+            lastTrace = ["seq": judgeSeq, "speechMs": Int(Double(speechSamples) / Double(SR) * 1000),
+                         "fedMs": Int(Double(fedAudioSamples) / Double(SR) * 1000),
+                         "melFrames": melFrames, "caps": traceCaps,
+                         "decided": lastDecided, "threshold": Double(out?.effThr ?? MTLidPolicy.baseThreshold(cap: 32000)),
+                         "baseThreshold": Double(MTLidPolicy.baseThreshold(cap: 32000)), "rewrites": rewrites]
+        }
+        debugInfo = "frames=\(melFrames)"
+        guard let d = out else { return nil }
+        lastLLR = d.llr
+        lastDecided = d.lang
+        lastText = d.lang
+        if trace { lastTrace?["verdict"] = d.lang; lastTrace?["verdictLlr"] = Double(d.llr) }
+        return Decision(lang: d.lang, llr: d.llr, speechSec: speechSec)
     }
 }

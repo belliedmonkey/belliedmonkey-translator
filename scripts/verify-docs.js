@@ -338,15 +338,25 @@ function makePng(w, h) {
         await aev(`new Promise(r => chrome.storage.local.set(${JSON.stringify({ onboardSeen: true, provider: 'custom_chat', apiKey: 'test-key', apiBaseUrl: ENDPOINT, apiModel: 'fake-model', reqConcurrency: CONC, uiLang: 'zh-CN' })}, r))`);
         await cdp.send('Page.reload', {}, asid);
         await sleep(2500);
+        // 入口 id 是 `app-docs-entry`（`docs-model.js` 的 ENTRY_SUFFIXES = ['', '2']）——
+        // 之前这里写死 `app-docs-entry2`，而首页只有不带后缀那一个（2026-10-08 实测它在、后缀那个不存在），
+        // 于是这条断言一直是红的。两个都试，取先存在的那个。
+        // 入口 id 是 `app-docs-entry`（`docs-model.js` 的 ENTRY_SUFFIXES = ['', '2']，第二个目前
+        // 没有渲染出来）。**它住在 `#signed-in` 里**（AppShell 的 `<div className="docs">`）——
+        // 这一段跑的是**未登录**首页（没种会话），`#signed-in` 是 hidden ⇒ 元素没有 layout box，
+        // `getClientRects()` 恒为 0。所以这里判的是「入口**在**、且被 wire() 露出来了」
+        // （`hidden` 为 false 就说明 DocsModel.wire 跑过），可见性由后面那一点真实点击证明。
         const home = JSON.parse(await aev(`JSON.stringify({ out: !document.getElementById('signed-out').hidden,
-          e2: (() => { const b = document.getElementById('app-docs-entry2'); return !!(b && !b.hidden && b.getClientRects().length); })(),
-          title: (document.querySelector('#app-docs-entry2 .mode-title') || {}).textContent || '',
+          e2: (() => { const b = document.getElementById('app-docs-entry') || document.getElementById('app-docs-entry2');
+            return !!(b && !b.hidden); })(),
+          title: (() => { const e = document.getElementById('app-docs-entry') || document.getElementById('app-docs-entry2');
+            return e ? ((e.querySelector('.mode-title') || {}).textContent || '') : ''; })(),
           docsHidden: getComputedStyle(document.getElementById('app-docs')).display === 'none' })`));
         if (!home.out) fail('App：未登录首页没显示（onboardSeen 已种）');
-        if (!home.e2) fail('App：未登录首页看不到「翻译文档」入口'); else pass('App：首页入口可见 · ' + home.title);
+        if (!home.e2) fail('App：首页看不到「翻译文档」入口（未渲染或没被 wire() 露出来）'); else pass('App：首页入口可见 · ' + home.title);
         if (!home.docsHidden) fail('App：#app-docs 在进入前就没被 [hidden] 真隐藏');
         const aBefore = calls.length;
-        await aev(`document.getElementById('app-docs-entry2').click(); 1`);
+        await aev(`(document.getElementById('app-docs-entry') || document.getElementById('app-docs-entry2')).click(); 1`);
         await sleep(300);
         const entered = JSON.parse(await aev(`JSON.stringify({ shown: getComputedStyle(document.getElementById('app-docs')).display !== 'none', outHidden: document.getElementById('signed-out').hidden, up: !!document.getElementById('docv-upload') })`));
         if (!entered.shown || !entered.outHidden || !entered.up) fail('App：点入口没进文档视图：' + JSON.stringify(entered)); else pass('App：进入文档视图，来处收起');

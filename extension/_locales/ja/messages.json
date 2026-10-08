@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末の上だけで処理します。"
+    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末内で認識します。認識した文字は翻訳のために送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。"
   },
   "app_email_label": {
     "message": "メールアドレス"
@@ -1941,7 +1941,7 @@
     "message": "{t} 聞き取り"
   },
   "listen_device_privacy": {
-    "message": "端末内蔵の文字起こしでは、話すそばから文字が出て、文が確定すると直前の数文とともにあなたが設定した翻訳エンジンへ修正・翻訳のために送られます。端末内蔵の読み上げでは音声は端末上で合成され、初回はオフラインモデルを一度だけダウンロードします。"
+    "message": "端末内蔵の文字起こしでは、話すそばから文字が出て、文が確定すると直前の数文とともに翻訳へ送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。端末内蔵の読み上げでは音声は端末上で合成され、初回はオフラインモデルを一度だけダウンロードします。"
   },
   "listen_raw_label": {
     "message": "認識した原文"
@@ -2366,12 +2366,6 @@
   "listen_star": {
     "message": "スター"
   },
-  "listen_now_them": {
-    "message": "相手が話しています"
-  },
-  "listen_now_me": {
-    "message": "自分が話しています"
-  },
   "listen_lang_me": {
     "message": "{to} へ"
   },
@@ -2470,7 +2464,7 @@
     "message": "自分"
   },
   "listen_who_guessed": {
-    "message": "言語からの推測です — ↔ で変更"
+    "message": "言語が違う？ ↔ で切り替え"
   },
   "listen_swap_to_them": {
     "message": "相手の発言に変更"
@@ -2479,7 +2473,7 @@
     "message": "自分の発言に変更"
   },
   "listen_flip_kept_card": {
-    "message": "話者を変更しました。前のカードは復習済みのため「ソース › 会話」に残ります"
+    "message": "もう一方の言語に切り替えました。前のカードは復習済みのため「ソース › 会話」に残ります"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2530,7 +2524,7 @@
     "message": "自分の言語"
   },
   "listen_lang_note": {
-    "message": "言語は自動で識別されます（選択不要）。手動で指定するには、聞き取りページの「言語が違う？」から。"
+    "message": "選んだ2つの言語の間で自動的に識別します。聞き取りページでいつでも変更できます。"
   },
   "listen_lang_engine_unsupported": {
     "message": "現在のエンジンでは対応していません"
@@ -2596,7 +2590,7 @@
     "message": "文字起こしの接続が切れました：{why} — 再接続中…"
   },
   "listen_history_empty": {
-    "message": "二人とも普通に話してください。確定した文がここに出ます。話者が違えば ↔ で変更を"
+    "message": "二人とも普通に話してください。確定した文がここに出ます。言語が違う？ ↔ で切り替え"
   },
   "listen_tr_failed": {
     "message": "翻訳失敗 · 再試行"
@@ -3757,7 +3751,7 @@
     "message": "先に音声パックを2つダウンロード"
   },
   "firstrun_packs_lede": {
-    "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内だけで処理します。"
+    "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内で認識します。認識した文字は翻訳のために送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。"
   },
   "firstrun_packs_asr": {
     "message": "音声認識パック（通訳 / リアルタイム字幕）"
@@ -3804,9 +3798,6 @@
   "listen_lang_detected": {
     "message": "識別済み：{a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "言語が違う？"
-  },
   "subtitle_lang_detecting": {
     "message": "動画の言語を識別しています…"
   },
@@ -3822,9 +3813,6 @@
   "listen_lang_manual": {
     "message": "手動で指定"
   },
-  "listen_partner_auto": {
-    "message": "相手の言語：{lang}（自動）"
-  },
   "subtitle_partner_auto": {
     "message": "動画の言語：{lang}（自動）"
   },
@@ -3832,7 +3820,7 @@
     "message": "オンデバイス認識器は同時に最大5言語までです。上限に達しました — 一度聞き取りを出て入り直してください。"
   },
   "listen_lang_assets_missing": {
-    "message": "その言語の認識パックがまだ入っていません — ネットにつないで、もう一度「聞き取り開始」を。"
+    "message": "この言語の認識パックがまだ入っていません。ネットにつないで「聞き始める」を一度押すと入ります。"
   },
   "listen_lang_unsupported_revert": {
     "message": "この端末ではその言語を認識できません — 「{lang}」に戻しました"
@@ -3848,5 +3836,20 @@
   },
   "listen_listening": {
     "message": "聞き取り中…"
+  },
+  "listen_ptt_say": {
+    "message": "{lang}で話す"
+  },
+  "listen_listening_lang": {
+    "message": "{lang}を聞き取り中…"
+  },
+  "listen_ptt_locked": {
+    "message": "● {lang} を話しています · もう一度タップで終了"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "音声が聞こえませんでした。もう一度お試しください"
+  },
+  "listen_ptt_need_start": {
+    "message": "「聞き始める」を押すと使えます"
   }
 }

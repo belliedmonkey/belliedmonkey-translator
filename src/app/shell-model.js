@@ -127,9 +127,11 @@ export function bootShell() {
     // 顶栏品牌（2026-10-02）：账号行收进 44×44 圆键后，顶栏左侧只留品牌。
     $('acct-brand').textContent = t('action_title', '大肚猴翻译');
     // 屏 1 的主句讲 **App 自己的卖点**（2026-10-01 用户裁定）：原来那句「你在浏览器里读到的句子，
-    // 会同步到这里来复习」把 App 写成扩展的下游 —— 而「边听边翻 + 声音只在设备上处理」是扩展
+    // 会同步到这里来复习」把 App 写成扩展的下游 —— 而「边听边翻 + 设备上识别」是扩展
     // 给不了的。卡内那句同理：登录换来的是额度与两个设备包，不是「替扩展做同步」。
-    $('lede').textContent = t('app_lede', '视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。');
+    // 末句按改稿 4（E9 第二句）：免费额度那条路上文字会经我们的服务器转发，所以不能写
+    // 「只在设备上处理」；两条路分开说，并写明不保存文字。
+    $('lede').textContent = t('app_lede', '视频、对话、文档 —— 边听边翻，声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
     $('email-label').textContent = t('app_email_label', '邮箱');
     $('send').textContent = t('app_send', '发送验证码');
     $('code-label').textContent = t('app_code_label', '验证码（查收邮件）');
@@ -500,7 +502,7 @@ export function bootShell() {
     $('signed-out').hidden = true;
     $('signed-in').hidden = true;
     $('packs-title').textContent = t('firstrun_packs_title', '先把两个语音包下好');
-    $('packs-lede').textContent = t('firstrun_packs_lede', '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。');
+    $('packs-lede').textContent = t('firstrun_packs_lede', '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
     $('pack-asr-name').textContent = t('firstrun_packs_asr', '识别语言包（听译 / 实时字幕）');
     $('pack-tts-name').textContent = t('firstrun_packs_tts', '高质量朗读包（朗读 / 播客）');
     const rowAsr = $('pack-row-asr'), rowTts = $('pack-row-tts');
@@ -1049,7 +1051,7 @@ export function bootShell() {
       // （三个 agent：限额 / 未登录 / 空手），按用户授权先落最小可用版，见 issue #547。
       $('ob-title').textContent = t('ob_intent_listen', '主要想听 · 即时字幕');
       $('ob-text').textContent = t('firstrun_packs_lede',
-        '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。');
+        '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
       $('ob-next').textContent = t('ob_start', '开始设置');
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');

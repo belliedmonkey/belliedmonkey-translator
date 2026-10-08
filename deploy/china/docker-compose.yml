@@ -103,6 +103,20 @@ services:
   # 免费额度的两个函数（2026-10-01 补：翻 `grant.china.ready` 之前**必须**有它们）。
   # 与 fn 同构：各挂一个函数目录、只听默认 8000；路径分派交给 Caddy 那一层（见 Caddyfile）。
   # 不写 depends_on: [proxy] —— 同 fn 的理由（proxy 依赖它们，写了就是循环）。
+  # 模型下载的按 IP 选源中继（2026-10-08，用户裁定）：中国 IP → ModelScope，其它 → HF 原站。
+  # 只认 supabase/functions/bt-models/models.json 里登记的文件，且只给 ECAPA 那一个（其余三条既有
+  # 跳转仍在 Caddyfile 里直出）。Caddy 用 `header_up X-Real-IP` 把真实对端 IP 覆盖写进来。
+  bt-models:
+    image: denoland/deno:alpine-2.1.4
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../supabase/functions/bt-models:/app:ro
+    # 读本地文件（models.json / cn-cidrs.txt）+ 监听 8000；不出网。
+    command: ["run", "--allow-net", "--allow-read", "index.ts"]
+    expose:
+      - "8000"
+
   grant:
     image: denoland/deno:alpine-2.1.4
     restart: unless-stopped

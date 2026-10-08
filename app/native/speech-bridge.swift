@@ -150,6 +150,13 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "tts-assets": speech.download(models: body["models"])
         case "lid-probe":  MTDeviceLid.shared.probe(models: body["models"])
         case "lid-assets": MTDeviceLid.shared.install(models: body["models"])
+        // 按住说 / 点一下（2026-10-08）：**这一句的语言由人指定**，语种判定整个让开。
+        // 两条消息都回一条 `lid-paused`（进 DiagLog 与 __mtTest.rec()，P 组靠它断言）。
+        case "lid-pause":  MTDeviceLid.shared.pause()
+        case "lid-resume": MTDeviceLid.shared.resume()
+        // 松手 / 结束锁定时**立刻收口这一句**（不等 400ms 静音检测）—— 按住说的时间由人控制。
+        case "stt-cut":
+            if #available(iOS 26.0, macOS 26.0, *), let dt = transcriber as? MTDeviceTranscriber { dt.cut() }
         case "vad-probe":  MTDeviceVad.shared.probe(models: body["models"])
         case "vad-assets": MTDeviceVad.shared.install(models: body["models"])
         case "tts-speak":  if (body["backend"] as? String) == "system" { system.speak(body) } else { speech.speak(body) }
@@ -459,6 +466,10 @@ final class MTDeviceTranscriber {
     private func deliver(_ locale: String, _ r: SpeechTranscriber.Result) {
         var n = 0, sum = 0.0
         for run in r.text.runs { if let c = run.transcriptionConfidence { sum += c; n += 1 } }
+        // 只用于 LID 的轻量修正（2026-10-08 用户拍板 ③）：告诉它每一路吐了多少条 partial、
+        // 以及 final 的 conf。**不改识别行为**，也不上屏。
+        MTDeviceLid.shared.noteText(locale: locale, isFinal: r.isFinal,
+                                    conf: n > 0 ? sum / Double(n) : -1, text: String(r.text.characters))
         var payload: [String: Any] = [
             "type": r.isFinal ? "stt-final" : "stt-partial",
             "locale": locale,
@@ -530,6 +541,21 @@ final class MTDeviceTranscriber {
             Task { try? await an.finalize(through: through) }
             MTDeviceLid.shared.finish()   // 同一句结束：判一次语言（与识别器 finalize 同时刻）
         }
+    }
+
+    /// **立刻收口**（按住说松手 / 退出锁定时由 JS 调 `stt-cut`）：不等 400ms 静音检测。
+    /// 与停顿收口走同一段：切点用当前 `fed` —— 松手那一刻就是这句的结束。没有话音就什么都不做
+    /// （P-06：按住/锁定后没出声，不该落行）。
+    func cut() {
+        guard !stopped, spokeSinceFinalize, let an = analyzer, let f = format else { return }
+        spokeSinceFinalize = false
+        quietFrames = 0
+        utterMs = 0
+        let at = fed
+        utterStartFed = at
+        let through = CMTime(value: at, timescale: CMTimeScale(f.sampleRate))
+        Task { try? await an.finalize(through: through) }
+        MTDeviceLid.shared.finish()
     }
 
     func stop() {
@@ -1235,14 +1261,35 @@ final class MTDeviceLid {
         let encoder: String
         let decoder: String
         let files: [(path: String, url: String, sha256: String, size: Int)]
-        let engine: String              // "whisper"（默认，sherpa SLID）| "ecapa"（实验：SpeechBrain ECAPA CoreML）
-        let cpuOnly: Bool               // ECAPA 实验：只走 CPU（排查计算单元争用）
+        let engine: String              // "ecapa"（**默认**：SpeechBrain ECAPA CoreML）| "whisper"（开发开关，sherpa SLID）
+        let trace: Bool                 // 只记录：开时发 lid-trace（开发开关，不改行为）
+        let cpuOnly: Bool               // ECAPA：只走 CPU（排查计算单元争用）
         let langs: [String]             // ECAPA：只比用户选的这两门
         let threshold: Float            // ECAPA：|LLR| 过它才定
+        let rewriteFix: Bool            // ECAPA：轻量修正开关（`lidRewriteFix`，L-16 做对比用）
     }
     private var models: [Model] = []
     private var slid: SherpaOnnxSpokenLanguageIdentificationWrapper?
-    private var ecapa: MTEcapaLid?      // 见 app/native/lid-ecapa.swift（实验引擎）
+    private var ecapa: MTEcapaLid?      // 见 app/native/lid-ecapa.swift（默认 LID 引擎）
+    private var lastTraceSeq = 0        // 已发出的 lid-trace 判定序号（去重）
+    /// 每路的 partial 改写次数（本句内）与最近一条 final 的 conf —— 轻量修正用（用户拍板 ③）。
+    private var partialCount: [String: Int] = [:]
+    private var partialLast: [String: String] = [:]
+    private var finalConf: [String: Double] = [:]
+
+    /// 由转写器在每条 partial/final 上调用（**只记录**，不影响识别）。
+    func noteText(locale: String, isFinal: Bool, conf: Double, text: String) {
+        q.async { [weak self] in
+            guard let self else { return }
+            let b = String(locale.split(separator: "-").first ?? "").lowercased()
+            if isFinal { self.finalConf[b] = conf; return }
+            // 「改写次数」= 该路 partial 文本**变过多少次**（不是条数）—— 稳定的一路改得少。
+            if self.partialLast[b] != text { self.partialLast[b] = text; self.partialCount[b, default: 0] += 1 }
+        }
+    }
+    /// 按住说 / 点一下期间**暂停判定**（2026-10-08）：语言由人指定，判词只会是噪声。
+    /// 暂停不是「关掉」—— 音频照常喂进来，只是不判、不发事件；恢复后从下一句重新累积。
+    private var paused = false
     private let q = DispatchQueue(label: "mt.lid")
     private var buf: [Float] = []                 // 本句累计的 16k 单声道
     private let maxSamples = 16000 * 20           // 只留最近 20s（模型也只用 <30s）
@@ -1270,9 +1317,11 @@ final class MTDeviceLid {
             }
             // ECAPA 的产物是一个 .mlmodelc 目录，没有 encoder/decoder 两个文件名
             let cpuOnly = (m["cpuOnly"] as? Bool) ?? false
-            if engine == "ecapa" { return Model(dir: dir, encoder: "", decoder: "", files: fs, engine: engine, cpuOnly: cpuOnly, langs: langs, threshold: threshold) }
+            let trace = (m["trace"] as? Bool) ?? false
+            let rewriteFix = (m["rewriteFix"] as? Bool) ?? true
+            if engine == "ecapa" { return Model(dir: dir, encoder: "", decoder: "", files: fs, engine: engine, trace: trace, cpuOnly: cpuOnly, langs: langs, threshold: threshold, rewriteFix: rewriteFix) }
             guard let enc = m["encoder"] as? String, let dec = m["decoder"] as? String else { return nil }
-            return Model(dir: dir, encoder: enc, decoder: dec, files: fs, engine: engine, cpuOnly: cpuOnly, langs: langs, threshold: threshold)
+            return Model(dir: dir, encoder: enc, decoder: dec, files: fs, engine: engine, trace: trace, cpuOnly: cpuOnly, langs: langs, threshold: threshold, rewriteFix: rewriteFix)
         }
     }
     private func installed(_ m: Model) -> Bool {
@@ -1282,8 +1331,8 @@ final class MTDeviceLid {
             guard fm.fileExists(atPath: d.appendingPathComponent(".installed-" + f.sha256.lowercased()).path) else { return false }
         }
         if m.engine == "ecapa" {
-            // 实验期：模型是**侧载**到 mt-lid/<dir>/ 的（不打进 App 包，与其它模型同一条纪律），
-            // 所以这里不看 .installed-<sha> 标记，只看产物在不在。
+            // ECAPA 的产物是 .mlmodelc **目录**（zip 解出来就是它），上面那条 .installed-<sha> 标记
+            // 与其它模型同样必须；这里再加一道产物自检 —— 标记在、文件却被删过时不至于带病启动。
             return fm.fileExists(atPath: d.appendingPathComponent("SpeechBrainECAPAVoxLingua107.mlmodelc").path)
                 && fm.fileExists(atPath: d.appendingPathComponent("labels.json").path)
         }
@@ -1308,9 +1357,9 @@ final class MTDeviceLid {
                 let d = root.appendingPathComponent(m.dir, isDirectory: true)
                 var done = 0
                 let total = max(m.files.reduce(0) { $0 + $1.size }, 1)
+                var staging: URL?
                 for f in m.files {
                     do {
-                        try FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)
                         guard let url = URL(string: f.url) else { throw URLError(.badURL) }
                         let before = done
                         var lastEmit = 0.0
@@ -1324,12 +1373,24 @@ final class MTDeviceLid {
                         let data = try Data(contentsOf: tmp)
                         let digest = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
                         guard digest == f.sha256.lowercased() else { try? FileManager.default.removeItem(at: tmp); throw URLError(.cannotDecodeContentData) }
-                        try MTZip.extract(data, into: d)
+                        // M-05 / H5：**校验通过 → 解到同级暂存目录 → 原子换入**。
+                        // 直接往正式目录里解，解压中途被杀掉就会留下「半个 .mlmodelc」——虽然标记
+                        // 还没写、`installed()` 会判否，但半个产物本身已经躺在用户容器里，且下次
+                        // 解压要在它上面覆盖。暂存目录让正式目录只有两种状态：旧的完整产物，或不存在。
+                        let parent = d.deletingLastPathComponent()
+                        try FileManager.default.createDirectory(at: parent, withIntermediateDirectories: true)
+                        let stage = parent.appendingPathComponent(".staging-" + UUID().uuidString, isDirectory: true)
+                        staging = stage
+                        try MTZip.extract(data, into: stage)
+                        FileManager.default.createFile(atPath: stage.appendingPathComponent(".installed-" + f.sha256.lowercased()).path, contents: Data())
+                        if FileManager.default.fileExists(atPath: d.path) { try? FileManager.default.removeItem(at: d) }
+                        try FileManager.default.moveItem(at: stage, to: d)
+                        staging = nil
                         try? FileManager.default.removeItem(at: tmp)
-                        FileManager.default.createFile(atPath: d.appendingPathComponent(".installed-" + f.sha256.lowercased()).path, contents: Data())
                         done += f.size
                         emit?(["type": "assets-progress", "kind": "lid", "locale": "lid", "fraction": Double(done) / Double(total), "state": "downloading"])
                     } catch {
+                        if let s = staging { try? FileManager.default.removeItem(at: s) }
                         emit?(["type": "assets-progress", "kind": "lid", "locale": "lid", "fraction": 0, "state": "failed", "reason": mtdlCode(error)])
                         emit?(["type": "lid-state", "state": "failed"])
                         return
@@ -1348,7 +1409,8 @@ final class MTDeviceLid {
             guard ecapa == nil else { return }
             let d = root.appendingPathComponent(m.dir, isDirectory: true)
             let e = MTEcapaLid()
-            if e.load(dir: d, langs: m.langs, threshold: m.threshold, cpuOnly: m.cpuOnly) {
+            if e.load(dir: d, langs: m.langs, threshold: m.threshold, cpuOnly: m.cpuOnly, rewriteFix: m.rewriteFix) {
+                e.trace = m.trace
                 ecapa = e
                 emit?(["type": "lid-state", "state": "ready", "engine": "ecapa"])
             } else {
@@ -1373,6 +1435,27 @@ final class MTDeviceLid {
         self?.quietRun = 0
         self?.ecapa?.reset()
     } }
+
+    /// 暂停 / 恢复判定（按住说期间）。回一条 `lid-paused` 供 DiagLog 与测试断言。
+    func pause() {
+        q.async { [weak self] in
+            guard let self else { return }
+            self.paused = true
+            self.buf.removeAll(keepingCapacity: true)   // 丢掉没判完的半句：它属于「上一句」
+            self.ecapa?.reset()
+            DispatchQueue.main.async { self.emit?(["type": "lid-paused", "on": 1]) }
+        }
+    }
+    func resume() {
+        q.async { [weak self] in
+            guard let self else { return }
+            self.paused = false
+            self.lastLang = ""                          // 恢复后重新判（判词不会沿用暂停前那句）
+            self.buf.removeAll(keepingCapacity: true)
+            self.ecapa?.reset()
+            DispatchQueue.main.async { self.emit?(["type": "lid-paused", "on": 0]) }
+        }
+    }
 
     /// 麦克风 PCM（tap 的原生格式）→ 16k 单声道 Float32。
     /// **必须在 tap 线程里调用**：`bufIn` 与转换缓冲都只在这个回调里有效，所以这里直接把样本拷成数组。
@@ -1400,12 +1483,26 @@ final class MTDeviceLid {
         guard !pcm.isEmpty else { return }
         q.async { [weak self] in
             guard let self else { return }
-            // ── 实验引擎：ECAPA（只比两门、从开口累积、|LLR| 过阈值才定）──
+            guard !self.paused else { return }   // 按住说期间不判（语言由人指定）
+            // ── 默认引擎：ECAPA（只比两门、从开口累积、|LLR| 过阈值才定）──
             if let e = self.ecapa {
                 let chunk = pcm
                 if speech { self.quietRun = 0 } else { self.quietRun += chunk.count }
                 guard speech || self.quietRun <= 4000 else { return }   // 与 whisper 那条路同一个话音门
-                if let d = e.feed(chunk, speech: speech), d.lang != self.lastLang {
+                // 只记录（2026-10-08 用户 15:35）：开了 trace 就每次判定发一条 lid-trace，
+                // 带每一档窗长的 LLR / 两门 log 概率 / 话音与喂入量 / 当前判词。**不改行为**。
+                e.rewrites = self.partialCount
+                let tr = e.feed(chunk, speech: speech)
+                // 只在**新判定**时发（否则同一行会被每次 feed 重发几十遍）
+                if e.trace, let row = e.lastTrace, (row["seq"] as? Int) != self.lastTraceSeq {
+                    self.lastTraceSeq = (row["seq"] as? Int) ?? 0
+                    var m = row
+                    m["type"] = "lid-trace"
+                    m["quietMs"] = Int(Double(self.quietRun) / 16)
+                    m["modelMs"] = e.lastModelMs
+                    DispatchQueue.main.async { self.emit?(m) }
+                }
+                if let d = tr, d.lang != self.lastLang {
                     self.lastLang = d.lang
                     let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount
                     let feTotal = e.feTotalMs, fr = e.frameCount
@@ -1445,11 +1542,14 @@ final class MTDeviceLid {
             guard let self else { return }
             let samples = self.buf
             self.buf.removeAll(keepingCapacity: true)      // 不论判不判，本句到此为止
+            self.partialCount = [:]; self.partialLast = [:]   // 改写次数按句清零（L-05 核实过：**按句清零**）
             self.lastLive = Date().timeIntervalSince1970
             self.sawSpeech = false
             self.quietRun = 0
+            if self.paused { self.ecapa?.reset(); return }   // 按住说期间不判、也不发判词
             if let e = self.ecapa {
                 // ECAPA 的累积在引擎里；这里只做「一句到此为止」的结算
+                e.rewrites = self.partialCount            // 轻量修正用（本句两路的改写次数）
                 if let d = e.finish() {
                     self.lastLang = d.lang
                     let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount

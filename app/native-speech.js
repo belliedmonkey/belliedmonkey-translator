@@ -10,7 +10,7 @@ var NativeSpeech = (() => {
 
   const PROTOCOL = {
     toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets'],
-    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'vad-state'],
+    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -279,12 +279,20 @@ var NativeSpeech = (() => {
     if (!post(body)) { sttSession = null; setTimeout(() => session.fire('error', { reason: 'no-bridge' }), 0); }
     return {
       sendPcm() {},
+      // 立刻收口这一句（按住说松手 / 退出锁定）：不等 400ms 静音检测 —— 句子的结束由人决定。
+      cut() { if (!session.closed && sttSession === session) post({ type: 'stt-cut' }); },
       close() {
         if (session.closed) return;
         session.closed = true;
         if (sttSession === session) { sttSession = null; if (post({ type: 'stt-stop' })) sttStopsPending++; }
       },
     };
+  }
+
+  // 语种判定暂停 / 恢复（按住说期间）。原生回一条 `lid-paused`（on:1/0），DiagLog 与测试可读。
+  function lidPause(on) {
+    if (!available()) return false;
+    return post({ type: on ? 'lid-pause' : 'lid-resume' });
   }
 
   // ── 朗读 ─────────────────────────────────────────────────────────────────
@@ -336,5 +344,5 @@ var NativeSpeech = (() => {
   }
 
   return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
-    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, vadProbe: vadProbeRun, ensureVad, vadResult };
+    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, lidPause, vadProbe: vadProbeRun, ensureVad, vadResult };
 })();

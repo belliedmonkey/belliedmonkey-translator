@@ -15,6 +15,8 @@ const fs = require('fs');
 const path = require('path');
 const { execSync, execFileSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
+// 借用设置要存/还（0-3）：共用容器，脚本改过的键必须原样还回去
+const { stashInit: stashS, stashRestore: stashR } = require('./stash-settings.js');
 const APP = path.join(ROOT, '.local', 'mac-debug-dd', 'Build', 'Products', 'Debug', 'BelliedMonkey Translator.app');
 const OUT = path.join(ROOT, '.local', 'listen-flash');
 const AUD = path.join(OUT, 'audio');
@@ -53,6 +55,7 @@ async function restartApp() {
   throw new Error('App 没起来（/ping 不通）');
 }
 async function enterListen() {
+  await stashS(ev);   // 先存原值（含 lidEngine），跑完还回去
   await ev(`chrome.storage.local.set({onboardSeen:true,listenMyLang:"zh",listenOtherLang:"th",listenAutoSpeak:false},()=>{}); true`);
   for (let a = 1; a <= 5; a++) {
     await ev('location.reload()'); await sleep(9000);
@@ -134,6 +137,7 @@ async function main() {
   results.push(await recordCase('mix-overlap', [c.mix], '', true));
   const n = results.filter(Boolean).length;
   console.log(`\n=== ${n}/${results.length} 通过 ===`);
+  try { await stashR(ev); } catch (_) {}   // 原样还回去（共用容器，0-3）
   process.exit(n === results.length ? 0 : 1);
 }
 main().catch((e) => { console.error('✗', e.message); process.exit(1); });

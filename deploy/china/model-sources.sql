@@ -50,10 +50,31 @@ update public.bt_model_sources set active = false, updated_at = now()
 --   备用若也不可达 ⇒ 屏 2 过不去、App 用不了（以前只是朗读降级）。改法见上：换一行 url。
 
 
--- 回读断言：别拿「没报错」当成功。
+-- 2026-10-08：**语种识别包（kind='lid'）也进这张表** —— 与朗读包同一套「查表 → 探测 → 换源」逻辑
+-- （`app/model-sources.js` 的过滤已从 `kind=eq.tts` 放开到 `kind=in.(tts,lid)`）。
+-- **两行都填中继地址，不填 ModelScope / HF 的真实地址**：真实托管由服务端 `bt-models` 按请求 IP 选
+-- （中国 → ModelScope，其它 → Hugging Face 原站），把真实地址写进来就等于绕过分流。
+-- `url_alt` = 同址 + `?src=other`（「按 IP 分流时不会选的那一边」），主源下载失败时客户端用它重试。
+insert into public.bt_model_sources (kind, flavor, path, url, url_alt, note) values
+  ('lid', 'global', 'speechbrain-ecapa-voxlingua107.zip',
+   'https://api.belliedmonkey.com/models/speechbrain-ecapa-voxlingua107.zip',
+   'https://api.belliedmonkey.com/models/speechbrain-ecapa-voxlingua107.zip?src=other',
+   '国际版：语种识别默认引擎 SpeechBrain ECAPA VoxLingua107（Apache-2.0）；地址走中继，按 IP 分流'),
+  ('lid', 'china', 'speechbrain-ecapa-voxlingua107.zip',
+   'https://api.belliedmonkey.com/models/speechbrain-ecapa-voxlingua107.zip',
+   'https://api.belliedmonkey.com/models/speechbrain-ecapa-voxlingua107.zip?src=other',
+   '中国版：同上；ModelScope 与 HF 同一份字节（sha256 f4fa066c…7eda1）')
+on conflict (kind, flavor, path) do update
+  set url = excluded.url, url_alt = excluded.url_alt, active = true, updated_at = now();
+
+-- 回读断言：别拿「没报错」当成功。**按 kind 拆开数**（2026-10-08 起表里有两类包：朗读 + 语种识别）。
 do $$ begin
-  if (select count(*) from public.bt_model_sources where flavor = 'china' and active) <> 1 then
-    raise exception 'bt_model_sources：中国版应有 1 行 active（kokoro 中英；泰语默认包撤下，要换达摩院需先做 ONNX+两段式运行时），实际 %',
-      (select count(*) from public.bt_model_sources where flavor = 'china' and active);
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and kind = 'tts' and active) <> 1 then
+    raise exception 'bt_model_sources：中国版 kind=tts 应有 1 行 active（kokoro 中英；泰语默认包撤下，要换达摩院需先做 ONNX+两段式运行时），实际 %',
+      (select count(*) from public.bt_model_sources where flavor = 'china' and kind = 'tts' and active);
+  end if;
+  if (select count(*) from public.bt_model_sources where flavor = 'china' and kind = 'lid' and active) <> 1 then
+    raise exception 'bt_model_sources：中国版 kind=lid 应有 1 行 active（SpeechBrain ECAPA，地址走中继按 IP 分流），实际 %',
+      (select count(*) from public.bt_model_sources where flavor = 'china' and kind = 'lid' and active);
   end if;
 end $$;

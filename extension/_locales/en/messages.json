@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Video, conversations, documents — translated as you listen, processed only on your device."
+    "message": "Video, conversations, documents — translated as you listen. Speech is recognized on your device. The recognized text is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text."
   },
   "app_email_label": {
     "message": "Email"
@@ -1941,7 +1941,7 @@
     "message": "Listened {t}"
   },
   "listen_device_privacy": {
-    "message": "On-device transcription: words appear as you speak; each finished sentence, with the previous few for context, goes to the translation engine you configured for correction and translation. With on-device speech, the voice is synthesised on your device and a one-time offline model is downloaded on first use."
+    "message": "On-device transcription: words appear as you speak; each finished sentence, with the previous few for context, is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text. With on-device speech, the voice is synthesised on your device and a one-time offline model is downloaded on first use."
   },
   "listen_raw_label": {
     "message": "Recognised text"
@@ -2366,12 +2366,6 @@
   "listen_star": {
     "message": "Star"
   },
-  "listen_now_them": {
-    "message": "They are saying"
-  },
-  "listen_now_me": {
-    "message": "I am speaking"
-  },
   "listen_lang_me": {
     "message": "{to} for them"
   },
@@ -2470,7 +2464,7 @@
     "message": "Me"
   },
   "listen_who_guessed": {
-    "message": "Guessed from the language — tap ↔ to change"
+    "message": "Wrong language? Tap ↔ to switch to the other one"
   },
   "listen_swap_to_them": {
     "message": "Change to: they said this"
@@ -2479,7 +2473,7 @@
     "message": "Change to: I said this"
   },
   "listen_flip_kept_card": {
-    "message": "Side changed — the earlier card was already reviewed, so it stays under Sources › Conversation"
+    "message": "Switched to the other language — the earlier card was already reviewed, so it stays under Sources › Conversation"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2530,7 +2524,7 @@
     "message": "My language"
   },
   "listen_lang_note": {
-    "message": "Languages are detected automatically — no need to choose. To set them by hand, use “Wrong language?” on the listen page."
+    "message": "Recognized automatically between the two languages you picked. You can change them anytime on the listen page."
   },
   "listen_lang_engine_unsupported": {
     "message": "not supported by the current engine"
@@ -2596,7 +2590,7 @@
     "message": "Transcription connection lost: {why} — reconnecting…"
   },
   "listen_history_empty": {
-    "message": "Both of you just talk — each finished sentence lands here; tap ↔ if the side is wrong"
+    "message": "Just talk, both of you — each finished sentence shows up here. Wrong language? Tap ↔ to switch to the other one"
   },
   "listen_tr_failed": {
     "message": "Translation failed · retry"
@@ -3757,7 +3751,7 @@
     "message": "Download the two speech packs first"
   },
   "firstrun_packs_lede": {
-    "message": "Once these are in place you won't need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Audio is processed only on your device."
+    "message": "Once these are in place you won’t need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Speech is recognized on your device. The recognized text is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text."
   },
   "firstrun_packs_asr": {
     "message": "Speech recognition pack (interpreting / live subtitles)"
@@ -3804,9 +3798,6 @@
   "listen_lang_detected": {
     "message": "Detected: {a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "Wrong language?"
-  },
   "subtitle_lang_detecting": {
     "message": "Detecting the video's language…"
   },
@@ -3822,9 +3813,6 @@
   "listen_lang_manual": {
     "message": "Set by hand"
   },
-  "listen_partner_auto": {
-    "message": "They're speaking: {lang} (auto)"
-  },
   "subtitle_partner_auto": {
     "message": "Video language: {lang} (auto)"
   },
@@ -3832,7 +3820,7 @@
     "message": "The on-device recognizer can hold at most 5 languages at once and is full — leave listening and come back."
   },
   "listen_lang_assets_missing": {
-    "message": "That language's recognition pack isn't installed yet — get online and tap Start listening again."
+    "message": "This language’s recognition pack isn’t installed yet. Get online and tap “Start listening” once and it’ll be added."
   },
   "listen_lang_unsupported_revert": {
     "message": "This device cannot recognize that language — back to “{lang}”."
@@ -3848,5 +3836,20 @@
   },
   "listen_listening": {
     "message": "Listening…"
+  },
+  "listen_ptt_say": {
+    "message": "Say {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "Listening to {lang}…"
+  },
+  "listen_ptt_locked": {
+    "message": "● Speaking {lang} · tap again to end"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "Didn’t hear anything — try again"
+  },
+  "listen_ptt_need_start": {
+    "message": "Available after you tap “Start listening”"
   }
 }

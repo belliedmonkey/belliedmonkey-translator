@@ -47,3 +47,6 @@ supabase/.temp/
 
 # 原生二进制依赖（scripts/fetch-native-deps.js 拉取，钉版本 + sha256）
 app/native/vendor/
+
+# 回归证据（第三十批起）：命令输出、截图、汇总表 —— 本地留存，不进仓库。
+out-reg/

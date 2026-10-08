@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。"
+    "message": "视频、对话、文档 —— 边听边翻，声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
   },
   "app_email_label": {
     "message": "邮箱"
@@ -1942,7 +1942,7 @@
     "message": "已听 {t}"
   },
   "listen_device_privacy": {
-    "message": "本机转写：边说边出字；整句定稿后连同前几句上下文一起发到你自己配置的翻译引擎做修正与翻译。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。"
+    "message": "本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。"
   },
   "listen_raw_label": {
     "message": "识别原文"
@@ -2367,12 +2367,6 @@
   "listen_star": {
     "message": "加星"
   },
-  "listen_now_them": {
-    "message": "对方正在说"
-  },
-  "listen_now_me": {
-    "message": "我正在说"
-  },
   "listen_lang_me": {
     "message": "中文 → {to}"
   },
@@ -2471,7 +2465,7 @@
     "message": "我"
   },
   "listen_who_guessed": {
-    "message": "按语言猜的 · 点 ↔ 改"
+    "message": "判错了？点 ↔ 换成另一种语言"
   },
   "listen_swap_to_them": {
     "message": "改成对方说的"
@@ -2480,7 +2474,7 @@
     "message": "改成我说的"
   },
   "listen_flip_kept_card": {
-    "message": "改边了 · 之前那张卡你已经复习过，留在「来源 › 对话」里"
+    "message": "换到另一种语言了 · 之前那张卡你已经复习过，留在「来源 › 对话」里"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2531,7 +2525,7 @@
     "message": "我的语言"
   },
   "listen_lang_note": {
-    "message": "语言自动识别，不用先选。要手动指定，用听译页里的「语言不对？」。"
+    "message": "在你选的两门语言之间自动识别。听译页里可以随时改这两门语言。"
   },
   "listen_lang_engine_unsupported": {
     "message": "当前引擎不支持"
@@ -2597,7 +2591,7 @@
     "message": "转写连接中断：{why} — 正在重连…"
   },
   "listen_history_empty": {
-    "message": "双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边"
+    "message": "双方随便说，每句定稿后会出现在这里。判错了？点 ↔ 换成另一种语言"
   },
   "listen_tr_failed": {
     "message": "译文失败 · 重试"
@@ -3758,7 +3752,7 @@
     "message": "先把两个语音包下好"
   },
   "firstrun_packs_lede": {
-    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。"
+    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
   },
   "firstrun_packs_asr": {
     "message": "识别语言包（听译 / 实时字幕）"
@@ -3805,9 +3799,6 @@
   "listen_lang_detected": {
     "message": "已识别：{a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "语言不对？"
-  },
   "subtitle_lang_detecting": {
     "message": "正在识别视频语言…"
   },
@@ -3823,9 +3814,6 @@
   "listen_lang_manual": {
     "message": "手动指定"
   },
-  "listen_partner_auto": {
-    "message": "对方说的：{lang}（自动）"
-  },
   "subtitle_partner_auto": {
     "message": "视频语言：{lang}（自动）"
   },
@@ -3833,7 +3821,7 @@
     "message": "本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。"
   },
   "listen_lang_assets_missing": {
-    "message": "这门语言的识别包还没装好 — 连上网再点一次「开始听」。"
+    "message": "这门语言的识别包还没装好。连上网后点一次「开始听」就能补上。"
   },
   "listen_lang_unsupported_revert": {
     "message": "这门语言这台设备识别不了 — 已经回到「{lang}」"
@@ -3849,5 +3837,20 @@
   },
   "listen_listening": {
     "message": "正在听…"
+  },
+  "listen_ptt_say": {
+    "message": "说{lang}"
+  },
+  "listen_listening_lang": {
+    "message": "正在听{lang}…"
+  },
+  "listen_ptt_locked": {
+    "message": "● {lang} 正在说 · 再点一下结束"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "没听到声音，再试一次"
+  },
+  "listen_ptt_need_start": {
+    "message": "点「开始听」后可用"
   }
 }

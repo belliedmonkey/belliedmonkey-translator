@@ -1,4 +1,5 @@
-// app/model-sources.js — 离线朗读模型的下载地址从哪来（learning-design §9.6.1.1，2026-09-17）。
+// app/model-sources.js — 端上模型的下载地址从哪来（learning-design §9.6.1.1，2026-09-17；
+//   2026-10-08 起 `kind` 从只管 `tts` 放开到 `tts` + `lid` —— 语种识别模型走**同一套**查表/探测/换源逻辑）。
 //
 // 托管会变（GitHub 在境内拉不动；镜像站也可能有一天关掉），而地址写死在清单里，换一次就要发一版。
 // 所以地址由后端表 `bt_model_sources` 决定，这里只做三件事，缺一件就是另一个设计：
@@ -49,7 +50,8 @@ var ModelSources = (() => {
     const b = backend(); if (!b) return null;
     const f = deps.fetch || (typeof fetch === 'function' ? fetch : null); if (!f) return null;
     try {
-      const u = b.url + '/rest/v1/bt_model_sources?select=path,url,url_alt&kind=eq.tts&flavor=eq.' + encodeURIComponent(flavor) + '&active=is.true';
+      // 两类模型同一张表：tts（朗读包）+ lid（语种识别包）。加 kind 就两处同改：这里与那个单测。
+      const u = b.url + '/rest/v1/bt_model_sources?select=path,url,url_alt&kind=in.(tts,lid)&flavor=eq.' + encodeURIComponent(flavor) + '&active=is.true';
       const r = await withTimeout(f(u, { headers: { apikey: b.anonKey, Authorization: 'Bearer ' + b.anonKey, Accept: 'application/json' } }), TIMEOUT_MS);
       if (!r || !r.ok) return null;
       const rows = await r.json();

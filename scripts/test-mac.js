@@ -24,7 +24,7 @@
 
 'use strict';
 
-const { spawnSync, execSync } = require('child_process');
+const { spawnSync, execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -119,6 +119,12 @@ function buildBundleWithHarness() {
 }
 
 function runAppSync() {
+  // app:sync 有一条过期守卫：**两个 flavor 的 dist 都必须比源码新**（缺一边就拒绝整次同步）。
+  // 本脚本只重建 global 的 dist-app，所以这里先把 china 那份也刷出来 —— 否则整轮 M1–M9 会停在
+  // 「✗ dist-app-china/ 比源码旧」，看起来像功能回归，其实一行都没跑。
+  log('▶ 刷 dist-china（app:sync 要求两个 flavor 都新）');
+  const b = spawnSync('node', [path.join(ROOT, 'build.js'), '--flavor', 'china'], { stdio: 'ignore', env: cleanEnv() });
+  if (b.status !== 0) die('node build.js --flavor china 失败');
   log('▶ app:sync（补丁 ViewController + 把 dist-app 灌进工程树）');
   const r = spawnSync('node', [path.join(ROOT, 'scripts', 'sync-app-assets.js')], { stdio: 'inherit', env: cleanEnv() });
   if (r.status !== 0) die('app:sync 失败');
@@ -148,9 +154,24 @@ function launch() {
   const app = findProduct();
   // 同 bundle id：先温和退出在跑的那份（可能是正版 —— 验证完重开即可），再开 Debug 包。
   try { execSync(`osascript -e 'quit app id "com.belliedmonkeytranslator"'`, { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
-  sleep(1000);
+  // 真退出要等进程真的走掉：`open` 的 -600（procNotFound）多半就是与「正在退出」抢。
+  try { execSync('pkill -f "BelliedMonkey Translator.app/Contents/MacOS" || true', { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
+  sleep(1800);
   log('▶ 起 Debug 包：' + app);
-  execSync(`open "${app}"`, { env: cleanEnv() });
+  let last = null;
+  for (let i = 0; i < 3; i++) {
+    try { execSync(`open "${app}"`, { env: cleanEnv(), stdio: 'ignore' }); return; } catch (e) { last = e; sleep(2000); }
+  }
+  // 兜底：`open` 走 LaunchServices，它偶尔连着三次不认刚注册的包。直接起可执行文件绕开它 ——
+  // 后续全部走 /ping（不依赖 LaunchServices），所以这条路对测试是等价的。
+  try {
+    const macos = path.join(app, 'Contents', 'MacOS');
+    const bin = path.join(macos, fs.readdirSync(macos).find((f) => !f.startsWith('.')) || '');
+    log('  （open 三次都失败：直接起可执行文件 —— ' + bin + '）');
+    spawn(bin, [], { detached: true, stdio: 'ignore' }).unref();
+    return;
+  } catch (e) { log('  （兜底也没起来：' + e.message + '）'); }
+  throw last;
 }
 
 function shot(tag) {
@@ -189,6 +210,10 @@ const state = () => evalOk('__mtTest.state()');
 const say = (text, loc) => evalOk(`__mtTest.say(${JSON.stringify(text)}, '${loc}')`);
 const rec = (cmd) => evalOk(`__mtTest.rec(${cmd === undefined ? '' : cmd})`);
 const storageSet = (obj) => runAsync(`new Promise(res=>{ try{ chrome.storage.local.set(${JSON.stringify(obj)}, ()=>res('ok')); }catch(e){ res('throw:'+e) } })`);
+// 借用设置要存/还（0-3）：这个脚本会把语言对钉成 zh/th 或 zh/en、自动朗读钉 true，
+// 而 Debug 包与正版共用容器 ⇒ 跑完必须原样还回去。
+const { stashInit: stashS, stashRestore: stashR } = require('./stash-settings.js');
+let volBefore = null;   // 系统输出音量/静音的原值（跑完还原）
 const storageGet = (keys) => runAsync(`new Promise(res=>{ try{ chrome.storage.local.get(${JSON.stringify(keys)}, v=>res(JSON.stringify(v||{}))); }catch(e){ res('{}') } })`).then(JSON.parse);
 
 async function reload() {
@@ -425,11 +450,33 @@ async function drained() {
   return ev2.length === ev.length;
 }
 
+// 等**真的安静**（朗读队列排空）：轮询到最后一条 tts 事件是 end 且再等 1.2s 没有新的。
+// 与 `drained()` 的区别：`drained()` 在「正在念」时立刻返回 false（不等待）—— 注入类用例需要的是
+// 「等到安静」，不是「现在安静吗」。为什么必须等：`echo.playingLangs()` 会整门挡住**正在朗读的
+// 那个语言**，注入同语言文本会被回声闸正当丢掉（M7/P-03 各红过一次，2026-10-08）。
+async function quiet(ms) {
+  const tail = async () => (await rec()).filter((e) => e && (e.type === 'tts-start' || e.type === 'tts-end'));
+  const t0 = Date.now();
+  while (Date.now() - t0 < 30000) {
+    const a = await tail();
+    if (a.length && a[a.length - 1].type === 'tts-end') {
+      await sleep(ms || 1200);
+      const b = await tail();
+      if (b.length === a.length) return true;
+    }
+    await sleep(300);
+  }
+  return false;
+}
+
 async function m7(ctx) {
   await say('今天我们测试翻译。', 'zh-CN');
   await waitRow('今天我们测试翻译');
   // 第二句要**词汇远离**任何可能被朗读的译文：先前用「การทดสอบ」跟 zh 句的泰语译文
   // 撞了 bigram，被回声闸**正当**吞掉（那是它在干活，不是 case 的失败）。
+  // 但光远离词还不够 —— 第一句的**译文是泰语**，朗读期间 `echo.playingLangs()` 会整门挡住泰语，
+  // 第二句（也是泰语）照样被丢 ⇒ 这条用例偶发红。等朗读排空再注入（2026-10-08 三次里红两次）。
+  await quiet();
   await say('ที่นี่ขายกาแฟหรือเปล่า', 'th');
   await waitRow('กาแฟ');   // 第二句成行（累积不覆盖）
   const s = await state();
@@ -437,6 +484,8 @@ async function m7(ctx) {
 }
 
 async function m2(ctx) {
+  // 注入前等朗读排空：上一轮 M7 之后可能还有译文在念，同语言注入会被回声闸正当丢掉。
+  await quiet();
   await say('请问去火车站怎么走？', 'zh-CN');
   await waitFor(async () => {
     const s = await state();
@@ -471,12 +520,20 @@ async function m3(ctx) {
   }, 30000, '最后一句念完');
   // 断言按**新增行**算，不能全表搜：念过的泰语本来就在 M2 那一行的译文里（第一版就这么
   // 假红过 —— 闸可能拦得好好的，断言瞎了）。
-  const before = (await state()).history.slice();
-  const echoed = ctx.spokenThai;
+  // 行**按前缀做键**：M2 那一行的译文会异步从「临时」变成「修正」，整行文本因此会变 ——
+  // 按整串做差集会把「同一行」当成新行（2026-10-08 实测到的假红）。原文那一段不变，取前 12 字。
+  const keyOf = (r) => String(r).slice(0, 12);
+  const beforeKeys = new Set((await state()).history.map(keyOf));
+  // 注入「**真的念出去的那一句**」（`lastSpoken`，speak 那一刻记下的），而不是 ctx 里那份译文：
+  // M2 的译文会先临时、后修正，两份文本不同 ⇒ token 重合度掉到门限以下 ⇒ 闸没拦就假红
+  // （2026-10-08 实测到过一次）。用例的语义本来就是「麦克风听到了我们刚放出去的那一声」。
+  const spoken = await evalOk('(window.AppListen && AppListen._debug() || {}).lastSpoken || ""');
+  const echoed = spoken || ctx.spokenThai;
+  okc(!!echoed, 'M3 拿不到念出去的文本（lastSpoken 空）');
   await say(echoed, 'th');
   await sleep(4000);   // ECHO_TAIL_MS=3000 + 定稿余量
   const after = (await state()).history;
-  const newRows = after.filter((r) => before.indexOf(r) < 0);
+  const newRows = after.filter((r) => !beforeKeys.has(keyOf(r)));
   okc(!newRows.some((r) => r.includes(echoed.slice(0, 12))),
     `回声没拦住：念过的泰语「${echoed.slice(0, 20)}…」又成了一行（新增 ${newRows.length} 行）`);
   // 之前落的行还在（拦的是这一句，不是整个历史）
@@ -563,6 +620,9 @@ async function m8() {
     // 全程零泰语事件（探测的 missing/installed、下载的 progress 都不许出现）
     const thHit = await evalOk(`__mtTest.rec().some(e => String((e && e.locale) || '').split('-')[0].toLowerCase() === 'th')`);
     okc(!thHit, '进场探测/下载了泰语 —— beginPipeline 还是全量（90 真机那条）');
+    // H12 / R-03：已经装好的包，进听译时**一条 downloading 都不该有**（重下 = 白花用户的流量）。
+    const redl = await evalOk(`__mtTest.rec().filter(e => (e.type||'') === 'assets-progress' && e.state === 'downloading').length`);
+    okc(redl === 0, '已装好的包又下了一遍（assets-progress downloading × ' + redl + '）');
   } finally {
     await evalOk('__mtTest.ka(0), true').catch(() => {});
     try { await click('app-listen-toggle'); } catch (_) {}
@@ -615,12 +675,158 @@ const CASES = [
   { id: 'M9', what: '听译内切语言按新对补包（zh/en 切泰语当场下 — 92 真机）', impl: m9 },
 ];
 
+// ── P 组：按住说 / 点一下（第三十批，Pencil 终稿 3）──────────────────────────────
+// 驱动的是**真按钮上的真指针事件**（`__mtTest.ptt`，H3）：0.4 s 的分界、锁定、静默自动结束
+// 全是产品代码自己算的。按住期间用 lidMute 关掉自动判词 —— 按住时本来就不该有判词。
+async function p01() {
+  const s = await state();
+  const p = s.ptt || {};
+  okc(p.shown, '听译页没有那条按钮条');
+  okc(p.mine === '说中文', '左键不是「说中文」：' + p.mine);
+  okc(p.otherName === 'ไทย', '右键不是本名「ไทย」：' + p.otherName);
+  okc(p.otherHint === 'แตะหรือกดค้างเพื่อพูด', '右键小字不是那门语言写的：' + p.otherHint);
+  okc(!p.disabled, '会话正在进行，按钮条却是灰的');
+}
+async function p02() {
+  await evalOk('__mtTest.lidMute(1), true');
+  await evalOk('__mtTest.rec(1), true');
+  try { await click('app-listen-history, #app-listen'); } catch (_) {}
+  await evalOk(`__mtTest.ptt.down('other'), true`);
+  await sleep(600);                                   // 够 0.4 s ⇒ 按住说（不是点一下）
+  const mid = await evalOk('__mtTest.ptt.state()');
+  okc(mid.mode === 'hold', '按下 0.6s 后不是 hold：' + JSON.stringify(mid));
+  okc(mid.lidPaused === true, '按住期间没有暂停语种判定');
+  // 句子必须与 M7 用的**不同** —— 撞了就会匹配到 M7 那一行（第一版 P-02 就是这么假通过的）。
+  await evalOk(`__mtTest.partial('ผมอยากไปเชียงใหม่', 'th'), true`);
+  await evalOk(`__mtTest.say('ผมอยากไปเชียงใหม่ปีหน้า', 'th'), true`);
+  await sleep(1000);                                  // 等 650ms 的延迟注入落地
+  await evalOk(`__mtTest.ptt.up('other'), true`);
+  await waitRow('เชียงใหม่', 20000);
+  const s = await state();
+  const row = (s.history || []).filter((r) => r.includes('เชียงใหม่')).pop() || '';
+  okc(row.includes('ไทย'), '按住说的那行标签不是本名 ไทย：' + row);
+  const after = await evalOk('__mtTest.ptt.state()');
+  okc(after.mode === 'idle' && after.lidPaused === false, '松手后没有恢复自动识别：' + JSON.stringify(after));
+  const paused = (await rec()).filter((e) => e && e.type === 'lid-paused');
+  okc(paused.some((e) => e.on === 1) && paused.some((e) => e.on === 0),
+    '原生没收到「暂停判定 / 恢复判定」两条：' + JSON.stringify(paused.slice(0, 4)));
+}
+async function p03() {
+  // **注入前关掉自动朗读**（裁定 2026-10-08）：这一条的判据是「点一下锁定 → 再点一下 → 落一行
+  // 中文」。App 正在念中文译文时，注入的中文会被回声闸**整门**挡掉（`echo.playingLangs`）——
+  // 那是**另一个真产品问题**，已单列「待用户定」（见 out-reg/batch30/RESULTS.md），
+  // 不该把这条用例的判据搅成「看朗读什么时候停」。跑完恢复。
+  const autoOn = await evalOk(`!!(document.getElementById('app-listen-autospeak')||{}).checked`);
+  if (autoOn) await click('app-listen-autospeak');
+  try {
+    await p03Body();
+  } finally {
+    if (autoOn) { try { await click('app-listen-autospeak'); } catch (_) {} }
+  }
+}
+
+async function p03Body() {
+  await evalOk(`__mtTest.ptt.tap('mine', 120), true`);   // <0.4s ⇒ 锁定
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '点一下进锁定');
+  const s1 = await state();
+  okc(s1.ptt.locked && /正在说/.test(s1.ptt.locked), '锁定提示行没出现：' + JSON.stringify(s1.ptt));
+  okc(/中文/.test(s1.ptt.locked), '锁定提示里没有那门语言的本名：' + s1.ptt.locked);
+  // 与 P-02 同形：先一条半句（让「听到了」为真），再一条定稿。两条注意都是**回归里踩出来的**：
+  //   · 定稿**必须带句末标点** —— 串句器按标点收口，没标点它一直等；
+  //   · 注入前要等**朗读排空** —— 上一行的译文正在念中文时，注入的中文与 App 自己的声音同语言，
+  //     回声闸（M3 正验的那个）会正当丢掉它（第一版 P-03 就是这么假红的：heard 一直是 false）。
+  await quiet();
+  await evalOk(`__mtTest.partial('明天早上八点出发', 'zh-CN'), true`);
+  await evalOk(`__mtTest.say('明天早上八点出发。', 'zh-CN'), true`);
+  await sleep(1400);
+  log('    P-03 中点：' + JSON.stringify((await state()).ptt) + ' force=' + await evalOk('AppListen._debug().pttForce')
+    + ' sock=' + await evalOk('AppListen._debug().sock') + ' phase=' + await evalOk('AppListen._debug().phase')
+    + ' 收到的 stt 事件=' + await evalOk(`JSON.stringify((__mtTest.rec()||[]).filter(e=>/^stt-/.test(e.type||'')).slice(-4).map(e=>e.type+':'+e.locale))`));
+  await evalOk(`__mtTest.ptt.tap('mine', 120), true`);   // 再点同一个 ⇒ 结束
+  try {
+    await waitRow('明天早上八点出发', 15000);
+  } catch (e) {
+    const st = await state();
+    log('    P-03 现场：ptt=' + JSON.stringify(st.ptt) + ' hist=' + JSON.stringify((st.history || []).map((x) => x.slice(0, 24))));
+    throw e;
+  }
+  const row = ((await state()).history || []).filter((r) => r.includes('明天早上八点出发')).pop() || '';
+  okc(row.includes('中文'), '锁定结束落的那行标签不是「中文」：' + row);
+  const st = await evalOk('__mtTest.ptt.state()');
+  okc(st.mode === 'idle' && st.lidPaused === false, '第二次点一下没退出锁定：' + JSON.stringify(st));
+}
+async function p05() {
+  await evalOk('__mtTest.pttSilenceMs(2500), true');
+  await evalOk(`__mtTest.ptt.tap('other', 120), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '锁定');
+  const t0 = Date.now();
+  await evalOk(`__mtTest.say('กาแฟอร่อยมาก', 'th'), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'idle', 8000, '静默后自动退出锁定');
+  const dt = Date.now() - t0;
+  okc(dt >= 1800 && dt <= 5000, '静默自动结束的时机不对（' + dt + 'ms，覆盖值 2500）');
+  const st = await evalOk('__mtTest.ptt.state()');
+  okc(st.lidPaused === false, '自动结束后没有恢复自动识别');
+  await evalOk('__mtTest.pttSilenceMs(0), true');
+}
+async function p06() {
+  const n0 = await evalOk('__mtTest.translateCalls()');
+  await evalOk(`__mtTest.ptt.tap('other', 120), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '锁定');
+  await evalOk(`__mtTest.ptt.tap('other', 120), true`);   // 什么都没说就结束
+  let noted = false;
+  try {
+    await waitFor(async () => /没听到声音/.test((await state()).ptt.note || ''), 4000, '没出声的提示');
+    noted = true;
+  } catch (_) {}
+  const s = await state();
+  if (!noted) log('    P-06 现场：' + JSON.stringify(s.ptt) + ' 元素=' + JSON.stringify(await evalOk(`(()=>{const e=document.getElementById('app-listen-ptt-note'); return e?{hidden:e.hidden,txt:(e.textContent||'').slice(0,40),disp:getComputedStyle(e).display}:'none'})()`)));
+  okc(noted, '没出声时没有「没听到声音，再试一次」：' + JSON.stringify(s.ptt.note));
+  okc((await evalOk('__mtTest.translateCalls()')) === n0, '没出声却发了翻译请求');
+}
+async function p07() {
+  const n0 = await evalOk('__mtTest.translateCalls()');
+  await evalOk(`__mtTest.ptt.down('mine'), true`);
+  await evalOk(`__mtTest.say('这一句不该落行', 'zh-CN'), true`);
+  await sleep(1000);
+  await click('app-listen-toggle');                      // 按住时点「暂停」⇒ 这一句丢掉
+  await sleep(900);
+  const s = await state();
+  okc(!(s.history || []).some((r) => r.includes('这一句不该落行')), '按住时点暂停，那句还是落行了');
+  okc((await evalOk('__mtTest.translateCalls()')) === n0, '被点掉的那句发了翻译请求');
+  const st = await evalOk('__mtTest.ptt.state()');
+  okc(st.mode === 'idle' && st.lidPaused === false, '暂停后按住态没清：' + JSON.stringify(st));
+  okc(s.ptt.disabled && /开始听/.test(s.ptt.why || ''), '暂停后按钮没灰或没说原因：' + JSON.stringify(s.ptt.why));
+  // 交回给后面的 case：恢复这一场
+  await click('app-listen-toggle');
+  await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'P-07 之后重新开听');
+}
+async function p12() {
+  const r = await evalOk(`(()=>{const rows=[...document.querySelectorAll('#app-listen-history > *')];
+    const row=rows.find(x=>/เชียงใหม่/.test(x.textContent||'')); if(!row) return JSON.stringify({row:false});
+    return JSON.stringify({row:true, swap:!!row.querySelector('.listen-swap'),
+      acts:((row.querySelector('.listen-row-acts')||{}).textContent||''), who:((row.querySelector('.listen-who')||{}).textContent||'')})})()`);
+  const o = JSON.parse(r);
+  okc(o.row, 'P-02 那行已经不在历史里了（后面的 case 把它挤掉了？）');
+  okc(!o.swap, '按住说的行还画着 ↔（语言是人指定的，没有「判错」这回事）');
+  okc(/朗读|给对方看/.test(o.acts), '按住说的行少了朗读 / 给对方看：' + o.acts);
+  okc(o.who.trim() === 'ไทย', '按住说的行标签不是 ไทย：' + o.who);
+  await evalOk('__mtTest.lidMute(0), true');
+}
+
 const LISTEN_CASES = [
   { id: 'M7', what: '多轮对话历史逐行累积', impl: m7 },
   { id: 'M2', what: 'zh 输入 → th 译文 → 朗读出声', impl: m2 },
   { id: 'M3', what: '自己念的被认回来 → 拦住（注入版回声）', impl: m3 },
   { id: 'M4', what: '对方说不同的话 → 放行（不误杀）', impl: m4 },
   { id: 'M5', what: 'TTS 失败不静默堵死（连杀三句，队列仍活）', impl: m5 },
+  // P 组（第三十批新功能）：在同一个 zh↔th 会话里跑，跑完再把自动识别交回去。
+  { id: 'P-01', what: '按钮条：位置/文案（本名）/小字（那门语言）', impl: p01 },
+  { id: 'P-02', what: '按住 ≥0.4s ⇒ 只按那门识别、松手定稿、行 pin 住', impl: p02 },
+  { id: 'P-03', what: '点一下 ⇒ 锁定（有提示）；再点一下 ⇒ 结束并落行', impl: p03 },
+  { id: 'P-05', what: '锁定后静默 ⇒ 自动定稿并退出锁定', impl: p05 },
+  { id: 'P-06', what: '按住/锁定后没出声 ⇒ 只提示、不落行、0 次翻译', impl: p06 },
+  { id: 'P-07', what: '按住时点暂停 ⇒ 这句丢掉；按钮变灰并有原因', impl: p07 },
+  { id: 'P-12', what: '按住说的行 = 普通行，但没有 ↔', impl: p12 },
 ];
 
 async function runCases() {
@@ -663,6 +869,15 @@ async function runCases() {
 
 // ── main ─────────────────────────────────────────────────────────────────────
 async function main() {
+  try { await stashS(evalOk); } catch (_) {}   // 先存原值（拿不到就继续，不挡测试）
+  // 系统输出音量/静音也要还（2026-10-08 用户拍板）：这个脚本为了量音频会把输出静音，
+  // 而它**不在 chrome.storage 里** —— 忘了还，用户下次放声音就是静音的（当天实测踩到过）。
+  try {
+    volBefore = {
+      muted: execSync(`osascript -e 'output muted of (get volume settings)'`).toString().trim(),
+      volume: execSync(`osascript -e 'output volume of (get volume settings)'`).toString().trim(),
+    };
+  } catch (_) { volBefore = null; }
   const args = process.argv.slice(2);
   const oneOff = args.indexOf('--eval') >= 0 ? args[args.indexOf('--eval') + 1] : null;
   const skipBuild = args.includes('--skip-build');
@@ -694,4 +909,38 @@ async function main() {
   return fail ? 1 : 0;
 }
 
-main().then((c) => process.exit(c || 0), (e) => die(e.stack || e.message));
+let volRestored = false;
+const restoreVolume = () => {
+  if (!volBefore || volRestored) return;
+  volRestored = true;
+  try {
+    execSync(`osascript -e 'set volume output muted ${volBefore.muted === 'true' ? 'true' : 'false'}' -e 'set volume output volume ${Number(volBefore.volume) || 50}'`);
+    const now = {
+      muted: execSync(`osascript -e 'output muted of (get volume settings)'`).toString().trim(),
+      volume: execSync(`osascript -e 'output volume of (get volume settings)'`).toString().trim(),
+    };
+    // 回读：不还回去就等于把用户的机器改了（B12 的同类）
+    if (now.muted !== volBefore.muted || now.volume !== volBefore.volume) {
+      console.error(`✗ 系统输出没还原：期望 muted=${volBefore.muted} volume=${volBefore.volume}，实际 muted=${now.muted} volume=${now.volume}`);
+    } else {
+      console.log(`  ✓ 系统输出已还原（muted=${now.muted} volume=${now.volume}）`);
+    }
+  } catch (e) { console.error('✗ 还原系统输出失败：' + (e && e.message)); }
+};
+// H7 / R-02：**报错和 Ctrl-C 也要还原**。只挂在 main() 的两个分支上是不够的 —— 人在
+// 跑到一半按 Ctrl-C 时，main() 永远不会 settle，用户的音量就留在脚本改过的值上。
+let bailing = false;
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+  process.on(sig, () => {
+    if (bailing) return;
+    bailing = true;
+    console.log(`\n收到 ${sig} —— 还原设置与系统输出`);
+    // 音量是同步的，先还掉（这一步不能等）；设置还原给它 3 秒，超时也走。
+    restoreVolume();
+    const bye = () => process.exit(130);
+    const timer = setTimeout(bye, 3000);
+    Promise.resolve().then(() => stashR(evalOk)).catch(() => {}).then(() => { clearTimeout(timer); bye(); });
+  });
+}
+main().then(async (c) => { try { await stashR(evalOk); } catch (_) {} restoreVolume(); process.exit(c || 0); },
+            async (e) => { try { await stashR(evalOk); } catch (_) {} restoreVolume(); die(e.stack || e.message); });

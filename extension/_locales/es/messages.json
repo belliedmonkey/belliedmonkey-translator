@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Vídeos, conversaciones, documentos — traducidos mientras escuchas. El audio se procesa solo en tu dispositivo."
+    "message": "Vídeos, conversaciones, documentos — traducidos mientras escuchas. El habla se reconoce en tu dispositivo. El texto reconocido se envía a traducir: con tu propia key va directo al proveedor que hayas configurado; con el saldo gratuito pasa por nuestro servidor y no guardamos el texto."
   },
   "app_email_label": {
     "message": "Correo electrónico"
@@ -1941,7 +1941,7 @@
     "message": "Escuchado {t}"
   },
   "listen_device_privacy": {
-    "message": "Transcripción en el dispositivo: el texto aparece mientras hablas; cada frase terminada, junto con las anteriores para dar contexto, va al motor de traducción que configuraste para corregir y traducir. Con la voz en el dispositivo, el audio se sintetiza en tu dispositivo y se descarga una vez un modelo sin conexión en el primer uso."
+    "message": "Transcripción en el dispositivo: el texto aparece mientras hablas; cada frase terminada, junto con las anteriores para dar contexto, se envía a traducir: con tu propia key va directo al proveedor que hayas configurado; con el saldo gratuito pasa por nuestro servidor y no guardamos el texto. Con la voz en el dispositivo, el audio se sintetiza en tu dispositivo y se descarga una vez un modelo sin conexión en el primer uso."
   },
   "listen_raw_label": {
     "message": "Texto reconocido"
@@ -2366,12 +2366,6 @@
   "listen_star": {
     "message": "Estrella"
   },
-  "listen_now_them": {
-    "message": "La otra persona dice"
-  },
-  "listen_now_me": {
-    "message": "Estoy hablando"
-  },
   "listen_lang_me": {
     "message": "a {to}"
   },
@@ -2470,7 +2464,7 @@
     "message": "Yo"
   },
   "listen_who_guessed": {
-    "message": "Deducido por el idioma: toca ↔ para cambiarlo"
+    "message": "¿Idioma equivocado? Toca ↔ para cambiar al otro"
   },
   "listen_swap_to_them": {
     "message": "Marcar como dicho por la otra persona"
@@ -2479,7 +2473,7 @@
     "message": "Marcar como dicho por mí"
   },
   "listen_flip_kept_card": {
-    "message": "Lado cambiado: la tarjeta anterior ya se repasó, así que queda en Fuentes › Conversación"
+    "message": "Cambiado al otro idioma: la tarjeta anterior ya se repasó, así que queda en Fuentes › Conversación"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2530,7 +2524,7 @@
     "message": "Mi idioma"
   },
   "listen_lang_note": {
-    "message": "Los idiomas se detectan automáticamente; no hace falta elegir. Para fijarlos a mano, usa «¿Idioma incorrecto?» en la página de escucha."
+    "message": "Se detecta automáticamente entre los dos idiomas que elijas. Puedes cambiarlos cuando quieras en la página de escucha."
   },
   "listen_lang_engine_unsupported": {
     "message": "no compatible con el motor actual"
@@ -2596,7 +2590,7 @@
     "message": "Conexión de transcripción perdida: {why} — reconectando…"
   },
   "listen_history_empty": {
-    "message": "Hablen los dos con normalidad: cada frase terminada aparece aquí; toca ↔ si el lado está mal"
+    "message": "Hablad los dos con normalidad: cada frase terminada aparece aquí. ¿Idioma equivocado? Toca ↔ para cambiar al otro"
   },
   "listen_tr_failed": {
     "message": "Traducción fallida · reintentar"
@@ -3757,7 +3751,7 @@
     "message": "Descarga primero los dos paquetes de voz"
   },
   "firstrun_packs_lede": {
-    "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El audio se procesa solo en tu dispositivo."
+    "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El habla se reconoce en tu dispositivo. El texto reconocido se envía a traducir: con tu propia key va directo al proveedor que hayas configurado; con el saldo gratuito pasa por nuestro servidor y no guardamos el texto."
   },
   "firstrun_packs_asr": {
     "message": "Paquete de reconocimiento (interpretación / subtítulos en vivo)"
@@ -3804,9 +3798,6 @@
   "listen_lang_detected": {
     "message": "Detectado: {a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "¿Idioma incorrecto?"
-  },
   "subtitle_lang_detecting": {
     "message": "Detectando el idioma del vídeo…"
   },
@@ -3822,9 +3813,6 @@
   "listen_lang_manual": {
     "message": "Fijar a mano"
   },
-  "listen_partner_auto": {
-    "message": "La otra persona habla: {lang} (auto)"
-  },
   "subtitle_partner_auto": {
     "message": "Idioma del vídeo: {lang} (auto)"
   },
@@ -3832,7 +3820,7 @@
     "message": "El reconocedor admite 5 idiomas como máximo y ya está lleno; sal y vuelve a entrar."
   },
   "listen_lang_assets_missing": {
-    "message": "El paquete de reconocimiento de ese idioma aún no está instalado: conéctate y vuelve a empezar a escuchar."
+    "message": "El paquete de reconocimiento de este idioma aún no está instalado. Conéctate a internet y toca una vez «Empezar a escuchar» para instalarlo."
   },
   "listen_lang_unsupported_revert": {
     "message": "Este dispositivo no reconoce ese idioma — de vuelta a «{lang}»"
@@ -3848,5 +3836,20 @@
   },
   "listen_listening": {
     "message": "Escuchando…"
+  },
+  "listen_ptt_say": {
+    "message": "Hablar {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "Escuchando {lang}…"
+  },
+  "listen_ptt_locked": {
+    "message": "● Hablando {lang} · toca otra vez para terminar"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "No se oyó nada: inténtalo de nuevo"
+  },
+  "listen_ptt_need_start": {
+    "message": "Disponible tras tocar «Empezar a escuchar»"
   }
 }

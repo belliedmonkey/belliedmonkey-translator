@@ -10,8 +10,36 @@
 (function () {
   if (window.__mtTest) return;
 
+  // 注入 LID 判词：同语言只发一次（真机也是「变了才发」）。
+  // H1：`force` 时不做去重（`__mtTest.lid()` 是显式注入）；`lidMute` 时 say()/partial() 不自动发判词
+  // （开场短句、按住说「按住时不该有 LID」这类用例要自己控制）。
+  let lidSent = '', lidMute = false;
+  const emitLid = (loc, llr, force) => {
+    const n = ns();
+    if (!n || !n._fromNative) return false;
+    const b = String(loc).split(/[-_]/)[0].toLowerCase();
+    if (!force && b === lidSent) return false;
+    lidSent = b;
+    n._fromNative({ type: 'lid-live', lang: b, engine: 'test', llr: llr == null ? 0 : llr });
+    return true;
+  };
+  // 延迟注入（给 LID 判词留出 0.5s 的「稳住」窗口）。
+  const delayEmit = (msg) => {
+    const n = ns();
+    setTimeout(() => { const m = ns(); if (m && m._fromNative) m._fromNative(msg); }, 650);
+    return n;
+  };
+
   function ns() {
     return (typeof NativeSpeech !== 'undefined' && NativeSpeech) || null;
+  }
+
+  // 只读的模型自述（AppListen._debug 本来就是产品里的只读诊断口）。
+  function dbg() {
+    try {
+      const A = (typeof window !== 'undefined' && window.AppListen) || null;
+      return A && typeof A._debug === 'function' ? A._debug() : null;
+    } catch (_) { return null; }
   }
 
   function el(id) { return document.getElementById(id) || null; }
@@ -30,18 +58,22 @@
   let kaTimer = null;
 
   window.__mtTest = {
-    v: 1,
+    v: 2,   // 2 = 加了 H1（LID 注入）与 H3（按住说驱动）
 
     // 「麦克风听到了一句定稿」。conf 默认 0.95：回声闸的判据是文本相似度，不是置信度，
     // 这里只是让下游的置信度过滤不拦它。
     say(text, locale, conf) {
       const n = ns();
       if (!n || !n._fromNative) return false;
-      n._fromNative({
-        type: 'stt-final',
-        locale: locale || 'zh',
-        text: String(text),
-        conf: conf == null ? 0.95 : conf,
+      const loc = locale || 'zh';
+      // **先注入 LID 判词，再延迟注入定稿**（2026-10-08）：语种归属现在**只认 LID**
+      // （`listen-model` 的 `sideMatchesLid` 两道闸），判词为空时注入的每一片都会被丢掉
+      // ⇒ M2/M7 这些「注入 stt-final 等成行」的用例一行都落不下来。注入层原本「只注入事件」，
+      // 而 LID 判词也是**原生事件**，所以这里补上它是同一原则内的修法。
+      // 延迟 650ms 是因为 `lidPair()` 要求判词**稳住 ≥0.5s**（LID_CONFIRM_MS）才认。
+      if (!lidMute) emitLid(loc);
+      delayEmit({
+        type: 'stt-final', locale: loc, text: String(text), conf: conf == null ? 0.95 : conf,
       });
       return true;
     },
@@ -50,9 +82,96 @@
     partial(text, locale, conf) {
       const n = ns();
       if (!n || !n._fromNative) return false;
-      n._fromNative({ type: 'stt-partial', locale: locale || 'zh', text: String(text), conf: conf == null ? 0.95 : conf });
+      const loc = locale || 'zh';
+      if (!lidMute) emitLid(loc);
+      delayEmit({ type: 'stt-partial', locale: loc, text: String(text), conf: conf == null ? 0.95 : conf });
       return true;
     },
+
+    // ── H1：LID 注入 ───────────────────────────────────────────────────────
+    // 显式注入一条判词（不去重）；llr 只作记录，产品侧不读它。
+    lid(lang, opts) { return emitLid(lang, opts && opts.llr, true); },
+    // 注入识别文本时**不**自动发判词（开场短句、按住说用）。lidMute(1) 开 · lidMute(0) 关。
+    lidMute(on) { lidMute = !!on; return lidMute; },
+    // 只读：判定是否被暂停（按住说期间为 true）。
+    lidPaused() { const d = dbg(); return !!(d && d.lidPaused); },
+
+    // ── H3：按住说 / 点一下 ────────────────────────────────────────────────
+    // 驱动的是**真按钮上的真指针事件**（不是绕过界面调模型）：0.4s 的分界是产品代码自己算的。
+    ptt: {
+      el(side) { return el(side === 'other' ? 'app-listen-ptt-other' : 'app-listen-ptt-mine'); },
+      ev(side, type) {
+        const e = el(side === 'other' ? 'app-listen-ptt-other' : 'app-listen-ptt-mine');
+        if (!e) return false;
+        const Ctor = typeof PointerEvent !== 'undefined' ? PointerEvent : MouseEvent;
+        e.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: 'touch', isPrimary: true }));
+        return true;
+      },
+      down(side) { return this.ev(side, 'pointerdown'); },
+      up(side) { return this.ev(side, 'pointerup'); },
+      // 点一下：按下后 ms（默认 120）再松手 —— <0.4s 走锁定，≥0.4s 走按住说。异步落，驱动侧轮询 state()。
+      tap(side, ms) { this.down(side); setTimeout(() => this.up(side), Math.max(0, ms == null ? 120 : ms)); return true; },
+      state() {
+        const d = dbg();
+        const p = (d && d.ptt) || { mode: 'idle', side: '', heard: false };
+        return { mode: p.mode, side: p.side || '', heard: !!p.heard,
+          lidPaused: !!(d && d.lidPaused), silenceMs: (d && d.pttSilenceMs) || 0 };
+      },
+    },
+    // 覆盖「锁定后静默多久自动结束」（P-05）：会话中途改不了开发键，这个覆盖产品侧现读。
+    // 不传或 0 = 复原（回 cfg.pttSilenceMs / 默认 8000）。
+    pttSilenceMs(ms) { try { window.__mtPttSilenceMs = Number(ms) > 0 ? Number(ms) : 0; } catch (_) {} return true; },
+
+    // 模拟麦克风没授权（P-09）：产品侧读 window.__mtMicDenied（正式包里没人设它）。
+    micPermission(v) { try { window.__mtMicDenied = (v === 'denied'); } catch (_) {} return !!window.__mtMicDenied; },
+
+    // ── H5：ECAPA 包「坏输入」（M-05）────────────────────────────────────────
+    // 不模拟「装好了」，而是**把坏输入喂给原生**：'sha' 改 sha256、'truncate' 把 size 砍半。
+    // 判据是原生那道校验挡下它、且不把半个包当成已安装（下次进听译会重下）。
+    // lidAssetsFault('') 关掉。
+    lidAssetsFault(kind) {
+      const n = ns();
+      if (n && typeof n.ensureLid === 'function' && !n.__mtLidFaultWrapped) {
+        const orig = n.ensureLid;
+        n.ensureLid = function (model, onProgress) {
+          const f = window.__mtLidFault;
+          let m = model;
+          if (f && model && Array.isArray(model.files)) {
+            m = Object.assign({}, model, {
+              files: model.files.map((x) => Object.assign({}, x, f === 'sha'
+                ? { sha256: 'deadbeef' + String(x.sha256 || '').slice(8) }
+                : { size: Math.max(1, Math.floor((Number(x.size) || 0) / 2)) })),
+            });
+          }
+          return orig.call(this, m, onProgress);
+        };
+        n.__mtLidFaultWrapped = true;
+      }
+      try { window.__mtLidFault = kind === 'sha' || kind === 'truncate' ? kind : ''; } catch (_) {}
+      return true;
+    },
+
+    // ── H4：下载源故障注入（端到端那一半，M-03/M-04/M-10）────────────────────
+    // 只换 ModelSources 的 fetch / probe：表「down / empty / 非 200」、主地址或备用地址探测失败、
+    // 整体断网。modelFault({}) 复原（不传就按全好）。
+    modelFault(o) {
+      const M = (typeof window !== 'undefined' && window.ModelSources) || null;
+      if (!M) return false;
+      const f = o || {};
+      const bad = (u) => (f.offline === true) ||
+        (f.primary === 'fail' && String(u).indexOf('src=other') < 0) ||
+        (f.alt === 'fail' && String(u).indexOf('src=other') >= 0);
+      M.configure({
+        fetch: f.table === 'down' ? async () => { throw new Error('fault'); }
+          : f.table === 'empty' ? async () => ({ ok: true, json: async () => [] })
+            : f.table ? async () => ({ ok: false })
+              : undefined,     // 不指定就退回真 fetch
+        probe: (f.offline || f.primary === 'fail' || f.alt === 'fail') ? async (u) => !bad(u) : undefined,
+      });
+      return true;
+    },
+    // 翻译请求计数（P-06/P-07：这些情况下必须 0）。
+    translateCalls() { const d = dbg(); return (d && d.translateCalls) || 0; },
 
     // 跑一个异步函数（探测、真朗读、等状态），结果落在 last()。驱动侧：
     //   eval('__mtTest.runAsync(async () => JSON.stringify(await NativeSpeech.probe()))')
@@ -120,6 +239,8 @@
         return e.value != null ? e.value : (e.textContent || '').trim() || null;
       };
       const n = ns();
+      const txt = (id) => { const e = el(id); return e ? (e.textContent || '').trim() : null; };
+      const d = dbg();
       return {
         path: location.hash || '',
         firstRunPacks: visible('firstrun-packs'),
@@ -129,6 +250,19 @@
         langMy: pick('packs-my-lang'),
         langOther: pick('packs-other-lang'),
         sttProbe: n && n.probeResult ? n.probeResult() : null,
+        // 按住说 / 点一下（P 组 / C-09）：按钮文案、小字、锁定提示、灰掉原因
+        ptt: {
+          shown: visible('app-listen-ptt'),
+          mine: txt('app-listen-ptt-mine'),
+          otherName: txt('app-listen-ptt-other-name'),
+          otherHint: txt('app-listen-ptt-other-hint'),
+          locked: visible('app-listen-ptt-locked') ? txt('app-listen-ptt-locked') : '',
+          why: visible('app-listen-ptt-why') ? txt('app-listen-ptt-why') : '',
+          note: visible('app-listen-ptt-note') ? txt('app-listen-ptt-note') : '',
+          disabled: (() => { const e = el('app-listen-ptt-mine'); return !!(e && e.disabled); })(),
+          state: (d && d.ptt) || null,
+        },
+        nowLabel: txt('app-listen-now-label'),
       };
     },
 

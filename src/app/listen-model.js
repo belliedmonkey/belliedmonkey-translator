@@ -122,10 +122,12 @@ const listenModel = (() => {
   // 2026-09-17：不再读 stt* 四键 —— 那是说题（整段转写）的槽；对话 · 实时字幕固定走本机识别器。
   // PR9：READ_KEYS 手抄清单已删，键表 = schema 的 listen 面（含 notes×4，resolveConfig 用）。
   const READ_KEYS = SETTINGS_SCHEMA.keysFor('listen');
-  // 【实验】语种识别引擎开关：**刻意不进 schema**（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）。
-  //   不设 / 其它值 = 现在的 whisper（sherpa SLID）；'ecapa' = SpeechBrain ECAPA CoreML（见
-  //   app/native/lid-ecapa.swift）。lidThreshold 是 ECAPA 的 |LLR| 阈值，默认 6。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly'];
+  // 语种识别引擎：**默认 ECAPA**（app/device-models.config.js 的 MT_DEVICE_LID，见那里的注释）。
+  // 这个键是**开发开关**、刻意不进 schema（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）：
+  // 不设 = ECAPA；'whisper' = 回到旧的 sherpa SLID（判词会乱跳，只作对照）。
+  // lidThreshold 是 ECAPA 的 |LLR| 阈值（默认 6）；lidCpuOnly 只用于排查计算单元争用。
+  // `pttSilenceMs` 也是开发键：按住说「锁定后静音自动结束」的秒数（默认 8000，回归里设 1500）。
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix', 'pttSilenceMs'];
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS), (s) => {
@@ -156,9 +158,12 @@ const listenModel = (() => {
           fontScale: C.fontStep(s.subtitleFontScale, 0),
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
-          lidEngine: s.lidEngine === 'ecapa' ? 'ecapa' : 'whisper',
+          lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
+          lidTrace: s.lidTrace === true,
+          lidRewriteFix: s.lidRewriteFix !== false,   // 轻量修正（L-16 关掉做方向核实）
+          pttSilenceMs: Number(s.pttSilenceMs) > 0 ? Number(s.pttSilenceMs) : 8000,
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
@@ -237,7 +242,7 @@ const listenModel = (() => {
       entryState[sfx] = {
         ok,
         hidden: false, disabled: !ok,
-        hint: t('listen_entry_short', '对方说，你看中文；按住说中文，译给对方'),
+        hint: t('listen_entry_short', '对方说，你看中文；按住或点一下「说中文」，译给对方'),
         privacy: t('listen_entry_privacy_device', '本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎。'),
         needShown: !ok,                      // 原 need.hidden = ok
         why: ok ? '' : needText(reason),     // 原 `if (why && !ok) why.textContent = needText(reason)`
@@ -289,6 +294,9 @@ const listenModel = (() => {
   // 半句失败没有界面后果，也不记。
   async function translate(text, toLang, errOut) {
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
+    // 计数（P-06 / P-07 的判据是**翻译请求 0 次**）：没出声、或被暂停/结束点掉的那一句，
+    // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
+    translateCalls++;
     try {
       return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
     } catch (e) { if (errOut) errOut.err = e; return ''; }
@@ -331,7 +339,7 @@ const listenModel = (() => {
       }
     } catch (_) {}
   }
-  // 方向的唯一来源：我说的译成对方的语言，对方说的译成我的语言。改边（↔）之后同一行
+  // 方向的唯一来源：我说的译成对方的语言，对方说的译成我的语言。换语言（↔）之后同一行
   // 会换一个方向重译，所以它必须**按 row.who 现算**，不能记在行上。
   function targetLangFor(row) {
     // 实时字幕是**单向**的（没有「我」这一侧）：视频的话 → 译成（右格）。
@@ -441,7 +449,6 @@ const listenModel = (() => {
   function closeSocket() {
     const s = sock; sock = null;
     cutter = null;
-    if (lidHold) { lidHold.reset(); lidHold = null; }   // 会话结束：扣住的整句与它的定时器一起放掉
     try { if (s) s.close(); } catch (_) {}
   }
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
@@ -475,7 +482,6 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
-        if (lidHold) lidHold.drain();   // 判词换了：把扣住的整句结算掉（换了门的丢、没换的等它稳）
         // 字幕处在「自动」时，把认出来的那门记下来 —— 下次进场的候选就是它（「自动」只能覆盖
         // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。
         try {
@@ -500,32 +506,178 @@ const listenModel = (() => {
   // 错报** —— 一旦错报成另一门，那一路的半句立刻上屏（Mac 实测：2069ms 上屏的是一条中文垃圾）。
   // 0.5s 的确认能把「一条就翻」滤掉，代价只是比「立刻用」晚半秒。
   const LID_CONFIRM_MS = 500;
-  // **整句落行要比半句多稳一道：1.5s**（2026-10-08 用户拍「先修」；详见 `listen-core` 的 `makeLidHold`）。
-  // 半句错一条会被下一条覆盖（可容忍）；**整句错了就是一行永久的垃圾**（会被翻译、可能被朗读、进复习）。
-  const LID_CONFIRM_FINAL_MS = 1500;
-  // 兜底上限：判词一直不回（飘在第三门之间）时，扣住超过这么久就**丢掉**（不是放行 —— 放过就等于
-  // 收下错语言识别器吐的垃圾；进队列的行本来就是「判词对不上」的那些）。
-  const LID_HOLD_MAX_MS = 4000;
-  function lidPairAt(ms) {
+  function lidPair() {
+    // 按住说 / 锁定期间**不跑语种判定**：这一句的语言由人指定（2026-10-08 终稿 3）。
+    // `pttForce` 在松手后仍然生效，直到这一句的 final 到 —— 否则收口那一片会被下面这道闸丢掉。
+    if (pttForce) return pttLangOf(pttForce.side) || '';
     if (!lidLang || !cfg) return '';
     const a = C.baseCode(cfg.myLang), b = C.baseCode(cfg.otherLang);
     if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
-    return (Date.now() - lidLangAt) >= ms ? lidLang : '';
+    return (Date.now() - lidLangAt) >= LID_CONFIRM_MS ? lidLang : '';
   }
-  function lidPair() { return lidPairAt(LID_CONFIRM_MS); }
-  function lidPairFinal() { return lidPairAt(LID_CONFIRM_FINAL_MS); }
-  // 扣住的整句由当前会话登记；纯逻辑在 `listen-core` 的 `C.makeLidHold`。
-  let lidHold = null;
+
+  // ── 按住说 / 点一下（2026-10-08 终稿 3 · Pencil jERJ5 / gitVW）────────────────────────
+  // 语义：**按住谁，这一句就按谁的语言识别**（不跑语种判定），松手定稿；不足 0.4s 松手 =
+  // 点一下 ⇒ 进入「这门语言在说」的锁定态，再点一次结束。锁定时点另一个键 = 先定稿当前这句、
+  // 再锁到那一门；锁定时点暂停/结束 = 以点为准、这句丢掉。锁定后连续 pttSilenceMs（默认 8s）
+  // 没声音 ⇒ 自动定稿并退出锁定。按住/锁定期间自动识别暂停，结束即恢复。
+  const PTT_TAP_MS = 400;              // 分界：不足它 = 点一下（锁定），够它 = 按住说
+  let ptt = null;                      // null | { mode:'hold'|'locked', side, at, heard, timer }
+  let pttForce = null;                 // { side, at }：归属的强制语言（松手后留到这句 final）
+  let pttNote = '', pttNoteAt = 0;     // 就近小字（「没听到声音，再试一次」）
+  let translateCalls = 0;              // 翻译请求计数（P-06/P-07：这些情况下必须是 0）
+  const CJK_RE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/;
+  function pttOn() { return !!ptt; }
+  function pttLangOf(side) { return C.baseCode(side === 'me' ? (cfg && cfg.myLang) : (cfg && cfg.otherLang)); }
+  /** 「正在听」+ 本名 +「…」：本名不是中日韩文字时中间加一个空格（2026-10-08 18:34 用户定）。
+   *  模板由调用方用 `t()` 取好再传进来 —— 文案必须落在 t() 的 fallback 位上（no-hardcoded-copy）。 */
+  function pttPhrase(tmpl, name) {
+    const head = String(tmpl).split('{lang}')[0];
+    const n = String(name || '');
+    const pad = (n && !CJK_RE.test(n.charAt(0)) && CJK_RE.test(head.slice(-1))) ? ' ' : '';
+    return tmpl.replace('{lang}', pad + n);
+  }
+  /** 对方那个键的小字：**用那门语言写**（注册表的 pttHint，不随界面语言翻译）。 */
+  function pttHintOf(code) {
+    try {
+      const base = C.baseCode(code);
+      const e = Registry.langs().find((l) => l.code === base);
+      return (e && e.pttHint) || '';
+    } catch (_) { return ''; }
+  }
+  function pttNoteSet(msg) { pttNote = msg; pttNoteAt = now(); canvas.view('state'); }
+  // 静默秒数：开发键 > Debug 覆盖（`__mtTest.pttSilenceMs`，H3）> 默认 8000。
+  // 会话中途改开发键读不到（cfg 在 start() 读一次），所以 P-05 需要这个覆盖。
+  function pttSilence() {
+    try { const o = Number(window.__mtPttSilenceMs); if (o > 0) return o; } catch (_) {}
+    return (cfg && Number(cfg.pttSilenceMs)) || 8000;
+  }
+  function pttArmSilence() {
+    if (!ptt) return;
+    if (ptt.timer) clearTimeout(ptt.timer);
+    ptt.timer = setTimeout(() => {
+      if (!ptt || ptt.mode !== 'locked') return;
+      // 有半句 ⇒ 定稿；一直没半句 ⇒ 只提示，不落行（P-05）。
+      if (!ptt.heard) pttNoteSet(t('listen_ptt_heard_nothing', '没听到声音，再试一次'));
+      pttFinish({ quiet: !ptt.heard });
+    }, pttSilence());
+  }
+  function pttForceOn(side) {
+    pttForce = { side, at: Date.now() };
+    // 兜底：收口那一片迟迟不来（识别器没吐 final）时，别让强制语言一直挂着。
+    // **但按住/锁定还没结束就绝不能清** —— 锁定可以持续到 8 秒静默上限，这中间用户可能一直不说话；
+    // 清了它就等于这一句的归属又回到「没有判词」⇒ 注入/说出的话会被归属闸整句丢掉
+    // （2026-10-08 真机前夜：P-03 连续五轮红，现场 `force=` 空，就是这个看门狗咬的）。
+    setTimeout(() => {
+      if (pttForce && !ptt && Date.now() - pttForce.at >= 3000) pttForce = null;
+    }, 3200);
+  }
+  function pttForceOff() { pttForce = null; }
+  function pttCut() { try { if (sock && sock.cut) sock.cut(); } catch (_) {} }
+  /** 开始按（idle ⇒ hold）。返回 false 表示没接（灰掉 / 两指的后按者）。 */
+  function pttDown(side) {
+    if (mode === 'subtitle') return false;                 // 字幕是单向的，没有按住说
+    // 没授权麦克风：复用既有那句「麦克风被拒绝」（不新增说法，P-09）。`__mtMicDenied` 由
+    // Debug 的 __mtTest.micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
+    if (typeof window !== 'undefined' && window.__mtMicDenied) { halt('denied'); return false; }
+    if (!session || (phase !== 'listening' && phase !== 'preparing')) return false;   // 灰掉（原因见 pttView）
+    if (ptt) {
+      // 锁定态下的点击：**再点同一个 = 结束并定稿**；**点另一个 = 先定稿再锁到那一门**
+      // （2026-10-08 终稿 3）。这两个都发生在 `down` 上 —— 点一下没有「按住」那一段，
+      // 等 `up` 才处理就永远等不到（第一版就漏在 `up` 里：锁定后点同键什么都不发生）。
+      if (ptt.mode === 'locked') {
+        if (ptt.side === side) { pttFinish(); return true; }
+        pttFinish({ relock: side }); return true;
+      }
+      // 按住中再按另一个键（两指）：**以先按下的为准**，后按的那个忽略。
+      return false;
+    }
+    ptt = { mode: 'hold', side, at: now(), heard: false, timer: null };
+    pttNote = '';
+    pttForceOn(side);
+    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
+    canvas.view('state');
+    return true;
+  }
+  /** 松手（hold ⇒ 点一下 = 锁定；按住 ≥0.4s = 定稿）。 */
+  function pttUp(side) {
+    if (!ptt || ptt.mode !== 'hold' || ptt.side !== side) return false;
+    if (now() - ptt.at < PTT_TAP_MS) { ptt.mode = 'locked'; pttArmSilence(); }
+    else pttFinish();
+    canvas.view('state');
+    return true;
+  }
+  /** 锁定态下再点一下同一个键 = 结束。 */
+  function pttTap(side) { return pttUp(side); }
+  /** 收尾：定稿（有内容）或只提示（没内容），然后退出锁定 / 恢复自动识别。 */
+  function pttFinish(opts) {
+    const o = opts || {};
+    const had = !!(ptt && ptt.heard);
+    if (ptt && ptt.timer) clearTimeout(ptt.timer);
+    if (had && !o.quiet) {
+      pttCut();                 // 立刻收口这一句（不等 400ms 静音检测）
+    } else {
+      pttForceOff();            // 没内容 ⇒ 强制语言立刻撤掉，别影响下一句
+      if (!o.quiet) pttNoteSet(t('listen_ptt_heard_nothing', '没听到声音，再试一次'));
+    }
+    ptt = null;
+    const relock = o.relock;
+    if (relock) {
+      ptt = { mode: 'locked', side: relock, at: now(), heard: false, timer: null };
+      pttForceOn(relock);
+      pttArmSilence();
+    } else {
+      try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+    }
+    canvas.view('state');
+    return true;
+  }
+  /** 按住 / 锁定期间用户点了暂停或结束：这一句丢掉，不落行（P-07）。 */
+  function pttAbort() {
+    if (!ptt && !pttForce) return;
+    if (ptt && ptt.timer) clearTimeout(ptt.timer);
+    ptt = null;
+    pttForceOff();
+    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+  }
+  function pttView() {
+    const sub = mode === 'subtitle';
+    const canUse = !sub && !!session && (phase === 'listening' || phase === 'preparing');
+    const locked = !!(ptt && ptt.mode === 'locked');
+    return {
+      shown: !sub,
+      mineSide: 'me',
+      otherSide: 'other',
+      mineLabel: pttPhrase(t('listen_ptt_say', '说{lang}'), langLabel(cfg && cfg.myLang)),
+      otherLabel: langLabel(cfg && cfg.otherLang),
+      otherHint: pttHintOf(cfg && cfg.otherLang),
+      activeSide: ptt ? ptt.side : '',
+      locked,
+      lockedSide: locked ? ptt.side : '',
+      lockedText: locked
+        ? t('listen_ptt_locked', '● {lang} 正在说 · 再点一下结束').replace('{lang}', langLabel(pttLangOf(ptt.side)))
+        : '',
+      disabled: !canUse,
+      whyText: canUse ? '' : t('listen_ptt_need_start', '点「开始听」后可用'),
+      noteText: (pttNote && (now() - pttNoteAt) < 4000) ? pttNote : '',
+    };
+  }
+  // 这里曾经有一道「整句落行要判词稳住 1.5s」的闸（2026-10-08 上午，`1ae1280a`）—— 为挡 whisper
+  // 首判错导致的一行错语言。**默认引擎换成 ECAPA 后撤掉了**：那道闸的前提是 whisper 的判词乱跳
+  // （实测每场 27–36 次变更），而 ECAPA 每场恒为 1 次稳定判词 ⇒ 闸只会白等、还会推迟第一行。
+  // 前提若回来（把 lidEngine 设成 whisper 做对照），那一行错语言是**已知缺口**，见 learning-design §9.6.1.10。
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
   function lidModel() {
     try {
       if (typeof mtDeviceLidModelsFor !== 'function') return null;
-      const engine = cfg && cfg.lidEngine === 'ecapa' ? 'ecapa' : 'whisper';
+      const engine = cfg && cfg.lidEngine === 'whisper' ? 'whisper' : 'ecapa';
       return mtDeviceLidModelsFor(Registry.flavor() || 'global', {
         engine,
         langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
         threshold: (cfg && Number(cfg.lidThreshold)) || 6,
         cpuOnly: !!(cfg && cfg.lidCpuOnly),
+        trace: !!(cfg && cfg.lidTrace),
+        rewriteFix: !(cfg && cfg.lidRewriteFix === false),
       });
     } catch (_) { return null; }
   }
@@ -561,14 +713,6 @@ const listenModel = (() => {
       if (myGen !== gen || cutter !== cut || !sock) return;
       for (const tt of gate.push(f)) cut.add(f.locale, tt);
     };
-    // 定稿的闸由本会话结算（新会话从空开始）。守卫与 `takeFinal` 同源 —— 会话一换就自动失效。
-    lidHold = C.makeLidHold({
-      settleMs: LID_CONFIRM_FINAL_MS, maxMs: LID_HOLD_MAX_MS,
-      settled: (loc) => C.sideMatchesLid(loc, lidPairFinal()),    // 判词落在两门里、稳住、且就是这一路
-      // 判词**稳住地**成了另一门（`lidPairFinal()` 非空就一定落在两门里 ⇒「不匹配」= 另一门）
-      otherSettled: (loc) => { const s = lidPairFinal(); return !!s && !C.sideMatchesLid(loc, s); },
-      take: (ev) => { if (myGen !== gen || cutter !== cut || !sock) return; takeFinal(ev); },
-    });
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -580,14 +724,15 @@ const listenModel = (() => {
           // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
           if (base && echo.playingLangs(Date.now()).has(base)) return;
           if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
+          // 按住说 / 锁定期间收到本路半句 ⇒ 「听到了」（P-05/P-06 的分界就是它）
+          if (ptt && pttForce && C.baseCode(ev && ev.locale) === C.baseCode(pttLangOf(pttForce.side))) ptt.heard = true;
           if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text);
         }
         else if (kind === 'final') {
           const base = C.baseCode(ev && ev.locale);
           if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          // 判词落在两门里且稳住 1.5s ⇒ 直接判；否则交给扣住队列（判词一变就由它结算）。
-          if (C.sideMatchesLid(ev && ev.locale, lidPairFinal())) { takeFinal(ev); return; }
-          if (lidHold) lidHold.hold(ev);
+          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
+          takeFinal(ev);
         }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
@@ -619,8 +764,12 @@ const listenModel = (() => {
     if (clean && echo.isEcho(clean, now())) { clearPartials(); canvas.view('now'); return; }
     // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
     if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
-    const row = C.addFinal(session, text, now(), cfg, meta && meta.who ? Object.assign({}, routeDeps, { who: meta.who }) : routeDeps);
+    // 按住说的行：归属由人指定、出生即 pinned（没有「判错」这回事 ⇒ 界面不给 ↔，P-12）。
+    const pttRow = !!pttForce;
+    const deps = Object.assign({}, routeDeps, meta && meta.who ? { who: meta.who } : {}, pttRow ? { pinned: true } : {});
+    const row = C.addFinal(session, text, now(), cfg, deps);
     if (!row) return;
+    if (pttRow) pttForceOff();     // 这一句已经定稿，强制语言到此为止（下一句回到自动识别）
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
     row.lat = { final: now(), engine: 'device' };   // 2026-09-17 起只有本机路
     partial = ''; partialTr = '';
@@ -884,6 +1033,7 @@ const listenModel = (() => {
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
+    pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
@@ -946,12 +1096,22 @@ const listenModel = (() => {
     if (deviceBridge()) {
       const lm = lidModel();
       if (lm) {
+        const onProg = (m) => {
+          if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; canvas.view('state'); }
+          if (phase !== 'downloading') return;
+          dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); paintClock();
+        };
         try {
-          await NativeSpeech.ensureLid(lm, (m) => {
-            if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; canvas.view('state'); }
-            if (phase !== 'downloading') return;
-            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); paintClock();
-          });
+          // 地址从哪来（§9.6.1.1）：与朗读包**同一套** —— 后端表 `bt_model_sources` 决定默认/备源，
+          // 探测与换源重试都在 `ModelSources` 里；表里存的是**中继地址**（真实托管由服务端按 IP 选），
+          // 表读不到时兜回清单内置的中继地址。sha256/size 永远来自清单（规则 1）。
+          if (typeof ModelSources !== 'undefined' && ModelSources && typeof ModelSources.run === 'function') {
+            const r = await ModelSources.run([lm], Registry.flavor() || 'global',
+              (spec) => NativeSpeech.ensureLid(spec[0], onProg));
+            if (!r.ok) { if (phase === 'preparing' || phase === 'downloading') halt('assets', r.why || 'download'); return false; }
+          } else {
+            await NativeSpeech.ensureLid(lm, onProg);
+          }
         } catch (e) {
           if (phase === 'preparing' || phase === 'downloading') halt('assets', e && e.reason);
           return false;
@@ -1019,6 +1179,7 @@ const listenModel = (() => {
   function silentHint() { return t('subtitle_bar_silent', '还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限'); }
   // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
   function pause(reason) {
+    pttAbort();   // 按住/锁定时点「暂停」：以这一下为准，这一句丢掉、不落行（P-07）
     if (phase !== 'listening') return;
     phase = 'paused'; pauseReason = reason || 'user';
     C.pause(session, now());
@@ -1057,6 +1218,7 @@ const listenModel = (() => {
   }
 
   function halt(reason, why) {
+    pttAbort();   // 具名停止（拒绝/断线/被打断）：按住态与强制语言一起清掉
     if (phase === 'ended' || phase === 'idle') return;
     // 「这门语言这台设备弄不了」⇒ 回到上一对，别把整场丢掉（见上面那段注释）。
     if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets')) { revertLangIfNeeded(); return; }
@@ -1091,7 +1253,7 @@ const listenModel = (() => {
       // 「设备说支持、但它的识别包还没装好」是另一种情况（2026-10-07 查实：probe 回
       // `{ok:true, assets:"missing"}`）—— 以前一律说成「不支持这门语言」，用户以为系统没有它。
       : (reason === 'device' || reason === 'socket') && why1 === 'assets'
-        ? t('listen_lang_assets_missing', '这门语言的识别包还没装好 — 连上网再点一次「开始听」。')
+        ? t('listen_lang_assets_missing', '这门语言的识别包还没装好。连上网后点一次「开始听」就能补上。')
       // 'os' 与 'device' 同归 needText（2026-09-29 清理）：那句「macOS 14.4」已删 —— 26 下限
       // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
       : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
@@ -1111,6 +1273,7 @@ const listenModel = (() => {
     else if (phase === 'idle' || phase === 'ended') start();
   }
   function end() {
+    pttAbort();   // 按住/锁定时点「结束」：这一句丢掉，然后正常结束（P-07）
     if (!session || phase === 'ended') return;
     diagAudioDisarm();
     C.pause(session, now());
@@ -1237,10 +1400,10 @@ const listenModel = (() => {
     };
   }
 
-  // ── ↔ 改边（归属判错时用户点一下）──────────────────────────────────────────
+  // ── ↔ 换语言（归属判错时用户点一下）──────────────────────────────────────────
   //
   // 一次点击要做完五件事，顺序是硬的：**先按旧方向算出已写进语料的那张卡，再翻转** ——
-  // 反过来就算不出它的 id 了（语料里「学的永远是外语那一面」，改边会让两面互换）。
+  // 反过来就算不出它的 id 了（语料里「学的永远是外语那一面」，换语言会让两面互换）。
   async function flipRow(row) {
     if (!row || !session) return;
     session.flips = (session.flips || 0) + 1;
@@ -1257,10 +1420,10 @@ const listenModel = (() => {
     if (showRid === row.rid) canvas.view('show');
 
     // ② 立刻按新方向重译。**不自动重读**：用户翻历史点 ↔ 时突然大声念一句是最吓人的
-    //    副作用，而且改边这个动作本身说明前一次朗读已经发生过了。
+    //    副作用，而且换语言这个动作本身说明前一次朗读已经发生过了。
     retranslate(row, true);
 
-    // ③ 回收旧卡。用**翻转前**的快照算 id —— 语料里「学的永远是外语那一面」，改边会让
+    // ③ 回收旧卡。用**翻转前**的快照算 id —— 语料里「学的永远是外语那一面」，换语言会让
     //    两面互换，不回收就留下一张面反了的卡。走 deleteItems 而不是绕过账本：它写删除
     //    账本，会同步到别的设备。放在重译之后是因为它不该拖慢屏幕。
     if (wasWritten && typeof LearnStore !== 'undefined' && typeof LearnModel !== 'undefined') {
@@ -1270,8 +1433,8 @@ const listenModel = (() => {
         // deleteItems 返回**真删掉的条数**。0 = 被「用户已经复习过」的保护挡下了
         // （也可能它早被淘汰了，但那时这句提示无害）。如实说一声，不假装删干净了。
         if (!n) note(t('listen_flip_kept_card',
-          '改边了 · 之前那张卡你已经复习过，留在「来源 › 对话」里'), false);
-      } catch (_) { /* 删不掉不该挡住改边本身 */ }
+          '换到另一种语言了 · 之前那张卡你已经复习过，留在「来源 › 对话」里'), false);
+      } catch (_) { /* 删不掉不该挡住换语言本身 */ }
     }
   }
   // 「识别原文」展开开关（原视图内 r.showRaw=!r.showRaw; renderHistory()）
@@ -1385,7 +1548,7 @@ const listenModel = (() => {
     note(t('listen_autospeak_off', '自动朗读已停 · {why} — 行尾的朗读仍可单句用').replace('{why}', why), false);
   }
 
-  // 译文首次落地时自动入队。改边后的重译与手动重试**不走这里**（裁定：不自动重读）。
+  // 译文首次落地时自动入队。换语言后的重译与手动重试**不走这里**（裁定：不自动重读）。
   // §0.4.1 诊断录音（2026-10-06 用户拍板）：设置里显式开启才武装。sidecar 收「stt_final 文本/
   // speak 文本」—— 只随音频包上传（对齐回放用），零内容事件通道一个字节不变。
   let diagAudioOn = false;
@@ -1546,7 +1709,7 @@ const listenModel = (() => {
     const ms = session ? C.listenedMs(session, now()) : 0;
     return {
       privacyShown: !!session,
-      privacyText: t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发到你自己配置的翻译引擎做修正与翻译。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。'),
+      privacyText: t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。'),
       cost: t('listen_cost_line_device', '已听 {t}').replace('{t}', C.fmtClock(ms)),
     };
   }
@@ -1570,6 +1733,8 @@ const listenModel = (() => {
     // **不分「说 / 听」**（2026-10-08 用户拍）：「对 App 来说谁说话都是在听」——
     // 所以「现在」卡在 listening 时永远只写「正在听…」，不再有「我正在说 / 对方正在说」。
     // 不是 listening 的态（暂停 / 准备 / 结束）保留既有的那句「正在说…」（那时说「正在听」是假的）。
+    // 按住说 / 锁定时，这一句的语言是人指定的 ⇒ 直接说清在听哪一门（C-09：「正在听中文…」）。
+    if (!sub && ptt) return pttPhrase(t('listen_listening_lang', '正在听{lang}…'), langLabel(pttLangOf(ptt.side)));
     return sub ? t('subtitle_now_label', '现在')
       : phase === 'listening' ? t('listen_listening', '正在听…')
         : t('listen_now_any', '正在说…');
@@ -1618,7 +1783,10 @@ const listenModel = (() => {
       const code = String(l.code).toLowerCase();
       const name = l.labelKey ? t(l.labelKey, l.label) : l.label;
       // 正选中那门照旧留着（与设置页同一条规则：不能把用户当前的选择从列表里抹掉）。
-      const bad = !!(allowed && !allowed.has(code) && l.code !== keep);
+      // **泰语不受这条规则影响**（回归 R-07，P0）：用户 2026-10-04 裁定「所有选语言的地方都要有
+      // 泰语（ไทย）」，2026-10-08 再确认「泰语不能是灰的」—— 它永远可选。实测支撑：
+      // `DictationTranscriber` 的语言集比最窄那台宽（54 ⊃ 45，含 th-TH），泰语真的能用。
+      const bad = !!(allowed && !allowed.has(code) && l.code !== keep && l.code !== 'th');
       out.push({
         code: l.code,
         label: bad ? name + ' · ' + t('listen_lang_engine_unsupported', '当前引擎不支持') : name,
@@ -1733,12 +1901,16 @@ const listenModel = (() => {
     const out = rows.map((r) => ({
       row: r,
       who: r.who,
+      // 按住说的行出生即 pinned ⇒ 不画 ↔（语言是人指定的，没有「判错」这回事）。
+      pinned: !!r.pinned,
       // 行的左侧标签 = **那门语言的名字**（2026-10-08 用户拍：两门对称之后「我 / 对方」没意义，
       // 对 App 来说谁说话都是在听）。`who` 是从行归属推的 A/B，映射回两门里对应的那门；
-      // 判错就点 ↔ —— 语义就是「这句换到另一门去」。字幕模式不画（它是单向的）。
-      langLabel: sub ? '' : (r.who === 'me' ? langLabel(cfg && cfg.myLang) : langLabel(cfg && cfg.otherLang)),
+      // 判错就点 ↔ —— 语义就是「这句换到另一门去」。
+      // 字幕模式也画（2026-10-08 用户拍，E8）：字幕是单向译成，行仍是某**一门**语言，
+      // 标签就用那门语言的本名 —— 与听译同一套规则；「我 / 对方」只在该语言名拿不到时才兜底。
+      langLabel: r.who === 'me' ? langLabel(cfg && cfg.myLang) : langLabel(cfg && cfg.otherLang),
       guessed: !!(r.guessed && !r.pinned),
-      whoTitle: t('listen_who_guessed', '判错了 · 点 ↔ 换到另一门'),
+      whoTitle: t('listen_who_guessed', '判错了？点 ↔ 换成另一种语言'),
       text: r.text,
       hasRaw: r.raw != null && r.raw !== r.text,
       showRaw: !!r.showRaw,
@@ -1760,7 +1932,7 @@ const listenModel = (() => {
       // 空态（§9.6.1.9，2026-10-08）：**还在听**时先给一行「正在听…」，下面才是原来那句说明 ——
       // 第一行要等 3–12s（识别器第一次出字的延迟），这段空白得看得出在干活。
       listeningText: (phase === 'listening' && !sub) ? t('listen_listening', '正在听…') : '',
-      emptyText: sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边'),
+      emptyText: sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里。判错了？点 ↔ 换成另一种语言'),
       title: t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : ''),
       queueShown: !!qn,
       queueText: t('listen_read_queue_n', '朗读中 · 还有 {n} 句待读').replace('{n}', String(qn)),
@@ -1858,6 +2030,8 @@ const listenModel = (() => {
     // 视图动作（原 addEventListener 的 handler 们）
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
     summaryAgain, copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
+    // 按住说 / 点一下（listen-view 的指针事件 → 状态机）
+    pttDown, pttUp, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     // 渲染数据（listen-view.jsx 渲染期调用）
     modeView, pillView, footView, langLineText, nowLabel, ephemeralView, toggleView,
@@ -1872,9 +2046,13 @@ const listenModel = (() => {
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
-      lid: lidPair(), lidRaw: lidLang, lidHeld: lidHold ? lidHold.size() : 0,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词；lidHeld 是扣住的整句（诊断用）
+      lid: lidPair(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
+      ptt: ptt ? { mode: ptt.mode, side: ptt.side, heard: ptt.heard } : { mode: 'idle', side: '', heard: false },
+      pttForce: pttForce ? pttForce.side : '', pttSilenceMs: pttSilence(), translateCalls,
+      // 判定是否被按住说暂停（H3 的 ptt.state().lidPaused；原生那两条消息另由 rec() 断言）
+      lidPaused: !!ptt || !!pttForce,
     lat: C.latencySummary(session ? session.rows : []) }),
   };
 })();

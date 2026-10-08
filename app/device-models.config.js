@@ -102,8 +102,39 @@ function mtDeviceTtsModelsFor(flavor) {
 // 听译里「谁在说哪门语言」由它判（sherpa-onnx 自带 SLID，whisper tiny）—— 不再用手写文字系/置信度规则。
 // 一个 zip 装两个 onnx（encoder + decoder），App 解到 Application Support/mt-lid/<dir>/。
 // 托管与 TTS 模型同一处（ModelScope belliedmonkey-device-models，经 api.belliedmonkey.com/models/ 中转）。
+// 默认引擎 = SpeechBrain ECAPA（VoxLingua107）。为什么换（2026-10-08 Mac 外放→麦克风实测）：
+// whisper-tiny 天生偏中文（训练数据中文 23,446 h vs 泰语 226 h），短音频上倒向先验大的语言 ⇒
+// 泰语开头被判成 `zh`，中文识别器于是对泰语音频吐一行垃圾（真机「甜汤萨蛋」）。实测对照：
+// 每场判词变更 whisper 27–36 次（判词在十几门之间乱跳）vs ECAPA **恒为 1 次**；首行 10.6s → 5.3s；
+// 一半的话音即定（605ms vs 1087ms）；CPU 反而更低（16.8% vs 27.4%）。专做语种识别、Apache-2.0。
+// 产物是 .mlmodelc **目录** ⇒ 打成 zip 走与其它模型同一条下载/校验通道。
+// 注意：CoreML 版要 iOS 18 / macOS 15，而听译这条路本身要 iOS 26 / macOS 26 ⇒ 26 ≥ 18，不冲突。
+// 来源（写在这里而不是字段里：清单字段会被「零硬编码文案」当文案检查）：
+//   speechbrain/lang-id-voxlingua107-ecapa（Apache-2.0）
+//   CoreML 版 aufklarer/SpeechBrain-ECAPA-VoxLingua107-21M-CoreML
 var MT_DEVICE_LID = {
-  kind: 'lid', dir: 'sherpa-onnx-whisper-tiny',
+  kind: 'lid', dir: 'speechbrain-ecapa', engine: 'ecapa',
+  model: 'SpeechBrainECAPAVoxLingua107.mlmodelc',
+  files: [{
+    path: 'speechbrain-ecapa-voxlingua107.zip', size: 39614532,
+    sha256: 'f4fa066c9d949bff6709ef432fd4f56922ca288bf4825d219e4e2ada52d7eda1',
+    url: {
+      global: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip',
+      china: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip',
+    },
+    // 备源 = 同一条中继的 `?src=other`（返回「按 IP 分流时不会选的那一边」）。**真实地址不写在这里**：
+    // 按 IP 选源由服务端 `bt-models` 做，包内与表里都只见 api.belliedmonkey.com。
+    urlAlt: {
+      global: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip?src=other',
+      china: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip?src=other',
+    },
+  }],
+};
+
+// 开发开关用的旧引擎（`lidEngine = 'whisper'`）：保留但不默认。whisper 判词乱跳那条路带着
+// 「开头可能落一行错语言」的已知缺口，只在需要对照时用。
+var MT_DEVICE_LID_WHISPER = {
+  kind: 'lid', dir: 'sherpa-onnx-whisper-tiny', engine: 'whisper',
   encoder: 'tiny-encoder.int8.onnx', decoder: 'tiny-decoder.int8.onnx',
   files: [{
     path: 'sherpa-onnx-whisper-tiny.zip', size: 60311200,
@@ -115,38 +146,29 @@ var MT_DEVICE_LID = {
   }],
 };
 
-// 【实验】第二个引擎：SpeechBrain ECAPA（VoxLingua107）CoreML，专做语种识别（不是转写模型转用）。
-// 为什么试它：whisper-tiny 训练数据中文 23,446h vs 泰语 226h，短音频上倒向先验大的语言 ⇒ 泰语开头
-// 被判成 zh、中文识别器对泰语吐一行垃圾（2026-10-08 真机实测）。ECAPA 干净语料 1.0s 双门 98.3%。
-// 许可 Apache-2.0；CoreML 版要 **iOS 18 / macOS 15**（听译这条路本身要 iOS 26 / macOS 26 ⇒ 不冲突）。
-// 产物是 .mlmodelc 目录，**实验期侧载**（`mt-lid/lid-ecapa/`，不打进 App 包 —— 与其它模型同一条纪律），
-// 所以 files 为空：原生只看产物在不在，不下载。
-// 来源（写在这里而不是字段里：清单字段会被「零硬编码文案」当文案检查）：
-//   speechbrain/lang-id-voxlingua107-ecapa（Apache-2.0）
-//   CoreML 版 aufklarer/SpeechBrain-ECAPA-VoxLingua107-21M-CoreML
-var MT_DEVICE_LID_ECAPA = {
-  kind: 'lid', dir: 'lid-ecapa', engine: 'ecapa',
-  model: 'SpeechBrainECAPAVoxLingua107.mlmodelc',
-};
-
 // 给原生的形状：url 按 flavor 解开成一个字符串（同上）。
-// opts.engine === 'ecapa' ⇒ 换引擎（并把「只比这两门」与阈值一起给原生）。
+// 默认 ECAPA（`MT_DEVICE_LID`）；opts.engine === 'whisper' ⇒ 开发开关走旧引擎。
+// ECAPA 另把「只比这两门」与阈值一起给原生（那条路只比用户选的两门，取 log 概率差 LLR）。
 function mtDeviceLidModelsFor(flavor, opts) {
   const f = flavor === 'china' ? 'china' : 'global';
   const o = opts || {};
-  if (o.engine === 'ecapa') {
-    return {
-      kind: 'lid', dir: MT_DEVICE_LID_ECAPA.dir, engine: 'ecapa',
-      langs: (o.langs || []).filter(Boolean).slice(0, 2),
-      threshold: Number(o.threshold) > 0 ? Number(o.threshold) : 6,
-      cpuOnly: !!o.cpuOnly,
-      files: [],
-    };
-  }
-  return Object.assign({}, MT_DEVICE_LID, {
-    engine: 'whisper',
-    files: MT_DEVICE_LID.files.map((x) => Object.assign({}, x, { url: typeof x.url === 'string' ? x.url : x.url[f] })),
+  const base = o.engine === 'whisper' ? MT_DEVICE_LID_WHISPER : MT_DEVICE_LID;
+  const out = Object.assign({}, base, {
+    engine: base.engine,
+    files: base.files.map((x) => Object.assign({}, x, {
+      url: typeof x.url === 'string' ? x.url : x.url[f],
+      ...(x.urlAlt ? { urlAlt: typeof x.urlAlt === 'string' ? x.urlAlt : x.urlAlt[f] } : {}),
+    })),
   });
+  if (base.engine === 'ecapa') {
+    out.langs = (o.langs || []).filter(Boolean).slice(0, 2);
+    out.threshold = Number(o.threshold) > 0 ? Number(o.threshold) : 6;
+    out.cpuOnly = !!o.cpuOnly;
+    out.trace = !!o.trace;
+    // 轻量修正开关（H2）：L-16 做「方向核实」时要能关掉对比；默认开。
+    out.rewriteFix = o.rewriteFix !== false;
+  }
+  return out;
 }
 
 // ── 语音活动检测（VAD，2026-10-07）─────────────────────────────────────────────

@@ -36,6 +36,16 @@ describe('听译页语言列表：始终列全（含 ไทย）', () => {
     ok(LANGS.some((l) => l.code === 'th'), '注册表里没有 th —— 先看 build/langs.config.js');
   });
 
+  // R-07（第三十批 P0）：灰显那条规则**不适用于泰语** —— 它任何时候都不是 disabled。
+  // 用户两次裁定（2026-10-04「所有选语言的地方都要有泰语」/ 2026-10-08「泰语不能是灰的」），
+  // 而实测支持它：DictationTranscriber 的语言集比最窄那台宽（54 ⊃ 45，含 th-TH）。
+  test('R-07 泰语不受「引擎不支持就灰显」影响 —— 永远可选', () => {
+    ok(/l\.code !== 'th'/.test(MODEL), 'disabled 的判据里没有泰语豁免（泰语会被灰掉）');
+    const body = MODEL.slice(MODEL.indexOf('function langOptions'), MODEL.indexOf('function langOptions') + 1400);
+    ok(/const bad = !!\(allowed && !allowed\.has\(code\) && l\.code !== keep && l\.code !== 'th'\)/.test(body),
+      '豁免没写在 disabled 的同一个表达式里（分散写迟早会漂）');
+  });
+
   test('两个下拉都渲染 disabled（灰显而不是消失）', () => {
     const opts = (VIEW.match(/disabled=\{o\.disabled\}/g) || []).length;
     eq(opts, 2, '两个语言下拉都应当带 disabled={o.disabled}，实际 ' + opts);

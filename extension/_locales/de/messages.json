@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Audio wird nur auf deinem Gerät verarbeitet."
+    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Sprache wird auf deinem Gerät erkannt. Der erkannte Text geht zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht."
   },
   "app_email_label": {
     "message": "E-Mail"
@@ -1941,7 +1941,7 @@
     "message": "{t} gehört"
   },
   "listen_device_privacy": {
-    "message": "Geräteinterne Transkription: Der Text erscheint beim Sprechen; jeder fertige Satz geht mit den vorherigen zur Korrektur und Übersetzung an die von dir eingerichtete Übersetzungs-Engine. Bei geräteinterner Sprachausgabe wird die Stimme auf deinem Gerät erzeugt und beim ersten Mal ein Offline-Modell einmalig heruntergeladen."
+    "message": "Geräteinterne Transkription: Der Text erscheint beim Sprechen; jeder fertige Satz geht mit den vorherigen zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht. Bei geräteinterner Sprachausgabe wird die Stimme auf deinem Gerät erzeugt und beim ersten Mal ein Offline-Modell einmalig heruntergeladen."
   },
   "listen_raw_label": {
     "message": "Erkannter Text"
@@ -2366,12 +2366,6 @@
   "listen_star": {
     "message": "Stern"
   },
-  "listen_now_them": {
-    "message": "Gegenüber sagt"
-  },
-  "listen_now_me": {
-    "message": "Ich spreche"
-  },
   "listen_lang_me": {
     "message": "nach {to}"
   },
@@ -2470,7 +2464,7 @@
     "message": "Ich"
   },
   "listen_who_guessed": {
-    "message": "Aus der Sprache geraten — mit ↔ ändern"
+    "message": "Falsche Sprache? Mit ↔ zur anderen wechseln"
   },
   "listen_swap_to_them": {
     "message": "Als vom Gegenüber gesagt markieren"
@@ -2479,7 +2473,7 @@
     "message": "Als von mir gesagt markieren"
   },
   "listen_flip_kept_card": {
-    "message": "Seite geändert — die frühere Karte wurde schon wiederholt und bleibt unter Quellen › Gespräch"
+    "message": "Zur anderen Sprache gewechselt — die frühere Karte wurde schon wiederholt und bleibt unter Quellen › Gespräch"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2530,7 +2524,7 @@
     "message": "Meine Sprache"
   },
   "listen_lang_note": {
-    "message": "Sprachen werden automatisch erkannt – keine Auswahl nötig. Manuell geht es über „Falsche Sprache?“ auf der Mithör-Seite."
+    "message": "Automatische Erkennung zwischen den zwei Sprachen, die du gewählt hast. Änderbar jederzeit auf der Mithör-Seite."
   },
   "listen_lang_engine_unsupported": {
     "message": "von der aktuellen Engine nicht unterstützt"
@@ -2596,7 +2590,7 @@
     "message": "Transkriptionsverbindung unterbrochen: {why} — verbinde neu…"
   },
   "listen_history_empty": {
-    "message": "Sprecht einfach beide — jeder fertige Satz landet hier; bei falscher Seite auf ↔ tippen"
+    "message": "Sprecht einfach beide — jeder fertige Satz erscheint hier. Falsche Sprache? Mit ↔ zur anderen wechseln"
   },
   "listen_tr_failed": {
     "message": "Übersetzung fehlgeschlagen · erneut"
@@ -3757,7 +3751,7 @@
     "message": "Zuerst die beiden Sprachpakete laden"
   },
   "firstrun_packs_lede": {
-    "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Audio wird nur auf deinem Gerät verarbeitet."
+    "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Sprache wird auf deinem Gerät erkannt. Der erkannte Text geht zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht."
   },
   "firstrun_packs_asr": {
     "message": "Spracherkennung (Dolmetschen / Live-Untertitel)"
@@ -3804,9 +3798,6 @@
   "listen_lang_detected": {
     "message": "Erkannt: {a} · {b}"
   },
-  "listen_lang_edit": {
-    "message": "Falsche Sprache?"
-  },
   "subtitle_lang_detecting": {
     "message": "Sprache des Videos wird erkannt…"
   },
@@ -3822,9 +3813,6 @@
   "listen_lang_manual": {
     "message": "Manuell festlegen"
   },
-  "listen_partner_auto": {
-    "message": "Gegenüber spricht: {lang} (automatisch)"
-  },
   "subtitle_partner_auto": {
     "message": "Sprache des Videos: {lang} (automatisch)"
   },
@@ -3832,7 +3820,7 @@
     "message": "Der lokale Erkennner kann höchstens 5 Sprachen gleichzeitig halten und ist voll – bitte Mithören verlassen und neu starten."
   },
   "listen_lang_assets_missing": {
-    "message": "Das Erkennungspaket für diese Sprache fehlt noch – online gehen und erneut „Mithören starten“."
+    "message": "Das Erkennungspaket für diese Sprache fehlt noch. Geh online und tippe einmal auf „Zuhören starten“, dann wird es nachgeladen."
   },
   "listen_lang_unsupported_revert": {
     "message": "Dieses Gerät erkennt diese Sprache nicht – zurück zu „{lang}“"
@@ -3848,5 +3836,20 @@
   },
   "listen_listening": {
     "message": "Höre zu…"
+  },
+  "listen_ptt_say": {
+    "message": "{lang} sprechen"
+  },
+  "listen_listening_lang": {
+    "message": "Höre {lang}…"
+  },
+  "listen_ptt_locked": {
+    "message": "● {lang} spricht · erneut tippen zum Beenden"
+  },
+  "listen_ptt_heard_nothing": {
+    "message": "Nichts gehört — versuch es noch einmal"
+  },
+  "listen_ptt_need_start": {
+    "message": "Verfügbar, sobald du „Zuhören starten“ tippst"
   }
 }

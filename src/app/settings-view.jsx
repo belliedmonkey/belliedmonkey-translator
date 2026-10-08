@@ -1522,9 +1522,9 @@ export default function SettingsView() {
             <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
           </label>
           {/* 语言对**不再常驻**（§9.6.1.5，2026-10-07 用户拍）：端上 LID 认得出，用户不用先选。
-               这里只留一句说明 —— 手动指定在听译页的「语言不对？」里（兜底）。 */}
+               这里只留一句说明 —— 手动指定在听译页的语言控件里（兜底）。 */}
           <p className="note" id="listen-lang-note">{t('listen_lang_note',
-            '语言自动识别，不用先选。要手动指定，用听译页里的「语言不对？」。')}</p>
+            '在你选的两门语言之间自动识别。听译页里可以随时改这两门语言。')}</p>
           {/* 识别语言包（§9.1.1，镜像 §9.6 的 downloading 态）：本机识别器的语言包由系统按需下载；
                换了语言先在这里说清在不在，而不是等到点「开始听」才发现要等。 */}
           <div className="field" id="listen-pack-row" hidden>

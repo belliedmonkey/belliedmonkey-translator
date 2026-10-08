@@ -617,12 +617,12 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
 /* 语言状态行（§9.6.1.4，2026-10-07 用户拍）：语言控件**不再常驻** —— 默认只有一行被动状态
-   （「正在识别语言…」/「已识别：中文 · English」）加一个「语言不对？」文字按钮；认错了才摊开
+   （「正在识别语言…」/「已识别：中文 · English」）加一个「语言手动指定」文字按钮；认错了才摊开
    原来的两个下拉。包一层 wrap 是为了让 grid 里只占一格（收起时不改变布局）。 */
 :where(#app-listen) .listen-lang-wrap { display: flex; flex-direction: column; gap: 8px; }
 :where(#app-listen) .listen-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 :where(#app-listen) .listen-lang button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
-/* 「语言不对？」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
+/* 「语言手动指定」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
    认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
 :where(#app-listen) .listen-sheet-mask { position: fixed; inset: 0; z-index: 2147483000; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
 :where(#app-listen) .listen-sheet { background: var(--card-bg, #fff); color: var(--fg, var(--text, #201e1d)); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -8px 40px rgba(0,0,0,.18); }
@@ -642,6 +642,21 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+/* 按住说 / 点一下（2026-10-08 终稿 3）：主按钮下面、贴着底的一条两半按钮。
+   左＝你这门（「说中文」），右＝对方那门（本名大字 + 那门语言的小字）。
+   按下 = 这一句按这门识别；松手 <0.4s = 锁定（再点结束）；≥0.4s = 定稿。 */
+:where(#app-listen) .listen-ptt-wrap { display: flex; flex-direction: column; gap: 6px; }
+:where(#app-listen) .listen-ptt-locked { margin: 0; color: var(--accent-deep); font-weight: 600; }
+:where(#app-listen) .listen-ptt { display: flex; align-items: stretch; background: var(--sage-weak); border-radius: 27px; overflow: hidden; min-height: 58px; }
+:where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  background: none; color: var(--ink); border: 0; border-radius: 0; padding: 8px 6px; font: inherit; font-weight: 600; cursor: pointer;
+  touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) .listen-ptt-btn.on { background: var(--accent); color: #fff; }
+:where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.82); }
+:where(#app-listen) .listen-ptt-btn:disabled { opacity: 0.45; cursor: default; }
+:where(#app-listen) .listen-ptt-name { font-size: 1.05rem; line-height: 1.2; }
+:where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--dim); line-height: 1.2; }
+:where(#app-listen) .listen-ptt-sep { width: 1px; background: var(--line); align-self: center; height: 60%; }
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
@@ -674,7 +689,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-row-acts { display: flex; gap: 12px; margin-top: 4px; }
 :where(#app-listen) .listen-act, :where(#app-listen) .listen-tr-retry { font: inherit; font-size: 0.85rem; background: none; border: 0; padding: 4px 0; color: var(--link); text-decoration: underline; cursor: pointer; min-height: 32px; }
 :where(#app-listen) .listen-tr-retry { color: var(--danger); }
-:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry):not(.listen-raw-toggle) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry):not(.listen-raw-toggle):not(.listen-ptt-btn) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
 :where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 :where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
 :where(#app-listen) .listen-head-acts { display: flex; gap: 12px; }
@@ -683,7 +698,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
   #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
-    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "queue hist" "note hist" "actions hist" "subspriv hist" "pair hist" "speakrow hist" "ephrow hist" "ephwhy hist" "subsprep hist" "cost hist" "devpriv hist" "summary summary"; }
+    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "queue hist" "note hist" "actions hist" "ptt hist" "subspriv hist" "pair hist" "speakrow hist" "ephrow hist" "ephwhy hist" "subsprep hist" "cost hist" "devpriv hist" "summary summary"; }
   /* 每个直接子元素都要有自己的格子（test/app-listen-grid.test.js）：没写的会被自动放置，
      共用 class 的会叠进同一格 —— 「这次不留记录」曾与「朗读译文」叠在 speakrow 里。 */
   :where(#app-listen) .listen-head { grid-area: head; }
@@ -693,6 +708,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
+  #app-listen-ptt { grid-area: ptt; }
   :where(#app-listen) .listen-lang-wrap { grid-area: pair; }
   :where(#app-listen) .listen-autospeak { grid-area: speakrow; }
   #app-listen-queue { grid-area: queue; }
