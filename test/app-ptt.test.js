@@ -91,6 +91,9 @@ describe('按住说 / 点一下 · 规则（Pencil 终稿 3）', () => {
 
   test('文案与布局：左「说+本名」、右本名+那门语言的小字、锁定提示、「正在听」+本名', () => {
     ok(/t\('listen_ptt_say', '说\{lang\}'\)/.test(MODEL), '左键不是「说 + 本名」');
+    ok(/mineHint: t\('listen_ptt_tap_hold', '点一下或按住说话'\)/.test(MODEL),
+      '左键小字不是新键 listen_ptt_tap_hold（C 案：跟界面语言翻）');
+    ok(/pv\.mineHint/.test(VIEW) && /app-listen-ptt-mine-hint/.test(VIEW), '视图没有渲染左键小字');
     ok(/function pttHintOf\(code\)/.test(MODEL) && /e\.pttHint/.test(MODEL), '右键小字没有读语言注册表');
     ok(/t\('listen_ptt_locked', '● \{lang\} 正在说 · 再点一下结束'\)/.test(MODEL), '锁定提示不是稿里的那句');
     ok(/t\('listen_listening_lang', '正在听\{lang\}…'\)/.test(MODEL), '「正在听」+本名没实现');
@@ -99,9 +102,31 @@ describe('按住说 / 点一下 · 规则（Pencil 终稿 3）', () => {
     ok(/t\('listen_ptt_need_start', '点「开始听」后可用'\)/.test(MODEL), '灰掉的原因不是那句');
   });
 
+  test('按下时停掉正在播的朗读 + 冻住队列；松手 / 退出锁定后接着播（2026-10-08 评审定）', () => {
+    ok(/let pttSpeakPaused = false;/.test(MODEL), '没有「朗读队列暂停」的状态位');
+    // 按下就暂停（并在这一场第一次按下时调；relock 那一支不恢复 ⇒ 仍冻着）
+    const down = MODEL.slice(MODEL.indexOf('function pttDown'), MODEL.indexOf('function pttFinish'));
+    ok(/pttSpeakPause\(\);/.test(down), '按下时没有停朗读 / 冻队列');
+    const pauseFn = MODEL.slice(MODEL.indexOf('function pttSpeakPause'), MODEL.indexOf('function pttSpeakPause') + 500);
+    ok(/LearnTTS\.stop\(\)/.test(pauseFn), '没有停掉正在播的那一句');
+    ok(!/sq\.clear\(\)/.test(pauseFn), '把队列清空了 —— 松手要按原顺序接着播，不能丢句');
+    // 松手 / 退出锁定 ⇒ 恢复；relock 那支不恢复
+    const fin = MODEL.slice(MODEL.indexOf('function pttFinish'), MODEL.indexOf('function pttFinish') + 1400);
+    ok(/pttSpeakResume\(\);/.test(fin), '松手 / 退出锁定后没有接着播');
+    ok(/if \(relock\) \{[\s\S]{0,220}?pttArmSilence\(\);/.test(fin), 'relock 那一支的形状变了（它应当仍然冻着队列）');
+    const abortFn = MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttAbort') + 600);
+    ok(/pttSpeakResume\(\);/.test(abortFn), '被暂停/结束点掉后没有解冻（队列会一直冻着）');
+    // 泵：冻住时不取新句
+    ok(/if \(pttSpeakPaused\) break;/.test(MODEL), '朗读泵没有在冻住时停下 —— 后面几句还会接着念');
+    // 恢复时要能重新起泵（泵已经退出时）
+    const resFn = MODEL.slice(MODEL.indexOf('function pttSpeakResume'), MODEL.indexOf('function pttSpeakResume') + 500);
+    ok(/if \(!speakPumping && sq\.size\(\)\) speakPump\(\)/.test(resFn), '泵已经退出时没有重新起 —— 队列会卡住');
+  });
+
   test('实时字幕没有按住说（单向译成）', () => {
     ok(/if \(mode === 'subtitle'\) return false;\s*\/\/ 字幕是单向的/.test(MODEL), '字幕模式没有挡住按住说');
-    ok(/shown: !sub,/.test(MODEL), '按钮条没有在字幕模式隐藏');
+    // 2026-10-08 改稿后：字幕模式隐藏 **且** 会话结束后由小结卡接管（两处都不出现）
+    ok(/shown: !sub && !\(session && phase === 'ended'\)/.test(MODEL), '按钮条没有在字幕模式/结束后隐藏');
   });
 
   test('H3 钩子：驱动的是真按钮上的真指针事件', () => {

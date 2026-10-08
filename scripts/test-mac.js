@@ -683,9 +683,35 @@ async function p01() {
   const p = s.ptt || {};
   okc(p.shown, '听译页没有那条按钮条');
   okc(p.mine === '说中文', '左键不是「说中文」：' + p.mine);
+  // 左键小字（C 案，2026-10-08 用户定）：跟**界面语言**，与右键小字（那门语言）对称。
+  okc(p.mineHint === '点一下或按住说话', '左键小字不是「点一下或按住说话」：' + p.mineHint);
   okc(p.otherName === 'ไทย', '右键不是本名「ไทย」：' + p.otherName);
   okc(p.otherHint === 'แตะหรือกดค้างเพื่อพูด', '右键小字不是那门语言写的：' + p.otherHint);
   okc(!p.disabled, '会话正在进行，按钮条却是灰的');
+
+  // 可视样式（2026-10-08 真机「纯文字」事故的根因就是这一条没人断言：调色板变量不存在 +
+  // 按钮被通用按钮规则排除 ⇒ 两半既无底色也无圆角）。判据用**真实计算样式**，不看截图
+  // 主观判断：两半底色不透明、圆角 > 0、高 ≥ 60、两半等宽（差 < 2px）。
+  const geo = JSON.parse(await evalOk(`(()=>{
+    const one=(id)=>{const e=document.getElementById(id); if(!e) return null;
+      const cs=getComputedStyle(e), r=e.getBoundingClientRect();
+      const m=/rgba?\\(([^)]+)\\)/.exec(cs.backgroundColor);
+      const parts=m?m[1].split(',').map(x=>parseFloat(x)):[];
+      const alpha=parts.length===4?parts[3]:(parts.length===3?1:0);
+      return {bg:cs.backgroundColor, alpha, radius:parseFloat(cs.borderTopLeftRadius)||0,
+              h:Math.round(r.height), w:Math.round(r.width)};};
+    return JSON.stringify({mine:one('app-listen-ptt-mine'), other:one('app-listen-ptt-other')});})()`));
+  okc(!!geo.mine && !!geo.other, '按钮条的两半没找到：' + JSON.stringify(geo));
+  for (const [side, g] of [['左键', geo.mine], ['右键', geo.other]]) {
+    if (!g) continue;
+    okc(g.alpha === 1, side + '底色不是不透明：' + g.bg);
+    okc(g.radius > 0, side + '没有圆角：' + g.radius);
+    okc(g.h >= 60, side + '高度不足 60：' + g.h);
+  }
+  if (geo.mine && geo.other) {
+    okc(Math.abs(geo.mine.w - geo.other.w) < 2,
+      '两半不等宽：' + geo.mine.w + ' vs ' + geo.other.w);
+  }
 }
 async function p02() {
   await evalOk('__mtTest.lidMute(1), true');
@@ -813,6 +839,51 @@ async function p12() {
   await evalOk('__mtTest.lidMute(0), true');
 }
 
+// P-08（2026-10-08 评审定）：按下按住说时，**正在播的那一句被停、队列冻住**；松手后**接着播**。
+// 「正在播的被停」看 `_debug().speakingRid`，「队列冻住」看 tts-start 计数不再涨。
+async function p08() {
+  const on = await evalOk(`!!(document.getElementById('app-listen-autospeak')||{}).checked`);
+  if (!on) await click('app-listen-autospeak');
+  // **不要静音 LID**：这两句要真的落行（归属闸要判词；静音了就整句被丢 —— 第一版栽在这）。
+  // 按住那一下 PTT 自己会暂停判定，不需要 lidMute 帮忙。
+  try {
+    await quiet();
+    // **显式发一条判词**：`say()` 的判词按语言去重（同语言不再发），而前面几幕的恢复会把
+    // App 的判词清空（resume → lidOn() → lidLang = ''）⇒ 不再发就等于归属闸拿不到判词、
+    // 注入的整句被丢（第一版 P-08 两次都栽在这）。`__mtTest.lid()` 是强制注入、不去重。
+    await evalOk(`__mtTest.lid('zh'), true`);
+    await sleep(700);            // 判词要稳住 LID_CONFIRM_MS(500ms) 才认
+    await evalOk('__mtTest.rec(1), true');
+    // 队列里放两句（自动朗读会把译文排进去）
+    await evalOk(`__mtTest.say('第一句占住朗读队列。', 'zh-CN'), true`);
+    await waitRow('第一句占住朗读队列', 20000);
+    await evalOk(`__mtTest.say('第二句排在后面等着念。', 'zh-CN'), true`);
+    await waitRow('第二句排在后面等着念', 20000);
+    await waitFor(async () => (await rec()).some((e) => e && e.type === 'tts-start'), 40000, '排队之后真的开始念');
+    const n0 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
+    await evalOk(`__mtTest.ptt.down('mine'), true`);
+    await sleep(2000);
+    const st = await evalOk('AppListen._debug()');
+    okc(st.speakingRid === 0, '按下之后当前那句还在播（speakingRid=' + st.speakingRid + '）');
+    const n1 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
+    okc(n1 === n0, '按住期间又起了新的朗读（队列没冻住）：' + n0 + ' → ' + n1);
+    // **按住期间再排一句**：这才是能稳定观察「冻住 / 接着播」的构造 —— 队列读数（speakQueue）
+    // 是「待播条数」，合成快的时候一闪而过，拿它当信号等不到（前两版都栽在这）。
+    await evalOk(`__mtTest.say('第三句是在按住期间排进去的。', 'zh-CN'), true`);
+    await waitRow('第三句是在按住期间排进去的', 20000);
+    await sleep(2500);
+    const n2 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
+    okc(n2 === n1, '按住期间排进来的那句也念了（队列没冻住）：' + n1 + ' → ' + n2);
+    await evalOk(`__mtTest.ptt.up('mine'), true`);
+    await waitFor(async () => (await rec()).filter((e) => e && e.type === 'tts-start').length > n2, 40000,
+      '松手之后队列接着播（按住期间排的那句没有开始念）');
+  } catch (e) {
+    const st = await state();
+    log('    P-08 现场：ptt=' + JSON.stringify(st.ptt) + ' 队列=' + await evalOk('AppListen._debug().speakQueue'));
+    throw e;
+  }
+}
+
 const LISTEN_CASES = [
   { id: 'M7', what: '多轮对话历史逐行累积', impl: m7 },
   { id: 'M2', what: 'zh 输入 → th 译文 → 朗读出声', impl: m2 },
@@ -826,6 +897,7 @@ const LISTEN_CASES = [
   { id: 'P-05', what: '锁定后静默 ⇒ 自动定稿并退出锁定', impl: p05 },
   { id: 'P-06', what: '按住/锁定后没出声 ⇒ 只提示、不落行、0 次翻译', impl: p06 },
   { id: 'P-07', what: '按住时点暂停 ⇒ 这句丢掉；按钮变灰并有原因', impl: p07 },
+  { id: 'P-08', what: '按下停掉正在播的朗读 + 冻住队列；松手接着播', impl: p08 },
   { id: 'P-12', what: '按住说的行 = 普通行，但没有 ↔', impl: p12 },
 ];
 

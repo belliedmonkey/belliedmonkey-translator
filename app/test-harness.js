@@ -253,7 +253,10 @@
         // 按住说 / 点一下（P 组 / C-09）：按钮文案、小字、锁定提示、灰掉原因
         ptt: {
           shown: visible('app-listen-ptt'),
-          mine: txt('app-listen-ptt-mine'),
+          // **名字 span**，不是整个按钮 —— 左键按钮里现在还有小字（C 案），读 textContent 会把
+          // 两者粘成「说中文点一下或按住说话」（P-01 第一版就是这么假红的）。
+          mine: txt('app-listen-ptt-mine-name'),
+          mineHint: txt('app-listen-ptt-mine-hint'),
           otherName: txt('app-listen-ptt-other-name'),
           otherHint: txt('app-listen-ptt-other-hint'),
           locked: visible('app-listen-ptt-locked') ? txt('app-listen-ptt-locked') : '',
