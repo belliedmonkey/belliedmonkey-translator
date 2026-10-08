@@ -698,6 +698,42 @@ var ListenCore = (() => {
   //   2026-10-07 随 LID 接入删除 —— 原来靠「置信度三档分」猜哪一路是对的，现在由端上 LID
   //   模型直接给出语言，错语言那一路根本进不了串句器，见 src/app/listen-model.js。）
 
+  // 整句落行的「等判词稳一下」闸（§9.6.1.3，2026-10-08 用户拍「先修」）──────────────
+  // 半句走 0.5s 确认就上屏（错了会被下一条覆盖，可容忍）；**整句错了就是一行永久的垃圾**
+  // —— 会被翻译、可能被朗读、进复习。所以整句要多稳一道：判词**落在两门里且已稳住 `settleMs`**
+  // 才落行；没稳住先**扣住**。结算三条：
+  //   · 判词稳住了、就是这一路 ⇒ **落行**；
+  //   · 判词稳住地成了另一门 ⇒ **丢**；
+  //   · 到 `maxMs` 判词还没回来 ⇒ **丢**（**不是放行**！）。
+  // 为什么超时必须丢：进队列的行按定义都是「到的时候判词对不上这一路」的。判词飘到第三门时
+  // `otherSettled` 不成立（第三门返回空），若那时放行，识别器吐的垃圾就全进来了 —— 实测这一条
+  // 让 5 次跑出 5 次垃圾行（判词在 `en/tl/id/es/pt` 之间飘得很凶时尤其）。判词不回来 ⇒ 不收。
+  // 注入：settleMs / maxMs / settled(loc) / otherSettled(loc) / take(ev) / now / setT / clearT。
+  function makeLidHold(o) {
+    const now = o.now || Date.now;
+    const setT = o.setT || setTimeout, clearT = o.clearT || clearTimeout;
+    const settleMs = o.settleMs, maxMs = o.maxMs;
+    let held = [], timer = 0;        // [{ ev, at }]，按到达顺序
+    function drain() {
+      if (timer) { clearT(timer); timer = 0; }
+      const keep = [];
+      for (const h of held) {
+        const loc = h.ev && h.ev.locale;
+        if (o.settled(loc)) { o.take(h.ev); continue; }        // 判词稳住、就是这一路 ⇒ 落行
+        if (o.otherSettled(loc)) continue;                     // 判词稳住地成了另一门 ⇒ 丢
+        if (now() - h.at < maxMs) { keep.push(h); continue; }  // 还没定论 ⇒ 继续等判词回来
+        // 等够了判词还是没回来 ⇒ **丢**（进队列的行本来就是「判词对不上」的那些；放行等于收垃圾）
+      }
+      held = keep;
+      if (held.length) timer = setT(drain, settleMs + 80);
+    }
+    return {
+      hold(ev) { held.push({ ev, at: now() }); if (!timer) timer = setT(drain, settleMs + 80); },
+      drain, size: () => held.length,
+      reset() { if (timer) { clearT(timer); timer = 0; } held = []; },
+    };
+  }
+
   // 识别器的 final 是时间片不是句子（会切在词中间），所以每个 locale 一路串起来、按句末标点
   // 切句；尾巴等不到标点就按超时放出（我们自己收口后的 final 常常不带句号）。
   // cut(text) 由调用方注入（生产里是 WsTranscribe.splitSentences 这类），返回 { done: [...], rest }。
@@ -837,7 +873,7 @@ var ListenCore = (() => {
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
-    lidBase, sideMatchesLid, langSupported,
+    lidBase, sideMatchesLid, langSupported, makeLidHold,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,

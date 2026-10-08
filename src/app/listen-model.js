@@ -434,6 +434,7 @@ const listenModel = (() => {
   function closeSocket() {
     const s = sock; sock = null;
     cutter = null;
+    if (lidHold) { lidHold.reset(); lidHold = null; }   // 会话结束：扣住的整句与它的定时器一起放掉
     try { if (s) s.close(); } catch (_) {}
   }
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
@@ -467,6 +468,7 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
+        if (lidHold) lidHold.drain();   // 判词换了：把扣住的整句结算掉（换了门的丢、没换的等它稳）
         // 字幕处在「自动」时，把认出来的那门记下来 —— 下次进场的候选就是它（「自动」只能覆盖
         // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。
         try {
@@ -491,12 +493,22 @@ const listenModel = (() => {
   // 错报** —— 一旦错报成另一门，那一路的半句立刻上屏（Mac 实测：2069ms 上屏的是一条中文垃圾）。
   // 0.5s 的确认能把「一条就翻」滤掉，代价只是比「立刻用」晚半秒。
   const LID_CONFIRM_MS = 500;
-  function lidPair() {
+  // **整句落行要比半句多稳一道：1.5s**（2026-10-08 用户拍「先修」；详见 `listen-core` 的 `makeLidHold`）。
+  // 半句错一条会被下一条覆盖（可容忍）；**整句错了就是一行永久的垃圾**（会被翻译、可能被朗读、进复习）。
+  const LID_CONFIRM_FINAL_MS = 1500;
+  // 兜底上限：判词一直不回（飘在第三门之间）时，扣住超过这么久就**丢掉**（不是放行 —— 放过就等于
+  // 收下错语言识别器吐的垃圾；进队列的行本来就是「判词对不上」的那些）。
+  const LID_HOLD_MAX_MS = 4000;
+  function lidPairAt(ms) {
     if (!lidLang || !cfg) return '';
     const a = C.baseCode(cfg.myLang), b = C.baseCode(cfg.otherLang);
     if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
-    return (Date.now() - lidLangAt) >= LID_CONFIRM_MS ? lidLang : '';
+    return (Date.now() - lidLangAt) >= ms ? lidLang : '';
   }
+  function lidPair() { return lidPairAt(LID_CONFIRM_MS); }
+  function lidPairFinal() { return lidPairAt(LID_CONFIRM_FINAL_MS); }
+  // 扣住的整句由当前会话登记；纯逻辑在 `listen-core` 的 `C.makeLidHold`。
+  let lidHold = null;
   // LID 模型清单（app/device-models.config.js 的 MT_DEVICE_LID）；只在 App 包里。
   function lidModel() {
     try {
@@ -536,6 +548,14 @@ const listenModel = (() => {
       if (myGen !== gen || cutter !== cut || !sock) return;
       for (const tt of gate.push(f)) cut.add(f.locale, tt);
     };
+    // 定稿的闸由本会话结算（新会话从空开始）。守卫与 `takeFinal` 同源 —— 会话一换就自动失效。
+    lidHold = C.makeLidHold({
+      settleMs: LID_CONFIRM_FINAL_MS, maxMs: LID_HOLD_MAX_MS,
+      settled: (loc) => C.sideMatchesLid(loc, lidPairFinal()),    // 判词落在两门里、稳住、且就是这一路
+      // 判词**稳住地**成了另一门（`lidPairFinal()` 非空就一定落在两门里 ⇒「不匹配」= 另一门）
+      otherSettled: (loc) => { const s = lidPairFinal(); return !!s && !C.sideMatchesLid(loc, s); },
+      take: (ev) => { if (myGen !== gen || cutter !== cut || !sock) return; takeFinal(ev); },
+    });
     sock = NativeSpeech.sttOpen({
       locales,
       onEvent: (kind, ev) => {
@@ -552,8 +572,9 @@ const listenModel = (() => {
         else if (kind === 'final') {
           const base = C.baseCode(ev && ev.locale);
           if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;     // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
-          takeFinal(ev);
+          // 判词落在两门里且稳住 1.5s ⇒ 直接判；否则交给扣住队列（判词一变就由它结算）。
+          if (C.sideMatchesLid(ev && ev.locale, lidPairFinal())) { takeFinal(ev); return; }
+          if (lidHold) lidHold.hold(ev);
         }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
@@ -1838,7 +1859,7 @@ const listenModel = (() => {
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
-      lid: lidPair(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词（诊断用）
+      lid: lidPair(), lidRaw: lidLang, lidHeld: lidHold ? lidHold.size() : 0,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词；lidHeld 是扣住的整句（诊断用）
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
     lat: C.latencySummary(session ? session.rows : []) }),

@@ -840,16 +840,75 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
-    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 1, '半句那一道 LID 闸');
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPairFinal\(\)\)/g) || []).length, 1, '定稿那一道 LID 闸（比半句多稳一道）');
     ok(/function lidPair\(\)/.test(MODEL), '没有 lidPair（只在两门里取）');
     ok(/const LID_CONFIRM_MS = \d+/.test(MODEL), '两门之间也会错报，要有 0.5s 的确认');
-    ok(/Date\.now\(\) - lidLangAt\) >= LID_CONFIRM_MS/.test(MODEL), 'lidPair 没有那道确认');
+    ok(/function lidPair\(\) \{ return lidPairAt\(LID_CONFIRM_MS\); \}/.test(MODEL), 'lidPair 没有那道确认');
     ok(/NativeSpeech\.onLid\(/.test(MODEL), '没有订阅 LID 判词');
     ok(/NativeSpeech\.ensureLid\(/.test(MODEL), '没有把 LID 模型纳入下载');
     ok(/lidOn\(\);/.test(MODEL), '新会话没有重置 LID 语言');
     ok(!/partialEstablished/.test(MODEL), '手写的「定稿确立」启发式应已退场');
     ok(!/makeFinalArbiter|arbScore/.test(MODEL), '置信度仲裁应已退场');
   });
+  // 2026-10-08 用户拍「先修」：首判错 ⇒ 一整行永久的垃圾（实测首行「甜汤萨蛋」）。
+  // 闸 = 判词落在两门里且稳住 1.5s；没稳住先扣住，判词稳住地成了另一门才丢，一直没定论则放行。
+  test('makeLidHold：判词稳住才落行；换成另一门就丢；判词来回跳不误丢真行；一直没定论则放行', () => {
+    let now = T0, seq = 0, lid = '', lidAt = 0;
+    const timers = new Map();
+    const setT = (fn, ms) => { const id = ++seq; timers.set(id, { fn, at: now + ms }); return id; };
+    const clearT = (id) => { timers.delete(id); };
+    let taken = [];
+    // settled = 判词落在两门里、且从换过来起 ≥1.5s（与生产 `lidPairFinal` 同义；第三门返回空）
+    const settledLid = () => ((lid === 'zh' || lid === 'th') && now - lidAt >= 1500 ? lid : '');
+    const h = C.makeLidHold({
+      now: () => now, setT, clearT, settleMs: 1500, maxMs: 4000,
+      settled: (l) => settledLid() === C.baseCode(l),
+      otherSettled: (l) => !!settledLid() && settledLid() !== C.baseCode(l),
+      take: (ev) => taken.push(ev),
+    });
+    // ① 真机坏跑：一句中文垃圾 + 一句真泰文几乎同时到，判词随后稳到 th ⇒ 一个丢、一个留
+    lid = 'th'; lidAt = T0;
+    h.hold({ locale: 'zh-CN', text: '甜汤萨蛋' });
+    h.hold({ locale: 'th-TH', text: 'เขียนคำศัพท์แปะของต่างๆ' });
+    now = T0 + 1600; h.drain();
+    eq(taken.map((e) => e.text).join('|'), 'เขียนคำศัพท์แปะของต่างๆ', '稳住的那门留、另一门丢');
+    eq(h.size(), 0);
+    // ② 判词来回跳（真机时间线实测 `zh → ko → zh → th`）不能误丢真行；稳住后按原序补上
+    taken = []; lid = 'th'; lidAt = now;
+    h.hold({ locale: 'th-TH', text: 'สวัสดี' });
+    h.hold({ locale: 'th-TH', text: 'ครับ' });
+    now += 300; lid = 'zh'; lidAt = now; h.drain();
+    eq(taken.length, 0, '判词刚跳到另一门 ⇒ 不能立刻丢真行');
+    eq(h.size(), 2, '两条都还扣着');
+    now += 300; lid = 'th'; lidAt = now; h.drain();
+    eq(h.size(), 2, '跳回来仍然扣着');
+    now += 1600; h.drain();
+    eq(taken.length, 2, '判词稳住 ⇒ 扣住的两条都要落行');
+    eq(taken.map((e) => e.text).join('|'), 'สวัสดี|ครับ', '要按到达顺序补上');
+    // ③ 判词飘到第三门（otherSettled 不成立）⇒ 到 maxMs 必须**丢**，不能放行
+    //（实测：放行的话识别器在错语言上吐的垃圾会全进来 —— 5 跑 5 次垃圾行）
+    taken = []; lid = 'ko'; lidAt = now;
+    h.hold({ locale: 'th-TH', text: 'x' });
+    now += 4100; h.drain();
+    eq(taken.length, 0, '判词一直没回到这一路 ⇒ 不能放行（放了就是收错语言的垃圾）');
+    eq(h.size(), 0, '超时结算掉，不无限扣着');
+  });
+
+  test('模型接线：定稿「判词稳住且是这一路」直接落行，否则交给 makeLidHold 结算', () => {
+    ok(!/LID_WARMUP_MS/.test(MODEL), '暖机窗那一版已否掉（实测把首行推到 8–10.6s），不该留着');
+    ok(/if \(C\.sideMatchesLid\(ev && ev\.locale, lidPairFinal\(\)\)\) \{ takeFinal\(ev\); return; \}/.test(MODEL),
+      '定稿那一支没有「判词稳住且就是这一路 ⇒ 直接落行」');
+    ok(/if \(lidHold\) lidHold\.hold\(ev\);/.test(MODEL), '定稿没稳住时没有交给 makeLidHold');
+    ok(/settleMs: LID_CONFIRM_FINAL_MS, maxMs: LID_HOLD_MAX_MS,/.test(MODEL), '没有把两档时长交给 makeLidHold');
+    ok(/otherSettled: \(loc\) => \{ const s = lidPairFinal\(\); return !!s && !C\.sideMatchesLid\(loc, s\); \}/.test(MODEL),
+      '结算没有「判词稳住成另一门才丢」（一见另一门就丢会把换人那行误丢）');
+    ok(/if \(lidHold\) \{ lidHold\.reset\(\); lidHold = null; \}/.test(MODEL), '会话结束没有放掉扣住的整句');
+    // 半句那条路**不能**跟着变慢（用户要的是预览快）
+    ok(/if \(!C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)\) return;   \/\/ LID 判的不是这一路/.test(MODEL),
+      '半句那一路被改成慢确认了（预览会变慢）');
+  });
+
   test('旧的跨语言仲裁/半句择一已从 listen-core 退场（归属改由 LID 给）', () => {
     eq(typeof C.makeFinalArbiter, 'undefined');
     eq(typeof C.arbScore, 'undefined');
