@@ -435,6 +435,11 @@ const BLOCKS = [
   // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
   // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。
   { name: 'mt-test-bridge', src: 'test-bridge.swift', label: 'test bridge' },
+  // 【实验】端侧语种识别的第二个引擎：SpeechBrain ECAPA（VoxLingua107）CoreML。
+  // 由 `MTDeviceLid` 的清单里 `engine: 'ecapa'` 选；默认仍是 whisper，用户可见行为不变。
+  // 模型不打进 App 包（侧载到 mt-lid/<dir>/）。要撤这一整条：删掉本行 + app/native/lid-ecapa.swift
+  // + speech-bridge.swift 里的 ECAPA 分支 + JS 的 lidEngine 开关。
+  { name: 'mt-lid-ecapa', src: 'lid-ecapa.swift', label: 'lid ecapa (experiment)' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

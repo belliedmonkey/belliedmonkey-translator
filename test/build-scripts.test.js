@@ -1687,7 +1687,13 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // 识别器装配失败的域判据（SFSpeechErrorDomain Code=11 = locale 名额用满，2026-10-07 批 28）。
       '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
-      '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"']);
+      '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
+      // LID 引擎选择 + ECAPA 实验引擎的计时/诊断字段（2026-10-08，§9.6.1.3）。
+      // engine/whisper/ecapa = 引擎 id；modelMs/feMs/judges/llr/speechMs = 诊断字段名。都非文案。
+      '"engine"', '"whisper"', '"ecapa"', '"modelMs"', '"feMs"', '"judges"', '"llr"', '"speechMs"',
+      '"langs"', '"threshold"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
+      '"SpeechBrainECAPAVoxLingua107"', '"SpeechBrainECAPAVoxLingua107.mlmodelc"',   // 侧载产物名/目录名（非文案）
+      '"labels.json"', '"mel_features"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
   });
 

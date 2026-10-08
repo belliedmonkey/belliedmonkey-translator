@@ -122,9 +122,13 @@ const listenModel = (() => {
   // 2026-09-17：不再读 stt* 四键 —— 那是说题（整段转写）的槽；对话 · 实时字幕固定走本机识别器。
   // PR9：READ_KEYS 手抄清单已删，键表 = schema 的 listen 面（含 notes×4，resolveConfig 用）。
   const READ_KEYS = SETTINGS_SCHEMA.keysFor('listen');
+  // 【实验】语种识别引擎开关：**刻意不进 schema**（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）。
+  //   不设 / 其它值 = 现在的 whisper（sherpa SLID）；'ecapa' = SpeechBrain ECAPA CoreML（见
+  //   app/native/lid-ecapa.swift）。lidThreshold 是 ECAPA 的 |LLR| 阈值，默认 6。
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold'];
   function readCfg() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(READ_KEYS, (s) => {
+      chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS), (s) => {
         s = s || {};
         const tr = LearnNotes.resolveConfig(s);
         const rules = s.learnRules && typeof s.learnRules === 'object' ? s.learnRules : {};
@@ -152,6 +156,8 @@ const listenModel = (() => {
           fontScale: C.fontStep(s.subtitleFontScale, 0),
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
+          lidEngine: s.lidEngine === 'ecapa' ? 'ecapa' : 'whisper',
+          lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
@@ -513,7 +519,12 @@ const listenModel = (() => {
   function lidModel() {
     try {
       if (typeof mtDeviceLidModelsFor !== 'function') return null;
-      return mtDeviceLidModelsFor(Registry.flavor() || 'global');
+      const engine = cfg && cfg.lidEngine === 'ecapa' ? 'ecapa' : 'whisper';
+      return mtDeviceLidModelsFor(Registry.flavor() || 'global', {
+        engine,
+        langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
+        threshold: (cfg && Number(cfg.lidThreshold)) || 6,
+      });
     } catch (_) { return null; }
   }
   // VAD 模型清单（app/device-models.config.js 的 MT_DEVICE_VAD）；只在 App 包里。

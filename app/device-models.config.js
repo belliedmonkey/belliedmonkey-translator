@@ -115,10 +115,35 @@ var MT_DEVICE_LID = {
   }],
 };
 
+// 【实验】第二个引擎：SpeechBrain ECAPA（VoxLingua107）CoreML，专做语种识别（不是转写模型转用）。
+// 为什么试它：whisper-tiny 训练数据中文 23,446h vs 泰语 226h，短音频上倒向先验大的语言 ⇒ 泰语开头
+// 被判成 zh、中文识别器对泰语吐一行垃圾（2026-10-08 真机实测）。ECAPA 干净语料 1.0s 双门 98.3%。
+// 许可 Apache-2.0；CoreML 版要 **iOS 18 / macOS 15**（听译这条路本身要 iOS 26 / macOS 26 ⇒ 不冲突）。
+// 产物是 .mlmodelc 目录，**实验期侧载**（`mt-lid/lid-ecapa/`，不打进 App 包 —— 与其它模型同一条纪律），
+// 所以 files 为空：原生只看产物在不在，不下载。
+// 来源（写在这里而不是字段里：清单字段会被「零硬编码文案」当文案检查）：
+//   speechbrain/lang-id-voxlingua107-ecapa（Apache-2.0）
+//   CoreML 版 aufklarer/SpeechBrain-ECAPA-VoxLingua107-21M-CoreML
+var MT_DEVICE_LID_ECAPA = {
+  kind: 'lid', dir: 'lid-ecapa', engine: 'ecapa',
+  model: 'SpeechBrainECAPAVoxLingua107.mlmodelc',
+};
+
 // 给原生的形状：url 按 flavor 解开成一个字符串（同上）。
-function mtDeviceLidModelsFor(flavor) {
+// opts.engine === 'ecapa' ⇒ 换引擎（并把「只比这两门」与阈值一起给原生）。
+function mtDeviceLidModelsFor(flavor, opts) {
   const f = flavor === 'china' ? 'china' : 'global';
+  const o = opts || {};
+  if (o.engine === 'ecapa') {
+    return {
+      kind: 'lid', dir: MT_DEVICE_LID_ECAPA.dir, engine: 'ecapa',
+      langs: (o.langs || []).filter(Boolean).slice(0, 2),
+      threshold: Number(o.threshold) > 0 ? Number(o.threshold) : 6,
+      files: [],
+    };
+  }
   return Object.assign({}, MT_DEVICE_LID, {
+    engine: 'whisper',
     files: MT_DEVICE_LID.files.map((x) => Object.assign({}, x, { url: typeof x.url === 'string' ? x.url : x.url[f] })),
   });
 }

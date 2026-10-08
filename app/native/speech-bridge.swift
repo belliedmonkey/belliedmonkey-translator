@@ -1235,9 +1235,13 @@ final class MTDeviceLid {
         let encoder: String
         let decoder: String
         let files: [(path: String, url: String, sha256: String, size: Int)]
+        let engine: String              // "whisper"（默认，sherpa SLID）| "ecapa"（实验：SpeechBrain ECAPA CoreML）
+        let langs: [String]             // ECAPA：只比用户选的这两门
+        let threshold: Float            // ECAPA：|LLR| 过它才定
     }
     private var models: [Model] = []
     private var slid: SherpaOnnxSpokenLanguageIdentificationWrapper?
+    private var ecapa: MTEcapaLid?      // 见 app/native/lid-ecapa.swift（实验引擎）
     private let q = DispatchQueue(label: "mt.lid")
     private var buf: [Float] = []                 // 本句累计的 16k 单声道
     private let maxSamples = 16000 * 20           // 只留最近 20s（模型也只用 <30s）
@@ -1255,12 +1259,18 @@ final class MTDeviceLid {
     private func parse(_ v: Any?) -> [Model] {
         guard let list = v as? [[String: Any]] else { return [] }
         return list.compactMap { m in
-            guard let dir = m["dir"] as? String, let enc = m["encoder"] as? String, let dec = m["decoder"] as? String else { return nil }
+            guard let dir = m["dir"] as? String else { return nil }
+            let engine = (m["engine"] as? String) ?? "whisper"
+            let langs = (m["langs"] as? [String]) ?? []
+            let threshold = Float((m["threshold"] as? Double) ?? 6.0)
             let fs = (m["files"] as? [[String: Any]] ?? []).compactMap { f -> (String, String, String, Int)? in
                 guard let p = f["path"] as? String, let u = f["url"] as? String, let s = f["sha256"] as? String else { return nil }
                 return (p, u, s, (f["size"] as? Int) ?? 0)
             }
-            return Model(dir: dir, encoder: enc, decoder: dec, files: fs)
+            // ECAPA 的产物是一个 .mlmodelc 目录，没有 encoder/decoder 两个文件名
+            if engine == "ecapa" { return Model(dir: dir, encoder: "", decoder: "", files: fs, engine: engine, langs: langs, threshold: threshold) }
+            guard let enc = m["encoder"] as? String, let dec = m["decoder"] as? String else { return nil }
+            return Model(dir: dir, encoder: enc, decoder: dec, files: fs, engine: engine, langs: langs, threshold: threshold)
         }
     }
     private func installed(_ m: Model) -> Bool {
@@ -1268,6 +1278,12 @@ final class MTDeviceLid {
         let fm = FileManager.default
         for f in m.files where f.path.hasSuffix(".zip") {
             guard fm.fileExists(atPath: d.appendingPathComponent(".installed-" + f.sha256.lowercased()).path) else { return false }
+        }
+        if m.engine == "ecapa" {
+            // 实验期：模型是**侧载**到 mt-lid/<dir>/ 的（不打进 App 包，与其它模型同一条纪律），
+            // 所以这里不看 .installed-<sha> 标记，只看产物在不在。
+            return fm.fileExists(atPath: d.appendingPathComponent("SpeechBrainECAPAVoxLingua107.mlmodelc").path)
+                && fm.fileExists(atPath: d.appendingPathComponent("labels.json").path)
         }
         return !m.files.isEmpty
             && fm.fileExists(atPath: d.appendingPathComponent(m.encoder).path)
@@ -1326,6 +1342,18 @@ final class MTDeviceLid {
 
     /// 建 SLID（模型装好了才有；幂等）。
     func load() {
+        if let m = models.first(where: { installed($0) && $0.engine == "ecapa" }) {
+            guard ecapa == nil else { return }
+            let d = root.appendingPathComponent(m.dir, isDirectory: true)
+            let e = MTEcapaLid()
+            if e.load(dir: d, langs: m.langs, threshold: m.threshold) {
+                ecapa = e
+                emit?(["type": "lid-state", "state": "ready", "engine": "ecapa"])
+            } else {
+                emit?(["type": "lid-state", "state": "assets", "engine": "ecapa"])
+            }
+            return
+        }
         guard slid == nil, let m = models.first(where: installed) else { return }
         let d = root.appendingPathComponent(m.dir, isDirectory: true)
         let w = sherpaOnnxSpokenLanguageIdentificationWhisperConfig(
@@ -1341,6 +1369,7 @@ final class MTDeviceLid {
         self?.lastLive = 0
         self?.sawSpeech = false
         self?.quietRun = 0
+        self?.ecapa?.reset()
     } }
 
     /// 麦克风 PCM（tap 的原生格式）→ 16k 单声道 Float32。
@@ -1368,7 +1397,21 @@ final class MTDeviceLid {
     func feed(_ pcm: [Float], speech: Bool) {
         guard !pcm.isEmpty else { return }
         q.async { [weak self] in
-            guard let self, let slid = self.slid else { return }
+            guard let self else { return }
+            // ── 实验引擎：ECAPA（只比两门、从开口累积、|LLR| 过阈值才定）──
+            if let e = self.ecapa {
+                let chunk = pcm
+                if speech { self.quietRun = 0 } else { self.quietRun += chunk.count }
+                guard speech || self.quietRun <= 4000 else { return }   // 与 whisper 那条路同一个话音门
+                if let d = e.feed(chunk, speech: speech), d.lang != self.lastLang {
+                    self.lastLang = d.lang
+                    let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount
+                    DispatchQueue.main.async { self.emit?(["type": "lid-live", "lang": d.lang, "llr": Double(d.llr),
+                        "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000)]) }
+                }
+                return
+            }
+            guard let slid = self.slid else { return }
             let chunk = pcm
             if speech { self.quietRun = 0 } else { self.quietRun += chunk.count }
             guard speech || self.quietRun <= 4000 else { return }   // 停顿 >0.25 s 就不再累计（话音尾巴留一点）
@@ -1382,10 +1425,13 @@ final class MTDeviceLid {
             let now = Date().timeIntervalSince1970
             guard self.buf.count >= 8000, self.sawSpeech, now - self.lastLive >= 0.5 else { return }
             self.lastLive = now
+            let tDec = Date()
             let lang = slid.decode(samples: self.buf, sampleRate: 16000).lang
+            let decMs = Date().timeIntervalSince(tDec) * 1000      // 与 ECAPA 同条件对比用
+            let bufMs = self.buf.count / 16
             if lang != self.lastLang {
                 self.lastLang = lang
-                DispatchQueue.main.async { self.emit?(["type": "lid-live", "lang": lang]) }
+                DispatchQueue.main.async { self.emit?(["type": "lid-live", "lang": lang, "engine": "whisper", "modelMs": decMs, "speechMs": bufMs]) }
             }
         }
     }
@@ -1399,10 +1445,22 @@ final class MTDeviceLid {
             self.lastLive = Date().timeIntervalSince1970
             self.sawSpeech = false
             self.quietRun = 0
+            if let e = self.ecapa {
+                // ECAPA 的累积在引擎里；这里只做「一句到此为止」的结算
+                if let d = e.finish() {
+                    self.lastLang = d.lang
+                    let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount
+                    DispatchQueue.main.async { self.emit?(["type": "lid-result", "lang": d.lang, "ms": Int(d.speechSec * 1000),
+                        "llr": Double(d.llr), "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000)]) }
+                }
+                return
+            }
             guard let slid = self.slid, samples.count >= 8000 else { self.lastLang = ""; return }   // <0.5s 不判
+            let tDec = Date()
             let lang = slid.decode(samples: samples, sampleRate: 16000).lang
+            let decMs = Date().timeIntervalSince(tDec) * 1000
             self.lastLang = lang          // 下一句的 live 从这句的结论起步（同语言不再重复报）
-            DispatchQueue.main.async { self.emit?(["type": "lid-result", "lang": lang, "ms": samples.count / 16]) }
+            DispatchQueue.main.async { self.emit?(["type": "lid-result", "lang": lang, "ms": samples.count / 16, "engine": "whisper", "modelMs": decMs, "speechMs": samples.count / 16]) }
         }
     }
 }
