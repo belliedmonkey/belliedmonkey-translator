@@ -139,6 +139,7 @@ function mtDeviceLidModelsFor(flavor, opts) {
       kind: 'lid', dir: MT_DEVICE_LID_ECAPA.dir, engine: 'ecapa',
       langs: (o.langs || []).filter(Boolean).slice(0, 2),
       threshold: Number(o.threshold) > 0 ? Number(o.threshold) : 6,
+      cpuOnly: !!o.cpuOnly,
       files: [],
     };
   }

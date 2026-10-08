@@ -38,8 +38,14 @@ final class MTEcapaLid {
     private var idx: [String: Int] = [:]      // 短码 → 索引
     private var langs: [String] = []          // 用户选的两门（短码）
     private var threshold: Float = 6.0
+    private var cpuOnly = false                 // 实验开关：只走 CPU（排查与系统 ASR 抢 ANE/GPU）
     private let judgeMs: Double = 250         // 重算节奏（报告建议 0.25–0.5 s）
-    private let minSpeechMs: Double = 400     // 话音不足不判（0.25 s 那条判词本来就不可信）
+    /// **输入窗口只取这几档**（0.5/1.0/2.0/4.0 s，单位：样本）。为什么不是「窗口一直长大」：
+    /// CoreML 对**每一个没见过的输入形状**都要重新 plan —— 实测每个新形状冷启动 40–70 ms，
+    /// 而每 0.25 s 话音就换一个形状 ⇒ 每 0.25 s 付一次冷启动，App 里实测 CPU 冲到 85–95%
+    /// （既不是前端的错也不是模型算得慢：同一形状反复只要 8–38 ms）。四档固定窗口 ⇒ 只有 4 个形状。
+    /// 顺带：这四档正是调研报告离线评估用过的窗长（0.5/1.0/1.5/2/3 s 里的几档），可比。
+    private let windowCaps: [Int] = [8000, 16000, 32000, 64000]
 
     // 前端表
     private var hamming = [Float]()
@@ -53,7 +59,8 @@ final class MTEcapaLid {
     private var melFrames = 0
     private var tail = [Float]()              // 不足一帧的剩余样本
     private var fedSamples = 0                // 已消化的样本总数（定帧数用）
-    private var speechSamples: Int64 = 0      // 累计话音样本（判定门槛用）
+    private var speechSamples: Int64 = 0      // 累计话音样本（诊断）
+    private var fedAudioSamples: Int = 0      // 累计喂进来的音频样本（选窗口档用；VAD 门已把长静音挡掉了）
     private var lastJudgeSpeech: Int64 = 0    // 上次判定时已积累的话音样本数（按**音频时间**而不是墙上时钟：
                                              // 文件驱动/离线回放时墙上时钟几乎不动，闸门会永远不放行）
     private var lastLLR: Float = 0
@@ -68,6 +75,10 @@ final class MTEcapaLid {
 
     private func buildTables() {
         hamming = (0..<NFFT).map { Float(0.54 - 0.46 * cos(2.0 * Double.pi * Double($0) / Double(NFFT))) }
+        // **行主序**：实测 `vDSP_mmul(A, …, C, M, N, P)` 把 A 当 M×P 的**行主序**矩阵
+        // （同一帧上标量 DFT 与 mmul 逐值对照：行主序偏差 4.6e-5，列主序偏差 83 ⇒ 行主序）
+        // ⇒ cosM[k*NFFT + n] = cos(k,n)。为什么必须走 BLAS：标量三重循环实测 ~1 ms/帧（-O 下也是），
+        // 100 帧/秒就把单核吃满（App 里 88% CPU），而模型本身只要 3–20 ms/次。
         var c = [Float](repeating: 0, count: NBIN * NFFT)
         var s = [Float](repeating: 0, count: NBIN * NFFT)
         for k in 0..<NBIN {
@@ -85,12 +96,14 @@ final class MTEcapaLid {
         let hz = mp.map { MTEcapaLid.melToHz($0) }
         let centers = Array(hz[1..<(NMELS + 1)])
         let bands = (1..<(NMELS + 1)).map { hz[$0] - hz[$0 - 1] }
+        // mel 同理行主序：要算的是 out[m] = Σ_b filters[b][m]·power[b]，写成矩阵是 A[m][b] = filters[b][m]
+        // ⇒ A 是 NMELS×NBIN 行主序 ⇒ f[m*NBIN + b]
         var f = [Float](repeating: 0, count: NBIN * NMELS)
         for b in 0..<NBIN {
             let freq = Double(SR) / 2.0 * Double(b) / Double(NBIN - 1)
             for m in 0..<NMELS {
                 let slope = (freq - centers[m]) / bands[m]
-                f[b * NMELS + m] = Float(max(0.0, min(slope + 1.0, -slope + 1.0)))
+                f[m * NBIN + b] = Float(max(0.0, min(slope + 1.0, -slope + 1.0)))
             }
         }
         filters = f
@@ -98,43 +111,30 @@ final class MTEcapaLid {
 
     /// 一段 400 点窗口 → 60 维 mel（未取对数、未截断 —— 那些在整段上做）。
     private func frameMel(_ x: [Float]) -> [Float] {
+        var win = [Float](repeating: 0, count: NFFT)
+        vDSP_vmul(x, 1, hamming, 1, &win, 1, vDSP_Length(NFFT))
+        var re = [Float](repeating: 0, count: NBIN)
+        var im = [Float](repeating: 0, count: NBIN)
+        vDSP_mmul(cosT, 1, win, 1, &re, 1, vDSP_Length(NBIN), 1, vDSP_Length(NFFT))
+        vDSP_mmul(sinT, 1, win, 1, &im, 1, vDSP_Length(NBIN), 1, vDSP_Length(NFFT))
         var power = [Float](repeating: 0, count: NBIN)
-        x.withUnsafeBufferPointer { xp in
-            cosT.withUnsafeBufferPointer { cp in
-                sinT.withUnsafeBufferPointer { sp in
-                    let xb = xp.baseAddress!, cb = cp.baseAddress!, sb = sp.baseAddress!
-                    let h = hamming
-                    for k in 0..<NBIN {
-                        var re: Float = 0, im: Float = 0
-                        let base = k * NFFT
-                        for n in 0..<NFFT {
-                            let v = xb[n] * h[n]
-                            re += v * cb[base + n]
-                            im += v * sb[base + n]
-                        }
-                        power[k] = re * re + im * im
-                    }
-                }
-            }
-        }
+        for k in 0..<NBIN { power[k] = re[k] * re[k] + im[k] * im[k] }
         var out = [Float](repeating: 0, count: NMELS)
-        for m in 0..<NMELS {
-            var acc: Float = 0
-            for b in 0..<NBIN { acc += power[b] * filters[b * NMELS + m] }
-            out[m] = acc
-        }
+        vDSP_mmul(filters, 1, power, 1, &out, 1, vDSP_Length(NMELS), 1, vDSP_Length(NBIN))
         return out
     }
 
     // MARK: 生命周期
 
     /// 从 `<dir>/SpeechBrainECAPAVoxLingua107.mlmodelc` + `<dir>/labels.json` 装载。
-    func load(dir: URL, langs wanted: [String], threshold t: Float) -> Bool {
+    func load(dir: URL, langs wanted: [String], threshold t: Float, cpuOnly co: Bool = false) -> Bool {
+        cpuOnly = co
         let mURL = dir.appendingPathComponent("SpeechBrainECAPAVoxLingua107.mlmodelc", isDirectory: true)
         guard FileManager.default.fileExists(atPath: mURL.path) else { return false }
         if hamming.isEmpty { buildTables() }
         let cfg = MLModelConfiguration()
-        cfg.computeUnits = .all
+        // 实验：可切计算单元（定位 App 内 CPU 远高于独立测试的原因；见 `cpuOnly` 字段）
+        cfg.computeUnits = cpuOnly ? .cpuOnly : .all
         guard let m = try? MLModel(contentsOf: mURL, configuration: cfg) else { return false }
         // labels.json：[{id, code, ...}]
         if codes.isEmpty {
@@ -162,7 +162,7 @@ final class MTEcapaLid {
         // **左补 200 个 0**：frontend.py 是 `np.pad(samples, (NFFT//2, NFFT//2))` 之后再定帧，
         // 少了这 200 个零，每一帧都错位 200 个样本 —— 特征完全不同，LLR 直接失去意义。
         tail = [Float](repeating: 0, count: NFFT / 2)
-        speechSamples = 0; lastJudgeSpeech = 0; lastLLR = 0; lastDecided = ""; lastText = ""
+        speechSamples = 0; fedAudioSamples = 0; lastJudgeSpeech = 0; lastLLR = 0; lastDecided = ""; lastText = ""
     }
 
     var ready: Bool { model != nil && !langs.isEmpty }
@@ -171,6 +171,8 @@ final class MTEcapaLid {
     private(set) var lastFrontendMs: Double = 0
     private(set) var lastModelMs: Double = 0
     private(set) var judgeCount: Int = 0
+    private(set) var frameCount: Int = 0          // 累计出了多少帧（前端负载的直接度量）
+    private(set) var feTotalMs: Double = 0        // 前端累计耗时（帧化 + DFT + mel）
     /// 诊断（实验期用；不发到 JS）
     var debugInfo: String = ""
 
@@ -197,7 +199,7 @@ final class MTEcapaLid {
         while i + NFFT <= data.count {
             var win = [Float](repeating: 0, count: NFFT)
             for n in 0..<NFFT { win[n] = data[i + n] }
-            mel.append(contentsOf: frameMel(win)); melFrames += 1
+            mel.append(contentsOf: frameMel(win)); melFrames += 1; frameCount += 1
             i += HOP
         }
         tail = []
@@ -205,7 +207,10 @@ final class MTEcapaLid {
     }
 
     private func appendAudio(_ pcm: [Float]) {
+        let t0 = Date()
+        defer { feTotalMs += Date().timeIntervalSince(t0) * 1000 }
         fedSamples += pcm.count
+        fedAudioSamples += pcm.count
         var data = tail
         data.append(contentsOf: pcm)
         var i = 0
@@ -216,6 +221,7 @@ final class MTEcapaLid {
             for n in 0..<NFFT { win[n] = data[i + n] }
             mel.append(contentsOf: frameMel(win))
             melFrames += 1
+            frameCount += 1
             i += HOP
         }
         tail = Array(data[i...])
@@ -224,23 +230,29 @@ final class MTEcapaLid {
     /// 判定：取两门的 log 概率差。
     private func judge(force: Bool) -> Decision? {
         debugInfo = "enter"
-        guard let model, melFrames >= 10 else { debugInfo = "no-model/frames=\(melFrames)"; return nil }   // 模型最少 10 帧
+        guard let model else { debugInfo = "no-model"; return nil }
+        // 取「当前音频量能填满的最大那一档」窗口（帧取自**开口**，即前缀）
+        guard let cap = windowCaps.last(where: { $0 <= fedAudioSamples }) else { debugInfo = "waiting cap=\(fedAudioSamples)"; return nil }
+        let capFrames = min(melFrames, (cap - NFFT / 2) / HOP + 1)
+        guard capFrames >= 10 else { debugInfo = "short \(capFrames)f"; return nil }   // 模型最少 10 帧
         let speechSec = Double(speechSamples) / Double(SR)
-        if !force && speechSec * 1000 < minSpeechMs { debugInfo = "short speech=\(speechSec)"; return nil }
         judgeCount += 1
         let tFe = Date()
-        // 10*log10(max(mel,1e-10))，再截到 (整段最大 − 80 dB) —— 与 frontend.py 一致
-        var feat = [Float](repeating: 0, count: mel.count)
-        for i in 0..<mel.count { feat[i] = 10.0 * log10(max(mel[i], 1e-10)) }
+        // 10*log10(max(mel,1e-10))，再截到 (窗口内最大 − 80 dB) —— 与 frontend.py 一致（**整段**做，
+        // 不能逐帧：下限依赖整段最大值）。窗口 = 前 capFrames 帧。
+        let n = capFrames * NMELS
+        var feat = [Float](repeating: 0, count: n)
+        for i in 0..<n { feat[i] = 10.0 * log10(max(mel[i], 1e-10)) }
         if let mx = feat.max() {
             let floorDb = mx - 80.0
-            for i in 0..<feat.count where feat[i] < floorDb { feat[i] = floorDb }
+            for i in 0..<n where feat[i] < floorDb { feat[i] = floorDb }
         }
-        // 模型输入 [1, frames, 60]（**句级均值归一化在图里做**，这里不要再做一遍）
-        guard let arr = try? MLMultiArray(shape: [1, NSNumber(value: melFrames), NSNumber(value: NMELS)],
+        // 模型输入 [1, capFrames, 60]（**句级均值归一化在图里做**，这里不要再做一遍）；
+        // capFrames 只取 windowCaps 那几档 ⇒ 形状固定 ⇒ 不会每个新形状重新 plan。
+        guard let arr = try? MLMultiArray(shape: [1, NSNumber(value: capFrames), NSNumber(value: NMELS)],
                                           dataType: .float32) else { debugInfo = "no-multiarray"; return nil }
         feat.withUnsafeBufferPointer { src in
-            memcpy(arr.dataPointer, src.baseAddress!, feat.count * MemoryLayout<Float>.size)
+            memcpy(arr.dataPointer, src.baseAddress!, n * MemoryLayout<Float>.size)
         }
         let tModel = Date()
         guard let prov = try? MLDictionaryFeatureProvider(dictionary: ["mel_features": MLFeatureValue(multiArray: arr)]),

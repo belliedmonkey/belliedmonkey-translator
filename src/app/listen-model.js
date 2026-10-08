@@ -125,7 +125,7 @@ const listenModel = (() => {
   // 【实验】语种识别引擎开关：**刻意不进 schema**（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）。
   //   不设 / 其它值 = 现在的 whisper（sherpa SLID）；'ecapa' = SpeechBrain ECAPA CoreML（见
   //   app/native/lid-ecapa.swift）。lidThreshold 是 ECAPA 的 |LLR| 阈值，默认 6。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold'];
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly'];
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS), (s) => {
@@ -158,6 +158,7 @@ const listenModel = (() => {
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'ecapa' ? 'ecapa' : 'whisper',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
+          lidCpuOnly: s.lidCpuOnly === true,
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
@@ -524,6 +525,7 @@ const listenModel = (() => {
         engine,
         langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
         threshold: (cfg && Number(cfg.lidThreshold)) || 6,
+        cpuOnly: !!(cfg && cfg.lidCpuOnly),
       });
     } catch (_) { return null; }
   }

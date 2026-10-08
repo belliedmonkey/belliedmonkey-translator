@@ -1691,7 +1691,7 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // LID 引擎选择 + ECAPA 实验引擎的计时/诊断字段（2026-10-08，§9.6.1.3）。
       // engine/whisper/ecapa = 引擎 id；modelMs/feMs/judges/llr/speechMs = 诊断字段名。都非文案。
       '"engine"', '"whisper"', '"ecapa"', '"modelMs"', '"feMs"', '"judges"', '"llr"', '"speechMs"',
-      '"langs"', '"threshold"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
+      '"langs"', '"threshold"', '"cpuOnly"', '"feTotalMs"', '"frames"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
       '"SpeechBrainECAPAVoxLingua107"', '"SpeechBrainECAPAVoxLingua107.mlmodelc"',   // 侧载产物名/目录名（非文案）
       '"labels.json"', '"mel_features"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);

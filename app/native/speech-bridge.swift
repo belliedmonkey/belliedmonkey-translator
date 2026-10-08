@@ -1236,6 +1236,7 @@ final class MTDeviceLid {
         let decoder: String
         let files: [(path: String, url: String, sha256: String, size: Int)]
         let engine: String              // "whisper"（默认，sherpa SLID）| "ecapa"（实验：SpeechBrain ECAPA CoreML）
+        let cpuOnly: Bool               // ECAPA 实验：只走 CPU（排查计算单元争用）
         let langs: [String]             // ECAPA：只比用户选的这两门
         let threshold: Float            // ECAPA：|LLR| 过它才定
     }
@@ -1268,9 +1269,10 @@ final class MTDeviceLid {
                 return (p, u, s, (f["size"] as? Int) ?? 0)
             }
             // ECAPA 的产物是一个 .mlmodelc 目录，没有 encoder/decoder 两个文件名
-            if engine == "ecapa" { return Model(dir: dir, encoder: "", decoder: "", files: fs, engine: engine, langs: langs, threshold: threshold) }
+            let cpuOnly = (m["cpuOnly"] as? Bool) ?? false
+            if engine == "ecapa" { return Model(dir: dir, encoder: "", decoder: "", files: fs, engine: engine, cpuOnly: cpuOnly, langs: langs, threshold: threshold) }
             guard let enc = m["encoder"] as? String, let dec = m["decoder"] as? String else { return nil }
-            return Model(dir: dir, encoder: enc, decoder: dec, files: fs, engine: engine, langs: langs, threshold: threshold)
+            return Model(dir: dir, encoder: enc, decoder: dec, files: fs, engine: engine, cpuOnly: cpuOnly, langs: langs, threshold: threshold)
         }
     }
     private func installed(_ m: Model) -> Bool {
@@ -1346,7 +1348,7 @@ final class MTDeviceLid {
             guard ecapa == nil else { return }
             let d = root.appendingPathComponent(m.dir, isDirectory: true)
             let e = MTEcapaLid()
-            if e.load(dir: d, langs: m.langs, threshold: m.threshold) {
+            if e.load(dir: d, langs: m.langs, threshold: m.threshold, cpuOnly: m.cpuOnly) {
                 ecapa = e
                 emit?(["type": "lid-state", "state": "ready", "engine": "ecapa"])
             } else {
@@ -1406,8 +1408,9 @@ final class MTDeviceLid {
                 if let d = e.feed(chunk, speech: speech), d.lang != self.lastLang {
                     self.lastLang = d.lang
                     let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount
+                    let feTotal = e.feTotalMs, fr = e.frameCount
                     DispatchQueue.main.async { self.emit?(["type": "lid-live", "lang": d.lang, "llr": Double(d.llr),
-                        "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000)]) }
+                        "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000), "feTotalMs": feTotal, "frames": fr]) }
                 }
                 return
             }
@@ -1450,8 +1453,9 @@ final class MTDeviceLid {
                 if let d = e.finish() {
                     self.lastLang = d.lang
                     let feMs = e.lastFrontendMs, modelMs = e.lastModelMs, n = e.judgeCount
+                    let feTotal = e.feTotalMs, fr = e.frameCount
                     DispatchQueue.main.async { self.emit?(["type": "lid-result", "lang": d.lang, "ms": Int(d.speechSec * 1000),
-                        "llr": Double(d.llr), "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000)]) }
+                        "llr": Double(d.llr), "engine": "ecapa", "modelMs": modelMs, "feMs": feMs, "judges": n, "speechMs": Int(d.speechSec * 1000), "feTotalMs": feTotal, "frames": fr]) }
                 }
                 return
             }
