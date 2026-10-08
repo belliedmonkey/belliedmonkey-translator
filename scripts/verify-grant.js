@@ -210,8 +210,17 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
           accessToken: 'fake-session-jwt', refreshToken: 'fake-refresh',
           expiresAt: Date.now() + 3600e3, user: { id: 'u-test', email: 't@example.invalid' },
         };
+        // **先清掉上一幕留下的额度记录**（2026-10-08 查实）：那一幕为了演「额度用完」在存储里
+        // 种了 grant / grantBalance，不清掉的话这一幕的卡片按 `active` 画（卡面「正在用」），
+        // 于是没有「领取」按钮 —— 这一幕要验的正是**未领取**态。
+        await ev2('new Promise(r => chrome.storage.local.remove(["grant","grantTail","grantBalance"], r))');
         await ev2(`new Promise(r => chrome.storage.local.set({ learnAuth: ${JSON.stringify(SESSION)} }, r))`);
-        await new Promise((r) => setTimeout(r, 2500));
+        // **种完会话要重载一次**（2026-10-08 查实）：设置页**不监听 learnAuth 的变化**——React 迁移后
+        // `refreshSyncUI` 成了模块内 const、不再是全局，下面那句 `typeof refreshSyncUI === "function"`
+        // 恒假；页面也不会因为存储变化自己重画。于是卡片停在「未登录」态、没有「领取」按钮，
+        // 后面两幕（点击领取 / 领取后提示）跟着假红。重载之后页面按「已登录」起，卡片才对。
+        await ev2('location.reload(), true').catch(() => {});
+        await new Promise((r) => setTimeout(r, 3000));
         // 重画一次：卡是跟着登录态画的，而我们是在页面起来之后才种的会话。
         await ev2('typeof refreshSyncUI === "function" ? refreshSyncUI() : null').catch(() => {});
         await new Promise((r) => setTimeout(r, 1500));
@@ -219,11 +228,13 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
         const card = await ev2(`(() => { const b = document.getElementById('grant-box');
           const btn = b && b.querySelector('button.gr-action');
           const note = b && b.querySelector('.gr-note');
+          const st = (typeof LearnGrant !== 'undefined' && LearnGrant.status) ? LearnGrant.status() : 'no-status';
           return JSON.stringify({ vis: !!(b && b.getClientRects().length),
-            btn: btn ? btn.textContent : null, note: note ? note.textContent : '' }); })()`);
+            btn: btn ? btn.textContent : null, note: note ? note.textContent : '',
+            status: st, body: b ? (b.textContent || '').slice(0, 90) : '' }); })()`);
         const c = JSON.parse(card);
         if (!c.vis) fail('设置页上看不到额度卡');
-        else if (!c.btn) fail('额度卡上没有「领取」按钮');
+        else if (!c.btn) fail('额度卡上没有「领取」按钮（状态=' + c.status + ' 卡面=「' + String(c.body).slice(0, 70) + '」）');
         else if (!c.note || c.note.length < 80) fail(`领取按钮前没有那段披露（长度 ${c.note.length}）—— Gate F 的构成要件`);
         else if (/\{vendor\}/.test(c.note)) fail('披露里的占位符没被代掉');
         else pass('卡在、按钮在、披露在（且占位符已代掉）');
