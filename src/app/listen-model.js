@@ -523,10 +523,11 @@ const listenModel = (() => {
   // 点停之后给收口留的一点时间：cut 出去的那一片要等识别器吐 final，立刻关麦会把它丢掉。
   const PTT_STOP_GRACE_MS = 450;
   let pttStopTimer = 0;
+  // 自动续听要恢复的收音侧（断线重连 / 来电结束）；只有 halt 的那两种自动续会用到。
+  let resumeSide = '';
   /// 按住/锁定期间**朗读队列暂停**（2026-10-08 评审定）：按下时停掉正在播的那一句并把队列冻住，
   /// 松手 / 退出锁定后按原顺序接着播。为什么必须冻住整队：只要后面还有一句在念，它的声音立刻
   /// 又会被回声闸整门挡掉用户这句话 —— 那正是这个改动要解决的问题。
-  let pttSpeakPaused = false;
   let translateCalls = 0;              // 翻译请求计数（P-06/P-07：这些情况下必须是 0）
   const CJK_RE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af]/;
   function pttOn() { return !!ptt; }
@@ -551,21 +552,9 @@ const listenModel = (() => {
   }
   function pttForceOff() { pttForce = null; }
   function pttCut() { try { if (sock && sock.cut) sock.cut(); } catch (_) {} }
-  /// 按下时：停掉正在播的那一句 + 冻住队列（不 clear —— 松手要接着播）。
-  function pttSpeakPause() {
-    pttSpeakPaused = true;
-    speakingRid = 0;
-    try { if (typeof LearnTTS !== 'undefined') LearnTTS.stop(); } catch (_) {}
-    canvas.view('history');
-  }
-  /// 松手 / 退出锁定 / 被点掉时：解冻并按原顺序接着播。
-  function pttSpeakResume() {
-    if (!pttSpeakPaused) return;
-    pttSpeakPaused = false;
-    // 泵还在跑 ⇒ 它自己会在下一圈看到解冻、接着取；泵已经退出（stop 把当前那句结束了）⇒ 重新起。
-    if (!speakPumping && sq.size()) speakPump();
-    canvas.view('history');
-  }
+  // vbD0C（「收音时停朗读 + 冻队列」）**已撤**（2026-10-09 用户裁定 A）：收音＝常开，队列在收音
+  // 期间冻住就等于自动朗读永不发声。改为**只靠回声闸**（M3/M4 正验的那个）挡 App 自己的声音；
+  // 达不到效果再谈 B（只冻「用户这句在说」的那一小段）。
   /** 点一下：开 / 停收音（改稿 D 的核心）。返回 false = 没接（字幕模式 / 设备不支持）。 */
   function pttToggle(side) {
     if (mode === 'subtitle') return false;                 // 字幕是单向的，没有「谁在说」
@@ -590,7 +579,6 @@ const listenModel = (() => {
     else if (phase === 'paused' || phase === 'halted') resumeByUser();
     ptt = { side };
     pttForceOn(side);
-    pttSpeakPause();          // 立刻停掉正在播的那一句 + 冻住队列（vbD0C：免得朗读声进麦）
     try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
     canvas.view('state');
     return true;
@@ -611,7 +599,6 @@ const listenModel = (() => {
     ptt = null;
     pttForceOff();
     try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
-    pttSpeakResume();
   }
   function pttView() {
     const sub = mode === 'subtitle';
@@ -1153,7 +1140,7 @@ const listenModel = (() => {
   function pause(reason) {
     pttAbort();   // 按住/锁定时点「暂停」：以这一下为准，这一句丢掉、不落行（P-07）
     if (phase !== 'listening') return;
-    phase = 'paused'; pauseReason = reason || 'user';
+    phase = 'paused'; pauseReason = reason || 'user'; resumeSide = '';
     C.pause(session, now());
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
@@ -1190,7 +1177,10 @@ const listenModel = (() => {
   }
 
   function halt(reason, why) {
-    pttAbort();   // 具名停止（拒绝/断线/被打断）：按住态与强制语言一起清掉
+    // 改稿 D：**能自动续听**的两种停机（断线重连 / 来电）先记下收音侧 —— resume() 要用它把
+    // 「收音中」恢复回来（否则重连之后麦开了却没有收音侧）。其它停机一律不续。
+    if ((reason === 'socket-retry' || reason === 'locked') && ptt) resumeSide = ptt.side;
+    pttAbort();   // 具名停止（拒绝/断线/被打断）：收音态与强制语言一起清掉
     if (phase === 'ended' || phase === 'idle') return;
     // 「这门语言这台设备弄不了」⇒ 回到上一对，别把整场丢掉（见上面那段注释）。
     if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets')) { revertLangIfNeeded(); return; }
@@ -1237,6 +1227,15 @@ const listenModel = (() => {
   async function resume() {
     if (phase !== 'paused' && phase !== 'halted') return;
     await beginPipeline();
+    // 改稿 D：断线重连 / 来电结束的**自动**续听，要回到「收音中」—— 否则麦开了却没有收音侧，
+    // 界面（高亮 / 小字）与麦克风对不上。用户手动「点一下」开的那种不经过这里（pttToggle 自己设）。
+    if (resumeSide && phase === 'listening') {
+      const s = resumeSide; resumeSide = '';
+      ptt = { side: s };
+      pttForceOn(s);
+      try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
+      canvas.view('state');
+    }
   }
   function resumeByUser() { earlyRetries = 0; return resume(); }
   function toggle() {
@@ -1249,7 +1248,7 @@ const listenModel = (() => {
     if (!session || phase === 'ended') return;
     diagAudioDisarm();
     C.pause(session, now());
-    phase = 'ended';
+    phase = 'ended'; resumeSide = '';
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
     pipRectOff(); pipWindow = ''; pipReason = ''; paintPipFloat();
@@ -1468,7 +1467,6 @@ const listenModel = (() => {
     speakPumping = true;
     try {
       for (let job; ;) {
-        if (pttSpeakPaused) break;                // 按住/锁定期间冻住：不取新句，队列原样留着
         job = sq.next();
         if (!job) break;
         if (job.gen !== gen) continue;            // 旧会话的残留
@@ -1669,15 +1667,7 @@ const listenModel = (() => {
       live: listening,
     };
   }
-  // footView：paintClock 尾部两行（Gate H 披露 + 用量行）。
-  function footView() {
-    const ms = session ? C.listenedMs(session, now()) : 0;
-    return {
-      privacyShown: !!session,
-      privacyText: t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。'),
-      cost: t('listen_cost_line_device', '已听 {t}').replace('{t}', C.fmtClock(ms)),
-    };
-  }
+  // footView（页尾披露 + 用量行）随改稿 D 退役：披露搬去「设置 › 听译」、费用行撤下。
   // paint：paintPipNote → 表 1 全量 → paintClock/paintNowPlaying/renderNow。
   function paint() {
     canvas.view('state');
@@ -1971,7 +1961,7 @@ const listenModel = (() => {
     pttToggle, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     // 渲染数据（listen-view.jsx 渲染期调用）
-    modeView, pillView, footView, langLineText, nowLabel, ephemeralView, toggleView,
+    modeView, pillView, langLineText, nowLabel, ephemeralView, toggleView,
     nowView: () => ({ partial: partial || '', partialTr: partial && partialTr ? partialTr + '…' : '' }),   // renderNow 的数据版
     // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
     formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),
