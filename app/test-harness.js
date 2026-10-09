@@ -96,31 +96,23 @@
     // 只读：判定是否被暂停（按住说期间为 true）。
     lidPaused() { const d = dbg(); return !!(d && d.lidPaused); },
 
-    // ── H3：按住说 / 点一下 ────────────────────────────────────────────────
-    // 驱动的是**真按钮上的真指针事件**（不是绕过界面调模型）：0.4s 的分界是产品代码自己算的。
+    // ── H3：录音（改稿 D · 点一下开 / 停）────────────────────────────────────
+    // 驱动的是**真按钮上的真点击**（不是绕过界面调模型）：开 / 停、换边全是产品代码自己算的。
     ptt: {
       el(side) { return el(side === 'other' ? 'app-listen-ptt-other' : 'app-listen-ptt-mine'); },
-      ev(side, type) {
+      click(side) {
         const e = el(side === 'other' ? 'app-listen-ptt-other' : 'app-listen-ptt-mine');
         if (!e) return false;
-        const Ctor = typeof PointerEvent !== 'undefined' ? PointerEvent : MouseEvent;
-        e.dispatchEvent(new Ctor(type, { bubbles: true, cancelable: true, composed: true, pointerId: 1, pointerType: 'touch', isPrimary: true }));
+        e.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, composed: true }));
         return true;
       },
-      down(side) { return this.ev(side, 'pointerdown'); },
-      up(side) { return this.ev(side, 'pointerup'); },
-      // 点一下：按下后 ms（默认 120）再松手 —— <0.4s 走锁定，≥0.4s 走按住说。异步落，驱动侧轮询 state()。
-      tap(side, ms) { this.down(side); setTimeout(() => this.up(side), Math.max(0, ms == null ? 120 : ms)); return true; },
+      toggle(side) { return this.click(side); },
       state() {
         const d = dbg();
-        const p = (d && d.ptt) || { mode: 'idle', side: '', heard: false };
-        return { mode: p.mode, side: p.side || '', heard: !!p.heard,
-          lidPaused: !!(d && d.lidPaused), silenceMs: (d && d.pttSilenceMs) || 0 };
+        const p = (d && d.ptt) || { on: false, side: '', stopping: false };
+        return { on: !!p.on, side: p.side || '', stopping: !!p.stopping, lidPaused: !!(d && d.lidPaused) };
       },
     },
-    // 覆盖「锁定后静默多久自动结束」（P-05）：会话中途改不了开发键，这个覆盖产品侧现读。
-    // 不传或 0 = 复原（回 cfg.pttSilenceMs / 默认 8000）。
-    pttSilenceMs(ms) { try { window.__mtPttSilenceMs = Number(ms) > 0 ? Number(ms) : 0; } catch (_) {} return true; },
 
     // 模拟麦克风没授权（P-09）：产品侧读 window.__mtMicDenied（正式包里没人设它）。
     micPermission(v) { try { window.__mtMicDenied = (v === 'denied'); } catch (_) {} return !!window.__mtMicDenied; },
@@ -259,9 +251,11 @@
           mineHint: txt('app-listen-ptt-mine-hint'),
           otherName: txt('app-listen-ptt-other-name'),
           otherHint: txt('app-listen-ptt-other-hint'),
-          locked: visible('app-listen-ptt-locked') ? txt('app-listen-ptt-locked') : '',
+          locked: '',
           why: visible('app-listen-ptt-why') ? txt('app-listen-ptt-why') : '',
-          note: visible('app-listen-ptt-note') ? txt('app-listen-ptt-note') : '',
+          note: '',
+          recording: (() => { const d = dbg(); return !!(d && d.ptt && d.ptt.on); })(),
+          recSide: (() => { const d = dbg(); return (d && d.ptt && d.ptt.side) || ''; })(),
           disabled: (() => { const e = el('app-listen-ptt-mine'); return !!(e && e.disabled); })(),
           state: (d && d.ptt) || null,
         },

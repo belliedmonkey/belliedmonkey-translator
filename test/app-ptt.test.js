@@ -1,8 +1,9 @@
-// test/app-ptt.test.js — 按住说 / 点一下的状态机规则（第三十批 P 组的 node 侧）。
+// test/app-ptt.test.js — 录音两键的规则（改稿 D，2026-10-09；P 组的 node 侧）。
 //
 // 真机上的行为由 `__mtTest.ptt`（H3）驱动真按钮验；这里守的是**规则本身**：
-// 0.4 s 分界、锁定、8 s 静默自动结束、按住时暂停判定、按住说的行出生即 pinned、
-// 两指以先按下的为准、暂停/结束以点为准。这些一旦被改回去，界面测试未必看得见。
+// 只有「点一下」（点一下开收音、再点同键停）、点另一个键先收口再换边、没有按住 / 没有锁定 /
+// 没有静音自动停、收音＝开麦、进页面不开麦、开始收音停朗读（vbD0C）、两键小字都跟界面语言。
+// 这些一旦被改回去，界面测试未必看得见。
 const fs = require('fs');
 const path = require('path');
 const { describe, test, ok } = require('./harness');
@@ -12,125 +13,107 @@ const MODEL = read('src/app/listen-model.js');
 const VIEW = read('src/app/listen-view.jsx');
 const HOOK = read('app/test-harness.js');
 
-describe('按住说 / 点一下 · 规则（Pencil 终稿 3）', () => {
-  test('0.4 秒分界：不足是「点一下」（锁定），够是「按住说」（定稿）', () => {
-    ok(/const PTT_TAP_MS = 400;/.test(MODEL), '没有 0.4 s 分界常量');
-    ok(/if \(now\(\) - ptt\.at < PTT_TAP_MS\) \{ ptt\.mode = 'locked'; pttArmSilence\(\); \}/.test(MODEL),
-      '松手不足 0.4 s 没有进锁定');
-    ok(/else pttFinish\(\);/.test(MODEL), '松手够 0.4 s 没有定稿');
+describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
+  test('只有「点一下」：没有 0.4s 分界、没有锁定态、没有静音自动停', () => {
+    ok(/function pttToggle\(side\)/.test(MODEL), '没有 pttToggle（点一下）');
+    ok(!/PTT_TAP_MS/.test(MODEL), '0.4 秒分界应当退役（改稿 D 取消按住）');
+    ok(!/pttArmSilence|pttSilence\(|pttFinish|pttUp\b|pttDown\b|pttTap\b/.test(MODEL),
+      '按住 / 锁定 / 静音自动结束那一套应当退役');
+    ok(!/mode: 'locked'|mode: 'hold'/.test(MODEL), '还在造 hold/locked 态');
+    ok(!/listen_ptt_locked|listen_ptt_heard_nothing/.test(MODEL), '锁定提示 / 「没听到声音」应当退役');
   });
 
-  test('锁定：再点同一个键结束；点另一个键先定稿再锁到那一门', () => {
-    ok(/pttFinish\(\{ relock: side \}\); return true;/.test(MODEL),
-      '锁定时点另一个键没有「先定稿再切」');
-    // 看门狗：按住/锁定没结束前不许清强制语言（P-03 连红五轮的根因）。
+  test('点一下 = 开收音（idle/ended 起会话；paused/halted 续）；再点同键 = 停', () => {
+    const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
+    ok(/if \(ptt && phase === 'listening'\)/.test(fn), '没有「正在收音」这一支');
+    ok(/ptt\.side === side\) \{ pttStop\(\); return true; \}/.test(fn), '再点同一个键没有停止收音');
+    ok(/pttCut\(\);/.test(fn) && /ptt = \{ side \};/.test(fn), '点另一个键没有「先收口再换边」');
+    ok(/phase === 'idle' \|\| phase === 'ended'\) start\(\)/.test(fn), 'idle/ended 没有起会话');
+    ok(/phase === 'paused' \|\| phase === 'halted'\) resumeByUser\(\)/.test(fn), 'paused/halted 没有续上');
+    // 顺序不能反：start() 内部会 pttAbort()，先设收音态会被它清掉。
+    const tail = fn.slice(fn.indexOf("phase === 'idle'"));
+    ok(tail.indexOf('start()') >= 0 && tail.indexOf('start()') < tail.indexOf('ptt = { side }'),
+      '收音态比 start() 先设 —— 会被 pttAbort 清掉');
+  });
+
+  test('停止收音先收口（cut）再关麦：给定稿留一点时间，别把刚说的半句丢掉', () => {
+    ok(/const PTT_STOP_GRACE_MS = \d+;/.test(MODEL), '没有收尾间隙常量');
+    const stop = MODEL.slice(MODEL.indexOf('function pttStop'), MODEL.indexOf('function pttAbort'));
+    ok(/pttCut\(\)/.test(stop), '停止收音没有先收口');
+    ok(/setTimeout\([\s\S]{0,120}?pause\('user'\)/.test(stop), '收口之后没有关麦（pause）');
+  });
+
+  test('收音态与强制语言的唯一出口 pttAbort：pause/halt/end/leave/start 都走它', () => {
+    ok(/function pttAbort\(\)/.test(MODEL), '没有 pttAbort');
+    const ab = MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'));
+    ok(/ptt = null;/.test(ab) && /pttForceOff\(\)/.test(ab), 'pttAbort 没有清收音态与强制语言');
+    ok(/pttSpeakResume\(\)/.test(ab), 'pttAbort 没有接着播队列');
+    for (const anchor of ['function start(', 'function pause(', 'function halt(', 'function end(']) {
+      const seg = MODEL.slice(MODEL.indexOf(anchor), MODEL.indexOf(anchor) + 400);
+      ok(/pttAbort\(\)/.test(seg), anchor + ' 没有走 pttAbort（会漏清收音态）');
+    }
+  });
+
+  test('强制语言的看门狗：收音结束时才清（守住 P-03 连红五轮那个 bug）', () => {
     ok(/if \(pttForce && !ptt && Date\.now\(\) - pttForce\.at >= 3000\) pttForce = null;/.test(MODEL),
-      '强制语言的看门狗没排除「按住/锁定还在进行」的情况');
-    ok(/if \(relock\) \{/.test(MODEL) && /mode: 'locked', side: relock/.test(MODEL), '没有锁到那一门');
+      '看门狗没有守住「收音还没结束就不清强制语言」');
   });
 
-  test('强制语言的看门狗只在「按住/锁定已经结束」时清（守住 P-03 连红五轮那个 bug）', () => {
-    const at = MODEL.indexOf('function pttForceOn');
-    const wd = MODEL.slice(at, at + 800);
-    ok(/if \(pttForce && !ptt && Date\.now\(\) - pttForce\.at >= 3000\) pttForce = null;/.test(wd),
-      '看门狗没有排除「按住/锁定还在进行」—— 锁定能到 8 秒，中途清掉强制语言会让这一句整句被丢');
-    // 结束的三条出路都要能清掉它（否则下一句会被上一句的语言钉住）
-    const fin = MODEL.slice(MODEL.indexOf('function pttFinish('), MODEL.indexOf('function pttFinish(') + 1200);
-    ok(/pttForceOff\(\)/.test(fin), 'pttFinish 没有清强制语言');
-    ok(/function pttAbort\([\s\S]{0,500}?pttForceOff\(\)/.test(MODEL), 'pttAbort（暂停/结束/具名停止）没有清强制语言');
-    // 逐场景求值（照抄那行条件的语义；三个场景就是回归里踩到的那三个）
-    const clears = (hasForce, pttActive, ageMs) => hasForce && !pttActive && ageMs >= 3000;
-    ok(!clears(true, true, 5000), '锁定 5 秒时不该清（8 秒静默上限以内）');
-    ok(!clears(true, true, 3200), '按住超过 3.2 秒时不该清');
-    ok(clears(true, false, 3200), '松手 / 结束锁定 3.2 秒后该清（否则下一句被钉住）');
-    ok(!clears(true, false, 1000), '刚松手 1 秒内不该清（收口那一片还在飞）');
-  });
-
-  test('8 秒静默自动结束；有半句定稿、没半句只提示', () => {
-    ok(/pttSilenceMs: Number\(s\.pttSilenceMs\) > 0 \? Number\(s\.pttSilenceMs\) : 8000/.test(MODEL),
-      'pttSilenceMs 默认不是 8000（或没读开发键）');
-    ok(/if \(!ptt\.heard\) pttNoteSet\(t\('listen_ptt_heard_nothing'/.test(MODEL), '没半句时没有「没听到声音」的提示');
-    ok(/pttFinish\(\{ quiet: !ptt\.heard \}\)/.test(MODEL), '自动结束时没有按「有没有半句」分开处理');
-    ok(/pttArmSilence/.test(MODEL) && /setTimeout\(/.test(MODEL), '没有静默计时器');
-  });
-
-  test('按住/锁定期间暂停语种判定，结束恢复', () => {
-    ok(/if \(pttForce\) return pttLangOf\(pttForce\.side\) \|\| '';/.test(MODEL),
-      'lidPair() 没有在按住期间强制那门语言（归属会被判词推翻）');
-    ok(/NativeSpeech\.lidPause\(true\)/.test(MODEL) && /NativeSpeech\.lidPause\(false\)/.test(MODEL),
-      '没有暂停/恢复原生判定');
-    ok(/pttForce!*= null;|pttForce = null;/.test(MODEL), '没有关掉强制语言');
-  });
-
-  test('按住说的行出生即 pinned；视图不给 ↔', () => {
-    ok(/pinned: !!\(deps && deps\.pinned\)/.test(read('app/listen-core.js')), 'addFinal 不支持 pinned');
-    ok(/pttRow \? \{ pinned: true \} : \{\}/.test(MODEL), '按住说的行没有带 pinned 进 addFinal');
-    ok(/\{!hv\.sub && !r\.pinned && \(/.test(VIEW), '视图仍然给 pinned 的行画 ↔');
-    ok(/pinned: !!r\.pinned,/.test(MODEL), '行数据里没有 pinned');
-  });
-
-  test('暂停 / 结束 / 具名停止：这一句丢掉，不落行', () => {
-    ok(/function pause\(reason\) \{\s*pttAbort\(\);/.test(MODEL), '暂停没有先丢掉按住这一句');
-    ok(/function end\(\) \{\s*pttAbort\(\);/.test(MODEL), '结束没有先丢掉按住这一句');
-    ok(/function halt\(reason, why\) \{\s*pttAbort\(\);/.test(MODEL), '具名停止没有清掉按住态');
-  });
-
-  test('锁定态下的点击在 down 上处理：同键结束、异键先定稿再切', () => {
-    // 第一版漏在这里：锁定后点同键什么都发生不了（等 up 才处理，而点一下没有「按住」那一段）。
-    // P-03 / P-06 两条 Mac 用例同时抓到。
-    ok(/if \(ptt\.mode === 'locked'\) \{\s*if \(ptt\.side === side\) \{ pttFinish\(\); return true; \}/.test(MODEL),
-      '锁定后点同一个键没有「结束并定稿」');
-    ok(/pttFinish\(\{ relock: side \}\); return true;/.test(MODEL), '锁定后点另一个键没有「先定稿再锁到那一门」');
-  });
-
-  test('两指：以先按下的为准，后按的那个忽略（只对「按住中」）', () => {
-    ok(/按住中再按另一个键（两指）[\s\S]{0,80}?return false;/.test(MODEL), '按住中第二指没有忽略');
-    ok(/onPointerDown/.test(VIEW) && /app-listen-ptt-mine/.test(VIEW) && /app-listen-ptt-other/.test(VIEW),
-      '两个键没有各自的指针入口');
-  });
-
-  test('文案与布局：左「说+本名」、右本名+那门语言的小字、锁定提示、「正在听」+本名', () => {
-    ok(/t\('listen_ptt_say', '说\{lang\}'\)/.test(MODEL), '左键不是「说 + 本名」');
-    ok(/mineHint: t\('listen_ptt_tap_hold', '点一下或按住说话'\)/.test(MODEL),
-      '左键小字不是新键 listen_ptt_tap_hold（C 案：跟界面语言翻）');
-    ok(/pv\.mineHint/.test(VIEW) && /app-listen-ptt-mine-hint/.test(VIEW), '视图没有渲染左键小字');
-    ok(/function pttHintOf\(code\)/.test(MODEL) && /e\.pttHint/.test(MODEL), '右键小字没有读语言注册表');
-    ok(/t\('listen_ptt_locked', '● \{lang\} 正在说 · 再点一下结束'\)/.test(MODEL), '锁定提示不是稿里的那句');
-    ok(/t\('listen_listening_lang', '正在听\{lang\}…'\)/.test(MODEL), '「正在听」+本名没实现');
-    ok(/CJK_RE/.test(MODEL), '没有「非中日韩文字加空格」的规则');
-    ok(/id="app-listen-ptt-bar"/.test(VIEW) && /listen-ptt-wrap/.test(VIEW), '视图里没有那条按钮条');
-    ok(/t\('listen_ptt_need_start', '点「开始听」后可用'\)/.test(MODEL), '灰掉的原因不是那句');
-  });
-
-  test('按下时停掉正在播的朗读 + 冻住队列；松手 / 退出锁定后接着播（2026-10-08 评审定）', () => {
+  test('开始收音停朗读 + 冻队列；停止收音接着播（vbD0C，改挂到点一下上）', () => {
     ok(/let pttSpeakPaused = false;/.test(MODEL), '没有「朗读队列暂停」的状态位');
-    // 按下就暂停（并在这一场第一次按下时调；relock 那一支不恢复 ⇒ 仍冻着）
-    const down = MODEL.slice(MODEL.indexOf('function pttDown'), MODEL.indexOf('function pttFinish'));
-    ok(/pttSpeakPause\(\);/.test(down), '按下时没有停朗读 / 冻队列');
-    const pauseFn = MODEL.slice(MODEL.indexOf('function pttSpeakPause'), MODEL.indexOf('function pttSpeakPause') + 500);
-    ok(/LearnTTS\.stop\(\)/.test(pauseFn), '没有停掉正在播的那一句');
-    ok(!/sq\.clear\(\)/.test(pauseFn), '把队列清空了 —— 松手要按原顺序接着播，不能丢句');
-    // 松手 / 退出锁定 ⇒ 恢复；relock 那支不恢复
-    const fin = MODEL.slice(MODEL.indexOf('function pttFinish'), MODEL.indexOf('function pttFinish') + 1400);
-    ok(/pttSpeakResume\(\);/.test(fin), '松手 / 退出锁定后没有接着播');
-    ok(/if \(relock\) \{[\s\S]{0,220}?pttArmSilence\(\);/.test(fin), 'relock 那一支的形状变了（它应当仍然冻着队列）');
-    const abortFn = MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttAbort') + 600);
-    ok(/pttSpeakResume\(\);/.test(abortFn), '被暂停/结束点掉后没有解冻（队列会一直冻着）');
-    // 泵：冻住时不取新句
-    ok(/if \(pttSpeakPaused\) break;/.test(MODEL), '朗读泵没有在冻住时停下 —— 后面几句还会接着念');
-    // 恢复时要能重新起泵（泵已经退出时）
-    const resFn = MODEL.slice(MODEL.indexOf('function pttSpeakResume'), MODEL.indexOf('function pttSpeakResume') + 500);
-    ok(/if \(!speakPumping && sq\.size\(\)\) speakPump\(\)/.test(resFn), '泵已经退出时没有重新起 —— 队列会卡住');
+    const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
+    ok(/pttSpeakPause\(\);/.test(fn), '开始收音没有停朗读 / 冻队列');
+    ok(/pttSpeakResume\(\)/.test(MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'))),
+      '停止收音没有解冻（队列会一直冻着）');
+    ok(!/sq\.clear\(\)/.test(MODEL.slice(MODEL.indexOf('function pttSpeakPause'), MODEL.indexOf('function pttSpeakPause') + 400)),
+      '把队列清空了 —— 停止收音要按原顺序接着播，不能丢句');
+    ok(/if \(pttSpeakPaused\) break;/.test(MODEL), '朗读泵没有在冻住时停下');
+    ok(/if \(!speakPumping && sq\.size\(\)\) speakPump\(\)/.test(
+      MODEL.slice(MODEL.indexOf('function pttSpeakResume'), MODEL.indexOf('function pttSpeakResume') + 500)),
+      '泵已经退出时没有重新起 —— 队列会卡住');
   });
 
-  test('实时字幕没有按住说（单向译成）', () => {
-    ok(/if \(mode === 'subtitle'\) return false;\s*\/\/ 字幕是单向的/.test(MODEL), '字幕模式没有挡住按住说');
-    // 2026-10-08 改稿后：字幕模式隐藏 **且** 会话结束后由小结卡接管（两处都不出现）
-    ok(/shown: !sub && !\(session && phase === 'ended'\)/.test(MODEL), '按钮条没有在字幕模式/结束后隐藏');
+  test('进页面不开麦：open 的对话分支不再 start()', () => {
+    const open = MODEL.slice(MODEL.indexOf('function open(m)'), MODEL.indexOf('function paintMode'));
+    ok(!/^\s*start\(\);\s*$/m.test(open), '对话分支还在自动 start()（会一进页面就开麦）');
+    ok(/readCfg\(\)\.then/.test(open), '对话分支没有只读配置');
+    ok(/sub,/.test(VIEW) || /mv\.sub/.test(VIEW), '视图拿不到 sub 标志（大按钮要按模式藏）');
+    ok(/hidden=\{tv\.ended \|\| !mv\.sub\}/.test(VIEW), '「正在听·暂停」大按钮没有只留给字幕');
   });
 
-  test('H3 钩子：驱动的是真按钮上的真指针事件', () => {
-    ok(/ptt: \{/.test(HOOK) && /dispatchEvent\(new Ctor\(type/.test(HOOK), '没有 ptt 驱动');
+  test('30 秒静音自动暂停只剩实时字幕（对话页「一直录到你点停」）', () => {
+    ok(/session\.mode === 'subtitle' && C\.silenceCheck\(session, C\.rmsOf\(int16\), now\(\)\)/.test(MODEL),
+      '对话页的静音门没有被撤掉');
+    ok(/session\.mode === 'subtitle' && C\.silenceCheck\(session, rms, now\(\)\)/.test(MODEL),
+      '本机路（onLevel）的静音门没有被撤掉');
+  });
+
+  test('文案与布局：左「说+本名」、两键小字都跟界面语言、无 pttHint、无小结卡/结束/已听/披露', () => {
+    ok(/t\('listen_ptt_say', '说\{lang\}'\)/.test(MODEL), '左键不是「说 + 本名」');
+    ok(/t\('listen_ptt_tap_start', '点一下开始'\)/.test(MODEL), '未收音小字不是新键 listen_ptt_tap_start');
+    ok(/t\('listen_ptt_recording', '● 正在录 · 点一下结束'\)/.test(MODEL), '收音中小字不是 listen_ptt_recording');
+    ok(!/pttHintOf|\.pttHint\b/.test(MODEL), '不再读那门语言写的 pttHint');
+    ok(/pv\.mineHint/.test(VIEW) && /app-listen-ptt-mine-hint/.test(VIEW), '视图没有渲染左键小字');
+    ok(!/app-listen-ptt-locked/.test(VIEW), '锁定提示那一行应当退役');
+    ok(!/id="app-listen-end"/.test(VIEW), '「结束」按钮应当退役');
+    ok(!/id="app-listen-summary"/.test(VIEW), '小结卡应当退役');
+    ok(!/id="app-listen-cost"/.test(VIEW), '已听那一行应当退役');
+    ok(!/app-listen-device-privacy/.test(VIEW) && !/app-subs-privacy/.test(VIEW), '两段披露应当从听译页撤走');
+  });
+
+  test('两段披露搬进「设置 › 听译」，文字一字不改', () => {
+    const sv = read('src/app/settings-view.jsx');
+    ok(/id="set-listen-privacy"/.test(sv) && /listen_device_privacy/.test(sv), '设置页没有对话段的披露');
+    ok(/id="set-subs-privacy"/.test(sv) && /subtitle_privacy/.test(sv), '设置页没有字幕段的披露（Gate I）');
+  });
+
+  test('实时字幕没有录音键（单向译成）', () => {
+    ok(/if \(mode === 'subtitle'\) return false;\s*\/\/ 字幕是单向的/.test(MODEL), '字幕模式没有挡住录音键');
+    ok(/shown: !sub,/.test(MODEL), '按钮条没有在字幕模式隐藏');
+  });
+
+  test('H3 钩子：驱动的是真按钮上的真点击', () => {
+    ok(/ptt: \{/.test(HOOK) && /dispatchEvent\(new MouseEvent\('click'/.test(HOOK), '没有 ptt 的点击驱动');
     ok(/app-listen-ptt-other/.test(HOOK), '驱动没有落在真按钮上');
     ok(/lidPaused: !!\(d && d\.lidPaused\)/.test(HOOK), 'ptt.state() 不报 lidPaused');
     ok(/translateCalls\(\)/.test(HOOK) && /translateCalls\+\+/.test(MODEL), '没有翻译请求计数');

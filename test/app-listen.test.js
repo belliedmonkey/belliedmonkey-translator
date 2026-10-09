@@ -814,14 +814,14 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('语言区 = 两门对称（听到 A 译 B / 听到 B 译 A），字幕用角色标签', () => {
     ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
     ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
-    ok(/listen_lang_dirs2/.test(MODEL), '没有那行「听到{a} → 译成{b}；听到{b} → 译成{a}」');
-    // 这串里 {a}/{b} 各两次 —— 用 replace 只会换第一处（真机显示成「听到中文 → 译成ไทย；听到{b} → 译成{a}」）
-    ok(/replaceAll\('\{a\}'/.test(MODEL) && /replaceAll\('\{b\}'/.test(MODEL), '方向说明没有用 replaceAll（{b}/{a} 会漏在屏上）');
     ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
     ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
     const view = read('src/app/listen-view.jsx');
     ok(/id="app-listen-my"/.test(view) && /id="app-listen-other"/.test(view), '两格的下拉不在了');
-    ok(/id="app-listen-dirs"/.test(view), '视图里没有渲染方向说明');
+    // 改稿 D（2026-10-09）：提示行撤了，控制区收成一行（语言对 + 两个勾选），在录音键上方。
+    ok(/id="app-listen-ctl"/.test(view), '没有那条收成一行的控制区');
+    ok(!/id="app-listen-dirs"/.test(view), '方向说明行应当撤掉（改稿 D）');
+    ok(!/langDirsText:/.test(read('src/app/listen-model.js')), '方向说明的数据也该退役');
   });
   // 2026-10-07 真机批 28：改语言之后这场起不来 ⇒ 回到上一对，而不是把整场丢掉。
   // **hook 必须挂在 halt 上**（失败可能发生在 stt-start 之后，不只在补包那一步）。

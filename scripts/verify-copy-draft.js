@@ -30,21 +30,12 @@ const DRAFT = {
   listen_device_privacy: '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：'
     + '自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。'
     + '选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。',
-  // 来源：Pencil 图层 jERJ5 / gitVW（按住说终稿 3，18:34 六条修订后）。
-  listen_ptt_need_start: '点「开始听」后可用',
-  listen_ptt_heard_nothing: '没听到声音，再试一次',
-  listen_ptt_locked: '● {lang} 正在说 · 再点一下结束',
+  // 来源：Pencil 图层 E4Q9y6（改稿 D，2026-10-09：点一下开 / 停；取消按住与锁定）。
+  // 两个键的小字都跟界面语言。
   listen_ptt_say: '说{lang}',
+  listen_ptt_tap_start: '点一下开始',
+  listen_ptt_recording: '● 正在录 · 点一下结束',
   listen_listening_lang: '正在听{lang}…',
-};
-// 稿里「那门语言的小字」12 条（C-09 逐字列出的那份）；值住在语言注册表而不是 _locales。
-const PTT_HINTS = {
-  th: 'แตะหรือกดค้างเพื่อพูด', en: 'Tap or hold to speak', ja: 'タップまたは長押しで話す',
-  ko: '탭하거나 길게 눌러 말하기', fr: 'Appuyez ou maintenez pour parler',
-  de: 'Tippen oder gedrückt halten zum Sprechen', es: 'Toca o mantén pulsado para hablar',
-  pt: 'Toque ou mantenha pressionado para falar', it: 'Tocca o tieni premuto per parlare',
-  ru: 'Коснитесь или удерживайте, чтобы говорить', ar: 'اضغط أو استمر بالضغط للتحدث',
-  zh: '点一下或按住说话',
 };
 // C-08 的旧串清单（一个字都不许留在产物里）。
 const OLD = [
@@ -58,6 +49,12 @@ const OLD = [
   '对方正在说',
   '按住说一整句再松手',
   '发到你自己配置的翻译引擎',
+  // 改稿 D（2026-10-09）退役的按住说文案：注册表 pttHint、锁定提示、「没听到声音」、
+  // 「点「开始听」后可用」—— 都不能再出现在产物里。
+  '点一下或按住说话',
+  '点「开始听」后可用',
+  '没听到声音，再试一次',
+  'Tap or hold to speak',
 ];
 // 扫这些目录（存在才扫）。排除备份目录。
 const SCAN = ['dist', 'dist-china', 'dist-app', 'dist-app-china', 'safari-project', 'safari-project-china'];
@@ -75,12 +72,9 @@ for (const [key, want] of Object.entries(DRAFT)) {
   ok(got === want, `${key}：稿「${want}」≠ 实现「${got}」`);
 }
 const langsSrc = fs.readFileSync(path.join(ROOT, 'build/langs.config.js'), 'utf8');
-for (const [code, want] of Object.entries(PTT_HINTS)) {
-  ok(langsSrc.indexOf(`'${want}'`) >= 0, `pttHint(${code})：稿「${want}」没进语言注册表`);
-}
-// 12 门语言都有小字（少一门就少一句对方看得懂的话）
-const hintCount = (langsSrc.match(/pttHint:/g) || []).length;
-ok(hintCount >= 12, `pttHint 只有 ${hintCount} 条（应为 12）`);
+// 改稿 D（2026-10-09）：那门语言写的 pttHint 已退役（两个键的小字都跟界面语言）—— 注册表里
+// 不该再有它；有就是改回去了。
+ok(!/pttHint/.test(langsSrc), 'pttHint 已退役，注册表里不该再有它');
 
 // ② 产物里的旧串
 function walk(dir, out) {

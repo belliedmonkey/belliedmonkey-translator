@@ -349,8 +349,20 @@ async function m6() {
 }
 
 // ── 听译组（一个会话跑完 M7→M2→M3→M4→M5；顺序即依赖：M3 吃 M2 的朗读，M5 关自动朗读放最后）──
-async function setupListen() {
-  // 模型先行，且在 reload **之前**的安静页面上做 —— reload 后头几秒页面自己的探测
+// 改稿 D：对话页启停＝底部那两个录音键（`__mtTest.ptt.toggle`，真点击）。
+async function recOn(side) {
+  if ((await evalOk('__mtTest.ptt.state()')).on) return true;
+  await evalOk(`__mtTest.ptt.toggle('${side || 'mine'}'), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 30000, '点录音键开麦');
+  return true;
+}
+async function recOff() {
+  if (!(await evalOk('__mtTest.ptt.state()')).on) return true;
+  await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+  await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).on, 15000, '点录音键停止');
+  return true;
+}
+async function setupListen() {  // 模型先行，且在 reload **之前**的安静页面上做 —— reload 后头几秒页面自己的探测
   // （probePacks / liveCapable）会跟我们的 ttsProbe 撞桥，撞上就挂（15 分钟那次的教训）。
   // zh/th 首次要下 vits 105MB。不先下，speak() 的 ensureDeviceReady 会被 speakPump
   // 30s 掐掉（#565 六轮的反静默规则，那是对的）—— 所以这里用同一入口把模型备齐。
@@ -382,19 +394,14 @@ async function setupListen() {
     })()`, 150000);
     log('    TTS 预热：' + warm);
   } catch (e) { log('    TTS 预热失败（继续跑，M2/M5 可能慢）：' + e.message); }
-  // 对话档进页即自动开听（open() → start()）；没起来再补一记 toggle，仍不行整轮重来（最多三轮）。
+  // 改稿 D：对话页进页**不再自动开麦** —— 启停靠底部那两个录音键（点一下开、再点一下停）。
   let live = false, lastErr = '';
   for (let attempt = 1; attempt <= 3 && !live; attempt++) {
     try {
       await click('app-listen-entry');
       await waitFor(() => visible('app-listen'), 8000, `听译页（第 ${attempt} 轮）`);
       await muteOn();   // 输出静音：TTS 事件照流，Mac 麦克风听不到 —— 行数才确定
-      try {
-        await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 8000, '进页自动开听');
-      } catch (e) {
-        await click('app-listen-toggle');
-        await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 8000, '补一记 toggle 后开听');
-      }
+      await recOn();    // 点左录音键 = 开始收音（起会话 / 开麦）
       live = true;
     } catch (e) {
       lastErr = e.message;
@@ -410,7 +417,7 @@ async function setupListen() {
 }
 async function teardownListen() {
   try { await evalOk('__mtTest.ka(0), true'); } catch (_) {}
-  try { await click('app-listen-toggle'); } catch (_) {}
+  try { await recOff(); } catch (_) {}
   try { await click('app-listen-back'); } catch (_) {}
   await sleep(400);   // leave() 的确认框是异步画的
   try {
@@ -613,7 +620,7 @@ async function m8() {
     await sleep(1500);
     await click('app-listen-entry');
     await waitFor(() => visible('app-listen'), 8000, 'M8 听译页');
-    await click('app-listen-toggle');
+    await recOn();
     // 修复后：模型全就绪（kokoro 在），这里应该几秒内就 live —— 不下任何东西
     await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000,
       'zh/en 开听没在 20s 内起来（被什么东西堵住了 —— 是不是又在下泰语？）');
@@ -625,7 +632,7 @@ async function m8() {
     okc(redl === 0, '已装好的包又下了一遍（assets-progress downloading × ' + redl + '）');
   } finally {
     await evalOk('__mtTest.ka(0), true').catch(() => {});
-    try { await click('app-listen-toggle'); } catch (_) {}
+    try { await recOff(); } catch (_) {}
     restore();
   }
 }
@@ -643,7 +650,7 @@ async function m9() {
   await sleep(1500);
   await click('app-listen-entry');
   await waitFor(() => visible('app-listen'), 8000, 'M9 听译页');
-  await click('app-listen-toggle');
+  await recOn();
   await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'M9 zh/en 开听');
   await evalOk('__mtTest.rec(1), true');
   // 切「对方的语言」到泰语 —— 应当场触发泰语包下载（复用「准备中/下载」态）
@@ -683,10 +690,10 @@ async function p01() {
   const p = s.ptt || {};
   okc(p.shown, '听译页没有那条按钮条');
   okc(p.mine === '说中文', '左键不是「说中文」：' + p.mine);
-  // 左键小字（C 案，2026-10-08 用户定）：跟**界面语言**，与右键小字（那门语言）对称。
-  okc(p.mineHint === '点一下或按住说话', '左键小字不是「点一下或按住说话」：' + p.mineHint);
+  // 改稿 D（2026-10-09）：两个键的小字都跟**界面语言**，未收音时是「点一下开始」。
+  okc(p.mineHint === '点一下开始', '左键小字不是「点一下开始」：' + p.mineHint);
   okc(p.otherName === 'ไทย', '右键不是本名「ไทย」：' + p.otherName);
-  okc(p.otherHint === 'แตะหรือกดค้างเพื่อพูด', '右键小字不是那门语言写的：' + p.otherHint);
+  okc(p.otherHint === '点一下开始', '右键小字也该跟界面语言（改稿 D 取消「那门语言的小字」）：' + p.otherHint);
   okc(!p.disabled, '会话正在进行，按钮条却是灰的');
 
   // 可视样式（2026-10-08 真机「纯文字」事故的根因就是这一条没人断言：调色板变量不存在 +
@@ -717,114 +724,106 @@ async function p02() {
   await evalOk('__mtTest.lidMute(1), true');
   await evalOk('__mtTest.rec(1), true');
   try { await click('app-listen-history, #app-listen'); } catch (_) {}
-  await evalOk(`__mtTest.ptt.down('other'), true`);
-  await sleep(600);                                   // 够 0.4 s ⇒ 按住说（不是点一下）
-  const mid = await evalOk('__mtTest.ptt.state()');
-  okc(mid.mode === 'hold', '按下 0.6s 后不是 hold：' + JSON.stringify(mid));
-  okc(mid.lidPaused === true, '按住期间没有暂停语种判定');
+  // 改稿 D：点一下 = 开始收音（起会话 / 开麦 / 暂停语种判定 / 挂灵动岛）。
+  await evalOk(`__mtTest.ptt.toggle('other'), true`);
+  await waitFor(async () => { const st = await evalOk('__mtTest.ptt.state()'); return st.on && st.side === 'other'; }, 20000, '点一下没有开始收音');
+  const st0 = await evalOk('__mtTest.ptt.state()');
+  okc(st0.lidPaused === true, '开始收音没有暂停语种判定');
+  okc((await evalOk('AppListen._debug().phase')) === 'listening', '收音中 phase 不是 listening');
   // 句子必须与 M7 用的**不同** —— 撞了就会匹配到 M7 那一行（第一版 P-02 就是这么假通过的）。
   await evalOk(`__mtTest.partial('ผมอยากไปเชียงใหม่', 'th'), true`);
   await evalOk(`__mtTest.say('ผมอยากไปเชียงใหม่ปีหน้า', 'th'), true`);
-  await sleep(1000);                                  // 等 650ms 的延迟注入落地
-  await evalOk(`__mtTest.ptt.up('other'), true`);
-  await waitRow('เชียงใหม่', 20000);
+  await sleep(1200);                                  // 等 650ms 的延迟注入落地
+  await evalOk(`__mtTest.ptt.toggle('other'), true`);  // 再点同一个键 = 停止收音
+  await waitRow('เชียงใหม่', 25000);
   const s = await state();
   const row = (s.history || []).filter((r) => r.includes('เชียงใหม่')).pop() || '';
-  okc(row.includes('ไทย'), '按住说的那行标签不是本名 ไทย：' + row);
+  okc(row.includes('ไทย'), '录音键说的那行标签不是本名 ไทย：' + row);
   const after = await evalOk('__mtTest.ptt.state()');
-  okc(after.mode === 'idle' && after.lidPaused === false, '松手后没有恢复自动识别：' + JSON.stringify(after));
+  okc(!after.on && after.lidPaused === false, '再点一下没有停止收音 / 没恢复自动识别：' + JSON.stringify(after));
+  okc((await evalOk('AppListen._debug().phase')) === 'paused', '停止收音后 phase 不是 paused（麦克风该关）');
   const paused = (await rec()).filter((e) => e && e.type === 'lid-paused');
   okc(paused.some((e) => e.on === 1) && paused.some((e) => e.on === 0),
     '原生没收到「暂停判定 / 恢复判定」两条：' + JSON.stringify(paused.slice(0, 4)));
 }
 async function p03() {
-  // **注入前关掉自动朗读**（裁定 2026-10-08）：这一条的判据是「点一下锁定 → 再点一下 → 落一行
-  // 中文」。App 正在念中文译文时，注入的中文会被回声闸**整门**挡掉（`echo.playingLangs`）——
-  // 那是**另一个真产品问题**，已单列「待用户定」（见 out-reg/batch30/RESULTS.md），
-  // 不该把这条用例的判据搅成「看朗读什么时候停」。跑完恢复。
+  // **注入前关掉自动朗读**（裁定 2026-10-08）：这一条的判据是「点左键说中文 → 点右键换边 → 两行
+  // 各自的标签对」。App 正在念中文译文时，注入的中文会被回声闸**整门**挡掉（`echo.playingLangs`）。
   const autoOn = await evalOk(`!!(document.getElementById('app-listen-autospeak')||{}).checked`);
   if (autoOn) await click('app-listen-autospeak');
   try {
-    await p03Body();
+    await quiet();
+    await evalOk(`__mtTest.ptt.toggle('mine'), true`);   // 点左键 = 开始收音（我说中文）
+    await waitFor(async () => { const st = await evalOk('__mtTest.ptt.state()'); return st.on && st.side === 'me'; }, 20000, '点左键开始收音');
+    // 定稿**必须带句末标点** —— 串句器按标点收口，没标点它一直等。
+    await evalOk(`__mtTest.partial('明天早上八点出发', 'zh-CN'), true`);
+    await evalOk(`__mtTest.say('明天早上八点出发。', 'zh-CN'), true`);
+    await sleep(1400);
+    log('    P-03 中点：' + JSON.stringify((await state()).ptt) + ' force=' + await evalOk('AppListen._debug().pttForce')
+      + ' sock=' + await evalOk('AppListen._debug().sock') + ' phase=' + await evalOk('AppListen._debug().phase')
+      + ' stt 事件=' + await evalOk(`JSON.stringify((__mtTest.rec()||[]).filter(e=>/^stt-/.test(e.type||'')).slice(-4).map(e=>e.type+':'+e.locale))`));
+    // 点另一个键 = 先收口这一句、换到那一侧**继续收音**（麦不重开）。
+    await evalOk(`__mtTest.ptt.toggle('other'), true`);
+    const mid = await evalOk('__mtTest.ptt.state()');
+    okc(mid.on && mid.side === 'other', '点另一个键没有换边继续收音：' + JSON.stringify(mid));
+    try {
+      await waitRow('明天早上八点出发', 15000);
+    } catch (e) {
+      const st = await state();
+      log('    P-03 现场：ptt=' + JSON.stringify(st.ptt) + ' hist=' + JSON.stringify((st.history || []).map((x) => x.slice(0, 24))));
+      throw e;
+    }
+    const row = ((await state()).history || []).filter((r) => r.includes('明天早上八点出发')).pop() || '';
+    okc(row.includes('中文'), '换边前那行标签不是「中文」：' + row);
+    // 换边后说泰语，再点停
+    await evalOk(`__mtTest.say('ขอบคุณมากครับ', 'th'), true`);
+    await sleep(1200);
+    await evalOk(`__mtTest.ptt.toggle('other'), true`);
+    await waitRow('ขอบคุณ', 20000);
+    const st = await evalOk('__mtTest.ptt.state()');
+    okc(!st.on && st.lidPaused === false, '第二次点停没收干净：' + JSON.stringify(st));
   } finally {
     if (autoOn) { try { await click('app-listen-autospeak'); } catch (_) {} }
   }
 }
-
-async function p03Body() {
-  await evalOk(`__mtTest.ptt.tap('mine', 120), true`);   // <0.4s ⇒ 锁定
-  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '点一下进锁定');
-  const s1 = await state();
-  okc(s1.ptt.locked && /正在说/.test(s1.ptt.locked), '锁定提示行没出现：' + JSON.stringify(s1.ptt));
-  okc(/中文/.test(s1.ptt.locked), '锁定提示里没有那门语言的本名：' + s1.ptt.locked);
-  // 与 P-02 同形：先一条半句（让「听到了」为真），再一条定稿。两条注意都是**回归里踩出来的**：
-  //   · 定稿**必须带句末标点** —— 串句器按标点收口，没标点它一直等；
-  //   · 注入前要等**朗读排空** —— 上一行的译文正在念中文时，注入的中文与 App 自己的声音同语言，
-  //     回声闸（M3 正验的那个）会正当丢掉它（第一版 P-03 就是这么假红的：heard 一直是 false）。
-  await quiet();
-  await evalOk(`__mtTest.partial('明天早上八点出发', 'zh-CN'), true`);
-  await evalOk(`__mtTest.say('明天早上八点出发。', 'zh-CN'), true`);
-  await sleep(1400);
-  log('    P-03 中点：' + JSON.stringify((await state()).ptt) + ' force=' + await evalOk('AppListen._debug().pttForce')
-    + ' sock=' + await evalOk('AppListen._debug().sock') + ' phase=' + await evalOk('AppListen._debug().phase')
-    + ' 收到的 stt 事件=' + await evalOk(`JSON.stringify((__mtTest.rec()||[]).filter(e=>/^stt-/.test(e.type||'')).slice(-4).map(e=>e.type+':'+e.locale))`));
-  await evalOk(`__mtTest.ptt.tap('mine', 120), true`);   // 再点同一个 ⇒ 结束
-  try {
-    await waitRow('明天早上八点出发', 15000);
-  } catch (e) {
-    const st = await state();
-    log('    P-03 现场：ptt=' + JSON.stringify(st.ptt) + ' hist=' + JSON.stringify((st.history || []).map((x) => x.slice(0, 24))));
-    throw e;
-  }
-  const row = ((await state()).history || []).filter((r) => r.includes('明天早上八点出发')).pop() || '';
-  okc(row.includes('中文'), '锁定结束落的那行标签不是「中文」：' + row);
-  const st = await evalOk('__mtTest.ptt.state()');
-  okc(st.mode === 'idle' && st.lidPaused === false, '第二次点一下没退出锁定：' + JSON.stringify(st));
-}
 async function p05() {
-  await evalOk('__mtTest.pttSilenceMs(2500), true');
-  await evalOk(`__mtTest.ptt.tap('other', 120), true`);
-  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '锁定');
+  // 改稿 D：对话页**撤掉了静音自动停**（「一直录到你点停」）。开始收音之后静 4 秒，必须仍在收音。
+  await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 20000, '点一下开始收音');
   const t0 = Date.now();
-  await evalOk(`__mtTest.say('กาแฟอร่อยมาก', 'th'), true`);
-  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'idle', 8000, '静默后自动退出锁定');
-  const dt = Date.now() - t0;
-  okc(dt >= 1800 && dt <= 5000, '静默自动结束的时机不对（' + dt + 'ms，覆盖值 2500）');
+  await sleep(4000);
   const st = await evalOk('__mtTest.ptt.state()');
-  okc(st.lidPaused === false, '自动结束后没有恢复自动识别');
-  await evalOk('__mtTest.pttSilenceMs(0), true');
+  okc(st.on, '收音 4 秒没声音就自己停了 —— 对话页不该有静音自动停');
+  okc(Date.now() - t0 >= 3800, '等待时长不对（' + (Date.now() - t0) + 'ms）');
+  const why = await evalOk('AppListen._debug().pauseReason');
+  okc(why !== 'silence', '静音门又咬上了：pauseReason=' + why);
+  await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+  await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).on, 8000, '收尾：停止收音');
 }
 async function p06() {
+  // 点一下开始、什么都没说、再点一下停 ⇒ 不落行、0 次翻译。
   const n0 = await evalOk('__mtTest.translateCalls()');
-  await evalOk(`__mtTest.ptt.tap('other', 120), true`);
-  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).mode === 'locked', 4000, '锁定');
-  await evalOk(`__mtTest.ptt.tap('other', 120), true`);   // 什么都没说就结束
-  let noted = false;
-  try {
-    await waitFor(async () => /没听到声音/.test((await state()).ptt.note || ''), 4000, '没出声的提示');
-    noted = true;
-  } catch (_) {}
-  const s = await state();
-  if (!noted) log('    P-06 现场：' + JSON.stringify(s.ptt) + ' 元素=' + JSON.stringify(await evalOk(`(()=>{const e=document.getElementById('app-listen-ptt-note'); return e?{hidden:e.hidden,txt:(e.textContent||'').slice(0,40),disp:getComputedStyle(e).display}:'none'})()`)));
-  okc(noted, '没出声时没有「没听到声音，再试一次」：' + JSON.stringify(s.ptt.note));
+  const rows0 = ((await state()).history || []).length;
+  await evalOk(`__mtTest.ptt.toggle('other'), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 20000, '开始收音');
+  await sleep(1400);
+  await evalOk(`__mtTest.ptt.toggle('other'), true`);
+  await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).on, 8000, '停止收音');
+  await sleep(1200);
+  okc(((await state()).history || []).length === rows0, '没出声却落了一行');
   okc((await evalOk('__mtTest.translateCalls()')) === n0, '没出声却发了翻译请求');
 }
 async function p07() {
-  const n0 = await evalOk('__mtTest.translateCalls()');
-  await evalOk(`__mtTest.ptt.down('mine'), true`);
-  await evalOk(`__mtTest.say('这一句不该落行', 'zh-CN'), true`);
-  await sleep(1000);
-  await click('app-listen-toggle');                      // 按住时点「暂停」⇒ 这一句丢掉
-  await sleep(900);
+  // 改稿 D：对话页**不再有**「正在听·暂停」大按钮（启停就是底部那两个键）。
+  const actionsHidden = await evalOk(`(()=>{const e=document.getElementById('app-listen-actions'); return !!(e && e.hidden)})()`);
+  okc(actionsHidden, '对话页还显示着「正在听·暂停」大按钮');
+  // 停止收音之后**还能再点开**（停止 ≠ 结束整场）。
+  await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 20000, '停止之后再也点不开了');
+  await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+  await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).on, 8000, '收尾：停止收音');
   const s = await state();
-  okc(!(s.history || []).some((r) => r.includes('这一句不该落行')), '按住时点暂停，那句还是落行了');
-  okc((await evalOk('__mtTest.translateCalls()')) === n0, '被点掉的那句发了翻译请求');
-  const st = await evalOk('__mtTest.ptt.state()');
-  okc(st.mode === 'idle' && st.lidPaused === false, '暂停后按住态没清：' + JSON.stringify(st));
-  okc(s.ptt.disabled && /开始听/.test(s.ptt.why || ''), '暂停后按钮没灰或没说原因：' + JSON.stringify(s.ptt.why));
-  // 交回给后面的 case：恢复这一场
-  await click('app-listen-toggle');
-  await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'P-07 之后重新开听');
+  okc(!s.ptt.disabled, '停止收音后按钮不该变灰（随时能再点）');
 }
 async function p12() {
   const r = await evalOk(`(()=>{const rows=[...document.querySelectorAll('#app-listen-history > *')];
@@ -833,50 +832,62 @@ async function p12() {
       acts:((row.querySelector('.listen-row-acts')||{}).textContent||''), who:((row.querySelector('.listen-who')||{}).textContent||'')})})()`);
   const o = JSON.parse(r);
   okc(o.row, 'P-02 那行已经不在历史里了（后面的 case 把它挤掉了？）');
-  okc(!o.swap, '按住说的行还画着 ↔（语言是人指定的，没有「判错」这回事）');
-  okc(/朗读|给对方看/.test(o.acts), '按住说的行少了朗读 / 给对方看：' + o.acts);
-  okc(o.who.trim() === 'ไทย', '按住说的行标签不是 ไทย：' + o.who);
+  okc(!o.swap, '录音键说的行还画着 ↔（语言是人指定的，没有「判错」这回事）');
+  okc(/朗读|给对方看/.test(o.acts), '录音键说的行少了朗读 / 给对方看：' + o.acts);
+  okc(o.who.trim() === 'ไทย', '录音键说的行标签不是 ไทย：' + o.who);
   await evalOk('__mtTest.lidMute(0), true');
 }
 
-// P-08（2026-10-08 评审定）：按下按住说时，**正在播的那一句被停、队列冻住**；松手后**接着播**。
+// P-08（改稿 D）：**开始收音**时正在播的那句被停、队列冻住；**停止收音**后接着播。
 // 「正在播的被停」看 `_debug().speakingRid`，「队列冻住」看 tts-start 计数不再涨。
+//
+// 新交互下构造与旧版相反：**收音＝开麦**，只有在收音中才收得到句子 ⇒ 句子先在收音期间排进队列
+// （冻着不念），停止收音时才开始念；再开始收音时把正在念的那句停掉、队列再冻住。
 async function p08() {
   const on = await evalOk(`!!(document.getElementById('app-listen-autospeak')||{}).checked`);
   if (!on) await click('app-listen-autospeak');
-  // **不要静音 LID**：这两句要真的落行（归属闸要判词；静音了就整句被丢 —— 第一版栽在这）。
-  // 按住那一下 PTT 自己会暂停判定，不需要 lidMute 帮忙。
+  // **不要静音 LID**：这些句子要真的落行（归属闸要判词）。收音那一侧是「我说的语言」(zh)，
+  // 注入的 zh 句子正好落在强制语言上 ⇒ 归属闸放行。
   try {
     await quiet();
-    // **显式发一条判词**：`say()` 的判词按语言去重（同语言不再发），而前面几幕的恢复会把
-    // App 的判词清空（resume → lidOn() → lidLang = ''）⇒ 不再发就等于归属闸拿不到判词、
-    // 注入的整句被丢（第一版 P-08 两次都栽在这）。`__mtTest.lid()` 是强制注入、不去重。
-    await evalOk(`__mtTest.lid('zh'), true`);
-    await sleep(700);            // 判词要稳住 LID_CONFIRM_MS(500ms) 才认
     await evalOk('__mtTest.rec(1), true');
-    // 队列里放两句（自动朗读会把译文排进去）
+    // 保证处在「未收音」：若有残留先停掉。
+    if ((await evalOk('__mtTest.ptt.state()')).on) {
+      await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+      await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).on, 8000, '先停掉残留收音');
+    }
+    // ① 收音中排第一句：落行，但**冻着不念**。
+    await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+    await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 20000, '开始收音');
+    await evalOk(`__mtTest.lid('zh'), true`);
+    await sleep(700);
     await evalOk(`__mtTest.say('第一句占住朗读队列。', 'zh-CN'), true`);
     await waitRow('第一句占住朗读队列', 20000);
-    await evalOk(`__mtTest.say('第二句排在后面等着念。', 'zh-CN'), true`);
-    await waitRow('第二句排在后面等着念', 20000);
-    await waitFor(async () => (await rec()).some((e) => e && e.type === 'tts-start'), 40000, '排队之后真的开始念');
+    await sleep(1500);
+    const frozen = (await rec()).filter((e) => e && e.type === 'tts-start').length;
+    okc(frozen === 0, '收音期间就把译文念出来了（该冻着）：tts-start=' + frozen);
+    // ② 停止收音 ⇒ 队列开始念。
+    await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+    await waitFor(async () => (await rec()).some((e) => e && e.type === 'tts-start'), 40000, '停止收音后队列开始念');
     const n0 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
-    await evalOk(`__mtTest.ptt.down('mine'), true`);
-    await sleep(2000);
+    // ③ 再开始收音 ⇒ 正在念的那句被停、队列冻住。
+    await evalOk(`__mtTest.ptt.toggle('mine'), true`);
+    await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 20000, '再次开始收音');
+    await sleep(1500);
     const st = await evalOk('AppListen._debug()');
-    okc(st.speakingRid === 0, '按下之后当前那句还在播（speakingRid=' + st.speakingRid + '）');
+    okc(st.speakingRid === 0, '开始收音之后当前那句还在播（speakingRid=' + st.speakingRid + '）');
     const n1 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
-    okc(n1 === n0, '按住期间又起了新的朗读（队列没冻住）：' + n0 + ' → ' + n1);
-    // **按住期间再排一句**：这才是能稳定观察「冻住 / 接着播」的构造 —— 队列读数（speakQueue）
-    // 是「待播条数」，合成快的时候一闪而过，拿它当信号等不到（前两版都栽在这）。
-    await evalOk(`__mtTest.say('第三句是在按住期间排进去的。', 'zh-CN'), true`);
-    await waitRow('第三句是在按住期间排进去的', 20000);
-    await sleep(2500);
+    okc(n1 === n0, '收音期间又起了新的朗读（队列没冻住）：' + n0 + ' → ' + n1);
+    // ④ 收音期间再排一句：也不念。
+    await evalOk(`__mtTest.say('第二句是在收音期间排进去的。', 'zh-CN'), true`);
+    await waitRow('第二句是在收音期间排进去的', 20000);
+    await sleep(2000);
     const n2 = (await rec()).filter((e) => e && e.type === 'tts-start').length;
-    okc(n2 === n1, '按住期间排进来的那句也念了（队列没冻住）：' + n1 + ' → ' + n2);
-    await evalOk(`__mtTest.ptt.up('mine'), true`);
+    okc(n2 === n1, '收音期间排进来的那句也念了（队列没冻住）：' + n1 + ' → ' + n2);
+    // ⑤ 再停止收音 ⇒ 接着播。
+    await evalOk(`__mtTest.ptt.toggle('mine'), true`);
     await waitFor(async () => (await rec()).filter((e) => e && e.type === 'tts-start').length > n2, 40000,
-      '松手之后队列接着播（按住期间排的那句没有开始念）');
+      '停止收音之后队列接着播（收音期间排的那句没有开始念）');
   } catch (e) {
     const st = await state();
     log('    P-08 现场：ptt=' + JSON.stringify(st.ptt) + ' 队列=' + await evalOk('AppListen._debug().speakQueue'));
@@ -890,15 +901,15 @@ const LISTEN_CASES = [
   { id: 'M3', what: '自己念的被认回来 → 拦住（注入版回声）', impl: m3 },
   { id: 'M4', what: '对方说不同的话 → 放行（不误杀）', impl: m4 },
   { id: 'M5', what: 'TTS 失败不静默堵死（连杀三句，队列仍活）', impl: m5 },
-  // P 组（第三十批新功能）：在同一个 zh↔th 会话里跑，跑完再把自动识别交回去。
-  { id: 'P-01', what: '按钮条：位置/文案（本名）/小字（那门语言）', impl: p01 },
-  { id: 'P-02', what: '按住 ≥0.4s ⇒ 只按那门识别、松手定稿、行 pin 住', impl: p02 },
-  { id: 'P-03', what: '点一下 ⇒ 锁定（有提示）；再点一下 ⇒ 结束并落行', impl: p03 },
-  { id: 'P-05', what: '锁定后静默 ⇒ 自动定稿并退出锁定', impl: p05 },
-  { id: 'P-06', what: '按住/锁定后没出声 ⇒ 只提示、不落行、0 次翻译', impl: p06 },
-  { id: 'P-07', what: '按住时点暂停 ⇒ 这句丢掉；按钮变灰并有原因', impl: p07 },
-  { id: 'P-08', what: '按下停掉正在播的朗读 + 冻住队列；松手接着播', impl: p08 },
-  { id: 'P-12', what: '按住说的行 = 普通行，但没有 ↔', impl: p12 },
+  // P 组（改稿 D，2026-10-09）：在同一个 zh↔th 会话里跑。
+  { id: 'P-01', what: '按钮条：文案（本名）+ 两键小字（界面语言）+ 可视样式', impl: p01 },
+  { id: 'P-02', what: '点一下 ⇒ 开始收音（开麦 / 暂停判定）；再点 ⇒ 停止并落行', impl: p02 },
+  { id: 'P-03', what: '点另一个键 ⇒ 先收口、换边继续收音（两行标签各对）', impl: p03 },
+  { id: 'P-05', what: '静音不自动停（对话页撤了静音门）', impl: p05 },
+  { id: 'P-06', what: '点开、没出声、再点停 ⇒ 不落行、0 次翻译', impl: p06 },
+  { id: 'P-07', what: '对话页没有「正在听·暂停」大按钮；停止后还能再点开', impl: p07 },
+  { id: 'P-08', what: '开始收音停朗读 + 冻住队列；停止收音接着播', impl: p08 },
+  { id: 'P-12', what: '录音键说的行 = 普通行，但没有 ↔', impl: p12 },
 ];
 
 async function runCases() {
