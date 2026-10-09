@@ -169,6 +169,11 @@ least resistance.
 （d）本地 / 自带 key 的等价物早已出货且仍是默认（规则 11 通过）；（e）中继不跑模型、不存
 内容 —— 它转发、计量、停。「托管模型仍是付费可选或不上」对样品之外的一切照旧成立。
 
+> **披露的位置可以变，单独披露这件事不变（2026-10-09 改稿 D）。** 「对话 · 实时听译」的说明段
+> （含免费额度那条路「经我们的服务器转发」）与实时字幕的 Gate I 隐私段，**从听译页搬到了
+> 「设置 › 听译」** —— 文字一字不改，只是换位置。它仍然是**对这条路单独披露**（第 3 条照旧、
+> §10 Gate F 照旧）：看得到、跟功能同版、不被别处的整体承诺平均掉。听译页变短不是披露被稀释。
+
 > **核心约束 — a server-side model feature may not ship before its local equivalent.**
 > *(Added 2026-08-04 by domain review; `AGENTS.md` rule 11.)* Any capability that depends on a model
 > running on our server may be released only once the same capability already works
