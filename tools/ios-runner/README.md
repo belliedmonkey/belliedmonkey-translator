@@ -88,6 +88,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `alerts` | `s` | 吃掉系统权限弹窗 |
 | `open` | `url` `s` | `XCUIDevice.system.open` |
 | `tap` | `text` `exact` `swipes` | 滚动着找文字并点 |
+| `lock` / `unlock` / `home` | `s` | **真机锁屏**（私有 `pressLockButton`，可能无效果）· 再发一次当作唤醒 · 回主屏（退后台）|
 | `pred` | `pred` `swipes` | **原始谓词**点击（`label CONTAINS "A" AND label CONTAINS "B"`）—— 按文字点会撞车时用：例「中文」既是语言胶囊又是录音键，只有谓词分得开（2026-10-09 加）|
 | `menu` | `item` `s` | 点选中菜单里的一项（拷贝/查询/翻译/查找）|
 | `drag` | `text` `from` `to` | **选整句**：长按只选一个词、三连点不扩选，只能按住拖 |

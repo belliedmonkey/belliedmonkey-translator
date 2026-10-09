@@ -1850,6 +1850,19 @@ final class S56UITests: XCTestCase {
                 let pred = exact ? "label == '\(t)'" : "label CONTAINS '\(t)'"
                 let ok = tapText(app, pred, swipes: i(step, "swipes") ?? 0, tag)
                 note("[\(tag)] tap「\(t)」→ " + (ok ? "点了" : "没找到"))
+            case "lock":
+                // 真机锁屏：XCUITest **没有公开 API**，只有私有选择器 pressLockButton（§0.2.3 记过
+                // 「调用成功但没有效果」）。包成 op 是为了让「锁屏能不能自动」有可复现判据
+                // （2026-10-09：用户要求锁屏自动验证）。
+                let sel = NSSelectorFromString("pressLockButton")
+                if XCUIDevice.shared.responds(to: sel) { _ = XCUIDevice.shared.perform(sel); note("[\(tag)] 发了 pressLockButton") }
+                else { note("[\(tag)] XCUIDevice 没有 pressLockButton") }
+                sleep(UInt32(i(step, "s") ?? 4))
+            case "home":
+                XCUIDevice.shared.press(.home); sleep(UInt32(i(step, "s") ?? 3)); note("[\(tag)] 回主屏（退后台）")
+            case "unlock":
+                _ = XCUIDevice.shared.perform(NSSelectorFromString("pressLockButton")); note("[\(tag)] 再发一次 pressLockButton（真机上等价于唤醒/解锁提示）")
+                sleep(UInt32(i(step, "s") ?? 3))
             case "pred":
                 // 原始谓词点击（2026-10-09 加）：按文本点会撞车（例如「中文」既是语言胶囊又是录音键），
                 // 复杂条件（AND / NOT）只能用谓词表达。
