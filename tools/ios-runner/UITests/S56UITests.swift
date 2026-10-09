@@ -1850,6 +1850,12 @@ final class S56UITests: XCTestCase {
                 let pred = exact ? "label == '\(t)'" : "label CONTAINS '\(t)'"
                 let ok = tapText(app, pred, swipes: i(step, "swipes") ?? 0, tag)
                 note("[\(tag)] tap「\(t)」→ " + (ok ? "点了" : "没找到"))
+            case "pred":
+                // 原始谓词点击（2026-10-09 加）：按文本点会撞车（例如「中文」既是语言胶囊又是录音键），
+                // 复杂条件（AND / NOT）只能用谓词表达。
+                guard let pr = s(step, "pred") else { note("[\(tag)] 缺 pred"); break }
+                let ok2 = tapText(app, pr, swipes: i(step, "swipes") ?? 0, tag)
+                note("[\(tag)] tap pred「\(pr)」→ " + (ok2 ? "点了" : "没找到"))
             case "menu":
                 guard let it = s(step, "item") else { note("[\(tag)] 缺 item"); break }
                 let m = app.menuItems.matching(NSPredicate(format: "label CONTAINS %@", it)).firstMatch

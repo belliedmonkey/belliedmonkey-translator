@@ -88,6 +88,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `alerts` | `s` | 吃掉系统权限弹窗 |
 | `open` | `url` `s` | `XCUIDevice.system.open` |
 | `tap` | `text` `exact` `swipes` | 滚动着找文字并点 |
+| `pred` | `pred` `swipes` | **原始谓词**点击（`label CONTAINS "A" AND label CONTAINS "B"`）—— 按文字点会撞车时用：例「中文」既是语言胶囊又是录音键，只有谓词分得开（2026-10-09 加）|
 | `menu` | `item` `s` | 点选中菜单里的一项（拷贝/查询/翻译/查找）|
 | `drag` | `text` `from` `to` | **选整句**：长按只选一个词、三连点不扩选，只能按住拖 |
 | `dragxy` | `from` `to` `press` | **整窗归一化坐标**的按住拖。原生表格的重排手柄（≡）在 AX 上没有可点的动作，只能这样 |
