@@ -582,11 +582,16 @@ const listenModel = (() => {
     canvas.view('state');
     return true;
   }
-  /// 停止收音：先把这一句**收口**（cut），给它一点时间落成定稿，再关麦 / 清灵动岛。
-  /// 不这么做的话，你说完立刻点停，那半句会被 `pause()` 的 closeSocket 一起丢掉。
+  /// 停止收音：先把这一句**收口**（cut），再**手动 flush 串句器的尾巴**，然后关麦 / 清灵动岛。
+  /// 两条都必要：
+  ///   · cut：让识别器把这一句定稿；
+  ///   · flushAll：串句器的尾巴本来要等 `STREAM_FLUSH_MS`(1200ms) 才放出（收口后的 final
+  ///     常不带句号），而这里 450ms 后就 `pause()` 关 socket 了 —— 不主动放，刚说的那句会被丢掉
+  ///     （2026-10-09 test:mac P-02 实测：行落不下来）。
   function pttStop() {
     if (pttStopTimer) clearTimeout(pttStopTimer);
     pttCut();
+    try { if (cutter && cutter.flushAll) cutter.flushAll(); } catch (_) {}
     pttStopTimer = setTimeout(() => { pttStopTimer = 0; pause('user'); }, PTT_STOP_GRACE_MS);
     canvas.view('state');
   }

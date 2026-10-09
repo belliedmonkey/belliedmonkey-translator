@@ -40,11 +40,12 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
       '收音态比 start() 先设 —— 会被 pttAbort 清掉');
   });
 
-  test('停止收音先收口（cut）再关麦：给定稿留一点时间，别把刚说的半句丢掉', () => {
+  test('停止收音先收口（cut）+ 主动 flush 串句器尾巴，再关麦', () => {
     ok(/const PTT_STOP_GRACE_MS = \d+;/.test(MODEL), '没有收尾间隙常量');
     const stop = MODEL.slice(MODEL.indexOf('function pttStop'), MODEL.indexOf('function pttAbort'));
     ok(/pttCut\(\)/.test(stop), '停止收音没有先收口');
-    ok(/setTimeout\([\s\S]{0,120}?pause\('user'\)/.test(stop), '收口之后没有关麦（pause）');
+    ok(/cutter\.flushAll\(\)/.test(stop), '没有手动 flush 串句器尾巴（尾巴要等 1200ms，450ms 后关麦就丢了）');
+    ok(/setTimeout\([\s\S]{0,140}?pause\('user'\)/.test(stop), '收口之后没有关麦（pause）');
   });
 
   test('收音态与强制语言的唯一出口 pttAbort：pause/halt/end/leave/start 都走它', () => {
