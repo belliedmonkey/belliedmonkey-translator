@@ -566,7 +566,10 @@ const listenModel = (() => {
     // 异侧 = 换边（准备中就直接改侧，等管道起来就按新侧走）。
     if (ptt) {
       if (ptt.side === side) { pttStop(); return true; }
-      if (phase === 'listening') pttCut();   // 收口只在这一刻有意义
+      // 点另一个键 = 先收口这一句、再换边。**收口要立刻把尾巴放出来**（同 pttStop 的道理）：
+      // 只 cut 不说话时，串句器要等 STREAM_FLUSH_MS(1200ms) 空闲才放 —— 而换过去之后麦克风
+      // 还在收音，环境音会一直喂半句、空闲永远不来，这一句就悬在那儿不落行（round F P-03 实测）。
+      if (phase === 'listening') { pttCut(); try { if (cutter && cutter.flushAll) cutter.flushAll(); } catch (_) {} }
       ptt = { side };
       pttForceOn(side);
       canvas.view('state');

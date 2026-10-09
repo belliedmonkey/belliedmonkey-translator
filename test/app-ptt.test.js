@@ -27,7 +27,8 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
     ok(/if \(ptt\) \{/.test(fn), '没有「已经在收音」这一支');
     ok(/ptt\.side === side\) \{ pttStop\(\); return true; \}/.test(fn), '再点同一个键没有停止收音');
-    ok(/if \(phase === 'listening'\) pttCut\(\);/.test(fn), '换边时没有「在听才收口」');
+    ok(/if \(phase === 'listening'\) \{ pttCut\(\); try \{ if \(cutter && cutter\.flushAll\) cutter\.flushAll\(\); \} catch \(_\) \{\} \}/.test(fn),
+      '换边时没有「在听就收口 + 立刻 flush」（只 cut 不 flush，尾巴会悬着不落行）');
     ok(/ptt = \{ side \};/.test(fn), '换边没有改到那一侧');
     ok(/phase === 'idle' \|\| phase === 'ended'\) start\(\)/.test(fn), 'idle/ended 没有起会话');
     ok(/phase === 'paused' \|\| phase === 'halted'\) resumeByUser\(\)/.test(fn), 'paused/halted 没有续上');
