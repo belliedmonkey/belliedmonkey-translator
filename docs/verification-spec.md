@@ -230,6 +230,50 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
    `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
    同一个默认路径也可能让一个真的漏文件的包通过。
 
+### 0.2.0 真机验证的固定做法：QuickTime 展示 + `screencapture` 录屏 + 逐帧判定（2026-10-09 用户裁定，**强制**）
+
+> **以后所有真机验证都必须这么做。** 做不到就说清原因并停下 —— 不许退回「一张末态截图 + DOM 断言」。
+
+为什么立这条：2026-10-09 用户在 iPhone 14 上实测出两条 bug ——
+**①停止对话后锁屏 Now Playing 卡不消失；②中/英两个键切换几次之后不再转写+翻译**。
+两条都是**随时间显现**的：末态截图看不出「卡没被清」，DOM 断言也看不出「第 N 次切换之后归属闸开始整句丢」。
+只有把**序列**录下来逐帧看，才看得见。
+
+**四个角色，别混：**
+
+| 角色 | 用什么 | 注意 |
+|---|---|---|
+| 驱动 | XCUITest runner（`tools/ios-runner` → 工作区 `.local/spike/S6`），JSON `testDrive` | **不用 iPhone 镜像**：镜像占设备麦克风（§0.2）且与收音互斥 |
+| 展示（给人看） | QuickTime Player → 文件 › 新建影片录制 → 源选 **iPhone** | **麦克风必须选「无」**：选设备麦会占麦，选 Mac 麦会把环境音录进去 |
+| 录屏（判据） | Mac 本机 `screencapture`（cap）录 **Mac 屏幕**（含 QuickTime 窗口） | `screencapture -v -V <秒> -x out.mov`（定时）或 `-v -x` 手动起停；**不要加 `-g`**（那是录 Mac 麦克风） |
+| 逐帧分析 | `ffmpeg -i out.mov -vf fps=2 frames/%04d.png` | 按用例判据**逐帧**读，不是只看末态；必要时 `fps=4` |
+
+**跑法（一次完整真机验证）：**
+
+```bash
+# 0. 装被测包（USB + devicectl；不碰 TestFlight、不占构建号）
+xcrun devicectl device install app --device <UDID> "<…/BelliedMonkey Translator.app>"
+
+# 1. QuickTime 开「新建影片录制」并选 iPhone 源（麦克风：无）—— 人点一次即可，之后不用再碰
+open -a "QuickTime Player"
+
+# 2. 开始录 Mac 屏幕（含 QuickTime 窗口）
+screencapture -v -V 180 -x .local/dev-verify/<日期>-<用例>.mov &
+
+# 3. 驱动（JSON 脚本；每条用例给足等待）
+TEST_RUNNER_MT_TARGET_BUNDLE=com.belliedmonkeytranslator \
+TEST_RUNNER_MT_SCRIPT='[…]' \
+xcodebuild test-without-building -project runner/S56Runner.xcodeproj -scheme S56Runner \
+  -destination id=<UDID> -derivedDataPath dd-runner -resultBundlePath x.xcresult \
+  -only-testing:S56UITests/S56UITests/testDrive
+
+# 4. 逐帧
+ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/frames/%04d.png
+```
+
+**取证要求**：`.mov` + 抽帧目录 + 一份**逐条判据表**（每条用例写「第几秒到第几秒、屏幕上应当出现什么」）。
+判据读的是**帧**，不是 `passed`（§0.2.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
+
 ### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
 
 Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18 或更高版本**并设置为使用密码**」。
