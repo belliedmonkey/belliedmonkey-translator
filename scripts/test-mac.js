@@ -489,13 +489,17 @@ async function quiet(ms) {
 // 不摆的话，注入语言与收音侧不符时会被归属闸**整句丢掉**（round J 的 M3/M4/M5/M7 就是这么红的：
 // 它们在 setup 的「我说中文」侧注入泰语，而「点谁就按谁识别、不跑判定」正是改稿 D 的规则）。
 async function recSide(side) {
+  // **侧名归一**：模型的侧只有 'me' / 'other'（`__mtTest.ptt.state().side` 报的就是这两个），
+  // 而按钮/视图那边叫 'mine'。第一版助手直接拿 'mine' 去比 ⇒ 永远判成「异侧」⇒ 去点左键 ⇒
+  // 而左键正是当前侧 ⇒ 点成了**停车**（round K：M7/M2 现场 `phase=paused`）。
+  const want = side === 'other' ? 'other' : 'me';
   const st = await evalOk('__mtTest.ptt.state()');
-  if (st.on && st.side === side) return;
-  if (st.on) { await evalOk(`__mtTest.ptt.toggle('${side}'), true`); await sleep(600); return; }
-  await startRec(side);
+  if (st.on && st.side === want) return;
+  if (st.on) { await evalOk(`__mtTest.ptt.toggle('${want}'), true`); await sleep(600); return; }
+  await startRec(want);
 }
 async function m7(ctx) {
-  await recSide('mine');                     // 第一句是中文 ⇒ 收音侧摆到「我说中文」
+  await recSide('me');                       // 第一句是中文 ⇒ 收音侧摆到「我说中文」
   await say('今天我们测试翻译。', 'zh-CN');
   await waitRow('今天我们测试翻译');
   // 第二句要**词汇远离**任何可能被朗读的译文：先前用「การทดสอบ」跟 zh 句的泰语译文
@@ -511,6 +515,7 @@ async function m7(ctx) {
 }
 
 async function m2(ctx) {
+  await recSide('me');                    // 这一条注入中文 ⇒ 收音侧摆回「我说中文」
   // 注入前等朗读排空：上一轮 M7 之后可能还有译文在念，同语言注入会被回声闸正当丢掉。
   await quiet();
   await say('请问去火车站怎么走？', 'zh-CN');
