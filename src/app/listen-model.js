@@ -735,7 +735,10 @@ const listenModel = (() => {
     const deps = Object.assign({}, routeDeps, meta && meta.who ? { who: meta.who } : {}, pttRow ? { pinned: true } : {});
     const row = C.addFinal(session, text, now(), cfg, deps);
     if (!row) return;
-    if (pttRow) pttForceOff();     // 这一句已经定稿，强制语言到此为止（下一句回到自动识别）
+    // 改稿 D：**收音是一整段**（点一下开始、再点一下停）—— 还在收音就绝不能撤强制语言。
+    // 撤了的话下一句既没有判词（LID 被收音暂停着）又没有强制语言 ⇒ 归属闸整句丢
+    // （2026-10-09 用户真机：中英两个键切换几次之后「不再转写+翻译」，就是这个）。
+    if (pttRow && !ptt) pttForceOff();
     // 时延埋点（§9.6.1 四段目标的读数来源；只给 _debug / 真机读回，不进遥测）
     row.lat = { final: now(), engine: 'device' };   // 2026-09-17 起只有本机路
     partial = ''; partialTr = '';
@@ -998,6 +1001,21 @@ const listenModel = (() => {
   function keepAliveOff() { try { if (keepAlive) keepAlive.pause(); } catch (_) {} }
 
   // ── 会话生命周期 ──────────────────────────────────────────────────────────
+  // 收音＝开麦（改稿 D）：音频会话 / 灵动岛 / 锁屏卡（Now Playing）与收音**同生共死**。
+  // 只在 JS 侧 micStop 是不够的 —— 锁屏那张「Conversation · live interpreter」会一直挂着
+  // （2026-10-09 用户真机实测：回到 App 停止对话后，锁屏卡还在）。
+  function nativeSessionOn() {
+    if (!bridged() || !session) return;
+    NativeAudio.onEvent(onNative);
+    NativeAudio.recordMode(true, C.modeOf(session).profile);
+    NativeAudio.sessionStart();
+    if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
+  }
+  function nativeSessionOff() {
+    if (!bridged()) return;
+    NativeAudio.sessionStop();
+    NativeAudio.recordMode(false);
+  }
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
@@ -1020,13 +1038,7 @@ const listenModel = (() => {
       (!C.modeOf(session).oneWay && C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
     inc.result((text, tr) => { if (text === partial) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
     clearPartials();
-    if (bridged()) {
-      // 再挂一次监听（onEvent 按引用去重）：桥晚于 wire() 出现的宿主（test:listen 的假桥）也收得到字幕条的「结束」
-      NativeAudio.onEvent(onNative);
-      NativeAudio.recordMode(true, C.modeOf(session).profile);   // 对话档不带 profile，消息逐字节不变
-      NativeAudio.sessionStart();
-      if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
-    }
+    nativeSessionOn();   // 挂监听 + 建音频会话 + 挂灵动岛/锁屏卡（对话档不带 profile，消息逐字节不变）
     canvas.view('history');
     if (!clockTimer) clockTimer = setInterval(paintClock, 1000);
     await beginPipeline();
@@ -1153,6 +1165,7 @@ const listenModel = (() => {
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
+    nativeSessionOff();   // 锁屏卡 / 灵动岛也一起收（收音＝开麦，见 nativeSessionOn 的注释）
     if (inc) inc.reset();
     clearPartials();
     // 「没有声音」与「拿不到声音」是两回事，出口也相反（#424）。指向权限的条件有两个，
@@ -1198,6 +1211,7 @@ const listenModel = (() => {
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     micStop(); closeSocket();
+    nativeSessionOff();   // 具名停止同样收会话（socket-retry / 来电的自动续听会再开）
     if (inc) inc.reset();
     clearPartials();
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
@@ -1235,6 +1249,7 @@ const listenModel = (() => {
   async function resume() {
     if (phase !== 'paused' && phase !== 'halted') return;
     await beginPipeline();
+    nativeSessionOn();   // 续听要把音频会话 / 灵动岛 / 锁屏卡一起开回来
     // 改稿 D：断线重连 / 来电结束的**自动**续听，要回到「收音中」—— 否则麦开了却没有收音侧，
     // 界面（高亮 / 小字）与麦克风对不上。用户手动「点一下」开的那种不经过这里（pttToggle 自己设）。
     if (resumeSide && phase === 'listening') {
@@ -1260,7 +1275,8 @@ const listenModel = (() => {
     micStop(); closeSocket(); keepAliveOff();
     if (inc) inc.reset();
     pipRectOff(); pipWindow = ''; pipReason = ''; paintPipFloat();
-    if (bridged()) { if (session.mode === 'subtitle') NativeAudio.subtitleHide(); NativeAudio.sessionStop(); NativeAudio.recordMode(false); }
+    if (bridged() && session.mode === 'subtitle') NativeAudio.subtitleHide();
+    nativeSessionOff();
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     closeShow();

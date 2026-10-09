@@ -95,6 +95,22 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(/resumeSide = '';/.test(MODEL), 'resumeSide 用了不清（会把下一次续听也带偏）');
   });
 
+  test('还在收音就不撤强制语言（撤了下一句没判据 ⇒ 整句丢）（真机 #578）', () => {
+    ok(/if \(pttRow && !ptt\) pttForceOff\(\);/.test(MODEL),
+      '落行时无条件撤强制语言 —— 收音中（一整段）会让后续每一句都被归属闸丢掉');
+  });
+
+  test('停止收音时音频会话 / 锁屏卡一起收；续听再开回来（真机 #578）', () => {
+    ok(/function nativeSessionOff\(\)/.test(MODEL) && /NativeAudio\.sessionStop\(\)/.test(MODEL), '没有会话收尾出口');
+    ok(/function nativeSessionOn\(\)/.test(MODEL) && /NativeAudio\.sessionStart\(\)/.test(MODEL), '没有会话开启出口');
+    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function pause(reason)') + 900);
+    ok(/nativeSessionOff\(\)/.test(pauseFn), 'pause 没有收会话 —— 员工停止对话后锁屏卡会一直挂着');
+    const haltFn = MODEL.slice(MODEL.indexOf('function halt(reason'), MODEL.indexOf('function halt(reason') + 1400);
+    ok(/nativeSessionOff\(\)/.test(haltFn), 'halt 没有收会话');
+    const resFn = MODEL.slice(MODEL.indexOf('async function resume()'), MODEL.indexOf('async function resume()') + 700);
+    ok(/nativeSessionOn\(\)/.test(resFn), 'resume 没有把会话开回来（续听会没有音频会话）');
+  });
+
   test('文案与布局：左「说+本名」、两键小字都跟界面语言、无 pttHint、无小结卡/结束/已听/披露', () => {
     ok(/t\('listen_ptt_say', '说\{lang\}'\)/.test(MODEL), '左键不是「说 + 本名」');
     ok(/t\('listen_ptt_tap_start', '点一下开始'\)/.test(MODEL), '未收音小字不是新键 listen_ptt_tap_start');
