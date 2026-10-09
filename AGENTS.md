@@ -151,6 +151,27 @@ Two corollaries, both load-bearing:
   approves; the implementation then has to match it — not the other way round. Internal diagnostic
   pages and developer switches are exempt (they are not user-visible).
 
+**Every draft must cover every form factor the surface has — one column per variant (mandatory,
+2026-10-09 用户裁定；原话「以后都要求所有设计都这样」)。** The App is **one iOS binary for iPhone and
+iPad** (`TARGETED_DEVICE_FAMILY = "1,2"`) plus a macOS target, and its layout is decided by **window
+width**, not by device (`@media (min-width: 720px)` in `app/style.css`). So "a screen" is really three
+variants, and a draft that shows only one of them is not a draft:
+
+| Variant | When it applies | What the draft must say about it |
+|---|---|---|
+| **窄**（mobile） | iPhone；以及 iPad 分屏 / Slide Over、Mac 缩窗 **< 720px** | 单栏、贴底通栏按钮、命中区 ≥44pt |
+| **宽 · iPad** | 全屏 iPad（竖 768 / 横 1024，都 ≥720） | 触控口径：**不要依赖 hover**、命中区 ≥44pt、`<select>` 点开是原生弹层 |
+| **宽 · Mac** | Mac 窗口 ≥720 | 指针口径：可以有 hover 态；Mac 专属说明/快捷键只在这边 |
+
+Rules that follow from it:
+
+- **Do not write an iPad-only layout.** iPad follows the wide layout; split-screen falls back to the
+  narrow one by width. A separate iPad build/layout is a thing this repo does not have.
+- **Write the rules into `docs/interaction-spec.md` in the same commit as the code**, naming the
+  breakpoint, both variants, and the platform differences — the draft and the spec are one artifact
+  in two places.
+- If a variant genuinely cannot be drawn, say so and stop (same corollary as above).
+
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
 — the single source of truth (YouTube subtitle layout, line/paging rules, loading
 state, control menu, webpage injection). When you change how translations look or

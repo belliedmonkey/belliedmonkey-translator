@@ -1681,11 +1681,7 @@ const listenModel = (() => {
     paintNowPlaying();
   }
   // paint 的数据版（视图渲染时逐项取）。
-  function langLineText() {
-    return mode === 'subtitle'
-      ? t('subtitle_lang_line', '{a} → {b}').replace('{a}', langLabel(cfg && cfg.otherLang)).replace('{b}', langLabel(cfg && cfg.myLang))
-      : t('listen_lang_pair', '{a} ⇄ {b}').replace('{a}', langLabel(cfg && cfg.myLang)).replace('{b}', langLabel(cfg && cfg.otherLang));
-  }
+  
   function nowLabel() {
     const sub = mode === 'subtitle';
     // 上卡的归属**按半句实时判**：句子还没定稿就先给出归属，判错了用户当场看得见，
@@ -1966,7 +1962,7 @@ const listenModel = (() => {
     pttToggle, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     // 渲染数据（listen-view.jsx 渲染期调用）
-    modeView, pillView, langLineText, nowLabel, ephemeralView, toggleView,
+    modeView, pillView, nowLabel, ephemeralView, toggleView,
     nowView: () => ({ partial: partial || '', partialTr: partial && partialTr ? partialTr + '…' : '' }),   // renderNow 的数据版
     // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
     formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),

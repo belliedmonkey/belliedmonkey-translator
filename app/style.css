@@ -592,7 +592,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-head h2 { font-size: 1.25rem; margin: 0; flex: 1; }
 :where(#app-listen) .listen-pill { font-size: 0.8rem; color: var(--dim); background: var(--card-bg); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
 :where(#app-listen) .listen-pill.live { color: var(--sage-strong); }
-:where(#app-listen) .listen-langline { margin: 0; }
 :where(#app-listen) .listen-now-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; color: var(--dim); }
 /* iPhone 实时字幕：画中画小窗预览占位（深色底与原生预览同色，原生叠上之前也不刺眼） */
 :where(#app-listen) .listen-subs-pip { width: 64%; max-width: 280px; aspect-ratio: 4 / 5; margin: 8px auto 0; border-radius: 12px; background: #161412; display: flex; align-items: center; justify-content: center; }
@@ -692,7 +691,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 :where(#firstrun-packs) .pack-name { font-size: 1rem; font-weight: 600; color: var(--fg); }
 :where(#firstrun-packs) .pack-row .note { margin: 0; }
-:where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
 :where(#app-listen) .listen-row.me .listen-who { color: var(--accent-deep); }
@@ -712,14 +710,16 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* macOS 宿主的窗口是 820×640 起步、可拉宽：≥ 720px 时左右两栏 —— 左边「当下」+ 两个按钮，
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
-  #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
-    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "queue hist" "note hist" "actions hist" "ctl hist" "enginehist hist" "ephwhy hist"; }
+  /* 宽屏（改稿 E 定稿）：**左栏固定 250pt**（现在卡 + 控制区 + **两个键**）/ 右栏 = 整句定稿。
+     形态由**窗口宽度**决定，不是设备：全屏 iPad 与 Mac 同属这一套；iPad 分屏 / Mac 缩窗 <720
+     自动回落上面那套窄版（不为 iPad 另写布局）。 */
+  #app-listen:not([hidden]) { display: grid; grid-template-columns: 250px minmax(0, 1fr); column-gap: 20px; row-gap: 10px; align-items: start;
+    grid-template-areas: "head head" "macnote macnote" "now hist" "ctl hist" "actions hist" "ptt hist" "queue hist" "note hist" "enginehist hist" "ephwhy hist"; }
   /* 每个直接子元素都要有自己的格子（test/app-listen-grid.test.js）：没写的会被自动放置，
      共用 class 的会叠进同一格 —— 「这次不留记录」曾与「朗读译文」叠在 speakrow 里。 */
   :where(#app-listen) .listen-head { grid-area: head; }
-  :where(#app-listen) .listen-langline { grid-area: lang; }
-  :where(#app-listen) .listen-mac-note { grid-area: macnote; }
-  #app-listen-now { grid-area: now; }
+  :where(#app-listen) .listen-mac-note { grid-area: macnote; margin: 0; }
+  #app-listen-now { grid-area: now; align-self: start; }
   #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
@@ -728,7 +728,13 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-ptt { grid-area: ptt; }
   #app-listen-queue { grid-area: queue; }
   #app-listen-ephemeral-why { grid-area: ephwhy; }
-  :where(#app-listen) .listen-history { max-height: calc(100vh - 250px); }
+  /* 两个键在宽版**回到左栏内**：解开贴底固定 —— 桌面上不再是两条通栏横幅。 */
+  #app-listen-ptt { position: static; padding: 0; background: none; border-top: 0; }
+  /* 左栏里的控制区：药丸换行排，不挤成一行 */
+  :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  :where(#app-listen) .listen-toggles { margin-left: 0; }
+  :where(#app-listen) .listen-pair-seg select { max-width: none; }
+  :where(#app-listen) .listen-history { max-height: calc(100vh - 210px); }
 }
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }

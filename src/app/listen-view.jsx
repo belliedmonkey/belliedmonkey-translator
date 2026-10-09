@@ -270,10 +270,7 @@ export function ListenView() {
         <h2 id="app-listen-title">{mv.title}</h2>
         <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '')}>{pill ? pill.text : ''}</span>
       </div>
-      <p className="note listen-langline">
-        <span id="app-listen-lang">{listenModel.langLineText()}</span>{' '}
-        <span id="app-listen-ephemeral-pill" className="listen-eph-pill" hidden={!ev.pillShown}>{t('listen_ephemeral_pill', '这次不留记录')}</span>
-      </p>
+      {/* 顶部那行语言行已删（改稿 E）：语言对只由控制区那个胶囊表达，不再说两遍。 */}
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
         {t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。')}
       </p>
