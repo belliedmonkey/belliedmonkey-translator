@@ -731,6 +731,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-ephemeral-why { grid-area: ephwhy; }
   /* 两个键在宽版**回到左栏内**：解开贴底固定 —— 桌面上不再是两条通栏横幅。 */
   #app-listen-ptt { position: static; padding: 0; background: none; border-top: 0; }
+  /* 两个键在宽版**竖排**：左栏只有 250pt，并排时每个约 117pt，小字「● 正在录 · 点一下停」
+     会挤成两行并顶到底边（Mac 真机截图实测）。竖排各占满左栏宽，读起来也像桌面控件。 */
+  :where(#app-listen) .listen-ptt { flex-direction: column; height: auto; }
+  :where(#app-listen) .listen-ptt-btn { height: 64px; }
   /* 左栏里的控制区：药丸换行排，不挤成一行 */
   :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
   :where(#app-listen) .listen-toggles { margin-left: 0; }
