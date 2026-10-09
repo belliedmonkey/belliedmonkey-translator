@@ -276,10 +276,17 @@ async function probe() {
 
 // ── 输出静音（M 组确定性：不让 Mac 麦克风听到朗读 —— 那是 M3 物理版的事）─────────
 let mutedRestore = null;
+let inputVol = 0;   // muteOn 前的输入音量（跑完还原）
 async function muteOn() {
   try {
     mutedRestore = execSync(`osascript -e 'output muted of (get volume settings)'`, { env: cleanEnv(), encoding: 'utf8' }).trim() === 'true';
     if (!mutedRestore) execSync(`osascript -e 'set volume output muted true'`, { env: cleanEnv(), stdio: 'ignore' });
+    // **输入也要静音**（2026-10-09 round H 实测）：只听输出还不够 —— App 的朗读会从扬声器
+    // 漏进 Mac 自己的麦克风（或房间里的声音），识别器把**真音频**一路送进串句器，注入的句子
+    // 被并进一条永不收口的尾巴 ⇒ M2/M3/P-03 假红（现场里全是真 stt-final）。注入的用例本来
+    // 就不需要真麦克风，所以把输入拉到 0，跑完还原。
+    inputVol = Number(execSync(`osascript -e 'input volume of (get volume settings)'`, { env: cleanEnv(), encoding: 'utf8' }).trim());
+    execSync(`osascript -e 'set volume input volume 0'`, { env: cleanEnv(), stdio: 'ignore' });
   } catch (_) { mutedRestore = null; }
 }
 async function muteOff() {
@@ -964,7 +971,8 @@ const restoreVolume = () => {
   if (!volBefore || volRestored) return;
   volRestored = true;
   try {
-    execSync(`osascript -e 'set volume output muted ${volBefore.muted === 'true' ? 'true' : 'false'}' -e 'set volume output volume ${Number(volBefore.volume) || 50}'`);
+    execSync(`osascript -e 'set volume output muted ${volBefore.muted === 'true' ? 'true' : 'false'}' -e 'set volume output volume ${Number(volBefore.volume) || 50}'`
+      + (inputVol ? ` -e 'set volume input volume ${inputVol}'` : ''));
     const now = {
       muted: execSync(`osascript -e 'output muted of (get volume settings)'`).toString().trim(),
       volume: execSync(`osascript -e 'output volume of (get volume settings)'`).toString().trim(),
