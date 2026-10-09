@@ -246,7 +246,7 @@
         ptt: {
           shown: visible('app-listen-ptt'),
           // **名字 span**，不是整个按钮 —— 左键按钮里现在还有小字（C 案），读 textContent 会把
-          // 两者粘成「说中文点一下或按住说话」（P-01 第一版就是这么假红的）。
+          // 两者会被粘成一句（P-01 第一版就是这么假红的）。
           mine: txt('app-listen-ptt-mine-name'),
           mineHint: txt('app-listen-ptt-mine-hint'),
           otherName: txt('app-listen-ptt-other-name'),
