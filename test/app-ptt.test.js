@@ -47,7 +47,6 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(/function pttAbort\(\)/.test(MODEL), '没有 pttAbort');
     const ab = MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'));
     ok(/ptt = null;/.test(ab) && /pttForceOff\(\)/.test(ab), 'pttAbort 没有清收音态与强制语言');
-    ok(/pttSpeakResume\(\)/.test(ab), 'pttAbort 没有接着播队列');
     for (const anchor of ['function start(', 'function pause(', 'function halt(', 'function end(']) {
       const seg = MODEL.slice(MODEL.indexOf(anchor), MODEL.indexOf(anchor) + 400);
       ok(/pttAbort\(\)/.test(seg), anchor + ' 没有走 pttAbort（会漏清收音态）');
@@ -59,18 +58,10 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
       '看门狗没有守住「收音还没结束就不清强制语言」');
   });
 
-  test('开始收音停朗读 + 冻队列；停止收音接着播（vbD0C，改挂到点一下上）', () => {
-    ok(/let pttSpeakPaused = false;/.test(MODEL), '没有「朗读队列暂停」的状态位');
-    const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
-    ok(/pttSpeakPause\(\);/.test(fn), '开始收音没有停朗读 / 冻队列');
-    ok(/pttSpeakResume\(\)/.test(MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'))),
-      '停止收音没有解冻（队列会一直冻着）');
-    ok(!/sq\.clear\(\)/.test(MODEL.slice(MODEL.indexOf('function pttSpeakPause'), MODEL.indexOf('function pttSpeakPause') + 400)),
-      '把队列清空了 —— 停止收音要按原顺序接着播，不能丢句');
-    ok(/if \(pttSpeakPaused\) break;/.test(MODEL), '朗读泵没有在冻住时停下');
-    ok(/if \(!speakPumping && sq\.size\(\)\) speakPump\(\)/.test(
-      MODEL.slice(MODEL.indexOf('function pttSpeakResume'), MODEL.indexOf('function pttSpeakResume') + 500)),
-      '泵已经退出时没有重新起 —— 队列会卡住');
+  test('收音期间**不冻**朗读队列（2026-10-09 用户裁定 A：撤 vbD0C，靠回声闸）', () => {
+    ok(!/pttSpeakPaused|pttSpeakPause|pttSpeakResume/.test(MODEL), '冻队列那一套应当撤掉');
+    ok(!/if \(pttSpeakPaused\) break;/.test(MODEL), '朗读泵不该再被收音冻住（冻住 = 自动朗读永不发声）');
+    ok(/echo\.playingLangs|echo\.isEcho/.test(MODEL), '回声闸还在 —— 这是 A 案唯一的保护');
   });
 
   test('进页面不开麦：open 的对话分支不再 start()', () => {
@@ -86,6 +77,16 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
       '对话页的静音门没有被撤掉');
     ok(/session\.mode === 'subtitle' && C\.silenceCheck\(session, rms, now\(\)\)/.test(MODEL),
       '本机路（onLevel）的静音门没有被撤掉');
+  });
+
+  test('断线重连 / 来电自动续听要回到「收音中」（麦开了就得有收音侧）', () => {
+    const halt = MODEL.slice(MODEL.indexOf('function halt('), MODEL.indexOf('function halt(') + 600);
+    ok(/reason === 'socket-retry' \|\| reason === 'locked'\) && ptt\) resumeSide = ptt\.side/.test(halt),
+      'halt 没有为可续停机留下收音侧');
+    const res = MODEL.slice(MODEL.indexOf('async function resume()'), MODEL.indexOf('function resumeByUser'));
+    ok(/resumeSide && phase === 'listening'/.test(res) && /ptt = \{ side: s \}/.test(res),
+      'resume 没有把「收音中」恢复回来');
+    ok(/resumeSide = '';/.test(MODEL), 'resumeSide 用了不清（会把下一次续听也带偏）');
   });
 
   test('文案与布局：左「说+本名」、两键小字都跟界面语言、无 pttHint、无小结卡/结束/已听/披露', () => {

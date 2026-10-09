@@ -98,8 +98,8 @@ describe('C-08 旧文案清零 · 死键退场', () => {
   test('补稿 ② listen_device_privacy：与 E9 第二句同措辞（服务商 / 两条路 / 不保存文字）', () => {
     eq(msg('zh_CN', 'listen_device_privacy'),
       '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。');
-    ok(/listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，/.test(MODEL),
-      'listen-model.js 的兜底串没跟着改');
+    ok(/listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，/.test(SETTINGS),
+      '披露搬去设置页后，settings-view.jsx 的兜底串没跟上（listen-model 里那段已随 footView 退役）');
     for (const l of LOCALES) ok(msg(l, 'listen_device_privacy').trim(), `${l} 的 listen_device_privacy 是空的`);
   });
   test('四个死键在 13 个语言文件里都删掉了', () => {
