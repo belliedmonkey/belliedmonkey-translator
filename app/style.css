@@ -635,6 +635,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-tg.off { opacity: 0.45; }
 :where(#app-listen) .listen-tg input { width: 18px; height: 18px; accent-color: var(--accent); }
 :where(#app-listen) .listen-tg-ico { font-size: 0.95rem; line-height: 1; }
+:where(#app-listen) .listen-tg-svg { width: 16px; height: 16px; flex: none; color: var(--text-secondary); }
 /* 「语言手动指定」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
    认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
 :where(#app-listen) .listen-sheet-mask { position: fixed; inset: 0; z-index: 2147483000; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
@@ -720,7 +721,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   :where(#app-listen) .listen-head { grid-area: head; }
   :where(#app-listen) .listen-mac-note { grid-area: macnote; margin: 0; }
   #app-listen-now { grid-area: now; align-self: start; }
-  #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
+  #app-listen-history-wrap { grid-area: hist; align-self: start; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
   :where(#app-listen) .listen-ctl-row { grid-area: ctl; }

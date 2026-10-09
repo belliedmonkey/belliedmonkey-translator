@@ -225,6 +225,17 @@ function MicIcon() {
   );
 }
 
+// 喇叭图标（改稿 E）：与话筒同一套做法 —— 单色内联 SVG，跟随文字色。
+// 原来那个 🔊 emoji 在 WKWebView 里被渲染成一坨深色（用户 2026-10-09 截图），换掉。
+function SpeakerIcon() {
+  return (
+    <svg className="listen-tg-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" fill="currentColor" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.6a7.5 7.5 0 0 1 0 10.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ── 主视图（#app-listen section 整体）─────────────────────────────────────────
 export function ListenView() {
   useSyncExternalStore(subView, () => viewVersion);
@@ -268,7 +279,7 @@ export function ListenView() {
       <div className="listen-head">
         <button id="app-listen-back" className="link" type="button" onClick={listenModel.leave}>{t('app_listen_back', '‹ 返回')}</button>
         <h2 id="app-listen-title">{mv.title}</h2>
-        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '')}>{pill ? pill.text : ''}</span>
+        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '')} hidden={!(pill && pill.text)}>{pill ? pill.text : ''}</span>
       </div>
       {/* 顶部那行语言行已删（改稿 E）：语言对只由控制区那个胶囊表达，不再说两遍。 */}
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
@@ -327,7 +338,7 @@ export function ListenView() {
         <div className="listen-toggles" id="app-listen-toggles">
           <label className="listen-tg" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
             <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
-            <span className="listen-tg-ico" aria-hidden="true">🔊</span>
+            <SpeakerIcon />
             <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
           </label>
           {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
