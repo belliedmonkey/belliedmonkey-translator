@@ -25,11 +25,15 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
 
   test('点一下 = 开收音（idle/ended 起会话；paused/halted 续）；再点同键 = 停', () => {
     const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
-    ok(/if \(ptt && phase === 'listening'\)/.test(fn), '没有「正在收音」这一支');
+    ok(/if \(ptt\) \{/.test(fn), '没有「已经在收音」这一支');
     ok(/ptt\.side === side\) \{ pttStop\(\); return true; \}/.test(fn), '再点同一个键没有停止收音');
-    ok(/pttCut\(\);/.test(fn) && /ptt = \{ side \};/.test(fn), '点另一个键没有「先收口再换边」');
+    ok(/if \(phase === 'listening'\) pttCut\(\);/.test(fn), '换边时没有「在听才收口」');
+    ok(/ptt = \{ side \};/.test(fn), '换边没有改到那一侧');
     ok(/phase === 'idle' \|\| phase === 'ended'\) start\(\)/.test(fn), 'idle/ended 没有起会话');
     ok(/phase === 'paused' \|\| phase === 'halted'\) resumeByUser\(\)/.test(fn), 'paused/halted 没有续上');
+    // 停止/换边**不看相位**：点下去到管道起来之间（准备中）也该能停、能换（第一版只认
+    // phase==='listening'，P-02/P-07 因此在「准备中」撞成了「什么都不发生」）。
+    ok(!/if \(ptt && phase === 'listening'\)/.test(fn), '停止/换边又被相位挡住了');
     // 顺序不能反：start() 内部会 pttAbort()，先设收音态会被它清掉。
     const tail = fn.slice(fn.indexOf("phase === 'idle'"));
     ok(tail.indexOf('start()') >= 0 && tail.indexOf('start()') < tail.indexOf('ptt = { side }'),

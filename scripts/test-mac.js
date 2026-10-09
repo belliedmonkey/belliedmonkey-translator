@@ -354,6 +354,8 @@ async function recOn(side) {
   if ((await evalOk('__mtTest.ptt.state()')).on) return true;
   await evalOk(`__mtTest.ptt.toggle('${side || 'mine'}'), true`);
   await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 30000, '点录音键开麦');
+  // 等**管道就绪**：ptt 是同步置位的，phase 要等 beginPipeline。注入/断言都得等它。
+  await waitFor(async () => (await evalOk('AppListen._debug().phase')) === 'listening', 90000, '收音管道就绪');
   return true;
 }
 async function recOff() {
@@ -697,6 +699,8 @@ async function startRec(side, ms) {
   await ensureIdle();
   await evalOk(`__mtTest.ptt.toggle('${side || 'mine'}'), true`);
   await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, ms || 25000, '点一下开始收音');
+  // 等管道就绪（ptt 同步置位，phase 要等 beginPipeline）—— 否则断言/注入会跑在 preparing 上。
+  await waitFor(async () => (await evalOk('AppListen._debug().phase')) === 'listening', 90000, '收音管道就绪');
 }
 async function stopRec(ms) {
   const st = await evalOk('__mtTest.ptt.state()');

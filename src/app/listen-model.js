@@ -562,17 +562,16 @@ const listenModel = (() => {
     // __mtTest.micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
     if (typeof window !== 'undefined' && window.__mtMicDenied) { halt('denied'); return false; }
     if (!liveCapable()) return false;                      // 灰掉（原因见 pttView）
-    // 正在收音
-    if (ptt && phase === 'listening') {
-      if (ptt.side === side) { pttStop(); return true; }   // 再点同一个键 = 停止收音
-      // 点另一个键 = 先收口这一句、换到那一侧继续收音（麦不重开，队列仍冻着）
-      pttCut();
+    // 已经在收音（ptt 非空）：**同侧 = 停止**（任何相位都算 —— 正在准备中也该能停）；
+    // 异侧 = 换边（准备中就直接改侧，等管道起来就按新侧走）。
+    if (ptt) {
+      if (ptt.side === side) { pttStop(); return true; }
+      if (phase === 'listening') pttCut();   // 收口只在这一刻有意义
       ptt = { side };
       pttForceOn(side);
       canvas.view('state');
       return true;
     }
-    if (ptt) return false;                                 // 已在收音，但管道还在准备 / 下载
     // 开始收音。**顺序不能反**：`start()` 内部会 `pttAbort()`（清收音态），先设会被它清掉。
     if (pttStopTimer) { clearTimeout(pttStopTimer); pttStopTimer = 0; }   // 收尾间隙里又点了 ⇒ 继续录
     if (phase === 'idle' || phase === 'ended') start();
@@ -603,7 +602,8 @@ const listenModel = (() => {
   function pttView() {
     const sub = mode === 'subtitle';
     const canUse = !sub && liveCapable();
-    const on = !!(ptt && phase === 'listening');
+    // 高亮看的是「收音态」本身，不是相位 —— 点下去到管道起来之间（准备中）键就该亮着。
+    const on = !!ptt;
     const idleHint = t('listen_ptt_tap_start', '点一下开始');
     const recordingHint = t('listen_ptt_recording', '● 正在录 · 点一下结束');
     return {
