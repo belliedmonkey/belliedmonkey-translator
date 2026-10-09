@@ -485,7 +485,17 @@ async function quiet(ms) {
   return false;
 }
 
+// 改稿 D：**收音侧决定「这一句按谁的语言识别」**。M 组各条注入的语言不同 ⇒ 各自把收音侧摆对；
+// 不摆的话，注入语言与收音侧不符时会被归属闸**整句丢掉**（round J 的 M3/M4/M5/M7 就是这么红的：
+// 它们在 setup 的「我说中文」侧注入泰语，而「点谁就按谁识别、不跑判定」正是改稿 D 的规则）。
+async function recSide(side) {
+  const st = await evalOk('__mtTest.ptt.state()');
+  if (st.on && st.side === side) return;
+  if (st.on) { await evalOk(`__mtTest.ptt.toggle('${side}'), true`); await sleep(600); return; }
+  await startRec(side);
+}
 async function m7(ctx) {
+  await recSide('mine');                     // 第一句是中文 ⇒ 收音侧摆到「我说中文」
   await say('今天我们测试翻译。', 'zh-CN');
   await waitRow('今天我们测试翻译');
   // 第二句要**词汇远离**任何可能被朗读的译文：先前用「การทดสอบ」跟 zh 句的泰语译文
@@ -493,6 +503,7 @@ async function m7(ctx) {
   // 但光远离词还不够 —— 第一句的**译文是泰语**，朗读期间 `echo.playingLangs()` 会整门挡住泰语，
   // 第二句（也是泰语）照样被丢 ⇒ 这条用例偶发红。等朗读排空再注入（2026-10-08 三次里红两次）。
   await quiet();
+  await recSide('other');                    // 第二句是对方（泰语）⇒ 换到泰语侧
   await say('ที่นี่ขายกาแฟหรือเปล่า', 'th');
   await waitRow('กาแฟ');   // 第二句成行（累积不覆盖）
   const s = await state();
@@ -519,6 +530,7 @@ async function m2(ctx) {
 // （物理版 —— 扬声器出声被麦克风采回 —— 是 §0.4 音频层的真回环，静音状态下另案观察。）
 async function m3(ctx) {
   if (!ctx.spokenThai) throw new Error('M2 没跑成（没有可回声的泰语）—— 先看 M2 的失败');
+  await recSide('other');                    // 这一条注入的是泰语 ⇒ 收音侧摆到泰语侧
   // 等「M2 那句泰语真的被念」：拿 AppListen._debug().lastSpoken 对上 —— 事件静默不可信
   // （kokoro 念完逐出 vits、泰语要重装引擎，几秒无声会被误判成排空，2026-10-05 实测）。
   const norm = (x) => String(x || '').replace(/\s+/g, '');
@@ -560,6 +572,7 @@ async function m4(ctx) {
   // 朗读**念完之后**对方回话 —— 这才是现实里的插话时机（不是在我们出声期间抢话）。
   // 「播放进行中 + 同语言」那道闸（回声修）只覆盖我们自己出声期间；念完后仍走文字闸，不同的话照收。
   await waitFor(drained, 60000, 'M4 起算前：朗读队列排空');
+  await recSide('other');                    // 对方的话是泰语 ⇒ 收音侧摆到泰语侧
   await say('ฉันหิวข้าวมาก', 'th');
   await waitRow('หิวข้าว', 15000);   // 对方的新句成行（不误杀）
 }
@@ -570,6 +583,7 @@ async function m4(ctx) {
 // done，泵看不见 —— 这本身是 #565 的后续发现，已立项），由 npm test 的 speakPump/即报门钉着。
 async function m5() {
   await waitFor(drained, 60000, '朗读队列排空（M5 要干净起算）');
+  await recSide('other');                    // 三句都是泰语 ⇒ 收音侧摆到泰语侧
   const S = ['วันนี้อากาศดีมากเลย', 'เท่าไหร่สำหรับสองคน', 'ทางไหนไปสนามบิน'];
   for (let i = 0; i < S.length; i++) {
     await say(S[i], 'th');
