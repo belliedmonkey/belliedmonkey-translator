@@ -24,7 +24,8 @@ setTimeout(async () => { step('WATCHDOG'); fs.writeFileSync(path.join(OUT, 'fire
   const tree = async () => { const { contexts } = await send('browsingContext.getTree', {}); const flat = []; const walk = (cs) => cs.forEach((c) => { flat.push(c); walk(c.children || []); }); walk(contexts); return flat; };
   // ── 扩展页（已开着就用，否则让网页自导航过去）
   let extCtx = (await tree()).find((c) => (c.url || '').startsWith(`moz-extension://${uuid}/options`)); extCtx = extCtx && extCtx.context;
-  if (!extCtx) { const { context } = await send('browsingContext.create', { type: 'tab' }); await send('browsingContext.navigate', { context, url: 'http://192.168.2.1:8765/page.html', wait: 'complete' }); await evalIn(context, `location.href = 'moz-extension://${uuid}/options/options.html'; true`); await sleep(3000); extCtx = context; }
+  const PAGE = process.env.MT_WIN_PAGE || 'http://192.168.2.1:8765/page.html';
+  if (!extCtx) { const { context } = await send('browsingContext.create', { type: 'tab' }); await send('browsingContext.navigate', { context, url: PAGE, wait: 'complete' }); await evalIn(context, `location.href = 'moz-extension://${uuid}/options/options.html'; true`); await sleep(3000); extCtx = context; }
   step('扩展页 ' + extCtx);
   // ── 语音：按语言挑真实存在的声音，speak，等 start/end
   for (const [lang, text] of (process.argv.includes('--yt-only') ? [] : [['zh-CN', '你好，这是 Windows 上的试听。'], ['en-US', 'This is what your review cards will sound like.']])) {
@@ -42,8 +43,7 @@ setTimeout(async () => { step('WATCHDOG'); fs.writeFileSync(path.join(OUT, 'fire
     const ensurePlaying = async () => { for (let i = 0; i < 4; i++) { const st = await state(); if (st.paused === false) return st; await trustedClick('.ytp-play-button'); await sleep(2000); } return await state(); };
     let st = await ensurePlaying(); step('播放 ' + JSON.stringify(st));
     let ytBtn = false; for (let i = 0; i < 20 && !ytBtn; i++) { ytBtn = val(await evalIn(yt, "(() => { const b = document.getElementById('mt-yt-btn'); if (!b) return false; b.click(); return true; })()")); if (!ytBtn) await sleep(1000); }
-    await sleep(600);
-    const rowTxt = val(await evalIn(yt, "(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()"));
+    let rowTxt = null; for (let m = 0; m < 25 && !rowTxt; m++) { await sleep(400); rowTxt = val(await evalIn(yt, "(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()")); }
     step('译按钮 ' + (ytBtn ? '已点' : '没出现') + '，菜单第一行 ' + JSON.stringify(rowTxt)); log.ytBtn = ytBtn; log.ytMenuRow = rowTxt;
     // 等真字幕：不是占位符、不是不可用
     const isReal = (x) => x && x.trans && !/加载中|不可用|转写引擎|准备中/.test(x.trans);
