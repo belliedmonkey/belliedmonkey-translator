@@ -24,6 +24,7 @@ import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
+import listenModel from './listen-model.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
 
@@ -1516,7 +1517,13 @@ export default function SettingsView() {
             <input id="listen-capture" type="checkbox" />
             <span id="listen-capture-label">{t('listen_capture_label', '对话进复习（来源「对话」）')}</span>
           </label>
-          <p className="note" id="listen-capture-note">{t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。')}</p>
+          <p className="note" id="listen-capture-note">{t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你点底部录音键开始收音之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。')}</p>
+          {/* 两段披露从听译页搬到这里（改稿 D，2026-10-09 用户定：听译页精简，说明放设置）。
+              文字一字不改 —— 免费额度那条路仍有单独披露（AGENTS.md 规则 4 / learning-design §2.1）。 */}
+          <p className="note" id="set-listen-privacy">{t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。')}</p>
+          <p className="note" id="set-subs-privacy">{listenModel.isMacHost()
+            ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
+            : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')}</p>
           <label className="check">
             <input id="subtitle-capture" type="checkbox" />
             <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>

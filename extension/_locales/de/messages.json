@@ -2403,9 +2403,6 @@
     "message": "Funktioniert auch bei Online-Meetings und Videoanrufen: Lassen Sie die Stimme der anderen Seite einfach über die Lautsprecher laufen.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "Beenden"
-  },
   "listen_cost_line": {
     "message": "{t} gehört · Audio geht nur an deinen Transkriptions-Endpunkt"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "Mikrofon konnte nicht starten: {why} — noch einmal „Zuhören starten“ tippen."
   },
-  "listen_summary_title": {
-    "message": "Dieses Gespräch"
-  },
-  "listen_summary_note": {
-    "message": "Die Aufnahme wird verworfen; nur Text bleibt. Sätze in der Wiederholung lassen sich unter Quellen › Gespräch verwalten oder komplett löschen."
-  },
-  "listen_summary_home": {
-    "message": "Zur Startseite"
-  },
-  "listen_summary_again": {
-    "message": "Noch eins"
-  },
   "listen_np_title": {
     "message": "Gespräch · Live-Dolmetscher"
   },
@@ -2455,7 +2440,7 @@
     "message": "Gespräche zur Wiederholung hinzufügen (Quelle „Gespräch“)"
   },
   "listen_capture_note": {
-    "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, nur nach „Zuhören starten“ und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
+    "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, erst wenn du unten eine Aufnahmetaste tippst und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
   },
   "listen_who_them": {
     "message": "Gegenüber"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "Nicht behalten"
-  },
-  "listen_ephemeral_summary": {
-    "message": "Von diesem Gespräch wurde nichts behalten"
-  },
-  "listen_summary_kept": {
-    "message": "{n} in die Wiederholung (Quelle Gespräch) · davon {s} markiert"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · Gegenüber {them} · ich {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n}× Seite korrigiert"
   },
   "listen_my_lang_label": {
     "message": "Meine Sprache"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "Höre {lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} spricht · erneut tippen zum Beenden"
+  "listen_ptt_tap_start": {
+    "message": "Zum Starten tippen"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "Nichts gehört — versuch es noch einmal"
-  },
-  "listen_ptt_need_start": {
-    "message": "Verfügbar, sobald du „Zuhören starten“ tippst"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "Tippen oder gedrückt halten zum Sprechen"
+  "listen_ptt_recording": {
+    "message": "● Aufnahme · zum Stoppen tippen"
   }
 }

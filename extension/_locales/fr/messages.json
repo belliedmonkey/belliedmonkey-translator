@@ -2403,9 +2403,6 @@
     "message": "Fonctionne aussi pour les réunions en ligne et les appels vidéo : laissez simplement la voix de l’autre sortir par les haut-parleurs.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "Terminer"
-  },
   "listen_cost_line": {
     "message": "{t} écoutées · l’audio ne va qu’à votre point de transcription"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "Le micro n’a pas démarré : {why} — touchez à nouveau « Commencer l’écoute »."
   },
-  "listen_summary_title": {
-    "message": "Cette conversation"
-  },
-  "listen_summary_note": {
-    "message": "L’enregistrement est supprimé ; seul le texte est conservé. Les phrases ajoutées se gèrent ou se suppriment en bloc dans Sources › Conversation."
-  },
-  "listen_summary_home": {
-    "message": "Accueil"
-  },
-  "listen_summary_again": {
-    "message": "Une autre"
-  },
   "listen_np_title": {
     "message": "Conversation · interprète en direct"
   },
@@ -2455,7 +2440,7 @@
     "message": "Ajouter les conversations à la révision (source « Conversation »)"
   },
   "listen_capture_note": {
-    "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après « Commencer l’écoute » et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
+    "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après avoir touché une touche d’enregistrement en bas et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
   },
   "listen_who_them": {
     "message": "Lui"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "Non conservé"
-  },
-  "listen_ephemeral_summary": {
-    "message": "Rien n'a été conservé cette fois"
-  },
-  "listen_summary_kept": {
-    "message": "{n} en révision (source Conversation) · dont {s} en favori"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · lui {them} · moi {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} corrections de côté"
   },
   "listen_my_lang_label": {
     "message": "Ma langue"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "Écoute en {lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} en cours · touchez encore pour terminer"
+  "listen_ptt_tap_start": {
+    "message": "Touchez pour démarrer"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "Rien entendu — réessayez"
-  },
-  "listen_ptt_need_start": {
-    "message": "Disponible après avoir touché « Commencer l’écoute »"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "Appuyez ou maintenez pour parler"
+  "listen_ptt_recording": {
+    "message": "● Enregistrement · touchez pour arrêter"
   }
 }

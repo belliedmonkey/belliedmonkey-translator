@@ -2403,9 +2403,6 @@
     "message": "También sirve para reuniones en línea y videollamadas: basta con que la voz de la otra persona salga por los altavoces.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "Terminar"
-  },
   "listen_cost_line": {
     "message": "{t} escuchado · el audio solo va a tu punto de transcripción"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "El micrófono no arrancó: {why} — toca de nuevo «Empezar a escuchar»."
   },
-  "listen_summary_title": {
-    "message": "Esta conversación"
-  },
-  "listen_summary_note": {
-    "message": "La grabación se descarta; solo se conserva el texto. Las frases del repaso se gestionan o se borran en bloque en Fuentes › Conversación."
-  },
-  "listen_summary_home": {
-    "message": "Volver al inicio"
-  },
-  "listen_summary_again": {
-    "message": "Otra más"
-  },
   "listen_np_title": {
     "message": "Conversación · intérprete en vivo"
   },
@@ -2455,7 +2440,7 @@
     "message": "Añadir conversaciones al repaso (fuente «Conversación»)"
   },
   "listen_capture_note": {
-    "message": "«Conversación · intérprete en vivo» envía el micrófono en continuo al punto de transcripción que configuraste, solo tras «Empezar a escuchar» y solo a ese punto; nuestros servidores nunca tocan el audio; no se guarda ninguna grabación, solo texto — y solo mientras este interruptor esté activado."
+    "message": "«Conversación · intérprete en vivo» envía el micrófono en continuo al punto de transcripción que configuraste, solo tras tocar una tecla de grabación abajo y solo a ese punto; nuestros servidores nunca tocan el audio; no se guarda ninguna grabación, solo texto — y solo mientras este interruptor esté activado."
   },
   "listen_who_them": {
     "message": "Ellos"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "No se guarda"
-  },
-  "listen_ephemeral_summary": {
-    "message": "No se guardó nada de esta vez"
-  },
-  "listen_summary_kept": {
-    "message": "{n} al repaso (fuente Conversación) · {s} con estrella"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · él {them} · yo {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} correcciones de lado"
   },
   "listen_my_lang_label": {
     "message": "Mi idioma"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "Escuchando {lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● Hablando {lang} · toca otra vez para terminar"
+  "listen_ptt_tap_start": {
+    "message": "Toca para empezar"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "No se oyó nada: inténtalo de nuevo"
-  },
-  "listen_ptt_need_start": {
-    "message": "Disponible tras tocar «Empezar a escuchar»"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "Toca o mantén pulsado para hablar"
+  "listen_ptt_recording": {
+    "message": "● Grabando · toca para parar"
   }
 }

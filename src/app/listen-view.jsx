@@ -220,13 +220,11 @@ export function ListenView() {
 
   const mv = listenModel.modeView();
   const pill = listenModel.pillView();
-  const fv2 = listenModel.footView();
   const nv = listenModel.nowView();
   const ev = listenModel.ephemeralView();
   const tv = listenModel.toggleView();
   const fv = listenModel.formView();
   const hv = listenModel.historyView();
-  const sv = listenModel.summaryView();
   const shv = listenModel.showView();
   const note = listenModel.noteView();
   const pv = listenModel.pttView();
@@ -287,7 +285,6 @@ export function ListenView() {
             <button id="app-listen-copy" type="button" className="link" hidden={!hv.copyShown} onClick={onCopy}>
               {flash != null ? flash : listenModel.copyText()}
             </button>
-            <button id="app-listen-end" type="button" className="link" hidden={tv.endHidden} onClick={listenModel.end}>{t('listen_end', '结束')}</button>
           </span>
         </div>
         <div id="app-listen-history" className="listen-history"><HistoryRows hv={hv} /></div>
@@ -295,32 +292,50 @@ export function ListenView() {
       {/* 排队时说清还剩几句 —— 不说就成了「怎么读的不是刚才那句」 */}
       <p className="note" id="app-listen-queue" hidden={!hv.queueShown}>{hv.queueText}</p>
       <p className={note.err ? 'note err' : 'note'} id="app-listen-note">{note.text}</p>
-      {/* 主按钮管**整场**开合；下面这条「按住说」管**这一句**谁在说（2026-10-08 终稿 3）。 */}
-      <div id="app-listen-actions" hidden={tv.ended}>
+      {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
+          那两个「点一下」键（＝开麦 / 关麦）。 */}
+      <div id="app-listen-actions" hidden={tv.ended || !mv.sub}>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
-      {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
-      <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
-      {/* 语言区（§9.6.1.8，2026-10-07 用户拍）：**两门对称互译** ——
-          「听到一种语言，就译另一种语言」，没有「我 / 对方」的角色，也没有「手动指定语言」那一层。
-          字幕那页没有「我」这一侧，用角色标签（视频语言 → 译成），同一对键、同一个控件。 */}
-      <div className="listen-lang-wrap" id="app-listen-lang-wrap">
-        <div className="listen-lang" id="app-listen-lang">
-          <label className="note">{mv.langPairLabels[0]
-            ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
-            <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-              {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
-          <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
-          <label className="note">{mv.langPairLabels[1]
-            ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
-            <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-              {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
+      {/* 控制区收成一行（改稿 D）：语言对 + 自动朗读译文 + 这次不留记录（字幕页多一个「字幕进复习」）。
+          「听到A→译成B」提示行、已听、两段隐私披露都从这一页撤掉 —— 披露移「设置 › 听译」。 */}
+      <div className="listen-ctl-row" id="app-listen-ctl">
+        <div className="listen-lang-wrap" id="app-listen-lang-wrap">
+          <div className="listen-lang" id="app-listen-lang">
+            <label className="note">{mv.langPairLabels[0]
+              ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
+              <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+                {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+              </select>
+            </label>
+            <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
+            <label className="note">{mv.langPairLabels[1]
+              ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
+              <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
+                {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
-        <p className="note" id="app-listen-dirs">{mv.langDirsText}</p>
+        <div className="listen-ctl-checks" id="app-listen-ctl-checks">
+          <label className="check listen-autospeak" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
+            <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
+            <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
+          </label>
+          {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
+          <label className={'check listen-autospeak' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
+            <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
+            <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
+          </label>
+          {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
+          <div id="app-subs-prep" hidden={mv.prepHidden}>
+            <label className="check listen-autospeak">
+              <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
+              <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
+            </label>
+            <p className="note" id="app-subs-tip">{mv.subsTipText}</p>
+          </div>
+        </div>
       </div>
       {/* 「换引擎」（2026-10-04 用户裁定）：语言列表**始终列全**，被引擎挡住的那些灰显并带一句
           「当前引擎不支持」—— 出路**就地**给，不是一句「去设置里选」。只在真有被挡住的语言时出现。 */}
@@ -328,43 +343,18 @@ export function ListenView() {
         <button type="button" id="app-listen-change-engine" className="linkish"
           onClick={() => listenModel.changeEngine()}>{t('listen_lang_change_engine', '换引擎')}</button>
       </div>
-      <label className="check listen-autospeak" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
-        <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
-        <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
-      </label>
-      {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
-      <label className={'check listen-autospeak' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
-        <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
-        <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
-      </label>
       {/* 灰掉时屏上一定有原因（表 1 的家规）：会话进行中且没勾上，说清为什么改不了。 */}
       <p className="note" id="app-listen-ephemeral-why" hidden={!ev.whyShown}>{ev.whyText}</p>
-      {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
-      <div id="app-subs-prep" hidden={mv.prepHidden}>
-        <label className="check listen-autospeak">
-          <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
-          <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
-        </label>
-        <p className="note" id="app-subs-tip">{mv.subsTipText}</p>
-      </div>
-      <p className="note" id="app-listen-cost">{fv2.cost}</p>
-      {/* Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行。 */}
-      <p className="note" id="app-listen-device-privacy" hidden={!fv2.privacyShown}>{fv2.privacyText}</p>
 
-      {/* 按住说 / 点一下（Pencil jERJ5 / gitVW 终稿 3）：左＝你这门「说中文」，右＝对方那门
-          （本名大字 + **那门语言**的小字）。按下 = 这一句按这门识别（不跑语种判定）；
-          松手不足 0.4s = 锁定（再点一下结束）；够 0.4s = 定稿。锁定时点另一个键 = 先定稿再切。
-          灰掉时就近说原因（未开始 / 已暂停同一句）。 */}
+      {/* 两个录音键（改稿 D，2026-10-09）：**只有「点一下」**。左＝你这门「说中文」，右＝对方那门。
+          点一下开始收音（起会话 / 开麦 / 挂灵动岛），再点同键停止；点另一个键 = 先定稿这边、
+          换到那一侧。两键的小字都跟界面语言：未收音「点一下开始」，收音中「● 正在录 · 点一下结束」。 */}
       <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
-        <p className="note listen-ptt-locked" id="app-listen-ptt-locked" hidden={!pv.locked}>{pv.lockedText}</p>
         <div className="listen-ptt" id="app-listen-ptt-bar">
           <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
             disabled={pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.mineSide); }}
-            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.mineSide); }}
-            onPointerLeave={() => listenModel.pttUp(pv.mineSide)}
-            onPointerCancel={() => listenModel.pttUp(pv.mineSide)}>
+            onClick={() => listenModel.pttToggle(pv.mineSide)}>
             <span className="listen-ptt-name" id="app-listen-ptt-mine-name">{pv.mineLabel}</span>
             {pv.mineHint ? <span className="listen-ptt-hint" id="app-listen-ptt-mine-hint">{pv.mineHint}</span> : null}
           </button>
@@ -372,25 +362,12 @@ export function ListenView() {
           <button id="app-listen-ptt-other" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.otherSide ? ' on' : '')}
             disabled={pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
-            onPointerDown={(e) => { e.preventDefault(); listenModel.pttDown(pv.otherSide); }}
-            onPointerUp={(e) => { e.preventDefault(); listenModel.pttUp(pv.otherSide); }}
-            onPointerLeave={() => listenModel.pttUp(pv.otherSide)}
-            onPointerCancel={() => listenModel.pttUp(pv.otherSide)}>
+            onClick={() => listenModel.pttToggle(pv.otherSide)}>
             <span className="listen-ptt-name" id="app-listen-ptt-other-name">{pv.otherLabel}</span>
             {pv.otherHint ? <span className="listen-ptt-hint" id="app-listen-ptt-other-hint">{pv.otherHint}</span> : null}
           </button>
         </div>
         <p className="note" id="app-listen-ptt-why" hidden={!pv.whyText}>{pv.whyText}</p>
-        <p className="note" id="app-listen-ptt-note" hidden={!pv.noteText}>{pv.noteText}</p>
-      </div>
-      <div id="app-listen-summary" className="drive-card" hidden={!sv.shown}>
-        <h3 id="app-listen-summary-title">{mv.summaryTitle}</h3>
-        <p id="app-listen-summary-body">{sv.body || ''}</p>
-        <p className="note" id="app-listen-summary-note">{mv.summaryNote}</p>
-        <div className="drive-grid">
-          <button id="app-listen-summary-home" type="button" onClick={listenModel.leave}>{t('listen_summary_home', '回到首页')}</button>
-          <button id="app-listen-summary-again" type="button" className="secondary" onClick={listenModel.summaryAgain}>{t('listen_summary_again', '再来一段')}</button>
-        </div>
       </div>
 
       {/* 放大展示卡（给对方看）：点任一历史行打开，底下照常在听；点任意处关闭 —— 不是按钮才关。 */}

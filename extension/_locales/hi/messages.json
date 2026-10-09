@@ -2236,9 +2236,6 @@
     "message": "ऑनलाइन मीटिंग और वीडियो कॉल में भी काम करता है: बस सामने वाले की आवाज़ स्पीकर से बजने दें।",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "समाप्त"
-  },
   "listen_cost_line": {
     "message": "{t} सुना · ऑडियो केवल आपके ट्रांसक्रिप्शन एंडपॉइंट पर जाता है"
   },
@@ -2263,18 +2260,6 @@
   "listen_stop_failed": {
     "message": "माइक्रोफ़ोन शुरू नहीं हुआ: {why} — “सुनना शुरू करें” फिर टैप करें।"
   },
-  "listen_summary_title": {
-    "message": "यह बातचीत"
-  },
-  "listen_summary_note": {
-    "message": "रिकॉर्डिंग हटा दी जाती है; केवल टेक्स्ट रहता है। रिव्यू के वाक्य स्रोत › बातचीत में प्रबंधित या पूरे हटाए जा सकते हैं।"
-  },
-  "listen_summary_home": {
-    "message": "होम पर लौटें"
-  },
-  "listen_summary_again": {
-    "message": "एक और"
-  },
   "listen_np_title": {
     "message": "बातचीत · लाइव दुभाषिया"
   },
@@ -2288,7 +2273,7 @@
     "message": "बातचीत को रिव्यू में जोड़ें (स्रोत “बातचीत”)"
   },
   "listen_capture_note": {
-    "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल “सुनना शुरू करें” के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
+    "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल नीचे रिकॉर्ड कुंजी दबाने के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
   },
   "listen_who_them": {
     "message": "सामने वाला"
@@ -2340,18 +2325,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "सहेजा नहीं जाएगा"
-  },
-  "listen_ephemeral_summary": {
-    "message": "इस बार कुछ नहीं रखा गया"
-  },
-  "listen_summary_kept": {
-    "message": "{n} दोहराव में (स्रोत «बातचीत») · {s} तारांकित"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · सामने वाला {them} · मैं {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} बार पक्ष बदला"
   },
   "listen_my_lang_label": {
     "message": "मेरी भाषा"
@@ -3676,16 +3649,10 @@
   "listen_listening_lang": {
     "message": "{lang} सुन रहे हैं…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} बोल रहे हैं · खत्म करने के लिए फिर दबाएँ"
+  "listen_ptt_tap_start": {
+    "message": "शुरू करने के लिए टैप करें"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "कुछ सुनाई नहीं दिया — फिर कोशिश करें"
-  },
-  "listen_ptt_need_start": {
-    "message": "«सुनना शुरू करें» दबाने के बाद उपलब्ध"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "बोलने के लिए टैप करें या दबाए रखें"
+  "listen_ptt_recording": {
+    "message": "● रिकॉर्ड हो रहा है · रोकने के लिए टैप करें"
   }
 }

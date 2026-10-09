@@ -2404,9 +2404,6 @@
     "message": "線上會議、視訊通話也能用：讓對方的聲音從喇叭放出來即可。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "結束"
-  },
   "listen_cost_line": {
     "message": "已聽 {t} · 音訊只發往你設定的轉寫端點"
   },
@@ -2431,18 +2428,6 @@
   "listen_stop_failed": {
     "message": "麥克風啟動失敗：{why} — 再點一次「開始聽」。"
   },
-  "listen_summary_title": {
-    "message": "這次對話"
-  },
-  "listen_summary_note": {
-    "message": "錄音已丟棄；只保留文字。進複習的句子可在「來源 › 對話」裡管理或整段刪除。"
-  },
-  "listen_summary_home": {
-    "message": "回到首頁"
-  },
-  "listen_summary_again": {
-    "message": "再來一段"
-  },
   "listen_np_title": {
     "message": "對話 · 即時聽譯中"
   },
@@ -2456,7 +2441,7 @@
     "message": "對話進複習（來源「對話」）"
   },
   "listen_capture_note": {
-    "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你按下「開始聽」之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
+    "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你點底部錄音鍵開始收音之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
   },
   "listen_who_them": {
     "message": "對方"
@@ -2508,18 +2493,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "這次不留記錄"
-  },
-  "listen_ephemeral_summary": {
-    "message": "這次沒有留下記錄"
-  },
-  "listen_summary_kept": {
-    "message": "進複習（來源「對話」）{n} 句 · 含 {s} 句加星"
-  },
-  "listen_summary_body2": {
-    "message": "時長 {t} · 對方說了 {them} 句 · 我說了 {me} 句 · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "改過邊 {n} 句"
   },
   "listen_my_lang_label": {
     "message": "我的語言"
@@ -3844,16 +3817,10 @@
   "listen_listening_lang": {
     "message": "正在聽{lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} 正在說 · 再點一下結束"
+  "listen_ptt_tap_start": {
+    "message": "點一下開始"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "沒聽到聲音，再試一次"
-  },
-  "listen_ptt_need_start": {
-    "message": "點「開始聽」後可用"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "點一下或按住說話"
+  "listen_ptt_recording": {
+    "message": "● 正在錄 · 點一下結束"
   }
 }

@@ -2403,9 +2403,6 @@
     "message": "Works for online meetings and video calls too: just let the other side's voice play through the speakers.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "End"
-  },
   "listen_cost_line": {
     "message": "Listened {t} · audio goes only to your transcription endpoint"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "Microphone failed to start: {why} — tap “Start listening” again."
   },
-  "listen_summary_title": {
-    "message": "This conversation"
-  },
-  "listen_summary_note": {
-    "message": "The recording is discarded; only text is kept. Sentences added to review can be managed or deleted as a whole under Sources › Conversation."
-  },
-  "listen_summary_home": {
-    "message": "Back to home"
-  },
-  "listen_summary_again": {
-    "message": "Another one"
-  },
   "listen_np_title": {
     "message": "Conversation · live interpreter"
   },
@@ -2455,7 +2440,7 @@
     "message": "Add conversations to review (source “Conversation”)"
   },
   "listen_capture_note": {
-    "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap “Start listening” and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
+    "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap a record key at the bottom and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
   },
   "listen_who_them": {
     "message": "Them"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "Not kept"
-  },
-  "listen_ephemeral_summary": {
-    "message": "Nothing was kept from this one"
-  },
-  "listen_summary_kept": {
-    "message": "{n} into review (source Conversation) · {s} starred"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · they said {them} · I said {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} side corrections"
   },
   "listen_my_lang_label": {
     "message": "My language"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "Listening to {lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● Speaking {lang} · tap again to end"
+  "listen_ptt_tap_start": {
+    "message": "Tap to start"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "Didn’t hear anything — try again"
-  },
-  "listen_ptt_need_start": {
-    "message": "Available after you tap “Start listening”"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "Tap or hold to speak"
+  "listen_ptt_recording": {
+    "message": "● Recording · tap to stop"
   }
 }

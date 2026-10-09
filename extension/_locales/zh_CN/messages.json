@@ -2404,9 +2404,6 @@
     "message": "线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "结束"
-  },
   "listen_cost_line": {
     "message": "已听 {t} · 音频只发往你配置的转写端点"
   },
@@ -2431,18 +2428,6 @@
   "listen_stop_failed": {
     "message": "麦克风启动失败：{why} — 再点一次「开始听」。"
   },
-  "listen_summary_title": {
-    "message": "这次对话"
-  },
-  "listen_summary_note": {
-    "message": "录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。"
-  },
-  "listen_summary_home": {
-    "message": "回到首页"
-  },
-  "listen_summary_again": {
-    "message": "再来一段"
-  },
   "listen_np_title": {
     "message": "对话 · 实时听译中"
   },
@@ -2456,7 +2441,7 @@
     "message": "对话进复习（来源「对话」）"
   },
   "listen_capture_note": {
-    "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
+    "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你点底部录音键开始收音之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
   },
   "listen_who_them": {
     "message": "对方"
@@ -2508,18 +2493,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "这次不留记录"
-  },
-  "listen_ephemeral_summary": {
-    "message": "这次没有留下记录"
-  },
-  "listen_summary_kept": {
-    "message": "进复习（来源「对话」）{n} 句 · 含 {s} 句加星"
-  },
-  "listen_summary_body2": {
-    "message": "时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "改过边 {n} 句"
   },
   "listen_my_lang_label": {
     "message": "我的语言"
@@ -3844,16 +3817,10 @@
   "listen_listening_lang": {
     "message": "正在听{lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} 正在说 · 再点一下结束"
+  "listen_ptt_tap_start": {
+    "message": "点一下开始"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "没听到声音，再试一次"
-  },
-  "listen_ptt_need_start": {
-    "message": "点「开始听」后可用"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "点一下或按住说话"
+  "listen_ptt_recording": {
+    "message": "● 正在录 · 点一下结束"
   }
 }

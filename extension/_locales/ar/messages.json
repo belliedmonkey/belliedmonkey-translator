@@ -2403,9 +2403,6 @@
     "message": "يعمل أيضًا في الاجتماعات عبر الإنترنت ومكالمات الفيديو: دع صوت الطرف الآخر يخرج من مكبّرات الصوت فحسب.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "إنهاء"
-  },
   "listen_cost_line": {
     "message": "استُمع {t} · الصوت يذهب فقط إلى نقطة النسخ الخاصة بك"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "تعذر تشغيل الميكروفون: {why} — المس «ابدأ الاستماع» مرة أخرى."
   },
-  "listen_summary_title": {
-    "message": "هذه المحادثة"
-  },
-  "listen_summary_note": {
-    "message": "يُحذف التسجيل ويُحتفظ بالنص فقط. يمكن إدارة جمل المراجعة أو حذفها كاملة في المصادر › محادثة."
-  },
-  "listen_summary_home": {
-    "message": "العودة للرئيسية"
-  },
-  "listen_summary_again": {
-    "message": "واحدة أخرى"
-  },
   "listen_np_title": {
     "message": "محادثة · مترجم فوري"
   },
@@ -2455,7 +2440,7 @@
     "message": "إضافة المحادثات إلى المراجعة (المصدر «محادثة»)"
   },
   "listen_capture_note": {
-    "message": "يبث «محادثة · مترجم فوري» الميكروفون إلى نقطة النسخ التي ضبطتها، فقط بعد «ابدأ الاستماع» وإلى تلك النقطة فقط؛ خوادمنا لا تلمس الصوت أبداً؛ لا يُحفظ أي تسجيل، فقط النص — وفقط ما دام هذا المفتاح مفعلاً."
+    "message": "يبث «محادثة · مترجم فوري» الميكروفون إلى نقطة النسخ التي ضبطتها، فقط بعد النقر على زر تسجيل في الأسفل وإلى تلك النقطة فقط؛ خوادمنا لا تلمس الصوت أبداً؛ لا يُحفظ أي تسجيل، فقط النص — وفقط ما دام هذا المفتاح مفعلاً."
   },
   "listen_who_them": {
     "message": "الطرف الآخر"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "لا يُحفظ"
-  },
-  "listen_ephemeral_summary": {
-    "message": "لم يُحفظ شيء من هذه المرة"
-  },
-  "listen_summary_kept": {
-    "message": "{n} إلى المراجعة (المصدر «محادثة») · منها {s} بنجمة"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · الطرف الآخر {them} · أنا {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} تصحيحات للطرف"
   },
   "listen_my_lang_label": {
     "message": "لغتي"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "أستمع إلى {lang}…"
   },
-  "listen_ptt_locked": {
-    "message": "● تتحدث {lang} · اضغط مرة أخرى للإنهاء"
+  "listen_ptt_tap_start": {
+    "message": "انقر للبدء"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "لم أسمع شيئًا — حاول مرة أخرى"
-  },
-  "listen_ptt_need_start": {
-    "message": "متاح بعد الضغط على «ابدأ الاستماع»"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "اضغط أو استمر بالضغط للتحدث"
+  "listen_ptt_recording": {
+    "message": "● جارٍ التسجيل · انقر للإيقاف"
   }
 }

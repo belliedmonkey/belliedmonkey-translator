@@ -2403,9 +2403,6 @@
     "message": "オンライン会議やビデオ通話でも使えます。相手の声をスピーカーから流すだけです。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "終了"
-  },
   "listen_cost_line": {
     "message": "{t} 聞きました · 音声は設定したエンドポイントにのみ送信"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "マイクを開始できません：{why} — もう一度「聞き始める」を押してください。"
   },
-  "listen_summary_title": {
-    "message": "この会話"
-  },
-  "listen_summary_note": {
-    "message": "録音は破棄され、テキストのみ保持します。復習に入った文は「ソース › 会話」で管理・一括削除できます。"
-  },
-  "listen_summary_home": {
-    "message": "ホームへ"
-  },
-  "listen_summary_again": {
-    "message": "もう一回"
-  },
   "listen_np_title": {
     "message": "会話 · 通訳中"
   },
@@ -2455,7 +2440,7 @@
     "message": "会話を復習に入れる（ソース「会話」）"
   },
   "listen_capture_note": {
-    "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、「聞き始める」を押した後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
+    "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、下部の録音キーで収音を始めた後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
   },
   "listen_who_them": {
     "message": "相手"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "記録しません"
-  },
-  "listen_ephemeral_summary": {
-    "message": "今回は何も記録していません"
-  },
-  "listen_summary_kept": {
-    "message": "復習へ {n} 文（ソース「会話」）· うち星 {s} 文"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · 相手 {them} 文 · 自分 {me} 文 · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "話者を {n} 回修正"
   },
   "listen_my_lang_label": {
     "message": "自分の言語"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "{lang}を聞き取り中…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} を話しています · もう一度タップで終了"
+  "listen_ptt_tap_start": {
+    "message": "タップして開始"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "音声が聞こえませんでした。もう一度お試しください"
-  },
-  "listen_ptt_need_start": {
-    "message": "「聞き始める」を押すと使えます"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "タップまたは長押しで話す"
+  "listen_ptt_recording": {
+    "message": "● 録音中 · タップして終了"
   }
 }

@@ -2403,9 +2403,6 @@
     "message": "온라인 회의나 영상 통화에도 쓸 수 있습니다. 상대의 목소리를 스피커로 틀기만 하면 됩니다.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "종료"
-  },
   "listen_cost_line": {
     "message": "{t} 들음 · 음성은 설정한 엔드포인트로만 전송"
   },
@@ -2430,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "마이크 시작 실패: {why} — 「듣기 시작」을 다시 누르세요."
   },
-  "listen_summary_title": {
-    "message": "이번 대화"
-  },
-  "listen_summary_note": {
-    "message": "녹음은 폐기되고 텍스트만 남습니다. 복습에 들어간 문장은 「출처 › 대화」에서 관리하거나 통째로 삭제할 수 있습니다."
-  },
-  "listen_summary_home": {
-    "message": "홈으로"
-  },
-  "listen_summary_again": {
-    "message": "한 번 더"
-  },
   "listen_np_title": {
     "message": "대화 · 통역 중"
   },
@@ -2455,7 +2440,7 @@
     "message": "대화를 복습에 추가 (출처 「대화」)"
   },
   "listen_capture_note": {
-    "message": "「대화 · 실시간 통역」은 「듣기 시작」을 누른 뒤에만, 설정한 전사 엔드포인트로만 마이크 음성을 전송합니다. 저희 서버는 음성에 접근하지 않으며, 녹음은 저장하지 않고 텍스트만(이 스위치가 켜진 동안만) 남깁니다."
+    "message": "「대화 · 실시간 통역」은 하단의 녹음 키로 수음을 시작한 뒤에만, 설정한 전사 엔드포인트로만 마이크 음성을 전송합니다. 저희 서버는 음성에 접근하지 않으며, 녹음은 저장하지 않고 텍스트만(이 스위치가 켜진 동안만) 남깁니다."
   },
   "listen_who_them": {
     "message": "상대"
@@ -2507,18 +2492,6 @@
   },
   "listen_ephemeral_pill": {
     "message": "기록 안 함"
-  },
-  "listen_ephemeral_summary": {
-    "message": "이번에는 아무것도 남기지 않았습니다"
-  },
-  "listen_summary_kept": {
-    "message": "복습으로 {n}문장 (출처 «대화») · 별표 {s}문장"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · 상대 {them}문장 · 나 {me}문장 · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "화자 {n}회 수정"
   },
   "listen_my_lang_label": {
     "message": "내 언어"
@@ -3843,16 +3816,10 @@
   "listen_listening_lang": {
     "message": "{lang} 듣는 중…"
   },
-  "listen_ptt_locked": {
-    "message": "● {lang} 말하는 중 · 다시 누르면 종료"
+  "listen_ptt_tap_start": {
+    "message": "탭하여 시작"
   },
-  "listen_ptt_heard_nothing": {
-    "message": "소리가 들리지 않았습니다. 다시 시도하세요"
-  },
-  "listen_ptt_need_start": {
-    "message": "「듣기 시작」을 누르면 사용할 수 있습니다"
-  },
-  "listen_ptt_tap_hold": {
-    "message": "탭하거나 길게 눌러 말하기"
+  "listen_ptt_recording": {
+    "message": "● 녹음 중 · 탭하여 종료"
   }
 }
