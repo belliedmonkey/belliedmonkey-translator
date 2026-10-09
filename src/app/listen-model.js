@@ -610,7 +610,7 @@ const listenModel = (() => {
     // 高亮看的是「收音态」本身，不是相位 —— 点下去到管道起来之间（准备中）键就该亮着。
     const on = !!ptt;
     const idleHint = t('listen_ptt_tap_start', '点一下开始');
-    const recordingHint = t('listen_ptt_recording', '● 正在录 · 点一下结束');
+    const recordingHint = t('listen_ptt_recording', '● 正在录 · 点一下停');
     return {
       // 对话页永远显示这两个键（它们就是这一页唯一的启停控件）。
       shown: !sub,

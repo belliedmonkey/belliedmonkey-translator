@@ -619,13 +619,23 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* 语言状态行（§9.6.1.4，2026-10-07 用户拍）：语言控件**不再常驻** —— 默认只有一行被动状态
    （「正在识别语言…」/「已识别：中文 · English」）加一个「语言手动指定」文字按钮；认错了才摊开
    原来的两个下拉。包一层 wrap 是为了让 grid 里只占一格（收起时不改变布局）。 */
-:where(#app-listen) .listen-lang-wrap { display: flex; flex-direction: column; gap: 8px; }
-/* 控制区收成一行（改稿 D，2026-10-09）：语言对 + 自动朗读 + 这次不留记录（字幕页多「字幕进复习」）。
-   窄屏自然换行；宽屏与语言对并排。 */
-:where(#app-listen) .listen-ctl-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 18px; }
-:where(#app-listen) .listen-ctl-checks { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; }
-:where(#app-listen) .listen-lang { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-:where(#app-listen) .listen-lang button { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; }
+/* 控制区（改稿 E，2026-10-09 · Pencil `改稿 E` 定稿 B）：**语言对一个胶囊** + 右侧两个图标开关。
+   语言对做成一个壳 —— 两个 select 在**同一个**圆角胶囊里，中间的 ⇄ 既是分隔、也一眼看出「一对」；
+   窄屏自然折行（胶囊不被拆开）。变量只用调色板里真实存在的 token。 */
+:where(#app-listen) .listen-ctl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+:where(#app-listen) #app-listen-lang-wrap { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; }
+:where(#app-listen) .listen-pair-seg { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+:where(#app-listen) .listen-pair-seg select { font: inherit; font-size: 0.95rem; color: var(--text);
+  background: transparent; border: 0; padding: 2px 2px; max-width: 42vw; }
+:where(#app-listen) .listen-pair-arrow { color: var(--accent); font-weight: 600; padding: 0 2px; }
+:where(#app-listen) .listen-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+:where(#app-listen) .listen-tg { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 12px;
+  min-height: 40px; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg);
+  font-size: 0.9rem; cursor: pointer; }
+:where(#app-listen) .listen-tg.off { opacity: 0.45; }
+:where(#app-listen) .listen-tg input { width: 18px; height: 18px; accent-color: var(--accent); }
+:where(#app-listen) .listen-tg-ico { font-size: 0.95rem; line-height: 1; }
 /* 「语言手动指定」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
    认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
 :where(#app-listen) .listen-sheet-mask { position: fixed; inset: 0; z-index: 2147483000; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
@@ -635,10 +645,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-sheet-dot { color: var(--accent); }
 :where(#app-listen) .listen-sheet-sub { margin: 0; }
 :where(#app-listen) .listen-sheet-close { font: inherit; font-weight: 700; min-height: 44px; border-radius: 999px; border: 1.5px solid var(--line, var(--border, #dcd3c4)); background: none; color: var(--accent-deep, var(--accent)); cursor: pointer; }
-:where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-:where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
-:where(#app-listen) .listen-pair select { font: inherit; }
-:where(#app-listen) .listen-pair-arrow { color: var(--accent); }
 /* 「换引擎」就地入口（2026-10-04）：语言列表被引擎挡住时才出现的一行文字按钮 —— 沿用强调色，
    不新造控件样式（卡片里不许再套卡片、也不加第二个实心按钮）。 */
 :where(#app-listen) .listen-engine-hint { margin: -2px 0 2px; font-size: inherit; }
@@ -654,17 +660,18 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   display: flex; flex-direction: column; gap: 6px;
   padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
   background: var(--bg); border-top: 1px solid var(--border); }
-:where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 60px; }
-:where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: var(--sage-light); color: var(--text); border: 1px solid var(--border); border-radius: 24px;
+:where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 64px; }
+:where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--sage-light); color: var(--text); border: 1px solid var(--border); border-radius: 22px;
   padding: 6px; font: inherit; font-weight: 600; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
 :where(#app-listen) .listen-ptt-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 :where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.85); }
 :where(#app-listen) .listen-ptt-btn:disabled { opacity: 0.45; cursor: default; }
-:where(#app-listen) .listen-ptt-name { font-size: 1.05rem; line-height: 1.2; }
+:where(#app-listen) .listen-ptt-name { display: inline-flex; align-items: center; gap: 6px; font-size: 1.05rem; line-height: 1.2; }
+:where(#app-listen) .listen-ptt-mic { width: 16px; height: 16px; flex: none; }
 :where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--text-secondary); line-height: 1.2; }
 /* 贴底的按钮条会盖住内容尾巴：给页面留出它的高度（60 + 上下内边距 + 安全区）。 */
-:where(#app-listen) { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+:where(#app-listen) { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、

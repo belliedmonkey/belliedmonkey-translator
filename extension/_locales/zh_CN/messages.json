@@ -3821,6 +3821,6 @@
     "message": "点一下开始"
   },
   "listen_ptt_recording": {
-    "message": "● 正在录 · 点一下结束"
+    "message": "● 正在录 · 点一下停"
   }
 }

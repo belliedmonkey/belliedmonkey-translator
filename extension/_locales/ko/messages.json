@@ -3820,6 +3820,6 @@
     "message": "탭하여 시작"
   },
   "listen_ptt_recording": {
-    "message": "● 녹음 중 · 탭하여 종료"
+    "message": "● 녹음 중 · 탭하여 정지"
   }
 }

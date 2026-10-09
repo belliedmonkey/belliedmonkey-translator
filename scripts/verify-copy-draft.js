@@ -34,7 +34,7 @@ const DRAFT = {
   // 两个键的小字都跟界面语言。
   listen_ptt_say: '说{lang}',
   listen_ptt_tap_start: '点一下开始',
-  listen_ptt_recording: '● 正在录 · 点一下结束',
+  listen_ptt_recording: '● 正在录 · 点一下停',
   listen_listening_lang: '正在听{lang}…',
 };
 // C-08 的旧串清单（一个字都不许留在产物里）。

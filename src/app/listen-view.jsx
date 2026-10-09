@@ -213,6 +213,18 @@ function HistoryRows({ hv }) {
   );
 }
 
+// 话筒图标（改稿 E）：单色内联 SVG，跟随文字色（currentColor）—— 不用 emoji，
+// 免得每个平台长得不一样、也不吃主题色。
+function MicIcon() {
+  return (
+    <svg className="listen-ptt-mic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3.5a2.8 2.8 0 0 1 2.8 2.8v5.4a2.8 2.8 0 0 1-5.6 0V6.3A2.8 2.8 0 0 1 12 3.5z" fill="currentColor" />
+      <path d="M6 11.2a6 6 0 0 0 12 0" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M12 17.2v3.3" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ── 主视图（#app-listen section 整体）─────────────────────────────────────────
 export function ListenView() {
   useSyncExternalStore(subView, () => viewVersion);
@@ -297,40 +309,41 @@ export function ListenView() {
       <div id="app-listen-actions" hidden={tv.ended || !mv.sub}>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
-      {/* 控制区收成一行（改稿 D）：语言对 + 自动朗读译文 + 这次不留记录（字幕页多一个「字幕进复习」）。
-          「听到A→译成B」提示行、已听、两段隐私披露都从这一页撤掉 —— 披露移「设置 › 听译」。 */}
+      {/* 控制区（改稿 E）：**语言对做成一个胶囊**（两个 select 包在同一个圆角壳里，中间 ⇄
+          既分隔也一眼看出「一对」），右侧两个图标开关靠右；窄屏自然折行。 */}
       <div className="listen-ctl-row" id="app-listen-ctl">
-        <div className="listen-lang-wrap" id="app-listen-lang-wrap">
-          <div className="listen-lang" id="app-listen-lang">
-            <label className="note">{mv.langPairLabels[0]
-              ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
-              <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-                {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-              </select>
-            </label>
-            <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
-            <label className="note">{mv.langPairLabels[1]
-              ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
-              <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-                {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-              </select>
-            </label>
-          </div>
+        <div className="listen-pair" id="app-listen-lang-wrap">
+          <label className="listen-pair-seg">
+            {mv.langPairLabels[0] ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
+            <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+              {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+          <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
+          <label className="listen-pair-seg">
+            {mv.langPairLabels[1] ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
+            <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
+              {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
         </div>
-        <div className="listen-ctl-checks" id="app-listen-ctl-checks">
-          <label className="check listen-autospeak" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
+        <div className="listen-toggles" id="app-listen-toggles">
+          <label className="listen-tg" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
             <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
+            <span className="listen-tg-ico" aria-hidden="true">🔊</span>
             <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
           </label>
           {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
-          <label className={'check listen-autospeak' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
+          <label className={'listen-tg' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
             <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
+            <span className="listen-tg-ico" aria-hidden="true">○</span>
             <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
           </label>
           {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
           <div id="app-subs-prep" hidden={mv.prepHidden}>
-            <label className="check listen-autospeak">
+            <label className="listen-tg">
               <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
+              <span className="listen-tg-ico" aria-hidden="true">✓</span>
               <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
             </label>
             <p className="note" id="app-subs-tip">{mv.subsTipText}</p>
@@ -355,7 +368,7 @@ export function ListenView() {
             disabled={pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
             onClick={() => listenModel.pttToggle(pv.mineSide)}>
-            <span className="listen-ptt-name" id="app-listen-ptt-mine-name">{pv.mineLabel}</span>
+            <span className="listen-ptt-name" id="app-listen-ptt-mine-name"><MicIcon />{pv.mineLabel}</span>
             {pv.mineHint ? <span className="listen-ptt-hint" id="app-listen-ptt-mine-hint">{pv.mineHint}</span> : null}
           </button>
           <span className="listen-ptt-sep" aria-hidden="true" />
@@ -363,7 +376,7 @@ export function ListenView() {
             disabled={pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
             onClick={() => listenModel.pttToggle(pv.otherSide)}>
-            <span className="listen-ptt-name" id="app-listen-ptt-other-name">{pv.otherLabel}</span>
+            <span className="listen-ptt-name" id="app-listen-ptt-other-name"><MicIcon />{pv.otherLabel}</span>
             {pv.otherHint ? <span className="listen-ptt-hint" id="app-listen-ptt-other-hint">{pv.otherHint}</span> : null}
           </button>
         </div>

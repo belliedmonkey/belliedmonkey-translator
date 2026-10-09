@@ -97,7 +97,7 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
   test('文案与布局：左「说+本名」、两键小字都跟界面语言、无 pttHint、无小结卡/结束/已听/披露', () => {
     ok(/t\('listen_ptt_say', '说\{lang\}'\)/.test(MODEL), '左键不是「说 + 本名」');
     ok(/t\('listen_ptt_tap_start', '点一下开始'\)/.test(MODEL), '未收音小字不是新键 listen_ptt_tap_start');
-    ok(/t\('listen_ptt_recording', '● 正在录 · 点一下结束'\)/.test(MODEL), '收音中小字不是 listen_ptt_recording');
+    ok(/t\('listen_ptt_recording', '● 正在录 · 点一下停'\)/.test(MODEL), '收音中小字不是 listen_ptt_recording');
     ok(!/pttHintOf|\.pttHint\b/.test(MODEL), '不再读那门语言写的 pttHint');
     ok(/pv\.mineHint/.test(VIEW) && /app-listen-ptt-mine-hint/.test(VIEW), '视图没有渲染左键小字');
     ok(!/app-listen-ptt-locked/.test(VIEW), '锁定提示那一行应当退役');

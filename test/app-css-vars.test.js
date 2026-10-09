@@ -73,8 +73,8 @@ describe('App CSS 的 token 门禁（不存在的 CSS 变量 = 一条静默失�
     ok(!/sage-weak/.test(block), '按钮条又用回了 --sage-weak（调色板里没有这个变量）');
     // 三件套：实心底 + 圆角 + 高度 —— 真机投诉的正是「看不出能按」
     ok(/background:\s*var\(--sage-light\)|background:\s*var\(--card-bg\)/.test(block), '按钮没有实心底色');
-    ok(/border-radius:\s*2[0-9]px/.test(block), '按钮没有圆角');
-    ok(/height:\s*60px/.test(block), '按钮条高度不是 60px（≥56pt 的稿值）');
+    ok(/border-radius:\s*2[0-9]px/.test(block), '按钮没有圆角（改稿 E：22px）');
+    ok(/height:\s*6[04]px/.test(block), '按钮条高度不是 60/64px（稿值 ≥56pt）');
     ok(/position:\s*fixed/.test(block), '按钮条不是固定贴底（稿里要求固定贴底）');
   });
 });
