@@ -642,33 +642,39 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'We can ship the first batch', conf: 0.95 }, DEPS));
   });
   // 2026-09-18：Mac harness 用 conv.pcm 读回的真实序列（en-US 路，t0/t1 毫秒、conf 均值）
-  test('句头救回：低置信的拉丁短片被紧接的高置信片接回，去掉开头的标点垃圾', () => {
+  // 第九轮（方案 1）改判：低置信拉丁片**不再按 conf 直接扣/丢**，而是按「同时间段中文侧有没有
+  // 已被接收且含汉字的定稿」裁决 —— 没有 ⇒ 放行进账本（放行时仍做句头拼接）。
+  test('句头救回（第九轮）：短低置信拉丁片仍扣住等重叠；1.5s 无中文重叠才放行，放行时拼接句头', async () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), []);
-    eq(g.held('en-US'), ',... The');
+    deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), [], '低置信短片先扣住');
+    eq(g.held('en-US'), ',... The', '扣住原文');
+    // 紧接的高置信片：把扣住的句头（去标点后的 The）接回来
     deepEq(g.push({ locale: 'en-US', text: 'quote already includes freight and insurance, but not customs duties.', conf: 0.98, t0: 17520, t1: 21420 }),
       ['The', 'quote already includes freight and insurance, but not customs duties.']);
     eq(g.held('en-US'), '', '接回之后不再扣着');
-    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), []);
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample first before we decide on the order', conf: 0.99, t0: 31780, t1: 34360 }),
-      ['we', 'need to see a sample first before we decide on the order']);
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), [], '低置信片仍扣住');
+    eq(g.held('en-US'), 'we');
   });
-  test('句头救回：中文整句期间 en 路吐的长串垃圾不扣、只有标点的片接回来也不会出字', () => {
+  test('句头救回（第九轮）：短低置信拉丁片扣住；与「已被接收含汉字」的中文重叠 ⇒ 丢弃', async () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: 'Rugua, Ting, Xing, Cho,', conf: 0.27, t0: 0, t1: 1200 }), []);
-    eq(g.held('en-US'), '', '四个词的垃圾不算句头');
-    deepEq(g.push({ locale: 'en-US', text: ' Wu,', conf: 0.21, t0: 1200, t1: 1500 }), []);
-    deepEq(g.push({ locale: 'en-US', text: ' P, Hua.', conf: 0.16, t0: 4019, t1: 4900 }), []);
-    deepEq(g.push({ locale: 'en-US', text: ',...', conf: 0.01, t0: 4900, t1: 5800 }), []);
-    eq(g.held('en-US'), ',...', '只扣最近的一小片，前面的 P, Hua. 已作废');
-    deepEq(g.push({ locale: 'en-US', text: 'We can ship the 1st batch next', conf: 0.91, t0: 5800, t1: 7540 }), ['We can ship the 1st batch next'], '扣住的只有标点 ⇒ 不出字');
+    deepEq(g.push({ locale: 'en-US', text: 'Rugua, Ting,', conf: 0.27, t0: 0, t1: 1200 }), [], '短片扣住');
+    eq(g.held('en-US'), 'Rugua, Ting,');
+    // 中文侧一条**已被入口接收**的定稿，覆盖 [0,1200]
+    g.noteOtherText('zh-CN', '今天天气不错', 0, 1200);
+    deepEq(g.push({ locale: 'en-US', text: ' sure', conf: 0.21, t0: 1100, t1: 1400 }), [], '与中文重叠 ⇒ 扣住的片被丢，新片也丢');
+    eq(g.held('en-US'), '', '丢弃不留残');
+    // 另一门语言时间不重叠 ⇒ 扣住后到点仍放行
+    deepEq(g.push({ locale: 'en-US', text: 'Wu,', conf: 0.21, t0: 1300, t1: 1600 }), [], '中文那条已结束（1300 > 1200）⇒ 先扣住');
+    eq(g.held('en-US'), 'Wu,');
   });
-  test('句头救回：不紧接（隔了停顿）的低置信片丢掉；文字系不对的片永不扣；zh 路不受影响', () => {
+  test('句头救回：文字系不对的片/纯标点片照旧；zh 路不受影响；低置信不静默丢字', () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), []);
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，不是同一句');
-    deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢');
-    eq(g.held('zh-CN'), '');
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), [], '低置信短片先扣住（不再按 conf 丢）');
+    eq(g.held('en-US'), 'we');
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，仍然照收');
+    deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢（扣住等重叠裁决）');
+    eq(g.held('zh-CN'), 'The', '拉丁片在 zh 路被扣住（按重叠裁决，不再直接丢）');
+    g.cancelAll();
     deepEq(g.push({ locale: 'zh-CN', text: '报', conf: 0.78, t0: 12000, t1: 12180 }), ['报'], 'CJK 碎片照收');
     deepEq(g.push({ locale: 'en-US', text: 'Sure.', conf: 0.59, t0: 24300, t1: 25700 }), ['Sure.']);
   });
@@ -844,7 +850,8 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
-    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 2, '半句与定稿各一道 LID 闸');
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 1, '半句那道 LID 闸');
+    eq((MODEL.match(/C\.intakeDecide\(\{/g) || []).length, 1, '定稿那道闸（唯一入口 intakeDecide：朗读/换边宽限/LID 归属/回声）');
     ok(/function lidPair\(\)/.test(MODEL), '没有 lidPair（只在两门里取）');
     ok(/const LID_CONFIRM_MS = \d+/.test(MODEL), '两门之间也会错报，要有 0.5s 的确认');
     ok(/Date\.now\(\) - lidLangAt\) >= LID_CONFIRM_MS/.test(MODEL), 'lidPair 没有那道确认');
@@ -859,12 +866,12 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('撤闸后：定稿也只用 0.5s 那道确认，扣住队列整体退场', () => {
     eq(typeof C.makeLidHold, 'undefined', 'makeLidHold 应当已从 listen-core 退场');
     ok(!/lidHold|lidPairFinal|LID_HOLD_MAX_MS|LID_CONFIRM_FINAL_MS/.test(MODEL), 'listen-model 里不该再有扣住队列的残留');
-    ok(/if \(!C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)\) return;/.test(MODEL), '定稿那一道闸没有回到 lidPair()');
+    ok(/lid: lidPair\(\), pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限）');
   });
 
   test('模型接线：撤闸后定稿直接用 lidPair()；引擎默认 ECAPA、可开发开关回 whisper', () => {
-    ok(/if \(!C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)\) return;   \/\/ 错语言那一路/.test(MODEL),
-      '定稿那一支没有回到「对不上就丢」');
+    ok(/C\.intakeDecide\(\{[\s\S]{0,120}lid: lidPair\(\)/.test(MODEL),
+      '定稿那一支没有回到「对不上就丢」（唯一入口 C.intakeDecide：LID 归属 + 换边宽限）');
     ok(!/lidHold|lidPairFinal|lidPairAt/.test(MODEL), '扣住队列的接线应当撤干净');
     ok(/const engine = cfg && cfg\.lidEngine === 'whisper' \? 'whisper' : 'ecapa';/.test(MODEL),
       '默认引擎不是 ECAPA（whisper 只应是开发开关）');

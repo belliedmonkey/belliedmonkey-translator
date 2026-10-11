@@ -27,9 +27,16 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     const fn = MODEL.slice(MODEL.indexOf('function pttToggle'), MODEL.indexOf('function pttStop'));
     ok(/if \(ptt\) \{/.test(fn), '没有「已经在收音」这一支');
     ok(/ptt\.side === side\) \{ pttStop\(\); return true; \}/.test(fn), '再点同一个键没有停止收音');
-    ok(/if \(phase === 'listening'\) \{ pttCut\(\); try \{ if \(cutter && cutter\.flushAll\) cutter\.flushAll\(\); \} catch \(_\) \{\} \}/.test(fn),
-      '换边时没有「在听就收口 + 立刻 flush」（只 cut 不 flush，尾巴会悬着不落行）');
-    ok(/ptt = \{ side \};/.test(fn), '换边没有改到那一侧');
+    // 换边先收口 + flush 尾巴（2026-10-10：模型断句路加一条 seg.flushAll(true) —— 旧串句器
+    // 的 flushAll 照旧保留，两条路各自把自己的尾巴放出来，不留到相位变了才落行）。
+    ok(/pttCut\(\);/.test(fn), '换边没有先收口（cut）');
+    ok(/if \(seg\) \{ try \{ seg\.settle\('switch'\); \} catch \(_\) \{\} \}/.test(fn),
+      '换边没有调唯一收尾出口 settle(\'switch\')');
+    ok(/if \(cutter && cutter\.flushAll\) cutter\.flushAll\(\); \} catch \(_\) \{\}/.test(fn),
+      '换边没有立刻 flush 串句器的尾巴（只 cut 不 flush，尾巴会悬着不落行）');
+    // 方案 1（单一入口）：开始/换边都走 pttBegin(side)，setPtt(true) 只在 pttBegin 里做。
+    ok(/pttBegin\(side\)/.test(fn), '换边/开始没有走统一的收音入口 pttBegin');
+    ok(!/ptt = \{ side \};/.test(fn), 'ptt 还在 pttToggle 里散着设 —— 没有单一入口');
     ok(/phase === 'idle' \|\| phase === 'ended'\) start\(\)/.test(fn), 'idle/ended 没有起会话');
     ok(/phase === 'paused' \|\| phase === 'halted'\) resumeByUser\(\)/.test(fn), 'paused/halted 没有续上');
     // 停止/换边**不看相位**：点下去到管道起来之间（准备中）也该能停、能换（第一版只认
@@ -37,8 +44,41 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(!/if \(ptt && phase === 'listening'\)/.test(fn), '停止/换边又被相位挡住了');
     // 顺序不能反：start() 内部会 pttAbort()，先设收音态会被它清掉。
     const tail = fn.slice(fn.indexOf("phase === 'idle'"));
-    ok(tail.indexOf('start()') >= 0 && tail.indexOf('start()') < tail.indexOf('ptt = { side }'),
+    ok(tail.indexOf('start()') >= 0 && tail.indexOf('start()') < tail.indexOf('pttBegin(side)'),
       '收音态比 start() 先设 —— 会被 pttAbort 清掉');
+  });
+
+  test('★ 方案 1：setPtt 只经 pttApplySeg 一处调（pttBegin/pttExit/start 共用）', () => {
+    const apply = MODEL.slice(MODEL.indexOf('function pttApplySeg'), MODEL.indexOf('function pttBegin'));
+    const begin = MODEL.slice(MODEL.indexOf('function pttBegin'), MODEL.indexOf('function pttExit'));
+    const exit = MODEL.slice(MODEL.indexOf('function pttExit'), MODEL.indexOf('function pttAbort'));
+    ok(/seg\.setPtt\(!!ptt\)/.test(apply), 'pttApplySeg 没有 seg.setPtt(!!ptt) —— 接线没通');
+    ok(/pttApplySeg\(\)/.test(begin) && /pttApplySeg\(\)/.test(exit), '统一入口没有调 pttApplySeg');
+    ok(/ptt = \{ side \};/.test(begin) && /pttForceOff\(\)/.test(exit), '统一入口没有管收音态/强制语言');
+    // start() 里 seg 新建后也要套一次（pttBegin 早于新 seg 建好）。
+    const startFn = MODEL.slice(MODEL.indexOf('async function start()'), MODEL.indexOf('async function start()') + 2200);
+    ok(/seg = makeSeg\(gen\);\s*\n\s*pttApplySeg\(\)/.test(startFn), 'start() 新建 seg 后没有套收音态');
+    // 全文件里 seg.setPtt 只出现在 pttApplySeg 一处（单一入口，注释不算）。
+    const code = MODEL.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    const calls = code.match(/seg\.setPtt\(/g) || [];
+    ok(calls.length === 1, 'seg.setPtt 出现 ' + calls.length + ' 次 —— 应恰好 1 次（pttApplySeg）');
+  });
+
+  test('★ 方案 1：pause/end 在**关麦前**放行句头闸（wasPtt 必须在 pttAbort 之前记）', () => {
+    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function halt(reason'));
+    const wasIdx = pauseFn.indexOf('const wasPtt = !!(ptt || pttStopTimer)');
+    const abortIdx = pauseFn.indexOf('pttAbort()');
+    const drainIdx = pauseFn.indexOf('if (wasPtt) drainGateHeld()');
+    const micIdx = pauseFn.indexOf('micStop()');
+    ok(wasIdx >= 0, 'pause 里没有在 pttAbort 之前记下 wasPtt（第七轮那个永假条件）');
+    ok(abortIdx >= 0 && wasIdx < abortIdx, 'wasPtt 记在了 pttAbort 之后 —— 必然为假');
+    ok(drainIdx >= 0, 'pause 没有放行句头闸');
+    ok(micIdx >= 0 && drainIdx < micIdx, 'pause 的放行不在关麦之前');
+    const endFn = MODEL.slice(MODEL.indexOf('function end()'), MODEL.indexOf('function end()') + 500);
+    ok(/const wasPtt = !!\(ptt \|\| pttStopTimer\)/.test(endFn) && /if \(wasPtt\) drainGateHeld\(\)/.test(endFn),
+      'end 没有补上关麦前的放行');
+    const stopFn = MODEL.slice(MODEL.indexOf('function pttStop'), MODEL.indexOf('function pttBegin'));
+    ok(!/drainGateHeld\(\)/.test(stopFn), 'pttStop 里那次过早的放行应当撤掉（挪到关麦前）');
   });
 
   test('停止收音先收口（cut）+ 主动 flush 串句器尾巴，再关麦', () => {
@@ -51,8 +91,9 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
 
   test('收音态与强制语言的唯一出口 pttAbort：pause/halt/end/leave/start 都走它', () => {
     ok(/function pttAbort\(\)/.test(MODEL), '没有 pttAbort');
-    const ab = MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'));
-    ok(/ptt = null;/.test(ab) && /pttForceOff\(\)/.test(ab), 'pttAbort 没有清收音态与强制语言');
+    const ab = MODEL.slice(MODEL.indexOf('function pttExit'), MODEL.indexOf('function pttAbort'));
+    ok(/ptt = null;/.test(ab) && /pttForceOff\(\)/.test(ab), '统一出口 pttExit 没有清收音态与强制语言');
+    ok(/pttExit\(\)/.test(MODEL.slice(MODEL.indexOf('function pttAbort'), MODEL.indexOf('function pttView'))), 'pttAbort 没有走 pttExit');
     for (const anchor of ['function start(', 'function pause(', 'function halt(', 'function end(']) {
       const seg = MODEL.slice(MODEL.indexOf(anchor), MODEL.indexOf(anchor) + 400);
       ok(/pttAbort\(\)/.test(seg), anchor + ' 没有走 pttAbort（会漏清收音态）');
@@ -90,7 +131,7 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(/reason === 'socket-retry' \|\| reason === 'locked'\) && ptt\) resumeSide = ptt\.side/.test(halt),
       'halt 没有为可续停机留下收音侧');
     const res = MODEL.slice(MODEL.indexOf('async function resume()'), MODEL.indexOf('function resumeByUser'));
-    ok(/resumeSide && phase === 'listening'/.test(res) && /ptt = \{ side: s \}/.test(res),
+    ok(/resumeSide && phase === 'listening'/.test(res) && /pttBegin\(s\)/.test(res),
       'resume 没有把「收音中」恢复回来');
     ok(/resumeSide = '';/.test(MODEL), 'resumeSide 用了不清（会把下一次续听也带偏）');
   });
@@ -103,7 +144,7 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
   test('停止收音时音频会话 / 锁屏卡一起收；续听再开回来（真机 #578）', () => {
     ok(/function nativeSessionOff\(\)/.test(MODEL) && /NativeAudio\.sessionStop\(\)/.test(MODEL), '没有会话收尾出口');
     ok(/function nativeSessionOn\(\)/.test(MODEL) && /NativeAudio\.sessionStart\(\)/.test(MODEL), '没有会话开启出口');
-    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function pause(reason)') + 900);
+    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function pause(reason)') + 1200);
     ok(/nativeSessionOff\(\)/.test(pauseFn), 'pause 没有收会话 —— 员工停止对话后锁屏卡会一直挂着');
     const haltFn = MODEL.slice(MODEL.indexOf('function halt(reason'), MODEL.indexOf('function halt(reason') + 1400);
     ok(/nativeSessionOff\(\)/.test(haltFn), 'halt 没有收会话');

@@ -14,10 +14,11 @@ const { test, ok } = require('./harness');
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 
 // 纯函数/行为级：vm 加载 diag-log.js（stub 掉 storage），验证白名单真的在过滤
-function loadDiag() {
+function loadDiagCtx(over) {
   const store = {};
+  const net = [];
   const ctx = {
-    window: {},
+    window: Object.assign({}, over && over.window),
     navigator: { userAgent: 'diag-test' },
     chrome: { storage: { local: {
       get: (k, cb) => cb({ [k]: store[k] }) ,
@@ -25,11 +26,14 @@ function loadDiag() {
     } } },
     setTimeout,
     Date,
+    fetch: async (url, opts) => { net.push({ url, body: opts && opts.body }); return { ok: true, status: 201 }; },
   };
   vm.createContext(ctx);
   vm.runInContext(read('app/diag-log.js'), ctx);
-  return ctx.DiagLog;
+  ctx.__net = net;
+  return ctx;
 }
+function loadDiag(over) { return loadDiagCtx(over).DiagLog; }
 
 test('★ schema 白名单：六类之外的事件类型直接丢', () => {
   const D = loadDiag();
@@ -91,4 +95,27 @@ test('★ L2 信箱表 write-only：永远没有 SELECT/DELETE policy（中国�
   ok(/for insert with check/.test(sql), '信箱表缺 INSERT policy');
   ok(!/for select|for delete|for update/i.test(sql), '信箱表出现了 SELECT/DELETE/UPDATE policy —— 破坏 write-only 形状');
   ok(/grant insert/i.test(sql) && !/grant select/i.test(sql), '授权里有 SELECT —— 只能 INSERT');
+});
+
+test('★ 内容字段只存本机：自动上报与手动导出两条离机路都剥离原文（只留计数/原因/长度）', async () => {
+  const ctx = loadDiagCtx();
+  const D = ctx.DiagLog;
+  ctx.window.MT_BACKEND = { url: 'https://backend.example', anonKey: 'anon' };
+  D.push('seg', { reason: 'gate-drop', calls: 2, json_bad: 0, text: '用户说的原话', rem: '剩下', raw: '{"segments":[]}', why: 'conf' });
+  D.push('dl', { tier: 'server', phase: 'fail', why: 'http' });
+  // 本机侧：raw buffer 仍保留内容（「只存本机」是承诺，不是丢弃）
+  ok(D.all()[0].f.text === '用户说的原话', '本机 all() 应当保留原文');
+  // 离机路 1：手动导出
+  const exp = D.exportText();
+  ok(exp.indexOf('用户说的原话') < 0 && exp.indexOf('剩下') < 0 && exp.indexOf('segments') < 0, '手动导出里还有原文内容：' + exp);
+  ok(/"text_len":6/.test(exp) && /"rem_len":2/.test(exp) && /"raw_len":15/.test(exp), '导出没有留下长度：' + exp);
+  ok(/"reason":"gate-drop"/.test(exp) && /"why":"conf"/.test(exp), '导出把原因也剥了');
+  ok(/"tier":"server"/.test(exp) && /"phase":"fail"/.test(exp), '非 seg 事件被连带改动');
+  // 离机路 2：自动上报（L2 信箱）
+  await D.doUpload();
+  ok(ctx.__net.length === 1, 'doUpload 没有发一次请求（实际 ' + ctx.__net.length + '）');
+  const body = String(ctx.__net[0].body || '');
+  ok(body.indexOf('用户说的原话') < 0 && body.indexOf('剩下') < 0 && body.indexOf('segments') < 0, '自动上报里还有原文内容：' + body);
+  ok(/"text_len":6/.test(body), '自动上报没有留下长度：' + body);
+  ok(/bt_diag_events/.test(ctx.__net[0].url), '上报地址不是信箱表');
 });

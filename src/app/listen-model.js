@@ -72,6 +72,29 @@ const listenModel = (() => {
   let socketRetried = false; // socket 断开后自动重连过一次了吗（成功 ready 时清零）
   // 本机转写路（§9.6.1）：final 按 locale 串句的切句器；离线资产下载进度（downloading 态的胶囊）
   let cutter = null, dlPct = 0, dlLang = '';
+  // 模型断句路（2026-10-10 用户批准）：conv 模式下 final 不再「串完句直接出行」，而是进
+  // makeSegmentRouter 的缓冲，由用户配置的翻译模型一次调用断句+翻译。`seg` 与 socket 生命周期
+  // **解耦**（closeSocket/openSocket 不动它——切语言重连时旧缓冲就是这么丢的）；只在
+  // start()/leave() 重建。`segDegrade`：引擎不是通用对话模型（google/qwen_mt/翻译专用模型）
+  // 或运行时连续两条非法 JSON ⇒ 退回旧串句器。
+  let seg = null, segDegrade = false, segRoute = 'legacy';
+  let finalGate = null;   // 当前 socket 的「低置信句头闸」（收口时要放行扣住的那一小片）
+  let xferGate = null;    // R14 ②：中文路 → 英文路的候补转交计时器（每场一个，随 socket 生命周期）
+  // 诊断计数（只有原因/计数；内容字段只在本机，见 diag-log 的 scrub）。
+  // ★ 桶必须**先建**：gateDiag 走 'gate'，第七轮漏了这个桶 ⇒ segDiag['gate'] 为 undefined，
+  //   diagBump 抛 TypeError 被句头闸的 try/catch 吞掉 —— 所有 gate:hold/release/drop 一条都没记上。
+  const segDiag = { intake: {}, fail: {}, final: {}, gate: {}, emit: {}, rescue: {} };
+  function diagBump(bucket, reason, extra) {
+    const b = segDiag[bucket] || (segDiag[bucket] = {});   // 再兜一层：新桶不许让诊断本身炸掉
+    const k = String(reason || 'unknown'); b[k] = (b[k] || 0) + 1;
+    // 纯计数：每种原因每会话最多一条；**带内容**（第七轮批准：remainder-mismatch / 句头闸裁决）每条都记。
+    if (b[k] === 1 || extra) {
+      const cut = (x) => String(x == null ? '' : x).slice(0, 200);
+      const f = { reason: bucket + '-' + k, calls: 0, json_bad: 0 };
+      if (extra) { if (extra.text != null) f.text = cut(extra.text); if (extra.rem != null) f.rem = cut(extra.rem); if (extra.raw != null) f.raw = cut(extra.raw); if (extra.why != null) f.why = cut(extra.why); }
+      try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', f); } catch (_) {}
+    }
+  }
   // 语种识别（LID，§9.6.1.3，2026-10-07）：端上模型判「这段音频是哪门语言」，归属由它给。
   // 半句与定稿都**只收 LID 判定的那一路**；'' = 还没判出来（此时什么都不上屏，不是随机先画一路）。
   let lidLang = '';
@@ -82,6 +105,7 @@ const listenModel = (() => {
   let sock = null;
   let inc = null;           // 边说边译（ListenCore.makeIncremental）
   let partial = '', partialTr = '';
+  let partialRec = '';   // 当前识别中的文字（partial = 缓冲 + partialRec；P1-6 的 result 比对用这个）
   let clockTimer = 0;
   let cameFrom = 'signed-in';
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
@@ -191,6 +215,14 @@ const listenModel = (() => {
     }
     const a = C.toLocale(c && c.myLang), b = C.toLocale(c && c.otherLang);
     return a === b ? [a] : [a, b];
+  }
+  // R14 ②：按语言短码找当前这一对里对应的识别器 locale（转交时要把结果喂给英文路）。
+  function localeForBase(b) {
+    const want = C.baseCode(b);
+    if (!want || !cfg) return '';
+    const list = deviceLocales(cfg);
+    for (const loc of list) if (C.baseCode(loc) === want) return loc;
+    return C.toLocale(want);
   }
   // 入口可用 ⇔ 原生桥报告本机识别器可用（探过 probe 之后读缓存的结果）
   function liveCapable() { return deviceBridge() && NativeSpeech.probeResult().ok; }
@@ -397,6 +429,123 @@ const listenModel = (() => {
   // 重译入口：本机路走修正契约，云端路走普通翻译。
   function retranslate(row, quiet) { return row.raw != null ? passRow(row, quiet) : translateRow(row, null, quiet); }
 
+  // ── 模型断句路（2026-10-10 用户批准）────────────────────────────────────────
+  // conv 模式 + 通用对话引擎 ⇒ final 进 makeSegmentRouter 缓冲，行由一次「断句+翻译」调用给。
+  // 降级（旧串句器）：google / qwen_mt / 翻译专用模型名（host 无关，WireFormat.translationModelName）
+  // / 运行时连续两条非法 JSON / 没配引擎。免费额度（grant）是 chat-compat ⇒ 新路。
+  // 字幕模式不动（有自己的行协议）。**会话开始算一次**（segRoute），中途不因设置改动换路。
+  function segRouteMode() {
+    if (mode !== 'conv') return 'legacy';
+    if (segDegrade) return 'legacy';
+    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return 'legacy';
+    try {
+      // resolveProvider 返回的是**归一化后的 id 字符串**（不是配置对象）—— 要拿条目必须再过
+      // EngineState.byId（P0-1）。装配线统一走 C.segRouteFor（测试与生产同一条）。
+      const id = TranslationAPI.resolveProvider(cfg.tr.provider);
+      const p = (typeof EngineState !== 'undefined' && EngineState.byId) ? EngineState.byId(id) : null;
+      return C.segRouteFor({
+        providerId: id, provider: p, model: cfg.tr.model || '', baseUrl: cfg.tr.baseUrl || '',
+        formatOf: WireFormat.formatFor, resolveEndpoint: WireFormat.resolveEndpoint,
+        isTranslationModel: WireFormat.translationModelName,
+      });
+    } catch (_) { return 'legacy'; }
+  }
+  // 模型断出的段落成行（emit 回调）。译文已随段带回 ⇒ 不再走 passRow；行出生即有 tr。
+  // 旧会话的迟到回执由 makeSeg 的包装按 gen 丢弃，这里不用再判。
+  function segEmit(list, meta) {
+    if (!session || !cfg) return;
+    const base = C.baseCode(meta && meta.locale);
+    const who = base && base === C.baseCode(cfg.myLang) ? 'me' : 'them';
+    for (const item of list) {
+      const pinned = !!(pttForce && pttLangOf(pttForce.side) === base);
+      const row = C.addFinal(session, item.source, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
+      if (!row) continue;
+      row.lat = { final: now(), engine: 'device', seg: 'model', pass: meta.ms != null ? meta.ms : 0,
+        segFeedAt: meta.feedAt || 0, segSentAt: meta.sentAt || 0, segEmitAt: now() };
+      row.tr = item.translation || ''; row.trErr = !row.tr; row.trBusy = false; row.trTemp = false;
+      if (row.tr) tmOk();
+      canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
+      subFinal(row);
+      if (row.tr) { maybeWrite(row); autoSpeak(row); }
+    }
+    // 实时框（P1-6）：出行后调一次 refreshPartial 就够了 —— 缓冲里还有 remainder 时它会把
+    // 那段显示出来（refreshPartial 自己拼「缓冲 + 识别中」，**不再往 partialBy 写**，否则重复）。
+    if (meta && meta.locale) refreshPartial();
+  }
+  // 兜底单句（fallback 回调）：硬切出来的段 / force 违规的 remainder —— 走旧的修正+翻译契约。
+  function segFallback(text, meta) {
+    if (!session || !cfg) return;
+    const base = C.baseCode(meta && meta.locale);
+    const who = base && base === C.baseCode(cfg.myLang) ? 'me' : 'them';
+    const pinned = !!(pttForce && pttLangOf(pttForce.side) === base);
+    const row = C.addFinal(session, text, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
+    if (!row) return;
+    row.lat = { final: now(), engine: 'device', seg: 'fallback' };
+    row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
+    canvas.view('history'); canvas.view('now');
+    subShow(row.text, '', true);
+    passRow(row);
+  }
+  // 一次「断句+翻译」调用：budget 512（中转按令牌计量，够一份 JSON）；客户端 12s 截止
+  // （中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧）。
+  function segCall(prompt) {
+    translateCalls++;
+    return TranslationAPI.listenPass(prompt,
+      TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
+      { budget: 512, timeoutMs: 12000 });
+  }
+  // 断句 prompt 的中文模板（规则五条，2026-10-10 用户批准）。**这不是界面文案，是给模型的
+  // 固定指令**（改 UI 语言不该改模型行为）——写成 t() 只因为出货代码里的中文只许出现在 t()
+  // 的 fallback 位（no-hardcoded-copy 门）；**故意不登记 i18n 键**：缺键时 t() 原样返回兜底串，
+  // 正是我们要的「固定指令」。
+  const SEG_SYS_TMPL = t('listen_seg_system', '你是实时口译的断句+翻译器。输入是语音识别的流式文本，可能没有标点、可能有识别错误。源语言：{src}，目标语言：{dst}。规则：\n1 只在语义完整处断句；不在数字中间断（如"三千八百五十"），不在称谓与姓名之间断（"Mr. Zhang"），a.m./p.m./Mr./Dr. 不是句末。\n2 逗号前后同一句意不断。\n3 最后一段语义未完放进 remainder 不翻译；force=true 时 remainder 必须为空。\n4 可按上下文修正明显识别错误（同音字、专有名词、数字），不增删意思。\n5 只输出 JSON，不加任何其他文字。输出格式：{"segments":[{"source":"<断出的句段原文（含修正）>","translation":"<该段译文>"}],"remainder":"<语义未完、不翻译的尾巴；没有则为空字符串>"}');
+  const SEG_USER_TMPL = t('listen_seg_user', '已定稿的上文（只作参考，不要重复输出）：\n{ctx}\n\n待处理文本：\n{buffer}\n\n是否强制收尾：{force}');
+  // 路由器的上下文（prompt 用）：源/目标语言名 + 最近 6 行已定稿 + prompt 模板。
+  function segCtx(locale) {
+    const base = C.baseCode(locale);
+    const srcLang = base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
+    const dstLang = srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
+    return {
+      srcName: langName(srcLang), dstName: langName(dstLang),
+      context: C.contextRows(session ? session.rows : [], null, C.LISTEN_CONTEXT_ROWS),
+      sysTmpl: SEG_SYS_TMPL, userTmpl: SEG_USER_TMPL,
+    };
+  }
+  function makeSeg(myGen) {
+    const r = C.makeSegmentRouter({
+      // P1-1：call 前判会话代际 —— 旧会话已 dispose 的路由器一个请求都不该发出去。
+      call: (prompt) => (myGen !== gen ? Promise.reject(new Error('stale-session')) : segCall(prompt)),
+      emit: (list, meta) => { if (myGen !== gen) return; segEmit(list, meta); },
+      fallback: (text, meta) => { if (myGen !== gen) return; segFallback(text, meta); },
+      ctx: segCtx,
+      onDegrade: (why) => {
+        segDegrade = true;
+        // 只记诊断计数（零内容）。**不弹任何文案**（规则 6）：这条提示没有 Pencil 稿，
+        // 用户可见的行为变化不允许无稿上线。
+        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: r.state().calls, json_bad: 1 }); } catch (_) {}
+      },
+      // 方案要求：清理（dispose）只能在 settle 之后；账本不为空 ⇒ 漏了一个出口 —— 记诊断。
+      onFail: (reason, extra) => diagBump('fail', reason, extra),
+      onDiag: (kind, extra) => routerDiag(kind, extra),   // 方案 1/2（R12）：rescue:replace / emit:trim-dup
+      onLeak: (left) => {
+        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: 'dispose-nonempty', calls: r.state().calls, json_bad: (left || []).length }); } catch (_) {}
+      },
+    });
+    r._gen = myGen;
+    return r;
+  }
+  // 自动朗读的「正在朗读」深度计数（P0-3）：speakOut 出声即返回，真正播完要等 r.done；
+  // 到 0 之后再等一个回声尾巴（ECHO_TAIL_MS）才恢复 idle 计时 —— 朗读期间不计时。
+  let segSpeakN = 0;
+  function segSpeakStart() { segSpeakN++; if (seg) seg.setSpeaking(true); }
+  const SEG_SPEAK_TAIL_MS = 800;   // P1-D：回声尾巴从 3s 缩到 0.8s（P1-C 撤掉后无需长尾）
+  function segSpeakEnd() {
+    if (segSpeakN > 0) segSpeakN--;
+    if (segSpeakN > 0) return;
+    const s = seg, g = gen;
+    setTimeout(() => { if (seg === s && gen === g) s.setSpeaking(false); }, SEG_SPEAK_TAIL_MS);
+  }
+
   // 归属判断的注入点。生产里就是 LearnRules.dominantScript（已在 App 包里）；
   // 拿不到它时 sideOf 恒返回空，归属全走粘性兜底 —— 不抛，也不假装判得准。
   const routeDeps = {
@@ -446,6 +595,7 @@ const listenModel = (() => {
   function closeSocket() {
     const s = sock; sock = null;
     cutter = null;
+    if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：候补计时器不跨 socket
     try { if (s) s.close(); } catch (_) {}
   }
   // 本机路：NativeSpeech.sttOpen 返回 { sendPcm(){}, close() }，事件 ready / partial / final / error / close。
@@ -458,6 +608,47 @@ const listenModel = (() => {
   // 两路里只有那一路的半句/定稿能上屏；判出来之前**什么都不画**（显示「正在说…」）。
   // 代价如实记（§9.6.1.3）：LID 要 ~1–2s 才稳 ⇒ 每句话的开头一小段没有实时预览，第一句最明显。
   const PARTIAL_TTL_MS = 2500;
+  const LETTER_RE = /[\p{L}\p{N}]/u;   // 有字母/数字（方案 3 判「垃圾定稿」的判据）
+  const RESCUE_LETTER_GAP = 3;         // partial 比 final 至少多这么多字母才算「明显更完整」（R12 方案 4）
+  const RESCUE_LEAD_PUNCT = /^[\s,.;:!?…、。，！？]+/u;   // final 以标点开头（识别器把句首吞了）
+  const RESCUE_TS_TOL = 120;           // 音频区间端点抖动容差（ms）
+  function letterCount(s) { const m = String(s || '').match(/[\p{L}\p{N}]/gu); return m ? m.length : 0; }
+  // 该不该用最近的 partial 当定稿（R12 第十轮 · 方案 4；第十三轮补两前提）。
+  //
+  // 前提 ①：**只有 final 本身不合格**才可能补救。合格的 final 是识别器对**这一段音频**的正式结果，
+  //   拿「流式 partial 领先于 final」的更长文字去顶替它，会把**后续音频的词**混进这一句；而方案 1
+  //   的替换逻辑又会把这条补救记录当成「同段重识别」替换掉（r12 §4.2 的使能条件：conf 0.957 的
+  //   `Please make 3 copies of this` 被 partial `. Please make 3 copies of this contract and` 顶掉，
+  //   随后首尾相接的续接片再把它替换掉 ⇒ 整段句首丢）。不合格 = 其一：
+  //     · 置信度低于句头闸的低置信阈值（**复用同一常量 LATIN_MIN_CONF**，不新造数）；
+  //     · final 以标点开头（识别器把句首吞了）；
+  //     · final 一个字母/数字都没有（纯标点 / 空）。
+  //
+  // 前提 ②：**只取 partial 中属于该 final 音频区间的文字**，不得混入后面的词。partial 事件带
+  //   `{locale,text,conf}`（app/native/speech-bridge.swift:474），**没有 t0/t1** —— 按时间切分做不到。
+  //   保守做法：只有 final **一个字母都没有**时才救 —— 那种 final 没有任何可用文字，partial 是唯一
+  //   候选（此时 partial 顶多把这一句写得更长，不会替换掉合格的正式 final 内容）。反之，只要 final
+  //   自己还有字母，就保留它自己的文字，不用 partial。若将来 partial 也带音频区间：要求 partial
+  //   整段落在 final 区间内（±RESCUE_TS_TOL）才救，等于「这一整段 partial 都属于这条 final」。
+  function partialWorthRescue(ev, p, at) {
+    const text = String((ev && ev.text) || '');
+    if (!p || !LETTER_RE.test(p.text)) return false;
+    if ((at - p.at) > PARTIAL_TTL_MS) return false;
+    // ① final 本身不合格
+    const letters = letterCount(text);
+    const conf = Number(ev && ev.conf);
+    const lowConf = Number.isFinite(conf) && conf >= 0 && conf < C.LATIN_MIN_CONF;
+    if (!(letters === 0 || RESCUE_LEAD_PUNCT.test(text) || lowConf)) return false;
+    // ② 界定 partial 里属于这条 final 的部分
+    const fTsOk = Number.isFinite(ev && ev.t0) && Number.isFinite(ev && ev.t1);
+    const pTsOk = Number.isFinite(p.t0) && Number.isFinite(p.t1);
+    if (fTsOk && pTsOk) {
+      const plea = letterCount(p.text);
+      if (plea < letters + RESCUE_LETTER_GAP && !(RESCUE_LEAD_PUNCT.test(text) && plea > letters)) return false;
+      return p.t0 >= ev.t0 - RESCUE_TS_TOL && p.t1 <= ev.t1 + RESCUE_TS_TOL;   // 整段 partial 都在 final 区间内
+    }
+    return letters === 0;   // 无区间可界定 ⇒ 只在 final 无字母时救（保守）
+  }
   let partialBy = {};   // locale base → { text, at }（正常至多一条：只有 LID 那一路会进来）
   // 当前该显示的那一条半句：只有 LID 那一路会进 partialBy，取最新即可（戴上时钟帽防挂死）。
   function pickPartial() {
@@ -520,6 +711,10 @@ const listenModel = (() => {
   // 点停）。「开始收音」时正常的话就是 `start()` / `resume()`，所以收音＝会话在跑的同一个开关。
   let ptt = null;                      // null | { side }：正在收音的那一侧（'me' | 'other'）
   let pttForce = null;                 // { side, at }：归属的强制语言（定稿后清）
+  // 最近一次「点另一侧录音键」的换边记录（EA-01）：{ from, at }。旧一侧被 cut 收口的 final
+  // 要 0.4–0.9s 才回来，而 pttForce 已换到新语言 —— openDevice 的 final 分支靠它在 1.5s
+  // 内放行旧语言的收口片（否则整句丢，第三十二批验收「切换后第一句丢失」的一种）。
+  let pttSwitch = null;
   // 点停之后给收口留的一点时间：cut 出去的那一片要等识别器吐 final，立刻关麦会把它丢掉。
   const PTT_STOP_GRACE_MS = 450;
   let pttStopTimer = 0;
@@ -569,9 +764,16 @@ const listenModel = (() => {
       // 点另一个键 = 先收口这一句、再换边。**收口要立刻把尾巴放出来**（同 pttStop 的道理）：
       // 只 cut 不说话时，串句器要等 STREAM_FLUSH_MS(1200ms) 空闲才放 —— 而换过去之后麦克风
       // 还在收音，环境音会一直喂半句、空闲永远不来，这一句就悬在那儿不落行（round F P-03 实测）。
-      if (phase === 'listening') { pttCut(); try { if (cutter && cutter.flushAll) cutter.flushAll(); } catch (_) {} }
-      ptt = { side };
-      pttForceOn(side);
+      if (phase === 'listening') {
+        drainGateHeld();
+        pttCut();
+        // 模型断句路：旧一侧的缓冲 force 收尾（remainder 必须为空；cut 出去的收口片会晚
+        // 0.4–0.9s 到，由 pttSwitch 宽限放进缓冲，再由 idle 触发兜住）。
+        if (seg) { try { seg.settle('switch'); } catch (_) {} }   // 唯一收尾出口：等待中的强制送
+        try { if (cutter && cutter.flushAll) cutter.flushAll(); } catch (_) {}   // 旧路（字幕/降级引擎）
+      }
+      pttSwitch = { from: pttLangOf(ptt.side), at: Date.now(), used: false };
+      pttBegin(side);
       canvas.view('state');
       return true;
     }
@@ -579,9 +781,7 @@ const listenModel = (() => {
     if (pttStopTimer) { clearTimeout(pttStopTimer); pttStopTimer = 0; }   // 收尾间隙里又点了 ⇒ 继续录
     if (phase === 'idle' || phase === 'ended') start();
     else if (phase === 'paused' || phase === 'halted') resumeByUser();
-    ptt = { side };
-    pttForceOn(side);
-    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
+    pttBegin(side);
     canvas.view('state');
     return true;
   }
@@ -591,21 +791,78 @@ const listenModel = (() => {
   ///   · flushAll：串句器的尾巴本来要等 `STREAM_FLUSH_MS`(1200ms) 才放出（收口后的 final
   ///     常不带句号），而这里 450ms 后就 `pause()` 关 socket 了 —— 不主动放，刚说的那句会被丢掉
   ///     （2026-10-09 test:mac P-02 实测：行落不下来）。
+  // 收口（按住说停 / 换边 / 结束）时把句头闸扣住的那一小片放行 —— 它没有等到下一片，
+  // 直接当一条定稿送（2026-10-10 用户裁定；低置信单词「Yes.」就是这样被静默丢掉的）。
+  // 句头闸的诊断（gate:hold / gate:release / gate:drop）：计数 + 截短原文（≤200，内部诊断）
+  function gateDiag(kind, text, why) { diagBump('gate', String(kind).replace(/^gate:/, ''), { text, why }); }
+  // 路由器（listen-core）的诊断：kind 形如 'emit:trim-dup' / 'rescue:replace'，按 ':' 拆成
+  // 桶名与原因（R12 第十轮：方案 1 的补救去重与方案 2 的重复前缀裁剪都要留痕）。
+  function routerDiag(kind, extra) {
+    const s = String(kind || '');
+    const i = s.indexOf(':');
+    const bucket = i > 0 ? s.slice(0, i) : 'seg';
+    const reason = i > 0 ? s.slice(i + 1) : s;
+    diagBump(bucket, reason, extra);
+  }
+  // 裁决=放行：这条片已经过完所有闸（朗读/归属/回声/置信）——直接进账本，不再重新裁决。
+  function releaseGateText(locale, text, meta) {
+    if (!text) return;
+    const base = C.baseCode(locale);
+    delete partialBy[base];
+    // 方案 4：这条文字在句头闸里已经等过 idleMs（1.5s）才放行 —— 把那段等待算作「已等过一次空闲」，
+    // 放行后直接送模型，不再等第二次空闲（waited=true，见 listen-core 的 feed）。
+    // 方案 1（R12）：补救文字带着它的音频区间（rescued/t0/t1）一起进账本，供同区间 final 去重。
+    const feedOpts = { waited: true, rescued: !!(meta && meta.rescued), t0: meta && meta.t0, t1: meta && meta.t1 };
+    if (seg && segRoute === 'model' && !segDegrade && mode === 'conv' && sock) seg.feed(locale, text, feedOpts);
+    else if (cutter) cutter.add(locale, text);
+    refreshPartial();
+  }
+  function drainGateHeld() {
+    if (!finalGate || !cfg) return;
+    finalGate.flushAll();   // 立即放行（放行回调负责进账本 + 诊断 gate:release）
+  }
   function pttStop() {
     if (pttStopTimer) clearTimeout(pttStopTimer);
     pttCut();
     try { if (cutter && cutter.flushAll) cutter.flushAll(); } catch (_) {}
+    // R14 ②：点停时若中文路的候补已在等，就到此为止（转交或丢弃）；还没来的候补由 pause() 兜。
+    if (xferGate) { try { xferGate.stop(); } catch (_) {} }
+    // 模型断句路：收口片落进缓冲后由 pause() 里的 force 收尾统一送出（cut 的 final 晚
+    // 0.4–0.9s 到，这里不抢 —— 抢了会把尾巴留在缓冲里没人管）。
+    // 句头闸的放行**不在这里**（太早：final 还没进闸）——统一走 pttExit/pause 的「关麦前放行」。
     pttStopTimer = setTimeout(() => { pttStopTimer = 0; pause('user'); }, PTT_STOP_GRACE_MS);
     canvas.view('state');
   }
+  /** 方案 1（单一入口）：进入收音态。`seg.setPtt(true)` **只在这里**做。
+   *  交互是「点一下开始/点一下停」= 自动听（连续收听）⇒ 第二次空闲仍用 0.8s（SEG_RELEASE_MS）；
+   *  「按住说」1.5s 那条参数与 setPtt 解耦（listen-core 的 setHold），当前 App 不用。 */
+  /** 把当前收音态套到当前 seg 上。`seg.setPtt(...)` **只在这里**调（方案 1 的单一入口）。
+   *  为什么还要在 start() 里再调一次：`start()` 异步，`pttBegin` 先于新 `seg` 建好，
+   *  新路由器一开始并不知道自己处在「按键收音」里。 */
+  function pttApplySeg() {
+    if (seg) { try { seg.setPtt(!!ptt); } catch (_) {} }
+  }
+  function pttBegin(side) {
+    ptt = { side };
+    pttForceOn(side);
+    pttApplySeg();
+    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
+  }
+  /** 方案 1（单一入口）：退出收音态。清收音态 + 强制语言 + 原生判定暂停 + seg.setPtt(false)。 */
+  function pttExit() {
+    ptt = null;
+    pttForceOff();
+    pttApplySeg();
+    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+  }
   /** 停止收音 / 具名停止 / 结束 / 暂停 / 新一场：这一句丢掉，收音态与强制语言一起清。
-   *  唯一出口 —— pause/halt/end/leave/start 都走它，免得四条路各清一遍、漏掉一条。 */
+   *  唯一出口 —— pause/halt/end/leave/start 都走它，免得四条路各清一遍、漏掉一条。
+   *  注意：放行句头闸**不在这里**（调用方在关麦前单独调用 drainGateHeld()，
+   *  因为 hold 的片要等 final 到 —— pttStop 之后 0.4–0.9s，不能在这之前放）。 */
   function pttAbort() {
     if (pttStopTimer) { clearTimeout(pttStopTimer); pttStopTimer = 0; }
     if (!ptt && !pttForce) return;
-    ptt = null;
-    pttForceOff();
-    try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(false); } catch (_) {}
+    pttExit();
   }
   function pttView() {
     const sub = mode === 'subtitle';
@@ -657,17 +914,33 @@ const listenModel = (() => {
     } catch (_) { return null; }
   }
   // 画当前该显示的那一路半句（只有 LID 那一路会进 partialBy，见 pickPartial）。
+  // 第二轮 P1-6：实时框 = **缓冲里尚未出行的全部文字** + 当前识别中的文字，一直显示到对应行
+  // 出来（`segEmit` 才清）。缓冲文字不受 PARTIAL_TTL_MS（2.5s）影响 —— 那段是「说过、还没出行」，
+  // 不是过期识别。
+  function segBufferedText() {
+    if (!seg) return '';
+    try {
+      const bufs = ((seg.state() || {}).bufs || []).filter((b) => b.len > 0);
+      if (!bufs.length) return '';
+      return seg.pending(bufs[0].locale) || '';
+    } catch (_) { return ''; }
+  }
   function refreshPartial() {
     const pick = pickPartial();
-    partial = pick ? pick.text : '';
-    // 回声闸也要拦**半句**：整句那道只在定稿时判，而边说边译在半句上就会发翻译请求 ——
-    // 自己朗读的内容回来时，环虽然断在定稿那一层，钱已经花出去了（2026-09-08 端到端实证）。
-    if (partial && echo.isEcho(partial, now())) { canvas.view('now'); return; }
-    if (inc) inc.onPartial(partial);
+    // 回声闸要拦**半句**，而且要**先判再赋值**（2026-10-10 修）：原来 `partial = pick.text`
+    // 在前、判完回声只 return，partial 已被换成回声文本 —— canvas.view('now') 照样把它画
+    // 出来，边说边译还会拿它发增量翻译（钱花出去了，环才断在定稿那层）。
+    const rec = (pick && pick.text && !echo.isEcho(pick.text, now())) ? pick.text : '';
+    partialRec = rec;   // P1-6：斜体暂定译文的 result 比对用**识别中文字**，不跟合并后的 partial 比
+    partial = C.joinFrag(segBufferedText(), rec);
+    // 斜体暂定译文仍只喂「当前识别中的文字」（rec）—— 缓冲那部分已经/即将由断句模型翻译，
+    // 再走一次增量翻译就是重复计费（界面显示用合并后的 partial）。
+    if (inc) inc.onPartial(rec);
     canvas.view('now');
     subShow(partial, '', true);
   }
   function openDevice(myGen) {
+    if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：重连时清掉旧场的候补计时器
     const locales = deviceLocales(cfg);
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
@@ -675,14 +948,107 @@ const listenModel = (() => {
       onFinal(sent, { who: locale === me ? 'me' : 'them', locale });
     });
     cutter = cut;
-    const gate = C.makeFinalGate(routeDeps);   // 同一路之内的文字质量闸（低置信的拉丁句头先扣住、紧接的好片来了再接回）
-    // 收一片定稿：**归属已由 LID 定死**（只有 LID 那一路走得进来），再过文字闸、进串句器。
-    const takeFinal = (f) => {
-      if (myGen !== gen || cutter !== cut || !sock) return;
-      for (const tt of gate.push(f)) cut.add(f.locale, tt);
+    const gate = C.makeFinalGate(Object.assign({}, routeDeps, {   // 低置信拉丁句头闸（唯一入口之内过）
+      now: () => Date.now(), setTimeout: setTimeout, clearTimeout: clearTimeout, idleMs: C.SEG_IDLE_MS,
+      onRelease: (locale, text, meta) => releaseGateText(locale, text, meta),   // 裁决=放行：进账本（已过闸）
+      onDiag: (kind, text, why) => gateDiag(kind, text, why),
+    }));
+    finalGate = gate;
+    const segActive = seg;   // 这一路 socket 存活期间喂的账本（closeSocket 不清 seg，重连接着喂）
+    const useSeg = () => !!(segRoute === 'model' && seg && !segDegrade && mode === 'conv');
+    // R14 ②：中文路纯拉丁短结果的候补转交（只限中文路 → 英文路）。等待一次空闲（自动听）或
+    // 停止收音（点停）；等待期间英文路一有带字母的结果（含补救文字）就丢弃候补。
+    const xfer = C.makeTransferGate({
+      now: () => Date.now(), setTimeout, clearTimeout, waitMs: C.SEG_IDLE_MS,
+      onDiag: (kind, extra) => routerDiag(kind, extra),
+      canXfer: () => C.baseCode(lidPair()) === 'en' && useSeg() && !!sock,
+      onXfer: (text, locale, cand) => {
+        if (myGen !== gen || !text) return;
+        // R15：候补转交已经等过那一次空闲（transfer gate 的 waitMs = SEG_IDLE_MS），
+        // 入账带 waited ⇒ 路由器不再重复等第二个 1.5s 空闲（r14 g2 实测 4.08–4.49s → 目标 2–2.6s）。
+        if (useSeg()) seg.feed(locale, text, { rescued: true, waited: true, t0: cand && cand.t0, t1: cand && cand.t1 });
+        refreshPartial();
+      },
+    });
+    xferGate = xfer;
+    // ── 识别定稿的**唯一入口**（方案 §四）：所有闸按顺序过一遍，然后才分给「模型断句」或「旧路」。
+    //   顺序：① 正在朗读这门语言 → ② 换边宽限 / LID 归属 → ③ 回声文本相似度 → ④ 清识别中 → ⑤ 低置信句头闸 → 分流。
+    //   回声只按文本相似度判（不按置信度），所以不会因为朗读丢掉用户自己插的话。
+    const intakeFinal = (ev0) => {
+      if (myGen !== gen || (useSeg() ? seg !== segActive : cutter !== cut) || !sock) return;
+      const base = C.baseCode(ev0 && ev0.locale);
+      if (!base) return;
+      let ev = ev0;
+      const pNow = partialBy[base];
+      // R14 ⑤：识别器把英文句首吞了、正式 final 以标点开头（`. and send them to Mr.`）——
+      // 把 final 文字在当前 partial 里对齐，取对齐位置**之前**的部分作句首临时稿补回。
+      let lead = '';
+      // 方案 3（用户批准；B 真机核实成立）：识别器对很短的英文常给「只有标点/为空」的垃圾定稿，
+      // 而同一句最近一次 partial 是完整的（实测 16 句里 6 次垃圾定稿，6 次的前置 partial 都含 "Yes"）。
+      // 用该 partial 当定稿，记 final:from-partial（带原文，仅本机）。
+      // 第九轮放宽（r9 C-en-3/5 整句无行、C3-en 丢尾）：不再要求 final「一个字母都没有」——
+      // final 的字母占非空白字符 <50%（'to make...............' 这种被识别器吐成一串点）**且**
+      // 同句 2.5s 内 partial 的字母数更多时，也用 partial。数字/标点等其它字符的占比不参与判据。
+      // 救回时打 `rescued` 标记：句头闸据此不再按原 final 的低 conf 丢（工程问题 1）。
+      if (partialWorthRescue(ev, pNow, Date.now())) {
+        const p = pNow;
+        ev = Object.assign({}, ev, { text: p.text, rescued: true });
+        diagBump('final', 'from-partial', { text: p.text });
+      } else if (pNow && base === 'en') {
+        lead = C.rescueLead(ev.text, pNow.text);
+      }
+      // R14 ②：归属语言（英文）这一路给了带字母的结果 ⇒ 记时刻；中文路的候补就此作废。
+      const lidB = C.baseCode(lidPair());
+      if (lidB && base === lidB && /[A-Za-z]/.test(String((ev && ev.text) || ''))) {
+        if (xferGate) xferGate.noteEnLetter();
+      }
+      // 唯一闸（两条路共用；纯函数在 listen-core，可测）：朗读中 / 换边宽限 / LID 归属 / 回声文本相似度
+      const dec = C.intakeDecide({
+        base, lid: lidPair(), pttSwitch, now: Date.now(),
+        playing: echo.playingLangs(Date.now()),
+        text: String((ev && ev.text) || ''),
+        isEcho: (s) => echo.isEcho(s, now()),
+      });
+      if (!dec.admit) {
+        diagBump('intake', dec.reason);
+        if (dec.reason === 'echo') { delete partialBy[base]; refreshPartial(); }
+        // R14 ②：中文路被归属闸拒掉的纯拉丁短结果 ⇒ 先当候补，等一次空闲 / 等停止收音再裁决。
+        if (dec.xfer && xferGate) {
+          xferGate.offer({
+            text: C.xferClean(ev.text), locale: localeForBase(lidB),
+            t0: ev && ev.t0, t1: ev && ev.t1,
+          });
+        }
+        return;
+      }
+      if (dec.markUsed && pttSwitch) pttSwitch.used = true;
+      // 告诉句头闸「另一门语言收到了这条定稿」：**唯一**裁决入口 noteOtherText ——
+      // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
+      // 含汉字且与本闸扣住的片时间重叠时当场丢弃那片。被 attrib 拒掉的拉丁垃圾不会走到这里。
+      try { if (finalGate && finalGate.noteOtherText) finalGate.noteOtherText(base, String((ev && ev.text) || ''), ev && ev.t0, ev && ev.t1); } catch (_) {}
+      // 这条 final 的文字进账本了，把这一路的「识别中」清掉（否则实时框会重复显示）
+      delete partialBy[base];
+      // 低置信句头闸 → 分流
+      const texts = gate.push(ev);
+      // R14 ⑤：补回的句首临时稿先于正式 final 进账本（它覆盖的音频在前）。
+      if (texts.length && lead) {
+        diagBump('rescue', 'lead', { text: lead });
+        if (useSeg()) seg.feed(ev.locale, lead, { force: false, rescued: true, t0: ev && ev.t0, t1: ev && ev.t0 });
+        else cut.add(ev.locale, lead);
+      }
+      for (const tt of texts) {
+        // R14：补救文字（from-partial）带着 rescued 进账本；t0/t1 只作参考，去重改按文字对齐。
+        if (useSeg()) seg.feed(ev.locale, tt, { force: dec.force, rescued: !!ev.rescued, t0: ev.t0, t1: ev.t1 });
+        else cut.add(ev.locale, tt);
+      }
+      refreshPartial();
     };
     sock = NativeSpeech.sttOpen({
       locales,
+      // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
+      // 定稿碎一点不会再切行，只是更早进账本。字幕路、以及听译下走旧路（Google / qwen-mt / 降级）
+      // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
+      vadMs: (mode === 'conv' && segRoute === 'model') ? 600 : undefined,
       onEvent: (kind, ev) => {
         if (myGen !== gen) return;
         if (!sock && (kind === 'partial' || kind === 'final')) return;
@@ -692,14 +1058,15 @@ const listenModel = (() => {
           // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
           if (base && echo.playingLangs(Date.now()).has(base)) return;
           if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
-          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text);
+          // R14 ②：归属这一路（英文）的 partial 只要有字母，也算「英文路有结果」——长句里中文路
+          // 早早吐一句拉丁垃圾当候补时，英文路的流式 partial 正好在这 1.5s 内到达 ⇒ 候补被丢，
+          // 不会把中文路的垃圾转进来（提案 §2 的「英文长句不转交」）。
+          if (base && base === C.baseCode(lidPair()) && /[A-Za-z]/.test(String(ev && ev.text))) {
+            if (xferGate) { try { xferGate.noteEnLetter(); } catch (_) {} }
+          }
+          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev);
         }
-        else if (kind === 'final') {
-          const base = C.baseCode(ev && ev.locale);
-          if (base && echo.playingLangs(Date.now()).has(base)) return;   // 同上：正在朗读这门语言
-          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // 错语言那一路对同一段音频的解读，丢（判词没稳住也丢）
-          takeFinal(ev);
-        }
+        else if (kind === 'final') { intakeFinal(ev); }
         else if (kind === 'error') socketLost(ev.reason || '');
         else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
       },
@@ -716,20 +1083,28 @@ const listenModel = (() => {
     halt('socket', why);
   }
 
-  function onPartial(locale, text) {
+  function onPartial(locale, text, ev) {
     const key = C.baseCode(locale);
     const t = String(text || '').trim();
-    if (!t) delete partialBy[key]; else partialBy[key] = { text: t, at: Date.now() };
+    if (!t) delete partialBy[key];
+    else {
+      // partial 事件目前只带 {locale,text,conf}（app/native/speech-bridge.swift:474）—— t0/t1 是 final
+      // 才有的。若将来原生给 partial 也带音频区间，就一并存下：partialWorthRescue 用它界定「哪段
+      // partial 文字属于这条 final 的音频区间」（没有就退回「只在 final 无字母时救」的保守判据）。
+      const t0 = Number(ev && ev.t0), t1 = Number(ev && ev.t1);
+      partialBy[key] = (Number.isFinite(t0) && Number.isFinite(t1))
+        ? { text: t, at: Date.now(), t0, t1 }
+        : { text: t, at: Date.now() };
+    }
+    // 方案 2（R12）：告诉路由器「这条 locale 的 partial 还在到达」—— 命中窗口内的 ≤2 词短片
+    // 留在缓冲与后文合并，不强制补调/不硬切/不走旧路（listen-core 的 partialSpeaking）。
+    if (t && seg && seg.notePartial) { try { seg.notePartial(locale); } catch (_) {} }
     refreshPartial();   // 归属已由 LID 定死 ⇒ 不必再扣住等另一路（旧的三档择一随 LID 退场）
   }
   function onFinal(text, meta) {
-    if (meta && meta.locale) delete partialBy[C.baseCode(meta.locale)];   // 这一路定稿了，它的半句退休
-    // 回声闸第一层：我们自己刚读出去的那句被麦克风录回来了 ⇒ **整句丢弃** —— 不进历史、
-    // 不翻译、不写语料、不朗读、不算进小结。它根本不是一句话。
-    const clean = String(text || '').replace(/\s+/g, ' ').trim();
-    if (clean && echo.isEcho(clean, now())) { clearPartials(); canvas.view('now'); return; }
-    // 本机路把「哪一路识别器认出来的」当归属（meta.who）；云端路没有 meta，照旧按语言判
-    if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: clean.slice(0, 500) }); } catch (_) {} }
+    // 闸（正在朗读 / 换边宽限 / LID 归属 / 回声文本相似度 / 低置信句头）全在唯一入口
+    // intakeFinal 里过完了，这里**只负责旧路的出行**（原始句上屏 + 修正+翻译一次调用）。
+    if (diagAudioOn) { try { diagSidecar.push({ t: Date.now(), k: 'stt', loc: (meta && meta.locale) || '', text: String(text || '').slice(0, 500) }); } catch (_) {} }
     // 按住说的行：归属由人指定、出生即 pinned（没有「判错」这回事 ⇒ 界面不给 ↔，P-12）。
     const pttRow = !!pttForce;
     const deps = Object.assign({}, routeDeps, meta && meta.who ? { who: meta.who } : {}, pttRow ? { pinned: true } : {});
@@ -1036,7 +1411,16 @@ const listenModel = (() => {
     // 实时字幕单向：半句一律译成我的语言
     inc = C.makeIncremental((text) => translate(text,
       (!C.modeOf(session).oneWay && C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
-    inc.result((text, tr) => { if (text === partial) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
+    inc.result((text, tr) => { if (text === partialRec) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
+    // 模型断句路：新一场新路由器（gen 作废旧回执）。路由**会话开始算一次**（P0-1）——
+    // 中途改引擎设置不换路（要换就重开一场）。旧路由器先 dispose（P1-1：清掉还活着的计时器）。
+    if (seg) { try { seg.dispose(); } catch (_) {} }
+    segDegrade = false;
+    segSpeakN = 0;
+    segRoute = segRouteMode();
+    seg = makeSeg(gen);
+    pttApplySeg();   // 新路由器要知道自己是否已在「按键收音」里（pttBegin 早于它建好）
+    pttSwitch = null;
     clearPartials();
     nativeSessionOn();   // 挂监听 + 建音频会话 + 挂灵动岛/锁屏卡（对话档不带 profile，消息逐字节不变）
     canvas.view('history');
@@ -1158,12 +1542,25 @@ const listenModel = (() => {
   function silentHint() { return t('subtitle_bar_silent', '还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限'); }
   // 暂停：不再发 PCM，麦克风与 socket 都停（暂停期间不该产生任何计费）。
   function pause(reason) {
+    // R14 ②：候补转交必须在 pttAbort 前结算（pttAbort 会清强制语言 ⇒ canXfer 失效）。
+    if (xferGate) { try { xferGate.stop(); } catch (_) {} }
+    // 方案 1：必须在 pttAbort 之前记住「这一停是按键收音」，否则关麦前的句头闸放行条件永远为假
+    //（第七轮那处 `if (ptt || pttStopTimer)` 就是这么失效的）。
+    const wasPtt = !!(ptt || pttStopTimer);
     pttAbort();   // 按住/锁定时点「暂停」：以这一下为准，这一句丢掉、不落行（P-07）
     if (phase !== 'listening') return;
     phase = 'paused'; pauseReason = reason || 'user'; resumeSide = '';
     C.pause(session, now());
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
+    // 模型断句路：关 socket 前把缓冲 force 收尾（点停的那句的收口片此刻已在缓冲里）。
+    // 异步回来时 phase 已是 paused —— 行照落（addFinal 不看相位），这是设计：用户点停
+    // 后 1–2s 行补上是「补完」，不是「跳动」。
+    if (seg) { try { seg.settle('stop'); } catch (_) {} }   // 唯一收尾出口：等待中的强制送（在飞的等它回来）
+    // 句头闸放行**放在这里**（收口之后、关麦之前）：final 一般要收口后 0.4–0.9s 才到，
+    // 太早放行时它还没进闸（第六轮评审：放行时机挪到关麦前）。只有按键收音才放行，自动模式不放行
+    // （wasPtt 在 pttAbort 之前就记住了）。
+    if (wasPtt) drainGateHeld();
     micStop(); closeSocket();
     nativeSessionOff();   // 锁屏卡 / 灵动岛也一起收（收音＝开麦，见 nativeSessionOn 的注释）
     if (inc) inc.reset();
@@ -1254,9 +1651,7 @@ const listenModel = (() => {
     // 界面（高亮 / 小字）与麦克风对不上。用户手动「点一下」开的那种不经过这里（pttToggle 自己设）。
     if (resumeSide && phase === 'listening') {
       const s = resumeSide; resumeSide = '';
-      ptt = { side: s };
-      pttForceOn(s);
-      try { if (deviceBridge() && NativeSpeech.lidPause) NativeSpeech.lidPause(true); } catch (_) {}
+      pttBegin(s);   // 方案 1：统一进入收音态（setPtt(true) 只在这里/上面那一处）
       canvas.view('state');
     }
   }
@@ -1267,12 +1662,25 @@ const listenModel = (() => {
     else if (phase === 'idle' || phase === 'ended') start();
   }
   function end() {
+    const wasPtt = !!(ptt || pttStopTimer);   // 同 pause：先记，再清（方案 1）
     pttAbort();   // 按住/锁定时点「结束」：这一句丢掉，然后正常结束（P-07）
-    if (!session || phase === 'ended') return;
+    if (!session || phase === 'ended') return Promise.resolve();
     diagAudioDisarm();
     C.pause(session, now());
     phase = 'ended'; resumeSide = '';
+    if (wasPtt) drainGateHeld();   // 方案 1：关麦前立即放行句头闸扣住的片
     micStop(); closeSocket(); keepAliveOff();
+    // P2（第二轮）：结束前把缓冲**同步**交给旧路出行（drain 硬切 → fallback/passRow），
+    // 再 dispose。否则「点结束」会把还没送出的字直接清掉（回归）。
+    let settleP = Promise.resolve();
+    if (seg) {
+      const s0 = seg;
+      // 收尾（第四轮）：settle('end') 把等待中的立即交旧路、在飞那段最多等 3s（超时作废），
+      // 之后才 dispose。调用方（leave）要 await 这个 promise，别在收尾前清账本。
+      try { settleP = Promise.resolve(s0.settle('end')).then(() => { try { s0.dispose(); } catch (_) {} }); }
+      catch (_) { try { s0.dispose(); } catch (_) {} }
+    }
+    segSpeakN = 0;
     if (inc) inc.reset();
     pipRectOff(); pipWindow = ''; pipReason = ''; paintPipFloat();
     if (bridged() && session.mode === 'subtitle') NativeAudio.subtitleHide();
@@ -1290,6 +1698,7 @@ const listenModel = (() => {
         MTFeedback.noteValueMoment('listen').catch(() => {});
       }
     } catch (_) {}
+    return settleP;   // leave() 要 await 它：收尾（≤3s）之后再清账本
   }
   // 返回 = 结束会话（语料已逐句写了，不丢）；还在听时先确认一下（用户 09-07 裁定 B）。
   // 页内确认（LearnDialog）：App 的 WKWebView 没有原生确认框，window.confirm 恒为 false。
@@ -1297,11 +1706,13 @@ const listenModel = (() => {
     if (session && phase !== 'ended' && phase !== 'idle') {
       const ask = session.mode === 'subtitle' ? t('subtitle_leave_confirm', '还在听。离开会结束这次字幕，已出的句子保留。') : t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。');
       if (!(await LearnDialog.confirm(ask, { ok: t('listen_leave_ok', '结束并离开') }))) return;
-      end();
+      await end();   // 「结束并离开」也走 end 流程：最多等 3 秒收尾，再清理（第四轮 P1-3）
     }
     gen++;
     if (clockTimer) { clearInterval(clockTimer); clockTimer = 0; }
     session = null; phase = 'idle';
+    if (seg) { try { seg.dispose(); } catch (_) {} }   // P1-1：清掉计时器，停掉旧会话的在途
+    seg = null; segDegrade = false; segSpeakN = 0;
     $('app-listen').hidden = true;   // shell 级直写（JSX 恒 true，React 不覆盖 —— 头注释）
     $(cameFrom).hidden = false;
   }
@@ -1497,6 +1908,9 @@ const listenModel = (() => {
         speakingRid = job.rid; canvas.view('history');
         const at = now();
         echo.speaking(job.text, at, job.lang);   // lang 给「朗读进行中」那道闸用（回声修）
+        // P0-3：断句路记「正在朗读」——出声到真正播完（r.done）期间 idle 计时暂停；
+        // 播完再等一个回声尾巴才恢复（见 segSpeakEnd）。
+        segSpeakStart();
         sq.noteSpoken(job.text, at);
         lastSpoken = job.text;
         // 每句必须超时（#565 六轮真机教训）：speakOut 挂住（下载卡死 / 网络不通）不得阻塞
@@ -1506,10 +1920,11 @@ const listenModel = (() => {
           speakOut(job.text, job.lang, { rid: job.rid, auto: true }),
           new Promise((res) => setTimeout(() => res({ ok: false, reason: 'timeout' }), 30000)),
         ]);
-        if (r && r.done) { try { await r.done; } catch (_) {} }
+        if (r && r.done) { try { await r.done; } catch (_) {} }   // 真正播完在这里
         echo.spoke(now());                        // 播完：回声窗口从这里开始倒计时
         speakingRid = 0;
         onSpeakResult(r);
+        segSpeakEnd();
       }
     } finally { speakPumping = false; canvas.view('history'); }
   }
@@ -1998,8 +2413,15 @@ const listenModel = (() => {
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
       ptt: ptt ? { on: true, side: ptt.side, stopping: !!pttStopTimer } : { on: false, side: '', stopping: false },
       pttForce: pttForce ? pttForce.side : '', translateCalls,
+      // 断句路读数（2026-10-10）：走的是模型断句还是旧串句器、降级没有、调用数、各路缓冲长度。
+      seg: Object.assign({ route: segRoute, degrade: segDegrade, diag: segDiag }, seg ? seg.state() : {}),
+      // 句头闸读数（2026-10-11 第九轮）：扣住（hold）**不等于**路由器扣住结果 —— 扣住的片还没进账本，
+      // `seg.hold` 看不到它。D 节的端到端要断言「先扣住、还没出行」，只能从这里读。
+      gateHeld: finalGate ? finalGate.heldLocales() : [],
       // 判定收音是否暂停了自动识别（H3 的 ptt.state().lidPaused；原生那两条消息另由 rec() 断言）
       lidPaused: !!ptt || !!pttForce,
+      // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
+      rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
     lat: C.latencySummary(session ? session.rows : []) }),
   };
 })();

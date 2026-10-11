@@ -627,45 +627,266 @@ var ListenCore = (() => {
   }
   function acceptDeviceFinal(f, deps) { return !rejectDeviceFinal(f, deps); }
 
-  // ── 句头救回（2026-09-18，修真机 conv 英文 WER 38% 的「丢句头」）────────────────
-  // Mac harness 拿 conv.pcm 逐片读回（单开 en 路也一样）：英文句子的第一个词落在一个**跨过中文尾巴**的
-  // 时间片里 ——「,... The」[16200–17520] conf 0.25、「 we」[31300–31780] conf 0.01 —— 均值被标点垃圾拖到
-  // 门下，整片被丢，于是「The quote…」成了「quote…」、「We need…」成了「need…」。而紧接着的下一片就是
-  // 高置信的正文（「quote already includes…」0.98，t0 == 上一片 t1）。
-  // 所以低置信的拉丁片不立刻丢：**扣住一片**；下一片同 locale、紧接（≤ HOLD_GAP_MS）且过门 ⇒ 把扣住的
-  // 去掉开头标点后接回去；否则丢。只扣**短**片（≤ HOLD_MAX_MS 且 ≤ HOLD_MAX_WORDS 个词）：中文整句期间
-  // en 路吐的「Rugua, Ting, Xing, Cho,」是几秒长的一串，不会被当成句头。文字系不对的片（zh 路吐英文）永不扣。
+  // ── 低置信拉丁句头闸（2026-09-18 建；2026-10-11 第七轮：扣住必须有确定去处）────────────
+  // 低置信的短拉丁片先扣住，等紧接着的下一片（跨过中文尾巴的句头）。但**不许无限扣住**：
+  // 扣住后起一个与空闲判定同一个参数（idleMs，默认 1.5s）的计时器，到点裁决 ——
+  //   · 期间**另一门语言**（中文侧）有归属到**时间重叠**的定稿 ⇒ 这片是错语言的垃圾：丢弃（gate:drop）；
+  //   · 否则 ⇒ 放行进账本（gate:release）。
   const HOLD_MAX_MS = 1500, HOLD_MAX_WORDS = 2, HOLD_GAP_MS = 120;
+  const HOLD_DUP_GAP_MS = 300;   // R14 ③：临时稿与上一条正式 final 的音频邻接容差（dup-prev）
   const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
   const HAS_LETTER = /[\p{L}\p{N}]/u;
+
+  // ── 时间重叠的**唯一定义**（R12 第十三轮修 · 方案 1 的判据）────────────────────────
+  // 音频区间按半开区间 [t0,t1) 理解：只有**真正交叠**（交叠时长 > 0）才算重叠。
+  // `b0 == a1`（首尾相接）是识别器把一句话切成两片时最常见的形态 —— 后一片的 t0 正好等于前一片
+  // 的 t1。那是**续接**，不是「同一段音频的重识别」。旧的 `a0<=b1 && b0<=a1` 把首尾相接也算重叠，
+  // 方案 1 的替换逻辑于是把句首片换成续接片（r12 §4.1，P1-en-auto-1 丢 `Please make 3 copies of this`）。
+  // 有限数检查保留：缺 t0/t1 的片一律不算重叠（由调用方各自决定怎么处置）。
+  // **这是全文件唯一的区间重叠判据** —— rescue 替换/裁剪、句头闸 overlapCjk、noteOtherText
+  // 都调它；只有「紧接」（HOLD_GAP_MS 内的邻接）与「时长」两类判据不用它（见各自注释）。
+  function overlapTs(a0, a1, b0, b1) {
+    if (!(Number.isFinite(a0) && Number.isFinite(a1) && Number.isFinite(b0) && Number.isFinite(b1))) return false;
+    return a0 < b1 && b0 < a1;
+  }
+
+  // 两条路都适用（自动听 / 按住说）；按住说另有 pause() 关麦前的立即放行，停止/换边/结束也是立即裁决。
+  // 扣住时记 gate:hold。静置后闸里不得残留任何记录。
   function makeFinalGate(deps) {
-    const held = {};   // locale → { text, t0, t1 }
+    const d = deps || {};
+    const now = d.now || (() => Date.now());
+    const setT = d.setTimeout || setTimeout, clearT = d.clearTimeout || clearTimeout;
+    const idleMs = d.idleMs || SEG_IDLE_MS;
+    const held = {};   // locale → { text, t0, t1, timer, conflict }
     const words = (t) => t.trim().split(/\s+/).filter(Boolean).length;
+    const head = (t) => String(t || '').replace(LEAD_PUNCT, '').trim();
+
+    function diag(kind, text, why) { if (d.onDiag) { try { d.onDiag(kind, text, why || ''); } catch (_) {} } }
+    // 方案 3（R12 第十轮）：同 locale 已扣住的片**不许被新片替换** —— 先后扣住的片按时间顺序
+    // 拼接、一起裁决。h.parts 保留每一片的 {text,t0,t1}；h.text 是拼接后的可读文本。
+    // R14 ③：拼接**前**先做一次「临时稿是不是上一条正式 final 的结尾」检查（同一判据、同一容差）——
+    // Yes please 第 10 次的 `Yes, please.` + 补救片 `Please`（同一词在 final 与下一段 partial 各出现
+    // 一次）就在这里被去掉，否则会拼成 `Yes, please. Please` 拆成两行。返回 { text, parts }（parts
+    // 去掉被丢的片，调用方据此更新 held 记录，避免下次再判/再拼）。
+    function heldJoin(locale, parts) {
+      const sorted = (parts || [])
+        .slice()
+        .sort((a, b) => (Number(a && a.t0) || 0) - (Number(b && b.t0) || 0));
+      let acc = '', prevT1 = null;
+      const kept = [];
+      for (const p of sorted) {
+        const hd = head(p && p.text);
+        if (!hd) continue;
+        if (p && p.rescued) {
+          const pT0 = Number(p && p.t0);
+          const gap = (Number.isFinite(pT0) && Number.isFinite(prevT1)) ? pT0 - prevT1 : NaN;
+          if (isTailDup(acc, hd, gap, HOLD_DUP_GAP_MS)) {
+            diag('rescue:dup-prev', hd, 'held');
+            continue;   // 临时稿 = 上一条正式 final 的结尾 ⇒ 丢掉这一片（不是替换，是去重）
+          }
+        }
+        acc = joinFrag(acc, hd);
+        kept.push(p);
+        const pT1 = Number(p && p.t1);
+        if (Number.isFinite(pT1)) prevT1 = pT1;
+      }
+      return { text: acc, parts: kept };
+    }
+    function heldT(parts, which) {
+      let v = null;
+      for (const p of parts || []) {
+        const x = Number(p && p[which]);
+        if (!Number.isFinite(x)) continue;
+        v = v === null ? x : (which === 't0' ? Math.min(v, x) : Math.max(v, x));
+      }
+      return v === null ? NaN : v;
+    }
+    const HOLD_MAX_PARTS = 16;   // 防御：真正超量时整体放行（放行不算丢弃，绝不静默丢字）
+    function settleHeld(locale, how, why) {   // 裁决一条：how ∈ 'release' | 'drop'
+      const h = held[locale]; if (!h) return '';
+      delete held[locale];
+      if (h.timer) { clearT(h.timer); h.timer = 0; }
+      const t = head(h.text);
+      // 纯标点/空白：直接丢 —— 也算一次丢弃，记原因（方案 2：所有丢弃分支都留痕，不静默）。
+      if (!HAS_LETTER.test(t)) { diag('gate:drop', h.text, 'punct'); return ''; }
+      if (how === 'release') {
+        if (d.onRelease) { try { d.onRelease(locale, t, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }); } catch (_) {} }
+        diag('gate:release', t, why);
+      } else diag('gate:drop', t, why);
+      return t;
+    }
+    function arm(locale) {
+      const h = held[locale]; if (!h) return;
+      if (h.timer) clearT(h.timer);
+      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, idleMs);
+    }
+    // 到点/冲突时的裁决：有冲突 ⇒ 丢弃；否则放行
+    function resolve(locale, why) {
+      const h = held[locale]; if (!h) return;
+      settleHeld(locale, h.conflict ? 'drop' : 'release', why);
+    }
+    // 已入口接收、含汉字、且时间重叠的**中文侧**定稿（重叠裁决的判据，方案 1）。
+    // 第九轮（r9 C3-en-1）：低置信拉丁片被**丢弃**（>2 词 / >1500 ms）之前，必须先看这段时间中文侧
+    // 有没有一条**真的被接收**（过了 intakeDecide 的归属/回声闸）且**含汉字**的定稿 —— 有 ⇒ 这片是
+    // 错语言的垃圾，丢；没有 ⇒ 放行进账本（用户说的正确内容常整段只在 partial 兜底里）。
+    // 被 attrib 拒掉的中文侧拉丁垃圾**不算**重叠（它从来没被接收过）。
+    const OTHER_KEEP_MS = 5000, OTHER_MAX = 8;
+    const otherAdm = [];   // { base, t0, t1, at }
+    const lastFormal = {}; // R14 ③：locale → { text, t1 } 上一条正式 final（临时稿 dup-prev 的比对对象）
+    const CJK_RE_G = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+    function hasCjk(s) { return CJK_RE_G.test(String(s || '')); }
+    function overlapCjk(base, t0, t1) {
+      if (!Number.isFinite(t0) || !Number.isFinite(t1)) return false;
+      for (let i = otherAdm.length - 1; i >= 0; i--) {
+        const o = otherAdm[i];
+        if (o.base === base) continue;   // 同一门语言不算「另一门」
+        if (overlapTs(o.t0, o.t1, t0, t1)) return true;   // 统一的区间重叠判据（真交叠）
+      }
+      return false;
+    }
     return {
       // push(f) → [text, …] 这一片应当交给串句器的文字（可能带着救回的句头），空数组 = 什么都别加
       push(f) {
         const locale = String((f && f.locale) || '');
         const text = String((f && f.text) || '').trim();
+        const base = baseCode(locale);
+        const rescued = !!(f && f.rescued);
         const why = rejectDeviceFinal(f, deps);
         const t0 = Number(f && f.t0), t1 = Number(f && f.t1);
-        if (!why) {
-          const h = held[locale]; held[locale] = null;
-          const out = [];
-          if (h && Number.isFinite(t0) && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS) {
-            const head = h.text.replace(LEAD_PUNCT, '').trim();
-            if (head && HAS_LETTER.test(head)) out.push(head);
+        const tsOk = Number.isFinite(t0) && Number.isFinite(t1);
+        const letterHead = HAS_LETTER.test(head(text));
+        // 方案 1（2026-10-11 第九轮）：rescued（partial 救回的文字）与**所有低置信拉丁片**
+        // 不再按 conf 直接丢，改**按重叠裁决**：同时间段中文侧有「已被入口接收且含汉字」的定稿
+        // 才丢（gate:drop reason=cjk-overlap），否则放行。
+        // 分两种粒度、与旧的扣住规则同一形状：
+        //   · 短片（≤2 词且 ≤1500 ms）**扣住**，1.5s 内等中文侧的重叠裁决，到点没有就放行；
+        //     收口（点停/换边/结束）时 drainGateHeld 立即放行（why=forced）。
+        //   · 长片（>2 词或 >1500 ms）没有可等的余地，**当场**按重叠裁决：有重叠 ⇒ 丢，没有 ⇒ 放行。
+        // 这一条正是 r9 C3-en-1（`them to Mr. Zhang's office before 5 p.m.` 8 词 3000ms 被丢弃）的修法。
+        const confLate = why === 'conf' && (rescued || scriptOfLocale(locale) === 'Latin');
+        const shortEnough = tsOk && t1 - t0 <= HOLD_MAX_MS && words(head(text)) <= HOLD_MAX_WORDS;
+        // R14 ③：临时稿整段是**紧挨着的上一条正式 final** 的结尾 ⇒ 丢掉（不是替换，是去重）。
+        // 这一道在**扣住之前**做：临时稿常因低置信被扣 1.5s 才放行，到路由器时「上一条正式 final」
+        // 可能已经变了；Yes please 第 10 次的 `Please` 就是在这里被去掉的（另有 heldJoin 兜一层）。
+        if (rescued && letterHead) {
+          const lf = lastFormal[locale];
+          const gap = (lf && Number.isFinite(lf.t1) && tsOk) ? t0 - lf.t1 : NaN;
+          if (lf && isTailDup(lf.text, head(text), gap, HOLD_DUP_GAP_MS)) {
+            diag('rescue:dup-prev', head(text), 'push');
+            return [];
           }
-          out.push(text);
+        }
+        if (!rescued && letterHead) lastFormal[locale] = { text: head(text), t1: tsOk ? t1 : null };
+        // ① 跨语言重叠 ⇒ 丢弃（**只有这一条**能让低置信拉丁片丢）
+        if (confLate && !shortEnough && tsOk && overlapCjk(base, t0, t1)) {
+          const h = held[locale]; delete held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), 'cjk-overlap');
+          if (letterHead) diag('gate:drop', head(text), 'cjk-overlap');
+          return [];
+        }
+        // ② 缺 t0/t1（缺字段或 NaN）：重叠判据不可用 ⇒ 视为「另一门语言没认到」放行、不静默丢字。
+        //    仍保留原文（方案 1：不再在 drop 分支里丢掉放行返回的空数组）。
+        if (confLate && !tsOk) {
+          const h = held[locale]; delete held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          const out = [];
+          if (h) { const hd = head(h.text); if (hd && HAS_LETTER.test(hd)) out.push(hd); }
+          if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); }
           return out;
         }
-        if (why === 'conf' && Number.isFinite(t0) && Number.isFinite(t1) && t1 - t0 <= HOLD_MAX_MS && words(text.replace(LEAD_PUNCT, '')) <= HOLD_MAX_WORDS) {
-          held[locale] = { text, t0, t1 };   // 替换上一片：只扣最近的一小片
+        // ③ 过了闸，或**长**的低置信拉丁片（没有中文重叠，已裁决放行）：放行。
+        //    扣住的那片（若有）先按「紧接」判据接回：有字母的当句头并进来，纯标点的丢掉（不留碎片）。
+        if ((!why && letterHead) || (confLate && !shortEnough)) {
+          const h = held[locale]; delete held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          const out = [];
+          if (h) {
+            const hd = head(h.text);
+            // 这里判的是「**紧接**」（两片端点相距 ≤ HOLD_GAP_MS 的邻接），不是时间重叠 ——
+            // 所以不用 overlapTs（它要求真交叠）。邻接恰恰是 overlapTs 判 false 的那种关系。
+            const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
+            if (merge) out.push(hd);
+            else if (HAS_LETTER.test(hd)) diag('gate:drop', hd, 'gap');   // 方案 2：接不回也留痕
+            else diag('gate:drop', h.text, 'punct');
+          }
+          if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); }
+          return out;
+        }
+        // ④ 其余（短的低置信片 / 文字系不符 / 纯标点）：先看**这条自己**有没有中文重叠 ——
+        //    有 ⇒ 连它带扣住的那片一起丢（cjk-overlap）；没有 ⇒ 扣住一小片等后续裁决。
+        if (!shortEnough) {
+          const h = held[locale]; delete held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), why);
+          if (letterHead) diag('gate:drop', head(text), why);
+        } else if (confLate && overlapCjk(base, t0, t1)) {
+          const h = held[locale]; delete held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), 'cjk-overlap');
+          if (letterHead) diag('gate:drop', head(text), 'cjk-overlap');
+        } else if (d.replaceHeld) {
+          // 变异钩子（仅测试注入）：退回「同 locale 直接替换上一片」——用于证明方案 3 的测试抓得住。
+          const h = held[locale];
+          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          held[locale] = { parts: [{ text, t0, t1 }], text, t0, t1, timer: 0, conflict: false, rescued };
+          arm(locale);
+          diag('gate:hold', text, why || (rescued ? 'rescued' : 'latin-low-conf'));
         } else {
-          held[locale] = null;               // 长的垃圾 / 文字系不对 ⇒ 断开，前面扣的也作废
+          // 方案 3（R12）：同 locale 已扣住的片**不许被替换** —— 先后扣住的片按时间顺序拼接、
+          // 一起裁决（r10 B auto-3：'Yes.'(conf .312) 先扣，'please.'(conf .005) 到点把 'Yes.' 静默挤掉）。
+          const cur = held[locale];
+          if (cur && cur.parts && cur.parts.length >= HOLD_MAX_PARTS) {
+            settleHeld(locale, 'release', 'hold-overflow');   // 超量先整体放行（不丢字），再扣新的
+          }
+          const now_ = held[locale];
+          if (now_) {
+            if (now_.timer) { clearT(now_.timer); now_.timer = 0; }
+            now_.parts.push({ text, t0, t1, rescued });
+            const j = heldJoin(locale, now_.parts);
+            now_.parts = j.parts;
+            now_.text = j.text;
+            now_.t0 = heldT(now_.parts, 't0');
+            now_.t1 = heldT(now_.parts, 't1');
+            now_.rescued = now_.rescued || rescued;
+            arm(locale);
+            diag('gate:hold', now_.text, (why || (rescued ? 'rescued' : 'latin-low-conf')) + ':' + now_.parts.length);
+          } else {
+            held[locale] = { parts: [{ text, t0, t1, rescued }], text, t0, t1, timer: 0, conflict: false, rescued };
+            arm(locale);
+            diag('gate:hold', text, why || (rescued ? 'rescued' : 'latin-low-conf'));
+          }
         }
         return [];
       },
+      // noteOtherText(locale, text, t0, t1)：另一门语言的一条**已被入口接收**的定稿（带文字）。
+      // 方案 1 的**唯一**跨语言裁决（2026-10-11 第九轮补正）：短片与长片**共用这一套判定** ——
+      //   · 含汉字（中文侧） ⇒ 记入重叠表（后续低置信拉丁片按 overlapCjk 裁决），并当场把
+      //     时间重叠的扣住片判为错语言垃圾（conflict ⇒ 到点丢弃）；
+      //   · 不含汉字（纯拉丁/数字） ⇒ **什么都不算**，扣住的片到点照常放行。
+      // 被 attrib 拒掉的拉丁垃圾根本不会调到这里。
+      noteOtherText(locale, text, t0, t1) {
+        const base = baseCode(locale);
+        if (!base) return;
+        // 变异钩子（仅测试注入）：把判定换回「任何另一门定稿都算冲突」，用于证明上一条测试抓得住。
+        const cjk = d.anyOtherConflict ? true : hasCjk(text);
+        if (!cjk) return;
+        otherAdm.push({ base, t0: Number(t0), t1: Number(t1), at: now() });
+        if (otherAdm.length > OTHER_MAX) otherAdm.splice(0, otherAdm.length - OTHER_MAX);
+        for (const k of Object.keys(held)) {
+          const h = held[k]; if (!h || k === locale) continue;
+          if (overlapTs(t0, t1, h.t0, h.t1)) {   // 统一判据：真交叠才算「同时间段」
+            h.conflict = true;
+            resolve(k, 'cjk-overlap');   // 当场裁决（丢弃）—— 与长片同一条判据、同一个 reason 名
+          }
+        }
+      },
       held(locale) { const h = held[locale]; return h ? h.text : ''; },
+      heldLocales() { return Object.keys(held).filter((k) => !!held[k]); },
+      // 立即放行（按住说的停止 / 换边 / 结束）：关麦前把扣住的片放出去，不丢。
+      flushHeld(locale) { return settleHeld(locale, 'release', 'forced'); },
+      flushAll() { for (const k of Object.keys(held)) settleHeld(k, 'release', 'forced'); },
+      cancelAll() { for (const k of Object.keys(held)) { const h = held[k]; if (h && h.timer) clearT(h.timer); delete held[k]; } },
     };
   }
 
@@ -711,13 +932,15 @@ var ListenCore = (() => {
   // 无论后面还来不来的新片。上限只管「迟迟等不到标点/停顿」的尾巴，正常停顿仍按 idle 走。
   const STREAM_MAX_MS = 4000;
   const CJK_JOIN = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}，。！？、；：]$/u;
+  // 片段拼接的**唯一规则**（串句器 / 路由器 / 实时框共用）：中日韩或标点直接接，拉丁之间补一个空格。
+  function joinFrag(a, b) { return !a ? b : (!b ? a : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b)); }
   function makeStreamCutter(onSentence, opts) {
     const o = opts || {};
     const flushMs = o.flushMs || STREAM_FLUSH_MS;
     const maxAgeMs = o.maxAgeMs || STREAM_MAX_MS;
     const setT = o.setTimeout || setTimeout, clearT = o.clearTimeout || clearTimeout;
     const streams = {};   // locale → { buf, timer, hard }
-    const join = (a, b) => (!a ? b : (CJK_JOIN.test(a) || /^[，。！？、；：,.!?]/.test(b) ? a + b : a + ' ' + b));
+    const join = joinFrag;
     // 只有标点/空白的「句子」（识别器把上一句的句号单独吐出来时常见）不算句子 —— 真机上会成一行「.」
     const HAS_WORD = /[\p{L}\p{N}]/u;
     function emitDone(locale, st) {
@@ -756,6 +979,1207 @@ var ListenCore = (() => {
       flushAll() { for (const l of Object.keys(streams)) flush(l); },
       pending(locale) { const st = streams[locale]; return st ? st.buf : ''; },
     };
+  }
+
+  // ── 模型断句（2026-10-10 用户批准）：final 只进缓冲，行由「断句+翻译」一次调用给出 ──
+  //
+  // 背景（第三十二批 Mac 效果验收）：旧路的行界由「0.4s 静音定稿 / 5s 强制定稿 / 句末标点」
+  // 决定，一句被切成 2–4 行（Mr./p.m. 切开、数字切成「三台」+「1850」、切口重复词）。
+  // 新路：识别器的 final 只是**文字进缓冲**，行界改由用户配置的翻译模型在一次调用里
+  // 语义断句 + 翻译（{"segments":[{"source","translation"}],"remainder"}）。
+  //
+  // 触发只有两种（用户裁定 2026-10-10）：
+  //   (a) 长度：中文约 30 字 / 英文约 20 词 / 泰文约 60 字符；
+  //   (b) 缓冲最后一次进新文字后 idleMs（默认 1.5s，可调 1–2s；自动朗读期间不计时）。
+  // 切语言 / 点停止 ⇒ force=true（remainder 必须为空，违规时兜底放行，零丢失）。
+  // 兜底：失败/超时先不断；攒到硬上限（60 字 / 40 词 / 120 泰文字符）或连续两次失败 ⇒
+  // 按标点硬切（缩写白名单），每段走旧的修正+翻译契约（passRow）。
+  // 只用于通用对话模型：google / qwen_mt / 翻译专用模型名（qwen-mt-*，判法同
+  // wire-format 的 MODEL_SHAPES：formatFor 返回 translate-compat）⇒ 旧路；运行时连续
+  // 两条非法 JSON 也降级旧路（诊断计数）。免费额度（grant，chat-compat）走新路。
+  const SEG_SOFT = { cjk: 30, words: 20, thai: 60 };   // 触发 (a)
+  const SEG_HARD = { cjk: 60, words: 40, thai: 120 };  // 兜底硬切的上限
+  const SEG_IDLE_MS = 1500;                            // 触发 (b)，可调 1–2s
+  const SEG_RELEASE_MS = 800;                          // 自动听：预送扣住后到出行（第二次空闲），独立参数
+  const SEG_JSON_BAD_MAX = 2;                          // 连续非法 JSON ⇒ 降级
+  const SEG_FAIL_MAX = 2;                              // 连续失败 ⇒ 硬切
+  const SEG_RATIO_MIN = 0.55, SEG_RATIO_MAX = 1.8;     // 漂移门：拼回文本与缓冲的长度比
+
+  // 一段文字的三种计量：汉字数（含假名/谚文）、泰文字符数、空格分词数。触发看**任何一种**
+  // 先到线 —— 中英混说时哪边先够就先送，不用先猜「主导文字系」。
+  function segCounts(text) {
+    const s = String(text || '');
+    let cjk = 0, thai = 0;
+    for (const ch of s) {
+      const c = ch.codePointAt(0);
+      if ((c >= 0x4e00 && c <= 0x9fff) || (c >= 0x3400 && c <= 0x4dbf) || (c >= 0x3040 && c <= 0x30ff) || (c >= 0xac00 && c <= 0xd7af) || (c >= 0xf900 && c <= 0xfaff)) cjk++;
+      else if (c >= 0x0e00 && c <= 0x0e7f) thai++;
+    }
+    const words = s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+    return { cjk, thai, words };
+  }
+  function segOver(counts, lim) { return counts.cjk >= lim.cjk || counts.words >= lim.words || counts.thai >= lim.thai; }
+
+  // 路由判定（纯）：这一场走模型断句还是旧的「标点+长度」切分。
+  //   providerId/providerType：注册表条目（google / qwen_mt 直接旧路）
+  //   fmt：WireFormat.formatFor(端点, type, 模型) 的返回值 —— 翻译专用模型（qwen-mt-*）
+  //        在 dashscope 主机上会被它判成 'translate-compat'。
+  //   translationModel：模型名命中翻译专用前缀（host 无关，WireFormat.translationModelName）
+  //        —— 自定义端点里填 qwen-mt-* 也要拦住（P0-1）。
+  //   grant（免费额度）是 chat-compat ⇒ 新路。
+  function segRouteOf(o) {
+    const p = o || {};
+    if (p.providerId === 'google' || p.providerType === 'google') return 'legacy';
+    if (p.providerId === 'qwen_mt') return 'legacy';
+    if (p.translationModel) return 'legacy';
+    if (p.fmt === 'translate-compat' || p.fmt === 'google' || p.fmt === 'browser') return 'legacy';
+    if (p.fmt === 'chat-compat' || p.fmt === 'messages-compat' || p.fmt === 'responses-compat') return 'model';
+    return 'model';   // 拿不到形状（没配端点等）⇒ 默认新路，由调用方保证 cfg 完整
+  }
+  // 组装路由判定所需的全部输入并给结论（P0-1 的可测形状）：provider 是**注册表条目对象**
+  // （EngineState.byId 的结果），formatOf/resolveEndpoint/isTranslationModel 由调用方注入真
+  // WireFormat —— listen-model 与测试走**同一条装配线**，杜绝「判据没接上」这类漏。
+  function segRouteFor(o) {
+    const p = (o && o.provider) || null;
+    const model = (o && o.model) || (p && p.defaultModel) || '';
+    let fmt = '';
+    if (p && typeof o.formatOf === 'function') {
+      const url = (typeof o.resolveEndpoint === 'function') ? o.resolveEndpoint((o && o.baseUrl) || '', p) : '';
+      fmt = url ? o.formatOf(url, p.type, model) : '';
+    }
+    const translationModel = (o && typeof o.isTranslationModel === 'function') ? !!o.isTranslationModel(model) : false;
+    return segRouteOf({ providerId: (o && o.providerId) || (p && p.id) || '', providerType: p ? p.type : '', model, fmt, translationModel });
+  }
+
+  // 收到一条 final 时的接受判定（P1-5 的可测形状）：
+  //   · 换边宽限：换键后 1.5s 内、**换之前那门**的**第一条** final 放行（收口片），用完即止；
+  //   · 否则按 LID 归属：不是这一路 ⇒ 丢。
+  const SEG_SWITCH_GRACE_MS = 1500;
+  function finalAdmit(o) {
+    const base = baseCode(o && o.base), lid = baseCode(o && o.lid);
+    const sw = o && o.pttSwitch;
+    if (sw && !sw.used && base && base === baseCode(sw.from) && ((o.now || 0) - sw.at) <= SEG_SWITCH_GRACE_MS) return { admit: true, markUsed: true };
+    if (!base || !lid || base !== lid) return { admit: false, markUsed: false };
+    return { admit: true, markUsed: false };
+  }
+  // 识别定稿的**唯一闸**（纯，方案 §四）：两条路（模型断句 / 旧路）都走这一个函数，按顺序
+  //   ① 正在朗读这门语言 ⇒ 丢（防回声的老规则，保留到做回声消除）
+  //   ② 换边宽限 / LID 归属（finalAdmit）
+  //   ③ 回声文本相似度（只按文本，不按置信度 ⇒ 不会因为朗读丢用户自己的话）
+  // 返回 { admit, markUsed, force, reason }。force = 换边宽限放进来的收口片（强制收尾送）。
+  function intakeDecide(o) {
+    const p = o || {};
+    const base = baseCode(p.base);
+    if (!base) return { admit: false, markUsed: false, force: false, reason: 'nolang', xfer: false };
+    const playing = p.playing;
+    if (playing && typeof playing.has === 'function' && playing.has(base)) return { admit: false, markUsed: false, force: false, reason: 'speaking', xfer: false };
+    const adm = finalAdmit({ base, lid: p.lid, pttSwitch: p.pttSwitch, now: p.now });
+    const text = String(p.text || '').replace(/\s+/g, ' ').trim();
+    // R14 ②：被归属闸拒掉的结果，可能是「中文路把英文短句听成中文」——多返回一个「可转交」标记
+    // （只是**可**：等待期间英文路一有带字母的结果就丢弃）。方向只有中文路 → 英文路一个。
+    if (!adm.admit) return { admit: false, markUsed: false, force: false, reason: 'attrib', xfer: isXferCandidate({ base, lid: p.lid, text }) };
+    if (!text) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'empty', xfer: false };
+    if (typeof p.isEcho === 'function' && p.isEcho(text)) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'echo', xfer: false };
+    return { admit: true, markUsed: adm.markUsed, force: !!adm.markUsed, reason: '', xfer: false };
+  }
+
+  // 断句+翻译 prompt（规则五条 2026-10-10 用户批准，措辞可微调、规则不改）。
+  // 模板由调用方注入：生产里 listen-model 用 t('listen_seg_system', '<中文模板>') 传进来
+  // （出货代码的中文只许出现在 t() 的 fallback 位，而 listen-core 没有 t）；这里的
+  // ASCII 兜底模板是给测试与「拿不到模板」时的形状保护，规则条数与语义与中文版一致。
+  //   占位：{src} {dst}（system）/ {ctx} {buffer} {force}（user）。
+  const SEG_SYS_FALLBACK = 'You are the segmentation+translation stage of a live interpreter. Source language: {src}, target language: {dst}.\n'
+    + 'Rules:\n'
+    + '1 Split only at semantically complete points; never inside a number; never between a title and a name; a.m./p.m./Mr./Dr. are not sentence ends.\n'
+    + '2 Do not split around a comma within one clause.\n'
+    + '3 Put a semantically incomplete tail in remainder, untranslated; when force=true, remainder MUST be empty.\n'
+    + '4 You may fix obvious recognition errors from context (homophones, proper nouns, numbers) without adding or dropping meaning.\n'
+    + '5 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
+  const SEG_USER_FALLBACK = 'Finalized context (reference only, do not repeat):\n{ctx}\n\nText to process:\n{buffer}\n\nForce finalize: {force}';
+  function buildSegPrompt(p) {
+    const src = p.srcName || p.srcLang || '', dst = p.dstName || p.tgtName || p.dstLang || '';
+    const ctx = (p.context || []).filter((c) => c && c.text);
+    const sysTmpl = p.sysTmpl || SEG_SYS_FALLBACK;
+    const userTmpl = p.userTmpl || SEG_USER_FALLBACK;
+    const system = sysTmpl.split('{src}').join(src).split('{dst}').join(dst);
+    const ctxText = ctx.length ? ctx.map((c) => '- [' + (c.who === 'me' ? 'me' : 'them') + '] ' + c.text + (c.tr ? '  => ' + c.tr : '')).join('\n') : '';
+    const user = userTmpl.split('{ctx}').join(ctxText)
+      .split('{buffer}').join(String(p.buffer || ''))
+      .split('{force}').join(p.force ? 'true' : 'false');
+    return { system, user };
+  }
+
+  // 解析模型回复：{ ok:true, segments, remainder } | { ok:false, reason }
+  //   reason ∈ 'empty' | 'json' | 'schema' | 'drift'（诊断用；调用方按失败兜底）。
+  // 容错：```json 围栏、JSON 前后的废话、全角引号包裹的键（部分中转会转写）。
+  function parseSegReply(raw, o) {
+    const opts = o || {};
+    let s = String(raw || '').trim();
+    if (!s) return { ok: false, reason: 'empty' };
+    s = s.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/i, '');
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a < 0 || b <= a) return { ok: false, reason: 'json' };
+    let j;
+    try { j = JSON.parse(s.slice(a, b + 1)); } catch (_) { return { ok: false, reason: 'json' }; }
+    if (!j || typeof j !== 'object' || !Array.isArray(j.segments)) return { ok: false, reason: 'schema' };
+    const segs = [];
+    for (const it of j.segments) {
+      if (!it || typeof it !== 'object') return { ok: false, reason: 'schema' };
+      const source = String(it.source || '').trim(), tr = String(it.translation || '').trim();
+      if (!source || !tr) return { ok: false, reason: 'schema' };
+      segs.push({ source, translation: tr });
+    }
+    const remainder = typeof j.remainder === 'string' ? j.remainder.trim() : '';
+    if (typeof j.remainder !== 'string' && j.remainder != null) return { ok: false, reason: 'schema' };
+    // 漂移门：只有**给了段**时才校验（拼回的段应≈缓冲去掉合法 remainder 的前缀）。空段 + 只有
+    // remainder 的回复不是漂移，是「还没有完整的句子」—— 由路由器按「没进展」处理。
+    if (opts.buffer && segs.length) {
+      const buf = String(opts.buffer).trim();
+      // 后缀判定与 onResult 用**同一个**判据（去标点空白后逐字后缀）—— 否则解析器认下的 remainder
+      // 在 onResult 里又被判成 mismatch，同一份回复两个结论。
+      // 补正（2026-10-11）：切 target 用 remSuffixRaw 的**原文位置**（raw.start），
+      // 不再用模型清洗后 remainder.length —— 两者长度不同时会把 target 切错、漂移比失真。
+      // R14 方案 C：**先**切掉模型 source 里与上一条已出行行重复的前缀（与 flush 的 trimDupRows
+      // 同一判据、同一个 trimDupSource），**再**算漂移比例。否则模型按上下文补回整句时，比例
+      // 先超过上限被判 drift，而那段重复本该在出行时就切掉（r13 英文长句第 1 次：17 词对 6 词）。
+      const lastEmitText = String(opts.last || '');
+      const srcs = segs.map((x) => {
+        if (!lastEmitText) return x.source;
+        const rest = trimDupSource(lastEmitText, x.source, buf);
+        return rest || x.source;
+      });
+      const raw = remainder ? remSuffixRaw(buf, remainder) : null;
+      const target = raw ? buf.slice(0, raw.start) : buf;
+      const joined = srcs.join('');
+      const unit = (c) => Math.max(c.cjk, c.thai, c.words, 1);
+      const ratio = unit(segCounts(joined)) / unit(segCounts(target));
+      if (ratio < SEG_RATIO_MIN || ratio > SEG_RATIO_MAX) return { ok: false, reason: 'drift' };
+    }
+    return { ok: true, segments: segs, remainder };
+  }
+
+  // 标点硬切（兜底）：句末标点处切，缩写/小数白名单不切。
+  //   白名单：Mr./Mrs./Ms./Dr./Prof./Sr./Jr./St./a.m./p.m./e.g./i.e./U.S./U.K./No. 与「数字.数字」。
+  //   泰文没有句末标点 ⇒ 整段作为一条返回（长度上限由调用方在送进来之前把关）。
+  const SEG_ABBR = /(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Mt|vs|etc|e\.g|i\.e|a\.m|p\.m|U\.S|U\.K|No|Nos|Fig|Approx|Inc|Ltd|Co|Jr)\.$/i;
+  function hardCutSentences(text) {
+    const buf = String(text || '').trim();
+    if (!buf) return [];
+    const out = [];
+    let last = 0;
+    const re = /[。！？!?；;]|\.(?=\s|$)/g;
+    let m;
+    while ((m = re.exec(buf))) {
+      const end = m.index + m[0].length;
+      // 白名单：句点是缩写的一部分（Mr. Zhang）⇒ 不是句末；下一个非空白字符是数字（3.5 的
+      // 小数点已被 (?=\s|$) 挡住，这里再兜「句点后紧跟数字」的漏网）⇒ 也不是句末。
+      const after = buf.slice(end).match(/^\s+(\S)/);
+      if (m[0] === '.' && (SEG_ABBR.test(buf.slice(0, end)) || (after && /^\d/.test(after[1])))) continue;
+      const sent = buf.slice(last, end).trim();
+      if (sent && /[\p{L}\p{N}]/u.test(sent)) out.push(sent);
+      last = end;
+    }
+    const rest = buf.slice(last).trim();
+    if (rest && /[\p{L}\p{N}]/u.test(rest)) out.push(rest);
+    return out;
+  }
+
+  // ── 文字账本路由器（第五轮：批次级扣住 + 单一调度函数）────────────────────────
+  // 一本全局有序账本（记录按**上屏顺序**排）。每条记录是一段**识别原文**：
+  //   { id, locale, text, at, state:'wait'|'sending'|'held', calls, commit }
+  // 调度**只有一个函数 schedule()**：每个事件（新字/回复/错误/朗读开关/settle/到点）处理完都调它，
+  // 它从账本 + 时间戳重新算出「下一步该干什么」，并且只设一个计时器 —— 「忘了重新计时」在结构上
+  // 不可能发生。按序只约束**上屏顺序**：后面的语言可以先发送、结果先扣着，等前面的提交了再上屏。
+  //
+  // 触发：(a) 长度到线立即送（**不受朗读影响**）；(b) 空闲：最后一次进字后 idleMs。碎片（原文末尾
+  // 无句末标点且短）在第一次空闲**预送并扣住**：结果挂在那一批请求上，到 `sentAt+idleMs` 或
+  // 期间又来了新字时**当场核对** —— 有新字就作废、跟新字一起重送；没有就出行。朗读**只暂停空闲计时**，
+  // 扣住结果的出行不受影响。
+  // 失败梯度：第 1 次不切、第 2 次按标点硬切全部交旧路；每字最多 SEG_MAX_CALLS 次调用。
+  // 生命周期 open → closing(原因) → closed，收尾只有 settle()；dispose 在 closed 之后，账本非空经 onLeak。
+  const SEG_MAX_CALLS = 3;        // 每个字最多参与几次模型调用
+  const SEG_END_WAIT_MS = 3000;   // 「结束」时等在飞请求的上限
+  // 碎片：末尾无句末标点且很短（按**识别原文**判；模型补的标点不算）
+  function segIsFragment(text) {
+    const s = String(text || '').trim();
+    if (!s) return false;
+    if (/[。！？!?]$|[.]$/.test(s)) return false;
+    const c = segCounts(s);
+    const n = c.cjk + c.thai;
+    return n > 0 ? n < 6 : c.words < 4;
+  }
+  function stripTailPunct(s) { return String(s || '').replace(/[.。!！?？\s]+$/g, ''); }
+  // ── R12（第十轮 · 方案 2/5）：短片判定 + 相邻行重复的归一化 ───────────────────
+  const SEG_PARTIAL_MS = 2500;    // 「partial 还在到达」的判活窗口（与 listen-model 的 PARTIAL_TTL_MS 同值）
+  const SEG_SHORT_CJK = 4, SEG_SHORT_WORDS = 2;   // 「≤2 词」片：拉丁按空格词、汉字圈按字
+  const SEG_DUP_MIN = 3;          // 相邻两行归一化后至少重合这么多字符才算「重复片段」
+  // R14：已出行的临时稿（partial 补救）只对**同一段话**有效 —— 真机实测（g3 第 2 次）：两句
+  // 重复的 `Yes please.` 间隔约 14s，若按 15s 保留，后一句会被前一句的已出行临时稿整条去重掉。
+  // 去重本身按文字（R14），这个窗口只界定「同一段话」的范围。
+  // R15：界定「同一段话」改用**音频区间**（trimAgainstRescueOut）——正式 final 与临时稿真交叠、
+  // 或 final.t0 - 临时稿.t1 ≤ GAP，才允许按文字裁剪；否则清掉临时稿、两条都留。真机 g3 的句距
+  // 音频 3.6–5.1s 由此与「同句续接片（0–1.0s）」分开。SEG_RESCUE_KEEP_MS 只在正式 final 或
+  // 临时稿缺 t0/t1 时兜底（到达间隔 ≤ 本值）。
+  const SEG_RESCUE_KEEP_MS = 1500;
+  const SEG_RESCUE_GAP_MS = 1500;   // 音频区间版「同一句」的相邻容差（final.t0 − ro.t1）
+  // 「≤2 词的片」：空格分词 ≤2；无空格文字（中日韩泰）按字数 ≤4（否则整句无空格会恒算 1 词）。
+  function segShortPiece(text) {
+    const c = segCounts(text);
+    const n = c.cjk + c.thai;
+    return n > 0 ? n <= SEG_SHORT_CJK : c.words <= SEG_SHORT_WORDS;
+  }
+  // 相邻行去重用的归一化：折大小写、只留字母/数字（忽略标点空白）。与 normSuffixText 不同 ——
+  // 后者不折大小写（remainder 后缀比对要求数字/大小写逐字一致），这里的判据是「同一串字」。
+  function normDupText(s) { return String(s == null ? '' : s).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ''); }
+  // 归一化后数到第 n 个字，返回它在原文里的下标（含该字符之后）。
+  function rawIndexAfterNorm(s, n) {
+    const str = String(s == null ? '' : s);
+    let cnt = 0;
+    for (let i = 0; i < str.length; i++) {
+      if (/[\p{L}\p{N}]/u.test(str.charAt(i))) { cnt++; if (cnt >= n) return i + 1; }
+    }
+    return str.length;
+  }
+  // last 的归一化**后缀** == 新文本的归一化**前缀** 的最长长度（≥SEG_DUP_MIN 才算，否则 0）。
+  function dupPrefixLen(lastNorm, newNorm) {
+    const max = Math.min(lastNorm.length, newNorm.length);
+    for (let k = max; k >= SEG_DUP_MIN; k--) if (lastNorm.slice(-k) === newNorm.slice(0, k)) return k;
+    return 0;
+  }
+  // 新文本的归一化**前缀**出现在 hay 归一化文本里的最长长度（用于「补救文字已出行 ⇒ 只追加不
+  // 重叠部分」：' Please make' / ' 3' 都已被已出行的补救文字覆盖 ⇒ 整条不追加）。
+  function normSubstrPrefixLen(hay, neu) {
+    const max = Math.min(hay.length, neu.length);
+    for (let k = max; k >= SEG_DUP_MIN; k--) if (hay.indexOf(neu.slice(0, k)) >= 0) return k;
+    return 0;
+  }
+
+  // ── R14：临时稿（partial 补救文字）与正式 final 的**文字对齐** ─────────────────
+  // 第十二、十三轮按音频区间判「同一段音频」——前提不成立：识别器的 partial 没有时间戳，
+  // 而且覆盖的音频通常比那条坏 final 长得多，于是修法在「丢句首」与「重复」之间摆。R14 改成
+  // 按文字对齐：
+  //   · 临时稿 = 从 partial 救回的文字（rescued），不再信它的 t0/t1，只记到达时刻；
+  //   · 后来的正式 final 在临时稿里对齐 ⇒ 临时稿让位（只留对齐点之前的部分，空则删）；
+  //   · 对不上 ⇒ 两条都留（宁可偶尔重复，也不丢字），记 rescue:nomatch；
+  //   · 两条**正式 final** 之间永不去重（真说了两遍就都留）。
+  const ALIGN_MIN_RUN = 2;    // 至少连续对齐这么多词才算「对上了」（单词噪音不算）
+  const ALIGN_FUZZ_MIN = 4;   // 允许 1 处字母差异的词的长度下限（短词只许完全相等，避免 of/to 这类误配）
+  const ALIGN_NUM_WORDS = {
+    zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+    nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+    hundred: 100, thousand: 1000,
+  };
+  // 对齐用的「词」：拉丁/数字连成一段；中日韩**逐字**（没有空格，整段连写没法按空格分）。
+  const ALIGN_CJK_CH = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+  const ALIGN_WORD_CH = /[\p{L}\p{N}]/u;
+  function alignTokens(text) {
+    const s = String(text == null ? '' : text);
+    const out = [];
+    let cur = '', curAt = 0;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s.charAt(i);
+      if (ALIGN_CJK_CH.test(ch)) {
+        if (cur) { out.push({ w: cur, at: curAt }); cur = ''; }
+        out.push({ w: ch, at: i });
+      } else if (ALIGN_WORD_CH.test(ch)) {
+        if (!cur) curAt = i;
+        cur += ch;
+      } else if (cur) { out.push({ w: cur, at: curAt }); cur = ''; }
+    }
+    if (cur) out.push({ w: cur, at: curAt });
+    return out;
+  }
+  function alignWords(s) { return alignTokens(s).map((t) => t.w.toLowerCase()); }
+  function canonWord(w) {
+    const x = String(w || '');
+    if (/^\d+$/.test(x)) { const n = parseInt(x, 10); return Number.isFinite(n) ? '#' + n : x; }
+    if (Object.prototype.hasOwnProperty.call(ALIGN_NUM_WORDS, x)) return '#' + ALIGN_NUM_WORDS[x];
+    return x;
+  }
+  function editLE1(a, b) {
+    if (a === b) return true;
+    const m = a.length, n = b.length;
+    if (!m || !n || Math.abs(m - n) > 1) return false;
+    let i = 0, j = 0, diff = 0;
+    while (i < m && j < n) {
+      if (a.charAt(i) === b.charAt(j)) { i++; j++; continue; }
+      if (++diff > 1) return false;
+      if (m > n) i++; else if (n > m) j++; else { i++; j++; }
+    }
+    return diff + (m - i) + (n - j) <= 1;
+  }
+  // 两个词算不算同一个：数字 = 英文数词（3 == three）；长词允许 1 处**字母**差异（Zang/Zhang）。
+  // 带数字的词（`make93`）只认完全相等 —— 数字是识别器最容易听错、又最要紧的内容，不做模糊。
+  function wordNear(a, b) {
+    const A = canonWord(a), B = canonWord(b);
+    if (A === B) return true;
+    if (A.charAt(0) === '#' || B.charAt(0) === '#') return false;   // 数字词只认归一，不模糊
+    if (/\d/.test(A) || /\d/.test(B)) return false;                  // 带数字的其它词也只认完全相等
+    if (A.length < ALIGN_FUZZ_MIN || B.length < ALIGN_FUZZ_MIN) return false;
+    return editLE1(A, B);
+  }
+  // temp 原文里第 wi 个规范词**之前**的那段（去掉前导标点空白）。
+  function alignBeforeWord(text, wi) {
+    const toks = alignTokens(text);
+    if (wi < 0 || wi >= toks.length) return null;
+    return String(text).slice(0, toks[wi].at).replace(LEAD_PUNCT, '').trim();
+  }
+  // 把 final 的文字在 temp 里对齐：从 final 首词开始找最长连续匹配（数字归一 / 长词 1 字母差）。
+  // 返回 { hi, len, before }（before = temp 中对齐点之前的原文；可能为 ''）或 null（对不上）。
+  function alignFinalInTemp(temp, finalText) {
+    const hay = alignWords(temp), needle = alignWords(finalText);
+    if (!hay.length || !needle.length) return null;
+    let best = 0, bestHi = -1;
+    for (let i = 0; i < hay.length; i++) {
+      let k = 0;
+      while (i + k < hay.length && k < needle.length && wordNear(hay[i + k], needle[k])) k++;
+      if (k > best) { best = k; bestHi = i; }
+    }
+    const need = Math.min(needle.length, hay.length, ALIGN_MIN_RUN);
+    if (best < need || bestHi < 0) return null;
+    return { hi: bestHi, len: best, before: alignBeforeWord(temp, bestHi) };
+  }
+  // 临时稿整段是不是「紧挨着的上一条正式 final」的结尾（归一化后缀 + 音频邻接）。
+  function isTailDup(prevText, tempText, gapMs, maxGap) {
+    const p = normDupText(prevText), t = normDupText(tempText);
+    if (!p || !t || !p.endsWith(t)) return false;
+    return !Number.isFinite(gapMs) || gapMs <= maxGap;
+  }
+  // R14 ⑤：以标点开头的正式 final（识别器把句首吞了）—— 把 final 文字在 partial 里对齐，取
+  // 对齐位置**之前**的部分作为句首临时稿补回（对不上 / 不以标点开头 ⇒ 返回 ''）。
+  function rescueLead(finalText, partialText) {
+    const ft = String(finalText == null ? '' : finalText);
+    if (!LEAD_PUNCT.test(ft)) return '';
+    const al = alignFinalInTemp(partialText, ft);
+    return (al && al.before) ? al.before : '';
+  }
+  // 模型 source 与上一条已出行行的重复前缀裁剪（方案 2，R12 第十轮）——**唯一判据**，出行时
+  // （trimDupRows）与漂移检查前（parseSegReply，R14 方案 C）共用。只有这段前缀**不在本批缓冲里**
+  // （= 模型按上下文补回来的、不是我们喂进去的）才切。
+  function trimDupSource(lastText, src, bufText) {
+    const s = String(src == null ? '' : src);
+    const sN = normDupText(s);
+    if (!sN) return s;
+    const L = dupPrefixLen(normDupText(lastText), sN);
+    if (!L) return s;
+    const bufN = normDupText(bufText);
+    const legit = L <= bufN.length && bufN.slice(0, L) === sN.slice(0, L);
+    if (legit) return s;
+    return s.slice(rawIndexAfterNorm(s, L)).replace(LEAD_PUNCT, '').trim();
+  }
+
+  // ── R14 ②：中文路 → 英文路的候补转交（只允许这一个方向）───────────────────────
+  const XFER_MAX_WORDS = 3;   // 候补最多 3 个词（长句里的拉丁垃圾一律不转交）
+  const XFER_CJK_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+  const XFER_PUNCT_MAP = { '。': '.', '，': ',', '、': ',', '！': '!', '？': '?', '；': ';', '：': ':',
+    '…': '...', '（': '(', '）': ')', '「': '"', '」': '"', '『': '"', '』': '"', '《': '<', '》': '>',
+    '“': '"', '”': '"', '‘': "'", '’': "'" };
+  // 中文标点换成英文（`Yes。` → `Yes.`），再去掉所有非 ASCII 可见字符。
+  function xferClean(t) {
+    const s = String(t == null ? '' : t)
+      .replace(/[。，、！？；：…（）「」『』《》“”‘’]/g, (c) => (XFER_PUNCT_MAP[c] || ''))
+      .replace(/([,;:])(?=\S)/g, '$1 ')
+      .replace(/[^\x20-\x7E]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return /[A-Za-z0-9]/.test(s) ? s : '';   // 清洗后连字母/数字都没有 ⇒ 不是候补（不喂空串）
+  }
+  // 归属语言是英文（lid=en）时，被 attrib 拒掉的中文路结果够不够当候补：一个汉字都没有、有字母、
+  // 最多 3 个词。够 ⇒ 才允许等一次空闲 / 等停止收音再决定转交。
+  function isXferCandidate(o) {
+    const p = o || {};
+    const lid = baseCode(p.lid), base = baseCode(p.base);
+    if (lid !== 'en' || !base || base === 'en') return false;   // 只限中文路 → 英文路
+    const t = String(p.text || '');
+    if (XFER_CJK_RE.test(t)) return false;                      // 一个汉字（含假名/谚文）都没有
+    if (!/[A-Za-z]/.test(t)) return false;                      // 有字母
+    const words = (t.match(/[A-Za-z0-9']+/g) || []).length;
+    return words > 0 && words <= XFER_MAX_WORDS;
+  }
+  // 候补计时器（纯逻辑，可测）：归属英文时，中文路的纯拉丁短结果先当候补。
+  //   · 英文路在候补前 waitMs 内、或等待期间给了任何带字母的结果（含补救文字）⇒ 丢弃候补；
+  //   · 到点（自动听一次空闲）或 stop()（点停等到停止收音）⇒ 转交；
+  //   · canXfer 由接线方给（归属仍是英文、断句路可用）。
+  function makeTransferGate(deps) {
+    const d = deps || {};
+    const now = d.now || (() => Date.now());
+    const setT = d.setTimeout || setTimeout, clearT = d.clearTimeout || clearTimeout;
+    const waitMs = d.waitMs || SEG_IDLE_MS;
+    let cand = null, lastEn = -Infinity;
+    const diag = (reason, extra) => { if (d.onDiag) { try { d.onDiag('intake:' + reason, extra); } catch (_) {} } };
+    function clearCand() { if (cand && cand.timer) clearT(cand.timer); cand = null; }
+    function fire(c) {
+      if (now() - lastEn <= waitMs) { diag('xfer-drop', { text: 'en-letter', rem: c.text }); return false; }
+      if (d.canXfer && !d.canXfer(c)) { diag('xfer-drop', { text: 'not-ready', rem: c.text }); return false; }
+      diag('xfer', { text: c.text });
+      if (d.onXfer) { try { d.onXfer(c.text, c.locale, c); } catch (_) {} }
+      return true;
+    }
+    return {
+      // 英文路给了带字母的结果（含补救文字 / 临时稿）⇒ 记时刻；已有候补则就地丢弃。
+      noteEnLetter() {
+        lastEn = now();
+        if (cand) { clearCand(); diag('xfer-drop', { text: 'en-letter-now' }); }
+      },
+      offer(o) {
+        if (cand) { clearCand(); diag('xfer-drop', { text: 'replaced' }); }
+        const c = { text: String((o && o.text) || ''), locale: (o && o.locale) || '', t0: o && o.t0, t1: o && o.t1 };
+        if (!c.text) return false;
+        if (now() - lastEn <= waitMs) { diag('xfer-drop', { text: 'en-letter-pre', rem: c.text }); return false; }
+        c.timer = setT(() => { if (cand === c) { cand = null; fire(c); } }, waitMs);
+        cand = c;
+        return true;
+      },
+      stop() {   // 点停：等到停止收音为止（立即结算）
+        const c = cand; if (!c) return false;
+        if (c.timer) clearT(c.timer);
+        cand = null;
+        return fire(c);
+      },
+      cancel() { clearCand(); },
+      pending() { return !!cand; },
+    };
+  }
+
+  // 已出行的临时稿：正式 final 去掉已出行的重叠前缀、只追加剩余（**按文字**，R14）。
+  // 匹配按**整词**（不是逐字符）—— 否则「已出行的 `this15`」会把新片的 `this32` 切掉半个词。
+  function tokenPrefixInHay(hay, needle) {
+    let best = 0;
+    for (let i = 0; i < hay.length; i++) {
+      let k = 0;
+      while (i + k < hay.length && k < needle.length && wordNear(hay[i + k], needle[k])) k++;
+      if (k > best) best = k;
+    }
+    return best;
+  }
+  function alignAfterTokens(text, k) {
+    const toks = alignTokens(text);
+    if (k <= 0) return String(text == null ? '' : text);
+    if (k >= toks.length) return '';
+    return String(text).slice(toks[k].at).replace(LEAD_PUNCT, '').trim();
+  }
+
+  // remainder 后缀比对（方案 3，2026-10-11 第九轮）：模型会把 remainder「清洗」成与识别原文不逐字
+  // 一致的写法（补/删标点、把 `,` 写成 `, `），于是 `buf.endsWith(rem)` 为假 → remainder-mismatch
+  // → 两次就硬切交旧路（r9 C-en-4：buffer 以 `.....` 结尾、模型只回 `... say, to`）。
+  // 判据改成**去掉标点与空白后**逐字后缀比对；数字/大小写/词仍必须一致（归一化只去标点空白，
+  // 不折大小写、不换算数字）。比对通过后由 remSuffixRaw 按**原文位置**取回 remainder 原文，
+  // 账本守恒不靠模型给的写法。
+  const SUFFIX_STRIP = /[^\p{L}\p{N}]+/gu;
+  function normSuffixText(s) { return String(s == null ? '' : s).replace(SUFFIX_STRIP, ''); }
+  // 归一化后的 rem 是不是 buf 的后缀？从**末尾**逐字符对齐（O(n)），不受重复词影响。
+  function isSuffixLoose(buf, rem) {
+    const r = normSuffixText(rem);
+    if (!r) return false;
+    const b = normSuffixText(buf);
+    if (r.length >= b.length) return r === b;
+    return b.slice(b.length - r.length) === r;
+  }
+  // 按**原文位置**取回末尾这段（= rem 归一化后对应的原文切法），返回 { text, start } 或 null。
+  // text 是原文里那一段（可能带标点/空白），start 是它在本批文本里的下标。
+  function remSuffixRaw(buf, rem) {
+    const R = normSuffixText(rem);
+    if (!R) return null;
+    const B = String(buf == null ? '' : buf);
+    let i = B.length, cnt = 0;
+    while (i > 0 && cnt < R.length) { i--; if (/[\p{L}\p{N}]/u.test(B.charAt(i))) cnt++; }
+    if (cnt < R.length) return null;
+    const bTail = normSuffixText(B.slice(i));
+    if (bTail !== R) return null;   // 数字/大小写/词不一致 ⇒ 不是后缀
+    return { text: B.slice(i), start: i };
+  }
+  function mergeSegFragments(segs) {
+    const out = [];
+    for (let i = 0; i < segs.length; i++) {
+      const cur = segs[i];
+      if (i < segs.length - 1 && segIsFragment(stripTailPunct(cur.source))) {
+        segs[i + 1] = { source: joinFrag(stripTailPunct(cur.source), segs[i + 1].source), translation: joinFrag(stripTailPunct(cur.translation), segs[i + 1].translation) };
+        continue;
+      }
+      out.push(cur);
+    }
+    return out;
+  }
+
+  // 断句路由器（每场一个；conv 路专用）。纯逻辑，不含 fetch —— call 由调用方注入。
+  //   feed(locale, text, opts) / settle(reason) / pending(locale) / setSpeaking(on) / dispose() / state()
+  function makeSegmentRouter(deps) {
+    const d = deps || {};
+    const idleMs = d.idleMs || SEG_IDLE_MS;
+    const autoReleaseMs = d.releaseMs || SEG_RELEASE_MS;
+    const endWaitMs = d.endWaitMs || SEG_END_WAIT_MS;
+    const soft = d.soft || SEG_SOFT, hard = d.hard || SEG_HARD;
+    const now = d.now || (() => Date.now());
+    const setT = d.setTimeout || setTimeout, clearT = d.clearTimeout || clearTimeout;
+    const ledger = [];
+    const meta = {};        // locale → { lastFeedAt, force, extraWaited, fails, retryForce, retryUsed, retryAt, partialAt }
+    const lastEmit = {};    // locale → 最近一次上屏的行文本（方案 2：模型 source 句首重复裁剪的比对对象）
+    const rescueOut = {};   // locale → { text, t0, t1, at } 已出行的 partial 补救文字（R14：按**文字**只追加不重叠部分；R15：带音频区间界定「同一句」）
+    const lastFormalRec = {};   // locale → { text, t1, at }：上一条正式 final（R14 ③ dup-prev 的比对对象）
+    let seq = 0, posSeq = 0, disposed = false, speaking = false, pttMode = false, holdMode = false;   // pttMode=正在按键收音（方案 1 的接线点，只作状态）；holdMode=旧「按住说」（第二次空闲用 idleMs）。默认自动听（autoReleaseMs）。
+    let phase = 'open', closeReason = '';
+    let inFlight = null;    // 请求在飞：{ locale, ids, text, sentAt, force, hold, voided, settled }
+    const heldBatch = {};   // locale → 扣住的结果（请求已回、等出行）：{ ids, text, sentAt, held:{segs,rem,ms}, releaseAt }
+    let timer = 0, endTimer = 0;
+    let calls = 0, emits = 0, fallbacks = 0;
+    const failCounts = {};  // 诊断：单次失败原因计数（不含内容）
+
+    function M(lc) { return meta[lc] || (meta[lc] = { lastFeedAt: 0, force: false, extraWaited: false, fails: 0, retryForce: false, retryUsed: false, retryAt: 0, partialAt: 0 }); }
+    function L(lc) { return ledger.filter((r) => r.locale === lc); }
+    function byId(id) { for (const r of ledger) if (r.id === id) return r; return null; }
+    function locales() { const s = new Set(Object.keys(meta)); for (const r of ledger) s.add(r.locale); return [...s]; }
+    function pendRecs(lc) { return L(lc); }   // 账本里所有记录（含已挂提交、等按序 flush 的）都是「未上屏」文字
+    function joinAll(recs) { return recs.map((r) => r.text).reduce((a, b) => joinFrag(a, b), ''); }
+    function pendingText(lc) { return joinAll(pendRecs(lc)); }
+    function pendingAll() { return locales().map((lc) => ({ locale: lc, text: pendingText(lc) })).filter((x) => x.text); }
+    // 该语言账本里**连续**的待处理段（批/旧路提交都不跨别的语言的记录 —— 上屏顺序才严格）
+    function runsOf(lc) {
+      const runs = []; let cur = null;
+      for (const r of ledger) {
+        const ok = r.locale === lc && r.state === 'wait' && !r.commit;
+        if (ok) { if (!cur) { cur = []; runs.push(cur); } cur.push(r); }
+        else cur = null;
+      }
+      return runs;
+    }
+    function headRun(lc) { const rs = runsOf(lc); return rs.length ? rs[0] : []; }
+    function legacyPayload(text) { return { kind: 'legacy', texts: hardCutSentences(text) }; }
+    function attach(ids, payload) {
+      const recs = ids.map(byId).filter(Boolean);
+      if (!recs.length) return;
+      if (!recs[0].commit) recs[0].commit = payload;
+      for (let i = 1; i < recs.length; i++) if (!recs[i].commit) recs[i].commit = { kind: 'none' };
+    }
+    function commit(ids, payload) { attach(ids, payload); flush(); }
+    // **先定状态，再通知**（A1）：先把要出的行挪进「待通知队列」、账本状态全部改完，再逐条通知界面层；
+    // 每条通知各自 try/catch，出错只记一条诊断（零内容），绝不影响路由器状态。
+    function flush() {
+      const queue = [];
+      while (ledger.length && ledger[0].commit && !ledger[0].commit.held) {
+        const rec = ledger.shift();
+        const c = rec.commit;
+        if (c.kind === 'rows') {
+          // 方案 2（R12）：模型 source 句首多出与上一条已出行尾部重复的内容 ⇒ 切掉该前缀（emit:trim-dup）
+          const rows = trimDupRows(rec.locale, c.rows || [], c.orig);
+          if (rec.rescued) rescueOut[rec.locale] = { text: String(c.orig || rec.text || ''), t0: rec.t0, t1: rec.t1, at: now() };
+          if (rows.length) {
+            lastEmit[rec.locale] = String(rows[rows.length - 1].source || '');
+            emits += rows.length;
+            queue.push({ type: 'rows', rows, meta: { locale: rec.locale, ms: c.ms, force: c.force, orig: c.orig, pos: rec.pos, feedAt: c.feedAt, sentAt: c.sentAt } });
+          }
+        } else if (c.kind === 'legacy') {
+          for (const t of c.texts) { fallbacks++; lastEmit[rec.locale] = t; queue.push({ type: 'legacy', text: t, locale: rec.locale }); }
+          // 补救片可能只是这一批里的一条（legacy 载荷挂在**批首**记录上）——载荷里带着「这批含补救片」
+          // 的标记，按整批上屏的文字做 rescueOut（R14：已出行 ⇒ 后续正式 final 只追加不重叠部分）。
+          if (c.rescue || rec.rescued) {
+            const rt0 = Number.isFinite(c.rescueT0) ? c.rescueT0 : rec.t0;
+            const rt1 = Number.isFinite(c.rescueT1) ? c.rescueT1 : rec.t1;
+            rescueOut[rec.locale] = { text: (c.texts || []).join(' '), t0: rt0, t1: rt1, at: now() };
+          }
+        }
+      }
+      // stop/switch 的收尾：账本清空（且无在飞/扣住）⇒ 回到 open（可以继续听）
+      if (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch') && !ledger.length && !inFlight && !Object.keys(heldBatch).length) { phase = 'open'; closeReason = ''; }
+      notify(queue);
+    }
+    // ── 方案 2（R12）：模型 source 与上一条已出行行的重复前缀裁剪 ────────────────
+    // 归一化后比较；只有当这段前缀**不在本批缓冲里**（= 模型按上下文补回来的、不是我们喂进去的）
+    // 才切。这样 fuzz 里「模型恒返回 source==buffer」不会被误切。
+    function trimDupRows(lc, rows, orig) {
+      const list = rows || [];
+      let last = lastEmit[lc] || '';
+      if (!last) return list;
+      const out = [];
+      for (let row of list) {
+        let src = String((row && row.source) || '');
+        const rest = trimDupSource(last, src, orig);
+        if (rest && rest !== src) {
+          const L = normDupText(src).length - normDupText(rest).length;
+          if (d.onDiag) { try { d.onDiag('emit:trim-dup', { text: src, why: 'n=' + L }); } catch (_) {} }
+          src = rest;
+          row = Object.assign({}, row, { source: rest });
+        }
+        last = src;
+        out.push(row);
+      }
+      return out;
+    }
+
+    // ── R14：临时稿（partial 补救文字）按**文字对齐**让位给正式 final ─────────────
+    // 第十二、十三轮按音频区间去重 —— 前提不成立（partial 没有时间戳、覆盖音频比坏 final 长），
+    // 于是「丢句首」与「重复」来回摆。R14 全部改成按文字：
+    //   · 未出行的临时稿：正式 final 在它里面对齐 ⇒ 只留对齐点之前的部分（空则删），记 rescue:trim；
+    //     对不上 ⇒ 两条都留（宁可重复不丢字），记 rescue:nomatch；
+    //   · 已出行的临时稿：正式 final 去掉已出行的重叠前缀，只追加剩余（trimAgainstRescueOut）；
+    //   · 临时稿整段是紧挨着的上一条正式 final 的结尾 ⇒ 丢掉临时稿（rescue:dup-prev）；
+    //   · 两条**正式 final** 之间永不去重。
+    const RESCUE_DUP_GAP_MS = 300;   // 「紧挨着」的音频邻接容差（与句头闸 HOLD_DUP_GAP_MS 同值）
+    function findRescueWait(lc) {
+      for (let i = ledger.length - 1; i >= 0; i--) {
+        const r = ledger[i];
+        if (r.locale !== lc || !r.rescued) continue;
+        if (r.state !== 'wait' || r.commit) continue;
+        return r;
+      }
+      return null;
+    }
+    function anyRescueRec(lc) {
+      for (let i = ledger.length - 1; i >= 0; i--) { const r = ledger[i]; if (r.locale === lc && r.rescued) return r; }
+      return null;
+    }
+    // 补救片已经在飞 / 被扣住 ⇒ 先作废那一批（recs 回 wait），再按文字对齐替换。
+    // **不能**只改文字 —— 在飞批次用的是发送时的旧文本，改了会丢掉正式 final 的新增部分。
+    function reopenRescueBatch(lc) {
+      const ib = inFlight;
+      if (ib && ib.locale === lc && ib.ids.some((id) => { const r = byId(id); return r && r.rescued; })) {
+        ib.voided = true; inFlight = null; recsToWait(ib);
+        if (ib.settled) { const f = ib.settled; ib.settled = null; try { f(); } catch (_) {} }
+      }
+      const hb = heldBatch[lc];
+      if (hb && hb.ids.some((id) => { const r = byId(id); return r && r.rescued; })) {
+        delete heldBatch[lc]; recsToWait(hb);
+        if (hb.settled) { const f = hb.settled; hb.settled = null; try { f(); } catch (_) {} }
+      }
+    }
+    // 正式 final 与未出行的临时稿做文字对齐。返回 'trim' | 'nomatch' | 'emitted' | 'none'。
+    function trimRescueByAlign(lc, t) {
+      let temp = findRescueWait(lc);
+      if (!temp) {
+        const any = anyRescueRec(lc);
+        if (any && !any.commit && (any.state === 'sending' || any.state === 'sent' || any.state === 'held')) {
+          reopenRescueBatch(lc); temp = findRescueWait(lc);
+        }
+        if (!temp && any && any.commit) {
+          // 已挂提交但还没出行（被前面别的语言的在飞批次挡住 flush）⇒ 马上上屏，按「已出行」处理。
+          const ctext = (any.commit.kind === 'legacy' && any.commit.texts && any.commit.texts.length)
+            ? any.commit.texts.join(' ') : (any.commit.orig || any.text);
+          rescueOut[lc] = { text: ctext, t0: any.t0, t1: any.t1, at: now() };
+          return 'emitted';
+        }
+      }
+      if (!temp) return 'none';
+      const al = alignFinalInTemp(temp.text, t);
+      if (!al) {
+        if (d.onDiag) { try { d.onDiag('rescue:nomatch', { text: t, rem: String(temp.text).slice(0, 200) }); } catch (_) {} }
+        return 'nomatch';
+      }
+      if (d.onDiag) { try { d.onDiag('rescue:trim', { text: t, rem: al.before || '' }); } catch (_) {} }
+      if (!al.before) { const i = ledger.indexOf(temp); if (i >= 0) ledger.splice(i, 1); }
+      else { temp.text = al.before; temp.at = now(); }
+      return 'trim';
+    }
+    // 已出行的补救文字：返回「可追加的剩余部分」（'' = 整条重复、不追加；原样 = 无可去重）。
+    // **按文字**去重（R14）；时间只用来界定「是不是同一句」（R15）：
+    //   · 正式 final 与临时稿都有 t0/t1 ⇒ 只有音频区间真交叠（overlapTs）或 final.t0 − ro.t1 ≤
+    //     SEG_RESCUE_GAP_MS 才允许按文字裁剪；
+    //   · 有一边缺 t0/t1 ⇒ 退回「到达间隔 ≤ SEG_RESCUE_KEEP_MS」的窗口；
+    //   · 不同句 ⇒ 清掉这条临时稿、两条都留（宁可重复不丢字）。
+    function sameRescueSentence(ro, t0, t1) {
+      const fOk = Number.isFinite(t0) && Number.isFinite(t1);
+      const rOk = Number.isFinite(ro && ro.t0) && Number.isFinite(ro && ro.t1);
+      if (fOk && rOk) return overlapTs(t0, t1, ro.t0, ro.t1) || (t0 - ro.t1) <= SEG_RESCUE_GAP_MS;
+      return (now() - (ro.at || 0)) <= SEG_RESCUE_KEEP_MS;
+    }
+    function trimAgainstRescueOut(lc, t, t0, t1) {
+      const ro = rescueOut[lc];
+      if (!ro || !ro.text) return t;
+      if (!sameRescueSentence(ro, t0, t1)) { delete rescueOut[lc]; return t; }
+      const rT = alignWords(ro.text), tT = alignWords(t);
+      if (!rT.length || !tT.length) return t;
+      const k = tokenPrefixInHay(rT, tT);
+      if (!k) {
+        delete rescueOut[lc];
+        if (d.onDiag) { try { d.onDiag('rescue:append', { text: t, why: 'no-dup' }); } catch (_) {} }
+        return t;
+      }
+      const rest = alignAfterTokens(t, k);
+      if (d.onDiag) { try { d.onDiag('rescue:append', { text: t, why: rest ? ('trim=' + k) : 'all-dup' }); } catch (_) {} }
+      return rest;
+    }
+    function notify(queue) {
+      for (const n of queue) {
+        try {
+          if (n.type === 'rows') d.emit(n.rows, n.meta);
+          else d.fallback(n.text, { locale: n.locale });
+        } catch (e) {
+          // 界面层出行报错：只记一条诊断，路由器状态已经落定，后面的话照常出行。
+          noteFail('notify');
+          if (d.onNotifyError) { try { d.onNotifyError(String((e && e.message) || e || '')); } catch (_) {} }
+        }
+      }
+    }
+    function legacyRecs(recs) {
+      if (!recs.length) return;
+      // 这一批里若有 partial 补救片，把「这批含临时稿」带进 legacy 载荷（R14：已出行后按文字去重）。
+      const resc = recs.filter((r) => r.rescued).pop();
+      const p = legacyPayload(joinAll(recs));
+      if (resc) { p.rescue = true; p.rescueT0 = resc.t0; p.rescueT1 = resc.t1; }
+      commit(recs.map((r) => r.id), p);
+    }
+
+    // ── 唯一的调度函数 ────────────────────────────────────────────────────────
+    function schedule() {
+      if (timer) { clearT(timer); timer = 0; }
+      if (disposed) return;
+      for (let guard = 0; guard < 64; guard++) {
+        const t = now();
+        let acted = false;
+        // ① 扣住的结果（按语言）：新字 ⇒ 作废；到点 ⇒ 出行。不受朗读影响。
+        for (const lc of Object.keys(heldBatch)) {
+          const hb = heldBatch[lc];
+          if (!hb) continue;
+          if (hasNewer(hb)) { voidHeld(lc); acted = true; break; }
+          if (t >= hb.releaseAt) { releaseHeld(lc); acted = true; break; }
+        }
+        if (acted) { /* 继续下一轮 */ }
+        if (disposed) return;
+        // ② 发送：全局只一个在飞；按最早到期挑语言（发送顺序不要求按账本）。
+        //   closing(stop/switch) 期间仍要发送（remainder 按 force 送），账本清空后回到 open。
+        if (!acted && !inFlight && canSend()) {
+          const cand = nextSend(t);
+          if (cand) { doSend(cand.lc, cand.hold, cand.force, cand.retry); acted = true; }
+        }
+        if (!acted) break;
+      }
+      if (disposed) return;
+      // ③ 算下一个时刻，只设一个计时器（用**可发送的连续段**，不含在飞/已提交的记录）
+      const t = now();
+      let when = Infinity;
+      // 只对**未来**的时刻设计时器：本拍到期的动作在上面已经执行过；执行不了（在飞/被扣住）的
+      // 靠事件（回复/新字/朗读开关/settle）重新唤醒 —— 不轮询、不忙循环。
+      for (const lc of Object.keys(heldBatch)) {
+        const hb = heldBatch[lc];
+        if (hb && !hasNewer(hb) && hb.releaseAt > t) when = Math.min(when, hb.releaseAt);
+      }
+      if (!inFlight && canSend()) {
+        for (const lc of locales()) {
+          const du = dueOf(lc, t);
+          if (du && du.due > t) when = Math.min(when, du.due);
+        }
+      }
+      if (when < Infinity) timer = setT(schedule, Math.max(1, when - t));
+    }
+    // 某语言的到期信息（纯查询，不改状态）：run = 可发送的连续段；due = 该动作的时刻
+    // ── 方案 2（R12）：partial 是否还在到达（人还在说）────────────────────────────
+    // notePartial 由 listen-model 在每条 partial 上调用；命中窗口内的短片留在缓冲与后文合并，
+    // 不强制补调 / 不硬切 / 不走旧路上屏。
+    function partialSpeaking(lc, since) {
+      const st = M(lc);
+      if (!st.partialAt) return false;
+      if (since && st.partialAt < since) return false;
+      return (now() - st.partialAt) <= SEG_PARTIAL_MS;
+    }
+    function waitForMore(lc) { const st = M(lc); st.fails = 0; st.lastFeedAt = now(); }
+    // 到硬切之前统一走这里：短且人还在说 ⇒ 留在缓冲等后文（方案 2），否则硬切交旧路。
+    function maybeHardCut(lc, b) {
+      const st = M(lc);
+      if (b && segShortPiece(b.text) && partialSpeaking(lc, b.sentAt)) { waitForMore(lc); return false; }
+      hardCut(lc); return true;
+    }
+    function dueOf(lc, t) {
+      const run = headRun(lc);
+      if (!run.length) return null;
+      const txt = joinAll(run);
+      const st = M(lc);
+      // 强制补调额度（方案 4/5，R12）：retryForce 只在**真正发出**补调时被 doSend 消费；
+      // 「人还在说 + 短片」时不许强制补调，留缓冲与后文合并（方案 2）。
+      if (st.retryForce) {
+        if (segShortPiece(txt) && partialSpeaking(lc, st.retryAt)) { /* 等后文，不补调 */ }
+        else return { lc, due: t, hold: false, run, txt, force: true, retry: true };   // 补调＝「全部切完」的同一提示词
+      }
+      if (st.force) return { lc, due: t, hold: false, run, txt };
+      if (segOver(segCounts(txt), soft)) return { lc, due: t, hold: false, run, txt };
+      if (speaking) return null;   // 朗读只暂停空闲计时：没有到期动作（长度/force 已在上面放行）
+      if (t >= st.lastFeedAt + idleMs) {
+        const frag = segIsFragment(txt);
+        // 方案 5（R12）：≤2 词的片到空闲时直接用「全部切完」（force=true）发送，省掉一次
+        // 「整段 remainder → 再 force 补调」的往返。人还在说（partial 活跃）时退回预送扣住，
+        // 等后文合并（方案 2）。
+        const shortForce = !d.noShortForce && frag && segShortPiece(txt) && !partialSpeaking(lc, st.lastFeedAt);
+        return { lc, due: t, hold: frag && !st.extraWaited && !shortForce, run, txt, force: shortForce };
+      }
+      return { lc, due: st.lastFeedAt + idleMs, hold: false, run, txt };
+    }
+    function canSend() { return phase === 'open' || (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch')); }
+    function hasNewer(b) {
+      for (const r of ledger) {
+        if (r.locale !== b.locale || b.ids.indexOf(r.id) >= 0) continue;
+        if (r.at > b.sentAt) return true;
+      }
+      return false;
+    }
+    function nextSend(t) {
+      let best = null;
+      for (const lc of locales()) {
+        const du = dueOf(lc, t);
+        if (!du || du.due > t) continue;
+        const lead = ledger.indexOf(du.run[0]);
+        if (!best || du.due < best.due || (du.due === best.due && lead < best.lead)) best = { lc, due: du.due, lead, hold: du.hold, force: du.force, retry: !!du.retry };
+      }
+      return best;
+    }
+    function doSend(lc, hold, forceOverride, retry) {
+      const st = M(lc);
+      const run = headRun(lc);
+      if (!run.length) return;
+      const overIdx = run.findIndex((r) => r.calls >= SEG_MAX_CALLS);
+      if (overIdx === 0) { legacyRecs(run); schedule(); return; }
+      const ok = overIdx < 0 ? run : run.slice(0, overIdx);
+      if (overIdx >= 0) legacyRecs(run.slice(overIdx));
+      if (!ok.length) return;
+      const force = !!forceOverride || !!st.force;
+      st.force = false;
+      // 方案 5（R12）：补调**真正发出**时就地消费额度（旧实现只在 :1278 的死条件里清，永不执行）；
+      // 每句最多一次补调（retryUsed），再失败直接硬切。变异钩子 noRetryConsume 模拟「去掉消费」。
+      if (retry && !d.noRetryConsume) { st.retryForce = false; st.retryUsed = true; }
+      if (hold) st.extraWaited = true;
+      const text = joinAll(ok);
+      ok.forEach((r) => { r.state = 'sending'; r.calls++; });
+      calls++;
+      const sentAt = now();
+      const b = { locale: lc, ids: ok.map((r) => r.id), text, sentAt, force, hold: !!hold, held: null, releaseAt: hold ? sentAt + (holdMode ? idleMs : autoReleaseMs) : 0, voided: false, settled: null };
+      inFlight = b;
+      const t0 = now();
+      Promise.resolve().then(() => d.call(buildSegPrompt(Object.assign({ buffer: text, force }, d.ctx ? d.ctx(lc) : {})), { locale: lc, buffer: text, force }))
+        .then((raw) => onResult(b, raw, t0), (err) => onError(b, err));
+    }
+    function finishBatch(b) {
+      if (inFlight === b) inFlight = null;
+      if (b.settled) { const f = b.settled; b.settled = null; try { f(); } catch (_) {} }
+      schedule();
+    }
+    // ── 「整段 remainder」/「空回复」的立即强制补调（方案 2/4，2026-10-11 第九轮）──────────
+    // 触发条件（r9 C-zh-2 8.36 s、A-yes-7 4.50 s）：模型把**整批**都回成 remainder（段为空、
+    // remainder 就是整个 buffer），或干脆回 `{segments:[],remainder:''}`；而且**这次调用期间
+    // 账本没有再进新话**。原实现只把 lastFeedAt 拨到 now，于是**从头再等一个 idleMs** 才重发，
+    // 每轮多付 1.5 s，直到 SEG_MAX_CALLS=3 硬切交旧路。
+    // 现在：这种「没有新信息、也没有新话」的情况下立刻用 force（与「全部切完」/stop flush 同一
+    // 提示词）补调一次；期间有新话进账本 ⇒ 按原逻辑等 idle（新话本来就该等）。共**一次**额度
+    // （st.retryForce），用完还失败就 hardCut 交旧路 —— 不许无限循环。
+    function latestRecAt(lc) { let mx = 0; for (const r of ledger) if (r.locale === lc && r.at > mx) mx = r.at; return mx; }
+    // n = 这次调用期间有没有新话进账本
+    function demandAllRemainder(lc, b, n, extra) {
+      if (!ledger.length) return false;
+      if (d.noRetry) {   // 测试注入的变异钩子：退回「调大 lastFeedAt 重等」（见 R9 变异检查）
+        const sx = M(lc); sx.fails = 0; sx.lastFeedAt = now();
+        return true;     // 「已处理，只是等下一次空闲」——与旧行为一致
+      }
+      const st = M(lc);
+      if (!n) {
+        if (segShortPiece(b && b.text) && partialSpeaking(lc, b && b.sentAt)) {   // 方案 2：人还在说
+          noteFail('all-remainder', extra); waitForMore(lc); return true;
+        }
+        // 没有新话进账本 ⇒ 等 idle 毫无意义：立刻 force 补调一次（一次额度，真正发出时才消费）。
+        if (!st.retryUsed) {
+          noteFail('all-remainder', extra);
+          st.retryForce = true; st.retryAt = (b && b.sentAt) || now(); st.extraWaited = true; schedule();
+          return true;
+        }
+        noteFail('all-remainder', extra);
+        hardCut(lc);   // 额度用完仍整段 remainder ⇒ 硬切交旧路（不再一轮一轮等）
+        return true;
+      }
+      st.fails = 0;                 // 有新话进账本 ⇒ 按原逻辑：等下一次空闲，跟新话一起送
+      M(lc).lastFeedAt = now();
+      return false;
+    }
+    // 模型什么都没给（段与 remainder 都空）。单独记 fail:empty-reply（不再误导成 remainder-mismatch，
+    // 工程问题 5），并走同一条补调额度。
+    function demandEmptyReply(lc, b, n, extra) {
+      if (!ledger.length) return false;
+      if (d.noRetry) {   // 同上的变异钩子
+        const sx = M(lc); sx.fails = 0; sx.lastFeedAt = now();
+        return true;
+      }
+      const st = M(lc);
+      if (!n && !st.retryUsed) {
+        if (segShortPiece(b && b.text) && partialSpeaking(lc, b && b.sentAt)) {   // 方案 2：人还在说
+          noteFail('empty-reply', extra); waitForMore(lc); return true;
+        }
+        noteFail('empty-reply', extra);
+        st.retryForce = true; st.retryAt = (b && b.sentAt) || now(); st.extraWaited = true; schedule();
+        return true;
+      }
+      st.fails++; noteFail('empty-reply', extra);   // 已有新话或额度用完 ⇒ 走普通失败梯度
+      if (st.fails >= SEG_FAIL_MAX || st.retryUsed) hardCut(lc);   // 方案 5：补调再失败 ⇒ 直接硬切
+      return false;
+    }
+    function onResult(b, raw, t0) {
+      if (b.voided || disposed) { finishBatch(b); return; }
+      const lc = b.locale, st = M(lc);
+      const parsed = parseSegReply(raw, { buffer: b.text, last: lastEmit[lc] || '' });
+      const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
+      const bt = String(b.text || '').trim();
+      // 方案 3：按位置取回 remainder 原文（去标点空白后比对），不再要求逐字 endsWith。
+      const remRaw = (parsed.ok && parsed.remainder) ? remSuffixRaw(bt, parsed.remainder) : null;
+      const remSuffix = !!remRaw;                 // remainder 是原文后缀（宽松比对）
+      const rem0Raw = remSuffix ? remRaw.text : '';
+      const remOk = !!(remSuffix && parsed.segments.length);
+      // 调用期间账本有没有再进新话（remainder / 空回复的补调判据）
+      const newDuring = (() => { const mx = latestRecAt(lc); return mx > 0 && mx > (b.sentAt || 0); })();
+      if (!parsed.ok || !parsed.segments.length) {
+        recsToWait(b);
+        // 收尾（end/degrade）期间回来的空/仅 remainder 回复：直接交旧路（下面两个补调不介入）
+        if (closingEnd) { settleBatchToLegacy(b); return; }
+        // 模型回 {segments:[],remainder:''}：什么都没给 —— 单独记 empty-reply，补调一次（方案 4）
+        if (parsed.ok && !parsed.remainder) {
+          demandEmptyReply(lc, b, newDuring, segDiagExtra(b, parsed, raw));
+          finishBatch(b); return;
+        }
+        if (!parsed.ok) {
+          st.fails++;
+          noteFail(parsed.reason);
+          if ((parsed.reason === 'json' || parsed.reason === 'empty') && bumpJson() >= SEG_JSON_BAD_MAX) { degradeAll('json'); return; }
+          if (st.fails >= SEG_FAIL_MAX) maybeHardCut(lc, b);
+        } else if (remSuffix) {
+          // 「整段 remainder」：段为空、remainder 就是整个 buffer（模型没断出任何完整句）。
+          // 判据用**同样的宽松比对**（模型可能清洗标点），r9 C-zh-2 三次都是这个形态。
+          const allRem = normSuffixText(bt) === normSuffixText(String(parsed.remainder || ''));
+          if (allRem) {
+            // 方案 2/4/5 共用额度：立即 force 补调一次；已有额度/已有新话则按原逻辑处理。
+            if (!demandAllRemainder(lc, b, newDuring, segDiagExtra(b, parsed, raw))) { /* 等下一次空闲 */ }
+            finishBatch(b); return;
+          }
+          st.fails = 0;                  // 「还没说完」（段为空、remainder 是原文后缀）不是错误：留着等下次触发
+          M(lc).lastFeedAt = now();      // 它仍是一段没出行的文字 —— 空闲计时从这一刻重新起算
+        } else {
+          st.fails++; noteFail('remainder-mismatch', segDiagExtra(b, parsed, raw));
+          if (st.fails >= SEG_FAIL_MAX) maybeHardCut(lc, b);
+        }
+        finishBatch(b); return;
+      }
+      jsonBad = 0; st.fails = 0; st.retryForce = false; st.retryUsed = false;
+      // 显示分段：把模型返回的**前导**短碎片并入后一段（去模型补的标点）。
+      // **不**把末段并进 remainder —— 模型改写过的 source 不是原文后缀，拿它裁剪会裁错（丢字）。
+      // consumed 一律由**校验过的后缀**（remSuffix 的原文 remainder）算。
+      const segs0 = mergeSegFragments(parsed.segments.slice());
+      const rem0 = remOk ? rem0Raw : '';
+      if (parsed.remainder && !remOk) noteFail('remainder-mismatch', segDiagExtra(b, parsed, raw));
+      if (phase === 'closing') {
+        // 收尾期间回来的回复：不再走「预送扣住」（settle 已经扫过一遍账本，扣下就没人提交了）——
+        // closing(end/degrade) 交旧路；closing(stop/switch) 正常出行（remainder 按 force 送）。
+        applyResult(b, segs0, rem0, now() - t0, !!b.force);
+        finishBatch(b);
+        return;
+      }
+      if (b.hold) {   // 预送：结果挂在**这一批**上，等 schedule 到点或新字时当场核对（不依赖 feed 作废）
+        if (parsed.remainder && !remOk) noteFail('remainder-mismatch', segDiagExtra(b, parsed, raw));
+        b.held = { segs: segs0, rem: rem0, ms: now() - t0 };
+        b.ids.forEach((id) => { const r = byId(id); if (r) r.state = 'held'; });
+        heldBatch[lc] = b;             // 请求结束（结果扣着）：别的语言可以继续发送
+        inFlight = null;
+        schedule();
+        return;
+      }
+      applyResult(b, segs0, rem0, now() - t0, !!b.force);
+      finishBatch(b);
+    }
+    function applyResult(b, segs, rem, ms, force) {
+      const lc = b.locale;
+      const bt = String(b.text || '').trim();
+      const carried = Math.max(0, ...L(lc).filter((r) => b.ids.indexOf(r.id) >= 0).map((r) => r.calls));
+      const consumed = rem ? bt.slice(0, bt.length - rem.length) : bt;
+      const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
+      attach(b.ids, { kind: 'rows', rows: segs, ms, force, orig: consumed, feedAt: batchFeedAt(b), sentAt: b.sentAt });
+      if (rem) {
+        trimBatchTail(b, rem);   // 先把 remainder 这段从批记录尾部去掉（否则账本里同一段文字出现两次）
+        insertAfter(b.ids[b.ids.length - 1], closingEnd
+          ? { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: carried, commit: legacyPayload(rem) }
+          : { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: carried });
+        M(lc).lastFeedAt = now();   // remainder 是新到的待处理文字：空闲计时从它重新起算
+      }
+      M(lc).extraWaited = false;
+      if (!closingEnd && rem && (closeReason === 'stop' || closeReason === 'switch') && phase === 'closing') M(lc).force = true;
+      flush();
+      if (phase === 'closing' && !ledger.length && !inFlight && (closeReason === 'end' || closeReason === 'degrade')) finishClosing();
+    }
+    function releaseHeld(lc) {   // 到点：没有新字 ⇒ 出行
+      const b = heldBatch[lc]; if (!b) return;
+      delete heldBatch[lc];
+      applyResult(b, b.held.segs, b.held.rem, b.held.ms, false);
+      finishBatch(b);
+    }
+    function voidHeld(lc) {      // 新字来了 ⇒ 作废这次结果，跟新字一起重送
+      const b = heldBatch[lc]; if (!b) return;
+      delete heldBatch[lc];
+      recsToWait(b);
+      finishBatch(b);
+    }
+    function recsToWait(b) { b.ids.forEach((id) => { const r = byId(id); if (r) r.state = 'wait'; }); }
+    // 把批记录的**尾部**按 remainder 的码点数裁掉（remainder 是批文本的后缀）：裁完 join(批记录) == consumed。
+    function trimBatchTail(b, rem) {
+      let left = Array.from(String(rem)).length;
+      for (let i = b.ids.length - 1; i >= 0 && left > 0; i--) {
+        const r = byId(b.ids[i]); if (!r) continue;
+        const chars = Array.from(r.text);
+        const take = Math.min(left, chars.length);
+        r.text = chars.slice(0, chars.length - take).join('');
+        left -= take;
+      }
+    }
+    // remainder 的说话位置 = 它出自的那批记录的**最后一个位置**（不另发编号 —— 编号不代表说话顺序）
+    function batchFeedAt(b) { let mx = 0; for (const id of b.ids) { const r = byId(id); if (r && r.at > mx) mx = r.at; } return mx; }
+    function remPos(b) { const last = byId(b.ids[b.ids.length - 1]); return last ? last.pos : ++posSeq; }
+    function insertAfter(id, rec) {
+      const i = ledger.findIndex((r) => r.id === id);
+      if (i >= 0) ledger.splice(i + 1, 0, rec); else ledger.push(rec);
+    }
+    function onError(b, err) {
+      if (b.voided || disposed) { finishBatch(b); return; }
+      const lc = b.locale, st = M(lc);
+      recsToWait(b);
+      const status = err && (err.status || (err.cause && err.cause.status));
+      if (status === 401 || status === 402 || status === 403) { degradeAll('auth'); return; }
+      if (phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade')) { settleBatchToLegacy(b); return; }
+      st.fails++; noteFail(status ? ('http-' + status) : 'network');
+      if (st.fails >= SEG_FAIL_MAX) maybeHardCut(lc, b);
+      finishBatch(b);
+    }
+    function settleBatchToLegacy(b) {
+      commit(b.ids, legacyPayload(b.text));
+      flush();
+      if (phase === 'closing' && !ledger.length && !inFlight && (closeReason === 'end' || closeReason === 'degrade')) finishClosing();
+    }
+    // 诊断附加内容（各截到 200 字）：识别原文、模型给的 remainder、原始回复
+    function segDiagExtra(b, parsed, raw) {
+      const cut = (x) => String(x == null ? '' : x).slice(0, 200);
+      return { text: cut(b && b.text), rem: cut(parsed && parsed.remainder), raw: cut(raw) };
+    }
+    function noteFail(reason, extra) { const k = String(reason || 'unknown'); failCounts[k] = (failCounts[k] || 0) + 1; if (d.onFail) { try { d.onFail(k, extra || null); } catch (_) {} } }
+    let jsonBad = 0;
+    function bumpJson() { jsonBad++; return jsonBad; }
+
+    // ── 硬切 / 降级 / 收尾 ─────────────────────────────────────────────────────
+    function hardCut(lc) {
+      const st = M(lc); st.force = false; st.extraWaited = false; st.fails = 0; st.retryForce = false; st.retryUsed = false;
+      if (inFlight && inFlight.locale === lc) { voidInflightToLegacy(); }
+      if (heldBatch[lc]) { const b = heldBatch[lc]; delete heldBatch[lc]; recsToWait(b); }
+      for (const run of runsOf(lc)) legacyRecs(run);
+      flush();
+    }
+    function voidInflightToLegacy() {
+      const b = inFlight; if (!b) return;
+      b.voided = true; inFlight = null;
+      if (endTimer) { clearT(endTimer); endTimer = 0; }
+      commit(b.ids, legacyPayload(b.text));
+      flush();
+      if (b.settled) { const f = b.settled; b.settled = null; try { f(); } catch (_) {} }
+      if (phase === 'closing' && !ledger.length && (closeReason === 'end' || closeReason === 'degrade')) finishClosing();
+    }
+    function degradeAll(reason) {
+      phase = 'closing'; closeReason = 'degrade';
+      if (inFlight) voidInflightToLegacy();
+      for (const lc of Object.keys(heldBatch)) { commit(heldBatch[lc].ids, legacyPayload(heldBatch[lc].text)); delete heldBatch[lc]; }
+      for (const run of allRuns()) legacyRecs(run);
+      flush();
+      if (d.onDegrade) d.onDegrade(reason);
+      finishClosing();
+    }
+    function allRuns() { const out = []; for (const lc of locales()) for (const r of runsOf(lc)) out.push(r); return out; }
+    function finishClosing() { phase = 'closed'; if (timer) { clearT(timer); timer = 0; } if (endTimer) { clearT(endTimer); endTimer = 0; } }
+    function settle(reason) {
+      if (phase === 'closed' || disposed) return Promise.resolve();
+      if (timer) { clearT(timer); timer = 0; }
+      if (reason === 'degrade') { degradeAll('settle-degrade'); return Promise.resolve(); }
+      if (phase === 'open') { phase = 'closing'; closeReason = reason; }
+      else if (reason === 'end' && closeReason !== 'degrade') closeReason = 'end';
+      const jobs = [];
+      if (closeReason === 'end') {
+        // 等待中的：立即交旧路。扣住的结果（还没出行）：也交旧路（会话要关了）
+        for (const lc of Object.keys(heldBatch)) { const b = heldBatch[lc]; delete heldBatch[lc]; commit(b.ids, legacyPayload(b.text)); }
+        for (const lc of locales()) for (const run of runsOf(lc)) legacyRecs(run);
+        flush();
+        if (inFlight) {
+          const b = inFlight;
+          jobs.push(new Promise((resolve) => {
+            b.settled = resolve;
+            endTimer = setT(() => { endTimer = 0; if (inFlight === b) voidInflightToLegacy(); resolve(); }, endWaitMs);
+          }));
+        } else if (!ledger.length) { finishClosing(); }
+      } else if (closeReason !== 'degrade') {   // stop | switch
+        for (const lc of Object.keys(heldBatch)) releaseHeld(lc);   // 扣住的结果直接出行（不受朗读影响）
+        for (const lc of locales()) { M(lc).force = true; }
+        schedule();
+      }
+      return Promise.all(jobs);
+    }
+
+    return {
+      feed(lc, text, opts) {
+        let t = String(text || '').trim();
+        if (!t || disposed) return;
+        if (phase === 'closed' && closeReason !== 'degrade') return;   // 结束/离开后的迟到定稿丢弃
+        const o = opts || {};
+        const rescued = !!o.rescued;
+        const t0 = Number(o.t0), t1 = Number(o.t1);
+        const tsOk = Number.isFinite(t0) && Number.isFinite(t1);
+        // R14：临时稿（partial 补救文字）不再按音频区间去重，改成按**文字**——
+        //   ① 临时稿整段等于紧挨着的上一条正式 final 的结尾 ⇒ 丢掉临时稿（rescue:dup-prev）；
+        //   ② 正式 final 来：先按已出行的临时稿文字去掉重叠前缀，再在未出行的临时稿里对齐让位。
+        // R15：已出行临时稿与正式 final 是否「同一句」由**音频区间**界定（trimAgainstRescueOut），
+        // 跨句（g3 句距 3.6–5.1s）不再按文字整条去重。
+        // 变异钩子 noRescueDedup 退回「照单全收」（第十二/十三轮的账本级重复）。
+        if (rescued) {
+          const lf = lastFormalRec[lc];
+          const gap = (lf && Number.isFinite(lf.t1) && tsOk) ? t0 - lf.t1 : NaN;
+          if (!d.noRescueDedup && lf && isTailDup(lf.text, t, gap, RESCUE_DUP_GAP_MS)) {
+            if (d.onDiag) { try { d.onDiag('rescue:dup-prev', { text: t, why: 'feed' }); } catch (_) {} }
+            return;
+          }
+        } else if (!d.noRescueDedup) {
+          // 两种状态互斥：有**未出行**的临时稿 ⇒ 文字对齐让它让位；临时稿都已出行 ⇒ 只追加不重叠部分。
+          const al = trimRescueByAlign(lc, t);
+          if (al === 'none' || al === 'emitted') {
+            const rest = trimAgainstRescueOut(lc, t, t0, t1);
+            if (!rest) return;      // 整条都是已出行补救文字的重复 ⇒ 不追加
+            t = rest;
+          }
+        }
+        const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: null, rescued, t0, t1 };
+        if (!rescued && normDupText(t)) lastFormalRec[lc] = { text: t, t1, at: now() };
+        if (degradedNow() || (phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade'))) {
+          rec.commit = legacyPayload(t); ledger.push(rec); flush(); return;
+        }
+        ledger.push(rec);
+        const st = M(lc);
+        // 方案 4：句头闸放行时已经为这一片等过 idleMs（默认 1.5s）。这段等待算作「已等过一次空闲」：
+        //   · lastFeedAt 回拨 idleMs ⇒ 空闲触发当场到期（直接送模型，不再等）；
+        //   · extraWaited=true ⇒ 碎片不再走「预送并扣住」，结果一回来就出行（不再等第二次空闲）。
+        if (o.waited) { st.lastFeedAt = now() - idleMs; st.extraWaited = true; }
+        else { st.lastFeedAt = now(); st.extraWaited = false; }
+        st.retryForce = false; st.retryUsed = false;   // 方案 5：额度只由**真正新话**重置（每次新话可再补一次）
+        if (o.force) st.force = true;
+        // 到硬上限：直接把这一路的待处理段硬切交旧路（在飞的批次先作废）
+        if (segOver(segCounts(pendingText(lc)), hard)) { hardCut(lc); return; }
+        schedule();
+      },
+      settle,
+      // 方案 2（R12）：标记这条 locale 的 partial 还在到达（listen-model 的 onPartial 调用）。
+      notePartial(lc) { const st = M(lc); st.partialAt = now(); },
+      setSpeaking(on) { speaking = !!on; schedule(); },   // 只影响空闲计时；扣住结果的出行/长度触发照常
+      // 方案 1：这两个键开始/结束收音时只调 setPtt；它只记录「正在按键收音」，不再选空闲参数
+      // （第七轮把按键收音、不点停的第二次空闲定为 0.8s，接线后不得变慢 —— 见 setHold）。
+      setPtt(on) { pttMode = !!on; schedule(); },
+      // 旧「按住说」的第二次空闲参数（1.5s）。当前 App 不用；保留给对照/测试，与 setPtt 解耦。
+      setHold(on) { holdMode = !!on; schedule(); },
+      pending(lc) { return pendingText(lc); },
+      dispose() {
+        if (timer) { clearT(timer); timer = 0; }
+        if (endTimer) { clearT(endTimer); endTimer = 0; }
+        const left = pendingAll();
+        if (left.length && d.onLeak) { try { d.onLeak(left); } catch (_) {} }
+        disposed = true;
+      },
+      state() {
+        const heldN = ledger.filter((r) => r.state === 'held' && !r.commit).length;
+        const heldLcs = Object.keys(heldBatch);
+        return { phase, closeReason, degraded: degradedNow(), jsonBad, calls, emits, fallbacks, busy: !!inFlight, speaking, ptt: pttMode, idleMs, releaseMs: autoReleaseMs,
+          hold: heldLcs.length > 0, held: heldN, inflight: inFlight ? inFlight.text.length : 0,
+          fails: Object.assign({}, failCounts),
+          recs: ledger.map((r) => ({ locale: r.locale, pos: r.pos, calls: r.calls, state: r.state, committed: !!r.commit, rescued: !!r.rescued })),
+          bufs: locales().map((lc) => ({ locale: lc, len: pendingText(lc).length })) };
+      },
+    };
+    function degradedNow() { return phase === 'closing' && closeReason === 'degrade' || phase === 'closed' && closeReason === 'degrade'; }
   }
 
   // ── 远程「修正 + 翻译」一次调用（§9.6.1 契约）────────────────────────────────
@@ -838,7 +2262,12 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
+    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
+
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
+    overlapTs,
+    alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
+    rescueLead, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
     lidBase, sideMatchesLid, langSupported,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
@@ -865,3 +2294,7 @@ var ListenCore = (() => {
 })();
 
 if (typeof module !== 'undefined' && module.exports) module.exports = ListenCore;
+
+
+
+

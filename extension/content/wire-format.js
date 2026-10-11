@@ -207,6 +207,16 @@ var WireFormat = (() => {
     'model_not_allowed',   // 403 在「详细」里把模型改掉了
     'busy',                // 429 限流
   ]);
+  // 模型名是不是**翻译专用模型**（host 无关）：判据只取 MODEL_SHAPES 的 prefixes —— 一处真相。
+  // 用途（2026-10-10）：听译的「模型断句」只用于通用对话模型；自定义端点里填 qwen-mt-*
+  // 这类翻译专用模型，即使主机名不在表里（formatFor 判不成 translate-compat）也要拦住。
+  function translationModelName(model) {
+    const m = String(model || '').trim().toLowerCase();
+    if (!m) return false;
+    for (const r of MODEL_SHAPES) if (r.prefixes.some((pre) => m.indexOf(pre) === 0)) return true;
+    return false;
+  }
+
   function grantError(status, bodyText) {
     if (!status || status < 400) return '';
     let name = '';
@@ -217,7 +227,7 @@ var WireFormat = (() => {
     return GRANT_CODES.has(name) ? name : '';
   }
 
-  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize, grantError };
+  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize, translationModelName, grantError };
 })();
 
 if (typeof window !== 'undefined') window.WireFormat = WireFormat;

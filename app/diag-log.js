@@ -28,10 +28,32 @@ var DiagLog = (() => {
     auth: ['provider', 'phase', 'code'],
     // 引擎 id 自愈：脏值被重写（ensureDeviceTts）
     engine_fix: ['from', 'to'],
+    // 断句诊断（2026-10-10；2026-10-11 第七轮加内容字段）：降级/失败/句头闸的计数与**截短原文**。
+    // **这是用户明确批准的有内容诊断**：只用于断句质量定位（remainder 对不上、句头闸裁决），
+    // 每个字段各自截到 200 字；不进遥测、不在任何用户可见处显示（走 L2 诊断信箱）。
+    seg: ['reason', 'calls', 'json_bad', 'text', 'rem', 'raw', 'why'],
   };
 
   let buf = null;
   let writing = false;
+
+  // ── 内容字段只在**本机**留（2026-10-11 第八轮，用户裁定）────────────────────────────
+  // `seg` 是唯一带内容的诊断类（第七轮加的 text/rem/raw，每字段 ≤200 字，用于断句质量定位）。
+  // 它只准落在本机 storage；**自动上报（L2 信箱）与手动导出**两条离机路都必须先把内容字段
+  // 换成 `_len`（只留计数/原因/长度）—— 否则「只存本机」就是假的。见 test/diag-log.test.js。
+  const CONTENT_FIELDS = { seg: ['text', 'rem', 'raw'] };
+  function scrub(entry) {
+    const ks = entry && CONTENT_FIELDS[entry.k];
+    if (!ks) return entry;                         // 其余事件本来零内容
+    const f = {};
+    const src = entry.f || {};
+    for (const k of Object.keys(src)) {
+      if (ks.indexOf(k) >= 0) f[k + '_len'] = String(src[k] == null ? '' : src[k]).length;
+      else f[k] = src[k];
+    }
+    return { t: entry.t, k: entry.k, f };
+  }
+  function scrubAll(list) { return (list || []).map(scrub); }
 
   function persist() {
     if (writing) return;
@@ -75,7 +97,7 @@ var DiagLog = (() => {
       exported_at: new Date().toISOString(),
       count: buf.length,
     };
-    return JSON.stringify(head, null, 1) + '\n' + buf.map((e) => JSON.stringify(e)).join('\n');
+    return JSON.stringify(head, null, 1) + '\n' + scrubAll(buf).map((e) => JSON.stringify(e)).join('\n');
   }
 
   function clear() { ensure(); buf = []; try { chrome.storage.local.set({ [KEY]: [] }, () => {}); } catch (_) {} }
@@ -113,7 +135,7 @@ var DiagLog = (() => {
           app_version: (typeof window !== 'undefined' && window.MT_APP_VERSION) || '',
           app_build: '',
           os: ((typeof navigator !== 'undefined' && navigator.userAgent) || '').slice(0, 200),
-          events: { head: { what: 'mt-diag', count: fresh.length }, entries: fresh },
+          events: { head: { what: 'mt-diag', count: fresh.length }, entries: scrubAll(fresh) },
         }]),
       });
       if (r.ok || r.status === 201) {
@@ -152,7 +174,7 @@ var DiagLog = (() => {
     if (buf && buf.length % BATCH === 0) schedule();
   }
 
-  return { push, all, exportText, clear, doUpload, SCHEMA, MAX, KEY };
+  return { push, all, exportText, clear, doUpload, SCHEMA, MAX, KEY, scrub, CONTENT_FIELDS };
 })();
 
 // 启动后 5s 一发（把上一场留下的、以及开机探测先发走）；此后由事件节奏驱动。
