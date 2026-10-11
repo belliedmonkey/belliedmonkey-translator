@@ -89,7 +89,7 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 }
 :where(#signed-out, #signed-in, #app-settings) input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
-:where(#signed-out, #signed-in, #app-settings) button {
+:where(#signed-out, #signed-in, #app-settings, #firstrun-packs, #packs-cellular) button {
   font: inherit;
   font-weight: 700;
   color: #fff;
@@ -108,9 +108,9 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
    2026-09-24 Mac 真机验证时才看见：引导第一屏的「以后再设置」渲染成与主按钮等宽的白色药丸，
    而 #386 的画布定的是**文字链**（照 `ext` 屏 2026-09-02「等宽灰按钮」那次先例）。扩展那侧的
    onboard.html 是另一套 CSS，不受影响 —— 所以商店图里它是文字链，App 里不是，两边对不上。 */
-:where(#signed-out, #signed-in, #app-settings, #onboard) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
+:where(#signed-out, #signed-in, #app-settings, #onboard, #firstrun-packs, #packs-cellular) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
 
-:where(#signed-out, #signed-in, #app-settings, #onboard) button.link {
+:where(#signed-out, #signed-in, #app-settings, #onboard, #firstrun-packs, #packs-cellular) button.link {
   background: none;
   color: var(--accent-deep);
   font-weight: 400;
@@ -218,7 +218,7 @@ header {
    without this the 播客模式 row sits flush against 开始复习/同步 and the two read
    as one control block (真机实测 2026-08-17). Same 10px as the intra-row gap. */
 .row + .row { margin-top: 10px; }
-:where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
+:where(#signed-out, #signed-in, #app-settings, #firstrun-packs, #packs-cellular) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
 /* The one shell-owned control INSIDE the review surface, so the scoped rules
    above no longer reach it — it carries its link styling by id (which also
@@ -707,9 +707,11 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#firstrun-packs) .pack-line-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 :where(#firstrun-packs) .pack-line-name { font-weight: 600; color: var(--fg); }
 :where(#firstrun-packs) .pack-line-sub { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.35; }
-:where(#firstrun-packs) .pack-line-status { color: var(--accent); font-size: 0.85rem; white-space: nowrap; }
-:where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
-:where(#firstrun-packs) .is-locked { opacity: 0.92; }
+/* 状态字与「其他 N 种语言」是正文尺寸。--accent 在深色卡片上约 3.2:1，
+   再乘行上的透明度就掉到 2.88:1。--accent-deep 两种配色都 ≥ 4.5:1。
+   勾选锁住靠 disabled，不再给整行降透明度（那会把文字一起压过对比度门）。 */
+:where(#firstrun-packs) .pack-line-status { color: var(--accent-deep); font-size: 0.85rem; white-space: nowrap; }
+:where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent-deep); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
 #packs-cellular:not([hidden]) {
   position: fixed; inset: 0; z-index: 40;
   background: rgba(0, 0, 0, 0.45);

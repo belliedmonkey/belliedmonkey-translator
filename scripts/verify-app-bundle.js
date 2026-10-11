@@ -896,29 +896,57 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 而那个余量在真机上根本不存在（2026-09-01 用户截图里按钮就是没了）。
       await cdp.send('Emulation.setDeviceMetricsOverride',
         { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
-      // ─── 首跑：资源包下完 ⇒ **直接落首页**（2026-10-03 用户裁定）─────────────────
-      // 这一块原来靠「走完整个引导、逐屏采」—— 引导屏已整块撤掉（它只剩两个没有内容的键，
-      // 外加一屏「登录，顺手领一份免费额度」+「扩展里也要登录一次」，而用户已经登录过了）。
-      // 现在采的是**新形状**：不开 #onboard、直接落首页，并把 onboardSeen 落一次。
+      // ─── 首跑：资源包下完 ⇒ 点「进入实时听译」才离开（改稿 F，2026-10-11）────────
+      // 2026-10-03 的形状是点一次「下载并继续」就落首页。改稿 F 在中间加了一屏：
+      // 下完停住，按钮变成「进入实时听译」，再点一次才离开。离开后打开听译页
+      // （#app-listen 盖住 #signed-in）。门禁要的仍是「首启结束」：包屏藏起、
+      // 首页或听译页在、引导不开、登录屏不露、onboardSeen 落一次。
       // 内联 reset/reopen（它们在本块**之后**才定义 —— 这里引用会踩 TDZ）。
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'engineChosen', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set({}, r)))`, awaitPromise: true }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1500));
+      // 重载清掉页面上的 __sweep。下完、还停在包屏时先扫一遍深浅色，再点离开。
+      await installSweep(cdp, sessionId);
+      const driveDone = `(async () => {
+          const $ = (id) => document.getElementById(id);
+          const sec = () => $('firstrun-packs');
+          const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+          if (phase() !== 'done') $('packs-go').click();
+          const t0 = Date.now();
+          while (Date.now() - t0 < 8000 && phase() !== 'done') await new Promise((r) => setTimeout(r, 40));
+          return phase();
+        })()`;
+      const ph = await cdp.send('Runtime.evaluate', { expression: driveDone, awaitPromise: true, returnByValue: true }, sessionId);
+      need((ph.result || {}).value === 'done', '资源包没有下到「都下好了」：' + ((ph.result || {}).value));
+      const packBad = await sweepBoth(cdp, sessionId, '#firstrun-packs');
+      need(packBad.length === 0, '【首启包屏】看不清的文字: ' + packBad.slice(0, 6).join(' | ')
+        + (packBad.length > 6 ? ` …共 ${packBad.length} 处` : ''));
       const frOb = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
           const $ = (id) => document.getElementById(id);
           const g = (k) => new Promise((r) => chrome.storage.local.get([k], (v) => r((v || {})[k])));
-          $('packs-go').click();
-          await new Promise((r) => setTimeout(r, 400));
-          return JSON.stringify({ onboardHidden: $('onboard').hidden, home: !$('signed-in').hidden,
-            packsHidden: $('firstrun-packs').hidden, outHidden: $('signed-out').hidden,
+          const sec = () => $('firstrun-packs');
+          const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+          const left = () => {
+            const s = sec();
+            if (!s || !s.hidden) return false;
+            const listen = $('app-listen');
+            return (listen && !listen.hidden) || !$('signed-in').hidden;
+          };
+          if (!left() && phase() === 'done') $('packs-go').click();
+          const t0 = Date.now();
+          while (Date.now() - t0 < 4000 && !left()) await new Promise((r) => setTimeout(r, 40));
+          return JSON.stringify({ onboardHidden: $('onboard').hidden,
+            home: !$('signed-in').hidden || ($('app-listen') && !$('app-listen').hidden),
+            listen: !!($('app-listen') && !$('app-listen').hidden),
+            packsHidden: sec().hidden, outHidden: $('signed-out').hidden,
             seen: !!(await g('onboardSeen')) });
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const fr = JSON.parse(frOb.result.value);
-      need(fr.packsHidden && fr.home, '资源包下完之后没有落首页：' + JSON.stringify(fr));
-      need(fr.onboardHidden, '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接落首页');
-      need(fr.outHidden, '首页出现时登录屏还露着');
-      need(fr.seen, '落首页时没有把 onboardSeen 落一次（老客户端与遥测的 step 枚举还读它）');
+      need(fr.packsHidden && fr.home, '点了「进入实时听译」之后没有离开包屏：' + JSON.stringify(fr));
+      need(fr.onboardHidden, '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接离开首启');
+      need(fr.outHidden, '离开首启时登录屏还露着');
+      need(fr.seen, '离开首启时没有把 onboardSeen 落一次（老客户端与遥测的 step 枚举还读它）');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
@@ -981,7 +1009,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         + (bad.length > 6 ? ` …共 ${bad.length} 处` : ''));
     };
     await sweepView('首页', `(async () => { const $ = (id) => document.getElementById(id);
-      $('onboard').hidden = true; $('signed-out').hidden = false; return 'ok'; })()`, 'body');
+      $('onboard').hidden = true; $('firstrun-packs').hidden = true; $('app-listen').hidden = true;
+      $('signed-out').hidden = false; return 'ok'; })()`, 'body');
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
       await settingsModel.notifySettingsShown(null); return 'ok'; })()`, '#app-settings');
@@ -1132,10 +1161,16 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
         const $ = (id) => document.getElementById(id);
         const vis = (el) => !!(el && el.getClientRects().length);
-        // packs 就绪 ⇒ boot 落首页，引导要经屏 2 的 handler 才打开。
-        $('packs-go').click();
-        await new Promise((r) => setTimeout(r, 300));
+        // 改稿 F：第一次点开始下载，下完停在包屏；再点「进入实时听译」才离开，
+        // 并在那一下把默认 onboardIntent=listen 落盘、记一条 onboard_intent。
+        const sec = () => $('firstrun-packs');
+        const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+        if (phase() !== 'done') $('packs-go').click();
+        const t0 = Date.now();
+        while (Date.now() - t0 < 8000 && phase() !== 'done') await new Promise((r) => setTimeout(r, 40));
         const step0 = document.body.dataset.obStep || '';
+        if (sec() && !sec().hidden && phase() === 'done') $('packs-go').click();
+        await new Promise((r) => setTimeout(r, 400));
         const exits = ['ob-webonly', 'ob-intent-listen', 'ob-intent-both'].filter((id) => vis($(id))).length;
         const hasChips = !!$('ob-engines');
         $('ob-next').click();
