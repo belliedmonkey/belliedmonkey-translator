@@ -3821,5 +3821,131 @@
   },
   "listen_ptt_recording": {
     "message": "● 録音中 · タップして停止"
+  },
+  "firstrun_packs_back": {
+    "message": "戻る"
+  },
+  "firstrun_packs_all_title": {
+    "message": "言語パックのダウンロードが完了しました"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} で聞き取りと読み上げができます。ほかの言語は設定から追加できます。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "言語パックをダウンロードしています"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "項目ごとに進捗を表示します。バックグラウンドでも続き、回線が戻れば途中から再開します。"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "ダウンロードする言語を選ぶ"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "初期状態では、システムの言語 + 中文 + English にチェックが入ります。ほかは必要に応じて。あとから設定でも追加できます。"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "選択はそのまま残ります。Wi-Fi につながると自動でダウンロードを始めます。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "準備できました。入ったあと「{mine}」か相手の言語のボタンを押すと始まります。"
+  },
+  "firstrun_packs_foot": {
+    "message": "合計約 {size}。システムの認識パックは別です。モバイル通信のときは、ダウンロードの前に確認します。"
+  },
+  "firstrun_packs_locked": {
+    "message": "ダウンロード中はチェックを変えられません。終わったら設定で増減できます。"
+  },
+  "firstrun_packs_enter": {
+    "message": "リアルタイム聞き取りへ"
+  },
+  "firstrun_packs_remain": {
+    "message": "ダウンロード中 · 残り {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未選択"
+  },
+  "firstrun_packs_queued": {
+    "message": "待機中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "言語（認識パック）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "認識パック · システムがダウンロード"
+  },
+  "firstrun_packs_system": {
+    "message": "システム言語"
+  },
+  "firstrun_packs_more": {
+    "message": "ほかの {n} 言語"
+  },
+  "firstrun_packs_together": {
+    "message": "いっしょにダウンロード"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "読み上げ · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "中文と English を一つのパックでカバーします。中文か English にチェックすると自動で付きます"
+  },
+  "firstrun_packs_bytes": {
+    "message": "約 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "読み上げ · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "初期状態ではオフです。なくても聞き取りと訳文は使えます。タイ語の訳文だけ読み上げません"
+  },
+  "firstrun_packs_optional": {
+    "message": "約 {size} · 任意"
+  },
+  "firstrun_packs_base": {
+    "message": "基本コンポーネント"
+  },
+  "firstrun_packs_base_note": {
+    "message": "言語識別（ECAPA）と音声検出（VAD）：誰がどの言語を話しているか分けます。これがないと聞き取りを始められません"
+  },
+  "firstrun_packs_required": {
+    "message": "約 {size} · 必須"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "モバイル通信を使っています"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "今回は約 {size} です（システムの認識パックは別で、大きさはシステムが決めます）。通信料がかかることがあります。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wi-Fi を待つ"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "モバイル通信でダウンロード"
+  },
+  "firstrun_packs_manage": {
+    "message": "言語パックを管理"
+  },
+  "listen_ptt_preparing": {
+    "message": "準備中 · {lang} を {pct}% ダウンロード"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 準備完了"
+  },
+  "listen_not_ready": {
+    "message": "まだ始められません。ダウンロードが終わってから押してください"
+  },
+  "listen_ready_tap": {
+    "message": "ダウンロード完了。下のボタンを押すと始まります"
+  },
+  "listen_prep_detail": {
+    "message": "{what}をダウンロード中 · {pct}% · {ready}は準備完了"
+  },
+  "listen_ready_tap_sub": {
+    "message": "自動では始まりません · 「{mine}」か「{other}」を押すと聞き取りが始まります"
   }
 }

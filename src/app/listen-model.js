@@ -31,6 +31,7 @@
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
+import * as FirstRun from './firstrun.js';
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -64,6 +65,11 @@ const listenModel = (() => {
   // （2026-09-08 去掉了 'speaking'：不再有「按住我说」，双方自由说话、归属按语言判）
   // 放大展示（给对方看）不是 phase：它是历史行上的一个叠层，底下照常在听（showRid）。
   let phase = 'idle';
+  // 改稿 G：下载进度与「这一侧能不能开口」不走会话相位。相位仍只描述一场正在进行的听译。
+  let prep = {
+    probed: false, running: false, pct: 0, name: '', readyUntil: 0, flashUntil: 0, didDownload: false,
+    assets: { asr: {}, tts: {}, lid: false, vad: false },
+  };
   // 用法（learning-design §9.8）：'conv' = 对话 · 实时听译；'subtitle' = 实时字幕。差别查 ListenCore.MODES。
   let mode = 'conv';
   let subsReason = '';   // 实时字幕入口最近一次的判定（'' / hidden / no-live / no-key / os / device-os）
@@ -750,13 +756,145 @@ const listenModel = (() => {
   // vbD0C（「收音时停朗读 + 冻队列」）**已撤**（2026-10-09 用户裁定 A）：收音＝常开，队列在收音
   // 期间冻住就等于自动朗读永不发声。改为**只靠回声闸**（M3/M4 正验的那个）挡 App 自己的声音；
   // 达不到效果再谈 B（只冻「用户这句在说」的那一小段）。
-  /** 点一下：开 / 停收音（改稿 D 的核心）。返回 false = 没接（字幕模式 / 设备不支持）。 */
+  function endonymOf(code) {
+    const base = FirstRun.baseCode(code);
+    try {
+      const e = (Registry.langs() || []).find((l) => FirstRun.baseCode(l.code) === base);
+      if (e && e.label) return e.label;
+    } catch (_) {}
+    return base;
+  }
+  function prepAssets() {
+    return {
+      asr: Object.assign({}, prep.assets.asr),
+      tts: Object.assign({}, prep.assets.tts),
+      lid: !!prep.assets.lid,
+      vad: !!prep.assets.vad,
+    };
+  }
+  /** 这一侧的识别包 + 基础组件都在，说话键才可点。没有本机桥时不拦（云端路没有这些包）。 */
+  function talkSideReady(side) {
+    if (!deviceBridge()) return true;
+    if (!prep.probed) return false;
+    const lang = side === 'other' ? (cfg && cfg.otherLang) : (cfg && cfg.myLang);
+    return FirstRun.readiness(prepAssets(), FirstRun.sideNeed(lang)).ready;
+  }
+  function flashNotReady(side) {
+    prep.flashUntil = Date.now() + 700;
+    prep.flashSide = side || '';
+    canvas.view('state');
+    setTimeout(() => { if (Date.now() >= prep.flashUntil) canvas.view('state'); }, 740);
+  }
+  function pageChrome() {
+    if (mode === 'subtitle') return FirstRun.talkChrome({ sideReady: true, recording: phase === 'listening', phase });
+    if (ptt && talkSideReady(ptt.side) && phase === 'listening') {
+      return FirstRun.talkChrome({ sideReady: true, recording: true, phase: 'listening' });
+    }
+    // 还没探完就当没就绪：两个键先灰，卡片写「还不能开始」。探完之前不许画成可以开口。
+    if (deviceBridge() && !prep.probed) {
+      return FirstRun.talkChrome({ sideReady: false, recording: false, phase });
+    }
+    const pending = !!(deviceBridge() && (prep.running || (prep.probed && (!talkSideReady('me') || !talkSideReady('other')))));
+    if (pending && !(ptt && talkSideReady(ptt.side) && phase === 'listening')) {
+      return FirstRun.talkChrome({ sideReady: false, recording: false, phase });
+    }
+    if (!ptt && prep.readyUntil > Date.now()) {
+      return FirstRun.talkChrome({ sideReady: true, recording: false, phase: 'idle', justReady: true });
+    }
+    return FirstRun.talkChrome({ sideReady: true, recording: !!(ptt && phase === 'listening'), phase });
+  }
+  // 进听译页就在后台把缺的包补上。不改相位、不开麦、下完也不自己开始。
+  async function warmPacks() {
+    if (mode === 'subtitle' || !deviceBridge()) { prep.probed = true; canvas.view('state'); return; }
+    if (prep.running) return;
+    const my = cfg && cfg.myLang;
+    const other = cfg && cfg.otherLang;
+    const langs = [];
+    for (const lang of [my, other]) {
+      const code = FirstRun.baseCode(lang);
+      if (code && langs.indexOf(code) < 0) langs.push(code);
+    }
+    try {
+      for (const code of langs) {
+        let ready = false;
+        try {
+          const r = await NativeSpeech.probe([code]);
+          ready = !!(r && r.ok && r.assets === 'installed');
+        } catch (_) { ready = false; }
+        prep.assets.asr[code] = ready;
+      }
+      try {
+        const lm = lidModel();
+        if (lm && NativeSpeech.lidProbe) {
+          const lr = await NativeSpeech.lidProbe(lm);
+          prep.assets.lid = !!(lr && lr.ok);
+        } else prep.assets.lid = true;
+      } catch (_) { prep.assets.lid = false; }
+      try {
+        const vm = vadModel();
+        if (vm && NativeSpeech.vadProbe) {
+          const vr = await NativeSpeech.vadProbe(vm);
+          prep.assets.vad = !!(vr && vr.ok);
+        } else prep.assets.vad = true;
+      } catch (_) { prep.assets.vad = false; }
+    } catch (_) {}
+    prep.probed = true;
+    canvas.view('state');
+    const missingBase = !(prep.assets.lid && prep.assets.vad);
+    const missingAsr = langs.filter((c) => !prep.assets.asr[c]);
+    if (!missingBase && !missingAsr.length) return;
+    prep.running = true;
+    prep.didDownload = true;
+    canvas.view('state');
+    const stamp = (m, fallback) => {
+      const named = FirstRun.nameProgress(m, fallback);
+      prep.name = named.name;
+      prep.pct = Math.round((Number(named.fraction) || 0) * 100);
+      canvas.view('state');
+      return named;
+    };
+    try {
+      const baseName = t('firstrun_packs_base', '基础组件');
+      if (!prep.assets.vad) {
+        const vm = vadModel();
+        if (vm && NativeSpeech.ensureVad) {
+          await NativeSpeech.ensureVad(vm, (m) => stamp(Object.assign({}, m, { name: baseName }), baseName));
+          prep.assets.vad = true;
+        }
+      }
+      if (!prep.assets.lid) {
+        const lm = lidModel();
+        if (lm && NativeSpeech.ensureLid) {
+          await NativeSpeech.ensureLid(lm, (m) => stamp(Object.assign({}, m, { name: baseName }), baseName));
+          prep.assets.lid = true;
+        }
+      }
+      for (const code of missingAsr) {
+        const name = endonymOf(code);
+        await NativeSpeech.ensureAssets('stt', [code], (m) => {
+          stamp(m, name);
+          if (m && m.state === 'installed') prep.assets.asr[code] = true;
+        });
+        prep.assets.asr[code] = true;
+      }
+      prep.readyUntil = Date.now() + 4000;
+    } catch (_) {
+      prep.readyUntil = 0;
+    } finally {
+      prep.running = false;
+      prep.probed = true;
+      canvas.view('state');
+      if (prep.readyUntil) setTimeout(() => canvas.view('state'), 4200);
+    }
+  }
+  /** 点一下：开 / 停收音（改稿 D 的核心）。返回 false = 没接（字幕模式 / 设备不支持 / 这一侧还没下好）。 */
   function pttToggle(side) {
     if (mode === 'subtitle') return false;                 // 字幕是单向的，没有「谁在说」
     // 没授权麦克风：复用既有那句「麦克风被拒绝」（不新增说法）。`__mtMicDenied` 由 Debug 的
     // __mtTest.micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
     if (typeof window !== 'undefined' && window.__mtMicDenied) { halt('denied'); return false; }
     if (!liveCapable()) return false;                      // 灰掉（原因见 pttView）
+    if (!talkSideReady(side)) { flashNotReady(side); return false; }
     // 已经在收音（ptt 非空）：**同侧 = 停止**（任何相位都算 —— 正在准备中也该能停）；
     // 异侧 = 换边（准备中就直接改侧，等管道起来就按新侧走）。
     if (ptt) {
@@ -864,13 +1002,29 @@ const listenModel = (() => {
     if (!ptt && !pttForce) return;
     pttExit();
   }
+  function pttHintFor(chrome, lang) {
+    if (chrome.hint === 'preparing') {
+      return t('listen_ptt_preparing', '准备中 · {lang} 下载 {pct}%')
+        .replace('{lang}', endonymOf(lang)).replace('{pct}', String(prep.pct || 0));
+    }
+    if (chrome.hint === 'recording') return t('listen_ptt_recording', '● 正在录 · 点一下停');
+    return t('listen_ptt_tap_start', '点一下开始');
+  }
   function pttView() {
     const sub = mode === 'subtitle';
     const canUse = !sub && liveCapable();
-    // 高亮看的是「收音态」本身，不是相位 —— 点下去到管道起来之间（准备中）键就该亮着。
-    const on = !!ptt;
-    const idleHint = t('listen_ptt_tap_start', '点一下开始');
-    const recordingHint = t('listen_ptt_recording', '● 正在录 · 点一下停');
+    // 高亮只在这一侧真的在录（相位已经是 listening）。没下好的那一侧保持灰，不亮成「正在录」。
+    const on = !!ptt && phase === 'listening';
+    const mineChrome = FirstRun.talkChrome({
+      sideReady: talkSideReady('me'),
+      recording: !!(ptt && ptt.side === 'me'),
+      phase, blocked: !canUse,
+    });
+    const otherChrome = FirstRun.talkChrome({
+      sideReady: talkSideReady('other'),
+      recording: !!(ptt && ptt.side === 'other'),
+      phase, blocked: !canUse,
+    });
     return {
       // 对话页永远显示这两个键（它们就是这一页唯一的启停控件）。
       shown: !sub,
@@ -878,12 +1032,14 @@ const listenModel = (() => {
       otherSide: 'other',
       mineLabel: pttPhrase(t('listen_ptt_say', '说{lang}'), langLabel(cfg && cfg.myLang)),
       // 两个键的小字都**跟界面语言**（改稿 D，2026-10-09 用户定）：未收音「点一下开始」，
-      // 收音中「● 正在录 · 点一下结束」。原来那套「那门语言写的 pttHint」随之退役。
-      mineHint: on && ptt.side === 'me' ? recordingHint : idleHint,
+      // 收音中「● 正在录 · 点一下结束」。没就绪的那一侧改成「准备中 · 语言本名 下载 xx%」。
+      mineHint: pttHintFor(mineChrome, cfg && cfg.myLang),
       otherLabel: langLabel(cfg && cfg.otherLang),
-      otherHint: on && ptt.side === 'other' ? recordingHint : idleHint,
+      otherHint: pttHintFor(otherChrome, cfg && cfg.otherLang),
       activeSide: on ? ptt.side : '',
-      disabled: !canUse,
+      disabled: mineChrome.disabled,
+      mineDisabled: mineChrome.disabled,
+      otherDisabled: otherChrome.disabled,
       whyText: canUse ? '' : needText(unavailableReason()),
     };
   }
@@ -1439,14 +1595,21 @@ const listenModel = (() => {
     const epopts = opts || {};
     {
       if (!deviceBridge()) { halt('device', 'os'); return false; }
-      const r = await NativeSpeech.probe(deviceLocales(cfg));
+      // 已经按住某一侧时，只等这一侧的识别包。另一侧还在下，不拦已经就绪的这一侧开口。
+      const locales = (ptt ? [pttLangOf(ptt.side)] : deviceLocales(cfg)).filter(Boolean);
+      const r = await NativeSpeech.probe(locales);
       if (phase !== 'preparing') return false;
       if (!r.ok) { halt('device', r.reason || ''); return false; }
       if (r.assets !== 'installed') {
-        phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state');
+        phase = 'downloading'; dlPct = 0; dlLang = ''; prep.didDownload = true; prep.dlGen = (prep.dlGen || 0) + 1; canvas.view('state');
         try {
-          await NativeSpeech.ensureAssets('stt', deviceLocales(cfg), (m) => {
-            dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+          await NativeSpeech.ensureAssets('stt', locales, (m) => {
+            const named = FirstRun.nameProgress(m, endonymOf(m && m.locale) || endonymOf(locales[0]) || t('firstrun_packs_base', '基础组件'));
+            dlPct = Math.max(dlPct, Math.round((Number(named.fraction) || 0) * 100));
+            dlLang = named.name;
+            prep.name = named.name;
+            prep.pct = dlPct;
+            paintClock();
           });
         } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return false; }
         if (phase !== 'downloading') return false;
@@ -1460,9 +1623,17 @@ const listenModel = (() => {
       const lm = lidModel();
       if (lm) {
         const onProg = (m) => {
+          const baseName = t('firstrun_packs_base', '基础组件');
+          const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
           if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; canvas.view('state'); }
           if (phase !== 'downloading') return;
-          dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); paintClock();
+          dlPct = Math.max(dlPct, Math.round((Number(named.fraction) || 0) * 100));
+          dlLang = named.name;
+          prep.name = named.name;
+          prep.pct = dlPct;
+          prep.didDownload = true;
+          prep.dlGen = (prep.dlGen || 0) + 1;
+          paintClock();
         };
         try {
           // 地址从哪来（§9.6.1.1）：与朗读包**同一套** —— 后端表 `bt_model_sources` 决定默认/备源，
@@ -1488,25 +1659,47 @@ const listenModel = (() => {
     // 只有它判为语音的片段才累计进 LID。**644KB，下不下来都不拦听译** —— 失败就退回能量门（原行为）。
     if (deviceBridge()) {
       const vm = vadModel();
-      if (vm) { try { await NativeSpeech.ensureVad(vm); } catch (_) {} }
+      if (vm) {
+        const baseName = t('firstrun_packs_base', '基础组件');
+        try {
+          await NativeSpeech.ensureVad(vm, (m) => {
+            const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
+            dlLang = named.name;
+            prep.name = named.name;
+            if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
+          });
+          prep.assets.vad = true;
+        } catch (e) {
+          if (ptt) { halt('assets', e && e.reason); return false; }
+        }
+      }
     }
     // 设备内置朗读（§9.6.1）：模型缺失 ⇒ 同一个 downloading 态先下载（与转写资产共用一种态）
     // 设备内置朗读（§9.6.1）：**自动识别换来的语言不在这里下朗读包**（`skipTts`）——
     // 用户什么都没点，不该因为 LID 听到一门新语言就悄悄下 105MB（2026-10-07 真机批 28：
     // 首启按 zh/en 下好之后进听译，LID 认出泰语 ⇒ 又开下泰语朗读包、卡在「准备中…」）。
     // 没有那个包不影响听译：朗读那一步会回落系统语音（既有行为）。
-    if (!epopts.skipTts && deviceTts() && deviceBridge()) {
+    if (!epopts.skipTts && deviceTts() && !ptt && deviceBridge()) {
       // 四处首播同一个下载入口（§9.1.1）：模型缺失时 LearnTTS.ensureDeviceReady 自己下载，
       // 进度回到这里画成 downloading 态（与转写语言包共用一种态）。
       const rd = await LearnTTS.ensureDeviceReady((m) => {
         if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; dlLang = ''; canvas.view('state'); }
         if (phase !== 'downloading') return;
-        dlPct = Math.max(dlPct, Math.round((Number(m.fraction) || 0) * 100)); dlLang = m.locale || ''; paintClock();
+        const named = FirstRun.nameProgress(m, endonymOf(m && m.locale) || t('firstrun_packs_tts', '高质量朗读包（朗读 / 播客）'));
+        dlPct = Math.max(dlPct, Math.round((Number(named.fraction) || 0) * 100)); dlLang = named.name; prep.name = named.name; prep.pct = dlPct; paintClock();
       }, undefined, deviceLocales(cfg));
       if (phase !== 'preparing' && phase !== 'downloading') return false;
       if (!rd.ok && rd.reason === 'assets') { halt('assets', rd.why); return false; }
       if (phase === 'downloading') { phase = 'preparing'; canvas.view('state'); }
       // 其它失败（no-engine 等）不拦听译：朗读那一步会具名失败，行上留「朗读」可重试
+    }
+    prep.probed = true;
+    prep.assets.lid = true;
+    if (prep.assets.vad !== true) prep.assets.vad = true;
+    const held = (ptt ? [pttLangOf(ptt.side)] : deviceLocales(cfg)).filter(Boolean);
+    for (const loc of held) {
+      const code = FirstRun.baseCode(loc);
+      if (code) prep.assets.asr[code] = true;
     }
     return true;
   }
@@ -1521,6 +1714,13 @@ const listenModel = (() => {
     if (bridged() && session && session.mode === 'subtitle') pipRectOn();
     // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
     if (!(await ensurePacksForPair())) return;
+    // 这一侧仍没就绪（基础组件或识别包没落地）就不开麦，也不留「正在录」。
+    if (ptt && !talkSideReady(ptt.side)) {
+      pttAbort();
+      phase = 'idle';
+      canvas.view('state');
+      return;
+    }
     openSocket();
     canvas.view('state');
     startedAt = now();
@@ -1740,7 +1940,7 @@ const listenModel = (() => {
     }
     // 对话页（改稿 D，2026-10-09）**不再一进来就开麦**：点底部那两个键才开始收音 / 开麦。
     // 只把配置读起来（语言名、灰掉原因要它），会话建在第一次点键那一刻。
-    readCfg().then((c) => { if (!session) { cfg = c; keepLangSel(); canvas.view('state'); } });
+    readCfg().then((c) => { if (!session) { cfg = c; keepLangSel(); canvas.view('state'); warmPacks(); } });
     canvas.view('state');
   }
 
@@ -2093,12 +2293,26 @@ const listenModel = (() => {
     if (listening && (Math.floor(ms / 1000) % 5 === 0)) paintNowPlaying();
   }
   // pillView：paintClock 的胶囊数据版（视图每秒随 clock bump 重画）。
+  function prepPill() {
+    if (prep.running) {
+      const name = prep.name || '';
+      return {
+        text: t('listen_pill_pct', '{lang} {pct}%').replace('{lang}', name).replace('{pct}', String(prep.pct || 0)),
+        live: false,
+      };
+    }
+    if (prep.readyUntil > Date.now()) return { text: t('listen_pill_ready', '✓ 已就绪'), live: false };
+    return null;
+  }
   function pillView() {
-    if (!session) return null;
+    const early = prepPill();
+    if (!session) return early;
     const ms = C.listenedMs(session, now());
     const listening = phase === 'listening';
+    if (mode !== 'subtitle' && early && !listening) return early;
+    const dlName = dlLang ? (endonymOf(dlLang) || dlLang) : (prep.name || '');
     return {
-      text: phase === 'downloading' ? t('listen_downloading', '正在下载{lang}离线模型 · {pct}%').replace('{lang}', langLabel(dlLang)).replace('{pct}', String(dlPct))
+      text: phase === 'downloading' ? t('listen_pill_pct', '{lang} {pct}%').replace('{lang}', dlName).replace('{pct}', String(dlPct))
         : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
         : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
         : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
@@ -2124,7 +2338,14 @@ const listenModel = (() => {
     // 所以「现在」卡在 listening 时永远只写「正在听…」，不再有「我正在说 / 对方正在说」。
     // 不是 listening 的态（暂停 / 准备 / 结束）保留既有的那句「正在说…」（那时说「正在听」是假的）。
     // 按住说 / 锁定时，这一句的语言是人指定的 ⇒ 直接说清在听哪一门（C-09：「正在听中文…」）。
-    if (!sub && ptt) return pttPhrase(t('listen_listening_lang', '正在听{lang}…'), langLabel(pttLangOf(ptt.side)));
+    if (!sub) {
+      const chrome = pageChrome();
+      if (!chrome.showsListening && !chrome.showsRecording) {
+        if (chrome.card === 'not-ready') return t('listen_not_ready', '还不能开始，下好后再点');
+        if (chrome.card === 'ready-tap') return t('listen_ready_tap', '下好了，点下面的键开始');
+      }
+      if (chrome.showsListening && ptt) return pttPhrase(t('listen_listening_lang', '正在听{lang}…'), langLabel(pttLangOf(ptt.side)));
+    }
     return sub ? t('subtitle_now_label', '现在')
       : phase === 'listening' ? t('listen_listening', '正在听…')
         : t('listen_now_any', '正在说…');
@@ -2260,10 +2481,19 @@ const listenModel = (() => {
       closeSocket();
       const wasListening = phase === 'listening';
       if (wasListening) { phase = 'preparing'; }   // 与 beginPipeline 同一入口语义
+      const beforeGen = prep.dlGen || 0;
       ensurePacksForPair({ skipTts: !!lo.skipTts }).then((ok) => {
         if (!ok) return;             // halt 已接管（具名态，与进场失败一致）
         openSocket();
-        if (wasListening && phase === 'preparing') { phase = 'listening'; canvas.view('state'); }
+        if (wasListening && phase === 'preparing') {
+          // 下完不自动开麦（改稿 G）。包本来就在，才接着听。
+          if ((prep.dlGen || 0) !== beforeGen) {
+            pttAbort();
+            phase = 'idle';
+            prep.readyUntil = Date.now() + 4000;
+          } else phase = 'listening';
+          canvas.view('state');
+        }
       });
     }
     canvas.view('mode');   // 受控 select：mySelVal/otherSelVal 变了必须 bump，否则 React 把 DOM 值拉回去
@@ -2397,7 +2627,33 @@ const listenModel = (() => {
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
     // 渲染数据（listen-view.jsx 渲染期调用）
     modeView, pillView, nowLabel, ephemeralView, toggleView,
-    nowView: () => ({ partial: partial || '', partialTr: partial && partialTr ? partialTr + '…' : '' }),   // renderNow 的数据版
+    nowView: () => {
+      const chrome = mode === 'subtitle' ? null : pageChrome();
+      const readyNames = [];
+      if (prep.assets.lid && prep.assets.vad) readyNames.push(t('firstrun_packs_base', '基础组件'));
+      for (const code of Object.keys(prep.assets.asr || {})) {
+        if (prep.assets.asr[code]) readyNames.push(endonymOf(code));
+      }
+      const prepText = t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪')
+        .replace('{what}', prep.name || '')
+        .replace('{pct}', String(prep.pct || 0))
+        .replace('{ready}', readyNames.join('、'));
+      const readySub = (chrome && chrome.card === 'ready-tap')
+        ? t('listen_ready_tap_sub', '不会自动开始 · 点「说{mine}」或「{other}」开始收音')
+          .replace('{mine}', endonymOf(cfg && cfg.myLang))
+          .replace('{other}', endonymOf(cfg && cfg.otherLang))
+        : '';
+      return {
+        partial: partial || '',
+        partialTr: partial && partialTr ? partialTr + '…' : '',
+        flash: !!(chrome && prep.flashUntil > Date.now()),
+        prepShown: !!(chrome && chrome.card === 'not-ready'),
+        prepText,
+        prepBar: !!(chrome && chrome.card === 'not-ready' && (prep.running || prep.pct > 0)),
+        prepPct: prep.pct || 0,
+        readySub,
+      };
+    },
     // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
     formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),
     noteView: () => ({ text: noteMsg, err: noteErr }),

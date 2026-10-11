@@ -3634,5 +3634,131 @@
   },
   "listen_ptt_recording": {
     "message": "● กำลังบันทึก · แตะเพื่อหยุด"
+  },
+  "firstrun_packs_back": {
+    "message": "กลับ"
+  },
+  "firstrun_packs_all_title": {
+    "message": "แพ็กภาษาโหลดครบแล้ว"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} ใช้ฟังและอ่านออกเสียงได้แล้ว เพิ่มภาษาอื่นได้ภายหลังในการตั้งค่า"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "กำลังโหลดแพ็กภาษา"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "แต่ละรายการแสดงความคืบหน้าของตัวเอง โหลดต่อในพื้นหลัง และต่อจากจุดที่ค้างเมื่อเน็ตกลับมา"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "เลือกภาษาที่จะโหลด"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "ค่าเริ่มต้นติ๊กภาษาของระบบ + 中文 + English ภาษาอื่นติ๊กตามต้องการ เพิ่มทีหลังได้ในการตั้งค่า"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "รายการที่ติ๊กไว้ยังอยู่ พอต่อ Wi-Fi จะเริ่มโหลดเอง"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "พร้อมแล้ว เข้าไปแล้วกด «{mine}» หรือปุ่มภาษาของอีกฝ่ายเพื่อเริ่ม"
+  },
+  "firstrun_packs_foot": {
+    "message": "รวมประมาณ {size} นอกจากแพ็กระบบรู้จำ ถ้าใช้เน็ตมือถือจะถามก่อนโหลด"
+  },
+  "firstrun_packs_locked": {
+    "message": "ระหว่างโหลดเปลี่ยนการติ๊กไม่ได้ เพิ่มหรือเอาออกทีหลังได้ในการตั้งค่า"
+  },
+  "firstrun_packs_enter": {
+    "message": "เข้าสู่การฟังแปลสด"
+  },
+  "firstrun_packs_remain": {
+    "message": "กำลังโหลด · เหลือ {n} รายการ"
+  },
+  "firstrun_packs_unselected": {
+    "message": "ไม่ได้เลือก"
+  },
+  "firstrun_packs_queued": {
+    "message": "รอคิว"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "ภาษา (แพ็กรู้จำ)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "แพ็กรู้จำ · ระบบเป็นคนโหลด"
+  },
+  "firstrun_packs_system": {
+    "message": "ภาษาของระบบ"
+  },
+  "firstrun_packs_more": {
+    "message": "อีก {n} ภาษา"
+  },
+  "firstrun_packs_together": {
+    "message": "โหลดไปด้วยกัน"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "อ่านออกเสียง · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "แพ็กเดียวครอบ 中文 กับ English ติ๊ก 中文 หรือ English แล้วจะติดมาเอง"
+  },
+  "firstrun_packs_bytes": {
+    "message": "ประมาณ {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "อ่านออกเสียง · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "ค่าเริ่มต้นไม่ติ๊ก ไม่โหลดก็ฟังและดูคำแปลได้ แค่คำแปลภาษาไทยไม่ถูกอ่านออกเสียง"
+  },
+  "firstrun_packs_optional": {
+    "message": "ประมาณ {size} · ไม่บังคับ"
+  },
+  "firstrun_packs_base": {
+    "message": "ส่วนพื้นฐาน"
+  },
+  "firstrun_packs_base_note": {
+    "message": "รู้จำภาษา (ECAPA) + ตรวจเสียงคน (VAD): แยกได้ว่าใครพูดภาษาใด ต้องโหลดครบก่อนจึงเริ่มฟังได้"
+  },
+  "firstrun_packs_required": {
+    "message": "ประมาณ {size} · จำเป็น"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "ตอนนี้ใช้เน็ตมือถือ"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "ครั้งนี้ประมาณ {size} (แพ็กรู้จำของระบบคิดแยก ขนาดกำหนดโดยระบบ) อาจมีค่าเน็ต"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "รอ Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "โหลดผ่านเน็ตมือถือ"
+  },
+  "firstrun_packs_manage": {
+    "message": "จัดการแพ็กภาษา"
+  },
+  "listen_ptt_preparing": {
+    "message": "กำลังเตรียม · โหลด {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ พร้อมแล้ว"
+  },
+  "listen_not_ready": {
+    "message": "ยังเริ่มไม่ได้ กดอีกครั้งหลังโหลดเสร็จ"
+  },
+  "listen_ready_tap": {
+    "message": "โหลดแล้ว กดปุ่มด้านล่างเพื่อเริ่ม"
+  },
+  "listen_prep_detail": {
+    "message": "กำลังโหลด {what} · {pct}% · {ready} พร้อมแล้ว"
+  },
+  "listen_ready_tap_sub": {
+    "message": "จะไม่เริ่มเอง · กด «{mine}» หรือ «{other}» เพื่อเริ่มฟัง"
   }
 }

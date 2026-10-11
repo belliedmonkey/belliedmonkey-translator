@@ -154,40 +154,33 @@ function AppShell() {
            （判据 test/app-firstrun.test.js 的 R2）。唯一允许的降级：该语种系统不支持识别
            ⇒ 只下朗读包（firstrun.js 的 degradeAllowed('asrUnsupported')），其余一律只能重试。
            文案尽量复用设置页那两行已有的键（同一件事只写一份）。 */}
+      {/* 屏 2 · 改稿 F（2026-10-11）：多选语言，不再是一对下拉。
+           列表由 shell-model 画进 #packs-body（语言本名、基础组件、逐项进度）。
+           #packs-my-lang / #packs-other-lang 是听译那一对的隐藏镜像，给既有探针读值，不是选择器。 */}
       <section id="firstrun-packs" hidden>
         <h1 id="packs-title"></h1>
         <p className="lede" id="packs-lede"></p>
-        {/* 「我的语言 / 对方的语言」（2026-10-04 用户裁定）：这一页原来**没有**选择器，包按界面语言+默认
-            目标硬下（China 版上就看到写死的 zh）。两个选择器与听译页共用同一对存储键
-            （listenMyLang / listenOtherLang）——「同一件事只写一份」；选项由 listenModel.langOptions
-            给出（**注册表全量**、含泰语 —— 用户 2026-10-04：「两个下拉都应该是我们支持的所有语言的列表」）。
-            布局按 Pencil 稿 `稿 · 下载页 · 自选语言对 2026-10-04`：两个**全宽**选择器块、标签在上、
-            选择器在下、纵向排开（原来是行内 label+select 挤成一行、紧贴下面的包列表）。 */}
-        <div className="packs-langs" id="packs-langs">
-          <label className="packs-lang">
-            <span className="packs-lang-label" id="packs-my-lang-label"></span>
-            <select id="packs-my-lang"></select>
-          </label>
-          <label className="packs-lang">
-            <span className="packs-lang-label" id="packs-other-lang-label"></span>
-            <select id="packs-other-lang"></select>
-          </label>
-        </div>
-        <div className="pack-list">
-          <div className="pack-row" id="pack-row-asr">
-            <div className="pack-name" id="pack-asr-name"></div>
-            <p className="note" id="pack-asr-state"></p>
-            <progress id="pack-asr-bar" hidden></progress>
-          </div>
-          <div className="pack-row" id="pack-row-tts">
-            <div className="pack-name" id="pack-tts-name"></div>
-            <p className="note" id="pack-tts-state"></p>
-            <progress id="pack-tts-bar" hidden></progress>
-          </div>
-        </div>
-        <p className="note" id="packs-net"></p>
+        <div id="packs-body"></div>
+        <p className="note" id="packs-foot"></p>
+        <p className="note" id="packs-locked" hidden></p>
+        <p className="note" id="pack-asr-state" hidden></p>
+        <p className="note" id="pack-tts-state" hidden></p>
+        <p className="note" id="packs-privacy"></p>
         <p className="note" id="packs-err" hidden></p>
+        <button id="packs-manage-back" type="button" className="link" hidden></button>
         <button id="packs-go" type="button"></button>
+        <input type="hidden" id="packs-my-lang" />
+        <input type="hidden" id="packs-other-lang" />
+      </section>
+      <section id="packs-cellular" hidden>
+        <div className="packs-cell-card">
+          <h2 id="packs-cell-title"></h2>
+          <p id="packs-cell-body"></p>
+          <div className="packs-cell-acts">
+            <button id="packs-cell-wait" type="button" className="secondary"></button>
+            <button id="packs-cell-go" type="button"></button>
+          </div>
+        </div>
       </section>
 
 

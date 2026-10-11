@@ -3822,5 +3822,131 @@
   },
   "listen_ptt_recording": {
     "message": "● 正在录 · 点一下停"
+  },
+  "firstrun_packs_back": {
+    "message": "返回"
+  },
+  "firstrun_packs_all_title": {
+    "message": "语言包都下好了"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "正在下载语言包"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "选择要下载的语言"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "默认勾上：手机系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "勾选保留着。连上 Wi-Fi 后会自动开始下载。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "都就绪了。进去之后点「说{mine}」或对方的语言键就能开始。"
+  },
+  "firstrun_packs_foot": {
+    "message": "共约 {size}，另加系统识别包。用蜂窝网络时，下载前会先问你。"
+  },
+  "firstrun_packs_locked": {
+    "message": "下载中不能改勾选；下完以后去「设置 · 语音包」增减。"
+  },
+  "firstrun_packs_enter": {
+    "message": "进入实时听译"
+  },
+  "firstrun_packs_remain": {
+    "message": "下载中 · 还剩 {n} 项"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未选"
+  },
+  "firstrun_packs_queued": {
+    "message": "排队中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "语言（识别包）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "识别包 · 系统下载"
+  },
+  "firstrun_packs_system": {
+    "message": "系统语言"
+  },
+  "firstrun_packs_more": {
+    "message": "其他 {n} 种语言"
+  },
+  "firstrun_packs_together": {
+    "message": "会一起下载"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "朗读 · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "一个包覆盖中英两门；勾了中文或 English 就自动带上"
+  },
+  "firstrun_packs_bytes": {
+    "message": "约 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "朗读 · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "默认不勾。不下也能听译，看译文，只是泰语译文不朗读"
+  },
+  "firstrun_packs_optional": {
+    "message": "约 {size} · 可选"
+  },
+  "firstrun_packs_base": {
+    "message": "基础组件"
+  },
+  "firstrun_packs_base_note": {
+    "message": "语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，设下好才能开始听"
+  },
+  "firstrun_packs_required": {
+    "message": "约 {size} · 必需"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "现在用的是蜂窝网络"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "这次要下约 {size}（系统识别包另算，大小由系统决定），可能产生流量费用。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "等连上 Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "用蜂窝下载"
+  },
+  "firstrun_packs_manage": {
+    "message": "管理语言包"
+  },
+  "listen_ptt_preparing": {
+    "message": "准备中 · {lang} 下载 {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 已就绪"
+  },
+  "listen_not_ready": {
+    "message": "还不能开始，下好后再点"
+  },
+  "listen_ready_tap": {
+    "message": "下好了，点下面的键开始"
+  },
+  "listen_prep_detail": {
+    "message": "{what}下载中 · {pct}% · {ready}已就绪"
+  },
+  "listen_ready_tap_sub": {
+    "message": "不会自动开始 · 点「说{mine}」或「{other}」开始收音"
   }
 }

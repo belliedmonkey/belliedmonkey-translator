@@ -301,7 +301,7 @@ async function muteOff() {
 // 模型全就绪后 step 直接跳引导屏、包屏不再出来 —— 所以**直接判据恒跑**（deviceStatus
 // 按对过滤），UI 下载流程只在包屏出现时验（模型未装的容器 / CI 新装环境）。
 async function m1() {
-  await storageSet({ onboardSeen: false, listenMyLang: 'zh', listenOtherLang: 'en' });
+  await storageSet({ onboardSeen: false, listenMyLang: 'zh', listenOtherLang: 'en', listenPackLangs: ['zh', 'en'], listenPackThaiTts: false });
   await reload();
   await sleep(1200);
   // 直接判据（快而脆的不依赖下载）：deviceStatus 按对过滤后的 models 只含 zh/en。probePacks 同款 configure。
@@ -314,18 +314,18 @@ async function m1() {
   okc(j.langs.every((l) => ['zh', 'en'].indexOf(String(l).split('-')[0]) >= 0),
     'deviceStatus(["zh","en"]) 的模型表里有 zh/en 之外的语言：' + JSON.stringify(j.langs));
   if (!(await visible('firstrun-packs'))) return;   // 就绪态：包屏已被 step 跳过，UI 流程无从验
-  await setValue('packs-my-lang', 'zh');
-  await setValue('packs-other-lang', 'en');
   await click('packs-go');
   const seen = [];
   await waitFor(async () => {
     const txt = (await textOf('pack-tts-state')) || '';
     if (txt && seen[seen.length - 1] !== txt) seen.push(txt);
     okc(!/(^|[^a-z])th([^a-z]|$)/.test(txt), '进度行出现了泰语：' + JSON.stringify(txt) + '（语言对是 zh/en）');
-    // 前进的判据必须是「下一屏出来了」—— 只看「包屏隐藏」会被登录屏假冒（session 掉了
-    // 也会把 firstrun-packs 藏掉，2026-10-05 实测这么误判过一次绿灯）。
-    return (await visible('onboard')) || ((await visible('app-listen-entry')) && !(await visible('signed-out')));
-  }, 600000, '包屏前进到引导屏（含首次模型下载）');
+    const phase = await evalOk(`(document.getElementById('firstrun-packs')||{}).getAttribute('data-phase')`);
+    // 改稿 F：下完停在包屏，要再点一次「进入实时听译」才离开。引导屏已撤。
+    return phase === 'done' || (await visible('app-listen'));
+  }, 600000, '包屏下完（含首次模型下载）');
+  if (!(await visible('app-listen'))) await click('packs-go');
+  await waitFor(() => visible('app-listen'), 30000, '进入实时听译');
   okc(seen.length === 0 || seen.every((t) => !/(^|[^a-z])th([^a-z]|$)/.test(t)),
     '进度行历史里出现过泰语：' + JSON.stringify(seen.slice(0, 5)));
 }
@@ -335,7 +335,7 @@ async function m1() {
 // 跳引导屏、包屏不再出来 —— 那就验 #564 的用户可见不变量：钉下的对 reload 后原样不动
 // （显示、存储、使用三者锁死）。重画对调的机检在 npm test（app-firstrun R3 系列）。
 async function m6() {
-  await storageSet({ onboardSeen: false, listenMyLang: 'zh', listenOtherLang: 'en' });
+  await storageSet({ onboardSeen: false, listenPackLangs: ['zh', 'en'], listenPackThaiTts: false, listenMyLang: 'zh', listenOtherLang: 'en' });
   await reload();
   await sleep(1200);   // 命令式先画、React 后挂 —— 立刻点会点空（2026-10-05 实测三轮全空）
   if (await visible('firstrun-packs')) {
@@ -344,14 +344,16 @@ async function m6() {
       return !!my && !!other && !!(await textOf('pack-tts-state'));
     }, 20000, '包屏落定');
     const beforeMy = await valueOf('packs-my-lang'), beforeOther = await valueOf('packs-other-lang');
-    okc(beforeMy === 'zh' && beforeOther === 'en', `设进去的一对没生效：my=${beforeMy} other=${beforeOther}`);
+    okc(!!beforeMy && !!beforeOther && beforeMy !== beforeOther, `多选没有算出一对：my=${beforeMy} other=${beforeOther}`);
     await click('packs-go');
     await sleep(3000);   // 下载那一下的重画（#564 的触发条件）就发生在头一两秒
     const afterMy = await valueOf('packs-my-lang'), afterOther = await valueOf('packs-other-lang');
-    okc(afterMy === 'zh' && afterOther === 'en', `下载后语言对跳了：my=${afterMy} other=${afterOther}（#564）`);
+    okc(afterMy === beforeMy && afterOther === beforeOther, `下载后语言对跳了：${beforeMy}/${beforeOther} → ${afterMy}/${afterOther}（#564）`);
   }
-  const st = await storageGet(['listenMyLang', 'listenOtherLang']);
-  okc(st.listenMyLang === 'zh' && st.listenOtherLang === 'en',
+  const st = await storageGet(['listenMyLang', 'listenOtherLang', 'listenPackLangs']);
+  okc(Array.isArray(st.listenPackLangs) && st.listenPackLangs.indexOf('zh') >= 0 && st.listenPackLangs.indexOf('en') >= 0,
+    '勾选没有落盘：' + JSON.stringify(st));
+  okc(st.listenMyLang && st.listenOtherLang && st.listenMyLang !== st.listenOtherLang,
     '落盘的一对不对：' + JSON.stringify(st) + '（显示、存储、下载三者要锁死）');
 }
 

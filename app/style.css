@@ -667,6 +667,11 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-ptt-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 :where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.85); }
 :where(#app-listen) .listen-ptt-btn:disabled { opacity: 0.45; cursor: default; }
+@keyframes mt-listen-flash {
+  0% { background: var(--sage-light); }
+  100% { background: var(--card-bg); }
+}
+:where(#app-listen) .listen-now.flash { animation: mt-listen-flash 0.7s ease; }
 :where(#app-listen) .listen-ptt-name { display: inline-flex; align-items: center; gap: 6px; font-size: 1.05rem; line-height: 1.2; }
 :where(#app-listen) .listen-ptt-mic { width: 16px; height: 16px; flex: none; }
 :where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--text-secondary); line-height: 1.2; }
@@ -692,6 +697,32 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 :where(#firstrun-packs) .pack-name { font-size: 1rem; font-weight: 600; color: var(--fg); }
 :where(#firstrun-packs) .pack-row .note { margin: 0; }
+/* 改稿 F（2026-10-11）：多选行。颜色只走共享 token。 */
+:where(#firstrun-packs) .packs-sec { margin: 14px 0 6px; color: var(--text-secondary); font-size: 0.85rem; }
+:where(#firstrun-packs) .pack-line {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--card-bg); border-radius: var(--radius-md); padding: 12px 14px; margin: 0 0 8px;
+}
+:where(#firstrun-packs) .pack-line input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: var(--accent); }
+:where(#firstrun-packs) .pack-line-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+:where(#firstrun-packs) .pack-line-name { font-weight: 600; color: var(--fg); }
+:where(#firstrun-packs) .pack-line-sub { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.35; }
+:where(#firstrun-packs) .pack-line-status { color: var(--accent); font-size: 0.85rem; white-space: nowrap; }
+:where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
+:where(#firstrun-packs) .is-locked { opacity: 0.92; }
+#packs-cellular:not([hidden]) {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+#packs-cellular .packs-cell-card {
+  background: var(--card-bg); color: var(--fg);
+  border-radius: var(--radius-md); padding: 20px; max-width: 420px; width: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+}
+#packs-cellular .packs-cell-acts { display: flex; flex-direction: column; gap: 8px; }
+#packs-cellular .packs-cell-acts button { min-height: 48px; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
 :where(#app-listen) .listen-row.me .listen-who { color: var(--accent-deep); }
@@ -735,6 +766,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
      会挤成两行并顶到底边（Mac 真机截图实测）。竖排各占满左栏宽，读起来也像桌面控件。 */
   :where(#app-listen) .listen-ptt { flex-direction: column; height: auto; }
   :where(#app-listen) .listen-ptt-btn { flex: none; height: 64px; }   /* flex:1 1 0 在竖排里会把高度压成内容高（50）*/
+  :where(#app-listen) .listen-ptt-btn:disabled { height: auto; min-height: 64px; }
   /* 左栏里的控制区：药丸换行排，不挤成一行 */
   :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
   :where(#app-listen) .listen-toggles { margin-left: 0; }

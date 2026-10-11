@@ -285,11 +285,14 @@ export function ListenView() {
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
         {t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。')}
       </p>
-      <div className="drive-card listen-now" id="app-listen-now" hidden={tv.ended}>
+      <div className={'drive-card listen-now' + (nv.flash ? ' flash' : '')} id="app-listen-now" hidden={tv.ended}>
         <div className="listen-now-head">
           <span id="app-listen-now-label">{listenModel.nowLabel()}</span>
           <span id="app-listen-live" className="listen-live" hidden={!(pill && pill.live)}>{t('listen_live_badge', '● 实时')}</span>
         </div>
+        <p id="app-listen-prep" className="note" hidden={!nv.prepShown}>{nv.prepText}</p>
+        <progress id="app-listen-prep-bar" hidden={!nv.prepBar} value={nv.prepPct || 0} max="100" />
+        <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub}>{nv.readySub}</p>
         <p id="app-listen-partial" className="listen-partial" hidden={mv.partialsHidden}>{nv.partial}</p>
         <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.partialsHidden}>{nv.partialTr}</p>
         {/* iPhone 实时字幕：画中画小窗预览的占位块（原生在同一矩形上叠预览，§9.8 协议补充决定（三）17） */}
@@ -373,7 +376,7 @@ export function ListenView() {
       <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
         <div className="listen-ptt" id="app-listen-ptt-bar">
           <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
-            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
+            disabled={pv.mineDisabled != null ? pv.mineDisabled : pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
             onClick={() => listenModel.pttToggle(pv.mineSide)}>
             <span className="listen-ptt-name" id="app-listen-ptt-mine-name"><MicIcon />{pv.mineLabel}</span>
@@ -381,7 +384,7 @@ export function ListenView() {
           </button>
           <span className="listen-ptt-sep" aria-hidden="true" />
           <button id="app-listen-ptt-other" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.otherSide ? ' on' : '')}
-            disabled={pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
+            disabled={pv.otherDisabled != null ? pv.otherDisabled : pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
             onContextMenu={(e) => e.preventDefault()}
             onClick={() => listenModel.pttToggle(pv.otherSide)}>
             <span className="listen-ptt-name" id="app-listen-ptt-other-name"><MicIcon />{pv.otherLabel}</span>

@@ -3821,5 +3821,131 @@
   },
   "listen_ptt_recording": {
     "message": "● Запись · коснитесь, чтобы остановить"
+  },
+  "firstrun_packs_back": {
+    "message": "Назад"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Языковые пакеты загружены"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} можно слушать и озвучивать. Другие языки добавляются в настройках."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Загрузка языковых пакетов"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "У каждого пункта свой прогресс. Загрузка идёт в фоне и продолжится, когда сеть вернётся."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Выберите языки для загрузки"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "По умолчанию отмечены язык системы + 中文 + English. Остальное — по необходимости, позже можно добавить в настройках."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Выбор сохранён. Загрузка начнётся сама, когда появится Wi-Fi."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Всё готово. Внутри нажмите «{mine}» или кнопку другого языка."
+  },
+  "firstrun_packs_foot": {
+    "message": "Около {size}, плюс системные пакеты распознавания. В сотовой сети спросим перед загрузкой."
+  },
+  "firstrun_packs_locked": {
+    "message": "Во время загрузки выбор нельзя менять. Добавить или убрать языки можно потом в настройках."
+  },
+  "firstrun_packs_enter": {
+    "message": "Начать живой перевод"
+  },
+  "firstrun_packs_remain": {
+    "message": "Загрузка · осталось {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Не выбрано"
+  },
+  "firstrun_packs_queued": {
+    "message": "В очереди"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Языки (пакеты распознавания)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Пакет распознавания · загружает система"
+  },
+  "firstrun_packs_system": {
+    "message": "Язык системы"
+  },
+  "firstrun_packs_more": {
+    "message": "Ещё {n} языков"
+  },
+  "firstrun_packs_together": {
+    "message": "Загрузятся вместе"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Озвучка · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "Один пакет покрывает 中文 и English. Отметка 中文 или English включает его сама"
+  },
+  "firstrun_packs_bytes": {
+    "message": "Около {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Озвучка · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "По умолчанию выключено. Слушать и читать перевод можно и без него. Не озвучивается только тайский перевод"
+  },
+  "firstrun_packs_optional": {
+    "message": "Около {size} · по желанию"
+  },
+  "firstrun_packs_base": {
+    "message": "Базовые компоненты"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Определение языка (ECAPA) и детектор речи (VAD): кто говорит на каком языке. Без них слушать нельзя"
+  },
+  "firstrun_packs_required": {
+    "message": "Около {size} · обязательно"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "Сейчас используется сотовая сеть"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "Сейчас нужно около {size} (системные пакеты распознавания отдельно, размер задаёт система). Может списаться трафик."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Подождать Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Загрузить по сотовой сети"
+  },
+  "firstrun_packs_manage": {
+    "message": "Управление языковыми пакетами"
+  },
+  "listen_ptt_preparing": {
+    "message": "Подготовка · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Готово"
+  },
+  "listen_not_ready": {
+    "message": "Пока нельзя начать. Нажмите, когда загрузка закончится"
+  },
+  "listen_ready_tap": {
+    "message": "Загружено. Нажмите кнопку ниже, чтобы начать"
+  },
+  "listen_prep_detail": {
+    "message": "Загрузка {what} · {pct}% · готово: {ready}"
+  },
+  "listen_ready_tap_sub": {
+    "message": "Само не начнётся · нажмите «{mine}» или «{other}», чтобы слушать"
   }
 }

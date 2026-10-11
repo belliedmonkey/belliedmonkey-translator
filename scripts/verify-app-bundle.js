@@ -525,8 +525,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             // 默认两个设备包「就绪」（boot 落首页）。window.__mtPacksReady === false 时切到
             // 「未就绪」——首启包屏（屏 2）只有在未就绪时才画，包屏的语言下拉判据要那一次重载。
             const ready = window.__mtPacksReady !== false;
-            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true }) : async () => ({ ready: false, ok: false });
+            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true, assets: 'installed' }) : async () => ({ ready: false, ok: false, assets: 'missing' });
             if (window.NativeSpeech && window.NativeSpeech.ensureAssets) window.NativeSpeech.ensureAssets = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.lidProbe) window.NativeSpeech.lidProbe = async () => ({ ok: ready });
+            if (window.NativeSpeech && window.NativeSpeech.vadProbe) window.NativeSpeech.vadProbe = async () => ({ ok: ready });
+            if (window.NativeSpeech && window.NativeSpeech.ensureLid) window.NativeSpeech.ensureLid = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.ensureVad) window.NativeSpeech.ensureVad = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.networkKind) window.NativeSpeech.networkKind = async () => 'wifi';
             if (window.LearnTTS && window.LearnTTS.deviceStatus) window.LearnTTS.deviceStatus = ready ? async () => ({ ready: true }) : async () => ({ ready: false });
             // 夹具会话是假 token：boot 的同步会 401，App 会自己登出并把会话删掉。
             // 门禁要测的不是登录，所以把 signOut 桩成空操作，让会话在场即可。
@@ -579,56 +584,52 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       if (!sv.signedIn) {
         console.log('  · 会话夹具没落到首页：' + JSON.stringify(sv));
       }
-      // 首启包屏的语言对：两个下拉必须**真的画出**标签与选项（含泰语）。
-      // 2026-10-04 build 78 实测过的缺陷：paintFirstRun 里 firstRunLocales(s) 的 `s` 不在
-      // 作用域（形参叫 session），ReferenceError 被那层 `catch (_) {}` 吞掉 ⇒ wire() 没跑，
-      // 控件在、标签与选项全空（用户截图里就剩并排两个空小方框）。所以断言的是**有内容**，
-      // 不是「元素存在」。
+      // 首启包屏（改稿 F，2026-10-11）：多选列表必须画出语言本名（含泰语），基础组件锁住，
+      // 泰语朗读包默认不勾。2026-10-04 build 78 的空下拉已经换成这张列表；断言的仍是**有内容**。
       //
-      // 这一段要的是**两个包未就绪**的屏 2，而上面的正常夹具把两个包桩成就绪（boot 落首页）——
+      // 这一段要的是**包未就绪**的屏 2，而上面的正常夹具把包桩成就绪（boot 落首页）——
       // 临时装一个「包未就绪」的文档脚本重载一次，测完摘下、重载回就绪态，免得影响后面依赖
-      // 「已就绪 + 落首页」的横幅 / 引导各块。
+      // 「已就绪 + 落首页」的横幅 / 引导各块。基础组件的探针也要被同一支桩盖住，否则屏 2 不出现。
       const nr = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
         { source: 'window.__mtPacksReady = false;' }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
       const dg = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify((() => {
         const $ = (id) => document.getElementById(id);
-        const my = $('packs-my-lang'), ot = $('packs-other-lang');
-        const codes = (list) => list ? Array.from(list.options).map((o) => o.value) : [];
-        const labels = (list) => list ? Array.from(list.options).map((o) => o.textContent) : [];
-        let regLen = -1; try { regLen = AppListen.langOptions(null).length; } catch (_) {}
+        const rows = Array.from(document.querySelectorAll('[data-pack-lang]')).map((el) => ({
+          code: el.getAttribute('data-pack-lang'),
+          name: ((el.parentElement && el.parentElement.querySelector('.pack-line-name')) || {}).textContent || '',
+          checked: !!el.checked,
+        }));
+        const base = document.querySelector('[data-pack-kind="base"]');
+        const thaiTts = document.querySelector('[data-pack-kind="tts-th"]');
         return {
           packsHidden: $('firstrun-packs').hidden,
-          myLabel: ($('packs-my-lang-label') || {}).textContent || '',
-          otLabel: ($('packs-other-lang-label') || {}).textContent || '',
-          myCodes: codes(my), otCodes: codes(ot),
-          myVal: my ? my.value : '', otVal: ot ? ot.value : '',
-          blankLabels: labels(my).filter((x) => !x).length,
-          myDisabledAll: my ? Array.from(my.options).every((o) => o.disabled) : null,
-          myW: my ? Math.round(my.getBoundingClientRect().width) : 0,
-          regLen,
+          codes: rows.map((r) => r.code),
+          names: rows.map((r) => r.name),
+          blank: rows.filter((r) => !r.name).length,
+          zhChecked: !!((rows.find((r) => r.code === 'zh') || {}).checked),
+          enChecked: !!((rows.find((r) => r.code === 'en') || {}).checked),
+          baseChecked: !!(base && base.checked),
+          baseDisabled: !!(base && base.disabled),
+          thaiTtsChecked: !!(thaiTts && thaiTts.checked),
+          my: ($('packs-my-lang') || {}).value || '',
+          ot: ($('packs-other-lang') || {}).value || '',
+          more: !!$('packs-more'),
         };
       })())`, returnByValue: true }, sessionId);
       const g = JSON.parse(dg.result.value);
       need(!g.packsHidden, '包桩成「未就绪」后首启包屏（屏 2）没显示 —— 这一段的前置不成立');
-      need(!!(g.myLabel && g.otLabel),
-        `首启包屏的语言下拉没有标签（build 78 的回归）：我的语言=「${g.myLabel}」对方的语言=「${g.otLabel}」`);
-      need(g.myCodes.length > 0 && g.otCodes.length > 0,
-        `首启包屏的语言下拉没有选项（build 78 的回归）：我的语言 ${g.myCodes.length} 项、对方的语言 ${g.otCodes.length} 项`);
-      need(g.myCodes.length === g.regLen && g.otCodes.length === g.regLen && g.regLen >= 12,
-        `首启包屏语言下拉的选项数与注册表不一致（注册表 ${g.regLen}、两个下拉 ${g.myCodes.length}/${g.otCodes.length}）—— 两个下拉都应是「我们支持的所有语言」`);
-      need(g.myCodes.includes('th') && g.otCodes.includes('th'),
-        '首启包屏语言下拉里没有泰语（th）—— 「所有选语言的地方都要有泰语」');
-      need(!!g.myVal && !!g.otVal,
-        `首启包屏的语言下拉有空框（选不中任何语言）：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
-      need(g.myCodes.includes(g.myVal) && g.otCodes.includes(g.otVal),
-        `首启包屏语言下拉的选中值不在选项里：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
-      need(g.myW > 150,
-        `首启包屏语言下拉宽度只有 ${g.myW}px —— 应当是设计稿里的整行宽度，不是挤在一行的小方框`);
-      need(g.blankLabels === 0, `首启包屏语言下拉有 ${g.blankLabels} 个选项没有名字`);
-      need(g.myDisabledAll !== true,
-        '首启包屏语言下拉的选项全部不可选 —— 那样列表点不开');
+      need(g.codes.includes('zh') && g.codes.includes('en') && g.codes.includes('th') && g.codes.includes('ja'),
+        '首启包屏的多选缺固定四门（中文 / English / ไทย / 日本語）：' + JSON.stringify(g.codes));
+      need(g.names.includes('中文') && g.names.includes('English') && g.names.includes('ไทย') && g.names.includes('日本語'),
+        '语言名不是本名：' + JSON.stringify(g.names));
+      need(g.blank === 0, '首启包屏有语言行没有名字');
+      need(g.zhChecked && g.enChecked, '中文和 English 没有默认勾上');
+      need(g.baseChecked && g.baseDisabled, '基础组件没有锁成必选');
+      need(g.thaiTtsChecked === false, '泰语朗读包被默认勾上了');
+      need(!!g.my && !!g.ot, '听译那一对的隐藏镜像是空的：' + g.my + '/' + g.ot);
+      need(g.more, '「其他 N 种语言」没有默认收起');
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr.identifier }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));

@@ -9,8 +9,8 @@ var NativeSpeech = (() => {
   const CHANNEL = 'mtSpeech';
 
   const PROTOCOL = {
-    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets'],
-    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state'],
+    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets', 'network'],
+    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state', 'network'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -37,6 +37,9 @@ var NativeSpeech = (() => {
   // 只有话音才累计进 LID。**装不上不影响听译**（原生退回能量门）。
   let vadProbe = { ok: false, reason: 'no-bridge' };
   let vadWaiters = [];
+  let netKind = 'unknown';
+  let netWaiters = [];
+  const netListeners = [];
   let sttStopsPending = 0;   // 自己发出去、还没收到「ended」回执的 stt-stop 数（见 _fromNative 里的注释）
   const wake = (list, v) => { const ws = list.splice(0); for (const w of ws) { try { w(v); } catch (_) {} } };
 
@@ -81,6 +84,12 @@ var NativeSpeech = (() => {
     if (t === 'lid-state') {
       lidProbe = { ok: msg.state === 'ready', reason: msg.state === 'ready' ? '' : String(msg.reason || msg.state || 'assets') };
       wake(lidWaiters, lidProbe);
+      return;
+    }
+    if (t === 'network') {
+      netKind = String(msg.kind || 'unknown');
+      wake(netWaiters, netKind);
+      for (const fn of netListeners) { try { fn(netKind); } catch (_) {} }
       return;
     }
     if (t === 'vad-state') {
@@ -259,6 +268,30 @@ var NativeSpeech = (() => {
   /** 最近一次 VAD 探测结论。 */
   function vadResult() { return vadProbe; }
 
+  // 蜂窝 / Wi-Fi（改稿 F）。桥不在时退回 navigator.connection；探不到就报 unknown，不拦下载。
+  function networkKind() {
+    try {
+      if (typeof window !== 'undefined' && window.__mtNetworkKind) return Promise.resolve(String(window.__mtNetworkKind));
+    } catch (_) {}
+    if (!available()) {
+      try {
+        const c = navigator.connection || navigator.mozConnection;
+        if (c && /cell/i.test(String(c.type || ''))) return Promise.resolve('cellular');
+        if (c && /wifi|ethernet/i.test(String(c.type || ''))) return Promise.resolve('wifi');
+      } catch (_) {}
+      return Promise.resolve(netKind || 'unknown');
+    }
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => resolve(netKind || 'unknown'), 800);
+      netWaiters.push((k) => { clearTimeout(timer); resolve(k || 'unknown'); });
+      if (!post({ type: 'network' })) { clearTimeout(timer); resolve(netKind || 'unknown'); }
+    });
+  }
+  function onNetwork(fn) {
+    netListeners.push(fn);
+    return () => { const i = netListeners.indexOf(fn); if (i >= 0) netListeners.splice(i, 1); };
+  }
+
   /**
    * 开一路本机转写。与 WsTranscribe.open 同一个返回形状：{ sendPcm(){}, close() }，
    * 事件 ready / partial / final / error / close 走 onEvent(kind, payload)。
@@ -344,5 +377,6 @@ var NativeSpeech = (() => {
   }
 
   return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
-    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, lidPause, vadProbe: vadProbeRun, ensureVad, vadResult };
+    lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, lidPause, vadProbe: vadProbeRun, ensureVad, vadResult,
+    networkKind, onNetwork };
 })();

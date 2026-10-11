@@ -1539,6 +1539,7 @@ export default function SettingsView() {
             <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
             <button id="listen-pack-dl" type="button" className="secondary"></button>
           </div>
+          <button id="set-pack-manage" type="button" className="secondary">{t('firstrun_packs_manage', '管理语言包')}</button>
           <label className="check">
             <input id="listen-autospeak" type="checkbox" />
             <span id="listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>

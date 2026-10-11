@@ -3821,5 +3821,131 @@
   },
   "listen_ptt_recording": {
     "message": "● 녹음 중 · 탭하여 정지"
+  },
+  "firstrun_packs_back": {
+    "message": "뒤로"
+  },
+  "firstrun_packs_all_title": {
+    "message": "언어 팩을 모두 받았습니다"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} 로 듣고 번역할 수 있습니다. 다른 언어는 설정에서 언제든 추가할 수 있습니다."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "언어 팩을 받는 중"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "항목마다 진행을 따로 보여 줍니다. 백그라운드에서도 이어받고, 네트워크가 돌아오면 이어서 받습니다."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "받을 언어를 고르세요"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "기본으로 시스템 언어 + 中文 + English 가 선택됩니다. 나머지는 필요할 때 고르고, 나중에 설정에서도 추가할 수 있습니다."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "선택은 그대로 둡니다. Wi-Fi 에 연결되면 자동으로 받기 시작합니다."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "준비되었습니다. 들어간 뒤 「{mine}」 또는 상대 언어 버튼을 누르면 시작합니다."
+  },
+  "firstrun_packs_foot": {
+    "message": "약 {size}, 시스템 인식 팩은 별도입니다. 셀룰러에서는 받기 전에 먼저 묻습니다."
+  },
+  "firstrun_packs_locked": {
+    "message": "받는 중에는 선택을 바꿀 수 없습니다. 끝난 뒤 설정에서 더하거나 빼세요."
+  },
+  "firstrun_packs_enter": {
+    "message": "실시간 듣기 시작"
+  },
+  "firstrun_packs_remain": {
+    "message": "받는 중 · {n}개 남음"
+  },
+  "firstrun_packs_unselected": {
+    "message": "선택 안 함"
+  },
+  "firstrun_packs_queued": {
+    "message": "대기 중"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "언어 (인식 팩)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "인식 팩 · 시스템이 받음"
+  },
+  "firstrun_packs_system": {
+    "message": "시스템 언어"
+  },
+  "firstrun_packs_more": {
+    "message": "다른 언어 {n}개"
+  },
+  "firstrun_packs_together": {
+    "message": "함께 받기"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "읽어 주기 · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "中文 과 English 를 한 팩이 덮습니다. 中文 또는 English 를 고르면 자동으로 포함됩니다"
+  },
+  "firstrun_packs_bytes": {
+    "message": "약 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "읽어 주기 · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "기본은 꺼짐. 없어도 듣기와 번역문은 됩니다. 태국어 번역만 읽어 주지 않습니다"
+  },
+  "firstrun_packs_optional": {
+    "message": "약 {size} · 선택"
+  },
+  "firstrun_packs_base": {
+    "message": "기본 구성"
+  },
+  "firstrun_packs_base_note": {
+    "message": "언어 식별(ECAPA) + 음성 감지(VAD): 누가 어떤 언어로 말하는지 가릅니다. 이것이 있어야 듣기를 시작할 수 있습니다"
+  },
+  "firstrun_packs_required": {
+    "message": "약 {size} · 필수"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "셀룰러 네트워크를 쓰고 있습니다"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "이번에 약 {size} 를 받습니다(시스템 인식 팩은 별도이고 크기는 시스템이 정합니다). 데이터 요금이 나올 수 있습니다."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wi-Fi 연결 기다리기"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "셀룰러로 받기"
+  },
+  "firstrun_packs_manage": {
+    "message": "언어 팩 관리"
+  },
+  "listen_ptt_preparing": {
+    "message": "준비 중 · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 준비됨"
+  },
+  "listen_not_ready": {
+    "message": "아직 시작할 수 없습니다. 받은 뒤에 누르세요"
+  },
+  "listen_ready_tap": {
+    "message": "받았습니다. 아래 버튼을 누르면 시작합니다"
+  },
+  "listen_prep_detail": {
+    "message": "{what} 받는 중 · {pct}% · {ready} 준비됨"
+  },
+  "listen_ready_tap_sub": {
+    "message": "저절로 시작하지 않습니다 · 「{mine}」 또는 「{other}」를 누르면 듣습니다"
   }
 }

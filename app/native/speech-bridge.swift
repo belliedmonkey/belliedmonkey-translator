@@ -25,6 +25,7 @@ import WebKit
 import AVFoundation
 import Speech
 import CryptoKit
+import Network
 #if canImport(SherpaOnnx)
 import SherpaOnnx
 import SherpaOnnxC
@@ -118,6 +119,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     private var transcriber: AnyObject?          // MTDeviceTranscriber（iOS 26+ 才有，所以按 AnyObject 存）
     private let speech = MTDeviceSpeech()
     private let system = MTSystemSpeech()      // 系统语音的原生后端（AVSpeechSynthesizer）：WebKit 只暴露 compact 档，增强/优质只有这里拿得到
+    private let netMonitor = NWPathMonitor()
+    private var netKind = "unknown"
 
     func install(webView: WKWebView) {
         self.webView = webView
@@ -128,6 +131,21 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         system.emit = { [weak self] in self?.emit($0) }
         MTDeviceLid.shared.emit = { [weak self] in self?.emit($0) }
         MTDeviceVad.shared.emit = { [weak self] in self?.emit($0) }
+        netMonitor.pathUpdateHandler = { [weak self] path in
+            guard let self = self else { return }
+            let kind = self.networkKind(path)
+            self.netKind = kind
+            self.emit(["type": "network", "kind": kind])
+        }
+        netMonitor.start(queue: DispatchQueue(label: "mt.speech.network"))
+    }
+
+    /// wifi / cellular / offline / unknown。只报接口种类，不报地址。
+    private func networkKind(_ path: NWPath) -> String {
+        if path.status != .satisfied { return "offline" }
+        if path.usesInterfaceType(.cellular) { return "cellular" }
+        if path.usesInterfaceType(.wifi) || path.usesInterfaceType(.wiredEthernet) { return "wifi" }
+        return "unknown"
     }
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -159,6 +177,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             if #available(iOS 26.0, macOS 26.0, *), let dt = transcriber as? MTDeviceTranscriber { dt.cut() }
         case "vad-probe":  MTDeviceVad.shared.probe(models: body["models"])
         case "vad-assets": MTDeviceVad.shared.install(models: body["models"])
+        case "network":    emit(["type": "network", "kind": netKind])
         case "tts-speak":  if (body["backend"] as? String) == "system" { system.speak(body) } else { speech.speak(body) }
         case "tts-stop":   speech.stop(); system.stop()
         case "url-probe":  probeUrl(id: (body["id"] as? String) ?? "", url: (body["url"] as? String) ?? "")

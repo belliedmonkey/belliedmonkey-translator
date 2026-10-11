@@ -3821,5 +3821,131 @@
   },
   "listen_ptt_recording": {
     "message": "● جارٍ التسجيل · انقر للإيقاف"
+  },
+  "firstrun_packs_back": {
+    "message": "رجوع"
+  },
+  "firstrun_packs_all_title": {
+    "message": "حزم اللغات جاهزة"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "يمكن الاستماع والترجمة والقراءة لـ {langs}. أضف لغات أخرى لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "جارٍ تنزيل حزم اللغات"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "كل عنصر يعرض تقدمه. يستمر التنزيل في الخلفية ويستأنف بعد عودة الشبكة."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "اختر اللغات المراد تنزيلها"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "المحدد افتراضيًا: لغة النظام + 中文 + English. أضف غيرها لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "يبقى اختيارك. يبدأ التنزيل تلقائيًا عند الاتصال بـ Wi-Fi."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "كل شيء جاهز. بعد الدخول اضغط «{mine}» أو زر اللغة الأخرى."
+  },
+  "firstrun_packs_foot": {
+    "message": "حوالي {size}، بالإضافة إلى حزم التعرف الخاصة بالنظام. على شبكة خلوية نسألك قبل التنزيل."
+  },
+  "firstrun_packs_locked": {
+    "message": "لا يمكن تغيير الاختيار أثناء التنزيل. أضف أو احذف لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_enter": {
+    "message": "ابدأ الاستماع المباشر"
+  },
+  "firstrun_packs_remain": {
+    "message": "جارٍ التنزيل · تبقّى {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "غير محدد"
+  },
+  "firstrun_packs_queued": {
+    "message": "في الانتظار"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "اللغات (حزم التعرف)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "حزمة التعرف · ينزّلها النظام"
+  },
+  "firstrun_packs_system": {
+    "message": "لغة النظام"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} لغات أخرى"
+  },
+  "firstrun_packs_together": {
+    "message": "تُنزَّل معًا"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "قراءة · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "حزمة واحدة تغطي 中文 و English. تعليم 中文 أو English يضيفها تلقائيًا"
+  },
+  "firstrun_packs_bytes": {
+    "message": "حوالي {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "قراءة · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "غير محددة افتراضيًا. الاستماع والترجمة المكتوبة يعملان بدونها. قراءة الترجمة التايلاندية فقط هي التي تتوقف"
+  },
+  "firstrun_packs_optional": {
+    "message": "حوالي {size} · اختياري"
+  },
+  "firstrun_packs_base": {
+    "message": "المكوّنات الأساسية"
+  },
+  "firstrun_packs_base_note": {
+    "message": "التعرف على اللغة (ECAPA) وكشف الصوت (VAD): يميّز من يتحدث أي لغة. لا يبدأ الاستماع قبل اكتمالها"
+  },
+  "firstrun_packs_required": {
+    "message": "حوالي {size} · مطلوب"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "أنت على شبكة خلوية"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "هذا التنزيل حوالي {size} (حزم التعرف الخاصة بالنظام إضافية ويحدد حجمها النظام) وقد يستهلك بيانات الجوال."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "انتظار Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "التنزيل عبر الشبكة الخلوية"
+  },
+  "firstrun_packs_manage": {
+    "message": "إدارة حزم اللغات"
+  },
+  "listen_ptt_preparing": {
+    "message": "جارٍ التجهيز · تنزيل {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ جاهز"
+  },
+  "listen_not_ready": {
+    "message": "لا يمكن البدء بعد. اضغط بعد اكتمال التنزيل"
+  },
+  "listen_ready_tap": {
+    "message": "اكتمل التنزيل. اضغط الزر بالأسفل للبدء"
+  },
+  "listen_prep_detail": {
+    "message": "جارٍ تنزيل {what} · {pct}% · {ready} جاهز"
+  },
+  "listen_ready_tap_sub": {
+    "message": "لن يبدأ تلقائيًا · اضغط «{mine}» أو «{other}» لبدء الاستماع"
   }
 }

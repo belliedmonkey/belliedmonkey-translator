@@ -1690,6 +1690,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
       '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
+      // 蜂窝确认（改稿 F，2026-10-11）：NWPathMonitor 只报接口种类，不报地址。
+      '"network"', '"cellular"', '"wifi"', '"unknown"', '"mt.speech.network"',
       // LID 引擎选择 + ECAPA 实验引擎的计时/诊断字段（2026-10-08，§9.6.1.3）。
       // engine/whisper/ecapa = 引擎 id；modelMs/feMs/judges/llr/speechMs = 诊断字段名。都非文案。
       '"engine"', '"whisper"', '"ecapa"', '"modelMs"', '"feMs"', '"judges"', '"llr"', '"speechMs"',

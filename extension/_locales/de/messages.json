@@ -3821,5 +3821,131 @@
   },
   "listen_ptt_recording": {
     "message": "● Aufnahme · zum Stoppen tippen"
+  },
+  "firstrun_packs_back": {
+    "message": "Back"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Language packs are ready"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} can be used for listening and reading aloud. Add more anytime in Settings."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Downloading language packs"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "Each item shows its own progress. Downloading continues in the background and resumes after the network returns."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Choose languages to download"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "Checked by default: the system language + 中文 + English. Check others as needed. You can add more later in Settings."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
+  },
+  "firstrun_packs_foot": {
+    "message": "About {size} in total, plus the system recognition packs. On a cellular network you will be asked before the download."
+  },
+  "firstrun_packs_locked": {
+    "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
+  },
+  "firstrun_packs_enter": {
+    "message": "Start live listening"
+  },
+  "firstrun_packs_remain": {
+    "message": "Downloading · {n} left"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Not selected"
+  },
+  "firstrun_packs_queued": {
+    "message": "Queued"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Languages (recognition packs)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Recognition pack · downloaded by the system"
+  },
+  "firstrun_packs_system": {
+    "message": "System language"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} more languages"
+  },
+  "firstrun_packs_together": {
+    "message": "Downloaded together"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Read aloud · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "One pack covers 中文 and English. Checking 中文 or English includes it automatically"
+  },
+  "firstrun_packs_bytes": {
+    "message": "About {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Read aloud · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "Off by default. Listening and the written translation still work without it. Only the Thai translation is not read aloud."
+  },
+  "firstrun_packs_optional": {
+    "message": "About {size} · optional"
+  },
+  "firstrun_packs_base": {
+    "message": "Base components"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Language ID (ECAPA) + voice detection (VAD): tells who is speaking which language. Listening cannot start until these are ready"
+  },
+  "firstrun_packs_required": {
+    "message": "About {size} · required"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "You are on a cellular network"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "This download is about {size} (system recognition packs are extra, and the system decides their size) and may use mobile data."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wait for Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Download on cellular"
+  },
+  "firstrun_packs_manage": {
+    "message": "Manage language packs"
+  },
+  "listen_ptt_preparing": {
+    "message": "Preparing · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Ready"
+  },
+  "listen_not_ready": {
+    "message": "Not ready yet. Tap again after the download"
+  },
+  "listen_ready_tap": {
+    "message": "Ready. Tap a button below to start"
+  },
+  "listen_prep_detail": {
+    "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_ready_tap_sub": {
+    "message": "It will not start on its own · tap Say {mine} or {other} to listen"
   }
 }

@@ -3822,5 +3822,131 @@
   },
   "listen_ptt_recording": {
     "message": "● 正在錄 · 點一下停"
+  },
+  "firstrun_packs_back": {
+    "message": "返回"
+  },
+  "firstrun_packs_all_title": {
+    "message": "語言包都下好了"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} 可以聽譯和朗讀了。要加別的語言，隨時去「設定 · 語音包」裡加。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "正在下載語言包"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "每一項單獨顯示進度。切到背景也會接著下，斷網恢復後從斷點續，不用從頭來。"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "選擇要下載的語言"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "預設勾上：手機系統語言 + 中文 + English。其他按需勾選，以後也能在「設定 · 語音包」裡加。"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "勾選保留著。連上 Wi-Fi 後會自動開始下載。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "都就緒了。進去之後點「說{mine}」或對方的語言鍵就能開始。"
+  },
+  "firstrun_packs_foot": {
+    "message": "共約 {size}，另加系統識別包。用蜂窩網路時，下載前會先問你。"
+  },
+  "firstrun_packs_locked": {
+    "message": "下載中不能改勾選；下完以後去「設定 · 語音包」增減。"
+  },
+  "firstrun_packs_enter": {
+    "message": "進入即時聽譯"
+  },
+  "firstrun_packs_remain": {
+    "message": "下載中 · 還剩 {n} 項"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未選"
+  },
+  "firstrun_packs_queued": {
+    "message": "排隊中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "語言（識別包）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "識別包 · 系統下載"
+  },
+  "firstrun_packs_system": {
+    "message": "系統語言"
+  },
+  "firstrun_packs_more": {
+    "message": "其他 {n} 種語言"
+  },
+  "firstrun_packs_together": {
+    "message": "會一起下載"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "朗讀 · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "一個包覆蓋中英兩門；勾了中文或 English 就自動帶上"
+  },
+  "firstrun_packs_bytes": {
+    "message": "約 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "朗讀 · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "預設不勾。不下也能聽譯，看譯文，只是泰語譯文不朗讀"
+  },
+  "firstrun_packs_optional": {
+    "message": "約 {size} · 可選"
+  },
+  "firstrun_packs_base": {
+    "message": "基礎組件"
+  },
+  "firstrun_packs_base_note": {
+    "message": "語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，設下好才能開始聽"
+  },
+  "firstrun_packs_required": {
+    "message": "約 {size} · 必需"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "現在用的是蜂窩網路"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "這次要下約 {size}（系統識別包另算，大小由系統決定），可能產生流量費用。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "等連上 Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "用蜂窩下載"
+  },
+  "firstrun_packs_manage": {
+    "message": "管理語言包"
+  },
+  "listen_ptt_preparing": {
+    "message": "準備中 · {lang} 下載 {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 已就緒"
+  },
+  "listen_not_ready": {
+    "message": "還不能開始，下好後再點"
+  },
+  "listen_ready_tap": {
+    "message": "下好了，點下面的鍵開始"
+  },
+  "listen_prep_detail": {
+    "message": "{what}下載中 · {pct}% · {ready}已就緒"
+  },
+  "listen_ready_tap_sub": {
+    "message": "不會自動開始 · 點「說{mine}」或「{other}」開始收音"
   }
 }
