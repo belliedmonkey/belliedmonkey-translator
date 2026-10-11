@@ -292,6 +292,7 @@ export function ListenView() {
         </div>
         <p id="app-listen-prep" className="note" hidden={!nv.prepShown}>{nv.prepText}</p>
         <progress id="app-listen-prep-bar" hidden={!nv.prepBar} value={nv.prepPct || 0} max="100" />
+        <button id="app-listen-prep-retry" type="button" className="listen-prep-retry" hidden={!nv.prepRetry} onClick={listenModel.retryPacks}>{nv.prepRetry}</button>
         <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub}>{nv.readySub}</p>
         <p id="app-listen-partial" className="listen-partial" hidden={mv.partialsHidden}>{nv.partial}</p>
         <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.partialsHidden}>{nv.partialTr}</p>

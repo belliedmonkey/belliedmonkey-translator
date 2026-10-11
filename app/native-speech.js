@@ -178,25 +178,49 @@ var NativeSpeech = (() => {
    * onProgress 收原生的 assets-progress 原样 { kind, locale, fraction, state, reason? }。
    * 结束：stt ⇒ 再探一次拿最终态；tts ⇒ tts-state。失败 reject({ reason })。
    */
-  function ensureAssets(kind, spec, onProgress) {
+  function ensureAssets(kind, spec, onProgress, timeoutMs) {
     if (!available()) return Promise.reject({ reason: 'no-bridge' });
-    return new Promise((resolve, reject) => {
+    let settle = null;
+    const promise = new Promise((resolve, reject) => {
       let failed = false;
       let failReason = '';
+      let settled = false;
+      let timer = null;
+      const waiters = () => (kind === 'stt' ? sttWaiters : ttsWaiters);
+      const detach = () => {
+        const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
+        const ws = waiters();
+        const j = ws.indexOf(finish); if (j >= 0) ws.splice(j, 1);
+        if (timer) { clearTimeout(timer); timer = null; }
+      };
+      // 收尾只发生一次。超时把 waiter 摘掉，免得下一次 stt-state 把还在等的那一轮一起唤醒。
+      settle = (err, r) => {
+        if (settled) return;
+        settled = true;
+        detach();
+        if (err) reject(err); else resolve(r);
+      };
       const fn = (m) => {
-        if (m.kind !== kind) return;
+        if (settled || m.kind !== kind) return;
         try { onProgress && onProgress(m); } catch (_) {}
         if (m.state === 'failed') { failed = true; failReason = String(m.reason || 'download'); }
       };
-      progressListeners.push(fn);
       const finish = (r) => {
-        const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
         // 原生报了 failed 就把它的 reason 带出去（以前丢成 'download'，屏上只剩一句「没动静」✗）
-        if (failed || !r.ok) reject({ reason: failed ? (failReason || 'download') : (r.reason || 'failed') }); else resolve(r);
+        if (failed || !r.ok) settle({ reason: failed ? (failReason || 'download') : (r.reason || 'failed') });
+        else settle(null, r);
       };
+      progressListeners.push(fn);
+      const ms = Number(timeoutMs);
+      if (ms > 0) {
+        timer = setTimeout(() => settle({ reason: 'timeout' }), ms);
+      }
       if (kind === 'stt') { sttWaiters.push(finish); post({ type: 'stt-assets', locales: spec }); }
       else { ttsWaiters.push(finish); post({ type: 'tts-assets', models: spec }); }
     });
+    // 切到另一门时把这一轮的 waiter 摘掉并拒绝，下一轮才能单独等自己的 stt-state。
+    promise.cancel = () => { if (settle) settle({ reason: 'cancelled' }); };
+    return promise;
   }
 
   // ── 语种识别（LID，§9.6.1.3）───────────────────────────────────────────────

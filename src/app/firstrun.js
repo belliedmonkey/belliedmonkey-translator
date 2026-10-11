@@ -116,6 +116,17 @@ export function readiness(assets, need) {
   return { ready: pending.length === 0, pending, items, asrPack, ttsPack, basePack };
 }
 
+/**
+ * 一次转写探针算不算「这门识别包已经在设备上」。
+ * 只认 `assets === 'installed'`。`ok` 为真但 assets 仍是 missing，是「语言支持、包没下」。
+ * 探针上的 `ready: true` 是旧夹具字段（也是进度消息里「识别器硬件可用」），单独出现不算装好。
+ * 包屏和听译页都用这一句，再把结果交给 readiness()。
+ */
+export function asrInstalled(probe) {
+  if (!probe || probe.ok === false) return false;
+  return probe.assets === 'installed';
+}
+
 /** 听译页某一侧要能开口：这门语言的识别包 + 基础组件。朗读包不拦说话键。 */
 export function sideNeed(lang) {
   const code = baseCode(lang);

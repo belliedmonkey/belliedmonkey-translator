@@ -1704,7 +1704,7 @@
     "message": "I've turned it on"
   },
   "app_signin_why": {
-    "message": "Signing in brings the free credit and downloads the two speech packs to this device — no further setup."
+    "message": "Signing in brings the free credit and downloads the speech packs to this device — no further setup."
   },
   "app_signin_open": {
     "message": "Sign in"
@@ -3721,7 +3721,7 @@
     "message": "The rest can wait — just come back."
   },
   "firstrun_packs_title": {
-    "message": "Download the two speech packs first"
+    "message": "Download the speech packs first"
   },
   "firstrun_packs_lede": {
     "message": "Once these are in place you won’t need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Speech is recognized on your device. The recognized text is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text."

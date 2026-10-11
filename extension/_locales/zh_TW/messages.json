@@ -1705,7 +1705,7 @@
     "message": "我已打開"
   },
   "app_signin_why": {
-    "message": "登入後免費額度自動到帳，兩個語音包下到本機，之後不用再做設定。"
+    "message": "登入後免費額度自動到帳，語言包下到本機，之後不用再做設定。"
   },
   "app_signin_open": {
     "message": "登入"
@@ -3722,10 +3722,10 @@
     "message": "剩下的明天再說 —— 回來就好。"
   },
   "firstrun_packs_title": {
-    "message": "先把兩個語音包下好"
+    "message": "先把語言包下好"
   },
   "firstrun_packs_lede": {
-    "message": "下好這兩樣，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
+    "message": "下好這些，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
   },
   "firstrun_packs_asr": {
     "message": "辨識語言包（聽譯 / 即時字幕）"
@@ -3842,7 +3842,7 @@
     "message": "選擇要下載的語言"
   },
   "firstrun_packs_pick_lede": {
-    "message": "預設勾上：手機系統語言 + 中文 + English。其他按需勾選，以後也能在「設定 · 語音包」裡加。"
+    "message": "預設勾上：系統語言 + 中文 + English。其他按需勾選，以後也能在「設定 · 語音包」裡加。"
   },
   "firstrun_packs_cell_waiting": {
     "message": "勾選保留著。連上 Wi-Fi 後會自動開始下載。"
@@ -3908,7 +3908,7 @@
     "message": "基礎組件"
   },
   "firstrun_packs_base_note": {
-    "message": "語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，設下好才能開始聽"
+    "message": "語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，下好才能開始聽"
   },
   "firstrun_packs_required": {
     "message": "約 {size} · 必需"

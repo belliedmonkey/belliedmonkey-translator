@@ -32,6 +32,7 @@ import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
+import * as PackProgress from './pack-progress.js';
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -67,9 +68,14 @@ const listenModel = (() => {
   let phase = 'idle';
   // 改稿 G：下载进度与「这一侧能不能开口」不走会话相位。相位仍只描述一场正在进行的听译。
   let prep = {
-    probed: false, running: false, pct: 0, name: '', readyUntil: 0, flashUntil: 0, didDownload: false,
+    probed: false, running: false, pct: 0, name: '', forCode: '', stalled: false,
+    readyUntil: 0, flashUntil: 0, didDownload: false,
     assets: { asr: {}, tts: {}, lid: false, vad: false },
   };
+  // 听译页补包的轮次。切语言就加一，上一轮的回调不再写卡片。
+  let warmJob = 0;
+  let warmTail = Promise.resolve();
+  let inflight = null;
   // 用法（learning-design §9.8）：'conv' = 对话 · 实时听译；'subtitle' = 实时字幕。差别查 ListenCore.MODES。
   let mode = 'conv';
   let subsReason = '';   // 实时字幕入口最近一次的判定（'' / hidden / no-live / no-key / os / device-os）
@@ -741,6 +747,18 @@ const listenModel = (() => {
     const pad = (n && !CJK_RE.test(n.charAt(0)) && CJK_RE.test(head.slice(-1))) ? ' ' : '';
     return tmpl.replace('{lang}', pad + n);
   }
+  // 「English下载中」中间补一个空格。模板是各语言的，只在本名和紧挨着的字不是同一系时加。
+  function fillPrepDetail(tmpl, name, pct, ready) {
+    const token = '{what}';
+    const i = String(tmpl).indexOf(token);
+    const n = String(name || '');
+    let what = n;
+    if (i >= 0) {
+      const after = tmpl.charAt(i + token.length);
+      if (n && after && !CJK_RE.test(n.slice(-1)) && CJK_RE.test(after)) what = n + ' ';
+    }
+    return tmpl.replace(token, what).replace('{pct}', String(pct)).replace('{ready}', ready);
+  }
   function pttForceOn(side) {
     pttForce = { side, at: Date.now() };
     // 兜底：收口那一片迟迟不来（识别器没吐 final）时，别让强制语言一直挂着。
@@ -803,24 +821,59 @@ const listenModel = (() => {
     }
     return FirstRun.talkChrome({ sideReady: true, recording: !!(ptt && phase === 'listening'), phase });
   }
-  // 进听译页就在后台把缺的包补上。不改相位、不开麦、下完也不自己开始。
-  async function warmPacks() {
-    if (mode === 'subtitle' || !deviceBridge()) { prep.probed = true; canvas.view('state'); return; }
-    if (prep.running) return;
-    const my = cfg && cfg.myLang;
-    const other = cfg && cfg.otherLang;
+  function pairLangs() {
     const langs = [];
-    for (const lang of [my, other]) {
+    for (const lang of [cfg && cfg.myLang, cfg && cfg.otherLang]) {
       const code = FirstRun.baseCode(lang);
       if (code && langs.indexOf(code) < 0) langs.push(code);
     }
+    return langs;
+  }
+  // 卡片上的进度只写当前这一轮、当前这一门。上一门的 locale 字符串（ja-JP）不许留着。
+  function showPrep(job, state) {
+    if (warmJob !== job || !state) return;
+    prep.name = state.name;
+    prep.pct = state.pct;
+    prep.forCode = state.code || prep.forCode;
+    prep.stalled = !!state.stalled;
+    canvas.view('state');
+  }
+  // 进听译页、以及听译里改语言，都在后台把缺的包补上。不改相位、不开麦、下完也不自己开始。
+  // 切语言不等上一轮结束才排队：先撤掉还挂着的那次 ensureAssets（否则它的 waiter 会把下一轮的
+  // stt-state 一起吃掉），进度立刻换成新的一门，再排队跑正文。
+  async function warmPacks() {
+    const job = ++warmJob;
+    if (inflight && inflight.cancel) inflight.cancel();
+    inflight = null;
+    if (mode !== 'subtitle' && deviceBridge()) {
+      const unknown = pairLangs().filter((c) => !prep.assets.asr[c]);
+      if (unknown.length) {
+        const code = unknown[unknown.length - 1];
+        prep.forCode = code;
+        prep.name = endonymOf(code);
+        prep.pct = 0;
+        prep.stalled = false;
+        prep.readyUntil = 0;
+        canvas.view('state');
+      }
+    }
+    const run = warmTail.then(() => warmBody(job));
+    warmTail = run.then(() => {}, () => {});
+    return run;
+  }
+  async function warmBody(job) {
+    if (warmJob !== job) return;
+    if (mode === 'subtitle' || !deviceBridge()) { prep.probed = true; canvas.view('state'); return; }
+    const langs = pairLangs();
     try {
       for (const code of langs) {
+        if (warmJob !== job) return;
         let ready = false;
         try {
-          const r = await NativeSpeech.probe([code]);
-          ready = !!(r && r.ok && r.assets === 'installed');
+          const r = await NativeSpeech.probe([C.toLocale(code)]);
+          ready = FirstRun.asrInstalled(r);
         } catch (_) { ready = false; }
+        if (warmJob !== job) return;
         prep.assets.asr[code] = ready;
       }
       try {
@@ -838,54 +891,104 @@ const listenModel = (() => {
         } else prep.assets.vad = true;
       } catch (_) { prep.assets.vad = false; }
     } catch (_) {}
+    if (warmJob !== job) return;
     prep.probed = true;
     canvas.view('state');
     const missingBase = !(prep.assets.lid && prep.assets.vad);
     const missingAsr = langs.filter((c) => !prep.assets.asr[c]);
-    if (!missingBase && !missingAsr.length) return;
+    if (!missingBase && !missingAsr.length) { prep.running = false; prep.stalled = false; return; }
     prep.running = true;
     prep.didDownload = true;
+    prep.stalled = false;
     canvas.view('state');
-    const stamp = (m, fallback) => {
-      const named = FirstRun.nameProgress(m, fallback);
-      prep.name = named.name;
-      prep.pct = Math.round((Number(named.fraction) || 0) * 100);
-      canvas.view('state');
-      return named;
+    const baseName = t('firstrun_packs_base', '基础组件');
+    const stampBase = (m) => {
+      if (warmJob !== job) return;
+      const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
+      showPrep(job, { name: named.name, pct: Math.round((Number(named.fraction) || 0) * 100), code: '', stalled: false });
     };
     try {
-      const baseName = t('firstrun_packs_base', '基础组件');
       if (!prep.assets.vad) {
         const vm = vadModel();
         if (vm && NativeSpeech.ensureVad) {
-          await NativeSpeech.ensureVad(vm, (m) => stamp(Object.assign({}, m, { name: baseName }), baseName));
+          showPrep(job, PackProgress.beginLangProgress('vad', baseName));
+          const p = cancellable(NativeSpeech.ensureVad(vm, stampBase));
+          inflight = p;
+          await racePack(p);
+          if (warmJob !== job) return;
           prep.assets.vad = true;
         }
       }
       if (!prep.assets.lid) {
         const lm = lidModel();
         if (lm && NativeSpeech.ensureLid) {
-          await NativeSpeech.ensureLid(lm, (m) => stamp(Object.assign({}, m, { name: baseName }), baseName));
+          showPrep(job, PackProgress.beginLangProgress('lid', baseName));
+          const p = cancellable(NativeSpeech.ensureLid(lm, stampBase));
+          inflight = p;
+          await racePack(p);
+          if (warmJob !== job) return;
           prep.assets.lid = true;
         }
       }
-      for (const code of missingAsr) {
-        const name = endonymOf(code);
-        await NativeSpeech.ensureAssets('stt', [code], (m) => {
-          stamp(m, name);
-          if (m && m.state === 'installed') prep.assets.asr[code] = true;
+      if (missingAsr.length) {
+        const dl = await PackProgress.downloadAsrLangs(missingAsr, {
+          generation: job,
+          current: () => warmJob,
+          toLocale: (c) => C.toLocale(c),
+          nameOf: (c) => endonymOf(c),
+          track: (p) => { inflight = p; },
+          ensureAssets: (kind, spec, onProgress, ms) => NativeSpeech.ensureAssets(kind, spec, onProgress, ms),
+          onState: (s) => showPrep(job, s),
         });
-        prep.assets.asr[code] = true;
+        if (warmJob !== job) return;
+        const bad = dl.find((x) => !x.ok);
+        if (bad) {
+          prep.stalled = true;
+          prep.readyUntil = 0;
+          return;
+        }
+        for (const code of missingAsr) prep.assets.asr[code] = true;
       }
+      prep.stalled = false;
       prep.readyUntil = Date.now() + 4000;
-    } catch (_) {
+    } catch (e) {
+      if (warmJob !== job) return;
+      if (e && e.reason === 'cancelled') return;
+      prep.stalled = true;
       prep.readyUntil = 0;
     } finally {
-      prep.running = false;
-      prep.probed = true;
-      canvas.view('state');
-      if (prep.readyUntil) setTimeout(() => canvas.view('state'), 4200);
+      if (warmJob === job) {
+        prep.running = false;
+        prep.probed = true;
+        inflight = null;
+        canvas.view('state');
+        if (prep.readyUntil) setTimeout(() => canvas.view('state'), 4200);
+      }
     }
+  }
+  function cancellable(promise) {
+    let rejectCancel = null;
+    const gate = new Promise((_res, rej) => { rejectCancel = rej; });
+    const raced = Promise.race([promise, gate]);
+    raced.cancel = () => { if (rejectCancel) rejectCancel({ reason: 'cancelled' }); };
+    return raced;
+  }
+  function racePack(promise) {
+    let timer = null;
+    const timeout = new Promise((_res, rej) => {
+      timer = setTimeout(() => {
+        const e = new Error('stt-timeout');
+        e.mtSttTimeout = true;
+        e.reason = 'timeout';
+        rej(e);
+      }, PackProgress.ASR_PACK_TIMEOUT_MS);
+    });
+    return Promise.race([promise, timeout]).finally(() => { if (timer) clearTimeout(timer); });
+  }
+  function retryPacks() {
+    if (!prep.stalled) return;
+    prep.stalled = false;
+    warmPacks();
   }
   /** 点一下：开 / 停收音（改稿 D 的核心）。返回 false = 没接（字幕模式 / 设备不支持 / 这一侧还没下好）。 */
   function pttToggle(side) {
@@ -1004,8 +1107,11 @@ const listenModel = (() => {
   }
   function pttHintFor(chrome, lang) {
     if (chrome.hint === 'preparing') {
+      const code = FirstRun.baseCode(lang);
+      // 百分比只属于正在下的那一门。另一侧不许借走上一门留下的 100。
+      const pct = (prep.forCode && code === prep.forCode) ? (prep.pct || 0) : 0;
       return t('listen_ptt_preparing', '准备中 · {lang} 下载 {pct}%')
-        .replace('{lang}', endonymOf(lang)).replace('{pct}', String(prep.pct || 0));
+        .replace('{lang}', endonymOf(lang)).replace('{pct}', String(pct));
     }
     if (chrome.hint === 'recording') return t('listen_ptt_recording', '● 正在录 · 点一下停');
     return t('listen_ptt_tap_start', '点一下开始');
@@ -1095,9 +1201,25 @@ const listenModel = (() => {
     canvas.view('now');
     subShow(partial, '', true);
   }
+  // 识别器只开已经装好的语言。按住的那一侧若已就绪，一定在里面。
+  // 缺包的另一侧留在后台下，不塞进这次 stt-start —— 塞进去原生会以 assets 失败，
+  // 自动重连再把没装的语言拉下来并开麦（2026-10-11 真机 G1 / G4）。
+  function sessionLocales() {
+    const all = deviceLocales(cfg).filter(Boolean);
+    const held = ptt ? C.toLocale(pttLangOf(ptt.side)) : '';
+    const out = [];
+    for (const loc of all) {
+      const code = FirstRun.baseCode(loc);
+      if (code && prep.assets.asr[code] && out.indexOf(loc) < 0) out.push(loc);
+    }
+    if (held && ptt && talkSideReady(ptt.side) && out.indexOf(held) < 0) out.unshift(held);
+    if (out.length) return out;
+    if (held) return [held];
+    return all;
+  }
   function openDevice(myGen) {
     if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：重连时清掉旧场的候补计时器
-    const locales = deviceLocales(cfg);
+    const locales = sessionLocales();
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
@@ -1229,7 +1351,9 @@ const listenModel = (() => {
     });
   }
   // socket 断了：先自动重连一次（2 s），期间主按钮「重连中…」、我说灰；再断才停在具名态。
+  // assets 不是连接断了：缺的是还没装的语言包。自动重连会把那一门下完再开麦。
   function socketLost(why) {
+    if (String(why || '') === 'assets') { halt('socket', why); return; }
     if (!socketRetried && (phase === 'listening' || phase === 'preparing')) {
       socketRetried = true;
       halt('socket-retry', why);
@@ -1458,7 +1582,15 @@ const listenModel = (() => {
     else if (state === 'granted') {
       earlyRetries = 0;
       if (session) session.lastVoiceAt = now();   // 静音计时从麦克风真正开始出帧算起，不从点按算起
-      if (phase === 'preparing') { phase = 'listening'; note(''); canvas.view('state'); subState('listening'); }
+      if (phase === 'preparing') {
+        phase = 'listening';
+        note('');
+        // 桥上的麦要等 granted 才算 listening。resume() 在那之前看相位，续不上收音侧，
+        // 于是胶囊已是「听译中」、两个键仍写「点一下开始」（2026-10-11 真机）。
+        if (!ptt && resumeSide) { const s = resumeSide; resumeSide = ''; pttBegin(s); }
+        canvas.view('state');
+        subState('listening');
+      }
     }
   }
   async function micStart() {
@@ -1596,43 +1728,69 @@ const listenModel = (() => {
     {
       if (!deviceBridge()) { halt('device', 'os'); return false; }
       // 已经按住某一侧时，只等这一侧的识别包。另一侧还在下，不拦已经就绪的这一侧开口。
-      const locales = (ptt ? [pttLangOf(ptt.side)] : deviceLocales(cfg)).filter(Boolean);
+      // 按住的那一侧也用完整 locale（ja-JP），与 deviceLocales / 闲时补包同一条下载。
+      const locales = (ptt ? [C.toLocale(pttLangOf(ptt.side))] : deviceLocales(cfg)).filter(Boolean);
       const r = await NativeSpeech.probe(locales);
       if (phase !== 'preparing') return false;
       if (!r.ok) { halt('device', r.reason || ''); return false; }
-      if (r.assets !== 'installed') {
-        phase = 'downloading'; dlPct = 0; dlLang = ''; prep.didDownload = true; prep.dlGen = (prep.dlGen || 0) + 1; canvas.view('state');
-        try {
-          await NativeSpeech.ensureAssets('stt', locales, (m) => {
-            const named = FirstRun.nameProgress(m, endonymOf(m && m.locale) || endonymOf(locales[0]) || t('firstrun_packs_base', '基础组件'));
-            dlPct = Math.max(dlPct, Math.round((Number(named.fraction) || 0) * 100));
-            dlLang = named.name;
-            prep.name = named.name;
-            prep.pct = dlPct;
+      if (!FirstRun.asrInstalled(r)) {
+        phase = 'downloading';
+        const codes = [];
+        for (const loc of locales) {
+          const code = FirstRun.baseCode(loc);
+          if (code && codes.indexOf(code) < 0) codes.push(code);
+        }
+        const job = ++warmJob;
+        const first = endonymOf(codes[0]);
+        dlPct = 0; dlLang = first; prep.name = first; prep.pct = 0; prep.forCode = codes[0] || '';
+        prep.didDownload = true; prep.dlGen = (prep.dlGen || 0) + 1; prep.stalled = false;
+        canvas.view('state');
+        if (inflight && inflight.cancel) inflight.cancel();
+        inflight = null;
+        const dl = await PackProgress.downloadAsrLangs(codes, {
+          generation: job,
+          current: () => warmJob,
+          toLocale: (c) => C.toLocale(c),
+          nameOf: (c) => endonymOf(c),
+          track: (p) => { inflight = p; },
+          ensureAssets: (kind, spec, onProgress, ms) => NativeSpeech.ensureAssets(kind, spec, onProgress, ms),
+          onState: (s) => {
+            if (warmJob !== job) return;
+            dlPct = s.pct; dlLang = s.name; prep.name = s.name; prep.pct = s.pct; prep.forCode = s.code;
             paintClock();
-          });
-        } catch (e) { if (phase === 'downloading') halt('assets', e && e.reason); return false; }
+          },
+        });
+        if (warmJob !== job) return false;
+        const bad = dl.find((x) => !x.ok);
+        if (bad) {
+          if (phase === 'downloading') halt('assets', bad.stalled ? 'timeout' : (bad.reason || 'download'));
+          return false;
+        }
         if (phase !== 'downloading') return false;
+        for (const code of codes) prep.assets.asr[code] = true;
         phase = 'preparing'; canvas.view('state');
       }
     }
     // 语种识别（LID，§9.6.1.3）：端上模型判「这段音频是哪门语言」—— 半句与定稿的归属全靠它。
     // 与转写资产/朗读模型共用同一个 downloading 态。缺了它就没有归属判据：宁可先说「下载中」，
     // 也不退回「谁先到谁上屏」那套（那正是半句闪错语言的老病根）。
-    if (deviceBridge()) {
+    if (deviceBridge() && !prep.assets.lid) {
       const lm = lidModel();
       if (lm) {
         const onProg = (m) => {
           const baseName = t('firstrun_packs_base', '基础组件');
           const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
-          if (phase === 'preparing') { phase = 'downloading'; dlPct = 0; canvas.view('state'); }
+          if (phase === 'preparing') {
+            phase = 'downloading'; dlPct = 0; canvas.view('state');
+            // 只在进入下载时记一次。每一条进度都加，会把「包本来就在」误判成这一轮下过。
+            prep.didDownload = true;
+            prep.dlGen = (prep.dlGen || 0) + 1;
+          }
           if (phase !== 'downloading') return;
           dlPct = Math.max(dlPct, Math.round((Number(named.fraction) || 0) * 100));
           dlLang = named.name;
           prep.name = named.name;
           prep.pct = dlPct;
-          prep.didDownload = true;
-          prep.dlGen = (prep.dlGen || 0) + 1;
           paintClock();
         };
         try {
@@ -1657,7 +1815,7 @@ const listenModel = (() => {
     // 语音活动检测（VAD，2026-10-07）：难音频（背景乐 / 多人交叠 / 低电平）上 LID 的判词会在十几门
     // 语言之间乱跳，判错一次就让错语言那一路的定稿上屏（真泰语多人对谈实测）。装好 silero VAD 后，
     // 只有它判为语音的片段才累计进 LID。**644KB，下不下来都不拦听译** —— 失败就退回能量门（原行为）。
-    if (deviceBridge()) {
+    if (deviceBridge() && !prep.assets.vad) {
       const vm = vadModel();
       if (vm) {
         const baseName = t('firstrun_packs_base', '基础组件');
@@ -1669,6 +1827,8 @@ const listenModel = (() => {
             if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
           });
           prep.assets.vad = true;
+          prep.didDownload = true;
+          prep.dlGen = (prep.dlGen || 0) + 1;
         } catch (e) {
           if (ptt) { halt('assets', e && e.reason); return false; }
         }
@@ -1713,7 +1873,18 @@ const listenModel = (() => {
     // 恢复听 ⇒ 预览矩形重新发给原生（✕ 暂停时发过 rect:null 收起预览），之后离开 App 照旧自动浮出（19 修订）
     if (bridged() && session && session.mode === 'subtitle') pipRectOn();
     // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
+    const beforeGen = prep.dlGen || 0;
     if (!(await ensurePacksForPair())) return;
+    // 这一轮真的下过包：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
+    if ((prep.dlGen || 0) !== beforeGen) {
+      pttAbort();
+      phase = 'idle';
+      prep.readyUntil = Date.now() + 4000;
+      prep.running = false;
+      canvas.view('state');
+      setTimeout(() => canvas.view('state'), 4200);
+      return;
+    }
     // 这一侧仍没就绪（基础组件或识别包没落地）就不开麦，也不留「正在录」。
     if (ptt && !talkSideReady(ptt.side)) {
       pttAbort();
@@ -1801,7 +1972,8 @@ const listenModel = (() => {
     pttAbort();   // 具名停止（拒绝/断线/被打断）：收音态与强制语言一起清掉
     if (phase === 'ended' || phase === 'idle') return;
     // 「这门语言这台设备弄不了」⇒ 回到上一对，别把整场丢掉（见上面那段注释）。
-    if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets')) { revertLangIfNeeded(); return; }
+    // 没有待回退的改语言时，assets 要落到下面那句「包没装好」，不能在这里吞掉。
+    if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets') && langRevert) { revertLangIfNeeded(); return; }
     phase = 'halted'; pauseReason = reason;
     C.pause(session, now());
     // 停了听就别再读积压的译文 —— 那些话的上下文已经过去了
@@ -2470,7 +2642,12 @@ const listenModel = (() => {
     // **「译成」只改译文方向，一个识别器都不动** ⇒ 不重连、不补包（2026-10-07 真机批 28：
     // 改「译成」以前会走下面那条重连 ⇒ 顶部「正在下载离线模型 · 15%」、按钮卡在「准备中…」，
     // 甚至误报「本机识别器不支持这门语言」）。识别器由 LID 管，和「译成」无关。
-    if (which === 'my') { canvas.view('mode'); if (session) canvas.view('state'); return; }
+    if (which === 'my') { canvas.view('mode');
+      if (session) canvas.view('state');
+      // 「译成」不重连识别器。没在听的时候，这一侧的识别包仍要补上，否则说话键停在上一门的进度上。
+      if (!(session && sock && (phase === 'listening' || phase === 'preparing')) && mode !== 'subtitle') warmPacks();
+      return;
+    }
     // 本机路（§9.6.1）：一路识别器一个 locale，改语言**要重连**（只动识别器，麦克风不停）。
     // **先按新对补包再重连**（2026-10-06，92 号包真机）：zh/en 场里切泰语不触发泰语包下载、
     // 必须退出重进 —— 现在与进场同一段（ensurePacksForPair，复用 downloading/「准备中」态），
@@ -2495,6 +2672,9 @@ const listenModel = (() => {
           canvas.view('state');
         }
       });
+    } else if (mode !== 'subtitle') {
+      // 没在听：切到还没装的语言也要走和开会话同一条 ensureAssets（完整 locale），不许干等。
+      warmPacks();
     }
     canvas.view('mode');   // 受控 select：mySelVal/otherSelVal 变了必须 bump，否则 React 把 DOM 值拉回去
     if (session) canvas.view('state');
@@ -2622,6 +2802,7 @@ const listenModel = (() => {
     // 视图动作（原 addEventListener 的 handler 们）
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
     copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
+    retryPacks,
     // 收音（点一下开 / 停；改稿 D）；listen-view 的点击事件 → 状态机
     pttToggle, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
@@ -2634,10 +2815,10 @@ const listenModel = (() => {
       for (const code of Object.keys(prep.assets.asr || {})) {
         if (prep.assets.asr[code]) readyNames.push(endonymOf(code));
       }
-      const prepText = t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪')
-        .replace('{what}', prep.name || '')
-        .replace('{pct}', String(prep.pct || 0))
-        .replace('{ready}', readyNames.join('、'));
+      const stalled = !!(chrome && chrome.card === 'not-ready' && prep.stalled);
+      const prepText = stalled
+        ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+        : fillPrepDetail(t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪'), prep.name || '', prep.pct || 0, readyNames.join('、'));
       const readySub = (chrome && chrome.card === 'ready-tap')
         ? t('listen_ready_tap_sub', '不会自动开始 · 点「说{mine}」或「{other}」开始收音')
           .replace('{mine}', endonymOf(cfg && cfg.myLang))
@@ -2649,8 +2830,9 @@ const listenModel = (() => {
         flash: !!(chrome && prep.flashUntil > Date.now()),
         prepShown: !!(chrome && chrome.card === 'not-ready'),
         prepText,
-        prepBar: !!(chrome && chrome.card === 'not-ready' && (prep.running || prep.pct > 0)),
+        prepBar: !!(chrome && chrome.card === 'not-ready' && !stalled && (prep.running || prep.pct > 0)),
         prepPct: prep.pct || 0,
+        prepRetry: stalled ? t('tts_pack_retry', '重试') : '',
         readySub,
       };
     },

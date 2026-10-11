@@ -1704,7 +1704,7 @@
     "message": "Ya la activé"
   },
   "app_signin_why": {
-    "message": "Al iniciar sesión llega el crédito gratuito y se descargan los dos paquetes de voz en este dispositivo — nada más que configurar."
+    "message": "Al iniciar sesión llega el crédito gratuito y se descargan los paquetes de voz en este dispositivo — nada más que configurar."
   },
   "app_signin_open": {
     "message": "Iniciar sesión"
@@ -3721,7 +3721,7 @@
     "message": "El resto puede esperar: basta con que vuelvas."
   },
   "firstrun_packs_title": {
-    "message": "Descarga primero los dos paquetes de voz"
+    "message": "Descarga primero los paquetes de voz"
   },
   "firstrun_packs_lede": {
     "message": "Con esto no tendrás que configurar nada más: traducción, interpretación, subtítulos y lectura en voz alta funcionan al momento. El habla se reconoce en tu dispositivo. El texto reconocido se envía a traducir: con tu propia key va directo al proveedor que hayas configurado; con el saldo gratuito pasa por nuestro servidor y no guardamos el texto."

@@ -482,4 +482,49 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
       '改语言若刚下完包，仍会自动回到收音');
     ok(/FirstRun\.talkChrome\(/.test(model), '听译页没有走首启那同一个 talkChrome');
   });
+
+  test('识别包只认 assets===installed；ready:true 不算装好', () => {
+    eq(FR.asrInstalled(null), false);
+    eq(FR.asrInstalled({ ok: false, assets: 'installed' }), false);
+    eq(FR.asrInstalled({ ok: true, assets: 'missing' }), false);
+    eq(FR.asrInstalled({ ok: true, ready: true, assets: 'missing' }), false);
+    eq(FR.asrInstalled({ ok: true, assets: 'installed' }), true);
+    const one = FR.readiness(
+      { asr: { ja: FR.asrInstalled({ ok: true, ready: true, assets: 'missing' }), zh: true }, tts: {}, lid: true, vad: true },
+      { asrLangs: ['ja'], ttsLangs: [], base: false },
+    );
+    eq(one.asrPack, false, '日本語不该因为 ready:true 或中文已装好就被当成已就绪');
+  });
+
+  test('G1–G6：就绪侧单独开麦、下完不开麦、进页有胶囊、键跟收音', () => {
+    const model = stripComments(read('src/app/listen-model.js'));
+    const view = read('src/app/listen-view.jsx');
+    const shell = stripComments(read('src/app/shell-model.js'));
+    const pipe = model.slice(model.indexOf('async function beginPipeline'), model.indexOf('let startedAt'));
+    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
+    const open = pipe.indexOf('openSocket()');
+    ok(guard > -1 && open > guard, 'G4：这一轮下过包之后 beginPipeline 仍会 openSocket');
+    ok(!/micStart\(/.test(pipe.slice(guard, open > guard ? open : guard)), 'G4：下完到开麦之间还有 micStart');
+    ok(/function sessionLocales\(\)/.test(model) && /const locales = sessionLocales\(\)/.test(model),
+      'G1：openDevice 仍把两门语言都交给识别器');
+    const sess = model.slice(model.indexOf('function sessionLocales'), model.indexOf('function openDevice'));
+    ok(/prep\.assets\.asr\[code\]/.test(sess), 'G1：开麦的 locale 没有按这一门是否已装过滤');
+    ok(/String\(why \|\| ''\) === 'assets'\) \{ halt\('socket', why\); return; \}/.test(model),
+      'G1：assets 失败仍会排自动重连');
+    const pill = model.slice(model.indexOf('function pillView'), model.indexOf('function paint()'));
+    ok(/if \(!session\) return early;/.test(pill), 'G5：没开会话时右上角胶囊不读补包进度');
+    ok(/prep\.readyUntil > Date\.now\(\)/.test(model.slice(model.indexOf('function prepPill'), model.indexOf('function pillView'))),
+      'G5：下完没有「✓ 已就绪」');
+    const granted = model.slice(model.indexOf("state === 'granted'"), model.indexOf('async function micStart'));
+    ok(/!ptt && resumeSide/.test(granted) && /pttBegin\(s\)/.test(granted),
+      'G6：麦克风 granted 时没有把收音侧补回去');
+    ok(/id="app-listen-prep-retry"/.test(view), '超时后卡片没有重试键');
+    ok(/function fillPrepDetail\(/.test(model), '进度句没有在拉丁本名和汉字之间加空格');
+    ok(!/r\.ready === true/.test(shell), '包屏仍把探针的 ready:true 当成已安装');
+    ok(/FirstRun\.asrInstalled\(r\)/.test(shell) && /packAsrByLang/.test(shell),
+      '包屏没有按语言经 asrInstalled 记就绪');
+    ok(/asrLangReady\(id\.slice\(4\)\)/.test(shell), '包屏一行的「已就绪」仍看全局开关');
+    const bytes = shell.slice(shell.indexOf('function selectedBytes'), shell.indexOf('function selectedSizeLabel'));
+    ok(/!\(packLidReady && packVadReady\)/.test(bytes), '页脚仍把已经下好的基础组件算进总量');
+  });
 });

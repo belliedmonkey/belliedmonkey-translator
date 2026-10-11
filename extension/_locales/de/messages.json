@@ -1704,7 +1704,7 @@
     "message": "Ich habe sie aktiviert"
   },
   "app_signin_why": {
-    "message": "Beim Anmelden kommt das Gratis-Guthaben und die beiden Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
+    "message": "Beim Anmelden kommt das Gratis-Guthaben und die Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
   },
   "app_signin_open": {
     "message": "Anmelden"
@@ -3721,7 +3721,7 @@
     "message": "Der Rest kann warten — komm einfach wieder."
   },
   "firstrun_packs_title": {
-    "message": "Zuerst die beiden Sprachpakete laden"
+    "message": "Zuerst die Sprachpakete laden"
   },
   "firstrun_packs_lede": {
     "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Sprache wird auf deinem Gerät erkannt. Der erkannte Text geht zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht."

@@ -1705,7 +1705,7 @@
     "message": "我已打开"
   },
   "app_signin_why": {
-    "message": "登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。"
+    "message": "登录后免费额度自动到账，语言包下到本机，之后不用再做设置。"
   },
   "app_signin_open": {
     "message": "登录"
@@ -3722,10 +3722,10 @@
     "message": "剩下的明天再说 —— 回来就好。"
   },
   "firstrun_packs_title": {
-    "message": "先把两个语音包下好"
+    "message": "先把语言包下好"
   },
   "firstrun_packs_lede": {
-    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
+    "message": "下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
   },
   "firstrun_packs_asr": {
     "message": "识别语言包（听译 / 实时字幕）"
@@ -3842,7 +3842,7 @@
     "message": "选择要下载的语言"
   },
   "firstrun_packs_pick_lede": {
-    "message": "默认勾上：手机系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。"
+    "message": "默认勾上：系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。"
   },
   "firstrun_packs_cell_waiting": {
     "message": "勾选保留着。连上 Wi-Fi 后会自动开始下载。"
@@ -3908,7 +3908,7 @@
     "message": "基础组件"
   },
   "firstrun_packs_base_note": {
-    "message": "语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，设下好才能开始听"
+    "message": "语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听"
   },
   "firstrun_packs_required": {
     "message": "约 {size} · 必需"

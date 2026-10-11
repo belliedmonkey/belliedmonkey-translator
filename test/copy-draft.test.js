@@ -45,8 +45,23 @@ describe('文案改稿 4（zdhvA）· 逐字', () => {
       'listen-model.js 的兜底串没跟着改');
   });
 
+  test('包屏与登录说明不再写死「两个 / 手机 / 设下好」', () => {
+    eq(msg('zh_CN', 'firstrun_packs_base_note'),
+      '语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听');
+    eq(msg('zh_TW', 'firstrun_packs_base_note'),
+      '語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，下好才能開始聽');
+    ok(!/手机/.test(msg('zh_CN', 'firstrun_packs_pick_lede')), '简体仍写手机系统语言');
+    ok(!/手機/.test(msg('zh_TW', 'firstrun_packs_pick_lede')), '繁体仍写手机系统语言');
+    ok(!/这两样/.test(msg('zh_CN', 'firstrun_packs_lede')), '简体仍写这两样');
+    ok(!/這兩樣/.test(msg('zh_TW', 'firstrun_packs_lede')), '繁体仍写这两样');
+    ok(!/两个语音包|兩個語音包/.test(msg('zh_CN', 'app_signin_why') + msg('zh_TW', 'app_signin_why')),
+      '登录说明仍写两个语音包');
+    ok(!/\btwo\b/i.test(msg('en', 'app_signin_why') + ' ' + msg('en', 'firstrun_packs_title')),
+      '英文登录说明或标题仍写 two');
+  });
+
   test('C-07 首启语音包页：前半句不变，末句按 E9 第二句重写；两处兜底同步', () => {
-    const want = '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。'
+    const want = '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。'
       + '声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；'
       + '用免费额度时经我们的服务器转发，不保存文字。';
     eq(msg('zh_CN', 'firstrun_packs_lede'), want);

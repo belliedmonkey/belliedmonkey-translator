@@ -1704,7 +1704,7 @@
     "message": "Já ativei"
   },
   "app_signin_why": {
-    "message": "Entrar traz o crédito grátis e baixa os dois pacotes de voz neste aparelho — nada mais para configurar."
+    "message": "Entrar traz o crédito grátis e baixa os pacotes de voz neste aparelho — nada mais para configurar."
   },
   "app_signin_open": {
     "message": "Entrar"
@@ -3721,7 +3721,7 @@
     "message": "O resto pode esperar — é só voltar."
   },
   "firstrun_packs_title": {
-    "message": "Baixe primeiro os dois pacotes de voz"
+    "message": "Baixe primeiro os pacotes de voz"
   },
   "firstrun_packs_lede": {
     "message": "Com isso você não precisa configurar mais nada: tradução, interpretação, legendas e leitura em voz alta funcionam na hora. A fala é reconhecida no seu aparelho. O texto reconhecido é enviado para tradução: com a sua própria key vai direto ao provedor que você configurou; com o crédito gratuito passa pelo nosso servidor, e não guardamos o texto."

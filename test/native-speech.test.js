@@ -88,4 +88,21 @@ describe('NativeSpeech.ensureAssets —— 失败理由与收尾（2026-10-02 �
     const r = await p;
     eq(r.assets, 'installed');
   });
+  test('超时把这一轮摘掉；下一轮要等自己的 stt-state，不会被上一轮提前唤醒', async () => {
+    const { NS } = setup();
+    const seen = [];
+    const a = NS.ensureAssets('stt', ['ja-JP'], (m) => seen.push(m), 20);
+    let reason = '';
+    await a.then(() => {}, (e) => { reason = e && e.reason; });
+    eq(reason, 'timeout');
+    NS._fromNative({ type: 'assets-progress', kind: 'stt', locale: 'ja-JP', fraction: 1, state: 'downloading' });
+    eq(seen.length, 0, '超时之后还在收上一轮的进度');
+    let early = false;
+    const b = NS.ensureAssets('stt', ['ko-KR'], () => {});
+    b.then(() => { early = true; }, () => { early = true; });
+    await new Promise((r) => setTimeout(r, 10));
+    eq(early, false, '还没收到这一轮的 stt-state 就收尾了');
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
+    eq((await b).assets, 'installed');
+  });
 });

@@ -37,6 +37,7 @@ import NativeBridge from '../lib/native-bridge.js';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
+import * as PackProgress from './pack-progress.js';
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -139,7 +140,7 @@ export function bootShell() {
     $('back').textContent = t('app_back_email', '换一个邮箱');
     $('resend').textContent = t('sync_resend', '重新发送');
     $('signin-why').textContent = t('app_signin_why',
-      '登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。');
+      '登录后免费额度自动到账，语言包下到本机，之后不用再做设置。');
     $('btn-signin').textContent = t('sync_use_email', '或用邮箱登录');
     // local-note 已随 #532 退役（屏 1 只剩登录；那句「不登录也能完整使用」也不再成立）。
     $('app-use-pw').textContent = t('app_use_pw', '使用密码登录');
@@ -311,6 +312,8 @@ export function bootShell() {
   // 判定是**纯函数**（`src/app/firstrun.js`）：四个输入 → step()。这一块只做两件事 ——
   // 把四个输入算出来、把该显示的那一屏显示出来。判据：test/app-firstrun.test.js（R1–R6）。
   let packAsrReady = false;
+  let packAsrByLang = {};   // 短码 → 这门识别包是否已落地（只经 asrInstalled 写入）
+  let packTtsProbeLangs = [];   // 最近一次朗读包探测覆盖的短码
   let packTtsReady = false;
   let packAsrUnsupported = false;   // 该语种系统不支持识别 ⇒ 唯一允许的降级口
   let packLidReady = false;
@@ -448,29 +451,45 @@ export function bootShell() {
         LearnTTS.configure(Object.assign({}, LearnTTS.config, {
           engineId: DEVICE_TTS_ENGINE, apiKey: '', baseUrl: '', model: '', voice: '',
         }));
+        packTtsProbeLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
         const st = await LearnTTS.deviceStatus(DEVICE_TTS_ENGINE, firstRunLocales(s));
         packTtsReady = !!(st && st.ready);
       } catch (_) { packTtsReady = false; }
-    } else { packTtsReady = false; }
+    } else { packTtsReady = false; packTtsProbeLangs = []; }
     if (typeof NativeSpeech !== 'undefined' && NativeSpeech.probe) {
       try {
         const asrLangs = firstRunAsrLangs(s);
-        const r = asrLangs.length ? await NativeSpeech.probe(asrLangs) : { ok: true, ready: true };
         // 这条判据跨了**三层**，词表各不同 —— 2026-10-03 就是在这里连错两次：
         //   桥（app/native/speech-bridge.swift）发 `stt-state {state:'unsupported', reason:'locale'|'os'}`
         //   → 包装器（app/native-speech.js）**吃掉 state**，规范化成 `{ok:false, reason, assets, locales}`
-        //   → 这里能读到的只有 `{ok, reason}`。
-        // 原来读的是 `r.reason === 'unsupported'`（桥不发）、我改成 `r.state === …`（包装器不给）
-        // —— 两次都恒为 false，于是 firstrun.js 设计的**唯一降级**（识别器不支持这门语言 ⇒
-        // 只下朗读包、其余照用）一次都没触发过：出不了屏 2。
+        //   → 这里能读到的只有 `{ok, reason, assets}`。
         // 判据按 firstrun.js 的裁定收紧：只有「这个语种不支持」（reason='locale'）可降级；
         // OS 太旧（'os'）、缺桥（'no-bridge'）、还在探（'pending'）都不行。
-        // 支持这门语言 ≠ 识别包已落地。ok 为真且 assets 仍是 missing 时，首启要把它下掉
-        // （改稿 F）。夹具用 ready:true 表示「当成已就绪」，真探针只认 assets === 'installed'。
-        packAsrReady = !asrLangs.length || !!(r && (r.assets === 'installed' || r.ready === true));
-        packAsrUnsupported = !!(r && r.ok === false && r.reason === 'locale');
-      } catch (_) { packAsrReady = false; packAsrUnsupported = false; }
-    } else { packAsrReady = false; packAsrUnsupported = false; }
+        // 每一门单独探、单独认。一次聚合探针的 ready/installed 不能代表后来勾上的另一门
+        // （2026-10-11 真机：包屏把 日本語/한국어 标成已就绪，听译页却在等下载）。
+        packAsrByLang = {};
+        if (!asrLangs.length) {
+          packAsrReady = true;
+          packAsrUnsupported = false;
+        } else {
+          let unsupported = 0;
+          for (const code of asrLangs) {
+            const r = await NativeSpeech.probe([speechLocale(code)]);
+            if (r && r.ok === false && r.reason === 'locale') {
+              unsupported++;
+              packAsrByLang[code] = false;
+            } else {
+              packAsrByLang[code] = FirstRun.asrInstalled(r);
+            }
+          }
+          packAsrUnsupported = unsupported === asrLangs.length;
+          packAsrReady = FirstRun.readiness(
+            { asr: packAsrByLang, tts: {}, lid: true, vad: true },
+            { asrLangs: asrLangs, ttsLangs: [], base: false },
+          ).asrPack;
+        }
+      } catch (_) { packAsrReady = false; packAsrUnsupported = false; packAsrByLang = {}; }
+    } else { packAsrReady = false; packAsrUnsupported = false; packAsrByLang = {}; }
     packLidReady = false;
     packVadReady = false;
     if (typeof NativeSpeech !== 'undefined' && NativeSpeech.lidProbe && NativeSpeech.vadProbe) {
@@ -609,16 +628,41 @@ export function bootShell() {
   }
   function selectedBytes() {
     const sz = packByteSizes();
-    let n = sz.base;
-    if (FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined)) n += sz.kokoro;
-    if (packThaiTts && packLangs.indexOf('th') >= 0) n += sz.thai;
+    let n = 0;
+    // 已经在设备上的不计进「还要下」。勾选一变，这一数就跟着变。
+    if (!(packLidReady && packVadReady)) n += sz.base;
+    const kokoroOn = FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined);
+    const kokoroInstalled = packTtsReady && packTtsProbeLangs.some((c) => c === 'zh' || c === 'en');
+    if (kokoroOn && !kokoroInstalled) n += sz.kokoro;
+    const thaiInstalled = packTtsReady && packTtsProbeLangs.indexOf('th') >= 0;
+    if (packThaiTts && packLangs.indexOf('th') >= 0 && !thaiInstalled) n += sz.thai;
     return n;
+  }
+  function selectedSizeLabel() {
+    const n = selectedBytes();
+    return n ? mbLabel(n) : '0 MB';
   }
   function mbLabel(bytes) {
     const n = FirstRun.displayMb(bytes);
     return n ? (n + ' MB') : '';
   }
 
+  function speechLocale(code) {
+    try {
+      if (typeof ListenCore !== 'undefined' && ListenCore.toLocale) return ListenCore.toLocale(code);
+    } catch (_) {}
+    return code;
+  }
+  // 这一门识别包齐没齐，问 readiness()，不看「别的语言已经就绪」那个总开关。
+  function asrLangReady(code) {
+    const base = FirstRun.baseCode(code);
+    const map = {};
+    map[base] = !!packAsrByLang[base];
+    return FirstRun.readiness(
+      { asr: map, tts: {}, lid: true, vad: true },
+      { asrLangs: [base], ttsLangs: [], base: false },
+    ).asrPack;
+  }
   function rowPhase(id) {
     const row = packRows[id];
     if (row && row.phase) return row;
@@ -626,7 +670,7 @@ export function bootShell() {
     if (id === 'base' && packLidReady && packVadReady) return { phase: 'ready', pct: 100 };
     if (id === 'tts:zh-en' && packTtsReady && FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined)) return { phase: 'ready', pct: 100 };
     if (id === 'tts:th' && packTtsReady && packThaiTts) return { phase: 'ready', pct: 100 };
-    if (id.indexOf('asr:') === 0 && packAsrReady) return { phase: 'ready', pct: 100 };
+    if (id.indexOf('asr:') === 0 && asrLangReady(id.slice(4))) return { phase: 'ready', pct: 100 };
     return { phase: packPhase === 'downloading' ? 'queued' : '', pct: 0 };
   }
 
@@ -640,7 +684,7 @@ export function bootShell() {
       const asrNote = $('pack-asr-state');
       if (asrNote) asrNote.textContent = packAsrReady ? 'ready' : 'missing';
     }
-    const sizes = mbLabel(selectedBytes());
+    const sizes = selectedSizeLabel();
     const title = $('packs-title');
     const lede = $('packs-lede');
     if (packPhase === 'done') {
@@ -652,7 +696,7 @@ export function bootShell() {
       if (lede) lede.textContent = t('firstrun_packs_dl_lede', '每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。');
     } else {
       if (title) title.textContent = t('firstrun_packs_pick_title', '选择要下载的语言');
-      if (lede) lede.textContent = t('firstrun_packs_pick_lede', '默认勾上：手机系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。');
+      if (lede) lede.textContent = t('firstrun_packs_pick_lede', '默认勾上：系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。');
     }
     const foot = $('packs-foot');
     if (foot) {
@@ -666,7 +710,7 @@ export function bootShell() {
       locked.textContent = t('firstrun_packs_locked', '下载中不能改勾选；下完以后去「设置 · 语音包」增减。');
     }
     const privacy = $('packs-privacy');
-    if (privacy) privacy.textContent = t('firstrun_packs_lede', '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
+    if (privacy) privacy.textContent = t('firstrun_packs_lede', '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
     const go = $('packs-go');
     if (go) {
       const remain = Object.keys(packRows).filter((id) => packRows[id] && packRows[id].phase !== 'ready' && packRows[id].phase !== 'unselected').length;
@@ -796,7 +840,7 @@ export function bootShell() {
     body.appendChild(makeRow({
       id: 'base', kind: 'base', name: t('firstrun_packs_base', '基础组件'),
       checked: true, disabled: true, locked: true,
-      sub: t('firstrun_packs_base_note', '语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，设下好才能开始听')
+      sub: t('firstrun_packs_base_note', '语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听')
         + ' · ' + t('firstrun_packs_required', '约 {size} · 必需').replace('{size}', mbLabel(sizes.base)),
       status: statusText('base', true),
     }));
@@ -837,7 +881,7 @@ export function bootShell() {
   }
 
   function paintCellular() {
-    const sizes = mbLabel(selectedBytes());
+    const sizes = selectedSizeLabel();
     const title = $('packs-cell-title');
     const body = $('packs-cell-body');
     if (title) title.textContent = t('firstrun_packs_cell_title', '现在用的是蜂窝网络');
@@ -905,7 +949,7 @@ export function bootShell() {
     firstRunScreen = 'home';
   }
 
-  const ASR_PACK_TIMEOUT_MS = 120000;
+  const ASR_PACK_TIMEOUT_MS = PackProgress.ASR_PACK_TIMEOUT_MS;
 
   async function downloadBase() {
     const name = t('firstrun_packs_base', '基础组件');
@@ -989,9 +1033,9 @@ export function bootShell() {
         }, ASR_PACK_TIMEOUT_MS);
       });
       try {
-        await Promise.race([NativeSpeech.ensureAssets('stt', [loc], (m) => {
+        await Promise.race([NativeSpeech.ensureAssets('stt', [speechLocale(loc)], (m) => {
           if (!m) return;
-          const named = FirstRun.nameProgress(m, endonym(loc));
+          const named = FirstRun.nameProgress(Object.assign({}, m, { name: endonym(loc) }), endonym(loc));
           const pct = (typeof named.fraction === 'number') ? Math.round(named.fraction * 100) : 0;
           const extra = [];
           if (m.status) extra.push('status=' + m.status);
@@ -1002,6 +1046,7 @@ export function bootShell() {
           if (el) el.textContent = named.name + ' ' + pct + '%';
         }), timeout]);
       } finally { clearTimeout(timer); }
+      packAsrByLang[loc] = true;
       setRow('asr:' + loc, { phase: 'ready', pct: 100, name: endonym(loc) });
     }
   }
@@ -1452,7 +1497,7 @@ export function bootShell() {
       // （三个 agent：限额 / 未登录 / 空手），按用户授权先落最小可用版，见 issue #547。
       $('ob-title').textContent = t('ob_intent_listen', '主要想听 · 即时字幕');
       $('ob-text').textContent = t('firstrun_packs_lede',
-        '下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
+        '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
       $('ob-next').textContent = t('ob_start', '开始设置');
     } else if (step === 'ext') {
       $('ob-title').textContent = t('app_ext_unknown_title', '先把浏览器那半边打通');

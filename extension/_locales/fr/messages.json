@@ -1704,7 +1704,7 @@
     "message": "Je l'ai activée"
   },
   "app_signin_why": {
-    "message": "Se connecter apporte le crédit offert et télécharge les deux packs vocaux sur cet appareil — rien d’autre à configurer."
+    "message": "Se connecter apporte le crédit offert et télécharge les packs vocaux sur cet appareil — rien d’autre à configurer."
   },
   "app_signin_open": {
     "message": "Se connecter"
@@ -3721,7 +3721,7 @@
     "message": "Le reste peut attendre — revenez, c’est tout."
   },
   "firstrun_packs_title": {
-    "message": "Téléchargez d'abord les deux packs vocaux"
+    "message": "Téléchargez d'abord les packs vocaux"
   },
   "firstrun_packs_lede": {
     "message": "Ensuite, plus rien à configurer : traduction, interprétation, sous-titres et lecture à voix haute fonctionnent tout de suite. La parole est reconnue sur votre appareil. Le texte reconnu est envoyé pour la traduction : avec votre propre clé, il part directement chez le fournisseur que vous avez configuré ; avec le crédit gratuit, il passe par notre serveur, sans que nous conservions le texte."
