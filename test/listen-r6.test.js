@@ -114,3 +114,66 @@ describe('r6 ② 首启包屏完成过一次就不再回来', () => {
     ok(/!done && FirstRun\.step\(probed\) === 'home'[\s\S]{0,40}writePacksDone/.test(paint), '探针全齐要补记');
   });
 });
+
+describe('r6 ① 点停的 force 不许漏到下一次收音（Mac 实测：句首单词独自成行）', () => {
+  function fakeClock() {
+    let t = 1_000_000, seq = 1;
+    const timers = new Map();
+    return {
+      now: () => t,
+      setT: (fn, ms) => { const id = seq++; timers.set(id, { fn, at: t + (ms || 0) }); return id; },
+      clearT: (id) => { timers.delete(id); },
+      async advance(ms) {
+        const end = t + ms;
+        for (;;) {
+          let next = null;
+          for (const [id, x] of timers) if (x.at <= end && (!next || x.at < next.x.at)) next = { id, x };
+          if (!next) break;
+          timers.delete(next.id);
+          t = Math.max(t, next.x.at);
+          next.x.fn();
+          await Promise.resolve(); await Promise.resolve();
+        }
+        t = end; await Promise.resolve();
+      },
+    };
+  }
+  const tick = async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); };
+  const bufOf = (p) => String((p && p.user) || '').split('BUF:\n')[1].split('\nFORCE:')[0].trim();
+  function router() {
+    const clk = fakeClock();
+    const calls = [];
+    const r = C.makeSegmentRouter({
+      call: async (p) => { calls.push(p); return JSON.stringify({ segments: [{ source: bufOf(p), translation: '译文' }], remainder: '' }); },
+      emit: () => {}, fallback: () => {}, onDegrade: () => {}, onLeak: () => {},
+      ctx: () => ({ srcName: 'English', dstName: '中文', context: [], userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, idleMs: 1500, endWaitMs: 3000,
+    });
+    return { r, clk, calls };
+  }
+  test('上一句已按空闲送完、再点停 ⇒ 下一次收音的首片不得单独以 force 送出', async () => {
+    const { r, clk, calls } = router();
+    r.feed('en-US', 'Good morning, everyone.');
+    await clk.advance(1600); await tick();
+    eq(calls.length, 1, '前提：第一句按空闲送出');
+    await r.settle('stop'); await tick();
+    eq(calls.length, 1, '账本已空，点停不应再发');
+    // 下一次收音：识别器一口气吐三片（真机实测 1 ms 内到齐）
+    r.feed('en-US', 'Please');
+    r.feed('en-US', 'open the window before the meeting');
+    r.feed('en-US', 'starts.');
+    await tick();
+    eq(calls.length, 1, '首片不能当场单独送（force 漏过来了）');
+    await clk.advance(1600); await tick();
+    eq(calls.length, 2, '空闲到点整句一起送');
+    eq(bufOf(calls[1]), 'Please open the window before the meeting starts.', '整句同一批');
+    ok(/FORCE:false/.test(String(calls[1].user)), '不是收尾 force');
+  });
+  test('点停时账本还有字 ⇒ 照旧 force 收尾送出', async () => {
+    const { r, calls } = router();
+    r.feed('en-US', 'We need to finish');
+    await r.settle('stop'); await tick();
+    eq(calls.length, 1, '收尾送出');
+    ok(/FORCE:true/.test(String(calls[0].user)), '收尾是 force');
+  });
+});

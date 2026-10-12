@@ -482,7 +482,7 @@ const listenModel = (() => {
     const base = C.baseCode(meta && meta.locale);
     const who = base && base === C.baseCode(cfg.myLang) ? 'me' : 'them';
     for (const item of list) {
-      const pinned = !!(pttForce && pttLangOf(pttForce.side) === base);
+      const pinned = pinnedFor(base, meta && meta.feedAt);
       const row = C.addFinal(session, item.source, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
       if (!row) continue;
       row.lat = { final: now(), engine: 'device', seg: 'model', pass: meta.ms != null ? meta.ms : 0,
@@ -765,17 +765,29 @@ const listenModel = (() => {
   function fillPrepDetail(tmpl, name, pct, ready) {
     return C.fillPrepDetail(tmpl, name, pct, ready);
   }
+  // 每段按键收音的时间窗（按语言）：行是否 pinned 按**文字进账本的时刻**判，不按出行时刻 ——
+  // 断句模型的回执常在点停之后才到，那时 pttForce 已清，按出行判会把录音键的行画成可 ↔（P-12）。
+  const pttSpans = [];   // { base, from, to }（to=0 = 还在录）
+  function pttSpanClose() { const s = pttSpans[pttSpans.length - 1]; if (s && !s.to) s.to = Date.now(); }
+  function pinnedFor(base, at) {
+    if (pttForce && pttLangOf(pttForce.side) === base) return true;
+    if (!(at > 0)) return false;
+    return pttSpans.some((s) => s.base === base && at >= s.from && (!s.to || at <= s.to));
+  }
   function pttForceOn(side) {
+    pttSpanClose();
     pttForce = { side, at: Date.now() };
+    pttSpans.push({ base: C.baseCode(pttLangOf(side)), from: pttForce.at, to: 0 });
+    if (pttSpans.length > 8) pttSpans.shift();
     // 兜底：收口那一片迟迟不来（识别器没吐 final）时，别让强制语言一直挂着。
     // **但按住/锁定还没结束就绝不能清** —— 锁定可以持续到 8 秒静默上限，这中间用户可能一直不说话；
     // 清了它就等于这一句的归属又回到「没有判词」⇒ 注入/说出的话会被归属闸整句丢掉
     // （2026-10-08 真机前夜：P-03 连续五轮红，现场 `force=` 空，就是这个看门狗咬的）。
     setTimeout(() => {
-      if (pttForce && !ptt && Date.now() - pttForce.at >= 3000) pttForce = null;
+      if (pttForce && !ptt && Date.now() - pttForce.at >= 3000) { pttSpanClose(); pttForce = null; }
     }, 3200);
   }
-  function pttForceOff() { pttForce = null; }
+  function pttForceOff() { if (pttForce) pttSpanClose(); pttForce = null; }
   function pttCut() { try { if (sock && sock.cut) sock.cut(); } catch (_) {} }
   // vbD0C（「收音时停朗读 + 冻队列」）**已撤**（2026-10-09 用户裁定 A）：收音＝常开，队列在收音
   // 期间冻住就等于自动朗读永不发声。改为**只靠回声闸**（M3/M4 正验的那个）挡 App 自己的声音；

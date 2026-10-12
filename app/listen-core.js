@@ -1598,7 +1598,10 @@ var ListenCore = (() => {
         }
       }
       // stop/switch 的收尾：账本清空（且无在飞/扣住）⇒ 回到 open（可以继续听）
-      if (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch') && !ledger.length && !inFlight && !Object.keys(heldBatch).length) { phase = 'open'; closeReason = ''; }
+      if (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch') && !ledger.length && !inFlight && !Object.keys(heldBatch).length) {
+        phase = 'open'; closeReason = '';
+        for (const lc of Object.keys(meta)) meta[lc].force = false;
+      }
       notify(queue);
     }
     // ── 方案 2（R12）：模型 source 与上一条已出行行的重复前缀裁剪 ────────────────
@@ -2117,7 +2120,10 @@ var ListenCore = (() => {
         } else if (!ledger.length) { finishClosing(); }
       } else if (closeReason !== 'degrade') {   // stop | switch
         for (const lc of Object.keys(heldBatch)) releaseHeld(lc);   // 扣住的结果直接出行（不受朗读影响）
-        for (const lc of locales()) { M(lc).force = true; }
+        // force 只给**还有字在等**的那一路：账本已空时置上的 force 没人消费，会漏到下一次收音，
+        // 把下一句的首片（`Please`）当场单独收尾送出 —— 句首独自成行（1.19.4 r6 Mac 实测）。
+        for (const lc of locales()) { if (runsOf(lc).length) M(lc).force = true; }
+        if (!ledger.length && !inFlight && !Object.keys(heldBatch).length) { phase = 'open'; closeReason = ''; }
         schedule();
       }
       return Promise.all(jobs);
