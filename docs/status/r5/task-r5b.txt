@@ -1,0 +1,52 @@
+你负责续跑大肚猴翻译 1.19.4 第 5 轮的后半段：test:mac → 自动化验收 → 提交 → 打包传 TestFlight。按顺序一次跑完，中途不要停下来问人（没人回答），不要调用 ask_user_question。模型：DeepSeek V4.1 Flash（deepseek-flash）。最终报告第一行写实际模型，第二行起列出这次依据了哪些规约条目（docs/conventions-digest.md 里的编号）。
+
+工作区 = 当前目录（本地分支 fix/1194-r5，基线 371c4bf4，未提交）。上一个会话在 10:53 被用户叫停（先梳理规约），现场原样保留。
+
+## 开工前必读
+1. 完整读 docs/conventions-digest.md（规约摘要，261 条；第 8 节 SUP 是监督方规矩，必须遵守）。
+2. 读 .local/accept5/rootcause.md（A/B/C 的根因和修法）和 .local/progress-dsh.txt（已完成的步骤）。资料在 .local/qa/：改稿 H（pencil-H/）、rootcause-r4.md 第 6 节、final-r4.md、echo-aec-proposal.md、accept-report-113.md / 114.md、timetable-113/114.md、release-baseline-1.19.3.md。
+
+## 现状（已完成，不要重做）
+- A（识别语言名额，按改稿 H）、B（回声第 0 步：转交路径过回声闸）、C（小文案：English 已就绪补空格、设置页语言本名补 ไทย、完成页泰语朗读包没下就不说能朗读）都已修完，新增 src/app/asr-quota.js、test/listen-r5.test.js。
+- 已全过：npm test、build-check、test-app、test-app:china、test-smoke、test-layout 44/44。
+- 监督方刚把规约提交（本地分支 docs/conventions-digest，7e2254d9）里的文档改动应用到了本工作区：AGENTS.md、CLAUDE.md、docs/ 下若干 .md、.claude/skills/ 下 3 个 SKILL.md，以及新文件 docs/conventions-digest.md、docs/release-baseline-1.19.3.md。这些和第 5 轮代码算同一次提交。监督方已重跑 npm test：2666 passed / 0 failed。不要改这些文档。
+
+## 铁律
+- 被 guard 拦下或审批被拒：立刻停下，不要换写法、换工具、拆命令重试。用 bash 往 .local/progress-dsh.txt 追加「时间 GUARD-BLOCK <工具> <拦截原文第一行>」并执行 progress-sync.sh，然后结束本回合，等监督方确认（SUP-04 / SUP-11：只有监督方确认后才能改成抽象措辞继续）。
+- 措辞：受保护的发版分支一律写「发版分支」；版本控制写命令在进度/报告文字里用中文写；凭据/密钥文件名、商店上传工具名、监督桥目录不要写进任何文字。
+- 只在 fix/1194-r5 上。不许推送、合并、切换/新建分支、碰发版分支、提审、传浏览器扩展、reset/rebase/amend。遵守秘密信息保护规定，不读任何凭据或密钥文件，不打印环境变量，不要 cd 到工作区外，不要访问监督桥目录。不许改 scripts/、package.json、package-lock.json、extension/manifest.json、.github/、.claude/、.gitignore。
+- 不调断句/静音/回声相似度阈值，不动音频引擎。代码原则上不再改；只有 test:mac 或验收发现是本轮改动造成的回归才回去修（修 bug 先写会失败的测试），修完重跑 npm test 和受影响的回归。
+- 音量只能临时取消静音（unmute.sh），放完声音立刻 volume-restore.sh（恢复 88、静音）。麦克风授权框由监督方守望自动点「允许」。
+- 本轮只有 1 次本地提交，提交许可由监督方另开（见第 3 步）。临时文件只放 .local/accept5/。
+- 沙箱外代办只认下面的原样整条命令（不加管道、重定向、前缀、拼接），形式都是 bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/<脚本名>.sh
+
+## 进度
+每完成一步，往 .local/progress-dsh.txt 追加一行「时间 步骤 结果」（date '+%F %T'），然后执行：bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/progress-sync.sh
+
+## 第 1 步：test:mac
+1. 先确认名额：bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/accept-launch.sh 起 Debug 包（若提示没有 Debug 包或包比代码旧，先跑 test-mac 再回来扫也可以，但扫名额必须在正式那次 test:mac 之前），用 .local/accept5/drv.js + mt-eval.sh 扫一遍 NativeSpeech.supportedLocales() 里 assets==='installed' 的语言，必须只有 zh-CN、en-US、th-TH。若有别的，按第 4 轮不改代码的办法腾：对多出来的语言用 NativeSpeech.sttOpen 各开一次会话再关，最后开一次 zh-CN+en-US 会话，再 NativeSpeech.ensureAssets('stt',['th-TH'])，复扫确认，把扫描原文写进报告。
+2. bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/test-mac.sh
+对照基线：1.19.3 基线（只有 M8/M9 红）+ P-12 已知在这台 Mac 上会挂。即只允许 M8/M9/P-12 红，M2–M5、M7、P-01…P-11 必须绿（M2–M5、P-08 是「插话不被误杀」的保障）。
+
+## 第 2 步：自动化验收（Debug 包测试端点；工具同第 4 轮）
+- bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/accept-launch.sh（起/重开 Debug 包，端口写 .local/accept5/port.txt）；bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/mt-eval.sh（求值 .local/accept5/eval.js）；.local/accept5/drv.js 是封装好的驱动；bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/mic-state.sh；bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/unmute.sh / bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/volume-restore.sh。
+- 全新安装由监督方代办：写空文件 .local/accept5/REQUEST-RESET-<n>（n=1,2,3），监督方清容器、起 Debug 包、测试账号登录后写 RESET-DONE-<n>。每 15 秒查一次，最多等 10 分钟。你自己不许删 App 数据、不许自己登录、不许碰 ~/Library/Containers。
+- 逐条验并写证据（轮询日志行、时间、读到的原文）：
+  - A1–A9 全部：要真的把名额装满来验（装到 maximumReservedLocales，再装一门触发确认框、默认选中最久没用、当前语言对不可选、让出后原位标未就绪、补回期间已就绪一侧能说、Code=11 归「名额已满」类、首启页/设置页「已用 N / 上限」）。验完必须把名额恢复到只剩 zh-CN、en-US、th-TH（复扫确认，扫描原文写进报告）。
+  - B（回声第 0 步）：用 __mtTest 注入「she.」「theafternew.」这类转交候补，朗读中应被拦；对方真人插话照收。
+  - C1–C3。
+  - F/G 全部回归：按 accept-report-113.md 的 F1–F12、G1–G9（F8 记「—」）；F 系列在 REQUEST-RESET 后的首启上验。
+- 验完 bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/volume-restore.sh。写 .local/accept5/report.md 和 .local/accept5/result.json：{"pass": true/false, "items": {...}}。pass = 回归不差于基线 且 A/B/C 全部通过 且 F/G 中 113/114 已通过的项没有变差。
+
+## 第 3 步：提交（只有 pass=true 才做）
+先在回复里写「等待提交许可」，附 git status --short 和要提交的文件清单，然后结束本回合。监督方核对后会开 1 次提交许可并给你一条指令，届时执行：
+git add -u && git add src/app/asr-quota.js test/listen-r5.test.js docs/conventions-digest.md docs/release-baseline-1.19.3.md <你本轮另外新建的源码/测试文件，逐个列出> && git commit -m "fix(app): 1.19.4 r5 识别名额(改稿H)/回声转交闸/小纠错 + docs 规约摘要"
+不要用全量暂存（根目录有监督桥未跟踪目录）。不要提交 .local/。提交后 git status --short 应只剩监督桥未跟踪目录。记录提交号。
+
+## 第 4 步：打包上传（只有第 3 步提交成功才做）
+1. bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/asc-read.sh builds —— 记录各线最大号（预期 国际 iOS 166 / Mac 114，中国 iOS 109 / Mac 107）。
+2. bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/archive-upload.sh —— 脚本自己核对：工作区干净、HEAD 不是基线、result.json pass=true、build 号 = ASC 最大号+1（预填 167/115/110/108，对不上会拒绝退出，此时不要重试）。后台跑，超时 7200000ms。
+3. bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/asc-read.sh builds —— 四个新 build 都 VALID；处理中就每 2 分钟读一次，最多 10 次。
+
+## 报告（中文简洁，写 .local/accept5/final.md 并在最后一条回复给出）
+第一行实际模型；第二行起依据的规约条目；A/B/C 每项的根因（调用链 文件:行号）和修法、新增测试名（可引用 rootcause.md）；「开着静麦回声为什么还进得来」的结论；回归各项计数与基线对比；验收逐条结果（含名额装满与恢复的证据）；提交号；四个包版本/build/ASC 状态；guard 拦截情况；是否推送（应为否）；待人处理事项。最后再跑一次 bash /Users/belliedmonkey/dsh-plugins/release1194/hostexec5/progress-sync.sh。
