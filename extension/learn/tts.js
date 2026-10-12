@@ -89,24 +89,42 @@ var LearnTTS = (() => {
   //   device: 当前引擎是不是设备内置朗读；bridge: 原生桥在不在；ready: 模型已就位；
   //   reason: 'assets'（缺模型）| 'no-bridge' | 'not_device' | 其它原生原因
   //   engineIdOpt：设置页在**保存之前**就要画这一行（下拉刚换、cfg 还是旧的），所以允许指定引擎；不给就看当前配置。
-  async function deviceStatus(engineIdOpt) {
+  // deviceStatus() → { device, bridge, ready, langs, size, models, reason }
+  //   langOpt（2026-10-05，#565 六轮）：只探**这些语言**的模型 —— 全量探会把「泰语 105 MB
+  //   没下好」当成「整个设备引擎不可用」，中文也跟着不朗读。接受 string 或 string[]。
+  //   过滤后为空（选了 fr↔de 这门没有离线模型的语言）⇒ 视为就绪（走系统语音，不缺什么）。
+  async function deviceStatus(engineIdOpt, langOpt) {
     const e = engineIdOpt ? engineById(engineIdOpt) : engine();
     const device = !!(e && e.type === 'device-speech');
-    const models = deviceModels();
+    const all = deviceModels();
+    const langList = langOpt
+      ? (Array.isArray(langOpt) ? langOpt : [langOpt]).map((x) => String(x || '').split('-')[0].toLowerCase())
+      : null;
+    const models = langList
+      ? (all || []).filter((m) => langList.includes(String(m.lang || '').split('-')[0].toLowerCase()))
+      : all;
     const out = { device, bridge: deviceBridge(), ready: false, langs: [], size: deviceSize(models), models, reason: '' };
     if (!device) { out.reason = 'not_device'; return out; }
     if (!out.bridge || !models) { out.reason = 'no-bridge'; return out; }
+    if (langList && models.length === 0) {
+      // 选的语言没有离线模型（fr/de/es 等）⇒ 走系统语音，不缺什么 —— 视为就绪
+      out.ready = true; out.reason = '';
+      return out;
+    }
     const r = await NativeSpeech.ttsProbe(models);
     out.ready = !!(r && r.ok);
     out.langs = (r && r.langs) || [];
     out.reason = out.ready ? '' : ((r && r.reason) || 'failed');
     return out;
   }
-  // ensureDeviceReady(onProgress) → { ok, downloaded, reason?, why? }
+  // ensureDeviceReady(onProgress, engineIdOpt, langOpt) → { ok, downloaded, reason?, why? }
   //   onProgress 收原生 assets-progress 原样 { kind:'tts', locale, fraction, state }；调用方画在自己的状态行上，不弹框。
   //   不是 device 引擎 ⇒ ok（跳过）。缺模型 ⇒ 下载；失败 ⇒ reason 'assets' + why。
-  async function ensureDeviceReady(onProgress, engineIdOpt) {
-    const st = await deviceStatus(engineIdOpt);
+  //   langOpt（2026-10-05，#565 回归修复）：**只确保这门语言的模型**。原来检查全部 —— 加了泰语后
+  //   105 MB 从 GitHub 拉不下来，把中文也堵死了（真机：build 88 中/泰全都不朗读）。
+  //   不传 ⇒ 检查全部（包屏 / 设置试听那两处用）。
+  async function ensureDeviceReady(onProgress, engineIdOpt, langOpt) {
+    const st = await deviceStatus(engineIdOpt, langOpt);
     if (!st.device) return { ok: true, downloaded: false, skipped: true };
     if (!st.bridge || !st.models) return { ok: false, downloaded: false, reason: 'unsupported' };
     if (st.ready) return { ok: true, downloaded: false };
@@ -534,7 +552,7 @@ var LearnTTS = (() => {
   // took over while this one was in flight — the caller should show NOTHING for
   // it (the newer call owns the UI).
   // speak(text, lang[, opts]) — opts.onProgress：设备内置朗读首次要下载模型时的进度回调（§9.1.1）
-  async function speak(text, lang, opts) {
+  async function speakImpl(text, lang, opts) {
     stop();   // records the interrupt (if any) and bumps the epoch
     const myEpoch = epoch;
     const stale = () => epoch !== myEpoch;
@@ -552,7 +570,7 @@ var LearnTTS = (() => {
       if (typeof NativeSpeech === 'undefined' || !NativeSpeech.available()) return { ok: false, reason: 'unsupported' };
       // 模型没就位 ⇒ 先下载（四处首播同一入口）。此前这里直接看 ttsLangs()，模型缺失时它是空的，
       // 于是无声地「回落系统语音」—— 那正是「系统 tts 下载触发没感受到」的根因（2026-09-17）。
-      const rd = await ensureDeviceReady(opts && opts.onProgress);
+      const rd = await ensureDeviceReady(opts && opts.onProgress, undefined, baseLang(lang) || scriptLang(clean) || '');
       if (stale()) return { ok: false, reason: 'superseded' };
       if (!rd.ok) return { ok: false, reason: rd.reason || 'assets', why: rd.why };
       const base = baseLang(lang) || scriptLang(clean) || '';
@@ -579,6 +597,20 @@ var LearnTTS = (() => {
     currentDone = doneResolve;
     job.done.then(() => doneResolve(), () => doneResolve());
     return { ok: true, engine: engineId, done };
+  }
+
+  // 诊断包装（§0.4.1，2026-10-06）：一切朗读结局（含在途失败 #568 那类）进环形日志。
+  // 零内容：只有语言码/结局/原因/引擎 —— 文本一个字节不进。
+  async function speak(text, lang, opts) {
+    const r = await speakImpl(text, lang, opts);
+    try {
+      DiagLog.push('speak', {
+        lang: baseLang(lang) || String(lang || ''),
+        ok: !!(r && r.ok), reason: (r && r.reason) || '',
+        engine: (r && r.engine) || '', fallback: (r && r.fallback) || '',
+      });
+    } catch (_) {}
+    return r;
   }
 
   // 系统语音（Web Speech）那一支；device 引擎在模型不含该语言时也回落到这里。

@@ -63,10 +63,15 @@ If a proposed event does not serve one of these rows, it does not go in.
    switch in settings, a privacy-page section listing every field.
 5. **The event set is a whitelist.** Same rule as the provider registry: one place,
    reviewed, nothing restated elsewhere.
-6. **The China flavor sends nothing.** `belliedmonkey.com` promises 「『无遥测』是长期承诺
-   ……不随版本变化」 in writing, the domestic backend is not ready, and anonymous events
-   crossing the border are not a conversation worth having under PIPL. The china build
-   strips the module and the URL; the sentence stays true.
+6. **The China flavor sends no telemetry-whitelist events — only the content-free anonymous
+   diagnostics channel.** `belliedmonkey.com` promises 「『无遥测』是长期承诺 ……不随版本变化」 in
+   writing, and that stays true of the anonymous usage-event whitelist: the china build strips the
+   telemetry module and its URL, and no event crosses the border under PIPL. Since 2026-10-06 (L2)
+   the china flavor additionally ships the **separately-disclosed diagnostic upload** (random install
+   id + event name + counts into an INSERT-only mailbox) — **the original text and the translation are
+   never sent, nor is any page content, URL, account or key** (field whitelist enforced in `push`).
+   See 「诊断上报」 below and the `AGENTS.md` rule 4 note. The two privacy pages must be reworded in
+   the same version (#569): stop writing an unqualified 「一个字节都不发」.
 7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
    （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
    转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
@@ -108,13 +113,13 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 
-**`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版按规则 4 一个字节都不发，
+**`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版不发任何遥测白名单事件（2026-10-06 起另有不含内容的匿名诊断通道，见「诊断上报」；原文与译文一律不发），
 于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到
 （`docs/troubleshooting.md` §1）。折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**
 （`extension/learn/telemetry.js`，`localStorage['mt:diag']`，上限 20 条，**只记 `auth_fail`** ——
 其余事件没有「查一个具体故障」的用途，留了只是噪声）。判定用 `spec() === null`（＝这个 build
 根本没有遥测），**不是** `enabled()`：用户自己关掉遥测（有 spec、`tm:on=false`）**不写**。
-承诺一个字没动（仍然一个字节都不发），读法见 `docs/troubleshooting.md` §1.9。
+承诺一个字没动（遥测白名单一条都不发；诊断通道另计、不含内容），读法见 `docs/troubleshooting.md` §1.9。
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
 `grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
@@ -286,7 +291,7 @@ key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.
 表里是因为历史行还在（180 天保留期内），删掉枚举会让那些行读不回来 —— **白名单同时是读的
 契约，不只是写的闸门。**
 
-### 3.3.3 2026-09-17：实时转写固定为设备内置 —— 白名单不变，两个值改含义（待人评审）
+### 3.3.3 2026-09-17：实时转写固定为设备内置 —— 白名单不变，两个值改含义（待人评审；**已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**，保留为历史）
 
 云端实时引擎下线、实时转写固定为本机（learning-design §9.6 门控 2026-09-17 修订）之后，**不加事件、不加
 属性、不加值**。变的是两个既有值的含义，写在这里免得下次读数时按旧义解：
@@ -542,7 +547,7 @@ edge function neither stores nor logs them as a field).
 
 ⚠️ 两条限制写在前面：`ui=zh` **不等于身在中国大陆**（中文界面可能在任何地方），16 vs 7
 也说明不了统计意义。**这是方向，不是结论。** 另外这四倍差在**国际版内部**（按 `ui` 切），
-与 flavor 无关 —— 中国版按 §2 原则 6 一条都不发，不要混为一谈。
+与 flavor 无关 —— 中国版按 §2 原则 6 不发遥测白名单事件（诊断通道另计、不含内容），不要混为一谈。
 
 **现在的数据回答不了「为什么」。** `onboarding_done` 有 `surface` / `result` / `step`，
 所以我们知道**他停在第 1 屏**，但分不开这两种人：
@@ -954,3 +959,26 @@ switch, never your content". **Benefit:** funnel, retention and failure codes, o
 we have none today. **Cost of not doing it:** already being paid — #174's table, plus
 a whole day on 2026-09-05 spent asking users by email what a heartbeat would have said.
 The China flavor pays nothing and breaks no promise.
+
+
+## 诊断上报（diagnostic upload）—— **独立通道，不进遥测白名单**（2026-10-06，L2）
+
+> 与 §3 的事件白名单**并列**，不是它的一部分。加事件才动白名单；这条通道**没有 `track()` 调用**，
+> 是设备把本机环形日志**原样搬运**到自有后端信箱，因此纪律写在这里，而不是 §3 的表里。
+
+**它发什么。** `app/diag-log.js` 的环形日志（六类：`dl` 下载 tier 链 / `tts_engine` 装载失败 /
+`speak` 结局 / `probe` / `auth` 里程碑 / `engine_fix` 自愈），外加安装 id、flavor、App 版本与构建号、OS。
+**字段白名单在 `push` 处强制** —— 文本、译文、URL、账号、密钥一个键都进不来；上报器只搬运、不再加工。
+
+**它发到哪。** 自有后端的 `bt_diag_events`（`deploy/diag-events.sql`）：**write-only 信箱** ——
+`anon` 只有 `INSERT`，没有 `SELECT` / `UPDATE` / `DELETE`；服务端 cron 30 天清理。
+
+**什么时候发。** 启动后 5 秒 + 每 40 条 + 失败类（`tts_engine` / `dl`）快发；时间戳游标只发增量；失败静默。
+排障读回走 `npm run diag:latest` / `diag:dump -- <uuid>`（SSH 直连，不经 anon）。
+
+**披露与开关。** **单独披露**的一条路径（§2.1 第 3 条的形状）：设置页「诊断日志」（复制 / 清空），
+默认开、可关，关掉即停止上报。**中国版同样只发这一类，且不含任何内容** —— 因此
+`belliedmonkey.com` 的隐私页措辞必须同版本改写（#569），不再写「一个字节都不发」。
+
+**为什么不做成遥测事件。** 遥测白名单的门禁要求「每个事件在每个宿主有真实发送点」——
+诊断上报没有这样的发送点，硬塞进去只会逼出一个假的 `track()` 调用，把「白名单 = 真发的东西」这条判据做虚。

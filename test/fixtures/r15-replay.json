@@ -1,0 +1,1202 @@
+{
+ "source": "r15 replay fixture: native stt events from r14 groups (App clock -> rel ms); see /tmp/r14/r14-g*.json",
+ "g3_prev_included": true,
+ "g2_xfer_utterances": [
+  2,
+  4,
+  5,
+  7,
+  8,
+  9
+ ],
+ "cases": {
+  "g3-yesplease-auto-5": {
+   "label": "P2-yesplease-auto-5",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes please.",
+   "t_end_rel": 7764,
+   "events": [
+    {
+     "rel": 2266,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2269,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes,",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2272,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2275,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2276,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2281,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2287,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes p",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2291,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pl",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2294,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes ple",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2296,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes plea",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2302,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2369,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes please。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2370,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please.",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2389,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes please。",
+     "conf": 0.8460000000000001,
+     "t0": 342888,
+     "t1": 344291
+    },
+    {
+     "rel": 2393,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ",..",
+     "conf": 0.654,
+     "t0": 343128,
+     "t1": 344208
+    },
+    {
+     "rel": 7273,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7276,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes,",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7278,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7279,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7280,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please.",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7282,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7286,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7291,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes p",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7296,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pe",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7298,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pa",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7299,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pe",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7302,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pe。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7311,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": "Yes, please.",
+     "conf": 0.8315,
+     "t0": 348551,
+     "t1": 349193
+    },
+    {
+     "rel": 7320,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": 0.951,
+     "t0": 348431,
+     "t1": 348851
+    },
+    {
+     "rel": 7321,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": " ple。",
+     "conf": 0.5449999999999999,
+     "t0": 348851,
+     "t1": 349193
+    },
+    {
+     "rel": 17879,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "花",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 19804,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "花",
+     "conf": 0.466,
+     "t0": 357706,
+     "t1": 361486
+    }
+   ]
+  },
+  "g3-yesplease-auto-7": {
+   "label": "P2-yesplease-auto-7",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes please.",
+   "t_end_rel": 8068,
+   "events": [
+    {
+     "rel": 2242,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2243,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes,",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2243,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2248,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2249,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2251,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2255,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes p",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2256,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes pl",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2258,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes ple",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2260,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes plea",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2263,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2538,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please.",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2560,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes please",
+     "conf": 0.8895,
+     "t0": 363984,
+     "t1": 365398
+    },
+    {
+     "rel": 2565,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": "., please.",
+     "conf": 0.677,
+     "t0": 363984,
+     "t1": 365124
+    },
+    {
+     "rel": 7440,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7440,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7444,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7448,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7456,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7474,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.6485000000000001,
+     "t0": 369718,
+     "t1": 370284
+    },
+    {
+     "rel": 7475,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ". Yes, please.",
+     "conf": 0.17500000000000002,
+     "t0": 368578,
+     "t1": 370284
+    },
+    {
+     "rel": 8545,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8554,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "P",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8557,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Pl",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8562,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ple",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8565,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Pleas",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8568,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8578,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ".",
+     "conf": 0.187,
+     "t0": 370284,
+     "t1": 371395
+    },
+    {
+     "rel": 8581,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Please。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8594,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Please。",
+     "conf": 0.6025,
+     "t0": 370284,
+     "t1": 371395
+    },
+    {
+     "rel": 12555,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ".",
+     "conf": 0.297,
+     "t0": 372115,
+     "t1": 374395
+    }
+   ]
+  },
+  "g3-yesplease-auto-9": {
+   "label": "P2-yesplease-auto-9",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes please.",
+   "t_end_rel": 8484,
+   "events": [
+    {
+     "rel": 1423,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": ".",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2533,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2535,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes,",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2536,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2554,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "p",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2557,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "pl",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2559,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "ple",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2561,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "plea",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2566,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2713,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes, please.",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2739,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ".",
+     "conf": 0.782,
+     "t0": 385656,
+     "t1": 386736
+    },
+    {
+     "rel": 2746,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "please",
+     "conf": 0.841,
+     "t0": 385596,
+     "t1": 386893
+    },
+    {
+     "rel": 7632,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7652,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7654,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7655,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 7659,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ".",
+     "conf": 0.001,
+     "t0": 390373,
+     "t1": 391795
+    },
+    {
+     "rel": 7674,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": 0.546,
+     "t0": 387073,
+     "t1": 391795
+    },
+    {
+     "rel": 8725,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8739,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "p",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8741,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "pl",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8743,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "ple",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8744,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "plea",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8748,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "please",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8921,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": "please.",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 8932,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "please",
+     "conf": 0.725,
+     "t0": 391855,
+     "t1": 393093
+    },
+    {
+     "rel": 8936,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": "please.",
+     "conf": 0.484,
+     "t0": 391855,
+     "t1": 392935
+    }
+   ]
+  },
+  "g2-yes-auto-2": {
+   "label": "P2-yes-auto-2",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 2178,
+   "events": [
+    {
+     "rel": 2615,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2616,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2621,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2634,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2650,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.896,
+     "t0": 236596,
+     "t1": 237692
+    }
+   ]
+  },
+  "g2-yes-auto-4": {
+   "label": "P2-yes-auto-4",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 1957,
+   "events": [
+    {
+     "rel": 1367,
+     "type": "stt-partial",
+     "locale": "en-US",
+     "text": ".",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 1386,
+     "type": "stt-final",
+     "locale": "en-US",
+     "text": ".",
+     "conf": 0.508,
+     "t0": 257864,
+     "t1": 258985
+    },
+    {
+     "rel": 2375,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2379,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2383,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2399,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2412,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.666,
+     "t0": 258985,
+     "t1": 259995
+    }
+   ]
+  },
+  "g2-yes-auto-5": {
+   "label": "P2-yes-auto-5",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 1842,
+   "events": [
+    {
+     "rel": 2333,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2334,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2337,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2348,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2357,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.6475,
+     "t0": 265992,
+     "t1": 267088
+    }
+   ]
+  },
+  "g2-yes-auto-7": {
+   "label": "P2-yes-auto-7",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 1873,
+   "events": [
+    {
+     "rel": 2350,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2354,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2358,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2371,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2383,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.829,
+     "t0": 288599,
+     "t1": 289694
+    }
+   ]
+  },
+  "g2-yes-auto-8": {
+   "label": "P2-yes-auto-8",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 1827,
+   "events": [
+    {
+     "rel": 2197,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2198,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2201,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2213,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2221,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.785,
+     "t0": 295994,
+     "t1": 296989
+    }
+   ]
+  },
+  "g2-yes-auto-9": {
+   "label": "P2-yes-auto-9",
+   "mode": "auto",
+   "side": "other",
+   "lid": "en",
+   "text": "Yes.",
+   "t_end_rel": 1833,
+   "events": [
+    {
+     "rel": 2282,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Y",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2286,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Ye",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2289,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2307,
+     "type": "stt-partial",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": -1,
+     "t0": null,
+     "t1": null
+    },
+    {
+     "rel": 2322,
+     "type": "stt-final",
+     "locale": "zh-CN",
+     "text": "Yes。",
+     "conf": 0.8955,
+     "t0": 303188,
+     "t1": 304299
+    }
+   ]
+  }
+ }
+}

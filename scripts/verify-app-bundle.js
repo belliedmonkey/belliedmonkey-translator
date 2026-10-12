@@ -196,9 +196,12 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
           'telemetry-block','telemetry-on','telemetry-note',
           'clean-known','settings-signout','delete-account','gear',
-          // 2026-09-17 设置页信息架构：四节节头、依赖行、视频的语言、离线模型行、识别语言包行
+          // 2026-09-17 设置页信息架构：四节节头、依赖行、离线模型行、识别语言包行。
+          // （原来这里还有 subtitle-video-lang —— 2026-10-07「不用预设语言」把设置页的语言下拉
+          //   整行撤走了（语言改为在听译/字幕页里选、并由 LID 自动识别），DOM 里不再有它。
+          //   注意：这段注释在模板字符串里，别写反引号。）
           'sec-engines','sec-features','sec-account','sec-about','dep-review','dep-drive','dep-listen','dep-docs',
-          'subtitle-video-lang','tts-offline-row','listen-pack-row','app-adv-hint-go']
+          'tts-offline-row','listen-pack-row','app-adv-hint-go']
           .filter((id) => !document.getElementById(id)),
         // The engine picker must be REGISTRY-fed and chat-only: one 不使用 row plus
         // every chat-capable registry entry, and never the google translation
@@ -522,8 +525,13 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
             // 默认两个设备包「就绪」（boot 落首页）。window.__mtPacksReady === false 时切到
             // 「未就绪」——首启包屏（屏 2）只有在未就绪时才画，包屏的语言下拉判据要那一次重载。
             const ready = window.__mtPacksReady !== false;
-            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true }) : async () => ({ ready: false, ok: false });
+            if (window.NativeSpeech && window.NativeSpeech.probe) window.NativeSpeech.probe = ready ? async () => ({ ready: true, ok: true, assets: 'installed' }) : async () => ({ ready: false, ok: false, assets: 'missing' });
             if (window.NativeSpeech && window.NativeSpeech.ensureAssets) window.NativeSpeech.ensureAssets = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.lidProbe) window.NativeSpeech.lidProbe = async () => ({ ok: ready });
+            if (window.NativeSpeech && window.NativeSpeech.vadProbe) window.NativeSpeech.vadProbe = async () => ({ ok: ready });
+            if (window.NativeSpeech && window.NativeSpeech.ensureLid) window.NativeSpeech.ensureLid = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.ensureVad) window.NativeSpeech.ensureVad = async () => ({ ok: true });
+            if (window.NativeSpeech && window.NativeSpeech.networkKind) window.NativeSpeech.networkKind = async () => 'wifi';
             if (window.LearnTTS && window.LearnTTS.deviceStatus) window.LearnTTS.deviceStatus = ready ? async () => ({ ready: true }) : async () => ({ ready: false });
             // 夹具会话是假 token：boot 的同步会 401，App 会自己登出并把会话删掉。
             // 门禁要测的不是登录，所以把 signOut 桩成空操作，让会话在场即可。
@@ -576,56 +584,52 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       if (!sv.signedIn) {
         console.log('  · 会话夹具没落到首页：' + JSON.stringify(sv));
       }
-      // 首启包屏的语言对：两个下拉必须**真的画出**标签与选项（含泰语）。
-      // 2026-10-04 build 78 实测过的缺陷：paintFirstRun 里 firstRunLocales(s) 的 `s` 不在
-      // 作用域（形参叫 session），ReferenceError 被那层 `catch (_) {}` 吞掉 ⇒ wire() 没跑，
-      // 控件在、标签与选项全空（用户截图里就剩并排两个空小方框）。所以断言的是**有内容**，
-      // 不是「元素存在」。
+      // 首启包屏（改稿 F，2026-10-11）：多选列表必须画出语言本名（含泰语），基础组件锁住，
+      // 泰语朗读包默认不勾。2026-10-04 build 78 的空下拉已经换成这张列表；断言的仍是**有内容**。
       //
-      // 这一段要的是**两个包未就绪**的屏 2，而上面的正常夹具把两个包桩成就绪（boot 落首页）——
+      // 这一段要的是**包未就绪**的屏 2，而上面的正常夹具把包桩成就绪（boot 落首页）——
       // 临时装一个「包未就绪」的文档脚本重载一次，测完摘下、重载回就绪态，免得影响后面依赖
-      // 「已就绪 + 落首页」的横幅 / 引导各块。
+      // 「已就绪 + 落首页」的横幅 / 引导各块。基础组件的探针也要被同一支桩盖住，否则屏 2 不出现。
       const nr = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
         { source: 'window.__mtPacksReady = false;' }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
       const dg = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify((() => {
         const $ = (id) => document.getElementById(id);
-        const my = $('packs-my-lang'), ot = $('packs-other-lang');
-        const codes = (list) => list ? Array.from(list.options).map((o) => o.value) : [];
-        const labels = (list) => list ? Array.from(list.options).map((o) => o.textContent) : [];
-        let regLen = -1; try { regLen = AppListen.langOptions(null).length; } catch (_) {}
+        const rows = Array.from(document.querySelectorAll('[data-pack-lang]')).map((el) => ({
+          code: el.getAttribute('data-pack-lang'),
+          name: ((el.parentElement && el.parentElement.querySelector('.pack-line-name')) || {}).textContent || '',
+          checked: !!el.checked,
+        }));
+        const base = document.querySelector('[data-pack-kind="base"]');
+        const thaiTts = document.querySelector('[data-pack-kind="tts-th"]');
         return {
           packsHidden: $('firstrun-packs').hidden,
-          myLabel: ($('packs-my-lang-label') || {}).textContent || '',
-          otLabel: ($('packs-other-lang-label') || {}).textContent || '',
-          myCodes: codes(my), otCodes: codes(ot),
-          myVal: my ? my.value : '', otVal: ot ? ot.value : '',
-          blankLabels: labels(my).filter((x) => !x).length,
-          myDisabledAll: my ? Array.from(my.options).every((o) => o.disabled) : null,
-          myW: my ? Math.round(my.getBoundingClientRect().width) : 0,
-          regLen,
+          codes: rows.map((r) => r.code),
+          names: rows.map((r) => r.name),
+          blank: rows.filter((r) => !r.name).length,
+          zhChecked: !!((rows.find((r) => r.code === 'zh') || {}).checked),
+          enChecked: !!((rows.find((r) => r.code === 'en') || {}).checked),
+          baseChecked: !!(base && base.checked),
+          baseDisabled: !!(base && base.disabled),
+          thaiTtsChecked: !!(thaiTts && thaiTts.checked),
+          my: ($('packs-my-lang') || {}).value || '',
+          ot: ($('packs-other-lang') || {}).value || '',
+          more: !!$('packs-more'),
         };
       })())`, returnByValue: true }, sessionId);
       const g = JSON.parse(dg.result.value);
       need(!g.packsHidden, '包桩成「未就绪」后首启包屏（屏 2）没显示 —— 这一段的前置不成立');
-      need(!!(g.myLabel && g.otLabel),
-        `首启包屏的语言下拉没有标签（build 78 的回归）：我的语言=「${g.myLabel}」对方的语言=「${g.otLabel}」`);
-      need(g.myCodes.length > 0 && g.otCodes.length > 0,
-        `首启包屏的语言下拉没有选项（build 78 的回归）：我的语言 ${g.myCodes.length} 项、对方的语言 ${g.otCodes.length} 项`);
-      need(g.myCodes.length === g.regLen && g.otCodes.length === g.regLen && g.regLen >= 12,
-        `首启包屏语言下拉的选项数与注册表不一致（注册表 ${g.regLen}、两个下拉 ${g.myCodes.length}/${g.otCodes.length}）—— 两个下拉都应是「我们支持的所有语言」`);
-      need(g.myCodes.includes('th') && g.otCodes.includes('th'),
-        '首启包屏语言下拉里没有泰语（th）—— 「所有选语言的地方都要有泰语」');
-      need(!!g.myVal && !!g.otVal,
-        `首启包屏的语言下拉有空框（选不中任何语言）：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
-      need(g.myCodes.includes(g.myVal) && g.otCodes.includes(g.otVal),
-        `首启包屏语言下拉的选中值不在选项里：我的语言=「${g.myVal}」对方的语言=「${g.otVal}」`);
-      need(g.myW > 150,
-        `首启包屏语言下拉宽度只有 ${g.myW}px —— 应当是设计稿里的整行宽度，不是挤在一行的小方框`);
-      need(g.blankLabels === 0, `首启包屏语言下拉有 ${g.blankLabels} 个选项没有名字`);
-      need(g.myDisabledAll !== true,
-        '首启包屏语言下拉的选项全部不可选 —— 那样列表点不开');
+      need(g.codes.includes('zh') && g.codes.includes('en') && g.codes.includes('th') && g.codes.includes('ja'),
+        '首启包屏的多选缺固定四门（中文 / English / ไทย / 日本語）：' + JSON.stringify(g.codes));
+      need(g.names.includes('中文') && g.names.includes('English') && g.names.includes('ไทย') && g.names.includes('日本語'),
+        '语言名不是本名：' + JSON.stringify(g.names));
+      need(g.blank === 0, '首启包屏有语言行没有名字');
+      need(g.zhChecked && g.enChecked, '中文和 English 没有默认勾上');
+      need(g.baseChecked && g.baseDisabled, '基础组件没有锁成必选');
+      need(g.thaiTtsChecked === false, '泰语朗读包被默认勾上了');
+      need(!!g.my && !!g.ot, '听译那一对的隐藏镜像是空的：' + g.my + '/' + g.ot);
+      need(g.more, '「其他 N 种语言」没有默认收起');
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr.identifier }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
@@ -892,29 +896,57 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 而那个余量在真机上根本不存在（2026-09-01 用户截图里按钮就是没了）。
       await cdp.send('Emulation.setDeviceMetricsOverride',
         { width: 320, height: 480, deviceScaleFactor: 1, mobile: true }, sessionId);
-      // ─── 首跑：资源包下完 ⇒ **直接落首页**（2026-10-03 用户裁定）─────────────────
-      // 这一块原来靠「走完整个引导、逐屏采」—— 引导屏已整块撤掉（它只剩两个没有内容的键，
-      // 外加一屏「登录，顺手领一份免费额度」+「扩展里也要登录一次」，而用户已经登录过了）。
-      // 现在采的是**新形状**：不开 #onboard、直接落首页，并把 onboardSeen 落一次。
+      // ─── 首跑：资源包下完 ⇒ 点「进入实时听译」才离开（改稿 F，2026-10-11）────────
+      // 2026-10-03 的形状是点一次「下载并继续」就落首页。改稿 F 在中间加了一屏：
+      // 下完停住，按钮变成「进入实时听译」，再点一次才离开。离开后打开听译页
+      // （#app-listen 盖住 #signed-in）。门禁要的仍是「首启结束」：包屏藏起、
+      // 首页或听译页在、引导不开、登录屏不露、onboardSeen 落一次。
       // 内联 reset/reopen（它们在本块**之后**才定义 —— 这里引用会踩 TDZ）。
       await cdp.send('Runtime.evaluate', { expression: `new Promise((r) => chrome.storage.local.remove(['onboardSeen', 'onboardResume', 'extBannerDoneAt', 'engineChosen', 'onboardIntent', 'provider', 'apiKey'], () => chrome.storage.local.set({}, r)))`, awaitPromise: true }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1500));
+      // 重载清掉页面上的 __sweep。下完、还停在包屏时先扫一遍深浅色，再点离开。
+      await installSweep(cdp, sessionId);
+      const driveDone = `(async () => {
+          const $ = (id) => document.getElementById(id);
+          const sec = () => $('firstrun-packs');
+          const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+          if (phase() !== 'done') $('packs-go').click();
+          const t0 = Date.now();
+          while (Date.now() - t0 < 8000 && phase() !== 'done') await new Promise((r) => setTimeout(r, 40));
+          return phase();
+        })()`;
+      const ph = await cdp.send('Runtime.evaluate', { expression: driveDone, awaitPromise: true, returnByValue: true }, sessionId);
+      need((ph.result || {}).value === 'done', '资源包没有下到「都下好了」：' + ((ph.result || {}).value));
+      const packBad = await sweepBoth(cdp, sessionId, '#firstrun-packs');
+      need(packBad.length === 0, '【首启包屏】看不清的文字: ' + packBad.slice(0, 6).join(' | ')
+        + (packBad.length > 6 ? ` …共 ${packBad.length} 处` : ''));
       const frOb = await cdp.send('Runtime.evaluate', {
         expression: `(async () => {
           const $ = (id) => document.getElementById(id);
           const g = (k) => new Promise((r) => chrome.storage.local.get([k], (v) => r((v || {})[k])));
-          $('packs-go').click();
-          await new Promise((r) => setTimeout(r, 400));
-          return JSON.stringify({ onboardHidden: $('onboard').hidden, home: !$('signed-in').hidden,
-            packsHidden: $('firstrun-packs').hidden, outHidden: $('signed-out').hidden,
+          const sec = () => $('firstrun-packs');
+          const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+          const left = () => {
+            const s = sec();
+            if (!s || !s.hidden) return false;
+            const listen = $('app-listen');
+            return (listen && !listen.hidden) || !$('signed-in').hidden;
+          };
+          if (!left() && phase() === 'done') $('packs-go').click();
+          const t0 = Date.now();
+          while (Date.now() - t0 < 4000 && !left()) await new Promise((r) => setTimeout(r, 40));
+          return JSON.stringify({ onboardHidden: $('onboard').hidden,
+            home: !$('signed-in').hidden || ($('app-listen') && !$('app-listen').hidden),
+            listen: !!($('app-listen') && !$('app-listen').hidden),
+            packsHidden: sec().hidden, outHidden: $('signed-out').hidden,
             seen: !!(await g('onboardSeen')) });
         })()`, awaitPromise: true, returnByValue: true }, sessionId);
       const fr = JSON.parse(frOb.result.value);
-      need(fr.packsHidden && fr.home, '资源包下完之后没有落首页：' + JSON.stringify(fr));
-      need(fr.onboardHidden, '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接落首页');
-      need(fr.outHidden, '首页出现时登录屏还露着');
-      need(fr.seen, '落首页时没有把 onboardSeen 落一次（老客户端与遥测的 step 枚举还读它）');
+      need(fr.packsHidden && fr.home, '点了「进入实时听译」之后没有离开包屏：' + JSON.stringify(fr));
+      need(fr.onboardHidden, '引导屏又被打开了 —— 2026-10-03 裁定：就绪直接离开首启');
+      need(fr.outHidden, '离开首启时登录屏还露着');
+      need(fr.seen, '离开首启时没有把 onboardSeen 落一次（老客户端与遥测的 step 枚举还读它）');
     }
     // Style.css 404s silently; without this the page still "works" and looks broken.
     need(!!o.styled, '样式没加载 —— Style.css 的路径又错了');
@@ -946,7 +978,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         const vis = (el) => !!(el && el.offsetParent !== null); const $ = (id) => document.getElementById(id);
         $('gear').click(); await new Promise((r) => setTimeout(r, 120));
         $('mode-quick').click(); await new Promise((r) => setTimeout(r, 80));
-        const pick = () => ({ ttsMode: vis($('tts-mode')), daily: vis($('daily')), listenLang: vis($('listen-my-lang')), videoLang: vis($('subtitle-video-lang')), counts: vis($('settings-counts')),
+        const pick = () => ({ ttsMode: vis($('tts-mode')), daily: vis($('daily')), counts: vis($('settings-counts')),
           ttsEngine: vis($('tts-engine')), sttEngine: vis($('stt-engine')), card: vis($('quick-setup-card')), hint: vis($('app-adv-hint-go')) });
         const quick = Object.assign(pick(), {
           advOutside: [...document.querySelectorAll('#app-settings .adv-only')].filter((e) => !e.closest('#sec-engines')).length,
@@ -959,10 +991,10 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       })()`, awaitPromise: true, returnByValue: true }, sessionId);
       if (r.exceptionDetails) throw new Error('档位作用域断言失败: ' + ((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text));
       const m = JSON.parse(r.result.value);
-      need(m.quick.ttsMode && m.quick.daily && m.quick.listenLang && m.quick.videoLang && m.quick.counts, '快速档里②③节的控件该可见（语音模式 / 每日新卡 / 对话语言 / 视频语言 / 学习库计数），实际 ' + JSON.stringify(m.quick));
+      need(m.quick.ttsMode && m.quick.daily && m.quick.counts, '快速档里②③节的控件该可见（语音模式 / 每日新卡 / 学习库计数），实际 ' + JSON.stringify(m.quick));
       need(!m.quick.ttsEngine && !m.quick.sttEngine && m.quick.card && !m.quick.hint, '快速档不该露引擎下拉与「一键配置在快速里」、该有一键卡，实际 ' + JSON.stringify(m.quick));
       need(m.quick.advOutside === 0 && m.quick.quickOutside === 0, '.adv-only / .quick-only 只许出现在「引擎与密钥」一节里，实际 adv ' + m.quick.advOutside + ' / quick ' + m.quick.quickOutside);
-      need(m.detail.ttsMode && m.detail.daily && m.detail.listenLang && m.detail.counts && m.detail.ttsEngine && m.detail.sttEngine && !m.detail.card && m.detail.hint, '详细档里②③节照旧可见、引擎下拉出来、一键卡收起、顶上有「一键配置在快速里」，实际 ' + JSON.stringify(m.detail));
+      need(m.detail.ttsMode && m.detail.daily && m.detail.counts && m.detail.ttsEngine && m.detail.sttEngine && !m.detail.card && m.detail.hint, '详细档里②③节照旧可见、引擎下拉出来、一键卡收起、顶上有「一键配置在快速里」，实际 ' + JSON.stringify(m.detail));
       need(m.quick.deps.every((x) => /依赖|Needs/.test(x)), '四个功能块首行都该有「依赖」行，实际 ' + JSON.stringify(m.quick.deps));
     }
 
@@ -977,7 +1009,8 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         + (bad.length > 6 ? ` …共 ${bad.length} 处` : ''));
     };
     await sweepView('首页', `(async () => { const $ = (id) => document.getElementById(id);
-      $('onboard').hidden = true; $('signed-out').hidden = false; return 'ok'; })()`, 'body');
+      $('onboard').hidden = true; $('firstrun-packs').hidden = true; $('app-listen').hidden = true;
+      $('signed-out').hidden = false; return 'ok'; })()`, 'body');
     await sweepView('设置页', `(async () => { const $ = (id) => document.getElementById(id);
       $('signed-out').hidden = true; $('app-settings').hidden = false;
       await settingsModel.notifySettingsShown(null); return 'ok'; })()`, '#app-settings');
@@ -1128,10 +1161,16 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         await new Promise((r) => chrome.storage.local.remove(['tm:queue', 'onboardIntent'], r));
         const $ = (id) => document.getElementById(id);
         const vis = (el) => !!(el && el.getClientRects().length);
-        // packs 就绪 ⇒ boot 落首页，引导要经屏 2 的 handler 才打开。
-        $('packs-go').click();
-        await new Promise((r) => setTimeout(r, 300));
+        // 改稿 F：第一次点开始下载，下完停在包屏；再点「进入实时听译」才离开，
+        // 并在那一下把默认 onboardIntent=listen 落盘、记一条 onboard_intent。
+        const sec = () => $('firstrun-packs');
+        const phase = () => (sec() && sec().getAttribute('data-phase')) || '';
+        if (phase() !== 'done') $('packs-go').click();
+        const t0 = Date.now();
+        while (Date.now() - t0 < 8000 && phase() !== 'done') await new Promise((r) => setTimeout(r, 40));
         const step0 = document.body.dataset.obStep || '';
+        if (sec() && !sec().hidden && phase() === 'done') $('packs-go').click();
+        await new Promise((r) => setTimeout(r, 400));
         const exits = ['ob-webonly', 'ob-intent-listen', 'ob-intent-both'].filter((id) => vis($(id))).length;
         const hasChips = !!$('ob-engines');
         $('ob-next').click();

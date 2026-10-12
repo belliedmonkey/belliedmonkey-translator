@@ -1634,7 +1634,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
   });
   test('识别包装不上时 fail fast（2026-10-02 真机）：failed 之后必须补一条 stt-state', () => {
     const body = stripComments(tpl);
-    const failIdx = body.indexOf('"state": "failed", "reason": String(describing: error)');
+    // reason 必须是**协议码**（2026-10-07 批 28：以前这里送系统原文，界面上把
+    // `Error Domain=SFSpeechErrorDomain Code=11 …` 拼进了「多半是网络问题」）。
+    const failIdx = body.indexOf('"state": "failed", "reason": mtPrepareCode(error)');
     const fastIdx = body.indexOf('"state": "ready", "assets": "missing"');
     ok(failIdx > 0, '要有 assets-progress 的 failed 分支');
     ok(fastIdx > failIdx, 'failed 之后要立刻发 stt-state（否则 JS 只能干等 120 s 超时，真因不可见）');
@@ -1652,6 +1654,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"com.apple.voice."', '"ttsbundle"', '"com.apple.eloquence."', '"com.apple.speech.synthesis.voice."',
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
+      // 第 4 轮：请求 id（stt-probe / stt-assets 与它们的终态一一对应，防跨轮串话）。协议字段名，非文案。
+      '"req"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
       // 引擎类型（2026-10-03，高质量语音）：清单里的 `type` 值与 Kokoro 多出来的字段名 ——
@@ -1672,8 +1676,116 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"mt-speech"', '"mt.speech.tts"', '"%02x"',
       // zip 解包（MTZip）：错误码与路径片段
       '".zip"', '".installed-"', '"/"', '".."', '"."', '"eocd"', '"cdir"', '"name"', '"local"', '"range"', '"method"', '"inflate"',
-      '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"']);
+      '"window.NativeSpeech && window.NativeSpeech._fromNative(\\(json))"',
+      // 诊断录音通道（§0.4.1，2026-10-06）：协议 id
+      '"diag-audio"', '"mic"', '"on"', '"session"', '"url"', '"sidecar"',
+      // 引擎选择标记（st/dt 前缀，§0.4.1 转写质量量化）
+      '"dt:"', '"st:"', '"engines"', '"tts-\\(id)"',
+      // 端上语种识别（LID，§9.6.1.3，2026-10-07）：协议 id 与清单字段名（都非文案）。
+      // lid-probe/lid-assets = 入口；lid-state/lid-result/lid-live = 出口；lid = kind 与 locale；
+      // encoder/decoder/dir = 清单字段；mt-lid/mt.lid = 目录与队列名；assets/ms = 状态与时长字段。
+      '"lid-probe"', '"lid-assets"', '"lid-state"', '"lid-result"', '"lid-live"',
+      // 按住说 / 点一下（2026-10-08）：暂停/恢复判定 + 立刻收口 + 它们的回执（都是协议 id / 字段名）
+      '"lid-pause"', '"lid-resume"', '"stt-cut"', '"lid-paused"', '"on"',
+      '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"',
+      // 识别器装配失败的域判据（SFSpeechErrorDomain Code=11 = locale 名额用满，2026-10-07 批 28）。
+      '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
+      // 识别语言名额（第 5 轮 A / 改稿 H，2026-10-12）：stt-release 让出、stt-quota 回名额快照，
+      // maxReserved/reserved 是 `AssetInventory.maximumReservedLocales` / `.reservedLocales` 的字段名。
+      '"stt-release"', '"stt-quota"', '"maxReserved"', '"reserved"',
+      // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
+      '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
+      // 蜂窝确认（改稿 F，2026-10-11）：NWPathMonitor 只报接口种类，不报地址。
+      '"network"', '"cellular"', '"wifi"', '"unknown"', '"mt.speech.network"',
+      // LID 引擎选择 + ECAPA 实验引擎的计时/诊断字段（2026-10-08，§9.6.1.3）。
+      // engine/whisper/ecapa = 引擎 id；modelMs/feMs/judges/llr/speechMs = 诊断字段名。都非文案。
+      '"engine"', '"whisper"', '"ecapa"', '"modelMs"', '"feMs"', '"judges"', '"llr"', '"speechMs"',
+      '"langs"', '"threshold"', '"cpuOnly"', '"trace"', '"lid-trace"',   // 只记录的日志开关与它的事件名
+      // lid-trace 的字段名（都非文案）：每一档窗长的分数 + 话音/喂入量 + 当前判词
+      '"quietMs"', '"speechMs"', '"fedMs"', '"melFrames"', '"caps"', '"decided"', '"verdict"', '"verdictLlr"',
+      '"pa"', '"pb"', '"top"', '"ms"', '"seq"', '"rewrites"', '"baseThreshold"', '"feTotalMs"', '"frames"',   // ECAPA 清单字段（只比哪两门 / |LLR| 阈值）
+      '"SpeechBrainECAPAVoxLingua107"', '"SpeechBrainECAPAVoxLingua107.mlmodelc"',   // 侧载产物名/目录名（非文案）
+      '"labels.json"', '"mel_features"', '"rewriteFix"',   // ECAPA 轻量修正开关（H2 / L-16）
+      // M-05 / H5：解压用的**同级暂存目录前缀**（原子换入），非文案
+      '".staging-"']);
     for (const lit of strings) ok(allowed.has(lit), `原生侧出现了非协议字符串（可能是文案）：${lit}`);
+  });
+
+  test('L-05：改写次数**按句清零**、`lastDecided` 按句保留（判定策略读的那份数', () => {
+    const lid = stripComments(tpl).slice(stripComments(tpl).indexOf('final class MTDeviceLid'));
+    const fin = lid.slice(lid.indexOf('func finish()'), lid.indexOf('func finish()') + 900);
+    ok(/self\.partialCount = \[:\]; self\.partialLast = \[:\]/.test(fin), 'finish() 没有把两路改写次数清零');
+    ok(!/lastDecided = ""/.test(fin), 'finish() 把 lastDecided 也清了 —— 短句就没法沿用上句判词');
+    // `lastDecided` 住在 MTEcapaLid 里（lid-ecapa.swift），MTDeviceLid.reset() 经 `ecapa?.reset()` 清它。
+    const ecapaSrc = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'lid-ecapa.swift'), 'utf8');
+    const rst = ecapaSrc.slice(ecapaSrc.indexOf('func reset()'), ecapaSrc.indexOf('func reset()') + 400);
+    ok(/lastDecided = ""/.test(rst), 'MTEcapaLid.reset() 没有清 lastDecided（新一场要能再用 1 s 窗）');
+    ok(/self\?\.ecapa\?\.reset\(\)/.test(lid), 'MTDeviceLid.reset() 没有把 reset 传给 ECAPA');
+  });
+
+  test('LID 喂音频（§9.6.1.3）：样本在 tap 线程拷走、先过 VAD、只喂话音 —— 两个坑都是 Mac 实测踩出来的', () => {
+    const sp = stripComments(tpl);
+    ok(/MTDeviceVad\.shared\.accept\(pcm, fallback: rms > vadLevel\)/.test(sp),
+      '喂 LID 之前必须先过 VAD（拿不到 VAD 才退回能量门）');
+    ok(/MTDeviceLid\.shared\.feed\(pcm, speech: speech\)/.test(sp), '识别器没有把 VAD 的判定交给 LID');
+    const lid = sp.slice(sp.indexOf('final class MTDeviceLid'));
+    ok(lid.length > 0, 'speech-bridge 里没有 MTDeviceLid');
+    const feed = lid.slice(lid.indexOf('func feed(_ pcm'), lid.indexOf('func finish()'));
+    ok(feed.length > 0, 'MTDeviceLid.feed 找不到');
+    // 野指针（2026-10-07 Mac 实测：指针带进 q.async ⇒ 判词恒为 sq，同一段音频在 python 侧是 th）
+    // ⇒ 转换 + 拷贝必须在 `pcm16` 里做完（tap 线程），`feed` 只收已经拷好的 [Float]。
+    ok(/func pcm16\(_ bufIn: AVAudioPCMBuffer\) -> \[Float\]\?/.test(lid), 'LID 没有 pcm16（tap 线程上的转换 + 拷贝）');
+    const p16 = lid.slice(lid.indexOf('func pcm16('), lid.indexOf('func feed('));
+    ok(/return \[Float\]\(UnsafeBufferPointer\(start: ch\[0\]/.test(p16), 'pcm16 没把样本拷成 [Float]');
+    ok(/func feed\(_ pcm: \[Float\]/.test(lid), 'feed 必须收已经拷好的 [Float]，不能收 AVAudioPCMBuffer');
+    ok(!/AVAudioPCMBuffer/.test(feed), 'feed 里不该再出现 AVAudioPCMBuffer（那意味着指针又被带进异步块）');
+    // 话音门（2026-10-07 Mac 实测：10 s 房间噪声 + 7 s 泰语 ⇒ sq；只喂话音 ⇒ th）
+    ok(/guard speech \|\| self\.quietRun <= 4000/.test(feed), 'LID 没有静音门：停顿还在往里累计');
+    ok(/if speech \{ self\.sawSpeech = true \}/.test(feed), 'sawSpeech 应当只由话音置位');
+    // 2026-10-07 用户拍「两门对称」之后的提速：**≥0.5s 就判、每 0.5s 一次** ——
+    // 只在用户选的两门里取（第三门 = 还没判到），所以早判不引入错答案。
+    ok(/self\.buf\.count >= 8000/.test(feed), 'live 判定的门槛应当是 0.5s（8000 样本）');
+    ok(/now - self\.lastLive >= 0\.5/.test(feed), 'live 判定的节奏应当是每 0.5s');
+  });
+
+  // 2026-10-07 真机批 28：English⇄한국어 点「开始听」失败 ——
+  // `SFSpeechErrorDomain Code=11 "Too many allocated locales, 5 maximum."`。
+  // 根因：每次 stt-start 都新建 transcriber，旧那一对的 locale **从来没释放过**，来回切几次就撞上限。
+  test('★ locale 名额（真机批 28 Code=11）：建模块前先释放不再用的，只留当前语言对', () => {
+    const sp = stripComments(tpl);
+    ok(/static func releaseUnused\(/.test(sp), '没有 releaseUnused（不再用的 locale 要 AssetInventory.release）');
+    ok(/AssetInventory\.release\(reservedLocale:/.test(sp), 'releaseUnused 没真的调 AssetInventory.release');
+    // **顺序**：先释放再建模块（新模块自己也要占名额，先腾位置）
+    const iRel = sp.indexOf('await MTDeviceTranscriber.releaseUnused(');
+    const iMake = sp.indexOf('guard let m = await makeModule(id)');
+    ok(iRel > 0 && iMake > iRel, '释放必须在建模块**之前**（先腾位置再占）');
+    ok(/noteHeld\(id, p\.locale\)/.test(sp), '没记下「占着哪个 locale」（释放就无从谈起）');
+  });
+  test('★ 建不出模块要分「不支持」与「包没装好」（真机批 28 查实 probe 会回 assets:"missing"）', () => {
+    const sp = stripComments(tpl);
+    ok(/private var lastModuleFail = "locale"/.test(sp), '没有 lastModuleFail（分不出两种原因）');
+    ok(/st == .unsupported \? "locale" : "assets"/.test(sp), '没有按 AssetInventory 状态分「不支持 / 包没装好」');
+    ok(/reason": lastModuleFail/.test(sp), 'start 里没有用 lastModuleFail 报真因');
+  });
+
+  test('★ 识别器失败的 reason 是协议码，不是系统原文（真机批 28 把 Code=11 原文拼进了「多半是网络问题」）', () => {
+    const sp = stripComments(tpl);
+    ok(!/"reason": String\(describing: error\)/.test(sp), '还有把系统原文当 reason 送出去的地方');
+    ok(/private func mtPrepareCode\(_ error: Error\) -> String/.test(sp), '没有 mtPrepareCode');
+    ok(/e\.domain == "SFSpeechErrorDomain", e\.code == 11 \{ return "locales" \}/.test(sp), 'Code=11 没有映射成 locales');
+    ok(/reason": mtPrepareCode\(error\)/.test(sp), 'prepare 失败没有走 mtPrepareCode');
+  });
+
+  // 2026-10-08 用户实测「泰文没有成功断句」：识别器的 final 是懒时间片，而收口只按「停顿 ≥vadMs」——
+  // 泰语句末是空格、没标点，说话人不停顿就 25–56s 才吐一片（真机时间轴实测）⇒ 一行都落不下来。
+  test('★ 一句话要有绝对上限（泰语连续说话 25–56s 才吐一片，切句器无从下手）', () => {
+    const sp = stripComments(tpl);
+    ok(/private let maxUtterMs: Double = \d+/.test(sp), '没有 maxUtterMs（一句话的绝对上限）');
+    ok(/private var utterMs: Double = 0/.test(sp), '没有 utterMs（距上次收口的累计）');
+    ok(/let byPause = quietMs >= vadMs/.test(sp) && /byPause \|\| utterMs >= maxUtterMs/.test(sp), '收口没有按两个条件（停顿够久 或 这句话太长）');
+    // 上限触发要**优先切在最近那次停顿上** —— 硬切会切出半个词（泰文实测）
+    ok(/let cut = byPause \? fed : \(pauseFed > utterStartFed \? pauseFed : fed\)/.test(sp), '上限触发没有优先切在停顿上');
+    ok(/utterMs = 0/.test(sp), '收口后没有重置累计');
   });
 
   test('朗读期间静麦（§9.6 回声段 2026-09-13）：audio-bridge 有 muteInput，两个朗读后端出声置 true、收尾置 false', () => {
@@ -1682,8 +1794,12 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
     ok(/muteUntil/.test(a) && /frameCapacity: raw\.frameLength/.test(a), '静音是同长度的零帧，不是丢帧');
     const on = (sp.match(/MTAudioBridge\.shared\.muteInput = true/g) || []).length;
     const off = (sp.match(/MTAudioBridge\.shared\.muteInput = false/g) || []).length;
-    eq(on, 2, 'Piper 首块 + 系统语音 didStart 各一处置 true，实际 ' + on);
-    ok(off >= 5, 'Piper finish/stop + 系统语音 didFinish/didCancel/stop 都要放开，实际 ' + off);
+    // 2026-10-05（#565 三轮）：系统语音从 delegate 回调改成 write() 管线 —— 它的置 true/放开
+    // 与 Piper 同形（首块 onFirst / finish+stop），各一对。
+    eq(on, 2, 'Piper 首块 + 系统语音首块（write() 管线）各一处置 true，实际 ' + on);
+    ok(off >= 4, 'Piper finish/stop + 系统语音 finish/stop 都要放开，实际 ' + off);
+    ok(sp.includes('MTSpeechChunkBox(player: p, rate: r)'), '系统语音没有走 write()→MTSpeechChunkBox 管线 —— delegate 时序不精确正是 #565 回声的根');
+    ok(sp.includes('synth.write(u)'), '系统语音没用 synth.write() 拿 PCM —— 静麦就只能猜时机');
   });
 
   test('本机路 mic-start {deliver: level} 不发 PCM，只发 mic-level；tap 只装一次、sink 共享', () => {

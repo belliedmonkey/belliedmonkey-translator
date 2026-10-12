@@ -89,7 +89,7 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
 }
 :where(#signed-out, #signed-in, #app-settings) input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 
-:where(#signed-out, #signed-in, #app-settings) button {
+:where(#signed-out, #signed-in, #app-settings, #firstrun-packs, #packs-cellular) button {
   font: inherit;
   font-weight: 700;
   color: #fff;
@@ -108,9 +108,9 @@ h1 { font-size: 1.45rem; margin: 0 0 6px; }
    2026-09-24 Mac 真机验证时才看见：引导第一屏的「以后再设置」渲染成与主按钮等宽的白色药丸，
    而 #386 的画布定的是**文字链**（照 `ext` 屏 2026-09-02「等宽灰按钮」那次先例）。扩展那侧的
    onboard.html 是另一套 CSS，不受影响 —— 所以商店图里它是文字链，App 里不是，两边对不上。 */
-:where(#signed-out, #signed-in, #app-settings, #onboard) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
+:where(#signed-out, #signed-in, #app-settings, #onboard, #firstrun-packs, #packs-cellular) :where(button, select, input):disabled { opacity: 0.45; cursor: default; }
 
-:where(#signed-out, #signed-in, #app-settings, #onboard) button.link {
+:where(#signed-out, #signed-in, #app-settings, #onboard, #firstrun-packs, #packs-cellular) button.link {
   background: none;
   color: var(--accent-deep);
   font-weight: 400;
@@ -218,7 +218,7 @@ header {
    without this the 播客模式 row sits flush against 开始复习/同步 and the two read
    as one control block (真机实测 2026-08-17). Same 10px as the intra-row gap. */
 .row + .row { margin-top: 10px; }
-:where(#signed-out, #signed-in, #app-settings) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
+:where(#signed-out, #signed-in, #app-settings, #firstrun-packs, #packs-cellular) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 #review-view { display: flex; flex-direction: column; gap: 6px; }
 /* The one shell-owned control INSIDE the review surface, so the scoped rules
    above no longer reach it — it carries its link styling by id (which also
@@ -592,7 +592,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-head h2 { font-size: 1.25rem; margin: 0; flex: 1; }
 :where(#app-listen) .listen-pill { font-size: 0.8rem; color: var(--dim); background: var(--card-bg); border-radius: 999px; padding: 4px 10px; white-space: nowrap; }
 :where(#app-listen) .listen-pill.live { color: var(--sage-strong); }
-:where(#app-listen) .listen-langline { margin: 0; }
 :where(#app-listen) .listen-now-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.8rem; color: var(--dim); }
 /* iPhone 实时字幕：画中画小窗预览占位（深色底与原生预览同色，原生叠上之前也不刺眼） */
 :where(#app-listen) .listen-subs-pip { width: 64%; max-width: 280px; aspect-ratio: 4 / 5; margin: 8px auto 0; border-radius: 12px; background: #161412; display: flex; align-items: center; justify-content: center; }
@@ -616,10 +615,36 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-tts-fallback { color: var(--dim); font-size: 0.78rem; margin-left: 8px; }
 :where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
-:where(#app-listen) .listen-pair { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-:where(#app-listen) .listen-pair label { display: flex; align-items: center; gap: 6px; margin: 0; }
-:where(#app-listen) .listen-pair select { font: inherit; }
-:where(#app-listen) .listen-pair-arrow { color: var(--accent); }
+/* 语言状态行（§9.6.1.4，2026-10-07 用户拍）：语言控件**不再常驻** —— 默认只有一行被动状态
+   （「正在识别语言…」/「已识别：中文 · English」）加一个「语言手动指定」文字按钮；认错了才摊开
+   原来的两个下拉。包一层 wrap 是为了让 grid 里只占一格（收起时不改变布局）。 */
+/* 控制区（改稿 E，2026-10-09 · Pencil `改稿 E` 定稿 B）：**语言对一个胶囊** + 右侧两个图标开关。
+   语言对做成一个壳 —— 两个 select 在**同一个**圆角胶囊里，中间的 ⇄ 既是分隔、也一眼看出「一对」；
+   窄屏自然折行（胶囊不被拆开）。变量只用调色板里真实存在的 token。 */
+:where(#app-listen) .listen-ctl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+:where(#app-listen) #app-listen-lang-wrap { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; }
+:where(#app-listen) .listen-pair-seg { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+:where(#app-listen) .listen-pair-seg select { font: inherit; font-size: 0.95rem; color: var(--text);
+  background: transparent; border: 0; padding: 2px 2px; max-width: 42vw; }
+:where(#app-listen) .listen-pair-arrow { color: var(--accent); font-weight: 600; padding: 0 2px; }
+:where(#app-listen) .listen-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
+:where(#app-listen) .listen-tg { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 12px;
+  min-height: 40px; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg);
+  font-size: 0.9rem; cursor: pointer; }
+:where(#app-listen) .listen-tg.off { opacity: 0.45; }
+:where(#app-listen) .listen-tg input { width: 18px; height: 18px; accent-color: var(--accent); }
+:where(#app-listen) .listen-tg-ico { font-size: 0.95rem; line-height: 1; }
+:where(#app-listen) .listen-tg-svg { width: 16px; height: 16px; flex: none; color: var(--text-secondary); }
+/* 「语言手动指定」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
+   认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
+:where(#app-listen) .listen-sheet-mask { position: fixed; inset: 0; z-index: 2147483000; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; justify-content: center; }
+:where(#app-listen) .listen-sheet { background: var(--card-bg, #fff); color: var(--fg, var(--text, #201e1d)); width: 100%; max-width: 560px; border-radius: 20px 20px 0 0; padding: 20px 20px 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 -8px 40px rgba(0,0,0,.18); }
+:where(#app-listen) .listen-sheet h3 { margin: 0; font-size: 1.05rem; }
+:where(#app-listen) .listen-sheet-auto { display: flex; justify-content: space-between; align-items: center; font: inherit; min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--line, var(--border, #dcd3c4)); border-radius: 12px; background: none; color: inherit; cursor: pointer; }
+:where(#app-listen) .listen-sheet-dot { color: var(--accent); }
+:where(#app-listen) .listen-sheet-sub { margin: 0; }
+:where(#app-listen) .listen-sheet-close { font: inherit; font-weight: 700; min-height: 44px; border-radius: 999px; border: 1.5px solid var(--line, var(--border, #dcd3c4)); background: none; color: var(--accent-deep, var(--accent)); cursor: pointer; }
 /* 「换引擎」就地入口（2026-10-04）：语言列表被引擎挡住时才出现的一行文字按钮 —— 沿用强调色，
    不新造控件样式（卡片里不许再套卡片、也不加第二个实心按钮）。 */
 :where(#app-listen) .listen-engine-hint { margin: -2px 0 2px; font-size: inherit; }
@@ -627,6 +652,31 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-autospeak { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 0.95rem; }
 :where(#app-listen) .listen-autospeak input { width: 22px; height: 22px; accent-color: var(--accent); }
 :where(#app-listen) .listen-autospeak.off { opacity: 0.45; }
+/* 按住说 / 点一下（2026-10-08 终稿 3 · C 案改稿）：**固定贴底**的一条两个大按钮。
+   两半等宽、实心底色 + 圆角、高 60pt（>=56）；控制区（主按钮 / 两个下拉 / 自动朗读 / 这次不留记录）
+   在它上方 —— 按钮条管「这一句谁在说」，控制区管「这一场怎么听」。
+   变量只许用调色板里**真实存在**的（2026-10-08 那次「纯文字」事故就是用了不存在的 --sage-weak）。 */
+:where(#app-listen) .listen-ptt-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg); border-top: 1px solid var(--border); }
+:where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 64px; }
+:where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--sage-light); color: var(--text); border: 1px solid var(--border); border-radius: 22px;
+  padding: 6px; font: inherit; font-weight: 600; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) .listen-ptt-btn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+:where(#app-listen) .listen-ptt-btn.on .listen-ptt-hint { color: rgba(255, 255, 255, 0.85); }
+:where(#app-listen) .listen-ptt-btn:disabled { opacity: 0.45; cursor: default; }
+@keyframes mt-listen-flash {
+  0% { background: var(--sage-light); }
+  100% { background: var(--card-bg); }
+}
+:where(#app-listen) .listen-now.flash { animation: mt-listen-flash 0.7s ease; }
+:where(#app-listen) .listen-ptt-name { display: inline-flex; align-items: center; gap: 6px; font-size: 1.05rem; line-height: 1.2; }
+:where(#app-listen) .listen-ptt-mic { width: 16px; height: 16px; flex: none; }
+:where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--text-secondary); line-height: 1.2; }
+/* 贴底的按钮条会盖住内容尾巴：给页面留出它的高度（60 + 上下内边距 + 安全区）。 */
+:where(#app-listen) { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
@@ -647,7 +697,34 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 :where(#firstrun-packs) .pack-name { font-size: 1rem; font-weight: 600; color: var(--fg); }
 :where(#firstrun-packs) .pack-row .note { margin: 0; }
-:where(#app-listen) .listen-eph-pill { font-size: 0.78rem; color: var(--warn-text, var(--accent-deep)); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 9px; margin-left: 6px; white-space: nowrap; }
+/* 改稿 F（2026-10-11）：多选行。颜色只走共享 token。 */
+:where(#firstrun-packs) .packs-sec { margin: 14px 0 6px; color: var(--text-secondary); font-size: 0.85rem; }
+:where(#firstrun-packs) .pack-line {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: var(--card-bg); border-radius: var(--radius-md); padding: 12px 14px; margin: 0 0 8px;
+}
+:where(#firstrun-packs) .pack-line input { width: 22px; height: 22px; margin-top: 2px; flex: none; accent-color: var(--accent); }
+:where(#firstrun-packs) .pack-line-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+:where(#firstrun-packs) .pack-line-name { font-weight: 600; color: var(--fg); }
+:where(#firstrun-packs) .pack-line-sub { color: var(--text-secondary); font-size: 0.8rem; line-height: 1.35; }
+/* 状态字与「其他 N 种语言」是正文尺寸。--accent 在深色卡片上约 3.2:1，
+   再乘行上的透明度就掉到 2.88:1。--accent-deep 两种配色都 ≥ 4.5:1。
+   勾选锁住靠 disabled，不再给整行降透明度（那会把文字一起压过对比度门）。 */
+:where(#firstrun-packs) .pack-line-status { color: var(--accent-deep); font-size: 0.85rem; white-space: nowrap; }
+:where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent-deep); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
+#packs-cellular:not([hidden]) {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+#packs-cellular .packs-cell-card {
+  background: var(--card-bg); color: var(--fg);
+  border-radius: var(--radius-md); padding: 20px; max-width: 420px; width: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+}
+#packs-cellular .packs-cell-acts { display: flex; flex-direction: column; gap: 8px; }
+#packs-cellular .packs-cell-acts button { min-height: 48px; }
 :where(#app-listen) .listen-body { cursor: pointer; }
 :where(#app-listen) .listen-who { font-size: 0.75rem; color: var(--dim); min-width: 2.2em; padding-top: 3px; flex: none; }
 :where(#app-listen) .listen-row.me .listen-who { color: var(--accent-deep); }
@@ -659,7 +736,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-row-acts { display: flex; gap: 12px; margin-top: 4px; }
 :where(#app-listen) .listen-act, :where(#app-listen) .listen-tr-retry { font: inherit; font-size: 0.85rem; background: none; border: 0; padding: 4px 0; color: var(--link); text-decoration: underline; cursor: pointer; min-height: 32px; }
 :where(#app-listen) .listen-tr-retry { color: var(--danger); }
-:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry):not(.listen-raw-toggle) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button:not(.link):not(.listen-star):not(.listen-swap):not(.listen-act):not(.listen-tr-retry):not(.listen-raw-toggle):not(.listen-ptt-btn):not(.listen-prep-retry) { font: inherit; font-size: 1.05rem; font-weight: 700; color: #fff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; cursor: pointer; min-height: 64px; touch-action: none; -webkit-user-select: none; user-select: none; }
+:where(#app-listen) button.listen-prep-retry { font: inherit; font-weight: 600; font-size: 0.95rem; min-height: 40px; padding: 8px 16px; border-radius: 999px; background: none; color: var(--accent-deep); border: 1.5px solid var(--line); cursor: pointer; }
 :where(#app-listen) button.secondary { background: none; color: var(--accent-deep); border: 1.5px solid var(--line); }
 :where(#app-listen) button:disabled { opacity: 0.45; cursor: default; }
 :where(#app-listen) .listen-head-acts { display: flex; gap: 12px; }
@@ -667,28 +745,36 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* macOS 宿主的窗口是 820×640 起步、可拉宽：≥ 720px 时左右两栏 —— 左边「当下」+ 两个按钮，
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
-  #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 16px; row-gap: 12px; align-items: start;
-    grid-template-areas: "head head" "lang lang" "macnote macnote" "now hist" "queue hist" "note hist" "actions hist" "subspriv hist" "pair hist" "speakrow hist" "ephrow hist" "ephwhy hist" "subsprep hist" "cost hist" "devpriv hist" "summary summary"; }
+  /* 宽屏（改稿 E 定稿）：**左栏固定 250pt**（现在卡 + 控制区 + **两个键**）/ 右栏 = 整句定稿。
+     形态由**窗口宽度**决定，不是设备：全屏 iPad 与 Mac 同属这一套；iPad 分屏 / Mac 缩窗 <720
+     自动回落上面那套窄版（不为 iPad 另写布局）。 */
+  #app-listen:not([hidden]) { display: grid; grid-template-columns: 250px minmax(0, 1fr); column-gap: 20px; row-gap: 10px; align-items: start;
+    grid-template-areas: "head head" "macnote macnote" "now hist" "ctl hist" "actions hist" "ptt hist" "queue hist" "note hist" "enginehist hist" "ephwhy hist"; }
   /* 每个直接子元素都要有自己的格子（test/app-listen-grid.test.js）：没写的会被自动放置，
      共用 class 的会叠进同一格 —— 「这次不留记录」曾与「朗读译文」叠在 speakrow 里。 */
   :where(#app-listen) .listen-head { grid-area: head; }
-  :where(#app-listen) .listen-langline { grid-area: lang; }
-  :where(#app-listen) .listen-mac-note { grid-area: macnote; }
-  #app-listen-now { grid-area: now; }
-  #app-listen-history-wrap { grid-area: hist; align-self: stretch; }
+  :where(#app-listen) .listen-mac-note { grid-area: macnote; margin: 0; }
+  #app-listen-now { grid-area: now; align-self: start; }
+  #app-listen-history-wrap { grid-area: hist; align-self: start; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
-  :where(#app-listen) .listen-pair { grid-area: pair; }
-  :where(#app-listen) .listen-autospeak { grid-area: speakrow; }
+  :where(#app-listen) .listen-ctl-row { grid-area: ctl; }
+  :where(#app-listen) .listen-engine-hint { grid-area: enginehist; }
+  #app-listen-ptt { grid-area: ptt; }
   #app-listen-queue { grid-area: queue; }
-  #app-subs-privacy { grid-area: subspriv; }
-  #app-listen-ephemeral-row { grid-area: ephrow; }
   #app-listen-ephemeral-why { grid-area: ephwhy; }
-  #app-subs-prep { grid-area: subsprep; }
-  #app-listen-device-privacy { grid-area: devpriv; }
-  #app-listen-cost { grid-area: cost; }
-  #app-listen-summary { grid-area: summary; }
-  :where(#app-listen) .listen-history { max-height: calc(100vh - 250px); }
+  /* 两个键在宽版**回到左栏内**：解开贴底固定 —— 桌面上不再是两条通栏横幅。 */
+  #app-listen-ptt { position: static; padding: 0; background: none; border-top: 0; }
+  /* 两个键在宽版**竖排**：左栏只有 250pt，并排时每个约 117pt，小字「● 正在录 · 点一下停」
+     会挤成两行并顶到底边（Mac 真机截图实测）。竖排各占满左栏宽，读起来也像桌面控件。 */
+  :where(#app-listen) .listen-ptt { flex-direction: column; height: auto; }
+  :where(#app-listen) .listen-ptt-btn { flex: none; height: 64px; }   /* flex:1 1 0 在竖排里会把高度压成内容高（50）*/
+  :where(#app-listen) .listen-ptt-btn:disabled { height: auto; min-height: 64px; }
+  /* 左栏里的控制区：药丸换行排，不挤成一行 */
+  :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  :where(#app-listen) .listen-toggles { margin-left: 0; }
+  :where(#app-listen) .listen-pair-seg select { max-width: none; }
+  :where(#app-listen) .listen-history { max-height: calc(100vh - 210px); }
 }
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
@@ -862,3 +948,48 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .docs { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 0; }
 .docs .modes-label { font-size: 0.85rem; color: var(--dim); padding: 0 4px; }
 .docs .mode { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); }
+
+/* ── 识别语言名额（第 5 轮 A / 改稿 H）────────────────────────────────────────
+   三种状态各自一个颜色（绿=占名额、橙=未就绪可补回、灰=未下载），名额条与图例
+   在首启包屏和设置「语言包」屏共用；底部的让出确认框也是同一套。 */
+.quota-card { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.quota-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.quota-card-head span:first-child { font-weight: 700; }
+#packs-quota-used { color: var(--accent-deep); font-weight: 700; }
+.quota-bar { display: flex; gap: 6px; }
+.quota-seg { flex: 1 1 0; height: 8px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); }
+.quota-seg.on { background: var(--sage-strong); border-color: var(--sage-strong); }
+.quota-seg.full { background: var(--accent-deep); border-color: var(--accent-deep); }
+.quota-card .note { margin: 0; }
+.quota-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 0 0 12px; font-size: 0.85rem; color: var(--text-secondary); }
+.quota-leg { display: inline-flex; align-items: center; gap: 6px; }
+.quota-leg i { width: 9px; height: 9px; border-radius: 50%; background: var(--text-secondary); display: inline-block; }
+.quota-leg.ready i { background: var(--sage-strong); }
+.quota-leg.recover i { background: var(--accent-deep); }
+.quota-leg.absent i { background: var(--text-secondary); opacity: .5; }
+.pack-line-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 6px; background: var(--text-secondary); opacity: .5; }
+.pack-line-dot[data-state="ready"] { background: var(--sage-strong); opacity: 1; }
+.pack-line-dot[data-state="recoverable"] { background: var(--accent-deep); opacity: 1; }
+.pack-line-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pack-line-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: var(--field); border: 1px solid var(--line); color: var(--text-secondary); white-space: nowrap; }
+.pack-line-tag.ready { background: var(--sage-light); border-color: var(--sage-strong); color: var(--sage-strong); }
+.pack-line-tag.recoverable { background: var(--field); border-color: var(--accent-deep); color: var(--accent-deep); }
+.pack-line-act { flex: none; min-height: 34px; padding: 4px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: none; color: var(--accent-deep); font: inherit; }
+.pack-line-act.recover { border-color: var(--accent-deep); color: var(--accent-deep); }
+.quota-sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.32); display: flex; align-items: flex-end; justify-content: center; z-index: 60; }
+.quota-sheet { background: var(--card-bg); color: var(--fg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 18px 18px 22px; display: flex; flex-direction: column; gap: 10px; max-height: 86vh; overflow: auto; }
+.quota-sheet h3 { margin: 0; font-size: 1.05rem; }
+.quota-sheet .note { margin: 0; }
+.quota-sheet-pick { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.85rem; }
+.quota-pick { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line); }
+.quota-pick.disabled { opacity: .5; }
+.quota-pick input { width: 20px; height: 20px; flex: none; accent-color: var(--sage); }
+.quota-pick-name { flex: 1 1 auto; font-weight: 600; }
+.quota-pick-when { color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }
+.quota-sheet-acts { display: flex; gap: 10px; margin-top: 6px; }
+.quota-sheet-acts button { flex: 1 1 0; min-height: 48px; }
+.listen-quota { display: flex; flex-direction: column; gap: 10px; }
+.listen-quota-title { margin: 0; font-weight: 700; }
+.listen-quota .note { margin: 0; }
+.listen-quota button { min-height: 48px; }
+.listen-pill.quota { background: var(--field); color: var(--accent-deep); border: 1px solid var(--accent-deep); }

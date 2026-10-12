@@ -114,7 +114,11 @@ function open(docId, page) {
   if (docId) v.openDoc(docId, page || 1); else v.showList();
 }
 
-// ── 首页入口：登录前后两个首页都有；不设门（没配引擎时页内那一行会说去哪配）────
+// ── 首页入口：目前**只在登录后的首页**（`#signed-in` 的 `<div className="docs">`）。
+// 曾经这里写「登录前后两个首页都有」，但 `ENTRY_SUFFIXES` 的第二个后缀（`app-docs-entry2`）
+// 从来没有渲染出来 —— 注释比实现多说了半句（2026-10-08 回归 C-08/A-05 查实）。
+// **第三十批不补**（要补就是用户可见改动，得先出稿）：记在待定里，等用户落地后再问。
+// 不设门（没配引擎时页内那一行会说去哪配）。
 // （入口两卡的文案与点击监听保留命令式 —— 卡片在 AppShell 静态 JSX 里，uiLang 变化
 // 经 shell-model 的 populateStatic 重涂，React 对没变的 vdom 不回写 DOM，互不打架。）
 const ENTRY_SUFFIXES = ['', '2'];

@@ -2,6 +2,8 @@
 
 Guidance for AI agents working on this repo. (Format follows https://agents.md/.)
 
+做事前先读 docs/conventions-digest.md。
+
 ## Project overview
 
 「大肚猴翻译 / BelliedMonkey Translator」— an open-source browser extension for
@@ -59,8 +61,12 @@ these in order when designing anything new:
    id that is never joined to an account, and never any page content, URL, hostname,
    API key, email or server error text. It is on by default, disclosed at first run,
    switchable off in settings, and switching it off erases that install's rows. The
-   **China flavor sends nothing** — `belliedmonkey.com` promises that in writing, and
-   the promise stays literally true. Adding an event, a property, or a join is a
+   *(Note 2026-10-06 — 诊断日志 L2，`36465e49`.)* **中国版不再「一个字节都不发」。** 诊断上报把
+    **匿名诊断事件**（随机安装 id + 事件名 + 计数；字段白名单在 `app/diag-log.js` 的 `push` 处强制 ——
+    内容 / URL / 账号 / 密钥一个键都进不来）POST 到自有后端信箱 `bt_diag_events`（**INSERT-only**）。
+    它**不走遥测白名单**（没有 `track()`），是**单独披露**的一条通道：默认开、设置里可关、
+    启动后 5 秒或每 40 条一批、失败静默。⇒ 两站隐私页措辞必须**同版本**改写（不再写「一个字节都不发」）；
+    改这句承诺本身是域设计变更，见 #569。 Adding an event, a property, or a join is a
    domain-design change (governance rule below), not a code change. Model inference on
    user content (translation, quiz generation, grading) is allowed **only** when the
    user chose it and is paying for it, because it is a real recurring cost (rule 8).
@@ -130,21 +136,53 @@ these in order when designing anything new:
 
 ## Interaction / UX constraints
 
-**Interaction changes are OpenDesign-designed and human-reviewed before release (mandatory, 2026-10-01).**
+**Interaction changes are Pencil-designed and human-reviewed before release (mandatory；稿子的工具
+自 2026-10-08 起是 Pencil。OpenDesign/OD 是 2026-10-08 之前的**历史**工具，仅 `design/` 下的早期稿
+作历史参考，不要据它实现任何界面。)**
 
 Any change to how the product **looks or behaves on screen** — a new screen, a re-layout, a moved or
-restyled control, copy that changes what a surface promises — **must first be designed in OpenDesign
-and pass human review**, and only then implemented. The order is fixed:
-**design draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
+restyled control, copy that changes what a surface promises — **must first be designed as a Pencil
+draft and pass human review**, and only then implemented. The order is fixed:
+**Pencil draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
 Two corollaries, both load-bearing:
 
-- **OpenDesign must be connected; if it is not, the task waits.** A session that cannot reach
-  OpenDesign does **not** proceed with interaction work "in the meantime" — it stops and says so.
+- **The Pencil draft comes first; if it cannot be produced, the task waits.** A session that cannot
+  draw the draft does **not** proceed with interaction work "in the meantime" — it stops and says so.
   The failure this prevents is specific and cheap to fall into: an agent hand-writes a layout, calls
   it "designed", and the human review happens on the **code** instead of on a design.
-- **The artifact under review is the design draft, not the diff.** A canvas / prototype in
-  OpenDesign is what a human approves; the implementation then has to match it — not the other way
-  round.
+- **The artifact under review is the Pencil draft, not the diff.** The `.pen` canvas is what a human
+  approves; the implementation then has to match it — not the other way round. Internal diagnostic
+  pages and developer switches are exempt (they are not user-visible).
+
+**The draft is produced by pen.dev's built-in AI — we write the requirement and review
+(2026-10-12).** A session does **not** draw the draft tool by tool. It writes the requirement, runs
+pen's CLI (`--in` an existing `.pen`, `--out` a **new** `.pen`, `--prompt` the requirement) to have
+the AI produce the draft, and reviews the result against the requirement. A draft that does not meet
+it goes back with the specific gaps, **at most 3 rounds**; if it still is not there, stop and report
+— do not hand-draw it into a "passing" draft. The canvas MCP is a fallback for troubleshooting /
+small tweaks only, never the draft path — see
+[`.claude/skills/pencil-draft/SKILL.md`](.claude/skills/pencil-draft/SKILL.md).
+
+**Every draft must cover every form factor the surface has — one column per variant (mandatory,
+2026-10-09 用户裁定；原话「以后都要求所有设计都这样」)。** The App is **one iOS binary for iPhone and
+iPad** (`TARGETED_DEVICE_FAMILY = "1,2"`) plus a macOS target, and its layout is decided by **window
+width**, not by device (`@media (min-width: 720px)` in `app/style.css`). So "a screen" is really three
+variants, and a draft that shows only one of them is not a draft:
+
+| Variant | When it applies | What the draft must say about it |
+|---|---|---|
+| **窄**（mobile） | iPhone；以及 iPad 分屏 / Slide Over、Mac 缩窗 **< 720px** | 单栏、贴底通栏按钮、命中区 ≥44pt |
+| **宽 · iPad** | 全屏 iPad（竖 768 / 横 1024，都 ≥720） | 触控口径：**不要依赖 hover**、命中区 ≥44pt、`<select>` 点开是原生弹层 |
+| **宽 · Mac** | Mac 窗口 ≥720 | 指针口径：可以有 hover 态；Mac 专属说明/快捷键只在这边 |
+
+Rules that follow from it:
+
+- **Do not write an iPad-only layout.** iPad follows the wide layout; split-screen falls back to the
+  narrow one by width. A separate iPad build/layout is a thing this repo does not have.
+- **Write the rules into `docs/interaction-spec.md` in the same commit as the code**, naming the
+  breakpoint, both variants, and the platform differences — the draft and the spec are one artifact
+  in two places.
+- If a variant genuinely cannot be drawn, say so and stop (same corollary as above).
 
 **All user-facing interaction & layout rules live in [`docs/interaction-spec.md`](docs/interaction-spec.md)**
 — the single source of truth (YouTube subtitle layout, line/paging rules, loading
@@ -259,7 +297,7 @@ read from gbrain, never inferred from the repo.
 | What | Single source | How each host reads it |
 |---|---|---|
 | Instructions | [`AGENTS.md`](AGENTS.md) (primary) + [`CLAUDE.md`](CLAUDE.md) (host-neutral supplement) | Both hosts load `AGENTS.md` / `CLAUDE.md` from the project root, in that order. Reasonix *also* recognizes `REASONIX.md` — **do not create one**; a third copy is exactly the drift this table exists to prevent. |
-| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. |
+| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. **Exception (2026-10-12): symlinks under the user-level `~/.agents/skills/` that point at this repo's `.claude/skills/` are allowed** — that is how dsh auto-discovers the project skills. The repo tree's `.agents/skills` must still stay empty; never put a copy or a link there. |
 | MCP servers | project-root `.mcp.json` | Claude Code reads it natively at **project** scope; Reasonix reads a Claude-Code `.mcp.json` **as-is**. |
 
 The list of servers is in `.mcp.json` and nowhere else — do not restate it here, in
@@ -407,8 +445,10 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
   generate a `--macos-only` tree: its flat layout has no `Shared (App)`, which is
   the exact thing `scripts/sync-app-assets.js` patches, so nothing reaches it —
   the host app then ships the converter's 979-byte template instead of ours
-  (`dist-app/Main.html` is ~19.5 KB). That shipped in macOS 1.4.0/1.4.1/1.4.2.
-  `app:sync` now **fails loudly** on such a tree instead of printing "未生成，跳过".
+  (`dist-app/Main.html` is ~19.5 KB). That shipped in macOS 1.4.0/1.4.1/1.4.2 — **historical
+  version numbers (2026-08 及更早的读数，已过时)**; the current release baseline is
+  `docs/release-baseline-1.19.3.md`, and live store state is read from gbrain / ASC, never
+  from this repo. `app:sync` now **fails loudly** on such a tree instead of printing "未生成，跳过".
 - Archive from the command line with the platform's scheme (the script prints the
   exact invocation). Build numbers count per platform, but
   `CURRENT_PROJECT_VERSION` is written project-wide, so pass
@@ -427,7 +467,9 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
   `safari-project*/` is gitignored, i.e. purely local state, so the script is the
   only thing keeping it from drifting — an earlier version skipped all
   post-processing when the project already existed, and `MARKETING_VERSION` sat
-  at 1.0 while `package.json` reached 1.2.0.
+  at 1.0 while `package.json` reached 1.2.0 (**historical reading, 2026-08 及更早，
+  已过时**; current version authority is `package.json`, release baseline
+  `docs/release-baseline-1.19.3.md`).
 - Build numbers are **not** derived: App Store requires them to increase per
   platform, and iOS/macOS count separately. The script only writes
   `CURRENT_PROJECT_VERSION` when `BUILD_NUMBER=` is given; otherwise it keeps the

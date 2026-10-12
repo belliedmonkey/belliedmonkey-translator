@@ -873,7 +873,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "Vidéos, conversations, documents — traduits pendant que vous écoutez. L’audio est traité uniquement sur votre appareil."
+    "message": "Vidéos, conversations, documents — traduits pendant que vous écoutez. La parole est reconnue sur votre appareil. Le texte reconnu est envoyé pour la traduction : avec votre propre clé, il part directement chez le fournisseur que vous avez configuré ; avec le crédit gratuit, il passe par notre serveur, sans que nous conservions le texte."
   },
   "app_email_label": {
     "message": "E-mail"
@@ -1704,7 +1704,7 @@
     "message": "Je l'ai activée"
   },
   "app_signin_why": {
-    "message": "Se connecter apporte le crédit offert et télécharge les deux packs vocaux sur cet appareil — rien d’autre à configurer."
+    "message": "Se connecter apporte le crédit offert et télécharge les packs vocaux sur cet appareil — rien d’autre à configurer."
   },
   "app_signin_open": {
     "message": "Se connecter"
@@ -1935,13 +1935,13 @@
     "message": "Échec du téléchargement du modèle hors ligne : {why} — le plus souvent un problème réseau ; réessayez plus tard — appuyez de nouveau sur « Commencer à écouter » ou choisissez un moteur cloud dans les réglages."
   },
   "listen_entry_privacy_device": {
-    "message": "La voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu va au moteur de traduction que vous avez configuré."
+    "message": "Transcription sur l’appareil : le texte apparaît au fil de la parole ; chaque phrase terminée part vers le moteur de traduction que vous avez configuré."
   },
   "listen_cost_line_device": {
-    "message": "Écouté {t} · l’audio ne quitte jamais l’appareil"
+    "message": "Écouté {t}"
   },
   "listen_device_privacy": {
-    "message": "Avec la transcription sur l’appareil, la voix est reconnue sur votre appareil et n’est envoyée à aucun serveur ; le texte reconnu, avec quelques phrases précédentes pour le contexte, va au moteur de traduction que vous avez configuré pour correction et traduction — nos serveurs n’interviennent pas. Avec la voix sur l’appareil, l’audio est synthétisé sur votre appareil ; la première utilisation télécharge une fois le modèle hors ligne (le fichier du modèle seulement). Aucun enregistrement n’est conservé, seulement du texte."
+    "message": "Transcription sur l’appareil : le texte apparaît au fil de la parole et, une fois la phrase terminée, elle part avec les précédentes pour être traduite : avec votre propre clé, directement chez le fournisseur que vous avez configuré ; avec le crédit gratuit, via notre serveur, sans que nous conservions le texte. Avec la synthèse vocale sur l’appareil, la voix est générée sur votre appareil et un modèle hors ligne est téléchargé une fois à la première utilisation."
   },
   "listen_raw_label": {
     "message": "Texte reconnu"
@@ -2215,6 +2215,27 @@
   "telemetry_hint": {
     "message": "Seulement quelles fonctions sont utilisées, sur quel navigateur, et si une traduction a réussi ou échoué — jamais les pages lues, le texte, les adresses, vos clés ni votre compte. Désactiver supprime ce que cet appareil a envoyé."
   },
+  "diag_section": {
+    "message": "Journal de diagnostic"
+  },
+  "diag_copy": {
+    "message": "Copier le journal"
+  },
+  "diag_clear": {
+    "message": "Effacer"
+  },
+  "diag_hint": {
+    "message": "Enregistrements locaux pour le dépannage (téléchargements de modèles / moteurs vocaux / étapes de connexion, ~200 entrées). Ne contient aucun de vos textes parlés ou traduits. Ne quitte l’appareil que si vous le copiez et le collez vous-même."
+  },
+  "diag_copied": {
+    "message": "Copié"
+  },
+  "diag_audio_toggle": {
+    "message": "Importer l’audio de diagnostic (débogage de transcription)"
+  },
+  "diag_audio_hint": {
+    "message": "Si activé, l’audio du micro, l’audio lu et le texte correspondant des sessions d’interprétation sont empaquetés et importés sur notre serveur (uniquement pour déboguer la transcription, suppression automatique après 72 h). Désactivé par défaut ; le désactiver arrête immédiatement la collecte."
+  },
   "telemetry_onboard": {
     "message": "Des données d’usage anonymes sont envoyées pour améliorer le produit (jamais le contenu ni les adresses des pages). Désactivable dans les réglages."
   },
@@ -2345,12 +2366,6 @@
   "listen_star": {
     "message": "Étoile"
   },
-  "listen_now_them": {
-    "message": "L’autre dit"
-  },
-  "listen_now_me": {
-    "message": "Je parle"
-  },
   "listen_lang_me": {
     "message": "vers {to}"
   },
@@ -2388,9 +2403,6 @@
     "message": "Fonctionne aussi pour les réunions en ligne et les appels vidéo : laissez simplement la voix de l’autre sortir par les haut-parleurs.",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "Terminer"
-  },
   "listen_cost_line": {
     "message": "{t} écoutées · l’audio ne va qu’à votre point de transcription"
   },
@@ -2415,18 +2427,6 @@
   "listen_stop_failed": {
     "message": "Le micro n’a pas démarré : {why} — touchez à nouveau « Commencer l’écoute »."
   },
-  "listen_summary_title": {
-    "message": "Cette conversation"
-  },
-  "listen_summary_note": {
-    "message": "L’enregistrement est supprimé ; seul le texte est conservé. Les phrases ajoutées se gèrent ou se suppriment en bloc dans Sources › Conversation."
-  },
-  "listen_summary_home": {
-    "message": "Accueil"
-  },
-  "listen_summary_again": {
-    "message": "Une autre"
-  },
   "listen_np_title": {
     "message": "Conversation · interprète en direct"
   },
@@ -2440,7 +2440,7 @@
     "message": "Ajouter les conversations à la révision (source « Conversation »)"
   },
   "listen_capture_note": {
-    "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après « Commencer l’écoute » et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
+    "message": "« Conversation · interprète en direct » envoie le micro en continu au point de transcription que vous avez configuré, seulement après avoir touché une touche d’enregistrement en bas et seulement à ce point ; nos serveurs ne touchent jamais l’audio ; aucun enregistrement n’est conservé, seulement du texte — et seulement tant que cet interrupteur est activé."
   },
   "listen_who_them": {
     "message": "Lui"
@@ -2449,7 +2449,7 @@
     "message": "Moi"
   },
   "listen_who_guessed": {
-    "message": "Deviné d’après la langue — touchez ↔ pour changer"
+    "message": "Mauvaise langue ? Touchez ↔ pour passer à l’autre"
   },
   "listen_swap_to_them": {
     "message": "Marquer comme dit par lui"
@@ -2458,7 +2458,7 @@
     "message": "Marquer comme dit par moi"
   },
   "listen_flip_kept_card": {
-    "message": "Côté changé — la carte précédente a déjà été révisée, elle reste dans Sources › Conversation"
+    "message": "Passé à l’autre langue — la carte précédente a déjà été révisée, elle reste dans Sources › Conversation"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2475,6 +2475,9 @@
   "listen_autospeak_off": {
     "message": "Lecture auto arrêtée · {why} — le bouton de chaque ligne fonctionne toujours"
   },
+  "listen_tts_unusable": {
+    "message": "Lecture auto indisponible — le moteur vocal n’est pas configuré. Choisissez-en un dans Réglages › Voix"
+  },
   "listen_autospeak_echo": {
     "message": "Lecture auto en pause — boucle d’écho détectée. Baissez le volume ou utilisez des écouteurs, puis réactivez-la."
   },
@@ -2490,23 +2493,11 @@
   "listen_ephemeral_pill": {
     "message": "Non conservé"
   },
-  "listen_ephemeral_summary": {
-    "message": "Rien n'a été conservé cette fois"
-  },
-  "listen_summary_kept": {
-    "message": "{n} en révision (source Conversation) · dont {s} en favori"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · lui {them} · moi {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} corrections de côté"
-  },
   "listen_my_lang_label": {
     "message": "Ma langue"
   },
   "listen_lang_note": {
-    "message": "Les deux langues doivent être différentes. Modifiable aussi en bas de l'écran de conversation — même réglage."
+    "message": "Détection automatique entre les deux langues choisies. Vous pouvez les changer à tout moment sur la page d’écoute."
   },
   "listen_lang_engine_unsupported": {
     "message": "non pris en charge par le moteur actuel"
@@ -2572,7 +2563,7 @@
     "message": "Connexion de transcription perdue : {why} — reconnexion…"
   },
   "listen_history_empty": {
-    "message": "Parlez tous les deux normalement : chaque phrase terminée arrive ici ; touchez ↔ si le côté est faux"
+    "message": "Parlez tous les deux normalement : chaque phrase terminée apparaît ici. Mauvaise langue ? Touchez ↔ pour passer à l’autre"
   },
   "listen_tr_failed": {
     "message": "Traduction échouée · réessayer"
@@ -2896,7 +2887,7 @@
     "message": "Ajouter les sous-titres aux révisions (source « Sous-titres en direct »)"
   },
   "subtitle_video_lang_label": {
-    "message": "Langue de la vidéo"
+    "message": "Langue de la vidéo :"
   },
   "subtitle_tip_mac": {
     "message": "Après le démarrage, les sous-titres s’affichent dans une barre flottante en bas de l’écran ; chaque phrase terminée est aussi listée ici."
@@ -3730,10 +3721,10 @@
     "message": "Le reste peut attendre — revenez, c’est tout."
   },
   "firstrun_packs_title": {
-    "message": "Téléchargez d'abord les deux packs vocaux"
+    "message": "Téléchargez d'abord les packs vocaux"
   },
   "firstrun_packs_lede": {
-    "message": "Ensuite, plus rien à configurer : traduction, interprétation, sous-titres et lecture à voix haute fonctionnent tout de suite. L'audio est traité uniquement sur votre appareil."
+    "message": "Ensuite, plus rien à configurer : traduction, interprétation, sous-titres et lecture à voix haute fonctionnent tout de suite. La parole est reconnue sur votre appareil. Le texte reconnu est envoyé pour la traduction : avec votre propre clé, il part directement chez le fournisseur que vous avez configuré ; avec le crédit gratuit, il passe par notre serveur, sans que nous conservions le texte."
   },
   "firstrun_packs_asr": {
     "message": "Pack de reconnaissance vocale (interprétation / sous-titres en direct)"
@@ -3773,5 +3764,188 @@
   },
   "engine_status_fix_translate": {
     "message": "Moteur de traduction non défini — Réglages › Moteur"
+  },
+  "listen_lang_detecting": {
+    "message": "Détection de la langue…"
+  },
+  "listen_lang_detected": {
+    "message": "Détecté : {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Détection de la langue de la vidéo…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Détecté : {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "À toucher seulement si la langue a été mal reconnue"
+  },
+  "listen_lang_auto": {
+    "message": "Détection automatique"
+  },
+  "listen_lang_manual": {
+    "message": "Définir à la main"
+  },
+  "subtitle_partner_auto": {
+    "message": "Langue de la vidéo : {lang} (auto)"
+  },
+  "listen_need_locales": {
+    "message": "Le moteur embarqué tient au plus 5 langues à la fois et c'est plein — quittez l'écoute et revenez."
+  },
+  "listen_lang_assets_missing": {
+    "message": "Le paquet de reconnaissance de cette langue n’est pas encore installé. Connectez-vous à internet et touchez une fois « Commencer l’écoute » pour l’installer."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Cet appareil ne reconnaît pas cette langue — retour à « {lang} »"
+  },
+  "listen_speak_lang_label": {
+    "message": "La langue que je parle"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} entendu → traduit en {b} ; {b} entendu → traduit en {a}"
+  },
+  "lang_auto": {
+    "message": "Auto"
+  },
+  "listen_listening": {
+    "message": "Écoute…"
+  },
+  "listen_ptt_say": {
+    "message": "Parler {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "Écoute en {lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "Touchez pour démarrer"
+  },
+  "listen_ptt_recording": {
+    "message": "● Enregistrement · touchez pour arrêter"
+  },
+  "firstrun_packs_back": {
+    "message": "Back"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Language packs are ready"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} can be used for listening and reading aloud. Add more anytime in Settings."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Downloading language packs"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "Each item shows its own progress. Downloading continues in the background and resumes after the network returns."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Choose languages to download"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "Checked by default: the system language + 中文 + English. Check others as needed. You can add more later in Settings."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
+  },
+  "firstrun_packs_foot": {
+    "message": "About {size} in total, plus the system recognition packs. On a cellular network you will be asked before the download."
+  },
+  "firstrun_packs_locked": {
+    "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
+  },
+  "firstrun_packs_enter": {
+    "message": "Start live listening"
+  },
+  "firstrun_packs_remain": {
+    "message": "Downloading · {n} left"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Not selected"
+  },
+  "firstrun_packs_queued": {
+    "message": "Queued"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Languages (recognition packs)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Recognition pack · downloaded by the system"
+  },
+  "firstrun_packs_system": {
+    "message": "System language"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} more languages"
+  },
+  "firstrun_packs_together": {
+    "message": "Downloaded together"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Read aloud · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "One pack covers 中文 and English. Checking 中文 or English includes it automatically"
+  },
+  "firstrun_packs_bytes": {
+    "message": "About {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Read aloud · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "Off by default. Listening and the written translation still work without it. Only the Thai translation is not read aloud."
+  },
+  "firstrun_packs_optional": {
+    "message": "About {size} · optional"
+  },
+  "firstrun_packs_base": {
+    "message": "Base components"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Language ID (ECAPA) + voice detection (VAD): tells who is speaking which language. Listening cannot start until these are ready"
+  },
+  "firstrun_packs_required": {
+    "message": "About {size} · required"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "You are on a cellular network"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "This download is about {size} (system recognition packs are extra, and the system decides their size) and may use mobile data."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wait for Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Download on cellular"
+  },
+  "firstrun_packs_manage": {
+    "message": "Manage language packs"
+  },
+  "listen_ptt_preparing": {
+    "message": "Preparing · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Ready"
+  },
+  "listen_not_ready": {
+    "message": "Not ready yet. Tap again after the download"
+  },
+  "listen_ready_tap": {
+    "message": "Ready. Tap a button below to start"
+  },
+  "listen_prep_detail": {
+    "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_ready_tap_sub": {
+    "message": "It will not start on its own · tap Say {mine} or {other} to listen"
   }
 }

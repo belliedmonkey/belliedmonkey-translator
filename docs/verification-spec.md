@@ -230,6 +230,50 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
    `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
    同一个默认路径也可能让一个真的漏文件的包通过。
 
+### 0.2.0 真机验证的固定做法：QuickTime 展示 + `screencapture` 录屏 + 逐帧判定（2026-10-09 用户裁定，**强制**）
+
+> **以后所有真机验证都必须这么做。** 做不到就说清原因并停下 —— 不许退回「一张末态截图 + DOM 断言」。
+
+为什么立这条：2026-10-09 用户在 iPhone 14 上实测出两条 bug ——
+**①停止对话后锁屏 Now Playing 卡不消失；②中/英两个键切换几次之后不再转写+翻译**。
+两条都是**随时间显现**的：末态截图看不出「卡没被清」，DOM 断言也看不出「第 N 次切换之后归属闸开始整句丢」。
+只有把**序列**录下来逐帧看，才看得见。
+
+**四个角色，别混：**
+
+| 角色 | 用什么 | 注意 |
+|---|---|---|
+| 驱动 | XCUITest runner（`tools/ios-runner` → 工作区 `.local/spike/S6`），JSON `testDrive` | **不用 iPhone 镜像**：镜像占设备麦克风（§0.2）且与收音互斥 |
+| 展示（给人看） | QuickTime Player → 文件 › 新建影片录制 → 源选 **iPhone** | **麦克风必须选「无」**：选设备麦会占麦，选 Mac 麦会把环境音录进去 |
+| 录屏（判据） | Mac 本机 `screencapture`（cap）录 **Mac 屏幕**（含 QuickTime 窗口） | `screencapture -v -V <秒> -x out.mov`（定时）或 `-v -x` 手动起停；**不要加 `-g`**（那是录 Mac 麦克风） |
+| 逐帧分析 | `ffmpeg -i out.mov -vf fps=2 frames/%04d.png` | 按用例判据**逐帧**读，不是只看末态；必要时 `fps=4` |
+
+**跑法（一次完整真机验证）：**
+
+```bash
+# 0. 装被测包（USB + devicectl；不碰 TestFlight、不占构建号）
+xcrun devicectl device install app --device <UDID> "<…/BelliedMonkey Translator.app>"
+
+# 1. QuickTime 开「新建影片录制」并选 iPhone 源（麦克风：无）—— 人点一次即可，之后不用再碰
+open -a "QuickTime Player"
+
+# 2. 开始录 Mac 屏幕（含 QuickTime 窗口）
+screencapture -v -V 180 -x .local/dev-verify/<日期>-<用例>.mov &
+
+# 3. 驱动（JSON 脚本；每条用例给足等待）
+TEST_RUNNER_MT_TARGET_BUNDLE=com.belliedmonkeytranslator \
+TEST_RUNNER_MT_SCRIPT='[…]' \
+xcodebuild test-without-building -project runner/S56Runner.xcodeproj -scheme S56Runner \
+  -destination id=<UDID> -derivedDataPath dd-runner -resultBundlePath x.xcresult \
+  -only-testing:S56UITests/S56UITests/testDrive
+
+# 4. 逐帧
+ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/frames/%04d.png
+```
+
+**取证要求**：`.mov` + 抽帧目录 + 一份**逐条判据表**（每条用例写「第几秒到第几秒、屏幕上应当出现什么」）。
+判据读的是**帧**，不是 `passed`（§0.2.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
+
 ### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
 
 Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18 或更高版本**并设置为使用密码**」。
@@ -413,6 +457,125 @@ dist/ 与 dist-app/ 的每个 .js（比下限更新的解析期语法 ⇒ 红）
 
 **云端转写两条在测试机上打不到（2026-09-13）。** 同机同料的「本机路 vs 云端路」并排只做成了一半：`openai_transcribe` 两次都 `socket error`（会话停在 halted，句子还在），`gemini_transcribe` 8 s 超时，`qwen_asr` 国际版包里没有；同一时刻 `api.deepseek.com` 103 ms、`openrouter.ai` 608 ms 都通。这是家用 Wi-Fi 无代理的真实网络，不是环境故障 —— **在这种网络下本机路是唯一能用的转写**，准确率并排只能拿 Mac 侧直喂 PCM 的旧读数（OpenAI 实时 zh 3.9% / en 3.7%、千问 5.2% / 3.6%）对本机路修正后的 zh 4.3%。云端两档在真机的读数是欠条，等有代理的网络补。
 
+### 0.4 分层验证矩阵：Mac 版当自动化音频验证台（2026-10-05 用户拍板）
+
+**音频链路的改动（STT / TTS / 回声闸 / 模型下载）先在 Mac 版 App 上自验通过，才准出
+TestFlight 包。** 用户原话（2026-10-05）：「如果某 iOS 真机才能验证的功能，恰好 mac app
+模拟，两边代码逻辑本来就一样。」这是规则，不是建议 —— 88/89 号包那种「出包 → 用户在
+TestFlight 上发现哑 / 回声 / 语言对跳掉 → 再出包」的循环，从这条起断掉。
+
+为什么 Mac 版能替真机（2026-10-05 逐文件数的，不是推断）：
+
+- **Web 层同一份包。** `dist-app/Script.js` 两平台加载同一文件，逐字节相同。
+- **语音桥逐字共享。** `app/native/speech-bridge.swift`（STT/TTS/回声整条管线）里只有
+  2 处 `#if os(iOS)`，内容都只是一句 `AVAudioSession.setActive(true)`；mtTranscriberFor、
+  MTSystemSpeech 的 write()→MTSpeechChunkBox→自有 AVAudioPlayerNode（#565 六轮修的那条）
+  两平台跑同一份代码。
+- **一个工程四个 scheme**（iOS/macOS × global/CN，`safari-project*/`），macOS 现役 build 94/87。
+
+| 层 | 跑在哪 | 覆盖 | 驱动 |
+|---|---|---|---|
+| 逻辑 | `npm test` | 纯函数：回声闸 token、firstrun、语言对 | CI / 一键 |
+| Web | Chrome + CDP（`test:app`） | 页面起得来、模块齐、样式载入 | 自动 |
+| UI | iOS 模拟器 | 界面、导航、Dictation 回落路径 | `__mtTest` + DEBUG 端点 |
+| **音频** | **Mac 版 App（`test:mac`）** | **识别→翻译→朗读→回声 端到端，真扬声器 + 真麦克风** | DEBUG 端点 + `say`/`afplay` |
+| 抽查 | iPhone 14 Pro（USB） | iOS 硬件差异点 | devicectl / XCUITest |
+| 终验 | iPhone 15 Pro（TestFlight） | 听感、中断、锁屏 | 用户 |
+
+**机制（三件，全部 DEBUG-only，Release 包里符号不存在）：**
+
+1. `app/test-harness.js` → `window.__mtTest`（`say` / `partial` / `runAsync` / `state` /
+   `waitFor`）。只在 `buildAppBundle` 收到 `opts.testHarness` 时进包；正常 `node build.js`
+   不带它（npm test 有门：不带该 opt 构建出的 Script.js 出现 `__mtTest` 即红）。它自己
+   不发起任何网络请求 —— 没有端点的包里它是死代码。**只注入事件、只读状态，不替 App
+   做决定**：`say()` 伪装的是「麦克风听到了这句」（原生事件 `stt-final`），朗读走页面
+   自己的真管线 —— 模拟器层（无声学回环）与 Mac 层（真回环）因此能用同一份 case。
+2. `app/native/test-bridge.swift` → `MTTestBridge`：DEBUG-only 的 localhost 控制端点，
+   只绑 127.0.0.1，在 127.0.0.1:8790–8799 扫第一个空口（开发机上固定口会被占 ——
+   2026-10-05 实测本机 8790 躺着一个 Python http.server；驱动对同一段范围逐个 /ping
+   找活的），`GET /ping` 探活、`POST /eval` 在 WKWebView 里求值 JS 回 JSON。
+   整份 `#if DEBUG` —— 编译器裁掉，不是运行时关掉。抽查（发版前随手跑一次）：
+   `strings <Release 可执行文件> | grep MTTestBridge` ⇒ 必须为空。
+3. `scripts/test-mac.js`（`npm run test:mac`）：重建带 harness 的 App 包 → `app:sync` →
+   xcodebuild macOS Debug → 起 App → 等 `/ping` → 跑 case → `screencapture` 留证。
+   iOS 模拟器层复用同一个端点：模拟器进程就是 Mac 进程，它的 127.0.0.1 就是宿主的。
+   沙盒注意：App Store 包是 sandboxed，**监听端口要 `ENABLE_INCOMING_NETWORK_CONNECTIONS`**
+   —— 驱动只在这条 Debug 命令行上给；Release 归档不带它，App Store 的 entitlement 一个
+   字节不变。判据是端点真的 /ping 得通，不是「构建没报错」。
+
+**step 0 实测（2026-10-05，MacBook M2 Pro · macOS 26.x）**：`say` 语音 zh 21 / en 45 /
+**th 1（Kanya）** —— 泰语音源不必依赖 afplay 或 App 自身 vits，`say -v Kanya` 直接可用；
+STT 探测 zh / en / th 全部 `ok:true`（本机识别资产已装）。macOS 上 SpeechTranscriber 可用，
+#563 那个 iOS 假阳性在 Mac 上未复现 —— 恰好是「Mac 替代不了的四样」第 4 条的佐证。
+
+**音源三板斧**（接 §0.3「播放代替真人」—— 同一条规则的延伸，不是第二条）：
+
+- zh / en：`say -v Ting-Ting` / `say -v Samantha`
+- th：**`say -v Kanya`**（本机实测有，step 0）；或 `afplay` 泰语语料；或**用 App 自己的
+  vits-mms-tha 当音源**（App 念泰语 → 扬声器 → 麦克风 → 识别 → 回声闸），完全自包含
+- 对照重放：同一段波形放两遍 —— §0.3 的可比性论据（A/B 之间只差被测变量）原样成立
+
+**M 系列 case**（对着 2026-10 的未验证项，进 `test:mac`；跑一条勾一条）：
+
+| # | 验什么 | 对应 |
+|---|---|---|
+| M1 | 包屏只下所选语言对的模型（zh/en 对**不出现** th 下载） | a1e9a232（2026-10-05） |
+| M2 | zh 输入 → th 译文 → 朗读出声 | #565 |
+| M3 | 自己念的被认回来 → 拦住（真回声） | #565 四轮 |
+| M4 | 对方说不同的话 → 放行（不误杀） | 裁定 5 |
+| M5 | TTS 失败**不静默堵死**（连杀三句在途朗读，队列仍活、会话不掉） | #565 六轮（88 号包） |
+| M8 | 听译进场只下**当前语言对**（删掉泰语模型后 zh/en 开听，零泰语事件） | 90 号包真机（2026-10-06） |
+| M9 | 听译内切语言**按新对补包**（zh/en 起听后切泰语：当场下载、就绪、自动续听、不动 en） | 92 号包真机（2026-10-06） |
+
+M5 的「assets/timeout **即报**」半边在 Mac 层注入够不着（`speakOut` 启动后返回
+`ok:true`，在途失败只打死 `done`、泵看不见 —— 这是 #568 的发现），由 `npm test` 的
+speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克风）；物理版（扬声器→麦克风
+真回环）是这层的看家场景，静音之外另案观察。
+| M6 | 语言对下载后不跳 | #564 |
+| M7 | 多轮对话历史逐行累积 | 89 号包待验 |
+
+**Mac 替代不了的四样**（仍走真机行；列在这里防止「Mac 绿了就当全绿」）：
+
+1. **会话中断**（来电 / Siri 抢音频）—— audio-bridge 的 iOS 半边，Mac 上不存在这条代码路径
+2. **锁屏 / 灵动岛** —— Mac 无此形态
+3. **蓝牙路由** —— 两边都要真实蓝牙设备
+4. **#563 的原始触发**（iOS 26 `supportedLocale` 假阳性）—— macOS 若无此毛病，坏分支在
+   Mac 上不会自然触发；防御代码在包里，触发条件本身验不了
+
+**同步更新规则（用户 2026-10-05 原话：「要修改也同步更新文档」）：** 改这套流程的任何
+一处 —— harness 接口、端点行为、音源、case 清单 —— 同一 commit 更新本节。矩阵只增不减
+（§0 总规则）；Mac 层是**新增的自动化层**，不替代任何既有行，也不豁免任何一次全矩阵回归。
+
+### 0.4.1 取证靠自己：观察项一律代理侧完成（2026-10-06 用户裁定）
+
+**人工验证时的一切观察由代理自己完成 —— SSH 读服务器日志、Debug 包仪器读设备状态 ——
+不依赖用户肉眼观察与口述反馈。** 用户原话：「这几条都应该是你自己打日志 我操作 你在
+服务器自己读日志完成，而不应该是靠我观察反馈」；「你要有证据，有确认的用户访问日志
+证据，我可以改架构。但是先要有证据」。
+
+由此落地的三条纪律：
+
+1. **证据通道前置**：每次验证设计先问「这件事的证据通道是什么」。没有通道的（如中国版
+   零遥测 ⇒ 下载完成率没有服务器侧真值，因为传输直连魔搭不过我们）必须**显式登记为
+   缺口**，要么补通道（设备侧「已就绪」态 / Debug 包仪器），要么写明不可观察 —— 不许拿
+   「进度条看起来动了」当证据。
+2. **服务器侧仪器（已就位）**：`ssh -i ~/.ssh/tencent_bt.key root@49.233.0.7`（轻量服务器
+   的密钥走**控制台绑定**；手改 authorized_keys 不是它的支持路径，2026-10-06 实测被平台
+   层拒绝）。Caddy 访问日志在 `china-proxy-1:/data/access.log`（JSON：源 IP/状态/耗时），
+   GoTrue 在 `docker logs china-auth-1`，DB 在 `china-db-1`。Apple 出海质量监控
+   `/var/log/bt-jwks-probe.log`（cron 每 5 分钟）。
+3. **设备侧仪器（L2 已启用，2026-10-06 用户拍板）**：诊断日志自动上报到自有后端的
+   write-only 信箱 `bt_diag_events`（六类事件、字段白名单零内容、失败静默；启动后 5s +
+   每 40 条 + 失败类快发）。**中国库已部署并端到端验通**（真包 POST→201→SSH 读回，
+   `npm run diag:latest` / `diag:dump -- <uuid>` 自查）；东京库待建。**上架 App Store 前
+   必须回来处理**：国际版遥测白名单加 diag 事件类 + 中国版隐私页措辞同版本更新
+   （「正式版一个字节不发」的承诺随 L2 生效需要改写；TestFlight 期间为内测通道）。
+3. **改架构以日志为先**：链路类结论（「连不上」「下载失败」）必须先有访问日志里的实据
+   （源 IP 到没到、状态码、耗时分布）才许下判断。2026-10-06 首例：登录 504 的实据是
+   `87.124.74.53 … 504 10004ms /auth/v1/token?grant_type=id_token` + GoTrue 全程秒级
+   + 服务器直测 Apple JWKS 0.5–1.9s 抖动 —— 病根为**大陆服务器出海到 Apple**，与手机
+   网络无关；架构决策（出海代理/JWKS 镜像等）待 `bt-jwks-probe.log` 积累后定。
+
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
 > **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been
@@ -559,7 +722,7 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 28 | `device` (STT) | global + china | `device-transcribe`（**无 HTTP**；`defaultEndpoint: null`，iOS 26 / macOS 26 `SpeechAnalyzer` + `SpeechTranscriber`） | —（系统能力 / 离线模型：zh_CN / zh_TW 与 9 个英语变体预装，其它 locale 首次用时由系统下载，进度可读） | ✅ 2026-09-12 尖刺（`.local/spike/READINGS.md`，harness `scripts/spike/device-asr.swift` + `.local/spike/SpikeApp`；**iPhone 14 Pro · iOS 27.0** 与 Mac M2 Pro · macOS 26.5）：zh 有声书 CER 13.1% 原始 → **5.4%** 远程修正后（云端 OpenAI 3.9% / 千问 5.2%）；en 有声书 WER 3.1% → **1.9%**（云端 3.7%）；conv 中文 17.8% → 10.0%。**定稿默认是懒的**（停顿不收口，有声书 p90 14 s）—— 要自己的 VAD 调 `finalize(through:)` 才有停顿后 0.4–0.9 s；final 是时间片不是句子；`contextualStrings` 热词对同音字零效果；双识别器归属先看文字系再看置信度。真机 45 个 locale，en-US 资产 Mac 上 46 s 装完。**未测（D2 前必补，见 F-bis 2026-09-12 补充）**：真机双路 CPU（Instruments）、中国网络资产下载、转写中插拔耳机。仅宿主 App；扩展 **N/A by design**（§3.1.4） |
 | 29 | `device` (TTS) | global + china | `device-speech`（**无 HTTP**；sherpa-onnx v1.13.8 本地推理，静态链接 ≈ 35 MB；模型不进包，首次用时从我们的文件服务器下载、sha256 钉住） | —（离线模型：Piper zh_CN-huayan / en_US-lessac 各 79 MB；未覆盖的语言回落 `browser` 并在行上具名） | ✅ 2026-09-12 尖刺真机（iPhone 14 Pro · iOS 27.0，CPU provider，2 线程）：Piper zh 首块均值 / 最大 **176 / 264 ms** · RTF 0.053 · 加载 1.6 s；en **157 / 216 ms** · RTF 0.050 · 加载 1.3 s；边合成边播（playerNode 按块调度）跑通、首块到即出声。弃 Kokoro（真机首块 1.3–2 s、加载 10–20 s；int8 反比 fp32 慢 3–4×；CoreML 无提速）。**未测**：中国网络模型下载。仅宿主 App；扩展 **N/A by design** |
 
-> **2026-09-17（待人评审）**：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
+> **2026-09-17（待人评审）—— 已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删；本节保留为历史）：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
 
 > **两行 `device` 条目与台账（2026-09-12）。** 它们不说 HTTP，没有 host、没有 model
 > 参数可调，所以 `build/perf-ledger.config.js` 里没有它们的行。`test/perf-ledger.test.js`
@@ -1169,17 +1332,24 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
+### H. Windows 11 Chrome / Edge / Firefox (Windows VM on Omarchy — current; VMware Fusion VM 2026-09-18 历史) — ✅ verified 2026-09-18
 
 > **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
 > read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
 >
-> **Target: the VM only (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」).** The same
-> day a second target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and
-> measured once (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real
-> subtitles** ✅ — it is where #325 was found) and then retired; its scripts are not in the repo (see the
-> first commit of PR #327). Readings from it stay in this section as records, marked "real desktop".
-> The test page address is `MT_WIN_PAGE` (default `http://192.168.2.1:8765/page.html`, the VM's view of the Mac).
+> **Current target (user ruling 2026-10-12): the Windows VM hosted on Omarchy.** Chrome, Edge and
+> Firefox are all tested on that one VM, driven over the network; **any item that needs a human
+> inside the guest is abandoned and recorded ⬜**, never forced. The concrete address / entry channel
+> for that VM is not pinned here — read it off the live setup each run.
+>
+> **Historical (2026-09-18): the VMware Fusion VM on the Mac.** It was the only Windows target then
+> (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」). The same day a second
+> target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and measured once
+> (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real subtitles** ✅ — it
+> is where #325 was found) and then retired; its scripts are not in the repo (see the first commit of
+> PR #327). Readings from it stay in this section as records, marked "real desktop". The Fusion test
+> page address was `MT_WIN_PAGE` (then `http://192.168.2.1:8765/page.html`, the VM's view of the Mac) —
+> a value of that setup, not a constant.
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
 exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
@@ -3116,7 +3286,7 @@ E `web-ext` + BiDi；F/G 注入 LAN 控制通道经 sim-oracle）。翻译引擎
 | **G macOS App** | R03/R04（两栏 grid + 复制全文真实点击回读剪贴板）/R05/R06/R08 对照/R10 结构/R11/R13 ✅ | 窗口 820px 两栏 382+382；复制全文经 execCommand 兜底 |
 | **中国版关键行** | 合规门两产物绿；真禁端点路径全 0（`/functions/v1/bt-grant`、`bt-relay/chat`、`bt-ingest`、`MT_GRANT = {`）；sync `enabled:false`；无 google；默认 deepseek；评分 rateUrl 中国版返回 null（评分行不出现）；test:app:china / test:onboard dist-china 绿 | — |
 
-**机器门禁（全绿）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
+**机器门禁（全绿；`npm test` 1635 是 2026-09-11 的历史读数，已过时——现行基线以 `docs/release-baseline-1.19.3.md` 的 2628/2628 为准）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
 test:asr · test:listen（+C3）· test:onboard · test:wipe · test:idb · test:learn · test:docs · test:app（+冷启动幕）。
 `test:setup-page` 红是既有旧账（TODO 234 站点对比度 + 站点 VERSION 1.9.2 vs 已发 1.9.0），非本次引入。
 
@@ -3305,7 +3475,7 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 | # | 面 | 结果 |
 |---|---|---|
-| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
+| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿（2026-09-28 历史读数，已过时；现行基线 2628/2628 见 `docs/release-baseline-1.19.3.md`）；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
 | 1 | iPhone Safari（模拟器 iOS 26.5） | ✅ plato 整页双语（translate_ok{deepseek,page,ms:2364} + tr: 缓存 9 键）、React options、React onboard；safaridriver 会话不注入扩展（Xcode 27 新断点）⇒ 改 LocalStorage.db 直写 + appex 测试钩子 + sqlite 回读配方（AB-README §工具链） |
 | 2 | iPad Safari（模拟器 iOS 26.5） | ✅ 双栏 plato 全双语（ms:1531 + 17 键）、宽屏 options/onboard；iOS 27 补充观察：注入正常但 safaridriver 桥断，主判据在 26.5 拿全 |
 | 3 | macOS Safari | ⬜ 待跑（需人工输密码勾「未签名扩展」开关） |
@@ -3321,3 +3491,45 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 - EF-1 已修（请求纪律，见上表）；YouTube happy path 最终确认需要登录环境（闸下能验的只有纪律：同 URL 不重发、每视频 ≤3 次封顶，已钉进行为测试），日常 Chrome 人工复核即可；D 面 React dist 的 YouTube 链路留到下版装新 dist 后顺带看。
 - 本轮三处新驱动配方（Chrome 153 loadUnpacked、safaridriver 不注入的存储直写替代、Firefox foreground 像素点菜单）已沉淀在各面 README，下次回归直接用。
+
+---
+
+## 硬编码禁令（2026-10-05 用户裁定）
+
+**模型下载地址不得以明文出现在编译进客户端包的任何文件里。**
+
+理由：反编译二进制/Script.js 能看到全部字符串 —— 真实托管地址（GitHub Release / ModelScope / hf-mirror）写在那里，等于把 CC-BY-NC 模型的来源暴露给任何人（vits-mms-tha 是 Meta 的 MMS-TTS，许可是 CC-BY-NC 4.0）。用户裁定：避免被服务提供商告侵权。
+
+**地址的正确存放位置（按优先级）：**
+
+1. **`bt_model_sources` 表**（运行时查询替换，`app/model-sources.js` 的优先路）
+2. **Caddy `/models/*` 重定向**（`deploy/china/Caddyfile`，部署侧文件，不进客户端包）
+3. `app/device-models.config.js` 的兜底 URL 只允许 `api.belliedmonkey.com/models/` 前缀（自家域名中继，反编译看不出实际指向）
+
+**sha256 / size 不在此限** —— 它们是「下什么」的校验（客户端必须知道），不是「去哪下」（客户端不该知道）。
+
+**LLM 提供方端点不在此限** —— 用户自己配 key 时需要看见 `api.deepseek.com` 等地址；它们是产品功能，不是需要隐藏的托管。
+
+---
+
+## TTS 不得静默堵死（2026-10-05 用户裁定，#565 六轮真机教训）
+
+**任何 TTS 失败必须在 3 秒内让用户知道，任何 TTS 卡住不得阻塞整条队列。**
+
+build 88 真机：加了泰语模型后 `ensureDeviceReady` 检查全部模型（含 105 MB 泰语），GitHub 境内
+不通 → 下载挂住 → `speakOut` 永不返回 → `speakPump` 死锁在第一句上 → **中文也全哑、
+没有一行报错、手工重试也排不进队列**。用户原话："tts 堵死为什么没有报错和手工重试"。
+
+三条判据（`test/app-listen.test.js` 钉住形状）：
+
+### 1. speakPump 每句必须超时
+`speakOut` 挂住（下载卡死 / 网络不通）不得阻塞后续句子。超时后**跳过该句、标失败、继续下一句**。
+判据：源码里 `speakPump` 的 `await speakOut(...)` 必须带 `Promise.race` 超时。
+
+### 2. assets 类失败第一次就说
+`reason === 'assets'`（模型没下好）**不是瞬态错误** —— 它不会自愈，用户等 3 次只是在等一个
+不会来的好转。判据：`onSpeakResult` 里 `assets` 类不等 `speakFails >= 3`，第一次就出提示。
+
+### 3. 听译页要有下载进度/卡住的出口
+下载中 → 行上画进度（包屏那套 `onProgress` 已有）；卡住 → 给「重试」按钮。
+判据：源码里 `speakPump` 或 `speakOut` 必须把 `onProgress` 透传到 UI。

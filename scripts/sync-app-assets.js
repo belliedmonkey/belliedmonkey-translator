@@ -246,7 +246,20 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ vault install: 常驻 install 行缺失');
   }
-
+  // §0.4 分层验证矩阵：测试桥的 attach（DEBUG-only）。锚在 vault 那**一整块**（含 #endif）
+  // 后面 —— 锚在 MTVault.shared.install 那一行上会落进 #if os(iOS) 里，Mac 上就永远没有端点，
+  // 而 Mac 层恰恰是这一层的验证台。整块 #if DEBUG：Release 里 MTTestBridge 符号不存在，
+  // 这行若不跟着裁掉编译都过不了 —— 双保险是编译器给的，不是我们记性给的。
+  const TESTB_NEEDLE = 'MTTestBridge.attach(self.webView)';
+  const TESTB_LINES = '        #if DEBUG\n        MTTestBridge.attach(self.webView)\n        #endif';
+  if (src.includes(TESTB_NEEDLE)) {
+    notes.push('test bridge install already patched');
+  } else if (src.includes(VAULT_LINES)) {
+    src = src.replace(VAULT_LINES, VAULT_LINES + '\n' + TESTB_LINES);
+    notes.push(src.includes(TESTB_NEEDLE) ? 'test bridge install patched' : '✗ test bridge install: vault install 块锚点缺失');
+  } else {
+    notes.push('✗ test bridge install: vault install 块缺失');
+  }
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
   // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
@@ -390,6 +403,9 @@ const BLOCKS = [
   // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
   // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
   { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
+  // §0.4.1 诊断录音（2026-10-06）：采集与上传（麦克风/TTS PCM → write-only 信箱）。无 attach ——
+  // speech-bridge 与 audio-bridge 直接调 MTDiagAudio.shared。
+  { name: 'mt-diag-audio', src: 'diag-audio.swift', label: 'diag audio' },
   // 实时字幕的 Mac 悬浮字幕条（learning-design §9.8）。整份 #if os(macOS)；无 attach —— 由 MTAudioBridge 在
   // subtitle-config 时带着主窗口调它；AppDelegate 那两处（关窗不退出 / 点 Dock 找回）见 DELEGATE_PATCHES。
   { name: 'mt-subtitle-bar', src: 'subtitle-bar.swift', label: 'subtitle bar' },
@@ -415,6 +431,16 @@ const BLOCKS = [
   //   · vault-bridge 是 mtVault 通道本身；attach 见 patchViewController 的 install 行
   { name: 'mt-vault-names', src: 'translate-ext/VaultNames.swift', label: 'vault names' },
   { name: 'mt-vault-bridge', src: 'vault-bridge.swift', label: 'vault bridge' },
+  // §0.4 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
+  // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
+  // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。
+  { name: 'mt-test-bridge', src: 'test-bridge.swift', label: 'test bridge' },
+  // 端侧语种识别的默认引擎：SpeechBrain ECAPA（VoxLingua107）CoreML（2026-10-08 起默认）。
+  // 由 `MTDeviceLid` 的清单里 `engine: 'ecapa'` 选；whisper（sherpa SLID）退成开发开关
+  // `lidEngine='whisper'`，它判词会乱跳。
+  // 模型不打进 App 包（侧载到 mt-lid/<dir>/）。要撤这一整条：删掉本行 + app/native/lid-ecapa.swift
+  // + speech-bridge.swift 里的 ECAPA 分支 + JS 的 lidEngine 开关。
+  { name: 'mt-lid-ecapa', src: 'lid-ecapa.swift', label: 'lid ecapa (experiment)' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

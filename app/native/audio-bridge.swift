@@ -284,6 +284,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             buffer = z
         }
         micSink?(buffer)
+        // §0.4.1 诊断录音（2026-10-06）：麦克风的同一 PCM 顺手落盘（默认关；文本 sidecar
+        // 只随音频包走，零内容事件通道不变）。写失败静默 —— 排障仪器绝不影响主功能。
+        #if canImport(AVFoundation)
+        MTDiagAudio.shared.write("mic", buffer)
+        #endif
         if !micDeliverPcm {
             let now = Date().timeIntervalSince1970
             guard now - lastLevelAt >= 0.1 else { return }
@@ -339,6 +344,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// 实时听译要的是「一边录一边（可能）放」的会话；播客模式仍是只放不录。
     /// 由 JS 在 session-start 之前用 record-mode 声明，原生只在建会话时读它。
     private var recordMode = false
+    private var sweptOrphans = false   // 冷启动对账只做一次（见 sweepOrphanActivities）
 
     private func setRecordMode(_ body: [String: Any]) {
         recordMode = (body["on"] as? Bool) ?? false
@@ -389,6 +395,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
 #endif
         installCommands()
+        // 冷启动对账：这一进程的第一次起会话，先把上一次被杀留下的残留活动 / Now Playing 清掉。
+        if !sweptOrphans { sweptOrphans = true; sweepOrphanActivities() }
         // `suspends` 是 JS 用来判断「隐藏之后还能不能出声」的唯一依据。由原生报，
         // 而不是让 JS 去嗅 UA —— domain-design §5.3 规则 2 禁止用 UA 做能力判断，
         // 而这恰恰是一个平台能力问题：iOS 会挂起进程，macOS 不会。
@@ -396,6 +404,19 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         emit(["type": "session-ready", "platform": "ios", "suspends": true])
 #else
         emit(["type": "session-ready", "platform": "macos", "suspends": false])
+#endif
+    }
+
+    /// 启动对账（改稿 D，2026-10-09）：上一次进程被杀（强杀 / 崩溃 / 被系统回收 / Mac 上 Cmd-Q）时，    /// 我们没机会走 `stopSession()` —— 而 ActivityKit 的活动是**系统渲染**的，不保证跟着进程一起消失，
+    /// 可能一直挂在灵动岛 / 锁屏上，让用户看到一条「明明已经不在录」的状态。所以每次起会话前先把所有
+    /// 残留活动与 Now Playing 清掉。**不依赖「系统会不会自己清」**（各 iOS 版本行为不一致）。
+    private func sweepOrphanActivities() {
+#if os(iOS)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        guard #available(iOS 16.1, *) else { return }
+        let orphans = Activity<MTPodcastAttributes>.activities
+        guard !orphans.isEmpty else { return }
+        Task { for a in orphans { await a.end(dismissalPolicy: .immediate) } }
 #endif
     }
 
@@ -489,8 +510,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 #endif
     }
 
-    private func endActivity() {
-#if os(iOS)
+    private func endActivity() {#if os(iOS)
         guard #available(iOS 16.1, *),
               let activity = activityBox as? Activity<MTPodcastAttributes> else { return }
         activityBox = nil

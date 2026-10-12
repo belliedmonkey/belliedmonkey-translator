@@ -1,0 +1,7 @@
+{
+  "speechbrain-ecapa-voxlingua107.zip": {
+    "cn": "https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/speechbrain-ecapa-voxlingua107.zip",
+    "intl": "https://huggingface.co/belliedmonkey/belliedmonkey-device-models/resolve/main/speechbrain-ecapa-voxlingua107.zip",
+    "note": "SpeechBrain ECAPA VoxLingua107（Apache-2.0）· 语种识别默认引擎 · 39,614,532 B · sha256 f4fa066c9d949bff6709ef432fd4f56922ca288bf4825d219e4e2ada52d7eda1"
+  }
+}

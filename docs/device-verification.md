@@ -356,3 +356,265 @@ Kokoro int8 多语离线朗读（#558 + #557）、一键卡随界面语言重画
 沿用既有键也避免给同一件事起第二个名字。**用户 2026-10-04 拍板：保持「对方的语言」，不改成帧上的「目标语言」，代码不再为这个用词改动，
 也不再为它打版。** 理由与决定已记进 `docs/interaction-spec.md`（首启屏那一节）——
 这一页的两个包要的是**被识别的语言**，与「译成」是两个概念。
+
+---
+
+## 2026-10-04 · TestFlight 第六批（首启语音包页语言下拉空框的修复 #562）
+
+驱动 `.local/build-1190g-four.sh`，从 `a9c84c03`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码跑前从 ASC 回读确定（第五批 135/83/78/76 全 VALID；`node scripts/asc.js builds`）。
+**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **136** | **VALID** |
+| 国际 macOS | **84** | **VALID** |
+| 中国 iOS | **79** | **VALID** |
+| 中国 macOS | **77** | **VALID** |
+
+**这一批补的一处**（第五批 135/83/78/76 里没有）：
+
+**首启语音包页「我的语言 / 对方的语言」两个下拉只剩空框**（用户 2026-10-04 build 78 实机截图，
+issue #562）。根因：`paintFirstRun(session)` 里语言对那段写的是 `firstRunLocales(s)`，作用域里只有
+形参 `session` ⇒ 严格模式抛 `ReferenceError`、被外层 `catch (_) {}` 静默吞掉，`wire(...)` 没跑，
+两个 `<select>` 既无标签也无选项。改：默认语言对从 `readObSettings()` 读并单独兜底、两个槽都保证
+有值；语言对提前到 `probePacks()` 之前（显示与下载一致）；选项 = 注册表全量；并按 Pencil 稿
+`稿 · 下载页 · 自选语言对` 落地两个全宽选择器 + 包卡片。
+
+**进包已回读**（不是只看 git）：`dist-app/Script.js` 与 `dist-app-china/Script.js` 都能搜到
+`let defaults = ["", ""]` 与 `packs-lang-label`；`firstRunLocales(s)` 只剩 `probePacks` /
+`runFirstRunPacks` 两处（那两处作用域里确有 `const s`）。
+
+CI：PR #535 合并前 run 37176397751 5/5 pass；并入 main（`748e9b46`）后 run 37179080329 5/5 pass。
+
+---
+
+## 2026-10-04 · TestFlight 第七批（iOS 26.x 上「选窄转写器」错判泰/俄/阿的修复 #563）
+
+驱动 `.local/build-1190h-four.sh`，从 `246b1342`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码跑前从 ASC 回读确定（第六批 136/84/79/77 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **137** | **VALID** |
+| 国际 macOS | **85** | **VALID** |
+| 中国 iOS | **80** | **VALID** |
+| 中国 macOS | **78** | **VALID** |
+
+**这一批补的一处**（第六批 136/84/79/77 里没有）：
+
+**iPhone 15 Pro / iOS 26.6.2（听译语言 ไทย）首页两个入口一起灰**（issue #563）。根因：
+`mtTranscriberFor` 先问 `SpeechTranscriber.supportedLocale(equivalentTo:)`，而它在 **iOS 26.x 上对
+「窄的那台并不支持」的语言也会归一化出一个 locale**（27.0 才改成回 nil）⇒ 泰/俄/阿被错分给窄的
+那台、其 `AssetInventory.status=unsupported` ⇒ 探针回 `unsupported/locale` ⇒ `ok=false` ⇒
+`entryState.disabled` ⇒ 两张卡一起灰。修：认窄的那台前核对 `SpeechTranscriber.supportedLocales`，
+不在清单里就落回 `DictationTranscriber`。
+
+**实测对照（系统 API，非推测）**：iOS 26.5 模拟器 `speech(th-TH)=unsupported` / `dict(th-TH)=supported`；
+iOS 27.0 的 14 Pro 上 `supportedLocale("th")` 本就回 nil、落 dict，端到端首页两张卡 CTA 带像素 =
+实心 `#ac6231`（启用）⇒ 这是 26.x 线独有的缺陷。
+
+**进包已回读**：`safari-project{,-china}/…/ViewController.swift` 里都搜得到 `speechLocales.contains`。
+
+**待补**：15 Pro（26.6.2）真机端到端 —— 本批 china iOS 80 由用户验（首页两卡是否恢复可点、
+选 ไทย 是否可用）。`npm test` 2382 passed / 0 failed（**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；新增门禁见 `test/listen-langs-thai.test.js`。
+
+⚠️ **第七批在 15 Pro / iOS 26.6.2 上没修好**（用户 16:12–16:13 报）：首页两卡仍灰（CTA 带像素
+`(215,177,148)` ≈ 主色 `#ac6231` 压 0.45）、包屏「识别语言包」整行不见（`rowAsr.hidden =
+packAsrUnsupported` ⇒ 探针仍回 `unsupported/locale`）。修复确实进了 80（`app:sync` 日志 =
+`speech bridge block replaced`；china 归档重编了 `ViewController.swift`）⇒ **名单判据不够**，
+需要设备上的中间值。
+
+---
+
+## 2026-10-04 · TestFlight 第八批（**诊断批**：探针中间值上屏幕，定位 #563）
+
+驱动 `.local/build-1190i-four.sh`，从 `bc173c3e`（feat/firstrun-gates，临时诊断提交）出，版本 1.19.0。
+号码按 ASC 回读定（第七批 137/85/80/78 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **138** | **VALID** |
+| 国际 macOS | **86** | **VALID** |
+| 中国 iOS | **81** | **VALID** |
+| 中国 macOS | **79** | **VALID** |
+
+这一批**只多了一条诊断**（不改产品行为）：原生 `stt-probe` 把中间值发回 JS，页面底部一条绿色固定浮层
+`[mt-probe]` 显示 —— 输入语言对 / `ok·reason·assets` / `isAvail·speechN·dictN` / `unionN·unionHasTh`
+/ 每门语言 `(id, 选中哪台, 资产状态)`。用来钉死「26.6.2 上泰语为什么仍被判不支持」。
+
+**进包已回读**：`safari-project-china/…/ViewController.swift` 里搜得到 `"probe": probeDbg`（3 处）。
+**浮层渲染已在 14 Pro（iOS 27.0）验过**：`isAvail=true speechN=45 dictN=54 unionN=68 unionHasTh=true`、
+`probe: en-US speech installed`。
+
+⚠️ **这一批是临时的**：定位完成后删诊断（`bc173c3e` + `build-scripts` 白名单里的 `"probe"/"nil"`）。
+
+---
+
+## 2026-10-04 · TestFlight 第九批（第八批原样重发：81 在 15 Pro 上卡「准备中」）
+
+用户在 15 Pro 装 81 时 TestFlight 卡「准备中」不动；ASC 上 81 是 VALID 的（CDN/端侧问题）。
+按用户裁定「重来」重发一批：**同一 HEAD `59f3acbc`，内容与 138/86/81/79 完全相同**（诊断浮层那版）。
+驱动 `.local/build-1190j-four.sh`。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **139** | **VALID** |
+| 国际 macOS | **87** | **VALID** |
+| 中国 iOS | **82** | **VALID** |
+| 中国 macOS | **80** | **VALID** |
+
+（本轮插曲：当时本机 `127.0.0.1:1082` 本地代理已死 + NAS 上 mihomo 栈 8317/18080/19090/19091 全
+CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d82b05..59f3acbc` 已补。）
+
+---
+
+## 2026-10-04 · TestFlight 第十批（#564 语言对对调修复 + #563 探针两台按资产选）
+
+驱动 `.local/build-1190k-four.sh`，从 `03e5728a`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第九批 139/87/82/80 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **140** | **VALID** |
+| 国际 macOS | **88** | **VALID** |
+| 中国 iOS | **83** | **VALID** |
+| 中国 macOS | **81** | **VALID** |
+
+这一批两处：① **#564 语言对对调** —— 包屏默认值把 `firstRunLocales()`（去重集合）当槽位一对用，
+且「选默认值不触发 change」令 `listenMyLang` 恒空 ⇒ 点下载后「我=中文、对方=ไทย」跳成
+「我=ไทย、对方=English」。修：槽位默认各算（我的=界面语言，对方的=targetLang∥一门不同的）+
+「下载并继续」先落盘。② **#563 追踪** —— `mtTranscriberFor` 两台都按 `AssetInventory.status`
+问（`mtModuleUsable`），先可用者胜；依据 15 Pro/26.6.2 浮层数据（speechN=30 dictN=54、
+`th dictation installed`）：名单说支持 ≠ 资产说可用，未就绪模块会被 26.x 报 `.unsupported`。
+
+**进包已回读**：`ViewController.swift` 有 `func mtModuleUsable`；`dist-app-china/Script.js` 有
+`listenMyLang: langPair[0]`（下载落盘）与 `getUILanguage()`（槽位默认）。诊断浮层**再留一轮**
+（验证新选法），用户确认后删。
+
+`npm test` 2384 passed / 0 failed（R2g 改判 + 新增 R2h + thai 资产判据；**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；`test:app` global/china 绿。
+
+---
+
+## 2026-10-04 · TestFlight 第十一批（#565 回声闸泰语修复；诊断浮层删除）
+
+驱动 `.local/build-1190l-four.sh`，从 `1e2bdf0e`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十批 140/88/83/81 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **141** | **VALID** |
+| 国际 macOS | **89** | **VALID** |
+| 中国 iOS | **84** | **VALID** |
+| 中国 macOS | **82** | **VALID** |
+
+这一批一处：**#565 回声闸对泰语失明** —— `echoTokens` 只认「中日韩按字 / 其余按词」，泰文没有词间
+空格 ⇒ 整句一个巨型 token，包含度退化成整串相等 ⇒ 自己念的泰语被当成新句子翻回中文。修：无空格
+文字（泰/老挝/高棉/缅甸）按字符 bigram 切。**同时删除 #563 的临时诊断浮层**（`stt-state.probe` /
+`paintProbeDebug` / 白名单 `"probe"/"nil"`，包内 grep 残留 0）。
+
+**进包已回读**：`dist-app-china/Script.js` 有 `NOSPACE_SCRIPT`（2 处），`probeDbg`/`paintProbeDebug`
+残留 0。`npm test` 2386 passed / 0 failed（回声闸新增泰语两条门禁；**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；`test:app` global/china 绿。
+
+**待用户验（84）**：zh↔th 听译里泰语译文念完后不再被自己识别翻回中文；中文句照常自动朗读。
+
+---
+
+## 2026-10-05 · TestFlight 第十二批（#565 回声闸二轮：窗 1500→3000ms + 系统语音静麦尾 0.9s）
+
+驱动 `.local/build-1190m-four.sh`，从 `e39eb397`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十一批 141/89/84/82 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **142** | **VALID** |
+| 国际 macOS | **90** | **VALID** |
+| 中国 iOS | **85** | **VALID** |
+| 中国 macOS | **83** | **VALID** |
+
+**84 上 bigram 切词已对、回声仍漏** —— 漏的不是「比对」是「时间」：系统语音（AVSpeechSynthesizer）
+出声比 `didFinish` 晚（静麦放开后又听到尾音）+ Dictation 定稿晚落（落在 JS 回声窗 1500ms 之外）。
+修：`ECHO_TAIL_MS` 1500→3000；`MTSystemSpeech` 的 didFinish/didCancel/stop 放开静麦后
+`extendMuteTail(0.9)`（audio-bridge 新增，Piper 路的 0.35 不动）。
+
+**进包已回读**：`ViewController.swift` 有 `extendMuteTail`（4 处）；`dist-app-china/Script.js` 有
+`ECHO_TAIL_MS = 3000`。`npm test` 2387 passed / 0 failed（念完 2.5s 才到的泰语定稿 ⇒ 仍判回声；**2026-10-05 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；
+`test:app` global/china 绿。
+
+**待用户验（85）**：zh↔th 听译里泰语念完后不再冒出「新句子翻成中文」。
+
+---
+
+## 2026-10-05 · TestFlight 第十三批（#565 三轮 · 路 A：系统语音走 write() 自有管线）
+
+驱动 `.local/build-1190n-four.sh`，从 `e52a98e1`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十二批 142/90/85/83 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **143** | **VALID** |
+| 国际 macOS | **91** | **VALID** |
+| 中国 iOS | **86** | **VALID** |
+| 中国 macOS | **84** | **VALID** |
+
+这一批：**系统语音从 `synth.speak()`（系统内部渲染、静麦跟 delegate 回调猜时机）改为
+`write(_:toBuffer:)` → `MTSpeechChunkBox` → 自有 `AVAudioPlayerNode`** —— 与 Piper（中文）同一条
+从不回声的管线；tts-start/tts-end/静麦全部对齐「首块出声 + 总样本数/采样率」。JS/协议零改动。
+
+**插曲（第一次跑全红）**：`pcm.channelCount` 写错（在 `pcm.format.channelCount` 上）——本地只跑了
+`swiftc -parse`（查语法不查类型）没拦住；四个归档全失败、**未上传任何坏包**（号码 143/91/86/84 在
+ASC 从未出现，重跑直接复用）。补了真类型检查（`swiftc -typecheck` 组合三个 native 文件）进本地流程。
+
+**进包已回读**：`ViewController.swift` 有 `synth.write(u)`（1）与 `format.channelCount`（2），
+delegate 三回调与 `extendMuteTail` 残留 0。
+
+**待用户验（86）**：zh↔th 听译里泰语念完后不再被自己认成新句子。
+
+---
+
+## 2026-10-05 · TestFlight 第十五批（#565 五轮 · 路 B：恢复 vits-mms-tha 离线朗读包）
+
+驱动 `.local/build-1190p-four.sh`，从 `e18ee5b2`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十四批 144/92/87/85 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **145** | **VALID** |
+| 国际 macOS | **93** | **VALID** |
+| 中国 iOS | **88** | **VALID** |
+| 中国 macOS | **86** | **VALID** |
+
+用户 2026-10-05 裁定：「换一个方案吧。直接用 Hugging Face 那个，先忽略商用问题」—— **恢复
+vits-mms-tha**（Meta MMS-TTS，105 MB，此前因 CC-BY-NC 4.0 于 484cc8c5 撤回）。泰语朗读从
+「系统语音回落」改为**离线模型**，与中文（Kokoro）走同一条 sherpa-onnx → MTSpeechChunkBox →
+自有 AVAudioPlayerNode 管线 —— **那条路从不回声**。系统语音回落对泰语不再触发（ttsLangs 有 th）。
+
+托管：GitHub Release `device-models-2`（两 flavor 同地址）；ModelScope 被删了（重传需 token，后续补）。
+`verify:model-urls`：th global 200 / th china 200 / zh/en 各 206 ✓。
+
+**待用户验（88）**：泰语念完不再被翻回中文；泰语能出声（首次从 GitHub 下载 ~105 MB）；中文照常。
+
+---
+
+## 2026-10-05 · TestFlight 第十六批（#565 六轮：TTS 不堵死 + 模型地址不明文 + ensureDeviceReady 按语言过滤）
+
+驱动 `.local/build-1190q-four.sh`，从 `640f4fa7`（feat/firstrun-gates）出，版本 **1.19.0**。
+号码按 ASC 回读确定（第十五批 145/93/88/86 全 VALID）。**只上传 TestFlight，无 bind / 无 submit。**
+
+| 面 | 构建号 | ASC |
+|---|---|---|
+| 国际 iOS | **146** | **VALID** |
+| 国际 macOS | **94** | **VALID** |
+| 中国 iOS | **89** | **VALID** |
+| 中国 macOS | **87** | **VALID** |
+
+四处修复（用户 2026-10-05 报的 build 88 回归「中文和泰文都没朗读」+「没有对话历史」）：
+① ensureDeviceReady **按语言过滤**（泰语 105 MB 没下好不堵死中文）；② speakPump **每句 30 s 超时**
+（下载卡死不再阻塞整条队列）；③ assets/timeout **第一次就说**（不是瞬态错误，不等 3 次）；
+④ 模型地址**不明文进包**（device-models.config.js 一律 api.belliedmonkey.com/models/ 中继，
+真实地址在 bt_model_sources 表和 Caddyfile /models/* 302）。
+
+bt_model_sources 已插 vits-mms-tha 行（中国版用户手动 + 国际版 API 插入）。
+verification-spec 新增「硬编码禁令」+「TTS 不得静默堵死」两节；新增 model-urls-not-plaintext 门禁。
+
+**待用户验（89）**：中文朗读正常 / 泰语朗读正常（首次下载 ~105 MB）/ 回声没了 / 语言对不跳 / 有对话历史。

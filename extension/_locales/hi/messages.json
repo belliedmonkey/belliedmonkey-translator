@@ -840,7 +840,7 @@
     "message": "Grammar"
   },
   "app_lede": {
-    "message": "वीडियो, बातचीत, दस्तावेज़ — सुनते-सुनते अनुवाद। आवाज़ सिर्फ़ आपके डिवाइस पर संसाधित होती है।"
+    "message": "वीडियो, बातचीत, दस्तावेज़ — सुनते-सुनते अनुवाद। आवाज़ आपके डिवाइस पर पहचानी जाती है। पहचाना गया टेक्स्ट अनुवाद के लिए भेजा जाता है: अपनी key हो तो सीधे उसी प्रोवाइडर को जिसे आपने सेट किया; मुफ़्त क्रेडिट पर यह हमारे सर्वर से होकर जाता है, और हम टेक्स्ट नहीं रखते।"
   },
   "app_email_label": {
     "message": "Email"
@@ -1554,7 +1554,7 @@
     "message": "मैंने चालू कर दिया"
   },
   "app_signin_why": {
-    "message": "साइन इन करने पर मुफ़्त क्रेडिट आता है और दो वॉइस पैक इस डिवाइस पर डाउनलोड हो जाते हैं — उसके बाद कोई सेटअप नहीं।"
+    "message": "साइन इन करने पर मुफ़्त क्रेडिट आता है और वॉइस पैक इस डिवाइस पर डाउनलोड हो जाते हैं — उसके बाद कोई सेटअप नहीं।"
   },
   "app_signin_open": {
     "message": "साइन इन करें"
@@ -1785,13 +1785,13 @@
     "message": "ऑफ़लाइन मॉडल डाउनलोड विफल: {why} — प्रायः नेटवर्क की समस्या है; बाद में फिर कोशिश करें — फिर से “सुनना शुरू करें” दबाएँ, या सेटिंग्स में क्लाउड लाइव इंजन चुनें।"
   },
   "listen_entry_privacy_device": {
-    "message": "आवाज़ आपके डिवाइस पर ही पहचानी जाती है और किसी सर्वर को नहीं भेजी जाती; पहचाना गया पाठ आपके सेट किए अनुवाद इंजन को जाता है।"
+    "message": "डिवाइस पर ट्रांसक्रिप्शन: बोलते ही शब्द दिखते हैं; पूरा वाक्य आपके सेट किए अनुवाद इंजन को जाता है।"
   },
   "listen_cost_line_device": {
-    "message": "{t} सुना · ऑडियो डिवाइस से बाहर नहीं जाता"
+    "message": "{t} सुना"
   },
   "listen_device_privacy": {
-    "message": "डिवाइस पर ट्रांसक्रिप्शन में आवाज़ आपके डिवाइस पर ही पहचानी जाती है और किसी सर्वर को नहीं भेजी जाती; पहचाना गया पाठ संदर्भ के लिए पिछले कुछ वाक्यों के साथ आपके सेट किए अनुवाद इंजन को सुधार और अनुवाद के लिए जाता है — हमारे सर्वर शामिल नहीं होते। डिवाइस पर वाचन में आवाज़ आपके डिवाइस पर बनती है; पहली बार ऑफ़लाइन मॉडल एक बार डाउनलोड होता है (केवल मॉडल फ़ाइल)। कोई रिकॉर्डिंग नहीं रखी जाती, केवल पाठ।"
+    "message": "डिवाइस पर ट्रांसक्रिप्शन: बोलते ही शब्द दिखते हैं; पूरा वाक्य, संदर्भ के लिए पिछले कुछ वाक्यों के साथ, अनुवाद के लिए भेजा जाता है: अपनी key हो तो सीधे उसी प्रोवाइडर को जिसे आपने सेट किया; मुफ़्त क्रेडिट पर यह हमारे सर्वर से होकर जाता है, और हम टेक्स्ट नहीं रखते। डिवाइस पर आवाज़ बनाई जाती है और पहली बार एक ऑफ़लाइन मॉडल डाउनलोड होता है।"
   },
   "listen_raw_label": {
     "message": "पहचाना गया पाठ"
@@ -2048,6 +2048,27 @@
   "telemetry_hint": {
     "message": "केवल यह कि कौन-सी सुविधाएँ, किस ब्राउज़र में इस्तेमाल हुईं और अनुवाद सफल हुआ या नहीं — कभी भी आपके पढ़े पेज, टेक्स्ट, पते, कुंजियाँ या खाता नहीं। बंद करने पर इस डिवाइस का भेजा डेटा हट जाता है।"
   },
+  "diag_section": {
+    "message": "डायग्नोस्टिक लॉग"
+  },
+  "diag_copy": {
+    "message": "डायग्नोस्टिक लॉग कॉपी करें"
+  },
+  "diag_clear": {
+    "message": "साफ़ करें"
+  },
+  "diag_hint": {
+    "message": "समस्या सुलझाने हेतु स्थानीय रिकॉर्ड (मॉडल डाउनलोड / स्पीच इंजिन / लॉगिन चरण, लगभग 200 प्रविष्टियाँ)। आपके बोले या अनुवादित शब्द बिल्कुल नहीं होते। केवल तब डिवाइस से बाहर जाता है जब आप खुद कॉपी करके किसी को भेजें।"
+  },
+  "diag_copied": {
+    "message": "कॉपी हो गया"
+  },
+  "diag_audio_toggle": {
+    "message": "डायग्नोस्टिक ऑडियो अपलोड करें (ट्रांस्क्रिप्शन डीबगिंग)"
+  },
+  "diag_audio_hint": {
+    "message": "चालू करने पर दुभाषिया सत्रों का माइक ऑडियो, पढ़ा गया ऑडियो और संगत पाठ पैक होकर हमारे सर्वर पर अपलोड होते हैं (केवल ट्रांस्क्रिप्शन समस्याओं के निदान के लिए, 72 घंटे बाद स्वतः हट जाता है)। डिफ़ॉल्ट रूप से बंद; बंद करते ही संग्रह तुरंत रुकता है।"
+  },
   "telemetry_onboard": {
     "message": "उत्पाद सुधारने के लिए गुमनाम उपयोग डेटा भेजा जाता है (कभी भी पेज की सामग्री या पते नहीं)। सेटिंग्स में बंद किया जा सकता है।"
   },
@@ -2178,12 +2199,6 @@
   "listen_star": {
     "message": "स्टार"
   },
-  "listen_now_them": {
-    "message": "सामने वाला कह रहा है"
-  },
-  "listen_now_me": {
-    "message": "मैं बोल रहा हूँ"
-  },
   "listen_lang_me": {
     "message": "{to} में"
   },
@@ -2221,9 +2236,6 @@
     "message": "ऑनलाइन मीटिंग और वीडियो कॉल में भी काम करता है: बस सामने वाले की आवाज़ स्पीकर से बजने दें।",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "समाप्त"
-  },
   "listen_cost_line": {
     "message": "{t} सुना · ऑडियो केवल आपके ट्रांसक्रिप्शन एंडपॉइंट पर जाता है"
   },
@@ -2248,18 +2260,6 @@
   "listen_stop_failed": {
     "message": "माइक्रोफ़ोन शुरू नहीं हुआ: {why} — “सुनना शुरू करें” फिर टैप करें।"
   },
-  "listen_summary_title": {
-    "message": "यह बातचीत"
-  },
-  "listen_summary_note": {
-    "message": "रिकॉर्डिंग हटा दी जाती है; केवल टेक्स्ट रहता है। रिव्यू के वाक्य स्रोत › बातचीत में प्रबंधित या पूरे हटाए जा सकते हैं।"
-  },
-  "listen_summary_home": {
-    "message": "होम पर लौटें"
-  },
-  "listen_summary_again": {
-    "message": "एक और"
-  },
   "listen_np_title": {
     "message": "बातचीत · लाइव दुभाषिया"
   },
@@ -2273,7 +2273,7 @@
     "message": "बातचीत को रिव्यू में जोड़ें (स्रोत “बातचीत”)"
   },
   "listen_capture_note": {
-    "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल “सुनना शुरू करें” के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
+    "message": "“बातचीत · लाइव दुभाषिया” माइक्रोफ़ोन को केवल आपके सेट किए ट्रांसक्रिप्शन एंडपॉइंट पर, केवल नीचे रिकॉर्ड कुंजी दबाने के बाद भेजता है; हमारे सर्वर ऑडियो को कभी नहीं छूते; कोई रिकॉर्डिंग नहीं रखी जाती, केवल टेक्स्ट — और केवल तब तक जब तक यह स्विच चालू है।"
   },
   "listen_who_them": {
     "message": "सामने वाला"
@@ -2282,7 +2282,7 @@
     "message": "मैं"
   },
   "listen_who_guessed": {
-    "message": "भाषा से अनुमान लगाया — बदलने के लिए ↔ दबाएँ"
+    "message": "गलत भाषा? दूसरी भाषा पर जाने के लिए ↔ दबाएँ"
   },
   "listen_swap_to_them": {
     "message": "बदलें: यह सामने वाले ने कहा"
@@ -2291,7 +2291,7 @@
     "message": "बदलें: यह मैंने कहा"
   },
   "listen_flip_kept_card": {
-    "message": "पक्ष बदला — पिछला कार्ड पहले ही दोहराया जा चुका है, इसलिए वह «स्रोत › बातचीत» में रहेगा"
+    "message": "दूसरी भाषा पर बदल दिया — पिछला कार्ड पहले ही दोहराया जा चुका है, इसलिए वह «स्रोत › बातचीत» में रहेगा"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2308,6 +2308,9 @@
   "listen_autospeak_off": {
     "message": "स्वतः वाचन रुका · {why} — हर पंक्ति का बटन अब भी काम करता है"
   },
+  "listen_tts_unusable": {
+    "message": "स्वतः वाचन उपलब्ध नहीं — वाणी इंजिन सेट नहीं है। सेटिंग्स › वाणी में एक चुनें"
+  },
   "listen_autospeak_echo": {
     "message": "स्वतः वाचन रोका — प्रतिध्वनि का चक्र मिला। आवाज़ कम करें या इयरफ़ोन लगाएँ, फिर दोबारा चालू करें।"
   },
@@ -2323,23 +2326,11 @@
   "listen_ephemeral_pill": {
     "message": "सहेजा नहीं जाएगा"
   },
-  "listen_ephemeral_summary": {
-    "message": "इस बार कुछ नहीं रखा गया"
-  },
-  "listen_summary_kept": {
-    "message": "{n} दोहराव में (स्रोत «बातचीत») · {s} तारांकित"
-  },
-  "listen_summary_body2": {
-    "message": "{t} · सामने वाला {them} · मैं {me} · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "{n} बार पक्ष बदला"
-  },
   "listen_my_lang_label": {
     "message": "मेरी भाषा"
   },
   "listen_lang_note": {
-    "message": "दोनों भाषाएँ अलग होनी चाहिए। इन्हें बातचीत स्क्रीन के नीचे भी बदल सकते हैं — वही सेटिंग है।"
+    "message": "आपकी चुनी हुई दो भाषाओं के बीच अपने-आप पहचान। इन दोनों भाषाओं को सुनने वाले पेज पर कभी भी बदल सकते हैं।"
   },
   "listen_lang_engine_unsupported": {
     "message": "वर्तमान इंजन द्वारा समर्थित नहीं"
@@ -2405,7 +2396,7 @@
     "message": "ट्रांसक्रिप्शन कनेक्शन टूटा: {why} — फिर से जुड़ रहा है…"
   },
   "listen_history_empty": {
-    "message": "दोनों सामान्य रूप से बोलें — हर पूरी पंक्ति यहाँ आएगी; पक्ष ग़लत हो तो ↔ दबाएँ"
+    "message": "दोनों बेझिझक बोलें — हर पूरी पंक्ति यहाँ आएगी। गलत भाषा? दूसरी भाषा पर जाने के लिए ↔ दबाएँ"
   },
   "listen_tr_failed": {
     "message": "अनुवाद विफल · फिर कोशिश करें"
@@ -2729,7 +2720,7 @@
     "message": "सबटाइटल दोहराव में जोड़ें (स्रोत «लाइव सबटाइटल»)"
   },
   "subtitle_video_lang_label": {
-    "message": "वीडियो की भाषा"
+    "message": "वीडियो की भाषा:"
   },
   "subtitle_tip_mac": {
     "message": "शुरू करने के बाद सबटाइटल स्क्रीन के नीचे तैरती पट्टी पर दिखेंगे; हर पूरा वाक्य यहाँ भी सूची में रहेगा।"
@@ -3563,10 +3554,10 @@
     "message": "बाकी कल सही —— बस लौटकर आते रहिए।"
   },
   "firstrun_packs_title": {
-    "message": "पहले दोनों स्पीच पैक डाउनलोड करें"
+    "message": "पहले स्पीच पैक डाउनलोड करें"
   },
   "firstrun_packs_lede": {
-    "message": "इसके बाद कुछ भी सेट करने की ज़रूरत नहीं — अनुवाद, लाइव व्याख्या, सबटाइटल और पढ़कर सुनाना सीधे काम करेंगे। ऑडियो सिर्फ़ आपके डिवाइस पर प्रोसेस होता है।"
+    "message": "इसके बाद कुछ भी सेट करने की ज़रूरत नहीं — अनुवाद, लाइव व्याख्या, सबटाइटल और पढ़कर सुनाना सीधे काम करेंगे। आवाज़ आपके डिवाइस पर पहचानी जाती है। पहचाना गया टेक्स्ट अनुवाद के लिए भेजा जाता है: अपनी key हो तो सीधे उसी प्रोवाइडर को जिसे आपने सेट किया; मुफ़्त क्रेडिट पर यह हमारे सर्वर से होकर जाता है, और हम टेक्स्ट नहीं रखते।"
   },
   "firstrun_packs_asr": {
     "message": "स्पीच पहचान पैक (व्याख्या / लाइव सबटाइटल)"
@@ -3606,5 +3597,188 @@
   },
   "engine_status_fix_translate": {
     "message": "अनुवाद इंजन सेट नहीं — सेटिंग्स › इंजन में चुनें"
+  },
+  "listen_lang_detecting": {
+    "message": "भाषा पहचानी जा रही है…"
+  },
+  "listen_lang_detected": {
+    "message": "पहचानी गई: {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "वीडियो की भाषा पहचानी जा रही है…"
+  },
+  "subtitle_lang_detected": {
+    "message": "पहचानी गई: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "सिर्फ़ तब छुएँ जब भाषा गलत पहचानी गई हो"
+  },
+  "listen_lang_auto": {
+    "message": "अपने-आप पहचानें"
+  },
+  "listen_lang_manual": {
+    "message": "हाथ से तय करें"
+  },
+  "subtitle_partner_auto": {
+    "message": "वीडियो की भाषा: {lang} (अपने-आप)"
+  },
+  "listen_need_locales": {
+    "message": "ऑन-डिवाइस पहचानकर्ता एक बार में अधिकतम 5 भाषाएँ रख सकता है और भर चुका है — बाहर जाकर दोबारा खोलें।"
+  },
+  "listen_lang_assets_missing": {
+    "message": "इस भाषा का पहचान पैक अभी इंस्टॉल नहीं है। इंटरनेट से जुड़कर एक बार «सुनना शुरू करें» दबाएँ, यह डाउनलोड हो जाएगा।"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "यह डिवाइस वह भाषा नहीं पहचान सकता — «{lang}» पर वापस"
+  },
+  "listen_speak_lang_label": {
+    "message": "जो भाषा मैं बोलता हूँ"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} सुनाई दे → {b} में अनुवाद; {b} सुनाई दे → {a} में अनुवाद"
+  },
+  "lang_auto": {
+    "message": "अपने-आप"
+  },
+  "listen_listening": {
+    "message": "सुन रहे हैं…"
+  },
+  "listen_ptt_say": {
+    "message": "{lang} बोलें"
+  },
+  "listen_listening_lang": {
+    "message": "{lang} सुन रहे हैं…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "शुरू करने के लिए टैप करें"
+  },
+  "listen_ptt_recording": {
+    "message": "● रिकॉर्ड हो रहा है · रोकने के लिए टैप करें"
+  },
+  "firstrun_packs_back": {
+    "message": "Back"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Language packs are ready"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} can be used for listening and reading aloud. Add more anytime in Settings."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Downloading language packs"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "Each item shows its own progress. Downloading continues in the background and resumes after the network returns."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Choose languages to download"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "Checked by default: the system language + 中文 + English. Check others as needed. You can add more later in Settings."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
+  },
+  "firstrun_packs_foot": {
+    "message": "About {size} in total, plus the system recognition packs. On a cellular network you will be asked before the download."
+  },
+  "firstrun_packs_locked": {
+    "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
+  },
+  "firstrun_packs_enter": {
+    "message": "Start live listening"
+  },
+  "firstrun_packs_remain": {
+    "message": "Downloading · {n} left"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Not selected"
+  },
+  "firstrun_packs_queued": {
+    "message": "Queued"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Languages (recognition packs)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Recognition pack · downloaded by the system"
+  },
+  "firstrun_packs_system": {
+    "message": "System language"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} more languages"
+  },
+  "firstrun_packs_together": {
+    "message": "Downloaded together"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Read aloud · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "One pack covers 中文 and English. Checking 中文 or English includes it automatically"
+  },
+  "firstrun_packs_bytes": {
+    "message": "About {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Read aloud · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "Off by default. Listening and the written translation still work without it. Only the Thai translation is not read aloud."
+  },
+  "firstrun_packs_optional": {
+    "message": "About {size} · optional"
+  },
+  "firstrun_packs_base": {
+    "message": "Base components"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Language ID (ECAPA) + voice detection (VAD): tells who is speaking which language. Listening cannot start until these are ready"
+  },
+  "firstrun_packs_required": {
+    "message": "About {size} · required"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "You are on a cellular network"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "This download is about {size} (system recognition packs are extra, and the system decides their size) and may use mobile data."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wait for Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Download on cellular"
+  },
+  "firstrun_packs_manage": {
+    "message": "Manage language packs"
+  },
+  "listen_ptt_preparing": {
+    "message": "Preparing · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Ready"
+  },
+  "listen_not_ready": {
+    "message": "Not ready yet. Tap again after the download"
+  },
+  "listen_ready_tap": {
+    "message": "Ready. Tap a button below to start"
+  },
+  "listen_prep_detail": {
+    "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_ready_tap_sub": {
+    "message": "It will not start on its own · tap Say {mine} or {other} to listen"
   }
 }

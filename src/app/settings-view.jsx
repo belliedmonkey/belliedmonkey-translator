@@ -24,6 +24,7 @@ import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
+import listenModel from './listen-model.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
 
@@ -56,7 +57,6 @@ export default function SettingsView() {
   const [followLabel, setFollowLabel] = useState('');
 
   const uiLangNow = useRef('auto');
-  const lastLangs = useRef({ my: '', other: '' });
   // 出发前预载（§9.5）：两态按钮。`pending` 持有算好的账单，点第二下才开跑；
   // `running` 时按钮是「停止」。这不是 UI 花样，是 §9.2 修订后那条例外的构成要件之一。
   const preloadState = useRef('idle');     // idle | pending | running
@@ -71,18 +71,24 @@ export default function SettingsView() {
   const detailRef = useRef(false);
 
   // ─── 对话模式语言下拉（§9.6）──────────────────────────────────────────────
-  // 从语言注册表填（settings-model.sttSupportedBases 说为什么按本机识别器过滤）。
+  // 用 `AppListen.langOptions` —— 与听译页、首启包屏**同一份**选项：注册表全量、本机识别器
+  // 不支持的标 `disabled` + 「当前引擎不支持」后缀（用户 2026-10-04 裁定「所有选语言的地方都要
+  // 有泰语……不能只在部分入口有」⇒ 不是从列表里拿掉）。这里原来自己按 sttSupportedBases
+  // `continue` 掉不支持的语言，是唯一漏网的一处（2026-10-06 由 test:listen 的 S1 门禁抓出：
+  // 设置页 9 门、会话页 12 门，两处不一致）。
   function fillLangs(sel) {
     if (!sel) return;
     const keep = sel.value;
-    const allowed = settingsModel.sttSupportedBases();
     sel.textContent = '';
-    for (const l of (Registry.langs() || [])) {
-      if (allowed && !allowed.has(String(l.code).toLowerCase()) && l.code !== keep) continue;
-      const o = document.createElement('option');
-      o.value = l.code;
-      o.textContent = l.labelKey ? t(l.labelKey, l.label) : l.label;
-      sel.appendChild(o);
+    const opts = (typeof AppListen !== 'undefined' && AppListen.langOptions)
+      ? AppListen.langOptions(keep)
+      : (Registry.langs() || []);
+    for (const o of opts) {
+      const el = document.createElement('option');
+      el.value = o.code;
+      el.textContent = o.labelKey ? t(o.labelKey, o.label) : o.label;
+      el.disabled = !!o.disabled;
+      sel.appendChild(el);
     }
     if (keep) sel.value = keep;
   }
@@ -120,9 +126,6 @@ export default function SettingsView() {
     EngineFields.populate($('stt-engine'), Registry.sttEngines() || [], {
       t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
     });
-    fillLangs($('subtitle-video-lang'));
-    fillLangs($('listen-my-lang'));
-    fillLangs($('listen-other-lang'));
     updateFollowLabel();
   }
 
@@ -245,13 +248,26 @@ export default function SettingsView() {
     } finally { ttsPackBusy.current = false; dl.disabled = false; }
   }
 
+  // 当前语言对（§9.6.1.5）：**语言是自动识别的**，设置页不再有下拉 —— 这两个值来自存储，
+  // 也就是最近一次自动识别/手动指定到的对。只用来给「识别语言包」行说包在不在。
+  let curLangs = { my: '', other: '' };
+
   // ── 识别语言包行（对话 · 实时字幕；§9.1.1 镜像 §9.6 的 downloading 态）──────
   // 语言包由**系统**下载（不是我们的文件服务器），换语言时系统也会自动下 —— 这一行只是
   // 让「在不在」在开始听之前就看得见，并给一个手动的「下载」。
   function listenLocales() {
     const L = ListenCore.toLocale;
-    const a = L($('listen-my-lang').value), b = L($('listen-other-lang').value);
+    const a = L(curLangs.my), b = L(curLangs.other);
     return a === b ? [a] : [a, b];
+  }
+  // 语言本名（改稿 H / C2）：设置页不许再画 zh-CN 这类 locale 码。注册表里有就写本名。
+  function endonymOf(code) {
+    const base = ListenCore.baseCode(code);
+    try {
+      const e = (Registry.langs() || []).find((l) => ListenCore.baseCode(l.code) === base);
+      if (e && e.label) return e.label;
+    } catch (_) {}
+    return base || String(code || '');
   }
   async function paintListenPack() {
     const row = $('listen-pack-row'); if (!row) return;
@@ -270,11 +286,22 @@ export default function SettingsView() {
       state.textContent = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
       dl.hidden = true; return;
     }
+    // 本名 + 全部**占着名额**的语言（C2：原来只画当前这一对的 code，漏掉了已就绪的 ไทย）。
+    let ready = [];
+    try {
+      const q = (typeof NativeSpeech.quota === 'function') ? NativeSpeech.quota() : null;
+      for (const c of ((q && q.reserved) || [])) {
+        const b = ListenCore.baseCode(c);
+        if (b && ready.indexOf(b) < 0) ready.push(b);
+      }
+    } catch (_) {}
+    if (!ready.length && r.assets === 'installed') ready = locales.map((x) => ListenCore.baseCode(x)).filter(Boolean);
+    const names = ready.map(endonymOf);
     if (r.assets === 'installed') {
-      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', locales.join(' · '));
+      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', names.join(' · '));
       dl.hidden = true;
     } else {
-      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', locales.join(' · '));
+      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', names.join(' · '));
       dl.hidden = false; dl.textContent = t('listen_pack_dl', '下载');
     }
   }
@@ -741,12 +768,10 @@ export default function SettingsView() {
     // 「我的语言」没选过就跟着界面语言走 —— 只在读取时回落，不往存储播种默认值，
     // 这样用户改界面语言时它会跟着变，直到他自己选过一次。
     // 语言下拉在每次进设置页时重填：本机识别器支持的语种清单是探过桥才有的
-    fillLangs($('listen-my-lang'));
-    fillLangs($('listen-other-lang'));
-    fillLangs($('subtitle-video-lang'));
-    $('listen-my-lang').value = settingsModel.myLangOf(cur);
-    $('listen-other-lang').value = ListenCore.baseCode(cur.listenOtherLang) || 'en';
-    $('subtitle-video-lang').value = ListenCore.baseCode(cur.subtitleVideoLang) || 'en';
+    curLangs = {
+      my: settingsModel.myLangOf(cur),
+      other: ListenCore.baseCode(cur.listenOtherLang) || 'en',
+    };
     paintListenPack();
     setDepsSettings(Object.assign({}, cur));
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
@@ -786,7 +811,6 @@ export default function SettingsView() {
     $('mode-quick').addEventListener('click', () => setDetailFn(false));
     $('mode-detail').addEventListener('click', () => setDetailFn(true));
     $('app-adv-hint-go').addEventListener('click', () => { setDetailFn(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
-    $('subtitle-video-lang').addEventListener('change', () => { settingsModel.set({ subtitleVideoLang: $('subtitle-video-lang').value }); });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
     // keep consistent here, and a Save button is one more thing to forget to press.
@@ -928,27 +952,8 @@ export default function SettingsView() {
       if (typeof AppSysSettings !== 'undefined') AppSysSettings.wire();
     }
     $('doc-prefetch').addEventListener('change', () => { settingsModel.set({ docPrefetch: $('doc-prefetch').checked }); });
-    for (const which of ['my', 'other']) {
-      const el = $('listen-' + which + '-lang');
-      el.addEventListener('change', () => {
-        const cur = { myLang: $('listen-my-lang').value, otherLang: $('listen-other-lang').value };
-        // 取变更**之前**的那一对：change 已经把 el 改了，所以把它换回旧值再算。
-        const prev = which === 'my'
-          ? { myLang: lastLangs.current.my, otherLang: cur.otherLang }
-          : { myLang: cur.myLang, otherLang: lastLangs.current.other };
-        const p = ListenCore.langPatch(which, el.value, prev);
-        const swapped = p.swapped; delete p.swapped;
-        settingsModel.set(p);
-        if (p.listenMyLang !== undefined) $('listen-my-lang').value = ListenCore.baseCode(p.listenMyLang);
-        if (p.listenOtherLang !== undefined) $('listen-other-lang').value = ListenCore.baseCode(p.listenOtherLang);
-        lastLangs.current = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
-        if (swapped) say(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'));
-        paintListenPack();   // 换了语言，语言包在不在要重新说
-      });
-    }
     $('listen-pack-dl').addEventListener('click', downloadListenPack);
     $('tts-offline-dl').addEventListener('click', downloadTtsPack);
-    lastLangs.current = { my: $('listen-my-lang').value, other: $('listen-other-lang').value };
     $('drive-play-notes').addEventListener('change', () => {
       settingsModel.set({ drivePlayNotes: $('drive-play-notes').checked });
       resetPreload();     // 开关变了，账单就过期了 —— 不能让它继续代表旧的计划
@@ -1163,6 +1168,23 @@ export default function SettingsView() {
     // 反馈 / 评分。MTFeedback.open 在宿主 App 里走原生桥（window.open 在 WKWebView 里
     // 是哑的），且**同步**发生在点击里 —— 别在它前面 await。
     $('feedback-mail').addEventListener('click', () => { MTFeedback.open(MTFeedback.mailtoUrl('app')); });
+    // 诊断日志（§0.4.1）：复制 = 导出全文进剪贴板（按钮点击是手势，WKWebView 允许写剪贴板）
+    $('diag-copy').addEventListener('click', async () => {
+      const txt = (typeof DiagLog !== 'undefined' && DiagLog.exportText) ? DiagLog.exportText() : '';
+      let okFlag = false;
+      try { await navigator.clipboard.writeText(txt); okFlag = true; } catch (_) {
+        try { const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); okFlag = document.execCommand('copy'); ta.remove(); } catch (_) {}
+      }
+      const done = $('diag-copied'); if (done) { done.hidden = !okFlag; setTimeout(() => { done.hidden = true; }, 1600); }
+    });
+    $('diag-clear').addEventListener('click', () => { try { DiagLog.clear(); } catch (_) {} });
+    const diagAudioToggle = $('diag-audio-on');
+    if (diagAudioToggle) {
+      try { chrome.storage.local.get(['mtDiagAudio'], (v) => { diagAudioToggle.checked = !!(v && v.mtDiagAudio); }); } catch (_) {}
+      diagAudioToggle.addEventListener('change', () => {
+        try { chrome.storage.local.set({ mtDiagAudio: diagAudioToggle.checked }, () => {}); } catch (_) {}
+      });
+    }
     $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
     // 匿名用量事件的开关：独立键（tm:on），不进任何 saveAll。
     // 遥测脚本的在位与否经注册表读（中国版没有脚本，整块藏掉）。
@@ -1515,24 +1537,21 @@ export default function SettingsView() {
             <input id="listen-capture" type="checkbox" />
             <span id="listen-capture-label">{t('listen_capture_label', '对话进复习（来源「对话」）')}</span>
           </label>
-          <p className="note" id="listen-capture-note">{t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。')}</p>
+          <p className="note" id="listen-capture-note">{t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你点底部录音键开始收音之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。')}</p>
+          {/* 两段披露从听译页搬到这里（改稿 D，2026-10-09 用户定：听译页精简，说明放设置）。
+              文字一字不改 —— 免费额度那条路仍有单独披露（AGENTS.md 规则 4 / learning-design §2.1）。 */}
+          <p className="note" id="set-listen-privacy">{t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。')}</p>
+          <p className="note" id="set-subs-privacy">{listenModel.isMacHost()
+            ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
+            : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')}</p>
           <label className="check">
             <input id="subtitle-capture" type="checkbox" />
             <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
           </label>
-          {/* 语言对（§9.6，2026-09-08）。两个下拉与对话页底部那两个是**同一份设置**：
-               洽谈现场发现语言选错要能立刻改，跳设置页等于中断会话，所以两处都有。
-               两边选成同一种语言时不是拒绝而是对调 —— 见 ListenCore.langPatch 的注释。 */}
-          <label className="field">
-            <span id="listen-my-lang-label">{t('listen_my_lang_label', '我的语言')}</span>
-            <select id="listen-my-lang"></select>
-          </label>
-          <label className="field">
-            <span id="listen-other-lang-label">{t('listen_other_lang_label', '对方的语言')}</span>
-            <select id="listen-other-lang"></select>
-          </label>
+          {/* 语言对**不再常驻**（§9.6.1.5，2026-10-07 用户拍）：端上 LID 认得出，用户不用先选。
+               这里只留一句说明 —— 手动指定在听译页的语言控件里（兜底）。 */}
           <p className="note" id="listen-lang-note">{t('listen_lang_note',
-            '两边不能是同一种语言。对话页底部也能改，两处是同一份设置。')}</p>
+            '在你选的两门语言之间自动识别。听译页里可以随时改这两门语言。')}</p>
           {/* 识别语言包（§9.1.1，镜像 §9.6 的 downloading 态）：本机识别器的语言包由系统按需下载；
                换了语言先在这里说清在不在，而不是等到点「开始听」才发现要等。 */}
           <div className="field" id="listen-pack-row" hidden>
@@ -1540,11 +1559,7 @@ export default function SettingsView() {
             <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
             <button id="listen-pack-dl" type="button" className="secondary"></button>
           </div>
-          {/* 实时字幕「视频的语言」（§9.8 协议补充决定 6）进设置页（2026-09-17）：与准备页那处是「两处一份设置」。 */}
-          <label className="field">
-            <span id="subtitle-video-lang-label">{t('subtitle_video_lang_label', '视频的语言')}</span>
-            <select id="subtitle-video-lang"></select>
-          </label>
+          <button id="set-pack-manage" type="button" className="secondary">{t('firstrun_packs_manage', '管理语言包')}</button>
           <label className="check">
             <input id="listen-autospeak" type="checkbox" />
             <span id="listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
@@ -1713,6 +1728,17 @@ export default function SettingsView() {
           <h3 id="telemetry-title">{t('telemetry_section', '匿名用量数据')}</h3>
           <label className="row-toggle"><span id="telemetry-label">{t('telemetry_toggle', '分享匿名用量数据')}</span><input type="checkbox" id="telemetry-on" /></label>
           <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</p>
+        </div>
+        {/* 诊断日志（§0.4.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
+            内部排障面，不走产品稿（用户裁定：只有我们自己看）；不上传 —— 复制出来贴给排障的人。 */}
+        <div className="sgroup" id="g-diag">
+          <h3 id="diag-title">{t('diag_section', '诊断日志')}</h3>
+          <button id="diag-copy" type="button" className="secondary">{t('diag_copy', '复制诊断日志')}</button>
+          <button id="diag-clear" type="button" className="secondary">{t('diag_clear', '清空')}</button>
+          <p className="note" id="diag-note">{t('diag_hint', '排障用的本机记录（模型下载 / 语音引擎 / 登录阶段，约 200 条）。不含你说过或翻译过的任何文字。只在你点「复制」并主动粘贴给别人时才会离开这台设备。')}</p>
+          <span id="diag-copied" className="ok" hidden>{t('diag_copied', '已复制')}</span>
+          <label className="row-toggle"><span id="diag-audio-label">{t('diag_audio_toggle', '上传诊断录音（排查转写质量）')}</span><input type="checkbox" id="diag-audio-on" /></label>
+          <p className="note" id="diag-audio-note">{t('diag_audio_hint', '开启后，听译会话的麦克风声音、朗读声音和对应文字会打包上传到我们的服务器（仅用于排查转写问题，72 小时后自动删除）。默认关闭；关闭即刻停止采集。')}</p>
         </div>
       </div>
     </section>

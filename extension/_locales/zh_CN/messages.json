@@ -874,7 +874,7 @@
     "description": "Notes section header: grammar point"
   },
   "app_lede": {
-    "message": "视频、对话、文档 —— 边听边翻，声音只在你的设备上处理。"
+    "message": "视频、对话、文档 —— 边听边翻，声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
   },
   "app_email_label": {
     "message": "邮箱"
@@ -1705,7 +1705,7 @@
     "message": "我已打开"
   },
   "app_signin_why": {
-    "message": "登录后免费额度自动到账，两个语音包下到本机，之后不用再做设置。"
+    "message": "登录后免费额度自动到账，语言包下到本机，之后不用再做设置。"
   },
   "app_signin_open": {
     "message": "登录"
@@ -1936,13 +1936,13 @@
     "message": "离线模型下载失败：{why}—— 多半是网络问题，稍后重试 — 再点一次「开始听」重试，或去设置里选一个云端实时引擎。"
   },
   "listen_entry_privacy_device": {
-    "message": "声音只在你的设备上识别，不发往任何服务器；识别出的文字发到你自己配置的翻译引擎。"
+    "message": "本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎。"
   },
   "listen_cost_line_device": {
-    "message": "已听 {t} · 音频不离开设备"
+    "message": "已听 {t}"
   },
   "listen_device_privacy": {
-    "message": "选「设备内置转写」时，声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到你自己配置的翻译引擎做修正与翻译，我们的服务器不参与。选「设备内置朗读」时，语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。不保存录音，只留文字。"
+    "message": "本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。"
   },
   "listen_raw_label": {
     "message": "识别原文"
@@ -2216,6 +2216,27 @@
   "telemetry_hint": {
     "message": "只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。"
   },
+  "diag_section": {
+    "message": "诊断日志"
+  },
+  "diag_copy": {
+    "message": "复制诊断日志"
+  },
+  "diag_clear": {
+    "message": "清空"
+  },
+  "diag_hint": {
+    "message": "排障用的本机记录（模型下载 / 语音引擎 / 登录阶段，约 200 条）。不含你说过或翻译过的任何文字。只在你点「复制」并主动粘贴给别人时才会离开这台设备。"
+  },
+  "diag_copied": {
+    "message": "已复制"
+  },
+  "diag_audio_toggle": {
+    "message": "上传诊断录音（排查转写质量）"
+  },
+  "diag_audio_hint": {
+    "message": "开启后，听译会话的麦克风声音、朗读声音和对应文字会打包上传到我们的服务器（仅用于排查转写问题，72 小时后自动删除）。默认关闭；关闭即刻停止采集。"
+  },
   "telemetry_onboard": {
     "message": "会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。"
   },
@@ -2346,12 +2367,6 @@
   "listen_star": {
     "message": "加星"
   },
-  "listen_now_them": {
-    "message": "对方正在说"
-  },
-  "listen_now_me": {
-    "message": "我正在说"
-  },
   "listen_lang_me": {
     "message": "中文 → {to}"
   },
@@ -2389,9 +2404,6 @@
     "message": "线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。",
     "description": "macOS: grey line naming the typical use (online meetings / video calls)"
   },
-  "listen_end": {
-    "message": "结束"
-  },
   "listen_cost_line": {
     "message": "已听 {t} · 音频只发往你配置的转写端点"
   },
@@ -2416,18 +2428,6 @@
   "listen_stop_failed": {
     "message": "麦克风启动失败：{why} — 再点一次「开始听」。"
   },
-  "listen_summary_title": {
-    "message": "这次对话"
-  },
-  "listen_summary_note": {
-    "message": "录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。"
-  },
-  "listen_summary_home": {
-    "message": "回到首页"
-  },
-  "listen_summary_again": {
-    "message": "再来一段"
-  },
   "listen_np_title": {
     "message": "对话 · 实时听译中"
   },
@@ -2441,7 +2441,7 @@
     "message": "对话进复习（来源「对话」）"
   },
   "listen_capture_note": {
-    "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
+    "message": "「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你点底部录音键开始收音之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。"
   },
   "listen_who_them": {
     "message": "对方"
@@ -2450,7 +2450,7 @@
     "message": "我"
   },
   "listen_who_guessed": {
-    "message": "按语言猜的 · 点 ↔ 改"
+    "message": "判错了？点 ↔ 换成另一种语言"
   },
   "listen_swap_to_them": {
     "message": "改成对方说的"
@@ -2459,7 +2459,7 @@
     "message": "改成我说的"
   },
   "listen_flip_kept_card": {
-    "message": "改边了 · 之前那张卡你已经复习过，留在「来源 › 对话」里"
+    "message": "换到另一种语言了 · 之前那张卡你已经复习过，留在「来源 › 对话」里"
   },
   "listen_lang_pair": {
     "message": "{a} ⇄ {b}"
@@ -2476,6 +2476,9 @@
   "listen_autospeak_off": {
     "message": "自动朗读已停 · {why} — 行尾的朗读仍可单句用"
   },
+  "listen_tts_unusable": {
+    "message": "自动朗读不可用 —— 朗读引擎没配置好，到 设置 › 朗读 里选一个"
+  },
   "listen_autospeak_echo": {
     "message": "自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开"
   },
@@ -2491,23 +2494,11 @@
   "listen_ephemeral_pill": {
     "message": "这次不留记录"
   },
-  "listen_ephemeral_summary": {
-    "message": "这次没有留下记录"
-  },
-  "listen_summary_kept": {
-    "message": "进复习（来源「对话」）{n} 句 · 含 {s} 句加星"
-  },
-  "listen_summary_body2": {
-    "message": "时长 {t} · 对方说了 {them} 句 · 我说了 {me} 句 · {kept}"
-  },
-  "listen_summary_flips": {
-    "message": "改过边 {n} 句"
-  },
   "listen_my_lang_label": {
     "message": "我的语言"
   },
   "listen_lang_note": {
-    "message": "两边不能是同一种语言。对话页底部也能改，两处是同一份设置。"
+    "message": "在你选的两门语言之间自动识别。听译页里可以随时改这两门语言。"
   },
   "listen_lang_engine_unsupported": {
     "message": "当前引擎不支持"
@@ -2573,7 +2564,7 @@
     "message": "转写连接中断：{why} — 正在重连…"
   },
   "listen_history_empty": {
-    "message": "双方随便说，每句定稿后会出现在这里；判错了点 ↔ 改边"
+    "message": "双方随便说，每句定稿后会出现在这里。判错了？点 ↔ 换成另一种语言"
   },
   "listen_tr_failed": {
     "message": "译文失败 · 重试"
@@ -2897,7 +2888,7 @@
     "message": "字幕进复习（来源「实时字幕」）"
   },
   "subtitle_video_lang_label": {
-    "message": "视频的语言"
+    "message": "视频语言："
   },
   "subtitle_tip_mac": {
     "message": "开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。"
@@ -3731,10 +3722,10 @@
     "message": "剩下的明天再说 —— 回来就好。"
   },
   "firstrun_packs_title": {
-    "message": "先把两个语音包下好"
+    "message": "先把语言包下好"
   },
   "firstrun_packs_lede": {
-    "message": "下好这两样，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音只在你的设备上处理。"
+    "message": "下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。"
   },
   "firstrun_packs_asr": {
     "message": "识别语言包（听译 / 实时字幕）"
@@ -3774,5 +3765,188 @@
   },
   "engine_status_fix_translate": {
     "message": "翻译引擎未配置，前往 设置 › 引擎 选一个"
+  },
+  "listen_lang_detecting": {
+    "message": "正在识别语言…"
+  },
+  "listen_lang_detected": {
+    "message": "已识别：{a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "正在识别视频语言…"
+  },
+  "subtitle_lang_detected": {
+    "message": "已识别：{lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "识别错了才需要动这里"
+  },
+  "listen_lang_auto": {
+    "message": "自动识别"
+  },
+  "listen_lang_manual": {
+    "message": "手动指定"
+  },
+  "subtitle_partner_auto": {
+    "message": "视频语言：{lang}（自动）"
+  },
+  "listen_need_locales": {
+    "message": "本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "这门语言的识别包还没装好。连上网后点一次「开始听」就能补上。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "这门语言这台设备识别不了 — 已经回到「{lang}」"
+  },
+  "listen_speak_lang_label": {
+    "message": "我说的语言"
+  },
+  "listen_lang_dirs2": {
+    "message": "听到{a} → 译成{b}；听到{b} → 译成{a}"
+  },
+  "lang_auto": {
+    "message": "自动"
+  },
+  "listen_listening": {
+    "message": "正在听…"
+  },
+  "listen_ptt_say": {
+    "message": "说{lang}"
+  },
+  "listen_listening_lang": {
+    "message": "正在听{lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "点一下开始"
+  },
+  "listen_ptt_recording": {
+    "message": "● 正在录 · 点一下停"
+  },
+  "firstrun_packs_back": {
+    "message": "返回"
+  },
+  "firstrun_packs_all_title": {
+    "message": "语言包都下好了"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "正在下载语言包"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "选择要下载的语言"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "默认勾上：系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "勾选保留着。连上 Wi-Fi 后会自动开始下载。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "都就绪了。进去之后点「说{mine}」或对方的语言键就能开始。"
+  },
+  "firstrun_packs_foot": {
+    "message": "共约 {size}，另加系统识别包。用蜂窝网络时，下载前会先问你。"
+  },
+  "firstrun_packs_locked": {
+    "message": "下载中不能改勾选；下完以后去「设置 · 语音包」增减。"
+  },
+  "firstrun_packs_enter": {
+    "message": "进入实时听译"
+  },
+  "firstrun_packs_remain": {
+    "message": "下载中 · 还剩 {n} 项"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未选"
+  },
+  "firstrun_packs_queued": {
+    "message": "排队中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "语言（识别包）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "识别包 · 系统下载"
+  },
+  "firstrun_packs_system": {
+    "message": "系统语言"
+  },
+  "firstrun_packs_more": {
+    "message": "其他 {n} 种语言"
+  },
+  "firstrun_packs_together": {
+    "message": "会一起下载"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "朗读 · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "一个包覆盖中英两门；勾了中文或 English 就自动带上"
+  },
+  "firstrun_packs_bytes": {
+    "message": "约 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "朗读 · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "默认不勾。不下也能听译，看译文，只是泰语译文不朗读"
+  },
+  "firstrun_packs_optional": {
+    "message": "约 {size} · 可选"
+  },
+  "firstrun_packs_base": {
+    "message": "基础组件"
+  },
+  "firstrun_packs_base_note": {
+    "message": "语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听"
+  },
+  "firstrun_packs_required": {
+    "message": "约 {size} · 必需"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "现在用的是蜂窝网络"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "这次要下约 {size}（系统识别包另算，大小由系统决定），可能产生流量费用。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "等连上 Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "用蜂窝下载"
+  },
+  "firstrun_packs_manage": {
+    "message": "管理语言包"
+  },
+  "listen_ptt_preparing": {
+    "message": "准备中 · {lang} 下载 {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 已就绪"
+  },
+  "listen_not_ready": {
+    "message": "还不能开始，下好后再点"
+  },
+  "listen_ready_tap": {
+    "message": "下好了，点下面的键开始"
+  },
+  "listen_prep_detail": {
+    "message": "{what}下载中 · {pct}% · {ready}已就绪"
+  },
+  "listen_ready_tap_sub": {
+    "message": "不会自动开始 · 点「说{mine}」或「{other}」开始收音"
   }
 }

@@ -157,12 +157,13 @@ function ListenEntryNeeds({ sfx = '' }) {
 function HistoryRows({ hv }) {
   return (
     <>
+      {!hv.rows.length && hv.listeningText && <div className="listen-empty listen-listening" id="app-listen-listening">{hv.listeningText}</div>}
       {!hv.rows.length && <div className="listen-empty">{hv.emptyText}</div>}
       {hv.rows.map((r) => (
         <div key={r.row.rid} className={'listen-row' + (r.who === 'me' ? ' me' : '')}>
           {!hv.sub && (
             <span className={'listen-who' + (r.guessed ? ' guessed' : '')} title={r.guessed ? r.whoTitle : undefined}>
-              {r.who === 'me' ? hv.whoMe : hv.whoThem}
+              {r.langLabel || (r.who === 'me' ? hv.whoMe : hv.whoThem)}
             </span>
           )}
           <div className="listen-body" role="button" onClick={hv.sub ? undefined : () => listenModel.openShow(r.row)}>
@@ -195,8 +196,9 @@ function HistoryRows({ hv }) {
               </div>
             )}
           </div>
-          {!hv.sub && (
-            // ↔ 改边。无障碍名说的是**结果**（改成谁说的），不是符号本身。
+          {!hv.sub && !r.pinned && (
+            // ↔ 换语言。无障碍名说的是**结果**（换成哪门说的），不是符号本身。
+            // 按住说的行 `pinned` ⇒ 不画：那句的语言是刚按下去那个人指定的，没有「判错」。
             <button type="button" className="listen-swap" aria-label={r.who === 'me' ? hv.swapToThem : hv.swapToMe}
               onClick={(e) => { e.stopPropagation(); listenModel.flipRow(r.row); }}>↔</button>
           )}
@@ -211,6 +213,29 @@ function HistoryRows({ hv }) {
   );
 }
 
+// 话筒图标（改稿 E）：单色内联 SVG，跟随文字色（currentColor）—— 不用 emoji，
+// 免得每个平台长得不一样、也不吃主题色。
+function MicIcon() {
+  return (
+    <svg className="listen-ptt-mic" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 3.5a2.8 2.8 0 0 1 2.8 2.8v5.4a2.8 2.8 0 0 1-5.6 0V6.3A2.8 2.8 0 0 1 12 3.5z" fill="currentColor" />
+      <path d="M6 11.2a6 6 0 0 0 12 0" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+      <path d="M12 17.2v3.3" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// 喇叭图标（改稿 E）：与话筒同一套做法 —— 单色内联 SVG，跟随文字色。
+// 原来那个 🔊 emoji 在 WKWebView 里被渲染成一坨深色（用户 2026-10-09 截图），换掉。
+function SpeakerIcon() {
+  return (
+    <svg className="listen-tg-svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M4 9.5h3.2L12 5.6v12.8L7.2 14.5H4z" fill="currentColor" />
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.6a7.5 7.5 0 0 1 0 10.8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 // ── 主视图（#app-listen section 整体）─────────────────────────────────────────
 export function ListenView() {
   useSyncExternalStore(subView, () => viewVersion);
@@ -218,15 +243,15 @@ export function ListenView() {
 
   const mv = listenModel.modeView();
   const pill = listenModel.pillView();
-  const fv2 = listenModel.footView();
   const nv = listenModel.nowView();
+  const qv = listenModel.quotaView();
   const ev = listenModel.ephemeralView();
   const tv = listenModel.toggleView();
   const fv = listenModel.formView();
   const hv = listenModel.historyView();
-  const sv = listenModel.summaryView();
   const shv = listenModel.showView();
   const note = listenModel.noteView();
+  const pv = listenModel.pttView();
 
   // 贴底判定读的是 commit 前的旧 DOM —— 与原 renderHistory :1247 的同一时刻语义；
   // 渲染后 useLayoutEffect 恢复（原 :1340 if (atBottom) scrollTop = scrollHeight）。
@@ -255,20 +280,21 @@ export function ListenView() {
       <div className="listen-head">
         <button id="app-listen-back" className="link" type="button" onClick={listenModel.leave}>{t('app_listen_back', '‹ 返回')}</button>
         <h2 id="app-listen-title">{mv.title}</h2>
-        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '')}>{pill ? pill.text : ''}</span>
+        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '') + (pill && pill.quota ? ' quota' : '')} hidden={!(pill && pill.text)}>{pill ? pill.text : ''}</span>
       </div>
-      <p className="note listen-langline">
-        <span id="app-listen-lang">{listenModel.langLineText()}</span>{' '}
-        <span id="app-listen-ephemeral-pill" className="listen-eph-pill" hidden={!ev.pillShown}>{t('listen_ephemeral_pill', '这次不留记录')}</span>
-      </p>
+      {/* 顶部那行语言行已删（改稿 E）：语言对只由控制区那个胶囊表达，不再说两遍。 */}
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
         {t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。')}
       </p>
-      <div className="drive-card listen-now" id="app-listen-now" hidden={tv.ended}>
+      <div className={'drive-card listen-now' + (nv.flash ? ' flash' : '')} id="app-listen-now" hidden={tv.ended}>
         <div className="listen-now-head">
           <span id="app-listen-now-label">{listenModel.nowLabel()}</span>
           <span id="app-listen-live" className="listen-live" hidden={!(pill && pill.live)}>{t('listen_live_badge', '● 实时')}</span>
         </div>
+        <p id="app-listen-prep" className="note" hidden={!nv.prepShown}>{nv.prepText}</p>
+        <progress id="app-listen-prep-bar" hidden={!nv.prepBar} value={nv.prepPct || 0} max="100" />
+        <button id="app-listen-prep-retry" type="button" className="listen-prep-retry" hidden={!nv.prepRetry} onClick={listenModel.retryPacks}>{nv.prepRetry}</button>
+        <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub}>{nv.readySub}</p>
         <p id="app-listen-partial" className="listen-partial" hidden={mv.partialsHidden}>{nv.partial}</p>
         <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.partialsHidden}>{nv.partialTr}</p>
         {/* iPhone 实时字幕：画中画小窗预览的占位块（原生在同一矩形上叠预览，§9.8 协议补充决定（三）17） */}
@@ -277,6 +303,18 @@ export function ListenView() {
         </div>
         <button id="app-subs-float" type="button" className="link" hidden={!listenModel.pipFloatShown()} onClick={listenModel.floatBtn}>{mv.pipFloatLabel}</button>
       </div>
+      {/* 名额已满（第 5 轮 A7 / 改稿 H 第 5 张）：独立一类，跟下载失败、网络问题分开。
+          出路永远是「让出一门并补回」；已就绪的一侧照常能说（A9）。 */}
+      {qv.shown && (
+        <div className="drive-card listen-quota" id="app-listen-quota">
+          <p className="listen-quota-title" id="app-listen-quota-title">{qv.title}</p>
+          <p className="note" id="app-listen-quota-sub">{qv.sub}</p>
+          <button id="app-listen-quota-btn" type="button" onClick={listenModel.quotaOpenSheet} disabled={qv.restoring}>
+            {qv.restoring ? t('firstrun_quota_working', '正在补回…') : qv.btn}
+          </button>
+          <p className="note" id="app-listen-quota-hint">{qv.hint}</p>
+        </div>
+      )}
       <div id="app-listen-history-wrap" className="drive-card listen-history-wrap">
         <div className="listen-now-head">
           <span id="app-listen-history-title">{hv.title}</span>
@@ -284,7 +322,6 @@ export function ListenView() {
             <button id="app-listen-copy" type="button" className="link" hidden={!hv.copyShown} onClick={onCopy}>
               {flash != null ? flash : listenModel.copyText()}
             </button>
-            <button id="app-listen-end" type="button" className="link" hidden={tv.endHidden} onClick={listenModel.end}>{t('listen_end', '结束')}</button>
           </span>
         </div>
         <div id="app-listen-history" className="listen-history"><HistoryRows hv={hv} /></div>
@@ -292,25 +329,51 @@ export function ListenView() {
       {/* 排队时说清还剩几句 —— 不说就成了「怎么读的不是刚才那句」 */}
       <p className="note" id="app-listen-queue" hidden={!hv.queueShown}>{hv.queueText}</p>
       <p className={note.err ? 'note err' : 'note'} id="app-listen-note">{note.text}</p>
-      {/* 只剩一个主按钮：不再有「按住 · 我说」，双方自由说话（2026-09-08）。 */}
-      <div id="app-listen-actions" hidden={tv.ended}>
+      {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
+          那两个「点一下」键（＝开麦 / 关麦）。 */}
+      <div id="app-listen-actions" hidden={tv.ended || !mv.sub}>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
-      {/* 实时字幕的隐私段（§10 Gate I）：说在「开始」按钮下面，只在字幕模式出现。 */}
-      <p className="note" id="app-subs-privacy" hidden={!mv.subsPrivacyShown}>{mv.subsPrivacyText}</p>
-      {/* 语言对摊在外面（画布画板 6，2026-09-08 定 A 版）：选错不报错，摊出来让错误自己暴露。 */}
-      <div className="listen-pair" id="app-listen-pair">
-        <label className="note"><span id="app-listen-my-label">{mv.myLabel}</span>{' '}
-          <select id="app-listen-my" value={fv.my} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-            {listenModel.langOptions(fv.my).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-          </select>
-        </label>
-        <span className="listen-pair-arrow" aria-hidden="true">{mv.arrow}</span>
-        <label className="note"><span id="app-listen-other-label">{mv.otherLabel}</span>{' '}
-          <select id="app-listen-other" value={fv.other} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-            {listenModel.langOptions(fv.other).map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-          </select>
-        </label>
+      {/* 控制区（改稿 E）：**语言对做成一个胶囊**（两个 select 包在同一个圆角壳里，中间 ⇄
+          既分隔也一眼看出「一对」），右侧两个图标开关靠右；窄屏自然折行。 */}
+      <div className="listen-ctl-row" id="app-listen-ctl">
+        <div className="listen-pair" id="app-listen-lang-wrap">
+          <label className="listen-pair-seg">
+            {mv.langPairLabels[0] ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
+            <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+              {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+          <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
+          <label className="listen-pair-seg">
+            {mv.langPairLabels[1] ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
+            <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
+              {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="listen-toggles" id="app-listen-toggles">
+          <label className="listen-tg" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
+            <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
+            <SpeakerIcon />
+            <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
+          </label>
+          {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
+          <label className={'listen-tg' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
+            <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
+            <span className="listen-tg-ico" aria-hidden="true">○</span>
+            <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
+          </label>
+          {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
+          <div id="app-subs-prep" hidden={mv.prepHidden}>
+            <label className="listen-tg">
+              <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
+              <span className="listen-tg-ico" aria-hidden="true">✓</span>
+              <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
+            </label>
+            <p className="note" id="app-subs-tip">{mv.subsTipText}</p>
+          </div>
+        </div>
       </div>
       {/* 「换引擎」（2026-10-04 用户裁定）：语言列表**始终列全**，被引擎挡住的那些灰显并带一句
           「当前引擎不支持」—— 出路**就地**给，不是一句「去设置里选」。只在真有被挡住的语言时出现。 */}
@@ -318,37 +381,31 @@ export function ListenView() {
         <button type="button" id="app-listen-change-engine" className="linkish"
           onClick={() => listenModel.changeEngine()}>{t('listen_lang_change_engine', '换引擎')}</button>
       </div>
-      <label className="check listen-autospeak" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
-        <input id="app-listen-autospeak" type="checkbox" checked={fv.autoSpeak} onChange={(e) => listenModel.setAutoSpeak(e.target.checked)} />
-        <span id="app-listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>
-      </label>
-      {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
-      <label className={'check listen-autospeak' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
-        <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
-        <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
-      </label>
       {/* 灰掉时屏上一定有原因（表 1 的家规）：会话进行中且没勾上，说清为什么改不了。 */}
       <p className="note" id="app-listen-ephemeral-why" hidden={!ev.whyShown}>{ev.whyText}</p>
-      {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
-      <div id="app-subs-prep" hidden={mv.prepHidden}>
-        <label className="check listen-autospeak">
-          <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
-          <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
-        </label>
-        <p className="note" id="app-subs-tip">{mv.subsTipText}</p>
-      </div>
-      <p className="note" id="app-listen-cost">{fv2.cost}</p>
-      {/* Gate H（§10）：本机路在对话页底部把那一段披露原样给出 —— 不是只在首页那一行。 */}
-      <p className="note" id="app-listen-device-privacy" hidden={!fv2.privacyShown}>{fv2.privacyText}</p>
 
-      <div id="app-listen-summary" className="drive-card" hidden={!sv.shown}>
-        <h3 id="app-listen-summary-title">{mv.summaryTitle}</h3>
-        <p id="app-listen-summary-body">{sv.body || ''}</p>
-        <p className="note" id="app-listen-summary-note">{mv.summaryNote}</p>
-        <div className="drive-grid">
-          <button id="app-listen-summary-home" type="button" onClick={listenModel.leave}>{t('listen_summary_home', '回到首页')}</button>
-          <button id="app-listen-summary-again" type="button" className="secondary" onClick={listenModel.summaryAgain}>{t('listen_summary_again', '再来一段')}</button>
+      {/* 两个录音键（改稿 D，2026-10-09）：**只有「点一下」**。左＝你这门「说中文」，右＝对方那门。
+          点一下开始收音（起会话 / 开麦 / 挂灵动岛），再点同键停止；点另一个键 = 先定稿这边、
+          换到那一侧。两键的小字都跟界面语言：未收音「点一下开始」，收音中「● 正在录 · 点一下结束」。 */}
+      <div className="listen-ptt-wrap" id="app-listen-ptt" hidden={!pv.shown}>
+        <div className="listen-ptt" id="app-listen-ptt-bar">
+          <button id="app-listen-ptt-mine" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.mineSide ? ' on' : '')}
+            disabled={pv.mineDisabled != null ? pv.mineDisabled : pv.disabled} aria-pressed={pv.activeSide === pv.mineSide ? 'true' : 'false'}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={() => listenModel.pttToggle(pv.mineSide)}>
+            <span className="listen-ptt-name" id="app-listen-ptt-mine-name"><MicIcon />{pv.mineLabel}</span>
+            {pv.mineHint ? <span className="listen-ptt-hint" id="app-listen-ptt-mine-hint">{pv.mineHint}</span> : null}
+          </button>
+          <span className="listen-ptt-sep" aria-hidden="true" />
+          <button id="app-listen-ptt-other" type="button" className={'listen-ptt-btn' + (pv.activeSide === pv.otherSide ? ' on' : '')}
+            disabled={pv.otherDisabled != null ? pv.otherDisabled : pv.disabled} aria-pressed={pv.activeSide === pv.otherSide ? 'true' : 'false'}
+            onContextMenu={(e) => e.preventDefault()}
+            onClick={() => listenModel.pttToggle(pv.otherSide)}>
+            <span className="listen-ptt-name" id="app-listen-ptt-other-name"><MicIcon />{pv.otherLabel}</span>
+            {pv.otherHint ? <span className="listen-ptt-hint" id="app-listen-ptt-other-hint">{pv.otherHint}</span> : null}
+          </button>
         </div>
+        <p className="note" id="app-listen-ptt-why" hidden={!pv.whyText}>{pv.whyText}</p>
       </div>
 
       {/* 放大展示卡（给对方看）：点任一历史行打开，底下照常在听；点任意处关闭 —— 不是按钮才关。 */}
@@ -363,6 +420,32 @@ export function ListenView() {
           <button id="app-listen-flip-back" type="button" onClick={listenModel.closeShow}>{t('listen_close', '关闭')}</button>
         </div>
       </div>
+
+      {/* 让出一门并补回 · 底部确认框（改稿 H 第 5b 张）：默认选「最久没用」，当前语言对不可选。 */}
+      {qv.shown && qv.sheetShown && (
+        <div className="quota-sheet-back" id="app-listen-quota-sheet"
+          onClick={(e) => { if (e.target === e.currentTarget) listenModel.quotaCloseSheet(); }}>
+          <div className="quota-sheet" role="dialog" aria-modal="true">
+            <h3 id="app-listen-quota-sheet-title">{qv.sheetTitle}</h3>
+            <p className="note" id="app-listen-quota-sheet-lede">{qv.sheetLede}</p>
+            <p className="quota-sheet-pick">{t('firstrun_quota_sheet_pick', '选一门让出（默认：最久没用）')}</p>
+            <div id="app-listen-quota-sheet-list">
+              {qv.rows.map((r) => (
+                <label key={r.code} className={'quota-pick' + (r.disabled ? ' disabled' : '')}>
+                  <input type="radio" name="listen-quota-yield" checked={r.selected} disabled={r.disabled}
+                    onChange={() => listenModel.quotaPick(r.code)} />
+                  <span className="quota-pick-name">{r.name}</span>
+                  <span className="quota-pick-when">{r.disabled ? t('firstrun_quota_in_use', '当前语言对 · 不能让出') : r.when}</span>
+                </label>
+              ))}
+            </div>
+            <div className="quota-sheet-acts">
+              <button type="button" className="secondary" id="app-listen-quota-cancel" onClick={listenModel.quotaCloseSheet}>{qv.cancel}</button>
+              <button type="button" id="app-listen-quota-go" onClick={listenModel.quotaYieldAndRestore} disabled={qv.restoring || !qv.pickName}>{qv.go}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

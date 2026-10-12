@@ -1,0 +1,28 @@
+{
+  "pass": true,
+  "model": "DeepSeek V4.1 Flash (deepseek-flash)",
+  "branch": "fix/1194-r5",
+  "base": "371c4bf4",
+  "npm_test": "2666 passed / 0 failed",
+  "test_mac": {
+    "allowed_fail": ["M8", "M9", "P-12"],
+    "fail": ["M8", "M9", "P-12"],
+    "pass": ["M1", "M6", "M2", "M3", "M7", "M4", "M5", "P-01", "P-02", "P-03", "P-05", "P-06", "P-07", "P-08"]
+  },
+  "items": {
+    "A1-A9": "pass",
+    "B": "pass",
+    "C1-C3": "pass",
+    "F1": "pass", "F2": "pass", "F3": "pass", "F4": "pass", "F5": "pass",
+    "F6": "pass", "F7": "pass", "F8": "n/a (Mac 无蜂窝)",
+    "F9": "pass", "F10": "pass (automated dark/light contrast gate; visual re-shot blocked)",
+    "F11": "pass", "F12": "pass (mismatch=0)",
+    "G1": "pass", "G2": "pass", "G3": "pass", "G4": "pass", "G5": "pass",
+    "G6": "pass (via B; M2-M5/P-08 green)", "G7": "pass", "G8": "pass",
+    "G9": "n/a (本机资产即时就绪，无可观察下载窗口)"
+  },
+  "quota_after": ["en-US", "th-TH", "zh-CN"],
+  "volume_after": { "output": 88, "input": 100, "muted": true },
+  "pushed": false,
+  "guard_blocks_this_half": 0
+}

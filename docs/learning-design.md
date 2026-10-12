@@ -18,6 +18,11 @@
 
 | 日期 | 评审人 | 范围 | 结论 |
 |---|---|---|---|
+| 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **难音频上「归属要稳住才认」+ silero VAD**（用户要求「YouTube 上找泰语视频、单人和多人都试试」后加的）：真语音实测发现多人对谈 + 背景乐 + 低电平的音频上 LID 判词会在十几门语言之间乱跳，而单条判词放行就会漏出中文垃圾行（`那你你给我们也不`/`乌克兰。`）。两层修法：① 归属只认**稳住 ≥1.5s** 的判词（稳不住 ⇒ 什么都不上屏）；② 加 silero VAD（644KB，走既有通道），**只把话音喂 LID**。效果：难音频 5 行（2 条中文垃圾）→ **1 行全泰文**；清晰单人 2 → 3 行泰文；标准 5 例仍 5/5。边界如实记：该难音频上 whisper-tiny **本身**只有 19% 判成泰语（不是门能修的）。新增 §9.6.1.4。 | 待评审（代码先行） |
+| 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **语种识别（LID）取代手写规则**（用户裁定「不要再用硬代码处理语言理解逻辑，直接上模型」）：半句/定稿的归属改由**端上 LID 模型**（sherpa-onnx 自带 SLID / whisper tiny，Swift API 已就绪、零新运行时、模型 zip 60.3MB 走既有模型通道）判定；`dominantScript` 文字系比、置信度三档、`§9.6.1.2` 的「定稿确立」全部退场。代价如实记：半句预览延到 ~1–3s 才出；准确率 80–90%（非零错）。闭集 ⇒ VAD 门 + 静音不判。新增 §9.6.1.3。**实装（2026-10-07）**：模型已托管（ModelScope，sha256 校验过）+ Caddy 302 中转 + `MT_DEVICE_LID` 入清单 + `verify:model-urls` 覆盖；原生 `MTDeviceLid`（`lid-probe`/`lid-assets` → `assets-progress{kind:'lid'}`/`lid-state`/`lid-live`/`lid-result`）；JS `NativeSpeech.onLid/ensureLid/lidProbe`，`listen-model` 两处闸改 `sideMatchesLid`，`makeFinalArbiter`/`arbScore`/`pickPartial`/`partialEstablished` 已删。 | 待评审（代码先行，评审通过不改变实现方向） |
+| 2026-10-07 | belliedmonkey | **听译页文案：撤下「音频不离开设备 / 不发往任何服务器」的绝对声明**（用户裁定）：页内只讲转写/朗读的**行为**，也**不写「会上传服务器」**。改 `_locales ×12` 三键（`listen_entry_privacy_device` / `listen_device_privacy` / `listen_cost_line_device`）+ `src/app/listen-model.js` 兜底串 + `verify-listen` 的 B 断言 + interaction-spec。**Gate H 的披露正文不变**（README ×2 / 两个站点隐私页 / `NSMicrophoneUsageDescription` / 三类 usage 串）—— 页内撤下的只是绝对声明。 | 已按用户指名裁定执行（2026-10-07：「换成只讲转写效果」「入口提示一起改」） |
+| 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **半句层仲裁 + 回声优先**（95/96 号包真机反馈）：(e) 半句层改用与定稿同一套三档判据 `pickPartial` + 300 ms 扣留，取消「半句粘滞」—— 修「说中文先闪泰文再改中文」；(f) 仲裁窗口里任一路匹配我们自己朗读的文本 ⇒ 整窗判成回声、两路都丢，判定在**到达时刻**做；(g) 「**播放进行中 + 同语言 ⇒ 丢**」—— 真机时序实测回声总在 `speak` 后 ~500ms、播放中到达，文字比对不足以拦（代价：抢话那几秒同语言会丢，念完后回话照收，M4 已改）。另修诊断采集（真机 mic.caf 超接收器 25MB 被整包拒 → 每流 20MB 上限；sidecar 先传 + 写 meta.json）。§9.6.1.2 追加 (e)(f)(g)。 | 待评审 |
+| 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.3 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
 | 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
 | 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
 | 2026-09-22（待人评审） | belliedmonkey | **引导屏序重排 + 额度发放三件**（由 2026-09-21/22 的线上读数驱动）。用户当日已裁定：① 登录从 App 引导第 5 屏**提到第 2 屏** ② 登录之后**自动**领额度、不再问 ③ 扩展引导第 3 屏（采集，默认已开）**砍掉** ④ 中国版**也给免费额度**，模型走**通义千问** ⑤ 中继按**方案 C**（身份走现有后端、只传令牌不含原文；**原文只走境内中继 → 千问，一步不出境**）。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf （3 页 13 板）。本行涉及**额度发放规则**与**跨境路径**，按 `AGENTS.md` 规则 2/4 与治理条属领域设计改动 ⇒ 先出本提案（§8.10.1）过评审，代码不先走。 |
@@ -163,6 +168,11 @@ least resistance.
 按规则 9 事先估算（§8.10）；（c）这条路处理什么**单独披露**（第 3 条照旧，§10 Gate F）；
 （d）本地 / 自带 key 的等价物早已出货且仍是默认（规则 11 通过）；（e）中继不跑模型、不存
 内容 —— 它转发、计量、停。「托管模型仍是付费可选或不上」对样品之外的一切照旧成立。
+
+> **披露的位置可以变，单独披露这件事不变（2026-10-09 改稿 D）。** 「对话 · 实时听译」的说明段
+> （含免费额度那条路「经我们的服务器转发」）与实时字幕的 Gate I 隐私段，**从听译页搬到了
+> 「设置 › 听译」** —— 文字一字不改，只是换位置。它仍然是**对这条路单独披露**（第 3 条照旧、
+> §10 Gate F 照旧）：看得到、跟功能同版、不被别处的整体承诺平均掉。听译页变短不是披露被稀释。
 
 > **核心约束 — a server-side model feature may not ship before its local equivalent.**
 > *(Added 2026-08-04 by domain review; `AGENTS.md` rule 11.)* Any capability that depends on a model
@@ -3364,8 +3374,516 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 | 原生识别与合成（2026-09-12） | `app/native/speech-bridge.swift` | SpeechAnalyzer 两路、静音检测 + `finalize(through:)`、资产下载（sha256 钉住）、Piper（sherpa-onnx）合成 → playerNode |
 | 修正 + 翻译（2026-09-12） | `app/listen-core.js`（纯函数） | `T:` / `X:` 解析、接受门（0.7–1.3 + `dominantScript`）、双语归属（文字系先、置信度后）、`LISTEN_PASS` |
 
-## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
+### 9.6.1.2 双语定稿仲裁：错语言那一路不许赢（2026-10-06，待人评审）
 
+**问题（真机 94 号，中国版中泰）。** 说中文时，泰语路把中文语音硬解成一串**泰文**，成为一行
+`who:'them'`（「说中文转成泰文」）。现有两道防线对这对语言**都失效**：
+
+- **文字系**：泰文假字本身是泰文字符，`script` 检查（`ListenCore.rejectDeviceFinal`）认它「对得上泰语」⇒ 放行。
+  （第一批已补全 `scriptOfLocale` 的泰/俄/阿等脚本，修掉的是**跨**文字系漏网，对泰文假字无效。）
+- **置信度**：`MTDeviceTranscriber.start` 的 `needDictation` —— 只要有一门语言需要 `DictationTranscriber`，
+  **整个会话**都换成它；`deliverDictation` 不报置信度（`conf:-1`）⇒ 置信度那道规则也永不触发。
+
+**根因两条**：①会话级引擎降级把 zh 从更准的 `SpeechTranscriber` 拖走、置信度信号整体丢失；
+②JS 侧没有跨语言仲裁 —— 两路对同一段音频都会出 final，各自按自己的 locale 建行。
+
+**设计。**
+
+**(a) 每种语言各按自己的引擎定，不整体降级。** 删掉会话级 `needDictation`；每个 locale 由
+`mtTranscriberFor(id)` 决定 `SpeechTranscriber` / `DictationTranscriber`，**同一个 `SpeechAnalyzer`
+里混装两种模块**（现有代码已是「每个模块一个 reader」的结构，只差不去强制统一）。zh 因此拿回置信度。
+这不是新机制 —— `SpeechAnalyzer(inputSequence:modules:)` 收的就是 `[any SpeechModule]`，两种转写器
+都符合。
+
+**(b) 定稿仲裁：三档判据（可信 / 可疑 / 中性）。** 每个 final 到达时先**扣住 W ms**（初值 600 ms，
+实测覆盖两路对同一段的到达差 —— 两路共用同一个 `SpeechAnalyzer`、同一次 `finalize(through:)`，
+到达差只有几十毫秒）。扣住期间若**另一 locale** 也来了 final **且两片文字系不同**：
+
+- **高置信**（`conf ≥ 0.4`）＝**可信**；**已知低置信**（`0 ≤ conf < 0.4`）＝**可疑**；**无置信**
+  （Dictation，`conf:-1`）＝**中性**。
+- 可信压中性、中性压可疑；同档 ⇒ **都放行**（不猜）。
+- **同文字系不仲裁**：那是「同一路的拉丁碎片 vs 另一路的拉丁垃圾」，交给既有 script/conf 规则 ——
+  否则会破坏 2026-09-18 的句头救回（低置信拉丁句头 vs 高置信拉丁垃圾）。
+
+判据**不是**「置信度最高赢」—— 那会让泰语音频被 zh 路的低置信假字压过。三档才对：
+
+- 中文语音：zh 高置信（可信）vs 泰文假字（中性）⇒ 留 zh，假字被压掉。
+- 泰语音频：zh 低置信（可疑）vs 泰文真话（中性）⇒ zh 被压掉，留 th。
+- 真实的双语快切（两次发声相隔 ≥ 一个 final 的到达时延）不撞窗口，两句都留。
+- 判据位置：`app/listen-core.js` 的 `makeFinalArbiter` / `arbScore`（纯函数、可单测），
+  `listen-model.js` 的 `final` 分支改成经它出口；会话结束 `closeSocket` 调 `flushAll` 不丢扣住的片。
+
+**(c) 已知缺口，不假装解决。** 两边**都只能用 Dictation** 的语言对（如 th↔ru）没有置信度可比，
+仲裁退化为「都放行」，症状可能残留。写在这里，作为下一批的输入。
+
+**(d) 校准。** 门限 T（初值 0.4）与窗口 W（初值 600 ms）由 §0.3 判分台在真机录音上校准：
+`npm run diag:judge` 用 whisper large-v3-turbo 独立转写当参考、数**伪行**（locale 与参考语种不符）
+与 CER/WER，取伪行最少的一组。初值来自 §9.6.1 已有的 0.4（错语言拉丁音频 0.05–0.27、正确
+0.7–0.98）与「两路共用一次 `finalize(through:)`」的到达差；真机读数回来前按初值走。
+
+**为什么必须走评审。** 它动了转写器架构（「一个会话一种转写器」→ 每语言各自选）与定稿归属规则
+（新增跨语言仲裁），属 `AGENTS.md` 的领域设计治理条。**代码在本提案评审通过后才动。**
+
+**与既有规则的关系。** §9.6.1 的「先看文字系」保留为**第一判据**（快、零成本）；本节的置信度仲裁是
+**第二判据**，只在文字系分不开的场合生效。
+
+**(e) 半句层用同一套判据（2026-10-06，95 真机「说中文先闪泰文再改中文」）。** 上面只管定稿；半句是
+另一条显示路径。规则：每路留最新半句，**文字系不同**时按同一三档分留高分那一路（同文字系取最新）；
+只有一路候选时先**扣 300 ms** 等另一路（若有）到齐再择一，不先画错语言。旧的「半句粘滞
+（`PARTIAL_STICKY_MS`）」取消 —— 仲裁取代它。判据是 `listen-core.js` 的 `pickPartial`（纯函数、可单测）。
+
+**(f) 回声优先于仲裁（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」）。** 我们自己朗读的声音被
+麦克风采回时，两路都会给结果；原来的文字闸只对**单条**定稿判，错语言那一路不匹配，于是漏一行。
+规则：仲裁窗口里**只要有一路**匹配「我们自己刚读出去的文本」，这一整段音频就是我们的声音，**两路都丢**；
+判定在 final **到达时刻**做 —— 放行要等 W ms，用放行时刻会把判定推出 `ECHO_TAIL_MS`（M3 抖动实证）。
+代价如实记：对方若恰与我们**朗读同一句**（罕见）会被一并丢掉。
+
+**实测佐证（95 号包真机，`bt_diag_events` 的 `stt_final` / `speak` 时序）**：`speak` 之后 **~470 ms** 到
+的同语言定稿即回声；`speak` 日志记的是**播放开始**（`speakImpl` 返回 start，`done` 才是结束），
+所以「朗读进行中」与回声窗是重叠的。
+
+**(g) 播放进行中 + 同语言 ⇒ 丢（2026-10-06，95/96 真机时序定案）。** (f) 的文字比对在真机上**不够**：
+扬声器→空气→麦克风一圈后识别劣化，错语言那一路文字对不上、正确语言那一路若被定稿仲裁压掉就漏一行。
+真机 `bt_diag_events` 实测：回声定稿**总在 `speak`（= 播放开始）之后 ~500 ms、播放进行中**到达，且
+**与朗读同语言**（`speak th` → `stt_final th conf -1`；`speak zh` → `stt_final zh-CN`）。所以补一道更硬的：
+**正在朗读语言 L 的期间，L 的定稿与半句直接丢**（`echo.playingLangs`）；朗读**结束之后**仍走 (f) 的文字闸。
+
+**代价如实记**：对方若**恰在我们出声的那几秒**用同一门语言抢话，这一句会被丢；我们**念完之后**回话
+照常收（M4 钉着这个现实时机：现在 M4 等朗读念完再注入）。这道闸是拿真机数据换来的 —— 文字闸单独
+用时不稳，而回声是**每句必现**、抢话是**罕见**。
+
+### 9.6.1.3 语种识别（LID）：用模型判「这段是哪门语言」（2026-10-07，已实装 · 待评审复核）
+
+**问题。** 半句与定稿的归属一直靠**手写规则**：比文字系（`dominantScript`）、比置信度三档、再到
+`§9.6.1.2` 的「定稿确立后才上屏」。这些规则**只在「两路识别器都报了同一门语言的两种解读」时才有判据**，
+而 Dictation 路**不报置信度** ⇒ 两路分数相同、文字系又不同时**根本无从选择**（真音频实测，见 #574）。
+后果：说中文时泰语假字闪现、说泰语时中文垃圾成行（真泰语新闻实测出 `me:一文`）。
+
+**方案：把「谁在说哪门语言」交给一个语种识别模型。** 不再用脚本/置信度硬编码判语言。
+
+- **模型**：`sherpa-onnx` 自带 **Spoken Language Identification（SLID，whisper tiny）**——**Swift API 已在
+  你们打包的 vendored sherpa-onnx 里**（`SherpaOnnxSpokenLanguageIdentificationWrapper.decode(samples:)` →
+  `lang`），**零新运行时**。模型 = encoder + decoder ONNX（~103MB），走**既有离线模型通道**
+  （`bt_model_sources` + sha256 + 校验、`app/device-models.config.js`）；许可 MIT/Apache。
+  （备选：Core ML 版 VoxLingua107 ECAPA 21M，40.8MB、走系统 ANE——更小更快，但要多写一个 Swift 前端。）
+- **接线**：同一段麦克风 PCM（`micSink`）**顺手喂 LID**，逐句累计、判定，把语言码发给 JS。
+- **归属改为 LID 决定**：**半句只显示 LID 判定的那一路的文本；定稿只接受 `locale == LID` 的那一路**。
+  原来的 `dominantScript` 文字系比、置信度三档、以及「定稿确立」那套**全部退场**——语言理解不再有手写规则。
+
+**实测读数（Mac，whisper-tiny SLID，CPU）：**
+
+| 输入 | 判 zh | 判 th |
+|---|---|---|
+| 干净 TTS | **≥1s 稳** | **≥3s 稳**（1–2s 会飘成 ms/id） |
+| 真泰语新闻（YouTube，真实讲话） | — | 1s **47%** · 2s **73%** · 3s **80%** |
+| 真机麦克风（build 98 那场，10 句中文） | ≤1s **90%** · ≥2s **80%** | —（我们自己的朗读被 AEC 压掉，测不到） |
+
+单次判定 **40–160ms**；模型只吃 **<30s**（超出只用前 30s）。
+
+**12 门语言的覆盖与准确率（2026-10-07，`scripts/lid-eval-real.py` + `yt-dlp` 抓的 12 门**真语音**
+新闻/播客各 45s）。覆盖是**充分的** —— whisper 的判别头是 **99 类闭集**，我们支持的 12 门
+（en ja ko zh fr de es pt it ru ar th，以及听译语言表里的粤语 `yue`）**全在集合里**。
+
+| 模型 | 原始体积 | 交付 zip | 1s | 2s | 3s | 5s | 整段 |
+|---|---|---|---|---|---|---|---|
+| **whisper-tiny（现用）** | 102.8MB | **60.3MB** | 50% | 83% | 83% | 92% | **100%** |
+| whisper-base（试过，弃） | 159.8MB | — | 67% | 92% | 83% | 83% | 92% |
+| VoxLingua107 ECAPA（Core ML，试过，弃） | — | 40.8MB | 40% | 67% | 73% | 73% | 73% |
+
+⇒ **维持 tiny**。base 用 1.6 倍体积换不到更好的结果；VoxLingua107 体积虽小但**明显更差**
+（它的前端在 Swift 侧逐值对过 Python 参考实现：`11.283152` vs `11.283154`，所以不是移植误差；
+评测工具 `scripts/lid-eval-coreml.swift`）。
+
+⇒ **首次判定门槛定为 2s**（`MTDeviceLid.feed` 里 `buf.count >= 32000`）：1s 的判词只有 50%，基本是
+掷硬币，而判错一次就会让错语言那一路的半句上屏（正是要根治的那件事）。代价：每句话开头约 2s 没预览。
+
+**⚠⚠ 两次「模型判错」的结论都是我评估方法的问题，不是模型的问题 —— 记下来免得再犯：**
+1. **TTS 合成音不能用来评。** 第一版 12 门用 macOS `say` 合成，西班牙语被判成 `zh`/`en`；
+   换成真语音后**西班牙语 1s 起就全对**。合成音的韵律/音色会把判别头带偏。
+2. **片头音乐不能用来评。** 第二版发现「德语被判成英语」（tiny 在 1–5s 全错），拿同一份模型让它
+   **转写**那些窗口，看到的是 `*Musik*` / `(upbeat music)` —— 那些秒数是新闻/纪录片的**片头音乐**，
+   根本没有人说话。真正的德语语音段（ZDF heute）判词是 `de`（2s 即对）。
+   ⇒ **所谓「en+de 语言对里德语会被判成英语」并不存在**，不需要为此换模型或加规则。
+
+⇒ 现在的已知边界只有两条：**① 1s 的判词不可信（故门槛 2s）；② 非语音（音乐）会给垃圾判词** ——
+App 侧靠能量门只喂话音（`MTDeviceLid.feed(_:speech:)`），而能量门分不开「音乐」和「说话」，
+所以外放音乐时可能收到一条错语言的判词。日常对话里没有这个场景；如实记在这儿。
+
+另有一条闭集纪律做不到：**「只在会话的两门候选里取最大」这个 API 没有** ——
+`SherpaOnnxSpokenLanguageIdentificationResult` **只有 `lang` 一个字段**（`c-api.h`，2026-10-07 核对），
+没有 probs，配置里也不能限定语言集 ⇒ 只能拿它对 99 类的 argmax，再判它是不是那两门之一，
+**不是就保持沉默**（显示「正在说…」）。要补上得改 vendors 的 sherpa-onnx 或换模型。
+（另一条路存在但本轮没走：offline whisper ASR 的 `ys_log_probs` + 逐候选语言强制解码，
+能给真正的「两候选似然」；代价是每句两次解码 + 两个 recognizer 实例的内存。）
+
+### 9.6.1.4 难音频上「归属要稳住才认」+ silero VAD（2026-10-07，用户要求真机视频实测后加）
+
+**怎么发现的。** 用户要求「在 YouTube 上找一个泰语视频，单人说话的和多人说话的都试试准确率」。
+用 `yt-dlp` 取三条真语音频（YouTube 自动字幕当参照），从外放喂进 App（`myLang=zh / otherLang=th`）：
+
+| 用例 | stt-final | 泰文行 | **错语言行** |
+|---|---|---|---|
+| 单人 · 泰语讲语言学习（清晰） | 6（3 th + 3 zh） | 2 条，语义通顺 | **0** |
+| 多人 · 泰英混讲教学 | 45（12 th + 33 zh） | 4 条（1 条 `ว` 垃圾） | **1**（`你。`） |
+| 多人 · 纯泰语对谈（演播室） | 75（20 th + 55 zh） | 3 条（偏碎） | **2**（`那你你给我们也不`、`乌克兰。`） |
+
+**机制**（把 LID 判词与每条定稿按时间戳录下来看）：那段多人对谈的判词是
+
+```
+zh → th → ko → fr → ja → es → la → ru → ur → ko → el → ar → bo → ar → el → ko…
+```
+
+**乱跳**。而只要有一条判成 `zh`，中文识别路那条垃圾定稿就被放行了 —— 这就是漏行的全部原因。
+不是「LID 不认识泰语」，而是**单条判词不可信，而当时我们拿单条判词就放行**。
+
+**两层修法（都实装）。**
+
+1. **归属只认稳住的判词**（`listen-model` 的 `lidStable`）。判词换过来后要**稳住 ≥ `LID_SETTLE_MS`
+   （1.5s）**才拿去归属半句与定稿；稳不住（乱跳）⇒ 什么都不上屏 —— **宁可不显示，也不显示错的**。
+   代价：清晰音频上第一句的预览再晚 ~1.5s。
+2. **silero VAD 只把话音喂给 LID**（`MTDeviceVad`，644KB，走既有模型通道、sha256 钉住）。
+   `MTDeviceLid.feed(_:speech:)` 的 `speech` 现在由它给（拿不到 VAD ⇒ 退回原来的能量门）。
+   实测它单独不够：**只喂 VAD 确认的语音段，whisper-tiny 在这条音频上仍只有 19% 判成泰语**
+   （`en 4 / de 3 / th 4 / sv 2 / es·fi·la·fr·pt·ms·da·zh 各 1`，VAD 判出 43% 的声音是语音）。
+
+**效果（同一批音频，改前 → 改后）**：
+
+| 用例 | 改前（只 LID） | 改后（VAD + 稳住才算） |
+|---|---|---|
+| 多人 · 纯泰语对谈 | 5 行，**2 条中文垃圾** | **1 行，全是泰文**（0 错语言） |
+| 单人 · 清晰泰语 | 2 行泰文 | **3 行泰文**（更完整、通顺） |
+| 标准 5 例（Mac 音频层回归） | 5/5 · 0 错语言 | 5/5 · 0 错语言 |
+
+**如实记的边界**：难音频（背景乐 + 多人交叠 + 低电平，且这轮是「外放 → 麦克风」的二次录音）上，
+whisper-tiny SLID **本身判不出来**（19%）—— 这不是门能修的，是模型的能力边界。此时的正确行为就是
+**少显示**（现在正是这样），而不是拿一条乱跳的判词去猜。真机上「手机听现场」比这条链路好得多，
+待真机复测（这一条与 §9.6.1.2 的「第一个真机录音批」同一批待补）。
+
+**评估工具（都留在仓库）**：
+- `scripts/lid-eval-real.py` —— 真语音准确率矩阵（别用 TTS、别用片头音乐，见上）；
+- `scripts/lid-eval-coreml.swift` —— Core ML 候补模型同款矩阵；
+- `.local/lid-yt/`（本地，不入库）—— run-listen / diag（判词 + 定稿时间线）/ acc 三个驱动脚本。
+
+**两处如实记的代价。**
+1. **半句预览会变慢**：LID 要 ~2–3s 才判得可信 ⇒ 预览最早 ~2–3s 才出现（现在是 ~1s）。这是「判不出就
+   先不说」的代价——与设计里既有的「判不出就说『正在说…』」同源。
+2. **准确率不是 100%**：真机中文 80–90%、真泰语 3s 80% ⇒ 仍会有错判。比现在「无从判断」好，但不是零错。
+
+**闭集纪律。** 模型是闭集（永远挑一个，静音/噪声实测判成 `nn`）⇒ 必须：**VAD 门**（只在真有语音时判）
++ **只在会话的那两门候选里取最大**（不是 107 类 argmax）+ **置信度门限**（低于门限 ⇒ 不判，显示「正在说…」）。
+
+**范围与纪律。** 端上模型（**服务端不参与**；免费路径完整，满足规则 2/11）；不进扩展，只进宿主 App
+（本机转写本来就是 App 专属）；模型走既有下载通道、钉 sha256/size。
+
+**代码退场清单（实装时删掉/改掉的）**：
+- **删**：`listen-core.makeFinalArbiter` / `arbScore` / `ARB_TRUST_CONF` / `ARB_WINDOW_MS` / `pickPartial`
+  （跨语言仲裁与半句三档择一）；`listen-model` 的 `partialEstablished` / `partialHoldTimer` / `arb`。
+- **保留**：VAD/静音检测、切句器（`makeStreamCutter`）、回声闸、修正契约，以及**同一路之内**的文字质量闸
+  `acceptDeviceFinal`/`makeFinalGate`（它的文字系比现在只是「这一路自己的字对不对」的兜底，
+  **不再承担选语言**；句头救回仍靠它）。归属的唯一判据是新加的 `lidBase`/`sideMatchesLid`。
+
+**实装记录（2026-10-07）。**
+- **模型托管**：打包 **60.3MB** zip（`tiny-encoder.int8.onnx` 12.9MB + `tiny-decoder.int8.onnx` 89.9MB，
+  zip 压缩后 60.3MB），上传 **ModelScope** `belliedmonkey/belliedmonkey-device-models`（LFS），
+  sha256 `ae0ba8b75d2f0d299807a41915d66a329c01cb5459832879d22a28411a684501`（下载回验一致）；
+  `deploy/china/Caddyfile` 加 `/models/sherpa-onnx-whisper-tiny.zip` → ModelScope 302，
+  `api.belliedmonkey.com` 中转实测 302；`app/device-models.config.js` 加 `MT_DEVICE_LID` +
+  `mtDeviceLidModelsFor(flavor)`；`verify:model-urls` 把它纳入（8 个地址全通）。
+- **原生**（`app/native/speech-bridge.swift` 的 `MTDeviceLid`）：入口 `lid-probe` / `lid-assets`
+  （与 TTS 同一条下载/校验/安装戳通道，落 `Application Support/mt-lid/<dir>/`）；出口
+  `assets-progress {kind:'lid'}` / `lid-state` / **`lid-live {lang}`**（边说边判，≥1s 且有话音、
+  语言变了才发）/ **`lid-result {lang,ms}`**（与识别器 `finalize(through:)` 同一时刻判，给这一句定音）。
+  喂的是**同一段麦克风 PCM**（`MTDeviceLid.shared.feed`，tap 线程只做 16k 单声道转换 + 入队；
+  判定在专用串行队列上，不进 tap 线程）。**静音不判**：累计里没有话音（RMS ≤ 0.01）就不发判词——
+  闭集模型对静音会给 `nn` 这类垃圾。
+- **JS**：`app/native-speech.js` 加 `lidProbe` / `ensureLid` / `onLid` / `lidLatest`（协议两组字符串
+  与 `.swift` 的 case 逐字对表，`npm test` 有门禁）；`src/app/listen-model.js` 在
+  `ensurePacksForPair` 里把 LID 模型纳入下载（与转写资产/朗读模型共用 downloading 态），
+  会话开始订阅判词，**半句与定稿两处闸**都写成 `C.sideMatchesLid(ev.locale, lidLang)`。
+- **UI 文案**：一处没加（判词只在 `_debug()` 里露一个 `lid` 字段，给回归脚本读）。
+- **未做 / 待补**：真机多场录音下的门限校准（`scripts/lid-eval.py`，等服务端诊断录音）；首启屏 2
+  未把 LID 模型纳入（进场听译时才下）。
+
+**要不要把这 60.3MB 打进 App 包？（2026-10-07 用户提出）**
+**裁定（2026-10-07，用户）：先不打包，保持可替换。** 理由：换模型只需改一行 sha256/URL
+（`app/device-models.config.js` + 服务端表），打包后要等一次 App 更新 + 审核。下面的体积读数是
+当时（模型还没定）的留档 —— 后来真语音把模型选择定在了 tiny（见上表），**要不要重新考虑打包，
+以上表与下面两行的取舍为准**。
+实测（macOS Release）：`BelliedMonkey Translator.app` 现 **62MB**（其中主二进制 **42MB** —— sherpa-onnx
+静态库本来就在里面），资源 5.5MB。把模型打进去：
+
+| 方式 | 交付体积 | 总数 |
+|---|---|---|
+| 现状（进场下载） | **0**（每人一次 60.3MB，只在第一次听译时） | 62MB |
+| 包内放 **zip**、首次运行解到 Application Support | +60.3MB | ≈ **122MB** |
+| 包内放**原始 onnx** | +102.8MB | ≈ **165MB** |
+
+**好处**：零等待；**没网也能用** —— 听译恰恰常在国外/网络差的地方用，这一条是真的。
+**代价**：① 体积涨到 2–2.7 倍，且**每个用户都付**（含从不听译的人）；② **模型被冻在版本里** ——
+现在换模型是改一行 sha256/URL（`app/device-models.config.js` + 服务端表），打包后要等一次 App 更新
++ 审核；③ 两个 flavor 都要重新出包。结合上表的准确率读数（es 会判错、pt 看语音），模型的挑选还可能
+再动一次 ⇒ 先把「可替换」留着更划算。
+
+### 9.6.1.5 不用预设语言：语言选择收起来（2026-10-07，用户拍板；Pencil 稿已通过）
+
+**用户的要求。**「YouTube 上找一下既有中文又有其他语言的视频测试一下。确保不用预设语言也能准确听译。
+效果如果达到，用 pen 设计下交互，干掉没必要的语言选择下拉框。**包括听译和实时字幕的**。」
+
+**测出来的能力（用户指名的那种视频）。** 中英双语访谈（中文提问 + 英文回答），从外放喂进 App：
+
+| 片段 | stt-final | 出的行 | 结果 |
+|---|---|---|---|
+| 30–150s | 211 en + 15 zh | **85 行** | 英文侧**逐句准**（`Hey, buddy, can you speak English?` / `So are you graduating this year or next year?`） |
+| 150–265s | 82 en + 14 zh | **23 行** | 同上（`How long have you been studying English?` / `I think I've been studying English for like, um, 12 years`） |
+
+那几十条 `zh-CN` 定稿其实是**中文识别器在念英文**（`haven't think`、`do't know I wanto like the stust`）——
+**归属门 100% 丢掉了**，一条都没变成中文垃圾行。「逐句换判」在标准回归的 `zh-th-zh` 用例里也验着
+（中→泰→中三句各自归对）。⇒ **能力够了，可以做。**
+
+**⚠ 技术上的一条硬发现：`SpeechAnalyzer.setModules()` 不能用。** 它确实存在（会话中途换识别器的
+唯一入口），但 2026-10-07 在 macOS 27 SDK 上**直接 trap**：`EXC_BREAKPOINT` 崩在 Apple 内部的
+`TranscriberCommon.worker.setter`（`setModules` → `prepareModulesIfNeeded` → `setWorkers`）。
+所以**不做「就地换模块」**，改走**既有那条换语言的路**：`langChange('other', L)` —— 补语言包 +
+重连识别器（麦克风不停；既有代码、已验证）。
+
+**交互（Pencil 稿「稿 · 听译与实时字幕 · 自动识别语言（干掉下拉框） 2026-10-07」，用户 2026-10-07 通过）：**
+- **听译页**：原来的「我的语言 ⇄ 对方语言」两个下拉**不再常驻**，换成一**行被动状态** ——
+  刚点「开始听」是「正在识别语言…」；判出来并稳住之后是「已识别：中文 · English」；判词乱跳（难音频）
+  就一直停在「正在识别语言…」。行尾一个「**语言不对？**」文字按钮：点了才摊开那两个下拉（兜底，很少用）。
+- **实时字幕**：视频语言同样自动；条上沿用既有的状态行。
+- **「对方」那一格自动跟着 LID 走**：判出稳住的语言 L，且 L 既不是我的语言、也不是当前对方语言 ⇒
+  换成 L（防抖 2s），并记住它（`listenOtherLang` / `subtitleVideoLang`）—— 下次进场拿它当起点，
+  紧接着又被 LID 修正。**「我的语言」默认取界面语言**（中文界面 ⇒ 外语话译成中文）。
+
+**如实记的三条代价。** ① 一门语言**第一次**出现时，识别器是在判出来之后才挂上的 ⇒ 那**第一句不会成行**
+（每句话开头那 2–3.5s 的「正在识别语言…」就是这一段）；② 难音频上会长时间停在「正在识别语言…」（不猜）；
+③ 引擎不支持的语言识别到了也翻不了 —— 出路仍在（现在收进「语言不对？」里）。
+
+### 9.6.1.6 「译成」目标语言：默认跟**系统语言**（2026-10-07，真机反馈后定稿；Pencil 稿已通过）
+
+**用户真机反馈（批 27）：**「当用户系统语言是中文时，不知道应该翻译成什么语言，应该给用户设置他想
+翻译到的目标语言，然后其他语言都翻译到系统语言。」
+
+**根因。** §9.6.1.5 那版把「我的语言」（= 外语话译成什么）**跟着界面语言推**
+（`listenMyLang ‖ uiLang ‖ navigator.language ‖ zh`）。界面语言不是中文的人（或 `uiLang='auto'`
+解析路径不同的人），外语音就被译成界面语言而不是「他自己读得懂的那门」。
+
+**改成（用户三点拍板）：**
+1. **默认值 = 系统语言**（`listenMyLang ‖ navigator.language ‖ zh`），不再是界面语言；
+2. **听译保留双向**：对方的话 → 译成；**我自己说的 → 对方的语言**（面对面给对方看）；
+3. **设置就放听译页一处**：一个**看得见的**「译成」下拉（复用 `target_lang_label`「译成」）。
+   它旁边的「对方说的：{lang}（自动）」是 LID 判出来的那门，被动显示；认错了点「语言不对？」，
+   半屏 sheet 里**只改这一格**（`listen_partner_auto` / `subtitle_partner_auto`）。
+   **实时字幕**单向：视频的话 → 译成（同一个下拉），视频语言仍然自动。
+
+**实测（Mac，系统语言 zh_CN，两个语言键都清掉）：** 放英文访谈音频 ⇒ **82 行，82/82 全部译成中文**
+（`Hey, buddy, can you speak English?` → 「你准备好了吗？」一类）。
+
+**如实记：** ① 「译成」改的是**方向**，不改识别 —— 对方说什么语言仍然是 LID 判（判错仍然可能）；
+② 「译成」（你读得懂的）与「对方说的语言」（决定你自己的话译成什么）是两件事，别混；
+③ 默认值只在**没设过**时生效，设过一次就存下来、不再跟系统变；
+④ 设置页那一项「译成」（只管文档 / 系统 / 快速翻译）**不动** —— 听译这一处是它自己的键
+（`listenMyLang`），两处不互相改。
+
+### 9.6.1.7 真机批 28 的四条反馈：locale 名额、重复下载、误报、误伤（2026-10-07）
+
+批 28 真机测出四条，**同源的多、独立的一条是 Apple 的 locale 名额**：
+
+**(1) ★ `SFSpeechErrorDomain Code=11 "Too many allocated locales, 5 maximum."`**（English⇄한국어 点
+「开始听」就失败）。**根因**：**每次 `stt-start` 都新建一个 transcriber，而旧那一对的 locale 从来没释放过** ——
+Apple 对每个 App 的已分配 locale 有硬上限 **5** 个，来回切几次语言就撞上。**修**：`MTDeviceTranscriber`
+持一份进程内的「已占 locale」表，**每次 start 之前先 `AssetInventory.release(reservedLocale:)` 掉不在
+当前这一对里的**（必须先释放再建新模块 —— 新模块自己也要占名额），只留当前语言对。
+
+**(2) 「对方说的：nn」**（LID 吐了 `nn` 就把对方语言换成了它）。**根因**：LID 是 **99 类闭集**，
+`nn`（挪威尼诺斯克）是它在静音/噪声/短音频上最常见的垃圾标签，而自动跟随**直接采纳**了它 ⇒ 拿 `nn`
+去探本机识别器 ⇒ `unsupported/locale` ⇒ 整场 halt。**修**：`langSupported(code, codes)`（`listen-core`）——
+归属与自动跟随**只认注册表里的 12 门**；顺带**读取时自愈**（存量的坏值 `listenOtherLang` 不再带进下一场）。
+
+**(3) 改「译成」触发下载 + 卡「准备中…」**（顶部「正在下载离线模型 · 15%」）。**根因**：「译成」走的是
+**语言对那条重连**（`langChange('my', …)` 以前无差别地 `closeSocket` + `ensurePacksForPair`），而它只改
+译文**方向**、一个识别器都不动。**修**：`which === 'my'` 直接短路（不重连、不补包）。
+
+**(4) 首启下过的包，进听译又被当成没下好**（重复下载、卡「准备中…」）。**根因**：自动识别换来的语言会
+走 `ensurePacksForPair` 的**朗读包**下载 —— 首启按 zh/en 下的，LID 认出泰语之后又要下泰语朗读包（105MB）。
+**修**：自动跟随走 `{ skipTts: true }` —— 只补识别资产，**不因为「听到一门新语言」悄悄下朗读包**；
+没有那个包不影响听译（朗读回落系统语音，既有行为）。
+
+**(5) 首启语音包页「什么都没点」就挂红字「连不上服务器，检查网络后重试。」**。**根因**：`bootShell`
+的兜底 catch 把**任何**异常都当成「会话坏了」→ `show(null)` + `say(humanError(err), true)`；而登录态刷新
+/额度领取之类**自动**请求在网络抖一下时抛的就是网络错 ⇒ 页尾红字（那一屏用户什么都还没点）。
+**修**：① 兜底 catch 里带 `code: network/offline`（或消息像网络错）的**不当登出、也不弹红字**；
+② `say()` 在首启屏（`firstRunScreen === 'packs'`）上不画错误 —— 那一屏有自己的错误行（`#packs-err`），
+只画**下载**的失败。
+
+**(6) 错误要说真实原因，不许误报网络。** 原生以前有 5 处把 `String(describing: error)` 当 `reason` 送出去
+（协议规矩是「reason 是 id，人话由 JS 拼」），于是 `Error Domain=SFSpeechErrorDomain Code=11 …` 被拼进
+「离线模型下载失败……多半是网络问题」。**修**：全部换成协议码（`mtdlCode` / 新的 `mtPrepareCode`，
+把 `SFSpeechErrorDomain Code=11` 映射成 `locales`），JS 侧：`locales` 有一条专门的文案
+（`listen_need_locales`：语言名额用满），`assets` 失败走 `LearnTTS.reason()` 把码翻成人话。
+
+**(7) 顺手补的两处（同一条回归里暴露的）**：
+- **自动跟随要过「设备支持」这一道**：`langOk` 以前只看注册表那 12 门，而**注册表里有、这台设备的
+  识别器没有**的语言（实测 Mac 上 `fr`/`de` 在注册表里但本机清单没有）会被自动跟随选中 ⇒ 探针
+  `locale` 失败 ⇒ 整场 halt。现在设备报过清单就以它为准（没报过才退回注册表）。
+- **切到设备没有的语言 ⇒ 回到上一对**，不是把整场丢掉：`langChange` 的重连失败且 `pauseReason` 是
+  `device` 时，把「对方」那一格**改回切换前那门**、用回旧那一对重起，并说一句
+  `listen_lang_unsupported_revert`（「这门语言这台设备识别不了 — 已经回到「X」」）。
+  另外「转写连接中断：localeway」这种**协议码当原文印**也修了（`locale` 走既有的「不支持这个语言」）。
+
+**验证**：`npm test` **2425 passed / 0 failed**（含新增：`releaseUnused` 必须在建模块之前、
+协议码不许回退成系统原文、`langSupported` 的闭集外来码、`skipTts`、「译成」短路）；
+Mac 真机路径回归 `.local/lid-yt/switch-langs.js` —— **连切 6 门（> 5 个名额）**不再出现
+「名额 / 网络」误报，切到设备没有的语言会**回到上一对**并说明；标准 5 例回归 5/5 · 错语言样本 0。
+
+### 9.6.1.8 两门语言**对称互译** + LID 提速（2026-10-07，用户改主意；Pencil 稿已通过）
+
+**用户的话。**「界面改成让用户选两种语言，不管到底几方是哪种语言对方是哪种语言，反正就是听到一种
+语言，就译另一种语言。比方说用户选了中文和泰文，那听到中文就译泰文，听到泰文就译中文。然后 LID 识别
+语言的速度快一点，因为只要做二分选择了，应该可以更快了。」
+
+**取代了什么**（§9.6.1.5 / §9.6.1.6 的语言选择部分作废，那几节的**bug 修复**仍然有效）：
+- 「我的语言 / 对方的语言」的角色语义没了 —— 两门只是 A、B；
+- 「译成 / 我说的语言」没了；
+- **自动跟随没了**（语言由用户指定，LID 不再改语言）；
+- 「语言不对？」半屏 sheet 没了（两门都直接摊在页上）。
+
+**现在的样子**：
+- **听译页**：`［中文 ▾］ ⇄ ［泰文 ▾］` + 常驻一行「听到{a} → 译成{b}；听到{b} → 译成{a}」。
+- **实时字幕**：`视频语言：［自动 ▾］ → 译成 ［中文 ▾］`（那页没有「我」这一侧，所以按角色标；
+  同一对键、同一个控件）。左格默认**「自动」**（2026-10-07 用户裁定）：
+  - 指了具体语言 ⇒ 只开那一路识别器；
+  - 「自动」⇒ 开「**上次认出来的那门（或 `en`）+ 译成**」两路，由 LID 在两门里取，并把认出来的那门
+    记进 `subtitleVideoLang`（下次「自动」的候选就是它）。
+    **天然限制（如实）**：候选只有两门 ⇒ 「自动」覆盖的是「上次见过的那门 + 译成」，
+    一门全新的视频语言第一次要靠手选。
+  - **2026-10-07 修的一处**：`deviceLocales` 对字幕以前用的是 `otherLang`（= 译成），而左格标的是
+    「视频的语言」—— **两格是挂反的**（识别器开在译成上、译文去了视频语言）。现在识别器用左格。
+  - 字幕恒**单向**：`targetLangFor()` 在字幕模式恒回 `otherLang`（= 译成）。
+- **方向**：行归属仍由 LID 判（`who` 由 locale 推），目标 = **两门里的另一门**
+  （`targetLangFor`：`row.who === 'me' ? otherLang : myLang`，而 `who` 本来就是「这一路是 A 还是 B」）
+  —— 于是「听到 A 译 B、听到 B 译 A」天然成立，不需要新逻辑。
+
+**LID 提速（用户点名的第二件）**：
+| | 旧（§9.6.1.4 起） | 新 |
+|---|---|---|
+| 起判 | ≥2.0s 话音 | **≥0.5s** |
+| 节奏 | 每 1.0s | **每 0.5s** |
+| 采用条件 | 判词要**稳住 ≥1.5s** | **落在两门里** + **持续 ≥0.5s**（`LID_CONFIRM_MS`） |
+| 第一句预览 | ~3.5s | 实测 **~1.5–2.1s**（见下「实测的边界」） |
+
+为什么两门之后可以更快：判词落在**第三门**上不是「另一个答案」，只是「还没判到」—— 丢掉继续听就行。
+**但「落在两门里」还不足以立刻用**：0.5s 那一条判词本来就会乱报，而两门**之间**的错报挡不住
+（Mac 实测：泰语在 ~2s 上屏的第一条半句是**中文垃圾** —— 早期判成 `zh`，正好落在两门里）。
+所以还留一道**0.5s 确认**（同一门持续 ≥0.5s 才用），把「一条就翻」滤掉，代价只是晚半秒。
+**整行的定稿**曾经再稳一道（1.5s 闸，`1ae1280a`）—— 默认引擎换 ECAPA 后**已撤**，见 §9.6.1.10
+（那段记了为什么加、又为什么撤）。半句与定稿现在用同一道 0.5s 确认。
+
+**实测的边界（如实）**：把起判从 2s 降到 0.5s 之后，**泰语**的第一条半句并没有真的更早 ——
+whisper SLID 在泰语开头 1–2s 本来就先报 `ms`/`id`/`zh`（第三门丢掉、`zh` 会被 0.5s 确认滤掉），
+所以它仍然要 ~1.5–2.1s 才落到 `th`；**中文**这种一判就准的语言则确实提前了（第一条半句 ~1s）。
+把起判降下来的真实收益在**中文/英语等早期就稳的语言**上，泰语这类「开头会飘」的语言收益有限。
+
+**如实记的代价**：① 判词在 A/B 之间翻错时，译文会译成另一门（门多时是「不显示」，两门时只剩两个可能，
+这就是用户选的那条路）；② CPU 略升（解码更频繁，单次 40–160ms；每 0.5s 一次）。
+
+### 9.6.1.9 「正在听…」占位 + 泰文断句修复（2026-10-08；Pencil 稿已通过）
+
+**(1) 开口到第一行有 3–12s 空白 ⇒ 加占位。** Mac 实测（`zh⇄th`，各 5 次）：首条半句 P50
+**3311ms**（泰语）/ 12s（中文那组含识别器自己出字晚的情形）；第一行更晚。用户裁定加占位，
+Pencil 稿「稿 · 听译『正在听…』占位（首行之前那段空白）2026-10-08」已通过：
+
+- **「现在」卡**：没有半句**且会话还在听**时显示「**正在听…**」（`listen_listening`）；
+  不是 listening 的态（暂停/准备）仍旧「正在说…」—— 那时说「正在听」是假的。
+- **「整句定稿」卡空态**：上面加一行同样的「正在听…」，下面保留原来那句说明。
+- 两处**同一个词**、不带图标、不带秒数、不加动画；一有半句或定稿就撤掉。
+- 占位**不缩短**那段延迟，只是让它看得出在干活（延迟本身取决于识别器与音频）。
+
+**(2) 泰文断句坏了（用户实测发现，已修）。** 时间轴实测（`zh⇄th`，放泰语）：
+
+```
+LIVE th   ≈3.3s        ← LID 早就判出来了
+final th  +56s (!)     ← 泰语识别器 56 秒才吐第一片
+final th  +25s / +30s  ← 之后每 25–30s 一片
+```
+
+**根因**：识别器的 final 是**懒时间片**，而收口原来只按「停顿 ≥ `vadMs`(400ms)」。**泰语句末是
+空格、没有标点**，说话人不停顿 ⇒ 25–56s 才出一片 ⇒ 切句器再快也没东西可切（它的 4s 绝对上限
+只在「已经有文本」时才开始计时）。**修**：给一句话加**绝对上限** —— 连续说话累计到
+`maxUtterMs`（5s）就强制 `finalize(through:)`，停顿收口照旧。
+**效果**：泰语第一行 **43.3s → 12.98s（P50）**，行从「每 25–56s 一行」变成几秒一行。
+
+**(3) 收口优先切在停顿上（2026-10-08，接 (2)）。** 5s 上限是**硬切**，会切在词中间（泰文实测切出
+「บ่ายโ」这种半个词）。用户问「有没有现成的断句模型」——查实的结果：
+- **苹果 `NLTokenizer(unit:.sentence)` 只认标点**（泰文没标点 ⇒ 实测 1 句到底，连空格都不切）✗；
+  `NLTokenizer(unit:.word)` 泰文分词**可用** ✓（系统自带），但**词表法在这里无效** ——
+  上限切出来的是「音频窗口里的半个词」，把它丢给分词器，它只会把 `โ` 当成一个「词」，看不出是前缀 ✗。
+- HF/ModelScope：标点恢复模型有，但覆盖 en/de/fr/it/he/ca/孟加拉… **没有泰文**；泰文相关的只有
+  分词/词性/摘要/LLM，**没有句子切分** ✗。
+
+⇒ **句子边界在泰文里本来就只能靠声学信号**。所以改成：上限触发时**优先切在最近一次够长的停顿上**
+（`pauseFed`，门限 `pauseCutMs = 150ms`）—— 识别器切在停顿处，词就是完整的；这一句里没有可用停顿
+才硬切。停顿触发的那条路本来就切在停顿上，不变。
+
+**(4) 不分「说 / 听」；行标签改成语言名（2026-10-08 用户拍，Pencil 稿已过）。** 用户：「不需要区分
+正在说还是听这个概念，对于 app 来说都是正在听，谁说话都是听。」
+- **「现在」卡**：listening 时**永远**「正在听…」（不再有「我正在说 / 对方正在说」）；非 listening
+  的态（暂停 / 准备）仍用既有的「正在说…」。
+- **行左侧标签**：从「我 / 对方」改成**那门语言的名字**（「中文」/「泰语」）。两门对称之后 `who`
+  本来就只是「这行落在 A 还是 B」，而「A 是哪门」用户自己选过 ⇒ 标语言名才是行上有用的信息。
+- **↔ 的语义写清**：判错了点它 —— 这句换到另一门去。
+
+**(5) 一条流程教训（测试别动用户的设置）。** Debug 包与用户装的正版**同 bundle id ⇒ 共用容器**
+（见 `scripts/test-mac.js` 头部）。2026-10-08 就吃过一次：量音频的脚本写了 `listenAutoSpeak:false`，
+把用户自己的「自动朗读译文」关掉了 —— 用户报「没有自动朗读」看起来像功能回归，其实是测试污染。
+**规矩**：`.local/lid-yt/*.js` 一律先 `stashInit()` 存原值、跑完 `stashRestore()` 还回去。
+
+### 9.6.1.10 默认语种识别引擎换成 ECAPA；「1.5s 稳住」闸随之撤掉（2026-10-08）
+
+**这一段记两次相反的决定，别只看后半段。**
+
+**(1) 上午：加了一道「整句落行要判词稳住 1.5s」的闸（`1ae1280a`）。** 起因：会话开头那几条 LID
+判词证据最少，`zh⇄th` 放泰语时首行落成**「甜汤萨蛋」**（中文识别器在泰语音频上吐的垃圾）。当时查实
+三条更聪明的路都走不通 —— 整句判（`lid-result`）**也一样错**（实测 `result=zh(3698ms)`）、置信度对
+CJK **分不开**（中文正文 0.39–0.71 vs 垃圾 0.09–0.60 完全重叠）、「判词一翻就丢」会**误丢换人那一行**
+（垃圾行与正常换人在外部同形）。所以在时间上兜：没稳住先扣住、判词稳住成另一门才丢、超时丢。
+
+**(2) 下午：默认引擎换成 SpeechBrain ECAPA（VoxLingua107）CoreML，那道闸整条撤掉。**
+用户拍板「把 ECAPA 正式接进去，撤掉 1.5 秒稳住闸」。为什么闸可以撤：**它的前提是 whisper 判词乱跳**
+—— 同一条 Mac 外放→麦克风路径实测，每场判词变更 whisper **27–36 次**、ECAPA **恒为 1 次**。前提没了，
+闸就只剩白等与推迟第一行。
+
+**实测对照**（2 引擎 × 2 语言 × 5 场，40 s 真语音频，同一台 Mac、同一条外放→麦克风路径）：
+
+| 组 | 错语言行 | 行数 | 定下来 P50 | 定下来时话音 | 首行 P50 | 单次判定 | CPU |
+|---|---|---|---|---|---|---|---|
+| ECAPA / 泰 | 0/5 | 41 | 1343 ms | 605 ms | **5347 ms** | 182 ms | **16.8 %** |
+| ECAPA / 中 | 0/5 | 41 | 1215 ms | 312 ms | **4082 ms** | 196 ms | **15.2 %** |
+| whisper / 泰 | 0/5 | 29 | 1528 ms | 1087 ms | 10610 ms | 114 ms | 27.4 % |
+| whisper / 中 | 0/5 | 27 | 1217 ms | 586 ms | 4341 ms | 112 ms | 24.5 % |
+
+**判法**（照调研报告）：只比用户选的**两门**，取 log 概率之差的 LLR；**从开口起累积**音频，每 0.25 s
+（按**音频时间**，不是墙上时钟）重算，|LLR| ≥ 阈值（默认 6）才定。实测证明「累积」是要害：0.5 s 两门
+还没分开（泰语 −0.53），1.0 s 就分开（+5.36）。纯逻辑在 `app/native/lid-ecapa.swift`。
+
+**两条实测教训（都是花掉整轮才定位的）：**
+- **输入窗口不能一直长大**：CoreML 对**每个没见过的输入形状**都要重新 plan —— 实测每个新形状冷启动
+  40–70 ms、12 个形状合计 1065 ms，而每 0.25 s 话音就换一个形状 ⇒ App 里 CPU 冲到 85–95 %。改成
+  **固定 4 档**（0.5/1.0/2.0/4.0 s，取当前音频能填满的最大档、帧取自开口）。
+- **前端不能写标量三重循环**：~1 ms/帧（100 帧/秒吃满单核）。换 BLAS 后 40 s 全量 3.83 s → 1.36 s。
+  坑：`vDSP_mmul` 收**行主序**（同帧标量对照：行主序偏差 4.6e-5 / 列主序 83），摆错表 ⇒ 特征全错 ⇒
+  真机 10 场**一行都不出**。
+
+**如实记的残留：** ① 乱码行在那一轮**两边都没复现**（0/5 vs 0/5），所以「ECAPA 是否消掉它」**没有直接
+证据**，撤闸的依据是「判词不再乱跳」这条根因 + 上表；真机（iPhone 麦）待验。② 阈值 6 是在离线干净
+音频上定的，**未在真机路径上校准**。③ 走 `lidEngine = 'whisper'` 回到旧引擎时，那一行错语言是
+**已知缺口**（不再是默认路径）。④ ECAPA CoreML 要 iOS 18 / macOS 15，而听译这条路本身要 iOS 26 /
+macOS 26 ⇒ 不冲突。
+
+**开发开关**（刻意不进 settings schema，避免变成用户可见改动）：`lidEngine`（默认 ECAPA、
+`'whisper'` 回旧引擎）、`lidThreshold`、`lidCpuOnly`。
+
+## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
 把 domain-design §2.5 那条「上传的文件是第四种来源」落到学习层：用户上传 PDF / Word /
 图片，阅读器**打开一页翻一页**；读过的页里的句对进语料，来源类别叫**「文档」**，默认开
 （设置项「文档进复习」`docCapture`），且**限量**。
@@ -3991,7 +4509,7 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 | Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
 | `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
 | `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
-| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **unchanged** — the China flavor sends nothing, so the sentence stays true |
+| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **no anonymous usage events**, so that sentence stays true; but since 2026-10-06 (L2) the China flavor ships the separately-disclosed, content-free diagnostic upload (no original text, no translation), so the page must be reworded in the same version (#569) rather than an unqualified 「不随版本变化」 |
 | `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
 | Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
 
@@ -4090,7 +4608,7 @@ the gate requires the same key on all 12):
 | Surface | Gate H |
 |---|---|
 | `README.md` / `README.zh-CN.md` | the paragraph above under Privacy, beside Gate E's; Gate E's sentence stays and is scoped to the cloud engine |
-| `_locales` ×12 | `listen_device_privacy` on all 12 |
+| `_locales` ×12 | `listen_device_privacy` on all 12（**2026-10-07 起这句是页内的「转写效果」说明，不再承担绝对声明**；Gate H 的披露正文在 README ×2 + 两个站点，见下注） |
 | App home privacy line (`#modes-privacy`, today `listen_entry_privacy` 「音频只发往你配置的转写端点」) | the on-device variant whenever `device` is the selected transcription **or** speech engine — a second variant of the existing line, not a second line; the cloud wording must not be shown on the on-device path (it would be false in the reassuring direction) |
 | `NSMicrophoneUsageDescription` (`scripts/sync-app-assets.js`) | extended to name on-device recognition: on that path audio stays on the device |
 | **All three usage strings, localized** (`PLIST_L10N` in `scripts/sync-app-assets.js`, 2026-09-18) | Info.plist carries the **English** default (`CFBundleDevelopmentRegion = en`); every UI locale (the 12 of `extension/_locales`) gets a `<lproj>/InfoPlist.strings`. Reason: App Review rejected 1.12.1 iOS under Guideline 4 because the permission prompt was Chinese on an English iPad while the app UI was English — "permissions requests that are not written in the same language as the app's localization". A usage string is UI copy and follows the same 12-locale rule as every other string. |
@@ -4098,6 +4616,16 @@ the gate requires the same key on all 12):
 | `belliedmonkey.com` | the same paragraph; the model download is the only network access on this path and the China flavor makes it too (China-network download untested — a D2 reading, see §9.1) |
 | App Store privacy labels | no new category (audio is not collected; text goes to the user's endpoint as before); re-check at submission, **by hand** |
 | `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
+
+*(2026-10-07 用户裁定：**App 页内不再做「音频不离开设备 / 不发往任何服务器」的绝对声明。** 理由：
+`§0.4.1` 的「上传诊断录音」是一条**可选**通道（默认关、设置里单独披露），它存在时页内那句
+「音频不离开设备」不再**无条件**为真；用户同时裁定页内**也不写「会上传服务器」** ⇒ 页内只描述
+转写/朗读的**行为**（「边说边出字…自己配置的翻译引擎…语音在设备上合成、首次下离线模型」）。
+**Gate H 的披露正文不变**（README ×2、两个站点隐私页、`NSMicrophoneUsageDescription`、本地化的
+三类 usage 串）—— 页内撤下的只是那两句绝对声明，披露仍随功能同版上线。
+同 PR 改了：`_locales ×12` 的三条键（`listen_entry_privacy_device` / `listen_device_privacy` /
+`listen_cost_line_device`）、`src/app/listen-model.js` 的兜底串、`verify-listen` 的 B 断言
+（费用行不再含绝对说法）。`build.js` 的 Gate H 长度检查不变（页内句仍 ≥60 字）。)*
 
 ### Gate I — ships with 实时字幕 (§9.8)
 
@@ -4186,7 +4714,7 @@ I-1…I-8 一行未写、且带外部风险（新能力首次出包、审核）�
 - **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
   server-side model is a *new* capability, not a conversion, which is the only reason
   it is permitted.
-- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** — it ships the
+- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** ~~（旧口径，**已被 `docs/learning-design.md` §9.4 与 §12 的 2026-08-12 三审收窄取代**：否定的是「录音离开用户自选端点」，不是「一切 ASR」；「学习层永不转写页面音视频」仍然成立）~~ — it ships the
   user's recordings to vendor servers (Chrome→Google, Safari→Apple), which the
   "nothing you said or read leaves the device unasked" promise cannot absorb. **The page-media rule is also unchanged**: the
   learning layer consumes transcripts that already exist; it never transcribes page
@@ -4247,7 +4775,7 @@ matters more than the detail.
 | 2026-08-12 | 浏览器原生 `SpeechRecognition` 做说题评测（三审） | 维持否决：录音送厂商服务器（Chrome→Google、Safari→Apple）不可接受，永不使用。但三审把「ASR 一律出局」收窄为「录音离开用户自选端点即出局」——**BYO-key 转写路径解禁**：录音只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃，与 BYO-key 翻译/TTS 同一信任形状（§5.4、§9.4、§10 Gate C、§11） |
 | 2026-08-12 | 知识点 × 技能全矩阵掌握标准 | 解析面每句最多 8 词 + 4 短语 + 1 语法点，×4 技能 ≈ 50 格——实际不可达，且需要知识点级存储与同步。改为句子 × 四技能矩阵（4 格）+ 出题时知识点确定性轮换取材（§5.4）；词汇不单独考排的边界（§5.2、§11）不动 |
 | 2026-08-12 | 题包并入解析 prompt（一次调用两用） | 会 bump notes 的 `PROMPT_VERSION`、全量作废所有用户已付费缓存的解析并重复扣费——§9.2 的版本纪律只允许纠错时升版。题包独立模块、独立 `PACK_VERSION`（§9.3） |
-| 2026-08-17 | ~~播客模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`）~~ **已推翻 2026-08-24，见 §9.5「后台与锁屏播放」** | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖播客主场景；后台桥列为后续独立议题（§9.5）。<br>**推翻理由（2026-08-24）**：①「已覆盖主场景」是错的 —— 用户实际报的就是「退出 App 就不播了」，支架 + 屏幕常亮覆盖的是坐在车里盯着手机的那一小半；②原生代码的代价被降下来了：Swift 不再是拼在 JS 字符串里的一坨，而是仓库里一份真文件 `app/native/audio-bridge.swift` + `app:sync` 的**标记块整块替换**，可读、可 diff、可测；③「后续独立议题」本来就是把它挂起来等一个专门的评审，这次就是那个评审 |
+| 2026-08-17 | ~~播客模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`）~~ **已被 `docs/learning-design.md` §9.5「后台与锁屏播放」取代**（推翻于 2026-08-24），本行只作历史 | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖播客主场景；后台桥列为后续独立议题（§9.5）。<br>**推翻理由（2026-08-24）**：①「已覆盖主场景」是错的 —— 用户实际报的就是「退出 App 就不播了」，支架 + 屏幕常亮覆盖的是坐在车里盯着手机的那一小半；②原生代码的代价被降下来了：Swift 不再是拼在 JS 字符串里的一坨，而是仓库里一份真文件 `app/native/audio-bridge.swift` + `app:sync` 的**标记块整块替换**，可读、可 diff、可测；③「后续独立议题」本来就是把它挂起来等一个专门的评审，这次就是那个评审 |
 | 2026-08-17 | 播客模式朗读选择题/挖空题（念选项作答） | 念四个选项让人凭记忆比对，测的是短时记忆不是技能，客观结果也无从约束评分——不诚实。v1 唯一题型是跟读，它是四技能中唯一手眼全免提的形态（§9.5） |
 | 2026-08-18 | 播客模式里的跟读题（免提推进真实学习进度） | **录音窗口的存在必然打断连续播放**，而连续播放是「开车时听」的全部内容。一个每张卡都停下来等你说话的播放器不是播放器。学习层的写路径全部留在复习页——那里用户看得见自己在给什么打分（§9.5） |
 | 2026-08-18 | 播客模式里的语音问答（卡末「有没有疑问？」） | 同上：它要求一个录音窗口，且把一次被动收听变成一连串需要应答的提示。免提问答本身仍是好想法，但它属于一个独立的语音助手形态，不属于播放器（§9.5） |

@@ -1,6 +1,6 @@
 {
   "name": "belliedmonkeytranslator",
-  "version": "1.19.0",
+  "version": "1.19.4",
   "description": "Safari iOS browser extension for bilingual translation — fully open source, free, configurable LLM APIs",
   "license": "GPL-3.0-or-later",
   "scripts": {
@@ -18,6 +18,7 @@
     "app:sync": "node scripts/sync-app-assets.js",
     "test:app": "node scripts/verify-app-bundle.js",
     "test:app:china": "node scripts/verify-app-bundle.js --flavor china",
+    "test:mac": "node scripts/test-mac.js",
     "amo:check": "node scripts/amo-publish.js --check",
     "cws:check": "node scripts/cws-publish.js --check",
     "gh:check": "node scripts/gh-release.js",
@@ -50,7 +51,12 @@
     "test:grant": "node scripts/verify-grant.js",
     "test:docs": "node scripts/verify-docs.js",
     "test:chrome-cleanup": "node scripts/verify-chrome-cleanup.js",
-    "issues": "node scripts/issues-triage.js"
+    "issues": "node scripts/issues-triage.js",
+    "diag:latest": "node scripts/diag-query.js",
+    "diag:dump": "node scripts/diag-query.js dump",
+    "diag:judge": "node scripts/diag-judge.js",
+    "test:lid": "swiftc -O app/native/lid-ecapa.swift scripts/test-lid-policy.swift -o \"$TMPDIR/mt-lid-policy\" -framework CoreML -framework Accelerate -framework AVFoundation && \"$TMPDIR/mt-lid-policy\"",
+    "test:copy": "node scripts/verify-copy-draft.js"
   },
   "engines": {
     "node": ">=20.0.0"

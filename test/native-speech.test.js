@@ -35,15 +35,20 @@ describe('NativeSpeech.sttOpen —— ended 回执与会话生命周期', () => 
     NS._fromNative({ type: 'stt-final', locale: 'zh-CN', text: 'x', conf: 0.9 });
     deepEq(ev, ['ready', 'close'], '关了之后不再有事件');
   });
-  test('不 close 直接再开：原生会先停旧的并回一个 ended，也不得误杀新会话', () => {
+  test('不 close 直接再开：原生**静默**停掉旧的一路（不回 ended），新会话照常 ready', () => {
     const { NS, posted } = setup();
     const evB = [];
     NS.sttOpen({ locales: ['zh-CN'], onEvent: () => {} });
     NS.sttOpen({ locales: ['en-US'], onEvent: (k) => evB.push(k) });
     deepEq(posted.map((m) => m.type), ['stt-start', 'stt-start']);
-    NS._fromNative({ type: 'stt-state', state: 'ended' });     // 原生 sttStart 里 sttStop() 发出来的
     NS._fromNative({ type: 'stt-state', state: 'ready' });
     deepEq(evB, ['ready']);
+    // 2026-10-07：stt-start 里停旧的一路**不发 ended**。发了的话，页面在会话中被 reload（或原生里
+    // 还挂着上一场的 transcriber）时，下一个 start 会把自己立刻打回 halted/socket（Mac 实测）。
+    const fs = require('fs'), path = require('path');
+    const swift = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'speech-bridge.swift'), 'utf8');
+    ok(/mtStopCurrentTranscriber\(announce: false\)/.test(swift), 'sttStart 必须静默停旧的一路（announce: false）');
+    ok(!/private func sttStart[\s\S]{0,400}?\n        sttStop\(\)/.test(swift), 'sttStart 里不该再直接调 sttStop()（那会回 ended）');
   });
   test('两次 close 只发一个 stt-stop；close 之后 final 不再送达', () => {
     const { NS, posted } = setup();
@@ -56,8 +61,7 @@ describe('NativeSpeech.sttOpen —— ended 回执与会话生命周期', () => 
   });
 });
 
-describe('NativeSpeech.ensureAssets —— 失败理由与收尾（2026-10-02 真机：系统识别包装不上）', () => {
-  test('原生报 failed ⇒ reason 带出来；stt-state 一到就收尾（不等 120 s 超时）', async () => {
+describe('NativeSpeech.ensureAssets —— 失败理由与收尾（2026-10-02 真机：系统识别包装不上）', () => {  test('原生报 failed ⇒ reason 带出来；stt-state 一到就收尾（不等 120 s 超时）', async () => {
     const { NS, posted } = setup();
     const seen = [];
     const p = NS.ensureAssets('stt', ['en'], (m) => seen.push(m));
@@ -82,5 +86,77 @@ describe('NativeSpeech.ensureAssets —— 失败理由与收尾（2026-10-02 �
     NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
     const r = await p;
     eq(r.assets, 'installed');
+  });
+  test('超时把这一轮摘掉；下一轮要等自己的 stt-state，不会被上一轮提前唤醒', async () => {
+    const { NS } = setup();
+    const seen = [];
+    const a = NS.ensureAssets('stt', ['ja-JP'], (m) => seen.push(m), 20);
+    let reason = '';
+    await a.then(() => {}, (e) => { reason = e && e.reason; });
+    eq(reason, 'timeout');
+    NS._fromNative({ type: 'assets-progress', kind: 'stt', locale: 'ja-JP', fraction: 1, state: 'downloading' });
+    eq(seen.length, 0, '超时之后还在收上一轮的进度');
+    let early = false;
+    const b = NS.ensureAssets('stt', ['ko-KR'], () => {});
+    b.then(() => { early = true; }, () => { early = true; });
+    await new Promise((r) => setTimeout(r, 10));
+    eq(early, false, '还没收到这一轮的 stt-state 就收尾了');
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
+    eq((await b).assets, 'installed');
+  });
+});
+
+// 第 4 轮（113 报告问题 1/2/4）：探针与安装请求带 req，终态只唤醒本 round。
+// 以前是一个全局 sttProbe + 一条 waiter 数组，任何 stt-state 把所有在等的 round 一起唤醒，
+// 首页入口探针会拿到首启包屏探针的结论（或反过来）⇒「资产已就绪」被误判成缺失 / 入口发灰。
+describe('NativeSpeech —— 并发探针/安装不跨轮串话（第 4 轮）', () => {
+  test('两个并发探针：A 的终态不唤醒 B，B 等自己的 req', async () => {
+    const { NS, posted } = setup();
+    const a = NS.probe(['ja-JP']);
+    const b = NS.probe(['en-US']);
+    const probes = posted.filter((m) => m.type === 'stt-probe');
+    eq(probes.length, 2);
+    ok(probes[0].req && probes[1].req && probes[0].req !== probes[1].req, '两条探针各带一个不同的 req');
+    let aDone = null, bDone = null;
+    a.then((r) => { aDone = r; });
+    b.then((r) => { bDone = r; });
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'missing', req: probes[0].req });
+    await new Promise((r) => setTimeout(r, 10));
+    eq(aDone && aDone.assets, 'missing', 'A 收到自己的结论');
+    eq(bDone, null, 'B 不该被 A 的终态唤醒（旧实现就在这里串话）');
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed', req: probes[1].req });
+    eq((await b).assets, 'installed', 'B 收到自己的结论');
+  });
+  test('并发安装：A 的 failed 不把 B 判死；各自只认自己的终态', async () => {
+    const { NS, posted } = setup();
+    const a = NS.ensureAssets('stt', ['ja-JP'], () => {}, 5000);
+    const b = NS.ensureAssets('stt', ['ko-KR'], () => {}, 5000);
+    const msgs = posted.filter((m) => m.type === 'stt-assets');
+    eq(msgs.length, 2);
+    ok(msgs[0].req && msgs[1].req && msgs[0].req !== msgs[1].req, '两条安装各带一个不同的 req');
+    let aErr = null, bDone = null;
+    a.then(() => {}, (e) => { aErr = e; });
+    b.then((r) => { bDone = r; });
+    NS._fromNative({ type: 'assets-progress', kind: 'stt', locale: 'ja-JP', state: 'failed', reason: 'x', req: msgs[0].req });
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'missing', req: msgs[0].req });
+    await new Promise((r) => setTimeout(r, 10));
+    eq(aErr && aErr.reason, 'x');
+    eq(bDone, null, 'B 不该被 A 的失败/终态唤醒');
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed', req: msgs[1].req });
+    eq((await b).assets, 'installed');
+  });
+  test('旧壳不带 req 时行为不变（唤醒全部）', async () => {
+    const { NS } = setup();
+    const a = NS.probe(['ja-JP']);
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
+    eq((await a).assets, 'installed', '没有 req 的终态仍按旧的唤醒全部');
+  });
+  test('在途探针不把 probeResult() 打成 pending（入口/说话键不被瞬时灰掉）', () => {
+    const { NS } = setup();
+    NS._fromNative({ type: 'stt-state', state: 'ready', assets: 'installed' });
+    eq(NS.probeResult().ok, true);
+    NS.probe(['ja-JP']);   // 在途，不 await
+    eq(NS.probeResult().ok, true, 'probe() 不该在开始时把全局结论改成 pending');
+    eq(NS.probeResult().assets, 'installed');
   });
 });

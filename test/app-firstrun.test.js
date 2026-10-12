@@ -8,7 +8,7 @@
 // 六条红线：
 //   R1 未登录首屏只有登录（无设置、无功能入口、无复习入口）
 //   R2 屏序可达，且屏 2（资源包）无跳过、屏 3（引导）有跳过
-//   R3 就绪判据 = 引擎 + 识别语言包 + 朗读包（不含扩展），16 组布尔组合逐一断言
+//   R3 就绪判据 = 引擎 + 识别语言包 + 朗读包 + 基础组件（不含扩展），32 组布尔组合逐一断言
 //   R4 两个 flavor 逐条同构（首屏模块不读 flavor）
 //   R5 旧承诺防复活（App 侧文案不得再出现「不登录也能…」一类）
 //   R6 每屏至多一个填色按钮
@@ -88,7 +88,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(/id="ob-skip"/.test(shell), '屏 3（引导）没有跳过出口 —— 它是软门，必须能跳');
   });
 
-  test('R3 · 就绪判据 = 引擎 + 识别包 + 朗读包（不含扩展）', () => {
+  test('R3 · 就绪判据 = 引擎 + 识别包 + 朗读包 + 基础组件（不含扩展）', () => {
     ok(fs.existsSync(path.join(ROOT, FIRST)), `${FIRST} 还不存在 —— 这一步就是它要红的理由`);
     const src = read(FIRST);
     ok(/export function readyInputs/.test(src), 'firstrun.js 缺 readyInputs()');
@@ -97,26 +97,27 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(!/extBanner|EXT_DONE|browserSideOk|extState|extObSeen/.test(stripComments(src)),
       'firstrun.js 读了扩展状态 —— 就绪判据不含扩展（#485 口径）');
     const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
-    deepEq(FR.readyInputs().slice().sort(), ['asrPack', 'engine', 'loggedIn', 'ttsPack'].sort(),
-      '就绪判据的可观测输入不是那四个');
+    deepEq(FR.readyInputs().slice().sort(), ['asrPack', 'basePack', 'engine', 'loggedIn', 'ttsPack'].sort(),
+      '就绪判据的可观测输入不是那五个（2026-10-11 改稿 F 起含基础组件）');
     let n = 0;
-    for (const a of [false, true]) for (const b of [false, true]) for (const c of [false, true]) for (const d of [false, true]) {
-      const s = { loggedIn: a, engine: b, asrPack: c, ttsPack: d };
-      eq(FR.isReady(s), a && b && c && d, `组合判错：${JSON.stringify(s)}`);
+    for (const a of [false, true]) for (const b of [false, true]) for (const c of [false, true]) for (const d of [false, true]) for (const e of [false, true]) {
+      const s = { loggedIn: a, engine: b, asrPack: c, ttsPack: d, basePack: e };
+      eq(FR.isReady(s), a && b && c && d && e, `组合判错：${JSON.stringify(s)}`);
       n++;
     }
-    eq(n, 16, '断言的组合数不是 16');
+    eq(n, 32, '断言的组合数不是 32');
   });
 
   test('R3b · step() 的判定顺序', () => {
     const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
-    const base = { loggedIn: true, engine: true, asrPack: true, ttsPack: true, onboardingSeen: true };
+    const base = { loggedIn: true, engine: true, asrPack: true, ttsPack: true, basePack: true, onboardingSeen: true };
     eq(FR.step({ ...base, loggedIn: false }), 'login', '未登录 ⇒ 屏 1');
     eq(FR.step({ ...base, engine: false }), 'home', '引擎可解析**不参与屏序** —— 包齐 ⇒ 首页（引擎在那里用「设置」修）');
     eq(FR.step({ ...base, engine: false, asrPack: false }), 'packs',
       '引擎不可解析也不许跳过屏 2 的硬门（2026-10-01 模拟器实测的死角：判到屏 1 时实际露出首页，两个包一个没下）');
     eq(FR.step({ ...base, asrPack: false }), 'packs', '缺识别包 ⇒ 屏 2');
     eq(FR.step({ ...base, ttsPack: false }), 'packs', '缺朗读包 ⇒ 屏 2');
+    eq(FR.step({ ...base, basePack: false }), 'packs', '缺基础组件（语种识别 + 人声检测）⇒ 屏 2');
     eq(FR.step({ ...base, onboardingSeen: false }), 'home',
       '2026-10-03 裁定：引导屏撤了 —— 就绪就落首页（那不是「跳过」，是这一档没了）');
     eq(FR.step(base), 'home', '全就绪 ⇒ 直进首页');
@@ -173,38 +174,47 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       'paintFirstRun 没把 firstRunScreen 清空 —— 上一次的 packs 会让首页一直藏着');
   });
 
-  test('R2g · 包屏语言对必须真的画出来（build 78 回归：两个下拉只剩空框）', () => {
-    // 2026-10-04 build 78 实测：`paintFirstRun` 里引用了只在**别的函数**里存在的 `s`
-    // （`firstRunLocales(s)`），严格模式下抛 ReferenceError，被外层 `catch (_) {}` 吞掉 ——
-    // 控件在、标签与选项全空（用户截图里就剩两个空小方框）。这条把那个形状静态钉住：
-    //   ① 默认语言对从 `await readObSettings()` 读（同 R2c 的读法），不许裸传 `s`；
-    //   ② 下拉的标签与选项来自 `AppListen.langOptions`（注册表全量、含泰语 —— 用户
-    //      2026-10-04「两个下拉框都应该是我们支持的所有语言的列表」），按**当前值**求（keep）；
-    //   ③ 两个下拉都拿定好的 `myLang` / `otherLang` 画 —— 空值会让原生 select 显示成空白；
-    //   ④ 第二个下拉仍叫「对方的语言」（2026-10-04 用户拍板，不改「目标语言」）；
-    //   ⑤ 布局是设计稿里的两个全宽选择器块（`packs-langs` / `packs-lang` / `packs-lang-label`）。
+  test('R2g · 包屏是多选语言列表（改稿 F，2026-10-11；build 78 的空框不再走下拉）', () => {
+    // 2026-10-04 build 78：`paintFirstRun` 里 `firstRunLocales(s)` 的 `s` 不在作用域，
+    // ReferenceError 被吞掉，两个下拉只剩空框。2026-10-11 改稿 F 把那一对下拉换成多选，
+    // 这条守住的是同一类事故的新形状：判定函数本身不许再裸传 `s`，默认勾选必须读到系统语言。
     const model = stripComments(read('src/app/shell-model.js'));
     const fn = model.slice(model.indexOf('async function paintFirstRun'),
-                           model.indexOf('async function runFirstRunPacks'));
+                           model.indexOf('async function loadPackSelection'));
     ok(fn.length > 200, '切不出 paintFirstRun 的函数体 —— 函数名变了？');
     ok(!/firstRunLocales\(\s*s\s*\)/.test(fn),
-      'paintFirstRun 里 firstRunLocales 又传了未声明的 s —— ReferenceError 会被静默吞掉，两个下拉变空框（build 78）');
-    ok(/firstRunLocales\(\s*await readObSettings\(\)\s*\)/.test(fn),
-      'paintFirstRun 的默认语言对没有从 readObSettings() 读 —— 用户没选过时没有回落');
-    ok(/AppListen\.langOptions\(/.test(fn),
-      '首启包屏的两个下拉没有用 AppListen.langOptions —— 选项不会含泰语/注册表全量');
-    ok(/wire\('packs-my-lang'[^;]*?\bmyLang\)/.test(fn) && /wire\('packs-other-lang'[^;]*?\botherLang\)/.test(fn),
-      '两个下拉不是用定好的 myLang/otherLang 画的 —— 空值会让原生 select 显示成空白');
+      'paintFirstRun 里 firstRunLocales 又传了未声明的 s —— ReferenceError 会被静默吞掉（build 78）');
+    ok(!/defaults\[0\]/.test(fn) && !/defaults\[1\]/.test(fn),
+      'paintFirstRun 又把集合当 [我的,对方的] 槽位默认（#564）');
+    ok(/getUILanguage\(\)/.test(fn),
+      '默认勾选没有读系统语言（getUILanguage）');
+    ok(/defaultLangSelection\(/.test(model), '多选默认没有走 defaultLangSelection');
+    ok(/data-pack-lang/.test(model), '语言行没有 data-pack-lang —— 多选画不出来');
+    ok(/kind: 'base'/.test(model), '没有基础组件那一行');
+    ok(/needsCellularConfirm\(/.test(model), '蜂窝网络没有先问再下');
     const shellSrc = read(SHELL);
-    for (const id of ['packs-my-lang', 'packs-my-lang-label', 'packs-other-lang', 'packs-other-lang-label']) {
-      ok(new RegExp(`id="${id}"`).test(shellSrc), `AppShell 里缺 #${id} —— 下拉/标签被删了`);
-    }
-    for (const cls of ['packs-langs', 'packs-lang', 'packs-lang-label']) {
-      ok(new RegExp(`className="${cls}"`).test(shellSrc),
-        `AppShell 里缺 class="${cls}" —— 包屏语言对的全宽堆叠布局（设计稿 h1KZdJ）被改回行内了`);
-    }
-    ok(/listen_other_lang_label',\s*'对方的语言'/.test(fn),
-      '第二个下拉的文案不是「对方的语言」—— 2026-10-04 用户拍板保持该命名');
+    ok(/id="packs-body"/.test(shellSrc), 'AppShell 里缺 #packs-body');
+    ok(/id="packs-go"/.test(shellSrc), 'AppShell 里缺 #packs-go');
+    ok(/id="packs-cellular"/.test(shellSrc), 'AppShell 里缺蜂窝确认层');
+    ok(/id="packs-cell-wait"/.test(shellSrc) && /id="packs-cell-go"/.test(shellSrc),
+      '蜂窝确认缺「等连上 Wi-Fi」或「用蜂窝下载」');
+    ok(/type="hidden" id="packs-my-lang"/.test(shellSrc), '听译那一对的隐藏镜像没了');
+    ok(!/<select[^>]*\sid="packs-my-lang"/.test(shellSrc), '包屏又变回「我的语言」下拉');
+  });
+
+  test('R2h · 语言对不再对调：默认按槽位算 + 「下载并继续」把当前一对落盘（#564）', () => {
+    // 2026-10-04 晚真机（15 Pro / 82）：用户选「我=中文、对方=ไทย」，点下载后跳成「我=ไทย、
+    // 对方=English」。两个成因：① 选「默认值」不触发 change ⇒ listenMyLang 一直空；
+    // ② 重画把集合 firstRunLocales() 的 ['th'] 当 defaults[0] 填进「我的」。
+    // R2g 已钉住 ① 之后的槽位默认；这条钉 ② 之外的另一半 —— 下载时必须把显示的一对落盘，
+    // 显示/存储/下载三者锁死，重画不可能再跳。
+    const model = stripComments(read('src/app/shell-model.js'));
+    const i = model.indexOf('async function runFirstRunPacks');
+    ok(i > 0, '找不到 runFirstRunPacks');
+    const fn = model.slice(i, model.indexOf('\n  }', i));
+    const persist = fn.slice(0, fn.indexOf('paintFirstRun'));   // 必须在重画**之前**落盘
+    ok(/listenMyLang:\s*langPair\[0\]/.test(persist) && /listenOtherLang:\s*langPair\[1\]/.test(persist),
+      '「下载并继续」没有先把 langPair 落到 listenMyLang/listenOtherLang —— 重画会按「未设置」重算，语言对会跳（#564）');
   });
 
   test('R2f · 首屏不再给选项；默认「听」；网页翻译入口只在设置页（#547，2026-10-02 用户裁定）', () => {
@@ -242,7 +252,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     //  ② 系统语音包 NativeSpeech.ensureAssets('stt') 只等原生事件、**没有上限** ⇒ 系统那边
     //     不回来就永远挂住（模拟器下不完系统识别包）。
     const model = stripComments(read('src/app/shell-model.js'));
-    ok(/ensureDeviceReady\(\s*onProg\s*,\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
+    ok(/ensureDeviceReady\(\s*onProg\s*,\s*DEVICE_TTS_ENGINE\b/.test(model),
       'ensureDeviceReady 没显式传引擎 —— 设置页与听译都传，只靠 configure() 会让它 skipped 返回');
     const i = model.indexOf("ensureAssets('stt'");
     ok(i > -1, "shell-model.js 里找不到 NativeSpeech.ensureAssets('stt'");
@@ -257,7 +267,7 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     // ④ 两个设备包按**设备引擎**探与下（2026-10-01 裁定：实时字幕/听译要用它 ⇒ 必选），
     //    不看当前默认选的是哪个引擎 —— 否则「登录即领额度」把 TTS 引擎写成 grant_speech 之后，
     //    deviceStatus 判 not_device、下载 skipped，而硬门仍要求设备包 ⇒ 屏 2 永远过不去。
-    ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\s*\)/.test(model),
+    ok(/deviceStatus\(\s*DEVICE_TTS_ENGINE\b/.test(model),
       'probePacks 没把探测钉在设备引擎上 —— 额度到账后设备包会被判「不适用」，硬门永远过不去');
     // ⑤ 进度要画在那一行上（硬门 + 国内先失败再换备用 ⇒ 那几分钟不能静默）
     ok(/tts_pack_downloading/.test(model) && /tts_pack_fallback/.test(model),
@@ -369,5 +379,152 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       "probePacks 在读 reason === 'unsupported' —— 桥与包装器都不发这个值");
     ok(!/r\.state === 'unsupported'/.test(model),
       'probePacks 在读 r.state —— 包装器把 state 吃掉了，这里读不到');
+  });
+});
+
+describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11）', () => {
+  const FR = loadSrc(FIRST, 'FirstRun').FirstRun;
+
+  test('默认勾选 = 系统语言 + 中文 + English，去重', () => {
+    deepEq(FR.defaultLangSelection('zh'), ['zh', 'en']);
+    deepEq(FR.defaultLangSelection('zh-CN'), ['zh', 'en']);
+    deepEq(FR.defaultLangSelection('th'), ['th', 'zh', 'en']);
+    deepEq(FR.defaultLangSelection('en'), ['en', 'zh']);
+    deepEq(FR.defaultLangSelection('ja'), ['ja', 'zh', 'en']);
+  });
+
+  test('勾了 ไทย 不自动带泰语朗读包；勾了中文或 English 才带共用朗读包', () => {
+    eq(FR.kokoroChecked(['zh'], undefined), true);
+    eq(FR.kokoroChecked(['en'], undefined), true);
+    eq(FR.kokoroChecked(['th'], undefined), false);
+    eq(FR.kokoroChecked(['zh'], false), false, '用户明确关掉共用包时不再自动勾回');
+    deepEq(FR.ttsLangsFor(['th', 'zh'], false, undefined), ['zh']);
+    deepEq(FR.ttsLangsFor(['th'], true, undefined), ['th']);
+    deepEq(FR.ttsLangsFor(['zh', 'en'], false, undefined), ['zh', 'en']);
+  });
+
+  test('就绪含基础组件：语种识别和人声检测都要在；说话键不看朗读包', () => {
+    const need = FR.firstRunNeed(['zh', 'en'], { thaiTts: false });
+    eq(need.base, true);
+    const missingBase = FR.readiness({ asr: { zh: true, en: true }, tts: { zh: true, en: true }, lid: true, vad: false }, need);
+    eq(missingBase.basePack, false);
+    eq(missingBase.ready, false);
+    const ready = FR.readiness({ asr: { zh: true, en: true }, tts: { zh: true, en: true }, lid: true, vad: true }, need);
+    eq(ready.ready, true);
+    eq(ready.basePack, true);
+    const side = FR.readiness({ asr: { zh: true }, tts: {}, lid: true, vad: true }, FR.sideNeed('zh'));
+    eq(side.ready, true, '朗读包没下也不该拦住这一侧的说话键');
+    const sideNoBase = FR.readiness({ asr: { zh: true }, tts: { zh: true }, lid: false, vad: true }, FR.sideNeed('zh'));
+    eq(sideNoBase.ready, false, '基础组件缺一，这一侧就不能开口');
+  });
+
+  test('没就绪时不显示正在听 / 正在录，下完也不自动开始', () => {
+    const blocked = FR.talkChrome({ sideReady: false, recording: true, phase: 'listening' });
+    eq(blocked.showsListening, false);
+    eq(blocked.showsRecording, false);
+    eq(blocked.hint, 'preparing');
+    eq(blocked.card, 'not-ready');
+    eq(blocked.disabled, true);
+    eq(blocked.autoStart, false);
+    const live = FR.talkChrome({ sideReady: true, recording: true, phase: 'listening' });
+    eq(live.showsListening, true);
+    eq(live.showsRecording, true);
+    eq(live.autoStart, false);
+    const just = FR.talkChrome({ sideReady: true, recording: false, phase: 'idle', justReady: true });
+    eq(just.card, 'ready-tap');
+    eq(just.hint, 'tap');
+    eq(just.showsListening, false);
+    eq(just.autoStart, false);
+  });
+
+  test('只有明确的蜂窝网络才先问；等 Wi-Fi 不现在下', () => {
+    eq(FR.needsCellularConfirm('cellular'), true);
+    eq(FR.needsCellularConfirm('wifi'), false);
+    eq(FR.needsCellularConfirm('unknown'), false);
+    eq(FR.needsCellularConfirm(''), false);
+    eq(FR.needsCellularConfirm(undefined), false);
+    deepEq(FR.cellularPlan('cellular'), { download: true, waitWifi: false });
+    deepEq(FR.cellularPlan('wait'), { download: false, waitWifi: true });
+  });
+
+  test('进度回调必须带得出名字；体积按设计稿收成约 N MB', () => {
+    let threw = false;
+    try { FR.nameProgress({}, ''); } catch (e) { threw = e && e.code === 'progress-name-required'; }
+    eq(threw, true);
+    eq(FR.nameProgress({ fraction: 0.4 }, '中文').name, '中文');
+    eq(FR.nameProgress({ locale: 'th', fraction: 1 }, '基础组件').name, 'th');
+    eq(FR.displayMb(146767700), 140);
+    eq(FR.displayMb(105167496), 105);
+    eq(FR.displayMb(40258386), 40);
+  });
+
+  test('固定四门展开，系统语言不在其中时插到最前', () => {
+    const catalog = ['en', 'ja', 'ko', 'zh', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
+    deepEq(FR.visibleLangs(catalog, 'zh').pinned, ['zh', 'en', 'th', 'ja']);
+    deepEq(FR.visibleLangs(catalog, 'th').pinned, ['zh', 'en', 'th', 'ja']);
+    deepEq(FR.visibleLangs(catalog, 'ko').pinned, ['ko', 'zh', 'en', 'th', 'ja']);
+    eq(FR.visibleLangs(catalog, 'zh').rest.indexOf('ko') >= 0, true);
+  });
+
+  test('听译页：灰键在开麦之前返回，补包不自己 start', () => {
+    const model = stripComments(read('src/app/listen-model.js'));
+    const toggle = model.slice(model.indexOf('function pttToggle'), model.indexOf('function pttStop'));
+    const guard = toggle.indexOf('if (!talkSideReady(side))');
+    const already = toggle.indexOf('if (ptt) {');
+    ok(guard > -1 && already > guard, '没就绪的拦截必须排在「已经在收音」之前，否则一点就进正在录');
+    const warm = model.slice(model.indexOf('async function warmPacks'), model.indexOf('function pttToggle'));
+    ok(!/\bstart\(/.test(warm) && !/pttBegin\(/.test(warm), '进页补包自己开了麦或自己开始收音');
+    ok(/prep\.readyUntil = Date\.now\(\) \+ 4000/.test(warm), '下完没有「已就绪」那几秒');
+    const now = model.slice(model.indexOf('function nowLabel'), model.indexOf('function ephemeralView'));
+    ok(now.indexOf('pageChrome') >= 0 && now.indexOf('listen_not_ready') < now.indexOf("t('listen_listening'"),
+      '状态卡在问过就绪之前就可能写出「正在听…」');
+    ok(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\) \{\s*pttAbort\(\);/.test(model),
+      '改语言若刚下完包，仍会自动回到收音');
+    ok(/FirstRun\.talkChrome\(/.test(model), '听译页没有走首启那同一个 talkChrome');
+  });
+
+  test('识别包只认 assets===installed；ready:true 不算装好', () => {
+    eq(FR.asrInstalled(null), false);
+    eq(FR.asrInstalled({ ok: false, assets: 'installed' }), false);
+    eq(FR.asrInstalled({ ok: true, assets: 'missing' }), false);
+    eq(FR.asrInstalled({ ok: true, ready: true, assets: 'missing' }), false);
+    eq(FR.asrInstalled({ ok: true, assets: 'installed' }), true);
+    const one = FR.readiness(
+      { asr: { ja: FR.asrInstalled({ ok: true, ready: true, assets: 'missing' }), zh: true }, tts: {}, lid: true, vad: true },
+      { asrLangs: ['ja'], ttsLangs: [], base: false },
+    );
+    eq(one.asrPack, false, '日本語不该因为 ready:true 或中文已装好就被当成已就绪');
+  });
+
+  test('G1–G6：就绪侧单独开麦、下完不开麦、进页有胶囊、键跟收音', () => {
+    const model = stripComments(read('src/app/listen-model.js'));
+    const view = read('src/app/listen-view.jsx');
+    const shell = stripComments(read('src/app/shell-model.js'));
+    const pipe = model.slice(model.indexOf('async function beginPipeline'), model.indexOf('let startedAt'));
+    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
+    const open = pipe.indexOf('openSocket()');
+    ok(guard > -1 && open > guard, 'G4：这一轮下过包之后 beginPipeline 仍会 openSocket');
+    ok(!/micStart\(/.test(pipe.slice(guard, open > guard ? open : guard)), 'G4：下完到开麦之间还有 micStart');
+    ok(/function sessionLocales\(\)/.test(model) && /const locales = sessionLocales\(\)/.test(model),
+      'G1：openDevice 仍把两门语言都交给识别器');
+    const sess = model.slice(model.indexOf('function sessionLocales'), model.indexOf('function openDevice'));
+    ok(/prep\.assets\.asr\[code\]/.test(sess), 'G1：开麦的 locale 没有按这一门是否已装过滤');
+    ok(/String\(why \|\| ''\) === 'assets'\) \{ halt\('socket', why\); return; \}/.test(model),
+      'G1：assets 失败仍会排自动重连');
+    const pill = model.slice(model.indexOf('function pillView'), model.indexOf('function paint()'));
+    ok(/if \(!session\) return early;/.test(pill), 'G5：没开会话时右上角胶囊不读补包进度');
+    ok(/prep\.readyUntil > Date\.now\(\)/.test(model.slice(model.indexOf('function prepPill'), model.indexOf('function pillView'))),
+      'G5：下完没有「✓ 已就绪」');
+    const granted = model.slice(model.indexOf("state === 'granted'"), model.indexOf('async function micStart'));
+    ok(/!ptt && resumeSide/.test(granted) && /pttBegin\(s\)/.test(granted),
+      'G6：麦克风 granted 时没有把收音侧补回去');
+    ok(/id="app-listen-prep-retry"/.test(view), '超时后卡片没有重试键');
+    ok(/function fillPrepDetail\(/.test(model), '进度句没有在拉丁本名和汉字之间加空格');
+    ok(!/r\.ready === true/.test(shell), '包屏仍把探针的 ready:true 当成已安装');
+    ok(/FirstRun\.asrInstalled\(r\)/.test(shell) && /packAsrByLang/.test(shell),
+      '包屏没有按语言经 asrInstalled 记就绪');
+    ok(/asrLangReady\(id\.slice\(4\)\)/.test(shell), '包屏一行的「已就绪」仍看全局开关');
+    const bytes = shell.slice(shell.indexOf('function selectedBytes'), shell.indexOf('function selectedSizeLabel'));
+    ok(/!\(packLidReady && packVadReady\)/.test(bytes), '页脚仍把已经下好的基础组件算进总量');
   });
 });

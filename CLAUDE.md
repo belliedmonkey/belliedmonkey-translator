@@ -19,7 +19,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > [`docs/telemetry-design.md`](docs/telemetry-design.md), governed by `AGENTS.md`
 > rule 4 (amended 2026-09-05) and released through `docs/learning-design.md` §10
 > Gate D. The event whitelist there is the only registry — adding an event or a
-> property is a domain-design change. The China flavor sends nothing.
+> property is a domain-design change. The China flavor sends no telemetry-whitelist
+> events; it sends only the separately-disclosed, content-free anonymous diagnostics
+> channel — no original text, no translation, ever (`docs/telemetry-design.md`
+> §诊断上报, 2026-10-06 L2).
 >
 > **Two hosts（双宿主）:** this repo is driven by **Claude Code** *and* **Reasonix**,
 > and the working tree is the only place their configuration lives — see
@@ -27,8 +30,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > read by both): `AGENTS.md` / `CLAUDE.md`, `.claude/skills/<name>/SKILL.md`, and
 > project-root `.mcp.json`. Keep `REASONIX.md`, `.reasonix/skills/` and
 > `.agents/skills/` **absent** — a second copy is the drift that rule exists to
-> prevent. Read it back (`reasonix doctor capabilities --json`; `/mcp` here), never
-> judge it by the file existing.
+> prevent. **Exception (2026-10-12):** symlinks under the user-level
+> `~/.agents/skills/` that point at this repo's `.claude/skills/` are allowed — that
+> is how dsh auto-discovers the project skills. The repo tree's `.agents/skills`
+> still must not exist. Read it back (`reasonix doctor capabilities --json`; `/mcp`
+> here), never judge it by the file existing.
 >
 > **Parallel sessions（并行 session）:** **one worktree each** — never two sessions in
 > one tree, and never `git switch` in a shared tree. 2026-09-26/27 那一夜踩了两次：两个
@@ -45,10 +51,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > only. Follow it for any test/QA/bug-repro task.
 >
 > **Windows（验收矩阵第 8 行）:** run **`/win-matrix`**
-> (`.claude/skills/win-matrix/SKILL.md`) — Windows 11 Chrome / Edge / Firefox on the VMware
-> Fusion VM (the only Windows target, user ruling 2026-09-18), driven from the Mac over the network
-> (`scripts/win-matrix/`). It carries the read-back criteria and the trap index, including
-> how to verify YouTube subtitles without being fooled by a pre-roll ad (#325).
+> (`.claude/skills/win-matrix/SKILL.md`) — Windows 11 Chrome / Edge / Firefox on the
+> **Windows VM hosted on Omarchy** (current target, user ruling 2026-10-12), driven over the
+> network (`scripts/win-matrix/`). The older **VMware Fusion VM on the Mac (2026-09-18) is
+> history** — its recipe is kept as a record only; when an item needs a human inside the
+> guest, abandon that item rather than force it. It carries the read-back criteria and the
+> trap index, including how to verify YouTube subtitles without being fooled by a pre-roll
+> ad (#325).
 >
 > **Shipping (发布):** run **`/store-release`**
 > (`.claude/skills/store-release/SKILL.md`) for any release to any of the six
@@ -88,7 +97,10 @@ issue / PR 里「我们一条都没回」的挑出来，有就 exit 1。这个�
 Safari iOS browser extension for bilingual translation — fully open source and free, with user-configurable LLM APIs. Supports:
 - **Webpage translation**: bilingual display — original paragraph + translated text below, in green
 - **YouTube dual subtitles**: original subtitle on top, translation appended below (sage by default, user-configurable)
-- **Multi-provider LLM**: Google (free), OpenAI, Claude, DeepSeek, GLM (智谱)
+- **Multi-provider LLM**: the provider list is the build-time registry
+  (`build/providers.config.js` → `content/providers.gen.js`) and is deliberately **not
+  restated here** — read it there (same one-registry rule as "Translation Provider
+  Adapters" below).
 
 ## Build & Test
 

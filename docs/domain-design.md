@@ -251,7 +251,7 @@ ahead) and overlay renderer. Twitter-specific parts are only the **source**
 > **2026-09-16 修订（待人评审）**：Tier B（边说边出的实时档）**从扩展端下掉**，只保留在 App。
 > 理由与后果写在下方第 3 条。Tier A（整段转写）逐字不变。
 
-> **2026-09-17 修订（待人评审）**：实时转写在 App 里也**不再是一个引擎**。云端实时条目
+> **2026-09-17 修订（待人评审）—— 已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删；「待人评审」只剩流程标签，不再表示口径未定）：实时转写在 App 里也**不再是一个引擎**。云端实时条目
 > （`openai_transcribe` / `qwen_asr` 上的 `liveEndpoint / liveType / liveModel / liveRate /
 > liveKeyProtocol`）与 `device` 这条 STT 注册表条目一并**从注册表删除**；「对话 · 实时听译」与
 > 「实时字幕」**固定**走本机识别器（SpeechAnalyzer，iOS 26 / macOS 26），`app/listen.js` 直接读
@@ -1306,7 +1306,7 @@ is a build-time concern, not a runtime one.
   `device` entry toward it). OpenRouter has no realtime endpoint (checked 2026-09-10: only
   `POST /api/v1/audio/transcriptions`), which is why the global one-key platform needs
   a second key for live transcription rather than a second entry. *(Amended 2026-09-17,
-  待人评审:)* the whole "has a live interface" derivation above is **retired**, together
+  待人评审 — **已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**，保留为历史:)* the whole "has a live interface" derivation above is **retired**, together
   with the thing it derived. No `build/stt.config.js` entry carries `liveEndpoint`,
   `liveType`, `liveModel`, `liveRate` or `liveKeyProtocol`; there is no
   `device-transcribe` type and no `device` STT entry; `content/ws-transcribe.js` keeps

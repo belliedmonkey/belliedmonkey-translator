@@ -153,6 +153,7 @@ const MODULES = [
                                          // 必须在 driving.js 之前：openCard 会调它。
   'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
   'app/native-speech.js',                // NativeSpeech — §9.6.1 设备内置转写/朗读的桥（只在 App 里有桥）
+  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.4.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
   'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）
   'app/model-sources.js',                // ModelSources — 离线模型下载地址从后端表来：探测 / 默认 / 备用 / 清单兜底（§9.6.1.1，只有 App 用）
                                          // 适配器。无依赖（锁屏上的字由调用方传入，
@@ -215,6 +216,8 @@ function buildAppBundle(outDir, log, opts) {
     // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
     // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
     "window.MT_HOST = 'app';",
+    // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
+    'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
     '',
     // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
     // Worker / fetch 对 file:// 一律拒绝而 blob: 三样都通（D0 探针 2026-09-11）。PdfJsLoader 看到
@@ -295,6 +298,16 @@ function buildAppBundle(outDir, log, opts) {
   parts.push(`// ─── ${APP_ENTRY} (esbuild bundle — React runtime included) ${'─'.repeat(6)}`);
   parts.push(appUi);
   parts.push('');
+
+  // §0.4 分层验证矩阵：页面侧驱动接口，只在**显式要求**时进包（scripts/test-mac.js 传
+  // opts.testHarness）。正常 `node build.js` 不带它 —— 出货包的 Script.js 里出现
+  // __mtTest 即红（test/app-test-bridge.test.js 双向门：不带 opt 构建 ⇒ 无；带 ⇒ 有）。
+  // 追加在尾部的理由与上面那些段相同：它引用的一切（NativeSpeech、DOM）都是 call-time。
+  if (opts.testHarness) {
+    parts.push('// ─── app/test-harness.js (testHarness build only — docs/verification-spec.md §0.4) ' + '─'.repeat(4));
+    parts.push(fs.readFileSync(path.join(ROOT, 'app', 'test-harness.js'), 'utf8').trimEnd());
+    parts.push('');
+  }
 
   fs.writeFileSync(path.join(outDir, 'Script.js'), parts.join('\n'));
 

@@ -18,6 +18,10 @@ const DEPS = { dominantScript: LearnRules.dominantScript };
 const pair = (myLang, otherLang) => ({ myLang, otherLang, registry: LANGS });
 
 const T0 = 1_757_000_000_000;
+const ROOT = path.join(__dirname, '..');
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+const MODEL = read('src/app/listen-model.js');
+const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
 
 describe('ListenCore — 定稿入表（归属按语言，§9.6）', () => {
   const ZH_EN = pair('zh', 'en');
@@ -312,12 +316,153 @@ describe('ListenCore — 回声闸（朗读被自己录回去）', () => {
     ok(g.size() <= 4);
   });
 
-  test('空文本不登记也不误判', () => {
+  test('★ speakPump 每句必须超时 — speakOut 挂住不得阻塞整条队列（#565 六轮真机教训）', () => {
+    const fn = MODEL.slice(MODEL.indexOf('async function speakPump'));
+    const body = fn.slice(0, fn.indexOf('\n  }'));
+    ok(/Promise\.race/.test(body), 'speakPump 没有 Promise.race —— speakOut 挂住（下载卡死/网络不通）时整条朗读队列死锁');
+    ok(/timeout/.test(body), '超时的 reason 不是 "timeout" —— onSpeakResult 要认它');
+    ok(/30000|TTS_SENTENCE_TIMEOUT/.test(body), '超时值不见了 —— 30 s 是模型装载+重试窗口的余量');
+  });
+
+  test('★ assets / timeout 类失败第一次就说 — 不等 3 次（#565 六轮：模型没下好不是瞬态错误）', () => {
+    const fn = MODEL.slice(MODEL.indexOf('function onSpeakResult'));
+    const body = fn.slice(0, fn.indexOf('\n  }'));
+    ok(/assets.*timeout|timeout.*assets/.test(body), 'onSpeakResult 没有把 assets/timeout 单独分出来 —— 它们不会自愈，等 3 次只是在等一个不会来的好转');
+    ok(!/speakFails\+\+/.test(body.split(/assets.*timeout|timeout.*assets/)[0].split('speakFails')[0]) || /assets/.test(body),
+      'assets/timeout 在 speakFails++ 之前就要 return —— 否则第一次失败被静默吞掉');
+  });
+
+  test('★ ensureDeviceReady 按语言过滤 — 泰语模型没下好不得堵死中文（#565 六轮 build 88 回归）', () => {
+    const tts = read('extension/learn/tts.js');
+    ok(/ensureDeviceReady\(.*langOpt\)/.test(tts), 'ensureDeviceReady 没有 langOpt 参数 —— 全量检查会把「泰语 105 MB 没下好」当成「整个引擎不可用」');
+    ok(/deviceStatus\(.*langOpt\)/.test(tts), 'deviceStatus 没有 langOpt 参数 —— 全量探会堵死其他语言');
+    ok(/speakOut.*langOpt|ensureDeviceReady.*baseLang/.test(tts.replace(/\n/g, ' ')), 'speak() 没有传语言给 ensureDeviceReady —— 中文会被泰语的下载卡住');
+  });
+
+  test('★ 朗读引擎不可用不得静默 — 脏 id 自愈 + 听译第一句就说（2026-10-06 中国版中泰全哑真机）', () => {
+    // 根因：09-09~09-22 之间「登录即领取」给中国版写进过 grant_speech；方案 C（8748ada2）起
+    // 它只在国际版注册表里 ⇒ engine() 为 null ⇒ 听译每句被 ttsReady() 哑跳、零提示，且
+    // 更新安装永不再过首启。两道修：ensureDeviceTts 把「解析不了的 id」当脏数据重写成
+    // device；autoSpeak 的 'tts' 跳过第一句就出可见提示。
+    const shell = stripComments(read('src/app/shell-model.js'));
+    ok(/resolvable = \(id\).*Registry\.ttsEngines\(\)/.test(shell.replace(/\n/g, ' ')),
+      'ensureDeviceTts 没有按注册表判「能不能解析」—— 脏 id 会被当成「用户选过」而永不自愈（中泰全哑的根）');
+    ok(/ttsEngine: 'device', ttsApiKey: ''/.test(shell),
+      '自愈重写 device 时没有清掉脏引擎的 key 残留');
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/autoSkip === 'tts' && !ttsHinted/.test(model),
+      'autoSpeak 对引擎不可用还是静默跳过 —— #565 六轮「不静默」漏了这一类');
+    ok(/listen_tts_unusable/.test(model), '引擎不可用的提示没有走具名文案键');
+    ok(!/if \(autoSkip\) return;/.test(model), 'autoSkip 的早退把提示吞了 —— 早退分支里必须先判 tts 那一类');
+  });
+
+  test('★ 听译进场只探/只下当前语言对的模型 — 中英对话不得拉泰语（2026-10-06，90 号包真机）', () => {
+    // a1e9a232 修了包屏两条路（probePacks/runFirstRunPacks），漏了 beginPipeline：不传
+    // langOpt = 探注册表全量（zh+en+th）⇒ 包屏按 zh/en 省下的泰语 105MB 在进场时被补判
+    // 「未就绪」开下，会话堵在「准备中…」。与 speak()、包屏同一条纪律：这场念什么就下什么。
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/\}, undefined, deviceLocales\(cfg\)\)/.test(model),
+      'beginPipeline 的 ensureDeviceReady 没传 deviceLocales(cfg) —— 全量探测会把包屏按对省下的泰语在进场时补下');
+  });
+
+  test('★ vits 的 dataDir 为空必须传空串 — 传目录会被当 espeak 数据目录校验 phontab 而拒载（#567 真凶，2026-10-06 sherpa stderr 实锤）', () => {
+    // 后果链：vits 在任何包里都没装载成功过（tts-failed reason:load）⇒ 泰语全靠系统语音兜底
+    // ⇒ iOS 没装泰语系统语音 ⇒ 真机泰语全哑。Mac 压测：修复前 12/12 必败，修复后 24/24 全绿。
+    const swift = read('app/native/speech-bridge.swift');
+    ok(/dataDir: m\.dataDir\.isEmpty \? "" : d\.appendingPathComponent\(m\.dataDir\)\.path/.test(swift),
+      'vits dataDir 没有按「空即传空串」处理 —— appendingPathComponent("") 会把模型目录传成 espeak 数据目录，sherpa 找不到 phontab 直接拒载');
+  });
+
+  test('★ 登录进行中 = 入口全部锁定（2026-10-06 用户裁定）', () => {
+    // 此前 apple-result/webauth-result 回调第一行就 disabled=false，然后才进入秒级的
+    // 「正在登录…」验证等待 —— 窗口期 Apple/Google/邮箱全都能再点。原则：从点击到流程
+    // 终了（成功离屏 / 失败与取消才解锁），这一屏所有登录入口保持 disabled。
+    const src = read('src/app/shell-model.js');
+    ok(/const LOGIN_ENTRY_IDS = \['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify'/.test(src),
+      'setLoginBusy 没有覆盖全部登录入口（Apple/Google/邮箱展开/发送/验证码）');
+    ok(/function setLoginBusy\(busy\)/.test(src), '缺 setLoginBusy 统一入口');
+    const stripped = src.replace(/\/\/.*$/gm, '');
+    // 原 bug 的形状就是它：回调顶部裸的单按钮解锁（先解锁、后进入秒级验证等待）—— 禁绝
+    ok(!/\$\('btn-(apple|google)'\)\.disabled = false/.test(stripped),
+      '回调里还有裸的单按钮解锁 —— 那正是「登录中还能点」的窗口');
+    ok((stripped.match(/setLoginBusy\(true\)/g) || []).length >= 4,
+      '四个登录入口（Apple/Google/邮箱/验证码）没有都走 setLoginBusy 锁定');
+    // 成功路径复位（2026-10-06 真机 b92：登录成功跳到「先把两个语音包下好」后页尾仍挂
+    // 「正在登录…」—— #status 在 app/index.html 里游离于各 section 之外，任何屏都看得见）。
+    const showFn = stripped.slice(stripped.indexOf('async function show('), stripped.indexOf('async function show(') + 2600);
+    ok(/if \(session\) say\(''\)/.test(showFn),
+      'show() 成功落屏后没有清登录等待文案 —— 「正在登录…」会挂在后续每一屏的页尾');
+    ok(/setLoginBusy\(false\)/.test(showFn),
+      'show(null)（登出回登录面）没有复位登录锁 —— 成功路径按裁定不解锁，登出再不复位按钮就全死了');
+  });
+
+  test('★ 听译内切语言要按新对补包 — 不必退出重进（2026-10-06，92 号包真机）', () => {
+    const model = stripComments(read('src/app/listen-model.js'));
+    ok(/async function ensurePacksForPair\(opts\)/.test(model), '没抽出共用的按对补包段（进场与改语言要用同一段）');
+    ok(/if \(!epopts\.skipTts && deviceTts\(\)/.test(model), '朗读包下载没有 skipTts 开关');
+    ok(/if \(!\(await ensurePacksForPair\(\)\)\) return;/.test(model), 'beginPipeline 没走共用的补包段');
+    const lc = model.slice(model.indexOf('function langChange'), model.indexOf('function setAutoSpeak'));
+    ok(/ensurePacksForPair\(\{/.test(lc), 'langChange 改语言没有按新对补包 —— zh/en 切泰语不触发下载，必须退出重进');
+  });
+
+  test('★ 包屏只下载所选语言对的模型 — 没选泰语就不下 105 MB（2026-10-05 用户拍板）', () => {
+    // 用户 12:33 拍板：首启只下载所选语言对的朗读模型。原来 probePacks 和 runFirstRunPacks
+    // 都传全部模型（zh+en+th），选中文/English 也会去下泰语 105 MB（真机 88：显示
+    // 「正在下载离线模型 · th · 9%」，语言对里根本没有泰语）。
+    const model = read('src/app/shell-model.js');
+    ok(/deviceStatus\(DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
+      'probePacks 没有把 firstRunLocales(s) 传给 deviceStatus —— 会去探全部模型（含没选的泰语）');
+    ok(/ensureDeviceReady\(onProg,\s*DEVICE_TTS_ENGINE,\s*firstRunLocales\(s\)\)/.test(model),
+      'runFirstRunPacks 没有把 firstRunLocales(s) 传给 ensureDeviceReady —— 会去下载全部模型（含没选的泰语 105 MB）');
+    const tts = read('extension/learn/tts.js');
+    ok(/Array\.isArray\(langOpt\)/.test(tts),
+      'deviceStatus 没有接受数组形式的 langOpt —— 语言对是一对（两个语言），单个 string 不够');
+    ok(/models\.length === 0/.test(tts),
+      '过滤后模型列表为空时没有视为就绪 —— 选了 fr↔de 这类没有离线模型的语言会被当成「没准备好」');
+  });
+
+  test('泰语：自己念的被认回来（带识别差异）⇒ 判为回声（2026-10-04 真机回归）', () => {
+    // 泰文无词间空格、又不在 CJK_CHAR 里 —— 原来的切法把整句拼成一个巨型「词」，包含度退化成
+    // 整串相等，识别差异哪怕一个字符都放行 ⇒ 自己念的泰语被当成新句子翻回中文。
     const g = C.makeEchoGuard();
-    g.speaking('', T0);
-    g.speaking('   ', T0);
-    eq(g.size(), 0);
-    ok(!g.isEcho('', T0));
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0);
+    // 认回来时差了几个字符/声调符号（ASR 对合成语音的典型差异）
+    ok(g.isEcho('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0 + 900), '完全相同没拦住');
+    ok(g.isEcho('ราคานี้ รวมภาษีและค่าขนส่งแล้ว', T0 + 900), '多个空格没拦住');
+    ok(g.isEcho('ราคานี้รวมภาษีและค่าขนส่ง', T0 + 900), '截掉结尾没拦住（回声消除半路才收敛，同上一条）');
+    ok(g.isEcho('ัราคานี้รวมภาษีและค่าขนส่งแล้ว', T0 + 900), '开头多认了一个声调符号没拦住');
+    eq(g.dropped(), 4);
+  });
+
+  test('泰语：对方真说的话不被误杀（裁定 5）', () => {
+    const g = C.makeEchoGuard();
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0);
+    ok(!g.isEcho('เราส่งของได้ภายในหกสัปดาห์', T0 + 900), '另一句泰语被误杀了');
+    ok(!g.isEcho('Can you do four weeks instead?', T0 + 900));
+    eq(g.dropped(), 0);
+  });
+
+  test('识别质量严重劣化（重合度只有 ~35%）⇒ 仍判回声（#565 四轮）', () => {
+    // 扬声器→空气→麦克风→识别器 一圈的 bigram 重合度可能掉到 0.6 以下；0.35 的门限要能接住。
+    // 构造一个只共享约一半字符的变体（模拟识别大面积替换/丢字）。
+    const g = C.makeEchoGuard();
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0);
+    // 换掉一半的字符（模拟 ASR 把一半的词换成了同音异形）
+    ok(g.isEcho('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0 + 900), '完全相同：门限太低了？');
+    // 完全不同的一句：不应误杀
+    ok(!g.isEcho('กรุงเทพมหานครเป็นเมืองหลวง', T0 + 900), '完全不同的一句被误杀了（门限降过头）');
+  });
+
+  test('泰语定稿晚到（念完 2.5 s 才落）⇒ 仍判回声（#565 二轮，2026-10-05 真机回归）', () => {
+    // 系统语音出声比 didFinish 晚、Dictation 转写器定稿又晚落 —— 1500 ms 的窗盖不住「念完→定稿」
+    // 这一整段，回声定稿落在窗外被当成新句子。ECHO_TAIL_MS 提到 3000 后，晚到的定稿也要拦得住。
+    const g = C.makeEchoGuard();
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0);
+    g.spoke(T0 + 2000);                                    // 念了两秒
+    ok(g.isEcho('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0 + 2000 + 2500), '念完 2.5 s 才到的定稿没拦住');
+    ok(!g.isEcho('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0 + 2000 + C.ECHO_TAIL_MS + 100), '窗口外仍被拦（窗口失效）');
+    // 晚到的窗口里，对方真说的另一句泰语仍不被误杀
+    ok(!g.isEcho('เราส่งของได้ภายในหกสัปดาห์', T0 + 2000 + 2500), '晚到窗口里误杀了另一句泰语');
   });
 });
 
@@ -497,33 +642,39 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(C.acceptDeviceFinal({ locale: 'en-US', text: 'We can ship the first batch', conf: 0.95 }, DEPS));
   });
   // 2026-09-18：Mac harness 用 conv.pcm 读回的真实序列（en-US 路，t0/t1 毫秒、conf 均值）
-  test('句头救回：低置信的拉丁短片被紧接的高置信片接回，去掉开头的标点垃圾', () => {
+  // 第九轮（方案 1）改判：低置信拉丁片**不再按 conf 直接扣/丢**，而是按「同时间段中文侧有没有
+  // 已被接收且含汉字的定稿」裁决 —— 没有 ⇒ 放行进账本（放行时仍做句头拼接）。
+  test('句头救回（第九轮）：短低置信拉丁片仍扣住等重叠；1.5s 无中文重叠才放行，放行时拼接句头', async () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), []);
-    eq(g.held('en-US'), ',... The');
+    deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), [], '低置信短片先扣住');
+    eq(g.held('en-US'), ',... The', '扣住原文');
+    // 紧接的高置信片：把扣住的句头（去标点后的 The）接回来
     deepEq(g.push({ locale: 'en-US', text: 'quote already includes freight and insurance, but not customs duties.', conf: 0.98, t0: 17520, t1: 21420 }),
       ['The', 'quote already includes freight and insurance, but not customs duties.']);
     eq(g.held('en-US'), '', '接回之后不再扣着');
-    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), []);
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample first before we decide on the order', conf: 0.99, t0: 31780, t1: 34360 }),
-      ['we', 'need to see a sample first before we decide on the order']);
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), [], '低置信片仍扣住');
+    eq(g.held('en-US'), 'we');
   });
-  test('句头救回：中文整句期间 en 路吐的长串垃圾不扣、只有标点的片接回来也不会出字', () => {
+  test('句头救回（第九轮）：短低置信拉丁片扣住；与「已被接收含汉字」的中文重叠 ⇒ 丢弃', async () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: 'Rugua, Ting, Xing, Cho,', conf: 0.27, t0: 0, t1: 1200 }), []);
-    eq(g.held('en-US'), '', '四个词的垃圾不算句头');
-    deepEq(g.push({ locale: 'en-US', text: ' Wu,', conf: 0.21, t0: 1200, t1: 1500 }), []);
-    deepEq(g.push({ locale: 'en-US', text: ' P, Hua.', conf: 0.16, t0: 4019, t1: 4900 }), []);
-    deepEq(g.push({ locale: 'en-US', text: ',...', conf: 0.01, t0: 4900, t1: 5800 }), []);
-    eq(g.held('en-US'), ',...', '只扣最近的一小片，前面的 P, Hua. 已作废');
-    deepEq(g.push({ locale: 'en-US', text: 'We can ship the 1st batch next', conf: 0.91, t0: 5800, t1: 7540 }), ['We can ship the 1st batch next'], '扣住的只有标点 ⇒ 不出字');
+    deepEq(g.push({ locale: 'en-US', text: 'Rugua, Ting,', conf: 0.27, t0: 0, t1: 1200 }), [], '短片扣住');
+    eq(g.held('en-US'), 'Rugua, Ting,');
+    // 中文侧一条**已被入口接收**的定稿，覆盖 [0,1200]
+    g.noteOtherText('zh-CN', '今天天气不错', 0, 1200);
+    deepEq(g.push({ locale: 'en-US', text: ' sure', conf: 0.21, t0: 1100, t1: 1400 }), [], '与中文重叠 ⇒ 扣住的片被丢，新片也丢');
+    eq(g.held('en-US'), '', '丢弃不留残');
+    // 另一门语言时间不重叠 ⇒ 扣住后到点仍放行
+    deepEq(g.push({ locale: 'en-US', text: 'Wu,', conf: 0.21, t0: 1300, t1: 1600 }), [], '中文那条已结束（1300 > 1200）⇒ 先扣住');
+    eq(g.held('en-US'), 'Wu,');
   });
-  test('句头救回：不紧接（隔了停顿）的低置信片丢掉；文字系不对的片永不扣；zh 路不受影响', () => {
+  test('句头救回：文字系不对的片/纯标点片照旧；zh 路不受影响；低置信不静默丢字', () => {
     const g = C.makeFinalGate(DEPS);
-    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), []);
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，不是同一句');
-    deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢');
-    eq(g.held('zh-CN'), '');
+    deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), [], '低置信短片先扣住（不再按 conf 丢）');
+    eq(g.held('en-US'), 'we');
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，仍然照收');
+    deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢（扣住等重叠裁决）');
+    eq(g.held('zh-CN'), 'The', '拉丁片在 zh 路被扣住（按重叠裁决，不再直接丢）');
+    g.cancelAll();
     deepEq(g.push({ locale: 'zh-CN', text: '报', conf: 0.78, t0: 12000, t1: 12180 }), ['报'], 'CJK 碎片照收');
     deepEq(g.push({ locale: 'en-US', text: 'Sure.', conf: 0.59, t0: 24300, t1: 25700 }), ['Sure.']);
   });
@@ -533,6 +684,17 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '家', conf: 0.34 }, DEPS), '中文碎片是正文的一部分');
     ok(C.acceptDeviceFinal({ locale: 'zh-CN', text: '。', conf: 0.42 }, DEPS), '标点不判文字系');
     ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: '   ', conf: 1 }, DEPS));
+  });
+  // 2026-10-06（真机「说中文转成泰文」追根）：老表只有 CJK+拉丁，th/ru/ar 的 want 恒为空
+  // ⇒ 文字系这道检查对泰语路一个都不过；老「已知脚本」白名单也只列 5 种，zh 路吐泰文/西里尔没人拦。
+  test('文字系覆盖泰/俄/阿：locale 的 want 不再为空，跨文字系照样丢', () => {
+    ok(C.acceptDeviceFinal({ locale: 'th-TH', text: 'สวัสดีครับ', conf: -1 }, DEPS), '泰文 locale 收泰文');
+    ok(!C.acceptDeviceFinal({ locale: 'th-TH', text: 'Hello there', conf: -1 }, DEPS), '泰文 locale 吐拉丁：丢');
+    ok(C.acceptDeviceFinal({ locale: 'ru-RU', text: 'Спасибо', conf: -1 }, DEPS));
+    ok(!C.acceptDeviceFinal({ locale: 'ru-RU', text: '谢谢', conf: -1 }, DEPS), '俄文 locale 吐汉字：丢');
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: 'Спасибо', conf: 0.9 }, DEPS), '中文 locale 吐西里尔：丢（老白名单漏网）');
+    ok(!C.acceptDeviceFinal({ locale: 'zh-CN', text: 'สวัสดี', conf: 0.9 }, DEPS), '中文 locale 吐泰文：丢');
+    ok(C.acceptDeviceFinal({ locale: 'ja-JP', text: 'これはにほんごです', conf: 0.9 }, DEPS), 'ja 路收假名');
   });
   test('串句：时间片按 locale 串起来、按句末标点切；尾巴超时放出；两路互不串', () => {
     const timers = []; let id = 0;
@@ -555,6 +717,190 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     sc.add('en-US', '.'); sc.add('zh-CN', '。');
     for (const t of timers.splice(0)) t.fn();
     eq(out.length, 3, '「.」「。」不该成行');
+  });
+  // 2026-10-06（真机「断句不生效 / 说完很久不进历史 / 不播放译文」）：尾部防抖在「一直在说」时
+  // 每次 add 都被重置 ⇒ 永不落行。泰文又没句末标点，emitDone 也切不动。绝对上限是唯一出路。
+  test('绝对上限：说话不停又没标点，也必须在 STREAM_MAX_MS 内落行', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const sc = C.makeStreamCutter((l, s) => out.push(l + '|' + s), {
+      flushMs: 1200, maxAgeMs: 4000,
+      setTimeout: (fn, ms) => { timers.push({ id: ++id, fn, ms }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    for (let i = 0; i < 20; i++) sc.add('th-TH', 'ครับ');   // 连续 20 片，每次都刷新闲置防抖
+    eq(out.length, 0, '没到绝对上限前先攒着');
+    eq(sc.pending('th-TH').split(/\s+/).filter(Boolean).length, 20, '20 片都还在缓冲里');
+    const hard = timers.reduce((a, b) => (a == null ? b : (b.ms > a.ms ? b : a)), null);
+    eq(hard.ms, 4000, '绝对上限就是 STREAM_MAX_MS');
+    hard.fn();
+    eq(out.length, 1, '到点必须发出去 —— 这就是「很久不进历史」的修法');
+    ok(/ครับ/.test(out[0]), out[0]);
+    eq(sc.pending('th-TH'), '', '发完清空');
+  });
+  test('绝对上限：落行后重新计时，不会被上一段的旧计时提前切', () => {
+    const timers = []; let id = 0;
+    const out = [];
+    const sc = C.makeStreamCutter((l, s) => out.push(l + '|' + s), {
+      flushMs: 1200, maxAgeMs: 4000,
+      setTimeout: (fn, ms) => { timers.push({ id: ++id, fn, ms }); return id; },
+      clearTimeout: (t) => { const i = timers.findIndex((x) => x.id === t); if (i >= 0) timers.splice(i, 1); },
+    });
+    sc.add('th-TH', 'หนึ่ง');
+    const h1 = timers.reduce((a, b) => (b.ms > a.ms ? b : a));
+    h1.fn();                                   // 到上限，发出去
+    eq(out.length, 1);
+    timers.length = 0;                         // 两只定时器都已耗掉
+    sc.add('th-TH', 'สอง');                     // 新一段：重新起一个完整上限
+    const h2 = timers.reduce((a, b) => (b.ms > a.ms ? b : a));
+    eq(h2.ms, 4000);
+    ok(h2.id !== h1.id, '是新的计时，不是旧的');
+  });
+  // 归属改由端上 LID 模型给（§9.6.1.3，2026-10-07）：模型判出哪门语言，就只收那一路 ——
+  // 这就是「半句闪错语言」的根治（旧办法在没有信息时随机先画一路，再靠置信度仲裁往回改）。
+  test('归属由 LID 给：半句与定稿都只收 LID 判定的那一路；没判出来时什么都不上屏', () => {
+    ok(C.sideMatchesLid('zh-CN', 'zh'), 'zh 判词收 zh 路');
+    ok(C.sideMatchesLid('zh-TW', 'zh'), '地区变体同短码');
+    ok(C.sideMatchesLid('th-TH', 'th'));
+    ok(C.sideMatchesLid('yue-CN', 'yue'), '粤语短码对齐（识别器 locale 也是 yue-CN）');
+    ok(!C.sideMatchesLid('th-TH', 'zh'), 'LID 说中文 ⇒ 泰文路不上屏');
+    ok(!C.sideMatchesLid('zh-CN', 'th'), 'LID 说泰文 ⇒ 中文路不上屏');
+    ok(!C.sideMatchesLid('zh-CN', ''), 'LID 还没判出来 ⇒ 不上屏（不是先画一路）');
+    ok(!C.sideMatchesLid('', 'zh'));
+    eq(C.lidBase('zh-CN'), 'zh'); eq(C.lidBase('TH'), 'th');
+  });
+  // 2026-10-07 真机（批 28）：「对方说的」显示成 `nn`，紧接着整场 halt（屏上「本机识别器不支持这门
+  // 语言」）。根因：LID 是 **99 类闭集**，`nn`（挪威尼诺斯克）是它在静音/噪声上给的垃圾标签；
+  // 自动跟随把它当成了「对方的语言」，再拿它去探本机识别器 ⇒ `unsupported/locale` ⇒ halt。
+  test('LID 的判词必须先过「我们支持吗」—— `nn` 这类闭集里的外来码不许当语言用', () => {
+    const LANGS = ['zh', 'en', 'ja', 'ko', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
+    ok(C.langSupported('th', LANGS), '泰语支持');
+    ok(C.langSupported('zh-CN', LANGS), '带地区后缀按短码归一');
+    ok(!C.langSupported('nn', LANGS), 'nn / Nynorsk = LID 的垃圾标签，我们不支持');
+    ok(!C.langSupported('cy', LANGS), 'cy 同理');
+    ok(!C.langSupported('', LANGS) && !C.langSupported(null, LANGS), '空值一律不支持');
+    ok(!C.langSupported('th', []), '没有清单时一律不支持（宁可不动）');
+  });
+  // 2026-10-07 真机批 28：①「译成」改动以前会走整条重连 + 补包（顶部「正在下载离线模型 · 15%」、
+  // 按钮卡「准备中…」）；②识别器语言名额用满时界面按「网络问题」说（误报）。
+  test('「译成」只改方向：不重连、不补包；自动跟随换来的语言不下朗读包', () => {
+    ok(/if \(which === 'my'\) \{ canvas\.view\('mode'\)/.test(MODEL), '「译成」没有短路，仍会重连/补包');
+    ok(/ensurePacksForPair\(\{ skipTts: !!lo\.skipTts \}\)/.test(MODEL), '重连没有把 skipTts 传下去');
+  });
+  test('识别器失败按真实原因说：locales 有名额文案；assets 走协议码翻译', () => {
+    ok(/LearnTTS\.reason\(why1, t\)/.test(MODEL), 'assets 失败没有把协议码翻成人话（会印出 offline/http）');
+  });
+  // 2026-10-07 用户裁定 + Pencil 稿（评审打回一次）：「译成」在听译页有歧义 —— 它只指「我说的那门」
+  // （对方的话译成它、我的话译成对方的语言）。听译页改叫「**我说的语言**」+ 一行两方向说明；
+  // **不许复用「我的语言」**（`listen_my_lang_label` 是语音包页那个标签）；字幕那页没有「我」这一侧，
+  // 仍叫「译成」。
+  // 2026-10-07 用户拍（Pencil 稿「两门语言对称互译」）：「让用户选两种语言……听到一种语言就译另一种。」
+  // 没有「我 / 对方」的角色、没有自动跟随、没有「语言不对？」那一层。
+  // 2026-10-08 用户拍（Pencil 稿「正在听…占位」）：开口到第一行有 3–12s，这段空白要看得出在干活。
+  // 2026-10-08 用户拍（Pencil 稿「不分『说 / 听』，行标签改成语言名」）：
+  // 对 App 来说谁说话都是在听；两门对称之后「我 / 对方」既不可靠也没用。
+  test('不分「说 / 听」：现在卡永远「正在听…」；行标签 = 语言名', () => {
+    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\)/.test(MODEL), '现在卡还在分「说 / 听」');
+    ok(!/listen_now_me|listen_now_them/.test(MODEL), '「我正在说 / 对方正在说」应当退场');
+    // 2026-10-08 用户拍（改稿 4 · E8）：**字幕也画**行标签 —— 字幕是单向译成，但行仍是某
+    // 一门语言，标签就用那门语言的本名（与听译同一条规则）。原来 `sub ? '' : …` 的写法会让
+    // 字幕行回落到「我 / 对方」，正是 C-08 要清零的旧串。
+    ok(/langLabel: r\.who === 'me' \? langLabel\(cfg && cfg\.myLang\) : langLabel\(cfg && cfg\.otherLang\)/.test(MODEL),
+      '行标签没有改成语言名');
+    ok(!/langLabel: sub \? ''/.test(MODEL), '字幕行还在跳过语言名（会回落成「我 / 对方」）');
+    ok(/r\.langLabel \|\| \(r\.who === 'me'/.test(read('src/app/listen-view.jsx')), '视图没有用语言名（回落到旧标签）');
+  });
+  test('「正在听…」占位：现在卡与整句定稿空态都用同一个词', () => {
+    ok(/listen_listening', '正在听…'/.test(MODEL), '没有「正在听…」这个键的用法');
+    ok(/phase === 'listening' \? t\('listen_listening', '正在听…'\)[\s\S]{0,40}?t\('listen_now_any', '正在说…'\)/.test(MODEL),
+      '现在卡没有按「还在听」切到「正在听…」（暂停时说「正在听」是假的）');
+    ok(/listeningText: \(phase === 'listening' && !sub\)/.test(MODEL), '整句定稿空态没有那行占位');
+    ok(/id="app-listen-listening"/.test(read('src/app/listen-view.jsx')), '视图里没渲染那行占位');
+  });
+  test('语言区 = 两门对称（听到 A 译 B / 听到 B 译 A），字幕用角色标签', () => {
+    ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
+    ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
+    ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
+    ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
+    const view = read('src/app/listen-view.jsx');
+    ok(/id="app-listen-my"/.test(view) && /id="app-listen-other"/.test(view), '两格的下拉不在了');
+    // 改稿 D（2026-10-09）：提示行撤了，控制区收成一行（语言对 + 两个勾选），在录音键上方。
+    ok(/id="app-listen-ctl"/.test(view), '没有那条收成一行的控制区');
+    ok(!/id="app-listen-dirs"/.test(view), '方向说明行应当撤掉（改稿 D）');
+    ok(!/langDirsText:/.test(read('src/app/listen-model.js')), '方向说明的数据也该退役');
+  });
+  // 2026-10-07 真机批 28：改语言之后这场起不来 ⇒ 回到上一对，而不是把整场丢掉。
+  // **hook 必须挂在 halt 上**（失败可能发生在 stt-start 之后，不只在补包那一步）。
+  test('改语言失败 ⇒ 回到上一对（hook 在 halt 上，不是只在补包那步）', () => {
+    ok(/function revertLangIfNeeded\(\)/.test(MODEL), '没有 revertLangIfNeeded');
+    ok(/langRevert = \{ other: prevOther \}/.test(MODEL), 'langChange 没有记下「改之前那门」');
+    const haltFn = MODEL.slice(MODEL.indexOf('function halt(reason, why)'), MODEL.indexOf('function halt(reason, why)') + 900);
+    ok(/revertLangIfNeeded\(\); return;/.test(haltFn), 'halt 里没有兜住「这门语言弄不了」');
+    ok(/listen_lang_unsupported_revert/.test(MODEL), '回到上一对时没有说明');
+  });
+  test('失败按真实原因说：名额用满 / 识别包没装好 / 不支持，三句各不同', () => {
+    // 第 5 轮 A8：名额用满（协议码 locales）不再拼进下载失败那句，改挂「名额已满」独立卡片，
+    // 出路是「让出一门并补回」。
+    ok(/why1 === 'locales'[\s\S]{0,200}setQuotaFull/.test(MODEL), '名额用满没有走「名额已满」那张卡片');
+    ok(/listen_quota_card_btn/.test(MODEL), '名额已满卡片没有「让出一门并补回」的出路');
+    ok(/why1 === 'assets'[\s\S]{0,160}listen_lang_assets_missing/.test(MODEL), '「包没装好」没有与「不支持」分开说');
+  });
+  test('模型：自动跟随只认支持的语言；存量坏值读取时自愈', () => {
+
+
+    ok(/reason === 'socket' && why1 === 'locale' \? needText\('locale'\)/.test(MODEL), '协议码 locale 会被当原文印出来');
+    ok(/const otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
+    ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
+  });
+  test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
+    eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 1, '半句那道 LID 闸');
+    eq((MODEL.match(/C\.intakeDecide\(\{/g) || []).length, 1, '定稿那道闸（唯一入口 intakeDecide：朗读/换边宽限/LID 归属/回声）');
+    ok(/function lidPair\(\)/.test(MODEL), '没有 lidPair（只在两门里取）');
+    ok(/const LID_CONFIRM_MS = \d+/.test(MODEL), '两门之间也会错报，要有 0.5s 的确认');
+    ok(/Date\.now\(\) - lidLangAt\) >= LID_CONFIRM_MS/.test(MODEL), 'lidPair 没有那道确认');
+    ok(/NativeSpeech\.onLid\(/.test(MODEL), '没有订阅 LID 判词');
+    ok(/NativeSpeech\.ensureLid\(/.test(MODEL), '没有把 LID 模型纳入下载');
+    ok(/lidOn\(\);/.test(MODEL), '新会话没有重置 LID 语言');
+    ok(!/partialEstablished/.test(MODEL), '手写的「定稿确立」启发式应已退场');
+    ok(!/makeFinalArbiter|arbScore/.test(MODEL), '置信度仲裁应已退场');
+  });
+  // 2026-10-08 上午那道「整句落行要判词稳住 1.5s」的闸（`1ae1280a`）已随默认引擎换成 ECAPA 撤掉 ——
+  // 它的前提是 whisper 判词乱跳（实测每场 27–36 次变更），而 ECAPA 每场恒为 1 次。见 learning-design §9.6.1.10。
+  test('撤闸后：定稿也只用 0.5s 那道确认，扣住队列整体退场', () => {
+    eq(typeof C.makeLidHold, 'undefined', 'makeLidHold 应当已从 listen-core 退场');
+    ok(!/lidHold|lidPairFinal|LID_HOLD_MAX_MS|LID_CONFIRM_FINAL_MS/.test(MODEL), 'listen-model 里不该再有扣住队列的残留');
+    ok(/lid: lidPair\(\), pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限）');
+  });
+
+  test('模型接线：撤闸后定稿直接用 lidPair()；引擎默认 ECAPA、可开发开关回 whisper', () => {
+    ok(/C\.intakeDecide\(\{[\s\S]{0,120}lid: lidPair\(\)/.test(MODEL),
+      '定稿那一支没有回到「对不上就丢」（唯一入口 C.intakeDecide：LID 归属 + 换边宽限）');
+    ok(!/lidHold|lidPairFinal|lidPairAt/.test(MODEL), '扣住队列的接线应当撤干净');
+    ok(/const engine = cfg && cfg\.lidEngine === 'whisper' \? 'whisper' : 'ecapa';/.test(MODEL),
+      '默认引擎不是 ECAPA（whisper 只应是开发开关）');
+    ok(/lidEngine: s\.lidEngine === 'whisper' \? 'whisper' : 'ecapa',/.test(MODEL), 'readCfg 的默认值不对');
+  });
+
+  test('旧的跨语言仲裁/半句择一已从 listen-core 退场（归属改由 LID 给）', () => {
+    eq(typeof C.makeFinalArbiter, 'undefined');
+    eq(typeof C.arbScore, 'undefined');
+    eq(typeof C.pickPartial, 'undefined');
+    eq(typeof C.lidBase, 'function');
+    eq(typeof C.sideMatchesLid, 'function');
+  });
+
+  // 「播放进行中 + 同语言 ⇒ 丢」（2026-10-06，95/96 真机时序：回声总在 speak 后 ~500ms、播放进行中到达）。
+  test('回声闸：playingLangs 报朗读进行中的语言；播完即空；没 spoke 也有兜底上限', () => {
+    const g = C.makeEchoGuard();
+    eq([...g.playingLangs(T0)].length, 0, '还没开口');
+    g.speaking('ราคานี้รวมภาษีและค่าขนส่งแล้ว', T0, 'th-TH');
+    ok(g.playingLangs(T0 + 500).has('th'), '朗读进行中该报 th（真机回声就在这段时间到）');
+    ok(!g.playingLangs(T0 + 500).has('zh'), '没在读 zh');
+    g.spoke(T0 + 2000);
+    eq([...g.playingLangs(T0 + 2100)].length, 0, '播完就不该再算「进行中」');
+    const g2 = C.makeEchoGuard();
+    g2.speaking('สวัสดีครับ', T0, 'th');
+    eq([...g2.playingLangs(T0 + 999999)].length, 0, '没收到 spoke 时的兜底上限');
   });
   test('addFinal 收 deps.who：归属由识别器那一路直接给，不再按语言猜', () => {
     const s = C.newSession(T0, 0.5);

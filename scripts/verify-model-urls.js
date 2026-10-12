@@ -10,7 +10,7 @@
 'use strict';
 const https = require('https');
 const crypto = require('crypto');
-const { MT_DEVICE_TTS_MODELS } = require('../app/device-models.config.js');
+const { MT_DEVICE_TTS_MODELS, MT_DEVICE_LID, MT_DEVICE_VAD } = require('../app/device-models.config.js');
 const ranged = process.argv.includes('--range');
 
 function request(url, opts, hops = 0) {
@@ -50,12 +50,23 @@ const head = (url) => request(url, { method: 'HEAD', timeout: 30000 });
 // **范围 GET `bytes=0-0`**：响应的 `content-range: bytes 0-0/<总长>` 才是真长度。
 const probe = (url) => request(url, { method: 'GET', timeout: 45000, headers: { Range: 'bytes=0-0' } });
 
-const getRange = (url, bytes) => new Promise((resolve) => {
-  const req = https.request(url, { method: 'GET', timeout: 60000, headers: { Range: `bytes=0-${bytes - 1}` } }, (res) => {
+// 取头 N 字节并算 sha256。**必须跟 302**：模型地址现在是 `api.belliedmonkey.com/models/…` 的中继，
+// 裸 https.request 拿到的是一个 0 字节的 302（2026-10-08 D6 就是这么红的，不是地址坏了）。
+const getRange = (url, bytes, hops = 0) => new Promise((resolve) => {
+  const req = https.request(url, {
+    method: 'GET', timeout: 60000,
+    // 与 `request()` 同一套头：魔搭对没有浏览器 UA 的请求会回一个 311 字节的页面（不是包）
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', Accept: '*/*', Range: `bytes=0-${bytes - 1}` },
+  }, (res) => {
+    if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && hops < 4) {
+      res.resume();
+      resolve(getRange(new URL(res.headers.location, url).toString(), bytes, hops + 1));
+      return;
+    }
     const h = crypto.createHash('sha256');
     let n = 0;
     res.on('data', (c) => { h.update(c); n += c.length; });
-    res.on('end', () => resolve({ status: res.statusCode, bytes: n, sha: h.digest('hex') }));
+    res.on('end', () => resolve({ status: res.statusCode, bytes: n, sha: h.digest('hex'), hops }));
   });
   req.on('error', (e) => resolve({ status: 0, err: e.code || String(e) }));
   req.on('timeout', () => { req.destroy(); resolve({ status: 0, err: 'timeout' }); });
@@ -64,7 +75,7 @@ const getRange = (url, bytes) => new Promise((resolve) => {
 
 (async () => {
   let bad = 0, checked = 0;
-  for (const m of MT_DEVICE_TTS_MODELS) {
+  for (const m of [...MT_DEVICE_TTS_MODELS, MT_DEVICE_LID, MT_DEVICE_VAD]) {
     for (const f of m.files) {
       const urls = ['global', 'china']
         .map((fl) => [fl, f.url[fl]])
@@ -75,12 +86,15 @@ const getRange = (url, bytes) => new Promise((resolve) => {
         if (r.status !== 200 || r.len !== f.size) r = await probe(u);
         const ok = (r.status === 200 || r.status === 206) && r.len === f.size;
         if (!ok) bad++;
-        console.log(`${ok ? '✓' : '✗'} ${m.lang} ${tag} ${r.status} ${r.len === f.size ? '' : `len=${r.len} 期望 ${f.size} `}${r.err || ''}${r.cr ? ' [' + r.cr + ']' : ''}\n    ${u}`);
+        console.log(`${ok ? '✓' : '✗'} ${m.lang || m.kind || 'lid'} ${tag} ${r.status} ${r.len === f.size ? '' : `len=${r.len} 期望 ${f.size} `}${r.err || ''}${r.cr ? ' [' + r.cr + ']' : ''}\n    ${u}`);
         if (ok && ranged) {
           const g = await getRange(u, 1024 * 1024);
-          const expect = require('fs').existsSync('.local/device-models/' + f.path)
-            ? crypto.createHash('sha256').update(require('fs').readFileSync('.local/device-models/' + f.path).slice(0, 1024 * 1024)).digest('hex') : null;
+          const fsp = require('fs');
+          const cands = ['.local/device-models/' + f.path, '.local/lid-ecapa/model/' + f.path, '.local/lid-ecapa/' + f.path];
+          const localFile = cands.find((x) => fsp.existsSync(x));
+          const expect = localFile ? crypto.createHash('sha256').update(fsp.readFileSync(localFile).slice(0, 1024 * 1024)).digest('hex') : null;
           const same = expect ? (g.sha === expect) : null;
+          if (localFile) console.log(`    （本地包：${localFile}）`);
           console.log(`    头 1 MB：${g.bytes} 字节${same === null ? '（本地没有原包，跳过比对）' : same ? ' ✓ 与本地包一致' : ' ✗ 与本地包不一致'}`);
           if (same === false) bad++;
         }

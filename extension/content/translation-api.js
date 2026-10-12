@@ -109,7 +109,7 @@ Rules:
   // handler, so its timeout cannot help. Caught by layout fixture 12 (error-state-column)
   // when §5.5's fallback shipped without this: units stopped settling entirely.
   const proxyAnswerTimeoutMs = () => RequestShape.timeoutMs();
-  async function proxyFetch(url, opts) {
+  async function proxyFetch(url, opts, timeoutMs) {
     const o = opts || {};
     let timer = null;
     const r = await Promise.race([
@@ -119,7 +119,7 @@ Rules:
       }),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error('background did not answer in time')),
-          proxyAnswerTimeoutMs());
+          timeoutMs || proxyAnswerTimeoutMs());
       }),
     ]).finally(() => { if (timer) clearTimeout(timer); });
     if (!r) throw new Error('background did not answer the proxied request');
@@ -188,9 +188,9 @@ Rules:
     return (/^http:/i.test(String(url).trim()) ? 'http://' : 'https://') + h;
   }
 
-  async function directFetch(url, opts) {
+  async function directFetch(url, opts, timeoutMs) {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), RequestShape.timeoutMs());
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs || RequestShape.timeoutMs());
     try {
       return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
     } finally {
@@ -225,17 +225,17 @@ Rules:
   //
   // 连请求都没发的失败（no_base / unknown_provider 这类）走不到这里，因此**没有** ms，
   // 上层据此不发这个字段：缺席看得出来。
-  async function apiFetch(url, opts, label, diag) {
+  async function apiFetch(url, opts, label, diag, timeoutMs) {
     const startedAt = Date.now();
     try {
-      return await apiFetchInner(url, opts, label, diag);
+      return await apiFetchInner(url, opts, label, diag, timeoutMs);
     } catch (e) {
       if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = Date.now() - startedAt;
       throw e;
     }
   }
 
-  async function apiFetchInner(url, opts, label, diag) {
+  async function apiFetchInner(url, opts, label, diag, timeoutMs) {
     let resp;
     let usedRoute = null;
     const origin = originOf(url);
@@ -244,15 +244,15 @@ Rules:
     const proxyFirst = known ? known === 'proxy' : await probeProxy();
 
     if (IS_FIREFOX) {
-      try { resp = await proxyFetch(url, opts); usedRoute = 'proxy'; if (diag) diag.route = 'proxy'; }
+      try { resp = await proxyFetch(url, opts, timeoutMs); usedRoute = 'proxy'; if (diag) diag.route = 'proxy'; }
       catch (e) { const e2 = transportError(e, url); e2.route = 'proxy'; throw e2; }
     } else {
       const first = proxyFirst
-        ? { run: () => proxyFetch(url, opts), tag: 'proxy' }
-        : { run: () => directFetch(url, opts), tag: 'direct' };
+        ? { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' }
+        : { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' };
       const second = proxyFirst
-        ? { run: () => directFetch(url, opts), tag: 'direct' }
-        : { run: () => proxyFetch(url, opts), tag: 'proxy' };
+        ? { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' }
+        : { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' };
       try {
         resp = await first.run();
         originRoute.set(origin, first.tag);
@@ -368,7 +368,7 @@ Rules:
   async function callChatAPI(o) {
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
-    }, o.label, o.diag);
+    }, o.label, o.diag, o.timeoutMs);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
     const parsed = JSON.parse(await resp.text());
@@ -679,6 +679,10 @@ Rules:
 
   async function listenPass(prompt, provider, apiKey, baseUrl, model, opts) {
     await RequestShape.ready();
+    // 断句路（2026-10-10）的两个可选参数：budget = 输出预算（max_tokens，中转只认这个标准
+    // 字段名 —— RequestShape 里 budgetName 按能力表落成 max_tokens / max_completion_tokens）；
+    // timeoutMs = 这次调用的客户端截止（AbortController，中转不代管超时）。都缺省 = 旧行为。
+    const o = opts || {};
     return enqueue(async () => {
       const p = providerById(provider);
       if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
@@ -686,11 +690,11 @@ Rules:
       if (!url) { const e = new Error(`${p.label || provider}: missing endpoint URL`); e.status = 0; e.code = 'no_base'; throw e; }
       const mdl = model || p.defaultModel;
       const fmt = WireFormat.formatFor(url, p.type, mdl);
-      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: prompt.system, user: prompt.user, budget: MAX_OUT_TRANSLATION });
+      const req = RequestShape.build(fmt, { url, apiKey, model: mdl, providerId: provider, system: prompt.system, user: prompt.user, budget: o.budget != null ? o.budget : MAX_OUT_TRANSLATION });
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
-      const diag = opts && opts.diag;
+      const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract });
+      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
     });
   }
 

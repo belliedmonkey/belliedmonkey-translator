@@ -21,17 +21,36 @@
 // int8 一个引擎峰值 RSS ≈460 MB、24 kHz、RTF 0.5–1.1；**所以原生侧只留当前语言那一个引擎**
 // （切语言重装 1–2 s），两个语言同时驻留会被 iOS jetsam 杀。
 // 尺寸：老 Piper 两条 67 MB×2=134 MB，新包 140 MB 一条覆盖中英 —— 下载量与原来同量级。
-var MT_MODELSCOPE_BASE = 'https://www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/';
+// 模型下载地址（2026-10-05 起对客户端不可见）：编译进包的兜底值一律走 api.belliedmonkey.com/models/
+// 中继 —— 反编译只看到自家域名，不知道实际从哪拉的。真实地址存在两处：
+//   1. bt_model_sources 表（优先路，model-sources.js 运行时查询替换）
+//   2. Caddyfile 的 /models/* 重定向（deploy/china/Caddyfile，部署侧）
+// 这里的 URL 是「服务器连不上时的最后兜底」—— 而服务器连不上时这个地址也连不上，
+// 所以它唯一的作用就是不暴露真实托管。
+var MT_MODEL_RELAY = 'https://api.belliedmonkey.com/models/';
 var MT_KOKORO_PACK = {
   path: 'kokoro-zh-en.zip', size: 146767700,
   sha256: '5bab4f620353a5d80f98f8bd0a5e68cbeedccfb1c68c53baa83b834a0e926326',
   url: {
     // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
-    global: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
-    china: MT_MODELSCOPE_BASE + 'kokoro-zh-en.zip',
+    global: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
+    china: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
   },
 };
 var MT_DEVICE_TTS_MODELS = [
+  {
+    lang: 'th', dir: 'vits-mms-tha', type: 'vits', dataDir: '',
+    model: 'model.onnx', tokens: 'tokens.txt',
+    files: [{
+      path: 'vits-mms-tha.zip', size: 105167496,
+      sha256: '26ee310a040d3444a9240ba3591b0bee7b316ba9cbd6da9de6e582db97089250',
+      url: {
+        // 两 flavor 都走中继（2026-10-05）：客户端不暴露真实托管。
+        global: MT_MODEL_RELAY + 'vits-mms-tha.zip',
+        china: MT_MODEL_RELAY + 'vits-mms-tha.zip',
+      },
+    }],
+  },
   {
     lang: 'zh', dir: 'kokoro-zh-en', type: 'kokoro', kokoroLang: 'cmn',
     model: 'model.int8.onnx', tokens: 'tokens.txt', dataDir: 'espeak-ng-data',
@@ -79,4 +98,103 @@ function mtDeviceTtsModelsFor(flavor) {
   }));
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor };
+// ── 语种识别（LID）模型（§9.6.1.3，2026-10-07）────────────────────────────────
+// 听译里「谁在说哪门语言」由它判（sherpa-onnx 自带 SLID，whisper tiny）—— 不再用手写文字系/置信度规则。
+// 一个 zip 装两个 onnx（encoder + decoder），App 解到 Application Support/mt-lid/<dir>/。
+// 托管与 TTS 模型同一处（ModelScope belliedmonkey-device-models，经 api.belliedmonkey.com/models/ 中转）。
+// 默认引擎 = SpeechBrain ECAPA（VoxLingua107）。为什么换（2026-10-08 Mac 外放→麦克风实测）：
+// whisper-tiny 天生偏中文（训练数据中文 23,446 h vs 泰语 226 h），短音频上倒向先验大的语言 ⇒
+// 泰语开头被判成 `zh`，中文识别器于是对泰语音频吐一行垃圾（真机「甜汤萨蛋」）。实测对照：
+// 每场判词变更 whisper 27–36 次（判词在十几门之间乱跳）vs ECAPA **恒为 1 次**；首行 10.6s → 5.3s；
+// 一半的话音即定（605ms vs 1087ms）；CPU 反而更低（16.8% vs 27.4%）。专做语种识别、Apache-2.0。
+// 产物是 .mlmodelc **目录** ⇒ 打成 zip 走与其它模型同一条下载/校验通道。
+// 注意：CoreML 版要 iOS 18 / macOS 15，而听译这条路本身要 iOS 26 / macOS 26 ⇒ 26 ≥ 18，不冲突。
+// 来源（写在这里而不是字段里：清单字段会被「零硬编码文案」当文案检查）：
+//   speechbrain/lang-id-voxlingua107-ecapa（Apache-2.0）
+//   CoreML 版 aufklarer/SpeechBrain-ECAPA-VoxLingua107-21M-CoreML
+var MT_DEVICE_LID = {
+  kind: 'lid', dir: 'speechbrain-ecapa', engine: 'ecapa',
+  model: 'SpeechBrainECAPAVoxLingua107.mlmodelc',
+  files: [{
+    path: 'speechbrain-ecapa-voxlingua107.zip', size: 39614532,
+    sha256: 'f4fa066c9d949bff6709ef432fd4f56922ca288bf4825d219e4e2ada52d7eda1',
+    url: {
+      global: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip',
+      china: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip',
+    },
+    // 备源 = 同一条中继的 `?src=other`（返回「按 IP 分流时不会选的那一边」）。**真实地址不写在这里**：
+    // 按 IP 选源由服务端 `bt-models` 做，包内与表里都只见 api.belliedmonkey.com。
+    urlAlt: {
+      global: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip?src=other',
+      china: MT_MODEL_RELAY + 'speechbrain-ecapa-voxlingua107.zip?src=other',
+    },
+  }],
+};
+
+// 开发开关用的旧引擎（`lidEngine = 'whisper'`）：保留但不默认。whisper 判词乱跳那条路带着
+// 「开头可能落一行错语言」的已知缺口，只在需要对照时用。
+var MT_DEVICE_LID_WHISPER = {
+  kind: 'lid', dir: 'sherpa-onnx-whisper-tiny', engine: 'whisper',
+  encoder: 'tiny-encoder.int8.onnx', decoder: 'tiny-decoder.int8.onnx',
+  files: [{
+    path: 'sherpa-onnx-whisper-tiny.zip', size: 60311200,
+    sha256: 'ae0ba8b75d2f0d299807a41915d66a329c01cb5459832879d22a28411a684501',
+    url: {
+      global: MT_MODEL_RELAY + 'sherpa-onnx-whisper-tiny.zip',
+      china: MT_MODEL_RELAY + 'sherpa-onnx-whisper-tiny.zip',
+    },
+  }],
+};
+
+// 给原生的形状：url 按 flavor 解开成一个字符串（同上）。
+// 默认 ECAPA（`MT_DEVICE_LID`）；opts.engine === 'whisper' ⇒ 开发开关走旧引擎。
+// ECAPA 另把「只比这两门」与阈值一起给原生（那条路只比用户选的两门，取 log 概率差 LLR）。
+function mtDeviceLidModelsFor(flavor, opts) {
+  const f = flavor === 'china' ? 'china' : 'global';
+  const o = opts || {};
+  const base = o.engine === 'whisper' ? MT_DEVICE_LID_WHISPER : MT_DEVICE_LID;
+  const out = Object.assign({}, base, {
+    engine: base.engine,
+    files: base.files.map((x) => Object.assign({}, x, {
+      url: typeof x.url === 'string' ? x.url : x.url[f],
+      ...(x.urlAlt ? { urlAlt: typeof x.urlAlt === 'string' ? x.urlAlt : x.urlAlt[f] } : {}),
+    })),
+  });
+  if (base.engine === 'ecapa') {
+    out.langs = (o.langs || []).filter(Boolean).slice(0, 2);
+    out.threshold = Number(o.threshold) > 0 ? Number(o.threshold) : 6;
+    out.cpuOnly = !!o.cpuOnly;
+    out.trace = !!o.trace;
+    // 轻量修正开关（H2）：L-16 做「方向核实」时要能关掉对比；默认开。
+    out.rewriteFix = o.rewriteFix !== false;
+  }
+  return out;
+}
+
+// ── 语音活动检测（VAD，2026-10-07）─────────────────────────────────────────────
+// 听译里「这一段到底是不是人在说话」由 silero VAD 判：**只有它判为语音的片段才喂 LID**
+// （`MTDeviceLid`）。为什么需要它：难音频（演播室背景乐、多人交叠、电平低）上 LID 的判词会
+// 在十几门语言之间乱跳，而判错一次就会让错语言那一路的定稿上屏（真泰语多人对谈实测到
+// `那你你给我们也不`/`乌克兰。` 这种中文垃圾行）。644KB，走与 TTS/LID 同一条模型通道。
+// 拿不到它时听译不会瘫：退回原来的能量门（RMS）判「是不是话音」。
+var MT_DEVICE_VAD = {
+  kind: 'vad', dir: 'silero-vad',
+  model: 'silero_vad.onnx',
+  files: [{
+    path: 'silero_vad.onnx', size: 643854,
+    sha256: '9e2449e1087496d8d4caba907f23e0bd3f78d91fa552479bb9c23ac09cbb1fd6',
+    url: {
+      global: MT_MODEL_RELAY + 'silero_vad.onnx',
+      china: MT_MODEL_RELAY + 'silero_vad.onnx',
+    },
+  }],
+};
+
+function mtDeviceVadFor(flavor) {
+  const f = flavor === 'china' ? 'china' : 'global';
+  return Object.assign({}, MT_DEVICE_VAD, {
+    files: MT_DEVICE_VAD.files.map((x) => Object.assign({}, x, { url: typeof x.url === 'string' ? x.url : x.url[f] })),
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor, MT_DEVICE_VAD, mtDeviceVadFor };
