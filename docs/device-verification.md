@@ -417,7 +417,7 @@ iOS 27.0 的 14 Pro 上 `supportedLocale("th")` 本就回 nil、落 dict，端�
 **进包已回读**：`safari-project{,-china}/…/ViewController.swift` 里都搜得到 `speechLocales.contains`。
 
 **待补**：15 Pro（26.6.2）真机端到端 —— 本批 china iOS 80 由用户验（首页两卡是否恢复可点、
-选 ไทย 是否可用）。`npm test` 2382 passed / 0 failed；新增门禁见 `test/listen-langs-thai.test.js`。
+选 ไทย 是否可用）。`npm test` 2382 passed / 0 failed（**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；新增门禁见 `test/listen-langs-thai.test.js`。
 
 ⚠️ **第七批在 15 Pro / iOS 26.6.2 上没修好**（用户 16:12–16:13 报）：首页两卡仍灰（CTA 带像素
 `(215,177,148)` ≈ 主色 `#ac6231` 压 0.45）、包屏「识别语言包」整行不见（`rowAsr.hidden =
@@ -492,7 +492,7 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 `listenMyLang: langPair[0]`（下载落盘）与 `getUILanguage()`（槽位默认）。诊断浮层**再留一轮**
 （验证新选法），用户确认后删。
 
-`npm test` 2384 passed / 0 failed（R2g 改判 + 新增 R2h + thai 资产判据）；`test:app` global/china 绿。
+`npm test` 2384 passed / 0 failed（R2g 改判 + 新增 R2h + thai 资产判据；**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；`test:app` global/china 绿。
 
 ---
 
@@ -514,7 +514,7 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 `paintProbeDebug` / 白名单 `"probe"/"nil"`，包内 grep 残留 0）。
 
 **进包已回读**：`dist-app-china/Script.js` 有 `NOSPACE_SCRIPT`（2 处），`probeDbg`/`paintProbeDebug`
-残留 0。`npm test` 2386 passed / 0 failed（回声闸新增泰语两条门禁）；`test:app` global/china 绿。
+残留 0。`npm test` 2386 passed / 0 failed（回声闸新增泰语两条门禁；**2026-10-04 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；`test:app` global/china 绿。
 
 **待用户验（84）**：zh↔th 听译里泰语译文念完后不再被自己识别翻回中文；中文句照常自动朗读。
 
@@ -538,7 +538,7 @@ CLOSED ⇒ push/gh/ASC 全断。绕开代理直连后恢复；两笔欠推 `53d8
 `extendMuteTail(0.9)`（audio-bridge 新增，Piper 路的 0.35 不动）。
 
 **进包已回读**：`ViewController.swift` 有 `extendMuteTail`（4 处）；`dist-app-china/Script.js` 有
-`ECHO_TAIL_MS = 3000`。`npm test` 2387 passed / 0 failed（念完 2.5s 才到的泰语定稿 ⇒ 仍判回声）；
+`ECHO_TAIL_MS = 3000`。`npm test` 2387 passed / 0 failed（念完 2.5s 才到的泰语定稿 ⇒ 仍判回声；**2026-10-05 该批的历史读数，已过时**，现行基线见 `docs/release-baseline-1.19.3.md`）；
 `test:app` global/china 绿。
 
 **待用户验（85）**：zh↔th 听译里泰语念完后不再冒出「新句子翻成中文」。

@@ -722,7 +722,7 @@ surface under test, which on a real device means the Mac's LAN IP and a server t
 | 28 | `device` (STT) | global + china | `device-transcribe`（**无 HTTP**；`defaultEndpoint: null`，iOS 26 / macOS 26 `SpeechAnalyzer` + `SpeechTranscriber`） | —（系统能力 / 离线模型：zh_CN / zh_TW 与 9 个英语变体预装，其它 locale 首次用时由系统下载，进度可读） | ✅ 2026-09-12 尖刺（`.local/spike/READINGS.md`，harness `scripts/spike/device-asr.swift` + `.local/spike/SpikeApp`；**iPhone 14 Pro · iOS 27.0** 与 Mac M2 Pro · macOS 26.5）：zh 有声书 CER 13.1% 原始 → **5.4%** 远程修正后（云端 OpenAI 3.9% / 千问 5.2%）；en 有声书 WER 3.1% → **1.9%**（云端 3.7%）；conv 中文 17.8% → 10.0%。**定稿默认是懒的**（停顿不收口，有声书 p90 14 s）—— 要自己的 VAD 调 `finalize(through:)` 才有停顿后 0.4–0.9 s；final 是时间片不是句子；`contextualStrings` 热词对同音字零效果；双识别器归属先看文字系再看置信度。真机 45 个 locale，en-US 资产 Mac 上 46 s 装完。**未测（D2 前必补，见 F-bis 2026-09-12 补充）**：真机双路 CPU（Instruments）、中国网络资产下载、转写中插拔耳机。仅宿主 App；扩展 **N/A by design**（§3.1.4） |
 | 29 | `device` (TTS) | global + china | `device-speech`（**无 HTTP**；sherpa-onnx v1.13.8 本地推理，静态链接 ≈ 35 MB；模型不进包，首次用时从我们的文件服务器下载、sha256 钉住） | —（离线模型：Piper zh_CN-huayan / en_US-lessac 各 79 MB；未覆盖的语言回落 `browser` 并在行上具名） | ✅ 2026-09-12 尖刺真机（iPhone 14 Pro · iOS 27.0，CPU provider，2 线程）：Piper zh 首块均值 / 最大 **176 / 264 ms** · RTF 0.053 · 加载 1.6 s；en **157 / 216 ms** · RTF 0.050 · 加载 1.3 s；边合成边播（playerNode 按块调度）跑通、首块到即出声。弃 Kokoro（真机首块 1.3–2 s、加载 10–20 s；int8 反比 fp32 慢 3–4×；CoreML 无提速）。**未测**：中国网络模型下载。仅宿主 App；扩展 **N/A by design** |
 
-> **2026-09-17（待人评审）**：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
+> **2026-09-17（待人评审）—— 已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删；本节保留为历史）：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
 
 > **两行 `device` 条目与台账（2026-09-12）。** 它们不说 HTTP，没有 host、没有 model
 > 参数可调，所以 `build/perf-ledger.config.js` 里没有它们的行。`test/perf-ledger.test.js`
@@ -1332,17 +1332,24 @@ verification in one connection, or restart web-ext between attempts.
 > on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
 > band masked). Screenshot captured. Firefox is fully adapted.
 
-### H. Windows 11 Chrome / Edge / Firefox (VMware Fusion VM) — ✅ verified 2026-09-18
+### H. Windows 11 Chrome / Edge / Firefox (Windows VM on Omarchy — current; VMware Fusion VM 2026-09-18 历史) — ✅ verified 2026-09-18
 
 > **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
 > read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
 >
-> **Target: the VM only (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」).** The same
-> day a second target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and
-> measured once (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real
-> subtitles** ✅ — it is where #325 was found) and then retired; its scripts are not in the repo (see the
-> first commit of PR #327). Readings from it stay in this section as records, marked "real desktop".
-> The test page address is `MT_WIN_PAGE` (default `http://192.168.2.1:8765/page.html`, the VM's view of the Mac).
+> **Current target (user ruling 2026-10-12): the Windows VM hosted on Omarchy.** Chrome, Edge and
+> Firefox are all tested on that one VM, driven over the network; **any item that needs a human
+> inside the guest is abandoned and recorded ⬜**, never forced. The concrete address / entry channel
+> for that VM is not pinned here — read it off the live setup each run.
+>
+> **Historical (2026-09-18): the VMware Fusion VM on the Mac.** It was the only Windows target then
+> (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」). The same day a second
+> target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and measured once
+> (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real subtitles** ✅ — it
+> is where #325 was found) and then retired; its scripts are not in the repo (see the first commit of
+> PR #327). Readings from it stay in this section as records, marked "real desktop". The Fusion test
+> page address was `MT_WIN_PAGE` (then `http://192.168.2.1:8765/page.html`, the VM's view of the Mac) —
+> a value of that setup, not a constant.
 
 Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
 exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
@@ -3279,7 +3286,7 @@ E `web-ext` + BiDi；F/G 注入 LAN 控制通道经 sim-oracle）。翻译引擎
 | **G macOS App** | R03/R04（两栏 grid + 复制全文真实点击回读剪贴板）/R05/R06/R08 对照/R10 结构/R11/R13 ✅ | 窗口 820px 两栏 382+382；复制全文经 execCommand 兜底 |
 | **中国版关键行** | 合规门两产物绿；真禁端点路径全 0（`/functions/v1/bt-grant`、`bt-relay/chat`、`bt-ingest`、`MT_GRANT = {`）；sync `enabled:false`；无 google；默认 deepseek；评分 rateUrl 中国版返回 null（评分行不出现）；test:app:china / test:onboard dist-china 绿 | — |
 
-**机器门禁（全绿）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
+**机器门禁（全绿；`npm test` 1635 是 2026-09-11 的历史读数，已过时——现行基线以 `docs/release-baseline-1.19.3.md` 的 2628/2628 为准）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
 test:asr · test:listen（+C3）· test:onboard · test:wipe · test:idb · test:learn · test:docs · test:app（+冷启动幕）。
 `test:setup-page` 红是既有旧账（TODO 234 站点对比度 + 站点 VERSION 1.9.2 vs 已发 1.9.0），非本次引入。
 
@@ -3468,7 +3475,7 @@ dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。�
 
 | # | 面 | 结果 |
 |---|---|---|
-| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
+| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿（2026-09-28 历史读数，已过时；现行基线 2628/2628 见 `docs/release-baseline-1.19.3.md`）；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
 | 1 | iPhone Safari（模拟器 iOS 26.5） | ✅ plato 整页双语（translate_ok{deepseek,page,ms:2364} + tr: 缓存 9 键）、React options、React onboard；safaridriver 会话不注入扩展（Xcode 27 新断点）⇒ 改 LocalStorage.db 直写 + appex 测试钩子 + sqlite 回读配方（AB-README §工具链） |
 | 2 | iPad Safari（模拟器 iOS 26.5） | ✅ 双栏 plato 全双语（ms:1531 + 17 键）、宽屏 options/onboard；iOS 27 补充观察：注入正常但 safaridriver 桥断，主判据在 26.5 拿全 |
 | 3 | macOS Safari | ⬜ 待跑（需人工输密码勾「未签名扩展」开关） |

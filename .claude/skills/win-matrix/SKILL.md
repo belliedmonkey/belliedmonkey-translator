@@ -1,9 +1,9 @@
 ---
 name: win-matrix
-description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows 11 Chrome / Edge / Firefox）。目标是 Mac 上的 VMware Fusion 虚拟机，从 Mac 走网络驱动，不进 Windows 点鼠标。任何全回归、任何动了字幕 / 语音 / 排版的改动要补 Windows 这一行时跑它；用户说「在 Windows 上看看」也跑它。
+description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows 11 Chrome / Edge / Firefox）。目标是 Omarchy 上的 Windows VM（2026-10-12 现行；Mac 上的 VMware Fusion 虚拟机已标为历史），从 Mac 走网络驱动，不进 Windows 点鼠标；需要人工进 VM 的项一律放弃。任何全回归、任何动了字幕 / 语音 / 排版的改动要补 Windows 这一行时跑它；用户说「在 Windows 上看看」也跑它。
 ---
 
-# win-matrix —— Windows 这一行：虚拟机，从 Mac 上驱动
+# win-matrix —— Windows 这一行：Omarchy 上的 Windows VM，从 Mac 上驱动
 
 规约在 `docs/verification-spec.md` §1 第 8 行与 §2.H；这里是**可执行**的那一半：命令、参数、每一步回读什么才算数。
 脚本全在 `scripts/win-matrix/`，结果落在 `.local/win/`（不提交）。
@@ -14,14 +14,22 @@ description: 在 Windows 上验大肚猴翻译（验收矩阵第 8 行：Windows
 - 改了 `extension/content/**`、`styles/**`、字幕适配器、语音（TTS）相关代码。
 - 用户报的问题只在 Windows 上出现，或者要排除「是不是 Windows 特有」。
 
-## 目标：只有虚拟机（2026-09-18 用户裁定）
+## 目标：Omarchy 上的 Windows VM（2026-10-12 现行）
 
-**跑矩阵时 Windows 部分就是虚拟机流程。** VMware Fusion · Windows 11 **ARM**，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，
-vmnet8 NAT；IP 从 `/var/db/vmware/vmnet-dhcpd-vmnet8.leases` 读（09-18 是 192.168.2.128），Mac 在它眼里是 192.168.2.1。
-没有命令通道（起浏览器要人在虚拟机里粘一行 PowerShell）、没有共享文件夹（ARM 客户机的设置面板里根本没有「共享」）、浏览器是一次性空配置。
+**跑矩阵时 Windows 部分就在 Omarchy 上的那台 Windows VM 里**：Windows 11，**Edge / Chrome / Firefox
+都在那一台测**，从 Mac 走网络驱动（脚本仍在 `scripts/win-matrix/`）。**需要人工进 VM 里点鼠标 / 敲
+键盘的项一律放弃**，如实记 ⬜，不许为了跑完而硬凑。该 VM 的具体地址 / 进入方式每次按现场读，不钉在
+文档里。
 
+> **历史：Mac 上的 VMware Fusion 虚拟机（2026-09-18 用户裁定，已过时）。** 当时的目标是 VMware
+> Fusion · Windows 11 **ARM**，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，
+> vmnet8 NAT；IP 从 `/var/db/vmware/vmnet-dhcpd-vmnet8.leases` 读（09-18 是 192.168.2.128），Mac 在
+> 它眼里是 192.168.2.1。没有命令通道（起浏览器要人在虚拟机里粘一行 PowerShell）、没有共享文件夹
+> （ARM 客户机的设置面板里根本没有「共享」）、浏览器是一次性空配置。**下面「每次怎么跑」里的地址
+> 与配方都是这套 VM 的，`192.168.2.x` 一类都是当时的值，不是常量。**
+>
 > 同一天还走通过一条「局域网 Windows 真机」的路（SSH + 计划任务在桌面会话里起浏览器 + 一条命令跑完），当晚用户裁定**不跑了**，
-> 脚本已从仓库移除。要考古看 PR #327 的第一笔提交。它留下的、对虚拟机同样成立的教训都并在下面的陷阱索引里。
+> 脚本已从仓库移除。要考古看 PR #327 的第一笔提交。它留下的、对虚拟机（以及现在的 Omarchy VM）同样成立的教训都并在下面的陷阱索引里。
 
 ## 0. 共同前提
 

@@ -1,18 +1,42 @@
 ---
 name: pencil-draft
-description: 交互/UI/文案变更先出 Pencil 稿再改代码。用 pen.dev 画布（Pen.app 自带的 MCP，服务名 pencil，Code Mode 下是 tools["pencil"].<tool>）。当任务要改用户看得见或摸得着的界面、交互或可见文案时用它——新页面、弹窗/气泡、字幕条、工具栏、设置项、空/加载/错误态、引导步骤、手势/转场，以及布局、间距、层级、"这里该用 sheet 还是内联"之类的问题。**绝不用 Open Design**。也记着读写画布的几个硬坑：文档必须先打开、execute 是脚本不能顶层 return、文本要 textGrowth 才折行。
+description: 交互/UI/文案变更先出 Pencil 稿再改代码。稿子由 pen.dev 自带的 AI 出：写需求 → pen.dev 命令行（npx @pen.dev/cli）--in/--out/--prompt（输入已有 .pen、输出新 .pen、写需求）→ 审稿，不合要求打回重画，最多 3 轮。我们只写需求、审稿，不自己逐条画。**绝不用 Open Design**（历史工具）。手动画布 MCP（Pen.app 自带，服务名 pencil）只在排查 / 微调时当备用手段，也记着它的硬坑。当任务要改用户看得见或摸得着的界面、交互或可见文案时用它——新页面、弹窗/气泡、字幕条、工具栏、设置项、空/加载/错误态、引导步骤、手势/转场，以及布局、间距、层级、\"这里该用 sheet 还是内联\"之类的问题。
 ---
 
-# pencil-draft — 先出 Pencil 稿，再改代码
+# pencil-draft — 写需求，让 pen.dev AI 出稿，审稿
 
 改动涉及**用户可见的界面、交互或可见文案**时用它（宿主 app `app/`：iPhone/iPad/Mac；浏览器
 扩展 UI：Safari/Chrome/Firefox）。**不要**没有稿子就把新交互/新文案写进代码，也**不要**用 HTML
 手搓一份当捷径。
 
-> **本仓库只用 Pencil（pen.dev），禁止 Open Design / OD。** 出稿、评审、通过之后再动代码；
-> 文案类改动同样要出稿（用户 2026-10-07 明确要求）。
+> **本仓库只用 Pencil（pen.dev）；Open Design / OD 是历史工具（2026-10-08 之前），不要再用。**
+> 出稿、评审、通过之后再动代码；文案类改动同样要出稿（用户 2026-10-07 明确要求）。
 
-## 0. 前置：MCP 只能操作「**已经打开着**的文档」
+## 0. 出稿主路径：pen.dev 自带 AI（2026-10-12 起）
+
+**稿子由 pen.dev 自带的 AI 出，我们只写需求、负责审稿。** 不再由 agent 自己用画布 MCP 逐条画。
+
+1. **写需求**：改什么、为什么、要覆盖哪些形态（见 §3），以及不能动的东西。需求里写约束，别写
+   逐步实现。
+2. **出稿**：用 pen.dev 命令行（`npx @pen.dev/cli`），输入是已有 `.pen`（当视觉 / 结构底稿），输出是一份**新** `.pen`：
+
+   ```bash
+   npx @pen.dev/cli --in "<已有稿>.pen" --out "<新稿>.pen" --prompt "<需求>"
+   ```
+
+   没有可参考的底稿时 `--in` 可省略（或指向一份空底稿）；`--out` 永远是一份**新文件**，不要覆盖
+   已签署 / 已归档的旧稿。
+3. **审稿**：把 `--out` 的稿子导出的图（§1 的 `Export`，或 `png/` 导出）对需求逐条过，说清改了什么、
+   代价是什么。
+4. **不合要求就打回重画**：把不达标的具体点写回 `--prompt` 再出一版；**最多改 3 轮**。3 轮仍不
+   达标就停下报告，不要自己用画布 MCP 逐条画成一份「合格的稿子」——那就不是「AI 出稿」了。
+
+> `pen` 的生成模式需要本机已登录（见 §4）；未登录时它用不了。这时**不要**退回手搓，把情况报告出来。
+
+## 1. 备用手段：人工在画布上排查 / 微调（不是出稿主路径）
+
+只有在 AI 稿已经出来、需要**排查**（为什么溢出 / 被裁）或**微调**（改一个字、挪 2px）时才用画布
+MCP。它**不是**第二条出稿路：新稿永远走 §0。
 
 `tools["pencil"].*` 的所有工具（`get_app_state` / `read_skill` / `execute` / `browser` / `get_style`）
 都要求 Pencil 编辑器里**有一个 `.pen` 文档是打开状态**。否则一律报：
@@ -23,7 +47,7 @@ Failed to access file "<path|undefined>". A file needs to be open in the editor 
 
 **怎么办**：
 
-- 先 `get_app_state()`——它回 `Currently active canvas editor: <path>` 和顶层 frame 清单。通了就直接用。
+- 先 `get_app_state()` —— 它回 `Currently active canvas editor: <path>` 和顶层 frame 清单。通了就直接用。
 - 不通时用系统打开一个文档（本机文档在 `~/.pencil/documents/<uuid>/*.pen`）：
 
   ```bash
@@ -34,15 +58,11 @@ Failed to access file "<path|undefined>". A file needs to be open in the editor 
 - **MCP 不能新建文档**；要空白文档就让用户在 Pen.app 里 ⌘N，或打开一个已有的。
 - `.pen` 是**加密**的：**永远不要**用 Read / Grep 去读它，只能经 MCP。
 
-## 1. 先读必读的参考
+## 2. 备用手段的用法与硬坑（`execute`）
 
 - `read_skill({})` 拿 pen-dev 的技能目录；**必须**读 `read_skill({ path: "execute.md" })` 与
-  `read_skill({ path: "pen-schema.md" })` 再动手。
-- `get_app_state()` 看现有画布、顶层 frame；**优先照抄已有稿的视觉语言**（字体/字号/底色/圆角），
+  `read_skill({ path: "pen-schema.md" })` 再动手；**优先照抄已有稿的视觉语言**（字体/字号/底色/圆角），
   别自造一套。
-
-## 2. 出稿 / 改稿（`execute` 的正确用法 —— 最容易踩的坑）
-
 - **调用形状**：`tools["pencil"]["execute"]({ filePath: "<打开的 .pen 路径>", input: "<脚本文本>" })`。
 - **`input` 是一段「脚本」，不是函数**：**不要写顶层 `return`**（会报
   `SyntaxError: return not in a function`）。要把结果读出来用 **`Print(...)`**（会出现在返回的
@@ -73,8 +93,11 @@ Failed to access file "<path|undefined>". A file needs to be open in the editor 
   复核时**另起一次** `execute`（不截图）再读。
 - **截图**：`TakeScreenshot([nodeId])` 一次一张、只在成稿后**一次**（它贵）。
 
-## 3. 评审 → 通过 → 才动代码
+## 3. 审稿 / 形态与签署（与出稿方式无关，照旧）
 
+- **每份稿必须覆盖该面所有形态：窄（mobile）/ 宽·iPad / 宽·Mac，断点 720px，每个变体一列**
+  （`AGENTS.md`「Interaction / UX constraints」）。不写 iPad-only 布局；某个变体确实画不出，就说出来
+  并停。
 - 把截图/预览给用户看，说清**改了什么、代价是什么**；等**明确通过**再改 `app/` / `ext/` 代码。
 - 通过后再改代码，并在**同一个提交**里带上相应文档（交互规则进 `docs/interaction-spec.md`；
   涉及领域设计的先改 `docs/domain-design.md` / `docs/learning-design.md` 并过人工评审）。
@@ -88,9 +111,9 @@ Failed to access file "<path|undefined>". A file needs to be open in the editor 
 - **技能包**：`~/.pencil/skills/`（`latest.json` 指一个远端 zip）；内容可能只是被重传、**逐字节
   相同**——下载解包 `diff -rq` 一下再说有没有新版。
 - **agent 授权**：`~/.pencil/agent-auth` 为空（`{}`）/ `pen status` 未登录时，CLI 的生成模式
-  （`pen --out x.pen --prompt "…"`）用不了；MCP 的读写一般不受影响（先按 §2 确认调用形状再说）。
+  （`npx @pen.dev/cli --in x.pen --out y.pen --prompt "…"`）用不了；MCP 的读写一般不受影响（先按 §1 确认调用形状再说）。
 
-## 5. 最小可用骨架（照抄起步）
+## 5. 最小可用骨架（备用手段，照抄起步）
 
 ```js
 const pos = FindEmptySpace({ width: 960, height: 700, direction: 'bottom', padding: 80 });
