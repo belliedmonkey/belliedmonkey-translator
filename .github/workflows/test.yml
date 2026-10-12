@@ -45,6 +45,10 @@ jobs:
         node: ['20', '22']
     steps:
       - uses: actions/checkout@v4
+        with:
+          # X1（test/ext-reg-gates.test.js）拿清单对照**已上架标签**（git show v1.19.0:…）；
+          # 默认的浅克隆没有标签，这道门在 CI 里就成了「找不到标签」而不是「权限变宽」。
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
