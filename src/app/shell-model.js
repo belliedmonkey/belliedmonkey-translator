@@ -38,6 +38,7 @@ import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
+import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -333,6 +334,10 @@ export function bootShell() {
   let netUnsub = null;
   let packSelectionLoaded = false;
   let firstRunScreen = '';   // '' | 'login' | 'packs' | 'onboarding' | 'home' —— 横幅要据此让位
+  // 识别语言名额（第 5 轮 A / 改稿 H）：系统快照（上限 + 已占预留）+ 本机记忆（装过 / 最后使用）。
+  let quotaSnap = { max: 5, reserved: [] };
+  let quotaMem = { installed: {}, lastUsed: {} };
+  let packSheet = null;      // 满员让出的底部确认框：null | { need, pick, onDone }
 
   const readObSeen = () => new Promise((r) => {
     try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
@@ -446,6 +451,9 @@ export function bootShell() {
 
   async function probePacks() {
     const s = await readObSettings();
+    // 名额快照与本机记忆（第 5 轮 A2）：上限由系统当场报，不写死 5。
+    try { quotaMem = await ASRQuota.readMemory(); } catch (_) {}
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) quotaSnap = NativeSpeech.quota(); } catch (_) {}
     if (typeof LearnTTS !== 'undefined' && LearnTTS.deviceStatus) {
       try {
         LearnTTS.configure(Object.assign({}, LearnTTS.config, {
@@ -480,6 +488,7 @@ export function bootShell() {
               packAsrByLang[code] = false;
             } else {
               packAsrByLang[code] = FirstRun.asrInstalled(r);
+              if (packAsrByLang[code]) ASRQuota.markInstalled(quotaMem, [code]);
             }
           }
           packAsrUnsupported = unsupported === asrLangs.length;
@@ -488,6 +497,8 @@ export function bootShell() {
             { asrLangs: asrLangs, ttsLangs: [], base: false },
           ).asrPack;
         }
+        try { ASRQuota.saveInstalled(quotaMem); } catch (_) {}
+        try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) quotaSnap = NativeSpeech.quota(); } catch (_) {}
       } catch (_) { packAsrReady = false; packAsrUnsupported = false; packAsrByLang = {}; }
     } else { packAsrReady = false; packAsrUnsupported = false; packAsrByLang = {}; }
     packLidReady = false;
@@ -598,6 +609,187 @@ export function bootShell() {
     } catch (_) { return []; }
   }
 
+  // ── 识别语言名额（第 5 轮 A / 改稿 H）─────────────────────────────────────
+  function quotaPair() { return (langPair || []).map(FirstRun.baseCode).filter(Boolean); }
+  function quotaRowsNow() {
+    try {
+      return ListenCore.quotaRows({
+        catalog: langCatalog(),
+        reserved: (quotaSnap && quotaSnap.reserved) || [],
+        installed: quotaMem.installed,
+        max: quotaSnap && quotaSnap.max,
+      });
+    } catch (_) { return { rows: [], used: 0, max: 5, full: false }; }
+  }
+  function quotaStateByCode() {
+    const q = quotaRowsNow();
+    const by = {};
+    for (const r of q.rows) by[r.code] = r.state;
+    return { by, used: q.used, max: q.max, full: q.full };
+  }
+  function quotaTagText(state) {
+    if (state === 'ready') return t('firstrun_quota_tag_ready', '占名额');
+    if (state === 'recoverable') return t('firstrun_quota_tag_recover', '未就绪');
+    return t('firstrun_quota_tag_absent', '未下载');
+  }
+  function quotaStatusText(state) {
+    if (state === 'ready') return t('firstrun_packs_done', '已就绪');
+    if (state === 'recoverable') return t('firstrun_quota_recover_hint', '点一下补回 · 约 1–2 秒');
+    return t('firstrun_packs_asr_sub', '识别包 · 系统下载');
+  }
+  function paintQuota() {
+    // 每次重画都读一次原生缓存的名额快照：下载/探针过程中 stt-state 到一条就更新一条，
+    // 卡片因此能实时跟着「已用 N」走（不等到下一次 probePacks）。
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) quotaSnap = NativeSpeech.quota(); } catch (_) {}
+    const q = quotaRowsNow();
+    const card = $('packs-quota');
+    if (!card) return q;
+    const bridge = !!(typeof NativeSpeech !== 'undefined' && NativeSpeech.available && NativeSpeech.available());
+    card.hidden = !bridge;
+    const legend = $('packs-legend');
+    if (legend) legend.hidden = !bridge || !packsManage;
+    const label = $('packs-quota-label');
+    if (label) label.textContent = t('firstrun_quota_label', '识别语言');
+    const used = $('packs-quota-used');
+    if (used) used.textContent = t('firstrun_quota_used', '已用 {n} / {max}').replace('{n}', String(q.used)).replace('{max}', String(q.max));
+    const bar = $('packs-quota-bar');
+    if (bar) {
+      bar.textContent = '';
+      const max = Math.max(1, q.max);
+      for (let i = 0; i < max; i++) {
+        const seg = document.createElement('span');
+        seg.className = 'quota-seg' + (i < q.used ? (q.full && i === q.used - 1 ? ' full' : ' on') : '');
+        bar.appendChild(seg);
+      }
+    }
+    const note = $('packs-quota-note');
+    if (note) note.textContent = q.full
+      ? t('firstrun_quota_note_full', '{max} 门都占着名额 · 再装新的会先标为「未就绪」').replace('{max}', String(q.max))
+      : t('firstrun_quota_note', 'Apple 限制：同时最多 {max} 门识别语言').replace('{max}', String(q.max));
+    const lr = $('packs-legend-ready'); if (lr) lr.textContent = t('firstrun_quota_leg_ready', '已就绪 · 占名额');
+    const lc = $('packs-legend-recover'); if (lc) lc.textContent = t('firstrun_quota_leg_recover', '未就绪 · 可补回');
+    const la = $('packs-legend-absent'); if (la) la.textContent = t('firstrun_quota_leg_absent', '未下载');
+    return q;
+  }
+  // 满员让出的底部确认框（改稿 H 第 3 / 5b 张）：默认「最久没用」，当前语言对不可选。
+  function openYieldSheet(needCode, onDone) {
+    const q = quotaRowsNow();
+    const pair = quotaPair();
+    const reserved = q.rows.filter((r) => r.state === 'ready').map((r) => r.code);
+    const yieldable = reserved.filter((c) => ListenCore.canYield(c, pair));
+    if (!yieldable.length) return false;
+    const def = ListenCore.pickYield(reserved, pair, quotaMem.lastUsed) || yieldable[0];
+    packSheet = { need: FirstRun.baseCode(needCode), pick: def, onDone: onDone || null };
+    paintPackSheet(q);
+    return true;
+  }
+  function closeYieldSheet() { packSheet = null; try { paintPackChrome(uiLangCode()); } catch (_) { paintPackSheet(quotaRowsNow()); } }
+  function paintPackSheet(q0) {
+    const back = $('packs-sheet');
+    if (!back) return;
+    const q = q0 || quotaRowsNow();
+    if (!packSheet) { back.hidden = true; return; }
+    back.hidden = false;
+    const need = packSheet.need;
+    const pair = quotaPair();
+    const max = q.max;
+    const title = $('packs-sheet-title');
+    if (title) title.textContent = t('firstrun_quota_sheet_title', '识别语言已满 {max} 门').replace('{max}', String(max));
+    const lede = $('packs-sheet-lede');
+    if (lede) lede.textContent = t('firstrun_quota_sheet_lede', '要补回 {need}，需要先让出一门。被让出的会变回「未就绪」，再用时补回，约 1–2 秒，不用重新下载。').replace('{need}', endonym(need));
+    const pl = $('packs-sheet-pick-label');
+    if (pl) pl.textContent = t('firstrun_quota_sheet_pick', '选一门让出（默认：最久没用）');
+    const list = $('packs-sheet-list');
+    if (list) {
+      list.textContent = '';
+      for (const row of q.rows.filter((r) => r.state === 'ready')) {
+        const item = document.createElement('label');
+        item.className = 'quota-pick' + (ListenCore.canYield(row.code, pair) ? '' : ' disabled');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = 'packs-quota-yield';
+        radio.value = row.code;
+        radio.checked = packSheet.pick === row.code;
+        radio.disabled = !ListenCore.canYield(row.code, pair);
+        radio.addEventListener('change', () => { if (!radio.disabled) { packSheet.pick = row.code; paintPackSheet(q); } });
+        const name = document.createElement('span');
+        name.className = 'quota-pick-name';
+        name.textContent = endonym(row.code);
+        const when = document.createElement('span');
+        when.className = 'quota-pick-when';
+        when.textContent = ListenCore.canYield(row.code, pair) ? quotaWhenLabel(row.code) : t('firstrun_quota_in_use', '当前语言对 · 不能让出');
+        item.appendChild(radio); item.appendChild(name); item.appendChild(when);
+        list.appendChild(item);
+      }
+    }
+    const cancel = $('packs-sheet-cancel'); if (cancel) cancel.textContent = t('firstrun_quota_cancel', '取消');
+    const go = $('packs-sheet-go');
+    if (go) {
+      go.disabled = !packSheet.pick;
+      go.textContent = t('firstrun_quota_sheet_go', '让出 {yield} · 补回 {need}')
+        .replace('{yield}', endonym(packSheet.pick)).replace('{need}', endonym(need));
+    }
+    const foot = $('packs-sheet-foot');
+    if (foot) foot.textContent = t('firstrun_quota_sheet_foot', '按钮跟着你选的语言变。');
+  }
+  function quotaWhenLabel(code) {
+    const at = Number((quotaMem.lastUsed || {})[code]);
+    if (!Number.isFinite(at) || at <= 0) return t('firstrun_quota_never', '最久没用');
+    const days = Math.floor((Date.now() - at) / 86400000);
+    if (days >= 1) return t('firstrun_quota_days', '最久没用 · {n} 天前').replace('{n}', String(days));
+    return t('firstrun_quota_today', '今天用过');
+  }
+  // 行内「补回 / 下载」（改稿 H 第 2 / 6 张）：名额满时先弹确认框让出一门，否则直接补。
+  function onQuotaAction(code, st) {
+    if (packsBusy) return;
+    const q = quotaRowsNow();
+    const reserved = q.rows.filter((r) => r.state === 'ready').map((r) => r.code);
+    if (reserved.indexOf(code) >= 0) return;
+    if (q.full) { openYieldSheet(code, (need) => ensureOne(need)); return; }
+    ensureOne(code);
+  }
+  // 补回 / 下载一门识别包，然后重探名额与状态。
+  async function ensureOne(code) {
+    if (packsBusy) return;
+    packsBusy = true;
+    paintPackBody(uiLangCode());
+    paintPackChrome(uiLangCode());
+    try {
+      if (typeof NativeSpeech !== 'undefined' && NativeSpeech.ensureAssets) {
+        const p = NativeSpeech.ensureAssets('stt', [speechLocale(code)]);
+        // 与屏 2 同一条纪律：原生不回来不能永远挂住（R3d）。
+        await Promise.race([p, new Promise((_res, rej) => setTimeout(() => rej({ reason: 'timeout' }), PackProgress.ASR_PACK_TIMEOUT_MS))]);
+        ASRQuota.markInstalled(quotaMem, [code]);
+        ASRQuota.saveInstalled(quotaMem);
+      }
+    } catch (_) { /* 失败就保持原状态，用户可再点 */ }
+    packsBusy = false;
+    try { await probePacks(); } catch (_) {}
+    paintPackChrome(uiLangCode());
+    paintPackBody(uiLangCode());
+  }
+
+  // 真让出 + 补回（改稿 H 第 4 / 5c 张）：释放选中的名额，再把需要的那门补上。
+  async function yieldAndRestore() {
+    if (!packSheet) return false;
+    const need = packSheet.need;
+    const yieldCode = packSheet.pick;
+    const done = packSheet.onDone;
+    const go = $('packs-sheet-go');
+    if (go) { go.disabled = true; go.textContent = t('firstrun_quota_working', '正在补回…'); }
+    try {
+      if (typeof NativeSpeech !== 'undefined' && NativeSpeech.releaseSlots) {
+        await NativeSpeech.releaseSlots([speechLocale(yieldCode)]);
+      }
+      quotaSnap = (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) ? NativeSpeech.quota() : quotaSnap;
+      ASRQuota.markInstalled(quotaMem, [yieldCode]);   // 让出后仍是「装过」= 可补回
+      ASRQuota.saveInstalled(quotaMem);
+    } catch (_) {}
+    closeYieldSheet();
+    if (done) { try { await done(need); } catch (_) {} }
+    return true;
+  }
+
   function flavorNow() {
     try { return (Registry.flavor && Registry.flavor()) || 'global'; } catch (_) { return 'global'; }
   }
@@ -686,6 +878,9 @@ export function bootShell() {
   function paintPackChrome(ui) {
     const sec = $('firstrun-packs');
     if (sec) sec.setAttribute('data-phase', packPhase || 'pick');
+    paintQuota();
+    paintPackSheet();
+    if (packSheet) return;   // 确认框开着时不再重画正文按钮（避免把 sheet 盖掉后的状态画乱）
     // 隐藏的探测行给 Mac 探针读「探完了」。下载进行中不覆盖进度句。
     if (!packsBusy) {
       const ttsNote = $('pack-tts-state');
@@ -699,7 +894,25 @@ export function bootShell() {
     if (packPhase === 'done') {
       if (title) title.textContent = t('firstrun_packs_all_title', '语言包都下好了');
       const names = packLangs.map(endonym).join('、');
-      if (lede) lede.textContent = t('firstrun_packs_all_lede', '{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。').replace('{langs}', names);
+      // C3：泰语朗读包没下就别说 ไทย 能朗读。朗读能力只算**真的下过朗读包**的语言。
+      const speakNames = [];
+      try {
+        const kokoroOn = FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined);
+        if (packTtsReady && kokoroOn) {
+          if (packLangs.indexOf('zh') >= 0) speakNames.push(endonym('zh'));
+          if (packLangs.indexOf('en') >= 0) speakNames.push(endonym('en'));
+        }
+        if (packTtsReady && packThaiTts && packLangs.indexOf('th') >= 0 && packTtsProbeLangs.indexOf('th') >= 0) {
+          speakNames.push(endonym('th'));
+        }
+      } catch (_) {}
+      const allSpeak = names && speakNames.length && packLangs.every((c) => speakNames.indexOf(endonym(c)) >= 0);
+      if (lede) {
+        lede.textContent = allSpeak
+          ? t('firstrun_packs_all_lede', '{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。').replace('{langs}', names)
+          : t('firstrun_packs_all_lede_listen', '{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语音包」里加。')
+            .replace('{langs}', names).replace('{speak}', speakNames.join('、') || t('firstrun_packs_base', '基础组件'));
+      }
     } else if (packPhase === 'downloading' || packPhase === 'waiting') {
       if (title) title.textContent = t('firstrun_packs_dl_title', '正在下载语言包');
       if (lede) lede.textContent = t('firstrun_packs_dl_lede', '每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。');
@@ -751,32 +964,58 @@ export function bootShell() {
   }
 
   function makeRow(o) {
-    const row = document.createElement('label');
-    row.className = 'pack-line' + (o.locked ? ' is-locked' : '');
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = !!o.checked;
-    box.disabled = !!o.disabled;
-    if (o.code) box.setAttribute('data-pack-lang', o.code);
-    if (o.kind) box.setAttribute('data-pack-kind', o.kind);
-    box.addEventListener('change', () => { if (o.onChange) o.onChange(box.checked); });
+    const row = document.createElement(o.noBox ? 'div' : 'label');
+    row.className = 'pack-line' + (o.locked ? ' is-locked' : '') + (o.state ? ' is-' + o.state : '');
+    if (o.noBox) {
+      const dot = document.createElement('span');
+      dot.className = 'pack-line-dot';
+      dot.setAttribute('data-state', o.state || 'absent');
+      row.appendChild(dot);
+    } else {
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.checked = !!o.checked;
+      box.disabled = !!o.disabled;
+      if (o.code) box.setAttribute('data-pack-lang', o.code);
+      if (o.kind) box.setAttribute('data-pack-kind', o.kind);
+      box.addEventListener('change', () => { if (o.onChange) o.onChange(box.checked); });
+      row.appendChild(box);
+    }
     const main = document.createElement('span');
     main.className = 'pack-line-main';
+    const nameRow = document.createElement('span');
+    nameRow.className = 'pack-line-name-row';
     const name = document.createElement('span');
     name.className = 'pack-line-name';
     name.textContent = o.name || '';
+    nameRow.appendChild(name);
+    if (o.tag) {
+      const tag = document.createElement('span');
+      tag.className = 'pack-line-tag ' + (o.tagState || 'absent');
+      tag.textContent = o.tag;
+      nameRow.appendChild(tag);
+    }
     const sub = document.createElement('span');
     sub.className = 'pack-line-sub';
     sub.textContent = o.sub || '';
-    main.appendChild(name);
+    main.appendChild(nameRow);
     if (o.sub) main.appendChild(sub);
     const st = document.createElement('span');
     st.className = 'pack-line-status';
     st.id = 'pack-st-' + o.id;
     st.textContent = o.status || '';
-    row.appendChild(box);
     row.appendChild(main);
     row.appendChild(st);
+    if (o.action) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'pack-line-act' + (o.actionKind === 'recover' ? ' recover' : '');
+      btn.id = 'pack-act-' + o.id;
+      btn.textContent = o.action;
+      btn.disabled = !!o.actionDisabled;
+      if (o.onAction) btn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); o.onAction(); });
+      row.appendChild(btn);
+    }
     return row;
   }
 
@@ -797,13 +1036,33 @@ export function bootShell() {
       const item = byCode[code];
       if (!item) return;
       const checked = packLangs.indexOf(code) >= 0;
-      const bits = [t('firstrun_packs_asr_sub', '识别包 · 系统下载')];
+      const q = quotaStateByCode();
+      const st = q.by[code] || 'absent';
+      const bits = [];
       if (code === FirstRun.baseCode(ui)) bits.push(t('firstrun_packs_system', '系统语言'));
-      body.appendChild(makeRow({
-        id: 'asr-' + code, code, kind: 'asr', name: item.label, checked, disabled: locked,
-        sub: bits.join(' · '), status: statusText('asr:' + code, checked), locked,
-        onChange: (on) => toggleLang(code, on, ui),
-      }));
+      const row = rowPhase('asr:' + code);
+      const downloading = row.phase === 'downloading' || row.phase === 'queued';
+      if (packsManage) {
+        // 管理屏（改稿 H 第 2 / 6 张）：无勾选框，状态点 + 本名 + 标签 + 动作。
+        body.appendChild(makeRow({
+          id: 'asr-' + code, code, kind: 'asr', noBox: true, state: st, name: item.label,
+          sub: bits.join(' · '), tag: quotaTagText(st), tagState: st,
+          status: downloading ? statusText('asr:' + code, true) : quotaStatusText(st),
+          action: st === 'recoverable' ? t('firstrun_quota_recover_btn', '补回')
+            : (st === 'absent' ? t('firstrun_quota_download_btn', '下载') : ''),
+          actionKind: st === 'recoverable' ? 'recover' : 'download',
+          actionDisabled: locked,
+          onAction: () => onQuotaAction(code, st),
+        }));
+      } else {
+        body.appendChild(makeRow({
+          id: 'asr-' + code, code, kind: 'asr', name: item.label, checked, disabled: locked,
+          state: st, tag: quotaTagText(st), tagState: st,
+          sub: bits.join(' · ') || t('firstrun_packs_asr_sub', '识别包 · 系统下载'),
+          status: downloading ? statusText('asr:' + code, checked) : quotaStatusText(st),
+          locked, onChange: (on) => toggleLang(code, on, ui),
+        }));
+      }
     };
     for (const code of vis.pinned) paintLang(code);
     if (vis.rest.length && !packMoreOpen) {
@@ -2344,6 +2603,10 @@ export function bootShell() {
   if ($('packs-cell-go')) $('packs-cell-go').addEventListener('click', () => { onCellGo(); });
   if ($('packs-manage-back')) $('packs-manage-back').addEventListener('click', () => { closePackManager(); });
   if ($('set-pack-manage')) $('set-pack-manage').addEventListener('click', () => { openPackManager(); });
+  // 满员让出确认框（改稿 H 第 3 / 5b 张）：取消 / 让出并补回 / 点背板取消。
+  if ($('packs-sheet-cancel')) $('packs-sheet-cancel').addEventListener('click', () => { closeYieldSheet(); });
+  if ($('packs-sheet-go')) $('packs-sheet-go').addEventListener('click', () => { yieldAndRestore(); });
+  if ($('packs-sheet')) $('packs-sheet').addEventListener('click', (e) => { if (e.target === $('packs-sheet')) closeYieldSheet(); });
 
   $('review').addEventListener('click', () => {
     $('signed-in').hidden = true;

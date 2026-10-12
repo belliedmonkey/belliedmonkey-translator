@@ -25,6 +25,23 @@ description: 把一个版本发到六个商店面（Apple iOS/macOS × 国际版
 `docs/release-checklist.md` 是另一半：门禁清单、设备矩阵、隐私文案同版、Gate B 的
 历史论证。那些不重复在这里；这里只放**能直接敲的东西**。
 
+## 阶段闸门：提审 / 推送 / 传扩展 / 发 Release 默认禁止（2026-10-12 用户规定）
+
+**默认只做到「出包 + 上传 TestFlight」为止。** 下面四类动作**默认禁止**，只有用户**当次明确
+授权**才能做 —— 一次授权只覆盖这一次、这个面，不继承、不推定：
+
+- **提审**（App Store 的建提交 / 提审 / 撤审重提，§8、§9）
+- **推送**（两个站点仓库的 push / 自动部署，§11；也见 `docs/release-checklist.md` §2）
+- **传浏览器扩展**（两个浏览器商店的上传 / 提审，§10）
+- **发 GitHub Release**（§11）
+
+**只上传 TestFlight 不在禁止之列**，但「已在 TestFlight」这句话**只以 ASC 读回该 build 为
+`VALID` 为准** —— 上传工具（名称略）返回 0、上传日志说成功、界面上看见了，都不算（判据见 §4；
+当前基线 `docs/release-baseline-1.19.3.md`）。
+
+每一步的命令与判据都保留在本技能里作为知识；**执行前先确认这一步被本次授权覆盖**，没覆盖就
+到此为止、报告做了什么、等指令。
+
 ## 一条铁律：只信回读，不信「没报错」
 
 这一整条流程里，**每一个「成功」都可能是假的**。四个实例，都是 2026-08-22 当天撞到的：
@@ -342,6 +359,9 @@ node scripts/asc.js aso com.belliedmonkeytranslator.cn MAC_OS <版本> store-ass
 
 ### 8. 提审
 
+> ⚠️ **默认禁止提审**（见本文件开头「阶段闸门」，2026-10-12）。只有用户当次明确授权才能做这一步；
+> 未授权时到此为止，把已完成的出包 / 上传 / 回读结果报告出来。
+
 > **提审时不要勾「重置评分摘要」**（App Store Connect 的 *Reset iOS Summary Rating*）。评分本来就是 0，
 > 以后攒起来的每一颗星都是搜索排序的权重；重置一次就清零（2026-09-25 评分画布，telemetry-design §3.12）。
 
@@ -356,6 +376,9 @@ node scripts/asc-submit.js 1.6.4 --apply
 待提交草稿，而 Apple 那边什么都没收到。脚本做完会回读 state。
 
 ### 9. 撤审重提
+
+> ⚠️ **默认禁止提审 / 撤审**（见本文件开头「阶段闸门」）。撤审不可逆、会清零排队位置，只有用户
+> 当次明确授权才能做。
 
 ```bash
 node scripts/asc-submit.js 1.6.4 --cancel com.belliedmonkeytranslator --apply
@@ -376,6 +399,9 @@ node scripts/asc-submit.js 1.6.4 --cancel com.belliedmonkeytranslator --apply
 好消息是它**拒得很干净**，状态不受影响 —— 所以那是安全的死路，可以先试再决定要不要撤。
 
 ### 10. 扩展两面：CWS 与 AMO
+
+> ⚠️ **默认禁止传浏览器扩展 / 提审**（见本文件开头「阶段闸门」，2026-10-12）。只有用户当次明确
+> 授权才能上传或提审；下面的命令只作知识保留。
 
 ```bash
 npm run cws:check                                   # 体检
@@ -434,6 +460,9 @@ GET /api/v5/addons/addon/<id>/versions/?filter=all_with_unlisted
 不带 `filter` 会以为版本根本没提交上去。
 
 ### 11. GitHub Release + 官网
+
+> ⚠️ **默认禁止发 GitHub Release / 推送官网**（见本文件开头「阶段闸门」，2026-10-12）。只有用户
+> 当次明确授权才能执行下面的发布与 push；未授权时命令只作知识保留。
 
 ```bash
 npm run gh:check                                   # 只打印计划

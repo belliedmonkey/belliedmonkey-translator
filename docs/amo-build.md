@@ -7,7 +7,9 @@ UI bundle（IIFE，**不 minify**）。按 AMO 政策，机器生成代码要附
 
 ## 环境
 
-- Node.js ≥ 22（见 `.github/workflows/test.yml` 的 build job；`package.json` engines ≥ 20）
+- Node.js：构建与跑真 Chrome 的门 **≥ 22**（内置 WebSocket，见 `.github/workflows/test.yml` 的
+  build job）；`npm test` **≥ 20** 即可（`learn/chunk.js` 用 `CompressionStream('deflate-raw')`）；
+  `package.json` engines ≥ 20。分档口径见 `CLAUDE.md`。
 - npm（随 Node）
 - 无其他系统依赖；不需要网络之外的任何服务
 

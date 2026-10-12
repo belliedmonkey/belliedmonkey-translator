@@ -9,8 +9,8 @@ var NativeSpeech = (() => {
   const CHANNEL = 'mtSpeech';
 
   const PROTOCOL = {
-    toNative: ['stt-probe', 'stt-assets', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets', 'network'],
-    fromNative: ['stt-state', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state', 'network'],
+    toNative: ['stt-probe', 'stt-assets', 'stt-release', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets', 'network'],
+    fromNative: ['stt-state', 'stt-quota', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state', 'network'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -40,6 +40,10 @@ var NativeSpeech = (() => {
   let sttReqSeq = 0;
   const sttProbeReqs = new Map();   // req → finish(snapshot)：stt-probe 的收尾
   const sttAssetReqs = new Map();   // req → finish(sttProbe)：stt-assets 的收尾
+  // 识别语言名额（第 5 轮 A2）：上限与已占预留都由原生当场报（`AssetInventory.maximumReservedLocales`
+  // / `reservedLocales`），JS 不写死 5。`stt-state` 里带上，`stt-quota` 单独回（让出之后）。
+  let sttQuota = { max: 5, reserved: [] };
+  let quotaWaiters = [];
   const PROBE_TIMEOUT_MS = 20000;   // 一条探针不落定不许把 warmTail 钉死（问题 2 的 0% 卡死）
   // 语种识别（LID，§9.6.1.3）：模型 = 探/装一处；`lidLast` = 最近一条判词（listen-model 据此归属）。
   let lidProbe = { ok: false, reason: 'no-bridge' };
@@ -66,6 +70,12 @@ var NativeSpeech = (() => {
   function _fromNative(msg) {
     if (!msg || typeof msg !== 'object') return;
     const t = msg.type;
+    if (t === 'stt-quota') {
+      sttQuota = { max: Number(msg.maxReserved) || 5, reserved: Array.isArray(msg.reserved) ? msg.reserved.map(String) : [] };
+      const ws = quotaWaiters.splice(0);
+      for (const w of ws) { try { w(quota()); } catch (_) {} }
+      return;
+    }
     if (t === 'stt-state') {
       // 「ended」是 stt-stop 的回执，原生总晚一拍才到（postMessage 与 evaluateJavaScript 各排一次队）。
       // closeSocket() 紧接 openSocket()（改语言重连 / 结束后立刻再开）时，回执落在**新**会话开好之后 ——
@@ -74,6 +84,10 @@ var NativeSpeech = (() => {
       if (msg.state === 'ended' && sttStopsPending > 0) { sttStopsPending--; return; }
       // 本机识别器支持的 locale 清单（2026-09-17）：对话的语言下拉只列它支持的，由设备当场报出、不写死
       if (Array.isArray(msg.supported)) sttSupported = msg.supported.map(String);
+      // 名额快照（第 5 轮 A2）：上限读系统，已占读系统的预留清单。
+      if (typeof msg.maxReserved === 'number') {
+        sttQuota = { max: Number(msg.maxReserved) || 5, reserved: Array.isArray(msg.reserved) ? msg.reserved.map(String) : sttQuota.reserved };
+      }
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
       else if (msg.state === 'ready' && msg.assets) sttProbe = { ok: true, reason: '', assets: msg.assets, locales: sttProbe.locales };
       // 诊断（§0.4.1）：单点记录（stt-state ready 只有一条）——engines = 每门语言选了哪台
@@ -218,6 +232,21 @@ var NativeSpeech = (() => {
   }
   /** 本机识别器支持的 locale 清单（探过之后才有；空数组 = 不知道，调用方别据此过滤）。 */
   function supportedLocales() { return sttSupported.slice(); }
+
+  /** 识别语言名额快照 { max, reserved }（第 5 轮 A2；上限读系统，不是写死的 5）。 */
+  function quota() { return { max: Number(sttQuota.max) || 5, reserved: sttQuota.reserved.slice() }; }
+
+  /** 显式让出一门/几门语言的名额（改稿 H：「让出一门并补回」）。等原生回 `stt-quota`。
+   *  **只在用户确认让出时调**：释放会把该 locale 的资产从 .installed 打回 .supported。 */
+  function releaseSlots(locales) {
+    const ls = (Array.isArray(locales) ? locales : [locales]).map(String).filter(Boolean);
+    if (!available() || !ls.length) return Promise.resolve(quota());
+    return new Promise((resolve) => {
+      const t = setTimeout(() => resolve(quota()), 8000);
+      quotaWaiters.push((q) => { clearTimeout(t); resolve(q || quota()); });
+      if (!post({ type: 'stt-release', locales: ls })) { clearTimeout(t); resolve(quota()); }
+    });
+  }
 
   /**
    * 下载缺的资产。kind: 'stt'（系统识别器的语言包）| 'tts'（离线朗读模型）。
@@ -450,7 +479,7 @@ var NativeSpeech = (() => {
     post({ type: 'tts-stop' });
   }
 
-  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
+  return { CHANNEL, PROTOCOL, available, probe, probeResult, probeUrl, supportedLocales, quota, releaseSlots, ensureAssets, sttOpen, ttsProbe: ttsProbeRun, ttsLangs, systemVoice, speak, stop, _fromNative, diagAudio,
     lidProbe: lidProbeRun, ensureLid, onLid, lidLatest, lidPause, vadProbe: vadProbeRun, ensureVad, vadResult,
     networkKind, onNetwork };
 })();

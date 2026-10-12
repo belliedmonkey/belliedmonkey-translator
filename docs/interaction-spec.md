@@ -1428,7 +1428,7 @@ app 最大卡点」。
   随之撤出 —— `OB` 去掉 `'ext'`。
 - 离开首屏时仍记一次 `onboard_intent{goal:'listen'}`：首页的扩展横幅据此给「不要浏览器扩展」的
   人让路。`onboard_done{result:'web_only'}` 这个取值**不再产生**（枚举照留，用来收老客户端的行）。
-- **⚠️ 本次落地没有 OpenDesign 设计稿**：设计门当次卡住（三个 agent 分别撞限额 / 未登录 / 空手），
+- **⚠️ 本次落地没有 OpenDesign 设计稿（历史：OpenDesign 是 2026-10-08 之前的工具，现为 Pencil）**：设计门当次卡住（三个 agent 分别撞限额 / 未登录 / 空手），
   用户 2026-10-02 明确授权「先按产品意图落最小可用版」。**屏级正式文案（标题 / 正文）待出稿后替换** ——
   现用两个既有键（`ob_intent_listen` / `firstrun_packs_lede`），不新造 12 语种文案，也不新写布局。
 - **语音包页的语言对（2026-10-04，用户拍板）**：这一页加「**我的语言 / 对方的语言**」两个下拉，
@@ -1489,7 +1489,7 @@ app 最大卡点」。
 判据：`test/app-settings-layout.test.js`（静态四条）+ `test:app` 的「**320px × 全部语种**」探针
 （逐张 `.sgroup` 量 `scrollWidth <= clientWidth + 1`）。
 
-> **⚠️ 2026-10-03 记录：这一稿没有走 OpenDesign 的生成流水线。** 四次尝试全部失败 ——
+> **⚠️ 2026-10-03 记录（历史：OpenDesign，2026-10-08 前；现为 Pencil）：这一稿没有走 OpenDesign 的生成流水线。** 四次尝试全部失败 ——
 > Claude（周/月限额 429）、Codex（401 未登录）、Reasonix（跑完 `artifactCount:0`）、
 > opencode（stall 600s 超时）。画布是**人（agent）直接写进 OpenDesign** 的，
 > 因此「设计稿 → 人工签署」这一步的**审核对象是画布，不是 OD 生成物** —— 用户签的就是那份画布。
@@ -2607,13 +2607,13 @@ v1 不发任何事件；见 `docs/telemetry-design.md` §2。
 
 设计稿：`design/home-reorder-2026-10-01/od/`（初版）；**修订稿**：`design/home-reorder-2026-10-02-rev/od/`（`homepage-spec.html` 的 J14–J19 即本轮新增）。
 
-**2026-10-02 真机评审与签署**（ZHAO的iPhone · iPhone 14 Pro · iOS 27.0，逐屏截图）：三条视觉缺陷经 OpenDesign 出修订稿后，用户当日签署 ——
+**2026-10-02 真机评审与签署**（ZHAO的iPhone · iPhone 14 Pro · iOS 27.0，逐屏截图）：三条视觉缺陷经 OpenDesign（历史工具，2026-10-08 前）出修订稿后，用户当日签署 ——
 ① 两张主角卡**不等高**（听译卡标题折行把卡撑高）⇒ 卡高写死为**常量**（J15/J16）；
 ② 卡内实心 CTA 带是**空橙块** ⇒ 带与按钮**合成同一元素**、中英两个非空子节点（J17）；
 ③ 顶部「Safari extension isn't on yet」继续设置卡**挤占首屏** ⇒ 从首屏删除，降级为折叠线以下一行（J18/J19）。
 同次确认：首页**不留**系统翻译行（裁定 1 维持、J05 不变）；顶栏账号行收进 **44×44 圆形键**（设置/退出进它的菜单）。
 
-**设计与评审**（2026-10-01 起强制，见 `AGENTS.md`「Interaction / UX constraints」）：这一屏由 **OpenDesign** 出稿
+**设计与评审**（2026-10-01 起强制，见 `AGENTS.md`「Interaction / UX constraints」）：这一屏由 **OpenDesign**（历史工具，2026-10-08 前；现为 Pencil）出稿
 （画布 + iPhone/Mac 可点击原型 + 一页规格），**人工签署后**才写进本节。签署记录 —— 用户 2026-10-01 对设计稿四问的回答：
 
 1. **系统翻译的设置引导只放设置页** —— 不进首页、**也不进新手引导**（比设计稿问的那版更彻底）。

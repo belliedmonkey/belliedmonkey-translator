@@ -948,3 +948,48 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .docs { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 0; }
 .docs .modes-label { font-size: 0.85rem; color: var(--dim); padding: 0 4px; }
 .docs .mode { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); }
+
+/* ── 识别语言名额（第 5 轮 A / 改稿 H）────────────────────────────────────────
+   三种状态各自一个颜色（绿=占名额、橙=未就绪可补回、灰=未下载），名额条与图例
+   在首启包屏和设置「语言包」屏共用；底部的让出确认框也是同一套。 */
+.quota-card { background: var(--card-bg); border: 1.5px solid var(--line); border-radius: var(--radius-lg); padding: 14px 16px; margin: 0 0 12px; display: flex; flex-direction: column; gap: 8px; }
+.quota-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.quota-card-head span:first-child { font-weight: 700; }
+#packs-quota-used { color: var(--accent-deep); font-weight: 700; }
+.quota-bar { display: flex; gap: 6px; }
+.quota-seg { flex: 1 1 0; height: 8px; border-radius: 4px; background: var(--field); border: 1px solid var(--line); }
+.quota-seg.on { background: var(--sage-strong); border-color: var(--sage-strong); }
+.quota-seg.full { background: var(--accent-deep); border-color: var(--accent-deep); }
+.quota-card .note { margin: 0; }
+.quota-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin: 0 0 12px; font-size: 0.85rem; color: var(--text-secondary); }
+.quota-leg { display: inline-flex; align-items: center; gap: 6px; }
+.quota-leg i { width: 9px; height: 9px; border-radius: 50%; background: var(--text-secondary); display: inline-block; }
+.quota-leg.ready i { background: var(--sage-strong); }
+.quota-leg.recover i { background: var(--accent-deep); }
+.quota-leg.absent i { background: var(--text-secondary); opacity: .5; }
+.pack-line-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; margin-top: 6px; background: var(--text-secondary); opacity: .5; }
+.pack-line-dot[data-state="ready"] { background: var(--sage-strong); opacity: 1; }
+.pack-line-dot[data-state="recoverable"] { background: var(--accent-deep); opacity: 1; }
+.pack-line-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pack-line-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: var(--field); border: 1px solid var(--line); color: var(--text-secondary); white-space: nowrap; }
+.pack-line-tag.ready { background: var(--sage-light); border-color: var(--sage-strong); color: var(--sage-strong); }
+.pack-line-tag.recoverable { background: var(--field); border-color: var(--accent-deep); color: var(--accent-deep); }
+.pack-line-act { flex: none; min-height: 34px; padding: 4px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: none; color: var(--accent-deep); font: inherit; }
+.pack-line-act.recover { border-color: var(--accent-deep); color: var(--accent-deep); }
+.quota-sheet-back { position: fixed; inset: 0; background: rgba(0,0,0,.32); display: flex; align-items: flex-end; justify-content: center; z-index: 60; }
+.quota-sheet { background: var(--card-bg); color: var(--fg); width: 100%; max-width: 560px; border-radius: 18px 18px 0 0; padding: 18px 18px 22px; display: flex; flex-direction: column; gap: 10px; max-height: 86vh; overflow: auto; }
+.quota-sheet h3 { margin: 0; font-size: 1.05rem; }
+.quota-sheet .note { margin: 0; }
+.quota-sheet-pick { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.85rem; }
+.quota-pick { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line); }
+.quota-pick.disabled { opacity: .5; }
+.quota-pick input { width: 20px; height: 20px; flex: none; accent-color: var(--sage); }
+.quota-pick-name { flex: 1 1 auto; font-weight: 600; }
+.quota-pick-when { color: var(--text-secondary); font-size: 0.82rem; white-space: nowrap; }
+.quota-sheet-acts { display: flex; gap: 10px; margin-top: 6px; }
+.quota-sheet-acts button { flex: 1 1 0; min-height: 48px; }
+.listen-quota { display: flex; flex-direction: column; gap: 10px; }
+.listen-quota-title { margin: 0; font-weight: 700; }
+.listen-quota .note { margin: 0; }
+.listen-quota button { min-height: 48px; }
+.listen-pill.quota { background: var(--field); color: var(--accent-deep); border: 1px solid var(--accent-deep); }

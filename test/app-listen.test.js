@@ -839,7 +839,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     ok(/listen_lang_unsupported_revert/.test(MODEL), '回到上一对时没有说明');
   });
   test('失败按真实原因说：名额用满 / 识别包没装好 / 不支持，三句各不同', () => {
-    ok(/why1 === 'locales'[\s\S]{0,160}listen_need_locales/.test(MODEL), '名额用满没有专门文案');
+    // 第 5 轮 A8：名额用满（协议码 locales）不再拼进下载失败那句，改挂「名额已满」独立卡片，
+    // 出路是「让出一门并补回」。
+    ok(/why1 === 'locales'[\s\S]{0,200}setQuotaFull/.test(MODEL), '名额用满没有走「名额已满」那张卡片');
+    ok(/listen_quota_card_btn/.test(MODEL), '名额已满卡片没有「让出一门并补回」的出路');
     ok(/why1 === 'assets'[\s\S]{0,160}listen_lang_assets_missing/.test(MODEL), '「包没装好」没有与「不支持」分开说');
   });
   test('模型：自动跟随只认支持的语言；存量坏值读取时自愈', () => {

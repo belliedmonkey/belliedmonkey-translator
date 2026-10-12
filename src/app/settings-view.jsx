@@ -260,6 +260,15 @@ export default function SettingsView() {
     const a = L(curLangs.my), b = L(curLangs.other);
     return a === b ? [a] : [a, b];
   }
+  // 语言本名（改稿 H / C2）：设置页不许再画 zh-CN 这类 locale 码。注册表里有就写本名。
+  function endonymOf(code) {
+    const base = ListenCore.baseCode(code);
+    try {
+      const e = (Registry.langs() || []).find((l) => ListenCore.baseCode(l.code) === base);
+      if (e && e.label) return e.label;
+    } catch (_) {}
+    return base || String(code || '');
+  }
   async function paintListenPack() {
     const row = $('listen-pack-row'); if (!row) return;
     const bridge = typeof NativeSpeech !== 'undefined' && NativeSpeech.available();
@@ -277,11 +286,22 @@ export default function SettingsView() {
       state.textContent = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
       dl.hidden = true; return;
     }
+    // 本名 + 全部**占着名额**的语言（C2：原来只画当前这一对的 code，漏掉了已就绪的 ไทย）。
+    let ready = [];
+    try {
+      const q = (typeof NativeSpeech.quota === 'function') ? NativeSpeech.quota() : null;
+      for (const c of ((q && q.reserved) || [])) {
+        const b = ListenCore.baseCode(c);
+        if (b && ready.indexOf(b) < 0) ready.push(b);
+      }
+    } catch (_) {}
+    if (!ready.length && r.assets === 'installed') ready = locales.map((x) => ListenCore.baseCode(x)).filter(Boolean);
+    const names = ready.map(endonymOf);
     if (r.assets === 'installed') {
-      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', locales.join(' · '));
+      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', names.join(' · '));
       dl.hidden = true;
     } else {
-      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', locales.join(' · '));
+      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', names.join(' · '));
       dl.hidden = false; dl.textContent = t('listen_pack_dl', '下载');
     }
   }

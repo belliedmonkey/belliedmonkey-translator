@@ -112,6 +112,16 @@ func mtSupportedLocalesUnion() async -> [String] {
     return Array(Set(a).union(b)).sorted()
 }
 
+/// 识别语言名额的快照（第 5 轮 A2/改稿 H）：上限**读系统**（`maximumReservedLocales`，不要写死 5），
+/// 已占的预留读 `reservedLocales`（SDK 里它是 **async** getter）。JS 侧据此画「已用 N / 上限」。
+@available(iOS 26.0, macOS 26.0, *)
+func mtQuotaSnapshot() async -> (max: Int, reserved: [String]) {
+    let max = AssetInventory.maximumReservedLocales
+    let locales = await AssetInventory.reservedLocales
+    let res = locales.map { $0.identifier(.bcp47) }.sorted()
+    return (max, res)
+}
+
 /// 给 `AssetInventory` 用的探针模块：按上面选出来的那台转写器造一个。
 /// （资产按**模块**管理，所以探测也得用同一种模块，否则读到的状态不是它真会用的那份。）
 @available(iOS 26.0, macOS 26.0, *)
@@ -177,6 +187,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 MTDiagAudio.shared.disarm(sidecar: (body["sidecar"] as? String) ?? "")
             }
         case "stt-assets": sttAssets(locales: strings(body["locales"]), req: (body["req"] as? String) ?? "")
+        case "stt-release": sttRelease(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
         case "tts-probe":  speech.probe(models: body["models"], systemLangs: system.langs())
@@ -201,6 +212,26 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func strings(_ v: Any?) -> [String] { (v as? [Any])?.compactMap { $0 as? String } ?? [] }
+
+    /// 给一条消息带上名额快照（第 5 轮 A2）：上限与已占的预留都由系统当场报，JS 不写死。
+    @available(iOS 26.0, macOS 26.0, *)
+    private func withQuota(_ d: [String: Any]) async -> [String: Any] {
+        var m = d
+        let q = await mtQuotaSnapshot()
+        m["maxReserved"] = q.max
+        m["reserved"] = q.reserved
+        return m
+    }
+
+    /// 显式让出名额（第 5 轮 A5：「让出一门并补回」）。释放后回一条 `stt-quota`（不碰当前会话）。
+    private func sttRelease(locales: [String]) {
+        guard #available(iOS 26.0, macOS 26.0, *) else { return }
+        Task {
+            _ = await MTDeviceTranscriber.releaseExplicit(locales)
+            let q = await mtQuotaSnapshot()
+            self.emit(["type": "stt-quota", "maxReserved": q.max, "reserved": q.reserved])
+        }
+    }
 
     // MARK: - 地址可用性探测（learning-design §9.6.1.1）
 
@@ -240,16 +271,18 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req])
+                    self.emit(await self.withQuota(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req]))
                     return
                 }
+                // 第 5 轮 A1：状态查询（探针）占用的 locale 名额也要登记 —— 不登记就永远释放不掉。
+                MTDeviceTranscriber.noteReserved(id, pick.locale)
                 enginePicks.append((pick.kind == .dictation ? "dt:" : "st:") + id)
                 let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req])
+                    self.emit(await self.withQuota(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req]))
                     return
                 case .installed:
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed", "req": req])
@@ -258,7 +291,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing", "req": req])
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks, "req": req])
+            self.emit(await self.withQuota(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks, "req": req]))
         }
     }
 
@@ -272,9 +305,11 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语等靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "req": req])
+                    self.emit(await self.withQuota(["type": "stt-state", "state": "unsupported", "reason": "locale", "req": req]))
                     return
                 }
+                // 第 5 轮 A1：安装请求占用的名额同样登记，才能在第 6 门时被显式让出。
+                MTDeviceTranscriber.noteReserved(id, pick.locale)
                 let t = mtProbeModule(pick.kind, pick.locale)
                 // 诊断（2026-10-02）：真机上识别资产装不上时，屏上只剩「没动静」——这里把当场读到的
                 // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
@@ -302,11 +337,11 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": mtPrepareCode(error), "req": req])
                     // fail fast（2026-10-02）：以前这里直接 return，JS 只能干等满 120 s 超时（屏上只剩
                     // 「没动静」，真因不可见）；补一条带 assets 的 stt-state 立刻唤醒它，错误当场显示。
-                    self.emit(["type": "stt-state", "state": "ready", "assets": "missing", "req": req])
+                    self.emit(await self.withQuota(["type": "stt-state", "state": "ready", "assets": "missing", "req": req]))
                     return
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": "installed", "req": req])
+            self.emit(await self.withQuota(["type": "stt-state", "state": "ready", "assets": "installed", "req": req]))
         }
     }
 
@@ -398,11 +433,14 @@ final class MTDeviceTranscriber {
     /// （每次 `stt-start` 都新建一个 transcriber，旧那一对的 locale **从来没释放过**）。
     /// 规矩：**每次 start 之前先把不再用的释放掉，只留当前这一对**。
     private static let heldLock = NSLock()
-    private static var held: [String: Locale] = [:]
+    private static var held: [String: Locale] = [:]        // 会话（makeModule）占的
+    private static var reserved: [String: Locale] = [:]    // 探针/安装占的（第 5 轮 A1）
     private static func heldKey(_ code: String) -> String {
         String(code.lowercased().split(separator: "-").first ?? "")
     }
     /// 释放 `want` 之外的（**必须在建新模块之前调**：新模块自己也要占名额，先腾位置）。
+    /// 只动**会话**占的那一份：探针/安装占的那些归「让出一门」（`releaseExplicit`），
+    /// 在这里顺手放掉会把已就绪的语言打回 .supported（第 5 轮 A1 的硬约束）。
     static func releaseUnused(_ want: [String]) async {
         let keep = Set(want.map { heldKey($0) })
         heldLock.lock()
@@ -411,8 +449,29 @@ final class MTDeviceTranscriber {
         heldLock.unlock()
         for (_, loc) in drop { _ = await AssetInventory.release(reservedLocale: loc) }
     }
-    private static func noteHeld(_ code: String, _ locale: Locale) {
+    static func noteHeld(_ code: String, _ locale: Locale) {
         heldLock.lock(); held[heldKey(code)] = locale; heldLock.unlock()
+    }
+    /// 探针/安装碰过的 locale（第 5 轮 A1）：登记，好让「让出一门」能精确释放它。
+    static func noteReserved(_ code: String, _ locale: Locale) {
+        heldLock.lock(); reserved[heldKey(code)] = locale; heldLock.unlock()
+    }
+    /// 显式让出名额（改稿 H）：从两张表里取 locale，调用 `AssetInventory.release(reservedLocale:)`。
+    /// 返回真正释放的短码。**只在用户确认让出时调** —— 成功路径上释放会把 .installed 打回 .supported。
+    static func releaseExplicit(_ want: [String]) async -> [String] {
+        let keys = Set(want.map { heldKey($0) })
+        heldLock.lock()
+        var drop: [String: Locale] = [:]
+        for (k, v) in held where keys.contains(k) { drop[k] = v; held[k] = nil }
+        for (k, v) in reserved where keys.contains(k) { drop[k] = v; reserved[k] = nil }
+        heldLock.unlock()
+        for (_, loc) in drop { _ = await AssetInventory.release(reservedLocale: loc) }
+        return Array(drop.keys).sorted()
+    }
+    /// 此刻我们登记着的预留（诊断/测试读；系统真值仍以 `AssetInventory.reservedLocales` 为准）。
+    static func reservedKeys() -> [String] {
+        heldLock.lock(); defer { heldLock.unlock() }
+        return Array(Set(held.keys).union(reserved.keys)).sorted()
     }
 
     func start() {

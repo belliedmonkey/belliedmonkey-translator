@@ -1690,6 +1690,9 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"lid"', '"encoder"', '"decoder"', '"mt-lid"', '"mt.lid"', '"assets"', '"ms"',
       // 识别器装配失败的域判据（SFSpeechErrorDomain Code=11 = locale 名额用满，2026-10-07 批 28）。
       '"SFSpeechErrorDomain"', '"locales"', '"analyzer"',
+      // 识别语言名额（第 5 轮 A / 改稿 H，2026-10-12）：stt-release 让出、stt-quota 回名额快照，
+      // maxReserved/reserved 是 `AssetInventory.maximumReservedLocales` / `.reservedLocales` 的字段名。
+      '"stt-release"', '"stt-quota"', '"maxReserved"', '"reserved"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
       '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
       // 蜂窝确认（改稿 F，2026-10-11）：NWPathMonitor 只报接口种类，不报地址。

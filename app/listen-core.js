@@ -1410,6 +1410,20 @@ var ListenCore = (() => {
     function fire(c) {
       if (now() - lastEn <= waitMs) { diag('xfer-drop', { text: 'en-letter', rem: c.text }); return false; }
       if (d.canXfer && !d.canXfer(c)) { diag('xfer-drop', { text: 'not-ready', rem: c.text }); return false; }
+      // 第 5 轮（提案 §3.0 0-b，L2）：转交**进目标通道之前**同样过一遍回声闸 —— 以前候补绕过了
+      // intakeDecide 的 ①朗读中同语言硬闸 与 ③文字回声检查，于是「App 正读英文、中文路把读声收成
+      // she. / theafternew.」这类拉丁短句被原样转进英文通道，成了多余的行。目标语言恒为 en
+      // （canXfer 只放行这一路），但用 targetLang 注入以便测试与将来扩展。
+      const tgt = d.targetLang ? baseCode(d.targetLang(c)) : 'en';
+      const playing = d.playing ? d.playing() : null;
+      if (tgt && playing && typeof playing.has === 'function' && playing.has(tgt)) {
+        diag('xfer-echo', { text: 'speaking', rem: c.text }); return false;
+      }
+      if (d.isEcho) {
+        let hit = false;
+        try { hit = !!d.isEcho(c.text); } catch (_) { hit = false; }
+        if (hit) { diag('xfer-echo', { text: 'echo', rem: c.text }); return false; }
+      }
       diag('xfer', { text: c.text });
       if (d.onXfer) { try { d.onXfer(c.text, c.locale, c); } catch (_) {} }
       return true;
@@ -2257,6 +2271,92 @@ var ListenCore = (() => {
     }).join('\n\n');
   }
 
+  // ── 进度句填空（第 5 轮 C1）──────────────────────────────────────────────
+  // 「English下载中」「English已就绪」中间要补一个空格；汉字结尾不补。模板是各语言的，
+  // 判据只看「值最后一个字符」与「模板里紧挨着的那个字符」是不是分属拉丁 / 汉字。
+  function fillPrepDetail(tmpl, name, pct, ready) {
+    const s = String(tmpl == null ? '' : tmpl);
+    const pad = (val, at) => {
+      const v = String(val == null ? '' : val);
+      if (!v) return v;
+      const after = s.charAt(at);
+      if (after && !CJK_CHAR.test(v.slice(-1)) && CJK_CHAR.test(after)) return v + ' ';
+      return v;
+    };
+    const wi = s.indexOf('{what}');
+    const ri = s.indexOf('{ready}');
+    let out = s.replace('{pct}', String(pct));
+    if (wi >= 0) out = out.replace('{what}', pad(name, wi + '{what}'.length));
+    if (ri >= 0) out = out.replace('{ready}', pad(ready, ri + '{ready}'.length));
+    return out;
+  }
+
+  // ── 识别语言名额（改稿 H，第 5 轮 A）──────────────────────────────────────
+  // 三种状态：ready（占名额，资产 .installed）/ recoverable（装过、名额已让出，可补回）/
+  // absent（没装过）。真值来源：原生报的 reserved + 我们记住的 onceInstalled（本机持久化）。
+  // 「已用 N / 上限」的 N = reserved ∩ 本表语言（系统可能还有别模块的预留，不数进来）。
+  const QUOTA_STATES = ['ready', 'recoverable', 'absent'];
+  function quotaStateOf(code, o) {
+    const c = baseCode(code);
+    const p = o || {};
+    if (!c) return 'absent';
+    if ((p.reserved || []).map(baseCode).indexOf(c) >= 0) return 'ready';
+    if ((p.installed || {})[c]) return 'recoverable';
+    return 'absent';
+  }
+  function quotaRows(o) {
+    const p = o || {};
+    const reserved = (p.reserved || []).map(baseCode);
+    const max = Math.max(1, Number(p.max) || 5);
+    const rows = [];
+    let used = 0;
+    for (const item of (p.catalog || [])) {
+      const c = baseCode(typeof item === 'string' ? item : item && item.code);
+      if (!c) continue;
+      const st = quotaStateOf(c, { reserved, installed: p.installed });
+      if (st === 'ready') used++;
+      rows.push({ code: c, label: (item && item.label) || c, state: st, holds: st === 'ready' });
+    }
+    return { rows, used, max, full: used >= max };
+  }
+  // 满员时默认让出「最久没用」的那一门；当前语言对的两门永远不能选（改稿 H 第 3、5 张）。
+  function canYield(code, pair) {
+    const c = baseCode(code);
+    if (!c) return false;
+    return (pair || []).map(baseCode).indexOf(c) < 0;
+  }
+  function pickYield(reserved, pair, lastUsed) {
+    const lu = lastUsed || {};
+    let best = '', bestAt = Infinity;
+    for (const code of (reserved || [])) {
+      const c = baseCode(code);
+      if (!c || !canYield(c, pair)) continue;
+      const at = Number(lu[c]);
+      const v = Number.isFinite(at) ? at : 0;   // 没记录 = 最久（0），与「今天/昨天」档一致
+      if (v < bestAt) { bestAt = v; best = c; }
+    }
+    return best;
+  }
+  // 首启多选：已就绪的先占名额，其余按勾选顺序填到上限，超出的标 later（未就绪·第 N 门）。
+  function quotaSelectPlan(o) {
+    const p = o || {};
+    const max = Math.max(1, Number(p.max) || 5);
+    const reserved = (p.reserved || []).map(baseCode);
+    const installed = p.installed || {};
+    const sel = [];
+    for (const x of (p.selected || [])) { const c = baseCode(x); if (c && sel.indexOf(c) < 0) sel.push(c); }
+    const keep = [];
+    let used = 0;
+    for (const c of sel) { if (reserved.indexOf(c) >= 0) { keep.push(c); used++; } }
+    const later = [];
+    for (const c of sel) {
+      if (reserved.indexOf(c) >= 0) continue;
+      if (used < max) { keep.push(c); used++; }
+      else later.push({ code: c, state: installed[c] ? 'recoverable' : 'absent', nth: used + later.length + 1 });
+    }
+    return { keep, later, used, max };
+  }
+
   return {
     latencySummary,
 
@@ -2268,6 +2368,8 @@ var ListenCore = (() => {
     overlapTs,
     alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
     rescueLead, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
+    fillPrepDetail,
+    QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,
     lidBase, sideMatchesLid, langSupported,
 
     SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,

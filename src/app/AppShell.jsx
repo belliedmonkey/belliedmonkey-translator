@@ -160,6 +160,20 @@ function AppShell() {
       <section id="firstrun-packs" hidden>
         <h1 id="packs-title"></h1>
         <p className="lede" id="packs-lede"></p>
+        {/* 识别语言名额（第 5 轮 A3/改稿 H）：首启与设置都常显「已用 N / 上限」。 */}
+        <div className="quota-card" id="packs-quota" hidden>
+          <div className="quota-card-head">
+            <span id="packs-quota-label"></span>
+            <span id="packs-quota-used"></span>
+          </div>
+          <div className="quota-bar" id="packs-quota-bar" aria-hidden="true"></div>
+          <p className="note" id="packs-quota-note"></p>
+        </div>
+        <div className="quota-legend" id="packs-legend" hidden>
+          <span className="quota-leg ready"><i aria-hidden="true" /><span id="packs-legend-ready"></span></span>
+          <span className="quota-leg recover"><i aria-hidden="true" /><span id="packs-legend-recover"></span></span>
+          <span className="quota-leg absent"><i aria-hidden="true" /><span id="packs-legend-absent"></span></span>
+        </div>
         <div id="packs-body"></div>
         <p className="note" id="packs-foot"></p>
         <p className="note" id="packs-locked" hidden></p>
@@ -172,6 +186,22 @@ function AppShell() {
         <input type="hidden" id="packs-my-lang" />
         <input type="hidden" id="packs-other-lang" />
       </section>
+      {/* 满员让出的底部确认框（改稿 H 第 3 / 5b 张）：默认选「最久没用」，当前语言对不可选。
+          **放在 #firstrun-packs 之外** —— R6 红线是「每屏至多一个填色按钮」，这张框的主按钮
+          是第二个；它是浮层，不属于包屏那一屏。 */}
+      <div className="quota-sheet-back" id="packs-sheet" hidden>
+        <div className="quota-sheet" role="dialog" aria-modal="true">
+          <h3 id="packs-sheet-title"></h3>
+          <p className="note" id="packs-sheet-lede"></p>
+          <p className="quota-sheet-pick" id="packs-sheet-pick-label"></p>
+          <div id="packs-sheet-list"></div>
+          <div className="quota-sheet-acts">
+            <button id="packs-sheet-cancel" type="button" className="secondary"></button>
+            <button id="packs-sheet-go" type="button"></button>
+          </div>
+          <p className="note" id="packs-sheet-foot"></p>
+        </div>
+      </div>
       <section id="packs-cellular" hidden>
         <div className="packs-cell-card">
           <h2 id="packs-cell-title"></h2>

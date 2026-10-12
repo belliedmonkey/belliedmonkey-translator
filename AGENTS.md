@@ -2,6 +2,8 @@
 
 Guidance for AI agents working on this repo. (Format follows https://agents.md/.)
 
+做事前先读 docs/conventions-digest.md。
+
 ## Project overview
 
 「大肚猴翻译 / BelliedMonkey Translator」— an open-source browser extension for
@@ -135,7 +137,8 @@ these in order when designing anything new:
 ## Interaction / UX constraints
 
 **Interaction changes are Pencil-designed and human-reviewed before release (mandatory；稿子的工具
-自 2026-10-08 起是 Pencil，不再是 OpenDesign/OD。)**
+自 2026-10-08 起是 Pencil。OpenDesign/OD 是 2026-10-08 之前的**历史**工具，仅 `design/` 下的早期稿
+作历史参考，不要据它实现任何界面。)**
 
 Any change to how the product **looks or behaves on screen** — a new screen, a re-layout, a moved or
 restyled control, copy that changes what a surface promises — **must first be designed as a Pencil
@@ -150,6 +153,15 @@ Two corollaries, both load-bearing:
 - **The artifact under review is the Pencil draft, not the diff.** The `.pen` canvas is what a human
   approves; the implementation then has to match it — not the other way round. Internal diagnostic
   pages and developer switches are exempt (they are not user-visible).
+
+**The draft is produced by pen.dev's built-in AI — we write the requirement and review
+(2026-10-12).** A session does **not** draw the draft tool by tool. It writes the requirement, runs
+pen's CLI (`--in` an existing `.pen`, `--out` a **new** `.pen`, `--prompt` the requirement) to have
+the AI produce the draft, and reviews the result against the requirement. A draft that does not meet
+it goes back with the specific gaps, **at most 3 rounds**; if it still is not there, stop and report
+— do not hand-draw it into a "passing" draft. The canvas MCP is a fallback for troubleshooting /
+small tweaks only, never the draft path — see
+[`.claude/skills/pencil-draft/SKILL.md`](.claude/skills/pencil-draft/SKILL.md).
 
 **Every draft must cover every form factor the surface has — one column per variant (mandatory,
 2026-10-09 用户裁定；原话「以后都要求所有设计都这样」)。** The App is **one iOS binary for iPhone and
@@ -285,7 +297,7 @@ read from gbrain, never inferred from the repo.
 | What | Single source | How each host reads it |
 |---|---|---|
 | Instructions | [`AGENTS.md`](AGENTS.md) (primary) + [`CLAUDE.md`](CLAUDE.md) (host-neutral supplement) | Both hosts load `AGENTS.md` / `CLAUDE.md` from the project root, in that order. Reasonix *also* recognizes `REASONIX.md` — **do not create one**; a third copy is exactly the drift this table exists to prevent. |
-| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. |
+| Project skills | `.claude/skills/<name>/SKILL.md` | Claude Code reads its own directory; Reasonix treats `.claude/skills` as a **project skill root**. Keep `.reasonix/skills`, `.agents/skills` and `.agent/skills` empty — the same name in two roots is shadowing, not extension. **Exception (2026-10-12): symlinks under the user-level `~/.agents/skills/` that point at this repo's `.claude/skills/` are allowed** — that is how dsh auto-discovers the project skills. The repo tree's `.agents/skills` must still stay empty; never put a copy or a link there. |
 | MCP servers | project-root `.mcp.json` | Claude Code reads it natively at **project** scope; Reasonix reads a Claude-Code `.mcp.json` **as-is**. |
 
 The list of servers is in `.mcp.json` and nowhere else — do not restate it here, in
@@ -433,8 +445,10 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
   generate a `--macos-only` tree: its flat layout has no `Shared (App)`, which is
   the exact thing `scripts/sync-app-assets.js` patches, so nothing reaches it —
   the host app then ships the converter's 979-byte template instead of ours
-  (`dist-app/Main.html` is ~19.5 KB). That shipped in macOS 1.4.0/1.4.1/1.4.2.
-  `app:sync` now **fails loudly** on such a tree instead of printing "未生成，跳过".
+  (`dist-app/Main.html` is ~19.5 KB). That shipped in macOS 1.4.0/1.4.1/1.4.2 — **historical
+  version numbers (2026-08 及更早的读数，已过时)**; the current release baseline is
+  `docs/release-baseline-1.19.3.md`, and live store state is read from gbrain / ASC, never
+  from this repo. `app:sync` now **fails loudly** on such a tree instead of printing "未生成，跳过".
 - Archive from the command line with the platform's scheme (the script prints the
   exact invocation). Build numbers count per platform, but
   `CURRENT_PROJECT_VERSION` is written project-wide, so pass
@@ -453,7 +467,9 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
   `safari-project*/` is gitignored, i.e. purely local state, so the script is the
   only thing keeping it from drifting — an earlier version skipped all
   post-processing when the project already existed, and `MARKETING_VERSION` sat
-  at 1.0 while `package.json` reached 1.2.0.
+  at 1.0 while `package.json` reached 1.2.0 (**historical reading, 2026-08 及更早，
+  已过时**; current version authority is `package.json`, release baseline
+  `docs/release-baseline-1.19.3.md`).
 - Build numbers are **not** derived: App Store requires them to increase per
   platform, and iOS/macOS count separately. The script only writes
   `CURRENT_PROJECT_VERSION` when `BUILD_NUMBER=` is given; otherwise it keeps the

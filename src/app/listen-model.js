@@ -33,6 +33,7 @@ import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
+import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -71,7 +72,13 @@ const listenModel = (() => {
     probed: false, running: false, pct: 0, name: '', forCode: '', stalled: false,
     readyUntil: 0, flashUntil: 0, didDownload: false,
     assets: { asr: {}, tts: {}, lid: false, vad: false },
+    // 第 5 轮 A7/A8：名额已满（独立于下载失败 / 网络问题的一类）。
+    // null | { need, max, reserved, pick, lastUsed, sheetOpen, restoring }
+    quotaFull: null,
   };
+  // 名额本机记忆（装过 / 最后使用）的缓存：同步路径（halt / 行小字）也要能算「最久没用」。
+  let quotaMemCache = { installed: {}, lastUsed: {} };
+  let quotaNeedCode = '';   // 撞 Code=11 时「想用而没名额」的那门，给 halt 拼卡片用
   // 听译页补包的轮次。切语言就加一，上一轮的回调不再写卡片。
   let warmJob = 0;
   let warmTail = Promise.resolve();
@@ -753,17 +760,10 @@ const listenModel = (() => {
     const pad = (n && !CJK_RE.test(n.charAt(0)) && CJK_RE.test(head.slice(-1))) ? ' ' : '';
     return tmpl.replace('{lang}', pad + n);
   }
-  // 「English下载中」中间补一个空格。模板是各语言的，只在本名和紧挨着的字不是同一系时加。
+  // 「English下载中」「English已就绪」中间补一个空格。模板是各语言的，只在本名/就绪清单的
+  // 最后一个字符与紧挨着的字不是同一系时加。纯逻辑在 ListenCore.fillPrepDetail（可单测）。
   function fillPrepDetail(tmpl, name, pct, ready) {
-    const token = '{what}';
-    const i = String(tmpl).indexOf(token);
-    const n = String(name || '');
-    let what = n;
-    if (i >= 0) {
-      const after = tmpl.charAt(i + token.length);
-      if (n && after && !CJK_RE.test(n.slice(-1)) && CJK_RE.test(after)) what = n + ' ';
-    }
-    return tmpl.replace(token, what).replace('{pct}', String(pct)).replace('{ready}', ready);
+    return C.fillPrepDetail(tmpl, name, pct, ready);
   }
   function pttForceOn(side) {
     pttForce = { side, at: Date.now() };
@@ -847,6 +847,96 @@ const listenModel = (() => {
   // 进听译页、以及听译里改语言，都在后台把缺的包补上。不改相位、不开麦、下完也不自己开始。
   // 切语言不等上一轮结束才排队：先撤掉还挂着的那次 ensureAssets（否则它的 waiter 会把下一轮的
   // stt-state 一起吃掉），进度立刻换成新的一门，再排队跑正文。
+  // ── 识别语言名额（第 5 轮 A7/A8/A9 / 改稿 H）──────────────────────────────
+  function quotaSnapshot() {
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) return NativeSpeech.quota(); } catch (_) {}
+    return { max: 5, reserved: [] };
+  }
+  function quotaPairNow() {
+    return [C.baseCode(cfg && cfg.myLang), C.baseCode(cfg && cfg.otherLang)].filter(Boolean);
+  }
+  function quotaWhenText(code) {
+    const at = Number((quotaMemCache.lastUsed || {})[code]);
+    if (!Number.isFinite(at) || at <= 0) return t('firstrun_quota_never', '最久没用');
+    const days = Math.floor((Date.now() - at) / 86400000);
+    if (days >= 1) return t('firstrun_quota_days', '最久没用 · {n} 天前').replace('{n}', String(days));
+    return t('firstrun_quota_today', '今天用过');
+  }
+  // 名额满 ⇒ 挂起「让出一门并补回」卡片（独立于下载失败 / 网络问题）。
+  function setQuotaFull(need) {
+    const q = quotaSnapshot();
+    const pair = quotaPairNow();
+    const reserved = (q.reserved || []).filter(Boolean);
+    const pick = C.pickYield(reserved, pair, quotaMemCache.lastUsed) || '';
+    prep.quotaFull = { need: C.baseCode(need), max: q.max, reserved, pick, sheetOpen: false, restoring: false };
+    prep.running = false;
+    prep.stalled = false;
+    canvas.view('state');
+  }
+  function quotaView() {
+    const qf = prep.quotaFull;
+    if (!qf) return { shown: false, sheetShown: false };
+    const pair = quotaPairNow();
+    const rows = (qf.reserved || []).map((loc) => {
+      const code = C.baseCode(loc);
+      return { code, name: endonymOf(code), when: quotaWhenText(code), disabled: !C.canYield(code, pair), selected: qf.pick === code };
+    });
+    return {
+      shown: true,
+      need: qf.need,
+      needName: endonymOf(qf.need),
+      max: qf.max,
+      restoring: !!qf.restoring,
+      sheetShown: !!qf.sheetOpen,
+      rows,
+      pickName: endonymOf(qf.pick),
+      title: t('listen_quota_card_title', '还不能听 {lang}：识别语言已占满 {max} 门').replace('{lang}', endonymOf(qf.need)).replace('{max}', String(qf.max)),
+      sub: t('listen_quota_card_sub', '{lang} 装过，但名额让给了别的语言 —— 不是下载失败，跟网络也无关。').replace('{lang}', endonymOf(qf.need)),
+      btn: t('listen_quota_card_btn', '让出一门并补回'),
+      hint: t('listen_quota_card_hint', '约 1–2 秒 · 不用重新下载'),
+      sheetTitle: t('firstrun_quota_sheet_title', '识别语言已满 {max} 门').replace('{max}', String(qf.max)),
+      sheetLede: t('listen_quota_sheet_lede', '要用 {lang}，需要先让出一门。').replace('{lang}', endonymOf(qf.need)),
+      go: t('listen_quota_sheet_go', '让出 {yield} · 补回 {need}').replace('{yield}', endonymOf(qf.pick)).replace('{need}', endonymOf(qf.need)),
+      cancel: t('firstrun_quota_cancel', '取消'),
+    };
+  }
+  function quotaOpenSheet() { if (prep.quotaFull) { prep.quotaFull.sheetOpen = true; canvas.view('state'); } }
+  function quotaCloseSheet() { if (prep.quotaFull) { prep.quotaFull.sheetOpen = false; canvas.view('state'); } }
+  function quotaPick(code) {
+    if (!prep.quotaFull) return;
+    if (!C.canYield(code, quotaPairNow())) return;
+    prep.quotaFull.pick = C.baseCode(code);
+    canvas.view('state');
+  }
+  // A9：补回期间已就绪的一侧照常能说 —— 只动「需要的那门」，另一侧的状态不碰。
+  async function quotaYieldAndRestore() {
+    const qf = prep.quotaFull;
+    if (!qf || qf.restoring) return;
+    qf.restoring = true;
+    canvas.view('state');
+    try {
+      if (typeof NativeSpeech !== 'undefined' && NativeSpeech.releaseSlots) {
+        await NativeSpeech.releaseSlots([C.toLocale(qf.pick)]);
+      }
+      ASRQuota.markInstalled(quotaMemCache, [qf.pick]);   // 让出后仍是「装过」= 可补回
+      ASRQuota.saveInstalled(quotaMemCache);
+      prep.assets.asr[qf.pick] = false;                   // release 会把 .installed 打回 .supported
+    } catch (_) {}
+    const need = qf.need;
+    prep.quotaFull = null;
+    prep.assets.asr[need] = false;
+    canvas.view('state');
+    warmPacks();
+  }
+  // 记一次「这门被用于听译」（满员让出默认按它选）。
+  async function noteLangsUsed(codes) {
+    try {
+      const at = Date.now();
+      ASRQuota.noteUsed(quotaMemCache.lastUsed, codes, at);
+      for (const c of codes) { const b = C.baseCode(c); if (b) quotaMemCache.lastUsed[b] = at; }
+    } catch (_) {}
+  }
+
   async function warmPacks() {
     const job = ++warmJob;
     if (inflight && inflight.cancel) inflight.cancel();
@@ -902,7 +992,20 @@ const listenModel = (() => {
     canvas.view('state');
     const missingBase = !(prep.assets.lid && prep.assets.vad);
     const missingAsr = langs.filter((c) => !prep.assets.asr[c]);
-    if (!missingBase && !missingAsr.length) { prep.running = false; prep.stalled = false; return; }
+    if (!missingBase && !missingAsr.length) { prep.running = false; prep.stalled = false; prep.quotaFull = null; return; }
+    // 第 5 轮 A7/A8：名额满、而且需要的那门不在系统预留里 ⇒ 不硬下（会撞 Code=11），
+    // 显示「名额已满」这张独立卡片，出路是「让出一门并补回」。已就绪的一侧照旧能说（A9）。
+    if (missingAsr.length) {
+      const q = quotaSnapshot();
+      const reserved = (q.reserved || []).map(C.baseCode);
+      const notReserved = missingAsr.filter((c) => reserved.indexOf(C.baseCode(c)) < 0);
+      if (notReserved.length && reserved.length >= q.max) {
+        try { quotaMemCache = await ASRQuota.readMemory(); } catch (_) {}
+        setQuotaFull(notReserved[0]);
+        return;
+      }
+    }
+    prep.quotaFull = null;
     prep.running = true;
     prep.didDownload = true;
     prep.stalled = false;
@@ -949,6 +1052,13 @@ const listenModel = (() => {
         if (warmJob !== job) return;
         const bad = dl.find((x) => !x.ok);
         if (bad) {
+          // A8：Code=11（原生协议码 'locales'）归「名额已满」，不按下载失败/网络说。
+          if (bad.reason === 'locales') {
+            try { quotaMemCache = await ASRQuota.readMemory(); } catch (_) {}
+            const bn = (bad.code && endonymOf(bad.code)) || '';
+            setQuotaFull(bn);
+            return;
+          }
           prep.stalled = true;
           prep.readyUntil = 0;
           return;
@@ -995,6 +1105,7 @@ const listenModel = (() => {
     // 重试必须**真的重新发起**（第 4 轮问题 2）：清掉这一门缓存的结论、撤掉还挂着的那次
     // ensureAssets，再走和进场/切语言同一条「探针 → 缺则 ensureAssets（重发 stt-assets）」的路。
     // 原来 `if (!prep.stalled) return;` + 只重探针 ⇒ 探针结论过时的时候点了等于没点。
+    prep.quotaFull = null;   // 名额已满那张卡片有自己的出路（让出一门并补回）；重试先撤掉它
     if (prep.forCode) prep.assets.asr[prep.forCode] = false;
     prep.stalled = false;
     if (inflight && inflight.cancel) { try { inflight.cancel(); } catch (_) {} }
@@ -1119,6 +1230,10 @@ const listenModel = (() => {
   function pttHintFor(chrome, lang) {
     if (chrome.hint === 'preparing') {
       const code = FirstRun.baseCode(lang);
+      // A7：这一侧正是「名额已满」想要的那门 ⇒ 小字说名额，不是「下载 0%」。
+      if (prep.quotaFull && prep.quotaFull.need === code) {
+        return t('listen_ptt_quota_full', '名额已满 · 让出一门才能用');
+      }
       // 百分比只属于正在下的那一门。另一侧不许借走上一门留下的 100。
       const pct = (prep.forCode && code === prep.forCode) ? (prep.pct || 0) : 0;
       return t('listen_ptt_preparing', '准备中 · {lang} 下载 {pct}%')
@@ -1251,6 +1366,10 @@ const listenModel = (() => {
       now: () => Date.now(), setTimeout, clearTimeout, waitMs: C.SEG_IDLE_MS,
       onDiag: (kind, extra) => routerDiag(kind, extra),
       canXfer: () => C.baseCode(lidPair()) === 'en' && useSeg() && !!sock,
+      // 第 5 轮 0-b：转交执行前按目标语言再过一遍**同一道回声闸**（朗读中同语言硬闸 + 文字回声）。
+      targetLang: () => 'en',
+      playing: () => echo.playingLangs(Date.now()),
+      isEcho: (s) => echo.isEcho(s, Date.now()),
       onXfer: (text, locale, cand) => {
         if (myGen !== gen || !text) return;
         // R15：候补转交已经等过那一次空闲（transfer gate 的 waitMs = SEG_IDLE_MS），
@@ -1745,12 +1864,24 @@ const listenModel = (() => {
       if (phase !== 'preparing') return false;
       if (!r.ok) { halt('device', r.reason || ''); return false; }
       if (!FirstRun.asrInstalled(r)) {
-        phase = 'downloading';
-        const codes = [];
+        const codes0 = [];
         for (const loc of locales) {
           const code = FirstRun.baseCode(loc);
-          if (code && codes.indexOf(code) < 0) codes.push(code);
+          if (code && codes0.indexOf(code) < 0) codes0.push(code);
         }
+        // A7：名额满、且这门口还没占名额 ⇒ 不开下（Code=11 的来源），显示「名额已满」卡片。
+        const q0 = quotaSnapshot();
+        const reserved0 = (q0.reserved || []).map(C.baseCode);
+        const need0 = codes0.filter((c) => reserved0.indexOf(c) < 0);
+        if (need0.length && reserved0.length >= q0.max) {
+          try { quotaMemCache = await ASRQuota.readMemory(); } catch (_) {}
+          setQuotaFull(need0[0]);
+          phase = 'idle';
+          canvas.view('state');
+          return false;
+        }
+        phase = 'downloading';
+        const codes = codes0;
         const job = ++warmJob;
         const first = endonymOf(codes[0]);
         dlPct = 0; dlLang = first; prep.name = first; prep.pct = 0; prep.forCode = codes[0] || '';
@@ -1774,6 +1905,13 @@ const listenModel = (() => {
         if (warmJob !== job) return false;
         const bad = dl.find((x) => !x.ok);
         if (bad) {
+          if (bad.reason === 'locales') {
+            // A8：Code=11 ⇒ 「名额已满」这张独立卡片（不是下载失败、也不是网络问题）。
+            try { quotaMemCache = await ASRQuota.readMemory(); } catch (_) {}
+            quotaNeedCode = bad.code || codes[0] || '';
+            if (phase === 'downloading') halt('device', 'locales');
+            return false;
+          }
           if (phase === 'downloading') halt('assets', bad.stalled ? 'timeout' : (bad.reason || 'download'));
           return false;
         }
@@ -1905,6 +2043,8 @@ const listenModel = (() => {
     }
     openSocket();
     canvas.view('state');
+    // 记「这门被用于听译」——满员时默认让出「最久没用」的那门按它算（改稿 H）。
+    try { noteLangsUsed([cfg && cfg.myLang, cfg && cfg.otherLang]); } catch (_) {}
     startedAt = now();
     await keepAliveOn();
     if (phase !== 'preparing') return;   // 等保活的这一拍里被停掉了
@@ -1995,6 +2135,10 @@ const listenModel = (() => {
     if (inc) inc.reset();
     clearPartials();
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
+    // A8：Code=11（协议码 'locales'）是「名额已满」，独立卡片；不拼进下载失败那句。
+    if (why1 === 'locales') {
+      try { setQuotaFull(quotaNeedCode || (cfg && cfg.otherLang) || (cfg && cfg.myLang)); } catch (_) {}
+    }
     const msg = reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
         ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
@@ -2008,12 +2152,12 @@ const listenModel = (() => {
       // 失败原因**按协议码**翻成人话（原生送的是 offline/http/sha/load，不是系统原文）——
       // 真机批 28 上这里把 `Error Domain=SFSpeechErrorDomain Code=11 "Too many allocated locales"`
       // 原样拼进「多半是网络问题」，既看不懂、又说错了原因。
-      : reason === 'assets' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。')
+      : reason === 'assets' && why1 !== 'locales' ? t('listen_assets_failed2', '离线模型下载失败：{why} — 再点一次「开始听」重试。')
         .replace('{why}', (typeof LearnTTS !== 'undefined' && LearnTTS.reason) ? LearnTTS.reason(why1, t) : why1)
-      // 识别器的语言名额用满（Apple 每 App 上限 5 个）：**与网络无关**，别按网络说
-      // （2026-10-07 真机批 28：来回切语言之后点「开始听」就撞上 Code=11）。
+      // 识别器的语言名额用满（Apple 每 App 上限由系统报）：**与网络无关**。第 5 轮起改由
+      // 「名额已满」卡片说（含让出出路），这里不再印一句会误导的说明。
       : (reason === 'device' || reason === 'socket') && why1 === 'locales'
-        ? t('listen_need_locales', '本机识别器一次最多只能开 5 种语言，已经占满了 — 退出听译再进一次就好。')
+        ? ''
       // 「设备说支持、但它的识别包还没装好」是另一种情况（2026-10-07 查实：probe 回
       // `{ok:true, assets:"missing"}`）—— 以前一律说成「不支持这门语言」，用户以为系统没有它。
       : (reason === 'device' || reason === 'socket') && why1 === 'assets'
@@ -2491,6 +2635,8 @@ const listenModel = (() => {
     return null;
   }
   function pillView() {
+    // A7：名额已满是独立的一类，胶囊直接写它（不写成下载失败/网络）。
+    if (prep.quotaFull) return { text: t('listen_pill_quota_full', '名额已满'), live: false, quota: true };
     const early = prepPill();
     if (!session) return early;
     const ms = C.listenedMs(session, now());
@@ -2796,6 +2942,8 @@ const listenModel = (() => {
       setOpenEnginePicker(() => opts.openSettings('stt-engine'));
     }
     refreshEntry();
+    // 名额本机记忆（装过 / 最后使用）先读一次，供满员让出的默认选择用。
+    try { ASRQuota.readMemory().then((m) => { quotaMemCache = m || quotaMemCache; }); } catch (_) {}
     try {
       chrome.storage.onChanged.addListener((changes, area) => {
         if (area && area !== 'local') return;
@@ -2822,6 +2970,8 @@ const listenModel = (() => {
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
     copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
     retryPacks,
+    // 名额已满（第 5 轮 A7/A8/A9 / 改稿 H）：卡片、底部确认框、让出并补回
+    quotaView, quotaOpenSheet, quotaCloseSheet, quotaPick, quotaYieldAndRestore,
     // 收音（点一下开 / 停；改稿 D）；listen-view 的点击事件 → 状态机
     pttToggle, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）

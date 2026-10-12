@@ -4509,7 +4509,7 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 | Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
 | `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
 | `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
-| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **unchanged** — the China flavor sends nothing, so the sentence stays true |
+| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **no anonymous usage events**, so that sentence stays true; but since 2026-10-06 (L2) the China flavor ships the separately-disclosed, content-free diagnostic upload (no original text, no translation), so the page must be reworded in the same version (#569) rather than an unqualified 「不随版本变化」 |
 | `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
 | Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
 
@@ -4714,7 +4714,7 @@ I-1…I-8 一行未写、且带外部风险（新能力首次出包、审核）�
 - **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
   server-side model is a *new* capability, not a conversion, which is the only reason
   it is permitted.
-- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** — it ships the
+- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** ~~（旧口径，**已被 `docs/learning-design.md` §9.4 与 §12 的 2026-08-12 三审收窄取代**：否定的是「录音离开用户自选端点」，不是「一切 ASR」；「学习层永不转写页面音视频」仍然成立）~~ — it ships the
   user's recordings to vendor servers (Chrome→Google, Safari→Apple), which the
   "nothing you said or read leaves the device unasked" promise cannot absorb. **The page-media rule is also unchanged**: the
   learning layer consumes transcripts that already exist; it never transcribes page
@@ -4775,7 +4775,7 @@ matters more than the detail.
 | 2026-08-12 | 浏览器原生 `SpeechRecognition` 做说题评测（三审） | 维持否决：录音送厂商服务器（Chrome→Google、Safari→Apple）不可接受，永不使用。但三审把「ASR 一律出局」收窄为「录音离开用户自选端点即出局」——**BYO-key 转写路径解禁**：录音只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃，与 BYO-key 翻译/TTS 同一信任形状（§5.4、§9.4、§10 Gate C、§11） |
 | 2026-08-12 | 知识点 × 技能全矩阵掌握标准 | 解析面每句最多 8 词 + 4 短语 + 1 语法点，×4 技能 ≈ 50 格——实际不可达，且需要知识点级存储与同步。改为句子 × 四技能矩阵（4 格）+ 出题时知识点确定性轮换取材（§5.4）；词汇不单独考排的边界（§5.2、§11）不动 |
 | 2026-08-12 | 题包并入解析 prompt（一次调用两用） | 会 bump notes 的 `PROMPT_VERSION`、全量作废所有用户已付费缓存的解析并重复扣费——§9.2 的版本纪律只允许纠错时升版。题包独立模块、独立 `PACK_VERSION`（§9.3） |
-| 2026-08-17 | ~~播客模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`）~~ **已推翻 2026-08-24，见 §9.5「后台与锁屏播放」** | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖播客主场景；后台桥列为后续独立议题（§9.5）。<br>**推翻理由（2026-08-24）**：①「已覆盖主场景」是错的 —— 用户实际报的就是「退出 App 就不播了」，支架 + 屏幕常亮覆盖的是坐在车里盯着手机的那一小半；②原生代码的代价被降下来了：Swift 不再是拼在 JS 字符串里的一坨，而是仓库里一份真文件 `app/native/audio-bridge.swift` + `app:sync` 的**标记块整块替换**，可读、可 diff、可测；③「后续独立议题」本来就是把它挂起来等一个专门的评审，这次就是那个评审 |
+| 2026-08-17 | ~~播客模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`）~~ **已被 `docs/learning-design.md` §9.5「后台与锁屏播放」取代**（推翻于 2026-08-24），本行只作历史 | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖播客主场景；后台桥列为后续独立议题（§9.5）。<br>**推翻理由（2026-08-24）**：①「已覆盖主场景」是错的 —— 用户实际报的就是「退出 App 就不播了」，支架 + 屏幕常亮覆盖的是坐在车里盯着手机的那一小半；②原生代码的代价被降下来了：Swift 不再是拼在 JS 字符串里的一坨，而是仓库里一份真文件 `app/native/audio-bridge.swift` + `app:sync` 的**标记块整块替换**，可读、可 diff、可测；③「后续独立议题」本来就是把它挂起来等一个专门的评审，这次就是那个评审 |
 | 2026-08-17 | 播客模式朗读选择题/挖空题（念选项作答） | 念四个选项让人凭记忆比对，测的是短时记忆不是技能，客观结果也无从约束评分——不诚实。v1 唯一题型是跟读，它是四技能中唯一手眼全免提的形态（§9.5） |
 | 2026-08-18 | 播客模式里的跟读题（免提推进真实学习进度） | **录音窗口的存在必然打断连续播放**，而连续播放是「开车时听」的全部内容。一个每张卡都停下来等你说话的播放器不是播放器。学习层的写路径全部留在复习页——那里用户看得见自己在给什么打分（§9.5） |
 | 2026-08-18 | 播客模式里的语音问答（卡末「有没有疑问？」） | 同上：它要求一个录音窗口，且把一次被动收听变成一连串需要应答的提示。免提问答本身仍是好想法，但它属于一个独立的语音助手形态，不属于播放器（§9.5） |

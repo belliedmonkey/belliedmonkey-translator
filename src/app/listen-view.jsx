@@ -244,6 +244,7 @@ export function ListenView() {
   const mv = listenModel.modeView();
   const pill = listenModel.pillView();
   const nv = listenModel.nowView();
+  const qv = listenModel.quotaView();
   const ev = listenModel.ephemeralView();
   const tv = listenModel.toggleView();
   const fv = listenModel.formView();
@@ -279,7 +280,7 @@ export function ListenView() {
       <div className="listen-head">
         <button id="app-listen-back" className="link" type="button" onClick={listenModel.leave}>{t('app_listen_back', '‹ 返回')}</button>
         <h2 id="app-listen-title">{mv.title}</h2>
-        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '')} hidden={!(pill && pill.text)}>{pill ? pill.text : ''}</span>
+        <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '') + (pill && pill.quota ? ' quota' : '')} hidden={!(pill && pill.text)}>{pill ? pill.text : ''}</span>
       </div>
       {/* 顶部那行语言行已删（改稿 E）：语言对只由控制区那个胶囊表达，不再说两遍。 */}
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
@@ -302,6 +303,18 @@ export function ListenView() {
         </div>
         <button id="app-subs-float" type="button" className="link" hidden={!listenModel.pipFloatShown()} onClick={listenModel.floatBtn}>{mv.pipFloatLabel}</button>
       </div>
+      {/* 名额已满（第 5 轮 A7 / 改稿 H 第 5 张）：独立一类，跟下载失败、网络问题分开。
+          出路永远是「让出一门并补回」；已就绪的一侧照常能说（A9）。 */}
+      {qv.shown && (
+        <div className="drive-card listen-quota" id="app-listen-quota">
+          <p className="listen-quota-title" id="app-listen-quota-title">{qv.title}</p>
+          <p className="note" id="app-listen-quota-sub">{qv.sub}</p>
+          <button id="app-listen-quota-btn" type="button" onClick={listenModel.quotaOpenSheet} disabled={qv.restoring}>
+            {qv.restoring ? t('firstrun_quota_working', '正在补回…') : qv.btn}
+          </button>
+          <p className="note" id="app-listen-quota-hint">{qv.hint}</p>
+        </div>
+      )}
       <div id="app-listen-history-wrap" className="drive-card listen-history-wrap">
         <div className="listen-now-head">
           <span id="app-listen-history-title">{hv.title}</span>
@@ -407,6 +420,32 @@ export function ListenView() {
           <button id="app-listen-flip-back" type="button" onClick={listenModel.closeShow}>{t('listen_close', '关闭')}</button>
         </div>
       </div>
+
+      {/* 让出一门并补回 · 底部确认框（改稿 H 第 5b 张）：默认选「最久没用」，当前语言对不可选。 */}
+      {qv.shown && qv.sheetShown && (
+        <div className="quota-sheet-back" id="app-listen-quota-sheet"
+          onClick={(e) => { if (e.target === e.currentTarget) listenModel.quotaCloseSheet(); }}>
+          <div className="quota-sheet" role="dialog" aria-modal="true">
+            <h3 id="app-listen-quota-sheet-title">{qv.sheetTitle}</h3>
+            <p className="note" id="app-listen-quota-sheet-lede">{qv.sheetLede}</p>
+            <p className="quota-sheet-pick">{t('firstrun_quota_sheet_pick', '选一门让出（默认：最久没用）')}</p>
+            <div id="app-listen-quota-sheet-list">
+              {qv.rows.map((r) => (
+                <label key={r.code} className={'quota-pick' + (r.disabled ? ' disabled' : '')}>
+                  <input type="radio" name="listen-quota-yield" checked={r.selected} disabled={r.disabled}
+                    onChange={() => listenModel.quotaPick(r.code)} />
+                  <span className="quota-pick-name">{r.name}</span>
+                  <span className="quota-pick-when">{r.disabled ? t('firstrun_quota_in_use', '当前语言对 · 不能让出') : r.when}</span>
+                </label>
+              ))}
+            </div>
+            <div className="quota-sheet-acts">
+              <button type="button" className="secondary" id="app-listen-quota-cancel" onClick={listenModel.quotaCloseSheet}>{qv.cancel}</button>
+              <button type="button" id="app-listen-quota-go" onClick={listenModel.quotaYieldAndRestore} disabled={qv.restoring || !qv.pickName}>{qv.go}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
