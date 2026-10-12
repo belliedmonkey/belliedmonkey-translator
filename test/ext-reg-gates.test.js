@@ -37,6 +37,9 @@ describe('扩展端发布面（X 组）', () => {
   });
 
   test('X10 三个 dist 比 HEAD 新（G-01）', () => {
+    // 守的是发版机上「出包前忘了重建」。CI 的 npm test 那一格从不构建（构建在另一个 job），
+    // 产物在那里按设计就不存在 —— 判它红只会让 main 永远红，红着的 CI 等于没有 CI。
+    if (process.env.CI) return;
     const headMs = Number(sh('git', ['log', '-1', '--format=%ct']).trim()) * 1000;
     for (const d of ['dist', 'dist-china', 'dist-firefox']) {
       const p = path.join(ROOT, d, 'manifest.json');
