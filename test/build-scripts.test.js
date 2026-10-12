@@ -1654,6 +1654,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"com.apple.voice."', '"ttsbundle"', '"com.apple.eloquence."', '"com.apple.speech.synthesis.voice."',
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
+      // 第 4 轮：请求 id（stt-probe / stt-assets 与它们的终态一一对应，防跨轮串话）。协议字段名，非文案。
+      '"req"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
       '"tokens"', '"dataDir"', '"files"', '"path"', '"url"', '"sha256"', '"size"',
       // 引擎类型（2026-10-03，高质量语音）：清单里的 `type` 值与 Kokoro 多出来的字段名 ——

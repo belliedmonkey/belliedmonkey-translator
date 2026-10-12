@@ -240,9 +240,10 @@ const listenModel = (() => {
   function liveCapable() { return deviceBridge() && NativeSpeech.probeResult().ok; }
   // 不可用的原因只有两句、互斥：系统太旧（桥回 os / 无桥）或语言不支持（桥回 locale）。
   // 都不是配置问题 —— 所以没有「去设置里选择 →」。
-  function unavailableReason() {
+  // `probe` 参数：refreshEntry 直接用**本 round 的探针结论**，不回读全局缓存（并发探针会互相覆盖）。
+  function unavailableReason(probe) {
     if (!deviceBridge()) return 'os';
-    const r = NativeSpeech.probeResult();
+    const r = probe || NativeSpeech.probeResult();
     return r.ok ? '' : (r.reason === 'locale' ? 'locale' : 'os');
   }
   function needText(reason) {
@@ -259,14 +260,19 @@ const listenModel = (() => {
   const entryState = { '': null, '2': null };
   async function refreshEntry() {
     let ok = false;
+    let probe = null;
     try {
       const c = await readCfg();
-      // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门
-      if (deviceBridge()) await NativeSpeech.probe(deviceLocales(c));
-      ok = liveCapable();
+      // 先探桥（旧系统 / 语言不支持 / 资产缺失都在这里得到具名答案），再判门。
+      // **用 probe() 的返回值**，不 `probeResult()` 回读全局：并发探针（首启包屏的逐门探针）
+      // 会把全局结论换成别的 round 的（第 4 轮问题 1/4）。
+      probe = deviceBridge() ? await NativeSpeech.probe(deviceLocales(c)) : null;
+      ok = deviceBridge() && !!(probe && probe.ok);
     } catch (_) { ok = false; }
     try { canvas.view('langs'); } catch (_) {}   // 探到支持的语种清单 ⇒ 下拉只列支持的
-    const reason = ok ? '' : unavailableReason();
+    // 探针没落定（超时）**不是**「不可用」：保留上一次入口状态，别把已就绪的入口灰掉。
+    if (probe && probe.reason === 'timeout' && entryState['']) return;
+    const reason = ok ? '' : unavailableReason(probe);
     // 门没过：入口**灰掉 + 一句原因**（用户 09-07 裁定 A），而不是消失 —— 灰掉更容易被发现，
     // 也回答了「这个按钮为什么不能用」。播客模式仍按它自己的规矩（门不过不存在）。
     // 2026-09-17 起原因只有两句（系统 / 语言），都不是配置问题 ⇒ 「去设置里选择 →」常藏。
@@ -986,8 +992,13 @@ const listenModel = (() => {
     return Promise.race([promise, timeout]).finally(() => { if (timer) clearTimeout(timer); });
   }
   function retryPacks() {
-    if (!prep.stalled) return;
+    // 重试必须**真的重新发起**（第 4 轮问题 2）：清掉这一门缓存的结论、撤掉还挂着的那次
+    // ensureAssets，再走和进场/切语言同一条「探针 → 缺则 ensureAssets（重发 stt-assets）」的路。
+    // 原来 `if (!prep.stalled) return;` + 只重探针 ⇒ 探针结论过时的时候点了等于没点。
+    if (prep.forCode) prep.assets.asr[prep.forCode] = false;
     prep.stalled = false;
+    if (inflight && inflight.cancel) { try { inflight.cancel(); } catch (_) {} }
+    inflight = null;
     warmPacks();
   }
   /** 点一下：开 / 停收音（改稿 D 的核心）。返回 false = 没接（字幕模式 / 设备不支持 / 这一侧还没下好）。 */
@@ -2087,6 +2098,9 @@ const listenModel = (() => {
     seg = null; segDegrade = false; segSpeakN = 0;
     $('app-listen').hidden = true;   // shell 级直写（JSX 恒 true，React 不覆盖 —— 头注释）
     $(cameFrom).hidden = false;
+    // 回首页时把入口状态按**当下的系统真实资产状态**重算一次（第 4 轮问题 1）：会话期间
+    // 的探针（切语言触发的 storage 变更）可能留下过时结论，离开不重算就会把入口钉成灰的。
+    try { await refreshEntry(); } catch (_) {}
   }
   // m === 'subtitle' 打开实时字幕（§9.8）：先停在准备态，点「开始」才开始（画布 M3 / I2）；
   // 其余（含点击事件对象）一律是对话，照旧一进来就开始听。
@@ -2793,7 +2807,12 @@ const listenModel = (() => {
     if (bridged()) NativeAudio.onEvent(onNative);
     // tick（尖刺 S3）：主窗口隐藏时页面计时器被钳到 1 Hz，时钟改吃原生每 250 ms 一条的 tick
     if (bridged() && NativeAudio.onTick) NativeAudio.onTick(() => { if (document.hidden && session && phase !== 'ended') paintClock(); });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && session) paint(); });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) return;
+      if (session) paint();
+      // 回前台且没在会话里：入口按系统真实资产状态重算（第 4 轮问题 1/2，不靠一次性缓存）。
+      else refreshEntry();
+    });
   }
 
   return {

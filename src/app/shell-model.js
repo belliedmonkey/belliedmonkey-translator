@@ -673,6 +673,15 @@ export function bootShell() {
     if (id.indexOf('asr:') === 0 && asrLangReady(id.slice(4))) return { phase: 'ready', pct: 100 };
     return { phase: packPhase === 'downloading' ? 'queued' : '', pct: 0 };
   }
+  // 「还剩 N 项」要数的行 = 这一屏真的画出来、且被选中的那些（与 paintPackBody 同一份清单）。
+  // 未选中的识别语言行、没勾的朗读行都不在内；base 恒在（必需）。
+  function packRowIds() {
+    const ids = ['base'];
+    if (FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined)) ids.push('tts:zh-en');
+    if (packThaiTts && packLangs.indexOf('th') >= 0) ids.push('tts:th');
+    for (const code of packLangs) { const c = FirstRun.baseCode(code); if (c) ids.push('asr:' + c); }
+    return ids;
+  }
 
   function paintPackChrome(ui) {
     const sec = $('firstrun-packs');
@@ -713,7 +722,7 @@ export function bootShell() {
     if (privacy) privacy.textContent = t('firstrun_packs_lede', '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
     const go = $('packs-go');
     if (go) {
-      const remain = Object.keys(packRows).filter((id) => packRows[id] && packRows[id].phase !== 'ready' && packRows[id].phase !== 'unselected').length;
+      const remain = PackProgress.pendingRowCount(packRowIds(), rowPhase);
       go.disabled = !!packsBusy;
       go.textContent = packPhase === 'done'
         ? t('firstrun_packs_enter', '进入实时听译')
@@ -865,6 +874,10 @@ export function bootShell() {
     packRows[id] = Object.assign({}, packRows[id] || {}, patch);
     const el = $('pack-st-' + String(id).replace(':', '-'));
     if (el) el.textContent = statusText(id, patch.phase !== 'unselected');
+    // 行状态一变，按钮的「还剩 N 项」也要跟着重算。原来只改这一行的字、按钮要等下一次
+    // paintPackChrome 才更新 ⇒ 基础组件刚就绪的那一秒按钮还写「还剩 2 项」而界面只剩 1 项
+    // （R5 现场抓到的 11 次不一致）。paintPackChrome 不写行、不会递归。
+    try { paintPackChrome(); } catch (_) {}
   }
 
   function networkKind() {

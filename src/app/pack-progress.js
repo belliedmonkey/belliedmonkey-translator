@@ -42,6 +42,24 @@ export function stallLangProgress(state) {
 }
 
 /**
+ * 首启屏「下载中 · 还剩 N 项」的计数（F12）：数**界面上这一屏画出来的、且选中的行**
+ * 里还没就绪的项。判据必须与画面同源（`rowPhase()`）—— 一行在 `packRows` 里还没有
+ * `phase`、界面靠 `packPhase==='downloading'` 现推成「排队中」时，也要算未就绪；
+ * 只 filter `packRows` 已有键会漏掉它（真机就是这么写成「还剩 1 项」的）。
+ * `phaseOf(id)` 回 `{ phase, pct? }`；'ready' 与 'unselected' 都不算。
+ */
+export function pendingRowCount(ids, phaseOf) {
+  let n = 0;
+  for (const id of (ids || [])) {
+    const row = (typeof phaseOf === 'function') ? phaseOf(id) : null;
+    const phase = row && row.phase;
+    if (phase === 'ready' || phase === 'unselected') continue;
+    n++;
+  }
+  return n;
+}
+
+/**
  * 按顺序下识别包。每一门先复位进度，再把 toLocale 给出的完整 locale 交给 ensureAssets
  * （与开会话那条路同一个函数、同一种 locale）。generation 变了就停，不把旧回调写进新进度。
  * 超时或失败：这一门 stalled，不再往下，也不把没装上的记成已就绪。

@@ -75,6 +75,15 @@ func mtModuleUsable(_ kind: MTTranscriberKind, _ l: Locale) async -> Bool {
     return true
 }
 
+/// 这台引擎的资产**确实已装**（不是「支持但还要下」）。
+/// 第 4 轮（113 报告问题 2/4）：探针必须能分清「已装」与「支持未下」，否则「装好了却报缺」。
+@available(iOS 26.0, macOS 26.0, *)
+func mtModuleInstalled(_ kind: MTTranscriberKind, _ l: Locale) async -> Bool {
+    let st = await AssetInventory.status(forModules: [mtProbeModule(kind, l)])
+    if case .installed = st { return true }
+    return false
+}
+
 @available(iOS 26.0, macOS 26.0, *)
 func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: Locale)? {
     let speechLocales = await SpeechTranscriber.supportedLocales
@@ -84,6 +93,12 @@ func mtTranscriberFor(_ id: String) async -> (kind: MTTranscriberKind, locale: L
         speech = (.speech, l)
     }
     let dict = await mtDictationLocale(id).map { (MTTranscriberKind.dictation, $0) }
+    // 第 4 轮（113 报告问题 2/4）：**资产已装的那台优先**。原来只挑「status != .unsupported」
+    // 的第一台，会在 Speech 只说支持、资产还没下时选中它，而 Dictation 那台早已 `.installed`
+    // ⇒ 探针报 missing、会话报 assets（真机「重开 1 秒就绪 / 点下载 2 秒就绪」的根）。
+    // 探针、下载、会话三处必须选同一台。
+    if let s = speech, await mtModuleInstalled(s.0, s.1) { return s }
+    if let d = dict, await mtModuleInstalled(d.0, d.1) { return d }
     if let s = speech, await mtModuleUsable(s.0, s.1) { return s }
     if let d = dict, await mtModuleUsable(d.0, d.1) { return d }
     return speech ?? dict
@@ -152,7 +167,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                                didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any], let type = body["type"] as? String else { return }
         switch type {
-        case "stt-probe":  sttProbe(locales: strings(body["locales"]))
+        case "stt-probe":  sttProbe(locales: strings(body["locales"]), req: (body["req"] as? String) ?? "")
         case "diag-audio":
             // §0.4.1 诊断录音（2026-10-06）：JS 武装/收尾。文本 sidecar 只随音频包走。
             if let on = body["on"] as? Int, on == 1,
@@ -161,7 +176,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             } else {
                 MTDiagAudio.shared.disarm(sidecar: (body["sidecar"] as? String) ?? "")
             }
-        case "stt-assets": sttAssets(locales: strings(body["locales"]))
+        case "stt-assets": sttAssets(locales: strings(body["locales"]), req: (body["req"] as? String) ?? "")
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
         case "tts-probe":  speech.probe(models: body["models"], systemLangs: system.langs())
@@ -205,13 +220,13 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     // MARK: - 转写
 
-    private func sttProbe(locales: [String]) {
+    private func sttProbe(locales: [String], req: String = "") {
         guard #available(iOS 26.0, macOS 26.0, *) else {
-            emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
+            emit(["type": "stt-state", "state": "unsupported", "reason": "os", "req": req]); return
         }
         Task {
             guard SpeechTranscriber.isAvailable else {
-                self.emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
+                self.emit(["type": "stt-state", "state": "unsupported", "reason": "os", "req": req]); return
             }
             // 本机识别器支持的 locale 清单（2026-09-17，2026-10-04 起取两台的并集）：
             // JS 侧据此只列支持的语言 —— 清单由设备当场报，不写死。
@@ -224,8 +239,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req])
                     return
                 }
                 enginePicks.append((pick.kind == .dictation ? "dt:" : "st:") + id)
@@ -233,31 +248,31 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req])
                     return
                 case .installed:
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed", "req": req])
                 default:
                     allInstalled = false
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing"])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing", "req": req])
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks])
+            self.emit(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks, "req": req])
         }
     }
 
-    private func sttAssets(locales: [String]) {
+    private func sttAssets(locales: [String], req: String = "") {
         guard #available(iOS 26.0, macOS 26.0, *) else {
-            emit(["type": "stt-state", "state": "unsupported", "reason": "os"]); return
+            emit(["type": "stt-state", "state": "unsupported", "reason": "os", "req": req]); return
         }
         Task {
             for id in locales {
                 // 归一化（2026-10-02）：短码会让 assetInstallationRequest 抛 SFSpeechErrorDomain Code=4。
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语等靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported"])
-                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale"])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
+                    self.emit(["type": "stt-state", "state": "unsupported", "reason": "locale", "req": req])
                     return
                 }
                 let t = mtProbeModule(pick.kind, pick.locale)
@@ -265,33 +280,33 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
                 let st0 = await AssetInventory.status(forModules: [t])
                 let supportedIds = await mtSupportedLocalesUnion()
-                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing",
+                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing", "req": req,
                            "status": String(describing: st0), "ready": SpeechTranscriber.isAvailable, "supported": supportedIds.contains(id)])
                 do {
-                    guard let req = try await AssetInventory.assetInstallationRequest(supporting: [t]) else {
-                        self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"]); continue
+                    guard let installment = try await AssetInventory.assetInstallationRequest(supporting: [t]) else {
+                        self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed", "req": req]); continue
                     }
-                    let p = req.progress
+                    let p = installment.progress
                     let watcher = Task {
                         while !Task.isCancelled {
                             let f = p.fractionCompleted
-                            self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading",
+                            self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": f, "state": "downloading", "req": req,
                                        "total": p.totalUnitCount, "completed": p.completedUnitCount])
                             try? await Task.sleep(nanoseconds: 1_000_000_000)
                         }
                     }
-                    try await req.downloadAndInstall()
+                    try await installment.downloadAndInstall()
                     watcher.cancel()
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed"])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 1, "state": "installed", "req": req])
                 } catch {
-                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": mtPrepareCode(error)])
+                    self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "failed", "reason": mtPrepareCode(error), "req": req])
                     // fail fast（2026-10-02）：以前这里直接 return，JS 只能干等满 120 s 超时（屏上只剩
                     // 「没动静」，真因不可见）；补一条带 assets 的 stt-state 立刻唤醒它，错误当场显示。
-                    self.emit(["type": "stt-state", "state": "ready", "assets": "missing"])
+                    self.emit(["type": "stt-state", "state": "ready", "assets": "missing", "req": req])
                     return
                 }
             }
-            self.emit(["type": "stt-state", "state": "ready", "assets": "installed"])
+            self.emit(["type": "stt-state", "state": "ready", "assets": "installed", "req": req])
         }
     }
 

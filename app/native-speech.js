@@ -16,6 +16,9 @@ var NativeSpeech = (() => {
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
   // 形状：{ ok, reason, assets, locales }；reason ∈ os | locale | no-bridge | pending
   let sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: [] };
+  // 每个 locale 集合最近一次的**确定结论**（key = locales.join('|')）。探针超时时交回同一集合的
+  // 上一次结论，而不是把「没探到」写成「缺失」——那会把已就绪误判成未就绪（问题 2/4）。
+  const sttProbeCache = new Map();
   let sttSupported = [];   // 原生报的本机识别器支持的 locale（BCP-47）；空 = 还没探过 / 老壳不报
   let ttsProbe = { ok: false, reason: 'no-bridge', langs: [] };
   // 一次 stt-start 之后的事件接收者；`sttOpen` 返回的句柄关掉时清空。
@@ -27,7 +30,17 @@ var NativeSpeech = (() => {
   const progressListeners = [];
   // 等待中的探测 Promise —— 是一串不是一个：入口刷新与设置变更会并发探两次，只留最后一个
   // 会让第一个 await 永远不落定（2026-09-12 门禁里就是这么挂住的）。
+  //
+  // **第 4 轮（113 报告问题 1/2/4）**：`stt-probe` / `stt-assets` 都带请求 id（`req`），原生在
+  // 终态 `stt-state` 里原样带回；这里按 id 精确唤醒本 round。以前只有一个全局 `sttProbe` +
+  // 一条 waiter 数组，任何一条 `stt-state` 会把**所有**在等的 round 一起唤醒 —— 首页入口探针
+  // 会拿到首启包屏探针（或反过来）的结论，于是「资产已就绪」被误判成缺失。旧壳不带 `req` 时
+  // 仍走旧的「唤醒全部」，行为不变。
   let sttWaiters = [], ttsWaiters = [];
+  let sttReqSeq = 0;
+  const sttProbeReqs = new Map();   // req → finish(snapshot)：stt-probe 的收尾
+  const sttAssetReqs = new Map();   // req → finish(sttProbe)：stt-assets 的收尾
+  const PROBE_TIMEOUT_MS = 20000;   // 一条探针不落定不许把 warmTail 钉死（问题 2 的 0% 卡死）
   // 语种识别（LID，§9.6.1.3）：模型 = 探/装一处；`lidLast` = 最近一条判词（listen-model 据此归属）。
   let lidProbe = { ok: false, reason: 'no-bridge' };
   let lidWaiters = [];
@@ -68,7 +81,21 @@ var NativeSpeech = (() => {
       if (msg.state === 'ready') {
         try { DiagLog.push('probe', { kind: 'stt', ok: sttProbe.ok, reason: sttProbe.reason || '', assets: sttProbe.assets || '', engines: Array.isArray(msg.engines) ? msg.engines.join('|') : '' }); } catch (_) {}
       }
-      if (msg.state === 'unsupported' || msg.assets) wake(sttWaiters, sttProbe);
+      // 终态：带 req 只唤醒本 round（第 4 轮修跨轮串话）；不带 req（旧壳 / 测试）唤醒全部，行为不变。
+      const req = msg.req ? String(msg.req) : '';
+      const terminal = (msg.state === 'unsupported' || (msg.state === 'ready' && !!msg.assets));
+      if (terminal) {
+        const snap = Object.assign({}, sttProbe);
+        if (req) {
+          const pf = sttProbeReqs.get(req);
+          if (pf) { if (pf.key) sttProbeCache.set(pf.key, snap); try { pf.finish(snap); } catch (_) {} }
+          const af = sttAssetReqs.get(req); if (af) { try { af(snap); } catch (_) {} }
+        } else {
+          wake(sttWaiters, snap);
+          for (const pf of Array.from(sttProbeReqs.values())) { if (pf.key) sttProbeCache.set(pf.key, snap); try { pf.finish(snap); } catch (_) {} }
+          for (const f of Array.from(sttAssetReqs.values())) { try { f(snap); } catch (_) {} }
+        }
+      }
       if (sttSession) {
         if (msg.state === 'ready' && !msg.assets) sttSession.fire('ready', {});
         else if (msg.state === 'failed') sttSession.fire('error', { reason: msg.reason || 'failed' });
@@ -147,14 +174,33 @@ var NativeSpeech = (() => {
   }
 
   // ── 转写 ─────────────────────────────────────────────────────────────────
-  /** 探本机转写：{ ok, reason, assets, locales }。桥不在 ⇒ 立即 no-bridge。 */
+  /** 探本机转写：{ ok, reason, assets, locales }。桥不在 ⇒ 立即 no-bridge。
+   *  每个请求带一个 req id，只认原生带回同一个 id 的终态（跨轮不串话）；旧壳不带 req 时按
+   *  「谁先到算谁的」兼容。超时交回上一次已知可用的结论（没有就报 timeout），不挂死调用方。 */
   function probe(locales) {
     const ls = Array.isArray(locales) ? locales.slice() : [];
     if (!available()) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; return Promise.resolve(sttProbe); }
-    sttProbe = { ok: false, reason: 'pending', assets: 'missing', locales: ls };
+    const key = ls.join('|');
+    // **不要把 sttProbe 设成 pending**：它是「最近一次确定的结论」，`liveCapable()` 同步读它。
+    // 在途探针把全局打成 pending 会把首页入口/两个说话键瞬时灰掉（甚至超时后一直 pending）——
+    // 第 4 轮问题 1 的另一半。本 round 的结果由返回的 Promise 单独带出。
     return new Promise((resolve) => {
-      sttWaiters.push(resolve);
-      if (!post({ type: 'stt-probe', locales: ls })) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; wake(sttWaiters, sttProbe); }
+      const req = 'p' + (++sttReqSeq);
+      let done = false;
+      let timer = null;
+      const finish = (v) => {
+        if (done) return;
+        done = true;
+        if (timer) { clearTimeout(timer); timer = null; }
+        sttProbeReqs.delete(req);
+        resolve(v);
+      };
+      timer = setTimeout(() => {
+        const prior = sttProbeCache.get(key);
+        finish(prior ? Object.assign({}, prior, { stale: true }) : { ok: false, reason: 'timeout', assets: 'missing', locales: ls, stale: true });
+      }, PROBE_TIMEOUT_MS);
+      sttProbeReqs.set(req, { key, finish });
+      if (!post({ type: 'stt-probe', locales: ls, req })) { sttProbe = { ok: false, reason: 'no-bridge', assets: 'missing', locales: ls }; finish(sttProbe); }
     });
   }
   function probeResult() { return sttProbe; }
@@ -181,6 +227,7 @@ var NativeSpeech = (() => {
   function ensureAssets(kind, spec, onProgress, timeoutMs) {
     if (!available()) return Promise.reject({ reason: 'no-bridge' });
     let settle = null;
+    const req = (kind === 'stt') ? ('a' + (++sttReqSeq)) : '';
     const promise = new Promise((resolve, reject) => {
       let failed = false;
       let failReason = '';
@@ -191,6 +238,7 @@ var NativeSpeech = (() => {
         const i = progressListeners.indexOf(fn); if (i >= 0) progressListeners.splice(i, 1);
         const ws = waiters();
         const j = ws.indexOf(finish); if (j >= 0) ws.splice(j, 1);
+        if (req && sttAssetReqs.get(req) === finish) sttAssetReqs.delete(req);
         if (timer) { clearTimeout(timer); timer = null; }
       };
       // 收尾只发生一次。超时把 waiter 摘掉，免得下一次 stt-state 把还在等的那一轮一起唤醒。
@@ -200,8 +248,10 @@ var NativeSpeech = (() => {
         detach();
         if (err) reject(err); else resolve(r);
       };
+      // 进度也要认 req：并发两轮时，A 的 failed 不能把 B 判死（第 4 轮）。
       const fn = (m) => {
         if (settled || m.kind !== kind) return;
+        if (req && m.req && String(m.req) !== req) return;
         try { onProgress && onProgress(m); } catch (_) {}
         if (m.state === 'failed') { failed = true; failReason = String(m.reason || 'download'); }
       };
@@ -215,7 +265,7 @@ var NativeSpeech = (() => {
       if (ms > 0) {
         timer = setTimeout(() => settle({ reason: 'timeout' }), ms);
       }
-      if (kind === 'stt') { sttWaiters.push(finish); post({ type: 'stt-assets', locales: spec }); }
+      if (kind === 'stt') { sttWaiters.push(finish); if (req) sttAssetReqs.set(req, finish); post({ type: 'stt-assets', locales: spec, req }); }
       else { ttsWaiters.push(finish); post({ type: 'tts-assets', models: spec }); }
     });
     // 切到另一门时把这一轮的 waiter 摘掉并拒绝，下一轮才能单独等自己的 stt-state。

@@ -87,3 +87,22 @@ describe('识别包进度', () => {
     eq(out.length, 0);
   });
 });
+
+// F12（1.19.4 第 4 轮）：首启「下载中 · 还剩 N 项」= 界面上还没就绪的**那一屏行**，
+// 不是「packRows 里已经有 phase 的条目」。基础组件 downloading + 中英朗读 queued 必须数 2。
+describe('首启还剩几项', () => {
+  test('界面显示 queued 但 packRows 还没写入的行也要算进去', () => {
+    // 真机 F12 现场：只有 base 被 setRow 写过；tts:zh-en 的「排队中」是 rowPhase 现推的。
+    // 识别包 zh/en 早已就绪。实际剩 2 项，必须数 2（当时错写成 1）。
+    const phases = { base: 'downloading', 'asr:zh': 'ready', 'asr:en': 'ready' };
+    const ids = ['base', 'tts:zh-en', 'asr:zh', 'asr:en'];
+    const phaseOf = (id) => ({ phase: phases[id] || 'queued' });
+    eq(P.pendingRowCount(ids, phaseOf), 2, 'base downloading + 中英朗读 queued');
+  });
+  test('已就绪 / 未选 都不算', () => {
+    const phaseOf = (id) => ({ base: { phase: 'ready' }, 'tts:zh-en': { phase: 'ready' }, 'asr:zh': { phase: 'unselected' }, 'tts:th': { phase: 'queued' } }[id] || {});
+    eq(P.pendingRowCount(['base', 'tts:zh-en', 'asr:zh', 'tts:th'], phaseOf), 1, '只剩 tts:th');
+    eq(P.pendingRowCount([], phaseOf), 0);
+    eq(P.pendingRowCount(null, phaseOf), 0);
+  });
+});
