@@ -257,8 +257,10 @@ xcrun devicectl device install app --device <UDID> "<…/BelliedMonkey Translato
 # 1. QuickTime 开「新建影片录制」并选 iPhone 源（麦克风：无）—— 人点一次即可，之后不用再碰
 open -a "QuickTime Player"
 
-# 2. 开始录 Mac 屏幕（含 QuickTime 窗口）
+# 1b. QuickTime「显示 › 浮动在最前面」—— 否则别的窗口一拿焦点就盖在 iPhone 画面上
+# 2. 开始录 Mac 屏幕（含 QuickTime 窗口），录多久就让显示器亮多久
 screencapture -v -V 180 -x .local/dev-verify/<日期>-<用例>.mov &
+caffeinate -d -u -w $! &
 
 # 3. 驱动（JSON 脚本；每条用例给足等待）
 TEST_RUNNER_MT_TARGET_BUNDLE=com.belliedmonkeytranslator \
@@ -273,6 +275,17 @@ ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/fr
 
 **取证要求**：`.mov` + 抽帧目录 + 一份**逐条判据表**（每条用例写「第几秒到第几秒、屏幕上应当出现什么」）。
 判据读的是**帧**，不是 `passed`（§0.2.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
+
+**录屏前的两条（2026-10-12 一次真机验收里各废了一段录像）：**
+
+- **显示器睡了，录像就断。** 这台 Mac `displaysleep 30`、`screenLock delay is immediate`，而无人值守的验收
+  全程是脚本在动，不算用户活动 ⇒ 用户最后一次碰键盘后 30 分钟屏幕关、立刻锁，cap 报「找不到任何要捕捉的显示器」中断
+  （`pmset -g log` 里那一秒正是 `Display is turned off`）。**录之前起 `caffeinate -d -u -w <录屏进程 pid>`**：
+  录屏进程在，显示器就不睡也不锁；录屏一结束断言自动撤掉。不去改 `pmset`/系统设置 —— 改了要还原，
+  脚本中途崩了就会把「永不睡眠」留在用户机器上；断言跟着进程走，没有「忘了还原」这回事。
+- **录窗口 ≠ 录那个窗口的内容。** `cap record start --window <QuickTime>` 录的是那块屏幕区域，Cursor 一拿焦点
+  盖上去，28 分钟里几乎每一帧都是 Cursor。先给 QuickTime 开「浮动在最前面」再录**整屏**（浮动后它离开 layer 0，
+  `cap record windows` 里就找不到它了，按窗口录也录不成）。开录后先抽一帧看 iPhone 画面在不在，再开始驱动。
 
 ### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
 
