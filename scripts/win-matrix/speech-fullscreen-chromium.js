@@ -44,7 +44,8 @@ setTimeout(() => { step('WATCHDOG'); fs.writeFileSync(path.join(OUT, `${label}-m
     const ensurePlaying = async () => { for (let i = 0; i < 4; i++) { const st = await state(); if (st.paused === false) return st; await clickSel(yt, '.ytp-play-button'); await sleep(2000); } return await state(); };
     step('播放 ' + JSON.stringify(await ensurePlaying()));
     let ytBtn = false; for (let i = 0; i < 20 && !ytBtn; i++) { ytBtn = await evalIn(cdp, yt, "(() => { const b = document.getElementById('mt-yt-btn'); if (!b) return false; b.click(); return true; })()"); if (!ytBtn) await sleep(1000); }
-    await sleep(600); const rowTxt = await evalIn(cdp, yt, "(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()");
+    // 菜单由 React bundle 异步渲染（v1.19.0 起）；固定 600ms 常来不及。轮询等开关行出现再点。
+    let rowTxt = null; for (let m = 0; m < 25 && !rowTxt; m++) { await sleep(400); rowTxt = await evalIn(cdp, yt, "(() => { const r = document.querySelector('#mt-yt-menu > div'); if (!r) return null; const t = r.textContent.trim(); r.click(); return t; })()"); }
     step('译按钮 ' + (ytBtn ? '已点' : '没出现') + '，菜单第一行 ' + JSON.stringify(rowTxt)); log.ytBtn = ytBtn; log.ytMenuRow = rowTxt;
     // 等真字幕：不是「字幕加载中」「字幕不可用」「准备中」
     const isReal = (x) => x && x.trans && !/加载中|不可用|转写引擎|准备中/.test(x.trans);

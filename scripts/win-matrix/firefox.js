@@ -74,7 +74,8 @@ setTimeout(async () => { process.stderr.write('WATCHDOG 240s\n'); fs.writeFileSy
       log.optionsText = val(await evalIn(extCtx, 'document.body.innerText.trim().length'));
       log.voices = val(await evalIn(extCtx, `new Promise(r => { const go = () => { const v = speechSynthesis.getVoices(); if (v.length) r(v.map(x => x.name + ' | ' + x.lang + ' | ' + x.localService)); }; go(); speechSynthesis.onvoiceschanged = go; setTimeout(() => r(speechSynthesis.getVoices().map(x => x.name + ' | ' + x.lang + ' | ' + x.localService)), 4000); })`));
       await evalIn(extCtx, `browser.storage.local.set(${JSON.stringify({ provider: 'deepseek', apiKey: keys.apiKey, targetLang: 'zh-CN', enabled: true, showFab: true })}).then(() => true)`); step('storage 已种 deepseek（经扩展页）');
-      const shot = await send('browsingContext.captureScreenshot', { context: extCtx }); fs.writeFileSync(path.join(OUT, 'firefox-extpage.png'), Buffer.from(shot.data, 'base64'));
+      const shot = await (async () => { try { return await send('browsingContext.captureScreenshot', { context: extCtx }); } catch (e) { log.notes.push('扩展页截图跳过（Firefox 157 BiDi 不支持对特权上下文截图）: ' + e.message.slice(0, 80)); return null; } })();
+      if (shot) fs.writeFileSync(path.join(OUT, 'firefox-extpage.png'), Buffer.from(shot.data, 'base64'));
     } catch (e) { log.problems.push('扩展页执行失败: ' + e.message.slice(0, 160)); }
   } else log.problems.push('拿不到扩展内部 UUID，没能种 DeepSeek 配置');
   // 网页
