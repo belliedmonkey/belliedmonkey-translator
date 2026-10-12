@@ -3948,5 +3948,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "不會自動開始 · 點「說{mine}」或「{other}」開始收音"
+  },
+  "drive_skipped": {
+    "message": "略過 {n} 張讀不出來的卡（媒體卡或無語音）"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} 可以聽譯了；{speak} 可以朗讀。要加別的語言，隨時去「設定 · 語音包」裡加。"
+  },
+  "firstrun_quota_cancel": {
+    "message": "取消"
+  },
+  "firstrun_quota_days": {
+    "message": "最久沒用 · {n} 天前"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "下載"
+  },
+  "firstrun_quota_in_use": {
+    "message": "目前語言對 · 不能讓出"
+  },
+  "firstrun_quota_label": {
+    "message": "辨識語言"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "未下載"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "已就緒 · 占名額"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "未就緒 · 可補回"
+  },
+  "firstrun_quota_never": {
+    "message": "最久沒用"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple 限制：同時最多 {max} 種辨識語言"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max} 種都占著名額 · 再裝新的會先標為「未就緒」"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "補回"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "點一下補回 · 約 1–2 秒"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "按鈕跟著你選的語言變。"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "讓出 {yield} · 補回 {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "要補回 {need}，需要先讓出一種。被讓出的會變回「未就緒」，再用時補回，約 1–2 秒，不用重新下載。"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "選一種讓出（預設：最久沒用）"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "辨識語言已滿 {max} 種"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "未下載"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "占名額"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "未就緒"
+  },
+  "firstrun_quota_today": {
+    "message": "今天用過"
+  },
+  "firstrun_quota_used": {
+    "message": "已用 {n} / {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "正在補回…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "未就緒 · 第 {n} 種"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "這次不下載"
+  },
+  "firstrun_quota_over_title": {
+    "message": "已滿 {max} 種：{langs} 會標為「未就緒」"
+  },
+  "firstrun_quota_over_body": {
+    "message": "要用時點一下補回（約 1–2 秒），同時讓出最久沒用的語言；不想讓就先別勾。"
+  },
+  "listen_pill_quota_full": {
+    "message": "名額已滿"
+  },
+  "listen_ptt_quota_full": {
+    "message": "名額已滿 · 讓出一種才能用"
+  },
+  "listen_quota_card_btn": {
+    "message": "讓出一種並補回"
+  },
+  "listen_quota_card_hint": {
+    "message": "約 1–2 秒 · 不用重新下載"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} 裝過，但名額讓給了別的語言 —— 不是下載失敗，跟網路也無關。"
+  },
+  "listen_quota_card_title": {
+    "message": "還不能聽 {lang}：辨識語言已占滿 {max} 種"
+  },
+  "listen_quota_sheet_go": {
+    "message": "讓出 {yield} · 補回 {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "要用 {lang}，需要先讓出一種。"
   }
 }

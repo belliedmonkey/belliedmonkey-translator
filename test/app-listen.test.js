@@ -671,7 +671,7 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     const g = C.makeFinalGate(DEPS);
     deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), [], '低置信短片先扣住（不再按 conf 丢）');
     eq(g.held('en-US'), 'we');
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '隔了 1.3 s，仍然照收');
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['we', 'need to see a sample'], '隔了 1.3 s，仍然照收；扣住的句头没有中文重叠 ⇒ 接回，不丢（r6）');
     deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢（扣住等重叠裁决）');
     eq(g.held('zh-CN'), 'The', '拉丁片在 zh 路被扣住（按重叠裁决，不再直接丢）');
     g.cancelAll();

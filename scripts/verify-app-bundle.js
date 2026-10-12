@@ -590,8 +590,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       // 这一段要的是**包未就绪**的屏 2，而上面的正常夹具把包桩成就绪（boot 落首页）——
       // 临时装一个「包未就绪」的文档脚本重载一次，测完摘下、重载回就绪态，免得影响后面依赖
       // 「已就绪 + 落首页」的横幅 / 引导各块。基础组件的探针也要被同一支桩盖住，否则屏 2 不出现。
+      // 新装首启 = 包未就绪 **且** 从没完成过包屏（r6 `listenPacksDone`；上面落首页那次已经补记了它）。
       const nr = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
-        { source: 'window.__mtPacksReady = false;' }, sessionId);
+        { source: "window.__mtPacksReady = false; try { localStorage.removeItem('mt:listenPacksDone'); } catch (_) {}" }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
       const dg = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify((() => {
@@ -631,6 +632,20 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
       need(!!g.my && !!g.ot, '听译那一对的隐藏镜像是空的：' + g.my + '/' + g.ot);
       need(g.more, '「其他 N 种语言」没有默认收起');
       await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr.identifier }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      // r6（真机 110「划掉重进又回到下载页」）：包屏完成过一次后，冷启动时探针一时报未就绪
+      // **不许**再把人打回屏 2 —— 这正是那次真机的形状。
+      const nr2 = await cdp.send('Page.addScriptToEvaluateOnNewDocument',
+        { source: "window.__mtPacksReady = false; try { localStorage.setItem('mt:listenPacksDone', '1'); } catch (_) {}" }, sessionId);
+      await cdp.send('Page.reload', {}, sessionId);
+      await new Promise((r) => setTimeout(r, 1800));
+      const back = await cdp.send('Runtime.evaluate', { expression: `JSON.stringify({
+        packsHidden: document.getElementById('firstrun-packs').hidden,
+        home: !document.getElementById('signed-in').hidden })`, returnByValue: true }, sessionId);
+      const bk = JSON.parse(back.result.value);
+      need(bk.packsHidden && bk.home, '包屏完成过（listenPacksDone）后，冷启动探针报未就绪仍回到了包屏：' + JSON.stringify(bk));
+      await cdp.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: nr2.identifier }, sessionId);
       await cdp.send('Page.reload', {}, sessionId);
       await new Promise((r) => setTimeout(r, 1800));
     }

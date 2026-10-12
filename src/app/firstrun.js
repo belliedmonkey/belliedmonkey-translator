@@ -280,9 +280,14 @@ export function degradeAllowed(reason) {
  *
  * 设备包自 2026-10-11（改稿 F）起是三样：所选识别包、勾选的朗读包、基础组件。
  * 引擎可解析**不参与屏序**（2026-10-01 模拟器实测改的口径）：它决定能不能算就绪，不决定先看哪一屏。
+ *
+ * `packsDone`（1.19.4 r6，真机「划掉重进又回到下载页」）：首启包屏**完成过一次**就不再回来。
+ * 冷启动时系统的模型清单最不稳（探针超时 / 一时报未装），拿它当门会把老用户打回包屏；
+ * 之后哪门真没就绪，由首页与听译页的「未就绪 · 补回」接住，不由屏序接住。
  */
 export function step(s) {
   if (!s.loggedIn) return 'login';
+  if (s.packsDone) return 'home';
   if (!s.asrPack || !s.ttsPack || !s.basePack) return 'packs';
   return 'home';
 }

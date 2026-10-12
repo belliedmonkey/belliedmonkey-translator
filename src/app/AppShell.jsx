@@ -169,6 +169,11 @@ function AppShell() {
           <div className="quota-bar" id="packs-quota-bar" aria-hidden="true"></div>
           <p className="note" id="packs-quota-note"></p>
         </div>
+        {/* 勾到第 N+1 门（改稿 H 第 1 张）：哪门会标「未就绪」、怎么补回。 */}
+        <div className="quota-over" id="packs-quota-over" role="status" hidden>
+          <strong id="packs-quota-over-title"></strong>
+          <span id="packs-quota-over-body"></span>
+        </div>
         <div className="quota-legend" id="packs-legend" hidden>
           <span className="quota-leg ready"><i aria-hidden="true" /><span id="packs-legend-ready"></span></span>
           <span className="quota-leg recover"><i aria-hidden="true" /><span id="packs-legend-recover"></span></span>

@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "{n} cartes impossibles à lire ignorées (cartes média ou sans voix)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} : l’interprétation est prête ; {speak} : la lecture à voix haute aussi. Ajoutez d’autres langues à tout moment dans Réglages · Packs vocaux."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Annuler"
+  },
+  "firstrun_quota_days": {
+    "message": "Le moins utilisé · il y a {n} jours"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Télécharger"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Paire de langues actuelle · ne peut pas être libérée"
+  },
+  "firstrun_quota_label": {
+    "message": "Langues de reconnaissance"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Non téléchargé"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Prêt · occupe une place"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Pas prêt · récupérable"
+  },
+  "firstrun_quota_never": {
+    "message": "Le moins utilisé"
+  },
+  "firstrun_quota_note": {
+    "message": "Limite Apple : {max} langues de reconnaissance au maximum en même temps"
+  },
+  "firstrun_quota_note_full": {
+    "message": "Les {max} places sont occupées · une nouvelle langue sera d’abord marquée « Pas prête »"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Récupérer"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Touchez pour récupérer · environ 1 à 2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "Le bouton suit la langue choisie."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Libérer {yield} · récupérer {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Pour récupérer {need}, libérez d’abord une langue. Elle redevient « Pas prête » et se récupère en 1 à 2 s environ quand vous en avez besoin, sans nouveau téléchargement."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Choisissez une langue à libérer (par défaut : la moins utilisée)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Langues de reconnaissance au complet ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Non téléchargé"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Occupe une place"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Pas prêt"
+  },
+  "firstrun_quota_today": {
+    "message": "Utilisée aujourd’hui"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} sur {max} utilisées"
+  },
+  "firstrun_quota_working": {
+    "message": "Récupération…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Pas prête · langue {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Pas téléchargée cette fois"
+  },
+  "firstrun_quota_over_title": {
+    "message": "{max} places occupées : {langs} sera marquée « Pas prête »"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Touchez pour la récupérer quand vous en aurez besoin (1 à 2 s environ) ; la langue la moins utilisée libère alors sa place. Sinon, ne la cochez pas pour l’instant."
+  },
+  "listen_pill_quota_full": {
+    "message": "Places pleines"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Places pleines · libérez-en une pour l’utiliser"
+  },
+  "listen_quota_card_btn": {
+    "message": "En libérer une et récupérer"
+  },
+  "listen_quota_card_hint": {
+    "message": "Environ 1 à 2 s · sans nouveau téléchargement"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} a été installée, mais sa place est allée à une autre langue — ce n’est pas un échec de téléchargement, et le réseau n’y est pour rien."
+  },
+  "listen_quota_card_title": {
+    "message": "Impossible d’écouter {lang} pour l’instant : les {max} places de reconnaissance sont occupées"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Libérer {yield} · récupérer {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Pour utiliser {lang}, libérez d’abord une langue."
   }
 }

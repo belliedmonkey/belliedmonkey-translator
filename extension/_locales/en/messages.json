@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "Skipped {n} cards that cannot be read aloud (media cards or no voice)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} can be interpreted now; {speak} can be read aloud. Add more languages anytime in Settings · Voice packs."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Cancel"
+  },
+  "firstrun_quota_days": {
+    "message": "Least recently used · {n} days ago"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Download"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Current language pair · cannot give up"
+  },
+  "firstrun_quota_label": {
+    "message": "Recognition languages"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Not downloaded"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Ready · uses a slot"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Not ready · can restore"
+  },
+  "firstrun_quota_never": {
+    "message": "Least recently used"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple limit: up to {max} recognition languages at a time"
+  },
+  "firstrun_quota_note_full": {
+    "message": "All {max} slots are in use · a new one will be marked “Not ready” first"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Restore"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Tap to restore · about 1–2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "The button follows the language you pick."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Give up {yield} · restore {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "To restore {need}, give up one language first. It goes back to “Not ready” and restores in about 1–2 s when you need it again — no re-download."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Pick one to give up (default: least recently used)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Recognition languages full ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Not downloaded"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Uses a slot"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Not ready"
+  },
+  "firstrun_quota_today": {
+    "message": "Used today"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} of {max} used"
+  },
+  "firstrun_quota_working": {
+    "message": "Restoring…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Not ready · language {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Not downloaded this time"
+  },
+  "firstrun_quota_over_title": {
+    "message": "All {max} slots taken: {langs} will be marked “Not ready”"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Tap to restore it when you need it (about 1–2 s); the least recently used language gives up its slot. If you don’t want that, leave it unchecked for now."
+  },
+  "listen_pill_quota_full": {
+    "message": "Slots full"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Slots full · give one up to use this"
+  },
+  "listen_quota_card_btn": {
+    "message": "Give one up and restore"
+  },
+  "listen_quota_card_hint": {
+    "message": "About 1–2 s · no re-download"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} was installed, but its slot went to another language — this is not a failed download and has nothing to do with your network."
+  },
+  "listen_quota_card_title": {
+    "message": "Can’t listen to {lang} yet: all {max} recognition slots are in use"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Give up {yield} · restore {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "To use {lang}, give up one language first."
   }
 }
