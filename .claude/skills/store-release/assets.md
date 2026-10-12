@@ -314,11 +314,16 @@ ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame
 |---|---|---|
 | Apple iOS 国际版 | `en-iphone-1..10` + `en-ipad-1..9`（en-US）、`zh-iphone-1..10` + `zh-ipad-1..9`（zh-Hans） | `IPHONE_65` ×1 |
 | Apple macOS 国际版 | `en-mac-1..11`、`zh-mac-1..11`（含帧 11 快速翻译；无帧 10）| `DESKTOP` ×1 |
-| Apple iOS 中国版 | `cn-iphone-1..8`（含帧 8 系统翻译）+ `cn-ipad-1..7`（zh-Hans） | 无 |
-| Apple macOS 中国版 | `cn-mac-1..7` | 无 |
+| Apple iOS 中国版 | `cn-iphone-1..8`（含帧 8 系统翻译）+ `cn-ipad-1..7`（zh-Hans） | `IPHONE_65` ×1（`zh-ios.mp4`）|
+| Apple macOS 中国版 | `cn-mac-1..7` | `DESKTOP` ×1（`zh-mac.mp4`）|
 | CWS / AMO | `{zh,en}-web-1..9` + `cws-promo-tile-440x280.png` | 无 |
 | 国际官网 | `~/belliedmonkey-cc/media/shot-{translate,review,docs,live,talk,systrans,quick}.png` ← `en-web-{1,4,7,8,9,10,11}` | `demo-macos-{en,zh}.mp4` + `demo-poster.jpg` |
 | 中国官网 | `~/belliedmonkey-com/media/shot-*.png` ← `screenshots-cn/cn-web-{1,3,5,6,7,8}` | 无 |
+
+> **2026-09-25 更正**：这张表原来在中国版两行写「视频：无」，而 `scripts/asc-media.js`
+> 的 `cn-ios` / `cn-mac` 两条**一直都挂着** `zh-ios.mp4` / `zh-mac.mp4`。实现是对的，
+> 表是旧的 —— 照旧表核会以为中国版少配了东西。（同一天还更正了 SKILL.md 里中国版
+> 「sync enabled: false」那条判据，原因同类：1.15.0 之后实现变了，文档没跟。）
 
 **帧号只往后加、不重排** —— 官网与 `scripts/asc-media.js` 的 `ORDER` 都按帧号取图。
 `en-iphone-10`（系统翻译）只有 iPhone 档有原料：iPad 拍不到（没硬件，模拟器里没有
