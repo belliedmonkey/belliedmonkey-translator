@@ -6,6 +6,7 @@
 //   node scripts/asc-media.js --apply                # 真的替换（**对外动作**，会改线上商店页）
 //   node scripts/asc-media.js --apply --only cn-ios  # 只做一条线
 //   node scripts/asc-media.js --version 1.6.5        # 版本默认取 package.json，可覆盖
+//   node scripts/asc-media.js --screenshots-only     # 只换截图，预览片保留线上现有（修文案类拒审时用）
 //
 // --only 的取值就是 PLAN 里的 id：global-ios / global-mac / global-ios-zh /
 // global-mac-zh / cn-ios / cn-mac。
@@ -70,15 +71,21 @@ const c = (n) => path.join(ROOT, 'screenshots-cn', n);
 //   国际版 1 网页双语 · 8 实时字幕 · 9 对话听译 · 2 视频字幕 · 7 文档 · 3 复习卡 · 4 手机复习 · 5 跨设备 · 6 一键配置
 //   中国版 1 网页双语 · 6 实时字幕 · 7 对话听译 · 5 文档 · 3 复习卡 · 2 自带 Key · 4 学习设置
 // 以前写死「前 5 张 / 前 4 张」，于是 1.7 的一键配置帧、1.10 的文档帧渲染出来了却从没上过商店。
+// ORDER_GLOBAL 现在只喂扩展两店（amo-listing.js 的 AMO 预览图 + CWS 截图）。App 的
+// 截图集一律走 ORDER_APP_GLOBAL —— 2026-09-28 国际 iOS 1.17.0 被 Guideline 2.3.7 拒审
+// （截图里的价格引用，「free 也算」），帧 6 一键配置引导页整个从 App 商店图撤下；
+// 扩展两店不归苹果审，帧 6 保留。
 const ORDER_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5, 6];
+// App 截图集（iPhone 65 / iPad / 九份本地化）的共用表：ORDER_GLOBAL 去掉帧 6。
+const ORDER_APP_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5];
 // iPhone 那一集多一帧：10 = 系统翻译（1.14 的主角），排在第 2 位。
 // **只有 iPhone 集有它** —— iPad 没有原料（没有 iPad 硬件，模拟器里没有那个扩展点），
-// Mac 根本没有这个功能。10 张正好是 ASC 每组的上限。
-const ORDER_IPHONE = [1, 10, 8, 9, 2, 7, 3, 4, 5, 6];
+// Mac 根本没有这个功能。
+const ORDER_IPHONE = [1, 10, 8, 9, 2, 7, 3, 4, 5];
 // Mac 那一集同样多一帧：11 = 快速翻译（1.13.1 的主角），排在第 2 位 —— 与 iPhone 的
 // 帧 10 镜像对称。**只有 Mac 集有它**：iPhone / iPad 上没有这个功能，扩展两店不放
-// App 独有的东西。10 张同样正好是 ASC 每组的上限。
-const ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5, 6];
+// App 独有的东西。
+const ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5];
 const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
 // 中国版的 iPhone 集也多一帧：8 = 系统翻译，排在第 2 位 —— 与国际版 ORDER_IPHONE 的
 // 帧 10 同一个位置、同一条理由。**只有 iPhone 集有它**：iPad 没有原料（没有 iPad 硬件），
@@ -99,7 +106,7 @@ const PLAN = [
     id: 'global-ios', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'en-US',
     screenshots: {
       APP_IPHONE_65: frames(ORDER_IPHONE, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: { IPHONE_65: v('en-ios.mp4') },
   },
@@ -114,7 +121,7 @@ const PLAN = [
     id: 'global-ios-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hans',
     screenshots: {
       APP_IPHONE_65: frames(ORDER_IPHONE, (i) => g(`zh-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
     },
     previews: { IPHONE_65: v('zh-ios.mp4') },
   },
@@ -133,8 +140,8 @@ const PLAN = [
   {
     id: 'global-ios-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ru',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -146,8 +153,8 @@ const PLAN = [
   {
     id: 'global-ios-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'de-DE',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -159,8 +166,8 @@ const PLAN = [
   {
     id: 'global-ios-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ja',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -172,8 +179,8 @@ const PLAN = [
   {
     id: 'global-ios-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'fr-FR',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -185,8 +192,8 @@ const PLAN = [
   {
     id: 'global-ios-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ko',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -198,8 +205,8 @@ const PLAN = [
   {
     id: 'global-ios-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pt-BR',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -211,8 +218,8 @@ const PLAN = [
   {
     id: 'global-ios-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'es-ES',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -224,8 +231,8 @@ const PLAN = [
   {
     id: 'global-ios-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ar-SA',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -238,8 +245,8 @@ const PLAN = [
   {
     id: 'global-ios-it', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'it',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -251,8 +258,8 @@ const PLAN = [
   {
     id: 'global-ios-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'tr',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -264,8 +271,8 @@ const PLAN = [
   {
     id: 'global-ios-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'vi',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -277,8 +284,8 @@ const PLAN = [
   {
     id: 'global-ios-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pl',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
     },
     previews: {},
   },
@@ -290,8 +297,8 @@ const PLAN = [
   {
     id: 'global-ios-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hant',
     screenshots: {
-      APP_IPHONE_65: frames(ORDER_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
-      APP_IPAD_PRO_3GEN_129: frames(ORDER_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
     },
     previews: { IPHONE_65: v('zh-ios.mp4') },
   },
@@ -380,7 +387,10 @@ async function findVersionLocalization(bundleId, platform, locale) {
   // 在审中（WAITING_FOR_REVIEW / IN_REVIEW）不行：2026-08-22 实测
   // `POST /appScreenshotSets` 会被 409「Can't Create Screenshot Set while In Review」
   // 拒掉 —— 拒得很干净，状态不受影响，所以那条路是安全的死路，不是隐患。
-  const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED'];
+  // REJECTED（苹果拒审）也在这里改：2.3.7 拒审后的标准闭环就是在**同一个版本**上换图、
+  // 改文案、回复 Resolution Center、重提 —— 回复挂在这个版本的会话上，版本不可编辑就没法修
+  // （2026-09-28 国际 iOS 1.17.0 实走通）。要防的只是白名单外的在审/上架状态。
+  const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED'];
   if (!EDITABLE.includes(v.attributes.appStoreState)) {
     throw new Error(`${bundleId} ${platform} ${VERSION} 状态是 ${v.attributes.appStoreState}`
       + ' —— 不动它（在审期间 Apple 不接受新建截图集）');
@@ -427,6 +437,9 @@ if (require.main === module) (async () => {
   // --previews-only：只挂预览视频，跳过截图段。截图段一挂就整条抛出，预览段根本轮不到
   // （2026-09-16：苹果 `POST /appScreenshots` 连续 500 数小时，而 `POST /appPreviews` 是另一个端点）
   const previewsOnly = argv.includes('--previews-only');
+  // --screenshots-only：跳过预览片替换（预览逻辑是「文件在就重传」，而修 metadata 类拒审时
+  // 预览片没变 —— 2026-09-28 2.3.7 只点截图，视频不该跟着重传一遍）。
+  const screenshotsOnly = argv.includes('--screenshots-only');
   const onlyIdx = argv.indexOf('--only');
   const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
   VERSION = resolveVersion(argv);
@@ -486,7 +499,7 @@ if (require.main === module) (async () => {
     // ── 预览片 ──
     const psets = await api('GET', `/appStoreVersionLocalizations/${locId}/appPreviewSets?limit=20`
       + '&fields[appPreviewSets]=previewType');
-    for (const [previewType, file] of Object.entries(line.previews || {})) {
+    for (const [previewType, file] of Object.entries(screenshotsOnly ? {} : (line.previews || {}))) {
       // 预览视频要重录（assets.md 的 cap 配方），不是每次发版都重做；文件不在就保留线上那份，
       // 只换截图 —— 但要说出来，别让「没换」看起来像「换了」（2026-09-08，1.8.0 只换图）。
       if (!fs.existsSync(file)) { console.log(`  ⚠ 预览 ${previewType}: 本地没有 ${file}，保留线上现有预览不动`); continue; }

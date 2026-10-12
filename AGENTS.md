@@ -4,13 +4,14 @@ Guidance for AI agents working on this repo. (Format follows https://agents.md/.
 
 ## Project overview
 
-「大肚猴翻译 / BelliedMonkey Translator」— an open-source browser extension for
-bilingual translation. Targets **Safari iOS** (primary) and **Chrome/Firefox**.
-Webpage mode shows the translation under each paragraph; YouTube mode shows a
-bilingual subtitle line under the original caption. Multi-provider, fully
-configurable LLM APIs. The provider list is a **build-time region flavor**
-(`global` / `china`) resolved from a single registry — see "Provider registry &
-region flavors" below and `docs/domain-design.md` §7.
+「大肚猴翻译 / BelliedMonkey Translator」— an open-source bilingual translator:
+a browser extension (**Safari iOS** primary, plus **Chrome/Firefox**) and a host
+app (`app/` — iPhone/iPad/Mac). Webpage mode shows the translation under each
+paragraph; YouTube mode shows a bilingual subtitle line under the original caption.
+Multi-provider, fully configurable LLM APIs. The provider list is a **build-time
+region flavor** (`global` / `china`) resolved from a single registry — see "Provider
+registry & region flavors" below and `docs/domain-design.md` §7. One codebase, six
+store surfaces (Apple iOS + macOS × global/China, Chrome Web Store, Firefox AMO).
 
 ## 产品原则：普惠优先（能免费尽量免费）
 
@@ -188,6 +189,10 @@ governed by the same human-review rule above. Key invariants:
   Google/OpenAI/Claude and no vendor brand strings; `build.js` runs a **compliance
   gate** over `dist-china/` (fails on `/ChatGPT|OpenAI|Claude|api.openai|api.anthropic/i`).
   Any change to china-flavor providers/labels must keep that gate green.
+- **Adding a provider means measuring it, not reading its docs.** Every entry in
+  `build/providers.config.js` needs a row in `build/perf-ledger.config.js` (the evidence
+  behind `build/model-params.config.js`), or `npm test` goes red. Produce one with
+  **`/perf-tune`**; `npm run perf:status` lists what is still owed.
 
 ## Change documentation — every change gets a GitHub issue
 
@@ -198,6 +203,10 @@ it** (root cause, why this approach, trade-offs/alternatives considered). Keep t
 issue updated as related work lands, and reference it from commits/PRs. The goal
 is a durable record of not just *what* changed but *why* — so the thinking behind
 each fix is preserved, not just the diff.
+
+**Start of a session:** read `.local/TODO.md` (gitignored; the human's open items)
+and run `npm run issues` — it surfaces *other people's* unanswered issues/PRs and
+exits 1 if someone is waiting. Both are described in [`CLAUDE.md`](CLAUDE.md).
 
 ## Release state — never inferred from this repo
 
@@ -225,6 +234,11 @@ their configuration lives. Claude Code is the original host; Reasonix runs the s
 repo and must stay able to do everything the rules here demand — chiefly that
 verification is cua-driver-driven ("Verification" below) and that release state is
 read from gbrain, never inferred from the repo.
+
+*(**OpenCode** is a further host and reads this same file; everything below is
+host-neutral, not Claude-Code-specific. Like Reasonix, it indexes
+`.claude/skills/` as a project skill root. It must not create a fourth instruction
+copy either.)*
 
 **Shared surface — one source, both hosts read it. Never add a second copy.**
 
@@ -323,10 +337,10 @@ night, and neither failure announced itself:
 task MUST follow it exactly.** The load-bearing rule:
 
 > **Every verification runs the FULL MATRIX of every surface the product has been
-> adapted to — a full regression, every time.** Current matrix: **iPhone Safari** &
-> **iPad Safari** (Xcode Simulator) + **macOS Safari**, **macOS Chrome/Edge**, and
-> **Firefox desktop** (real Mac, sandboxed). Once a device/browser is adapted, it is
-> permanently added to the matrix. Verifying on one surface is **not** verification.
+> adapted to — a full regression, every time.** The matrix only grows: once a
+> device/browser is adapted it is permanently included. Its current rows are **§1 of
+> the spec** — do not enumerate them here (this list went stale the moment the host-app
+> and Windows rows landed). Verifying on one surface is **not** verification.
 
 The spec also carries: the per-surface build→install→enable→open-URL→drive commands,
 the `npm test` automated gate (green before every push), the verification-honesty
@@ -396,8 +410,18 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
 - `extension/content/content-webpage.js` — webpage orchestration.
 - `extension/content/content-youtube.js` — YouTube bilingual subtitles.
 - `extension/content/content-main.js` — entry point; routes YouTube vs webpage.
-- `docs/adapter-architecture.md` — planned per-layout adapter design (not yet
-  implemented).
+- **Generated registries** (`extension/content/*.gen.js` — `providers`, `palette`,
+  `langs`, `stt`, `tts`) are emitted by `build/*.config.js`. **Never edit them by hand**;
+  edit the config (the build overwrites them).
+- `extension/learn/` — the learning layer (capture → scheduler → exercises; sync,
+  documents, free credit, telemetry). `docs/learning-design.md` owns it; its Collector is
+  a **sink, never a source**.
+- `app/` — the **host app** (iPhone/iPad/Mac): Live Subtitles, conversation interpreter,
+  Quick Translate, System translation, document translation, review. A sibling tree, not
+  part of the extension build; verification-spec §1 rows 6–10 cover it.
+- `docs/adapter-architecture.md` — proposed per-layout *document*-adapter design, still
+  **not implemented**; the live per-source adapters are `content-youtube.js`,
+  `content-podcast.js`, `content-twitter.js` over `subtitle-adapter.js`.
 
 ## Gotchas (hard-won)
 
@@ -437,14 +461,22 @@ BUILD_NUMBER=11 bash build-safari.sh global macos   # also set the upload build 
 full procedure is in [`docs/verification-spec.md`](docs/verification-spec.md); in short:
 
 1. **Automated logic suite — `npm test`** (`node test/run.js`; no test framework, no jsdom —
-   build-time devDependencies only, per `docs/domain-design.md` §10) **must be green**
-   before you push; add/update tests in the same commit when you change logic.
-2. **Full-matrix manual/device verification** — for any change with a runtime surface,
+   build-time devDependencies only, per `docs/domain-design.md` §10; **Node ≥20**, because
+   `learn/chunk.js` uses `CompressionStream('deflate-raw')`) **must be green** before you
+   push; add/update tests in the same commit when you change logic.
+2. **Layout corpus — `npm run test:layout`** (real headless Chrome, **Node ≥22**) is
+   **mandatory** before any push touching `extension/content/**` or `extension/styles/**`.
+3. **Full-matrix manual/device verification** — for any change with a runtime surface,
    work the relevant [`docs/regression-tests.md`](docs/regression-tests.md) scenarios on
-   **every adapted surface** (iPhone + iPad Simulator; macOS Safari/Chrome/Firefox on the
-   real Mac, sandboxed), driven via **cua-driver only**, screenshotting every visual item.
+   **every adapted surface**, driven via **cua-driver only**, screenshotting every visual
+   item.
 
-Never push on a red suite; never claim coverage of a matrix surface you didn't run.
+The **per-change gate table** (which command is mandatory when you touch which path) is in
+[`CLAUDE.md`](CLAUDE.md) `## Build & Test`; the criteria and the incident behind each gate
+are in `docs/verification-spec.md` §3. CI runs `npm test` (Node 20 + 22) and the three
+builds **only** — not `test:layout`, not the device matrix — so a green badge is not full
+verification. Never push on a red suite; never claim coverage of a matrix surface you
+didn't run.
 
 ## Conventions
 
