@@ -181,7 +181,59 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     private var muteUntil: TimeInterval = 0
     /// 与 tap 共享一份缓冲的第二个消费者（speech-bridge.swift 的设备内置转写）。
     /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
-    var micSink: ((AVAudioPCMBuffer) -> Void)?
+    ///
+    /// 预录（1.19.4 r6，真机「听译英文丢前 1–2 个词」）：识别器要等 `prepareToAnalyze` 完才挂上来，
+    /// 而麦克风 granted 时界面已经是「正在听」—— 这段空窗里的帧以前直接丢了。现在没有 sink 时帧进
+    /// `preRoll`，挂上 sink 的那一刻先按原顺序补喂。缓冲里只有**还没被任何识别器看过**的声音
+    /// （有 sink 时不进缓冲；每次开麦清空），所以不会重复识别。补喂与实时帧共用一把锁，顺序不乱。
+    var micSink: ((AVAudioPCMBuffer) -> Void)? {
+        get { sinkLock.lock(); defer { sinkLock.unlock() }; return sinkStore }
+        set {
+            sinkLock.lock(); defer { sinkLock.unlock() }
+            sinkStore = newValue
+            if let sink = newValue {
+                let pending = preRoll
+                preRoll = []; preRollSec = 0
+                for b in pending { sink(b) }
+            } else {
+                preRoll = []; preRollSec = 0
+            }
+        }
+    }
+    private var sinkStore: ((AVAudioPCMBuffer) -> Void)?
+    private let sinkLock = NSLock()
+    private var preRoll: [AVAudioPCMBuffer] = []
+    private var preRollSec: Double = 0
+    static let preRollMaxSec: Double = 3
+
+    private func resetPreRoll() {
+        sinkLock.lock(); preRoll = []; preRollSec = 0; sinkLock.unlock()
+    }
+
+    /// 把一块交给 sink；没有 sink 就拷一份进预录（tap 的缓冲由引擎复用，不能直接留引用）。
+    private func deliverToSink(_ buffer: AVAudioPCMBuffer) {
+        sinkLock.lock(); defer { sinkLock.unlock() }
+        if let sink = sinkStore { sink(buffer); return }
+        guard buffer.format.sampleRate > 0, let copy = MTAudioBridge.copyBuffer(buffer) else { return }
+        preRoll.append(copy)
+        preRollSec += Double(copy.frameLength) / copy.format.sampleRate
+        while preRollSec > MTAudioBridge.preRollMaxSec, let first = preRoll.first {
+            preRoll.removeFirst()
+            preRollSec -= Double(first.frameLength) / first.format.sampleRate
+        }
+    }
+
+    static func copyBuffer(_ b: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let c = AVAudioPCMBuffer(pcmFormat: b.format, frameCapacity: b.frameLength) else { return nil }
+        c.frameLength = b.frameLength
+        let src = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: b.audioBufferList))
+        let dst = UnsafeMutableAudioBufferListPointer(c.mutableAudioBufferList)
+        for i in 0..<min(src.count, dst.count) {
+            guard let s = src[i].mData, let d = dst[i].mData else { continue }
+            memcpy(d, s, Int(min(src[i].mDataByteSize, dst[i].mDataByteSize)))
+        }
+        return c
+    }
 
     private func micStart(rate: Double, deliverPcm: Bool = true, system: Bool = false) {
         micStop()
@@ -254,6 +306,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             emit(["type": "mic-state", "state": "failed", "reason": "converter"])
             return
         }
+        resetPreRoll()
         micEngine = engine
         micConverter = converter
         micConverterIn = inFormat
@@ -283,7 +336,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             z.frameLength = raw.frameLength     // 新分配的缓冲区全零 ⇒ 静音帧
             buffer = z
         }
-        micSink?(buffer)
+        deliverToSink(buffer)
         // §0.4.1 诊断录音（2026-10-06）：麦克风的同一 PCM 顺手落盘（默认关；文本 sidecar
         // 只随音频包走，零内容事件通道不变）。写失败静默 —— 排障仪器绝不影响主功能。
         #if canImport(AVFoundation)
@@ -330,6 +383,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             systemGen += 1          // 还悬着的「等授权 / 超时」回调认得出自己过期了
             if #available(macOS 14.4, *) { (tap as? MTSystemTap)?.stop() }
             micConverter = nil; micOutFormat = nil
+            resetPreRoll()
             emit(["type": "mic-state", "state": "ended", "source": "system"])
             return
         }
@@ -338,6 +392,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         engine.inputNode.removeTap(onBus: 0)
         engine.stop()
         micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
+        resetPreRoll()
         emit(["type": "mic-state", "state": "ended"])
     }
 

@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "{n} Karten ohne Vorlesen übersprungen (Medienkarten oder keine Stimme)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs}: Dolmetschen ist bereit; {speak}: Vorlesen ebenfalls. Weitere Sprachen jederzeit unter Einstellungen · Sprachpakete hinzufügen."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Abbrechen"
+  },
+  "firstrun_quota_days": {
+    "message": "Am längsten unbenutzt · vor {n} Tagen"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Laden"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Aktuelles Sprachpaar · kann nicht freigegeben werden"
+  },
+  "firstrun_quota_label": {
+    "message": "Erkennungssprachen"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Nicht geladen"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Bereit · belegt einen Platz"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Nicht bereit · wiederherstellbar"
+  },
+  "firstrun_quota_never": {
+    "message": "Am längsten unbenutzt"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple-Limit: höchstens {max} Erkennungssprachen gleichzeitig"
+  },
+  "firstrun_quota_note_full": {
+    "message": "Alle {max} Plätze belegt · eine neue Sprache wird zuerst als „Nicht bereit“ markiert"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Zurückholen"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Tippen zum Zurückholen · etwa 1–2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "Die Schaltfläche richtet sich nach der gewählten Sprache."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "{yield} freigeben · {need} zurückholen"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Um {need} zurückzuholen, gib zuerst eine Sprache frei. Sie wird wieder „Nicht bereit“ und ist bei Bedarf in etwa 1–2 s zurück – ohne erneuten Download."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Wähle eine Sprache zum Freigeben (Standard: am längsten unbenutzt)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Erkennungssprachen voll ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Nicht geladen"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Belegt einen Platz"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Nicht bereit"
+  },
+  "firstrun_quota_today": {
+    "message": "Heute benutzt"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} von {max} belegt"
+  },
+  "firstrun_quota_working": {
+    "message": "Wird zurückgeholt…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Nicht bereit · Sprache {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Diesmal nicht geladen"
+  },
+  "firstrun_quota_over_title": {
+    "message": "Alle {max} Plätze belegt: {langs} wird als „Nicht bereit“ markiert"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Bei Bedarf antippen zum Zurückholen (etwa 1–2 s); die am längsten unbenutzte Sprache gibt dann ihren Platz frei. Wenn du das nicht willst, lass sie vorerst abgewählt."
+  },
+  "listen_pill_quota_full": {
+    "message": "Plätze voll"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Plätze voll · gib einen frei, um das zu nutzen"
+  },
+  "listen_quota_card_btn": {
+    "message": "Eine freigeben und zurückholen"
+  },
+  "listen_quota_card_hint": {
+    "message": "Etwa 1–2 s · kein erneuter Download"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} war installiert, aber ihr Platz ging an eine andere Sprache – kein fehlgeschlagener Download und unabhängig vom Netzwerk."
+  },
+  "listen_quota_card_title": {
+    "message": "{lang} kann noch nicht gehört werden: alle {max} Erkennungsplätze sind belegt"
+  },
+  "listen_quota_sheet_go": {
+    "message": "{yield} freigeben · {need} zurückholen"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Um {lang} zu nutzen, gib zuerst eine Sprache frei."
   }
 }

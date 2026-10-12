@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "{n} cartões que não podem ser lidos foram pulados (cartões de mídia ou sem voz)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs}: a interpretação está pronta; {speak}: a leitura em voz alta também. Adicione outros idiomas quando quiser em Ajustes · Pacotes de voz."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Cancelar"
+  },
+  "firstrun_quota_days": {
+    "message": "O menos usado · há {n} dias"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Baixar"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Par de idiomas atual · não pode ser liberado"
+  },
+  "firstrun_quota_label": {
+    "message": "Idiomas de reconhecimento"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Não baixado"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Pronto · ocupa uma vaga"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Não pronto · recuperável"
+  },
+  "firstrun_quota_never": {
+    "message": "O menos usado"
+  },
+  "firstrun_quota_note": {
+    "message": "Limite da Apple: até {max} idiomas de reconhecimento ao mesmo tempo"
+  },
+  "firstrun_quota_note_full": {
+    "message": "As {max} vagas estão ocupadas · um novo idioma será marcado primeiro como “Não pronto”"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Recuperar"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Toque para recuperar · cerca de 1–2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "O botão acompanha o idioma escolhido."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Liberar {yield} · recuperar {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Para recuperar {need}, libere um idioma primeiro. Ele volta a “Não pronto” e é recuperado em cerca de 1–2 s quando você precisar, sem baixar de novo."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Escolha um para liberar (padrão: o menos usado)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Idiomas de reconhecimento cheios ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Não baixado"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Ocupa uma vaga"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Não pronto"
+  },
+  "firstrun_quota_today": {
+    "message": "Usado hoje"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} de {max} em uso"
+  },
+  "firstrun_quota_working": {
+    "message": "Recuperando…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Não pronto · idioma {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Não será baixado desta vez"
+  },
+  "firstrun_quota_over_title": {
+    "message": "As {max} vagas estão ocupadas: {langs} será marcado como “Não pronto”"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Toque para recuperá-lo quando precisar (cerca de 1–2 s); o idioma menos usado libera a vaga. Se não quiser isso, deixe-o desmarcado por enquanto."
+  },
+  "listen_pill_quota_full": {
+    "message": "Vagas cheias"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Vagas cheias · libere uma para usar"
+  },
+  "listen_quota_card_btn": {
+    "message": "Liberar um e recuperar"
+  },
+  "listen_quota_card_hint": {
+    "message": "Cerca de 1–2 s · sem baixar de novo"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} foi instalado, mas a vaga foi para outro idioma — não é falha no download e não tem a ver com a rede."
+  },
+  "listen_quota_card_title": {
+    "message": "Ainda não dá para ouvir {lang}: as {max} vagas de reconhecimento estão ocupadas"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Liberar {yield} · recuperar {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Para usar {lang}, libere um idioma primeiro."
   }
 }

@@ -3948,5 +3948,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "不会自动开始 · 点「说{mine}」或「{other}」开始收音"
+  },
+  "drive_skipped": {
+    "message": "跳过 {n} 张读不出来的卡（媒体卡或无语音）"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语音包」里加。"
+  },
+  "firstrun_quota_cancel": {
+    "message": "取消"
+  },
+  "firstrun_quota_days": {
+    "message": "最久没用 · {n} 天前"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "下载"
+  },
+  "firstrun_quota_in_use": {
+    "message": "当前语言对 · 不能让出"
+  },
+  "firstrun_quota_label": {
+    "message": "识别语言"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "未下载"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "已就绪 · 占名额"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "未就绪 · 可补回"
+  },
+  "firstrun_quota_never": {
+    "message": "最久没用"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple 限制：同时最多 {max} 门识别语言"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max} 门都占着名额 · 再装新的会先标为「未就绪」"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "补回"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "点一下补回 · 约 1–2 秒"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "按钮跟着你选的语言变。"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "让出 {yield} · 补回 {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "要补回 {need}，需要先让出一门。被让出的会变回「未就绪」，再用时补回，约 1–2 秒，不用重新下载。"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "选一门让出（默认：最久没用）"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "识别语言已满 {max} 门"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "未下载"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "占名额"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "未就绪"
+  },
+  "firstrun_quota_today": {
+    "message": "今天用过"
+  },
+  "firstrun_quota_used": {
+    "message": "已用 {n} / {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "正在补回…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "未就绪 · 第 {n} 门"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "这次不下载"
+  },
+  "firstrun_quota_over_title": {
+    "message": "已满 {max} 门：{langs} 会标为「未就绪」"
+  },
+  "firstrun_quota_over_body": {
+    "message": "要用时点一下补回（约 1–2 秒），同时让出最久没用的语言；不想让就先别勾。"
+  },
+  "listen_pill_quota_full": {
+    "message": "名额已满"
+  },
+  "listen_ptt_quota_full": {
+    "message": "名额已满 · 让出一门才能用"
+  },
+  "listen_quota_card_btn": {
+    "message": "让出一门并补回"
+  },
+  "listen_quota_card_hint": {
+    "message": "约 1–2 秒 · 不用重新下载"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} 装过，但名额让给了别的语言 —— 不是下载失败，跟网络也无关。"
+  },
+  "listen_quota_card_title": {
+    "message": "还不能听 {lang}：识别语言已占满 {max} 门"
+  },
+  "listen_quota_sheet_go": {
+    "message": "让出 {yield} · 补回 {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "要用 {lang}，需要先让出一门。"
   }
 }

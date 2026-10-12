@@ -266,21 +266,24 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
             var enginePicks: [String] = []   // 诊断（§0.4.1，2026-10-06）：每门语言实际选了哪台识别器
                                              // （st=SpeechTranscriber 窄引擎 / dt=DictationTranscriber）——
                                              // 「混对会话把好引擎拖回旧引擎」的量化数据
+            // 探针不占名额（r6）：见 `releaseProbeLeftovers`。每条出口之前都先还。
+            let probedKeys = Set(locales.map { MTDeviceTranscriber.keyOf($0) })
+            let before = Set(await AssetInventory.reservedLocales.map { $0.identifier(.bcp47) })
             for id in locales {
                 // 归一化（2026-10-02）：短码 "en" 是不受支持的配置 ⇒ 先归一化成 "en-US"。
                 // 2026-10-04：窄的不支持就落回 DictationTranscriber（泰语/俄语/阿拉伯语靠它）。
                 guard let pick = await mtTranscriberFor(id) else {
+                    await MTDeviceTranscriber.releaseProbeLeftovers(before: before, keys: probedKeys)
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
                     self.emit(await self.withQuota(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req]))
                     return
                 }
-                // 第 5 轮 A1：状态查询（探针）占用的 locale 名额也要登记 —— 不登记就永远释放不掉。
-                MTDeviceTranscriber.noteReserved(id, pick.locale)
                 enginePicks.append((pick.kind == .dictation ? "dt:" : "st:") + id)
                 let t = mtProbeModule(pick.kind, pick.locale)
                 let st = await AssetInventory.status(forModules: [t])
                 switch st {
                 case .unsupported:
+                    await MTDeviceTranscriber.releaseProbeLeftovers(before: before, keys: probedKeys)
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "unsupported", "req": req])
                     self.emit(await self.withQuota(["type": "stt-state", "state": "unsupported", "reason": "locale", "supported": supported, "req": req]))
                     return
@@ -291,6 +294,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                     self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing", "req": req])
                 }
             }
+            await MTDeviceTranscriber.releaseProbeLeftovers(before: before, keys: probedKeys)
             self.emit(await self.withQuota(["type": "stt-state", "state": "ready", "assets": allInstalled ? "installed" : "missing", "supported": supported, "engines": enginePicks, "req": req]))
         }
     }
@@ -315,7 +319,10 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 // 状态与硬件可用性报出去，JS 会把它显示在超时那行。
                 let st0 = await AssetInventory.status(forModules: [t])
                 let supportedIds = await mtSupportedLocalesUnion()
-                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": 0, "state": "missing", "req": req,
+                // 系统里早已装好（听写 / Siri 下过）就别先报一次 missing·0% —— 界面会闪一下假进度（r6）。
+                var already = false
+                if case .installed = st0 { already = true }
+                self.emit(["type": "assets-progress", "kind": "stt", "locale": id, "fraction": already ? 1 : 0, "state": already ? "installed" : "missing", "req": req,
                            "status": String(describing: st0), "ready": SpeechTranscriber.isAvailable, "supported": supportedIds.contains(id)])
                 do {
                     guard let installment = try await AssetInventory.assetInstallationRequest(supporting: [t]) else {
@@ -465,8 +472,28 @@ final class MTDeviceTranscriber {
         for (k, v) in held where keys.contains(k) { drop[k] = v; held[k] = nil }
         for (k, v) in reserved where keys.contains(k) { drop[k] = v; reserved[k] = nil }
         heldLock.unlock()
+        // 两张表只在本进程里有；App 重开之后它们是空的，而系统仍记着上次的预留（r6）。
+        // 表里找不到的按短码去系统的 reservedLocales 里找，否则「让出一门」在重开后什么也没放掉。
+        for loc in await AssetInventory.reservedLocales {
+            let k = heldKey(loc.identifier(.bcp47))
+            if keys.contains(k), drop[k] == nil { drop[k] = loc }
+        }
         for (_, loc) in drop { _ = await AssetInventory.release(reservedLocale: loc) }
         return Array(drop.keys).sorted()
+    }
+    static func keyOf(_ code: String) -> String { heldKey(code) }
+    /// 探针**不占名额**（1.19.4 r6）：查状态时系统可能顺手给这门语言记一份预留 —— 那样光是打开
+    /// 包屏看一眼，「已用 N」就涨了（系统里早就有听写模型的用户最明显）。探针前后各读一次系统
+    /// 预留，这次探针新多出来的、又不是会话正在用的，当场还回去。探针前就占着的一份不动
+    /// （那是用户装过的，放掉会把 .installed 打回 .supported）。
+    static func releaseProbeLeftovers(before: Set<String>, keys: Set<String>) async {
+        heldLock.lock(); let inUse = Set(held.keys); heldLock.unlock()
+        for loc in await AssetInventory.reservedLocales {
+            let id = loc.identifier(.bcp47)
+            let k = heldKey(id)
+            guard !before.contains(id), keys.contains(k), !inUse.contains(k) else { continue }
+            _ = await AssetInventory.release(reservedLocale: loc)
+        }
     }
     /// 此刻我们登记着的预留（诊断/测试读；系统真值仍以 `AssetInventory.reservedLocales` 为准）。
     static func reservedKeys() -> [String] {

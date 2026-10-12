@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "自動では始まりません · 「{mine}」か「{other}」を押すと聞き取りが始まります"
+  },
+  "drive_skipped": {
+    "message": "読み上げできないカード {n} 枚をスキップ（メディアカードまたは音声なし）"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} の通訳ができます。{speak} は読み上げもできます。ほかの言語は「設定 · 音声パック」からいつでも追加できます。"
+  },
+  "firstrun_quota_cancel": {
+    "message": "キャンセル"
+  },
+  "firstrun_quota_days": {
+    "message": "最も長く未使用 · {n} 日前"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "ダウンロード"
+  },
+  "firstrun_quota_in_use": {
+    "message": "使用中の言語ペア · 譲れません"
+  },
+  "firstrun_quota_label": {
+    "message": "認識言語"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "未ダウンロード"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "準備完了 · 枠を使用"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "未準備 · 復元可"
+  },
+  "firstrun_quota_never": {
+    "message": "最も長く未使用"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple の制限：認識言語は同時に最大 {max} 個まで"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max} 枠すべて使用中 · 新しく追加すると先に「未準備」になります"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "復元"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "タップで復元 · 約 1〜2 秒"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "ボタンは選んだ言語に合わせて変わります。"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "{yield} を譲る · {need} を復元"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "{need} を復元するには、先に 1 つ譲ってください。譲った言語は「未準備」に戻り、次に使うときに約 1〜2 秒で復元します。再ダウンロードは不要です。"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "譲る言語を選択（既定：最も長く未使用）"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "認識言語が上限の {max} 個に達しました"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "未ダウンロード"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "枠を使用"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "未準備"
+  },
+  "firstrun_quota_today": {
+    "message": "今日使用"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} / {max} 使用中"
+  },
+  "firstrun_quota_working": {
+    "message": "復元中…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "未準備 · {n} 個目"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "今回はダウンロードしません"
+  },
+  "firstrun_quota_over_title": {
+    "message": "{max} 枠が満杯：{langs} は「未準備」になります"
+  },
+  "firstrun_quota_over_body": {
+    "message": "使うときにタップで復元（約 1〜2 秒）。そのとき最も長く使っていない言語が枠を譲ります。譲りたくなければ、今はチェックしないでください。"
+  },
+  "listen_pill_quota_full": {
+    "message": "枠が満杯"
+  },
+  "listen_ptt_quota_full": {
+    "message": "枠が満杯 · 1 つ譲ると使えます"
+  },
+  "listen_quota_card_btn": {
+    "message": "1 つ譲って復元"
+  },
+  "listen_quota_card_hint": {
+    "message": "約 1〜2 秒 · 再ダウンロード不要"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} はインストール済みですが、枠をほかの言語に譲っています。ダウンロード失敗ではなく、ネットワークとも関係ありません。"
+  },
+  "listen_quota_card_title": {
+    "message": "まだ {lang} を聞き取れません：認識言語の枠 {max} 個がすべて使用中です"
+  },
+  "listen_quota_sheet_go": {
+    "message": "{yield} を譲る · {need} を復元"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "{lang} を使うには、先に 1 つ譲ってください。"
   }
 }

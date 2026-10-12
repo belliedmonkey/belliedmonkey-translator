@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "Само не начнётся · нажмите «{mine}» или «{other}», чтобы слушать"
+  },
+  "drive_skipped": {
+    "message": "Пропущено карточек, которые нельзя озвучить: {n} (медиа или нет голоса)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs}: перевод речи готов; {speak}: озвучивание тоже. Другие языки можно добавить в «Настройки · Голосовые пакеты»."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Отмена"
+  },
+  "firstrun_quota_days": {
+    "message": "Дольше всех без дела · {n} дн. назад"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Скачать"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Текущая пара языков · нельзя освободить"
+  },
+  "firstrun_quota_label": {
+    "message": "Языки распознавания"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Не скачано"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Готово · занимает слот"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Не готово · можно вернуть"
+  },
+  "firstrun_quota_never": {
+    "message": "Дольше всех без дела"
+  },
+  "firstrun_quota_note": {
+    "message": "Ограничение Apple: не более {max} языков распознавания одновременно"
+  },
+  "firstrun_quota_note_full": {
+    "message": "Все {max} слотов заняты · новый язык сначала будет отмечен «Не готово»"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Вернуть"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Нажмите, чтобы вернуть · около 1–2 с"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "Кнопка меняется в зависимости от выбранного языка."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Освободить {yield} · вернуть {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Чтобы вернуть {need}, сначала освободите один язык. Он станет «Не готово» и вернётся примерно за 1–2 с, когда понадобится, — без повторной загрузки."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Выберите язык, который освободить (по умолчанию — дольше всех без дела)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Языки распознавания заполнены ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Не скачано"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Занимает слот"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Не готово"
+  },
+  "firstrun_quota_today": {
+    "message": "Использовался сегодня"
+  },
+  "firstrun_quota_used": {
+    "message": "Занято {n} из {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "Возвращаем…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Не готово · язык {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "В этот раз не скачивается"
+  },
+  "firstrun_quota_over_title": {
+    "message": "Все {max} слотов заняты: {langs} будет отмечен «Не готово»"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Нажмите, чтобы вернуть его, когда понадобится (около 1–2 с); слот освободит язык, который дольше всех без дела. Если не хотите этого, пока не отмечайте его."
+  },
+  "listen_pill_quota_full": {
+    "message": "Слоты заняты"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Слоты заняты · освободите один, чтобы пользоваться"
+  },
+  "listen_quota_card_btn": {
+    "message": "Освободить один и вернуть"
+  },
+  "listen_quota_card_hint": {
+    "message": "Около 1–2 с · без повторной загрузки"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} был установлен, но его слот отдан другому языку — это не ошибка загрузки и не связано с сетью."
+  },
+  "listen_quota_card_title": {
+    "message": "Пока нельзя слушать {lang}: все {max} слотов распознавания заняты"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Освободить {yield} · вернуть {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Чтобы пользоваться {lang}, сначала освободите один язык."
   }
 }

@@ -1340,6 +1340,10 @@ validateManifest(DIST, isFirefox);
 //   本就在 +150 KB 预算内；**一门语言一个人就超了预算**，所以这次必须显式重新钉。
 //   这是正当增长（同步面本来就该有的东西：一门语言的界面文案），不是把新 UI 塞进同步列表。
 // i18n-messages.js 在两个匹配块各出现一次，和按清单字面求和 —— 同步面执行几次就计几次。
+// 2026-10-12 再钉 3989865（1.19.4 r6）：3904741 → 3989865，+85124 字节，**全部是 _locales**：
+//   第 4/5 轮 34 个 App 文案 key 从没进表 + r6 新增 4 个，38 key × 13 语言补齐（钉前预算只剩 ≈5 KB）。
+//   这批是 **App 专用**文案，网页内容脚本用不到 —— 根治是把 App-only key 从内容脚本那份表里拆出去，
+//   不在发版前做（改产物结构），另开 issue 跟进。
 function contentSyncBytesGate(distDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
   let total = 0;
@@ -1353,7 +1357,7 @@ function contentSyncBytesGate(distDir) {
       total += fs.statSync(p).size;
     }
   }
-  const PIN = 3756331;
+  const PIN = 3989865;
   const BUDGET = 150 * 1024;
   if (total > PIN + BUDGET) {
     throw new Error(`contentSyncBytesGate: 同步注入面 ${total} 字节 > 基线 ${PIN}+150KB。` +

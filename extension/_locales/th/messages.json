@@ -3760,5 +3760,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "จะไม่เริ่มเอง · กด «{mine}» หรือ «{other}» เพื่อเริ่มฟัง"
+  },
+  "drive_skipped": {
+    "message": "ข้ามการ์ดที่อ่านออกเสียงไม่ได้ {n} ใบ (การ์ดสื่อหรือไม่มีเสียง)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} ล่ามได้แล้ว {speak} อ่านออกเสียงได้ เพิ่มภาษาอื่นได้ทุกเมื่อที่ การตั้งค่า · แพ็กเสียง"
+  },
+  "firstrun_quota_cancel": {
+    "message": "ยกเลิก"
+  },
+  "firstrun_quota_days": {
+    "message": "ไม่ได้ใช้นานที่สุด · {n} วันก่อน"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "ดาวน์โหลด"
+  },
+  "firstrun_quota_in_use": {
+    "message": "คู่ภาษาปัจจุบัน · สละไม่ได้"
+  },
+  "firstrun_quota_label": {
+    "message": "ภาษาที่รู้จำ"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "ยังไม่ดาวน์โหลด"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "พร้อม · ใช้โควตา"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "ยังไม่พร้อม · กู้คืนได้"
+  },
+  "firstrun_quota_never": {
+    "message": "ไม่ได้ใช้นานที่สุด"
+  },
+  "firstrun_quota_note": {
+    "message": "ข้อจำกัดของ Apple: ภาษาที่รู้จำได้พร้อมกันสูงสุด {max} ภาษา"
+  },
+  "firstrun_quota_note_full": {
+    "message": "ใช้ครบทั้ง {max} โควตาแล้ว · ภาษาใหม่จะถูกทำเครื่องหมาย «ยังไม่พร้อม» ก่อน"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "กู้คืน"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "แตะเพื่อกู้คืน · ประมาณ 1–2 วินาที"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "ปุ่มจะเปลี่ยนตามภาษาที่คุณเลือก"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "สละ {yield} · กู้คืน {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "หากต้องการกู้คืน {need} ต้องสละหนึ่งภาษาก่อน ภาษาที่สละจะกลับเป็น «ยังไม่พร้อม» และกู้คืนได้ในราว 1–2 วินาทีเมื่อใช้ครั้งถัดไป ไม่ต้องดาวน์โหลดใหม่"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "เลือกภาษาที่จะสละ (ค่าเริ่มต้น: ไม่ได้ใช้นานที่สุด)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "ภาษาที่รู้จำเต็ม {max} ภาษาแล้ว"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "ยังไม่ดาวน์โหลด"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "ใช้โควตา"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "ยังไม่พร้อม"
+  },
+  "firstrun_quota_today": {
+    "message": "ใช้วันนี้"
+  },
+  "firstrun_quota_used": {
+    "message": "ใช้แล้ว {n} / {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "กำลังกู้คืน…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "ยังไม่พร้อม · ภาษาที่ {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "ครั้งนี้ไม่ดาวน์โหลด"
+  },
+  "firstrun_quota_over_title": {
+    "message": "เต็ม {max} โควตาแล้ว: {langs} จะถูกทำเครื่องหมาย «ยังไม่พร้อม»"
+  },
+  "firstrun_quota_over_body": {
+    "message": "แตะเพื่อกู้คืนเมื่อจะใช้ (ราว 1–2 วินาที) แล้วภาษาที่ไม่ได้ใช้นานที่สุดจะสละโควตา ถ้าไม่ต้องการแบบนั้น ตอนนี้อย่าเพิ่งติ๊ก"
+  },
+  "listen_pill_quota_full": {
+    "message": "โควตาเต็ม"
+  },
+  "listen_ptt_quota_full": {
+    "message": "โควตาเต็ม · ต้องสละหนึ่งภาษาก่อนจึงจะใช้ได้"
+  },
+  "listen_quota_card_btn": {
+    "message": "สละหนึ่งภาษาแล้วกู้คืน"
+  },
+  "listen_quota_card_hint": {
+    "message": "ประมาณ 1–2 วินาที · ไม่ต้องดาวน์โหลดใหม่"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} เคยติดตั้งแล้ว แต่โควตาถูกสละให้ภาษาอื่น — ไม่ใช่การดาวน์โหลดล้มเหลว และไม่เกี่ยวกับเครือข่าย"
+  },
+  "listen_quota_card_title": {
+    "message": "ยังฟัง {lang} ไม่ได้: โควตาภาษาที่รู้จำทั้ง {max} ถูกใช้หมดแล้ว"
+  },
+  "listen_quota_sheet_go": {
+    "message": "สละ {yield} · กู้คืน {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "หากต้องการใช้ {lang} ต้องสละหนึ่งภาษาก่อน"
   }
 }

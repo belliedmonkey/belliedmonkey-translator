@@ -101,7 +101,7 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
   });
 
   test('强制语言的看门狗：收音结束时才清（守住 P-03 连红五轮那个 bug）', () => {
-    ok(/if \(pttForce && !ptt && Date\.now\(\) - pttForce\.at >= 3000\) pttForce = null;/.test(MODEL),
+    ok(/if \(pttForce && !ptt && Date\.now\(\) - pttForce\.at >= 3000\) (?:\{ pttSpanClose\(\); )?pttForce = null;/.test(MODEL),
       '看门狗没有守住「收音还没结束就不清强制语言」');
   });
 

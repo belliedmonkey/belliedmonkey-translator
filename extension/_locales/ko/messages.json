@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "저절로 시작하지 않습니다 · 「{mine}」 또는 「{other}」를 누르면 듣습니다"
+  },
+  "drive_skipped": {
+    "message": "읽을 수 없는 카드 {n}장 건너뜀(미디어 카드 또는 음성 없음)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} 통역을 쓸 수 있어요. {speak}은(는) 읽어 주기도 돼요. 다른 언어는 언제든 「설정 · 음성 팩」에서 추가하세요."
+  },
+  "firstrun_quota_cancel": {
+    "message": "취소"
+  },
+  "firstrun_quota_days": {
+    "message": "가장 오래 안 씀 · {n}일 전"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "다운로드"
+  },
+  "firstrun_quota_in_use": {
+    "message": "현재 언어 쌍 · 양보할 수 없음"
+  },
+  "firstrun_quota_label": {
+    "message": "인식 언어"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "다운로드 안 됨"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "준비됨 · 자리 사용"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "준비 안 됨 · 복원 가능"
+  },
+  "firstrun_quota_never": {
+    "message": "가장 오래 안 씀"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple 제한: 인식 언어는 동시에 최대 {max}개"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max}개 자리가 모두 사용 중 · 새로 추가하면 먼저 「준비 안 됨」으로 표시돼요"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "복원"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "탭하면 복원 · 약 1–2초"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "버튼은 고른 언어에 따라 바뀌어요."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "{yield} 양보 · {need} 복원"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "{need}을(를) 복원하려면 먼저 한 언어를 양보하세요. 양보한 언어는 「준비 안 됨」으로 돌아가고, 다시 쓸 때 약 1–2초면 복원돼요. 다시 다운로드할 필요는 없어요."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "양보할 언어 선택(기본: 가장 오래 안 씀)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "인식 언어가 {max}개로 가득 찼어요"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "다운로드 안 됨"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "자리 사용"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "준비 안 됨"
+  },
+  "firstrun_quota_today": {
+    "message": "오늘 사용함"
+  },
+  "firstrun_quota_used": {
+    "message": "{max}개 중 {n}개 사용"
+  },
+  "firstrun_quota_working": {
+    "message": "복원 중…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "준비 안 됨 · {n}번째"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "이번엔 다운로드 안 함"
+  },
+  "firstrun_quota_over_title": {
+    "message": "{max}개가 가득 참: {langs}은(는) 「준비 안 됨」으로 표시돼요"
+  },
+  "firstrun_quota_over_body": {
+    "message": "쓸 때 탭하면 복원돼요(약 1–2초). 그때 가장 오래 안 쓴 언어가 자리를 양보해요. 원하지 않으면 지금은 체크하지 마세요."
+  },
+  "listen_pill_quota_full": {
+    "message": "자리 꽉 참"
+  },
+  "listen_ptt_quota_full": {
+    "message": "자리 꽉 참 · 하나를 양보해야 쓸 수 있어요"
+  },
+  "listen_quota_card_btn": {
+    "message": "하나 양보하고 복원"
+  },
+  "listen_quota_card_hint": {
+    "message": "약 1–2초 · 다시 다운로드 안 함"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang}은(는) 설치된 적이 있지만 자리를 다른 언어에 양보했어요. 다운로드 실패가 아니고 네트워크와도 무관해요."
+  },
+  "listen_quota_card_title": {
+    "message": "아직 {lang}을(를) 들을 수 없어요: 인식 언어 {max}개 자리가 모두 사용 중이에요"
+  },
+  "listen_quota_sheet_go": {
+    "message": "{yield} 양보 · {need} 복원"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "{lang}을(를) 쓰려면 먼저 한 언어를 양보하세요."
   }
 }

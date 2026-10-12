@@ -807,7 +807,13 @@ var ListenCore = (() => {
             // 所以不用 overlapTs（它要求真交叠）。邻接恰恰是 overlapTs 判 false 的那种关系。
             const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
             if (merge) out.push(hd);
-            else if (HAS_LETTER.test(hd)) diag('gate:drop', hd, 'gap');   // 方案 2：接不回也留痕
+            // 不紧接也不丢（1.19.4 r6，真机「英文丢前 1–2 个词」）：低置信拉丁片只有跨语言重叠能丢
+            // （见本闸开头 ①）。识别器常把句首单出成一片 `Hello.`，后半句隔 >120 ms 才到 —— 以前这里
+            // 记 gate:drop/gap 把句首扔了。已被中文侧判重叠的（conflict）照旧丢。
+            else if (HAS_LETTER.test(hd)) {
+              if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
+              else { out.push(hd); diag('gate:release', hd, 'gap'); }
+            }
             else diag('gate:drop', h.text, 'punct');
           }
           if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); }
@@ -1592,7 +1598,10 @@ var ListenCore = (() => {
         }
       }
       // stop/switch 的收尾：账本清空（且无在飞/扣住）⇒ 回到 open（可以继续听）
-      if (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch') && !ledger.length && !inFlight && !Object.keys(heldBatch).length) { phase = 'open'; closeReason = ''; }
+      if (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch') && !ledger.length && !inFlight && !Object.keys(heldBatch).length) {
+        phase = 'open'; closeReason = '';
+        for (const lc of Object.keys(meta)) meta[lc].force = false;
+      }
       notify(queue);
     }
     // ── 方案 2（R12）：模型 source 与上一条已出行行的重复前缀裁剪 ────────────────
@@ -2111,7 +2120,10 @@ var ListenCore = (() => {
         } else if (!ledger.length) { finishClosing(); }
       } else if (closeReason !== 'degrade') {   // stop | switch
         for (const lc of Object.keys(heldBatch)) releaseHeld(lc);   // 扣住的结果直接出行（不受朗读影响）
-        for (const lc of locales()) { M(lc).force = true; }
+        // force 只给**还有字在等**的那一路：账本已空时置上的 force 没人消费，会漏到下一次收音，
+        // 把下一句的首片（`Please`）当场单独收尾送出 —— 句首独自成行（1.19.4 r6 Mac 实测）。
+        for (const lc of locales()) { if (runsOf(lc).length) M(lc).force = true; }
+        if (!ledger.length && !inFlight && !Object.keys(heldBatch).length) { phase = 'open'; closeReason = ''; }
         schedule();
       }
       return Promise.all(jobs);
@@ -2346,8 +2358,10 @@ var ListenCore = (() => {
     const sel = [];
     for (const x of (p.selected || [])) { const c = baseCode(x); if (c && sel.indexOf(c) < 0) sel.push(c); }
     const keep = [];
-    let used = 0;
-    for (const c of sel) { if (reserved.indexOf(c) >= 0) { keep.push(c); used++; } }
+    // 已用从**全部**预留起算（r6）：系统的上限数的是本 App 占着的每一门，不只是这次勾了的。
+    // 只数「勾了且占着」的会少算 —— 占着 th 却没勾它时，第 6 门照样撞 Code=11。
+    let used = new Set(reserved.filter(Boolean)).size;
+    for (const c of sel) { if (reserved.indexOf(c) >= 0) keep.push(c); }
     const later = [];
     for (const c of sel) {
       if (reserved.indexOf(c) >= 0) continue;

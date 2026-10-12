@@ -342,6 +342,14 @@ export function bootShell() {
   const readObSeen = () => new Promise((r) => {
     try { chrome.storage.local.get([OB_SEEN], (v) => r(!!(v && v[OB_SEEN]))); } catch (_) { r(false); }
   });
+  // 首启包屏完成过一次（r6）：之后冷启动不再按探针回包屏，见 FirstRun.step 的注释。
+  const PACKS_DONE = 'listenPacksDone';
+  const readPacksDone = () => new Promise((r) => {
+    try { chrome.storage.local.get([PACKS_DONE], (v) => r(!!(v && v[PACKS_DONE]))); } catch (_) { r(false); }
+  });
+  const writePacksDone = () => new Promise((r) => {
+    try { chrome.storage.local.set({ [PACKS_DONE]: 1 }, () => r()); } catch (_) { r(); }
+  });
 
   // 听译页那一对（listenMyLang / listenOtherLang）从多选里算出来，下载前落盘（#564）。
   let langPair = ['', ''];
@@ -355,9 +363,18 @@ export function bootShell() {
   function firstRunLocales(s) {
     return FirstRun.ttsLangsFor(packLangs, packThaiTts, packKokoroOff ? false : undefined);
   }
+  // 首启多选按名额排：放得下的这次下，放不下的标「未就绪 · 第 N 门」、这次不下（改稿 H 第 1 张）。
+  // 就绪判定与下载都只看 keep —— 否则勾到第 6 门的人会被一门永远装不上的语言卡在包屏。
+  function asrPlan() {
+    let q = quotaSnap;
+    try { if (typeof NativeSpeech !== 'undefined' && NativeSpeech.quota) q = NativeSpeech.quota(); } catch (_) {}
+    const picked = Array.from(new Set(packLangs.filter(Boolean).map((x) => FirstRun.baseCode(x))));
+    try {
+      return ListenCore.quotaSelectPlan({ selected: picked, reserved: (q && q.reserved) || [], installed: quotaMem.installed, max: q && q.max });
+    } catch (_) { return { keep: picked, later: [], used: 0, max: 5 }; }
+  }
   function firstRunAsrLangs(s) {
-    const picked = packLangs.filter(Boolean).map((x) => FirstRun.baseCode(x));
-    return Array.from(new Set(picked));
+    return asrPlan().keep;
   }
 
   function firstRunEngineOk(s) {
@@ -488,9 +505,13 @@ export function bootShell() {
               packAsrByLang[code] = false;
             } else {
               packAsrByLang[code] = FirstRun.asrInstalled(r);
-              if (packAsrByLang[code]) ASRQuota.markInstalled(quotaMem, [code]);
             }
           }
+          // 「装过」只记本 App 真占着名额的（r6）：探针看到 .installed 可能只是系统听写 / Siri
+          // 下过的共享模型，记成「装过」会被画成「未就绪 · 可补回」—— 我们从没占过它，谈不上补回。
+          let held = [];
+          try { held = ((typeof NativeSpeech !== 'undefined' && NativeSpeech.quota && NativeSpeech.quota().reserved) || []).map((x) => FirstRun.baseCode(x)); } catch (_) { held = []; }
+          ASRQuota.markInstalled(quotaMem, asrLangs.filter((code) => packAsrByLang[code] && held.indexOf(code) >= 0));
           packAsrUnsupported = unsupported === asrLangs.length;
           packAsrReady = FirstRun.readiness(
             { asr: packAsrByLang, tts: {}, lid: true, vad: true },
@@ -538,7 +559,11 @@ export function bootShell() {
     await loadPackSelection(ui);
     await probePacks();
     const seen = await readObSeen();
-    const state = Object.assign(packsState(session), { onboardingSeen: seen });
+    const done = await readPacksDone();
+    const probed = Object.assign(packsState(session), { onboardingSeen: seen });
+    // 1.19.3 升上来的老用户没有这个标记：这一次探针全齐就补记，下次冷启动不再看探针。
+    if (!done && FirstRun.step(probed) === 'home') { try { await writePacksDone(); } catch (_) {} }
+    const state = Object.assign({}, probed, { packsDone: done });
     const gate = FirstRun.step(state) === 'packs';
     if (!gate && !packsManage && packPhase !== 'done' && packPhase !== 'downloading' && packPhase !== 'waiting') {
       sec.hidden = true; firstRunScreen = 'home'; return;
@@ -666,6 +691,18 @@ export function bootShell() {
     if (note) note.textContent = q.full
       ? t('firstrun_quota_note_full', '{max} 门都占着名额 · 再装新的会先标为「未就绪」').replace('{max}', String(q.max))
       : t('firstrun_quota_note', 'Apple 限制：同时最多 {max} 门识别语言').replace('{max}', String(q.max));
+    const over = $('packs-quota-over');
+    if (over) {
+      const later = (!packsManage && packPhase === 'pick' && bridge) ? asrPlan().later : [];
+      over.hidden = !later.length;
+      if (later.length) {
+        const names = later.map((x) => endonym(x.code)).join('、');
+        const ot = $('packs-quota-over-title');
+        if (ot) ot.textContent = t('firstrun_quota_over_title', '已满 {max} 门：{langs} 会标为「未就绪」').replace('{max}', String(q.max)).replace('{langs}', names);
+        const ob = $('packs-quota-over-body');
+        if (ob) ob.textContent = t('firstrun_quota_over_body', '要用时点一下补回（约 1–2 秒），同时让出最久没用的语言；不想让就先别勾。');
+      }
+    }
     const lr = $('packs-legend-ready'); if (lr) lr.textContent = t('firstrun_quota_leg_ready', '已就绪 · 占名额');
     const lc = $('packs-legend-recover'); if (lc) lc.textContent = t('firstrun_quota_leg_recover', '未就绪 · 可补回');
     const la = $('packs-legend-absent'); if (la) la.textContent = t('firstrun_quota_leg_absent', '未下载');
@@ -1055,15 +1092,20 @@ export function bootShell() {
           onAction: () => onQuotaAction(code, st),
         }));
       } else {
+        const later = checked ? plan.later.find((x) => x.code === code) : null;
         body.appendChild(makeRow({
           id: 'asr-' + code, code, kind: 'asr', name: item.label, checked, disabled: locked,
-          state: st, tag: quotaTagText(st), tagState: st,
+          state: later ? 'recoverable' : st,
+          tag: later ? t('firstrun_quota_tag_later', '未就绪 · 第 {n} 门').replace('{n}', String(later.nth)) : quotaTagText(st),
+          tagState: later ? 'recoverable' : st,
           sub: bits.join(' · ') || t('firstrun_packs_asr_sub', '识别包 · 系统下载'),
-          status: downloading ? statusText('asr:' + code, checked) : quotaStatusText(st),
+          status: later ? t('firstrun_quota_skip_now', '这次不下载')
+            : (downloading ? statusText('asr:' + code, checked) : quotaStatusText(st)),
           locked, onChange: (on) => toggleLang(code, on, ui),
         }));
       }
     };
+    const plan = asrPlan();
     for (const code of vis.pinned) paintLang(code);
     if (vis.rest.length && !packMoreOpen) {
       const more = document.createElement('button');
@@ -1367,6 +1409,8 @@ export function bootShell() {
       return;
     }
     packPhase = 'done';
+    // 下载完成就记，不等「进入实时听译」—— 用户停在完成页直接划掉，下次也不该再回包屏。
+    try { await writePacksDone(); } catch (_) {}
     await paintFirstRun(currentSession);
   }
 

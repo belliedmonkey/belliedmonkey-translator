@@ -3947,5 +3947,119 @@
   },
   "listen_ready_tap_sub": {
     "message": "لن يبدأ تلقائيًا · اضغط «{mine}» أو «{other}» لبدء الاستماع"
+  },
+  "drive_skipped": {
+    "message": "تم تخطي {n} بطاقة لا يمكن قراءتها (بطاقات وسائط أو بلا صوت)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "أصبح بالإمكان الترجمة الفورية لـ {langs}، والقراءة بصوت عالٍ لـ {speak}. أضف لغات أخرى في أي وقت من الإعدادات · حزم الصوت."
+  },
+  "firstrun_quota_cancel": {
+    "message": "إلغاء"
+  },
+  "firstrun_quota_days": {
+    "message": "الأقل استخدامًا مؤخرًا · منذ {n} يوم"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "تنزيل"
+  },
+  "firstrun_quota_in_use": {
+    "message": "زوج اللغات الحالي · لا يمكن التخلي عنه"
+  },
+  "firstrun_quota_label": {
+    "message": "لغات التعرّف"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "غير مُنزّل"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "جاهز · يشغل خانة"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "غير جاهز · يمكن استعادته"
+  },
+  "firstrun_quota_never": {
+    "message": "الأقل استخدامًا مؤخرًا"
+  },
+  "firstrun_quota_note": {
+    "message": "حدّ Apple: {max} لغات تعرّف كحد أقصى في وقت واحد"
+  },
+  "firstrun_quota_note_full": {
+    "message": "جميع الخانات الـ {max} مشغولة · أي لغة جديدة ستُعلَّم أولًا بـ «غير جاهز»"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "استعادة"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "اضغط للاستعادة · نحو 1–2 ثانية"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "يتغيّر الزر حسب اللغة التي تختارها."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "تخلَّ عن {yield} · استعد {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "لاستعادة {need}، تخلَّ عن لغة واحدة أولًا. ستعود إلى «غير جاهز» وتُستعاد خلال نحو 1–2 ثانية عند الحاجة، دون إعادة تنزيل."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "اختر لغة للتخلي عنها (الافتراضي: الأقل استخدامًا مؤخرًا)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "لغات التعرّف ممتلئة ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "غير مُنزّل"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "يشغل خانة"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "غير جاهز"
+  },
+  "firstrun_quota_today": {
+    "message": "استُخدم اليوم"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} من {max} مستخدمة"
+  },
+  "firstrun_quota_working": {
+    "message": "جارٍ الاستعادة…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "غير جاهز · اللغة {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "لن يُنزَّل هذه المرة"
+  },
+  "firstrun_quota_over_title": {
+    "message": "امتلأت الخانات الـ {max}: ستُعلَّم {langs} بـ «غير جاهز»"
+  },
+  "firstrun_quota_over_body": {
+    "message": "اضغط لاستعادتها عند الحاجة (نحو 1–2 ثانية)، وستتخلى اللغة الأقل استخدامًا عن خانتها. إن لم ترغب في ذلك فلا تحددها الآن."
+  },
+  "listen_pill_quota_full": {
+    "message": "الخانات ممتلئة"
+  },
+  "listen_ptt_quota_full": {
+    "message": "الخانات ممتلئة · تخلَّ عن واحدة لاستخدامها"
+  },
+  "listen_quota_card_btn": {
+    "message": "تخلَّ عن واحدة واستعد"
+  },
+  "listen_quota_card_hint": {
+    "message": "نحو 1–2 ثانية · دون إعادة تنزيل"
+  },
+  "listen_quota_card_sub": {
+    "message": "كانت {lang} مثبّتة، لكن خانتها ذهبت إلى لغة أخرى — ليس فشلًا في التنزيل ولا علاقة للشبكة بذلك."
+  },
+  "listen_quota_card_title": {
+    "message": "لا يمكن الاستماع إلى {lang} بعد: جميع خانات التعرّف الـ {max} مشغولة"
+  },
+  "listen_quota_sheet_go": {
+    "message": "تخلَّ عن {yield} · استعد {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "لاستخدام {lang}، تخلَّ عن لغة واحدة أولًا."
   }
 }
