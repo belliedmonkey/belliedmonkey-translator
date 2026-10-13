@@ -4196,6 +4196,7 @@ macOS 26 ⇒ 不冲突。
     - **页面**：收到**不带 `reason`** 的 `closed` 且正在听 ⇒ 按用户暂停处理（与 App 里点暂停同一条路：`mic-stop`、会话不释放、句子保留、不出小结；系统麦克风指示随之消失）。状态句「已暂停」，预览下方出主按钮「继续」。带 `reason` 的 `closed` 不暂停，照旧出「浮出字幕窗」。
     - **暂停期间离开 App 不自动浮出小窗**：页面发 `subtitle-float {rect: null}` 收起预览（第 17 条），不然用户刚关掉的窗一离开 App 又弹出来。点「继续」⇒ 恢复听、重发预览矩形，之后离开 App 照旧自动浮出。
     - 小窗里的 ⏸ 本来就是暂停（`remote pause`），✕ 现在与它结果相同，区别只是窗还在不在。⧉ 回到 App（`inline`）不暂停。
+    - **修订（2026-10-13，#590 iOS 6）：切回本 App 时小窗自己收回。** 点 ⧉ 仍由系统走 restore，原生报 `inline`。从别的 App 切回来不走那条，系统小窗继续浮在定稿列表上（2026-10-13 真机，商店包 1.19.4（111））。App 回到前台且小窗仍浮着时，原生先把这次停标成回到内联，再 `stopPictureInPicture`。不先标的话 `didStop` 会当成用户点了 ✕，听译被暂停。`inline` 仍不暂停。
     - Mac 不受影响：字幕条上的 ✕ 本来就是「结束」（interaction-spec M9）。
 20. **「浮出字幕窗」只在 App 前台活跃时能成**（S7：场景非前台活跃时 `startPictureInPicture` 报 -1001）。失败回 `subtitle-window {state:'closed', reason:'not-active'}`，页面按钮保持可点，不弹错。
 21. **戴耳机（第 7 条的判据）**：字幕档会话里，当前输出路由含 `headphones` / `bluetoothA2DP` / `bluetoothLE` / `bluetoothHFP` 任一 ⇒ `mic-state {state:'interrupted', reason:'headphones', source:'mic'}`。开始时判一次，之后每次路由变化再判。摘下耳机**不自动恢复**，由用户点「继续」（同 30 秒静音）。

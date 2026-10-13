@@ -727,6 +727,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     @objc private func onDidBecomeActive() {
         UIApplication.shared.isIdleTimerDisabled = true
+        // 切回本 App 时把还浮着的字幕小窗收成内联（#590 iOS 6）。不收的话系统窗盖住定稿列表。
+        MTSubtitlePip.shared.dockIfFloating()
     }
 
     @objc private func onEngineConfigChange(_ note: Notification) {

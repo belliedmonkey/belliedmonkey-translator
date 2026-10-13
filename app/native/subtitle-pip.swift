@@ -150,6 +150,15 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         pip?.invalidatePlaybackState()
     }
 
+    /// App 回到前台而小窗还浮着：收成内联预览（#590 iOS 6）。
+    /// 从别的 App 切回来不会走 ⧉ 的 restore，系统小窗会继续盖在定稿列表上。
+    /// 先把 restoring 置上再 stop：didStop 据此报 inline，不把它当成用户点了 ✕（那条会暂停听）。
+    func dockIfFloating() {
+        guard let c = pip, c.isPictureInPictureActive else { return }
+        restoring = true
+        c.stopPictureInPicture()
+    }
+
     /// `subtitle-hide`：会话结束。
     func hide() {
         timer?.invalidate()
@@ -291,6 +300,8 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     // MARK: - AVPictureInPictureSampleBufferPlaybackDelegate
 
     func pictureInPictureController(_ c: AVPictureInPictureController, setPlaying playing: Bool) {
+        // 收回内联时系统可能再送一次 pause。那不是用户点的 ⏸；inline 不暂停（协议 19）。
+        if restoring { return }
         onRemote?(playing ? "play" : "pause")
     }
     /// 有限的滑动时间窗（而不是直播形状的无穷区间）：系统才会给出后退 / 前进按钮。窗口右端 = 当前帧的时间戳。

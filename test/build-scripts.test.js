@@ -417,9 +417,11 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     for (const lit of strings) ok(allowed.has(lit), `画中画字幕窗里出现了非协议字符串（可能是文案）：${lit}`);
   });
   test('系统控件回页面（19）、浮出只在前台活跃时成（20）', () => {
-    ok(/setPlaying playing: Bool\) \{\s*onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play');
+    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play；收回内联时忽略系统附带的 pause');
     ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
     ok(/restoring \? "inline" : "closed"/.test(tpl), '回到 App = inline，点 ✕ = closed');
+    ok(/func dockIfFloating\(\) \{[\s\S]*?restoring = true[\s\S]*?stopPictureInPicture\(\)/.test(tpl), '切回本 App：先标记 restoring 再 stop，不当成 ✕');
+    ok(/func onDidBecomeActive\(\) \{[^}]*dockIfFloating\(\)/.test(audio), 'App 回到前台就收小窗');
     // 用户 2026-09-14 15 Pro 手测后裁定的三处
     ok(/renderSize = CGSize\(width: 640, height: 800\)/.test(tpl), '小窗默认 4:5 偏竖（宽高比由帧决定）');
     ok(/let u = size\.width \* 0\.5625/.test(tpl) && !/size\.height \* 0\./.test(tpl), '字号按宽度算：窗口越高放的句子越多（按高度算只会把字放大）');
