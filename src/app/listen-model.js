@@ -140,6 +140,7 @@ const listenModel = (() => {
   let audioCtx = null, stream = null, proc = null, srcNode = null;
 
   // ── 原来从 DOM 读的四处，提取为模型状态（PR6c）────────────────────────────
+  let noteGo = '';                        // 提示可点时去设置页的哪一处（额度 / key 停机）
   let noteMsg = '', noteErr = true;       // app-listen-note（onMicState 'sound' 与 paintClock 撤销分支要比较它的现值）；初始 err 类对齐原 DOM 的静态 className="note err"
   let speakingShow = false;               // app-listen-flip-speaking（speakOut 异步前点亮、异步后熄灭）
   let ephemeralChecked = false;           // app-listen-ephemeral（start() 在开始那一刻钉住它）
@@ -180,20 +181,32 @@ const listenModel = (() => {
         // 实时字幕：「对方的语言」换成「视频的语言」（subtitleVideoLang，§9.8 协议补充决定 6）
         // **读的时候就要挡掉不支持的短码**（2026-10-07 真机：`nn` 被写进 listenOtherLang 之后，
         // 每次进场都拿它去探识别器 ⇒ 整场 halt。存量坏值在这一层自愈）。
-        const storedOther = sub ? B(s.subtitleVideoLang) : B(s.listenOtherLang);
-        const otherLang = langOk(storedOther) ? storedOther : 'en';
         // 「译成」（= 用户想读的语言，2026-10-07 真机反馈后定名）：**默认系统语言** ——
         // 之前跟着界面语言走，界面语言不是中文的人拿到的译文就不是「自己读得懂的那门」。
         // 只在读取时回落，不往存储播种默认值（播种了，用户以后改系统语言这一项就不会跟着动）。
         // 系统语言也要过 `langOk`：系统是 nn/cy 这类我们没有的语言时，落到英文而不是拿它去探识别器。
         const storedTarget = B(s.listenMyLang);
+        if (storedTarget === 'auto') { try { chrome.storage.local.remove('listenMyLang'); } catch (_) {} }
         const sysLang = B(navigator.language);
-        const myLang = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
+        const target = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
+        // 字幕内部沿用「myLang = 左格（视频的语言）/ otherLang = 右格（译成）」—— deviceLocales /
+        // targetLangFor / lidOn 都按这个读；**存储**按设计：视频的语言 = subtitleVideoLang（缺省「自动」），
+        // 译成 = listenMyLang（与对话共用「我的语言」）。#590：两格曾挂在相反的键上。
+        let myLang, otherLang;
+        if (sub) {
+          otherLang = target;
+          const v = B(s.subtitleVideoLang);
+          myLang = videoLangOf(v, target);
+        } else {
+          myLang = target;
+          const storedOther = B(s.listenOtherLang);
+          otherLang = langOk(storedOther) ? storedOther : 'en';
+        }
         resolve({
           tr,
-          // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
+          // targetLang = 「译成」（对话里就是 myLang；原来直接读 uiLang）。留着这个名字是因为
           // draftFor 与端到端测试都在读它 —— 不在同一步里既改语义又改名字。
-          targetLang: myLang,
+          targetLang: target,
           myLang,
           autoSpeak: !sub && s.listenAutoSpeak !== false,
           fontScale: C.fontStep(s.subtitleFontScale, 0),
@@ -228,7 +241,7 @@ const listenModel = (() => {
     if (c && c.mode === 'subtitle') {
       const a = C.baseCode(c.myLang);
       if (a && a !== 'auto') return [C.toLocale(a)];
-      const guess = C.baseCode(c.subtitleVideoLang) || 'en';
+      const guess = subGuess || 'en';
       const tg = C.baseCode(c.otherLang);
       return guess === tg ? [C.toLocale(guess)] : [C.toLocale(guess), C.toLocale(tg)];
     }
@@ -376,6 +389,14 @@ const listenModel = (() => {
       }
     } catch (_) {}
   }
+  // 额度用完 / 池子空了 / key 被拒（#590 K）：与网页引擎同一个判据（e.grant || e.halt）——
+  // 重试必然再失败、每一次都花一个来回，所以整场停下，不再一句一句地「译文失败」。
+  function quotaHalt(e) {
+    if (!e || !(e.grant || e.halt)) return false;
+    if (phase === 'halted' && pauseReason === 'grant') return true;
+    halt('grant', typeof e.code === 'string' ? e.code : 'auth');
+    return true;
+  }
   function tmFail(e) {
     if (!session || !e) return;
     const code = typeof e.code === 'string' ? e.code : 'network';
@@ -413,6 +434,7 @@ const listenModel = (() => {
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     if (row.tr) tmOk(); else tmFail(eo.err);
+    if (!row.tr && quotaHalt(eo.err)) { canvas.view('history'); return; }
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -425,21 +447,33 @@ const listenModel = (() => {
     const n = (TranslationAPI.LANG_NAMES || {})[c] || (TranslationAPI.LANG_NAMES || {})[c.split('-')[0]];
     return n || langLabel(c) || c;
   }
+  const SUB_PASS_TIMEOUT_MS = 30000;
+  function subSrcLang(row) {
+    const a = C.baseCode(cfg && cfg.myLang);
+    if (a && a !== 'auto') return a;
+    const byRec = C.baseCode(row && row.srcLocale);
+    if (byRec) return byRec;
+    return lidLang && lidLang !== C.baseCode(cfg && cfg.otherLang) ? lidLang : '';
+  }
   async function passRow(row, quiet) {
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
-    const srcLang = row.who === 'me' ? cfg.myLang : cfg.otherLang;
+    // 字幕：源语言是**视频的语言**（左格），「自动」时取这句识别器那一路的语言。#590 之前这里
+    // 取的是 otherLang（= 译成）⇒ 提示写成「一句中文转写 … 译成中文」，英文被原样当译文留下。
+    const srcLang = cfg.mode === 'subtitle' ? subSrcLang(row) : row.who === 'me' ? cfg.myLang : cfg.otherLang;
     const dstLang = targetLangFor(row);
     const prompt = C.buildListenPrompt({
       text: row.raw || row.text, alts: row.alts || [], who: row.who,
-      srcLang, dstLang, srcName: langName(srcLang), dstName: langName(dstLang),
+      srcLang, dstLang, srcName: srcLang ? langName(srcLang) : 'the language it was spoken in', dstName: langName(dstLang),
       context: C.contextRows(session ? session.rows : [], row),
     });
     let reply = '', passErr = null;
     const t0 = now();
     try {
-      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+      // 字幕：中继实测 p90 15.6 s、最长 20 s（#590 H）—— 默认截止（20 s）会把服务端已经计费的回包丢掉
+      const po = cfg.mode === 'subtitle' ? { timeoutMs: SUB_PASS_TIMEOUT_MS } : undefined;
+      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '', po);
     } catch (e) { reply = ''; passErr = e; }
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
@@ -447,6 +481,7 @@ const listenModel = (() => {
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
     if (row.tr) tmOk(); else tmFail(passErr);
+    if (!row.tr && quotaHalt(passErr)) { canvas.view('history'); return; }
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -695,15 +730,11 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
-        // 字幕处在「自动」时，把认出来的那门记下来 —— 下次进场的候选就是它（「自动」只能覆盖
-        // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。
-        try {
-          if (mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto') {
-            chrome.storage.local.get(['subtitleVideoLang'], (st) => {
-              if (C.baseCode(st && st.subtitleVideoLang) !== lang) chrome.storage.local.set({ subtitleVideoLang: lang });
-            });
-          }
-        } catch (_) {}
+        // 字幕处在「自动」时，把认出来的那门记在内存里 —— 下次进场的候选就是它（「自动」只能覆盖
+        // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。**不写进 subtitleVideoLang**：
+        // 写进去，用户选的「自动」下次就变成了一门具体语言（#590 iOS 3 / C）。
+        if (mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto'
+          && lang !== C.baseCode(cfg && cfg.otherLang)) subGuess = lang;
         canvas.view('state');
         // **不再自动跟随**（2026-10-07 用户拍：「让用户选两种语言……听到一种语言就译另一种」）——
         // 两门语言由用户指定，LID 只负责判「这一段是其中哪一门」。
@@ -1546,6 +1577,7 @@ const listenModel = (() => {
     if (meta && meta.locale) {
       // 本机路：原始句立即上屏；复用的临时译文斜体，等修正稿回来换正体；修正契约必发
       row.raw = row.text; row.alts = Array.isArray(meta.alts) ? meta.alts : [];
+      row.srcLocale = meta.locale;
       if (reuse) { row.tr = reuse; row.trTemp = true; canvas.view('history'); }
       subShow(row.text, row.tr || '', true);
       passRow(row);
@@ -1580,6 +1612,11 @@ const listenModel = (() => {
     NativeAudio.subtitleState(state, pct);
   }
   // 字幕条 A− / A+（§9.8 协议补充决定 9）：字号由页面存（设置与条永远一致），改完重发 subtitle-config
+  let lastGrantCode = '';
+  function subRelabel() {
+    if (!subOn() || !cfg) return;
+    NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale, opacity: 1 });
+  }
   function subFont(dir) {
     if (!subOn() || !cfg) return;
     cfg.fontScale = C.fontStep(cfg.fontScale, dir);
@@ -1642,8 +1679,9 @@ const listenModel = (() => {
         socket: t('subtitle_bar_socket', '转写连接中断'),
         reconnecting: t('subtitle_bar_reconnecting', '正在重连…'),
         // {pct} 留给原生按实时进度填；{lang} 这里就填好（原生不持有语言名）
-        downloading: t('subtitle_bar_downloading', '正在下载{lang}识别资产 · {pct}%').replace('{lang}', langLabel(cfg && cfg.otherLang)),
+        downloading: t('subtitle_bar_downloading', '正在下载{lang}识别资产 · {pct}%').replace('{lang}', langLabel(cfg && C.baseCode(cfg.myLang) !== 'auto' ? cfg.myLang : (subGuess || 'en'))),
         'tr-failed': t('subtitle_bar_tr_failed', '这句译文失败 · 主窗口里可重试'),
+        grant: typeof TranslationCore !== 'undefined' ? TranslationCore.haltMessage(lastGrantCode || 'credit_exhausted') : '',
         silent: silentHint(),
         // 静音门暂停、本场出过 silent 却从没 sound（决定 10 修订二补 O2）：全屏看视频只看得见条，条上也指向权限
         'silence-permission': t('subtitle_bar_silence_permission', '30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限'),
@@ -1980,16 +2018,22 @@ const listenModel = (() => {
       const vm = vadModel();
       if (vm) {
         const baseName = t('firstrun_packs_base', '基础组件');
+        let vadFetched = false;
         try {
           await NativeSpeech.ensureVad(vm, (m) => {
+            if (m && m.state === 'downloading') vadFetched = true;
             const named = FirstRun.nameProgress(Object.assign({}, m, { name: baseName }), baseName);
             dlLang = named.name;
             prep.name = named.name;
             if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
           });
           prep.assets.vad = true;
-          prep.didDownload = true;
-          prep.dlGen = (prep.dlGen || 0) + 1;
+          // 包本来就在时原生只回一条 installed —— 那不算「这一轮下过」，否则每次冷启动的
+          // 第一次「开始」都会停在「下好了」（#590 B）。
+          if (vadFetched) {
+            prep.didDownload = true;
+            prep.dlGen = (prep.dlGen || 0) + 1;
+          }
         } catch (e) {
           if (ptt) { halt('assets', e && e.reason); return false; }
         }
@@ -2037,7 +2081,9 @@ const listenModel = (() => {
     const beforeGen = prep.dlGen || 0;
     if (!(await ensurePacksForPair())) return;
     // 这一轮真的下过包：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
-    if ((prep.dlGen || 0) !== beforeGen) {
+    // 只管对话页那两个说话键 —— 字幕是人已经点了「开始」，下完就接着听。停在 idle 的字幕页
+    // 会被画成「已暂停 · 计时在走 + 继续」，而系统录音一次都没开（#590 B：冷启动第一次「开始」）。
+    if ((prep.dlGen || 0) !== beforeGen && session.mode !== 'subtitle') {
       pttAbort();
       phase = 'idle';
       prep.readyUntil = Date.now() + 4000;
@@ -2119,6 +2165,15 @@ const listenModel = (() => {
   let langRevert = null;     // { other }：一次改语言期间记下「改之前那门」
   function revertLangIfNeeded() {
     const r = langRevert; langRevert = null;
+    if (r && r.video && session && cfg && mode === 'subtitle') {
+      if (C.baseCode(cfg.myLang) === r.video) return;
+      cfg.myLang = r.video;
+      try { chrome.storage.local.set({ subtitleVideoLang: r.video }); } catch (_) {}
+      const backTo = r.video === 'auto' ? t('lang_auto', '自动') : langLabel(r.video);
+      beginPipeline().then(() => { if (phase === 'listening' || phase === 'preparing') note(t('listen_lang_unsupported_revert', '这门语言这台设备识别不了 — 已经回到「{lang}」').replace('{lang}', backTo)); }).catch(() => {});
+      canvas.view('mode');
+      return;
+    }
     if (!r || !r.other || !session || !cfg) return;
     if (C.baseCode(cfg.otherLang) === r.other) return;
     cfg.otherLang = r.other; cfg.lang = r.other; otherSelVal = r.other;
@@ -2151,7 +2206,9 @@ const listenModel = (() => {
     if (why1 === 'locales') {
       try { setQuotaFull(quotaNeedCode || (cfg && cfg.otherLang) || (cfg && cfg.myLang)); } catch (_) {}
     }
-    const msg = reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
+    const grantCode = reason === 'grant' ? (why1 || 'auth') : '';
+    const msg = reason === 'grant' ? (typeof TranslationCore !== 'undefined' ? TranslationCore.haltMessage(grantCode) : '')
+      : reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
         ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
         : t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。'))
@@ -2178,8 +2235,9 @@ const listenModel = (() => {
       // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
       : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
-    note(msg, true);
-    subState(reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
+    note(msg, true, grantCode ? (grantCode === 'auth' ? 'sec-engines' : 'grant-card') : '');
+    if (grantCode) { lastGrantCode = grantCode; subRelabel(); }
+    subState(reason === 'grant' ? 'grant' : reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
     canvas.view('state');
   }
   async function resume() {
@@ -2243,8 +2301,17 @@ const listenModel = (() => {
   // 页内确认（LearnDialog）：App 的 WKWebView 没有原生确认框，window.confirm 恒为 false。
   async function leave() {
     if (session && phase !== 'ended' && phase !== 'idle') {
-      const ask = session.mode === 'subtitle' ? t('subtitle_leave_confirm', '还在听。离开会结束这次字幕，已出的句子保留。') : t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。');
-      if (!(await LearnDialog.confirm(ask, { ok: t('listen_leave_ok', '结束并离开') }))) return;
+      const stopped = phase === 'paused' || phase === 'halted';
+      const ask = session.mode === 'subtitle'
+        ? (stopped ? t('subtitle_leave_confirm_paused', '已暂停。离开会结束这次字幕，已出的句子保留。') : t('subtitle_leave_confirm', '还在听。离开会结束这次字幕，已出的句子保留。'))
+        : (stopped ? t('listen_leave_confirm_paused', '已暂停。离开会结束这次对话，已听的句子保留。') : t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。'));
+      // iPhone 的原生预览块盖在网页之上 —— 确认框是网页里的，弹出前先收起预览（#590 iOS 6），取消再放回
+      const hidePreview = session.mode === 'subtitle' && pipHost();
+      if (hidePreview) { pipRectOff(); try { NativeAudio.subtitleFloat(null); } catch (_) {} }
+      if (!(await LearnDialog.confirm(ask, { ok: t('listen_leave_ok', '结束并离开') }))) {
+        if (hidePreview && session && phase !== 'ended') pipRectOn();
+        return;
+      }
       await end();   // 「结束并离开」也走 end 流程：最多等 3 秒收尾，再清理（第四轮 P1-3）
     }
     gen++;
@@ -2295,7 +2362,7 @@ const listenModel = (() => {
     try {
       chrome.storage.local.get(['listenOtherLang', 'subtitleVideoLang', 'subtitleCapture'], (st) => {
         st = st || {};
-        otherSelVal = C.baseCode(sub ? st.subtitleVideoLang : st.listenOtherLang) || 'en';
+        if (!sub) otherSelVal = C.baseCode(st.listenOtherLang) || 'en';
         subsCaptureVal = st.subtitleCapture !== false;
         canvas.view('mode');
       });
@@ -2605,11 +2672,13 @@ const listenModel = (() => {
   }
 
   // ── 界面（涂写点全部换成 canvas.view；数据在下方 *View() getter 里）─────────
-  function note(msg, isErr) {
+  function note(msg, isErr, go) {
     noteMsg = msg || '';
     noteErr = !!isErr;
+    noteGo = go || '';
     canvas.view('note');
   }
+  function noteTap() { if (noteGo && openSettingsAt) { try { openSettingsAt(noteGo); } catch (_) {} } }
   function paintClock() {
     if (!session) return;
     // 早说一句（#424）：字幕档听了 DEAF_HINT_MS 还**一个非零样本都没收到** ⇒ 采集链路多半
@@ -2754,7 +2823,7 @@ const listenModel = (() => {
 
   /// 行上的「换引擎」由 shell 注入（它才拥有 openSettings）—— 与 §10 里「模型画控件、shell 管跳转」
   /// 同一条分工。听译页原来的出路只是一句「去设置里选」，用户 2026-10-04 裁定要**就地**给入口。
-  let openEnginePicker = null;
+  let openEnginePicker = null, openSettingsAt = null;
   function setOpenEnginePicker(fn) { openEnginePicker = fn; }
   function changeEngine() { try { if (openEnginePicker) openEnginePicker(); } catch (_) {} }
   /// 这一页此刻有没有被引擎挡住的语言（有才显示「换引擎」）。
@@ -2788,10 +2857,54 @@ const listenModel = (() => {
     return C.langSupported(code, dev);
   }
 
+  /** 字幕「视频的语言」：'auto' 或一门具体语言。存量里与「译成」相同的值是 #590 之前挂反的键
+   *  留下的（那时 subtitleVideoLang 存的是译成），一律当「自动」。 */
+  let subGuess = '';
+  function videoLangOf(v, target) {
+    const b = C.baseCode(v);
+    if (!b || b === 'auto' || b === C.baseCode(target) || !langOk(b)) return 'auto';
+    return b;
+  }
   /** 视图要的选项清单（与 langOptions 同一份；这里只是包一层，视图不必再读全局）。 */
   function langOptionsFor(cur) { try { return langOptions(cur); } catch (_) { return []; } }
 
+  /** 字幕的两格：左 = 视频的语言（subtitleVideoLang，可「自动」，动识别器 ⇒ 在听就重连），
+   *  右 = 译成（listenMyLang，只改译文方向，不重连）。两格撞同一门 ⇒ 对调（「自动」不参与对调）。 */
+  function subLangChange(which, value) {
+    if (!cfg) return;
+    const v = C.baseCode(value);
+    const prevVideo = C.baseCode(cfg.myLang) || 'auto', prevTarget = C.baseCode(cfg.otherLang);
+    let video = prevVideo, target = prevTarget, swapped = false;
+    if (which === 'my') {
+      video = v || 'auto';
+      if (video !== 'auto' && video === target) { target = prevVideo !== 'auto' ? prevVideo : target; swapped = target !== prevTarget; if (!swapped) video = 'auto'; }
+    } else {
+      target = v || prevTarget;
+      if (target === video) { video = prevTarget || 'auto'; swapped = true; }
+    }
+    const p = {};
+    if (video !== prevVideo) p.subtitleVideoLang = video;
+    if (target !== prevTarget) p.listenMyLang = target;
+    if (!Object.keys(p).length) { canvas.view('mode'); return; }
+    chrome.storage.local.set(p);
+    cfg.myLang = video; cfg.otherLang = target; cfg.targetLang = target; cfg.lang = target;
+    if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+    if (video !== prevVideo && session && sock && (phase === 'listening' || phase === 'preparing')) {
+      langRevert = { video: prevVideo };
+      closeSocket();
+      if (phase === 'listening') phase = 'preparing';
+      ensurePacksForPair({}).then((ok) => {
+        if (!ok) return;
+        openSocket();
+        if (phase === 'preparing') phase = 'listening';
+        canvas.view('state');
+      });
+    }
+    canvas.view('mode');
+    if (session) canvas.view('state');
+  }
   function langChange(which, value, opts) {
+    if (mode === 'subtitle') return subLangChange(which, value);
     const lo = opts || {};
     const prev = which === 'my'
       ? { myLang: (cfg && cfg.myLang) || '', otherLang: otherSelVal }
@@ -2952,6 +3065,7 @@ const listenModel = (() => {
     // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
     if (opts && typeof opts.openSettings === 'function') {
       setOpenEnginePicker(() => opts.openSettings('stt-engine'));
+      openSettingsAt = (id) => opts.openSettings(id);
     }
     refreshEntry();
     // 名额本机记忆（装过 / 最后使用）先读一次，供满员让出的默认选择用。
@@ -2980,7 +3094,7 @@ const listenModel = (() => {
     wire, open, leave, start, pause, resume, end, refreshEntry,
     // 视图动作（原 addEventListener 的 handler 们）
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
-    copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
+    copyAll, langChange, noteTap, setAutoSpeak, setSubsCapture, setEphemeral,
     retryPacks,
     // 名额已满（第 5 轮 A7/A8/A9 / 改稿 H）：卡片、底部确认框、让出并补回
     quotaView, quotaOpenSheet, quotaCloseSheet, quotaPick, quotaYieldAndRestore,
@@ -3019,7 +3133,7 @@ const listenModel = (() => {
     },
     // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
     formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),
-    noteView: () => ({ text: noteMsg, err: noteErr }),
+    noteView: () => ({ text: noteMsg, err: noteErr, go: !!noteGo }),
     historyView, summaryView, showView, pipNoteText, pipFloatShown,
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,

@@ -327,7 +327,7 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const strings = code(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"labels"', '"state"', '"controls"', '"menu"', '"fontScale"', '"opacity"', '"clickThrough"',
       '"orig"', '"tr"', '"partial"', '"pct"',
-      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"', '"grant"',
       '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
       '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
       '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);

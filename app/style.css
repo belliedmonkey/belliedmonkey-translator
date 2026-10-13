@@ -56,6 +56,7 @@ body {
 h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
 .note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
+#app-listen-note.go { cursor: pointer; text-decoration: underline; min-height: 44px; }
 /* The engine self-check results print a second line carrying the URL actually
    requested; `.note` collapses newlines, and an endpoint URL is long enough to push
    the column sideways unless it may break mid-token. */
@@ -625,6 +626,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) #app-listen-lang-wrap { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
   background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; }
 :where(#app-listen) .listen-pair-seg { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+/* 角色标签（视频语言：/ 译成）不许被挤成一字一行（#590 F/Q）：标签不收缩，收缩的是下拉 */
+:where(#app-listen) .listen-pair-seg > span { white-space: nowrap; flex: none; }
+:where(#app-listen) .listen-pair-seg select { min-width: 0; }
 :where(#app-listen) .listen-pair-seg select { font: inherit; font-size: 0.95rem; color: var(--text);
   background: transparent; border: 0; padding: 2px 2px; max-width: 42vw; }
 :where(#app-listen) .listen-pair-arrow { color: var(--accent); font-weight: 600; padding: 0 2px; }
@@ -634,7 +638,6 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   font-size: 0.9rem; cursor: pointer; }
 :where(#app-listen) .listen-tg.off { opacity: 0.45; }
 :where(#app-listen) .listen-tg input { width: 18px; height: 18px; accent-color: var(--accent); }
-:where(#app-listen) .listen-tg-ico { font-size: 0.95rem; line-height: 1; }
 :where(#app-listen) .listen-tg-svg { width: 16px; height: 16px; flex: none; color: var(--text-secondary); }
 /* 「语言手动指定」半屏 sheet（§9.6.1.5，2026-10-07 用户拍）：语言控件平时收着，
    认错了才从底部升起来手动指定。点遮罩 = 关（同 LearnDialog 的确认框语义）。 */
@@ -774,6 +777,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
   :where(#app-listen) .listen-toggles { margin-left: 0; }
   :where(#app-listen) .listen-pair-seg select { max-width: none; }
+  /* 左栏只有 250pt：两段放不下就折成两行（胶囊改成圆角矩形），不压到右边的定稿卡上 */
+  :where(#app-listen) #app-listen-lang-wrap { display: flex; flex-wrap: wrap; row-gap: 2px; border-radius: 18px; min-width: 0; }
   :where(#app-listen) .listen-history { max-height: calc(100vh - 210px); }
 }
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }

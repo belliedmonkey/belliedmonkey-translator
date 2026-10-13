@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "Hört noch zu. Verlassen beendet dieses Gespräch; das Gehörte bleibt erhalten."
   },
+  "listen_leave_confirm_paused": {
+    "message": "Pausiert. Verlassen beendet dieses Gespräch; das Gehörte bleibt erhalten."
+  },
   "dialog_ok": {
     "message": "OK"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "Hört noch zu. Beim Verlassen enden die Untertitel; die bisherigen Sätze bleiben erhalten."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "Pausiert. Beim Verlassen enden die Untertitel; die bisherigen Sätze bleiben erhalten."
   },
   "subtitle_summary_title": {
     "message": "Diese Untertitel-Sitzung"

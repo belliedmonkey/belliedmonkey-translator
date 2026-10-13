@@ -60,6 +60,22 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     private var dragStart = NSPoint.zero
     private var dragOrigin = NSPoint.zero
+    private var stackTop: NSLayoutConstraint?
+    private static let textTop: CGFloat = 14
+
+    /// 记住的位置可能来自另一块屏或更宽的屏（#590 J：条的右半截跑出屏幕）。夹回某块屏的可见区域内。
+    static func clamped(_ f: NSRect) -> NSRect {
+        let screens = NSScreen.screens
+        let s = screens.max { $0.visibleFrame.intersection(f).width * $0.visibleFrame.intersection(f).height
+            < $1.visibleFrame.intersection(f).width * $1.visibleFrame.intersection(f).height }
+        let v = (s ?? NSScreen.main)?.visibleFrame ?? f
+        var r = f
+        r.size.width = min(r.width, v.width - 16)
+        r.size.height = min(r.height, v.height - 16)
+        r.origin.x = min(max(r.minX, v.minX + 8), v.maxX - 8 - r.width)
+        r.origin.y = min(max(r.minY, v.minY + 8), v.maxY - 8 - r.height)
+        return r
+    }
 
     // MARK: - 桥 → 条
 
@@ -88,11 +104,19 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     /// `subtitle-show {orig, tr, partial}`：最新一句（半句或定稿）。
     func show(_ body: [String: Any]) {
-        orig = body["orig"] as? String ?? ""
-        tr = body["tr"] as? String ?? ""
-        partial = (body["partial"] as? Bool) ?? false
+        let o = body["orig"] as? String ?? ""
+        let t = body["tr"] as? String ?? ""
+        let isPartial = (body["partial"] as? Bool) ?? false
+        // 没有一个字母/数字的半句（识别器换句时会先报空串或「.」）不顶掉上一句 —— 顶掉了条就塌成
+        // 「正在听系统声音…」再弹回来（#590 O）。清屏只走非半句的空串（停下时页面发的那一条）。
+        if isPartial && !MTSubtitleBar.meaningful(o) && !MTSubtitleBar.meaningful(t) { return }
+        orig = o; tr = t; partial = isPartial
+        // 新的一句已经来了：上一句的「这句译文失败」不再属于条上这句话
+        if isPartial && state == "tr-failed" { state = "listening" }
         render()
     }
+
+    static func meaningful(_ s: String) -> Bool { s.rangeOfCharacter(from: .alphanumerics) != nil }
 
     /// `subtitle-state {state, pct?}`：条上那一行状态。文字取 labels.state[state]。
     func setState(_ body: [String: Any]) {
@@ -150,6 +174,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         p.delegate = self
         // 位置与宽度记住（§9.8 协议补充决定 6：条的位置由原生自存）
         if !p.setFrameUsingName(MTAudioBridge.channel) { p.setFrame(p.frame, display: false) }
+        p.setFrame(MTSubtitleBar.clamped(p.frame), display: false)
         p.setFrameAutosaveName(MTAudioBridge.channel)
 
         box.wantsLayer = true
@@ -197,10 +222,12 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         badge.translatesAutoresizingMaskIntoConstraints = false
         box.addSubview(badge)
 
+        let top = stack.topAnchor.constraint(equalTo: box.topAnchor, constant: MTSubtitleBar.textTop)
+        stackTop = top
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: box.leadingAnchor, constant: 22),
             stack.trailingAnchor.constraint(equalTo: box.trailingAnchor, constant: -22),
-            stack.topAnchor.constraint(equalTo: box.topAnchor, constant: 14),
+            top,
             stack.bottomAnchor.constraint(lessThanOrEqualTo: box.bottomAnchor, constant: -14),
             trLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             origLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
@@ -259,13 +286,15 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
         // 译文大字在上、原文小字在下；还没译文（半句 / 这句译文失败）时原文顶到大字位。
         // 只有标点、没有一个字母或数字的半句不显示（真机读数 M27：暂停后条上残留「••••」「.」）。
-        let meaningful = { (s: String) -> Bool in s.rangeOfCharacter(from: .alphanumerics) != nil }
+        let meaningful = MTSubtitleBar.meaningful
         let rawHead = tr.isEmpty ? orig : tr
         let head = meaningful(rawHead) ? rawHead : ""
         trLabel.stringValue = partial && !head.isEmpty ? head + "…" : head
         trLabel.isHidden = head.isEmpty
         origLabel.stringValue = tr.isEmpty ? "" : orig
-        origLabel.isHidden = tr.isEmpty || !meaningful(orig) || head.isEmpty
+        // 译文与原文一字不差（模型原样回了原文）时，小字那行只是同一句话的重影
+        let same = orig.trimmingCharacters(in: .whitespacesAndNewlines) == tr.trimmingCharacters(in: .whitespacesAndNewlines)
+        origLabel.isHidden = tr.isEmpty || !meaningful(orig) || head.isEmpty || same
 
         // 状态行：非 listening 一律显示；listening 只在还没出字时显示（「正在听系统声音…」）
         let text = (stateLabels[state] ?? "").replacingOccurrences(of: "{pct}", with: String(pct))
@@ -279,6 +308,12 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
             let title = controlLabels["openSettings"] ?? ""
             setTitle(actionButton, title, size: 13 * fontScale)
             actionButton.action = #selector(tapOpenSettings)
+            actionButton.isHidden = title.isEmpty
+        } else if state == "grant" {
+            // 额度 / key 停机：出口在主窗口那句提示上（点它去设置页对应那张卡）
+            let title = controlLabels["main"] ?? ""
+            setTitle(actionButton, title, size: 13 * fontScale)
+            actionButton.action = #selector(tapMain)
             actionButton.isHidden = title.isEmpty
         } else if state == "paused" || state == "silence" || state == "socket" {
             let title = controlLabels["resume"] ?? ""
@@ -312,6 +347,12 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
     private func hover(_ inside: Bool) {
         controls.isHidden = !inside || clickThrough
         badge.isHidden = !clickThrough || inside
+        // 控件那一排在右上角：悬停时把文字往下让一排，长句不再压在按钮底下（#590 J）
+        let want = controls.isHidden ? MTSubtitleBar.textTop : MTSubtitleBar.textTop + controls.fittingSize.height + 4
+        if let c = stackTop, abs(c.constant - want) > 0.5, let p = panel {
+            c.constant = want
+            fitHeight(p)
+        }
     }
 
     private func drag(_ phase: Int) {
@@ -346,6 +387,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         panel?.ignoresMouseEvents = clickThrough
         controls.isHidden = true
         badge.isHidden = !clickThrough
+        if let c = stackTop, c.constant != MTSubtitleBar.textTop, let p = panel { c.constant = MTSubtitleBar.textTop; fitHeight(p) }
     }
 
     // MARK: - 按钮

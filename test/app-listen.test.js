@@ -849,8 +849,9 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
 
 
     ok(/reason === 'socket' && why1 === 'locale' \? needText\('locale'\)/.test(MODEL), '协议码 locale 会被当原文印出来');
-    ok(/const otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
-    ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
+    ok(/otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
+    ok(/const target = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
+    ok(/!langOk\(b\)\) return 'auto'/.test(MODEL), '字幕「视频的语言」的坏值没有回落到「自动」');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
     eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 1, '半句那道 LID 闸');

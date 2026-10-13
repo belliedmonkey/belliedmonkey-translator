@@ -15,6 +15,8 @@
 var ListenCore = (() => {
   const SILENCE_MS = 30000;      // 30 s 没声音 ⇒ 暂停（interaction-spec 停止态四）
   const SILENCE_RMS = 0.004;     // 安静房间的门限；也是自适应门限的**下限**
+  const HEARD_RMS = 0.0001;      // 「采集链路是活的」：任何真实的麦克风 / 系统声音都远高于它
+  const FIRST_SOUND_MS = 180000; // 字幕：一次声音都没听到过时，静音门等 3 分钟（#590 iOS 4）
   const NOISE_WARMUP_MS = 2500;  // 开头这么久用来摸环境底噪
   const NOISE_FACTOR = 2.5;      // 门限 = 底噪 × 这个
   const NOISE_CEIL = 0.03;       // 门限上限：再吵也不能高到把正常说话判成静音
@@ -61,7 +63,7 @@ var ListenCore = (() => {
       flips: 0,           // 点过几次 ↔ —— 归属判得准不准的唯一体感指标
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
       // 这一场**有没有收到过一个非零样本**（#424）。与语音门限无关：底噪、配乐、隔壁的
-      // 说话都算「拿得到声音」，**恒零才是「拿不到」** —— 那是采集侧死了（Mac 上多半是
+      // 说话都算「拿得到声音」，**恒零（或低于 HEARD_RMS 的残渣）才是「拿不到」** —— 那是采集侧死了（Mac 上多半是
       // 系统录音权限），不是环境安静。两者的出口完全不同，所以必须分开记。
       heardAny: false,
       noiseFrom: 0,       // 环境底噪的摸底起点
@@ -352,9 +354,18 @@ var ListenCore = (() => {
   // 归属由 attributeByLang 给（见上）。**这里不再有第二个真值来源** —— 2026-09-08 之前
   // 是按「按住『我说』的时间窗」判的，那条机制连同 speaking / holdStart / myPartial 一起
   // 删掉了：两套判据并存，必然漂。
+  // 识别器在停顿处吐出的碎片定稿（「.」「a..」「.....」，#590 I）：没有字母数字，或拼音文字里
+  // 只有一个字母。汉字/假名/谚文/泰文一个字也可能是一句话（「好」「嗯」），不算碎片；数字也不算。
+  function junkFinal(text) {
+    const core = String(text || '').replace(/[^\p{L}\p{N}]/gu, '');
+    if (!core) return true;
+    if (core.length > 1 || CJK_CHAR.test(core) || NOSPACE_SCRIPT.test(core) || /\p{N}/u.test(core)) return false;
+    return true;
+  }
   function addFinal(s, text, at, cfg, deps) {
-    const clean = String(text || '').replace(/\s+/g, ' ').trim();
-    if (!clean) return null;
+    // 行首的悬空标点是识别器吞掉句首后留下的（「, you, and you risk…」，#590 L）—— 不留在行上
+    const clean = String(text || '').replace(/\s+/g, ' ').trim().replace(/^[,.;:!?，。、；：！？…]+\s*/u, '');
+    if (!clean || junkFinal(clean)) return null;
     // 本机路（§9.6.1）：归属由「哪一路识别器认出来的」直接给（deps.who），比按文字系猜准 ——
     // 同文字系语言对（en/fr）那时也能分开。没给就照旧按语言判。
     // 字幕模式单向：每句都归对方，连识别器给的 who 也不认（§9.8）。
@@ -420,11 +431,15 @@ var ListenCore = (() => {
   function silenceCheck(s, rms, now) {
     // 顺手记「这一场拿到过真样本没有」（#424）。判据是 **> 0**，不是过不过语音门限 ——
     // 房间里的麦克风永远不会给出恒零，给出恒零的只有一条死掉的采集链路。
-    if (rms > 0) s.heardAny = true;
+    // 门槛是 HEARD_RMS（约 -80 dBFS）而不是 0：Mac 的系统录音链路没授权时交上来的是极小的非零
+    // 样本，`> 0` 会把它当成「听到过」，于是指向权限的提示永远不出（#590 A）。
+    if (rms > HEARD_RMS) s.heardAny = true;
     // 字幕模式：静态门限（见 MODES.staticGate）。持续的配乐就是「有声」，不摸底噪、不抬门限。
     if (modeOf(s).staticGate) {
-      if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; return false; }
-      return now - s.lastVoiceAt >= SILENCE_MS;
+      if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; s.voiceEver = true; return false; }
+      // 还没听到过一次声音：人多半还在找视频、等加载、跳广告 —— 这时没有任何请求在花钱，
+      // 30 秒就停只会吞掉开场（#590 iOS 4）。改等 FIRST_SOUND_MS。
+      return now - s.lastVoiceAt >= (s.voiceEver ? SILENCE_MS : FIRST_SOUND_MS);
     }
     if (!s.noiseFrom) s.noiseFrom = now;
     if (s.noiseFloor == null) {
@@ -2234,10 +2249,13 @@ var ListenCore = (() => {
   // 解析：双标签 ⇒ { text, tr }；只有 X / 无标签 ⇒ text 用原文、tr 取整段（原文永不丢）。
   function parseListenReply(raw, fallbackText) {
     const s = String(raw || '').replace(/\r/g, '').trim();
-    const T = (s.match(/^\s*T\s*[:：]\s*(.+)$/m) || [])[1];
-    const X = (s.match(/^\s*X\s*[:：]\s*(.+)$/m) || [])[1];
-    if (T && X) return { text: T.trim(), tr: X.trim(), tagged: true };
-    if (X) return { text: fallbackText, tr: X.trim(), tagged: false };
+    // 行内空白只认空格/制表符：`\s*` 会跨过换行，空的「T:」就把下一行「X: …」吞成修正稿（#590 iOS 7）
+    const line = (tag) => { const m = s.match(new RegExp('^[ \\t]*' + tag + '[ \\t]*[:：][ \\t]*(.*)$', 'm')); return m ? m[1].trim() : null; };
+    const T = line('T'), X = line('X');
+    if (T && X) return { text: T, tr: X, tagged: true };
+    if (X) return { text: fallbackText, tr: X, tagged: false };
+    // 有标签却没有译文（空的「X:」或只回了「T:」）：这句没译出来，别把标签行当译文上屏
+    if (T !== null || X !== null) return { text: fallbackText, tr: '', tagged: false };
     // 无标签：整段当译文（去掉可能的围栏与前缀）
     const tr = s.replace(/^```[a-z]*\n?|```$/g, '').trim();
     return { text: fallbackText, tr, tagged: false };
@@ -2386,11 +2404,11 @@ var ListenCore = (() => {
     QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,
     lidBase, sideMatchesLid, langSupported,
 
-    SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
+    SILENCE_MS, SILENCE_RMS, HEARD_RMS, FIRST_SOUND_MS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
     MODES, modeOf, entryGate, captureSource,
-    newSession, sessionTitle, sourceFor, addFinal, flipWho, transcriptText,
+    newSession, sessionTitle, sourceFor, addFinal, junkFinal, flipWho, transcriptText,
     baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,
