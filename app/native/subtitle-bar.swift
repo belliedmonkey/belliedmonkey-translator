@@ -118,6 +118,24 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     static func meaningful(_ s: String) -> Bool { s.rangeOfCharacter(from: .alphanumerics) != nil }
 
+    /// `s + "…"` 在 `width` 宽内放得下 `lines` 行就原样返回；放不下就从头砍，直到放得下，前面补「…」。
+    static func tailFitting(_ s: String, font: NSFont, width: CGFloat, lines: Int) -> String {
+        let attrs: [NSAttributedString.Key: Any] = [.font: font]
+        let limit = NSLayoutManager().defaultLineHeight(for: font) * CGFloat(lines) + 1
+        func fits(_ t: String) -> Bool {
+            NSAttributedString(string: t + "…", attributes: attrs)
+                .boundingRect(with: NSSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin]).height <= limit
+        }
+        if fits(s) { return s }
+        let chars = Array(s)
+        var lo = 1, hi = chars.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if fits("…" + String(chars[mid...])) { hi = mid } else { lo = mid + 1 }
+        }
+        return "…" + String(chars[lo...]).trimmingCharacters(in: .whitespaces)
+    }
+
     /// `subtitle-state {state, pct?}`：条上那一行状态。文字取 labels.state[state]。
     func setState(_ body: [String: Any]) {
         state = body["state"] as? String ?? state
@@ -187,6 +205,11 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
             l.isSelectable = false
             l.drawsBackground = false
             l.isBezeled = false
+        }
+        // 文字比条宽时只能折行 / 截断，不能把条撑宽：标签默认的抗压缩（750）高于窗口
+        // 「保持尺寸」（500），一句没出行的长实时行会把整条推出屏幕右缘（#590 J，u4 录屏 40 s）。
+        for l in [trLabel, origLabel, stateLabel] {
+            l.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
         trLabel.textColor = .white
         trLabel.maximumNumberOfLines = 2
@@ -289,7 +312,12 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         let meaningful = MTSubtitleBar.meaningful
         let rawHead = tr.isEmpty ? orig : tr
         let head = meaningful(rawHead) ? rawHead : ""
-        trLabel.stringValue = partial && !head.isEmpty ? head + "…" : head
+        let textWidth = max(80, p.frame.width - 44)
+        for l in [trLabel, origLabel, stateLabel] { l.preferredMaxLayoutWidth = textWidth }
+        // 实时行超过两行时留**最新**的词（截尾会把正在说的那半截截掉）
+        trLabel.stringValue = partial && !head.isEmpty
+            ? MTSubtitleBar.tailFitting(head, font: trLabel.font ?? big, width: textWidth, lines: 2) + "…"
+            : head
         trLabel.isHidden = head.isEmpty
         origLabel.stringValue = tr.isEmpty ? "" : orig
         // 译文与原文一字不差（模型原样回了原文）时，小字那行只是同一句话的重影
@@ -380,7 +408,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
     }
 
     func windowDidEndLiveResize(_ notification: Notification) {
-        if let p = panel { fitHeight(p) }
+        render()
     }
 
     private func applyClickThrough() {
