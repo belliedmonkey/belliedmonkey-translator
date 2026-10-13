@@ -99,6 +99,37 @@ describe('#593 ③ 句头闸 scriptFirst：拉丁路与已收的汉字定稿重�
     g.noteOtherText('zh-CN', '请把PPT发到我的email', 0, 3000);
     eq(g.push({ locale: 'en-US', text: 'project, deadline, schedule.', conf: 0.9, t0: 500, t1: 2500 }).length, 1);
   });
+  test('★ 拉丁路的低置信长片先到、重叠的汉字定稿后到 ⇒ 扣住后丢（不抢先放行）', () => {
+    const { g, diags, released } = gateOf({ scriptFirst: () => true });
+    eq(g.push({ locale: 'en-US', text: 'Take a project of deadline Xi.', conf: 0.23, rescued: true, t0: 5133, t1: 9393 }).length, 0);
+    ok(g.heldLocales().includes('en-US'), '应扣住等中文侧');
+    g.noteOtherText('zh-CN', '这个 project的', 6453, 7713);
+    eq(g.heldLocales().length, 0);
+    eq(released.length, 0, '不该放行：' + JSON.stringify(released));
+    ok(diags.some((x) => x.k === 'gate:drop' && x.w === 'cjk-overlap'));
+  });
+  test('拉丁路的低置信长片没有中文重叠 ⇒ 扣住到点放行（不丢字）', () => {
+    let fire = null, wait = 0;
+    const { g, released } = gateOf({ scriptFirst: () => true, setTimeout: (fn, ms) => { fire = fn; wait = ms; return 1; } });
+    g.push({ locale: 'en-US', text: 'We need to see a sample first.', conf: 0.3, t0: 0, t1: 2600 });
+    ok(fire, '没起计时器');
+    ok(wait > 0 && wait <= 500, '只该等两路先后差那一小段，不是 1.5 s：' + wait);
+    fire();
+    eq(released.join('|'), 'We need to see a sample first.');
+  });
+  test('★ 扣住的补救片遇到下一条正式定稿：带着自己的 rescued 单独入账，不混进返回值', () => {
+    const rel = [];
+    const { g } = gateOf({ scriptFirst: () => true, onRelease: (l, t, m) => rel.push({ t, m }) });
+    g.push({ locale: 'en-US', text: 'We can ship the first batch', conf: 0.3, rescued: true, t0: 0, t1: 2000 });
+    const out = g.push({ locale: 'en-US', text: 'We can ship the first batch next Tuesday.', conf: 0.9, t0: 2000, t1: 3500 });
+    eq(out.join('|'), 'We can ship the first batch next Tuesday.');
+    eq(rel.length, 1);
+    ok(rel[0].m && rel[0].m.rescued && rel[0].m.t0 === 0, JSON.stringify(rel));
+  });
+  test('scriptFirst 为假时低置信长片照旧当场裁决', () => {
+    const { g } = gateOf({ scriptFirst: () => false });
+    eq(g.push({ locale: 'en-US', text: 'We need to see a sample first.', conf: 0.3, t0: 0, t1: 2600 }).length, 1);
+  });
   test('不重叠的英文句照常放行', () => {
     const { g } = gateOf({ scriptFirst: () => true });
     g.noteOtherText('zh-CN', '好的', 0, 600);
@@ -107,6 +138,12 @@ describe('#593 ③ 句头闸 scriptFirst：拉丁路与已收的汉字定稿重�
 });
 
 describe('#593 ④ 提示词', () => {
+  test('★ 断句路：same 时单列「不翻译、source 写修正句」，否则不带', () => {
+    const same = C.buildSegPrompt({ srcName: '中文', dstName: '中文', buffer: '我们下周把 Envoice 发给你', same: true });
+    ok(/do NOT translate/.test(same.system) && /not a real word/.test(same.system), same.system);
+    const diff = C.buildSegPrompt({ srcName: '中文', dstName: 'English', buffer: '我们下周把 Envoice 发给你' });
+    ok(!/do NOT translate/.test(diff.system), diff.system);
+  });
   test('★ 旧路契约：src == dst 时只要求重复修正稿，不要求翻译', () => {
     const p = C.buildListenPrompt({ text: '我们下周开会', srcName: 'Chinese', dstName: 'Chinese', same: true });
     ok(/same as the source/.test(p.system), p.system);
@@ -257,6 +294,8 @@ describe('#593 ⑤ 真 listen-model：字幕走同一条管线', () => {
     const r = rows[0];
     ok(/PPT/.test(r.text) && /请把这份/.test(r.text), '夹词没进同一行：' + r.text);
     ok(r.same && !r.tr && !r.trErr, '同语言行形状不对：' + JSON.stringify({ same: r.same, tr: r.tr, trErr: r.trErr }));
+    const zhPrompt = cap.prompts.find((p) => /请把这份/.test(String(p && p.user)));
+    ok(zhPrompt && /do NOT translate/.test(zhPrompt.system), '同语言那一调的断句提示缺「不翻译、source 写修正句」');
     ok(!r.written, '同语言行不该进语料');
     const last = cap.shows.filter((s) => !s.partial).pop();
     ok(last && last.orig === r.text && last.tr === '', '字幕条应只画原文：' + JSON.stringify(last));

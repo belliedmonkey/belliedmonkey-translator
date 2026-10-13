@@ -658,6 +658,7 @@ var ListenCore = (() => {
   const EMBED_MAX_WORDS = 4;   // 句内夹词：自上一片汉字起最多接上这么多个拉丁词（更长的是另起的一句）
   const EMBED_MIXED_MAX_WORDS = 8;   // 同一片里既有汉字又有拉丁词：拉丁词超过这么多就当成识别器把英文句认错了
   const HOLD_DUP_GAP_MS = 300;   // R14 ③：临时稿与上一条正式 final 的音频邻接容差（dup-prev）
+  const CJK_WAIT_MS = 400;       // 两路同刻交定稿时拉丁路先到的那几毫秒（实测 < 10 ms）
   const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
   const HAS_LETTER = /[\p{L}\p{N}]/u;
 
@@ -739,10 +740,10 @@ var ListenCore = (() => {
       } else diag('gate:drop', t, why);
       return t;
     }
-    function arm(locale) {
+    function arm(locale, ms) {
       const h = held[locale]; if (!h) return;
       if (h.timer) clearT(h.timer);
-      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, idleMs);
+      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, ms || idleMs);
     }
     // 到点/冲突时的裁决：有冲突 ⇒ 丢弃；否则放行
     function resolve(locale, why) {
@@ -823,7 +824,14 @@ var ListenCore = (() => {
         //   · 长片（>2 词或 >1500 ms）没有可等的余地，**当场**按重叠裁决：有重叠 ⇒ 丢，没有 ⇒ 放行。
         // 这一条正是 r9 C3-en-1（`them to Mr. Zhang's office before 5 p.m.` 8 词 3000ms 被丢弃）的修法。
         const confLate = why === 'conf' && (rescued || scriptOfLocale(locale) === 'Latin');
-        const shortEnough = tsOk && t1 - t0 <= HOLD_MAX_MS && words(head(text)) <= HOLD_MAX_WORDS;
+        // 两路且对方是汉字一路时，拉丁路的低置信长片也扣住等中文侧：两路的定稿常在同一刻交来、
+        // 拉丁路先到几毫秒，当场裁决时重叠表里还没有那条中文 ⇒ 错语言的长片被放行成一行
+        // （中国版 Mac 录屏 cn4：「Take a project of deadline Xi.」紧跟着「这个 project 的 deadline 是周五」）。
+        // 只等那几毫秒的先后差（CJK_WAIT_MS），不按句头闸的 1.5 s 扣：自动两路里拉丁路过半定稿低于 0.5。
+        const waitCjk = confLate && tsOk && d.scriptFirst && d.scriptFirst() && scriptOfLocale(locale) === 'Latin';
+        const shortPiece = tsOk && t1 - t0 <= HOLD_MAX_MS && words(head(text)) <= HOLD_MAX_WORDS;
+        const shortEnough = shortPiece || waitCjk;
+        const holdMs = waitCjk && !shortPiece ? CJK_WAIT_MS : 0;
         // R14 ③：临时稿整段是**紧挨着的上一条正式 final** 的结尾 ⇒ 丢掉（不是替换，是去重）。
         // 这一道在**扣住之前**做：临时稿常因低置信被扣 1.5s 才放行，到路由器时「上一条正式 final」
         // 可能已经变了；Yes please 第 10 次的 `Please` 就是在这里被去掉的（另有 heldJoin 兜一层）。
@@ -865,7 +873,14 @@ var ListenCore = (() => {
             // 这里判的是「**紧接**」（两片端点相距 ≤ HOLD_GAP_MS 的邻接），不是时间重叠 ——
             // 所以不用 overlapTs（它要求真交叠）。邻接恰恰是 overlapTs 判 false 的那种关系。
             const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
-            if (merge) out.push(hd);
+            // 补救来的扣住片要带着自己的 rescued/t0/t1 单独先入账：混进返回值就按**这一片**的标记入账，
+            // 账本认不出它和随后的正式定稿是同一段音频 ⇒ 同一句两行（中国版 Mac 录屏 c6）。
+            const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
+            if (own && !h.conflict) {
+              try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
+              diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
+            }
+            else if (merge) out.push(hd);
             // 不紧接也不丢（1.19.4 r6，真机「英文丢前 1–2 个词」）：低置信拉丁片只有跨语言重叠能丢
             // （见本闸开头 ①）。识别器常把句首单出成一片 `Hello.`，后半句隔 >120 ms 才到 —— 以前这里
             // 记 gate:drop/gap 把句首扔了。已被中文侧判重叠的（conflict）照旧丢。
@@ -919,7 +934,7 @@ var ListenCore = (() => {
             diag('gate:hold', now_.text, (why || (rescued ? 'rescued' : 'latin-low-conf')) + ':' + now_.parts.length);
           } else {
             held[locale] = { parts: [{ text, t0, t1, rescued }], text, t0, t1, timer: 0, conflict: false, rescued };
-            arm(locale);
+            arm(locale, holdMs);
             diag('gate:hold', text, why || (rescued ? 'rescued' : 'latin-low-conf'));
           }
         }
@@ -1178,12 +1193,21 @@ var ListenCore = (() => {
     + '5 The speaker may embed words of another language (often English), possibly misspelled in Latin letters by the recognizer: restore their correct spelling, keep them inline, never split a sentence around them, translate the sentence as a whole.\n'
     + '6 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
   const SEG_USER_FALLBACK = 'Finalized context (reference only, do not repeat):\n{ctx}\n\nText to process:\n{buffer}\n\nForce finalize: {force}';
+  // 同语言（§9.8.1 ②）：只把「同上」写进目标语言名时，qwen-plus 原样抄 source、有时还译成英文
+  // （2026-10-13 中国版实测）。「不是真词的拉丁字母串 = 听错的英文词」要明说：只说「还原拼错的夹词」时
+  // qwen-plus 一个都不改；明说了它又会改错（envoice → envelope、leftor → leftover），所以要「没把握就原样留」。
+  // 改得回几个取决于模型（同一提示 qwen-max 改回 invoice / laptop，qwen-flash 一个不改）。
+  const SEG_SAME_RULE = '\nThe source and target language are the same: do NOT translate. Any run of Latin letters that is not a real word '
+    + 'is the recognizer mis-hearing an English word the speaker said: replace it with the real English word that best fits the sentence '
+    + '(keep it in Latin letters, in place) — but only when the sentence makes that word clearly the intended one; '
+    + 'if you are not sure, leave the letters exactly as they are. Also fix misheard characters and numbers from context. '
+    + 'Put the corrected sentence in source and copy it into translation.';
   function buildSegPrompt(p) {
     const src = p.srcName || p.srcLang || '', dst = p.dstName || p.tgtName || p.dstLang || '';
     const ctx = (p.context || []).filter((c) => c && c.text);
     const sysTmpl = p.sysTmpl || SEG_SYS_FALLBACK;
     const userTmpl = p.userTmpl || SEG_USER_FALLBACK;
-    const system = sysTmpl.split('{src}').join(src).split('{dst}').join(dst);
+    const system = sysTmpl.split('{src}').join(src).split('{dst}').join(dst) + (p.same ? SEG_SAME_RULE : '');
     const ctxText = ctx.length ? ctx.map((c) => '- [' + (c.who === 'me' ? 'me' : 'them') + '] ' + c.text + (c.tr ? '  => ' + c.tr : '')).join('\n') : '';
     const user = userTmpl.split('{ctx}').join(ctxText)
       .split('{buffer}').join(String(p.buffer || ''))

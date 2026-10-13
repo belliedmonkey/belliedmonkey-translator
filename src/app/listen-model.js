@@ -588,12 +588,9 @@ const listenModel = (() => {
     const sub = cfg.mode === 'subtitle';
     const srcLang = sub ? (base || videoBase()) : base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
     const dstLang = sub ? cfg.otherLang : srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
-    // 同语言（§9.8.1 ②）：目标写成源语言本身并要求 translation 原样等于修正后的 source。
-    const dstName = sub && sameAsTarget(srcLang)
-      ? langName(dstLang) + ' (same as source: translation = the corrected source, verbatim)'
-      : langName(dstLang);
     return {
-      srcName: langName(srcLang), dstName,
+      srcName: langName(srcLang), dstName: langName(dstLang),
+      same: sub && sameAsTarget(srcLang),
       context: C.contextRows(session ? session.rows : [], null, C.LISTEN_CONTEXT_ROWS),
       sysTmpl: SEG_SYS_TMPL, userTmpl: SEG_USER_TMPL,
     };
