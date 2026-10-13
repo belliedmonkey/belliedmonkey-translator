@@ -422,6 +422,11 @@ const listenModel = (() => {
     // 听译是两门**对称**互译：听到 A 译 B、听到 B 译 A —— 行归属（who）本来就是「这一路是 A 还是 B」。
     return row.who === 'me' ? cfg.otherLang : cfg.myLang;
   }
+  // §9.8.1 规则 ②：字幕「自动」时译成语言那一路认出的句子 —— 只断句 + 修正，不翻译、不进语料。
+  function sameAsTarget(lang) {
+    const b = C.baseCode(lang);
+    return !!(b && cfg && cfg.mode === 'subtitle' && b === C.baseCode(cfg.otherLang));
+  }
 
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
   async function translateRow(row, toLang, quiet) {
@@ -463,8 +468,9 @@ const listenModel = (() => {
     // 取的是 otherLang（= 译成）⇒ 提示写成「一句中文转写 … 译成中文」，英文被原样当译文留下。
     const srcLang = cfg.mode === 'subtitle' ? subSrcLang(row) : row.who === 'me' ? cfg.myLang : cfg.otherLang;
     const dstLang = targetLangFor(row);
+    const same = sameAsTarget(srcLang);
     const prompt = C.buildListenPrompt({
-      text: row.raw || row.text, alts: row.alts || [], who: row.who,
+      text: row.raw || row.text, alts: row.alts || [], who: row.who, same,
       srcLang, dstLang, srcName: srcLang ? langName(srcLang) : 'the language it was spoken in', dstName: langName(dstLang),
       context: C.contextRows(session ? session.rows : [], row),
     });
@@ -479,6 +485,13 @@ const listenModel = (() => {
     if (row.lat) row.lat.pass = now() - t0;
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
+    if (same) {
+      row.trBusy = false; row.trTemp = false; row.tr = ''; row.trErr = false; row.same = true;
+      if (passErr) { tmFail(passErr); if (quotaHalt(passErr)) { canvas.view('history'); return; } } else tmOk();
+      canvas.view('history'); paintNowPlaying();
+      subFinal(row);
+      return;
+    }
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
     if (row.tr) tmOk(); else tmFail(passErr);
     if (!row.tr && quotaHalt(passErr)) { canvas.view('history'); return; }
@@ -490,12 +503,11 @@ const listenModel = (() => {
   function retranslate(row, quiet) { return row.raw != null ? passRow(row, quiet) : translateRow(row, null, quiet); }
 
   // ── 模型断句路（2026-10-10 用户批准）────────────────────────────────────────
-  // conv 模式 + 通用对话引擎 ⇒ final 进 makeSegmentRouter 缓冲，行由一次「断句+翻译」调用给。
+  // 通用对话引擎 ⇒ final 进 makeSegmentRouter 缓冲，行由一次「断句+翻译」调用给。
   // 降级（旧串句器）：google / qwen_mt / 翻译专用模型名（host 无关，WireFormat.translationModelName）
   // / 运行时连续两条非法 JSON / 没配引擎。免费额度（grant）是 chat-compat ⇒ 新路。
-  // 字幕模式不动（有自己的行协议）。**会话开始算一次**（segRoute），中途不因设置改动换路。
+  // 选路只看引擎，不看模式（§9.8.1）：字幕与对话同一条管线。**会话开始算一次**（segRoute），中途不因设置改动换路。
   function segRouteMode() {
-    if (mode !== 'conv') return 'legacy';
     if (segDegrade) return 'legacy';
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return 'legacy';
     try {
@@ -516,12 +528,21 @@ const listenModel = (() => {
     if (!session || !cfg) return;
     const base = C.baseCode(meta && meta.locale);
     const who = base && base === C.baseCode(cfg.myLang) ? 'me' : 'them';
+    const same = sameAsTarget(base);
     for (const item of list) {
       const pinned = pinnedFor(base, meta && meta.feedAt);
       const row = C.addFinal(session, item.source, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
       if (!row) continue;
       row.lat = { final: now(), engine: 'device', seg: 'model', pass: meta.ms != null ? meta.ms : 0,
         segFeedAt: meta.feedAt || 0, segSentAt: meta.sentAt || 0, segEmitAt: now() };
+      row.srcLocale = (meta && meta.locale) || '';
+      if (same) {
+        row.tr = ''; row.trErr = false; row.trBusy = false; row.trTemp = false; row.same = true;
+        tmOk();
+        canvas.view('history'); paintNowPlaying();
+        subFinal(row);
+        continue;
+      }
       row.tr = item.translation || ''; row.trErr = !row.tr; row.trBusy = false; row.trTemp = false;
       if (row.tr) tmOk();
       canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
@@ -541,6 +562,7 @@ const listenModel = (() => {
     const row = C.addFinal(session, text, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
     if (!row) return;
     row.lat = { final: now(), engine: 'device', seg: 'fallback' };
+    row.srcLocale = (meta && meta.locale) || '';
     row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
     canvas.view('history'); canvas.view('now');
     subShow(row.text, '', true);
@@ -558,7 +580,7 @@ const listenModel = (() => {
   // 固定指令**（改 UI 语言不该改模型行为）——写成 t() 只因为出货代码里的中文只许出现在 t()
   // 的 fallback 位（no-hardcoded-copy 门）；**故意不登记 i18n 键**：缺键时 t() 原样返回兜底串，
   // 正是我们要的「固定指令」。
-  const SEG_SYS_TMPL = t('listen_seg_system', '你是实时口译的断句+翻译器。输入是语音识别的流式文本，可能没有标点、可能有识别错误。源语言：{src}，目标语言：{dst}。规则：\n1 只在语义完整处断句；不在数字中间断（如"三千八百五十"），不在称谓与姓名之间断（"Mr. Zhang"），a.m./p.m./Mr./Dr. 不是句末。\n2 逗号前后同一句意不断。\n3 最后一段语义未完放进 remainder 不翻译；force=true 时 remainder 必须为空。\n4 可按上下文修正明显识别错误（同音字、专有名词、数字），不增删意思。\n5 只输出 JSON，不加任何其他文字。输出格式：{"segments":[{"source":"<断出的句段原文（含修正）>","translation":"<该段译文>"}],"remainder":"<语义未完、不翻译的尾巴；没有则为空字符串>"}');
+  const SEG_SYS_TMPL = t('listen_seg_system', '你是实时口译的断句+翻译器。输入是语音识别的流式文本，可能没有标点、可能有识别错误。源语言：{src}，目标语言：{dst}。规则：\n1 只在语义完整处断句；不在数字中间断（如"三千八百五十"），不在称谓与姓名之间断（"Mr. Zhang"），a.m./p.m./Mr./Dr. 不是句末。\n2 逗号前后同一句意不断。\n3 最后一段语义未完放进 remainder 不翻译；force=true 时 remainder 必须为空。\n4 可按上下文修正明显识别错误（同音字、专有名词、数字），不增删意思。\n5 说话人可能在句中夹另一门语言的词（常见是英文），识别器可能把它拼错成拉丁字母：按原拼写还原、留在原位，不在它前后断句，整句一起翻译。\n6 只输出 JSON，不加任何其他文字。输出格式：{"segments":[{"source":"<断出的句段原文（含修正）>","translation":"<该段译文>"}],"remainder":"<语义未完、不翻译的尾巴；没有则为空字符串>"}');
   const SEG_USER_TMPL = t('listen_seg_user', '已定稿的上文（只作参考，不要重复输出）：\n{ctx}\n\n待处理文本：\n{buffer}\n\n是否强制收尾：{force}');
   // 路由器的上下文（prompt 用）：源/目标语言名 + 最近 6 行已定稿 + prompt 模板。
   function segCtx(locale) {
@@ -566,8 +588,12 @@ const listenModel = (() => {
     const sub = cfg.mode === 'subtitle';
     const srcLang = sub ? (base || videoBase()) : base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
     const dstLang = sub ? cfg.otherLang : srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
+    // 同语言（§9.8.1 ②）：目标写成源语言本身并要求 translation 原样等于修正后的 source。
+    const dstName = sub && sameAsTarget(srcLang)
+      ? langName(dstLang) + ' (same as source: translation = the corrected source, verbatim)'
+      : langName(dstLang);
     return {
-      srcName: langName(srcLang), dstName: langName(dstLang),
+      srcName: langName(srcLang), dstName,
       context: C.contextRows(session ? session.rows : [], null, C.LISTEN_CONTEXT_ROWS),
       sysTmpl: SEG_SYS_TMPL, userTmpl: SEG_USER_TMPL,
     };
@@ -656,6 +682,7 @@ const listenModel = (() => {
   function closeSocket() {
     const s = sock; sock = null;
     cutter = null;
+    sessLocs = [];
     if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：候补计时器不跨 socket
     try { if (s) s.close(); } catch (_) {}
   }
@@ -751,10 +778,14 @@ const listenModel = (() => {
   // 错报** —— 一旦错报成另一门，那一路的半句立刻上屏（Mac 实测：2069ms 上屏的是一条中文垃圾）。
   // 0.5s 的确认能把「一条就翻」滤掉，代价只是比「立刻用」晚半秒。
   const LID_CONFIRM_MS = 500;
+  let sessLocs = [];   // 这一路 socket 实际开的识别器 locale（openDevice 写）
+  function scriptFirst() { return !pttForce && sessLocs.length === 2; }
   function lidPair() {
     // 按住说 / 锁定期间**不跑语种判定**：这一句的语言由人指定（2026-10-08 终稿 3）。
     // `pttForce` 在松手后仍然生效，直到这一句的 final 到 —— 否则收口那一片会被下面这道闸丢掉。
     if (pttForce) return pttLangOf(pttForce.side) || '';
+    // §9.6.1.13 规则 1：只开一路识别器时没有另一路可接，LID 不做归属闸 —— 这一路的定稿归这一路。
+    if (sessLocs.length === 1) return C.baseCode(sessLocs[0]);
     if (!lidLang || !cfg) return '';
     const a = videoBase(), b = C.baseCode(cfg.otherLang);
     if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
@@ -1220,7 +1251,7 @@ const listenModel = (() => {
     // 放行后直接送模型，不再等第二次空闲（waited=true，见 listen-core 的 feed）。
     // 方案 1（R12）：补救文字带着它的音频区间（rescued/t0/t1）一起进账本，供同区间 final 去重。
     const feedOpts = { waited: true, rescued: !!(meta && meta.rescued), t0: meta && meta.t0, t1: meta && meta.t1 };
-    if (seg && segRoute === 'model' && !segDegrade && mode === 'conv' && sock) seg.feed(locale, text, feedOpts);
+    if (seg && segRoute === 'model' && !segDegrade && sock) seg.feed(locale, text, feedOpts);
     else if (cutter) cutter.add(locale, text);
     refreshPartial();
   }
@@ -1390,6 +1421,7 @@ const listenModel = (() => {
   function openDevice(myGen) {
     if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：重连时清掉旧场的候补计时器
     const locales = sessionLocales();
+    sessLocs = locales.slice();
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
@@ -1400,10 +1432,11 @@ const listenModel = (() => {
       now: () => Date.now(), setTimeout: setTimeout, clearTimeout: clearTimeout, idleMs: C.SEG_IDLE_MS,
       onRelease: (locale, text, meta) => releaseGateText(locale, text, meta),   // 裁决=放行：进账本（已过闸）
       onDiag: (kind, text, why) => gateDiag(kind, text, why),
+      scriptFirst,
     }));
     finalGate = gate;
     const segActive = seg;   // 这一路 socket 存活期间喂的账本（closeSocket 不清 seg，重连接着喂）
-    const useSeg = () => !!(segRoute === 'model' && seg && !segDegrade && mode === 'conv');
+    const useSeg = () => !!(segRoute === 'model' && seg && !segDegrade);
     // R14 ②：中文路纯拉丁短结果的候补转交（只限中文路 → 英文路）。等待一次空闲（自动听）或
     // 停止收音（点停）；等待期间英文路一有带字母的结果（含补救文字）就丢弃候补。
     const xfer = C.makeTransferGate({
@@ -1454,9 +1487,18 @@ const listenModel = (() => {
       if (lidB && base === lidB && /[A-Za-z]/.test(String((ev && ev.text) || ''))) {
         if (xferGate) xferGate.noteEnLetter();
       }
+      // §9.6.1.13 规则 2：两路时文字系证据先于 LID（这一路的文字 / 句内夹词 ⇒ 归这一路）。
+      let lid = lidPair();
+      if (scriptFirst()) {
+        const sf = C.scriptFirstLid({
+          locale: ev.locale, partnerLocale: sessLocs.find((l) => C.baseCode(l) !== base) || '',
+          text: String((ev && ev.text) || ''), dominantScript: routeDeps.dominantScript, embedded: gate.embedded(ev),
+        });
+        if (sf) { if (sf !== C.baseCode(lid)) diagBump('intake', 'script-first'); lid = sf; }
+      }
       // 唯一闸（两条路共用；纯函数在 listen-core，可测）：朗读中 / 换边宽限 / LID 归属 / 回声文本相似度
       const dec = C.intakeDecide({
-        base, lid: lidPair(), pttSwitch, now: Date.now(),
+        base, lid, pttSwitch, now: Date.now(),
         playing: echo.playingLangs(Date.now()),
         text: String((ev && ev.text) || ''),
         isEcho: (s) => echo.isEcho(s, now()),
@@ -1498,9 +1540,9 @@ const listenModel = (() => {
     sock = NativeSpeech.sttOpen({
       locales,
       // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
-      // 定稿碎一点不会再切行，只是更早进账本。字幕路、以及听译下走旧路（Google / qwen-mt / 降级）
+      // 定稿碎一点不会再切行，只是更早进账本。走旧路（Google / qwen-mt / 降级）时两个模式
       // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
-      vadMs: (mode === 'conv' && segRoute === 'model') ? 600 : undefined,
+      vadMs: segRoute === 'model' ? 600 : undefined,
       onEvent: (kind, ev) => {
         if (myGen !== gen) return;
         if (!sock && (kind === 'partial' || kind === 'final')) return;
@@ -1598,7 +1640,10 @@ const listenModel = (() => {
   function subShow(orig, tr, isPartial) { if (subOn()) { subPartialShown = !!isPartial; NativeAudio.subtitleShow({ orig: orig || '', tr: tr || '', partial: !!isPartial }); } }
   function subFinal(row) {
     if (!subOn() || !row) return;
-    if (row.tr) {
+    if (row.same) {
+      subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: '', partial: false });
+      if (phase === 'listening') NativeAudio.subtitleState('listening');
+    } else if (row.tr) {
       subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: row.tr, partial: false });
       if (phase === 'listening') NativeAudio.subtitleState('listening');
     } else if (row.trErr) {
@@ -1878,8 +1923,8 @@ const listenModel = (() => {
     // 边说边译的方向也按半句的语言实时判：我说中文时译成外语，对方说外语时译成中文。
     // 判不出就按「对方」走 —— 与 attributeByLang 的兜底同向，免得半句和定稿打架。
     // 实时字幕单向：半句一律译成我的语言
-    inc = C.makeIncremental((text) => translate(text,
-      (C.modeOf(session).oneWay || C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
+    inc = C.makeIncremental((text) => (C.modeOf(session).oneWay && sameAsTarget(lidPair()) ? '' : translate(text,
+      (C.modeOf(session).oneWay || C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang)));
     inc.result((text, tr) => { if (text === partialRec) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
     // 模型断句路：新一场新路由器（gen 作废旧回执）。路由**会话开始算一次**（P0-1）——
     // 中途改引擎设置不换路（要换就重开一场）。旧路由器先 dispose（P1-1：清掉还活着的计时器）。
@@ -3008,6 +3053,7 @@ const listenModel = (() => {
       showRaw: !!r.showRaw,
       raw: r.raw,
       trErr: !!r.trErr,
+      same: !!r.same,
       tr: r.tr,
       trTemp: !!r.trTemp,
       trBusy: !!r.trBusy,

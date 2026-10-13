@@ -870,11 +870,12 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('撤闸后：定稿也只用 0.5s 那道确认，扣住队列整体退场', () => {
     eq(typeof C.makeLidHold, 'undefined', 'makeLidHold 应当已从 listen-core 退场');
     ok(!/lidHold|lidPairFinal|LID_HOLD_MAX_MS|LID_CONFIRM_FINAL_MS/.test(MODEL), 'listen-model 里不该再有扣住队列的残留');
-    ok(/lid: lidPair\(\), pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限）');
+    // 2026-10-13（#593）：两路时文字系先于 LID（C.scriptFirstLid），否则仍是 lidPair()。
+    ok(/let lid = lidPair\(\);[\s\S]{0,600}C\.scriptFirstLid\([\s\S]{0,700}base, lid, pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限）');
   });
 
   test('模型接线：撤闸后定稿直接用 lidPair()；引擎默认 ECAPA、可开发开关回 whisper', () => {
-    ok(/C\.intakeDecide\(\{[\s\S]{0,120}lid: lidPair\(\)/.test(MODEL),
+    ok(/let lid = lidPair\(\);[\s\S]{0,800}C\.intakeDecide\(\{\s*base, lid,/.test(MODEL),
       '定稿那一支没有回到「对不上就丢」（唯一入口 C.intakeDecide：LID 归属 + 换边宽限）');
     ok(!/lidHold|lidPairFinal|lidPairAt/.test(MODEL), '扣住队列的接线应当撤干净');
     ok(/const engine = cfg && cfg\.lidEngine === 'whisper' \? 'whisper' : 'ecapa';/.test(MODEL),

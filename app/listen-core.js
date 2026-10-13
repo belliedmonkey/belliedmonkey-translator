@@ -655,6 +655,7 @@ var ListenCore = (() => {
   //   · 期间**另一门语言**（中文侧）有归属到**时间重叠**的定稿 ⇒ 这片是错语言的垃圾：丢弃（gate:drop）；
   //   · 否则 ⇒ 放行进账本（gate:release）。
   const HOLD_MAX_MS = 1500, HOLD_MAX_WORDS = 2, HOLD_GAP_MS = 120;
+  const EMBED_MAX_WORDS = 4;   // 句内夹词：自上一片汉字起最多接上这么多个拉丁词（更长的是另起的一句）
   const HOLD_DUP_GAP_MS = 300;   // R14 ③：临时稿与上一条正式 final 的音频邻接容差（dup-prev）
   const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
   const HAS_LETTER = /[\p{L}\p{N}]/u;
@@ -766,6 +767,25 @@ var ListenCore = (() => {
       }
       return false;
     }
+    // §9.6.1.13 规则 3：非拉丁那一路吐出的拉丁片，若与这一路上一片汉字（或已接上的拉丁片）紧接
+    // （≤ HOLD_GAP_MS；实测句内夹词恰为 0 ms、另起的英文句 1.3–2 s），就是这句话里夹的词。
+    // chain：locale → { t1, latin }（latin = 自上一片汉字以来接上的拉丁词数，上限 EMBED_MAX_WORDS）。
+    const chain = {};
+    function embeddedIn(locale, text, t0) {
+      const want = scriptOfLocale(locale);
+      if (!want || want === 'Latin') return false;
+      const got = d.dominantScript ? d.dominantScript(String(text || '')) : null;
+      if (got !== 'Latin') return false;
+      const ch = chain[locale];
+      if (!ch || !Number.isFinite(t0) || !Number.isFinite(ch.t1)) return false;
+      if (Math.abs(t0 - ch.t1) > HOLD_GAP_MS) return false;
+      return ch.latin + words(head(text)) <= EMBED_MAX_WORDS;
+    }
+    function noteChain(locale, text, t1, embed) {
+      if (!Number.isFinite(t1)) return;
+      if (hasCjk(text)) chain[locale] = { t1, latin: 0 };
+      else if (embed && chain[locale]) { chain[locale].t1 = t1; chain[locale].latin += words(head(text)); }
+    }
     return {
       // push(f) → [text, …] 这一片应当交给串句器的文字（可能带着救回的句头），空数组 = 什么都别加
       push(f) {
@@ -773,10 +793,18 @@ var ListenCore = (() => {
         const text = String((f && f.text) || '').trim();
         const base = baseCode(locale);
         const rescued = !!(f && f.rescued);
-        const why = rejectDeviceFinal(f, deps);
+        let why = rejectDeviceFinal(f, deps);
         const t0 = Number(f && f.t0), t1 = Number(f && f.t1);
         const tsOk = Number.isFinite(t0) && Number.isFinite(t1);
         const letterHead = HAS_LETTER.test(head(text));
+        const embed = why === 'script' && embeddedIn(locale, text, t0);
+        if (embed) { why = ''; diag('gate:embed', head(text)); }
+        // §9.6.1.13 规则 2：两路且对方是汉字一路时，拉丁这一路与「已收的汉字定稿」时间重叠 ⇒ 是同一段
+        // 中文音频的另一份转写，丢（不论置信度；按键锁定语言时 scriptFirst 为假，不走这里）。
+        if (d.scriptFirst && d.scriptFirst() && scriptOfLocale(locale) === 'Latin' && tsOk && letterHead && overlapCjk(base, t0, t1)) {
+          diag('gate:drop', head(text), 'cjk-overlap');
+          return [];
+        }
         // 方案 1（2026-10-11 第九轮）：rescued（partial 救回的文字）与**所有低置信拉丁片**
         // 不再按 conf 直接丢，改**按重叠裁决**：同时间段中文侧有「已被入口接收且含汉字」的定稿
         // 才丢（gate:drop reason=cjk-overlap），否则放行。
@@ -839,6 +867,7 @@ var ListenCore = (() => {
             else diag('gate:drop', h.text, 'punct');
           }
           if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); }
+          if (!rescued) noteChain(locale, text, t1, embed);
           return out;
         }
         // ④ 其余（短的低置信片 / 文字系不符 / 纯标点）：先看**这条自己**有没有中文重叠 ——
@@ -909,6 +938,8 @@ var ListenCore = (() => {
           }
         }
       },
+      // 这一片是不是「句内夹的另一门语言的词」（只读，给入口闸的归属判定用；§9.6.1.13 规则 2/3）
+      embedded(f) { return embeddedIn(String((f && f.locale) || ''), String((f && f.text) || '').trim(), Number(f && f.t0)); },
       held(locale) { const h = held[locale]; return h ? h.text : ''; },
       heldLocales() { return Object.keys(held).filter((k) => !!held[k]); },
       // 立即放行（按住说的停止 / 换边 / 结束）：关麦前把扣住的片放出去，不丢。
@@ -1090,6 +1121,19 @@ var ListenCore = (() => {
     if (!base || !lid || base !== lid) return { admit: false, markUsed: false };
     return { admit: true, markUsed: false };
   }
+  // §9.6.1.13 规则 2：两路、且一路是非拉丁文字、另一路是拉丁时，**文字系先于 LID**。
+  // 这一路的定稿以自己的文字为主（或是句内夹的拉丁词，embedded）⇒ 归这一路，不看 LID 此刻判什么
+  // （实测 LID 在句内的英文词上一翻就停 4.5–5.5 s）。其余返回空串 = 照旧按 LID。
+  // o = { locale, partnerLocale, text, dominantScript(fn), embedded(bool) }
+  function scriptFirstLid(o) {
+    const p = o || {};
+    const want = scriptOfLocale(p.locale), other = scriptOfLocale(p.partnerLocale);
+    if (!want || want === 'Latin' || other !== 'Latin') return '';
+    const got = typeof p.dominantScript === 'function' ? p.dominantScript(String(p.text || '')) : null;
+    if (got === want || (want === 'Han' && got === 'Kana')) return baseCode(p.locale);
+    if (got === 'Latin' && p.embedded) return baseCode(p.locale);
+    return '';
+  }
   // 识别定稿的**唯一闸**（纯，方案 §四）：两条路（模型断句 / 旧路）都走这一个函数，按顺序
   //   ① 正在朗读这门语言 ⇒ 丢（防回声的老规则，保留到做回声消除）
   //   ② 换边宽限 / LID 归属（finalAdmit）
@@ -1122,7 +1166,8 @@ var ListenCore = (() => {
     + '2 Do not split around a comma within one clause.\n'
     + '3 Put a semantically incomplete tail in remainder, untranslated; when force=true, remainder MUST be empty.\n'
     + '4 You may fix obvious recognition errors from context (homophones, proper nouns, numbers) without adding or dropping meaning.\n'
-    + '5 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
+    + '5 The speaker may embed words of another language (often English), possibly misspelled in Latin letters by the recognizer: restore their correct spelling, keep them inline, never split a sentence around them, translate the sentence as a whole.\n'
+    + '6 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
   const SEG_USER_FALLBACK = 'Finalized context (reference only, do not repeat):\n{ctx}\n\nText to process:\n{buffer}\n\nForce finalize: {force}';
   function buildSegPrompt(p) {
     const src = p.srcName || p.srcLang || '', dst = p.dstName || p.tgtName || p.dstLang || '';
@@ -2241,8 +2286,11 @@ var ListenCore = (() => {
     const src = p.srcName || p.srcLang || '', dst = p.dstName || p.dstLang || '';
     const system = 'You are the correction stage of a live conversation interpreter. The user message is ONE sentence of a raw on-device speech-recognition transcript in ' + src
       + ', plus the last few sentences of the conversation for context, and optionally recognizer candidates.\n'
-      + '1. Correct recognition errors only: homophones, mis-segmented words, wrong numbers. Keep the speaker\'s wording, order and length; never paraphrase, never add or drop content. If it is already right, repeat it unchanged.\n'
-      + '2. Then translate the corrected sentence into ' + dst + '.\n'
+      + '1. Correct recognition errors only: homophones, mis-segmented words, wrong numbers. Keep the speaker\'s wording, order and length; never paraphrase, never add or drop content. If it is already right, repeat it unchanged. '
+      + 'The speaker may embed words of another language (often English); the recognizer may spell them wrongly in Latin letters. Restore their correct spelling and keep them inline.\n'
+      + (p.same
+        ? '2. The target language is the same as the source: repeat the corrected sentence on the X line.\n'
+        : '2. Then translate the corrected sentence into ' + dst + ' as a whole.\n')
       + 'Output exactly two lines and nothing else:\n'
       + 'T: <corrected sentence in ' + src + '>\n'
       + 'X: <translation in ' + dst + '>';
@@ -2401,7 +2449,7 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
-    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
+    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, scriptFirstLid, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,

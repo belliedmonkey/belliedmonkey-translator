@@ -174,7 +174,7 @@ function HistoryRows({ hv }) {
                 onClick={(e) => { e.stopPropagation(); listenModel.toggleShowRaw(r.row); }}>{hv.rawLabel}</button>
             )}
             {r.hasRaw && r.showRaw && <div className="listen-raw">{r.raw}</div>}
-            {r.trErr ? (
+            {r.same ? null : r.trErr ? (
               // 翻译失败要留下出口，不是永远的 ⏳
               <button type="button" className="listen-tr-retry"
                 onClick={(e) => { e.stopPropagation(); listenModel.retranslate(r.row, true); }}>{hv.trFailed}</button>
