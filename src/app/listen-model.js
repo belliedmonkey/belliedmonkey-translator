@@ -563,8 +563,9 @@ const listenModel = (() => {
   // 路由器的上下文（prompt 用）：源/目标语言名 + 最近 6 行已定稿 + prompt 模板。
   function segCtx(locale) {
     const base = C.baseCode(locale);
-    const srcLang = base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
-    const dstLang = srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
+    const sub = cfg.mode === 'subtitle';
+    const srcLang = sub ? (base || videoBase()) : base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
+    const dstLang = sub ? cfg.otherLang : srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
     return {
       srcName: langName(srcLang), dstName: langName(dstLang),
       context: C.contextRows(session ? session.rows : [], null, C.LISTEN_CONTEXT_ROWS),
@@ -755,7 +756,7 @@ const listenModel = (() => {
     // `pttForce` 在松手后仍然生效，直到这一句的 final 到 —— 否则收口那一片会被下面这道闸丢掉。
     if (pttForce) return pttLangOf(pttForce.side) || '';
     if (!lidLang || !cfg) return '';
-    const a = C.baseCode(cfg.myLang), b = C.baseCode(cfg.otherLang);
+    const a = videoBase(), b = C.baseCode(cfg.otherLang);
     if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
     return (Date.now() - lidLangAt) >= LID_CONFIRM_MS ? lidLang : '';
   }
@@ -872,7 +873,7 @@ const listenModel = (() => {
   }
   function pairLangs() {
     const langs = [];
-    for (const lang of [cfg && cfg.myLang, cfg && cfg.otherLang]) {
+    for (const lang of [cfg && videoBase(), cfg && cfg.otherLang]) {
       const code = FirstRun.baseCode(lang);
       if (code && langs.indexOf(code) < 0) langs.push(code);
     }
@@ -896,7 +897,7 @@ const listenModel = (() => {
     return { max: 5, reserved: [] };
   }
   function quotaPairNow() {
-    return [C.baseCode(cfg && cfg.myLang), C.baseCode(cfg && cfg.otherLang)].filter(Boolean);
+    return [cfg ? videoBase() : '', C.baseCode(cfg && cfg.otherLang)].filter(Boolean);
   }
   function quotaWhenText(code) {
     const at = Number((quotaMemCache.lastUsed || {})[code]);
@@ -1329,7 +1330,7 @@ const listenModel = (() => {
       const engine = cfg && cfg.lidEngine === 'whisper' ? 'whisper' : 'ecapa';
       return mtDeviceLidModelsFor(Registry.flavor() || 'global', {
         engine,
-        langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
+        langs: cfg ? [videoBase(), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
         threshold: (cfg && Number(cfg.lidThreshold)) || 6,
         cpuOnly: !!(cfg && cfg.lidCpuOnly),
         trace: !!(cfg && cfg.lidTrace),
@@ -1878,7 +1879,7 @@ const listenModel = (() => {
     // 判不出就按「对方」走 —— 与 attributeByLang 的兜底同向，免得半句和定稿打架。
     // 实时字幕单向：半句一律译成我的语言
     inc = C.makeIncremental((text) => translate(text,
-      (!C.modeOf(session).oneWay && C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
+      (C.modeOf(session).oneWay || C.sideOf(text, cfg, routeDeps) === 'me') ? cfg.otherLang : cfg.myLang));
     inc.result((text, tr) => { if (text === partialRec) { partialTr = tr; canvas.view('now'); subShow(partial, partialTr, true); } });
     // 模型断句路：新一场新路由器（gen 作废旧回执）。路由**会话开始算一次**（P0-1）——
     // 中途改引擎设置不换路（要换就重开一场）。旧路由器先 dispose（P1-1：清掉还活着的计时器）。
@@ -2102,7 +2103,7 @@ const listenModel = (() => {
     openSocket();
     canvas.view('state');
     // 记「这门被用于听译」——满员时默认让出「最久没用」的那门按它算（改稿 H）。
-    try { noteLangsUsed([cfg && cfg.myLang, cfg && cfg.otherLang]); } catch (_) {}
+    try { noteLangsUsed([cfg && videoBase(), cfg && cfg.otherLang]); } catch (_) {}
     startedAt = now();
     await keepAliveOn();
     if (phase !== 'preparing') return;   // 等保活的这一拍里被停掉了
@@ -2860,6 +2861,12 @@ const listenModel = (() => {
   /** 字幕「视频的语言」：'auto' 或一门具体语言。存量里与「译成」相同的值是 #590 之前挂反的键
    *  留下的（那时 subtitleVideoLang 存的是译成），一律当「自动」。 */
   let subGuess = '';
+  // 字幕左格的「实际那门」：选了具体语言就是它；「自动」⇒ 开识别器用的同一个候选（上次认出的那门，或 en）。
+  // 配置里留着字面的 'auto'（界面要显示它），但凡要拿它当一门语言用的地方都走这里。
+  function videoBase() {
+    const a = C.baseCode(cfg && cfg.myLang);
+    return a === 'auto' ? (subGuess || 'en') : a;
+  }
   function videoLangOf(v, target) {
     const b = C.baseCode(v);
     if (!b || b === 'auto' || b === C.baseCode(target) || !langOk(b)) return 'auto';

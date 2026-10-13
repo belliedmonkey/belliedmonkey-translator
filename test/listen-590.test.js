@@ -43,16 +43,30 @@ describe('#590 · 静音门（iOS 4 / A）', () => {
     C.silenceCheck(s, 0.002, 200);
     eq(s.heardAny, true);
   });
+  // 电平按 10 Hz 连续喂（原生的节奏）；返回第一次判停的时刻，没停返回 0。
+  const feed = (s, rms, from, to) => { for (let t = from; t <= to; t += 100) if (C.silenceCheck(s, rms, t)) return t; return 0; };
   test('字幕：一次声音都没听到过时 30 秒不停，等到 FIRST_SOUND_MS', () => {
     const s = C.newSession(0, 0, 'subtitle');
-    eq(C.silenceCheck(s, 0, C.SILENCE_MS + 1), false, '还没听到过声音就在 30 秒停了');
-    eq(C.silenceCheck(s, 0, C.FIRST_SOUND_MS + 1), true);
+    eq(feed(s, 0, 0, C.SILENCE_MS + 1000), 0, '还没听到过声音就在 30 秒停了');
+    ok(feed(s, 0, C.SILENCE_MS + 1100, C.FIRST_SOUND_MS + 1000) >= C.FIRST_SOUND_MS);
   });
   test('字幕：听到过声音之后照旧 30 秒停', () => {
     const s = C.newSession(0, 0, 'subtitle');
-    C.silenceCheck(s, 0.05, 1000);
-    eq(C.silenceCheck(s, 0, 1000 + C.SILENCE_MS - 1), false);
-    eq(C.silenceCheck(s, 0, 1000 + C.SILENCE_MS + 1), true);
+    feed(s, 0.05, 0, 1000);
+    const at = feed(s, 0, 1100, 1000 + C.SILENCE_MS + 1000);
+    ok(at >= 1000 + C.SILENCE_MS && at <= 1000 + C.SILENCE_MS + 200, '该在最后一次有声后 30 秒停，实际 ' + at);
+  });
+  test('字幕：链路没声音时不发帧 —— 断档不算静音，静很久之后的第一帧不当场判停', () => {
+    const s = C.newSession(0, 0, 'subtitle');
+    C.resume(s, 0);
+    // 18 分钟一帧都没有，然后声音刚起头的第一帧还没过门限
+    eq(C.silenceCheck(s, 0.0005, 18 * 60000), false, '第一帧就判停了');
+    eq(feed(s, 0.05, 18 * 60000 + 100, 18 * 60000 + 5000), 0);
+    // 中途断档（比如视频暂停、系统不出声）也不计入
+    const t1 = 18 * 60000 + 5100;
+    feed(s, 0, t1, t1 + 10000);
+    eq(C.silenceCheck(s, 0, t1 + 10000 + 5 * 60000), false, '断档 5 分钟后的第一帧被当成静了 5 分钟');
+    ok(feed(s, 0, t1 + 10000 + 5 * 60000 + 100, t1 + 10000 + 5 * 60000 + 30000) > 0, '断档前后累计的静音满 30 秒该停');
   });
 });
 
@@ -73,6 +87,15 @@ describe('#590 · 模型（K / B / G / 语言键 / iOS 7 / H）', () => {
   });
   test('B：字幕下完包接着听（不落进 idle 被画成「已暂停」）', () => {
     ok(/!== beforeGen && session\.mode !== 'subtitle'\)/.test(MODEL));
+  });
+  test('「自动」不当成一门语言：归属 / 断句 prompt / 包与名额都用 videoBase()（= 开识别器的那个候选）', () => {
+    ok(/function videoBase\(\) \{[\s\S]{0,120}=== 'auto' \? \(subGuess \|\| 'en'\)/.test(MODEL), 'videoBase 该把 auto 解成 subGuess || en');
+    ok(/if \(!lidLang \|\| !cfg\) return '';\s*const a = videoBase\(\)/.test(MODEL), 'lidPair 该用 videoBase —— 否则「自动」下 LID 判出的语言永远算「第三门」，一句都不进');
+    ok(/langs: cfg \? \[videoBase\(\), C\.baseCode\(cfg\.otherLang\)\]/.test(MODEL), 'LID（ECAPA 只比这两门）拿到字面的 auto 就永远判不出来');
+    ok(/srcLang = sub \? \(base \|\| videoBase\(\)\)/.test(MODEL) && /dstLang = sub \? cfg\.otherLang/.test(MODEL), '字幕断句 prompt：源 = 识别器那门，目标 = 译成');
+  });
+  test('字幕的半句译文译成「译成」那门（不是视频语言）', () => {
+    ok(/\(C\.modeOf\(session\)\.oneWay \|\| C\.sideOf\(text, cfg, routeDeps\) === 'me'\) \? cfg\.otherLang : cfg\.myLang/.test(MODEL));
   });
   test('B 根因：VAD 包本来就在时不算「这一轮下过」（只有 downloading 进度才计）', () => {
     ok(/m\.state === 'downloading'\) vadFetched = true/.test(MODEL), 'VAD 进度回调该按 downloading 记「真下过」');

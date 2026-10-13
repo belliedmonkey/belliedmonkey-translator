@@ -17,6 +17,7 @@ var ListenCore = (() => {
   const SILENCE_RMS = 0.004;     // 安静房间的门限；也是自适应门限的**下限**
   const HEARD_RMS = 0.0001;      // 「采集链路是活的」：任何真实的麦克风 / 系统声音都远高于它
   const FIRST_SOUND_MS = 180000; // 字幕：一次声音都没听到过时，静音门等 3 分钟（#590 iOS 4）
+  const LEVEL_GAP_MS = 2000;      // 电平帧断档超过它 ⇒ 断档那段不算「静音」（系统录音链路没声音时一帧都不发）
   const NOISE_WARMUP_MS = 2500;  // 开头这么久用来摸环境底噪
   const NOISE_FACTOR = 2.5;      // 门限 = 底噪 × 这个
   const NOISE_CEIL = 0.03;       // 门限上限：再吵也不能高到把正常说话判成静音
@@ -401,7 +402,7 @@ var ListenCore = (() => {
   function pause(s, now) {
     if (s.resumedAt) { s.listenedMs += Math.max(0, now - s.resumedAt); s.resumedAt = 0; }
   }
-  function resume(s, now) { if (!s.resumedAt) { s.resumedAt = now; s.lastVoiceAt = now; } }
+  function resume(s, now) { if (!s.resumedAt) { s.resumedAt = now; s.lastVoiceAt = now; s.lastLevelAt = 0; } }
   function listenedMs(s, now) { return s.listenedMs + (s.resumedAt ? Math.max(0, now - s.resumedAt) : 0); }
 
   // Int16 PCM 的归一化 RMS（0..1）。
@@ -436,6 +437,12 @@ var ListenCore = (() => {
     if (rms > HEARD_RMS) s.heardAny = true;
     // 字幕模式：静态门限（见 MODES.staticGate）。持续的配乐就是「有声」，不摸底噪、不抬门限。
     if (modeOf(s).staticGate) {
+      // Mac 系统录音在没有任何进程出声时**一帧都不发**：静音只能从「收到了帧、帧里没声」里数，
+      // 断档那段没有信息、也没有请求在花钱。不扣掉的话，静了很久之后第一帧（声音刚起头、还没过门限）
+      // 一到就当场判停（#590 Mac 复验 2026-10-13）。
+      if (!s.lastLevelAt) s.lastVoiceAt = now;
+      else if (now - s.lastLevelAt > LEVEL_GAP_MS) s.lastVoiceAt += now - s.lastLevelAt;
+      s.lastLevelAt = now;
       if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; s.voiceEver = true; return false; }
       // 还没听到过一次声音：人多半还在找视频、等加载、跳广告 —— 这时没有任何请求在花钱，
       // 30 秒就停只会吞掉开场（#590 iOS 4）。改等 FIRST_SOUND_MS。
