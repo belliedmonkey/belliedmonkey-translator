@@ -656,6 +656,7 @@ var ListenCore = (() => {
   //   · 否则 ⇒ 放行进账本（gate:release）。
   const HOLD_MAX_MS = 1500, HOLD_MAX_WORDS = 2, HOLD_GAP_MS = 120;
   const EMBED_MAX_WORDS = 4;   // 句内夹词：自上一片汉字起最多接上这么多个拉丁词（更长的是另起的一句）
+  const EMBED_MIXED_MAX_WORDS = 8;   // 同一片里既有汉字又有拉丁词：拉丁词超过这么多就当成识别器把英文句认错了
   const HOLD_DUP_GAP_MS = 300;   // R14 ③：临时稿与上一条正式 final 的音频邻接容差（dup-prev）
   const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
   const HAS_LETTER = /[\p{L}\p{N}]/u;
@@ -771,11 +772,19 @@ var ListenCore = (() => {
     // （≤ HOLD_GAP_MS；实测句内夹词恰为 0 ms、另起的英文句 1.3–2 s），就是这句话里夹的词。
     // chain：locale → { t1, latin }（latin = 自上一片汉字以来接上的拉丁词数，上限 EMBED_MAX_WORDS）。
     const chain = {};
+    function hasScript(want, text) {
+      if (want === 'Han') return hasCjk(text);
+      try { return new RegExp('\\p{Script=' + want + '}', 'u').test(String(text || '')); } catch (_) { return false; }
+    }
+    function latinWords(text) { return (String(text || '').match(/[A-Za-z][A-Za-z'’-]*/g) || []).length; }
     function embeddedIn(locale, text, t0) {
       const want = scriptOfLocale(locale);
       if (!want || want === 'Latin') return false;
       const got = d.dominantScript ? d.dominantScript(String(text || '')) : null;
       if (got !== 'Latin') return false;
+      // 这一片自己就带着这一路的文字（「这个 project deadline」：2 个汉字、15 个拉丁字母）⇒ 中文句里夹词，
+      // 不用看它和上一片接没接上（实测这种片与上一句隔 1.9 s，按紧接判会被当成英文碎片丢掉）。
+      if (hasScript(want, text)) return latinWords(text) <= EMBED_MIXED_MAX_WORDS;
       const ch = chain[locale];
       if (!ch || !Number.isFinite(t0) || !Number.isFinite(ch.t1)) return false;
       if (Math.abs(t0 - ch.t1) > HOLD_GAP_MS) return false;

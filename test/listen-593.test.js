@@ -51,6 +51,16 @@ describe('#593 ① 句头闸：句内夹词', () => {
     g.push({ locale: 'zh-CN', text: '好的', conf: 0.9, t0: 0, t1: 600 });
     eq(g.push({ locale: 'zh-CN', text: 'please send me the deck now', conf: 0.9, t0: 600, t1: 2000 }).length, 0);
   });
+  test('★ 一片里汉字少、拉丁多（「这个 project deadline」，与上一句隔 1.9 s）仍是中文句，不丢', () => {
+    const { g } = gateOf();
+    g.push({ locale: 'zh-CN', text: '你。', conf: 0.99, t0: 4560, t1: 5013 });
+    eq(g.push({ locale: 'zh-CN', text: '这个 project deadline', conf: 0.94, t0: 6873, t1: 9453 }).join('|'), '这个 project deadline');
+    eq(g.push({ locale: 'zh-CN', text: '是', conf: 0.44, t0: 9453, t1: 9873 }).join('|'), '是');
+  });
+  test('一片里只夹一个汉字、拉丁词超过 8 个 ⇒ 不当夹词', () => {
+    const { g } = gateOf();
+    eq(g.push({ locale: 'zh-CN', text: 'okay 的 let us move on to the next item on the agenda', conf: 0.9, t0: 0, t1: 3000 }).length, 0);
+  });
   test('embedded() 只读：不改链，判据与 push 一致', () => {
     const { g } = gateOf();
     g.push({ locale: 'zh-CN', text: '发到我的', conf: 0.9, t0: 0, t1: 900 });
