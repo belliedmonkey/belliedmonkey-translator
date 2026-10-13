@@ -329,7 +329,7 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
       '"orig"', '"tr"', '"partial"', '"pct"',
       '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"', '"grant"',
       '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
-      '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
+      '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"', '"PIP"',
       '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);
     for (const lit of strings) ok(allowed.has(lit), `字幕条里出现了非协议字符串（可能是文案）：${lit}`);
   });
@@ -340,6 +340,14 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const r = /\} else if ([^{]*)\{\s*let title = controlLabels\["resume"\]/.exec(body);
     ok(r && !/silence-permission/.test(r[1]), '「继续」那一支不含 silence-permission');
     ok(!/private var listening: Bool \{[^}]*silence-permission/.test(body), 'silence-permission 是停下的态，不算在听（悬停控件显示「继续」）');
+  });
+  test('系统视频小窗压住条时让开（#590 M）：松手后再判，拖的过程中不挪', () => {
+    ok(/func mtYieldedBar\(/.test(tpl), '让开的位置是纯函数');
+    ok(/func mtLooksLikeVideoPip\(/.test(tpl), '小窗的形状是纯函数');
+    ok(/dragging = false\s*\n\s*snap\(p\)\s*\n\s*\/\/[^\n]*\n\s*yieldToVideoPip\(animated: true\)/.test(tpl), '松手：先吸附，再让开');
+    ok(/guard !dragging, let p = panel/.test(tpl), '拖动中不让开');
+    ok(/Timer\(timeInterval: 0\.5/.test(tpl), '小窗自己在动时条也要跟');
+    ok(/stopYieldWatch\(\)/.test(tpl), '会话结束停掉');
   });
   test('条上按钮发的命令，listen 页都认（§9.8 协议补充决定 9）', () => {
     // PR6c：listen 页 UI 半边从 app/listen.js 迁到 src/app/listen-model.js（onNative 命令处理随迁）

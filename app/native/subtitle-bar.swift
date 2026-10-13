@@ -19,6 +19,50 @@
 #if os(macOS)
 import AppKit
 
+/// 条与这些矩形（已是 AppKit 坐标）重叠时，挪到同一屏可见区域里最近的、不重叠的位置。
+/// 不重叠就原样返回。距离一样时挑离障碍更远的那个（右下角的小窗 ⇒ 条去左下）。
+func mtYieldedBar(_ bar: NSRect, screen: NSRect, obstacles: [NSRect]) -> NSRect {
+    let gap: CGFloat = 16
+    let inflated = obstacles.map { $0.insetBy(dx: -gap, dy: -gap) }
+    func hits(_ r: NSRect) -> Bool { inflated.contains { $0.intersects(r) } }
+    if !hits(bar) { return bar }
+    let v = screen.insetBy(dx: 8, dy: 8)
+    guard v.width + 1 >= bar.width, v.height + 1 >= bar.height else { return bar }
+    let bottomY = min(v.maxY - bar.height, v.minY + 72)
+    let topY = max(v.minY, v.maxY - bar.height - 32)
+    let xs = [v.minX, v.maxX - bar.width, v.midX - bar.width / 2]
+    let ys = bottomY == topY ? [bottomY] : [bottomY, topY]
+    var spots: [NSRect] = []
+    for y in ys {
+        for x in xs {
+            let r = NSRect(x: x, y: y, width: bar.width, height: bar.height)
+            if v.insetBy(dx: -1, dy: -1).contains(r) { spots.append(r) }
+        }
+    }
+    let clear = spots.filter { !hits($0) }
+    guard let hit = inflated.first(where: { $0.intersects(bar) }) else { return bar }
+    return clear.min { a, b in
+        let da = hypot(a.minX - bar.minX, a.minY - bar.minY)
+        let db = hypot(b.minX - bar.minX, b.minY - bar.minY)
+        if abs(da - db) > 1 { return da < db }
+        return hypot(a.midX - hit.midX, a.midY - hit.midY) > hypot(b.midX - hit.midX, b.midY - hit.midY)
+    } ?? bar
+}
+
+/// 另一进程里、浮在我们这条（.floating）之上或自己名叫 PIP 的、比例像视频的小窗。
+/// 菜单栏 / 程序坞又扁又宽，通知小卡是方形或层级更低，都进不来。
+func mtLooksLikeVideoPip(owner: String, name: String, layer: Int, width: CGFloat, height: CGFloat, screenWidth: CGFloat, screenHeight: CGFloat, ownPID: Int32, pid: Int32) -> Bool {
+    if pid == ownPID || pid == 0 { return false }
+    if width < 160 || height < 90 { return false }
+    if width > screenWidth * 0.7 || height > screenHeight * 0.7 { return false }
+    let aspect = width / max(height, 1)
+    if aspect < 1.2 || aspect > 2.45 { return false }
+    let named = owner.range(of: "PIP", options: .caseInsensitive) != nil
+        || name.range(of: "PIP", options: .caseInsensitive) != nil
+    if named { return true }
+    return layer >= Int(CGWindowLevelForKey(.floatingWindow))
+}
+
 final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     static let shared = MTSubtitleBar()
@@ -60,6 +104,9 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     private var dragStart = NSPoint.zero
     private var dragOrigin = NSPoint.zero
+    private var dragging = false
+    private var yieldTimer: Timer?
+    private var screenObserver: NSObjectProtocol?
     private var stackTop: NSLayoutConstraint?
     private static let textTop: CGFloat = 14
 
@@ -99,7 +146,11 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         installMenu()
         applyClickThrough()
         render()
-        if firstShow { panel?.orderFrontRegardless() }
+        if firstShow {
+            panel?.orderFrontRegardless()
+            startYieldWatch()
+            yieldToVideoPip(animated: false)
+        }
     }
 
     /// `subtitle-show {orig, tr, partial}`：最新一句（半句或定稿）。
@@ -145,6 +196,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     /// `subtitle-hide`：会话结束。条、菜单项、关闭守卫、activity 一并收掉；主窗口若被隐藏着就放回来（不激活）。
     func hide() {
+        stopYieldWatch()
         guard let p = panel else { return }
         p.orderOut(nil)
         panel = nil
@@ -368,6 +420,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         if f.midY > screen.midY { f.origin.y += f.height - want }
         f.size.height = want
         p.setFrame(f, display: true)
+        yieldToVideoPip(animated: false)
     }
 
     // MARK: - 悬停、拖动、吸附
@@ -388,11 +441,15 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         let at = NSEvent.mouseLocation
         switch phase {
         case 0:
+            dragging = true
             dragStart = at; dragOrigin = p.frame.origin
         case 1:
             p.setFrameOrigin(NSPoint(x: dragOrigin.x + at.x - dragStart.x, y: dragOrigin.y + at.y - dragStart.y))
         default:
+            dragging = false
             snap(p)
+            // 吸完如果还压在系统视频小窗上，再挪一次（#590 M）。拖的过程中不挪。
+            yieldToVideoPip(animated: true)
         }
     }
 
@@ -409,6 +466,59 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     func windowDidEndLiveResize(_ notification: Notification) {
         render()
+    }
+
+    /// 小窗可以在条不动的时候被拖走。拖条的过程中不跟（松手那一下再判）。
+    private func startYieldWatch() {
+        stopYieldWatch()
+        let t = Timer(timeInterval: 0.5, repeats: true) { [weak self] _ in self?.yieldToVideoPip(animated: true) }
+        RunLoop.main.add(t, forMode: .common)
+        yieldTimer = t
+        screenObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.yieldToVideoPip(animated: false) }
+    }
+
+    private func stopYieldWatch() {
+        yieldTimer?.invalidate()
+        yieldTimer = nil
+        if let o = screenObserver { NotificationCenter.default.removeObserver(o) }
+        screenObserver = nil
+        dragging = false
+    }
+
+    private func yieldToVideoPip(animated: Bool) {
+        guard !dragging, let p = panel else { return }
+        let screen = (p.screen ?? NSScreen.main)?.visibleFrame ?? p.frame
+        let full = (p.screen ?? NSScreen.main)?.frame ?? screen
+        let obstacles = videoPipFrames().filter { $0.intersects(full) }
+        let next = mtYieldedBar(p.frame, screen: screen, obstacles: obstacles)
+        if abs(next.origin.x - p.frame.origin.x) < 1, abs(next.origin.y - p.frame.origin.y) < 1 { return }
+        p.setFrame(next, display: true, animate: animated)
+    }
+
+    /// CGWindow 的 y 从主屏顶往下；主屏是 `NSScreen.screens` 的第一块（菜单栏所在）。
+    private func videoPipFrames() -> [NSRect] {
+        let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+        let primaryH = NSScreen.screens.first?.frame.height ?? 0
+        let own = ProcessInfo.processInfo.processIdentifier
+        var rects: [NSRect] = []
+        for w in info {
+            let pid = (w[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value ?? 0
+            let layer = (w[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
+            let owner = w[kCGWindowOwnerName as String] as? String ?? ""
+            let name = w[kCGWindowName as String] as? String ?? ""
+            guard let dict = w[kCGWindowBounds as String] as? NSDictionary else { continue }
+            var cg = CGRect.zero
+            guard CGRectMakeWithDictionaryRepresentation(dict as CFDictionary, &cg), cg.width > 0, cg.height > 0 else { continue }
+            let cocoa = NSRect(x: cg.origin.x, y: primaryH - cg.origin.y - cg.height, width: cg.width, height: cg.height)
+            let screen = NSScreen.screens.first { $0.frame.intersects(cocoa) }?.frame ?? cocoa
+            if mtLooksLikeVideoPip(owner: owner, name: name, layer: layer, width: cg.width, height: cg.height,
+                                   screenWidth: screen.width, screenHeight: screen.height, ownPID: own, pid: pid) {
+                rects.append(cocoa)
+            }
+        }
+        return rects
     }
 
     private func applyClickThrough() {

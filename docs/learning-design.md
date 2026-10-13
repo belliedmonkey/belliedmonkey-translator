@@ -4161,7 +4161,7 @@ macOS 26 ⇒ 不冲突。
 3. **老原生壳**：`caps-probe` 发出后 1.5 s 内没收到 `audio-caps` ⇒ 这个壳不认识实时字幕 ⇒ 首页**不显示**「实时字幕」这一行（不是灰掉：没有能对用户说的原因，也没有出口）。因此 JS 可以先于原生合入 —— 在不回 `audio-caps` 的壳上功能完全不可达；§10 Gate I 的发布检查随「原生开始回 `audio-caps`」的那一步一起上。
 4. **字幕条的「结束」叫 `remote end`，不叫 `stop`**：锁屏 / 媒体控制的 `stop` 现在映射成暂停（`native-audio.js`），同名会撞。`end` 在对话模式里同样是结束。
 5. **字幕模式两个平台都不播保活音频**：iOS 的后台由麦克风引擎维持（尖刺 S5 真机 6 分钟没有保活音频照常），WebKit 的 `<audio>` 反而可能改动会话类别。
-6. **语言设置**：「视频的语言」用新键 `subtitleVideoLang`（缺省 `auto`，2026-10-13 修订 #590：以前写缺省 `en`，与 2026-10-07「左格默认自动」的裁定不一致；LID 不回写此键）；「译成」沿用 `listenMyLang`（同一个人的母语；不存在时取系统语言）。字号 `subtitleFontScale` 由 JS 存设置、经 `subtitle-config` 下发；字幕条位置由原生自存（窗口 frame autosave）。
+6. **语言设置**：「视频的语言」用新键 `subtitleVideoLang`（缺省 `auto`，2026-10-13 修订 #590：以前写缺省 `en`，与 2026-10-07「左格默认自动」的裁定不一致；LID 不回写此键）；「译成」沿用 `listenMyLang`（同一个人的母语；不存在时取系统语言）。字号 `subtitleFontScale` 由 JS 存设置、经 `subtitle-config` 下发；字幕条位置由原生自存（窗口 frame autosave）。与系统视频画中画重叠时条挪到同一屏上不重叠的位置，新位置仍走这份 autosave（#590 M，交互见 interaction-spec「系统视频小窗让开」）。
 7. **耳机**：iOS 字幕档下输出路由是耳机 ⇒ `mic-state {reason:'headphones'}`，App 页与小窗具名（I10 / I8）。Mac 抓的是系统混音，不受耳机影响。
 8. **协议镜像测试**（`test/build-scripts.test.js`：JS `PROTOCOL` 的每个动词 Swift 都有 `case`）：JS 先合入时，Swift 同一个 PR 加**空的** `case`（不回复）—— 空 case 恰好就是第 3 条的「老壳」。
 
