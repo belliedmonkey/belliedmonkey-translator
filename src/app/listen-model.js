@@ -364,8 +364,10 @@ const listenModel = (() => {
     // 计数（P-06 / P-07 的判据是**翻译请求 0 次**）：没出声、或被暂停/结束点掉的那一句，
     // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
     translateCalls++;
+    let mark = null;
+    try { if (typeof globalThis !== 'undefined' && globalThis.__mt592SegTiming && globalThis.__mt592SegTiming.on) mark = { kind: 'tr' }; } catch (_) {}
     try {
-      return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+      return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '', mark ? { mark } : undefined);
     } catch (e) { if (errOut) errOut.err = e; return ''; }
   }
 
@@ -479,13 +481,18 @@ const listenModel = (() => {
     });
     let reply = '', passErr = null;
     const t0 = now();
+    let mark = null;
+    try { if (typeof globalThis !== 'undefined' && globalThis.__mt592SegTiming && globalThis.__mt592SegTiming.on) mark = { kind: 'pass' }; } catch (_) {}
+    const po = {};
+    if (cfg.mode === 'subtitle') po.timeoutMs = SUB_PASS_TIMEOUT_MS;
+    if (mark) po.mark = mark;
     try {
       // 字幕：中继实测 p90 15.6 s、最长 20 s（#590 H）—— 默认截止（20 s）会把服务端已经计费的回包丢掉
-      const po = cfg.mode === 'subtitle' ? { timeoutMs: SUB_PASS_TIMEOUT_MS } : undefined;
       reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '', po);
     } catch (e) { reply = ''; passErr = e; }
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
+    if (mark && mark.done && row.lat) { row.lat.q = mark.done.q; row.lat.up = mark.done.up; }
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     if (same) {
@@ -538,6 +545,15 @@ const listenModel = (() => {
       if (!row) continue;
       row.lat = { final: now(), engine: 'device', seg: 'model', pass: meta.ms != null ? meta.ms : 0,
         segFeedAt: meta.feedAt || 0, segSentAt: meta.sentAt || 0, segEmitAt: now() };
+      if (meta && meta.why) {
+        row.lat.why = meta.why;
+        row.lat.trig = Math.max(0, (meta.sinceLast || 0) - (meta.blockedMs || 0));
+        row.lat.block = meta.blockedMs || 0;
+        row.lat.since1 = meta.sinceFirst || 0;
+        if (meta.repliedAt) row.lat.post = Math.max(0, now() - meta.repliedAt);
+        if (meta.q != null) row.lat.q = meta.q;
+        if (meta.up != null) row.lat.up = meta.up;
+      }
       row.srcLocale = (meta && meta.locale) || '';
       if (same) {
         row.tr = ''; row.trErr = false; row.trBusy = false; row.trTemp = false; row.same = true;
@@ -566,6 +582,13 @@ const listenModel = (() => {
     if (!row) return;
     row.lat = { final: now(), engine: 'device', seg: 'fallback',
       segFeedAt: (meta && meta.feedAt) || 0, segEmitAt: now() };
+    if (meta && meta.why) {
+      row.lat.why = meta.why;
+      row.lat.trig = Math.max(0, (meta.sinceLast || 0) - (meta.blockedMs || 0));
+      row.lat.block = meta.blockedMs || 0;
+      row.lat.since1 = meta.sinceFirst || 0;
+      row.lat.post = 0;
+    }
     row.srcLocale = (meta && meta.locale) || '';
     row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
     if (grantHalted()) {
@@ -580,11 +603,17 @@ const listenModel = (() => {
   // 一次「断句+翻译」调用：budget 512（中转按令牌计量，够一份 JSON）。客户端截止与字幕修正
   // 那一调相同，宽于中继实测最长约 20 s（#590 H）。12 s 会在服务端已经计费时把回包丢掉。
   // 中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧。
-  function segCall(prompt) {
+  function segCall(prompt, meta) {
     translateCalls++;
-    return TranslationAPI.listenPass(prompt,
+    const mark = meta && meta.http ? { kind: 'seg' } : null;
+    const opts = { budget: 512, timeoutMs: SUB_PASS_TIMEOUT_MS };
+    if (mark) opts.mark = mark;
+    const p = TranslationAPI.listenPass(prompt,
       TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
-      { budget: 512, timeoutMs: SUB_PASS_TIMEOUT_MS });
+      opts);
+    if (!mark) return p;
+    const stamp = () => { if (mark.done && meta.http) { meta.http.q = mark.done.q; meta.http.up = mark.done.up; } };
+    return p.then((text) => { stamp(); return text; }, (err) => { stamp(); throw err; });
   }
   // 断句 prompt 的中文模板（规则五条，2026-10-10 用户批准）。**这不是界面文案，是给模型的
   // 固定指令**（改 UI 语言不该改模型行为）——写成 t() 只因为出货代码里的中文只许出现在 t()
@@ -608,7 +637,7 @@ const listenModel = (() => {
   function makeSeg(myGen) {
     const r = C.makeSegmentRouter({
       // P1-1：call 前判会话代际 —— 旧会话已 dispose 的路由器一个请求都不该发出去。
-      call: (prompt) => (myGen !== gen ? Promise.reject(new Error('stale-session')) : segCall(prompt)),
+      call: (prompt, meta) => (myGen !== gen ? Promise.reject(new Error('stale-session')) : segCall(prompt, meta)),
       emit: (list, meta) => { if (myGen !== gen) return; segEmit(list, meta); },
       fallback: (text, meta) => { if (myGen !== gen) return; segFallback(text, meta); },
       ctx: segCtx,

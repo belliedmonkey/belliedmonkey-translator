@@ -1699,10 +1699,21 @@ var ListenCore = (() => {
           if (rows.length) {
             lastEmit[rec.locale] = String(rows[rows.length - 1].source || '');
             emits += rows.length;
-            queue.push({ type: 'rows', rows, meta: { locale: rec.locale, ms: c.ms, force: c.force, orig: c.orig, pos: rec.pos, feedAt: c.feedAt, sentAt: c.sentAt } });
+            const meta = { locale: rec.locale, ms: c.ms, force: c.force, orig: c.orig, pos: rec.pos, feedAt: c.feedAt, sentAt: c.sentAt };
+            if (c.timing) {
+              meta.why = c.timing.why; meta.blockedMs = c.timing.blockedMs; meta.sinceLast = c.timing.sinceLast; meta.sinceFirst = c.timing.sinceFirst;
+              if (c.repliedAt) meta.repliedAt = c.repliedAt;
+              if (c.http) { meta.q = c.http.q; meta.up = c.http.up; }
+            }
+            queue.push({ type: 'rows', rows, meta });
           }
         } else if (c.kind === 'legacy') {
-          for (const t of c.texts) { fallbacks++; lastEmit[rec.locale] = t; queue.push({ type: 'legacy', text: t, locale: rec.locale, feedAt: c.feedAt || rec.at || 0 }); }
+          for (const t of c.texts) {
+            fallbacks++; lastEmit[rec.locale] = t;
+            const item = { type: 'legacy', text: t, locale: rec.locale, feedAt: c.feedAt || rec.at || 0 };
+            if (c.timing) { item.why = c.timing.why; item.blockedMs = c.timing.blockedMs; item.sinceLast = c.timing.sinceLast; item.sinceFirst = c.timing.sinceFirst; }
+            queue.push(item);
+          }
           // 补救片可能只是这一批里的一条（legacy 载荷挂在**批首**记录上）——载荷里带着「这批含补救片」
           // 的标记，按整批上屏的文字做 rescueOut（R14：已出行 ⇒ 后续正式 final 只追加不重叠部分）。
           if (c.rescue || rec.rescued) {
@@ -1833,11 +1844,19 @@ var ListenCore = (() => {
       if (d.onDiag) { try { d.onDiag('rescue:append', { text: t, why: rest ? ('trim=' + k) : 'all-dup' }); } catch (_) {} }
       return rest;
     }
+    function segTimingOn() {
+      try { return !!(typeof globalThis !== 'undefined' && globalThis.__mt592SegTiming && globalThis.__mt592SegTiming.on); }
+      catch (_) { return false; }
+    }
     function notify(queue) {
       for (const n of queue) {
         try {
           if (n.type === 'rows') d.emit(n.rows, n.meta);
-          else d.fallback(n.text, { locale: n.locale, feedAt: n.feedAt || 0 });
+          else {
+            const fm = { locale: n.locale, feedAt: n.feedAt || 0 };
+            if (n.why) { fm.why = n.why; fm.blockedMs = n.blockedMs || 0; fm.sinceLast = n.sinceLast || 0; fm.sinceFirst = n.sinceFirst || 0; }
+            d.fallback(n.text, fm);
+          }
         } catch (e) {
           // 界面层出行报错：只记一条诊断，路由器状态已经落定，后面的话照常出行。
           noteFail('notify');
@@ -1845,7 +1864,7 @@ var ListenCore = (() => {
         }
       }
     }
-    function legacyRecs(recs) {
+    function legacyRecs(recs, timing) {
       if (!recs.length) return;
       // 这一批里若有 partial 补救片，把「这批含临时稿」带进 legacy 载荷（R14：已出行后按文字去重）。
       const resc = recs.filter((r) => r.rescued).pop();
@@ -1853,6 +1872,7 @@ var ListenCore = (() => {
       let feedAt = 0;
       for (const r of recs) if (r.at > feedAt) feedAt = r.at;
       p.feedAt = feedAt;
+      if (timing) p.timing = timing;
       if (resc) { p.rescue = true; p.rescueT0 = resc.t0; p.rescueT1 = resc.t1; }
       commit(recs.map((r) => r.id), p);
     }
@@ -1877,7 +1897,16 @@ var ListenCore = (() => {
         //   closing(stop/switch) 期间仍要发送（remainder 按 force 送），账本清空后回到 open。
         if (!acted && !inFlight && canSend()) {
           const cand = nextSend(t);
-          if (cand) { doSend(cand.lc, cand.hold, cand.force, cand.retry); acted = true; }
+          if (cand) { doSend(cand.lc, cand.hold, cand.force, cand.retry, cand.reason); acted = true; }
+        }
+        // 默认关闭。只记「这一拍已经该送、但上一批还在飞」的起点，用来拆定稿到上屏的等待。
+        if (!acted && inFlight && canSend() && segTimingOn()) {
+          for (const lc of locales()) {
+            const du = dueOf(lc, t);
+            if (!du || du.due > t) continue;
+            const st = M(lc);
+            if (!st.blockAt) st.blockAt = t;
+          }
         }
         if (!acted) break;
       }
@@ -1925,10 +1954,10 @@ var ListenCore = (() => {
       // 「人还在说 + 短片」时不许强制补调，留缓冲与后文合并（方案 2）。
       if (st.retryForce) {
         if (segShortPiece(txt) && partialSpeaking(lc, st.retryAt)) { /* 等后文，不补调 */ }
-        else return { lc, due: t, hold: false, run, txt, force: true, retry: true };   // 补调＝「全部切完」的同一提示词
+        else return { lc, due: t, hold: false, run, txt, force: true, retry: true, reason: 'force' };   // 补调＝「全部切完」的同一提示词
       }
-      if (st.force) return { lc, due: t, hold: false, run, txt };
-      if (segOver(segCounts(txt), soft)) return { lc, due: t, hold: false, run, txt };
+      if (st.force) return { lc, due: t, hold: false, run, txt, reason: 'force' };
+      if (segOver(segCounts(txt), soft)) return { lc, due: t, hold: false, run, txt, reason: 'soft' };
       if (speaking) return null;   // 朗读只暂停空闲计时：没有到期动作（长度/force 已在上面放行）
       if (t >= st.lastFeedAt + idleMs) {
         const frag = segIsFragment(txt);
@@ -1936,7 +1965,7 @@ var ListenCore = (() => {
         // 「整段 remainder → 再 force 补调」的往返。人还在说（partial 活跃）时退回预送扣住，
         // 等后文合并（方案 2）。
         const shortForce = !d.noShortForce && frag && segShortPiece(txt) && !partialSpeaking(lc, st.lastFeedAt);
-        return { lc, due: t, hold: frag && !st.extraWaited && !shortForce, run, txt, force: shortForce };
+        return { lc, due: t, hold: frag && !st.extraWaited && !shortForce, run, txt, force: shortForce, reason: shortForce ? 'force' : 'idle' };
       }
       return { lc, due: st.lastFeedAt + idleMs, hold: false, run, txt };
     }
@@ -1954,7 +1983,7 @@ var ListenCore = (() => {
         const du = dueOf(lc, t);
         if (!du || du.due > t) continue;
         const lead = ledger.indexOf(du.run[0]);
-        if (!best || du.due < best.due || (du.due === best.due && lead < best.lead)) best = { lc, due: du.due, lead, hold: du.hold, force: du.force, retry: !!du.retry };
+        if (!best || du.due < best.due || (du.due === best.due && lead < best.lead)) best = { lc, due: du.due, lead, hold: du.hold, force: du.force, retry: !!du.retry, reason: du.reason || '' };
       }
       return best;
     }
@@ -2007,13 +2036,24 @@ var ListenCore = (() => {
       }
       return take;
     }
-    function doSend(lc, hold, forceOverride, retry) {
+    function doSend(lc, hold, forceOverride, retry, reason) {
       const st = M(lc);
       const run = headRun(lc);
       if (!run.length) return;
-      // 到顶的只交这一条（#592）。头一条到顶时整段交旧路，会把后面 calls 为 0 的新字一起带走。
+      const why = reason || (forceOverride || st.force ? 'force' : '');
+      const blockedMs = st.blockAt ? Math.max(0, now() - st.blockAt) : 0;
+      if (st.blockAt) st.blockAt = 0;
+      // 默认关闭：拆「等触发 / 等前一批在飞」。不进诊断上报，不开就不记。
+      const span = (recs) => {
+        if (!segTimingOn() || !recs || !recs.length) return null;
+        const t = now();
+        let mn = t, mx = 0;
+        for (const r of recs) { if (r.at && r.at < mn) mn = r.at; if (r.at > mx) mx = r.at; }
+        return { why: why || 'force', blockedMs, sinceLast: mx ? Math.max(0, t - mx) : 0, sinceFirst: Math.max(0, t - mn) };
+      };
+      // 到顶的只交这一条（#592）。后面 calls 为 0 的新字留在账本，继续送模型。
       const overIdx = run.findIndex((r) => r.calls >= SEG_MAX_CALLS);
-      if (overIdx >= 0) legacyRecs([run[overIdx]]);
+      if (overIdx >= 0) legacyRecs([run[overIdx]], span([run[overIdx]]));
       if (overIdx === 0) { schedule(); return; }
       let ok = overIdx < 0 ? run : run.slice(0, overIdx);
       if (!ok.length) return;
@@ -2037,11 +2077,13 @@ var ListenCore = (() => {
       ok.forEach((r) => { r.state = 'sending'; r.calls++; });
       calls++;
       const sentAt = now();
-      const b = { locale: lc, ids: ok.map((r) => r.id), text, sentAt, force, hold: !!hold, held: null, releaseAt: hold ? sentAt + (holdMode ? idleMs : autoReleaseMs) : 0, voided: false, settled: null };
+      const timing = span(ok);
+      const http = timing ? {} : null;
+      const b = { locale: lc, ids: ok.map((r) => r.id), text, sentAt, force, hold: !!hold, held: null, releaseAt: hold ? sentAt + (holdMode ? idleMs : autoReleaseMs) : 0, voided: false, settled: null, timing, http };
       inFlight = b;
       noteWaitPeak();
       const t0 = now();
-      Promise.resolve().then(() => d.call(buildSegPrompt(Object.assign({ buffer: text, force }, d.ctx ? d.ctx(lc) : {})), { locale: lc, buffer: text, force }))
+      Promise.resolve().then(() => d.call(buildSegPrompt(Object.assign({ buffer: text, force }, d.ctx ? d.ctx(lc) : {})), { locale: lc, buffer: text, force, http }))
         .then((raw) => onResult(b, raw, t0), (err) => onError(b, err));
     }
     function finishBatch(b) {
@@ -2108,6 +2150,7 @@ var ListenCore = (() => {
     function onResult(b, raw, t0) {
       if (b.voided) { finishBatch(b); return; }
       if (disposed) { finishBatch(b); return; }
+      b.repliedAt = now();
       const lc = b.locale, st = M(lc);
       const parsed = parseSegReply(raw, { buffer: b.text, last: lastEmit[lc] || '' });
       const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
@@ -2181,7 +2224,9 @@ var ListenCore = (() => {
       const bt = String(b.text || '').trim();
       const consumed = rem ? bt.slice(0, bt.length - rem.length) : bt;
       const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
-      attach(b.ids, { kind: 'rows', rows: segs, ms, force, orig: consumed, feedAt: batchFeedAt(b), sentAt: b.sentAt });
+      const payload = { kind: 'rows', rows: segs, ms, force, orig: consumed, feedAt: batchFeedAt(b), sentAt: b.sentAt };
+      if (b.timing) { payload.timing = b.timing; payload.repliedAt = b.repliedAt || 0; payload.http = b.http || null; }
+      attach(b.ids, payload);
       if (rem) {
         trimBatchTail(b, rem);   // 先把 remainder 这段从批记录尾部去掉（否则账本里同一段文字出现两次）
         // 成功回包的尾巴从 0 重新计。继承这一批的 calls 会把还没说完的字提前送到上限，连同后面的新字一起交旧路（#592）。
@@ -2273,6 +2318,7 @@ var ListenCore = (() => {
     function onError(b, err) {
       if (b.voided) { finishBatch(b); return; }
       if (disposed) { finishBatch(b); return; }
+      b.repliedAt = now();
       const lc = b.locale, st = M(lc);
       const status = err && (err.status || (err.cause && err.cause.status));
       const stop = quotaSignal(err);
@@ -2283,7 +2329,9 @@ var ListenCore = (() => {
       const timedOut = !!(err && (err.code === 'timeout' || (err.cause && err.cause.code === 'timeout')));
       if (timedOut) {
         noteFail('timeout');
-        commit(b.ids, { kind: 'rows', rows: [{ source: b.text, translation: '' }], ms: 0, force: !!b.force, orig: b.text, feedAt: batchFeedAt(b), sentAt: b.sentAt });
+        const payload = { kind: 'rows', rows: [{ source: b.text, translation: '' }], ms: 0, force: !!b.force, orig: b.text, feedAt: batchFeedAt(b), sentAt: b.sentAt };
+        if (b.timing) { payload.timing = b.timing; payload.repliedAt = b.repliedAt || 0; payload.http = b.http || null; }
+        commit(b.ids, payload);
         finishBatch(b);
         return;
       }

@@ -523,7 +523,19 @@ Rules:
     return null;
   }
 
-  // ─── Concurrency queue ────────────────────────────────────────────────
+  function mt592TimingPush(ev) {
+    try {
+      const g = typeof globalThis !== 'undefined' ? globalThis.__mt592SegTiming : null;
+      if (!g || !g.on || !Array.isArray(g.ev)) return;
+      g.ev.push(ev);
+    } catch (_) {}
+  }
+  function mt592Note(mark, q, up) {
+    if (!mark) return;
+    const end = Date.now();
+    mark.done = { q, up };
+    mt592TimingPush({ k: mark.kind || '', enq: mark.enq || 0, start: mark.start || 0, end, q, up });
+  }
   let inFlight = 0;
   const queue = [];
 
@@ -579,7 +591,12 @@ Rules:
       if (stored) { memCache.set(key, { v: stored, ts: Date.now() }); return stored; }
     }
 
+    const mark = opts && opts.mark;
+    if (mark) mark.enq = Date.now();
     const result = await enqueue(async () => {
+      if (mark) mark.start = Date.now();
+      const u0 = mark ? Date.now() : 0;
+      try {
       let retries = 0;
       while (retries < MAX_RETRIES) {
         try {
@@ -618,6 +635,9 @@ Rules:
           const backoff = (err && err.retryAfter != null) ? err.retryAfter : Math.pow(2, retries) * BASE_BACKOFF_MS;
           await new Promise(r => setTimeout(r, backoff + Math.random() * JITTER_MS));
         }
+      }
+      } finally {
+        if (mark) mt592Note(mark, (mark.start || u0) - (mark.enq || mark.start || u0), Date.now() - u0);
       }
     });
 
@@ -683,7 +703,12 @@ Rules:
     // 字段名 —— RequestShape 里 budgetName 按能力表落成 max_tokens / max_completion_tokens）；
     // timeoutMs = 这次调用的客户端截止（AbortController，中转不代管超时）。都缺省 = 旧行为。
     const o = opts || {};
+    const mark = o.mark;
+    if (mark) mark.enq = Date.now();
     return enqueue(async () => {
+      if (mark) mark.start = Date.now();
+      const u0 = mark ? Date.now() : 0;
+      try {
       const p = providerById(provider);
       if (!p) { const e = new Error(`Unknown provider: ${provider}`); e.status = 0; e.code = 'unknown_provider'; e.retryable = false; throw e; }
       const url = WireFormat.resolveEndpoint(baseUrl, p);
@@ -694,7 +719,10 @@ Rules:
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
+      return await callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
+      } finally {
+        if (mark) mt592Note(mark, (mark.start || u0) - (mark.enq || 0), Date.now() - u0);
+      }
     });
   }
 
