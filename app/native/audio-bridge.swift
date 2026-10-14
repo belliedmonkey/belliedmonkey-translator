@@ -126,7 +126,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
               let type = body["type"] as? String else { return }
         switch type {
         case "session-start":  startSession()
-        case "session-stop":   stopSession()
+        case "session-stop":   stopSession(body)
         case "now-playing":    updateNowPlaying(body); updateActivity(body)
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
@@ -475,13 +475,38 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 #endif
     }
 
-    private func stopSession() {
+    private func stopSession(_ body: [String: Any] = [:]) {
         micStop()
         endActivity()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #if os(iOS)
+        // 字幕暂停带 hold：不释放会话（#590 iOS 5）。释放后再 setActive 会把正在外放的视频停掉。
+        // 麦已经停了。结束 / 停机不带 hold，照旧释放，让被打断的 App 恢复。
+        if (body["hold"] as? Bool) == true { return }
         // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
         try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+#endif
+    }
+
+    /// 锁屏 / 控制中心的遥控。字幕这场不接：另一个 App 开始播放时，系统会给「正在播放」的那一个送暂停（#590 iOS 5）。
+    /// 小窗上的播放键不走这里，走画中画的 setPlaying。
+    private func mediaRemote(_ command: String) -> MPRemoteCommandHandlerStatus {
+#if os(iOS)
+        if recordProfile == "subtitle" { return .noActionableNowPlayingItem }
+#endif
+        remote(command)
+        return .success
+    }
+
+    /// 小窗的播放 / 暂停之后，把会话留在可混音，并卸掉 Now Playing。不在这里 setActive。
+    private func keepSubtitleMix() {
+#if os(iOS)
+        guard recordProfile == "subtitle" else { return }
+        let session = AVAudioSession.sharedInstance()
+        if session.category != .playAndRecord || !session.categoryOptions.contains(.mixWithOthers) {
+            try? session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #endif
     }
 
@@ -490,12 +515,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         commandsInstalled = true
         let center = MPRemoteCommandCenter.shared()
 
-        center.playCommand.addTarget            { [weak self] _ in self?.remote("play");     return .success }
-        center.pauseCommand.addTarget           { [weak self] _ in self?.remote("pause");    return .success }
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.remote("toggle");   return .success }
-        center.nextTrackCommand.addTarget       { [weak self] _ in self?.remote("next");     return .success }
+        center.playCommand.addTarget            { [weak self] _ in self?.mediaRemote("play") ?? .commandFailed }
+        center.pauseCommand.addTarget           { [weak self] _ in self?.mediaRemote("pause") ?? .commandFailed }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.mediaRemote("toggle") ?? .commandFailed }
+        center.nextTrackCommand.addTarget       { [weak self] _ in self?.mediaRemote("next") ?? .commandFailed }
         // 「上一曲」= 再听一遍。播客模式没有「上一张」：随机是一次性排列，往回退没有定义。
-        center.previousTrackCommand.addTarget   { [weak self] _ in self?.remote("previous"); return .success }
+        center.previousTrackCommand.addTarget   { [weak self] _ in self?.mediaRemote("previous") ?? .commandFailed }
 
         for command in [center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
                         center.nextTrackCommand, center.previousTrackCommand] {
@@ -776,7 +801,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         bar.configure(body, window: webView?.window)
 #else
         let pip = MTSubtitlePip.shared
-        pip.onRemote = { [weak self] command in self?.remote(command) }
+        pip.onRemote = { [weak self] command in self?.keepSubtitleMix(); self?.remote(command) }
         pip.onWindow = { [weak self] info in
             var payload = info
             payload["type"] = "subtitle-window"

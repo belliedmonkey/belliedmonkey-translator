@@ -51,6 +51,8 @@ var NativeAudio = (() => {
 
   let ready = false;
   let platform = '';
+  // 字幕档不接系统媒体遥控（#590 iOS 5）。record-mode 记下档；处理函数读的是这个变量，不是注册当时的值。
+  let recordProfile = 'conv';
   // audio-caps（§9.8）：原生报的采集能力。null = 还没收到；probedNoReply = 问过、原生没回 ⇒ 老壳。
   let caps = null;
   let probedNoReply = false;
@@ -125,7 +127,11 @@ var NativeAudio = (() => {
     const s = ms();
     if (!s || msWired) return;
     msWired = true;
-    const send = (command) => () => _fromNative({ type: 'remote', command });
+    const send = (command) => () => {
+      // 字幕这场的播放 / 暂停只走画中画 setPlaying。接在媒体会话上时，另一个 App 开始播放会被系统当成暂停我们。
+      if (recordProfile === 'subtitle') return;
+      _fromNative({ type: 'remote', command });
+    };
     // 哪些接上了、哪些被引擎拒了，记下来 —— 「⏪10 还在」有两种完全不同的原因
     // （handler 没注册上 / 注册了但引擎不理），不记就分不出来。
     const set = (action, handler) => {
@@ -177,13 +183,15 @@ var NativeAudio = (() => {
     return post({ type: 'session-start' });
   }
 
-  function sessionStop() {
+  function sessionStop(opts) {
     ready = false;
     lastNowPlaying = ''; lastPlaying = null; lastArtworkId = '';
     msInfo = { title: '', subtitle: '', album: '' }; msArt = '';
     const s = ms();
     if (s) { try { s.metadata = null; s.playbackState = 'none'; } catch (_) {} }
-    return post({ type: 'session-stop' });
+    const payload = { type: 'session-stop' };
+    if (opts && opts.hold) payload.hold = true;
+    return post(payload);
   }
 
   // 锁屏/控制中心上的三行字。**全部由调用方传进来**，这个模块和原生侧都不持有文案
@@ -257,6 +265,7 @@ var NativeAudio = (() => {
   // profile（§9.8 协议补充决定 2）：'subtitle' = 字幕档会话（可混音、外放、不带蓝牙）。不传 / 'conv' 时
   // 消息与原来逐字节相同 —— 老原生壳只认 on。
   function recordMode(on, profile) {
+    recordProfile = on && profile ? String(profile) : 'conv';
     const body = { type: 'record-mode', on: !!on };
     if (on && profile && profile !== 'conv') body.profile = String(profile);
     post(body);

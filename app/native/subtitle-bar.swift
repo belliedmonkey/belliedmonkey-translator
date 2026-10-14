@@ -11,7 +11,8 @@
 // ── 形状（尖刺 S4 实证）─────────────────────────────────────────────────────────
 // NSPanel [.nonactivatingPanel, .borderless, .resizable] + .floating + [.canJoinAllSpaces, .fullScreenAuxiliary]
 // + hidesOnDeactivate = false ⇒ 盖在别的 App 的全屏视频上、从不成为 key（点条之后空格仍暂停视频）。
-// 系统 hudWindow 材质在深色底上显浅灰 ⇒ 自绘 rgba(22,20,18,0.74) 底。
+// 系统 hudWindow 材质在深色底上显浅灰 ⇒ 自绘不透明 rgb(22,20,18) 底。
+// 曾经是 rgba(22,20,18,0.74)，后面窗口的字会透出来（#590）。subtitle-config.opacity 仍收下，不再乘进底色。
 //
 // ── 按钮回页面（§9.8 协议补充决定 9）─────────────────────────────────────────────
 // 暂停 / 继续 → remote pause / play；A− / A+ → remote font-down / font-up（字号由 JS 存）；结束 → remote end；
@@ -63,6 +64,63 @@ func mtLooksLikeVideoPip(owner: String, name: String, layer: Int, width: CGFloat
     return layer >= Int(CGWindowLevelForKey(.floatingWindow))
 }
 
+struct MTForeignWindow {
+    var pid: Int32
+    var layer: Int
+    var alpha: CGFloat
+    var frame: NSRect
+}
+
+struct MTScreenGeom {
+    var frame: NSRect
+    var visible: NSRect
+}
+
+/// 窗口盖住整块屏（含菜单栏那一截）。比可见区域更高的捕获层会走到这里，系统全屏本身通常不会。
+func mtWindowCoversScreen(_ window: NSRect, _ screen: NSRect) -> Bool {
+    guard screen.width > 1, screen.height > 1 else { return false }
+    let probe = screen.insetBy(dx: 8, dy: 8)
+    return window.insetBy(dx: -2, dy: -2).contains(probe)
+}
+
+/// 和这块屏的可见区域对齐（系统全屏、以及放大到菜单栏下沿，两者的窗口矩形一样大）。
+func mtWindowFillsVisible(_ window: NSRect, _ visible: NSRect) -> Bool {
+    guard visible.width > 1, visible.height > 1 else { return false }
+    return abs(window.minX - visible.minX) <= 8 && abs(window.minY - visible.minY) <= 8
+        && abs(window.width - visible.width) <= 8 && abs(window.height - visible.height) <= 8
+}
+
+/// 系统全屏会在可见区域顶上放一条全宽、透明、约一行菜单高的窗口。放大到菜单栏下沿的普通窗口没有这条。
+func mtFullscreenMenuStrip(_ window: NSRect, alpha: CGFloat, on visible: NSRect) -> Bool {
+    if alpha > 0.05 { return false }
+    if window.height < 20 || window.height > 48 { return false }
+    if abs(window.width - visible.width) > 8 { return false }
+    return abs(window.maxY - visible.maxY) <= 8
+}
+
+/// 全屏画面靠下的一条，横贯整屏。底下左 / 中 / 右都让不开，条就去上沿。
+func mtCaptionBand(of screen: NSRect) -> NSRect {
+    let bandH = min(max(140, screen.height * 0.22), screen.height * 0.4)
+    return NSRect(x: screen.minX, y: screen.minY, width: screen.width, height: bandH)
+}
+
+/// `windows` 从前到后。系统全屏（有那条透明菜单）才返回画面底部的字幕带。
+/// 放大到可见区域的普通窗口不算。比整块屏还高的捕获层跳过，继续看它后面的窗口。
+func mtFullscreenCaptionBand(windows: [MTForeignWindow], screens: [MTScreenGeom], ownPID: Int32) -> NSRect? {
+    for w in windows {
+        if w.pid == ownPID || w.pid == 0 { continue }
+        if w.layer < 0 || w.alpha < 0.05 { continue }
+        if w.frame.width < 80 || w.frame.height < 80 { continue }
+        guard let screen = screens.first(where: { mtWindowFillsVisible(w.frame, $0.visible) || mtWindowCoversScreen(w.frame, $0.frame) }) else { return nil }
+        if windows.contains(where: { $0.pid == w.pid && mtFullscreenMenuStrip($0.frame, alpha: $0.alpha, on: screen.visible) }) {
+            return mtCaptionBand(of: screen.frame)
+        }
+        if mtWindowCoversScreen(w.frame, screen.frame) && !mtWindowFillsVisible(w.frame, screen.visible) { continue }
+        return nil
+    }
+    return nil
+}
+
 final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     static let shared = MTSubtitleBar()
@@ -107,6 +165,14 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
     private var dragging = false
     private var yieldTimer: Timer?
     private var screenObserver: NSObjectProtocol?
+    private var activeObserver: NSObjectProtocol?
+    private var resignObserver: NSObjectProtocol?
+    private var spaceObserver: NSObjectProtocol?
+    /// 用户放下的位置（系统视频小窗让开后的位置也算）。
+    /// 自己的窗口、以及别的 App 全屏时让开画面底部，这两次挪动不写这里（#590 N / 全屏字幕带）。
+    private var rememberedOrigin: NSPoint?
+    private var parkedAside = false
+    private var autosaveName = ""
     private var stackTop: NSLayoutConstraint?
     private static let textTop: CGFloat = 14
 
@@ -197,6 +263,9 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
     /// `subtitle-hide`：会话结束。条、菜单项、关闭守卫、activity 一并收掉；主窗口若被隐藏着就放回来（不激活）。
     func hide() {
         stopYieldWatch()
+        // 单例活过会话。停掉时把「记住的位置 / 正在临时让开」清掉，下一场从自动保存重新来。
+        parkedAside = false
+        rememberedOrigin = nil
         guard let p = panel else { return }
         p.orderOut(nil)
         panel = nil
@@ -222,6 +291,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         let w = shared.mainWindow ?? NSApp.windows.first { !($0 is NSPanel) && $0.contentViewController != nil }
         w?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        shared.yieldToVideoPip(animated: true)
     }
 
     // MARK: - 视图
@@ -246,6 +316,9 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         if !p.setFrameUsingName(MTAudioBridge.channel) { p.setFrame(p.frame, display: false) }
         p.setFrame(MTSubtitleBar.clamped(p.frame), display: false)
         p.setFrameAutosaveName(MTAudioBridge.channel)
+        autosaveName = MTAudioBridge.channel
+        rememberedOrigin = p.frame.origin
+        parkedAside = false
 
         box.wantsLayer = true
         box.layer?.cornerRadius = 18
@@ -351,7 +424,8 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
 
     private func render() {
         guard let p = panel else { return }
-        box.layer?.backgroundColor = NSColor(calibratedRed: 22 / 255, green: 20 / 255, blue: 18 / 255, alpha: 0.74 * max(0.3, min(opacity, 1))).cgColor
+        _ = opacity
+        box.layer?.backgroundColor = NSColor(calibratedRed: 22 / 255, green: 20 / 255, blue: 18 / 255, alpha: 1).cgColor
 
         let big = NSFont.systemFont(ofSize: 26 * fontScale, weight: .semibold)
         trLabel.font = partial ? NSFontManager.shared.convert(big, toHaveTrait: .italicFontMask) : big
@@ -420,6 +494,7 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         if f.midY > screen.midY { f.origin.y += f.height - want }
         f.size.height = want
         p.setFrame(f, display: true)
+        if !parkedAside { rememberedOrigin = f.origin }
         yieldToVideoPip(animated: false)
     }
 
@@ -448,7 +523,10 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         default:
             dragging = false
             snap(p)
-            // 吸完如果还压在系统视频小窗上，再挪一次（#590 M）。拖的过程中不挪。
+            rememberedOrigin = p.frame.origin
+            // 临时让开时自动保存是摘掉的。松手这一下先把放下的位置写回去，再决定让不让。
+            if p.frameAutosaveName.isEmpty, !autosaveName.isEmpty { p.saveFrame(usingName: autosaveName) }
+            // 吸完再判一次（系统视频小窗、自己的窗口、全屏画面底部）。拖的过程中不挪。
             yieldToVideoPip(animated: true)
         }
     }
@@ -477,45 +555,144 @@ final class MTSubtitleBar: NSObject, NSWindowDelegate {
         screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
         ) { [weak self] _ in self?.yieldToVideoPip(animated: false) }
+        activeObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.yieldToVideoPip(animated: true) }
+        resignObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.yieldToVideoPip(animated: true) }
+        spaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in self?.yieldToVideoPip(animated: true) }
     }
 
     private func stopYieldWatch() {
         yieldTimer?.invalidate()
         yieldTimer = nil
         if let o = screenObserver { NotificationCenter.default.removeObserver(o) }
+        if let o = activeObserver { NotificationCenter.default.removeObserver(o) }
+        if let o = resignObserver { NotificationCenter.default.removeObserver(o) }
+        if let o = spaceObserver { NSWorkspace.shared.notificationCenter.removeObserver(o) }
         screenObserver = nil
+        activeObserver = nil
+        resignObserver = nil
+        spaceObserver = nil
         dragging = false
+        // 不在这里清 rememberedOrigin / parkedAside：startYieldWatch 开头会先调这里。
+        // 清掉的话，render 里已经按记住的位置让开之后，紧接着的那次重判会把临时位置当成记忆（#590 N）。
+    }
+
+    /// 自己的主窗口正在最前面，并且（含间隙）压住记住的位置时，返回它的 frame。
+    private func ownFrontObstacle(against base: NSRect) -> NSRect? {
+        guard NSApp.isActive, let w = mainWindow, w.isVisible, !w.isMiniaturized else { return nil }
+        let front = NSApp.orderedWindows.first { $0.isVisible && !($0 is NSPanel) }
+        guard front === w else { return nil }
+        guard w.frame.insetBy(dx: -16, dy: -16).intersects(base) else { return nil }
+        return w.frame
+    }
+
+    /// `persist == false`：临时挪开，摘掉自动保存，不改记住的位置。
+    private func place(_ p: NSPanel, _ raw: NSRect, persist: Bool, animated: Bool) {
+        let next = MTSubtitleBar.clamped(raw)
+        let same = abs(next.origin.x - p.frame.origin.x) < 1 && abs(next.origin.y - p.frame.origin.y) < 1
+            && abs(next.size.height - p.frame.size.height) < 1 && abs(next.size.width - p.frame.size.width) < 1
+        if persist {
+            rememberedOrigin = next.origin
+            parkedAside = false
+            if p.frameAutosaveName.isEmpty {
+                if !same { p.setFrame(next, display: true, animate: animated) }
+                if !autosaveName.isEmpty {
+                    p.saveFrame(usingName: autosaveName)
+                    p.setFrameAutosaveName(autosaveName)
+                }
+            } else if !same {
+                p.setFrame(next, display: true, animate: animated)
+            }
+        } else {
+            if !p.frameAutosaveName.isEmpty {
+                autosaveName = p.frameAutosaveName
+                p.setFrameAutosaveName("")
+            }
+            parkedAside = true
+            if !same { p.setFrame(next, display: true, animate: animated) }
+        }
     }
 
     private func yieldToVideoPip(animated: Bool) {
         guard !dragging, let p = panel else { return }
+        if rememberedOrigin == nil { rememberedOrigin = p.frame.origin }
+        if autosaveName.isEmpty, !p.frameAutosaveName.isEmpty { autosaveName = p.frameAutosaveName }
         let screen = (p.screen ?? NSScreen.main)?.visibleFrame ?? p.frame
         let full = (p.screen ?? NSScreen.main)?.frame ?? screen
-        let obstacles = videoPipFrames().filter { $0.intersects(full) }
-        let next = mtYieldedBar(p.frame, screen: screen, obstacles: obstacles)
-        if abs(next.origin.x - p.frame.origin.x) < 1, abs(next.origin.y - p.frame.origin.y) < 1 { return }
-        p.setFrame(next, display: true, animate: animated)
+        let base = NSRect(origin: rememberedOrigin ?? p.frame.origin, size: p.frame.size)
+        if let own = ownFrontObstacle(against: base) {
+            let next = mtYieldedBar(base, screen: screen, obstacles: [own])
+            let moved = abs(next.origin.x - base.origin.x) > 1 || abs(next.origin.y - base.origin.y) > 1
+            if moved {
+                place(p, next, persist: false, animated: animated)
+                return
+            }
+        }
+        // 自己的 App 在前台时不按全屏让：全屏窗口已经不是最前面的那个。
+        if !NSApp.isActive, let band = fullscreenCaptionBand(), band.intersects(base) {
+            let next = mtYieldedBar(base, screen: screen, obstacles: [band])
+            let moved = abs(next.origin.x - base.origin.x) > 1 || abs(next.origin.y - base.origin.y) > 1
+            if moved {
+                place(p, next, persist: false, animated: animated)
+                return
+            }
+        }
+        let pips = videoPipFrames().filter { $0.intersects(full) }
+        let next = mtYieldedBar(base, screen: screen, obstacles: pips)
+        let pipMoved = abs(next.origin.x - base.origin.x) > 1 || abs(next.origin.y - base.origin.y) > 1
+        // 全屏或自己的窗口不再挡着：回到记住的位置。系统视频小窗造成的挪动要记下来（#590 M）。
+        if pipMoved || parkedAside { place(p, next, persist: true, animated: animated) }
     }
 
-    /// CGWindow 的 y 从主屏顶往下；主屏是 `NSScreen.screens` 的第一块（菜单栏所在）。
-    private func videoPipFrames() -> [NSRect] {
+    private struct MTListedWindow {
+        var pid: Int32
+        var layer: Int
+        var alpha: CGFloat
+        var owner: String
+        var name: String
+        var frame: NSRect
+    }
+
+    /// CGWindow 的 y 从主屏顶往下；主屏是 `NSScreen.screens` 的第一块（菜单栏所在）。从前到后。
+    private func listedWindows() -> [MTListedWindow] {
         let info = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
         let primaryH = NSScreen.screens.first?.frame.height ?? 0
-        let own = ProcessInfo.processInfo.processIdentifier
-        var rects: [NSRect] = []
+        var out: [MTListedWindow] = []
         for w in info {
             let pid = (w[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value ?? 0
             let layer = (w[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
+            let alpha = CGFloat((w[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1)
             let owner = w[kCGWindowOwnerName as String] as? String ?? ""
             let name = w[kCGWindowName as String] as? String ?? ""
             guard let dict = w[kCGWindowBounds as String] as? NSDictionary else { continue }
             var cg = CGRect.zero
             guard CGRectMakeWithDictionaryRepresentation(dict as CFDictionary, &cg), cg.width > 0, cg.height > 0 else { continue }
             let cocoa = NSRect(x: cg.origin.x, y: primaryH - cg.origin.y - cg.height, width: cg.width, height: cg.height)
-            let screen = NSScreen.screens.first { $0.frame.intersects(cocoa) }?.frame ?? cocoa
-            if mtLooksLikeVideoPip(owner: owner, name: name, layer: layer, width: cg.width, height: cg.height,
-                                   screenWidth: screen.width, screenHeight: screen.height, ownPID: own, pid: pid) {
-                rects.append(cocoa)
+            out.append(MTListedWindow(pid: pid, layer: layer, alpha: alpha, owner: owner, name: name, frame: cocoa))
+        }
+        return out
+    }
+
+    private func fullscreenCaptionBand() -> NSRect? {
+        let own = ProcessInfo.processInfo.processIdentifier
+        let screens = NSScreen.screens.map { MTScreenGeom(frame: $0.frame, visible: $0.visibleFrame) }
+        let windows = listedWindows().map { MTForeignWindow(pid: $0.pid, layer: $0.layer, alpha: $0.alpha, frame: $0.frame) }
+        return mtFullscreenCaptionBand(windows: windows, screens: screens, ownPID: own)
+    }
+
+    private func videoPipFrames() -> [NSRect] {
+        let own = ProcessInfo.processInfo.processIdentifier
+        var rects: [NSRect] = []
+        for w in listedWindows() {
+            let screen = NSScreen.screens.first { $0.frame.intersects(w.frame) }?.frame ?? w.frame
+            if mtLooksLikeVideoPip(owner: w.owner, name: w.name, layer: w.layer, width: w.frame.width, height: w.frame.height,
+                                   screenWidth: screen.width, screenHeight: screen.height, ownPID: own, pid: w.pid) {
+                rects.append(w.frame)
             }
         }
         return rects

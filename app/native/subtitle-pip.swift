@@ -78,6 +78,7 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             c.canStartPictureInPictureAutomaticallyFromInline = true
             // false：让系统给出后退 / 前进两个按钮，借来翻看历史（skipByInterval）
             c.requiresLinearPlayback = false
+            parkTimebase()
             pip = c
         }
 
@@ -302,7 +303,25 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     func pictureInPictureController(_ c: AVPictureInPictureController, setPlaying playing: Bool) {
         // 收回内联时系统可能再送一次 pause。那不是用户点的 ⏸；inline 不暂停（协议 19）。
         if restoring { return }
+        // 小窗没有自己的声音。系统把时间轴速率拉到 1 时，会当成一部正在放的影片，把另一个 App 的视频停掉（#590 iOS 5）。
+        // 播放键只恢复听，暂停键只暂停听。速率马上停回 0；按钮状态走 isPlaybackPaused，不走这条时间轴。
         onRemote?(playing ? "play" : "pause")
+        parkTimebase()
+        c.invalidatePlaybackState()
+        DispatchQueue.main.async { [weak self] in
+            self?.parkTimebase()
+            c.invalidatePlaybackState()
+        }
+    }
+    /// 这扇小窗不放音频。禁止它在后台接管播放，免得系统把它登记成正在播放的那一个。
+    func pictureInPictureControllerShouldProhibitBackgroundAudioPlayback(_ c: AVPictureInPictureController) -> Bool { true }
+    private func parkTimebase() {
+        if displayLayer.controlTimebase == nil {
+            var tb: CMTimebase?
+            CMTimebaseCreateWithSourceClock(allocator: kCFAllocatorDefault, sourceClock: CMClockGetHostTimeClock(), timebaseOut: &tb)
+            if let tb { displayLayer.controlTimebase = tb }
+        }
+        if let tb = displayLayer.controlTimebase { CMTimebaseSetRate(tb, rate: 0) }
     }
     /// 有限的滑动时间窗（而不是直播形状的无穷区间）：系统才会给出后退 / 前进按钮。窗口右端 = 当前帧的时间戳。
     /// 待真机：按钮是否出现、进度条是否碍眼。

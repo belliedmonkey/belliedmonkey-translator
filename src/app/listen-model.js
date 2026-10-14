@@ -397,6 +397,7 @@ const listenModel = (() => {
     halt('grant', typeof e.code === 'string' ? e.code : 'auth');
     return true;
   }
+  function grantHalted() { return phase === 'halted' && pauseReason === 'grant'; }
   function tmFail(e) {
     if (!session || !e) return;
     const code = typeof e.code === 'string' ? e.code : 'network';
@@ -430,6 +431,7 @@ const listenModel = (() => {
 
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
   async function translateRow(row, toLang, quiet) {
+    if (grantHalted()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
     const t0 = now();
@@ -461,6 +463,7 @@ const listenModel = (() => {
     return lidLang && lidLang !== C.baseCode(cfg && cfg.otherLang) ? lidLang : '';
   }
   async function passRow(row, quiet) {
+    if (grantHalted()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
@@ -564,17 +567,23 @@ const listenModel = (() => {
     row.lat = { final: now(), engine: 'device', seg: 'fallback' };
     row.srcLocale = (meta && meta.locale) || '';
     row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
+    if (grantHalted()) {
+      row.tr = ''; row.trErr = true; row.trBusy = false; row.trTemp = false;
+      canvas.view('history');
+      return;
+    }
     canvas.view('history'); canvas.view('now');
     subShow(row.text, '', true);
     passRow(row);
   }
-  // 一次「断句+翻译」调用：budget 512（中转按令牌计量，够一份 JSON）；客户端 12s 截止
-  // （中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧）。
+  // 一次「断句+翻译」调用：budget 512（中转按令牌计量，够一份 JSON）。客户端截止与字幕修正
+  // 那一调相同，宽于中继实测最长约 20 s（#590 H）。12 s 会在服务端已经计费时把回包丢掉。
+  // 中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧。
   function segCall(prompt) {
     translateCalls++;
     return TranslationAPI.listenPass(prompt,
       TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
-      { budget: 512, timeoutMs: 12000 });
+      { budget: 512, timeoutMs: SUB_PASS_TIMEOUT_MS });
   }
   // 断句 prompt 的中文模板（规则五条，2026-10-10 用户批准）。**这不是界面文案，是给模型的
   // 固定指令**（改 UI 语言不该改模型行为）——写成 t() 只因为出货代码里的中文只许出现在 t()
@@ -605,8 +614,17 @@ const listenModel = (() => {
       onDegrade: (why) => {
         segDegrade = true;
         // 只记诊断计数（零内容）。**不弹任何文案**（规则 6）：这条提示没有 Pencil 稿，
-        // 用户可见的行为变化不允许无稿上线。
+        // 用户可见的行为变化不允许无稿上线。额度 / key 不走这里，走 onQuota。
         try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: r.state().calls, json_bad: 1 }); } catch (_) {}
+      },
+      // 额度用完 / key 被拒：原文已由路由器交出。整场停，不再交旧路（#590 K）。
+      // 文案是已有的 haltMessage，不是新的一句。
+      onQuota: (err) => {
+        segDegrade = true;
+        const e = err && (err.grant || err.halt) ? err : { grant: true, code: 'credit_exhausted', status: 402 };
+        tmFail(e);
+        quotaHalt(e);
+        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: 'quota', calls: r.state().calls, json_bad: 0 }); } catch (_) {}
       },
       // 方案要求：清理（dispose）只能在 settle 之后；账本不为空 ⇒ 漏了一个出口 —— 记诊断。
       onFail: (reason, extra) => diagBump('fail', reason, extra),
@@ -1477,7 +1495,13 @@ const listenModel = (() => {
         ev = Object.assign({}, ev, { text: p.text, rescued: true });
         diagBump('final', 'from-partial', { text: p.text });
       } else if (pNow && base === 'en') {
-        lead = C.rescueLead(ev.text, pNow.text);
+        // 对不上的垃圾前缀从这条定稿上切掉，再进闸、再进账本（#590 L）。只补句首、不切原文
+        // 会把 `, you,` 留在补回的句头前面。
+        const cut = C.rescueLeadCut(ev.text, pNow.text);
+        if (cut) {
+          lead = cut.lead || '';
+          if (cut.text && cut.text !== ev.text) ev = Object.assign({}, ev, { text: cut.text });
+        }
       }
       // R14 ②：归属语言（英文）这一路给了带字母的结果 ⇒ 记时刻；中文路的候补就此作废。
       const lidB = C.baseCode(lidPair());
@@ -1645,7 +1669,8 @@ const listenModel = (() => {
       if (phase === 'listening') NativeAudio.subtitleState('listening');
     } else if (row.trErr) {
       subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: '', partial: false });
-      NativeAudio.subtitleState('tr-failed');
+      // 额度停机的那一行原因已经在条上，别用「这句译文失败」把它盖掉（#590 K）。
+      if (!grantHalted()) NativeAudio.subtitleState('tr-failed');
     }
   }
   function subState(state, pct) {
@@ -1897,10 +1922,11 @@ const listenModel = (() => {
     NativeAudio.sessionStart();
     if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
   }
-  function nativeSessionOff() {
+  function nativeSessionOff(opts) {
     if (!bridged()) return;
-    NativeAudio.sessionStop();
-    NativeAudio.recordMode(false);
+    NativeAudio.sessionStop(opts);
+    // hold：字幕暂停留下音频会话，不把 record-mode 打回对话档（#590 iOS 5）。
+    if (!(opts && opts.hold)) NativeAudio.recordMode(false);
   }
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
@@ -2185,7 +2211,8 @@ const listenModel = (() => {
     // （wasPtt 在 pttAbort 之前就记住了）。
     if (wasPtt) drainGateHeld();
     micStop(); closeSocket();
-    nativeSessionOff();   // 锁屏卡 / 灵动岛也一起收（收音＝开麦，见 nativeSessionOn 的注释）
+    // 字幕暂停不释放音频会话（#590 iOS 5）：释放后再激活，会把正在外放的视频停掉。麦已经停了。
+    nativeSessionOff(session && session.mode === 'subtitle' ? { hold: true } : undefined);
     if (inc) inc.reset();
     clearPartials();
     // 「没有声音」与「拿不到声音」是两回事，出口也相反（#424）。指向权限的条件有两个，

@@ -22,6 +22,16 @@ describe('#590 · 定稿与解析（I / L / iOS 7）', () => {
     const row = C.addFinal(s, ', you, and you risk starvation.', 1002, { myLang: 'en', otherLang: 'zh' }, {});
     ok(row && row.text === 'you, and you risk starvation.', '行首的「, 」没剥掉：' + (row && row.text));
   });
+  test('L：标点开头且首词对不上时，按对齐到末词的后缀切掉垃圾前缀；入口把切剩的定稿写回去', () => {
+    const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
+    const final = ', you, and you risk starvation when the Grove runs dry.';
+    const cut = C.rescueLeadCut(final, partial);
+    eq(cut && cut.lead, "Stick too closely to what's safe");
+    eq(cut && cut.text, 'and you risk starvation when the Grove runs dry.');
+    eq(C.rescueLead("to, you, you're also all hardwired", partial), '', '不以标点开头不补');
+    ok(/rescueLeadCut\(ev\.text/.test(MODEL), '入口没调用 rescueLeadCut');
+    ok(/text: cut\.text/.test(MODEL), '入口没把切剩的定稿写回去');
+  });
   test('parseListenReply：空的「T:」不吞下一行；有标签没译文 ⇒ 译文为空（不把标签行当译文）', () => {
     const a = C.parseListenReply('T:\nX: 你好', 'hello');
     eq(a.tr, '你好'); eq(a.text, 'hello'); eq(a.tagged, false);
@@ -81,6 +91,8 @@ describe('#590 · 模型（K / B / G / 语言键 / iOS 7 / H）', () => {
   test('K：额度 / key 停机 ⇒ 整场停、提示可点到设置页', () => {
     ok(/function quotaHalt\(e\)/.test(MODEL) && /e\.grant \|\| e\.halt/.test(MODEL), '没有按 e.grant || e.halt 停机');
     ok(/quotaHalt\(eo\.err\)/.test(MODEL) && /quotaHalt\(passErr\)/.test(MODEL), 'translateRow / passRow 没接停机');
+    ok(/function grantHalted\(\)/.test(MODEL) && /if \(grantHalted\(\)\)/.test(MODEL), '已经停机之后 passRow 仍会再请求');
+    ok(/onQuota: \(err\)/.test(MODEL) && /quotaHalt\(e\)/.test(MODEL), '断句路的额度错误没有交给停机');
     ok(/TranslationCore\.haltMessage\(grantCode\)/.test(MODEL), '停机提示没用 TranslationCore.haltMessage');
     ok(/'sec-engines' : 'grant-card'/.test(MODEL), '停机提示没有去设置页的出口');
     ok(/state == "grant"/.test(BAR), '悬浮条没有 grant 态的出口');
@@ -111,9 +123,96 @@ describe('#590 · 模型（K / B / G / 语言键 / iOS 7 / H）', () => {
   test('iOS 7：字幕的源语言是视频的语言，不是译成', () => {
     ok(/cfg\.mode === 'subtitle' \? subSrcLang\(row\)/.test(MODEL), 'passRow 的 srcLang 在字幕里仍取 otherLang');
   });
+  test('iOS 5：字幕暂停不拆音频会话；媒体遥控在字幕这场不暂停', () => {
+    ok(/session\.mode === 'subtitle' \? \{ hold: true \} : undefined/.test(MODEL), '字幕暂停要带 hold');
+    ok(/if \(recordProfile === 'subtitle'\) return/.test(read('app/native-audio.js')), '媒体会话的暂停不能停字幕');
+  });
   test('H：字幕那一调的截止宽于中继最长耗时', () => {
     const m = MODEL.match(/const SUB_PASS_TIMEOUT_MS = (\d+)/);
     ok(m && Number(m[1]) > 20000, '截止没有放宽');
+    ok(/timeoutMs: SUB_PASS_TIMEOUT_MS/.test(MODEL), '断句调用仍用 12 s 截止');
+    ok(/err\.code === 'timeout'/.test(strip(read('app/listen-core.js'))), '超时没有单独处理');
+  });
+  test('H：断句调用超时后原文照出，不再自动重送', async () => {
+    let t = 1e6; const timers = new Map(); let seq = 1;
+    const clk = {
+      now: () => t,
+      setT: (fn, ms) => { const id = seq++; timers.set(id, { fn, at: t + (ms || 0) }); return id; },
+      clearT: (id) => { timers.delete(id); },
+      async advance(ms) {
+        const end = t + ms;
+        const drain = async () => { for (let i = 0; i < 30; i++) await Promise.resolve(); };
+        for (;;) {
+          let n = null;
+          for (const [id, x] of timers) if (x.at <= end && (!n || x.at < n.x.at)) n = { id, x };
+          if (!n) break;
+          timers.delete(n.id); t = Math.max(t, n.x.at); n.x.fn();
+          await drain();
+        }
+        t = end; await drain();
+      },
+    };
+    const calls = []; const ev = [];
+    const text = '第三条约定卖方应在四十五天内完成交货并开立信用证见票即付完毕';
+    const r = C.makeSegmentRouter({
+      call: (p) => { calls.push(p); return Promise.reject(Object.assign(new Error('aborted'), { code: 'timeout' })); },
+      emit: (rows, meta) => ev.push({ rows, orig: meta.orig }),
+      fallback: (s) => ev.push({ fallback: s }),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT,
+    });
+    r.feed('zh-CN', text);
+    for (let i = 0; i < 12; i++) await Promise.resolve();
+    await clk.advance(20000);
+    eq(calls.length, 1, '超时后又自动送了一次：' + calls.length);
+    eq(ev.length, 1, '没有把原文出行');
+    eq(ev[0].fallback, undefined, '超时走了旧路，等于再翻译一次');
+    eq(ev[0].rows[0].translation, '', '译文不该有内容');
+    ok(String(ev[0].rows[0].source).indexOf('第三条约定') >= 0, '原文没出门');
+    eq(r.state().fails.timeout, 1, '超时没记成 timeout');
+    eq(r.state().fails.network || 0, 0, '超时被记成 network');
+    r.dispose();
+  });
+  test('K：402 与额度错误停机，原文照出，不再交旧路', async () => {
+    const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); await new Promise((res) => setTimeout(res, 0)); };
+    const zh = '帮我把这份合同复印三份';
+    const en = 'Please make three copies';
+    async function run(err, label) {
+      const calls = []; const ev = [];
+      const r = C.makeSegmentRouter({
+        call: (p) => { calls.push(p); return Promise.reject(err); },
+        emit: (rows, meta) => ev.push({ t: 'emit', rows, orig: meta.orig }),
+        fallback: (s) => ev.push({ t: 'fallback', text: s }),
+        onQuota: (e) => ev.push({ t: 'quota', code: e && e.code, grant: !!(e && e.grant) }),
+        onDegrade: (why) => ev.push({ t: 'degrade', why }),
+        ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      });
+      r.feed('zh-CN', zh);
+      r.feed('en-US', en);
+      r.settle('switch');
+      await tick();
+      eq(calls.length, 1, label + '：又请求了 ' + calls.length + ' 次');
+      eq(ev.filter((e) => e.t === 'fallback').length, 0, label + '：走了旧路');
+      eq(ev.filter((e) => e.t === 'degrade').length, 0, label + '：走了降级');
+      const shown = ev.filter((e) => e.t === 'emit').map((e) => e.orig).join('');
+      eq(shown, zh + en, label + '：原文没出门：' + shown);
+      ok(ev.filter((e) => e.t === 'emit').every((e) => e.rows.every((row) => row.translation === '')), label + '：译文不该有内容');
+      const q = ev.filter((e) => e.t === 'quota');
+      eq(q.length, 1, label + '：停机信号次数 ' + q.length);
+      eq(q[0].code, 'credit_exhausted', label + '：停机码是 ' + q[0].code);
+      ok(q[0].grant, label + '：没有 grant 标记');
+      r.feed('zh-CN', '后面又来了一句');
+      await tick();
+      eq(calls.length, 1, label + '：停机之后又请求了');
+      ok(ev.some((e) => e.t === 'emit' && String(e.orig).indexOf('后面又来了一句') >= 0), label + '：后到的原文被丢掉了');
+      eq(r.pending('zh-CN') + r.pending('en-US'), '', label + '：账本没清空');
+      r.dispose();
+      eq(ev.filter((e) => e.t === 'leak').length, 0, label + '：有泄漏');
+    }
+    const tagged = Object.assign(new Error('402'), { status: 402, grant: true, code: 'credit_exhausted' });
+    await run(tagged, '具名 402');
+    const bare = new Error('402'); bare.status = 402;
+    await run(bare, '裸 402');
   });
 });
 

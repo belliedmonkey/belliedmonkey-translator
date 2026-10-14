@@ -1452,13 +1452,44 @@ var ListenCore = (() => {
     if (!p || !t || !p.endsWith(t)) return false;
     return !Number.isFinite(gapMs) || gapMs <= maxGap;
   }
+  // final 的某个词后缀在 temp 里必须一直对齐到 final 的最后一个词。从最长的后缀试起，
+  // 取第一个整段对上的（≥ ALIGN_MIN_RUN）。ni = 后缀在 final 词序列上的起点（0 = 从首词开始）。
+  function alignSuffixToEnd(temp, finalText) {
+    const hay = alignWords(temp), needle = alignWords(finalText);
+    if (hay.length < ALIGN_MIN_RUN || needle.length < ALIGN_MIN_RUN) return null;
+    for (let ni = 0; ni <= needle.length - ALIGN_MIN_RUN; ni++) {
+      const needLen = needle.length - ni;
+      for (let i = 0; i <= hay.length - needLen; i++) {
+        let k = 0;
+        while (k < needLen && wordNear(hay[i + k], needle[ni + k])) k++;
+        if (k === needLen) return { ni, hi: i, len: needLen, before: alignBeforeWord(temp, i) || '' };
+      }
+    }
+    return null;
+  }
   // R14 ⑤：以标点开头的正式 final（识别器把句首吞了）—— 把 final 文字在 partial 里对齐，取
   // 对齐位置**之前**的部分作为句首临时稿补回（对不上 / 不以标点开头 ⇒ 返回 ''）。
-  function rescueLead(finalText, partialText) {
+  // #590 L：首词本身可能是垃圾（`, you, and you risk…` 的 you 对不上 partial 里紧跟着的 and）。
+  // 从首词对不上时，改对齐「一直到末词」的最长后缀；留下的词必须多于切掉的，免得句尾两个词
+  // 碰巧相同就把前半句丢了。不以标点开头的不走这里 —— 开头那几个词可能是真说的。
+  function rescueLeadCut(finalText, partialText) {
     const ft = String(finalText == null ? '' : finalText);
-    if (!LEAD_PUNCT.test(ft)) return '';
-    const al = alignFinalInTemp(partialText, ft);
-    return (al && al.before) ? al.before : '';
+    if (!LEAD_PUNCT.test(ft)) return null;
+    const al = alignSuffixToEnd(partialText, ft);
+    if (al && al.ni > 0 && al.len > al.ni) {
+      const toks = alignTokens(ft);
+      const text = ft.slice(toks[al.ni].at).replace(/^\s+/, '');
+      if (!HAS_LETTER.test(text)) return null;
+      return { lead: al.before || '', text };
+    }
+    if (al && al.ni === 0 && al.before) return { lead: al.before, text: ft };
+    const fromStart = alignFinalInTemp(partialText, ft);
+    if (fromStart && fromStart.before) return { lead: fromStart.before, text: ft };
+    return null;
+  }
+  function rescueLead(finalText, partialText) {
+    const cut = rescueLeadCut(finalText, partialText);
+    return (cut && cut.lead) ? cut.lead : '';
   }
   // 模型 source 与上一条已出行行的重复前缀裁剪（方案 2，R12 第十轮）——**唯一判据**，出行时
   // （trimDupRows）与漂移检查前（parseSegReply，R14 方案 C）共用。只有这段前缀**不在本批缓冲里**
@@ -1638,6 +1669,7 @@ var ListenCore = (() => {
     let seq = 0, posSeq = 0, disposed = false, speaking = false, pttMode = false, holdMode = false;   // pttMode=正在按键收音（方案 1 的接线点，只作状态）；holdMode=旧「按住说」（第二次空闲用 idleMs）。默认自动听（autoReleaseMs）。
     let phase = 'open', closeReason = '';
     let inFlight = null;    // 请求在飞：{ locale, ids, text, sentAt, force, hold, voided, settled }
+    let authStopped = false; // 额度 / key 停机：账本只出原文，不再调用（#590 K）
     const heldBatch = {};   // locale → 扣住的结果（请求已回、等出行）：{ ids, text, sentAt, held:{segs,rem,ms}, releaseAt }
     let timer = 0, endTimer = 0;
     let calls = 0, emits = 0, fallbacks = 0;
@@ -1663,6 +1695,11 @@ var ListenCore = (() => {
     }
     function headRun(lc) { const rs = runsOf(lc); return rs.length ? rs[0] : []; }
     function legacyPayload(text) { return { kind: 'legacy', texts: hardCutSentences(text) }; }
+    // 额度 / key 停机：原文照出、译文留空。走 emit，不走 fallback（fallback 会再翻译一次）。
+    function unsentRow(text, meta) {
+      const m = meta || {};
+      return { kind: 'rows', rows: [{ source: text, translation: '' }], ms: 0, force: !!m.force, orig: text, feedAt: m.feedAt || 0, sentAt: m.sentAt || 0 };
+    }
     function attach(ids, payload) {
       const recs = ids.map(byId).filter(Boolean);
       if (!recs.length) return;
@@ -1922,7 +1959,7 @@ var ListenCore = (() => {
       }
       return { lc, due: st.lastFeedAt + idleMs, hold: false, run, txt };
     }
-    function canSend() { return phase === 'open' || (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch')); }
+    function canSend() { return !authStopped && (phase === 'open' || (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch'))); }
     function hasNewer(b) {
       for (const r of ledger) {
         if (r.locale !== b.locale || b.ids.indexOf(r.id) >= 0) continue;
@@ -2146,12 +2183,67 @@ var ListenCore = (() => {
       const i = ledger.findIndex((r) => r.id === id);
       if (i >= 0) ledger.splice(i + 1, 0, rec); else ledger.push(rec);
     }
+    // 额度用完 / key 被拒：与网页引擎同一个判据（e.grant || e.halt）。
+    // 没有具名正文的 HTTP 402 也停 —— 中继的 402 只有「你用完了」一个意思；正文若在路上丢了，
+    // 再交给旧路会按每句继续请求（#590 K，第三轮约 2 次/秒）。
+    function quotaSignal(err) {
+      if (!err) return null;
+      const tagged = (e) => (e && (e.grant || e.halt) ? e : null);
+      const hit = tagged(err) || tagged(err.cause);
+      if (hit) return hit;
+      const status = err.status || (err.cause && err.cause.status);
+      if (status !== 402) return null;
+      const src = err.status === 402 ? err : err.cause;
+      const code = src && typeof src.code === 'string' && src.code !== 'http' ? src.code : 'credit_exhausted';
+      return { grant: true, code, status: 402 };
+    }
+    // 把账本里还没出行的原文一次性交出（译文空），然后告诉宿主停机。不再 fallback。
+    function authStop(err) {
+      phase = 'closing'; closeReason = 'auth'; authStopped = true;
+      if (inFlight) {
+        inFlight.voided = true;
+        if (endTimer) { clearT(endTimer); endTimer = 0; }
+        const settled = inFlight.settled; inFlight.settled = null; inFlight = null;
+        if (settled) { try { settled(); } catch (_) {} }
+      }
+      for (const lc of Object.keys(heldBatch)) releaseHeld(lc); // 已经译好的结果照出，不另发请求
+      let guard = 0;
+      while (ledger.some((r) => !r.commit) && guard++ < 64) {
+        const i = ledger.findIndex((r) => !r.commit);
+        const lc = ledger[i].locale;
+        const ids = [];
+        for (let j = i; j < ledger.length; j++) {
+          const r = ledger[j];
+          if (r.commit || r.locale !== lc) break;
+          ids.push(r.id);
+        }
+        const recs = ids.map(byId).filter(Boolean);
+        const text = joinAll(recs);
+        if (!String(text || '').trim()) { commit(ids, { kind: 'none' }); continue; }
+        const last = recs[recs.length - 1];
+        commit(ids, unsentRow(text, { feedAt: last ? last.at : 0 }));
+      }
+      noteFail(err && err.code ? err.code : 'auth');
+      if (d.onQuota) { try { d.onQuota(err); } catch (_) {} }
+      finishClosing();
+    }
     function onError(b, err) {
       if (b.voided || disposed) { finishBatch(b); return; }
       const lc = b.locale, st = M(lc);
-      recsToWait(b);
       const status = err && (err.status || (err.cause && err.cause.status));
-      if (status === 401 || status === 402 || status === 403) { degradeAll('auth'); return; }
+      const stop = quotaSignal(err);
+      if (stop) { authStop(stop); return; }
+      // 没有额度/key 标记的 401/403（网关、预检）仍交旧路，原文不丢。
+      if (status === 401 || status === 403) { degradeAll('auth'); return; }
+      // 超时：这一次已经发出去，服务端可能还在算、已经计费。原文照出、译文留空，不再自动重送（#590 H）。
+      const timedOut = !!(err && (err.code === 'timeout' || (err.cause && err.cause.code === 'timeout')));
+      if (timedOut) {
+        noteFail('timeout');
+        commit(b.ids, { kind: 'rows', rows: [{ source: b.text, translation: '' }], ms: 0, force: !!b.force, orig: b.text, feedAt: batchFeedAt(b), sentAt: b.sentAt });
+        finishBatch(b);
+        return;
+      }
+      recsToWait(b);
       if (phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade')) { settleBatchToLegacy(b); return; }
       st.fails++; noteFail(status ? ('http-' + status) : 'network');
       if (st.fails >= SEG_FAIL_MAX) maybeHardCut(lc, b);
@@ -2233,6 +2325,11 @@ var ListenCore = (() => {
       feed(lc, text, opts) {
         let t = String(text || '').trim();
         if (!t || disposed) return;
+        if (authStopped) {
+          // 停机之后迟到的定稿：原文照出，不再请求。
+          const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: unsentRow(t, { feedAt: now() }) };
+          ledger.push(rec); flush(); return;
+        }
         if (phase === 'closed' && closeReason !== 'degrade') return;   // 结束/离开后的迟到定稿丢弃
         const o = opts || {};
         const rescued = !!o.rescued;
@@ -2487,7 +2584,7 @@ var ListenCore = (() => {
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,
     alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
-    rescueLead, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
+    rescueLead, rescueLeadCut, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
     fillPrepDetail,
     QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,
     lidBase, sideMatchesLid, langSupported,
