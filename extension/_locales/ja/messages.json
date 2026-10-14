@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "まだ聞いています。離れるとこの会話は終了しますが、聞いた文は残ります。"
   },
+  "listen_leave_confirm_paused": {
+    "message": "一時停止中です。離れるとこの会話は終了しますが、聞いた文は残ります。"
+  },
   "dialog_ok": {
     "message": "決定"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "まだ聞き取り中です。離れると字幕は終了します。ここまでの文は残ります。"
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "一時停止中です。離れると字幕は終了します。ここまでの文は残ります。"
   },
   "subtitle_summary_title": {
     "message": "今回の字幕"

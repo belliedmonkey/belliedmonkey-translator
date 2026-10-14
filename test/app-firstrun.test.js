@@ -501,7 +501,8 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     const view = read('src/app/listen-view.jsx');
     const shell = stripComments(read('src/app/shell-model.js'));
     const pipe = model.slice(model.indexOf('async function beginPipeline'), model.indexOf('let startedAt'));
-    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
+    // 字幕页例外（#590 B）：人已经点了「开始」，下完接着听 —— 守卫只管对话页
+    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen && session\.mode !== 'subtitle'\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
     const open = pipe.indexOf('openSocket()');
     ok(guard > -1 && open > guard, 'G4：这一轮下过包之后 beginPipeline 仍会 openSocket');
     ok(!/micStart\(/.test(pipe.slice(guard, open > guard ? open : guard)), 'G4：下完到开麦之间还有 micStart');

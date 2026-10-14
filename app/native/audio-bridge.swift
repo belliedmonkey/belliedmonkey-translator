@@ -126,7 +126,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
               let type = body["type"] as? String else { return }
         switch type {
         case "session-start":  startSession()
-        case "session-stop":   stopSession()
+        case "session-stop":   stopSession(body)
         case "now-playing":    updateNowPlaying(body); updateActivity(body)
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
@@ -475,13 +475,38 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 #endif
     }
 
-    private func stopSession() {
+    private func stopSession(_ body: [String: Any] = [:]) {
         micStop()
         endActivity()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #if os(iOS)
+        // 字幕暂停带 hold：不释放会话（#590 iOS 5）。释放后再 setActive 会把正在外放的视频停掉。
+        // 麦已经停了。结束 / 停机不带 hold，照旧释放，让被打断的 App 恢复。
+        if (body["hold"] as? Bool) == true { return }
         // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
         try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+#endif
+    }
+
+    /// 锁屏 / 控制中心的遥控。字幕这场不接：另一个 App 开始播放时，系统会给「正在播放」的那一个送暂停（#590 iOS 5）。
+    /// 小窗上的播放键不走这里，走画中画的 setPlaying。
+    private func mediaRemote(_ command: String) -> MPRemoteCommandHandlerStatus {
+#if os(iOS)
+        if recordProfile == "subtitle" { return .noActionableNowPlayingItem }
+#endif
+        remote(command)
+        return .success
+    }
+
+    /// 小窗的播放 / 暂停之后，把会话留在可混音，并卸掉 Now Playing。不在这里 setActive。
+    private func keepSubtitleMix() {
+#if os(iOS)
+        guard recordProfile == "subtitle" else { return }
+        let session = AVAudioSession.sharedInstance()
+        if session.category != .playAndRecord || !session.categoryOptions.contains(.mixWithOthers) {
+            try? session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #endif
     }
 
@@ -490,12 +515,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         commandsInstalled = true
         let center = MPRemoteCommandCenter.shared()
 
-        center.playCommand.addTarget            { [weak self] _ in self?.remote("play");     return .success }
-        center.pauseCommand.addTarget           { [weak self] _ in self?.remote("pause");    return .success }
-        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.remote("toggle");   return .success }
-        center.nextTrackCommand.addTarget       { [weak self] _ in self?.remote("next");     return .success }
+        center.playCommand.addTarget            { [weak self] _ in self?.mediaRemote("play") ?? .commandFailed }
+        center.pauseCommand.addTarget           { [weak self] _ in self?.mediaRemote("pause") ?? .commandFailed }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.mediaRemote("toggle") ?? .commandFailed }
+        center.nextTrackCommand.addTarget       { [weak self] _ in self?.mediaRemote("next") ?? .commandFailed }
         // 「上一曲」= 再听一遍。播客模式没有「上一张」：随机是一次性排列，往回退没有定义。
-        center.previousTrackCommand.addTarget   { [weak self] _ in self?.remote("previous"); return .success }
+        center.previousTrackCommand.addTarget   { [weak self] _ in self?.mediaRemote("previous") ?? .commandFailed }
 
         for command in [center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
                         center.nextTrackCommand, center.previousTrackCommand] {
@@ -727,6 +752,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     @objc private func onDidBecomeActive() {
         UIApplication.shared.isIdleTimerDisabled = true
+        // 切回本 App 时把还浮着的字幕小窗收成内联（#590 iOS 6）。不收的话系统窗盖住定稿列表。
+        MTSubtitlePip.shared.dockIfFloating()
     }
 
     @objc private func onEngineConfigChange(_ note: Notification) {
@@ -774,7 +801,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         bar.configure(body, window: webView?.window)
 #else
         let pip = MTSubtitlePip.shared
-        pip.onRemote = { [weak self] command in self?.remote(command) }
+        pip.onRemote = { [weak self] command in self?.keepSubtitleMix(); self?.remote(command) }
         pip.onWindow = { [weak self] info in
             var payload = info
             payload["type"] = "subtitle-window"
@@ -865,7 +892,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
         // M30 真机读数（2026-09-14）：点「不允许」之后 HAL 照常返回成功、IO 照常来，但每个样本都是 0。
         // 可权限已给、开始那一刻恰好静音时也是全零（全回归 F13 真机）⇒ 不判拒绝、不撤采集，
-        // 只报 silent 让页面出不中断的提示；之后第一个非零帧报 sound 撤掉提示（协议补充决定 10 修订二）。
+        // 只报 silent 让页面出不中断的提示；之后第一帧 RMS 高于 heardFloor 才报 sound
+        // （与 ListenCore.HEARD_RMS 同一道门，#590 A）。任意非零样本不算：没授权时 HAL
+        // 交来的残渣非零，报成 sound 会让那句提示永远不出。
         tap.onSilent = { [weak self] in
             guard let self = self, self.systemGen == gen else { return }
             self.emit(["type": "mic-state", "state": "silent", "reason": "zero-frames", "source": "system"])
@@ -931,12 +960,16 @@ final class MTSystemTap {
     var onBuffer: ((AVAudioPCMBuffer) -> Void)?
     /// 运行中重建失败，在主线程上调。
     var onLost: ((OSStatus) -> Void)?
-    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 可能没开系统录音权限，在主线程上调一次。
+    /// 就绪后连续 3 秒帧 RMS 不高于 heardFloor、且有别的进程正在输出声音 ⇒ 可能没开系统录音权限，在主线程上调一次。
     /// 两个条件缺一不可：已授权时句间停顿也是精确 0（尖刺 S1），没人在放声音时的全零是正常静音。
     /// 它只是提示，不是判决：权限已给而开始瞬间静音也满足（全回归 F13），所以采集照常继续。
     var onSilent: (() -> Void)?
-    /// onSilent 之后第一个非零帧，在主线程上调一次（权限是有的，提示该撤了）。
+    /// onSilent 之后第一帧 RMS 高于 heardFloor，在主线程上调一次（权限是有的，提示该撤了）。
+    /// 低于这道门的非零残渣仍算静音：报成 sound 会把「还没听到系统声音」压掉（#590 A）。
     var onSound: (() -> Void)?
+    /// 与 app/listen-core.js 的 HEARD_RMS 同一道门（约 −80 dBFS）。两边必须一起改：
+    /// test/build-scripts.test.js 用导出的 HEARD_RMS 对这个字面量。
+    private static let heardFloor: Float = 0.0001
     private var zeroSince: CFAbsoluteTime = 0
     private var heardSound = false
     private var silentReported = false
@@ -1039,14 +1072,16 @@ final class MTSystemTap {
             let n = Int(src.frameLength)
             dst.frameLength = src.frameLength
             let k = Float(max(channels, 1))
-            var nonzero = false
+            var energy: Float = 0
             for i in 0..<n {
                 var acc: Float = 0
                 for c in 0..<channels { acc += interleaved ? s[0][i * channels + c] : s[c][i] }
-                d[i] = acc / k
-                if acc != 0 { nonzero = true }
+                let sample = acc / k
+                d[i] = sample
+                energy += sample * sample
             }
-            self.noteFrames(nonzero: nonzero)
+            let audible = (energy / Float(n)).squareRoot() > MTSystemTap.heardFloor
+            self.noteFrames(audible: audible)
             sink(dst)
         }
         guard st == noErr, let proc = proc else { return st == noErr ? OSStatus(-1) : st }
@@ -1055,8 +1090,8 @@ final class MTSystemTap {
     }
 
     /// IO 线程上调。只做计时；真正去问「有没有别的进程在出声」放到自己的队列上（HAL 属性查询不进 IO 线程）。
-    private func noteFrames(nonzero: Bool) {
-        if nonzero {
+    private func noteFrames(audible: Bool) {
+        if audible {
             if heardSound { return }
             heardSound = true
             if silentReported { DispatchQueue.main.async { self.reportSound() } }
@@ -1072,7 +1107,7 @@ final class MTSystemTap {
             self.silentReported = true
             DispatchQueue.main.async {
                 self.onSilent?()
-                // 问 HAL 的这一拍里 IO 线程可能已经见到非零帧、却还没看到 silentReported：在这里补发
+                // 问 HAL 的这一拍里 IO 线程可能已经见到过门的帧、却还没看到 silentReported：在这里补发
                 if self.heardSound { self.reportSound() }
             }
         }

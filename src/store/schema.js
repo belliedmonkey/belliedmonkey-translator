@@ -125,7 +125,7 @@ const SETTINGS_SCHEMA = (() => {
     listenOtherLang: { default: 'en',  surfaces: ['listen', 'app'] },
     listenAutoSpeak: { default: true,  surfaces: ['listen', 'app'] },
     subtitleCapture: { default: true,  surfaces: ['listen', 'app'] },
-    subtitleVideoLang: { default: 'en', surfaces: ['listen', 'app'] },
+    subtitleVideoLang: { default: 'auto', surfaces: ['listen', 'app'], note: "'auto' = LID picks; target is listenMyLang" },
     subtitleFontScale: { default: '',  surfaces: ['listen'] },
     // ── drive mode（App 设置页的驾驶一节）────────────────────────────────
     // PR9：driving-model 的 SETTINGS_KEYS 已收编 —— 播客模式自己读的键全部在此

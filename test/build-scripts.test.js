@@ -327,9 +327,9 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const strings = code(tpl).match(/"[^"]*"/g) || [];
     const allowed = new Set(['""', '"labels"', '"state"', '"controls"', '"menu"', '"fontScale"', '"opacity"', '"clickThrough"',
       '"orig"', '"tr"', '"partial"', '"pct"',
-      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"',
+      '"listening"', '"tr-failed"', '"downloading"', '"reconnecting"', '"denied"', '"paused"', '"silence"', '"socket"', '"silent"', '"silence-permission"', '"grant"',
       '"pause"', '"resume"', '"play"', '"main"', '"end"', '"openSettings"', '"showMain"', '"cancelClickThrough"',
-      '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"',
+      '"font-down"', '"font-up"', '"open-app"', '"{pct}"', '"…"', '"A−"', '"A+"', '"PIP"',
       '"x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"']);
     for (const lit of strings) ok(allowed.has(lit), `字幕条里出现了非协议字符串（可能是文案）：${lit}`);
   });
@@ -340,6 +340,46 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     const r = /\} else if ([^{]*)\{\s*let title = controlLabels\["resume"\]/.exec(body);
     ok(r && !/silence-permission/.test(r[1]), '「继续」那一支不含 silence-permission');
     ok(!/private var listening: Bool \{[^}]*silence-permission/.test(body), 'silence-permission 是停下的态，不算在听（悬停控件显示「继续」）');
+  });
+  test('系统视频小窗压住条时让开（#590 M）：松手后再判，拖的过程中不挪', () => {
+    ok(/func mtYieldedBar\(/.test(tpl), '让开的位置是纯函数');
+    ok(/func mtLooksLikeVideoPip\(/.test(tpl), '小窗的形状是纯函数');
+    ok(/dragging = false[\s\S]{0,240}snap\(p\)[\s\S]{0,500}yieldToVideoPip\(animated: true\)/.test(tpl), '松手：先吸附，再让开');
+    ok(/guard !dragging, let p = panel/.test(tpl), '拖动中不让开');
+    ok(/Timer\(timeInterval: 0\.5/.test(tpl), '小窗自己在动时条也要跟');
+    ok(/stopYieldWatch\(\)/.test(tpl), '会话结束停掉');
+  });
+  test('自己的窗口在前台时临时让开，不写入位置记忆（#590 N）', () => {
+    ok(/func ownFrontObstacle\(/.test(tpl), '主窗口在前台才算障碍');
+    ok(/NSApp\.isActive/.test(tpl), '切到别的 App 就不让');
+    ok(/persist: false/.test(tpl), '挡住自己的窗口时不记位置');
+    ok(/setFrameAutosaveName\(""\)/.test(tpl), '临时挪开时摘掉自动保存，避免把让开的位置写进去');
+    ok(/saveFrame\(usingName:/.test(tpl), '松手或小窗让开时才把位置写回去');
+    ok(/didBecomeActiveNotification/.test(tpl) && /didResignActiveNotification/.test(tpl), '窗口前后台切换立刻重判');
+    ok(!/func stopYieldWatch\(\)[\s\S]{0,700}rememberedOrigin = nil/.test(tpl), '重开看门狗不清掉记住的位置（render 已经让开过，清掉就会把临时位置当成记忆）');
+  });
+  test('字幕条底不透明，后面窗口的字不透出来（#590）', () => {
+    const body = code(tpl);
+    ok(!/0\.74/.test(body), '底不再用 0.74');
+    ok(/backgroundColor = NSColor\(calibratedRed: 22 \/ 255, green: 20 \/ 255, blue: 18 \/ 255, alpha: 1\)/.test(body), '底是同一深色、完全不透明');
+    ok(/_ = opacity/.test(body), 'subtitle-config.opacity 仍收下，不再乘进底色');
+  });
+  test('全屏窗口挡住画面底部时临时让开，不写入位置记忆（#590 全屏字幕带）', () => {
+    ok(/func mtFullscreenCaptionBand\(/.test(tpl), '全屏字幕带是纯函数');
+    ok(/func mtWindowCoversScreen\(/.test(tpl), '没盖住整屏的窗口不算全屏');
+    ok(/func mtFullscreenMenuStrip\(/.test(tpl), '系统全屏靠那条透明菜单条来认，放大到菜单栏下沿的窗口没有这条');
+    ok(/kCGWindowAlpha/.test(tpl), '认那条菜单条要读窗口透明度');
+    ok(/activeSpaceDidChangeNotification/.test(tpl), '进出全屏空间立刻重判');
+    const start = tpl.indexOf('private func yieldToVideoPip');
+    const end = tpl.indexOf('private func videoPipFrames');
+    const body = tpl.slice(start, end);
+    const iOwn = body.indexOf('ownFrontObstacle');
+    const iBand = body.indexOf('fullscreenCaptionBand');
+    const iPip = body.indexOf('videoPipFrames');
+    ok(iOwn > 0 && iBand > iOwn && iPip > iBand, '先自己的窗口，再全屏字幕带，最后系统视频小窗');
+    ok(/mtFullscreenCaptionBand\(/.test(body), '全屏字幕带的判定走纯函数');
+    ok(/persist: false/.test(body.slice(iBand, iPip)), '全屏字幕带的让开不记位置');
+    ok(/!NSApp\.isActive/.test(body.slice(iOwn, iPip)), '自己的 App 在前台时不按全屏让');
   });
   test('条上按钮发的命令，listen 页都认（§9.8 协议补充决定 9）', () => {
     // PR6c：listen 页 UI 半边从 app/listen.js 迁到 src/app/listen-model.js（onNative 命令处理随迁）
@@ -376,6 +416,14 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     ok(/kAudioProcessPropertyIsRunningOutput/.test(body), '第二个条件：有别的进程开着输出');
     ok(/pid != me/.test(body), '排除本进程');
     ok(/now - zeroSince >= 3/.test(body), '全零要连续 3 秒');
+  });
+  test('系统录音的 sound 与 HEARD_RMS 同一道门：残渣不算听到（#590 A）', () => {
+    const C = require(path.join(R, 'app', 'listen-core.js'));
+    const body = code(audio);
+    ok(new RegExp('heardFloor: Float = ' + C.HEARD_RMS + '\\b').test(body),
+      'Swift 门槛要与 ListenCore.HEARD_RMS 逐字相同');
+    ok(/squareRoot\(\) > MTSystemTap\.heardFloor/.test(body), '按帧 RMS 过门才算 sound');
+    ok(!/acc != 0/.test(body), '任意非零样本不再当成 sound');
   });
   test('条上的按钮字走 attributedTitle 白字（M27：contentTintColor 对 recessed / inline 无效）', () => {
     const body = code(tpl);
@@ -417,9 +465,13 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     for (const lit of strings) ok(allowed.has(lit), `画中画字幕窗里出现了非协议字符串（可能是文案）：${lit}`);
   });
   test('系统控件回页面（19）、浮出只在前台活跃时成（20）', () => {
-    ok(/setPlaying playing: Bool\) \{\s*onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play');
+    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play；收回内联时忽略系统附带的 pause');
+    ok(/pictureInPictureControllerShouldProhibitBackgroundAudioPlayback[\s\S]*?true/.test(tpl), '小窗不放音频，禁止它在后台接管播放');
+    ok(/CMTimebaseSetRate\(tb, rate: 0\)/.test(tpl), '小窗时间轴停在 0，不当成正在放的影片');
     ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
     ok(/restoring \? "inline" : "closed"/.test(tpl), '回到 App = inline，点 ✕ = closed');
+    ok(/func dockIfFloating\(\) \{[\s\S]*?restoring = true[\s\S]*?stopPictureInPicture\(\)/.test(tpl), '切回本 App：先标记 restoring 再 stop，不当成 ✕');
+    ok(/func onDidBecomeActive\(\) \{[^}]*dockIfFloating\(\)/.test(audio), 'App 回到前台就收小窗');
     // 用户 2026-09-14 15 Pro 手测后裁定的三处
     ok(/renderSize = CGSize\(width: 640, height: 800\)/.test(tpl), '小窗默认 4:5 偏竖（宽高比由帧决定）');
     ok(/let u = size\.width \* 0\.5625/.test(tpl) && !/size\.height \* 0\./.test(tpl), '字号按宽度算：窗口越高放的句子越多（按高度算只会把字放大）');
@@ -434,7 +486,9 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
   test('字幕档会话不带蓝牙、所有重申按同一个 profile（16）；耳机判据（21）', () => {
     const body = code(audio);
     ok(!/options: \[\.defaultToSpeaker, \.allowBluetooth, \.mixWithOthers\]\)/.test(body), '不再有硬写对话档选项的 setCategory');
-    ok((body.match(/options: recordOptions/g) || []).length >= 3, '建会话 / 起引擎 / playing-state 重申都读 recordOptions');
+    ok((body.match(/options: recordOptions/g) || []).length >= 4, '建会话 / 起引擎 / playing-state / 小窗遥控重申都读 recordOptions');
+    ok(/body\["hold"\] as\? Bool\) == true \{ return \}/.test(body), '字幕暂停带 hold 时不释放音频会话');
+    ok(/recordProfile == "subtitle" \{ return \.noActionableNowPlayingItem \}/.test(body), '字幕这场不接锁屏遥控的暂停');
     ok(/recordProfile == "subtitle" \? \[\.mixWithOthers, \.defaultToSpeaker\]/.test(body), '字幕档 = mixWithOthers + defaultToSpeaker，不带 allowBluetooth');
     ok(/\.headphones, \.bluetoothA2DP, \.bluetoothLE, \.bluetoothHFP/.test(body) && /"reason": "headphones"/.test(body), '输出走耳机 / 蓝牙 ⇒ headphones');
     ok(/onRouteChange[\s\S]{0,120}checkHeadphones\(\)/.test(body), '路由变化时再判');
@@ -657,6 +711,7 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"waiting"', '"waiting-permission"', '"timeout"', '"tick"', '"t"',   // §9.8 协议补充决定 10、13
         '"zero-frames"', '"silent"', '"sound"',   // §9.8 协议补充决定 10 修订二（全零帧 = 不中断的提示，F13）
         '"profile"', '"conv"', '"headphones"', '"subtitle-window"',   // §9.8 协议补充决定（三）16、19、21（iPhone 一期）
+        '"hold"',   // #590 iOS 5：字幕暂停不释放音频会话
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',
