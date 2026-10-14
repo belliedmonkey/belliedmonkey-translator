@@ -1303,7 +1303,9 @@ var ListenCore = (() => {
   // 无句末标点且短）在第一次空闲**预送并扣住**：结果挂在那一批请求上，到 `sentAt+idleMs` 或
   // 期间又来了新字时**当场核对** —— 有新字就作废、跟新字一起重送；没有就出行。朗读**只暂停空闲计时**，
   // 扣住结果的出行不受影响。
-  // 失败梯度：第 1 次不切、第 2 次按标点硬切全部交旧路；每字最多 SEG_MAX_CALLS 次调用。
+  // 失败梯度：第 1 次不切、第 2 次按标点硬切全部交旧路。每个字最多 SEG_MAX_CALLS 次调用。
+  // 成功回包的 remainder 从 0 重新计（不继承这一批的次数）。到顶的只交那一条，
+  // calls 为 0 的新字留在账本继续送模型（#592，2026-10-15）。
   // 生命周期 open → closing(原因) → closed，收尾只有 settle()；dispose 在 closed 之后，账本非空经 onLeak。
   const SEG_MAX_CALLS = 3;        // 每个字最多参与几次模型调用
   const SEG_END_WAIT_MS = 3000;   // 「结束」时等在飞请求的上限
@@ -2009,10 +2011,11 @@ var ListenCore = (() => {
       const st = M(lc);
       const run = headRun(lc);
       if (!run.length) return;
+      // 到顶的只交这一条（#592）。头一条到顶时整段交旧路，会把后面 calls 为 0 的新字一起带走。
       const overIdx = run.findIndex((r) => r.calls >= SEG_MAX_CALLS);
-      if (overIdx === 0) { legacyRecs(run); schedule(); return; }
+      if (overIdx >= 0) legacyRecs([run[overIdx]]);
+      if (overIdx === 0) { schedule(); return; }
       let ok = overIdx < 0 ? run : run.slice(0, overIdx);
-      if (overIdx >= 0) legacyRecs(run.slice(overIdx));
       if (!ok.length) return;
       const force = !!forceOverride || !!st.force;
       st.force = false;
@@ -2176,15 +2179,15 @@ var ListenCore = (() => {
     function applyResult(b, segs, rem, ms, force) {
       const lc = b.locale;
       const bt = String(b.text || '').trim();
-      const carried = Math.max(0, ...L(lc).filter((r) => b.ids.indexOf(r.id) >= 0).map((r) => r.calls));
       const consumed = rem ? bt.slice(0, bt.length - rem.length) : bt;
       const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
       attach(b.ids, { kind: 'rows', rows: segs, ms, force, orig: consumed, feedAt: batchFeedAt(b), sentAt: b.sentAt });
       if (rem) {
         trimBatchTail(b, rem);   // 先把 remainder 这段从批记录尾部去掉（否则账本里同一段文字出现两次）
+        // 成功回包的尾巴从 0 重新计。继承这一批的 calls 会把还没说完的字提前送到上限，连同后面的新字一起交旧路（#592）。
         insertAfter(b.ids[b.ids.length - 1], closingEnd
-          ? { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: carried, commit: legacyPayload(rem) }
-          : { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: carried });
+          ? { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: 0, commit: legacyPayload(rem) }
+          : { id: ++seq, pos: remPos(b), locale: lc, text: rem, at: now(), state: 'wait', calls: 0 });
         M(lc).lastFeedAt = now();   // remainder 是新到的待处理文字：空闲计时从它重新起算
       }
       M(lc).extraWaited = false;

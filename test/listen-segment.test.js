@@ -199,6 +199,121 @@ describe('账本路由器 — 失败梯度与调用上限', () => {
       await clk.advance(1700);
     }
   });
+  test('★ 成功回包的 remainder 不继承 calls', async () => {
+    const BUF = '一共三千八百五十块钱，刷卡还是付款呢？';
+    const once = makeRouter({ replies: [{ segments: [{ source: '一共三千八百五十块钱，', translation: 'total' }], remainder: '刷卡还是付款呢？' }] });
+    once.r.feed('zh-CN', BUF);
+    await once.clk.advance(1600); await settleTick();
+    eq(once.r.pending('zh-CN'), '刷卡还是付款呢？', 'remainder 留在账本');
+    const fresh = once.r.state().recs.filter((x) => !x.committed);
+    eq(fresh.length, 1, '只剩 remainder 一条，实际 ' + fresh.length);
+    eq(fresh[0].calls, 0, '第一次成功回包的 remainder 应是 0，实际 ' + fresh[0].calls);
+
+    // 这一批在成功之前已经被送过：整段 remainder 把原记录退回 wait（calls 已加过），
+    // 再成功切出尾巴时，尾巴仍从 0 计，不接过这一批的次数。
+    let gate = null;
+    const open = () => new Promise((res) => { gate = res; });
+    let wait = open();
+    let n = 0;
+    const clk = fakeClock();
+    const ev = [];
+    const r = C.makeSegmentRouter({
+      call: async (p) => {
+        const buf = bufOf(p);
+        const mine = wait;
+        n++;
+        await mine;
+        if (n === 1) return JSON.stringify({ segments: [], remainder: buf });
+        const words = buf.split(/\s+/);
+        const rem = words.slice(-2).join(' ');
+        const src = words.slice(0, -2).join(' ');
+        return JSON.stringify({ segments: [{ source: src, translation: 'T' }], remainder: rem });
+      },
+      emit: (rows, meta) => ev.push({ t: 'emit', rows, meta }),
+      fallback: (text, meta) => ev.push({ t: 'fallback', text, meta }),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT,
+    });
+    r.feed('en-US', 'Please pay the total now');
+    await clk.advance(1600);
+    await Promise.resolve(); await Promise.resolve();
+    await clk.advance(1);   // 新字的 at 必须晚于 sentAt，否则不算「调用期间进了新话」
+    r.feed('en-US', 'today');
+    const release1 = gate;
+    wait = open();
+    release1();
+    await settleTick();
+    eq(n, 1, '第一拍应整段 remainder，实际调用 ' + n);
+    ok(fallsOf(ev).length === 0, '整段 remainder 不应交旧路');
+    await clk.advance(1600);
+    await Promise.resolve(); await Promise.resolve();
+    const release2 = gate;
+    wait = open();
+    release2();
+    await settleTick();
+    eq(n, 2, '第二拍应成功切出 remainder，实际调用 ' + n);
+    const tail = r.state().recs.filter((x) => !x.committed);
+    eq(tail.length, 1, '成功后应只剩 remainder，实际 ' + tail.length);
+    eq(tail[0].calls, 0, '已经送过的批次，成功回包的 remainder 仍是 0，实际 ' + tail[0].calls);
+    ok(r.pending('en-US').split(/\s+/).length === 2, '尾巴应留在账本：' + r.pending('en-US'));
+  });
+  test('★ 头一条到调用上限时只交这一条；calls 为 0 的新字继续送模型', async () => {
+    const clk = fakeClock();
+    const ev = [];
+    const sent = [];
+    let gate = null;
+    const open = () => new Promise((res) => { gate = res; });
+    let wait = open();
+    let n = 0;
+    const r = C.makeSegmentRouter({
+      call: async (p) => {
+        const buf = bufOf(p);
+        sent.push(buf);
+        const mine = wait;
+        n++;
+        await mine;
+        if (n <= 3) return JSON.stringify({ segments: [], remainder: buf });
+        return JSON.stringify({ segments: [{ source: buf, translation: 'T' }], remainder: '' });
+      },
+      emit: (rows, meta) => ev.push({ t: 'emit', rows, meta }),
+      fallback: (text, meta) => ev.push({ t: 'fallback', text, meta }),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT,
+    });
+    const pump = async (extra) => {
+      r.settle('stop');
+      await Promise.resolve(); await Promise.resolve();
+      if (extra) {
+        await clk.advance(1);   // 新字的 at 必须晚于 sentAt，否则会被当成「没有新话」立刻补调
+        r.feed('en-US', extra);
+      }
+      const release = gate;
+      wait = open();
+      release();
+      await settleTick();
+    };
+    r.feed('en-US', 'alpha bravo charlie delta');
+    await pump('echo');
+    await pump('foxtrot');
+    await pump('zeroword');
+    eq(n, 3, '到顶之前应送过 3 次，实际 ' + n);
+    eq(fallsOf(ev).length, 0, '到顶之前不应交旧路');
+    r.settle('stop');
+    await Promise.resolve(); await Promise.resolve();
+    const fb = fallsOf(ev).join(' | ');
+    ok(fb.indexOf('alpha') >= 0, '到顶的头一条应交给旧路：' + fb);
+    ok(fb.indexOf('zeroword') < 0, 'calls 为 0 的新字不应跟着交旧路：' + fb);
+    ok(fb.indexOf('echo') < 0 && fb.indexOf('foxtrot') < 0, '还没到顶的字不应跟着交旧路：' + fb);
+    eq(n, 4, '新字应继续送模型，实际调用 ' + n);
+    ok(sent[3].indexOf('zeroword') >= 0, '第四次调用应带上新字：' + sent[3]);
+    ok(sent[3].indexOf('alpha') < 0, '第四次调用不应再带已交旧路的头一条：' + sent[3]);
+    ok(r.pending('en-US').indexOf('zeroword') >= 0, '新字应还在账本里');
+    ok(r.pending('en-US').indexOf('alpha') < 0, '头一条不应还在账本里：' + r.pending('en-US'));
+    const release = gate;
+    release();
+    await settleTick();
+    ok(ev.some((e) => e.t === 'emit' && String(e.meta.orig).indexOf('zeroword') >= 0), '新字回包后应走模型出行');
+  });
 });
 
 describe('账本路由器 — 收尾 settle（唯一出口）', () => {
