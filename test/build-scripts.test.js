@@ -417,6 +417,14 @@ describe('sync-app-assets: 实时字幕 Mac 悬浮字幕条（learning-design §
     ok(/pid != me/.test(body), '排除本进程');
     ok(/now - zeroSince >= 3/.test(body), '全零要连续 3 秒');
   });
+  test('系统录音的 sound 与 HEARD_RMS 同一道门：残渣不算听到（#590 A）', () => {
+    const C = require(path.join(R, 'app', 'listen-core.js'));
+    const body = code(audio);
+    ok(new RegExp('heardFloor: Float = ' + C.HEARD_RMS + '\\b').test(body),
+      'Swift 门槛要与 ListenCore.HEARD_RMS 逐字相同');
+    ok(/squareRoot\(\) > MTSystemTap\.heardFloor/.test(body), '按帧 RMS 过门才算 sound');
+    ok(!/acc != 0/.test(body), '任意非零样本不再当成 sound');
+  });
   test('条上的按钮字走 attributedTitle 白字（M27：contentTintColor 对 recessed / inline 无效）', () => {
     const body = code(tpl);
     ok(/attributedTitle = NSAttributedString/.test(body) && /\.foregroundColor: NSColor\.white/.test(body), '有白字 attributedTitle');

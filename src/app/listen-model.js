@@ -1803,8 +1803,8 @@ const listenModel = (() => {
     }
     if (state === 'sound') {
       sysSound = true;
-      // 原生说「有声」与我们自己收到非零样本是同一件事的两个来源（#424）：本机路只发电平、
-      // 不发 PCM，两边都记进同一个 heardAny，免得同一场里两套判据打架。
+      // 原生 sound 已经过与 HEARD_RMS 同一道门（audio-bridge heardFloor，#590 A）。
+      // 假桥没有电平、直接发 sound，表示真有声音到了，这里照旧记 heardAny（verify-listen H4b）。
       if (session) session.heardAny = true;
       if (phase === 'listening' && sysSilent) {
         if (noteMsg === silentHint()) note('');

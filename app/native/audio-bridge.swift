@@ -892,7 +892,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         }
         // M30 真机读数（2026-09-14）：点「不允许」之后 HAL 照常返回成功、IO 照常来，但每个样本都是 0。
         // 可权限已给、开始那一刻恰好静音时也是全零（全回归 F13 真机）⇒ 不判拒绝、不撤采集，
-        // 只报 silent 让页面出不中断的提示；之后第一个非零帧报 sound 撤掉提示（协议补充决定 10 修订二）。
+        // 只报 silent 让页面出不中断的提示；之后第一帧 RMS 高于 heardFloor 才报 sound
+        // （与 ListenCore.HEARD_RMS 同一道门，#590 A）。任意非零样本不算：没授权时 HAL
+        // 交来的残渣非零，报成 sound 会让那句提示永远不出。
         tap.onSilent = { [weak self] in
             guard let self = self, self.systemGen == gen else { return }
             self.emit(["type": "mic-state", "state": "silent", "reason": "zero-frames", "source": "system"])
@@ -958,12 +960,16 @@ final class MTSystemTap {
     var onBuffer: ((AVAudioPCMBuffer) -> Void)?
     /// 运行中重建失败，在主线程上调。
     var onLost: ((OSStatus) -> Void)?
-    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 可能没开系统录音权限，在主线程上调一次。
+    /// 就绪后连续 3 秒帧 RMS 不高于 heardFloor、且有别的进程正在输出声音 ⇒ 可能没开系统录音权限，在主线程上调一次。
     /// 两个条件缺一不可：已授权时句间停顿也是精确 0（尖刺 S1），没人在放声音时的全零是正常静音。
     /// 它只是提示，不是判决：权限已给而开始瞬间静音也满足（全回归 F13），所以采集照常继续。
     var onSilent: (() -> Void)?
-    /// onSilent 之后第一个非零帧，在主线程上调一次（权限是有的，提示该撤了）。
+    /// onSilent 之后第一帧 RMS 高于 heardFloor，在主线程上调一次（权限是有的，提示该撤了）。
+    /// 低于这道门的非零残渣仍算静音：报成 sound 会把「还没听到系统声音」压掉（#590 A）。
     var onSound: (() -> Void)?
+    /// 与 app/listen-core.js 的 HEARD_RMS 同一道门（约 −80 dBFS）。两边必须一起改：
+    /// test/build-scripts.test.js 用导出的 HEARD_RMS 对这个字面量。
+    private static let heardFloor: Float = 0.0001
     private var zeroSince: CFAbsoluteTime = 0
     private var heardSound = false
     private var silentReported = false
@@ -1066,14 +1072,16 @@ final class MTSystemTap {
             let n = Int(src.frameLength)
             dst.frameLength = src.frameLength
             let k = Float(max(channels, 1))
-            var nonzero = false
+            var energy: Float = 0
             for i in 0..<n {
                 var acc: Float = 0
                 for c in 0..<channels { acc += interleaved ? s[0][i * channels + c] : s[c][i] }
-                d[i] = acc / k
-                if acc != 0 { nonzero = true }
+                let sample = acc / k
+                d[i] = sample
+                energy += sample * sample
             }
-            self.noteFrames(nonzero: nonzero)
+            let audible = (energy / Float(n)).squareRoot() > MTSystemTap.heardFloor
+            self.noteFrames(audible: audible)
             sink(dst)
         }
         guard st == noErr, let proc = proc else { return st == noErr ? OSStatus(-1) : st }
@@ -1082,8 +1090,8 @@ final class MTSystemTap {
     }
 
     /// IO 线程上调。只做计时；真正去问「有没有别的进程在出声」放到自己的队列上（HAL 属性查询不进 IO 线程）。
-    private func noteFrames(nonzero: Bool) {
-        if nonzero {
+    private func noteFrames(audible: Bool) {
+        if audible {
             if heardSound { return }
             heardSound = true
             if silentReported { DispatchQueue.main.async { self.reportSound() } }
@@ -1099,7 +1107,7 @@ final class MTSystemTap {
             self.silentReported = true
             DispatchQueue.main.async {
                 self.onSilent?()
-                // 问 HAL 的这一拍里 IO 线程可能已经见到非零帧、却还没看到 silentReported：在这里补发
+                // 问 HAL 的这一拍里 IO 线程可能已经见到过门的帧、却还没看到 silentReported：在这里补发
                 if self.heardSound { self.reportSound() }
             }
         }
