@@ -238,6 +238,117 @@ describe('#590 · 模型（K / B / G / 语言键 / iOS 7 / H）', () => {
   });
 });
 
+describe('#592 · 硬上限不再作废在飞批次', () => {
+  const bufOf = (p) => String((p && p.user) || '').split('BUF:\n')[1].split('\nFORCE:')[0].trim();
+  const words = (n, mark) => Array.from({ length: n }, (_, i) => mark + i).join(' ');
+  const tick = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); await new Promise((r) => setTimeout(r, 0)); };
+  function router(call) {
+    const ev = [];
+    const r = C.makeSegmentRouter({
+      call,
+      emit: (rows, meta) => ev.push({ t: 'emit', rows, orig: meta && meta.orig }),
+      fallback: (text) => ev.push({ t: 'fallback', text }),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+    });
+    return { r, ev };
+  }
+  test('在飞批次 + 新字超过 SEG_HARD：不作废、不走 hardCutSentences，回包后照常出行', async () => {
+    const first = words(20, 'a');
+    const more = words(25, 'b');
+    eq(C.segCounts(first).words, 20, '第一批不到硬上限');
+    ok(C.segCounts(first + ' ' + more).words >= C.SEG_HARD.words, '加在一起过了硬上限');
+    let release;
+    const gate = new Promise((res) => { release = res; });
+    const calls = [];
+    const { r, ev } = router((p) => {
+      const buf = bufOf(p);
+      calls.push(buf);
+      const answer = JSON.stringify({ segments: [{ source: buf, translation: 'T' }], remainder: '' });
+      return calls.length === 1 ? gate.then(() => answer) : Promise.resolve(answer);
+    });
+    r.feed('en-US', first);
+    await tick();
+    eq(calls.length, 1, '到软上限送出第一批，实际 ' + calls.length);
+    r.feed('en-US', more);
+    await tick();
+    eq(calls.length, 1, '新字过硬上限又送了一批：' + calls.length);
+    eq(ev.filter((e) => e.t === 'fallback').length, 0, '在飞期间走了旧路');
+    ok(r.state().busy, '在飞批次被作废了');
+    ok(r.state().maxWait.words >= 25, '新字没留在 wait：' + r.state().maxWait.words);
+    release();
+    await tick();
+    ok(ev.some((e) => e.t === 'emit' && String(e.orig).indexOf('a0') >= 0), '第一批回包没有出行');
+    eq(ev.filter((e) => e.t === 'fallback').length, 0, '回包后走了旧路');
+    ok(calls.length >= 2, '尾巴没有再送模型');
+    ok(calls[1].indexOf('b0') >= 0 && calls[1].indexOf('a0') < 0, '第二批混进了已经送出的字：' + calls[1]);
+    r.dispose();
+  });
+  test('wait 自己超过硬上限时只送前缀；没有句末标点就整段仍送模型', async () => {
+    const head = words(15, 'h') + '.';
+    const tail = words(30, 't') + '.';
+    const all = head + ' ' + tail;
+    ok(C.segCounts(all).words >= C.SEG_HARD.words, '整段过了硬上限');
+    const calls = [];
+    let release;
+    const gate = new Promise((res) => { release = res; });
+    const { r, ev } = router((p) => {
+      const buf = bufOf(p);
+      calls.push(buf);
+      const answer = JSON.stringify({ segments: [{ source: buf, translation: 'T' }], remainder: '' });
+      return calls.length === 1 ? gate.then(() => answer) : Promise.resolve(answer);
+    });
+    r.feed('en-US', all);
+    await tick();
+    eq(calls.length, 1, '第一批没有发出');
+    ok(calls[0].indexOf('h14') >= 0 && calls[0].indexOf('t0') < 0, '第一批不是前缀：' + calls[0]);
+    eq(ev.filter((e) => e.t === 'fallback').length, 0, '超长 wait 走了旧路');
+    ok(String(r.pending('en-US')).indexOf('t0') >= 0, '尾巴没留在账本');
+    release();
+    await tick();
+    ok(calls.length >= 2 && calls[1].indexOf('t0') >= 0, '尾巴没有再送模型');
+    eq(ev.filter((e) => e.t === 'fallback').length, 0, '尾巴出行前走了旧路');
+    const blob = words(45, 'z');
+    ok(C.segCounts(blob).words >= C.SEG_HARD.words, '无标点段过了硬上限');
+    const calls2 = [];
+    const b = router((p) => { calls2.push(bufOf(p)); return new Promise(() => {}); });
+    b.r.feed('en-US', blob);
+    await tick();
+    eq(calls2.length, 1, '无标点段没有整段送模型');
+    ok(calls2[0].indexOf('z0') >= 0 && calls2[0].indexOf('z44') >= 0, '无标点段被切开了');
+    eq(b.ev.filter((e) => e.t === 'fallback').length, 0, '无标点段走了旧路');
+    r.dispose(); b.r.dispose();
+  });
+  test('超时仍原文照出译文留空；empty-reply 与 fail-max 仍走旧路', async () => {
+    const slow = words(20, 's');
+    const tmo = router((p) => Promise.reject(Object.assign(new Error('aborted'), { code: 'timeout' })));
+    tmo.r.feed('en-US', slow);
+    await tick();
+    eq(tmo.ev.filter((e) => e.t === 'fallback').length, 0, '超时走了旧路，等于再翻译一次');
+    const shown = tmo.ev.filter((e) => e.t === 'emit');
+    eq(shown.length, 1, '超时没有把原文出行');
+    eq(shown[0].rows[0].translation, '', '超时译文不该有内容');
+    ok(String(shown[0].rows[0].source).indexOf('s0') >= 0, '超时原文没出门');
+    tmo.r.dispose();
+
+    let n = 0;
+    const empty = router(() => { n++; return JSON.stringify({ segments: [], remainder: '' }); });
+    empty.r.feed('en-US', words(20, 'e'));
+    await tick(); await tick();
+    ok(n >= 2, '空回复没有补调，实际 ' + n);
+    ok(empty.ev.some((e) => e.t === 'fallback'), '空回复用完补调仍走了模型路');
+    eq(empty.r.pending('en-US'), '', '空回复硬切后账本还有字');
+    empty.r.dispose();
+
+    const fail = router(() => Promise.reject(new Error('net')));
+    fail.r.feed('en-US', 'Good morning. See you tomorrow.');
+    fail.r.settle('stop'); await tick();
+    fail.r.settle('stop'); await tick();
+    ok(fail.ev.some((e) => e.t === 'fallback'), '连续两次失败没有交旧路');
+    eq(fail.r.pending('en-US'), '', 'fail-max 之后账本还有字');
+    fail.r.dispose();
+  });
+});
+
 describe('#590 · 悬浮条（J / O）', () => {
   test('恢复的位置夹回屏幕内；悬停时文字让出控件那一排', () => {
     ok(/p\.setFrame\(MTSubtitleBar\.clamped\(p\.frame\)/.test(BAR));

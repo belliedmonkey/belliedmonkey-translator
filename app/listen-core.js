@@ -1075,13 +1075,15 @@ var ListenCore = (() => {
   //   (a) 长度：中文约 30 字 / 英文约 20 词 / 泰文约 60 字符；
   //   (b) 缓冲最后一次进新文字后 idleMs（默认 1.5s，可调 1–2s；自动朗读期间不计时）。
   // 切语言 / 点停止 ⇒ force=true（remainder 必须为空，违规时兜底放行，零丢失）。
-  // 兜底：失败/超时先不断；攒到硬上限（60 字 / 40 词 / 120 泰文字符）或连续两次失败 ⇒
-  // 按标点硬切（缩写白名单），每段走旧的修正+翻译契约（passRow）。
+  // 兜底：超时原文照出、译文留空；空回复 / 整段 remainder 用完补调、连续两次失败、
+  // 非法 JSON 或鉴权降级，仍按标点硬切交旧路。账本过 SEG_HARD 不再交旧路、也不作废
+  // 在飞批次（#592）：在飞的等回包；没送出的字按标点只切下一批前缀送给模型，
+  // 没有句末标点就整段仍送模型。数值不改（60 字 / 40 词 / 120 泰文字符）。
   // 只用于通用对话模型：google / qwen_mt / 翻译专用模型名（qwen-mt-*，判法同
   // wire-format 的 MODEL_SHAPES：formatFor 返回 translate-compat）⇒ 旧路；运行时连续
   // 两条非法 JSON 也降级旧路（诊断计数）。免费额度（grant，chat-compat）走新路。
   const SEG_SOFT = { cjk: 30, words: 20, thai: 60 };   // 触发 (a)
-  const SEG_HARD = { cjk: 60, words: 40, thai: 120 };  // 兜底硬切的上限
+  const SEG_HARD = { cjk: 60, words: 40, thai: 120 };  // 下一批送给模型的前缀上限（过线不交旧路，#592）
   const SEG_IDLE_MS = 1500;                            // 触发 (b)，可调 1–2s
   const SEG_RELEASE_MS = 800;                          // 自动听：预送扣住后到出行（第二次空闲），独立参数
   const SEG_JSON_BAD_MAX = 2;                          // 连续非法 JSON ⇒ 降级
@@ -1634,7 +1636,20 @@ var ListenCore = (() => {
     const heldBatch = {};   // locale → 扣住的结果（请求已回、等出行）：{ ids, text, sentAt, held:{segs,rem,ms}, releaseAt }
     let timer = 0, endTimer = 0;
     let calls = 0, emits = 0, fallbacks = 0;
+    let maxWaitWords = 0, maxWaitCjk = 0, maxWaitThai = 0;   // 还没送出的 wait 峰值（调试读数，不改断句）
     const failCounts = {};  // 诊断：单次失败原因计数（不含内容）
+    function noteWaitPeak() {
+      for (const lc of locales()) {
+        let text = '';
+        for (const r of L(lc)) {
+          if (r.state === 'wait' && !r.commit && r.text) text = joinFrag(text, r.text);
+        }
+        const c = segCounts(text);
+        if (c.words > maxWaitWords) maxWaitWords = c.words;
+        if (c.cjk > maxWaitCjk) maxWaitCjk = c.cjk;
+        if (c.thai > maxWaitThai) maxWaitThai = c.thai;
+      }
+    }
 
     function M(lc) { return meta[lc] || (meta[lc] = { lastFeedAt: 0, force: false, extraWaited: false, fails: 0, retryForce: false, retryUsed: false, retryAt: 0, partialAt: 0 }); }
     function L(lc) { return ledger.filter((r) => r.locale === lc); }
@@ -1685,7 +1700,7 @@ var ListenCore = (() => {
             queue.push({ type: 'rows', rows, meta: { locale: rec.locale, ms: c.ms, force: c.force, orig: c.orig, pos: rec.pos, feedAt: c.feedAt, sentAt: c.sentAt } });
           }
         } else if (c.kind === 'legacy') {
-          for (const t of c.texts) { fallbacks++; lastEmit[rec.locale] = t; queue.push({ type: 'legacy', text: t, locale: rec.locale }); }
+          for (const t of c.texts) { fallbacks++; lastEmit[rec.locale] = t; queue.push({ type: 'legacy', text: t, locale: rec.locale, feedAt: c.feedAt || rec.at || 0 }); }
           // 补救片可能只是这一批里的一条（legacy 载荷挂在**批首**记录上）——载荷里带着「这批含补救片」
           // 的标记，按整批上屏的文字做 rescueOut（R14：已出行 ⇒ 后续正式 final 只追加不重叠部分）。
           if (c.rescue || rec.rescued) {
@@ -1820,7 +1835,7 @@ var ListenCore = (() => {
       for (const n of queue) {
         try {
           if (n.type === 'rows') d.emit(n.rows, n.meta);
-          else d.fallback(n.text, { locale: n.locale });
+          else d.fallback(n.text, { locale: n.locale, feedAt: n.feedAt || 0 });
         } catch (e) {
           // 界面层出行报错：只记一条诊断，路由器状态已经落定，后面的话照常出行。
           noteFail('notify');
@@ -1833,6 +1848,9 @@ var ListenCore = (() => {
       // 这一批里若有 partial 补救片，把「这批含临时稿」带进 legacy 载荷（R14：已出行后按文字去重）。
       const resc = recs.filter((r) => r.rescued).pop();
       const p = legacyPayload(joinAll(recs));
+      let feedAt = 0;
+      for (const r of recs) if (r.at > feedAt) feedAt = r.at;
+      p.feedAt = feedAt;
       if (resc) { p.rescue = true; p.rescueT0 = resc.t0; p.rescueT1 = resc.t1; }
       commit(recs.map((r) => r.id), p);
     }
@@ -1894,7 +1912,7 @@ var ListenCore = (() => {
     function maybeHardCut(lc, b) {
       const st = M(lc);
       if (b && segShortPiece(b.text) && partialSpeaking(lc, b.sentAt)) { waitForMore(lc); return false; }
-      hardCut(lc); return true;
+      hardCut(lc, 'fail-max'); return true;
     }
     function dueOf(lc, t) {
       const run = headRun(lc);
@@ -1938,13 +1956,62 @@ var ListenCore = (() => {
       }
       return best;
     }
+    // 待发送的字超过硬上限时，下一批只取到标点为止的前缀（与 hardCutSentences 同一套白名单）。
+    // 没有句末标点 ⇒ 返回全文长度，整段仍送模型。第一句自己已经超过上限 ⇒ 只送这一句。
+    function segPrefixEnd(text, lim) {
+      if (!segOver(segCounts(text), lim)) return text.length;
+      const re = /[。！？!?；;]|\.(?=\s|$)/g;
+      let m, chosen = 0;
+      while ((m = re.exec(text))) {
+        const end = m.index + m[0].length;
+        const after = text.slice(end).match(/^\s+(\S)/);
+        if (m[0] === '.' && (SEG_ABBR.test(text.slice(0, end)) || (after && /^\d/.test(after[1])))) continue;
+        const piece = text.slice(0, end).trim();
+        if (!piece || !/[\p{L}\p{N}]/u.test(piece)) continue;
+        if (chosen && segOver(segCounts(piece), lim)) break;
+        chosen = end;
+        if (segOver(segCounts(piece), lim)) break;
+      }
+      return chosen || text.length;
+    }
+    // 把 join 出来的前缀切回账本记录：前缀进本批，尾巴留成 wait。前缀必须是 joinAll(run) 的前缀。
+    function takePrefixRecs(run, prefix) {
+      let acc = '';
+      const take = [];
+      for (let i = 0; i < run.length; i++) {
+        const rec = run[i];
+        const next = joinFrag(acc, rec.text);
+        if (prefix.indexOf(next) === 0) {
+          acc = next;
+          take.push(rec);
+          if (acc.length === prefix.length) break;
+          continue;
+        }
+        const gap = next.length - acc.length - String(rec.text).length;
+        const into = prefix.length - acc.length - Math.max(0, gap);
+        if (into <= 0) break;
+        const tailText = rec.text.slice(into);
+        rec.text = rec.text.slice(0, into);
+        take.push(rec);
+        if (tailText) {
+          const tailRec = {
+            id: ++seq, pos: rec.pos, locale: rec.locale, text: tailText, at: rec.at,
+            state: 'wait', calls: 0, commit: null, rescued: !!rec.rescued, t0: rec.t0, t1: rec.t1,
+          };
+          const li = ledger.indexOf(rec);
+          if (li >= 0) ledger.splice(li + 1, 0, tailRec);
+        }
+        break;
+      }
+      return take;
+    }
     function doSend(lc, hold, forceOverride, retry) {
       const st = M(lc);
       const run = headRun(lc);
       if (!run.length) return;
       const overIdx = run.findIndex((r) => r.calls >= SEG_MAX_CALLS);
       if (overIdx === 0) { legacyRecs(run); schedule(); return; }
-      const ok = overIdx < 0 ? run : run.slice(0, overIdx);
+      let ok = overIdx < 0 ? run : run.slice(0, overIdx);
       if (overIdx >= 0) legacyRecs(run.slice(overIdx));
       if (!ok.length) return;
       const force = !!forceOverride || !!st.force;
@@ -1953,12 +2020,23 @@ var ListenCore = (() => {
       // 每句最多一次补调（retryUsed），再失败直接硬切。变异钩子 noRetryConsume 模拟「去掉消费」。
       if (retry && !d.noRetryConsume) { st.retryForce = false; st.retryUsed = true; }
       if (hold) st.extraWaited = true;
-      const text = joinAll(ok);
+      let text = joinAll(ok);
+      // 硬上限只决定这一批的前缀（#592）。预送扣住的是短碎片，不在这里切。
+      // force 切完前缀后仍留给尾巴，回包后马上送下一批，不改成等空闲。
+      if (!hold && segOver(segCounts(text), hard)) {
+        const end = segPrefixEnd(text, hard);
+        if (end < text.length) {
+          ok = takePrefixRecs(ok, text.slice(0, end));
+          text = joinAll(ok);
+          if (force) st.force = true;
+        }
+      }
       ok.forEach((r) => { r.state = 'sending'; r.calls++; });
       calls++;
       const sentAt = now();
       const b = { locale: lc, ids: ok.map((r) => r.id), text, sentAt, force, hold: !!hold, held: null, releaseAt: hold ? sentAt + (holdMode ? idleMs : autoReleaseMs) : 0, voided: false, settled: null };
       inFlight = b;
+      noteWaitPeak();
       const t0 = now();
       Promise.resolve().then(() => d.call(buildSegPrompt(Object.assign({ buffer: text, force }, d.ctx ? d.ctx(lc) : {})), { locale: lc, buffer: text, force }))
         .then((raw) => onResult(b, raw, t0), (err) => onError(b, err));
@@ -1996,7 +2074,7 @@ var ListenCore = (() => {
           return true;
         }
         noteFail('all-remainder', extra);
-        hardCut(lc);   // 额度用完仍整段 remainder ⇒ 硬切交旧路（不再一轮一轮等）
+        hardCut(lc, 'all-remainder');   // 额度用完仍整段 remainder ⇒ 硬切交旧路（不再一轮一轮等）
         return true;
       }
       st.fails = 0;                 // 有新话进账本 ⇒ 按原逻辑：等下一次空闲，跟新话一起送
@@ -2021,11 +2099,12 @@ var ListenCore = (() => {
         return true;
       }
       st.fails++; noteFail('empty-reply', extra);   // 已有新话或额度用完 ⇒ 走普通失败梯度
-      if (st.fails >= SEG_FAIL_MAX || st.retryUsed) hardCut(lc);   // 方案 5：补调再失败 ⇒ 直接硬切
+      if (st.fails >= SEG_FAIL_MAX || st.retryUsed) hardCut(lc, 'empty-reply');   // 方案 5：补调再失败 ⇒ 直接硬切
       return false;
     }
     function onResult(b, raw, t0) {
-      if (b.voided || disposed) { finishBatch(b); return; }
+      if (b.voided) { finishBatch(b); return; }
+      if (disposed) { finishBatch(b); return; }
       const lc = b.locale, st = M(lc);
       const parsed = parseSegReply(raw, { buffer: b.text, last: lastEmit[lc] || '' });
       const closingEnd = phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade');
@@ -2189,7 +2268,8 @@ var ListenCore = (() => {
       finishClosing();
     }
     function onError(b, err) {
-      if (b.voided || disposed) { finishBatch(b); return; }
+      if (b.voided) { finishBatch(b); return; }
+      if (disposed) { finishBatch(b); return; }
       const lc = b.locale, st = M(lc);
       const status = err && (err.status || (err.cause && err.cause.status));
       const stop = quotaSignal(err);
@@ -2225,9 +2305,12 @@ var ListenCore = (() => {
     function bumpJson() { jsonBad++; return jsonBad; }
 
     // ── 硬切 / 降级 / 收尾 ─────────────────────────────────────────────────────
-    function hardCut(lc) {
+    function hardCut(lc, why) {
+      // why：fail-max / all-remainder / empty-reply。硬上限不再进这里（#592）。
+      void why;
       const st = M(lc); st.force = false; st.extraWaited = false; st.fails = 0; st.retryForce = false; st.retryUsed = false;
-      if (inFlight && inFlight.locale === lc) { voidInflightToLegacy(); }
+      const flying = inFlight && inFlight.locale === lc ? inFlight : null;
+      if (flying) { voidInflightToLegacy(); }
       if (heldBatch[lc]) { const b = heldBatch[lc]; delete heldBatch[lc]; recsToWait(b); }
       for (const run of runsOf(lc)) legacyRecs(run);
       flush();
@@ -2332,9 +2415,10 @@ var ListenCore = (() => {
         else { st.lastFeedAt = now(); st.extraWaited = false; }
         st.retryForce = false; st.retryUsed = false;   // 方案 5：额度只由**真正新话**重置（每次新话可再补一次）
         if (o.force) st.force = true;
-        // 到硬上限：直接把这一路的待处理段硬切交旧路（在飞的批次先作废）
-        if (segOver(segCounts(pendingText(lc)), hard)) { hardCut(lc); return; }
+        // 硬上限不再在这里硬切（#592）：在飞的批次继续等回包，新字留在 wait。
+        // 没在飞、而 wait 自己超过上限时，由 doSend 只送标点前缀。
         schedule();
+        noteWaitPeak();
       },
       settle,
       // 方案 2（R12）：标记这条 locale 的 partial 还在到达（listen-model 的 onPartial 调用）。
@@ -2359,6 +2443,7 @@ var ListenCore = (() => {
         return { phase, closeReason, degraded: degradedNow(), jsonBad, calls, emits, fallbacks, busy: !!inFlight, speaking, ptt: pttMode, idleMs, releaseMs: autoReleaseMs,
           hold: heldLcs.length > 0, held: heldN, inflight: inFlight ? inFlight.text.length : 0,
           fails: Object.assign({}, failCounts),
+          maxWait: { words: maxWaitWords, cjk: maxWaitCjk, thai: maxWaitThai },
           recs: ledger.map((r) => ({ locale: r.locale, pos: r.pos, calls: r.calls, state: r.state, committed: !!r.commit, rescued: !!r.rescued })),
           bufs: locales().map((lc) => ({ locale: lc, len: pendingText(lc).length })) };
       },

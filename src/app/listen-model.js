@@ -564,7 +564,8 @@ const listenModel = (() => {
     const pinned = !!(pttForce && pttLangOf(pttForce.side) === base);
     const row = C.addFinal(session, text, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
     if (!row) return;
-    row.lat = { final: now(), engine: 'device', seg: 'fallback' };
+    row.lat = { final: now(), engine: 'device', seg: 'fallback',
+      segFeedAt: (meta && meta.feedAt) || 0, segEmitAt: now() };
     row.srcLocale = (meta && meta.locale) || '';
     row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
     if (grantHalted()) {
