@@ -1480,9 +1480,6 @@ const listenModel = (() => {
       if (!base) return;
       let ev = ev0;
       const pNow = partialBy[base];
-      // R14 ⑤：识别器把英文句首吞了、正式 final 以标点开头（`. and send them to Mr.`）——
-      // 把 final 文字在当前 partial 里对齐，取对齐位置**之前**的部分作句首临时稿补回。
-      let lead = '';
       // 方案 3（用户批准；B 真机核实成立）：识别器对很短的英文常给「只有标点/为空」的垃圾定稿，
       // 而同一句最近一次 partial 是完整的（实测 16 句里 6 次垃圾定稿，6 次的前置 partial 都含 "Yes"）。
       // 用该 partial 当定稿，记 final:from-partial（带原文，仅本机）。
@@ -1494,14 +1491,6 @@ const listenModel = (() => {
         const p = pNow;
         ev = Object.assign({}, ev, { text: p.text, rescued: true });
         diagBump('final', 'from-partial', { text: p.text });
-      } else if (pNow && base === 'en') {
-        // 对不上的垃圾前缀从这条定稿上切掉，再进闸、再进账本（#590 L）。只补句首、不切原文
-        // 会把 `, you,` 留在补回的句头前面。
-        const cut = C.rescueLeadCut(ev.text, pNow.text);
-        if (cut) {
-          lead = cut.lead || '';
-          if (cut.text && cut.text !== ev.text) ev = Object.assign({}, ev, { text: cut.text });
-        }
       }
       // R14 ②：归属语言（英文）这一路给了带字母的结果 ⇒ 记时刻；中文路的候补就此作废。
       const lidB = C.baseCode(lidPair());
@@ -1545,12 +1534,6 @@ const listenModel = (() => {
       delete partialBy[base];
       // 低置信句头闸 → 分流
       const texts = gate.push(ev);
-      // R14 ⑤：补回的句首临时稿先于正式 final 进账本（它覆盖的音频在前）。
-      if (texts.length && lead) {
-        diagBump('rescue', 'lead', { text: lead });
-        if (useSeg()) seg.feed(ev.locale, lead, { force: false, rescued: true, t0: ev && ev.t0, t1: ev && ev.t0 });
-        else cut.add(ev.locale, lead);
-      }
       for (const tt of texts) {
         // R14：补救文字（from-partial）带着 rescued 进账本；t0/t1 只作参考，去重改按文字对齐。
         if (useSeg()) seg.feed(ev.locale, tt, { force: dec.force, rescued: !!ev.rescued, t0: ev.t0, t1: ev.t1 });

@@ -175,9 +175,8 @@ async function replay(key) {
   const intake = (ev) => {
     const base = C.baseCode(ev.locale);
     const pNow = partialBy[base];
-    let text = ev.text, rescued = false, lead = '';
+    let text = ev.text, rescued = false;
     if (partialWorthRescue(ev, pNow, clk.now())) { text = pNow.text; rescued = true; }
-    else if (pNow && base === 'en') lead = C.rescueLead(ev.text, pNow.text);
     if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
@@ -186,10 +185,6 @@ async function replay(key) {
       return;
     }
     const texts = gate.push({ locale: ev.locale, text, conf: ev.conf, rescued, t0: ev.t0, t1: ev.t1 });
-    if (texts.length && lead) {
-      diags.push({ kind: 'rescue:lead', text: lead });
-      seg.feed(ev.locale, lead, { rescued: true, t0: ev.t0, t1: ev.t0 });
-    }
     for (const tt of texts) seg.feed(ev.locale, tt, { rescued, t0: ev.t0, t1: ev.t1 });
   };
   let last = 0;

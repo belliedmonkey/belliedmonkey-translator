@@ -123,30 +123,6 @@ describe('R14 ① — 文字对齐（数字=数词、长词 1 字母差、带数
     // 数字与数词互认
     eq(C.alignFinalInTemp('make three copies', 'make 3 copies').before, '');
   });
-  test('rescueLead：以标点开头的 final ⇒ 取 partial 里对齐点之前的句首；对不上/不以标点开头 ⇒ 空', () => {
-    const partial = "make 3 copies of this contract and send them to Mr. Zhang's office before 5 pm.";
-    eq(C.rescueLead('. and send them to Mr.', partial), 'make 3 copies of this contract');
-    eq(C.rescueLead(',.......... and send them to Mr.', 'Please make 3 copies of this contract and send them to Mr. Zang\'s office before 5 PM.'), 'Please make 3 copies of this contract');
-    eq(C.rescueLead('and send them to Mr.', partial), '', '不以标点开头 ⇒ 不走句首补回');
-    eq(C.rescueLead('. unrelated words here', partial), '', '对不上 ⇒ 不补');
-    // 从首词就能对齐 ⇒ 正式 final 原文不动（只补句首）
-    const kept = C.rescueLeadCut('. and send them to Mr.', partial);
-    eq(kept && kept.lead, 'make 3 copies of this contract');
-    eq(kept && kept.text, '. and send them to Mr.');
-  });
-  test('rescueLeadCut：首词是垃圾、后缀一直对齐到末词 ⇒ 补句首并切掉对不上的前缀（#590 L）', () => {
-    const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
-    const final = ', you, and you risk starvation when the Grove runs dry.';
-    const cut = C.rescueLeadCut(final, partial);
-    eq(cut && cut.lead, "Stick too closely to what's safe");
-    eq(cut && cut.text, 'and you risk starvation when the Grove runs dry.');
-    eq(C.rescueLead(final, partial), "Stick too closely to what's safe");
-    // 不以标点开头：开头那几个词可能是真说的，不切
-    eq(C.rescueLeadCut("to, you, you're also all hardwired by evolution to strike a certain balance",
-      "you're also all hardwired by evolution to strike a certain balance"), null);
-    // 只在句尾碰巧两个词相同 ⇒ 不把前半句切掉
-    eq(C.rescueLeadCut('. alpha beta gamma delta epsilon runs dry', partial), null);
-  });
   test('isTailDup：临时稿整段是上一条正式 final 的结尾且音频邻接', () => {
     ok(C.isTailDup('Yes, please.', 'Please', 60, 300), '结尾 + 邻接');
     ok(!C.isTailDup('Yes, please.', 'Please', 1200, 300), '间隔过大不算');
@@ -363,9 +339,8 @@ async function replay(key, opt) {
   const intake = (ev) => {
     const base = C.baseCode(ev.locale);
     const pNow = partialBy[base];
-    let text = ev.text, rescued = false, lead = '';
+    let text = ev.text, rescued = false;
     if (partialWorthRescue(ev, pNow, clk.now())) { text = pNow.text; rescued = true; }
-    else if (pNow && base === 'en') lead = C.rescueLead(ev.text, pNow.text);
     if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
@@ -374,10 +349,6 @@ async function replay(key, opt) {
       return;
     }
     const texts = gate.push({ locale: ev.locale, text, conf: ev.conf, rescued, t0: ev.t0, t1: ev.t1 });
-    if (texts.length && lead) {
-      diags.push({ kind: 'rescue:lead', text: lead });
-      seg.feed(ev.locale, lead, { rescued: true, t0: ev.t0, t1: ev.t0 });
-    }
     for (const tt of texts) seg.feed(ev.locale, tt, { rescued, t0: ev.t0, t1: ev.t1 });
   };
   let last = 0;
@@ -439,11 +410,13 @@ describe('R14 ⑤ — 回放 /tmp/r13 原始事件', () => {
     eq(withinDup(rows[0], 12), null, '行内重复：' + JSON.stringify(rows[0]));
   });
   for (const key of ['en-auto-2', 'en-auto-10']) {
-    test('★ ' + key + '：以标点开头的 final ⇒ 句首补回（rescue:lead）', async () => {
+    test('★ ' + key + '：标点开头的 final + partial 带句首 ⇒ 不再多出一行句首（#592）', async () => {
       const res = await replay(key);
-      const out = enRows(res.emittedRows).join(' ');
-      ok(norm(out).indexOf('make3copiesofthiscontract') >= 0, '句首没补回：' + JSON.stringify(out));
-      ok(res.diags.some((d) => d.kind === 'rescue:lead'), '没有记 rescue:lead：' + JSON.stringify(res.diags.map((d) => d.kind)));
+      const rows = enRows(res.emittedRows);
+      const out = rows.join(' ');
+      ok(norm(out).indexOf('andsendthemtomr') >= 0, '定稿正文没出行：' + JSON.stringify(out));
+      ok(norm(out).indexOf('make3copiesofthiscontract') < 0, 'partial 句首被切成一行：' + JSON.stringify(rows));
+      ok(!res.diags.some((d) => d.kind === 'rescue:lead'), '不该再记 rescue:lead：' + JSON.stringify(res.diags.map((d) => d.kind)));
       eq(withinDup(out, 12), null, '行内重复：' + JSON.stringify(out));
     });
   }
@@ -598,11 +571,11 @@ async function runR14Fuzz(seed) {
   const intake = (ev, lid) => {
     const base = C.baseCode(ev.locale);
     const p = partialBy[base];
-    let text = ev.text, rescued = false, lead = '';
+    let text = ev.text, rescued = false;
     if (p && /[\p{L}\p{N}]/u.test(p.text) && (clk.now() - p.at) <= 2500) {
       const letters = letterCount(text);
       if (letters === 0 || /^[\s,.;:!?…、。，！？]+/u.test(text)) { text = p.text; rescued = true; }
-    } else if (p && base === 'en') lead = C.rescueLead(ev.text, p.text);
+    }
     if (base === lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
     const dec = C.intakeDecide({ base, lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
@@ -610,7 +583,6 @@ async function runR14Fuzz(seed) {
       return;
     }
     const texts = gate.push({ locale: ev.locale, text, conf: ev.conf, rescued, t0: ev.t0, t1: ev.t1 });
-    if (texts.length && lead) seg.feed(ev.locale, lead, { rescued: true, t0: ev.t0, t1: ev.t0 });
     for (const tt of texts) seg.feed(ev.locale, tt, { rescued, t0: ev.t0, t1: ev.t1 });
   };
   let t = 1000;

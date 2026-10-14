@@ -22,15 +22,37 @@ describe('#590 · 定稿与解析（I / L / iOS 7）', () => {
     const row = C.addFinal(s, ', you, and you risk starvation.', 1002, { myLang: 'en', otherLang: 'zh' }, {});
     ok(row && row.text === 'you, and you risk starvation.', '行首的「, 」没剥掉：' + (row && row.text));
   });
-  test('L：标点开头且首词对不上时，按对齐到末词的后缀切掉垃圾前缀；入口把切剩的定稿写回去', () => {
-    const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
+  test('#592：标点开头的定稿 + partial 带句首，不再多出一行句首', async () => {
+    const partialHead = "Stick too closely to what's safe";
     const final = ', you, and you risk starvation when the Grove runs dry.';
-    const cut = C.rescueLeadCut(final, partial);
-    eq(cut && cut.lead, "Stick too closely to what's safe");
-    eq(cut && cut.text, 'and you risk starvation when the Grove runs dry.');
-    eq(C.rescueLead("to, you, you're also all hardwired", partial), '', '不以标点开头不补');
-    ok(/rescueLeadCut\(ev\.text/.test(MODEL), '入口没调用 rescueLeadCut');
-    ok(/text: cut\.text/.test(MODEL), '入口没把切剩的定稿写回去');
+    const rows = [];
+    let sent = '';
+    const seg = C.makeSegmentRouter({
+      call: (p) => {
+        const m = String(p).match(/BUF:\n([\s\S]*?)\nFORCE:/);
+        sent = m ? m[1].trim() : '';
+        return Promise.resolve(JSON.stringify({ segments: [{ source: sent, translation: 'T' }], remainder: '' }));
+      },
+      emit: (list) => { for (const r of list) rows.push(r.source); },
+      fallback: (t) => rows.push(t),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      idleMs: 1500, endWaitMs: 3000,
+    });
+    // 删掉补切之后的入口：partial 在场也不从它对齐点前面切一句首再 feed。只把定稿原文送进句头闸。
+    const gate = C.makeFinalGate({ dominantScript: () => 'Latin', now: () => Date.now(), idleMs: 1500 });
+    const texts = gate.push({ locale: 'en-US', text: final, conf: 0.9, t0: 1000, t1: 4000 });
+    ok(texts.length >= 1, '定稿应当放行：' + JSON.stringify(texts));
+    for (const tt of texts) seg.feed('en-US', tt);
+    await seg.settle('end');
+    const joined = rows.join('\n');
+    ok(/and you risk starvation/i.test(joined), '定稿正文没出行：' + JSON.stringify(rows));
+    ok(!rows.some((r) => /stick too closely/i.test(r)), 'partial 句首被单独切成一行：' + JSON.stringify(rows));
+    ok(!/stick too closely/i.test(sent), '送给模型的账本不该带上 partial 句首：' + sent);
+    ok(joined.indexOf(partialHead) < 0, '出行文字含句首：' + joined);
+    seg.dispose();
+    ok(!/rescueLeadCut/.test(MODEL), '入口还在调用 rescueLeadCut');
+    ok(!/seg\.feed\(ev\.locale,\s*lead/.test(MODEL), '入口还在先 feed 句首');
+    ok(/function partialWorthRescue/.test(MODEL), 'partialWorthRescue 不该一起删');
   });
   test('parseListenReply：空的「T:」不吞下一行；有标签没译文 ⇒ 译文为空（不把标签行当译文）', () => {
     const a = C.parseListenReply('T:\nX: 你好', 'hello');

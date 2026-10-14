@@ -1452,45 +1452,6 @@ var ListenCore = (() => {
     if (!p || !t || !p.endsWith(t)) return false;
     return !Number.isFinite(gapMs) || gapMs <= maxGap;
   }
-  // final 的某个词后缀在 temp 里必须一直对齐到 final 的最后一个词。从最长的后缀试起，
-  // 取第一个整段对上的（≥ ALIGN_MIN_RUN）。ni = 后缀在 final 词序列上的起点（0 = 从首词开始）。
-  function alignSuffixToEnd(temp, finalText) {
-    const hay = alignWords(temp), needle = alignWords(finalText);
-    if (hay.length < ALIGN_MIN_RUN || needle.length < ALIGN_MIN_RUN) return null;
-    for (let ni = 0; ni <= needle.length - ALIGN_MIN_RUN; ni++) {
-      const needLen = needle.length - ni;
-      for (let i = 0; i <= hay.length - needLen; i++) {
-        let k = 0;
-        while (k < needLen && wordNear(hay[i + k], needle[ni + k])) k++;
-        if (k === needLen) return { ni, hi: i, len: needLen, before: alignBeforeWord(temp, i) || '' };
-      }
-    }
-    return null;
-  }
-  // R14 ⑤：以标点开头的正式 final（识别器把句首吞了）—— 把 final 文字在 partial 里对齐，取
-  // 对齐位置**之前**的部分作为句首临时稿补回（对不上 / 不以标点开头 ⇒ 返回 ''）。
-  // #590 L：首词本身可能是垃圾（`, you, and you risk…` 的 you 对不上 partial 里紧跟着的 and）。
-  // 从首词对不上时，改对齐「一直到末词」的最长后缀；留下的词必须多于切掉的，免得句尾两个词
-  // 碰巧相同就把前半句丢了。不以标点开头的不走这里 —— 开头那几个词可能是真说的。
-  function rescueLeadCut(finalText, partialText) {
-    const ft = String(finalText == null ? '' : finalText);
-    if (!LEAD_PUNCT.test(ft)) return null;
-    const al = alignSuffixToEnd(partialText, ft);
-    if (al && al.ni > 0 && al.len > al.ni) {
-      const toks = alignTokens(ft);
-      const text = ft.slice(toks[al.ni].at).replace(/^\s+/, '');
-      if (!HAS_LETTER.test(text)) return null;
-      return { lead: al.before || '', text };
-    }
-    if (al && al.ni === 0 && al.before) return { lead: al.before, text: ft };
-    const fromStart = alignFinalInTemp(partialText, ft);
-    if (fromStart && fromStart.before) return { lead: fromStart.before, text: ft };
-    return null;
-  }
-  function rescueLead(finalText, partialText) {
-    const cut = rescueLeadCut(finalText, partialText);
-    return (cut && cut.lead) ? cut.lead : '';
-  }
   // 模型 source 与上一条已出行行的重复前缀裁剪（方案 2，R12 第十轮）——**唯一判据**，出行时
   // （trimDupRows）与漂移检查前（parseSegReply，R14 方案 C）共用。只有这段前缀**不在本批缓冲里**
   // （= 模型按上下文补回来的、不是我们喂进去的）才切。
@@ -2584,7 +2545,7 @@ var ListenCore = (() => {
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,
     alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
-    rescueLead, rescueLeadCut, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
+    isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
     fillPrepDetail,
     QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,
     lidBase, sideMatchesLid, langSupported,
