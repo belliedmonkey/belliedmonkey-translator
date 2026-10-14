@@ -142,10 +142,12 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
   });
 
   test('停止收音时音频会话 / 锁屏卡一起收；续听再开回来（真机 #578）', () => {
-    ok(/function nativeSessionOff\(\)/.test(MODEL) && /NativeAudio\.sessionStop\(\)/.test(MODEL), '没有会话收尾出口');
+    ok(/function nativeSessionOff\(opts\)/.test(MODEL) && /NativeAudio\.sessionStop\(opts\)/.test(MODEL), '没有会话收尾出口');
     ok(/function nativeSessionOn\(\)/.test(MODEL) && /NativeAudio\.sessionStart\(\)/.test(MODEL), '没有会话开启出口');
-    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function pause(reason)') + 1200);
-    ok(/nativeSessionOff\(\)/.test(pauseFn), 'pause 没有收会话 —— 员工停止对话后锁屏卡会一直挂着');
+    const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function pause(reason)') + 2200);
+    // 对话停止仍释放会话（锁屏卡收掉）。只有字幕暂停传 hold，留下音频会话（#590 iOS 5）。
+    ok(/nativeSessionOff\(session && session\.mode === 'subtitle' \? \{ hold: true \} : undefined\)/.test(pauseFn),
+      'pause 没有收会话 —— 对话停止后锁屏卡会一直挂着');
     const haltFn = MODEL.slice(MODEL.indexOf('function halt(reason'), MODEL.indexOf('function halt(reason') + 1400);
     ok(/nativeSessionOff\(\)/.test(haltFn), 'halt 没有收会话');
     const resFn = MODEL.slice(MODEL.indexOf('async function resume()'), MODEL.indexOf('async function resume()') + 700);
