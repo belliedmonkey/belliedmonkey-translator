@@ -37,6 +37,34 @@ const post = (url, headers, body) => new Promise((resolve) => {
   req.on('error', () => resolve({ status: 0, body: '' }));
   req.end(body ? JSON.stringify(body) : undefined);
 });
+function postFull(url, headers, body) {
+  const payload = body == null ? null : Buffer.from(JSON.stringify(body));
+  return new Promise((resolve) => {
+    const u = new URL(url);
+    const req = http.request({
+      hostname: u.hostname, port: u.port, path: u.pathname, method: 'POST',
+      headers: Object.assign({}, headers, payload ? { 'Content-Length': payload.length } : {}),
+    }, (res) => {
+      let raw = '';
+      res.on('data', (c) => { raw += c; });
+      res.on('end', () => resolve({ status: res.statusCode, body: raw, headers: res.headers }));
+    });
+    req.on('error', (e) => resolve({ status: 0, body: String(e), headers: {} }));
+    req.end(payload || undefined);
+  });
+}
+function getFull(url) {
+  return new Promise((resolve) => {
+    const u = new URL(url);
+    const req = http.request({ hostname: u.hostname, port: u.port, path: u.pathname, method: 'GET' }, (res) => {
+      let raw = '';
+      res.on('data', (c) => { raw += c; });
+      res.on('end', () => resolve({ status: res.statusCode, body: raw, headers: res.headers }));
+    });
+    req.on('error', (e) => resolve({ status: 0, body: String(e), headers: {} }));
+    req.end();
+  });
+}
 function postBytes(url, headers, body) {
   const payload = Buffer.isBuffer(body) ? body : Buffer.from(JSON.stringify(body));
   return new Promise((resolve) => {
@@ -270,22 +298,25 @@ describe('bt-relay 合约（X5）', () => {
     const denoArgs = ['run', '-A'];
     if (tls) denoArgs.push('--cert', path.join(tlsDir, 'ca.pem'));
     denoArgs.push(RELAY);
+    const qcEnv = Object.assign({}, process.env, {
+      PORT: String(port),
+      SUPABASE_URL: 'http://127.0.0.1:' + db.port,
+      SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
+      UPSTREAM: 'qwencloud',
+      QWENCLOUD_KEY: 'sk-qc-stub',
+      QWENCLOUD_CHAT_BASE: 'http://127.0.0.1:' + qc.port + '/v1',
+      QWENCLOUD_TTS_URL: 'http://127.0.0.1:' + qc.port + '/generation',
+      UPSTREAM_KEY: 'sk-bj-stub',
+      UPSTREAM_BASE: 'http://127.0.0.1:' + bj.port + '/v1',
+      GRANT_MODELS: JSON.stringify({ tts: 'qwen-tts-beijing' }),
+      GRANT_PRICES: JSON.stringify({ chatFloor: 0.0005, chatPerKTok: 0.001, ttsPerKChar: 0.015, sttPerMB: 0.02 }),
+      GRANT_FLOAT_MIN_USD: '5',
+    });
+    // 这条测的是「变量未设置 = 全量」。父进程如果导出了名单，不能漏进来。
+    delete qcEnv.QWENCLOUD_ALLOW_TOKEN_HASHES;
     const relay = spawn('deno', denoArgs, {
       cwd: ROOT,
-      env: Object.assign({}, process.env, {
-        PORT: String(port),
-        SUPABASE_URL: 'http://127.0.0.1:' + db.port,
-        SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
-        UPSTREAM: 'qwencloud',
-        QWENCLOUD_KEY: 'sk-qc-stub',
-        QWENCLOUD_CHAT_BASE: 'http://127.0.0.1:' + qc.port + '/v1',
-        QWENCLOUD_TTS_URL: 'http://127.0.0.1:' + qc.port + '/generation',
-        UPSTREAM_KEY: 'sk-bj-stub',
-        UPSTREAM_BASE: 'http://127.0.0.1:' + bj.port + '/v1',
-        GRANT_MODELS: JSON.stringify({ tts: 'qwen-tts-beijing' }),
-        GRANT_PRICES: JSON.stringify({ chatFloor: 0.0005, chatPerKTok: 0.001, ttsPerKChar: 0.015, sttPerMB: 0.02 }),
-        GRANT_FLOAT_MIN_USD: '5',
-      }),
+      env: qcEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     relay.stdout.on('data', (d) => seen.logs.push(String(d)));
@@ -469,6 +500,239 @@ describe('bt-relay 合约（X5）', () => {
       try { relay.kill('SIGKILL'); } catch (_) {}
       try { qc.srv.close(); bj.srv.close(); trap.srv.close(); db.srv.close(); } catch (_) {}
       try { if (tls) tls.srv.close(); } catch (_) {}
+    }
+  });
+
+  test('QWENCLOUD_ALLOW_TOKEN_HASHES：名单内走 QwenCloud，名单外与空串走旧路径', async () => {
+    if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
+    const crypto = require('crypto');
+    const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+    const TOKEN_IN = 'bmg_in_allow';
+    const TOKEN_OUT = 'bmg_out_allow';
+    const TOKEN_CASE = 'bmg_In_allow';
+    const hashIn = sha(TOKEN_IN);
+    const seen = { qc: [], or: [], bj: [], charges: [], credits: 0 };
+    const qc = await server((req, raw) => {
+      seen.qc.push({ url: req.url, auth: req.headers.authorization, body: String(raw) });
+      return j({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1000000, completion_tokens: 1000000 } });
+    });
+    const bj = await server((req, raw) => {
+      seen.bj.push({ url: req.url, auth: req.headers.authorization, body: String(raw) });
+      return j({ choices: [{ message: { content: '北京' } }], usage: { total_tokens: 10 } });
+    });
+    const or = await server((req, raw) => {
+      if (String(req.url).endsWith('/credits')) {
+        seen.credits += 1;
+        return j({ data: { total_credits: 10, total_usage: 0 } });
+      }
+      const text = String(raw);
+      seen.or.push({ url: req.url, auth: req.headers.authorization, body: text });
+      if (text.includes('__FORCE_401__')) return { statusCode: 401, body: '{"error":"or_unauthorized"}', type: 'application/json' };
+      return j({ choices: [{ message: { content: '旧' } }], usage: { cost: 0.02, total_tokens: 10 } });
+    });
+    const row = [{ user_id: 'u1', limit_usd: 100, spent_usd: 0, status: 'active' }];
+    const db = await server((req, raw) => {
+      if (/bt_grant_check/.test(req.url)) return j(row);
+      if (/bt_grant_charge/.test(req.url)) { seen.charges.push(JSON.parse(String(raw))); return j(1); }
+      return j({});
+    });
+    const procs = [];
+    const near = (got, want, msg) => ok(Math.abs(Number(got) - want) < 1e-9, msg + ' got=' + got + ' want=' + want);
+    const reset = () => { seen.qc.length = 0; seen.or.length = 0; seen.bj.length = 0; seen.charges.length = 0; seen.credits = 0; };
+    function noLeak(r, label) {
+      const blob = String(r.body) + '\n' + Object.keys(r.headers || {}).join('\n') + '\n' + Object.values(r.headers || {}).join('\n');
+      ok(blob.indexOf(TOKEN_IN) < 0 && blob.indexOf(TOKEN_OUT) < 0 && blob.indexOf(TOKEN_CASE) < 0, label + ' 响应里有令牌明文');
+      ok(blob.toLowerCase().indexOf(hashIn) < 0, label + ' 响应里有名单上的哈希');
+    }
+    function logsClean(logs, label) {
+      const text = logs.join('');
+      ok(text.indexOf(TOKEN_IN) < 0 && text.indexOf(TOKEN_OUT) < 0 && text.indexOf(TOKEN_CASE) < 0, label + ' 日志里有令牌明文');
+      ok(text.toLowerCase().indexOf(hashIn) < 0, label + ' 日志里有完整哈希');
+    }
+    function boot(port, allow) {
+      const logs = [];
+      const env = Object.assign({}, process.env, {
+        PORT: String(port),
+        SUPABASE_URL: 'http://127.0.0.1:' + db.port,
+        SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
+        UPSTREAM: 'qwencloud',
+        QWENCLOUD_KEY: 'sk-qc-stub',
+        QWENCLOUD_CHAT_BASE: 'http://127.0.0.1:' + qc.port + '/v1',
+        UPSTREAM_KEY: 'sk-bj-stub',
+        UPSTREAM_BASE: 'http://127.0.0.1:' + bj.port + '/v1',
+        OPENROUTER_GRANT_KEY: 'sk-or-stub',
+        OPENROUTER_BASE: 'http://127.0.0.1:' + or.port + '/v1',
+        GRANT_MODELS: JSON.stringify({ chat: PINNED }),
+        GRANT_PRICES: JSON.stringify({ chatPerKTok: 0.001, chatFloor: 0.0005 }),
+        GRANT_FLOAT_MIN_USD: '5',
+      });
+      if (allow === undefined) delete env.QWENCLOUD_ALLOW_TOKEN_HASHES;
+      else env.QWENCLOUD_ALLOW_TOKEN_HASHES = allow;
+      const relay = spawn('deno', ['run', '-A', RELAY], {
+        cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      relay.stdout.on('data', (d) => logs.push(String(d)));
+      relay.stderr.on('data', (d) => logs.push(String(d)));
+      const proc = { relay, logs, root: 'http://127.0.0.1:' + port };
+      procs.push(proc);
+      return proc;
+    }
+    async function waitUp(proc) {
+      for (let i = 0; i < 50; i++) {
+        const r = await postFull(proc.root + '/chat/completions', { 'Content-Type': 'application/json' }, { model: PINNED, messages: [{ role: 'user', content: 'x' }] });
+        if (r.status) return;
+        await new Promise((r2) => setTimeout(r2, 200));
+      }
+      throw new Error('中继没起来：' + proc.logs.join('').slice(0, 400));
+    }
+    const H = (tok, extra) => Object.assign({
+      Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json',
+    }, extra || {});
+    const basePort = 19700 + (process.pid % 40) * 3;
+    try {
+      // 名单项带空格，哈希用大写。令牌头里 Bearer 后面多两个空格，验令牌前会 trim。
+      const listed = boot(basePort, '  ' + hashIn.toUpperCase() + ' , deadbeef ');
+      await waitUp(listed);
+      reset();
+
+      let r = await postFull(listed.root + '/chat/completions', {
+        Authorization: 'Bearer   ' + TOKEN_IN, 'Content-Type': 'application/json',
+      }, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'hi' }] });
+      eq(r.status, 200, '名单内该走 QwenCloud：' + r.status + ' ' + String(r.body).slice(0, 160));
+      eq(seen.qc.length, 1, '名单内该打到 QwenCloud');
+      eq(seen.or.length, 0, '名单内不该打到 OpenRouter');
+      eq(seen.bj.length, 0, '没带中国 IP 不该打到北京');
+      eq(seen.credits, 0, '名单内不查 OpenRouter 余额');
+      let sent = JSON.parse(seen.qc[0].body);
+      eq(sent.model, 'qwen3.7-plus');
+      eq(sent.enable_thinking, false);
+      ok(!('usage' in sent), 'QwenCloud 路径不写 usage.include');
+      eq(seen.qc[0].auth, 'Bearer sk-qc-stub');
+      near(seen.charges[0].p_cost, 2, '名单内按 0.40+1.60 记账');
+      eq(seen.charges[0].p_model, 'qwen3.7-plus');
+      noLeak(r, '名单内 200');
+
+      reset();
+      r = await postFull(listed.root + '/chat/completions', H(TOKEN_IN, { 'X-Real-IP': '1.0.8.1' }), {
+        model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'cn' }],
+      });
+      eq(r.status, 200, '名单内的中国 IP 仍走北京：' + r.body);
+      eq(seen.bj.length, 1, '名单内中国 IP 该打到北京');
+      eq(seen.qc.length, 0, '名单内中国 IP 不该打到 QwenCloud');
+      eq(seen.or.length, 0, '名单内中国 IP 不该改走 OpenRouter');
+      sent = JSON.parse(seen.bj[0].body);
+      eq(sent.model, PINNED, 'GRANT_MODELS.chat 配了就钉这个，不改成国际模型');
+      ok(!('enable_thinking' in sent), '北京路径不写 enable_thinking');
+      ok(!('usage' in sent), '北京路径不写 usage.include');
+      eq(seen.bj[0].auth, 'Bearer sk-bj-stub');
+      near(seen.charges[0].p_cost, 0.00001, '北京仍按 total_tokens × chatPerKTok');
+      noLeak(r, '名单内北京');
+
+      reset();
+      r = await postFull(listed.root + '/chat/completions', H(TOKEN_OUT, { 'X-Real-IP': '1.0.8.1' }), {
+        model: PINNED, messages: [{ role: 'user', content: 'old' }],
+      });
+      eq(r.status, 200, '名单外该走旧路径：' + r.status + ' ' + String(r.body).slice(0, 160));
+      eq(seen.or.length, 1, '名单外该打到 OpenRouter');
+      eq(seen.qc.length, 0, '名单外不该打到 QwenCloud');
+      eq(seen.bj.length, 0, '名单外的中国 IP 也不该改走北京');
+      sent = JSON.parse(seen.or[0].body);
+      eq(sent.model, PINNED, '名单外钉 GRANT_MODELS，不钉 qwen3.7-plus');
+      deepEq(sent.usage, { include: true });
+      ok(!('enable_thinking' in sent), '旧路径不写 enable_thinking');
+      eq(seen.or[0].auth, 'Bearer sk-or-stub');
+      ok(seen.credits >= 1, '名单外要查 OpenRouter 余额');
+      near(seen.charges[0].p_cost, 0.02, '名单外按 usage.cost 记账，不用 0.40/1.60');
+      eq(seen.charges[0].p_model, PINNED);
+      noLeak(r, '名单外 200');
+
+      const hops = () => seen.qc.length + seen.or.length + seen.bj.length;
+      const beforeCase = hops();
+      r = await postFull(listed.root + '/chat/completions', H(TOKEN_CASE), {
+        model: PINNED, messages: [{ role: 'user', content: 'case' }],
+      });
+      eq(r.status, 200, '令牌大小写不同就不是同一枚，该走旧路径');
+      eq(hops(), beforeCase + 1);
+      eq(seen.or.length, 2, '大小写不同的令牌不在名单里');
+      eq(seen.qc.length, 0);
+      noLeak(r, '大小写不同');
+
+      const beforeNew = hops();
+      r = await postFull(listed.root + '/chat/completions', H(TOKEN_OUT), {
+        model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'new' }],
+      });
+      eq(r.status, 403, '名单外的新模型名该 403，实际 ' + r.status + ' ' + r.body);
+      ok(String(r.body).indexOf('model_not_allowed') >= 0 && String(r.body).indexOf(PINNED) >= 0, r.body);
+      eq(hops(), beforeNew, '403 不该转发');
+      noLeak(r, '名单外 403');
+
+      r = await postFull(listed.root + '/chat/completions', H(TOKEN_OUT), {
+        model: PINNED, messages: [{ role: 'user', content: '__FORCE_401__' }],
+      });
+      eq(r.status, 401, '名单外的上游 401 该原样透传，实际 ' + r.status);
+      ok(String(r.body).indexOf('or_unauthorized') >= 0, '401 正文被改写了：' + r.body);
+      ok(String(r.body).indexOf('grant_unavailable') < 0, r.body);
+      noLeak(r, '名单外 401');
+
+      const spec = await getFull(listed.root + '/spec');
+      eq(spec.status, 200, '/spec 该 200');
+      noLeak(spec, '/spec');
+      ok(spec.body.indexOf('qwen3.7-plus') < 0, '/spec 不该改成国际钉死名：' + spec.body);
+      logsClean(listed.logs, '名单已设置');
+      ok(/relay [0-9a-f]{8} chat/.test(listed.logs.join('')), '日志仍用哈希前 8 位');
+      try { listed.relay.kill('SIGKILL'); } catch (_) {}
+
+      const unset = boot(basePort + 1, undefined);
+      await waitUp(unset);
+      reset();
+      r = await postFull(unset.root + '/chat/completions', H(TOKEN_OUT), {
+        model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'all' }],
+      });
+      eq(r.status, 200, '变量未设置该全量走 QwenCloud：' + r.status + ' ' + String(r.body).slice(0, 160));
+      eq(seen.qc.length, 1);
+      eq(seen.or.length, 0, '未设置名单时不该走 OpenRouter');
+      eq(seen.bj.length, 0);
+      eq(seen.credits, 0, '全量 QwenCloud 不查 OpenRouter 余额');
+      sent = JSON.parse(seen.qc[0].body);
+      eq(sent.model, 'qwen3.7-plus');
+      eq(sent.enable_thinking, false);
+      ok(!('usage' in sent));
+      near(seen.charges[0].p_cost, 2, '未设置名单时仍按 QwenCloud 标价记账');
+      noLeak(r, '未设置');
+      logsClean(unset.logs, '变量未设置');
+      try { unset.relay.kill('SIGKILL'); } catch (_) {}
+
+      const empty = boot(basePort + 2, '');
+      await waitUp(empty);
+      reset();
+      r = await postFull(empty.root + '/chat/completions', H(TOKEN_IN), {
+        model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'empty' }],
+      });
+      eq(r.status, 403, '空串是空名单，新模型名该 403，实际 ' + r.status + ' ' + r.body);
+      ok(String(r.body).indexOf(PINNED) >= 0, r.body);
+      eq(seen.qc.length, 0, '空名单不该打到 QwenCloud');
+      eq(seen.or.length, 0, '403 不该转发');
+      eq(seen.bj.length, 0);
+      noLeak(r, '空串 403');
+
+      r = await postFull(empty.root + '/chat/completions', {
+        Authorization: 'Bearer   ' + TOKEN_IN, 'Content-Type': 'application/json',
+      }, { model: PINNED, messages: [{ role: 'user', content: 'empty-ok' }] });
+      eq(r.status, 200, '空名单里原先会命中的令牌也走旧路径：' + r.status + ' ' + String(r.body).slice(0, 160));
+      eq(seen.qc.length, 0);
+      eq(seen.bj.length, 0);
+      eq(seen.or.length, 1);
+      sent = JSON.parse(seen.or[0].body);
+      eq(sent.model, PINNED);
+      deepEq(sent.usage, { include: true });
+      eq(seen.or[0].auth, 'Bearer sk-or-stub');
+      ok(seen.credits >= 1, '空名单走旧路径，要查余额');
+      near(seen.charges[0].p_cost, 0.02, '空名单按 usage.cost 记账');
+      noLeak(r, '空串 200');
+      logsClean(empty.logs, '空串');
+    } finally {
+      for (const p of procs) { try { p.relay.kill('SIGKILL'); } catch (_) {} }
+      try { qc.srv.close(); bj.srv.close(); or.srv.close(); db.srv.close(); } catch (_) {}
     }
   });
 });

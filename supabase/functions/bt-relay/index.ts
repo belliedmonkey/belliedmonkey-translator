@@ -48,7 +48,11 @@
 //     转写  同一条 chat/completions + input_audio            模型 qwen3-asr-flash
 //   中国   → 现有百炼兼容模式（UPSTREAM_KEY + UPSTREAM_BASE，默认 dashscope 北京）
 // 两个基址不设时就是文档上的地址。单测把它们指到本地桩。密钥：非中国 QWENCLOUD_KEY，中国 UPSTREAM_KEY。
-// 段表读不到就 503 grant_misconfigured，不把所有人当成非中国。
+// 段表读不到就 503 grant_misconfigured，不把所有人当成非中国。名单未设置时这一条挡全部请求；
+// 名单已设置时只挡走 QwenCloud 的令牌。
+// 灰度：QWENCLOUD_ALLOW_TOKEN_HASHES（逗号分隔的令牌哈希，算法是下面的 sha256Hex）。
+// 不设 = 开关打开后全部走 QwenCloud。设了才按名单分流；空串是空名单，全部走 UPSTREAM 未设时的路径。
+// 名单外不改写请求字段，模型钉死与 OpenRouter 配置与开关关闭时相同。
 // 价格（活动折扣不计入，常量在下面）：
 //   聊天 qwen3.7-plus ≤256K  输入 $0.40 / 输出 $1.60 每百万 token
 //     https://docs.qwencloud.com/changelog/model-deprecations/old-models  “from 0.4 / from 1.6”
@@ -69,6 +73,14 @@ const OR_KEY = IS_OR ? (Deno.env.get('OPENROUTER_GRANT_KEY') || '') : (Deno.env.
 const OR_BASE = IS_OR
   ? (Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1')
   : (Deno.env.get('UPSTREAM_BASE') || 'https://dashscope.aliyuncs.com/compatible-mode/v1');
+// 名单外令牌要走「UPSTREAM 未设」那条，而那时 OR_KEY/OR_BASE 已经是百炼的。单独留一份 OpenRouter 的。
+const OR_OPEN_KEY = Deno.env.get('OPENROUTER_GRANT_KEY') || '';
+const OR_OPEN_BASE = Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1';
+// undefined = 未设置 = 全量 QwenCloud。空串 = 空名单 = 全走旧路径。不要把空串当成未设置。
+const QC_ALLOW_RAW = Deno.env.get('QWENCLOUD_ALLOW_TOKEN_HASHES');
+const QC_ALLOW: Set<string> | null = QC_ALLOW_RAW === undefined ? null : new Set(
+  QC_ALLOW_RAW.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s.length > 0),
+);
 // 代转领取（只给境内中继开）。东京那个部署不设它 —— 那里客户端直接打 bt-grant。
 // 代转的目标是 `SUPABASE_URL`（部署处那台）⇒ 境内部署时领取落在**境内**库，账本同库。
 const CLAIM_PROXY = Deno.env.get('CLAIM_PROXY') === '1';
@@ -210,13 +222,14 @@ async function rpc(fn: string, args: unknown) {
 //    两句话必须分开：把「我们没钱了」说成「你用完了」，用户会去申请一把他本来
 //    不需要申请的 key，而我们连自己欠了什么都不知道。
 let floatCache = { at: 0, usd: Infinity };
-async function floatOk(): Promise<boolean> {
+async function floatOk(asOpenRouter = IS_OR, key = OR_KEY, base = OR_BASE): Promise<boolean> {
   // 余额接口是 OpenRouter 独有的。百炼没有同形状的读法 —— 读不到不等于没钱（同下面那条），
   // 放行；那一侧的池子靠百炼控制台的余额告警盯，写在 deploy/china-relay/README.md。
-  if (!IS_OR) return true;
+  // 灰度里名单外的那一笔也要查，key/base 用调用方传入的 OpenRouter 那一对。
+  if (!asOpenRouter) return true;
   if (Date.now() - floatCache.at < 600_000) return floatCache.usd >= FLOAT_MIN;
   try {
-    const r = await fetch(`${OR_BASE}/credits`, { headers: { Authorization: `Bearer ${OR_KEY}` } });
+    const r = await fetch(`${base}/credits`, { headers: { Authorization: `Bearer ${key}` } });
     if (!r.ok) return true;                       // 读不到不等于没钱，别自己把自己关掉
     const d = await r.json();
     const total = Number(d?.data?.total_credits ?? 0);
@@ -251,7 +264,9 @@ const serve = (h: (req: Request) => Response | Promise<Response>) =>
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // qwencloud 的密钥按 IP 分两把，缺哪一把在选完上游之后再 503。不设开关时这一行与从前相同。
-  if (!KNOWN_UPSTREAM || (!IS_QC && !OR_KEY) || (IS_QC && CN_BAD)) return json({ error: 'grant_misconfigured' }, 503);
+  // 名单已设置（含空名单）时，段表读失败不能把走旧路径的令牌一起 503 掉。
+  if (!KNOWN_UPSTREAM || (!IS_QC && !OR_KEY) || (IS_QC && QC_ALLOW === null && CN_BAD)) return json({ error: 'grant_misconfigured' }, 503);
+  if (IS_QC && QC_ALLOW !== null && QC_ALLOW.size === 0 && !OR_OPEN_KEY) return json({ error: 'grant_misconfigured' }, 503);
 
   const url = new URL(req.url);
   // 路径后缀就是形状 —— 与 wire-format.js 同一条规则（domain-design §7）。
@@ -287,6 +302,13 @@ serve(async (req) => {
   if (!token.startsWith('bmg_')) return json({ error: 'grant_invalid' }, 401);
   const hash = await sha256Hex(token);
   const tag = hash.slice(0, 8);
+  // 未设置名单：开关打开则全部走 QwenCloud。设置了：只有哈希在名单里才走。
+  const useQc = IS_QC && (QC_ALLOW === null || QC_ALLOW.has(hash));
+  if (useQc && CN_BAD) return json({ error: 'grant_misconfigured' }, 503);
+  if (IS_QC && !useQc && !OR_OPEN_KEY) return json({ error: 'grant_misconfigured' }, 503);
+  const routeKey = (IS_QC && !useQc) ? OR_OPEN_KEY : OR_KEY;
+  const routeBase = (IS_QC && !useQc) ? OR_OPEN_BASE : OR_BASE;
+  const asOpenRouter = IS_OR || (IS_QC && !useQc);
 
   let row: { user_id: string; limit_usd: number; spent_usd: number; status: string } | undefined;
   try {
@@ -306,7 +328,7 @@ serve(async (req) => {
   // 402 是「你用完了」，只有这一个意思。
   if (left <= 0) return json({ error: 'credit_exhausted' }, 402);
   if (limited(hash)) return json({ error: 'busy' }, 429);
-  if (!(await floatOk())) return json({ error: 'grant_unavailable' }, 503);
+  if (!(await floatOk(asOpenRouter, routeKey, routeBase))) return json({ error: 'grant_unavailable' }, 503);
 
   const shape: Shape | null = p === '/chat/completions' ? 'chat'
     : p === '/audio/speech' ? 'tts'
@@ -315,7 +337,7 @@ serve(async (req) => {
 
   let qcIsChina = false;
   let model = MODELS[shape];
-  if (IS_QC) {
+  if (useQc) {
     qcIsChina = isChina(req.headers.get('x-real-ip') || '', CN_V4, CN_V6);
     if (qcIsChina) model = shape === 'chat' ? (MODELS.chat || 'qwen-plus') : (MODELS[shape] || '');
     else model = shape === 'chat' ? QC_CHAT : shape === 'tts' ? QC_TTS : QC_STT;
@@ -329,7 +351,7 @@ serve(async (req) => {
     console.log('relay', tag, shape, 'no_model_configured');
     return json({ error: 'grant_misconfigured' }, 503);
   }
-  const qcIntl = IS_QC && !qcIsChina;
+  const qcIntl = useQc && !qcIsChina;
 
   const t0 = Date.now();
   let upstream: Response;
@@ -382,9 +404,9 @@ serve(async (req) => {
           const v = inForm.get(k);
           if (typeof v === 'string') out.set(k, v);
         }
-        upstream = await fetch(`${OR_BASE}/audio/transcriptions`, {
+        upstream = await fetch(`${routeBase}/audio/transcriptions`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${OR_KEY}` },
+          headers: { Authorization: `Bearer ${routeKey}` },
           body: out,
         });
         // 转写按上传字节估价，且**往高了估** —— 估低了就是我们替所有人多付钱，而
@@ -404,7 +426,7 @@ serve(async (req) => {
       // 客户端把模型改掉了 —— 具名 403，客户端给一句「改回 {model}」。
       // qwencloud 额外接受旧客户端的模型名，以及国际钉死名（中国 IP 会改写成北京的模型）。
       if (typeof body.model === 'string' && body.model && body.model !== model) {
-        if (!(IS_QC && qcAcceptsClientModel(shape, body.model))) {
+        if (!(useQc && qcAcceptsClientModel(shape, body.model))) {
           return json({ error: 'model_not_allowed', model }, 403);
         }
       }
@@ -475,14 +497,14 @@ serve(async (req) => {
           if (!Array.isArray(sent.messages) || !sent.messages.length) return json({ error: 'bad_request' }, 400);
           // 让提供方把这一次的真实花费告诉我们。只有 OpenRouter 认这个字段；百炼的兼容模式
           // 不认的字段不该由我们替它试（model-params 那条纪律），它的花费走 total_tokens 那一级。
-          if (IS_OR) sent.usage = { include: true };
+          if (asOpenRouter) sent.usage = { include: true };
         } else if (typeof sent.input !== 'string' || !sent.input) {
           return json({ error: 'bad_request' }, 400);
         }
 
-        upstream = await fetch(`${OR_BASE}/${shape === 'chat' ? 'chat/completions' : 'audio/speech'}`, {
+        upstream = await fetch(`${routeBase}/${shape === 'chat' ? 'chat/completions' : 'audio/speech'}`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${OR_KEY}`, 'Content-Type': 'application/json' },
+          headers: { Authorization: `Bearer ${routeKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(sent),
         });
         if (shape === 'tts') {
@@ -492,7 +514,7 @@ serve(async (req) => {
     }
   } catch (e) {
     const raw = String(e);
-    const msg = (IS_QC ? redactUrl(raw) : raw).slice(0, 120);
+    const msg = (useQc ? redactUrl(raw) : raw).slice(0, 120);
     console.log('relay', tag, shape, 'upstream_error', msg);
     return json({ error: 'upstream' }, 502);
   }
@@ -501,12 +523,12 @@ serve(async (req) => {
 
   // 上游的钱的问题也是 402/403，但它说的是**我们的**账号 —— 对用户而言那是我们的
   // 问题，不是他用完了。翻译成 503，文案是「不是你用完了」。
-  // qwencloud 打开时 401 同样改写（密钥是我们的）。开关关闭时 401 仍原样透传。
-  if (upstream.status === 402 || upstream.status === 403 || (IS_QC && upstream.status === 401)) {
+  // 走 QwenCloud 的那一笔：401 同样改写（密钥是我们的）。旧路径 401 仍原样透传。
+  if (upstream.status === 402 || upstream.status === 403 || (useQc && upstream.status === 401)) {
     console.log('relay', tag, shape, 'upstream_billing', upstream.status);
     return json({ error: 'grant_unavailable' }, 503);
   }
-  if (IS_QC && upstream.status === 429) {
+  if (useQc && upstream.status === 429) {
     console.log('relay', tag, shape, 'upstream_rate_limited');
     return json({ error: 'upstream_rate_limited' }, 429);
   }
