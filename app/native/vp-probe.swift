@@ -400,6 +400,7 @@ enum MTVPProbe {
             return out
         }
         out["started"] = true
+        FileHandle.standardError.write(Data("window-start\n".utf8))
         let deadline = Date().addingTimeInterval(Double(inputFramesWindowMs) / 1000)
         while Date() < deadline {
             RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
@@ -418,9 +419,11 @@ enum MTVPProbe {
         }
         if snapStats.parsed {
             out["nonzeroFrameCount"] = NSNumber(value: snapStats.nonzeroFrames)
+            out["maxAbs"] = NSNumber(value: snapStats.maxAbs)
             out["channels"] = snapStats.channels
         } else {
             out["nonzeroFrameCount"] = NSNull()
+            out["maxAbs"] = NSNull()
             out["channels"] = snapStats.channels
         }
         if snapStats.frames == 0 {
@@ -578,6 +581,7 @@ private final class InputFrameStats: @unchecked Sendable {
     private var frames: Int64 = 0
     private var nonzeroFrames: Int64 = 0
     private var nonzeroSamples: [Int64]
+    private var maxAbs: [Float]
     private var seen: [Bool]
     private var parsed = true
     private var note: String?
@@ -587,6 +591,7 @@ private final class InputFrameStats: @unchecked Sendable {
         let n = max(channelCount, 0)
         self.channelCount = n
         nonzeroSamples = Array(repeating: 0, count: n)
+        maxAbs = Array(repeating: 0, count: n)
         seen = Array(repeating: false, count: n)
     }
 
@@ -594,6 +599,7 @@ private final class InputFrameStats: @unchecked Sendable {
         let nFrames = buffer.frameLength
         var localNonzeroFrames = 0
         var localNonzero = [Int64](repeating: 0, count: channelCount)
+        var localMax = [Float](repeating: 0, count: channelCount)
         var localSeen = [Bool](repeating: false, count: channelCount)
         var localParsed = true
         var localNote: String?
@@ -605,16 +611,16 @@ private final class InputFrameStats: @unchecked Sendable {
                 localList = list.count
                 switch buffer.format.commonFormat {
                 case .pcmFormatFloat32:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
-                        raw.assumingMemoryBound(to: Float.self)[index] != 0
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        abs(raw.assumingMemoryBound(to: Float.self)[index])
                     }
                 case .pcmFormatInt16:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
-                        raw.assumingMemoryBound(to: Int16.self)[index] != 0
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        abs(Float(raw.assumingMemoryBound(to: Int16.self)[index])) / 32768
                     }
                 case .pcmFormatInt32:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
-                        raw.assumingMemoryBound(to: Int32.self)[index] != 0
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        abs(Float(raw.assumingMemoryBound(to: Int32.self)[index])) / 2147483648
                     }
                 default:
                     localParsed = false
@@ -634,6 +640,7 @@ private final class InputFrameStats: @unchecked Sendable {
             for i in 0..<channelCount {
                 if localSeen[i] { seen[i] = true }
                 nonzeroSamples[i] += localNonzero[i]
+                if localMax[i] > maxAbs[i] { maxAbs[i] = localMax[i] }
             }
         }
         lock.unlock()
@@ -646,9 +653,10 @@ private final class InputFrameStats: @unchecked Sendable {
         interleaved: Bool,
         bytesPerSample: Int,
         nonzero: inout [Int64],
+        maxAbs: inout [Float],
         seen: inout [Bool],
         nonzeroFrames: inout Int,
-        isNonzero: (UnsafeMutableRawPointer, Int) -> Bool
+        amplitude: (UnsafeMutableRawPointer, Int) -> Float
     ) {
         if !interleaved {
             let nBuf = min(list.count, channels)
@@ -658,9 +666,13 @@ private final class InputFrameStats: @unchecked Sendable {
                 guard let data = audio.mData else { continue }
                 seen[b] = true
                 let count = min(frames, Int(audio.mDataByteSize) / bytesPerSample)
-                for i in 0..<count where isNonzero(data, i) {
-                    nonzero[b] += 1
-                    hit[i] = true
+                for i in 0..<count {
+                    let value = amplitude(data, i)
+                    if value > maxAbs[b] { maxAbs[b] = value }
+                    if value != 0 {
+                        nonzero[b] += 1
+                        hit[i] = true
+                    }
                 }
             }
             for flag in hit where flag { nonzeroFrames += 1 }
@@ -674,7 +686,9 @@ private final class InputFrameStats: @unchecked Sendable {
                 let index = i * channels + c
                 if index >= available { continue }
                 seen[c] = true
-                if isNonzero(data, index) {
+                let value = amplitude(data, index)
+                if value > maxAbs[c] { maxAbs[c] = value }
+                if value != 0 {
                     nonzero[c] += 1
                     frameHit = true
                 }
@@ -683,11 +697,13 @@ private final class InputFrameStats: @unchecked Sendable {
         }
     }
 
-    func snapshot() -> (buffers: Int, frames: Int64, nonzeroFrames: Int64, parsed: Bool, note: String?, listCount: Int?, channels: [[String: Any]]) {
+    func snapshot() -> (buffers: Int, frames: Int64, nonzeroFrames: Int64, maxAbs: Float, parsed: Bool, note: String?, listCount: Int?, channels: [[String: Any]]) {
         lock.lock()
         defer { lock.unlock() }
         var rows: [[String: Any]] = []
+        var peak: Float = 0
         for i in 0..<channelCount {
+            if maxAbs[i] > peak { peak = maxAbs[i] }
             var row: [String: Any] = [
                 "index": i,
                 "seen": seen[i],
@@ -695,11 +711,13 @@ private final class InputFrameStats: @unchecked Sendable {
             ]
             if seen[i] {
                 row["allZero"] = nonzeroSamples[i] == 0
+                row["maxAbs"] = NSNumber(value: maxAbs[i])
             } else {
                 row["allZero"] = NSNull()
+                row["maxAbs"] = NSNull()
             }
             rows.append(row)
         }
-        return (buffers, frames, nonzeroFrames, parsed, note, listCount, rows)
+        return (buffers, frames, nonzeroFrames, peak, parsed, note, listCount, rows)
     }
 }

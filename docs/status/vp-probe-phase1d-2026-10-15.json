@@ -1,0 +1,210 @@
+{
+  "date": "2026-10-15",
+  "parameter": "--input-frames",
+  "defaultOff": true,
+  "soundPlayedByProbe": false,
+  "prepared": false,
+  "playerAttached": false,
+  "gradeRule": "C nonzero samples; D zero frames; F frames but all samples zero; E threw. One run, F is not retried.",
+  "shellVolumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "inputVolumeRestoreTarget": 0,
+  "volumeBefore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "devicesBefore": {
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "raw": "Audio:\n\n    Devices:\n\n        “ZHAO的iPhone”的麦克风:\n\n          Input Channels: 1\n          Manufacturer: Apple Inc.\n          Current SampleRate: 48000\n          Transport: Unknown\n          Input Source: Default\n\n        MacBook Pro麦克风:\n\n          Default Input Device: Yes\n          Input Channels: 1\n          Manufacturer: Apple Inc.\n          Current SampleRate: 44100\n          Transport: Built-in\n          Input Source: MacBook Pro麦克风\n\n        MacBook Pro扬声器:\n\n          Default Output Device: Yes\n          Default System Output Device: Yes\n          Manufacturer: Apple Inc.\n          Output Channels: 2\n          Current SampleRate: 48000\n          Transport: Built-in\n          Output Source: MacBook Pro扬声器\n\n        Gemoo Speaker:\n\n          Input Channels: 2\n          Manufacturer: Gemoo\n          Output Channels: 2\n          Current SampleRate: 48000\n          Transport: Virtual\n          Input Source: Default\n          Output Source: Default\n\n"
+  },
+  "glass": {
+    "path": "/System/Library/Sounds/Glass.aiff",
+    "afinfo": "File:           /System/Library/Sounds/Glass.aiff\nFile type ID:   AIFF\nNum Tracks:     1\n----\nData format:     2 ch,  48000 Hz, lpcm (0x0000000E) 24-bit big-endian signed integer\n                no channel layout.\nestimated duration: 1.650083 sec\naudio bytes: 475224\naudio packets: 79204\nbit rate: 2304000 bits per second\npacket size upper bound: 6\nmaximum packet size: 6\naudio data file offset: 54\noptimized\nsource bit depth: I24\n----\n"
+  },
+  "volumeAfterInputSet": {
+    "output volume": 70,
+    "input volume": 60,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:60, alert volume:100, output muted:false"
+  },
+  "outputAlertMuteChangedByInputSet": [],
+  "windowStartSeen": true,
+  "windowStartSeenAt": "2026-10-15T20:53:44.829+08:00",
+  "volumeBeforeAfplay": {
+    "output volume": 70,
+    "input volume": 60,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:60, alert volume:100, output muted:false"
+  },
+  "afplaySequenceStart": "2026-10-15T20:53:46.013+08:00",
+  "afplaySequenceEnd": "2026-10-15T20:53:50.032+08:00",
+  "volumeAfterAfplay": {
+    "output volume": 70,
+    "input volume": 60,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:60, alert volume:100, output muted:false"
+  },
+  "afplay": [
+    {
+      "index": 0,
+      "started": true,
+      "start": "2026-10-15T20:53:46.013+08:00",
+      "exitCode": 0,
+      "cutToKeepTotalAtMost4s": false,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "index": 1,
+      "started": true,
+      "start": "2026-10-15T20:53:48.467+08:00",
+      "exitCode": -15,
+      "cutToKeepTotalAtMost4s": true,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "index": 2,
+      "started": false,
+      "reason": "4s cap already reached"
+    }
+  ],
+  "probeExitCode": 0,
+  "probeStderr": "window-start\n",
+  "probeStdout": "[\n  {\n    \"attachPlayer\" : false,\n    \"audioBufferListCount\" : 9,\n    \"authorization\" : \"authorized\",\n    \"bufferCount\" : 27,\n    \"buffersScheduled\" : 0,\n    \"channels\" : [\n      {\n        \"allZero\" : false,\n        \"index\" : 0,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 1,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 2,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 3,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 4,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 5,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 6,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 7,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      },\n      {\n        \"allZero\" : false,\n        \"index\" : 8,\n        \"maxAbs\" : 0.0051873484626412392,\n        \"nonzeroSamples\" : 221181,\n        \"seen\" : true\n      }\n    ],\n    \"citation\" : \"AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework\\/Headers\\/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.\",\n    \"engineCreated\" : true,\n    \"engineRunningAtEnd\" : false,\n    \"engineRunningBeforeEnable\" : false,\n    \"errorCode\" : null,\n    \"errorDomain\" : null,\n    \"frameCount\" : 221184,\n    \"maxAbs\" : 0.0051873484626412392,\n    \"mixWithOthers\" : {\n      \"citation\" : \"AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.\",\n      \"lost\" : null,\n      \"readable\" : false\n    },\n    \"name\" : \"input-frames\",\n    \"nodesConnected\" : false,\n    \"nonzeroFrameCount\" : 221181,\n    \"outcome\" : \"C\",\n    \"playerAttached\" : false,\n    \"prepared\" : false,\n    \"reason\" : \"ok\",\n    \"samplesParsed\" : true,\n    \"started\" : true,\n    \"switch\" : \"on\",\n    \"tapBufferFrames\" : 8192,\n    \"tapBufferMs\" : 185.75963718820861,\n    \"tapBufferNote\" : \"AVAudioNode.h example uses 8192 frames; at this rate that is inside [100, 400] ms\",\n    \"tapFormat\" : {\n      \"channelCount\" : 9,\n      \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n      \"isInterleaved\" : false,\n      \"sampleRate\" : 44100\n    },\n    \"tapInstalled\" : true,\n    \"threw\" : false,\n    \"voiceProcessingEnabled\" : true,\n    \"windowMs\" : 5000\n  }\n]\n",
+  "probe": [
+    {
+      "attachPlayer": false,
+      "audioBufferListCount": 9,
+      "authorization": "authorized",
+      "bufferCount": 27,
+      "buffersScheduled": 0,
+      "channels": [
+        {
+          "allZero": false,
+          "index": 0,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 1,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 2,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 3,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 4,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 5,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 6,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 7,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        },
+        {
+          "allZero": false,
+          "index": 8,
+          "maxAbs": 0.005187348462641239,
+          "nonzeroSamples": 221181,
+          "seen": true
+        }
+      ],
+      "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+      "engineCreated": true,
+      "engineRunningAtEnd": false,
+      "engineRunningBeforeEnable": false,
+      "errorCode": null,
+      "errorDomain": null,
+      "frameCount": 221184,
+      "maxAbs": 0.005187348462641239,
+      "mixWithOthers": {
+        "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+        "lost": null,
+        "readable": false
+      },
+      "name": "input-frames",
+      "nodesConnected": false,
+      "nonzeroFrameCount": 221181,
+      "outcome": "C",
+      "playerAttached": false,
+      "prepared": false,
+      "reason": "ok",
+      "samplesParsed": true,
+      "started": true,
+      "switch": "on",
+      "tapBufferFrames": 8192,
+      "tapBufferMs": 185.75963718820861,
+      "tapBufferNote": "AVAudioNode.h example uses 8192 frames; at this rate that is inside [100, 400] ms",
+      "tapFormat": {
+        "channelCount": 9,
+        "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+        "isInterleaved": false,
+        "sampleRate": 44100
+      },
+      "tapInstalled": true,
+      "threw": false,
+      "voiceProcessingEnabled": true,
+      "windowMs": 5000
+    }
+  ],
+  "inputVolumeRestored": true,
+  "volumeAfterRestore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "devicesAfter": {
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "raw": "Audio:\n\n    Devices:\n\n        “ZHAO的iPhone”的麦克风:\n\n          Input Channels: 1\n          Manufacturer: Apple Inc.\n          Current SampleRate: 48000\n          Transport: Unknown\n          Input Source: Default\n\n        MacBook Pro麦克风:\n\n          Default Input Device: Yes\n          Input Channels: 1\n          Manufacturer: Apple Inc.\n          Current SampleRate: 44100\n          Transport: Built-in\n          Input Source: MacBook Pro麦克风\n\n        MacBook Pro扬声器:\n\n          Default Output Device: Yes\n          Default System Output Device: Yes\n          Manufacturer: Apple Inc.\n          Output Channels: 2\n          Current SampleRate: 48000\n          Transport: Built-in\n          Output Source: MacBook Pro扬声器\n\n        Gemoo Speaker:\n\n          Input Channels: 2\n          Manufacturer: Gemoo\n          Output Channels: 2\n          Current SampleRate: 48000\n          Transport: Virtual\n          Input Source: Default\n          Output Source: Default\n\n"
+  },
+  "probeOutcomeField": "C",
+  "outcome": "C",
+  "afplayDelayAfterWindowStartMs": 1184,
+  "gradeNote": "The probe prints a one-element array. A first pass graded that array and wrote E. The same stdout is graded here: frameCount 221184, nonzeroFrameCount 221181, maxAbs about 0.005187, threw false, so the new scale is C. The microphone was not opened again.",
+  "afplayNote": "afinfo estimated duration is 1.650083 s, so three complete plays are 4.950 s. The 4 s cap stopped the second play with SIGTERM and the third play was not started.",
+  "detail": "start succeeded. 9 channels each have 221181 nonzero samples and maxAbs 0.005187348462641239. frameCount is 221184. This is C on the new scale. Input volume was 0, set to 60, then restored to 0. Output volume stayed 70, alert volume stayed 100, mute stayed false."
+}
