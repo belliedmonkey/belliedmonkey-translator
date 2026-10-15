@@ -787,6 +787,60 @@ describe('TranslationAPI — Firefox CSP workaround (§5.4)', () => {
   });
 });
 
+describe('TranslationAPI — 断句 directFetch 计时默认关闭（#592）', () => {
+  function loadCounted(counter, extra) {
+    const body = JSON.stringify({ choices: [{ message: { content: '你好' } }] });
+    const fetch = async () => ({
+      ok: true, status: 200, statusText: 'OK',
+      headers: { get: () => null },
+      text: async () => { counter.n++; return body; },
+      json: async () => JSON.parse(body),
+    });
+    const chrome = makeChrome({});
+    const window = loadRegistry();
+    const ctx = loadModule(['engine-state.js', 'request-shape.js', 'translation-api.js'],
+      Object.assign({ fetch, chrome, AbortController, URLSearchParams, window, WireFormat }, extra));
+    return ctx.TranslationAPI;
+  }
+  const url = 'https://example.test/v1/chat/completions';
+  const prompt = { system: 'sys', user: 'hello there' };
+
+  test('开关关闭时正文只读一次，没有 wire', async () => {
+    const counter = { n: 0 };
+    const bag = { __mt592SegTiming: { on: false, ev: [] } };
+    const API = loadCounted(counter, bag);
+    eq(await API.listenPass(prompt, 'deepseek', 'k', url, 'm'), '你好');
+    eq(counter.n, 1);
+    eq(bag.__mt592SegTiming.ev.filter((e) => e.k === 'wire').length, 0);
+  });
+
+  test('开关关闭时带了 mark 也不预读正文', async () => {
+    const counter = { n: 0 };
+    const bag = { __mt592SegTiming: { on: false, ev: [] } };
+    const API = loadCounted(counter, bag);
+    eq(await API.listenPass(prompt, 'deepseek', 'k', url, 'm', { mark: { kind: 'seg' }, timeoutMs: 30000 }), '你好');
+    eq(counter.n, 1);
+    eq(bag.__mt592SegTiming.ev.filter((e) => e.k === 'wire').length, 0);
+  });
+
+  test('开关打开的断句请求记下发出、响应头、读完正文，日志不含正文', async () => {
+    const counter = { n: 0 };
+    const bag = { __mt592SegTiming: { on: true, ev: [] } };
+    const API = loadCounted(counter, bag);
+    eq(await API.listenPass(prompt, 'deepseek', 'k', url, 'm', { mark: { kind: 'seg' }, timeoutMs: 30000 }), '你好');
+    eq(counter.n, 1, '正文在 directFetch 读完后交给调用方的是缓存');
+    const wires = bag.__mt592SegTiming.ev.filter((e) => e.k === 'wire');
+    eq(wires.length, 1);
+    const w = wires[0];
+    ok(w.sent > 0 && w.head >= w.sent && w.body >= w.head);
+    eq(w.status, 200);
+    eq(w.route, 'direct');
+    ok(w.bytes > 0);
+    const dumped = JSON.stringify(w);
+    ok(!dumped.includes('你好') && !dumped.includes('hello'));
+  });
+});
+
 describe('TranslationAPI.detectLanguage — 语言识别只取一个 ISO 639-1 码', () => {
   test('parseLangCode：干净的码、带引号/句号/地区的码都取到；一句话答复 ⇒ 空串', () => {
     const T = require('../extension/content/translation-api.js');

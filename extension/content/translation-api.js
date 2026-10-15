@@ -188,11 +188,49 @@ Rules:
     return (/^http:/i.test(String(url).trim()) ? 'http://' : 'https://') + h;
   }
 
-  async function directFetch(url, opts, timeoutMs) {
+  // 断句耗时拆分（#592，默认关）。只在调用方传入 wire 且 __mt592SegTiming.on 时记下
+  // 三个时刻：发出、响应头到达（fetch resolve）、响应体读完。不记地址、头、正文。
+  // 关着时与从前逐字相同：fetch 一拿到响应头就返回，正文仍由调用方读，截止计时也在
+  // 那一刻停 —— 打开时先停计时再读正文，所以截止窗口没有变长。
+  function segTimingOn() {
+    try {
+      const g = typeof globalThis !== 'undefined' ? globalThis.__mt592SegTiming : null;
+      return !!(g && g.on);
+    } catch (_) { return false; }
+  }
+  async function directFetch(url, opts, timeoutMs, wire) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs || RequestShape.timeoutMs());
+    const init = Object.assign({}, opts, { signal: ctrl.signal });
+    const timed = !!(wire && segTimingOn());
     try {
-      return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+      if (!timed) return await fetch(url, init);
+      wire.sent = Date.now();
+      wire.route = 'direct';
+      let resp;
+      try {
+        resp = await fetch(url, init);
+      } catch (e) {
+        wire.head = 0; wire.body = 0; wire.status = 0; wire.bytes = 0;
+        throw e;
+      }
+      clearTimeout(timer);
+      wire.head = Date.now();
+      let text;
+      try { text = await resp.text(); }
+      catch (e) {
+        wire.body = 0; wire.status = resp.status; wire.bytes = 0;
+        throw e;
+      }
+      wire.body = Date.now();
+      wire.status = resp.status;
+      wire.bytes = text.length;
+      return {
+        ok: resp.ok, status: resp.status, statusText: resp.statusText || '',
+        headers: { get: (h) => resp.headers.get(h) },
+        text: async () => text,
+        json: async () => JSON.parse(text),
+      };
     } finally {
       clearTimeout(timer);
     }
@@ -225,17 +263,17 @@ Rules:
   //
   // 连请求都没发的失败（no_base / unknown_provider 这类）走不到这里，因此**没有** ms，
   // 上层据此不发这个字段：缺席看得出来。
-  async function apiFetch(url, opts, label, diag, timeoutMs) {
+  async function apiFetch(url, opts, label, diag, timeoutMs, wire) {
     const startedAt = Date.now();
     try {
-      return await apiFetchInner(url, opts, label, diag, timeoutMs);
+      return await apiFetchInner(url, opts, label, diag, timeoutMs, wire);
     } catch (e) {
       if (e && typeof e === 'object' && !Number.isInteger(e.ms)) e.ms = Date.now() - startedAt;
       throw e;
     }
   }
 
-  async function apiFetchInner(url, opts, label, diag, timeoutMs) {
+  async function apiFetchInner(url, opts, label, diag, timeoutMs, wire) {
     let resp;
     let usedRoute = null;
     const origin = originOf(url);
@@ -249,9 +287,9 @@ Rules:
     } else {
       const first = proxyFirst
         ? { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' }
-        : { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' };
+        : { run: () => directFetch(url, opts, timeoutMs, wire), tag: 'direct' };
       const second = proxyFirst
-        ? { run: () => directFetch(url, opts, timeoutMs), tag: 'direct' }
+        ? { run: () => directFetch(url, opts, timeoutMs, wire), tag: 'direct' }
         : { run: () => proxyFetch(url, opts, timeoutMs), tag: 'proxy' };
       try {
         resp = await first.run();
@@ -368,7 +406,7 @@ Rules:
   async function callChatAPI(o) {
     const resp = await apiFetch(o.url, {
       method: 'POST', headers: o.headers, body: JSON.stringify(o.body)
-    }, o.label, o.diag, o.timeoutMs);
+    }, o.label, o.diag, o.timeoutMs, o.wire);
     // 正文按 text 读再 parse，而不是 resp.json()：apiFetch 的错误分支也这么读，两边
     // 保持一致，且畸形正文抛的是我们能定位的 SyntaxError 而不是 fetch 内部的。
     const parsed = JSON.parse(await resp.text());
@@ -719,9 +757,15 @@ Rules:
       if (req.error) { const e = new Error(req.error); e.status = 0; e.code = req.error; e.retryable = false; throw e; }
       const diag = o.diag;
       if (diag) { diag.url = url; diag.paramRow = req.caps.id; diag.bodyKeys = Object.keys(req.body); }
-      return await callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs });
+      const wire = (mark && segTimingOn()) ? {} : null;
+      if (mark && wire) mark.wire = wire;
+      return await callChatAPI({ diag, url, headers: req.headers, body: req.body, label: p.label || provider, extract: req.extract, timeoutMs: o.timeoutMs, wire });
       } finally {
         if (mark) mt592Note(mark, (mark.start || u0) - (mark.enq || 0), Date.now() - u0);
+        if (mark && mark.wire && mark.wire.sent) {
+          const w = mark.wire;
+          mt592TimingPush({ k: 'wire', sent: w.sent, head: w.head || 0, body: w.body || 0, status: w.status || 0, bytes: w.bytes || 0, route: w.route || '' });
+        }
       }
     });
   }
