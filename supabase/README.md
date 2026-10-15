@@ -38,6 +38,16 @@ supabase secrets set \
   `npm run grant:status` 读 `GET …/bt-relay/spec` 回来比一次；不一致时客户端说的
   和服务端执行的不是一回事（用户看到「免费额度只能用 A」，而服务端在跑 B）。
 
+### `UPSTREAM=qwencloud`（#592，2026-10-15，默认关，未部署）
+
+不设 `UPSTREAM` 时，上面那组密钥的行为不变。设成 `qwencloud` 之后才改上游：
+
+- 非中国 IP：`QWENCLOUD_KEY`。聊天 / 转写基址默认 `https://maas.qwencloudapi.com/compatible-mode/v1`，朗读默认 `https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation`。模型钉死为 `qwen3.7-plus` / `qwen3-tts-flash` / `qwen3-asr-flash`。
+- 中国 IP：沿用 `UPSTREAM_KEY` 与 `UPSTREAM_BASE`（默认百炼北京兼容模式）。聊天用 `GRANT_MODELS.chat`，没有就用 `qwen-plus`。朗读 / 转写没配就 503。
+- 价格写在中继常量里（2026-10-15，活动折扣不计入）：聊天输入 $0.40、输出 $1.60 每百万 token（https://docs.qwencloud.com/changelog/model-deprecations/old-models ）；朗读 $0.1 / 万字符；转写 $0.000035 / 秒。
+- 段表用 `supabase/functions/bt-models/cn-cidrs.txt`。读不到就整档 503，不把所有人当成非中国。现有的 Supabase 函数打包不会带上这个文件，**翻开关之前要先让运行时读得到它**。
+- 回滚：去掉 `UPSTREAM`，或改回 `openrouter`。客户端注册表已经改成新模型名，和仍钉着旧模型的线上中继对不上会 403，所以客户端与中继一起发。
+
 3. 邮件模板与验证码长度（**没有 SQL 能代劳**，走 Management API）：
 
 ```bash
