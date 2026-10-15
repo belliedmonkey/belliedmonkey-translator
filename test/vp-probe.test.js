@@ -142,6 +142,32 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     ok(ifAt >= 0 && callAt - ifAt < 500, 'the enable call is not inside the voice-processing branch');
   });
 
+  test('--player-ab-slices 先关后开，按采样点切 100 毫秒，默认关', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runPlayerABSlices()');
+    const end = probe.indexOf('static func runPlayerAB()', begin);
+    ok(begin > 0 && end > begin, 'runPlayerABSlices missing');
+    const body = probe.slice(begin, end);
+    const offAt = body.indexOf('enableVoiceProcessing: false');
+    const onAt = body.indexOf('enableVoiceProcessing: true');
+    ok(offAt >= 0 && onAt > offAt, 'order is not off then on');
+    eq(body.split('runPlayerFrames(').length - 1, 2);
+    eq(body.split('collectSlices: true').length - 1, 2);
+    ok(!/setVoiceProcessingEnabled\(/.test(body), 'slices path calls the switch itself');
+    ok(/playerABGapMs/.test(body), 'gap constant missing');
+    ok(/collectSlices: Bool = false/.test(probe), 'slices default is not off');
+    ok(/private static let playerSliceMs = 100/.test(probe), 'slice is not 100 ms');
+    ok(/args == \["--player-ab-slices"\]/.test(main), 'main has no --player-ab-slices');
+    ok(/on RMS <= off RMS \/ 5/.test(probe), 'fifth rule missing');
+    const slicesAt = probe.indexOf('private final class Channel0Slices');
+    ok(slicesAt > probe.indexOf('private static func tapBufferChoice'), 'Channel0Slices missing');
+    const slices = probe.slice(slicesAt);
+    ok(/for i in 0\.\.<count/.test(slices), 'slices are not cut per sample');
+    ok(/floor\(/.test(slices), 'slice index is not floor of sample time');
+    ok(!/scheduleBuffer|\.play\(/.test(body + slices), 'slices path schedules or plays');
+  });
+
   test('探针不进双 flavor 共用的 BLOCKS', () => {
     const { BLOCKS } = require('../scripts/sync-app-assets.js');
     ok(!BLOCKS.some((b) => b.src === 'vp-probe.swift'), 'vp-probe.swift is in BLOCKS');

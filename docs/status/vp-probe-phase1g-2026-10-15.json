@@ -1,0 +1,2990 @@
+{
+  "date": "2026-10-15",
+  "parameter": "--player-ab-slices",
+  "defaultOff": true,
+  "issueComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6195508395",
+  "gradeRule": "M when every 100ms slice at or after 1s from play start has on RMS <= off RMS / 5. N when any such slice is higher; lastExceedingSliceStartSec is that slice start. E if either run threw. One pair, off then on, no retry. phase1f stays K and is not a pass.",
+  "phase1f": "unchanged K by the pre-written maxAbs rule; not a pass; this run does not regrade it",
+  "convergenceOfficial": "未找到",
+  "startedAt": "2026-10-15T23:30:31.046+08:00",
+  "endedAt": "2026-10-15T23:30:50.668+08:00",
+  "shellVolumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "inputVolumeRestoreTarget": 0,
+  "volumeBefore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "devicesBefore": {
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器"
+  },
+  "volumeAfterInputSet": {
+    "output volume": 70,
+    "input volume": 60,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:60, alert volume:100, output muted:false"
+  },
+  "outputAlertMuteChangedByInputSet": [],
+  "abortedBeforeProbe": false,
+  "probeExitCode": 0,
+  "probeTimedOut": false,
+  "probeError": null,
+  "probeStdout": "[\n  {\n    \"audioSaved\" : false,\n    \"channel\" : 0,\n    \"comparisonTable\" : [\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -11,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 6.2333783716894686e-05,\n        \"offRms\" : 1.1211531123100158e-05,\n        \"offSampleCount\" : 2169,\n        \"onMaxAbs\" : 0.005194466095417738,\n        \"onRms\" : 0.00087414796913584322,\n        \"onSampleCount\" : 2832,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 77.968652054557921,\n        \"startSec\" : -1.1000000000000001\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -10,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0032218201085925102,\n        \"offRms\" : 0.001086410330568817,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0073117343708872795,\n        \"onRms\" : 0.0017203438709961704,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.5835120696021381,\n        \"startSec\" : -1\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -9,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0035630189813673496,\n        \"offRms\" : 0.0012724656056156132,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0040980195626616478,\n        \"onRms\" : 0.0014240296466379089,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.1191105208293388,\n        \"startSec\" : -0.90000000000000002\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -8,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0043821046128869057,\n        \"offRms\" : 0.0013261455438028833,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0068701398558914661,\n        \"onRms\" : 0.0018185660436798176,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.3713170867089435,\n        \"startSec\" : -0.80000000000000004\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -7,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.004152112640440464,\n        \"offRms\" : 0.0011509432887993479,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0060114874504506588,\n        \"onRms\" : 0.0014661853185589362,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.2738988383071814,\n        \"startSec\" : -0.70000000000000007\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -6,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0033795356284826994,\n        \"offRms\" : 0.0010983606666520084,\n        \"offSampleCount\" : 4799,\n        \"onMaxAbs\" : 0.0032652544323354959,\n        \"onRms\" : 0.00077256542186898399,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.70338045172711428,\n        \"startSec\" : -0.60000000000000009\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -5,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0038158183451741934,\n        \"offRms\" : 0.001356424583961667,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.002792371204122901,\n        \"onRms\" : 0.00088197272258054332,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.65021876852496518,\n        \"startSec\" : -0.5\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -4,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0035350921098142862,\n        \"offRms\" : 0.0010806262359094501,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0027922834269702435,\n        \"onRms\" : 0.00075104888063229672,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.69501262848779299,\n        \"startSec\" : -0.40000000000000002\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -3,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0030814341735094786,\n        \"offRms\" : 0.0010571032651540571,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0032511032186448574,\n        \"onRms\" : 0.00077756566952299675,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.73556264099674129,\n        \"startSec\" : -0.30000000000000004\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -2,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0032964127603918314,\n        \"offRms\" : 0.0010776240031557581,\n        \"offSampleCount\" : 4801,\n        \"onMaxAbs\" : 0.0023810034617781639,\n        \"onRms\" : 0.00075220776504780187,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.69802432281111593,\n        \"startSec\" : -0.20000000000000001\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : -1,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0036098044365644455,\n        \"offRms\" : 0.0011245416382111417,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0029448764398694038,\n        \"onRms\" : 0.00074954307082781397,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.66653207436600159,\n        \"startSec\" : -0.10000000000000001\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 0,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.0033798236399888992,\n        \"offRms\" : 0.0009730949837549309,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.18853938579559326,\n        \"onRms\" : 0.030541087683352057,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 31.385515487400433,\n        \"startSec\" : 0\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 1,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.18117313086986542,\n        \"offRms\" : 0.11776682949214545,\n        \"offSampleCount\" : 4799,\n        \"onMaxAbs\" : 0.10015387833118439,\n        \"onRms\" : 0.01220082258976945,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.10360152041439813,\n        \"startSec\" : 0.10000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 2,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.18280385434627533,\n        \"offRms\" : 0.1265426622413065,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0020713135600090027,\n        \"onRms\" : 0.00054554309244444208,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.0043111396803406591,\n        \"startSec\" : 0.20000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 3,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.18237486481666565,\n        \"offRms\" : 0.126746088987609,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0026342051569372416,\n        \"onRms\" : 0.00064801330672595325,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.0051126887772395451,\n        \"startSec\" : 0.30000000000000004\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 4,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.18557798862457275,\n        \"offRms\" : 0.12798483489017259,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.00016347819473594427,\n        \"onRms\" : 2.871094682624899e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.0002243308502205489,\n        \"startSec\" : 0.40000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 5,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.1858401894569397,\n        \"offRms\" : 0.12931319785451811,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 5.3644980653189123e-06,\n        \"onRms\" : 1.4183312536734452e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.0968186366167494e-05,\n        \"startSec\" : 0.5\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 6,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.18622198700904846,\n        \"offRms\" : 0.12782895872364813,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 7.8991761256475002e-06,\n        \"onRms\" : 1.850735181664813e-06,\n        \"onSampleCount\" : 4409,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 1.4478215266275421e-05,\n        \"startSec\" : 0.60000000000000009\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 7,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.17672677338123322,\n        \"offRms\" : 0.12336806130654472,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 1.0290129466739018e-05,\n        \"onRms\" : 2.9451754340661518e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 2.3873078679156557e-05,\n        \"startSec\" : 0.70000000000000007\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 8,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.17591701447963715,\n        \"offRms\" : 0.1227947661549289,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 1.5771613107062876e-05,\n        \"onRms\" : 4.3420092428550285e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 3.5359888526329855e-05,\n        \"startSec\" : 0.80000000000000004\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 9,\n        \"inGradeWindow\" : false,\n        \"offMaxAbs\" : 0.17560169100761414,\n        \"offRms\" : 0.12268298118785724,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.1368186935433187e-05,\n        \"onRms\" : 6.3379248153715644e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.1660994491702744e-05,\n        \"startSec\" : 0.90000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 10,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.17623670399188995,\n        \"offRms\" : 0.12275256945219416,\n        \"offSampleCount\" : 4801,\n        \"onMaxAbs\" : 2.4371473045903258e-05,\n        \"onRms\" : 6.7473975083320266e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.4967464538164247e-05,\n        \"startSec\" : 1\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 11,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.17645692825317383,\n        \"offRms\" : 0.12222874124532568,\n        \"offSampleCount\" : 4799,\n        \"onMaxAbs\" : 2.1345204004319385e-05,\n        \"onRms\" : 6.7690959221700058e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.5380558232075164e-05,\n        \"startSec\" : 1.1000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 12,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.1732858419418335,\n        \"offRms\" : 0.12011998946793775,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.2352924133883789e-05,\n        \"onRms\" : 7.2812302395352934e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.0616307675241584e-05,\n        \"startSec\" : 1.2000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 13,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.17170876264572144,\n        \"offRms\" : 0.11884430621068665,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.2170323063619435e-05,\n        \"onRms\" : 6.8235458678930425e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.741584166258913e-05,\n        \"startSec\" : 1.3\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 14,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16970016062259674,\n        \"offRms\" : 0.11745622847473589,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.6890305889537558e-05,\n        \"onRms\" : 6.5691519565176705e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.5928510916989431e-05,\n        \"startSec\" : 1.4000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 15,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16798658668994904,\n        \"offRms\" : 0.11632148621203024,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.3114280338631943e-05,\n        \"onRms\" : 7.2173868019140405e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.2046892942531896e-05,\n        \"startSec\" : 1.5\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 16,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.1677129864692688,\n        \"offRms\" : 0.11542193405149663,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.547669100749772e-05,\n        \"onRms\" : 7.6557798081560777e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.6328639101995778e-05,\n        \"startSec\" : 1.6000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 17,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16633497178554535,\n        \"offRms\" : 0.11484184801942261,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.3067359506967478e-05,\n        \"onRms\" : 7.2339773415000031e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.2990777893756617e-05,\n        \"startSec\" : 1.7000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 18,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16517695784568787,\n        \"offRms\" : 0.11397724880747265,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.727313585637603e-05,\n        \"onRms\" : 6.7780504461333607e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.9468451090468629e-05,\n        \"startSec\" : 1.8\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 19,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16318616271018982,\n        \"offRms\" : 0.11331265535530344,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.6136083761230111e-05,\n        \"onRms\" : 6.7680418081250867e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.9728913658436459e-05,\n        \"startSec\" : 1.9000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 20,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16246409714221954,\n        \"offRms\" : 0.11288677173875959,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 1.9781553419306874e-05,\n        \"onRms\" : 6.2641500483079593e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.5490558830084501e-05,\n        \"startSec\" : 2\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 21,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16149376332759857,\n        \"offRms\" : 0.11253183825926556,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.5900619220919907e-05,\n        \"onRms\" : 6.9583226141729133e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.1834257058357298e-05,\n        \"startSec\" : 2.1000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 22,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16116535663604736,\n        \"offRms\" : 0.11207188870246047,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 3.119151369901374e-05,\n        \"onRms\" : 7.8434389629999595e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.9985783712662287e-05,\n        \"startSec\" : 2.2000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 23,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16104719042778015,\n        \"offRms\" : 0.11157385877532372,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.6466041163075715e-05,\n        \"onRms\" : 7.6690839017902978e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.8735490427318925e-05,\n        \"startSec\" : 2.3000000000000003\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 24,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.16021843254566193,\n        \"offRms\" : 0.11135085963956502,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.4801207473501563e-05,\n        \"onRms\" : 6.5655926751824383e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.8963107212955559e-05,\n        \"startSec\" : 2.4000000000000004\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 25,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.15966863930225372,\n        \"offRms\" : 0.11115641007538221,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.689486245799344e-05,\n        \"onRms\" : 7.4555747614618071e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.707282788645035e-05,\n        \"startSec\" : 2.5\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 26,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.15953069925308228,\n        \"offRms\" : 0.11079323821364792,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.7210049665882252e-05,\n        \"onRms\" : 7.1568967815942013e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.4596873392157861e-05,\n        \"startSec\" : 2.6000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 27,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.1586531400680542,\n        \"offRms\" : 0.11052933910513824,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.6634026653482579e-05,\n        \"onRms\" : 7.5586327672220538e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 6.838575918772205e-05,\n        \"startSec\" : 2.7000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 28,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.15872602164745331,\n        \"offRms\" : 0.11017562837892901,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.0173543816781603e-05,\n        \"onRms\" : 5.8327303503344936e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.2940295745569789e-05,\n        \"startSec\" : 2.8000000000000003\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 29,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.15924809873104095,\n        \"offRms\" : 0.11020046058329032,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 2.0050281818839721e-05,\n        \"onRms\" : 6.2519949184960869e-06,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 5.6732929113039264e-05,\n        \"startSec\" : 2.9000000000000004\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 30,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.15816099941730499,\n        \"offRms\" : 0.11018396441566849,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.00025832848041318357,\n        \"onRms\" : 4.495046679713035e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.00040795833618361126,\n        \"startSec\" : 3\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 31,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.1691274493932724,\n        \"offRms\" : 0.024987641885320825,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.00010671686322893947,\n        \"onRms\" : 1.6302353805197376e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.00065241665780292439,\n        \"startSec\" : 3.1000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 32,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0037217147182673216,\n        \"offRms\" : 0.0010386497634005793,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 6.4545674831606448e-05,\n        \"onRms\" : 1.6095765305456026e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.015496816995132093,\n        \"startSec\" : 3.2000000000000002\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 33,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0028511770069599152,\n        \"offRms\" : 0.00084371723636545131,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 6.514394044643268e-05,\n        \"onRms\" : 1.9519315084483821e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.023134901413853704,\n        \"startSec\" : 3.3000000000000003\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 34,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.00328848697245121,\n        \"offRms\" : 0.00085074125809026619,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 8.2556565757840872e-05,\n        \"onRms\" : 1.9799223098153742e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.023272908078537064,\n        \"startSec\" : 3.4000000000000004\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 35,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0029523852281272411,\n        \"offRms\" : 0.00096171969138325651,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 7.3417817475274205e-05,\n        \"onRms\" : 1.9231641292989265e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.019997137903382319,\n        \"startSec\" : 3.5\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 36,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0029838872142136097,\n        \"offRms\" : 0.00092564323903997312,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 6.5713655203580856e-05,\n        \"onRms\" : 1.924714118038398e-05,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.020793260695498698,\n        \"startSec\" : 3.6000000000000001\n      },\n      {\n        \"exceedsFifth\" : false,\n        \"index\" : 37,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0035685198381543159,\n        \"offRms\" : 0.00091003732618020984,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.00097895110957324505,\n        \"onRms\" : 0.00015572257859143183,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.17111669391085493,\n        \"startSec\" : 3.7000000000000002\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 38,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0031009213998913765,\n        \"offRms\" : 0.00093158472404708146,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0022370140068233013,\n        \"onRms\" : 0.00068179462748487276,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.73186540084400897,\n        \"startSec\" : 3.8000000000000003\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 39,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0041549503803253174,\n        \"offRms\" : 0.0010451212453778222,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0025324933230876923,\n        \"onRms\" : 0.00072978721402099111,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.69827995292274958,\n        \"startSec\" : 3.9000000000000004\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 40,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0037051981780678034,\n        \"offRms\" : 0.00095170380704026592,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0035592399071902037,\n        \"onRms\" : 0.0007892622187657477,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.82931497481374961,\n        \"startSec\" : 4\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 41,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0033686666283756495,\n        \"offRms\" : 0.0010970490103194776,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0025356831029057503,\n        \"onRms\" : 0.00072760332397338757,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.66323684459776167,\n        \"startSec\" : 4.1000000000000005\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 42,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0034457352012395859,\n        \"offRms\" : 0.0010066347678302457,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.003493523458018899,\n        \"onRms\" : 0.00078675609543806229,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.78157055625435856,\n        \"startSec\" : 4.2000000000000002\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 43,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0029219533316791058,\n        \"offRms\" : 0.00093951395817783027,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.002349077956750989,\n        \"onRms\" : 0.0007274240985809925,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.77425576517438643,\n        \"startSec\" : 4.2999999999999998\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 44,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0029973736964166164,\n        \"offRms\" : 0.00093833770394460803,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0023822416551411152,\n        \"onRms\" : 0.00072415083219874471,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.7717379672100364,\n        \"startSec\" : 4.4000000000000004\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 45,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0028282587882131338,\n        \"offRms\" : 0.00093382143438351325,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.003058149479329586,\n        \"onRms\" : 0.00075199864609623427,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.80529169540072287,\n        \"startSec\" : 4.5\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 46,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0028637778013944626,\n        \"offRms\" : 0.00087830962791122949,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.0021333307959139347,\n        \"onRms\" : 0.00066988712642569032,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.76270042492736467,\n        \"startSec\" : 4.6000000000000005\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 47,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0030864090658724308,\n        \"offRms\" : 0.00092767269858056497,\n        \"offSampleCount\" : 4799,\n        \"onMaxAbs\" : 0.002885548397898674,\n        \"onRms\" : 0.00068617584132688275,\n        \"onSampleCount\" : 4410,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.73967450198416174,\n        \"startSec\" : 4.7000000000000002\n      },\n      {\n        \"exceedsFifth\" : true,\n        \"index\" : 48,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.0031314441002905369,\n        \"offRms\" : 0.0009292370389832387,\n        \"offSampleCount\" : 4800,\n        \"onMaxAbs\" : 0.002963983453810215,\n        \"onRms\" : 0.00067884131765275817,\n        \"onSampleCount\" : 3533,\n        \"paired\" : true,\n        \"rmsRatioOnOverOff\" : 0.73053622399246931,\n        \"startSec\" : 4.8000000000000007\n      },\n      {\n        \"exceedsFifth\" : null,\n        \"index\" : 49,\n        \"inGradeWindow\" : true,\n        \"offMaxAbs\" : 0.002332029864192009,\n        \"offRms\" : 0.00078696056811487086,\n        \"offSampleCount\" : 1353,\n        \"onMaxAbs\" : null,\n        \"onRms\" : null,\n        \"onSampleCount\" : null,\n        \"paired\" : false,\n        \"rmsRatioOnOverOff\" : null,\n        \"startSec\" : 4.9000000000000004\n      }\n    ],\n    \"convergenceReading\" : \"among paired slices with start >= 0, seconds after the play command at which every later paired slice stays <= 1\\/5. 0 if none of those slices exceed. null if the last paired slice still exceeds. Not a separate grade.\",\n    \"convergenceSec\" : null,\n    \"errorCode\" : null,\n    \"errorDomain\" : null,\n    \"exceedingSliceStartSecs\" : [\n      3.8000000000000003,\n      3.9000000000000004,\n      4,\n      4.1000000000000005,\n      4.2000000000000002,\n      4.2999999999999998,\n      4.4000000000000004,\n      4.5,\n      4.6000000000000005,\n      4.7000000000000002,\n      4.8000000000000007\n    ],\n    \"fifthRule\" : \"M when every slice with start >= 1s has on RMS <= off RMS \\/ 5; N when any such slice is higher, and lastExceedingSliceStartSec is that slice's start; E if either run threw. Equal to 1\\/5 passes. Off RMS 0 passes only when on RMS is 0.\",\n    \"gapActualMs\" : 5006.1550140380859,\n    \"gapEndedAt\" : \"2026-10-15T15:30:43.419Z\",\n    \"gapMs\" : 5000,\n    \"gapStartedAt\" : \"2026-10-15T15:30:38.412Z\",\n    \"gradeWindowStartSec\" : 1,\n    \"lastExceedingSliceStartSec\" : 4.8000000000000007,\n    \"name\" : \"player-ab-slices\",\n    \"off\" : {\n      \"attachPlayer\" : true,\n      \"authorization\" : \"authorized\",\n      \"bufferCount\" : 35,\n      \"buffersScheduled\" : 1,\n      \"channel0Slices\" : {\n        \"audioSaved\" : false,\n        \"channel\" : 0,\n        \"hostTimeValid\" : true,\n        \"note\" : null,\n        \"parsed\" : true,\n        \"playHostTicks\" : \"7559347949386\",\n        \"prePlayPeak\" : 0.0043821046128869057,\n        \"sampleRate\" : 48000,\n        \"sliceMs\" : 100,\n        \"slices\" : [\n          {\n            \"index\" : -11,\n            \"maxAbs\" : 6.2333783716894686e-05,\n            \"rms\" : 1.1211531123100158e-05,\n            \"sampleCount\" : 2169,\n            \"startSec\" : -1.1000000000000001\n          },\n          {\n            \"index\" : -10,\n            \"maxAbs\" : 0.0032218201085925102,\n            \"rms\" : 0.001086410330568817,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -1\n          },\n          {\n            \"index\" : -9,\n            \"maxAbs\" : 0.0035630189813673496,\n            \"rms\" : 0.0012724656056156132,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.90000000000000002\n          },\n          {\n            \"index\" : -8,\n            \"maxAbs\" : 0.0043821046128869057,\n            \"rms\" : 0.0013261455438028833,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.80000000000000004\n          },\n          {\n            \"index\" : -7,\n            \"maxAbs\" : 0.004152112640440464,\n            \"rms\" : 0.0011509432887993479,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.70000000000000007\n          },\n          {\n            \"index\" : -6,\n            \"maxAbs\" : 0.0033795356284826994,\n            \"rms\" : 0.0010983606666520084,\n            \"sampleCount\" : 4799,\n            \"startSec\" : -0.60000000000000009\n          },\n          {\n            \"index\" : -5,\n            \"maxAbs\" : 0.0038158183451741934,\n            \"rms\" : 0.001356424583961667,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.5\n          },\n          {\n            \"index\" : -4,\n            \"maxAbs\" : 0.0035350921098142862,\n            \"rms\" : 0.0010806262359094501,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.40000000000000002\n          },\n          {\n            \"index\" : -3,\n            \"maxAbs\" : 0.0030814341735094786,\n            \"rms\" : 0.0010571032651540571,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.30000000000000004\n          },\n          {\n            \"index\" : -2,\n            \"maxAbs\" : 0.0032964127603918314,\n            \"rms\" : 0.0010776240031557581,\n            \"sampleCount\" : 4801,\n            \"startSec\" : -0.20000000000000001\n          },\n          {\n            \"index\" : -1,\n            \"maxAbs\" : 0.0036098044365644455,\n            \"rms\" : 0.0011245416382111417,\n            \"sampleCount\" : 4800,\n            \"startSec\" : -0.10000000000000001\n          },\n          {\n            \"index\" : 0,\n            \"maxAbs\" : 0.0033798236399888992,\n            \"rms\" : 0.0009730949837549309,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0\n          },\n          {\n            \"index\" : 1,\n            \"maxAbs\" : 0.18117313086986542,\n            \"rms\" : 0.11776682949214545,\n            \"sampleCount\" : 4799,\n            \"startSec\" : 0.10000000000000001\n          },\n          {\n            \"index\" : 2,\n            \"maxAbs\" : 0.18280385434627533,\n            \"rms\" : 0.1265426622413065,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.20000000000000001\n          },\n          {\n            \"index\" : 3,\n            \"maxAbs\" : 0.18237486481666565,\n            \"rms\" : 0.126746088987609,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.30000000000000004\n          },\n          {\n            \"index\" : 4,\n            \"maxAbs\" : 0.18557798862457275,\n            \"rms\" : 0.12798483489017259,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.40000000000000002\n          },\n          {\n            \"index\" : 5,\n            \"maxAbs\" : 0.1858401894569397,\n            \"rms\" : 0.12931319785451811,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.5\n          },\n          {\n            \"index\" : 6,\n            \"maxAbs\" : 0.18622198700904846,\n            \"rms\" : 0.12782895872364813,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.60000000000000009\n          },\n          {\n            \"index\" : 7,\n            \"maxAbs\" : 0.17672677338123322,\n            \"rms\" : 0.12336806130654472,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.70000000000000007\n          },\n          {\n            \"index\" : 8,\n            \"maxAbs\" : 0.17591701447963715,\n            \"rms\" : 0.1227947661549289,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.80000000000000004\n          },\n          {\n            \"index\" : 9,\n            \"maxAbs\" : 0.17560169100761414,\n            \"rms\" : 0.12268298118785724,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 0.90000000000000002\n          },\n          {\n            \"index\" : 10,\n            \"maxAbs\" : 0.17623670399188995,\n            \"rms\" : 0.12275256945219416,\n            \"sampleCount\" : 4801,\n            \"startSec\" : 1\n          },\n          {\n            \"index\" : 11,\n            \"maxAbs\" : 0.17645692825317383,\n            \"rms\" : 0.12222874124532568,\n            \"sampleCount\" : 4799,\n            \"startSec\" : 1.1000000000000001\n          },\n          {\n            \"index\" : 12,\n            \"maxAbs\" : 0.1732858419418335,\n            \"rms\" : 0.12011998946793775,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.2000000000000002\n          },\n          {\n            \"index\" : 13,\n            \"maxAbs\" : 0.17170876264572144,\n            \"rms\" : 0.11884430621068665,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.3\n          },\n          {\n            \"index\" : 14,\n            \"maxAbs\" : 0.16970016062259674,\n            \"rms\" : 0.11745622847473589,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.4000000000000001\n          },\n          {\n            \"index\" : 15,\n            \"maxAbs\" : 0.16798658668994904,\n            \"rms\" : 0.11632148621203024,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.5\n          },\n          {\n            \"index\" : 16,\n            \"maxAbs\" : 0.1677129864692688,\n            \"rms\" : 0.11542193405149663,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.6000000000000001\n          },\n          {\n            \"index\" : 17,\n            \"maxAbs\" : 0.16633497178554535,\n            \"rms\" : 0.11484184801942261,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.7000000000000002\n          },\n          {\n            \"index\" : 18,\n            \"maxAbs\" : 0.16517695784568787,\n            \"rms\" : 0.11397724880747265,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.8\n          },\n          {\n            \"index\" : 19,\n            \"maxAbs\" : 0.16318616271018982,\n            \"rms\" : 0.11331265535530344,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 1.9000000000000001\n          },\n          {\n            \"index\" : 20,\n            \"maxAbs\" : 0.16246409714221954,\n            \"rms\" : 0.11288677173875959,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2\n          },\n          {\n            \"index\" : 21,\n            \"maxAbs\" : 0.16149376332759857,\n            \"rms\" : 0.11253183825926556,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.1000000000000001\n          },\n          {\n            \"index\" : 22,\n            \"maxAbs\" : 0.16116535663604736,\n            \"rms\" : 0.11207188870246047,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.2000000000000002\n          },\n          {\n            \"index\" : 23,\n            \"maxAbs\" : 0.16104719042778015,\n            \"rms\" : 0.11157385877532372,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.3000000000000003\n          },\n          {\n            \"index\" : 24,\n            \"maxAbs\" : 0.16021843254566193,\n            \"rms\" : 0.11135085963956502,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.4000000000000004\n          },\n          {\n            \"index\" : 25,\n            \"maxAbs\" : 0.15966863930225372,\n            \"rms\" : 0.11115641007538221,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.5\n          },\n          {\n            \"index\" : 26,\n            \"maxAbs\" : 0.15953069925308228,\n            \"rms\" : 0.11079323821364792,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.6000000000000001\n          },\n          {\n            \"index\" : 27,\n            \"maxAbs\" : 0.1586531400680542,\n            \"rms\" : 0.11052933910513824,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.7000000000000002\n          },\n          {\n            \"index\" : 28,\n            \"maxAbs\" : 0.15872602164745331,\n            \"rms\" : 0.11017562837892901,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.8000000000000003\n          },\n          {\n            \"index\" : 29,\n            \"maxAbs\" : 0.15924809873104095,\n            \"rms\" : 0.11020046058329032,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 2.9000000000000004\n          },\n          {\n            \"index\" : 30,\n            \"maxAbs\" : 0.15816099941730499,\n            \"rms\" : 0.11018396441566849,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3\n          },\n          {\n            \"index\" : 31,\n            \"maxAbs\" : 0.1691274493932724,\n            \"rms\" : 0.024987641885320825,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.1000000000000001\n          },\n          {\n            \"index\" : 32,\n            \"maxAbs\" : 0.0037217147182673216,\n            \"rms\" : 0.0010386497634005793,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.2000000000000002\n          },\n          {\n            \"index\" : 33,\n            \"maxAbs\" : 0.0028511770069599152,\n            \"rms\" : 0.00084371723636545131,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.3000000000000003\n          },\n          {\n            \"index\" : 34,\n            \"maxAbs\" : 0.00328848697245121,\n            \"rms\" : 0.00085074125809026619,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.4000000000000004\n          },\n          {\n            \"index\" : 35,\n            \"maxAbs\" : 0.0029523852281272411,\n            \"rms\" : 0.00096171969138325651,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.5\n          },\n          {\n            \"index\" : 36,\n            \"maxAbs\" : 0.0029838872142136097,\n            \"rms\" : 0.00092564323903997312,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.6000000000000001\n          },\n          {\n            \"index\" : 37,\n            \"maxAbs\" : 0.0035685198381543159,\n            \"rms\" : 0.00091003732618020984,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.7000000000000002\n          },\n          {\n            \"index\" : 38,\n            \"maxAbs\" : 0.0031009213998913765,\n            \"rms\" : 0.00093158472404708146,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.8000000000000003\n          },\n          {\n            \"index\" : 39,\n            \"maxAbs\" : 0.0041549503803253174,\n            \"rms\" : 0.0010451212453778222,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 3.9000000000000004\n          },\n          {\n            \"index\" : 40,\n            \"maxAbs\" : 0.0037051981780678034,\n            \"rms\" : 0.00095170380704026592,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4\n          },\n          {\n            \"index\" : 41,\n            \"maxAbs\" : 0.0033686666283756495,\n            \"rms\" : 0.0010970490103194776,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.1000000000000005\n          },\n          {\n            \"index\" : 42,\n            \"maxAbs\" : 0.0034457352012395859,\n            \"rms\" : 0.0010066347678302457,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.2000000000000002\n          },\n          {\n            \"index\" : 43,\n            \"maxAbs\" : 0.0029219533316791058,\n            \"rms\" : 0.00093951395817783027,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.2999999999999998\n          },\n          {\n            \"index\" : 44,\n            \"maxAbs\" : 0.0029973736964166164,\n            \"rms\" : 0.00093833770394460803,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.4000000000000004\n          },\n          {\n            \"index\" : 45,\n            \"maxAbs\" : 0.0028282587882131338,\n            \"rms\" : 0.00093382143438351325,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.5\n          },\n          {\n            \"index\" : 46,\n            \"maxAbs\" : 0.0028637778013944626,\n            \"rms\" : 0.00087830962791122949,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.6000000000000005\n          },\n          {\n            \"index\" : 47,\n            \"maxAbs\" : 0.0030864090658724308,\n            \"rms\" : 0.00092767269858056497,\n            \"sampleCount\" : 4799,\n            \"startSec\" : 4.7000000000000002\n          },\n          {\n            \"index\" : 48,\n            \"maxAbs\" : 0.0031314441002905369,\n            \"rms\" : 0.0009292370389832387,\n            \"sampleCount\" : 4800,\n            \"startSec\" : 4.8000000000000007\n          },\n          {\n            \"index\" : 49,\n            \"maxAbs\" : 0.002332029864192009,\n            \"rms\" : 0.00078696056811487086,\n            \"sampleCount\" : 1353,\n            \"startSec\" : 4.9000000000000004\n          }\n        ],\n        \"tapFirstAbovePrePlayPeakRelSec\" : 0.10029116666666667,\n        \"tapFirstNonZeroAtOrAfterPlayRelSec\" : 2.0333333333333331e-05,\n        \"tapFirstNonZeroRelSec\" : -1.0351310416666666\n      },\n      \"channels\" : [\n        {\n          \"allZero\" : false,\n          \"index\" : 0,\n          \"maxAbs\" : 0.18622198700904846,\n          \"nonzeroSamples\" : 285418,\n          \"seen\" : true\n        }\n      ],\n      \"citation\" : \"AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework\\/Headers\\/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.\",\n      \"engineCreated\" : true,\n      \"engineRunningAtEnd\" : false,\n      \"engineRunningBeforeEnable\" : false,\n      \"errorCode\" : null,\n      \"errorDomain\" : null,\n      \"frameCount\" : 286720,\n      \"maxAbs\" : 0.18622198700904846,\n      \"mixWithOthers\" : {\n        \"citation\" : \"AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.\",\n        \"lost\" : null,\n        \"readable\" : false\n      },\n      \"name\" : \"player-ab-slices-off\",\n      \"nodesConnected\" : true,\n      \"nonzeroFrameCount\" : 285418,\n      \"nonzeroSamples\" : 285418,\n      \"outcome\" : \"G\",\n      \"playEndedAt\" : \"2026-10-15T15:30:36.430Z\",\n      \"playerAttached\" : true,\n      \"playerFormat\" : {\n        \"channelCount\" : 2,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"playerOutputFirstNonZero\" : {\n        \"delaySec\" : 0.052238458333333335,\n        \"hostTicks\" : \"7559349203109\",\n        \"sampleIndex\" : 1\n      },\n      \"playStartedAt\" : \"2026-10-15T15:30:33.392Z\",\n      \"prepared\" : false,\n      \"reason\" : \"ok\",\n      \"samplesParsed\" : true,\n      \"segments\" : {\n        \"after\" : {\n          \"channelMaxAbs\" : [\n            0.1691274493932724\n          ],\n          \"frameCount\" : 98304,\n          \"maxAbs\" : 0.1691274493932724,\n          \"nonzeroSamples\" : 98304,\n          \"rms\" : 0.036502261077878392\n        },\n        \"before\" : {\n          \"channelMaxAbs\" : [\n            0.0043821046128869057\n          ],\n          \"frameCount\" : 49152,\n          \"maxAbs\" : 0.0043821046128869057,\n          \"nonzeroSamples\" : 47850,\n          \"rms\" : 0.001146196846006474\n        },\n        \"during\" : {\n          \"channelMaxAbs\" : [\n            0.18622198700904846\n          ],\n          \"frameCount\" : 139264,\n          \"maxAbs\" : 0.18622198700904846,\n          \"nonzeroSamples\" : 139264,\n          \"rms\" : 0.11570244661333387\n        }\n      },\n      \"setVoiceProcessingEnabledCalled\" : false,\n      \"slicesCollected\" : true,\n      \"started\" : true,\n      \"switch\" : \"on\",\n      \"tapBufferFrames\" : 8192,\n      \"tapFormat\" : {\n        \"channelCount\" : 1,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 48000\n      },\n      \"tapInstalled\" : true,\n      \"threw\" : false,\n      \"tone\" : {\n        \"amplitude\" : 0.20000000298023224,\n        \"frames\" : 132300,\n        \"hz\" : 440,\n        \"seconds\" : 3\n      },\n      \"toneCompletionFired\" : true,\n      \"voiceProcessingEnabled\" : false,\n      \"windowMs\" : 6000\n    },\n    \"on\" : {\n      \"attachPlayer\" : true,\n      \"authorization\" : \"authorized\",\n      \"bufferCount\" : 32,\n      \"buffersScheduled\" : 1,\n      \"channel0Slices\" : {\n        \"audioSaved\" : false,\n        \"channel\" : 0,\n        \"hostTimeValid\" : true,\n        \"note\" : null,\n        \"parsed\" : true,\n        \"playHostTicks\" : \"7559626417546\",\n        \"prePlayPeak\" : 0.0073117343708872795,\n        \"sampleRate\" : 44100,\n        \"sliceMs\" : 100,\n        \"slices\" : [\n          {\n            \"index\" : -11,\n            \"maxAbs\" : 0.005194466095417738,\n            \"rms\" : 0.00087414796913584322,\n            \"sampleCount\" : 2832,\n            \"startSec\" : -1.1000000000000001\n          },\n          {\n            \"index\" : -10,\n            \"maxAbs\" : 0.0073117343708872795,\n            \"rms\" : 0.0017203438709961704,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -1\n          },\n          {\n            \"index\" : -9,\n            \"maxAbs\" : 0.0040980195626616478,\n            \"rms\" : 0.0014240296466379089,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.90000000000000002\n          },\n          {\n            \"index\" : -8,\n            \"maxAbs\" : 0.0068701398558914661,\n            \"rms\" : 0.0018185660436798176,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.80000000000000004\n          },\n          {\n            \"index\" : -7,\n            \"maxAbs\" : 0.0060114874504506588,\n            \"rms\" : 0.0014661853185589362,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.70000000000000007\n          },\n          {\n            \"index\" : -6,\n            \"maxAbs\" : 0.0032652544323354959,\n            \"rms\" : 0.00077256542186898399,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.60000000000000009\n          },\n          {\n            \"index\" : -5,\n            \"maxAbs\" : 0.002792371204122901,\n            \"rms\" : 0.00088197272258054332,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.5\n          },\n          {\n            \"index\" : -4,\n            \"maxAbs\" : 0.0027922834269702435,\n            \"rms\" : 0.00075104888063229672,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.40000000000000002\n          },\n          {\n            \"index\" : -3,\n            \"maxAbs\" : 0.0032511032186448574,\n            \"rms\" : 0.00077756566952299675,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.30000000000000004\n          },\n          {\n            \"index\" : -2,\n            \"maxAbs\" : 0.0023810034617781639,\n            \"rms\" : 0.00075220776504780187,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.20000000000000001\n          },\n          {\n            \"index\" : -1,\n            \"maxAbs\" : 0.0029448764398694038,\n            \"rms\" : 0.00074954307082781397,\n            \"sampleCount\" : 4410,\n            \"startSec\" : -0.10000000000000001\n          },\n          {\n            \"index\" : 0,\n            \"maxAbs\" : 0.18853938579559326,\n            \"rms\" : 0.030541087683352057,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0\n          },\n          {\n            \"index\" : 1,\n            \"maxAbs\" : 0.10015387833118439,\n            \"rms\" : 0.01220082258976945,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.10000000000000001\n          },\n          {\n            \"index\" : 2,\n            \"maxAbs\" : 0.0020713135600090027,\n            \"rms\" : 0.00054554309244444208,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.20000000000000001\n          },\n          {\n            \"index\" : 3,\n            \"maxAbs\" : 0.0026342051569372416,\n            \"rms\" : 0.00064801330672595325,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.30000000000000004\n          },\n          {\n            \"index\" : 4,\n            \"maxAbs\" : 0.00016347819473594427,\n            \"rms\" : 2.871094682624899e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.40000000000000002\n          },\n          {\n            \"index\" : 5,\n            \"maxAbs\" : 5.3644980653189123e-06,\n            \"rms\" : 1.4183312536734452e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.5\n          },\n          {\n            \"index\" : 6,\n            \"maxAbs\" : 7.8991761256475002e-06,\n            \"rms\" : 1.850735181664813e-06,\n            \"sampleCount\" : 4409,\n            \"startSec\" : 0.60000000000000009\n          },\n          {\n            \"index\" : 7,\n            \"maxAbs\" : 1.0290129466739018e-05,\n            \"rms\" : 2.9451754340661518e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.70000000000000007\n          },\n          {\n            \"index\" : 8,\n            \"maxAbs\" : 1.5771613107062876e-05,\n            \"rms\" : 4.3420092428550285e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.80000000000000004\n          },\n          {\n            \"index\" : 9,\n            \"maxAbs\" : 2.1368186935433187e-05,\n            \"rms\" : 6.3379248153715644e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 0.90000000000000002\n          },\n          {\n            \"index\" : 10,\n            \"maxAbs\" : 2.4371473045903258e-05,\n            \"rms\" : 6.7473975083320266e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1\n          },\n          {\n            \"index\" : 11,\n            \"maxAbs\" : 2.1345204004319385e-05,\n            \"rms\" : 6.7690959221700058e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.1000000000000001\n          },\n          {\n            \"index\" : 12,\n            \"maxAbs\" : 2.2352924133883789e-05,\n            \"rms\" : 7.2812302395352934e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.2000000000000002\n          },\n          {\n            \"index\" : 13,\n            \"maxAbs\" : 2.2170323063619435e-05,\n            \"rms\" : 6.8235458678930425e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.3\n          },\n          {\n            \"index\" : 14,\n            \"maxAbs\" : 2.6890305889537558e-05,\n            \"rms\" : 6.5691519565176705e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.4000000000000001\n          },\n          {\n            \"index\" : 15,\n            \"maxAbs\" : 2.3114280338631943e-05,\n            \"rms\" : 7.2173868019140405e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.5\n          },\n          {\n            \"index\" : 16,\n            \"maxAbs\" : 2.547669100749772e-05,\n            \"rms\" : 7.6557798081560777e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.6000000000000001\n          },\n          {\n            \"index\" : 17,\n            \"maxAbs\" : 2.3067359506967478e-05,\n            \"rms\" : 7.2339773415000031e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.7000000000000002\n          },\n          {\n            \"index\" : 18,\n            \"maxAbs\" : 2.727313585637603e-05,\n            \"rms\" : 6.7780504461333607e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.8\n          },\n          {\n            \"index\" : 19,\n            \"maxAbs\" : 2.6136083761230111e-05,\n            \"rms\" : 6.7680418081250867e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 1.9000000000000001\n          },\n          {\n            \"index\" : 20,\n            \"maxAbs\" : 1.9781553419306874e-05,\n            \"rms\" : 6.2641500483079593e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2\n          },\n          {\n            \"index\" : 21,\n            \"maxAbs\" : 2.5900619220919907e-05,\n            \"rms\" : 6.9583226141729133e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.1000000000000001\n          },\n          {\n            \"index\" : 22,\n            \"maxAbs\" : 3.119151369901374e-05,\n            \"rms\" : 7.8434389629999595e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.2000000000000002\n          },\n          {\n            \"index\" : 23,\n            \"maxAbs\" : 2.6466041163075715e-05,\n            \"rms\" : 7.6690839017902978e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.3000000000000003\n          },\n          {\n            \"index\" : 24,\n            \"maxAbs\" : 2.4801207473501563e-05,\n            \"rms\" : 6.5655926751824383e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.4000000000000004\n          },\n          {\n            \"index\" : 25,\n            \"maxAbs\" : 2.689486245799344e-05,\n            \"rms\" : 7.4555747614618071e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.5\n          },\n          {\n            \"index\" : 26,\n            \"maxAbs\" : 2.7210049665882252e-05,\n            \"rms\" : 7.1568967815942013e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.6000000000000001\n          },\n          {\n            \"index\" : 27,\n            \"maxAbs\" : 2.6634026653482579e-05,\n            \"rms\" : 7.5586327672220538e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.7000000000000002\n          },\n          {\n            \"index\" : 28,\n            \"maxAbs\" : 2.0173543816781603e-05,\n            \"rms\" : 5.8327303503344936e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.8000000000000003\n          },\n          {\n            \"index\" : 29,\n            \"maxAbs\" : 2.0050281818839721e-05,\n            \"rms\" : 6.2519949184960869e-06,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 2.9000000000000004\n          },\n          {\n            \"index\" : 30,\n            \"maxAbs\" : 0.00025832848041318357,\n            \"rms\" : 4.495046679713035e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3\n          },\n          {\n            \"index\" : 31,\n            \"maxAbs\" : 0.00010671686322893947,\n            \"rms\" : 1.6302353805197376e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.1000000000000001\n          },\n          {\n            \"index\" : 32,\n            \"maxAbs\" : 6.4545674831606448e-05,\n            \"rms\" : 1.6095765305456026e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.2000000000000002\n          },\n          {\n            \"index\" : 33,\n            \"maxAbs\" : 6.514394044643268e-05,\n            \"rms\" : 1.9519315084483821e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.3000000000000003\n          },\n          {\n            \"index\" : 34,\n            \"maxAbs\" : 8.2556565757840872e-05,\n            \"rms\" : 1.9799223098153742e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.4000000000000004\n          },\n          {\n            \"index\" : 35,\n            \"maxAbs\" : 7.3417817475274205e-05,\n            \"rms\" : 1.9231641292989265e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.5\n          },\n          {\n            \"index\" : 36,\n            \"maxAbs\" : 6.5713655203580856e-05,\n            \"rms\" : 1.924714118038398e-05,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.6000000000000001\n          },\n          {\n            \"index\" : 37,\n            \"maxAbs\" : 0.00097895110957324505,\n            \"rms\" : 0.00015572257859143183,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.7000000000000002\n          },\n          {\n            \"index\" : 38,\n            \"maxAbs\" : 0.0022370140068233013,\n            \"rms\" : 0.00068179462748487276,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.8000000000000003\n          },\n          {\n            \"index\" : 39,\n            \"maxAbs\" : 0.0025324933230876923,\n            \"rms\" : 0.00072978721402099111,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 3.9000000000000004\n          },\n          {\n            \"index\" : 40,\n            \"maxAbs\" : 0.0035592399071902037,\n            \"rms\" : 0.0007892622187657477,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4\n          },\n          {\n            \"index\" : 41,\n            \"maxAbs\" : 0.0025356831029057503,\n            \"rms\" : 0.00072760332397338757,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.1000000000000005\n          },\n          {\n            \"index\" : 42,\n            \"maxAbs\" : 0.003493523458018899,\n            \"rms\" : 0.00078675609543806229,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.2000000000000002\n          },\n          {\n            \"index\" : 43,\n            \"maxAbs\" : 0.002349077956750989,\n            \"rms\" : 0.0007274240985809925,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.2999999999999998\n          },\n          {\n            \"index\" : 44,\n            \"maxAbs\" : 0.0023822416551411152,\n            \"rms\" : 0.00072415083219874471,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.4000000000000004\n          },\n          {\n            \"index\" : 45,\n            \"maxAbs\" : 0.003058149479329586,\n            \"rms\" : 0.00075199864609623427,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.5\n          },\n          {\n            \"index\" : 46,\n            \"maxAbs\" : 0.0021333307959139347,\n            \"rms\" : 0.00066988712642569032,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.6000000000000005\n          },\n          {\n            \"index\" : 47,\n            \"maxAbs\" : 0.002885548397898674,\n            \"rms\" : 0.00068617584132688275,\n            \"sampleCount\" : 4410,\n            \"startSec\" : 4.7000000000000002\n          },\n          {\n            \"index\" : 48,\n            \"maxAbs\" : 0.002963983453810215,\n            \"rms\" : 0.00067884131765275817,\n            \"sampleCount\" : 3533,\n            \"startSec\" : 4.8000000000000007\n          }\n        ],\n        \"tapFirstAbovePrePlayPeakRelSec\" : 0.089771541666666677,\n        \"tapFirstNonZeroAtOrAfterPlayRelSec\" : 2.0333333333333331e-05,\n        \"tapFirstNonZeroRelSec\" : -1.06413275\n      },\n      \"channels\" : [\n        {\n          \"allZero\" : false,\n          \"index\" : 0,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 1,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 2,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 3,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 4,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 5,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 6,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 7,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 8,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        }\n      ],\n      \"citation\" : \"AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework\\/Headers\\/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.\",\n      \"engineCreated\" : true,\n      \"engineRunningAtEnd\" : false,\n      \"engineRunningBeforeEnable\" : false,\n      \"errorCode\" : null,\n      \"errorDomain\" : null,\n      \"frameCount\" : 262144,\n      \"maxAbs\" : 0.18853938579559326,\n      \"mixWithOthers\" : {\n        \"citation\" : \"AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.\",\n        \"lost\" : null,\n        \"readable\" : false\n      },\n      \"name\" : \"player-ab-slices-on\",\n      \"nodesConnected\" : true,\n      \"nonzeroFrameCount\" : 262141,\n      \"nonzeroSamples\" : 2359269,\n      \"outcome\" : \"G\",\n      \"playEndedAt\" : \"2026-10-15T15:30:48.031Z\",\n      \"playerAttached\" : true,\n      \"playerFormat\" : {\n        \"channelCount\" : 2,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"playerOutputFirstNonZero\" : {\n        \"delaySec\" : 0.052061791666666662,\n        \"hostTicks\" : \"7559627667029\",\n        \"sampleIndex\" : 1\n      },\n      \"playStartedAt\" : \"2026-10-15T15:30:44.995Z\",\n      \"prepared\" : false,\n      \"reason\" : \"ok\",\n      \"samplesParsed\" : true,\n      \"segments\" : {\n        \"after\" : {\n          \"channelMaxAbs\" : [\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037,\n            0.0035592399071902037\n          ],\n          \"frameCount\" : 81920,\n          \"maxAbs\" : 0.0035592399071902037,\n          \"nonzeroSamples\" : 737280,\n          \"rms\" : 0.00055417543467939617\n        },\n        \"before\" : {\n          \"channelMaxAbs\" : [\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795,\n            0.0073117343708872795\n          ],\n          \"frameCount\" : 40960,\n          \"maxAbs\" : 0.0073117343708872795,\n          \"nonzeroSamples\" : 368613,\n          \"rms\" : 0.0012210495845813639\n        },\n        \"during\" : {\n          \"channelMaxAbs\" : [\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326,\n            0.18853938579559326\n          ],\n          \"frameCount\" : 139264,\n          \"maxAbs\" : 0.18853938579559326,\n          \"nonzeroSamples\" : 1253376,\n          \"rms\" : 0.0058564340162762371\n        }\n      },\n      \"setVoiceProcessingEnabledCalled\" : true,\n      \"slicesCollected\" : true,\n      \"started\" : true,\n      \"switch\" : \"on\",\n      \"tapBufferFrames\" : 8192,\n      \"tapFormat\" : {\n        \"channelCount\" : 9,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"tapInstalled\" : true,\n      \"threw\" : false,\n      \"tone\" : {\n        \"amplitude\" : 0.20000000298023224,\n        \"frames\" : 132300,\n        \"hz\" : 440,\n        \"seconds\" : 3\n      },\n      \"toneCompletionFired\" : true,\n      \"voiceProcessingEnabled\" : true,\n      \"windowMs\" : 6000\n    },\n    \"order\" : [\n      \"off\",\n      \"on\"\n    ],\n    \"outcome\" : \"N\",\n    \"phase1f\" : \"unchanged K by the pre-written maxAbs rule; not a pass; this run does not regrade it\",\n    \"sliceMs\" : 100,\n    \"stillExceedingAtEnd\" : true,\n    \"threw\" : false,\n    \"unpairedGradeIndices\" : [\n      49\n    ]\n  }\n]\n",
+  "probeStderr": "",
+  "probe": [
+    {
+      "audioSaved": false,
+      "channel": 0,
+      "comparisonTable": [
+        {
+          "exceedsFifth": true,
+          "index": -11,
+          "inGradeWindow": false,
+          "offMaxAbs": 6.233378371689469e-05,
+          "offRms": 1.1211531123100158e-05,
+          "offSampleCount": 2169,
+          "onMaxAbs": 0.005194466095417738,
+          "onRms": 0.0008741479691358432,
+          "onSampleCount": 2832,
+          "paired": true,
+          "rmsRatioOnOverOff": 77.96865205455792,
+          "startSec": -1.1
+        },
+        {
+          "exceedsFifth": true,
+          "index": -10,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0032218201085925102,
+          "offRms": 0.001086410330568817,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0073117343708872795,
+          "onRms": 0.0017203438709961704,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.583512069602138,
+          "startSec": -1
+        },
+        {
+          "exceedsFifth": true,
+          "index": -9,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0035630189813673496,
+          "offRms": 0.0012724656056156132,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.004098019562661648,
+          "onRms": 0.0014240296466379089,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.1191105208293388,
+          "startSec": -0.9
+        },
+        {
+          "exceedsFifth": true,
+          "index": -8,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.004382104612886906,
+          "offRms": 0.0013261455438028833,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.006870139855891466,
+          "onRms": 0.0018185660436798176,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.3713170867089435,
+          "startSec": -0.8
+        },
+        {
+          "exceedsFifth": true,
+          "index": -7,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.004152112640440464,
+          "offRms": 0.001150943288799348,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.006011487450450659,
+          "onRms": 0.0014661853185589362,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.2738988383071814,
+          "startSec": -0.7000000000000001
+        },
+        {
+          "exceedsFifth": true,
+          "index": -6,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0033795356284826994,
+          "offRms": 0.0010983606666520084,
+          "offSampleCount": 4799,
+          "onMaxAbs": 0.003265254432335496,
+          "onRms": 0.000772565421868984,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7033804517271143,
+          "startSec": -0.6000000000000001
+        },
+        {
+          "exceedsFifth": true,
+          "index": -5,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0038158183451741934,
+          "offRms": 0.001356424583961667,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.002792371204122901,
+          "onRms": 0.0008819727225805433,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.6502187685249652,
+          "startSec": -0.5
+        },
+        {
+          "exceedsFifth": true,
+          "index": -4,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0035350921098142862,
+          "offRms": 0.00108062623590945,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0027922834269702435,
+          "onRms": 0.0007510488806322967,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.695012628487793,
+          "startSec": -0.4
+        },
+        {
+          "exceedsFifth": true,
+          "index": -3,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0030814341735094786,
+          "offRms": 0.0010571032651540571,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0032511032186448574,
+          "onRms": 0.0007775656695229967,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7355626409967413,
+          "startSec": -0.30000000000000004
+        },
+        {
+          "exceedsFifth": true,
+          "index": -2,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0032964127603918314,
+          "offRms": 0.001077624003155758,
+          "offSampleCount": 4801,
+          "onMaxAbs": 0.002381003461778164,
+          "onRms": 0.0007522077650478019,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.6980243228111159,
+          "startSec": -0.2
+        },
+        {
+          "exceedsFifth": true,
+          "index": -1,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0036098044365644455,
+          "offRms": 0.0011245416382111417,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.002944876439869404,
+          "onRms": 0.000749543070827814,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.6665320743660016,
+          "startSec": -0.1
+        },
+        {
+          "exceedsFifth": true,
+          "index": 0,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.0033798236399888992,
+          "offRms": 0.0009730949837549309,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.18853938579559326,
+          "onRms": 0.030541087683352057,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 31.385515487400433,
+          "startSec": 0
+        },
+        {
+          "exceedsFifth": false,
+          "index": 1,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.18117313086986542,
+          "offRms": 0.11776682949214545,
+          "offSampleCount": 4799,
+          "onMaxAbs": 0.10015387833118439,
+          "onRms": 0.01220082258976945,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.10360152041439813,
+          "startSec": 0.1
+        },
+        {
+          "exceedsFifth": false,
+          "index": 2,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.18280385434627533,
+          "offRms": 0.1265426622413065,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0020713135600090027,
+          "onRms": 0.0005455430924444421,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.004311139680340659,
+          "startSec": 0.2
+        },
+        {
+          "exceedsFifth": false,
+          "index": 3,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.18237486481666565,
+          "offRms": 0.126746088987609,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0026342051569372416,
+          "onRms": 0.0006480133067259532,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.005112688777239545,
+          "startSec": 0.30000000000000004
+        },
+        {
+          "exceedsFifth": false,
+          "index": 4,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.18557798862457275,
+          "offRms": 0.1279848348901726,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.00016347819473594427,
+          "onRms": 2.871094682624899e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.0002243308502205489,
+          "startSec": 0.4
+        },
+        {
+          "exceedsFifth": false,
+          "index": 5,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.1858401894569397,
+          "offRms": 0.1293131978545181,
+          "offSampleCount": 4800,
+          "onMaxAbs": 5.364498065318912e-06,
+          "onRms": 1.4183312536734452e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.0968186366167494e-05,
+          "startSec": 0.5
+        },
+        {
+          "exceedsFifth": false,
+          "index": 6,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.18622198700904846,
+          "offRms": 0.12782895872364813,
+          "offSampleCount": 4800,
+          "onMaxAbs": 7.8991761256475e-06,
+          "onRms": 1.850735181664813e-06,
+          "onSampleCount": 4409,
+          "paired": true,
+          "rmsRatioOnOverOff": 1.4478215266275421e-05,
+          "startSec": 0.6000000000000001
+        },
+        {
+          "exceedsFifth": false,
+          "index": 7,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.17672677338123322,
+          "offRms": 0.12336806130654472,
+          "offSampleCount": 4800,
+          "onMaxAbs": 1.0290129466739018e-05,
+          "onRms": 2.945175434066152e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 2.3873078679156557e-05,
+          "startSec": 0.7000000000000001
+        },
+        {
+          "exceedsFifth": false,
+          "index": 8,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.17591701447963715,
+          "offRms": 0.1227947661549289,
+          "offSampleCount": 4800,
+          "onMaxAbs": 1.5771613107062876e-05,
+          "onRms": 4.3420092428550285e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 3.5359888526329855e-05,
+          "startSec": 0.8
+        },
+        {
+          "exceedsFifth": false,
+          "index": 9,
+          "inGradeWindow": false,
+          "offMaxAbs": 0.17560169100761414,
+          "offRms": 0.12268298118785724,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.1368186935433187e-05,
+          "onRms": 6.337924815371564e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.1660994491702744e-05,
+          "startSec": 0.9
+        },
+        {
+          "exceedsFifth": false,
+          "index": 10,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.17623670399188995,
+          "offRms": 0.12275256945219416,
+          "offSampleCount": 4801,
+          "onMaxAbs": 2.4371473045903258e-05,
+          "onRms": 6.747397508332027e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.4967464538164247e-05,
+          "startSec": 1
+        },
+        {
+          "exceedsFifth": false,
+          "index": 11,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.17645692825317383,
+          "offRms": 0.12222874124532568,
+          "offSampleCount": 4799,
+          "onMaxAbs": 2.1345204004319385e-05,
+          "onRms": 6.769095922170006e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.5380558232075164e-05,
+          "startSec": 1.1
+        },
+        {
+          "exceedsFifth": false,
+          "index": 12,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.1732858419418335,
+          "offRms": 0.12011998946793775,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.235292413388379e-05,
+          "onRms": 7.2812302395352934e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.0616307675241584e-05,
+          "startSec": 1.2000000000000002
+        },
+        {
+          "exceedsFifth": false,
+          "index": 13,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.17170876264572144,
+          "offRms": 0.11884430621068665,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.2170323063619435e-05,
+          "onRms": 6.8235458678930425e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.741584166258913e-05,
+          "startSec": 1.3
+        },
+        {
+          "exceedsFifth": false,
+          "index": 14,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16970016062259674,
+          "offRms": 0.11745622847473589,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.6890305889537558e-05,
+          "onRms": 6.5691519565176705e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.592851091698943e-05,
+          "startSec": 1.4000000000000001
+        },
+        {
+          "exceedsFifth": false,
+          "index": 15,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16798658668994904,
+          "offRms": 0.11632148621203024,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.3114280338631943e-05,
+          "onRms": 7.2173868019140405e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.20468929425319e-05,
+          "startSec": 1.5
+        },
+        {
+          "exceedsFifth": false,
+          "index": 16,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.1677129864692688,
+          "offRms": 0.11542193405149663,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.547669100749772e-05,
+          "onRms": 7.655779808156078e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.632863910199578e-05,
+          "startSec": 1.6
+        },
+        {
+          "exceedsFifth": false,
+          "index": 17,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16633497178554535,
+          "offRms": 0.11484184801942261,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.3067359506967478e-05,
+          "onRms": 7.233977341500003e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.299077789375662e-05,
+          "startSec": 1.7000000000000002
+        },
+        {
+          "exceedsFifth": false,
+          "index": 18,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16517695784568787,
+          "offRms": 0.11397724880747265,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.727313585637603e-05,
+          "onRms": 6.778050446133361e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.946845109046863e-05,
+          "startSec": 1.8
+        },
+        {
+          "exceedsFifth": false,
+          "index": 19,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16318616271018982,
+          "offRms": 0.11331265535530344,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.613608376123011e-05,
+          "onRms": 6.768041808125087e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.972891365843646e-05,
+          "startSec": 1.9000000000000001
+        },
+        {
+          "exceedsFifth": false,
+          "index": 20,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16246409714221954,
+          "offRms": 0.11288677173875959,
+          "offSampleCount": 4800,
+          "onMaxAbs": 1.9781553419306874e-05,
+          "onRms": 6.264150048307959e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.54905588300845e-05,
+          "startSec": 2
+        },
+        {
+          "exceedsFifth": false,
+          "index": 21,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16149376332759857,
+          "offRms": 0.11253183825926556,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.5900619220919907e-05,
+          "onRms": 6.958322614172913e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.18342570583573e-05,
+          "startSec": 2.1
+        },
+        {
+          "exceedsFifth": false,
+          "index": 22,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16116535663604736,
+          "offRms": 0.11207188870246047,
+          "offSampleCount": 4800,
+          "onMaxAbs": 3.119151369901374e-05,
+          "onRms": 7.84343896299996e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.998578371266229e-05,
+          "startSec": 2.2
+        },
+        {
+          "exceedsFifth": false,
+          "index": 23,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16104719042778015,
+          "offRms": 0.11157385877532372,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.6466041163075715e-05,
+          "onRms": 7.669083901790298e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.873549042731893e-05,
+          "startSec": 2.3000000000000003
+        },
+        {
+          "exceedsFifth": false,
+          "index": 24,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.16021843254566193,
+          "offRms": 0.11135085963956502,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.4801207473501563e-05,
+          "onRms": 6.565592675182438e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.896310721295556e-05,
+          "startSec": 2.4000000000000004
+        },
+        {
+          "exceedsFifth": false,
+          "index": 25,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.15966863930225372,
+          "offRms": 0.11115641007538221,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.689486245799344e-05,
+          "onRms": 7.455574761461807e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.707282788645035e-05,
+          "startSec": 2.5
+        },
+        {
+          "exceedsFifth": false,
+          "index": 26,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.15953069925308228,
+          "offRms": 0.11079323821364792,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.7210049665882252e-05,
+          "onRms": 7.156896781594201e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.459687339215786e-05,
+          "startSec": 2.6
+        },
+        {
+          "exceedsFifth": false,
+          "index": 27,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.1586531400680542,
+          "offRms": 0.11052933910513824,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.663402665348258e-05,
+          "onRms": 7.558632767222054e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 6.838575918772205e-05,
+          "startSec": 2.7
+        },
+        {
+          "exceedsFifth": false,
+          "index": 28,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.1587260216474533,
+          "offRms": 0.11017562837892901,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.0173543816781603e-05,
+          "onRms": 5.832730350334494e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.294029574556979e-05,
+          "startSec": 2.8000000000000003
+        },
+        {
+          "exceedsFifth": false,
+          "index": 29,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.15924809873104095,
+          "offRms": 0.11020046058329032,
+          "offSampleCount": 4800,
+          "onMaxAbs": 2.005028181883972e-05,
+          "onRms": 6.251994918496087e-06,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 5.6732929113039264e-05,
+          "startSec": 2.9000000000000004
+        },
+        {
+          "exceedsFifth": false,
+          "index": 30,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.158160999417305,
+          "offRms": 0.1101839644156685,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.00025832848041318357,
+          "onRms": 4.495046679713035e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.00040795833618361126,
+          "startSec": 3
+        },
+        {
+          "exceedsFifth": false,
+          "index": 31,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.1691274493932724,
+          "offRms": 0.024987641885320825,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.00010671686322893947,
+          "onRms": 1.6302353805197376e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.0006524166578029244,
+          "startSec": 3.1
+        },
+        {
+          "exceedsFifth": false,
+          "index": 32,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0037217147182673216,
+          "offRms": 0.0010386497634005793,
+          "offSampleCount": 4800,
+          "onMaxAbs": 6.454567483160645e-05,
+          "onRms": 1.6095765305456026e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.015496816995132093,
+          "startSec": 3.2
+        },
+        {
+          "exceedsFifth": false,
+          "index": 33,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.002851177006959915,
+          "offRms": 0.0008437172363654513,
+          "offSampleCount": 4800,
+          "onMaxAbs": 6.514394044643268e-05,
+          "onRms": 1.951931508448382e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.023134901413853704,
+          "startSec": 3.3000000000000003
+        },
+        {
+          "exceedsFifth": false,
+          "index": 34,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.00328848697245121,
+          "offRms": 0.0008507412580902662,
+          "offSampleCount": 4800,
+          "onMaxAbs": 8.255656575784087e-05,
+          "onRms": 1.9799223098153742e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.023272908078537064,
+          "startSec": 3.4000000000000004
+        },
+        {
+          "exceedsFifth": false,
+          "index": 35,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.002952385228127241,
+          "offRms": 0.0009617196913832565,
+          "offSampleCount": 4800,
+          "onMaxAbs": 7.34178174752742e-05,
+          "onRms": 1.9231641292989265e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.01999713790338232,
+          "startSec": 3.5
+        },
+        {
+          "exceedsFifth": false,
+          "index": 36,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0029838872142136097,
+          "offRms": 0.0009256432390399731,
+          "offSampleCount": 4800,
+          "onMaxAbs": 6.571365520358086e-05,
+          "onRms": 1.924714118038398e-05,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.020793260695498698,
+          "startSec": 3.6
+        },
+        {
+          "exceedsFifth": false,
+          "index": 37,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.003568519838154316,
+          "offRms": 0.0009100373261802098,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.000978951109573245,
+          "onRms": 0.00015572257859143183,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.17111669391085493,
+          "startSec": 3.7
+        },
+        {
+          "exceedsFifth": true,
+          "index": 38,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0031009213998913765,
+          "offRms": 0.0009315847240470815,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0022370140068233013,
+          "onRms": 0.0006817946274848728,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.731865400844009,
+          "startSec": 3.8000000000000003
+        },
+        {
+          "exceedsFifth": true,
+          "index": 39,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.004154950380325317,
+          "offRms": 0.0010451212453778222,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0025324933230876923,
+          "onRms": 0.0007297872140209911,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.6982799529227496,
+          "startSec": 3.9000000000000004
+        },
+        {
+          "exceedsFifth": true,
+          "index": 40,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0037051981780678034,
+          "offRms": 0.0009517038070402659,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0035592399071902037,
+          "onRms": 0.0007892622187657477,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.8293149748137496,
+          "startSec": 4
+        },
+        {
+          "exceedsFifth": true,
+          "index": 41,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0033686666283756495,
+          "offRms": 0.0010970490103194776,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0025356831029057503,
+          "onRms": 0.0007276033239733876,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.6632368445977617,
+          "startSec": 4.1000000000000005
+        },
+        {
+          "exceedsFifth": true,
+          "index": 42,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.003445735201239586,
+          "offRms": 0.0010066347678302457,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.003493523458018899,
+          "onRms": 0.0007867560954380623,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7815705562543586,
+          "startSec": 4.2
+        },
+        {
+          "exceedsFifth": true,
+          "index": 43,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0029219533316791058,
+          "offRms": 0.0009395139581778303,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.002349077956750989,
+          "onRms": 0.0007274240985809925,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7742557651743864,
+          "startSec": 4.3
+        },
+        {
+          "exceedsFifth": true,
+          "index": 44,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0029973736964166164,
+          "offRms": 0.000938337703944608,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.002382241655141115,
+          "onRms": 0.0007241508321987447,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7717379672100364,
+          "startSec": 4.4
+        },
+        {
+          "exceedsFifth": true,
+          "index": 45,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.002828258788213134,
+          "offRms": 0.0009338214343835133,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.003058149479329586,
+          "onRms": 0.0007519986460962343,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.8052916954007229,
+          "startSec": 4.5
+        },
+        {
+          "exceedsFifth": true,
+          "index": 46,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.0028637778013944626,
+          "offRms": 0.0008783096279112295,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.0021333307959139347,
+          "onRms": 0.0006698871264256903,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7627004249273647,
+          "startSec": 4.6000000000000005
+        },
+        {
+          "exceedsFifth": true,
+          "index": 47,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.003086409065872431,
+          "offRms": 0.000927672698580565,
+          "offSampleCount": 4799,
+          "onMaxAbs": 0.002885548397898674,
+          "onRms": 0.0006861758413268827,
+          "onSampleCount": 4410,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7396745019841617,
+          "startSec": 4.7
+        },
+        {
+          "exceedsFifth": true,
+          "index": 48,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.003131444100290537,
+          "offRms": 0.0009292370389832387,
+          "offSampleCount": 4800,
+          "onMaxAbs": 0.002963983453810215,
+          "onRms": 0.0006788413176527582,
+          "onSampleCount": 3533,
+          "paired": true,
+          "rmsRatioOnOverOff": 0.7305362239924693,
+          "startSec": 4.800000000000001
+        },
+        {
+          "exceedsFifth": null,
+          "index": 49,
+          "inGradeWindow": true,
+          "offMaxAbs": 0.002332029864192009,
+          "offRms": 0.0007869605681148709,
+          "offSampleCount": 1353,
+          "onMaxAbs": null,
+          "onRms": null,
+          "onSampleCount": null,
+          "paired": false,
+          "rmsRatioOnOverOff": null,
+          "startSec": 4.9
+        }
+      ],
+      "convergenceReading": "among paired slices with start >= 0, seconds after the play command at which every later paired slice stays <= 1/5. 0 if none of those slices exceed. null if the last paired slice still exceeds. Not a separate grade.",
+      "convergenceSec": null,
+      "errorCode": null,
+      "errorDomain": null,
+      "exceedingSliceStartSecs": [
+        3.8000000000000003,
+        3.9000000000000004,
+        4,
+        4.1000000000000005,
+        4.2,
+        4.3,
+        4.4,
+        4.5,
+        4.6000000000000005,
+        4.7,
+        4.800000000000001
+      ],
+      "fifthRule": "M when every slice with start >= 1s has on RMS <= off RMS / 5; N when any such slice is higher, and lastExceedingSliceStartSec is that slice's start; E if either run threw. Equal to 1/5 passes. Off RMS 0 passes only when on RMS is 0.",
+      "gapActualMs": 5006.155014038086,
+      "gapEndedAt": "2026-10-15T15:30:43.419Z",
+      "gapMs": 5000,
+      "gapStartedAt": "2026-10-15T15:30:38.412Z",
+      "gradeWindowStartSec": 1,
+      "lastExceedingSliceStartSec": 4.800000000000001,
+      "name": "player-ab-slices",
+      "off": {
+        "attachPlayer": true,
+        "authorization": "authorized",
+        "bufferCount": 35,
+        "buffersScheduled": 1,
+        "channel0Slices": {
+          "audioSaved": false,
+          "channel": 0,
+          "hostTimeValid": true,
+          "note": null,
+          "parsed": true,
+          "playHostTicks": "7559347949386",
+          "prePlayPeak": 0.004382104612886906,
+          "sampleRate": 48000,
+          "sliceMs": 100,
+          "slices": [
+            {
+              "index": -11,
+              "maxAbs": 6.233378371689469e-05,
+              "rms": 1.1211531123100158e-05,
+              "sampleCount": 2169,
+              "startSec": -1.1
+            },
+            {
+              "index": -10,
+              "maxAbs": 0.0032218201085925102,
+              "rms": 0.001086410330568817,
+              "sampleCount": 4800,
+              "startSec": -1
+            },
+            {
+              "index": -9,
+              "maxAbs": 0.0035630189813673496,
+              "rms": 0.0012724656056156132,
+              "sampleCount": 4800,
+              "startSec": -0.9
+            },
+            {
+              "index": -8,
+              "maxAbs": 0.004382104612886906,
+              "rms": 0.0013261455438028833,
+              "sampleCount": 4800,
+              "startSec": -0.8
+            },
+            {
+              "index": -7,
+              "maxAbs": 0.004152112640440464,
+              "rms": 0.001150943288799348,
+              "sampleCount": 4800,
+              "startSec": -0.7000000000000001
+            },
+            {
+              "index": -6,
+              "maxAbs": 0.0033795356284826994,
+              "rms": 0.0010983606666520084,
+              "sampleCount": 4799,
+              "startSec": -0.6000000000000001
+            },
+            {
+              "index": -5,
+              "maxAbs": 0.0038158183451741934,
+              "rms": 0.001356424583961667,
+              "sampleCount": 4800,
+              "startSec": -0.5
+            },
+            {
+              "index": -4,
+              "maxAbs": 0.0035350921098142862,
+              "rms": 0.00108062623590945,
+              "sampleCount": 4800,
+              "startSec": -0.4
+            },
+            {
+              "index": -3,
+              "maxAbs": 0.0030814341735094786,
+              "rms": 0.0010571032651540571,
+              "sampleCount": 4800,
+              "startSec": -0.30000000000000004
+            },
+            {
+              "index": -2,
+              "maxAbs": 0.0032964127603918314,
+              "rms": 0.001077624003155758,
+              "sampleCount": 4801,
+              "startSec": -0.2
+            },
+            {
+              "index": -1,
+              "maxAbs": 0.0036098044365644455,
+              "rms": 0.0011245416382111417,
+              "sampleCount": 4800,
+              "startSec": -0.1
+            },
+            {
+              "index": 0,
+              "maxAbs": 0.0033798236399888992,
+              "rms": 0.0009730949837549309,
+              "sampleCount": 4800,
+              "startSec": 0
+            },
+            {
+              "index": 1,
+              "maxAbs": 0.18117313086986542,
+              "rms": 0.11776682949214545,
+              "sampleCount": 4799,
+              "startSec": 0.1
+            },
+            {
+              "index": 2,
+              "maxAbs": 0.18280385434627533,
+              "rms": 0.1265426622413065,
+              "sampleCount": 4800,
+              "startSec": 0.2
+            },
+            {
+              "index": 3,
+              "maxAbs": 0.18237486481666565,
+              "rms": 0.126746088987609,
+              "sampleCount": 4800,
+              "startSec": 0.30000000000000004
+            },
+            {
+              "index": 4,
+              "maxAbs": 0.18557798862457275,
+              "rms": 0.1279848348901726,
+              "sampleCount": 4800,
+              "startSec": 0.4
+            },
+            {
+              "index": 5,
+              "maxAbs": 0.1858401894569397,
+              "rms": 0.1293131978545181,
+              "sampleCount": 4800,
+              "startSec": 0.5
+            },
+            {
+              "index": 6,
+              "maxAbs": 0.18622198700904846,
+              "rms": 0.12782895872364813,
+              "sampleCount": 4800,
+              "startSec": 0.6000000000000001
+            },
+            {
+              "index": 7,
+              "maxAbs": 0.17672677338123322,
+              "rms": 0.12336806130654472,
+              "sampleCount": 4800,
+              "startSec": 0.7000000000000001
+            },
+            {
+              "index": 8,
+              "maxAbs": 0.17591701447963715,
+              "rms": 0.1227947661549289,
+              "sampleCount": 4800,
+              "startSec": 0.8
+            },
+            {
+              "index": 9,
+              "maxAbs": 0.17560169100761414,
+              "rms": 0.12268298118785724,
+              "sampleCount": 4800,
+              "startSec": 0.9
+            },
+            {
+              "index": 10,
+              "maxAbs": 0.17623670399188995,
+              "rms": 0.12275256945219416,
+              "sampleCount": 4801,
+              "startSec": 1
+            },
+            {
+              "index": 11,
+              "maxAbs": 0.17645692825317383,
+              "rms": 0.12222874124532568,
+              "sampleCount": 4799,
+              "startSec": 1.1
+            },
+            {
+              "index": 12,
+              "maxAbs": 0.1732858419418335,
+              "rms": 0.12011998946793775,
+              "sampleCount": 4800,
+              "startSec": 1.2000000000000002
+            },
+            {
+              "index": 13,
+              "maxAbs": 0.17170876264572144,
+              "rms": 0.11884430621068665,
+              "sampleCount": 4800,
+              "startSec": 1.3
+            },
+            {
+              "index": 14,
+              "maxAbs": 0.16970016062259674,
+              "rms": 0.11745622847473589,
+              "sampleCount": 4800,
+              "startSec": 1.4000000000000001
+            },
+            {
+              "index": 15,
+              "maxAbs": 0.16798658668994904,
+              "rms": 0.11632148621203024,
+              "sampleCount": 4800,
+              "startSec": 1.5
+            },
+            {
+              "index": 16,
+              "maxAbs": 0.1677129864692688,
+              "rms": 0.11542193405149663,
+              "sampleCount": 4800,
+              "startSec": 1.6
+            },
+            {
+              "index": 17,
+              "maxAbs": 0.16633497178554535,
+              "rms": 0.11484184801942261,
+              "sampleCount": 4800,
+              "startSec": 1.7000000000000002
+            },
+            {
+              "index": 18,
+              "maxAbs": 0.16517695784568787,
+              "rms": 0.11397724880747265,
+              "sampleCount": 4800,
+              "startSec": 1.8
+            },
+            {
+              "index": 19,
+              "maxAbs": 0.16318616271018982,
+              "rms": 0.11331265535530344,
+              "sampleCount": 4800,
+              "startSec": 1.9000000000000001
+            },
+            {
+              "index": 20,
+              "maxAbs": 0.16246409714221954,
+              "rms": 0.11288677173875959,
+              "sampleCount": 4800,
+              "startSec": 2
+            },
+            {
+              "index": 21,
+              "maxAbs": 0.16149376332759857,
+              "rms": 0.11253183825926556,
+              "sampleCount": 4800,
+              "startSec": 2.1
+            },
+            {
+              "index": 22,
+              "maxAbs": 0.16116535663604736,
+              "rms": 0.11207188870246047,
+              "sampleCount": 4800,
+              "startSec": 2.2
+            },
+            {
+              "index": 23,
+              "maxAbs": 0.16104719042778015,
+              "rms": 0.11157385877532372,
+              "sampleCount": 4800,
+              "startSec": 2.3000000000000003
+            },
+            {
+              "index": 24,
+              "maxAbs": 0.16021843254566193,
+              "rms": 0.11135085963956502,
+              "sampleCount": 4800,
+              "startSec": 2.4000000000000004
+            },
+            {
+              "index": 25,
+              "maxAbs": 0.15966863930225372,
+              "rms": 0.11115641007538221,
+              "sampleCount": 4800,
+              "startSec": 2.5
+            },
+            {
+              "index": 26,
+              "maxAbs": 0.15953069925308228,
+              "rms": 0.11079323821364792,
+              "sampleCount": 4800,
+              "startSec": 2.6
+            },
+            {
+              "index": 27,
+              "maxAbs": 0.1586531400680542,
+              "rms": 0.11052933910513824,
+              "sampleCount": 4800,
+              "startSec": 2.7
+            },
+            {
+              "index": 28,
+              "maxAbs": 0.1587260216474533,
+              "rms": 0.11017562837892901,
+              "sampleCount": 4800,
+              "startSec": 2.8000000000000003
+            },
+            {
+              "index": 29,
+              "maxAbs": 0.15924809873104095,
+              "rms": 0.11020046058329032,
+              "sampleCount": 4800,
+              "startSec": 2.9000000000000004
+            },
+            {
+              "index": 30,
+              "maxAbs": 0.158160999417305,
+              "rms": 0.1101839644156685,
+              "sampleCount": 4800,
+              "startSec": 3
+            },
+            {
+              "index": 31,
+              "maxAbs": 0.1691274493932724,
+              "rms": 0.024987641885320825,
+              "sampleCount": 4800,
+              "startSec": 3.1
+            },
+            {
+              "index": 32,
+              "maxAbs": 0.0037217147182673216,
+              "rms": 0.0010386497634005793,
+              "sampleCount": 4800,
+              "startSec": 3.2
+            },
+            {
+              "index": 33,
+              "maxAbs": 0.002851177006959915,
+              "rms": 0.0008437172363654513,
+              "sampleCount": 4800,
+              "startSec": 3.3000000000000003
+            },
+            {
+              "index": 34,
+              "maxAbs": 0.00328848697245121,
+              "rms": 0.0008507412580902662,
+              "sampleCount": 4800,
+              "startSec": 3.4000000000000004
+            },
+            {
+              "index": 35,
+              "maxAbs": 0.002952385228127241,
+              "rms": 0.0009617196913832565,
+              "sampleCount": 4800,
+              "startSec": 3.5
+            },
+            {
+              "index": 36,
+              "maxAbs": 0.0029838872142136097,
+              "rms": 0.0009256432390399731,
+              "sampleCount": 4800,
+              "startSec": 3.6
+            },
+            {
+              "index": 37,
+              "maxAbs": 0.003568519838154316,
+              "rms": 0.0009100373261802098,
+              "sampleCount": 4800,
+              "startSec": 3.7
+            },
+            {
+              "index": 38,
+              "maxAbs": 0.0031009213998913765,
+              "rms": 0.0009315847240470815,
+              "sampleCount": 4800,
+              "startSec": 3.8000000000000003
+            },
+            {
+              "index": 39,
+              "maxAbs": 0.004154950380325317,
+              "rms": 0.0010451212453778222,
+              "sampleCount": 4800,
+              "startSec": 3.9000000000000004
+            },
+            {
+              "index": 40,
+              "maxAbs": 0.0037051981780678034,
+              "rms": 0.0009517038070402659,
+              "sampleCount": 4800,
+              "startSec": 4
+            },
+            {
+              "index": 41,
+              "maxAbs": 0.0033686666283756495,
+              "rms": 0.0010970490103194776,
+              "sampleCount": 4800,
+              "startSec": 4.1000000000000005
+            },
+            {
+              "index": 42,
+              "maxAbs": 0.003445735201239586,
+              "rms": 0.0010066347678302457,
+              "sampleCount": 4800,
+              "startSec": 4.2
+            },
+            {
+              "index": 43,
+              "maxAbs": 0.0029219533316791058,
+              "rms": 0.0009395139581778303,
+              "sampleCount": 4800,
+              "startSec": 4.3
+            },
+            {
+              "index": 44,
+              "maxAbs": 0.0029973736964166164,
+              "rms": 0.000938337703944608,
+              "sampleCount": 4800,
+              "startSec": 4.4
+            },
+            {
+              "index": 45,
+              "maxAbs": 0.002828258788213134,
+              "rms": 0.0009338214343835133,
+              "sampleCount": 4800,
+              "startSec": 4.5
+            },
+            {
+              "index": 46,
+              "maxAbs": 0.0028637778013944626,
+              "rms": 0.0008783096279112295,
+              "sampleCount": 4800,
+              "startSec": 4.6000000000000005
+            },
+            {
+              "index": 47,
+              "maxAbs": 0.003086409065872431,
+              "rms": 0.000927672698580565,
+              "sampleCount": 4799,
+              "startSec": 4.7
+            },
+            {
+              "index": 48,
+              "maxAbs": 0.003131444100290537,
+              "rms": 0.0009292370389832387,
+              "sampleCount": 4800,
+              "startSec": 4.800000000000001
+            },
+            {
+              "index": 49,
+              "maxAbs": 0.002332029864192009,
+              "rms": 0.0007869605681148709,
+              "sampleCount": 1353,
+              "startSec": 4.9
+            }
+          ],
+          "tapFirstAbovePrePlayPeakRelSec": 0.10029116666666667,
+          "tapFirstNonZeroAtOrAfterPlayRelSec": 2.033333333333333e-05,
+          "tapFirstNonZeroRelSec": -1.0351310416666666
+        },
+        "channels": [
+          {
+            "allZero": false,
+            "index": 0,
+            "maxAbs": 0.18622198700904846,
+            "nonzeroSamples": 285418,
+            "seen": true
+          }
+        ],
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": true,
+        "engineRunningAtEnd": false,
+        "engineRunningBeforeEnable": false,
+        "errorCode": null,
+        "errorDomain": null,
+        "frameCount": 286720,
+        "maxAbs": 0.18622198700904846,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "player-ab-slices-off",
+        "nodesConnected": true,
+        "nonzeroFrameCount": 285418,
+        "nonzeroSamples": 285418,
+        "outcome": "G",
+        "playEndedAt": "2026-10-15T15:30:36.430Z",
+        "playerAttached": true,
+        "playerFormat": {
+          "channelCount": 2,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "playerOutputFirstNonZero": {
+          "delaySec": 0.052238458333333335,
+          "hostTicks": "7559349203109",
+          "sampleIndex": 1
+        },
+        "playStartedAt": "2026-10-15T15:30:33.392Z",
+        "prepared": false,
+        "reason": "ok",
+        "samplesParsed": true,
+        "segments": {
+          "after": {
+            "channelMaxAbs": [
+              0.1691274493932724
+            ],
+            "frameCount": 98304,
+            "maxAbs": 0.1691274493932724,
+            "nonzeroSamples": 98304,
+            "rms": 0.03650226107787839
+          },
+          "before": {
+            "channelMaxAbs": [
+              0.004382104612886906
+            ],
+            "frameCount": 49152,
+            "maxAbs": 0.004382104612886906,
+            "nonzeroSamples": 47850,
+            "rms": 0.001146196846006474
+          },
+          "during": {
+            "channelMaxAbs": [
+              0.18622198700904846
+            ],
+            "frameCount": 139264,
+            "maxAbs": 0.18622198700904846,
+            "nonzeroSamples": 139264,
+            "rms": 0.11570244661333387
+          }
+        },
+        "setVoiceProcessingEnabledCalled": false,
+        "slicesCollected": true,
+        "started": true,
+        "switch": "on",
+        "tapBufferFrames": 8192,
+        "tapFormat": {
+          "channelCount": 1,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 48000
+        },
+        "tapInstalled": true,
+        "threw": false,
+        "tone": {
+          "amplitude": 0.20000000298023224,
+          "frames": 132300,
+          "hz": 440,
+          "seconds": 3
+        },
+        "toneCompletionFired": true,
+        "voiceProcessingEnabled": false,
+        "windowMs": 6000
+      },
+      "on": {
+        "attachPlayer": true,
+        "authorization": "authorized",
+        "bufferCount": 32,
+        "buffersScheduled": 1,
+        "channel0Slices": {
+          "audioSaved": false,
+          "channel": 0,
+          "hostTimeValid": true,
+          "note": null,
+          "parsed": true,
+          "playHostTicks": "7559626417546",
+          "prePlayPeak": 0.0073117343708872795,
+          "sampleRate": 44100,
+          "sliceMs": 100,
+          "slices": [
+            {
+              "index": -11,
+              "maxAbs": 0.005194466095417738,
+              "rms": 0.0008741479691358432,
+              "sampleCount": 2832,
+              "startSec": -1.1
+            },
+            {
+              "index": -10,
+              "maxAbs": 0.0073117343708872795,
+              "rms": 0.0017203438709961704,
+              "sampleCount": 4410,
+              "startSec": -1
+            },
+            {
+              "index": -9,
+              "maxAbs": 0.004098019562661648,
+              "rms": 0.0014240296466379089,
+              "sampleCount": 4410,
+              "startSec": -0.9
+            },
+            {
+              "index": -8,
+              "maxAbs": 0.006870139855891466,
+              "rms": 0.0018185660436798176,
+              "sampleCount": 4410,
+              "startSec": -0.8
+            },
+            {
+              "index": -7,
+              "maxAbs": 0.006011487450450659,
+              "rms": 0.0014661853185589362,
+              "sampleCount": 4410,
+              "startSec": -0.7000000000000001
+            },
+            {
+              "index": -6,
+              "maxAbs": 0.003265254432335496,
+              "rms": 0.000772565421868984,
+              "sampleCount": 4410,
+              "startSec": -0.6000000000000001
+            },
+            {
+              "index": -5,
+              "maxAbs": 0.002792371204122901,
+              "rms": 0.0008819727225805433,
+              "sampleCount": 4410,
+              "startSec": -0.5
+            },
+            {
+              "index": -4,
+              "maxAbs": 0.0027922834269702435,
+              "rms": 0.0007510488806322967,
+              "sampleCount": 4410,
+              "startSec": -0.4
+            },
+            {
+              "index": -3,
+              "maxAbs": 0.0032511032186448574,
+              "rms": 0.0007775656695229967,
+              "sampleCount": 4410,
+              "startSec": -0.30000000000000004
+            },
+            {
+              "index": -2,
+              "maxAbs": 0.002381003461778164,
+              "rms": 0.0007522077650478019,
+              "sampleCount": 4410,
+              "startSec": -0.2
+            },
+            {
+              "index": -1,
+              "maxAbs": 0.002944876439869404,
+              "rms": 0.000749543070827814,
+              "sampleCount": 4410,
+              "startSec": -0.1
+            },
+            {
+              "index": 0,
+              "maxAbs": 0.18853938579559326,
+              "rms": 0.030541087683352057,
+              "sampleCount": 4410,
+              "startSec": 0
+            },
+            {
+              "index": 1,
+              "maxAbs": 0.10015387833118439,
+              "rms": 0.01220082258976945,
+              "sampleCount": 4410,
+              "startSec": 0.1
+            },
+            {
+              "index": 2,
+              "maxAbs": 0.0020713135600090027,
+              "rms": 0.0005455430924444421,
+              "sampleCount": 4410,
+              "startSec": 0.2
+            },
+            {
+              "index": 3,
+              "maxAbs": 0.0026342051569372416,
+              "rms": 0.0006480133067259532,
+              "sampleCount": 4410,
+              "startSec": 0.30000000000000004
+            },
+            {
+              "index": 4,
+              "maxAbs": 0.00016347819473594427,
+              "rms": 2.871094682624899e-05,
+              "sampleCount": 4410,
+              "startSec": 0.4
+            },
+            {
+              "index": 5,
+              "maxAbs": 5.364498065318912e-06,
+              "rms": 1.4183312536734452e-06,
+              "sampleCount": 4410,
+              "startSec": 0.5
+            },
+            {
+              "index": 6,
+              "maxAbs": 7.8991761256475e-06,
+              "rms": 1.850735181664813e-06,
+              "sampleCount": 4409,
+              "startSec": 0.6000000000000001
+            },
+            {
+              "index": 7,
+              "maxAbs": 1.0290129466739018e-05,
+              "rms": 2.945175434066152e-06,
+              "sampleCount": 4410,
+              "startSec": 0.7000000000000001
+            },
+            {
+              "index": 8,
+              "maxAbs": 1.5771613107062876e-05,
+              "rms": 4.3420092428550285e-06,
+              "sampleCount": 4410,
+              "startSec": 0.8
+            },
+            {
+              "index": 9,
+              "maxAbs": 2.1368186935433187e-05,
+              "rms": 6.337924815371564e-06,
+              "sampleCount": 4410,
+              "startSec": 0.9
+            },
+            {
+              "index": 10,
+              "maxAbs": 2.4371473045903258e-05,
+              "rms": 6.747397508332027e-06,
+              "sampleCount": 4410,
+              "startSec": 1
+            },
+            {
+              "index": 11,
+              "maxAbs": 2.1345204004319385e-05,
+              "rms": 6.769095922170006e-06,
+              "sampleCount": 4410,
+              "startSec": 1.1
+            },
+            {
+              "index": 12,
+              "maxAbs": 2.235292413388379e-05,
+              "rms": 7.2812302395352934e-06,
+              "sampleCount": 4410,
+              "startSec": 1.2000000000000002
+            },
+            {
+              "index": 13,
+              "maxAbs": 2.2170323063619435e-05,
+              "rms": 6.8235458678930425e-06,
+              "sampleCount": 4410,
+              "startSec": 1.3
+            },
+            {
+              "index": 14,
+              "maxAbs": 2.6890305889537558e-05,
+              "rms": 6.5691519565176705e-06,
+              "sampleCount": 4410,
+              "startSec": 1.4000000000000001
+            },
+            {
+              "index": 15,
+              "maxAbs": 2.3114280338631943e-05,
+              "rms": 7.2173868019140405e-06,
+              "sampleCount": 4410,
+              "startSec": 1.5
+            },
+            {
+              "index": 16,
+              "maxAbs": 2.547669100749772e-05,
+              "rms": 7.655779808156078e-06,
+              "sampleCount": 4410,
+              "startSec": 1.6
+            },
+            {
+              "index": 17,
+              "maxAbs": 2.3067359506967478e-05,
+              "rms": 7.233977341500003e-06,
+              "sampleCount": 4410,
+              "startSec": 1.7000000000000002
+            },
+            {
+              "index": 18,
+              "maxAbs": 2.727313585637603e-05,
+              "rms": 6.778050446133361e-06,
+              "sampleCount": 4410,
+              "startSec": 1.8
+            },
+            {
+              "index": 19,
+              "maxAbs": 2.613608376123011e-05,
+              "rms": 6.768041808125087e-06,
+              "sampleCount": 4410,
+              "startSec": 1.9000000000000001
+            },
+            {
+              "index": 20,
+              "maxAbs": 1.9781553419306874e-05,
+              "rms": 6.264150048307959e-06,
+              "sampleCount": 4410,
+              "startSec": 2
+            },
+            {
+              "index": 21,
+              "maxAbs": 2.5900619220919907e-05,
+              "rms": 6.958322614172913e-06,
+              "sampleCount": 4410,
+              "startSec": 2.1
+            },
+            {
+              "index": 22,
+              "maxAbs": 3.119151369901374e-05,
+              "rms": 7.84343896299996e-06,
+              "sampleCount": 4410,
+              "startSec": 2.2
+            },
+            {
+              "index": 23,
+              "maxAbs": 2.6466041163075715e-05,
+              "rms": 7.669083901790298e-06,
+              "sampleCount": 4410,
+              "startSec": 2.3000000000000003
+            },
+            {
+              "index": 24,
+              "maxAbs": 2.4801207473501563e-05,
+              "rms": 6.565592675182438e-06,
+              "sampleCount": 4410,
+              "startSec": 2.4000000000000004
+            },
+            {
+              "index": 25,
+              "maxAbs": 2.689486245799344e-05,
+              "rms": 7.455574761461807e-06,
+              "sampleCount": 4410,
+              "startSec": 2.5
+            },
+            {
+              "index": 26,
+              "maxAbs": 2.7210049665882252e-05,
+              "rms": 7.156896781594201e-06,
+              "sampleCount": 4410,
+              "startSec": 2.6
+            },
+            {
+              "index": 27,
+              "maxAbs": 2.663402665348258e-05,
+              "rms": 7.558632767222054e-06,
+              "sampleCount": 4410,
+              "startSec": 2.7
+            },
+            {
+              "index": 28,
+              "maxAbs": 2.0173543816781603e-05,
+              "rms": 5.832730350334494e-06,
+              "sampleCount": 4410,
+              "startSec": 2.8000000000000003
+            },
+            {
+              "index": 29,
+              "maxAbs": 2.005028181883972e-05,
+              "rms": 6.251994918496087e-06,
+              "sampleCount": 4410,
+              "startSec": 2.9000000000000004
+            },
+            {
+              "index": 30,
+              "maxAbs": 0.00025832848041318357,
+              "rms": 4.495046679713035e-05,
+              "sampleCount": 4410,
+              "startSec": 3
+            },
+            {
+              "index": 31,
+              "maxAbs": 0.00010671686322893947,
+              "rms": 1.6302353805197376e-05,
+              "sampleCount": 4410,
+              "startSec": 3.1
+            },
+            {
+              "index": 32,
+              "maxAbs": 6.454567483160645e-05,
+              "rms": 1.6095765305456026e-05,
+              "sampleCount": 4410,
+              "startSec": 3.2
+            },
+            {
+              "index": 33,
+              "maxAbs": 6.514394044643268e-05,
+              "rms": 1.951931508448382e-05,
+              "sampleCount": 4410,
+              "startSec": 3.3000000000000003
+            },
+            {
+              "index": 34,
+              "maxAbs": 8.255656575784087e-05,
+              "rms": 1.9799223098153742e-05,
+              "sampleCount": 4410,
+              "startSec": 3.4000000000000004
+            },
+            {
+              "index": 35,
+              "maxAbs": 7.34178174752742e-05,
+              "rms": 1.9231641292989265e-05,
+              "sampleCount": 4410,
+              "startSec": 3.5
+            },
+            {
+              "index": 36,
+              "maxAbs": 6.571365520358086e-05,
+              "rms": 1.924714118038398e-05,
+              "sampleCount": 4410,
+              "startSec": 3.6
+            },
+            {
+              "index": 37,
+              "maxAbs": 0.000978951109573245,
+              "rms": 0.00015572257859143183,
+              "sampleCount": 4410,
+              "startSec": 3.7
+            },
+            {
+              "index": 38,
+              "maxAbs": 0.0022370140068233013,
+              "rms": 0.0006817946274848728,
+              "sampleCount": 4410,
+              "startSec": 3.8000000000000003
+            },
+            {
+              "index": 39,
+              "maxAbs": 0.0025324933230876923,
+              "rms": 0.0007297872140209911,
+              "sampleCount": 4410,
+              "startSec": 3.9000000000000004
+            },
+            {
+              "index": 40,
+              "maxAbs": 0.0035592399071902037,
+              "rms": 0.0007892622187657477,
+              "sampleCount": 4410,
+              "startSec": 4
+            },
+            {
+              "index": 41,
+              "maxAbs": 0.0025356831029057503,
+              "rms": 0.0007276033239733876,
+              "sampleCount": 4410,
+              "startSec": 4.1000000000000005
+            },
+            {
+              "index": 42,
+              "maxAbs": 0.003493523458018899,
+              "rms": 0.0007867560954380623,
+              "sampleCount": 4410,
+              "startSec": 4.2
+            },
+            {
+              "index": 43,
+              "maxAbs": 0.002349077956750989,
+              "rms": 0.0007274240985809925,
+              "sampleCount": 4410,
+              "startSec": 4.3
+            },
+            {
+              "index": 44,
+              "maxAbs": 0.002382241655141115,
+              "rms": 0.0007241508321987447,
+              "sampleCount": 4410,
+              "startSec": 4.4
+            },
+            {
+              "index": 45,
+              "maxAbs": 0.003058149479329586,
+              "rms": 0.0007519986460962343,
+              "sampleCount": 4410,
+              "startSec": 4.5
+            },
+            {
+              "index": 46,
+              "maxAbs": 0.0021333307959139347,
+              "rms": 0.0006698871264256903,
+              "sampleCount": 4410,
+              "startSec": 4.6000000000000005
+            },
+            {
+              "index": 47,
+              "maxAbs": 0.002885548397898674,
+              "rms": 0.0006861758413268827,
+              "sampleCount": 4410,
+              "startSec": 4.7
+            },
+            {
+              "index": 48,
+              "maxAbs": 0.002963983453810215,
+              "rms": 0.0006788413176527582,
+              "sampleCount": 3533,
+              "startSec": 4.800000000000001
+            }
+          ],
+          "tapFirstAbovePrePlayPeakRelSec": 0.08977154166666668,
+          "tapFirstNonZeroAtOrAfterPlayRelSec": 2.033333333333333e-05,
+          "tapFirstNonZeroRelSec": -1.06413275
+        },
+        "channels": [
+          {
+            "allZero": false,
+            "index": 0,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 1,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 2,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 3,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 4,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 5,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 6,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 7,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 8,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 262141,
+            "seen": true
+          }
+        ],
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": true,
+        "engineRunningAtEnd": false,
+        "engineRunningBeforeEnable": false,
+        "errorCode": null,
+        "errorDomain": null,
+        "frameCount": 262144,
+        "maxAbs": 0.18853938579559326,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "player-ab-slices-on",
+        "nodesConnected": true,
+        "nonzeroFrameCount": 262141,
+        "nonzeroSamples": 2359269,
+        "outcome": "G",
+        "playEndedAt": "2026-10-15T15:30:48.031Z",
+        "playerAttached": true,
+        "playerFormat": {
+          "channelCount": 2,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "playerOutputFirstNonZero": {
+          "delaySec": 0.05206179166666666,
+          "hostTicks": "7559627667029",
+          "sampleIndex": 1
+        },
+        "playStartedAt": "2026-10-15T15:30:44.995Z",
+        "prepared": false,
+        "reason": "ok",
+        "samplesParsed": true,
+        "segments": {
+          "after": {
+            "channelMaxAbs": [
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037,
+              0.0035592399071902037
+            ],
+            "frameCount": 81920,
+            "maxAbs": 0.0035592399071902037,
+            "nonzeroSamples": 737280,
+            "rms": 0.0005541754346793962
+          },
+          "before": {
+            "channelMaxAbs": [
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795,
+              0.0073117343708872795
+            ],
+            "frameCount": 40960,
+            "maxAbs": 0.0073117343708872795,
+            "nonzeroSamples": 368613,
+            "rms": 0.0012210495845813639
+          },
+          "during": {
+            "channelMaxAbs": [
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326,
+              0.18853938579559326
+            ],
+            "frameCount": 139264,
+            "maxAbs": 0.18853938579559326,
+            "nonzeroSamples": 1253376,
+            "rms": 0.005856434016276237
+          }
+        },
+        "setVoiceProcessingEnabledCalled": true,
+        "slicesCollected": true,
+        "started": true,
+        "switch": "on",
+        "tapBufferFrames": 8192,
+        "tapFormat": {
+          "channelCount": 9,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "tapInstalled": true,
+        "threw": false,
+        "tone": {
+          "amplitude": 0.20000000298023224,
+          "frames": 132300,
+          "hz": 440,
+          "seconds": 3
+        },
+        "toneCompletionFired": true,
+        "voiceProcessingEnabled": true,
+        "windowMs": 6000
+      },
+      "order": [
+        "off",
+        "on"
+      ],
+      "outcome": "N",
+      "phase1f": "unchanged K by the pre-written maxAbs rule; not a pass; this run does not regrade it",
+      "sliceMs": 100,
+      "stillExceedingAtEnd": true,
+      "threw": false,
+      "unpairedGradeIndices": [
+        49
+      ]
+    }
+  ],
+  "outcome": "N",
+  "threw": false,
+  "errorDomain": null,
+  "errorCode": null,
+  "errorReason": null,
+  "errorDescription": null,
+  "gapActualMs": 5006.155014038086,
+  "lastExceedingSliceStartSec": 4.800000000000001,
+  "exceedingSliceStartSecs": [
+    3.8000000000000003,
+    3.9000000000000004,
+    4,
+    4.1000000000000005,
+    4.2,
+    4.3,
+    4.4,
+    4.5,
+    4.6000000000000005,
+    4.7,
+    4.800000000000001
+  ],
+  "convergenceSec": null,
+  "stillExceedingAtEnd": true,
+  "unparsedReason": null,
+  "unpairedGradeIndices": [
+    49
+  ],
+  "comparisonTable": [
+    {
+      "exceedsFifth": true,
+      "index": -11,
+      "inGradeWindow": false,
+      "offMaxAbs": 6.233378371689469e-05,
+      "offRms": 1.1211531123100158e-05,
+      "offSampleCount": 2169,
+      "onMaxAbs": 0.005194466095417738,
+      "onRms": 0.0008741479691358432,
+      "onSampleCount": 2832,
+      "paired": true,
+      "rmsRatioOnOverOff": 77.96865205455792,
+      "startSec": -1.1
+    },
+    {
+      "exceedsFifth": true,
+      "index": -10,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0032218201085925102,
+      "offRms": 0.001086410330568817,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0073117343708872795,
+      "onRms": 0.0017203438709961704,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.583512069602138,
+      "startSec": -1
+    },
+    {
+      "exceedsFifth": true,
+      "index": -9,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0035630189813673496,
+      "offRms": 0.0012724656056156132,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.004098019562661648,
+      "onRms": 0.0014240296466379089,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.1191105208293388,
+      "startSec": -0.9
+    },
+    {
+      "exceedsFifth": true,
+      "index": -8,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.004382104612886906,
+      "offRms": 0.0013261455438028833,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.006870139855891466,
+      "onRms": 0.0018185660436798176,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.3713170867089435,
+      "startSec": -0.8
+    },
+    {
+      "exceedsFifth": true,
+      "index": -7,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.004152112640440464,
+      "offRms": 0.001150943288799348,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.006011487450450659,
+      "onRms": 0.0014661853185589362,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.2738988383071814,
+      "startSec": -0.7000000000000001
+    },
+    {
+      "exceedsFifth": true,
+      "index": -6,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0033795356284826994,
+      "offRms": 0.0010983606666520084,
+      "offSampleCount": 4799,
+      "onMaxAbs": 0.003265254432335496,
+      "onRms": 0.000772565421868984,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7033804517271143,
+      "startSec": -0.6000000000000001
+    },
+    {
+      "exceedsFifth": true,
+      "index": -5,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0038158183451741934,
+      "offRms": 0.001356424583961667,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.002792371204122901,
+      "onRms": 0.0008819727225805433,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.6502187685249652,
+      "startSec": -0.5
+    },
+    {
+      "exceedsFifth": true,
+      "index": -4,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0035350921098142862,
+      "offRms": 0.00108062623590945,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0027922834269702435,
+      "onRms": 0.0007510488806322967,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.695012628487793,
+      "startSec": -0.4
+    },
+    {
+      "exceedsFifth": true,
+      "index": -3,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0030814341735094786,
+      "offRms": 0.0010571032651540571,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0032511032186448574,
+      "onRms": 0.0007775656695229967,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7355626409967413,
+      "startSec": -0.30000000000000004
+    },
+    {
+      "exceedsFifth": true,
+      "index": -2,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0032964127603918314,
+      "offRms": 0.001077624003155758,
+      "offSampleCount": 4801,
+      "onMaxAbs": 0.002381003461778164,
+      "onRms": 0.0007522077650478019,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.6980243228111159,
+      "startSec": -0.2
+    },
+    {
+      "exceedsFifth": true,
+      "index": -1,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0036098044365644455,
+      "offRms": 0.0011245416382111417,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.002944876439869404,
+      "onRms": 0.000749543070827814,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.6665320743660016,
+      "startSec": -0.1
+    },
+    {
+      "exceedsFifth": true,
+      "index": 0,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.0033798236399888992,
+      "offRms": 0.0009730949837549309,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.18853938579559326,
+      "onRms": 0.030541087683352057,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 31.385515487400433,
+      "startSec": 0
+    },
+    {
+      "exceedsFifth": false,
+      "index": 1,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.18117313086986542,
+      "offRms": 0.11776682949214545,
+      "offSampleCount": 4799,
+      "onMaxAbs": 0.10015387833118439,
+      "onRms": 0.01220082258976945,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.10360152041439813,
+      "startSec": 0.1
+    },
+    {
+      "exceedsFifth": false,
+      "index": 2,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.18280385434627533,
+      "offRms": 0.1265426622413065,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0020713135600090027,
+      "onRms": 0.0005455430924444421,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.004311139680340659,
+      "startSec": 0.2
+    },
+    {
+      "exceedsFifth": false,
+      "index": 3,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.18237486481666565,
+      "offRms": 0.126746088987609,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0026342051569372416,
+      "onRms": 0.0006480133067259532,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.005112688777239545,
+      "startSec": 0.30000000000000004
+    },
+    {
+      "exceedsFifth": false,
+      "index": 4,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.18557798862457275,
+      "offRms": 0.1279848348901726,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.00016347819473594427,
+      "onRms": 2.871094682624899e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.0002243308502205489,
+      "startSec": 0.4
+    },
+    {
+      "exceedsFifth": false,
+      "index": 5,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.1858401894569397,
+      "offRms": 0.1293131978545181,
+      "offSampleCount": 4800,
+      "onMaxAbs": 5.364498065318912e-06,
+      "onRms": 1.4183312536734452e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.0968186366167494e-05,
+      "startSec": 0.5
+    },
+    {
+      "exceedsFifth": false,
+      "index": 6,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.18622198700904846,
+      "offRms": 0.12782895872364813,
+      "offSampleCount": 4800,
+      "onMaxAbs": 7.8991761256475e-06,
+      "onRms": 1.850735181664813e-06,
+      "onSampleCount": 4409,
+      "paired": true,
+      "rmsRatioOnOverOff": 1.4478215266275421e-05,
+      "startSec": 0.6000000000000001
+    },
+    {
+      "exceedsFifth": false,
+      "index": 7,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.17672677338123322,
+      "offRms": 0.12336806130654472,
+      "offSampleCount": 4800,
+      "onMaxAbs": 1.0290129466739018e-05,
+      "onRms": 2.945175434066152e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 2.3873078679156557e-05,
+      "startSec": 0.7000000000000001
+    },
+    {
+      "exceedsFifth": false,
+      "index": 8,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.17591701447963715,
+      "offRms": 0.1227947661549289,
+      "offSampleCount": 4800,
+      "onMaxAbs": 1.5771613107062876e-05,
+      "onRms": 4.3420092428550285e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 3.5359888526329855e-05,
+      "startSec": 0.8
+    },
+    {
+      "exceedsFifth": false,
+      "index": 9,
+      "inGradeWindow": false,
+      "offMaxAbs": 0.17560169100761414,
+      "offRms": 0.12268298118785724,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.1368186935433187e-05,
+      "onRms": 6.337924815371564e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.1660994491702744e-05,
+      "startSec": 0.9
+    },
+    {
+      "exceedsFifth": false,
+      "index": 10,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.17623670399188995,
+      "offRms": 0.12275256945219416,
+      "offSampleCount": 4801,
+      "onMaxAbs": 2.4371473045903258e-05,
+      "onRms": 6.747397508332027e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.4967464538164247e-05,
+      "startSec": 1
+    },
+    {
+      "exceedsFifth": false,
+      "index": 11,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.17645692825317383,
+      "offRms": 0.12222874124532568,
+      "offSampleCount": 4799,
+      "onMaxAbs": 2.1345204004319385e-05,
+      "onRms": 6.769095922170006e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.5380558232075164e-05,
+      "startSec": 1.1
+    },
+    {
+      "exceedsFifth": false,
+      "index": 12,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.1732858419418335,
+      "offRms": 0.12011998946793775,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.235292413388379e-05,
+      "onRms": 7.2812302395352934e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.0616307675241584e-05,
+      "startSec": 1.2000000000000002
+    },
+    {
+      "exceedsFifth": false,
+      "index": 13,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.17170876264572144,
+      "offRms": 0.11884430621068665,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.2170323063619435e-05,
+      "onRms": 6.8235458678930425e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.741584166258913e-05,
+      "startSec": 1.3
+    },
+    {
+      "exceedsFifth": false,
+      "index": 14,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16970016062259674,
+      "offRms": 0.11745622847473589,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.6890305889537558e-05,
+      "onRms": 6.5691519565176705e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.592851091698943e-05,
+      "startSec": 1.4000000000000001
+    },
+    {
+      "exceedsFifth": false,
+      "index": 15,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16798658668994904,
+      "offRms": 0.11632148621203024,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.3114280338631943e-05,
+      "onRms": 7.2173868019140405e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.20468929425319e-05,
+      "startSec": 1.5
+    },
+    {
+      "exceedsFifth": false,
+      "index": 16,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.1677129864692688,
+      "offRms": 0.11542193405149663,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.547669100749772e-05,
+      "onRms": 7.655779808156078e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.632863910199578e-05,
+      "startSec": 1.6
+    },
+    {
+      "exceedsFifth": false,
+      "index": 17,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16633497178554535,
+      "offRms": 0.11484184801942261,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.3067359506967478e-05,
+      "onRms": 7.233977341500003e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.299077789375662e-05,
+      "startSec": 1.7000000000000002
+    },
+    {
+      "exceedsFifth": false,
+      "index": 18,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16517695784568787,
+      "offRms": 0.11397724880747265,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.727313585637603e-05,
+      "onRms": 6.778050446133361e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.946845109046863e-05,
+      "startSec": 1.8
+    },
+    {
+      "exceedsFifth": false,
+      "index": 19,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16318616271018982,
+      "offRms": 0.11331265535530344,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.613608376123011e-05,
+      "onRms": 6.768041808125087e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.972891365843646e-05,
+      "startSec": 1.9000000000000001
+    },
+    {
+      "exceedsFifth": false,
+      "index": 20,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16246409714221954,
+      "offRms": 0.11288677173875959,
+      "offSampleCount": 4800,
+      "onMaxAbs": 1.9781553419306874e-05,
+      "onRms": 6.264150048307959e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.54905588300845e-05,
+      "startSec": 2
+    },
+    {
+      "exceedsFifth": false,
+      "index": 21,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16149376332759857,
+      "offRms": 0.11253183825926556,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.5900619220919907e-05,
+      "onRms": 6.958322614172913e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.18342570583573e-05,
+      "startSec": 2.1
+    },
+    {
+      "exceedsFifth": false,
+      "index": 22,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16116535663604736,
+      "offRms": 0.11207188870246047,
+      "offSampleCount": 4800,
+      "onMaxAbs": 3.119151369901374e-05,
+      "onRms": 7.84343896299996e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.998578371266229e-05,
+      "startSec": 2.2
+    },
+    {
+      "exceedsFifth": false,
+      "index": 23,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16104719042778015,
+      "offRms": 0.11157385877532372,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.6466041163075715e-05,
+      "onRms": 7.669083901790298e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.873549042731893e-05,
+      "startSec": 2.3000000000000003
+    },
+    {
+      "exceedsFifth": false,
+      "index": 24,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.16021843254566193,
+      "offRms": 0.11135085963956502,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.4801207473501563e-05,
+      "onRms": 6.565592675182438e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.896310721295556e-05,
+      "startSec": 2.4000000000000004
+    },
+    {
+      "exceedsFifth": false,
+      "index": 25,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.15966863930225372,
+      "offRms": 0.11115641007538221,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.689486245799344e-05,
+      "onRms": 7.455574761461807e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.707282788645035e-05,
+      "startSec": 2.5
+    },
+    {
+      "exceedsFifth": false,
+      "index": 26,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.15953069925308228,
+      "offRms": 0.11079323821364792,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.7210049665882252e-05,
+      "onRms": 7.156896781594201e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.459687339215786e-05,
+      "startSec": 2.6
+    },
+    {
+      "exceedsFifth": false,
+      "index": 27,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.1586531400680542,
+      "offRms": 0.11052933910513824,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.663402665348258e-05,
+      "onRms": 7.558632767222054e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 6.838575918772205e-05,
+      "startSec": 2.7
+    },
+    {
+      "exceedsFifth": false,
+      "index": 28,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.1587260216474533,
+      "offRms": 0.11017562837892901,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.0173543816781603e-05,
+      "onRms": 5.832730350334494e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.294029574556979e-05,
+      "startSec": 2.8000000000000003
+    },
+    {
+      "exceedsFifth": false,
+      "index": 29,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.15924809873104095,
+      "offRms": 0.11020046058329032,
+      "offSampleCount": 4800,
+      "onMaxAbs": 2.005028181883972e-05,
+      "onRms": 6.251994918496087e-06,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 5.6732929113039264e-05,
+      "startSec": 2.9000000000000004
+    },
+    {
+      "exceedsFifth": false,
+      "index": 30,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.158160999417305,
+      "offRms": 0.1101839644156685,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.00025832848041318357,
+      "onRms": 4.495046679713035e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.00040795833618361126,
+      "startSec": 3
+    },
+    {
+      "exceedsFifth": false,
+      "index": 31,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.1691274493932724,
+      "offRms": 0.024987641885320825,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.00010671686322893947,
+      "onRms": 1.6302353805197376e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.0006524166578029244,
+      "startSec": 3.1
+    },
+    {
+      "exceedsFifth": false,
+      "index": 32,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0037217147182673216,
+      "offRms": 0.0010386497634005793,
+      "offSampleCount": 4800,
+      "onMaxAbs": 6.454567483160645e-05,
+      "onRms": 1.6095765305456026e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.015496816995132093,
+      "startSec": 3.2
+    },
+    {
+      "exceedsFifth": false,
+      "index": 33,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.002851177006959915,
+      "offRms": 0.0008437172363654513,
+      "offSampleCount": 4800,
+      "onMaxAbs": 6.514394044643268e-05,
+      "onRms": 1.951931508448382e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.023134901413853704,
+      "startSec": 3.3000000000000003
+    },
+    {
+      "exceedsFifth": false,
+      "index": 34,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.00328848697245121,
+      "offRms": 0.0008507412580902662,
+      "offSampleCount": 4800,
+      "onMaxAbs": 8.255656575784087e-05,
+      "onRms": 1.9799223098153742e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.023272908078537064,
+      "startSec": 3.4000000000000004
+    },
+    {
+      "exceedsFifth": false,
+      "index": 35,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.002952385228127241,
+      "offRms": 0.0009617196913832565,
+      "offSampleCount": 4800,
+      "onMaxAbs": 7.34178174752742e-05,
+      "onRms": 1.9231641292989265e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.01999713790338232,
+      "startSec": 3.5
+    },
+    {
+      "exceedsFifth": false,
+      "index": 36,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0029838872142136097,
+      "offRms": 0.0009256432390399731,
+      "offSampleCount": 4800,
+      "onMaxAbs": 6.571365520358086e-05,
+      "onRms": 1.924714118038398e-05,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.020793260695498698,
+      "startSec": 3.6
+    },
+    {
+      "exceedsFifth": false,
+      "index": 37,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.003568519838154316,
+      "offRms": 0.0009100373261802098,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.000978951109573245,
+      "onRms": 0.00015572257859143183,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.17111669391085493,
+      "startSec": 3.7
+    },
+    {
+      "exceedsFifth": true,
+      "index": 38,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0031009213998913765,
+      "offRms": 0.0009315847240470815,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0022370140068233013,
+      "onRms": 0.0006817946274848728,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.731865400844009,
+      "startSec": 3.8000000000000003
+    },
+    {
+      "exceedsFifth": true,
+      "index": 39,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.004154950380325317,
+      "offRms": 0.0010451212453778222,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0025324933230876923,
+      "onRms": 0.0007297872140209911,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.6982799529227496,
+      "startSec": 3.9000000000000004
+    },
+    {
+      "exceedsFifth": true,
+      "index": 40,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0037051981780678034,
+      "offRms": 0.0009517038070402659,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0035592399071902037,
+      "onRms": 0.0007892622187657477,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.8293149748137496,
+      "startSec": 4
+    },
+    {
+      "exceedsFifth": true,
+      "index": 41,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0033686666283756495,
+      "offRms": 0.0010970490103194776,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0025356831029057503,
+      "onRms": 0.0007276033239733876,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.6632368445977617,
+      "startSec": 4.1000000000000005
+    },
+    {
+      "exceedsFifth": true,
+      "index": 42,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.003445735201239586,
+      "offRms": 0.0010066347678302457,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.003493523458018899,
+      "onRms": 0.0007867560954380623,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7815705562543586,
+      "startSec": 4.2
+    },
+    {
+      "exceedsFifth": true,
+      "index": 43,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0029219533316791058,
+      "offRms": 0.0009395139581778303,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.002349077956750989,
+      "onRms": 0.0007274240985809925,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7742557651743864,
+      "startSec": 4.3
+    },
+    {
+      "exceedsFifth": true,
+      "index": 44,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0029973736964166164,
+      "offRms": 0.000938337703944608,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.002382241655141115,
+      "onRms": 0.0007241508321987447,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7717379672100364,
+      "startSec": 4.4
+    },
+    {
+      "exceedsFifth": true,
+      "index": 45,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.002828258788213134,
+      "offRms": 0.0009338214343835133,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.003058149479329586,
+      "onRms": 0.0007519986460962343,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.8052916954007229,
+      "startSec": 4.5
+    },
+    {
+      "exceedsFifth": true,
+      "index": 46,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.0028637778013944626,
+      "offRms": 0.0008783096279112295,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.0021333307959139347,
+      "onRms": 0.0006698871264256903,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7627004249273647,
+      "startSec": 4.6000000000000005
+    },
+    {
+      "exceedsFifth": true,
+      "index": 47,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.003086409065872431,
+      "offRms": 0.000927672698580565,
+      "offSampleCount": 4799,
+      "onMaxAbs": 0.002885548397898674,
+      "onRms": 0.0006861758413268827,
+      "onSampleCount": 4410,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7396745019841617,
+      "startSec": 4.7
+    },
+    {
+      "exceedsFifth": true,
+      "index": 48,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.003131444100290537,
+      "offRms": 0.0009292370389832387,
+      "offSampleCount": 4800,
+      "onMaxAbs": 0.002963983453810215,
+      "onRms": 0.0006788413176527582,
+      "onSampleCount": 3533,
+      "paired": true,
+      "rmsRatioOnOverOff": 0.7305362239924693,
+      "startSec": 4.800000000000001
+    },
+    {
+      "exceedsFifth": null,
+      "index": 49,
+      "inGradeWindow": true,
+      "offMaxAbs": 0.002332029864192009,
+      "offRms": 0.0007869605681148709,
+      "offSampleCount": 1353,
+      "onMaxAbs": null,
+      "onRms": null,
+      "onSampleCount": null,
+      "paired": false,
+      "rmsRatioOnOverOff": null,
+      "startSec": 4.9
+    }
+  ],
+  "volumeAfterRestore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "inputVolumeRestored": true,
+  "outputAlertMuteChangedAtEnd": []
+}

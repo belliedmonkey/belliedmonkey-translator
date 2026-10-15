@@ -5,6 +5,7 @@
 // `--on` 的第二项只挂一个空的播放节点，不排缓冲区、不开始播放。
 // `--player-frames` 才在同一台引擎上挂播放节点并放一段程序生成的正弦，默认不走。
 // `--player-ab` 用同一段测试音先关后开各跑一台引擎，默认不走。
+// `--player-ab-slices` 用同一段测试音先关后开，把 tap 在缓冲内部按采样点切成 100 毫秒，默认不走。
 //
 // 依据（2026-10-15 读 MacOSX27.0.sdk）：
 // AVFAudio.framework/Headers/AVAudioIONode.h
@@ -19,6 +20,7 @@
 // 不调用这里。
 
 import AVFoundation
+import Darwin
 import Foundation
 
 enum MTVPProbe {
@@ -442,6 +444,18 @@ enum MTVPProbe {
 
     private static let inputFramesWindowMs = 5000
 
+    /// 时间分辨对照。同一段测试音先关后开，间隔 playerABGapMs。不调换，不重试。
+    /// 每台引擎把 tap 在缓冲内部按采样点切成 playerSliceMs，只取第 0 路。默认不走。
+    /// 不改 phase1f 的分档，也不把那一次算作通过。
+    static func runPlayerABSlices() -> [String: Any] {
+        let off = runPlayerFrames(name: "player-ab-slices-off", enableVoiceProcessing: false, collectSlices: true)
+        let gapStart = Date()
+        Thread.sleep(forTimeInterval: Double(playerABGapMs) / 1000)
+        let gapEnd = Date()
+        let on = runPlayerFrames(name: "player-ab-slices-on", enableVoiceProcessing: true, collectSlices: true)
+        return playerABSliceResult(off: off, on: on, gapStart: gapStart, gapEnd: gapEnd)
+    }
+
     /// 开/关对照：各自单独起一台引擎。先关后开，中间停 playerABGapMs。不调换，不重试。
     static func runPlayerAB() -> [String: Any] {
         let off = runPlayerFrames(name: "player-ab-off", enableVoiceProcessing: false)
@@ -456,7 +470,7 @@ enum MTVPProbe {
     /// 顺序只走一次：停着时打开 voice processing，再 attach，再 connect（format 传 nil，不手改格式），
     /// 再装 tap，再 start 一次。任一步抛错就停。窗口 6 秒；开始后 1 秒播放 440 Hz、幅度 0.2、3 秒的正弦。
     /// enableVoiceProcessing 为 false 时不调用 setVoiceProcessingEnabled，格式仍取节点当前输出。
-    static func runPlayerFrames(name: String = "player-frames", enableVoiceProcessing: Bool = true) -> [String: Any] {
+    static func runPlayerFrames(name: String = "player-frames", enableVoiceProcessing: Bool = true, collectSlices: Bool = false) -> [String: Any] {
         let auth = authorize()
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -540,13 +554,35 @@ enum MTVPProbe {
         let tapFormat = input.outputFormat(forBus: 0)
         out["tapFormat"] = describe(tapFormat)
         out["tapBufferFrames"] = playerTapFrames
+        out["slicesCollected"] = collectSlices
         let stats = InputFrameStats(channelCount: Int(tapFormat.channelCount))
+        let slices = Channel0Slices(sampleRate: tapFormat.sampleRate, sliceMs: playerSliceMs)
+        var playerOutputHost: UInt64?
+        var playerOutputSample: Int?
+        func attachSlices() {
+            guard collectSlices else { return }
+            out["channel0Slices"] = slices.snapshot()
+            var delay: [String: Any] = [
+                "sampleIndex": playerOutputSample.map { NSNumber(value: $0) } ?? NSNull(),
+                "hostTicks": NSNull(),
+                "delaySec": NSNull(),
+            ]
+            if let host = playerOutputHost, let rel = slices.secondsSincePlay(host) {
+                delay["hostTicks"] = String(host)
+                delay["delaySec"] = NSNumber(value: rel)
+            }
+            out["playerOutputFirstNonZero"] = delay
+        }
         do {
-            try input.installAudioTap(onBus: 0, bufferSize: playerTapFrames, format: tapFormat) { buffer, _ in
+            try input.installAudioTap(onBus: 0, bufferSize: playerTapFrames, format: tapFormat) { buffer, when in
                 stats.add(buffer, trackPhase: true)
+                if collectSlices {
+                    slices.add(buffer, when: when)
+                }
             }
         } catch {
             fail(error, "tap-failed")
+            attachSlices()
             return out
         }
         tapInstalled = true
@@ -555,6 +591,7 @@ enum MTVPProbe {
             try engine.start()
         } catch {
             fail(error, "start-failed")
+            attachSlices()
             return out
         }
         out["started"] = true
@@ -578,6 +615,7 @@ enum MTVPProbe {
             out["errorCode"] = NSNull()
             out["engineRunningAtEnd"] = engine.isRunning
             out["segments"] = stats.segmentSnapshot()
+            attachSlices()
             return out
         }
         out["tone"] = [
@@ -590,16 +628,34 @@ enum MTVPProbe {
             stats.markPlayEnd(Date())
         })
         out["buffersScheduled"] = 1
+        if collectSlices {
+            playerOutputSample = Self.firstNonZeroSampleIndex(tone)
+        }
         stats.markPlayStart(Date())
+        if collectSlices {
+            slices.markPlay(host: mach_absolute_time())
+        }
         do {
             try player.playAudio()
         } catch {
             fail(error, "play-failed")
             out["segments"] = stats.segmentSnapshot()
+            attachSlices()
             return out
         }
 
         while Date() < deadline {
+            if collectSlices && playerOutputHost == nil, let sampleIndex = playerOutputSample {
+                let playerSample = AVAudioTime(sampleTime: AVAudioFramePosition(sampleIndex), atRate: playFormat.sampleRate)
+                if let node = player.nodeTime(forPlayerTime: playerSample) {
+                    if node.isHostTimeValid {
+                        playerOutputHost = node.hostTime
+                    } else if let render = player.lastRenderTime, render.isHostTimeValid, render.isSampleTimeValid,
+                              let full = node.extrapolateTime(fromAnchor: render), full.isHostTimeValid {
+                        playerOutputHost = full.hostTime
+                    }
+                }
+            }
             RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
         }
         if engine.isRunning {
@@ -645,6 +701,7 @@ enum MTVPProbe {
         out["threw"] = false
         out["errorDomain"] = NSNull()
         out["errorCode"] = NSNull()
+        attachSlices()
         return out
     }
 
@@ -655,6 +712,7 @@ enum MTVPProbe {
     private static let playerToneAmplitude: Float = 0.2
     private static let playerTapFrames: AVAudioFrameCount = 8192
     private static let playerABGapMs = 5000
+    private static let playerSliceMs = 100
 
     private static func playerABResult(off: [String: Any], on: [String: Any], gapStart: Date, gapEnd: Date) -> [String: Any] {
         var out: [String: Any] = [
@@ -727,6 +785,228 @@ enum MTVPProbe {
         return out
     }
 
+    private struct SliceMeas {
+        var rms: Double
+        var maxAbs: Double
+        var count: Int
+    }
+
+    private static func asDouble(_ value: Any?) -> Double? {
+        switch value {
+        case let number as Double:
+            return number
+        case let number as NSNumber:
+            return number.doubleValue
+        case let number as Int:
+            return Double(number)
+        default:
+            return nil
+        }
+    }
+
+    private static func asInt(_ value: Any?) -> Int? {
+        switch value {
+        case let number as Int:
+            return number
+        case let number as NSNumber:
+            return number.intValue
+        default:
+            return nil
+        }
+    }
+
+    private static func sliceMap(_ run: [String: Any]) -> (ok: Bool, reason: String, rows: [Int: SliceMeas]) {
+        guard let box = run["channel0Slices"] as? [String: Any] else {
+            return (false, "channel0Slices missing", [:])
+        }
+        if (box["parsed"] as? Bool) != true {
+            return (false, (box["note"] as? String) ?? "samples unparsed", [:])
+        }
+        if (box["hostTimeValid"] as? Bool) != true {
+            return (false, "host time invalid", [:])
+        }
+        guard let play = box["playHostTicks"] as? String, play.isEmpty == false else {
+            return (false, "play host time missing", [:])
+        }
+        guard let list = box["slices"] as? [[String: Any]] else {
+            return (false, "slices missing", [:])
+        }
+        var rows: [Int: SliceMeas] = [:]
+        for item in list {
+            guard let index = asInt(item["index"]),
+                  let rms = asDouble(item["rms"]),
+                  let maxAbs = asDouble(item["maxAbs"]),
+                  let count = asInt(item["sampleCount"]) else {
+                return (false, "slice field unparsed", [:])
+            }
+            rows[index] = SliceMeas(rms: rms, maxAbs: maxAbs, count: count)
+        }
+        if rows.isEmpty {
+            return (false, "no slices", [:])
+        }
+        return (true, "ok", rows)
+    }
+
+    /// 事先写好的分档：放声开始 1 秒之后，开时每一片 RMS 不高于关时同一切片的 1/5 为 M。
+    /// 等于 1/5 算通过。关时 RMS 为 0 时，开时也必须是 0。有超标为 N，抛错为 E。
+    /// 配对不上且没有超标时不判 M，记 unparsed，不重跑。
+    private static func playerABSliceResult(off: [String: Any], on: [String: Any], gapStart: Date, gapEnd: Date) -> [String: Any] {
+        let sliceSec = Double(playerSliceMs) / 1000
+        let gradeFrom = 1000 / playerSliceMs
+        var out: [String: Any] = [
+            "name": "player-ab-slices",
+            "order": ["off", "on"],
+            "gapMs": playerABGapMs,
+            "gapActualMs": gapEnd.timeIntervalSince(gapStart) * 1000,
+            "gapStartedAt": iso8601(gapStart),
+            "gapEndedAt": iso8601(gapEnd),
+            "sliceMs": playerSliceMs,
+            "channel": 0,
+            "audioSaved": false,
+            "gradeWindowStartSec": 1,
+            "fifthRule": "M when every slice with start >= 1s has on RMS <= off RMS / 5; N when any such slice is higher, and lastExceedingSliceStartSec is that slice's start; E if either run threw. Equal to 1/5 passes. Off RMS 0 passes only when on RMS is 0.",
+            "convergenceReading": "among paired slices with start >= 0, seconds after the play command at which every later paired slice stays <= 1/5. 0 if none of those slices exceed. null if the last paired slice still exceeds. Not a separate grade.",
+            "phase1f": "unchanged K by the pre-written maxAbs rule; not a pass; this run does not regrade it",
+            "off": off,
+            "on": on,
+        ]
+        func blankReading() {
+            out["comparisonTable"] = NSNull()
+            out["lastExceedingSliceStartSec"] = NSNull()
+            out["exceedingSliceStartSecs"] = NSNull()
+            out["convergenceSec"] = NSNull()
+            out["stillExceedingAtEnd"] = NSNull()
+            out["unpairedGradeIndices"] = NSNull()
+        }
+        let offThrew = (off["threw"] as? Bool) == true
+        let onThrew = (on["threw"] as? Bool) == true
+        if offThrew || onThrew {
+            let failed = offThrew ? off : on
+            out["outcome"] = "E"
+            out["threw"] = true
+            out["errorDomain"] = failed["errorDomain"] ?? NSNull()
+            out["errorCode"] = failed["errorCode"] ?? NSNull()
+            out["errorReason"] = failed["reason"] ?? NSNull()
+            out["errorDescription"] = failed["errorDescription"] ?? NSNull()
+            blankReading()
+            return out
+        }
+        if (off["outcome"] as? String) == "not-called" || (on["outcome"] as? String) == "not-called" {
+            out["outcome"] = "not-called"
+            out["threw"] = false
+            out["errorDomain"] = NSNull()
+            out["errorCode"] = NSNull()
+            blankReading()
+            return out
+        }
+        let offMap = sliceMap(off)
+        let onMap = sliceMap(on)
+        guard offMap.ok, onMap.ok else {
+            out["outcome"] = "unparsed"
+            out["threw"] = false
+            out["errorDomain"] = NSNull()
+            out["errorCode"] = NSNull()
+            out["unparsedReason"] = [offMap.reason, onMap.reason].filter { $0 != "ok" }.joined(separator: "; ")
+            blankReading()
+            return out
+        }
+        let indices = Set(offMap.rows.keys).union(onMap.rows.keys).sorted()
+        var table: [[String: Any]] = []
+        var exceeding: [Int] = []
+        var unpaired: [Int] = []
+        var lastPairedFromPlay: Int?
+        var lastExceedFromPlay: Int?
+        for index in indices {
+            let offRow = offMap.rows[index]
+            let onRow = onMap.rows[index]
+            let paired = offRow != nil && onRow != nil
+            let start = Double(index) * sliceSec
+            var exceeds: Any = NSNull()
+            var ratio: Any = NSNull()
+            if let offRow, let onRow {
+                let over = onRow.rms > offRow.rms / 5
+                exceeds = over
+                if offRow.rms != 0 {
+                    ratio = NSNumber(value: onRow.rms / offRow.rms)
+                }
+                if index >= 0 {
+                    lastPairedFromPlay = index
+                    if over { lastExceedFromPlay = index }
+                }
+                if index >= gradeFrom && over {
+                    exceeding.append(index)
+                }
+            }
+            if index >= gradeFrom && !paired {
+                unpaired.append(index)
+            }
+            let offRms: Any = offRow.map { NSNumber(value: $0.rms) } ?? NSNull()
+            let offMax: Any = offRow.map { NSNumber(value: $0.maxAbs) } ?? NSNull()
+            let offCount: Any = offRow.map { NSNumber(value: $0.count) } ?? NSNull()
+            let onRms: Any = onRow.map { NSNumber(value: $0.rms) } ?? NSNull()
+            let onMax: Any = onRow.map { NSNumber(value: $0.maxAbs) } ?? NSNull()
+            let onCount: Any = onRow.map { NSNumber(value: $0.count) } ?? NSNull()
+            table.append([
+                "index": index,
+                "startSec": NSNumber(value: start),
+                "offRms": offRms,
+                "offMaxAbs": offMax,
+                "offSampleCount": offCount,
+                "onRms": onRms,
+                "onMaxAbs": onMax,
+                "onSampleCount": onCount,
+                "rmsRatioOnOverOff": ratio,
+                "inGradeWindow": index >= gradeFrom,
+                "paired": paired,
+                "exceedsFifth": exceeds,
+            ])
+        }
+        out["comparisonTable"] = table
+        out["unpairedGradeIndices"] = unpaired
+        if lastPairedFromPlay == nil {
+            out["convergenceSec"] = NSNull()
+            out["stillExceedingAtEnd"] = NSNull()
+        } else if let last = lastExceedFromPlay {
+            if last == lastPairedFromPlay {
+                out["convergenceSec"] = NSNull()
+                out["stillExceedingAtEnd"] = true
+            } else {
+                out["convergenceSec"] = NSNumber(value: Double(last + 1) * sliceSec)
+                out["stillExceedingAtEnd"] = false
+            }
+        } else {
+            out["convergenceSec"] = NSNumber(value: 0)
+            out["stillExceedingAtEnd"] = false
+        }
+        let gradeIndices = indices.filter { $0 >= gradeFrom }
+        out["threw"] = false
+        out["errorDomain"] = NSNull()
+        out["errorCode"] = NSNull()
+        if gradeIndices.isEmpty {
+            out["outcome"] = "unparsed"
+            out["unparsedReason"] = "no slice at or after 1s"
+            out["lastExceedingSliceStartSec"] = NSNull()
+            out["exceedingSliceStartSecs"] = NSNull()
+            return out
+        }
+        if !exceeding.isEmpty {
+            let last = exceeding.max() ?? exceeding[0]
+            out["outcome"] = "N"
+            out["lastExceedingSliceStartSec"] = NSNumber(value: Double(last) * sliceSec)
+            out["exceedingSliceStartSecs"] = exceeding.map { NSNumber(value: Double($0) * sliceSec) }
+            return out
+        }
+        out["exceedingSliceStartSecs"] = []
+        out["lastExceedingSliceStartSec"] = NSNull()
+        if !unpaired.isEmpty {
+            out["outcome"] = "unparsed"
+            out["unparsedReason"] = "grade window has a slice on only one side"
+            return out
+        }
+        out["outcome"] = "M"
+        return out
+    }
+
     private static func iso8601(_ date: Date) -> String {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -778,6 +1058,26 @@ enum MTVPProbe {
             return .stopped("tone-format-unsupported")
         }
         return .buffer(buffer)
+    }
+
+    /// 正弦第 0 个采样是 0。返回第一格非 0 的下标，供换算输出延迟。扫不到就记 0。
+    private static func firstNonZeroSampleIndex(_ buffer: AVAudioPCMBuffer) -> Int {
+        let frames = Int(buffer.frameLength)
+        guard frames > 0, buffer.format.isInterleaved == false else { return 0 }
+        switch buffer.format.commonFormat {
+        case .pcmFormatFloat32:
+            guard let data = buffer.floatChannelData else { return 0 }
+            for i in 0..<frames where data[0][i] != 0 { return i }
+        case .pcmFormatInt16:
+            guard let data = buffer.int16ChannelData else { return 0 }
+            for i in 0..<frames where data[0][i] != 0 { return i }
+        case .pcmFormatInt32:
+            guard let data = buffer.int32ChannelData else { return 0 }
+            for i in 0..<frames where data[0][i] != 0 { return i }
+        default:
+            return 0
+        }
+        return 0
     }
 
     private static func tapBufferChoice(sampleRate: Double) -> (frames: AVAudioFrameCount?, ms: Double, note: String) {
@@ -1146,5 +1446,242 @@ private final class InputFrameStats: @unchecked Sendable {
             rows.append(row)
         }
         return (buffers, frames, nonzeroFrames, peak, parsed, note, listCount, rows)
+    }
+}
+
+/// 只累计第 0 路。100 毫秒一片，片界按相对放声开始的采样点时间取 floor。
+/// 缓冲比一片长，所以在缓冲内部逐个采样切，不按整块缓冲记一片。
+/// 原始采样只留到放声时刻已知，随后丢掉，不写进结果。
+private final class Channel0Slices: @unchecked Sendable {
+    private struct Sample {
+        var host: UInt64
+        var value: Float
+    }
+    private struct Bin {
+        var sumSquares: Double = 0
+        var maxAbs: Float = 0
+        var count: Int = 0
+    }
+
+    private let lock = NSLock()
+    private let sampleRate: Double
+    private let sliceSec: Double
+    private var timebase = mach_timebase_info_data_t(numer: 0, denom: 0)
+    private var playHost: UInt64?
+    private var pending: [Sample] = []
+    private var bins: [Int: Bin] = [:]
+    private var parsed = true
+    private var hostValid = true
+    private var note: String?
+    private var prePlayPeak: Float = 0
+    private var firstNonZeroHost: UInt64?
+    private var firstNonZeroAtOrAfterPlayHost: UInt64?
+    private var firstAbovePrePlayPeakHost: UInt64?
+
+    init(sampleRate: Double, sliceMs: Int) {
+        self.sampleRate = sampleRate
+        self.sliceSec = Double(sliceMs) / 1000
+        let rc = mach_timebase_info(&timebase)
+        if rc != 0 || timebase.numer == 0 || timebase.denom == 0 || self.sliceSec <= 0 {
+            hostValid = false
+            parsed = false
+            note = "host timebase or slice length is 0"
+        }
+    }
+
+    func markPlay(host: UInt64) {
+        lock.lock()
+        playHost = host
+        let queued = pending
+        pending.removeAll()
+        for item in queued {
+            ingestLocked(host: item.host, value: item.value)
+        }
+        lock.unlock()
+    }
+
+    func secondsSincePlay(_ host: UInt64) -> Double? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let play = playHost, timebase.numer != 0, timebase.denom != 0 else { return nil }
+        return secondsBetween(from: play, to: host)
+    }
+
+    func add(_ buffer: AVReadOnlyAudioPCMBuffer, when: AVAudioTime) {
+        guard when.isHostTimeValid else {
+            lock.lock()
+            hostValid = false
+            lock.unlock()
+            return
+        }
+        let rate = buffer.format.sampleRate
+        let frames = Int(buffer.frameLength)
+        if rate <= 0 {
+            lock.lock()
+            parsed = false
+            note = "sample rate is 0"
+            lock.unlock()
+            return
+        }
+        if frames == 0 { return }
+        let channels = Int(buffer.format.channelCount)
+        let interleaved = buffer.format.isInterleaved
+        var values: [Float] = []
+        var supported = true
+        buffer.withUnsafeAudioBufferList { ptr in
+            let list = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: ptr))
+            switch buffer.format.commonFormat {
+            case .pcmFormatFloat32:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size) { raw, index in
+                    abs(raw.assumingMemoryBound(to: Float.self)[index])
+                }
+            case .pcmFormatInt16:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size) { raw, index in
+                    abs(Float(raw.assumingMemoryBound(to: Int16.self)[index])) / 32768
+                }
+            case .pcmFormatInt32:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size) { raw, index in
+                    abs(Float(raw.assumingMemoryBound(to: Int32.self)[index])) / 2147483648
+                }
+            default:
+                supported = false
+            }
+        }
+        lock.lock()
+        if !supported {
+            parsed = false
+            note = "commonFormat has no sample layout"
+            lock.unlock()
+            return
+        }
+        if values.isEmpty {
+            parsed = false
+            note = "channel 0 has no samples"
+            lock.unlock()
+            return
+        }
+        let start = when.hostTime
+        let count = values.count
+        for i in 0..<count {
+            let sampleHost = start &+ hostOffset(samples: i, rate: rate)
+            let value = values[i]
+            if playHost == nil {
+                pending.append(Sample(host: sampleHost, value: value))
+            } else {
+                ingestLocked(host: sampleHost, value: value)
+            }
+        }
+        lock.unlock()
+    }
+
+    func snapshot() -> [String: Any] {
+        lock.lock()
+        defer { lock.unlock() }
+        let rows: [[String: Any]] = bins.keys.sorted().map { index in
+            let bin = bins[index] ?? Bin()
+            let rms = bin.count > 0 ? sqrt(bin.sumSquares / Double(bin.count)) : 0
+            return [
+                "index": index,
+                "startSec": Double(index) * sliceSec,
+                "rms": NSNumber(value: rms),
+                "maxAbs": NSNumber(value: bin.maxAbs),
+                "sampleCount": bin.count,
+            ]
+        }
+        func rel(_ host: UInt64?) -> Any {
+            guard let host, let play = playHost, timebase.numer != 0, timebase.denom != 0 else { return NSNull() }
+            return NSNumber(value: secondsBetween(from: play, to: host))
+        }
+        return [
+            "parsed": parsed,
+            "hostTimeValid": hostValid && timebase.numer != 0 && timebase.denom != 0,
+            "note": note ?? NSNull(),
+            "sampleRate": sampleRate,
+            "sliceMs": sliceSec * 1000,
+            "channel": 0,
+            "audioSaved": false,
+            "playHostTicks": playHost.map { String($0) } ?? NSNull(),
+            "prePlayPeak": NSNumber(value: prePlayPeak),
+            "tapFirstNonZeroRelSec": rel(firstNonZeroHost),
+            "tapFirstNonZeroAtOrAfterPlayRelSec": rel(firstNonZeroAtOrAfterPlayHost),
+            "tapFirstAbovePrePlayPeakRelSec": rel(firstAbovePrePlayPeakHost),
+            "slices": rows,
+        ]
+    }
+
+    private func ingestLocked(host: UInt64, value: Float) {
+        guard let play = playHost, sliceSec > 0, timebase.numer != 0, timebase.denom != 0 else { return }
+        let rel = secondsBetween(from: play, to: host)
+        let index = Int(floor(rel / sliceSec))
+        var bin = bins[index] ?? Bin()
+        bin.sumSquares += Double(value) * Double(value)
+        bin.count += 1
+        if value > bin.maxAbs { bin.maxAbs = value }
+        bins[index] = bin
+        if value > 0 && firstNonZeroHost == nil {
+            firstNonZeroHost = host
+        }
+        if host < play {
+            if value > prePlayPeak { prePlayPeak = value }
+        } else {
+            if value > 0 && firstNonZeroAtOrAfterPlayHost == nil {
+                firstNonZeroAtOrAfterPlayHost = host
+            }
+            if value > prePlayPeak && firstAbovePrePlayPeakHost == nil {
+                firstAbovePrePlayPeakHost = host
+            }
+        }
+    }
+
+    private func hostOffset(samples: Int, rate: Double) -> UInt64 {
+        if samples <= 0 || rate <= 0 || timebase.numer == 0 || timebase.denom == 0 { return 0 }
+        let nanos = Double(samples) / rate * 1_000_000_000
+        let ticks = nanos * Double(timebase.denom) / Double(timebase.numer)
+        if ticks <= 0 { return 0 }
+        return UInt64(ticks.rounded())
+    }
+
+    private func secondsBetween(from earlier: UInt64, to later: UInt64) -> Double {
+        let sign: Double
+        let delta: UInt64
+        if later >= earlier {
+            sign = 1
+            delta = later - earlier
+        } else {
+            sign = -1
+            delta = earlier - later
+        }
+        let nanos = Double(delta) * Double(timebase.numer) / Double(timebase.denom)
+        return sign * nanos / 1_000_000_000
+    }
+
+    private static func channel0(
+        _ list: UnsafeMutableAudioBufferListPointer,
+        frames: Int,
+        channels: Int,
+        interleaved: Bool,
+        bytesPerSample: Int,
+        amplitude: (UnsafeMutableRawPointer, Int) -> Float
+    ) -> [Float] {
+        var out: [Float] = []
+        if !interleaved {
+            guard let audio = list.first, let data = audio.mData else { return [] }
+            let count = min(frames, Int(audio.mDataByteSize) / bytesPerSample)
+            out.reserveCapacity(count)
+            for i in 0..<count {
+                out.append(amplitude(data, i))
+            }
+            return out
+        }
+        guard channels > 0, let audio = list.first, let data = audio.mData else { return [] }
+        let available = Int(audio.mDataByteSize) / bytesPerSample
+        let count = frames
+        out.reserveCapacity(count)
+        for i in 0..<count {
+            let index = i * channels
+            if index >= available { break }
+            out.append(amplitude(data, index))
+        }
+        return out
     }
 }
