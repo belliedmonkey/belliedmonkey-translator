@@ -129,7 +129,7 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     const onAt = body.indexOf('enableVoiceProcessing: true');
     ok(offAt >= 0 && onAt > offAt, 'order is not off then on');
     eq(body.split('runPlayerFrames(').length - 1, 2);
-    ok(!/setVoiceProcessingEnabled/.test(body), 'player-ab calls the switch itself');
+    ok(!/setVoiceProcessingEnabled\(/.test(body), 'player-ab calls the switch itself');
     ok(/playerABGapMs/.test(body), 'gap constant missing');
     ok(/private static let playerABGapMs = 5000/.test(probe), 'gap is not 5000 ms');
     ok(/--player-ab/.test(main), 'main has no --player-ab');
