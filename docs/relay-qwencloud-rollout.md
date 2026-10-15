@@ -5,24 +5,24 @@
 
 这一份只是清单。不部署、不推送、不改线上环境变量、不改代码行为。代码在工作树 `mobiletranslator-592`、分支 `cursor/feat-592-unified-subs`，本地提交，没有 upstream。
 
-开关是 `UPSTREAM=qwencloud`。不设、或仍是 `openrouter` / `dashscope` 时，请求体和状态码与现在相同。打开之后按 `X-Real-IP` 调用 `bt-models` 的 `isChina`：非中国走 QwenCloud 国际按量，中国走百炼北京兼容模式。
+开关是 `UPSTREAM=qwencloud`。不设、或仍是 `openrouter` / `dashscope` 时，请求体和状态码与现在相同。打开之后，走 QwenCloud 的令牌按 `X-Real-IP` 调用 `bt-models` 的 `isChina`：非中国走 QwenCloud 国际按量，中国走百炼北京兼容模式。哪些令牌走 QwenCloud 由 `QWENCLOUD_ALLOW_TOKEN_HASHES` 决定，见第 4 节。不设这个变量等于全量。
 
 ## 0. 现在还不能按这一份上线
 
-下面四条不解决，第 1 节的顺序不能开始执行。本清单不替它们做选择。
+第 1 条是已经写进代码的用法：灰度时必须设置，漏设等于全量。第 2–4 条不解决，第 1 节的顺序不能开始执行。本清单不替第 2–4 条做选择。
 
-1. **没有「只放开一个令牌哈希」的代码。** `UPSTREAM` 是整个函数的一个值。打开之后每一枚 `bmg_` 令牌都走新上游。要先加哈希白名单再部署，还是接受一次打开就面对全部令牌，等用户定。见第 4 节。
-2. **`cn-cidrs.txt` 会不会随 Supabase 函数发布：待确认。** 见第 3 节。读不到时开关打开后的每一个非 OPTIONS 请求都是 503 `grant_misconfigured`。
+1. **灰度必须设置 `QWENCLOUD_ALLOW_TOKEN_HASHES`，否则等于全量。** 变量未设置时，`UPSTREAM=qwencloud` 对每一枚令牌生效。变量已设置时，只有名单里的令牌哈希走 QwenCloud；名单外走 `UPSTREAM` 未设时的现有路径，行为、状态码、记账与开关关闭相同。设成空串是空名单，全部走旧路径，不要当成没设。名单外的新客户端（`qwen3.7-plus` / `qwen3-tts-flash` / `qwen3-asr-flash`）会 403 `model_not_allowed`，这是预期。用法在第 4 节。
+2. **`cn-cidrs.txt` 会不会随 Supabase 函数发布：待确认。** 见第 3 节。读不到时：名单未设置，开关打开后的每一个非 OPTIONS 请求都是 503 `grant_misconfigured`；名单已设置（含空串），这一条只挡走 QwenCloud 的令牌，名单外仍走旧路径。
 3. **托管 Edge Function 的请求上有没有 `X-Real-IP`：待确认。** 见第 3 节。代码只读这个头。空字符串在 `isChina` 里是非中国，于是所有人走 QwenCloud。
 4. **中国 IP 的朗读、转写模型 id：待确认。** 北京文档写的路径和中继中国分支发出去的路径不是同一条。不填的话这两档是 503 `grant_misconfigured`。见第 2 节。
 
 ## 1. 上线顺序
 
-顺序固定：先部署中继并打开开关，并且先只对一个测试令牌的哈希放开；这一步的读数过了，再发带新模型名的客户端。
+顺序固定：先部署中继并打开开关，并且先只对一个测试令牌的哈希放开；这一步的读数过了，再发带新模型名的客户端。放开的办法是设置 `QWENCLOUD_ALLOW_TOKEN_HASHES`（第 4 节）。不设这个变量不等于灰度，等于全量。
 
-新客户端先发到旧中继上会 403。旧中继（开关关闭）把模型钉在 `GRANT_MODELS` 里现在的三个 id：聊天 `deepseek/deepseek-v4-flash`、朗读 `deepgram/aura-2`、转写 `openai/whisper-1`。这份分支上的客户端改成了 `qwen3.7-plus`、`qwen3-tts-flash`、`qwen3-asr-flash`。开关关闭时，客户端模型名和钉住的名字不一致就回 **403** `{error:"model_not_allowed", model:<服务端钉住的旧 id>}`，请求不转发、不记账。接受新模型名的分支只在 `UPSTREAM=qwencloud` 时执行。所以只部署代码、不打开开关，新客户端仍然 403。
+新客户端先发到旧中继上会 403。旧中继（开关关闭）把模型钉在 `GRANT_MODELS` 里现在的三个 id：聊天 `deepseek/deepseek-v4-flash`、朗读 `deepgram/aura-2`、转写 `openai/whisper-1`。这份分支上的客户端改成了 `qwen3.7-plus`、`qwen3-tts-flash`、`qwen3-asr-flash`。开关关闭时，客户端模型名和钉住的名字不一致就回 **403** `{error:"model_not_allowed", model:<服务端钉住的旧 id>}`，请求不转发、不记账。接受新模型名的分支只在该令牌走 QwenCloud 时执行：开关打开且名单未设置，或者哈希在名单里。名单外和开关关闭相同，仍是上面的 403。所以只部署代码、不打开开关，新客户端仍然 403；打开了开关但忘了把这枚令牌写进名单，也是 403。
 
-旧客户端（仍发送上面三个旧 id）在开关打开之后，按 IP 分两种。下面逐项写。音色与模型名取自改注册表之前的 `grant_speech`：模型 `deepgram/aura-2`，音色 `aura-2-thalia-en`。转写是否带时间戳看 `extension/content/request-shape.js`：只有调用方 `wantCues` 时才追加 `response_format=verbose_json` 和 `timestamp_granularities[]=segment`（约第 567 行）。说题那条路不加这两项。
+旧客户端（仍发送上面三个旧 id）在走 QwenCloud 时（名单未设置，或哈希在名单里），按 IP 分两种。下面逐项写。名单外不按 IP 分，见第 4 节。音色与模型名取自改注册表之前的 `grant_speech`：模型 `deepgram/aura-2`，音色 `aura-2-thalia-en`。转写是否带时间戳看 `extension/content/request-shape.js`：只有调用方 `wantCues` 时才追加 `response_format=verbose_json` 和 `timestamp_granularities[]=segment`（约第 567 行）。说题那条路不加这两项。
 
 ### 非中国 IP（含 `X-Real-IP` 为空）
 
@@ -32,7 +32,7 @@
 - **转写，要字幕时间戳（`wantCues`）。** 400 `{error:"timestamps_unsupported"}`。不转发，不退回 OpenRouter。
 - **上游 401 / 402 / 403。** 一律改写 503 `{error:"grant_unavailable"}`，不把上游正文给客户端。日志 `upstream_billing` 带原来的状态码。
 - **上游 429。** 429 `{error:"upstream_rate_limited"}`。中继自己的每分钟 60 次仍是 429 `{error:"busy"}`。
-- **余额地板。** `floatOk()` 在非 OpenRouter 时直接放行。`GRANT_FLOAT_MIN_USD=5` 设着也不检查 QwenCloud 余额。
+- **余额地板。** 走 QwenCloud 的请求上 `floatOk()` 直接放行。`GRANT_FLOAT_MIN_USD=5` 设着也不检查 QwenCloud 余额。名单外的请求仍检查 OpenRouter 余额，见第 4 节。
 
 ### 中国 IP（仅当 `X-Real-IP` 被 `isChina` 判中）
 
@@ -50,6 +50,7 @@
 | 变量 | 开关打开时是否必填 | 取值来源 | 不设时 |
 |---|---|---|---|
 | `UPSTREAM` | 要打开开关就必填，值是 `qwencloud` | 这次上线时由操作者设置。不是从密钥文件读 | 代码当作 `openrouter`。请求体和状态码与现在相同，含 401 原样透传 |
+| `QWENCLOUD_ALLOW_TOKEN_HASHES` | 灰度时必填。不设等于全量 | 逗号分隔的令牌哈希，写全长 64 位。算法与验令牌的 `sha256Hex` 相同：对去掉 `Bearer ` 前缀并 trim 之后的明文做 SHA-256，小写十六进制，无分隔符（[#592 的说明](https://github.com/belliedmonkey/belliedmonkey-translator/issues/592#issuecomment-6187390435)）。每一段先 trim 再转小写；明文本身不转小写。不要把明文写进这个变量 | 未设置：开关打开后全部走 QwenCloud。空串：空名单，全部走旧路径，不要当成没设 |
 | `QWENCLOUD_KEY` | 非中国 IP 必填 | 用户重置后写入本机 `~/mobiletranslator/.local/keys.md` 的 `key_chat_qwencloud_global` 行，再由操作者设进 Supabase 密钥。文档和命令行都不出现这个值 | 非中国请求 503 `grant_misconfigured`，日志 `no_key`（不打出密钥）。开关关闭时不读它 |
 | `QWENCLOUD_CHAT_BASE` | 否 | 生产不设。只给本地单测指向桩 | `https://maas.qwencloudapi.com/compatible-mode/v1` |
 | `QWENCLOUD_TTS_URL` | 否 | 生产不设 | `https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation` |
@@ -57,7 +58,7 @@
 | `UPSTREAM_BASE` | 否 | 生产不设，沿用代码默认。北京 Base URL 页（2026-10-15）把 `https://dashscope.aliyuncs.com/compatible-mode/v1` 列为华北 2（北京）的 OpenAI 兼容地址，并写现有域名仍可使用 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
 | `GRANT_MODELS` | 见下 | JSON 密钥。聊天 id 见下一段。朗读、转写 id 待确认，确认前不要填一个从别的路径搬来的名字 | 见下 |
 | `GRANT_PRICES` | 国际三档的标价不读它（常量在中继里） | 现有 JSON。中国聊天的 `chatPerKTok` / `chatFloor`、中国朗读的 `ttsPerKChar`、中国转写的 `sttPerMin` / `sttPerMB` 仍用它 | 代码默认：`chatPerKTok` 0.001，`chatFloor` 0.0005，`ttsPerKChar` 0.015，`sttPerMB` 0.02，`sttPerMin` 0.007。国际聊天在两个 token 字段都缺失时用 `chatFloor` |
-| `GRANT_FLOAT_MIN_USD` | 保持 **5** | 现有密钥，不要改成别的数 | 代码默认 5。开关打开后 `floatOk()` 直接返回真，这个 5 **不会**拦住转发。OpenRouter 余额检查只在 `UPSTREAM=openrouter` 时跑 |
+| `GRANT_FLOAT_MIN_USD` | 保持 **5** | 现有密钥，不要改成别的数 | 代码默认 5。走 QwenCloud 的请求不查这个余额。名单外、空名单、以及 `UPSTREAM=openrouter` 时，仍用 OpenRouter 的 `/credits`，低于 5 美元则 503 `grant_unavailable` |
 
 `GRANT_MODELS` 三档：
 
@@ -82,7 +83,7 @@ Supabase 官方文档（2026-10-15，链接见依据评论）**没有**写：`su
 
 ### 部署后的验证（将来执行，现在不跑）
 
-- **读不到。** 模块加载失败或 IPv4 表为空时 `CN_BAD`。之后每一个非 OPTIONS 请求，在验令牌之前就回 **503** `{error:"grant_misconfigured"}`。函数日志有一行 `relay cn_cidr` 加上截断到 80 字的错误（URL 被抹掉）。这一行没有令牌哈希。
+- **读不到。** 模块加载失败或 IPv4 表为空时 `CN_BAD`。名单未设置时，之后每一个非 OPTIONS 请求，在验令牌之前就回 **503** `{error:"grant_misconfigured"}`。名单已设置（含空串）时，这一条只挡走 QwenCloud 的令牌，在算出哈希之后回同一个 503；名单外仍走旧路径。函数日志有一行 `relay cn_cidr` 加上截断到 80 字的错误（URL 被抹掉）。这一行没有令牌哈希。
 - **读到了。** 一个有效测试令牌、非中国网络的聊天请求不再是上述「验令牌之前的 503」，并且 `bt_grant_usage.model` 为 `qwen3.7-plus`。一个已知中国网络的同一请求，`model` 为 `qwen-plus`（或 `GRANT_MODELS.chat`）。两边都是 `qwen3.7-plus`：头是空的，或没有被判成中国。空头走非中国是代码行为；头在不在请求上仍是上面的待确认。
 - 日志只有哈希前 8 位。不要为了验证去打印 IP 或密钥。
 
@@ -90,9 +91,15 @@ Supabase 官方文档（2026-10-15，链接见依据评论）**没有**写：`su
 
 ## 4. 灰度
 
-当前代码没有按令牌哈希分支。下面的步骤是顺序要求；第 0 步做不到之前，不要把 `UPSTREAM` 设成 `qwencloud`，否则全部令牌同时切换。
+灰度靠 `QWENCLOUD_ALLOW_TOKEN_HASHES`。`UPSTREAM=qwencloud` 且这个变量**已设置**时，只有名单内的哈希走 QwenCloud。名单外走 `UPSTREAM` 未设时的现有路径：OpenRouter（`OPENROUTER_GRANT_KEY`、`OPENROUTER_BASE`）、`usage.include`、401 原样透传、429 原样透传、`GRANT_MODELS` 钉死的旧模型、`floatOk()` 查 OpenRouter 余额、聊天按 `usage.cost` 那三级记账。这条路径不改用百炼的 `UPSTREAM_KEY` / `UPSTREAM_BASE`，中国 IP 也不会把名单外的令牌拉去北京。QwenCloud 的模型钉死、`enable_thinking`、音色映射都不作用到名单外。朗读、转写的计价同样是开关关闭时的那套。
 
-测试令牌的哈希：对令牌明文做 SHA-256，十六进制。日志里的标记是前 8 位。`bt_grants.token_hash` 是全长。不要把明文写进文档、issue 或日志。
+变量**未设置**等于全量：开关打开后每一枚令牌都走 QwenCloud。灰度时必须设置。设成空串按空名单处理，全部走上面的旧路径，不要当成没设。
+
+名单外的新客户端仍发送 `qwen3.7-plus`、`qwen3-tts-flash`、`qwen3-asr-flash`。旧路径钉的是 `GRANT_MODELS` 里的旧 id，对不上就 **403** `{error:"model_not_allowed", model:<旧 id>}`，不转发、不记账。这是预期，不是故障。旧客户端（仍发送旧 id）在名单外可以照旧转发。
+
+哈希算法与中继验令牌的 `sha256Hex` 相同：去掉 `Bearer ` 前缀、trim，再 SHA-256，小写十六进制，无分隔符，名单里写全长 64 位。依据是 [#592 的说明](https://github.com/belliedmonkey/belliedmonkey-translator/issues/592#issuecomment-6187390435)。每一段先 trim 再转小写，所以大写哈希和两侧空格都能对上；令牌明文不转小写，大小写不同就是另一枚令牌。日志里只有哈希前 8 位，用来过滤。不要把明文写进文档、issue、日志或响应。响应头和响应体不带名单。
+
+下面的步骤是顺序要求。不要靠「不设这个变量」来灰度，那是全量。
 
 每一步都看两类记录：
 
@@ -117,7 +124,7 @@ Supabase 官方文档（2026-10-15，链接见依据评论）**没有**写：`su
 
 比例阈值（429 占请求的百分之几算超标）原文没有规定，**待用户定**。在定下来之前，部署期用上面的「出现即停」。
 
-建议的扩大顺序（哈希门落地之后）：一个测试令牌的聊天 → 同一令牌的朗读和说题转写 → 再加令牌。每加一档都重新对上面的通过 / 停止标准。中国 IP 的朗读和转写在模型 id 仍是待确认时不纳入通过标准，预期就是 503 `grant_misconfigured`；若这一 503 出现在非中国请求上，按停止处理。
+建议的扩大顺序：把一个测试令牌的哈希写进 `QWENCLOUD_ALLOW_TOKEN_HASHES`，先测聊天 → 同一令牌的朗读和说题转写 → 再往名单里加令牌。每加一档都重新对上面的通过 / 停止标准。名单外的令牌不在这一档的通过标准里；它们走旧路径，新模型名的 403 是预期。中国 IP 的朗读和转写在模型 id 仍是待确认时不纳入通过标准，预期就是 503 `grant_misconfigured`；若这一 503 出现在非中国、且哈希在名单内的请求上，按停止处理。
 
 ## 5. 回滚
 
