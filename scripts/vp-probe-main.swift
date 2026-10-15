@@ -7,6 +7,7 @@
 //   C / D / E 都退出 0。调用之前引擎已经在跑，则退出 1。
 // --player-frames：打开 voice processing 后再挂播放节点并放一段正弦，窗口 6 秒。
 //   G / H / I / E 都退出 0。调用之前引擎已经在跑，则退出 1。默认不走这条路径。
+// --player-ab：同一段测试音先关后开各跑一台引擎。J / K / L / E 都退出 0。默认不走。
 // --on：先做「只开 voice processing、不挂播放节点」，引擎确实 start 了才做第二项
 // 「挂一个空的 AVAudioPlayerNode」。第二项 start 之后 frameCount 为 0 就退出 2，
 // 不再换顺序、不再改格式。其它失败退出 1。
@@ -20,6 +21,14 @@ struct VPProbeMain {
         let args = Array(CommandLine.arguments.dropFirst())
         if args == ["--input-frames"] {
             let row = MTVPProbe.runInputFrames()
+            emit([row])
+            if (row["outcome"] as? String) == "not-called" {
+                exit(1)
+            }
+            exit(0)
+        }
+        if args == ["--player-ab"] {
+            let row = MTVPProbe.runPlayerAB()
             emit([row])
             if (row["outcome"] as? String) == "not-called" {
                 exit(1)
@@ -50,7 +59,7 @@ struct VPProbeMain {
                 "reason": "unknown-arg",
                 "args": args,
             ] as [String: Any]])
-            fputs("vp-probe: only --on, --format-only, --input-frames, or --player-frames is accepted\n", stderr)
+            fputs("vp-probe: only --on, --format-only, --input-frames, --player-frames, or --player-ab is accepted\n", stderr)
             exit(1)
         }
         let turnOn = args.first == "--on"

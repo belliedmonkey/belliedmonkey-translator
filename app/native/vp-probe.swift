@@ -4,6 +4,7 @@
 // 不接 sherpa、系统语音、云端 TTS、WebKit。
 // `--on` 的第二项只挂一个空的播放节点，不排缓冲区、不开始播放。
 // `--player-frames` 才在同一台引擎上挂播放节点并放一段程序生成的正弦，默认不走。
+// `--player-ab` 用同一段测试音先关后开各跑一台引擎，默认不走。
 //
 // 依据（2026-10-15 读 MacOSX27.0.sdk）：
 // AVFAudio.framework/Headers/AVAudioIONode.h
@@ -441,10 +442,21 @@ enum MTVPProbe {
 
     private static let inputFramesWindowMs = 5000
 
+    /// 开/关对照：各自单独起一台引擎。先关后开，中间停 playerABGapMs。不调换，不重试。
+    static func runPlayerAB() -> [String: Any] {
+        let off = runPlayerFrames(name: "player-ab-off", enableVoiceProcessing: false)
+        let gapStart = Date()
+        Thread.sleep(forTimeInterval: Double(playerABGapMs) / 1000)
+        let gapEnd = Date()
+        let on = runPlayerFrames(name: "player-ab-on", enableVoiceProcessing: true)
+        return playerABResult(off: off, on: on, gapStart: gapStart, gapEnd: gapEnd)
+    }
+
     /// 读数②：回声消除已经打开的同一台引擎上再挂播放节点，看输入 tap 还有没有非零采样。
     /// 顺序只走一次：停着时打开 voice processing，再 attach，再 connect（format 传 nil，不手改格式），
     /// 再装 tap，再 start 一次。任一步抛错就停。窗口 6 秒；开始后 1 秒播放 440 Hz、幅度 0.2、3 秒的正弦。
-    static func runPlayerFrames() -> [String: Any] {
+    /// enableVoiceProcessing 为 false 时不调用 setVoiceProcessingEnabled，格式仍取节点当前输出。
+    static func runPlayerFrames(name: String = "player-frames", enableVoiceProcessing: Bool = true) -> [String: Any] {
         let auth = authorize()
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -464,7 +476,7 @@ enum MTVPProbe {
         }
 
         var out: [String: Any] = base(
-            name: "player-frames",
+            name: name,
             switchOn: true,
             engineCreated: true,
             attachPlayer: false,
@@ -488,25 +500,32 @@ enum MTVPProbe {
             out["engineRunningAtEnd"] = engine.isRunning
         }
 
-        guard engine.isRunning == false else {
-            out["engineRunningBeforeEnable"] = true
-            out["outcome"] = "not-called"
-            out["reason"] = "engine-already-running"
-            out["engineRunningAtEnd"] = engine.isRunning
-            return out
+        out["setVoiceProcessingEnabledCalled"] = false
+        if enableVoiceProcessing {
+            guard engine.isRunning == false else {
+                out["engineRunningBeforeEnable"] = true
+                out["outcome"] = "not-called"
+                out["reason"] = "engine-already-running"
+                out["engineRunningAtEnd"] = engine.isRunning
+                return out
+            }
+            out["engineRunningBeforeEnable"] = false
+            do {
+                try input.setVoiceProcessingEnabled(true)
+            } catch {
+                fail(error, "vp-enable-failed")
+                return out
+            }
+            vpEnabled = true
+            out["setVoiceProcessingEnabledCalled"] = true
+        } else {
+            out["engineRunningBeforeEnable"] = engine.isRunning
         }
-        out["engineRunningBeforeEnable"] = false
-        do {
-            try input.setVoiceProcessingEnabled(true)
-        } catch {
-            fail(error, "vp-enable-failed")
-            return out
-        }
-        vpEnabled = true
         out["voiceProcessingEnabled"] = input.isVoiceProcessingEnabled
 
         engine.attach(player)
         out["playerAttached"] = true
+        out["attachPlayer"] = true
         do {
             // format nil：AVAudioEngine.h 写明非 nil 才会改源节点输出格式。这里不传格式。
             try engine.connectNode(player, to: engine.mainMixerNode, format: nil)
@@ -635,6 +654,78 @@ enum MTVPProbe {
     private static let playerToneHz = 440.0
     private static let playerToneAmplitude: Float = 0.2
     private static let playerTapFrames: AVAudioFrameCount = 8192
+    private static let playerABGapMs = 5000
+
+    private static func playerABResult(off: [String: Any], on: [String: Any], gapStart: Date, gapEnd: Date) -> [String: Any] {
+        var out: [String: Any] = [
+            "name": "player-ab",
+            "order": ["off", "on"],
+            "gapMs": playerABGapMs,
+            "gapActualMs": gapEnd.timeIntervalSince(gapStart) * 1000,
+            "gapStartedAt": iso8601(gapStart),
+            "gapEndedAt": iso8601(gapEnd),
+            "halfRule": "J when on during maxAbs <= off during maxAbs / 2; L when on during maxAbs is greater; otherwise K",
+            "off": off,
+            "on": on,
+        ]
+        func metric(_ run: [String: Any], _ key: String) -> Double? {
+            guard let segs = run["segments"] as? [String: [String: Any]],
+                  let during = segs["during"],
+                  let number = during[key] as? NSNumber else { return nil }
+            return number.doubleValue
+        }
+        let offMax = metric(off, "maxAbs")
+        let onMax = metric(on, "maxAbs")
+        let offRms = metric(off, "rms")
+        let onRms = metric(on, "rms")
+        if let offMax, let onMax, offMax != 0 {
+            out["duringMaxAbsRatioOnOverOff"] = NSNumber(value: onMax / offMax)
+        } else {
+            out["duringMaxAbsRatioOnOverOff"] = NSNull()
+        }
+        if let offRms, let onRms, offRms != 0 {
+            out["duringRmsRatioOnOverOff"] = NSNumber(value: onRms / offRms)
+        } else {
+            out["duringRmsRatioOnOverOff"] = NSNull()
+        }
+        out["duringMaxAbs"] = [
+            "off": offMax.map { NSNumber(value: $0) } ?? NSNull(),
+            "on": onMax.map { NSNumber(value: $0) } ?? NSNull(),
+        ]
+        out["duringRms"] = [
+            "off": offRms.map { NSNumber(value: $0) } ?? NSNull(),
+            "on": onRms.map { NSNumber(value: $0) } ?? NSNull(),
+        ]
+        let offThrew = (off["threw"] as? Bool) == true
+        let onThrew = (on["threw"] as? Bool) == true
+        if offThrew || onThrew {
+            let failed = offThrew ? off : on
+            out["outcome"] = "E"
+            out["threw"] = true
+            out["errorDomain"] = failed["errorDomain"] ?? NSNull()
+            out["errorCode"] = failed["errorCode"] ?? NSNull()
+            out["errorReason"] = failed["reason"] ?? NSNull()
+            return out
+        }
+        guard let offMax, let onMax else {
+            out["outcome"] = "unparsed"
+            out["threw"] = false
+            out["errorDomain"] = NSNull()
+            out["errorCode"] = NSNull()
+            return out
+        }
+        if onMax > offMax {
+            out["outcome"] = "L"
+        } else if onMax <= offMax / 2 {
+            out["outcome"] = "J"
+        } else {
+            out["outcome"] = "K"
+        }
+        out["threw"] = false
+        out["errorDomain"] = NSNull()
+        out["errorCode"] = NSNull()
+        return out
+    }
 
     private static func iso8601(_ date: Date) -> String {
         let fmt = ISO8601DateFormatter()
@@ -843,6 +934,9 @@ private final class InputFrameStats: @unchecked Sendable {
     private var segmentFrames: [String: Int64] = [:]
     private var segmentNonzero: [String: Int64] = [:]
     private var segmentMax: [String: Float] = [:]
+    private var segmentSumSquares: [String: Double] = [:]
+    private var segmentSampleCount: [String: Int64] = [:]
+    private var segmentChannelMax: [String: [Float]] = [:]
 
     init(channelCount: Int) {
         let n = max(channelCount, 0)
@@ -876,6 +970,8 @@ private final class InputFrameStats: @unchecked Sendable {
         var localNonzeroFrames = 0
         var localNonzero = [Int64](repeating: 0, count: channelCount)
         var localMax = [Float](repeating: 0, count: channelCount)
+        var localSumSquares = [Double](repeating: 0, count: channelCount)
+        var localSampleCount = [Int](repeating: 0, count: channelCount)
         var localSeen = [Bool](repeating: false, count: channelCount)
         var localParsed = true
         var localNote: String?
@@ -887,15 +983,15 @@ private final class InputFrameStats: @unchecked Sendable {
                 localList = list.count
                 switch buffer.format.commonFormat {
                 case .pcmFormatFloat32:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size, nonzero: &localNonzero, maxAbs: &localMax, sumSquares: &localSumSquares, sampleCount: &localSampleCount, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
                         abs(raw.assumingMemoryBound(to: Float.self)[index])
                     }
                 case .pcmFormatInt16:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size, nonzero: &localNonzero, maxAbs: &localMax, sumSquares: &localSumSquares, sampleCount: &localSampleCount, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
                         abs(Float(raw.assumingMemoryBound(to: Int16.self)[index])) / 32768
                     }
                 case .pcmFormatInt32:
-                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size, nonzero: &localNonzero, maxAbs: &localMax, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size, nonzero: &localNonzero, maxAbs: &localMax, sumSquares: &localSumSquares, sampleCount: &localSampleCount, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
                         abs(Float(raw.assumingMemoryBound(to: Int32.self)[index])) / 2147483648
                     }
                 default:
@@ -924,8 +1020,15 @@ private final class InputFrameStats: @unchecked Sendable {
             if let phase {
                 segmentFrames[phase, default: 0] += Int64(nFrames)
                 segmentNonzero[phase, default: 0] += localNonzero.reduce(0, +)
+                segmentSumSquares[phase, default: 0] += localSumSquares.reduce(0, +)
+                segmentSampleCount[phase, default: 0] += Int64(localSampleCount.reduce(0, +))
                 let peak = localMax.max() ?? 0
                 if peak > (segmentMax[phase] ?? 0) { segmentMax[phase] = peak }
+                var peaks = segmentChannelMax[phase] ?? Array(repeating: 0, count: channelCount)
+                for i in 0..<channelCount where localMax[i] > peaks[i] {
+                    peaks[i] = localMax[i]
+                }
+                segmentChannelMax[phase] = peaks
             }
         }
         lock.unlock()
@@ -950,10 +1053,15 @@ private final class InputFrameStats: @unchecked Sendable {
         defer { lock.unlock() }
         var rows: [String: [String: Any]] = [:]
         for key in ["before", "during", "after"] {
+            let count = segmentSampleCount[key] ?? 0
+            let rms = count > 0 ? sqrt((segmentSumSquares[key] ?? 0) / Double(count)) : 0
+            let peaks = segmentChannelMax[key] ?? Array(repeating: 0, count: channelCount)
             rows[key] = [
                 "frameCount": NSNumber(value: segmentFrames[key] ?? 0),
                 "nonzeroSamples": NSNumber(value: segmentNonzero[key] ?? 0),
                 "maxAbs": NSNumber(value: segmentMax[key] ?? 0),
+                "rms": NSNumber(value: rms),
+                "channelMaxAbs": peaks.map { NSNumber(value: $0) },
             ]
         }
         return rows
@@ -967,6 +1075,8 @@ private final class InputFrameStats: @unchecked Sendable {
         bytesPerSample: Int,
         nonzero: inout [Int64],
         maxAbs: inout [Float],
+        sumSquares: inout [Double],
+        sampleCount: inout [Int],
         seen: inout [Bool],
         nonzeroFrames: inout Int,
         amplitude: (UnsafeMutableRawPointer, Int) -> Float
@@ -981,6 +1091,8 @@ private final class InputFrameStats: @unchecked Sendable {
                 let count = min(frames, Int(audio.mDataByteSize) / bytesPerSample)
                 for i in 0..<count {
                     let value = amplitude(data, i)
+                    sumSquares[b] += Double(value) * Double(value)
+                    sampleCount[b] += 1
                     if value > maxAbs[b] { maxAbs[b] = value }
                     if value != 0 {
                         nonzero[b] += 1
@@ -1000,6 +1112,8 @@ private final class InputFrameStats: @unchecked Sendable {
                 if index >= available { continue }
                 seen[c] = true
                 let value = amplitude(data, index)
+                sumSquares[c] += Double(value) * Double(value)
+                sampleCount[c] += 1
                 if value > maxAbs[c] { maxAbs[c] = value }
                 if value != 0 {
                     nonzero[c] += 1

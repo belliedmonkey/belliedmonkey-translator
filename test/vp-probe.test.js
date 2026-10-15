@@ -55,7 +55,7 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
       ok(guardAt >= 0 && at - guardAt < 700, 'isRunning check is not immediately before enable');
       from = at + 1;
     }
-    const playerAt = probe.indexOf('static func runPlayerFrames()');
+    const playerAt = probe.indexOf('static func runPlayerFrames(');
     const afterPlayer = probe.indexOf('private static func tapBufferChoice', playerAt);
     ok(playerAt > 0 && afterPlayer > playerAt, 'runPlayerFrames missing');
     const withoutPlayer = probe.slice(0, playerAt) + probe.slice(afterPlayer);
@@ -93,7 +93,7 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
   test('--player-frames 先开回声消除再挂播放，只 start 一次，格式不手改', () => {
     const probe = read('app/native/vp-probe.swift');
     const main = read('scripts/vp-probe-main.swift');
-    const begin = probe.indexOf('static func runPlayerFrames()');
+    const begin = probe.indexOf('static func runPlayerFrames(');
     const end = probe.indexOf('private static let playerFramesWindowMs', begin);
     ok(begin > 0 && end > begin, 'runPlayerFrames missing');
     const body = probe.slice(begin, end);
@@ -116,6 +116,30 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     ok(/--player-frames/.test(main), 'main has no --player-frames');
     ok(!/enabledByDefault = true/.test(probe), 'default flipped on');
     ok(!/sherpa|import WebKit|speechSynthesis|CATapDescription|AVSpeechSynthesizer/.test(body), 'player-frames touches speech or WebKit');
+  });
+
+  test('--player-ab 先关后开，关的那次不调用开关，间隔 5 秒', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runPlayerAB()');
+    const end = probe.indexOf('static func runPlayerFrames(', begin);
+    ok(begin > 0 && end > begin, 'runPlayerAB missing');
+    const body = probe.slice(begin, end);
+    const offAt = body.indexOf('enableVoiceProcessing: false');
+    const onAt = body.indexOf('enableVoiceProcessing: true');
+    ok(offAt >= 0 && onAt > offAt, 'order is not off then on');
+    eq(body.split('runPlayerFrames(').length - 1, 2);
+    ok(!/setVoiceProcessingEnabled/.test(body), 'player-ab calls the switch itself');
+    ok(/playerABGapMs/.test(body), 'gap constant missing');
+    ok(/private static let playerABGapMs = 5000/.test(probe), 'gap is not 5000 ms');
+    ok(/--player-ab/.test(main), 'main has no --player-ab');
+    ok(!/enabledByDefault = true/.test(probe), 'default flipped on');
+    const onceBegin = probe.indexOf('static func runPlayerFrames(');
+    const onceEnd = probe.indexOf('private static let playerFramesWindowMs', onceBegin);
+    const once = probe.slice(onceBegin, onceEnd);
+    const callAt = once.indexOf('setVoiceProcessingEnabled(true)');
+    const ifAt = once.lastIndexOf('if enableVoiceProcessing', callAt);
+    ok(ifAt >= 0 && callAt - ifAt < 500, 'the enable call is not inside the voice-processing branch');
   });
 
   test('探针不进双 flavor 共用的 BLOCKS', () => {

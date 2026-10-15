@@ -1,0 +1,343 @@
+{
+  "date": "2026-10-15",
+  "parameter": "--player-ab",
+  "defaultOff": true,
+  "gradeRule": "J when on during maxAbs <= half of off; L when on is greater; otherwise K. E if either run threw. One pair, off then on, no retry.",
+  "shellVolumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "inputVolumeRestoreTarget": 0,
+  "startedAt": "2026-10-15T21:33:01.249+08:00",
+  "volumeBefore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "devicesBefore": {
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器"
+  },
+  "volumeAfterInputSet": {
+    "output volume": 70,
+    "input volume": 60,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:60, alert volume:100, output muted:false"
+  },
+  "outputAlertMuteChangedByInputSet": [],
+  "probeExitCode": 0,
+  "probeStdout": "[\n  {\n    \"duringMaxAbs\" : {\n      \"off\" : 0.18490573763847351,\n      \"on\" : 0.13958039879798889\n    },\n    \"duringMaxAbsRatioOnOverOff\" : 0.75487326991926873,\n    \"duringRms\" : {\n      \"off\" : 0.11413638863132268,\n      \"on\" : 0.004991084471866687\n    },\n    \"duringRmsRatioOnOverOff\" : 0.043729125581400893,\n    \"errorCode\" : null,\n    \"errorDomain\" : null,\n    \"gapActualMs\" : 5008.8349580764771,\n    \"gapEndedAt\" : \"2026-10-15T13:33:13.752Z\",\n    \"gapMs\" : 5000,\n    \"gapStartedAt\" : \"2026-10-15T13:33:08.744Z\",\n    \"halfRule\" : \"J when on during maxAbs <= off during maxAbs \\/ 2; L when on during maxAbs is greater; otherwise K\",\n    \"name\" : \"player-ab\",\n    \"off\" : {\n      \"attachPlayer\" : true,\n      \"authorization\" : \"authorized\",\n      \"bufferCount\" : 35,\n      \"buffersScheduled\" : 1,\n      \"channels\" : [\n        {\n          \"allZero\" : false,\n          \"index\" : 0,\n          \"maxAbs\" : 0.18490573763847351,\n          \"nonzeroSamples\" : 286238,\n          \"seen\" : true\n        }\n      ],\n      \"citation\" : \"AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework\\/Headers\\/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.\",\n      \"engineCreated\" : true,\n      \"engineRunningAtEnd\" : false,\n      \"engineRunningBeforeEnable\" : false,\n      \"errorCode\" : null,\n      \"errorDomain\" : null,\n      \"frameCount\" : 286720,\n      \"maxAbs\" : 0.18490573763847351,\n      \"mixWithOthers\" : {\n        \"citation\" : \"AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.\",\n        \"lost\" : null,\n        \"readable\" : false\n      },\n      \"name\" : \"player-ab-off\",\n      \"nodesConnected\" : true,\n      \"nonzeroFrameCount\" : 286238,\n      \"nonzeroSamples\" : 286238,\n      \"outcome\" : \"G\",\n      \"playEndedAt\" : \"2026-10-15T13:33:06.743Z\",\n      \"playerAttached\" : true,\n      \"playerFormat\" : {\n        \"channelCount\" : 2,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"playStartedAt\" : \"2026-10-15T13:33:03.706Z\",\n      \"prepared\" : false,\n      \"reason\" : \"ok\",\n      \"samplesParsed\" : true,\n      \"segments\" : {\n        \"after\" : {\n          \"channelMaxAbs\" : [\n            0.16789104044437408\n          ],\n          \"frameCount\" : 98304,\n          \"maxAbs\" : 0.16789104044437408,\n          \"nonzeroSamples\" : 98304,\n          \"rms\" : 0.036409643173213817\n        },\n        \"before\" : {\n          \"channelMaxAbs\" : [\n            0.0030144464690238237\n          ],\n          \"frameCount\" : 49152,\n          \"maxAbs\" : 0.0030144464690238237,\n          \"nonzeroSamples\" : 48670,\n          \"rms\" : 0.00072743415052502745\n        },\n        \"during\" : {\n          \"channelMaxAbs\" : [\n            0.18490573763847351\n          ],\n          \"frameCount\" : 139264,\n          \"maxAbs\" : 0.18490573763847351,\n          \"nonzeroSamples\" : 139264,\n          \"rms\" : 0.11413638863132268\n        }\n      },\n      \"setVoiceProcessingEnabledCalled\" : false,\n      \"started\" : true,\n      \"switch\" : \"on\",\n      \"tapBufferFrames\" : 8192,\n      \"tapFormat\" : {\n        \"channelCount\" : 1,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 48000\n      },\n      \"tapInstalled\" : true,\n      \"threw\" : false,\n      \"tone\" : {\n        \"amplitude\" : 0.20000000298023224,\n        \"frames\" : 132300,\n        \"hz\" : 440,\n        \"seconds\" : 3\n      },\n      \"toneCompletionFired\" : true,\n      \"voiceProcessingEnabled\" : false,\n      \"windowMs\" : 6000\n    },\n    \"on\" : {\n      \"attachPlayer\" : true,\n      \"authorization\" : \"authorized\",\n      \"bufferCount\" : 32,\n      \"buffersScheduled\" : 1,\n      \"channels\" : [\n        {\n          \"allZero\" : false,\n          \"index\" : 0,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 1,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 2,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 3,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 4,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 5,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 6,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 7,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        },\n        {\n          \"allZero\" : false,\n          \"index\" : 8,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 262141,\n          \"seen\" : true\n        }\n      ],\n      \"citation\" : \"AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework\\/Headers\\/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.\",\n      \"engineCreated\" : true,\n      \"engineRunningAtEnd\" : false,\n      \"engineRunningBeforeEnable\" : false,\n      \"errorCode\" : null,\n      \"errorDomain\" : null,\n      \"frameCount\" : 262144,\n      \"maxAbs\" : 0.13958039879798889,\n      \"mixWithOthers\" : {\n        \"citation\" : \"AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.\",\n        \"lost\" : null,\n        \"readable\" : false\n      },\n      \"name\" : \"player-ab-on\",\n      \"nodesConnected\" : true,\n      \"nonzeroFrameCount\" : 262141,\n      \"nonzeroSamples\" : 2359269,\n      \"outcome\" : \"G\",\n      \"playEndedAt\" : \"2026-10-15T13:33:18.258Z\",\n      \"playerAttached\" : true,\n      \"playerFormat\" : {\n        \"channelCount\" : 2,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"playStartedAt\" : \"2026-10-15T13:33:15.222Z\",\n      \"prepared\" : false,\n      \"reason\" : \"ok\",\n      \"samplesParsed\" : true,\n      \"segments\" : {\n        \"after\" : {\n          \"channelMaxAbs\" : [\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209,\n            0.0042545781470835209\n          ],\n          \"frameCount\" : 90112,\n          \"maxAbs\" : 0.0042545781470835209,\n          \"nonzeroSamples\" : 811008,\n          \"rms\" : 0.00045113690558607042\n        },\n        \"before\" : {\n          \"channelMaxAbs\" : [\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635,\n            0.0035979533568024635\n          ],\n          \"frameCount\" : 40960,\n          \"maxAbs\" : 0.0035979533568024635,\n          \"nonzeroSamples\" : 368613,\n          \"rms\" : 0.00067241121416751655\n        },\n        \"during\" : {\n          \"channelMaxAbs\" : [\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889,\n            0.13958039879798889\n          ],\n          \"frameCount\" : 131072,\n          \"maxAbs\" : 0.13958039879798889,\n          \"nonzeroSamples\" : 1179648,\n          \"rms\" : 0.004991084471866687\n        }\n      },\n      \"setVoiceProcessingEnabledCalled\" : true,\n      \"started\" : true,\n      \"switch\" : \"on\",\n      \"tapBufferFrames\" : 8192,\n      \"tapFormat\" : {\n        \"channelCount\" : 9,\n        \"commonFormat\" : \"AVAudioCommonFormat(rawValue: 1)\",\n        \"isInterleaved\" : false,\n        \"sampleRate\" : 44100\n      },\n      \"tapInstalled\" : true,\n      \"threw\" : false,\n      \"tone\" : {\n        \"amplitude\" : 0.20000000298023224,\n        \"frames\" : 132300,\n        \"hz\" : 440,\n        \"seconds\" : 3\n      },\n      \"toneCompletionFired\" : true,\n      \"voiceProcessingEnabled\" : true,\n      \"windowMs\" : 6000\n    },\n    \"order\" : [\n      \"off\",\n      \"on\"\n    ],\n    \"outcome\" : \"K\",\n    \"threw\" : false\n  }\n]\n",
+  "probeStderr": "",
+  "probe": [
+    {
+      "duringMaxAbs": {
+        "off": 0.1849057376384735,
+        "on": 0.1395803987979889
+      },
+      "duringMaxAbsRatioOnOverOff": 0.7548732699192687,
+      "duringRms": {
+        "off": 0.11413638863132268,
+        "on": 0.004991084471866687
+      },
+      "duringRmsRatioOnOverOff": 0.04372912558140089,
+      "errorCode": null,
+      "errorDomain": null,
+      "gapActualMs": 5008.834958076477,
+      "gapEndedAt": "2026-10-15T13:33:13.752Z",
+      "gapMs": 5000,
+      "gapStartedAt": "2026-10-15T13:33:08.744Z",
+      "halfRule": "J when on during maxAbs <= off during maxAbs / 2; L when on during maxAbs is greater; otherwise K",
+      "name": "player-ab",
+      "off": {
+        "attachPlayer": true,
+        "authorization": "authorized",
+        "bufferCount": 35,
+        "buffersScheduled": 1,
+        "channels": [
+          {
+            "allZero": false,
+            "index": 0,
+            "maxAbs": 0.1849057376384735,
+            "nonzeroSamples": 286238,
+            "seen": true
+          }
+        ],
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": true,
+        "engineRunningAtEnd": false,
+        "engineRunningBeforeEnable": false,
+        "errorCode": null,
+        "errorDomain": null,
+        "frameCount": 286720,
+        "maxAbs": 0.1849057376384735,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "player-ab-off",
+        "nodesConnected": true,
+        "nonzeroFrameCount": 286238,
+        "nonzeroSamples": 286238,
+        "outcome": "G",
+        "playEndedAt": "2026-10-15T13:33:06.743Z",
+        "playerAttached": true,
+        "playerFormat": {
+          "channelCount": 2,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "playStartedAt": "2026-10-15T13:33:03.706Z",
+        "prepared": false,
+        "reason": "ok",
+        "samplesParsed": true,
+        "segments": {
+          "after": {
+            "channelMaxAbs": [
+              0.16789104044437408
+            ],
+            "frameCount": 98304,
+            "maxAbs": 0.16789104044437408,
+            "nonzeroSamples": 98304,
+            "rms": 0.03640964317321382
+          },
+          "before": {
+            "channelMaxAbs": [
+              0.0030144464690238237
+            ],
+            "frameCount": 49152,
+            "maxAbs": 0.0030144464690238237,
+            "nonzeroSamples": 48670,
+            "rms": 0.0007274341505250274
+          },
+          "during": {
+            "channelMaxAbs": [
+              0.1849057376384735
+            ],
+            "frameCount": 139264,
+            "maxAbs": 0.1849057376384735,
+            "nonzeroSamples": 139264,
+            "rms": 0.11413638863132268
+          }
+        },
+        "setVoiceProcessingEnabledCalled": false,
+        "started": true,
+        "switch": "on",
+        "tapBufferFrames": 8192,
+        "tapFormat": {
+          "channelCount": 1,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 48000
+        },
+        "tapInstalled": true,
+        "threw": false,
+        "tone": {
+          "amplitude": 0.20000000298023224,
+          "frames": 132300,
+          "hz": 440,
+          "seconds": 3
+        },
+        "toneCompletionFired": true,
+        "voiceProcessingEnabled": false,
+        "windowMs": 6000
+      },
+      "on": {
+        "attachPlayer": true,
+        "authorization": "authorized",
+        "bufferCount": 32,
+        "buffersScheduled": 1,
+        "channels": [
+          {
+            "allZero": false,
+            "index": 0,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 1,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 2,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 3,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 4,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 5,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 6,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 7,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          },
+          {
+            "allZero": false,
+            "index": 8,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 262141,
+            "seen": true
+          }
+        ],
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": true,
+        "engineRunningAtEnd": false,
+        "engineRunningBeforeEnable": false,
+        "errorCode": null,
+        "errorDomain": null,
+        "frameCount": 262144,
+        "maxAbs": 0.1395803987979889,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "player-ab-on",
+        "nodesConnected": true,
+        "nonzeroFrameCount": 262141,
+        "nonzeroSamples": 2359269,
+        "outcome": "G",
+        "playEndedAt": "2026-10-15T13:33:18.258Z",
+        "playerAttached": true,
+        "playerFormat": {
+          "channelCount": 2,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "playStartedAt": "2026-10-15T13:33:15.222Z",
+        "prepared": false,
+        "reason": "ok",
+        "samplesParsed": true,
+        "segments": {
+          "after": {
+            "channelMaxAbs": [
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521,
+              0.004254578147083521
+            ],
+            "frameCount": 90112,
+            "maxAbs": 0.004254578147083521,
+            "nonzeroSamples": 811008,
+            "rms": 0.0004511369055860704
+          },
+          "before": {
+            "channelMaxAbs": [
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635,
+              0.0035979533568024635
+            ],
+            "frameCount": 40960,
+            "maxAbs": 0.0035979533568024635,
+            "nonzeroSamples": 368613,
+            "rms": 0.0006724112141675165
+          },
+          "during": {
+            "channelMaxAbs": [
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889,
+              0.1395803987979889
+            ],
+            "frameCount": 131072,
+            "maxAbs": 0.1395803987979889,
+            "nonzeroSamples": 1179648,
+            "rms": 0.004991084471866687
+          }
+        },
+        "setVoiceProcessingEnabledCalled": true,
+        "started": true,
+        "switch": "on",
+        "tapBufferFrames": 8192,
+        "tapFormat": {
+          "channelCount": 9,
+          "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+          "isInterleaved": false,
+          "sampleRate": 44100
+        },
+        "tapInstalled": true,
+        "threw": false,
+        "tone": {
+          "amplitude": 0.20000000298023224,
+          "frames": 132300,
+          "hz": 440,
+          "seconds": 3
+        },
+        "toneCompletionFired": true,
+        "voiceProcessingEnabled": true,
+        "windowMs": 6000
+      },
+      "order": [
+        "off",
+        "on"
+      ],
+      "outcome": "K",
+      "threw": false
+    }
+  ],
+  "outcome": "K",
+  "inputVolumeRestored": true,
+  "volumeAfterRestore": {
+    "output volume": 70,
+    "input volume": 0,
+    "alert volume": 100,
+    "output muted": false,
+    "raw": "output volume:70, input volume:0, alert volume:100, output muted:false"
+  },
+  "devicesAfter": {
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器"
+  },
+  "endedAt": "2026-10-15T21:33:21.205+08:00"
+}
