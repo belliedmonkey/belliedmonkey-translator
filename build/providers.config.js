@@ -211,7 +211,9 @@ const LIST = [
     defaultEndpoint: CN_READY ? { global: RELAY + '/chat/completions', china: CN_RELAY + '/chat/completions' } : RELAY + '/chat/completions',
     // 中国线的模型**不在这里另写** —— 取注册表里 qwen 那一条的中国区默认值（一处真相）。
     // 境内中继的 GRANT_MODELS.chat 必须与它一致，否则每次请求都撞 403 model_not_allowed。
-    defaultModel: { global: 'deepseek/deepseek-v4-flash', china: null },   // ← 下面从 qwen 那一条填
+    // 国际版钉 qwen3.7-plus（#592，2026-10-15，QwenCloud 按量，maas.qwencloudapi.com）。
+    // 中国区仍从下面 qwen 那一条填。与中继一起发布，否则每次请求 403。
+    defaultModel: { global: 'qwen3.7-plus', china: null },   // ← 下面从 qwen 那一条填
     label: { global: 'BelliedMonkey 免费额度', china: '大肚猴免费额度' },
     labelKey: 'grant_engine_label',
   },

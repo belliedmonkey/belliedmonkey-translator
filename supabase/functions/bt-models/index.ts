@@ -21,58 +21,21 @@
 //   }
 // `X-Real-IP` 由 Caddy 的 `header_up` 写进来，见 deploy/china/Caddyfile。
 
+import { parseChinaCidrs, isChina as matchChina } from "./china-ip.ts";
+
 const MODELS: Record<string, { cn: string; intl: string }> = JSON.parse(
   await Deno.readTextFile(new URL("./models.json", import.meta.url)),
 );
 
 // ── 中国 IP 段表（ipdeny 的聚合版，随目录一起部署；刷新见 refresh-cn-cidrs.sh）──
-type V4 = { base: number; mask: number; bits: number };
-const V4LIST: V4[] = [];
-const V6LIST: string[] = [];
-{
-  const txt = await Deno.readTextFile(new URL("./cn-cidrs.txt", import.meta.url));
-  for (const raw of txt.split("\n")) {
-    const line = raw.trim();
-    if (!line || line.startsWith("#")) continue;
-    if (line.includes(":")) { V6LIST.push(line.toLowerCase()); continue; }   // IPv6 直接存字符串前缀
-    const [a, b] = line.split("/");
-    const bits = Number(b);
-    if (!a || !(bits >= 0 && bits <= 32)) continue;
-    const base = ipv4ToInt(a);
-    if (base < 0) continue;
-    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
-    V4LIST.push({ base: (base & mask) >>> 0, mask, bits });
-  }
-  V4LIST.sort((x, y) => y.bits - x.bits);   // 长前缀优先，先命中先返回
-}
-
-function ipv4ToInt(s: string): number {
-  const p = s.split(".");
-  if (p.length !== 4) return -1;
-  let out = 0;
-  for (const x of p) {
-    const n = Number(x);
-    if (!Number.isInteger(n) || n < 0 || n > 255) return -1;
-    out = ((out << 8) | n) >>> 0;
-  }
-  return out >>> 0;
-}
+// 匹配本身在 china-ip.ts，bt-relay 的 UPSTREAM=qwencloud 分支复用同一份。
+const { v4: V4LIST, v6: V6LIST } = parseChinaCidrs(
+  await Deno.readTextFile(new URL("./cn-cidrs.txt", import.meta.url)),
+);
 
 /** 这个 IP 是不是中国（含港澳台按 ipdeny 的 cn 表口径）。拿不到 IP ⇒ false（当非中国，走 HF 原站）。 */
 function isChina(ip: string): boolean {
-  if (!ip) return false;
-  const v = ip.trim().toLowerCase();
-  if (v.includes(":")) {
-    for (const net of V6LIST) {
-      const pfx = net.split("/")[0];
-      if (v === pfx || v.startsWith(pfx)) return true;   // 粗匹配够用：表是"网络前缀"级别
-    }
-    return false;
-  }
-  const n = ipv4ToInt(v);
-  if (n < 0) return false;
-  for (const r of V4LIST) if (((n & r.mask) >>> 0) === r.base) return true;
-  return false;
+  return matchChina(ip, V4LIST, V6LIST);
 }
 
 function pick(file: string, ip: string, src: string | null): { url: string; side: string } | null {

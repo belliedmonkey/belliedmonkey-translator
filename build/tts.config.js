@@ -188,8 +188,10 @@ module.exports = [
     needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
     requiresEndpoint: false,
     defaultEndpoint: RELAY + '/audio/speech',
-    defaultModel: 'deepgram/aura-2',
-    voices: ['aura-2-thalia-en'],
+    // #592，2026-10-15。音色表（非实时，qwen3-tts-flash）里的 Cherry。
+    // https://docs.qwencloud.com/developer-guides/speech/voice-list/qwen-tts
+    defaultModel: 'qwen3-tts-flash',
+    voices: ['Cherry'],
     returnsAudio: true,
     label: { global: 'BelliedMonkey 免费额度' },
     labelKey: 'grant_engine_label',

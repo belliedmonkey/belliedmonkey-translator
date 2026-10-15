@@ -20,7 +20,9 @@ const { CDP } = require(path.join(ROOT, 'test/layout/cdp.js'));
 
 const OK_BEFORE_402 = 2;                 // 前两段正常返回，第三段起 402
 const TOKEN = 'bmg_verifygrantverifygrantverifygrantverify1';
-const MODEL = 'deepseek/deepseek-v4-flash';
+// 注册表 grant 的全球 defaultModel（#592，2026-10-15）。中继仍接受旧的
+// deepseek/deepseek-v4-flash，但这个脚本验的是客户端现在发出去的那个。
+const MODEL = 'qwen3.7-plus';
 
 let ok = true;
 const fail = (m) => { ok = false; console.log('  ✗ ' + m); };
