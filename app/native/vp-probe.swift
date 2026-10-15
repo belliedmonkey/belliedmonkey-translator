@@ -6,6 +6,7 @@
 // `--player-frames` 才在同一台引擎上挂播放节点并放一段程序生成的正弦，默认不走。
 // `--player-ab` 用同一段测试音先关后开各跑一台引擎，默认不走。
 // `--player-ab-slices` 用同一段测试音先关后开，把 tap 在缓冲内部按采样点切成 100 毫秒，默认不走。
+// `--player-doubletalk` 引擎照常放 440 Hz，另起进程用扬声器放 880 Hz，默认不走。
 //
 // 依据（2026-10-15 读 MacOSX27.0.sdk）：
 // AVFAudio.framework/Headers/AVAudioIONode.h
@@ -444,6 +445,86 @@ enum MTVPProbe {
 
     private static let inputFramesWindowMs = 5000
 
+    /// 插话对照。引擎里的 440 Hz 照旧。放声开始后再等 externalToneDelayMs，
+    /// 另起进程把临时 WAV 交出去。先关后开，间隔 playerABGapMs。不调换，不重试。
+    /// 不改 phase1g 的分档。默认不走。
+    static func runPlayerDoubletalk() -> [String: Any] {
+        let wav: URL
+        do {
+            wav = try writeInterferenceWav()
+        } catch {
+            let ns = error as NSError
+            return [
+                "name": "player-doubletalk",
+                "outcome": "E",
+                "threw": true,
+                "reason": "wav-failed",
+                "errorDomain": ns.domain,
+                "errorCode": ns.code,
+                "errorDescription": ns.localizedDescription,
+                "error": String(describing: error),
+                "order": ["off", "on"],
+            ]
+        }
+        defer { try? FileManager.default.removeItem(at: wav) }
+        let off = runPlayerFrames(name: "player-doubletalk-off", enableVoiceProcessing: false, externalTonePath: wav.path)
+        let gapStart = Date()
+        Thread.sleep(forTimeInterval: Double(playerABGapMs) / 1000)
+        let gapEnd = Date()
+        let on = runPlayerFrames(name: "player-doubletalk-on", enableVoiceProcessing: true, externalTonePath: wav.path)
+        var result = playerDoubletalkResult(off: off, on: on, gapStart: gapStart, gapEnd: gapEnd)
+        try? FileManager.default.removeItem(at: wav)
+        result["externalWavPath"] = wav.path
+        result["externalWavDeleted"] = !FileManager.default.fileExists(atPath: wav.path)
+        result["externalTone"] = [
+            "hz": externalToneHz,
+            "amplitude": playerToneAmplitude,
+            "seconds": externalToneSeconds,
+            "sampleRate": externalToneRate,
+            "frames": externalToneRate * externalToneSeconds,
+        ] as [String: Any]
+        return result
+    }
+
+    /// 880 Hz、幅度与引擎测试音相同、时长 externalToneSeconds。16-bit PCM，单声道。
+    private static func writeInterferenceWav() throws -> URL {
+        let frames = externalToneRate * externalToneSeconds
+        var payload = Data(capacity: frames * 2)
+        let scale = Double(playerToneAmplitude) * 32767
+        for i in 0..<frames {
+            let unit = sin(2 * Double.pi * externalToneHz * Double(i) / Double(externalToneRate))
+            var sample = Int16(max(-1, min(1, unit)) * scale).littleEndian
+            withUnsafeBytes(of: &sample) { payload.append(contentsOf: $0) }
+        }
+        let dataBytes = UInt32(payload.count)
+        var data = Data()
+        func append32(_ value: UInt32) {
+            var le = value.littleEndian
+            withUnsafeBytes(of: &le) { data.append(contentsOf: $0) }
+        }
+        func append16(_ value: UInt16) {
+            var le = value.littleEndian
+            withUnsafeBytes(of: &le) { data.append(contentsOf: $0) }
+        }
+        data.append(contentsOf: [UInt8]("RIFF".utf8))
+        append32(36 + dataBytes)
+        data.append(contentsOf: [UInt8]("WAVE".utf8))
+        data.append(contentsOf: [UInt8]("fmt ".utf8))
+        append32(16)
+        append16(1)
+        append16(1)
+        append32(UInt32(externalToneRate))
+        append32(UInt32(externalToneRate * 2))
+        append16(2)
+        append16(16)
+        data.append(contentsOf: [UInt8]("data".utf8))
+        append32(dataBytes)
+        data.append(payload)
+        let url = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("mt-vp-doubletalk-880.wav")
+        try data.write(to: url)
+        return url
+    }
+
     /// 时间分辨对照。同一段测试音先关后开，间隔 playerABGapMs。不调换，不重试。
     /// 每台引擎把 tap 在缓冲内部按采样点切成 playerSliceMs，只取第 0 路。默认不走。
     /// 不改 phase1f 的分档，也不把那一次算作通过。
@@ -470,7 +551,7 @@ enum MTVPProbe {
     /// 顺序只走一次：停着时打开 voice processing，再 attach，再 connect（format 传 nil，不手改格式），
     /// 再装 tap，再 start 一次。任一步抛错就停。窗口 6 秒；开始后 1 秒播放 440 Hz、幅度 0.2、3 秒的正弦。
     /// enableVoiceProcessing 为 false 时不调用 setVoiceProcessingEnabled，格式仍取节点当前输出。
-    static func runPlayerFrames(name: String = "player-frames", enableVoiceProcessing: Bool = true, collectSlices: Bool = false) -> [String: Any] {
+    static func runPlayerFrames(name: String = "player-frames", enableVoiceProcessing: Bool = true, collectSlices: Bool = false, externalTonePath: String? = nil) -> [String: Any] {
         let auth = authorize()
         let engine = AVAudioEngine()
         let input = engine.inputNode
@@ -557,8 +638,40 @@ enum MTVPProbe {
         out["slicesCollected"] = collectSlices
         let stats = InputFrameStats(channelCount: Int(tapFormat.channelCount))
         let slices = Channel0Slices(sampleRate: tapFormat.sampleRate, sliceMs: playerSliceMs)
+        let bins = DoubletalkBins(
+            sampleRate: tapFormat.sampleRate,
+            startSec: analysisStartSec,
+            endSec: analysisEndSec,
+            frequencies: [playerToneHz, externalToneHz]
+        )
         var playerOutputHost: UInt64?
         var playerOutputSample: Int?
+        var afplayProcess: Process?
+        var afplayStartedAt: Date?
+        var afplayExitCode: Int32?
+        var afplayPid: Int32?
+        var playWall: Date?
+        func attachDoubletalk() {
+            guard externalTonePath != nil else { return }
+            if let proc = afplayProcess {
+                if proc.isRunning { proc.waitUntilExit() }
+                afplayExitCode = proc.terminationStatus
+                afplayPid = proc.processIdentifier
+            }
+            out["doubletalk"] = bins.snapshot()
+            var row: [String: Any] = [
+                "startedAt": afplayStartedAt.map(iso8601) ?? NSNull(),
+                "exitCode": afplayExitCode.map { NSNumber(value: $0) } ?? NSNull(),
+                "pid": afplayPid.map { NSNumber(value: $0) } ?? NSNull(),
+                "playCommandAt": playWall.map(iso8601) ?? NSNull(),
+            ]
+            if let started = afplayStartedAt, let play = playWall {
+                row["delaySec"] = NSNumber(value: started.timeIntervalSince(play))
+            } else {
+                row["delaySec"] = NSNull()
+            }
+            out["afplay"] = row
+        }
         func attachSlices() {
             guard collectSlices else { return }
             out["channel0Slices"] = slices.snapshot()
@@ -579,10 +692,14 @@ enum MTVPProbe {
                 if collectSlices {
                     slices.add(buffer, when: when)
                 }
+                if externalTonePath != nil {
+                    bins.add(buffer, when: when)
+                }
             }
         } catch {
             fail(error, "tap-failed")
             attachSlices()
+            attachDoubletalk()
             return out
         }
         tapInstalled = true
@@ -592,6 +709,7 @@ enum MTVPProbe {
         } catch {
             fail(error, "start-failed")
             attachSlices()
+            attachDoubletalk()
             return out
         }
         out["started"] = true
@@ -616,6 +734,7 @@ enum MTVPProbe {
             out["engineRunningAtEnd"] = engine.isRunning
             out["segments"] = stats.segmentSnapshot()
             attachSlices()
+            attachDoubletalk()
             return out
         }
         out["tone"] = [
@@ -635,16 +754,43 @@ enum MTVPProbe {
         if collectSlices {
             slices.markPlay(host: mach_absolute_time())
         }
+        if externalTonePath != nil {
+            playWall = Date()
+            bins.markPlay(host: mach_absolute_time())
+        }
         do {
             try player.playAudio()
         } catch {
             fail(error, "play-failed")
             out["segments"] = stats.segmentSnapshot()
             attachSlices()
+            attachDoubletalk()
             return out
         }
 
         while Date() < deadline {
+            if afplayProcess == nil, let path = externalTonePath, let play = playWall,
+               Date().timeIntervalSince(play) >= Double(externalToneDelayMs) / 1000 {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: afplayExecutable)
+                proc.arguments = [path]
+                proc.standardOutput = FileHandle.nullDevice
+                proc.standardError = FileHandle.nullDevice
+                let started = Date()
+                do {
+                    try proc.run()
+                    afplayStartedAt = started
+                    afplayProcess = proc
+                    afplayPid = proc.processIdentifier
+                } catch {
+                    afplayStartedAt = started
+                    fail(error, "afplay-failed")
+                    out["segments"] = stats.segmentSnapshot()
+                    attachSlices()
+                    attachDoubletalk()
+                    return out
+                }
+            }
             if collectSlices && playerOutputHost == nil, let sampleIndex = playerOutputSample {
                 let playerSample = AVAudioTime(sampleTime: AVAudioFramePosition(sampleIndex), atRate: playFormat.sampleRate)
                 if let node = player.nodeTime(forPlayerTime: playerSample) {
@@ -702,6 +848,7 @@ enum MTVPProbe {
         out["errorDomain"] = NSNull()
         out["errorCode"] = NSNull()
         attachSlices()
+        attachDoubletalk()
         return out
     }
 
@@ -713,6 +860,13 @@ enum MTVPProbe {
     private static let playerTapFrames: AVAudioFrameCount = 8192
     private static let playerABGapMs = 5000
     private static let playerSliceMs = 100
+    private static let externalToneHz = 880.0
+    private static let externalToneSeconds = 4
+    private static let externalToneRate = 44100
+    private static let externalToneDelayMs = 500
+    private static let analysisStartSec = 1.5
+    private static let analysisEndSec = 3.0
+    private static let afplayExecutable = "/usr/bin/afplay"
 
     private static func playerABResult(off: [String: Any], on: [String: Any], gapStart: Date, gapEnd: Date) -> [String: Any] {
         var out: [String: Any] = [
@@ -1004,6 +1158,128 @@ enum MTVPProbe {
             return out
         }
         out["outcome"] = "M"
+        return out
+    }
+
+    private static func doubletalkBox(_ run: [String: Any]) -> (ok: Bool, reason: String, rms: Double, count: Int, energy440: Double, energy880: Double, power440: Double, power880: Double) {
+        guard let box = run["doubletalk"] as? [String: Any] else {
+            return (false, "doubletalk missing", 0, 0, 0, 0, 0, 0)
+        }
+        if (box["parsed"] as? Bool) != true {
+            let note = (box["note"] as? String) ?? "samples unparsed"
+            return (false, note, 0, 0, 0, 0, 0, 0)
+        }
+        if (box["hostTimeValid"] as? Bool) != true {
+            return (false, "host time invalid", 0, 0, 0, 0, 0, 0)
+        }
+        guard let count = asInt(box["sampleCount"]), count > 0, let rms = asDouble(box["rms"]) else {
+            return (false, "no samples in analysis window", 0, 0, 0, 0, 0, 0)
+        }
+        guard let rows = box["energies"] as? [[String: Any]] else {
+            return (false, "energies missing", 0, 0, 0, 0, 0, 0)
+        }
+        func energy(_ hz: Double) -> (Double, Double)? {
+            guard let row = rows.first(where: { asDouble($0["hz"]) == hz }),
+                  let value = asDouble(row["energy"]),
+                  let power = asDouble(row["power"]),
+                  value.isFinite, power.isFinite else { return nil }
+            return (value, power)
+        }
+        guard let e440 = energy(playerToneHz), let e880 = energy(externalToneHz) else {
+            return (false, "energy field unparsed", 0, 0, 0, 0, 0, 0)
+        }
+        return (true, "ok", rms, count, e440.0, e880.0, e440.1, e880.1)
+    }
+
+    private static func afplayExitCode(_ run: [String: Any]) -> Int? {
+        guard let box = run["afplay"] as? [String: Any] else { return nil }
+        return asInt(box["exitCode"])
+    }
+
+    /// 事先写好的分档只看 880 Hz。能量是 Goertzel 功率 / N²。等于 1/2 为 P，等于 1/10 为 R。
+    private static func playerDoubletalkResult(off: [String: Any], on: [String: Any], gapStart: Date, gapEnd: Date) -> [String: Any] {
+        var out: [String: Any] = [
+            "name": "player-doubletalk",
+            "order": ["off", "on"],
+            "gapMs": playerABGapMs,
+            "gapActualMs": gapEnd.timeIntervalSince(gapStart) * 1000,
+            "gapStartedAt": iso8601(gapStart),
+            "gapEndedAt": iso8601(gapEnd),
+            "analysisStartSec": analysisStartSec,
+            "analysisEndSec": analysisEndSec,
+            "channel": 0,
+            "audioSaved": false,
+            "doubletalkRule": "P when on 880 Hz energy >= off 880 Hz energy / 2; Q when on < off / 10; otherwise R. E if either run threw. Equal to 1/2 is P. Equal to 1/10 is R.",
+            "phase1g": "unchanged N; the grade window included the silence after playback; this run does not regrade it",
+            "off": off,
+            "on": on,
+        ]
+        let offBox = doubletalkBox(off)
+        let onBox = doubletalkBox(on)
+        func pair(_ offValue: Double, _ onValue: Double) -> Any {
+            guard offValue != 0, offValue.isFinite, onValue.isFinite else { return NSNull() }
+            return NSNumber(value: onValue / offValue)
+        }
+        if offBox.ok && onBox.ok {
+            out["energy880"] = ["off": NSNumber(value: offBox.energy880), "on": NSNumber(value: onBox.energy880)]
+            out["energy440"] = ["off": NSNumber(value: offBox.energy440), "on": NSNumber(value: onBox.energy440)]
+            out["power880"] = ["off": NSNumber(value: offBox.power880), "on": NSNumber(value: onBox.power880)]
+            out["power440"] = ["off": NSNumber(value: offBox.power440), "on": NSNumber(value: onBox.power440)]
+            out["segmentRms"] = ["off": NSNumber(value: offBox.rms), "on": NSNumber(value: onBox.rms)]
+            out["segmentSampleCount"] = ["off": offBox.count, "on": onBox.count]
+            out["energy880RatioOnOverOff"] = pair(offBox.energy880, onBox.energy880)
+            out["energy440RatioOnOverOff"] = pair(offBox.energy440, onBox.energy440)
+            out["segmentRmsRatioOnOverOff"] = pair(offBox.rms, onBox.rms)
+        } else {
+            out["energy880RatioOnOverOff"] = NSNull()
+            out["energy440RatioOnOverOff"] = NSNull()
+            out["segmentRmsRatioOnOverOff"] = NSNull()
+        }
+        let offThrew = (off["threw"] as? Bool) == true
+        let onThrew = (on["threw"] as? Bool) == true
+        if offThrew || onThrew {
+            let failed = offThrew ? off : on
+            out["outcome"] = "E"
+            out["threw"] = true
+            out["errorDomain"] = failed["errorDomain"] ?? NSNull()
+            out["errorCode"] = failed["errorCode"] ?? NSNull()
+            out["errorReason"] = failed["reason"] ?? NSNull()
+            out["errorDescription"] = failed["errorDescription"] ?? NSNull()
+            return out
+        }
+        out["threw"] = false
+        out["errorDomain"] = NSNull()
+        out["errorCode"] = NSNull()
+        if (off["outcome"] as? String) == "not-called" || (on["outcome"] as? String) == "not-called" {
+            out["outcome"] = "not-called"
+            return out
+        }
+        let offExit = afplayExitCode(off)
+        let onExit = afplayExitCode(on)
+        if offExit != 0 || onExit != 0 {
+            out["outcome"] = "unparsed"
+            out["unparsedReason"] = "afplay exit off=\(offExit.map(String.init) ?? "nil") on=\(onExit.map(String.init) ?? "nil")"
+            return out
+        }
+        guard offBox.ok, onBox.ok else {
+            out["outcome"] = "unparsed"
+            out["unparsedReason"] = [offBox.reason, onBox.reason].filter { $0 != "ok" }.joined(separator: "; ")
+            return out
+        }
+        if offBox.energy880 == 0 {
+            out["outcome"] = "unparsed"
+            out["unparsedReason"] = "off 880 energy is 0"
+            return out
+        }
+        let onEnergy = onBox.energy880
+        let offEnergy = offBox.energy880
+        if onEnergy >= offEnergy / 2 {
+            out["outcome"] = "P"
+        } else if onEnergy < offEnergy / 10 {
+            out["outcome"] = "Q"
+        } else {
+            out["outcome"] = "R"
+        }
         return out
     }
 
@@ -1630,6 +1906,228 @@ private final class Channel0Slices: @unchecked Sendable {
             if value > prePlayPeak && firstAbovePrePlayPeakHost == nil {
                 firstAbovePrePlayPeakHost = host
             }
+        }
+    }
+
+    private func hostOffset(samples: Int, rate: Double) -> UInt64 {
+        if samples <= 0 || rate <= 0 || timebase.numer == 0 || timebase.denom == 0 { return 0 }
+        let nanos = Double(samples) / rate * 1_000_000_000
+        let ticks = nanos * Double(timebase.denom) / Double(timebase.numer)
+        if ticks <= 0 { return 0 }
+        return UInt64(ticks.rounded())
+    }
+
+    private func secondsBetween(from earlier: UInt64, to later: UInt64) -> Double {
+        let sign: Double
+        let delta: UInt64
+        if later >= earlier {
+            sign = 1
+            delta = later - earlier
+        } else {
+            sign = -1
+            delta = earlier - later
+        }
+        let nanos = Double(delta) * Double(timebase.numer) / Double(timebase.denom)
+        return sign * nanos / 1_000_000_000
+    }
+
+    private static func channel0(
+        _ list: UnsafeMutableAudioBufferListPointer,
+        frames: Int,
+        channels: Int,
+        interleaved: Bool,
+        bytesPerSample: Int,
+        amplitude: (UnsafeMutableRawPointer, Int) -> Float
+    ) -> [Float] {
+        var out: [Float] = []
+        if !interleaved {
+            guard let audio = list.first, let data = audio.mData else { return [] }
+            let count = min(frames, Int(audio.mDataByteSize) / bytesPerSample)
+            out.reserveCapacity(count)
+            for i in 0..<count {
+                out.append(amplitude(data, i))
+            }
+            return out
+        }
+        guard channels > 0, let audio = list.first, let data = audio.mData else { return [] }
+        let available = Int(audio.mDataByteSize) / bytesPerSample
+        let count = frames
+        out.reserveCapacity(count)
+        for i in 0..<count {
+            let index = i * channels
+            if index >= available { break }
+            out.append(amplitude(data, index))
+        }
+        return out
+    }
+}
+
+/// 只累计第 0 路里落在 [startSec, endSec) 的采样。缓冲跨过边界时按采样点取舍。
+/// Goertzel 用带符号的采样。原始采样不写入结果。
+private final class DoubletalkBins: @unchecked Sendable {
+    private struct Sample {
+        var host: UInt64
+        var value: Float
+    }
+    private struct ToneState {
+        var hz: Double
+        var coeff: Double
+        var s1: Double
+        var s2: Double
+    }
+
+    private let lock = NSLock()
+    private let sampleRate: Double
+    private let startSec: Double
+    private let endSec: Double
+    private var timebase = mach_timebase_info_data_t(numer: 0, denom: 0)
+    private var states: [ToneState]
+    private var playHost: UInt64?
+    private var pending: [Sample] = []
+    private var sampleCount = 0
+    private var sumSquares = 0.0
+    private var parsed = true
+    private var hostValid = true
+    private var note: String?
+
+    init(sampleRate: Double, startSec: Double, endSec: Double, frequencies: [Double]) {
+        self.sampleRate = sampleRate
+        self.startSec = startSec
+        self.endSec = endSec
+        let rc = mach_timebase_info(&timebase)
+        if rc != 0 || timebase.numer == 0 || timebase.denom == 0 || sampleRate <= 0 || !(startSec < endSec) {
+            hostValid = false
+            parsed = false
+            note = "host timebase, sample rate, or analysis window is unusable"
+            states = []
+            return
+        }
+        states = frequencies.map { hz in
+            let omega = 2 * Double.pi * hz / sampleRate
+            return ToneState(hz: hz, coeff: 2 * cos(omega), s1: 0, s2: 0)
+        }
+    }
+
+    func markPlay(host: UInt64) {
+        lock.lock()
+        playHost = host
+        let queued = pending
+        pending.removeAll()
+        for item in queued {
+            ingestLocked(host: item.host, value: item.value)
+        }
+        lock.unlock()
+    }
+
+    func add(_ buffer: AVReadOnlyAudioPCMBuffer, when: AVAudioTime) {
+        guard when.isHostTimeValid else {
+            lock.lock()
+            hostValid = false
+            lock.unlock()
+            return
+        }
+        let rate = buffer.format.sampleRate
+        let frames = Int(buffer.frameLength)
+        if rate <= 0 {
+            lock.lock()
+            parsed = false
+            note = "sample rate is 0"
+            lock.unlock()
+            return
+        }
+        if frames == 0 { return }
+        let channels = Int(buffer.format.channelCount)
+        let interleaved = buffer.format.isInterleaved
+        var values: [Float] = []
+        var supported = true
+        buffer.withUnsafeAudioBufferList { ptr in
+            let list = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: ptr))
+            switch buffer.format.commonFormat {
+            case .pcmFormatFloat32:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size) { raw, index in
+                    raw.assumingMemoryBound(to: Float.self)[index]
+                }
+            case .pcmFormatInt16:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size) { raw, index in
+                    Float(raw.assumingMemoryBound(to: Int16.self)[index]) / 32768
+                }
+            case .pcmFormatInt32:
+                values = Self.channel0(list, frames: frames, channels: channels, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size) { raw, index in
+                    Float(raw.assumingMemoryBound(to: Int32.self)[index]) / 2147483648
+                }
+            default:
+                supported = false
+            }
+        }
+        lock.lock()
+        if !supported {
+            parsed = false
+            note = "commonFormat has no sample layout"
+            lock.unlock()
+            return
+        }
+        if values.isEmpty {
+            parsed = false
+            note = "channel 0 has no samples"
+            lock.unlock()
+            return
+        }
+        let start = when.hostTime
+        let count = values.count
+        for i in 0..<count {
+            let sampleHost = start &+ hostOffset(samples: i, rate: rate)
+            let value = values[i]
+            if playHost == nil {
+                pending.append(Sample(host: sampleHost, value: value))
+            } else {
+                ingestLocked(host: sampleHost, value: value)
+            }
+        }
+        lock.unlock()
+    }
+
+    func snapshot() -> [String: Any] {
+        lock.lock()
+        defer { lock.unlock() }
+        let n = sampleCount
+        let rms = n > 0 ? sqrt(sumSquares / Double(n)) : 0
+        let denom = n > 0 ? Double(Int64(n) * Int64(n)) : 1
+        let rows: [[String: Any]] = states.map { state in
+            let raw = state.s1 * state.s1 + state.s2 * state.s2 - state.coeff * state.s1 * state.s2
+            let power = max(0, raw)
+            return [
+                "hz": NSNumber(value: state.hz),
+                "power": NSNumber(value: power),
+                "energy": NSNumber(value: n > 0 ? power / denom : 0),
+            ]
+        }
+        return [
+            "parsed": parsed,
+            "hostTimeValid": hostValid && timebase.numer != 0 && timebase.denom != 0,
+            "note": note ?? NSNull(),
+            "sampleRate": sampleRate,
+            "analysisStartSec": startSec,
+            "analysisEndSec": endSec,
+            "channel": 0,
+            "audioSaved": false,
+            "playHostTicks": playHost.map { String($0) } ?? NSNull(),
+            "sampleCount": n,
+            "rms": NSNumber(value: rms),
+            "energies": rows,
+        ]
+    }
+
+    private func ingestLocked(host: UInt64, value: Float) {
+        guard let play = playHost, timebase.numer != 0, timebase.denom != 0 else { return }
+        let rel = secondsBetween(from: play, to: host)
+        guard rel >= startSec && rel < endSec else { return }
+        let x = Double(value)
+        sumSquares += x * x
+        sampleCount += 1
+        for i in states.indices {
+            let s0 = x + states[i].coeff * states[i].s1 - states[i].s2
+            states[i].s2 = states[i].s1
+            states[i].s1 = s0
         }
     }
 

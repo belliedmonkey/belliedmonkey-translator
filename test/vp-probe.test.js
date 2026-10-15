@@ -168,6 +168,37 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     ok(!/scheduleBuffer|\.play\(/.test(body + slices), 'slices path schedules or plays');
   });
 
+  test('--player-doubletalk 先关后开，另起进程放 880 Hz，默认关', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runPlayerDoubletalk()');
+    const end = probe.indexOf('static func runPlayerABSlices()', begin);
+    ok(begin > 0 && end > begin, 'runPlayerDoubletalk missing');
+    const body = probe.slice(begin, end);
+    const offAt = body.indexOf('enableVoiceProcessing: false');
+    const onAt = body.indexOf('enableVoiceProcessing: true');
+    ok(offAt >= 0 && onAt > offAt, 'order is not off then on');
+    eq(body.split('runPlayerFrames(').length - 1, 2);
+    eq(body.split('externalTonePath:').length - 1, 2);
+    ok(!/setVoiceProcessingEnabled\(/.test(body), 'doubletalk calls the switch itself');
+    ok(/playerABGapMs/.test(body), 'gap constant missing');
+    ok(!/scheduleBuffer|\.play\(/.test(body), 'doubletalk path schedules or plays');
+    ok(/externalTonePath: String\? = nil/.test(probe), 'external tone default is not off');
+    ok(/private static let externalToneHz = 880\.0/.test(probe), 'interference is not 880 Hz');
+    ok(/private static let externalToneDelayMs = 500/.test(probe), 'afplay delay is not 500 ms');
+    ok(/private static let analysisStartSec = 1\.5/.test(probe), 'analysis does not start at 1.5 s');
+    ok(/private static let analysisEndSec = 3\.0/.test(probe), 'analysis does not end at 3 s');
+    ok(/\/usr\/bin\/afplay/.test(probe), 'afplay path missing');
+    ok(/on 880 Hz energy >= off 880 Hz energy \/ 2/.test(probe), 'half rule missing');
+    ok(/args == \["--player-doubletalk"\]/.test(main), 'main has no --player-doubletalk');
+    const binsAt = probe.indexOf('private final class DoubletalkBins');
+    ok(binsAt > probe.indexOf('private static func tapBufferChoice'), 'DoubletalkBins missing');
+    const bins = probe.slice(binsAt);
+    ok(/for i in 0\.\.<count/.test(bins), 'analysis is not cut per sample');
+    ok(/rel >= startSec && rel < endSec/.test(bins), 'analysis window is not half-open');
+    ok(!/scheduleBuffer|\.play\(/.test(bins), 'bins path schedules or plays');
+  });
+
   test('探针不进双 flavor 共用的 BLOCKS', () => {
     const { BLOCKS } = require('../scripts/sync-app-assets.js');
     ok(!BLOCKS.some((b) => b.src === 'vp-probe.swift'), 'vp-probe.swift is in BLOCKS');
