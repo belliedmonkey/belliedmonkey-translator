@@ -3,6 +3,8 @@
 // 无参数：开关关，不建引擎，退出 0。
 // --format-only：停着的引擎上打开一次 voice processing。不 start。
 //   成功或抛错都退出 0。调用之前引擎已经在跑，则退出 1。
+// --input-frames：打开 voice processing 后 start 一次，约 5 秒，只数输入 tap 的帧。
+//   C / D / E 都退出 0。调用之前引擎已经在跑，则退出 1。
 // --on：先做「只开 voice processing、不挂播放节点」，引擎确实 start 了才做第二项
 // 「挂一个空的 AVAudioPlayerNode」。第二项 start 之后 frameCount 为 0 就退出 2，
 // 不再换顺序、不再改格式。其它失败退出 1。
@@ -14,6 +16,14 @@ import Foundation
 struct VPProbeMain {
     static func main() {
         let args = Array(CommandLine.arguments.dropFirst())
+        if args == ["--input-frames"] {
+            let row = MTVPProbe.runInputFrames()
+            emit([row])
+            if (row["outcome"] as? String) == "not-called" {
+                exit(1)
+            }
+            exit(0)
+        }
         if args == ["--format-only"] {
             let row = MTVPProbe.runFormatOnly()
             emit([row])
@@ -30,7 +40,7 @@ struct VPProbeMain {
                 "reason": "unknown-arg",
                 "args": args,
             ] as [String: Any]])
-            fputs("vp-probe: only --on or --format-only is accepted\n", stderr)
+            fputs("vp-probe: only --on, --format-only, or --input-frames is accepted\n", stderr)
             exit(1)
         }
         let turnOn = args.first == "--on"

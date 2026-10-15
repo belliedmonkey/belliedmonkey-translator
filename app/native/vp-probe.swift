@@ -292,6 +292,171 @@ enum MTVPProbe {
         return out
     }
 
+    /// 读数①：打开 voice processing 后，输入 tap 的帧数是不是 0。
+    /// 不挂播放节点，不连 mainMixerNode，不 prepare。start 只一次，约 5 秒后 stop。
+    /// 缓冲大小只按头文件选一次：例子里的 8192 帧若落在 [100, 400] ms 内就用它，否则用该区间中点 200 ms。失败不换。
+    static func runInputFrames() -> [String: Any] {
+        let auth = authorize()
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        var tapInstalled = false
+        var vpEnabled = false
+        defer {
+            if tapInstalled {
+                input.removeTap(onBus: 0)
+            }
+            if engine.isRunning {
+                engine.stop()
+            }
+            if vpEnabled && engine.isRunning == false {
+                try? input.setVoiceProcessingEnabled(false)
+            }
+        }
+
+        var out: [String: Any] = base(
+            name: "input-frames",
+            switchOn: true,
+            engineCreated: true,
+            attachPlayer: false,
+            authorization: auth,
+            started: false,
+            reason: "incomplete"
+        )
+        out["nodesConnected"] = false
+        out["prepared"] = false
+        out["playerAttached"] = false
+        out["windowMs"] = inputFramesWindowMs
+
+        guard engine.isRunning == false else {
+            out["engineRunningBeforeEnable"] = true
+            out["outcome"] = "not-called"
+            out["reason"] = "engine-already-running"
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        out["engineRunningBeforeEnable"] = false
+        do {
+            try input.setVoiceProcessingEnabled(true)
+        } catch {
+            let ns = error as NSError
+            out["threw"] = true
+            out["outcome"] = "vp-enable-failed"
+            out["reason"] = "vp-enable-failed"
+            out["errorDomain"] = ns.domain
+            out["errorCode"] = ns.code
+            out["errorDescription"] = ns.localizedDescription
+            out["error"] = String(describing: error)
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        vpEnabled = true
+        out["voiceProcessingEnabled"] = input.isVoiceProcessingEnabled
+
+        let tapFormat = input.outputFormat(forBus: 0)
+        out["tapFormat"] = describe(tapFormat)
+        let chosen = tapBufferChoice(sampleRate: tapFormat.sampleRate)
+        guard let tapFrames = chosen.frames else {
+            out["outcome"] = "not-called"
+            out["reason"] = "tap-buffer-out-of-documented-range"
+            out["tapBufferNote"] = chosen.note
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        out["tapBufferFrames"] = tapFrames
+        out["tapBufferMs"] = chosen.ms
+        out["tapBufferNote"] = chosen.note
+
+        let stats = InputFrameStats(channelCount: Int(tapFormat.channelCount))
+        do {
+            try input.installAudioTap(onBus: 0, bufferSize: tapFrames, format: tapFormat) { buffer, _ in
+                stats.add(buffer)
+            }
+        } catch {
+            let ns = error as NSError
+            out["threw"] = true
+            out["outcome"] = "E"
+            out["reason"] = "tap-failed"
+            out["errorDomain"] = ns.domain
+            out["errorCode"] = ns.code
+            out["errorDescription"] = ns.localizedDescription
+            out["error"] = String(describing: error)
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        tapInstalled = true
+        out["tapInstalled"] = true
+        do {
+            try engine.start()
+        } catch {
+            let ns = error as NSError
+            out["threw"] = true
+            out["outcome"] = "E"
+            out["reason"] = "start-failed"
+            out["errorDomain"] = ns.domain
+            out["errorCode"] = ns.code
+            out["errorDescription"] = ns.localizedDescription
+            out["error"] = String(describing: error)
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        out["started"] = true
+        let deadline = Date().addingTimeInterval(Double(inputFramesWindowMs) / 1000)
+        while Date() < deadline {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+        let snapStats = stats.snapshot()
+        if engine.isRunning {
+            engine.stop()
+        }
+        out["engineRunningAtEnd"] = engine.isRunning
+        out["bufferCount"] = snapStats.buffers
+        out["frameCount"] = NSNumber(value: snapStats.frames)
+        out["audioBufferListCount"] = snapStats.listCount ?? NSNull()
+        out["samplesParsed"] = snapStats.parsed
+        if let note = snapStats.note {
+            out["sampleNote"] = note
+        }
+        if snapStats.parsed {
+            out["nonzeroFrameCount"] = NSNumber(value: snapStats.nonzeroFrames)
+            out["channels"] = snapStats.channels
+        } else {
+            out["nonzeroFrameCount"] = NSNull()
+            out["channels"] = snapStats.channels
+        }
+        if snapStats.frames == 0 {
+            out["outcome"] = "D"
+        } else {
+            out["outcome"] = "C"
+        }
+        out["reason"] = "ok"
+        out["threw"] = false
+        out["errorDomain"] = NSNull()
+        out["errorCode"] = NSNull()
+        return out
+    }
+
+    private static let inputFramesWindowMs = 5000
+
+    private static func tapBufferChoice(sampleRate: Double) -> (frames: AVAudioFrameCount?, ms: Double, note: String) {
+        guard sampleRate > 0 else {
+            return (nil, 0, "sample rate is 0; AVAudioNode.h lines 124-125 require [100, 400] ms and no frame count in that range can be derived")
+        }
+        let example: AVAudioFrameCount = 8192
+        let exampleMs = Double(example) / sampleRate * 1000
+        if exampleMs >= 100 && exampleMs <= 400 {
+            return (example, exampleMs, "AVAudioNode.h example uses 8192 frames; at this rate that is inside [100, 400] ms")
+        }
+        let mid = AVAudioFrameCount((sampleRate * 0.2).rounded())
+        let midMs = Double(mid) / sampleRate * 1000
+        return (mid, midMs, "8192 frames is outside [100, 400] ms at this rate; using 200 ms once, the midpoint of the range in AVAudioNode.h line 124")
+    }
+
+    private static func describe(_ format: AVAudioFormat) -> [String: Any] {
+        var row = snap(format)
+        row["isInterleaved"] = format.isInterleaved
+        return row
+    }
+
     private static func authorize() -> String {
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
@@ -403,5 +568,138 @@ private final class FrameCounter: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return (buffers, frames)
+    }
+}
+
+private final class InputFrameStats: @unchecked Sendable {
+    private let lock = NSLock()
+    private let channelCount: Int
+    private var buffers = 0
+    private var frames: Int64 = 0
+    private var nonzeroFrames: Int64 = 0
+    private var nonzeroSamples: [Int64]
+    private var seen: [Bool]
+    private var parsed = true
+    private var note: String?
+    private var listCount: Int?
+
+    init(channelCount: Int) {
+        let n = max(channelCount, 0)
+        self.channelCount = n
+        nonzeroSamples = Array(repeating: 0, count: n)
+        seen = Array(repeating: false, count: n)
+    }
+
+    func add(_ buffer: AVReadOnlyAudioPCMBuffer) {
+        let nFrames = buffer.frameLength
+        var localNonzeroFrames = 0
+        var localNonzero = [Int64](repeating: 0, count: channelCount)
+        var localSeen = [Bool](repeating: false, count: channelCount)
+        var localParsed = true
+        var localNote: String?
+        var localList: Int?
+        if nFrames > 0 && channelCount > 0 {
+            let interleaved = buffer.format.isInterleaved
+            buffer.withUnsafeAudioBufferList { ptr in
+                let list = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: ptr))
+                localList = list.count
+                switch buffer.format.commonFormat {
+                case .pcmFormatFloat32:
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Float>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        raw.assumingMemoryBound(to: Float.self)[index] != 0
+                    }
+                case .pcmFormatInt16:
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int16>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        raw.assumingMemoryBound(to: Int16.self)[index] != 0
+                    }
+                case .pcmFormatInt32:
+                    Self.scan(list, frames: nFrames, channels: channelCount, interleaved: interleaved, bytesPerSample: MemoryLayout<Int32>.size, nonzero: &localNonzero, seen: &localSeen, nonzeroFrames: &localNonzeroFrames) { raw, index in
+                        raw.assumingMemoryBound(to: Int32.self)[index] != 0
+                    }
+                default:
+                    localParsed = false
+                    localNote = "commonFormat \(buffer.format.commonFormat) has no sample layout in the headers used here"
+                }
+            }
+        }
+        lock.lock()
+        buffers += 1
+        frames += Int64(nFrames)
+        if localList != nil { listCount = localList }
+        if !localParsed {
+            parsed = false
+            note = localNote
+        } else if localParsed {
+            nonzeroFrames += Int64(localNonzeroFrames)
+            for i in 0..<channelCount {
+                if localSeen[i] { seen[i] = true }
+                nonzeroSamples[i] += localNonzero[i]
+            }
+        }
+        lock.unlock()
+    }
+
+    private static func scan(
+        _ list: UnsafeMutableAudioBufferListPointer,
+        frames: Int,
+        channels: Int,
+        interleaved: Bool,
+        bytesPerSample: Int,
+        nonzero: inout [Int64],
+        seen: inout [Bool],
+        nonzeroFrames: inout Int,
+        isNonzero: (UnsafeMutableRawPointer, Int) -> Bool
+    ) {
+        if !interleaved {
+            let nBuf = min(list.count, channels)
+            var hit = [Bool](repeating: false, count: frames)
+            for b in 0..<nBuf {
+                let audio = list[b]
+                guard let data = audio.mData else { continue }
+                seen[b] = true
+                let count = min(frames, Int(audio.mDataByteSize) / bytesPerSample)
+                for i in 0..<count where isNonzero(data, i) {
+                    nonzero[b] += 1
+                    hit[i] = true
+                }
+            }
+            for flag in hit where flag { nonzeroFrames += 1 }
+            return
+        }
+        guard let audio = list.first, let data = audio.mData else { return }
+        let available = Int(audio.mDataByteSize) / bytesPerSample
+        for i in 0..<frames {
+            var frameHit = false
+            for c in 0..<channels {
+                let index = i * channels + c
+                if index >= available { continue }
+                seen[c] = true
+                if isNonzero(data, index) {
+                    nonzero[c] += 1
+                    frameHit = true
+                }
+            }
+            if frameHit { nonzeroFrames += 1 }
+        }
+    }
+
+    func snapshot() -> (buffers: Int, frames: Int64, nonzeroFrames: Int64, parsed: Bool, note: String?, listCount: Int?, channels: [[String: Any]]) {
+        lock.lock()
+        defer { lock.unlock() }
+        var rows: [[String: Any]] = []
+        for i in 0..<channelCount {
+            var row: [String: Any] = [
+                "index": i,
+                "seen": seen[i],
+                "nonzeroSamples": NSNumber(value: nonzeroSamples[i]),
+            ]
+            if seen[i] {
+                row["allZero"] = nonzeroSamples[i] == 0
+            } else {
+                row["allZero"] = NSNull()
+            }
+            rows.append(row)
+        }
+        return (buffers, frames, nonzeroFrames, parsed, note, listCount, rows)
     }
 }

@@ -1,0 +1,124 @@
+{
+  "date": "2026-10-15",
+  "parameter": "--input-frames",
+  "defaultOff": true,
+  "soundPlayed": false,
+  "prepared": false,
+  "playerAttached": false,
+  "volumeBefore": {
+    "outputVolume": 70,
+    "inputVolume": 0,
+    "alertVolume": 100,
+    "outputMuted": false
+  },
+  "volumeAfter": {
+    "outputVolume": 70,
+    "inputVolume": 0,
+    "alertVolume": 100,
+    "outputMuted": false
+  },
+  "volumeChanged": false,
+  "outcome": "C",
+  "detail": "start succeeded. frameCount is 221184, so this is C, not D. nonzeroFrameCount is 0. All 9 channels were seen and allZero is true. engineRunningAtEnd is false. No second start.",
+  "runs": [
+    {
+      "attachPlayer": false,
+      "audioBufferListCount": 9,
+      "authorization": "authorized",
+      "bufferCount": 27,
+      "buffersScheduled": 0,
+      "channels": [
+        {
+          "allZero": true,
+          "index": 0,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 1,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 2,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 3,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 4,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 5,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 6,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 7,
+          "nonzeroSamples": 0,
+          "seen": true
+        },
+        {
+          "allZero": true,
+          "index": 8,
+          "nonzeroSamples": 0,
+          "seen": true
+        }
+      ],
+      "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+      "engineCreated": true,
+      "engineRunningAtEnd": false,
+      "engineRunningBeforeEnable": false,
+      "errorCode": null,
+      "errorDomain": null,
+      "frameCount": 221184,
+      "maxAbs": null,
+      "mixWithOthers": {
+        "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+        "lost": null,
+        "readable": false
+      },
+      "name": "input-frames",
+      "nodesConnected": false,
+      "nonzeroFrameCount": 0,
+      "outcome": "C",
+      "playerAttached": false,
+      "prepared": false,
+      "reason": "ok",
+      "samplesParsed": true,
+      "started": true,
+      "switch": "on",
+      "tapBufferFrames": 8192,
+      "tapBufferMs": 185.75963718820861,
+      "tapBufferNote": "AVAudioNode.h example uses 8192 frames; at this rate that is inside [100, 400] ms",
+      "tapFormat": {
+        "channelCount": 9,
+        "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+        "isInterleaved": false,
+        "sampleRate": 44100
+      },
+      "tapInstalled": true,
+      "threw": false,
+      "voiceProcessingEnabled": true,
+      "windowMs": 5000
+    }
+  ]
+}

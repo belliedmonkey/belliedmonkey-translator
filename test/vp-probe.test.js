@@ -45,8 +45,8 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
   test('探针默认关；两次打开都先确认引擎停着', () => {
     const probe = read('app/native/vp-probe.swift');
     ok(/static let enabledByDefault = false/.test(probe), 'enabledByDefault');
-    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 2);
-    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 2);
+    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 3);
+    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 3);
     let from = 0;
     while (from < probe.length) {
       const at = probe.indexOf('setVoiceProcessingEnabled(true)', from);
@@ -71,6 +71,19 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     ok(!/engine\.start\(|\.prepare\(|installAudioTap|installTap|connectNode|AVAudioPlayerNode/.test(body), body.slice(0, 200));
     ok(/--format-only/.test(main), 'main has no --format-only');
     ok(!/enabledByDefault = true/.test(probe), 'default flipped on');
+  });
+
+  test('--input-frames 只 start 一次，不挂播放、不连混音器', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runInputFrames()');
+    const end = probe.indexOf('private static let inputFramesWindowMs', begin);
+    ok(begin > 0 && end > begin, 'runInputFrames missing');
+    const body = probe.slice(begin, end);
+    eq(body.split('engine.start()').length - 1, 1);
+    ok(!/\.prepare\(|connectNode|mainMixerNode|AVAudioPlayerNode/.test(body), 'input-frames connects or prepares');
+    ok(/installAudioTap/.test(body), 'input-frames does not install the documented tap');
+    ok(/--input-frames/.test(main), 'main has no --input-frames');
   });
 
   test('探针不进双 flavor 共用的 BLOCKS', () => {
