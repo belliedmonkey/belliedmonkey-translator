@@ -42,18 +42,35 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     eq(hits.join('\n'), 'app/native/vp-probe.swift');
   });
 
-  test('探针默认关，打开前确认引擎停着，true 只调用一次', () => {
+  test('探针默认关；两次打开都先确认引擎停着', () => {
     const probe = read('app/native/vp-probe.swift');
     ok(/static let enabledByDefault = false/.test(probe), 'enabledByDefault');
-    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 1);
-    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 1);
-    const guardAt = probe.indexOf('guard engine.isRunning == false');
-    const at = probe.indexOf('setVoiceProcessingEnabled(true)');
-    ok(guardAt > 0 && at > guardAt && at - guardAt < 700, 'isRunning check is not immediately before enable');
+    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 2);
+    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 2);
+    let from = 0;
+    while (from < probe.length) {
+      const at = probe.indexOf('setVoiceProcessingEnabled(true)', from);
+      if (at < 0) break;
+      const guardAt = probe.lastIndexOf('guard engine.isRunning == false', at);
+      ok(guardAt >= 0 && at - guardAt < 700, 'isRunning check is not immediately before enable');
+      from = at + 1;
+    }
     ok(!/scheduleBuffer|\.play\(/.test(probe), 'probe schedules or plays audio');
     ok(!/import WebKit|speechSynthesis|CATapDescription/.test(probe), 'probe touches WebKit, speech, or the system tap');
     ok(/API_UNAVAILABLE\(macos\)/.test(probe), 'mixWithOthers citation');
     ok(/lines 151-162/.test(probe), 'header citation');
+  });
+
+  test('--format-only 不 start、不 prepare、不挂节点、不装 tap', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runFormatOnly()');
+    const end = probe.indexOf('private static func measure', begin);
+    ok(begin > 0 && end > begin, 'runFormatOnly missing');
+    const body = probe.slice(begin, end);
+    ok(!/engine\.start\(|\.prepare\(|installAudioTap|installTap|connectNode|AVAudioPlayerNode/.test(body), body.slice(0, 200));
+    ok(/--format-only/.test(main), 'main has no --format-only');
+    ok(!/enabledByDefault = true/.test(probe), 'default flipped on');
   });
 
   test('探针不进双 flavor 共用的 BLOCKS', () => {

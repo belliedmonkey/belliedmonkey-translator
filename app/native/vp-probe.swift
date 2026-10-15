@@ -72,6 +72,81 @@ enum MTVPProbe {
         return measure(attachPlayer: attachPlayer, authorization: auth)
     }
 
+    /// 只回答「停着的引擎上打开一次 voice processing」：成功则再读格式，抛错则记下域和码。
+    /// 不连接节点，不 prepare，不 start，不挂播放节点，不装 tap，不改任何一侧的格式。
+    static func runFormatOnly() -> [String: Any] {
+        let auth = authorize()
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        var vpEnabled = false
+        defer {
+            if vpEnabled && engine.isRunning == false {
+                try? input.setVoiceProcessingEnabled(false)
+            }
+        }
+
+        var out: [String: Any] = base(
+            name: "format-only",
+            switchOn: true,
+            engineCreated: true,
+            attachPlayer: false,
+            authorization: auth,
+            started: false,
+            reason: "incomplete"
+        )
+        out["nodesConnected"] = false
+        out["prepared"] = false
+        out["tapInstalled"] = false
+
+        let beforeIn = input.outputFormat(forBus: 0)
+        let beforeOut = engine.outputNode.inputFormat(forBus: 0)
+        out["formatsBeforeEnable"] = [
+            "inputNodeOutput": snap(beforeIn),
+            "outputNodeInput": snap(beforeOut),
+        ]
+        out["formatsMatchBeforeEnable"] = formatsMatch(beforeIn, beforeOut)
+
+        guard engine.isRunning == false else {
+            out["engineRunningBeforeEnable"] = true
+            out["threw"] = false
+            out["outcome"] = "not-called"
+            out["reason"] = "engine-already-running"
+            return out
+        }
+        out["engineRunningBeforeEnable"] = false
+        do {
+            try input.setVoiceProcessingEnabled(true)
+            vpEnabled = true
+            let afterIn = input.outputFormat(forBus: 0)
+            let afterOut = engine.outputNode.inputFormat(forBus: 0)
+            let matched = formatsMatch(afterIn, afterOut)
+            out["voiceProcessingEnabled"] = input.isVoiceProcessingEnabled
+            out["formatsAfterEnable"] = [
+                "inputNodeOutput": snap(afterIn),
+                "outputNodeInput": snap(afterOut),
+            ]
+            out["formatsMatchAfterEnable"] = matched
+            out["threw"] = false
+            out["errorDomain"] = NSNull()
+            out["errorCode"] = NSNull()
+            out["outcome"] = matched ? "A" : "enabled-formats-still-differ"
+            out["reason"] = "ok"
+        } catch {
+            let ns = error as NSError
+            out["threw"] = true
+            out["outcome"] = "B"
+            out["reason"] = "vp-enable-failed"
+            out["errorDomain"] = ns.domain
+            out["errorCode"] = ns.code
+            out["errorDescription"] = ns.localizedDescription
+            out["error"] = String(describing: error)
+            if let failure = ns.localizedFailureReason {
+                out["errorFailureReason"] = failure
+            }
+        }
+        return out
+    }
+
     private static func measure(attachPlayer: Bool, authorization: String) -> [String: Any] {
         let engine = AVAudioEngine()
         let input = engine.inputNode
