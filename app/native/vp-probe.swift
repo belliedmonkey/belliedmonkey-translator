@@ -1,8 +1,9 @@
 // app/native/vp-probe.swift — 第 1 阶段的独立试验，不进 App、不进扩展。
 //
 // 只建一台 AVAudioEngine，只按头文件规定的顺序打开 voice processing。
-// 不接 sherpa、系统语音、云端 TTS、WebKit。播放节点只在第二项读数里挂上，
-// 不排缓冲区、不开始播放：用来回答「挂了播放节点之后 tap 还有没有帧」。
+// 不接 sherpa、系统语音、云端 TTS、WebKit。
+// `--on` 的第二项只挂一个空的播放节点，不排缓冲区、不开始播放。
+// `--player-frames` 才在同一台引擎上挂播放节点并放一段程序生成的正弦，默认不走。
 //
 // 依据（2026-10-15 读 MacOSX27.0.sdk）：
 // AVFAudio.framework/Headers/AVAudioIONode.h
@@ -440,6 +441,254 @@ enum MTVPProbe {
 
     private static let inputFramesWindowMs = 5000
 
+    /// 读数②：回声消除已经打开的同一台引擎上再挂播放节点，看输入 tap 还有没有非零采样。
+    /// 顺序只走一次：停着时打开 voice processing，再 attach，再 connect（format 传 nil，不手改格式），
+    /// 再装 tap，再 start 一次。任一步抛错就停。窗口 6 秒；开始后 1 秒播放 440 Hz、幅度 0.2、3 秒的正弦。
+    static func runPlayerFrames() -> [String: Any] {
+        let auth = authorize()
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let player = AVAudioPlayerNode()
+        var tapInstalled = false
+        var vpEnabled = false
+        defer {
+            if tapInstalled {
+                input.removeTap(onBus: 0)
+            }
+            if engine.isRunning {
+                engine.stop()
+            }
+            if vpEnabled && engine.isRunning == false {
+                try? input.setVoiceProcessingEnabled(false)
+            }
+        }
+
+        var out: [String: Any] = base(
+            name: "player-frames",
+            switchOn: true,
+            engineCreated: true,
+            attachPlayer: false,
+            authorization: auth,
+            started: false,
+            reason: "incomplete"
+        )
+        out["prepared"] = false
+        out["windowMs"] = playerFramesWindowMs
+        out["nodesConnected"] = false
+
+        func fail(_ error: Error, _ reason: String) {
+            let ns = error as NSError
+            out["threw"] = true
+            out["outcome"] = "E"
+            out["reason"] = reason
+            out["errorDomain"] = ns.domain
+            out["errorCode"] = ns.code
+            out["errorDescription"] = ns.localizedDescription
+            out["error"] = String(describing: error)
+            out["engineRunningAtEnd"] = engine.isRunning
+        }
+
+        guard engine.isRunning == false else {
+            out["engineRunningBeforeEnable"] = true
+            out["outcome"] = "not-called"
+            out["reason"] = "engine-already-running"
+            out["engineRunningAtEnd"] = engine.isRunning
+            return out
+        }
+        out["engineRunningBeforeEnable"] = false
+        do {
+            try input.setVoiceProcessingEnabled(true)
+        } catch {
+            fail(error, "vp-enable-failed")
+            return out
+        }
+        vpEnabled = true
+        out["voiceProcessingEnabled"] = input.isVoiceProcessingEnabled
+
+        engine.attach(player)
+        out["playerAttached"] = true
+        do {
+            // format nil：AVAudioEngine.h 写明非 nil 才会改源节点输出格式。这里不传格式。
+            try engine.connectNode(player, to: engine.mainMixerNode, format: nil)
+        } catch {
+            fail(error, "player-connect-failed")
+            return out
+        }
+        out["nodesConnected"] = true
+        let playFormat = player.outputFormat(forBus: 0)
+        out["playerFormat"] = describe(playFormat)
+
+        let tapFormat = input.outputFormat(forBus: 0)
+        out["tapFormat"] = describe(tapFormat)
+        out["tapBufferFrames"] = playerTapFrames
+        let stats = InputFrameStats(channelCount: Int(tapFormat.channelCount))
+        do {
+            try input.installAudioTap(onBus: 0, bufferSize: playerTapFrames, format: tapFormat) { buffer, _ in
+                stats.add(buffer, trackPhase: true)
+            }
+        } catch {
+            fail(error, "tap-failed")
+            return out
+        }
+        tapInstalled = true
+        out["tapInstalled"] = true
+        do {
+            try engine.start()
+        } catch {
+            fail(error, "start-failed")
+            return out
+        }
+        out["started"] = true
+
+        let windowStart = Date()
+        let deadline = windowStart.addingTimeInterval(Double(playerFramesWindowMs) / 1000)
+        let toneAt = windowStart.addingTimeInterval(Double(playerToneDelayMs) / 1000)
+        while Date() < toneAt {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+
+        let tone: AVAudioPCMBuffer
+        switch makeTone(format: playFormat) {
+        case .buffer(let buffer):
+            tone = buffer
+        case .stopped(let reason):
+            out["threw"] = false
+            out["outcome"] = "stopped"
+            out["reason"] = reason
+            out["errorDomain"] = NSNull()
+            out["errorCode"] = NSNull()
+            out["engineRunningAtEnd"] = engine.isRunning
+            out["segments"] = stats.segmentSnapshot()
+            return out
+        }
+        out["tone"] = [
+            "hz": playerToneHz,
+            "amplitude": playerToneAmplitude,
+            "frames": tone.frameLength,
+            "seconds": Double(tone.frameLength) / playFormat.sampleRate,
+        ] as [String: Any]
+        player.scheduleBuffer(tone, at: nil, options: [], completionHandler: {
+            stats.markPlayEnd(Date())
+        })
+        out["buffersScheduled"] = 1
+        stats.markPlayStart(Date())
+        do {
+            try player.playAudio()
+        } catch {
+            fail(error, "play-failed")
+            out["segments"] = stats.segmentSnapshot()
+            return out
+        }
+
+        while Date() < deadline {
+            RunLoop.current.run(mode: .default, before: Date().addingTimeInterval(0.05))
+        }
+        if engine.isRunning {
+            engine.stop()
+        }
+        out["engineRunningAtEnd"] = engine.isRunning
+        let snapStats = stats.snapshot()
+        let phases = stats.phaseMarks()
+        out["bufferCount"] = snapStats.buffers
+        out["frameCount"] = NSNumber(value: snapStats.frames)
+        out["segments"] = stats.segmentSnapshot()
+        out["playStartedAt"] = phases.started.map(iso8601) ?? NSNull()
+        out["playEndedAt"] = phases.ended.map(iso8601) ?? NSNull()
+        out["toneCompletionFired"] = phases.ended != nil
+        out["samplesParsed"] = snapStats.parsed
+        if let note = snapStats.note {
+            out["sampleNote"] = note
+        }
+        let nonzeroSamples = snapStats.channels.reduce(Int64(0)) { sum, row in
+            sum + ((row["nonzeroSamples"] as? NSNumber)?.int64Value ?? 0)
+        }
+        if snapStats.parsed {
+            out["nonzeroFrameCount"] = NSNumber(value: snapStats.nonzeroFrames)
+            out["nonzeroSamples"] = NSNumber(value: nonzeroSamples)
+            out["maxAbs"] = NSNumber(value: snapStats.maxAbs)
+            out["channels"] = snapStats.channels
+        } else {
+            out["nonzeroFrameCount"] = NSNull()
+            out["nonzeroSamples"] = NSNull()
+            out["maxAbs"] = NSNull()
+            out["channels"] = snapStats.channels
+        }
+        if snapStats.frames == 0 {
+            out["outcome"] = "H"
+        } else if snapStats.parsed && nonzeroSamples == 0 {
+            out["outcome"] = "I"
+        } else if snapStats.parsed && nonzeroSamples > 0 {
+            out["outcome"] = "G"
+        } else {
+            out["outcome"] = "unparsed"
+        }
+        out["reason"] = "ok"
+        out["threw"] = false
+        out["errorDomain"] = NSNull()
+        out["errorCode"] = NSNull()
+        return out
+    }
+
+    private static let playerFramesWindowMs = 6000
+    private static let playerToneDelayMs = 1000
+    private static let playerToneMs = 3000
+    private static let playerToneHz = 440.0
+    private static let playerToneAmplitude: Float = 0.2
+    private static let playerTapFrames: AVAudioFrameCount = 8192
+
+    private static func iso8601(_ date: Date) -> String {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fmt.string(from: date)
+    }
+
+    /// 用 connect 之后引擎已经定下的格式填正弦。填不了就停，不改连接格式再试。
+    private enum ToneBuild {
+        case buffer(AVAudioPCMBuffer)
+        case stopped(String)
+    }
+
+    private static func makeTone(format: AVAudioFormat) -> ToneBuild {
+        let rate = format.sampleRate
+        let channels = Int(format.channelCount)
+        guard rate > 0, channels > 0 else { return .stopped("player-format-empty") }
+        let frames = AVAudioFrameCount(rate * Double(playerToneMs) / 1000)
+        guard frames > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames) else {
+            return .stopped("tone-buffer-unavailable")
+        }
+        buffer.frameLength = frames
+        let count = Int(frames)
+        guard format.isInterleaved == false else { return .stopped("tone-format-interleaved") }
+        switch format.commonFormat {
+        case .pcmFormatFloat32:
+            guard let data = buffer.floatChannelData else { return .stopped("tone-channel-data-unavailable") }
+            for c in 0..<channels {
+                for i in 0..<count {
+                    data[c][i] = playerToneAmplitude * Float(sin(2 * Double.pi * playerToneHz * Double(i) / rate))
+                }
+            }
+        case .pcmFormatInt16:
+            guard let data = buffer.int16ChannelData else { return .stopped("tone-channel-data-unavailable") }
+            for c in 0..<channels {
+                for i in 0..<count {
+                    let unit = playerToneAmplitude * Float(sin(2 * Double.pi * playerToneHz * Double(i) / rate))
+                    data[c][i] = Int16(max(-1, min(1, unit)) * 32767)
+                }
+            }
+        case .pcmFormatInt32:
+            guard let data = buffer.int32ChannelData else { return .stopped("tone-channel-data-unavailable") }
+            for c in 0..<channels {
+                for i in 0..<count {
+                    let unit = playerToneAmplitude * Float(sin(2 * Double.pi * playerToneHz * Double(i) / rate))
+                    data[c][i] = Int32(max(-1, min(1, unit)) * 2147483647)
+                }
+            }
+        default:
+            return .stopped("tone-format-unsupported")
+        }
+        return .buffer(buffer)
+    }
+
     private static func tapBufferChoice(sampleRate: Double) -> (frames: AVAudioFrameCount?, ms: Double, note: String) {
         guard sampleRate > 0 else {
             return (nil, 0, "sample rate is 0; AVAudioNode.h lines 124-125 require [100, 400] ms and no frame count in that range can be derived")
@@ -586,6 +835,14 @@ private final class InputFrameStats: @unchecked Sendable {
     private var parsed = true
     private var note: String?
     private var listCount: Int?
+    private let phaseLock = NSLock()
+    private var playStarted = false
+    private var playEnded = false
+    private var playStartedAt: Date?
+    private var playEndedAt: Date?
+    private var segmentFrames: [String: Int64] = [:]
+    private var segmentNonzero: [String: Int64] = [:]
+    private var segmentMax: [String: Float] = [:]
 
     init(channelCount: Int) {
         let n = max(channelCount, 0)
@@ -595,7 +852,26 @@ private final class InputFrameStats: @unchecked Sendable {
         seen = Array(repeating: false, count: n)
     }
 
+    func markPlayStart(_ date: Date) {
+        phaseLock.lock()
+        playStarted = true
+        playStartedAt = date
+        phaseLock.unlock()
+    }
+
+    func markPlayEnd(_ date: Date) {
+        phaseLock.lock()
+        playEnded = true
+        if playEndedAt == nil { playEndedAt = date }
+        phaseLock.unlock()
+    }
+
     func add(_ buffer: AVReadOnlyAudioPCMBuffer) {
+        add(buffer, trackPhase: false)
+    }
+
+    func add(_ buffer: AVReadOnlyAudioPCMBuffer, trackPhase: Bool) {
+        let phase: String? = trackPhase ? currentPhase() : nil
         let nFrames = buffer.frameLength
         var localNonzeroFrames = 0
         var localNonzero = [Int64](repeating: 0, count: channelCount)
@@ -635,15 +911,52 @@ private final class InputFrameStats: @unchecked Sendable {
         if !localParsed {
             parsed = false
             note = localNote
-        } else if localParsed {
+            if let phase {
+                segmentFrames[phase, default: 0] += Int64(nFrames)
+            }
+        } else {
             nonzeroFrames += Int64(localNonzeroFrames)
             for i in 0..<channelCount {
                 if localSeen[i] { seen[i] = true }
                 nonzeroSamples[i] += localNonzero[i]
                 if localMax[i] > maxAbs[i] { maxAbs[i] = localMax[i] }
             }
+            if let phase {
+                segmentFrames[phase, default: 0] += Int64(nFrames)
+                segmentNonzero[phase, default: 0] += localNonzero.reduce(0, +)
+                let peak = localMax.max() ?? 0
+                if peak > (segmentMax[phase] ?? 0) { segmentMax[phase] = peak }
+            }
         }
         lock.unlock()
+    }
+
+    private func currentPhase() -> String {
+        phaseLock.lock()
+        defer { phaseLock.unlock() }
+        if !playStarted { return "before" }
+        if !playEnded { return "during" }
+        return "after"
+    }
+
+    func phaseMarks() -> (started: Date?, ended: Date?) {
+        phaseLock.lock()
+        defer { phaseLock.unlock() }
+        return (playStartedAt, playEndedAt)
+    }
+
+    func segmentSnapshot() -> [String: [String: Any]] {
+        lock.lock()
+        defer { lock.unlock() }
+        var rows: [String: [String: Any]] = [:]
+        for key in ["before", "during", "after"] {
+            rows[key] = [
+                "frameCount": NSNumber(value: segmentFrames[key] ?? 0),
+                "nonzeroSamples": NSNumber(value: segmentNonzero[key] ?? 0),
+                "maxAbs": NSNumber(value: segmentMax[key] ?? 0),
+            ]
+        }
+        return rows
     }
 
     private static func scan(

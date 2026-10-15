@@ -45,8 +45,8 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
   test('探针默认关；两次打开都先确认引擎停着', () => {
     const probe = read('app/native/vp-probe.swift');
     ok(/static let enabledByDefault = false/.test(probe), 'enabledByDefault');
-    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 3);
-    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 3);
+    eq(probe.split('setVoiceProcessingEnabled(true)').length - 1, 4);
+    eq(probe.split('setVoiceProcessingEnabled(false)').length - 1, 4);
     let from = 0;
     while (from < probe.length) {
       const at = probe.indexOf('setVoiceProcessingEnabled(true)', from);
@@ -55,7 +55,11 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
       ok(guardAt >= 0 && at - guardAt < 700, 'isRunning check is not immediately before enable');
       from = at + 1;
     }
-    ok(!/scheduleBuffer|\.play\(/.test(probe), 'probe schedules or plays audio');
+    const playerAt = probe.indexOf('static func runPlayerFrames()');
+    const afterPlayer = probe.indexOf('private static func tapBufferChoice', playerAt);
+    ok(playerAt > 0 && afterPlayer > playerAt, 'runPlayerFrames missing');
+    const withoutPlayer = probe.slice(0, playerAt) + probe.slice(afterPlayer);
+    ok(!/scheduleBuffer|\.play\(/.test(withoutPlayer), 'a path other than --player-frames schedules or plays');
     ok(!/import WebKit|speechSynthesis|CATapDescription/.test(probe), 'probe touches WebKit, speech, or the system tap');
     ok(/API_UNAVAILABLE\(macos\)/.test(probe), 'mixWithOthers citation');
     ok(/lines 151-162/.test(probe), 'header citation');
@@ -84,6 +88,34 @@ describe('vp-probe 第 1 阶段（默认关，不改回声常数）', () => {
     ok(!/\.prepare\(|connectNode|mainMixerNode|AVAudioPlayerNode/.test(body), 'input-frames connects or prepares');
     ok(/installAudioTap/.test(body), 'input-frames does not install the documented tap');
     ok(/--input-frames/.test(main), 'main has no --input-frames');
+  });
+
+  test('--player-frames 先开回声消除再挂播放，只 start 一次，格式不手改', () => {
+    const probe = read('app/native/vp-probe.swift');
+    const main = read('scripts/vp-probe-main.swift');
+    const begin = probe.indexOf('static func runPlayerFrames()');
+    const end = probe.indexOf('private static let playerFramesWindowMs', begin);
+    ok(begin > 0 && end > begin, 'runPlayerFrames missing');
+    const body = probe.slice(begin, end);
+    eq(body.split('engine.start()').length - 1, 1);
+    eq(body.split('setVoiceProcessingEnabled(true)').length - 1, 1);
+    eq(body.split('scheduleBuffer(').length - 1, 1);
+    eq(body.split('player.playAudio()').length - 1, 1);
+    ok(/connectNode\(player, to: engine\.mainMixerNode, format: nil\)/.test(body), 'connect format is not nil');
+    ok(!/\.prepare\(/.test(body), 'player-frames prepares');
+    ok(/bufferSize: playerTapFrames/.test(body), 'tap does not use playerTapFrames');
+    ok(/private static let playerTapFrames: AVAudioFrameCount = 8192/.test(probe), 'tap frames are not 8192');
+    ok(/playerToneAmplitude/.test(body) && /playerToneHz/.test(body), 'tone constants missing');
+    const enableAt = body.indexOf('setVoiceProcessingEnabled(true)');
+    const attachAt = body.indexOf('engine.attach(player)');
+    const connectAt = body.indexOf('connectNode(');
+    const tapAt = body.indexOf('installAudioTap');
+    const startAt = body.indexOf('engine.start()');
+    const playAt = body.indexOf('player.playAudio()');
+    ok(enableAt >= 0 && enableAt < attachAt && attachAt < connectAt && connectAt < tapAt && tapAt < startAt && startAt < playAt, 'order is not enable, attach, connect, tap, start, play');
+    ok(/--player-frames/.test(main), 'main has no --player-frames');
+    ok(!/enabledByDefault = true/.test(probe), 'default flipped on');
+    ok(!/sherpa|import WebKit|speechSynthesis|CATapDescription|AVSpeechSynthesizer/.test(body), 'player-frames touches speech or WebKit');
   });
 
   test('探针不进双 flavor 共用的 BLOCKS', () => {
