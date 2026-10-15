@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-15",
+  "phase": 1,
+  "host": {
+    "product": "macOS",
+    "version": "27.0",
+    "build": "26A428",
+    "swift": "Apple Swift 6.4 (swiftlang-6.4.0.34.1)"
+  },
+  "stopped": true,
+  "stopReason": "format-mismatch",
+  "soundPlayed": false,
+  "volumeBefore": {
+    "outputVolume": 70,
+    "inputVolume": 0,
+    "alertVolume": 100,
+    "outputMuted": false
+  },
+  "volumeAfter": {
+    "outputVolume": 70,
+    "inputVolume": 0,
+    "alertVolume": 100,
+    "outputMuted": false
+  },
+  "volumeChanged": false,
+  "readings": {
+    "framesAfterVoiceProcessing": {
+      "answered": false,
+      "frameCount": null,
+      "setVoiceProcessingEnabledCalled": false,
+      "detail": "Input-node output format is 1 channel, output-node input format is 2 channels, both 48000 Hz, AVAudioPCMFormatFloat32 (AVAudioFormat.h line 32, rawValue 1). AVAudioIONode.h lines 161-162 require those two formats to be the same before setVoiceProcessingEnabled, and say they can change only while the engine is stopped. The same header does not name an API that picks which channel count to keep. Enable was not called."
+    },
+    "framesAfterPlayer": {
+      "answered": false,
+      "ran": false,
+      "detail": "The empty player run is reached only after the no-player engine starts. It did not start, so no second configuration was tried."
+    },
+    "mixWithOthers": {
+      "readable": false,
+      "lost": null,
+      "detail": "AVAudioSession and categoryOptions are API_UNAVAILABLE(macos) (AVAudioSession.h lines 31 and 84). AVAudioSessionCategoryOptionMixWithOthers is an AVAudioSession option (AVAudioSessionTypes.h lines 461-482). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices. The option was neither observed present nor observed lost, so the #352 lost-option stop is not this stop."
+    }
+  },
+  "runs": {
+    "off": [
+      {
+        "attachPlayer": false,
+        "authorization": null,
+        "bufferCount": null,
+        "buffersScheduled": 0,
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": false,
+        "frameCount": null,
+        "maxAbs": null,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "off",
+        "reason": "switch-off",
+        "started": false,
+        "switch": "off"
+      }
+    ],
+    "on": [
+      {
+        "attachPlayer": false,
+        "authorization": "authorized",
+        "bufferCount": null,
+        "buffersScheduled": 0,
+        "citation": "AVAudioIONode.h setVoiceProcessingEnabled:error: discussion, lines 151-162 (MacOSX27.0.sdk AVFAudio.framework/Headers/AVAudioIONode.h, read 2026-10-15): engine must be stopped; input-node output format and output-node input format must match and may change only while stopped; voice processing is only supported when rendering to an audio device, not manual rendering.",
+        "engineCreated": true,
+        "formatsBeforeEnable": {
+          "inputNodeOutput": {
+            "channelCount": 1,
+            "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+            "sampleRate": 48000
+          },
+          "outputNodeInput": {
+            "channelCount": 2,
+            "commonFormat": "AVAudioCommonFormat(rawValue: 1)",
+            "sampleRate": 48000
+          }
+        },
+        "formatsMatchBeforeEnable": false,
+        "frameCount": null,
+        "maxAbs": null,
+        "mixWithOthers": {
+          "citation": "AVAudioSession is API_UNAVAILABLE(macos): MacOSX27.0.sdk AVAudioSession.h lines 31 and 84 (the class and categoryOptions). AVAudioSessionCategoryOptionMixWithOthers = 0x1 is an AVAudioSession category option (iPhoneOS SDK AVAudioSessionTypes.h lines 461-482, introduced iOS 6). AVAudioIONode.h lines 103-104: on macOS the IO nodes talk to the default devices, not an AVAudioSession. This step does not read a substitute property. lost is null: the option was neither observed present nor observed lost.",
+          "lost": null,
+          "readable": false
+        },
+        "name": "vp-only",
+        "reason": "format-mismatch",
+        "started": false,
+        "switch": "on"
+      }
+    ]
+  }
+}
