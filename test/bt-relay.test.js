@@ -253,7 +253,7 @@ describe('bt-relay 合约（X5）', () => {
   test('UPSTREAM=qwencloud：不看 IP、白名单、音色、10MB、记账（本地桩，不打线上）', async () => {
     if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
     const row = [{ user_id: 'u1', limit_usd: 100, spent_usd: 0, status: 'active' }];
-    const seen = { qc: [], bj: [], charges: [], logs: [], trap: 0 };
+    const seen = { qc: [], bj: [], or: [], charges: [], logs: [], trap: 0 };
     const sse = (events) => ({
       statusCode: 200,
       body: events.map((o) => 'data: ' + JSON.stringify(o) + '\n\n').join(''),
@@ -310,6 +310,14 @@ describe('bt-relay 合约（X5）', () => {
       seen.bj.push({ url: req.url, body: String(raw) });
       return j({ choices: [{ message: { content: '北京' } }], usage: { total_tokens: 10 } });
     });
+    const or = await server((req, raw) => {
+      if (String(req.url).endsWith('/credits')) return j({ data: { total_credits: 100, total_usage: 0 } });
+      seen.or.push({ url: req.url, auth: req.headers.authorization, body: String(raw) });
+      if (String(req.url).endsWith('/audio/transcriptions')) {
+        return j({ text: 'or-heard', usage: { seconds: 2, cost: 0.001 } });
+      }
+      return j({ choices: [{ message: { content: 'or' } }] });
+    });
     const trap = await server(() => { seen.trap += 1; return j({}); });
 
     const db = await server((req, raw) => {
@@ -329,13 +337,15 @@ describe('bt-relay 合约（X5）', () => {
       QWENCLOUD_TTS_URL: 'http://127.0.0.1:' + qc.port + '/generation',
       UPSTREAM_KEY: 'sk-bj-stub',
       UPSTREAM_BASE: 'http://127.0.0.1:' + bj.port + '/v1',
-      GRANT_MODELS: JSON.stringify({ tts: 'qwen-tts-beijing' }),
+      OPENROUTER_GRANT_KEY: 'sk-or-stub',
+      OPENROUTER_BASE: 'http://127.0.0.1:' + or.port + '/v1',
+      GRANT_MODELS: JSON.stringify({ tts: 'qwen-tts-beijing', stt: 'openai/whisper-1' }),
       GRANT_PRICES: JSON.stringify({ chatFloor: 0.0005, chatPerKTok: 0.001, ttsPerKChar: 0.015, sttPerMB: 0.02 }),
       GRANT_FLOAT_MIN_USD: '5',
     });
     // 这条测的是「变量未设置 = 全量」。父进程如果导出了名单，不能漏进来。
     delete qcEnv.QWENCLOUD_ALLOW_TOKEN_HASHES;
-    const relay = spawn('deno', denoArgs, {
+    let relay = spawn('deno', denoArgs, {
       cwd: ROOT,
       env: qcEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -437,18 +447,18 @@ describe('bt-relay 合约（X5）', () => {
         sameBodies.tts.push(hit.body);
         eq(seen.bj.length, bjBefore, label + ' 朗读不该打到北京桩');
 
+        const orBefore = seen.or.length;
         const fd = formFile({ model: 'qwen3-asr-flash' }, { name: 'a.webm', type: 'audio/webm', buf: Buffer.from('same-stt') });
         r = await postBytes(root + '/audio/transcriptions', Object.assign({
           Authorization: 'Bearer bmg_ok', 'Content-Type': fd.type,
         }, extra), fd.body);
         eq(r.status, 200, label + ' 转写该 200：' + r.body);
-        deepEq(JSON.parse(r.body), { text: 'heard' });
-        hit = seen.qc[seen.qc.length - 1];
-        eq(hit.url, '/v1/chat/completions', label + ' 转写 URL ' + hit.url);
-        eq(hit.auth, 'Bearer sk-qc-stub', label + ' 转写密钥');
-        sent = JSON.parse(hit.body);
-        eq(sent.model, 'qwen3-asr-flash', label + ' 转写模型');
-        eq(sent.stream, false, label);
+        eq(JSON.parse(r.body).text, 'or-heard');
+        eq(seen.or.length, orBefore + 1, label + ' 未设 QWENCLOUD_STT 时转写该走 OpenRouter');
+        hit = seen.or[seen.or.length - 1];
+        eq(hit.url, '/v1/audio/transcriptions', label + ' 转写 URL ' + hit.url);
+        eq(hit.auth, 'Bearer sk-or-stub', label + ' 转写密钥');
+        ok(hit.body.indexOf('openai/whisper-1') >= 0, label + ' 转写模型钉在 GRANT_MODELS.stt');
         sameBodies.stt.push(hit.body);
         eq(seen.bj.length, bjBefore, label + ' 转写不该打到北京桩');
       }
@@ -456,14 +466,29 @@ describe('bt-relay 合约（X5）', () => {
       eq(sameBodies.chat[0], sameBodies.chat[2], '大陆与空地址的聊天请求体不同');
       eq(sameBodies.tts[0], sameBodies.tts[1], '大陆与非大陆的朗读请求体不同');
       eq(sameBodies.tts[0], sameBodies.tts[2], '大陆与空地址的朗读请求体不同');
-      eq(sameBodies.stt[0], sameBodies.stt[1], '大陆与非大陆的转写请求体不同');
-      eq(sameBodies.stt[0], sameBodies.stt[2], '大陆与空地址的转写请求体不同');
+      ok(sameBodies.stt.length === 3 && sameBodies.stt.every((b) => b.indexOf('openai/whisper-1') >= 0),
+        '各 IP 默认转写都走 OpenRouter 且钉同一模型');
       eq(ttsStatus[0], ttsStatus[1], '朗读状态码因地址而不同');
       eq(ttsStatus[0], ttsStatus[2], '空地址的朗读状态码不同');
       ok(ttsStatus[0] !== 503, '朗读不该因没配大陆模型而 503，实际 ' + ttsStatus[0]);
 
       r = await postBytes(root + '/chat/completions', H({ 'X-Forwarded-For': '1.0.8.1' }), { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'xff' }] });
       eq(JSON.parse(seen.qc[seen.qc.length - 1].body).model, 'qwen3.7-plus', '不读 X-Forwarded-For，请求仍走国际');
+
+      try { relay.kill('SIGKILL'); } catch (_) {}
+      const qcEnvStt = Object.assign({}, qcEnv, { QWENCLOUD_STT: '1' });
+      relay = spawn('deno', denoArgs, { cwd: ROOT, env: qcEnvStt, stdio: ['ignore', 'pipe', 'pipe'] });
+      relay.stdout.on('data', (d) => seen.logs.push(String(d)));
+      relay.stderr.on('data', (d) => seen.logs.push(String(d)));
+      {
+        let up2 = false;
+        for (let i = 0; i < 60; i++) {
+          const ping = await post(root + '/chat/completions', H(), { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'ping' }] });
+          if (ping.status) { up2 = ping.status === 200; break; }
+          await new Promise((r2) => setTimeout(r2, 200));
+        }
+        ok(up2, 'QWENCLOUD_STT=1 中继没起来：' + seen.logs.join('').slice(-400));
+      }
 
       const sttFd = formFile({ model: 'qwen3-asr-flash' }, { name: 'a.webm', type: 'audio/webm;codecs=opus', buf: Buffer.from('not-a-real-webm') });
       const sttAt = seen.qc.length;
@@ -586,7 +611,112 @@ describe('bt-relay 合约（X5）', () => {
       ok(String(r.body).indexOf('"busy"') < 0, '上游限流不该说成自己的 busy');
     } finally {
       try { relay.kill('SIGKILL'); } catch (_) {}
-      try { qc.srv.close(); bj.srv.close(); trap.srv.close(); db.srv.close(); } catch (_) {}
+      try { qc.srv.close(); bj.srv.close(); or.srv.close(); trap.srv.close(); db.srv.close(); } catch (_) {}
+    }
+  });
+
+  test('QWENCLOUD_STT：默认转写走 OpenRouter，设 1 才走 QwenCloud；聊天朗读不变', async () => {
+    if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
+    const row = [{ user_id: 'u1', limit_usd: 100, spent_usd: 0, status: 'active' }];
+    const seen = { qc: [], or: [], charges: [] };
+    const qc = await server((req, raw) => {
+      const text = String(raw);
+      seen.qc.push({ url: req.url, auth: req.headers.authorization, body: text });
+      if (text.includes('input_audio')) {
+        return j({ choices: [{ message: { content: 'qc-stt' } }], usage: { seconds: 1 } });
+      }
+      if (req.url.indexOf('/generation') >= 0) {
+        return {
+          statusCode: 200,
+          body: 'data: ' + JSON.stringify({ output: { audio: { data: Buffer.from([1]).toString('base64') } } }) + '\n\n',
+          type: 'text/event-stream',
+        };
+      }
+      return j({ choices: [{ message: { content: 'qc-chat' } }], usage: { prompt_tokens: 10, completion_tokens: 10 } });
+    });
+    const or = await server((req, raw) => {
+      seen.or.push({ url: req.url, auth: req.headers.authorization, body: String(raw) });
+      if (String(req.url).endsWith('/audio/transcriptions')) return j({ text: 'or-stt', usage: { cost: 0.01 } });
+      return j({});
+    });
+    const db = await server((req, raw) => {
+      if (/bt_grant_check/.test(req.url)) return j(row);
+      if (/bt_grant_charge/.test(req.url)) { seen.charges.push(JSON.parse(String(raw))); return j(1); }
+      return j({});
+    });
+    const basePort = 19600 + (process.pid % 80);
+    function boot(sttFlag) {
+      const env = Object.assign({}, process.env, {
+        PORT: String(basePort + (sttFlag ? 1 : 0)),
+        SUPABASE_URL: 'http://127.0.0.1:' + db.port,
+        SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
+        UPSTREAM: 'qwencloud',
+        QWENCLOUD_KEY: 'sk-qc-stub',
+        QWENCLOUD_CHAT_BASE: 'http://127.0.0.1:' + qc.port + '/v1',
+        QWENCLOUD_TTS_URL: 'http://127.0.0.1:' + qc.port + '/generation',
+        OPENROUTER_GRANT_KEY: 'sk-or-stub',
+        OPENROUTER_BASE: 'http://127.0.0.1:' + or.port + '/v1',
+        GRANT_MODELS: JSON.stringify({ stt: 'openai/whisper-1' }),
+        GRANT_PRICES: JSON.stringify({ chatFloor: 0.0005, sttPerMB: 0.02 }),
+        GRANT_FLOAT_MIN_USD: '5',
+      });
+      delete env.QWENCLOUD_ALLOW_TOKEN_HASHES;
+      if (sttFlag) env.QWENCLOUD_STT = '1';
+      else delete env.QWENCLOUD_STT;
+      const relay = spawn('deno', ['run', '-A', RELAY], { cwd: ROOT, env, stdio: ['ignore', 'pipe', 'pipe'] });
+      return { relay, root: 'http://127.0.0.1:' + env.PORT };
+    }
+    const H = { Authorization: 'Bearer bmg_ok', 'Content-Type': 'application/json' };
+    const procs = [];
+    try {
+      const off = boot(false);
+      procs.push(off.relay);
+      for (let i = 0; i < 50; i++) {
+        const r = await post(off.root + '/chat/completions', H, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'x' }] });
+        if (r.status === 200) break;
+        await new Promise((r2) => setTimeout(r2, 200));
+      }
+      seen.qc.length = 0;
+      seen.or.length = 0;
+      let r = await post(off.root + '/chat/completions', H, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'chat' }] });
+      eq(r.status, 200, '聊天仍走 QwenCloud：' + r.body);
+      eq(seen.qc.length, 1, '聊天该打到 QwenCloud 桩');
+      eq(JSON.parse(seen.qc[0].body).model, 'qwen3.7-plus');
+      r = await postBytes(off.root + '/audio/speech', H, { model: 'qwen3-tts-flash', input: 'tts', voice: 'Cherry' });
+      eq(r.status, 200, '朗读仍走 QwenCloud：' + r.status);
+      ok(seen.qc.some((x) => x.url.indexOf('/generation') >= 0), '朗读该打到 QwenCloud 桩');
+      const fd = formFile({}, { name: 'a.webm', type: 'audio/webm', buf: Buffer.from('stt-off') });
+      r = await postBytes(off.root + '/audio/transcriptions', { Authorization: 'Bearer bmg_ok', 'Content-Type': fd.type }, fd.body);
+      eq(r.status, 200, '默认转写走 OpenRouter：' + r.body);
+      eq(JSON.parse(r.body).text, 'or-stt');
+      eq(seen.or.length, 1, '转写该打到 OpenRouter');
+      eq(seen.or[0].url, '/v1/audio/transcriptions');
+      ok(seen.qc.every((x) => x.body.indexOf('input_audio') < 0), '未开 QWENCLOUD_STT 时不该走 QwenCloud 转写');
+
+      try { off.relay.kill('SIGKILL'); } catch (_) {}
+      const on = boot(true);
+      procs.push(on.relay);
+      for (let i = 0; i < 50; i++) {
+        const r2 = await post(on.root + '/chat/completions', H, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'x' }] });
+        if (r2.status === 200) break;
+        await new Promise((r2) => setTimeout(r2, 200));
+      }
+      seen.qc.length = 0;
+      seen.or.length = 0;
+      r = await post(on.root + '/chat/completions', H, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'chat2' }] });
+      eq(r.status, 200, 'QWENCLOUD_STT=1 时聊天仍走 QwenCloud');
+      eq(seen.qc.length, 1);
+      const sttFd = formFile({}, { name: 'a.webm', type: 'audio/webm', buf: Buffer.from('stt-on') });
+      r = await postBytes(on.root + '/audio/transcriptions', { Authorization: 'Bearer bmg_ok', 'Content-Type': sttFd.type }, sttFd.body);
+      eq(r.status, 200, 'QWENCLOUD_STT=1 时转写走 QwenCloud：' + r.body);
+      deepEq(JSON.parse(r.body), { text: 'qc-stt' });
+      eq(seen.or.length, 0, '开 QWENCLOUD_STT 时不该打到 OpenRouter 转写');
+      const asrHit = seen.qc.find((x) => x.body.indexOf('input_audio') >= 0);
+      ok(asrHit, '应打到 QwenCloud chat/completions 转写');
+      eq(JSON.parse(asrHit.body).model, 'qwen3-asr-flash');
+    } finally {
+      for (const p of procs) { try { p.kill('SIGKILL'); } catch (_) {} }
+      try { qc.srv.close(); or.srv.close(); db.srv.close(); } catch (_) {}
     }
   });
 

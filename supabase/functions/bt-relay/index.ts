@@ -41,11 +41,12 @@
 // ── 第三个值：UPSTREAM=qwencloud（#592，2026-10-16，默认关，未部署）──
 //
 // 不设、或仍是 openrouter / dashscope 时，下面这个分支不执行，请求体与状态码与现在相同。
-// 打开之后，进入这个分支的令牌不看客户端地址（2026-10-16 裁定）。聊天、朗读、转写都走
+// 打开之后，进入这个分支的令牌不看客户端地址（2026-10-16 裁定）。聊天、朗读走
 // QwenCloud 国际按量（https://docs.qwencloud.com ，2026-10-15）：
 //   聊天  POST {QWENCLOUD_CHAT_BASE}/chat/completions     模型 qwen3.7-plus
 //   朗读  POST QWENCLOUD_TTS_URL                          模型 qwen3-tts-flash
-//   转写  同一条 chat/completions + input_audio            模型 qwen3-asr-flash
+// 转写默认仍走 OpenRouter（App 录音格式未验证；QwenCloud 文档未写明 m4a/webm）。
+// 只有另设 QWENCLOUD_STT=1 时，转写才走 chat/completions + input_audio（qwen3-asr-flash）。
 // 基址不设时就是文档上的地址。单测把它们指到本地桩。密钥：QWENCLOUD_KEY。
 // 灰度：QWENCLOUD_ALLOW_TOKEN_HASHES（逗号分隔的令牌哈希，算法是下面的 sha256Hex）。
 // 不设 = 开关打开后全部走 QwenCloud。设了才按名单分流；空串是空名单，全部走 UPSTREAM 未设时的路径。
@@ -72,6 +73,8 @@ const OR_BASE = IS_OR
 const OR_OPEN_KEY = Deno.env.get('OPENROUTER_GRANT_KEY') || '';
 const OR_OPEN_BASE = Deno.env.get('OPENROUTER_BASE') || 'https://openrouter.ai/api/v1';
 // undefined = 未设置 = 全量 QwenCloud。空串 = 空名单 = 全走旧路径。不要把空串当成未设置。
+// 转写走 QwenCloud 的显式开关。不设或非 1 = 即使 UPSTREAM=qwencloud 也走 OpenRouter 转写路径。
+const QWENCLOUD_STT = Deno.env.get('QWENCLOUD_STT') === '1';
 const QC_ALLOW_RAW = Deno.env.get('QWENCLOUD_ALLOW_TOKEN_HASHES');
 const QC_ALLOW: Set<string> | null = QC_ALLOW_RAW === undefined ? null : new Set(
   QC_ALLOW_RAW.split(',').map((s) => s.trim().toLowerCase()).filter((s) => s.length > 0),
@@ -380,17 +383,25 @@ serve(async (req) => {
 
   let model = MODELS[shape];
   if (useQc) {
-    model = shape === 'chat' ? QC_CHAT : shape === 'tts' ? QC_TTS : QC_STT;
-    if (!QC_KEY) {
-      console.log('relay', tag, shape, 'no_key');
-      return json({ error: 'grant_misconfigured' }, 503);
+    if (shape === 'stt' && !QWENCLOUD_STT) {
+      model = MODELS[shape];
+      if (!model) {
+        console.log('relay', tag, shape, 'no_model_configured');
+        return json({ error: 'grant_misconfigured' }, 503);
+      }
+    } else {
+      model = shape === 'chat' ? QC_CHAT : shape === 'tts' ? QC_TTS : QC_STT;
+      if (!QC_KEY) {
+        console.log('relay', tag, shape, 'no_key');
+        return json({ error: 'grant_misconfigured' }, 503);
+      }
     }
   } else if (!model) {
     // 没配这一档的模型（或 GRANT_MODELS 根本没解出来）—— 具名 503，不是静默 500。
     console.log('relay', tag, shape, 'no_model_configured');
     return json({ error: 'grant_misconfigured' }, 503);
   }
-  const qcIntl = useQc;
+  const qcIntl = useQc && (shape !== 'stt' || QWENCLOUD_STT);
 
   const t0 = Date.now();
   let upstream: Response;
@@ -443,9 +454,14 @@ serve(async (req) => {
           const v = inForm.get(k);
           if (typeof v === 'string') out.set(k, v);
         }
-        upstream = await fetch(`${routeBase}/audio/transcriptions`, {
+        const sttKey = (useQc && !QWENCLOUD_STT) ? OR_OPEN_KEY : routeKey;
+        const sttBase = (useQc && !QWENCLOUD_STT) ? OR_OPEN_BASE : routeBase;
+        if (useQc && !QWENCLOUD_STT && !sttKey) {
+          return json({ error: 'grant_misconfigured' }, 503);
+        }
+        upstream = await fetch(`${sttBase}/audio/transcriptions`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${routeKey}` },
+          headers: { Authorization: `Bearer ${sttKey}` },
           body: out,
         });
         // 转写按上传字节估价，且**往高了估** —— 估低了就是我们替所有人多付钱，而
@@ -555,11 +571,11 @@ serve(async (req) => {
   // 上游的钱的问题也是 402/403，但它说的是**我们的**账号 —— 对用户而言那是我们的
   // 问题，不是他用完了。翻译成 503，文案是「不是你用完了」。
   // 走 QwenCloud 的那一笔：401 同样改写（密钥是我们的）。旧路径 401 仍原样透传。
-  if (upstream.status === 402 || upstream.status === 403 || (useQc && upstream.status === 401)) {
+  if (upstream.status === 402 || upstream.status === 403 || (qcIntl && upstream.status === 401)) {
     console.log('relay', tag, shape, 'upstream_billing', upstream.status);
     return json({ error: 'grant_unavailable' }, 503);
   }
-  if (useQc && upstream.status === 429) {
+  if (qcIntl && upstream.status === 429) {
     console.log('relay', tag, shape, 'upstream_rate_limited');
     return json({ error: 'upstream_rate_limited' }, 429);
   }
