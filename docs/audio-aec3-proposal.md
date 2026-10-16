@@ -100,13 +100,13 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 
 麦克风走普通采集，不开苹果回声消除（`setVoiceProcessingEnabled` 保持关）。phase1h 已经说明开着时对方的声音也被压没。
 
-按第 2 节的用法示例，远端是送进 `ProcessReverseStream` 的渲染帧，近端是送进 `ProcessStream` 的采集帧。延迟用该文件给出的公式现量，不预填常数。`EchoCanceller3` 上的 `SetAudioBufferDelay` 注释写的是可选；`AudioProcessing` 上的 `set_stream_delay_ms` 在回声处理打开时是必须的。本提案把接入面放在后者这条例子上。若要绕过它、直接构造 `EchoCanceller3`，第 6 节另请用户定。
+按第 2 节的用法示例，远端是送进 `ProcessReverseStream` 的渲染帧，近端是送进 `ProcessStream` 的采集帧。延迟用该文件给出的公式现量，不预填常数。`EchoCanceller3` 上的 `SetAudioBufferDelay` 注释写的是可选；`AudioProcessing` 上的 `set_stream_delay_ms` 在回声处理打开时是必须的。本提案把接入面放在后者这条例子上。2026-10-16 已定：用这个入口，不直接构造 `EchoCanceller3`（第 6.3 节）。
 
-采样率：AEC3 的 `ValidFullBandRate` 只有 16 / 32 / 48 kHz。phase1h 开着 VP 时的 44100 Hz 不能直接送进这个函数。关着 VP 的那一次读到 48000 Hz，这只是那次探针的格式，不是「关 VP 就总是 48 kHz」。实现前先读实际格式；若不是 16 / 32 / 48 kHz，先重采样到用户选定的那一档（第 6 节），再送进去。不把 44100 Hz 直接送进去，也不用「不能被 100 整除的采样率」去喂 `AudioProcessing` 的回声消除（该头文件写明这种速率会带来模拟时钟漂移并影响消除）。
+采样率：AEC3 的 `ValidFullBandRate` 只有 16 / 32 / 48 kHz。phase1h 开着 VP 时的 44100 Hz 不能直接送进这个函数。关着 VP 的那一次读到 48000 Hz，这只是那次探针的格式，不是「关 VP 就总是 48 kHz」。2026-10-16 已定全带采样率用 16 kHz。实现前先读实际格式；若不是 16 kHz，先重采样到 16 kHz，再送进去。不把 44100 Hz 直接送进去，也不用「不能被 100 整除的采样率」去喂 `AudioProcessing` 的回声消除（该头文件写明这种速率会带来模拟时钟漂移并影响消除）。
 
 ### 3.2 Mac 与 iPhone
 
-头文件没有把 AEC3 分成 Mac 版和 iOS 版。官方开发页把 Mac OS X 和 iOS 都列为支持的平台，iOS 另有构建子页（本次未读完）。
+头文件没有把 AEC3 分成 Mac 版和 iOS 版。官方开发页把 Mac OS X 和 iOS 都列为支持的平台。iOS 构建子页已在 2026-10-16 读完，步骤与「未找到」写在 issue #595；本步只做 macOS，不编 iOS。
 
 我们自己的差别：
 
@@ -115,7 +115,7 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 
 ### 3.3 打包体积与编译
 
-官方编译方式是整棵原生树用 GN 生成 Ninja 工程。Mac（含 iOS 支持）的检出估计 5.6 GB。打进我们 App 的体积、以及只抽出 AEC3 的编法，未找到。r5 的 xcframework 与 1–2 MB 不写进计划。在体积有一次实测之前，不把 AEC3 编进中国版或国际版的出货包。
+官方编译方式是整棵原生树用 GN 生成 Ninja 工程，再用 Ninja 编其中一个目标。`docs/native-code/development/README.md` 第 144–149 行写明：编某一个目标用 `autoninja -C out/Default <目标名>`，例子是 `h264_depacketizer_fuzzer`，不是 `modules/audio_processing`。iOS 子页第 88–99 行写明：对想要的目标跑 ninja，目标列表用 `gn ls` 查看。`modules/audio_processing` 这个目标名本身未在这两页写出。Mac（含 iOS 支持）的检出估计 5.6 GB。打进 App 的体积仍未找到，第一步在仓库外测量。r5 的 xcframework 与 1–2 MB 不写进计划。体积测到并写明之前，不把 AEC3 编进中国版或国际版的出货包。
 
 ### 3.4 扩展、中国版、国际版
 
@@ -155,7 +155,7 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 
 ### 5.2 同时有别人说话时，对方的声音能通过
 
-这一项用 880 Hz，或用真实语音。两条都还没对 AEC3 跑过。先跑哪一条见第 6 节。分档现在写好。
+这一项用 880 Hz，或用真实语音。两条都还没对 AEC3 跑过。2026-10-16 已定：先跑 880 Hz，再跑真实语音（第 6.3 节）。分档现在写好。
 
 **880 Hz**（做法与 phase1h 相同：引擎放 440 Hz，0.5 秒后另一路放 880 Hz；分析窗 [1.5, 3.0) 秒；通道 0；Goertzel 功率 / N²）：
 
@@ -190,8 +190,8 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 - 延迟公式要现量。把 `default_delay = 5` 猜成一个单位再填进去，就会走到文档没写的参数上。
 - 设备格式若是 44100 Hz，必须先重采样。直接送进去不在 `ValidFullBandRate` 里。
 - 时钟漂移只读到「检测」，没读到「补偿」。蓝牙音箱加内置麦克风是否对得齐，未找到。
-- 打进 App 的体积未找到。整树检出是数 GB 量级，不能把整树塞进出货包。
-- `PATENTS` 的终止条款在引入源码前要有人接受。本提案不代替这个决定。
+- 打进 App 的体积未找到。整树检出是数 GB 量级，不能把整树塞进出货包。第一步只在仓库外测量编译体积，测到之前这条仍是未找到。
+- `LICENSE` 与 `PATENTS`（含专利诉讼则许可终止）已由用户于 2026-10-16 接受。这不是法务结论。源码仍放在仓库外，不引进本仓库。
 - 原生包的说明把应用开发者指向浏览器 API。那个 API 没有写能消我们自己引擎里的回声。本提案仍评估原生 AEC3，因为统一引擎方案已经把备选写在这份源码上；不把浏览器 API 写成退路。
 
 ### 6.2 停手
@@ -210,13 +210,13 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 - 用户还没接受 `LICENSE` 与 `PATENTS`，就把源码引进仓库。
 - 体积还是「未找到」，就把 AEC3 编进出货包。
 
-### 6.3 要用户决定的问题
+### 6.3 用户答复（2026-10-16）
 
-已定的事项不问：不重开统一引擎、灰行、只停当前句、三道阈值、开关默认关、扩展与系统 tap 不动、苹果 VP 停止。
+下列六项按本提案的建议定案。已定且不重开的还有：不重开统一引擎、灰行、只停当前句、三道阈值、开关默认关、扩展与系统 tap 不动、苹果 VP 停止。
 
-1. 下一步若批准，是先做与 phase1 同形的独立探针（不接入 App、不开苹果 VP、不撤两道硬拦），还是直接改统一引擎？本提案停在文档。
-2. 送进 AEC3 的全带采样率用 16 kHz 还是 48 kHz？两者都在 `ValidFullBandRate` 里。不试跑挑选。32 kHz 同样合法，但没有这次探针的读数支持，不单列成默认。
-3. 是否同意按 `audio_processing.h` 的用法示例接入（`echo_canceller.enabled`、`ProcessReverseStream`、`set_stream_delay_ms`、`ProcessStream`），而不是直接构造 `EchoCanceller3`？头文件没有写这两个入口是同一个对象。
-4. 引入源码之前，仓库根的 `LICENSE` 与 `PATENTS` 是否接受？尤其是专利诉讼则许可终止。本提案不做法务结论。
-5. 第 5.2 节先跑 880 Hz，还是先跑真实语音？分档都已写好，都还没跑。
-6. iPhone 上 `.mixWithOthers` 是否保留：Mac 上不可读，本次不验证、不改。要不要另批一次只读检查。
+1. **先做独立探针，不接 App。** 不接入统一引擎，不开苹果 Voice Processing，不撤静麦和同语言硬拦。探针与 App 代码分开。
+2. **全带采样率用 16 kHz。** 这是 `ValidFullBandRate` 里的一档。不改用 48 kHz，也不试跑挑选。
+3. **按 `audio_processing.h` 的用法示例，用 `AudioProcessing` 入口。** 打开 `echo_canceller.enabled`，远端走 `ProcessReverseStream`，近端在 `set_stream_delay_ms` 之后走 `ProcessStream`。不直接构造 `EchoCanceller3`。头文件仍没有写这两个入口是同一个对象；按已定的入口用，不改用另一个。
+4. **已接受仓库根的 `LICENSE` 与 `PATENTS`，包括专利诉讼则许可终止。** 这是用户接受这两份文件，不是法务结论。源码放在仓库之外，不提交进本仓库。
+5. **别人说话先跑 880 Hz，再跑真实语音。** 第 5.2 节两套分档都还没跑。880 Hz 没有过之前，不开始真实语音。
+6. **iPhone 的 `.mixWithOthers` 等 Mac 通过后另批。** Mac 上这个选项不可读。本次不验证、不改。Mac 上的探针通过之前，不单独做 iPhone 的只读检查。
