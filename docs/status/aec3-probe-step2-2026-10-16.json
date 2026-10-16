@@ -1,0 +1,471 @@
+{
+  "date": "2026-10-16",
+  "step": 2,
+  "issue": 595,
+  "basisComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6206173211",
+  "checkout": "2f2246127ce24cdd6c3a1090021424b5bfd67b94",
+  "program": "~/aec3-probe/step2/aec3_step2",
+  "notInRepo": true,
+  "webrtcSourceEdited": false,
+  "appleVoiceProcessing": false,
+  "rounds": 1,
+  "order": [
+    "off",
+    "on"
+  ],
+  "gapSec": 5,
+  "tone": {
+    "hz": 440,
+    "amplitude": 0.2,
+    "seconds": 3,
+    "sampleRate": 16000
+  },
+  "analysisRateHz": 16000,
+  "channel": 0,
+  "audioSaved": false,
+  "echoCancellerConfig": {
+    "enabled": "off false, on true",
+    "enforceHighPassFiltering": true,
+    "note": "left at the header default. Other AudioProcessing modules were not enabled. default_delay was not set."
+  },
+  "resample": {
+    "method": "webrtc::PushResampler<float>, 10 ms frames",
+    "input": "44100 -> 16000 (441 samples to 160)",
+    "output": "16000 -> 48000 for the speaker; ProcessReverseStream receives the 16 kHz tone",
+    "officialAec3Instruction": "未找到"
+  },
+  "delay": {
+    "formula": "delay = (t_render - t_analyze) + (t_process - t_capture), audio_processing.h lines 598-611",
+    "implementation": "audio_device_mac.cc device latency + stream latency, plus host-time delta and samples still buffered; audio_device_buffer.cc adds play_ms and rec_ms; audio_transport_impl.cc passes that sum to set_stream_delay_ms",
+    "streamLatencyQueriedOn": "the device id, as audio_device_mac.cc does, not a separate stream id",
+    "outputDeviceLatencyFrames": 70,
+    "outputStreamLatencyFrames": 70,
+    "outputStreamLatencyStatus": 0,
+    "outputLatencyUs": 2916,
+    "inputDeviceLatencyFrames": 0,
+    "inputStreamLatencyFrames": 0,
+    "inputStreamLatencyStatus": 0,
+    "inputLatencyUs": 0,
+    "on": {
+      "n": 334,
+      "min": 18,
+      "median": 43,
+      "max": 59,
+      "first": {
+        "delayMs": 18,
+        "playMs": 3,
+        "recMs": 15,
+        "setReturn": 0
+      },
+      "last": {
+        "delayMs": 39,
+        "playMs": 20,
+        "recMs": 19,
+        "setReturn": 0
+      }
+    },
+    "offRecordedButNotPassed": {
+      "n": 20,
+      "min": 24,
+      "median": 41,
+      "max": 56,
+      "first": {
+        "delayMs": 34,
+        "playMs": 3,
+        "recMs": 31,
+        "setReturn": 0
+      },
+      "last": {
+        "delayMs": 53,
+        "playMs": 24,
+        "recMs": 29,
+        "setReturn": 0
+      }
+    },
+    "warnings": 0,
+    "defaultDelay": "not changed; unit still 未找到"
+  },
+  "volume": {
+    "before": "output volume:70, input volume:0, alert volume:100, output muted:false",
+    "during": "output volume:70, input volume:60, alert volume:100, output muted:false",
+    "after": "output volume:70, input volume:0, alert volume:100, output muted:false",
+    "outputTouched": false,
+    "restored": "input volume back to 0. output volume 70, alert volume 100, and output muted false were not changed."
+  },
+  "section51": {
+    "grade": "过",
+    "offRms": 0.124030842,
+    "onRms": 0.000472810995,
+    "ratio": 0.00381204374,
+    "rule": "on RMS <= off RMS / 5"
+  },
+  "section53": {
+    "grade": "过",
+    "convergenceSec": 0.0,
+    "rule": "earliest t <= 1.0s where every later 100 ms slice has on RMS <= off RMS / 5"
+  },
+  "section52": {
+    "grade": null,
+    "ran": false,
+    "reason": "ZHAO的iPhone is an input-only device. Gemoo Speaker is virtual. No second device was playing 880 Hz into the room, so this item stopped. Real speech was not started."
+  },
+  "off": {
+    "aec": false,
+    "error": null,
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "inputRate": 44100,
+    "outputRate": 48000,
+    "toneSamples": 48000,
+    "hitWallCap": false,
+    "frames": 313,
+    "duringSamples": 48000,
+    "duringRms": 0.124030842,
+    "duringMaxAbs": 0.195456564,
+    "delayWarnings": 0,
+    "inDeviceLatencyFrames": 0,
+    "inStreamLatencyFrames": 0,
+    "inStreamLatencyStatus": 0,
+    "outDeviceLatencyFrames": 70,
+    "outStreamLatencyFrames": 70,
+    "outStreamLatencyStatus": 0,
+    "inLatencyUs": 0,
+    "outLatencyUs": 2916,
+    "firstToneMinusArmSec": 0.002938,
+    "slices": [
+      {
+        "t": 0.0,
+        "n": 1600,
+        "rms": 0.0597662443
+      },
+      {
+        "t": 0.1,
+        "n": 1600,
+        "rms": 0.130792622
+      },
+      {
+        "t": 0.2,
+        "n": 1600,
+        "rms": 0.134891228
+      },
+      {
+        "t": 0.3,
+        "n": 1600,
+        "rms": 0.135902933
+      },
+      {
+        "t": 0.4,
+        "n": 1600,
+        "rms": 0.13594984
+      },
+      {
+        "t": 0.5,
+        "n": 1600,
+        "rms": 0.136153213
+      },
+      {
+        "t": 0.6,
+        "n": 1600,
+        "rms": 0.13401229
+      },
+      {
+        "t": 0.7,
+        "n": 1600,
+        "rms": 0.13117851
+      },
+      {
+        "t": 0.8,
+        "n": 1600,
+        "rms": 0.131160529
+      },
+      {
+        "t": 0.9,
+        "n": 1600,
+        "rms": 0.131233641
+      },
+      {
+        "t": 1.0,
+        "n": 1600,
+        "rms": 0.131178164
+      },
+      {
+        "t": 1.1,
+        "n": 1600,
+        "rms": 0.130301246
+      },
+      {
+        "t": 1.2,
+        "n": 1600,
+        "rms": 0.128251809
+      },
+      {
+        "t": 1.3,
+        "n": 1600,
+        "rms": 0.126609335
+      },
+      {
+        "t": 1.4,
+        "n": 1600,
+        "rms": 0.125247259
+      },
+      {
+        "t": 1.5,
+        "n": 1600,
+        "rms": 0.124051693
+      },
+      {
+        "t": 1.6,
+        "n": 1600,
+        "rms": 0.123160237
+      },
+      {
+        "t": 1.7,
+        "n": 1600,
+        "rms": 0.122239946
+      },
+      {
+        "t": 1.8,
+        "n": 1600,
+        "rms": 0.121539287
+      },
+      {
+        "t": 1.9,
+        "n": 1600,
+        "rms": 0.120792774
+      },
+      {
+        "t": 2.0,
+        "n": 1600,
+        "rms": 0.120181197
+      },
+      {
+        "t": 2.1,
+        "n": 1600,
+        "rms": 0.119822089
+      },
+      {
+        "t": 2.2,
+        "n": 1600,
+        "rms": 0.1193316
+      },
+      {
+        "t": 2.3,
+        "n": 1600,
+        "rms": 0.119042918
+      },
+      {
+        "t": 2.4,
+        "n": 1600,
+        "rms": 0.118511999
+      },
+      {
+        "t": 2.5,
+        "n": 1600,
+        "rms": 0.118190253
+      },
+      {
+        "t": 2.6,
+        "n": 1600,
+        "rms": 0.117838211
+      },
+      {
+        "t": 2.7,
+        "n": 1600,
+        "rms": 0.117454798
+      },
+      {
+        "t": 2.8,
+        "n": 1600,
+        "rms": 0.117158004
+      },
+      {
+        "t": 2.9,
+        "n": 1600,
+        "rms": 0.117070089
+      }
+    ]
+  },
+  "on": {
+    "aec": true,
+    "error": null,
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "inputRate": 44100,
+    "outputRate": 48000,
+    "toneSamples": 48000,
+    "hitWallCap": false,
+    "frames": 311,
+    "duringSamples": 48000,
+    "duringRms": 0.000472810995,
+    "duringMaxAbs": 0.00236582453,
+    "delayWarnings": 0,
+    "inDeviceLatencyFrames": 0,
+    "inStreamLatencyFrames": 0,
+    "inStreamLatencyStatus": 0,
+    "outDeviceLatencyFrames": 70,
+    "outStreamLatencyFrames": 70,
+    "outStreamLatencyStatus": 0,
+    "inLatencyUs": 0,
+    "outLatencyUs": 2916,
+    "firstToneMinusArmSec": 0.001941,
+    "slices": [
+      {
+        "t": 0.0,
+        "n": 1600,
+        "rms": 0.000435294166
+      },
+      {
+        "t": 0.1,
+        "n": 1600,
+        "rms": 0.000321397013
+      },
+      {
+        "t": 0.2,
+        "n": 1600,
+        "rms": 0.000352738229
+      },
+      {
+        "t": 0.3,
+        "n": 1600,
+        "rms": 0.000333756924
+      },
+      {
+        "t": 0.4,
+        "n": 1600,
+        "rms": 0.000340025913
+      },
+      {
+        "t": 0.5,
+        "n": 1600,
+        "rms": 0.000354309178
+      },
+      {
+        "t": 0.6,
+        "n": 1600,
+        "rms": 0.000385217572
+      },
+      {
+        "t": 0.7,
+        "n": 1600,
+        "rms": 0.000443143396
+      },
+      {
+        "t": 0.8,
+        "n": 1600,
+        "rms": 0.000459728949
+      },
+      {
+        "t": 0.9,
+        "n": 1600,
+        "rms": 0.000462238607
+      },
+      {
+        "t": 1.0,
+        "n": 1600,
+        "rms": 0.000448621818
+      },
+      {
+        "t": 1.1,
+        "n": 1600,
+        "rms": 0.000426210742
+      },
+      {
+        "t": 1.2,
+        "n": 1600,
+        "rms": 0.000437067339
+      },
+      {
+        "t": 1.3,
+        "n": 1600,
+        "rms": 0.000446165464
+      },
+      {
+        "t": 1.4,
+        "n": 1600,
+        "rms": 0.000486664215
+      },
+      {
+        "t": 1.5,
+        "n": 1600,
+        "rms": 0.000506315431
+      },
+      {
+        "t": 1.6,
+        "n": 1600,
+        "rms": 0.000534425906
+      },
+      {
+        "t": 1.7,
+        "n": 1600,
+        "rms": 0.000477246454
+      },
+      {
+        "t": 1.8,
+        "n": 1600,
+        "rms": 0.0005233057
+      },
+      {
+        "t": 1.9,
+        "n": 1600,
+        "rms": 0.000520159003
+      },
+      {
+        "t": 2.0,
+        "n": 1600,
+        "rms": 0.000449016872
+      },
+      {
+        "t": 2.1,
+        "n": 1600,
+        "rms": 0.000483706621
+      },
+      {
+        "t": 2.2,
+        "n": 1600,
+        "rms": 0.00047673286
+      },
+      {
+        "t": 2.3,
+        "n": 1600,
+        "rms": 0.000732530204
+      },
+      {
+        "t": 2.4,
+        "n": 1600,
+        "rms": 0.000543958845
+      },
+      {
+        "t": 2.5,
+        "n": 1600,
+        "rms": 0.000498776452
+      },
+      {
+        "t": 2.6,
+        "n": 1600,
+        "rms": 0.000497935045
+      },
+      {
+        "t": 2.7,
+        "n": 1600,
+        "rms": 0.00047481298
+      },
+      {
+        "t": 2.8,
+        "n": 1600,
+        "rms": 0.000571590214
+      },
+      {
+        "t": 2.9,
+        "n": 1600,
+        "rms": 0.000546576584
+      }
+    ]
+  },
+  "notFound": [
+    "No sentence in the AEC3 headers names the function that resamples 44100 to 16000. PushResampler was used at one fixed 10 ms ratio.",
+    "Clock-drift compensation beyond detection remains 未找到. The microphone clock is 44100 and the speaker clock is 48000.",
+    "default_delay unit remains 未找到 and the field was not set.",
+    "Whether kAudioStreamPropertyLatency on the device id is a second latency or the same 70 frames counted twice is not stated in audio_device_mac.cc. Both values were added, matching that file.",
+    "Section 5.2 is unmeasured."
+  ]
+}
