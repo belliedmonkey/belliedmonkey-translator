@@ -38,18 +38,15 @@
 //
 // 不设 UPSTREAM 时行为与从前**逐字相同**（OpenRouter、读余额、usage.include、没有 /claim）。
 //
-// ── 第三个值：UPSTREAM=qwencloud（#592，2026-10-15，默认关，未部署）──
+// ── 第三个值：UPSTREAM=qwencloud（#592，2026-10-16，默认关，未部署）──
 //
 // 不设、或仍是 openrouter / dashscope 时，下面这个分支不执行，请求体与状态码与现在相同。
-// 打开之后按 X-Real-IP 选上游（复用 bt-models 的 isChina，不读客户端可伪造的 X-Forwarded-For）：
-//   非中国 → QwenCloud 国际按量（https://docs.qwencloud.com ，2026-10-15）
-//     聊天  POST {QWENCLOUD_CHAT_BASE}/chat/completions     模型 qwen3.7-plus
-//     朗读  POST QWENCLOUD_TTS_URL                          模型 qwen3-tts-flash
-//     转写  同一条 chat/completions + input_audio            模型 qwen3-asr-flash
-//   中国   → 现有百炼兼容模式（UPSTREAM_KEY + UPSTREAM_BASE，默认 dashscope 北京）
-// 两个基址不设时就是文档上的地址。单测把它们指到本地桩。密钥：非中国 QWENCLOUD_KEY，中国 UPSTREAM_KEY。
-// 段表读不到就 503 grant_misconfigured，不把所有人当成非中国。名单未设置时这一条挡全部请求；
-// 名单已设置时只挡走 QwenCloud 的令牌。
+// 打开之后，进入这个分支的令牌不看客户端地址（2026-10-16 裁定）。聊天、朗读、转写都走
+// QwenCloud 国际按量（https://docs.qwencloud.com ，2026-10-15）：
+//   聊天  POST {QWENCLOUD_CHAT_BASE}/chat/completions     模型 qwen3.7-plus
+//   朗读  POST QWENCLOUD_TTS_URL                          模型 qwen3-tts-flash
+//   转写  同一条 chat/completions + input_audio            模型 qwen3-asr-flash
+// 基址不设时就是文档上的地址。单测把它们指到本地桩。密钥：QWENCLOUD_KEY。
 // 灰度：QWENCLOUD_ALLOW_TOKEN_HASHES（逗号分隔的令牌哈希，算法是下面的 sha256Hex）。
 // 不设 = 开关打开后全部走 QwenCloud。设了才按名单分流；空串是空名单，全部走 UPSTREAM 未设时的路径。
 // 名单外不改写请求字段，模型钉死与 OpenRouter 配置与开关关闭时相同。
@@ -58,8 +55,6 @@
 //     https://docs.qwencloud.com/changelog/model-deprecations/old-models  “from 0.4 / from 1.6”
 //   朗读 qwen3-tts-flash     $0.1 / 万字符（usage.characters；汉字按 2 计已含在返回值里）
 //   转写 qwen3-asr-flash     usage.seconds × $0.000035
-
-import { parseChinaCidrs, isChina } from "../bt-models/china-ip.ts";
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -95,7 +90,7 @@ const MODELS = envJson<Record<string, string>>('GRANT_MODELS') || {};
 const PRICES = envJson<Record<string, number>>('GRANT_PRICES') || {};
 const FLOAT_MIN = Number(Deno.env.get('GRANT_FLOAT_MIN_USD') || '5');
 
-// QwenCloud 国际（只在 UPSTREAM=qwencloud 且非中国 IP 时用）。基址不设 = 文档上的地址。
+// QwenCloud 国际（UPSTREAM=qwencloud 且令牌进入 useQc 时用，不看客户端地址）。基址不设 = 文档上的地址。
 const QC_KEY = Deno.env.get('QWENCLOUD_KEY') || '';
 const QC_CHAT_BASE = (Deno.env.get('QWENCLOUD_CHAT_BASE') || 'https://maas.qwencloudapi.com/compatible-mode/v1').replace(/\/+$/, '');
 const QC_TTS_URL = Deno.env.get('QWENCLOUD_TTS_URL') || 'https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation';
@@ -155,23 +150,6 @@ function encodeBase64(bytes: Uint8Array): string {
     out.push(i + 2 < n ? alphabet[v & 63] : '=');
   }
   return out.join('');
-}
-
-// 段表只在开关打开时读。读不到就整档 503，不把所有人当成非中国。
-let CN_V4: { base: number; mask: number; bits: number }[] = [];
-let CN_V6: string[] = [];
-let CN_BAD = false;
-if (IS_QC) {
-  try {
-    const txt = await Deno.readTextFile(new URL("../bt-models/cn-cidrs.txt", import.meta.url));
-    const nets = parseChinaCidrs(txt);
-    if (!nets.v4.length) throw new Error('empty');
-    CN_V4 = nets.v4;
-    CN_V6 = nets.v6;
-  } catch (e) {
-    CN_BAD = true;
-    console.log('relay cn_cidr ' + redactUrl(String(e)).slice(0, 80));
-  }
 }
 
 const PER_MIN = 60;                       // 每枚令牌每分钟的请求数
@@ -263,9 +241,8 @@ const serve = (h: (req: Request) => Response | Promise<Response>) =>
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
-  // qwencloud 的密钥按 IP 分两把，缺哪一把在选完上游之后再 503。不设开关时这一行与从前相同。
-  // 名单已设置（含空名单）时，段表读失败不能把走旧路径的令牌一起 503 掉。
-  if (!KNOWN_UPSTREAM || (!IS_QC && !OR_KEY) || (IS_QC && QC_ALLOW === null && CN_BAD)) return json({ error: 'grant_misconfigured' }, 503);
+  // 缺上游密钥在选完路径之后再 503。不设 qwencloud 开关时这一行与从前相同。
+  if (!KNOWN_UPSTREAM || (!IS_QC && !OR_KEY)) return json({ error: 'grant_misconfigured' }, 503);
   if (IS_QC && QC_ALLOW !== null && QC_ALLOW.size === 0 && !OR_OPEN_KEY) return json({ error: 'grant_misconfigured' }, 503);
 
   const url = new URL(req.url);
@@ -304,7 +281,6 @@ serve(async (req) => {
   const tag = hash.slice(0, 8);
   // 未设置名单：开关打开则全部走 QwenCloud。设置了：只有哈希在名单里才走。
   const useQc = IS_QC && (QC_ALLOW === null || QC_ALLOW.has(hash));
-  if (useQc && CN_BAD) return json({ error: 'grant_misconfigured' }, 503);
   if (IS_QC && !useQc && !OR_OPEN_KEY) return json({ error: 'grant_misconfigured' }, 503);
   const routeKey = (IS_QC && !useQc) ? OR_OPEN_KEY : OR_KEY;
   const routeBase = (IS_QC && !useQc) ? OR_OPEN_BASE : OR_BASE;
@@ -335,15 +311,11 @@ serve(async (req) => {
       : p === '/audio/transcriptions' ? 'stt' : null;
   if (!shape) return json({ error: 'not_found' }, 404);
 
-  let qcIsChina = false;
   let model = MODELS[shape];
   if (useQc) {
-    qcIsChina = isChina(req.headers.get('x-real-ip') || '', CN_V4, CN_V6);
-    if (qcIsChina) model = shape === 'chat' ? (MODELS.chat || 'qwen-plus') : (MODELS[shape] || '');
-    else model = shape === 'chat' ? QC_CHAT : shape === 'tts' ? QC_TTS : QC_STT;
-    const key = qcIsChina ? OR_KEY : QC_KEY;
-    if (!model || !key) {
-      console.log('relay', tag, shape, !model ? 'no_model_configured' : 'no_key');
+    model = shape === 'chat' ? QC_CHAT : shape === 'tts' ? QC_TTS : QC_STT;
+    if (!QC_KEY) {
+      console.log('relay', tag, shape, 'no_key');
       return json({ error: 'grant_misconfigured' }, 503);
     }
   } else if (!model) {
@@ -351,7 +323,7 @@ serve(async (req) => {
     console.log('relay', tag, shape, 'no_model_configured');
     return json({ error: 'grant_misconfigured' }, 503);
   }
-  const qcIntl = useQc && !qcIsChina;
+  const qcIntl = useQc;
 
   const t0 = Date.now();
   let upstream: Response;
@@ -424,7 +396,7 @@ serve(async (req) => {
       if (!body || typeof body !== 'object') return json({ error: 'bad_request' }, 400);
 
       // 客户端把模型改掉了 —— 具名 403，客户端给一句「改回 {model}」。
-      // qwencloud 额外接受旧客户端的模型名，以及国际钉死名（中国 IP 会改写成北京的模型）。
+      // qwencloud 额外接受旧客户端的模型名，以及国际钉死名，并换成上面钉死的模型。
       if (typeof body.model === 'string' && body.model && body.model !== model) {
         if (!(useQc && qcAcceptsClientModel(shape, body.model))) {
           return json({ error: 'model_not_allowed', model }, 403);

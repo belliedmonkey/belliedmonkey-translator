@@ -231,7 +231,7 @@ describe('bt-relay 合约（X5）', () => {
     eq(stt.defaultModel, 'qwen3-asr-flash');
   });
 
-  test('UPSTREAM=qwencloud：IP、白名单、音色、10MB、记账（本地桩，不打线上）', async () => {
+  test('UPSTREAM=qwencloud：不看 IP、白名单、音色、10MB、记账（本地桩，不打线上）', async () => {
     if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
     const https = require('https');
     const os = require('os');
@@ -239,7 +239,7 @@ describe('bt-relay 合约（X5）', () => {
     const seen = { qc: [], bj: [], charges: [], logs: [], trap: 0 };
     const qc = await server((req, raw) => {
       const text = String(raw);
-      seen.qc.push({ url: req.url, body: text });
+      seen.qc.push({ url: req.url, auth: req.headers.authorization, body: text });
       if (text.includes('__FORCE_401__')) return { statusCode: 401, body: '{"error":"SECRET401"}', type: 'application/json' };
       if (text.includes('__FORCE_402__')) return { statusCode: 402, body: '{"error":"SECRET402"}', type: 'application/json' };
       if (text.includes('__FORCE_403__')) return { statusCode: 403, body: '{"error":"SECRET403"}', type: 'application/json' };
@@ -378,21 +378,71 @@ describe('bt-relay 合约（X5）', () => {
       r = await postBytes(root + '/chat/completions', H(), { model: 'other-model', messages: [{ role: 'user', content: 'x' }] });
       eq(r.status, 403, '别的模型名该 403');
 
-      const bj0 = seen.bj.length;
-      const qc0 = seen.qc.length;
-      r = await postBytes(root + '/chat/completions', H({ 'X-Real-IP': '1.0.8.1', 'X-Forwarded-For': '8.8.8.8' }), {
-        model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'cn' }], enable_thinking: true,
-      });
-      eq(r.status, 200, '中国 IP 该 200：' + r.body);
-      eq(seen.bj.length, bj0 + 1, '中国 IP 该打到北京');
-      eq(seen.qc.length, qc0, '中国 IP 不该打到 QwenCloud');
-      sent = JSON.parse(seen.bj[seen.bj.length - 1].body);
-      eq(sent.model, 'qwen-plus', '没配 GRANT_MODELS.chat 时用 qwen-plus');
-      ok(!('enable_thinking' in sent), '北京路径不写 enable_thinking');
-      ok(!('temperature' in sent), '北京路径也不该自己加 temperature');
+      const ipCases = [
+        ['大陆', { 'X-Real-IP': '1.0.8.1' }],
+        ['非大陆', { 'X-Real-IP': '8.8.8.8' }],
+        ['空', { 'X-Real-IP': '' }],
+      ];
+      const sameBodies = { chat: [], tts: [], stt: [] };
+      const ttsStatus = [];
+      for (const [label, extra] of ipCases) {
+        const bjBefore = seen.bj.length;
+        r = await postBytes(root + '/chat/completions', H(extra), {
+          model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'same-chat' }], enable_thinking: true,
+        });
+        eq(r.status, 200, label + ' 聊天该 200：' + r.body);
+        eq(seen.bj.length, bjBefore, label + ' 聊天不该打到北京桩');
+        let hit = seen.qc[seen.qc.length - 1];
+        eq(hit.url, '/v1/chat/completions', label + ' 聊天 URL ' + hit.url);
+        eq(hit.auth, 'Bearer sk-qc-stub', label + ' 聊天密钥');
+        sent = JSON.parse(hit.body);
+        eq(sent.model, 'qwen3.7-plus', label + ' 聊天模型');
+        eq(sent.enable_thinking, false, label + ' 聊天仍由服务端写 enable_thinking');
+        ok(!('temperature' in sent), label + ' 聊天不该自己加 temperature');
+        sameBodies.chat.push(hit.body);
+
+        r = await postBytes(root + '/audio/speech', H(extra), {
+          model: 'qwen3-tts-flash', input: 'same-tts', voice: 'Cherry',
+        });
+        ttsStatus.push(r.status);
+        ok(String(r.body).indexOf('grant_misconfigured') < 0, label + ' 朗读不该 503：' + r.body);
+        hit = seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop();
+        eq(hit.auth, 'Bearer sk-qc-stub', label + ' 朗读密钥');
+        sent = JSON.parse(hit.body);
+        eq(sent.model, 'qwen3-tts-flash', label + ' 朗读模型');
+        eq(sent.input.text, 'same-tts', label);
+        eq(sent.input.voice, 'Cherry', label);
+        eq(sent.input.language_type, 'Auto', label);
+        sameBodies.tts.push(hit.body);
+        eq(seen.bj.length, bjBefore, label + ' 朗读不该打到北京桩');
+
+        const fd = formFile({ model: 'qwen3-asr-flash' }, { name: 'a.webm', type: 'audio/webm', buf: Buffer.from('same-stt') });
+        r = await postBytes(root + '/audio/transcriptions', Object.assign({
+          Authorization: 'Bearer bmg_ok', 'Content-Type': fd.type,
+        }, extra), fd.body);
+        eq(r.status, 200, label + ' 转写该 200：' + r.body);
+        deepEq(JSON.parse(r.body), { text: 'heard' });
+        hit = seen.qc[seen.qc.length - 1];
+        eq(hit.url, '/v1/chat/completions', label + ' 转写 URL ' + hit.url);
+        eq(hit.auth, 'Bearer sk-qc-stub', label + ' 转写密钥');
+        sent = JSON.parse(hit.body);
+        eq(sent.model, 'qwen3-asr-flash', label + ' 转写模型');
+        eq(sent.stream, false, label);
+        sameBodies.stt.push(hit.body);
+        eq(seen.bj.length, bjBefore, label + ' 转写不该打到北京桩');
+      }
+      eq(sameBodies.chat[0], sameBodies.chat[1], '大陆与非大陆的聊天请求体不同');
+      eq(sameBodies.chat[0], sameBodies.chat[2], '大陆与空地址的聊天请求体不同');
+      eq(sameBodies.tts[0], sameBodies.tts[1], '大陆与非大陆的朗读请求体不同');
+      eq(sameBodies.tts[0], sameBodies.tts[2], '大陆与空地址的朗读请求体不同');
+      eq(sameBodies.stt[0], sameBodies.stt[1], '大陆与非大陆的转写请求体不同');
+      eq(sameBodies.stt[0], sameBodies.stt[2], '大陆与空地址的转写请求体不同');
+      eq(ttsStatus[0], ttsStatus[1], '朗读状态码因地址而不同');
+      eq(ttsStatus[0], ttsStatus[2], '空地址的朗读状态码不同');
+      ok(ttsStatus[0] !== 503, '朗读不该因没配大陆模型而 503，实际 ' + ttsStatus[0]);
 
       r = await postBytes(root + '/chat/completions', H({ 'X-Forwarded-For': '1.0.8.1' }), { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'xff' }] });
-      eq(JSON.parse(seen.qc[seen.qc.length - 1].body).model, 'qwen3.7-plus', '不信 X-Forwarded-For，没 X-Real-IP 就走国际');
+      eq(JSON.parse(seen.qc[seen.qc.length - 1].body).model, 'qwen3.7-plus', '不读 X-Forwarded-For，请求仍走国际');
 
       const sttFd = formFile({ model: 'qwen3-asr-flash' }, { name: 'a.webm', type: 'audio/webm;codecs=opus', buf: Buffer.from('not-a-real-webm') });
       const sttAt = seen.qc.length;
@@ -434,11 +484,6 @@ describe('bt-relay 合约（X5）', () => {
       eq(r.status, 200, '缺秒数仍回文本');
       eq(seen.charges.length, chargesBefore, '缺秒数不该记账');
       ok(seen.logs.join('').indexOf('usage_missing') >= 0, '缺秒数该写 usage_missing');
-
-      const cnStt = formFile({}, { name: 'a.webm', type: 'audio/webm', buf: Buffer.from('cn') });
-      r = await postBytes(root + '/audio/transcriptions', { Authorization: 'Bearer bmg_ok', 'Content-Type': cnStt.type, 'X-Real-IP': '1.0.8.1' }, cnStt.body);
-      eq(r.status, 503, '中国 IP 没配转写模型该 503');
-      ok(String(r.body).indexOf('grant_misconfigured') >= 0, r.body);
 
       r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: 'Serena please', voice: 'Serena' });
       sent = JSON.parse(seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop().body);
@@ -601,7 +646,7 @@ describe('bt-relay 合约（X5）', () => {
       eq(r.status, 200, '名单内该走 QwenCloud：' + r.status + ' ' + String(r.body).slice(0, 160));
       eq(seen.qc.length, 1, '名单内该打到 QwenCloud');
       eq(seen.or.length, 0, '名单内不该打到 OpenRouter');
-      eq(seen.bj.length, 0, '没带中国 IP 不该打到北京');
+      eq(seen.bj.length, 0, '名单内不该打到北京');
       eq(seen.credits, 0, '名单内不查 OpenRouter 余额');
       let sent = JSON.parse(seen.qc[0].body);
       eq(sent.model, 'qwen3.7-plus');
@@ -616,17 +661,17 @@ describe('bt-relay 合约（X5）', () => {
       r = await postFull(listed.root + '/chat/completions', H(TOKEN_IN, { 'X-Real-IP': '1.0.8.1' }), {
         model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'cn' }],
       });
-      eq(r.status, 200, '名单内的中国 IP 仍走北京：' + r.body);
-      eq(seen.bj.length, 1, '名单内中国 IP 该打到北京');
-      eq(seen.qc.length, 0, '名单内中国 IP 不该打到 QwenCloud');
-      eq(seen.or.length, 0, '名单内中国 IP 不该改走 OpenRouter');
-      sent = JSON.parse(seen.bj[0].body);
-      eq(sent.model, PINNED, 'GRANT_MODELS.chat 配了就钉这个，不改成国际模型');
-      ok(!('enable_thinking' in sent), '北京路径不写 enable_thinking');
-      ok(!('usage' in sent), '北京路径不写 usage.include');
-      eq(seen.bj[0].auth, 'Bearer sk-bj-stub');
-      near(seen.charges[0].p_cost, 0.00001, '北京仍按 total_tokens × chatPerKTok');
-      noLeak(r, '名单内北京');
+      eq(r.status, 200, '名单内的大陆 IP 也走 QwenCloud：' + r.body);
+      eq(seen.qc.length, 1, '名单内大陆 IP 该打到 QwenCloud');
+      eq(seen.bj.length, 0, '名单内大陆 IP 不该打到北京');
+      eq(seen.or.length, 0, '名单内大陆 IP 不该改走 OpenRouter');
+      sent = JSON.parse(seen.qc[0].body);
+      eq(sent.model, 'qwen3.7-plus');
+      eq(sent.enable_thinking, false);
+      ok(!('usage' in sent), 'QwenCloud 路径不写 usage.include');
+      eq(seen.qc[0].auth, 'Bearer sk-qc-stub');
+      near(seen.charges[0].p_cost, 2, '大陆 IP 也按 0.40+1.60 记账');
+      noLeak(r, '名单内大陆');
 
       reset();
       r = await postFull(listed.root + '/chat/completions', H(TOKEN_OUT, { 'X-Real-IP': '1.0.8.1' }), {
@@ -733,6 +778,67 @@ describe('bt-relay 合约（X5）', () => {
     } finally {
       for (const p of procs) { try { p.relay.kill('SIGKILL'); } catch (_) {} }
       try { qc.srv.close(); bj.srv.close(); or.srv.close(); db.srv.close(); } catch (_) {}
+    }
+  });
+
+  test('段表文件不在旁边时，UPSTREAM=qwencloud 的聊天不再 503', async () => {
+    if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
+    const src = fs.readFileSync(RELAY, 'utf8');
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    ok(code.indexOf('cn-cidrs') < 0, '代码还在读段表');
+    ok(code.indexOf('parseChinaCidrs') < 0, '代码还在解析段表');
+    ok(code.indexOf('isChina') < 0, '代码还在调用 isChina');
+    ok(code.indexOf('x-real-ip') < 0, '代码还在读 x-real-ip');
+
+    const os = require('os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt592-nocidr-'));
+    const fnDir = path.join(dir, 'bt-relay');
+    fs.mkdirSync(fnDir);
+    fs.copyFileSync(RELAY, path.join(fnDir, 'index.ts'));
+    ok(!fs.existsSync(path.join(dir, 'bt-models', 'cn-cidrs.txt')), '临时目录里不该有段表');
+    const row = [{ user_id: 'u1', limit_usd: 100, spent_usd: 0, status: 'active' }];
+    const seen = { n: 0 };
+    const qc = await server(() => {
+      seen.n += 1;
+      return j({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } });
+    });
+    const db = await server((req) => {
+      if (/bt_grant_check/.test(req.url)) return j(row);
+      if (/bt_grant_charge/.test(req.url)) return j(1);
+      return j({});
+    });
+    const port = 23100 + (process.pid % 200);
+    const env = Object.assign({}, process.env, {
+      PORT: String(port),
+      SUPABASE_URL: 'http://127.0.0.1:' + db.port,
+      SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
+      UPSTREAM: 'qwencloud',
+      QWENCLOUD_KEY: 'sk-qc-stub',
+      QWENCLOUD_CHAT_BASE: 'http://127.0.0.1:' + qc.port + '/v1',
+    });
+    delete env.QWENCLOUD_ALLOW_TOKEN_HASHES;
+    const logs = [];
+    const relay = spawn('deno', ['run', '-A', path.join(fnDir, 'index.ts')], {
+      cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    relay.stdout.on('data', (d) => logs.push(String(d)));
+    relay.stderr.on('data', (d) => logs.push(String(d)));
+    try {
+      let r = { status: 0, body: '' };
+      for (let i = 0; i < 60; i++) {
+        r = await post('http://127.0.0.1:' + port + '/chat/completions', {
+          Authorization: 'Bearer bmg_ok', 'Content-Type': 'application/json',
+        }, { model: 'qwen3.7-plus', messages: [{ role: 'user', content: 'nocidr' }] });
+        if (r.status) break;
+        await new Promise((r2) => setTimeout(r2, 200));
+      }
+      eq(r.status, 200, '段表不在旁边仍该 200：' + r.status + ' ' + String(r.body).slice(0, 160) + ' ' + logs.join('').slice(0, 300));
+      ok(String(r.body).indexOf('grant_misconfigured') < 0, r.body);
+      eq(seen.n, 1, '该打到国际桩，实际 ' + seen.n);
+    } finally {
+      try { relay.kill('SIGKILL'); } catch (_) {}
+      try { qc.srv.close(); db.srv.close(); } catch (_) {}
+      fs.rmSync(dir, { recursive: true, force: true });
     }
   });
 });
