@@ -69,6 +69,9 @@ export default function SettingsView() {
   const grantUnavailable = useRef(false);
   const [depsSettings, setDepsSettings] = useState(null);   // 依赖行的设置快照（旧 depsRef）
   const detailRef = useRef(false);
+  // populateStatic 填引擎下拉时要带 `selected`，否则 grantOnly / 本机条目在「正被选中」时
+  // 也会被滤掉，下拉读回空串，saveSttCfg 会把 sttEngine 清掉（#592）。
+  const populateSelectedRef = useRef({ stt: '', tts: '', notes: '' });
 
   // ─── 对话模式语言下拉（§9.6）──────────────────────────────────────────────
   // 用 `AppListen.langOptions` —— 与听译页、首启包屏**同一份**选项：注册表全量、本机识别器
@@ -112,6 +115,7 @@ export default function SettingsView() {
     EngineFields.populate($('tts-engine'), Registry.ttsEngines() || [], {
       deviceOk: typeof NativeSpeech !== 'undefined' && NativeSpeech.available(),
       t, sentinel: { value: '', text: t('tts_engine_none', '未配置（不朗读）') },
+      selected: populateSelectedRef.current.tts,
     });
     // The picker lists chat-capable engines ONLY, and asks LearnNotes which those
     // are — the gate and the picker share one definition, so they cannot drift.
@@ -120,11 +124,13 @@ export default function SettingsView() {
     // 「不使用」。所以这里显式传 sentinel，而不是用 SLOTS.notes 的默认哨兵。
     EngineFields.populate($('notes-provider'), LearnNotes.chatEngines(), {
       t, sentinel: { value: '', text: t('app_set_notes_none', '不使用') },
+      selected: populateSelectedRef.current.notes,
     });
     // 2026-09-17 起转写注册表里没有本机条目（实时转写固定为设备内置，不是可选引擎），
     // 不再注入 deviceOk —— 这一档只列云端 / 自建，只管说题。
     EngineFields.populate($('stt-engine'), Registry.sttEngines() || [], {
       t, sentinel: { value: '', text: t('stt_engine_none', '未配置（不出「说」题）') },
+      selected: populateSelectedRef.current.stt,
     });
     updateFollowLabel();
   }
@@ -739,6 +745,12 @@ export default function SettingsView() {
     const hooks = settingsModel.hooks();
     const say = hooks.say || (() => {});
     const cur = await settingsModel.get(settingsModel.KEYS);
+    populateSelectedRef.current = {
+      stt: cur.sttEngine || '',
+      tts: cur.ttsEngine || '',
+      notes: cur.provider || '',
+    };
+    populateStatic();
     $('ui-lang').value = cur.uiLang || 'auto';
     uiLangNow.current = cur.uiLang || 'auto';
     $('target-lang').value = cur.targetLang || '';
@@ -1239,9 +1251,8 @@ export default function SettingsView() {
   // 一半由 shell 的 onChanged 监听代跑（uiLang 键守卫 → AppSettings.paintStatic），
   // PR6b 把 populate 收进本组件后那半条断了 —— verify-listen 的假桥在页面起来后
   // 才装、又靠带 uiLang 的 storage.set 触发重填，S3 就红在「device 进不了下拉」。
-  // 与旧守卫逐字对齐：只有 uiLang 变化才重填，其他写入不动下拉。populate 不传
-  // selected，重填会把下拉落回哨兵、等下一次 paintNow 恢复 —— 旧
-  // AppSettings.paintStatic 同款行为，不是本 PR 新引入。
+  // 与旧守卫逐字对齐：只有 uiLang 变化才重填，其他写入不动下拉。重填时带
+  // populateSelectedRef（paintNow 写入），grantOnly / 本机条目在正被选中时不会丢。
   useLayoutEffect(() => {
     let alive = true;
     settingsModel.get(settingsModel.KEYS).then((cur) => {
