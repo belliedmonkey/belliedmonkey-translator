@@ -247,6 +247,12 @@ describe('bt-relay 合约（X5）', () => {
       if (text.includes('__TTS_HTTP__')) {
         return j({ output: { audio: { url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-file.wav' } }, usage: { characters: 4 } });
       }
+      if (text.includes('__TTS_URL_EMPTY__')) {
+        return j({ output: { audio: { url: '' } }, code: '', usage: { characters: 4 } });
+      }
+      if (text.includes('__TTS_URL_NONSTRING__')) {
+        return j({ output: { audio: { url: null } }, code: 'CODETEXT_SECRET', usage: { characters: 4 } });
+      }
       if (text.includes('__TTS_HTTPS_FAIL__')) {
         return j({ output: { audio: { url: 'https://127.0.0.1:1/signed-audio-secret.wav?Signature=SECRETURL' } }, usage: { characters: 4 } });
       }
@@ -501,10 +507,27 @@ describe('bt-relay 合约（X5）', () => {
       sent = JSON.parse(seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop().body);
       eq(sent.input.voice, 'Cherry');
 
+      const chargesBeforeUrl = seen.charges.length;
       r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_HTTP__', voice: 'Cherry' });
       eq(r.status, 502, 'http 音频地址该 502');
+      eq(String(r.body), '{"error":"upstream"}', 'http 地址该回 upstream');
       ok(String(r.body).indexOf('SECRETURL') < 0, '502 正文带了签名 URL');
       eq(seen.trap, 0, '不该去拉 http 地址');
+      ok(seen.logs.join('').indexOf('SECRETURL') < 0, 'http 地址进了日志');
+      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=0 url=nonhttps') >= 0, 'http 地址该记 nonhttps');
+
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_URL_EMPTY__', voice: 'Cherry' });
+      eq(r.status, 502, '空音频地址该 502');
+      eq(String(r.body), '{"error":"upstream"}');
+      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=0 url=empty') >= 0, '空地址该记 empty');
+
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_URL_NONSTRING__', voice: 'Cherry' });
+      eq(r.status, 502, '非字符串音频地址该 502');
+      eq(String(r.body), '{"error":"upstream"}');
+      ok(String(r.body).indexOf('CODETEXT_SECRET') < 0, '502 正文带了 code');
+      ok(seen.logs.join('').indexOf('CODETEXT_SECRET') < 0, 'code 正文进了日志');
+      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=1 url=nonstring') >= 0, '非字符串该记 nonstring');
+      eq(seen.charges.length, chargesBeforeUrl, 'audio_url 失败不该记账');
 
       r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_HTTPS_FAIL__', voice: 'Cherry' });
       eq(r.status, 502, '音频 URL 拉取失败该 502');

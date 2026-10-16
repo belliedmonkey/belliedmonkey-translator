@@ -436,14 +436,34 @@ serve(async (req) => {
           const raw = await upstream.text();
           let audioUrl = '';
           let chars = NaN;
+          let parsed = false;
+          let codeNonEmpty = false;
+          let urlKind = 'unparsed';
           try {
             const d = JSON.parse(raw);
-            audioUrl = typeof d?.output?.audio?.url === 'string' ? d.output.audio.url : '';
+            parsed = true;
+            const url = d?.output?.audio?.url;
+            if (typeof url === 'string' && url.startsWith('https://')) {
+              audioUrl = url;
+              urlKind = 'https';
+            } else if (typeof url !== 'string') urlKind = 'nonstring';
+            else if (url === '') urlKind = 'empty';
+            else urlKind = 'nonhttps';
+            const code = d?.code;
+            codeNonEmpty = typeof code === 'string' ? code.length > 0 : code != null;
             chars = Number(d?.usage?.characters);
-          } catch { audioUrl = ''; }
+          } catch {
+            audioUrl = '';
+            parsed = false;
+            codeNonEmpty = false;
+            urlKind = 'unparsed';
+          }
           charged = (Number.isFinite(chars) ? chars : (body.input as string).length) * QC_TTS_PER_10K / 10000;
           if (!audioUrl.startsWith('https://')) {
-            console.log('relay', tag, 'tts', 'audio_url');
+            console.log('relay', tag, 'tts', 'audio_url',
+              'json=' + (parsed ? '1' : '0'),
+              'code=' + (codeNonEmpty ? '1' : '0'),
+              'url=' + urlKind);
             return json({ error: 'upstream' }, 502);
           }
           let audio: Response;
