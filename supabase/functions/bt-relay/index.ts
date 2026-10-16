@@ -136,6 +136,71 @@ function isJsonObjectFormat(v: unknown): boolean {
 function redactUrl(s: string): string {
   return s.replace(/https?:\/\/\S+/gi, '[url]');
 }
+// https://docs.qwencloud.com/api-reference/speech-synthesis/qwen-tts
+// 「X-DashScope-SSE: Set to `enable` for streaming output via HTTP」
+// 「In streaming mode, intermediate chunks contain Base64-encoded audio segments,
+// while the last chunk returns an empty string (use `url` to get the complete audio).」
+// 这一页没有写这些字节的编码和采样率。不把 http 改成 https，不请求 output.audio.url，
+// 也不加 WAV 头。编码、采样率、App 能否直接播：待实测。
+function decodeStandardBase64(s: string): Uint8Array | null {
+  if (s.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(s)) return null;
+  try {
+    const bin = atob(s);
+    const out = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  } catch {
+    return null;
+  }
+}
+function codeNonEmpty(v: unknown): boolean {
+  return typeof v === 'string' ? v.length > 0 : v != null;
+}
+function parseQcTtsSse(raw: string): { ok: true; bytes: Uint8Array; chars: number } | { ok: false; reason: string } {
+  const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const chunks: Uint8Array[] = [];
+  let chars = NaN;
+  let anyJson = false;
+  for (const ev of text.split(/\n\n+/)) {
+    const dataLines: string[] = [];
+    for (const line of ev.split('\n')) {
+      if (!line.startsWith('data:')) continue;
+      dataLines.push(line.slice(5).replace(/^ /, ''));
+    }
+    if (!dataLines.length) continue;
+    let d: Record<string, unknown>;
+    try {
+      d = JSON.parse(dataLines.join('\n'));
+    } catch {
+      return { ok: false, reason: 'sse_parse' };
+    }
+    anyJson = true;
+    if (codeNonEmpty(d?.code)) return { ok: false, reason: 'sse_code' };
+    const audio = (d?.output as { audio?: { data?: unknown } } | undefined)?.audio;
+    const data = audio?.data;
+    if (typeof data === 'string') {
+      if (data.length > 0) {
+        const bytes = decodeStandardBase64(data);
+        if (!bytes) return { ok: false, reason: 'sse_b64' };
+        chunks.push(bytes);
+      }
+    } else if (data !== undefined && data !== null) {
+      return { ok: false, reason: 'sse_data' };
+    }
+    const n = Number((d?.usage as { characters?: unknown } | undefined)?.characters);
+    if (Number.isFinite(n)) chars = n;
+  }
+  if (!anyJson) return { ok: false, reason: 'sse_parse' };
+  const total = chunks.reduce((n, b) => n + b.length, 0);
+  if (total === 0) return { ok: false, reason: 'sse_empty' };
+  const bytes = new Uint8Array(total);
+  let off = 0;
+  for (const b of chunks) {
+    bytes.set(b, off);
+    off += b.length;
+  }
+  return { ok: true, bytes, chars };
+}
 function encodeBase64(bytes: Uint8Array): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   const out: string[] = [];
@@ -429,57 +494,23 @@ serve(async (req) => {
         };
         upstream = await fetch(QC_TTS_URL, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${QC_KEY}`, 'Content-Type': 'application/json' },
+          headers: {
+            Authorization: `Bearer ${QC_KEY}`,
+            'Content-Type': 'application/json',
+            'X-DashScope-SSE': 'enable',
+          },
           body: JSON.stringify(sent),
         });
         if (upstream.ok) {
-          const raw = await upstream.text();
-          let audioUrl = '';
-          let chars = NaN;
-          let parsed = false;
-          let codeNonEmpty = false;
-          let urlKind = 'unparsed';
-          try {
-            const d = JSON.parse(raw);
-            parsed = true;
-            const url = d?.output?.audio?.url;
-            if (typeof url === 'string' && url.startsWith('https://')) {
-              audioUrl = url;
-              urlKind = 'https';
-            } else if (typeof url !== 'string') urlKind = 'nonstring';
-            else if (url === '') urlKind = 'empty';
-            else urlKind = 'nonhttps';
-            const code = d?.code;
-            codeNonEmpty = typeof code === 'string' ? code.length > 0 : code != null;
-            chars = Number(d?.usage?.characters);
-          } catch {
-            audioUrl = '';
-            parsed = false;
-            codeNonEmpty = false;
-            urlKind = 'unparsed';
+          const parsed = parseQcTtsSse(await upstream.text());
+          if (!parsed.ok) {
+            console.log('relay', tag, 'tts', 'sse', parsed.reason);
+            return json({ error: 'upstream' }, 502);
           }
+          const chars = parsed.chars;
           charged = (Number.isFinite(chars) ? chars : (body.input as string).length) * QC_TTS_PER_10K / 10000;
-          if (!audioUrl.startsWith('https://')) {
-            console.log('relay', tag, 'tts', 'audio_url',
-              'json=' + (parsed ? '1' : '0'),
-              'code=' + (codeNonEmpty ? '1' : '0'),
-              'url=' + urlKind);
-            return json({ error: 'upstream' }, 502);
-          }
-          let audio: Response;
-          try {
-            audio = await fetch(audioUrl, { redirect: 'manual' });
-          } catch (e) {
-            console.log('relay', tag, 'tts', 'audio_fetch', redactUrl(String(e)).slice(0, 120));
-            return json({ error: 'upstream' }, 502);
-          }
-          if (audio.status !== 200) {
-            console.log('relay', tag, 'tts', 'audio_fetch', String(audio.status));
-            return json({ error: 'upstream' }, 502);
-          }
-          const buf = new Uint8Array(await audio.arrayBuffer());
-          const ctype = audio.headers.get('content-type') || 'audio/wav';
-          upstream = new Response(buf, { status: 200, headers: { 'content-type': ctype } });
+          // 文档没写编码和采样率，所以不包装成 WAV，也不声明 audio/wav、audio/mpeg。
+          upstream = new Response(parsed.bytes, { status: 200, headers: { 'content-type': 'application/octet-stream' } });
         }
       } else {
         const keep = shape === 'chat' ? KEEP_CHAT : KEEP_TTS;

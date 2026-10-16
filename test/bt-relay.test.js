@@ -111,7 +111,10 @@ describe('bt-relay 合约（X5）', () => {
     const seen = { upstream: [], logs: [] };
     const up = await server((req, raw) => {
       if (req.url.endsWith('/credits')) return j({ data: { total_credits: 100, total_usage: 0 } });
-      seen.upstream.push({ url: req.url, auth: req.headers.authorization, body: raw });
+      seen.upstream.push({ url: req.url, auth: req.headers.authorization, body: raw, sse: req.headers['x-dashscope-sse'] || '' });
+      if (String(req.url).endsWith('/audio/speech')) {
+        return { statusCode: 200, body: 'RIFFkeep', type: 'audio/mpeg' };
+      }
       if (raw.includes('__FORCE_401__')) return { statusCode: 401, body: '{"error":"or_unauthorized"}', type: 'application/json' };
       return j({ choices: [{ message: { content: '好' } }], usage: { total_tokens: 10, cost: 0.0005 } });
     });
@@ -121,18 +124,20 @@ describe('bt-relay 合约（X5）', () => {
       return j({});
     });
     const port = 8899 + (process.pid % 100);
+    const openEnv = Object.assign({}, process.env, {
+      PORT: String(port),
+      SUPABASE_URL: `http://127.0.0.1:${db.port}`,
+      SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
+      OPENROUTER_BASE: `http://127.0.0.1:${up.port}`,
+      OPENROUTER_GRANT_KEY: 'sk-or-stub',
+      GRANT_MODELS: JSON.stringify({ chat: PINNED, tts: 'deepgram/aura-2' }),
+      GRANT_PRICES: JSON.stringify({ chatPerKTok: 0.001, chatFloor: 0.0005, ttsPerKChar: 0.015 }),
+      GRANT_FLOAT_MIN_USD: '5',
+    });
+    delete openEnv.UPSTREAM;
     const relay = spawn('deno', ['run', '-A', RELAY], {
       cwd: ROOT,
-      env: Object.assign({}, process.env, {
-        PORT: String(port),
-        SUPABASE_URL: `http://127.0.0.1:${db.port}`,
-        SUPABASE_SERVICE_ROLE_KEY: 'stub-service-role',
-        OPENROUTER_BASE: `http://127.0.0.1:${up.port}`,
-        OPENROUTER_GRANT_KEY: 'sk-or-stub',
-        GRANT_MODELS: JSON.stringify({ chat: PINNED }),
-        GRANT_PRICES: JSON.stringify({ chatPerKTok: 0.001, chatFloor: 0.0005 }),
-        GRANT_FLOAT_MIN_USD: '5',
-      }),
+      env: openEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
     relay.stdout.on('data', (d) => seen.logs.push(String(d)));
@@ -197,6 +202,20 @@ describe('bt-relay 合约（X5）', () => {
       eq(r.status, 401, '开关关闭时上游 401 原样透传（实际 ' + r.status + ' ' + String(r.body).slice(0, 80) + '）');
       ok(String(r.body).indexOf('or_unauthorized') >= 0, '401 正文被改写了：' + r.body);
 
+      r = await postBytes('http://127.0.0.1:' + port + '/audio/speech', H('bmg_ok'), {
+        model: 'deepgram/aura-2', input: 'hello', voice: 'aura-2-thalia-en', response_format: 'mp3',
+      });
+      eq(r.status, 200, 'UPSTREAM 未设置时朗读仍走原路径：' + r.status + ' ' + String(r.body).slice(0, 80));
+      eq(r.body, 'RIFFkeep', '原路径该原样交回上游字节');
+      eq(r.type.split(';')[0], 'audio/mpeg');
+      const ttsUp = seen.upstream.filter((x) => String(x.url).endsWith('/audio/speech')).pop();
+      const ttsSent = JSON.parse(ttsUp.body);
+      eq(ttsSent.model, 'deepgram/aura-2');
+      eq(ttsSent.input, 'hello', '原路径的 input 仍是字符串');
+      eq(ttsSent.voice, 'aura-2-thalia-en');
+      eq(ttsSent.response_format, 'mp3');
+      eq(ttsUp.sse, '', '原路径不该加 X-DashScope-SSE');
+
       // 纪律 ②：日志里不能有原文
       const logs = seen.logs.join('');
       ok(logs.indexOf(SECRET_TEXT) < 0, '日志里出现了原文（Gate F 承诺被破）');
@@ -233,33 +252,45 @@ describe('bt-relay 合约（X5）', () => {
 
   test('UPSTREAM=qwencloud：不看 IP、白名单、音色、10MB、记账（本地桩，不打线上）', async () => {
     if (!hasDeno) { ok(true, '跳过：这台机器没有 deno（可选工具链）'); return; }
-    const https = require('https');
-    const os = require('os');
     const row = [{ user_id: 'u1', limit_usd: 100, spent_usd: 0, status: 'active' }];
     const seen = { qc: [], bj: [], charges: [], logs: [], trap: 0 };
+    const sse = (events) => ({
+      statusCode: 200,
+      body: events.map((o) => 'data: ' + JSON.stringify(o) + '\n\n').join(''),
+      type: 'text/event-stream',
+    });
     const qc = await server((req, raw) => {
       const text = String(raw);
-      seen.qc.push({ url: req.url, auth: req.headers.authorization, body: text });
+      seen.qc.push({ url: req.url, auth: req.headers.authorization, sse: req.headers['x-dashscope-sse'] || '', body: text });
       if (text.includes('__FORCE_401__')) return { statusCode: 401, body: '{"error":"SECRET401"}', type: 'application/json' };
       if (text.includes('__FORCE_402__')) return { statusCode: 402, body: '{"error":"SECRET402"}', type: 'application/json' };
       if (text.includes('__FORCE_403__')) return { statusCode: 403, body: '{"error":"SECRET403"}', type: 'application/json' };
       if (text.includes('__FORCE_429__')) return { statusCode: 429, body: '{"error":"SECRET429"}', type: 'application/json' };
-      if (text.includes('__TTS_HTTP__')) {
-        return j({ output: { audio: { url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-file.wav' } }, usage: { characters: 4 } });
+      if (text.includes('__TTS_SSE_OK__')) {
+        return sse([
+          { output: { audio: { data: Buffer.from([1, 2, 3]).toString('base64') } } },
+          { output: { audio: { data: Buffer.from([4]).toString('base64') } } },
+          { output: { audio: { data: '', url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-file.wav' } }, usage: { characters: 21 } },
+        ]);
       }
-      if (text.includes('__TTS_URL_EMPTY__')) {
-        return j({ output: { audio: { url: '' } }, code: '', usage: { characters: 4 } });
+      if (text.includes('__TTS_SSE_NOCHARS__')) {
+        return sse([
+          { output: { audio: { data: Buffer.from([7]).toString('base64') } } },
+          { output: { audio: { data: '' } } },
+        ]);
       }
-      if (text.includes('__TTS_URL_NONSTRING__')) {
-        return j({ output: { audio: { url: null } }, code: 'CODETEXT_SECRET', usage: { characters: 4 } });
+      if (text.includes('__TTS_SSE_ERR__')) {
+        return sse([
+          { output: { audio: { data: Buffer.from([9]).toString('base64') } } },
+          { code: 'CODETEXT_SECRET', output: { audio: { data: Buffer.from([8]).toString('base64'), url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-file.wav' } } },
+        ]);
       }
-      if (text.includes('__TTS_HTTPS_FAIL__')) {
-        return j({ output: { audio: { url: 'https://127.0.0.1:1/signed-audio-secret.wav?Signature=SECRETURL' } }, usage: { characters: 4 } });
+      if (text.includes('__TTS_SSE_EMPTY__')) {
+        return sse([
+          { output: { audio: { data: '' } } },
+          { output: { audio: { data: '', url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-empty.wav' } }, usage: { characters: 4 } },
+        ]);
       }
-      if (text.includes('__TTS_OK__')) {
-        return j({ output: { audio: { url: seen.tlsUrl } }, usage: { characters: 21 } });
-      }
-      if (text.includes('__TTS_NOCHARS__')) return j({ output: { audio: { url: seen.tlsUrl } } });
       if (text.includes('input_audio')) {
         if (text.includes(Buffer.from('__ASR_NOSECS__').toString('base64'))) {
           return j({ choices: [{ message: { content: 'hi' } }], usage: {} });
@@ -274,26 +305,6 @@ describe('bt-relay 合约（X5）', () => {
       return j({ choices: [{ message: { content: '北京' } }], usage: { total_tokens: 10 } });
     });
     const trap = await server(() => { seen.trap += 1; return j({}); });
-    let tls = null;
-    const tlsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt592-tls-'));
-    try {
-      // Deno 拒绝「把 CA 证书本身当服务器证书」（CaUsedAsEndEntity）。先签一张 CA，再签叶子。
-      execSync('openssl req -x509 -newkey rsa:2048 -keyout "' + tlsDir + '/ca.key" -out "' + tlsDir + '/ca.pem" -days 1 -nodes -subj /CN=mt592-ca -addext basicConstraints=critical,CA:TRUE', { stdio: 'ignore' });
-      execSync('openssl req -newkey rsa:2048 -keyout "' + tlsDir + '/leaf.key" -out "' + tlsDir + '/leaf.csr" -nodes -subj /CN=127.0.0.1 -addext subjectAltName=IP:127.0.0.1 -addext basicConstraints=CA:FALSE', { stdio: 'ignore' });
-      execSync('openssl x509 -req -in "' + tlsDir + '/leaf.csr" -CA "' + tlsDir + '/ca.pem" -CAkey "' + tlsDir + '/ca.key" -CAcreateserial -out "' + tlsDir + '/leaf.pem" -days 1 -copy_extensions copy', { stdio: 'ignore' });
-      tls = await new Promise((resolve, reject) => {
-        const srv = https.createServer({
-          key: fs.readFileSync(path.join(tlsDir, 'leaf.key')),
-          cert: fs.readFileSync(path.join(tlsDir, 'leaf.pem')),
-        }, (_req, res) => {
-          res.writeHead(200, { 'Content-Type': 'audio/wav' });
-          res.end(Buffer.from('RIFFfake'));
-        });
-        srv.on('error', reject);
-        srv.listen(0, '127.0.0.1', () => resolve({ srv, port: srv.address().port }));
-      });
-      seen.tlsUrl = 'https://127.0.0.1:' + tls.port + '/a.wav';
-    } catch (_) { tls = null; seen.tlsUrl = ''; }
 
     const db = await server((req, raw) => {
       if (/bt_grant_check/.test(req.url)) return j(row);
@@ -301,9 +312,7 @@ describe('bt-relay 合约（X5）', () => {
       return j({});
     });
     const port = 18900 + (process.pid % 500);
-    const denoArgs = ['run', '-A'];
-    if (tls) denoArgs.push('--cert', path.join(tlsDir, 'ca.pem'));
-    denoArgs.push(RELAY);
+    const denoArgs = ['run', '-A', RELAY];
     const qcEnv = Object.assign({}, process.env, {
       PORT: String(port),
       SUPABASE_URL: 'http://127.0.0.1:' + db.port,
@@ -492,11 +501,14 @@ describe('bt-relay 合约（X5）', () => {
       ok(seen.logs.join('').indexOf('usage_missing') >= 0, '缺秒数该写 usage_missing');
 
       r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: 'Serena please', voice: 'Serena' });
-      sent = JSON.parse(seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop().body);
+      const serena = seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop();
+      sent = JSON.parse(serena.body);
+      eq(serena.sse, 'enable', '朗读请求头要带 X-DashScope-SSE: enable');
       eq(sent.model, 'qwen3-tts-flash');
       eq(sent.input.voice, 'Serena', '名单里的音色原样用');
       eq(sent.input.text, 'Serena please');
       eq(sent.input.language_type, 'Auto');
+      ok(!('stream' in sent) && !('stream' in sent.input), '不该加 input.stream 或其他请求字段');
 
       r = await postBytes(root + '/audio/speech', H(), { model: 'deepgram/aura-2', input: 'legacy', voice: 'aura-2-thalia-en' });
       sent = JSON.parse(seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop().body);
@@ -507,48 +519,38 @@ describe('bt-relay 合约（X5）', () => {
       sent = JSON.parse(seen.qc.filter((x) => x.url.indexOf('/generation') >= 0).pop().body);
       eq(sent.input.voice, 'Cherry');
 
-      const chargesBeforeUrl = seen.charges.length;
-      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_HTTP__', voice: 'Cherry' });
-      eq(r.status, 502, 'http 音频地址该 502');
-      eq(String(r.body), '{"error":"upstream"}', 'http 地址该回 upstream');
-      ok(String(r.body).indexOf('SECRETURL') < 0, '502 正文带了签名 URL');
-      eq(seen.trap, 0, '不该去拉 http 地址');
-      ok(seen.logs.join('').indexOf('SECRETURL') < 0, 'http 地址进了日志');
-      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=0 url=nonhttps') >= 0, 'http 地址该记 nonhttps');
+      const chargesBeforeSse = seen.charges.length;
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_SSE_OK__', voice: 'Cherry' });
+      eq(r.status, 200, '多包 Base64 该拼成音频：' + r.status + ' ' + String(r.body).slice(0, 80));
+      eq(r.type.split(';')[0], 'application/octet-stream', '文档没写容器，不该声明 wav 或 mpeg');
+      eq(Buffer.from(r.body, 'utf8').toString('hex'), '01020304', '按包顺序拼接，最后一包空 data 不计入');
+      ok(r.body.indexOf('RIFF') < 0, '不该加 WAV 头');
+      ok(r.body.indexOf('SECRETURL') < 0 && r.body.indexOf('{') < 0, '不该把 URL 或 JSON 交回客户端');
+      eq(seen.trap, 0, '不该去请求 output.audio.url');
+      near(seen.charges[seen.charges.length - 1].p_cost, 21 * 0.1 / 10000, '21 字 × $0.1/万');
+      eq(seen.charges.length, chargesBeforeSse + 1);
 
-      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_URL_EMPTY__', voice: 'Cherry' });
-      eq(r.status, 502, '空音频地址该 502');
-      eq(String(r.body), '{"error":"upstream"}');
-      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=0 url=empty') >= 0, '空地址该记 empty');
+      const input = '__TTS_SSE_NOCHARS__';
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input, voice: 'Cherry' });
+      eq(r.status, 200, '缺 characters 仍该返回拼好的字节');
+      eq(Buffer.from(r.body, 'utf8')[0], 7);
+      near(seen.charges[seen.charges.length - 1].p_cost, input.length * 0.1 / 10000, '缺 characters 用输入长度');
 
-      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_URL_NONSTRING__', voice: 'Cherry' });
-      eq(r.status, 502, '非字符串音频地址该 502');
+      const chargesBeforeErr = seen.charges.length;
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_SSE_ERR__', voice: 'Cherry' });
+      eq(r.status, 502, '中途报错该 502');
       eq(String(r.body), '{"error":"upstream"}');
       ok(String(r.body).indexOf('CODETEXT_SECRET') < 0, '502 正文带了 code');
       ok(seen.logs.join('').indexOf('CODETEXT_SECRET') < 0, 'code 正文进了日志');
-      ok(seen.logs.join('').indexOf('tts audio_url json=1 code=1 url=nonstring') >= 0, '非字符串该记 nonstring');
-      eq(seen.charges.length, chargesBeforeUrl, 'audio_url 失败不该记账');
+      ok(seen.logs.join('').indexOf('tts sse sse_code') >= 0, '中途报错该记 sse_code');
 
-      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_HTTPS_FAIL__', voice: 'Cherry' });
-      eq(r.status, 502, '音频 URL 拉取失败该 502');
-      const logs = seen.logs.join('');
-      ok(logs.indexOf('SECRETURL') < 0 && logs.indexOf('signed-audio-secret') < 0, '日志里出现了签名 URL：' + logs.slice(0, 500));
-
-      if (tls) {
-        const c0 = seen.charges.length;
-        r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_OK__', voice: 'Cherry' });
-        eq(r.status, 200, '朗读成功该回音频字节：' + r.status + ' ' + String(r.body).slice(0, 80));
-        eq(r.type.split(';')[0], 'audio/wav');
-        eq(String(r.body), 'RIFFfake');
-        ok(String(r.body).indexOf('{') < 0, '不该把 JSON 透传给客户端');
-        near(seen.charges[seen.charges.length - 1].p_cost, 21 * 0.1 / 10000, '21 字 × $0.1/万');
-        eq(seen.charges.length, c0 + 1);
-
-        const input = '__TTS_NOCHARS__';
-        r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input, voice: 'Cherry' });
-        eq(r.status, 200, '缺 characters 仍该返回音频');
-        near(seen.charges[seen.charges.length - 1].p_cost, input.length * 0.1 / 10000, '缺 characters 用输入长度');
-      }
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_SSE_EMPTY__', voice: 'Cherry' });
+      eq(r.status, 502, '没有任何音频数据该 502');
+      eq(String(r.body), '{"error":"upstream"}');
+      ok(seen.logs.join('').indexOf('tts sse sse_empty') >= 0, '空音频该记 sse_empty');
+      eq(seen.charges.length, chargesBeforeErr, '失败不该记账');
+      eq(seen.trap, 0, '空 data 带了 URL 也不该去拉');
+      ok(seen.logs.join('').indexOf('SECRETURL') < 0, '日志里出现了签名 URL');
 
       r = await postBytes(root + '/chat/completions', H(), { model: 'qwen3.7-plus', messages: [{ role: 'user', content: '__NO_USAGE__' }] });
       near(seen.charges[seen.charges.length - 1].p_cost, 0.0005, '两个 token 字段都缺失时走 chatFloor');
@@ -567,7 +569,6 @@ describe('bt-relay 合约（X5）', () => {
     } finally {
       try { relay.kill('SIGKILL'); } catch (_) {}
       try { qc.srv.close(); bj.srv.close(); trap.srv.close(); db.srv.close(); } catch (_) {}
-      try { if (tls) tls.srv.close(); } catch (_) {}
     }
   });
 
