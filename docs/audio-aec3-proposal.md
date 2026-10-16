@@ -84,8 +84,8 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 6. 双讲是否支持：没有 double-talk 的句子。nearend / echo 两种状态不能写成「对方说话时声音能通过」。
 7. `initial_state_seconds = 2.5`（`echo_canceller3_config.h` 第 113 行）是否就是收敛时间。字段没有这句注释，不用它当门限。
 8. 官方收敛毫秒数。
-9. 「非线性残余抑制」、ERLE 门限、CPU 百分比、打进 App 之后增加的体积。
-10. 把 AEC3 编成 xcframework 的步骤。iOS 构建子页本次没有读完；开发页只写了整棵树用 GN + Ninja。5.6 GB 是检出体积，不是 App 增量。
+9. 「非线性残余抑制」、ERLE 门限、CPU 百分比。打进 App 之后增加的体积已在仓库外量到，见第 6.1 节；那是最小程序链上之后的字节数，不是出货包增量。
+10. 把 AEC3 编成 xcframework 的步骤。iOS 构建子页已在 2026-10-16 读完，步骤在 issue #595；该页没有写出 xcframework 的打包步骤，本步也没有编 iOS。文档里的 5.6 GB 是检出估计，实测检出见第 6.1 节，都不是 App 增量。
 11. 浏览器 WebRTC API 能否作为本 App 朗读回声的消除器。
 12. 蓝牙音箱与内置麦克风不在同一时钟时，检测时钟漂移之外是否会补偿。只读到「检测」。
 13. 调用方若不是走 `ProcessReverseStream` / `ProcessStream`，该把扬声器参照和麦克风怎样对齐。官方对齐句子就是上面的延迟公式；公式以外的接法未找到。
@@ -115,7 +115,7 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 
 ### 3.3 打包体积与编译
 
-官方编译方式是整棵原生树用 GN 生成 Ninja 工程，再用 Ninja 编其中一个目标。`docs/native-code/development/README.md` 第 144–149 行写明：编某一个目标用 `autoninja -C out/Default <目标名>`，例子是 `h264_depacketizer_fuzzer`，不是 `modules/audio_processing`。iOS 子页第 88–99 行写明：对想要的目标跑 ninja，目标列表用 `gn ls` 查看。`modules/audio_processing` 这个目标名本身未在这两页写出。Mac（含 iOS 支持）的检出估计 5.6 GB。打进 App 的体积仍未找到，第一步在仓库外测量。r5 的 xcframework 与 1–2 MB 不写进计划。体积测到并写明之前，不把 AEC3 编进中国版或国际版的出货包。
+官方编译方式是整棵原生树用 GN 生成 Ninja 工程，再用 Ninja 编其中一个目标。`docs/native-code/development/README.md` 第 144–149 行写明：编某一个目标用 `autoninja -C out/Default <目标名>`，例子是 `h264_depacketizer_fuzzer`，不是 `modules/audio_processing`。iOS 子页第 88–99 行写明：对想要的目标跑 ninja，目标列表用 `gn ls` 查看。`modules/audio_processing` 这个目标名本身未在这两页写出。Mac（含 iOS 支持）的检出估计 5.6 GB。2026-10-16 已在仓库外按官方 GN + Ninja 编出 macOS arm64 Release，并链上最小程序。读数在第 6.1 节。这不是出货包增量。r5 的 xcframework 与 1–2 MB 不写进计划。体积已经写明，仍不把 AEC3 编进中国版或国际版的出货包。
 
 ### 3.4 扩展、中国版、国际版
 
@@ -190,7 +190,7 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 - 延迟公式要现量。把 `default_delay = 5` 猜成一个单位再填进去，就会走到文档没写的参数上。
 - 设备格式若是 44100 Hz，必须先重采样。直接送进去不在 `ValidFullBandRate` 里。
 - 时钟漂移只读到「检测」，没读到「补偿」。蓝牙音箱加内置麦克风是否对得齐，未找到。
-- 打进 App 的体积未找到。整树检出是数 GB 量级，不能把整树塞进出货包。第一步只在仓库外测量编译体积，测到之前这条仍是未找到。
+- 打进 App 的体积：2026-10-16 在仓库外量到，还没有打进 App。官方目标 `//modules/audio_processing:audio_processing` 是静态库，没有动态库。平台是 macOS arm64、Release（`is_debug=false`，`target_cpu="arm64"`）。源码提交 `2f2246127ce24cdd6c3a1090021424b5bfd67b94`。`libaudio_processing.a` 是瘦归档，文件 13108 字节，只有 2 个成员，成员带 `-g2`，合计 1567296 字节。AEC3 在另一份瘦归档 `libaec3.a`：文件 57198 字节，57 个成员，合计 12988200 字节，同样含调试信息。瘦归档的文件大小不是代码大小。按 `audio_processing.h` 的入口写的最小程序链上之后，Mach-O arm64 可执行文件 1460400 字节（官方链接带 `-Wl,-dead_strip`，调试信息还在文件里）。用检出里的 `llvm-strip` 去掉符号和调试信息后的副本是 1018560 字节。`__TEXT` 950272 字节，其中 `__text` 864224 字节。可执行文件里有 `EchoCanceller3` 的符号。同一套链接参数、只链 libc++ 的空 `main` 是 16880 字节，所以这 1460400 里多出来的是 1443520 字节。这不是出货包增量，也不是 r5 的 1–2 MB。整树检出仍是数 GB，不能把整树塞进出货包。源码和编译产物留在仓库外。日志是 `docs/status/aec3-probe-step1-2026-10-16.json`。
 - `LICENSE` 与 `PATENTS`（含专利诉讼则许可终止）已由用户于 2026-10-16 接受。这不是法务结论。源码仍放在仓库外，不引进本仓库。
 - 原生包的说明把应用开发者指向浏览器 API。那个 API 没有写能消我们自己引擎里的回声。本提案仍评估原生 AEC3，因为统一引擎方案已经把备选写在这份源码上；不把浏览器 API 写成退路。
 
@@ -208,7 +208,7 @@ Mac 上不可读。phase1g / phase1h 日志里 `readable` 为 false，`lost` 为
 - 开关默认打开，或关着时两版行为与今天不同。
 - 没有 Pencil 稿就做灰行界面。
 - 用户还没接受 `LICENSE` 与 `PATENTS`，就把源码引进仓库。
-- 体积还是「未找到」，就把 AEC3 编进出货包。
+- 把第 6.1 节的体积读数当成可以编进出货包。体积已经量到，第 5 节没过、也没接到 App 之前，仍不编进中国版或国际版。
 
 ### 6.3 用户答复（2026-10-16）
 

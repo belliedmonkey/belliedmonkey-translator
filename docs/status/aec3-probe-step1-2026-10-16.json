@@ -1,0 +1,161 @@
+{
+  "date": "2026-10-16",
+  "step": 1,
+  "issue": 595,
+  "purpose": "Compile modules/audio_processing and its required dependencies on macOS arm64 Release, outside the repo, and measure size. No playback, no microphone, no App or extension edits, no section 5 acoustic tests.",
+  "compiled": true,
+  "linked": true,
+  "binaryRun": false,
+  "webrtcSourceEdited": false,
+  "committedIntoRepo": false,
+  "host": {
+    "os": "macOS 27.0 (26A428)",
+    "xcode": "27.0 (27A266a)",
+    "cpu": "arm64"
+  },
+  "checkout": {
+    "url": "https://webrtc.googlesource.com/src",
+    "path": "~/aec3-probe/webrtc/src",
+    "commit": "2f2246127ce24cdd6c3a1090021424b5bfd67b94",
+    "committedAt": "2026-10-15 16:04:20 -0700",
+    "subject": "Roll back transports without a separate blocking call",
+    "fetch": "fetch --nohooks --no-history webrtc && gclient sync --no-history"
+  },
+  "gn": {
+    "command": "gn gen out/Release --args='is_debug=false target_cpu=\"arm64\"'",
+    "argsGn": ["is_debug = false", "target_cpu = \"arm64\""],
+    "targetOs": "default empty (macOS host; target_os was not set to ios)",
+    "isComponentBuild": false,
+    "toolchain": "//build/toolchain/mac:clang_arm64",
+    "minMacos": "13.0",
+    "sysroot": "out/Release/sdk/xcode_links/MacOSX27.0.sdk",
+    "officialTarget": "//modules/audio_processing:audio_processing",
+    "ninjaTarget": "obj/modules/audio_processing/libaudio_processing.a",
+    "kind": "static_library",
+    "dynamicLibrary": null
+  },
+  "builds": [
+    {
+      "command": "autoninja -C out/Release audio_processing",
+      "exitCode": 1,
+      "realSec": 2.56,
+      "userSec": 1.27,
+      "sysSec": 1.96,
+      "error": "Schedule Failure: unknown target \"audio_processing\""
+    },
+    {
+      "command": "autoninja -C out/Release obj/modules/audio_processing/libaudio_processing.a",
+      "exitCode": 0,
+      "realSec": 68.10,
+      "userSec": 619.87,
+      "sysSec": 80.45,
+      "note": "Official single-target build. Order-only deps, including libaec3.a and source_set objects, were built with it."
+    },
+    {
+      "command": "autoninja -C out/Release obj/api/audio/libbuiltin_audio_processing_builder.a",
+      "exitCode": 0,
+      "realSec": 1.88,
+      "userSec": 1.19,
+      "sysSec": 1.13,
+      "note": "Documented entry BuiltinAudioProcessingBuilder is not inside libaudio_processing.a."
+    },
+    {
+      "command": "autoninja -C out/Release <172 archives and 194 source_set objects from the generated ninja linkdeps>",
+      "exitCode": 0,
+      "realSec": 0.99,
+      "userSec": 0.75,
+      "sysSec": 0.81,
+      "note": "ninja: no work to do. Those outputs were already built as dependencies of the static library."
+    }
+  ],
+  "libraries": {
+    "note": "Archives are thin (arflags -T). File bytes are the archive header, not the code. Member bytes are the .o files and include -g2 debug info.",
+    "libaudio_processing": {
+      "path": "out/Release/obj/modules/audio_processing/libaudio_processing.a",
+      "fileBytes": 13108,
+      "members": 2,
+      "memberBytes": 1567296,
+      "memberNames": ["audio_processing_impl.o", "gain_control_impl.o"]
+    },
+    "libaec3": {
+      "path": "out/Release/obj/modules/audio_processing/aec3/libaec3.a",
+      "fileBytes": 57198,
+      "members": 57,
+      "memberBytes": 12988200
+    },
+    "libbuiltin_audio_processing_builder": {
+      "path": "out/Release/obj/api/audio/libbuiltin_audio_processing_builder.a",
+      "fileBytes": 1428,
+      "members": 1,
+      "memberBytes": 180272
+    },
+    "libenvironment_factory": {
+      "path": "out/Release/obj/api/environment/libenvironment_factory.a",
+      "fileBytes": 1006,
+      "members": 1,
+      "memberBytes": 199992,
+      "builtAt": "2026-10-16T09:14:44+0800",
+      "elapsedSec": null
+    }
+  },
+  "minimalProgram": {
+    "path": "~/aec3-probe/size-main/size_main.cc",
+    "notInRepo": true,
+    "entry": "webrtc::BuiltinAudioProcessingBuilder(config).Build(env) with config.echo_canceller.enabled = true and webrtc::CreateEnvironment()",
+    "ran": false,
+    "link": {
+      "driver": "build/toolchain/apple/linker_driver.py",
+      "ldflags": "-Wl,--no-warn-duplicate-rpath -Wl,-no_warn_duplicate_libraries -Werror --target=arm64-apple-macos -no-canonical-prefixes -Wl,-dead_strip -nostdlib++ -mmacos-version-min=13.0 -fuse-ld=lld -Wl,-fatal_warnings -Wl,--icf=all -Wl,--color-diagnostics -Wl,--strict-auto-link -Wl,--read-workers=3 -Wl,--no-call-graph-profile-sort -Wl,-ObjC",
+      "inputs": "size_main.o + 194 source_set .o + 172 .a + libc++.a + libc++abi.a + libclang_rt.osx.a + -framework Foundation",
+      "rustRlibs": "not linked",
+      "exitCode": 0,
+      "realSec": 0.17
+    },
+    "executable": {
+      "path": "~/aec3-probe/size-main/size_main",
+      "fileType": "Mach-O 64-bit executable arm64",
+      "bytes": 1460400,
+      "textSegmentBytes": 950272,
+      "textSectionBytes": 864224,
+      "debugStillPresent": true,
+      "llvmStripAllBytes": 1018560,
+      "llvmStripDebugOnlyBytes": 1302480,
+      "echoCancellerDefinedSymbols": 78
+    },
+    "emptyMainSameLinkFlags": {
+      "bytes": 16880,
+      "llvmStripAllBytes": 16832,
+      "textSectionBytes": 8,
+      "note": "Same official ldflags and libc++/libc++abi/clang_rt/Foundation, no WebRTC objects. Difference from the AudioProcessing executable is 1443520 file bytes, or 1001728 after llvm-strip."
+    }
+  },
+  "section61Answer": "体积不再是未找到。回答第 6.1 节的数是链上最小程序之后的可执行文件 1460400 字节（去掉符号和调试信息的副本 1018560 字节）。这不是已经打进 App 的增量。",
+  "problems": [
+    "官方文档的例子目标是 h264_depacketizer_fuzzer。ninja 短名 audio_processing 失败：unknown target \"audio_processing\"（real 2.56 s）。生成工程里的目标是 obj/modules/audio_processing/libaudio_processing.a。没有另写一套构建脚本。",
+    "libaudio_processing.a 的瘦归档只有 audio_processing_impl.o 和 gain_control_impl.o。AEC3、Abseil、rnnoise 权重是 source_set，不在这份 .a 里。第一次链接因此报 undefined symbol，开头是 rnnoise::kOutputDenseWeights，接着是 absl（ThrowStdLengthError、FastIntToBuffer、LogMessageFatal、Mutex::lock/unlock、Cord::operator=）。没有改 WebRTC 源码。补上官方 ninja linkdeps 里的 .o 和 .a 之后再链。",
+    "第二次链接只剩 undefined symbol: absl::debugging_internal::DemangleRustSymbolEncoding。原因是收集依赖时把名字里含 rust 的 C++ 文件也跳过了。demangle_rust.cc、decode_rust_punycode.cc、utf8_for_code_point.cc 是 Abseil 的 C++，ninja 显示已经编过。加进链接后成功。",
+    "官方依赖图里还有 Rust .rlib：audio_frame_api → rtp_packet_info → rtp_rtcp_format 的 corruption detection，以及整份 rust std。这次 AudioProcessing 入口的链接没有引用它们，没有编、没有链。若下一步链接报这些符号，再停下来报告，不改源码。"
+  ],
+  "disk": {
+    "beforeFetchAvailableBytesNote": "约 311 GB available on /System/Volumes/Data before fetch",
+    "after": {
+      "aec3ProbeKiB": 13955708,
+      "depotToolsKiB": 736992,
+      "webrtcSrcKiB": 13216416,
+      "outReleaseKiB": 955996,
+      "volumeAvailable": "296 GiB of 926 GiB on /System/Volumes/Data"
+    }
+  },
+  "notDone": [
+    "no playback",
+    "no volume change",
+    "no microphone",
+    "no App or extension edits",
+    "echo constants unchanged",
+    "no Mac system-audio tap change",
+    "no china/global fork",
+    "section 5 acoustic tests not started",
+    "iOS not built",
+    "binary not executed"
+  ]
+}
