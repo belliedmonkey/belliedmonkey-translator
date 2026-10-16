@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-16",
+  "diagnostic": "5.2-E",
+  "rulesComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6206849415",
+  "limitation": "对方声音与自己的声音同扬声器、同回声路径，比真实场景更严。",
+  "otherVoice": "Mac 扬声器，afplay，不进入 ProcessReverseStream",
+  "previousUnchanged": [
+    {
+      "name": "5.2",
+      "grade": "不过",
+      "commit": "d142caa21f0408a29b4dcc040867770163bec9d6",
+      "log": "docs/status/aec3-probe-step2-52-2026-10-16.json"
+    },
+    {
+      "name": "5.2-D",
+      "grade": null,
+      "band": "前置不成立",
+      "commit": "17074610cd2eca182302a1c49380885e76e4ea4e",
+      "log": "docs/status/aec3-probe-step2-52d-2026-10-16.json"
+    }
+  ],
+  "files": {
+    "tone880": {
+      "path": "/Users/belliedmonkey/aec3-probe/tone880-4s.wav",
+      "hz": 880,
+      "seconds": 4,
+      "rate": 48000,
+      "amplitude": 0.2,
+      "afplay": "-t 4 -v 1"
+    },
+    "speech": {
+      "path": "/Users/belliedmonkey/aec3-probe/speech.wav",
+      "seconds": 3.92225,
+      "rate": 16000,
+      "afplay": "-t 4 -v 1",
+      "note": "合成语音只能说明别人的语音不被压，不代表真实双方同时说话。"
+    }
+  },
+  "fedToReverseStream": false,
+  "reference": "探针自己生成的 3 秒 440 Hz，幅度 0.2",
+  "prerequisite": {
+    "holds": true,
+    "aligned": true,
+    "energy880": 0.000774843301,
+    "energy440": 0.00573229685,
+    "ratio": 0.135171524,
+    "rule": "off 880 >= off 440 / 10"
+  },
+  "section52e": {
+    "grade": "过",
+    "band": "on >= off / 2",
+    "energy880": {
+      "off": 0.000774843301,
+      "on": 0.000680512408,
+      "ratio": 0.878258103
+    }
+  },
+  "tone440During880": {
+    "grade": "压住",
+    "energy": {
+      "off": 0.00573229685,
+      "on": 1.98619841e-10,
+      "ratio": 3.46492594e-08
+    }
+  },
+  "speech": {
+    "grade": "不过",
+    "band": "on < off / 2",
+    "bandRms": {
+      "off": 0.109947708,
+      "on": 0.0293385933,
+      "ratio": 0.266841337
+    }
+  },
+  "tone440DuringSpeech": {
+    "grade": "压住",
+    "energy": {
+      "off": 0.00463087756,
+      "on": 1.43913773e-09,
+      "ratio": 3.10769982e-07
+    }
+  },
+  "afplayExit": {
+    "880": [
+      0,
+      0
+    ],
+    "speech": [
+      0,
+      0
+    ]
+  },
+  "volumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuring880": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfter880": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuringSpeech": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfterSpeech": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "outputTouched": false,
+  "restored": {
+    "output": 70,
+    "input": 0,
+    "alert": 100,
+    "muted": false
+  },
+  "delayOn880": {
+    "n": 330,
+    "min": 18,
+    "median": 43,
+    "max": 58,
+    "first": {
+      "delayMs": 18,
+      "playMs": 3,
+      "recMs": 15,
+      "setReturn": 0
+    },
+    "last": {
+      "delayMs": 49,
+      "playMs": 20,
+      "recMs": 29,
+      "setReturn": 0
+    }
+  },
+  "delayWarningsOn880": 0,
+  "newUnfound": []
+}
