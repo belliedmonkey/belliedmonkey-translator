@@ -291,6 +291,12 @@ describe('bt-relay 合约（X5）', () => {
           { output: { audio: { data: '', url: 'http://127.0.0.1:' + trap.port + '/SECRETURL-empty.wav' } }, usage: { characters: 4 } },
         ]);
       }
+      if (text.includes('__TTS_SSE_LONG__')) {
+        return sse([
+          { output: { audio: { data: Buffer.from([1, 2, 3, 4, 5, 6]).toString('base64') } } },
+          { output: { audio: { data: '' } } },
+        ]);
+      }
       if (text.includes('input_audio')) {
         if (text.includes(Buffer.from('__ASR_NOSECS__').toString('base64'))) {
           return j({ choices: [{ message: { content: 'hi' } }], usage: {} });
@@ -527,6 +533,9 @@ describe('bt-relay 合约（X5）', () => {
       ok(r.body.indexOf('RIFF') < 0, '不该加 WAV 头');
       ok(r.body.indexOf('SECRETURL') < 0 && r.body.indexOf('{') < 0, '不该把 URL 或 JSON 交回客户端');
       eq(seen.trap, 0, '不该去请求 output.audio.url');
+      ok(seen.logs.join('').indexOf('tts sse bytes=4 head=01020304 pkts=3') >= 0, '成功该记字节数、前 4 字节和包数');
+      ok(seen.logs.join('').indexOf('__TTS_SSE_OK__') < 0, '日志不该有朗读文本');
+      ok(seen.logs.join('').indexOf('bmg_ok') < 0 && seen.logs.join('').indexOf('sk-qc-stub') < 0, '日志不该有令牌');
       near(seen.charges[seen.charges.length - 1].p_cost, 21 * 0.1 / 10000, '21 字 × $0.1/万');
       eq(seen.charges.length, chargesBeforeSse + 1);
 
@@ -543,6 +552,7 @@ describe('bt-relay 合约（X5）', () => {
       ok(String(r.body).indexOf('CODETEXT_SECRET') < 0, '502 正文带了 code');
       ok(seen.logs.join('').indexOf('CODETEXT_SECRET') < 0, 'code 正文进了日志');
       ok(seen.logs.join('').indexOf('tts sse sse_code') >= 0, '中途报错该记 sse_code');
+      ok(seen.logs.join('').indexOf('head=09') < 0, '失败不该记音频字节');
 
       r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_SSE_EMPTY__', voice: 'Cherry' });
       eq(r.status, 502, '没有任何音频数据该 502');
@@ -551,6 +561,14 @@ describe('bt-relay 合约（X5）', () => {
       eq(seen.charges.length, chargesBeforeErr, '失败不该记账');
       eq(seen.trap, 0, '空 data 带了 URL 也不该去拉');
       ok(seen.logs.join('').indexOf('SECRETURL') < 0, '日志里出现了签名 URL');
+
+      r = await postBytes(root + '/audio/speech', H(), { model: 'qwen3-tts-flash', input: '__TTS_SSE_LONG__', voice: 'Cherry' });
+      eq(r.status, 200, '超过 4 字节仍该返回全部音频');
+      eq(Buffer.from(r.body, 'utf8').toString('hex'), '010203040506');
+      const longLog = seen.logs.join('');
+      ok(longLog.indexOf('tts sse bytes=6 head=01020304 pkts=2') >= 0, '只记前 4 字节，包数含空 data');
+      ok(longLog.indexOf('head=0102030405') < 0 && longLog.indexOf('AQIDBAUG') < 0, '日志不该带第 5 字节或整段 Base64');
+      ok(longLog.indexOf('__TTS_SSE_LONG__') < 0, '长音频日志不该有朗读文本');
 
       r = await postBytes(root + '/chat/completions', H(), { model: 'qwen3.7-plus', messages: [{ role: 'user', content: '__NO_USAGE__' }] });
       near(seen.charges[seen.charges.length - 1].p_cost, 0.0005, '两个 token 字段都缺失时走 chatFloor');

@@ -156,11 +156,12 @@ function decodeStandardBase64(s: string): Uint8Array | null {
 function codeNonEmpty(v: unknown): boolean {
   return typeof v === 'string' ? v.length > 0 : v != null;
 }
-function parseQcTtsSse(raw: string): { ok: true; bytes: Uint8Array; chars: number } | { ok: false; reason: string } {
+function parseQcTtsSse(raw: string): { ok: true; bytes: Uint8Array; chars: number; pkts: number } | { ok: false; reason: string } {
   const text = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const chunks: Uint8Array[] = [];
   let chars = NaN;
   let anyJson = false;
+  let pkts = 0;
   for (const ev of text.split(/\n\n+/)) {
     const dataLines: string[] = [];
     for (const line of ev.split('\n')) {
@@ -175,6 +176,7 @@ function parseQcTtsSse(raw: string): { ok: true; bytes: Uint8Array; chars: numbe
       return { ok: false, reason: 'sse_parse' };
     }
     anyJson = true;
+    pkts += 1;
     if (codeNonEmpty(d?.code)) return { ok: false, reason: 'sse_code' };
     const audio = (d?.output as { audio?: { data?: unknown } } | undefined)?.audio;
     const data = audio?.data;
@@ -199,7 +201,7 @@ function parseQcTtsSse(raw: string): { ok: true; bytes: Uint8Array; chars: numbe
     bytes.set(b, off);
     off += b.length;
   }
-  return { ok: true, bytes, chars };
+  return { ok: true, bytes, chars, pkts };
 }
 function encodeBase64(bytes: Uint8Array): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
@@ -507,6 +509,12 @@ serve(async (req) => {
             console.log('relay', tag, 'tts', 'sse', parsed.reason);
             return json({ error: 'upstream' }, 502);
           }
+          // 只记总字节、前 4 字节的十六进制、解析过的 SSE JSON 事件数（含最后一包空 data）。
+          // 不记其余字节、令牌和文本。
+          let head = '';
+          const nHead = Math.min(4, parsed.bytes.length);
+          for (let i = 0; i < nHead; i++) head += parsed.bytes[i].toString(16).padStart(2, '0');
+          console.log('relay', tag, 'tts', 'sse', 'bytes=' + parsed.bytes.length, 'head=' + head, 'pkts=' + parsed.pkts);
           const chars = parsed.chars;
           charged = (Number.isFinite(chars) ? chars : (body.input as string).length) * QC_TTS_PER_10K / 10000;
           // 文档没写编码和采样率，所以不包装成 WAV，也不声明 audio/wav、audio/mpeg。
