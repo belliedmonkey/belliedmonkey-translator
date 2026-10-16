@@ -1,0 +1,162 @@
+{
+  "date": "2026-10-16",
+  "rulesComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6206505383",
+  "device": {
+    "name": "iPhone 14 Pro",
+    "udid": "00008120-000465443A98C01E",
+    "os": "27.0 (24A5430a)"
+  },
+  "section51": {
+    "rerun": false,
+    "grade": "过",
+    "note": "not regraded"
+  },
+  "section53": {
+    "rerun": false,
+    "grade": "过",
+    "convergenceSec": 0.0,
+    "note": "not regraded"
+  },
+  "section52": {
+    "grade": "不过",
+    "band": "off / 10 <= on < off / 2",
+    "window": "[1.5, 3.0)",
+    "energy880": {
+      "off": 9.40264987e-05,
+      "on": 1.93630433e-05,
+      "ratio": 0.20593177
+    },
+    "energy440": {
+      "off": 0.00709014952,
+      "on": 6.79847563e-10,
+      "ratio": 9.58862097e-08
+    },
+    "rms": {
+      "off": 0.119901402,
+      "on": 0.00878026747
+    },
+    "rule": "on 880 Hz energy >= off / 2; 440 Hz is recorded and is not the grade"
+  },
+  "precheck": {
+    "error": null,
+    "samples": 48000,
+    "energy880": 8.98048775e-05,
+    "floor": 1e-06,
+    "heard": true
+  },
+  "speech": {
+    "ran": false,
+    "reason": "880 Hz grade is 不过, so the speech launch was not started"
+  },
+  "speechFile": {
+    "command": "say -v Samantha -o speech.aiff \"Please tell me where the station is, and how long it takes to get there.\"",
+    "wav": "16 kHz mono int16",
+    "seconds": 3.92225,
+    "played": false
+  },
+  "playback": {
+    "playerVolume": 0.5,
+    "mixerOutputVolume": 1.0,
+    "tonePeak": 0.5,
+    "sessionOutputVolume": 1.0,
+    "mode": "880"
+  },
+  "volumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuring": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfter": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "outputTouched": false,
+  "restored": {
+    "output": 70,
+    "input": 0,
+    "alert": 100,
+    "muted": false
+  },
+  "uninstalled": true,
+  "delay": {
+    "source": "audio_processing.h 598-611 plus Mac ADM device+stream latency, host-time delta, buffered samples; set_stream_delay_ms on the AEC-on run; default_delay not set",
+    "on": {
+      "n": 334,
+      "min": 18,
+      "median": 42,
+      "max": 59,
+      "first": {
+        "delayMs": 18,
+        "playMs": 3,
+        "recMs": 15,
+        "setReturn": 0
+      },
+      "last": {
+        "delayMs": 39,
+        "playMs": 20,
+        "recMs": 19,
+        "setReturn": 0
+      }
+    },
+    "onWarnings": 0,
+    "outDeviceLatencyFrames": 70,
+    "outStreamLatencyFrames": 70,
+    "outLatencyUs": 2916,
+    "inLatencyUs": 0
+  },
+  "off": {
+    "error": null,
+    "toneSamples": 48000,
+    "hitWallCap": false,
+    "duringRms": 0.12466696,
+    "duringMaxAbs": 0.219520196,
+    "delay": {
+      "n": 20,
+      "min": 18,
+      "median": 45,
+      "max": 54,
+      "first": {
+        "delayMs": 18,
+        "playMs": 3,
+        "recMs": 15,
+        "setReturn": 0
+      },
+      "last": {
+        "delayMs": 51,
+        "playMs": 22,
+        "recMs": 29,
+        "setReturn": 0
+      }
+    },
+    "delayWarnings": 0,
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "inputRate": 44100,
+    "outputRate": 48000
+  },
+  "on": {
+    "error": null,
+    "toneSamples": 48000,
+    "hitWallCap": false,
+    "duringRms": 0.00844906122,
+    "duringMaxAbs": 0.02148523,
+    "delay": {
+      "n": 334,
+      "min": 18,
+      "median": 42,
+      "max": 59,
+      "first": {
+        "delayMs": 18,
+        "playMs": 3,
+        "recMs": 15,
+        "setReturn": 0
+      },
+      "last": {
+        "delayMs": 39,
+        "playMs": 20,
+        "recMs": 19,
+        "setReturn": 0
+      }
+    },
+    "delayWarnings": 0,
+    "input": "MacBook Pro麦克风",
+    "output": "MacBook Pro扬声器",
+    "inputRate": 44100,
+    "outputRate": 48000
+  },
+  "newUnfound": []
+}
