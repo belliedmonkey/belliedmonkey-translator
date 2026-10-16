@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-16",
+  "diagnostic": "5.2-F",
+  "rulesComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6207004077",
+  "acousticRun": false,
+  "notRunReason": "notch self-check relative error at 440 Hz is 1.54357201e-9, greater than the posted limit 1e-9. Coefficients were not changed. Microphone was not opened.",
+  "note": "合成语音只能说明别人的语音不被压，不代表真实双方同时说话，人声的真实场景仍未验。这次没有播放 speech.wav。",
+  "previousUnchanged": [
+    {
+      "name": "5.2",
+      "grade": "不过",
+      "commit": "d142caa21f0408a29b4dcc040867770163bec9d6",
+      "log": "docs/status/aec3-probe-step2-52-2026-10-16.json"
+    },
+    {
+      "name": "5.2-D",
+      "grade": null,
+      "band": "前置不成立",
+      "commit": "17074610cd2eca182302a1c49380885e76e4ea4e",
+      "log": "docs/status/aec3-probe-step2-52d-2026-10-16.json"
+    },
+    {
+      "name": "5.2-E",
+      "speechGrade": "不过",
+      "speechRatio": 0.266841337,
+      "speechRatioIsNotRetention": true,
+      "commit": "b4574d080e4b5ab84b150664026f477198c90830",
+      "log": "docs/status/aec3-probe-step2-52e-2026-10-16.json"
+    }
+  ],
+  "notchSelfcheck": {
+    "microphone": false,
+    "postedRatio440": 0.00316443079,
+    "computedRatio440": 0.0031644307851154733,
+    "relErr440": 1.54357201e-9,
+    "limit": 1e-9,
+    "pass440": false,
+    "postedRatio1000": 0.999887962,
+    "computedRatio1000": 0.99988796153046544,
+    "relErr1000": 4.69587134e-10,
+    "pass1000": true,
+    "coefficientsChanged": false
+  },
+  "f1": {
+    "grade": null,
+    "ratio": null,
+    "ran": false
+  },
+  "f2": {
+    "grade": null,
+    "ratio": null,
+    "ran": false
+  },
+  "prerequisite": {
+    "holds": null,
+    "ratio": null,
+    "ran": false
+  },
+  "tone440": {
+    "grade": null,
+    "ratio": null,
+    "ran": false
+  },
+  "volumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "inputSetTo60": false,
+  "outputTouched": false,
+  "restored": {
+    "output": 70,
+    "input": 0,
+    "alert": 100,
+    "muted": false,
+    "changed": false
+  },
+  "newUnfound": []
+}
