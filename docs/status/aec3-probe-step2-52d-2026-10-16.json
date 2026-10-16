@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-16",
+  "diagnostic": "5.2-D",
+  "rulesComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6206742962",
+  "previousSection52Unchanged": {
+    "commit": "d142caa21f0408a29b4dcc040867770163bec9d6",
+    "log": "docs/status/aec3-probe-step2-52-2026-10-16.json",
+    "grade": "不过"
+  },
+  "device": {
+    "name": "iPhone 14 Pro",
+    "udid": "00008120-000465443A98C01E"
+  },
+  "playback": {
+    "mode": "880",
+    "playerVolume": 1.0,
+    "mixerOutputVolume": 1.0,
+    "tonePeak": 1.0,
+    "sessionOutputVolume": 1.0
+  },
+  "silent": {
+    "error": null,
+    "samples": 48000,
+    "energy880": 9.16064664e-05
+  },
+  "prerequisite": {
+    "holds": false,
+    "aligned": true,
+    "energy880": 0.000101811917,
+    "energy440": 0.0070144058,
+    "ratio": 0.0145146888,
+    "rule": "off 880 >= off 440 / 10"
+  },
+  "section52d": {
+    "grade": null,
+    "band": "前置不成立"
+  },
+  "energy880OnOverOff": null,
+  "speech": {
+    "ran": false,
+    "reason": "prerequisite holds is false, so the AEC-on 880 run and the speech run were not started",
+    "bandRmsOnOverOff": null,
+    "grade": null,
+    "note": "合成语音只能说明别人的语音不被压，不代表真实双方同时说话。这一轮没有播放。"
+  },
+  "tone440": {
+    "grade": null,
+    "onOverOff": null
+  },
+  "roundsPlayed": 1,
+  "macPlaybackSec": 3,
+  "volumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuring": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfter": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "outputTouched": false,
+  "restored": {
+    "output": 70,
+    "input": 0,
+    "alert": 100,
+    "muted": false
+  },
+  "uninstalled": true,
+  "newUnfound": []
+}
