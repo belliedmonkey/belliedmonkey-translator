@@ -1,0 +1,141 @@
+{
+  "date": "2026-10-16",
+  "diagnostic": "5.2-F",
+  "rulesComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6207004077",
+  "selfCheckLimitComment": "https://github.com/belliedmonkey/belliedmonkey-translator/issues/595#issuecomment-6207102442",
+  "previousLogKept": "docs/status/aec3-probe-step2-52f-2026-10-16.json",
+  "selfCheckLimit": 1e-6,
+  "coefficientsChanged": false,
+  "note": "合成语音只能说明别人的语音不被压，不代表真实双方同时说话，人声的真实场景仍未验。",
+  "f2Path": "F2 的 440 Hz 与 afplay 语音都从这台 Mac 的扬声器出去，同一条回声路径。",
+  "previousUnchanged": [
+    {
+      "name": "5.2",
+      "grade": "不过",
+      "commit": "d142caa21f0408a29b4dcc040867770163bec9d6",
+      "log": "docs/status/aec3-probe-step2-52-2026-10-16.json"
+    },
+    {
+      "name": "5.2-D",
+      "grade": null,
+      "band": "前置不成立",
+      "commit": "17074610cd2eca182302a1c49380885e76e4ea4e",
+      "log": "docs/status/aec3-probe-step2-52d-2026-10-16.json"
+    },
+    {
+      "name": "5.2-E",
+      "speechGrade": "不过",
+      "speechRatio": 0.266841337,
+      "commit": "b4574d080e4b5ab84b150664026f477198c90830",
+      "log": "docs/status/aec3-probe-step2-52e-2026-10-16.json"
+    }
+  ],
+  "notchSelfcheck": {
+    "pass": true,
+    "limit": 1e-6,
+    "ratio440": 0.0031644307851154733,
+    "relErr440": 1.54357201e-9,
+    "ratio1000": 0.99988796153046544,
+    "relErr1000": 4.69587134e-10
+  },
+  "speechFile": {
+    "path": "/Users/belliedmonkey/aec3-probe/speech.wav",
+    "seconds": 3.92225,
+    "rate": 16000,
+    "afplay": "-t 4 -v 1",
+    "fedToReverseStream": false
+  },
+  "rounds": 4,
+  "afplayExit": {
+    "f1": [0, 0],
+    "f2": [0, 0]
+  },
+  "f1": {
+    "grade": "过",
+    "band": "on >= off / 2",
+    "fedToReverseStream": false,
+    "toneSamples": 0,
+    "samples": {
+      "off": 24000,
+      "on": 23999
+    },
+    "bandRms": {
+      "off": 0.0577278619,
+      "on": 0.0556271294,
+      "ratio": 0.963609729
+    },
+    "error": null
+  },
+  "prerequisite": {
+    "holds": true,
+    "why": "speech >= 10 * noise",
+    "speechSamples": 24000,
+    "noiseSamples": 8000,
+    "speechRms": 0.0520193546,
+    "noiseRms": 0.000768685616,
+    "ratio": 67.6731208,
+    "earliestT0": -1.040649,
+    "rule": "filtered [1.5,3.0) band rms >= 10 * filtered [-0.5,0) band rms"
+  },
+  "f2": {
+    "grade": "不过",
+    "band": "on < off / 2",
+    "probeFedToReverseStream": true,
+    "afplayFedToReverseStream": false,
+    "samples": {
+      "off": 24000,
+      "on": 23999
+    },
+    "bandRms": {
+      "off": 0.0520193546,
+      "on": 0.0135959962,
+      "ratio": 0.261364185
+    },
+    "error": null
+  },
+  "tone440": {
+    "grade": "压住",
+    "samples": {
+      "off": 24000,
+      "on": 23999
+    },
+    "energy": {
+      "off": 0.00479457524,
+      "on": 1.18039929e-9,
+      "ratio": 2.46194758e-7
+    }
+  },
+  "volumeBefore": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuringF1": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfterF1": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "volumeDuringF2": "output volume:70, input volume:60, alert volume:100, output muted:false",
+  "volumeAfterF2": "output volume:70, input volume:0, alert volume:100, output muted:false",
+  "outputTouched": false,
+  "restored": {
+    "output": 70,
+    "input": 0,
+    "alert": 100,
+    "muted": false
+  },
+  "delayOnF2": {
+    "n": 400,
+    "storedCap": 400,
+    "min": 18,
+    "median": 42,
+    "max": 59,
+    "delayWarnings": 0,
+    "first": {
+      "delayMs": 18,
+      "playMs": 3,
+      "recMs": 15,
+      "setReturn": 0
+    },
+    "last": {
+      "delayMs": 38,
+      "playMs": 16,
+      "recMs": 22,
+      "setReturn": 0
+    }
+  },
+  "newUnfound": []
+}
