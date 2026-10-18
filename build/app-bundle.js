@@ -216,6 +216,13 @@ function buildAppBundle(outDir, log, opts) {
     // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
     // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
     "window.MT_HOST = 'app';",
+  ];
+  if (opts.testHarness) {
+    // test:mac：Debug 包继承 Keychain 登录；harness 包在 App 启动前钉住，避免 autoClaim 与 pin 抢写 storage（#592 M2）。
+    parts.push("window.__MT_SKIP_AUTO_CLAIM = true;");
+    parts.push('');
+  }
+  parts.push(
     // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
     'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
     '',
@@ -227,7 +234,7 @@ function buildAppBundle(outDir, log, opts) {
       worker: fs.readFileSync(path.join(ROOT, 'extension/vendor/pdfjs/legacy/pdf.worker.min.mjs'), 'utf8'),
     }) + ';',
     '',
-  ];
+  );
   // 生成物必须跟着 flavor 走。`generateProviders/Tts/Stt` 把**全局**那一份写进
   // `extension/content/`，中国版那一份只覆盖到 `dist-china/content/`。这里如果照旧读
   // `extension/`，中国版宿主 App 拿到的就是国际版注册表 —— 设置页列出 ChatGPT /

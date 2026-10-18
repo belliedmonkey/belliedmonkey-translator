@@ -276,7 +276,11 @@ export function bootShell() {
   // 一次会话只试一次 —— 存的是**那一次尝试本身**，晚来的调用者（引导的「就地试一句」）
   // 等同一次，而不是看见「已经试过」就当作有了引擎。
   let _autoClaimed = null;
+  function autoClaimSkipped() {
+    try { return typeof window !== 'undefined' && window.__MT_SKIP_AUTO_CLAIM; } catch (_) { return false; }
+  }
   async function autoClaimGrant() {
+    if (autoClaimSkipped()) return;
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
   }
@@ -285,6 +289,7 @@ export function bootShell() {
   // 记住失败之后，状态行改说「额度没领到 / 已停用」并给一条**重领**的路（判据 J07：缺失项要有恢复路径）。
   let claimFailed = false;
   async function autoClaimOnce() {
+    if (autoClaimSkipped()) return;
     if (typeof LearnGrant === 'undefined' || !LearnGrant.enabled()) return;
     // 2026-09-30（§8.10.3，issue #513）：这里原来有一道守卫
     //   if (!EngineState.needsSetup(cur)) return;   // 「已经有引擎 —— 不碰」

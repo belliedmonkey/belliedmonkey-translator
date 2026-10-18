@@ -58,6 +58,11 @@ test('★ harness 只在 opts.testHarness 时进包（双向，真构建）', ()
   buildAppBundle(withH, quiet, { testHarness: true });
   const withJs = fs.readFileSync(path.join(withH, 'Script.js'), 'utf8');
   ok(withJs.includes('window.__mtTest'), '带 testHarness 构建出的 Script.js 里没有 __mtTest —— 驱动端点起来了也没接口可调');
+  const skipAssign = 'window.__MT_SKIP_AUTO_CLAIM = true';
+  ok(!plainJs.includes(skipAssign), '出货包 Script.js 里出现了 harness 关 autoClaim 的赋值 —— 正式行为不能被改');
+  ok(withJs.includes(skipAssign), 'harness 包 Script.js 里没有关 autoClaim 的赋值 —— test:mac 会与 autoClaim 抢写 storage');
+  ok(withJs.indexOf(skipAssign) < withJs.indexOf('// ─── src/app/main.jsx'),
+    '关 autoClaim 的赋值必须在 App 入口 bundle 之前 —— 否则开机 autoClaim 已跑完');
 });
 
 test('★ §0.4 文档点名三件套 + test:mac —— 代码与文档不得单边漂', () => {

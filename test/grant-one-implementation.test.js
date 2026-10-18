@@ -57,6 +57,9 @@ describe('免费额度：领取 → 写槽 → 回执，只有一份实现', () 
     ok(/overwrite:\s*false/.test(body),
       'overwrite 不是 false —— 自动领取绝不能碰用户自己的 key');
     ok(/_autoClaimed/.test(body), '没有「一次会话只试一次」的闸');
+    ok(/function autoClaimSkipped/.test(src) && /__MT_SKIP_AUTO_CLAIM/.test(src),
+      'test:mac harness 包关 autoClaim 的闸不在 shell-model —— Debug 会与 pin 抢写 storage');
+    ok(/autoClaimSkipped\(\)/.test(body), 'autoClaimGrant 入口没有先过 harness 关 autoClaim 的闸');
   });
 
   // 2026-10-02：用户报「登录后扩展端需要手动领取免费额度」。App 侧早就在登录汇合点

@@ -326,10 +326,9 @@ async function pinListenOfflineEngines() {
   await waitListenTrLive(chatUrl);
 }
 
-// storage 钉 offline 后，listen-model 通过 onChanged 同步 cfg.tr（#97）+ readCfg 补全；grant 键也可能被
-// autoClaim 写回。读 storage +（有会话且有历史行时）用 retranslate 打本机假端点，确认 passRow 不再走 grant。
-// pin 顺序：afterBootPinListen（进听译页前，无 sid ⇒ 只验 storage）→ setupListen 里开麦前再 pin → recOn 起会话
-// → 各 case（如 M2）再 pin；M2 为听译首 case、history=0 时不做末行重译探针，改首句注入后验 mock/译文。
+// storage 钉 offline 后，listen-model 通过 onChanged 同步 cfg.tr（#97）+ readCfg 补全。
+// 会话是否走假端点：M2 注入前读 AppListen._debug().trCfg；首句注入后验 mock 命中或译文。
+// pin 顺序：afterBootPinListen（进听译页前）→ setupListen 开麦前 → 各 case（如 M2）再 pin。
 async function listenTrStorageOk(chatUrl) {
   const got = await storageGet(['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'grant', 'grantTail', 'grantBalance']);
   const base = String(got.apiBaseUrl || '');
@@ -341,37 +340,20 @@ async function waitListenTrLive(chatUrl, ms) {
   const lim = ms || 20000;
   const snap = async () => {
     const got = await storageGet(['provider', 'apiKey', 'grant', 'grantTail', 'grantBalance']);
-    const st = await state().catch(() => ({}));
-    const ph = await evalOk('(window.AppListen&&AppListen._debug()||{}).phase||""').catch(() => '');
+    const tr = await evalOk('(window.AppListen&&AppListen._debug()||{}).trCfg||null').catch(() => null);
     const grantOn = !!(got.grant || got.grantTail || got.grantBalance);
-    return `provider=${got.provider || ''} grant=${grantOn} phase=${ph} history=${st.historyCount || 0}`;
+    return `storage=${got.provider || ''} grant=${grantOn} trCfg=${tr ? tr.provider + '@' + tr.baseUrl : 'null'}`;
   };
   await waitFor(async () => listenTrStorageOk(chatUrl), lim, snap);
-  const sid = await evalOk('(window.AppListen && AppListen._debug() || {}).id || ""').catch(() => '');
-  if (!sid) return;
-  const st0 = await state().catch(() => ({}));
-  if (!(st0.historyCount > 0)) return;
-  let hits0 = mockChatHits;
-  for (let i = 0; i < 10; i++) {
-    if (mockChatHits > hits0) return;
-    hits0 = mockChatHits;
-    await runAsync(`(async()=>{
-      const d = AppListen._debug();
-      const rows = d.rows || [];
-      const row = rows.slice().reverse().find((r) => r && r.raw != null) || rows[rows.length - 1];
-      if (row) await AppListen.retranslate(row, true);
-      return 'ok';
-    })()`, 25000);
-    await sleep(350);
-  }
-  throw new Error(`等不到：会话 cfg.tr 已走假端点（mock=${mockChatHits}；${await snap()}）`);
 }
+
+async function listenTrCfgOk(chatUrl) {
+  const tr = await evalOk('(window.AppListen&&AppListen._debug()||{}).trCfg||null').catch(() => null);
+  return !!(tr && tr.provider === 'custom_chat' && tr.baseUrl === chatUrl);
+}
+
 async function afterBootPinListen() {
-  await sleep(3500);
-  await pinListenOfflineEngines();
-  await sleep(400);
-  await pinListenOfflineEngines();
-  await sleep(400);
+  await sleep(2000);
   await pinListenOfflineEngines();
 }
 
@@ -687,13 +669,16 @@ async function m7(ctx) {
 }
 
 async function m2(ctx) {
-  await pinListenOfflineEngines();        // autoClaim 可能在中途又把 provider 写回 grant
+  await pinListenOfflineEngines();
   await recSide('me');                    // 这一条注入中文 ⇒ 收音侧摆回「我说中文」
   // 注入前等朗读排空：上一轮 M7 之后可能还有译文在念，同语言注入会被回声闸正当丢掉。
   await quiet();
   okc(mockChatPort > 0, '假翻译端点没起来');
   const chatUrl = `http://127.0.0.1:${mockChatPort}/v1/chat/completions`;
-  await waitFor(async () => listenTrStorageOk(chatUrl), 25000, 'M2 注入前 storage 未钉 offline');
+  await waitFor(async () => listenTrCfgOk(chatUrl), 25000, async () => {
+    const tr = await evalOk('(window.AppListen&&AppListen._debug()||{}).trCfg||null').catch(() => null);
+    return `M2 注入前会话 cfg.tr 未走假端点（trCfg=${JSON.stringify(tr)}；要 custom_chat@${chatUrl}）`;
+  });
   const mockBefore = mockChatHits;
   await say('请问去火车站怎么走？', 'zh-CN');
   await waitFor(async () => {
