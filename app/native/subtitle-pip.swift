@@ -148,7 +148,10 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         state = body["state"] as? String ?? state
         pct = (body["pct"] as? NSNumber)?.intValue ?? 0
         dirty = true
-        pip?.invalidatePlaybackState()
+        // 续听走 subtitle-state → invalidate，不经过 setPlaying。isPlaybackPaused 变 false 时
+        // 系统会把样本缓冲时间轴拉到 1，当成在播的影片，外放视频被停（#592 #81；#80 只修了 ▶ 那条）。
+        refreshPipPlaybackState()
+        DispatchQueue.main.async { [weak self] in self?.refreshPipPlaybackState() }
     }
 
     /// App 回到前台而小窗还浮着：收成内联预览（#590 iOS 6）。
@@ -306,12 +309,10 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         // 小窗没有自己的声音。系统把时间轴速率拉到 1 时，会当成一部正在放的影片，把另一个 App 的视频停掉（#590 iOS 5）。
         // 播放键只恢复听，暂停键只暂停听。速率马上停回 0；按钮状态走 isPlaybackPaused，不走这条时间轴。
         // 必须先 park 再通知页面：onRemote 会续听 → 原生再开麦，若时间轴还在 1，系统会先掐掉外放视频（#79）。
-        parkTimebase()
-        c.invalidatePlaybackState()
+        refreshPipPlaybackState(on: c)
         let cmd = playing ? "play" : "pause"
         DispatchQueue.main.async { [weak self] in
-            self?.parkTimebase()
-            c.invalidatePlaybackState()
+            self?.refreshPipPlaybackState(on: c)
             self?.onRemote?(cmd)
         }
     }
@@ -324,6 +325,12 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
             if let tb { displayLayer.controlTimebase = tb }
         }
         if let tb = displayLayer.controlTimebase { CMTimebaseSetRate(tb, rate: 0) }
+    }
+    /// 小窗按钮状态靠 isPlaybackPaused，不靠时间轴速率。invalidate 前后都 park，免得系统同步时把 rate 拉到 1。
+    private func refreshPipPlaybackState(on c: AVPictureInPictureController? = nil) {
+        let controller = c ?? pip
+        parkTimebase()
+        controller?.invalidatePlaybackState()
     }
     /// 有限的滑动时间窗（而不是直播形状的无穷区间）：系统才会给出后退 / 前进按钮。窗口右端 = 当前帧的时间戳。
     /// 待真机：按钮是否出现、进度条是否碍眼。

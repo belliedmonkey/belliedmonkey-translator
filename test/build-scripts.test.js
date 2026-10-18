@@ -465,7 +465,10 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     for (const lit of strings) ok(allowed.has(lit), `画中画字幕窗里出现了非协议字符串（可能是文案）：${lit}`);
   });
   test('系统控件回页面（19）、浮出只在前台活跃时成（20）', () => {
-    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?parkTimebase\(\)[\s\S]*?onRemote\?\(cmd\)/.test(tpl), '⏸ / ▶：先 park 时间轴，再异步 remote pause / play（续听不掐外放视频）');
+    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?refreshPipPlaybackState\(on: c\)[\s\S]*?onRemote\?\(cmd\)/.test(tpl), '⏸ / ▶：先 park 时间轴，再异步 remote pause / play（续听不掐外放视频）');
+    ok(/func setState\(_ body:[\s\S]*?refreshPipPlaybackState\(\)[\s\S]*?DispatchQueue\.main\.async \{ \[weak self\] in self\?\.refreshPipPlaybackState\(\)/.test(tpl),
+      'subtitle-state 续听也 park 时间轴（不只有 setPlaying ▶）');
+    ok(/func refreshPipPlaybackState[\s\S]*?parkTimebase\(\)[\s\S]*?invalidatePlaybackState/.test(tpl), 'invalidate 前后 park，不当成在播影片');
     ok(/pictureInPictureControllerShouldProhibitBackgroundAudioPlayback[\s\S]*?true/.test(tpl), '小窗不放音频，禁止它在后台接管播放');
     ok(/CMTimebaseSetRate\(tb, rate: 0\)/.test(tpl), '小窗时间轴停在 0，不当成正在放的影片');
     ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
