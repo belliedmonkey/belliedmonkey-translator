@@ -333,6 +333,15 @@ async function waitFor(fn, ms, what) {
   throw new Error(`等不到：${detail}（${ms}ms）`);
 }
 
+// 左录音键是否仍灰 —— 必须读 __mtTest.state().ptt.disabled（DOM）。
+// __mtTest.ptt.state() 只有 on/side，没有 disabled；误用它会让「等就绪」立刻通过（M8/M9 假等、开麦 30s 超时）。
+async function pttMineDisabled() {
+  return !!(await evalOk('(__mtTest.state().ptt||{}).disabled'));
+}
+async function waitPttReady(ms, label) {
+  await waitFor(async () => !(await pttMineDisabled()), ms || 120000, label || '听译页录音键就绪');
+}
+
 // ── 能力探针（step 0）─────────────────────────────────────────────────────────
 async function probe() {
   log('\n═══ 能力探针（§0.4 step 0 — 先知道这台 Mac 能测什么）═══');
@@ -438,9 +447,10 @@ async function m6() {
 // ── 听译组（一个会话跑完 M7→M2→M3→M4→M5；顺序即依赖：M3 吃 M2 的朗读，M5 关自动朗读放最后）──
 // 改稿 D：对话页启停＝底部那两个录音键（`__mtTest.ptt.toggle`，真点击）。
 async function recOn(side) {
+  await waitPttReady(120000, '开麦前录音键仍禁用（语言包/管道未就绪）');
   if ((await evalOk('__mtTest.ptt.state()')).on) return true;
   await evalOk(`__mtTest.ptt.toggle('${side || 'mine'}'), true`);
-  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 30000, '点录音键开麦');
+  await waitFor(async () => (await evalOk('__mtTest.ptt.state()')).on, 60000, '点录音键开麦');
   // 等**管道就绪**：ptt 是同步置位的，phase 要等 beginPipeline。注入/断言都得等它。
   await waitFor(async () => (await evalOk('AppListen._debug().phase')) === 'listening', 90000, '收音管道就绪');
   return true;
@@ -596,6 +606,7 @@ async function m7(ctx) {
 }
 
 async function m2(ctx) {
+  await pinListenOfflineEngines();        // autoClaim 可能在中途又把 provider 写回 grant
   await recSide('me');                    // 这一条注入中文 ⇒ 收音侧摆回「我说中文」
   // 注入前等朗读排空：上一轮 M7 之后可能还有译文在念，同语言注入会被回声闸正当丢掉。
   await quiet();
@@ -730,8 +741,7 @@ async function m8() {
     await click('app-listen-entry');
     await waitFor(() => visible('app-listen'), 8000, 'M8 听译页');
     await pinListenOfflineEngines();
-    await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).disabled, 120000,
-      'M8 开听前录音键一直禁用（语言包/管道没就绪）');
+    await waitPttReady(120000, 'M8 开听前录音键一直禁用（语言包/管道没就绪）');
     await recOn();
     // 修复后：模型全就绪（kokoro 在），这里应该几秒内就 live —— 不下任何东西
     await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000,
@@ -763,8 +773,7 @@ async function m9() {
   await click('app-listen-entry');
     await waitFor(() => visible('app-listen'), 8000, 'M9 听译页');
     await pinListenOfflineEngines();
-    await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).disabled, 120000,
-      'M9 开听前录音键一直禁用');
+    await waitPttReady(120000, 'M9 开听前录音键一直禁用');
     await recOn();
     await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'M9 zh/en 开听');
   await evalOk('__mtTest.rec(1), true');
