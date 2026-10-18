@@ -37,6 +37,9 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
     private var timer: Timer?
     private var restoring = false
 
+    /// 画中画浮窗是否在屏上（#592 #83：仅此时钉死 AVAudioSession，续听 / ▶ 不再 setCategory）。
+    var isPictureInPictureActive: Bool { pip?.isPictureInPictureActive ?? false }
+
     private var stateLabels: [String: String] = [:]
     /// 小窗自己的几行字（labels.pip）：title / hint / close（空窗说明）、history（翻看历史时顶部那行）
     private var pipLabels: [String: String] = [:]

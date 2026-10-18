@@ -398,6 +398,77 @@ final class S56UITests: XCTestCase {
         note("pip done")
     }
 
+    // #592 #83：PiP ⏸ → ▶ 后 Safari 源视频 currentTime 仍前进（手动 / 夜间；不进 npm test）。
+    // 测前在本机起静态服：cd test/fixtures && python3 -m http.server 8781
+    // MT_PIP_URL=http://<lan-ip>:8781/autoplay-video.html
+    func testPiPSafariResume59283() throws {
+        continueAfterFailure = false
+        let env = ProcessInfo.processInfo.environment
+        let bid = env["MT_TARGET_BUNDLE"] ?? "com.belliedmonkeytranslator"
+        let app = XCUIApplication(bundleIdentifier: bid)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        func find(_ text: String, exact: Bool) -> XCUIElement? {
+            let pred = exact ? NSPredicate(format: "label == %@", text) : NSPredicate(format: "label CONTAINS %@", text)
+            let e = app.webViews.descendants(matching: .any).matching(pred).firstMatch
+            if !e.waitForExistence(timeout: 6) { return nil }
+            for _ in 0..<8 { if e.isHittable { return e }; app.swipeDown(); usleep(600_000) }
+            for _ in 0..<14 { if e.isHittable { return e }; app.swipeUp(); usleep(600_000) }
+            return e.isHittable ? e : nil
+        }
+        func videoTime() -> Double? {
+            let el = safari.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'video time'")).firstMatch
+            guard el.waitForExistence(timeout: 8) else { return nil }
+            let parts = el.label.split(separator: " ")
+            guard let last = parts.last else { return nil }
+            return Double(last)
+        }
+        for _ in 0..<10 { MTVol.up(); usleep(200_000) }
+
+        app.launch(); sleep(6)
+        allowSystemAlerts("launch")
+        if let skip = find("以后再设置", exact: true) { skip.tap(); sleep(3) }
+        if let ok = find("我已打开", exact: false) { ok.tap(); sleep(2) }
+        if let e = find("实时字幕", exact: true) ?? find("给正在播放的视频", exact: false) { e.tap() }
+        sleep(3)
+        if let s = find("开始", exact: true) { s.tap() }
+        sleep(2); allowSystemAlerts("start")
+        sleep(8)
+
+        let page = env["MT_PIP_URL"] ?? "http://127.0.0.1:8781/autoplay-video.html"
+        XCUIDevice.shared.system.open(URL(string: page)!)
+        note("safari foreground=\(safari.wait(for: .runningForeground, timeout: 20))")
+        sleep(3)
+        let playBtn = safari.buttons["Play"]
+        if playBtn.waitForExistence(timeout: 12) { playBtn.tap() }
+        sleep(10)
+
+        let cx = Double(env["MT_PIP_CX"] ?? "") ?? 0.70
+        let cy = Double(env["MT_PIP_CY"] ?? "") ?? 0.79
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: cx, dy: cy)).tap()
+        usleep(900_000)
+        // ⏸：PiP 控件位置因机型而异；默认点控件条中部（可 MT_PIP_PAUSE_X/Y 覆盖）
+        let px = Double(env["MT_PIP_PAUSE_X"] ?? "") ?? 0.35
+        let py = Double(env["MT_PIP_PAUSE_Y"] ?? "") ?? 0.66
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: px, dy: py)).tap()
+        usleep(800_000)
+        // ▶
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: px + 0.12, dy: py)).tap()
+        usleep(800_000)
+
+        guard let t0 = videoTime() else {
+            XCTFail("no video time label — is MT_PIP_URL reachable?")
+            return
+        }
+        sleep(3)
+        guard let t1 = videoTime() else {
+            XCTFail("video time unread after resume")
+            return
+        }
+        note(String(format: "video currentTime delta: %.1f → %.1f (Δ=%.1f)", t0, t1, t1 - t0))
+        XCTAssertGreaterThanOrEqual(t1 - t0, 2.0, "Safari video should advance after PiP resume")
+    }
+
     // 谁在占用麦克风：读状态栏与控制中心里系统写出来的无障碍文字（2026-09-17）。
     func testMicWho() throws {
         continueAfterFailure = true

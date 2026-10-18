@@ -28,6 +28,7 @@ import AVFoundation
 import MediaPlayer
 #if os(iOS)
 import ActivityKit
+import os
 #endif
 
 #if os(iOS)
@@ -287,11 +288,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 漏掉这一步的表现是「权限给了、tap 装了、块里全是 0」—— 查起来极贵。
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
-            if !sessionActive {
-                try session.setActive(true)
-                sessionActive = true
-            }
+            try mtApplyCategory("micBegin", session: session, category: .playAndRecord, mode: .default, options: recordOptions)
+            try mtApplyActive("micBegin", session: session, active: true)
         } catch {
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
             return
@@ -412,6 +410,67 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
 #if os(iOS)
+    private static let mtAudioLog = OSLog(subsystem: "com.belliedmonkeytranslator", category: "MTAudio")
+
+    private func mtLogAudio(_ tag: String, _ session: AVAudioSession, extra: String = "") {
+        os_log(.default, log: MTAudioBridge.mtAudioLog,
+               "tag=%{public}@ cat=%{public}@ opts=%{public}@ active=%{public}d other=%{public}d %{public}@",
+               tag, session.category.rawValue, String(describing: session.categoryOptions),
+               session.isOtherAudioPlaying ? 1 : 0, extra)
+    }
+
+    /// 字幕 + 画中画浮窗：▶ / ⏸ / hold 续听路径上对 AVAudioSession 零变更（#592 #83）。
+    private func subtitlePipAudioLocked() -> Bool {
+        recordProfile == "subtitle" && MTSubtitlePip.shared.isPictureInPictureActive
+    }
+
+    /// 字幕档会话已 active 且 category/options 已是 mixable playAndRecord（hold 续听、非浮窗）。
+    private func subtitleRecordSessionPinned(in session: AVAudioSession) -> Bool {
+        guard recordProfile == "subtitle", sessionActive else { return false }
+        return session.category == .playAndRecord && session.categoryOptions.contains(.mixWithOthers)
+    }
+
+    private func mtApplyCategory(_ tag: String, session: AVAudioSession,
+                                 category: AVAudioSession.Category, mode: AVAudioSession.Mode,
+                                 options: AVAudioSession.CategoryOptions) throws {
+        if subtitlePipAudioLocked() {
+            mtLogAudio(tag, session, extra: "skip-setCategory-pip-locked")
+            return
+        }
+        if recordProfile == "subtitle", subtitleRecordSessionPinned(in: session),
+           session.category == category, session.categoryOptions == options {
+            mtLogAudio(tag, session, extra: "skip-setCategory-pinned")
+            return
+        }
+        try session.setCategory(category, mode: mode, options: options)
+        mtLogAudio(tag, session, extra: "setCategory")
+    }
+
+    private func mtApplyActive(_ tag: String, session: AVAudioSession, active: Bool,
+                               options: AVAudioSession.SetActiveOptions = []) throws {
+        if subtitlePipAudioLocked() {
+            mtLogAudio(tag, session, extra: "skip-setActive-pip-locked")
+            return
+        }
+        if active, sessionActive {
+            mtLogAudio(tag, session, extra: "skip-setActive-already")
+            return
+        }
+        if active {
+            try session.setActive(true)
+            sessionActive = true
+        } else {
+            try session.setActive(false, options: options)
+            sessionActive = false
+        }
+        mtLogAudio(tag, session, extra: active ? "setActive-true" : "setActive-false")
+    }
+
+    /// TTS 路径：PiP 浮窗 + 字幕外放场景不二次 setActive（#592 #83）。
+    static func skipSpeechSessionActivate() -> Bool {
+        shared.subtitlePipAudioLocked()
+    }
+
     /// 我们的 AVAudioSession 是否仍处于激活态（字幕带 hold 暂停时不释放，续听不应再 setActive）。
     private var sessionActive = false
     /// 这次录音会话的档（§9.8 协议补充决定 16）。**所有重申类别的地方都按它**：建会话、起引擎、playing-state 重申、
@@ -434,6 +493,13 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     private func startSession() {
 #if os(iOS)
+        // hold 续听：会话仍 active 时不重复 setCategory / setActive（#592 #83）；仍回 session-ready。
+        if recordProfile == "subtitle", sessionActive {
+            installCommands()
+            if !sweptOrphans { sweptOrphans = true; sweepOrphanActivities() }
+            emit(["type": "session-ready", "platform": "ios", "suspends": true])
+            return
+        }
         let session = AVAudioSession.sharedInstance()
         do {
             // .playback = 「这是内容音频，静音键不该关掉它，后台要继续」。
@@ -443,14 +509,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                 // .playAndRecord + 扬声器 + 蓝牙 + 可混音：线下对话手机放桌上，声音要从外放出、耳机要能用；
                 // **可混音是必须的** —— 页内的保活音频与朗读走 WebKit 自己（GPU 进程）的音频会话，不可混音的
                 // 录音会话会被它当场打断（2026-09-07 真机：TestFlight 84 一进来就「录音被系统停止了」）。
-                try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+                try mtApplyCategory("startSession", session: session, category: .playAndRecord, mode: .default, options: recordOptions)
             } else {
-                try session.setCategory(.playback, mode: .spokenAudio, options: [])
+                try mtApplyCategory("startSession", session: session, category: .playback, mode: .spokenAudio, options: [])
             }
-            if !sessionActive {
-                try session.setActive(true)
-                sessionActive = true
-            }
+            try mtApplyActive("startSession", session: session, active: true)
         } catch {
             // 建不起来就如实说，让 JS 退回「隐藏即暂停」的老行为，而不是继续假装能后台播。
             emit(["type": "session-failed", "reason": String(describing: error)])
@@ -492,8 +555,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 麦已经停了。结束 / 停机不带 hold，照旧释放，让被打断的 App 恢复。
         if (body["hold"] as? Bool) == true { return }
         // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
-        try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
-        sessionActive = false
+        let session = AVAudioSession.sharedInstance()
+        try? mtApplyActive("stopSession", session: session, active: false, options: [.notifyOthersOnDeactivation])
 #endif
     }
 
@@ -512,8 +575,14 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 #if os(iOS)
         guard recordProfile == "subtitle" else { return }
         let session = AVAudioSession.sharedInstance()
-        if session.category != .playAndRecord || !session.categoryOptions.contains(.mixWithOthers) {
-            try? session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+        if !subtitlePipAudioLocked() {
+            if session.category != .playAndRecord || !session.categoryOptions.contains(.mixWithOthers) {
+                try? mtApplyCategory("keepSubtitleMix", session: session, category: .playAndRecord, mode: .default, options: recordOptions)
+            } else {
+                mtLogAudio("keepSubtitleMix", session, extra: "skip-setCategory-ok")
+            }
+        } else {
+            mtLogAudio("keepSubtitleMix", session, extra: "skip-setCategory-pip-locked")
         }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #endif
@@ -715,10 +784,13 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             // 实时听译（§9.6）也发这条消息（锁屏卡片的播放态），那时必须重申成**可录**的
             // 那一档 —— 2026-09-07 真机实证：结束再开始时这句把类别打回 .playback，
             // 麦克风引擎随即起不来（第一次能成只是因为权限查询把引擎启动排到了它后面）。
-            if recordMode || micEngine != nil {
-                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: recordOptions)
+            let session = AVAudioSession.sharedInstance()
+            if recordProfile == "subtitle", subtitlePipAudioLocked() {
+                mtLogAudio("updatePlaybackState", session, extra: "skip-setCategory-pip-locked")
+            } else if recordMode || micEngine != nil {
+                try? mtApplyCategory("updatePlaybackState", session: session, category: .playAndRecord, mode: .default, options: recordOptions)
             } else {
-                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+                try? mtApplyCategory("updatePlaybackState", session: session, category: .playback, mode: .spokenAudio, options: [])
             }
         }
 #endif
@@ -755,8 +827,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         //
         // 只在真的要接着播时才激活。`test/build-scripts.test.js` 有一条断言钉住这个顺序。
         if shouldResume {
-            try? AVAudioSession.sharedInstance().setActive(true)
-            sessionActive = true
+            let session = AVAudioSession.sharedInstance()
+            if subtitlePipAudioLocked() {
+                mtLogAudio("onInterruption-resume", session, extra: "skip-setActive-pip-locked")
+            } else {
+                try? mtApplyActive("onInterruption-resume", session: session, active: true)
+            }
         }
         emit(["type": "interrupt", "phase": "end", "resume": shouldResume])
     }

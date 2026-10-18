@@ -1932,6 +1932,7 @@ const listenModel = (() => {
     if (!bridged() || !session) return;
     NativeAudio.onEvent(onNative);
     NativeAudio.recordMode(true, C.modeOf(session).profile);
+    // hold 续听：原生会话仍 active 时只 mic-start，不再 session-start（#592 #83；老壳无 hold 仍全量）。
     NativeAudio.sessionStart();
     if (session.mode === 'subtitle') { NativeAudio.subtitleConfig({ labels: subtitleLabels(), clickThrough: false, fontScale: cfg.fontScale || 1, opacity: 1 }); pipRectOn(); }
   }
@@ -2597,6 +2598,9 @@ const listenModel = (() => {
         job = sq.next();
         if (!job) break;
         if (job.gen !== gen) continue;            // 旧会话的残留
+        if (session && session.mode === 'subtitle' && pipWindow === 'floating') {
+          sq.push(job); break;   // 浮窗期间不朗读，留队里等浮窗收起
+        }
         speakingRid = job.rid; canvas.view('history');
         const at = now();
         echo.speaking(job.text, at, job.lang);   // lang 给「朗读进行中」那道闸用（回声修）
@@ -2682,6 +2686,8 @@ const listenModel = (() => {
       }
       return;
     }
+    // PiP 浮窗 + Safari 外放：自动朗读不入队（TTS setActive 会打断源视频，#592 #83）。
+    if (session && session.mode === 'subtitle' && pipWindow === 'floating') { autoSkip = 'pip'; return; }
     // 回声第二道闸：这段话我们刚读过 ⇒ 不再读第二遍。漏过第一层的回声，环在这里断掉。
     if (sq.spokenRecently(row.tr, now())) { autoSkip = 'recent'; return; }
     // 保险丝：任何会自己往前跑的东西都要有一个人能按下的停止。

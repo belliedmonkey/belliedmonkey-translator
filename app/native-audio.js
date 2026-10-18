@@ -174,17 +174,24 @@ var NativeAudio = (() => {
     try { p.postMessage(payload); return true; } catch (_) { return false; }
   }
 
+  /// 字幕 hold 暂停：原生会话仍 active，续听不应再 session-start（#592 #83）。
+  let sessionHeld = false;
+
   function sessionStart() {
     lastNowPlaying = ''; lastPlaying = null; lastArtworkId = '';
     msInfo = { title: '', subtitle: '', album: '' }; msArt = '';
     wireMediaSession();
     if (!available()) return false;
+    if (sessionHeld && ready) return true;
     ready = false;
+    sessionHeld = false;
     return post({ type: 'session-start' });
   }
 
   function sessionStop(opts) {
-    ready = false;
+    const hold = !!(opts && opts.hold);
+    if (hold) sessionHeld = true;
+    else { sessionHeld = false; ready = false; }
     lastNowPlaying = ''; lastPlaying = null; lastArtworkId = '';
     msInfo = { title: '', subtitle: '', album: '' }; msArt = '';
     const s = ms();

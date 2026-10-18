@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PiP Safari video probe (#592)</title>
+  <style>
+    body { font-family: system-ui; margin: 1rem; }
+    video { width: 100%; max-width: 640px; background: #000; }
+    #clock { font-size: 2rem; font-variant-numeric: tabular-nums; margin: 1rem 0; }
+    button { font-size: 1.2rem; padding: 0.5rem 1rem; }
+  </style>
+</head>
+<body>
+  <p>Safari PiP resume probe: clock shows <code>video.currentTime</code> (for UI test).</p>
+  <video id="v" playsinline webkit-playsinline loop muted>
+    <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+  </video>
+  <div id="clock" aria-label="video time">0.0</div>
+  <button type="button" id="play">Play</button>
+  <script>
+    const v = document.getElementById('v');
+    const clock = document.getElementById('clock');
+    function tick() {
+      clock.textContent = v.currentTime.toFixed(1);
+      clock.setAttribute('aria-label', 'video time ' + clock.textContent);
+    }
+    v.addEventListener('timeupdate', tick);
+    setInterval(tick, 400);
+    document.getElementById('play').addEventListener('click', () => {
+      v.muted = false;
+      v.play().catch(() => {});
+    });
+  </script>
+</body>
+</html>

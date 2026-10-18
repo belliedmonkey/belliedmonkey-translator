@@ -942,7 +942,9 @@ final class MTDeviceSpeech {
         engine?.stop()
 #if os(iOS)
         // 会话类别由 MTAudioBridge 钉（听译一律 .playAndRecord + mixWithOthers）；这里只保证它是活的。
-        try AVAudioSession.sharedInstance().setActive(true)
+        if !MTAudioBridge.skipSpeechSessionActivate() {
+            try AVAudioSession.sharedInstance().setActive(true)
+        }
 #endif
         let e = AVAudioEngine()
         let p = AVAudioPlayerNode()
@@ -1020,7 +1022,9 @@ final class MTSystemSpeech: NSObject {
         synth.stopSpeaking(at: .immediate)   // 也终止在途的 write()（合成即刻停）
 #if os(iOS)
         // 会话类别由 MTAudioBridge 钉（听译一律 .playAndRecord + mixWithOthers）；这里只保证它是活的。
-        try? AVAudioSession.sharedInstance().setActive(true)
+        if !MTAudioBridge.skipSpeechSessionActivate() {
+            try? AVAudioSession.sharedInstance().setActive(true)
+        }
 #endif
         let u = AVSpeechUtterance(string: text)
         u.voice = voice

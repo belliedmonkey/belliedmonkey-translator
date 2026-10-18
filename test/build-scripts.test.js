@@ -491,12 +491,26 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     ok(!/options: \[\.defaultToSpeaker, \.allowBluetooth, \.mixWithOthers\]\)/.test(body), '不再有硬写对话档选项的 setCategory');
     ok((body.match(/options: recordOptions/g) || []).length >= 4, '建会话 / 起引擎 / playing-state / 小窗遥控重申都读 recordOptions');
     ok(/body\["hold"\] as\? Bool\) == true \{ return \}/.test(body), '字幕暂停带 hold 时不释放音频会话');
-    ok(/private var sessionActive = false/.test(body) && /if !sessionActive \{[\s\S]*?setActive\(true\)/.test(body),
+    ok(/private var sessionActive = false/.test(body) && /skip-setActive-already/.test(body),
       '字幕 hold 续听：会话仍活跃时不第二次 setActive');
     ok(/recordProfile == "subtitle" \{ return \.noActionableNowPlayingItem \}/.test(body), '字幕这场不接锁屏遥控的暂停');
     ok(/recordProfile == "subtitle" \? \[\.mixWithOthers, \.defaultToSpeaker\]/.test(body), '字幕档 = mixWithOthers + defaultToSpeaker，不带 allowBluetooth');
     ok(/\.headphones, \.bluetoothA2DP, \.bluetoothLE, \.bluetoothHFP/.test(body) && /"reason": "headphones"/.test(body), '输出走耳机 / 蓝牙 ⇒ headphones');
     ok(/onRouteChange[\s\S]{0,120}checkHeadphones\(\)/.test(body), '路由变化时再判');
+  });
+  test('字幕 PiP 浮窗期间 AVAudioSession 零变更（#592 #83）', () => {
+    const body = code(audio);
+    const pip = fs.readFileSync(path.join(R, 'app', 'native', 'subtitle-pip.swift'), 'utf8');
+    const na = fs.readFileSync(path.join(R, 'app', 'native-audio.js'), 'utf8');
+    const speech = fs.readFileSync(path.join(R, 'app', 'native', 'speech-bridge.swift'), 'utf8');
+    ok(/subtitlePipAudioLocked\(\)/.test(body), 'audio-bridge 有 PiP 浮窗锁定判据');
+    ok(/isPictureInPictureActive/.test(pip), 'subtitle-pip 暴露 isPictureInPictureActive');
+    ok(/skip-setCategory-pip-locked/.test(body), 'setCategory 在 PiP 浮窗时打 skip 日志、不调 API');
+    ok(/mtApplyCategory\("micBegin"/.test(body) && /mtApplyCategory\("startSession"/.test(body), 'micBegin / startSession 走 mtApplyCategory');
+    ok(/recordProfile == "subtitle", sessionActive/.test(body), 'hold 续听时 startSession no-op 仍回 session-ready');
+    ok(/sessionHeld/.test(na) && /sessionHeld && ready/.test(na), 'JS hold 续听跳过第二次 session-start');
+    ok(/skipSpeechSessionActivate/.test(body) && /skipSpeechSessionActivate\(\)/.test(speech), 'TTS 在 PiP 浮窗时不 setActive');
+    ok(/pipWindow === 'floating'/.test(listen), '自动朗读在 PiP 浮窗期间不入队');
   });
   test('麦克风权限说明点名 iPhone「实时字幕」（Gate I）', () => {
     ok(/const MIC_TEXT = '[^']*实时字幕/.test(sync), 'NSMicrophoneUsageDescription 要提实时字幕（一期听外放用的是麦克风）');
@@ -660,12 +674,13 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
       // 自己的说明文字绊倒（第一次跑就是这么红的）。
       const body = tpl.slice(tpl.indexOf('func onInterruption'), tpl.indexOf('func onRouteChange'))
         .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-      ok(body.includes('setActive(true)'),
-        'shouldResume 那条路仍然要重新激活 —— 来电挂断后的自动续播靠它');
+      ok(body.includes('mtApplyActive("onInterruption-resume"'),
+        'shouldResume 那条路仍尝试重新激活 —— 来电挂断后的自动续播靠它');
       ok(body.indexOf('if shouldResume') >= 0
-         && body.indexOf('if shouldResume') < body.indexOf('setActive(true)'),
+         && body.indexOf('if shouldResume') < body.indexOf('mtApplyActive("onInterruption-resume"'),
         '无条件重新激活会打断刚开始播的别人，而我们自己不出声');
-      eq((body.match(/setActive\(true\)/g) || []).length, 1, 'onInterruption 里只该有一处');
+      ok(/subtitlePipAudioLocked\(\)[\s\S]*?skip-setActive-pip-locked/.test(body),
+        'PiP 浮窗期间中断恢复也不 setActive');
     });
 
     test('startSession / micBegin 的 setActive 受 sessionActive 门控（hold 续听不抢占外放）', () => {
@@ -673,10 +688,11 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
       ok(/private var sessionActive = false/.test(body), '跟踪会话是否仍激活');
       const start = body.slice(body.indexOf('func startSession'), body.indexOf('func sweepOrphanActivities'));
       const mic = body.slice(body.indexOf('func micBegin'), body.indexOf('func micDeliver'));
-      ok(/if !sessionActive \{[\s\S]*?setActive\(true\)[\s\S]*?sessionActive = true/.test(start), 'startSession 不重复激活');
-      ok(/if !sessionActive \{[\s\S]*?setActive\(true\)[\s\S]*?sessionActive = true/.test(mic), 'micBegin 不重复激活');
-      ok(/setActive\(false[\s\S]*?sessionActive = false/.test(body.slice(body.indexOf('func stopSession'), body.indexOf('private func mediaRemote'))),
-        'session-stop 释放后清 sessionActive');
+      ok(/mtApplyActive\("startSession"/.test(start), 'startSession 经 mtApplyActive 门控');
+      ok(/mtApplyActive\("micBegin"/.test(mic), 'micBegin 经 mtApplyActive 门控');
+      ok(/skip-setActive-already/.test(body), '会话仍 active 时不第二次 setActive');
+      ok(/mtApplyActive\("stopSession"[\s\S]*?active: false/.test(body.slice(body.indexOf('func stopSession'), body.indexOf('private func mediaRemote'))),
+        'session-stop 经 mtApplyActive 释放');
     });
 
     test('the channel name matches what the install patch and the JS use', () => {
@@ -728,6 +744,12 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"zero-frames"', '"silent"', '"sound"',   // §9.8 协议补充决定 10 修订二（全零帧 = 不中断的提示，F13）
         '"profile"', '"conv"', '"headphones"', '"subtitle-window"',   // §9.8 协议补充决定（三）16、19、21（iPhone 一期）
         '"hold"',   // #590 iOS 5：字幕暂停不释放音频会话
+        // #592 #83 os_log 调用点 tag / extra（非 UI 文案）
+        '"micBegin"', '"startSession"', '"stopSession"', '"keepSubtitleMix"', '"updatePlaybackState"', '"onInterruption-resume"',
+        '"skip-setCategory-pip-locked"', '"skip-setCategory-pinned"', '"skip-setCategory-ok"', '"setCategory"',
+        '"skip-setActive-pip-locked"', '"skip-setActive-already"', '"setActive-true"', '"setActive-false"',
+        '"com.belliedmonkeytranslator"', '"MTAudio"',
+        '"tag=%{public}@ cat=%{public}@ opts=%{public}@ active=%{public}d other=%{public}d %{public}@"',
         '"granted"', '"denied"', '"failed"', '"interrupted"', '"ended"', '"input-format"', '"converter"',
         '"now-playing-artwork"', '"image"', '"artwork-size"', '"AppIcon"',
         '","', '"w"', '"h"',

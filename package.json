@@ -57,7 +57,8 @@
     "diag:judge": "node scripts/diag-judge.js",
     "test:lid": "swiftc -O app/native/lid-ecapa.swift scripts/test-lid-policy.swift -o \"$TMPDIR/mt-lid-policy\" -framework CoreML -framework Accelerate -framework AVFoundation && \"$TMPDIR/mt-lid-policy\"",
     "test:vp-probe": "swiftc -O app/native/vp-probe.swift scripts/vp-probe-main.swift -o \"$TMPDIR/mt-vp-probe\" -framework AVFoundation && \"$TMPDIR/mt-vp-probe\"",
-    "test:copy": "node scripts/verify-copy-draft.js"
+    "test:copy": "node scripts/verify-copy-draft.js",
+    "test:pip-safari": "node scripts/test-pip-safari-resume.js"
   },
   "engines": {
     "node": ">=20.0.0"
