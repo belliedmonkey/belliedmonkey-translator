@@ -121,6 +121,19 @@ const listenModel = (() => {
   let lidUnsub = null;
   let session = null;
   let cfg = null;
+  // 翻译槽 storage 快照：onChanged 里同步 merge 出 cfg.tr，不等 readCfg 回调（test:mac pin / autoClaim 竞态）。
+  let trStorageSnap = {};
+  const TR_STORAGE_KEYS = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel', 'grant', 'grantTail', 'grantBalance'];
+  function pickTrStorage(s) {
+    s = s || {};
+    const o = {};
+    TR_STORAGE_KEYS.forEach((k) => { if (s[k] !== undefined) o[k] = s[k]; });
+    return o;
+  }
+  function syncTrFromStorageSnap() {
+    if (!cfg) return;
+    try { cfg.tr = LearnNotes.resolveConfig(trStorageSnap); } catch (_) {}
+  }
   let sock = null;
   let inc = null;           // 边说边译（ListenCore.makeIncremental）
   let partial = '', partialTr = '';
@@ -202,6 +215,7 @@ const listenModel = (() => {
           const storedOther = B(s.listenOtherLang);
           otherLang = langOk(storedOther) ? storedOther : 'en';
         }
+        trStorageSnap = pickTrStorage(s);
         resolve({
           tr,
           // targetLang = 「译成」（对话里就是 myLang；原来直接读 uiLang）。留着这个名字是因为
@@ -3173,8 +3187,14 @@ const listenModel = (() => {
         if (['listenMyLang', 'listenOtherLang', 'subtitleVideoLang', 'uiLang'].some((k) => k in (changes || {}))) refreshEntry();
         // test:mac / 额度 autoClaim：会话开始后 storage 里的翻译槽可能被改掉，但 cfg 仍钉在 start() 那次读法
         // ⇒ passRow 仍走 grant/旧端点，注入句只有 stt-final、行不落（M2 有识别无译文）。只刷新翻译相关字段。
-        const trKeys = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel', 'grant', 'grantTail', 'grantBalance'];
-        if (session && cfg && trKeys.some((k) => k in (changes || {}))) {
+        if (session && cfg && TR_STORAGE_KEYS.some((k) => k in (changes || {}))) {
+          TR_STORAGE_KEYS.forEach((k) => {
+            if (!(k in (changes || {}))) return;
+            const nv = changes[k].newValue;
+            if (nv === undefined) delete trStorageSnap[k];
+            else trStorageSnap[k] = nv;
+          });
+          syncTrFromStorageSnap();
           readCfg().then((c) => {
             if (!session || !cfg || !c) return;
             cfg.tr = c.tr;
