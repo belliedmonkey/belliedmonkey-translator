@@ -215,8 +215,13 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
         // **先清掉上一幕留下的额度记录**（2026-10-08 查实）：那一幕为了演「额度用完」在存储里
         // 种了 grant / grantBalance，不清掉的话这一幕的卡片按 `active` 画（卡面「正在用」），
         // 于是没有「领取」按钮 —— 这一幕要验的正是**未领取**态。
-        await ev2('new Promise(r => chrome.storage.local.remove(["grant","grantTail","grantBalance"], r))');
+        await ev2(`new Promise(r => chrome.storage.local.remove(
+          ["grant","grantTail","grantBalance","provider","apiKey","apiModel","ttsEngine","ttsApiKey","sttEngine","sttApiKey"], r))`);
         await ev2(`new Promise(r => chrome.storage.local.set({ learnAuth: ${JSON.stringify(SESSION)} }, r))`);
+        // 2026-10-02 起「登录即 autoClaimGrant」：reload 后卡片变 active、无「领取」。用 CDP
+        // 拦 bt-grant（比页内 patch fetch 可靠；手动点前再放开）。
+        await cdp.send('Network.enable', {}, s2);
+        await cdp.send('Network.setBlockedURLs', { urls: ['*bt-grant*'] }, s2);
         // **种完会话要重载一次**（2026-10-08 查实）：设置页**不监听 learnAuth 的变化**——React 迁移后
         // `refreshSyncUI` 成了模块内 const、不再是全局，下面那句 `typeof refreshSyncUI === "function"`
         // 恒假；页面也不会因为存储变化自己重画。于是卡片停在「未登录」态、没有「领取」按钮，
@@ -230,7 +235,8 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
         const card = await ev2(`(() => { const b = document.getElementById('grant-box');
           const btn = b && b.querySelector('button.gr-action');
           const note = b && b.querySelector('.gr-note');
-          const st = (typeof LearnGrant !== 'undefined' && LearnGrant.status) ? LearnGrant.status() : 'no-status';
+          let st = 'no-status';
+          try { st = LearnGrant.status({}, { signedIn: true }); } catch (_) {}
           return JSON.stringify({ vis: !!(b && b.getClientRects().length),
             btn: btn ? btn.textContent : null, note: note ? note.textContent : '',
             status: st, body: b ? (b.textContent || '').slice(0, 90) : '' }); })()`);
@@ -246,6 +252,7 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
           // grant_claimed 09-19 从这一页的按钮 handler 挪进了 LearnGrant.claim()（两宿主同一份字节，
           // App 那条路此前一条都不记）—— 挪完之后扩展这一侧不能反过来丢掉。
           await ev2(`(() => { window.__tm = []; MTTelemetry.track = (n, p) => { __tm.push({ n, p: p || {} }); return Promise.resolve(true); }; return 1; })()`);
+          await cdp.send('Network.setBlockedURLs', { urls: [] }, s2);
           await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
           await new Promise((r) => setTimeout(r, 3000));
           const tm = JSON.parse(await ev2('JSON.stringify(window.__tm || [])'));
@@ -327,12 +334,14 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
           await ev2(`new Promise(r => chrome.storage.local.set({ provider: 'deepseek', apiKey: ${JSON.stringify(MINE)}, apiModel: '',
             ttsEngine: 'openai_speech', ttsApiKey: ${JSON.stringify(MINE)}, sttEngine: 'local', sttApiKey: '' },
             () => chrome.storage.local.remove(['grant', 'grantTail', 'grantBalance'], r)))`);
+          await cdp.send('Network.setBlockedURLs', { urls: ['*bt-grant*'] }, s2);
           await cdp.send('Page.reload', {}, s2);
           await new Promise((r) => setTimeout(r, 2500));
           const before = seen.grant.length;
           const b1 = await ev2(`(() => { const b = document.querySelector('#grant-box button.gr-action'); return b ? b.textContent : null; })()`);
           if (!b1) { fail('BYO 幕：额度卡上没有按钮'); }
           else {
+            await cdp.send('Network.setBlockedURLs', { urls: [] }, s2);
             await ev2(`document.querySelector('#grant-box button.gr-action').click(); 1`);
             await new Promise((r) => setTimeout(r, 2500));
             const toast = await ev2(`document.getElementById('toast') ? document.getElementById('toast').textContent : ''`);

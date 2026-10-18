@@ -832,7 +832,7 @@ async function runHost(host) {
 
     // 8 · Notes gate opens live and renders from the (mocked) engine, cached.
     await ev(`(async () => {
-      LearnNotes.configure({ provider: 'openai', apiKey: 'k-test', baseUrl: '', model: '' });
+      LearnNotes.configure({ provider: 'deepseek', apiKey: 'k-test', baseUrl: '', model: '' });
       return 'ok';
     })()`);
     await ev(`LearnReview.start().then(() => 'ok')`);
@@ -1019,7 +1019,7 @@ async function runHost(host) {
       // 10d · 播放解析：未解析过的卡当场补解析并读出来（§9.2 的一次收费落在这里）。
       await ev(`(localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
                 localStorage.setItem('mt:drivePlayNotes', JSON.stringify(true)),
-                localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:provider', JSON.stringify('deepseek')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
       await ev(`(async () => { for (const it of await LearnStore.allItems()) {
         try { await LearnStore.putNote(it.id, null, {}); } catch (_) {}
@@ -1108,7 +1108,7 @@ async function runHost(host) {
       await ev(`(AppDriving.stop(), 'ok')`);
 
       // 10d″ · 暂停 → 「解析这句」 → 解析被读出来 → **回到暂停且 seg 不变**。
-      await ev(`(localStorage.setItem('mt:provider', JSON.stringify('openai')),
+      await ev(`(localStorage.setItem('mt:provider', JSON.stringify('deepseek')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')),
                 localStorage.setItem('mt:drivePlayNotes', JSON.stringify(false)), 'ok')`);
       // 给每张卡种一份**合法**的缓存解析（生词取自该卡自己的原句），这样按需解析走的是
@@ -1282,7 +1282,7 @@ async function runHost(host) {
                 localStorage.setItem('mt:drivePlaybackMode', JSON.stringify('sequential')),
                 localStorage.setItem('mt:drivePlayNotes', JSON.stringify(true)),
                 localStorage.setItem('mt:drivePreloadDays', JSON.stringify(0)),
-                localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:provider', JSON.stringify('deepseek')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
       // 抹掉一张卡的译文，让**补译文**这条路真的被走到。整副牌都自带 tr 的话
       // trMissing 恒为 0，这一节就只测了音频与解析，而补译文正是这次新加的能力。
@@ -1426,7 +1426,7 @@ async function runHost(host) {
 
       // 10f″ · 不产生缓存的引擎：如实说明，不假装在下载音频。
       await ev(`(localStorage.setItem('mt:ttsEngine', JSON.stringify('browser')),
-                localStorage.setItem('mt:provider', JSON.stringify('openai')),
+                localStorage.setItem('mt:provider', JSON.stringify('deepseek')),
                 localStorage.setItem('mt:apiKey', JSON.stringify('k-test')), 'ok')`);
       await ev(`settingsModel.notifySettingsShown(null).then(() => 'ok')`);
       await ev(`(window.__mtSpeechCount = 0, 'ok')`);

@@ -27,6 +27,7 @@
 const { spawnSync, execSync, spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 
 const ROOT = path.resolve(__dirname, '..');
 const PROJ = path.join(ROOT, 'safari-project', 'BelliedMonkey Translator', 'BelliedMonkey Translator.xcodeproj');
@@ -35,8 +36,56 @@ const DD = path.join(ROOT, '.local', 'mac-debug-dd');
 const PORTS = [];
 for (let p = 8790; p <= 8799; p++) PORTS.push(p);
 let BASE = null;   // 找到活口后钉住（8790–8799 扫第一个 —— 开发机上固定口会被占）
+let mockChatPort = 0;
+let mockChatSrv = null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// 听译组翻译走本机假端点（同 verify-listen.js）—— 不碰 Google 公网、不碰额度中继。
+function startMockChatServer() {
+  if (mockChatSrv) return Promise.resolve();
+  return new Promise((resolve) => {
+    mockChatSrv = http.createServer((req, res) => {
+      const u = req.url.split('?')[0];
+      if (u !== '/v1/chat/completions' || req.method !== 'POST') { res.writeHead(404); return res.end(); }
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      req.on('end', () => {
+        let user = '', sys = '';
+        try {
+          const j = JSON.parse(body);
+          user = (j.messages.find((x) => x.role === 'user') || {}).content || '';
+          sys = (j.messages.find((x) => x.role === 'system') || {}).content || '';
+        } catch (_) {}
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        const segStage = /"segments"/.test(sys);
+        if (segStage) {
+          const blocks = String(user).split('\n\n');
+          const buf = (blocks.length >= 2 ? blocks[blocks.length - 2].trim().split('\n').slice(1).join('\n') : String(user)).trim();
+          const fixed = buf.replace('几搂', '几楼');
+          const tr = /[\u0E00-\u0E7F]/.test(fixed) ? '泰语：' + fixed : '译：' + fixed;
+          res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
+            segments: fixed ? [{ source: fixed, translation: tr }] : [], remainder: '',
+          }) } }] }));
+          return;
+        }
+        if (/correction stage/.test(sys)) {
+          const sent = (String(user).split('Transcript sentence:\n')[1] || String(user)).trim();
+          const fixed = sent.replace('几搂', '几楼');
+          const tr = /[\u0E00-\u0E7F]/.test(fixed) ? '泰语：' + fixed : '译：' + fixed;
+          res.end(JSON.stringify({ choices: [{ message: { content: 'T: ' + fixed + '\nX: ' + tr } }] }));
+          return;
+        }
+        const tr = /[\u0E00-\u0E7F]/.test(user) ? '泰语：' + user.slice(0, 80) : '译：' + String(user).slice(0, 80);
+        res.end(JSON.stringify({ choices: [{ message: { content: tr } }] }));
+      });
+    });
+    mockChatSrv.listen(0, '127.0.0.1', () => {
+      mockChatPort = mockChatSrv.address().port;
+      resolve();
+    });
+  });
+}
 
 function cleanEnv() {
   const env = { ...process.env };
@@ -216,6 +265,35 @@ const { stashInit: stashS, stashRestore: stashR } = require('./stash-settings.js
 let volBefore = null;   // 系统输出音量/静音的原值（跑完还原）
 const storageGet = (keys) => runAsync(`new Promise(res=>{ try{ chrome.storage.local.get(${JSON.stringify(keys)}, v=>res(JSON.stringify(v||{}))); }catch(e){ res('{}') } })`).then(JSON.parse);
 
+// 听译组**不得依赖线上额度**：Debug 与正版共用 Keychain ⇒ 登录态继承 ⇒ 开机 autoClaim
+// 把三槽写成 grant；中继额度用尽后 listen-model quotaHalt 整场停（#590 K），M2–M7 全红。
+// 在每次 relaunch/reload 后等 autoClaim 落地，再把翻译/朗读/转写钉回本机+Google（占位 key 过
+// readCfg 的 apiKey 守卫；Google 免费路不走我们的中继）。
+async function pinListenOfflineEngines() {
+  okc(mockChatPort > 0, '假翻译端点没起来');
+  const chatUrl = `http://127.0.0.1:${mockChatPort}/v1/chat/completions`;
+  // 与 verify-listen 同形：custom_chat + 本机假端点。不得走 grant/DeepSeek 真网（#90 / 额度用尽 ⇒ quotaHalt）。
+  await runAsync(`new Promise(res=>{ try{
+    chrome.storage.local.remove(['grant','grantTail','grantBalance'], ()=>{
+      chrome.storage.local.set({
+        provider: 'custom_chat', apiKey: 'fixture-offline', apiModel: 'm', apiBaseUrl: ${JSON.stringify(chatUrl)},
+        notesProvider: '', notesApiKey: '', notesModel: '', notesBaseUrl: '',
+        ttsEngine: 'device', ttsApiKey: '', ttsBaseUrl: '', ttsModel: '', ttsVoice: '',
+        sttEngine: 'local', sttApiKey: '', sttBaseUrl: '', sttModel: '',
+      }, ()=>res('ok'));
+    });
+  }catch(e){ res('throw:'+e) }})`);
+  try { await evalOk('(typeof AppListen !== "undefined" && AppListen.refreshEntry && AppListen.refreshEntry(), true)'); } catch (_) {}
+}
+async function afterBootPinListen() {
+  await sleep(3500);
+  await pinListenOfflineEngines();
+  await sleep(400);
+  await pinListenOfflineEngines();
+  await sleep(400);
+  await pinListenOfflineEngines();
+}
+
 async function reload() {
   await evalOk('location.reload(), true');
   const t0 = Date.now();
@@ -389,9 +467,9 @@ async function setupListen() {  // 模型先行，且在 reload **之前**的安
   // 开机的「登录即领额度」每回都会把它写回 grant_speech，先写必被覆盖（2026-10-05 实测）。
   await storageSet({ onboardSeen: true, listenMyLang: 'zh', listenOtherLang: 'th', listenAutoSpeak: true });
   await reload();
+  await afterBootPinListen();
   await waitFor(() => visible('app-listen-entry'), 20000, '首页听译卡');
   await sleep(1500);   // 命令式先画、React 后挂 —— 立刻点会点空（三轮全空那次的教训）
-  await storageSet({ ttsEngine: 'device' });
   // 预热本机 TTS：首次 speak 要加载 sherpa 模型（几十秒量级）。**等 done、不硬 stop** ——
   // stop() 会打断加载中的引擎，把「预热」变成一次 reason:load 的真失败（第一版 th:false
   // 就是自伤的）。zh（kokoro）尤其必须热：M4/M5 的中文译文走它，冷加载 >30s 会把整场
@@ -411,6 +489,7 @@ async function setupListen() {  // 模型先行，且在 reload **之前**的安
     try {
       await click('app-listen-entry');
       await waitFor(() => visible('app-listen'), 8000, `听译页（第 ${attempt} 轮）`);
+      await pinListenOfflineEngines();
       await muteOn();   // 输出静音：TTS 事件照流，Mac 麦克风听不到 —— 行数才确定
       await recOn();    // 点左录音键 = 开始收音（起会话 / 开麦）
       live = true;
@@ -645,11 +724,14 @@ async function m8() {
   try {
     await storageSet({ onboardSeen: true, listenMyLang: 'zh', listenOtherLang: 'en', listenAutoSpeak: true });
     await relaunchApp();
-    await storageSet({ ttsEngine: 'device' });
+    await afterBootPinListen();
     await waitFor(() => visible('app-listen-entry'), 20000, 'M8 首页听译卡');
     await sleep(1500);
     await click('app-listen-entry');
     await waitFor(() => visible('app-listen'), 8000, 'M8 听译页');
+    await pinListenOfflineEngines();
+    await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).disabled, 120000,
+      'M8 开听前录音键一直禁用（语言包/管道没就绪）');
     await recOn();
     // 修复后：模型全就绪（kokoro 在），这里应该几秒内就 live —— 不下任何东西
     await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000,
@@ -675,13 +757,16 @@ async function m9() {
   fs.rmSync(path.join(MS, 'vits-mms-tha'), { recursive: true, force: true });
   await storageSet({ onboardSeen: true, listenMyLang: 'zh', listenOtherLang: 'en', listenAutoSpeak: true });
   await relaunchApp();
-  await storageSet({ ttsEngine: 'device' });
+  await afterBootPinListen();
   await waitFor(() => visible('app-listen-entry'), 20000, 'M9 首页听译卡');
   await sleep(1500);
   await click('app-listen-entry');
-  await waitFor(() => visible('app-listen'), 8000, 'M9 听译页');
-  await recOn();
-  await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'M9 zh/en 开听');
+    await waitFor(() => visible('app-listen'), 8000, 'M9 听译页');
+    await pinListenOfflineEngines();
+    await waitFor(async () => !(await evalOk('__mtTest.ptt.state()')).disabled, 120000,
+      'M9 开听前录音键一直禁用');
+    await recOn();
+    await waitFor(() => evalOk(`(document.getElementById('app-listen-pill')||{className:''}).className.indexOf('live')>=0`), 20000, 'M9 zh/en 开听');
   await evalOk('__mtTest.rec(1), true');
   // 切「对方的语言」到泰语 —— 应当场触发泰语包下载（复用「准备中/下载」态）
   await setValue('app-listen-other', 'th');
@@ -986,6 +1071,9 @@ async function main() {
   if (!(await waitPing(90000))) { shot('no-ping'); die('90s 内 /ping 不通 —— 端点没起来（DEBUG 条件没编进？端口被占？）'); }
   log('  ✓ 端点通了（' + BASE + '）');
 
+  await startMockChatServer();
+  log('  ✓ 假翻译端点 127.0.0.1:' + mockChatPort);
+
   await probe();
   if (probeOnly) return 0;
 
@@ -1028,5 +1116,6 @@ for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
     Promise.resolve().then(() => stashR(evalOk)).catch(() => {}).then(() => { clearTimeout(timer); bye(); });
   });
 }
+process.on('exit', () => { try { if (mockChatSrv) mockChatSrv.close(); } catch (_) {} });
 main().then(async (c) => { try { await stashR(evalOk); } catch (_) {} restoreVolume(); process.exit(c || 0); },
             async (e) => { try { await stashR(evalOk); } catch (_) {} restoreVolume(); die(e.stack || e.message); });
