@@ -3171,6 +3171,17 @@ const listenModel = (() => {
         if (area && area !== 'local') return;
         // 语言变了要重探（本机识别器按 locale 判支持）；转写引擎那四键与这一页无关了（2026-09-17）
         if (['listenMyLang', 'listenOtherLang', 'subtitleVideoLang', 'uiLang'].some((k) => k in (changes || {}))) refreshEntry();
+        // test:mac / 额度 autoClaim：会话开始后 storage 里的翻译槽可能被改掉，但 cfg 仍钉在 start() 那次读法
+        // ⇒ passRow 仍走 grant/旧端点，注入句只有 stt-final、行不落（M2 有识别无译文）。只刷新翻译相关字段。
+        const trKeys = ['provider', 'apiKey', 'apiBaseUrl', 'apiModel', 'notesProvider', 'notesApiKey', 'notesBaseUrl', 'notesModel', 'grant', 'grantTail', 'grantBalance'];
+        if (session && cfg && trKeys.some((k) => k in (changes || {}))) {
+          readCfg().then((c) => {
+            if (!session || !cfg || !c) return;
+            cfg.tr = c.tr;
+            cfg.targetLang = c.targetLang;
+            cfg.autoSpeak = c.autoSpeak;
+          }).catch(() => {});
+        }
       });
     } catch (_) {}
     keepLangSel();

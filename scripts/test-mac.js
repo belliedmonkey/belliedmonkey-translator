@@ -284,6 +284,8 @@ async function pinListenOfflineEngines() {
     });
   }catch(e){ res('throw:'+e) }})`);
   try { await evalOk('(typeof AppListen !== "undefined" && AppListen.refreshEntry && AppListen.refreshEntry(), true)'); } catch (_) {}
+  // storage.onChanged → listen-model 刷新 cfg.tr 是异步的；立刻注入会仍走旧 grant 端点（M2 有 stt 无译文/无行）。
+  await sleep(600);
 }
 async function afterBootPinListen() {
   await sleep(3500);
@@ -614,7 +616,7 @@ async function m2(ctx) {
   await waitFor(async () => {
     const s = await state();
     return (s.history || []).some((r) => r.includes('请问去火车站') && THAI.test(r));
-  }, 30000, 'zh 句成行且带泰语译文');
+  }, 90000, 'zh 句成行且带泰语译文');
   await waitFor(async () => (await rec()).some((e) => e && e.type === 'tts-start'), 60000, 'tts-start（朗读真走了管线）');
   await waitFor(async () => (await rec()).some((e) => e && e.type === 'tts-end'), 60000, 'tts-end');
   const s = await state();
