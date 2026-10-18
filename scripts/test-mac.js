@@ -147,14 +147,68 @@ async function runAsync(js, timeoutMs) {
   }
 }
 
-async function waitPing(ms) {
+async function waitPing(ms, opts) {
+  const verbose = !!(opts && opts.verbose);
   const t0 = Date.now();
+  let lastLog = 0;
   while (Date.now() - t0 < ms) {
     BASE = await findBase();
     if (BASE) return true;
+    if (verbose && Date.now() - lastLog >= 10000) {
+      lastLog = Date.now();
+      const hints = [];
+      for (const p of PORTS) {
+        try {
+          const r = await fetch(`http://127.0.0.1:${p}/ping`, { signal: AbortSignal.timeout(800) });
+          const j = await r.json().catch(() => null);
+          hints.push(`${p}:${r.status}${j && j.bridge ? '/' + j.bridge : ''}`);
+        } catch (e) {
+          hints.push(`${p}:—`);
+        }
+      }
+      log(`  … 等 /ping（mt-test）${Math.round((Date.now() - t0) / 1000)}s / ${Math.round(ms / 1000)}s — ${hints.join(' ')}`);
+    }
     await sleep(300);
   }
   return false;
+}
+
+function macTranslatorPids() {
+  try {
+    const out = execSync('pgrep -f "BelliedMonkey Translator.app/Contents/MacOS" || true', { encoding: 'utf8', env: cleanEnv() });
+    return out.trim() ? out.trim().split('\n').filter(Boolean) : [];
+  } catch (_) { return []; }
+}
+
+async function waitMacTranslatorGone(ms) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (!macTranslatorPids().length) return true;
+    await sleep(200);
+  }
+  return !macTranslatorPids().length;
+}
+
+function openDebugApp(app) {
+  let last = null;
+  for (let i = 0; i < 3; i++) {
+    try { execSync(`open "${app}"`, { env: cleanEnv(), stdio: 'ignore' }); return; } catch (e) { last = e; sleep(2000); }
+  }
+  const macos = path.join(app, 'Contents', 'MacOS');
+  const bin = path.join(macos, fs.readdirSync(macos).find((f) => !f.startsWith('.')) || '');
+  log('  （open 三次都失败：直接起可执行文件 —— ' + bin + '）');
+  spawn(bin, [], { detached: true, stdio: 'ignore' }).unref();
+  if (last) log('  （末次 open 错：' + (last.message || last) + '）');
+}
+
+async function quitMacTranslatorAndWait() {
+  try { execSync(`osascript -e 'quit app id "com.belliedmonkeytranslator"'`, { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
+  try { execSync('pkill -f "BelliedMonkey Translator.app/Contents/MacOS" || true', { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
+  if (await waitMacTranslatorGone(12000)) return;
+  const left = macTranslatorPids();
+  log(`  （${left.length} 个 MacOS 进程仍在：${left.join(',')} — 再 pkill -9）`);
+  try { execSync('pkill -9 -f "BelliedMonkey Translator.app/Contents/MacOS" || true', { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
+  await waitMacTranslatorGone(5000);
 }
 
 // ── 构建 ─────────────────────────────────────────────────────────────────────
@@ -201,28 +255,12 @@ function findProduct() {
   return path.join(dir, apps[0]);
 }
 
-function launch() {
+async function launch() {
+  await quitMacTranslatorAndWait();
+  await sleep(400);
   const app = findProduct();
-  // 同 bundle id：先温和退出在跑的那份（可能是正版 —— 验证完重开即可），再开 Debug 包。
-  try { execSync(`osascript -e 'quit app id "com.belliedmonkeytranslator"'`, { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
-  // 真退出要等进程真的走掉：`open` 的 -600（procNotFound）多半就是与「正在退出」抢。
-  try { execSync('pkill -f "BelliedMonkey Translator.app/Contents/MacOS" || true', { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
-  sleep(1800);
   log('▶ 起 Debug 包：' + app);
-  let last = null;
-  for (let i = 0; i < 3; i++) {
-    try { execSync(`open "${app}"`, { env: cleanEnv(), stdio: 'ignore' }); return; } catch (e) { last = e; sleep(2000); }
-  }
-  // 兜底：`open` 走 LaunchServices，它偶尔连着三次不认刚注册的包。直接起可执行文件绕开它 ——
-  // 后续全部走 /ping（不依赖 LaunchServices），所以这条路对测试是等价的。
-  try {
-    const macos = path.join(app, 'Contents', 'MacOS');
-    const bin = path.join(macos, fs.readdirSync(macos).find((f) => !f.startsWith('.')) || '');
-    log('  （open 三次都失败：直接起可执行文件 —— ' + bin + '）');
-    spawn(bin, [], { detached: true, stdio: 'ignore' }).unref();
-    return;
-  } catch (e) { log('  （兜底也没起来：' + e.message + '）'); }
-  throw last;
+  openDebugApp(app);
 }
 
 function shot(tag) {
@@ -235,14 +273,13 @@ function shot(tag) {
 // 陈旧的 stt-stop 回执与重试风暴（2026-10-05 实测：ready→ended→granted→ended 循环到
 // 「转写连接中断」），换新进程即消 —— 风暴本身的根因另立 issue 追。
 async function relaunchApp() {
-  try { execSync(`osascript -e 'quit app id "com.belliedmonkeytranslator"'`, { env: cleanEnv(), stdio: 'ignore' }); } catch (_) {}
-  sleep(1500);
+  BASE = null;
+  await quitMacTranslatorAndWait();
+  await sleep(400);
   const app = findProduct();
-  // open 偶发 -600（LaunchServices 与退出竞态）—— 重试三记，间隔 2s。
-  for (let i = 0; i < 3; i++) {
-    try { execSync(`open "${app}"`, { env: cleanEnv(), stdio: 'ignore' }); break; } catch (_) { sleep(2000); }
-  }
-  if (!(await waitPing(60000))) { shot('relaunch-no-ping'); throw new Error('重启后 /ping 不通'); }
+  log('▶ 重启 Debug 包：' + app);
+  openDebugApp(app);
+  if (!(await waitPing(90000, { verbose: true }))) { shot('relaunch-no-ping'); throw new Error('重启后 /ping 不通'); }
   const t0 = Date.now();
   while (Date.now() - t0 < 30000) {
     try { if (await evalOk('!!(window.__mtTest && window.NativeSpeech)')) return; } catch (_) {}
@@ -1115,7 +1152,7 @@ async function main() {
     buildBundleWithHarness();
     runAppSync();
     buildMacDebug();
-    launch();
+    await launch();
   }
 
   log('▶ 等 /ping …');

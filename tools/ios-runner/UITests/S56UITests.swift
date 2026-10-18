@@ -399,8 +399,7 @@ final class S56UITests: XCTestCase {
     }
 
     // #592 #83：PiP ⏸ → ▶ 后 Safari 源视频 currentTime 仍前进（手动 / 夜间；不进 npm test）。
-    // 测前在本机起静态服：cd test/fixtures && python3 -m http.server 8781
-    // MT_PIP_URL=http://<lan-ip>:8781/autoplay-video.html
+    // 测前静态服：npm run test:pip-safari 会自起（默认 8782，勿占 8781）；或 MT_PIP_URL=…/autoplay-video.html
     func testPiPSafariResume59283() throws {
         continueAfterFailure = false
         let env = ProcessInfo.processInfo.environment
@@ -417,7 +416,9 @@ final class S56UITests: XCTestCase {
             return e.isHittable ? e : nil
         }
         func videoTime() -> Double? {
-            let el = safari.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'video time'")).firstMatch
+            // WebKit 常把 aria-label 挂在 Other 上，数值在子 StaticText —— 不能只查 staticTexts（#592 #94）。
+            let pred = NSPredicate(format: "label BEGINSWITH 'video time'")
+            let el = safari.descendants(matching: .any).matching(pred).firstMatch
             guard el.waitForExistence(timeout: 8) else { return nil }
             let parts = el.label.split(separator: " ")
             guard let last = parts.last else { return nil }
@@ -447,14 +448,18 @@ final class S56UITests: XCTestCase {
         let cy = Double(env["MT_PIP_CY"] ?? "") ?? 0.79
         springboard.coordinate(withNormalizedOffset: CGVector(dx: cx, dy: cy)).tap()
         usleep(900_000)
-        // ⏸：PiP 控件位置因机型而异；默认点控件条中部（可 MT_PIP_PAUSE_X/Y 覆盖）
-        let px = Double(env["MT_PIP_PAUSE_X"] ?? "") ?? 0.35
+        // ⏸/▶：14 Pro 右下角 PiP 控件条与 testPiPClose 的 ✕ 同高（0.66）；可 MT_PIP_* 覆盖。
+        let px = Double(env["MT_PIP_PAUSE_X"] ?? "") ?? 0.26
         let py = Double(env["MT_PIP_PAUSE_Y"] ?? "") ?? 0.66
+        let playX = Double(env["MT_PIP_PLAY_X"] ?? "") ?? px
+        let playY = Double(env["MT_PIP_PLAY_Y"] ?? "") ?? py
         springboard.coordinate(withNormalizedOffset: CGVector(dx: px, dy: py)).tap()
         usleep(800_000)
-        // ▶
-        springboard.coordinate(withNormalizedOffset: CGVector(dx: px + 0.12, dy: py)).tap()
+        springboard.coordinate(withNormalizedOffset: CGVector(dx: playX, dy: playY)).tap()
         usleep(800_000)
+        safari.activate()
+        _ = safari.wait(for: .runningForeground, timeout: 10)
+        sleep(2)
 
         guard let t0 = videoTime() else {
             XCTFail("no video time label — is MT_PIP_URL reachable?")
