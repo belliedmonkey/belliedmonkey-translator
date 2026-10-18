@@ -305,12 +305,14 @@ final class MTSubtitlePip: NSObject, AVPictureInPictureControllerDelegate, AVPic
         if restoring { return }
         // 小窗没有自己的声音。系统把时间轴速率拉到 1 时，会当成一部正在放的影片，把另一个 App 的视频停掉（#590 iOS 5）。
         // 播放键只恢复听，暂停键只暂停听。速率马上停回 0；按钮状态走 isPlaybackPaused，不走这条时间轴。
-        onRemote?(playing ? "play" : "pause")
+        // 必须先 park 再通知页面：onRemote 会续听 → 原生再开麦，若时间轴还在 1，系统会先掐掉外放视频（#79）。
         parkTimebase()
         c.invalidatePlaybackState()
+        let cmd = playing ? "play" : "pause"
         DispatchQueue.main.async { [weak self] in
             self?.parkTimebase()
             c.invalidatePlaybackState()
+            self?.onRemote?(cmd)
         }
     }
     /// 这扇小窗不放音频。禁止它在后台接管播放，免得系统把它登记成正在播放的那一个。

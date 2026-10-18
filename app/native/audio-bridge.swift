@@ -288,7 +288,10 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
-            try session.setActive(true)
+            if !sessionActive {
+                try session.setActive(true)
+                sessionActive = true
+            }
         } catch {
             emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
             return
@@ -409,6 +412,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
 #if os(iOS)
+    /// 我们的 AVAudioSession 是否仍处于激活态（字幕带 hold 暂停时不释放，续听不应再 setActive）。
+    private var sessionActive = false
     /// 这次录音会话的档（§9.8 协议补充决定 16）。**所有重申类别的地方都按它**：建会话、起引擎、playing-state 重申、
     /// 路由变化后重起 —— 硬写对话档的 .allowBluetooth 会让字幕档连着 AirPods 时被强切通话音质。
     private var recordProfile = "conv"
@@ -442,7 +447,10 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
             } else {
                 try session.setCategory(.playback, mode: .spokenAudio, options: [])
             }
-            try session.setActive(true)
+            if !sessionActive {
+                try session.setActive(true)
+                sessionActive = true
+            }
         } catch {
             // 建不起来就如实说，让 JS 退回「隐藏即暂停」的老行为，而不是继续假装能后台播。
             emit(["type": "session-failed", "reason": String(describing: error)])
@@ -485,6 +493,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         if (body["hold"] as? Bool) == true { return }
         // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
         try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+        sessionActive = false
 #endif
     }
 
@@ -722,6 +731,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
               let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
         if type == .began {
+            sessionActive = false
             emit(["type": "interrupt", "phase": "begin"])
             // 录音中被打断（来电等）：引擎已被系统停掉，如实说，JS 那边停在具名态。
             if micEngine != nil { micStop(); emit(["type": "mic-state", "state": "interrupted"]) }
@@ -746,6 +756,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 只在真的要接着播时才激活。`test/build-scripts.test.js` 有一条断言钉住这个顺序。
         if shouldResume {
             try? AVAudioSession.sharedInstance().setActive(true)
+            sessionActive = true
         }
         emit(["type": "interrupt", "phase": "end", "resume": shouldResume])
     }

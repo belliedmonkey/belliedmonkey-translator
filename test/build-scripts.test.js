@@ -465,7 +465,7 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     for (const lit of strings) ok(allowed.has(lit), `画中画字幕窗里出现了非协议字符串（可能是文案）：${lit}`);
   });
   test('系统控件回页面（19）、浮出只在前台活跃时成（20）', () => {
-    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?onRemote\?\(playing \? "play" : "pause"\)/.test(tpl), '⏸ / ▶ = remote pause / play；收回内联时忽略系统附带的 pause');
+    ok(/setPlaying playing: Bool\) \{[\s\S]*?if restoring \{ return \}[\s\S]*?parkTimebase\(\)[\s\S]*?onRemote\?\(cmd\)/.test(tpl), '⏸ / ▶：先 park 时间轴，再异步 remote pause / play（续听不掐外放视频）');
     ok(/pictureInPictureControllerShouldProhibitBackgroundAudioPlayback[\s\S]*?true/.test(tpl), '小窗不放音频，禁止它在后台接管播放');
     ok(/CMTimebaseSetRate\(tb, rate: 0\)/.test(tpl), '小窗时间轴停在 0，不当成正在放的影片');
     ok(/activationState == \.foregroundActive/.test(tpl) && /"not-active"/.test(tpl), '非前台活跃 ⇒ closed / not-active，不硬启动');
@@ -488,6 +488,8 @@ describe('sync-app-assets: 实时字幕 iPhone 画中画字幕窗（learning-des
     ok(!/options: \[\.defaultToSpeaker, \.allowBluetooth, \.mixWithOthers\]\)/.test(body), '不再有硬写对话档选项的 setCategory');
     ok((body.match(/options: recordOptions/g) || []).length >= 4, '建会话 / 起引擎 / playing-state / 小窗遥控重申都读 recordOptions');
     ok(/body\["hold"\] as\? Bool\) == true \{ return \}/.test(body), '字幕暂停带 hold 时不释放音频会话');
+    ok(/private var sessionActive = false/.test(body) && /if !sessionActive \{[\s\S]*?setActive\(true\)/.test(body),
+      '字幕 hold 续听：会话仍活跃时不第二次 setActive');
     ok(/recordProfile == "subtitle" \{ return \.noActionableNowPlayingItem \}/.test(body), '字幕这场不接锁屏遥控的暂停');
     ok(/recordProfile == "subtitle" \? \[\.mixWithOthers, \.defaultToSpeaker\]/.test(body), '字幕档 = mixWithOthers + defaultToSpeaker，不带 allowBluetooth');
     ok(/\.headphones, \.bluetoothA2DP, \.bluetoothLE, \.bluetoothHFP/.test(body) && /"reason": "headphones"/.test(body), '输出走耳机 / 蓝牙 ⇒ headphones');
@@ -660,7 +662,18 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
       ok(body.indexOf('if shouldResume') >= 0
          && body.indexOf('if shouldResume') < body.indexOf('setActive(true)'),
         '无条件重新激活会打断刚开始播的别人，而我们自己不出声');
-      eq((body.match(/setActive\(true\)/g) || []).length, 1, '只该有一处');
+      eq((body.match(/setActive\(true\)/g) || []).length, 1, 'onInterruption 里只该有一处');
+    });
+
+    test('startSession / micBegin 的 setActive 受 sessionActive 门控（hold 续听不抢占外放）', () => {
+      const body = tpl.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      ok(/private var sessionActive = false/.test(body), '跟踪会话是否仍激活');
+      const start = body.slice(body.indexOf('func startSession'), body.indexOf('func sweepOrphanActivities'));
+      const mic = body.slice(body.indexOf('func micBegin'), body.indexOf('func micDeliver'));
+      ok(/if !sessionActive \{[\s\S]*?setActive\(true\)[\s\S]*?sessionActive = true/.test(start), 'startSession 不重复激活');
+      ok(/if !sessionActive \{[\s\S]*?setActive\(true\)[\s\S]*?sessionActive = true/.test(mic), 'micBegin 不重复激活');
+      ok(/setActive\(false[\s\S]*?sessionActive = false/.test(body.slice(body.indexOf('func stopSession'), body.indexOf('private func mediaRemote'))),
+        'session-stop 释放后清 sessionActive');
     });
 
     test('the channel name matches what the install patch and the JS use', () => {
