@@ -428,16 +428,23 @@ async function execSpeak(fx) {
     for (let i = 0; i < notesLines.length; i++) {
       notesActive = i;
       pushArtwork(item);
-      const r = await LearnTTS.speak(notesLines[i], uiLang);
-      // 每行之间都要重新守一次：念到一半按了暂停 / 下一张，这个循环必须当场作废，
-      // 而不是把已经被顶掉的会话继续往前推。
-      if (myGen !== gen || mySeq !== speakSeq) return;
-      if (!r.ok) {
-        if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
-        return;
+      const lineChunks = speechChunks(notesLines[i], uiLang);
+      for (let j = 0; j < lineChunks.length; j++) {
+        const r = await LearnTTS.speak(lineChunks[j], uiLang);
+        // 每行之间都要重新守一次：念到一半按了暂停 / 下一张，这个循环必须当场作废，
+        // 而不是把已经被顶掉的会话继续往前推。
+        if (myGen !== gen || mySeq !== speakSeq) return;
+        if (!r.ok) {
+          if (r.reason !== 'superseded') dispatch('tts_fail', r.reason);
+          return;
+        }
+        await (r.done || Promise.resolve());
+        if (myGen !== gen || mySeq !== speakSeq) return;
+        if (j < lineChunks.length - 1) {
+          await new Promise((res) => setTimeout(res, SPEECH_GAP_MS));
+          if (myGen !== gen || mySeq !== speakSeq) return;
+        }
       }
-      await (r.done || Promise.resolve());
-      if (myGen !== gen || mySeq !== speakSeq) return;
     }
     notesActive = -1;
     pushArtwork(item);
@@ -643,7 +650,9 @@ function warmNext(myGen, mySeq) {
   if (!nxt) return;
   const warm = (text, lang) => {
     if (!text) return;
-    try { Promise.resolve(LearnTTS.prefetch(text, lang)).catch(() => {}); } catch (_) {}
+    for (const chunk of speechChunks(text, lang)) {
+      try { Promise.resolve(LearnTTS.prefetch(chunk, lang)).catch(() => {}); } catch (_) {}
+    }
   };
   warm(nxt.text, nxt.lang || '');
   if (nxt.tr) { warm(nxt.tr, nxt.targetLang || uiLang); return; }
@@ -763,9 +772,13 @@ async function buildSession() {
 // 解析**按行**枚举（§9.5「解析跟读」）：播放已经是逐行的，预载要是还按整段算，
 // 路上每张卡都会在解析那几行上现场发请求 —— 直接打破「预载完整轮零请求」。
 function segmentsOf(item, tr, notesLineList) {
-  const segs = [{ text: item.text, lang: item.lang || '' }];
-  if (tr) segs.push({ text: tr, lang: item.targetLang || uiLang });
-  for (const line of notesLineList || []) segs.push({ text: line, lang: uiLang });
+  const segs = [];
+  const add = (text, lang) => {
+    for (const chunk of speechChunks(text, lang)) segs.push({ text: chunk, lang });
+  };
+  add(item.text, item.lang || '');
+  if (tr) add(tr, item.targetLang || uiLang);
+  for (const line of notesLineList || []) add(line, uiLang);
   return segs.filter((x) => x.text);
 }
 
