@@ -8,11 +8,35 @@ const ROOT = path.resolve(__dirname, '..');
 const UDID = process.env.MT_UDID || '00008120-000465443A98C01E';
 const RUNNER = path.join(ROOT, '.local/spike/S6/runner/S56Runner.xcodeproj');
 const DD = path.join(ROOT, '.local/spike/S6/dd-runner');
+const fs = require('fs');
 const bundle = process.env.MT_TARGET_BUNDLE || 'com.belliedmonkeytranslator';
+const XCTEST_RUNNER = path.join(DD, 'Build/Products/Debug-iphoneos/S56UITests-Runner.app');
 
-if (!require('fs').existsSync(RUNNER)) {
+if (!fs.existsSync(RUNNER)) {
   console.error('缺少 .local/spike/S6/runner — 见 tools/ios-runner/README.md 同步后再跑');
   process.exit(2);
+}
+
+function xcode(args) {
+  return spawnSync('xcodebuild', args, {
+    stdio: 'inherit',
+    env: process.env,
+    cwd: path.join(ROOT, '.local/spike/S6'),
+  });
+}
+
+// #87/#88：只跑 test-without-building 且从未 build-for-testing 时 xcode 报 0 tests。
+if (!fs.existsSync(XCTEST_RUNNER) || process.env.MT_PIP_REBUILD === '1') {
+  console.error('PiP runner 未构建或 MT_PIP_REBUILD=1 — build-for-testing …');
+  const b = xcode([
+    'build-for-testing',
+    '-project', RUNNER,
+    '-scheme', 'S56Runner',
+    '-destination', `id=${UDID}`,
+    '-derivedDataPath', DD,
+    '-allowProvisioningUpdates',
+  ]);
+  if (b.status !== 0) process.exit(b.status == null ? 1 : b.status);
 }
 
 const lan = Object.values(os.networkInterfaces())
