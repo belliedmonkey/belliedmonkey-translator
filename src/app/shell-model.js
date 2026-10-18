@@ -975,7 +975,7 @@ export function bootShell() {
       const remain = PackProgress.pendingRowCount(packRowIds(), rowPhase);
       go.disabled = !!packsBusy;
       go.textContent = packPhase === 'done'
-        ? t('firstrun_packs_enter', '进入实时听译')
+        ? t('firstrun_packs_enter', '开始使用')
         : packsBusy
           ? t('firstrun_packs_remain', '下载中 · 还剩 {n} 项').replace('{n}', String(Math.max(remain, 1)))
           : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读包，继续') : t('firstrun_packs_go', '下载并继续'));
@@ -1409,7 +1409,7 @@ export function bootShell() {
       return;
     }
     packPhase = 'done';
-    // 下载完成就记，不等「进入实时听译」—— 用户停在完成页直接划掉，下次也不该再回包屏。
+    // 下载完成就记，不等「开始使用」—— 用户停在完成页直接划掉，下次也不该再回包屏。
     try { await writePacksDone(); } catch (_) {}
     await paintFirstRun(currentSession);
   }
@@ -1427,7 +1427,6 @@ export function bootShell() {
     firstRunScreen = 'home';
     packsManage = false;
     packPhase = 'pick';
-    try { if (typeof AppListen !== 'undefined' && AppListen.open) AppListen.open('conv'); } catch (_) {}
   }
 
   async function show(session) {

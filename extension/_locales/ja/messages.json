@@ -3862,7 +3862,7 @@
     "message": "ダウンロード中はチェックを変えられません。終わったら設定で増減できます。"
   },
   "firstrun_packs_enter": {
-    "message": "リアルタイム聞き取りへ"
+    "message": "使い始める"
   },
   "firstrun_packs_remain": {
     "message": "ダウンロード中 · 残り {n}"

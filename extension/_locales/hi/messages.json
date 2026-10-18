@@ -3695,7 +3695,7 @@
     "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
   },
   "firstrun_packs_enter": {
-    "message": "Start live listening"
+    "message": "आरंभ करें"
   },
   "firstrun_packs_remain": {
     "message": "Downloading · {n} left"

@@ -3862,7 +3862,7 @@
     "message": "받는 중에는 선택을 바꿀 수 없습니다. 끝난 뒤 설정에서 더하거나 빼세요."
   },
   "firstrun_packs_enter": {
-    "message": "실시간 듣기 시작"
+    "message": "시작하기"
   },
   "firstrun_packs_remain": {
     "message": "받는 중 · {n}개 남음"

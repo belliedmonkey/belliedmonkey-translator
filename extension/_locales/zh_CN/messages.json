@@ -3863,7 +3863,7 @@
     "message": "下载中不能改勾选；下完以后去「设置 · 语音包」增减。"
   },
   "firstrun_packs_enter": {
-    "message": "进入实时听译"
+    "message": "开始使用"
   },
   "firstrun_packs_remain": {
     "message": "下载中 · 还剩 {n} 项"
