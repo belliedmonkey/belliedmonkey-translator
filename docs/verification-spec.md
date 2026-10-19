@@ -1636,6 +1636,10 @@ template from bouncing and would trap a scrolling review list.
    并把设备上的 `-wal` / `-shm` 覆盖成空文件，否则旧 WAL 会盖回来。种完启动一次 App，回读 App Group 的 plist 确认镜像出去了。
 3. **设为默认**（UI 测试程序）：设置 › App › 搜「翻译」› 翻译 › 默认翻译App › 选我们。**iOS 27 的设置页里行不是 cell** ——
    按文字找任意后代（`descendants(matching: .any)`）；设置根页的搜索搜不到「默认翻译」。判据：页面文案变成「"…"将用于翻译文本」。
+   **#592 双 App 同名**：禁止硬编码列表行号；切换后触发一次系统翻译，Mac 侧 `xcrun devicectl device info processes`
+   核对 `MTTranslateExt` 可执行路径须在国际版 `BelliedMonkey Translator.app` 下（非 `Translator CN.app`）。
+   真机 XCUITest 经 `scripts/mt592-probe-server.js` + `TEST_RUNNER_MT592_PROBE_URL` 拉路径；Debug 包装机前跑
+   `node scripts/verify-mttranslateext-gate.js "<…/BelliedMonkey Translator.app>"`（`.debug.dylib` 特征字串）。
 4. **翻一次**：`XCUIDevice.shared.system.open(URL)` 开一个英文页（Safari 地址栏的元素在 iOS 27 上按标签找不到）→ 对段落
    `press(forDuration: 1.3)` → 点「翻译」。**第一次（以及每次重装后）系统先弹一页「所选内容将发送给…进行翻译处理」** —— 点「继续」。
    判据：弹层里出现译文（截整屏），设备日志里 `translate ok`。
