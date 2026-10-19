@@ -48,6 +48,36 @@ const MOCK_CHAT_CORS = {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// segment 路：从 system 读目标语言，zh→th 时回真泰文（M2/M3 的 THAI 断言）；同 verify-listen 的 regex。
+function parseSegTargetLang(sys) {
+  const m = String(sys).match(/(?:target language: |目标语言：)([^.。\n]+)/);
+  return (m && m[1] || '').trim();
+}
+function isThaiTarget(dst) {
+  return /ไทย|Thai|\bth\b/i.test(dst);
+}
+function isCjkZhSource(text) {
+  const s = String(text);
+  return /[\u4e00-\u9fff]/.test(s) && !/[\u0E00-\u0E7F]/.test(s);
+}
+const ZH_TO_TH_SEG = {
+  '请问去火车站怎么走？': 'ไปสถานีรถไฟอย่างไร',
+  '请问去火车站怎么走': 'ไปสถานีรถไฟอย่างไร',
+  '今天我们测试翻译。': 'วันนี้เราทดสอบการแปล',
+  '今天我们测试翻译': 'วันนี้เราทดสอบการแปล',
+};
+function mockSegTranslation(fixed, sys) {
+  const src = String(fixed || '');
+  const dst = parseSegTargetLang(sys);
+  if (isThaiTarget(dst) && isCjkZhSource(src)) {
+    if (ZH_TO_TH_SEG[src]) return ZH_TO_TH_SEG[src];
+    const bare = src.replace(/[？?。．!！]\s*$/, '');
+    if (ZH_TO_TH_SEG[bare]) return ZH_TO_TH_SEG[bare];
+    return 'ไปสถานีรถไฟอย่างไร';
+  }
+  return /[\u0E00-\u0E7F]/.test(src) ? '泰语：' + src : '译：' + src;
+}
+
 // 听译组翻译走本机假端点（同 verify-listen.js）—— 不碰 Google 公网、不碰额度中继。
 function startMockChatServer() {
   if (mockChatSrv) return Promise.resolve();
@@ -77,7 +107,7 @@ function startMockChatServer() {
           const blocks = String(user).split('\n\n');
           const buf = (blocks.length >= 2 ? blocks[blocks.length - 2].trim().split('\n').slice(1).join('\n') : String(user)).trim();
           const fixed = buf.replace('几搂', '几楼');
-          const tr = /[\u0E00-\u0E7F]/.test(fixed) ? '泰语：' + fixed : '译：' + fixed;
+          const tr = mockSegTranslation(fixed, sys);
           res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
             segments: fixed ? [{ source: fixed, translation: tr }] : [], remainder: '',
           }) } }] }));
