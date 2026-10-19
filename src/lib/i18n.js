@@ -36,11 +36,14 @@ const PageText = (() => {
     return '';
   }
 
-  function effectiveLocale() {
-    if (uiLang && uiLang !== 'auto') { const n = normalizeLocale(uiLang); if (n) return n; }
+  function effectiveLocaleFor(stored) {
+    const ul = stored === undefined ? uiLang : (stored || 'auto');
+    if (ul && ul !== 'auto') { const n = normalizeLocale(ul); if (n) return n; }
     try { const n = normalizeLocale(chrome.i18n.getUILanguage()); if (n) return n; } catch (_) {}
     return 'zh_CN';
   }
+
+  function effectiveLocale() { return effectiveLocaleFor(uiLang); }
 
   function t(key, fb) {
     try {
@@ -95,7 +98,7 @@ const PageText = (() => {
     return t;
   }
 
-  return { t, useT, setUiLang, getUiLang, subscribe, applyStoredUiLang, effectiveLocale, normalizeLocale };
+  return { t, useT, setUiLang, getUiLang, subscribe, applyStoredUiLang, effectiveLocale, effectiveLocaleFor, normalizeLocale };
 })();
 
 export default PageText;
