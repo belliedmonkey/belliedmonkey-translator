@@ -154,7 +154,7 @@ ${articleJsonLd(site, 'Bring your own API key: your translation engine, step by 
 <h1>Bring your own API key: your translation engine, step by step</h1>
 <p class="lede">One configuration that works end to end — the exact endpoint, the exact model, and the measurements behind the choice.</p>
 
-<p>Translation needs an engine, and an engine needs a key of your own. That is the whole setup: this guide walks through one configuration end to end — translation good enough to read closely, plus the listening and speaking review that needs speech and transcription. The point of bringing your own keys is that your text goes from your browser to that provider directly; there is no server of ours in between.</p>
+<p>Translation needs an engine, and an engine needs a key of your own. That is the whole setup: this guide walks through one configuration end to end — translation good enough to read closely, plus the listening and speaking review that needs speech and transcription. The point of bringing your own keys is that your text goes from your browser straight to the provider you configured and the key stays on your device; the optional free credit is relayed through our server, and we do not store the content.</p>
 
 <h2>What this guide sets up</h2>
 ${engineTable([
