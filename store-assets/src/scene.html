@@ -107,7 +107,13 @@ const COPY = {
 const PORTRAIT5 = { zh: ['读到哪，复习到哪', '电脑、平板、手机同步，一个闭环'], en: ['Read anywhere, review anywhere', 'Synced across your devices — one loop'] };
 const [big, sub] = (f === '5' && H > W) ? PORTRAIT5[lang] : COPY[lang][f];
 document.getElementById('big').textContent = big;
-document.getElementById('sub').textContent = sub;
+const subEl = document.getElementById('sub');
+// 帧 10 中文副标题在 web 1280×800 上「的 key」易孤行 —— 只钉 phrase，不改文案。
+if (f === '10' && lang === 'zh') {
+  subEl.innerHTML = '选中文字 → 翻译。默认用免费额度，也可在设置里换成<span style="white-space:nowrap">你自己的 key</span>';
+} else {
+  subEl.textContent = sub;
+}
 
 // ── 设备档位：画布是什么设备，就放那个设备视口拍的图（2026-09-06 的硬规矩，见 ../README.md）──
 // 竖版窄画布 = iPhone → phone 档；竖版宽画布 = iPad → tablet 档；横版 = Mac / Chrome 商店 → desk 档。
