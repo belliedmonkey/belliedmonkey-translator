@@ -838,15 +838,20 @@ export default function SettingsView() {
     //   2. 重填下拉与「跟随」文案 —— 选项文字是 t() 出来的，不会自己变
     //   3. AppDriving.refreshEntry —— 播客模式入口按 uiLang 有没有语音做门控（§9.5），
     //      换了语言而不重算，入口会停在上一个语言的结论上
-    $('ui-lang').addEventListener('change', async () => {
-      const v = $('ui-lang').value || 'auto';
+    const persistUiLang = async (v) => {
+      v = v || 'auto';
+      const cur = await settingsModel.get(['uiLang']);
+      const prev = cur.uiLang || 'auto';
+      // 控件已是目标语种时 <select> 不 fire change，但 vault 仍可能是 auto —— 删键再写逼 onChanged。
+      if (prev === v) await new Promise((r) => chrome.storage.local.remove(['uiLang'], r));
       await settingsModel.set({ uiLang: v });
       uiLangNow.current = v;
       try { PageText.setUiLang(v); } catch (_) {}
       populateStatic();
       try { document.documentElement.lang = PageText.effectiveLocale().replace('_', '-'); } catch (_) {}
       try { AppDriving.refreshEntry(); } catch (_) {}
-    });
+    };
+    $('ui-lang').addEventListener('change', () => persistUiLang($('ui-lang').value || 'auto'));
     // 空值 = 跟随界面语言：**删键**而不是存空串，存储里只有用户明说过的选择。
     $('target-lang').addEventListener('change', async () => {
       const v = $('target-lang').value;
