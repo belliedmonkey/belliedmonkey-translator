@@ -1265,14 +1265,21 @@ final class S56UITests: XCTestCase {
         if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab") { sleep(2) }
         var uiLangNeedRestore = false
         let uiSel = scrollTo(app, { app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Interface language' OR label BEGINSWITH '界面语言'")).firstMatch }, 8)
+        func pickUiLang(_ want: String) {
+            uiSel.tap(); sleep(2)
+            let opt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", want)).firstMatch
+            if opt.waitForExistence(timeout: 4), opt.isHittable { opt.tap(); sleep(3) }
+        }
         if uiSel.exists, uiSel.isHittable {
             let before = (uiSel.value as? String) ?? "-"
-            uiLangNeedRestore = before.range(of: "English|英语", options: .regularExpression) == nil
-            // 控件上已是 English 也可能只是 iOS「App 语言」—— uiLang 快照仍可能是 auto/zh，必须再点一次写 vault。
-            uiSel.tap(); sleep(2)
-            let en = app.buttons.matching(NSPredicate(format: "label CONTAINS 'English' OR label CONTAINS '英语'")).firstMatch
-            if en.waitForExistence(timeout: 4), en.isHittable { en.tap(); sleep(3) }
-            note("★ 界面语言 \(before) → \((uiSel.value as? String) ?? "-")（restore=\(uiLangNeedRestore)）")
+            uiLangNeedRestore = before.range(of: "Chinese, Simplified|简体中文|Simplified Chinese", options: .regularExpression) != nil
+                || before.range(of: "Follow|跟随|Auto|自动", options: .regularExpression) != nil
+            // 控件已是 English 时 <select> 不会 fire change —— 快照 uiLang 仍可能是 auto/zh。
+            if before.range(of: "English|英语", options: .regularExpression) != nil {
+                pickUiLang("简体中文"); note("界面语言 English → 简体中文（逼 vault 写 uiLang）")
+            }
+            pickUiLang("English")
+            note("★ 界面语言 → \((uiSel.value as? String) ?? "-")（restore 简体=\(uiLangNeedRestore)）")
         }
         let sels = app.buttons.matching(NSPredicate(format: "value != nil AND value != ''")).allElementsBoundByIndex
         note("设置页带值的控件: " + sels.prefix(10).map { "[\($0.label.prefix(16))|\(($0.value as? String ?? "").prefix(28))]" }.joined(separator: " "))
