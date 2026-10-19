@@ -2852,7 +2852,8 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     // #110：语种随 App 界面语言重算 —— static let 会在扩展首次加载时钉死，改 App 语言后仍读旧表
     ok(!/private\s+static\s+let\s+lang\s*:/.test(copy), 'ExtCopy.lang 不能是 static let');
     ok(/private\s+static\s+var\s+lang\s*:\s*String\s*\{/.test(copy), 'ExtCopy.lang 应是每次查表重算的 computed property');
-    ok(copy.includes('"uiLang"') && copy.includes('MTVaultNames.snapshotKey'), '弹层语种要先读 vault 快照里的 uiLang');
+    ok(copy.includes('"uiLangEffective"') && copy.includes('MTVaultNames.snapshotKey'), '弹层语种要先读 vault 快照里的 uiLangEffective');
+    ok(copy.includes('"uiLang"'), '显式 uiLang 仍作次级回落');
     ok(copy.includes('resolveLang'), '语言标签解析要可重复调用，不能只在初始化跑一遍');
     const { COPY_KEYS } = require('../build/ext-bundle.js');
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));

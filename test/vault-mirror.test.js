@@ -25,6 +25,7 @@ function load(opts) {
     console,
     MT_PROVIDERS: o.providers || [{ id: 'google', needsKey: false }, { id: 'deepseek', needsKey: true }],
     chrome: {
+      i18n: { getUILanguage: () => o.uiLanguage || 'en-US', getMessage: () => '' },
       storage: {
         local: {
           get: dual((keys) => {
@@ -61,7 +62,13 @@ function load(opts) {
   ctx.document = { hidden: false, addEventListener: (t, fn) => { if (t === 'visibilitychange') visListeners.push(fn); } };
   ctx.window = ctx;
   vm.createContext(ctx);
-  for (const rel of ['extension/content/engine-state.js', 'extension/learn/notes.js', 'app/vault-mirror.js']) {
+  for (const rel of [
+    'extension/content/i18n-messages.js',
+    'extension/learn/i18n.js',
+    'extension/content/engine-state.js',
+    'extension/learn/notes.js',
+    'app/vault-mirror.js',
+  ]) {
     vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), ctx, { filename: rel });
   }
   const foreground = () => { ctx.document.hidden = false; for (const fn of visListeners) fn(); };
@@ -165,6 +172,16 @@ describe('vault-mirror: 把引擎配置镜像给系统翻译扩展（I-4）', ()
     for (const k of Object.keys(snap.nonSecret)) ok(allowed.has(k), k + ' 不在 NON_SECRET 清单里');
     deepEq(Object.keys(snap.secret), ['apiKey'], 'secret 里只有 apiKey');
     eq(JSON.stringify(snap).includes('SECRET'), false, '登录令牌绝不进快照');
+  });
+
+  test('★ uiLangEffective 跟 effectiveLocale 同规则：auto 跟 chrome 语，显式 uiLang 优先', () => {
+    const en = load({ uiLanguage: 'en-US', store: { uiLang: 'auto' } });
+    eq(en.V.snapshot({ uiLang: 'auto' }).nonSecret.uiLangEffective, 'en');
+    const zh = load({ uiLanguage: 'zh-CN', store: { uiLang: 'auto' } });
+    eq(zh.V.snapshot({ uiLang: 'auto' }).nonSecret.uiLangEffective, 'zh_CN');
+    const { V } = load({ uiLanguage: 'zh-CN' });
+    eq(V.snapshot({ uiLang: 'en' }).nonSecret.uiLangEffective, 'en', '显式 en 压过系统中文');
+    eq(V.snapshot({ uiLang: 'en' }).nonSecret.uiLang, 'en');
   });
 
   test('★ 弹层字号三档进快照：缺省落 1，档上的原样走（#495）', () => {

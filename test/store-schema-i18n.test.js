@@ -199,6 +199,17 @@ describe('i18n (PageText)', () => {
     eq(P.t('nope_nowhere', 'fb'), 'fb');
   });
 
+  test('effectiveLocaleFor：与 effectiveLocale 同规则，可指定存储值', () => {
+    const P = bootPageText({
+      chrome: { i18n: { getUILanguage: () => 'zh-CN', getMessage: () => '' } },
+    });
+    eq(P.effectiveLocaleFor('auto'), 'zh_CN');
+    eq(P.effectiveLocaleFor('en'), 'en');
+    P.setUiLang('pt-BR');
+    eq(P.effectiveLocaleFor('en'), 'en', '参数覆盖内存 uiLang');
+    eq(P.effectiveLocale(), 'pt');
+  });
+
   test('setUiLang 即时换语言；同值 no-op；订阅可退', () => {
     const P = bootPageText();
     const seen = [];
