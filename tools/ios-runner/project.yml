@@ -18,6 +18,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cc.belliedmonkey.spike.s56host
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "XCUITest #592: Mac-side devicectl probe for MTTranslateExt path verification."
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
   S56UITests:
     type: bundle.ui-testing
     platform: iOS
@@ -28,6 +30,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: cc.belliedmonkey.spike.s56uitests
         TEST_TARGET_NAME: S56Host
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "XCUITest #592: Mac-side devicectl probe for MTTranslateExt path verification."
+        INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
 schemes:
   S56Runner:
     build:
