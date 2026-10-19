@@ -33,7 +33,7 @@
   //   learnEnabled/learnLangs/handoffCapture  进不进复习库，由同一套门裁定
   //   sysTranslateFontScale   弹层字号三档（#495；0.85/1/1.2，缺省 1）
   //   flavor                  国际版 / 中国版（未配置态的主按钮不同）
-  const NON_SECRET = ['provider', 'baseUrl', 'model', 'targetLang', 'uiLang',
+  const NON_SECRET = ['provider', 'baseUrl', 'model', 'targetLang', 'uiLang', 'uiLangEffective',
     'reqTimeoutSec', 'reqRetries', 'reqConcurrency', 'reqBackoffMs', 'reqMaxChars',
     'grantTail', 'learnEnabled', 'learnLangs', 'handoffCapture', 'sysTranslateFontScale', 'flavor'];
 
@@ -71,6 +71,35 @@
     return list.some((p) => p && p.needsKey === false);
   }
 
+  // 与 PageText / PageI18n 的 effectiveLocale 同规则，供扩展读 uiLangEffective（#592 方案 A）。
+  function uiLangEffectiveOf(stored) {
+    try {
+      if (typeof PageI18n !== 'undefined' && PageI18n.effectiveLocaleFor) {
+        return PageI18n.effectiveLocaleFor(stored);
+      }
+      if (typeof PageText !== 'undefined' && PageText.effectiveLocaleFor) {
+        return PageText.effectiveLocaleFor(stored);
+      }
+    } catch (_) { /* 测试宿主可能还没挂 i18n */ }
+    const ul = stored || 'auto';
+    const T = root.MT_I18N_MESSAGES || {};
+    function normalizeLocale(tag) {
+      if (!tag) return '';
+      const s = String(tag).replace(/-/g, '_');
+      if (T[s]) return s;
+      const base = s.split('_')[0];
+      if (base === 'zh') return T.zh_CN ? 'zh_CN' : (T.zh_TW ? 'zh_TW' : '');
+      if (T[base]) return base;
+      for (const k of Object.keys(T)) if (k.split('_')[0] === base) return k;
+      return '';
+    }
+    if (ul && ul !== 'auto') { const n = normalizeLocale(ul); if (n) return n; }
+    try {
+      const n = normalizeLocale(chrome.i18n.getUILanguage()); if (n) return n;
+    } catch (_) {}
+    return 'zh_CN';
+  }
+
   // 从一份设置算出要镜像的快照。纯函数，测试直接调它，不经过桥。
   function snapshot(s, flavor) {
     s = s || {};
@@ -91,6 +120,7 @@
       model: known ? (tr.model || '') : '',
       targetLang: s.targetLang || '',
       uiLang: s.uiLang || '',
+      uiLangEffective: uiLangEffectiveOf(s.uiLang || 'auto'),
       reqTimeoutSec: s.reqTimeoutSec,
       reqRetries: s.reqRetries,
       reqConcurrency: s.reqConcurrency,
