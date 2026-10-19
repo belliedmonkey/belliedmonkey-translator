@@ -102,6 +102,26 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 **没有 `MT_SCRIPT` 会直接 `XCTFail`** —— 「passed 但什么都没做」是这个 runner 的老毛病
 （`docs/verification-spec.md` §0.2.3 第 1 条：判据看附件，不看 passed）。
 
+## #592 系统翻译：Mac 侧 devicectl 核对（`testSwitchDefault` / `testV9Shot`）
+
+真机 XCUITest 跑在手机上，**不能**直接调 `devicectl`。Mac 起 probe 服务，测试经局域网拉路径：
+
+```bash
+# 终端 1（或 scripts/test-en-phone-systrans-592.js 会自动起）
+node scripts/mt592-probe-server.js   # 默认 :59292
+
+# 终端 2 —— 须把本机 LAN IP 传给测试（示例）
+TEST_RUNNER_MT592_PROBE_URL=http://192.168.x.x:59292 \
+TEST_RUNNER_MT_SKIP_VPN=1 TEST_RUNNER_MT_URL=https://example.org/ \
+node scripts/test-en-phone-systrans-592.js
+```
+
+`testSwitchDefault` 对同名「大肚猴翻译」**逐条试选**，每次触发系统翻译后 probe 必须回报国际版
+`BelliedMonkey Translator.app/…/MTTranslateExt`（不得是 `Translator CN.app`）。`testV9Shot` 在
+`v9-systrans` 截图前再核对一次，附件 note 写 `MT592_EXT_PATH[…]`。
+
+Debug 包版本门禁：`node scripts/verify-mttranslateext-gate.js "<…/BelliedMonkey Translator.app>"`。
+
 ## 其余用例
 
 39 个历史用例仍在（`testT1*` 系统翻译、`testPiPClose` 实时字幕+画中画、`testCN*` 中国版、
