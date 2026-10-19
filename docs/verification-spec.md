@@ -512,6 +512,10 @@ TestFlight 上发现哑 / 回声 / 语言对跳掉 → 再出包」的循环，�
 3. `scripts/test-mac.js`（`npm run test:mac`）：重建带 harness 的 App 包 → `app:sync` →
    xcodebuild macOS Debug → 起 App → 等 `/ping` → 跑 case → `screencapture` 留证。
    iOS 模拟器层复用同一个端点：模拟器进程就是 Mac 进程，它的 127.0.0.1 就是宿主的。
+   **Mac/iOS Debug App 从 `file://` 加载页面**，对 `http://127.0.0.1` 假 chat 端点的
+   `fetch` 是跨域 —— mock 必须回 CORS（`OPTIONS` 204 + `POST` 带 `Access-Control-Allow-Origin`）；
+   `scripts/verify-listen.js` 用 Chrome 从 `http://127.0.0.1` 同源测 listen，假端点可以不加 CORS，
+   两条路径约束不同。
    沙盒注意：App Store 包是 sandboxed，**监听端口要 `ENABLE_INCOMING_NETWORK_CONNECTIONS`**
    —— 驱动只在这条 Debug 命令行上给；Release 归档不带它，App Store 的 entitlement 一个
    字节不变。判据是端点真的 /ping 得通，不是「构建没报错」。

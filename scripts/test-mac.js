@@ -38,7 +38,13 @@ for (let p = 8790; p <= 8799; p++) PORTS.push(p);
 let BASE = null;   // 找到活口后钉住（8790–8799 扫第一个 —— 开发机上固定口会被占）
 let mockChatPort = 0;
 let mockChatSrv = null;
-let mockChatHits = 0;
+let mockChatHits = 0;          // POST /v1/chat/completions 命中次数
+let mockChatOptionsHits = 0;   // 预检 OPTIONS（无 CORS 时可能只有这项、无 POST）
+const MOCK_CHAT_CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -48,7 +54,13 @@ function startMockChatServer() {
   return new Promise((resolve) => {
     mockChatSrv = http.createServer((req, res) => {
       const u = req.url.split('?')[0];
-      if (u !== '/v1/chat/completions' || req.method !== 'POST') { res.writeHead(404); return res.end(); }
+      if (u !== '/v1/chat/completions') { res.writeHead(404); return res.end(); }
+      if (req.method === 'OPTIONS') {
+        mockChatOptionsHits++;
+        res.writeHead(204, MOCK_CHAT_CORS);
+        return res.end();
+      }
+      if (req.method !== 'POST') { res.writeHead(404); return res.end(); }
       mockChatHits++;
       let body = '';
       req.on('data', (c) => { body += c; });
@@ -59,7 +71,7 @@ function startMockChatServer() {
           user = (j.messages.find((x) => x.role === 'user') || {}).content || '';
           sys = (j.messages.find((x) => x.role === 'system') || {}).content || '';
         } catch (_) {}
-        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.writeHead(200, { 'Content-Type': 'application/json', ...MOCK_CHAT_CORS });
         const segStage = /"segments"/.test(sys);
         if (segStage) {
           const blocks = String(user).split('\n\n');
@@ -680,12 +692,19 @@ async function m2(ctx) {
     return `M2 注入前会话 cfg.tr 未走假端点（trCfg=${JSON.stringify(tr)}；要 custom_chat@${chatUrl}）`;
   });
   const mockBefore = mockChatHits;
+  const optsBefore = mockChatOptionsHits;
   await say('请问去火车站怎么走？', 'zh-CN');
   await waitFor(async () => {
     if (mockChatHits > mockBefore) return true;
     const s = await state();
     return (s.history || []).some((r) => r.includes('请问去火车站') && THAI.test(r));
   }, 90000, '首句注入后 mock 未命中且行无泰语译文（cfg.tr 可能仍走 grant）');
+  okc(
+    mockChatHits > mockBefore,
+    mockChatOptionsHits > optsBefore && mockChatHits === mockBefore
+      ? '假端点只收到 OPTIONS 预检、没有 POST（file:// 跨域缺 CORS？）'
+      : '首句注入后 mock POST 未命中（cfg.tr 可能仍走 grant 或 transport 失败）',
+  );
   await waitFor(async () => {
     const s = await state();
     return (s.history || []).some((r) => r.includes('请问去火车站') && THAI.test(r));
