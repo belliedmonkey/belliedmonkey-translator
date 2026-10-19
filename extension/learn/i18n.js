@@ -26,11 +26,14 @@ var PageI18n = (() => {
     return '';
   }
 
-  function effectiveLocale() {
-    if (uiLang && uiLang !== 'auto') { const n = normalizeLocale(uiLang); if (n) return n; }
+  function effectiveLocaleFor(stored) {
+    const ul = stored === undefined ? uiLang : (stored || 'auto');
+    if (ul && ul !== 'auto') { const n = normalizeLocale(ul); if (n) return n; }
     try { const n = normalizeLocale(chrome.i18n.getUILanguage()); if (n) return n; } catch (_) {}
     return 'zh_CN';
   }
+
+  function effectiveLocale() { return effectiveLocaleFor(uiLang); }
 
   function t(key, fb) {
     try {
@@ -70,5 +73,5 @@ var PageI18n = (() => {
     } catch (_) { fire(); }   // 没有 chrome.storage 的宿主：按系统语言画的那一遍就是最终结果
   }
 
-  return { t, applyI18n, setUiLang, applyStoredUiLang, effectiveLocale, normalizeLocale };
+  return { t, applyI18n, setUiLang, applyStoredUiLang, effectiveLocale, effectiveLocaleFor, normalizeLocale };
 })();
