@@ -17,10 +17,10 @@ describe('AsrEntry.state — 五态', () => {
   test('no_script: 没有内容脚本（pageStatus 为空）', () => {
     eq(A.state({ pageStatus: null, settings: {}, engines: ENGINES }).kind, 'no_script');
   });
-  test('no_engine: 没选引擎 / 要 key 没 key / 要端点没端点', () => {
-    eq(A.state({ pageStatus: { media }, settings: {}, engines: ENGINES }).kind, 'no_engine');
-    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'oa', sttApiKey: '' }, engines: ENGINES }).kind, 'no_engine');
-    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'local', sttBaseUrl: '' }, engines: ENGINES }).kind, 'no_engine');
+  test('#134: 没配转写引擎也仍是 ready —— 弹窗只送去 App，不再劝填 key', () => {
+    eq(A.state({ pageStatus: { media }, settings: {}, engines: ENGINES }).kind, 'ready');
+    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'oa', sttApiKey: '' }, engines: ENGINES }).kind, 'ready');
+    eq(A.state({ pageStatus: { media }, settings: { sttEngine: 'local', sttBaseUrl: '' }, engines: ENGINES }).kind, 'ready');
   });
   // 2026-09-16：Tier B（实时档）从扩展端下掉（domain-design §2.4 第 3 条）之后，
   // 「这个引擎有没有实时接口」在扩展里不再是一个有意义的区分 —— 只剩整段转写，
@@ -45,8 +45,8 @@ describe('AsrEntry.state — 五态', () => {
     eq(A.state({ pageStatus: { media: null, frames: [] }, settings: s, engines: ENGINES }).kind, 'no_media');
     eq(A.state({ pageStatus: { media: null }, settings: s, engines: ENGINES }).kind, 'no_media');
   });
-  test('优先级：没配引擎排在有没有媒体之前', () => {
-    eq(A.state({ pageStatus: { media: null, frames: [{ href: 'x' }] }, settings: {}, engines: ENGINES }).kind, 'no_engine');
+  test('优先级：有 iframe 探针时 iframe_only 排在 no_media 之前（与引擎配置无关）', () => {
+    eq(A.state({ pageStatus: { media: null, frames: [{ href: 'x' }] }, settings: {}, engines: ENGINES }).kind, 'iframe_only');
   });
   test('durationText: 直播 / mm:ss / 时长未知', () => {
     const t = (k, d) => d;
