@@ -686,17 +686,25 @@ describe('§2.4 asr-source: pure helpers', () => {
     eq(A.mediaUrl({ currentSrc: 'blob:https://x/uuid' }), '');
     eq(A.mediaUrl(null), '');
   });
-  test('★ startFrom: no element ⇒ {ok:false, reason:no_media}; no engine ⇒ no_engine; both tracked as asr_entry', () => {
+  test('★ #134 startFrom: no element ⇒ no_media; 有元素 ⇒ 只开 listen 深链、不发转写', () => {
     const tracked = [];
+    const opened = [];
     global.MTTelemetry = { track: (n, p) => tracked.push([n, p]) };
+    global.AppLink = {
+      applePlatform: () => true,
+      open: (uid, fb, ms, action) => { opened.push({ uid, action }); return 'belliedmonkey://listen'; },
+      storeUrl: () => 'https://apps.apple.com/app/id1',
+    };
+    const ui = { streaming: false, acquireVia(fn) { this._fn = fn; } };
     try {
-      deepEq(A.startFrom('popup', null, {}, {}), { ok: false, reason: 'no_media' });
-      // 测试环境里 RequestShape 缺席 ⇒ primeConfig 落到 {ok:false} ⇒ 没配引擎
-      const r = A.startFrom('popup', { duration: 100 }, { streaming: false, acquireVia() {} }, {});
-      eq(r.ok, false); eq(r.reason, 'no_engine');
-      deepEq(tracked.map((x) => x[1].result), ['no_media', 'no_engine']);
+      deepEq(A.startFrom('popup', null, ui, {}), { ok: false, reason: 'no_media' });
+      const r = A.startFrom('popup', { duration: 100 }, ui, {});
+      eq(r.ok, true); eq(r.reason, 'to_app');
+      eq(opened.length, 1); eq(opened[0].action, 'listen');
+      ok(!ui._fn, 'must not start in-page transcription via acquireVia');
+      deepEq(tracked.map((x) => x[1].result), ['no_media', 'to_app']);
       ok(tracked.every((x) => x[0] === 'asr_entry' && x[1].surface === 'popup'));
-    } finally { delete global.MTTelemetry; }
+    } finally { delete global.MTTelemetry; delete global.AppLink; }
   });
   test('eligible: only media at least MIN_DURATION_S long', () => {
     ok(!A.eligible({ duration: 10 })); ok(A.eligible({ duration: A.MIN_DURATION_S })); ok(!A.eligible({ duration: NaN }));
