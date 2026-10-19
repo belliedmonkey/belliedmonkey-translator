@@ -54,19 +54,36 @@ enum ExtCopy {
 
     /// 这台设备该看哪一份。`Locale.preferredLanguages` 给的是 `zh-Hans-CN` 这样的标签，
     /// 而表里的键是 `zh-Hans` —— 逐段退，退到语言主码，再退到 en。
-    private static let lang: String = {
-        for tag in Locale.preferredLanguages {
-            var t = tag
-            while !t.isEmpty {
-                if table[t] != nil { return t }
-                guard let dot = t.lastIndex(of: "-") else { break }
-                t = String(t[t.startIndex..<dot])
-            }
-            // zh-HK / zh-TW 之外的中文一律按简体（表里只有 zh-Hans / zh-Hant 两支）
-            if tag.hasPrefix("zh") && table["zh-Hans"] != nil { return "zh-Hans" }
+    /// 每次查表时重算 —— `static let` 会在扩展进程**第一次**加载时钉死，
+    /// 而「按 App 设语言」发生在那之后时，`Locale.preferredLanguages` 已变但旧值还在。
+    private static func resolveLang(_ tag: String) -> String? {
+        var t = tag
+        while !t.isEmpty {
+            if table[t] != nil { return t }
+            guard let dot = t.lastIndex(of: "-") else { break }
+            t = String(t[t.startIndex..<dot])
+        }
+        if tag.hasPrefix("zh") && table["zh-Hans"] != nil { return "zh-Hans" }
+        return nil
+    }
+
+    private static var lang: String {
+        // App 内「界面语言」与设置 › App › 语言 都会进快照 uiLang；弹层披露跟它走（#110）。
+        if let d = UserDefaults(suiteName: MTVaultNames.group),
+           let json = d.string(forKey: MTVaultNames.snapshotKey),
+           let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any],
+           let ui = obj["uiLang"] as? String, !ui.isEmpty, ui != "auto",
+           let hit = resolveLang(ui) { return hit }
+        // 设置 › App › 大肚猴翻译 › 语言 写在**宿主 App** 的 Bundle 上；扩展 Bundle.main 仍是系统语。
+        var hostURL = Bundle.main.bundleURL
+        for _ in 0..<2 { hostURL.deleteLastPathComponent() }
+        let host = Bundle(url: hostURL)
+        let tags = (host?.preferredLocalizations ?? []) + Bundle.main.preferredLocalizations + Locale.preferredLanguages
+        for tag in tags {
+            if let hit = resolveLang(tag) { return hit }
         }
         return "en"
-    }()
+    }
 
     /// 按 `_locales` 的键取一句。取不到就回空串 —— **不回键名**：一个写着
     /// `sys_fail_http` 的弹层比一个空的更难看懂。
