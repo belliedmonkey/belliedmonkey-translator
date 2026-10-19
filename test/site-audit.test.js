@@ -96,6 +96,15 @@ describe('site-audit: 口径黑名单', () => {
     eq(A.bannedWording('<p>the screenshot is never saved</p>').length, 1);
     eq(A.bannedWording('<p>Live Subtitles: the audio never passes through our servers.</p>').length, 0, 'subtitleP 音频句白名单');
   });
+  test('changelog 历史句：文件+原句白名单放行，同类新句与其它页仍报红', () => {
+    const [enLi, zhLi] = A.WORDING_PAGE_PHRASE_WHITELIST.map(([, p]) => p);
+    const changelog = `<ul><li>${enLi}</li></ul>`;
+    eq(A.bannedWording(changelog, 'changelog.html').length, 0, '白名单句在 changelog 放行');
+    eq(A.bannedWording(changelog, 'index.html').length, 1, '同句在非 changelog 页仍红');
+    eq(A.bannedWording('<p>never through our servers on every path</p>', 'changelog.html').length, 1, 'changelog 同类新句仍红');
+    eq(A.bannedWording(`<ul><li>${zhLi}</li></ul>`, 'changelog.html').length, 0, '中文白名单句放行');
+    eq(A.bannedWording('<p>不经过我们的服务器</p>', 'changelog.html').length, 1, 'changelog 未白名单的中文绝对句仍红');
+  });
 });
 
 describe('site-audit: 图片尺寸', () => {

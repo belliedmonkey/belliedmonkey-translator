@@ -73,6 +73,17 @@ const WORDING_WHITELIST = [
   /音訊也從不經過我們的伺服器/,
 ];
 
+// changelog 历史条目不改原文 —— 仅「文件 + 原句」精确匹配后豁免，不放宽红线正则本身。
+const WORDING_PAGE_PHRASE_WHITELIST = [
+  ['changelog.html',
+    'iPhone / iPad · New: System translation — select text in any app, tap “Translate,” and it goes to the engine you configured, never through our servers. First choose BelliedMonkey in Settings › Apps › Translate › Default Translate App. Requires iOS 18.4 or later.'],
+  ['changelog.html',
+    'iPhone / iPad · 新：系统翻译 —— 在任何 App 里选中文字点「翻译」，就用你自己配的引擎翻，不经过我们的服务器。先到「设置 › App › 翻译 › 默认翻译App」里选大肚猴翻译。需要 iOS 18.4 及以上。'],
+  // 1.7.x 朗读评测历史句；与上条共用「不经过我们的服务器」正则，sys trans 白名单后单独露出。
+  ['changelog.html',
+    '朗读评测：录音只发送到你自己配置的转写服务，识别后立即丢弃，绝不经过我们的服务器；不配置就不出现朗读题'],
+];
+
 // 2023-09 起 HowTo 不再有富结果；其余三个 2025 已退役。留着只会在 Search Console 里报警。
 const SCHEMA_DEPRECATED = new Set(['HowTo', 'SpecialAnnouncement', 'ClaimReview', 'VehicleListing']);
 
@@ -161,8 +172,18 @@ function scrubWordingWhitelists(hay) {
   for (const re of WORDING_WHITELIST) s = s.replace(re, ' ');
   return s;
 }
-function bannedWording(html) {
-  const hay = scrubWordingWhitelists(visibleText(html) + ' ' + JSON.stringify(jsonLd(html)));
+function scrubPagePhraseWhitelists(hay, rel) {
+  let s = hay;
+  for (const [file, phrase] of WORDING_PAGE_PHRASE_WHITELIST) {
+    if (file !== rel) continue;
+    s = s.split(phrase).join(' ');
+  }
+  return s;
+}
+function bannedWording(html, rel = null) {
+  let hay = visibleText(html) + ' ' + JSON.stringify(jsonLd(html));
+  hay = scrubWordingWhitelists(hay);
+  if (rel) hay = scrubPagePhraseWhitelists(hay, rel);
   return WORDING_BANNED.filter(([re]) => re.test(hay)).map(([, why]) => why);
 }
 // PNG: IHDR 在第 16 字节；JPEG: 扫 SOFn 段。别的格式返回 null（不判）。
@@ -300,7 +321,7 @@ function auditSite(site, opts = {}) {
     for (const o of flattenLd(jsonLd(html))) {
       if (o.softwareVersion && version && o.softwareVersion !== version) { R(`${rel}: JSON-LD softwareVersion=${o.softwareVersion} ≠ VERSION=${version}`); verBad++; }
     }
-    for (const why of bannedWording(html)) { R(`${rel}: ${why}`); wordBad++; }
+    for (const why of bannedWording(html, rel)) { R(`${rel}: ${why}`); wordBad++; }
   }
   if (!titleBad) OK('每页 <title> 存在、≤ 65 字符，首页说的是产品');
   if (!descBad && !h1Bad && !canonBad) OK('每个可索引页有 description、恰好一个 h1、自指 canonical');
@@ -490,8 +511,9 @@ function main(argv) {
 }
 
 module.exports = {
-  SITES, PRODUCT_WORD, COMPANY_WORD, WORDING_BANNED, WORDING_WHITELIST, SCHEMA_DEPRECATED, AI_BOTS, OG_MIN, BLOCK_WORDS,
-  scrubWordingWhitelists,
+  SITES, PRODUCT_WORD, COMPANY_WORD, WORDING_BANNED, WORDING_WHITELIST, WORDING_PAGE_PHRASE_WHITELIST,
+  SCHEMA_DEPRECATED, AI_BOTS, OG_MIN, BLOCK_WORDS,
+  scrubWordingWhitelists, scrubPagePhraseWhitelists,
   title, canonical, hreflangs, isNoindex, h1Count, imgs, jsonLd, flattenLd, ldTypes, metaContent,
   bannedWording, imageSize, h2Blocks, sitemapLocs, sitemapLastmod, robotsBlocks, aiBotsBlocked, urlOf, langOf,
   auditSite,
