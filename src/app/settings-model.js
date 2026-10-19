@@ -47,8 +47,7 @@ function set(items) {
   return new Promise((res) => chrome.storage.local.set(items, res));
 }
 
-// `learnEnabled` 被强制打开，因为「有没有材料来源」在 App 上确实为真：材料经同步
-// 进来，浏览器的采集开关不归这个面管。
+// `learnEnabled` 只在键缺失时默认 true（与扩展 install 种子一致）；用户显式 false 不覆盖。
 //
 // ⚠️ 2026-08-28 更正：这里原本写着它「gates」复习页那句「去设置里打开采集」。
 // 它不 gate —— review.js 全文只有存储键列表那一处提到 learnEnabled，空态分支
@@ -57,7 +56,7 @@ function set(items) {
 async function ensureDefaults() {
   const cur = await get(KEYS);
   const patch = {};
-  if (cur.learnEnabled !== true) patch.learnEnabled = true;
+  if (!Object.prototype.hasOwnProperty.call(cur, 'learnEnabled')) patch.learnEnabled = true;
   if (typeof cur.learnDailyNew !== 'number') patch.learnDailyNew = 15;
   // 坏值修复落到 **'off'**，不是 'assist'（2026-09-04）：语音要用户先配引擎才有，
   // 修一个坏值不该顺手把功能打开。chrome-shim 那边同步播种的那一段已经删掉了。
