@@ -13,7 +13,7 @@ var AsrEntry = (() => {
     return (engines || []).find((e) => e && e.id === id) || null;
   }
   // state({ pageStatus, settings, engines }) → { kind, engine, label, hint, media, frames }
-  //   kind ∈ 'no_script' | 'no_engine' | 'ready' | 'no_media' | 'iframe_only'
+  //   kind ∈ 'no_script' | 'ready' | 'no_media' | 'iframe_only'
   //   （'file_only' 随 Tier B 于 2026-09-16 下掉：扩展端只剩整段转写，
   //     「这个引擎有没有实时接口」在扩展里不再是一个有意义的问题。
   //     QuickSetup.state().sttLive 的同名值**不受影响** —— 那是给 App 的听译用的。）
@@ -24,8 +24,7 @@ var AsrEntry = (() => {
     const media = ps.media || null;
     const frames = Array.isArray(ps.frames) ? ps.frames.filter((f) => f && f.href) : [];
     const base = { engine: eng, media, frames };
-    // 「配好了没有」只有一份判据（content/stt-state.js）；弹窗把三种原因并成一种 no_engine 态
-    if (!SttState.fileReady(o.settings, o.engines).ok) return Object.assign({ kind: 'no_engine' }, base);
+    // #134：扩展端不再云端整段转写；弹窗这一行只送去 App 实时字幕，不再因没配转写引擎劝去填 key。
     if (media) return Object.assign({ kind: 'ready' }, base);
     if (frames.length) return Object.assign({ kind: 'iframe_only' }, base);
     return Object.assign({ kind: 'no_media' }, base);
