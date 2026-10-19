@@ -46,7 +46,7 @@ final class S56UITests: XCTestCase {
     private func allowSystemAlerts(_ tag: String, timeout: TimeInterval = 3) {
         let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
         let allow = ["无线局域网与蜂窝网络", "WLAN与蜂窝网络", "Wi-Fi & Cellular Data", "WLAN & Cellular", "允许", "Allow", "允许访问",
-                     "使用App时允许", "Allow While Using App", "好", "OK"]
+                     "使用App时允许", "Allow While Using App", "好", "OK", "本地网络", "Local Network"]
         for _ in 0..<4 {
             let alert = springboard.alerts.firstMatch
             guard alert.waitForExistence(timeout: timeout) else { return }
@@ -88,9 +88,14 @@ final class S56UITests: XCTestCase {
         shot("t1-translate-page", full: true); dump(st, "translate-page")
         guard tapText(st, "label CONTAINS '默认翻译'", "默认翻译App") else { return }
         shot("t1-default-list", full: true); dump(st, "default-list")
-        let ours = find(st, "label CONTAINS '大肚猴' OR label CONTAINS 'T1' OR label CONTAINS 'BelliedMonkey'")
-        note("列表里有我们: \(ours.exists) \(ours.exists ? ours.label : "")")
-        if ours.exists { ours.tap(); sleep(2); shot("t1-default-picked", full: true); dump(st, "picked") }
+        // #122：与 testSwitchDefault 同判据 —— 双 App 同名时须 Mac devicectl 确认国际版扩展。
+        if macProbeBaseURL() != nil {
+            pickIntlDefaultTranslatorApp(tag: "t1-default")
+        } else {
+            let ours = find(st, "label CONTAINS '大肚猴' OR label CONTAINS 'T1' OR label CONTAINS 'BelliedMonkey'")
+            note("列表里有我们: \(ours.exists) \(ours.exists ? ours.label : "")（无 MT592_PROBE_URL，仅点 firstMatch）")
+            if ours.exists { ours.tap(); sleep(2); shot("t1-default-picked", full: true); dump(st, "picked") }
+        }
     }
 
     func testT1Host() throws {
@@ -544,6 +549,160 @@ final class S56UITests: XCTestCase {
     // ── V 段（2026-09-20）：1.14.0 (110) 的真机验收 ──────────────────────────────
     // A 回执 / B 发现横幅 / C 系统翻译弹层 / D 收件箱进复习库 / E「完成」按钮证伪
     private let BT = "com.belliedmonkeytranslator"
+
+    // #592 #122：真机 XCUITest 在设备上跑，devicectl 只能在 Mac 侧 —— 局域网 probe 回读路径。
+    private func macProbeBaseURL() -> String? {
+        let raw = ProcessInfo.processInfo.environment["MT592_PROBE_URL"] ?? ""
+        let t = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.isEmpty ? nil : t
+    }
+
+    private func fetchMTTranslateExtPathFromMac(tag: String, retries: Int = 14) -> String? {
+        guard var base = macProbeBaseURL() else {
+            note("[\(tag)] MT592_PROBE_URL 未设置 —— 须 Mac 侧 scripts/mt592-probe-server.js + TEST_RUNNER_MT592_PROBE_URL")
+            return nil
+        }
+        while base.hasSuffix("/") { base.removeLast() }
+        guard let url = URL(string: base + "/ext-path") else { note("[\(tag)] probe URL 无效"); return nil }
+        var lastErr = "timeout"
+        for i in 0..<retries {
+            let sem = DispatchSemaphore(value: 0)
+            var pathOut: String?
+            let task = URLSession.shared.dataTask(with: url) { data, _, err in
+                defer { sem.signal() }
+                if let err = err { lastErr = err.localizedDescription; return }
+                guard let data = data,
+                      let j = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let p = j["path"] as? String, !p.isEmpty else { lastErr = "empty path"; return }
+                pathOut = p
+            }
+            task.resume()
+            _ = sem.wait(timeout: .now() + 10)
+            if let p = pathOut {
+                note("[\(tag)] Mac devicectl ext path (try \(i + 1)): \(p)")
+                return p
+            }
+            sleep(2)
+        }
+        note("[\(tag)] Mac probe 失败: \(lastErr)")
+        return nil
+    }
+
+    private func resolveMTTranslateExtPath(tag: String) -> String? {
+        let injected = (ProcessInfo.processInfo.environment["MT592_EXT_PATH"] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !injected.isEmpty {
+            note("[\(tag)] 使用注入 MT592_EXT_PATH=\(injected)")
+            return injected
+        }
+        return fetchMTTranslateExtPathFromMac(tag: tag)
+    }
+
+    private func assertIntlMTTranslateExtPath(tag: String) {
+        allowSystemAlerts("local-net-\(tag)", timeout: 2)
+        guard let path = resolveMTTranslateExtPath(tag: tag) else {
+            XCTFail("[\(tag)] 缺少 Mac 侧 devicectl 核对（空过不允许 Passed）")
+            return
+        }
+        note("MT592_EXT_PATH[\(tag)]=\(path)")
+        if path.contains("Translator CN.app") {
+            XCTFail("[\(tag)] MTTranslateExt 在中国版路径: \(path)")
+        }
+        if !path.contains("BelliedMonkey Translator.app") {
+            XCTFail("[\(tag)] MTTranslateExt 不在国际版 BelliedMonkey Translator.app 下: \(path)")
+        }
+    }
+
+    /// 设置 › 默认 App › 翻译 › 默认翻译 App 列表（#122：搜索「默认」，不硬编码 rows[1]）。
+    private func openDefaultTranslatorAppPicker() -> Bool {
+        let st = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        st.terminate(); st.launch(); sleep(3)
+        let sf = st.searchFields.firstMatch
+        guard sf.waitForExistence(timeout: 5) else { note("没有搜索框"); return false }
+        sf.tap(); sleep(1)
+        let clear = st.buttons["Clear text"].exists ? st.buttons["Clear text"] : st.buttons["清除文本"]
+        if clear.exists { clear.tap(); sleep(1) }
+        sf.typeText("默认")
+        sleep(2)
+        var def = find(st, "label CONTAINS '默认 App' OR label CONTAINS '默认App' OR label CONTAINS 'Default Apps'")
+        guard def.waitForExistence(timeout: 5) else { note("搜不到默认 App"); return false }
+        def.tap(); sleep(2)
+        var tr = find(st, "label == '翻译' OR label == 'Translation'")
+        for _ in 0..<6 where !(tr.exists && tr.isHittable) { st.swipeUp(); usleep(500_000); tr = find(st, "label == '翻译' OR label == 'Translation'") }
+        guard tr.exists && tr.isHittable else { note("找不到「翻译」"); return false }
+        tr.tap(); sleep(2)
+        return true
+    }
+
+    private func defaultTranslatorNameRows() -> [XCUIElement] {
+        let st = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        return st.staticTexts.matching(NSPredicate(format: "label == '大肚猴翻译'")).allElementsBoundByIndex
+    }
+
+    /// 触发一次系统翻译，供 devicectl 查 MTTranslateExt 进程路径。
+    private func probeSystemTranslateForExtCheck() {
+        let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        let pageURL = ProcessInfo.processInfo.environment["MT_URL"] ?? "https://example.org/"
+        safari.terminate(); sleep(1)
+        XCUIDevice.shared.system.open(URL(string: pageURL)!)
+        _ = safari.wait(for: .runningForeground, timeout: 25)
+        sleep(8)
+        let anchorPrefix = pageURL.contains("example.org") ? "This domain is for use" : "Coffee is a beverage"
+        var anchor: XCUIElement?
+        for e in safari.webViews.staticTexts.allElementsBoundByIndex.prefix(40) where e.exists {
+            if e.label.hasPrefix(anchorPrefix) && e.isHittable { anchor = e; break }
+        }
+        guard let a0 = anchor else { note("probe 没找到首段锚"); shot("sw-probe-noanchor", full: true); return }
+        let f = a0.frame
+        let p1 = safari.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: f.minX + 3, dy: f.midY))
+        let p2 = safari.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: f.minX + f.width * 0.99, dy: f.midY + 36))
+        p1.press(forDuration: 1.2, thenDragTo: p2); sleep(2)
+        var tr = find(safari, "label == 'Translate' OR label == '翻译'")
+        guard tr.waitForExistence(timeout: 5) else { note("probe 菜单无 Translate"); return }
+        tr.tap(); sleep(2)
+        let go = find(safari, "label == 'Continue' OR label == '继续'")
+        if go.exists { go.tap(); sleep(2) }
+        for _ in 0..<12 {
+            if !find(safari, "label CONTAINS 'Translating' OR label CONTAINS '正在翻译'").exists { break }
+            sleep(2)
+        }
+        sleep(3)
+    }
+
+    /// 同名「大肚猴翻译」逐条试选 + Mac devicectl 核对，必须落在国际版扩展。
+    private func pickIntlDefaultTranslatorApp(tag: String) {
+        guard openDefaultTranslatorAppPicker() else { XCTFail("[\(tag)] 进不了默认翻译 App 列表"); return }
+        let rows = defaultTranslatorNameRows()
+        note("同名条目 \(rows.count) 个")
+        guard rows.count >= 1 else { XCTFail("[\(tag)] 列表里没有「大肚猴翻译」"); return }
+        if let rowStr = ProcessInfo.processInfo.environment["MT592_ROW"], let idx = Int(rowStr), idx >= 0, idx < rows.count {
+            rows[idx].tap(); sleep(3)
+            shot("sw-picked-row\(idx)", full: true)
+            probeSystemTranslateForExtCheck()
+            assertIntlMTTranslateExtPath(tag: "\(tag)-row\(idx)")
+            return
+        }
+        var picked = false
+        for i in 0..<rows.count {
+            if i > 0 {
+                guard openDefaultTranslatorAppPicker() else { break }
+            }
+            let cur = defaultTranslatorNameRows()
+            guard i < cur.count else { note("第 \(i) 行消失"); break }
+            cur[i].tap(); sleep(3)
+            note("试选第 \(i) 个同名条目")
+            probeSystemTranslateForExtCheck()
+            if let path = resolveMTTranslateExtPath(tag: "\(tag)-try-\(i)") {
+                note("MT592_EXT_PATH[\(tag)-try-\(i)]=\(path)")
+                if path.contains("BelliedMonkey Translator.app") && !path.contains("Translator CN.app") {
+                    picked = true
+                    shot("sw-picked-intl-row\(i)", full: true)
+                    break
+                }
+                note("第 \(i) 个不是国际版 MTTranslateExt，换下一个")
+            }
+        }
+        if !picked { XCTFail("[\(tag)] 所有同名条目都未指向国际版 MTTranslateExt（devicectl 已逐个核对）") }
+    }
 
     /// 把当前前台 App 的可读元素抄一遍，配一张整屏。
     private func survey(_ app: XCUIApplication, _ tag: String) {
@@ -1367,7 +1526,20 @@ final class S56UITests: XCTestCase {
             sleep(3)
         }
         note("★ 译文落定 = \(settled)")
-        note("弹层文字: " + safari.staticTexts.allElementsBoundByIndex.prefix(16).map { $0.label }.filter { !$0.isEmpty }.joined(separator: " | ").prefix(300))
+        let layerLabels = safari.staticTexts.allElementsBoundByIndex.prefix(24).map { $0.label }.filter { !$0.isEmpty }
+        let layerJoined = layerLabels.joined(separator: " | ")
+        note("弹层文字: " + layerJoined.prefix(400))
+        let copyBtn = find(safari, "label == 'Copy translation' OR label == '复制译文'")
+        note("Copy translation 按钮: \(copyBtn.exists) label=\(copyBtn.exists ? copyBtn.label : "-")")
+        if !copyBtn.exists || copyBtn.label != "Copy translation" {
+            XCTFail("弹层按钮须为 Copy translation（英文 UI），实际: \(copyBtn.exists ? copyBtn.label : "missing")")
+        }
+        let disclose = layerJoined.range(of: "Using free credit", options: .caseInsensitive) != nil
+            || layerJoined.range(of: "relay", options: .caseInsensitive) != nil
+        if !disclose {
+            XCTFail("免费额度披露须为英文（Using free credit…），弹层: \(layerJoined.prefix(200))")
+        }
+        assertIntlMTTranslateExtPath(tag: "v9-systrans")
         sleep(2)
         shot("v9-systrans", full: true)
 
@@ -1650,34 +1822,25 @@ final class S56UITests: XCTestCase {
     /// 选没有勾的那一个。最终判据不在这个测试里，而在弹层底部披露行的引擎名
     /// （中国版是 qwen，国际版配的是 deepseek）。
     func testSwitchDefault() throws {
-        let st = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-        st.terminate(); st.launch(); sleep(4)
         shot("sw-00", full: true)
-        // 用设置自带的搜索框 —— 逐级滑动找「应用」不稳（根页很长，且 cell 的 label 是空的）
-        let sf = st.searchFields.firstMatch
-        guard sf.waitForExistence(timeout: 5) else { note("没有搜索框"); shot("sw-nosearch", full: true); return }
-        sf.tap(); sleep(1)
-        sf.typeText("默认")
-        sleep(3); shot("sw-01-search", full: true)
-        var def = find(st, "label CONTAINS '默认 App' OR label CONTAINS '默认App' OR label CONTAINS 'Default Apps'")
-        guard def.waitForExistence(timeout: 5) else {
-            note("搜不到默认 App: " + st.staticTexts.allElementsBoundByIndex.prefix(20).map { $0.label }.filter { !$0.isEmpty }.joined(separator: "|"))
-            shot("sw-nodefault", full: true); return
+        pickIntlDefaultTranslatorApp(tag: "switch-default")
+    }
+
+    /// Mac 编排：只切默认行 + 触发系统翻译（路径核对在下一步注入 MT592_EXT_PATH）。
+    func test592DefaultRowProbe() throws {
+        guard let rowStr = ProcessInfo.processInfo.environment["MT592_ROW"], let idx = Int(rowStr) else {
+            XCTFail("test592DefaultRowProbe 需要 MT592_ROW"); return
         }
-        def.tap(); sleep(3); shot("sw-02-default", full: true)
-        // → 翻译
-        var tr = find(st, "label == '翻译' OR label == 'Translation'")
-        for _ in 0..<6 where !(tr.exists && tr.isHittable) { st.swipeUp(); usleep(500_000); tr = find(st, "label == '翻译' OR label == 'Translation'") }
-        guard tr.exists && tr.isHittable else { note("找不到「翻译」: " + st.cells.allElementsBoundByIndex.prefix(25).map { $0.label }.joined(separator: "|")); shot("sw-notrans", full: true); return }
-        tr.tap(); sleep(2); shot("sw-03-list", full: true)
-        // 列表里两个同名条目（截图实证：第一个带蓝勾＝中国版，第二个是刚装的国际版）。
-        // 行不是 cell 类型，`st.cells` 匹配到 0 个 —— 用文字元素按序号点第二个。
-        let rows = st.staticTexts.matching(NSPredicate(format: "label == '大肚猴翻译'")).allElementsBoundByIndex
-        note("同名条目 \(rows.count) 个")
-        guard rows.count >= 2 else { note("少于 2 个，切不了"); shot("sw-norow", full: true); return }
-        rows[1].tap(); sleep(3)
-        shot("sw-04-picked", full: true)
-        note("点完 —— 真判据在弹层披露行的引擎名，不在这里")
+        guard openDefaultTranslatorAppPicker() else { XCTFail("进不了默认翻译列表"); return }
+        let rows = defaultTranslatorNameRows()
+        guard idx >= 0, idx < rows.count else { XCTFail("MT592_ROW=\(idx) 越界（共 \(rows.count) 项）"); return }
+        rows[idx].tap(); sleep(3)
+        shot("sw592-row\(idx)", full: true)
+        probeSystemTranslateForExtCheck()
+    }
+
+    func test592AssertIntlExtPath() throws {
+        assertIntlMTTranslateExtPath(tag: "inject-assert")
     }
 
     /// C2 侦察：国际版「快速」卡长什么样 —— 平台是写死的 OpenRouter，还是能选？
