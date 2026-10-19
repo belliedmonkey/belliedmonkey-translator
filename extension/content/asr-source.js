@@ -308,20 +308,8 @@ var AsrSource = (() => {
     sessions.add(session);
     signal.addEventListener('abort', () => sessions.delete(session), { once: true });
     ctx.onAbort(() => ctl.abort());
-    const language = ''; // auto-detect; the media's language is not the target language
+    // #134：扩展端不再发起云端整段转写；保留 acquireVia / streamAbort 形状供停止转写等路径。
     (async () => {
-      const cfg = await readSttConfig();
-      if (!cfg.ok) { ctx.fail(T('asr_needs_engine', '先在设置里选择转写引擎')); return; }
-      const url = mediaUrl(el);
-      try {
-        if (url && await corsReadable(url, signal)) { await fileTier({ url, cfg, ctx, signal, language }); return; }
-      } catch (e) {
-        if (signal.aborted) return;
-        // 引擎类失败（没有时间戳、HTTP 错、文件过大）是终局，与媒体无关 —— 换个面也一样。
-        if (e.code === 'nocues' || e.code === 'http' || e.code === 'toolarge') { ctx.fail(failMessage(e)); return; }
-      }
-      // 到这里 = 这段媒体扩展转不了（blob:/MSE、CORS 拒绝、或 fileTier 的媒体类失败）。
-      // 以前落到 Tier B 流式；现在落到一句具名原因 + 去 App 的出口。
       if (signal.aborted) return;
       lastFail = { code: 'to_app', el };
       ctx.fail(T('asr_media_app_only',
@@ -355,6 +343,10 @@ var AsrSource = (() => {
   //
   // 文案**不点名 Safari**（用户 2026-09-13 裁定）：App 听的是设备的声音，与哪个
   // 浏览器或 App 在放无关。
+  function openListenApp(surface) {
+    track(surface || 'notice', 'to_app');
+    try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
+  }
   function appPointer(surface) {
     if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) return null;
     const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
@@ -364,15 +356,7 @@ var AsrSource = (() => {
       : T('asr_app_go_mac', '🔊 用 App 听设备的声音 →');
     return {
       label,
-      onClick: () => {
-        // `to_app` 而不是 `no_media`（2026-09-17，telemetry-design §3.3.2）：
-        // 第一版拿「这一页没找到媒体」记「用户选择去 App」，那是 engine_set 那次
-        // 语义漂移的同型——两件事从此在数据里分不开，而旧数据看起来完全正常。
-        track(surface || 'notice', 'to_app');
-        // AppLink.open 自己处理「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 把出口说出来」，
-        // 这正是本仓最怕的「点了没反应」。没装 App 的人由它送去 App Store。
-        try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
-      },
+      onClick: () => openListenApp(surface),
     };
   }
 
@@ -384,12 +368,6 @@ var AsrSource = (() => {
       const ui = getUi();
       if (!el || !ui || !(el.duration >= MIN_DURATION_S)) return null;
       if (ui.streaming) return null;
-      const c = cached;
-      if (!c || !c.ok) {
-        return { label: T('asr_needs_engine', '先在设置里选择转写引擎'), onClick: () => { track('notice', 'no_engine'); openOptions('#stt'); } };
-      }
-      // 这段媒体扩展转不了 ⇒ 去 App。非 Apple 平台上 App 不存在，那里回 null，
-      // 于是 offer 退回下面那条默认的「再试一次」—— 绝不给一个装不了的去处。
       if (lastFail.code === 'to_app' && lastFail.el === el) {
         const p = appPointer('notice');
         if (p) return p;
@@ -404,12 +382,13 @@ var AsrSource = (() => {
     if (!el) { track(lastSurface, 'no_media'); return { ok: false, reason: 'no_media' }; }
     if (!ui) return { ok: false, reason: 'busy' };
     if (ui.streaming) return { ok: false, reason: 'busy' };
-    if (!cached || !cached.ok) { track(lastSurface, 'no_engine'); return { ok: false, reason: 'no_engine' }; }
+    if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) {
+      track(lastSurface, 'no_app');
+      return { ok: false, reason: 'no_app' };
+    }
     lastFail = { code: '', el: null };
-    prepareAudioContext(); // inside the gesture
-    ui.acquireVia((ctx) => startSession({ el, ctx, settings }));
-    track(lastSurface, 'started');
-    return { ok: true, reason: 'started' };
+    openListenApp(lastSurface);
+    return { ok: true, reason: 'to_app' };
   }
   function start(el, ui, settings) { return startFrom('notice', el, ui, settings).ok; }
 
