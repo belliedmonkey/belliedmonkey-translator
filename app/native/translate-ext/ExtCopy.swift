@@ -67,23 +67,29 @@ enum ExtCopy {
         return nil
     }
 
+    private static func vaultUiLang(_ obj: [String: Any], key: String) -> String? {
+        guard let raw = (obj[key] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              raw != "auto", !raw.isEmpty else { return nil }
+        let ui = ["zh_CN": "zh-Hans", "zh_TW": "zh-Hant", "pt_BR": "pt-BR"][raw] ?? raw
+        return resolveLang(ui)
+    }
+
     private static var lang: String {
-        // App 内「界面语言」与设置 › App › 语言 都会进快照 uiLang；弹层披露跟它走（#110）。
+        // uiLangEffective = App 界面实际语言（含 auto）；uiLang 显式值次之（#592 方案 A / #110）。
         if let d = UserDefaults(suiteName: MTVaultNames.group),
            let json = d.string(forKey: MTVaultNames.snapshotKey),
-           let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any],
-           let raw = (obj["uiLang"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) {
-            if raw != "auto", !raw.isEmpty {
-                let ui = ["zh_CN": "zh-Hans", "zh_TW": "zh-Hant", "pt_BR": "pt-BR"][raw] ?? raw
-                if let hit = resolveLang(ui) { return hit }
-            }
+           let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any] {
+            if let hit = vaultUiLang(obj, key: "uiLangEffective") { return hit }
+            if let hit = vaultUiLang(obj, key: "uiLang") { return hit }
         }
         // 设置 › App › 大肚猴翻译 › 语言 写在**宿主 App** 的 Bundle 上；扩展 Bundle.main 仍是系统语。
         var hostURL = Bundle.main.bundleURL
         for _ in 0..<2 { hostURL.deleteLastPathComponent() }
         let host = Bundle(url: hostURL)
-        let tags = (host?.preferredLocalizations ?? []) + Bundle.main.preferredLocalizations + Locale.preferredLanguages
-        for tag in tags {
+        for tag in host?.preferredLocalizations ?? [] {
+            if let hit = resolveLang(tag) { return hit }
+        }
+        for tag in Bundle.main.preferredLocalizations + Locale.preferredLanguages {
             if let hit = resolveLang(tag) { return hit }
         }
         return "en"
