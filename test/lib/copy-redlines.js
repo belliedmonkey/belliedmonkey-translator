@@ -47,6 +47,7 @@ const FULLY_FREE = [
 // ③ 「翻译路径上没有我们的服务器」（仅国际版）
 const NO_SERVER_OF_OURS = [
   /\bno servers? of ours\b/i,
+  /\bnever (passes )?through our servers?\b/i,
   /翻译链路上没有我们的服务器|无中间服务器|不经过我们的服务器/,
   /翻譯路徑上(也)?沒有我們的伺服器/,
   /当方のサーバーは一切ありません/,

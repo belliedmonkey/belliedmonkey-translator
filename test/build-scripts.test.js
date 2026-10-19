@@ -2697,12 +2697,15 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
   });
 
   test('★ Gate J-2 的两句披露：自带 key 说「不经过我们」，免费额度说「经我们中转」', () => {
+    const RED = require('./lib/copy-redlines');
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
     for (const l of locales) {
       const m = JSON.parse(fs.readFileSync(path.join(ROOT, 'extension', '_locales', l, 'messages.json'), 'utf8'));
       ok(m.sys_disclose_direct.message.includes('{name}'), l + '：直连那句要说得出是哪个引擎');
       ok(!m.sys_disclose_grant.message.includes('{name}'), l + '：免费额度那句不点引擎名（那是中转后面的服务商）');
       ok(m.sys_disclose_grant.message.length >= 20, l + '：免费额度那句太短，不像一句完整披露');
+      // 国际免费额度弹层只走 grant 句 —— 不得踩口径红线（与 aso-copy 同表，不另写正则）
+      eq(RED.firstHit(RED.NO_SERVER_OF_OURS, m.sys_disclose_grant.message), null, l + '：sys_disclose_grant');
     }
     // 一句话套两种事实，其中一种必然是假的 —— 弹层必须按 provider 分支
     const view = fs.readFileSync(path.join(NATIVE, 'translate-ext', 'TranslateExt.swift'), 'utf8');
@@ -2846,6 +2849,11 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
       ok(!/[\u4e00-\u9fff]/.test(lit), 'ExtCopy.swift 的字面量里不该有中文：' + lit);
       ok(!/ [a-z]+ [a-z]+ [a-z]+/.test(lit), 'ExtCopy.swift 的字面量里不该有成句英文：' + lit);
     }
+    // #110：语种随 App 界面语言重算 —— static let 会在扩展首次加载时钉死，改 App 语言后仍读旧表
+    ok(!/private\s+static\s+let\s+lang\s*:/.test(copy), 'ExtCopy.lang 不能是 static let');
+    ok(/private\s+static\s+var\s+lang\s*:\s*String\s*\{/.test(copy), 'ExtCopy.lang 应是每次查表重算的 computed property');
+    ok(copy.includes('"uiLang"') && copy.includes('MTVaultNames.snapshotKey'), '弹层语种要先读 vault 快照里的 uiLang');
+    ok(copy.includes('resolveLang'), '语言标签解析要可重复调用，不能只在初始化跑一遍');
     const { COPY_KEYS } = require('../build/ext-bundle.js');
     const locales = fs.readdirSync(path.join(ROOT, 'extension', '_locales'));
     eq(locales.length, 13);
