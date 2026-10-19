@@ -1231,20 +1231,60 @@ final class S56UITests: XCTestCase {
     func testV9Shot() throws {
         let app = XCUIApplication(bundleIdentifier: BT)
         let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+        let skipVpn = ProcessInfo.processInfo.environment["MT_SKIP_VPN"] == "1"
         // ★ 自己把 VPN 打开（翻译要它），**跑完再自己关掉** —— 不关的话下一轮测试程序
         // 起不来（证书校验被 fake-IP 挡住）。`defer` 保证异常路径也关。
-        defer { setVPN(false) }
-        guard setVPN(true) else { note("VPN 没开起来，停"); return }
-        sleep(4)
+        // #110：免费额度中继境内可达时传 MT_SKIP_VPN=1，不再动 Shadowrocket。
+        if skipVpn {
+            note("MT_SKIP_VPN=1，跳过 Shadowrocket")
+        } else {
+            defer { setVPN(false) }
+            guard setVPN(true) else { note("VPN 没开起来，停"); return }
+            sleep(4)
+        }
 
         // ── ① 把「译成」设成简体中文 ────────────────────────────────────────────
         app.terminate(); app.launch(); sleep(4)
-        guard tapText(app, "label == 'Settings' OR label == '设置'", "设置") else { return }
+        if !tapText(app, "label == 'Settings' OR label == '设置' OR label CONTAINS '去设置'", swipes: 0, "设置") {
+            // 2026-10-02 起设置收进账号菜单（acct → gear），顶栏不再有直出「设置」。
+            var acct = app.buttons.matching(NSPredicate(format: "label == 'ZZ' OR label == 'B' OR identifier == 'acct'")).firstMatch
+            if !acct.waitForExistence(timeout: 3) {
+                acct = app.staticTexts.matching(NSPredicate(format: "label == 'B' OR label == 'ZZ'")).firstMatch
+            }
+            if acct.waitForExistence(timeout: 3), acct.isHittable {
+                note("展开账号菜单"); acct.tap(); sleep(2); shot("v9-acct-menu", full: true)
+            } else {
+                note("账号圆钮 AX 未命中，改点右上角坐标")
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.09)).tap(); sleep(2)
+                shot("v9-acct-menu", full: true)
+            }
+            note("菜单项: " + app.buttons.allElementsBoundByIndex.prefix(12).map { $0.label }.joined(separator: " | "))
+            guard tapText(app, "label == 'Settings' OR label == '设置' OR label CONTAINS '去设置'", "设置-menu") else { return }
+        }
         sleep(2)
+        if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab") { sleep(2) }
+        var uiLangWasEnglish = false
+        let uiSel = scrollTo(app, { app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Interface language' OR label BEGINSWITH '界面语言'")).firstMatch }, 8)
+        if uiSel.exists, uiSel.isHittable {
+            let now = (uiSel.value as? String) ?? "-"
+            if now.range(of: "English|英语", options: .regularExpression) != nil {
+                uiLangWasEnglish = true
+                note("界面语言已是 English")
+            } else {
+                uiSel.tap(); sleep(2)
+                let en = app.buttons.matching(NSPredicate(format: "label CONTAINS 'English' OR label CONTAINS '英语'")).firstMatch
+                if en.waitForExistence(timeout: 4), en.isHittable { en.tap(); sleep(3) }
+                note("★ 界面语言 → \((uiSel.value as? String) ?? "-")")
+            }
+        }
         let sels = app.buttons.matching(NSPredicate(format: "value != nil AND value != ''")).allElementsBoundByIndex
         note("设置页带值的控件: " + sels.prefix(10).map { "[\($0.label.prefix(16))|\(($0.value as? String ?? "").prefix(28))]" }.joined(separator: " "))
         var target: XCUIElement? = nil
         for e in sels where ((e.value as? String) ?? "").range(of: "Follow interface|跟随界面", options: .regularExpression) != nil { target = e; break }
+        if target == nil {
+            if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab") { sleep(2) }
+            for e in app.buttons.matching(NSPredicate(format: "value != nil AND value != ''")).allElementsBoundByIndex where ((e.value as? String) ?? "").range(of: "Follow interface|跟随界面", options: .regularExpression) != nil { target = e; break }
+        }
         if let t = target {
             note("「译成」当前: \((t.value as? String) ?? "-")")
             t.tap(); sleep(2); shot("v9-langmenu", full: true)
@@ -1257,34 +1297,39 @@ final class S56UITests: XCTestCase {
                 .first(where: { ($0.label.contains("ranslate") || $0.label.contains("译成")) })
             note("★「译成」设定后: \((now?.value as? String) ?? "读不到")")
         } else { note("✗ 没找到「译成」控件") ; shot("v9-nosel", full: true) }
+        sleep(5)   // 等 vault 镜像 uiLang / targetLang 进 App Group，扩展只读快照
 
         // ── ② 拍弹层 ───────────────────────────────────────────────────────────
         // 先把 App 退掉：不退的话 Safari 顶上会留一条「◀ 大肚猴翻译」的返回条 ——
         // 一张英文商店图上挂着中文返回条，正是 assets.md 判据③那类瑕疵。
         app.terminate(); sleep(2)
         safari.terminate(); sleep(2)
-        XCUIDevice.shared.system.open(URL(string: ProcessInfo.processInfo.environment["MT_URL"] ?? "https://en.wikipedia.org/wiki/Coffee")!)
+        let pageURL = ProcessInfo.processInfo.environment["MT_URL"] ?? "https://en.wikipedia.org/wiki/Coffee"
+        XCUIDevice.shared.system.open(URL(string: pageURL)!)
         // **等 Safari 真的起来再查它** —— 上一轮就挂在这：`system.open` 之后直接查
         // webViews，报 `Application com.apple.mobilesafari is not running`。
         if !safari.wait(for: .runningForeground, timeout: 30) {
             note("Safari 没起来，再开一次"); safari.launch(); sleep(3)
-            XCUIDevice.shared.system.open(URL(string: ProcessInfo.processInfo.environment["MT_URL"] ?? "https://en.wikipedia.org/wiki/Coffee")!)
+            XCUIDevice.shared.system.open(URL(string: pageURL)!)
             _ = safari.wait(for: .runningForeground, timeout: 30)
         }
         sleep(10)
-        // Wikipedia 会弹它自己的 App 推广横幅（顶上一大块，还带一个「Install」按钮）——
-        // 商店图里不能有别家 App 的安装按钮。关掉它，然后滚回顶部。
-        for _ in 0..<2 {
-            let x = safari.webViews.buttons.matching(NSPredicate(format:
-                "label == 'Close' OR label == '关闭' OR label CONTAINS 'Dismiss'")).firstMatch
-            if x.exists && x.isHittable { note("关掉 Wikipedia 的推广横幅"); x.tap(); sleep(2) } else { break }
+        let useExample = pageURL.contains("example.org")
+        if !useExample {
+            // Wikipedia 会弹它自己的 App 推广横幅（顶上一大块，还带一个「Install」按钮）——
+            // 商店图里不能有别家 App 的安装按钮。关掉它，然后滚回顶部。
+            for _ in 0..<2 {
+                let x = safari.webViews.buttons.matching(NSPredicate(format:
+                    "label == 'Close' OR label == '关闭' OR label CONTAINS 'Dismiss'")).firstMatch
+                if x.exists && x.isHittable { note("关掉 Wikipedia 的推广横幅"); x.tap(); sleep(2) } else { break }
+            }
+            safari.swipeDown(); sleep(2)
         }
-        // 横幅关掉后页面会回流，滚到顶重新定位
-        safari.swipeDown(); sleep(2)
-        // 从首段**句首**开始拖：元素被链接切碎了，取 label 以 "Coffee is a beverage" 开头的那个当锚
+        // 从首段**句首**开始拖：example.org 取英文段；Wikipedia 取 Coffee 首段。
         var anchor: XCUIElement? = nil
+        let anchorPrefix = useExample ? "This domain is for use" : "Coffee is a beverage"
         for e in safari.webViews.staticTexts.allElementsBoundByIndex.prefix(60) where e.exists {
-            if e.label.hasPrefix("Coffee is a beverage") && e.isHittable { anchor = e; break }
+            if e.label.hasPrefix(anchorPrefix) && e.isHittable { anchor = e; break }
         }
         guard let a0 = anchor else {
             note("没找到首段锚: " + safari.webViews.staticTexts.allElementsBoundByIndex.prefix(10).map { String($0.label.prefix(30)) }.joined(separator: " | "))
@@ -1293,9 +1338,8 @@ final class S56UITests: XCTestCase {
         let f = a0.frame
         note("首段锚 frame=\(f)")
         let p1 = safari.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: f.minX + 3, dy: f.midY))
-        // 拖到第二行「ground coffee beans.」的句号之后 —— 0.60 会断在「ground coffee」，
-        // 原文看着像被截了一半（锚元素宽 165 点，屏宽 393 点，句号在 ~178 点处）。
-        let p2 = safari.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: f.minX + f.width * 0.99, dy: f.midY + 62))
+        let dragDy: CGFloat = useExample ? 36 : 62
+        let p2 = safari.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: f.minX + f.width * 0.99, dy: f.midY + dragDy))
         p1.press(forDuration: 1.2, thenDragTo: p2); sleep(2)
         shot("v9-selected", full: true)
 
@@ -1319,6 +1363,32 @@ final class S56UITests: XCTestCase {
         note("弹层文字: " + safari.staticTexts.allElementsBoundByIndex.prefix(16).map { $0.label }.filter { !$0.isEmpty }.joined(separator: " | ").prefix(300))
         sleep(2)
         shot("v9-systrans", full: true)
+
+        // ── ③ 拍完还原 App 界面语言（#110 / #592：只动 App 语言，不动系统语言）────────
+        guard !uiLangWasEnglish else {
+            note("★ 界面语言还原：本来就是 English，跳过")
+            return
+        }
+        safari.terminate(); sleep(1)
+        app.terminate(); app.launch(); sleep(4)
+        if !tapText(app, "label == 'Settings' OR label == '设置' OR label CONTAINS '去设置'", swipes: 0, "设置-restore") {
+            var acct = app.buttons.matching(NSPredicate(format: "label == 'ZZ' OR label == 'B' OR identifier == 'acct'")).firstMatch
+            if acct.waitForExistence(timeout: 3), acct.isHittable { acct.tap(); sleep(2) }
+            else { app.coordinate(withNormalizedOffset: CGVector(dx: 0.90, dy: 0.09)).tap(); sleep(2) }
+            guard tapText(app, "label == 'Settings' OR label == '设置' OR label CONTAINS '去设置'", "设置-menu-restore") else { return }
+        }
+        sleep(2)
+        if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab-restore") { sleep(2) }
+        let uiBack = scrollTo(app, { app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Interface language' OR label BEGINSWITH '界面语言'")).firstMatch }, 8)
+        if uiBack.exists, uiBack.isHittable {
+            let now = (uiBack.value as? String) ?? "-"
+            if now.range(of: "English|英语", options: .regularExpression) != nil {
+                uiBack.tap(); sleep(2)
+                let zh = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Chinese, Simplified' OR label CONTAINS 'Simplified Chinese' OR label CONTAINS '简体中文'")).firstMatch
+                if zh.waitForExistence(timeout: 4), zh.isHittable { zh.tap(); sleep(3) }
+            }
+            note("★ 界面语言还原后: \((uiBack.value as? String) ?? "-")")
+        }
     }
 
     // ── 2026-09-22：中国版 1.14.0 (54) 被拒「首次启动后崩溃」—— 用 TestFlight 装**同一个二进制、同一种签名**复现 ──
