@@ -90,6 +90,11 @@ describe('site-audit: 口径黑名单', () => {
     eq(A.bannedWording('<p>the only translation extension for iOS Safari</p>').length, 1);
     eq(A.bannedWording('<p>Free and open source; anonymous usage events, one switch turns them off. It is not the only extension.</p>').length, 0);
     eq(A.bannedWording('<style>.x{content:"no telemetry"}</style><p>ok</p>').length, 0, 'style 里的不算可见文本');
+    eq(A.bannedWording('<p>There is no server of ours in the translation path.</p>').length, 1);
+    eq(A.bannedWording('<p>nothing is collected</p>').length, 1);
+    eq(A.bannedWording('<p>我们不收集任何数据</p>').length, 1);
+    eq(A.bannedWording('<p>the screenshot is never saved</p>').length, 1);
+    eq(A.bannedWording('<p>Live Subtitles: the audio never passes through our servers.</p>').length, 0, 'subtitleP 音频句白名单');
   });
 });
 

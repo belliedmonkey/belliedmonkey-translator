@@ -51,10 +51,26 @@ const TITLE_MAX = 65;
 //   no telemetry      —— Gate D（2026-09-05）之后是假话：有匿名用量事件，一个开关关掉
 //   completely free   —— 不加限定的「完全免费」，红线（oss-marketing-direction）
 //   only/first … iOS  —— 「iOS Safari 唯一/第一」，沉浸式翻译有 iOS 条目
+const { NO_SERVER_OF_OURS } = require(path.join(ROOT, 'test/lib/copy-redlines.js'));
+
+// 口径黑名单：站上任何页面的可见文本与 JSON-LD 里都不许出现（按路径说，不说绝对话）。
 const WORDING_BANNED = [
-  [/\bno telemetry\b/i, '「no telemetry」是假话 —— 改成「匿名用量事件，一个开关关掉」那套口径'],
   [/\bcompletely free\b/i, '「completely free」不加限定，红线'],
   [/\b(the )?(only|first) (bilingual |translation )?(browser )?extension (for|on) (iOS|iPhone|Safari)/i, '「iOS/Safari 唯一/第一」，红线'],
+  ...NO_SERVER_OF_OURS.map((re) => [re, '「翻译路径上没有我们的服务器」类绝对句 —— 按自带 key / 免费额度分路径说']),
+  [/\bno (tracking|telemetry)\b/i, '「no tracking / no telemetry」类绝对句 —— 改成匿名用量事件 + 开关'],
+  [/没有埋点|无埋点|无追踪|没有追踪|不追踪|沒有追蹤|無追蹤|無埋點/, '「没有追踪/埋点」类绝对句 —— 改成匿名用量事件 + 开关'],
+  [/nothing is collected|不收集任何(数据|资料|信息)|沒有收集任何|nada (é|e) coletado|no se recopila nada|nichts wird (gesammelt|erfasst)|何も収集されません|아무것도 수집하지 않|ничего не собира|ไม่มีการเก็บข้อมูลใด|لا يُجمَ?ع أي ش/i, '「不收集任何数据」类绝对句 —— 有匿名用量事件'],
+  [/\bno server operated by us\b/i, '「no server operated by us」是绝对假话 —— 免费额度/同步/诊断等路径'],
+  [/screenshot is never saved/i, '「screenshot is never saved」绝对化 —— 改「not saved to disk / discarded when panel closes」'],
+  [/截图从不保存|截圖從不保存/, '截图「从不保存」绝对化'],
+];
+
+// privacy.subtitleP 里「Live Subtitles 音频不经我们服务器」是真话 —— 白名单后再扫红线。
+const WORDING_WHITELIST = [
+  /the audio never passes through our servers/i,
+  /音频也从不经过我们的服务器/,
+  /音訊也從不經過我們的伺服器/,
 ];
 
 // 2023-09 起 HowTo 不再有富结果；其余三个 2025 已退役。留着只会在 Search Console 里报警。
@@ -140,8 +156,13 @@ function visibleText(html) {
   return decode(html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ');
 }
+function scrubWordingWhitelists(hay) {
+  let s = hay;
+  for (const re of WORDING_WHITELIST) s = s.replace(re, ' ');
+  return s;
+}
 function bannedWording(html) {
-  const hay = visibleText(html) + ' ' + JSON.stringify(jsonLd(html));
+  const hay = scrubWordingWhitelists(visibleText(html) + ' ' + JSON.stringify(jsonLd(html)));
   return WORDING_BANNED.filter(([re]) => re.test(hay)).map(([, why]) => why);
 }
 // PNG: IHDR 在第 16 字节；JPEG: 扫 SOFn 段。别的格式返回 null（不判）。
@@ -469,7 +490,8 @@ function main(argv) {
 }
 
 module.exports = {
-  SITES, PRODUCT_WORD, COMPANY_WORD, WORDING_BANNED, SCHEMA_DEPRECATED, AI_BOTS, OG_MIN, BLOCK_WORDS,
+  SITES, PRODUCT_WORD, COMPANY_WORD, WORDING_BANNED, WORDING_WHITELIST, SCHEMA_DEPRECATED, AI_BOTS, OG_MIN, BLOCK_WORDS,
+  scrubWordingWhitelists,
   title, canonical, hreflangs, isNoindex, h1Count, imgs, jsonLd, flattenLd, ldTypes, metaContent,
   bannedWording, imageSize, h2Blocks, sitemapLocs, sitemapLastmod, robotsBlocks, aiBotsBlocked, urlOf, langOf,
   auditSite,
