@@ -72,8 +72,12 @@ enum ExtCopy {
         if let d = UserDefaults(suiteName: MTVaultNames.group),
            let json = d.string(forKey: MTVaultNames.snapshotKey),
            let obj = (try? JSONSerialization.jsonObject(with: Data(json.utf8))) as? [String: Any],
-           let ui = obj["uiLang"] as? String, !ui.isEmpty, ui != "auto",
-           let hit = resolveLang(ui) { return hit }
+           let raw = (obj["uiLang"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if raw != "auto", !raw.isEmpty {
+                let ui = ["zh_CN": "zh-Hans", "zh_TW": "zh-Hant", "pt_BR": "pt-BR"][raw] ?? raw
+                if let hit = resolveLang(ui) { return hit }
+            }
+        }
         // 设置 › App › 大肚猴翻译 › 语言 写在**宿主 App** 的 Bundle 上；扩展 Bundle.main 仍是系统语。
         var hostURL = Bundle.main.bundleURL
         for _ in 0..<2 { hostURL.deleteLastPathComponent() }

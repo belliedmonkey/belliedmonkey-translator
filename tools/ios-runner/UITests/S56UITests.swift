@@ -1265,20 +1265,23 @@ final class S56UITests: XCTestCase {
         if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab") { sleep(2) }
         var uiLangNeedRestore = false
         let uiSel = scrollTo(app, { app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Interface language' OR label BEGINSWITH '界面语言'")).firstMatch }, 8)
-        func pickUiLang(_ want: String) {
+        func pickUiLang(_ preds: String) {
             uiSel.tap(); sleep(2)
-            let opt = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", want)).firstMatch
+            let opt = app.buttons.matching(NSPredicate(format: preds)).firstMatch
             if opt.waitForExistence(timeout: 4), opt.isHittable { opt.tap(); sleep(3) }
+            else { note("uiLang 菜单未命中: \(preds)"); shot("v9-uilang-miss", full: true) }
         }
         if uiSel.exists, uiSel.isHittable {
             let before = (uiSel.value as? String) ?? "-"
             uiLangNeedRestore = before.range(of: "Chinese, Simplified|简体中文|Simplified Chinese", options: .regularExpression) != nil
                 || before.range(of: "Follow|跟随|Auto|自动", options: .regularExpression) != nil
+            let zhPred = "label CONTAINS '简体中文' OR label CONTAINS 'Simplified Chinese' OR label CONTAINS 'Chinese, Simplified'"
+            let enPred = "label CONTAINS 'English' OR label CONTAINS '英语'"
             // 控件已是 English 时 <select> 不会 fire change —— 快照 uiLang 仍可能是 auto/zh。
             if before.range(of: "English|英语", options: .regularExpression) != nil {
-                pickUiLang("简体中文"); note("界面语言 English → 简体中文（逼 vault 写 uiLang）")
+                pickUiLang(zhPred); note("界面语言 English → 简体（逼 vault 写 uiLang）")
             }
-            pickUiLang("English")
+            pickUiLang(enPred)
             note("★ 界面语言 → \((uiSel.value as? String) ?? "-")（restore 简体=\(uiLangNeedRestore)）")
         }
         let sels = app.buttons.matching(NSPredicate(format: "value != nil AND value != ''")).allElementsBoundByIndex
