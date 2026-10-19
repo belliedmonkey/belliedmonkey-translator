@@ -151,6 +151,13 @@ describe('vault-mirror: 把引擎配置镜像给系统翻译扩展（I-4）', ()
     ok(sent.length > n, '「译成」变了要重新镜像');
   });
 
+  test('★ learnEnabled：显式 false 镜像为 false，缺键为 true（#125）', () => {
+    const { V } = load({});
+    eq(V.snapshot({ learnEnabled: false }).nonSecret.learnEnabled, false);
+    eq(V.snapshot({ learnEnabled: true }).nonSecret.learnEnabled, true);
+    eq(V.snapshot({}).nonSecret.learnEnabled, true, '缺键 fail-open');
+  });
+
   test('★ flavor 按注册表实际内容判定，不按名字', () => {
     const g = load({ providers: [{ id: 'google', needsKey: false }, { id: 'deepseek', needsKey: true }] });
     eq(g.V.snapshot({}).nonSecret.flavor, 'global', '注册表里有免费通道 = 国际版');
