@@ -162,9 +162,7 @@ function Popup() {
     ? AsrEntry.state({ pageStatus, settings: s, engines: Registry.sttEngines() })
     : null;
   const asrHidden = !asrKnown || setup || !asrSt || asrSt.kind === 'no_script';
-  const asrLabel = asrSt && asrSt.kind === 'no_engine'
-    ? t('popup_asr_no_engine2', '🎙 转写这段音视频 — 先选一个转写引擎 →')
-    : t('popup_asr_go2', '🎙 转写这段音视频 + 翻译');
+  const asrLabel = t('popup_asr_go2', '🎙 转写这段音视频 + 翻译');
   const asrHint = asrSt && asrSt.media ? AsrEntry.durationText(asrSt.media, t) : '';
   const asrNoteText = asrNote !== null ? asrNote
     : (asrSt && asrSt.kind === 'iframe_only'
@@ -287,16 +285,16 @@ function Popup() {
   }
 
   async function onTranscribe() {
-    if (asrSt.kind === 'no_engine') { openAsrOptions(); return; }
     if (asrSt.kind === 'iframe_only') {
       try { chrome.tabs.create({ url: asrSt.frames[0].href }); } catch (_) {}
       window.close();
       return;
     }
+    // #134：不再在页内发起转写；与常驻 App 行同一深链（listen）。
+    if (appRowVisible) { onAppRowClick(); return; }
     const r = await sendToPage('transcribeMedia');
     if (r && r.ok) { window.close(); return; }
     const reason = (r && r.reason) || 'no_media';
-    if (reason === 'no_engine') { openAsrOptions(); return; }
     if (reason === 'busy') { window.close(); return; }
     setAsrNote(t('popup_asr_none_found', '没找到能转写的视频/音频。播放器可能在另一个框架里，或还没开始播放。'));
   }
