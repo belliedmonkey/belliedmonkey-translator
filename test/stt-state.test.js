@@ -46,7 +46,8 @@ describe('SttState.fileReady — 三种原因、一份判据', () => {
 });
 
 describe('三个消费者都转调它，不再各算一遍', () => {
-  const CONSUMERS = ['extension/content/asr-source.js', 'extension/learn/speech-input.js', 'extension/popup/asr-entry.js'];
+  // #134：弹窗 asr 行只跳 App listen，不再判转写引擎；asr-entry 退出此表，仍保留 readSttConfig→fileReady（asr-source）。
+  const CONSUMERS = ['extension/content/asr-source.js', 'extension/learn/speech-input.js'];
   for (const f of CONSUMERS) {
     test(f + ' 调 SttState.fileReady', () => {
       const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
