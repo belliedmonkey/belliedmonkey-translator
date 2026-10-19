@@ -1263,19 +1263,16 @@ final class S56UITests: XCTestCase {
         }
         sleep(2)
         if tapText(app, "label == 'All settings' OR label == '详细'", swipes: 4, "detail-tab") { sleep(2) }
-        var uiLangWasEnglish = false
+        var uiLangNeedRestore = false
         let uiSel = scrollTo(app, { app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Interface language' OR label BEGINSWITH '界面语言'")).firstMatch }, 8)
         if uiSel.exists, uiSel.isHittable {
-            let now = (uiSel.value as? String) ?? "-"
-            if now.range(of: "English|英语", options: .regularExpression) != nil {
-                uiLangWasEnglish = true
-                note("界面语言已是 English")
-            } else {
-                uiSel.tap(); sleep(2)
-                let en = app.buttons.matching(NSPredicate(format: "label CONTAINS 'English' OR label CONTAINS '英语'")).firstMatch
-                if en.waitForExistence(timeout: 4), en.isHittable { en.tap(); sleep(3) }
-                note("★ 界面语言 → \((uiSel.value as? String) ?? "-")")
-            }
+            let before = (uiSel.value as? String) ?? "-"
+            uiLangNeedRestore = before.range(of: "English|英语", options: .regularExpression) == nil
+            // 控件上已是 English 也可能只是 iOS「App 语言」—— uiLang 快照仍可能是 auto/zh，必须再点一次写 vault。
+            uiSel.tap(); sleep(2)
+            let en = app.buttons.matching(NSPredicate(format: "label CONTAINS 'English' OR label CONTAINS '英语'")).firstMatch
+            if en.waitForExistence(timeout: 4), en.isHittable { en.tap(); sleep(3) }
+            note("★ 界面语言 \(before) → \((uiSel.value as? String) ?? "-")（restore=\(uiLangNeedRestore)）")
         }
         let sels = app.buttons.matching(NSPredicate(format: "value != nil AND value != ''")).allElementsBoundByIndex
         note("设置页带值的控件: " + sels.prefix(10).map { "[\($0.label.prefix(16))|\(($0.value as? String ?? "").prefix(28))]" }.joined(separator: " "))
@@ -1365,8 +1362,8 @@ final class S56UITests: XCTestCase {
         shot("v9-systrans", full: true)
 
         // ── ③ 拍完还原 App 界面语言（#110 / #592：只动 App 语言，不动系统语言）────────
-        guard !uiLangWasEnglish else {
-            note("★ 界面语言还原：本来就是 English，跳过")
+        guard uiLangNeedRestore else {
+            note("★ 界面语言还原：拍前不是 English，跳过")
             return
         }
         safari.terminate(); sleep(1)
