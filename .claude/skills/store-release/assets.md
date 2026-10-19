@@ -336,13 +336,14 @@ TranslationUIProvider），Mac 没这个功能，扩展两店不放 App 独有�
 **`en-phone-systrans.png` 真机前置（2026-10-19，#107 / #592）**
 
 1. **登录 + 免费额度**（同 #107）：国际 Debug 包装机；`provider: grant`、`grantTail` 非空（App Group `mt.vault.snapshot.v1`）；首页勿再停在「登录后额度到账」；**不要**填 DeepSeek/OpenAI key。
-2. **默认翻译 App**：设置 › App › 翻译 › 默认翻译 App →「大肚猴翻译」（`testT1Default`；英文系统下用 `Translation` / `Default Translation App` 路径）。
-3. **VPN**：拍弹层前 Shadowrocket **开**（`testV9Shot` 会 `setVPN(true)`，跑完 `defer` 关）。
+2. **默认翻译 App**：设置 › App › 翻译 › 默认翻译 App →「大肚猴翻译」（`testSwitchDefault` / `testT1Default`；**不得**硬编码列表行号 —— Mac 侧 `devicectl` 核对 `MTTranslateExt` 须在国际版 `BelliedMonkey Translator.app` 下，见 `scripts/mt592-probe-server.js`）。
+3. **VPN**：拍弹层前 **关 VPN**（#118 / #122：`TEST_RUNNER_MT_SKIP_VPN=1`，页面 `https://example.org/`）；勿再依赖 Shadowrocket 开。
 4. **系统界面英文**（弹层 chrome + `ExtCopy` 披露句跟 `Locale.preferredLanguages[0]`）：设置 › 通用 › 语言与地区 › **编辑** → 把 **English** 拖到 **简体中文** 之上 → 点右上角 **✓** → 确认「更改为英语」/ Setting Language 黑屏结束。**XCUITest 可拖到 English 首位，但 ✓ 与确认弹窗多次未命中，这一步若需人工点确认或重启，在 #592 停下，不要硬改系统语言。**
 5. **App「译成」**：简体中文（`testV9Shot` 内；英文 UI + 英译中，见 `en-phone-card.png`）。
-6. **页面**：优先 `MT_URL=https://example.org/`（本机 Safari 上 Wikipedia 曾黑屏）；等译文落定再拍（`testV9Shot` → `v9-systrans` → `store-assets/src/assets/en-phone-systrans.png`）。
-7. **披露灰字（en）**：`Using free credit: the selected text is relayed by us to the provider. We do not keep the content.` —— **无引擎名**、**不得**写 `never passes through our servers`（`sys_disclose_direct` 句式）。
-8. **拍完还原中文**：同上编辑把 **简体中文** 拖回首位 → ✓ → 确认；回读设置根页应为「设置」/ 无线局域网，不是 `Settings` / `Wi‑Fi`。
+6. **页面**：`MT_URL=https://example.org/`；等译文落定再拍（`scripts/test-en-phone-systrans-592.js` → `testV9Shot` → `v9-systrans` → `store-assets/src/assets/en-phone-systrans.png`）。
+7. **版本门禁**：装国际 Debug 包后跑 `node scripts/verify-mttranslateext-gate.js "<…/BelliedMonkey Translator.app>"`，核对 `MTTranslateExt.debug.dylib` 含 `uiLangEffective` / `mt.vault.snapshot.v1`；拍 `v9-systrans` 前再 `devicectl` 核对一次扩展进程路径（附件 note `MT592_EXT_PATH[v9-systrans]`）。
+8. **披露灰字（en）**：`Using free credit: the selected text is relayed by us to the provider. We do not keep the content.` —— **无引擎名**、**不得**写 `never passes through our servers`（`sys_disclose_direct` 句式）。
+9. **拍完还原中文**：同上编辑把 **简体中文** 拖回首位 → ✓ → 确认；回读设置根页应为「设置」/ 无线局域网，不是 `Settings` / `Wi‑Fi`。
 **`en-web-10` 是例外中的例外**（2026-09-23 加）：同一帧渲一份 1280×800 给**官网**用，
 横版画布上立的仍是手机框（帧 10 没有 desk 档原料，按 tier 取会渲出空 Mac 窗口套破图）。
 它**进不了两店** —— 上面那行 `CWS / AMO` 取的是 `web-1..9`，而两店的取图是按
