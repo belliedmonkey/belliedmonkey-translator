@@ -3906,5 +3906,14 @@
   },
   "asr_app_not_opened": {
     "message": "नहीं खुला? शायद App इंस्टॉल नहीं · App Store ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "\"{learn_enable}\" अब चालू है: आपके पढ़े वाक्य दोहराने के लिए इसी डिवाइस पर रखे जाते हैं। इसे सेटिंग्स में कभी भी बंद कर सकते हैं।"
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "सेटिंग्स खोलें"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "ठीक है"
   }
 }
