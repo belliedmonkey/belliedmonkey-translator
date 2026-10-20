@@ -4073,5 +4073,14 @@
   },
   "asr_app_not_opened": {
     "message": "Не открылось? Возможно, приложение не установлено · App Store ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "«{learn_enable}» теперь включено: прочитанные предложения сохраняются на этом устройстве для повторения. Отключить можно в настройках в любой момент."
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "Настройки"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "Понятно"
   }
 }
