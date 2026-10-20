@@ -3880,5 +3880,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "หากต้องการใช้ {lang} ต้องสละหนึ่งภาษาก่อน"
+  },
+  "asr_platform_only": {
+    "message": "คำบรรยาย AI ใช้ได้เฉพาะ Mac, iPhone และ iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "ไม่เปิด? อาจยังไม่ได้ติดตั้ง App · App Store ↗"
   }
 }
