@@ -831,7 +831,7 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
 
 `welcome → engine → try`。**不许再有第四屏教「采集学习材料」那个开关。**
 
-- 那个开关**首装就是开的**（`background.js` 写 `learnEnabled = true`），而它当初那一屏的
+- 那个开关**首装或升级时键缺失就是开的**（`background.js` 写 `learnEnabled = true`），而它当初那一屏的
   第一句话就是「已经开着了……不想要可以在这里关掉」—— 于是那一屏的净作用是：**在用户
   还没见过一张卡、还不知道复习是什么的时候，专门给他一个关掉它的机会**。
 - 采集开关与采集语言的**唯一**入口是设置页（`#learn-enabled` 与 SourcesView 的语言

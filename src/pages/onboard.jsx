@@ -64,7 +64,7 @@ const shownAt = Date.now();
 // 所以它必须排最后，而且它的 CTA 同时是收尾键（finish 写 extObSeen）。
 // 2026-09-22：砍掉原来的第 3 屏 `capture`（画布 #392 第 1 页「扩展 4 → 3 屏」）。
 //
-// 它教的是一个**默认已开**的开关（`background.js` 首装写 learnEnabled = true），
+// 它教的是一个**默认已开**的开关（`background.js` 首装或升级时键缺失写 learnEnabled = true），
 // 而它自己的文案第一句就是「已经开着了…不想要可以在这里关掉」—— 于是这一屏的净作用
 // 是：在用户还没见过一张卡、还不知道复习是什么的时候，专门给他一个关掉它的机会。
 // 开关与采集语言在设置页都在（`#learn-enabled` 与 SourcesView 的语言 chips），
