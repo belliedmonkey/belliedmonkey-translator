@@ -660,6 +660,29 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         problems.push(`全新安装之后 learnEnabled = ${seeded}，期望 true —— `
           + '整条引导是「先翻译、后看卡」，采集不默认开着的话第一次看必然是空的');
       }
+      // DEV-32：老用户升级缺键 ⇒ 补写 true + learnAutoOnNotice（同一次 onInstalled update）。
+      await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.remove(['learnEnabled', 'learnAutoOnNotice'], () => r(1)))`);
+      await cdp.send('Extensions.loadUnpacked', { path: RUN_DIST });
+      swSession = null;
+      for (let i = 0; i < 60 && !swSession; i++) {
+        const { targetInfos } = await cdp.send('Target.getTargets');
+        const sw = targetInfos.find((t) => t.type === 'service_worker' && (t.url || '').includes(extId));
+        if (sw) ({ sessionId: swSession } = await cdp.send('Target.attachToTarget', { targetId: sw.targetId, flatten: true }));
+        else await sleep(150);
+      }
+      if (swSession) {
+        const up = await evalIn(cdp, swSession,
+          `new Promise(r => chrome.storage.local.get(['learnEnabled','learnAutoOnNotice'], (o) => r(JSON.stringify(o||{}))))`);
+        let parsed = {};
+        try { parsed = JSON.parse(up || '{}'); } catch (_) {}
+        notes.push(`升级补写: learnEnabled=${parsed.learnEnabled}, learnAutoOnNotice=${parsed.learnAutoOnNotice}`);
+        if (parsed.learnEnabled !== true || parsed.learnAutoOnNotice !== true) {
+          problems.push(`升级缺键补写失败: ${up} —— 期望 learnEnabled 与 learnAutoOnNotice 均为 true`);
+        }
+      } else {
+        problems.push('升级补写段：reload 后 service worker 未起来');
+      }
       // 再把「后开采集」那条路也走一遍（老用户、或自己关了又开的人）：先关再开，
       // 页面上已有的译文必须被补登记进来。
       await evalIn(cdp, swSession,
