@@ -4073,5 +4073,14 @@
   },
   "asr_app_not_opened": {
     "message": "¿No se abrió? Puede que no tengas la app · App Store ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "«{learn_enable}» ya está activado: las frases que lees se guardan en este dispositivo para repasar. Puedes desactivarlo cuando quieras en Ajustes."
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "Abrir ajustes"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "Entendido"
   }
 }
