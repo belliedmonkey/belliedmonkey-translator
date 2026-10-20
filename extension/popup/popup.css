@@ -37,6 +37,64 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Upgrade notice: capture turned on for legacy users (DEV-32) ─── */
+
+.learn-auto-notice {
+  margin: 12px 14px 0;
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--section-bg);
+  color: var(--sage-deep);
+}
+
+.learn-auto-notice-text {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.learn-auto-notice-icon {
+  margin-inline-end: 4px;
+  opacity: 0.85;
+}
+
+.learn-auto-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.learn-auto-notice-dismiss,
+.learn-auto-notice-settings {
+  min-height: 44px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.learn-auto-notice-dismiss {
+  background: transparent;
+  color: inherit;
+  border: 1.5px solid var(--border);
+}
+
+.learn-auto-notice-settings {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+}
+
+.learn-auto-notice-settings:hover { background: var(--accent-hover); }
+
+@media (prefers-color-scheme: dark) {
+  .learn-auto-notice { color: var(--text); }
+}
+
 /* ─── Header ─────────────────────────────────────────────────── */
 
 .popup-header {
