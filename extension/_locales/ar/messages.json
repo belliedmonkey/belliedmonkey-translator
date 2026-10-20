@@ -4073,5 +4073,14 @@
   },
   "asr_app_not_opened": {
     "message": "لم يفتح؟ ربما التطبيق غير مثبت · App Store ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "تم تشغيل «{learn_enable}»: تُحفظ الجمل التي تقرأها على هذا الجهاز للمراجعة. يمكنك إيقافه من الإعدادات في أي وقت."
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "فتح الإعدادات"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "حسنًا"
   }
 }
