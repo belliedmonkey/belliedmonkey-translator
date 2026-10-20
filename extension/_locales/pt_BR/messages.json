@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Para usar {lang}, libere um idioma primeiro."
+  },
+  "asr_platform_only": {
+    "message": "Legendas com IA só funcionam em Mac, iPhone e iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "Não abriu? Talvez o app não esteja instalado · App Store ↗"
   }
 }
