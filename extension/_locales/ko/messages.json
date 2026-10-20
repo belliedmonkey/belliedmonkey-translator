@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang}을(를) 쓰려면 먼저 한 언어를 양보하세요."
+  },
+  "asr_platform_only": {
+    "message": "AI 자막은 Mac, iPhone, iPad에서만 사용할 수 있습니다"
+  },
+  "asr_app_not_opened": {
+    "message": "열리지 않나요? App이 없을 수 있습니다 · App Store에서 받기 ↗"
   }
 }
