@@ -4074,5 +4074,14 @@
   },
   "asr_app_not_opened": {
     "message": "沒打開？可能還沒裝 App · 前往 App Store 下載 ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "已為你開啟「{learn_enable}」：你讀過的句子會存在這台裝置上，用來複習。不想要可以隨時在設定裡關掉。"
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "前往設定"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "知道了"
   }
 }
