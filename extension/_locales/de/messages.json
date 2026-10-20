@@ -4074,6 +4074,9 @@
   "asr_app_not_opened": {
     "message": "Nicht geöffnet? Vielleicht fehlt die App · Im App Store laden ↗"
   },
+  "asr_app_opening": {
+    "message": "App wird geöffnet…"
+  },
   "notice_learn_auto_on": {
     "message": "„{learn_enable}\" ist jetzt an: Gelesene Sätze werden auf diesem Gerät zum Wiederholen gespeichert. In den Einstellungen jederzeit abschaltbar."
   },

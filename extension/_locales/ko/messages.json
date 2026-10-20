@@ -4074,6 +4074,9 @@
   "asr_app_not_opened": {
     "message": "열리지 않나요? App이 없을 수 있습니다 · App Store에서 받기 ↗"
   },
+  "asr_app_opening": {
+    "message": "App 여는 중…"
+  },
   "notice_learn_auto_on": {
     "message": "'{learn_enable}'이(가) 켜졌습니다. 읽은 문장은 이 기기에 저장되어 복습에 쓰입니다. 설정에서 언제든 끌 수 있습니다."
   },

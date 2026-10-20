@@ -4074,6 +4074,9 @@
   "asr_app_not_opened": {
     "message": "Didn't open? You may not have the App yet · Get it on the App Store ↗"
   },
+  "asr_app_opening": {
+    "message": "Opening the App…"
+  },
   "notice_learn_auto_on": {
     "message": "\"Collect learning material\" is now on: sentences you read are kept on this device for review. You can turn it off in Settings anytime."
   },

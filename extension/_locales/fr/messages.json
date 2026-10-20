@@ -4074,6 +4074,9 @@
   "asr_app_not_opened": {
     "message": "Pas ouvert ? L'app n'est peut‑être pas installée · App Store ↗"
   },
+  "asr_app_opening": {
+    "message": "Ouverture de l'app…"
+  },
   "notice_learn_auto_on": {
     "message": "« {learn_enable} » est maintenant activé : les phrases que vous lisez sont gardées sur cet appareil pour la révision. Désactivable à tout moment dans les réglages."
   },

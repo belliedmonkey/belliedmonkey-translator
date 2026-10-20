@@ -4069,10 +4069,13 @@
     "message": "لاستخدام {lang}، تخلَّ عن لغة واحدة أولًا."
   },
   "asr_platform_only": {
-    "message": "ترجم AI تعمل فقط على Mac وiPhone وiPad"
+    "message": "الترجمة النصية بالذكاء الاصطناعي تعمل فقط على Mac وiPhone وiPad"
   },
   "asr_app_not_opened": {
     "message": "لم يفتح؟ ربما التطبيق غير مثبت · App Store ↗"
+  },
+  "asr_app_opening": {
+    "message": "جاري فتح التطبيق…"
   },
   "notice_learn_auto_on": {
     "message": "تم تشغيل «{learn_enable}»: تُحفظ الجمل التي تقرأها على هذا الجهاز للمراجعة. يمكنك إيقافه من الإعدادات في أي وقت."

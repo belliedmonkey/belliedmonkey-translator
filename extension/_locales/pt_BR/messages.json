@@ -4074,6 +4074,9 @@
   "asr_app_not_opened": {
     "message": "Não abriu? Talvez o app não esteja instalado · App Store ↗"
   },
+  "asr_app_opening": {
+    "message": "Abrindo o app…"
+  },
   "notice_learn_auto_on": {
     "message": "\"{learn_enable}\" agora está ativado: as frases que você lê ficam salvas neste dispositivo para revisão. Você pode desativar quando quiser nas Configurações."
   },
