@@ -61,6 +61,7 @@ function Popup() {
   const [pageTranslated, setPageTranslated] = useState(false);
   const [due, setDue] = useState('');
   const [asrNote, setAsrNote] = useState(null);   // null = 走 iframe 派生默认
+  const [asrAppPhase, setAsrAppPhase] = useState('idle'); // idle | opening | not_opened
   const [busy, setBusy] = useState(false);        // 翻译按钮：内容脚本往返期间锁住
   const [siteBusy, setSiteBusy] = useState(false);// 收录开关：写入在途期间锁住
   const [toast, setToast] = useState('');
@@ -179,7 +180,9 @@ function Popup() {
   //
   // 文案**不点名 Safari**（用户 2026-09-13 裁定）：听的是设备的声音，与谁在放无关。
   const appRowVisible = typeof AppLink !== 'undefined' && AppLink.applePlatform();
-  const handheld = /iPhone|iPad|iPod/i.test((navigator.userAgent || '') + ' ' + (navigator.platform || ''));
+  const handheld = typeof Device !== 'undefined' && Device.classOf
+    ? (() => { const c = Device.classOf(navigator); return c === 'phone' || c === 'tablet'; })()
+    : false;
 
   const translateLabel = pageTranslated ? t('btn_view_original', '查看原文') : t('btn_translate_page', '翻译本页');
   // 两态，与原版 updateTranslateUI 逐字对应。pageStatus 拿不到（无内容页/受限页）时
@@ -270,18 +273,30 @@ function Popup() {
     } finally { setBusy(false); }
   }
 
+  function openListenFromPopup(surface) {
+    setAsrAppPhase('opening');
+    setAsrNote(null);
+    try {
+      if (typeof MTTelemetry !== 'undefined') {
+        const payload = { result: 'to_app' };
+        if (surface === 'popup_app_row') Object.assign(payload, { surface: 'popup_app_row' });
+        else Object.assign(payload, { surface: 'popup' });
+        MTTelemetry.track('asr_entry', payload);
+      }
+    } catch (_) {}
+    // DEV-13 / #158 D2：不立刻关弹窗；App 接住时 blur 自然关，否则 1.2 s 后在原地说「没打开？」（D3）。
+    const onBlur = () => { window.close(); };
+    window.addEventListener('blur', onBlur, { once: true });
+    try {
+      AppLink.open('', (kind) => {
+        if (kind === 'store') setAsrAppPhase('not_opened');
+      }, 1200, 'listen');
+    } catch (_) {}
+  }
+
   function onAppRowClick() {
-    // 这一行是**主动发现**的入口，与页内「撞墙之后」那个出口分开记（surface 不同）——
-    // 免费额度那次的教训：83% vs 14% 的差距是按入口劈开才看见的（telemetry-design §3.3.2）。
-    try {
-      if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'popup_app_row', result: 'to_app' });
-    } catch (_) {}
-    // AppLink.open 自己兜「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 说出来」，那正是本仓
-    // 最怕的「点了没反应」；没装 App 的人由兜底送去 App Store。
-    try {
-      AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen');
-    } catch (_) {}
-    window.close();
+    if (asrAppPhase === 'opening') return;
+    openListenFromPopup('popup_app_row');
   }
 
   async function onTranscribe() {
@@ -293,9 +308,13 @@ function Popup() {
     // #134：不再在页内发起转写；与常驻 App 行同一深链（listen）。
     if (appRowVisible) { onAppRowClick(); return; }
     const r = await sendToPage('transcribeMedia');
-    if (r && r.ok) { window.close(); return; }
+    if (r && r.ok) { openListenFromPopup('popup'); return; }
     const reason = (r && r.reason) || 'no_media';
     if (reason === 'busy') { window.close(); return; }
+    if (reason === 'no_app') {
+      setAsrNote(t('asr_platform_only', 'AI 转写字幕只支持 Mac、iPhone 和 iPad'));
+      return;
+    }
     setAsrNote(t('popup_asr_none_found', '没找到能转写的视频/音频。播放器可能在另一个框架里，或还没开始播放。'));
   }
 
@@ -479,26 +498,37 @@ function Popup() {
            否则整节 hidden —— 元数据没到、播放器在 shadow root 或 iframe 里，用户看到的都是
            「什么都没有」。 */}
       <div className="section" id="asr-section" hidden={asrHidden}>
-        <button className="row row-btn" id="transcribe-media" type="button" onClick={onTranscribe}>
+        <button className="row row-btn" id="transcribe-media" type="button" onClick={onTranscribe}
+          disabled={asrAppPhase === 'opening'} style={asrAppPhase === 'opening' ? { opacity: 0.45 } : undefined}>
           <span className="row-label" id="transcribe-media-label">{asrLabel}</span>
           <span className="row-value hint" id="transcribe-media-hint">{asrHint}</span>
         </button>
         <div className="setup-note" id="transcribe-media-note" hidden={!asrNoteText}>
           {asrNoteText}
         </div>
+        {asrAppPhase === 'not_opened' && typeof AppLink !== 'undefined' && (
+          <div className="setup-note" id="asr-app-not-opened">
+            <a id="asr-app-store-link" href={AppLink.storeUrl()} target="_blank" rel="noopener">
+              {t('asr_app_not_opened', '没打开？可能还没装 App · 去 App Store 下载 ↗')}
+            </a>
+          </div>
+        )}
         {/* 常驻的 App 出口（2026-09-16 用户裁定「常驻」）。扩展端只剩整段转写，
              取不出音轨的媒体（视频站、直播、DRM）一律落到 App —— 它听的是设备正在放的
              声音。**非 Apple 平台整行不出**（App 在那里根本不存在），由 AppLink 决定，
              不在这里判 UA。 */}
         <button className="row row-btn" id="asr-app-row" type="button"
-          hidden={!appRowVisible} onClick={onAppRowClick}>
+          hidden={!appRowVisible} onClick={onAppRowClick}
+          disabled={asrAppPhase === 'opening'} style={asrAppPhase === 'opening' ? { opacity: 0.45 } : undefined}>
           <span className="row-label" id="asr-app-label">
             {appRowVisible ? t('popup_asr_app_row', '🔊 用 App 听设备的声音') : ''}
           </span>
           <span className="row-value hint" id="asr-app-hint">
             {appRowVisible
-              ? (handheld ? t('popup_asr_app_hint_ios', '先开始听，再回来播放')
-                : t('popup_asr_app_hint_mac', '直播、视频站都能转'))
+              ? (asrAppPhase === 'opening'
+                ? t('asr_app_opening', '正在打开 App…')
+                : (handheld ? t('popup_asr_app_hint_ios', '先开始听，再回来播放')
+                  : t('popup_asr_app_hint_mac', '直播、视频站都能转')))
               : ''}
           </span>
         </button>
