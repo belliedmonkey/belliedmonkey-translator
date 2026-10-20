@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Para usar {lang}, libera primero un idioma."
+  },
+  "asr_platform_only": {
+    "message": "Los subtítulos con IA solo funcionan en Mac, iPhone e iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "¿No se abrió? Puede que no tengas la app · App Store ↗"
   }
 }
