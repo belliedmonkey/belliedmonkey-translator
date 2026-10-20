@@ -706,13 +706,34 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       // DEV-32：老用户升级缺键 ⇒ 补写 true + learnAutoOnNotice（同一次 onInstalled update）。
       await evalIn(cdp, swSession,
         `new Promise(r => chrome.storage.local.remove(['learnEnabled', 'learnAutoOnNotice'], () => r(1)))`);
+      // 重载 = 旧 SW 被拆、新 SW 再起。旧做法从 getTargets 里拿到的可能还是那个正在销毁的
+      // 旧 worker，附上去以后 Runtime.evaluate 永不返回（1.19.4 smoke 挂起的根因）。
+      // 现在：先记下旧 SW 的 targetId → 等它从目标列表消失 → 只附 id 不同的新 SW；
+      // 新 SW 迟迟不起就开一下 options.html 唤醒；整段 30s 上限，超时 = 失败。
+      const swOf = (infos) => infos.filter((t) => t.type === 'service_worker' && (t.url || '').includes(extId));
+      const oldSwIds = new Set(swOf((await cdp.send('Target.getTargets')).targetInfos).map((t) => t.targetId));
       await cdp.send('Extensions.loadUnpacked', { path: RUN_DIST });
       swSession = null;
-      for (let i = 0; i < 60 && !swSession; i++) {
+      let wakeTarget = null;
+      const reloadDeadline = Date.now() + 30000;
+      let oldGone = false;
+      while (!swSession && Date.now() < reloadDeadline) {
         const { targetInfos } = await cdp.send('Target.getTargets');
-        const sw = targetInfos.find((t) => t.type === 'service_worker' && (t.url || '').includes(extId));
-        if (sw) ({ sessionId: swSession } = await cdp.send('Target.attachToTarget', { targetId: sw.targetId, flatten: true }));
-        else await sleep(150);
+        const sws = swOf(targetInfos);
+        if (!oldGone) oldGone = !sws.some((t) => oldSwIds.has(t.targetId));
+        const fresh = oldGone && sws.find((t) => !oldSwIds.has(t.targetId));
+        if (fresh) {
+          ({ sessionId: swSession } = await cdp.send('Target.attachToTarget', { targetId: fresh.targetId, flatten: true }));
+          break;
+        }
+        if (oldGone && !wakeTarget && Date.now() > reloadDeadline - 27000) {
+          ({ targetId: wakeTarget } = await cdp.send('Target.createTarget', { url: `chrome-extension://${extId}/options/options.html` }));
+        }
+        await sleep(150);
+      }
+      if (wakeTarget) { try { await cdp.send('Target.closeTarget', { targetId: wakeTarget }); } catch (_) {} }
+      if (!swSession) {
+        problems.push(`升级补写段：reload 后 30s 内没等到新的 service worker（旧 SW ${oldGone ? '已' : '未'}销毁）`);
       }
       if (swSession) {
         const up = await evalIn(cdp, swSession,
