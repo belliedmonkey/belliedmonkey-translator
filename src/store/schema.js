@@ -54,7 +54,7 @@ const SETTINGS_SCHEMA = (() => {
     showFab:         { default: true,     surfaces: ['background', 'options', 'popup'] },
     bilingualMode:   { default: 'below',  surfaces: ['background', 'options'] },
     // ── learning layer ────────────────────────────────────────────────────
-    learnEnabled:    { default: true,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard', 'app'] },
+    learnEnabled:    { default: false, surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard', 'app'] },
     learnAutoOnNotice: { default: false, surfaces: ['popup'], note: '[flow] upgrade backfill banner until dismissed' },
     learnDailyNew:   { default: 15,    surfaces: ['options', 'popup', 'review', 'app'] },  // = LearnScheduler.DEFAULTS.dailyNew
     learnRules:      { default: null,  surfaces: ['options', 'popup', 'review', 'docs', 'quick', 'handoff', 'listen', 'onboard', 'app'] },
