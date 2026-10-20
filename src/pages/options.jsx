@@ -1172,7 +1172,15 @@ function Options() {
         // A failed read is NOT an empty profile：把原因透传给 setup-note。
         setReadFailed(true);
         setReadFailWhy(r.error || '');
+        return;
       }
+      try {
+        chrome.storage.local.get(['learnAutoOnNotice'], (o) => {
+          if (o && o.learnAutoOnNotice === true) {
+            try { chrome.storage.local.set({ learnAutoOnNotice: false }); } catch (_) {}
+          }
+        });
+      } catch (_) {}
     }).catch(() => {});
     const id = setTimeout(() => setInitTimedOut(true), 3000);
     return () => { alive = false; clearTimeout(id); };
@@ -1588,6 +1596,13 @@ function Options() {
   const learnEnabledChange = async (e) => {
     const on = e.target.checked;
     await withBusy('learn-enabled', async () => {
+      try {
+        chrome.storage.local.get(['learnAutoOnNotice'], (o) => {
+          if (o && o.learnAutoOnNotice === true) {
+            try { chrome.storage.local.set({ learnAutoOnNotice: false }); } catch (_) {}
+          }
+        });
+      } catch (_) {}
       await SettingsStore.set('learnEnabled', on);
       // Turning capture OFF stops collecting; it does NOT delete what was already
       // collected. Say so, rather than letting the user assume either way.
