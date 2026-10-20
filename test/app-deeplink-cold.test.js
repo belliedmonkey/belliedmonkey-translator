@@ -92,7 +92,7 @@ describe('D19: listen deeplink waits for entry card reveal', () => {
     const i = SHELL.indexOf("if (d.action === 'listen') {");
     ok(i >= 0, 'listen 分支存在');
     const body = SHELL.slice(i, i + 2600);
-    ok(/while \(!pick\(\) && !settled\(\) && Date\.now\(\) < until\)/.test(body), '未落定时等待');
+    ok(/while \(!settled\(\) && Date\.now\(\) < until\)/.test(body), '未落定时等待');
     ok(/if \(btn\) btn\.click\(\);/.test(body), '揭开后点入口');
   });
 

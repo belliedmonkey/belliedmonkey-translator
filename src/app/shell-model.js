@@ -3068,14 +3068,14 @@ export function bootShell() {
         // 它常还没落定，于是这里找不到可点的按钮、静默停在首页。等入口揭开再点：
         // 只等「全都 hidden」这一种未落定态；揭开但 disabled（门没过）照旧停在首页。
         try {
-          const ids = ['app-subs-entry', 'app-subs-entry2'];
-          const pick = () => ids.map((id) => $(id)).find((b) => b && !b.hidden && !b.disabled);
-          const settled = () => ids.some((id) => { const b = $(id); return b && !b.hidden; });
+          const settled = () => ['app-subs-entry', 'app-subs-entry2']
+            .some((id) => { const b = $(id); return b && !b.hidden; });
           const until = Date.now() + LISTEN_DL_WAIT_MS;
-          while (!pick() && !settled() && Date.now() < until) {
+          while (!settled() && Date.now() < until) {
             await new Promise((r) => setTimeout(r, 50));
           }
-          const btn = pick();
+          const btn = ['app-subs-entry', 'app-subs-entry2']
+            .map((id) => $(id)).find((b) => b && !b.hidden && !b.disabled);
           if (btn) btn.click();
         } catch (_) {}
         return;
