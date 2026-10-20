@@ -26,18 +26,31 @@ enum MTDeepLink {
         deliver(url.absoluteString)
     }
 
-    private static func deliver(_ raw: String) {
+    private static func deliver(_ raw: String, attempt: Int = 0) {
         guard let view = webView else { pending = raw; return }
         // JSON 编码之后再拼，避免 URL 里的引号把这段脚本拆断。
         let data = try? JSONSerialization.data(withJSONObject: [raw], options: [])
         let arg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[\"\"]"
         // 页面还没定义 __mtDeepLink 时（Main.html 尚未跑完）也存起来，由页面自己
         // 在准备好之后读 window.__mtDeepLinkPending。两边都兜住，链接才不会静默丢失。
+        //
+        // D19（2026-10-20）：macOS 冷启动时 attach() 在 viewDidLoad 里、loadFileURL **之前**
+        // 就调了，open urls 随后到达，此时 webView 里还是初始的空白文档 —— pending 写在
+        // 那份文档上，Main.html 一加载就被整份换掉，链接静默丢失（App 停在首页）。
+        // 所以只有当前文档已经是 Main.html 时才写 pending；否则回 'wait'，原生稍后重送。
         let js = """
         (function(){var u=\(arg)[0];
-        if (typeof window.__mtDeepLink === 'function') { window.__mtDeepLink(u); }
-        else { window.__mtDeepLinkPending = u; }})()
+        if (typeof window.__mtDeepLink === 'function') { window.__mtDeepLink(u); return 'ok'; }
+        if (String(location.pathname || '').indexOf('Main.html') < 0) { return 'wait'; }
+        window.__mtDeepLinkPending = u; return 'ok';})()
         """
-        DispatchQueue.main.async { view.evaluateJavaScript(js, completionHandler: nil) }
+        DispatchQueue.main.async {
+            view.evaluateJavaScript(js) { result, _ in
+                let r = result as? String
+                if r != "ok" && attempt < 100 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { deliver(raw, attempt: attempt + 1) }
+                }
+            }
+        }
     }
 }

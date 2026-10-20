@@ -111,3 +111,12 @@ describe('D19: listen deeplink waits for entry card reveal', () => {
     eq(await run(50, true), 0, '门没过不点');
   });
 });
+
+describe('D19: native deeplink bridge must not stash pending on the pre-load blank document', () => {
+  const SW = fs.readFileSync(path.join(ROOT, 'app', 'native', 'open-url-bridge.swift'), 'utf8');
+  test('★ 非 Main.html 文档回 wait，原生重送（有上限）', () => {
+    ok(/indexOf\('Main\.html'\) < 0\) \{ return 'wait'; \}/.test(SW), '空白文档上不写 pending');
+    ok(/if r != "ok" && attempt < \d+/.test(SW), '未 ok 时有界重送');
+    ok(/deliver\(raw, attempt: attempt \+ 1\)/.test(SW), '重送递增 attempt');
+  });
+});
