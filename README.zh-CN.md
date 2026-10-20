@@ -286,7 +286,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 所以这里把标准的 MV3 架构倒了过来：**所有服务商的 `fetch()` 都在 content script 里执行**
 （[`extension/content/translation-api.js`](extension/content/translation-api.js)），
 content script 直接从 `chrome.storage.local` 读设置，而不是去问 worker。
-[`extension/background.js`](extension/background.js) 只有 179 行，负责默认值、角标和清缓存 ——
+[`extension/background.js`](extension/background.js) 只有 175 行，负责默认值、角标和清缓存 ——
 它从不在关键路径上。
 
 ### 字幕是怎么拿到的

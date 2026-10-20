@@ -331,7 +331,7 @@ is dead until Safari is force-quit.
 So the standard MV3 architecture is inverted here: **every provider `fetch()` runs in the
 content script** ([`extension/content/translation-api.js`](extension/content/translation-api.js)),
 and content scripts read settings straight from `chrome.storage.local` rather than asking the
-worker. [`extension/background.js`](extension/background.js) is 179 lines that handle defaults,
+worker. [`extension/background.js`](extension/background.js) is 175 lines that handle defaults,
 badge text and cache clearing — it is never on the critical path.
 
 ### How subtitles are acquired
