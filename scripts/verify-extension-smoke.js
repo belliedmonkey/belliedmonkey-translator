@@ -119,6 +119,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // 超时 = 失败，并把当时的页面状态与控制台日志落盘/打印，不能用超时掩盖问题。
 let onEvalTimeoutCleanup = () => {};
 const EVAL_TIMEOUT_MS = Number(process.env.SMOKE_EVAL_TIMEOUT_MS || 60000);
+// 测试专用：SMOKE_ONLY=upgrade-backfill 跳过「后开采集」段，单独验「升级补写」。默认（未设）行为不变。
+const SMOKE_ONLY = process.env.SMOKE_ONLY || '';
+if (SMOKE_ONLY && SMOKE_ONLY !== 'upgrade-backfill') { console.error(`未知 SMOKE_ONLY=${SMOKE_ONLY}`); process.exit(2); }
 const consoleLog = [];
 function recordConsole(cdp) {
   if (recordConsole.done) return;
@@ -696,6 +699,7 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       // 采集在**全新安装**上默认就开着（2026-09-02 起）。这里先回读它 —— 断言的是
       // 「装完就是开的」，不是「我们刚把它打开」。读到没开就说明 onInstalled 那条
       // 没生效，那比后面的补登记更靠前、也更严重。
+      if (SMOKE_ONLY !== 'upgrade-backfill') {
       const seeded = await evalIn(cdp, swSession,
         `new Promise(r => chrome.storage.local.get(['learnEnabled'], (o) => r(String(o && o.learnEnabled))))`);
       notes.push(`全新安装的采集开关: ${seeded}`);
@@ -728,6 +732,7 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         problems.push('先翻译、后打开采集 → outbox 里一条都没有 —— 交接块把人送去打开采集，'
           + '回来却是「还没有学习材料」');
       }
+      } else notes.push('SMOKE_ONLY=upgrade-backfill：跳过「后开采集」段');
       // 升级补写段放在「后开采集」之后：它会 reload 扩展，旧内容脚本随之断开，放在前面会让 outbox 恒为 0。
       // DEV-32：老用户升级缺键 ⇒ 补写 true + learnAutoOnNotice（同一次 onInstalled update）。
       await evalIn(cdp, swSession,
