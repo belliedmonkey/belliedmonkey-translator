@@ -185,13 +185,14 @@ function Popup() {
     : false;
 
   const learnAutoNoticeVisible = ready && s.learnAutoOnNotice === true && s.learnEnabled === true;
-  const learnAutoNoticeBody = useMemo(() => {
+  let learnAutoNoticeBody = '';
+  if (learnAutoNoticeVisible) {
     const name = t('learn_enable', '采集学习材料');
-    return t(
+    learnAutoNoticeBody = t(
       'notice_learn_auto_on',
       '已为你打开「采集学习材料」：你读过的句子会存在这台设备上，用来复习。不想要可以随时在设置里关掉。',
     ).replace(/\{learn_enable\}/g, name);
-  }, [t, s.uiLang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   async function clearLearnAutoNotice() {
     if (s.learnAutoOnNotice !== true) return;
@@ -398,7 +399,7 @@ function Popup() {
       >
         <p className="learn-auto-notice-text" id="learn-auto-notice-text">
           <span className="learn-auto-notice-icon" aria-hidden="true">✦</span>
-          {learnAutoNoticeVisible ? learnAutoNoticeBody : ''}
+          {learnAutoNoticeBody}
         </p>
         <div className="learn-auto-notice-actions">
           <button
