@@ -112,11 +112,65 @@ describe('D19: listen deeplink waits for entry card reveal', () => {
   });
 });
 
-describe('D19: native deeplink bridge must not stash pending on the pre-load blank document', () => {
+describe('D19: native deeplink bridge (architect conditions a–d)', () => {
   const SW = fs.readFileSync(path.join(ROOT, 'app', 'native', 'open-url-bridge.swift'), 'utf8');
-  test('★ 非 Main.html 文档回 wait，原生重送（有上限）', () => {
-    ok(/indexOf\('Main\.html'\) < 0\) \{ return 'wait'; \}/.test(SW), '空白文档上不写 pending');
-    ok(/if r != "ok" && attempt < \d+/.test(SW), '未 ok 时有界重送');
-    ok(/deliver\(raw, attempt: attempt \+ 1\)/.test(SW), '重送递增 attempt');
+  // 把注入页面的那段 JS 从 Swift 里抠出来，在假 window 上真跑。
+  const tpl = (() => { const m = /let js = """\n([\s\S]*?)\n\s*"""/.exec(SW); return m ? m[1] : ''; })();
+  function runInjected(win, url, id) {
+    const src = tpl.replace('\\(arg)', JSON.stringify([url, id]));
+    // eslint-disable-next-line no-new-func
+    return new Function('window', 'location', 'return ' + src.trim())(win, win.location);
+  }
+  test('★ 注入脚本抠得出来', () => { ok(tpl.length > 0 && tpl.includes('__mtDeepLinkSeen'), 'js 模板'); });
+
+  test('★ (a) 同一 id 重发只处理一次；新 id 照常处理', () => {
+    const got = [];
+    const win = { location: { pathname: '/x/Main.html' }, __mtDeepLink: (u) => got.push(u) };
+    eq(runInjected(win, 'belliedmonkey://listen', 'id1'), 'ok');
+    eq(runInjected(win, 'belliedmonkey://listen', 'id1'), 'ok', '重发也回 ok（停重试）');
+    eq(got.length, 1, '同 id 只处理一次');
+    runInjected(win, 'belliedmonkey://listen', 'id2');
+    eq(got.length, 2, '新 id 照常');
+  });
+
+  test('★ (a) 空白文档回 wait，不落 pending；Main.html 未挂 handler 时落 pending 一次', () => {
+    const blank = { location: { pathname: '' } };
+    eq(runInjected(blank, 'u', 'i'), 'wait');
+    ok(blank.__mtDeepLinkPending === undefined && blank.__mtDeepLinkSeen === undefined, '空白文档上什么都不写');
+    const early = { location: { pathname: '/Main.html' } };
+    eq(runInjected(early, 'u1', 'i1'), 'ok');
+    eq(early.__mtDeepLinkPending, 'u1');
+    early.__mtDeepLinkPending = null;   // 页面已取走
+    runInjected(early, 'u1', 'i1');
+    eq(early.__mtDeepLinkPending, null, '同 id 不再落第二次');
+  });
+
+  test('★ (a) handle() 为每条链接生成 id（时刻 + 序号）', () => {
+    ok(/pendingId = "\\\(Int\(Date\(\)\.timeIntervalSince1970 \* 1000\)\)-\\\(generation\)"/.test(SW), 'id = ms-generation');
+  });
+
+  test('★ (b) 只有一条 pending；新链接让 generation+1，旧链停下', () => {
+    ok(/generation \+= 1\n\s*pending = url\.absoluteString/.test(SW), '新链接覆盖 pending 并 bump generation');
+    ok(/guard gen == generation, let raw = pending/.test(SW), '旧重试链看到 generation 变了即停');
+    ok(/private static func schedule[\s\S]*?cancelTimer\(\)/.test(SW), '排新的之前先取消旧计时器');
+    eq((SW.match(/private static var pending: String\?/g) || []).length, 1, '只有一个 pending 槽');
+  });
+
+  test('★ (c) 超时不丢：留 pending + 记日志；didFinish/回前台/attach 再送', () => {
+    ok(/static let maxAttempts = 100/.test(SW), '10s 上限');
+    const to = SW.slice(SW.indexOf('if attempt + 1 >= maxAttempts'), SW.indexOf('schedule(attempt: attempt + 1'));
+    ok(/NSLog\("\[MTDeepLink\] deliver timed out/.test(to), '超时写日志');
+    ok(!/pending = nil/.test(to), '超时分支不清 pending');
+    ok(/observe\(\\\.isLoading[\s\S]*?resume\("didFinish"\)/.test(SW), 'Main.html 加载完成补送');
+    ok(/resume\("foreground"\)/.test(SW) && /resume\("attach"\)/.test(SW), '回前台 / attach 补送');
+  });
+
+  test('★ (d) 主线程计时、ok 即停、后台/页面销毁即停', () => {
+    ok(/DispatchQueue\.main\.asyncAfter\(deadline: \.now\(\) \+ delay, execute: w\)/.test(SW), '计时器在主线程');
+    ok(/dispatchPrecondition\(condition: \.onQueue\(\.main\)\)/.test(SW), 'handle 断言主线程');
+    ok(/== "ok" \{[\s\S]*?cancelTimer\(\); return/.test(SW), 'ok 即停');
+    ok(/didResignActiveNotification/.test(SW) && /didEnterBackgroundNotification/.test(SW), '两平台后台通知');
+    ok(/inBackground = true; cancelTimer\(\)/.test(SW), '进后台取消计时器');
+    ok(/guard let view = webView else \{ return \}/.test(SW), '页面销毁（weak 为 nil）即停，pending 留着');
   });
 });

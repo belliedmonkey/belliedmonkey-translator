@@ -13,44 +13,100 @@
 // 然后什么都没发生」，而那不会报任何错。
 enum MTDeepLink {
     private static weak var webView: WKWebView?
+    // (b) 只有一条待送：新链接到达即覆盖 pending，并让 generation +1 —— 旧的重试链看到
+    // generation 变了就自行停下，永远只送最新那一条。
     private static var pending: String?
+    private static var pendingId: String?
+    private static var generation = 0
+    private static var timer: DispatchWorkItem?
+    private static var loadObs: NSKeyValueObservation?
+    private static var lifecycleObs: [NSObjectProtocol] = []
+    private static var inBackground = false
+    static let maxAttempts = 100              // × 100ms ≈ 10s
+    static let retryInterval = 0.1
 
     /// ViewController 就绪时调一次。会把冷启动期间攒下的那一条送出去。
     static func attach(_ view: WKWebView) {
         webView = view
-        if let p = pending { pending = nil; deliver(p) }
+        // (c) Main.html 加载完成（isLoading 变 false）时补送仍挂着的那一条。
+        loadObs = view.observe(\.isLoading, options: [.new]) { _, change in
+            if change.newValue == false { DispatchQueue.main.async { resume("didFinish") } }
+        }
+        observeLifecycle()
+        resume("attach")
     }
 
     /// 平台入口（iOS SceneDelegate / macOS AppDelegate）收到 URL 时调。
     static func handle(_ url: URL) {
-        deliver(url.absoluteString)
+        dispatchPrecondition(condition: .onQueue(.main))
+        // (a) 每条链接一个 id（URL + 到达时刻 + 序号）；页面按 id 只处理一次，重发幂等。
+        generation += 1
+        pending = url.absoluteString
+        pendingId = "\(Int(Date().timeIntervalSince1970 * 1000))-\(generation)"
+        schedule(attempt: 0, delay: 0)
     }
 
-    private static func deliver(_ raw: String, attempt: Int = 0) {
-        guard let view = webView else { pending = raw; return }
+    // (d) 计时器只在主线程；后台 / 页面销毁时停（pending 保留，回前台或页面就绪再送）。
+    private static func observeLifecycle() {
+        if !lifecycleObs.isEmpty { return }
+        let nc = NotificationCenter.default
+        #if os(macOS)
+        let bg = NSApplication.didResignActiveNotification, fg = NSApplication.didBecomeActiveNotification
+        #else
+        let bg = UIApplication.didEnterBackgroundNotification, fg = UIApplication.willEnterForegroundNotification
+        #endif
+        lifecycleObs.append(nc.addObserver(forName: bg, object: nil, queue: .main) { _ in
+            inBackground = true; cancelTimer() })
+        lifecycleObs.append(nc.addObserver(forName: fg, object: nil, queue: .main) { _ in
+            inBackground = false; resume("foreground") })
+    }
+
+    private static func cancelTimer() { timer?.cancel(); timer = nil }
+
+    private static func resume(_ why: String) {
+        guard pending != nil, timer == nil, !inBackground else { return }
+        schedule(attempt: 0, delay: 0)
+    }
+
+    private static func schedule(attempt: Int, delay: Double) {
+        cancelTimer()
+        let gen = generation
+        let w = DispatchWorkItem { timer = nil; deliver(gen: gen, attempt: attempt) }
+        timer = w
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: w)
+    }
+
+    private static func deliver(gen: Int, attempt: Int) {
+        guard gen == generation, let raw = pending, let id = pendingId else { return }   // (b) 旧链停下
+        guard !inBackground else { return }                                               // (d)
+        guard let view = webView else { return }   // (d) 页面没了：pending 留着，下次 attach 再送
         // JSON 编码之后再拼，避免 URL 里的引号把这段脚本拆断。
-        let data = try? JSONSerialization.data(withJSONObject: [raw], options: [])
-        let arg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[\"\"]"
-        // 页面还没定义 __mtDeepLink 时（Main.html 尚未跑完）也存起来，由页面自己
-        // 在准备好之后读 window.__mtDeepLinkPending。两边都兜住，链接才不会静默丢失。
-        //
-        // D19（2026-10-20）：macOS 冷启动时 attach() 在 viewDidLoad 里、loadFileURL **之前**
-        // 就调了，open urls 随后到达，此时 webView 里还是初始的空白文档 —— pending 写在
-        // 那份文档上，Main.html 一加载就被整份换掉，链接静默丢失（App 停在首页）。
-        // 所以只有当前文档已经是 Main.html 时才写 pending；否则回 'wait'，原生稍后重送。
+        let data = try? JSONSerialization.data(withJSONObject: [raw, id], options: [])
+        let arg = data.flatMap { String(data: $0, encoding: .utf8) } ?? "[\"\",\"\"]"
+        // D19：macOS 冷启动时 attach() 在 loadFileURL 之前就调了，open urls 到达时 webView 里
+        // 还是初始空白文档 —— pending 写在那上面会随 Main.html 加载整份丢掉。所以只有当前文档
+        // 已是 Main.html 才落地；否则回 'wait'。(a) 同一 id 只落地一次（__mtDeepLinkSeen）。
         let js = """
-        (function(){var u=\(arg)[0];
-        if (typeof window.__mtDeepLink === 'function') { window.__mtDeepLink(u); return 'ok'; }
+        (function(){var a=\(arg),u=a[0],id=a[1];
         if (String(location.pathname || '').indexOf('Main.html') < 0) { return 'wait'; }
+        if (window.__mtDeepLinkSeen === id) { return 'ok'; }
+        window.__mtDeepLinkSeen = id;
+        if (typeof window.__mtDeepLink === 'function') { window.__mtDeepLink(u); return 'ok'; }
         window.__mtDeepLinkPending = u; return 'ok';})()
         """
-        DispatchQueue.main.async {
-            view.evaluateJavaScript(js) { result, _ in
-                let r = result as? String
-                if r != "ok" && attempt < 100 {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { deliver(raw, attempt: attempt + 1) }
-                }
+        view.evaluateJavaScript(js) { result, _ in
+            // evaluateJavaScript 的回调在主线程。
+            guard gen == generation else { return }
+            if (result as? String) == "ok" {
+                if pendingId == id { pending = nil; pendingId = nil }
+                cancelTimer(); return
             }
+            if attempt + 1 >= maxAttempts {
+                // (c) 超时不丢：pending 原样留着，等 didFinish / 回前台 / 下次 attach 再送。
+                NSLog("[MTDeepLink] deliver timed out after %d attempts; kept pending id=%@", maxAttempts, id)
+                return
+            }
+            schedule(attempt: attempt + 1, delay: retryInterval)
         }
     }
 }
