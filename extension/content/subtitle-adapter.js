@@ -236,7 +236,7 @@ var SubtitleAdapter = (() => {
       const enEl = ov.querySelector('.' + ID.orig);
       const zhEl = ov.querySelector('.' + ID.trans);
       enEl.style.display = 'none'; enEl.textContent = '';
-      const key = msg + '|' + (action ? action.label : '');
+      const key = msg + '|' + (action ? action.label : '') + '|' + (action && action.hintLink ? action.hintLink.text : '');
       if (key === lastNoticeKey && zhEl.style.display !== 'none') return;
       lastNoticeKey = key;
       zhEl.onclick = null;
@@ -251,8 +251,25 @@ var SubtitleAdapter = (() => {
         // button is the one thing inside it that must be tappable.
         btn.style.cssText = 'pointer-events:auto;margin-left:10px;padding:2px 10px;border-radius:' + window.MT_PALETTE.overlayControlRadius + ';border:0;' +
           'font:inherit;font-style:normal;cursor:pointer;' + window.MT_PALETTE.roundBtnCss(Math.round(spec.fontPx() * 0.8));
-        btn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); action.onClick(); });
+        if (action.dimmed) {
+          btn.disabled = true;
+          btn.style.opacity = '0.45';
+          btn.style.cursor = 'default';
+        }
+        btn.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); if (!action.dimmed) action.onClick(); });
         zhEl.appendChild(btn);
+        if (action.hintLink && action.hintLink.url) {
+          const a = document.createElement('a');
+          a.className = ID.trans + '-action-link';
+          a.setAttribute('translate', 'no');
+          a.href = action.hintLink.url;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = action.hintLink.text;
+          a.style.cssText = 'pointer-events:auto;margin-left:8px;font:inherit;font-style:normal;color:inherit;text-decoration:underline;';
+          a.addEventListener('click', (e) => { e.stopPropagation(); });
+          zhEl.appendChild(a);
+        }
       }
     }
     function clearOverlay() {
