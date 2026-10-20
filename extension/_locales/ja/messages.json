@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang} を使うには、先に 1 つ譲ってください。"
+  },
+  "asr_platform_only": {
+    "message": "AI字幕は Mac、iPhone、iPad のみ対応です"
+  },
+  "asr_app_not_opened": {
+    "message": "開かない？App が未インストールかも · App Store で入手 ↗"
   }
 }
