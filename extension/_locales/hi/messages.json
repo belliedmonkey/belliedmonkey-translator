@@ -3900,5 +3900,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang} इस्तेमाल करने के लिए पहले एक भाषा छोड़ें।"
+  },
+  "asr_platform_only": {
+    "message": "AI उपशीर्षक केवल Mac, iPhone और iPad पर काम करते हैं"
+  },
+  "asr_app_not_opened": {
+    "message": "नहीं खुला? शायद App इंस्टॉल नहीं · App Store ↗"
   }
 }
