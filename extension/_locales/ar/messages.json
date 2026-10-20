@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "لاستخدام {lang}، تخلَّ عن لغة واحدة أولًا."
+  },
+  "asr_platform_only": {
+    "message": "ترجم AI تعمل فقط على Mac وiPhone وiPad"
+  },
+  "asr_app_not_opened": {
+    "message": "لم يفتح؟ ربما التطبيق غير مثبت · App Store ↗"
   }
 }
