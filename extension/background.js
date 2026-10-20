@@ -23,28 +23,24 @@ if (typeof self !== 'undefined' && self.addEventListener) {
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
-  chrome.storage.local.get([...Object.keys(DEFAULT_SETTINGS), 'ytTextColor', 'colorMigrated2026', 'learnEnabled'], (existing) => {
+  chrome.storage.local.get([...Object.keys(DEFAULT_SETTINGS), 'ytTextColor', 'colorMigrated2026', 'learnEnabled', 'learnAutoOnNotice'], (existing) => {
     const have = existing || {};          // Safari hands callbacks undefined
     const toSet = {};
     for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
       if (have[k] === undefined) toSet[k] = v;
     }
-    // 采集默认**开着** —— 但只对**全新安装**（2026-09-02 用户裁定）。
+    // 采集默认**开着** —— **全新安装**，以及升级时存储里**从未有过 learnEnabled 键**
+    // 的老用户（2026-10-20 12:53 DEV-32 选 A：缺键 ⇒ 写 true；显式 false 保持关）。
+    // 缺键的 upgrade 在同一次 write 里再写 learnAutoOnNotice，弹窗顶部横幅告知（改稿 L）。
+    // 读取失败（Safari 回调 undefined）时什么都不写 —— `existing` 守卫与 colorMigrated2026
+    // 段相同；显式 false 永不被改回 true。
     //
-    // 为什么改默认：整条引导是「先翻译、再打开采集」，于是走完引导的人第一次看复习
-    // 页必然是空的。补登记（WebpageTranslator.recapture）解决了「打开采集时页面上
-    // 已有的译文」，但它治的是症状 —— 真正别扭的是我们先让人读完一页，再问他要不要
-    // 把刚读的记下来。
-    //
-    // 为什么**只对新装**：老用户里「从没碰过这个开关」和「特意关掉了」在存储里长得
-    // 不一样（undefined vs false），但一次更新就把一个采集数据的功能悄悄打开，对前者
-    // 同样是「界面不说」—— 而且他们并没有在任何地方同意过。所以 reason === 'install'
-    // 才种，更新一律不动。老用户仍然可以在设置页或重看引导时自己打开。
-    //
-    // 采集本身不改变数据边界：句子只存在这台设备上，不登录就不上传（learning-design
-    // §8.2）。所以这是个「默认值」的决定，不是「上传什么」的决定。
-    if (details && details.reason === 'install' && have.learnEnabled === undefined) {
+    // 曾仅 reason === 'install' 才种（2026-09-02：升级悄悄打开「界面不说」）。本次用
+    // 可见横幅补上告知。采集本身不改变数据边界：句子只存在这台设备上，不登录就不上传
+    // （learning-design §8.2）。
+    if (existing && !Object.prototype.hasOwnProperty.call(have, 'learnEnabled')) {
       toSet.learnEnabled = true;
+      if (details && details.reason === 'update') toSet.learnAutoOnNotice = true;
     }
 
     // 2026-08 rebrand (design/handoff.md): install wrote the old defaults into
