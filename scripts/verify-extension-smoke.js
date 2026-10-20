@@ -115,10 +115,52 @@ function serve() {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// evalIn 必须有上限：CDP Runtime.evaluate 在执行环境被挂住时会永不返回（1.19.4 smoke 挂起）。
+// 超时 = 失败，并把当时的页面状态与控制台日志落盘/打印，不能用超时掩盖问题。
+let onEvalTimeoutCleanup = () => {};
+const EVAL_TIMEOUT_MS = Number(process.env.SMOKE_EVAL_TIMEOUT_MS || 60000);
+const consoleLog = [];
+function recordConsole(cdp) {
+  if (recordConsole.done) return;
+  recordConsole.done = true;
+  cdp.on('Runtime.consoleAPICalled', (p, sid) => {
+    consoleLog.push(`[${sid || 'browser'}] console.${p.type}: ${(p.args || []).map((a) => a.value !== undefined ? a.value : a.description).join(' ')}`);
+    if (consoleLog.length > 500) consoleLog.shift();
+  });
+  cdp.on('Runtime.exceptionThrown', (p, sid) => {
+    const d = p.exceptionDetails || {};
+    consoleLog.push(`[${sid || 'browser'}] exception: ${d.text} ${(d.exception || {}).description || ''} @${d.url || ''}:${d.lineNumber}`);
+  });
+}
+async function dumpPageState(cdp, sessionId) {
+  const raw = (expression) => Promise.race([
+    cdp.send('Runtime.evaluate', { expression, returnByValue: true }, sessionId).then((r) => r.result && r.result.value),
+    new Promise((res) => setTimeout(() => res('(main-world eval 也超时)'), 5000)),
+  ]).catch((e) => `(eval error: ${e.message})`);
+  const state = await raw(`JSON.stringify({ url: location.href, readyState: document.readyState,
+    scripts: Array.from(document.scripts).map((s) => s.src || '(inline)'),
+    mtNodes: document.querySelectorAll('[class^="mt-"],[id^="mt-"]').length })`);
+  let targets = '';
+  try { targets = JSON.stringify((await cdp.send('Target.getTargets', {})).targetInfos.map((t) => `${t.type} ${t.url}`)); } catch (e) { targets = String(e.message); }
+  return `页面状态: ${state}\n目标: ${targets}\n控制台(最后 50 条):\n${consoleLog.slice(-50).join('\n')}`;
+}
 async function evalIn(cdp, sessionId, expression, contextId) {
-  const r = await cdp.send('Runtime.evaluate',
-    Object.assign({ expression, returnByValue: true, awaitPromise: true },
-      contextId ? { contextId } : {}), sessionId);
+  recordConsole(cdp);
+  let timer;
+  const timeout = new Promise((_, rej) => { timer = setTimeout(() => rej(Object.assign(new Error('evalIn timeout'), { evalTimeout: true })), EVAL_TIMEOUT_MS); });
+  let r;
+  try {
+    r = await Promise.race([cdp.send('Runtime.evaluate',
+      Object.assign({ expression, returnByValue: true, awaitPromise: true },
+        contextId ? { contextId } : {}), sessionId), timeout]);
+  } catch (e) {
+    if (!e.evalTimeout) throw e;
+    const dump = await dumpPageState(cdp, sessionId);
+    console.error(`✗ FAIL evalIn 超时 ${EVAL_TIMEOUT_MS}ms（contextId=${contextId}）: ${expression.slice(0, 120)}\n${dump}`);
+    // 不能交给调用方的 catch —— 4 段的就绪循环会把异常当 stale 吞掉再等 80 轮。直接判失败并清掉 Chrome。
+    try { onEvalTimeoutCleanup(); } catch (_) {}
+    process.exit(3);
+  } finally { clearTimeout(timer); }
   if (r.exceptionDetails) {
     throw new Error(`eval failed: ${r.exceptionDetails.text} ${(r.exceptionDetails.exception || {}).description || ''}`);
   }
@@ -131,6 +173,7 @@ async function evalIn(cdp, sessionId, expression, contextId) {
   // 装的是 dist/ 的副本：遥测端点指到本机桩并允许自动化 —— 线上产物永远没有这个字段。
   const RUN_DIST = sandboxDist(DIST, { telemetry: { url: `${base}/functions/v1/bt-ingest` } });
   const chrome = await launchChrome();
+  onEvalTimeoutCleanup = () => { chrome.cleanup(); srv.close(); try { require('fs').rmSync(RUN_DIST, { recursive: true, force: true }); } catch (_) {} };
   const cdp = await CDP.connect(chrome.port);
   const problems = [];
   const notes = [];
