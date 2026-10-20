@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "To use {lang}, give up one language first."
+  },
+  "asr_platform_only": {
+    "message": "AI subtitles only work on Mac, iPhone and iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "Didn't open? You may not have the App yet · Get it on the App Store ↗"
   }
 }
