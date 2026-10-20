@@ -3000,7 +3000,22 @@ export function bootShell() {
           hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
       } catch (_) { return null; }
     }
-    NativeBridge.onNative('deeplink', (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); });
+    // DEV-25：冷启动时 deeplink 常在 currentStable/show 之前到达（桥 held 回放）。
+    // 那时 currentSession 还是 null，applyDeepLink 会被后面的 show() 盖回首页。
+    let shellBootDone = false;
+    let deferredDeepLink = null;
+    async function flushDeferredDeepLink() {
+      if (!deferredDeepLink) return;
+      const d = deferredDeepLink;
+      deferredDeepLink = null;
+      await applyDeepLink(d);
+    }
+    NativeBridge.onNative('deeplink', (raw) => {
+      const d = parseDeepLink(raw);
+      if (!d) return;
+      if (!shellBootDone) { deferredDeepLink = d; return; }
+      void applyDeepLink(d);
+    });
 
     // 「从哪来」的那一行。只有真的被推过来时才出现 —— 自己走进设置页的人不需要它。
     // 配好之后它不必自己变：回执块就在同一屏上，那才是「你可以回去了」的载体。
@@ -3125,6 +3140,8 @@ export function bootShell() {
       // Fire-and-forget: launch is a heartbeat (§8.8), and the sign-in screen or
       // counts must never wait on the network for a run the user didn't ask for.
       quietSync();
+      shellBootDone = true;
+      await flushDeferredDeepLink();
     } catch (err) {
       // A corrupt session must not leave a blank window with no way forward.
       extBannerPrimed = true;
@@ -3139,6 +3156,8 @@ export function bootShell() {
         await show(null);
         say(humanError(err), true);
       }
+      shellBootDone = true;
+      await flushDeferredDeepLink();
     }
   })();
 }
