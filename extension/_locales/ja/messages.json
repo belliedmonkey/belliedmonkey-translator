@@ -4073,5 +4073,14 @@
   },
   "asr_app_not_opened": {
     "message": "開かない？App が未インストールかも · App Store で入手 ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "「{learn_enable}」をオンにしました。読んだ文はこの端末に保存され、復習に使われます。設定からいつでもオフにできます。"
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "設定を開く"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "了解"
   }
 }
