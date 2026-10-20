@@ -184,6 +184,30 @@ function Popup() {
     ? (() => { const c = Device.classOf(navigator); return c === 'phone' || c === 'tablet'; })()
     : false;
 
+  const learnAutoNoticeVisible = ready && s.learnAutoOnNotice === true && s.learnEnabled === true;
+  const learnAutoNoticeBody = useMemo(() => {
+    const name = t('learn_enable', '采集学习材料');
+    return t(
+      'notice_learn_auto_on',
+      '已为你打开「采集学习材料」：你读过的句子会存在这台设备上，用来复习。不想要可以随时在设置里关掉。',
+    ).replace(/\{learn_enable\}/g, name);
+  }, [t, s.uiLang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function clearLearnAutoNotice() {
+    if (s.learnAutoOnNotice !== true) return;
+    try { await SettingsStore.set('learnAutoOnNotice', false); } catch (_) {}
+  }
+  async function openLearnSettings() {
+    await clearLearnAutoNotice();
+    try { window.open(chrome.runtime.getURL('options/options.html') + '#learn', '_blank'); } catch (_) {}
+    window.close();
+  }
+  async function goSettingsAndClose() {
+    await clearLearnAutoNotice();
+    try { chrome.runtime.openOptionsPage(); } catch (_) {}
+    window.close();
+  }
+
   const translateLabel = pageTranslated ? t('btn_view_original', '查看原文') : t('btn_translate_page', '翻译本页');
   // 两态，与原版 updateTranslateUI 逐字对应。pageStatus 拿不到（无内容页/受限页）时
   // 原版也是走 pageTranslated=false 的「未翻译」——静态 HTML 的「已关闭」只是
@@ -203,10 +227,6 @@ function Popup() {
     setToast(msg);
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), duration);
-  }
-  function goSettingsAndClose() {
-    try { chrome.runtime.openOptionsPage(); } catch (_) {}
-    window.close();
   }
   function openTab(url) {
     try { window.open(url, '_blank'); } catch (_) {}
@@ -371,6 +391,35 @@ function Popup() {
   // 结构已知，直接写在那一行上）。
   return (
     <>
+      <div
+        className="learn-auto-notice"
+        id="learn-auto-notice"
+        hidden={!learnAutoNoticeVisible}
+      >
+        <p className="learn-auto-notice-text" id="learn-auto-notice-text">
+          <span className="learn-auto-notice-icon" aria-hidden="true">✦</span>
+          {learnAutoNoticeVisible ? learnAutoNoticeBody : ''}
+        </p>
+        <div className="learn-auto-notice-actions">
+          <button
+            type="button"
+            className="learn-auto-notice-dismiss"
+            id="learn-auto-notice-dismiss"
+            onClick={() => { clearLearnAutoNotice(); }}
+          >
+            {t('notice_learn_auto_on_dismiss', '知道了')}
+          </button>
+          <button
+            type="button"
+            className="learn-auto-notice-settings"
+            id="learn-auto-notice-settings"
+            onClick={openLearnSettings}
+          >
+            {t('notice_learn_auto_on_settings', '去设置')}
+          </button>
+        </div>
+      </div>
+
       <div className="popup-header">
         <div className="logo">
           {/* 大肚猴 mark — the canonical icons/icon.svg, referenced not restated
@@ -538,7 +587,7 @@ function Popup() {
         <button className="btn-primary" id="btn-translate" disabled={busy}
           onClick={onTranslate}>{translateLabel}</button>
         <button className="btn-secondary" id="btn-settings"
-          onClick={() => { try { chrome.runtime.openOptionsPage(); } catch (_) {} }}>
+          onClick={goSettingsAndClose}>
           {t('btn_more_settings', '更多设置')}
         </button>
       </div>
