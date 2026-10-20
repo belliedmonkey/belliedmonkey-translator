@@ -4068,5 +4068,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "要用 {lang}，需要先讓出一種。"
+  },
+  "asr_platform_only": {
+    "message": "AI 轉寫字幕只支援 Mac、iPhone 和 iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "沒打開？可能還沒裝 App · 前往 App Store 下載 ↗"
   }
 }
