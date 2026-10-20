@@ -343,20 +343,88 @@ var AsrSource = (() => {
   //
   // 文案**不点名 Safari**（用户 2026-09-13 裁定）：App 听的是设备的声音，与哪个
   // 浏览器或 App 在放无关。
+  // iPadOS 桌面 UA 的 iPad 与 iPhone：与 popup 共用 content/device.js 判据（#158 D4）。
+  function isHandheld() {
+    const nav = typeof navigator !== 'undefined' ? navigator : null;
+    if (typeof Device !== 'undefined' && Device.classOf) {
+      const c = Device.classOf(nav);
+      return c === 'phone' || c === 'tablet';
+    }
+    if (!nav) return false;
+    const ua = String(nav.userAgent || '');
+    const mtp = Number(nav.maxTouchPoints) || 0;
+    if (/iPhone|iPod|iPad/.test(ua)) return true;
+    return /Mac/.test(ua) && mtp > 1;
+  }
+
+  // 深链点击后的过渡：opening →（失焦）idle |（1.2 s 无人接）not_opened；非苹果平台 platform_only。
+  let listenPhase = 'idle';
+  let listenWatchCleanup = null;
+  function clearListenWatch() {
+    if (listenWatchCleanup) { listenWatchCleanup(); listenWatchCleanup = null; }
+  }
   function openListenApp(surface) {
     track(surface || 'notice', 'to_app');
-    try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
+    listenPhase = 'opening';
+    clearListenWatch();
+    const markOpened = () => { listenPhase = 'idle'; clearListenWatch(); };
+    const onVis = () => { if (typeof document !== 'undefined' && document.hidden) markOpened(); };
+    const onBlur = () => { markOpened(); };
+    try {
+      document.addEventListener('visibilitychange', onVis);
+      window.addEventListener('blur', onBlur);
+      listenWatchCleanup = () => {
+        document.removeEventListener('visibilitychange', onVis);
+        window.removeEventListener('blur', onBlur);
+      };
+    } catch (_) {}
+    try {
+      AppLink.open('', (kind) => {
+        if (listenPhase !== 'opening') return;
+        listenPhase = kind === 'store' ? 'not_opened' : (kind === 'none' ? 'platform_only' : 'idle');
+      }, 1200, 'listen');
+    } catch (_) {}
   }
   function appPointer(surface) {
     if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) return null;
-    const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
-    const handheld = /iPhone|iPad|iPod/i.test(ua);
+    const handheld = isHandheld();
     const label = handheld
       ? T('asr_app_go_ios', '🔊 先去 App 开始听，再回来播放 →')
       : T('asr_app_go_mac', '🔊 用 App 听设备的声音 →');
     return {
       label,
       onClick: () => openListenApp(surface),
+    };
+  }
+
+  function offerAction(surface, el, ui, settings) {
+    if (listenPhase === 'platform_only') {
+      return { label: T('asr_platform_only', 'AI 转写字幕只支持 Mac、iPhone 和 iPad'), onClick: () => {} };
+    }
+    if (listenPhase === 'opening') {
+      return {
+        label: T('asr_app_opening', '正在打开 App…'),
+        onClick: () => {},
+        dimmed: true,
+      };
+    }
+    if (listenPhase === 'not_opened') {
+      return {
+        label: T('asr_offer', '🎙 AI 转写字幕'),
+        onClick: () => openListenApp(surface),
+        hintLink: {
+          text: T('asr_app_not_opened', '没打开？可能还没装 App · 去 App Store 下载 ↗'),
+          url: (typeof AppLink !== 'undefined' ? AppLink.storeUrl() : ''),
+        },
+      };
+    }
+    if (lastFail.code === 'to_app' && lastFail.el === el) {
+      const p = appPointer(surface);
+      if (p) return p;
+    }
+    return {
+      label: T('asr_offer', '🎙 AI 转写字幕'),
+      onClick: () => startFrom(surface, el, ui, settings),
     };
   }
 
@@ -368,11 +436,7 @@ var AsrSource = (() => {
       const ui = getUi();
       if (!el || !ui || !(el.duration >= MIN_DURATION_S)) return null;
       if (ui.streaming) return null;
-      if (lastFail.code === 'to_app' && lastFail.el === el) {
-        const p = appPointer('notice');
-        if (p) return p;
-      }
-      return { label: T('asr_offer', '🎙 AI 转写字幕'), onClick: () => startFrom('notice', el, ui, getSettings()) };
+      return offerAction('notice', el, ui, getSettings());
     };
   }
   // 三处入口（弹窗 / 通知行 / 页内再点一次）都走这里：同一个会话、同一条遥测。
@@ -384,6 +448,7 @@ var AsrSource = (() => {
     if (ui.streaming) return { ok: false, reason: 'busy' };
     if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) {
       track(lastSurface, 'no_app');
+      listenPhase = 'platform_only';
       return { ok: false, reason: 'no_app' };
     }
     lastFail = { code: '', el: null };
@@ -394,7 +459,11 @@ var AsrSource = (() => {
 
   function eligible(el) { return !!el && el.duration >= MIN_DURATION_S; }
 
-  return { startSession, offerFor, start, startFrom, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES };
+  return {
+    startSession, offerFor, start, startFrom, eligible, prepareAudioContext, attachCapture,
+    splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES,
+    isHandheld, getListenPhase: () => listenPhase, _resetListenPhase: () => { listenPhase = 'idle'; clearListenWatch(); },
+  };
 })();
 
 if (typeof window !== 'undefined') window.AsrSource = AsrSource;
