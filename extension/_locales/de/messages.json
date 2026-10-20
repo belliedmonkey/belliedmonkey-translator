@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Um {lang} zu nutzen, gib zuerst eine Sprache frei."
+  },
+  "asr_platform_only": {
+    "message": "KI-Untertitel funktionieren nur auf Mac, iPhone und iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "Nicht geöffnet? Vielleicht fehlt die App · Im App Store laden ↗"
   }
 }
