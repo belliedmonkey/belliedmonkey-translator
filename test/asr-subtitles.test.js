@@ -692,9 +692,10 @@ describe('§2.4 asr-source: pure helpers', () => {
     global.MTTelemetry = { track: (n, p) => tracked.push([n, p]) };
     global.AppLink = {
       applePlatform: () => true,
-      open: (uid, fb, ms, action) => { opened.push({ uid, action }); return 'belliedmonkey://listen'; },
+      open: (uid, fb, ms, action) => { opened.push({ uid, action }); if (fb) fb('store'); return 'belliedmonkey://listen'; },
       storeUrl: () => 'https://apps.apple.com/app/id1',
     };
+    global.document = { addEventListener: () => {}, removeEventListener: () => {}, hidden: false };
     const ui = { streaming: false, acquireVia(fn) { this._fn = fn; } };
     try {
       deepEq(A.startFrom('popup', null, ui, {}), { ok: false, reason: 'no_media' });
@@ -704,7 +705,7 @@ describe('§2.4 asr-source: pure helpers', () => {
       ok(!ui._fn, 'must not start in-page transcription via acquireVia');
       deepEq(tracked.map((x) => x[1].result), ['no_media', 'to_app']);
       ok(tracked.every((x) => x[0] === 'asr_entry' && x[1].surface === 'popup'));
-    } finally { delete global.MTTelemetry; delete global.AppLink; }
+    } finally { delete global.MTTelemetry; delete global.AppLink; delete global.document; try { A._resetListenPhase(); } catch (_) {} }
   });
   test('eligible: only media at least MIN_DURATION_S long', () => {
     ok(!A.eligible({ duration: 10 })); ok(A.eligible({ duration: A.MIN_DURATION_S })); ok(!A.eligible({ duration: NaN }));
