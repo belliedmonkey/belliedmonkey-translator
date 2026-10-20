@@ -703,6 +703,32 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         problems.push(`全新安装之后 learnEnabled = ${seeded}，期望 true —— `
           + '整条引导是「先翻译、后看卡」，采集不默认开着的话第一次看必然是空的');
       }
+      // 再把「后开采集」那条路也走一遍（老用户、或自己关了又开的人）：先关再开，
+      // 页面上已有的译文必须被补登记进来。
+      await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.set({ learnEnabled: false }, () => r(1)))`);
+      await sleep(400);
+      await evalIn(cdp, swSession,
+        `new Promise(r => chrome.storage.local.set({ learnEnabled: true }, () => r(1)))`);
+      // onChanged 是异步送达内容脚本的；再给 dwell 一点时间累积。
+      await sleep(1200);
+      const before = await evalIn(cdp, sessionId,
+        `(async () => { const n = await LearnCollector.flush(); return String(n); })()`, ctxId);
+      let items = 0;
+      for (let i = 0; i < 25 && !items; i++) {
+        const raw = await evalIn(cdp, swSession,
+          `new Promise(r => chrome.storage.local.get(null, (o) => r(JSON.stringify(
+             Object.keys(o).filter(k => k.startsWith('lq:') && k !== 'lq:index' && k !== 'lq:dropped')
+               .reduce((a, k) => a + ((o[k] && o[k].items && o[k].items.length) || 0), 0)))))`);
+        items = Number(JSON.parse(raw || '0')) || 0;
+        if (!items) { await sleep(400); await evalIn(cdp, sessionId, `LearnCollector.flush()`, ctxId); }
+      }
+      notes.push(`后开采集：flush 首次写入 ${before} 条，outbox 合计 ${items} 条`);
+      if (!items) {
+        problems.push('先翻译、后打开采集 → outbox 里一条都没有 —— 交接块把人送去打开采集，'
+          + '回来却是「还没有学习材料」');
+      }
+      // 升级补写段放在「后开采集」之后：它会 reload 扩展，旧内容脚本随之断开，放在前面会让 outbox 恒为 0。
       // DEV-32：老用户升级缺键 ⇒ 补写 true + learnAutoOnNotice（同一次 onInstalled update）。
       await evalIn(cdp, swSession,
         `new Promise(r => chrome.storage.local.remove(['learnEnabled', 'learnAutoOnNotice'], () => r(1)))`);
@@ -758,31 +784,6 @@ async function evalIn(cdp, sessionId, expression, contextId) {
         }
       } else {
         problems.push('升级补写段：reload 后 service worker 未起来');
-      }
-      // 再把「后开采集」那条路也走一遍（老用户、或自己关了又开的人）：先关再开，
-      // 页面上已有的译文必须被补登记进来。
-      await evalIn(cdp, swSession,
-        `new Promise(r => chrome.storage.local.set({ learnEnabled: false }, () => r(1)))`);
-      await sleep(400);
-      await evalIn(cdp, swSession,
-        `new Promise(r => chrome.storage.local.set({ learnEnabled: true }, () => r(1)))`);
-      // onChanged 是异步送达内容脚本的；再给 dwell 一点时间累积。
-      await sleep(1200);
-      const before = await evalIn(cdp, sessionId,
-        `(async () => { const n = await LearnCollector.flush(); return String(n); })()`, ctxId);
-      let items = 0;
-      for (let i = 0; i < 25 && !items; i++) {
-        const raw = await evalIn(cdp, swSession,
-          `new Promise(r => chrome.storage.local.get(null, (o) => r(JSON.stringify(
-             Object.keys(o).filter(k => k.startsWith('lq:') && k !== 'lq:index' && k !== 'lq:dropped')
-               .reduce((a, k) => a + ((o[k] && o[k].items && o[k].items.length) || 0), 0)))))`);
-        items = Number(JSON.parse(raw || '0')) || 0;
-        if (!items) { await sleep(400); await evalIn(cdp, sessionId, `LearnCollector.flush()`, ctxId); }
-      }
-      notes.push(`后开采集：flush 首次写入 ${before} 条，outbox 合计 ${items} 条`);
-      if (!items) {
-        problems.push('先翻译、后打开采集 → outbox 里一条都没有 —— 交接块把人送去打开采集，'
-          + '回来却是「还没有学习材料」');
       }
     }
     offCtx();
