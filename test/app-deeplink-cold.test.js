@@ -85,3 +85,29 @@ describe('DEV-25: deeplink cold boot deferral', () => {
 function deepEq(a, b, msg) {
   eq(JSON.stringify(a), JSON.stringify(b), msg || 'deepEq');
 }
+
+describe('D19: listen deeplink waits for entry card reveal', () => {
+  test('★ listen 分支在入口全 hidden 时轮询等待，揭开后再点', () => {
+    ok(/const LISTEN_DL_WAIT_MS = \d+;/.test(SHELL), 'LISTEN_DL_WAIT_MS 上限');
+    const i = SHELL.indexOf("if (d.action === 'listen') {");
+    ok(i >= 0, 'listen 分支存在');
+    const body = SHELL.slice(i, i + 2600);
+    ok(/while \(!pick\(\) && !settled\(\) && Date\.now\(\) < until\)/.test(body), '未落定时等待');
+    ok(/if \(btn\) btn\.click\(\);/.test(body), '揭开后点入口');
+  });
+
+  test('★ 模拟：入口晚 200ms 揭开 → 仍点进；揭开但 disabled → 停首页', async () => {
+    async function run(revealAfter, disabled) {
+      const b = { hidden: true, disabled: false, clicked: 0, click() { this.clicked++; } };
+      setTimeout(() => { b.hidden = false; b.disabled = disabled; }, revealAfter);
+      const pick = () => (!b.hidden && !b.disabled ? b : null);
+      const settled = () => !b.hidden;
+      const until = Date.now() + 2000;
+      while (!pick() && !settled() && Date.now() < until) await new Promise((r) => setTimeout(r, 20));
+      const btn = pick(); if (btn) btn.click();
+      return b.clicked;
+    }
+    eq(await run(200, false), 1, '晚揭开也要点进实时字幕');
+    eq(await run(50, true), 0, '门没过不点');
+  });
+});

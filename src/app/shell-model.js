@@ -3029,6 +3029,8 @@ export function bootShell() {
     }
 
     // 三支，每一支都必须说得出**事实**，不猜。
+    // D19：listen 深链等入口卡揭开的上限（探针超时 3s 之外再留余量）。
+    const LISTEN_DL_WAIT_MS = 5000;
     async function applyDeepLink(d) {
       // ⓪ action='listen'（2026-09-16）：扩展那边遇到转不了的媒体，把人送到实时字幕。
       //
@@ -3061,9 +3063,19 @@ export function bootShell() {
         // ENTRY_SUFFIXES）。点**可见且没被禁用**的那一个：hidden 元素的 click() 照样
         // 触发处理器，点错会让视图从一个本不该在场的来处切走；disabled 则不触发，
         // 那正是我们要的 —— 没有实时引擎时人停在首页，看到那条具名的灰态原因。
+        // D19（2026-10-20）：冷启动时入口卡在 AppListen.wire() 里 refreshEntry() 的探针
+        // （readCfg + NativeSpeech.probe，未 await）返回前是 **hidden** 的。boot 完成时
+        // 它常还没落定，于是这里找不到可点的按钮、静默停在首页。等入口揭开再点：
+        // 只等「全都 hidden」这一种未落定态；揭开但 disabled（门没过）照旧停在首页。
         try {
-          const btn = ['app-subs-entry', 'app-subs-entry2']
-            .map((id) => $(id)).find((b) => b && !b.hidden && !b.disabled);
+          const ids = ['app-subs-entry', 'app-subs-entry2'];
+          const pick = () => ids.map((id) => $(id)).find((b) => b && !b.hidden && !b.disabled);
+          const settled = () => ids.some((id) => { const b = $(id); return b && !b.hidden; });
+          const until = Date.now() + LISTEN_DL_WAIT_MS;
+          while (!pick() && !settled() && Date.now() < until) {
+            await new Promise((r) => setTimeout(r, 50));
+          }
+          const btn = pick();
           if (btn) btn.click();
         } catch (_) {}
         return;
