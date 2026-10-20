@@ -3886,5 +3886,14 @@
   },
   "asr_app_not_opened": {
     "message": "ไม่เปิด? อาจยังไม่ได้ติดตั้ง App · App Store ↗"
+  },
+  "notice_learn_auto_on": {
+    "message": "เปิด \"{learn_enable}\" แล้ว: ประโยคที่คุณอ่านจะเก็บไว้ในอุปกรณ์นี้เพื่อทบทวน ปิดได้ทุกเมื่อในการตั้งค่า"
+  },
+  "notice_learn_auto_on_settings": {
+    "message": "เปิดการตั้งค่า"
+  },
+  "notice_learn_auto_on_dismiss": {
+    "message": "รับทราบ"
   }
 }
