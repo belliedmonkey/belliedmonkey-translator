@@ -717,20 +717,32 @@ async function evalIn(cdp, sessionId, expression, contextId) {
       let wakeTarget = null;
       const reloadDeadline = Date.now() + 30000;
       let oldGone = false;
+      const probed = new Set();
+      const reloadTrace = [];
       while (!swSession && Date.now() < reloadDeadline) {
         const { targetInfos } = await cdp.send('Target.getTargets');
         const sws = swOf(targetInfos);
         if (!oldGone) oldGone = !sws.some((t) => oldSwIds.has(t.targetId));
         const fresh = oldGone && sws.find((t) => !oldSwIds.has(t.targetId));
-        if (fresh) {
-          ({ sessionId: swSession } = await cdp.send('Target.attachToTarget', { targetId: fresh.targetId, flatten: true }));
-          break;
+        if (fresh && !probed.has(fresh.targetId)) {
+          // 附上去先用 3s 探一下：重载期间可能先冒出一个随即被拆的 worker，附在它身上 evaluate 永不返回。
+          probed.add(fresh.targetId);
+          const { sessionId: cand } = await cdp.send('Target.attachToTarget', { targetId: fresh.targetId, flatten: true });
+          const alive = await Promise.race([
+            cdp.send('Runtime.evaluate', { expression: 'chrome.runtime.id', returnByValue: true }, cand).then((r) => r && r.result && r.result.value),
+            sleep(3000).then(() => null),
+          ]).catch(() => null);
+          reloadTrace.push(`${fresh.targetId.slice(0, 8)}:${alive ? 'alive' : 'dead'}`);
+          if (alive) { swSession = cand; break; }
+          try { await cdp.send('Target.detachFromTarget', { sessionId: cand }); } catch (_) {}
+          oldSwIds.add(fresh.targetId);
         }
         if (oldGone && !wakeTarget && Date.now() > reloadDeadline - 27000) {
           ({ targetId: wakeTarget } = await cdp.send('Target.createTarget', { url: `chrome-extension://${extId}/options/options.html` }));
         }
         await sleep(150);
       }
+      notes.push(`升级补写段 SW 探测: ${reloadTrace.join(' → ') || '(无新 SW)'}${wakeTarget ? '，开过 options 唤醒' : ''}`);
       if (wakeTarget) { try { await cdp.send('Target.closeTarget', { targetId: wakeTarget }); } catch (_) {} }
       if (!swSession) {
         problems.push(`升级补写段：reload 后 30s 内没等到新的 service worker（旧 SW ${oldGone ? '已' : '未'}销毁）`);
