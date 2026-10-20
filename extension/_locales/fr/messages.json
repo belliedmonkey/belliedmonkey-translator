@@ -4067,5 +4067,11 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Pour utiliser {lang}, libérez d’abord une langue."
+  },
+  "asr_platform_only": {
+    "message": "Les sous-titres IA ne fonctionnent que sur Mac, iPhone et iPad"
+  },
+  "asr_app_not_opened": {
+    "message": "Pas ouvert ? L'app n'est peut‑être pas installée · App Store ↗"
   }
 }
