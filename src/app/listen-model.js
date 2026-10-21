@@ -116,6 +116,8 @@ const listenModel = (() => {
         if (extra.raw != null) f.raw = cut(extra.raw);
         if (extra.why != null) f.why = cut(extra.why);
         if (extra.len != null) f.len = Number(extra.len);
+        if (extra.src != null) f.src = cut(extra.src);
+        if (extra.sim != null) f.sim = Number(extra.sim);
       }
       try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', f); } catch (_) {}
     }
@@ -640,8 +642,12 @@ const listenModel = (() => {
       sysTmpl: SEG_SYS_TMPL, userTmpl: SEG_USER_TMPL,
     };
   }
+  function classifyEchoAt(text, base, src) {
+    return C.classifyEcho(String(text || ''), { base, at: now(), echo, src: src || '' });
+  }
   function makeSeg(myGen) {
     const r = C.makeSegmentRouter({
+      classifyEcho: (text, lc) => classifyEchoAt(text, C.baseCode(lc), 'closed'),
       // P1-1：call 前判会话代际 —— 旧会话已 dispose 的路由器一个请求都不该发出去。
       call: (prompt, meta) => (myGen !== gen ? Promise.reject(new Error('stale-session')) : segCall(prompt, meta)),
       emit: (list, meta) => { if (myGen !== gen) return; segEmit(list, meta); },
@@ -822,11 +828,19 @@ const listenModel = (() => {
   }
   function feedPartialRescue(locale, text, opts) {
     const t = String(text || '').trim();
-    if (!t || !locale) return;
+    if (!t || !locale) return false;
+    const o = opts || {};
+    const base = C.baseCode(locale);
+    const ce = classifyEchoAt(t, base, o.src || o.why || 'rescue');
+    if (ce.verdict === 'echo') {
+      diagBump('rescue', 'echo_drop', { why: ce.why, src: o.src || o.why || 'rescue', len: t.length, sim: ce.sim });
+      return false;
+    }
     const useSeg = !!(segRoute === 'model' && seg && !segDegrade && sock);
-    if (useSeg) seg.feed(locale, t, Object.assign({ rescued: true }, opts || {}));
+    if (useSeg) seg.feed(locale, t, Object.assign({ rescued: true }, o));
     else if (cutter) cutter.add(locale, t);
     else segFallback(t, { locale, orig: t });
+    return true;
   }
   function flushPartial(base, reason, opt) {
     const p = partialBy[base];
@@ -840,28 +854,17 @@ const listenModel = (() => {
       if (p.text && LETTER_RE.test(p.text) && !p.leadUsed) {
         const text = dedupePartialEmit(p.text);
         if (text) {
-          if (reasonKey === 'timeout' || reasonKey === 'socket') diagBump('final', 'from-partial', { text, why: reasonKey });
-          else diagBump('rescue', 'lead_flush', { text, why: reasonKey || 'unknown' });
-          feedPartialRescue(locale, text);
+          const fed = feedPartialRescue(locale, text, { src: reasonKey || 'unknown' });
+          if (fed) {
+            if (reasonKey === 'timeout' || reasonKey === 'socket') diagBump('final', 'from-partial', { text, why: reasonKey });
+            else diagBump('rescue', 'lead_flush', { text, why: reasonKey || 'unknown' });
+          }
         }
       }
       markDone();
       refreshPartial();
     };
     if (reason === 'echo') {
-      const at = now();
-      if (echo.playingLangs(at).has(base)) {
-        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, why: 'echo_drop' });
-        markDone();
-        refreshPartial();
-        return;
-      }
-      if (p.text && echo.isEcho(p.text, at)) {
-        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, why: 'echo_drop' });
-        markDone();
-        refreshPartial();
-        return;
-      }
       emitFullPartial('echo');
       return;
     }
@@ -884,11 +887,14 @@ const listenModel = (() => {
           const fc = Number(o.finalConf);
           const confOk = !Number.isFinite(fc) || fc < 0 || fc >= C.LATIN_MIN_CONF;
           const pn = C.normDupText(p.text), fn = C.normDupText(o.finalText);
-          if (confOk && pn && pn.length >= 10 && fn && !fn.startsWith(pn) && fn.indexOf(pn) < 0) {
+          const su = C.sameUtterance(p.text, o.finalText);
+          if (su.same) {
+            diagBump('rescue', 'consumed_same', { sim: su.sim });
+          } else if (confOk && pn && pn.length >= 10 && fn) {
             const orphan = dedupePartialEmit(p.text);
             if (orphan) {
               diagBump('rescue', 'lead_flush', { text: orphan, why: 'consumed' });
-              feedPartialRescue(locale, orphan);
+              feedPartialRescue(locale, orphan, { src: 'consumed' });
             }
           }
         }
@@ -1555,7 +1561,11 @@ const listenModel = (() => {
     // 回声闸要拦**半句**，而且要**先判再赋值**（2026-10-10 修）：原来 `partial = pick.text`
     // 在前、判完回声只 return，partial 已被换成回声文本 —— canvas.view('now') 照样把它画
     // 出来，边说边译还会拿它发增量翻译（钱花出去了，环才断在定稿那层）。
-    const rec = (pick && pick.text && !echo.isEcho(pick.text, now())) ? pick.text : '';
+    let pickBase = '';
+    if (pick) {
+      for (const k of Object.keys(partialBy)) if (partialBy[k] === pick) { pickBase = k; break; }
+    }
+    const rec = (pick && pick.text && classifyEchoAt(pick.text, pickBase, 'partial-ui').verdict !== 'echo') ? pick.text : '';
     partialRec = rec;   // P1-6：斜体暂定译文的 result 比对用**识别中文字**，不跟合并后的 partial 比
     partial = C.joinFrag(segBufferedText(), rec);
     // 斜体暂定译文仍只喂「当前识别中的文字」（rec）—— 缓冲那部分已经/即将由断句模型翻译，
@@ -1607,8 +1617,7 @@ const listenModel = (() => {
       canXfer: () => C.baseCode(lidPair()) === 'en' && useSeg() && !!sock,
       // 第 5 轮 0-b：转交执行前按目标语言再过一遍**同一道回声闸**（朗读中同语言硬闸 + 文字回声）。
       targetLang: () => 'en',
-      playing: () => echo.playingLangs(Date.now()),
-      isEcho: (s) => echo.isEcho(s, Date.now()),
+      classifyEcho: (text, tgt) => classifyEchoAt(text, tgt, 'xfer'),
       onXfer: (text, locale, cand) => {
         if (myGen !== gen || !text) return;
         // R15：候补转交已经等过那一次空闲（transfer gate 的 waitMs = SEG_IDLE_MS），
@@ -1698,7 +1707,7 @@ const listenModel = (() => {
         base, lid, pttSwitch, now: Date.now(),
         playing: echo.playingLangs(Date.now()),
         text: String((ev && ev.text) || ''),
-        isEcho: (s) => echo.isEcho(s, now()),
+        classifyEcho: (s) => classifyEchoAt(s, base, 'intake'),
       });
       if (!dec.admit) {
         diagBump('intake', dec.reason);
@@ -1739,8 +1748,7 @@ const listenModel = (() => {
         if (kind === 'ready') { socketRetried = false; }
         else if (kind === 'partial') {
           const base = C.baseCode(ev && ev.locale);
-          // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
-          if (base && echo.playingLangs(Date.now()).has(base)) return;
+          if (base && ev && ev.text && classifyEchoAt(ev.text, base, 'partial-intake').verdict === 'echo') return;
           if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
           // R14 ②：归属这一路（英文）的 partial 只要有字母，也算「英文路有结果」——长句里中文路
           // 早早吐一句拉丁垃圾当候补时，英文路的流式 partial 正好在这 1.5s 内到达 ⇒ 候补被丢，

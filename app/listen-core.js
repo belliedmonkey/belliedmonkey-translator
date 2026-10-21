@@ -254,6 +254,75 @@ var ListenCore = (() => {
     return out;
   }
 
+  const SAME_UTTERANCE_T = 0.8;
+  const UTTER_FILLER = /\b(?:um|uh)\b/giu;
+  const NUM_WORD = {
+    zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9',
+    ten: '10', eleven: '11', twelve: '12', thirteen: '13', fourteen: '14', fifteen: '15', sixteen: '16',
+    seventeen: '17', eighteen: '18', nineteen: '19', twenty: '20', thirty: '30', forty: '40', fifty: '50',
+    sixty: '60', seventy: '70', eighty: '80', ninety: '90', hundred: '100',
+  };
+
+  function utteranceNorm(s) {
+    let t = String(s == null ? '' : s).normalize('NFKC').toLowerCase().replace(UTTER_FILLER, ' ');
+    t = t.replace(DROP_PUNCT, ' ').trim();
+    if (!t) return '';
+    const parts = t.split(/\s+/).filter(Boolean);
+    const out = [];
+    for (let i = 0; i < parts.length; i++) {
+      const w = parts[i];
+      const nxt = parts[i + 1];
+      if (w === 'a' && nxt && NUM_WORD[nxt]) { out.push(NUM_WORD[nxt]); i++; continue; }
+      out.push(NUM_WORD[w] || w);
+    }
+    return out.join(' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function levenshteinRatio(a, b) {
+    const s = String(a || ''), t = String(b || '');
+    if (s === t) return 1;
+    const n = s.length, m = t.length;
+    if (!n || !m) return 0;
+    let prev = new Array(m + 1);
+    let cur = new Array(m + 1);
+    for (let j = 0; j <= m; j++) prev[j] = j;
+    for (let i = 1; i <= n; i++) {
+      cur[0] = i;
+      for (let j = 1; j <= m; j++) {
+        const cost = s.charAt(i - 1) === t.charAt(j - 1) ? 0 : 1;
+        cur[j] = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      }
+      const swap = prev; prev = cur; cur = swap;
+    }
+    const d = prev[m];
+    return 1 - d / Math.max(n, m);
+  }
+
+  function tokenContainment(partial, finalText) {
+    const a = echoTokens(partial);
+    const b = echoTokens(finalText);
+    if (!a.size) return 0;
+    let hit = 0;
+    for (const tk of a) if (b.has(tk)) hit++;
+    return hit / a.size;
+  }
+
+  function sameUtterance(a, b) {
+    const na = utteranceNorm(a), nb = utteranceNorm(b);
+    if (!na || !nb) return { same: false, sim: 0 };
+    if (na === nb) return { same: true, sim: 1 };
+    const sim = Math.max(tokenContainment(a, b), levenshteinRatio(na, nb));
+    return { same: sim >= SAME_UTTERANCE_T, sim };
+  }
+
+  function classifyEcho(text, o) {
+    const p = o || {};
+    const g = p.echo;
+    if (!g || typeof g.match !== 'function') return { verdict: 'clean', why: '', sim: 0 };
+    const m = g.match(String(text || ''), p.at == null ? Date.now() : p.at, p.base);
+    return m.echo ? { verdict: 'echo', why: m.why, sim: m.sim } : { verdict: 'clean', why: '', sim: m.sim };
+  }
+
   function makeEchoGuard() {
     let items = [];        // { tokens, from, to }  to=0 表示还在读
     let dropped = 0;
@@ -287,18 +356,32 @@ var ListenCore = (() => {
         }
         return out;
       },
-      // 这一句是不是我们自己刚读出去的？
-      isEcho(text, at) {
+      // 文字回声（不含「播放中同语言」硬闸；classifyEcho / isEcho 共用）
+      _echoText(text, at) {
         const b = echoTokens(text);
-        if (!b.size) return false;
+        if (!b.size) return { echo: false, sim: 0, why: '' };
         for (const it of items) {
           const until = (it.to || at) + ECHO_TAIL_MS;
           if (at < it.from || at > until) continue;
           let hit = 0;
           for (const tk of b) if (it.tokens.has(tk)) hit++;
-          if (hit / b.size >= ECHO_SIM) { dropped++; return true; }
+          const sim = hit / b.size;
+          if (sim >= ECHO_SIM) return { echo: true, sim, why: it.to ? 'tail' : 'play_text' };
         }
-        return false;
+        return { echo: false, sim: 0, why: '' };
+      },
+      match(text, at, base) {
+        const bc = baseCode(base);
+        if (bc && this.playingLangs(at).has(bc)) return { echo: true, sim: 1, why: 'playing' };
+        const r = this._echoText(text, at);
+        if (r.echo) dropped++;
+        return r;
+      },
+      // 这一句是不是我们自己刚读出去的？
+      isEcho(text, at) {
+        const r = this._echoText(text, at);
+        if (r.echo) dropped++;
+        return r.echo;
       },
       dropped() { return dropped; },
       size() { return items.length; },
@@ -1182,7 +1265,10 @@ var ListenCore = (() => {
     // （只是**可**：等待期间英文路一有带字母的结果就丢弃）。方向只有中文路 → 英文路一个。
     if (!adm.admit) return { admit: false, markUsed: false, force: false, reason: 'attrib', xfer: isXferCandidate({ base, lid: p.lid, text }) };
     if (!text) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'empty', xfer: false };
-    if (typeof p.isEcho === 'function' && p.isEcho(text)) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'echo', xfer: false };
+    if (typeof p.classifyEcho === 'function') {
+      const ce = p.classifyEcho(text);
+      if (ce && ce.verdict === 'echo' && ce.why !== 'playing') return { admit: false, markUsed: adm.markUsed, force: false, reason: 'echo', xfer: false };
+    } else if (typeof p.isEcho === 'function' && p.isEcho(text)) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'echo', xfer: false };
     return { admit: true, markUsed: adm.markUsed, force: !!adm.markUsed, reason: '', xfer: false };
   }
 
@@ -1581,14 +1667,22 @@ var ListenCore = (() => {
       // she. / theafternew.」这类拉丁短句被原样转进英文通道，成了多余的行。目标语言恒为 en
       // （canXfer 只放行这一路），但用 targetLang 注入以便测试与将来扩展。
       const tgt = d.targetLang ? baseCode(d.targetLang(c)) : 'en';
-      const playing = d.playing ? d.playing() : null;
-      if (tgt && playing && typeof playing.has === 'function' && playing.has(tgt)) {
-        diag('xfer-echo', { text: 'speaking', rem: c.text }); return false;
-      }
-      if (d.isEcho) {
-        let hit = false;
-        try { hit = !!d.isEcho(c.text); } catch (_) { hit = false; }
-        if (hit) { diag('xfer-echo', { text: 'echo', rem: c.text }); return false; }
+      if (d.classifyEcho) {
+        let ce = null;
+        try { ce = d.classifyEcho(c.text, tgt); } catch (_) { ce = null; }
+        if (ce && ce.verdict === 'echo') {
+          diag('xfer-echo', { text: ce.why || 'echo', rem: c.text }); return false;
+        }
+      } else {
+        const playing = d.playing ? d.playing() : null;
+        if (tgt && playing && typeof playing.has === 'function' && playing.has(tgt)) {
+          diag('xfer-echo', { text: 'speaking', rem: c.text }); return false;
+        }
+        if (d.isEcho) {
+          let hit = false;
+          try { hit = !!d.isEcho(c.text); } catch (_) { hit = false; }
+          if (hit) { diag('xfer-echo', { text: 'echo', rem: c.text }); return false; }
+        }
       }
       diag('xfer', { text: c.text });
       if (d.onXfer) { try { d.onXfer(c.text, c.locale, c); } catch (_) {} }
@@ -2451,6 +2545,16 @@ var ListenCore = (() => {
     function allRuns() { const out = []; for (const lc of locales()) for (const r of runsOf(lc)) out.push(r); return out; }
     function emitClosedStandalone(lc, t, meta) {
       const o = meta || {};
+      if (d.classifyEcho) {
+        let ce = null;
+        try { ce = d.classifyEcho(t, lc); } catch (_) { ce = null; }
+        if (ce && ce.verdict === 'echo') {
+          if (d.onDiag) {
+            try { d.onDiag('rescue:echo_drop', { why: ce.why, src: 'closed', len: t.length, sim: ce.sim }); } catch (_) {}
+          }
+          return;
+        }
+      }
       if (d.onDiag) { try { d.onDiag('seg:closed_emit', { text: t.slice(0, 8), len: t.length, why: o.why || 'feed' }); } catch (_) {} }
       const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: legacyPayload(t), rescued: !!o.rescued, t0: o.t0, t1: o.t1 };
       ledger.push(rec);
@@ -2767,7 +2871,8 @@ var ListenCore = (() => {
     lidBase, sideMatchesLid, langSupported,
 
     SILENCE_MS, SILENCE_RMS, HEARD_RMS, FIRST_SOUND_MS, DEBOUNCE_MS, HISTORY_MAX,
-    ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
+    ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SAME_UTTERANCE_T, SPOKEN_WINDOW_MS,
+    classifyEcho, sameUtterance, utteranceNorm,
     NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
     MODES, modeOf, entryGate, captureSource,
     newSession, sessionTitle, sourceFor, addFinal, junkFinal, flipWho, transcriptText,

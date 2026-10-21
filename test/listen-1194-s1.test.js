@@ -417,7 +417,7 @@ describe('1194 · 生产 flushPartial（_test1194）', () => {
     ok(A._debug().rows.some((r) => /unknown reason orphan/i.test(r.text)), JSON.stringify(A._debug().rows));
     try { await A.leave(); } catch (_) {}
   });
-  test('echo · 朗读中 partial 丢弃且记 lead_flush:echo_drop', async () => {
+  test('echo · 朗读中 partial 丢弃且记 rescue:echo_drop', async () => {
     const { A, clk } = await openListen1194();
     const h = t1194(A);
     const spoken = 'At ten thousand units we can do three twenty per piece';
@@ -425,7 +425,7 @@ describe('1194 · 生产 flushPartial（_test1194）', () => {
     h.setPartial('en', { text: 'we can do three twenty per piece', at: h.clockNow() });
     h.flushPartial('en', 'echo', { locale: 'en-US' });
     await h.settleSeg('end'); await clk.runTo(2000);
-    eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    eq(diagN(h.segDiag(), 'rescue', 'echo_drop'), 1);
     ok(!A._debug().rows.some((r) => /three twenty per piece/i.test(r.text)), JSON.stringify(A._debug().rows));
     try { await A.leave(); } catch (_) {}
   });
@@ -439,7 +439,7 @@ describe('1194 · 生产 flushPartial（_test1194）', () => {
     h.setPartial('en', { text: '五周可以。', at: h.clockNow() });
     h.flushPartial('en', 'echo', { locale: 'en-US' });
     await h.settleSeg('end'); await clk.runTo(500);
-    eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    eq(diagN(h.segDiag(), 'rescue', 'echo_drop'), 1);
     ok(!A._debug().rows.some((r) => /五周可以/.test(r.text)), JSON.stringify(A._debug().rows));
     try { await A.leave(); } catch (_) {}
   });
