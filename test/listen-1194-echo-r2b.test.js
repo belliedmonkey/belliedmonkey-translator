@@ -35,14 +35,14 @@ function fakeClock() {
     },
   };
 }
-function makeSandbox() {
-  const st = { listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: false, listenCapture: false, subtitleVideoLang: 'en' };
+function makeSandbox(store) {
+  const st = Object.assign({ listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: false, listenCapture: false, subtitleVideoLang: 'en' }, store || {});
   const captured = { onEvent: null };
   const clk = fakeClock();
   const NativeSpeech = {
     available: () => true,
     probeResult: () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
-    probe: async () => ({ ok: true }), ensureAssets: async () => ({ ok: true }), ensureLid: async () => ({ ok: true }), ensureVad: async () => ({ ok: true }),
+    probe: async () => ({ ok: true, reason: '', assets: 'installed', locales: [] }), ensureAssets: async () => ({ ok: true }), ensureLid: async () => ({ ok: true }), ensureVad: async () => ({ ok: true }),
     lidPause: () => {}, diagAudio: () => {}, onLid: () => () => {},
     sttOpen: (x) => { captured.onEvent = x.onEvent; return { sendPcm: () => true, close() {}, cut() {} }; },
   };
@@ -100,6 +100,85 @@ async function openSub() {
 }
 function t1194(A) { return A._test1194(); }
 
+function braceBody(src, openBraceIdx) {
+  let depth = 0;
+  for (let k = openBraceIdx; k < src.length; k++) {
+    if (src[k] === '{') depth++;
+    else if (src[k] === '}') {
+      depth--;
+      if (depth === 0) return { start: openBraceIdx, end: k + 1 };
+    }
+  }
+  return null;
+}
+function namedFunctionBody(src, sig) {
+  const i = src.indexOf(sig);
+  if (i < 0) return null;
+  const j = src.indexOf('{', i);
+  const span = braceBody(src, j);
+  return span ? src.slice(span.start, span.end) : null;
+}
+function inSpan(idx, span) { return span && idx >= span.start && idx < span.end; }
+function spanOfBody(body, baseIdx) {
+  if (!body) return null;
+  return { start: baseIdx, end: baseIdx + body.length };
+}
+
+async function openConv() {
+  const { sb, captured, clk } = makeSandbox({});
+  const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+  const A = ctx.AppListen;
+  A.open('conv');
+  await clk.runTo(0);
+  A.setAutoSpeak(false);
+  ok(A.pttToggle('other'), 'conv + ptt 应能开麦');
+  await clk.runTo(0);
+  if (captured.h && captured.h.onState) captured.h.onState('granted', '');
+  await clk.runTo(8000);
+  ok(A._debug().id, 'session 未建立');
+  ok(typeof captured.onEvent === 'function', 'stt onEvent 未挂上');
+  return { A, captured, clk };
+}
+
+const TED_PARTIAL = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
+const TED_FINAL = ', you, and you risk starvation when the Grove runs dry.';
+
+async function tedBadCutIntake(setup) {
+  const { A, captured, clk } = await openConv();
+  const h = t1194(A);
+  h.setPartial('en', { text: TED_PARTIAL, at: h.clockNow() });
+  if (setup) await setup(h, clk, A);
+  captured.onEvent('final', { locale: 'en-US', text: TED_FINAL, conf: 0.9, t0: 1000, t1: 2000 });
+  await clk.runTo(4000);
+  await h.settleSeg('end');
+  await clk.runTo(3000);
+  const d = h.segDiag();
+  const rows = A._debug().rows.map((r) => r.text).join(' ');
+  try { await A.leave(); } catch (_) {}
+  return { d, rows };
+}
+
+function makeClosedEchoRouter(setup) {
+  const clk = fakeClock();
+  const echo = C.makeEchoGuard();
+  const drops = [];
+  const rows = [];
+  const classify = (t, lc) => C.classifyEcho(String(t || ''), {
+    base: C.baseCode(lc), at: clk.now(), echo, src: 'closed',
+  });
+  const r = C.makeSegmentRouter({
+    classifyEcho: classify,
+    call: async () => JSON.stringify({ segments: [{ source: 'x', translation: 'T' }], remainder: '' }),
+    emit: (list) => { for (const x of list) rows.push(x.source); },
+    fallback: (t) => rows.push(t),
+    onDiag: (kind, extra) => { if (kind === 'rescue:echo_drop') drops.push(extra || {}); },
+    ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+    idleMs: 800, endWaitMs: 500,
+  });
+  if (setup) setup(echo, clk);
+  return { r, clk, drops, rows, echo };
+}
+
 describe('1194 · echo r2b · sameUtterance', () => {
   test('three/3 · 大小写 · 标点 · um 不补行', () => {
     const a = 'Please make three copies of this contract.';
@@ -126,6 +205,138 @@ describe('1194 · echo r2b · 结构守护', () => {
     ok(/classifyEchoAt/.test(fp), 'feedPartialRescue 入口应 classifyEcho');
     ok(/makeSegmentRouter\(\{[\s\S]*classifyEcho:/.test(MODEL), 'emitClosedStandalone 应接 classifyEcho');
     eq((MODEL.match(/feedPartialRescue\(/g) || []).length, 6, 'feedPartialRescue 调用计数');
+  });
+
+  test('段 router / cutter / fallback 只从 feedPartialRescue、releaseGateText、xfer、intakeFinal 出口调用', () => {
+    const feedPartialRescue = namedFunctionBody(MODEL, 'function feedPartialRescue');
+    const releaseGateText = namedFunctionBody(MODEL, 'function releaseGateText');
+    const xferSig = 'onXfer: (text, locale, cand) => {';
+    const xferIdx = MODEL.indexOf(xferSig);
+    ok(xferIdx >= 0, '找不到 xfer onXfer');
+    const xferSpan = braceBody(MODEL, MODEL.indexOf('{', xferIdx));
+    const intakeSig = 'const intakeFinal = (ev0) => {';
+    const intakeIdx = MODEL.indexOf(intakeSig);
+    ok(intakeIdx >= 0, '找不到 intakeFinal');
+    const intakeSpan = braceBody(MODEL, MODEL.indexOf('{', intakeIdx));
+    const exits = [
+      ['feedPartialRescue', spanOfBody(feedPartialRescue, MODEL.indexOf('function feedPartialRescue'))],
+      ['releaseGateText', spanOfBody(releaseGateText, MODEL.indexOf('function releaseGateText'))],
+      ['xfer', xferSpan],
+      ['intakeFinal', intakeSpan],
+    ];
+    for (const [name, span] of exits) ok(span, name + ' 函数体解析失败');
+
+    const segFbDef = MODEL.indexOf('function segFallback');
+    const segFbBody = namedFunctionBody(MODEL, 'function segFallback');
+    const makeSegFbSig = 'fallback: (text, meta) => { if (myGen !== gen) return; segFallback(text, meta); }';
+    const makeSegFbIdx = MODEL.indexOf(makeSegFbSig);
+    const makeSegFbSpan = braceBody(MODEL, MODEL.indexOf('{', makeSegFbIdx));
+
+    const rules = [
+      [/\bseg\.feed\s*\(/g, 'seg.feed'],
+      [/\bcutter\.add\s*\(/g, 'cutter.add'],
+      [/\bcut\.add\s*\(/g, 'cut.add'],
+      [/\bsegFallback\s*\(/g, 'segFallback'],
+    ];
+    let segFbCalls = 0;
+    for (const [re, label] of rules) {
+      for (const m of MODEL.matchAll(re)) {
+        const idx = m.index;
+        if (label === 'segFallback') {
+          if (inSpan(idx, spanOfBody(segFbBody, segFbDef))) continue;
+          if (inSpan(idx, makeSegFbSpan)) continue;
+          segFbCalls++;
+        }
+        const owner = exits.find(([, span]) => inSpan(idx, span));
+        ok(owner, label + ' 出现在非法出口 @' + idx + '（只允许 feedPartialRescue / releaseGateText / xfer / intakeFinal）');
+      }
+    }
+    eq((MODEL.match(/\bseg\.feed\s*\(/g) || []).length, 4, 'seg.feed 计数');
+    eq((MODEL.match(/\bcutter\.add\s*\(/g) || []).length, 2, 'cutter.add 计数');
+    eq((MODEL.match(/\bcut\.add\s*\(/g) || []).length, 1, 'cut.add 计数');
+    eq(segFbCalls, 1, 'segFallback 只许 feedPartialRescue 直调');
+  });
+});
+
+describe('1194 · echo r2b · lead_split 路径 echo_drop', () => {
+  test('朗读中 · badCut lead_split 丢弃', async () => {
+    const { d, rows } = await tedBadCutIntake((h) => {
+      h.echoSpeaking(TED_PARTIAL, 'en');
+    });
+    eq(diagN(d, 'rescue', 'lead_split'), 1);
+    eq(diagN(d, 'rescue', 'echo_drop'), 1);
+    ok(!/stick too closely/i.test(rows), rows);
+  });
+
+  test('尾窗内 · badCut lead_split 丢弃', async () => {
+    const { d, rows } = await tedBadCutIntake(async (h, clk) => {
+      const t0 = h.clockNow();
+      h.echoSpeaking(TED_PARTIAL, 'en');
+      h.echoSpoke(t0 + 2000);
+      await clk.runTo(C.ECHO_TAIL_MS - 100);
+    });
+    eq(diagN(d, 'rescue', 'lead_split'), 1);
+    eq(diagN(d, 'rescue', 'echo_drop'), 1);
+    ok(!/stick too closely/i.test(rows), rows);
+  });
+
+  test('尾窗外 · badCut lead_split 真人句首仍出行', async () => {
+    const { d, rows } = await tedBadCutIntake(async (h, clk) => {
+      const t0 = h.clockNow();
+      h.echoSpeaking(TED_PARTIAL, 'en');
+      h.echoSpoke(t0 + 2000);
+      await clk.runTo(2000 + C.ECHO_TAIL_MS + 200);
+    });
+    eq(diagN(d, 'rescue', 'lead_split'), 1);
+    eq(diagN(d, 'rescue', 'echo_drop'), 0);
+    ok(/stick too closely/i.test(rows) && /risk starvation/i.test(rows), rows);
+  });
+});
+
+describe('1194 · echo r2b · closed 路径 echo_drop', () => {
+  test('朗读中 · emitClosedStandalone 丢弃', async () => {
+    const spoken = 'At ten thousand units we can do three twenty per piece';
+    const { r, clk, drops, rows } = makeClosedEchoRouter((echo, c) => {
+      echo.speaking(spoken, c.now(), 'en');
+    });
+    await r.settle('end');
+    r.feed('en-US', 'we can do three twenty per piece', { rescued: true });
+    await clk.runTo(500);
+    eq(drops.length, 1);
+    eq(drops[0].src, 'closed');
+    ok(!rows.some((t) => /three twenty per piece/i.test(t)), JSON.stringify(rows));
+    r.dispose();
+  });
+
+  test('尾窗内 · emitClosedStandalone 丢弃', async () => {
+    const { r, clk, drops, rows } = makeClosedEchoRouter((echo, c) => {
+      const t0 = c.now();
+      echo.speaking('五周可以。', t0, 'en');
+      echo.spoke(t0 + 2000);
+    });
+    await clk.runTo(C.ECHO_TAIL_MS - 100);
+    await r.settle('end');
+    r.feed('en-US', '五周可以。', { rescued: true });
+    await clk.runTo(500);
+    eq(drops.length, 1);
+    eq(drops[0].src, 'closed');
+    ok(!rows.some((t) => /五周可以/.test(t)), JSON.stringify(rows));
+    r.dispose();
+  });
+
+  test('尾窗外 · emitClosedStandalone 真人话仍出行', async () => {
+    const { r, clk, drops, rows } = makeClosedEchoRouter((echo, c) => {
+      const t0 = c.now();
+      echo.speaking('五周可以。', t0, 'en');
+      echo.spoke(t0 + 2000);
+    });
+    await clk.runTo(2000 + C.ECHO_TAIL_MS + 200);
+    await r.settle('end');
+    r.feed('en-US', 'Can you do four weeks instead?', { rescued: true });
+    await clk.runTo(500);
+    eq(drops.length, 0);
+    ok(rows.some((t) => /four weeks instead/i.test(t)), JSON.stringify(rows));
+    r.dispose();
   });
 });
 
