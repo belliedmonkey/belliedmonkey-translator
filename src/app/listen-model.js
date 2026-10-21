@@ -843,13 +843,20 @@ const listenModel = (() => {
       refreshPartial();
     };
     if (reason === 'echo') {
-      if (echo.playingLangs(Date.now()).has(base)) {
+      const at = now();
+      if (echo.playingLangs(at).has(base)) {
         if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, reason: 'echo_drop' });
         markDone();
         refreshPartial();
         return;
       }
-      emitFullPartial('timeout');
+      if (p.text && echo.isEcho(p.text, at)) {
+        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, reason: 'echo_drop' });
+        markDone();
+        refreshPartial();
+        return;
+      }
+      emitFullPartial('echo');
       return;
     }
     const fullEmitReasons = { timeout: 1, pause: 1, source: 1, hardcut: 1, authstop: 1, degrade: 1, socket: 1, empty: 1 };
@@ -3383,6 +3390,9 @@ const listenModel = (() => {
       partialKeys: () => Object.keys(partialBy),
       segDiag: () => segDiag,
       settleSeg: (mode) => (seg ? Promise.resolve(seg.settle(mode || 'end')) : Promise.resolve()),
+      echoSpeaking: (text, lang) => echo.speaking(text, now(), lang || 'en'),
+      echoSpoke: (at) => echo.spoke(at == null ? now() : at),
+      clockNow: () => now(),
     }),
   };
 })();

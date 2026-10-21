@@ -735,6 +735,7 @@ var ListenCore = (() => {
       // 纯标点/空白：直接丢 —— 也算一次丢弃，记原因（方案 2：所有丢弃分支都留痕，不静默）。
       if (!HAS_LETTER.test(t)) { diag('gate:drop', h.text, 'punct'); return ''; }
       if (how === 'release') {
+        noteLastFormal(locale, t, h.t1, !!h.rescued);
         if (d.onRelease) { try { d.onRelease(locale, t, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }); } catch (_) {} }
         diag('gate:release', t, why);
       } else diag('gate:drop', t, why);
@@ -758,6 +759,11 @@ var ListenCore = (() => {
     const OTHER_KEEP_MS = 5000, OTHER_MAX = 8;
     const otherAdm = [];   // { base, t0, t1, at }
     const lastFormal = {}; // R14 ③：locale → { text, t1 } 上一条正式 final（临时稿 dup-prev 的比对对象）
+    function noteLastFormal(locale, text, t1, rescued) {
+      if (rescued || !HAS_LETTER.test(head(text))) return;
+      const t1n = Number(t1);
+      lastFormal[locale] = { text: head(text), t1: Number.isFinite(t1n) ? t1n : null };
+    }
     const CJK_RE_G = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
     function hasCjk(s) { return CJK_RE_G.test(String(s || '')); }
     function overlapCjk(base, t0, t1) {
@@ -843,7 +849,6 @@ var ListenCore = (() => {
             return [];
           }
         }
-        if (!rescued && letterHead) lastFormal[locale] = { text: head(text), t1: tsOk ? t1 : null };
         // ① 跨语言重叠 ⇒ 丢弃（**只有这一条**能让低置信拉丁片丢）
         if (confLate && !shortEnough && tsOk && overlapCjk(base, t0, t1)) {
           const h = held[locale]; delete held[locale];
@@ -859,7 +864,7 @@ var ListenCore = (() => {
           if (h && h.timer) { clearT(h.timer); h.timer = 0; }
           const out = [];
           if (h) { const hd = head(h.text); if (hd && HAS_LETTER.test(hd)) out.push(hd); }
-          if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); }
+          if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); noteLastFormal(locale, text, t1, rescued); }
           return out;
         }
         // ③ 过了闸，或**长**的低置信拉丁片（没有中文重叠，已裁决放行）：放行。
@@ -880,17 +885,17 @@ var ListenCore = (() => {
               try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
               diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
             }
-            else if (merge) out.push(hd);
+            else if (merge) { out.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
             // 不紧接也不丢（1.19.4 r6，真机「英文丢前 1–2 个词」）：低置信拉丁片只有跨语言重叠能丢
             // （见本闸开头 ①）。识别器常把句首单出成一片 `Hello.`，后半句隔 >120 ms 才到 —— 以前这里
             // 记 gate:drop/gap 把句首扔了。已被中文侧判重叠的（conflict）照旧丢。
             else if (HAS_LETTER.test(hd)) {
               if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
-              else { out.push(hd); diag('gate:release', hd, 'gap'); }
+              else { out.push(hd); diag('gate:release', hd, 'gap'); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
             }
             else diag('gate:drop', h.text, 'punct');
           }
-          if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); }
+          if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
           if (!rescued) noteChain(locale, text, t1, embed);
           return out;
         }

@@ -108,8 +108,44 @@ async function openListen1194() {
   ok(A._debug().id, 'session 未建立');
   return { A, captured, clk };
 }
+async function openListen1194Conv() {
+  const { sb, captured, clk } = makeSandbox({});
+  const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+  const A = ctx.AppListen;
+  A.open('conv');
+  await clk.runTo(0);
+  A.setAutoSpeak(false);
+  ok(A.pttToggle('other'), 'conv + ptt 应能开麦');
+  await clk.runTo(0);
+  if (captured.h && captured.h.onState) captured.h.onState('granted', '');
+  await clk.runTo(8000);
+  ok(A._debug().id, 'session 未建立');
+  return { A, captured, clk };
+}
 function t1194(A) { return A._test1194(); }
 function diagN(diag, bucket, key) { return Number((diag[bucket] || {})[key]) || 0; }
+function bufOf(p) {
+  const s = String((p && p.user) || p || '');
+  const parts = s.split('BUF:\n');
+  if (parts.length > 1) return parts[1].split('\nFORCE:')[0].trim();
+  return s.trim();
+}
+function makeSegRouter(o) {
+  const opt = o || {};
+  const clk = fakeClock();
+  const ev = [], diags = [];
+  const r = C.makeSegmentRouter(Object.assign({
+    call: async (p) => JSON.stringify({ segments: [{ source: bufOf(p), translation: 'T' }], remainder: '' }),
+    emit: (rows, meta) => ev.push({ t: 'emit', rows, meta }),
+    fallback: (text, meta) => ev.push({ t: 'fallback', text, meta }),
+    onDiag: (kind, extra) => diags.push({ kind, extra }),
+    ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+    now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT,
+    idleMs: opt.idleMs || 1500, endWaitMs: 3000,
+  }, opt.deps || {}));
+  return { r, clk, ev, diags };
+}
+const segEmitted = (ev) => ev.filter((e) => e.t === 'emit').flatMap((e) => e.rows.map((x) => x.source));
 
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
@@ -271,10 +307,18 @@ describe('S1 · 生产入口形状', () => {
     ok(/function flushPartial\(/.test(MODEL), '1194 A：flushPartial 唯一出口');
   });
   test('1194 A：delete partialBy 只在 flushPartial 内', () => {
-    const body = MODEL.slice(MODEL.indexOf('function flushPartial'));
-    const deletes = (body.match(/delete partialBy/g) || []).length;
-    ok(deletes >= 1, 'flushPartial 内应有 delete');
-    ok(!/delete partialBy/.test(MODEL.slice(0, MODEL.indexOf('function flushPartial'))), 'flushPartial 之前不得 delete partialBy');
+    const fpStart = MODEL.indexOf('function flushPartial(');
+    const fpEnd = MODEL.indexOf('function flushAllPartials', fpStart);
+    ok(fpStart >= 0 && fpEnd > fpStart, '找不到 flushPartial');
+    const flushBody = MODEL.slice(fpStart, fpEnd);
+    ok((flushBody.match(/delete partialBy/g) || []).length >= 1, 'flushPartial 内应有 delete');
+    const hookAt = MODEL.indexOf('_test1194:');
+    for (const m of MODEL.matchAll(/delete partialBy/g)) {
+      const idx = m.index;
+      const inFlush = idx >= fpStart && idx < fpEnd;
+      const inHook = hookAt >= 0 && idx > hookAt && idx < hookAt + 400 && /setPartial:/.test(MODEL.slice(hookAt, idx + 20));
+      ok(inFlush || inHook, '非法 delete partialBy @ offset ' + idx);
+    }
     ok(!/partialBy\s*=\s*\{\}/.test(MODEL.replace(/let partialBy = \{\}/, '')), '不得整体重置 partialBy');
   });
 });
@@ -373,57 +417,106 @@ describe('1194 · 生产 flushPartial（_test1194）', () => {
     ok(A._debug().rows.some((r) => /unknown reason orphan/i.test(r.text)), JSON.stringify(A._debug().rows));
     try { await A.leave(); } catch (_) {}
   });
-  test('② 句首 rescue feed 在 gate.push / 定稿 feed 之前（生产同序）', () => {
-    const intake = MODEL.slice(MODEL.indexOf('const intakeFinal ='));
-    ok(/feedPartialRescue\(ev\.locale, lead\)/.test(intake), 'split 句首应先 feedPartialRescue');
-    ok(intake.indexOf('feedPartialRescue(ev.locale, lead)') < intake.indexOf('gate.push(ev)'), '句首 feed 应在 gate.push 前');
-    ok(intake.indexOf('flushPartial(base, \'consumed\'') > intake.indexOf('feedPartialRescue(ev.locale, lead)'), 'consumed flush 在 split feed 之后');
+  test('echo · 朗读中 partial 丢弃且记 lead_flush:echo_drop', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    const spoken = 'At ten thousand units we can do three twenty per piece';
+    h.echoSpeaking(spoken, 'en');
+    h.setPartial('en', { text: 'we can do three twenty per piece', at: h.clockNow() });
+    h.flushPartial('en', 'echo', { locale: 'en-US' });
+    await h.settleSeg('end'); await clk.runTo(2000);
+    eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    ok(!A._debug().rows.some((r) => /three twenty per piece/i.test(r.text)), JSON.stringify(A._debug().rows));
+    try { await A.leave(); } catch (_) {}
+  });
+  test('echo · 播完尾窗内 isEcho 丢弃 partial', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    const t0 = h.clockNow();
+    h.echoSpeaking('五周可以。', 'en');
+    h.echoSpoke(t0 + 2000);
+    await clk.runTo(2000 + C.ECHO_TAIL_MS - 50);
+    h.setPartial('en', { text: '五周可以。', at: h.clockNow() });
+    h.flushPartial('en', 'echo', { locale: 'en-US' });
+    await h.settleSeg('end'); await clk.runTo(500);
+    eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    ok(!A._debug().rows.some((r) => /五周可以/.test(r.text)), JSON.stringify(A._debug().rows));
+    try { await A.leave(); } catch (_) {}
+  });
+  test('echo · 尾窗外用户真说话 partial 照常出行（reason echo 非 timeout）', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    const t0 = h.clockNow();
+    h.echoSpeaking('五周可以。', 'en');
+    h.echoSpoke(t0 + 2000);
+    await clk.runTo(2000 + C.ECHO_TAIL_MS + 100);
+    h.setPartial('en', { text: 'Can you do four weeks instead?', at: h.clockNow() });
+    h.flushPartial('en', 'echo', { locale: 'en-US' });
+    await h.settleSeg('end'); await clk.runTo(3000);
+    eq(diagN(h.segDiag(), 'final', 'from-partial'), 0, 'echo 出行不应记 from-partial');
+    eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    ok(A._debug().rows.some((r) => /four weeks instead/i.test(r.text)), JSON.stringify(A._debug().rows));
+    try { await A.leave(); } catch (_) {}
+  });
+  test('② 句首出行排在定稿之前（真实 intakeFinal）', async () => {
+    const { A, captured, clk } = await openListen1194Conv();
+    captured.onEvent('partial', { locale: 'en-US', text: 'Please make three copies of this contract and send them to my office' });
+    await clk.runTo(0);
+    captured.onEvent('final', { locale: 'en-US', text: ', and send them to my office', conf: 0.9, t0: 1000, t1: 2000 });
+    await hSettle1194(A, clk);
+    const rows = A._debug().rows.map((r) => r.text);
+    eq(rows.length, 1, JSON.stringify(rows));
+    ok(/please make three copies/i.test(rows[0]) && /send them to my office/i.test(rows[0]), rows[0]);
+    eq(diagN(t1194(A).segDiag(), 'rescue', 'lead'), 1);
+    try { await A.leave(); } catch (_) {}
+  });
+  test('⑤ dup-prev · feed 真实丢弃：文字已在已出行行里', async () => {
+    const { r, clk, ev, diags } = makeSegRouter({});
+    r.feed('en-US', 'Yes, please.', { t0: 266373, t1: 267795 });
+    await clk.runTo(5000); await tick();
+    ok(segEmitted(ev).some((t) => /yes,\s*please/i.test(t)), '正式 final 应先出行：' + JSON.stringify(segEmitted(ev)));
+    r.feed('en-US', 'Please', { rescued: true, t0: 267855, t1: 268890 });
+    await clk.runTo(3000); await tick();
+    eq(diags.filter((d) => d.kind === 'rescue:dup-prev').length, 1, JSON.stringify(diags));
+    eq(norm(segEmitted(ev).join('')), 'yesplease', '重复的 Please 不许再出一行：' + JSON.stringify(segEmitted(ev)));
+    r.dispose();
   });
   test('⑤ dup-prev：合并后整句已 feed，临时稿不会比 formal 尾长丢字', async () => {
     const merged = C.mergeRescueLead(
       'Please make three copies of this contract',
       C.rescueLeadCut(', and send them to my office', 'Please make three copies of this contract and send them to my office').text,
     );
-    const rows = [];
-    const seg = C.makeSegmentRouter({
-      call: (p) => Promise.resolve(JSON.stringify({ segments: [{ source: merged, translation: 'T' }], remainder: '' })),
-      emit: (list) => { for (const r of list) rows.push(r.source); },
-      fallback: (t) => rows.push(t),
-      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
-      idleMs: 1500, endWaitMs: 3000,
-    });
-    seg.feed('en-US', merged);
-    await seg.settle('end');
+    const { r, clk, ev } = makeSegRouter({});
+    r.feed('en-US', merged);
+    await clk.runTo(5000); await r.settle('end'); await tick();
+    const rows = segEmitted(ev);
     ok(/please make three copies/i.test(rows.join(' ')) && /send them to my office/i.test(rows.join(' ')), rows.join(' '));
-    seg.dispose();
+    r.dispose();
   });
 });
 
+async function hSettle1194(A, clk) {
+  await clk.runTo(4000);
+  for (let i = 0; i < 12; i++) await Promise.resolve();
+  const h = t1194(A);
+  if (h.settleSeg) await h.settleSeg('end');
+  await clk.runTo(3000);
+}
+
 describe('1194 · TED 1:22 Stick too closely 防回归', () => {
-  test('★ 整句内容出行、无重复词（句首单独成行可接受）', async () => {
+  test('★ 整句内容出行、无重复词（真实 gate.push + seg.feed 定稿入口，句首单独成行可接受）', async () => {
     const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
     const final = ', you, and you risk starvation when the Grove runs dry.';
     const cut = C.rescueLeadCut(final, partial);
     ok(cut && cut.lead, JSON.stringify(cut));
     const merged = C.mergeRescueLead(cut.lead, cut.text);
-    const rows = [];
-    const seg = C.makeSegmentRouter({
-      call: (p) => {
-        const m = String(p).match(/BUF:\n([\s\S]*?)\nFORCE:/);
-        return Promise.resolve(JSON.stringify({ segments: [{ source: m ? m[1].trim() : merged, translation: 'T' }], remainder: '' }));
-      },
-      emit: (list) => { for (const r of list) rows.push(r.source); },
-      fallback: (t) => rows.push(t),
-      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
-      idleMs: 1500, endWaitMs: 3000,
-    });
-    const gate = C.makeFinalGate({ dominantScript: () => 'Latin', now: () => Date.now(), idleMs: 1500 });
-    const texts = gate.push({ locale: 'en-US', text: merged, conf: 0.9, t0: 1, t1: 2 });
-    for (const tt of texts) seg.feed('en-US', tt);
-    await seg.settle('end');
+    const { A, captured, clk } = await openListen1194Conv();
+    captured.onEvent('final', { locale: 'en-US', text: merged, conf: 0.9, t0: 1000, t1: 2000 });
+    await hSettle1194(A, clk);
+    const rows = A._debug().rows.map((r) => r.text);
     const out = rows.join(' ');
     ok(/stick too closely/i.test(out) && /risk starvation/i.test(out) && /grove runs dry/i.test(out), JSON.stringify(rows));
     eq(withinDup(out, 12), null, '重复词：' + JSON.stringify(rows));
-    seg.dispose();
+    try { await A.leave(); } catch (_) {}
   });
 });
