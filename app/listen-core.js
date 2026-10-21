@@ -2449,7 +2449,22 @@ var ListenCore = (() => {
       finishClosing();
     }
     function allRuns() { const out = []; for (const lc of locales()) for (const r of runsOf(lc)) out.push(r); return out; }
-    function finishClosing() { phase = 'closed'; if (timer) { clearT(timer); timer = 0; } if (endTimer) { clearT(endTimer); endTimer = 0; } }
+    function emitClosedStandalone(lc, t, meta) {
+      const o = meta || {};
+      if (d.onDiag) { try { d.onDiag('seg:closed_emit', { text: t.slice(0, 8), len: t.length, why: o.why || 'feed' }); } catch (_) {} }
+      const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: legacyPayload(t), rescued: !!o.rescued, t0: o.t0, t1: o.t1 };
+      ledger.push(rec);
+      flush();
+    }
+    function finishClosing() {
+      if (timer) { clearT(timer); timer = 0; }
+      if (endTimer) { clearT(endTimer); endTimer = 0; }
+      if (ledger.some((r) => !r.commit)) {
+        for (const run of allRuns()) legacyRecs(run);
+        flush();
+      }
+      phase = 'closed';
+    }
     function settle(reason) {
       if (phase === 'closed' || disposed) return Promise.resolve();
       if (timer) { clearT(timer); timer = 0; }
@@ -2489,10 +2504,10 @@ var ListenCore = (() => {
           const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: unsentRow(t, { feedAt: now() }) };
           ledger.push(rec); flush(); return;
         }
-        if (phase === 'closed' && closeReason !== 'degrade') return;   // 结束/离开后的迟到定稿丢弃
         const o = opts || {};
         const rescued = !!o.rescued;
         const t0 = Number(o.t0), t1 = Number(o.t1);
+        if (phase === 'closed' && closeReason !== 'degrade') { emitClosedStandalone(lc, t, { rescued, t0, t1, why: 'feed' }); return; }
         const tsOk = Number.isFinite(t0) && Number.isFinite(t1);
         // R14：临时稿（partial 补救文字）不再按音频区间去重，改成按**文字**——
         //   ① 临时稿整段等于紧挨着的上一条正式 final 的结尾 ⇒ 丢掉临时稿（rescue:dup-prev）；

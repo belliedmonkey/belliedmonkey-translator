@@ -110,7 +110,13 @@ const listenModel = (() => {
     if (b[k] === 1 || extra) {
       const cut = (x) => String(x == null ? '' : x).slice(0, 200);
       const f = { reason: bucket + '-' + k, calls: 0, json_bad: 0 };
-      if (extra) { if (extra.text != null) f.text = cut(extra.text); if (extra.rem != null) f.rem = cut(extra.rem); if (extra.raw != null) f.raw = cut(extra.raw); if (extra.why != null) f.why = cut(extra.why); }
+      if (extra) {
+        if (extra.text != null) f.text = cut(extra.text);
+        if (extra.rem != null) f.rem = cut(extra.rem);
+        if (extra.raw != null) f.raw = cut(extra.raw);
+        if (extra.why != null) f.why = cut(extra.why);
+        if (extra.len != null) f.len = Number(extra.len);
+      }
       try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', f); } catch (_) {}
     }
   }
@@ -834,8 +840,8 @@ const listenModel = (() => {
       if (p.text && LETTER_RE.test(p.text) && !p.leadUsed) {
         const text = dedupePartialEmit(p.text);
         if (text) {
-          if (reasonKey === 'timeout' || reasonKey === 'socket') diagBump('final', 'from-partial', { text, reason: reasonKey });
-          else diagBump('rescue', 'lead_flush', { text, reason: reasonKey || 'unknown' });
+          if (reasonKey === 'timeout' || reasonKey === 'socket') diagBump('final', 'from-partial', { text, why: reasonKey });
+          else diagBump('rescue', 'lead_flush', { text, why: reasonKey || 'unknown' });
           feedPartialRescue(locale, text);
         }
       }
@@ -845,13 +851,13 @@ const listenModel = (() => {
     if (reason === 'echo') {
       const at = now();
       if (echo.playingLangs(at).has(base)) {
-        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, reason: 'echo_drop' });
+        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, why: 'echo_drop' });
         markDone();
         refreshPartial();
         return;
       }
       if (p.text && echo.isEcho(p.text, at)) {
-        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, reason: 'echo_drop' });
+        if (!p.leadUsed && p.text && LETTER_RE.test(p.text)) diagBump('rescue', 'lead_flush', { text: p.text, why: 'echo_drop' });
         markDone();
         refreshPartial();
         return;
@@ -870,9 +876,20 @@ const listenModel = (() => {
         if (sp && sp.lead) {
           const lead = dedupePartialEmit(sp.lead);
           if (lead) {
-            diagBump('rescue', 'lead_split', { text: lead, reason });
+            diagBump('rescue', 'lead_split', { text: lead, why: reason || 'split' });
             feedPartialRescue(locale, lead);
-            diagBump('rescue', 'lead_flush', { text: lead, reason: reason || 'split' });
+            diagBump('rescue', 'lead_flush', { text: lead, why: reason || 'split' });
+          }
+        } else {
+          const fc = Number(o.finalConf);
+          const confOk = !Number.isFinite(fc) || fc < 0 || fc >= C.LATIN_MIN_CONF;
+          const pn = C.normDupText(p.text), fn = C.normDupText(o.finalText);
+          if (confOk && pn && pn.length >= 10 && fn && !fn.startsWith(pn) && fn.indexOf(pn) < 0) {
+            const orphan = dedupePartialEmit(p.text);
+            if (orphan) {
+              diagBump('rescue', 'lead_flush', { text: orphan, why: 'consumed' });
+              feedPartialRescue(locale, orphan);
+            }
           }
         }
       }
@@ -1632,9 +1649,9 @@ const listenModel = (() => {
             if (cut.lead) {
               const lead = dedupePartialEmit(cut.lead);
               if (lead) {
-                diagBump('rescue', 'lead_split', { text: lead, reason: 'badcut' });
+                diagBump('rescue', 'lead_split', { text: lead, why: 'badcut' });
                 feedPartialRescue(ev.locale, lead);
-                diagBump('rescue', 'lead_flush', { text: lead, reason: 'badcut' });
+                diagBump('rescue', 'lead_flush', { text: lead, why: 'badcut' });
                 partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
               }
             }
@@ -1651,7 +1668,7 @@ const listenModel = (() => {
             if (lead) {
               diagBump('rescue', 'lead_split', { text: lead });
               feedPartialRescue(ev.locale, lead);
-              diagBump('rescue', 'lead_flush', { text: lead, reason: 'split' });
+              diagBump('rescue', 'lead_flush', { text: lead, why: 'split' });
               partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
             }
           }
@@ -1700,7 +1717,7 @@ const listenModel = (() => {
       // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
       // 含汉字且与本闸扣住的片时间重叠时当场丢弃那片。被 attrib 拒掉的拉丁垃圾不会走到这里。
       try { if (finalGate && finalGate.noteOtherText) finalGate.noteOtherText(base, String((ev && ev.text) || ''), ev && ev.t0, ev && ev.t1); } catch (_) {}
-      flushPartial(base, 'consumed', { finalText: String((ev && ev.text) || ''), locale: ev.locale });
+      flushPartial(base, 'consumed', { finalText: String((ev && ev.text) || ''), finalConf: ev && ev.conf, locale: ev.locale });
       // 低置信句头闸 → 分流
       const texts = gate.push(ev);
       for (const tt of texts) {
@@ -2364,6 +2381,13 @@ const listenModel = (() => {
     // 太早放行时它还没进闸（第六轮评审：放行时机挪到关麦前）。只有按键收音才放行，自动模式不放行
     // （wasPtt 在 pttAbort 之前就记住了）。
     if (wasPtt) drainGateHeld();
+    for (const base of Object.keys(partialBy)) {
+      const pr = partialBy[base];
+      if (pr && pr.text && LETTER_RE.test(pr.text)) {
+        const tx = String(pr.text);
+        diagBump('rescue', 'pause_partial', { text: tx.slice(0, 8), len: tx.length, why: reason || 'user' });
+      }
+    }
     clearPartials('pause');
     if (seg) { try { seg.settle('stop'); } catch (_) {} }   // partial 先 flush 再收尾账本
     micStop(); closeSocket();
