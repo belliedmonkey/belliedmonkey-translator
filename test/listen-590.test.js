@@ -22,36 +22,40 @@ describe('#590 · 定稿与解析（I / L / iOS 7）', () => {
     const row = C.addFinal(s, ', you, and you risk starvation.', 1002, { myLang: 'en', otherLang: 'zh' }, {});
     ok(row && row.text === 'you, and you risk starvation.', '行首的「, 」没剥掉：' + (row && row.text));
   });
-  test('#592：标点开头的定稿 + partial 带句首，不再多出一行句首', async () => {
-    const partialHead = "Stick too closely to what's safe";
-    const final = ', you, and you risk starvation when the Grove runs dry.';
+  test('S1：标点开头的定稿 + partial 带句首 ⇒ 合并同一行入账（不单 feed 句首）', async () => {
+    const partial = 'Please make three copies of this contract and send them to my office';
+    const final = ', and send them to my office';
+    const cut = C.rescueLeadCut(final, partial);
+    ok(cut && cut.lead, '应对齐 partial 句首：' + JSON.stringify(cut));
+    const merged = C.mergeRescueLead(cut.lead, cut.text);
+    ok(/please make three copies/i.test(merged) && /send them to my office/i.test(merged), '合并后缺句首或正文：' + merged);
     const rows = [];
-    let sent = '';
+    let feedN = 0;
     const seg = C.makeSegmentRouter({
       call: (p) => {
         const m = String(p).match(/BUF:\n([\s\S]*?)\nFORCE:/);
-        sent = m ? m[1].trim() : '';
-        return Promise.resolve(JSON.stringify({ segments: [{ source: sent, translation: 'T' }], remainder: '' }));
+        return Promise.resolve(JSON.stringify({ segments: [{ source: m ? m[1].trim() : '', translation: 'T' }], remainder: '' }));
       },
       emit: (list) => { for (const r of list) rows.push(r.source); },
       fallback: (t) => rows.push(t),
       ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
       idleMs: 1500, endWaitMs: 3000,
     });
-    // 删掉补切之后的入口：partial 在场也不从它对齐点前面切一句首再 feed。只把定稿原文送进句头闸。
     const gate = C.makeFinalGate({ dominantScript: () => 'Latin', now: () => Date.now(), idleMs: 1500 });
-    const texts = gate.push({ locale: 'en-US', text: final, conf: 0.9, t0: 1000, t1: 4000 });
+    const origFeed = seg.feed.bind(seg);
+    seg.feed = (...args) => { feedN++; return origFeed(...args); };
+    const texts = gate.push({ locale: 'en-US', text: merged, conf: 0.9, t0: 1000, t1: 4000 });
     ok(texts.length >= 1, '定稿应当放行：' + JSON.stringify(texts));
     for (const tt of texts) seg.feed('en-US', tt);
     await seg.settle('end');
-    const joined = rows.join('\n');
-    ok(/and you risk starvation/i.test(joined), '定稿正文没出行：' + JSON.stringify(rows));
-    ok(!rows.some((r) => /stick too closely/i.test(r)), 'partial 句首被单独切成一行：' + JSON.stringify(rows));
-    ok(!/stick too closely/i.test(sent), '送给模型的账本不该带上 partial 句首：' + sent);
-    ok(joined.indexOf(partialHead) < 0, '出行文字含句首：' + joined);
+    eq(feedN, texts.length, '句首与定稿应只 feed 一次（合并后）：feedN=' + feedN);
+    eq(rows.length, 1, '只许一行：' + JSON.stringify(rows));
+    ok(/please make three copies/i.test(rows[0]) && /send them to my office/i.test(rows[0]), '全句内容齐全：' + JSON.stringify(rows));
+    ok((rows[0].match(/please make three copies/gi) || []).length <= 1, '句首不应重复：' + JSON.stringify(rows));
     seg.dispose();
-    ok(!/rescueLeadCut/.test(MODEL), '入口还在调用 rescueLeadCut');
-    ok(!/seg\.feed\(ev\.locale,\s*lead/.test(MODEL), '入口还在先 feed 句首');
+    ok(/rescueLeadCut/.test(MODEL), '入口应调用 rescueLeadCut');
+    ok(!/seg\.feed\(ev\.locale,\s*lead/.test(MODEL), '入口不应先 feed 句首');
+    ok(/mergeRescueLead/.test(MODEL), '入口应 mergeRescueLead 再入账');
     ok(/function partialWorthRescue/.test(MODEL), 'partialWorthRescue 不该一起删');
   });
   test('parseListenReply：空的「T:」不吞下一行；有标签没译文 ⇒ 译文为空（不把标签行当译文）', () => {

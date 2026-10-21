@@ -1456,6 +1456,65 @@ var ListenCore = (() => {
     if (!p || !t || !p.endsWith(t)) return false;
     return !Number.isFinite(gapMs) || gapMs <= maxGap;
   }
+  function alignSuffixToEnd(temp, finalText) {
+    const hay = alignWords(temp), needle = alignWords(finalText);
+    if (hay.length < ALIGN_MIN_RUN || needle.length < ALIGN_MIN_RUN) return null;
+    for (let ni = 0; ni <= needle.length - ALIGN_MIN_RUN; ni++) {
+      const needLen = needle.length - ni;
+      for (let i = 0; i <= hay.length - needLen; i++) {
+        let k = 0;
+        while (k < needLen && wordNear(hay[i + k], needle[ni + k])) k++;
+        if (k === needLen) return { ni, hi: i, len: needLen, before: alignBeforeWord(temp, i) || '' };
+      }
+    }
+    return null;
+  }
+  function rescueLeadCut(finalText, partialText) {
+    const ft = String(finalText == null ? '' : finalText);
+    if (!LEAD_PUNCT.test(ft)) return null;
+    const al = alignSuffixToEnd(partialText, ft);
+    if (al && al.ni > 0 && al.len > al.ni) {
+      const toks = alignTokens(ft);
+      const text = ft.slice(toks[al.ni].at).replace(/^\s+/, '');
+      if (!HAS_LETTER.test(text)) return null;
+      return { lead: al.before || '', text };
+    }
+    if (al && al.ni === 0 && al.before) return { lead: al.before, text: ft };
+    const fromStart = alignFinalInTemp(partialText, ft);
+    if (fromStart && fromStart.before) return { lead: fromStart.before, text: ft };
+    return null;
+  }
+  function rescueLead(finalText, partialText) {
+    const cut = rescueLeadCut(finalText, partialText);
+    return (cut && cut.lead) ? cut.lead : '';
+  }
+  function rescueLeadSplit(finalText, partialText) {
+    const ft = String(finalText == null ? '' : finalText);
+    const pt = String(partialText == null ? '' : partialText);
+    if (!pt || !LEAD_PUNCT.test(ft)) return null;
+    const cut = rescueLeadCut(ft, pt);
+    if (cut && cut.lead) return null;
+    const al = alignSuffixToEnd(pt, ft);
+    if (al && al.before) {
+      const lead = String(al.before).trim();
+      if (lead && HAS_LETTER.test(lead)) return { lead };
+    }
+    const fromStart = alignFinalInTemp(pt, ft);
+    if (fromStart && fromStart.before) {
+      const lead = String(fromStart.before).trim();
+      if (lead && HAS_LETTER.test(lead)) return { lead };
+    }
+    return null;
+  }
+  function mergeRescueLead(lead, body) {
+    const L = String(lead == null ? '' : lead).trim();
+    const B = String(body == null ? '' : body);
+    if (!L) return B.trim();
+    if (!B.trim()) return L;
+    if (/^[\s,.;:!?…、。，！？]/u.test(B)) return L + B.replace(/^\s+/, '');
+    if (CJK_CHAR.test(L.slice(-1)) || CJK_CHAR.test(B.trimStart().charAt(0))) return L + B.trimStart();
+    return L + ' ' + B.trim();
+  }
   // 模型 source 与上一条已出行行的重复前缀裁剪（方案 2，R12 第十轮）——**唯一判据**，出行时
   // （trimDupRows）与漂移检查前（parseSegReply，R14 方案 C）共用。只有这段前缀**不在本批缓冲里**
   // （= 模型按上下文补回来的、不是我们喂进去的）才切。
@@ -2680,7 +2739,8 @@ var ListenCore = (() => {
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,
-    alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
+    alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, alignSuffixToEnd, isTailDup, trimDupSource,
+    rescueLead, rescueLeadCut, rescueLeadSplit, mergeRescueLead,
     isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
     fillPrepDetail,
     QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,

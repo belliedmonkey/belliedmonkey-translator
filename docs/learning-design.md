@@ -4015,6 +4015,30 @@ macOS 26 ⇒ 不冲突。
 **没变的**：识别器、LID、入口闸（`intakeDecide` / `finalAdmit`）、句头闸（`makeFinalGate`）、额度、语料
 字段、行语义（模型断句路的行没有 `raw`，即 `row.raw === undefined`，「识别原文」不出现）。
 
+**标点开头的定稿补句首（R14 ⑤，#590 L；S1 合并同一行，1.19.4）** — 入口在句头闸与账本入账**之前**，
+模型断句路与旧路共用。定稿以标点开头时，把文字在**同一路、同 base** 的当前 partial（`partialBy[base]`）里对齐；
+从首词对得上 ⇒ 取对齐点之前的文字作句首，定稿原文不动；首词对不上、但有一段一直对齐到最后一个词、且留下的词多于切掉的词 ⇒
+同样取句首，定稿从该后缀的第一个词切起（`, you, and you risk…` 切掉垃圾前缀 `, you,`）。不以标点开头的不切。
+对不上 partial ⇒ 不补。partial 句首只消费一次（`leadUsed`），不能跨 base 借、同一段不能救两次。补回后 **`mergeRescueLead`**
+把句首与切过的定稿合成**一条**再 `feed` 一次（拉丁中间加空格，中文或定稿仍以标点开则不插空格），诊断记 `rescue:lead`；
+不再单独 feed 句首成行。
+
+**1194 句首丢失九条 + flushPartial（架构师终稿，取代 #592 删补句首）**
+
+1. 合并成功：`mergeRescueLead`，一次 feed，`rescue:lead`。
+2. 后缀对齐失败：`rescueLeadSplit` 前缀单独成行，`rescue:lead_split`；去重后同一词不在两行。
+3. 定稿已入账合并不进：按 ② 补行（`flushPartial(...,'consumed')`）。
+4. 超时 / 识别器重启 / 会话停：partial 当定稿，`final:from-partial`（reason：timeout、pause、source、socket 等）。
+5. 去重丢掉的 partial：先作救援来源再走 ①–③（`partialWorthRescue` 不再因标点开尾整段替换）。
+6. `partialWorthRescue` 只看无字母 / 低置信等，标点开尾走 S1。
+7. hardCut 交旧路：合并后的整句随该记录出行，不重复句首。
+8. authStop / degradeAll：已入账与在飞原文出行；未合并句首按 ② flush。
+9. 连说两句：句首只从同 base 取一次（`leadUsed`）。
+
+**A.** `flushPartial(base, reason)` 为 `partialBy` 唯一 delete 出口（见 `docs/no-drop-branches-1194.md`）。
+**B.** flush 去重对象 = 已出行行 + 账本 pending，后缀对齐只补缺段；同 base flush 幂等。
+**C.** 超时 partial 出行 → `final:from-partial`；丢弃前补行 → `rescue:lead_flush`（记 reason）。
+
 ### 9.6.1.13 一句话里夹另一门语言的词（2026-10-13，Mac 实测后用户批准，#594）
 
 **场景。** 「我们下周把 invoice 发给你」「这个 project 的 deadline 是周五」—— 一句话的主语言是中文，中间夹一两个

@@ -643,14 +643,14 @@ const listenModel = (() => {
       ctx: segCtx,
       onDegrade: (why) => {
         segDegrade = true;
-        // 只记诊断计数（零内容）。**不弹任何文案**（规则 6）：这条提示没有 Pencil 稿，
-        // 用户可见的行为变化不允许无稿上线。额度 / key 不走这里，走 onQuota。
+        flushAllPartials('degrade');
         try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: r.state().calls, json_bad: 1 }); } catch (_) {}
       },
       // 额度用完 / key 被拒：原文已由路由器交出。整场停，不再交旧路（#590 K）。
       // 文案是已有的 haltMessage，不是新的一句。
       onQuota: (err) => {
         segDegrade = true;
+        flushAllPartials('authstop');
         const e = err && (err.grant || err.halt) ? err : { grant: true, code: 'credit_exhausted', status: 402 };
         tmFail(e);
         quotaHalt(e);
@@ -725,6 +725,7 @@ const listenModel = (() => {
   // NativeSpeech.sttOpen 本来就是照 socket 的返回形状做的。
   function openSocket() { openDevice(gen); }
   function closeSocket() {
+    flushAllPartials('source');
     const s = sock; sock = null;
     cutter = null;
     sessLocs = [];
@@ -771,13 +772,13 @@ const listenModel = (() => {
     const letters = letterCount(text);
     const conf = Number(ev && ev.conf);
     const lowConf = Number.isFinite(conf) && conf >= 0 && conf < C.LATIN_MIN_CONF;
-    if (!(letters === 0 || RESCUE_LEAD_PUNCT.test(text) || lowConf)) return false;
+    if (!(letters === 0 || lowConf)) return false;
     // ② 界定 partial 里属于这条 final 的部分
     const fTsOk = Number.isFinite(ev && ev.t0) && Number.isFinite(ev && ev.t1);
     const pTsOk = Number.isFinite(p.t0) && Number.isFinite(p.t1);
     if (fTsOk && pTsOk) {
       const plea = letterCount(p.text);
-      if (plea < letters + RESCUE_LETTER_GAP && !(RESCUE_LEAD_PUNCT.test(text) && plea > letters)) return false;
+      if (plea < letters + RESCUE_LETTER_GAP) return false;
       return p.t0 >= ev.t0 - RESCUE_TS_TOL && p.t1 <= ev.t1 + RESCUE_TS_TOL;   // 整段 partial 都在 final 区间内
     }
     return letters === 0;   // 无区间可界定 ⇒ 只在 final 无字母时救（保守）
@@ -790,7 +791,83 @@ const listenModel = (() => {
     if (!list.length) return null;
     return list.reduce((a, b) => ((b.at || 0) >= (a.at || 0) ? b : a));
   }
-  function clearPartials() { partialBy = {}; partial = ''; partialTr = ''; }
+  function emittedTextsForPartialDedup() {
+    const out = [];
+    if (session && session.rows) {
+      for (const r of session.rows) if (r && r.text) out.push(String(r.text));
+    }
+    if (seg) {
+      try {
+        for (const loc of sessLocs) {
+          const pending = seg.pending(loc);
+          if (pending) out.push(String(pending));
+        }
+      } catch (_) {}
+    }
+    return out;
+  }
+  function dedupePartialEmit(text) {
+    let t = String(text == null ? '' : text).trim();
+    if (!t) return '';
+    for (const prev of emittedTextsForPartialDedup()) {
+      t = C.trimDupSource(prev, t, '');
+      if (!t) break;
+    }
+    return String(t || '').trim();
+  }
+  function feedPartialRescue(locale, text, opts) {
+    const t = String(text || '').trim();
+    if (!t || !locale) return;
+    const useSeg = !!(segRoute === 'model' && seg && !segDegrade && sock);
+    if (useSeg) seg.feed(locale, t, Object.assign({ rescued: true }, opts || {}));
+    else if (cutter) cutter.add(locale, t);
+  }
+  function flushPartial(base, reason, opt) {
+    const p = partialBy[base];
+    if (!p) return;
+    if (p.flushed) { delete partialBy[base]; return; }
+    const o = opt || {};
+    const locale = o.locale || localeForBase(base);
+    if (!locale) { delete partialBy[base]; return; }
+    const markDone = () => { delete partialBy[base]; };
+    const fullEmitReasons = { timeout: 1, pause: 1, source: 1, hardcut: 1, authstop: 1, degrade: 1, socket: 1 };
+    if (fullEmitReasons[reason]) {
+      if (p.text && LETTER_RE.test(p.text) && !p.leadUsed) {
+        const text = dedupePartialEmit(p.text);
+        if (text) {
+          diagBump('final', 'from-partial', { text, reason });
+          feedPartialRescue(locale, text);
+        }
+      }
+      markDone();
+      refreshPartial();
+      return;
+    }
+    if (reason === 'echo' || reason === 'consumed' || reason === 'final') {
+      if (!p.leadUsed && p.text && o.finalText) {
+        const sp = C.rescueLeadSplit(o.finalText, p.text);
+        if (sp && sp.lead) {
+          const lead = dedupePartialEmit(sp.lead);
+          if (lead) {
+            diagBump('rescue', 'lead_split', { text: lead, reason });
+            feedPartialRescue(locale, lead);
+            diagBump('rescue', 'lead_flush', { text: lead, reason: reason || 'split' });
+          }
+        }
+      }
+      markDone();
+      if (reason === 'echo') refreshPartial();
+      return;
+    }
+    if (reason === 'empty') { markDone(); refreshPartial(); return; }
+    markDone();
+    refreshPartial();
+  }
+  function flushAllPartials(reason, opt) {
+    for (const base of Object.keys(partialBy)) flushPartial(base, reason, opt);
+    partial = ''; partialTr = '';
+  }
+  function clearPartials(reason) { flushAllPartials(reason || 'source'); }
   // LID 判词订阅（§9.6.1.3）。**本场归属的唯一判据**：判词到一条就把当前语言换成它。
   // 订阅一次即可（会话结束麦克风也就停了，不会再判词），新会话只把语言清空从头来。
   function lidOn() {
@@ -1291,7 +1368,7 @@ const listenModel = (() => {
   function releaseGateText(locale, text, meta) {
     if (!text) return;
     const base = C.baseCode(locale);
-    delete partialBy[base];
+    flushPartial(base, 'consumed', { locale });
     // 方案 4：这条文字在句头闸里已经等过 idleMs（1.5s）才放行 —— 把那段等待算作「已等过一次空闲」，
     // 放行后直接送模型，不再等第二次空闲（waited=true，见 listen-core 的 feed）。
     // 方案 1（R12）：补救文字带着它的音频区间（rescued/t0/t1）一起进账本，供同区间 final 去重。
@@ -1434,6 +1511,11 @@ const listenModel = (() => {
     } catch (_) { return ''; }
   }
   function refreshPartial() {
+    const at = Date.now();
+    for (const k of Object.keys(partialBy)) {
+      const c = partialBy[k];
+      if (c && !c.flushed && (at - c.at) > PARTIAL_TTL_MS) flushPartial(k, 'timeout', { locale: localeForBase(k) });
+    }
     const pick = pickPartial();
     // 回声闸要拦**半句**，而且要**先判再赋值**（2026-10-10 修）：原来 `partial = pick.text`
     // 在前、判完回声只 return，partial 已被换成回声文本 —— canvas.view('now') 照样把它画
@@ -1517,8 +1599,34 @@ const listenModel = (() => {
       // final 的字母占非空白字符 <50%（'to make...............' 这种被识别器吐成一串点）**且**
       // 同句 2.5s 内 partial 的字母数更多时，也用 partial。数字/标点等其它字符的占比不参与判据。
       // 救回时打 `rescued` 标记：句头闸据此不再按原 final 的低 conf 丢（工程问题 1）。
-      if (partialWorthRescue(ev, pNow, Date.now())) {
-        const p = pNow;
+      if (pNow && !pNow.leadUsed) {
+        const cut = C.rescueLeadCut(ev.text, pNow.text);
+        if (cut) {
+          const ft = String(ev.text || '');
+          const badCut = cut.lead && RESCUE_LEAD_PUNCT.test(ft)
+            && !RESCUE_LEAD_PUNCT.test(String(cut.text || '').trimStart())
+            && letterCount(cut.lead) < letterCount(ft);
+          if (cut.lead && !badCut) {
+            ev = Object.assign({}, ev, { text: C.mergeRescueLead(cut.lead, cut.text) });
+            partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
+            diagBump('rescue', 'lead', { text: cut.lead });
+          } else if (!badCut && cut.text && cut.text !== ev.text) {
+            ev = Object.assign({}, ev, { text: cut.text });
+          }
+        } else {
+          const sp = C.rescueLeadSplit(ev.text, pNow.text);
+          if (sp && sp.lead) {
+            const lead = dedupePartialEmit(sp.lead);
+            if (lead) {
+              diagBump('rescue', 'lead_split', { text: lead });
+              feedPartialRescue(ev.locale, lead);
+              partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
+            }
+          }
+        }
+      }
+      if (partialWorthRescue(ev, partialBy[base], Date.now())) {
+        const p = partialBy[base];
         ev = Object.assign({}, ev, { text: p.text, rescued: true });
         diagBump('final', 'from-partial', { text: p.text });
       }
@@ -1545,7 +1653,7 @@ const listenModel = (() => {
       });
       if (!dec.admit) {
         diagBump('intake', dec.reason);
-        if (dec.reason === 'echo') { delete partialBy[base]; refreshPartial(); }
+        if (dec.reason === 'echo') flushPartial(base, 'echo', { finalText: String((ev && ev.text) || ''), locale: ev.locale });
         // R14 ②：中文路被归属闸拒掉的纯拉丁短结果 ⇒ 先当候补，等一次空闲 / 等停止收音再裁决。
         if (dec.xfer && xferGate) {
           xferGate.offer({
@@ -1560,8 +1668,7 @@ const listenModel = (() => {
       // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
       // 含汉字且与本闸扣住的片时间重叠时当场丢弃那片。被 attrib 拒掉的拉丁垃圾不会走到这里。
       try { if (finalGate && finalGate.noteOtherText) finalGate.noteOtherText(base, String((ev && ev.text) || ''), ev && ev.t0, ev && ev.t1); } catch (_) {}
-      // 这条 final 的文字进账本了，把这一路的「识别中」清掉（否则实时框会重复显示）
-      delete partialBy[base];
+      flushPartial(base, 'consumed', { finalText: String((ev && ev.text) || ''), locale: ev.locale });
       // 低置信句头闸 → 分流
       const texts = gate.push(ev);
       for (const tt of texts) {
@@ -1603,6 +1710,7 @@ const listenModel = (() => {
   // socket 断了：先自动重连一次（2 s），期间主按钮「重连中…」、我说灰；再断才停在具名态。
   // assets 不是连接断了：缺的是还没装的语言包。自动重连会把那一门下完再开麦。
   function socketLost(why) {
+    flushAllPartials('socket', {});
     if (String(why || '') === 'assets') { halt('socket', why); return; }
     if (!socketRetried && (phase === 'listening' || phase === 'preparing')) {
       socketRetried = true;
@@ -1616,7 +1724,7 @@ const listenModel = (() => {
   function onPartial(locale, text, ev) {
     const key = C.baseCode(locale);
     const t = String(text || '').trim();
-    if (!t) delete partialBy[key];
+    if (!t) flushPartial(key, 'empty', { locale });
     else {
       // partial 事件目前只带 {locale,text,conf}（app/native/speech-bridge.swift:474）—— t0/t1 是 final
       // 才有的。若将来原生给 partial 也带音频区间，就一并存下：partialWorthRescue 用它界定「哪段
@@ -1972,7 +2080,7 @@ const listenModel = (() => {
     seg = makeSeg(gen);
     pttApplySeg();   // 新路由器要知道自己是否已在「按键收音」里（pttBegin 早于它建好）
     pttSwitch = null;
-    clearPartials();
+    clearPartials('source');
     nativeSessionOn();   // 挂监听 + 建音频会话 + 挂灵动岛/锁屏卡（对话档不带 profile，消息逐字节不变）
     canvas.view('history');
     if (!clockTimer) clockTimer = setInterval(paintClock, 1000);
@@ -2228,7 +2336,7 @@ const listenModel = (() => {
     // 字幕暂停不释放音频会话（#590 iOS 5）：释放后再激活，会把正在外放的视频停掉。麦已经停了。
     nativeSessionOff(session && session.mode === 'subtitle' ? { hold: true } : undefined);
     if (inc) inc.reset();
-    clearPartials();
+    clearPartials('pause');
     // 「没有声音」与「拿不到声音」是两回事，出口也相反（#424）。指向权限的条件有两个，
     // 任一成立即可：
     //   · 原生报过 silent 且从没报过 sound（决定 10 修订二 + O2，需要「别的 App 正在出声」）；
@@ -2284,7 +2392,7 @@ const listenModel = (() => {
     micStop(); closeSocket();
     nativeSessionOff();   // 具名停止同样收会话（socket-retry / 来电的自动续听会再开）
     if (inc) inc.reset();
-    clearPartials();
+    clearPartials(reason === 'grant' ? 'authstop' : 'pause');
     const why1 = String(why || '').replace(/\s+/g, ' ').slice(0, 80);
     // A8：Code=11（协议码 'locales'）是「名额已满」，独立卡片；不拼进下载失败那句。
     if (why1 === 'locales') {

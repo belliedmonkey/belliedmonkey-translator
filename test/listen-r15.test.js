@@ -130,12 +130,12 @@ function partialWorthRescue(ev, p, at) {
   const letters = letterCount(text);
   const conf = Number(ev && ev.conf);
   const lowConf = Number.isFinite(conf) && conf >= 0 && conf < C.LATIN_MIN_CONF;
-  if (!(letters === 0 || RESCUE_LEAD_PUNCT.test(text) || lowConf)) return false;
+  if (!(letters === 0 || lowConf)) return false;
   const fTsOk = Number.isFinite(ev && ev.t0) && Number.isFinite(ev && ev.t1);
   const pTsOk = Number.isFinite(p.t0) && Number.isFinite(p.t1);
   if (fTsOk && pTsOk) {
     const plea = letterCount(p.text);
-    if (plea < letters + RESCUE_LETTER_GAP && !(RESCUE_LEAD_PUNCT.test(text) && plea > letters)) return false;
+    if (plea < letters + RESCUE_LETTER_GAP) return false;
     return p.t0 >= ev.t0 - RESCUE_TS_TOL && p.t1 <= ev.t1 + RESCUE_TS_TOL;
   }
   return letters === 0;
@@ -176,7 +176,21 @@ async function replay(key) {
     const base = C.baseCode(ev.locale);
     const pNow = partialBy[base];
     let text = ev.text, rescued = false;
-    if (partialWorthRescue(ev, pNow, clk.now())) { text = pNow.text; rescued = true; }
+    if (pNow && !pNow.leadUsed) {
+      const cut = C.rescueLeadCut(ev.text, pNow.text);
+      if (cut) {
+        const ft = String(ev.text || '');
+        const badCut = cut.lead && RESCUE_LEAD_PUNCT.test(ft)
+          && !RESCUE_LEAD_PUNCT.test(String(cut.text || '').trimStart())
+          && letterCount(cut.lead) < letterCount(ft);
+        if (cut.lead && !badCut) {
+          text = C.mergeRescueLead(cut.lead, cut.text);
+          partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
+          diags.push({ kind: 'rescue:lead', text: cut.lead });
+        } else if (!badCut && cut.text && cut.text !== ev.text) text = cut.text;
+      }
+    }
+    if (partialWorthRescue(ev, partialBy[base], clk.now()) && partialBy[base]) { text = partialBy[base].text; rescued = true; }
     if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {

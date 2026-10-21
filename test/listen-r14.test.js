@@ -298,12 +298,12 @@ function partialWorthRescue(ev, p, at) {
   const letters = letterCount(text);
   const conf = Number(ev && ev.conf);
   const lowConf = Number.isFinite(conf) && conf >= 0 && conf < C.LATIN_MIN_CONF;
-  if (!(letters === 0 || RESCUE_LEAD_PUNCT.test(text) || lowConf)) return false;
+  if (!(letters === 0 || lowConf)) return false;
   const fTsOk = Number.isFinite(ev && ev.t0) && Number.isFinite(ev && ev.t1);
   const pTsOk = Number.isFinite(p.t0) && Number.isFinite(p.t1);
   if (fTsOk && pTsOk) {
     const plea = letterCount(p.text);
-    if (plea < letters + RESCUE_LETTER_GAP && !(RESCUE_LEAD_PUNCT.test(text) && plea > letters)) return false;
+    if (plea < letters + RESCUE_LETTER_GAP) return false;
     return p.t0 >= ev.t0 - RESCUE_TS_TOL && p.t1 <= ev.t1 + RESCUE_TS_TOL;
   }
   return letters === 0;
@@ -340,7 +340,21 @@ async function replay(key, opt) {
     const base = C.baseCode(ev.locale);
     const pNow = partialBy[base];
     let text = ev.text, rescued = false;
-    if (partialWorthRescue(ev, pNow, clk.now())) { text = pNow.text; rescued = true; }
+    if (pNow && !pNow.leadUsed) {
+      const cut = C.rescueLeadCut(ev.text, pNow.text);
+      if (cut) {
+        const ft = String(ev.text || '');
+        const badCut = cut.lead && RESCUE_LEAD_PUNCT.test(ft)
+          && !RESCUE_LEAD_PUNCT.test(String(cut.text || '').trimStart())
+          && letterCount(cut.lead) < letterCount(ft);
+        if (cut.lead && !badCut) {
+          text = C.mergeRescueLead(cut.lead, cut.text);
+          partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
+          diags.push({ kind: 'rescue:lead', text: cut.lead });
+        } else if (!badCut && cut.text && cut.text !== ev.text) text = cut.text;
+      }
+    }
+    if (partialWorthRescue(ev, partialBy[base], clk.now()) && partialBy[base]) { text = partialBy[base].text; rescued = true; }
     if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
@@ -410,16 +424,23 @@ describe('R14 ⑤ — 回放 /tmp/r13 原始事件', () => {
     eq(withinDup(rows[0], 12), null, '行内重复：' + JSON.stringify(rows[0]));
   });
   for (const key of ['en-auto-2', 'en-auto-10']) {
-    test('★ ' + key + '：标点开头的 final + partial 带句首 ⇒ 不再多出一行句首（#592）', async () => {
+    test('★ ' + key + '：标点开头的 final + partial 带句首 ⇒ 合并同一行（S1）', async () => {
       const res = await replay(key);
       const rows = enRows(res.emittedRows);
       const out = rows.join(' ');
       ok(norm(out).indexOf('andsendthemtomr') >= 0, '定稿正文没出行：' + JSON.stringify(out));
-      ok(norm(out).indexOf('make3copiesofthiscontract') < 0, 'partial 句首被切成一行：' + JSON.stringify(rows));
-      ok(!res.diags.some((d) => d.kind === 'rescue:lead'), '不该再记 rescue:lead：' + JSON.stringify(res.diags.map((d) => d.kind)));
+      ok(norm(out).indexOf('make3copiesofthiscontract') >= 0, 'partial 句首没并进正文：' + JSON.stringify(rows));
+      ok(res.diags.some((d) => d.kind === 'rescue:lead'), '应记 rescue:lead：' + JSON.stringify(res.diags.map((d) => d.kind)));
       eq(withinDup(out, 12), null, '行内重复：' + JSON.stringify(out));
     });
   }
+  test('★ en-auto-2（TED 1:22）：补句首合并后仍只出一行合同句', async () => {
+    const res = await replay('en-auto-2');
+    const rows = enRows(res.emittedRows);
+    const contract = rows.filter((r) => /make.*copies.*contract/i.test(r));
+    eq(contract.length, 1, '合同句只许一行：' + JSON.stringify(rows));
+    ok(/make.*copies.*contract/i.test(contract[0]) && /send them to/i.test(contract[0]), '一行应含合同句与定稿：' + JSON.stringify(contract[0]));
+  });
   for (const key of ['yes-auto-6', 'yes-auto-8', 'yes-auto-9', 'yes-tap-1']) {
     test('★ ' + key + '：中文路 `Yes。` 候补转交 ⇒ 出行（intake:xfer）', async () => {
       const res = await replay(key);
