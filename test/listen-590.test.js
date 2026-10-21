@@ -58,6 +58,36 @@ describe('#590 · 定稿与解析（I / L / iOS 7）', () => {
     ok(/mergeRescueLead/.test(MODEL), '入口应 mergeRescueLead 再入账');
     ok(/function partialWorthRescue/.test(MODEL), 'partialWorthRescue 不该一起删');
   });
+  test('TED 1:22 Stick too closely：合并后整句出行、无重复词', async () => {
+    const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
+    const final = ', you, and you risk starvation when the Grove runs dry.';
+    const cut = C.rescueLeadCut(final, partial);
+    ok(cut && cut.lead, JSON.stringify(cut));
+    const merged = C.mergeRescueLead(cut.lead, cut.text);
+    const rows = [];
+    const seg = C.makeSegmentRouter({
+      call: (p) => {
+        const m = String(p).match(/BUF:\n([\s\S]*?)\nFORCE:/);
+        return Promise.resolve(JSON.stringify({ segments: [{ source: m ? m[1].trim() : merged, translation: 'T' }], remainder: '' }));
+      },
+      emit: (list) => { for (const r of list) rows.push(r.source); },
+      fallback: (t) => rows.push(t),
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      idleMs: 1500, endWaitMs: 3000,
+    });
+    const gate = C.makeFinalGate({ dominantScript: () => 'Latin', now: () => Date.now(), idleMs: 1500 });
+    for (const tt of gate.push({ locale: 'en-US', text: merged, conf: 0.9, t0: 1, t1: 2 })) seg.feed('en-US', tt);
+    await seg.settle('end');
+    const joined = rows.join(' ');
+    ok(/stick too closely/i.test(joined) && /risk starvation/i.test(joined), JSON.stringify(rows));
+    const norm = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+    const ns = norm(joined);
+    for (let i = 0; i + 12 <= ns.length; i++) {
+      const segm = ns.slice(i, i + 12);
+      ok(ns.indexOf(segm, i + 1) < 0, '行内重复片段：' + segm);
+    }
+    seg.dispose();
+  });
   test('parseListenReply：空的「T:」不吞下一行；有标签没译文 ⇒ 译文为空（不把标签行当译文）', () => {
     const a = C.parseListenReply('T:\nX: 你好', 'hello');
     eq(a.tr, '你好'); eq(a.text, 'hello'); eq(a.tagged, false);
