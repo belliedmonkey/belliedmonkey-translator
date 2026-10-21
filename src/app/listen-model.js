@@ -1628,7 +1628,20 @@ const listenModel = (() => {
             ev = Object.assign({}, ev, { text: C.mergeRescueLead(cut.lead, cut.text) });
             partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
             diagBump('rescue', 'lead', { text: cut.lead });
-          } else if (!badCut && cut.text && cut.text !== ev.text) {
+          } else if (badCut) {
+            if (cut.lead) {
+              const lead = dedupePartialEmit(cut.lead);
+              if (lead) {
+                diagBump('rescue', 'lead_split', { text: lead, reason: 'badcut' });
+                feedPartialRescue(ev.locale, lead);
+                diagBump('rescue', 'lead_flush', { text: lead, reason: 'badcut' });
+                partialBy[base] = Object.assign({}, pNow, { leadUsed: true });
+              }
+            }
+            if (cut.text && cut.text !== ev.text) {
+              ev = Object.assign({}, ev, { text: cut.text });
+            }
+          } else if (cut.text && cut.text !== ev.text) {
             ev = Object.assign({}, ev, { text: cut.text });
           }
         } else {

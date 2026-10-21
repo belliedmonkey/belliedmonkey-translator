@@ -18,8 +18,9 @@
 | listen-model.js:flushPartial 无 locale | `localeForBase` 为空 | 静默 delete | `C.toLocale(base)` 兜底 + 整段出行 | — | `1194 · empty/无 locale/未知 reason` |
 | listen-model.js:flushPartial 未知 reason | 未列出的 reason | 静默 delete | 整段出行 + `lead_flush:{reason}` | — | `1194 · empty/无 locale/未知 reason` |
 | listen-model.js:feedPartialRescue | seg/cutter 皆不可用 | 静默 return | `segFallback` 原文出行 | ⑧ | `1194 · authstop flush` |
-| listen-model.js:intakeFinal S1 | 标点开尾定稿 + 同 base partial | 曾 delete 丢句首 | `mergeRescueLead` 一次 feed；`rescue:lead` | ① | `listen-590` / `listen-1194-s1` / TED Stick |
-| listen-model.js:intakeFinal split | 合并不成、前缀仍在 partial | 丢前缀 | `rescueLeadSplit` + `feed` + `lead_split` + `lead_flush` | ②③ | `1194 · ② lead_split` |
+| listen-model.js:intakeFinal S1 | 标点开尾定稿 + 同 base partial | 曾 delete 丢句首 | `mergeRescueLead` 一次 feed；`rescue:lead` | ① | `listen-590` / `listen-1194-s1` / `② 句首 rescue` |
+| listen-model.js:intakeFinal badCut | `badCut` 挡合并（final 字母多于 lead） | 丢 `cut.lead`；`cut.text` 也不替换 final | `dedupePartialEmit(lead)` → `feedPartialRescue` + `lead_split`/`lead_flush`（reason `badcut`）+ `leadUsed`；定稿仍用 `cut.text` | ②③ | `1194 · TED badCut` |
+| listen-model.js:intakeFinal split | `rescueLeadCut` 无 lead、前缀仍在 partial | 丢前缀 | `rescueLeadSplit` + `feed` + `lead_split` + `lead_flush` | ②③ | `1194 · ② lead_split` |
 | listen-model.js:partialWorthRescue | final 无字母 / 低置信 | 整段 partial 顶替 | `final:from-partial`（**不再**因标点开尾触发） | ⑥④ | `listen-r14` 回放 |
 | listen-core.js:feed rescued dup-prev | 临时稿与上条 formal 尾重复（`isTailDup` ≤300ms） | return 不 feed | 记 `rescue:dup-prev`；被丢文字须已在已出行行里 | ⑤ | `1194 · dup-prev feed 真实丢弃` |
 | listen-core.js:feed trimRescueByAlign | 正式 final 与未出行 rescued 对齐 | trim 或 return | 文字对齐去重，不删 partialBy | ⑤ | `listen-r14` trim |

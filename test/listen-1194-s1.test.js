@@ -504,19 +504,25 @@ async function hSettle1194(A, clk) {
 }
 
 describe('1194 · TED 1:22 Stick too closely 防回归', () => {
-  test('★ 整句内容出行、无重复词（真实 gate.push + seg.feed 定稿入口，句首单独成行可接受）', async () => {
+  test('★ badCut 句首单独出行 + 定稿尾句（真实 partial/final 入口，stick 行在前）', async () => {
     const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
     const final = ', you, and you risk starvation when the Grove runs dry.';
     const cut = C.rescueLeadCut(final, partial);
     ok(cut && cut.lead, JSON.stringify(cut));
-    const merged = C.mergeRescueLead(cut.lead, cut.text);
     const { A, captured, clk } = await openListen1194Conv();
-    captured.onEvent('final', { locale: 'en-US', text: merged, conf: 0.9, t0: 1000, t1: 2000 });
+    captured.onEvent('partial', { locale: 'en-US', text: partial });
+    await clk.runTo(0);
+    captured.onEvent('final', { locale: 'en-US', text: final, conf: 0.9, t0: 1000, t1: 2000 });
     await hSettle1194(A, clk);
     const rows = A._debug().rows.map((r) => r.text);
     const out = rows.join(' ');
     ok(/stick too closely/i.test(out) && /risk starvation/i.test(out) && /grove runs dry/i.test(out), JSON.stringify(rows));
     eq(withinDup(out, 12), null, '重复词：' + JSON.stringify(rows));
+    const stickPos = out.search(/stick too closely/i);
+    const tailPos = out.search(/risk starvation/i);
+    ok(stickPos >= 0 && tailPos >= 0 && stickPos < tailPos, '句首应排在 starvation 前：' + JSON.stringify(rows));
+    eq(diagN(t1194(A).segDiag(), 'rescue', 'lead_split'), 1);
+    eq(diagN(t1194(A).segDiag(), 'rescue', 'lead'), 0, 'badCut 不应走 merge rescue:lead');
     try { await A.leave(); } catch (_) {}
   });
 });
