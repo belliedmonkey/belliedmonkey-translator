@@ -9,8 +9,8 @@
 | listen-model.js:closeSocket | 切源 / 关 socket（改语言、暂停前） | `partialBy` 被清空 | 调用方先 `flushAllPartials('source')`；`closeSocket` 本身不再 flush | ④ | `1194 · pause 集成` / `pause / source` 形状 |
 | listen-model.js:pause | 用户/静音暂停 | 清半句 | `clearPartials('pause')`（在 `closeSocket` 前）→ `rescue:lead_flush`（环内 `why:pause`）+ `rescue:pause_partial`（长度+前 8 字） | ④ | `1194 · pause 集成` / `lead-mac-r2b A-pause-orphan` |
 | listen-model.js:halt | 断线/拒绝/额度停机 | 清半句 | `clearPartials('authstop'/'pause')` **先于** `closeSocket` | ④⑧ | `1194 · authstop` / `S1 · authStop` |
-| listen-model.js:makeSeg onDegrade | 401/403 或连续非法 JSON 降级 | 账本交旧路，partial 可能丢 | `flushAllPartials('degrade')` | ⑧ | `S1 · hardCut`（旧路原文） |
-| listen-model.js:makeSeg onQuota | 402 / grant 停机 | partial 丢 | 先 `flushAllPartials('authstop')` 再 `segDegrade` | ⑧ | `1194 · authstop flush` |
+| listen-model.js:makeSeg onDegrade | 401/403 或连续非法 JSON 降级 | 账本交旧路，partial 可能丢 | 先 `segDegrade` 再 `flushAllPartials('degrade')`；rows 重复/前缀 → `degrade_dup` | ⑧ | `S1 · hardCut` / r3d ⑧b |
+| listen-model.js:makeSeg onQuota | 402 / grant 停机 | partial 丢 | **先** `segDegrade = true` **再** `flushAllPartials('authstop')`；补行前 rows 重复/前缀 → `authstop_dup`（零内容） | ⑧ | `1194 · authstop` / r3d ⑧′⑧a |
 | listen-model.js:socketLost | 识别器断线/重启 | partial 丢 | `flushAllPartials('socket')` | ④ | `1194 · timeout` 同形 |
 | listen-model.js:intakeFinal echo | `intakeDecide` 回声拒收 | delete partial | 统一 `classifyEcho`（播放中/尾窗文字）：经 `feedPartialRescue` 丢弃 + `rescue:echo_drop`；否则整段出行 + `lead_flush:echo` | ②⑤ | `1194 · echo` / `echo r2b` |
 | listen-model.js:intakeFinal admit | final 入账成功 | delete partial | `flushPartial('consumed')` + 未合并句首 `lead_split` + `lead_flush`；partial 与定稿 `sameUtterance`（T=0.8）⇒ `consumed_same` 不补行；否则无关 orphan 经 `feedPartialRescue` 单独出行 | ②③ | `S1` / `lead-mac-r2b` / `echo r2b` |
@@ -35,6 +35,6 @@
 ## 说明
 
 - **唯一出口**：`delete partialBy[…]` 仅出现在 `flushPartial` 内（1194 A；`_test1194.setPartial` 钩子豁免）；`clearPartials` 只调 `flushAllPartials`。
-- **计数**：`rescue:lead`、`rescue:lead_split`、`rescue:lead_flush`（**`why`**：pause/echo/timeout/consumed/badcut/split 等）、`rescue:echo_drop`（统一回声闸丢弃）、`rescue:consumed_same`（partial 与定稿同句不补行）、`rescue:pause_partial`、`final:from-partial`。
+- **计数**：`rescue:lead`、`rescue:lead_split`、`rescue:lead_flush`（**`why`**：pause/echo/timeout/consumed/badcut/split/authstop/degrade 等）、`rescue:echo_drop`（统一回声闸丢弃）、`rescue:consumed_same`（partial 与定稿同句不补行）、`rescue:authstop_dup` / `rescue:degrade_dup`（额度/降级补行前与已上屏 rows 重复或前缀，零内容只记长度）、`rescue:pause_partial`、`final:from-partial`。
 - **回声（1.19.4 r2b）**：`listen-core.classifyEcho` + `sameUtterance`；上屏咽喉 `feedPartialRescue` / `emitClosedStandalone`；intake / xfer / partial 半句 / flush echo 均调同一函数。
 - **closeSocket**：不再内置 flush；`pause` / `halt` / 改语言 / `end` 在关 socket 前用正确 reason 调 `clearPartials` / `flushAllPartials('source')`。

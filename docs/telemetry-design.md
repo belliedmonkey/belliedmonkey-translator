@@ -966,8 +966,9 @@ The China flavor pays nothing and breaks no promise.
 > 与 §3 的事件白名单**并列**，不是它的一部分。加事件才动白名单；这条通道**没有 `track()` 调用**，
 > 是设备把本机环形日志**原样搬运**到自有后端信箱，因此纪律写在这里，而不是 §3 的表里。
 
-**它发什么。** `app/diag-log.js` 的环形日志（六类：`dl` 下载 tier 链 / `tts_engine` 装载失败 /
-`speak` 结局 / `probe` / `auth` 里程碑 / `engine_fix` 自愈），外加安装 id、flavor、App 版本与构建号、OS。
+**它发什么。** `app/diag-log.js` 的环形日志（种类：`dl` 下载 tier 链 / `tts_engine` 装载失败 /
+`speak` 结局 / `probe` / `stt_final` 识别定稿摘要 / `auth` 里程碑 / `engine_fix` 自愈 /
+`seg` 断句诊断 / `mic` 麦克风零内容诊断 —— 2026-10-22 用户批进 1.19.4），外加安装 id、flavor、App 版本与构建号（`MT_BUILD_SHA` → `app_build`）、OS。
 **字段白名单在 `push` 处强制** —— 文本、译文、URL、账号、密钥一个键都进不来；上报器只搬运、不再加工。
 
 **它发到哪。** 自有后端的 `bt_diag_events`（`deploy/diag-events.sql`）：**write-only 信箱** ——

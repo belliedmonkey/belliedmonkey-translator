@@ -69,6 +69,7 @@ var NativeAudio = (() => {
   // 麦克风（§9.6 原生采集）：PCM 与状态走独立的槽，不混进 listeners —— 每秒十几块
   // 音频不该让播客模式的回调也跟着醒十几次。
   let mic = null;
+  let micSeqExpected = null;   // 1.19.4 r3d：最近一次 mic-start 的 seq；停麦后仍保留以便记 stale/orphan
   // 上一次推给原生的 payload，按 JSON 串去重。paint() 每次重绘都会调，而绝大多数重绘
   // 什么都没变；每一次过桥都是一次 evaluateJavaScript 往返。
   let lastNowPlaying = '';
@@ -292,6 +293,10 @@ var NativeAudio = (() => {
     mic = handlers || null;
     const body = { type: 'mic-start', rate: Number(rate) || 24000 };
     if (mic && mic.deliver === 'level') body.deliver = 'level';
+    if (mic && mic.seq != null) {
+      body.seq = Number(mic.seq) || 0;
+      micSeqExpected = body.seq;   // 停麦后不清，迟到回调记 stale/orphan
+    }
     if (mic && mic.source && mic.source !== 'mic') {
       // **没收到 audio-caps.system === 'ok' 绝不发 source:'system'**：老原生壳会无视这个字段、
       // 静默打开麦克风（§9.8）。规则只在这一处执行。
@@ -393,7 +398,28 @@ var NativeAudio = (() => {
       for (const w of ws) { try { w(caps); } catch (_) {} }
     }
     if (msg.type === 'mic-state') {
-      if (mic && mic.onState) { try { mic.onState(String(msg.state || ''), String(msg.reason || ''), String(msg.source || '')); } catch (_) {} }
+      const state = String(msg.state || '');
+      const reason0 = String(msg.reason || '');
+      const source = String(msg.source || '');
+      const seq = msg.seq != null ? Number(msg.seq) : null;
+      const orphan = !(mic && mic.onState);
+      const stale = seq != null && micSeqExpected != null && seq !== micSeqExpected;
+      try {
+        if (typeof DiagLog !== 'undefined' && DiagLog.push) {
+          DiagLog.push('mic', {
+            phase: stale ? 'stale' : 'on',
+            state,
+            reason: orphan ? 'orphan' : reason0,
+            source,
+            bridged: 1,
+            seq: seq != null ? seq : undefined,
+          });
+        }
+      } catch (_) {}
+      // seq 不符：只记 stale，不调业务 handler（旧场迟到回调）
+      if (!stale && mic && mic.onState) {
+        try { mic.onState(state, reason0, source, seq); } catch (_) {}
+      }
     }
     for (const fn of listeners.slice()) { try { fn(msg); } catch (_) { /* 播放器不因一次回调出错而停 */ } }
   }

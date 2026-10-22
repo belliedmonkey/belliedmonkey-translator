@@ -24,6 +24,23 @@ const { buildOptions } = require('./run-esbuild.js');
 
 const ROOT = path.join(__dirname, '..');
 
+// 1.19.4 r3d：包内写入短 sha，方便 TF 对提交；脏工作区加 -dirty；非 git 写 unknown（不抛死构建）。
+function gitShortSha() {
+  try {
+    const { execFileSync } = require('child_process');
+    const sha = String(execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], { cwd: ROOT, encoding: 'utf8' })).trim();
+    if (!/^[0-9a-f]+$/i.test(sha)) return 'unknown';
+    let dirty = '';
+    try {
+      const st = String(execFileSync('git', ['status', '--porcelain', '-uno'], { cwd: ROOT, encoding: 'utf8' }));  // 忽略未跟踪噪声
+      if (st.trim()) dirty = '-dirty';
+    } catch (_) {}
+    return sha + dirty;
+  } catch (_) {
+    return 'unknown';
+  }
+}
+
 // Order matters — these are IIFEs assigning globals, exactly as the extension's
 // manifest loads them, and each depends on the ones above it. Keep this list in sync
 // with what `src/app/main.jsx` actually uses; an unused module here is dead weight
@@ -218,6 +235,7 @@ function buildAppBundle(outDir, log, opts) {
     "window.MT_HOST = 'app';",
     // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
     'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
+    'window.MT_BUILD_SHA = ' + JSON.stringify(gitShortSha()) + ';',
     '',
     // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
     // Worker / fetch 对 file:// 一律拒绝而 blob: 三样都通（D0 探针 2026-09-11）。PdfJsLoader 看到

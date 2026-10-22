@@ -75,7 +75,7 @@ function makeSandbox(store) {
     ListenCore: C, NativeAudio, NativeSpeech,
     DiagLog: { push: () => {} }, MTTelemetry: { track: () => {}, once: () => {} }, MTFeedback: {},
     LearnNotes: { resolveConfig: () => tr, shouldCapture: () => false, langAllowed: () => true },
-    LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin') },
+    LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin'), langAllowed: () => true },
     LearnDialog: { confirm: async () => true },
     TranslationAPI: {
       resolveProvider: () => 'deepseek',
@@ -329,6 +329,15 @@ describe('1194 · flushPartial / 九条', () => {
     ok(/lead_split/.test(MODEL));
     ok(/rescueLeadSplit/.test(MODEL));
   });
+  test('onQuota 形状：segDegrade = true 下标小于 flushAllPartials(authstop)', () => {
+    const i = MODEL.indexOf('function handleSegQuota');
+    ok(i >= 0, '缺 handleSegQuota');
+    const body = MODEL.slice(i, i + 500);
+    const iDeg = body.indexOf('segDegrade = true');
+    const iFlush = body.indexOf("flushAllPartials('authstop')");
+    ok(iDeg >= 0 && iFlush >= 0 && iDeg < iFlush, '顺序错：deg@' + iDeg + ' flush@' + iFlush);
+    ok(/onQuota:\s*\(err\)\s*=>\s*handleSegQuota/.test(MODEL), 'onQuota 应接到 handleSegQuota');
+  });
   test('pause / source：关麦与切源走 flushAllPartials', () => {
     ok(/clearPartials\('pause'\)/.test(MODEL));
     ok(/flushAllPartials\('source'\)/.test(MODEL));
@@ -379,15 +388,62 @@ describe('1194 · 生产 flushPartial（_test1194）', () => {
     eq(diagN(t1194(A).segDiag(), 'rescue', 'lead_flush'), 1);
     try { await A.leave(); } catch (_) {}
   });
-  test('⑧ authstop：flush 在 segDegrade 前仍出行', async () => {
+  test("⑧′ authstop：未上屏半句 + onQuota ⇒ 自成一行且先 segDegrade", async () => {
     const { A, clk } = await openListen1194();
     const h = t1194(A);
     h.setPartial('en', { text: 'quota halt orphan partial', at: clk.now() });
-    h.flushPartial('en', 'authstop', { locale: 'en-US' });
+    const feeds = h.spySegFeed();
+    h.triggerQuota({ grant: true, code: 'credit_exhausted', status: 402 });
     await h.settleSeg('end');
     await clk.runTo(3000);
+    ok(h.segDegrade() === true, 'onQuota 后应 segDegrade');
     ok(A._debug().rows.some((r) => /quota halt orphan/i.test(r.text)), JSON.stringify(A._debug().rows));
+    eq(feeds.length, 0, '半句不应再进失效路由器 feed：' + JSON.stringify(feeds));
     eq(diagN(h.segDiag(), 'rescue', 'lead_flush'), 1);
+    try { await A.leave(); } catch (_) {}
+  });
+  test('⑧a authstop_dup：已上屏完整句 + 前缀残片 ⇒ 不补行', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    h.setPartial('en', { text: 'Please make three copies of this contract and send them', at: clk.now() });
+    h.flushPartial('en', 'timeout', { locale: 'en-US' });
+    await h.settleSeg('end');
+    await clk.runTo(3000);
+    const before = A._debug().rows.length;
+    ok(before >= 1, '应先有完整行');
+    h.setPartial('en', { text: 'Please make three', at: clk.now() });
+    h.triggerQuota({ grant: true, code: 'credit_exhausted', status: 402 });
+    await clk.runTo(1000);
+    eq(A._debug().rows.length, before, '前缀残片不应新增行：' + JSON.stringify(A._debug().rows));
+    eq(diagN(h.segDiag(), 'rescue', 'authstop_dup'), 1);
+    ok(diagN(h.segDiag(), 'final', 'from-partial') >= 1 || diagN(h.segDiag(), 'rescue', 'lead_flush') >= 1, '完整句那次应已记出行');
+    try { await A.leave(); } catch (_) {}
+  });
+  test('⑧b degrade：未上屏出行；前缀残片 degrade_dup', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    h.setPartial('en', { text: 'degrade orphan standalone line', at: clk.now() });
+    h.triggerDegrade('json');
+    await h.settleSeg('end');
+    await clk.runTo(3000);
+    ok(h.segDegrade() === true);
+    ok(A._debug().rows.some((r) => /degrade orphan standalone/i.test(r.text)), JSON.stringify(A._debug().rows));
+    const before = A._debug().rows.length;
+    h.setPartial('en', { text: 'degrade orphan', at: clk.now() });
+    h.triggerDegrade('json');
+    await clk.runTo(500);
+    eq(A._debug().rows.length, before, '前缀不应再补行');
+    eq(diagN(h.segDiag(), 'rescue', 'degrade_dup'), 1);
+    try { await A.leave(); } catch (_) {}
+  });
+  test('⑧c onQuota 后 seg.feed 不被半句调用', async () => {
+    const { A, clk } = await openListen1194();
+    const h = t1194(A);
+    const feeds = h.spySegFeed();
+    h.setPartial('en', { text: 'should not hit seg feed after quota', at: clk.now() });
+    h.triggerQuota({ grant: true, code: 'credit_exhausted', status: 402 });
+    await clk.runTo(500);
+    eq(feeds.length, 0, JSON.stringify(feeds));
     try { await A.leave(); } catch (_) {}
   });
   test('empty：partial 空串触发 flush 仍出行上一帧文字', async () => {

@@ -5,7 +5,7 @@
 // 纪律（三道门禁钉着，test/diag-log.test.js）：
 //   1. **零内容**：每类事件的字段白名单在 push 处强制 —— 白名单外的键一个都进不来。
 //      事件里永远没有用户文本/译文/URL 凭证，只有 reason code、语言码、字节数、时长。
-//   2. **schema 白名单**：事件种类是固定集合（六类，按 2026-09/10 的真机故障清单定）；
+//   2. **schema 白名单**：事件种类是固定集合（按真机故障清单定；2026-10-22 用户批 mic 诊断进 1.19.4）；
 //      加一类 = 改设计文档（规则 4 的既有纪律），不是改代码。
 //   3. **体量**：200 条环形、~25KB 上限，storage.local 单键持久化（防抖写）。
 var DiagLog = (() => {
@@ -32,6 +32,8 @@ var DiagLog = (() => {
     // **这是用户明确批准的有内容诊断**：只用于断句质量定位（remainder 对不上、句头闸裁决），
     // 每个字段各自截到 200 字；不进遥测、不在任何用户可见处显示（走 L2 诊断信箱）。
     seg: ['reason', 'calls', 'json_bad', 'text', 'rem', 'raw', 'why'],
+    // 麦克风零内容诊断（1.19.4 r3d，用户 2026-10-22 批）：保活/req/on/stale；禁止任何文本字段
+    mic: ['phase', 'state', 'reason', 'source', 'bridged', 'seq', 'sess', 'ms'],
   };
 
   let buf = null;
@@ -96,6 +98,7 @@ var DiagLog = (() => {
       ua: (typeof navigator !== 'undefined' && navigator.userAgent) || '',
       exported_at: new Date().toISOString(),
       count: buf.length,
+      build_sha: (typeof window !== 'undefined' && window.MT_BUILD_SHA) || '',
     };
     return JSON.stringify(head, null, 1) + '\n' + scrubAll(buf).map((e) => JSON.stringify(e)).join('\n');
   }
@@ -133,7 +136,7 @@ var DiagLog = (() => {
           install_id: installId(),
           flavor: (typeof window !== 'undefined' && window.MT_FLAVOR) || '',
           app_version: (typeof window !== 'undefined' && window.MT_APP_VERSION) || '',
-          app_build: '',
+          app_build: (typeof window !== 'undefined' && window.MT_BUILD_SHA) || '',
           os: ((typeof navigator !== 'undefined' && navigator.userAgent) || '').slice(0, 200),
           events: { head: { what: 'mt-diag', count: fresh.length }, entries: scrubAll(fresh) },
         }]),

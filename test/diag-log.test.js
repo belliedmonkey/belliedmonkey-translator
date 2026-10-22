@@ -1,7 +1,7 @@
 // test/diag-log.test.js — 诊断日志三道门（§0.4.1 缺口补法，2026-10-06 用户拍板：
 // 手机端补打点；中国版零网络，选项 A —— L1 本机 + 手动导出先上，L2 另批）。
 //
-//   1. schema 白名单：事件种类固定六类，白名单外的 kind 直接丢；
+//   1. schema 白名单：事件种类固定集合，白名单外的 kind 直接丢；
 //   2. **零内容**：字段白名单在 push 处强制 —— 事件里进不来用户文本/译文/URL；
 //   3. write-only：L2 信箱表（deploy/diag-events.sql）永远没有 SELECT/DELETE policy。
 'use strict';
@@ -35,7 +35,7 @@ function loadDiagCtx(over) {
 }
 function loadDiag(over) { return loadDiagCtx(over).DiagLog; }
 
-test('★ schema 白名单：六类之外的事件类型直接丢', () => {
+test('★ schema 白名单：白名单之外的事件类型直接丢', () => {
   const D = loadDiag();
   D.push('dl', { tier: 'server', phase: 'done' });
   D.push('location', { lat: 1, lng: 2 });           // 不在白名单里的 kind
@@ -118,4 +118,28 @@ test('★ 内容字段只存本机：自动上报与手动导出两条离机路�
   ok(body.indexOf('用户说的原话') < 0 && body.indexOf('剩下') < 0 && body.indexOf('segments') < 0, '自动上报里还有原文内容：' + body);
   ok(/"text_len":6/.test(body), '自动上报没有留下长度：' + body);
   ok(/bt_diag_events/.test(ctx.__net[0].url), '上报地址不是信箱表');
+});
+
+test('★ mic 类：收白名单字段、拒 text/url（1.19.4 r3d）', () => {
+  const D = loadDiag();
+  D.push('mic', { phase: 'req', seq: 1, state: 'granted', text: '秘密', url: 'https://x' });
+  const e = D.all()[0];
+  ok(e && e.k === 'mic', 'mic 事件应被接收');
+  ok(e.f.phase === 'req' && e.f.seq === 1, '白名单字段丢失');
+  ok(!('text' in e.f) && !('url' in e.f), 'mic 事件混进了文本/URL');
+});
+
+test('★ MT_BUILD_SHA：exportText head 与 doUpload app_build 带上（1.19.4 r3d）', async () => {
+  const ctx = loadDiagCtx({ window: { MT_BUILD_SHA: 'abc123def456', MT_FLAVOR: 'intl' } });
+  // loadDiagCtx merges into window after create — ensure DiagLog sees it
+  ctx.window.MT_BUILD_SHA = 'abc123def456';
+  ctx.window.MT_BACKEND = { url: 'https://backend.example', anonKey: 'anon' };
+  const D = ctx.DiagLog;
+  D.push('probe', { kind: 'stt', ok: true });
+  const exp = D.exportText();
+  ok(/"build_sha": "abc123def456"/.test(exp) || /"build_sha":"abc123def456"/.test(exp), 'exportText 缺 build_sha：' + exp.slice(0, 200));
+  await D.doUpload();
+  ok(ctx.__net.length === 1, 'doUpload 未发请求');
+  const body = String(ctx.__net[0].body || '');
+  ok(/"app_build":"abc123def456"/.test(body), 'doUpload 缺 app_build：' + body.slice(0, 300));
 });

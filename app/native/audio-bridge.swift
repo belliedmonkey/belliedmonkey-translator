@@ -132,9 +132,15 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         case "now-playing-artwork": updateArtwork(body)
         case "playing-state":  updatePlaybackState(body)
         case "record-mode":    setRecordMode(body)   // 实时听译（§9.6）/ 字幕档（§9.8 协议补充决定 2、16）
-        case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
-                                        deliverPcm: (body["deliver"] as? String) != "level",
-                                        system: (body["source"] as? String) == "system")
+        case "mic-start":
+            let micSeq: Int
+            if let i = body["seq"] as? Int { micSeq = i }
+            else if let d = body["seq"] as? Double { micSeq = Int(d) }
+            else { micSeq = 0 }
+            micStart(rate: (body["rate"] as? Double) ?? 24000,
+                     deliverPcm: (body["deliver"] as? String) != "level",
+                     system: (body["source"] as? String) == "system",
+                     seq: micSeq)
         case "mic-stop":       micStop()
         // 实时字幕（learning-design §9.8）。Mac：系统声音 + 悬浮字幕条。iOS 在一期（画中画字幕窗）落地之前
         // 不回 caps-probe ⇒ 页面按老壳处理、iPhone 上入口不显示（§9.8 协议补充决定 3、11）。
@@ -173,6 +179,8 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     /// 每秒十几块 base64 的主线程往返在云端路是必需的（socket 在 JS），本机路里是纯浪费 —— 音频
     /// 留在原生，由 micSink 直接交给识别器。
     private var micDeliverPcm = true
+    /// 1.19.4 r3d：JS mic-start 带来的 seq，所有 mic-state 回带；停麦不清，便于迟到回调对 stale。
+    private var micJsSeq: Int = 0
     private var lastLevelAt: TimeInterval = 0
     /// 朗读期间静音输入（learning-design §9.6 回声段，2026-09-13 用户裁定「App 自己朗读的声音不能再被自己听到并翻译」）。
     /// speech-bridge 在出声时置 true、念完置 false（之后再静 350 ms 吃掉尾音与房间混响）。tap 照常在跑，
@@ -236,8 +244,9 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         return c
     }
 
-    private func micStart(rate: Double, deliverPcm: Bool = true, system: Bool = false) {
+    private func micStart(rate: Double, deliverPcm: Bool = true, system: Bool = false, seq: Int = 0) {
         micStop()
+        micJsSeq = seq
         micRate = rate
         micDeliverPcm = deliverPcm
         if system {
@@ -1018,6 +1027,11 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
     }
 
     private func emit(_ payload: [String: Any]) {
+        var payload = payload
+        // 1.19.4 r3d：mic-state 一律回带 JS seq（未显式带时补上）
+        if (payload["type"] as? String) == "mic-state", payload["seq"] == nil {
+            payload["seq"] = micJsSeq
+        }
         guard let webView = self.webView,
               let data = try? JSONSerialization.data(withJSONObject: payload),
               let json = String(data: data, encoding: .utf8) else { return }

@@ -97,6 +97,7 @@ const listenModel = (() => {
   // start()/leave() 重建。`segDegrade`：引擎不是通用对话模型（google/qwen_mt/翻译专用模型）
   // 或运行时连续两条非法 JSON ⇒ 退回旧串句器。
   let seg = null, segDegrade = false, segRoute = 'legacy';
+  let micSeq = 0;   // 1.19.4 r3d：mic-start 代际；原生回带，过期记 stale
   let finalGate = null;   // 当前 socket 的「低置信句头闸」（收口时要放行扣住的那一小片）
   let xferGate = null;    // R14 ②：中文路 → 英文路的候补转交计时器（每场一个，随 socket 生命周期）
   // 诊断计数（只有原因/计数；内容字段只在本机，见 diag-log 的 scrub）。
@@ -645,6 +646,20 @@ const listenModel = (() => {
   function classifyEchoAt(text, base, src) {
     return C.classifyEcho(String(text || ''), { base, at: now(), echo, src: src || '' });
   }
+  // 1.19.4 r3d：降级/额度停机 —— 先标 segDegrade 再冲半句；钩子给 _test1194 复用同一闭包。
+  function handleSegDegrade(why) {
+    segDegrade = true;
+    flushAllPartials('degrade');
+    try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: seg ? seg.state().calls : 0, json_bad: 1 }); } catch (_) {}
+  }
+  function handleSegQuota(err) {
+    segDegrade = true;                 // 先标降级
+    flushAllPartials('authstop');      // 再冲半句（走 cutter / segFallback）
+    const e = err && (err.grant || err.halt) ? err : { grant: true, code: 'credit_exhausted', status: 402 };
+    tmFail(e);
+    quotaHalt(e);
+    try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: 'quota', calls: seg ? seg.state().calls : 0, json_bad: 0 }); } catch (_) {}
+  }
   function makeSeg(myGen) {
     const r = C.makeSegmentRouter({
       classifyEcho: (text, lc) => classifyEchoAt(text, C.baseCode(lc), 'closed'),
@@ -653,21 +668,11 @@ const listenModel = (() => {
       emit: (list, meta) => { if (myGen !== gen) return; segEmit(list, meta); },
       fallback: (text, meta) => { if (myGen !== gen) return; segFallback(text, meta); },
       ctx: segCtx,
-      onDegrade: (why) => {
-        segDegrade = true;
-        flushAllPartials('degrade');
-        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: r.state().calls, json_bad: 1 }); } catch (_) {}
-      },
+      onDegrade: (why) => handleSegDegrade(why),
       // 额度用完 / key 被拒：原文已由路由器交出。整场停，不再交旧路（#590 K）。
       // 文案是已有的 haltMessage，不是新的一句。
-      onQuota: (err) => {
-        flushAllPartials('authstop');
-        segDegrade = true;
-        const e = err && (err.grant || err.halt) ? err : { grant: true, code: 'credit_exhausted', status: 402 };
-        tmFail(e);
-        quotaHalt(e);
-        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: 'quota', calls: r.state().calls, json_bad: 0 }); } catch (_) {}
-      },
+      // 1.19.4 r3d：先 segDegrade 再 flush（半句走 cutter/fallback，不进失效路由器）。
+      onQuota: (err) => handleSegQuota(err),
       // 方案要求：清理（dispose）只能在 settle 之后；账本不为空 ⇒ 漏了一个出口 —— 记诊断。
       onFail: (reason, extra) => diagBump('fail', reason, extra),
       onDiag: (kind, extra) => routerDiag(kind, extra),   // 方案 1/2（R12）：rescue:replace / emit:trim-dup
@@ -837,7 +842,10 @@ const listenModel = (() => {
       return false;
     }
     const useSeg = !!(segRoute === 'model' && seg && !segDegrade && sock);
+    const src = o.src || o.why || '';
+    // 1.19.4 r3d：authstop/degrade 必须自成一行 —— 勿进 cutter 缓冲（可能迟迟不切句）
     if (useSeg) seg.feed(locale, t, Object.assign({ rescued: true }, o));
+    else if (src === 'authstop' || src === 'degrade') segFallback(t, { locale, orig: t, why: src });
     else if (cutter) cutter.add(locale, t);
     else segFallback(t, { locale, orig: t });
     return true;
@@ -854,6 +862,25 @@ const listenModel = (() => {
       if (p.text && LETTER_RE.test(p.text) && !p.leadUsed) {
         const text = dedupePartialEmit(p.text);
         if (text) {
+          // 1.19.4 r3d：authstop/degrade 补行前与已上屏 rows 比对 —— 重复/前缀只记 *_dup（零内容）
+          if (reasonKey === 'authstop' || reasonKey === 'degrade') {
+            let isDup = false;
+            const rows = (session && session.rows) || [];
+            for (let i = 0; i < rows.length; i++) {
+              const rt = rows[i] && rows[i].text;
+              if (!rt) continue;
+              const su = C.sameUtterance(text, rt);
+              if (su && su.same) { isDup = true; break; }
+              const a = C.normDupText(text), b = C.normDupText(rt);
+              if (a && b && (b.indexOf(a) === 0 || a.indexOf(b) === 0)) { isDup = true; break; }
+            }
+            if (isDup) {
+              diagBump('rescue', reasonKey === 'degrade' ? 'degrade_dup' : 'authstop_dup', { len: text.length });
+              markDone();
+              refreshPartial();
+              return;
+            }
+          }
           const fed = feedPartialRescue(locale, text, { src: reasonKey || 'unknown' });
           if (fed) {
             if (reasonKey === 'timeout' || reasonKey === 'socket') diagBump('final', 'from-partial', { text, why: reasonKey });
@@ -2024,13 +2051,24 @@ const listenModel = (() => {
     // 本机路：PCM 留在原生侧喂识别器，过桥的只有电平（§9.6.1）；采样率只给原生建 tap 用
     const rate = 16000;
     if (bridged()) {
-      const h = { onLevel, onState: onMicState, deliver: 'level' };
+      micSeq += 1;
+      const seq = micSeq;
+      const h = { onLevel, onState: onMicState, deliver: 'level', seq };
       if (session && session.mode === 'subtitle') {
         // 声音来源只从原生报的能力来（§9.8）：既没有 system:'ok'、也不是 iOS 的 'unsupported' ⇒ 不开始
         const src = C.captureSource(NativeAudio.audioCaps());
         if (!src) { halt('os', ''); return false; }
         h.source = src;
       }
+      try {
+        if (typeof DiagLog !== 'undefined' && DiagLog.push) {
+          DiagLog.push('mic', {
+            phase: 'req', source: h.source || 'mic', bridged: 1, seq,
+            sess: session && session.id != null ? String(session.id).slice(0, 12) : '',
+            ms: startedAt ? Math.max(0, now() - startedAt) : 0,
+          });
+        }
+      } catch (_) {}
       if (NativeAudio.micStart(rate, h) === false && h.source) { halt('os', ''); return false; }
       return true;
     }
@@ -2353,7 +2391,25 @@ const listenModel = (() => {
     // 记「这门被用于听译」——满员时默认让出「最久没用」的那门按它算（改稿 H）。
     try { noteLangsUsed([cfg && videoBase(), cfg && cfg.otherLang]); } catch (_) {}
     startedAt = now();
+    try {
+      if (typeof DiagLog !== 'undefined' && DiagLog.push) {
+        DiagLog.push('mic', {
+          phase: 'ka_begin', seq: micSeq, bridged: bridged() ? 1 : 0,
+          sess: session && session.id != null ? String(session.id).slice(0, 12) : '', ms: 0,
+        });
+      }
+    } catch (_) {}
+    const kaAt = now();
     await keepAliveOn();
+    try {
+      if (typeof DiagLog !== 'undefined' && DiagLog.push) {
+        DiagLog.push('mic', {
+          phase: 'ka_done', seq: micSeq, bridged: bridged() ? 1 : 0,
+          sess: session && session.id != null ? String(session.id).slice(0, 12) : '',
+          ms: Math.max(0, now() - kaAt),
+        });
+      }
+    } catch (_) {}
     if (phase !== 'preparing') return;   // 等保活的这一拍里被停掉了
     const ok = await micStart();
     if (!ok) return;
@@ -3438,6 +3494,18 @@ const listenModel = (() => {
       echoSpeaking: (text, lang) => echo.speaking(text, now(), lang || 'en'),
       echoSpoke: (at) => echo.spoke(at == null ? now() : at),
       clockNow: () => now(),
+      // 1.19.4 r3d：与 makeSeg 同一闭包的额度/降级钩；假 feed 间谍测 onQuota 后不再走 seg
+      triggerQuota: (err) => handleSegQuota(err),
+      triggerDegrade: (why) => handleSegDegrade(why),
+      segDegrade: () => segDegrade,
+      spySegFeed: () => {
+        const feeds = [];
+        if (seg && typeof seg.feed === 'function') {
+          const orig = seg.feed.bind(seg);
+          seg.feed = (locale, text, opts) => { feeds.push({ locale, text, opts }); return orig(locale, text, opts); };
+        }
+        return feeds;
+      },
     }),
   };
 })();

@@ -281,6 +281,10 @@ grep -rhoE 'BelliedMonkey[^"]*\.xcarchive|"cfBundleVersion" : "[0-9]+"' "$LATEST
 第二条命令能确认**上传的到底是哪个归档、哪个 build 号**——Organizer 里同时躺着好几个
 版本相近的归档时，这是唯一能证明「传的是修好的那个」的证据。
 
+## 对包：Script.js 的 MT_BUILD_SHA（1.19.4 r3d）
+
+出 TF / 验收前打开包内 `Script.js` 头（或设置页导出诊断的 `build_sha`），须等于发布提交的 `git rev-parse --short=12 <commit>`（脏树会带 `-dirty`）。**不要**用 sha 覆盖商店 `CURRENT_PROJECT_VERSION`。
+
 ## Gate B 的缺口：逃生口挡得住 .zip，挡不住 iOS 归档
 
 `MT_SYNC_E2E=1` 的设计是「能测，但发不出去」——它把 `.zip` withhold 掉。**但 iOS 的
