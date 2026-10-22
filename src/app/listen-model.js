@@ -2904,9 +2904,13 @@ const listenModel = (() => {
   }
   let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看；'tts' 那一类会另出一次可见提示）
   let ttsHinted = false;   // 「朗读引擎不可用」的提示每场只说一次（autoSpeak）
+  function speakSkipDiag(why) {
+    try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('speak_skip', { why: String(why || '') }); } catch (_) {}
+  }
   function autoSpeak(row) {
     autoSkip = !cfg ? 'cfg' : !cfg.autoSpeak ? 'off' : autoSpeakOff ? 'fuse' : !ttsReady() ? 'tts' : !row || !row.tr ? 'row' : '';
     if (autoSkip) {
+      speakSkipDiag(autoSkip);
       // #565 六轮「TTS 的问题不许静默」漏了这一类：引擎不可用（存了注册表解析不了的 id /
       // 没配）不会自愈、用户等到的是一整场没有声音。第一句就说，指到设置去；只说一次。
       // （2026-10-06 中国版中泰全哑真机：这里曾是零提示的哑跳。）
@@ -2917,15 +2921,14 @@ const listenModel = (() => {
       return;
     }
     // PiP 浮窗 + Safari 外放：自动朗读不入队（TTS setActive 会打断源视频，#592 #83）。
-    if (session && session.mode === 'subtitle' && pipWindow === 'floating') { autoSkip = 'pip'; return; }
-    // 回声第二道闸：这段话我们刚读过 ⇒ 不再读第二遍。漏过第一层的回声，环在这里断掉。
-    if (sq.spokenRecently(row.tr, now())) { autoSkip = 'recent'; return; }
+    if (session && session.mode === 'subtitle' && pipWindow === 'floating') { autoSkip = 'pip'; speakSkipDiag('pip'); return; }
     // 保险丝：任何会自己往前跑的东西都要有一个人能按下的停止。
     const at = now();
     autoAt = autoAt.filter((x) => at - x < 10000);
     autoAt.push(at);
     if (autoAt.length > 6) {
       autoSpeakOff = true; sq.clear(); autoAt = [];
+      speakSkipDiag('fuse');
       note(t('listen_autospeak_echo', '自动朗读暂停 · 检测到回声循环 — 调低音量或用耳机后可重开'), false);
       canvas.view('history');
       return;
@@ -3505,6 +3508,15 @@ const listenModel = (() => {
           seg.feed = (locale, text, opts) => { feeds.push({ locale, text, opts }); return orig(locale, text, opts); };
         }
         return feeds;
+      },
+      invokeAutoSpeak: (row) => autoSpeak(row),
+      seedRow: (spec) => {
+        if (!session || !cfg) return null;
+        const row = C.addFinal(session, (spec && spec.text) || '', now(), cfg, routeDeps);
+        if (!row) return null;
+        if (spec && spec.raw != null) row.raw = spec.raw;
+        if (spec && spec.tr != null) row.tr = spec.tr;
+        return row;
       },
     }),
   };

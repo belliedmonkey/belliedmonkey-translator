@@ -1074,6 +1074,172 @@ describe('ListenCore — 实时字幕条字号三档（§9.8 协议补充决定 
   });
 });
 
+// ── BM-024：去掉 autoSpeak 的 spokenRecently 闸，保留 fuse；speak_skip 诊断 ────────
+let BM024_CLK_BASE = 1_800_000_000_000;
+function bm024FakeClock() {
+  let t = (BM024_CLK_BASE += 1_000_000_000), seq = 1;
+  const timers = new Map();
+  const flush = async () => { for (let i = 0; i < 60; i++) await Promise.resolve(); };
+  return {
+    now: () => t,
+    setT: (fn, ms) => { const id = seq++; timers.set(id, { fn, at: t + (Number(ms) || 0) }); return id; },
+    clearT: (id) => { timers.delete(id); },
+    async runTo(ms) {
+      const end = t + ms;
+      for (;;) {
+        let n = null;
+        for (const [id, x] of timers) if (x.at <= end && (!n || x.at < n.x.at)) n = { id, x };
+        if (!n) break;
+        timers.delete(n.id); t = Math.max(t, n.x.at); n.x.fn(); await flush();
+      }
+      t = end; await flush();
+    },
+  };
+}
+function bm024MkEl() {
+  return { hidden: false, disabled: false, textContent: '', value: '', style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    addEventListener() {}, setAttribute() {}, removeAttribute() {}, appendChild() {},
+    querySelector() { return bm024MkEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
+}
+function bm024Sandbox(store, opts) {
+  const o = opts || {};
+  const st = Object.assign({ listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: true, listenCapture: false }, store || {});
+  const captured = { h: null, onEvent: null };
+  const clk = bm024FakeClock();
+  const diagLog = [];
+  const speakCalls = [];
+  const NativeSpeech = {
+    available: () => true,
+    probeResult: () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
+    probe: async () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
+    ensureAssets: async () => ({ ok: true }), ensureLid: async () => ({ ok: true }), ensureVad: async () => ({ ok: true }),
+    lidPause: () => {}, diagAudio: () => {}, onLid: () => () => {},
+    sttOpen: (x) => { captured.onEvent = x.onEvent; return { sendPcm: () => true, close() {}, cut() {} }; },
+  };
+  const NativeAudio = {
+    available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok' }),
+    micStart: (rate, h) => { captured.h = h; return true; }, micStop: () => {}, recordMode: () => {},
+    sessionStart: () => {}, sessionStop: () => {}, onEvent: () => {}, onTick: () => {},
+    playingState: () => {}, nowPlaying: () => {},
+    subtitleShow: () => {}, subtitleState: () => {}, subtitleConfig: () => {}, subtitleHide: () => {}, subtitleFloat: () => {},
+  };
+  const tr = { provider: 'deepseek', apiKey: 'k', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' };
+  const sb = {
+    window: { addEventListener() {}, removeEventListener() {}, AudioContext: function () {}, webkitAudioContext: function () {} },
+    document: { getElementById: () => bm024MkEl(), querySelector: () => bm024MkEl(), querySelectorAll: () => [], addEventListener() {}, createElement: () => bm024MkEl(), body: bm024MkEl(), documentElement: bm024MkEl(), hidden: false },
+    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test', mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'), atob: (s) => Buffer.from(s, 'base64').toString('binary'),
+    chrome: { storage: { local: {
+      get: (keys, cb) => { if (typeof keys === 'string') cb(Object.assign({}, st, keys in st ? { [keys]: st[keys] } : {})); else cb(Object.assign({}, st)); },
+      set: (o2, cb) => { Object.assign(st, o2); if (cb) cb(); },
+    }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
+    ListenCore: C, NativeAudio, NativeSpeech,
+    DiagLog: { push: (kind, payload) => diagLog.push({ kind, payload }) },
+    MTTelemetry: { track: () => {}, once: () => {} }, MTFeedback: {},
+    LearnNotes: { resolveConfig: () => tr, shouldCapture: () => false, langAllowed: () => true },
+    LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin') },
+    LearnDialog: { confirm: async () => true },
+    LearnTTS: {
+      engine: () => ({ type: 'browser' }),
+      speak: async (text) => { speakCalls.push(String(text)); return o.hangSpeak ? new Promise(() => {}) : { ok: true }; },
+      stop: () => {}, reason: () => '',
+    },
+    TranslationAPI: {
+      resolveProvider: () => 'deepseek',
+      listenPass: async (p) => {
+        const b = String((p && p.user) || '').split('待处理文本：').pop().split('\n\n是否强制收尾')[0].trim();
+        return JSON.stringify({ segments: [{ source: b, translation: o.trReply || '五周可以。' }], remainder: '' });
+      },
+      translate: async () => o.trReply || '五周可以。',
+    },
+    EngineState: { byId: () => ({ id: 'deepseek', type: 'chat-compat', defaultModel: 'deepseek-chat' }) },
+    WireFormat: { formatFor: () => 'chat-compat', resolveEndpoint: () => 'https://api.deepseek.com/chat/completions', translationModelName: () => false },
+    Date: { now: () => clk.now() },
+    setTimeout: (fn, ms) => clk.setT(fn, ms), clearTimeout: (id) => clk.clearT(id),
+    setInterval: (fn, ms) => clk.setT(fn, ms), clearInterval: (id) => clk.clearT(id),
+    console, URL,
+  };
+  return { sb, captured, clk, diagLog, speakCalls };
+}
+async function bm024OpenConv(opts) {
+  const { sb, captured, clk, diagLog, speakCalls } = bm024Sandbox({}, opts);
+  const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+  const A = ctx.AppListen;
+  A.open('conv');
+  await clk.runTo(0);
+  A.setAutoSpeak(true);
+  ok(A.pttToggle('other'), 'conv 开麦');
+  await clk.runTo(0);
+  if (captured.h && captured.h.onState) captured.h.onState('granted', '');
+  await clk.runTo(8000);
+  ok(A._debug().id, 'session 未建立');
+  return { A, captured, clk, diagLog, speakCalls, t1194: () => A._test1194() };
+}
+
+describe('BM-024 — autoSpeak 去掉 60s spokenRecently 闸', () => {
+  test('autoSpeak 不再调用 spokenRecently（noteSpoken 仍在 speakPump）', () => {
+    const fn = MODEL.slice(MODEL.indexOf('function autoSpeak(row)'));
+    const body = fn.slice(0, fn.indexOf('\n  function speakNow'));
+    ok(!/spokenRecently/.test(body), 'autoSpeak 里仍残留 spokenRecently 闸');
+    ok(/sq\.noteSpoken\(job\.text/.test(MODEL), 'speakPump 仍登记 noteSpoken');
+  });
+
+  test('同一句译文 60 秒内两次 autoSpeak ⇒ 两次入队（朗读挂起时不合并）', async () => {
+    const { A, clk, t1194 } = await bm024OpenConv({ hangSpeak: true });
+    const row = { rid: 42, tr: '从付定金起，我们的交期大约是六周。', who: 'them' };
+    t1194().invokeAutoSpeak(row);
+    await clk.runTo(0);
+    eq(A._debug().speakQueue, 0, '第一句已在泵里朗读，队列为空');
+    t1194().invokeAutoSpeak(row);
+    await clk.runTo(0);
+    eq(A._debug().speakQueue, 1, '60s 内同句仍应再入队一次（spokenRecently 闸已撤）');
+    try { await A.leave(); } catch (_) {}
+  });
+
+  test('10s 内 >6 次 autoSpeak ⇒ 保险丝 trip，后续 skip fuse', async () => {
+    const { A, clk, t1194, diagLog } = await bm024OpenConv({});
+    for (let i = 0; i < 7; i++) t1194().invokeAutoSpeak({ rid: i + 1, tr: '句 ' + i, who: 'them' });
+    await clk.runTo(0);
+    ok(A._debug().autoSpeakOff, '第 7 次应 trip fuse');
+    const skips = diagLog.filter((e) => e.kind === 'speak_skip');
+    ok(skips.some((e) => e.payload && e.payload.why === 'fuse'), 'fuse trip 应记 speak_skip');
+    t1194().invokeAutoSpeak({ rid: 99, tr: 'fuse 后', who: 'them' });
+    eq(A._debug().autoSkip, 'fuse');
+    try { await A.leave(); } catch (_) {}
+  });
+
+  test('↔ 换边重译（quiet）不触发 autoSpeak', async () => {
+    ok(/retranslate\(row,\s*true\)/.test(MODEL), 'flipRow 仍走 quiet 重译');
+    const passBody = MODEL.slice(MODEL.indexOf('async function passRow'), MODEL.indexOf('function retranslate'));
+    const trBody = MODEL.slice(MODEL.indexOf('async function translateRow'), MODEL.indexOf('async function passRow'));
+    ok(/if \(row\.tr\) \{ maybeWrite\(row\); if \(!quiet\) autoSpeak\(row\); \}/.test(passBody), 'passRow 的 quiet 仍挡 autoSpeak');
+    ok(/if \(row\.tr\) \{ maybeWrite\(row\); if \(!quiet\) autoSpeak\(row\); \}/.test(trBody), 'translateRow 的 quiet 仍挡 autoSpeak');
+    const { A, clk, t1194, speakCalls } = await bm024OpenConv({ hangSpeak: true, trReply: 'Five weeks works.' });
+    t1194().invokeAutoSpeak({ rid: 1, tr: '五周可以。', who: 'them' });
+    await clk.runTo(0);
+    const before = speakCalls.length;
+    const row = t1194().seedRow({ text: 'Five weeks works.', raw: 'Five weeks works.', tr: '五周可以。' });
+    ok(row, 'seedRow');
+    await A.flipRow(row);
+    await clk.runTo(8000);
+    eq(speakCalls.length, before, 'flip 触发的 quiet 重译不应再 speak');
+    try { await A.leave(); } catch (_) {}
+  });
+
+  test('speak_skip 诊断只带 why，不带用户内容', async () => {
+    const { A, clk, t1194, diagLog } = await bm024OpenConv({});
+    A.setAutoSpeak(false);
+    t1194().invokeAutoSpeak({ rid: 1, tr: '敏感译文不应出现在诊断里', who: 'them' });
+    const hit = diagLog.find((e) => e.kind === 'speak_skip');
+    ok(hit, '应有 speak_skip');
+    deepEq(Object.keys(hit.payload).sort(), ['why']);
+    eq(hit.payload.why, 'off');
+    ok(!/敏感译文/.test(JSON.stringify(hit)), '诊断里不得带译文');
+    try { await A.leave(); } catch (_) {}
+  });
+});
+
 describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
   // PR7b：源从 extension/learn/sources-view.js（IIFE，模块求值期读 MT_PALETTE 拼样式，
   // 所以要先垫）换到 src/shared/sources-view.js —— 纯逻辑层不再读调色板，垫片随之退役。
