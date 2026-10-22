@@ -451,12 +451,13 @@ describe('R14 ⑤ — 回放 /tmp/r13 原始事件', () => {
       eq(dupRuns(enRows(res.emittedRows), 6).length, 0, '相邻行重复：' + JSON.stringify(rows));
     });
   }
-  test('★ yes-auto-7：英文路 `Yeah.` 不覆盖中文候补 `Yes` ⇒ 两行、不重复', async () => {
+  test('★ yes-auto-7：英文路 `Yeah.` 已开口 ⇒ 中文路 `Yes` 句中垃圾丢弃，仅 1 行', async () => {
     const res = await replay('yes-auto-7');
     const rows = enRows(res.emittedRows);
-    eq(rows.length, 2, 'Yeah 与转交 Yes 各一行：' + JSON.stringify(rows));
-    deepEq(rows, ['Yeah.', 'Yes.']);
-    ok(res.diags.some((d) => d.kind === 'intake:xfer'), 'Yes 应经转交：' + JSON.stringify(res.diags.map((d) => d.kind)));
+    eq(rows.length, 1, '仅 Yeah. 一行：' + JSON.stringify(rows));
+    deepEq(rows, ['Yeah.']);
+    ok(res.diags.some((d) => d.kind === 'intake:xfer-drop' && d.extra && d.extra.why === 'inside-en'),
+      'Yes 应 inside-en 丢弃：' + JSON.stringify(res.diags.filter((d) => d.kind === 'intake:xfer-drop')));
     eq(dupRuns(rows, 6).length, 0, '相邻行重复：' + JSON.stringify(rows));
   });
   test('★ en-auto-1：模型把 remainder 补回整句 ⇒ 一次往返出行，且不与上一行重复', async () => {
@@ -511,23 +512,22 @@ describe('R14 ⑥ — 中文路 → 英文路候补转交（纯逻辑）', () =>
     eq(C.xferClean('Yes，please！'), 'Yes, please!');
     eq(C.xferClean('是的。'), '');
   });
-  test('★ makeTransferGate：英文路有带字母结果就丢候补；到点/停止收音则转交', async () => {
+  test('★ makeTransferGate：句首保留 / 句中 inside-en 或 covered 丢弃；到点转交', async () => {
     const clk = fakeClock(); const got = []; const drops = [];
     const g = C.makeTransferGate({ now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, waitMs: 1500,
       canXfer: () => true,
       onXfer: (text) => got.push(text),
-      onDiag: (k, e) => { if (k === 'intake:xfer-drop') drops.push(e && e.text); } });
+      onDiag: (k, e) => { if (k === 'intake:xfer-drop') drops.push(e); } });
     // 情形一：仅 noteEnLetter（无样本）不再挡候补
     g.noteEnLetter();
-    eq(g.offer({ text: 'Yes.', locale: 'en-US', t0: 1000, t1: 1200 }), true, '无覆盖样本 ⇒ 仍可候补');
+    eq(g.offer({ text: 'Yes.', locale: 'en-US', t0: 1000, t1: 1200 }), true, '无英文样本 ⇒ 仍可候补');
     eq(drops.length, 0);
     g.cancel();
-    // 情形二：等待期间英文路来**覆盖**同一区间的结果 ⇒ 丢候补
+    // 情形二：英文已开口、候补落在句中 ⇒ inside-en 丢弃
     await clk.advance(1600);
-    eq(g.offer({ text: 'Yes.', locale: 'en-US', t0: 2000, t1: 2200 }), true);
-    eq(g.pending(), true);
-    g.noteEnSample({ text: 'Yes.', t0: 2000, t1: 2200 });
-    eq(g.pending(), false, '英文路覆盖同一词 ⇒ 候补作废');
+    g.noteEnSample({ text: 'Yes please.', t0: 2000, t1: 2800 });
+    eq(g.offer({ text: 'please', locale: 'en-US', t0: 2400, t1: 2600 }), false, '句中候补拒绝');
+    eq(g.pending(), false);
     await clk.advance(1600);
     eq(got.length, 0, '不该转交：' + JSON.stringify(got));
     // 情形三：英文路一直没结果 ⇒ 到点转交
@@ -539,7 +539,7 @@ describe('R14 ⑥ — 中文路 → 英文路候补转交（纯逻辑）', () =>
     eq(g.stop(), true);
     deepEq(got, ['Yes.', 'Yes please.']);
   });
-  test('★ BM-025 端到端：英文路已覆盖同区间 ⇒ zh en-letter 丢弃且不重复行', async () => {
+  test('★ BM-025 端到端：英文句中 zh 候补 inside-en ⇒ 丢弃且不重复行', async () => {
     const clk = fakeClock();
     const enRowsOut = [];
     const seg = C.makeSegmentRouter({
@@ -571,7 +571,7 @@ describe('R14 ⑥ — 中文路 → 英文路候补转交（纯逻辑）', () =>
     const dec = C.intakeDecide({ base: 'zh-CN', lid: 'en', text: 'Please', pttSwitch: null, playing: new Set(), now: clk.now(), isEcho: () => false });
     eq(dec.admit, false);
     eq(dec.xfer, true);
-    eq(xfer.offer({ text: 'Please.', locale: 'en-US', t0: 1100, t1: 1300 }), false, '英文已覆盖同区间 ⇒ 拒绝候补');
+    eq(xfer.offer({ text: 'copies', locale: 'en-US', t0: 1800, t1: 2000 }), false, '英文句中 ⇒ 拒绝候补');
     eq(xfer.pending(), false, '无残留候补');
     await clk.advance(2000);
     await settleTick();

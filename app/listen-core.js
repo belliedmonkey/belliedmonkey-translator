@@ -814,7 +814,7 @@ var ListenCore = (() => {
     function releaseLine(locale, text, meta, why) {
       const t = head(text);
       if (!HAS_LETTER.test(t)) { diag('gate:drop', text, 'punct'); return false; }
-      noteLastFormal(locale, t, meta && meta.t1, !!(meta && meta.rescued));
+      noteLastFormal(locale, t, meta && meta.t0, meta && meta.t1, !!(meta && meta.rescued));
       if (d.onRelease) { try { d.onRelease(locale, t, meta || {}); } catch (_) {} }
       diag('gate:release', t, why);
       return true;
@@ -839,7 +839,7 @@ var ListenCore = (() => {
       const t = head(h.text);
       if (!HAS_LETTER.test(t)) { diag('gate:drop', h.text, 'punct'); return ''; }
       if (how === 'release') {
-        if (fragCoveredByLastFormal(locale, t)) diag('gate:drop', t, 'covered');
+        if (fragCoveredByLastFormal(locale, t, h.t0, h.t1)) diag('gate:drop', t, 'covered');
         else releaseLine(locale, h.text, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, why || 'release');
       } else diag('gate:drop', t, why || 'drop');
       return t;
@@ -878,23 +878,43 @@ var ListenCore = (() => {
     const OTHER_KEEP_MS = 5000, OTHER_MAX = 8;
     const otherAdm = [];   // { base, t0, t1, at }
     const lastFormal = {}; // R14 ③：locale → { text, t1 } 上一条正式 final（临时稿 dup-prev 的比对对象）
-    function noteLastFormal(locale, text, t1, rescued) {
+    function noteLastFormal(locale, text, t0, t1, rescued) {
       if (rescued || !HAS_LETTER.test(head(text))) return;
-      const t1n = Number(t1);
-      lastFormal[locale] = { text: head(text), t1: Number.isFinite(t1n) ? t1n : null };
+      const t0n = Number(t0), t1n = Number(t1);
+      lastFormal[locale] = {
+        text: head(text),
+        t0: Number.isFinite(t0n) ? t0n : null,
+        t1: Number.isFinite(t1n) ? t1n : null,
+      };
     }
-    function fragCoveredByFormal(hd, formalText) {
+    function gateWordSeq(t) {
+      return (String(head(t) || '').match(/[A-Za-z0-9']+/g) || []).map((w) => w.toLowerCase());
+    }
+    function wordsContiguousSubseq(fragW, formalW) {
+      if (!fragW.length || !formalW.length || fragW.length > formalW.length) return false;
+      outer: for (let i = 0; i <= formalW.length - fragW.length; i++) {
+        for (let j = 0; j < fragW.length; j++) {
+          if (formalW[i + j] !== fragW[j]) continue outer;
+        }
+        return true;
+      }
+      return false;
+    }
+    function fragCoveredByFormal(hd, formalText, hdT0, hdT1, formalT0, formalT1) {
       if (!hd || !formalText) return false;
-      const nh = normDupText(hd), nf = normDupText(formalText);
-      if (nh && nf && nf.indexOf(nh) >= 0) return true;
+      if (!(Number.isFinite(hdT0) && Number.isFinite(hdT1) && Number.isFinite(formalT0) && Number.isFinite(formalT1))) return false;
+      if (!overlapTs(hdT0, hdT1, formalT0, formalT1)) return false;
+      const fw = gateWordSeq(hd), formW = gateWordSeq(formalText);
+      if (wordsContiguousSubseq(fw, formW)) return true;
       try { const su = sameUtterance(hd, formalText); if (su && su.same) return true; } catch (_) {}
       return false;
     }
-    function fragCoveredByLastFormal(locale, hd) {
+    function fragCoveredByLastFormal(locale, hd, hdT0, hdT1) {
       const lf = lastFormal[locale];
       if (!lf || !hd) return false;
-      const nh = normDupText(hd), nl = normDupText(lf.text);
-      return !!(nh && nl && nl.indexOf(nh) >= 0);
+      if (!(Number.isFinite(hdT0) && Number.isFinite(hdT1) && Number.isFinite(lf.t0) && Number.isFinite(lf.t1))) return false;
+      if (!overlapTs(hdT0, hdT1, lf.t0, lf.t1)) return false;
+      return wordsContiguousSubseq(gateWordSeq(hd), gateWordSeq(lf.text));
     }
     const CJK_RE_G = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
     function hasCjk(s) { return CJK_RE_G.test(String(s || '')); }
@@ -994,7 +1014,7 @@ var ListenCore = (() => {
           const h = held[locale];
           const out = [];
           if (h) { clearHeldRecord(locale); releaseHeldParts(locale, h, 'no-ts'); }
-          if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); noteLastFormal(locale, text, t1, rescued); }
+          if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); noteLastFormal(locale, text, t0, t1, rescued); }
           return out;
         }
         // ③ 过了闸，或**长**的低置信拉丁片（没有中文重叠，已裁决放行）：放行。
@@ -1009,27 +1029,27 @@ var ListenCore = (() => {
             const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
             const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
             if (formalPass && !(own && !h.conflict)) {
-              if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
-              else if (fragCoveredByFormal(hd, text)) diag('gate:drop', hd, 'covered');
+              if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t0, h.t1, !!h.rescued); }
+              else if (fragCoveredByFormal(hd, text, h.t0, h.t1, t0, t1)) diag('gate:drop', hd, 'covered');
               else if (HAS_LETTER.test(hd)) releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, 'high-conf');
               else diag('gate:drop', h.text, 'punct');
             } else if (own && !h.conflict) {
               try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
               diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
-            } else if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
+            } else if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t0, h.t1, !!h.rescued); }
             else if (HAS_LETTER.test(hd)) {
               if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
               else releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, 'gap');
             } else diag('gate:drop', h.text, 'punct');
             if (outHeld.length) {
               const out = outHeld.slice();
-              if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
+              if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t0, t1, rescued); }
               if (!rescued) noteChain(locale, text, t1, embed);
               return out;
             }
           }
           const out = [];
-          if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
+          if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t0, t1, rescued); }
           if (!rescued) noteChain(locale, text, t1, embed);
           return out;
         }
@@ -1711,7 +1731,8 @@ var ListenCore = (() => {
     const now = d.now || (() => Date.now());
     const setT = d.setTimeout || setTimeout, clearT = d.clearTimeout || clearTimeout;
     const waitMs = d.waitMs || SEG_IDLE_MS;
-    const coverMs = d.coverMs || waitMs;   // BM-025：英文路 ±1.5s 内**覆盖**同一区间才丢候补
+    const coverMs = d.coverMs || waitMs;   // BM-025：英文路 ±1.5s 内区间交叠判据
+    const headSlackMs = d.headSlackMs || 300;   // 句首：候补 t1 不晚于英文 min(t0)+300ms
     let cand = null, lastEn = -Infinity;
     const enRecent = [];   // { text, t0, t1, at }
     const diag = (reason, extra) => { if (d.onDiag) { try { d.onDiag('intake:' + reason, extra); } catch (_) {} } };
@@ -1753,19 +1774,57 @@ var ListenCore = (() => {
       }
       return false;
     }
+    function enSamplesInWindow(c) {
+      const out = [];
+      for (let i = 0; i < enRecent.length; i++) {
+        if (timeNearCand(c, enRecent[i])) out.push(enRecent[i]);
+      }
+      return out;
+    }
+    function candIsSentenceHead(c, samples) {
+      const list = samples || enSamplesInWindow(c);
+      if (!list.length) return true;
+      const ct1 = Number.isFinite(c.t1) ? c.t1 : (Number.isFinite(c.t0) ? c.t0 : NaN);
+      let minEnT0 = Infinity, anyEnTs = false;
+      for (const s of list) {
+        const et0 = s && Number.isFinite(s.t0) ? s.t0 : NaN;
+        if (Number.isFinite(et0)) { anyEnTs = true; if (et0 < minEnT0) minEnT0 = et0; }
+      }
+      if (Number.isFinite(ct1) && anyEnTs) return ct1 <= minEnT0 + headSlackMs;
+      const cAt = Number.isFinite(c.at) ? c.at : (Number.isFinite(c.t0) ? c.t0 : now());
+      let minEnAt = Infinity;
+      for (const s of list) {
+        const at = s && Number.isFinite(s.at) ? s.at : lastEn;
+        if (Number.isFinite(at) && at < minEnAt) minEnAt = at;
+      }
+      if (!Number.isFinite(minEnAt)) return true;
+      return cAt <= minEnAt + headSlackMs;
+    }
+    function shouldDropInsideEn(c) {
+      const samples = enSamplesInWindow(c);
+      if (!samples.length) return false;
+      return !candIsSentenceHead(c, samples);
+    }
+    function xferShouldDrop(c, slot) {
+      if (candIsSentenceHead(c)) return false;
+      if (enCoversAny(c)) { diag('xfer-drop', { text: slot, rem: c.text, why: 'covered' }); return true; }
+      if (shouldDropInsideEn(c)) { diag('xfer-drop', { text: slot, rem: c.text, why: 'inside-en' }); return true; }
+      return false;
+    }
     function pushEnSample(o) {
       const text = String((o && o.text) || '');
       if (!/[A-Za-z]/.test(text)) return;
       lastEn = now();
       enRecent.push({ text, t0: o && o.t0, t1: o && o.t1, at: now() });
       if (enRecent.length > 12) enRecent.splice(0, enRecent.length - 12);
-      if (cand && enCoversCand(cand, enRecent[enRecent.length - 1])) {
-        clearCand();
-        diag('xfer-drop', { text: 'en-letter-now', why: 'covered' });
+      if (cand && !candIsSentenceHead(cand)) {
+        const s = enRecent[enRecent.length - 1];
+        if (enCoversCand(cand, s)) { clearCand(); diag('xfer-drop', { text: 'en-letter-now', why: 'covered' }); }
+        else if (shouldDropInsideEn(cand)) { clearCand(); diag('xfer-drop', { text: 'en-letter-now', why: 'inside-en' }); }
       }
     }
     function fire(c) {
-      if (enCoversAny(c)) { diag('xfer-drop', { text: 'en-letter', rem: c.text, why: 'covered' }); return false; }
+      if (xferShouldDrop(c, 'en-letter')) return false;
       if (d.canXfer && !d.canXfer(c)) { diag('xfer-drop', { text: 'not-ready', rem: c.text }); return false; }
       // 第 5 轮（提案 §3.0 0-b，L2）：转交**进目标通道之前**同样过一遍回声闸 —— 以前候补绕过了
       // intakeDecide 的 ①朗读中同语言硬闸 与 ③文字回声检查，于是「App 正读英文、中文路把读声收成
@@ -1799,9 +1858,9 @@ var ListenCore = (() => {
       noteEnSample(o) { pushEnSample(o); },
       offer(o) {
         if (cand) { clearCand(); diag('xfer-drop', { text: 'replaced' }); }
-        const c = { text: String((o && o.text) || ''), locale: (o && o.locale) || '', t0: o && o.t0, t1: o && o.t1 };
+        const c = { text: String((o && o.text) || ''), locale: (o && o.locale) || '', t0: o && o.t0, t1: o && o.t1, at: now() };
         if (!c.text) return false;
-        if (enCoversAny(c)) { diag('xfer-drop', { text: 'en-letter-pre', rem: c.text, why: 'covered' }); return false; }
+        if (xferShouldDrop(c, 'en-letter-pre')) return false;
         if (now() - lastEn <= waitMs && !enRecent.length) {
           diag('xfer-nodrop', { text: 'en-letter-pre', why: 'no-en-cover' });
         }
