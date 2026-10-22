@@ -34,6 +34,8 @@ var DiagLog = (() => {
     seg: ['reason', 'calls', 'json_bad', 'text', 'rem', 'raw', 'why'],
     // 麦克风零内容诊断（1.19.4 r3d，用户 2026-10-22 批）：保活/req/on/stale；禁止任何文本字段
     mic: ['phase', 'state', 'reason', 'source', 'bridged', 'seq', 'sess', 'ms'],
+    // 自动朗读未入队原因（BM-024）：只有 reason code，零内容
+    speak_skip: ['why'],
   };
 
   let buf = null;

@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { test, ok } = require('./harness');
+const { test, ok, eq } = require('./harness');
 
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 
@@ -118,6 +118,15 @@ test('★ 内容字段只存本机：自动上报与手动导出两条离机路�
   ok(body.indexOf('用户说的原话') < 0 && body.indexOf('剩下') < 0 && body.indexOf('segments') < 0, '自动上报里还有原文内容：' + body);
   ok(/"text_len":6/.test(body), '自动上报没有留下长度：' + body);
   ok(/bt_diag_events/.test(ctx.__net[0].url), '上报地址不是信箱表');
+});
+
+test('★ speak_skip：只收 why，拒用户内容字段（BM-024）', () => {
+  const D = loadDiag();
+  D.push('speak_skip', { why: 'fuse', tr: '秘密译文', text: '原文' });
+  const e = D.all()[0];
+  ok(e && e.k === 'speak_skip', 'speak_skip 应被 schema 接收');
+  eq(e.f.why, 'fuse');
+  ok(!('tr' in e.f) && !('text' in e.f), 'speak_skip 混进了文本字段');
 });
 
 test('★ mic 类：收白名单字段、拒 text/url（1.19.4 r3d）', () => {

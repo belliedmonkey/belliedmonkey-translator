@@ -7,6 +7,7 @@
 //   4. 静音计时与会话计时：30 s 没声音才算静，暂停不计入已听时长。
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
 const C = require('../app/listen-core.js');
 const LANGS = require('../build/langs.config.js');
@@ -1107,7 +1108,6 @@ function bm024Sandbox(store, opts) {
   const st = Object.assign({ listenOtherLang: 'en', listenMyLang: 'zh', listenAutoSpeak: true, listenCapture: false }, store || {});
   const captured = { h: null, onEvent: null };
   const clk = bm024FakeClock();
-  const diagLog = [];
   const speakCalls = [];
   const NativeSpeech = {
     available: () => true,
@@ -1135,7 +1135,6 @@ function bm024Sandbox(store, opts) {
       set: (o2, cb) => { Object.assign(st, o2); if (cb) cb(); },
     }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
     ListenCore: C, NativeAudio, NativeSpeech,
-    DiagLog: { push: (kind, payload) => diagLog.push({ kind, payload }) },
     MTTelemetry: { track: () => {}, once: () => {} }, MTFeedback: {},
     LearnNotes: { resolveConfig: () => tr, shouldCapture: () => false, langAllowed: () => true },
     LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin') },
@@ -1160,10 +1159,15 @@ function bm024Sandbox(store, opts) {
     setInterval: (fn, ms) => clk.setT(fn, ms), clearInterval: (id) => clk.clearT(id),
     console, URL,
   };
-  return { sb, captured, clk, diagLog, speakCalls };
+  vm.createContext(sb);
+  vm.runInContext(read('app/diag-log.js'), sb);
+  return { sb, captured, clk, speakCalls };
+}
+function bm024SpeakSkips(sb) {
+  return sb.DiagLog.all().filter((e) => e.k === 'speak_skip');
 }
 async function bm024OpenConv(opts) {
-  const { sb, captured, clk, diagLog, speakCalls } = bm024Sandbox({}, opts);
+  const { sb, captured, clk, speakCalls } = bm024Sandbox({}, opts);
   const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
   const A = ctx.AppListen;
   A.open('conv');
@@ -1174,7 +1178,7 @@ async function bm024OpenConv(opts) {
   if (captured.h && captured.h.onState) captured.h.onState('granted', '');
   await clk.runTo(8000);
   ok(A._debug().id, 'session 未建立');
-  return { A, captured, clk, diagLog, speakCalls, t1194: () => A._test1194() };
+  return { A, captured, clk, sb, speakCalls, t1194: () => A._test1194() };
 }
 
 describe('BM-024 — autoSpeak 去掉 60s spokenRecently 闸', () => {
@@ -1198,14 +1202,15 @@ describe('BM-024 — autoSpeak 去掉 60s spokenRecently 闸', () => {
   });
 
   test('10s 内 >6 次 autoSpeak ⇒ 保险丝 trip，后续 skip fuse', async () => {
-    const { A, clk, t1194, diagLog } = await bm024OpenConv({});
+    const { A, clk, t1194, sb } = await bm024OpenConv({});
     for (let i = 0; i < 7; i++) t1194().invokeAutoSpeak({ rid: i + 1, tr: '句 ' + i, who: 'them' });
     await clk.runTo(0);
     ok(A._debug().autoSpeakOff, '第 7 次应 trip fuse');
-    const skips = diagLog.filter((e) => e.kind === 'speak_skip');
-    ok(skips.some((e) => e.payload && e.payload.why === 'fuse'), 'fuse trip 应记 speak_skip');
+    const skips = bm024SpeakSkips(sb);
+    ok(skips.some((e) => e.f && e.f.why === 'fuse'), 'fuse trip 应记 speak_skip');
     t1194().invokeAutoSpeak({ rid: 99, tr: 'fuse 后', who: 'them' });
     eq(A._debug().autoSkip, 'fuse');
+    eq(bm024SpeakSkips(sb).filter((e) => e.f.why === 'fuse').length, 1, '连续 fuse 只记一条 speak_skip');
     try { await A.leave(); } catch (_) {}
   });
 
@@ -1227,15 +1232,24 @@ describe('BM-024 — autoSpeak 去掉 60s spokenRecently 闸', () => {
     try { await A.leave(); } catch (_) {}
   });
 
-  test('speak_skip 诊断只带 why，不带用户内容', async () => {
-    const { A, clk, t1194, diagLog } = await bm024OpenConv({});
+  test('speak_skip 走真实 DiagLog 白名单：只带 why，why=off 不进日志', async () => {
+    const { A, t1194, sb } = await bm024OpenConv({});
     A.setAutoSpeak(false);
     t1194().invokeAutoSpeak({ rid: 1, tr: '敏感译文不应出现在诊断里', who: 'them' });
-    const hit = diagLog.find((e) => e.kind === 'speak_skip');
-    ok(hit, '应有 speak_skip');
-    deepEq(Object.keys(hit.payload).sort(), ['why']);
-    eq(hit.payload.why, 'off');
-    ok(!/敏感译文/.test(JSON.stringify(hit)), '诊断里不得带译文');
+    t1194().invokeAutoSpeak({ rid: 2, tr: '敏感译文不应出现在诊断里', who: 'them' });
+    eq(bm024SpeakSkips(sb).length, 0, 'why=off 不应记 speak_skip');
+    ok(!/敏感译文/.test(JSON.stringify(sb.DiagLog.all())), '诊断里不得带译文');
+    try { await A.leave(); } catch (_) {}
+  });
+
+  test('speak_skip 同一 why 连续两次只记一条', async () => {
+    const { A, t1194, sb } = await bm024OpenConv({});
+    t1194().invokeAutoSpeak({ rid: 1, tr: '', who: 'them' });
+    t1194().invokeAutoSpeak({ rid: 2, tr: '', who: 'them' });
+    const skips = bm024SpeakSkips(sb);
+    eq(skips.length, 1, '连续 row 只记一条');
+    deepEq(Object.keys(skips[0].f).sort(), ['why']);
+    eq(skips[0].f.why, 'row');
     try { await A.leave(); } catch (_) {}
   });
 });

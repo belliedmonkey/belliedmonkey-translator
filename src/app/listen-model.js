@@ -2156,7 +2156,7 @@ const listenModel = (() => {
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
     try { chrome.storage.local.get(['listenLangManual'], (st) => { langManual = !!st.listenLangManual; canvas.view('state'); }); } catch (_) {}
     diagAudioArm(session.id);
-    sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false;
+    sysSilent = false; sysSound = false; deafHinted = false; ttsHinted = false; lastSkipWhy = '';
     // 「这次不留记录」在**开始的这一刻钉住**，会话中途不可改 —— 改了之后前半场已经
     // 写进去的怎么办，没有诚实的答案。它也**不进存储**：记住上次的勾选反而危险，
     // 用户会以为在留记录而其实没有。
@@ -2904,8 +2904,12 @@ const listenModel = (() => {
   }
   let autoSkip = '';   // 最近一次自动朗读没入队的原因（只给 _debug 看；'tts' 那一类会另出一次可见提示）
   let ttsHinted = false;   // 「朗读引擎不可用」的提示每场只说一次（autoSpeak）
+  let lastSkipWhy = '';    // speak_skip 诊断：同一 why 连续重复只记一条（'off' 不进日志）
   function speakSkipDiag(why) {
-    try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('speak_skip', { why: String(why || '') }); } catch (_) {}
+    const w = String(why || '');
+    if (w === 'off' || w === lastSkipWhy) return;
+    lastSkipWhy = w;
+    try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('speak_skip', { why: w }); } catch (_) {}
   }
   function autoSpeak(row) {
     autoSkip = !cfg ? 'cfg' : !cfg.autoSpeak ? 'off' : autoSpeakOff ? 'fuse' : !ttsReady() ? 'tts' : !row || !row.tr ? 'row' : '';
