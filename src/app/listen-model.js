@@ -168,7 +168,23 @@ const listenModel = (() => {
   // 这个键是**开发开关**、刻意不进 schema（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）：
   // 不设 = ECAPA；'whisper' = 回到旧的 sherpa SLID（判词会乱跳，只作对照）。
   // lidThreshold 是 ECAPA 的 |LLR| 阈值（默认 6）；lidCpuOnly 只用于排查计算单元争用。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix'];
+  // thaiGrokStt 也是**开发开关**（同样刻意不进 schema）：默认关 = th 仍走本机 DictationTranscriber；
+  // 开 = 本场有 th 时该路改走 GrokStt，且 th 不再进 stt-start（互斥）。见 docs/thai-grok-stt-demo-spec.md。
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix', 'thaiGrokStt'];
+  // Debug 字段 thaiGrokSttApiKey 的内存快照（readCfg 里只在开关开时读）。绝不 console / DiagLog /
+  // 写仓库；GrokStt.open 的 getApiKey 只从这里与进程环境取。
+  let grokDebugKey = '';
+  function grokApiKey() {
+    // 步 2 鉴权：WKWebView 不能给 WebSocket 加 Authorization 头。这里只做「有 key 就带」的 Debug 路；
+    // App 内默认没有 key ⇒ GrokStt 异步 error reason=no-key（具名失败，不是假装成功）。
+    // App 真机鉴权是另一步（原生桥带头发连），不在本步偷偷无头连 xAI。
+    try {
+      if (typeof process !== 'undefined' && process && process.env && process.env.XAI_API_KEY) {
+        return String(process.env.XAI_API_KEY);
+      }
+    } catch (_) {}
+    return grokDebugKey || '';
+  }
   function readCfg() {
     return new Promise((resolve) => {
       chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS), (s) => {
@@ -189,7 +205,7 @@ const listenModel = (() => {
         const storedTarget = B(s.listenMyLang);
         const sysLang = B(navigator.language);
         const myLang = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
-        resolve({
+        const out = {
           tr,
           // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
           // draftFor 与端到端测试都在读它 —— 不在同一步里既改语义又改名字。
@@ -204,12 +220,28 @@ const listenModel = (() => {
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
           lidRewriteFix: s.lidRewriteFix !== false,   // 轻量修正（L-16 关掉做方向核实）
+          thaiGrokStt: s.thaiGrokStt === true,   // 泰语 Grok 路由开发开关（默认关）
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
           registry: Registry.langs(),
           label: sub ? SUBTITLE_LABEL() : SOURCE_LABEL(),
-        });
+        };
+        // Debug key 只在开关开时再读一次（开关关时不新增存储读，STT 路径与基线同形）。
+        // 快照只留在内存给 grokApiKey；绝不 console / DiagLog / 写仓库。
+        if (out.thaiGrokStt !== true) { grokDebugKey = ''; resolve(out); return; }
+        let done = false;
+        try {
+          chrome.storage.local.get(['thaiGrokSttApiKey'], (k) => {
+            if (done) return;
+            done = true;
+            grokDebugKey = k && k.thaiGrokSttApiKey ? String(k.thaiGrokSttApiKey) : '';
+            resolve(out);
+          });
+          return;
+        } catch (_) {}
+        grokDebugKey = '';
+        resolve(out);
       });
     });
   }
@@ -1358,6 +1390,20 @@ const listenModel = (() => {
   function openDevice(myGen) {
     if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：重连时清掉旧场的候补计时器
     const locales = sessionLocales();
+    // ── 步 2：泰语 Grok 路由（开发开关；与原生互斥）─────────────────────────────
+    // 开关开且本场有 th 时，把 th 从原生 stt-start 里摘出来单独走 GrokStt：同一路 PCM 只喂
+    // 一个识别器，避免双开双计费 / 双行。开关关、或本场没有 th ⇒ nativeLocales 保持 null，
+    // 下面走原来那条单路 NativeSpeech.sttOpen（基线逐字同形）。
+    let nativeLocales = null;
+    let thaiLocale = '';
+    if (cfg && cfg.thaiGrokStt === true) {
+      nativeLocales = [];
+      for (const loc of locales) {
+        if (C.baseCode(loc) === 'th') { if (!thaiLocale) thaiLocale = loc; }
+        else nativeLocales.push(loc);
+      }
+    }
+    const grokRoute = !!(nativeLocales && thaiLocale);
     const me = C.toLocale(cfg.myLang);
     const cut = C.makeStreamCutter((locale, sent) => {
       if (myGen !== gen || cutter !== cut || !sock) return;
@@ -1463,34 +1509,74 @@ const listenModel = (() => {
       }
       refreshPartial();
     };
-    sock = NativeSpeech.sttOpen({
-      locales,
-      // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
-      // 定稿碎一点不会再切行，只是更早进账本。字幕路、以及听译下走旧路（Google / qwen-mt / 降级）
-      // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
-      vadMs: (mode === 'conv' && segRoute === 'model') ? 600 : undefined,
-      onEvent: (kind, ev) => {
-        if (myGen !== gen) return;
-        if (!sock && (kind === 'partial' || kind === 'final')) return;
-        if (kind === 'ready') { socketRetried = false; }
-        else if (kind === 'partial') {
-          const base = C.baseCode(ev && ev.locale);
-          // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
-          if (base && echo.playingLangs(Date.now()).has(base)) return;
-          if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
-          // R14 ②：归属这一路（英文）的 partial 只要有字母，也算「英文路有结果」——长句里中文路
-          // 早早吐一句拉丁垃圾当候补时，英文路的流式 partial 正好在这 1.5s 内到达 ⇒ 候补被丢，
-          // 不会把中文路的垃圾转进来（提案 §2 的「英文长句不转交」）。
-          if (base && base === C.baseCode(lidPair()) && /[A-Za-z]/.test(String(ev && ev.text))) {
-            if (xferGate) { try { xferGate.noteEnLetter(); } catch (_) {} }
-          }
-          if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev);
+    const vadMs = (mode === 'conv' && segRoute === 'model') ? 600 : undefined;
+    // 主动 close 时的 close 事件不算掉线：GrokStt.close() **同步** fire('close')，而改语言那条路
+    // （langChange）是先 closeSocket、再把 phase 从 listening 改 preparing —— 不挡这一下，
+    // 一次正常的重连会被读成 socketLost，整场被 halt 在「断线」上。基线 NativeSpeech 的 close
+    // 不同步发事件，这个标志在基线分支里恒为 false，行为与原来相同。
+    let closing = false;
+    const onEvent = (kind, ev) => {
+      if (kind === 'close' && closing) return;
+      if (myGen !== gen) return;
+      if (!sock && (kind === 'partial' || kind === 'final')) return;
+      if (kind === 'ready') { socketRetried = false; }
+      else if (kind === 'partial') {
+        const base = C.baseCode(ev && ev.locale);
+        // 我们自己正在朗读这门语言 ⇒ 这条半句是我们自己的声音（回声修，见 speakPump / echo.playingLangs）
+        if (base && echo.playingLangs(Date.now()).has(base)) return;
+        if (!C.sideMatchesLid(ev && ev.locale, lidPair())) return;   // LID 判的不是这一路（或还没稳住）⇒ 半句不上屏（§9.6.1.3）
+        // R14 ②：归属这一路（英文）的 partial 只要有字母，也算「英文路有结果」——长句里中文路
+        // 早早吐一句拉丁垃圾当候补时，英文路的流式 partial 正好在这 1.5s 内到达 ⇒ 候补被丢，
+        // 不会把中文路的垃圾转进来（提案 §2 的「英文长句不转交」）。
+        if (base && base === C.baseCode(lidPair()) && /[A-Za-z]/.test(String(ev && ev.text))) {
+          if (xferGate) { try { xferGate.noteEnLetter(); } catch (_) {} }
         }
-        else if (kind === 'final') { intakeFinal(ev); }
-        else if (kind === 'error') socketLost(ev.reason || '');
-        else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
+        if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev);
+      }
+      else if (kind === 'final') { intakeFinal(ev); }
+      else if (kind === 'error') socketLost(ev.reason || '');
+      else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
+    };
+    if (!grokRoute) {
+      // 基线单路：开关关或本场无 th。参数与原实现逐字相同。
+      sock = NativeSpeech.sttOpen({
+        locales,
+        // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
+        // 定稿碎一点不会再切行，只是更早进账本。走旧路（Google / qwen-mt / 降级）时两个模式
+        // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
+        vadMs,
+        onEvent,
+      });
+      return;
+    }
+    // Grok 路：th 只开 Grok（**不再**进 stt-start），其余语言仍开原生。两个句柄合成一个 sock，
+    // PCM 转发给各方，close/cut 都调；事件共用同一个 onEvent（locale 已在事件里，路由不分叉）。
+    const handles = [];
+    if (nativeLocales.length) {
+      handles.push(NativeSpeech.sttOpen({ locales: nativeLocales, vadMs, onEvent }));
+    }
+    let grokHandle = null;
+    try {
+      if (typeof GrokStt !== 'undefined' && GrokStt && typeof GrokStt.open === 'function') {
+        // locale 用会话里那一个（th-TH）；getApiKey 只读 env / Debug 字段快照。
+        // App 内默认无 key ⇒ GrokStt 异步 error reason=no-key（具名失败，不是假装成功）。
+        grokHandle = GrokStt.open({ locale: thaiLocale || 'th-TH', getApiKey: grokApiKey, onEvent });
+      }
+    } catch (_) { grokHandle = null; }
+    if (grokHandle) handles.push(grokHandle);
+    else setTimeout(() => { try { onEvent('error', { reason: 'no-grok' }); } catch (_) {} }, 0);
+    sock = {
+      sendPcm(pcm) {
+        for (const h of handles) { try { if (h && typeof h.sendPcm === 'function') h.sendPcm(pcm); } catch (_) {} }
       },
-    });
+      cut() {
+        for (const h of handles) { try { if (h && typeof h.cut === 'function') h.cut(); } catch (_) {} }
+      },
+      close() {
+        closing = true;   // 主动关：后续（含 GrokStt 同步发出的）close 事件不再算掉线
+        for (const h of handles) { try { if (h && typeof h.close === 'function') h.close(); } catch (_) {} }
+      },
+    };
   }
   // socket 断了：先自动重连一次（2 s），期间主按钮「重连中…」、我说灰；再断才停在具名态。
   // assets 不是连接断了：缺的是还没装的语言包。自动重连会把那一门下完再开麦。

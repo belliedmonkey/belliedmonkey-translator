@@ -9,7 +9,8 @@
 //   · key 只进 WebSocket 的 Authorization 头；绝不写日志、绝不进 reason / 异常文本。
 //   · 没有 key 不抛未捕获 —— 异步 onEvent('error', { reason: 'no-key' })，句柄为空操作。
 //   · 服务端 transcript.created 到之前只缓冲 PCM；到了才按 FRAME_BYTES 整帧发出。
-//   · 本文件不进 build/app-bundle.js 的 MODULES，也不进 Release 打包列表（步 1 只落骨架）。
+//   · 已进 build/app-bundle.js 的 MODULES（App 包），但只走 Debug 开关 thaiGrokStt 的 th 路由；
+//     默认关，Release 路径不启用，也不带 key（步 1 只落骨架；步 2 接 listen 路由）。
 var GrokStt = (() => {
   const WS_URL_BASE = 'wss://api.x.ai/v1/stt';
   const MODEL = 'grok-voice-transcribe-2.0';
