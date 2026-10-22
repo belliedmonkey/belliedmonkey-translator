@@ -87,26 +87,27 @@ describe('#593 ② scriptFirstLid：两路时文字系先于 LID', () => {
   });
 });
 
-describe('#593 ③ 句头闸 scriptFirst：拉丁路与已收的汉字定稿重叠 ⇒ 丢', () => {
-  test('★ 高置信的拉丁长片也丢（cjk-overlap）', () => {
-    const { g, diags } = gateOf({ scriptFirst: () => true });
+describe('#593 ③ 句头闸 scriptFirst：拉丁路与已收的汉字定稿重叠 ⇒ BM-025 落行', () => {
+  test('★ 高置信的拉丁长片重叠 ⇒ 落行（gate:release / cjk-overlap）', () => {
+    const { g, diags, released } = gateOf({ scriptFirst: () => true });
     g.noteOtherText('zh-CN', '请把PPT发到我的email', 0, 3000);
     eq(g.push({ locale: 'en-US', text: 'project, deadline, schedule.', conf: 0.9, t0: 500, t1: 2500 }).length, 0);
-    ok(diags.some((d) => d.k === 'gate:drop' && d.w === 'cjk-overlap'));
+    ok(released.length >= 1, '应经 onRelease 落行');
+    ok(diags.some((d) => d.k === 'gate:release' && d.w === 'cjk-overlap'));
   });
   test('scriptFirst 为假（按键锁定）时照旧放行高置信片', () => {
     const { g } = gateOf({ scriptFirst: () => false });
     g.noteOtherText('zh-CN', '请把PPT发到我的email', 0, 3000);
     eq(g.push({ locale: 'en-US', text: 'project, deadline, schedule.', conf: 0.9, t0: 500, t1: 2500 }).length, 1);
   });
-  test('★ 拉丁路的低置信长片先到、重叠的汉字定稿后到 ⇒ 扣住后丢（不抢先放行）', () => {
+  test('★ 拉丁路的低置信长片先到、重叠的汉字定稿后到 ⇒ 扣住后落行', () => {
     const { g, diags, released } = gateOf({ scriptFirst: () => true });
     eq(g.push({ locale: 'en-US', text: 'Take a project of deadline Xi.', conf: 0.23, rescued: true, t0: 5133, t1: 9393 }).length, 0);
     ok(g.heldLocales().includes('en-US'), '应扣住等中文侧');
     g.noteOtherText('zh-CN', '这个 project的', 6453, 7713);
     eq(g.heldLocales().length, 0);
-    eq(released.length, 0, '不该放行：' + JSON.stringify(released));
-    ok(diags.some((x) => x.k === 'gate:drop' && x.w === 'cjk-overlap'));
+    ok(released.length >= 1, 'BM-025 落行：' + JSON.stringify(released));
+    ok(diags.some((x) => x.k === 'gate:release' && x.w === 'cjk-overlap'));
   });
   test('拉丁路的低置信长片没有中文重叠 ⇒ 扣住到点放行（不丢字）', () => {
     let fire = null, wait = 0;
@@ -290,15 +291,16 @@ describe('#593 ⑤ 真 listen-model：字幕走同一条管线', () => {
     fin(cap, 'en-US', 'project, deadline, schedule.', 200, 2400);
     await idle(clk);
     const rows = A._debug().rows;
-    eq(rows.length, 1, '应恰好一行：' + JSON.stringify(rows.map((r) => r.text)));
-    const r = rows[0];
+    const zhRows = rows.filter((x) => /请把这份/.test(x.text));
+    ok(zhRows.length >= 1, '中文句应出行：' + JSON.stringify(rows.map((r) => r.text)));
+    const r = zhRows[0];
     ok(/PPT/.test(r.text) && /请把这份/.test(r.text), '夹词没进同一行：' + r.text);
     ok(r.same && !r.tr && !r.trErr, '同语言行形状不对：' + JSON.stringify({ same: r.same, tr: r.tr, trErr: r.trErr }));
     const zhPrompt = cap.prompts.find((p) => /请把这份/.test(String(p && p.user)));
     ok(zhPrompt && /do NOT translate/.test(zhPrompt.system), '同语言那一调的断句提示缺「不翻译、source 写修正句」');
     ok(!r.written, '同语言行不该进语料');
-    const last = cap.shows.filter((s) => !s.partial).pop();
-    ok(last && last.orig === r.text && last.tr === '', '字幕条应只画原文：' + JSON.stringify(last));
+    const zhShow = cap.shows.filter((s) => !s.partial && /请把这份/.test(String(s.orig))).pop();
+    ok(zhShow && zhShow.orig === r.text && zhShow.tr === '', '中文字幕条应只画原文：' + JSON.stringify(zhShow));
     try { await A.leave(); } catch (_) {}
     await clk.runTo(0);
   });

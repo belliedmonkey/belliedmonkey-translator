@@ -646,12 +646,14 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   // 第九轮（方案 1）改判：低置信拉丁片**不再按 conf 直接扣/丢**，而是按「同时间段中文侧有没有
   // 已被接收且含汉字的定稿」裁决 —— 没有 ⇒ 放行进账本（放行时仍做句头拼接）。
   test('句头救回（第九轮）：短低置信拉丁片仍扣住等重叠；1.5s 无中文重叠才放行，放行时拼接句头', async () => {
-    const g = C.makeFinalGate(DEPS);
+    const released = [];
+    const g = C.makeFinalGate(Object.assign({}, DEPS, { onRelease: (l, t) => released.push(t) }));
     deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), [], '低置信短片先扣住');
     eq(g.held('en-US'), ',... The', '扣住原文');
-    // 紧接的高置信片：把扣住的句头（去标点后的 The）接回来
+    // 紧接的高置信片：句头经 onRelease 单独落行（BM-025）
     deepEq(g.push({ locale: 'en-US', text: 'quote already includes freight and insurance, but not customs duties.', conf: 0.98, t0: 17520, t1: 21420 }),
-      ['The', 'quote already includes freight and insurance, but not customs duties.']);
+      ['quote already includes freight and insurance, but not customs duties.']);
+    ok(released.indexOf('The') >= 0, '句头单独落行');
     eq(g.held('en-US'), '', '接回之后不再扣着');
     deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), [], '低置信片仍扣住');
     eq(g.held('en-US'), 'we');
@@ -669,10 +671,12 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     eq(g.held('en-US'), 'Wu,');
   });
   test('句头救回：文字系不对的片/纯标点片照旧；zh 路不受影响；低置信不静默丢字', () => {
-    const g = C.makeFinalGate(DEPS);
+    const released = [];
+    const g = C.makeFinalGate(Object.assign({}, DEPS, { onRelease: (l, t) => released.push(t) }));
     deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.05, t0: 1000, t1: 1300 }), [], '低置信短片先扣住（不再按 conf 丢）');
     eq(g.held('en-US'), 'we');
-    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['we', 'need to see a sample'], '隔了 1.3 s，仍然照收；扣住的句头没有中文重叠 ⇒ 接回，不丢（r6）');
+    deepEq(g.push({ locale: 'en-US', text: 'need to see a sample', conf: 0.95, t0: 2600, t1: 4000 }), ['need to see a sample'], '高置信 formal 先放行扣住的 we');
+    ok(released.indexOf('we') >= 0, '句头经 onRelease 落行（r6/BM-025）');
     deepEq(g.push({ locale: 'zh-CN', text: 'The', conf: 0.87, t0: 16920, t1: 17340 }), [], 'zh 路吐英文：丢（扣住等重叠裁决）');
     eq(g.held('zh-CN'), 'The', '拉丁片在 zh 路被扣住（按重叠裁决，不再直接丢）');
     g.cancelAll();

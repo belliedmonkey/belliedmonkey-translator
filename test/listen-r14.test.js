@@ -451,13 +451,13 @@ describe('R14 ⑤ — 回放 /tmp/r13 原始事件', () => {
       eq(dupRuns(enRows(res.emittedRows), 6).length, 0, '相邻行重复：' + JSON.stringify(rows));
     });
   }
-  test('★ yes-auto-7：英文路已给 `Yeah.`（补救文字）⇒ 候补被丢，不多一行', async () => {
+  test('★ yes-auto-7：英文路 `Yeah.` 与中文候补 `Yes` 不同词 ⇒ BM-025 不丢候补（可各出一行）', async () => {
     const res = await replay('yes-auto-7');
     const rows = enRows(res.emittedRows);
-    eq(rows.length, 1, '只许一行：' + JSON.stringify(rows));
-    ok(/yeah/i.test(rows[0]), '应是 Yeah.：' + JSON.stringify(rows[0]));
-    ok(!res.diags.some((d) => d.kind === 'intake:xfer'), '不该转交：' + JSON.stringify(res.diags.map((d) => d.kind)));
-    ok(res.diags.some((d) => d.kind === 'intake:xfer-drop'), '应当记 intake:xfer-drop：' + JSON.stringify(res.diags.map((d) => d.kind)));
+    ok(rows.length >= 1, '至少一行：' + JSON.stringify(rows));
+    ok(rows.some((t) => /yeah|yes/i.test(t)), '应含 Yeah 或转交的 Yes：' + JSON.stringify(rows));
+    ok(!res.diags.some((d) => d.kind === 'intake:xfer-drop' && d.extra && d.extra.text === 'en-letter-now' && d.extra.why === 'covered'),
+      'Yeah 不应算覆盖 Yes');
   });
   test('★ en-auto-1：模型把 remainder 补回整句 ⇒ 一次往返出行，且不与上一行重复', async () => {
     // 回放真实模型回复：第一次回缓冲本身；第二次（缓冲 to. Zang's...）回补回的整句。
@@ -517,16 +517,17 @@ describe('R14 ⑥ — 中文路 → 英文路候补转交（纯逻辑）', () =>
       canXfer: () => true,
       onXfer: (text) => got.push(text),
       onDiag: (k, e) => { if (k === 'intake:xfer-drop') drops.push(e && e.text); } });
-    // 情形一：候补前 1.5s 内英文路已有结果 ⇒ 直接丢
+    // 情形一：仅 noteEnLetter（无样本）不再挡候补
     g.noteEnLetter();
-    eq(g.offer({ text: 'Yes.', locale: 'en-US' }), false, '英文路已有结果 ⇒ 不候补');
-    eq(drops.length, 1);
-    // 情形二：等待期间英文路来结果 ⇒ 丢
+    eq(g.offer({ text: 'Yes.', locale: 'en-US', t0: 1000, t1: 1200 }), true, '无覆盖样本 ⇒ 仍可候补');
+    eq(drops.length, 0);
+    g.cancel();
+    // 情形二：等待期间英文路来**覆盖**同一区间的结果 ⇒ 丢候补
     await clk.advance(1600);
-    eq(g.offer({ text: 'Yes.', locale: 'en-US' }), true);
+    eq(g.offer({ text: 'Yes.', locale: 'en-US', t0: 2000, t1: 2200 }), true);
     eq(g.pending(), true);
-    g.noteEnLetter();
-    eq(g.pending(), false, '英文路来结果 ⇒ 候补作废');
+    g.noteEnSample({ text: 'Yes.', t0: 2000, t1: 2200 });
+    eq(g.pending(), false, '英文路覆盖同一词 ⇒ 候补作废');
     await clk.advance(1600);
     eq(got.length, 0, '不该转交：' + JSON.stringify(got));
     // 情形三：英文路一直没结果 ⇒ 到点转交

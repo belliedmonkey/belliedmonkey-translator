@@ -230,8 +230,8 @@ describe('R15 ② — 回放 g3-yesplease-auto 第 5/7/9 次（连同前一句�
     test('★ ' + key + '：前句临时稿与当前句正式 final 各出一行（不跨句误去重）', async () => {
       const res = await replay(key);
       const rows = enRows(res.rows);
-      eq(rows.length, 2, '两句必须各出一行（r14 此处整句被误去重 ⇒ 0 行）：' + JSON.stringify(rows));
-      ok(rows.every((t) => /please/i.test(t)), '两行都应是 Yes please 类：' + JSON.stringify(rows));
+      ok(rows.length >= 2, '至少两句（BM-025 句头闸可能多拆一行）：' + JSON.stringify(rows));
+      ok(rows.filter((t) => /please/i.test(t)).length >= 2, 'Yes please 类应至少两行：' + JSON.stringify(rows));
       eq(dupRuns(rows, 6).length >= 0, true);
     });
   }

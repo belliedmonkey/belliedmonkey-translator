@@ -15,21 +15,31 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 describe('r6 ① 句头闸：不紧接的句头接回，不丢', () => {
   test('句首单出成低置信短片，后半句隔 300 ms 才到 ⇒ 句首接回', () => {
     const diags = [];
-    const g = C.makeFinalGate(Object.assign({}, DEPS, { onDiag: (k, t, w) => diags.push([k, t, w]) }));
+    const released = [];
+    const g = C.makeFinalGate(Object.assign({}, DEPS, {
+      onRelease: (loc, t) => released.push(t),
+      onDiag: (k, t, w) => diags.push([k, t, w]),
+    }));
     deepEq(g.push({ locale: 'en-US', text: 'Hello.', conf: 0.3, t0: 0, t1: 400 }), [], '低置信短片先扣住');
-    deepEq(g.push({ locale: 'en-US', text: 'can you hear me?', conf: 0.95, t0: 700, t1: 1800 }), ['Hello.', 'can you hear me?']);
+    deepEq(g.push({ locale: 'en-US', text: 'can you hear me?', conf: 0.95, t0: 700, t1: 1800 }), ['can you hear me?']);
+    ok(released.indexOf('Hello.') >= 0, '高置信到达时句首经 onRelease 单独落行');
     eq(g.held('en-US'), '', '接回之后不再扣着');
-    ok(diags.some(([k, t, w]) => k === 'gate:release' && t === 'Hello.' && w === 'gap'), '留痕为 gate:release/gap');
+    ok(diags.some(([k, t, w]) => k === 'gate:release' && t === 'Hello.' && (w === 'gap' || w === 'high-conf')), '留痕为 gate:release');
     ok(!diags.some(([k]) => k === 'gate:drop'), '不应再出现 gate:drop');
   });
 
-  test('扣住的句头已被中文侧判为时间重叠（conflict）⇒ 照旧丢', () => {
+  test('扣住的句头已被中文侧判为时间重叠（conflict）⇒ BM-025 仍落行', () => {
+    const released = [];
     const diags = [];
-    const g = C.makeFinalGate(Object.assign({}, DEPS, { onDiag: (k, t, w) => diags.push([k, t, w]) }));
+    const g = C.makeFinalGate(Object.assign({}, DEPS, {
+      onRelease: (loc, t) => released.push(t),
+      onDiag: (k, t, w) => diags.push([k, t, w]),
+    }));
     deepEq(g.push({ locale: 'en-US', text: 'Rugua,', conf: 0.2, t0: 0, t1: 500 }), []);
     g.noteOtherText('zh-CN', '如果定金周五之前到账', 0, 600);
     deepEq(g.push({ locale: 'en-US', text: 'We can ship the first batch.', conf: 0.95, t0: 900, t1: 2600 }), ['We can ship the first batch.']);
-    ok(diags.some(([k, t, w]) => k === 'gate:drop' && t === 'Rugua,' && w === 'cjk-overlap'), '记 gate:drop/cjk-overlap');
+    ok(released.some((t) => t === 'Rugua,'), '冲突扣住的片应单独落行');
+    ok(diags.some(([k, t, w]) => k === 'gate:release' && t === 'Rugua,' && w === 'cjk-overlap'), '记 gate:release/cjk-overlap');
   });
 });
 

@@ -116,6 +116,7 @@ const listenModel = (() => {
         if (extra.rem != null) f.rem = cut(extra.rem);
         if (extra.raw != null) f.raw = cut(extra.raw);
         if (extra.why != null) f.why = cut(extra.why);
+        if (extra.ms != null) f.ms = Number(extra.ms);
         if (extra.len != null) f.len = Number(extra.len);
         if (extra.src != null) f.src = cut(extra.src);
         if (extra.sim != null) f.sim = Number(extra.sim);
@@ -1422,7 +1423,13 @@ const listenModel = (() => {
   // 收口（按住说停 / 换边 / 结束）时把句头闸扣住的那一小片放行 —— 它没有等到下一片，
   // 直接当一条定稿送（2026-10-10 用户裁定；低置信单词「Yes.」就是这样被静默丢掉的）。
   // 句头闸的诊断（gate:hold / gate:release / gate:drop）：计数 + 截短原文（≤200，内部诊断）
-  function gateDiag(kind, text, why) { diagBump('gate', String(kind).replace(/^gate:/, ''), { text, why }); }
+  function gateDiag(kind, text, why) {
+    const k = String(kind).replace(/^gate:/, '');
+    const extra = { text, why };
+    if (k === 'timeout' && why != null && why !== '') extra.ms = Number(why) || undefined;
+    if (k === 'drain') extra.why = why || 'forced';
+    diagBump('gate', k, extra);
+  }
   // 路由器（listen-core）的诊断：kind 形如 'emit:trim-dup' / 'rescue:replace'，按 ':' 拆成
   // 桶名与原因（R12 第十轮：方案 1 的补救去重与方案 2 的重复前缀裁剪都要留痕）。
   function routerDiag(kind, extra) {
@@ -1718,7 +1725,7 @@ const listenModel = (() => {
       // R14 ②：归属语言（英文）这一路给了带字母的结果 ⇒ 记时刻；中文路的候补就此作废。
       const lidB = C.baseCode(lidPair());
       if (lidB && base === lidB && /[A-Za-z]/.test(String((ev && ev.text) || ''))) {
-        if (xferGate) xferGate.noteEnLetter();
+        if (xferGate) { try { xferGate.noteEnSample({ text: ev.text, t0: ev.t0, t1: ev.t1 }); } catch (_) { try { xferGate.noteEnLetter(); } catch (_) {} } }
       }
       // §9.6.1.13 规则 2：两路时文字系证据先于 LID（这一路的文字 / 句内夹词 ⇒ 归这一路）。
       let lid = lidPair();
@@ -1781,7 +1788,7 @@ const listenModel = (() => {
           // 早早吐一句拉丁垃圾当候补时，英文路的流式 partial 正好在这 1.5s 内到达 ⇒ 候补被丢，
           // 不会把中文路的垃圾转进来（提案 §2 的「英文长句不转交」）。
           if (base && base === C.baseCode(lidPair()) && /[A-Za-z]/.test(String(ev && ev.text))) {
-            if (xferGate) { try { xferGate.noteEnLetter(); } catch (_) {} }
+            if (xferGate) { try { xferGate.noteEnSample({ text: ev.text, t0: ev.t0, t1: ev.t1 }); } catch (_) { try { xferGate.noteEnLetter(); } catch (_) {} } }
           }
           if (C.acceptDeviceFinal(ev, routeDeps)) onPartial(ev.locale, ev.text, ev);
         }
@@ -2442,9 +2449,8 @@ const listenModel = (() => {
     // 异步回来时 phase 已是 paused —— 行照落（addFinal 不看相位），这是设计：用户点停
     // 后 1–2s 行补上是「补完」，不是「跳动」。
     // 句头闸放行**放在这里**（收口之后、关麦之前）：final 一般要收口后 0.4–0.9s 才到，
-    // 太早放行时它还没进闸（第六轮评审：放行时机挪到关麦前）。只有按键收音才放行，自动模式不放行
-    // （wasPtt 在 pttAbort 之前就记住了）。
-    if (wasPtt) drainGateHeld();
+    // 太早放行时它还没进闸（第六轮评审：放行时机挪到关麦前）。BM-025：自动听与按键听都 drain。
+    drainGateHeld();
     for (const base of Object.keys(partialBy)) {
       const pr = partialBy[base];
       if (pr && pr.text && LETTER_RE.test(pr.text)) {
@@ -2511,6 +2517,7 @@ const listenModel = (() => {
     sq.clear(); speakingRid = 0;
     if (typeof LearnTTS !== 'undefined') LearnTTS.stop();
     clearPartials(reason === 'grant' ? 'authstop' : 'pause');
+    drainGateHeld();
     micStop(); closeSocket();
     nativeSessionOff();   // 具名停止同样收会话（socket-retry / 来电的自动续听会再开）
     if (inc) inc.reset();
@@ -2578,7 +2585,7 @@ const listenModel = (() => {
     diagAudioDisarm();
     C.pause(session, now());
     phase = 'ended'; resumeSide = '';
-    if (wasPtt) drainGateHeld();   // 方案 1：关麦前立即放行句头闸扣住的片
+    drainGateHeld();   // BM-025：关麦前立即放行句头闸（自动听与按键听都放行）
     flushAllPartials('source');
     micStop(); closeSocket(); keepAliveOff();
     // P2（第二轮）：结束前把缓冲**同步**交给旧路出行（drain 硬切 → fallback/passRow），

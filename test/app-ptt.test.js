@@ -68,15 +68,14 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     const pauseFn = MODEL.slice(MODEL.indexOf('function pause(reason)'), MODEL.indexOf('function halt(reason'));
     const wasIdx = pauseFn.indexOf('const wasPtt = !!(ptt || pttStopTimer)');
     const abortIdx = pauseFn.indexOf('pttAbort()');
-    const drainIdx = pauseFn.indexOf('if (wasPtt) drainGateHeld()');
+    const drainIdx = pauseFn.indexOf('drainGateHeld()');
     const micIdx = pauseFn.indexOf('micStop()');
     ok(wasIdx >= 0, 'pause 里没有在 pttAbort 之前记下 wasPtt（第七轮那个永假条件）');
     ok(abortIdx >= 0 && wasIdx < abortIdx, 'wasPtt 记在了 pttAbort 之后 —— 必然为假');
     ok(drainIdx >= 0, 'pause 没有放行句头闸');
     ok(micIdx >= 0 && drainIdx < micIdx, 'pause 的放行不在关麦之前');
     const endFn = MODEL.slice(MODEL.indexOf('function end()'), MODEL.indexOf('function end()') + 500);
-    ok(/const wasPtt = !!\(ptt \|\| pttStopTimer\)/.test(endFn) && /if \(wasPtt\) drainGateHeld\(\)/.test(endFn),
-      'end 没有补上关麦前的放行');
+    ok(/drainGateHeld\(\)/.test(endFn), 'end 没有补上关麦前的放行');
     const stopFn = MODEL.slice(MODEL.indexOf('function pttStop'), MODEL.indexOf('function pttBegin'));
     ok(!/drainGateHeld\(\)/.test(stopFn), 'pttStop 里那次过早的放行应当撤掉（挪到关麦前）');
   });

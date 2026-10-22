@@ -31,7 +31,7 @@ var DiagLog = (() => {
     // 断句诊断（2026-10-10；2026-10-11 第七轮加内容字段）：降级/失败/句头闸的计数与**截短原文**。
     // **这是用户明确批准的有内容诊断**：只用于断句质量定位（remainder 对不上、句头闸裁决），
     // 每个字段各自截到 200 字；不进遥测、不在任何用户可见处显示（走 L2 诊断信箱）。
-    seg: ['reason', 'calls', 'json_bad', 'text', 'rem', 'raw', 'why'],
+    seg: ['reason', 'calls', 'json_bad', 'text', 'rem', 'raw', 'why', 'ms'],
     // 麦克风零内容诊断（1.19.4 r3d，用户 2026-10-22 批）：保活/req/on/stale；禁止任何文本字段
     mic: ['phase', 'state', 'reason', 'source', 'bridged', 'seq', 'sess', 'ms'],
     // 自动朗读未入队原因（BM-024）：只有 reason code，零内容

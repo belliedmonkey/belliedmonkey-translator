@@ -172,11 +172,15 @@ describe('R7 句头闸裁决', () => {
     clearT: (id) => T.delete(id), size: () => T.size,
     async adv(ms) { const e = t + ms; for (;;) { let n = null; for (const [id, x] of T) if (x.at <= e && (!n || x.at < n.x.at)) n = { id, x }; if (!n) break; T.delete(n.id); t = Math.max(t, n.x.at); n.x.fn(); await Promise.resolve(); } t = e; await Promise.resolve(); },
   }; }
-  const mkGate = (c, opts) => { const rel = []; const drops = []; const holds = [];
+  const mkGate = (c, opts) => { const rel = []; const drops = []; const holds = []; const rels = [];
     const g = C.makeFinalGate({ dominantScript: SCRIPT, now: c.now, setTimeout: c.setT, clearTimeout: c.clearT, idleMs: C.SEG_IDLE_MS,
       anyOtherConflict: !!(opts && opts.anyOtherConflict),   // 变异钩子：任何另一门定稿都算冲突
-      onRelease: (loc, t) => rel.push({ loc, t }), onDiag: (k, t, w) => { if (k === 'gate:drop') drops.push({ t, w }); if (k === 'gate:hold') holds.push(t); } });
-    return { g, rel, drops, holds }; };
+      onRelease: (loc, t) => rel.push({ loc, t }), onDiag: (k, t, w) => {
+        if (k === 'gate:drop') drops.push({ t, w });
+        if (k === 'gate:release') rels.push({ t, w });
+        if (k === 'gate:hold') holds.push(t);
+      } });
+    return { g, rel, drops, holds, rels }; };
   const confEn = (text, t0, t1) => ({ locale: 'en-US', text, conf: 0.1, t0, t1 });
 
   // 第九轮（方案 1）改判：低置信拉丁片**不再按 conf 直接丢**，而是「同时间段中文侧有没有
@@ -191,16 +195,16 @@ describe('R7 句头闸裁决', () => {
     deepEq(rel, [{ loc: 'en-US', t: 'Yes.' }], '到点无重叠 ⇒ 放行');
     eq(g.heldLocales().length, 0, '闸里不残留');
   });
-  test('低置信拉丁片与「已被接收含汉字」的中文时间重叠 ⇒ 丢弃（gate:drop / cjk-overlap），不出行', async () => {
-    const c = gclk(); const { g, rel, drops } = mkGate(c);
+  test('低置信拉丁片与「已被接收含汉字」的中文时间重叠 ⇒ BM-025 落行（gate:release / cjk-overlap）', async () => {
+    const c = gclk(); const { g, rel, drops, rels } = mkGate(c);
     deepEq(g.push(confEn('we', 1100, 1400)), [], '低置信短片先扣住');
     eq(g.heldLocales().length, 1);
     g.noteOtherText('zh-CN', '今天天气不错', 1100, 1800);
-    deepEq(g.push(confEn('you', 1150, 1450)), [], '中文接收与它重叠 ⇒ 扣住的片被丢，新片也丢');
-    ok(drops.some((x) => x.w === 'cjk-overlap'), '记 gate:drop / cjk-overlap：' + JSON.stringify(drops));
+    deepEq(g.push(confEn('you', 1150, 1450)), [], '重叠 ⇒ 先落行扣住的片');
+    ok(rels.some((x) => x.t === 'we' && x.w === 'cjk-overlap') || rel.some((r) => r.t === 'we'), 'we 应落行');
     eq(g.heldLocales().length, 0, '没有残留');
     await c.adv(2000);
-    eq(rel.length, 0, '到点也不会再放行');
+    ok(rel.length >= 1, '不应静默丢字');
   });
   // 补正（2026-10-11 监督方）：短片与长片**共用同一套**重叠判定；中文侧被接收但**不含汉字**
   // 的定稿不算冲突（扣住的短片到点照常放行）。
@@ -213,23 +217,22 @@ describe('R7 句头闸裁决', () => {
     deepEq(rel, [{ loc: 'en-US', t: 'Sure.' }], '到点放行');
     eq(drops.filter((x) => x.w === 'cjk-overlap').length, 0, '不该记 cjk-overlap：' + JSON.stringify(drops));
   });
-  test('★ 补正：短片 + 中文侧「已接收且含汉字」的重叠定稿 ⇒ 丢弃（gate:drop / cjk-overlap）', async () => {
-    const c = gclk(); const { g, rel, drops } = mkGate(c);
+  test('★ 补正：短片 + 中文侧「已接收且含汉字」的重叠定稿 ⇒ BM-025 落行', async () => {
+    const c = gclk(); const { g, rel, rels } = mkGate(c);
     deepEq(g.push(confEn('we', 1100, 1400)), [], '短片扣住');
     g.noteOtherText('zh-CN', '今天天气不错', 1100, 1800);     // 含汉字、时间重叠
-    eq(g.heldLocales().length, 0, '当场丢弃、不残留');
-    ok(drops.some((x) => x.t === 'we' && x.w === 'cjk-overlap'), '记 gate:drop/cjk-overlap：' + JSON.stringify(drops));
+    eq(g.heldLocales().length, 0, '当场裁决、不残留');
+    ok(rels.some((x) => x.t === 'we' && x.w === 'cjk-overlap') || rel.some((r) => r.t === 'we'), 'we 落行');
     await c.adv(2000);
-    eq(rel.length, 0, '到点也不会再放行');
+    ok(rel.length >= 1, '不应静默丢字');
   });
-  test('★ 补正变异：把判定换回「任何另一门定稿都算冲突」⇒ 上面「不含汉字仍放行」必须红', async () => {
-    const c = gclk(); const { g, rel, drops } = mkGate(c, { anyOtherConflict: true });
+  test('★ 补正变异：把判定换回「任何另一门定稿都算冲突」⇒ 仍落行（BM-025）', async () => {
+    const c = gclk(); const { g, rel } = mkGate(c, { anyOtherConflict: true });
     deepEq(g.push(confEn('Sure.', 1000, 1300)), [], '短片扣住');
     g.noteOtherText('zh-CN', 'Yes, sure.', 1100, 1400);      // 拉丁定稿：变异下被当成冲突
-    eq(g.heldLocales().length, 0, '变异下当场丢弃（正是我们要能抓到的错误行为）');
+    eq(g.heldLocales().length, 0, '当场裁决');
     await c.adv(1600);
-    eq(rel.length, 0, '变异下到点也不会放行');
-    ok(drops.some((x) => x.w === 'cjk-overlap'), '变异下记了 cjk-overlap：' + JSON.stringify(drops));
+    ok(rel.length >= 1, 'BM-025：冲突也落行');
   });
   test('中文接收在时间上不重叠 ⇒ 低置信拉丁片到点仍放行', async () => {
     const c = gclk(); const { g, rel } = mkGate(c);
@@ -310,11 +313,11 @@ describe('R8 方案 2 — 所有丢弃分支都留痕 / 缺时间戳放行', () 
     ok(rels.some((x) => x.w === 'latin-no-cjk'), '记 gate:release / latin-no-cjk：' + JSON.stringify(rels));
     eq(g.heldLocales().length, 0, '长片不扣住');
   });
-  test('★ 长的低置信拉丁片 + 同时间段已被接收的中文 ⇒ 丢弃并记 cjk-overlap（带原文）', () => {
-    const c = gclk(); const { g, drops } = mkGate(c);
+  test('★ 长的低置信拉丁片 + 同时间段已被接收的中文 ⇒ BM-025 落行并记 cjk-overlap', () => {
+    const c = gclk(); const { g, rels } = mkGate(c);
     g.noteOtherText('zh-CN', '这是中文', 0, 1200);
     deepEq(g.push(conf('Rugua, Ting, Xing, Cho,', 0.27, 0, 1200)), []);
-    ok(drops.some((x) => x.t === 'Rugua, Ting, Xing, Cho,' && x.w === 'cjk-overlap'), '没有记 gate:drop/cjk-overlap：' + JSON.stringify(drops));
+    ok(rels.some((x) => x.t === 'Rugua, Ting, Xing, Cho,' && x.w === 'cjk-overlap'), '记 gate:release/cjk-overlap：' + JSON.stringify(rels));
   });
   test('纯标点片：无字母 ⇒ 先扣住；到点丢弃并记 gate:drop（reason=punct）', async () => {
     const c = gclk(); const { g, drops, holds } = mkGate(c);

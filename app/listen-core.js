@@ -810,29 +810,62 @@ var ListenCore = (() => {
       return v === null ? NaN : v;
     }
     const HOLD_MAX_PARTS = 16;   // 防御：真正超量时整体放行（放行不算丢弃，绝不静默丢字）
-    function settleHeld(locale, how, why) {   // 裁决一条：how ∈ 'release' | 'drop'
-      const h = held[locale]; if (!h) return '';
+    const holdTimeoutMs = d.holdTimeoutMs || 3000;   // BM-025：扣住最长 3s，超时强制落行
+    function releaseLine(locale, text, meta, why) {
+      const t = head(text);
+      if (!HAS_LETTER.test(t)) { diag('gate:drop', text, 'punct'); return false; }
+      noteLastFormal(locale, t, meta && meta.t1, !!(meta && meta.rescued));
+      if (d.onRelease) { try { d.onRelease(locale, t, meta || {}); } catch (_) {} }
+      diag('gate:release', t, why);
+      return true;
+    }
+    function releaseHeldParts(locale, h, why) {
+      if (!h) return;
+      const parts = (h.parts && h.parts.length) ? h.parts.slice() : [{ text: h.text, t0: h.t0, t1: h.t1, rescued: h.rescued }];
+      for (const p of parts) {
+        const hd = head(p && p.text);
+        if (hd && HAS_LETTER.test(hd)) releaseLine(locale, hd, { rescued: !!(p && p.rescued), t0: p && p.t0, t1: p && p.t1 }, why);
+      }
+    }
+    function clearHeldRecord(locale) {
+      const h = held[locale]; if (!h) return;
       delete held[locale];
       if (h.timer) { clearT(h.timer); h.timer = 0; }
+      if (h.maxTimer) { clearT(h.maxTimer); h.maxTimer = 0; }
+    }
+    function settleHeld(locale, why) {   // BM-025：原先 drop 的分支一律退化为落行（拼接后的整段一次放行）
+      const h = held[locale]; if (!h) return '';
+      clearHeldRecord(locale);
       const t = head(h.text);
-      // 纯标点/空白：直接丢 —— 也算一次丢弃，记原因（方案 2：所有丢弃分支都留痕，不静默）。
       if (!HAS_LETTER.test(t)) { diag('gate:drop', h.text, 'punct'); return ''; }
-      if (how === 'release') {
-        noteLastFormal(locale, t, h.t1, !!h.rescued);
-        if (d.onRelease) { try { d.onRelease(locale, t, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }); } catch (_) {} }
-        diag('gate:release', t, why);
-      } else diag('gate:drop', t, why);
+      releaseLine(locale, h.text, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, why || 'release');
       return t;
     }
     function arm(locale, ms) {
       const h = held[locale]; if (!h) return;
       if (h.timer) clearT(h.timer);
-      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, ms || idleMs);
+      if (!h.holdAt) h.holdAt = now();
+      const delay = ms || idleMs;
+      h.timer = setT(() => {
+        const x = held[locale]; if (!x) return;
+        x.timer = 0;
+        resolve(locale, 'idle');
+      }, delay);
+      if (!h.maxTimer && delay >= idleMs) {
+        const remain = Math.max(0, holdTimeoutMs - (now() - h.holdAt));
+        h.maxTimer = setT(() => {
+          const x = held[locale]; if (!x) return;
+          if (x.timer) { clearT(x.timer); x.timer = 0; }
+          const heldMs = Math.max(holdTimeoutMs, now() - (x.holdAt || now()));
+          diag('gate:timeout', '', String(heldMs));
+          resolve(locale, 'timeout');
+        }, remain);
+      }
     }
-    // 到点/冲突时的裁决：有冲突 ⇒ 丢弃；否则放行
+    // 到点/冲突时的裁决：BM-025 一律落行（conflict 也不再静默丢）
     function resolve(locale, why) {
-      const h = held[locale]; if (!h) return;
-      settleHeld(locale, h.conflict ? 'drop' : 'release', why);
+      if (!held[locale]) return;
+      settleHeld(locale, why);
     }
     // 已入口接收、含汉字、且时间重叠的**中文侧**定稿（重叠裁决的判据，方案 1）。
     // 第九轮（r9 C3-en-1）：低置信拉丁片被**丢弃**（>2 词 / >1500 ms）之前，必须先看这段时间中文侧
@@ -901,7 +934,7 @@ var ListenCore = (() => {
         // §9.6.1.13 规则 2：两路且对方是汉字一路时，拉丁这一路与「已收的汉字定稿」时间重叠 ⇒ 是同一段
         // 中文音频的另一份转写，丢（不论置信度；按键锁定语言时 scriptFirst 为假，不走这里）。
         if (d.scriptFirst && d.scriptFirst() && scriptOfLocale(locale) === 'Latin' && tsOk && letterHead && overlapCjk(base, t0, t1)) {
-          diag('gate:drop', head(text), 'cjk-overlap');
+          releaseLine(locale, text, { rescued, t0, t1 }, 'cjk-overlap');
           return [];
         }
         // 方案 1（2026-10-11 第九轮）：rescued（partial 救回的文字）与**所有低置信拉丁片**
@@ -934,66 +967,63 @@ var ListenCore = (() => {
         }
         // ① 跨语言重叠 ⇒ 丢弃（**只有这一条**能让低置信拉丁片丢）
         if (confLate && !shortEnough && tsOk && overlapCjk(base, t0, t1)) {
-          const h = held[locale]; delete held[locale];
-          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
-          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), 'cjk-overlap');
-          if (letterHead) diag('gate:drop', head(text), 'cjk-overlap');
+          const h = held[locale];
+          if (h) { clearHeldRecord(locale); releaseHeldParts(locale, h, 'cjk-overlap'); }
+          if (letterHead) releaseLine(locale, text, { rescued, t0, t1 }, 'cjk-overlap');
           return [];
         }
         // ② 缺 t0/t1（缺字段或 NaN）：重叠判据不可用 ⇒ 视为「另一门语言没认到」放行、不静默丢字。
         //    仍保留原文（方案 1：不再在 drop 分支里丢掉放行返回的空数组）。
         if (confLate && !tsOk) {
-          const h = held[locale]; delete held[locale];
-          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
+          const h = held[locale];
           const out = [];
-          if (h) { const hd = head(h.text); if (hd && HAS_LETTER.test(hd)) out.push(hd); }
+          if (h) { clearHeldRecord(locale); releaseHeldParts(locale, h, 'no-ts'); }
           if (letterHead) { out.push(text); diag('gate:release', head(text), 'no-ts'); noteLastFormal(locale, text, t1, rescued); }
           return out;
         }
         // ③ 过了闸，或**长**的低置信拉丁片（没有中文重叠，已裁决放行）：放行。
-        //    扣住的那片（若有）先按「紧接」判据接回：有字母的当句头并进来，纯标点的丢掉（不留碎片）。
+        //    BM-025：同 locale 高置信 formal 到达 ⇒ 扣住的碎片先单独落行，再处理本片。
         if ((!why && letterHead) || (confLate && !shortEnough)) {
-          const h = held[locale]; delete held[locale];
-          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
-          const out = [];
+          const formalPass = !why && letterHead && !rescued;
+          const h = held[locale];
           if (h) {
-            const hd = head(h.text);
-            // 这里判的是「**紧接**」（两片端点相距 ≤ HOLD_GAP_MS 的邻接），不是时间重叠 ——
-            // 所以不用 overlapTs（它要求真交叠）。邻接恰恰是 overlapTs 判 false 的那种关系。
-            const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
-            // 补救来的扣住片要带着自己的 rescued/t0/t1 单独先入账：混进返回值就按**这一片**的标记入账，
-            // 账本认不出它和随后的正式定稿是同一段音频 ⇒ 同一句两行（中国版 Mac 录屏 c6）。
-            const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
-            if (own && !h.conflict) {
-              try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
-              diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
+            clearHeldRecord(locale);
+            if (formalPass) {
+              releaseHeldParts(locale, h, 'high-conf');
+            } else {
+              const outHeld = [];
+              const hd = head(h.text);
+              const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
+              const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
+              if (own && !h.conflict) {
+                try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
+                diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
+              } else if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
+              else if (HAS_LETTER.test(hd)) {
+                releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, h.conflict ? 'cjk-overlap' : 'gap');
+              } else diag('gate:drop', h.text, 'punct');
+              if (outHeld.length) {
+                const out = outHeld.slice();
+                if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
+                if (!rescued) noteChain(locale, text, t1, embed);
+                return out;
+              }
             }
-            else if (merge) { out.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
-            // 不紧接也不丢（1.19.4 r6，真机「英文丢前 1–2 个词」）：低置信拉丁片只有跨语言重叠能丢
-            // （见本闸开头 ①）。识别器常把句首单出成一片 `Hello.`，后半句隔 >120 ms 才到 —— 以前这里
-            // 记 gate:drop/gap 把句首扔了。已被中文侧判重叠的（conflict）照旧丢。
-            else if (HAS_LETTER.test(hd)) {
-              if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
-              else { out.push(hd); diag('gate:release', hd, 'gap'); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
-            }
-            else diag('gate:drop', h.text, 'punct');
           }
+          const out = [];
           if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
           if (!rescued) noteChain(locale, text, t1, embed);
           return out;
         }
-        // ④ 其余（短的低置信片 / 文字系不符 / 纯标点）：先看**这条自己**有没有中文重叠 ——
-        //    有 ⇒ 连它带扣住的那片一起丢（cjk-overlap）；没有 ⇒ 扣住一小片等后续裁决。
+        // ④ 其余（短的低置信片 / 文字系不符 / 纯标点）：重叠或其它原因 ⇒ 落行，不静默丢。
         if (!shortEnough) {
-          const h = held[locale]; delete held[locale];
-          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
-          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), why);
-          if (letterHead) diag('gate:drop', head(text), why);
+          const h = held[locale];
+          if (h) { clearHeldRecord(locale); releaseHeldParts(locale, h, why || 'long'); }
+          if (letterHead) releaseLine(locale, text, { rescued, t0, t1 }, why || 'long');
         } else if (confLate && overlapCjk(base, t0, t1)) {
-          const h = held[locale]; delete held[locale];
-          if (h && h.timer) { clearT(h.timer); h.timer = 0; }
-          if (h && HAS_LETTER.test(head(h.text))) diag('gate:drop', head(h.text), 'cjk-overlap');
-          if (letterHead) diag('gate:drop', head(text), 'cjk-overlap');
+          const h = held[locale];
+          if (h) { clearHeldRecord(locale); releaseHeldParts(locale, h, 'cjk-overlap'); }
+          if (letterHead) releaseLine(locale, text, { rescued, t0, t1 }, 'cjk-overlap');
         } else if (d.replaceHeld) {
           // 变异钩子（仅测试注入）：退回「同 locale 直接替换上一片」——用于证明方案 3 的测试抓得住。
           const h = held[locale];
@@ -1006,7 +1036,7 @@ var ListenCore = (() => {
           // 一起裁决（r10 B auto-3：'Yes.'(conf .312) 先扣，'please.'(conf .005) 到点把 'Yes.' 静默挤掉）。
           const cur = held[locale];
           if (cur && cur.parts && cur.parts.length >= HOLD_MAX_PARTS) {
-            settleHeld(locale, 'release', 'hold-overflow');   // 超量先整体放行（不丢字），再扣新的
+            settleHeld(locale, 'hold-overflow');   // 超量先整体放行（不丢字），再扣新的
           }
           const now_ = held[locale];
           if (now_) {
@@ -1055,8 +1085,8 @@ var ListenCore = (() => {
       held(locale) { const h = held[locale]; return h ? h.text : ''; },
       heldLocales() { return Object.keys(held).filter((k) => !!held[k]); },
       // 立即放行（按住说的停止 / 换边 / 结束）：关麦前把扣住的片放出去，不丢。
-      flushHeld(locale) { return settleHeld(locale, 'release', 'forced'); },
-      flushAll() { for (const k of Object.keys(held)) settleHeld(k, 'release', 'forced'); },
+      flushHeld(locale) { diag('gate:drain', '', 'forced'); return settleHeld(locale, 'forced'); },
+      flushAll() { for (const k of Object.keys(held)) { diag('gate:drain', '', 'forced'); settleHeld(k, 'forced'); } },
       cancelAll() { for (const k of Object.keys(held)) { const h = held[k]; if (h && h.timer) clearT(h.timer); delete held[k]; } },
     };
   }
@@ -1656,11 +1686,50 @@ var ListenCore = (() => {
     const now = d.now || (() => Date.now());
     const setT = d.setTimeout || setTimeout, clearT = d.clearTimeout || clearTimeout;
     const waitMs = d.waitMs || SEG_IDLE_MS;
+    const coverMs = d.coverMs || waitMs;   // BM-025：英文路 ±1.5s 内**覆盖**同一区间才丢候补
     let cand = null, lastEn = -Infinity;
+    const enRecent = [];   // { text, t0, t1, at }
     const diag = (reason, extra) => { if (d.onDiag) { try { d.onDiag('intake:' + reason, extra); } catch (_) {} } };
     function clearCand() { if (cand && cand.timer) clearT(cand.timer); cand = null; }
+    function normWords(t) { return (String(t || '').match(/[A-Za-z0-9']+/g) || []).map((w) => w.toLowerCase()); }
+    function timeNear(candT0, enT0) {
+      const c = Number.isFinite(candT0) ? candT0 : null;
+      const e = Number.isFinite(enT0) ? enT0 : null;
+      if (c != null && e != null) return Math.abs(c - e) <= coverMs;
+      return now() - lastEn <= coverMs;
+    }
+    function textCovers(candText, enText) {
+      const cw = normWords(xferClean(candText));
+      const ew = normWords(xferClean(enText));
+      if (!cw.length || !ew.length) return false;
+      for (const w of cw) { if (ew.indexOf(w) >= 0) return true; }
+      const cs = xferClean(candText).toLowerCase(), es = xferClean(enText).toLowerCase();
+      return (cs && es && (es.indexOf(cs) >= 0 || cs.indexOf(es) >= 0));
+    }
+    function enCoversCand(c, enSample) {
+      if (!c || !enSample) return false;
+      if (!timeNear(c.t0, enSample.t0)) return false;
+      return textCovers(c.text, enSample.text);
+    }
+    function enCoversAny(c) {
+      for (let i = enRecent.length - 1; i >= 0; i--) {
+        if (enCoversCand(c, enRecent[i])) return true;
+      }
+      return false;
+    }
+    function pushEnSample(o) {
+      const text = String((o && o.text) || '');
+      if (!/[A-Za-z]/.test(text)) return;
+      lastEn = now();
+      enRecent.push({ text, t0: o && o.t0, t1: o && o.t1, at: now() });
+      if (enRecent.length > 12) enRecent.splice(0, enRecent.length - 12);
+      if (cand && enCoversCand(cand, enRecent[enRecent.length - 1])) {
+        clearCand();
+        diag('xfer-drop', { text: 'en-letter-now', why: 'covered' });
+      }
+    }
     function fire(c) {
-      if (now() - lastEn <= waitMs) { diag('xfer-drop', { text: 'en-letter', rem: c.text }); return false; }
+      if (enCoversAny(c)) { diag('xfer-drop', { text: 'en-letter', rem: c.text, why: 'covered' }); return false; }
       if (d.canXfer && !d.canXfer(c)) { diag('xfer-drop', { text: 'not-ready', rem: c.text }); return false; }
       // 第 5 轮（提案 §3.0 0-b，L2）：转交**进目标通道之前**同样过一遍回声闸 —— 以前候补绕过了
       // intakeDecide 的 ①朗读中同语言硬闸 与 ③文字回声检查，于是「App 正读英文、中文路把读声收成
@@ -1689,16 +1758,17 @@ var ListenCore = (() => {
       return true;
     }
     return {
-      // 英文路给了带字母的结果（含补救文字 / 临时稿）⇒ 记时刻；已有候补则就地丢弃。
-      noteEnLetter() {
-        lastEn = now();
-        if (cand) { clearCand(); diag('xfer-drop', { text: 'en-letter-now' }); }
-      },
+      // 英文路给了带字母的结果（含补救 / partial / final）⇒ 记样本；仅当覆盖候补同一区间才作废候补。
+      noteEnLetter() { lastEn = now(); },
+      noteEnSample(o) { pushEnSample(o); },
       offer(o) {
         if (cand) { clearCand(); diag('xfer-drop', { text: 'replaced' }); }
         const c = { text: String((o && o.text) || ''), locale: (o && o.locale) || '', t0: o && o.t0, t1: o && o.t1 };
         if (!c.text) return false;
-        if (now() - lastEn <= waitMs) { diag('xfer-drop', { text: 'en-letter-pre', rem: c.text }); return false; }
+        if (enCoversAny(c)) { diag('xfer-drop', { text: 'en-letter-pre', rem: c.text, why: 'covered' }); return false; }
+        if (now() - lastEn <= waitMs && !enRecent.length) {
+          diag('xfer-nodrop', { text: 'en-letter-pre', why: 'no-en-cover' });
+        }
         c.timer = setT(() => { if (cand === c) { cand = null; fire(c); } }, waitMs);
         cand = c;
         return true;
