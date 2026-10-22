@@ -839,7 +839,8 @@ var ListenCore = (() => {
       const t = head(h.text);
       if (!HAS_LETTER.test(t)) { diag('gate:drop', h.text, 'punct'); return ''; }
       if (how === 'release') {
-        releaseLine(locale, h.text, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, why || 'release');
+        if (fragCoveredByLastFormal(locale, t)) diag('gate:drop', t, 'covered');
+        else releaseLine(locale, h.text, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, why || 'release');
       } else diag('gate:drop', t, why || 'drop');
       return t;
     }
@@ -881,6 +882,19 @@ var ListenCore = (() => {
       if (rescued || !HAS_LETTER.test(head(text))) return;
       const t1n = Number(t1);
       lastFormal[locale] = { text: head(text), t1: Number.isFinite(t1n) ? t1n : null };
+    }
+    function fragCoveredByFormal(hd, formalText) {
+      if (!hd || !formalText) return false;
+      const nh = normDupText(hd), nf = normDupText(formalText);
+      if (nh && nf && nf.indexOf(nh) >= 0) return true;
+      try { const su = sameUtterance(hd, formalText); if (su && su.same) return true; } catch (_) {}
+      return false;
+    }
+    function fragCoveredByLastFormal(locale, hd) {
+      const lf = lastFormal[locale];
+      if (!lf || !hd) return false;
+      const nh = normDupText(hd), nl = normDupText(lf.text);
+      return !!(nh && nl && nl.indexOf(nh) >= 0);
     }
     const CJK_RE_G = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
     function hasCjk(s) { return CJK_RE_G.test(String(s || '')); }
@@ -990,27 +1004,28 @@ var ListenCore = (() => {
           const h = held[locale];
           if (h) {
             clearHeldRecord(locale);
-            if (formalPass) {
-              releaseHeldParts(locale, h, 'high-conf');
-            } else {
-              const outHeld = [];
-              const hd = head(h.text);
-              const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
-              const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
-              if (own && !h.conflict) {
-                try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
-                diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
-              } else if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
-              else if (HAS_LETTER.test(hd)) {
-                if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
-                else releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, 'gap');
-              } else diag('gate:drop', h.text, 'punct');
-              if (outHeld.length) {
-                const out = outHeld.slice();
-                if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
-                if (!rescued) noteChain(locale, text, t1, embed);
-                return out;
-              }
+            const outHeld = [];
+            const hd = head(h.text);
+            const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
+            const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
+            if (formalPass && !(own && !h.conflict)) {
+              if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
+              else if (fragCoveredByFormal(hd, text)) diag('gate:drop', hd, 'covered');
+              else if (HAS_LETTER.test(hd)) releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, 'high-conf');
+              else diag('gate:drop', h.text, 'punct');
+            } else if (own && !h.conflict) {
+              try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
+              diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
+            } else if (merge) { outHeld.push(hd); noteLastFormal(locale, hd, h.t1, !!h.rescued); }
+            else if (HAS_LETTER.test(hd)) {
+              if (h.conflict) diag('gate:drop', hd, 'cjk-overlap');
+              else releaseLine(locale, hd, { rescued: !!h.rescued, t0: h.t0, t1: h.t1 }, 'gap');
+            } else diag('gate:drop', h.text, 'punct');
+            if (outHeld.length) {
+              const out = outHeld.slice();
+              if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); noteLastFormal(locale, text, t1, rescued); }
+              if (!rescued) noteChain(locale, text, t1, embed);
+              return out;
             }
           }
           const out = [];
@@ -1702,23 +1717,34 @@ var ListenCore = (() => {
     const diag = (reason, extra) => { if (d.onDiag) { try { d.onDiag('intake:' + reason, extra); } catch (_) {} } };
     function clearCand() { if (cand && cand.timer) clearT(cand.timer); cand = null; }
     function normWords(t) { return (String(t || '').match(/[A-Za-z0-9']+/g) || []).map((w) => w.toLowerCase()); }
-    function timeNear(candT0, enT0) {
-      const c = Number.isFinite(candT0) ? candT0 : null;
-      const e = Number.isFinite(enT0) ? enT0 : null;
-      if (c != null && e != null) return Math.abs(c - e) <= coverMs;
-      return now() - lastEn <= coverMs;
+    function xferLetters(s) { return String(xferClean(s) || '').replace(/[^A-Za-z]/g, '').toLowerCase(); }
+    function timeNearCand(c, enSample) {
+      const ct0 = c && Number.isFinite(c.t0) ? c.t0 : NaN;
+      const ct1 = c && Number.isFinite(c.t1) ? c.t1 : ct0;
+      const et0 = enSample && Number.isFinite(enSample.t0) ? enSample.t0 : NaN;
+      const et1 = enSample && Number.isFinite(enSample.t1) ? enSample.t1 : et0;
+      if (Number.isFinite(ct0) && Number.isFinite(ct1) && Number.isFinite(et0) && Number.isFinite(et1)) {
+        return ct0 <= et1 + coverMs && et0 - coverMs <= ct1;
+      }
+      const enAt = enSample && Number.isFinite(enSample.at) ? enSample.at : lastEn;
+      const cAt = Number.isFinite(ct0) ? ct0 : now();
+      return Math.abs(enAt - cAt) <= coverMs;
     }
     function textCovers(candText, enText) {
       const cw = normWords(xferClean(candText));
       const ew = normWords(xferClean(enText));
       if (!cw.length || !ew.length) return false;
       for (const w of cw) { if (ew.indexOf(w) >= 0) return true; }
+      const cLet = xferLetters(candText);
+      if (cLet.length >= 2) {
+        for (const w of ew) { if (w.indexOf(cLet) >= 0 || w.startsWith(cLet)) return true; }
+      }
       const cs = xferClean(candText).toLowerCase(), es = xferClean(enText).toLowerCase();
       return (cs && es && (es.indexOf(cs) >= 0 || cs.indexOf(es) >= 0));
     }
     function enCoversCand(c, enSample) {
       if (!c || !enSample) return false;
-      if (!timeNear(c.t0, enSample.t0)) return false;
+      if (!timeNearCand(c, enSample)) return false;
       return textCovers(c.text, enSample.text);
     }
     function enCoversAny(c) {

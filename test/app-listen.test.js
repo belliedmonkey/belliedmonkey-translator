@@ -650,10 +650,10 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
     const g = C.makeFinalGate(Object.assign({}, DEPS, { onRelease: (l, t) => released.push(t) }));
     deepEq(g.push({ locale: 'en-US', text: ',... The', conf: 0.25, t0: 16200, t1: 17520 }), [], '低置信短片先扣住');
     eq(g.held('en-US'), ',... The', '扣住原文');
-    // 紧接的高置信片：句头经 onRelease 单独落行（BM-025）
+    // 紧接的高置信片：句头并入本片（BM-025 r3 三分之相邻）
     deepEq(g.push({ locale: 'en-US', text: 'quote already includes freight and insurance, but not customs duties.', conf: 0.98, t0: 17520, t1: 21420 }),
-      ['quote already includes freight and insurance, but not customs duties.']);
-    ok(released.indexOf('The') >= 0, '句头单独落行');
+      ['The', 'quote already includes freight and insurance, but not customs duties.']);
+    ok(released.indexOf('The') < 0, '并入返回值，不经 onRelease');
     eq(g.held('en-US'), '', '接回之后不再扣着');
     deepEq(g.push({ locale: 'en-US', text: ' we', conf: 0.01, t0: 31300, t1: 31780 }), [], '低置信片仍扣住');
     eq(g.held('en-US'), 'we');

@@ -191,7 +191,7 @@ async function replay(key) {
       }
     }
     if (partialWorthRescue(ev, partialBy[base], clk.now()) && partialBy[base]) { text = partialBy[base].text; rescued = true; }
-    if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
+    if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnSample({ text, t0: ev.t0, t1: ev.t1 });
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
       diags.push({ kind: 'intake:' + dec.reason });
@@ -209,7 +209,7 @@ async function replay(key) {
     if (e.type === 'stt-partial') {
       const k = C.baseCode(e.locale);
       partialBy[k] = { text: String(e.text || ''), at: clk.now(), t0: e.t0, t1: e.t1 };
-      if (k === c.lid && /[A-Za-z]/.test(String(e.text || ''))) xfer.noteEnLetter();
+      if (k === c.lid && /[A-Za-z]/.test(String(e.text || ''))) xfer.noteEnSample({ text: String(e.text || ''), t0: e.t0, t1: e.t1 });
       if (seg.notePartial) seg.notePartial(e.locale);
     } else if (e.type === 'stt-final') {
       intake(e);
@@ -227,9 +227,10 @@ const diagN = (diags, kind) => diags.filter((d) => d.kind === kind).length;
 
 describe('R15 ② — 回放 g3-yesplease-auto 第 5/7/9 次（连同前一句）', () => {
   const G3_EN_ROWS = {
-    'g3-yesplease-auto-5': ['Yes, please. Yes please.', 'Yes, please.', 'ple.'],
+    'g3-yesplease-auto-5': ['Yes, please.', 'Yes, please.'],
+    // known issue（BM-025 r3）：标点清洗延后，与 db4a1cd6 修复前一致
     'g3-yesplease-auto-7': ['Yes,., please.', '. Yes, please.'],
-    'g3-yesplease-auto-9': ['Yes, please.', 'please', 'Yes please.'],
+    'g3-yesplease-auto-9': ['Yes, please.', 'Yes please.'],
   };
   for (const key of Object.keys(G3_EN_ROWS)) {
     test('★ ' + key + '：前句临时稿与当前句正式 final 各出一行（不跨句误去重）', async () => {

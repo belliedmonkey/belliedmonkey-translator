@@ -355,7 +355,7 @@ async function replay(key, opt) {
       }
     }
     if (partialWorthRescue(ev, partialBy[base], clk.now()) && partialBy[base]) { text = partialBy[base].text; rescued = true; }
-    if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
+    if (base === c.lid && /[A-Za-z]/.test(text)) xfer.noteEnSample({ text, t0: ev.t0, t1: ev.t1 });
     const dec = C.intakeDecide({ base, lid: c.lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
       diags.push({ kind: 'intake:' + dec.reason });
@@ -374,7 +374,7 @@ async function replay(key, opt) {
       const k = C.baseCode(e.locale);
       partialBy[k] = { text: String(e.text || ''), at: clk.now(), t0: e.t0, t1: e.t1 };
       // 生产接线：归属这一路的 partial 有字母 ⇒ 也算「英文路有结果」（候补作废）。
-      if (k === c.lid && /[A-Za-z]/.test(String(e.text || ''))) xfer.noteEnLetter();
+      if (k === c.lid && /[A-Za-z]/.test(String(e.text || ''))) xfer.noteEnSample({ text: String(e.text || ''), t0: e.t0, t1: e.t1 });
       if (seg.notePartial) seg.notePartial(e.locale);
     } else if (e.type === 'stt-final') {
       intake(e);
@@ -640,7 +640,7 @@ async function runR14Fuzz(seed) {
       const letters = letterCount(text);
       if (letters === 0 || /^[\s,.;:!?…、。，！？]+/u.test(text)) { text = p.text; rescued = true; }
     }
-    if (base === lid && /[A-Za-z]/.test(text)) xfer.noteEnLetter();
+    if (base === lid && /[A-Za-z]/.test(text)) xfer.noteEnSample({ text, t0: ev.t0, t1: ev.t1 });
     const dec = C.intakeDecide({ base, lid, pttSwitch: null, now: clk.now(), playing: new Set(), text, isEcho: () => false });
     if (!dec.admit) {
       if (dec.xfer) xfer.offer({ text: C.xferClean(text), locale: C.toLocale(lid), t0: ev.t0, t1: ev.t1 });

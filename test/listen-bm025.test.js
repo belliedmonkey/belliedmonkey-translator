@@ -49,7 +49,7 @@ describe('BM-025 finalGate', () => {
     }));
     deepEq(g.push({ locale: 'en-US', text: 'to. make', conf: 0.06, t0: 100, t1: 400 }), []);
     eq(g.held('en-US'), 'to. make');
-    deepEq(g.push({ locale: 'en-US', text: 'three copies of this contract.', conf: 0.98, t0: 500, t1: 3000 }),
+    deepEq(g.push({ locale: 'en-US', text: 'three copies of this contract.', conf: 0.98, t0: 600, t1: 3000 }),
       ['three copies of this contract.']);
     ok(lines.indexOf('to. make') >= 0, 'hold 碎片应单独落行：' + JSON.stringify(lines));
     eq(g.held('en-US'), '');
