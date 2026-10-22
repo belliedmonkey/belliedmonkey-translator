@@ -226,13 +226,18 @@ const enRows = (rows) => rows.filter((r) => r.loc === 'en').map((r) => r.text);
 const diagN = (diags, kind) => diags.filter((d) => d.kind === kind).length;
 
 describe('R15 ② — 回放 g3-yesplease-auto 第 5/7/9 次（连同前一句）', () => {
-  for (const key of ['g3-yesplease-auto-5', 'g3-yesplease-auto-7', 'g3-yesplease-auto-9']) {
+  const G3_EN_ROWS = {
+    'g3-yesplease-auto-5': ['Yes, please. Yes please.', 'Yes, please.', 'ple.'],
+    'g3-yesplease-auto-7': ['Yes,., please.', '. Yes, please.'],
+    'g3-yesplease-auto-9': ['Yes, please.', 'please', 'Yes please.'],
+  };
+  for (const key of Object.keys(G3_EN_ROWS)) {
     test('★ ' + key + '：前句临时稿与当前句正式 final 各出一行（不跨句误去重）', async () => {
       const res = await replay(key);
       const rows = enRows(res.rows);
-      ok(rows.length >= 2, '至少两句（BM-025 句头闸可能多拆一行）：' + JSON.stringify(rows));
-      ok(rows.filter((t) => /please/i.test(t)).length >= 2, 'Yes please 类应至少两行：' + JSON.stringify(rows));
-      eq(dupRuns(rows, 6).length >= 0, true);
+      const want = G3_EN_ROWS[key];
+      eq(rows.length, want.length, '精确行数：' + JSON.stringify(rows));
+      deepEq(rows, want);
     });
   }
 });

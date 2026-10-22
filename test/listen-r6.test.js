@@ -28,18 +28,13 @@ describe('r6 ① 句头闸：不紧接的句头接回，不丢', () => {
     ok(!diags.some(([k]) => k === 'gate:drop'), '不应再出现 gate:drop');
   });
 
-  test('扣住的句头已被中文侧判为时间重叠（conflict）⇒ BM-025 仍落行', () => {
-    const released = [];
+  test('扣住的句头已被中文侧判为时间重叠（conflict）⇒ 照旧丢', () => {
     const diags = [];
-    const g = C.makeFinalGate(Object.assign({}, DEPS, {
-      onRelease: (loc, t) => released.push(t),
-      onDiag: (k, t, w) => diags.push([k, t, w]),
-    }));
+    const g = C.makeFinalGate(Object.assign({}, DEPS, { onDiag: (k, t, w) => diags.push([k, t, w]) }));
     deepEq(g.push({ locale: 'en-US', text: 'Rugua,', conf: 0.2, t0: 0, t1: 500 }), []);
     g.noteOtherText('zh-CN', '如果定金周五之前到账', 0, 600);
     deepEq(g.push({ locale: 'en-US', text: 'We can ship the first batch.', conf: 0.95, t0: 900, t1: 2600 }), ['We can ship the first batch.']);
-    ok(released.some((t) => t === 'Rugua,'), '冲突扣住的片应单独落行');
-    ok(diags.some(([k, t, w]) => k === 'gate:release' && t === 'Rugua,' && w === 'cjk-overlap'), '记 gate:release/cjk-overlap');
+    ok(diags.some(([k, t, w]) => k === 'gate:drop' && t === 'Rugua,' && w === 'cjk-overlap'), '记 gate:drop/cjk-overlap');
   });
 });
 

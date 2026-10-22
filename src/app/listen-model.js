@@ -1640,6 +1640,7 @@ const listenModel = (() => {
       onDiag: (kind, text, why) => gateDiag(kind, text, why),
       scriptFirst,
     }));
+    if (finalGate && finalGate.flushAll) { try { finalGate.flushAll(); } catch (_) {} }
     finalGate = gate;
     const segActive = seg;   // 这一路 socket 存活期间喂的账本（closeSocket 不清 seg，重连接着喂）
     const useSeg = () => !!(segRoute === 'model' && seg && !segDegrade);

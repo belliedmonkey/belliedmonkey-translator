@@ -451,13 +451,13 @@ describe('R14 ⑤ — 回放 /tmp/r13 原始事件', () => {
       eq(dupRuns(enRows(res.emittedRows), 6).length, 0, '相邻行重复：' + JSON.stringify(rows));
     });
   }
-  test('★ yes-auto-7：英文路 `Yeah.` 与中文候补 `Yes` 不同词 ⇒ BM-025 不丢候补（可各出一行）', async () => {
+  test('★ yes-auto-7：英文路 `Yeah.` 不覆盖中文候补 `Yes` ⇒ 两行、不重复', async () => {
     const res = await replay('yes-auto-7');
     const rows = enRows(res.emittedRows);
-    ok(rows.length >= 1, '至少一行：' + JSON.stringify(rows));
-    ok(rows.some((t) => /yeah|yes/i.test(t)), '应含 Yeah 或转交的 Yes：' + JSON.stringify(rows));
-    ok(!res.diags.some((d) => d.kind === 'intake:xfer-drop' && d.extra && d.extra.text === 'en-letter-now' && d.extra.why === 'covered'),
-      'Yeah 不应算覆盖 Yes');
+    eq(rows.length, 2, 'Yeah 与转交 Yes 各一行：' + JSON.stringify(rows));
+    deepEq(rows, ['Yeah.', 'Yes.']);
+    ok(res.diags.some((d) => d.kind === 'intake:xfer'), 'Yes 应经转交：' + JSON.stringify(res.diags.map((d) => d.kind)));
+    eq(dupRuns(rows, 6).length, 0, '相邻行重复：' + JSON.stringify(rows));
   });
   test('★ en-auto-1：模型把 remainder 补回整句 ⇒ 一次往返出行，且不与上一行重复', async () => {
     // 回放真实模型回复：第一次回缓冲本身；第二次（缓冲 to. Zang's...）回补回的整句。
@@ -538,6 +538,48 @@ describe('R14 ⑥ — 中文路 → 英文路候补转交（纯逻辑）', () =>
     eq(g.offer({ text: 'Yes please.', locale: 'en-US' }), true);
     eq(g.stop(), true);
     deepEq(got, ['Yes.', 'Yes please.']);
+  });
+  test('★ BM-025 端到端：英文路已覆盖同区间 ⇒ zh en-letter 丢弃且不重复行', async () => {
+    const clk = fakeClock();
+    const enRowsOut = [];
+    const seg = C.makeSegmentRouter({
+      call: (p) => Promise.resolve(JSON.stringify({ segments: [{ source: bufOf(p), translation: 'T' }], remainder: '' })),
+      emit: (list, meta) => {
+        if (C.baseCode(meta && meta.locale) === 'en') {
+          for (const row of list) enRowsOut.push(row.source);
+        }
+      },
+      fallback: () => {},
+      ctx: () => ({ userTmpl: 'BUF:\n{buffer}\nFORCE:{force}' }),
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, idleMs: 1500, endWaitMs: 3000,
+    });
+    const xfer = C.makeTransferGate({
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, waitMs: 1500, coverMs: 1500,
+      canXfer: () => true,
+      onXfer: (text, locale) => seg.feed(locale, text, { rescued: true, waited: true }),
+      onDiag: () => {},
+    });
+    const gate = C.makeFinalGate({
+      dominantScript: SCRIPT, now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, idleMs: 1500,
+      onRelease: (locale, text, meta) => seg.feed(locale, text, { rescued: !!(meta && meta.rescued), t0: meta && meta.t0, t1: meta && meta.t1 }),
+      onDiag: () => {},
+    });
+    for (const t of gate.push({ locale: 'en-US', text: 'Please make three copies.', conf: 0.98, t0: 1000, t1: 2400 })) {
+      seg.feed('en-US', t, { t0: 1000, t1: 2400 });
+    }
+    xfer.noteEnSample({ text: 'Please make three copies.', t0: 1000, t1: 2400 });
+    const dec = C.intakeDecide({ base: 'zh-CN', lid: 'en', text: 'Please', pttSwitch: null, playing: new Set(), now: clk.now(), isEcho: () => false });
+    eq(dec.admit, false);
+    eq(dec.xfer, true);
+    eq(xfer.offer({ text: 'Please.', locale: 'en-US', t0: 1100, t1: 1300 }), false, '英文已覆盖同区间 ⇒ 拒绝候补');
+    eq(xfer.pending(), false, '无残留候补');
+    await clk.advance(2000);
+    await settleTick();
+    await clk.advance(4000);
+    await settleTick();
+    eq(enRowsOut.length, 1, '最终只许一行英文：' + JSON.stringify(enRowsOut));
+    eq(enRowsOut[0], 'Please make three copies.');
+    seg.dispose();
   });
   test('★ 变异对照：把转交改成双向（lid=zh 也候补）会让「说中文键不触发」变红 —— 用生产判据的反向断言钉住', () => {
     ok(!C.isXferCandidate({ base: 'en-US', lid: 'zh', text: 'Yes.' }), '英文路 → 中文路 不候补');

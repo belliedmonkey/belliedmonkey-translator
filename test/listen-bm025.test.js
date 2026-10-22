@@ -68,6 +68,37 @@ describe('BM-025 finalGate', () => {
     ok(diags.indexOf('gate:drain') >= 0, '应有 gate:drain 诊断事件');
   });
 
+  test('socket 重连：旧闸 flushAll 后再换新闸', () => {
+    const lines = [];
+    const mk = () => C.makeFinalGate(Object.assign({}, DEPS, {
+      onRelease: (loc, t) => lines.push(t),
+      onDiag: () => {},
+    }));
+    let finalGate = mk();
+    finalGate.push({ locale: 'en-US', text: 'before reconnect', conf: 0.1, t0: 0, t1: 400 });
+    eq(finalGate.heldLocales().length, 1);
+    if (finalGate.flushAll) finalGate.flushAll();
+    finalGate = mk();
+    deepEq(lines, ['before reconnect'], '重连前应落行旧扣住片');
+    eq(finalGate.heldLocales().length, 0, '新闸为空');
+  });
+
+  test('cancelAll 清掉 maxTimer（3s 超时计时器）', async () => {
+    const clk = fakeClock();
+    const lines = [];
+    const g = C.makeFinalGate(Object.assign({}, DEPS, {
+      now: clk.now, setTimeout: clk.setT, clearTimeout: clk.clearT, idleMs: 10000, holdTimeoutMs: 3000,
+      onRelease: (loc, t) => lines.push(t),
+      onDiag: () => {},
+    }));
+    g.push({ locale: 'en-US', text: 'timer test', conf: 0.1, t0: 0, t1: 400 });
+    eq(g.heldLocales().length, 1);
+    g.cancelAll();
+    eq(g.heldLocales().length, 0);
+    await clk.advance(5000);
+    eq(lines.length, 0, 'cancelAll 后 maxTimer 不应再落行');
+  });
+
   test('hold 3s 超时 ⇒ 强制落行 + gate-timeout（无用户句）', async () => {
     const clk = fakeClock();
     const lines = [];
