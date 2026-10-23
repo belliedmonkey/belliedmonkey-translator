@@ -142,8 +142,10 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     private weak var webView: WKWebView?
     private var transcriber: AnyObject?          // MTDeviceTranscriber（iOS 26+ 才有，所以按 AnyObject 存）
+#if DEBUG
     /// 步 2b：Grok STT 的原生鉴权 WebSocket 会话（req → 会话）。key 只活在这里，close/失败即清。
     private var grokSessions: [String: MTGrokSttSession] = [:]
+#endif
     private let speech = MTDeviceSpeech()
     private let system = MTSystemSpeech()      // 系统语音的原生后端（AVSpeechSynthesizer）：WebKit 只暴露 compact 档，增强/优质只有这里拿得到
     private let netMonitor = NWPathMonitor()
@@ -192,11 +194,13 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "stt-release": sttRelease(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
+#if DEBUG
         // 步 2b：Grok STT 的原生鉴权 WebSocket（WKWebView 不能自定义 Authorization 头）。
         case "grok-stt-open":  grokSttOpen(body)
         case "grok-stt-pcm":   grokSttPcm(body)
         case "grok-stt-cut":   grokSttCut(body)
         case "grok-stt-close": grokSttClose(body)
+#endif
         case "tts-probe":  speech.probe(models: body["models"], systemLangs: system.langs())
         case "tts-assets": speech.download(models: body["models"])
         case "lid-probe":  MTDeviceLid.shared.probe(models: body["models"])
@@ -389,6 +393,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         if announce { emit(["type": "stt-state", "state": "ended"]) }
     }
 
+#if DEBUG
     // MARK: - Grok STT 原生鉴权桥（步 2b）
 
     /// 开一路原生 WebSocket。URL / model / sample_rate / language 都由 JS 拼好传进来；
@@ -442,6 +447,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         if !locale.isEmpty { msg["locale"] = locale }
         emit(msg)
     }
+#endif
 
     // MARK: - 原生 → JS
 
@@ -457,6 +463,7 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     }
 }
 
+#if DEBUG
 // MARK: - Grok STT 原生鉴权会话（步 2b）
 
 /// 一路 Grok STT 的 URLSessionWebSocketTask。
@@ -640,6 +647,7 @@ private final class MTGrokSttSession {
         return nil
     }
 }
+#endif
 
 // MARK: - 设备内置转写（SpeechAnalyzer）
 

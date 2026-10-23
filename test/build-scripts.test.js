@@ -1699,6 +1699,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"pcm"', '"apiKey"', '"Authorization"', '"Bearer "',
       '"transcript.created"', '"transcript.partial"', '"transcript.done"', '"finalize"', '"audio.done"',
       '"speech_final"', '"is_final"', '"confidence"', '"start"', '"duration"',
+      // Grok 事件 kind / 会话态（JS onEvent 同名：partial/final/ready；原生只发协议 id）
+      '"partial"', '"final"', '"ready"',
       '"ws"', '"wss"', '"server"', '"client"', '"done"', '"error"', '"close"', '"socket"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
       '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
