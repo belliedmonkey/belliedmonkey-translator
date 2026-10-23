@@ -68,3 +68,15 @@ describe('中国合规门：注册表里的额度条目（原文真正发去的�
       '普通引擎被误拦');
   });
 });
+
+describe('中国合规门：泰语 Grok / xAI 剥门（2026-10-23）', () => {
+  test('api.x.ai / wss / grok-stt-open 红', () => {
+    ok(scan('const U = "wss://api.x.ai/v1/stt"').length === 1, 'wss://api.x.ai 没被拦');
+    ok(scan('host = "api.x.ai"').length === 1, 'api.x.ai 没被拦');
+    ok(scan('case "grok-stt-open":').length === 1, 'grok-stt-open 没被拦');
+  });
+  test('无关协议词不误伤', () => {
+    ok(scan('type: "stt-open"').length === 0, 'stt-open 被误拦');
+    ok(scan('label: "Grok 风格"').length === 0, '无端点的 Grok 字样被误拦（仅禁端点与协议 id）');
+  });
+});

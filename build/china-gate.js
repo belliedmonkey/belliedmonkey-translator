@@ -8,6 +8,8 @@
 //
 // ① 品牌与境外端点（从第一天就有）。`anthropic-version`（通用 Messages 格式的协议头）
 //    **不算** —— 它不是品牌指代。见 docs/domain-design.md。
+//    2026-10-23：泰语 Grok 剥门 —— 中国产物禁 `api.x.ai` / `wss://api.x.ai` / `grok-stt-open`
+//    （SPEC-THAI-GROK-RELEASE-PEEL；国际 Debug 可有，中国 Release 必须 0）。
 //
 // ② 东京的三条后端路径，**无论额度开没开都禁**：
 //    · bt-ingest —— 匿名用量事件（Gate D）。中国版一个字节都不发。
@@ -26,7 +28,7 @@
 //    另外，注册表里 grantOnly 的条目（providers.gen.js 的 "grantOnly":true）的端点也必须在
 //    grantHost 上 —— 那是原文真正发出去的地址，MT_GRANT 里只有领取地址。
 
-const BRANDS = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i;
+const BRANDS = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|api\.x\.ai|wss:\/\/api\.x\.ai|grok-stt-open/i;
 const TOKYO = /bt-ingest|\/functions\/v1\/bt-grant|bt-relay\/(chat|audio)/i;
 const GRANT_SPEC = /MT_GRANT = (\{.*\});?\s*$/;
 const URL_RE = /https?:\/\/[^\s"'`)\\]+/g;
