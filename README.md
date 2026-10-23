@@ -234,6 +234,20 @@ sounds and is why the architecture looks unusual. See
 
 ---
 
+## Effect vs industry waterline (2026-10)
+
+Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
+
+| Dimension | Ours (measured) | Public industry anchor | Gap |
+|---|---|---|---|
+| Translation | plus · App-contract COMET **88.8** (1600 sentences) | Same-protocol DeepL/Google **no public number** | Self-measured high quality; cannot rank vs DeepL |
+| ASR Chinese | Live SA; offline SenseVoice CER **~5–7%** | AA English top ~1.7–2.3% WER (**not convertible**) | On-device Chinese upgrade under validation |
+| ASR Thai | Grok streaming archdemo CER **9.66%**, 0 drops | On-device gap filled by cloud | **Approved for 1.20.x** (direct xAI; relay unchanged) |
+| Interpret latency | Doc targets; unified online telemetry **unpublished** | Meet 63-language UX (vendor) | Instrument first |
+| TTS | Local / offline-capable | AA e.g. Eleven v4 Turbo Elo 1335 | Cloud voices pending listen tests |
+
+**Not shipping soon:** flash/DeepSeek replacing plus; Grok streaming as caption primary; Ming TTS CPU path. **Next:** monthly on the 1st (or sooner on material change). Numbers labeled self-measured / third-party / vendor-reported.
+
 ## Known limitations
 
 Stated up front, because finding them yourself is worse.
