@@ -154,11 +154,13 @@ function sh(cmd) {
   return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
-function screenshot(tag) {
+function screenshot(tag, display) {
   const dest = path.join(OUT, tag + '.png');
   try {
-    sh(`xcrun simctl io ${UDID} screenshot ${JSON.stringify(dest)}`);
-    log('screenshot ' + tag);
+    // Duo 合盖时默认 framebuffer 可能是内屏黑图；外屏用 --display=primary（1398×2034）
+    const disp = display ? ` --display=${display}` : '';
+    sh(`xcrun simctl io ${UDID} screenshot${disp} ${JSON.stringify(dest)}`);
+    log('screenshot ' + tag + (display ? ' display=' + display : ''));
   } catch (e) {
     log('screenshot fail ' + tag + ': ' + e.message);
   }
@@ -296,6 +298,36 @@ async function main() {
   fs.writeFileSync(path.join(OUT, 'ac-d4-home.json'), JSON.stringify(d4, null, 2));
   screenshot('ac-d4-home-open');
 
+  // 产品 09:42：门控原因行须首屏入视、无需滚动（「全文未截断但需滚」不算签字 PASS）
+  const d4geom = await evalOk(base, `(() => {
+    const need = document.getElementById('app-listen-need-live') || document.getElementById('app-listen-need-live-why');
+    const why = document.getElementById('app-listen-need-live-why');
+    const heroes = document.querySelector('.heroes');
+    const heroesNeed = document.querySelector('.heroes-need');
+    const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+    const box = (el) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, height: r.height, hidden: !!el.hidden,
+        inView: r.top >= 0 && r.bottom <= vh + 1 && r.height > 0 };
+    };
+    return {
+      vh, scrollY: window.scrollY || window.pageYOffset || 0,
+      need: box(need), why: box(why), heroes: box(heroes), heroesNeed: box(heroesNeed),
+      whyText: why ? (why.textContent || '').trim() : '',
+      needHidden: need ? !!need.hidden : null,
+    };
+  })()`);
+  fs.writeFileSync(path.join(OUT, 'ac-d4-viewport.json'), JSON.stringify(d4geom, null, 2));
+  const firstScreenOk = !!(d4geom && d4geom.need && d4geom.need.inView && d4geom.scrollY === 0
+    && (d4geom.needHidden === false || (d4geom.why && d4geom.why.inView)));
+  // If gate not shown (need hidden), first-screen gate N/A — still require heroes in view
+  const firstScreenGate = (d4geom && d4geom.needHidden === true)
+    ? !!(d4geom.heroes && d4geom.heroes.inView)
+    : firstScreenOk;
+  report.notes.push('D4 firstScreen=' + firstScreenGate + ' need=' + JSON.stringify(d4geom && d4geom.need)
+    + ' vh=' + (d4geom && d4geom.vh));
+
   // Assert gate reasons from entryView
   const evA = d4 && d4.ev && d4.ev.a;
   const listenWhy = evA && evA.listen && (evA.listen.why || '');
@@ -316,8 +348,10 @@ async function main() {
     }
     return parts.every((w) => w && w.length >= 8 && !/…\s*$/.test(w) && w !== '...');
   })();
-  const d4pass = !!(d4 && d4.signedIn && heroesVisible && whyComplete && (d4.homeW >= 700 || (d4.lc && d4.lc.horizontalSizeClass === 'regular')));
+  const d4pass = !!(d4 && d4.signedIn && heroesVisible && whyComplete && firstScreenGate
+    && (d4.homeW >= 700 || (d4.lc && d4.lc.horizontalSizeClass === 'regular')));
   report.ac['AC-D4'] = d4pass ? 'PASS' : 'FAIL';
+  report.ac['AC-D4-firstScreen'] = firstScreenGate ? 'PASS' : 'FAIL';
   report.notes.push('D4 listenNeed=' + listenNeed + ' why=' + JSON.stringify(listenWhy).slice(0, 80)
     + ' subsNeed=' + subsNeed + ' why=' + JSON.stringify(subsWhy).slice(0, 80)
     + ' w=' + (d4 && d4.homeW));
@@ -356,6 +390,8 @@ async function main() {
       await sleep(300);
     }
 
+    screenshot('pixel-04-outer-closed');
+    screenshot('pixel-04-lcd-primary', 'primary');
     screenshot('ac-d3-outer-closed');
 
     // pause / resume semantics across hinge
@@ -363,6 +399,7 @@ async function main() {
     hinge('open');
     await sleep(1200);
     let stOpen = JSON.parse(await evalOk(base, `JSON.stringify(AppListen._debug())`));
+    screenshot('pixel-05-inner-open');
     screenshot('ac-d3-inner-open');
     hinge('close');
     await sleep(1200);
@@ -408,12 +445,63 @@ async function main() {
       + ' sameSid=' + sameSid + ' hingeOk=' + hingeOk + ' pipWay=' + pipWay);
     log('  AC-D3 ' + report.ac['AC-D3']);
 
-    // Pixel 04/05: already have screenshots; mark for human/parent visual vs batch3
-    // Automated heuristic: dark bar / caption area present
-    report.ac['pixel-04'] = onSubs ? 'PENDING_VISUAL' : 'BLOCKED';
-    report.ac['pixel-05'] = onSubs ? 'PENDING_VISUAL' : 'BLOCKED';
+    // Pixel Duo-04/05：DOM 启发式（深色舞台 + mode-subtitle；内屏须有最近侧栏）。半成功不得 PASS。
+    const pix = await evalOk(base, `(() => {
+      const sec = document.getElementById('app-listen');
+      const stage = document.getElementById('app-subs-pip');
+      const hist = document.getElementById('app-listen-history-wrap');
+      const cs = stage ? getComputedStyle(stage) : null;
+      const bg = cs ? cs.backgroundColor : '';
+      const dark = (bg || "").indexOf("15, 23, 42") >= 0 || (bg || "").indexOf("15,23,42") >= 0;
+      const modeSub = !!(sec && sec.classList.contains('mode-subtitle'));
+      const tr = document.querySelector('.subs-tr');
+      const orig = document.querySelector('.subs-orig');
+      const histDisp = hist ? getComputedStyle(hist).display : 'none';
+      const title = document.getElementById('app-listen-history-title');
+      return {
+        modeSub, dark, bg,
+        stageHidden: stage ? !!stage.hidden : null,
+        tr: tr ? (tr.textContent || '').trim() : '',
+        orig: orig ? (orig.textContent || '').trim() : '',
+        histDisplay: histDisp,
+        histTitle: title ? (title.textContent || '').trim() : '',
+        w: window.innerWidth,
+      };
+    })()`);
+    // closed was already shot; re-open for open-pose measure
+    hinge('open');
+    await sleep(1000);
+    const pixOpen = await evalOk(base, `(() => {
+      const sec = document.getElementById('app-listen');
+      const stage = document.getElementById('app-subs-pip');
+      const hist = document.getElementById('app-listen-history-wrap');
+      const cs = stage ? getComputedStyle(stage) : null;
+      const bg = cs ? cs.backgroundColor : '';
+      const dark = (bg || "").indexOf("15, 23, 42") >= 0 || (bg || "").indexOf("15,23,42") >= 0;
+      const modeSub = !!(sec && sec.classList.contains('mode-subtitle'));
+      const histDisp = hist ? getComputedStyle(hist).display : 'none';
+      const title = document.getElementById('app-listen-history-title');
+      const tr = document.querySelector('.subs-tr');
+      return {
+        modeSub, dark, bg, histDisplay: histDisp,
+        histTitle: title ? (title.textContent || '').trim() : '',
+        tr: tr ? (tr.textContent || '').trim() : '',
+        w: window.innerWidth,
+      };
+    })()`);
+    screenshot('pixel-05-lcd1');
+    hinge('close');
+    await sleep(800);
+    fs.writeFileSync(path.join(OUT, 'pixel-dom.json'), JSON.stringify({ closed: pix, open: pixOpen }, null, 2));
+    const p04 = !!(pix && pix.modeSub && pix.dark && pix.stageHidden === false);
+    const p05 = !!(pixOpen && pixOpen.modeSub && pixOpen.dark && pixOpen.histDisplay !== 'none'
+      && /最近/.test(pixOpen.histTitle || ''));
+    report.ac['pixel-04'] = p04 ? 'PASS' : 'FAIL';
+    report.ac['pixel-05'] = p05 ? 'PASS' : 'FAIL';
+    report.notes.push('pixel04=' + JSON.stringify(pix).slice(0, 180));
+    report.notes.push('pixel05=' + JSON.stringify(pixOpen).slice(0, 180));
     fs.writeFileSync(path.join(OUT, 'ac-d3-states.json'), JSON.stringify({
-      st0, stOpen, stBack, stPaused, stResumed, stPip, pipWay,
+      st0, stOpen, stBack, stPaused, stResumed, stPip, pipWay, pix, pixOpen,
     }, null, 2));
   }
 

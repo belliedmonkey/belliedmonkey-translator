@@ -793,6 +793,192 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   /* Duo P0 B3：右栏历史跟网格剩余高，去掉 100vh-210px 经验常数 */
   :where(#app-listen) .listen-history { flex: 1 1 auto; min-height: 0; max-height: 100%; height: 100%; overflow-y: auto; }
 }
+
+/* ── Duo P0 · 实时字幕独立表面（ARCH 09:43 / 产品 09:42 batch3）─────────────
+   mode=subtitle 换 chrome；compact=深色条；dualRegular=大字幕主区+最近侧栏。
+   不复用对话「左控右史」语义；禁 UIScreen/idiom。半折放大仍 1.21.1。 */
+#app-listen.mode-subtitle {
+  /* 字幕页底栏留白改短（无对话贴底双键） */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+}
+#app-listen.mode-subtitle #app-listen-ptt,
+#app-listen.mode-subtitle #app-listen-ephemeral-why,
+#app-listen.mode-subtitle #app-listen-engine-hint,
+#app-listen.mode-subtitle #app-listen-queue {
+  display: none !important; /* 字幕模板不占位；元素仍在树里给 grid 测试 / 模型写 */
+}
+#app-listen.mode-subtitle .listen-now.subs-stage-host {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+#app-listen.mode-subtitle .subs-stage {
+  /* 固定深色条/主区（#0F172A · batch3）；不跟主题 */
+  flex: 1 1 auto;
+  min-height: 220px;
+  width: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  margin: 0;
+  border-radius: 20px;
+  background: #0F172A;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 22px;
+  box-sizing: border-box;
+  text-align: center;
+}
+#app-listen.mode-subtitle .subs-tr {
+  margin: 0;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
+  max-width: 36em;
+}
+#app-listen.mode-subtitle .subs-orig {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.72);
+  max-width: 36em;
+}
+#app-listen.mode-subtitle .subs-stage-empty {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.95rem;
+  padding: 0 12px;
+}
+#app-listen.mode-subtitle #app-subs-float { align-self: center; }
+/* 紧凑外屏：侧栏「最近句子」收起，舞台占满；橙「开始」通栏 */
+#app-listen.mode-subtitle #app-listen-history-wrap {
+  /* compact 默认藏侧栏；≥720 再开（下媒体块） */
+  display: none;
+}
+#app-listen.mode-subtitle #app-listen-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#app-listen.mode-subtitle #app-listen-actions.subs-actions-row {
+  flex-direction: row;
+  align-items: stretch;
+}
+#app-listen.mode-subtitle #app-listen-actions.subs-actions-row #app-listen-toggle {
+  flex: 1 1 0;
+  background: var(--sage-strong, #56633f);
+}
+#app-listen.mode-subtitle #app-listen-actions.subs-actions-row #app-listen-end {
+  flex: 1 1 0;
+  min-height: 64px;
+}
+#app-listen.mode-subtitle #app-listen-toggle {
+  /* Duo-04 橙「开始」 */
+  background: var(--accent, #ac6231);
+  border-radius: 18px;
+}
+#app-listen.mode-subtitle #app-listen-ephemeral-row,
+#app-listen.mode-subtitle #app-listen-autospeak-row {
+  display: none !important;
+}
+
+@media (min-width: 720px) {
+  /* 字幕 dualRegular：主区大字幕 + 最近侧栏（约 62/38），不是对话 42/58 左控右史 */
+  #app-listen.mode-subtitle:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 0.62fr) minmax(0, 0.38fr);
+    column-gap: 18px;
+    row-gap: 10px;
+    align-items: stretch;
+    height: 100%;
+    min-height: 0;
+    grid-template-areas:
+      "head head"
+      "macnote macnote"
+      "now hist"
+      "ctl hist"
+      "actions hist"
+      "ptt hist"
+      "queue hist"
+      "note hist"
+      "enginehist hist"
+      "ephwhy hist";
+  }
+  #app-listen.mode-subtitle #app-listen-history-wrap {
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 12px 14px;
+    border: 1px solid var(--border, var(--line));
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+  #app-listen.mode-subtitle .subs-stage {
+    min-height: 280px;
+    height: 100%;
+  }
+  #app-listen.mode-subtitle .listen-now.subs-stage-host {
+    height: 100%;
+  }
+  #app-listen.mode-subtitle .subs-tr { font-size: 1.85rem; }
+  #app-listen.mode-subtitle .listen-history .listen-row {
+    background: #0F172A;
+    border-radius: 12px;
+    border-top: 0;
+    padding: 10px 12px;
+    margin: 0 0 8px;
+  }
+  #app-listen.mode-subtitle .listen-history .listen-orig {
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 0.85rem;
+    order: 2;
+  }
+  #app-listen.mode-subtitle .listen-history .listen-tr {
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 600;
+    order: 1;
+  }
+  #app-listen.mode-subtitle .listen-history .listen-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+/* ── Duo P0 AC-D4：首页 regular 两卡 + 门控首屏入视 ───────────────────────── */
+.heroes-need { margin: 0 0 10px; }
+.heroes-need .note { margin: 4px 0 0; }
+@media (min-width: 720px) {
+  /* 并排两卡，压缩高度，门控紧随 —— viewport≈669 时无需滚 */
+  #signed-in .heroes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0 0 8px;
+  }
+  #signed-in #app-listen-entry,
+  #signed-in #app-subs-entry {
+    height: 168px;
+    padding: 14px;
+  }
+  #signed-in #app-listen-entry .cta,
+  #signed-in #app-subs-entry .cta { height: 44px; }
+  #signed-in .status { margin: 2px 0 8px; min-height: 28px; }
+  #signed-in .heroes-need { margin: 0 0 8px; }
+}
+
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
 :where(#app-listen) .listen-flip-text { font-size: 1.9rem; line-height: 1.35; font-weight: 700; margin: 0; }

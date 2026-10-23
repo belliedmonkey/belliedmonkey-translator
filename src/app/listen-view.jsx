@@ -251,6 +251,20 @@ function SpeakerIcon() {
   );
 }
 
+
+// 字幕舞台文案：译文大字在上、原文小字在下（交互 §4 / batch3）。优先半句，其次最近定稿。
+function subtitleStageLines(nv, hv) {
+  if (nv.partialTr || nv.partial) {
+    return { tr: nv.partialTr || '', orig: nv.partial || '' };
+  }
+  const rows = (hv && hv.rows) || [];
+  if (rows.length) {
+    const r = rows[rows.length - 1];
+    return { tr: r.tr || '', orig: r.text || '' };
+  }
+  return { tr: '', orig: '' };
+}
+
 // ── 主视图（#app-listen section 整体）─────────────────────────────────────────
 export function ListenView() {
   useSyncExternalStore(subView, () => viewVersion);
@@ -267,6 +281,9 @@ export function ListenView() {
   const shv = listenModel.showView();
   const note = listenModel.noteView();
   const pv = listenModel.pttView();
+  const stage = mv.sub ? subtitleStageLines(nv, hv) : null;
+  // 字幕进行中/已暂停：有会话且未 ended ⇒ 露出「暂停/继续 + 停止」双钮（batch3 Duo-05）
+  const subSessionOn = !!(mv.sub && !tv.ended && tv.endHidden === false);
 
   // 贴底判定读的是 commit 前的旧 DOM —— 与原 renderHistory :1247 的同一时刻语义；
   // 渲染后 useLayoutEffect 恢复（原 :1340 if (atBottom) scrollTop = scrollHeight）。
@@ -291,7 +308,7 @@ export function ListenView() {
   };
 
   return (
-    <section id="app-listen" hidden>
+    <section id="app-listen" className={mv.sub ? 'mode-subtitle' : 'mode-listen'} hidden>
       <div className="listen-head">
         <button id="app-listen-back" className="link" type="button" onClick={listenModel.leave}>{t('app_listen_back', '‹ 返回')}</button>
         <h2 id="app-listen-title">{mv.title}</h2>
@@ -301,20 +318,31 @@ export function ListenView() {
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
         {t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。')}
       </p>
-      <div className={'drive-card listen-now' + (nv.flash ? ' flash' : '')} id="app-listen-now" hidden={tv.ended}>
-        <div className="listen-now-head">
+      <div className={'drive-card listen-now' + (nv.flash ? ' flash' : '') + (mv.sub ? ' subs-stage-host' : '')} id="app-listen-now" hidden={tv.ended}>
+        {/* 对话：上卡半句；字幕：深色舞台（译文上原文下）。partial 节点恒挂，hidden 纪律。 */}
+        <div className="listen-now-head" hidden={mv.sub}>
           <span id="app-listen-now-label">{listenModel.nowLabel()}</span>
           <span id="app-listen-live" className="listen-live" hidden={!(pill && pill.live)}>{t('listen_live_badge', '● 实时')}</span>
         </div>
-        <p id="app-listen-prep" className="note" hidden={!nv.prepShown}>{nv.prepText}</p>
-        <progress id="app-listen-prep-bar" hidden={!nv.prepBar} value={nv.prepPct || 0} max="100" />
-        <button id="app-listen-prep-retry" type="button" className="listen-prep-retry" hidden={!nv.prepRetry} onClick={listenModel.retryPacks}>{nv.prepRetry}</button>
-        <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub}>{nv.readySub}</p>
-        <p id="app-listen-partial" className="listen-partial" hidden={mv.partialsHidden}>{nv.partial}</p>
-        <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.partialsHidden}>{nv.partialTr}</p>
-        {/* iPhone 实时字幕：画中画小窗预览的占位块（原生在同一矩形上叠预览，§9.8 协议补充决定（三）17） */}
-        <div id="app-subs-pip" className="listen-subs-pip" hidden={!mv.pipShown}>
-          <p id="app-subs-pip-note" className="listen-subs-pip-note">{listenModel.pipNoteText()}</p>
+        <p id="app-listen-prep" className="note" hidden={!nv.prepShown || mv.sub}>{nv.prepText}</p>
+        <progress id="app-listen-prep-bar" hidden={!nv.prepBar || mv.sub} value={nv.prepPct || 0} max="100" />
+        <button id="app-listen-prep-retry" type="button" className="listen-prep-retry" hidden={!nv.prepRetry || mv.sub} onClick={listenModel.retryPacks}>{nv.prepRetry}</button>
+        <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub || mv.sub}>{nv.readySub}</p>
+        <p id="app-listen-partial" className="listen-partial" hidden={mv.sub || mv.partialsHidden}>{nv.partial}</p>
+        <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.sub || mv.partialsHidden}>{nv.partialTr}</p>
+        {/* 字幕舞台 = #app-subs-pip：固定深色；原生 PiP 仍可叠同一矩形。空态用 note，有字藏 note。 */}
+        <div id="app-subs-pip" className={mv.sub ? 'subs-stage' : 'listen-subs-pip'} hidden={mv.sub ? false : !mv.pipShown}>
+          {mv.sub ? (
+            <>
+              <p className="subs-tr" hidden={!stage.tr}>{stage.tr}</p>
+              <p className="subs-orig" hidden={!stage.orig}>{stage.orig}</p>
+              <p id="app-subs-pip-note" className="listen-subs-pip-note subs-stage-empty" hidden={!!(stage.tr || stage.orig)}>
+                {listenModel.pipNoteText() || t('subtitle_stage_empty', '开始后，字幕会出现在这里')}
+              </p>
+            </>
+          ) : (
+            <p id="app-subs-pip-note" className="listen-subs-pip-note">{listenModel.pipNoteText()}</p>
+          )}
         </div>
         <button id="app-subs-float" type="button" className="link" hidden={!listenModel.pipFloatShown()} onClick={listenModel.floatBtn}>{mv.pipFloatLabel}</button>
       </div>
@@ -346,8 +374,11 @@ export function ListenView() {
       <p className={note.err ? 'note err' : 'note'} id="app-listen-note">{note.text}</p>
       {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
           那两个「点一下」键（＝开麦 / 关麦）。 */}
-      <div id="app-listen-actions" hidden={tv.ended || !mv.sub}>
+      <div id="app-listen-actions" className={mv.sub && subSessionOn ? 'subs-actions-row' : undefined} hidden={tv.ended || !mv.sub}>
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
+        <button id="app-listen-end" type="button" className="secondary" hidden={!subSessionOn} onClick={() => listenModel.end()}>
+          {t('subtitle_ctl_stop', '停止')}
+        </button>
       </div>
       {/* 控制区（改稿 E）：**语言对做成一个胶囊**（两个 select 包在同一个圆角壳里，中间 ⇄
           既分隔也一眼看出「一对」），右侧两个图标开关靠右；窄屏自然折行。 */}

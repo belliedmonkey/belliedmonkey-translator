@@ -2727,7 +2727,8 @@ const listenModel = (() => {
   function toggleView() {
     const ended = phase === 'ended';
     return {
-      text: phase === 'listening' ? t('listen_toggle_pause', '● 正在听 · 暂停')
+      text: phase === 'listening'
+          ? (mode === 'subtitle' ? t('subtitle_ctl_pause', '暂停') : t('listen_toggle_pause', '● 正在听 · 暂停'))
         : (phase === 'preparing' || phase === 'downloading') ? t('listen_toggle_preparing', '准备中…')
         : (phase === 'halted' && pauseReason === 'socket-retry') ? t('listen_toggle_reconnecting', '重连中…')
         : mode === 'subtitle' ? (session && phase !== 'ended' ? t('subtitle_ctl_resume', '继续') : t('subtitle_start', '开始'))
@@ -2922,7 +2923,7 @@ const listenModel = (() => {
       // 第一行要等 3–12s（识别器第一次出字的延迟），这段空白得看得出在干活。
       listeningText: (phase === 'listening' && !sub) ? t('listen_listening', '正在听…') : '',
       emptyText: sub ? t('subtitle_history_empty', '每句定稿后会出现在这里。') : t('listen_history_empty', '双方随便说，每句定稿后会出现在这里。判错了？点 ↔ 换成另一种语言'),
-      title: t('listen_history', '整句定稿') + (rows.length ? ' · ' + rows.length : ''),
+      title: (sub ? t('subtitle_recent', '最近句子') : t('listen_history', '整句定稿')) + (rows.length ? ' · ' + rows.length : ''),
       queueShown: !!qn,
       queueText: t('listen_read_queue_n', '朗读中 · 还有 {n} 句待读').replace('{n}', String(qn)),
       copyShown: !!rows.length,

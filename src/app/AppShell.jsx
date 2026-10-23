@@ -314,6 +314,10 @@ function AppShell() {
         <div className="heroes">
           <ListenEntryButtons />
         </div>
+        {/* Duo P0 AC-D4：门控原因紧随两卡，regular 首屏入视（不截断、无需滚到 .modes）。 */}
+        <div className="heroes-need">
+          <ListenEntryNeeds />
+        </div>
 
         {/* 复习条（降级：从整屏大卡到一条 76pt）—— 裁定「看得见、一眼能开始，但不抢戏」。 */}
         <section className="today">
@@ -351,7 +355,6 @@ function AppShell() {
             <span id="app-drive-need-tts-why"></span>
             <button id="app-drive-need-tts-go" type="button" className="link"></button>
           </p>
-          <ListenEntryNeeds />
         </div>
 
         {/* 扩展引导行（J18/J19，2026-10-02 真机评审修订）：以前它是一张占满首屏的卡
