@@ -699,6 +699,30 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   padding-right: calc(max(env(safe-area-inset-right, 0px), var(--mt-safe-right, 0px)) + 12px);
 }
 
+
+/* N24 packs simplify · 2026-10-23 */
+.pack-line.is-dim { opacity: 0.45; pointer-events: none; }
+.packs-quota-mini { margin: 8px 0 4px; font-size: 13px; color: var(--muted, #6a6255); }
+.packs-details { margin: 12px 0 4px; border-radius: 12px; border: 1px solid var(--border, #dcd3c4); background: var(--well, #f9f4ed); padding: 0 12px; }
+.packs-details-sum { cursor: pointer; list-style: none; padding: 12px 0; font-weight: 600; color: var(--ink, #201e1d); }
+.packs-details-sum::-webkit-details-marker { display: none; }
+.packs-details-sum::after { content: " ▸"; font-weight: 400; color: var(--muted, #6a6255); }
+.packs-details[open] > .packs-details-sum::after { content: " ▾"; }
+.packs-details-body { padding-bottom: 8px; }
+#app-settings .langpacks-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; min-width: 0; }
+#app-settings .langpacks-row .note { flex: 1; min-width: 0; margin: 0; }
+#app-settings .langpacks-row > button { flex: none; }
+#app-settings details.adv-params { margin: 8px 0; border-radius: 12px; border: 1px solid var(--border, #dcd3c4); padding: 0 12px 8px; background: var(--well, #f9f4ed); }
+#app-settings details.adv-params > summary { cursor: pointer; list-style: none; padding: 12px 0; font-weight: 600; }
+#app-settings details.adv-params > summary::-webkit-details-marker { display: none; }
+#app-settings details.adv-params > summary::after { content: " ▸"; font-weight: 400; color: var(--muted, #6a6255); }
+#app-settings details.adv-params[open] > summary::after { content: " ▾"; }
+@media (prefers-color-scheme: dark) {
+  .packs-details, #app-settings details.adv-params { background: var(--well, #273549); border-color: var(--border, #374151); }
+  .packs-details-sum, #app-settings details.adv-params > summary { color: var(--ink, #f9fafb); }
+  .packs-quota-mini { color: var(--muted, #9ca3af); }
+}
+
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
    紧贴下面的包列表（build 78 用户截图里就剩两个空小方框）。颜色只走共享 token，不写裸 hex。 */

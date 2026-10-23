@@ -176,8 +176,13 @@ export default function SettingsView() {
     const ids = EngineFields.SLOTS[slot].ids;
     const off = !detailRef.current;
     $(prefix + '-key-field').hidden = off || !vis.key;
-    $(prefix + '-base-field').hidden = off || !vis.baseUrl;
-    $(prefix + '-model-field').hidden = off || !vis.model;
+    const baseField = $(prefix + '-base-field');
+    const modelField = $(prefix + '-model-field');
+    if (baseField) baseField.hidden = off || !vis.baseUrl;
+    if (modelField) modelField.hidden = off || !vis.model;
+    // N24 M-04：端点 / 引擎模型名收进「高级参数」折叠
+    const adv = $(prefix + '-adv-params');
+    if (adv) adv.hidden = off || !(vis.baseUrl || vis.model);
     $(ids.baseUrl).placeholder = vis.basePlaceholder;
     $(ids.model).placeholder = vis.modelPlaceholder;
   }
@@ -196,15 +201,39 @@ export default function SettingsView() {
       ? t('tts_test_dl', '下载并试听（{size}）').replace('{size}', fmtMB(st.size))
       : t('tts_test', '试听一句');
   }
+  function paintLangpacksTtsLine(st) {
+    const el = $('langpacks-tts-state'); if (!el) return;
+    if (!st || !st.bridge) {
+      el.textContent = t('langpacks_tts_na', '离线朗读 · 仅 App 可用');
+      return;
+    }
+    if (st.ready) {
+      el.textContent = t('langpacks_tts_ready', '离线朗读 · 已就绪');
+      return;
+    }
+    if (st.reason === 'assets') {
+      el.textContent = t('langpacks_tts_missing', '离线朗读 · 未下载 · {size}').replace('{size}', fmtMB(st.size));
+      return;
+    }
+    el.textContent = t('langpacks_tts_na', '离线朗读 · 仅 App 可用');
+  }
   async function paintTtsPack(engineId) {
     const row = $('tts-offline-row'); if (!row) return;
     const e = settingsModel.engineById(engineId);
     const dev = !!(e && e.type === 'device-speech');
     row.hidden = !detailRef.current || !dev;
-    if (!dev) { paintTtsTestLabel(null); return; }
+    if (!dev) {
+      paintTtsTestLabel(null);
+      try {
+        const st0 = await LearnTTS.deviceStatus(engineId || 'device');
+        paintLangpacksTtsLine(st0);
+      } catch (_) { paintLangpacksTtsLine(null); }
+      return;
+    }
     if (ttsPackBusy.current) return;   // 下载中由 downloadTtsPack 自己画进度
     const st = await LearnTTS.deviceStatus(engineId);   // 下拉刚换、还没保存时 LearnTTS 的 cfg 还是旧的 ⇒ 指定引擎
     if ($('tts-engine').value !== engineId || ttsPackBusy.current) return;
+    paintLangpacksTtsLine(st);
     const state = $('tts-offline-state'), dl = $('tts-offline-dl'), prog = $('tts-offline-progress');
     prog.hidden = true;
     const langs = (st.models || []).map((m) => m.lang).join(' · ');
@@ -212,11 +241,12 @@ export default function SettingsView() {
       state.textContent = t('tts_pack_no_bridge', '设备内置朗读只在 App 里可用');
       dl.hidden = true;
     } else if (st.ready) {
-      state.textContent = t('tts_pack_installed', '离线模型已安装 · {langs}').replace('{langs}', (st.langs.length ? st.langs : (st.models || []).map((m) => m.lang)).join(' · '));
+      state.textContent = t('tts_pack_installed', '离线朗读已就绪 · {langs}').replace('{langs}', (st.langs.length ? st.langs : (st.models || []).map((m) => m.lang)).join(' · '));
       dl.hidden = true;
     } else if (st.reason === 'assets') {
-      state.textContent = t('tts_pack_missing', '离线模型未下载 · {langs} · {size}').replace('{langs}', langs).replace('{size}', fmtMB(st.size))
-        + '\n' + t('tts_pack_note', '首次朗读也会自动下载；只下模型文件，不上传任何内容。');
+      state.textContent = t('tts_pack_missing', '离线朗读未下载 · {langs} · {size}').replace('{langs}', langs).replace('{size}', fmtMB(st.size))
+        + '
+' + t('tts_pack_note', '首次朗读也会自动下载；只下文件，不上传任何内容。');
       dl.hidden = false; dl.textContent = t('tts_pack_dl', '下载');
     } else {
       state.textContent = '✗ ' + LearnTTS.reason('unsupported', t);
@@ -224,6 +254,7 @@ export default function SettingsView() {
     }
     paintTtsTestLabel(st);
   }
+
   async function downloadTtsPack() {
     if (ttsPackBusy.current) return;
     ttsPackBusy.current = true;
@@ -235,12 +266,12 @@ export default function SettingsView() {
         if (m.state === 'switching') { prog.value = 0; state.textContent = t('tts_pack_fallback', '地址不可用，换一个重试…'); return; }
         const pct = Math.round((Number(m.fraction) || 0) * 100);
         prog.value = pct;
-        state.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(pct));
+        state.textContent = t('tts_pack_downloading', '正在下载离线朗读 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(pct));
       }, $('tts-engine').value);
       ttsPackBusy.current = false;
       if (!r.ok) {
         prog.hidden = true;
-        state.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(r.why || r.reason || '', t));
+        state.textContent = t('tts_pack_failed', '离线朗读下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(r.why || r.reason || '', t));
         dl.hidden = false; dl.textContent = t('tts_pack_retry', '重试');
         return;
       }
@@ -270,21 +301,31 @@ export default function SettingsView() {
     return base || String(code || '');
   }
   async function paintListenPack() {
-    const row = $('listen-pack-row'); if (!row) return;
+    const row = $('listen-pack-row');
+    // N24 M-03：旧「识别语言包」行退出主路径；态写到「语言包与朗读」块
+    if (row) row.hidden = true;
     const bridge = typeof NativeSpeech !== 'undefined' && NativeSpeech.available();
-    row.hidden = !bridge;
-    if (!bridge || listenPackBusy.current) return;
+    const lpState = $('langpacks-state');
+    const lpBlock = $('g-langpacks');
+    if (lpBlock) lpBlock.hidden = false;
+    if (!bridge) {
+      if (lpState) lpState.textContent = t('langpacks_need_os', '语言包 · 需要较新系统');
+      return;
+    }
+    if (listenPackBusy.current) return;
     const locales = listenLocales();
     const r = await NativeSpeech.probe(locales);
     if (listenPackBusy.current) return;
     const state = $('listen-pack-state'), dl = $('listen-pack-dl'), prog = $('listen-pack-progress');
-    prog.hidden = true;
+    if (prog) prog.hidden = true;
     // 旧系统态整块换成一句（interaction-spec「设置页信息架构」②）：本机识别器不可用时，
     // 这块里的开关与语言下拉都没有意义，只留标题 + 这一句；依赖行也收起，免得同一句写两遍。
     $('g-listen').classList.toggle('na', !r.ok);
     if (!r.ok) {
-      state.textContent = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
-      dl.hidden = true; return;
+      const msg = r.reason === 'locale' ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试') : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
+      if (state) state.textContent = msg;
+      if (lpState) lpState.textContent = msg;
+      if (dl) dl.hidden = true; return;
     }
     // 本名 + 全部**占着名额**的语言（C2：原来只画当前这一对的 code，漏掉了已就绪的 ไทย）。
     let ready = [];
@@ -297,14 +338,20 @@ export default function SettingsView() {
     } catch (_) {}
     if (!ready.length && r.assets === 'installed') ready = locales.map((x) => ListenCore.baseCode(x)).filter(Boolean);
     const names = ready.map(endonymOf);
+    const list = names.join('、');
     if (r.assets === 'installed') {
-      state.textContent = t('listen_pack_ready', '识别语言包已就绪 · {langs}').replace('{langs}', names.join(' · '));
-      dl.hidden = true;
+      const readyMsg = t('langpacks_ready', '已就绪 · {langs}').replace('{langs}', list || names.join(' · '));
+      if (lpState) lpState.textContent = readyMsg;
+      if (state) state.textContent = readyMsg;
+      if (dl) dl.hidden = true;
     } else {
-      state.textContent = t('listen_pack_missing', '识别语言包未下载 · {langs} · 由系统下载；开始听时也会自动下').replace('{langs}', names.join(' · '));
-      dl.hidden = false; dl.textContent = t('listen_pack_dl', '下载');
+      const miss = t('langpacks_missing', '未下载 · {langs}').replace('{langs}', list || names.join(' · '));
+      if (lpState) lpState.textContent = miss;
+      if (state) state.textContent = miss;
+      if (dl) { dl.hidden = false; dl.textContent = t('listen_pack_dl', '下载'); }
     }
   }
+
   async function downloadListenPack() {
     if (listenPackBusy.current) return;
     listenPackBusy.current = true;
@@ -1101,9 +1148,9 @@ export default function SettingsView() {
         });
         // 设备内置朗读首次要下载模型：进度画在结果行上（四处首播同一个入口，§9.1.1），完了重画离线模型行
         const r = await LearnTTS.speak(t('tts_test_sample', 'This is what your review cards will sound like.'), 'en', {
-          onProgress: (m) => { note.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(Math.round((Number(m.fraction) || 0) * 100))); },
+          onProgress: (m) => { note.textContent = t('tts_pack_downloading', '正在下载离线朗读 · {lang} · {pct}%').replace('{lang}', m.locale || '').replace('{pct}', String(Math.round((Number(m.fraction) || 0) * 100))); },
         });
-        note.textContent = r.ok ? (r.fallback === 'lang' ? t('tts_test_ok_fallback', '播放中 · 离线模型不含这门语言，用系统语音') : t('tts_test_ok', '播放中')) : ('✗ ' + LearnTTS.reason(r.reason, t));
+        note.textContent = r.ok ? (r.fallback === 'lang' ? t('tts_test_ok_fallback', '播放中 · 离线朗读不含这门语言，用系统语音') : t('tts_test_ok', '播放中')) : ('✗ ' + LearnTTS.reason(r.reason, t));
         paintTtsPack($('tts-engine').value);
         if (r.ok) await Promise.race([(r.done || Promise.resolve()).catch(() => {}),
           new Promise((res) => setTimeout(res, 15000))]);
@@ -1336,16 +1383,19 @@ export default function SettingsView() {
             <input id="notes-api-key" type="password" autoComplete="off" autoCapitalize="none"
               autoCorrect="off" spellCheck="false" />
           </label>
-          <label className="field adv-only" id="notes-base-field">
-            <span id="notes-base-label">{t('app_set_notes_base', '自定义接口地址')}</span>
-            <input id="notes-base-url" type="url" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
-          <label className="field adv-only" id="notes-model-field">
-            <span id="notes-model-label">{t('app_set_notes_model', '模型')}</span>
-            <input id="notes-model" type="text" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
+          <details className="adv-params adv-only" id="notes-adv-params" hidden={!detail}>
+            <summary id="notes-adv-summary">{t('options_advanced', '高级参数')}</summary>
+            <label className="field" id="notes-base-field">
+              <span id="notes-base-label">{t('app_set_notes_base', '自定义接口地址')}</span>
+              <input id="notes-base-url" type="url" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+            <label className="field" id="notes-model-field">
+              <span id="notes-model-label">{t('app_set_notes_model', '引擎模型名')}</span>
+              <input id="notes-model" type="text" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+          </details>
           <label className="field adv-only" hidden={!detail}>
             <button id="btn-test-notes" type="button">{t('engine_test', '测试连接')}</button>
           </label>
@@ -1366,16 +1416,19 @@ export default function SettingsView() {
             <input id="stt-api-key" type="password" autoComplete="off" autoCapitalize="none"
               autoCorrect="off" spellCheck="false" />
           </label>
-          <label className="field adv-only" id="stt-base-field">
-            <span id="stt-base-label">{t('stt_base_url', '转写端点地址')}</span>
-            <input id="stt-base-url" type="url" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
-          <label className="field adv-only" id="stt-model-field">
-            <span id="stt-model-label">{t('stt_model', '转写模型')}</span>
-            <input id="stt-model" type="text" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
+          <details className="adv-params adv-only" id="stt-adv-params" hidden={!detail}>
+            <summary id="stt-adv-summary">{t('options_advanced', '高级参数')}</summary>
+            <label className="field" id="stt-base-field">
+              <span id="stt-base-label">{t('stt_base_url', '转写端点地址')}</span>
+              <input id="stt-base-url" type="url" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+            <label className="field" id="stt-model-field">
+              <span id="stt-model-label">{t('stt_model', '引擎模型名')}</span>
+              <input id="stt-model" type="text" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+          </details>
           <label className="field adv-only" hidden={!detail}>
             <button id="btn-test-stt" type="button">{t('engine_test', '测试连接')}</button>
           </label>
@@ -1394,16 +1447,19 @@ export default function SettingsView() {
             <input id="tts-api-key" type="password" autoComplete="off" autoCapitalize="none"
               autoCorrect="off" spellCheck="false" />
           </label>
-          <label className="field adv-only" id="tts-base-field">
-            <span id="tts-base-label">{t('tts_base_url', '语音端点地址')}</span>
-            <input id="tts-base-url" type="url" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
-          <label className="field adv-only" id="tts-model-field">
-            <span id="tts-model-label">{t('tts_model', '语音模型')}</span>
-            <input id="tts-model" type="text" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
+          <details className="adv-params adv-only" id="tts-adv-params" hidden={!detail}>
+            <summary id="tts-adv-summary">{t('options_advanced', '高级参数')}</summary>
+            <label className="field" id="tts-base-field">
+              <span id="tts-base-label">{t('tts_base_url', '语音端点地址')}</span>
+              <input id="tts-base-url" type="url" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+            <label className="field" id="tts-model-field">
+              <span id="tts-model-label">{t('tts_model', '引擎模型名')}</span>
+              <input id="tts-model" type="text" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+          </details>
           <label className="field">
             <span id="tts-voice-label">{t('app_set_tts_voice', '朗读语音')}</span>
             <select id="tts-voice"></select>
@@ -1413,7 +1469,7 @@ export default function SettingsView() {
                五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。
                行 hidden 由 paintTtsPack 写（档位布尔并在里面），React 不碰。 */}
           <div className="field adv-only" id="tts-offline-row" hidden>
-            <span id="tts-offline-label">{t('tts_pack_label', '离线模型')}</span>
+            <span id="tts-offline-label">{t('tts_pack_label', '离线朗读')}</span>
             <p className="note" id="tts-offline-state" role="status" aria-live="polite"></p>
             <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
             <button id="tts-offline-dl" type="button" className="secondary"></button>
@@ -1490,6 +1546,16 @@ export default function SettingsView() {
           </select>
           <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
         </label>
+
+        {/* N24 M-03：语言包与朗读（日常块）—— 状态 + 管理；不含 API Key / 端点 / 引擎模型名 */}
+        <div className="sgroup" id="g-langpacks">
+          <h3 id="langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3>
+          <div className="langpacks-row" id="langpacks-status-row">
+            <p className="note" id="langpacks-state" role="status" aria-live="polite"></p>
+            <button id="set-pack-manage" type="button" className="secondary">{t('langpacks_manage', '管理')}</button>
+          </div>
+          <p className="note" id="langpacks-tts-state" role="status" aria-live="polite">{t('langpacks_tts_ready', '离线朗读 · 已就绪')}</p>
+        </div>
 
         {/* 复习：怎么听、每天多少张。语音模式 / 自动朗读 / 语速此前混在「语音」组里，与引擎字段同屏。 */}
         <div className="sgroup" id="g-review">
@@ -1576,7 +1642,7 @@ export default function SettingsView() {
           <p className="note" id="listen-capture-note">{t('listen_capture_note', '「对话 · 实时听译」把麦克风的声音实时发送到你自己配置的转写端点，只在你点底部录音键开始收音之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，只保留文字（且只在这个开关开着时保留）。')}</p>
           {/* 两段披露从听译页搬到这里（改稿 D，2026-10-09 用户定：听译页精简，说明放设置）。
               文字一字不改 —— 免费额度那条路仍有单独披露（AGENTS.md 规则 4 / learning-design §2.1）。 */}
-          <p className="note" id="set-listen-privacy">{t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。')}</p>
+          <p className="note" id="set-listen-privacy">{t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线朗读。')}</p>
           <p className="note" id="set-subs-privacy">{listenModel.isMacHost()
             ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
             : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')}</p>
@@ -1595,7 +1661,6 @@ export default function SettingsView() {
             <progress id="listen-pack-progress" max="100" value="0" hidden></progress>
             <button id="listen-pack-dl" type="button" className="secondary"></button>
           </div>
-          <button id="set-pack-manage" type="button" className="secondary">{t('firstrun_packs_manage', '管理语言包')}</button>
           <label className="check">
             <input id="listen-autospeak" type="checkbox" />
             <span id="listen-autospeak-label">{t('listen_autospeak_label', '自动朗读译文')}</span>

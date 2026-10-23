@@ -326,6 +326,7 @@ export function bootShell() {
   let packThaiTts = false;
   let packKokoroOff = false;
   let packMoreOpen = false;
+  let packDetailsOpen = false;  // N24：下载内容详情默认折叠
   let packPhase = 'pick';
   let packRows = {};
   let packsManage = false;
@@ -660,7 +661,7 @@ export function bootShell() {
   function quotaStatusText(state) {
     if (state === 'ready') return t('firstrun_packs_done', '已就绪');
     if (state === 'recoverable') return t('firstrun_quota_recover_hint', '点一下补回 · 约 1–2 秒');
-    return t('firstrun_packs_asr_sub', '识别包 · 系统下载');
+    return t('firstrun_quota_tag_absent', '未下载');
   }
   function paintQuota() {
     // 每次重画都读一次原生缓存的名额快照：下载/探针过程中 stt-state 到一条就更新一条，
@@ -670,7 +671,9 @@ export function bootShell() {
     const card = $('packs-quota');
     if (!card) return q;
     const bridge = !!(typeof NativeSpeech !== 'undefined' && NativeSpeech.available && NativeSpeech.available());
-    card.hidden = !bridge;
+    // N24：选语言未满名额时不大卡图例，小字「识别最多 5 门」改由 paintPackBody 画。
+    const showQuotaCard = bridge && (packsManage || q.full);
+    card.hidden = !showQuotaCard;
     const legend = $('packs-legend');
     if (legend) legend.hidden = !bridge || !packsManage;
     const label = $('packs-quota-label');
@@ -679,6 +682,7 @@ export function bootShell() {
     if (used) used.textContent = t('firstrun_quota_used', '已用 {n} / {max}').replace('{n}', String(q.used)).replace('{max}', String(q.max));
     const bar = $('packs-quota-bar');
     if (bar) {
+      bar.hidden = false;
       bar.textContent = '';
       const max = Math.max(1, q.max);
       for (let i = 0; i < max; i++) {
@@ -690,7 +694,7 @@ export function bootShell() {
     const note = $('packs-quota-note');
     if (note) note.textContent = q.full
       ? t('firstrun_quota_note_full', '{max} 门都占着名额 · 再装新的会先标为「未就绪」').replace('{max}', String(q.max))
-      : t('firstrun_quota_note', 'Apple 限制：同时最多 {max} 门识别语言').replace('{max}', String(q.max));
+      : t('firstrun_quota_note', '识别最多 {max} 门').replace('{max}', String(q.max));
     const over = $('packs-quota-over');
     if (over) {
       const later = (!packsManage && packPhase === 'pick' && bridge) ? asrPlan().later : [];
@@ -946,46 +950,52 @@ export function bootShell() {
       const allSpeak = names && speakNames.length && packLangs.every((c) => speakNames.indexOf(endonym(c)) >= 0);
       if (lede) {
         lede.textContent = allSpeak
-          ? t('firstrun_packs_all_lede', '{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。').replace('{langs}', names)
-          : t('firstrun_packs_all_lede_listen', '{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语音包」里加。')
-            .replace('{langs}', names).replace('{speak}', speakNames.join('、') || t('firstrun_packs_base', '基础组件'));
+          ? t('firstrun_packs_all_lede', '{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语言包」里加。').replace('{langs}', names)
+          : t('firstrun_packs_all_lede_listen', '{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语言包」里加。')
+            .replace('{langs}', names).replace('{speak}', speakNames.join('、') || t('firstrun_packs_base', '听译基础'));
       }
     } else if (packPhase === 'downloading' || packPhase === 'waiting') {
-      if (title) title.textContent = t('firstrun_packs_dl_title', '正在下载语言包');
-      if (lede) lede.textContent = t('firstrun_packs_dl_lede', '每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。');
+      // N24 文案锁 M-02
+      if (title) title.textContent = t('firstrun_packs_dl_title', '正在下载');
+      if (lede) lede.textContent = t('firstrun_packs_dl_lede', '可以切到后台，下完再回来');
     } else {
-      if (title) title.textContent = t('firstrun_packs_pick_title', '选择要下载的语言');
-      if (lede) lede.textContent = t('firstrun_packs_pick_lede', '默认勾上：系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。');
+      // N24 文案锁 M-01
+      if (title) title.textContent = t('firstrun_packs_pick_title', '选择语言');
+      if (lede) lede.textContent = t('firstrun_packs_pick_lede', '勾选你要听译的语言');
     }
     const foot = $('packs-foot');
     if (foot) {
       if (packPhase === 'waiting') foot.textContent = t('firstrun_packs_cell_waiting', '勾选保留着。连上 Wi-Fi 后会自动开始下载。');
       else if (packPhase === 'done') foot.textContent = t('firstrun_packs_all_foot', '都就绪了。进去之后点「说{mine}」或对方的语言键就能开始。').replace('{mine}', endonym(langPair[0]));
-      else foot.textContent = t('firstrun_packs_foot', '共约 {size}，另加系统识别包。用蜂窝网络时，下载前会先问你。').replace('{size}', sizes);
+      else foot.textContent = t('firstrun_packs_sum', '约 {size} · 含听译基础').replace('{size}', sizes);
     }
     const locked = $('packs-locked');
     if (locked) {
-      locked.hidden = packPhase !== 'downloading';
-      locked.textContent = t('firstrun_packs_locked', '下载中不能改勾选；下完以后去「设置 · 语音包」增减。');
+      // N24：下载中锁勾选靠 disabled，不再另挂「语音包」指路句
+      locked.hidden = true;
     }
     const privacy = $('packs-privacy');
-    if (privacy) privacy.textContent = t('firstrun_packs_lede', '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
+    if (privacy) {
+      // N24：隐私长句移出主路径（IA §3.1）
+      privacy.hidden = packPhase !== 'done';
+      if (!privacy.hidden) {
+        privacy.textContent = t('firstrun_packs_lede', '下好这些，之后你不用再做任何设置 —— 翻译、听译、字幕、朗读都能直接用。声音在你的设备上识别。识别出的文字会发去翻译：自己配了 key 时直接发给你配的服务商；用免费额度时经我们的服务器转发，不保存文字。');
+      }
+    }
     const go = $('packs-go');
     if (go) {
-      const remain = PackProgress.pendingRowCount(packRowIds(), rowPhase);
       go.disabled = !!packsBusy;
       go.textContent = packPhase === 'done'
         ? t('firstrun_packs_enter', '进入实时听译')
         : packsBusy
-          ? t('firstrun_packs_remain', '下载中 · 还剩 {n} 项').replace('{n}', String(Math.max(remain, 1)))
-          : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读包，继续') : t('firstrun_packs_go', '下载并继续'));
+          ? t('firstrun_packs_busy', '下载中')
+          : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读，继续') : t('firstrun_packs_go', '下载并继续'));
     }
   }
 
   function statusText(id, selected) {
-    if (!selected && id !== 'base') {
-      return (packPhase === 'downloading' || packPhase === 'done') ? t('firstrun_packs_unselected', '未选') : '';
-    }
+    // N24 M-02：未勾行不显示进度（置灰靠 is-dim）
+    if (!selected && id !== 'base') return '';
     const row = rowPhase(id);
     if (row.phase === 'ready') return t('firstrun_packs_done', '已就绪');
     if (row.phase === 'queued') return t('firstrun_packs_queued', '排队中');
@@ -999,10 +1009,13 @@ export function bootShell() {
     }
     return '';
   }
+  function pickRightStatus(ready) {
+    return ready ? t('firstrun_packs_done', '已就绪') : t('firstrun_quota_tag_absent', '未下载');
+  }
 
   function makeRow(o) {
     const row = document.createElement(o.noBox ? 'div' : 'label');
-    row.className = 'pack-line' + (o.locked ? ' is-locked' : '') + (o.state ? ' is-' + o.state : '');
+    row.className = 'pack-line' + (o.locked ? ' is-locked' : '') + (o.dim ? ' is-dim' : '') + (o.state ? ' is-' + o.state : '');
     if (o.noBox) {
       const dot = document.createElement('span');
       dot.className = 'pack-line-dot';
@@ -1065,10 +1078,7 @@ export function bootShell() {
     const byCode = {};
     for (const item of catalog) byCode[item.code] = item;
     const locked = packsBusy || packPhase === 'downloading' || packPhase === 'done';
-    const h1 = document.createElement('p');
-    h1.className = 'packs-sec';
-    h1.textContent = t('firstrun_packs_section_langs', '语言（识别包）');
-    body.appendChild(h1);
+    const dlPhase = packPhase === 'downloading' || packPhase === 'waiting';
     const paintLang = (code) => {
       const item = byCode[code];
       if (!item) return;
@@ -1093,14 +1103,26 @@ export function bootShell() {
         }));
       } else {
         const later = checked ? plan.later.find((x) => x.code === code) : null;
+        // N24 M-01：右态仅「未下载 / 已就绪」；下载中显示进度；未勾置灰不显示进度
+        let right = '';
+        let tag = '';
+        let tagState = '';
+        if (later) {
+          tag = t('firstrun_quota_tag_later', '未就绪 · 第 {n} 门').replace('{n}', String(later.nth));
+          tagState = 'recoverable';
+          right = t('firstrun_quota_skip_now', '这次不下载');
+        } else if (dlPhase) {
+          right = statusText('asr:' + code, checked);
+        } else {
+          right = pickRightStatus(st === 'ready' || asrLangReady(code));
+        }
         body.appendChild(makeRow({
           id: 'asr-' + code, code, kind: 'asr', name: item.label, checked, disabled: locked,
           state: later ? 'recoverable' : st,
-          tag: later ? t('firstrun_quota_tag_later', '未就绪 · 第 {n} 门').replace('{n}', String(later.nth)) : quotaTagText(st),
-          tagState: later ? 'recoverable' : st,
-          sub: bits.join(' · ') || t('firstrun_packs_asr_sub', '识别包 · 系统下载'),
-          status: later ? t('firstrun_quota_skip_now', '这次不下载')
-            : (downloading ? statusText('asr:' + code, checked) : quotaStatusText(st)),
+          tag, tagState,
+          sub: bits.join(' · '),
+          status: right,
+          dim: dlPhase && !checked,
           locked, onChange: (on) => toggleLang(code, on, ui),
         }));
       }
@@ -1118,18 +1140,39 @@ export function bootShell() {
     } else {
       for (const code of vis.rest) paintLang(code);
     }
-    const h2 = document.createElement('p');
-    h2.className = 'packs-sec';
-    h2.textContent = t('firstrun_packs_together', '会一起下载');
-    body.appendChild(h2);
+    // N24：名额未满小字（大卡已在 paintQuota 收掉）
+    try {
+      const qn = quotaRowsNow();
+      if (!packsManage && !qn.full) {
+        const tip = document.createElement('p');
+        tip.className = 'note packs-quota-mini';
+        tip.id = 'packs-quota-mini';
+        tip.textContent = t('firstrun_quota_mini', '识别最多 5 门');
+        body.appendChild(tip);
+      }
+    } catch (_) {}
+    // N24：三大块默认折叠进「下载内容详情」
+    const details = document.createElement('details');
+    details.className = 'packs-details';
+    details.id = 'packs-details';
+    details.open = !!packDetailsOpen;
+    details.addEventListener('toggle', () => { packDetailsOpen = !!details.open; });
+    const sum = document.createElement('summary');
+    sum.className = 'packs-details-sum';
+    sum.textContent = t('firstrun_packs_details', '下载内容详情');
+    details.appendChild(sum);
+    const detailBody = document.createElement('div');
+    detailBody.className = 'packs-details-body';
     const sizes = packByteSizes();
     const kokoroOn = FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined);
     const kokoroLangs = packLangs.filter((c) => c === 'zh' || c === 'en');
+    const appendDetail = (row) => { detailBody.appendChild(row); };
     if (byCode.zh || byCode.en) {
       const label = kokoroLangs.length ? kokoroLangs.map(endonym).join(' + ') : [endonym('zh'), endonym('en')].join(' + ');
-      body.appendChild(makeRow({
+      appendDetail(makeRow({
         id: 'tts-zh-en', kind: 'tts', name: t('firstrun_packs_tts_shared', '朗读 · {langs}').replace('{langs}', label),
         checked: kokoroOn, disabled: locked || kokoroLangs.length === 0,
+        dim: dlPhase && !kokoroOn,
         sub: t('firstrun_packs_tts_shared_note', '一个包覆盖中英两门；勾了中文或 English 就自动带上')
           + ' · ' + t('firstrun_packs_bytes', '约 {size}').replace('{size}', mbLabel(sizes.kokoro)),
         status: statusText('tts:zh-en', kokoroOn), locked,
@@ -1138,22 +1181,25 @@ export function bootShell() {
     }
     if (byCode.th) {
       const thOn = !!(packThaiTts && packLangs.indexOf('th') >= 0);
-      body.appendChild(makeRow({
+      appendDetail(makeRow({
         id: 'tts-th', kind: 'tts-th', name: t('firstrun_packs_tts_one', '朗读 · {lang}').replace('{lang}', endonym('th')),
         checked: thOn, disabled: locked,
+        dim: dlPhase && !thOn,
         sub: t('firstrun_packs_tts_th_note', '默认不勾。不下也能听译，看译文，只是泰语译文不朗读')
           + ' · ' + t('firstrun_packs_optional', '约 {size} · 可选').replace('{size}', mbLabel(sizes.thai)),
         status: statusText('tts:th', thOn), locked,
         onChange: (on) => { packThaiTts = !!on; persistSelection(); paintPackChrome(ui); paintPackBody(ui); },
       }));
     }
-    body.appendChild(makeRow({
-      id: 'base', kind: 'base', name: t('firstrun_packs_base', '基础组件'),
+    appendDetail(makeRow({
+      id: 'base', kind: 'base', name: t('firstrun_packs_base', '听译基础'),
       checked: true, disabled: true, locked: true,
-      sub: t('firstrun_packs_base_note', '语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听')
+      sub: t('firstrun_packs_base_note', '分辨谁在说哪门语言，下好才能开始听')
         + ' · ' + t('firstrun_packs_required', '约 {size} · 必需').replace('{size}', mbLabel(sizes.base)),
       status: statusText('base', true),
     }));
+    details.appendChild(detailBody);
+    body.appendChild(details);
   }
 
   function toggleLang(code, on, ui) {
@@ -1199,7 +1245,7 @@ export function bootShell() {
     const title = $('packs-cell-title');
     const body = $('packs-cell-body');
     if (title) title.textContent = t('firstrun_packs_cell_title', '现在用的是蜂窝网络');
-    if (body) body.textContent = t('firstrun_packs_cell_body', '这次要下约 {size}（系统识别包另算，大小由系统决定），可能产生流量费用。').replace('{size}', sizes);
+    if (body) body.textContent = t('firstrun_packs_cell_body', '这次要下约 {size}（系统语言包另算，大小由系统决定），可能产生流量费用。').replace('{size}', sizes);
     const wait = $('packs-cell-wait');
     const go = $('packs-cell-go');
     if (wait) wait.textContent = t('firstrun_packs_cell_wait', '等连上 Wi-Fi');
@@ -1313,7 +1359,7 @@ export function bootShell() {
       const rowId = FirstRun.baseCode(named.locale) === 'th' ? 'tts:th' : 'tts:zh-en';
       setRow(rowId, { phase: 'downloading', pct, name: named.name });
       if (el) {
-        el.textContent = t('tts_pack_downloading', '正在下载离线模型 · {lang} · {pct}%')
+        el.textContent = t('tts_pack_downloading', '正在下载离线朗读 · {lang} · {pct}%')
           .replace('{lang}', named.name).replace('{pct}', String(pct));
       }
     };
@@ -1384,10 +1430,10 @@ export function bootShell() {
       if (err) {
         err.hidden = false;
         if (e && e.mtSttTimeout) {
-          err.textContent = t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
+          err.textContent = t('firstrun_packs_stt_slow', '系统语言包下载没动静 — 检查网络，再点一次。')
             + (e.mtAsrLast ? ' [' + e.mtAsrLast + ']' : '');
         } else if (e && e.mtTtsFailed) {
-          err.textContent = t('tts_pack_failed', '离线模型下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(String(e.why || ''), t));
+          err.textContent = t('tts_pack_failed', '离线朗读下载失败：{why} —— 多半是网络问题，稍后重试').replace('{why}', LearnTTS.reason(String(e.why || ''), t));
         } else {
           err.textContent = t('firstrun_packs_err', '下载没成功：{why} —— 检查网络再点一次。')
             .replace('{why}', String((e && (e.reason || e.message)) || e));

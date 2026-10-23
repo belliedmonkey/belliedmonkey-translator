@@ -503,7 +503,7 @@
     "message": "语音 API Key"
   },
   "tts_model": {
-    "message": "语音模型"
+    "message": "引擎模型名"
   },
   "tts_voice": {
     "message": "声音"
@@ -988,7 +988,7 @@
     "message": "自定义接口地址"
   },
   "app_set_notes_model": {
-    "message": "模型"
+    "message": "引擎模型名"
   },
   "app_set_notes_note": {
     "message": "这个引擎负责 App 里的每一处翻译：系统翻译、快速翻译、文档翻译、对话与实时字幕的译文，以及句子解析（生词 / 短语 / 语法）。调用你自己的 API；密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。"
@@ -1220,7 +1220,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_model": {
-    "message": "转写模型",
+    "message": "引擎模型名",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "learn_speak_prompt": {
@@ -1942,7 +1942,7 @@
     "message": "已听 {t}"
   },
   "listen_device_privacy": {
-    "message": "本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。"
+    "message": "本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线朗读。"
   },
   "listen_raw_label": {
     "message": "识别原文"
@@ -3080,16 +3080,16 @@
     "message": "语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。模型不含的语言会改用系统语音并在行上说明。"
   },
   "tts_pack_label": {
-    "message": "离线模型"
+    "message": "离线朗读"
   },
   "tts_pack_installed": {
-    "message": "离线模型已安装 · {langs}"
+    "message": "离线朗读已就绪 · {langs}"
   },
   "tts_pack_missing": {
-    "message": "离线模型未下载 · {langs} · {size}"
+    "message": "离线朗读未下载 · {langs} · {size}"
   },
   "tts_pack_note": {
-    "message": "首次朗读也会自动下载；只下模型文件，不上传任何内容。"
+    "message": "首次朗读也会自动下载；只下文件，不上传任何内容。"
   },
   "tts_pack_dl": {
     "message": "下载"
@@ -3102,10 +3102,10 @@
     "message": "重试"
   },
   "tts_pack_downloading": {
-    "message": "正在下载离线模型 · {lang} · {pct}%"
+    "message": "正在下载离线朗读 · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "离线模型下载失败：{why}—— 多半是网络问题，稍后重试"
+    "message": "离线朗读下载失败：{why}—— 多半是网络问题，稍后重试"
   },
   "tts_pack_no_bridge": {
     "message": "设备内置朗读只在 App 里可用"
@@ -3779,19 +3779,19 @@
     "message": "建议在 Wi-Fi 下下载；用蜂窝也行，你自己定。"
   },
   "firstrun_packs_busy": {
-    "message": "正在下载…"
+    "message": "下载中"
   },
   "firstrun_packs_go": {
     "message": "下载并继续"
   },
   "firstrun_packs_go_tts": {
-    "message": "只下朗读包，继续"
+    "message": "只下朗读，继续"
   },
   "firstrun_packs_err": {
     "message": "下载没成功：{why} —— 检查网络再点一次。"
   },
   "firstrun_packs_stt_slow": {
-    "message": "系统语音包下载没动静 — 检查网络，再点一次。"
+    "message": "系统语言包下载没动静 — 检查网络，再点一次。"
   },
   "engine_status_ok": {
     "message": "登录已配好：翻译 · 转写 · 朗读 —— 这一屏可以直接用"
@@ -3869,19 +3869,19 @@
     "message": "语言包都下好了"
   },
   "firstrun_packs_all_lede": {
-    "message": "{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语音包」里加。"
+    "message": "{langs} 可以听译和朗读了。要加别的语言，随时去「设置 · 语言包」里加。"
   },
   "firstrun_packs_dl_title": {
-    "message": "正在下载语言包"
+    "message": "正在下载"
   },
   "firstrun_packs_dl_lede": {
-    "message": "每一项单独显示进度。切到后台也会接着下，断网恢复后从断点续，不用从头来。"
+    "message": "可以切到后台，下完再回来"
   },
   "firstrun_packs_pick_title": {
-    "message": "选择要下载的语言"
+    "message": "选择语言"
   },
   "firstrun_packs_pick_lede": {
-    "message": "默认勾上：系统语言 + 中文 + English。其他按需勾选，以后也能在「设置 · 语音包」里加。"
+    "message": "勾选你要听译的语言"
   },
   "firstrun_packs_cell_waiting": {
     "message": "勾选保留着。连上 Wi-Fi 后会自动开始下载。"
@@ -3890,16 +3890,16 @@
     "message": "都就绪了。进去之后点「说{mine}」或对方的语言键就能开始。"
   },
   "firstrun_packs_foot": {
-    "message": "共约 {size}，另加系统识别包。用蜂窝网络时，下载前会先问你。"
+    "message": "约 {size} · 含听译基础"
   },
   "firstrun_packs_locked": {
-    "message": "下载中不能改勾选；下完以后去「设置 · 语音包」增减。"
+    "message": "下载中不能改勾选；下完以后去「设置 · 语言包」增减。"
   },
   "firstrun_packs_enter": {
     "message": "进入实时听译"
   },
   "firstrun_packs_remain": {
-    "message": "下载中 · 还剩 {n} 项"
+    "message": "下载中"
   },
   "firstrun_packs_unselected": {
     "message": "未选"
@@ -3911,10 +3911,10 @@
     "message": "{pct}% · {done} / {total}"
   },
   "firstrun_packs_section_langs": {
-    "message": "语言（识别包）"
+    "message": "语言"
   },
   "firstrun_packs_asr_sub": {
-    "message": "识别包 · 系统下载"
+    "message": "未下载"
   },
   "firstrun_packs_system": {
     "message": "系统语言"
@@ -3923,7 +3923,7 @@
     "message": "其他 {n} 种语言"
   },
   "firstrun_packs_together": {
-    "message": "会一起下载"
+    "message": "下载内容详情"
   },
   "firstrun_packs_tts_shared": {
     "message": "朗读 · {langs}"
@@ -3944,10 +3944,10 @@
     "message": "约 {size} · 可选"
   },
   "firstrun_packs_base": {
-    "message": "基础组件"
+    "message": "听译基础"
   },
   "firstrun_packs_base_note": {
-    "message": "语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听"
+    "message": "分辨谁在说哪门语言，下好才能开始听"
   },
   "firstrun_packs_required": {
     "message": "约 {size} · 必需"
@@ -3956,7 +3956,7 @@
     "message": "现在用的是蜂窝网络"
   },
   "firstrun_packs_cell_body": {
-    "message": "这次要下约 {size}（系统识别包另算，大小由系统决定），可能产生流量费用。"
+    "message": "这次要下约 {size}（系统语言包另算，大小由系统决定），可能产生流量费用。"
   },
   "firstrun_packs_cell_wait": {
     "message": "等连上 Wi-Fi"
@@ -3992,7 +3992,7 @@
     "message": "跳过 {n} 张读不出来的卡（媒体卡或无语音）"
   },
   "firstrun_packs_all_lede_listen": {
-    "message": "{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语音包」里加。"
+    "message": "{langs} 可以听译了；{speak} 可以朗读。要加别的语言，随时去「设置 · 语言包」里加。"
   },
   "firstrun_quota_cancel": {
     "message": "取消"
@@ -4022,7 +4022,7 @@
     "message": "最久没用"
   },
   "firstrun_quota_note": {
-    "message": "Apple 限制：同时最多 {max} 门识别语言"
+    "message": "识别最多 {max} 门"
   },
   "firstrun_quota_note_full": {
     "message": "{max} 门都占着名额 · 再装新的会先标为「未就绪」"
@@ -4101,5 +4101,38 @@
   },
   "listen_quota_sheet_lede": {
     "message": "要用 {lang}，需要先让出一门。"
+  },
+  "firstrun_packs_details": {
+    "message": "下载内容详情"
+  },
+  "firstrun_packs_sum": {
+    "message": "约 {size} · 含听译基础"
+  },
+  "firstrun_quota_mini": {
+    "message": "识别最多 5 门"
+  },
+  "langpacks_manage": {
+    "message": "管理"
+  },
+  "langpacks_missing": {
+    "message": "未下载 · {langs}"
+  },
+  "langpacks_need_os": {
+    "message": "语言包 · 需要较新系统"
+  },
+  "langpacks_ready": {
+    "message": "已就绪 · {langs}"
+  },
+  "langpacks_title": {
+    "message": "语言包与朗读"
+  },
+  "langpacks_tts_missing": {
+    "message": "离线朗读 · 未下载 · {size}"
+  },
+  "langpacks_tts_na": {
+    "message": "离线朗读 · 仅 App 可用"
+  },
+  "langpacks_tts_ready": {
+    "message": "离线朗读 · 已就绪"
   }
 }

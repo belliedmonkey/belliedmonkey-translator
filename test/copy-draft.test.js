@@ -47,9 +47,9 @@ describe('文案改稿 4（zdhvA）· 逐字', () => {
 
   test('包屏与登录说明不再写死「两个 / 手机 / 设下好」', () => {
     eq(msg('zh_CN', 'firstrun_packs_base_note'),
-      '语种识别（ECAPA）+ 人声检测（VAD）：分辨谁在说哪门语言，下好才能开始听');
+      '分辨谁在说哪门语言，下好才能开始听');
     eq(msg('zh_TW', 'firstrun_packs_base_note'),
-      '語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，下好才能開始聽');
+      '分辨誰在說哪門語言，下好才能開始聽');
     ok(!/手机/.test(msg('zh_CN', 'firstrun_packs_pick_lede')), '简体仍写手机系统语言');
     ok(!/手機/.test(msg('zh_TW', 'firstrun_packs_pick_lede')), '繁体仍写手机系统语言');
     ok(!/这两样/.test(msg('zh_CN', 'firstrun_packs_lede')), '简体仍写这两样');
@@ -112,7 +112,7 @@ describe('C-08 旧文案清零 · 死键退场', () => {
   });
   test('补稿 ② listen_device_privacy：与 E9 第二句同措辞（服务商 / 两条路 / 不保存文字）', () => {
     eq(msg('zh_CN', 'listen_device_privacy'),
-      '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型。');
+      '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线朗读。');
     ok(/listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，/.test(SETTINGS),
       '披露搬去设置页后，settings-view.jsx 的兜底串没跟上（listen-model 里那段已随 footView 退役）');
     for (const l of LOCALES) ok(msg(l, 'listen_device_privacy').trim(), `${l} 的 listen_device_privacy 是空的`);
