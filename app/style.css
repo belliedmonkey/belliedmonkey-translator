@@ -47,7 +47,11 @@ body {
   background: var(--bg);
   color: var(--fg);
   font: -apple-system-body, 16px/1.45 -apple-system, BlinkMacSystemFont, sans-serif;
-  padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom));
+  /* Duo P0 B5：左右也走 safe-area（竖向系统栏 / 铰链侧）；顶底保持原 max(20px, …) */
+  padding: max(20px, env(safe-area-inset-top))
+           max(20px, env(safe-area-inset-right))
+           max(20px, env(safe-area-inset-bottom))
+           max(20px, env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -586,6 +590,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 
 /* 对话 · 实时听译（§9.6）—— 同 #app-drive 的作用域纪律 */
 #app-listen { display: flex; flex-direction: column; gap: 12px; }
+/* Duo P0 B2/B3：可见时吃满壳高，历史区用容器剩余高，不用 vh */
+#app-listen:not([hidden]) { flex: 1 1 auto; min-height: 0; }
+#app-listen-history-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 #app-listen h2 { font-size: 1.25rem; margin: 0; }
 #app-listen-back { align-self: flex-start; font: inherit; background: none; border: 0; color: var(--accent-deep); font-weight: 400; min-height: 0; padding: 6px; text-decoration: underline; cursor: pointer; }
 :where(#app-listen) .listen-head { display: flex; align-items: center; gap: 12px; }
@@ -601,7 +608,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-live { color: var(--accent); }
 :where(#app-listen) .listen-partial { font-size: 1.35rem; line-height: 1.5; min-height: 1.5em; margin: 6px 0 0; }
 :where(#app-listen) .listen-partial-tr { color: var(--sage-strong); font-size: 1.1rem; line-height: 1.5; min-height: 1.5em; margin: 2px 0 0; }
-:where(#app-listen) .listen-history { max-height: 38vh; overflow-y: auto; }
+:where(#app-listen) .listen-history {
+  /* Duo P0 B2：容器剩余高（flex），禁 vh / orientation 媒体查询 */
+  flex: 1 1 auto; min-height: 0; max-height: none; overflow-y: auto;
+}
 :where(#app-listen) .listen-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
 :where(#app-listen) .listen-body { flex: 1; min-width: 0; }
 :where(#app-listen) .listen-orig { font-size: 1rem; line-height: 1.45; }
@@ -658,7 +668,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    变量只许用调色板里**真实存在**的（2026-10-08 那次「纯文字」事故就是用了不存在的 --sage-weak）。 */
 :where(#app-listen) .listen-ptt-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
   display: flex; flex-direction: column; gap: 6px;
-  padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  /* Duo P0 B5：固定底栏贴屏边，须自带 L/R safe-area（body padding 管不到 fixed） */
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
   background: var(--bg); border-top: 1px solid var(--border); }
 :where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 64px; }
 :where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -676,7 +687,12 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-ptt-mic { width: 16px; height: 16px; flex: none; }
 :where(#app-listen) .listen-ptt-hint { font-size: 0.72rem; font-weight: 400; color: var(--text-secondary); line-height: 1.2; }
 /* 贴底的按钮条会盖住内容尾巴：给页面留出它的高度（60 + 上下内边距 + 安全区）。 */
-:where(#app-listen) { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+:where(#app-listen) {
+  padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  /* Duo P0 B5：通栏头/壳也认 L/R（与 body 叠加时 max 仍安全；fixed 底栏另补） */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
    两个**全宽**选择器块 —— 标签在上、选择器在下，纵向排开。此前是行内 label+select 挤成一行、
@@ -745,17 +761,18 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* macOS 宿主的窗口是 820×640 起步、可拉宽：≥ 720px 时左右两栏 —— 左边「当下」+ 两个按钮，
    右边整句定稿（拉高、自己滚动）。DOM 顺序不变，只改网格区域（interaction-spec「macOS」）。 */
 @media (min-width: 720px) {
-  /* 宽屏（改稿 E 定稿）：**左栏固定 250pt**（现在卡 + 控制区 + **两个键**）/ 右栏 = 整句定稿。
-     形态由**窗口宽度**决定，不是设备：全屏 iPad 与 Mac 同属这一套；iPad 分屏 / Mac 缩窗 <720
-     自动回落上面那套窄版（不为 iPad 另写布局）。 */
-  #app-listen:not([hidden]) { display: grid; grid-template-columns: 250px minmax(0, 1fr); column-gap: 20px; row-gap: 10px; align-items: start;
+  /* 宽屏（Duo P0 B1 / 改稿 E）：左栏约 40–45%（现 42%），右栏历史。
+     形态仍由**窗口宽度** min-width:720 决定，不锁 250px、不引入 idiom。
+     全屏 iPad / Mac / Duo 内屏 regular 同属这一套；<720 回落窄版。 */
+  #app-listen:not([hidden]) { display: grid; grid-template-columns: minmax(0, 0.42fr) minmax(0, 0.58fr); column-gap: 20px; row-gap: 10px; align-items: start;
+    height: 100%; min-height: 0;
     grid-template-areas: "head head" "macnote macnote" "now hist" "ctl hist" "actions hist" "ptt hist" "queue hist" "note hist" "enginehist hist" "ephwhy hist"; }
   /* 每个直接子元素都要有自己的格子（test/app-listen-grid.test.js）：没写的会被自动放置，
      共用 class 的会叠进同一格 —— 「这次不留记录」曾与「朗读译文」叠在 speakrow 里。 */
   :where(#app-listen) .listen-head { grid-area: head; }
   :where(#app-listen) .listen-mac-note { grid-area: macnote; margin: 0; }
   #app-listen-now { grid-area: now; align-self: start; }
-  #app-listen-history-wrap { grid-area: hist; align-self: start; }
+  #app-listen-history-wrap { grid-area: hist; align-self: stretch; min-height: 0; height: 100%; overflow: hidden; }
   #app-listen-note { grid-area: note; }
   #app-listen-actions { grid-area: actions; }
   :where(#app-listen) .listen-ctl-row { grid-area: ctl; }
@@ -765,8 +782,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen-ephemeral-why { grid-area: ephwhy; }
   /* 两个键在宽版**回到左栏内**：解开贴底固定 —— 桌面上不再是两条通栏横幅。 */
   #app-listen-ptt { position: static; padding: 0; background: none; border-top: 0; }
-  /* 两个键在宽版**竖排**：左栏只有 250pt，并排时每个约 117pt，小字「● 正在录 · 点一下停」
-     会挤成两行并顶到底边（Mac 真机截图实测）。竖排各占满左栏宽，读起来也像桌面控件。 */
+  /* 两个键在宽版**竖排**：左栏按比例变窄时并排会挤字；竖排各占满左栏宽（原 250pt 实测结论仍成立）。 */
   :where(#app-listen) .listen-ptt { flex-direction: column; height: auto; }
   :where(#app-listen) .listen-ptt-btn { flex: none; height: 64px; }   /* flex:1 1 0 在竖排里会把高度压成内容高（50）*/
   :where(#app-listen) .listen-ptt-btn:disabled { height: auto; min-height: 64px; }
@@ -774,9 +790,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
   :where(#app-listen) .listen-toggles { margin-left: 0; }
   :where(#app-listen) .listen-pair-seg select { max-width: none; }
-  :where(#app-listen) .listen-history { max-height: calc(100vh - 210px); }
+  /* Duo P0 B3：右栏历史跟网格剩余高，去掉 100vh-210px 经验常数 */
+  :where(#app-listen) .listen-history { flex: 1 1 auto; min-height: 0; max-height: 100%; height: 100%; overflow-y: auto; }
 }
-:where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
+:where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }
 :where(#app-listen) .listen-flip-text { font-size: 1.9rem; line-height: 1.35; font-weight: 700; margin: 0; }
 :where(#app-listen) .listen-flip-sub { color: var(--dim); font-size: 1rem; margin: 0; }
