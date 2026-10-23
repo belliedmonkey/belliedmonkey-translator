@@ -163,6 +163,30 @@ function patchViewController(sharedDir) {
     notes.push('media gate: viewDidLoad anchor missing');
   }
 
+
+  // Duo P0 T1/T6：LayoutContext install + WKWebView 贴 host bounds。
+  // 幂等判据认 install 行；pin 与 install 同块，避免 webView 重建后丢约束。
+  const LAYOUT_NEEDLE = 'MTLayoutContext.shared.install';
+  const LAYOUT_LINES = (
+    '#if os(iOS)\n'
+    + '        // Patched by scripts/sync-app-assets.js — Duo P0 LayoutContext（SPEC-DUO-P0 T1/T6）。\n'
+    + '        // webView 贴 scene/host；几何变更 → LayoutContextChanged（禁 UIScreen/idiom/orientation）。\n'
+    + '        MTLayoutContext.pinWebViewToHost(self.webView, host: self.view)\n'
+    + '        MTLayoutContext.shared.install(hostView: self.view, webView: self.webView)\n'
+    + '#endif'
+  );
+  if (src.includes(LAYOUT_NEEDLE)) {
+    notes.push('layout context install already patched');
+  } else if (src.includes('self.webView.navigationDelegate = self')) {
+    src = src.replace(
+      'self.webView.navigationDelegate = self',
+      'self.webView.navigationDelegate = self\n' + LAYOUT_LINES,
+      1);
+    notes.push('layout context install patched');
+  } else {
+    notes.push('✗ layout context install: navigationDelegate 锚点缺失');
+  }
+
   // Patch 8 (§9.5 播客模式): keep the screen awake. A driving session is
   // continuous foreground audio with no touches; the default idle timer locks
   // the phone mid-card and (with no background audio session) kills the speech.
@@ -412,6 +436,9 @@ const BLOCKS = [
   // 实时字幕 iPhone 一期的画中画字幕窗（learning-design §9.8 协议补充决定（三））。整份 #if os(iOS)；无 attach ——
   // 由 MTAudioBridge 在 subtitle-config 时带着 webView 调它。
   { name: 'mt-subtitle-pip', src: 'subtitle-pip.swift', label: 'subtitle pip' },
+  // Duo P0 LayoutContext（SPEC-DUO-P0 T1/T2）：size class + safeArea + scene → JS。
+  // 整份 #if os(iOS)；attach 见 patchViewController 的 MTLayoutContext.shared.install 行。
+  { name: 'mt-layout-context', src: 'layout-context.swift', label: 'layout context' },
   // 快速翻译的菜单栏常驻 + mtQuick 桥（learning-design §9.9）。整份 #if os(macOS)；attach 见 patchViewController 的
   // install 行；AppDelegate「关窗不退出」那一处与实时字幕共用一条补丁，见 DELEGATE_PATCHES。
   { name: 'mt-resident', src: 'resident.swift', label: 'resident' },
@@ -1255,6 +1282,42 @@ function patchMacWindowXml(src) {
   return { xml: out, note: `window patched (${notes.join(' · ')})` };
 }
 
+
+// Duo P0 T6 / A9：iOS Main.storyboard WKWebView 去掉 fixedFrame，钉到父视图四边。
+// 国际 + 中国同构（两棵 safari-project* 各跑一次）。运行时 sync 还会再 pin 约束兜底。
+function patchIosWebViewStoryboard(appRoot) {
+  const f = path.join(appRoot, 'iOS (App)', 'Base.lproj', 'Main.storyboard');
+  if (!fs.existsSync(f)) return 'no iOS storyboard';
+  let xml = fs.readFileSync(f, 'utf8');
+  if (xml.includes('<!-- mt-duo-webview-pin -->')) return 'iOS storyboard webView already pinned';
+  const oldRe = /<wkWebView contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="([^"]+)">/;
+  const m = xml.match(oldRe);
+  if (!m) {
+    if (/mt-duo-wv-lead/.test(xml)) return 'iOS storyboard webView already pinned';
+    return 'iOS storyboard webView: fixedFrame 锚点未命中（模板可能已变）';
+  }
+  const vid = m[1];
+  const parentM = xml.match(/<view key="view"[^>]*\bid="([^"]+)"/);
+  const parentId = parentM ? parentM[1] : '8bC-Xf-vdC';
+  xml = xml.replace(oldRe,
+    `<!-- mt-duo-webview-pin -->\n                            <wkWebView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="${vid}">`);
+  if (!xml.includes('<!-- mt-duo-webview-constraints -->')) {
+    const constraints =
+      `                        <!-- mt-duo-webview-constraints -->\n`
+      + `                        <constraints>\n`
+      + `                            <constraint firstItem="${vid}" firstAttribute="leading" secondItem="${parentId}" secondAttribute="leading" id="mt-duo-wv-lead"/>\n`
+      + `                            <constraint firstItem="${vid}" firstAttribute="trailing" secondItem="${parentId}" secondAttribute="trailing" id="mt-duo-wv-trail"/>\n`
+      + `                            <constraint firstItem="${vid}" firstAttribute="top" secondItem="${parentId}" secondAttribute="top" id="mt-duo-wv-top"/>\n`
+      + `                            <constraint firstItem="${vid}" firstAttribute="bottom" secondItem="${parentId}" secondAttribute="bottom" id="mt-duo-wv-bot"/>\n`
+      + `                        </constraints>\n`;
+    const marker = '                        <viewLayoutGuide key="safeArea"';
+    if (!xml.includes(marker)) return '✗ iOS storyboard: safeArea 锚点缺失';
+    xml = xml.replace(marker, constraints + marker);
+  }
+  fs.writeFileSync(f, xml);
+  return 'iOS storyboard webView pinned to scene';
+}
+
 function patchMacWindow(sharedDir) {
   const appRoot = path.dirname(sharedDir);
   const f = path.join(appRoot, 'macOS (App)', 'Base.lproj', 'Main.storyboard');
@@ -1900,7 +1963,7 @@ function main() {
         ? loud(proj, 'translate ext', patchExtensionFiles(shared, TRANSLATE_EXT_SPEC, { appSrc: SRC })) + ' · '
           + loud(proj, 'translate ext', patchExtensionTarget(shared, TRANSLATE_EXT_SPEC))
         : 'translate ext: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · ${transExt} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · ${transExt} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · ios-storyboard ${hasIOS ? patchIosWebViewStoryboard(path.dirname(shared)) : 'skip'} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -1921,7 +1984,7 @@ function main() {
 if (require.main === module) main();
 
 module.exports = {
-  classifyProject, patchViewController, patchMacWindowXml, patchMacMenuXml,
+  classifyProject, patchViewController, patchIosWebViewStoryboard, patchMacWindowXml, patchMacMenuXml,
   patchAudioBridgeSwift, patchMarkerBlockSwift, BLOCKS, patchSwiftPackageText, patchMacDeploymentTarget, patchDeploymentTargets,
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
