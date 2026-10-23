@@ -623,7 +623,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-raw-toggle { font: inherit; font-size: 0.78rem; background: none; border: 0; padding: 2px 0; color: var(--dim); text-decoration: underline dotted; cursor: pointer; min-height: 28px; }
 :where(#app-listen) .listen-raw { color: var(--dim); font-size: 0.85rem; line-height: 1.4; }
 :where(#app-listen) .listen-tts-fallback { color: var(--dim); font-size: 0.78rem; margin-left: 8px; }
-:where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0 4px; min-height: 32px; }
+:where(#app-listen) .listen-star { font: inherit; font-size: 1.2rem; background: none; border: 0; color: var(--line); cursor: pointer; padding: 0; min-height: 44px; min-width: 44px; width: 44px; height: 44px; flex: none; display: inline-flex; align-items: center; justify-content: center; }
 :where(#app-listen) .listen-star.on { color: var(--accent); }
 /* 语言状态行（§9.6.1.4，2026-10-07 用户拍）：语言控件**不再常驻** —— 默认只有一行被动状态
    （「正在识别语言…」/「已识别：中文 · English」）加一个「语言手动指定」文字按钮；认错了才摊开
@@ -668,8 +668,11 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    变量只许用调色板里**真实存在**的（2026-10-08 那次「纯文字」事故就是用了不存在的 --sage-weak）。 */
 :where(#app-listen) .listen-ptt-wrap { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
   display: flex; flex-direction: column; gap: 6px;
-  /* Duo P0 B5：固定底栏贴屏边，须自带 L/R safe-area（body padding 管不到 fixed） */
-  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px));
+  /* Duo-08 / AC-D2：录音键左缘 = 竖条右缘 + 12pt（fixed 不受 body padding）
+     --mt-safe-* 来自 LayoutContext；Web 调试可人为 setProperty 证明避让。 */
+  padding: 8px calc(max(env(safe-area-inset-right, 0px), var(--mt-safe-right, 0px)) + 12px)
+               calc(8px + env(safe-area-inset-bottom, 0px))
+               calc(max(env(safe-area-inset-left, 0px), var(--mt-safe-left, 0px)) + 12px);
   background: var(--bg); border-top: 1px solid var(--border); }
 :where(#app-listen) .listen-ptt { display: flex; gap: 8px; height: 64px; }
 :where(#app-listen) .listen-ptt-btn { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
@@ -689,9 +692,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* 贴底的按钮条会盖住内容尾巴：给页面留出它的高度（60 + 上下内边距 + 安全区）。 */
 :where(#app-listen) {
   padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px));
-  /* Duo P0 B5：通栏头/壳也认 L/R（与 body 叠加时 max 仍安全；fixed 底栏另补） */
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  /* Duo-08：头/左栏/历史星随 L/R safe-area；+12pt 缓冲（batch4 竖条右缘+12）
+     用 --mt-safe-* 便于 Web 人为注入 inset 验收；env() 作回退。 */
+  padding-left: calc(max(env(safe-area-inset-left, 0px), var(--mt-safe-left, 0px)) + 12px);
+  padding-right: calc(max(env(safe-area-inset-right, 0px), var(--mt-safe-right, 0px)) + 12px);
 }
 
 /* 首启语音包页 · 语言对（2026-10-04，稿 `稿 · 下载页 · 自选语言对 2026-10-04` / Pencil h1KZdJ）：
@@ -957,6 +961,16 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   }
 }
 
+
+/* ── Duo-06 batch4：门控角标「暂不可用」───────────────────────────────────── */
+.hero-gate-badge {
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  font-size: 0.7rem; font-weight: 600; line-height: 1.2;
+  color: var(--dim); background: color-mix(in oklab, var(--bg) 88%, var(--line));
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 8px; pointer-events: none; white-space: nowrap;
+}
+/* 灰态卡整体 45%（与全局 :disabled 一致）；角标随卡一起淡，不单独提亮 */
 /* ── Duo P0 AC-D4：首页 regular 两卡 + 门控首屏入视 ───────────────────────── */
 .heroes-need { margin: 0 0 10px; }
 .heroes-need .note { margin: 4px 0 0; }

@@ -106,6 +106,10 @@ function ListenEntryButtons({ sfx = '' }) {
       <button id={`app-listen-entry${sfx}`} type="button" className="mode"
         hidden={listen ? listen.hidden : true} disabled={listen ? listen.disabled : false}
         onClick={listenModel.open}>
+        {/* Duo-06：门控灰态角标「暂不可用」（batch4）；disabled 时可见，跟随卡 opacity 0.45 */}
+        {listen && listen.disabled ? (
+          <span className="hero-gate-badge" id={`app-listen-entry-badge${sfx}`}>{t('home_gate_badge', '暂不可用')}</span>
+        ) : null}
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /><path d="M9 21h6" /></svg></span>
         <span className="mode-text"><span className="mode-title">{t('listen_entry', '对话 · 实时听译')}</span><span className="mode-desc" id={`app-listen-entry-hint${sfx}`}>{listen ? listen.hint : ''}</span></span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
@@ -123,6 +127,9 @@ function ListenEntryButtons({ sfx = '' }) {
       <button id={`app-subs-entry${sfx}`} type="button" className="mode"
         hidden={subs ? subs.hidden : true} disabled={subs ? subs.disabled : false}
         onClick={() => listenModel.open('subtitle')}>
+        {subs && subs.disabled ? (
+          <span className="hero-gate-badge" id={`app-subs-entry-badge${sfx}`}>{t('home_gate_badge', '暂不可用')}</span>
+        ) : null}
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M7 13h4" /><path d="M13 13h4" /><path d="M8 21h8" /></svg></span>
         <span className="mode-text"><span className="mode-title">{t('subtitle_entry', '实时字幕')}</span><span className="mode-desc" id={`app-subs-entry-hint${sfx}`}>{subs ? subs.hint : ''}</span></span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
