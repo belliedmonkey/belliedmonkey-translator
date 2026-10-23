@@ -187,6 +187,22 @@ function patchViewController(sharedDir) {
     notes.push('✗ layout context install: navigationDelegate 锚点缺失');
   }
 
+  // Duo P0：didFinish 后重推 LayoutContext（install 早于 Main.html 会丢首次推送）。
+  const REPUB_NEEDLE = 'MTLayoutContext.shared.republish';
+  const REPUB_LINE = '        MTLayoutContext.shared.republish()\n';
+  if (src.includes(REPUB_NEEDLE)) {
+    notes.push('layout context republish already patched');
+  } else if (src.includes('webView.evaluateJavaScript("show(\'ios\')")')) {
+    src = src.replace(
+      '        webView.evaluateJavaScript("show(\'ios\')")',
+      REPUB_LINE + '        webView.evaluateJavaScript("show(\'ios\')")',
+      1);
+    notes.push(src.includes(REPUB_NEEDLE) ? 'layout context republish patched' : '✗ layout context republish: show(ios) 替换失败');
+  } else {
+    notes.push('✗ layout context republish: show(ios) 锚点缺失');
+  }
+
+
   // Patch 8 (§9.5 播客模式): keep the screen awake. A driving session is
   // continuous foreground audio with no touches; the default idle timer locks
   // the phone mid-card and (with no background audio session) kills the speech.

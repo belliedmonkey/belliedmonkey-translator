@@ -29,6 +29,12 @@ final class MTLayoutContext: NSObject {
     private var lastJSON: String = ""
     private var installed = false
 
+    /// 页面 didFinish 后再推一次：install 时常早于 Main.html，首次 evaluate 会丢。
+    func republish() {
+        lastJSON = ""
+        publish()
+    }
+
     /// ViewController.viewDidLoad 之后调用一次（sync 补丁行）。
     func install(hostView: UIView, webView: WKWebView) {
         self.hostView = hostView
