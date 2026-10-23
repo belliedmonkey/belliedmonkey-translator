@@ -245,8 +245,7 @@ export default function SettingsView() {
       dl.hidden = true;
     } else if (st.reason === 'assets') {
       state.textContent = t('tts_pack_missing', '离线朗读未下载 · {langs} · {size}').replace('{langs}', langs).replace('{size}', fmtMB(st.size))
-        + '
-' + t('tts_pack_note', '首次朗读也会自动下载；只下文件，不上传任何内容。');
+        + '\n' + t('tts_pack_note', '首次朗读也会自动下载；只下文件，不上传任何内容。');
       dl.hidden = false; dl.textContent = t('tts_pack_dl', '下载');
     } else {
       state.textContent = '✗ ' + LearnTTS.reason('unsupported', t);
