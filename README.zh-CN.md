@@ -210,6 +210,22 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 ---
 
+## 效果与业界水位（2026-10）
+
+大肚猴听译/字幕当前管线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。
+
+| 维度 | 我们（有数） | 业界公开锚（第三方） | 差距一句话 |
+|---|---|---|---|
+| 翻译 | plus · App 契约 COMET **88.8**（1600 句） | 同口径 DeepL/Google **无公开数** | 自测高质量；无法与 DeepL 横比 |
+| ASR 中文 | 线上 SA；离线 SenseVoice CER **~5–7%**（口语/会议） | AA 英文榜顶尖 ~1.7–2.3% WER（**语种不同，不可换算**） | 中文端上升级在验证，未进近版 |
+| ASR 泰语 | Grok 流式 archdemo CER **9.66%**、丢句 0 | 端上空白被云端补上 | **已批进 1.20.x**（直连 xAI，未改线上中继） |
+| 听译延迟 | 文档目标有；线上统一遥测 **未出数** | Meet 63 语体验标杆（厂商） | 先补遥测再谈对标 |
+| TTS | 本地可离线 | AA：Eleven v4 Turbo Elo 1335 等 | 云端音色升级待试听 |
+
+**不进近版**：qwen-flash / DeepSeek Flash 替换 plus（质量门未过）；Grok 流式主驱动字幕；Ming TTS CPU 路径。
+
+**下期**：例行每月 1 日；或效果有实质变化时加更。数字一律标「自测 / 第三方 / 厂商自报」。
+
 ## 已知限制
 
 提前说清楚，因为让你自己撞上更糟。
