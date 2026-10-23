@@ -1,16 +1,23 @@
-// app/grok-stt.js — 泰语 demo 的云端流式转写会话骨架（docs/thai-grok-stt-demo-spec.md 步 1）。
+// app/grok-stt.js — 泰语 demo 的云端流式转写会话（docs/thai-grok-stt-demo-spec.md 步 1、
+// docs/thai-grok-stt-step2b-spec.md 步 2b）。
 //
 // 句柄形状对齐 NativeSpeech.sttOpen / WsTranscribe 的旧 open：
 //   const s = GrokStt.open({ locale, apiKey, onEvent });
 //   s.sendPcm(int16 | arrayBuffer | bytes); s.close(); s.cut?.();
 // 事件：ready / partial / final / error / close，payload 里一律带 locale。
 //
+// 两条路（步 2b）：
+//   · App（window.webkit.messageHandlers.mtSpeech 存在）⇒ 原生鉴权桥：JS 把 URL 拼好，
+//     原生用 URLSessionWebSocketTask 带 Authorization: Bearer 连；PCM 走 base64。
+//   · Node / 浏览器（无 mtSpeech）⇒ 步 1 的 WebSocket 路径原样保留（Node headers，浏览器退回无头）。
+//
 // 纪律：
-//   · key 只进 WebSocket 的 Authorization 头；绝不写日志、绝不进 reason / 异常文本。
-//   · 没有 key 不抛未捕获 —— 异步 onEvent('error', { reason: 'no-key' })，句柄为空操作。
-//   · 服务端 transcript.created 到之前只缓冲 PCM；到了才按 FRAME_BYTES 整帧发出。
+//   · key 只进原生 open 消息 / WebSocket 的 Authorization 头；绝不写日志、绝不进 reason / 异常文本。
+//     原生桥这一路 key 只在 open 消息里出现一次，JS 不保留副本。
+//   · 没有 key 不抛未捕获 —— 异步 onEvent('error', { reason: 'no-key' })，句柄为空操作，且不建原生会话。
+//   · 服务端 transcript.created 到之前只缓冲 PCM；到了才按 FRAME_BYTES 整帧发出（帧逻辑仍在 JS）。
 //   · 已进 build/app-bundle.js 的 MODULES（App 包），但只走 Debug 开关 thaiGrokStt 的 th 路由；
-//     默认关，Release 路径不启用，也不带 key（步 1 只落骨架；步 2 接 listen 路由）。
+//     默认关，Release 路径不启用，也不带 key。
 var GrokStt = (() => {
   const WS_URL_BASE = 'wss://api.x.ai/v1/stt';
   const MODEL = 'grok-voice-transcribe-2.0';
@@ -19,6 +26,11 @@ var GrokStt = (() => {
   const SAMPLE_RATE = 16000;
   const ENCODING = 'pcm';
   const DEFAULT_LOCALE = 'th-TH';
+
+  // 原生桥会话表：req → 会话（GrokStt._fromNative 按 req 分派）。步 2b 多会话用。
+  const sessions = Object.create(null);
+  let sessionSeq = 0;
+  const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
   function baseLanguage(locale) {
     return String(locale || '').split(/[-_]/)[0].toLowerCase();
@@ -58,6 +70,31 @@ var GrokStt = (() => {
     return s;
   }
 
+  // PCM 帧 → base64（原生桥的消息体是 JSON，只能传字符串）。手写编码器，不依赖 btoa / Buffer：
+  // 两个宿主都要能跑，测试也不需要额外垫片。
+  function bytesToBase64(u8) {
+    let out = '';
+    for (let i = 0; i < u8.length; i += 3) {
+      const b0 = u8[i];
+      const b1 = i + 1 < u8.length ? u8[i + 1] : 0;
+      const b2 = i + 2 < u8.length ? u8[i + 2] : 0;
+      out += B64[b0 >> 2];
+      out += B64[((b0 & 3) << 4) | (b1 >> 4)];
+      out += i + 1 < u8.length ? B64[((b1 & 15) << 2) | (b2 >> 6)] : '=';
+      out += i + 2 < u8.length ? B64[b2 & 63] : '=';
+    }
+    return out;
+  }
+
+  // App 内才有 mtSpeech；扩展页 / Chrome 门禁 / Node 都没有，于是走步 1 的旧路径。
+  function nativeBridge() {
+    try {
+      const w = (typeof window !== 'undefined') ? window : null;
+      return !!(w && w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.mtSpeech
+        && typeof w.webkit.messageHandlers.mtSpeech.postMessage === 'function');
+    } catch (_) { return false; }
+  }
+
   function parseMessage(data) {
     let text = data;
     if (typeof text !== 'string') {
@@ -88,6 +125,125 @@ var GrokStt = (() => {
 
   function inertHandle() {
     return { sendPcm() {}, close() {}, cut() {} };
+  }
+
+  // App 原生桥（步 2b）：JS 只负责拼 URL、按帧发 PCM、映射事件；鉴权头与 WebSocket 在原生。
+  // 原生回 `grok-stt-event { req, kind, … }`，由 NativeSpeech._fromNative 转给 GrokStt._fromNative。
+  function openNative(o, key, locale, url) {
+    const onEvent = (typeof o.onEvent === 'function') ? o.onEvent : function () {};
+    const req = 'grok-' + (++sessionSeq).toString(36) + '-' + Date.now().toString(36);
+    let closed = false;
+    let ready = false;
+    let closeFired = false;
+    const chunks = [];
+    let buffered = 0;
+
+    function post(msg) {
+      try { window.webkit.messageHandlers.mtSpeech.postMessage(msg); return true; } catch (_) { return false; }
+    }
+    function fire(kind, payload) {
+      if (closed && kind !== 'close') return;
+      try { onEvent(kind, payload); } catch (_) {}
+    }
+    function shutdown(reason) {
+      if (closed) return;
+      closed = true;
+      delete sessions[req];
+      if (closeFired) return;
+      closeFired = true;
+      fire('close', { reason: reason || 'closed' });
+    }
+    // 与步 1 同一条帧逻辑：整帧才发，不足一帧留到下一块；不同之处只是出口从 sock.send 换成原生消息。
+    function flushFrames() {
+      while (!closed && ready && buffered >= FRAME_BYTES) {
+        const frame = new Uint8Array(FRAME_BYTES);
+        let off = 0;
+        while (off < FRAME_BYTES) {
+          const head = chunks[0];
+          const take = Math.min(head.length, FRAME_BYTES - off);
+          frame.set(head.subarray(0, take), off);
+          off += take;
+          if (take === head.length) chunks.shift();
+          else chunks[0] = head.subarray(take);
+          buffered -= take;
+        }
+        if (!post({ type: 'grok-stt-pcm', req: req, pcm: bytesToBase64(frame) })) {
+          fire('error', { reason: 'ws' });
+          shutdown('socket');
+          return;
+        }
+      }
+    }
+    function handleFromNative(msg) {
+      if (closed) return;
+      const kind = String(msg.kind || '');
+      if (kind === 'ready') {
+        if (ready) return;
+        ready = true;
+        fire('ready', {});
+        flushFrames();
+        return;
+      }
+      if (kind === 'partial' || kind === 'final') {
+        const payload = {
+          locale: msg.locale ? String(msg.locale) : locale,
+          text: String(msg.text == null ? '' : msg.text),
+        };
+        if (typeof msg.conf === 'number') payload.conf = msg.conf;
+        if (typeof msg.t0 === 'number') payload.t0 = msg.t0;
+        if (typeof msg.t1 === 'number') payload.t1 = msg.t1;
+        if (kind === 'final') {
+          payload.speech_final = msg.speech_final !== false;
+          fire('final', payload);
+        } else {
+          payload.speech_final = !!msg.speech_final;
+          fire('partial', payload);
+        }
+        return;
+      }
+      if (kind === 'error') { fire('error', { reason: msg.reason || 'server' }); return; }
+      if (kind === 'close') shutdown(msg.reason || 'closed');
+    }
+    const sess = {
+      sendPcm(pcm) {
+        if (closed) return;
+        const bytes = toBytes(pcm);
+        if (!bytes || !bytes.length) return;
+        chunks.push(bytes.slice());   // 复制：送进来的缓冲下一拍可能被覆写
+        buffered += bytes.length;
+        flushFrames();
+      },
+      cut() {
+        if (closed) return;
+        post({ type: 'grok-stt-cut', req: req });
+      },
+      close() {
+        if (closed) return;
+        post({ type: 'grok-stt-close', req: req });
+        shutdown('client');
+      },
+      _fromNative: handleFromNative,
+    };
+    sessions[req] = sess;
+    // key 只在 open 这一条消息里出现一次；JS 不保留副本（原生负责会话内存与关闭清理）。
+    if (!post({ type: 'grok-stt-open', req: req, url: url, apiKey: key, locale: locale })) {
+      delete sessions[req];
+      setTimeout(function () {
+        fire('error', { reason: 'ws' });
+        shutdown('socket');
+      }, 0);
+    }
+    return sess;
+  }
+
+  // 原生事件入口（由 native-speech.js 的 _fromNative 转发，或测试直接调用）。
+  function _fromNative(msg) {
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type && msg.type !== 'grok-stt-event') return;
+    const req = msg.req ? String(msg.req) : '';
+    if (!req) return;
+    const sess = sessions[req];
+    if (sess && typeof sess._fromNative === 'function') sess._fromNative(msg);
   }
 
   /**
@@ -227,13 +383,7 @@ var GrokStt = (() => {
       return inertHandle();
     }
 
-    const WS = o.WebSocket ||
-      ((typeof globalThis !== 'undefined' && globalThis.WebSocket) ? globalThis.WebSocket : null);
-    if (!WS) {
-      setTimeout(function () { emitError('ws'); }, 0);
-      return inertHandle();
-    }
-
+    // URL / model / sample_rate / encoding / language 一律 JS 拼好；原生桥不复制业务常量。
     const url = WS_URL_BASE +
       '?model=' + encodeURIComponent(MODEL) +
       '&sample_rate=' + SAMPLE_RATE +
@@ -241,8 +391,19 @@ var GrokStt = (() => {
       '&interim_results=true' +
       '&language=' + encodeURIComponent(language);
 
+    // 步 2b：App 内优先走原生鉴权桥（WKWebView 的 WebSocket 不能自定义 Authorization 头）。
+    // 无桥时下面的步 1 路径逐字不变（Node 带 headers；浏览器退回不带头）。
+    if (nativeBridge()) return openNative(o, key, locale, url);
+
+    const WS = o.WebSocket ||
+      ((typeof globalThis !== 'undefined' && globalThis.WebSocket) ? globalThis.WebSocket : null);
+    if (!WS) {
+      setTimeout(function () { emitError('ws'); }, 0);
+      return inertHandle();
+    }
+
     // 优先带 Authorization 头（Node ws / Undici）。浏览器不能自定义头，构造会失败，
-    // 退回不带头的建连 —— 真机鉴权后续步再接 ephemeral/native。
+    // 退回不带头的建连 —— 真机鉴权由上面的原生桥承担。
     let ws = null;
     try {
       ws = new WS(url, { headers: { Authorization: 'Bearer ' + key } });
@@ -262,7 +423,7 @@ var GrokStt = (() => {
     return { sendPcm: sendPcm, close: close, cut: cut };
   }
 
-  return { open: open, WS_URL_BASE: WS_URL_BASE, FRAME_BYTES: FRAME_BYTES, MODEL: MODEL };
+  return { open: open, _fromNative: _fromNative, WS_URL_BASE: WS_URL_BASE, FRAME_BYTES: FRAME_BYTES, MODEL: MODEL };
 })();
 
 try { window.GrokStt = GrokStt; } catch (_) {}

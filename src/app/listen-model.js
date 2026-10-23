@@ -1515,10 +1515,35 @@ const listenModel = (() => {
     // 一次正常的重连会被读成 socketLost，整场被 halt 在「断线」上。基线 NativeSpeech 的 close
     // 不同步发事件，这个标志在基线分支里恒为 false，行为与原来相同。
     let closing = false;
-    const onEvent = (kind, ev) => {
+    // 步 2b 热修：th 路（Grok）只是本场的一路。它自己失败/掉线时，若还有健康的原生非 th 路，
+    // 只丢 Grok 句柄并记诊断，不 socketLost 拖垮整场；整场只剩 Grok（nativeLocales 空）时才按掉线处理。
+    const handles = [];
+    let grokHandle = null;
+    let grokDropped = false;
+    const hasNativeRoute = !!(grokRoute && nativeLocales && nativeLocales.length);
+    const GROK_ISOLATED_ERRORS = { 'no-key': true, 'no-grok': true, 'server': true, 'ws': true };
+    const dropGrok = (why) => {
+      if (grokDropped) return;
+      grokDropped = true;
+      diagBump('grok', String(why || 'unknown'));
+      const h = grokHandle;
+      grokHandle = null;
+      if (!h) return;
+      const i = handles.indexOf(h);
+      if (i >= 0) handles.splice(i, 1);
+      try { if (typeof h.close === 'function') h.close(); } catch (_) {}
+    };
+    const onEvent = (kind, ev, src) => {
       if (kind === 'close' && closing) return;
       if (myGen !== gen) return;
       if (!sock && (kind === 'partial' || kind === 'final')) return;
+      if (src === 'grok' && hasNativeRoute) {
+        const why = String((ev && ev.reason) || '');
+        if (kind === 'close' || (kind === 'error' && GROK_ISOLATED_ERRORS[why])) {
+          dropGrok(why || (kind === 'close' ? 'socket' : 'error'));
+          return;
+        }
+      }
       if (kind === 'ready') { socketRetried = false; }
       else if (kind === 'partial') {
         const base = C.baseCode(ev && ev.locale);
@@ -1550,21 +1575,21 @@ const listenModel = (() => {
       return;
     }
     // Grok 路：th 只开 Grok（**不再**进 stt-start），其余语言仍开原生。两个句柄合成一个 sock，
-    // PCM 转发给各方，close/cut 都调；事件共用同一个 onEvent（locale 已在事件里，路由不分叉）。
-    const handles = [];
+    // PCM 转发给各方，close/cut 都调；事件共用同一个 onEvent，但 Grok 这一路带 source 标记 ——
+    // 它的失败只作用于自己（见上面 dropGrok）。
+    const grokOnEvent = (kind, ev) => onEvent(kind, ev, 'grok');
     if (nativeLocales.length) {
       handles.push(NativeSpeech.sttOpen({ locales: nativeLocales, vadMs, onEvent }));
     }
-    let grokHandle = null;
     try {
       if (typeof GrokStt !== 'undefined' && GrokStt && typeof GrokStt.open === 'function') {
         // locale 用会话里那一个（th-TH）；getApiKey 只读 env / Debug 字段快照。
         // App 内默认无 key ⇒ GrokStt 异步 error reason=no-key（具名失败，不是假装成功）。
-        grokHandle = GrokStt.open({ locale: thaiLocale || 'th-TH', getApiKey: grokApiKey, onEvent });
+        grokHandle = GrokStt.open({ locale: thaiLocale || 'th-TH', getApiKey: grokApiKey, onEvent: grokOnEvent });
       }
     } catch (_) { grokHandle = null; }
     if (grokHandle) handles.push(grokHandle);
-    else setTimeout(() => { try { onEvent('error', { reason: 'no-grok' }); } catch (_) {} }, 0);
+    else setTimeout(() => { try { grokOnEvent('error', { reason: 'no-grok' }); } catch (_) {} }, 0);
     sock = {
       sendPcm(pcm) {
         for (const h of handles) { try { if (h && typeof h.sendPcm === 'function') h.sendPcm(pcm); } catch (_) {} }

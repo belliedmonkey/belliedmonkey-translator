@@ -142,6 +142,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     private weak var webView: WKWebView?
     private var transcriber: AnyObject?          // MTDeviceTranscriber（iOS 26+ 才有，所以按 AnyObject 存）
+    /// 步 2b：Grok STT 的原生鉴权 WebSocket 会话（req → 会话）。key 只活在这里，close/失败即清。
+    private var grokSessions: [String: MTGrokSttSession] = [:]
     private let speech = MTDeviceSpeech()
     private let system = MTSystemSpeech()      // 系统语音的原生后端（AVSpeechSynthesizer）：WebKit 只暴露 compact 档，增强/优质只有这里拿得到
     private let netMonitor = NWPathMonitor()
@@ -190,6 +192,11 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "stt-release": sttRelease(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
+        // 步 2b：Grok STT 的原生鉴权 WebSocket（WKWebView 不能自定义 Authorization 头）。
+        case "grok-stt-open":  grokSttOpen(body)
+        case "grok-stt-pcm":   grokSttPcm(body)
+        case "grok-stt-cut":   grokSttCut(body)
+        case "grok-stt-close": grokSttClose(body)
         case "tts-probe":  speech.probe(models: body["models"], systemLangs: system.langs())
         case "tts-assets": speech.download(models: body["models"])
         case "lid-probe":  MTDeviceLid.shared.probe(models: body["models"])
@@ -382,6 +389,60 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         if announce { emit(["type": "stt-state", "state": "ended"]) }
     }
 
+    // MARK: - Grok STT 原生鉴权桥（步 2b）
+
+    /// 开一路原生 WebSocket。URL / model / sample_rate / language 都由 JS 拼好传进来；
+    /// 这里只加上 Authorization 头，不复制任何业务常量。key 不落日志、不进回执。
+    private func grokSttOpen(_ body: [String: Any]) {
+        let req = (body["req"] as? String) ?? ""
+        guard !req.isEmpty else { return }
+        guard let urlString = body["url"] as? String,
+              let url = URL(string: urlString),
+              let scheme = url.scheme?.lowercased(), scheme == "wss" || scheme == "ws",
+              let key = body["apiKey"] as? String, !key.isEmpty else {
+            emit(["type": "grok-stt-event", "req": req, "kind": "error", "reason": "ws"])
+            return
+        }
+        // 同一个 req 重开：静默收掉旧的，不向 JS 补发 close（否则会被当成一次掉线）。
+        if let old = grokSessions.removeValue(forKey: req) { old.abandon() }
+        let locale = (body["locale"] as? String) ?? ""
+        let session = MTGrokSttSession(req: req, locale: locale, bridge: self)
+        grokSessions[req] = session
+        session.start(url: url, key: key)
+    }
+
+    /// PCM 是 JS 按 3200 字节整帧切好的 base64；原生只解码、发 binary，不再做帧逻辑。
+    private func grokSttPcm(_ body: [String: Any]) {
+        guard let req = body["req"] as? String,
+              let b64 = body["pcm"] as? String,
+              let data = Data(base64Encoded: b64), !data.isEmpty else { return }
+        grokSessions[req]?.sendPcm(data)
+    }
+
+    private func grokSttCut(_ body: [String: Any]) {
+        guard let req = body["req"] as? String else { return }
+        grokSessions[req]?.cut()
+    }
+
+    private func grokSttClose(_ body: [String: Any]) {
+        guard let req = body["req"] as? String else { return }
+        grokSessions[req]?.closeByClient()
+    }
+
+    /// 会话收尾后从表里摘掉。按对象身份判断，避免同一 req 已被新会话占用时误删新的。
+    fileprivate func grokSessionFinished(_ session: MTGrokSttSession) {
+        if grokSessions[session.req] === session { grokSessions.removeValue(forKey: session.req) }
+    }
+
+    /// 原生 → JS 的统一事件出口：只带 req / kind / 协议字段，永不带 key。
+    fileprivate func grokEmit(req: String, payload: [String: Any], locale: String) {
+        var msg = payload
+        msg["type"] = "grok-stt-event"
+        msg["req"] = req
+        if !locale.isEmpty { msg["locale"] = locale }
+        emit(msg)
+    }
+
     // MARK: - 原生 → JS
 
     fileprivate func emit(_ payload: [String: Any]) {
@@ -393,6 +454,190 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
                 "window.NativeSpeech && window.NativeSpeech._fromNative(\(json))",
                 completionHandler: nil)
         }
+    }
+}
+
+// MARK: - Grok STT 原生鉴权会话（步 2b）
+
+/// 一路 Grok STT 的 URLSessionWebSocketTask。
+/// 为什么在原生：WKWebView 的 WebSocket 不能自定义请求头，带不上 `Authorization: Bearer`。
+/// 业务常量（URL / model / sample_rate / language）由 JS 拼好；这里不复制、不猜。
+/// key 的卫生：只存在 `apiKey` 字段里，`finish` / `abandon` 立刻置 nil；不 os_log、不 print、
+/// 不放进任何 emit 的 payload 或 reason（失败原因只有协议 id）。
+private final class MTGrokSttSession {
+    let req: String
+    let locale: String
+    private weak var bridge: MTSpeechBridge?
+    private var task: URLSessionWebSocketTask?
+    private var apiKey: String?
+    private var closed = false
+    private var ready = false
+    private var emittedFinals = Set<String>()
+
+    init(req: String, locale: String, bridge: MTSpeechBridge) {
+        self.req = req
+        self.locale = locale
+        self.bridge = bridge
+    }
+
+    func start(url: URL, key: String) {
+        apiKey = key
+        var request = URLRequest(url: url)
+        request.setValue("Bearer " + key, forHTTPHeaderField: "Authorization")
+        let t = URLSession.shared.webSocketTask(with: request)
+        task = t
+        t.resume()
+        receive()
+    }
+
+    func sendPcm(_ data: Data) {
+        guard !closed, let t = task else { return }
+        t.send(.data(data)) { [weak self] error in
+            guard error != nil else { return }
+            DispatchQueue.main.async { self?.fail("ws") }
+        }
+    }
+
+    func cut() {
+        sendJSON(["type": "finalize"])
+    }
+
+    func closeByClient() {
+        guard !closed else { return }
+        let t = task
+        sendJSON(["type": "audio.done"])
+        // 先回 close（JS 的句柄立刻失效），再给 audio.done 一点排空时间，之后收掉底层连接。
+        finish(reason: "client", cancel: false)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            t?.cancel(with: .normalClosure, reason: nil)
+        }
+    }
+
+    /// 静默丢弃（同一 req 重开时用）：不回 close，不惊动 JS。
+    func abandon() {
+        guard !closed else { return }
+        closed = true
+        apiKey = nil
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
+    }
+
+    private func sendJSON(_ obj: [String: Any]) {
+        guard !closed, let t = task,
+              let data = try? JSONSerialization.data(withJSONObject: obj),
+              let text = String(data: data, encoding: .utf8) else { return }
+        t.send(.string(text)) { [weak self] error in
+            guard error != nil else { return }
+            DispatchQueue.main.async { self?.fail("ws") }
+        }
+    }
+
+    private func finish(reason: String, cancel: Bool) {
+        guard !closed else { return }
+        closed = true
+        apiKey = nil
+        let t = task
+        task = nil
+        if cancel, let t = t { t.cancel(with: .normalClosure, reason: nil) }
+        bridge?.grokEmit(req: req, payload: ["kind": "close", "reason": reason], locale: locale)
+        bridge?.grokSessionFinished(self)
+    }
+
+    private func fail(_ reason: String) {
+        guard !closed else { return }
+        bridge?.grokEmit(req: req, payload: ["kind": "error", "reason": reason], locale: locale)
+        finish(reason: "socket", cancel: true)
+    }
+
+    private func receive() {
+        guard !closed, let t = task else { return }
+        t.receive { [weak self] result in
+            guard let self = self else { return }
+            // 会话状态只在主线程上改（message handler 也在这里），避免 req 表与事件乱序。
+            DispatchQueue.main.async {
+                guard !self.closed else { return }
+                switch result {
+                case .failure:
+                    self.fail("ws")
+                case .success(let message):
+                    self.handle(message)
+                    self.receive()
+                @unknown default:
+                    break
+                }
+            }
+        }
+    }
+
+    private func handle(_ message: URLSessionWebSocketTask.Message) {
+        switch message {
+        case .string(let text):
+            handleText(text)
+        case .data(let data):
+            if let text = String(data: data, encoding: .utf8) { handleText(text) }
+        @unknown default:
+            break
+        }
+    }
+
+    private func emit(_ kind: String, _ extra: [String: Any] = [:]) {
+        var payload = extra
+        payload["kind"] = kind
+        bridge?.grokEmit(req: req, payload: payload, locale: locale)
+    }
+
+    /// 服务端 JSON 按与 JS 步 1 相同的口径映射成 ready / partial / final / error / close。
+    private func handleText(_ text: String) {
+        guard let data = text.data(using: .utf8),
+              let raw = try? JSONSerialization.jsonObject(with: data),
+              let msg = raw as? [String: Any] else { return }
+        let type = (msg["type"] as? String) ?? ""
+        switch type {
+        case "transcript.created":
+            if ready { return }
+            ready = true
+            emit("ready")
+        case "transcript.partial":
+            let body = (msg["text"] as? String) ?? ""
+            var payload: [String: Any] = ["text": body, "speech_final": false]
+            if let conf = number(msg["conf"]) ?? number(msg["confidence"]) { payload["conf"] = conf }
+            addTiming(&payload, msg)
+            if (msg["is_final"] as? Bool) == true {
+                if !body.isEmpty { emittedFinals.insert(body) }
+                payload["speech_final"] = (msg["speech_final"] as? Bool) ?? false
+                emit("final", payload)
+            } else {
+                emit("partial", payload)
+            }
+        case "transcript.done":
+            let body = (msg["text"] as? String) ?? ""
+            if !body.isEmpty && !emittedFinals.contains(body) {
+                emittedFinals.insert(body)
+                var payload: [String: Any] = ["text": body, "speech_final": true]
+                if let conf = number(msg["conf"]) ?? number(msg["confidence"]) { payload["conf"] = conf }
+                addTiming(&payload, msg)
+                emit("final", payload)
+            }
+            finish(reason: "done", cancel: true)
+        case "error":
+            // 服务端的 error 文本可能回显 key / 鉴权细节 —— 只报协议 id。
+            emit("error", ["reason": "server"])
+        default:
+            break
+        }
+    }
+
+    private func addTiming(_ payload: inout [String: Any], _ msg: [String: Any]) {
+        guard let start = number(msg["start"]) else { return }
+        payload["t0"] = start * 1000
+        if let duration = number(msg["duration"]) { payload["t1"] = (start + duration) * 1000 }
+    }
+
+    private func number(_ value: Any?) -> Double? {
+        if let n = value as? NSNumber { return n.doubleValue }
+        if let d = value as? Double { return d }
+        if let i = value as? Int { return Double(i) }
+        return nil
     }
 }
 

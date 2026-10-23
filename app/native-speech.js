@@ -9,8 +9,10 @@ var NativeSpeech = (() => {
   const CHANNEL = 'mtSpeech';
 
   const PROTOCOL = {
-    toNative: ['stt-probe', 'stt-assets', 'stt-release', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets', 'network'],
-    fromNative: ['stt-state', 'stt-quota', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state', 'network'],
+    toNative: ['stt-probe', 'stt-assets', 'stt-release', 'stt-start', 'stt-stop', 'tts-probe', 'tts-assets', 'tts-speak', 'tts-stop', 'lid-probe', 'lid-assets', 'vad-probe', 'vad-assets', 'network',
+      'grok-stt-open', 'grok-stt-pcm', 'grok-stt-cut', 'grok-stt-close'],
+    fromNative: ['stt-state', 'stt-quota', 'assets-progress', 'stt-partial', 'stt-final', 'tts-state', 'tts-start', 'tts-end', 'tts-failed', 'lid-state', 'lid-result', 'lid-live', 'lid-trace', 'lid-paused', 'vad-state', 'network',
+      'grok-stt-event'],
   };
 
   // 最近一次探测的结论（`probeResult()` 同步可读，给 liveCapable 这类纯判断用）。
@@ -70,6 +72,12 @@ var NativeSpeech = (() => {
   function _fromNative(msg) {
     if (!msg || typeof msg !== 'object') return;
     const t = msg.type;
+    // 步 2b：Grok STT 走同一条 mtSpeech 通道，事件按 req 交给会话收件人（GrokStt 自己分派）。
+    // 这里只做转发，不缓存、不记日志 —— 事件体里没有 key。
+    if (t === 'grok-stt-event') {
+      try { if (typeof GrokStt !== 'undefined' && GrokStt && typeof GrokStt._fromNative === 'function') GrokStt._fromNative(msg); } catch (_) {}
+      return;
+    }
     if (t === 'stt-quota') {
       sttQuota = { max: Number(msg.maxReserved) || 5, reserved: Array.isArray(msg.reserved) ? msg.reserved.map(String) : [] };
       const ws = quotaWaiters.splice(0);

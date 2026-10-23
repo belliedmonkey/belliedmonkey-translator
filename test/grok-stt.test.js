@@ -47,6 +47,22 @@ function load(FakeWS, sandbox) {
   return { GS: ctx.window.GrokStt, ctx, win };
 }
 
+// 步 2b：App 假桥。原生一半（native-speech.js）与 grok-stt.js 装进同一个 vm 上下文 ——
+// 这正是浏览器的真实关系：mtSpeech 的消息由 NativeSpeech._fromNative 转给 GrokStt。
+function loadWithBridge(sandbox) {
+  const posted = [];
+  const win = {
+    webkit: { messageHandlers: { mtSpeech: { postMessage(m) { posted.push(m); } } } },
+  };
+  const ctx = loadModule(['../app/native-speech.js', '../app/grok-stt.js'], Object.assign({
+    window: win,
+    console: { log() {}, warn() {}, error() {} },
+    WebSocket: class { constructor() { throw new Error('native bridge must not construct a WebSocket'); } },
+    process: { env: {} },          // 桥这一路也不需要宿主环境变量
+  }, sandbox || {}));
+  return { GS: ctx.GrokStt, NS: ctx.NativeSpeech, ctx, win, posted };
+}
+
 const tagOf = (v) => Object.prototype.toString.call(v);
 const sentJson = (ws) => ws.sent.filter((s) => typeof s === 'string').map((s) => JSON.parse(s));
 const lastSocket = (FakeWS) => FakeWS.instances[FakeWS.instances.length - 1];
@@ -337,6 +353,125 @@ describe('grok-stt: close / cut', () => {
     ws._msg({ type: 'transcript.created' });
     handle.cut();
     deepEq(sentJson(ws), [{ type: 'finalize' }]);
+  });
+});
+
+describe('grok-stt: native bridge (step 2b)', () => {
+  const URL_TH = 'wss://api.x.ai/v1/stt?model=grok-voice-transcribe-2.0&sample_rate=16000&encoding=pcm&interim_results=true&language=th';
+
+  test('★ App 有 mtSpeech ⇒ 只发原生 open（url/key/locale），绝不建 WebSocket', () => {
+    const { GS, posted } = loadWithBridge();
+    const events = [];
+    GS.open({ getApiKey: () => 'sk-native-SECRET', locale: 'th-TH', onEvent: (k, p) => events.push({ k, p }) });
+    eq(posted.length, 1, 'bridge path must post exactly one message up front');
+    const open = posted[0];
+    eq(open.type, 'grok-stt-open');
+    ok(open.req, 'every native session needs a req id');
+    eq(open.url, URL_TH);
+    eq(open.apiKey, 'sk-native-SECRET');
+    eq(open.locale, 'th-TH');
+    eq(events.length, 0, 'no event before the server says created');
+  });
+
+  test('★ 原生事件按 req 映射：created⇒ready、partial/final、error、close；PCM 走 base64 整帧', () => {
+    const { GS, NS, posted } = loadWithBridge();
+    const events = [];
+    const handle = GS.open({ getApiKey: () => 'sk-native-SECRET', locale: 'th-TH', onEvent: (k, p) => events.push({ k, p }) });
+    const req = posted[0].req;
+
+    // PCM 在 created 之前只缓冲，不到 3200 字节也不发。
+    handle.sendPcm(new Uint8Array(3199));
+    eq(posted.filter((m) => m.type === 'grok-stt-pcm').length, 0);
+    NS._fromNative({ type: 'grok-stt-event', req, kind: 'ready' });
+    deepEq(events.map((e) => e.k), ['ready']);
+    eq(posted.filter((m) => m.type === 'grok-stt-pcm').length, 0, 'still short of a whole frame');
+    handle.sendPcm(new Uint8Array(1).fill(0xCD));
+    let pcm = posted.filter((m) => m.type === 'grok-stt-pcm');
+    eq(pcm.length, 1, 'one whole frame goes out after ready');
+    eq(pcm[0].req, req);
+    let bytes = Buffer.from(pcm[0].pcm, 'base64');
+    eq(bytes.length, 3200);
+    eq(bytes[3199], 0xCD, 'the pre-ready bytes lead and the new byte closes the frame');
+
+    // 再一整帧：base64 解回来必须逐字节相同。
+    const frame = new Uint8Array(3200); frame.fill(0xAB);
+    handle.sendPcm(frame);
+    pcm = posted.filter((m) => m.type === 'grok-stt-pcm');
+    eq(pcm.length, 2);
+    bytes = Buffer.from(pcm[1].pcm, 'base64');
+    eq(bytes.length, 3200);
+    eq(bytes[0], 0xAB);
+    eq(bytes[3199], 0xAB);
+
+    // 不足一帧的尾巴与下一块拼成下一帧。
+    handle.sendPcm(new Uint8Array(100).fill(0x11));
+    eq(posted.filter((m) => m.type === 'grok-stt-pcm').length, 2);
+    handle.sendPcm(new Uint8Array(3100).fill(0x22));
+    pcm = posted.filter((m) => m.type === 'grok-stt-pcm');
+    eq(pcm.length, 3);
+    bytes = Buffer.from(pcm[2].pcm, 'base64');
+    eq(bytes.length, 3200);
+    eq(bytes[0], 0x11);
+    eq(bytes[99], 0x11);
+    eq(bytes[100], 0x22);
+
+    NS._fromNative({ type: 'grok-stt-event', req, kind: 'partial', text: 'สวัสดี', speech_final: false, locale: 'th-TH' });
+    NS._fromNative({ type: 'grok-stt-event', req, kind: 'final', text: 'สวัสดีครับ', speech_final: true, conf: 0.91, t0: 1250, t1: 1750 });
+    NS._fromNative({ type: 'grok-stt-event', req, kind: 'error', reason: 'server' });
+    deepEq(events.map((e) => e.k), ['ready', 'partial', 'final', 'error']);
+    eq(events[1].p.locale, 'th-TH');
+    eq(events[1].p.text, 'สวัสดี');
+    eq(events[1].p.speech_final, false);
+    eq(events[2].p.text, 'สวัสดีครับ');
+    eq(events[2].p.speech_final, true);
+    eq(events[2].p.conf, 0.91);
+    eq(events[2].p.t0, 1250);
+    eq(events[2].p.t1, 1750);
+    eq(events[3].p.reason, 'server');
+
+    handle.cut();
+    deepEq(posted.filter((m) => m.type === 'grok-stt-cut').map((m) => m.req), [req]);
+    handle.close();
+    deepEq(posted.filter((m) => m.type === 'grok-stt-close').map((m) => m.req), [req]);
+    eq(events[events.length - 1].k, 'close');
+    eq(events[events.length - 1].p.reason, 'client');
+
+    // key 只在 open 消息里出现一次；PCM / cut / close / 所有事件回执里都没有。
+    const tail = JSON.stringify(posted.slice(1));
+    eq(tail.indexOf('sk-native-SECRET'), -1, 'key leaked into a native bridge message');
+    eq(JSON.stringify(events).indexOf('sk-native-SECRET'), -1, 'key leaked into an event payload');
+  });
+
+  test('★ 多会话按 req 区分；close 后该 req 不再收事件', () => {
+    const { GS, NS, posted } = loadWithBridge();
+    const a = [], b = [];
+    const ha = GS.open({ apiKey: 'ka', onEvent: (k, p) => a.push({ k, p }) });
+    const hb = GS.open({ apiKey: 'kb', onEvent: (k, p) => b.push({ k, p }) });
+    eq(posted.length, 2);
+    const reqA = posted[0].req, reqB = posted[1].req;
+    ok(reqA && reqB && reqA !== reqB, 'two sessions must get distinct req ids');
+    NS._fromNative({ type: 'grok-stt-event', req: reqA, kind: 'partial', text: 'one' });
+    NS._fromNative({ type: 'grok-stt-event', req: reqB, kind: 'partial', text: 'two' });
+    eq(a.length, 1); eq(a[0].p.text, 'one');
+    eq(b.length, 1); eq(b[0].p.text, 'two');
+    hb.close();
+    eq(b.length, 2); eq(b[1].k, 'close');
+    NS._fromNative({ type: 'grok-stt-event', req: reqB, kind: 'final', text: 'late' });
+    eq(b.length, 2, 'a closed session must ignore later native events');
+    NS._fromNative({ type: 'grok-stt-event', req: reqA, kind: 'close', reason: 'done' });
+    eq(a[a.length - 1].k, 'close');
+    eq(a[a.length - 1].p.reason, 'done');
+    ha.close();
+  });
+
+  test('★ 无 mtSpeech ⇒ 步 1 的 WebSocket 路径逐字不变（Authorization 头仍在）', () => {
+    const FakeWS = makeFakeWS();
+    const { GS, win } = load(FakeWS);
+    GS.open({ apiKey: 'sk-ws', WebSocket: FakeWS, onEvent() {} });
+    eq(win.webkit, undefined);
+    eq(FakeWS.instances.length, 1, 'no bridge ⇒ the old WebSocket constructor still runs');
+    eq(lastSocket(FakeWS).headers.Authorization, 'Bearer sk-ws');
+    eq(lastSocket(FakeWS).url, URL_TH);
   });
 });
 

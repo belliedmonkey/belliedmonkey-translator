@@ -1693,6 +1693,13 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       // 识别语言名额（第 5 轮 A / 改稿 H，2026-10-12）：stt-release 让出、stt-quota 回名额快照，
       // maxReserved/reserved 是 `AssetInventory.maximumReservedLocales` / `.reservedLocales` 的字段名。
       '"stt-release"', '"stt-quota"', '"maxReserved"', '"reserved"',
+      // 步 2b：Grok STT 原生鉴权 WebSocket。四条 JS→原生、一条原生→JS，外加带进来的
+      // 请求/事件字段名与服务端 transcript 事件名 —— 全是协议 id，界面文案在 JS。
+      '"grok-stt-open"', '"grok-stt-pcm"', '"grok-stt-cut"', '"grok-stt-close"', '"grok-stt-event"',
+      '"pcm"', '"apiKey"', '"Authorization"', '"Bearer "',
+      '"transcript.created"', '"transcript.partial"', '"transcript.done"', '"finalize"', '"audio.done"',
+      '"speech_final"', '"is_final"', '"confidence"', '"start"', '"duration"',
+      '"ws"', '"wss"', '"server"', '"client"', '"done"', '"error"', '"close"', '"socket"',
       // 语音活动检测（VAD，2026-10-07）：协议 id 与目录名（都非文案）。
       '"vad-probe"', '"vad-assets"', '"vad-state"', '"vad"', '"mt-vad"',
       // 蜂窝确认（改稿 F，2026-10-11）：NWPathMonitor 只报接口种类，不报地址。
