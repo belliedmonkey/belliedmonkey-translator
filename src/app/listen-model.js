@@ -3059,6 +3059,27 @@ const listenModel = (() => {
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
     lat: C.latencySummary(session ? session.rows : []) }),
+    // DEBUG-only：直接灌定稿 timeline 行（绕过系统 STT / intakeFinal / LID）。
+    // Duo sim SpeechTranscriber.isAvailable=false 时 AC-D1/H3 用；正式产品路径不调用。
+    // 仅在 session 存在且非 ended 时写入；不 createSession、不改 phase。
+    _testInjectFinal(text, opts) {
+      if (!session || phase === 'ended') {
+        return { ok: false, reason: 'no-session', phase, id: session && session.id || null };
+      }
+      const o = opts || {};
+      const who = (o.who === 'them' || o.who === 'me') ? o.who : 'me';
+      const row = C.addFinal(session, String(text || ''), now(), cfg, { who, pinned: !!o.pinned });
+      if (!row) return { ok: false, reason: 'empty', id: session.id, phase };
+      if (o.tr != null) row.tr = String(o.tr);
+      row.raw = row.text;
+      row.lat = { final: now(), engine: 'test-inject' };
+      try { canvas.view('history'); canvas.view('now'); } catch (_) {}
+      return {
+        ok: true, id: session.id, phase, rid: row.rid, seq: session.seq,
+        rowN: session.rows.length,
+        ids: session.rows.map((r) => r.rid),
+      };
+    },
   };
 })();
 

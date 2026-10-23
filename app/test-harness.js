@@ -78,6 +78,18 @@
       return true;
     },
 
+    // DEBUG：直接灌定稿 timeline（绕过 STT）。优先走 AppListen._testInjectFinal。
+    // Duo sim 无 SpeechTranscriber 时 AC-D1/H3 用；正式包不带本文件。
+    injectFinal(text, opts) {
+      try {
+        const A = (typeof window !== 'undefined' && window.AppListen) || null;
+        if (A && typeof A._testInjectFinal === 'function') {
+          return A._testInjectFinal(String(text || ''), opts || {});
+        }
+      } catch (_) {}
+      return { ok: false, reason: 'no-inject' };
+    },
+
     // 「麦克风正在听到半句」。conf 用来验半句层的跨语言仲裁（真机 partial 也带 conf）。
     partial(text, locale, conf) {
       const n = ns();
