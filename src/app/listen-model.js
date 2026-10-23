@@ -64,6 +64,21 @@ const listenModel = (() => {
 
   // ── 会话状态 ──────────────────────────────────────────────────────────────
   // phase: 'idle' | 'preparing' | 'listening' | 'paused' | 'halted' | 'ended'
+  // Duo P0 INV-1 / INV-6（SPEC-DUO-P0 T8）：任意时刻最多一个 ListenSession。
+  // 尺寸/姿态变化（LayoutContextChanged、resize、visualViewport、size class）
+  // **不得** createSession / leave()+open()；半句 livePartial 可重排，定稿 timeline 不丢。
+  // 会话只由用户开始/结束（start/end/leave）推进 —— 布局桥不碰 phase。
+  // Duo P0 T8：壳层 LayoutContextChanged 只重排，不得进 leave/open/start。
+  // 这里挂一个只读探针：若未来误把布局事件接到会话 API，测试/自测能立刻发现。
+  try {
+    if (typeof window !== 'undefined' && !window.__mtDuoLayoutSessionGuard) {
+      window.__mtDuoLayoutSessionGuard = true;
+      window.addEventListener('LayoutContextChanged', () => {
+        /* 有意空：布局事件不得改 phase/session。AC-D1 / INV-1。 */
+      });
+    }
+  } catch (_) {}
+
   // （2026-09-08 去掉了 'speaking'：不再有「按住我说」，双方自由说话、归属按语言判）
   // 放大展示（给对方看）不是 phase：它是历史行上的一个叠层，底下照常在听（showRid）。
   let phase = 'idle';
@@ -2241,6 +2256,7 @@ const listenModel = (() => {
   }
   // 返回 = 结束会话（语料已逐句写了，不丢）；还在听时先确认一下（用户 09-07 裁定 B）。
   // 页内确认（LearnDialog）：App 的 WKWebView 没有原生确认框，window.confirm 恒为 false。
+  // 离开页 = 用户主动结束会话。布局/尺寸变化路径禁止调用 leave（INV-1）。
   async function leave() {
     if (session && phase !== 'ended' && phase !== 'idle') {
       const ask = session.mode === 'subtitle' ? t('subtitle_leave_confirm', '还在听。离开会结束这次字幕，已出的句子保留。') : t('listen_leave_confirm', '还在听。离开会结束这次对话，已听的句子保留。');
@@ -2260,6 +2276,7 @@ const listenModel = (() => {
   }
   // m === 'subtitle' 打开实时字幕（§9.8）：先停在准备态，点「开始」才开始（画布 M3 / I2）；
   // 其余（含点击事件对象）一律是对话，照旧一进来就开始听。
+  // 打开听译页。若已有 session（例如从设置返回），不新建 —— 尺寸变化更不得走 open（INV-1）。
   function open(m) {
     mode = m === 'subtitle' ? 'subtitle' : 'conv';
     // asr_entry（telemetry-design §3，surface 'app_home' 是 2026-09-16 加的枚举）：

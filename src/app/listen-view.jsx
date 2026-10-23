@@ -51,7 +51,9 @@ function pipSendRect() {
   const el = $('app-subs-pip');
   if (!el) return;
   const r = el.getBoundingClientRect();
-  const on = !el.hidden && r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
+  // Duo P0 B11：可见性跟 visualViewport / LayoutContext 几何，不跟 orientation。
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const on = !el.hidden && r.width > 0 && r.bottom > 0 && r.top < vh;
   listenModel.pipRectUpdate(on
     ? { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }
     : null);
@@ -65,10 +67,23 @@ listenModel.canvas.pipRectOn = () => {
   if (ro) ro.observe(el);
   window.addEventListener('scroll', later, true);
   window.addEventListener('resize', later);
+  // Duo P0 B11 / T7：折合与动态工具栏时 resize 可能不够；补 visualViewport + LayoutContextChanged。
+  // 仍禁 orientation / idiom（AC-D5）。
+  const vv = window.visualViewport;
+  if (vv) {
+    vv.addEventListener('resize', later);
+    vv.addEventListener('scroll', later);
+  }
+  window.addEventListener('LayoutContextChanged', later);
   pipTeardown = () => {
     if (ro) ro.disconnect();
     window.removeEventListener('scroll', later, true);
     window.removeEventListener('resize', later);
+    if (vv) {
+      vv.removeEventListener('resize', later);
+      vv.removeEventListener('scroll', later);
+    }
+    window.removeEventListener('LayoutContextChanged', later);
     clearTimeout(timer);
   };
   pipSendRect();                                  // 首发一次（lastRect 已由模型先清）
