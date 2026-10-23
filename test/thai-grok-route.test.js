@@ -69,6 +69,8 @@ function makeSandbox(opts) {
   const GrokStt = {
     open: (x) => {
       grokCalls.push(x);
+      // 步 2b 热修用例：模拟 App 内没有 key —— open 返回后异步报 no-key（不抛、不真连）。
+      if (o.grokNoKey) clk.setT(() => { try { if (typeof x.onEvent === 'function') x.onEvent('error', { reason: 'no-key' }); } catch (_) {} }, 0);
       return {
         sendPcm() {},
         cut() {},
@@ -175,11 +177,32 @@ test('★ 步 2 路由②：开关开 + otherLang=th ⇒ GrokStt.open（locale �
     eq(base(grokCalls[0] && grokCalls[0].locale), 'th', 'GrokStt.open 的 locale 基码不是 th：' + JSON.stringify(grokCalls[0] && grokCalls[0].locale));
     eq(typeof (grokCalls[0] && grokCalls[0].getApiKey), 'function', 'GrokStt.open 必须拿到 getApiKey（无 key 时由 GrokStt 异步报 no-key）');
     ok(sttCalls.length > 0, '本场还有 zh，NativeSpeech.sttOpen 应仍开一路（只含 zh）');
-    eq(grokCalls[0].onEvent, sttCalls[0].onEvent, '原生路与 Grok 路必须共用同一个 onEvent（事件路由不分叉）');
+    eq(typeof grokCalls[0].onEvent, 'function', 'Grok 路必须有事件回调');
+    ok(grokCalls[0].onEvent !== sttCalls[0].onEvent, 'Grok 路要单独包一层 source 标记（步 2b 热修），不能与原生直接共用同一个函数');
     const locs = sttLocales(sttCalls);
     ok(!locs.some((l) => base(l) === 'th'), 'th 与原生互斥失败：stt-start 里仍有 th：' + JSON.stringify(locs));
     ok(locs.length > 0 && locs.every((l) => base(l) === 'zh'), '原生只应保留非 th 的语言（本例 zh）：' + JSON.stringify(locs));
   } finally { try { await A.leave(); } catch (_) {} }
+});
+
+test('★ 步 2b 热修：开关开 + zh+th + 无 key ⇒ Grok 报 no-key 后 phase 不 halt，原生路仍 listening', async () => {
+  const { A, captured, clk, sttCalls, grokCalls } = await openSession({
+    thaiGrokStt: true, otherLang: 'th', myLang: 'zh', noPtt: true, grokNoKey: true,
+  });
+  try {
+    eq(grokCalls.length, 1, '本场有 th 且开关开，应开一路 Grok');
+    ok(sttCalls.length > 0, '本场还有 zh，原生路应照旧开着');
+    const locs = sttLocales(sttCalls);
+    ok(locs.length > 0 && locs.every((l) => base(l) === 'zh'), '原生路只该保留非 th 语言：' + JSON.stringify(locs));
+    // 假 GrokStt 在 open 后异步发 no-key；openSession 已用假时钟跑到那一拍。
+    const d = A._debug();
+    eq(d.phase, 'listening', 'th 路 no-key 把整场拖进了 ' + d.phase + '，原生 zh 路被误杀');
+    // 原生路仍可用：再喂一条 zh partial，phase 不应变化（没有 socketLost）。
+    if (captured.h && captured.h.onState) captured.h.onState('granted', '');
+    captured.onEvent('partial', { locale: 'zh-CN', text: '你好' });
+    await clk.runTo(0);
+    eq(A._debug().phase, 'listening', 'no-key 之后原生路事件不再被接收（整场已 halt）');
+  } finally { try { await A.leave(); } catch (_) {} await clk.runTo(0); }
 });
 
 test('★ 步 2 路由③：开关开 + otherLang=en（无 th）⇒ GrokStt.open 未调用；原生仍开 en', async () => {
