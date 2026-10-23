@@ -3059,6 +3059,25 @@ const listenModel = (() => {
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
     lat: C.latencySummary(session ? session.rows : []) }),
+    // DEBUG-only：强制 phase=listening（绕过麦授权/STT ready）。AC-D3 PiP✕/暂停语义用。
+    // 无 session 时先建一场 subtitle/conv 会话；不 openSocket、不抢真麦。
+    _testForceListening() {
+      if (!session || phase === 'ended') {
+        try {
+          cfg = cfg || null;
+        } catch (_) {}
+        if (!cfg) {
+          // 最小 cfg，避免 addFinal/UI 空引用
+          cfg = { myLang: 'zh', otherLang: 'en', tr: { provider: '', apiKey: '' }, fontScale: 1 };
+        }
+        session = C.newSession(now(), Math.random(), mode || 'subtitle');
+        session.ephemeral = true;
+      }
+      phase = 'listening';
+      pauseReason = '';
+      try { canvas.view('state'); } catch (_) {}
+      return { ok: true, phase, id: session.id, mode };
+    },
     // DEBUG-only：直接灌定稿 timeline 行（绕过系统 STT / intakeFinal / LID）。
     // Duo sim SpeechTranscriber.isAvailable=false 时 AC-D1/H3 用；正式产品路径不调用。
     // 仅在 session 存在且非 ended 时写入；不 createSession、不改 phase。

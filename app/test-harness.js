@@ -80,6 +80,15 @@
 
     // DEBUG：直接灌定稿 timeline（绕过 STT）。优先走 AppListen._testInjectFinal。
     // Duo sim 无 SpeechTranscriber 时 AC-D1/H3 用；正式包不带本文件。
+    // DEBUG：强制进入 listening（不经麦/STT）。AC-D3 暂停/PiP✕ 语义用；正式包不带本文件。
+    forceListening() {
+      try {
+        const A = (typeof window !== 'undefined' && window.AppListen) || null;
+        if (A && typeof A._testForceListening === 'function') return A._testForceListening();
+      } catch (_) {}
+      return { ok: false, reason: 'no-hook' };
+    },
+
     injectFinal(text, opts) {
       try {
         const A = (typeof window !== 'undefined' && window.AppListen) || null;
@@ -273,6 +282,92 @@
         },
         nowLabel: txt('app-listen-now-label'),
       };
+    },
+
+
+    // DEBUG：写入 LearnAuth 会话（chrome.storage → localStorage shim），供 Duo sim 进首页/字幕门控。
+    // 仅 testHarness 包；正式包不带本文件。不把 token 打到 console。
+    // sess: { accessToken, refreshToken?, expiresAt, email, userId, phone?, backend }
+    async injectSession(sess) {
+      const s = sess || {};
+      if (!s.accessToken || !s.userId) return { ok: false, reason: 'bad-session' };
+      const payload = {
+        accessToken: String(s.accessToken),
+        refreshToken: s.refreshToken != null ? String(s.refreshToken) : null,
+        expiresAt: Number(s.expiresAt) || (Date.now() + 3600 * 1000),
+        email: s.email || null,
+        phone: s.phone || null,
+        userId: String(s.userId),
+        backend: s.backend || (typeof MT_BACKEND !== 'undefined' && MT_BACKEND && MT_BACKEND.url) || '',
+      };
+      await new Promise((res) => {
+        try {
+          chrome.storage.local.set({
+            learnAuth: payload,
+            learnUserId: payload.userId,
+            onboardSeen: 1,
+            listenPacksDone: 1,
+          }, () => res());
+        } catch (_) { res(); }
+      });
+      try { if (typeof LearnAuth !== 'undefined' && LearnAuth._reset) LearnAuth._reset(); } catch (_) {}
+      let cur = null;
+      try { cur = typeof LearnAuth !== 'undefined' ? await LearnAuth.current() : null; } catch (_) {}
+      return {
+        ok: !!(cur && cur.userId === payload.userId),
+        email: cur && cur.email || null,
+        userId: cur && cur.userId || null,
+        // 调用方应 location.reload() 让 shell show() 走登录态首屏
+      };
+    },
+
+    // DEBUG：把本机 STT 探针伪装为可用，便于进字幕/听译 UI（sim 无 SpeechTranscriber）。
+    // 不代替真 STT；定稿仍用 injectFinal。正式包不带本文件。
+    mockLiveOk(on) {
+      const n = ns();
+      if (!n) return false;
+      if (!on) {
+        if (n.__mtProbeOrig) {
+          n.probeResult = n.__mtProbeOrig.probeResult;
+          n.probe = n.__mtProbeOrig.probe;
+          n.sttOpen = n.__mtProbeOrig.sttOpen;
+          delete n.__mtProbeOrig;
+        }
+        return false;
+      }
+      if (!n.__mtProbeOrig) {
+        n.__mtProbeOrig = { probeResult: n.probeResult, probe: n.probe, sttOpen: n.sttOpen };
+      }
+      const ok = { ok: true, reason: '', assets: 'installed', locales: ['zh-CN', 'en-US'] };
+      n.probeResult = () => ok;
+      n.probe = async () => ok;
+      n.sttOpen = (o) => {
+        const onEvent = (o && o.onEvent) || (() => {});
+        setTimeout(() => { try { onEvent('ready', {}); } catch (_) {} }, 0);
+        return {
+          sendPcm() {},
+          cut() {},
+          close() { try { onEvent('close', { reason: '' }); } catch (_) {} },
+        };
+      };
+      return true;
+    },
+
+    // DEBUG：模拟 iPhone 字幕 PiP 小窗 ✕（subtitle-window closed 且无 reason）→ 应 pause('user')。
+    simPipClose() {
+      try {
+        const A = (typeof NativeAudio !== 'undefined' && NativeAudio) || null;
+        if (A && typeof A._fromNative === 'function') {
+          A._fromNative({ type: 'subtitle-window', state: 'closed', reason: '' });
+          return true;
+        }
+      } catch (_) {}
+      // 回落：直接调公开 pause（仍可证暂停语义；证据里标注回落）
+      try {
+        const L = (typeof window !== 'undefined' && window.AppListen) || null;
+        if (L && typeof L.pause === 'function') { L.pause('user'); return 'fallback-pause'; }
+      } catch (_) {}
+      return false;
     },
 
     // 等条件成立。返回 true/false，不 throw —— 驱动侧负责把 false 变成失败报告。
