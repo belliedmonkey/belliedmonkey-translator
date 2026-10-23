@@ -155,6 +155,7 @@ const listenModel = (() => {
   let audioCtx = null, stream = null, proc = null, srcNode = null;
 
   // ── 原来从 DOM 读的四处，提取为模型状态（PR6c）────────────────────────────
+  let noteGo = '';                        // 提示可点时去设置页的哪一处（额度 / key 停机）
   let noteMsg = '', noteErr = true;       // app-listen-note（onMicState 'sound' 与 paintClock 撤销分支要比较它的现值）；初始 err 类对齐原 DOM 的静态 className="note err"
   let speakingShow = false;               // app-listen-flip-speaking（speakOut 异步前点亮、异步后熄灭）
   let ephemeralChecked = false;           // app-listen-ephemeral（start() 在开始那一刻钉住它）
@@ -391,6 +392,15 @@ const listenModel = (() => {
       }
     } catch (_) {}
   }
+  // 额度用完 / 池子空了 / key 被拒（#590 K）：与网页引擎同一个判据（e.grant || e.halt）——
+  // 重试必然再失败、每一次都花一个来回，所以整场停下，不再一句一句地「译文失败」。
+  function quotaHalt(e) {
+    if (!e || !(e.grant || e.halt)) return false;
+    if (phase === 'halted' && pauseReason === 'grant') return true;
+    halt('grant', typeof e.code === 'string' ? e.code : 'auth');
+    return true;
+  }
+  function grantHalted() { return phase === 'halted' && pauseReason === 'grant'; }
   function tmFail(e) {
     if (!session || !e) return;
     const code = typeof e.code === 'string' ? e.code : 'network';
@@ -419,6 +429,7 @@ const listenModel = (() => {
 
   // 一行的译文：失败要留下「译文失败 · 重试」，不是永远的 ⏳（silent-failures-need-visible-exit）
   async function translateRow(row, toLang, quiet) {
+    if (grantHalted()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
     const t0 = now();
@@ -428,6 +439,7 @@ const listenModel = (() => {
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     if (row.tr) tmOk(); else tmFail(eo.err);
+    if (!row.tr && quotaHalt(eo.err)) { canvas.view('history'); return; }
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -441,6 +453,7 @@ const listenModel = (() => {
     return n || langLabel(c) || c;
   }
   async function passRow(row, quiet) {
+    if (grantHalted()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
@@ -462,6 +475,7 @@ const listenModel = (() => {
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
     if (row.tr) tmOk(); else tmFail(passErr);
+    if (!row.tr && quotaHalt(passErr)) { canvas.view('history'); return; }
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -521,7 +535,13 @@ const listenModel = (() => {
     const row = C.addFinal(session, text, now(), cfg, Object.assign({}, routeDeps, { who, pinned }));
     if (!row) return;
     row.lat = { final: now(), engine: 'device', seg: 'fallback' };
+    row.srcLocale = (meta && meta.locale) || '';
     row.raw = row.text;   // 原句上屏，修正稿回来换正体 —— 与旧路 onFinal 的本机分支同形
+    if (grantHalted()) {
+      row.tr = ''; row.trErr = true; row.trBusy = false; row.trTemp = false;
+      canvas.view('history');
+      return;
+    }
     canvas.view('history'); canvas.view('now');
     subShow(row.text, '', true);
     passRow(row);
@@ -561,8 +581,17 @@ const listenModel = (() => {
       onDegrade: (why) => {
         segDegrade = true;
         // 只记诊断计数（零内容）。**不弹任何文案**（规则 6）：这条提示没有 Pencil 稿，
-        // 用户可见的行为变化不允许无稿上线。
+        // 用户可见的行为变化不允许无稿上线。额度 / key 不走这里，走 onQuota。
         try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: String(why || ''), calls: r.state().calls, json_bad: 1 }); } catch (_) {}
+      },
+      // 额度用完 / key 被拒：原文已由路由器交出。整场停，不再交旧路（#590 K）。
+      // 文案是已有的 haltMessage，不是新的一句。
+      onQuota: (err) => {
+        segDegrade = true;
+        const e = err && (err.grant || err.halt) ? err : { grant: true, code: 'credit_exhausted', status: 402 };
+        tmFail(e);
+        quotaHalt(e);
+        try { if (typeof DiagLog !== 'undefined' && DiagLog.push) DiagLog.push('seg', { reason: 'quota', calls: r.state().calls, json_bad: 0 }); } catch (_) {}
       },
       // 方案要求：清理（dispose）只能在 settle 之后；账本不为空 ⇒ 漏了一个出口 —— 记诊断。
       onFail: (reason, extra) => diagBump('fail', reason, extra),
@@ -2166,7 +2195,9 @@ const listenModel = (() => {
     if (why1 === 'locales') {
       try { setQuotaFull(quotaNeedCode || (cfg && cfg.otherLang) || (cfg && cfg.myLang)); } catch (_) {}
     }
-    const msg = reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
+    const grantCode = reason === 'grant' ? (why1 || 'auth') : '';
+    const msg = reason === 'grant' ? (typeof TranslationCore !== 'undefined' ? TranslationCore.haltMessage(grantCode) : '')
+      : reason === 'headphones' ? t('subtitle_bar_headphones', '听不到视频声音 · 摘下耳机用外放')
       : reason === 'denied' ? (session && session.mode === 'subtitle' && C.captureSource(bridged() ? NativeAudio.audioCaps() : null) === 'system'
         ? t('subtitle_bar_denied', '听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」')
         : t('listen_stop_denied', '麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。'))
@@ -2193,8 +2224,8 @@ const listenModel = (() => {
       // 把它挡在前面，真到这里也是「需要 iOS 26 / macOS 26」这句真的。
       : (reason === 'device' || reason === 'os') ? needText(why1 === 'locale' ? 'locale' : 'os')
       : t('listen_stop_failed', '麦克风启动失败：{why} — 再点一次「开始听」。').replace('{why}', why1);
-    note(msg, true);
-    subState(reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
+    note(msg, true, grantCode ? (grantCode === 'auth' ? 'sec-engines' : 'grant-card') : '');
+    subState(reason === 'grant' ? 'grant' : reason === 'socket-retry' ? 'reconnecting' : reason === 'socket' ? 'socket' : reason === 'denied' ? 'denied' : 'paused');
     canvas.view('state');
   }
   async function resume() {
@@ -2622,11 +2653,13 @@ const listenModel = (() => {
   }
 
   // ── 界面（涂写点全部换成 canvas.view；数据在下方 *View() getter 里）─────────
-  function note(msg, isErr) {
+  function note(msg, isErr, go) {
     noteMsg = msg || '';
     noteErr = !!isErr;
+    noteGo = go || '';
     canvas.view('note');
   }
+  function noteTap() { if (noteGo && openSettingsAt) { try { openSettingsAt(noteGo); } catch (_) {} } }
   function paintClock() {
     if (!session) return;
     // 早说一句（#424）：字幕档听了 DEAF_HINT_MS 还**一个非零样本都没收到** ⇒ 采集链路多半
@@ -2772,7 +2805,7 @@ const listenModel = (() => {
 
   /// 行上的「换引擎」由 shell 注入（它才拥有 openSettings）—— 与 §10 里「模型画控件、shell 管跳转」
   /// 同一条分工。听译页原来的出路只是一句「去设置里选」，用户 2026-10-04 裁定要**就地**给入口。
-  let openEnginePicker = null;
+  let openEnginePicker = null, openSettingsAt = null;
   function setOpenEnginePicker(fn) { openEnginePicker = fn; }
   function changeEngine() { try { if (openEnginePicker) openEnginePicker(); } catch (_) {} }
   /// 这一页此刻有没有被引擎挡住的语言（有才显示「换引擎」）。
@@ -2970,6 +3003,7 @@ const listenModel = (() => {
     // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
     if (opts && typeof opts.openSettings === 'function') {
       setOpenEnginePicker(() => opts.openSettings('stt-engine'));
+      openSettingsAt = (id) => opts.openSettings(id);
     }
     refreshEntry();
     // 名额本机记忆（装过 / 最后使用）先读一次，供满员让出的默认选择用。
@@ -2998,7 +3032,7 @@ const listenModel = (() => {
     wire, open, leave, start, pause, resume, end, refreshEntry,
     // 视图动作（原 addEventListener 的 handler 们）
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
-    copyAll, langChange, setAutoSpeak, setSubsCapture, setEphemeral,
+    copyAll, langChange, noteTap, setAutoSpeak, setSubsCapture, setEphemeral,
     retryPacks,
     // 名额已满（第 5 轮 A7/A8/A9 / 改稿 H）：卡片、底部确认框、让出并补回
     quotaView, quotaOpenSheet, quotaCloseSheet, quotaPick, quotaYieldAndRestore,
@@ -3037,7 +3071,7 @@ const listenModel = (() => {
     },
     // 受控表单现值（两个下拉 + 三个勾选框）：keepLangSel 回填与 setXxx 之后都要经 canvas bump
     formView: () => ({ my: mySelVal, other: otherSelVal, autoSpeak: autoSpeakVal, subsCapture: subsCaptureVal, ephemeral: ephemeralChecked }),
-    noteView: () => ({ text: noteMsg, err: noteErr }),
+    noteView: () => ({ text: noteMsg, err: noteErr, go: !!noteGo }),
     historyView, summaryView, showView, pipNoteText, pipFloatShown,
     entryView: (sfx) => ({ listen: entryState[sfx], subs: subsEntryState[sfx] }),
     langOptions, langLabel, copyText, isMacHost,

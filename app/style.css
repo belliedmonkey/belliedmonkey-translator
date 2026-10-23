@@ -60,6 +60,7 @@ body {
 h1 { font-size: 1.45rem; margin: 0 0 6px; }
 .lede { margin: 0 0 20px; color: var(--dim); }
 .note { margin: 14px 0 0; color: var(--dim); font-size: 0.85rem; overflow-wrap: anywhere; }
+#app-listen-note.go { cursor: pointer; text-decoration: underline; min-height: 44px; }
 /* The engine self-check results print a second line carrying the URL actually
    requested; `.note` collapses newlines, and an endpoint URL is long enough to push
    the column sideways unless it may break mid-token. */

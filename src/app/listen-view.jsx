@@ -378,7 +378,10 @@ export function ListenView() {
       </div>
       {/* 排队时说清还剩几句 —— 不说就成了「怎么读的不是刚才那句」 */}
       <p className="note" id="app-listen-queue" hidden={!hv.queueShown}>{hv.queueText}</p>
-      <p className={note.err ? 'note err' : 'note'} id="app-listen-note">{note.text}</p>
+      <p className={(note.err ? 'note err' : 'note') + (note.go ? ' go' : '')} id="app-listen-note"
+        role={note.go ? 'link' : undefined} tabIndex={note.go ? 0 : undefined}
+        onClick={note.go ? listenModel.noteTap : undefined}
+        onKeyDown={note.go ? (e) => { if (e.key === 'Enter' || e.key === ' ') listenModel.noteTap(); } : undefined}>{note.text}</p>
       {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
           那两个「点一下」键（＝开麦 / 关麦）。 */}
       <div id="app-listen-actions" className={mv.sub && subSessionOn ? 'subs-actions-row' : undefined} hidden={tv.ended || !mv.sub}>
