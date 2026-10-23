@@ -784,8 +784,15 @@ const listenModel = (() => {
     // 按住说 / 锁定期间**不跑语种判定**：这一句的语言由人指定（2026-10-08 终稿 3）。
     // `pttForce` 在松手后仍然生效，直到这一句的 final 到 —— 否则收口那一片会被下面这道闸丢掉。
     if (pttForce) return pttLangOf(pttForce.side) || '';
+    // 字幕钉死「视频的语言」：只开那一路识别器，归属就是它 —— 不必等 LID（假桥 e2e 也不发判词）。
+    // 「自动」仍走下面的 LID / subGuess 候选。
+    if (mode === 'subtitle' && cfg) {
+      const pinned = C.baseCode(cfg.myLang);
+      if (pinned && pinned !== 'auto') return pinned;
+    }
     if (!lidLang || !cfg) return '';
-    const a = C.baseCode(cfg.myLang), b = C.baseCode(cfg.otherLang);
+    const a = C.baseCode(cfg.myLang) === 'auto' ? (subGuess || 'en') : C.baseCode(cfg.myLang);
+    const b = C.baseCode(cfg.otherLang);
     if (lidLang !== a && lidLang !== b) return '';          // 第三门 = 还没判到
     return (Date.now() - lidLangAt) >= LID_CONFIRM_MS ? lidLang : '';
   }
