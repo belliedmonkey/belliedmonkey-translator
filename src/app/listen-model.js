@@ -196,20 +196,32 @@ const listenModel = (() => {
         // 实时字幕：「对方的语言」换成「视频的语言」（subtitleVideoLang，§9.8 协议补充决定 6）
         // **读的时候就要挡掉不支持的短码**（2026-10-07 真机：`nn` 被写进 listenOtherLang 之后，
         // 每次进场都拿它去探识别器 ⇒ 整场 halt。存量坏值在这一层自愈）。
-        const storedOther = sub ? B(s.subtitleVideoLang) : B(s.listenOtherLang);
-        const otherLang = langOk(storedOther) ? storedOther : 'en';
         // 「译成」（= 用户想读的语言，2026-10-07 真机反馈后定名）：**默认系统语言** ——
         // 之前跟着界面语言走，界面语言不是中文的人拿到的译文就不是「自己读得懂的那门」。
         // 只在读取时回落，不往存储播种默认值（播种了，用户以后改系统语言这一项就不会跟着动）。
         // 系统语言也要过 `langOk`：系统是 nn/cy 这类我们没有的语言时，落到英文而不是拿它去探识别器。
         const storedTarget = B(s.listenMyLang);
+        if (storedTarget === 'auto') { try { chrome.storage.local.remove('listenMyLang'); } catch (_) {} }
         const sysLang = B(navigator.language);
-        const myLang = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
+        const target = langOk(storedTarget) ? storedTarget : (langOk(sysLang) ? sysLang : 'en');
+        // 字幕内部沿用「myLang = 左格（视频的语言）/ otherLang = 右格（译成）」—— deviceLocales /
+        // targetLangFor / lidOn 都按这个读；**存储**按设计：视频的语言 = subtitleVideoLang（缺省「自动」），
+        // 译成 = listenMyLang（与对话共用「我的语言」）。#590：两格曾挂在相反的键上。
+        let myLang, otherLang;
+        if (sub) {
+          otherLang = target;
+          const v = B(s.subtitleVideoLang);
+          myLang = videoLangOf(v, target);
+        } else {
+          myLang = target;
+          const storedOther = B(s.listenOtherLang);
+          otherLang = langOk(storedOther) ? storedOther : 'en';
+        }
         resolve({
           tr,
-          // targetLang 从此是 myLang 的别名（原来直接读 uiLang）。留着这个名字是因为
+          // targetLang = 「译成」（对话里就是 myLang；原来直接读 uiLang）。留着这个名字是因为
           // draftFor 与端到端测试都在读它 —— 不在同一步里既改语义又改名字。
-          targetLang: myLang,
+          targetLang: target,
           myLang,
           autoSpeak: !sub && s.listenAutoSpeak !== false,
           fontScale: C.fontStep(s.subtitleFontScale, 0),
@@ -244,7 +256,7 @@ const listenModel = (() => {
     if (c && c.mode === 'subtitle') {
       const a = C.baseCode(c.myLang);
       if (a && a !== 'auto') return [C.toLocale(a)];
-      const guess = C.baseCode(c.subtitleVideoLang) || 'en';
+      const guess = subGuess || 'en';
       const tg = C.baseCode(c.otherLang);
       return guess === tg ? [C.toLocale(guess)] : [C.toLocale(guess), C.toLocale(tg)];
     }
@@ -452,16 +464,25 @@ const listenModel = (() => {
     const n = (TranslationAPI.LANG_NAMES || {})[c] || (TranslationAPI.LANG_NAMES || {})[c.split('-')[0]];
     return n || langLabel(c) || c;
   }
+  function subSrcLang(row) {
+    const a = C.baseCode(cfg && cfg.myLang);
+    if (a && a !== 'auto') return a;
+    const byRec = C.baseCode(row && row.srcLocale);
+    if (byRec) return byRec;
+    return lidLang && lidLang !== C.baseCode(cfg && cfg.otherLang) ? lidLang : '';
+  }
   async function passRow(row, quiet) {
     if (grantHalted()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
-    const srcLang = row.who === 'me' ? cfg.myLang : cfg.otherLang;
+    // 字幕：源语言是**视频的语言**（左格），「自动」时取这句识别器那一路的语言。#590 之前这里
+    // 取的是 otherLang（= 译成）⇒ 提示写成「一句中文转写 … 译成中文」，英文被原样当译文留下。
+    const srcLang = cfg.mode === 'subtitle' ? subSrcLang(row) : row.who === 'me' ? cfg.myLang : cfg.otherLang;
     const dstLang = targetLangFor(row);
     const prompt = C.buildListenPrompt({
       text: row.raw || row.text, alts: row.alts || [], who: row.who,
-      srcLang, dstLang, srcName: langName(srcLang), dstName: langName(dstLang),
+      srcLang, dstLang, srcName: srcLang ? langName(srcLang) : 'the language it was spoken in', dstName: langName(dstLang),
       context: C.contextRows(session ? session.rows : [], row),
     });
     let reply = '', passErr = null;
@@ -739,15 +760,11 @@ const listenModel = (() => {
         if (!lang || lang === lidLang) return;   // 同一门语言重复报：不算新的（稳定性按「换的那一刻」起算）
         lidLang = lang;
         lidLangAt = Date.now();
-        // 字幕处在「自动」时，把认出来的那门记下来 —— 下次进场的候选就是它（「自动」只能覆盖
-        // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。
-        try {
-          if (mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto') {
-            chrome.storage.local.get(['subtitleVideoLang'], (st) => {
-              if (C.baseCode(st && st.subtitleVideoLang) !== lang) chrome.storage.local.set({ subtitleVideoLang: lang });
-            });
-          }
-        } catch (_) {}
+        // 字幕处在「自动」时，把认出来的那门记在内存里 —— 下次进场的候选就是它（「自动」只能覆盖
+        // 上次见过的那门 + 译成，这是「两门并行」天然的限制，如实记）。**不写进 subtitleVideoLang**：
+        // 写进去，用户选的「自动」下次就变成了一门具体语言（#590 iOS 3 / C）。
+        if (mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto'
+          && lang !== C.baseCode(cfg && cfg.otherLang)) subGuess = lang;
         canvas.view('state');
         // **不再自动跟随**（2026-10-07 用户拍：「让用户选两种语言……听到一种语言就译另一种」）——
         // 两门语言由用户指定，LID 只负责判「这一段是其中哪一门」。
@@ -1590,6 +1607,7 @@ const listenModel = (() => {
     if (meta && meta.locale) {
       // 本机路：原始句立即上屏；复用的临时译文斜体，等修正稿回来换正体；修正契约必发
       row.raw = row.text; row.alts = Array.isArray(meta.alts) ? meta.alts : [];
+      row.srcLocale = meta.locale;
       if (reuse) { row.tr = reuse; row.trTemp = true; canvas.view('history'); }
       subShow(row.text, row.tr || '', true);
       passRow(row);
@@ -2163,6 +2181,15 @@ const listenModel = (() => {
   let langRevert = null;     // { other }：一次改语言期间记下「改之前那门」
   function revertLangIfNeeded() {
     const r = langRevert; langRevert = null;
+    if (r && r.video && session && cfg && mode === 'subtitle') {
+      if (C.baseCode(cfg.myLang) === r.video) return;
+      cfg.myLang = r.video;
+      try { chrome.storage.local.set({ subtitleVideoLang: r.video }); } catch (_) {}
+      const backTo = r.video === 'auto' ? t('lang_auto', '自动') : langLabel(r.video);
+      beginPipeline().then(() => { if (phase === 'listening' || phase === 'preparing') note(t('listen_lang_unsupported_revert', '这门语言这台设备识别不了 — 已经回到「{lang}」').replace('{lang}', backTo)); }).catch(() => {});
+      canvas.view('mode');
+      return;
+    }
     if (!r || !r.other || !session || !cfg) return;
     if (C.baseCode(cfg.otherLang) === r.other) return;
     cfg.otherLang = r.other; cfg.lang = r.other; otherSelVal = r.other;
@@ -2343,7 +2370,7 @@ const listenModel = (() => {
     try {
       chrome.storage.local.get(['listenOtherLang', 'subtitleVideoLang', 'subtitleCapture'], (st) => {
         st = st || {};
-        otherSelVal = C.baseCode(sub ? st.subtitleVideoLang : st.listenOtherLang) || 'en';
+        if (!sub) otherSelVal = C.baseCode(st.listenOtherLang) || 'en';
         subsCaptureVal = st.subtitleCapture !== false;
         canvas.view('mode');
       });
@@ -2839,10 +2866,54 @@ const listenModel = (() => {
     return C.langSupported(code, dev);
   }
 
+  /** 字幕「视频的语言」：'auto' 或一门具体语言。存量里与「译成」相同的值是 #590 之前挂反的键
+   *  留下的（那时 subtitleVideoLang 存的是译成），一律当「自动」。 */
+  let subGuess = '';
+  function videoLangOf(v, target) {
+    const b = C.baseCode(v);
+    if (!b || b === 'auto' || b === C.baseCode(target) || !langOk(b)) return 'auto';
+    return b;
+  }
   /** 视图要的选项清单（与 langOptions 同一份；这里只是包一层，视图不必再读全局）。 */
   function langOptionsFor(cur) { try { return langOptions(cur); } catch (_) { return []; } }
 
+  /** 字幕的两格：左 = 视频的语言（subtitleVideoLang，可「自动」，动识别器 ⇒ 在听就重连），
+   *  右 = 译成（listenMyLang，只改译文方向，不重连）。两格撞同一门 ⇒ 对调（「自动」不参与对调）。 */
+  function subLangChange(which, value) {
+    if (!cfg) return;
+    const v = C.baseCode(value);
+    const prevVideo = C.baseCode(cfg.myLang) || 'auto', prevTarget = C.baseCode(cfg.otherLang);
+    let video = prevVideo, target = prevTarget, swapped = false;
+    if (which === 'my') {
+      video = v || 'auto';
+      if (video !== 'auto' && video === target) { target = prevVideo !== 'auto' ? prevVideo : target; swapped = target !== prevTarget; if (!swapped) video = 'auto'; }
+    } else {
+      target = v || prevTarget;
+      if (target === video) { video = prevTarget || 'auto'; swapped = true; }
+    }
+    const p = {};
+    if (video !== prevVideo) p.subtitleVideoLang = video;
+    if (target !== prevTarget) p.listenMyLang = target;
+    if (!Object.keys(p).length) { canvas.view('mode'); return; }
+    chrome.storage.local.set(p);
+    cfg.myLang = video; cfg.otherLang = target; cfg.targetLang = target; cfg.lang = target;
+    if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
+    if (video !== prevVideo && session && sock && (phase === 'listening' || phase === 'preparing')) {
+      langRevert = { video: prevVideo };
+      closeSocket();
+      if (phase === 'listening') phase = 'preparing';
+      ensurePacksForPair({}).then((ok) => {
+        if (!ok) return;
+        openSocket();
+        if (phase === 'preparing') phase = 'listening';
+        canvas.view('state');
+      });
+    }
+    canvas.view('mode');
+    if (session) canvas.view('state');
+  }
   function langChange(which, value, opts) {
+    if (mode === 'subtitle') return subLangChange(which, value);
     const lo = opts || {};
     const prev = which === 'my'
       ? { myLang: (cfg && cfg.myLang) || '', otherLang: otherSelVal }
@@ -2850,8 +2921,6 @@ const listenModel = (() => {
     const p = C.langPatch(which, value, prev);
     const swapped = p.swapped; delete p.swapped;
     const otherVal = p.listenOtherLang;
-    // 实时字幕里右边那个是「视频的语言」：同一套对调规则，存到 subtitleVideoLang（不动对话的语言对）
-    if (mode === 'subtitle' && otherVal !== undefined) { p.subtitleVideoLang = otherVal; delete p.listenOtherLang; }
     chrome.storage.local.set(p);
     if (p.listenMyLang !== undefined) mySelVal = C.baseCode(p.listenMyLang);
     if (otherVal !== undefined) otherSelVal = C.baseCode(otherVal);
