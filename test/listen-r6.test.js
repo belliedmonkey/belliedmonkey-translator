@@ -103,9 +103,10 @@ describe('r6 ② 首启包屏完成过一次就不再回来', () => {
     eq(FR.step({ ...all, asrPack: false }), 'packs', '没完成过 ⇒ 仍是硬门');
   });
   const sm = read('src/app/shell-model.js');
-  test('下载完成就记标记（不等「进入实时听译」）', () => {
+  test('下载完成就记标记（不等「进入实时听译」）；D-03 齐态 dismiss', () => {
     const run = sm.slice(sm.indexOf('async function runFirstRunPacks'), sm.indexOf('async function enterListen'));
     ok(run.indexOf("packPhase = 'done'") >= 0 && run.indexOf('writePacksDone()') > run.indexOf("packPhase = 'done'"), "packPhase='done' 之后要 writePacksDone()");
+    ok(run.indexOf('dismissPacksAfterDone()') > run.indexOf('writePacksDone()'), 'writePacksDone 之后要 dismissPacksAfterDone（D-03）');
   });
   test('冷启动判定读标记；1.19.3 老用户探针全齐时补记', () => {
     const paint = sm.slice(sm.indexOf('async function paintFirstRun'), sm.indexOf('async function loadPackSelection'));

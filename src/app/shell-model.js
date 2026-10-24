@@ -1063,20 +1063,26 @@ export function bootShell() {
       const errEl = $('packs-err');
       const failed = !!(errEl && !errEl.hidden && errEl.textContent);
       go.disabled = dlBusy;
+      // N24v2 D-03：齐态无主 CTA（COPY-LOCK）；自动跳，不挡「进入实时听译」
       if (packPhase === 'done') {
-        go.textContent = t('firstrun_packs_enter', '进入实时听译');
-      } else if (failed && !dlBusy) {
-        go.textContent = t('firstrun_packs_retry', '重试');
-        go.disabled = false;
-      } else if (dlBusy) {
-        const agg = dlAggregate();
-        go.textContent = agg.indeterminate
-          ? t('firstrun_packs_busy', '下载中')
-          : t('firstrun_packs_busy_pct', '下载中 {n}%').replace('{n}', String(agg.pct));
+        go.hidden = true;
+        go.textContent = '';
+        go.disabled = true;
       } else {
-        go.textContent = packAsrUnsupported
-          ? t('firstrun_packs_go_tts', '只下朗读，继续')
-          : t('firstrun_packs_go', '下载并继续');
+        go.hidden = false;
+        if (failed && !dlBusy) {
+          go.textContent = t('firstrun_packs_retry', '重试');
+          go.disabled = false;
+        } else if (dlBusy) {
+          const agg = dlAggregate();
+          go.textContent = agg.indeterminate
+            ? t('firstrun_packs_busy', '下载中')
+            : t('firstrun_packs_busy_pct', '下载中 {n}%').replace('{n}', String(agg.pct));
+        } else {
+          go.textContent = packAsrUnsupported
+            ? t('firstrun_packs_go_tts', '只下朗读，继续')
+            : t('firstrun_packs_go', '下载并继续');
+        }
       }
     }
     try { paintDlProgress(); } catch (_) {}
@@ -1356,7 +1362,8 @@ export function bootShell() {
   }
 
   async function onPacksGo() {
-    if (packPhase === 'done') { await enterListen(); return; }
+    // D-03：齐态出口是自动跳；若残态点到，也走 dismiss，不开听译
+    if (packPhase === 'done') { await dismissPacksAfterDone(); return; }
     if (packsBusy) return;
     const kind = await networkKind();
     if (FirstRun.needsCellularConfirm(kind) && !cellConfirmed) {
@@ -1514,7 +1521,29 @@ export function bootShell() {
     }
   }
 
-  // 下载 → 重新探 → 停在「都下好了」，等用户点「进入实时听译」。失败留在这一屏。
+  // N24v2 D-03：齐态自动 dismiss —— 首启硬门→首页；设置/补回→回来源。不开听译。
+  async function dismissPacksAfterDone() {
+    if (packsManage) {
+      closePackManager();
+      packPhase = 'pick';
+      return;
+    }
+    const sec = $('firstrun-packs');
+    if (sec) sec.hidden = true;
+    const cell = $('packs-cellular');
+    if (cell) cell.hidden = true;
+    const seen = await readObSeen();
+    if (!seen) {
+      try { await new Promise((r) => chrome.storage.local.set({ [OB_SEEN]: 1 }, r)); } catch (_) {}
+    }
+    // 自动进首页 ≠ 进听译：不 trackIntent('listen')、不 AppListen.open
+    $('signed-out').hidden = true;
+    $('signed-in').hidden = false;
+    firstRunScreen = 'home';
+    packPhase = 'pick';
+  }
+
+  // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
   async function runFirstRunPacks() {
     if (packsBusy) return;
     packsBusy = true;
@@ -1558,9 +1587,9 @@ export function bootShell() {
       return;
     }
     packPhase = 'done';
-    // 下载完成就记，不等「进入实时听译」—— 用户停在完成页直接划掉，下次也不该再回包屏。
+    // 下载完成就记；齐态立刻 dismiss（D-03），不停留「好了」/不挡「进入实时听译」。
     try { await writePacksDone(); } catch (_) {}
-    await paintFirstRun(currentSession);
+    await dismissPacksAfterDone();
   }
 
   async function enterListen() {

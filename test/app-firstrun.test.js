@@ -232,6 +232,34 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       '下载 lede 锁文丢了');
   });
 
+  // N24v2 D-03：下载齐态自动进首页/回来源（用户 TF t159u）
+  test('D-03 · 齐态自动 dismiss：首启→首页；设置→closePackManager；无进入实时听译挡路', () => {
+    const model = stripComments(read('src/app/shell-model.js'));
+    ok(/async function dismissPacksAfterDone\(/.test(model), '缺 dismissPacksAfterDone');
+    const i = model.indexOf('async function runFirstRunPacks');
+    ok(i > 0, '找不到 runFirstRunPacks');
+    const run = model.slice(i, model.indexOf('async function enterListen', i));
+    ok(/await dismissPacksAfterDone\(\)/.test(run), '成功路径未调 dismissPacksAfterDone');
+    ok(!/AppListen\.open/.test(run), '成功路径不应 AppListen.open');
+    ok(/writePacksDone\(\)/.test(run), '成功路径仍须 writePacksDone');
+    const d = model.slice(model.indexOf('async function dismissPacksAfterDone'), model.indexOf('async function runFirstRunPacks'));
+    ok(/packsManage/.test(d) && /closePackManager\(\)/.test(d), 'packsManage 路径未走 closePackManager');
+    ok(!/AppListen\.open/.test(d), 'dismiss 不得开听译');
+    ok(!/trackIntent\('listen'\)/.test(d), '自动进首页不得 trackIntent(listen)');
+    const paint = model.slice(model.indexOf('function paintPackChrome'), model.indexOf('function statusText'));
+    ok(/packPhase === 'done'[\s\S]{0,160}go\.hidden\s*=\s*true/.test(paint),
+      '齐态未隐藏 #packs-go');
+    ok(!/firstrun_packs_enter/.test(paint), 'paint 齐态仍引用 firstrun_packs_enter');
+    ok(!/进入实时听译/.test(paint), 'paint 齐态仍设「进入实时听译」主 CTA');
+    const goFn = model.slice(model.indexOf('async function onPacksGo'), model.indexOf('function onCellWait'));
+    ok(/packPhase === 'done'[\s\S]{0,120}dismissPacksAfterDone/.test(goFn),
+      'onPacksGo 齐态未走 dismissPacksAfterDone');
+    ok(!/packPhase === 'done'[\s\S]{0,80}enterListen/.test(goFn),
+      'onPacksGo 齐态不得 enterListen');
+    ok(/下载中 \{n\}%/.test(model), 'D-02 CTA 锁「下载中 {n}%」丢了');
+  });
+
+
   test('R2h · 语言对不再对调：默认按槽位算 + 「下载并继续」把当前一对落盘（#564）', () => {
     // 2026-10-04 晚真机（15 Pro / 82）：用户选「我=中文、对方=ไทย」，点下载后跳成「我=ไทย、
     // 对方=English」。两个成因：① 选「默认值」不触发 change ⇒ listenMyLang 一直空；
