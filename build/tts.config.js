@@ -93,13 +93,19 @@ module.exports = [
     // voices 是**服务端自己报出来的**：给一个不存在的音色，它回
     // 「Input should be 'Cherry', 'Serena', 'Ethan' or 'Chelsie'」。
     // 只登记 china：手上的 key 是境内的，intl 那侧没验过。
-    id: 'qwen_tts', type: 'speech-dashscope', flavors: ['china'],
+    // N24v2 / GO-WITH-ACCEPT：global 挂 QwenCloud 同 host；speech-dashscope + qwen3-tts-flash（对齐中继 TTS URL）。
+    id: 'qwen_tts', type: 'speech-dashscope', flavors: ['global', 'china'],
     needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
-    defaultEndpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
-    placeholder: null, defaultModel: 'qwen-tts',
+    defaultEndpoint: {
+      china: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+      global: 'https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation',
+    },
+    placeholder: null,
+    defaultModel: { china: 'qwen-tts', global: 'qwen3-tts-flash' },
     voices: ['Cherry', 'Serena', 'Ethan', 'Chelsie'],
     returnsAudio: true,
-    labelKey: null, label: '通义千问 · 语音合成',
+    labelKey: null,
+    label: { china: '通义千问 · 语音合成', global: 'QwenCloud · speech' },
     hintKey: 'tts_hint_local',
   },
   {

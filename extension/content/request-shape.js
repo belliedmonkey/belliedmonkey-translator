@@ -598,6 +598,36 @@ var RequestShape = (() => {
       };
     }
 
+    // N24v2 / GO-WITH-ACCEPT：QwenCloud 转写 = chat/completions + input_audio（对齐 #592 中继）。
+    // 与 transcribe-dashscope（百炼 multimodal）不是同一形状 —— 只改 URL 会 400。
+    if (fmt === 'transcribe-qwencloud') {
+      if (!o.audioDataUri) {
+        return { headers: {}, body: null, error: 'no_audio', caps };
+      }
+      const sent = {
+        model: o.model,
+        stream: false,
+        messages: [{
+          role: 'user',
+          content: [{ type: 'input_audio', input_audio: { data: o.audioDataUri } }],
+        }],
+      };
+      return {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + (o.apiKey || ''),
+        },
+        body: JSON.stringify(sent),
+        isForm: false,
+        extract: (d) => {
+          const c = d && d.choices && d.choices[0] && d.choices[0].message
+            && d.choices[0].message.content;
+          return (typeof c === 'string') ? c : '';
+        },
+        caps,
+      };
+    }
+
     if (fmt === 'transcribe-dashscope') {
       // DashScope 的转写形状：JSON（不是 multipart），音频以 data URI 内联。
       //
@@ -707,10 +737,10 @@ var RequestShape = (() => {
 
   // 哪些形状要把音频编成 data URI 再交过来。**形状知识留在这里**：调用方只问
   // 「这条路要不要」，不需要知道有几种转写形状、各自长什么样。
-  function wantsAudioDataUri(fmt) { return fmt === 'transcribe-dashscope'; }
+  function wantsAudioDataUri(fmt) { return fmt === 'transcribe-dashscope' || fmt === 'transcribe-qwencloud'; }
   // 同一个问题的三态版本（§2.4 的文件一档要区分 Blob / base64 / data URI）。
   function audioEncoding(fmt) {
-    if (fmt === 'transcribe-dashscope') return 'dataUri';
+    if (fmt === 'transcribe-dashscope' || fmt === 'transcribe-qwencloud') return 'dataUri';
     if (fmt === 'transcribe-gemini') return 'base64';
     return 'blob';
   }

@@ -108,21 +108,16 @@ const LIST = [
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
     // The one entry whose old `defaultBase` already carried a path segment
     // (`/compatible-mode`) — the standing proof that "base = origin" never held.
+    // N24v2 / GO-WITH-ACCEPT（architecture REVIEW-n24v2-qwencloud-registry-2026-10-24）：
+    // 国际一键对齐 #592 中继 QwenCloud（同 host maas.qwencloudapi.com）；禁 dashscope-intl 冒充。
+    // 中国仍走百炼北京。keyUrl 钉新加坡区控制台（与旧 intl 落地页同一条区域路径）。
     defaultEndpoint: {
       china: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
-      global: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+      global: 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions',
     },
-    placeholder: null, defaultModel: 'qwen-plus',
-    label: { china: '通义千问', global: 'Qwen' }, hintKey: 'hint_qwen',
-    // 按 flavor 分，理由与 defaultEndpoint 同一条：这家的账号体系是**分区域**的，
-    // 拿错区域的控制台给用户，他签出来的 key 打不通这个端点，而报错只会说 401 ——
-    // 他会以为是自己粘错了。
-    //
-    // 两条都带**区域路径段**，这不是多余的：2026-08-31 实测，不带区域的
-    // `bailian.console.alibabacloud.com/?tab=model#/api-key` 会跳到
-    // modelstudio.console.alibabacloud.com 并**默认落在 cn-beijing**，而 global 的
-    // 端点是 dashscope-intl（新加坡）—— 正好是这条注释在防的那个错。
-    // 钉 /ap-southeast-1 后落地页读到「Singapore · API Key」。
+    placeholder: null,
+    defaultModel: { china: 'qwen-plus', global: 'qwen3.7-plus' },
+    label: { china: '通义千问', global: 'QwenCloud' }, hintKey: 'hint_qwen',
     keyUrl: {
       china: 'https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key',
       global: 'https://modelstudio.console.alibabacloud.com/ap-southeast-1?tab=model#/api-key',

@@ -69,12 +69,21 @@ module.exports = [
     //
     // 只登记 china：手上的 key 是境内的，dashscope-intl 那侧没有验过。
     // 用一个没验过的地址去覆盖另一门语言的用户，正是台账要防的事。
-    id: 'qwen_asr', type: 'transcribe-dashscope', flavors: ['china'],
+    // N24v2 / GO-WITH-ACCEPT：global 走 chat/completions + input_audio（#592 中继同形；
+    // 类型 transcribe-qwencloud，有传输实现 —— 禁「只改 URL」）。china 仍 transcribe-dashscope。
+    // 两端点同 host maas.qwencloudapi.com / dashscope.aliyuncs.com，一键同 Key。
+    id: 'qwen_asr',
+    type: { china: 'transcribe-dashscope', global: 'transcribe-qwencloud' },
+    flavors: ['global', 'china'],
     needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
-    defaultEndpoint: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+    defaultEndpoint: {
+      china: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+      global: 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions',
+    },
     placeholder: null,
-    defaultModel: 'qwen-audio-3.0-asr-flash',
-    labelKey: null, label: '通义千问 · 语音转写',
+    defaultModel: { china: 'qwen-audio-3.0-asr-flash', global: 'qwen3-asr-flash' },
+    labelKey: null,
+    label: { china: '通义千问 · 语音转写', global: 'QwenCloud · transcription' },
     hintKey: 'stt_hint',
   },
   {

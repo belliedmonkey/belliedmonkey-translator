@@ -108,10 +108,19 @@ function platforms(reg) {
   for (const e of r.stt) take('stt', e);
 
   const rank = (h) => { const i = rec.indexOf(h); return i < 0 ? rec.length + order.indexOf(h) : i; };
+  // N24v2：一键平台白名单（与免费中继上游同构）。OpenRouter / OpenAI 等仍在分项，
+  // 不进一键。custom 仍挂最后（只承诺翻译）。
+  const flavor = (reg && reg.flavor) || Registry.flavor() || 'global';
+  const ONE_KEY_HOSTS = flavor === 'china'
+    ? ['dashscope.aliyuncs.com']
+    : ['maas.qwencloudapi.com'];
+  const allowed = new Set(ONE_KEY_HOSTS);
+
   return order.slice().sort((a, b) => rank(a) - rank(b)).map((h) => byHost.get(h))
     // 三样齐全才算。只有 chat 的平台不进下拉：那一行的承诺（「一把 key 配好
     // 三样」）当场变假，而且它一点没省 —— 用现有的引擎卡配它操作数完全相同。
     .filter((g) => g.chat.length && g.tts.length && g.stt.length)
+    .filter((g) => allowed.has(g.host))
     .map((g) => ({
       host: g.host,
       // 同 host 多条时取**注册表第一条**：注册表顺序是作者维护的推荐序。

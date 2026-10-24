@@ -56,13 +56,14 @@ describe('QuickSetup.prefill — 已经配过的 key 要在快速卡上回显', 
   const REG = (() => { const d = fromDist('dist'); return d ? d : null; })();
   test('翻译在一键平台上 ⇒ 回翻译那把 key（slot chat）', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
-    const p = REG.Q.prefill({ provider: 'openrouter', apiKey: 'k1', sttEngine: 'openai_transcribe', sttApiKey: 'k3' });
-    ok(p && p.host === 'openrouter.ai' && p.key === 'k1' && p.slot === 'chat', JSON.stringify(p));
+    const p = REG.Q.prefill({ provider: 'qwen', apiKey: 'k1', sttEngine: 'openai_transcribe', sttApiKey: 'k3' });
+    ok(p && p.host === 'maas.qwencloudapi.com' && p.key === 'k1' && p.slot === 'chat', JSON.stringify(p));
   });
   test('翻译不在一键平台、转写在 ⇒ 回转写那把 key（slot stt）', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
-    const p = REG.Q.prefill({ provider: 'deepseek', apiKey: 'k1', sttEngine: 'openai_transcribe', sttApiKey: 'k3' });
-    ok(p && p.host === 'api.openai.com' && p.key === 'k3' && p.slot === 'stt', JSON.stringify(p));
+    // OpenAI/OpenRouter 已剔出一键：转写在 openai 上也不再回显为一键平台。
+    const p = REG.Q.prefill({ provider: 'deepseek', apiKey: 'k1', sttEngine: 'qwen_asr', sttApiKey: 'k3' });
+    ok(p && p.host === 'maas.qwencloudapi.com' && p.key === 'k3' && p.slot === 'stt', JSON.stringify(p));
   });
   test('三样都不在一键平台上 ⇒ null（卡空着是真话）', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
@@ -82,15 +83,15 @@ describe('QuickSetup.represents — 这份已存配置，一键卡表示得了�
 
   test('没配过（apiKey 空）⇒ null，谈不上表示不表示', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
-    eq(REG.Q.represents({ provider: 'openrouter', apiKey: '' }), null, '');
+    eq(REG.Q.represents({ provider: 'qwen', apiKey: '' }), null, '');
     eq(REG.Q.represents({}), null, '');
     eq(REG.Q.represents(null), null, '');
   });
 
   test('用一键平台的引擎配的 ⇒ 回那个平台（设置页据此预选 + 回显 key）', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
-    const p = REG.Q.represents({ provider: 'openrouter', apiKey: 'sk-x' });
-    ok(p && p.host === 'openrouter.ai', '应当回 openrouter.ai 那一组，实际 ' + JSON.stringify(p && p.host));
+    const p = REG.Q.represents({ provider: 'qwen', apiKey: 'sk-x' });
+    ok(p && p.host === 'maas.qwencloudapi.com', '应当回 QwenCloud 那一组，实际 ' + JSON.stringify(p && p.host));
   });
 
   test('用不在一键清单里的引擎配的 ⇒ null（设置页要默认落在详细）', () => {
@@ -113,9 +114,9 @@ describe('QuickSetup.represents — 这份已存配置，一键卡表示得了�
 
   test('朗读/转写用别的平台不影响判据 —— 只看翻译那一路', () => {
     if (!REG) return ok(true, '（dist/ 不存在，跳过）');
-    const p = REG.Q.represents({ provider: 'openrouter', apiKey: 'sk-x',
+    const p = REG.Q.represents({ provider: 'qwen', apiKey: 'sk-x',
       ttsEngine: 'openai_speech', ttsApiKey: 'sk-other' });
-    ok(p && p.host === 'openrouter.ai',
+    ok(p && p.host === 'maas.qwencloudapi.com',
       '一键卡自己也允许只配其中一样，不该因为朗读用了别家就把人赶去详细页');
   });
 });
@@ -180,24 +181,21 @@ describe('QuickSetup — 每个进了下拉的平台都得说得出「去哪儿�
 });
 
 describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', () => {
-  test('global：恰好两组，且有实测推荐的 openrouter.ai 排第一', () => {
+  test('global：一键白名单恰好 maas.qwencloudapi.com（N24v2；剔出 OpenRouter/OpenAI）', () => {
     const d = fromDist('dist');
     if (!d) return ok(true, '（dist/ 不存在，跳过 —— 先跑 node build.js）');
-    // 同上：自定义那一项不参与推导，这条断言守的是推导出来的那几组。
     const hosts = d.Q.platforms().filter((p) => !p.custom).map((p) => p.host);
-    eq(hosts[0], 'openrouter.ai',
-      '有实测推荐的排前面：注册表顺序是历史形成的（openai 只是加得早），拿它当推荐序'
-      + '会让这张卡推荐一个我们从没跑过跨能力实测的平台');
-    ok(hosts.includes('api.openai.com'), 'api.openai.com 必须成组');
-    eq(hosts.length, 2, 'global 恰好两组，实际 ' + JSON.stringify(hosts));
+    deepEq(hosts, ['maas.qwencloudapi.com'], 'global 一键恰好 QwenCloud 一组，实际 ' + JSON.stringify(hosts));
+    ok(!hosts.includes('openrouter.ai'), 'OpenRouter 不进一键');
+    ok(!hosts.includes('api.openai.com'), 'OpenAI 不进一键');
   });
 
-  test('dashscope-intl 不在 global 结果里 —— 这是「只有 chat 不算」那条规则的钉子', () => {
+  test('dashscope-intl 不在 global 一键结果里 —— 禁冒充国际一键', () => {
     const d = fromDist('dist');
     if (!d) return ok(true, '（dist/ 不存在，跳过）');
     const hosts = d.Q.platforms().map((p) => p.host);
     ok(!hosts.includes('dashscope-intl.aliyuncs.com'),
-      'global 侧的通义千问只有翻译、没有语音条目，放进来那一行的承诺就是假的');
+      '不得用 dashscope-intl 冒充国际一键（N24v2 GO-WITH-ACCEPT）');
   });
 
   test('china：恰好 dashscope.aliyuncs.com', () => {
@@ -217,13 +215,15 @@ describe('QuickSetup.platforms — 分组从 host 推导，对真实产物跑', 
     eq(p.stt.id, 'qwen_asr', '');
   });
 
-  test('组代表：openrouter_speech 赢过 openrouter_audio（专用语音端点，不是带音频输出的对话模型）', () => {
+  test('组代表：global 一键是 qwen + qwen_tts + qwen_asr（QwenCloud 同 host）', () => {
     const d = fromDist('dist');
     if (!d) return ok(true, '（dist/ 不存在，跳过）');
-    const p = d.Q.platforms().find((x) => x.host === 'openrouter.ai');
-    eq(p.tts.id, 'openrouter_speech', '');
-    // 原来这里断言另一条会出现在 p.alt 里「供展开修改时换」。展开修改没有了，alt
-    // 也就没有了消费者，一并删掉 —— 留着的话它是一份永远不会被读的数据。
+    const p = d.Q.platforms().find((x) => x.host === 'maas.qwencloudapi.com');
+    ok(!!p, '应有 QwenCloud 组');
+    eq(p.chat.id, 'qwen', '');
+    eq(p.tts.id, 'qwen_tts', '');
+    eq(p.stt.id, 'qwen_asr', '');
+    eq(p.chat.label, 'QwenCloud', '官网名');
   });
 
   test('推导出来的组里不含 needsKey:false 或 requiresEndpoint 的条目', () => {

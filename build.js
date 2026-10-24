@@ -707,10 +707,11 @@ function generateTts(dir, flavor) {
   const CONFIG = require('./build/tts.config.js');
   const pick = pickFlavor(flavor);
   const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
-    id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    id: e.id, type: pick(e.type) || e.type, label: pick(e.label), labelKey: e.labelKey || null,
     grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
-    defaultModel: e.defaultModel || '', voices: e.voices || null,
+    // 与 providers 同：defaultModel 支持 { china, global }（N24v2 QwenCloud）。
+    defaultModel: pick(e.defaultModel) || '', voices: e.voices || null,
     needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
     supportsBaseUrl: !!e.supportsBaseUrl,
     supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
@@ -731,10 +732,11 @@ function generateStt(dir, flavor) {
   const CONFIG = require('./build/stt.config.js');
   const pick = pickFlavor(flavor);
   const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
-    id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    id: e.id, type: pick(e.type) || e.type, label: pick(e.label), labelKey: e.labelKey || null,
     grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
     defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
-    defaultModel: e.defaultModel || '',
+    // 与 providers 同：defaultModel 支持 { china, global }（N24v2 QwenCloud）。
+    defaultModel: pick(e.defaultModel) || '',
     needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
     supportsBaseUrl: !!e.supportsBaseUrl,
     supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
