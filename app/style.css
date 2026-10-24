@@ -703,6 +703,36 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 /* N24 packs simplify · 2026-10-23 */
 .pack-line.is-dim { opacity: 0.45; pointer-events: none; }
 .packs-quota-mini { margin: 8px 0 4px; font-size: 13px; color: var(--muted, #6a6255); }
+
+/* N24v2 D-02：下载中一行总进度（细条，非每门粗条） */
+.packs-dl-progress { margin: 4px 0 12px; }
+.packs-dl-progress-row { display: flex; align-items: center; gap: 10px; }
+.packs-dl-bar {
+  flex: 1; height: 4px; border-radius: 999px;
+  background: var(--field, #ebe4d8); overflow: hidden;
+}
+.packs-dl-bar > i {
+  display: block; height: 100%; width: 0%;
+  background: var(--accent-deep, #c45c26); border-radius: inherit;
+  transition: width 0.2s ease;
+}
+.packs-dl-bar.is-indet > i {
+  width: 32%;
+  animation: packs-dl-indet 1.2s ease-in-out infinite;
+}
+@keyframes packs-dl-indet {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+.packs-dl-label {
+  flex: none; font-size: 0.85rem; color: var(--text-secondary, #6a6255);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+@media (prefers-color-scheme: dark) {
+  .packs-dl-bar { background: var(--field, #273549); }
+  .packs-dl-label { color: var(--muted, #9ca3af); }
+}
+
 .packs-details { margin: 12px 0 4px; border-radius: 12px; border: 1px solid var(--border, #dcd3c4); background: var(--well, #f9f4ed); padding: 0 12px; }
 .packs-details-sum { cursor: pointer; list-style: none; padding: 12px 0; font-weight: 600; color: var(--ink, #201e1d); }
 .packs-details-sum::-webkit-details-marker { display: none; }

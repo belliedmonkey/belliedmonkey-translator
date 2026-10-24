@@ -880,6 +880,81 @@ export function bootShell() {
     return n ? (n + ' MB') : '';
   }
 
+
+  // N24v2 D-02：本批勾选的总字节（含已装），给「约 N MB」标签用；不随下载推进缩水。
+  function selectedTotalBytes() {
+    const sz = packByteSizes();
+    let n = Number(sz.base) || 0;
+    const kokoroOn = FirstRun.kokoroChecked(packLangs, packKokoroOff ? false : undefined);
+    if (kokoroOn) n += Number(sz.kokoro) || 0;
+    if (packThaiTts && packLangs.indexOf('th') >= 0) n += Number(sz.thai) || 0;
+    return n;
+  }
+  function packRowWeight(id) {
+    const sz = packByteSizes();
+    if (id === 'base') return Number(sz.base) || 0;
+    if (id === 'tts:zh-en') return Number(sz.kokoro) || 0;
+    if (id === 'tts:th') return Number(sz.thai) || 0;
+    return 0;
+  }
+  function dlAggregate() {
+    const waiting = packPhase === 'waiting';
+    return PackProgress.aggregatePackProgress(packRowIds(), rowPhase, {
+      weightOf: packRowWeight,
+      totalBytes: selectedTotalBytes(),
+      forceIndeterminate: waiting,
+    });
+  }
+  function paintDlProgress() {
+    const host = $('packs-dl-progress');
+    if (!host) return;
+    const dl = packPhase === 'downloading' || packPhase === 'waiting' || !!packsBusy;
+    if (!dl) {
+      host.hidden = true;
+      host.textContent = '';
+      return;
+    }
+    host.hidden = false;
+    const agg = dlAggregate();
+    let bar = host.querySelector('.packs-dl-bar');
+    let fill = host.querySelector('.packs-dl-bar > i');
+    let label = host.querySelector('.packs-dl-label');
+    if (!bar) {
+      host.textContent = '';
+      host.className = 'packs-dl-progress';
+      const row = document.createElement('div');
+      row.className = 'packs-dl-progress-row';
+      bar = document.createElement('div');
+      bar.className = 'packs-dl-bar';
+      bar.setAttribute('role', 'progressbar');
+      fill = document.createElement('i');
+      fill.setAttribute('aria-hidden', 'true');
+      bar.appendChild(fill);
+      label = document.createElement('span');
+      label.className = 'packs-dl-label';
+      row.appendChild(bar);
+      row.appendChild(label);
+      host.appendChild(row);
+    }
+    if (agg.indeterminate) {
+      bar.classList.add('is-indet');
+      bar.removeAttribute('aria-valuenow');
+      fill.style.width = '';
+      label.textContent = t('firstrun_packs_progress_indet', '下载中');
+    } else {
+      bar.classList.remove('is-indet');
+      const pct = Math.max(0, Math.min(100, agg.pct));
+      bar.setAttribute('aria-valuenow', String(pct));
+      bar.setAttribute('aria-valuemin', '0');
+      bar.setAttribute('aria-valuemax', '100');
+      fill.style.width = pct + '%';
+      const size = mbLabel(agg.totalBytes);
+      label.textContent = size
+        ? t('firstrun_packs_progress_pct', '{pct}% · 约 {size}').replace('{pct}', String(pct)).replace('{size}', size)
+        : (pct + '%');
+    }
+  }
+
   function speechLocale(code) {
     try {
       if (typeof ListenCore !== 'undefined' && ListenCore.toLocale) return ListenCore.toLocale(code);
@@ -984,13 +1059,27 @@ export function bootShell() {
     }
     const go = $('packs-go');
     if (go) {
-      go.disabled = !!packsBusy;
-      go.textContent = packPhase === 'done'
-        ? t('firstrun_packs_enter', '进入实时听译')
-        : packsBusy
+      const dlBusy = !!packsBusy || packPhase === 'downloading' || packPhase === 'waiting';
+      const errEl = $('packs-err');
+      const failed = !!(errEl && !errEl.hidden && errEl.textContent);
+      go.disabled = dlBusy;
+      if (packPhase === 'done') {
+        go.textContent = t('firstrun_packs_enter', '进入实时听译');
+      } else if (failed && !dlBusy) {
+        go.textContent = t('firstrun_packs_retry', '重试');
+        go.disabled = false;
+      } else if (dlBusy) {
+        const agg = dlAggregate();
+        go.textContent = agg.indeterminate
           ? t('firstrun_packs_busy', '下载中')
-          : (packAsrUnsupported ? t('firstrun_packs_go_tts', '只下朗读，继续') : t('firstrun_packs_go', '下载并继续'));
+          : t('firstrun_packs_busy_pct', '下载中 {n}%').replace('{n}', String(agg.pct));
+      } else {
+        go.textContent = packAsrUnsupported
+          ? t('firstrun_packs_go_tts', '只下朗读，继续')
+          : t('firstrun_packs_go', '下载并继续');
+      }
     }
+    try { paintDlProgress(); } catch (_) {}
   }
 
   function statusText(id, selected) {
@@ -1140,10 +1229,10 @@ export function bootShell() {
     } else {
       for (const code of vis.rest) paintLang(code);
     }
-    // N24：名额未满小字（大卡已在 paintQuota 收掉）
+    // N24：名额未满小字（大卡已在 paintQuota 收掉）；D-02：下载态不常显，让进度抢主视线
     try {
       const qn = quotaRowsNow();
-      if (!packsManage && !qn.full) {
+      if (!packsManage && !qn.full && !dlPhase) {
         const tip = document.createElement('p');
         tip.className = 'note packs-quota-mini';
         tip.id = 'packs-quota-mini';
@@ -1151,7 +1240,7 @@ export function bootShell() {
         body.appendChild(tip);
       }
     } catch (_) {}
-    // N24：三大块默认折叠进「下载内容详情」
+    // N24：三大块默认折叠；D-02 下载态改「进度详情」，勿再开第二套详情叙事
     const details = document.createElement('details');
     details.className = 'packs-details';
     details.id = 'packs-details';
@@ -1159,7 +1248,9 @@ export function bootShell() {
     details.addEventListener('toggle', () => { packDetailsOpen = !!details.open; });
     const sum = document.createElement('summary');
     sum.className = 'packs-details-sum';
-    sum.textContent = t('firstrun_packs_details', '下载内容详情');
+    sum.textContent = dlPhase
+      ? t('firstrun_packs_details_progress', '进度详情')
+      : t('firstrun_packs_details', '下载内容详情');
     details.appendChild(sum);
     const detailBody = document.createElement('div');
     detailBody.className = 'packs-details-body';
@@ -1173,8 +1264,8 @@ export function bootShell() {
         id: 'tts-zh-en', kind: 'tts', name: t('firstrun_packs_tts_shared', '朗读 · {langs}').replace('{langs}', label),
         checked: kokoroOn, disabled: locked || kokoroLangs.length === 0,
         dim: dlPhase && !kokoroOn,
-        sub: t('firstrun_packs_tts_shared_note', '一个包覆盖中英两门；勾了中文或 English 就自动带上')
-          + ' · ' + t('firstrun_packs_bytes', '约 {size}').replace('{size}', mbLabel(sizes.kokoro)),
+        sub: dlPhase ? '' : (t('firstrun_packs_tts_shared_note', '一个包覆盖中英两门；勾了中文或 English 就自动带上')
+          + ' · ' + t('firstrun_packs_bytes', '约 {size}').replace('{size}', mbLabel(sizes.kokoro))),
         status: statusText('tts:zh-en', kokoroOn), locked,
         onChange: (on) => { packKokoroOff = !on; persistSelection(); paintPackChrome(ui); paintPackBody(ui); },
       }));
@@ -1185,8 +1276,8 @@ export function bootShell() {
         id: 'tts-th', kind: 'tts-th', name: t('firstrun_packs_tts_one', '朗读 · {lang}').replace('{lang}', endonym('th')),
         checked: thOn, disabled: locked,
         dim: dlPhase && !thOn,
-        sub: t('firstrun_packs_tts_th_note', '默认不勾。不下也能听译，看译文，只是泰语译文不朗读')
-          + ' · ' + t('firstrun_packs_optional', '约 {size} · 可选').replace('{size}', mbLabel(sizes.thai)),
+        sub: dlPhase ? '' : (t('firstrun_packs_tts_th_note', '默认不勾。不下也能听译，看译文，只是泰语译文不朗读')
+          + ' · ' + t('firstrun_packs_optional', '约 {size} · 可选').replace('{size}', mbLabel(sizes.thai))),
         status: statusText('tts:th', thOn), locked,
         onChange: (on) => { packThaiTts = !!on; persistSelection(); paintPackChrome(ui); paintPackBody(ui); },
       }));
@@ -1194,10 +1285,22 @@ export function bootShell() {
     appendDetail(makeRow({
       id: 'base', kind: 'base', name: t('firstrun_packs_base', '听译基础'),
       checked: true, disabled: true, locked: true,
-      sub: t('firstrun_packs_base_note', '分辨谁在说哪门语言，下好才能开始听')
-        + ' · ' + t('firstrun_packs_required', '约 {size} · 必需').replace('{size}', mbLabel(sizes.base)),
+      sub: dlPhase ? '' : (t('firstrun_packs_base_note', '分辨谁在说哪门语言，下好才能开始听')
+        + ' · ' + t('firstrun_packs_required', '约 {size} · 必需').replace('{size}', mbLabel(sizes.base))),
       status: statusText('base', true),
     }));
+    // D-02：下载态进度详情补上已勾识别语言（行右 xx% / 已就绪）；未勾不出现
+    if (dlPhase && !packsManage) {
+      for (const code of packLangs) {
+        const item = byCode[code];
+        if (!item) continue;
+        appendDetail(makeRow({
+          id: 'asr-dl-' + code, code, kind: 'asr', name: item.label,
+          checked: true, disabled: true, locked: true,
+          status: statusText('asr:' + code, true),
+        }));
+      }
+    }
     details.appendChild(detailBody);
     body.appendChild(details);
   }

@@ -48,6 +48,41 @@ export function stallLangProgress(state) {
  * 只 filter `packRows` 已有键会漏掉它（真机就是这么写成「还剩 1 项」的）。
  * `phaseOf(id)` 回 `{ phase, pct? }`；'ready' 与 'unselected' 都不算。
  */
+/**
+ * N24v2 D-02：首启下载中总进度。
+ * `phaseOf(id)` → `{ phase, pct? }`；`weightOf(id)` → 已知字节（0=未知）。
+ * 有任一行在下/已就绪则给出 0–100 的均权百分比；全未知且无有效 pct 时 indeterminate。
+ * `totalBytes` 用于「约 N MB」标签（调用方传入本批总字节，不含「已装不计入」的缩水）。
+ */
+export function aggregatePackProgress(ids, phaseOf, opts) {
+  const o = opts || {};
+  const list = ids || [];
+  let sumPct = 0;
+  let n = 0;
+  let anyActive = false;
+  let anyKnownWeight = false;
+  for (const id of list) {
+    const row = (typeof phaseOf === 'function') ? phaseOf(id) : null;
+    const phase = row && row.phase;
+    if (phase === 'unselected') continue;
+    let pct = 0;
+    if (phase === 'ready') pct = 100;
+    else if (phase === 'downloading') pct = Math.max(0, Math.min(100, Math.round(Number(row && row.pct) || 0)));
+    else if (phase === 'queued') pct = 0;
+    else if (phase) pct = Math.max(0, Math.min(100, Math.round(Number(row && row.pct) || 0)));
+    else continue;
+    sumPct += pct;
+    n++;
+    if (phase === 'ready' || phase === 'downloading') anyActive = true;
+    const w = (typeof o.weightOf === 'function') ? (Number(o.weightOf(id)) || 0) : 0;
+    if (w > 0) anyKnownWeight = true;
+  }
+  const pct = n ? Math.round(sumPct / n) : 0;
+  const totalBytes = Number(o.totalBytes) || 0;
+  const indeterminate = !!o.forceIndeterminate || (n === 0) || (!anyActive && pct === 0 && !anyKnownWeight && totalBytes <= 0);
+  return { pct, indeterminate, totalBytes, count: n };
+}
+
 export function pendingRowCount(ids, phaseOf) {
   let n = 0;
   for (const id of (ids || [])) {

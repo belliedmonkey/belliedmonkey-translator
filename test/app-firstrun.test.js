@@ -202,6 +202,36 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
     ok(!/<select[^>]*\sid="packs-my-lang"/.test(shellSrc), '包屏又变回「我的语言」下拉');
   });
 
+
+
+  // N24v2 D-02：下载中总进度结构（用户 TF「看不到下载进度」）
+  test('D-02 · 下载中总进度：细条宿主 + CTA 百分比 + 下载态藏限额 + 进度详情', () => {
+    const model = stripComments(read('src/app/shell-model.js'));
+    const shellSrc = read(SHELL);
+    ok(/id="packs-dl-progress"/.test(shellSrc), 'AppShell 缺 #packs-dl-progress 总进度宿主');
+    ok(/function paintDlProgress\(/.test(model), '缺 paintDlProgress');
+    ok(/function dlAggregate\(/.test(model) || /aggregatePackProgress\(/.test(model),
+      '缺总进度聚合（dlAggregate / aggregatePackProgress）');
+    ok(/firstrun_packs_busy_pct/.test(model) && /下载中 \{n\}%/.test(model),
+      'CTA 下载中未带 {n}%（D-02 文案）');
+    ok(/firstrun_packs_progress_pct/.test(model), '总进度缺 xx% · 约 MB 文案键');
+    ok(/firstrun_packs_details_progress/.test(model) && /进度详情/.test(model),
+      '下载态详情未改「进度详情」');
+    // 下载态不常显「识别最多 5 门」
+    ok(/!dlPhase/.test(model) && /packs-quota-mini/.test(model),
+      '下载态仍会画 packs-quota-mini —— 应 !dlPhase 才画');
+    // 失败 CTA「重试」
+    ok(/firstrun_packs_retry/.test(model) && /重试/.test(model),
+      '失败后 CTA 没有「重试」口径');
+    // 锁勾选在 downloading 仍在
+    ok(/packPhase === 'downloading'/.test(model) && /disabled: locked/.test(model),
+      '下载中锁勾选丢了');
+    // lede 硬锁不动
+    ok(/firstrun_packs_dl_title/.test(model) && /正在下载/.test(model), '下载标题锁文丢了');
+    ok(/firstrun_packs_dl_lede/.test(model) && /可以切到后台，下完再回来/.test(model),
+      '下载 lede 锁文丢了');
+  });
+
   test('R2h · 语言对不再对调：默认按槽位算 + 「下载并继续」把当前一对落盘（#564）', () => {
     // 2026-10-04 晚真机（15 Pro / 82）：用户选「我=中文、对方=ไทย」，点下载后跳成「我=ไทย、
     // 对方=English」。两个成因：① 选「默认值」不触发 change ⇒ listenMyLang 一直空；
