@@ -842,6 +842,19 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   box-sizing: border-box;
   text-align: center;
 }
+/* iPhone 画中画：字幕模式仍用 subs-stage 排版，但占位几何跟 .listen-subs-pip 一样 4:5（H9） */
+#app-listen.mode-subtitle #app-subs-pip.subs-stage.listen-subs-pip {
+  flex: 0 0 auto;
+  width: 64%;
+  max-width: 280px;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  margin: 8px auto 0;
+  border-radius: 12px;
+  background: #161412;
+  padding: 28px 22px;
+}
 #app-listen.mode-subtitle .subs-tr {
   margin: 0;
   font-size: 1.55rem;
@@ -932,6 +945,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   #app-listen.mode-subtitle .subs-stage {
     min-height: 280px;
     height: 100%;
+  }
+  #app-listen.mode-subtitle #app-subs-pip.subs-stage.listen-subs-pip {
+    min-height: 0;
+    height: auto;
   }
   #app-listen.mode-subtitle .listen-now.subs-stage-host {
     height: 100%;

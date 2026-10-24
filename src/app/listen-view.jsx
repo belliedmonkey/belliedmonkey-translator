@@ -338,7 +338,11 @@ export function ListenView() {
         <p id="app-listen-partial" className="listen-partial" hidden={mv.sub || mv.partialsHidden}>{nv.partial}</p>
         <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.sub || mv.partialsHidden}>{nv.partialTr}</p>
         {/* 字幕舞台 = #app-subs-pip：固定深色；原生 PiP 仍可叠同一矩形。空态用 note，有字藏 note。 */}
-        <div id="app-subs-pip" className={mv.sub ? 'subs-stage' : 'listen-subs-pip'} hidden={mv.sub ? false : !mv.pipShown}>
+        <div
+          id="app-subs-pip"
+          className={(mv.sub ? 'subs-stage' : '') + (mv.pipShown || !mv.sub ? ' listen-subs-pip' : '')}
+          hidden={mv.sub ? false : !mv.pipShown}
+        >
           {mv.sub ? (
             <>
               <p className="subs-tr" hidden={!stage.tr}>{stage.tr}</p>
