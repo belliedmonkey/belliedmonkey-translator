@@ -1245,3 +1245,7 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .listen-quota .note { margin: 0; }
 .listen-quota button { min-height: 48px; }
 .listen-pill.quota { background: var(--field); color: var(--accent-deep); border: 1px solid var(--accent-deep); }
+
+/* N24v2：一键/分项互斥态（结构；像素后补） */
+#app-settings .mode-tabs button.mode-tab-muted { opacity: .55; }
+#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }

@@ -1875,10 +1875,10 @@
     "message": "First time? Two minutes to set it up →"
   },
   "qs_title": {
-    "message": "Set everything up with one key"
+    "message": "Engines & keys"
   },
   "qs_sub": {
-    "message": "One key on these platforms sets up translation, speech, and transcription at once. For any other engine, switch to Detailed above."
+    "message": "Pick a platform, paste the API key it gave you, and set up translation, speech, and transcription at once."
   },
   "qs_platform": {
     "message": "Platform"
@@ -1890,7 +1890,7 @@
     "message": "API key"
   },
   "qs_get_key": {
-    "message": "No key yet? Get one at {p} ↗"
+    "message": "Get a key at {p}"
   },
   "qs_try": {
     "message": "Translate a page now"
@@ -1902,16 +1902,16 @@
     "message": "One key sets up translation, speech, and transcription at once."
   },
   "extob_mode_quick": {
-    "message": "One key"
+    "message": "One-tap"
   },
   "extob_mode_manual": {
-    "message": "Set up each engine"
+    "message": "Per engine"
   },
   "qs_key_ph": {
-    "message": "Paste once — configures all three"
+    "message": "Paste the API key QwenCloud gave you"
   },
   "qs_privacy": {
-    "message": "Transcription sends your recording to {host}. It is discarded as soon as it is recognised — never stored, never synced."
+    "message": "Keys stay on this device only."
   },
   "qs_grant_replaced": {
     "message": "(replaced the free-credit key)"
@@ -1950,7 +1950,7 @@
     "message": "Read with the system voice (the offline model does not cover {lang})"
   },
   "qs_apply": {
-    "message": "Set up translation, read-aloud and transcription"
+    "message": "Set up with one tap"
   },
   "qs_testing": {
     "message": "Testing…"
@@ -1989,10 +1989,49 @@
     "message": "The endpoint responded but returned no audio"
   },
   "opt_mode_quick": {
-    "message": "Quick"
+    "message": "One-tap"
   },
   "opt_mode_detail": {
-    "message": "All settings"
+    "message": "Per engine"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Switching will discard one-tap setup"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Switching will overwrite per-engine setup"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Switching to per-engine will discard your current one-tap setup"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Use per engine"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Switching to one-tap will overwrite your current per-engine setup"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Use one-tap"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Cancel"
+  },
+  "qs_others_in_detail": {
+    "message": "For other engines, use Per engine."
+  },
+  "qs_key_local_only": {
+    "message": "Keys stay on this device only"
+  },
+  "engine_keys_status_none": {
+    "message": "Not set up"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · one-tap ready"
+  },
+  "engine_keys_status_detail": {
+    "message": "Per-engine ready"
+  },
+  "engine_keys_row": {
+    "message": "Engines & keys"
   },
   "options_wipe_all": {
     "message": "Erase all data on this device"
@@ -3104,7 +3143,7 @@
     "message": "Account & data"
   },
   "opt_adv_hint": {
-    "message": "One-key setup is under “Quick” →"
+    "message": "One-tap setup is under “One-tap” →"
   },
   "stt_section": {
     "message": "Whole-clip transcription"

@@ -90,7 +90,7 @@ export function render(box, opts) {
   // 那在设置页上是真的（引擎/语音/学习各有一张卡），在引导页上不是：那里没有别的
   // 卡片，只有一个「手动填」的展开。一句指向不存在地方的说明比没有说明更糟。
   wrap.append(el('p', 'qs-sub', opts.sub || t('qs_sub',
-    '下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请在各自的卡片里单独配置。')));
+    '选平台，粘贴它发给你的 API Key，一次配好翻译、朗读、转写。')));
 
   // 只有一项时不渲染 <select> —— 一个只有一个选项的下拉是在假装有选择。
   let current = (pre && pre.custom && list.find((p) => p.custom))
@@ -113,9 +113,11 @@ export function render(box, opts) {
     sel.addEventListener('change', () => { current = list[Number(sel.value)] || list[0]; paintPlatform(); });
     row.append(sel); wrap.append(row);
   } else {
-    wrap.append(el('p', 'qs-sub', t('qs_only_one', '可用平台：{p}').replace('{p}',
-      labelOf(current.chat, t) + ' · ' + current.host)));
+    // 一键只露一个平台时：官网名，不缀 host（N24v2 S-02）。
+    wrap.append(el('p', 'qs-sub', labelOf(current.chat, t)));
   }
+  wrap.append(el('p', 'qs-sub', t('qs_others_in_detail',
+    '其它引擎请到分项配置。')));
 
   // 接口地址：只有自定义平台要填（#421 C）。占位符**取自注册表的 placeholder** ——
   // 地址类的事实一律归注册表，这张卡不再抄一份示例地址。
@@ -132,7 +134,7 @@ export function render(box, opts) {
   keyRow.append(el('label', null, t('qs_key', 'API Key')));
   const key = doc.createElement('input');
   key.id = 'qs-key'; key.type = 'password'; key.autocomplete = 'off';
-  key.placeholder = t('qs_key_ph', '粘贴一次，三样一起配好');
+  key.placeholder = t('qs_key_ph', '粘贴平台发给你的 API Key');
   if (pre && pre.key) key.value = pre.key;
   keyRow.append(key); wrap.append(keyRow);
 
@@ -157,7 +159,7 @@ export function render(box, opts) {
     keyLink.hidden = !ku;
     if (ku) {
       keyLink.href = ku;
-      keyLink.textContent = t('qs_get_key', '还没有 key？去 {p} 申请 ↗')
+      keyLink.textContent = t('qs_get_key', '去 {p} 申请 Key')
         .replace('{p}', labelOf(current.chat, t));
     }
     // 自定义平台（#421 C）：多一个地址框；按钮与隐私句都只说它真做得到的那一样。
@@ -165,15 +167,15 @@ export function render(box, opts) {
     base.placeholder = (current.chat && current.chat.placeholder) || '';
     key.placeholder = current.custom
       ? t('qs_key_ph_one', '粘贴一次，配好翻译')
-      : t('qs_key_ph', '粘贴一次，三样一起配好');
+      : t('qs_key_ph', '粘贴平台发给你的 API Key');
     btn.textContent = current.custom
       ? t('qs_apply_one', '用这个地址配好翻译')
-      : t('qs_apply', '配好翻译、朗读、转写');
-    // 转写那句隐私话只有在这个平台真的做转写时才成立。
-    privacy.hidden = !!current.custom;
-    privacy.textContent = current.custom ? '' : t('qs_privacy',
-      '转写会把你的**录音**发到 {host} 识别，识别完立即丢弃，不存储也不同步。')
-      .replace('{host}', current.host).replace(/\*\*/g, '');
+      : t('qs_apply', '一键配好');
+    // N24v2：辅助仅「申请 Key」+「密钥只存在本机」；转写隐私长句挪出一键主视线。
+    privacy.hidden = false;
+    privacy.textContent = current.custom
+      ? t('qs_key_local_only', '密钥只存在本机')
+      : t('qs_privacy', '密钥只存在本机。');
   }
 
   // 常显、不可折叠。「录音去哪儿必须是一次显式选择」这条裁定的落点从一个复选框
@@ -183,7 +185,7 @@ export function render(box, opts) {
 
   const btn = doc.createElement('button');
   btn.id = 'qs-apply'; btn.type = 'button';
-  btn.textContent = t('qs_apply', '配好翻译、朗读、转写');
+  btn.textContent = t('qs_apply', '一键配好');
   wrap.append(btn);
 
   const res = el('ul', 'qs-res'); res.id = 'qs-res'; res.hidden = true;

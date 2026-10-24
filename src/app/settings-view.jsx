@@ -808,8 +808,21 @@ export default function SettingsView() {
 
     const say = (...a) => { const h = settingsModel.hooks(); if (h.say) h.say(...a); };
 
-    $('mode-quick').addEventListener('click', () => setDetailFn(false));
-    $('mode-detail').addEventListener('click', () => setDetailFn(true));
+    // N24v2：一键/分项互斥 —— 点另一档先确认（覆盖，不是展开/收起）。
+    $('mode-quick').addEventListener('click', async () => {
+      if (!detailRef.current) return;
+      const ok = await LearnDialog.confirm(
+        t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
+        { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
+      if (ok) await setDetailFn(false);
+    });
+    $('mode-detail').addEventListener('click', async () => {
+      if (detailRef.current) return;
+      const ok = await LearnDialog.confirm(
+        t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
+        { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
+      if (ok) await setDetailFn(true);
+    });
     $('app-adv-hint-go').addEventListener('click', () => { setDetailFn(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
@@ -1269,8 +1282,16 @@ export default function SettingsView() {
         <div className="sec-head">
           <div className="sec-title"><span className="sec-n">1</span><h3 id="sec-engines-title">{t('opt_sec_engines', '引擎与密钥')}</h3></div>
           <div className="mode-tabs" id="mode-tabs" role="tablist" hidden={!quickAvail}>
-            <button id="mode-quick" type="button" role="tab" aria-selected={!detail}>{t('opt_mode_quick', '快速')}</button>
-            <button id="mode-detail" type="button" role="tab" aria-selected={detail}>{t('opt_mode_detail', '详细')}</button>
+            <button id="mode-quick" type="button" role="tab" aria-selected={!detail}
+              className={!detail ? '' : 'mode-tab-muted'}>
+              {!detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
+              {detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
+            </button>
+            <button id="mode-detail" type="button" role="tab" aria-selected={detail}
+              className={detail ? '' : 'mode-tab-muted'}>
+              {detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
+              {!detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
+            </button>
           </div>
         </div>
 
@@ -1300,7 +1321,7 @@ export default function SettingsView() {
         </section>
 
         {/* 永不同屏，但路必须有：详细档顶上一行指回快速档 */}
-        <p className="note adv-only" id="app-adv-hint" hidden={!detail}><button type="button" className="link" id="app-adv-hint-go">{t('opt_adv_hint', '一键配置在「快速」里 →')}</button></p>
+        <p className="note adv-only" id="app-adv-hint" hidden={!detail}><button type="button" className="link" id="app-adv-hint-go">{t('opt_adv_hint', '一键配置在「一键」里 →')}</button></p>
 
         {/* 详细档是三张槽卡：翻译与句子解析 / 整段转写 / 朗读。第一张**就是主翻译引擎**
              —— #421 方案 A 之前它自称「仅用于生成句子解析」，于是没人知道翻译该在哪儿配。 */}
@@ -1409,6 +1430,21 @@ export default function SettingsView() {
         <div className="sec-head">
           <div className="sec-title"><span className="sec-n">2</span><h3 id="sec-features-title">{t('opt_sec_features', '功能')}</h3></div>
         </div>
+        {/* N24v2 S-01：功能页入口「引擎与密钥」状态行 → 滚到① */}
+        <button type="button" className="link row" id="engine-keys-entry"
+          onClick={() => { try { $('sec-engines').scrollIntoView({ block: 'start' }); } catch (_) {} }}>
+          <span>{t('engine_keys_row', '引擎与密钥')}</span>
+          <span className="note" id="engine-keys-status">{(() => {
+            const s = depsSettings || {};
+            const rep = QuickSetup.represents(s);
+            if (rep) {
+              const name = (rep.chat && (rep.chat.label || rep.chat.id)) || rep.host || '';
+              return t('engine_keys_status_quick', '{p} · 一键已配').replace('{p}', typeof name === 'string' ? name : (name.global || name.china || rep.host));
+            }
+            if (s.apiKey) return t('engine_keys_status_detail', '分项已配');
+            return t('engine_keys_status_none', '未配置');
+          })()}</span>
+        </button>
 
         {/* 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项；在 App 里它还是 driving.js 眼里用户的母语。 */}
         <label className="field">

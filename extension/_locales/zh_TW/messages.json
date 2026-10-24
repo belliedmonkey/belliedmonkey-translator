@@ -1990,10 +1990,10 @@
     "message": "端點通了，但沒有回傳音訊"
   },
   "opt_mode_quick": {
-    "message": "快速"
+    "message": "一鍵"
   },
   "opt_mode_detail": {
-    "message": "詳細"
+    "message": "分項"
   },
   "options_wipe_all": {
     "message": "清除本機全部資料"

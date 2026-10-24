@@ -417,3 +417,7 @@ button:disabled, input:disabled, select:disabled {
 .dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
 .dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
 .card .dep .dep-go { background: none; border: none; padding: 0; margin: 0 0 0 .35em; width: auto; color: var(--link, var(--accent-deep)); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* N24v2：一键/分项互斥态（结构；像素后补） */
+.mode-tabs button.mode-tab-muted { opacity: .55; }
+.mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }

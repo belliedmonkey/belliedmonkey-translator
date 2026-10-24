@@ -1876,10 +1876,10 @@
     "message": "第一次用？两分钟把它配好 →"
   },
   "qs_title": {
-    "message": "用一把 key 配好全部"
+    "message": "引擎与密钥"
   },
   "qs_sub": {
-    "message": "下面这些平台，一把 key 能同时配好翻译、朗读、转写。其它引擎请切到上面的〈详细〉逐个配置。"
+    "message": "选平台，粘贴它发给你的 API Key，一次配好翻译、朗读、转写。"
   },
   "qs_platform": {
     "message": "平台"
@@ -1891,7 +1891,7 @@
     "message": "API 密钥"
   },
   "qs_get_key": {
-    "message": "还没有 key？去 {p} 申请 ↗"
+    "message": "去 {p} 申请 Key"
   },
   "qs_try": {
     "message": "现在翻一页看看"
@@ -1903,16 +1903,16 @@
     "message": "一把 key 就能同时配好翻译、朗读、转写。"
   },
   "extob_mode_quick": {
-    "message": "一键配置"
+    "message": "一键"
   },
   "extob_mode_manual": {
-    "message": "三引擎分别配"
+    "message": "分项"
   },
   "qs_key_ph": {
-    "message": "粘贴一次，三样一起配好"
+    "message": "粘贴 QwenCloud 发给你的 API Key"
   },
   "qs_privacy": {
-    "message": "转写会把你的录音发到 {host} 识别，识别完立即丢弃，不存储也不同步。"
+    "message": "密钥只存在本机。"
   },
   "qs_grant_replaced": {
     "message": "（替换了免费额度的 key）"
@@ -1951,7 +1951,7 @@
     "message": "用系统语音朗读（离线模型不含{lang}）"
   },
   "qs_apply": {
-    "message": "配好翻译、朗读、转写"
+    "message": "一键配好"
   },
   "qs_testing": {
     "message": "测试中…"
@@ -1990,10 +1990,49 @@
     "message": "端点通了，但没有返回音频"
   },
   "opt_mode_quick": {
-    "message": "快速"
+    "message": "一键"
   },
   "opt_mode_detail": {
-    "message": "详细"
+    "message": "分项"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "选用将作废一键配置"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "选用将覆盖分项配置"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "改用分项会作废当前一键配置"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "改用分项"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "改用一键会覆盖当前分项配置"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "改用一键"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "取消"
+  },
+  "qs_others_in_detail": {
+    "message": "其它引擎请到分项配置。"
+  },
+  "qs_key_local_only": {
+    "message": "密钥只存在本机"
+  },
+  "engine_keys_status_none": {
+    "message": "未配置"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · 一键已配"
+  },
+  "engine_keys_status_detail": {
+    "message": "分项已配"
+  },
+  "engine_keys_row": {
+    "message": "引擎与密钥"
   },
   "options_wipe_all": {
     "message": "清除本机全部数据"
@@ -3105,7 +3144,7 @@
     "message": "账号与数据"
   },
   "opt_adv_hint": {
-    "message": "一键配置在「快速」里 →"
+    "message": "一键配置在「一键」里 →"
   },
   "stt_section": {
     "message": "整段转写"
