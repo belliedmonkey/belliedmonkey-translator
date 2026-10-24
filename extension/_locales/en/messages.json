@@ -2109,7 +2109,7 @@
     "message": "Set up a translation engine →"
   },
   "setup_not_configured": {
-    "message": "No translation engine set up yet. Use the one-key setup above, or switch to “Detailed” to pick an engine and enter its key."
+    "message": "No translation engine set up yet. Use the one-tap setup above, or switch to “Per engine” to pick an engine and enter its key."
   },
   "toast_wipe_failed_what": {
     "message": "Not fully erased — still there: {what}. Please try again."
@@ -2644,7 +2644,7 @@
     "message": "This free credit is no longer recognised. Open settings and claim it again."
   },
   "grant_err_model": {
-    "message": "Free credit only works with the model it pins. You changed the model under Advanced — change it back, or add your own key."
+    "message": "Free credit only works with the model it pins. You changed the model under Per engine — change it back, or add your own key."
   },
   "grant_err_busy": {
     "message": "Too many requests right now. Wait a few seconds and try again."

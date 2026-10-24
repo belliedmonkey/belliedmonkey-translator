@@ -2071,7 +2071,7 @@
     "message": "去設定翻譯引擎 →"
   },
   "setup_not_configured": {
-    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「詳細」裡選一個引擎並填上 Key。"
+    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「分項」裡選一個引擎並填上 Key。"
   },
   "toast_wipe_failed_what": {
     "message": "沒有清乾淨，還剩：{what}。請再試一次。"
@@ -2606,7 +2606,7 @@
     "message": "這份免費額度認不出來了。到設定裡重新領一次。"
   },
   "grant_err_model": {
-    "message": "免費額度只能用它指定的那個模型。你在「詳細」裡改過模型 —— 改回去，或者填一把自己的 key。"
+    "message": "免費額度只能用它指定的那個模型。你在「分項」裡改過模型 —— 改回去，或者填一把自己的 key。"
   },
   "grant_err_busy": {
     "message": "這會兒請求太密了，等幾秒再試。"
@@ -3105,7 +3105,7 @@
     "message": "帳號與資料"
   },
   "opt_adv_hint": {
-    "message": "一鍵設定在「快速」裡 →"
+    "message": "一鍵設定在「一鍵」裡 →"
   },
   "stt_section": {
     "message": "整段轉寫"

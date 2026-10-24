@@ -489,7 +489,7 @@ function Options() {
   } else if (needsSetup) {
     setupNote = EngineState.needsKey({ provider: prov, apiKey: s.apiKey })
       ? T('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。')
-      : T('setup_not_configured', '还没配过翻译引擎。用上面的一键配置，或切到「详细」里选一个引擎并填上 Key。');
+      : T('setup_not_configured', '还没配过翻译引擎。用上面的一键配置，或切到「分项」里选一个引擎并填上 Key。');
   }
   const setupNoteShown = !!setupNote;
 
@@ -1794,7 +1794,7 @@ function Options() {
 
           {/* 永不同屏，但路必须有：详细档顶上一行指回快速档。 */}
           <p className="hint adv-only" id="adv-hint" hidden={detail}>
-            <button type="button" className="link-btn" id="adv-hint-go" onClick={advHintGo}>{T('opt_adv_hint', '一键配置在「快速」里 →')}</button>
+            <button type="button" className="link-btn" id="adv-hint-go" onClick={advHintGo}>{T('opt_adv_hint', '一键配置在「一键」里 →')}</button>
           </p>
 
           {/* 翻译引擎（含「解析这句」可选覆盖） */}
