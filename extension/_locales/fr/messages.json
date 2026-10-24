@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "Écoute en cours. Quitter termine cette conversation ; ce qui a été entendu est conservé."
   },
+  "listen_leave_confirm_paused": {
+    "message": "En pause. Quitter termine cette conversation ; ce qui a été entendu est conservé."
+  },
   "dialog_ok": {
     "message": "OK"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "Écoute en cours. Quitter met fin aux sous-titres ; les phrases déjà obtenues sont conservées."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "En pause. Quitter met fin aux sous-titres ; les phrases déjà obtenues sont conservées."
   },
   "subtitle_summary_title": {
     "message": "Cette session de sous-titres"

@@ -15,6 +15,9 @@
 var ListenCore = (() => {
   const SILENCE_MS = 30000;      // 30 s 没声音 ⇒ 暂停（interaction-spec 停止态四）
   const SILENCE_RMS = 0.004;     // 安静房间的门限；也是自适应门限的**下限**
+  const HEARD_RMS = 0.0001;      // 「采集链路是活的」：任何真实的麦克风 / 系统声音都远高于它
+  const FIRST_SOUND_MS = 180000; // 字幕：一次声音都没听到过时，静音门等 3 分钟（#590 iOS 4）
+  const LEVEL_GAP_MS = 2000;      // 电平帧断档超过它 ⇒ 断档那段不算「静音」（系统录音链路没声音时一帧都不发）
   const NOISE_WARMUP_MS = 2500;  // 开头这么久用来摸环境底噪
   const NOISE_FACTOR = 2.5;      // 门限 = 底噪 × 这个
   const NOISE_CEIL = 0.03;       // 门限上限：再吵也不能高到把正常说话判成静音
@@ -61,7 +64,7 @@ var ListenCore = (() => {
       flips: 0,           // 点过几次 ↔ —— 归属判得准不准的唯一体感指标
       lastVoiceAt: now,   // 上一次听到声音（RMS 过门限）
       // 这一场**有没有收到过一个非零样本**（#424）。与语音门限无关：底噪、配乐、隔壁的
-      // 说话都算「拿得到声音」，**恒零才是「拿不到」** —— 那是采集侧死了（Mac 上多半是
+      // 说话都算「拿得到声音」，**恒零（或低于 HEARD_RMS 的残渣）才是「拿不到」** —— 那是采集侧死了（Mac 上多半是
       // 系统录音权限），不是环境安静。两者的出口完全不同，所以必须分开记。
       heardAny: false,
       noiseFrom: 0,       // 环境底噪的摸底起点
@@ -352,9 +355,18 @@ var ListenCore = (() => {
   // 归属由 attributeByLang 给（见上）。**这里不再有第二个真值来源** —— 2026-09-08 之前
   // 是按「按住『我说』的时间窗」判的，那条机制连同 speaking / holdStart / myPartial 一起
   // 删掉了：两套判据并存，必然漂。
+  // 识别器在停顿处吐出的碎片定稿（「.」「a..」「.....」，#590 I）：没有字母数字，或拼音文字里
+  // 只有一个字母。汉字/假名/谚文/泰文一个字也可能是一句话（「好」「嗯」），不算碎片；数字也不算。
+  function junkFinal(text) {
+    const core = String(text || '').replace(/[^\p{L}\p{N}]/gu, '');
+    if (!core) return true;
+    if (core.length > 1 || CJK_CHAR.test(core) || NOSPACE_SCRIPT.test(core) || /\p{N}/u.test(core)) return false;
+    return true;
+  }
   function addFinal(s, text, at, cfg, deps) {
-    const clean = String(text || '').replace(/\s+/g, ' ').trim();
-    if (!clean) return null;
+    // 行首的悬空标点是识别器吞掉句首后留下的（「, you, and you risk…」，#590 L）—— 不留在行上
+    const clean = String(text || '').replace(/\s+/g, ' ').trim().replace(/^[,.;:!?，。、；：！？…]+\s*/u, '');
+    if (!clean || junkFinal(clean)) return null;
     // 本机路（§9.6.1）：归属由「哪一路识别器认出来的」直接给（deps.who），比按文字系猜准 ——
     // 同文字系语言对（en/fr）那时也能分开。没给就照旧按语言判。
     // 字幕模式单向：每句都归对方，连识别器给的 who 也不认（§9.8）。
@@ -390,7 +402,7 @@ var ListenCore = (() => {
   function pause(s, now) {
     if (s.resumedAt) { s.listenedMs += Math.max(0, now - s.resumedAt); s.resumedAt = 0; }
   }
-  function resume(s, now) { if (!s.resumedAt) { s.resumedAt = now; s.lastVoiceAt = now; } }
+  function resume(s, now) { if (!s.resumedAt) { s.resumedAt = now; s.lastVoiceAt = now; s.lastLevelAt = 0; } }
   function listenedMs(s, now) { return s.listenedMs + (s.resumedAt ? Math.max(0, now - s.resumedAt) : 0); }
 
   // Int16 PCM 的归一化 RMS（0..1）。
@@ -420,11 +432,21 @@ var ListenCore = (() => {
   function silenceCheck(s, rms, now) {
     // 顺手记「这一场拿到过真样本没有」（#424）。判据是 **> 0**，不是过不过语音门限 ——
     // 房间里的麦克风永远不会给出恒零，给出恒零的只有一条死掉的采集链路。
-    if (rms > 0) s.heardAny = true;
+    // 门槛是 HEARD_RMS（约 -80 dBFS）而不是 0：Mac 的系统录音链路没授权时交上来的是极小的非零
+    // 样本，`> 0` 会把它当成「听到过」，于是指向权限的提示永远不出（#590 A）。
+    if (rms > HEARD_RMS) s.heardAny = true;
     // 字幕模式：静态门限（见 MODES.staticGate）。持续的配乐就是「有声」，不摸底噪、不抬门限。
     if (modeOf(s).staticGate) {
-      if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; return false; }
-      return now - s.lastVoiceAt >= SILENCE_MS;
+      // Mac 系统录音在没有任何进程出声时**一帧都不发**：静音只能从「收到了帧、帧里没声」里数，
+      // 断档那段没有信息、也没有请求在花钱。不扣掉的话，静了很久之后第一帧（声音刚起头、还没过门限）
+      // 一到就当场判停（#590 Mac 复验 2026-10-13）。
+      if (!s.lastLevelAt) s.lastVoiceAt = now;
+      else if (now - s.lastLevelAt > LEVEL_GAP_MS) s.lastVoiceAt += now - s.lastLevelAt;
+      s.lastLevelAt = now;
+      if (rms >= SILENCE_RMS) { s.lastVoiceAt = now; s.voiceEver = true; return false; }
+      // 还没听到过一次声音：人多半还在找视频、等加载、跳广告 —— 这时没有任何请求在花钱，
+      // 30 秒就停只会吞掉开场（#590 iOS 4）。改等 FIRST_SOUND_MS。
+      return now - s.lastVoiceAt >= (s.voiceEver ? SILENCE_MS : FIRST_SOUND_MS);
     }
     if (!s.noiseFrom) s.noiseFrom = now;
     if (s.noiseFloor == null) {
@@ -633,7 +655,10 @@ var ListenCore = (() => {
   //   · 期间**另一门语言**（中文侧）有归属到**时间重叠**的定稿 ⇒ 这片是错语言的垃圾：丢弃（gate:drop）；
   //   · 否则 ⇒ 放行进账本（gate:release）。
   const HOLD_MAX_MS = 1500, HOLD_MAX_WORDS = 2, HOLD_GAP_MS = 120;
+  const EMBED_MAX_WORDS = 4;   // 句内夹词：自上一片汉字起最多接上这么多个拉丁词（更长的是另起的一句）
+  const EMBED_MIXED_MAX_WORDS = 8;   // 同一片里既有汉字又有拉丁词：拉丁词超过这么多就当成识别器把英文句认错了
   const HOLD_DUP_GAP_MS = 300;   // R14 ③：临时稿与上一条正式 final 的音频邻接容差（dup-prev）
+  const CJK_WAIT_MS = 400;       // 两路同刻交定稿时拉丁路先到的那几毫秒（实测 < 10 ms）
   const LEAD_PUNCT = /^[\s,.\u2026;:!?、。，…]+/u;
   const HAS_LETTER = /[\p{L}\p{N}]/u;
 
@@ -715,10 +740,10 @@ var ListenCore = (() => {
       } else diag('gate:drop', t, why);
       return t;
     }
-    function arm(locale) {
+    function arm(locale, ms) {
       const h = held[locale]; if (!h) return;
       if (h.timer) clearT(h.timer);
-      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, idleMs);
+      h.timer = setT(() => { const x = held[locale]; if (x) x.timer = 0; resolve(locale, 'idle'); }, ms || idleMs);
     }
     // 到点/冲突时的裁决：有冲突 ⇒ 丢弃；否则放行
     function resolve(locale, why) {
@@ -744,6 +769,33 @@ var ListenCore = (() => {
       }
       return false;
     }
+    // §9.6.1.13 规则 3：非拉丁那一路吐出的拉丁片，若与这一路上一片汉字（或已接上的拉丁片）紧接
+    // （≤ HOLD_GAP_MS；实测句内夹词恰为 0 ms、另起的英文句 1.3–2 s），就是这句话里夹的词。
+    // chain：locale → { t1, latin }（latin = 自上一片汉字以来接上的拉丁词数，上限 EMBED_MAX_WORDS）。
+    const chain = {};
+    function hasScript(want, text) {
+      if (want === 'Han') return hasCjk(text);
+      try { return new RegExp('\\p{Script=' + want + '}', 'u').test(String(text || '')); } catch (_) { return false; }
+    }
+    function latinWords(text) { return (String(text || '').match(/[A-Za-z][A-Za-z'’-]*/g) || []).length; }
+    function embeddedIn(locale, text, t0) {
+      const want = scriptOfLocale(locale);
+      if (!want || want === 'Latin') return false;
+      const got = d.dominantScript ? d.dominantScript(String(text || '')) : null;
+      if (got !== 'Latin') return false;
+      // 这一片自己就带着这一路的文字（「这个 project deadline」：2 个汉字、15 个拉丁字母）⇒ 中文句里夹词，
+      // 不用看它和上一片接没接上（实测这种片与上一句隔 1.9 s，按紧接判会被当成英文碎片丢掉）。
+      if (hasScript(want, text)) return latinWords(text) <= EMBED_MIXED_MAX_WORDS;
+      const ch = chain[locale];
+      if (!ch || !Number.isFinite(t0) || !Number.isFinite(ch.t1)) return false;
+      if (Math.abs(t0 - ch.t1) > HOLD_GAP_MS) return false;
+      return ch.latin + words(head(text)) <= EMBED_MAX_WORDS;
+    }
+    function noteChain(locale, text, t1, embed) {
+      if (!Number.isFinite(t1)) return;
+      if (hasCjk(text)) chain[locale] = { t1, latin: 0 };
+      else if (embed && chain[locale]) { chain[locale].t1 = t1; chain[locale].latin += words(head(text)); }
+    }
     return {
       // push(f) → [text, …] 这一片应当交给串句器的文字（可能带着救回的句头），空数组 = 什么都别加
       push(f) {
@@ -751,10 +803,18 @@ var ListenCore = (() => {
         const text = String((f && f.text) || '').trim();
         const base = baseCode(locale);
         const rescued = !!(f && f.rescued);
-        const why = rejectDeviceFinal(f, deps);
+        let why = rejectDeviceFinal(f, deps);
         const t0 = Number(f && f.t0), t1 = Number(f && f.t1);
         const tsOk = Number.isFinite(t0) && Number.isFinite(t1);
         const letterHead = HAS_LETTER.test(head(text));
+        const embed = why === 'script' && embeddedIn(locale, text, t0);
+        if (embed) { why = ''; diag('gate:embed', head(text)); }
+        // §9.6.1.13 规则 2：两路且对方是汉字一路时，拉丁这一路与「已收的汉字定稿」时间重叠 ⇒ 是同一段
+        // 中文音频的另一份转写，丢（不论置信度；按键锁定语言时 scriptFirst 为假，不走这里）。
+        if (d.scriptFirst && d.scriptFirst() && scriptOfLocale(locale) === 'Latin' && tsOk && letterHead && overlapCjk(base, t0, t1)) {
+          diag('gate:drop', head(text), 'cjk-overlap');
+          return [];
+        }
         // 方案 1（2026-10-11 第九轮）：rescued（partial 救回的文字）与**所有低置信拉丁片**
         // 不再按 conf 直接丢，改**按重叠裁决**：同时间段中文侧有「已被入口接收且含汉字」的定稿
         // 才丢（gate:drop reason=cjk-overlap），否则放行。
@@ -764,7 +824,14 @@ var ListenCore = (() => {
         //   · 长片（>2 词或 >1500 ms）没有可等的余地，**当场**按重叠裁决：有重叠 ⇒ 丢，没有 ⇒ 放行。
         // 这一条正是 r9 C3-en-1（`them to Mr. Zhang's office before 5 p.m.` 8 词 3000ms 被丢弃）的修法。
         const confLate = why === 'conf' && (rescued || scriptOfLocale(locale) === 'Latin');
-        const shortEnough = tsOk && t1 - t0 <= HOLD_MAX_MS && words(head(text)) <= HOLD_MAX_WORDS;
+        // 两路且对方是汉字一路时，拉丁路的低置信长片也扣住等中文侧：两路的定稿常在同一刻交来、
+        // 拉丁路先到几毫秒，当场裁决时重叠表里还没有那条中文 ⇒ 错语言的长片被放行成一行
+        // （中国版 Mac 录屏 cn4：「Take a project of deadline Xi.」紧跟着「这个 project 的 deadline 是周五」）。
+        // 只等那几毫秒的先后差（CJK_WAIT_MS），不按句头闸的 1.5 s 扣：自动两路里拉丁路过半定稿低于 0.5。
+        const waitCjk = confLate && tsOk && d.scriptFirst && d.scriptFirst() && scriptOfLocale(locale) === 'Latin';
+        const shortPiece = tsOk && t1 - t0 <= HOLD_MAX_MS && words(head(text)) <= HOLD_MAX_WORDS;
+        const shortEnough = shortPiece || waitCjk;
+        const holdMs = waitCjk && !shortPiece ? CJK_WAIT_MS : 0;
         // R14 ③：临时稿整段是**紧挨着的上一条正式 final** 的结尾 ⇒ 丢掉（不是替换，是去重）。
         // 这一道在**扣住之前**做：临时稿常因低置信被扣 1.5s 才放行，到路由器时「上一条正式 final」
         // 可能已经变了；Yes please 第 10 次的 `Please` 就是在这里被去掉的（另有 heldJoin 兜一层）。
@@ -806,7 +873,14 @@ var ListenCore = (() => {
             // 这里判的是「**紧接**」（两片端点相距 ≤ HOLD_GAP_MS 的邻接），不是时间重叠 ——
             // 所以不用 overlapTs（它要求真交叠）。邻接恰恰是 overlapTs 判 false 的那种关系。
             const merge = tsOk && Number.isFinite(h.t1) && t0 - h.t1 <= HOLD_GAP_MS && t0 >= h.t1 - HOLD_GAP_MS && hd && HAS_LETTER.test(hd);
-            if (merge) out.push(hd);
+            // 补救来的扣住片要带着自己的 rescued/t0/t1 单独先入账：混进返回值就按**这一片**的标记入账，
+            // 账本认不出它和随后的正式定稿是同一段音频 ⇒ 同一句两行（中国版 Mac 录屏 c6）。
+            const own = h.rescued && d.onRelease && HAS_LETTER.test(hd);
+            if (own && !h.conflict) {
+              try { d.onRelease(locale, hd, { rescued: true, t0: h.t0, t1: h.t1 }); } catch (_) {}
+              diag('gate:release', hd, merge ? 'rescued-merge' : 'rescued-gap');
+            }
+            else if (merge) out.push(hd);
             // 不紧接也不丢（1.19.4 r6，真机「英文丢前 1–2 个词」）：低置信拉丁片只有跨语言重叠能丢
             // （见本闸开头 ①）。识别器常把句首单出成一片 `Hello.`，后半句隔 >120 ms 才到 —— 以前这里
             // 记 gate:drop/gap 把句首扔了。已被中文侧判重叠的（conflict）照旧丢。
@@ -817,6 +891,7 @@ var ListenCore = (() => {
             else diag('gate:drop', h.text, 'punct');
           }
           if (letterHead) { out.push(text); if (confLate) diag('gate:release', head(text), rescued ? 'rescued' : 'latin-no-cjk'); }
+          if (!rescued) noteChain(locale, text, t1, embed);
           return out;
         }
         // ④ 其余（短的低置信片 / 文字系不符 / 纯标点）：先看**这条自己**有没有中文重叠 ——
@@ -859,7 +934,7 @@ var ListenCore = (() => {
             diag('gate:hold', now_.text, (why || (rescued ? 'rescued' : 'latin-low-conf')) + ':' + now_.parts.length);
           } else {
             held[locale] = { parts: [{ text, t0, t1, rescued }], text, t0, t1, timer: 0, conflict: false, rescued };
-            arm(locale);
+            arm(locale, holdMs);
             diag('gate:hold', text, why || (rescued ? 'rescued' : 'latin-low-conf'));
           }
         }
@@ -887,6 +962,8 @@ var ListenCore = (() => {
           }
         }
       },
+      // 这一片是不是「句内夹的另一门语言的词」（只读，给入口闸的归属判定用；§9.6.1.13 规则 2/3）
+      embedded(f) { return embeddedIn(String((f && f.locale) || ''), String((f && f.text) || '').trim(), Number(f && f.t0)); },
       held(locale) { const h = held[locale]; return h ? h.text : ''; },
       heldLocales() { return Object.keys(held).filter((k) => !!held[k]); },
       // 立即放行（按住说的停止 / 换边 / 结束）：关麦前把扣住的片放出去，不丢。
@@ -1068,6 +1145,19 @@ var ListenCore = (() => {
     if (!base || !lid || base !== lid) return { admit: false, markUsed: false };
     return { admit: true, markUsed: false };
   }
+  // §9.6.1.13 规则 2：两路、且一路是非拉丁文字、另一路是拉丁时，**文字系先于 LID**。
+  // 这一路的定稿以自己的文字为主（或是句内夹的拉丁词，embedded）⇒ 归这一路，不看 LID 此刻判什么
+  // （实测 LID 在句内的英文词上一翻就停 4.5–5.5 s）。其余返回空串 = 照旧按 LID。
+  // o = { locale, partnerLocale, text, dominantScript(fn), embedded(bool) }
+  function scriptFirstLid(o) {
+    const p = o || {};
+    const want = scriptOfLocale(p.locale), other = scriptOfLocale(p.partnerLocale);
+    if (!want || want === 'Latin' || other !== 'Latin') return '';
+    const got = typeof p.dominantScript === 'function' ? p.dominantScript(String(p.text || '')) : null;
+    if (got === want || (want === 'Han' && got === 'Kana')) return baseCode(p.locale);
+    if (got === 'Latin' && p.embedded) return baseCode(p.locale);
+    return '';
+  }
   // 识别定稿的**唯一闸**（纯，方案 §四）：两条路（模型断句 / 旧路）都走这一个函数，按顺序
   //   ① 正在朗读这门语言 ⇒ 丢（防回声的老规则，保留到做回声消除）
   //   ② 换边宽限 / LID 归属（finalAdmit）
@@ -1100,14 +1190,24 @@ var ListenCore = (() => {
     + '2 Do not split around a comma within one clause.\n'
     + '3 Put a semantically incomplete tail in remainder, untranslated; when force=true, remainder MUST be empty.\n'
     + '4 You may fix obvious recognition errors from context (homophones, proper nouns, numbers) without adding or dropping meaning.\n'
-    + '5 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
+    + '5 The speaker may embed words of another language (often English), possibly misspelled in Latin letters by the recognizer: restore their correct spelling, keep them inline, never split a sentence around them, translate the sentence as a whole.\n'
+    + '6 Output JSON only, nothing else: {"segments":[{"source":"...","translation":"..."}],"remainder":""}';
   const SEG_USER_FALLBACK = 'Finalized context (reference only, do not repeat):\n{ctx}\n\nText to process:\n{buffer}\n\nForce finalize: {force}';
+  // 同语言（§9.8.1 ②）：只把「同上」写进目标语言名时，qwen-plus 原样抄 source、有时还译成英文
+  // （2026-10-13 中国版实测）。「不是真词的拉丁字母串 = 听错的英文词」要明说：只说「还原拼错的夹词」时
+  // qwen-plus 一个都不改；明说了它又会改错（envoice → envelope、leftor → leftover），所以要「没把握就原样留」。
+  // 改得回几个取决于模型（同一提示 qwen-max 改回 invoice / laptop，qwen-flash 一个不改）。
+  const SEG_SAME_RULE = '\nThe source and target language are the same: do NOT translate. Any run of Latin letters that is not a real word '
+    + 'is the recognizer mis-hearing an English word the speaker said: replace it with the real English word that best fits the sentence '
+    + '(keep it in Latin letters, in place) — but only when the sentence makes that word clearly the intended one; '
+    + 'if you are not sure, leave the letters exactly as they are. Also fix misheard characters and numbers from context. '
+    + 'Put the corrected sentence in source and copy it into translation.';
   function buildSegPrompt(p) {
     const src = p.srcName || p.srcLang || '', dst = p.dstName || p.tgtName || p.dstLang || '';
     const ctx = (p.context || []).filter((c) => c && c.text);
     const sysTmpl = p.sysTmpl || SEG_SYS_FALLBACK;
     const userTmpl = p.userTmpl || SEG_USER_FALLBACK;
-    const system = sysTmpl.split('{src}').join(src).split('{dst}').join(dst);
+    const system = sysTmpl.split('{src}').join(src).split('{dst}').join(dst) + (p.same ? SEG_SAME_RULE : '');
     const ctxText = ctx.length ? ctx.map((c) => '- [' + (c.who === 'me' ? 'me' : 'them') + '] ' + c.text + (c.tr ? '  => ' + c.tr : '')).join('\n') : '';
     const user = userTmpl.split('{ctx}').join(ctxText)
       .split('{buffer}').join(String(p.buffer || ''))
@@ -1352,13 +1452,44 @@ var ListenCore = (() => {
     if (!p || !t || !p.endsWith(t)) return false;
     return !Number.isFinite(gapMs) || gapMs <= maxGap;
   }
+  // final 的某个词后缀在 temp 里必须一直对齐到 final 的最后一个词。从最长的后缀试起，
+  // 取第一个整段对上的（≥ ALIGN_MIN_RUN）。ni = 后缀在 final 词序列上的起点（0 = 从首词开始）。
+  function alignSuffixToEnd(temp, finalText) {
+    const hay = alignWords(temp), needle = alignWords(finalText);
+    if (hay.length < ALIGN_MIN_RUN || needle.length < ALIGN_MIN_RUN) return null;
+    for (let ni = 0; ni <= needle.length - ALIGN_MIN_RUN; ni++) {
+      const needLen = needle.length - ni;
+      for (let i = 0; i <= hay.length - needLen; i++) {
+        let k = 0;
+        while (k < needLen && wordNear(hay[i + k], needle[ni + k])) k++;
+        if (k === needLen) return { ni, hi: i, len: needLen, before: alignBeforeWord(temp, i) || '' };
+      }
+    }
+    return null;
+  }
   // R14 ⑤：以标点开头的正式 final（识别器把句首吞了）—— 把 final 文字在 partial 里对齐，取
   // 对齐位置**之前**的部分作为句首临时稿补回（对不上 / 不以标点开头 ⇒ 返回 ''）。
-  function rescueLead(finalText, partialText) {
+  // #590 L：首词本身可能是垃圾（`, you, and you risk…` 的 you 对不上 partial 里紧跟着的 and）。
+  // 从首词对不上时，改对齐「一直到末词」的最长后缀；留下的词必须多于切掉的，免得句尾两个词
+  // 碰巧相同就把前半句丢了。不以标点开头的不走这里 —— 开头那几个词可能是真说的。
+  function rescueLeadCut(finalText, partialText) {
     const ft = String(finalText == null ? '' : finalText);
-    if (!LEAD_PUNCT.test(ft)) return '';
-    const al = alignFinalInTemp(partialText, ft);
-    return (al && al.before) ? al.before : '';
+    if (!LEAD_PUNCT.test(ft)) return null;
+    const al = alignSuffixToEnd(partialText, ft);
+    if (al && al.ni > 0 && al.len > al.ni) {
+      const toks = alignTokens(ft);
+      const text = ft.slice(toks[al.ni].at).replace(/^\s+/, '');
+      if (!HAS_LETTER.test(text)) return null;
+      return { lead: al.before || '', text };
+    }
+    if (al && al.ni === 0 && al.before) return { lead: al.before, text: ft };
+    const fromStart = alignFinalInTemp(partialText, ft);
+    if (fromStart && fromStart.before) return { lead: fromStart.before, text: ft };
+    return null;
+  }
+  function rescueLead(finalText, partialText) {
+    const cut = rescueLeadCut(finalText, partialText);
+    return (cut && cut.lead) ? cut.lead : '';
   }
   // 模型 source 与上一条已出行行的重复前缀裁剪（方案 2，R12 第十轮）——**唯一判据**，出行时
   // （trimDupRows）与漂移检查前（parseSegReply，R14 方案 C）共用。只有这段前缀**不在本批缓冲里**
@@ -1538,6 +1669,7 @@ var ListenCore = (() => {
     let seq = 0, posSeq = 0, disposed = false, speaking = false, pttMode = false, holdMode = false;   // pttMode=正在按键收音（方案 1 的接线点，只作状态）；holdMode=旧「按住说」（第二次空闲用 idleMs）。默认自动听（autoReleaseMs）。
     let phase = 'open', closeReason = '';
     let inFlight = null;    // 请求在飞：{ locale, ids, text, sentAt, force, hold, voided, settled }
+    let authStopped = false; // 额度 / key 停机：账本只出原文，不再调用（#590 K）
     const heldBatch = {};   // locale → 扣住的结果（请求已回、等出行）：{ ids, text, sentAt, held:{segs,rem,ms}, releaseAt }
     let timer = 0, endTimer = 0;
     let calls = 0, emits = 0, fallbacks = 0;
@@ -1563,6 +1695,11 @@ var ListenCore = (() => {
     }
     function headRun(lc) { const rs = runsOf(lc); return rs.length ? rs[0] : []; }
     function legacyPayload(text) { return { kind: 'legacy', texts: hardCutSentences(text) }; }
+    // 额度 / key 停机：原文照出、译文留空。走 emit，不走 fallback（fallback 会再翻译一次）。
+    function unsentRow(text, meta) {
+      const m = meta || {};
+      return { kind: 'rows', rows: [{ source: text, translation: '' }], ms: 0, force: !!m.force, orig: text, feedAt: m.feedAt || 0, sentAt: m.sentAt || 0 };
+    }
     function attach(ids, payload) {
       const recs = ids.map(byId).filter(Boolean);
       if (!recs.length) return;
@@ -1822,7 +1959,7 @@ var ListenCore = (() => {
       }
       return { lc, due: st.lastFeedAt + idleMs, hold: false, run, txt };
     }
-    function canSend() { return phase === 'open' || (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch')); }
+    function canSend() { return !authStopped && (phase === 'open' || (phase === 'closing' && (closeReason === 'stop' || closeReason === 'switch'))); }
     function hasNewer(b) {
       for (const r of ledger) {
         if (r.locale !== b.locale || b.ids.indexOf(r.id) >= 0) continue;
@@ -2046,12 +2183,67 @@ var ListenCore = (() => {
       const i = ledger.findIndex((r) => r.id === id);
       if (i >= 0) ledger.splice(i + 1, 0, rec); else ledger.push(rec);
     }
+    // 额度用完 / key 被拒：与网页引擎同一个判据（e.grant || e.halt）。
+    // 没有具名正文的 HTTP 402 也停 —— 中继的 402 只有「你用完了」一个意思；正文若在路上丢了，
+    // 再交给旧路会按每句继续请求（#590 K，第三轮约 2 次/秒）。
+    function quotaSignal(err) {
+      if (!err) return null;
+      const tagged = (e) => (e && (e.grant || e.halt) ? e : null);
+      const hit = tagged(err) || tagged(err.cause);
+      if (hit) return hit;
+      const status = err.status || (err.cause && err.cause.status);
+      if (status !== 402) return null;
+      const src = err.status === 402 ? err : err.cause;
+      const code = src && typeof src.code === 'string' && src.code !== 'http' ? src.code : 'credit_exhausted';
+      return { grant: true, code, status: 402 };
+    }
+    // 把账本里还没出行的原文一次性交出（译文空），然后告诉宿主停机。不再 fallback。
+    function authStop(err) {
+      phase = 'closing'; closeReason = 'auth'; authStopped = true;
+      if (inFlight) {
+        inFlight.voided = true;
+        if (endTimer) { clearT(endTimer); endTimer = 0; }
+        const settled = inFlight.settled; inFlight.settled = null; inFlight = null;
+        if (settled) { try { settled(); } catch (_) {} }
+      }
+      for (const lc of Object.keys(heldBatch)) releaseHeld(lc); // 已经译好的结果照出，不另发请求
+      let guard = 0;
+      while (ledger.some((r) => !r.commit) && guard++ < 64) {
+        const i = ledger.findIndex((r) => !r.commit);
+        const lc = ledger[i].locale;
+        const ids = [];
+        for (let j = i; j < ledger.length; j++) {
+          const r = ledger[j];
+          if (r.commit || r.locale !== lc) break;
+          ids.push(r.id);
+        }
+        const recs = ids.map(byId).filter(Boolean);
+        const text = joinAll(recs);
+        if (!String(text || '').trim()) { commit(ids, { kind: 'none' }); continue; }
+        const last = recs[recs.length - 1];
+        commit(ids, unsentRow(text, { feedAt: last ? last.at : 0 }));
+      }
+      noteFail(err && err.code ? err.code : 'auth');
+      if (d.onQuota) { try { d.onQuota(err); } catch (_) {} }
+      finishClosing();
+    }
     function onError(b, err) {
       if (b.voided || disposed) { finishBatch(b); return; }
       const lc = b.locale, st = M(lc);
-      recsToWait(b);
       const status = err && (err.status || (err.cause && err.cause.status));
-      if (status === 401 || status === 402 || status === 403) { degradeAll('auth'); return; }
+      const stop = quotaSignal(err);
+      if (stop) { authStop(stop); return; }
+      // 没有额度/key 标记的 401/403（网关、预检）仍交旧路，原文不丢。
+      if (status === 401 || status === 403) { degradeAll('auth'); return; }
+      // 超时：这一次已经发出去，服务端可能还在算、已经计费。原文照出、译文留空，不再自动重送（#590 H）。
+      const timedOut = !!(err && (err.code === 'timeout' || (err.cause && err.cause.code === 'timeout')));
+      if (timedOut) {
+        noteFail('timeout');
+        commit(b.ids, { kind: 'rows', rows: [{ source: b.text, translation: '' }], ms: 0, force: !!b.force, orig: b.text, feedAt: batchFeedAt(b), sentAt: b.sentAt });
+        finishBatch(b);
+        return;
+      }
+      recsToWait(b);
       if (phase === 'closing' && (closeReason === 'end' || closeReason === 'degrade')) { settleBatchToLegacy(b); return; }
       st.fails++; noteFail(status ? ('http-' + status) : 'network');
       if (st.fails >= SEG_FAIL_MAX) maybeHardCut(lc, b);
@@ -2133,6 +2325,11 @@ var ListenCore = (() => {
       feed(lc, text, opts) {
         let t = String(text || '').trim();
         if (!t || disposed) return;
+        if (authStopped) {
+          // 停机之后迟到的定稿：原文照出，不再请求。
+          const rec = { id: ++seq, pos: ++posSeq, locale: lc, text: t, at: now(), state: 'wait', calls: 0, commit: unsentRow(t, { feedAt: now() }) };
+          ledger.push(rec); flush(); return;
+        }
         if (phase === 'closed' && closeReason !== 'degrade') return;   // 结束/离开后的迟到定稿丢弃
         const o = opts || {};
         const rescued = !!o.rescued;
@@ -2219,8 +2416,11 @@ var ListenCore = (() => {
     const src = p.srcName || p.srcLang || '', dst = p.dstName || p.dstLang || '';
     const system = 'You are the correction stage of a live conversation interpreter. The user message is ONE sentence of a raw on-device speech-recognition transcript in ' + src
       + ', plus the last few sentences of the conversation for context, and optionally recognizer candidates.\n'
-      + '1. Correct recognition errors only: homophones, mis-segmented words, wrong numbers. Keep the speaker\'s wording, order and length; never paraphrase, never add or drop content. If it is already right, repeat it unchanged.\n'
-      + '2. Then translate the corrected sentence into ' + dst + '.\n'
+      + '1. Correct recognition errors only: homophones, mis-segmented words, wrong numbers. Keep the speaker\'s wording, order and length; never paraphrase, never add or drop content. If it is already right, repeat it unchanged. '
+      + 'The speaker may embed words of another language (often English); the recognizer may spell them wrongly in Latin letters. Restore their correct spelling and keep them inline.\n'
+      + (p.same
+        ? '2. The target language is the same as the source: repeat the corrected sentence on the X line.\n'
+        : '2. Then translate the corrected sentence into ' + dst + ' as a whole.\n')
       + 'Output exactly two lines and nothing else:\n'
       + 'T: <corrected sentence in ' + src + '>\n'
       + 'X: <translation in ' + dst + '>';
@@ -2234,10 +2434,13 @@ var ListenCore = (() => {
   // 解析：双标签 ⇒ { text, tr }；只有 X / 无标签 ⇒ text 用原文、tr 取整段（原文永不丢）。
   function parseListenReply(raw, fallbackText) {
     const s = String(raw || '').replace(/\r/g, '').trim();
-    const T = (s.match(/^\s*T\s*[:：]\s*(.+)$/m) || [])[1];
-    const X = (s.match(/^\s*X\s*[:：]\s*(.+)$/m) || [])[1];
-    if (T && X) return { text: T.trim(), tr: X.trim(), tagged: true };
-    if (X) return { text: fallbackText, tr: X.trim(), tagged: false };
+    // 行内空白只认空格/制表符：`\s*` 会跨过换行，空的「T:」就把下一行「X: …」吞成修正稿（#590 iOS 7）
+    const line = (tag) => { const m = s.match(new RegExp('^[ \\t]*' + tag + '[ \\t]*[:：][ \\t]*(.*)$', 'm')); return m ? m[1].trim() : null; };
+    const T = line('T'), X = line('X');
+    if (T && X) return { text: T, tr: X, tagged: true };
+    if (X) return { text: fallbackText, tr: X, tagged: false };
+    // 有标签却没有译文（空的「X:」或只回了「T:」）：这句没译出来，别把标签行当译文上屏
+    if (T !== null || X !== null) return { text: fallbackText, tr: '', tagged: false };
     // 无标签：整段当译文（去掉可能的围栏与前缀）
     const tr = s.replace(/^```[a-z]*\n?|```$/g, '').trim();
     return { text: fallbackText, tr, tagged: false };
@@ -2376,21 +2579,21 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
-    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
+    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, scriptFirstLid, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,
     alignWords, canonWord, wordNear, alignFinalInTemp, alignBeforeWord, isTailDup, trimDupSource,
-    rescueLead, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
+    rescueLead, rescueLeadCut, isXferCandidate, xferClean, makeTransferGate, XFER_MAX_WORDS,
     fillPrepDetail,
     QUOTA_STATES, quotaStateOf, quotaRows, canYield, pickYield, quotaSelectPlan,
     lidBase, sideMatchesLid, langSupported,
 
-    SILENCE_MS, SILENCE_RMS, DEBOUNCE_MS, HISTORY_MAX,
+    SILENCE_MS, SILENCE_RMS, HEARD_RMS, FIRST_SOUND_MS, DEBOUNCE_MS, HISTORY_MAX,
     ECHO_TAIL_MS, ECHO_KEEP_MS, ECHO_SIM, SPOKEN_WINDOW_MS,
     NOISE_WARMUP_MS, NOISE_FACTOR, NOISE_CEIL, NOISE_STUCK_MS, SILENCE_RMS, noiseGate,
     MODES, modeOf, entryGate, captureSource,
-    newSession, sessionTitle, sourceFor, addFinal, flipWho, transcriptText,
+    newSession, sessionTitle, sourceFor, addFinal, junkFinal, flipWho, transcriptText,
     baseCode, scriptsOf, cjkLangOf, sideOf, attributeByLang, echoTokens, langPatch,
     makeEchoGuard, makeSpeakQueue,
     pause, resume, listenedMs, rmsOf, silenceCheck, draftFor, shouldWrite, summary, fmtClock,

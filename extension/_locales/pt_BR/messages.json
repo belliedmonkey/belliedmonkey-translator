@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "Ainda ouvindo. Sair encerra esta conversa; o que foi ouvido fica."
   },
+  "listen_leave_confirm_paused": {
+    "message": "Pausado. Sair encerra esta conversa; o que foi ouvido é mantido."
+  },
   "dialog_ok": {
     "message": "OK"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "Ainda ouvindo. Sair encerra as legendas; as frases até agora ficam guardadas."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "Pausado. Sair encerra estas legendas; as frases até agora são mantidas."
   },
   "subtitle_summary_title": {
     "message": "Esta sessão de legendas"
