@@ -340,7 +340,7 @@ export function ListenView() {
         {/* 字幕舞台 = #app-subs-pip：固定深色；原生 PiP 仍可叠同一矩形。空态用 note，有字藏 note。 */}
         <div
           id="app-subs-pip"
-          className={(mv.sub ? 'subs-stage listen-subs-pip' : (mv.pipGeom || mv.pipShown || !mv.sub ? 'listen-subs-pip' : ''))}
+          className={(mv.sub ? 'subs-stage' : '') + (mv.pipGeom || mv.pipShown || !mv.sub ? ' listen-subs-pip' : '')}
           hidden={mv.sub ? false : !mv.pipShown}
         >
           {mv.sub ? (
