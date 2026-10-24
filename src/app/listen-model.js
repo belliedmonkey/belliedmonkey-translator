@@ -2412,6 +2412,7 @@ const listenModel = (() => {
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
       pipShown: pipOn,
+      pipGeom: !!(caps && caps.system === 'unsupported'),
       pipFloatLabel: t('subtitle_pip_float', '字幕'),   // 原 paintMode 恒写 #app-subs-float
       partialsHidden: pipOn,   // 半句两行被小窗预览占位顶掉（协议补充决定（三）17）
       subsTipText: sub ? (macLike
