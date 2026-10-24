@@ -314,13 +314,23 @@ export function ListenView() {
     });
   };
 
+  const listenClass = (mv.sub ? 'mode-subtitle' : 'mode-listen')
+    + (mv.captionDesk ? ' caption-desk' : '')
+    + (mv.deskWide ? ' desk-wide' : '')
+    + (mv.deskNarrow ? ' desk-narrow' : '');
   return (
-    <section id="app-listen" className={mv.sub ? 'mode-subtitle' : 'mode-listen'} hidden>
+    <section id="app-listen" className={listenClass} hidden>
       <div className="listen-head">
         <button id="app-listen-back" className="link" type="button" onClick={listenModel.leave}>{t('app_listen_back', '‹ 返回')}</button>
         <h2 id="app-listen-title">{mv.title}</h2>
         <span id="app-listen-pill" className={'listen-pill' + (pill && pill.live ? ' live' : '') + (pill && pill.quota ? ' quota' : '')} hidden={!(pill && pill.text)}>{pill ? pill.text : ''}</span>
       </div>
+      {mv.captionDesk && mv.deskWide ? (
+        <p className="subs-desk-cta note" id="app-subs-desk-cta">{mv.deskCtaText}</p>
+      ) : null}
+      {mv.captionDesk ? (
+        <p className="subs-desk-lang note" id="app-subs-desk-lang">{mv.deskLangLine}</p>
+      ) : null}
       {/* 顶部那行语言行已删（改稿 E）：语言对只由控制区那个胶囊表达，不再说两遍。 */}
       <p className="note listen-mac-note" id="app-listen-mac-note" hidden={!mv.macNoteShown}>
         {t('listen_mac_use', '线上会议、视频通话也能用：让对方的声音从扬声器放出来即可。')}

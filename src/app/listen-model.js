@@ -34,6 +34,12 @@ import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import {
+  COPY_DESK_WIDE_CTA,
+  captionChromeForSubtitle,
+  captionDeskBand,
+  readLayoutContext,
+} from './layout-caption.js';
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -75,6 +81,16 @@ const listenModel = (() => {
       window.__mtDuoLayoutSessionGuard = true;
       window.addEventListener('LayoutContextChanged', () => {
         /* 有意空：布局事件不得改 phase/session。AC-D1 / INV-1。 */
+        try {
+          if (mode === 'subtitle') {
+            canvas.view('mode');
+            const lay = subtitleChromeLayout();
+            if (lay.captionChrome === 'captionDesk') {
+              pipRectOff();
+              NativeAudio.subtitleFloat(null);
+            } else if (session && pipHost()) pipRectOn();
+          }
+        } catch (_) {}
       });
     }
   } catch (_) {}
@@ -1658,9 +1674,18 @@ const listenModel = (() => {
 
   // iPhone 画中画（§9.8 协议补充决定（三）17、19、20）：「现在」卡里的占位块就是小窗预览的位置 —— 系统要求画中画的来源在屏幕上，
   // 原生在同一矩形上叠预览，离开 App 时由它自动浮出。位置随版面 / 滚动节流重发；滚出视口发 null。
+  function subtitleChromeLayout() {
+    const caps = bridged() ? NativeAudio.audioCaps() : null;
+    const macLike = caps ? caps.system !== 'unsupported' : isMacHost();
+    const ctx = readLayoutContext(typeof window !== 'undefined' ? window : null);
+    const captionChrome = captionChromeForSubtitle({ subtitle: mode === 'subtitle', macLike, ctx });
+    const deskBand = captionDeskBand(ctx, captionChrome);
+    return { captionChrome, deskBand, ctx };
+  }
   function pipHost() {
     const c = bridged() ? NativeAudio.audioCaps() : null;
-    return !!(session && session.mode === 'subtitle' && c && c.system === 'unsupported');
+    if (!(session && session.mode === 'subtitle' && c && c.system === 'unsupported')) return false;
+    return subtitleChromeLayout().captionChrome === 'compactPipPath';
   }
   let pipOff = null, pipLastRect = '';
   // 预览占位块的几何从**画布**来（rect 感知在视图）：视图装 ResizeObserver/滚动监听，
@@ -2389,9 +2414,20 @@ const listenModel = (() => {
     const sub = mode === 'subtitle';
     const caps = bridged() ? NativeAudio.audioCaps() : null;
     const macLike = caps ? caps.system !== 'unsupported' : isMacHost();
-    const pipOn = sub && !!caps && caps.system === 'unsupported';
+    const lay = subtitleChromeLayout();
+    const compactPip = lay.captionChrome === 'compactPipPath';
+    const pipOn = sub && !!caps && caps.system === 'unsupported' && compactPip;
+    const deskWide = lay.deskBand === 'deskWide';
+    const deskLangA = langLabel(cfg && cfg.myLang);
+    const deskLangB = langLabel(cfg && cfg.otherLang);
     return {
       sub,
+      captionChrome: lay.captionChrome,
+      captionDesk: lay.captionChrome === 'captionDesk',
+      deskWide,
+      deskNarrow: lay.deskBand === 'deskNarrow',
+      deskCtaText: t('subtitle_desk_wide_cta', COPY_DESK_WIDE_CTA),
+      deskLangLine: lay.captionChrome === 'captionDesk' ? `${deskLangA} ⇋ ${deskLangB}` : '',
       title: sub ? t('subtitle_title', '实时字幕') : t('listen_title', '对话'),
       myLabel: sub ? t('listen_my_lang_label', '我的语言') : t('listen_lang_me_label', '我'),
       otherLabel: sub ? t('subtitle_video_lang_label', '视频的语言') : t('listen_lang_other_label', '对方'),
@@ -2400,7 +2436,7 @@ const listenModel = (() => {
       // 「听到一种语言，就译另一种语言」。没有「我 / 对方」的角色，也没有自动跟随、没有 sheet。
       // 字幕那页没有「我」这一侧，用角色标签（视频语言 → 译成），同一对键、同一个控件。
       langPairLabels: sub ? [t('subtitle_video_lang_label', '视频语言：'), t('target_lang_label', '译成')] : ['', ''],
-      langDirArrow: sub ? '→' : '⇄',
+      langDirArrow: sub ? (lay.captionChrome === 'captionDesk' ? '⇋' : '→') : '⇄',
       // 改稿 D（2026-10-09）：听译页不再有「听到 A → 译成 B」那一行提示 —— 语言对本身就写在
       // 两个录音键上（左＝你说的、右＝对方说的）。字幕页本来就没有。`langDirsText` 随之退役。
       // 字幕左格多一个「自动」（默认）：视频语言交给 LID 认（候选 = 上次认出来的 + 译成）。
@@ -2412,10 +2448,10 @@ const listenModel = (() => {
       macNoteShown: !sub && isMacHost(),
       prepHidden: !sub,
       pipShown: pipOn,
-      pipGeom: !!(caps && caps.system === 'unsupported'),
+      pipGeom: pipOn,
       pipFloatLabel: t('subtitle_pip_float', '字幕'),   // 原 paintMode 恒写 #app-subs-float
       partialsHidden: pipOn,   // 半句两行被小窗预览占位顶掉（协议补充决定（三）17）
-      subsTipText: sub ? (macLike
+      subsTipText: sub && compactPip ? (macLike
         ? t('subtitle_tip_mac', '开始后，字幕出现在屏幕下方的悬浮条上；每句定稿也会列在这里。')
         : t('subtitle_tip_ios', '先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。')) : '',
     };
@@ -2743,7 +2779,11 @@ const listenModel = (() => {
     return {
       text: phase === 'downloading' ? t('listen_pill_pct', '{lang} {pct}%').replace('{lang}', dlName).replace('{pct}', String(dlPct))
         : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
-        : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
+        : listening ? (session.mode === 'subtitle'
+          ? (subtitleChromeLayout().captionChrome === 'captionDesk'
+            ? t('subtitle_desk_pill_live', '听译中 · {t}')
+            : t('subtitle_pill_live', '● 字幕中 · {t}')).replace('{t}', C.fmtClock(ms))
+          : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
         : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
         : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms)),
       live: listening,

@@ -20,6 +20,12 @@ enum MTPresentationMode: String {
     case dualSurfaceTent
 }
 
+/// BEL-29 · 实时字幕呈现壳（非 ListenSession 态）。Mac 无此文件（#if os(iOS)）。
+enum MTCaptionChrome: String {
+    case compactPipPath
+    case captionDesk
+}
+
 final class MTLayoutContext: NSObject {
     static let shared = MTLayoutContext()
 
@@ -89,6 +95,8 @@ final class MTLayoutContext: NSObject {
         // PresentationMode：只跟 size class，不跟设备。P0 永不 dualSurfaceTent。
         let mode: MTPresentationMode = (tc.horizontalSizeClass == .regular)
             ? .dualRegular : .singleCompact
+        // BEL-29：compact → PiP 路径；regular → 字幕台（JS 仅在 subtitle 流启用 desk）。
+        let chrome: MTCaptionChrome = (mode == .singleCompact) ? .compactPipPath : .captionDesk
         var dict: [String: Any] = [
             "horizontalSizeClass": h,
             "verticalSizeClass": v,
@@ -101,6 +109,7 @@ final class MTLayoutContext: NSObject {
                 "width": bounds.size.width, "height": bounds.size.height,
             ],
             "presentationMode": mode.rawValue,
+            "captionChrome": chrome.rawValue,
         ]
         // 占位：竖向系统栏 / ReservedRegion 真几何 need-27.1；字段先在，值恒空数组。
         dict["toolbarVerticalEdge"] = NSNull()
@@ -127,6 +136,7 @@ final class MTLayoutContext: NSObject {
               root.style.setProperty('--mt-scene-height', (g.height||0) + 'px');
               root.setAttribute('data-mt-presentation', ctx.presentationMode || '');
               root.setAttribute('data-mt-h-size', ctx.horizontalSizeClass || '');
+              root.setAttribute('data-mt-caption-chrome', ctx.captionChrome || '');
             }
             window.dispatchEvent(new CustomEvent('LayoutContextChanged', { detail: ctx }));
           } catch (e) {}

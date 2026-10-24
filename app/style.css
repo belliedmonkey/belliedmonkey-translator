@@ -947,8 +947,61 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-listen.mode-subtitle #app-subs-float { align-self: center; }
 /* 紧凑外屏：侧栏「最近句子」收起，舞台占满；橙「开始」通栏 */
 #app-listen.mode-subtitle #app-listen-history-wrap {
-  /* compact 默认藏侧栏；≥720 再开（下媒体块） */
+  /* compact 默认藏侧栏；≥720 再开（下媒体块）；captionDesk 半宽也开（BEL-29 §4.1） */
   display: none;
+}
+#app-listen.mode-subtitle.caption-desk #app-listen-history-wrap {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--border, var(--line));
+  min-height: 0;
+  overflow: hidden;
+}
+#app-listen.mode-subtitle.caption-desk:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  gap: 10px;
+}
+#app-listen.mode-subtitle.caption-desk .subs-desk-cta {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border, var(--line));
+  line-height: 1.45;
+  color: var(--text, inherit);
+}
+#app-listen.mode-subtitle.caption-desk .subs-desk-lang {
+  margin: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  color: var(--text-muted, var(--muted));
+}
+/* H9：4:5 预览仅 compactPipPath；captionDesk 主字幕面全宽/半宽，不钉 4:5 */
+#app-listen.mode-subtitle.caption-desk #app-subs-pip.subs-stage {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  min-height: 220px;
+  margin: 0;
+  border-radius: 20px;
+  background: #0F172A;
+}
+#app-listen.mode-subtitle.caption-desk #app-subs-pip.listen-subs-pip {
+  width: 100%;
+  max-width: none;
+  aspect-ratio: auto;
+  flex: 1 1 auto;
+  min-height: 220px;
+  margin: 0;
+  border-radius: 20px;
+  background: #0F172A;
 }
 #app-listen.mode-subtitle #app-listen-actions {
   display: flex;
@@ -978,8 +1031,21 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 
 @media (min-width: 720px) {
-  /* 字幕 dualRegular：主区大字幕 + 最近侧栏（约 62/38），不是对话 42/58 左控右史 */
-  #app-listen.mode-subtitle:not([hidden]) {
+  /* BEL-29 captionDesk：全宽/半宽字幕台用纵栏；compact PiP 仍走 62/38 网格 */
+  #app-listen.mode-subtitle.caption-desk:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    grid-template-columns: unset;
+    grid-template-areas: unset;
+    height: 100%;
+  }
+  #app-listen.mode-subtitle.caption-desk.desk-wide:not([hidden]) {
+    max-width: 42rem;
+    margin: 0 auto;
+    width: 100%;
+  }
+  /* 字幕 dualRegular compactPip：主区大字幕 + 最近侧栏（约 62/38），不是对话 42/58 左控右史 */
+  #app-listen.mode-subtitle:not(.caption-desk):not([hidden]) {
     display: grid;
     grid-template-columns: minmax(0, 0.62fr) minmax(0, 0.38fr);
     column-gap: 18px;

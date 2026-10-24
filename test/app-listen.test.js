@@ -819,7 +819,8 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   });
   test('语言区 = 两门对称（听到 A 译 B / 听到 B 译 A），字幕用角色标签', () => {
     ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
-    ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
+    ok(/langDirArrow: sub \? \(lay\.captionChrome === 'captionDesk' \? '⇋' : '→'\) : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕 compact 不是 →、desk 不是 ⇋');
+    ok(/subtitle_desk_wide_cta/.test(MODEL), 'deskWide CTA 应走 i18n 键');
     ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
     ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
     const view = read('src/app/listen-view.jsx');
