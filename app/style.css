@@ -842,6 +842,14 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   box-sizing: border-box;
   text-align: center;
 }
+/* H9 r3：字幕态 #app-subs-pip 无条件 4:5（不依赖 class 是否带 listen-subs-pip） */
+#app-listen.mode-subtitle #app-subs-pip {
+  width: 64%;
+  max-width: 280px;
+  aspect-ratio: 4 / 5;
+  margin: 8px auto 0;
+}
+
 /* iPhone 画中画：字幕模式仍用 subs-stage 排版，但占位几何跟 .listen-subs-pip 一样 4:5（H9） */
 /* H9 r2: unsupported 预览态无条件 4:5（不依赖是否已带 subs-stage） */
 #app-listen.mode-subtitle #app-subs-pip.listen-subs-pip {
