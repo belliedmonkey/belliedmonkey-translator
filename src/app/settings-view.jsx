@@ -778,6 +778,97 @@ export default function SettingsView() {
     } finally { btn.disabled = false; }
   };
 
+
+  // 1.21.2 泰语 Grok BYOK：intl 显示；china 隐藏。Key 只走 AppSecureStore，不写 chrome.storage。
+  const THAI_GROK_KEY_ACCOUNT = 'thaiGrokSttApiKey';
+  const XAI_KEY_URL = 'https://console.x.ai/';
+  let thaiGrokKeyPresent = false;
+  let thaiGrokKeyDraft = '';   // 本页未保存的粘贴（不清空前留在 input；不落盘明文到 storage）
+
+  function isChinaFlavor() {
+    try { return Registry.flavor() === 'china'; } catch (_) { return false; }
+  }
+
+  function refreshThaiGrokNokey() {
+    const on = !!( $('thai-grok-enable') && $('thai-grok-enable').checked );
+    const has = thaiGrokKeyPresent || !!(thaiGrokKeyDraft && thaiGrokKeyDraft.trim());
+    const show = on && !has;
+    if ($('thai-grok-nokey')) $('thai-grok-nokey').hidden = !show;
+    if ($('thai-grok-nokey-scope')) $('thai-grok-nokey-scope').hidden = !show;
+    if ($('thai-grok-key-row')) {
+      try { $('thai-grok-key-row').style.opacity = on ? '' : '0.5'; } catch (_) {}
+    }
+  }
+
+  async function paintThaiGrok(cur) {
+    const block = $('thai-grok-block');
+    if (!block) return;
+    if (isChinaFlavor()) { block.hidden = true; return; }
+    block.hidden = false;
+    if ($('thai-grok-enable')) $('thai-grok-enable').checked = cur.thaiGrokStt === true;
+    thaiGrokKeyPresent = false;
+    thaiGrokKeyDraft = '';
+    try {
+      if (typeof AppSecureStore !== 'undefined' && AppSecureStore.get) {
+        const r = await AppSecureStore.get(THAI_GROK_KEY_ACCOUNT);
+        thaiGrokKeyPresent = !!(r && r.present);
+      }
+    } catch (_) { thaiGrokKeyPresent = false; }
+    const input = $('thai-grok-key');
+    if (input) {
+      // 已配置：用掩码占位，不把真值填进 DOM（防截图/辅助功能泄露）。
+      input.value = '';
+      input.placeholder = thaiGrokKeyPresent
+        ? t('thai_grok_key_masked', 'xai-••••••••')
+        : t('thai_grok_key_placeholder', '粘贴 xAI API Key');
+    }
+    refreshThaiGrokNokey();
+  }
+
+  async function saveThaiGrokKeyFromInput() {
+    const input = $('thai-grok-key');
+    const raw = input ? String(input.value || '').trim() : '';
+    if (!raw) return;
+    thaiGrokKeyDraft = raw;
+    try {
+      if (typeof AppSecureStore !== 'undefined' && AppSecureStore.set) {
+        const r = await AppSecureStore.set(THAI_GROK_KEY_ACCOUNT, raw);
+        thaiGrokKeyPresent = !!(r && r.present);
+      } else {
+        // 无桥（浏览器单测壳）：不允许 storage 明文当唯一真源 —— 只留草稿提示。
+        thaiGrokKeyPresent = false;
+      }
+    } catch (_) {}
+    // 清掉旧 Debug 手灌，避免 Release 路径误读 storage。
+    try { chrome.storage.local.remove(['thaiGrokSttApiKey']); } catch (_) {}
+    if (input) {
+      input.value = '';
+      input.placeholder = thaiGrokKeyPresent
+        ? t('thai_grok_key_masked', 'xai-••••••••')
+        : t('thai_grok_key_placeholder', '粘贴 xAI API Key');
+    }
+    thaiGrokKeyDraft = '';
+    refreshThaiGrokNokey();
+  }
+
+  async function clearThaiGrokKey() {
+    thaiGrokKeyDraft = '';
+    thaiGrokKeyPresent = false;
+    try {
+      if (typeof AppSecureStore !== 'undefined' && AppSecureStore.clear) {
+        await AppSecureStore.clear(THAI_GROK_KEY_ACCOUNT);
+      }
+    } catch (_) {}
+    try { chrome.storage.local.remove(['thaiGrokSttApiKey']); } catch (_) {}
+    const input = $('thai-grok-key');
+    if (input) {
+      input.value = '';
+      input.placeholder = t('thai_grok_key_placeholder', '粘贴 xAI API Key');
+    }
+    refreshThaiGrokNokey();
+  }
+
+
   // 整页重画（旧 paint(session, say)）。session 现读 settingsModel.currentSession()
   // （设置页开着时登录态变了要用新的，见 model 那边注释）；say 动态取宿主钩子。
   async function paintNow() {
@@ -821,6 +912,7 @@ export default function SettingsView() {
     paintListenPack();
     setDepsSettings(Object.assign({}, cur));
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
+    await paintThaiGrok(cur);
     $('doc-capture').checked = cur.docCapture !== false;
     if ($('quick-enabled')) $('quick-enabled').checked = cur.quickEnabled !== false;
     $('doc-prefetch').checked = !!cur.docPrefetch;
@@ -992,6 +1084,28 @@ export default function SettingsView() {
     $('listen-capture').addEventListener('change', () => { settingsModel.set({ listenCapture: $('listen-capture').checked }); });
     if ($('subtitle-capture')) $('subtitle-capture').addEventListener('change', () => { settingsModel.set({ subtitleCapture: $('subtitle-capture').checked }); });
     $('listen-autospeak').addEventListener('change', () => { settingsModel.set({ listenAutoSpeak: $('listen-autospeak').checked }); });
+    if ($('thai-grok-enable')) {
+      $('thai-grok-enable').addEventListener('change', async () => {
+        await settingsModel.set({ thaiGrokStt: $('thai-grok-enable').checked === true });
+        refreshThaiGrokNokey();
+      });
+    }
+    if ($('thai-grok-key')) {
+      $('thai-grok-key').addEventListener('change', () => { saveThaiGrokKeyFromInput(); });
+      $('thai-grok-key').addEventListener('input', () => {
+        thaiGrokKeyDraft = String($('thai-grok-key').value || '');
+        refreshThaiGrokNokey();
+      });
+    }
+    if ($('thai-grok-key-clear')) {
+      $('thai-grok-key-clear').addEventListener('click', () => { clearThaiGrokKey(); });
+    }
+    if ($('thai-grok-key-url')) {
+      $('thai-grok-key-url').addEventListener('click', () => {
+        const hooks = settingsModel.hooks();
+        if (hooks.openExternal) hooks.openExternal(XAI_KEY_URL);
+      });
+    }
     $('doc-capture').addEventListener('change', () => { settingsModel.set({ docCapture: $('doc-capture').checked }); });
     // 快速翻译：这一块只在原生回了 quick-caps 时显示（macOS）；AppQuickHost 订阅设置总线，开关一变菜单栏就跟着变。
     if ($('quick-enabled')) {
@@ -1666,6 +1780,36 @@ export default function SettingsView() {
           </label>
           <p className="note" id="listen-autospeak-note">{t('listen_autospeak_note',
             '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。')}</p>
+          {/* 1.21.2 泰语 Grok BYOK（Pencil B-01/02/03）。china flavor 整块隐藏。 */}
+          <div id="thai-grok-block" hidden>
+            <h4 id="thai-grok-title">{t('thai_grok_section', '泰语识别（Grok）')}</h4>
+            <label className="check">
+              <input id="thai-grok-enable" type="checkbox" />
+              <span id="thai-grok-enable-label">{t('thai_grok_enable_label', '使用 Grok 识别泰语')}</span>
+            </label>
+            <label className="field" id="thai-grok-key-row">
+              <span id="thai-grok-key-label">{t('thai_grok_key_label', 'API Key · xAI')}</span>
+              <div className="row">
+                <input id="thai-grok-key" type="password" autoComplete="off" spellCheck="false"
+                  placeholder={t('thai_grok_key_placeholder', '粘贴 xAI API Key')} />
+                <button id="thai-grok-key-clear" type="button" className="secondary">
+                  {t('thai_grok_key_clear', '清空')}
+                </button>
+              </div>
+            </label>
+            <p className="note" id="thai-grok-nokey" hidden role="status">
+              {t('thai_grok_nokey', '未填 API Key · 泰语识别不可用')}
+            </p>
+            <p className="note" id="thai-grok-nokey-scope" hidden>
+              {t('thai_grok_nokey_scope', '只影响泰语识别，不中断整场听译')}
+            </p>
+            <p className="note" id="thai-grok-local-note">{t('thai_grok_local_note', '密钥只存在本机')}</p>
+            <p className="note">
+              <button id="thai-grok-key-url" type="button" className="link">
+                {t('thai_grok_key_url', '去 xAI 申请 Key')}
+              </button>
+            </p>
+          </div>
         </div>
 
         {/* 文档翻译（§9.7） */}

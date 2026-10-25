@@ -4061,5 +4061,35 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Um {lang} zu nutzen, gib zuerst eine Sprache frei."
+  },
+  "thai_grok_section": {
+    "message": "Thai recognition (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "Use Grok for Thai speech"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "Paste xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••"
+  },
+  "thai_grok_key_clear": {
+    "message": "Clear"
+  },
+  "thai_grok_nokey": {
+    "message": "API Key missing · Thai recognition unavailable"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "Only Thai recognition is affected; the rest of the session continues"
+  },
+  "thai_grok_local_note": {
+    "message": "The key stays on this device"
+  },
+  "thai_grok_key_url": {
+    "message": "Get a key from xAI"
   }
 }

@@ -200,22 +200,21 @@ const listenModel = (() => {
   // 这个键是**开发开关**、刻意不进 schema（schema 的键会出现在设置界面 ⇒ 就成了用户可见改动）：
   // 不设 = ECAPA；'whisper' = 回到旧的 sherpa SLID（判词会乱跳，只作对照）。
   // lidThreshold 是 ECAPA 的 |LLR| 阈值（默认 6）；lidCpuOnly 只用于排查计算单元争用。
-  // thaiGrokStt 也是**开发开关**（同样刻意不进 schema）：默认关 = th 仍走本机 DictationTranscriber；
-  // 开 = 本场有 th 时该路改走 GrokStt，且 th 不再进 stt-start（互斥）。见 docs/thai-grok-stt-demo-spec.md。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix', 'thaiGrokStt'];
-  // Debug 字段 thaiGrokSttApiKey 的内存快照（readCfg 里只在开关开时读）。绝不 console / DiagLog /
-  // 写仓库；GrokStt.open 的 getApiKey 只从这里与进程环境取。
-  let grokDebugKey = '';
+  // 1.21.2：thaiGrokStt 已进 SETTINGS_SCHEMA（默认 false）—— 产品 BYOK 开关。
+  // LID_DEV 其余键仍是开发开关、不进 schema。Debug 可继续手灌 storage.local.thaiGrokStt
+  //（与 schema 同键，OR 自然成立）；Release 商店路径只认设置页写入的 schema 值。
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix'];
+  // 泰语 Grok Key：真源 = 本机 Keychain（AppSecureStore account=thaiGrokSttApiKey）。
+  // 内存快照只在开关开时填充；绝不 console / DiagLog / 写仓库。
+  // Debug OR：进程 env XAI_API_KEY、或 storage.local.thaiGrokSttApiKey（旧手灌捷径）。
+  let grokVaultKey = '';
   function grokApiKey() {
-    // 步 2 鉴权：WKWebView 不能给 WebSocket 加 Authorization 头。这里只做「有 key 就带」的 Debug 路；
-    // App 内默认没有 key ⇒ GrokStt 异步 error reason=no-key（具名失败，不是假装成功）。
-    // App 真机鉴权是另一步（原生桥带头发连），不在本步偷偷无头连 xAI。
     try {
       if (typeof process !== 'undefined' && process && process.env && process.env.XAI_API_KEY) {
         return String(process.env.XAI_API_KEY);
       }
     } catch (_) {}
-    return grokDebugKey || '';
+    return grokVaultKey || '';
   }
   function readCfg() {
     return new Promise((resolve) => {
@@ -264,28 +263,38 @@ const listenModel = (() => {
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
           lidRewriteFix: s.lidRewriteFix !== false,   // 轻量修正（L-16 关掉做方向核实）
-          thaiGrokStt: s.thaiGrokStt === true,   // 泰语 Grok 路由开发开关（默认关）
+          thaiGrokStt: s.thaiGrokStt === true,   // 产品 BYOK 开关（schema 默认 false）
           otherLang,
           lang: otherLang,   // 对方说的语言 = 「对方的语言」选择（进语料时的 lang）
           langs: Array.isArray(rules.langs) && rules.langs.length ? rules.langs : null,
           registry: Registry.langs(),
           label: sub ? SUBTITLE_LABEL() : SOURCE_LABEL(),
         };
-        // Debug key 只在开关开时再读一次（开关关时不新增存储读，STT 路径与基线同形）。
-        // 快照只留在内存给 grokApiKey；绝不 console / DiagLog / 写仓库。
-        if (out.thaiGrokStt !== true) { grokDebugKey = ''; resolve(out); return; }
-        let done = false;
-        try {
-          chrome.storage.local.get(['thaiGrokSttApiKey'], (k) => {
-            if (done) return;
-            done = true;
-            grokDebugKey = k && k.thaiGrokSttApiKey ? String(k.thaiGrokSttApiKey) : '';
-            resolve(out);
-          });
-          return;
-        } catch (_) {}
-        grokDebugKey = '';
-        resolve(out);
+        // Key 只在开关开时再取（开关关时不碰 Keychain / 存储，STT 路径与基线同形）。
+        if (out.thaiGrokStt !== true) { grokVaultKey = ''; resolve(out); return; }
+        (async () => {
+          let key = '';
+          try {
+            if (typeof AppSecureStore !== 'undefined' && AppSecureStore.get) {
+              const r = await AppSecureStore.get('thaiGrokSttApiKey');
+              if (r && r.present && r.value) key = String(r.value);
+            }
+          } catch (_) {}
+          // Debug OR：旧手灌 storage.local（Release 设置页只写 Keychain，不写这项）。
+          if (!key) {
+            try {
+              key = await new Promise((res) => {
+                try {
+                  chrome.storage.local.get(['thaiGrokSttApiKey'], (k) => {
+                    res(k && k.thaiGrokSttApiKey ? String(k.thaiGrokSttApiKey) : '');
+                  });
+                } catch (_) { res(''); }
+              });
+            } catch (_) { key = ''; }
+          }
+          grokVaultKey = key || '';
+          resolve(out);
+        })();
       });
     });
   }
@@ -1474,7 +1483,7 @@ const listenModel = (() => {
   function openDevice(myGen) {
     if (xferGate) { try { xferGate.cancel(); } catch (_) {} xferGate = null; }   // R14：重连时清掉旧场的候补计时器
     const locales = sessionLocales();
-    // ── 步 2：泰语 Grok 路由（开发开关；与原生互斥）─────────────────────────────
+    // ── 泰语 Grok 路由（1.21.2 产品开关；与原生互斥）────────────────────────────
     // 开关开且本场有 th 时，把 th 从原生 stt-start 里摘出来单独走 GrokStt：同一路 PCM 只喂
     // 一个识别器，避免双开双计费 / 双行。开关关、或本场没有 th ⇒ nativeLocales 保持 null，
     // 下面走原来那条单路 NativeSpeech.sttOpen（基线逐字同形）。

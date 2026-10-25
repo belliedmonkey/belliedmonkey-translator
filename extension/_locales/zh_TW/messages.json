@@ -4095,5 +4095,35 @@
   },
   "langpacks_tts_ready": {
     "message": "離線朗讀 · 已就緒"
+  },
+  "thai_grok_section": {
+    "message": "泰語識別（Grok）"
+  },
+  "thai_grok_enable_label": {
+    "message": "使用 Grok 識別泰語"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "貼上 xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••"
+  },
+  "thai_grok_key_clear": {
+    "message": "清除"
+  },
+  "thai_grok_nokey": {
+    "message": "未填 API Key · 泰語識別不可用"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "只影響泰語識別，不中斷整場聽譯"
+  },
+  "thai_grok_local_note": {
+    "message": "金鑰只存在本機"
+  },
+  "thai_grok_key_url": {
+    "message": "前往 xAI 申請 Key"
   }
 }

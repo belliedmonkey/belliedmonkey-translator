@@ -1369,3 +1369,9 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 /* N24v2：一键/分项互斥态（结构；像素后补） */
 #app-settings .mode-tabs button.mode-tab-muted { opacity: .55; }
 #app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }
+
+/* 1.21.2 泰语 Grok BYOK：开开关但无 Key 的行内失败（Pencil B-03） */
+#thai-grok-nokey { color: var(--accent-deep); font-weight: 600; }
+#thai-grok-block h4 { margin: 14px 0 8px; font-size: 0.95rem; }
+#thai-grok-key-row .row { display: flex; gap: 8px; align-items: center; }
+#thai-grok-key-row .row input { flex: 1; min-width: 0; }
