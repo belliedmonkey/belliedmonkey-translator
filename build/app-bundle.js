@@ -153,8 +153,9 @@ const MODULES = [
                                          // 必须在 driving.js 之前：openCard 会调它。
   'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
   'app/native-speech.js',                // NativeSpeech — §9.6.1 设备内置转写/朗读的桥（只在 App 里有桥）
-  // app/grok-stt.js — **不**恒进 MODULES。见下方 DEBUG_ONLY_MODULES：仅国际 Debug 包链入；
-  // 中国包 / Release 剥门（SPEC-THAI-GROK-RELEASE-PEEL）构建时省略，避免 api.x.ai / grok-stt-* 进产物。
+  'app/secure-store.js',                 // AppSecureStore — 1.21.2 本机 Keychain（泰语 Grok BYOK；无桥=no-op）
+  // app/grok-stt.js — **不**恒进 MODULES。见下方 INTL_GROK_MODULES：仅国际包（Debug+Release）链入；
+  // 中国包（flavor=china / omitGrokStt / genRoot）构建时省略，避免 api.x.ai / grok-stt-* 进产物。
   'app/diag-log.js',                     // DiagLog — 诊断日志（§0.4.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
   'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）
   'app/model-sources.js',                // ModelSources — 离线模型下载地址从后端表来：探测 / 默认 / 备用 / 清单兜底（§9.6.1.1，只有 App 用）
@@ -185,7 +186,7 @@ const MODULES = [
 
 // 中国 / Release 剥门：omit Grok 时 native-speech 仍恒进 MODULES，但 PROTOCOL 与
 // grok-stt-event 转发里的 `grok-stt-open` 等字面量会绊 china-gate（SPEC-THAI-GROK-RELEASE-PEEL）。
-// 源码保留（国际 Debug + Swift #if DEBUG 对表）；只在 omit 路径的**包文本**上剥 —— 与
+// 源码保留（国际 Debug+Release + Swift #if !CHINA 对表）；只在 omit 路径的**包文本**上剥 —— 与
 // 2026-10-25 a01951ec CN 出包手剥等价，固化进脚本，禁再手剥。
 function peelGrokSttFromNativeSpeech(src) {
   let t = String(src || '');
@@ -203,21 +204,26 @@ function peelGrokSttFromNativeSpeech(src) {
   return t;
 }
 
-// Debug-only App 模块：国际包默认链入（Xcode Debug 与 global dist-app 同源，供 thaiGrokStt 开发开关）；
-// 中国包（opts.genRoot / flavor=china）与显式 opts.omitGrokStt 时剥掉 —— Release 剥门 / 中国 0×api.x.ai。
-const DEBUG_ONLY_MODULES = [
+// 国际-only App 模块（1.21.2）：intl Debug **与** intl Release 都链入（商店 BYOK 可跑）；
+// 中国包（opts.genRoot / flavor=china）与显式 opts.omitGrokStt 时剥掉 —— 中国 0×api.x.ai。
+// 原生桥编译门绑 CHINA（非 DEBUG）；见 speech-bridge.swift `#if !CHINA`。
+const INTL_GROK_MODULES = [
   'app/grok-stt.js',                     // GrokStt — 泰语 Grok STT（docs/thai-grok-stt-demo-spec.md）
 ];
+/** @deprecated 旧名；测试与外部若仍引 DEBUG_ONLY_MODULES，指向同一表。 */
+const DEBUG_ONLY_MODULES = INTL_GROK_MODULES;
 
 function modulesFor(opts) {
   opts = opts || {};
   const omitGrok = !!(opts.omitGrokStt || opts.genRoot || opts.flavor === 'china');
   if (omitGrok) return MODULES.slice();
-  // 插在 native-speech 之后，与 archdemo 合入顺序一致（听译路由假定 GrokStt 在 NativeSpeech 之后定义）。
+  // 插在 native-speech / secure-store 之后，听译路由假定 GrokStt 在 NativeSpeech 之后定义。
   const out = MODULES.slice();
-  const i = out.indexOf('app/native-speech.js');
-  if (i >= 0) out.splice(i + 1, 0, ...DEBUG_ONLY_MODULES);
-  else out.push(...DEBUG_ONLY_MODULES);
+  const i = out.indexOf('app/secure-store.js');
+  const j = out.indexOf('app/native-speech.js');
+  const at = i >= 0 ? i + 1 : (j >= 0 ? j + 1 : -1);
+  if (at >= 0) out.splice(at, 0, ...INTL_GROK_MODULES);
+  else out.push(...INTL_GROK_MODULES);
   return out;
 }
 
@@ -427,4 +433,4 @@ function buildAppBundle(outDir, log, opts) {
   return { modules: modules.length + 1, bytes };
 }
 
-module.exports = { buildAppBundle, MODULES, DEBUG_ONLY_MODULES, modulesFor, peelGrokSttFromNativeSpeech, APP_ENTRY };
+module.exports = { buildAppBundle, MODULES, DEBUG_ONLY_MODULES, INTL_GROK_MODULES, modulesFor, peelGrokSttFromNativeSpeech, APP_ENTRY };

@@ -16,7 +16,7 @@
 //     原生桥这一路 key 只在 open 消息里出现一次，JS 不保留副本。
 //   · 没有 key 不抛未捕获 —— 异步 onEvent('error', { reason: 'no-key' })，句柄为空操作，且不建原生会话。
 //   · 服务端 transcript.created 到之前只缓冲 PCM；到了才按 FRAME_BYTES 整帧发出（帧逻辑仍在 JS）。
-//   · 已进 build/app-bundle.js 的 MODULES（App 包），但只走 Debug 开关 thaiGrokStt 的 th 路由；
+//   · 已进 build/app-bundle.js 的 MODULES（App 包），走产品开关 thaiGrokStt（1.21.2 起进设置 / schema）的 th 路由；
 //     默认关，Release 路径不启用，也不带 key。
 var GrokStt = (() => {
   const WS_URL_BASE = 'wss://api.x.ai/v1/stt';

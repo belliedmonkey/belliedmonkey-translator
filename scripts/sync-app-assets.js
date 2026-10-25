@@ -286,19 +286,32 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ vault install: 常驻 install 行缺失');
   }
-  // §0.4 分层验证矩阵：测试桥的 attach（DEBUG-only）。锚在 vault 那**一整块**（含 #endif）
-  // 后面 —— 锚在 MTVault.shared.install 那一行上会落进 #if os(iOS) 里，Mac 上就永远没有端点，
+  // 1.21.2 泰语 Grok BYOK 本机 Keychain（intl iOS+Mac）。锚在 vault 整块后、test bridge 前：
+  // 必须在 #if os(iOS) 之外，Mac 才能装上；china 由源文件 #if !CHINA 裁掉符号。
+  const SECURE_NEEDLE = 'MTSecureStore.shared.install';
+  const SECURE_LINES = '        #if !CHINA\n        MTSecureStore.shared.install(webView: self.webView)\n        #endif';
+  if (src.includes(SECURE_NEEDLE)) {
+    notes.push('secure store install already patched');
+  } else if (src.includes(VAULT_LINES)) {
+    src = src.replace(VAULT_LINES, VAULT_LINES + '\n' + SECURE_LINES);
+    notes.push(src.includes(SECURE_NEEDLE) ? 'secure store install patched' : '✗ secure store install: vault 块锚点缺失');
+  } else {
+    notes.push('✗ secure store install: vault install 块缺失');
+  }
+  // §0.4 分层验证矩阵：测试桥的 attach（DEBUG-only）。锚在 secure-store / vault 那**一整块**后面。
+  // 锚在 MTVault.shared.install 那一行上会落进 #if os(iOS) 里，Mac 上就永远没有端点，
   // 而 Mac 层恰恰是这一层的验证台。整块 #if DEBUG：Release 里 MTTestBridge 符号不存在，
   // 这行若不跟着裁掉编译都过不了 —— 双保险是编译器给的，不是我们记性给的。
   const TESTB_NEEDLE = 'MTTestBridge.attach(self.webView)';
   const TESTB_LINES = '        #if DEBUG\n        MTTestBridge.attach(self.webView)\n        #endif';
+  const TESTB_ANCHOR = src.includes(SECURE_LINES) ? SECURE_LINES : VAULT_LINES;
   if (src.includes(TESTB_NEEDLE)) {
     notes.push('test bridge install already patched');
-  } else if (src.includes(VAULT_LINES)) {
-    src = src.replace(VAULT_LINES, VAULT_LINES + '\n' + TESTB_LINES);
-    notes.push(src.includes(TESTB_NEEDLE) ? 'test bridge install patched' : '✗ test bridge install: vault install 块锚点缺失');
+  } else if (src.includes(TESTB_ANCHOR)) {
+    src = src.replace(TESTB_ANCHOR, TESTB_ANCHOR + '\n' + TESTB_LINES);
+    notes.push(src.includes(TESTB_NEEDLE) ? 'test bridge install patched' : '✗ test bridge install: install 块锚点缺失');
   } else {
-    notes.push('✗ test bridge install: vault install 块缺失');
+    notes.push('✗ test bridge install: vault/secure install 块缺失');
   }
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
@@ -474,6 +487,8 @@ const BLOCKS = [
   //   · vault-bridge 是 mtVault 通道本身；attach 见 patchViewController 的 install 行
   { name: 'mt-vault-names', src: 'translate-ext/VaultNames.swift', label: 'vault names' },
   { name: 'mt-vault-bridge', src: 'vault-bridge.swift', label: 'vault bridge' },
+  // 1.21.2 泰语 Grok BYOK：App 私有 Keychain（intl iOS+Mac；#if !CHINA）。不进 App Group。
+  { name: 'mt-secure-store', src: 'secure-store-bridge.swift', label: 'secure store' },
   // §0.4 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
   // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
   // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。
@@ -1022,6 +1037,59 @@ function patchInfoPlists(sharedDir) {
 // configurations that belong to the macOS APP target (matched by its
 // INFOPLIST_FILE — the extension target never records audio and stays ungranted).
 // Idempotent, like every patch here; regeneration wipes it, app:sync restores it.
+
+// 1.21.2：china 工程注入 CHINA 编译条件，使 speech-bridge / secure-store 的 `#if !CHINA`
+// 在中国包 Debug+Release 都剥符号。intl 树不定义 CHINA ⇒ intl Release 有桥。
+// 只改 project-level XCBuildConfiguration（靶级未覆写时继承）；幂等。
+function patchChinaCompileFlag(sharedDir) {
+  if (!/-china\b/.test(sharedDir)) return 'china flag: skip';
+  const appRoot = path.dirname(sharedDir);
+  const xcodeproj = fs.readdirSync(appRoot).find((n) => n.endsWith('.xcodeproj'));
+  if (!xcodeproj) return 'china flag: no xcodeproj';
+  const f = path.join(appRoot, xcodeproj, 'project.pbxproj');
+  if (!fs.existsSync(f)) return 'china flag: no pbxproj';
+  let src = fs.readFileSync(f, 'utf8');
+  const before = src;
+  // Debug：已有 SWIFT_ACTIVE … DEBUG … → 插入 CHINA（若尚无）
+  src = src.replace(
+    /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "([^"]*)";/g,
+    (m, cur) => {
+      if (/\bCHINA\b/.test(cur)) return m;
+      const parts = cur.trim().split(/\s+/).filter(Boolean);
+      // 放在 DEBUG 后、$(inherited) 前
+      const out = [];
+      let sawChina = false;
+      for (const p of parts) {
+        out.push(p);
+        if (p === 'DEBUG' && !sawChina) { out.push('CHINA'); sawChina = true; }
+      }
+      if (!sawChina) out.unshift('CHINA');
+      return `SWIFT_ACTIVE_COMPILATION_CONDITIONS = "${out.join(' ')}";`;
+    }
+  );
+  // Release project-level：有 SWIFT_COMPILATION_MODE = wholemodule 且同块尚无 CHINA 条件 → 插入
+  // 匹配「buildSettings = { … SWIFT_COMPILATION_MODE = wholemodule; … name = Release」
+  src = src.replace(
+    /(buildSettings = \{)([^}]*?)(SWIFT_COMPILATION_MODE = wholemodule;)([^}]*?)(\n\t\t\t\};)\n\t\t\tname = Release;/g,
+    (m, a, pre, mid, post, close) => {
+      if (/SWIFT_ACTIVE_COMPILATION_CONDITIONS = "[^"]*\bCHINA\b/.test(pre + mid + post)) return m;
+      if (/SWIFT_ACTIVE_COMPILATION_CONDITIONS = /.test(pre + mid + post)) {
+        // 已有条件行但无 CHINA —— 上面的全局 replace 应已处理；保底再写
+        return m;
+      }
+      return a + pre + 'SWIFT_ACTIVE_COMPILATION_CONDITIONS = "CHINA $(inherited)";\n\t\t\t\t' + mid + post + close + '\n\t\t\tname = Release;';
+    }
+  );
+  if (src === before) {
+    // 若 Debug 已含 CHINA 且 Release 也已含，算 already
+    const has = (src.match(/\bCHINA\b/g) || []).length;
+    return has ? `china flag already patched (CHINA×${has})` : 'china flag: no SWIFT_ACTIVE sites matched';
+  }
+  fs.writeFileSync(f, src);
+  const has = (src.match(/\bCHINA\b/g) || []).length;
+  return `china flag patched (CHINA×${has})`;
+}
+
 // Patch 4b (§8.4.1.2): Sign in with Apple 的 entitlement。
 //
 // 它**没有**构建设置的写法（沙箱与录音有，这个没有），只能来自一个 .entitlements
@@ -1979,7 +2047,7 @@ function main() {
         ? loud(proj, 'translate ext', patchExtensionFiles(shared, TRANSLATE_EXT_SPEC, { appSrc: SRC })) + ' · '
           + loud(proj, 'translate ext', patchExtensionTarget(shared, TRANSLATE_EXT_SPEC))
         : 'translate ext: 无 iOS App target，跳过';
-      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · ${transExt} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchEntitlements(shared)} · ios-storyboard ${hasIOS ? patchIosWebViewStoryboard(path.dirname(shared)) : 'skip'} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
+      console.log(`  ✓ ${proj}: 资源已灌入 · ViewController ${vc} · ${bridge} · ${widget} · ${transExt} · Info.plist ${plists} · ${dlg} · pbxproj ${patchPbxproj(shared)} · ${loud(proj, 'sherpa package', patchSwiftPackage(shared))} · ${patchChinaCompileFlag(shared)} · ${patchEntitlements(shared)} · ios-storyboard ${hasIOS ? patchIosWebViewStoryboard(path.dirname(shared)) : 'skip'} · storyboard ${patchMacWindow(shared)} · ${patchMacMenu(shared)} · ${patchAppIcon(shared)}`);
       touched++;
     }
   }
@@ -2005,7 +2073,7 @@ module.exports = {
   patchPlistXml, patchInfoPlists, PLIST_KEYS,
   PLIST_L10N, PLIST_L10N_KEYS, infoPlistStringsText, patchPbxprojInfoPlistStrings, patchInfoPlistStrings,
   SERVICES_L10N, SERVICE_MESSAGE, SERVICE_TITLE_EN, servicesXml, servicesMenuStringsText, patchPbxprojStringsGroup, patchServicesMenuStrings,
-  patchEntitlements, ENTITLEMENTS,
+  patchEntitlements, ENTITLEMENTS, patchChinaCompileFlag,
   patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, patchExtensionFiles,
   EMBED_PLUGINS, EMBED_EXTENSIONKIT, TRANSLATE_EXT_SPEC, appBundleId, stripExtensionTarget, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
 };

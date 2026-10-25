@@ -142,8 +142,9 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
 
     private weak var webView: WKWebView?
     private var transcriber: AnyObject?          // MTDeviceTranscriber（iOS 26+ 才有，所以按 AnyObject 存）
-#if DEBUG
-    /// 步 2b：Grok STT 的原生鉴权 WebSocket 会话（req → 会话）。key 只活在这里，close/失败即清。
+#if !CHINA
+    /// 泰语 Grok STT 原生鉴权 WebSocket 会话（req → 会话）。key 只活在这里，close/失败即清。
+    /// 编译门绑 flavor/CHINA（1.21.2）：intl Debug+Release 有；china 无。
     private var grokSessions: [String: MTGrokSttSession] = [:]
 #endif
     private let speech = MTDeviceSpeech()
@@ -194,8 +195,9 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "stt-release": sttRelease(locales: strings(body["locales"]))
         case "stt-start":  sttStart(body)
         case "stt-stop":   sttStop()
-#if DEBUG
-        // 步 2b：Grok STT 的原生鉴权 WebSocket（WKWebView 不能自定义 Authorization 头）。
+#if !CHINA
+        // 泰语 Grok STT 原生鉴权 WebSocket（WKWebView 不能自定义 Authorization 头）。
+        // 编译门绑 flavor/CHINA（1.21.2）：intl Release 可跑；china 无 case。
         case "grok-stt-open":  grokSttOpen(body)
         case "grok-stt-pcm":   grokSttPcm(body)
         case "grok-stt-cut":   grokSttCut(body)
@@ -393,8 +395,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         if announce { emit(["type": "stt-state", "state": "ended"]) }
     }
 
-#if DEBUG
-    // MARK: - Grok STT 原生鉴权桥（步 2b）
+#if !CHINA
+    // MARK: - Grok STT 原生鉴权桥（intl；china 编译剥）
 
     /// 开一路原生 WebSocket。URL / model / sample_rate / language 都由 JS 拼好传进来；
     /// 这里只加上 Authorization 头，不复制任何业务常量。key 不落日志、不进回执。
@@ -463,8 +465,8 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     }
 }
 
-#if DEBUG
-// MARK: - Grok STT 原生鉴权会话（步 2b）
+#if !CHINA
+// MARK: - Grok STT 原生鉴权会话（intl；china 编译剥）
 
 /// 一路 Grok STT 的 URLSessionWebSocketTask。
 /// 为什么在原生：WKWebView 的 WebSocket 不能自定义请求头，带不上 `Authorization: Bearer`。
