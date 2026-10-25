@@ -80,3 +80,36 @@ describe('中国合规门：泰语 Grok / xAI 剥门（2026-10-23）', () => {
     ok(scan('label: "Grok 风格"').length === 0, '无端点的 Grok 字样被误拦（仅禁端点与协议 id）');
   });
 });
+
+
+// ─── 中国包 native-speech 剥门（2026-10-25：固化 a01951ec 手剥）────────────────
+// APP_OUT 扫的是拼好的 Script.js。omit Grok 时 modulesFor 已去掉 grok-stt.js，
+// 但 native-speech 仍进包 —— 必须剥掉 PROTOCOL / 转发里的 grok-stt-open，否则
+// build.js --flavor china 完整门红。源码保留（国际 Debug + Swift 对表）。
+describe('中国合规门：native-speech china peel（SPEC-THAI-GROK-RELEASE-PEEL）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const { peelGrokSttFromNativeSpeech, modulesFor } = require('../build/app-bundle.js');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'app/native-speech.js'), 'utf8');
+
+  test('源码仍含 grok-stt-open（国际 Debug / Swift 对表）—— 红样', () => {
+    ok(/grok-stt-open/.test(src), '源码丢了 grok-stt-open，对表与 intl Debug 会断');
+    ok(scan(src).length >= 1, '未剥的 native-speech 源码应绊门（红样）');
+  });
+
+  test('peel 后 0×grok-stt-open，且不误伤本机协议', () => {
+    const out = peelGrokSttFromNativeSpeech(src);
+    ok(!/grok-stt-open/.test(out), 'peel 后仍有 grok-stt-open');
+    ok(!/grok-stt-(pcm|cut|close|event)/.test(out), 'peel 后仍有其它 grok-stt-*');
+    ok(!/if \(t ===\)/.test(out), 'peel 掏空了 if 条件留下残句');
+    ok(/'stt-probe'/.test(out) && /'stt-start'/.test(out), '误伤本机 PROTOCOL');
+    ok(scan(out).length === 0, 'peel 后的 native-speech 仍绊 china-gate');
+  });
+
+  test('china / genRoot / omitGrokStt 路径省略 grok-stt.js', () => {
+    ok(!modulesFor({ flavor: 'china' }).includes('app/grok-stt.js'));
+    ok(!modulesFor({ genRoot: '/tmp/dist-china' }).includes('app/grok-stt.js'));
+    ok(!modulesFor({ omitGrokStt: true }).includes('app/grok-stt.js'));
+    ok(modulesFor({}).includes('app/grok-stt.js'), '国际默认包应链入 grok-stt.js');
+  });
+});

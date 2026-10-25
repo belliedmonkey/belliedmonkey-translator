@@ -183,6 +183,26 @@ const MODULES = [
   // 时机后移无影响。
 ];
 
+// 中国 / Release 剥门：omit Grok 时 native-speech 仍恒进 MODULES，但 PROTOCOL 与
+// grok-stt-event 转发里的 `grok-stt-open` 等字面量会绊 china-gate（SPEC-THAI-GROK-RELEASE-PEEL）。
+// 源码保留（国际 Debug + Swift #if DEBUG 对表）；只在 omit 路径的**包文本**上剥 —— 与
+// 2026-10-25 a01951ec CN 出包手剥等价，固化进脚本，禁再手剥。
+function peelGrokSttFromNativeSpeech(src) {
+  let t = String(src || '');
+  // 先剥 _fromNative 转发块（必须在 PROTOCOL 字面量替换之前，否则 if 条件被掏空成残句）。
+  t = t.replace(
+    /\n[ \t]*\/\/ 步 2b：[^\n]*\n[ \t]*\/\/[^\n]*\n[ \t]*if \(t === 'grok-stt-event'\) \{\n(?:[^\n]*\n)*?[ \t]*return;\n[ \t]*\}/,
+    ''
+  );
+  // 再剥 PROTOCOL 数组项（含续行）
+  t = t.replace(/,?\s*\n?\s*'grok-stt-(?:open|pcm|cut|close|event)'/g, '');
+  // 兜底：残留 grok-stt-open 行整行丢掉（绊 china-gate 的那一个字面量）
+  if (/grok-stt-open/.test(t)) {
+    t = t.split('\n').filter((line) => !/grok-stt-open/.test(line)).join('\n');
+  }
+  return t;
+}
+
 // Debug-only App 模块：国际包默认链入（Xcode Debug 与 global dist-app 同源，供 thaiGrokStt 开发开关）；
 // 中国包（opts.genRoot / flavor=china）与显式 opts.omitGrokStt 时剥掉 —— Release 剥门 / 中国 0×api.x.ai。
 const DEBUG_ONLY_MODULES = [
@@ -280,6 +300,11 @@ function buildAppBundle(outDir, log, opts) {
       throw new Error(`app bundle: missing source ${rel}`);
     }
     let text = fs.readFileSync(abs, 'utf8');
+    // 中国 / omitGrok：剥 native-speech 里的 grok-stt-* 字面量（见 peelGrokSttFromNativeSpeech）。
+    // modulesFor 已省略 grok-stt.js；源码 PROTOCOL 仍在，不剥则 APP_OUT 绊 china-gate。
+    if (rel === 'app/native-speech.js' && !!(opts.omitGrokStt || opts.genRoot || opts.flavor === 'china')) {
+      text = peelGrokSttFromNativeSpeech(text);
+    }
     // MT_SYNC=on: the bundle concatenates backend.config.js from SOURCE, so the
     // self-use flip must happen here too — dist/ and dist-app/ are two separate
     // emission paths and flipping only one shipped a phone build with sync on
@@ -402,4 +427,4 @@ function buildAppBundle(outDir, log, opts) {
   return { modules: modules.length + 1, bytes };
 }
 
-module.exports = { buildAppBundle, MODULES, DEBUG_ONLY_MODULES, modulesFor, APP_ENTRY };
+module.exports = { buildAppBundle, MODULES, DEBUG_ONLY_MODULES, modulesFor, peelGrokSttFromNativeSpeech, APP_ENTRY };
