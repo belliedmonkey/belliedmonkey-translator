@@ -996,3 +996,76 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 .listen-quota .note { margin: 0; }
 .listen-quota button { min-height: 48px; }
 .listen-pill.quota { background: var(--field); color: var(--accent-deep); border: 1px solid var(--accent-deep); }
+
+/* Agent confirm / failure card (N25). Narrow sheet is full-width; at ≥720px it
+   becomes a centered dialog. Hover is only in the wide rule. Hit targets stay
+   ≥48px. Tokens only — no new palette names. */
+.agent-back {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(0, 0, 0, .32);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.agent-sheet {
+  background: var(--card-bg);
+  color: var(--fg);
+  width: 100%;
+  max-height: 86vh;
+  overflow: auto;
+  border-radius: 18px 18px 0 0;
+  padding: 18px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.agent-sheet h2 { margin: 0; font-size: 1.05rem; }
+.agent-name { margin: 0; font-weight: 700; }
+.agent-line, .agent-touch, .agent-note, .agent-site { margin: 0; }
+.agent-note, .agent-site { color: var(--dim); font-size: 0.9rem; }
+.agent-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+.agent-check input { width: 22px; height: 22px; flex: none; accent-color: var(--accent); }
+.agent-check span { flex: 1; min-width: 0; }
+.agent-paste {
+  font: inherit;
+  font-size: max(16px, 1rem);
+  color: var(--fg);
+  background: var(--field);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 88px;
+  width: 100%;
+}
+.agent-acts { display: flex; flex-direction: column; gap: 10px; }
+.agent-sheet button {
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 18px;
+  min-height: 48px;
+  cursor: pointer;
+}
+.agent-sheet button.secondary {
+  background: none;
+  color: var(--accent-deep);
+  border: 1.5px solid var(--line);
+}
+.agent-sheet button:disabled { opacity: 0.45; cursor: default; }
+.agent-sheet button:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; }
+@media (min-width: 720px) {
+  .agent-back { align-items: center; }
+  .agent-sheet { max-width: 420px; border-radius: 18px; }
+  .agent-sheet button:hover:not(:disabled) { background: var(--accent-hover); }
+  .agent-sheet button.secondary:hover:not(:disabled) { background: var(--field); }
+}

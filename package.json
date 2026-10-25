@@ -5,6 +5,7 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node test/run.js",
+    "agent:mcp": "node agent/mcp-stdio.js",
     "test:layout": "node test/layout/run-layout.js",
     "test:inject": "node scripts/verify-content-inject.js",
     "test:menu": "node scripts/verify-content-menu.js",

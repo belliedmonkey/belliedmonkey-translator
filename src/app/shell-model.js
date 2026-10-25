@@ -36,6 +36,8 @@ import Registry from '../lib/registry.js';
 import NativeBridge from '../lib/native-bridge.js';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
+import { parseAgentDeepLink } from '../../agent/parse.js';
+import { presentAgentDeepLink } from './agent-face.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
@@ -2987,10 +2989,85 @@ export function bootShell() {
     try { if (typeof AppSetupDone !== 'undefined') AppSetupDone.wire({ close: () => closeSettings() }); } catch (_) {}
     try { if (typeof AppSysBanner !== 'undefined') AppSysBanner.wire({ openReview: () => { const r = $('review'); if (r) r.click(); } }); } catch (_) {}
 
+    const agentGrants = { device: {}, assistants: {} };
+
+    function agentHost() {
+      const scheme = flavorNow() === 'china' ? 'belliedmonkeycn' : 'belliedmonkey';
+      return {
+        scheme,
+        hostConnected: true,
+        grants: agentGrants,
+        persistGrants(next) {
+          agentGrants.device = (next && next.device) || {};
+          agentGrants.assistants = (next && next.assistants) || {};
+        },
+        readiness() {
+          return readPacksDone().then((packs) => new Promise((resolve) => {
+            const base = {
+              login: !!(currentSession && currentSession.userId),
+              packs: !!packs,
+              engine: null,
+              os: null,
+              ext: null,
+              mic: null,
+              studyCapture: null,
+            };
+            try {
+              chrome.storage.local.get(['learnEnabled'], (v) => {
+                v = v || {};
+                if (v.learnEnabled === true) base.studyCapture = true;
+                else if (v.learnEnabled === false) base.studyCapture = false;
+                resolve(base);
+              });
+            } catch (_) { resolve(base); }
+          }));
+        },
+        ports: {
+          openSetup(req) { return runAgentSetup(req && req.step); },
+          enterSubtitle() {
+            // 字幕独立表面。open('subtitle') 停在准备态，不调用 start()，不开麦。
+            if (typeof AppListen !== 'undefined' && typeof AppListen.open === 'function') {
+              AppListen.open('subtitle');
+              return { ok: true };
+            }
+            return { ok: false, code: 'need_app' };
+          },
+        },
+      };
+    }
+
+    function runAgentSetup(step) {
+      $('onboard').hidden = true;
+      if (step === 'engine') return openSettings('sec-engines').then(() => ({ ok: true }));
+      if (step === 'packs') return openSettings('set-pack-manage').then(() => ({ ok: true }));
+      if (step === 'login') {
+        if (!(currentSession && currentSession.userId)) {
+          $('signed-out').hidden = false;
+          $('signed-in').hidden = true;
+          openEmailForms();
+          return { ok: true };
+        }
+        return openSettings('sec-account').then(() => ({ ok: true }));
+      }
+      if (step === 'install_ext') {
+        openExternal(setupPageUrl());
+        return { ok: true };
+      }
+      if (step === 'mic' || step === 'install_app' || !step) {
+        if (step === 'install_app') return { ok: true };
+        return openSettings().then(() => ({ ok: true }));
+      }
+      return { ok: false, code: 'bad_request' };
+    }
+
     function parseDeepLink(raw) {
       try {
         const u = new URL(String(raw || ''));
         if (!/^belliedmonkey(cn)?:$/.test(u.protocol)) return null;
+        // Agent 链接在这里截走。listen / review / setup 不是 agent，
+        // parseAgentDeepLink 返回 null，hostname 解析保持原样。
+        const agent = parseAgentDeepLink(String(raw || ''));
+        if (agent) return { action: 'agent', from: '', hasUid: false, uid: null, href: String(raw || '') };
         // `has` 与「空串」必须分开：不带 uid 是「扩展没登录」，带空串是
         // 「登录了但 id 读不出来」—— 两者要给的话不一样。
         const has = u.searchParams.has('uid');
@@ -3016,6 +3093,12 @@ export function bootShell() {
 
     // 三支，每一支都必须说得出**事实**，不猜。
     async function applyDeepLink(d) {
+      // Agent /agent/v1/ 先于 listen / setup / review。不落进账号三支，也不点听译入口。
+      if (d && d.action === 'agent') {
+        try { await presentAgentDeepLink(d.href, agentHost()); }
+        catch (_) { /* 确认面自己收口；不要掉进下面的复习链 */ }
+        return;
+      }
       // ⓪ action='listen'（2026-09-16）：扩展那边遇到转不了的媒体，把人送到实时字幕。
       //
       // **排在账号三支之前，因为它与账号无关** —— 实时字幕/听译不是学习层功能，
