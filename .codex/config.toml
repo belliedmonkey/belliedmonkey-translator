@@ -1,0 +1,7 @@
+# N25 H1 packaging for Codex. Local stdio is the daily server.
+# A remote MCP is not published. Remote MCP is later, and it must reuse the
+# same tool names. Do not add a url to this table.
+
+[mcp_servers.belliedmonkey]
+command = "node"
+args = ["agent/hosts/claude-code/stdio.js"]
