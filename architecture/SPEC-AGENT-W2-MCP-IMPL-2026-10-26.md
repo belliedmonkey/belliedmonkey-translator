@@ -21,7 +21,7 @@
 | 服务名 | `belliedmonkey` |
 | 版本戳 | `1.22.0-n25`（轨名，不是商店营销号） |
 | Remote | **未发布**。初始化说明里写明 not published。不要把本进程说成已上架云 MCP |
-| H1 包装 | 不在本规格。Claude Code / Codex 的 `.mcp.json` 由后续包装去引用这条启动命令 |
+| H1 包装 | `agent/hosts/`。Claude Code 的 `.mcp.json` 与 Codex 的 `.codex/config.toml` 都启动 `agent/hosts/claude-code/stdio.js`，该文件只加载 `agent/mcp-stdio.js`。工具名仍是本表七个动作 ID。Remote 未发布。 |
 
 Flavor：环境变量 `MT_FLAVOR=china` 时，回执里的 `fix.open_setup` 用 `belliedmonkeycn://`，否则 `belliedmonkey://`。
 

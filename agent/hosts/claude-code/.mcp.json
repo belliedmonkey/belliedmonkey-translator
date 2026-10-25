@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "belliedmonkey": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/stdio.js"]
+    }
+  }
+}
