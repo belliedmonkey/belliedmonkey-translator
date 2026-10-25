@@ -1169,8 +1169,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
 #app-settings .sgroup > * { min-width: 0; }
 #app-settings .sgroup h3 { margin: 0; color: var(--fg); }
-/* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句） */
-#app-settings #g-listen.na > :not(h3):not(#listen-pack-row) { display: none; }
+/* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句）。
+   例外：#thai-grok-block（BYOK）在 .na 时仍可见 —— 泰语识别走云端 Grok，不依赖本机识别器。 */
+#app-settings #g-listen.na > :not(h3):not(#listen-pack-row):not(#thai-grok-block) { display: none; }
 #app-adv-hint { margin: 0; }
 /* 功能块首行的「依赖」行（learn/dep-line.js）：只读、标签来自注册表 */
 .dep { display: block; font-size: .84rem; line-height: 1.5; color: var(--dim); background: var(--bg); border-radius: 12px; padding: 8px 12px; }
@@ -1375,3 +1376,6 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 #thai-grok-block h4 { margin: 14px 0 8px; font-size: 0.95rem; }
 #thai-grok-key-row .row { display: flex; gap: 8px; align-items: center; }
 #thai-grok-key-row .row input { flex: 1; min-width: 0; }
+
+/* 来源列表限高：条目无限拉长时整页会把「泰语识别（Grok）」顶到滚不到的地方 */
+#app-settings #app-sources { max-height: 240px; overflow-y: auto; }
