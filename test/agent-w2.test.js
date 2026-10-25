@@ -415,6 +415,7 @@ describe('agent W2 stdio MCP', () => {
     eq(pkg.scripts['agent:mcp'], 'node agent/mcp-stdio.js');
     const face = fs.readFileSync(path.join(ROOT, 'src/app/agent-face.js'), 'utf8');
     ok(!face.includes('始终允许此助手'), 'anon face hardcodes the assistant allow');
+    ok(face.includes('card.cancel'), 'confirm sheet must render the locked cancel control');
     const shell = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
     const enter = shell.slice(shell.indexOf('enterSubtitle()'), shell.indexOf('enterSubtitle()') + 500);
     ok(enter.includes("AppListen.open('subtitle')"));

@@ -2,7 +2,7 @@
 //
 // Copy is the lock in agent/copy.js. This file does not invent those strings.
 // It does not start the microphone and it does not read the page.
-import { EXT_NOTE_FOR_AI, CLOSE, MESSAGES } from '../../agent/copy.js';
+import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
 import { handleAgentUrl } from '../../agent/session.js';
 
@@ -176,10 +176,14 @@ function ctaFor(receipt) {
 export async function presentAgentDeepLink(raw, host) {
   const ui = {
     confirm(card) {
-      return mount(card, {});
+      // The card model names the dismiss control `cancel` (copy lock). The
+      // sheet renders that control as the secondary button.
+      return mount(Object.assign({}, card, {
+        secondary: card.secondary || card.cancel || '',
+      }), {});
     },
     async show(receipt, fail) {
-      if (receipt && receipt.ok) {
+      if (receipt && (receipt.ok || receipt.code === 'cancelled')) {
         await mount({
           title: receipt.message || '',
           primary: CLOSE,
@@ -193,7 +197,7 @@ export async function presentAgentDeepLink(raw, host) {
         primary: fail.primary,
         secondary: fail.secondary,
       } : {
-        title: receipt.action || '',
+        title: FAILURE_TITLE,
         message: receipt.message,
         primary: ctaFor(receipt) || CLOSE,
         secondary: ctaFor(receipt) ? CLOSE : '',
