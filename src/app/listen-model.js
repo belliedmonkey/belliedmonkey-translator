@@ -1950,10 +1950,16 @@ const listenModel = (() => {
     }
   }
   async function micStart() {
-    // 本机路：PCM 留在原生侧喂识别器，过桥的只有电平（§9.6.1）；采样率只给原生建 tap 用
+    // 本机路：PCM 留在原生侧喂识别器，过桥的只有电平（§9.6.1）；采样率只给原生建 tap 用。
+    // 1.21.2 例外：thaiGrokStt 开时 th 已从原生 stt-start 摘走，Grok 只吃 JS 送的
+    // grok-stt-pcm —— 必须 deliver:'pcm'（原生仍 deliverToSink 喂非 th 识别器；见 audio-bridge）。
+    // 开关关时保持 level，避免无谓跨桥 base64。
     const rate = 16000;
     if (bridged()) {
-      const h = { onLevel, onState: onMicState, deliver: 'level' };
+      const needGrokPcm = !!(cfg && cfg.thaiGrokStt === true);
+      const h = needGrokPcm
+        ? { onPcm, onLevel, onState: onMicState, deliver: 'pcm' }
+        : { onLevel, onState: onMicState, deliver: 'level' };
       if (session && session.mode === 'subtitle') {
         // 声音来源只从原生报的能力来（§9.8）：既没有 system:'ok'、也不是 iOS 的 'unsupported' ⇒ 不开始
         const src = C.captureSource(NativeAudio.audioCaps());

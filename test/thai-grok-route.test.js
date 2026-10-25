@@ -205,6 +205,23 @@ test('★ 步 2b 热修：开关开 + zh+th + 无 key ⇒ Grok 报 no-key 后 ph
   } finally { try { await A.leave(); } catch (_) {} await clk.runTo(0); }
 });
 
+test('★ 步 2 PCM：开关开 + th ⇒ micStart deliver=pcm（Grok 吃 JS PCM）；开关关 ⇒ level', async () => {
+  const on = await openSession({ thaiGrokStt: true, otherLang: 'th', myLang: 'zh', noPtt: true });
+  try {
+    const h = on.captured.h;
+    ok(h, 'micStart 应被调用并留下 handlers');
+    eq(h.deliver, 'pcm', 'Grok 开时必须跨桥送 PCM，否则 grok-stt-pcm 永远空：deliver=' + h.deliver);
+    eq(typeof h.onPcm, 'function', 'deliver=pcm 时必须挂 onPcm');
+  } finally { try { await on.A.leave(); } catch (_) {} }
+
+  const off = await openSession({ thaiGrokStt: false, otherLang: 'th', myLang: 'zh', noPtt: true });
+  try {
+    const h = off.captured.h;
+    ok(h, '开关关时 micStart 仍应被调用');
+    eq(h.deliver, 'level', '开关关应保持本机路 level（不跨桥 PCM）：deliver=' + h.deliver);
+  } finally { try { await off.A.leave(); } catch (_) {} }
+});
+
 test('★ 步 2 路由③：开关开 + otherLang=en（无 th）⇒ GrokStt.open 未调用；原生仍开 en', async () => {
   const { A, sttCalls, grokCalls } = await openSession({ thaiGrokStt: true, otherLang: 'en', myLang: 'zh', noPtt: true });
   try {
