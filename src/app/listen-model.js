@@ -3145,10 +3145,13 @@ const listenModel = (() => {
   function setEphemeral(on) { ephemeralChecked = !!on; canvas.view('state'); }
 
   // historyView：renderHistory 的数据版（视图映射 JSX；行动作经 model 动作回流）。
+  // 展示序默认新→旧（P0-B / BEL-33）；session.rows 存储序仍旧→新。
   function historyView() {
     const rows = session ? session.rows : [];
     const sub = mode === 'subtitle';   // 单向：不画归属标、↔、朗读、给对方看（§9.8）
     const starable = !(session && session.ephemeral);
+    // P0-B（1.21.1）：「最近句子」/「整句定稿」默认新→旧（最新在上）。
+    // session.rows 仍旧→新（addFinal push；context/transcript/latency 不动）；仅展示层翻转，一处、禁双排序分叉。
     const out = rows.map((r) => ({
       row: r,
       who: r.who,
@@ -3176,6 +3179,8 @@ const listenModel = (() => {
       starred: !!r.starred,
       starable,
     }));
+    // 唯一翻转点（架构短核钉2）：新鲜 map 数组上 reverse；不碰 session.rows。
+    out.reverse();   // 展示：新→旧；rows[0] = 最新定稿
     const qn = sq.size();
     return {
       rows: out,

@@ -260,13 +260,14 @@ function SpeakerIcon() {
 
 
 // 字幕舞台文案：译文大字在上、原文小字在下（交互 §4 / batch3）。优先半句，其次最近定稿。
+// hv.rows 展示序新→旧（P0-B）：rows[0] = 最新定稿；主字幕「当前句」非列表翻序目标。
 function subtitleStageLines(nv, hv) {
   if (nv.partialTr || nv.partial) {
     return { tr: nv.partialTr || '', orig: nv.partial || '' };
   }
   const rows = (hv && hv.rows) || [];
   if (rows.length) {
-    const r = rows[rows.length - 1];
+    const r = rows[0];
     return { tr: r.tr || '', orig: r.text || '' };
   }
   return { tr: '', orig: '' };
@@ -292,14 +293,11 @@ export function ListenView() {
   // 字幕进行中/已暂停：有会话且未 ended ⇒ 露出「暂停/继续 + 停止」双钮（batch3 Duo-05）
   const subSessionOn = !!(mv.sub && !tv.ended && tv.endHidden === false);
 
-  // 贴底判定读的是 commit 前的旧 DOM —— 与原 renderHistory :1247 的同一时刻语义；
-  // 渲染后 useLayoutEffect 恢复（原 :1340 if (atBottom) scrollTop = scrollHeight）。
-  const atBottomRef = useRef(true);
-  const listEl = $('app-listen-history');
-  if (listEl) atBottomRef.current = listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 12;
+  // P0-B：列表新→旧、贴顶跟滚；用户上滚不打断跟滚（产品闸：始终 scrollTop=0）。
+  // 旧语义是贴底（atBottom → scrollHeight）；现货翻序后改贴顶，不再保留「离顶即停跟」闸。
   useLayoutEffect(() => {
     const el = $('app-listen-history');
-    if (el && atBottomRef.current) el.scrollTop = el.scrollHeight;
+    if (el) el.scrollTop = 0;
   });
 
   // 复制闪字（原 wire :1470-1481 的 dataset.flash 时序）：copyAll 落定才置文案，1500ms 清。
