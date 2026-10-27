@@ -1,0 +1,16 @@
+# N25 H2 bundle layer. Local stdio is the daily server.
+# A remote MCP is not published. Do not add a url.
+# This file does not declare tools. The client discovers them from stdio.
+# belliedmonkey-dsh is listed first so its import records the launcher path
+# before the client row reads globalThis.__BELLIEDMONKEY_DSH_STDIO.
+- insert:
+    - id: belliedmonkey-dsh
+      name: belliedmonkey-dsh
+    - id: mcp-belliedmonkey
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: belliedmonkey
+        transport: stdio
+        command: node
+        args:
+          - !!js globalThis.__BELLIEDMONKEY_DSH_STDIO

@@ -1,0 +1,22 @@
+{
+  "name": "belliedmonkey-dsh",
+  "version": "1.22.0-n25",
+  "private": true,
+  "type": "module",
+  "description": "Local stdio MCP packaging for dsh. The daily server is this machine. A remote MCP is not published.",
+  "license": "GPL-3.0-or-later",
+  "main": "./index.js",
+  "files": [
+    "index.js",
+    "stdio.js",
+    "cordis.patch.yml",
+    "repo-mcp.patch.yml",
+    "skills",
+    "README.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
