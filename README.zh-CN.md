@@ -130,6 +130,7 @@ macOS 上的「允许未签名的扩展」开关**每次重启 Safari 都会复�
   （Apple 的 iOS 与 macOS × 国际版与中国版，加上 Chrome 网上应用店与 Firefox 附加组件）
 - **免费、GPL-3.0**；登录后可领一份我们出的 0.2 美元免费额度
 - **文档翻译** —— 上传 PDF、Word 或图片（扫描页走你自己的多模态引擎），打开一页翻一页、双语对照；读过的句子可进复习（每页、每份都有上限）
+- **Agent 插件（1.22.0）** —— Claude Code 与 Codex 可通过本机 MCP（stdio）驱动大肚猴翻译。七个动作与 App 一致：就绪检查、打开设置、实时字幕、网页翻译、视频字幕、学习采集、讲解或练习。敏感动作会先在本机请你确认。远程或云端 MCP 尚未发布。
 
 **网页双语对照。** 每个段落保留原文，译文以不同颜色显示在正下方 —— 不用切标签页，不会丢失
 阅读位置。译文继承原文的字体、字号、字重与对齐方式，**只有颜色不同**，并在窗口缩放后重新
@@ -148,6 +149,18 @@ chat completions、Anthropic 兼容的 messages —— 所以任何说这几种�
 都不加；而你写的路径同时也决定了用哪种请求形状，所以同一个主机上的两种接口，换个地址就能切。内置引擎清单在扩展的设置页里；本仓库里的唯一真源是
 [`build/providers.config.js`](build/providers.config.js)，这里**刻意不复述它** ——
 每多抄一份，就多一处会过时的地方。
+
+---
+
+## Agent 插件（Claude Code · Codex · MCP）
+
+自 **1.22.0** 起，编程助手可以在你这台电脑上通过 MCP 调用大肚猴翻译。
+
+- **宿主。** Claude Code（插件，或 `claude mcp add`）与 Codex（`codex mcp add`，或项目配置）。两者启动的是同一个本机 stdio 服务，名字都是 `belliedmonkey`。
+- **动作。** 七个，名字与 App 契约相同：`ready.check`、`open_setup`、`start_live_subtitles`、`translate_page`、`translate_video_captions`、`capture_to_study`、`explain_or_drill`。
+- **先在本机确认。** 碰到网页、字幕、实时收音或学习语料的动作，会先弹出确认卡。取消则返回 `cancelled`。
+- **目前只在本机。** 日常走的是这台 Mac 或 PC 上的 stdio。远程 MCP，以及商店上架的云 MCP，都尚未发布，没有云端地址可填。
+- **怎么装。** 开发者步骤在 [`agent/hosts/README.md`](agent/hosts/README.md)。使用时：装好 Claude Code 或 Codex，把 launcher 指到本仓库，然后让助手翻译网页，或打开实时字幕。
 
 ---
 

@@ -137,6 +137,7 @@ At a glance:
   Firefox Add-ons)
 - **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
 - **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
+- **Agent plugins (1.22.0)** — Claude Code and Codex can drive the translator through a local MCP server (stdio). The seven actions match the app: readiness check, setup, live subtitles, page translation, video captions, study capture, and explain or drill. Sensitive actions ask you to confirm on this device first. A remote or cloud MCP is not published.
 
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
@@ -161,6 +162,18 @@ request shape, so one host serving two of them is a matter of typing a different
 lives in the extension's settings page; the single source of truth in this repo is
 [`build/providers.config.js`](build/providers.config.js), and it is deliberately not
 duplicated here — every copy of it is one more thing that goes stale.
+
+---
+
+## Agent plugins (Claude Code · Codex · MCP)
+
+From **1.22.0**, a coding agent on your machine can call BelliedMonkey Translator through MCP.
+
+- **Hosts.** Claude Code (its plugin, or `claude mcp add`) and Codex (`codex mcp add`, or a project config). Both start the same local stdio server, named `belliedmonkey`.
+- **Actions.** Seven, and the names match the app contract: `ready.check`, `open_setup`, `start_live_subtitles`, `translate_page`, `translate_video_captions`, `capture_to_study`, `explain_or_drill`.
+- **Confirm on this device.** An action that touches the page, captions, live audio, or study material shows a confirm card first. Cancel returns `cancelled`.
+- **Local only.** Stdio on this Mac or PC is the day-to-day path. A remote or store-listed cloud MCP is not published, so there is no cloud address to configure.
+- **Setup.** Developer steps are in [`agent/hosts/README.md`](agent/hosts/README.md). To use it, install Claude Code or Codex, point it at this repo's launcher, then ask the agent to translate a page or start live subtitles.
 
 ---
 
