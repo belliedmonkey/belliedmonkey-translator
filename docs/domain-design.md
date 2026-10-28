@@ -1694,6 +1694,19 @@ HTTP **401/403**，只要请求头带了**非空、非 `bmg_` 额度令牌**的 
 连续达阈值 ⇒ 停机且之后一个请求都不再发 · 中途成功过一次 ⇒ 计数清零不熔断 · 非 timeout 的失败
 不算进这条链。
 
+**N26 扩展停机表（2026-10-28，移植 mobiletranslator main `b0ddea77` / PR#16 tip `c9a51503`；待架构形检，未合 main）。**
+停机不再看 `e.grant || e.halt` 这个布尔。`classifyFail` 先把错误收进封闭码表
+`FAIL_CODES`（与 `build/telemetry.config.js` 的 `translate_fail.code` 同一份：`timeout` /
+`network` / `http` / `reasoning_starved` / `no_base` / `unknown_provider` /
+`credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`）。表外的名字不另造遥测码：
+`grant_invalid` / `grant_revoked` / `grant_misconfigured` 归一成 `grant_unavailable`；
+HTTP 429 与 `busy` 归一成 `http`。`HALT_IMMEDIATE` 是其中四码
+（`credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`），一次失败即
+`enterHalt`，`haltCode` 记下该码，之后 `pump()` 不再发请求。`timeout` 仍只在连续
+`TIMEOUT_STREAK_MAX`（5）次单元级失败后 `enterHalt('timeout')`。`http` / `network` / 429
+不升格。`e.stalled` 仍不计入连续超时。行上的下一步在 `fail-surface.js`：即停四码去
+`options.html#grant` 或 `#engine`，超时停机的点击是 `retry()`。
+
 ## 8. Out of scope
 
 No Readability-style full-article extraction fallback (the reference extension

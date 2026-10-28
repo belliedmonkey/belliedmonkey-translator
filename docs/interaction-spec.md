@@ -756,6 +756,12 @@ https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 。这里�
   - 点击在手势内 `open(options.html#…)`：额度类落 **`#grant`**（快速卡），`auth` 落 **`#engine`**（详细档的
     引擎块；锚点自带「先切到详细」的前置，否则那块是 hidden 的）。
   - 免费 Google 通道不带 key，它的 401/403 不算 `auth`、不停机，仍是普通「翻译失败，点此重试」。
+  - **N26（2026-10-28，移植 mobiletranslator `b0ddea77`，待架构形检）**：即停只认四码
+    `credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`。令牌类
+    （`grant_invalid` / `grant_revoked` / `grant_misconfigured`）先归一成 `grant_unavailable`。
+    `http` / `network` / 429 / `busy` 不停机，行上仍是「翻译失败，点此重试」。连续 5 次单元级
+    `timeout` 才停；那一行写「连不上，已暂停」，点击是重试（`retry()` 解锁），不去设置页。
+    即停四码的点击：额度与模型去 `#grant`，`auth` 去 `#engine`。停机后泵不再自动发请求。
 - **「你用完了」与「我们的池子空了」是两句话。** 中继的状态码就是答案：402 = 用完 ⇒ 两条路
   并列，「一键配置自带 key ↗」（注册表 `keyUrl`）在前、「加入社群寻求帮助 ↗」（`COMMUNITY_URL`）
   在后；503 = 我们的池子空了 ⇒ 状态 `unavailable`，卡上明写「不是你用完了」，只给社群出口。
