@@ -1,0 +1,3 @@
+# Apple Silicon only. The iOS target does not install this.
+# Locked by BEL-103. Do not bump without a new architecture pin.
+mlx-qwen3-asr==0.4.4

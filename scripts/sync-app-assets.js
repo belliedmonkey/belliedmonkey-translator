@@ -260,6 +260,18 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ test bridge install: vault install 块缺失');
   }
+  // 完整视频离线字幕（§2.8）：第六条通道，只在 macOS 编进来。锚在测试桥那一整块后面，
+  // 不锚进 #if os(iOS) 的 vault 块，也不锚进听译的 install 行。
+  const OVA_NEEDLE = 'OfflineVideoAsr.shared.install';
+  const OVA_LINES = '        #if os(macOS)\n        OfflineVideoAsr.shared.install(webView: self.webView)\n        #endif';
+  if (src.includes(OVA_NEEDLE)) {
+    notes.push('offline video asr install already patched');
+  } else if (src.includes(TESTB_LINES)) {
+    src = src.replace(TESTB_LINES, TESTB_LINES + '\n' + OVA_LINES);
+    notes.push(src.includes(OVA_NEEDLE) ? 'offline video asr install patched' : '✗ offline video asr install: test bridge block anchor missing');
+  } else {
+    notes.push('✗ offline video asr install: test bridge block missing');
+  }
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
   // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
@@ -441,6 +453,9 @@ const BLOCKS = [
   // 模型不打进 App 包（侧载到 mt-lid/<dir>/）。要撤这一整条：删掉本行 + app/native/lid-ecapa.swift
   // + speech-bridge.swift 里的 ECAPA 分支 + JS 的 lidEngine 开关。
   { name: 'mt-lid-ecapa', src: 'lid-ecapa.swift', label: 'lid ecapa (experiment)' },
+  // Mac 完整视频离线字幕（domain-design §2.8）。整份 #if os(macOS)。不进听译桥。
+  // attach 在 patchViewController，同样包在 #if os(macOS) 里，iOS 目标没有符号引用。
+  { name: 'mt-offline-video-asr', src: 'offline-video-asr.swift', label: 'offline video asr' },
 ];
 
 function patchMarkerBlockSwift(src, tpl, cfg) {

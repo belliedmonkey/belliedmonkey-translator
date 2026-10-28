@@ -164,6 +164,14 @@ const EVENTS = {
     surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
   },
+  // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
+  // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
+  offline_video_asr_task: {
+    result: ['ok', 'fail', 'cancelled'],
+    code: ['no_audio_track', 'codec_unsupported', 'media_encrypted', 'drm',
+      'model_missing', 'model_hash_mismatch', 'download_failed', 'disk_low',
+      'oom', 'sidecar_crash', 'cancelled', 'timeout', 'empty_hyp', 'pin_mismatch', 'busy'],
+  },
   telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
 };
 
@@ -284,6 +292,10 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-main.js', match: "surface: 'popup'" },
     { host: 'ext', file: 'src/pages/popup.jsx', match: "surface: 'popup_app_row'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "surface: 'app_home'" },
+  ],
+  offline_video_asr_task: [
+    { host: 'ext', none: '完整视频离线字幕只在 Mac App；扩展没有这条入口，也不进听译漏斗' },
+    { host: 'app', file: 'app/offline-video-asr.js', match: "track('offline_video_asr_task'" },
   ],
   telemetry_off: SHARED('extension/learn/telemetry.js'),
 };

@@ -1,0 +1,9 @@
+BelliedMonkey offline video subtitles (BEL-103) call mlx-qwen3-asr 0.4.4.
+
+The Qwen3-ASR and Qwen3-ForcedAligner weights are derived from models
+released by Alibaba Cloud under the Apache License 2.0. The 8-bit MLX
+snapshots pinned in pin.json are community quantizations
+(moona3k/mlx-qwen3-asr-0.6b-8bit and
+mlx-community/Qwen3-ForcedAligner-0.6B-8bit), not an official Qwen
+signature. This build verifies the pinned revision and weight sha256
+before inference and does not ship the weight files inside the app.

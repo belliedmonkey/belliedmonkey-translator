@@ -1,0 +1,56 @@
+{
+  "stamp": "2026-10-28T09:40:06+08:00",
+  "order": "order-rd-wire-mac-video-offline-asr-bel103-2026-10-28",
+  "linear": "BEL-103",
+  "package": "mlx-qwen3-asr==0.4.4",
+  "package_name": "mlx-qwen3-asr",
+  "package_version": "0.4.4",
+  "fa_segment_s": 300,
+  "timeout_s": 14400,
+  "min_free_bytes": 4294967296,
+  "sample_rate": 16000,
+  "channels": 1,
+  "sample_width": 2,
+  "input": "--input",
+  "note": "Weight files stay out of the app bundle. Optional 1.7B is pinned and off unless --profile 1.7b.",
+  "models": {
+    "0.6b": {
+      "role": "asr_default",
+      "repo_id": "moona3k/mlx-qwen3-asr-0.6b-8bit",
+      "revision": "83ce2a8ef9a382d2ba2209aab383bc51fff366f5",
+      "weight": "weights.safetensors",
+      "weight_sha256": "940d73134ef51218d923cce36a58f23e2286b16313a35e3b273937041069f844",
+      "weight_bytes": 835619431,
+      "sidecar_sha256": {
+        "config.json": "76d3ae4601ce939830b2517f4a6cadb86cc51316c3900af6b020b051c21a478c",
+        "quantization_config.json": "964fe0bcf1c9cb41a0a66616e64c2bfcf93bd5581f3abd869b0e72d3dbc66154",
+        "tokenizer_config.json": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+      }
+    },
+    "1.7b": {
+      "role": "asr_optional_1.7b",
+      "repo_id": "moona3k/mlx-qwen3-asr-1.7b-8bit",
+      "revision": "22c8abe6a6772122dda5905967d7496d1d3e8dd2",
+      "weight": "weights.safetensors",
+      "weight_sha256": "eba2bdb1ec74f5df99345f9f81492ba551f6b072eedfef564b353ef0dde90bb8",
+      "weight_bytes": 2169903389,
+      "sidecar_sha256": {
+        "config.json": "2e74a751548b8ad7d7526d29365ad8144c345d8b412b1152d25dc6698452712f",
+        "quantization_config.json": "964fe0bcf1c9cb41a0a66616e64c2bfcf93bd5581f3abd869b0e72d3dbc66154",
+        "tokenizer_config.json": "4942d005604266809309cabc9f4e9cb89ce855d59b14681fdc0e1cc62ea26c4c"
+      }
+    },
+    "aligner": {
+      "role": "forced_aligner",
+      "repo_id": "mlx-community/Qwen3-ForcedAligner-0.6B-8bit",
+      "revision": "0e1a68e91d815300c7c9754b2a7639378b23db15",
+      "weight": "model.safetensors",
+      "weight_sha256": "be19ef8ac4326d032e7673342930b14c2df30bd68c1632493b0f563e30829f91",
+      "weight_bytes": 1271924386,
+      "sidecar_sha256": {
+        "config.json": "8dc126e1a4ac001acb02f3a9ca6277c8a20a25485fde293bc99eeab3aedc604d",
+        "tokenizer_config.json": "3ab80063f8511deb9566e6ad438d17b7a6277fcffd52d92854112f19d36bd81c"
+      }
+    }
+  }
+}

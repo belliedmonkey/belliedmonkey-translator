@@ -231,6 +231,30 @@
         "to_app"
       ]
     },
+    "offline_video_asr_task": {
+      "result": [
+        "ok",
+        "fail",
+        "cancelled"
+      ],
+      "code": [
+        "no_audio_track",
+        "codec_unsupported",
+        "media_encrypted",
+        "drm",
+        "model_missing",
+        "model_hash_mismatch",
+        "download_failed",
+        "disk_low",
+        "oom",
+        "sidecar_crash",
+        "cancelled",
+        "timeout",
+        "empty_hyp",
+        "pin_mismatch",
+        "busy"
+      ]
+    },
     "telemetry_off": {}
   },
   "limits": {

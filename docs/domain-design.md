@@ -606,6 +606,18 @@ format、可选字段三态、停机码、重试、注册表）只能有一份�
 模块后果在 §6（`CliEngine` / `CliApp`）；学习侧契约（CLI 作为 Reviewer ± Collector、语料用
 `mt-learn/1` 文件交换）在 `docs/learning-design.md` §9.10。
 
+### 2.8 Mac 完整视频离线字幕 — 不是听译，也不是 §2.7 的翻译 CLI (核心约束 — do not break)
+
+Added 2026-10-28（BEL-103，产品已认 ARCH-SHORT）。这条管线只做一件事：Mac App 上用户点名的**完整视频文件** → 16 kHz 单声道 → 锁版离线转写 → SRT + VTT。它**不是** §2.4 的听译 / SpeechAnalyzer，**不是** §2.7 那个复用 `translation-api.js` 的翻译 CLI，也**不是** Engine 的一个 source。删掉这一节对应的模块，网页翻译、听译和 §2.7 CLI 的字节保持不变。
+
+1. **一个推理入口。** `tools/offline-video-asr` 的 `python -m offline_video_asr`。唯一媒体参数是 `--input`（视频或音轨）。`extract_to_wav` 收成 16 kHz 单声道 PCM，然后只调用 `transcribe_wav`。Mac App 用 `Process` 调**同一个**模块（`app/native/offline-video-asr.swift`），不在 App 里再抽一套模型。
+2. **抽轨顺序写死在 CLI 里。** 已是契约 WAV 则直接用；否则 AVFoundation 小工具（`macos/extract.swift`，bootstrap 编译，不进 App 包）→ `afconvert` → `ffmpeg`。失败码往上抛，不写空字幕。
+3. **ForcedAligner 单段 ≤ 300 秒**（`pin.json` 的 `fa_segment_s`）。更长的文件先切开再把时间戳加回偏移。默认墙钟 14400 秒。
+4. **权重不进包。** 按需下到 Application Support `models/qwen3-asr/<repo>/<revision>/`，启动前对锁版 sha256。包版本 `mlx-qwen3-asr==0.4.4`。可选 1.7B 只在 `--profile 1.7b` 时启用，默认关。
+5. **编译与入口隔离。** 原生文件整份 `#if os(macOS)`，install 行也在 `#if os(macOS)` 里。Feature flag `offlineVideoAsr` 默认关，且只在 macOS 桥存在时页面才发得动。不 import 听译 SA client、流式泵，不改默认翻译引擎。
+6. **遥测单独一条** `offline_video_asr_task`（`docs/telemetry-design.md`）。只带 `result` / `code`。不写听译漏斗，也不拿来和本机听写比。
+7. **学习层不挂。** 不写 `LearnStore`，不把 hyp 送进 Collector。capture 仍只读翻译 Renderer 已经显示过的东西。
+
 ## 3. Generality — DomSegmenter uses only standard HTML semantics
 
 `DomSegmenter` relies on: block/inline classification (by computed `display` —
@@ -1239,6 +1251,7 @@ in PR3, not assumed.
 | `MTExt` | `build/ext-bundle.js` → `dist-app/ExtEngine.js` (+ `app/ext-shim.js`, `app/ext-entry.js`) | the iOS system-translation extension's engine: the transport files of §7, unmodified, behind a JavaScriptCore shim. One export, `MTExt.translate(text, cfg)`. Byte-equality of the request with the app bundle's is a `npm test` gate |
 | `CliEngine` | `build/cli-bundle.js` → `dist-cli/engine.js` (+ `cli/node-shim.js`, `cli/entry.js`) | the CLI host's engine (§2.7): the transport files of §7, unmodified, behind a Node shim. Exposes `translate` / `detectLanguage` / the provider list; byte-equality of the request with the extension/App is a `npm test` gate |
 | `CliApp` | `cli/` | the CLI host (§2.7; learning-side contract `learning-design` §9.10): commands `translate` / `detect` / `providers` / `config` / `doc` / `batch` / `subtitle` / `plan` / `review` / `import` / `export` / `sync`, config under `~/.config/belliedmonkey/`, corpus as an `mt-learn/1` file. Reuses `LearnModel` / `LearnScheduler` / `LearnChunk`; **never `LearnStore`** |
+| `OfflineVideoAsr` | `tools/offline-video-asr/` + `app/offline-video-asr.js` + `app/native/offline-video-asr.swift` | §2.8 Mac file subtitles. One CLI (`python -m offline_video_asr`); the app `Process` launches that module. Not the listen bridge, not §2.7's translate CLI, not an Engine source |
 | `VaultMirror` | `app/vault-mirror.js` + `app/native/vault-bridge.swift` (`mtVault`) | one-way, full-snapshot mirror of the *resolved* engine configuration into App Group `UserDefaults` and of the key into the shared Keychain group, for the extension to read (§2.6 rule 7) |
 | `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
 | `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
