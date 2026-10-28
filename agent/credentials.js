@@ -1,5 +1,9 @@
 // agent/credentials.js — which engine path can run an agent tool.
 //
+// The China App bundle rewrites gate-hitting string literals after esbuild
+// (build/china-host-literals.js). This file stays the literal source for the
+// Node host and the global app bundle.
+//
 // Host subscription and host API key are first-class (t291u). In-app BYOK is
 // the same class. The Bellied Monkey grant is auxiliary: it can run a tool,
 // and it is never the only way. This module does not read secrets and does

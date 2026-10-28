@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const esbuild = require('esbuild');
 const { buildOptions } = require('./run-esbuild.js');
+const { rewriteBundledCredentials } = require('./china-host-literals.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -311,7 +312,13 @@ function buildAppBundle(outDir, log, opts) {
     parts.push('');
   }
 
-  fs.writeFileSync(path.join(outDir, 'Script.js'), parts.join('\n'));
+  const scriptPath = path.join(outDir, 'Script.js');
+  let script = parts.join('\n');
+  // 中国版：esbuild 同步 API 不能挂插件，所以在落盘前改写 credentials 那一段。
+  // 只动 `// agent/credentials.js` 到下一个文件横幅之间，别处的品牌词仍交给合规门。
+  // 国际版不传这个开关。拼接在 esbuild 之后，避免被折回一个字符串。
+  if (opts.rewriteHostLiterals) script = rewriteBundledCredentials(script);
+  fs.writeFileSync(scriptPath, script);
 
   // ─── The review surface is INLINED, not a second page ────────────────────
   // Three filenames is the whole deal (see the header), so the app cannot have a
