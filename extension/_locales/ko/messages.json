@@ -1911,7 +1911,7 @@
     "message": "한 번 붙여넣으면 세 가지 모두 설정"
   },
   "qs_privacy": {
-    "message": "받아쓰기는 녹음을 {host} 로 보냅니다. 인식이 끝나면 즉시 폐기되며 저장도 동기화도 하지 않습니다."
+    "message": "키는 이 기기에만 저장됩니다."
   },
   "qs_grant_replaced": {
     "message": "(무료 크레딧 키를 교체했어요)"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "무료 경로로 바꾸기"
+  },
+  "firstrun_packs_sum": {
+    "message": "약 {size} · 듣기 기초 포함"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "진행 상세"
+  },
+  "langpacks_manage": {
+    "message": "관리"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "원탭으로 바꾸기"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "받는 중"
+  },
+  "firstrun_quota_mini": {
+    "message": "인식 언어는 최대 5개"
+  },
+  "qs_key_local_only": {
+    "message": "키는 이 기기에만 저장됩니다"
+  },
+  "firstrun_packs_retry": {
+    "message": "다시 시도"
+  },
+  "langpacks_title": {
+    "message": "언어 팩과 읽어 주기"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · 원탭 설정됨"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "받는 중 {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "오프라인 읽어 주기 · 받지 않음 · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "다운로드 내용 상세"
+  },
+  "langpacks_need_os": {
+    "message": "언어 팩 · 더 새로운 시스템이 필요"
+  },
+  "engine_keys_status_detail": {
+    "message": "항목별 설정됨"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "고르면 원탭 설정이 사라집니다"
+  },
+  "langpacks_tts_na": {
+    "message": "오프라인 읽어 주기 · 앱에서만"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "항목별로 바꾸기"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "원탭으로 바꾸면 현재 항목별 설정을 덮어씁니다"
+  },
+  "langpacks_ready": {
+    "message": "준비됨 · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "설정 안 됨"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · 약 {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "다른 엔진은 항목별 설정에서 고르세요."
+  },
+  "langpacks_tts_ready": {
+    "message": "오프라인 읽어 주기 · 준비됨"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "고르면 항목별 설정을 덮어씁니다"
+  },
+  "engine_keys_row": {
+    "message": "엔진과 키"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "취소"
+  },
+  "langpacks_missing": {
+    "message": "받지 않음 · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "항목별로 바꾸면 현재 원탭 설정이 사라집니다"
   }
 }

@@ -1911,7 +1911,7 @@
     "message": "Collez une fois — les trois sont configurés"
   },
   "qs_privacy": {
-    "message": "La transcription envoie votre enregistrement à {host}. Il est supprimé dès la reconnaissance — jamais stocké, jamais synchronisé."
+    "message": "Les clés restent uniquement sur cet appareil."
   },
   "qs_grant_replaced": {
     "message": "(a remplacé la clé du crédit gratuit)"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "Passer au canal gratuit"
+  },
+  "firstrun_packs_sum": {
+    "message": "Environ {size} · base d’écoute comprise"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Détail de la progression"
+  },
+  "langpacks_manage": {
+    "message": "Gérer"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Un geste"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Téléchargement"
+  },
+  "firstrun_quota_mini": {
+    "message": "Jusqu’à 5 langues de reconnaissance"
+  },
+  "qs_key_local_only": {
+    "message": "Les clés restent uniquement sur cet appareil"
+  },
+  "firstrun_packs_retry": {
+    "message": "Réessayer"
+  },
+  "langpacks_title": {
+    "message": "Packs de langue et lecture"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · prêt en un geste"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Téléchargement {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "Lecture hors ligne · non téléchargée · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "Détail du téléchargement"
+  },
+  "langpacks_need_os": {
+    "message": "Packs de langue · système plus récent requis"
+  },
+  "engine_keys_status_detail": {
+    "message": "Réglé par moteur"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Choisir annule le réglage en un geste"
+  },
+  "langpacks_tts_na": {
+    "message": "Lecture hors ligne · dans l’app seulement"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Par moteur"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Passer au geste unique écrase le réglage actuel par moteur"
+  },
+  "langpacks_ready": {
+    "message": "Prêt · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "Non configuré"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · environ {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "Les autres moteurs se règlent par moteur."
+  },
+  "langpacks_tts_ready": {
+    "message": "Lecture hors ligne · prête"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Choisir écrase le réglage par moteur"
+  },
+  "engine_keys_row": {
+    "message": "Moteurs et clés"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Annuler"
+  },
+  "langpacks_missing": {
+    "message": "Non téléchargé · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Passer au réglage par moteur annule le réglage actuel en un geste"
   }
 }

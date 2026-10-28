@@ -90,7 +90,7 @@ export function syncError(e, t) {
   if (code === 'grant_misconfigured') return t('grant_err_misconfigured', '免费额度这条路我们这边配错了，已经记下。这不是你的问题；先用自己的 key。');
   if (code === 'grant_revoked') return t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
   if (code === 'grant_invalid') return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
-  if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「详细」里改过模型 —— 改回去，或者填一把自己的 key。');
+  if (code === 'model_not_allowed') return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「分项」里改过模型 —— 改回去，或者填一把自己的 key。');
   if (code === 'busy') return t('grant_err_busy', '这会儿请求太密了，等几秒再试。');
   if (code === 'auth') return t('auth_err_key', '服务商拒绝了这把 key（HTTP 401/403）。检查 key 是否填对、有没有这个模型的权限。');
   return (e && e.message) || t('sync_err_generic', '同步没能完成');

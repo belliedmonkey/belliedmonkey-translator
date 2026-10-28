@@ -1911,7 +1911,7 @@
     "message": "Pégala una vez: configura las tres"
   },
   "qs_privacy": {
-    "message": "La transcripción envía tu grabación a {host}. Se descarta en cuanto se reconoce: nunca se almacena ni se sincroniza."
+    "message": "Las claves se quedan solo en este dispositivo."
   },
   "qs_grant_replaced": {
     "message": "(reemplazó la clave del crédito gratis)"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "Pasar al canal gratis"
+  },
+  "firstrun_packs_sum": {
+    "message": "Unos {size} · incluye la base de escucha"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Detalle del progreso"
+  },
+  "langpacks_manage": {
+    "message": "Gestionar"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Un toque"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Descargando"
+  },
+  "firstrun_quota_mini": {
+    "message": "Hasta 5 idiomas de reconocimiento"
+  },
+  "qs_key_local_only": {
+    "message": "Las claves se quedan solo en este dispositivo"
+  },
+  "firstrun_packs_retry": {
+    "message": "Reintentar"
+  },
+  "langpacks_title": {
+    "message": "Paquetes de idioma y lectura"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · listo en un toque"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Descargando {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "Lectura sin conexión · no descargada · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "Detalles de la descarga"
+  },
+  "langpacks_need_os": {
+    "message": "Paquetes de idioma · hace falta un sistema más nuevo"
+  },
+  "engine_keys_status_detail": {
+    "message": "Listo por motor"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Cambiar descarta la configuración de un toque"
+  },
+  "langpacks_tts_na": {
+    "message": "Lectura sin conexión · solo en la app"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Por motor"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Pasar a un toque sobrescribe la configuración actual por motor"
+  },
+  "langpacks_ready": {
+    "message": "Listo · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "Sin configurar"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · unos {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "Los otros motores se configuran por motor."
+  },
+  "langpacks_tts_ready": {
+    "message": "Lectura sin conexión · lista"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Cambiar sobrescribe la configuración por motor"
+  },
+  "engine_keys_row": {
+    "message": "Motores y claves"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Cancelar"
+  },
+  "langpacks_missing": {
+    "message": "No descargado · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Pasar a por motor descarta la configuración actual de un toque"
   }
 }

@@ -502,7 +502,7 @@
     "message": "Speech API key"
   },
   "tts_model": {
-    "message": "Speech model"
+    "message": "Engine model name"
   },
   "tts_voice": {
     "message": "Voice"
@@ -987,7 +987,7 @@
     "message": "Custom endpoint URL"
   },
   "app_set_notes_model": {
-    "message": "Model"
+    "message": "Engine model name"
   },
   "app_set_notes_note": {
     "message": "This engine does every translation in the app: system translation, quick translate, document translation, the translations in conversation and live subtitles — and sentence notes (words / phrases / grammar). It calls your own API. The key stays on this device only and never syncs with your account; it is separate from the one in the browser extension, and just as safe — both are stored in plain text on the device."
@@ -1219,7 +1219,7 @@
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "stt_model": {
-    "message": "Transcription model",
+    "message": "Engine model name",
     "description": "Speak exercise / transcription engine (§9.4)"
   },
   "learn_speak_prompt": {
@@ -1875,10 +1875,10 @@
     "message": "First time? Two minutes to set it up →"
   },
   "qs_title": {
-    "message": "Set everything up with one key"
+    "message": "Engines & keys"
   },
   "qs_sub": {
-    "message": "One key on these platforms sets up translation, speech, and transcription at once. For any other engine, switch to Detailed above."
+    "message": "Pick a platform, paste the API key it gave you, and set up translation, speech, and transcription at once."
   },
   "qs_platform": {
     "message": "Platform"
@@ -1890,7 +1890,7 @@
     "message": "API key"
   },
   "qs_get_key": {
-    "message": "No key yet? Get one at {p} ↗"
+    "message": "Get a key at {p}"
   },
   "qs_try": {
     "message": "Translate a page now"
@@ -1902,16 +1902,16 @@
     "message": "One key sets up translation, speech, and transcription at once."
   },
   "extob_mode_quick": {
-    "message": "One key"
+    "message": "One-tap"
   },
   "extob_mode_manual": {
-    "message": "Set up each engine"
+    "message": "Per engine"
   },
   "qs_key_ph": {
-    "message": "Paste once — configures all three"
+    "message": "Paste the API key QwenCloud gave you"
   },
   "qs_privacy": {
-    "message": "Transcription sends your recording to {host}. It is discarded as soon as it is recognised — never stored, never synced."
+    "message": "Keys stay on this device only."
   },
   "qs_grant_replaced": {
     "message": "(replaced the free-credit key)"
@@ -1950,7 +1950,7 @@
     "message": "Read with the system voice (the offline model does not cover {lang})"
   },
   "qs_apply": {
-    "message": "Set up translation, read-aloud and transcription"
+    "message": "Set up with one tap"
   },
   "qs_testing": {
     "message": "Testing…"
@@ -1989,10 +1989,10 @@
     "message": "The endpoint responded but returned no audio"
   },
   "opt_mode_quick": {
-    "message": "Quick"
+    "message": "One-tap"
   },
   "opt_mode_detail": {
-    "message": "All settings"
+    "message": "Per engine"
   },
   "options_wipe_all": {
     "message": "Erase all data on this device"
@@ -2070,7 +2070,7 @@
     "message": "Set up a translation engine →"
   },
   "setup_not_configured": {
-    "message": "No translation engine set up yet. Use the one-key setup above, or switch to “Detailed” to pick an engine and enter its key."
+    "message": "No translation engine set up yet. Use the one-tap setup above, or switch to “Per engine” to pick an engine and enter its key."
   },
   "toast_wipe_failed_what": {
     "message": "Not fully erased — still there: {what}. Please try again."
@@ -2605,7 +2605,7 @@
     "message": "This free credit is no longer recognised. Open settings and claim it again."
   },
   "grant_err_model": {
-    "message": "Free credit only works with the model it pins. You changed the model under Advanced — change it back, or add your own key."
+    "message": "Free credit only works with the model it pins. You changed the model under Per engine — change it back, or add your own key."
   },
   "grant_err_busy": {
     "message": "Too many requests right now. Wait a few seconds and try again."
@@ -3040,16 +3040,16 @@
     "message": "Speech is synthesised on your device; the first use downloads the offline model once (the model file only). Languages the model does not cover fall back to the system voice, and the row says so."
   },
   "tts_pack_label": {
-    "message": "Offline model"
+    "message": "Offline speech"
   },
   "tts_pack_installed": {
-    "message": "Offline model installed · {langs}"
+    "message": "Offline speech ready · {langs}"
   },
   "tts_pack_missing": {
-    "message": "Offline model not downloaded · {langs} · {size}"
+    "message": "Offline speech not downloaded · {langs} · {size}"
   },
   "tts_pack_note": {
-    "message": "The first read-aloud downloads it automatically too; only model files are downloaded, nothing is uploaded."
+    "message": "First playback also downloads; files only, nothing is uploaded."
   },
   "tts_pack_dl": {
     "message": "Download"
@@ -3062,10 +3062,10 @@
     "message": "Retry"
   },
   "tts_pack_downloading": {
-    "message": "Downloading offline model · {lang} · {pct}%"
+    "message": "Downloading offline speech · {lang} · {pct}%"
   },
   "tts_pack_failed": {
-    "message": "Offline model download failed: {why} — usually a network problem; try again later"
+    "message": "Offline speech download failed: {why} — usually the network; try again later"
   },
   "tts_pack_no_bridge": {
     "message": "On-device read-aloud is only available in the app"
@@ -3104,7 +3104,7 @@
     "message": "Account & data"
   },
   "opt_adv_hint": {
-    "message": "One-key setup is under “Quick” →"
+    "message": "One-tap setup is under “One-tap” →"
   },
   "stt_section": {
     "message": "Whole-clip transcription"
@@ -3739,19 +3739,19 @@
     "message": "Wi-Fi is recommended; cellular works too — your call."
   },
   "firstrun_packs_busy": {
-    "message": "Downloading…"
+    "message": "Downloading"
   },
   "firstrun_packs_go": {
     "message": "Download and continue"
   },
   "firstrun_packs_go_tts": {
-    "message": "Get the voice pack only and continue"
+    "message": "Download speech only, continue"
   },
   "firstrun_packs_err": {
     "message": "The download didn't finish: {why} — check your connection and try again."
   },
   "firstrun_packs_stt_slow": {
-    "message": "The system voice pack download stalled — check your connection and try again."
+    "message": "System language pack download stalled — check the network and try again."
   },
   "engine_status_ok": {
     "message": "Set up with your account: translation · speech-to-text · read-aloud — usable right here"
@@ -3829,19 +3829,19 @@
     "message": "Language packs are ready"
   },
   "firstrun_packs_all_lede": {
-    "message": "{langs} can be used for listening and reading aloud. Add more anytime in Settings."
+    "message": "{langs} are ready to listen and speak. Add more anytime in Settings · Language packs."
   },
   "firstrun_packs_dl_title": {
-    "message": "Downloading language packs"
+    "message": "Downloading"
   },
   "firstrun_packs_dl_lede": {
-    "message": "Each item shows its own progress. Downloading continues in the background and resumes after the network returns."
+    "message": "You can switch away — come back when it finishes"
   },
   "firstrun_packs_pick_title": {
-    "message": "Choose languages to download"
+    "message": "Choose languages"
   },
   "firstrun_packs_pick_lede": {
-    "message": "Checked by default: the system language + 中文 + English. Check others as needed. You can add more later in Settings."
+    "message": "Select the languages you want to listen and translate"
   },
   "firstrun_packs_cell_waiting": {
     "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
@@ -3850,10 +3850,10 @@
     "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
   },
   "firstrun_packs_foot": {
-    "message": "About {size} in total, plus the system recognition packs. On a cellular network you will be asked before the download."
+    "message": "About {size} · includes listen base"
   },
   "firstrun_packs_locked": {
-    "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
+    "message": "Selection is locked while downloading; change packs later in Settings · Language packs."
   },
   "firstrun_packs_enter": {
     "message": "Start live listening"
@@ -3871,10 +3871,10 @@
     "message": "{pct}% · {done} / {total}"
   },
   "firstrun_packs_section_langs": {
-    "message": "Languages (recognition packs)"
+    "message": "Languages"
   },
   "firstrun_packs_asr_sub": {
-    "message": "Recognition pack · downloaded by the system"
+    "message": "Not downloaded"
   },
   "firstrun_packs_system": {
     "message": "System language"
@@ -3883,7 +3883,7 @@
     "message": "{n} more languages"
   },
   "firstrun_packs_together": {
-    "message": "Downloaded together"
+    "message": "Download details"
   },
   "firstrun_packs_tts_shared": {
     "message": "Read aloud · {langs}"
@@ -3904,10 +3904,10 @@
     "message": "About {size} · optional"
   },
   "firstrun_packs_base": {
-    "message": "Base components"
+    "message": "Listen base"
   },
   "firstrun_packs_base_note": {
-    "message": "Language ID (ECAPA) + voice detection (VAD): tells who is speaking which language. Listening cannot start until these are ready"
+    "message": "Tells who is speaking which language — required before listening"
   },
   "firstrun_packs_required": {
     "message": "About {size} · required"
@@ -3916,7 +3916,7 @@
     "message": "You are on a cellular network"
   },
   "firstrun_packs_cell_body": {
-    "message": "This download is about {size} (system recognition packs are extra, and the system decides their size) and may use mobile data."
+    "message": "This download is about {size} (system language packs are separate). Cellular data charges may apply."
   },
   "firstrun_packs_cell_wait": {
     "message": "Wait for Wi-Fi"
@@ -3952,7 +3952,7 @@
     "message": "Skipped {n} cards that cannot be read aloud (media cards or no voice)"
   },
   "firstrun_packs_all_lede_listen": {
-    "message": "{langs} can be interpreted now; {speak} can be read aloud. Add more languages anytime in Settings · Voice packs."
+    "message": "{langs} are ready to listen; {speak} can speak. Add more anytime in Settings · Language packs."
   },
   "firstrun_quota_cancel": {
     "message": "Cancel"
@@ -3982,7 +3982,7 @@
     "message": "Least recently used"
   },
   "firstrun_quota_note": {
-    "message": "Apple limit: up to {max} recognition languages at a time"
+    "message": "Up to {max} recognition languages"
   },
   "firstrun_quota_note_full": {
     "message": "All {max} slots are in use · a new one will be marked “Not ready” first"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "Switch to free credit"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Switching will discard one-tap setup"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Switching will overwrite per-engine setup"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Switching to per-engine will discard your current one-tap setup"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Use per engine"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Switching to one-tap will overwrite your current per-engine setup"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Use one-tap"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Cancel"
+  },
+  "qs_others_in_detail": {
+    "message": "For other engines, use Per engine."
+  },
+  "qs_key_local_only": {
+    "message": "Keys stay on this device only"
+  },
+  "engine_keys_status_none": {
+    "message": "Not set up"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · one-tap ready"
+  },
+  "engine_keys_status_detail": {
+    "message": "Per-engine ready"
+  },
+  "engine_keys_row": {
+    "message": "Engines & keys"
+  },
+  "firstrun_packs_details": {
+    "message": "Download details"
+  },
+  "firstrun_packs_sum": {
+    "message": "About {size} · includes listen base"
+  },
+  "firstrun_quota_mini": {
+    "message": "Up to 5 recognition languages"
+  },
+  "langpacks_manage": {
+    "message": "Manage"
+  },
+  "langpacks_missing": {
+    "message": "Not downloaded · {langs}"
+  },
+  "langpacks_need_os": {
+    "message": "Language packs · newer OS required"
+  },
+  "langpacks_ready": {
+    "message": "Ready · {langs}"
+  },
+  "langpacks_title": {
+    "message": "Language packs & speech"
+  },
+  "langpacks_tts_missing": {
+    "message": "Offline speech · Not downloaded · {size}"
+  },
+  "langpacks_tts_na": {
+    "message": "Offline speech · App only"
+  },
+  "langpacks_tts_ready": {
+    "message": "Offline speech · Ready"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Progress details"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Downloading"
+  },
+  "firstrun_packs_retry": {
+    "message": "Retry"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Downloading {n}%"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · about {size}"
   }
 }

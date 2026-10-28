@@ -489,7 +489,7 @@ function Options() {
   } else if (needsSetup) {
     setupNote = EngineState.needsKey({ provider: prov, apiKey: s.apiKey })
       ? T('setup_need_key', '这个引擎需要 API Key。填入下面的 Key 之后翻译才会工作。')
-      : T('setup_not_configured', '还没配过翻译引擎。用上面的一键配置，或切到「详细」里选一个引擎并填上 Key。');
+      : T('setup_not_configured', '还没配过翻译引擎。用上面的一键配置，或切到「分项」里选一个引擎并填上 Key。');
   }
   const setupNoteShown = !!setupNote;
 
@@ -1391,6 +1391,22 @@ function Options() {
     try { chrome.storage.local.set({ [DETAIL_KEY]: !!on }); } catch (_) {}
   };
 
+  // N24v2：一键/分项互斥 —— 点另一档先确认。
+  const requestDetailMode = async (on) => {
+    if (!!on === !!detail) return;
+    if (on) {
+      const ok = await LearnDialog.confirm(
+        t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
+        { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
+      if (ok) setDetailMode(true);
+    } else {
+      const ok = await LearnDialog.confirm(
+        t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
+        { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
+      if (ok) setDetailMode(false);
+    }
+  };
+
   const advHintGo = () => {
     flushSync(() => setDetailMode(false));
     const card = document.getElementById('quick-setup-card');
@@ -1747,8 +1763,18 @@ function Options() {
             {/* 快速 / 详细。刻意**不叫「高级」**——翻译引擎卡里已经有一个 #btn-advanced。
                 只管这一节；实现只用 hidden，永不 remove()。 */}
             <div className="mode-tabs" id="mode-tabs" role="tablist" hidden={!quickAvail}>
-              <button id="mode-quick" type="button" role="tab" aria-selected={String(!detail)} onClick={() => setDetailMode(false)}>{T('opt_mode_quick', '快速')}</button>
-              <button id="mode-detail" type="button" role="tab" aria-selected={String(detail)} onClick={() => setDetailMode(true)}>{T('opt_mode_detail', '详细')}</button>
+              <button id="mode-quick" type="button" role="tab" aria-selected={String(!detail)}
+                className={!detail ? '' : 'mode-tab-muted'}
+                onClick={() => requestDetailMode(false)}>
+                {!detail ? '✓ ' : ''}{T('opt_mode_quick', '一键')}
+                {detail ? <small className="mode-tab-hint"> {T('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
+              </button>
+              <button id="mode-detail" type="button" role="tab" aria-selected={String(detail)}
+                className={detail ? '' : 'mode-tab-muted'}
+                onClick={() => requestDetailMode(true)}>
+                {detail ? '✓ ' : ''}{T('opt_mode_detail', '分项')}
+                {!detail ? <small className="mode-tab-hint"> {T('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
+              </button>
             </div>
           </div>
 
@@ -1768,7 +1794,7 @@ function Options() {
 
           {/* 永不同屏，但路必须有：详细档顶上一行指回快速档。 */}
           <p className="hint adv-only" id="adv-hint" hidden={detail}>
-            <button type="button" className="link-btn" id="adv-hint-go" onClick={advHintGo}>{T('opt_adv_hint', '一键配置在「快速」里 →')}</button>
+            <button type="button" className="link-btn" id="adv-hint-go" onClick={advHintGo}>{T('opt_adv_hint', '一键配置在「一键」里 →')}</button>
           </p>
 
           {/* 翻译引擎（含「解析这句」可选覆盖） */}

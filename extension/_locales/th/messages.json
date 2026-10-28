@@ -1761,7 +1761,7 @@
     "message": "วางครั้งเดียว — ตั้งค่าทั้งสามอย่าง"
   },
   "qs_privacy": {
-    "message": "การถอดเสียงจะส่งไฟล์บันทึกของคุณไปที่ {host} ข้อมูลจะถูกลบทันทีเมื่อถอดเสียงเสร็จ — ไม่จัดเก็บ ไม่ซิงก์"
+    "message": "คีย์อยู่บนอุปกรณ์นี้เท่านั้น"
   },
   "qs_grant_replaced": {
     "message": "(แทนที่คีย์เครดิตฟรีแล้ว)"
@@ -3934,5 +3934,92 @@
   },
   "fail_switch_free": {
     "message": "เปลี่ยนไปช่องทางฟรี"
+  },
+  "firstrun_packs_sum": {
+    "message": "ประมาณ {size} · รวมพื้นฐานการฟัง"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "รายละเอียดความคืบหน้า"
+  },
+  "langpacks_manage": {
+    "message": "จัดการ"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "แตะครั้งเดียว"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "กำลังดาวน์โหลด"
+  },
+  "firstrun_quota_mini": {
+    "message": "รู้จำได้สูงสุด 5 ภาษา"
+  },
+  "qs_key_local_only": {
+    "message": "คีย์อยู่บนอุปกรณ์นี้เท่านั้น"
+  },
+  "firstrun_packs_retry": {
+    "message": "ลองใหม่"
+  },
+  "langpacks_title": {
+    "message": "ชุดภาษาและการอ่านออกเสียง"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · ตั้งด้วยแตะครั้งเดียวแล้ว"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "กำลังดาวน์โหลด {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "อ่านออกเสียงออฟไลน์ · ยังไม่ได้ดาวน์โหลด · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "รายละเอียดการดาวน์โหลด"
+  },
+  "langpacks_need_os": {
+    "message": "ชุดภาษา · ต้องใช้ระบบที่ใหม่กว่า"
+  },
+  "engine_keys_status_detail": {
+    "message": "ตั้งแยกเอนจินแล้ว"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "เลือกแล้วจะยกเลิกการตั้งแตะครั้งเดียว"
+  },
+  "langpacks_tts_na": {
+    "message": "อ่านออกเสียงออฟไลน์ · ใช้ได้ในแอปเท่านั้น"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "ตั้งแยกเอนจิน"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "เปลี่ยนไปแตะครั้งเดียวจะเขียนทับการตั้งแยกเอนจินที่มีอยู่"
+  },
+  "langpacks_ready": {
+    "message": "พร้อมแล้ว · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "ยังไม่ได้ตั้ง"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · ประมาณ {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "เอนจินอื่นให้ตั้งแยกเอนจิน"
+  },
+  "langpacks_tts_ready": {
+    "message": "อ่านออกเสียงออฟไลน์ · พร้อมแล้ว"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "เลือกแล้วจะเขียนทับการตั้งแยกเอนจิน"
+  },
+  "engine_keys_row": {
+    "message": "เอนจินและคีย์"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "ยกเลิก"
+  },
+  "langpacks_missing": {
+    "message": "ยังไม่ได้ดาวน์โหลด · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "เปลี่ยนไปตั้งแยกเอนจินจะยกเลิกการตั้งแตะครั้งเดียวที่มีอยู่"
   }
 }

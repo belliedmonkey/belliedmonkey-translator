@@ -1761,7 +1761,7 @@
     "message": "एक बार पेस्ट करें — तीनों कॉन्फ़िगर हो जाते हैं"
   },
   "qs_privacy": {
-    "message": "प्रतिलेखन आपकी रिकॉर्डिंग {host} को भेजता है। पहचान होते ही इसे हटा दिया जाता है — कभी संग्रहीत नहीं, कभी सिंक नहीं।"
+    "message": "कुंजियाँ केवल इसी डिवाइस पर रहती हैं।"
   },
   "qs_grant_replaced": {
     "message": "(मुफ़्त क्रेडिट की key बदल दी)"
@@ -3954,5 +3954,92 @@
   },
   "fail_switch_free": {
     "message": "मुफ़्त चैनल"
+  },
+  "firstrun_packs_sum": {
+    "message": "लगभग {size} · सुनने का आधार शामिल"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "प्रगति विवरण"
+  },
+  "langpacks_manage": {
+    "message": "प्रबंधित करें"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "एक टैप"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "डाउनलोड हो रहा है"
+  },
+  "firstrun_quota_mini": {
+    "message": "अधिकतम 5 पहचान भाषाएँ"
+  },
+  "qs_key_local_only": {
+    "message": "कुंजियाँ केवल इसी डिवाइस पर रहती हैं"
+  },
+  "firstrun_packs_retry": {
+    "message": "पुनः प्रयास"
+  },
+  "langpacks_title": {
+    "message": "भाषा पैक और पठन"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · एक टैप तैयार"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "डाउनलोड {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "ऑफ़लाइन पठन · डाउनलोड नहीं · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "डाउनलोड विवरण"
+  },
+  "langpacks_need_os": {
+    "message": "भाषा पैक · नया सिस्टम चाहिए"
+  },
+  "engine_keys_status_detail": {
+    "message": "प्रति इंजन तैयार"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "चुनने से एक-टैप सेटअप रद्द हो जाएगा"
+  },
+  "langpacks_tts_na": {
+    "message": "ऑफ़लाइन पठन · केवल ऐप में"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "प्रति इंजन"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "एक टैप पर जाने से मौजूदा प्रति-इंजन सेटअप मिट जाएगा"
+  },
+  "langpacks_ready": {
+    "message": "तैयार · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "सेट नहीं"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · लगभग {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "बाकी इंजन प्रति इंजन में सेट करें।"
+  },
+  "langpacks_tts_ready": {
+    "message": "ऑफ़लाइन पठन · तैयार"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "चुनने से प्रति-इंजन सेटअप मिट जाएगा"
+  },
+  "engine_keys_row": {
+    "message": "इंजन और कुंजी"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "रद्द करें"
+  },
+  "langpacks_missing": {
+    "message": "डाउनलोड नहीं · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "प्रति इंजन पर जाने से मौजूदा एक-टैप सेटअप रद्द हो जाएगा"
   }
 }

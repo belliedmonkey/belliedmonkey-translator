@@ -1072,6 +1072,25 @@ describe('ListenCore — 实时字幕条字号三档（§9.8 协议补充决定 
   });
 });
 
+describe('ListenModel / ListenView — P0-B 最近句子默认最新在上（1.21.1）', () => {
+  // 源码钉：存储仍 push；展示只在 historyView 翻转；跟滚贴顶。禁 column-reverse / unshift 叠加。
+  // 本线字幕舞台走 partial，不从历史行取「当前句」，所以不要求 subtitleStageLines。
+  const VIEW = read('src/app/listen-view.jsx');
+  test('historyView：map 后 reverse，展示新→旧；不改 addFinal', () => {
+    ok(/out\.reverse\(\)/.test(MODEL), 'historyView 须 out.reverse 展示新→旧');
+    ok(/展示序默认新→旧|P0-B/.test(MODEL), '须标注 P0-B / 新→旧');
+    const core = read('app/listen-core.js');
+    ok(/s\.rows\.push\(row\)/.test(core), 'addFinal 须仍 push');
+    ok(!/s\.rows\.unshift\(row\)/.test(core), '禁 addFinal unshift');
+  });
+  test('跟滚改贴顶；禁 CSS column-reverse 当分叉', () => {
+    ok(/el\.scrollTop = 0/.test(VIEW), '须贴顶 scrollTop=0');
+    ok(!/scrollTop = el\.scrollHeight/.test(VIEW), '不得再贴底 scrollHeight');
+    const css = read('app/style.css');
+    ok(!/\.listen-history[^{]*\{[^}]*column-reverse/.test(css), '禁 listen-history column-reverse');
+  });
+});
+
 describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）', () => {
   // PR7b：源从 extension/learn/sources-view.js（IIFE，模块求值期读 MT_PALETTE 拼样式，
   // 所以要先垫）换到 src/shared/sources-view.js —— 纯逻辑层不再读调色板，垫片随之退役。

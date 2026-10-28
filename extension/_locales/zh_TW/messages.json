@@ -988,7 +988,7 @@
     "message": "自訂介面位址"
   },
   "app_set_notes_model": {
-    "message": "模型"
+    "message": "引擎模型名"
   },
   "app_set_notes_note": {
     "message": "這個引擎負責 App 裡的每一處翻譯：系統翻譯、快速翻譯、文件翻譯、對話與即時字幕的譯文，以及句子解析（生字 / 片語 / 文法）。呼叫你自己的 API；密鑰只存在這台裝置上，不隨帳號同步；與瀏覽器擴充功能裡設定的密鑰互不相通，安全性也相同 —— 都是本機明文保存。"
@@ -1912,7 +1912,7 @@
     "message": "貼上一次，三樣一起設定好"
   },
   "qs_privacy": {
-    "message": "轉寫會把你的錄音傳到 {host} 辨識，辨識完立即丟棄，不儲存也不同步。"
+    "message": "密鑰只存在本機。"
   },
   "qs_grant_replaced": {
     "message": "（替換了免費額度的 key）"
@@ -1990,10 +1990,10 @@
     "message": "端點通了，但沒有回傳音訊"
   },
   "opt_mode_quick": {
-    "message": "快速"
+    "message": "一鍵"
   },
   "opt_mode_detail": {
-    "message": "詳細"
+    "message": "分項"
   },
   "options_wipe_all": {
     "message": "清除本機全部資料"
@@ -2071,7 +2071,7 @@
     "message": "去設定翻譯引擎 →"
   },
   "setup_not_configured": {
-    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「詳細」裡選一個引擎並填上 Key。"
+    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「分項」裡選一個引擎並填上 Key。"
   },
   "toast_wipe_failed_what": {
     "message": "沒有清乾淨，還剩：{what}。請再試一次。"
@@ -2606,7 +2606,7 @@
     "message": "這份免費額度認不出來了。到設定裡重新領一次。"
   },
   "grant_err_model": {
-    "message": "免費額度只能用它指定的那個模型。你在「詳細」裡改過模型 —— 改回去，或者填一把自己的 key。"
+    "message": "免費額度只能用它指定的那個模型。你在「分項」裡改過模型 —— 改回去，或者填一把自己的 key。"
   },
   "grant_err_busy": {
     "message": "這會兒請求太密了，等幾秒再試。"
@@ -3041,7 +3041,7 @@
     "message": "語音在你的裝置上合成；首次使用會下載一次離線模型（只是模型檔）。模型不含的語言會改用系統語音並在行上說明。"
   },
   "tts_pack_label": {
-    "message": "離線模型"
+    "message": "離線朗讀"
   },
   "tts_pack_installed": {
     "message": "離線模型已安裝 · {langs}"
@@ -3105,7 +3105,7 @@
     "message": "帳號與資料"
   },
   "opt_adv_hint": {
-    "message": "一鍵設定在「快速」裡 →"
+    "message": "一鍵設定在「一鍵」裡 →"
   },
   "stt_section": {
     "message": "整段轉寫"
@@ -3740,7 +3740,7 @@
     "message": "建議在 Wi-Fi 下下載；用行動網路也行，你自己決定。"
   },
   "firstrun_packs_busy": {
-    "message": "正在下載…"
+    "message": "下載中"
   },
   "firstrun_packs_go": {
     "message": "下載並繼續"
@@ -3833,16 +3833,16 @@
     "message": "{langs} 可以聽譯和朗讀了。要加別的語言，隨時去「設定 · 語音包」裡加。"
   },
   "firstrun_packs_dl_title": {
-    "message": "正在下載語言包"
+    "message": "正在下載"
   },
   "firstrun_packs_dl_lede": {
-    "message": "每一項單獨顯示進度。切到背景也會接著下，斷網恢復後從斷點續，不用從頭來。"
+    "message": "可以切到後台，下完再回來"
   },
   "firstrun_packs_pick_title": {
-    "message": "選擇要下載的語言"
+    "message": "選擇語言"
   },
   "firstrun_packs_pick_lede": {
-    "message": "預設勾上：系統語言 + 中文 + English。其他按需勾選，以後也能在「設定 · 語音包」裡加。"
+    "message": "勾選你要聽譯的語言"
   },
   "firstrun_packs_cell_waiting": {
     "message": "勾選保留著。連上 Wi-Fi 後會自動開始下載。"
@@ -3905,10 +3905,10 @@
     "message": "約 {size} · 可選"
   },
   "firstrun_packs_base": {
-    "message": "基礎組件"
+    "message": "聽譯基礎"
   },
   "firstrun_packs_base_note": {
-    "message": "語種識別（ECAPA）+ 人聲檢測（VAD）：分辨誰在說哪門語言，下好才能開始聽"
+    "message": "分辨誰在說哪門語言，下好才能開始聽"
   },
   "firstrun_packs_required": {
     "message": "約 {size} · 必需"
@@ -4122,5 +4122,92 @@
   },
   "fail_switch_free": {
     "message": "改免費通道"
+  },
+  "firstrun_packs_details": {
+    "message": "下載內容詳情"
+  },
+  "firstrun_packs_sum": {
+    "message": "約 {size} · 含聽譯基礎"
+  },
+  "firstrun_quota_mini": {
+    "message": "識別最多 5 門"
+  },
+  "langpacks_manage": {
+    "message": "管理"
+  },
+  "langpacks_missing": {
+    "message": "未下載 · {langs}"
+  },
+  "langpacks_need_os": {
+    "message": "語言包 · 需要較新系統"
+  },
+  "langpacks_ready": {
+    "message": "已就緒 · {langs}"
+  },
+  "langpacks_title": {
+    "message": "語言包與朗讀"
+  },
+  "langpacks_tts_missing": {
+    "message": "離線朗讀 · 未下載 · {size}"
+  },
+  "langpacks_tts_na": {
+    "message": "離線朗讀 · 僅 App 可用"
+  },
+  "langpacks_tts_ready": {
+    "message": "離線朗讀 · 已就緒"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "進度詳情"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "改用一鍵"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "下載中"
+  },
+  "qs_key_local_only": {
+    "message": "密鑰只存在本機"
+  },
+  "firstrun_packs_retry": {
+    "message": "重試"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · 一鍵已配"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "下載中 {n}%"
+  },
+  "engine_keys_status_detail": {
+    "message": "分項已配"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "選用將作廢一鍵配置"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "改用分項"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "改用一鍵會覆蓋目前的分項配置"
+  },
+  "engine_keys_status_none": {
+    "message": "未配置"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · 約 {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "其它引擎請到分項配置。"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "選用將覆蓋分項配置"
+  },
+  "engine_keys_row": {
+    "message": "引擎與密鑰"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "取消"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "改用分項會作廢目前的一鍵配置"
   }
 }
