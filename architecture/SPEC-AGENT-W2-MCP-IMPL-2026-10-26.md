@@ -88,7 +88,7 @@ P1（`listen.start`、`subtitle.export`、`learn.open_review`、`doc.translate`�
 
 冻结集（与深链 §6 相同，含成功码 `ok`）：
 
-`ok` · `need_confirm` · `cancelled` · `unsupported_action` · `bad_request` · `untrusted_denied` · `need_app` · `need_ext` · `need_login` · `need_packs` · `need_engine` · `need_os` · `need_permission_mic` · `site_unsupported` · `quota_or_key` · `study_capture_off`
+`ok` · `need_confirm` · `cancelled` · `unsupported_action` · `bad_request` · `untrusted_denied` · `need_app` · `need_ext` · `need_login` · `need_packs` · `need_engine` · `need_os` · `need_permission_mic` · `site_unsupported` · `quota_or_key` · `study_capture_off` · `network_unavailable`
 
 不使用 `need_user`、`missing_app`、`need_mic`、`ready_check`。
 
@@ -103,6 +103,21 @@ P1（`listen.start`、`subtitle.export`、`learn.open_review`、`doc.translate`�
 | `need_engine` | 还没配置翻译引擎 | 去配置引擎与密钥 | 取消 |
 
 F 帧标题：`还差一步`。F3 不放商店一键安装活链。F4 不把失败说成成功；「改用实时字幕」只打开字幕表面，不开麦。
+
+BEL-104 附录卡（文案在 `agent/copy.js`）。`quota_or_key` 是回执码；用户看见的卡码是 `grant_or_key_unavailable`。
+
+| code | 用户向一句 | 主 CTA | 次 |
+| --- | --- | --- | --- |
+| `need_app` | 需要安装 App | 去安装 App | 取消 |
+| `need_login` | 需要登录 | 去登录 | 取消 |
+| `grant_or_key_unavailable` | 本机额度或密钥不可用 | 去配置引擎与密钥 | 取消 |
+| `network_unavailable` | 网络暂时不可用 | 重试 | 取消 |
+
+`grant_or_key_unavailable` 的脚注是「亦可在宿主配置自有 Key 或订阅」。它的 `fix.open_setup` 步是 `engine`（用户自己的 key），不是 `login`。`network_unavailable` 的 `fix` 是 `{}`。重试再跑同一次调用，不打开引擎、登录或鉴权。
+
+宿主订阅或宿主 API Key 是一等路径（t291u）。非空的宿主订阅变量或宿主 API Key 变量，或本机 BYOK，都可以跑工具，不要求大肚猴额度。额度只是备用。变量名在 `agent/credentials.js` 和 `agent/hosts/README.md`。回执不带变量的值。端口请求只带 `auth.kind` / `auth.via`（变量名或 `app` / `grant`），不带密钥。
+
+没有 elicitation 时，CLI 回执是 `need_confirm`，message 是「需要你在本机点确认」。确认卡在 App，不在 CLI。
 
 ---
 

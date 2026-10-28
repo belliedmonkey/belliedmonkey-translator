@@ -51,6 +51,7 @@ const CODES = Object.freeze([
   'site_unsupported',
   'quota_or_key',
   'study_capture_off',
+  'network_unavailable',
 ]);
 
 const CODE_SET = new Set(CODES);
@@ -96,9 +97,12 @@ function fixFor(code, scheme, source) {
     need_packs: 'packs',
     need_permission_mic: 'mic',
     need_engine: 'engine',
+    // Own key / host key setup. Not the login screen, and not the grant claim.
     quota_or_key: 'engine',
+    grant_or_key_unavailable: 'engine',
   }[code];
-  if (!step) return {};
+  // network_unavailable is recoverable. It must not open engine, auth, or login.
+  if (!step || code === 'network_unavailable') return {};
   return { open_setup: setupLink(scheme, step, source) };
 }
 
@@ -130,7 +134,7 @@ const TOOLS = Object.freeze([
   tool('ready.check',
     'Report local readiness. Does not change settings, permissions, or the study library. Gaps use the frozen failure codes inside message. The receipt has no page text.'),
   tool('open_setup',
-    'Open the existing setup step. Optional step: install_app, install_ext, login, packs, mic, engine.',
+    'Open the existing setup step. Optional step: install_app, install_ext, login, packs, mic, engine. step=engine is the user API key. A host subscription or host API key runs tools without the Bellied Monkey grant.',
     { step: { type: 'string', enum: SETUP_STEPS.slice() } }),
   tool('start_live_subtitles',
     'Open the live-subtitle surface after the user confirms. Does not start the microphone. Optional video_lang and my_lang.',

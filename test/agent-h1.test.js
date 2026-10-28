@@ -146,6 +146,7 @@ describe('agent H1 Claude Code + Codex packaging', () => {
     for (const file of [SKILL, HOSTS_README, CODEX_README]) {
       const text = read(file);
       for (const line of HONEST) ok(text.includes(line), path.basename(file) + ' missing: ' + line);
+      ok(text.includes(copy.HOST_KEY_HONEST), path.basename(file) + ' missing host-key line');
       ok(!/https?:\/\//.test(text), path.basename(file) + ' has a URL');
     }
     ok(read(HOSTS_README).includes('codex mcp add belliedmonkey -- node "$PWD/agent/hosts/claude-code/stdio.js"'));
@@ -176,6 +177,8 @@ describe('agent H1 Claude Code + Codex packaging', () => {
     ok(skill.includes('If there is no `caller_id`, that line must not appear.'));
     ok(skill.includes('Banned near-synonyms: 语音包, 收录复习.'));
     ok(skill.includes('do not offer a one-click store install link'));
+    ok(skill.includes(copy.HOST_KEY_NOTE));
+    ok(skill.includes('需要你在本机点确认'));
   });
 
   test('stdio launcher returns the W2 tool list and rejects ready_check', async () => {

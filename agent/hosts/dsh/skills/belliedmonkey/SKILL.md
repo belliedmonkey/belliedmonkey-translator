@@ -7,6 +7,8 @@ description: Call BelliedMonkey Translator through the local stdio MCP server be
 
 Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。 Do not tell the user that a cloud server is already on a store, and do not invent an endpoint URL.
 
+宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径. A host subscription (`DEEPSEEK_AUTH_TOKEN`) or host API key (`DEEPSEEK_API_KEY`) runs these tools without a Bellied Monkey grant. The grant is optional. Do not tell the user that login or the grant is required when one of those is set.
+
 The server name is `belliedmonkey`. dsh starts `stdio.js` in this directory through `@deepseek-ai/dsh-mcp-client`. That launcher only loads `agent/mcp-stdio.js`. It does not define a second tool list.
 
 ## Tools
@@ -59,5 +61,13 @@ Failure title: `还差一步`.
 | `need_ext` | `需要浏览器扩展` | `安装扩展说明` | `复制给 AI 的说明` |
 | `site_unsupported` | `当前网站暂不支持视频双语字幕` | `改用实时字幕` | `关闭` |
 | `need_engine` | `还没配置翻译引擎` | `去配置引擎与密钥` | `取消` |
+| `need_app` | `需要安装 App` | `去安装 App` | `取消` |
+| `need_login` | `需要登录` | `去登录` | `取消` |
+| `grant_or_key_unavailable` | `本机额度或密钥不可用` | `去配置引擎与密钥` | `取消` |
+| `network_unavailable` | `网络暂时不可用` | `重试` | `取消` |
+
+`grant_or_key_unavailable` footnote: `亦可在宿主配置自有 Key 或订阅`. Its setup step is `engine` (the user's own key), not login. `network_unavailable` retries the same call and does not open engine, auth, or login.
 
 For `need_ext`, do not offer a one-click store install link. For `site_unsupported`, do not describe the failure as success. `改用实时字幕` opens the subtitle surface and does not start the microphone.
+
+The CLI does not draw the confirm card. Without elicitation the receipt message is `需要你在本机点确认` and the code is `need_confirm`. The confirm card is the App.

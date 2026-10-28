@@ -3003,23 +3003,44 @@ export function bootShell() {
         },
         readiness() {
           return readPacksDone().then((packs) => new Promise((resolve) => {
-            const base = {
-              login: !!(currentSession && currentSession.userId),
-              packs: !!packs,
-              engine: null,
-              os: null,
-              ext: null,
-              mic: null,
-              studyCapture: null,
+            const finish = (v, measured) => {
+              v = v || {};
+              let byok = false;
+              let grant = false;
+              if (measured) try {
+                const entry = (typeof EngineState !== 'undefined' && EngineState.resolve)
+                  ? EngineState.resolve(v.provider) : null;
+                const key = String(v.apiKey || '').trim();
+                const baseUrl = String(v.apiBaseUrl || '').trim();
+                const chatIsGrant = typeof LearnGrant !== 'undefined' && LearnGrant.activeIn
+                  ? LearnGrant.activeIn(v, 'chat') : false;
+                byok = !!(entry && (key || baseUrl) && !chatIsGrant);
+                grant = typeof LearnGrant !== 'undefined' && LearnGrant.enabled && LearnGrant.active
+                  ? !!(LearnGrant.enabled() && LearnGrant.active(v)) : false;
+              } catch (_) { byok = false; grant = false; }
+              const base = {
+                login: !!(currentSession && currentSession.userId),
+                packs: !!packs,
+                // Host key is read by the stdio process. Here, own key beats grant.
+                // Unmeasured storage stays null so a read failure is not "no key".
+                byok: measured ? byok : false,
+                grant: measured ? grant : false,
+                engine: measured ? (byok || grant) : null,
+                os: null,
+                ext: null,
+                mic: null,
+                studyCapture: null,
+                network: (typeof navigator !== 'undefined' && navigator.onLine === false) ? false : true,
+              };
+              if (v.learnEnabled === true) base.studyCapture = true;
+              else if (v.learnEnabled === false) base.studyCapture = false;
+              resolve(base);
             };
             try {
-              chrome.storage.local.get(['learnEnabled'], (v) => {
-                v = v || {};
-                if (v.learnEnabled === true) base.studyCapture = true;
-                else if (v.learnEnabled === false) base.studyCapture = false;
-                resolve(base);
-              });
-            } catch (_) { resolve(base); }
+              chrome.storage.local.get(
+                ['learnEnabled', 'apiKey', 'apiBaseUrl', 'provider', 'grantTail'],
+                (stored) => finish(stored, true));
+            } catch (_) { finish({}, false); }
           }));
         },
         ports: {
@@ -3038,6 +3059,8 @@ export function bootShell() {
 
     function runAgentSetup(step) {
       $('onboard').hidden = true;
+      // engine is the user's own key. Login is a different step and is not the
+      // grant-or-key card. network_unavailable never calls this with a step.
       if (step === 'engine') return openSettings('sec-engines').then(() => ({ ok: true }));
       if (step === 'packs') return openSettings('set-pack-manage').then(() => ({ ok: true }));
       if (step === 'login') {

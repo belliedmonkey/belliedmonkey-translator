@@ -181,6 +181,7 @@ describe('agent H2 dsh packaging', () => {
     for (const file of [SKILL, README, HOSTS_README]) {
       const text = read(file);
       for (const line of HONEST) ok(text.includes(line), path.basename(file) + ' missing: ' + line);
+      ok(text.includes(copy.HOST_KEY_HONEST), path.basename(file) + ' missing host-key line');
       ok(!/https?:\/\//.test(text), path.basename(file) + ' has a URL');
     }
     ok(read(README).includes('没有第二份名字 `ready_check`'));
@@ -215,6 +216,8 @@ describe('agent H2 dsh packaging', () => {
     ok(skill.includes('If there is no `caller_id`, that line must not appear.'));
     ok(skill.includes('Banned near-synonyms: 语音包, 收录复习.'));
     ok(skill.includes('do not offer a one-click store install link'));
+    ok(skill.includes(copy.HOST_KEY_NOTE));
+    ok(skill.includes('需要你在本机点确认'));
   });
 
   test('dsh stdio lists the same seven tools as the W2 kernel', async () => {

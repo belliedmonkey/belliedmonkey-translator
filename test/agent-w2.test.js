@@ -49,7 +49,7 @@ describe('agent W1 parse + confirm + receipt', () => {
       'ok', 'need_confirm', 'cancelled', 'unsupported_action', 'bad_request',
       'untrusted_denied', 'need_app', 'need_ext', 'need_login', 'need_packs',
       'need_engine', 'need_os', 'need_permission_mic', 'site_unsupported',
-      'quota_or_key', 'study_capture_off',
+      'quota_or_key', 'study_capture_off', 'network_unavailable',
     ]);
   });
 
@@ -116,14 +116,18 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(anon.actionLabel, '开实时双语字幕');
     eq(anon.deviceAllow, '本机始终允许（实时字幕）');
     eq(anon.footnote, '确认前不开麦、不读页、不写学习库');
+    eq(anon.origin, '未知助手');
     ok(!JSON.stringify(anon).includes('始终允许此助手'));
     ok(!JSON.stringify(anon).includes('收录复习'));
     ok(!JSON.stringify(anon).includes('语音包'));
     const named = confirm.buildConfirmCard('capture_to_study', { caller_id: 'host-1' });
     eq(named.assistantAllow, '始终允许此助手');
     eq(named.actionLabel, '收进复习');
+    eq(named.origin, '已识别助手');
     const msg = confirm.elicitationMessage(anon);
     ok(!msg.includes('始终允许此助手'));
+    ok(msg.includes('来自：未知助手'));
+    ok(!msg.includes('已识别助手'));
     ok(!msg.includes(SENTENCE));
     const schema = confirm.elicitationSchema(anon);
     ok(!schema.properties.assistant);
@@ -143,7 +147,25 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(f.site_unsupported.primary, '改用实时字幕');
     eq(f.need_engine.line, '还没配置翻译引擎');
     eq(f.need_engine.primary, '去配置引擎与密钥');
+    eq(f.need_app.line, '需要安装 App');
+    eq(f.need_app.primary, '去安装 App');
+    eq(f.need_app.secondary, '取消');
+    eq(f.need_login.line, '需要登录');
+    eq(f.need_login.primary, '去登录');
+    eq(f.grant_or_key_unavailable.line, '本机额度或密钥不可用');
+    eq(f.grant_or_key_unavailable.primary, '去配置引擎与密钥');
+    eq(f.grant_or_key_unavailable.footnote, '亦可在宿主配置自有 Key 或订阅');
+    eq(f.network_unavailable.line, '网络暂时不可用');
+    eq(f.network_unavailable.primary, '重试');
+    eq(f.network_unavailable.secondary, '取消');
     eq(copy.FAILURE_TITLE, '还差一步');
+    eq(copy.HOST_KEY_HONEST, '宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径');
+    deepEq(Object.keys(copy.ACTIONS).sort(), ['capture_to_study', 'start_live_subtitles']);
+    ok(!JSON.stringify(copy.ACTIONS).includes('整页双语'));
+    ok(!JSON.stringify(copy.ACTIONS).includes('译网页'));
+    ok(!JSON.stringify(copy.ACTIONS).includes('讲解或操练'));
+    ok(!JSON.stringify(copy.ACTIONS).includes('收录复习'));
+    ok(!JSON.stringify(copy.ACTIONS).includes('语音包'));
   });
 
   test('no extension and unsupported site use §6 codes and do not call the port', async () => {
@@ -234,6 +256,251 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(card.assistantAllow, null);
     eq(receipt.code, 'ok');
     ok(!JSON.stringify(receipt).includes('transcript'));
+  });
+});
+
+describe('BEL-104 appendix cards and host key', () => {
+  const SECRET = 'sk-host-secret-should-not-leak';
+
+  test('host API key runs a tool with login off and engine off', async () => {
+    let seen = null;
+    const out = await run.runAgentAction('start_live_subtitles', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: { ANTHROPIC_API_KEY: SECRET },
+      readiness: { login: false, engine: false, packs: true, os: true, mic: true, grant: false, byok: false },
+      confirmed: { allow: true },
+      ports: { enterSubtitle(req) { seen = req; return { ok: true }; } },
+    });
+    eq(out.receipt.code, 'ok');
+    eq(seen.auth.kind, 'host_key');
+    eq(seen.auth.via, 'ANTHROPIC_API_KEY');
+    eq(seen.auth.host, 'claude-code');
+    ok(!JSON.stringify(out.receipt).includes(SECRET));
+    ok(!JSON.stringify(seen).includes(SECRET));
+  });
+
+  test('host subscription outranks a host API key and the grant', async () => {
+    let seen = null;
+    const out = await run.runAgentAction('explain_or_drill', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: { DEEPSEEK_AUTH_TOKEN: SECRET, DEEPSEEK_API_KEY: 'other-secret' },
+      query: { text: 'hi', mode: 'explain' },
+      readiness: { login: false, engine: false, grant: true },
+      confirmed: { allow: true },
+      ports: { explain(req) { seen = req; return { ok: true }; } },
+    });
+    eq(out.receipt.code, 'ok');
+    eq(seen.auth.kind, 'host_subscription');
+    eq(seen.auth.via, 'DEEPSEEK_AUTH_TOKEN');
+    ok(!JSON.stringify(out.receipt).includes(SECRET));
+    ok(!JSON.stringify(seen).includes('other-secret'));
+  });
+
+  test('in-app BYOK outranks the grant and does not ask for login', async () => {
+    let seen = null;
+    const out = await run.runAgentAction('capture_to_study', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'deeplink',
+      hostConnected: true,
+      env: {},
+      query: { text: 'hi' },
+      readiness: { login: false, byok: true, grant: true, studyCapture: true },
+      confirmed: { allow: true },
+      ports: { capture(req) { seen = req; return { ok: true }; } },
+    });
+    eq(out.receipt.code, 'ok');
+    eq(seen.auth.kind, 'byok');
+  });
+
+  test('grant alone can run, and a missing engine without any key opens key setup', async () => {
+    let calls = 0;
+    const granted = await run.runAgentAction('start_live_subtitles', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: {},
+      readiness: { login: true, grant: true, engine: false, packs: true, os: true, mic: true },
+      confirmed: { allow: true },
+      ports: { enterSubtitle() { calls++; return { ok: true }; } },
+    });
+    eq(granted.receipt.code, 'ok');
+    eq(calls, 1);
+    const missing = await run.runAgentAction('start_live_subtitles', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: { ANTHROPIC_API_KEY: '   ' },
+      readiness: { login: false, engine: false, grant: false, byok: false, packs: true, os: true, mic: true },
+      confirmed: { allow: true },
+      ports: { enterSubtitle() { calls++; return { ok: true }; } },
+    });
+    eq(missing.receipt.code, 'quota_or_key');
+    eq(missing.receipt.message, '本机额度或密钥不可用');
+    eq(missing.receipt.fix.open_setup, 'belliedmonkey://agent/v1/open_setup?step=engine&source=mcp');
+    ok(!missing.receipt.fix.open_setup.includes('step=login'));
+    eq(calls, 1);
+    const card = confirm.failureCard('quota_or_key');
+    eq(card.code, 'grant_or_key_unavailable');
+    eq(card.primary, '去配置引擎与密钥');
+    eq(card.footnote, copy.HOST_KEY_NOTE);
+    eq(card.title, '还差一步');
+  });
+
+  test('capture still asks for login when no host key and no BYOK', async () => {
+    const out = await run.runAgentAction('capture_to_study', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: {},
+      query: { text: 'hi' },
+      readiness: { login: false, studyCapture: true },
+      confirmed: { allow: true },
+      ports: { capture() { return { ok: true }; } },
+    });
+    eq(out.receipt.code, 'need_login');
+    eq(out.receipt.message, '需要登录');
+    eq(out.receipt.fix.open_setup, 'belliedmonkey://agent/v1/open_setup?step=login&source=mcp');
+    const card = confirm.failureCard(out.receipt.code);
+    eq(card.primary, '去登录');
+    eq(card.secondary, '取消');
+  });
+
+  test('network failure retries nowhere near engine setup', async () => {
+    let calls = 0;
+    const out = await run.runAgentAction('translate_page', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: { OPENAI_API_KEY: SECRET },
+      readiness: { ext: true, engine: true, network: false },
+      confirmed: { allow: true },
+      ports: { translatePage() { calls++; return { ok: true }; } },
+    });
+    eq(calls, 0);
+    eq(out.receipt.code, 'network_unavailable');
+    eq(out.receipt.message, '网络暂时不可用');
+    deepEq(out.receipt.fix, {});
+    const card = confirm.failureCard(out.receipt.code);
+    eq(card.primary, '重试');
+    eq(card.secondary, '取消');
+    eq(card.footnote, '');
+    ok(!JSON.stringify(card).includes('去配置引擎与密钥'));
+    ok(!JSON.stringify(out.receipt.fix).includes('engine'));
+    ok(!JSON.stringify(out.receipt.fix).includes('login'));
+  });
+
+  test('need_app card is the locked install line, and a port card code is not success', async () => {
+    const missing = await run.runAgentAction('explain_or_drill', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: { CODEX_API_KEY: SECRET },
+      query: { text: 'hi' },
+      readiness: { engine: true },
+      confirmed: { allow: true },
+      ports: {},
+    });
+    eq(missing.receipt.code, 'need_app');
+    eq(missing.receipt.message, '需要安装 App');
+    eq(confirm.failureCard('need_app').primary, '去安装 App');
+    ok(!missing.receipt.message.includes(SECRET));
+    const aliased = await run.runAgentAction('translate_page', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: {},
+      readiness: { ext: true, engine: true },
+      confirmed: { allow: true },
+      ports: { translatePage() { return { ok: false, code: 'grant_or_key_unavailable' }; } },
+    });
+    eq(aliased.receipt.code, 'quota_or_key');
+    eq(aliased.receipt.message, '本机额度或密钥不可用');
+    eq(aliased.receipt.ok, false);
+    const unknown = await run.runAgentAction('translate_page', {
+      scheme: 'belliedmonkey',
+      sourceFallback: 'mcp',
+      hostConnected: true,
+      env: {},
+      readiness: { ext: true, engine: true },
+      confirmed: { allow: true },
+      ports: { translatePage() { return { ok: false, code: 'not_a_code' }; } },
+    });
+    eq(unknown.receipt.code, 'bad_request');
+    eq(unknown.receipt.ok, false);
+  });
+
+  test('CLI without elicitation only returns the need_confirm hint', async () => {
+    const home = tmp();
+    const log = path.join(home, 'effects.log');
+    const proc = spawn(process.execPath, [path.join(ROOT, 'agent/mcp-stdio.js')], {
+      env: Object.assign({}, process.env, {
+        MT_AGENT_HOME: home,
+        MT_AGENT_TEST_HOST: '1',
+        MT_AGENT_EFFECT_LOG: log,
+      }),
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let buf = '';
+    const stderr = [];
+    proc.stderr.on('data', (c) => stderr.push(String(c)));
+    const pending = new Map();
+    let seq = 0;
+    proc.stdout.on('data', (chunk) => {
+      buf += chunk;
+      let nl;
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl);
+        buf = buf.slice(nl + 1);
+        if (!line.trim()) continue;
+        const msg = JSON.parse(line);
+        const waiter = pending.get(msg.id);
+        if (waiter) { pending.delete(msg.id); waiter(msg); }
+      }
+    });
+    function request(method, params) {
+      const id = ++seq;
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout ' + stderr.join(''))), 4000);
+        pending.set(id, (msg) => { clearTimeout(timer); resolve(msg); });
+        proc.stdin.write(JSON.stringify({ jsonrpc: '2.0', id, method, params }) + '\n');
+      });
+    }
+    try {
+      await request('initialize', {
+        protocolVersion: '2025-06-18',
+        capabilities: {},
+        clientInfo: { name: 'bel104', version: '0' },
+      });
+      const call = await request('tools/call', { name: 'start_live_subtitles', arguments: {} });
+      const rec = JSON.parse(call.result.content[0].text);
+      eq(rec.code, 'need_confirm');
+      eq(rec.message, '需要你在本机点确认');
+      ok(!rec.message.includes('允许这一次'));
+      ok(!call.result.content[0].text.includes('始终允许此助手'));
+      eq(fs.existsSync(log), false);
+    } finally {
+      proc.kill('SIGTERM');
+    }
+  });
+
+  test('App face retries network and does not send it to engine setup', () => {
+    const face = fs.readFileSync(path.join(ROOT, 'src/app/agent-face.js'), 'utf8');
+    const body = face.slice(face.indexOf('function isNetwork'));
+    const net = body.indexOf("receipt.code === 'network_unavailable'");
+    const setup = body.indexOf('openSetup');
+    ok(net !== -1 && setup !== -1 && net < setup, 'network retry must run before setup');
+    ok(body.includes('retry = true'));
+    const shell = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
+    const setupFn = shell.slice(shell.indexOf('function runAgentSetup'), shell.indexOf('function parseDeepLink'));
+    ok(setupFn.indexOf("step === 'engine'") !== -1);
+    ok(setupFn.indexOf("openSettings('sec-engines')") !== -1);
+    ok(setupFn.indexOf("step === 'engine'") < setupFn.indexOf("step === 'login'"));
+    ok(face.includes('card.cancel'));
+    ok(!face.includes('始终允许此助手'));
   });
 });
 

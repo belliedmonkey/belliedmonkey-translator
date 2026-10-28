@@ -34,6 +34,7 @@ async function handleAgentUrl(raw, ctx, ui) {
     grants,
     persistGrants: ctx.persistGrants,
     siteSupported: ctx.siteSupported,
+    env: ctx.env,
     confirmed: null,
   };
 
