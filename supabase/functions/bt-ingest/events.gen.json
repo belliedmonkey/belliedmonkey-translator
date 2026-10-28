@@ -231,6 +231,46 @@
         "to_app"
       ]
     },
+    "mic_permission": {
+      "permission_state": [
+        "prompted",
+        "granted",
+        "denied",
+        "restricted",
+        "not_determined"
+      ],
+      "kind": [
+        "mic",
+        "system"
+      ],
+      "engine": "id",
+      "locale_pair": "id"
+    },
+    "asr_start": {
+      "engine": "id",
+      "locale_pair": "id"
+    },
+    "asr_fail": {
+      "fail_reason": [
+        "permission",
+        "interrupted",
+        "socket",
+        "assets",
+        "device",
+        "os",
+        "capture",
+        "locale",
+        "quota",
+        "timeout",
+        "other"
+      ],
+      "engine": "id",
+      "locale_pair": "id"
+    },
+    "translate_start": {
+      "engine": "id",
+      "locale_pair": "id"
+    },
     "offline_video_asr_task": {
       "result": [
         "ok",

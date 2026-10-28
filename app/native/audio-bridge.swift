@@ -29,6 +29,9 @@ import MediaPlayer
 #if os(iOS)
 import ActivityKit
 #endif
+#if os(macOS)
+import AppKit
+#endif
 
 #if os(iOS)
 /// Live Activity 的属性（§9.5 灵动岛）。**这份定义在两个 target 各编译一份**
@@ -115,6 +118,13 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         nc.addObserver(self, selector: #selector(onDidBecomeActive),
                        name: UIApplication.didBecomeActiveNotification, object: nil)
 #endif
+#if os(macOS)
+        // 从系统设置回到 App：再读一次麦克风授权。JS 按状态去重，没变就不记第二条。
+        let macNc = NotificationCenter.default
+        macNc.removeObserver(self, name: NSApplication.didBecomeActiveNotification, object: nil)
+        macNc.addObserver(self, selector: #selector(onDidBecomeActiveMac),
+                          name: NSApplication.didBecomeActiveNotification, object: nil)
+#endif
     }
 
     // MARK: - JS → 原生
@@ -135,6 +145,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
                                         deliverPcm: (body["deliver"] as? String) != "level",
                                         system: (body["source"] as? String) == "system")
         case "mic-stop":       micStop()
+        case "mic-perm-read":  emitMicPerm(micAuthState(), kind: "mic")
         // 实时字幕（learning-design §9.8）。Mac：系统声音 + 悬浮字幕条。iOS 在一期（画中画字幕窗）落地之前
         // 不回 caps-probe ⇒ 页面按老壳处理、iPhone 上入口不显示（§9.8 协议补充决定 3、11）。
         case "caps-probe":      capsProbe()
@@ -269,15 +280,60 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         return (acc / Double(n)).squareRoot()
     }
 
-    private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
+    /// 麦克风授权的短码（telemetry-design §3.16）。只这些词，不带系统长文。
+    /// `restricted` 只在 AVCapture 上有；iOS 录音权限 API 没有这一档，所以先看采集状态。
+    private func micAuthState() -> String {
+        let cap = AVCaptureDevice.authorizationStatus(for: .audio)
+        if cap == .restricted { return "restricted" }
 #if os(iOS)
         if #available(iOS 17.0, *) {
-            AVAudioApplication.requestRecordPermission { ok in DispatchQueue.main.async { done(ok) } }
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted: return "granted"
+            case .denied: return "denied"
+            default: return "not_determined"
+            }
         } else {
-            AVAudioSession.sharedInstance().requestRecordPermission { ok in DispatchQueue.main.async { done(ok) } }
+            switch AVAudioSession.sharedInstance().recordPermission {
+            case .granted: return "granted"
+            case .denied: return "denied"
+            default: return "not_determined"
+            }
         }
 #else
-        AVCaptureDevice.requestAccess(for: .audio) { ok in DispatchQueue.main.async { done(ok) } }
+        switch cap {
+        case .authorized: return "granted"
+        case .denied: return "denied"
+        case .notDetermined: return "not_determined"
+        default: return "not_determined"
+        }
+#endif
+    }
+
+    private func emitMicPerm(_ state: String, kind: String) {
+        emit(["type": "mic-perm", "state": state, "kind": kind])
+    }
+
+    private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
+        let before = micAuthState()
+        if before == "not_determined" { emitMicPerm("prompted", kind: "mic") }
+        else { emitMicPerm(before, kind: "mic") }
+        let finish: (Bool) -> Void = { [weak self] ok in
+            guard let self = self else { done(ok); return }
+            if before == "not_determined" {
+                let after = self.micAuthState()
+                let state = (after == "granted" || after == "denied" || after == "restricted") ? after : (ok ? "granted" : "denied")
+                self.emitMicPerm(state, kind: "mic")
+            }
+            done(ok)
+        }
+#if os(iOS)
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { ok in DispatchQueue.main.async { finish(ok) } }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { ok in DispatchQueue.main.async { finish(ok) } }
+        }
+#else
+        AVCaptureDevice.requestAccess(for: .audio) { ok in DispatchQueue.main.async { finish(ok) } }
 #endif
     }
 
@@ -727,6 +783,7 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
 
     @objc private func onDidBecomeActive() {
         UIApplication.shared.isIdleTimerDisabled = true
+        emitMicPerm(micAuthState(), kind: "mic")
     }
 
     @objc private func onEngineConfigChange(_ note: Notification) {
@@ -749,6 +806,12 @@ final class MTAudioBridge: NSObject, WKScriptMessageHandler {
         // 耳机被拔了。暂停，且重连时**不**自动播 —— 拔掉耳机后从外放里冒出声音是所有
         // 音乐 App 都在避免的那件事。
         emit(["type": "route", "change": "device-lost"])
+    }
+#endif
+
+#if os(macOS)
+    @objc private func onDidBecomeActiveMac() {
+        emitMicPerm(micAuthState(), kind: "mic")
     }
 #endif
 

@@ -407,6 +407,8 @@ const listenModel = (() => {
       if (errOut) errOut.err = haltErr();
       return '';
     }
+    if (!String(text || '').trim()) return '';
+    noteTranslateStart();
     // 计数（P-06 / P-07 的判据是**翻译请求 0 次**）：没出声、或被暂停/结束点掉的那一句，
     // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
     translateCalls++;
@@ -432,6 +434,70 @@ const listenModel = (() => {
   // 没配引擎（没有 err）不是一次失败的翻译，那是 asr_entry / engine_set 回答的问题。
   // 没有原文、没有地址 —— 只有引擎 id、错误码、状态码、通路。
   function tmProvider() { return String((cfg && cfg.tr && cfg.tr.provider) || ''); }
+  function tmId(v) { return /^[a-z0-9_-]{1,32}$/.test(String(v || '')) ? String(v) : ''; }
+  // 可选属性：对不上 id 型就整键省略。多一个非法值会让白名单把整条事件丢掉。
+  function funnelProps() {
+    const p = {};
+    const eng = tmId(tmProvider());
+    if (eng) p.engine = eng;
+    if (cfg) {
+      const a = String(C.baseCode(cfg.myLang) || '');
+      const b = String(C.baseCode(cfg.otherLang) || '');
+      const pair = tmId(a && b ? a + '-' + b : '');
+      if (pair) p.locale_pair = pair;
+    }
+    return p;
+  }
+  function track(name, props) {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track(name, props || {}); } catch (_) {}
+  }
+  // asr_fail.fail_reason：短枚举。系统长文（NSError 描述）一律收成 capture，不进事件。
+  function asrFailReason(reason, why) {
+    const w = String(why || '');
+    if (reason === 'denied') return 'permission';
+    if (reason === 'headphones' || reason === 'locked' || reason === 'interrupted') return 'interrupted';
+    if (reason === 'socket' || reason === 'device') {
+      if (w === 'locale') return 'locale';
+      if (w === 'assets') return 'assets';
+      if (w === 'locales') return 'quota';
+      if (w === 'os') return 'os';
+      return reason === 'socket' ? 'socket' : 'device';
+    }
+    if (reason === 'os') return 'os';
+    if (reason === 'assets') return w === 'timeout' ? 'timeout' : 'assets';
+    if (reason === 'failed') {
+      if (w === 'os') return 'os';
+      if (w === 'timeout') return 'timeout';
+      return 'capture';
+    }
+    return 'other';
+  }
+  const permSeen = {};
+  function trackPerm(state, kind) {
+    const k = kind === 'system' ? 'system' : 'mic';
+    if (['prompted', 'granted', 'denied', 'restricted', 'not_determined'].indexOf(state) < 0) return;
+    if (permSeen[k] === state) return;
+    permSeen[k] = state;
+    track('mic_permission', Object.assign({ permission_state: state, kind: k }, funnelProps()));
+  }
+  function noteAsrStart() {
+    if (!session || session.asrStartSent) return;
+    session.asrStartSent = true;
+    track('asr_start', funnelProps());
+  }
+  function noteAsrFail(reason, why) {
+    if (!session || session.asrFailSent || reason === 'socket-retry') return;
+    const fail_reason = asrFailReason(reason, why);
+    if (!tmId(fail_reason)) return;
+    noteAsrStart();
+    session.asrFailSent = true;
+    track('asr_fail', Object.assign({ fail_reason }, funnelProps()));
+  }
+  function noteTranslateStart() {
+    if (!session || session.tmStart) return;
+    session.tmStart = true;
+    track('translate_start', funnelProps());
+  }
   function tmOk() {
     if (!session || session.tmOk) return;
     session.tmOk = true;
@@ -504,6 +570,7 @@ const listenModel = (() => {
     });
     let reply = '', passErr = null;
     const t0 = now();
+    noteTranslateStart();
     try {
       reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
       if (reply) notePumpSuccess(myGen);
@@ -584,6 +651,7 @@ const listenModel = (() => {
     const myGen = gen;
     if (trHalt.blocksPump()) return Promise.reject(haltErr());
     translateCalls++;
+    noteTranslateStart();
     return TranslationAPI.listenPass(prompt,
       TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
       { budget: 512, timeoutMs: 12000 }).then((raw) => {
@@ -1756,7 +1824,11 @@ const listenModel = (() => {
     if (!session || !sock || phase !== 'listening') return;
     if (session.mode === 'subtitle' && C.silenceCheck(session, rms, now())) pause('silence');
   }
-  function onMicState(state, reason) {
+  function onMicState(state, reason, source) {
+    const kind = source === 'system' ? 'system' : 'mic';
+    if (state === 'waiting' && reason === 'waiting-permission') trackPerm('prompted', 'system');
+    else if (state === 'denied') trackPerm('denied', kind);
+    else if (state === 'granted') trackPerm('granted', kind);
     // iOS 字幕档：输出路由是耳机 ⇒ 麦克风听不到外放（§9.8 协议补充决定 7）
     if (reason === 'headphones') { halt('headphones', ''); return; }
     // Mac 系统声音：权限框还没点（§9.8 协议补充决定 10）—— 停在「准备中」，页面与字幕条都说在等授权
@@ -1812,6 +1884,7 @@ const listenModel = (() => {
     }
   }
   async function micStart() {
+    noteAsrStart();
     // 本机路：PCM 留在原生侧喂识别器，过桥的只有电平（§9.6.1）；采样率只给原生建 tap 用
     const rate = 16000;
     if (bridged()) {
@@ -1830,7 +1903,12 @@ const listenModel = (() => {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
       if (audioCtx.state === 'suspended') await audioCtx.resume();
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    } catch (e) { halt(e && e.name === 'NotAllowedError' ? 'denied' : 'failed', e && e.message); return false; }
+    } catch (e) {
+      if (e && e.name === 'NotAllowedError') trackPerm('denied', 'mic');
+      halt(e && e.name === 'NotAllowedError' ? 'denied' : 'failed', e && e.message);
+      return false;
+    }
+    trackPerm('granted', 'mic');
     const resample = makeResampler(audioCtx.sampleRate, rate);
     srcNode = audioCtx.createMediaStreamSource(stream);
     proc = audioCtx.createScriptProcessor(PROCESSOR_FRAMES, 1, 1);
@@ -1966,6 +2044,7 @@ const listenModel = (() => {
           try { quotaMemCache = await ASRQuota.readMemory(); } catch (_) {}
           setQuotaFull(need0[0]);
           phase = 'idle';
+          noteAsrFail('device', 'locales');
           canvas.view('state');
           return false;
         }
@@ -2213,7 +2292,9 @@ const listenModel = (() => {
     if (phase === 'ended' || phase === 'idle') return;
     // 「这门语言这台设备弄不了」⇒ 回到上一对，别把整场丢掉（见上面那段注释）。
     // 没有待回退的改语言时，assets 要落到下面那句「包没装好」，不能在这里吞掉。
+    // 回退成功的那次不是停机：人还在这一场里，不记 asr_fail。
     if ((reason === 'device' || reason === 'socket') && (why === 'locale' || why === 'assets') && langRevert) { revertLangIfNeeded(); return; }
+    if (reason !== 'socket-retry') noteAsrFail(reason, why);
     phase = 'halted'; pauseReason = reason;
     C.pause(session, now());
     // 停了听就别再读积压的译文 —— 那些话的上下文已经过去了
@@ -2654,6 +2735,10 @@ const listenModel = (() => {
     });
   }
   function onNative(msg) {
+    if (msg && msg.type === 'mic-perm') {
+      trackPerm(String(msg.state || ''), String(msg.kind || 'mic'));
+      return;
+    }
     if (!msg || ($('app-listen') && $('app-listen').hidden) || !session) return;
     if (msg.type === 'subtitle-window') {
       pipWindow = String(msg.state || ''); pipReason = String(msg.reason || '');
@@ -3101,10 +3186,12 @@ const listenModel = (() => {
     } catch (_) {}
     keepLangSel();
     if (bridged()) NativeAudio.onEvent(onNative);
+    if (bridged() && NativeAudio.micPermRead) NativeAudio.micPermRead();
     // tick（尖刺 S3）：主窗口隐藏时页面计时器被钳到 1 Hz，时钟改吃原生每 250 ms 一条的 tick
     if (bridged() && NativeAudio.onTick) NativeAudio.onTick(() => { if (document.hidden && session && phase !== 'ended') paintClock(); });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) return;
+      if (bridged() && NativeAudio.micPermRead) NativeAudio.micPermRead();
       if (session) paint();
       // 回前台且没在会话里：入口按系统真实资产状态重算（第 4 轮问题 1/2，不靠一次性缓存）。
       else refreshEntry();
@@ -3179,6 +3266,7 @@ const listenModel = (() => {
       lidPaused: !!ptt || !!pttForce,
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
+      asrFailReason: (reason, why) => asrFailReason(reason, why),
     lat: C.latencySummary(session ? session.rows : []) }),
   };
 })();
