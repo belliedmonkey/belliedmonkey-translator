@@ -16,6 +16,9 @@
 > `docs/learning-design.md` §10 **Gate D**. The event whitelist in §3 is a
 > domain-design artifact: adding an event, a property, or a join is a change to this
 > document first, reviewed by a human, then code.
+> **2026-10-28（BEL-113，待人评审）**：App 首启听译漏斗加 `mic_permission` / `asr_start` /
+> `asr_fail` / `translate_start`。已有 `asr_entry` / `translate_ok` / `translate_fail` 语义不变。
+> 中国版仍不发白名单事件。起因与互斥口径在 §3.16。
 
 ## 0. Why this exists (issue #174, answered)
 
@@ -35,6 +38,7 @@ Three decisions were taken with it: **on by default, switch in settings** ·
 | Question | Today | Events |
 |---|---|---|
 | Of the people who installed, how many configured an engine and translated something? | unknown | `engine_set` `translate_ok` |
+| App 首装之后，听译卡在权限、入口、开麦、识别，还是翻译？ | `installed`→`asr_entry`→`translate_ok` 分不开 | `mic_permission` `asr_start` `asr_fail` `translate_start`（§3.16，BEL-113） |
 | Where do translations fail — which engine, which error? | only when someone writes in | `translate_fail` |
 | How many people still use it (DAU / WAU / retention)? | Apple gives downloads; AMO says 3 | `heartbeat` |
 | Where does the learning loop break? | unknown | `capture_first` `review_session` `sync_on` —— **判据是回访节奏，不是「刷完」**（2026-09-24 §3.10）：按 `(install_id, ts::date)` 去重，数 7 天里有几天出现过 `review_session{result:'opened'}` |
@@ -110,13 +114,53 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `review_nudge` | `action: shown \| seen \| tap \| dismiss \| no_app` | 译文末尾「今天读过的句子，去复习 →」被挂上 / 真进入视线（至少一半、连续 ≥1 秒）/ 被点 / 被关 / 点了但没人接住 scheme（`no_app`，只 Safari）。**目的地由 `host` 区分**：`safari` → App 的复习屏（只给已登录且开了学习的人），`chrome` / `firefox` → 扩展自己的复习页（开了学习即可）。每装机每本地日至多 1 条 `shown`、每 90 天至多 5 条（2026-09-25，§3.12） | `content-webpage.js` `placeRateRow()`、`watchSeen()` 与行内两个 click handler；Safari 那一跳的 `AppLink.open` 兜底回调 |
 | `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出；**2026-09-27 UI 已淘汰**，枚举照留以收老客户端的行，§3.7 B） | `src/app/shell-model.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个 listener |
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
-| `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
+| `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2）。**App 上这是打开听译/字幕页，不是开麦**（§3.16） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
+| `mic_permission` | `permission_state: prompted \| granted \| denied \| restricted \| not_determined` · `kind: mic \| system` · 可选 `engine` · `locale_pair` | App 读到麦克风（或 Mac 系统录音）权限的结果。系统框弹出记 `prompted`，框关掉记最终态；回到前台（含从系统设置返回）再读一次。同一种 `kind`+状态不重复记。**不是**自由文本 | `src/app/listen-model.js`：原生 `mic-perm`（启动 / 回前台 / 请求回调）与 `mic-state` 的 granted·denied·waiting-permission。扩展不发（§3.16） |
+| `asr_start` | 可选 `engine` · `locale_pair` | App 里用户**真的开始一场听译或实时字幕**（开麦那一下），每场一次。打开页面只算 `asr_entry` | `src/app/listen-model.js` `micStart()`；若在开麦前就停机，由 `asr_fail` 补记这一条，使「开了又失败」成对 |
+| `asr_fail` | `fail_reason`（短枚举，见 §3.16）· 可选 `engine` · `locale_pair` | 这一场听译/字幕**停机**，每场第一条。用户暂停、点结束、断线重连中途都不算。`fail_reason` 禁止塞系统长文 | `src/app/listen-model.js` `halt()`（`socket-retry` 除外）与开麦前的名额已满 |
+| `translate_start` | 可选 `engine` · `locale_pair` | 这场已经有识别文字，**并且翻译请求即将发出**，每场一次。没配引擎、请求没发出去，不记 —— 那一格就是「听过但翻译没跑」 | `src/app/listen-model.js`：`translate()` / `passRow()` / `segCall()` 真正调用翻译之前 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
 | `offline_video_asr_task` | `result: ok \| fail \| cancelled` · `code`（失败或取消时，见 §3.15；成功不带 `code`） | Mac App 一条完整视频离线字幕任务结束。**不是**听译漏斗，扩展不发 | `app/offline-video-asr.js`（只发 `result` 与 `code`） |
 
 ### 3.15 2026-10-28（BEL-103，产品已认 ARCH-SHORT）：Mac 完整视频离线字幕
 
 一条事件，`offline_video_asr_task`。只回答「一条文件任务结束了没有、什么码」。`code` 的枚举是 `no_audio_track` / `codec_unsupported` / `media_encrypted` / `drm` / `model_missing` / `model_hash_mismatch` / `download_failed` / `disk_low` / `oom` / `sidecar_crash` / `cancelled` / `timeout` / `empty_hyp` / `pin_mismatch` / `busy`。不带路径、文件名、原文、hyp。扩展宿主不发（没有这条入口）。它不进 `asr_entry`，也不用来和本机听写比较。
+
+### 3.16 2026-10-28（BEL-113）：App 首启听译漏斗
+
+post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`，中间掉的人分不清是没给麦克风、打开了页没开麦、识别失败，还是听出了字但翻译没跑。四条新事件只回答这个。`asr_entry` / `translate_ok` / `translate_fail` 的名字和属性不动。
+
+**信封已经有的，不再加同义键。** 每条事件本来就带 `install_id`、`host`、`v`（应用版本）、`device`（iPhone / iPad / Mac，即平台）。不另造 `app_version` / `platform`。可选的 `engine` 是翻译引擎 id，`locale_pair` 是 `zh-en` 这种小写基码，都是 `id` 型；对不上就**整键省略**，免得一条非法值把整条事件丢掉。
+
+**`mic_permission.permission_state`** 与系统状态的对应：
+
+| 记录值 | 系统状态 |
+|---|---|
+| 未问过 not_determined | AVAudioApplication / AVAudioSession `.undetermined`，或 AVCapture `.notDetermined` |
+| 正在问 prompted | 系统权限框正在出现（请求前状态是未决定，或 Mac 系统声音 `mic-state waiting` / `waiting-permission`） |
+| 已允许 granted | `.granted` / `.authorized`，或 `mic-state granted` |
+| 已拒绝 denied | `.denied`，或 `mic-state denied`（含系统声音 90 秒超时） |
+| 受限制 restricted | AVCapture `.restricted`（家长控制 / MDM）。iOS 录音权限 API 没有这一档，只在采集授权状态上读得到 |
+
+`kind`：`mic` 是麦克风，`system` 是 Mac 系统录音。同一 `kind` 连续读到同一个状态不重发；从设置回来如果从 `denied` 变成 `granted`，会再发一条。
+
+**`asr_fail.fail_reason`** 只允许这些短码，长的系统错误串一律收成 `capture` 或 `other`：
+
+`permission` · `interrupted`（来电、耳机挡住外放）· `socket` · `assets` · `device` · `os` · `capture`（麦引擎起不来）· `locale` · `quota`（识别语言名额满）· `timeout` · `other`。
+
+每场只发**第一条**停机。`socket-retry` 不发（还在重连）。用户暂停和点结束不发。
+
+**互斥口径**（同一 `install_id`，`host='app'`，按这个顺序归到一格，合计是这批 `installed`）：
+
+1. 有 `translate_ok` → 翻译成功
+2. 否则有 `asr_fail` → 听译失败（再按 `fail_reason` 拆）
+3. 否则有 `asr_start` → 听过，但没有 `translate_start` 或没有成功
+4. 否则有 `asr_entry` → 进了页面，没开麦
+5. 否则有 `mic_permission` 且曾 `granted` → 给了权限，没进听译
+6. 否则有过 `mic_permission` 且从未 `granted` → 权限没给（再按最后的 `permission_state` 拆）
+7. 一条 `mic_permission` 都没有 → 未知（旧包，或原生桥还不会回报状态）
+
+扩展不发这四条。中国版 `MT_TELEMETRY` 仍是 null，这四条在那里同样不进 `bt_events`。服务端要收新事件名，得用更新后的 `events.gen.json` 重新部署 `bt-ingest`；表结构不用改，`props` 已是 jsonb。
 
 **`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版不发任何遥测白名单事件（2026-10-06 起另有不含内容的匿名诊断通道，见「诊断上报」；原文与译文一律不发），
 于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到

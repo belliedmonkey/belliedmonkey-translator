@@ -650,7 +650,9 @@ describe('sync-app-assets: audio bridge block (§9.5)', () => {
         '"album"', '"index"', '"count"', '"playing"',
         '"platform"', '"suspends"', '"ios"', '"macos"',
         '"record-mode"', '"on"',   // §9.6 实时听译：可录音的音频会话请求
-        '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"rate"', '"b64"', '"state"',   // §9.6 原生采集
+        '"mic-start"', '"mic-stop"', '"mic-pcm"', '"mic-state"', '"mic-perm"', '"mic-perm-read"', '"kind"',
+        '"prompted"', '"restricted"', '"not_determined"',
+        '"rate"', '"b64"', '"state"',   // §9.6 原生采集
         '"deliver"', '"level"', '"mic-level"', '"rms"',   // §9.6.1 本机路：PCM 留在原生，只过电平
         '"caps-probe"', '"subtitle-config"', '"subtitle-show"', '"subtitle-state"', '"subtitle-float"', '"subtitle-hide"',   // §9.8 实时字幕（字幕条文字全由 JS 传）
         '"audio-caps"', '"sources"', '"mic"', '"system"', '"ok"', '"os"', '"unsupported"', '"broadcast"', '"source"',   // §9.8 能力回话与声音来源

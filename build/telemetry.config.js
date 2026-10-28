@@ -164,6 +164,24 @@ const EVENTS = {
     surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
   },
+  // 首启听译漏斗（2026-10-28，BEL-113，telemetry-design §3.16）。
+  // asr_entry 只回答「打开了听译/字幕页」。下面四条把「没授权 / 没真开麦 / 听译失败 /
+  // 出了字但翻译没跑」拆开。公共信封已经带 host / v / device，这里不再复制一份。
+  // engine / locale_pair 可缺：键不在就不发，发了就必须过 id 型（整条否则被丢掉）。
+  mic_permission: {
+    permission_state: ['prompted', 'granted', 'denied', 'restricted', 'not_determined'],
+    kind: ['mic', 'system'],
+    engine: 'id',
+    locale_pair: 'id',
+  },
+  asr_start: { engine: 'id', locale_pair: 'id' },
+  asr_fail: {
+    fail_reason: ['permission', 'interrupted', 'socket', 'assets', 'device', 'os',
+      'capture', 'locale', 'quota', 'timeout', 'other'],
+    engine: 'id',
+    locale_pair: 'id',
+  },
+  translate_start: { engine: 'id', locale_pair: 'id' },
   // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
   // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
   offline_video_asr_task: {
@@ -292,6 +310,24 @@ const SEAMS = {
     { host: 'ext', file: 'extension/content/content-main.js', match: "surface: 'popup'" },
     { host: 'ext', file: 'src/pages/popup.jsx', match: "surface: 'popup_app_row'" },
     { host: 'app', file: 'src/app/listen-model.js', match: "surface: 'app_home'" },
+  ],
+  // BEL-113：漏斗只挂在 App 的听译/实时字幕。扩展继续用 asr_entry 与 translate_ok/fail，
+  // 不另开一套入口事件。
+  mic_permission: [
+    { host: 'ext', none: '首启麦克风/系统录音权限只在 App 原生桥上读；扩展网页转写不走这条权限' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('mic_permission'" },
+  ],
+  asr_start: [
+    { host: 'ext', none: '扩展转写入口已由 asr_entry 回答；asr_start 只记 App 里用户真的开了麦' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_start'" },
+  ],
+  asr_fail: [
+    { host: 'ext', none: '扩展听译失败不进 App 首启漏斗；网页翻译失败仍是 translate_fail' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_fail'" },
+  ],
+  translate_start: [
+    { host: 'ext', none: '网页翻译没有「听出字再开翻」这一跳；成功与失败仍是 translate_ok / translate_fail' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
   ],
   offline_video_asr_task: [
     { host: 'ext', none: '完整视频离线字幕只在 Mac App；扩展没有这条入口，也不进听译漏斗' },
