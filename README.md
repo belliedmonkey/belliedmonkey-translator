@@ -127,6 +127,7 @@ At a glance:
 - **Quick Translate (Mac app)** — select text in any app and press a shortcut, or use the right-click Services menu; type a sentence; or drag a box around anything on screen that cannot be selected (images, video frames, scans). The translation appears in a small panel next to the pointer without taking focus from the app you are in. On-screen text is recognised on your Mac. Shortcuts are configurable; it lives in the menu bar and can be turned off
 - **System translation (iPhone / iPad app)** — set BelliedMonkey Translator as the Default Translation App under Settings › Apps › Translate, then select text in any app and tap Translate: the sheet that opens is ours, translating with the engine you configured. Requires iOS or iPadOS 18.4 or later
 - **Conversation · live interpreter (app)** — both people speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 / macOS 26 speech can be recognised on the device (no audio leaves it), with only the text sent to your translation engine, and read aloud by an offline voice model
+- **Thai listen & translate (1.21.2, international)** — in Conversation / live interpreter, microphone audio now reaches speech recognition reliably for Thai (Grok STT). The China edition still peels Grok.
 - **Dual subtitles** for YouTube, x.com video and podcasts, merged into whole sentences and translated ahead of the playhead
 - **AI transcript subtitles** for media that has no captions at all, using your own transcription key (nothing is transcribed unless you tap the button)
 - **Review cards** from the sentences you actually read — spaced repetition with read / listen / write tiers; off by default
@@ -255,7 +256,7 @@ Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/
 |---|---|---|---|
 | Translation | plus · App-contract COMET **88.8** (1600 sentences) | Same-protocol DeepL/Google **no public number** | Self-measured high quality; cannot rank vs DeepL |
 | ASR Chinese | Live SA; offline SenseVoice CER **~5–7%** | AA English top ~1.7–2.3% WER (**not convertible**) | On-device Chinese upgrade under validation |
-| ASR Thai | Grok streaming archdemo CER **9.66%**, 0 drops | On-device gap filled by cloud | **Approved for 1.20.x** (direct xAI; relay unchanged) |
+| ASR Thai | Grok streaming archdemo CER **9.66%**, 0 drops | On-device gap filled by cloud | **Ships in 1.21.2** (intl; tip aac5a87d; CN peeled; direct xAI, relay unchanged) |
 | Interpret latency | Doc targets; unified online telemetry **unpublished** | Meet 63-language UX (vendor) | Instrument first |
 | TTS | Local / offline-capable | AA e.g. Eleven v4 Turbo Elo 1335 | Cloud voices pending listen tests |
 
@@ -334,6 +335,8 @@ Stated up front, because finding them yourself is worse.
   configured, only after you tap “Start listening” and only to that endpoint. Our servers never
   touch the audio; no recording is kept, only text — and only while “add conversations to
   review” is on. No realtime-capable engine configured means the mode simply doesn't appear.
+  From 1.21.2, Thai on the international edition uses Grok speech recognition on that same path;
+  the China edition peels Grok and does not offer it.
 - **What is sent for translation** is the text, and nothing else — not the URL, not the page
   title, not the referrer, not any identifier. **What sync sends, if you turn it on, is
   different and larger: every sentence the extension kept, the page URL and title it came
