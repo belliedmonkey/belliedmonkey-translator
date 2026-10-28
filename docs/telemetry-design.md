@@ -112,6 +112,11 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
 | `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
 | `telemetry_off` | — | the user turns the switch off | settings switch `change` |
+| `offline_video_asr_task` | `result: ok \| fail \| cancelled` · `code`（失败或取消时，见 §3.15；成功不带 `code`） | Mac App 一条完整视频离线字幕任务结束。**不是**听译漏斗，扩展不发 | `app/offline-video-asr.js`（只发 `result` 与 `code`） |
+
+### 3.15 2026-10-28（BEL-103，产品已认 ARCH-SHORT）：Mac 完整视频离线字幕
+
+一条事件，`offline_video_asr_task`。只回答「一条文件任务结束了没有、什么码」。`code` 的枚举是 `no_audio_track` / `codec_unsupported` / `media_encrypted` / `drm` / `model_missing` / `model_hash_mismatch` / `download_failed` / `disk_low` / `oom` / `sidecar_crash` / `cancelled` / `timeout` / `empty_hyp` / `pin_mismatch` / `busy`。不带路径、文件名、原文、hyp。扩展宿主不发（没有这条入口）。它不进 `asr_entry`，也不用来和本机听写比较。
 
 **`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版不发任何遥测白名单事件（2026-10-06 起另有不含内容的匿名诊断通道，见「诊断上报」；原文与译文一律不发），
 于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到
