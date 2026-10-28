@@ -34,6 +34,7 @@ import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import { createHalt, meterText, failSurface } from './n26-session.js';
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -171,8 +172,9 @@ const listenModel = (() => {
   const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix'];
   function readCfg() {
     return new Promise((resolve) => {
-      chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS), (s) => {
+      chrome.storage.local.get(READ_KEYS.concat(LID_DEV_KEYS, ['grantBalance', 'grantTail']), (s) => {
         s = s || {};
+        applyGrant(s);
         const tr = LearnNotes.resolveConfig(s);
         const rules = s.learnRules && typeof s.learnRules === 'object' ? s.learnRules : {};
         const B = C.baseCode;
@@ -343,17 +345,80 @@ const listenModel = (() => {
     }
   }
 
+  // ── 翻译结果泵的停机（n26-session）────────────────────────────────────────
+  // 听译和实时字幕共用这一闸：credit_exhausted / grant_unavailable /
+  // model_not_allowed / auth 一次即停；timeout 连续 5 次才停；http / network / 429
+  // 只留在行上。停的是翻译请求，不是麦克风（phase 不动）。
+  let trHalt = createHalt();
+  let grantBalance = null;
+  let grantOn = false;
+  let openSettingsFn = null;
+  function n26Region() {
+    try { return Registry.flavor() === 'china' ? 'cn' : 'global'; }
+    catch (_) { return 'global'; }
+  }
+  function applyGrant(s) {
+    grantBalance = (s && s.grantBalance && typeof s.grantBalance === 'object') ? s.grantBalance : null;
+    try {
+      grantOn = typeof LearnGrant !== 'undefined' && typeof LearnGrant.activeIn === 'function'
+        ? !!LearnGrant.activeIn(s || {}, 'chat') : false;
+    } catch (_) { grantOn = false; }
+  }
+  function haltErr() {
+    const e = new Error('n26-halt');
+    e.code = trHalt.code || 'unknown';
+    e.halted = true;
+    return e;
+  }
+  function n26Opts() {
+    return { t, region: n26Region(), grantBalance };
+  }
+  function haltRowNote() {
+    if (!trHalt.blocksPump()) return '';
+    return failSurface(trHalt.code, n26Opts()).rowNote || '';
+  }
+  function markPumpBlocked(row) {
+    if (!row) return;
+    row.trBusy = false;
+    row.tr = '';
+    row.trErr = true;
+    row.trTemp = false;
+    canvas.view('history');
+    subFinal(row);
+  }
+  // 本代际的失败才进闸。旧会话的迟到回执不能把新一场停掉。
+  function notePumpFailure(err, myGen) {
+    if (myGen != null && myGen !== gen) return trHalt.blocksPump();
+    const snap = trHalt.noteFailure(err);
+    if (snap.halted) canvas.view('history');
+    return snap.halted;
+  }
+  function notePumpSuccess(myGen) {
+    if (myGen != null && myGen !== gen) return;
+    if (!trHalt.blocksPump()) trHalt.noteSuccess();
+  }
+
   // ── 翻译 ──────────────────────────────────────────────────────────────────
   // errOut：定稿行的调用方传一个空对象进来接住错误（遥测要它的 code）；半句的增量翻译不传 ——
   // 半句失败没有界面后果，也不记。
-  async function translate(text, toLang, errOut) {
+  async function translate(text, toLang, errOut, myGen) {
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
+    if (trHalt.blocksPump()) {
+      if (errOut) errOut.err = haltErr();
+      return '';
+    }
     // 计数（P-06 / P-07 的判据是**翻译请求 0 次**）：没出声、或被暂停/结束点掉的那一句，
     // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
     translateCalls++;
     try {
-      return await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-    } catch (e) { if (errOut) errOut.err = e; return ''; }
+      const out = await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+      if (out) notePumpSuccess(myGen);
+      return out;
+    } catch (e) {
+      notePumpFailure(e, myGen);
+      if (errOut) errOut.err = e;
+      return '';
+    }
   }
 
   // ── 用量事件（docs/telemetry-design.md §3.3 裁定 1、§3.4 裁定 A）────────────────
@@ -408,11 +473,11 @@ const listenModel = (() => {
     row.trErr = false; row.trBusy = true; canvas.view('history');
     const t0 = now();
     const eo = {};
-    const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang, eo);
+    const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang, eo, myGen);
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
-    if (row.tr) tmOk(); else tmFail(eo.err);
+    if (row.tr) tmOk(); else if (!(eo.err && eo.err.halted)) tmFail(eo.err);
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -427,6 +492,7 @@ const listenModel = (() => {
   }
   async function passRow(row, quiet) {
     if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
+    if (trHalt.blocksPump()) { markPumpBlocked(row); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
     const srcLang = row.who === 'me' ? cfg.myLang : cfg.otherLang;
@@ -440,13 +506,14 @@ const listenModel = (() => {
     const t0 = now();
     try {
       reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-    } catch (e) { reply = ''; passErr = e; }
+      if (reply) notePumpSuccess(myGen);
+    } catch (e) { reply = ''; passErr = e; notePumpFailure(e, myGen); }
     if (myGen !== gen) return;
     if (row.lat) row.lat.pass = now() - t0;
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
     row.trBusy = false; row.trTemp = false; row.tr = parsed.tr || ''; row.trErr = !row.tr;
-    if (row.tr) tmOk(); else tmFail(passErr);
+    if (row.tr) tmOk(); else if (!(passErr && passErr.halted)) tmFail(passErr);
     canvas.view('history'); paintNowPlaying(); if (showRid === row.rid) canvas.view('show');
     subFinal(row);
     if (row.tr) { maybeWrite(row); if (!quiet) autoSpeak(row); }
@@ -514,10 +581,18 @@ const listenModel = (() => {
   // 一次「断句+翻译」调用：budget 512（中转按令牌计量，够一份 JSON）；客户端 12s 截止
   // （中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧）。
   function segCall(prompt) {
+    const myGen = gen;
+    if (trHalt.blocksPump()) return Promise.reject(haltErr());
     translateCalls++;
     return TranslationAPI.listenPass(prompt,
       TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
-      { budget: 512, timeoutMs: 12000 });
+      { budget: 512, timeoutMs: 12000 }).then((raw) => {
+      if (raw) notePumpSuccess(myGen);
+      return raw;
+    }, (err) => {
+      notePumpFailure(err, myGen);
+      throw err;
+    });
   }
   // 断句 prompt 的中文模板（规则五条，2026-10-10 用户批准）。**这不是界面文案，是给模型的
   // 固定指令**（改 UI 语言不该改模型行为）——写成 t() 只因为出货代码里的中文只许出现在 t()
@@ -1569,7 +1644,8 @@ const listenModel = (() => {
       subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: row.tr, partial: false });
       if (phase === 'listening') NativeAudio.subtitleState('listening');
     } else if (row.trErr) {
-      subPartialShown = false; NativeAudio.subtitleShow({ orig: row.text, tr: '', partial: false });
+      subPartialShown = false;
+      NativeAudio.subtitleShow({ orig: row.text, tr: haltRowNote(), partial: false });
       NativeAudio.subtitleState('tr-failed');
     }
   }
@@ -1824,6 +1900,7 @@ const listenModel = (() => {
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
+    trHalt = createHalt();
     pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
@@ -2233,7 +2310,10 @@ const listenModel = (() => {
     // 与节奏都在 feedback.js，这里只报「发生了」。
     try {
       const s = C.summary(session, now());
-      if (s && Number(s.them) > 0 && typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) {
+      // 评分只在这场真的出过译文、而且眼前没有失败面 / 停泵面的时候问。
+      const failUp = trHalt.blocksPump() || (session.rows || []).some((r) => r.trErr);
+      if (s && Number(s.them) > 0 && session.tmOk && !failUp
+        && typeof MTFeedback !== 'undefined' && MTFeedback.noteValueMoment) {
         MTFeedback.noteValueMoment('listen').catch(() => {});
       }
     } catch (_) {}
@@ -2865,11 +2945,57 @@ const listenModel = (() => {
   }
   function setEphemeral(on) { ephemeralChecked = !!on; canvas.view('state'); }
 
+  // 免费额度条：只在翻译槽正在用额度、且缓存里有 spentUsd/limitUsd 时出现。
+  // 用完那张失败面自己带同一行数字，这里就不再重复。
+  function meterView() {
+    const text = grantOn ? meterText(grantBalance) : '';
+    if (!text || (trHalt.blocksPump() && trHalt.code === 'credit_exhausted')) {
+      return { shown: false, label: '', text: '' };
+    }
+    return { shown: true, label: t('fail_quota_label', '免费额度'), text };
+  }
+  function failView() {
+    if (!trHalt.blocksPump()) {
+      return { shown: false, title: '', next: '', footnote: '', meter: '', meterLabel: '', primary: null, secondary: null, primaryDisabled: false };
+    }
+    const surface = failSurface(trHalt.code, n26Opts());
+    const busy = !!(session && session.rows.some((r) => r.trBusy));
+    return {
+      shown: true,
+      title: surface.title,
+      next: surface.next,
+      footnote: surface.footnote,
+      meter: surface.meter,
+      meterLabel: surface.meter ? surface.meterLabel : '',
+      primary: surface.primary,
+      secondary: surface.secondary,
+      primaryDisabled: !!(surface.primary && surface.primary.action === 'retry' && busy),
+    };
+  }
+  function failAct(which) {
+    if (!trHalt.blocksPump()) return;
+    const surface = failSurface(trHalt.code, n26Opts());
+    const btn = which === 'secondary' ? surface.secondary : surface.primary;
+    if (!btn) return;
+    if (btn.action === 'retry') {
+      trHalt.retry();
+      const rows = session ? session.rows.filter((r) => r.trErr && !r.tr) : [];
+      canvas.view('history');
+      for (const row of rows) retranslate(row, true);
+      return;
+    }
+    if (btn.action === 'open' && btn.landing && openSettingsFn) {
+      try { openSettingsFn(btn.landing); } catch (_) {}
+    }
+  }
+
   // historyView：renderHistory 的数据版（视图映射 JSX；行动作经 model 动作回流）。
   function historyView() {
     const rows = session ? session.rows : [];
     const sub = mode === 'subtitle';   // 单向：不画归属标、↔、朗读、给对方看（§9.8）
     const starable = !(session && session.ephemeral);
+    const pumpHalted = trHalt.blocksPump();
+    const haltNote = pumpHalted ? haltRowNote() : '';
     const out = rows.map((r) => ({
       row: r,
       who: r.who,
@@ -2888,6 +3014,7 @@ const listenModel = (() => {
       showRaw: !!r.showRaw,
       raw: r.raw,
       trErr: !!r.trErr,
+      halted: !!(r.trErr && pumpHalted),
       tr: r.tr,
       trTemp: !!r.trTemp,
       trBusy: !!r.trBusy,
@@ -2913,7 +3040,7 @@ const listenModel = (() => {
       swapToThem: t('listen_swap_to_them', '改成对方说的'),
       swapToMe: t('listen_swap_to_me', '改成我说的'),
       rawLabel: t('listen_raw_label', '识别原文'),
-      trFailed: t('listen_tr_failed', '译文失败 · 重试'),
+      trFailed: haltNote || t('listen_tr_failed', '译文失败 · 重试'),
       pending: t('listen_pending', '⏳ 译文准备中…'),
       whoMe: t('listen_who_me', '我'),
       whoThem: t('listen_who_them', '对方'),
@@ -2951,6 +3078,7 @@ const listenModel = (() => {
     // 「换引擎」就地入口（2026-10-04）：shell 拥有 openSettings，所以由它注入 —— 与
     // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
     if (opts && typeof opts.openSettings === 'function') {
+      openSettingsFn = opts.openSettings;
       setOpenEnginePicker(() => opts.openSettings('stt-engine'));
     }
     refreshEntry();
@@ -2961,6 +3089,14 @@ const listenModel = (() => {
         if (area && area !== 'local') return;
         // 语言变了要重探（本机识别器按 locale 判支持）；转写引擎那四键与这一页无关了（2026-09-17）
         if (['listenMyLang', 'listenOtherLang', 'subtitleVideoLang', 'uiLang'].some((k) => k in (changes || {}))) refreshEntry();
+        if (['grantBalance', 'grantTail', 'apiKey', 'provider'].some((k) => k in (changes || {}))) {
+          try {
+            chrome.storage.local.get(READ_KEYS.concat(['grantBalance', 'grantTail']), (st) => {
+              applyGrant(st);
+              canvas.view('meter');
+            });
+          } catch (_) {}
+        }
       });
     } catch (_) {}
     keepLangSel();
@@ -2987,6 +3123,7 @@ const listenModel = (() => {
     // 收音（点一下开 / 停；改稿 D）；listen-view 的点击事件 → 状态机
     pttToggle, pttView,
     retranslate, toggleStar,   // 历史行内的「重试译文」与加星（原 renderHistory 逐行挂的 handler）
+    meterView, failView, failAct,
     // 渲染数据（listen-view.jsx 渲染期调用）
     modeView, pillView, nowLabel, ephemeralView, toggleView,
     nowView: () => {
@@ -3032,6 +3169,7 @@ const listenModel = (() => {
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
       ptt: ptt ? { on: true, side: ptt.side, stopping: !!pttStopTimer } : { on: false, side: '', stopping: false },
       pttForce: pttForce ? pttForce.side : '', translateCalls,
+      n26: { halted: trHalt.halted, code: trHalt.code, streak: trHalt.streak },
       // 断句路读数（2026-10-10）：走的是模型断句还是旧串句器、降级没有、调用数、各路缓冲长度。
       seg: Object.assign({ route: segRoute, degrade: segDegrade, diag: segDiag }, seg ? seg.state() : {}),
       // 句头闸读数（2026-10-11 第九轮）：扣住（hold）**不等于**路由器扣住结果 —— 扣住的片还没进账本，

@@ -3874,5 +3874,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "หากต้องการใช้ {lang} ต้องสละหนึ่งภาษาก่อน"
+  },
+  "fail_quota_label": {
+    "message": "เครดิตฟรี"
+  },
+  "fail_credit_title": {
+    "message": "เครดิตฟรีหมดแล้ว"
+  },
+  "fail_credit_next": {
+    "message": "เปลี่ยนช่องทาง หรือใส่ API Key ของคุณ"
+  },
+  "fail_go_grant": {
+    "message": "เปลี่ยนช่องทาง"
+  },
+  "fail_fill_key": {
+    "message": "ใส่ Key ของคุณ"
+  },
+  "fail_grant_title": {
+    "message": "เครดิตใช้ไม่ได้ชั่วคราว"
+  },
+  "fail_grant_next": {
+    "message": "ไม่ใช่คุณใช้หมด ลองใหม่ภายหลังหรือเปลี่ยนช่องทาง"
+  },
+  "fail_model_title": {
+    "message": "โมเดลไม่อยู่ในรายการฟรี"
+  },
+  "fail_model_next": {
+    "message": "เครดิตฟรีใช้ได้เฉพาะโมเดลที่กำหนด โปรดเปลี่ยนกลับ"
+  },
+  "fail_go_model": {
+    "message": "เปลี่ยนโมเดล"
+  },
+  "fail_auth_title": {
+    "message": "คีย์ไม่ผ่าน"
+  },
+  "fail_auth_next": {
+    "message": "ผู้ให้บริการปฏิเสธ Key นี้ ตรวจหรือกรอกใหม่"
+  },
+  "fail_go_engine": {
+    "message": "ไปใส่ Key"
+  },
+  "fail_use_free": {
+    "message": "เปลี่ยนไปใช้ช่องทางฟรี"
+  },
+  "fail_timeout_title": {
+    "message": "เชื่อมต่อไม่ได้ จึงหยุดแล้ว"
+  },
+  "fail_timeout_next": {
+    "message": "หยุดลองใหม่อัตโนมัติ เมื่อเน็ตกลับมาให้กดลองใหม่ หรือเปลี่ยนไปช่องทางฟรี"
+  },
+  "fail_timeout_next_cn": {
+    "message": "หยุดลองใหม่อัตโนมัติ เมื่อเน็ตกลับมาให้กดลองใหม่"
+  },
+  "fail_timeout_footnote": {
+    "message": "หยุดเมื่อหมดเวลา 5 ครั้งติดกัน ครั้งเดียวไม่หยุด"
+  },
+  "fail_retry": {
+    "message": "ลองใหม่"
+  },
+  "fail_switch_free": {
+    "message": "เปลี่ยนไปช่องทางฟรี"
   }
 }

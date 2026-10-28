@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang}을(를) 쓰려면 먼저 한 언어를 양보하세요."
+  },
+  "fail_quota_label": {
+    "message": "무료 한도"
+  },
+  "fail_credit_title": {
+    "message": "무료 한도를 다 썼습니다"
+  },
+  "fail_credit_next": {
+    "message": "경로를 바꾸거나, 자신의 API Key를 입력하세요."
+  },
+  "fail_go_grant": {
+    "message": "경로 바꾸기"
+  },
+  "fail_fill_key": {
+    "message": "자신의 Key 입력"
+  },
+  "fail_grant_title": {
+    "message": "풀을 잠시 쓸 수 없습니다"
+  },
+  "fail_grant_next": {
+    "message": "다 쓴 것이 아닙니다. 나중에 다시 시도하거나 경로를 바꾸세요."
+  },
+  "fail_model_title": {
+    "message": "모델이 무료 목록에 없습니다"
+  },
+  "fail_model_next": {
+    "message": "무료 한도는 지정된 모델만 쓸 수 있습니다. 되돌려 주세요."
+  },
+  "fail_go_model": {
+    "message": "모델 바꾸기"
+  },
+  "fail_auth_title": {
+    "message": "키가 유효하지 않습니다"
+  },
+  "fail_auth_next": {
+    "message": "제공자가 Key를 거부했습니다. 확인하거나 다시 입력하세요."
+  },
+  "fail_go_engine": {
+    "message": "Key 입력"
+  },
+  "fail_use_free": {
+    "message": "무료 경로로 바꾸기"
+  },
+  "fail_timeout_title": {
+    "message": "연결되지 않아 일시 중지했습니다"
+  },
+  "fail_timeout_next": {
+    "message": "자동 재시도를 멈췄습니다. 네트워크가 돌아오면 다시 시도하거나 무료 경로로 바꾸세요."
+  },
+  "fail_timeout_next_cn": {
+    "message": "자동 재시도를 멈췄습니다. 네트워크가 돌아오면 다시 시도하세요."
+  },
+  "fail_timeout_footnote": {
+    "message": "시간 초과가 5번 연속되어야 멈춥니다. 한 번은 멈추지 않습니다"
+  },
+  "fail_retry": {
+    "message": "다시 시도"
+  },
+  "fail_switch_free": {
+    "message": "무료 경로로 바꾸기"
   }
 }

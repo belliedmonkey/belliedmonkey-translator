@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "لاستخدام {lang}، تخلَّ عن لغة واحدة أولًا."
+  },
+  "fail_quota_label": {
+    "message": "رصيد مجاني"
+  },
+  "fail_credit_title": {
+    "message": "انتهى الرصيد المجاني"
+  },
+  "fail_credit_next": {
+    "message": "غيّر المسار، أو أدخل مفتاح API الخاص بك."
+  },
+  "fail_go_grant": {
+    "message": "غيّر المسار"
+  },
+  "fail_fill_key": {
+    "message": "أدخل مفتاحك"
+  },
+  "fail_grant_title": {
+    "message": "الرصيد غير متاح مؤقتًا"
+  },
+  "fail_grant_next": {
+    "message": "لم ينفد رصيدك. أعد المحاولة لاحقًا أو غيّر المسار."
+  },
+  "fail_model_title": {
+    "message": "النموذج ليس في القائمة المجانية"
+  },
+  "fail_model_next": {
+    "message": "الرصيد المجاني يعمل فقط مع النموذج المحدد. أعده."
+  },
+  "fail_go_model": {
+    "message": "غيّر النموذج"
+  },
+  "fail_auth_title": {
+    "message": "المفتاح مرفوض"
+  },
+  "fail_auth_next": {
+    "message": "رفض المزود هذا المفتاح. راجعه أو أدخله من جديد."
+  },
+  "fail_go_engine": {
+    "message": "أدخل المفتاح"
+  },
+  "fail_use_free": {
+    "message": "استخدم المسار المجاني"
+  },
+  "fail_timeout_title": {
+    "message": "تعذر الاتصال، وتوقف الإرسال"
+  },
+  "fail_timeout_next": {
+    "message": "توقف إعادة المحاولة تلقائيًا. عند عودة الشبكة اضغط إعادة المحاولة، أو انتقل إلى المسار المجاني."
+  },
+  "fail_timeout_next_cn": {
+    "message": "توقف إعادة المحاولة تلقائيًا. عند عودة الشبكة اضغط إعادة المحاولة."
+  },
+  "fail_timeout_footnote": {
+    "message": "يتوقف فقط بعد 5 مهلات متتالية. المهلة الواحدة لا توقف."
+  },
+  "fail_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "fail_switch_free": {
+    "message": "انتقل إلى المسار المجاني"
   }
 }

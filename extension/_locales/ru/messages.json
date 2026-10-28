@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Чтобы пользоваться {lang}, сначала освободите один язык."
+  },
+  "fail_quota_label": {
+    "message": "Бесплатный кредит"
+  },
+  "fail_credit_title": {
+    "message": "Бесплатный кредит закончился"
+  },
+  "fail_credit_next": {
+    "message": "Смените канал или введите свой API Key."
+  },
+  "fail_go_grant": {
+    "message": "Сменить канал"
+  },
+  "fail_fill_key": {
+    "message": "Ввести свой Key"
+  },
+  "fail_grant_title": {
+    "message": "Пул сейчас недоступен"
+  },
+  "fail_grant_next": {
+    "message": "Это не вы его израсходовали. Попробуйте позже или смените канал."
+  },
+  "fail_model_title": {
+    "message": "Модель не в бесплатном списке"
+  },
+  "fail_model_next": {
+    "message": "Бесплатный кредит работает только с назначенной моделью. Верните её."
+  },
+  "fail_go_model": {
+    "message": "Сменить модель"
+  },
+  "fail_auth_title": {
+    "message": "Ключ отклонён"
+  },
+  "fail_auth_next": {
+    "message": "Провайдер отклонил Key. Проверьте или введите снова."
+  },
+  "fail_go_engine": {
+    "message": "Ввести Key"
+  },
+  "fail_use_free": {
+    "message": "Перейти на бесплатный канал"
+  },
+  "fail_timeout_title": {
+    "message": "Нет связи — пауза"
+  },
+  "fail_timeout_next": {
+    "message": "Автоповтор на паузе. Когда сеть вернётся, нажмите повтор или перейдите на бесплатный канал."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Автоповтор на паузе. Когда сеть вернётся, нажмите повтор."
+  },
+  "fail_timeout_footnote": {
+    "message": "Пауза только после 5 таймаутов подряд. Один раз не останавливает."
+  },
+  "fail_retry": {
+    "message": "Повторить"
+  },
+  "fail_switch_free": {
+    "message": "На бесплатный канал"
   }
 }

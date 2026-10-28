@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Para usar {lang}, libera primero un idioma."
+  },
+  "fail_quota_label": {
+    "message": "Crédito gratis"
+  },
+  "fail_credit_title": {
+    "message": "Crédito gratis agotado"
+  },
+  "fail_credit_next": {
+    "message": "Cambia de canal o escribe tu propia API Key."
+  },
+  "fail_go_grant": {
+    "message": "Cambiar de canal"
+  },
+  "fail_fill_key": {
+    "message": "Escribir mi Key"
+  },
+  "fail_grant_title": {
+    "message": "El fondo no está disponible"
+  },
+  "fail_grant_next": {
+    "message": "No se te acabó. Prueba más tarde o cambia de canal."
+  },
+  "fail_model_title": {
+    "message": "El modelo no está en la lista gratis"
+  },
+  "fail_model_next": {
+    "message": "El crédito gratis solo usa el modelo asignado. Vuelve a ese."
+  },
+  "fail_go_model": {
+    "message": "Cambiar modelo"
+  },
+  "fail_auth_title": {
+    "message": "Clave rechazada"
+  },
+  "fail_auth_next": {
+    "message": "El proveedor rechazó la Key. Revísala o escríbela de nuevo."
+  },
+  "fail_go_engine": {
+    "message": "Escribir la Key"
+  },
+  "fail_use_free": {
+    "message": "Usar el canal gratis"
+  },
+  "fail_timeout_title": {
+    "message": "Sin conexión — en pausa"
+  },
+  "fail_timeout_next": {
+    "message": "El reintento automático está en pausa. Cuando vuelva la red, reintenta o pasa al canal gratis."
+  },
+  "fail_timeout_next_cn": {
+    "message": "El reintento automático está en pausa. Cuando vuelva la red, reintenta."
+  },
+  "fail_timeout_footnote": {
+    "message": "Solo se pausa tras 5 tiempos de espera seguidos. Uno solo no para."
+  },
+  "fail_retry": {
+    "message": "Reintentar"
+  },
+  "fail_switch_free": {
+    "message": "Pasar al canal gratis"
   }
 }

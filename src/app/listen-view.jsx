@@ -175,9 +175,12 @@ function HistoryRows({ hv }) {
             )}
             {r.hasRaw && r.showRaw && <div className="listen-raw">{r.raw}</div>}
             {r.trErr ? (
-              // 翻译失败要留下出口，不是永远的 ⏳
-              <button type="button" className="listen-tr-retry"
-                onClick={(e) => { e.stopPropagation(); listenModel.retranslate(r.row, true); }}>{hv.trFailed}</button>
+              r.halted ? (
+                <div className="listen-tr halt">{r.trFailed}</div>
+              ) : (
+                <button type="button" className="listen-tr-retry"
+                  onClick={(e) => { e.stopPropagation(); listenModel.retranslate(r.row, true); }}>{hv.trFailed}</button>
+              )
             ) : (
               <div className={'listen-tr' + (r.tr ? (r.trTemp ? ' temp' : '') : ' pending')}>{r.tr || hv.pending}</div>
             )}
@@ -252,6 +255,8 @@ export function ListenView() {
   const shv = listenModel.showView();
   const note = listenModel.noteView();
   const pv = listenModel.pttView();
+  const meter = listenModel.meterView();
+  const fail = listenModel.failView();
 
   // 贴底判定读的是 commit 前的旧 DOM —— 与原 renderHistory :1247 的同一时刻语义；
   // 渲染后 useLayoutEffect 恢复（原 :1340 if (atBottom) scrollTop = scrollHeight）。
@@ -297,6 +302,27 @@ export function ListenView() {
         <p id="app-listen-ready-sub" className="note" hidden={!nv.readySub}>{nv.readySub}</p>
         <p id="app-listen-partial" className="listen-partial" hidden={mv.partialsHidden}>{nv.partial}</p>
         <p id="app-listen-partial-tr" className="listen-partial-tr" hidden={mv.partialsHidden}>{nv.partialTr}</p>
+        <p className="listen-meter" id="app-listen-meter" hidden={!meter.shown}>
+          <span className="listen-meter-label" id="app-listen-meter-label">{meter.label}</span>
+          <span className="listen-meter-value" id="app-listen-meter-value">{meter.text}</span>
+        </p>
+        <div className="listen-fail" id="app-listen-fail" hidden={!fail.shown}>
+          <p className="listen-fail-title" id="app-listen-fail-title">{fail.title}</p>
+          <p className="note" id="app-listen-fail-next">{fail.next}</p>
+          <p className="listen-meter" id="app-listen-fail-meter" hidden={!fail.meter}>
+            <span className="listen-meter-label">{fail.meterLabel}</span>
+            <span className="listen-meter-value">{fail.meter}</span>
+          </p>
+          <p className="note" id="app-listen-fail-foot" hidden={!fail.footnote}>{fail.footnote}</p>
+          <div className="listen-fail-acts">
+            <button type="button" id="app-listen-fail-primary" hidden={!(fail.primary && fail.primary.label)}
+              disabled={!!fail.primaryDisabled}
+              onClick={() => listenModel.failAct('primary')}>{fail.primary ? fail.primary.label : ''}</button>
+            <button type="button" className="secondary" id="app-listen-fail-secondary"
+              hidden={!(fail.secondary && fail.secondary.label)}
+              onClick={() => listenModel.failAct('secondary')}>{fail.secondary ? fail.secondary.label : ''}</button>
+          </div>
+        </div>
         {/* iPhone 实时字幕：画中画小窗预览的占位块（原生在同一矩形上叠预览，§9.8 协议补充决定（三）17） */}
         <div id="app-subs-pip" className="listen-subs-pip" hidden={!mv.pipShown}>
           <p id="app-subs-pip-note" className="listen-subs-pip-note">{listenModel.pipNoteText()}</p>

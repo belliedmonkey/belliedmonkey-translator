@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Um {lang} zu nutzen, gib zuerst eine Sprache frei."
+  },
+  "fail_quota_label": {
+    "message": "Freiguthaben"
+  },
+  "fail_credit_title": {
+    "message": "Freiguthaben aufgebraucht"
+  },
+  "fail_credit_next": {
+    "message": "Kanal wechseln oder eigenen API-Key eintragen."
+  },
+  "fail_go_grant": {
+    "message": "Kanal wechseln"
+  },
+  "fail_fill_key": {
+    "message": "Eigenen Key eintragen"
+  },
+  "fail_grant_title": {
+    "message": "Pool gerade nicht verfügbar"
+  },
+  "fail_grant_next": {
+    "message": "Nicht aufgebraucht. Später erneut versuchen oder den Kanal wechseln."
+  },
+  "fail_model_title": {
+    "message": "Modell steht nicht auf der Freiliste"
+  },
+  "fail_model_next": {
+    "message": "Das Freiguthaben gilt nur für das vorgesehene Modell. Bitte zurücksetzen."
+  },
+  "fail_go_model": {
+    "message": "Modell ändern"
+  },
+  "fail_auth_title": {
+    "message": "Schlüssel abgelehnt"
+  },
+  "fail_auth_next": {
+    "message": "Der Anbieter hat den Key abgelehnt. Prüfen oder neu eintragen."
+  },
+  "fail_go_engine": {
+    "message": "Key eintragen"
+  },
+  "fail_use_free": {
+    "message": "Kostenlosen Kanal nutzen"
+  },
+  "fail_timeout_title": {
+    "message": "Keine Verbindung — pausiert"
+  },
+  "fail_timeout_next": {
+    "message": "Automatische Wiederholung ist pausiert. Wenn das Netz zurück ist, erneut versuchen oder den kostenlosen Kanal nutzen."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Automatische Wiederholung ist pausiert. Wenn das Netz zurück ist, erneut versuchen."
+  },
+  "fail_timeout_footnote": {
+    "message": "Pause erst nach 5 Zeitüberschreitungen in Folge. Eine einzelne stoppt nicht."
+  },
+  "fail_retry": {
+    "message": "Erneut versuchen"
+  },
+  "fail_switch_free": {
+    "message": "Kostenlosen Kanal nutzen"
   }
 }
