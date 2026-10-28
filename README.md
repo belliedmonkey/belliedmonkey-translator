@@ -139,6 +139,7 @@ At a glance:
 - **Free, GPL-3.0**; after sign-in, an optional $0.20 free credit paid for by us
 - **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
 - **Agent plugins (1.22.0)** — Claude Code and Codex can drive the translator through a local MCP server (stdio). The seven actions match the app: readiness check, setup, live subtitles, page translation, video captions, study capture, and explain or drill. Sensitive actions ask you to confirm on this device first. A remote or cloud MCP is not published.
+- **What’s new (1.22.3)** — On the Safari extension, translation of the rest of a page, or the remaining subtitle lines, stops as soon as a failure is final: the free credit is used up (`credit_exhausted`), the credit pool is unavailable (`grant_unavailable`), the model is not on the free list (`model_not_allowed`), or the API key is rejected (`auth`). Chrome and Firefox use that same stop. A timeout pauses only after five failures in a row. An ordinary HTTP error, a network error, or a rate limit (429) stays a retry on that line and is not treated as an invalid key. Agent actions that need confirmation still ask you on this device, and the coding host can use your own API key on the China and international editions. The app records first-listen steps — permission, start, failure, and whether translation began — to improve listening. Those steps include no audio and no words.
 
 **Bilingual pages.** Every paragraph keeps its original text, with the translation directly
 beneath it in a distinct colour. No tab switching, no losing your place. The translation
@@ -173,6 +174,7 @@ From **1.22.0**, a coding agent on your machine can call BelliedMonkey Translato
 - **Hosts.** Claude Code (its plugin, or `claude mcp add`) and Codex (`codex mcp add`, or a project config). Both start the same local stdio server, named `belliedmonkey`.
 - **Actions.** Seven, and the names match the app contract: `ready.check`, `open_setup`, `start_live_subtitles`, `translate_page`, `translate_video_captions`, `capture_to_study`, `explain_or_drill`.
 - **Confirm on this device.** An action that touches the page, captions, live audio, or study material shows a confirm card first. Cancel returns `cancelled`.
+- **Your own key on the host (1.22.3).** That confirm card stays on this device. The host can run the tools with your own API key, or with the subscription or key already set in that host, on both the China edition and the international edition. The free credit is an optional fallback, not a requirement.
 - **Local only.** Stdio on this Mac or PC is the day-to-day path. A remote or store-listed cloud MCP is not published, so there is no cloud address to configure.
 - **Setup.** Developer steps are in [`agent/hosts/README.md`](agent/hosts/README.md). To use it, install Claude Code or Codex, point it at this repo's launcher, then ask the agent to translate a page or start live subtitles.
 
@@ -317,7 +319,10 @@ Stated up front, because finding them yourself is worse.
   learning material between your own devices needs a free account; everything else works without one.
 - **Anonymous usage events, off in one switch.** The extension sends which features are used, on
   which browser, and whether a translation succeeded or failed — never the pages you read, the
-  text, the addresses, your keys or your account. A random per-install id, never joined to an
+  text, the addresses, your keys or your account. From 1.22.3 the app also records first-listen
+  steps — microphone permission, listening started, listening failed, and translation started —
+  to improve the listen experience. Those events carry no audio and no transcript, and the
+  extension does not send this set. A random per-install id, never joined to an
   account; turning it off in Settings deletes what that device sent. The China edition sends
   nothing. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
 - **Learning material is built on your device.** If you turn on the learning feature, the
@@ -457,7 +462,7 @@ The extension and the apps are free with no ads, no paid tier and no in-app purc
 <details>
 <summary><b>What data leaves my device?</b></summary>
 
-With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no ad tracking; the only thing collected is anonymous usage events (which features you used, never page content), and one switch turns them off. See [Privacy](#privacy).
+With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no ad tracking; the only thing collected is anonymous usage events (which features you used, never page content). From 1.22.3 that includes the app’s first-listen steps, never the audio and never the words. One switch turns them off. See [Privacy](#privacy).
 </details>
 
 <details>
