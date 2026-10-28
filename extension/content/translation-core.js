@@ -24,12 +24,42 @@ var TranslationCore = (() => {
   // §2.4). 0 = today's behaviour for every fetched transcript; the live ASR source sets
   // it because a sentence can only close after it was spoken, so its pair would
   // otherwise never be on screen while its own time range is.
+  // 连续多少次「单元级 timeout」就把整台引擎停下来（domain-design §7，2026-09-27 裁定；
+  // 取证 issue #472）。5 的意思是「不止一个单元、也不止一次重试都超时了」——
+  // 单个单元已经允许 MAX_RETRIES(3) 次重试，所以 5 次单元级失败约为 2 个单元的彻底失败。
+  const TIMEOUT_STREAK_MAX = 5;
   const WINDOW = { AHEAD_MS: 60000, MAX_PER_TICK: 6, MAX_RETRIES: 3, RETRY_GAP_MS: 800, GRACE_MS: 700, MAX_DETECT_WAITS: 3, STALL_MS: 120000, HOLD_MS: 0,
-    // 连续多少次「单元级 timeout」就把整台引擎停下来（domain-design §7，2026-09-27 裁定；
-    // 取证 issue #472）。5 的意思是「不止一个单元、也不止一次重试都超时了」——
-    // 单个单元已经允许 MAX_RETRIES(3) 次重试，所以 5 次单元级失败约为 2 个单元的彻底失败。
-    TIMEOUT_STREAK_MAX: 5 };
+    TIMEOUT_STREAK_MAX };
   const MERGE = { GAP_MS: 1200, MAX_LEN: 160 };
+
+  // translate_fail 的封闭码表，与 build/telemetry.config.js 的 translate_fail.code 同一份。
+  // 不在表里的名字不得另造一条遥测码：中继的令牌类归一进 grant_unavailable，429/busy 归一进 http。
+  const FAIL_CODES = Object.freeze([
+    'timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
+    'credit_exhausted', 'grant_unavailable', 'model_not_allowed', 'auth',
+  ]);
+  const FAIL_CODE_SET = new Set(FAIL_CODES);
+  // 一次失败就停泵。timeout 不在这里 —— 它要连续 TIMEOUT_STREAK_MAX 次单元级失败。
+  const HALT_IMMEDIATE = Object.freeze([
+    'credit_exhausted', 'grant_unavailable', 'model_not_allowed', 'auth',
+  ]);
+  const HALT_IMMEDIATE_SET = new Set(HALT_IMMEDIATE);
+  // 令牌坏了 / 被停用 / 我们配错了：不是「你用完了」，停机码归到池子不可用。
+  const GRANT_POOL = new Set(['grant_invalid', 'grant_revoked', 'grant_misconfigured']);
+
+  function classifyFail(err) {
+    if (typeof err === 'string') return classifyFail({ code: err });
+    if (!err || typeof err !== 'object') return '';
+    if (err.status === 429) return 'http';
+    const raw = typeof err.code === 'string' ? err.code : '';
+    if (/rate[_ -]?limit|too[_ -]?many[_ -]?requests|^busy$/i.test(raw)) return 'http';
+    if (GRANT_POOL.has(raw)) return 'grant_unavailable';
+    if (FAIL_CODE_SET.has(raw)) return raw;
+    if (err.name === 'AbortError') return 'timeout';
+    if (err.name === 'TypeError' || /failed to fetch|network/i.test(String(err.message || ''))) return 'network';
+    if (err.status) return 'http';
+    return '';
+  }
 
   // i18n: read a localized UI string with a Chinese fallback so a missing key never
   // blanks the UI. Shared by all adapters.
@@ -351,12 +381,27 @@ var TranslationCore = (() => {
   // Rendering stays in the adapter. This is the shared core for BOTH the webpage
   // path and the subtitle path (see docs/domain-design.md).
   function createEngine(cfg) {
-    // 引擎级停机。只有「额度用完」这一族会置上 —— 它与别的失败不同：重试**必然**
-    // 再失败，而且每一次都花掉一个来回。其余错误仍走每单元的重试计数。
+    // 引擎级停机。即停四码（HALT_IMMEDIATE）一次就停；timeout 要连续 TIMEOUT_STREAK_MAX
+    // 次单元级失败。http / network / 429 仍走每单元的重试计数，不升格。
     let halted = false;
-    // 「连续超时」的计数：任一单元成功即清零。它是 halted 的第三种触发器
-    // （前两种是 402 credit_exhausted 与 401/403 auth）—— 见下面 catch 里的注释。
+    let haltCode = '';
+    // 「连续超时」的计数：任一单元成功即清零。它是 halted 的另一种触发器
+    // （即停的是 HALT_IMMEDIATE 四码）—— 见下面 catch 里的注释。
     let timeoutStreak = 0;
+    function enterHalt(code) {
+      if (halted) return;
+      halted = true;
+      haltCode = code || '';
+    }
+    // onFail 只看见封闭码表里的码。grant 位只留给即停四码，免得 429/busy 被渲染器当成停机。
+    function noteFail(e, code) {
+      if (e && code && e.code !== code) e.code = code;
+      if (e && code && !HALT_IMMEDIATE_SET.has(code)) {
+        e.grant = false;
+        e.halt = false;
+      }
+      if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+    }
     const translate = cfg.translate;
     const selectActive = cfg.selectActive || ((u) => u);
     // MERGE, not replace: an adapter's override lists only the knobs it cares about,
@@ -480,13 +525,16 @@ var TranslationCore = (() => {
           it._tries = 0;
           if (cfg.onFail) { try { cfg.onFail({ code: 'reasoning_starved' }); } catch (_) {} }
         }).catch((e) => {
-          // 额度用完 / 池子空了 / key 被拒：整台引擎停机，不再计重试次数（§8.10 / 第八期）。
-          if (e && (e.grant || e.halt)) {
-            halted = true; it._err = true; it._tries = 0;
-            if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+          const code = classifyFail(e);
+          // 即停四码：一次就停泵，不再计重试（§8.10 / 第八期 / N26）。
+          // 判据是码，不是 e.grant / e.halt —— 429 的 busy 也带 grant 位，但它必须留在行上重试。
+          if (code && HALT_IMMEDIATE_SET.has(code) && !(e && e.stalled)) {
+            enterHalt(code);
+            it._err = true; it._tries = 0;
+            noteFail(e, code);
             return;
           }
-          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout' }); } catch (_) {} } return; }  // 卡死 → 直接可重试
+          if (e && e.stalled) { it._err = true; it._tries = 0; if (cfg.onFail) { try { cfg.onFail({ code: 'timeout', stalled: true }); } catch (_) {} } return; }  // 卡死 → 直接可重试，不进连续超时
           it._tries = (it._tries || 0) + 1;
           if (it._tries >= win.MAX_RETRIES) {
             it._err = true;   // exhausted → error UI
@@ -495,13 +543,13 @@ var TranslationCore = (() => {
             // 单元连续超时是另一回事：bt_events 里 grant 路径 28 天 1 109 次 timeout，98% 来自
             // 10 台，最极端那台一天 397 次、挤在两小时（≈每 18 秒一次），而同期中继 avg 只有
             // 1.4 s（服务端与上游都没慢）—— 是客户端在高频面上自己把自己打垮。
-            // 达阈值即置 halted：与 402 / auth 同一套（未译单元置 error、不再发请求、retry() 解锁）。
-            // 非 timeout 的失败清零这条链：它说的是别的问题，不该算进「网络一直不通」。
+            // 达阈值即 enterHalt('timeout')：未译单元置 error、不再发请求、retry() 解锁。
+            // 非 timeout 的失败清零这条链：http / network / 429 是别的问题，不升格成停机。
             // 边界：`e.stalled`（单单元卡死 120 s）**不计入** —— 它上面已经直接给可点重试，
             // 且是「一个 promise 不落地」，与「一连串请求都超时」不是同一件事。
-            timeoutStreak = (e && e.code === 'timeout') ? timeoutStreak + 1 : 0;
-            if (timeoutStreak >= win.TIMEOUT_STREAK_MAX) halted = true;
-            if (cfg.onFail) { try { cfg.onFail(e); } catch (_) {} }
+            timeoutStreak = code === 'timeout' ? timeoutStreak + 1 : 0;
+            if (timeoutStreak >= win.TIMEOUT_STREAK_MAX) enterHalt('timeout');
+            noteFail(e, code);
           } // exhausted → error UI
         }).finally(() => {
           clearTimeout(stallTimer);
@@ -519,9 +567,9 @@ var TranslationCore = (() => {
     }
 
     // 用户点重试 = 他自己决定再试一次（可能刚配好自带 key），解锁停机。
-    function retry(it) { halted = false; timeoutStreak = 0; if (it) { it._err = false; it._tries = 0; } }
+    function retry(it) { halted = false; haltCode = ''; timeoutStreak = 0; if (it) { it._err = false; it._tries = 0; } }
     function reset() {
-      halted = false; timeoutStreak = 0;
+      halted = false; haltCode = ''; timeoutStreak = 0;
       units.forEach((it) => {
         it.tr = ''; it._fetching = false; it._done = false; it._err = false; it._tries = 0; it._pg = null;
         it._detectWaits = 0;
@@ -529,7 +577,7 @@ var TranslationCore = (() => {
     }
 
     return { setUnits, appendUnits, setWindow, pump, stateOf, retry, reset,
-      get halted() { return halted; }, get units() { return units; } };
+      get halted() { return halted; }, get haltCode() { return haltCode; }, get units() { return units; } };
   }
 
   // ─── Subtitle engine: createEngine specialized with a time-window scheduler ──
@@ -586,6 +634,7 @@ var TranslationCore = (() => {
     return {
       setItems: engine.setUnits, appendItems: engine.appendUnits, setWindow, pump: engine.pump, activeAt, stateOf,
       retry: engine.retry, reset: engine.reset, get items() { return engine.units; },
+      get halted() { return engine.halted; }, get haltCode() { return engine.haltCode; },
       get window() { return win; },
     };
   }
@@ -607,6 +656,7 @@ var TranslationCore = (() => {
 
   return {
     grantHaltMessage, haltMessage, haltAnchor,
+    FAIL_CODES, HALT_IMMEDIATE, TIMEOUT_STREAK_MAX, classifyFail,
     DEFAULT_TARGET_LANG, WINDOW, MERGE, MSG, t: i18n,
     isTranslated, isAlreadyTargetLanguage, isScriptDecidableTarget, detectorSaysTargetLanguage,
     looksLikeCode, endsSentence, joinCue, wordBreakIndex,

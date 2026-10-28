@@ -53,9 +53,8 @@ var WebpageTranslator = (() => {
         MTTelemetry.track('translate_ok', { provider: String(settings.provider || ''), kind: 'page', ms: Date.now() - enabledAt });
       },
       onFail: (e) => {
-        // 免费额度停机（§8.10）。记下**码**而不是布尔：「你用完了」与「我们的池子空了」
-        // 在页面上要说两句不同的话，而后者说错会让用户去查自己的账户。
-        if (e && (e.grant || e.halt) && typeof e.code === 'string') grantHalt = e.code;
+        // 停机文案读 engine.haltCode（渲染时），这里只发遥测。码已经过 classifyFail，
+        // 不在 translate_fail 封闭表里的名字（busy / grant_invalid）不会原样出去。
         if (!(typeof MTTelemetry !== 'undefined')) return;
         // §3.11 A：`ms` 是**这一次请求**的耗时，由 translation-api 的 apiFetch 挂上来。
         // 读不到就不发这个字段 —— 退回去发一个会话年龄，等于把一个看不出错的错数入库。
@@ -642,14 +641,18 @@ var WebpageTranslator = (() => {
     });
   }
 
-  // 本页会话里最后一次额度停机的码。停机是**整台引擎**的状态（engine.halted），
-  // 所以这里也是页面级的一个值，不是每段一份。
-  let grantHalt = '';
-
-  // 文案挑选在 TranslationCore 里**只有一份**（字幕叠层要说同一句话）。
-  // 这里只负责「有没有停机」这一个位。与普通失败的区别不只是文案，更是**动作**：
-  // 重试在这里没有意义（额度用完了，重试多少次都一样），所以点击去的是设置页那张卡。
-  const grantNotice = () => (grantHalt ? TranslationCore.haltMessage(grantHalt) : null);
+  // 停机码在引擎上（haltCode），不在渲染器里另记一份。即停四码的点击去设置页；
+  // 超时停机的点击是重试（retry 解锁）。http / network / 429 没有 haltCode，仍是点此重试。
+  function haltRow() {
+    const code = engine && engine.haltCode;
+    if (!code) return null;
+    if (typeof FailSurface !== 'undefined' && FailSurface.row) return FailSurface.row(code);
+    if (code === 'timeout') return null;
+    return { text: TranslationCore.haltMessage(code), anchor: TranslationCore.haltAnchor(code), retry: false };
+  }
+  function openHalt(anchor) {
+    try { window.open(chrome.runtime.getURL('options/options.html') + (anchor || ''), '_blank'); } catch (_) {}
+  }
 
   function renderUnit(u, st) {
     const node = u.node;
@@ -664,13 +667,13 @@ var WebpageTranslator = (() => {
       restoreOriginal(node);
       const d = ensureTrans(node);
       d.style.cssText = 'color:#c0392b;margin:2px 0;font-size:.9em;cursor:pointer;display:block;' + placementCss(node, true);
-      const halt = grantNotice();
-      d.textContent = halt || TranslationCore.MSG.error;
-      d.onclick = halt
+      const halt = haltRow();
+      d.textContent = (halt && halt.text) || TranslationCore.MSG.error;
+      d.onclick = halt && !halt.retry
         // 在**点击这个手势里**开设置页。不走 sendMessage —— Safari iOS 上后台
         // service worker 锁屏后会永久 undefined（项目说明里的 Critical Safari Bug 一节），
         // 而这条出口恰恰是用户已经卡住之后才会点的。
-        ? () => { try { window.open(chrome.runtime.getURL('options/options.html') + TranslationCore.haltAnchor(grantHalt), '_blank'); } catch (_) {} }
+        ? () => openHalt(halt.anchor)
         : () => { engine.retry(u); u._shownKey = ''; };
       return;
     }
