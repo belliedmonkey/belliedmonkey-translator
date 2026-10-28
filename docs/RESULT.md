@@ -9,7 +9,8 @@ This branch does not merge to `main`. It does not bump marketing version, touch 
 - Repo: `belliedmonkey/belliedmonkey-translator`
 - Branch: `cursor/bel114-ext-n26-sync-3beb`
 - Base: `main` @ `58fba4944df0c737650d699d5546ecd0d134a16d`
-- Tip SHA: `TIP_SHA`
+- Halt commit: `96cd9efd98bc96d33b7bacfdf3d709497a957113` (engine, fail-surface, tests, docs)
+- Branch tip: the child commit that records this line. Both commits contain `HALT_IMMEDIATE`. The PR body states the tip SHA.
 - Ancestor contrast: mobiletranslator PR#16 tip `c9a51503` → squash `main` `b0ddea77`. That GitHub repo is not readable with this checkout's token (HTTP 404). The port follows the halt contract already mirrored in this repo's App host (`src/app/n26-session.js`, PR #604) and the closed `translate_fail.code` list in `build/telemetry.config.js`. It is not a wholesale copy of the 34-file mobiletranslator diff.
 
 ## Grep proof (this tip)
