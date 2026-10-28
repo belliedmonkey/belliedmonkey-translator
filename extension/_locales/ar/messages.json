@@ -1911,7 +1911,7 @@
     "message": "ألصقه مرة واحدة — يهيّئ الثلاثة"
   },
   "qs_privacy": {
-    "message": "يرسل التفريغ تسجيلك إلى {host}. يُحذف فور التعرّف عليه — لا يُخزَّن ولا يُزامَن."
+    "message": "المفاتيح تبقى على هذا الجهاز فقط."
   },
   "qs_grant_replaced": {
     "message": "(استُبدل مفتاح الرصيد المجاني)"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "انتقل إلى المسار المجاني"
+  },
+  "firstrun_packs_sum": {
+    "message": "حوالي {size} · يشمل أساس الاستماع"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "تفاصيل التقدم"
+  },
+  "langpacks_manage": {
+    "message": "إدارة"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "استخدم اللمسة"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "جارٍ التنزيل"
+  },
+  "firstrun_quota_mini": {
+    "message": "حتى 5 لغات تعرّف"
+  },
+  "qs_key_local_only": {
+    "message": "المفاتيح تبقى على هذا الجهاز فقط"
+  },
+  "firstrun_packs_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "langpacks_title": {
+    "message": "حزم اللغة والقراءة"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · الإعداد بلمسة جاهز"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "جارٍ التنزيل {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "قراءة دون اتصال · غير منزّلة · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "تفاصيل التنزيل"
+  },
+  "langpacks_need_os": {
+    "message": "حزم اللغة · يلزم نظام أحدث"
+  },
+  "engine_keys_status_detail": {
+    "message": "الإعداد لكل محرك جاهز"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "الاختيار يلغي الإعداد بلمسة"
+  },
+  "langpacks_tts_na": {
+    "message": "قراءة دون اتصال · في التطبيق فقط"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "استخدم كل محرك"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "التبديل إلى اللمسة يستبدل إعداد كل محرك الحالي"
+  },
+  "langpacks_ready": {
+    "message": "جاهز · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "غير مُعد"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · حوالي {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "للمحركات الأخرى استخدم الإعداد لكل محرك."
+  },
+  "langpacks_tts_ready": {
+    "message": "قراءة دون اتصال · جاهزة"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "الاختيار يستبدل إعداد كل محرك"
+  },
+  "engine_keys_row": {
+    "message": "المحركات والمفاتيح"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "إلغاء"
+  },
+  "langpacks_missing": {
+    "message": "غير منزّل · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "التبديل إلى كل محرك يلغي إعداد اللمسة الحالي"
   }
 }

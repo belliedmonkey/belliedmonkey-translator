@@ -1911,7 +1911,7 @@
     "message": "一度貼るだけで 3 つとも設定"
   },
   "qs_privacy": {
-    "message": "文字起こしは録音を {host} に送ります。認識が済み次第すぐ破棄され、保存も同期もされません。"
+    "message": "キーはこの端末だけに保存されます。"
   },
   "qs_grant_replaced": {
     "message": "（無料枠のキーを置き換えました）"
@@ -4121,5 +4121,92 @@
   },
   "fail_switch_free": {
     "message": "無料経路に変える"
+  },
+  "firstrun_packs_sum": {
+    "message": "約 {size} · 聞き取りの基礎を含む"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "進捗の詳細"
+  },
+  "langpacks_manage": {
+    "message": "管理"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "ワンタップに切り替える"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "ダウンロード中"
+  },
+  "firstrun_quota_mini": {
+    "message": "認識は最大 5 言語"
+  },
+  "qs_key_local_only": {
+    "message": "キーはこの端末だけに保存されます"
+  },
+  "firstrun_packs_retry": {
+    "message": "再試行"
+  },
+  "langpacks_title": {
+    "message": "言語パックと読み上げ"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · ワンタップ設定済み"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "ダウンロード中 {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "オフライン読み上げ · 未ダウンロード · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "ダウンロード内容の詳細"
+  },
+  "langpacks_need_os": {
+    "message": "言語パック · より新しいシステムが必要"
+  },
+  "engine_keys_status_detail": {
+    "message": "項目別に設定済み"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "選ぶとワンタップ設定を破棄します"
+  },
+  "langpacks_tts_na": {
+    "message": "オフライン読み上げ · アプリのみ"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "項目別に切り替える"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "ワンタップに切り替えると、今の項目別設定は上書きされます"
+  },
+  "langpacks_ready": {
+    "message": "準備完了 · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "未設定"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · 約 {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "ほかのエンジンは項目別で設定してください。"
+  },
+  "langpacks_tts_ready": {
+    "message": "オフライン読み上げ · 準備完了"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "選ぶと項目別の設定を上書きします"
+  },
+  "engine_keys_row": {
+    "message": "エンジンとキー"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "キャンセル"
+  },
+  "langpacks_missing": {
+    "message": "未ダウンロード · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
   }
 }

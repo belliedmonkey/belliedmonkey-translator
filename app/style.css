@@ -721,6 +721,58 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    再乘行上的透明度就掉到 2.88:1。--accent-deep 两种配色都 ≥ 4.5:1。
    勾选锁住靠 disabled，不再给整行降透明度（那会把文字一起压过对比度门）。 */
 :where(#firstrun-packs) .pack-line-status { color: var(--accent-deep); font-size: 0.85rem; white-space: nowrap; }
+/* N24：未勾行在下载态置灰。只打在 .is-dim，不给已勾的锁行降透明度。 */
+:where(#firstrun-packs) .pack-line.is-dim { opacity: 0.45; pointer-events: none; }
+:where(#firstrun-packs) .packs-quota-mini { margin: 8px 0 4px; font-size: 13px; color: var(--text-secondary); }
+/* N24v2 D-02：下载中一行总进度（细条，非每门粗条） */
+:where(#firstrun-packs) .packs-dl-progress { margin: 4px 0 12px; }
+:where(#firstrun-packs) .packs-dl-progress-row { display: flex; align-items: center; gap: 10px; }
+:where(#firstrun-packs) .packs-dl-bar {
+  flex: 1; height: 4px; border-radius: 999px;
+  background: var(--field); overflow: hidden;
+}
+:where(#firstrun-packs) .packs-dl-bar > i {
+  display: block; height: 100%; width: 0%;
+  background: var(--accent-deep); border-radius: inherit;
+  transition: width 0.2s ease;
+}
+:where(#firstrun-packs) .packs-dl-bar.is-indet > i {
+  width: 32%;
+  animation: packs-dl-indet 1.2s ease-in-out infinite;
+}
+@keyframes packs-dl-indet {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(360%); }
+}
+:where(#firstrun-packs) .packs-dl-label {
+  flex: none; font-size: 0.85rem; color: var(--text-secondary);
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+:where(#firstrun-packs) .packs-details {
+  margin: 12px 0 4px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--card-bg); padding: 0 12px;
+}
+:where(#firstrun-packs) .packs-details-sum {
+  cursor: pointer; list-style: none; padding: 12px 0; font-weight: 600; color: var(--fg);
+}
+:where(#firstrun-packs) .packs-details-sum::-webkit-details-marker { display: none; }
+:where(#firstrun-packs) .packs-details-sum::after { content: " ▸"; font-weight: 400; color: var(--text-secondary); }
+:where(#firstrun-packs) .packs-details[open] > .packs-details-sum::after { content: " ▾"; }
+:where(#firstrun-packs) .packs-details-body { padding-bottom: 8px; }
+#app-settings .langpacks-row { display: flex; align-items: center; gap: 12px; justify-content: space-between; min-width: 0; }
+#app-settings .langpacks-row .note { flex: 1; min-width: 0; margin: 0; }
+#app-settings .langpacks-row > button { flex: none; }
+#app-settings details.adv-params {
+  margin: 8px 0; border-radius: 12px; border: 1px solid var(--border);
+  padding: 0 12px 8px; background: var(--card-bg);
+}
+#app-settings details.adv-params > summary { cursor: pointer; list-style: none; padding: 12px 0; font-weight: 600; }
+#app-settings details.adv-params > summary::-webkit-details-marker { display: none; }
+#app-settings details.adv-params > summary::after { content: " ▸"; font-weight: 400; color: var(--text-secondary); }
+#app-settings details.adv-params[open] > summary::after { content: " ▾"; }
+/* N24v2：一键/分项互斥态 */
+#app-settings .mode-tabs button.mode-tab-muted { opacity: .55; }
+#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }
 :where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent-deep); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
 #packs-cellular:not([hidden]) {
   position: fixed; inset: 0; z-index: 40;

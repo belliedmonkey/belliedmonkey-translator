@@ -179,6 +179,8 @@ function AppShell() {
           <span className="quota-leg recover"><i aria-hidden="true" /><span id="packs-legend-recover"></span></span>
           <span className="quota-leg absent"><i aria-hidden="true" /><span id="packs-legend-absent"></span></span>
         </div>
+        {/* N24v2 D-02：下载中总进度（细条 + xx% · 约 N MB）；由 paintDlProgress 维护 */}
+        <div id="packs-dl-progress" className="packs-dl-progress" hidden></div>
         <div id="packs-body"></div>
         <p className="note" id="packs-foot"></p>
         <p className="note" id="packs-locked" hidden></p>

@@ -106,3 +106,37 @@ describe('首启还剩几项', () => {
     eq(P.pendingRowCount(null, phaseOf), 0);
   });
 });
+
+// N24v2 D-02：下载中总进度聚合（细条 + xx% · 约 MB）
+describe('首启总进度聚合', () => {
+  test('均权：ready / downloading / queued', () => {
+    const phaseOf = (id) => ({
+      base: { phase: 'ready', pct: 100 },
+      'tts:zh-en': { phase: 'downloading', pct: 40 },
+      'asr:zh': { phase: 'queued', pct: 0 },
+    }[id]);
+    const r = P.aggregatePackProgress(['base', 'tts:zh-en', 'asr:zh'], phaseOf, { totalBytes: 200e6 });
+    eq(r.pct, 47); // (100+40+0)/3 → 46.66 → 47
+    eq(r.indeterminate, false);
+    eq(r.count, 3);
+    eq(r.totalBytes, 200e6);
+  });
+  test('waiting / 空列表 → indeterminate', () => {
+    const r0 = P.aggregatePackProgress([], () => ({}), {});
+    eq(r0.indeterminate, true);
+    const r1 = P.aggregatePackProgress(['base'], () => ({ phase: 'queued', pct: 0 }), {
+      forceIndeterminate: true, totalBytes: 0,
+    });
+    eq(r1.indeterminate, true);
+  });
+  test('未选行不计入', () => {
+    const phaseOf = (id) => ({
+      base: { phase: 'downloading', pct: 50 },
+      'asr:en': { phase: 'unselected' },
+    }[id] || { phase: 'unselected' });
+    const r = P.aggregatePackProgress(['base', 'asr:en'], phaseOf, { totalBytes: 50e6 });
+    eq(r.count, 1);
+    eq(r.pct, 50);
+    eq(r.indeterminate, false);
+  });
+});
