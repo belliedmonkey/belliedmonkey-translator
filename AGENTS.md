@@ -198,6 +198,11 @@ the two websites' privacy pages ship in the SAME version as the feature they des
 (`privacy.html` promises exactly that, in those words). A checklist is weaker than a gate;
 anything on it that can become a gate should move into `build.js` and be deleted from there.
 
+**Main-first (BEL-125):** any IA / user-visible change that has shipped (including once
+`READY_FOR_SALE`) must land on **main** before a marketing cut. The hard rule, the
+user-visible checklist, and the tip-diff receipt live in `docs/release-checklist.md`
+（「主干先行」）. Architecture short-review checks 「用户可见是否在 main 祖先」.
+
 ## Domain design (architecture) — REQUIRES HUMAN REVIEW
 
 **The translation domain model is the single source of truth in
@@ -222,7 +227,9 @@ contract / storage tiers — **must first update `docs/domain-design.md` (and
 `docs/learning-design.md` where it applies) and pass human domain-design review
 before the code changes.** Do not refactor the architecture or add per-site /
 per-device branches to the segmenter without that review. Routine bug fixes that
-conform to the existing model do not require it.
+conform to the existing model do not require it. Architecture short-review also
+checks 「用户可见是否在 main 祖先」 — a shipped IA item that exists only on a submit
+tip fails that check (`docs/release-checklist.md`「主干先行」).
 
 ## Provider registry & region flavors (合规双分发) — domain design
 

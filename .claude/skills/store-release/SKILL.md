@@ -42,6 +42,8 @@ description: 把一个版本发到六个商店面（Apple iOS/macOS × 国际版
 每一步的命令与判据都保留在本技能里作为知识；**执行前先确认这一步被本次授权覆盖**，没覆盖就
 到此为止、报告做了什么、等指令。
 
+**主干先行（BEL-125）：** 已上架（含曾 `READY_FOR_SALE`）的 IA / 用户可见改动必须先合 **main**，再从 main 落条打版。打版前跑 `bash scripts/tip-user-visible-diff.sh <上一上架 tip> <本 tip>`。硬规则、checklist 与缺证即 BLOCKED 见 `docs/release-checklist.md`「主干先行」和 `docs/tip-user-visible-diff.md`。
+
 ## 一条铁律：只信回读，不信「没报错」
 
 这一整条流程里，**每一个「成功」都可能是假的**。四个实例，都是 2026-08-22 当天撞到的：
@@ -601,7 +603,8 @@ node scripts/asc.js installs 45
 ## 相关
 
 - `assets.md` —— 素材过时审计 + 截图/视频的完整配方（同目录）
-- `docs/release-checklist.md` —— 门禁清单、设备矩阵、隐私文案同版、Gate B 历史
+- `docs/release-checklist.md` —— 门禁清单、设备矩阵、隐私文案同版、Gate B 历史、主干先行（BEL-125）
+- `docs/tip-user-visible-diff.md` —— 上一上架 tip ↔ 本 tip 的用户可见 diff 收据
 - `docs/verification-spec.md` §2.0 —— 一台机器只装一份（含执行判据）
 - `store-assets/README.md` · `screenshots-cn/README.md` —— 两条截图管线各自的重做流程
 - `scripts/asc.js` · `asc-media.js` · `asc-submit.js` —— ASC 三件套
