@@ -325,7 +325,15 @@
     try { window.open(chrome.runtime.getURL('onboard/onboard.html'), '_blank'); } catch (_) {}
   }
 
-  if (cfg.showFab) {
+  // 营销站不画悬浮球（BEL-127）。Safari 上右下角的猴会挡住 belliedmonkey.cc / .com
+  // 首页 hero 的末句，而站点 HTML 自己没有这个按钮。
+  //
+  // 与上面的 MT_SITES 不是同一条正则，也不许并成一条：MT_SITES 是指纹边界，只放行
+  // apex 与 www；这里只决定画不画按钮，任意子域（预览域同模式）同样不画。
+  // 弹窗的 translatePage 仍翻译正文 —— FloatingButton.setEnabled 在 create 没跑过时
+  // 不会把按钮补出来。
+  const MT_NO_FAB_HOST = /^(.*\.)?belliedmonkey\.(cc|com)$/;
+  if (cfg.showFab && !MT_NO_FAB_HOST.test(location.hostname)) {
     FloatingButton.create(cfg.enabled, async (enabled) => {
       if (enabled && needsSetup()) {
         // 不要把按钮留在「已打开」的样子 —— 那是在说一件没发生的事。

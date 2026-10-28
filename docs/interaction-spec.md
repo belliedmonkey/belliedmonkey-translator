@@ -369,6 +369,12 @@ analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3
 
 ## Webpage bilingual translation
 - **Off by default**; starts only when the FAB is turned on (per page load).
+- **营销站不注入悬浮球** *(2026-10-28, BEL-127)*. `location.hostname` 匹配
+  `^(.*\.)?belliedmonkey\.(cc|com)$`（apex、`www`、以及任意子域，预览域同此模式）时
+  **不**调用 `FloatingButton.create`，即使用户把 `showFab` 开着。营销页 HTML 自己没有
+  这个按钮；在 iPhone Safari 上它盖住首页 hero 的末句。其它网站不变。弹窗「翻译此页」
+  在这些域名上仍然翻译正文；`FloatingButton.setEnabled` 在按钮从未创建时不会把它补出来。
+  这不是探测标记 `MT_SITES`（那条只放行 apex 与 `www`，是指纹边界）。
 - Translation is injected **under each original paragraph** (original kept above,
   translation below), in the configured text color.
 - **Paragraph by paragraph.** Each paragraph in the viewport shows a **`⏳ 翻译中…`**
@@ -1085,6 +1091,11 @@ Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.m
                                              ↓
 设置页登录 → 下一步是「去看你的卡」+「在 App 里继续复习 →」
 ```
+
+*(2026-10-28, BEL-127)* 营销域（`belliedmonkey.cc` / `.com` 及子域）不再注入悬浮球，
+所以上面「点悬浮球」在 `/try/*.html` 上没有按钮。交接块的判据不变：页面上真出现
+`.mt-translation` 才画。弹窗「翻译此页」仍会翻译正文。站点那句「点右下角悬浮按钮」
+在官网仓库，这次不改。
 
 四条不变量，每条都是从一次真实的断裂里来的：
 
