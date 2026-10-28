@@ -174,7 +174,7 @@ function HistoryRows({ hv }) {
                 onClick={(e) => { e.stopPropagation(); listenModel.toggleShowRaw(r.row); }}>{hv.rawLabel}</button>
             )}
             {r.hasRaw && r.showRaw && <div className="listen-raw">{r.raw}</div>}
-            {r.trErr ? (
+            {r.same ? null : r.trErr ? (
               // 翻译失败要留下出口，不是永远的 ⏳
               <button type="button" className="listen-tr-retry"
                 onClick={(e) => { e.stopPropagation(); listenModel.retranslate(r.row, true); }}>{hv.trFailed}</button>
@@ -253,11 +253,13 @@ export function ListenView() {
   const note = listenModel.noteView();
   const pv = listenModel.pttView();
 
-  // 贴底判定读的是 commit 前的旧 DOM —— 与原 renderHistory :1247 的同一时刻语义；
-  // 渲染后 useLayoutEffect 恢复（原 :1340 if (atBottom) scrollTop = scrollHeight）。
+  // 贴底只由**滚动**改：人往上翻了才停止跟随。原来在渲染那一刻比 scrollTop/scrollHeight ——
+  // 两次渲染之间行自己长高（译文晚到、换行）超过 12px，就被误判成「人翻走了」，从此停在旧句（#590 P）。
   const atBottomRef = useRef(true);
-  const listEl = $('app-listen-history');
-  if (listEl) atBottomRef.current = listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 12;
+  const onHistScroll = (e) => {
+    const el = e.currentTarget;
+    atBottomRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 24;
+  };
   useLayoutEffect(() => {
     const el = $('app-listen-history');
     if (el && atBottomRef.current) el.scrollTop = el.scrollHeight;
@@ -324,11 +326,14 @@ export function ListenView() {
             </button>
           </span>
         </div>
-        <div id="app-listen-history" className="listen-history"><HistoryRows hv={hv} /></div>
+        <div id="app-listen-history" className="listen-history" onScroll={onHistScroll}><HistoryRows hv={hv} /></div>
       </div>
       {/* 排队时说清还剩几句 —— 不说就成了「怎么读的不是刚才那句」 */}
       <p className="note" id="app-listen-queue" hidden={!hv.queueShown}>{hv.queueText}</p>
-      <p className={note.err ? 'note err' : 'note'} id="app-listen-note">{note.text}</p>
+      <p className={(note.err ? 'note err' : 'note') + (note.go ? ' go' : '')} id="app-listen-note"
+        role={note.go ? 'link' : undefined} tabIndex={note.go ? 0 : undefined}
+        onClick={note.go ? listenModel.noteTap : undefined}
+        onKeyDown={note.go ? (e) => { if (e.key === 'Enter' || e.key === ' ') listenModel.noteTap(); } : undefined}>{note.text}</p>
       {/* 「正在听·暂停」大按钮**只留给实时字幕**（改稿 D，2026-10-09）：对话页的启停就是底部
           那两个「点一下」键（＝开麦 / 关麦）。 */}
       <div id="app-listen-actions" hidden={tv.ended || !mv.sub}>
@@ -361,14 +366,12 @@ export function ListenView() {
           {/* 「这次不留记录」（裁定 6）：一场为单位，开始前决定、中途不可改，**不记进存储**。 */}
           <label className={'listen-tg' + (ev.live ? ' off' : '')} id="app-listen-ephemeral-row">
             <input id="app-listen-ephemeral" type="checkbox" checked={fv.ephemeral} disabled={ev.live} onChange={(e) => listenModel.setEphemeral(e.target.checked)} />
-            <span className="listen-tg-ico" aria-hidden="true">○</span>
             <span id="app-listen-ephemeral-label">{t('listen_ephemeral_label', '这次不留记录')}</span>
           </label>
           {/* 实时字幕（§9.8）：「字幕进复习」开关（与设置页同一份设置）+ 一句按平台的提示。 */}
           <div id="app-subs-prep" hidden={mv.prepHidden}>
             <label className="listen-tg">
               <input id="app-subs-capture" type="checkbox" checked={fv.subsCapture} onChange={(e) => listenModel.setSubsCapture(e.target.checked)} />
-              <span className="listen-tg-ico" aria-hidden="true">✓</span>
               <span id="app-subs-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
             </label>
             <p className="note" id="app-subs-tip">{mv.subsTipText}</p>

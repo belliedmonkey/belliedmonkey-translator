@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "ما زال يستمع. المغادرة تنهي هذه المحادثة؛ ما سُمع محفوظ."
   },
+  "listen_leave_confirm_paused": {
+    "message": "متوقف مؤقتًا. المغادرة تنهي هذه المحادثة؛ ما سُمع محفوظ."
+  },
   "dialog_ok": {
     "message": "موافق"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "ما زال يستمع. المغادرة تُنهي الترجمة، وتبقى الجمل التي ظهرت."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "متوقف مؤقتًا. المغادرة تُنهي الترجمة، وتبقى الجمل التي ظهرت."
   },
   "subtitle_summary_title": {
     "message": "جلسة الترجمة هذه"

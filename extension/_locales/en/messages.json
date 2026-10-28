@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "Still listening. Leaving ends this conversation; what was heard is kept."
   },
+  "listen_leave_confirm_paused": {
+    "message": "Paused. Leaving ends this conversation; what was heard is kept."
+  },
   "dialog_ok": {
     "message": "OK"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "Still listening. Leaving ends these subtitles; the sentences so far are kept."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "Paused. Leaving ends these subtitles; the sentences so far are kept."
   },
   "subtitle_summary_title": {
     "message": "This subtitle session"

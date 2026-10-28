@@ -2580,6 +2580,9 @@
   "listen_leave_confirm": {
     "message": "Sigue escuchando. Salir termina esta conversación; lo escuchado se conserva."
   },
+  "listen_leave_confirm_paused": {
+    "message": "En pausa. Salir termina esta conversación; lo escuchado se conserva."
+  },
   "dialog_ok": {
     "message": "Aceptar"
   },
@@ -2918,6 +2921,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "Sigue escuchando. Si sales terminan los subtítulos; las frases hasta ahora se conservan."
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "En pausa. Si sales terminan los subtítulos; las frases hasta ahora se conservan."
   },
   "subtitle_summary_title": {
     "message": "Esta sesión de subtítulos"

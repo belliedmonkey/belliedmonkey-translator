@@ -129,6 +129,23 @@ describe('R14 ① — 文字对齐（数字=数词、长词 1 字母差、带数
     eq(C.rescueLead(',.......... and send them to Mr.', 'Please make 3 copies of this contract and send them to Mr. Zang\'s office before 5 PM.'), 'Please make 3 copies of this contract');
     eq(C.rescueLead('and send them to Mr.', partial), '', '不以标点开头 ⇒ 不走句首补回');
     eq(C.rescueLead('. unrelated words here', partial), '', '对不上 ⇒ 不补');
+    // 从首词就能对齐 ⇒ 正式 final 原文不动（只补句首）
+    const kept = C.rescueLeadCut('. and send them to Mr.', partial);
+    eq(kept && kept.lead, 'make 3 copies of this contract');
+    eq(kept && kept.text, '. and send them to Mr.');
+  });
+  test('rescueLeadCut：首词是垃圾、后缀一直对齐到末词 ⇒ 补句首并切掉对不上的前缀（#590 L）', () => {
+    const partial = "Stick too closely to what's safe and you risk starvation when the grove runs dry";
+    const final = ', you, and you risk starvation when the Grove runs dry.';
+    const cut = C.rescueLeadCut(final, partial);
+    eq(cut && cut.lead, "Stick too closely to what's safe");
+    eq(cut && cut.text, 'and you risk starvation when the Grove runs dry.');
+    eq(C.rescueLead(final, partial), "Stick too closely to what's safe");
+    // 不以标点开头：开头那几个词可能是真说的，不切
+    eq(C.rescueLeadCut("to, you, you're also all hardwired by evolution to strike a certain balance",
+      "you're also all hardwired by evolution to strike a certain balance"), null);
+    // 只在句尾碰巧两个词相同 ⇒ 不把前半句切掉
+    eq(C.rescueLeadCut('. alpha beta gamma delta epsilon runs dry', partial), null);
   });
   test('isTailDup：临时稿整段是上一条正式 final 的结尾且音频邻接', () => {
     ok(C.isTailDup('Yes, please.', 'Please', 60, 300), '结尾 + 邻接');

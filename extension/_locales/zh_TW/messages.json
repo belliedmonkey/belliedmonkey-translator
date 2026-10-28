@@ -2581,6 +2581,9 @@
   "listen_leave_confirm": {
     "message": "還在聽。離開會結束這次對話，已聽的句子保留。"
   },
+  "listen_leave_confirm_paused": {
+    "message": "已暫停。離開會結束這次對話，已聽的句子保留。"
+  },
   "dialog_ok": {
     "message": "確定"
   },
@@ -2919,6 +2922,9 @@
   },
   "subtitle_leave_confirm": {
     "message": "還在聽。離開會結束這次字幕，已出的句子保留。"
+  },
+  "subtitle_leave_confirm_paused": {
+    "message": "已暫停。離開會結束這次字幕，已出的句子保留。"
   },
   "subtitle_summary_title": {
     "message": "這次字幕"
