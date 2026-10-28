@@ -3894,5 +3894,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang} इस्तेमाल करने के लिए पहले एक भाषा छोड़ें।"
+  },
+  "fail_quota_label": {
+    "message": "मुफ़्त क्रेडिट"
+  },
+  "fail_credit_title": {
+    "message": "मुफ़्त क्रेडिट खत्म हो गया"
+  },
+  "fail_credit_next": {
+    "message": "चैनल बदलें, या अपनी API Key भरें।"
+  },
+  "fail_go_grant": {
+    "message": "चैनल बदलें"
+  },
+  "fail_fill_key": {
+    "message": "अपनी Key भरें"
+  },
+  "fail_grant_title": {
+    "message": "पूल अभी उपलब्ध नहीं"
+  },
+  "fail_grant_next": {
+    "message": "आपने खत्म नहीं किया। बाद में फिर कोशिश करें, या चैनल बदलें।"
+  },
+  "fail_model_title": {
+    "message": "मॉडल मुफ़्त सूची में नहीं है"
+  },
+  "fail_model_next": {
+    "message": "मुफ़्त क्रेडिट सिर्फ़ तय मॉडल पर चलता है। वापस बदलें।"
+  },
+  "fail_go_model": {
+    "message": "मॉडल बदलें"
+  },
+  "fail_auth_title": {
+    "message": "कुंजी अस्वीकृत"
+  },
+  "fail_auth_next": {
+    "message": "प्रदाता ने Key अस्वीकार की। जाँचें या फिर भरें।"
+  },
+  "fail_go_engine": {
+    "message": "Key भरें"
+  },
+  "fail_use_free": {
+    "message": "मुफ़्त चैनल अपनाएँ"
+  },
+  "fail_timeout_title": {
+    "message": "जुड़ नहीं पाया, रुक गया"
+  },
+  "fail_timeout_next": {
+    "message": "अपने आप फिर कोशिश रुक गई। नेटवर्क आए तो फिर कोशिश करें, या मुफ़्त चैनल अपनाएँ।"
+  },
+  "fail_timeout_next_cn": {
+    "message": "अपने आप फिर कोशिश रुक गई। नेटवर्क आए तो फिर कोशिश करें।"
+  },
+  "fail_timeout_footnote": {
+    "message": "लगातार 5 बार टाइमआउट पर ही रुकता है। एक बार नहीं रुकता।"
+  },
+  "fail_retry": {
+    "message": "फिर कोशिश"
+  },
+  "fail_switch_free": {
+    "message": "मुफ़्त चैनल"
   }
 }

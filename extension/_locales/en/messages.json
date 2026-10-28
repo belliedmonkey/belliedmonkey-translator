@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "To use {lang}, give up one language first."
+  },
+  "fail_quota_label": {
+    "message": "Free credit"
+  },
+  "fail_credit_title": {
+    "message": "Free credit used up"
+  },
+  "fail_credit_next": {
+    "message": "Switch channel, or enter your own API key."
+  },
+  "fail_go_grant": {
+    "message": "Switch channel"
+  },
+  "fail_fill_key": {
+    "message": "Enter your own key"
+  },
+  "fail_grant_title": {
+    "message": "Credit pool unavailable"
+  },
+  "fail_grant_next": {
+    "message": "You did not use it up. Try again later, or switch channel."
+  },
+  "fail_model_title": {
+    "message": "Model is not on the free list"
+  },
+  "fail_model_next": {
+    "message": "Free credit only works with its assigned model. Switch it back."
+  },
+  "fail_go_model": {
+    "message": "Change model"
+  },
+  "fail_auth_title": {
+    "message": "Key rejected"
+  },
+  "fail_auth_next": {
+    "message": "The provider rejected this key. Check it or enter it again."
+  },
+  "fail_go_engine": {
+    "message": "Enter key"
+  },
+  "fail_use_free": {
+    "message": "Use free credit"
+  },
+  "fail_timeout_title": {
+    "message": "Can't connect — paused"
+  },
+  "fail_timeout_next": {
+    "message": "Auto-retry is paused. When the network is back, tap retry, or switch to free credit."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Auto-retry is paused. When the network is back, tap retry."
+  },
+  "fail_timeout_footnote": {
+    "message": "Pauses only after 5 timeouts in a row. One timeout does not stop."
+  },
+  "fail_retry": {
+    "message": "Retry"
+  },
+  "fail_switch_free": {
+    "message": "Switch to free credit"
   }
 }

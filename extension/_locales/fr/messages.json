@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Pour utiliser {lang}, libérez d’abord une langue."
+  },
+  "fail_quota_label": {
+    "message": "Crédit gratuit"
+  },
+  "fail_credit_title": {
+    "message": "Crédit gratuit épuisé"
+  },
+  "fail_credit_next": {
+    "message": "Changez de canal, ou saisissez votre propre clé API."
+  },
+  "fail_go_grant": {
+    "message": "Changer de canal"
+  },
+  "fail_fill_key": {
+    "message": "Saisir ma clé"
+  },
+  "fail_grant_title": {
+    "message": "Le pool est indisponible"
+  },
+  "fail_grant_next": {
+    "message": "Ce n'est pas vous qui l'avez épuisé. Réessayez plus tard ou changez de canal."
+  },
+  "fail_model_title": {
+    "message": "Le modèle n’est pas sur la liste gratuite"
+  },
+  "fail_model_next": {
+    "message": "Le crédit gratuit n’accepte que le modèle prévu. Remettez-le."
+  },
+  "fail_go_model": {
+    "message": "Changer de modèle"
+  },
+  "fail_auth_title": {
+    "message": "Clé refusée"
+  },
+  "fail_auth_next": {
+    "message": "Le fournisseur a refusé la clé. Vérifiez-la ou saisissez-la à nouveau."
+  },
+  "fail_go_engine": {
+    "message": "Saisir la clé"
+  },
+  "fail_use_free": {
+    "message": "Passer au canal gratuit"
+  },
+  "fail_timeout_title": {
+    "message": "Pas de connexion — en pause"
+  },
+  "fail_timeout_next": {
+    "message": "Les essais automatiques sont en pause. Quand le réseau revient, réessayez ou passez au canal gratuit."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Les essais automatiques sont en pause. Quand le réseau revient, réessayez."
+  },
+  "fail_timeout_footnote": {
+    "message": "Pause seulement après 5 délais d’attente d’affilée. Un seul ne stoppe pas."
+  },
+  "fail_retry": {
+    "message": "Réessayer"
+  },
+  "fail_switch_free": {
+    "message": "Passer au canal gratuit"
   }
 }

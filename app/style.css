@@ -601,6 +601,16 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 :where(#app-listen) .listen-live { color: var(--accent); }
 :where(#app-listen) .listen-partial { font-size: 1.35rem; line-height: 1.5; min-height: 1.5em; margin: 6px 0 0; }
 :where(#app-listen) .listen-partial-tr { color: var(--sage-strong); font-size: 1.1rem; line-height: 1.5; min-height: 1.5em; margin: 2px 0 0; }
+/* N26：额度条与停泵失败面都在「现在」卡里，窄屏通栏、宽屏跟着 now 格走左栏，不另做一套布局。 */
+:where(#app-listen) .listen-meter { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 8px 0 0; font-size: 0.9rem; }
+:where(#app-listen) .listen-meter-label { color: var(--dim); }
+:where(#app-listen) .listen-meter-value { font-variant-numeric: tabular-nums; font-weight: 700; }
+:where(#app-listen) .listen-fail { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+:where(#app-listen) .listen-fail-title { margin: 0; font-weight: 700; }
+:where(#app-listen) .listen-fail .note { margin: 0; }
+:where(#app-listen) .listen-fail-acts { display: flex; flex-direction: column; gap: 8px; }
+:where(#app-listen) .listen-fail-acts button { width: 100%; }
+:where(#app-listen) .listen-tr.halt { color: var(--danger); font-style: normal; }
 :where(#app-listen) .listen-history { max-height: 38vh; overflow-y: auto; }
 :where(#app-listen) .listen-row { display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
 :where(#app-listen) .listen-body { flex: 1; min-width: 0; }
@@ -775,6 +785,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   :where(#app-listen) .listen-toggles { margin-left: 0; }
   :where(#app-listen) .listen-pair-seg select { max-width: none; }
   :where(#app-listen) .listen-history { max-height: calc(100vh - 210px); }
+  :where(#app-listen) .listen-fail-acts button:hover:not(:disabled) { background: var(--accent-hover); }
+  :where(#app-listen) .listen-fail-acts button.secondary:hover:not(:disabled) { background: var(--field); }
 }
 :where(#app-listen) .listen-flip { position: fixed; inset: 0; background: var(--bg); z-index: 20; display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 24px; box-sizing: border-box; }
 :where(#app-listen) .listen-flip-hint { color: var(--dim); font-size: 0.85rem; margin: 0; }

@@ -4062,5 +4062,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "要用 {lang}，需要先让出一门。"
+  },
+  "fail_quota_label": {
+    "message": "免费额度"
+  },
+  "fail_credit_title": {
+    "message": "免费额度用完"
+  },
+  "fail_credit_next": {
+    "message": "去改通道，或填自己的 API Key。"
+  },
+  "fail_go_grant": {
+    "message": "去改通道"
+  },
+  "fail_fill_key": {
+    "message": "填自己的 Key"
+  },
+  "fail_grant_title": {
+    "message": "池子暂不可用"
+  },
+  "fail_grant_next": {
+    "message": "不是你用完了，稍后再试或改通道。"
+  },
+  "fail_model_title": {
+    "message": "模型不在免费名单"
+  },
+  "fail_model_next": {
+    "message": "免费额度只能用指定模型，请改回。"
+  },
+  "fail_go_model": {
+    "message": "去改模型"
+  },
+  "fail_auth_title": {
+    "message": "密钥无效"
+  },
+  "fail_auth_next": {
+    "message": "Key 被服务商拒绝，请检查或重填。"
+  },
+  "fail_go_engine": {
+    "message": "去填 Key"
+  },
+  "fail_use_free": {
+    "message": "改用免费通道"
+  },
+  "fail_timeout_title": {
+    "message": "连不上，已暂停"
+  },
+  "fail_timeout_next": {
+    "message": "已暂停自动重试；网络好了再点重试，或改免费通道。"
+  },
+  "fail_timeout_next_cn": {
+    "message": "已暂停自动重试。网络好了再点重试。"
+  },
+  "fail_timeout_footnote": {
+    "message": "连续 5 次超时才暂停；单次超时不会停机"
+  },
+  "fail_retry": {
+    "message": "重试"
+  },
+  "fail_switch_free": {
+    "message": "改免费通道"
   }
 }

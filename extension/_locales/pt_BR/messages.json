@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "Para usar {lang}, libere um idioma primeiro."
+  },
+  "fail_quota_label": {
+    "message": "Crédito grátis"
+  },
+  "fail_credit_title": {
+    "message": "Crédito grátis esgotado"
+  },
+  "fail_credit_next": {
+    "message": "Troque o canal ou informe sua própria API Key."
+  },
+  "fail_go_grant": {
+    "message": "Trocar de canal"
+  },
+  "fail_fill_key": {
+    "message": "Informar minha Key"
+  },
+  "fail_grant_title": {
+    "message": "O pool está indisponível"
+  },
+  "fail_grant_next": {
+    "message": "Não foi você que esgotou. Tente de novo mais tarde ou troque o canal."
+  },
+  "fail_model_title": {
+    "message": "O modelo não está na lista grátis"
+  },
+  "fail_model_next": {
+    "message": "O crédito grátis só usa o modelo definido. Volte para ele."
+  },
+  "fail_go_model": {
+    "message": "Trocar o modelo"
+  },
+  "fail_auth_title": {
+    "message": "Chave recusada"
+  },
+  "fail_auth_next": {
+    "message": "O provedor recusou a Key. Confira ou digite de novo."
+  },
+  "fail_go_engine": {
+    "message": "Informar a Key"
+  },
+  "fail_use_free": {
+    "message": "Usar o canal grátis"
+  },
+  "fail_timeout_title": {
+    "message": "Sem conexão — pausado"
+  },
+  "fail_timeout_next": {
+    "message": "A nova tentativa automática está pausada. Quando a rede voltar, tente de novo ou use o canal grátis."
+  },
+  "fail_timeout_next_cn": {
+    "message": "A nova tentativa automática está pausada. Quando a rede voltar, tente de novo."
+  },
+  "fail_timeout_footnote": {
+    "message": "Só pausa depois de 5 tempos esgotados seguidos. Um só não para."
+  },
+  "fail_retry": {
+    "message": "Tentar de novo"
+  },
+  "fail_switch_free": {
+    "message": "Usar o canal grátis"
   }
 }

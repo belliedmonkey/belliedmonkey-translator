@@ -4061,5 +4061,65 @@
   },
   "listen_quota_sheet_lede": {
     "message": "{lang} を使うには、先に 1 つ譲ってください。"
+  },
+  "fail_quota_label": {
+    "message": "無料枠"
+  },
+  "fail_credit_title": {
+    "message": "無料枠を使い切りました"
+  },
+  "fail_credit_next": {
+    "message": "経路を変えるか、自分の API Key を入力してください。"
+  },
+  "fail_go_grant": {
+    "message": "経路を変える"
+  },
+  "fail_fill_key": {
+    "message": "自分の Key を入力"
+  },
+  "fail_grant_title": {
+    "message": "プールは一時的に使えません"
+  },
+  "fail_grant_next": {
+    "message": "使い切ったのではありません。しばらくしてから再試行するか、経路を変えてください。"
+  },
+  "fail_model_title": {
+    "message": "モデルは無料の対象外です"
+  },
+  "fail_model_next": {
+    "message": "無料枠は指定のモデルだけ使えます。戻してください。"
+  },
+  "fail_go_model": {
+    "message": "モデルを変える"
+  },
+  "fail_auth_title": {
+    "message": "キーが無効です"
+  },
+  "fail_auth_next": {
+    "message": "プロバイダにキーを拒否されました。確認するか、入れ直してください。"
+  },
+  "fail_go_engine": {
+    "message": "キーを入力"
+  },
+  "fail_use_free": {
+    "message": "無料経路に切り替える"
+  },
+  "fail_timeout_title": {
+    "message": "接続できず、一時停止しました"
+  },
+  "fail_timeout_next": {
+    "message": "自動再試行を止めました。回線が戻ったら再試行するか、無料経路に切り替えてください。"
+  },
+  "fail_timeout_next_cn": {
+    "message": "自動再試行を止めました。回線が戻ったら再試行してください。"
+  },
+  "fail_timeout_footnote": {
+    "message": "5 回連続でタイムアウトしたときだけ停止します。1 回では止まりません"
+  },
+  "fail_retry": {
+    "message": "再試行"
+  },
+  "fail_switch_free": {
+    "message": "無料経路に変える"
   }
 }
