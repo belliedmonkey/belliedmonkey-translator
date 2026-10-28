@@ -19,6 +19,18 @@
 > `docs/release-baseline-1.19.3.md`）。本清单里相应步骤（§2 的推送、商店与扩展相关步骤）
 > 执行前必须先确认被本次授权覆盖；命令与判据仍保留在 `/store-release` 里作知识。
 
+## 主干先行（BEL-125）— 已上架的用户可见改动必须先在 main
+
+> Any IA / user-visible change that has shipped (including once READY_FOR_SALE) MUST land on **main** first, then cut marketing builds from main. Never leave shipped UX only on a submit tip.
+
+对照什么、怎么对照：
+
+- 用户可见项的勾选真源是 [`docs/product/user-visible-checklist.md`](product/user-visible-checklist.md)。大合入、以及新切 marketing / 提审 tip 之前，用**上一正式上架**（App Store `READY_FOR_SALE`）tip 当 BASE 勾这张表。
+- 机器收据：`bash scripts/tip-user-visible-diff.sh <BASE_TIP> <HEAD_TIP>`，写到 `docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md`。怎么跑、缺证会怎样，见 [`docs/tip-user-visible-diff.md`](tip-user-visible-diff.md)。`QD-JUDGE-submit-*` 没有这份收据就是 **BLOCKED**，不得 PASS。
+- 表上有、后一 tip 没有，而且没有产品卡说明补回或退役：**禁止静默丢掉，不得 Submit。**
+
+**架构形检**须核「用户可见是否在 **main 祖先**」。曾上架（含曾经 `READY_FOR_SALE`）的 IA / 用户可见项若不在 main 祖先上，形检不通过 —— 只堆在提审 tip 上不算入库。
+
 ## 交互改动：先有 Pencil 稿，再有人工评审（**2026-10-01 起强制；稿子的工具 2026-10-08 改成 Pencil**）
 
 **任何交互改动，没有「Pencil 稿 + 人工签署」就不发版。** 顺序固定：Pencil 稿 → 人工签署 →
