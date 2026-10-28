@@ -1,7 +1,11 @@
 // agent/copy.js — N25 confirm / failure card copy, verbatim from the copy lock.
 //
-// A1–A3 and F1–F5 are the locked strings. Near-synonyms are a failure.
-// Slots ({动作短名}) are the only part that varies. Banned: 语音包, 收录复习.
+// A1–A3, F1–F5, and the BEL-104 appendix are the locked strings.
+// Near-synonyms are a failure. Slots ({动作短名}) are the only part that varies.
+// Banned: 语音包, 收录复习.
+//
+// User-facing action names exist only for the two locked actions. The other
+// five tools keep their action ids and do not grow a short name here.
 'use strict';
 
 const TITLE = '确认调用';
@@ -11,6 +15,14 @@ const ASSISTANT_ALLOW = '始终允许此助手';
 const FOOTNOTE = '确认前不开麦、不读页、不写学习库';
 const FAILURE_TITLE = '还差一步';
 const CLOSE = '关闭';
+const ORIGIN_PREFIX = '来自：';
+const ORIGIN_KNOWN = '已识别助手';
+const ORIGIN_UNKNOWN = '未知助手';
+
+// t291u. Host subscription or API key is a first-class path. The in-app grant
+// is auxiliary. P-01…P-04 carry HOST_KEY_HONEST. P-14b carries HOST_KEY_NOTE.
+const HOST_KEY_HONEST = '宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径';
+const HOST_KEY_NOTE = '亦可在宿主配置自有 Key 或订阅';
 
 function deviceAllow(shortName) {
   return '本机始终允许（' + shortName + '）';
@@ -26,21 +38,6 @@ const ACTIONS = {
     name: '收进复习',
     short: '收进复习',
     touches: ['写入学习库', '使用选中句子', '不上传 Key'],
-  },
-  'translate_page': {
-    name: '整页双语',
-    short: '整页双语',
-    touches: ['读当前页', '不上传 Key', '不把全文发回聊天（默认）'],
-  },
-  'translate_video_captions': {
-    name: '视频双语字幕',
-    short: '视频字幕',
-    touches: ['读页内视频字幕', '不把全文发回聊天（默认）'],
-  },
-  'explain_or_drill': {
-    name: '解析或轻量复习',
-    short: '解析',
-    touches: ['不上传 Key', '不把全文发回聊天（默认）'],
   },
 };
 
@@ -70,7 +67,47 @@ const FAILURES = {
     primary: '去配置引擎与密钥',
     secondary: '取消',
   },
+  need_app: {
+    line: '需要安装 App',
+    primary: '去安装 App',
+    secondary: '取消',
+  },
+  need_login: {
+    line: '需要登录',
+    primary: '去登录',
+    secondary: '取消',
+  },
+  // Receipt wire code stays quota_or_key (§6). The card code is this key.
+  grant_or_key_unavailable: {
+    line: '本机额度或密钥不可用',
+    primary: '去配置引擎与密钥',
+    secondary: '取消',
+    footnote: HOST_KEY_NOTE,
+  },
+  network_unavailable: {
+    line: '网络暂时不可用',
+    primary: '重试',
+    secondary: '取消',
+  },
 };
+
+// Wire codes that render a card under a different COPY-LOCK code.
+const RECEIPT_CARD = {
+  quota_or_key: 'grant_or_key_unavailable',
+};
+
+function failureRow(code) {
+  const key = RECEIPT_CARD[code] || code;
+  const row = FAILURES[key];
+  if (!row) return null;
+  return {
+    code: key,
+    line: row.line,
+    primary: row.primary,
+    secondary: row.secondary,
+    footnote: row.footnote || '',
+  };
+}
 
 // Clipboard body for F3's secondary. No page text, no key, no store install link.
 const EXT_NOTE_FOR_AI = '需要浏览器扩展。请在本机安装扩展后再试。不要把密钥发给助手。';
@@ -91,14 +128,14 @@ const MESSAGES = {
   badRequest: '缺少必要参数',
   textTooLong: '句子超过长度上限',
   unsupported: '这个动作还没实现',
-  needLogin: '需要登录',
-  needApp: '需要安装 App',
+  needLogin: FAILURES.need_login.line,
+  needApp: FAILURES.need_app.line,
   needOs: '系统版本不够',
-  quota: '本机额度或密钥不可用',
+  quota: FAILURES.grant_or_key_unavailable.line,
   studyOff: '采集已关闭',
-  captureUnwired: '这次还写不进学习库',
-  explainUnwired: '这次还做不了解析',
-  goLogin: '去登录',
+  goLogin: FAILURES.need_login.primary,
+  network: FAILURES.network_unavailable.line,
+  retry: FAILURES.network_unavailable.primary,
 };
 
 module.exports = {
@@ -109,9 +146,16 @@ module.exports = {
   FOOTNOTE,
   FAILURE_TITLE,
   CLOSE,
+  ORIGIN_PREFIX,
+  ORIGIN_KNOWN,
+  ORIGIN_UNKNOWN,
+  HOST_KEY_HONEST,
+  HOST_KEY_NOTE,
   deviceAllow,
   ACTIONS,
   FAILURES,
+  RECEIPT_CARD,
+  failureRow,
   EXT_NOTE_FOR_AI,
   PASTE_PROMPT,
   MESSAGES,

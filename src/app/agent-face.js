@@ -2,7 +2,7 @@
 //
 // Copy is the lock in agent/copy.js. This file does not invent those strings.
 // It does not start the microphone and it does not read the page.
-import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES } from '../../agent/copy.js';
+import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, ORIGIN_PREFIX } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
 import { handleAgentUrl } from '../../agent/session.js';
 
@@ -35,6 +35,12 @@ function mount(card, opts) {
   title.textContent = card.title || '';
   sheet.appendChild(title);
 
+  if (card.origin) {
+    const origin = document.createElement('p');
+    origin.className = 'agent-origin';
+    origin.textContent = ORIGIN_PREFIX + card.origin;
+    sheet.appendChild(origin);
+  }
   if (card.actionLabel) {
     const name = document.createElement('p');
     name.className = 'agent-name';
@@ -173,7 +179,13 @@ function ctaFor(receipt) {
   return '';
 }
 
+function isNetwork(receipt, fail) {
+  return (receipt && receipt.code === 'network_unavailable')
+    || (fail && fail.code === 'network_unavailable');
+}
+
 export async function presentAgentDeepLink(raw, host) {
+  let retry = false;
   const ui = {
     confirm(card) {
       // The card model names the dismiss control `cancel` (copy lock). The
@@ -193,7 +205,8 @@ export async function presentAgentDeepLink(raw, host) {
       const card = fail ? {
         title: fail.title,
         line: fail.line,
-          site: receipt.code === 'site_unsupported' ? siteTail(receipt.message, fail.line) : '',
+        footnote: fail.footnote || '',
+        site: receipt.code === 'site_unsupported' ? siteTail(receipt.message, fail.line) : '',
         primary: fail.primary,
         secondary: fail.secondary,
       } : {
@@ -204,8 +217,13 @@ export async function presentAgentDeepLink(raw, host) {
       };
       await mount(card, {
         onPrimary: async () => {
+          // P-14c retries the same call. It does not open engine, auth, or login.
+          if (isNetwork(receipt, fail)) {
+            retry = true;
+            return { allow: false };
+          }
           if (receipt.code === 'site_unsupported' && host.ports && host.ports.enterSubtitle) {
-            await host.ports.enterSubtitle({ action: 'start_live_subtitles', langs: {}, step: '', mode: 'explain', text: '', site: '' });
+            await host.ports.enterSubtitle({ action: 'start_live_subtitles', langs: {}, step: '', mode: 'explain', text: '', site: '', auth: { kind: 'none', via: '', host: '', provider: '' } });
           } else if (host.ports && host.ports.openSetup && stepOf(receipt.fix)) {
             await host.ports.openSetup({ step: stepOf(receipt.fix), langs: {}, mode: 'explain', text: '', site: '' });
           }
@@ -222,5 +240,7 @@ export async function presentAgentDeepLink(raw, host) {
       });
     },
   };
-  return handleAgentUrl(raw, host, ui);
+  const rec = await handleAgentUrl(raw, host, ui);
+  if (retry) return presentAgentDeepLink(raw, host);
+  return rec;
 }

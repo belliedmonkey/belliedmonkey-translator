@@ -140,6 +140,7 @@ async function callTool(name, args) {
     grants,
     persistGrants(next) { saveGrants(next, file); },
     siteSupported: siteSupportedNow(),
+    env: process.env,
     confirmed: null,
   };
   const blocked = preconditions(name, ctx);

@@ -6,6 +6,16 @@
 
 Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。Remote 若以后做，必须复用同一份 tool schema。
 
+宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径。宿主订阅或宿主 API Key 就能跑这些工具。大肚猴额度是可选的备用，不是唯一条件。
+
+| 宿主 | 订阅（任一非空即可） | API Key（任一非空即可） |
+| --- | --- | --- |
+| Claude Code | `ANTHROPIC_AUTH_TOKEN`、`CLAUDE_CODE_OAUTH_TOKEN` | `ANTHROPIC_API_KEY` |
+| Codex | `OPENAI_ACCESS_TOKEN`、`CODEX_ACCESS_TOKEN` | `OPENAI_API_KEY`、`CODEX_API_KEY` |
+| dsh | `DEEPSEEK_AUTH_TOKEN` | `DEEPSEEK_API_KEY` |
+
+回执不带这些变量的值。`grant_or_key_unavailable` 的主按钮是「去配置引擎与密钥」，脚注是「亦可在宿主配置自有 Key 或订阅」。
+
 本包装不包含 Grok 或 Muse 的本地插件。
 
 ## 三个宿主怎么接到同一个进程

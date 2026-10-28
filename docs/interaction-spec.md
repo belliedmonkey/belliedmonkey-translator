@@ -2697,11 +2697,15 @@ v1 不发任何事件；见 `docs/telemetry-design.md` §2。
 
 2026-10-26。只在 `belliedmonkey://agent/v1/…` 或 `belliedmonkeycn://agent/v1/…` 进来时出现。旧的 `://listen`、`://review`、`://setup` 不走这张卡。
 
-文案锁逐字（确认帧与 F1–F5）。动作短名是槽。匿名帧没有「始终允许此助手」。确认帧的次按钮是「取消」。
+文案锁逐字（确认帧、F1–F5、BEL-104 附录）。动作短名是槽，而且只锁了「开实时双语字幕」和「收进复习」。其余工具不对用户露出另一套短名。匿名帧没有「始终允许此助手」。确认帧的次按钮是「取消」。匿名来源行是「来自：未知助手」；有 `caller_id` 时是「来自：已识别助手」。展示名 `caller` 不写上来源行。
 
 - **窄**（窗口宽度小于 720px）：底栏通栏。主按钮与次按钮上下排，命中高度 48px。不依赖 hover。
 - **宽**（≥ 720px，iPad 与 Mac 同一断点）：卡片居中，最大宽度 420px。Mac 上主按钮有 hover；iPad 不把 hover 当唯一反馈。焦点环 2.5px。
 - 确认前不开麦、不读页、不写学习库。`start_live_subtitles` 通过后只打开字幕独立表面，用户再点「开始」才开麦。
 - 失败帧标题「还差一步」。没有专卡的失败码也用这个标题，正文用回执里的 message。取消回执的标题是「已取消」。F3 的次按钮复制一段说明，不放商店一键安装。F4「改用实时字幕」只打开字幕表面。
+- 附录卡，主次按钮逐字：`need_app`「需要安装 App / 去安装 App / 取消」；`need_login`「需要登录 / 去登录 / 取消」；`grant_or_key_unavailable`「本机额度或密钥不可用 / 去配置引擎与密钥 / 取消」，脚注「亦可在宿主配置自有 Key 或订阅」；`network_unavailable`「网络暂时不可用 / 重试 / 取消」。线协议里额度或密钥仍是 `quota_or_key`，卡上的 code 是 `grant_or_key_unavailable`。
+- `grant_or_key_unavailable` 的「去配置引擎与密钥」打开设置里的引擎与密钥（用户自己的 key）。它不去登录页。宿主订阅或宿主 API Key、以及本机已经填好的 key，都可以跑工具；大肚猴额度只是备用，没有它也可以跑。`network_unavailable` 的「重试」再走同一次调用，不打开引擎、登录或鉴权页。
+- 安装引导（Claude Code / Codex / dsh）脚注含「宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径」，并保留本机 stdio、Remote 未发布、不把产品服务器写进仓库根 `.mcp.json`。
+- CLI 没有确认卡。没有 elicitation 时回执是 `need_confirm`，正文「需要你在本机点确认」。确认卡只在 App。
 - 在途时主次按钮 disabled，并降到 45% 不透明度。
 

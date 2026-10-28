@@ -2,6 +2,8 @@
 
 Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。
 
+宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径。dsh 用 `DEEPSEEK_AUTH_TOKEN`（订阅）或 `DEEPSEEK_API_KEY`。有其中任一，工具不要求大肚猴额度。
+
 本目录是 dsh 的 plugin 包装。`stdio.js` 只加载 W2 内核 `agent/mcp-stdio.js`。工具的线协议名与内核的七个动作 ID 相同，含 `ready.check`。没有第二份名字 `ready_check`。本包装没有 Remote 地址，没有 H3，也没有 Grok 或 Muse 的本地插件。
 
 dsh 的函数名只允许 `[A-Za-z0-9_-]`。六个没有点号的工具，模型看见的名字是 `mcp__belliedmonkey__` 加上动作 ID。`ready.check` 的模型侧映射是 `mcp__belliedmonkey__ready_check_bc683c60f54e`（SHA-256(`belliedmonkey` + NUL + `ready.check`) 的前 12 位十六进制）。这是宿主映射注解。`tools/call` 收到的仍是 `ready.check`。

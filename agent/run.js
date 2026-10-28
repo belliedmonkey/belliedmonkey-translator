@@ -10,6 +10,7 @@ const {
 } = require('./contract');
 const { sourceOf, callerIdOf, langOf, hostnameOf } = require('./parse');
 const { hasGrant, remember } = require('./grants-model');
+const { resolveCredential, runsWithoutAccount, engineReady, publicAuth } = require('./credentials');
 
 function newId() {
   const bytes = new Uint8Array(8);
@@ -60,6 +61,7 @@ function readinessGaps(readiness, hostConnected) {
     ['os', 'need_os'],
     ['ext', 'need_ext'],
     ['mic', 'need_permission_mic'],
+    ['network', 'network_unavailable'],
   ];
   const gaps = [];
   for (const [key, code] of pairs) {
@@ -76,9 +78,9 @@ function siteLine(host) {
 }
 
 function messageFor(code, extra) {
-  const fail = copy.FAILURES[code];
+  const fail = copy.failureRow(code);
   if (fail) {
-    if (code === 'site_unsupported') return siteLine(extra && extra.host);
+    if (code === 'site_unsupported' || fail.code === 'site_unsupported') return siteLine(extra && extra.host);
     return fail.line;
   }
   const m = copy.MESSAGES;
@@ -88,27 +90,42 @@ function messageFor(code, extra) {
     case 'untrusted_denied': return m.untrusted;
     case 'bad_request': return (extra && extra.bad) || m.badRequest;
     case 'unsupported_action': return m.unsupported;
-    case 'need_login': return m.needLogin;
-    case 'need_app': return (extra && extra.unwired) || m.needApp;
     case 'need_os': return m.needOs;
-    case 'quota_or_key': return m.quota;
     case 'study_capture_off': return m.studyOff;
     default: return '';
   }
 }
+
+function credentialOf(ctx) {
+  return resolveCredential({ env: ctx && ctx.env, readiness: ctx && ctx.readiness });
+}
+
+const ENGINE_ACTIONS = new Set([
+  'start_live_subtitles',
+  'translate_page',
+  'translate_video_captions',
+  'explain_or_drill',
+]);
 
 function preconditions(action, ctx) {
   const query = ctx.query || {};
   const scheme = ctx.scheme;
   const source = sourceOf(query, ctx.sourceFallback);
   const r = ctx.readiness || {};
+  const cred = credentialOf(ctx);
   const fail = (code, extra) => receipt(
     action, code, messageFor(code, extra), fixFor(code, scheme, source));
 
   if (action === 'ready.check' || action === 'open_setup') return null;
 
+  // Offline is recoverable. The card retries; it does not open key or login setup.
+  if (r.network === false && ENGINE_ACTIONS.has(action)) return fail('network_unavailable');
+
   if (action === 'start_live_subtitles') {
-    if (r.login === false) return fail('need_login');
+    // No host key, no BYOK, no grant, and the engine is known missing:
+    // send the user to their own key. Do not make login the only door.
+    if (!engineReady(cred) && r.engine === false) return fail('quota_or_key');
+    if (!runsWithoutAccount(cred) && r.login === false) return fail('need_login');
     if (r.packs === false) return fail('need_packs');
     if (r.os === false) return fail('need_os');
     if (r.mic === false) return fail('need_permission_mic');
@@ -116,7 +133,7 @@ function preconditions(action, ctx) {
   }
   if (action === 'translate_page' || action === 'translate_video_captions') {
     if (r.ext !== true) return fail('need_ext');
-    if (r.engine === false) return fail('quota_or_key');
+    if (!engineReady(cred) && r.engine === false) return fail('quota_or_key');
     if (action === 'translate_video_captions' && typeof ctx.siteSupported === 'function') {
       const host = hostnameOf(query.url);
       if (ctx.siteSupported(query.url) === false) return fail('site_unsupported', { host });
@@ -124,7 +141,7 @@ function preconditions(action, ctx) {
     return null;
   }
   if (action === 'capture_to_study') {
-    if (r.login === false) return fail('need_login');
+    if (!runsWithoutAccount(cred) && r.login === false) return fail('need_login');
     if (r.studyCapture === false) return fail('study_capture_off');
     const text = suppliedText(query, null);
     if (text && codePoints(text) > TEXT_MAX) return fail('bad_request', { bad: copy.MESSAGES.textTooLong });
@@ -134,7 +151,7 @@ function preconditions(action, ctx) {
     if (query.mode && !EXPLAIN_MODES.has(String(query.mode))) {
       return fail('bad_request');
     }
-    if (r.engine === false) return fail('need_engine');
+    if (!engineReady(cred) && r.engine === false) return fail('need_engine');
     const text = suppliedText(query, null);
     if (text && codePoints(text) > TEXT_MAX) return fail('bad_request', { bad: copy.MESSAGES.textTooLong });
     return null;
@@ -233,12 +250,10 @@ async function runAgentAction(action, ctx) {
   }
 
   const fn = portFor(action, ctx.ports);
+  const cred = credentialOf(ctx);
   if (typeof fn !== 'function') {
     const code = missingCode(action);
-    const extra = {};
-    if (code === 'need_app' && action === 'capture_to_study') extra.unwired = copy.MESSAGES.captureUnwired;
-    if (code === 'need_app' && action === 'explain_or_drill') extra.unwired = copy.MESSAGES.explainUnwired;
-    return { receipt: receipt(action, code, messageFor(code, extra), fixFor(code, scheme, source)) };
+    return { receipt: receipt(action, code, messageFor(code, {}), fixFor(code, scheme, source)) };
   }
 
   let portResult = { ok: true };
@@ -252,17 +267,21 @@ async function runAgentAction(action, ctx) {
         text,
         langs: langs(query),
         site: hostnameOf(query.url),
+        auth: publicAuth(cred),
       }) || { ok: true };
     } catch (_) {
       return { receipt: receipt(action, 'bad_request', copy.MESSAGES.badRequest, {}) };
     }
   }
 
-  if (portResult && portResult.ok === false && CODE_SET.has(portResult.code) && portResult.code !== 'ok') {
-    const code = portResult.code;
+  if (portResult && portResult.ok === false && portResult.code && portResult.code !== 'ok') {
+    // Card code and wire code differ for the grant/key failure. A code outside
+    // §6 must not fall through to ok.
+    const code = portResult.code === 'grant_or_key_unavailable' ? 'quota_or_key' : portResult.code;
+    if (!CODE_SET.has(code)) {
+      return { receipt: receipt(action, 'bad_request', copy.MESSAGES.badRequest, {}) };
+    }
     const extra = {};
-    if (code === 'need_app' && action === 'capture_to_study') extra.unwired = copy.MESSAGES.captureUnwired;
-    if (code === 'need_app' && action === 'explain_or_drill') extra.unwired = copy.MESSAGES.explainUnwired;
     if (code === 'site_unsupported') extra.host = hostnameOf(query.url);
     return { receipt: receipt(action, code, messageFor(code, extra), fixFor(code, scheme, source)) };
   }
