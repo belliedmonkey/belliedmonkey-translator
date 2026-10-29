@@ -7,7 +7,7 @@ description: Call BelliedMonkey Translator through the local stdio MCP server be
 
 Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。 Do not tell the user that a cloud server is already on a store, and do not invent an endpoint URL.
 
-宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径. A host subscription (`ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN`) or host API key (`ANTHROPIC_API_KEY`) runs these tools without a Bellied Monkey grant. The grant is optional. Do not tell the user that login or the grant is required when one of those is set.
+宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径. A host API key calls the provider; usage is observed and is not placed on the receipt. A host subscription token (`ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN`) uses that same call. If the provider will not bill the token, the receipt code is `subscription_cannot_pay` and the Bellied Monkey grant is not a silent success. A non-empty OAuth variable alone is not a grant and is not success. Do not tell the user the tool succeeded when that code comes back. A host API key (`ANTHROPIC_API_KEY`) that the provider accepts does not require login.
 
 The server name is `belliedmonkey`. This plugin starts `stdio.js` in this directory. That launcher only loads `agent/mcp-stdio.js`. It does not define a second tool list.
 

@@ -17,6 +17,7 @@ const { create: createTestHost } = require('./test-host');
 const {
   runAgentAction, cancelledReceipt, needConfirmReceipt, preconditions,
 } = require('./run');
+const { charge, appendQuota } = require('./host-transport');
 
 const PROTOCOL_FALLBACK = '2025-06-18';
 
@@ -66,7 +67,7 @@ function readinessNow() {
   if (!file) return null;
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
-    const keys = ['login', 'packs', 'engine', 'os', 'ext', 'mic', 'studyCapture'];
+    const keys = ['login', 'packs', 'engine', 'os', 'ext', 'mic', 'studyCapture', 'grant', 'byok'];
     const out = {};
     for (const k of keys) {
       if (parsed[k] === true || parsed[k] === false) out[k] = parsed[k];
@@ -82,6 +83,13 @@ function portsNow() {
   const host = testHost();
   if (host) return host.ports;
   return {};
+}
+
+// Test-host stubs must not also bill. Production stdio always charges host
+// credentials. The App deeplink path does not set this function.
+function chargeNow() {
+  if (process.env.MT_AGENT_TEST_HOST === '1') return null;
+  return function (input) { return charge(input); };
 }
 
 function siteSupportedNow() {
@@ -142,6 +150,11 @@ async function callTool(name, args) {
     siteSupported: siteSupportedNow(),
     env: process.env,
     confirmed: null,
+    charge: chargeNow(),
+    observeQuota(quota) {
+      const file = process.env.MT_AGENT_QUOTA_LOG;
+      if (file) appendQuota(file, quota);
+    },
   };
   const blocked = preconditions(name, ctx);
   if (blocked) return blocked;

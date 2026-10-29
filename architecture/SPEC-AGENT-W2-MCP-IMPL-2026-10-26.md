@@ -88,7 +88,7 @@ P1（`listen.start`、`subtitle.export`、`learn.open_review`、`doc.translate`�
 
 冻结集（与深链 §6 相同，含成功码 `ok`）：
 
-`ok` · `need_confirm` · `cancelled` · `unsupported_action` · `bad_request` · `untrusted_denied` · `need_app` · `need_ext` · `need_login` · `need_packs` · `need_engine` · `need_os` · `need_permission_mic` · `site_unsupported` · `quota_or_key` · `study_capture_off` · `network_unavailable`
+`ok` · `need_confirm` · `cancelled` · `unsupported_action` · `bad_request` · `untrusted_denied` · `need_app` · `need_ext` · `need_login` · `need_packs` · `need_engine` · `need_os` · `need_permission_mic` · `site_unsupported` · `quota_or_key` · `subscription_cannot_pay` · `study_capture_off` · `network_unavailable`
 
 不使用 `need_user`、`missing_app`、`need_mic`、`ready_check`。
 
@@ -115,7 +115,7 @@ BEL-104 附录卡（文案在 `agent/copy.js`）。`quota_or_key` 是回执码�
 
 `grant_or_key_unavailable` 的脚注是「亦可在宿主配置自有 Key 或订阅」。它的 `fix.open_setup` 步是 `engine`（用户自己的 key），不是 `login`。`network_unavailable` 的 `fix` 是 `{}`。重试再跑同一次调用，不打开引擎、登录或鉴权。
 
-宿主订阅或宿主 API Key 是一等路径（t291u）。非空的宿主订阅变量或宿主 API Key 变量，或本机 BYOK，都可以跑工具，不要求大肚猴额度。额度只是备用。变量名在 `agent/credentials.js` 和 `agent/hosts/README.md`。回执不带变量的值。端口请求只带 `auth.kind` / `auth.via`（变量名或 `app` / `grant`），不带密钥。
+宿主 API Key 与宿主订阅令牌都按注册表的请求形状打到提供方（BEL-129 Path A，`agent/host-transport.js`）。用量记在配额观测里，不进回执。回执不带变量的值。端口请求只带 `auth.kind` / `auth.via`（变量名或 `app` / `grant`），不带密钥。订阅令牌若被提供方拒绝代付，回执码是 `subscription_cannot_pay`（用户看见的卡仍是 `grant_or_key_unavailable`）。这次失败不改走大肚猴额度，也不因为变量非空而回 `ok`。`capture_to_study` 不走这条传输，不把句子发给提供方。`start_live_subtitles` 不在这条计费线上。变量名在 `agent/credentials.js` 和 `agent/hosts/README.md`。
 
 没有 elicitation 时，CLI 回执是 `need_confirm`，message 是「需要你在本机点确认」。确认卡在 App，不在 CLI。
 
