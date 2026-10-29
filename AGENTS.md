@@ -217,6 +217,8 @@ diff against the previous RFS tip (`scripts/tip-user-visible-diff.sh`) **and** s
 `docs/status/merge-user-visible-checklist-<BASE8>-vs-<HEAD8>.md` against
 `docs/product/user-visible-checklist.md`. Missing either = merge QD **BLOCKED**.
 
+**Submit QD 合裁总装：** every `QD-JUDGE-submit-*` fills [`docs/quality/TEMPLATE-QD-JUDGE-submit.md`](docs/quality/TEMPLATE-QD-JUDGE-submit.md) (README · BEL-124 tip-diff · BEL-125 when claimed · BEL-126 when large-merge · HEAD钉 / NO-PPO / smoke / ASC 四端). Missing an applicable hard receipt = **BLOCKED** (no PASS / PASS-WITH-ACCEPT).
+
 ## Domain design (architecture) — REQUIRES HUMAN REVIEW
 
 **The translation domain model is the single source of truth in
