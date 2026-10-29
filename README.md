@@ -265,6 +265,25 @@ Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/
 
 **Not shipping soon:** flash/DeepSeek replacing plus; Grok streaming as caption primary; Ming TTS CPU path. **Next:** monthly on the 1st (or sooner on material change). Numbers labeled self-measured / third-party / vendor-reported.
 
+## How we choose models
+
+Every module runs the same loop: **hard gates → experiment → what ships → what we
+rejected → last verified**. The gates are written first — privacy, first-word latency,
+severe-error count, regional flavor — and a candidate that misses one never becomes the
+default, however fast or cheap it is. That is why the free tier still runs Qwen plus after
+a 1600-sentence app-contract evaluation, and why a faster DeepSeek Flash was rejected on
+severe errors instead of being quietly swapped in.
+
+The public ledger, with tables, numbers, and the gaps we have not closed yet:
+
+- [How we choose models for listening, subtitles and page translation](https://belliedmonkey.cc/technology/model-selection)
+- [Why listen-translate ASR stays on-device](https://belliedmonkey.cc/technology/model-selection/listen-asr)
+- [Why free-tier listen translation stays on Qwen plus](https://belliedmonkey.cc/technology/model-selection/subtitle-mt)
+- [Zero-setup page translate, and honest failure on long units](https://belliedmonkey.cc/technology/model-selection/page-mt)
+
+The China edition is a separate app with its own site:
+[the same ledger on belliedmonkey.com](https://belliedmonkey.com/technology/model-selection).
+
 ## Known limitations
 
 Stated up front, because finding them yourself is worse.
