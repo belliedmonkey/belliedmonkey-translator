@@ -243,6 +243,23 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 **下期**：例行每月 1 日；或效果有实质变化时加更。数字一律标「自测 / 第三方 / 厂商自报」。
 
+## 我们如何选模型
+
+每个模块走同一条链路：**硬闸 → 实验 → 现网 → 拒选 → last verified**。硬闸先写死
+（隐私、首字延迟、严重错误数、区域 flavor），过不了闸的候选不进默认——再快再便宜也不。
+免费档在 1600 句 App 契约评测后仍用 Qwen plus，更快的 DeepSeek Flash 因严重错误被否决，
+而不是静默换掉；原因都写在这条链路里。
+
+公开账本（表格、数字，以及还没补上的缺口）：
+
+- [我们如何为听译、字幕与页译选模型](https://belliedmonkey.cc/technology/model-selection)
+- [听译为何默认用端上 Apple SpeechAnalyzer](https://belliedmonkey.cc/technology/model-selection/listen-asr)
+- [免费听译翻译为何坚持 Qwen plus](https://belliedmonkey.cc/technology/model-selection/subtitle-mt)
+- [国际页译为何默认境外零配置免费通道](https://belliedmonkey.cc/technology/model-selection/page-mt)
+
+中国版是独立 App、独立站点：
+[belliedmonkey.com 上的同题页](https://belliedmonkey.com/technology/model-selection)。
+
 ## 已知限制
 
 提前说清楚，因为让你自己撞上更糟。
