@@ -25,11 +25,15 @@
 
 对照什么、怎么对照：
 
-- 用户可见项的勾选真源是 [`docs/product/user-visible-checklist.md`](product/user-visible-checklist.md)。大合入、以及新切 marketing / 提审 tip 之前，用**上一正式上架**（App Store `READY_FOR_SALE`）tip 当 BASE 勾这张表。
-- 机器收据：`bash scripts/tip-user-visible-diff.sh <BASE_TIP> <HEAD_TIP>`，写到 `docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md`。怎么跑、缺证会怎样，见 [`docs/tip-user-visible-diff.md`](tip-user-visible-diff.md)。`QD-JUDGE-submit-*` 没有这份收据就是 **BLOCKED**，不得 PASS。
+- 用户可见项的勾选真源是 [`docs/product/user-visible-checklist.md`](product/user-visible-checklist.md)。
+- **自动扫 main（替代纯人工 git grep）**：`bash scripts/main-first-user-visible-scan.sh <BASE_RFS_TIP> [MAIN_REF]`
+  → `docs/status/main-first-scan-<BASE8>-vs-<MAIN8>.md`。说明与 **缺收据 = BLOCKED** 规则见 [`docs/main-first-scan.md`](main-first-scan.md)。
+  提审 / marketing 落条宣称「上架过 IA 已在 main」时必须附此收据。
+- tip↔tip 机器收据（BEL-124 提审硬闸）：`bash scripts/tip-user-visible-diff.sh <BASE_TIP> <HEAD_TIP>`，写到 `docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md`。怎么跑、缺证会怎样，见 [`docs/tip-user-visible-diff.md`](tip-user-visible-diff.md)。`QD-JUDGE-submit-*` 没有这份收据就是 **BLOCKED**，不得 PASS。
+- **大合入强制合入门（BEL-126）**：合大功能前 **必须** 对照上一正式上架 tip 勾 checklist，并同时交出 tip-diff 机器收据 + `docs/status/merge-user-visible-checklist-<BASE8>-vs-<HEAD8>.md` 人工盖章；**缺任一 = merge QD BLOCKED**（不再「可抽查」）。
 - 表上有、后一 tip 没有，而且没有产品卡说明补回或退役：**禁止静默丢掉，不得 Submit。**
 
-**架构形检**须核「用户可见是否在 **main 祖先**」。曾上架（含曾经 `READY_FOR_SALE`）的 IA / 用户可见项若不在 main 祖先上，形检不通过 —— 只堆在提审 tip 上不算入库。
+**架构形检**须核「用户可见是否在 **main 祖先**」（可引用 main-first-scan 收据中的 ancestry + MISSING）。曾上架（含曾经 `READY_FOR_SALE`）的 IA / 用户可见项若不在 main 祖先上，形检不通过 —— 只堆在提审 tip 上不算入库。
 
 ## 交互改动：先有 Pencil 稿，再有人工评审（**2026-10-01 起强制；稿子的工具 2026-10-08 改成 Pencil**）
 

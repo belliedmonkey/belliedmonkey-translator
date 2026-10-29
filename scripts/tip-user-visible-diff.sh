@@ -38,33 +38,17 @@ fi
 BASE8=${BASE:0:8}
 HEAD8=${HEAD:0:8}
 
-# id | 清单名 | 路径 | 标记（git grep -F 的字面量）
-# 路径均在 aac5a87d 上存在；D-02 一类标记在 ecd8b8b4 上不存在。
-MARKERS=$(cat <<'EOF'
-D-02|D-02 整体进度（细条）|src/app/AppShell.jsx|packs-dl-progress
-D-02|D-02 整体进度（绘制）|src/app/shell-model.js|paintDlProgress
-D-02|D-02 整体进度（% · 大小）|src/app/shell-model.js|firstrun_packs_progress_pct
-D-02|D-02 整体进度（CTA 键）|src/app/shell-model.js|firstrun_packs_busy_pct
-D-02|D-02 整体进度（CTA 文案 下载中 {n}%）|src/app/shell-model.js|下载中 {n}%
-D-02|D-02 整体进度（汇总）|src/app/pack-progress.js|aggregatePackProgress
-D-03|D-03 齐了就离开包屏|src/app/shell-model.js|dismissPacksAfterDone
-N24-M01|N24 M-01 行右态|src/app/shell-model.js|N24 M-01
-N24-M02|N24 M-02 文案锁|src/app/shell-model.js|N24 文案锁 M-02
-N24-M03|N24 M-03 语言包与朗读|src/app/settings-view.jsx|N24 M-03
-N24-M04|N24 M-04 高级参数|src/app/settings-view.jsx|N24 M-04
-switch|一键⇄分项确认（设置）|src/app/settings-view.jsx|opt_mode_switch_to_quick
-switch|一键⇄分项确认（选项页）|src/pages/options.jsx|opt_mode_switch_to_detail
-P0-B|句子序 P0-B 新→旧（模型）|src/app/listen-model.js|P0-B
-P0-B|句子序 P0-B 新→旧（视图）|src/app/listen-view.jsx|P0-B
-captionDesk|字幕台 captionDesk|src/app/layout-caption.js|captionDesk
-Duo-06|Duo-06 门控徽章|src/app/listen-view.jsx|Duo-06
-Duo-08|Duo-08 安全区 +12|app/style.css|Duo-08
-thai|泰语听译 thaiGrokStt（听译）|src/app/listen-model.js|thaiGrokStt
-thai|泰语听译 thaiGrokStt（模块）|app/grok-stt.js|thaiGrokStt
-thai|泰语听译国际包模块表|build/app-bundle.js|INTL_GROK_MODULES
-thai-peel|泰语听译中国剥扫|build/china-gate.js|grok-stt-open
-EOF
-)
+# Markers: shared file (keep in sync with main-first-user-visible-scan.sh)
+MARKERS_FILE="$ROOT/scripts/lib/user-visible-markers.txt"
+if [ ! -f "$MARKERS_FILE" ]; then
+  echo "missing markers file: $MARKERS_FILE" >&2
+  exit 2
+fi
+MARKERS=$(grep -v '^#' "$MARKERS_FILE" | grep -v '^[[:space:]]*$' || true)
+if [ -z "$MARKERS" ]; then
+  echo "empty markers file: $MARKERS_FILE" >&2
+  exit 2
+fi
 
 has_marker() {
   # $1 sha  $2 path  $3 marker
@@ -110,9 +94,9 @@ while IFS='|' read -r id label path marker; do
     n_absent=$((n_absent + 1))
   fi
   printf '%s\t%s\t%s\t%s\t%s\n' "$status" "$id" "$label" "$path" "$marker" >> "$TMP"
-done <<EOF
+done <<EOFMARK
 $MARKERS
-EOF
+EOFMARK
 
 # 热点文件：标记表里出现过的路径，文件本身在不在。
 FILES=$(printf '%s\n' "$MARKERS" | cut -d'|' -f3 | sort -u)
@@ -124,6 +108,7 @@ FILES=$(printf '%s\n' "$MARKERS" | cut -d'|' -f3 | sort -u)
   echo "- Head: \`${HEAD}\` — $(subj "$HEAD")"
   echo "- Generated: $(date -u +%Y-%m-%dT%H:%MZ) by \`scripts/tip-user-visible-diff.sh\`"
   echo "- Checklist: \`docs/product/user-visible-checklist.md\`"
+  echo "- Markers: \`scripts/lib/user-visible-markers.txt\`"
   echo
   echo "Counts: PRESENT ${n_present} · MISSING ${n_missing} · NEW ${n_new} · ABSENT ${n_absent}"
   echo
@@ -158,9 +143,9 @@ FILES=$(printf '%s\n' "$MARKERS" | cut -d'|' -f3 | sort -u)
     if file_exists "$BASE" "$path"; then b=present; fi
     if file_exists "$HEAD" "$path"; then h=present; fi
     echo "| \`${path}\` | ${b} | ${h} |"
-  done <<EOF
+  done <<EOFFILES
 $FILES
-EOF
+EOFFILES
   echo
   echo "File \`absent\` on head with markers MISSING is a dropped surface."
   echo "File \`present\` on both with markers MISSING is a deletion inside a file that is still there."

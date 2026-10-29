@@ -204,9 +204,18 @@ the two websites' privacy pages ship in the SAME version as the feature they des
 anything on it that can become a gate should move into `build.js` and be deleted from there.
 
 **Main-first (BEL-125):** any IA / user-visible change that has shipped (including once
-`READY_FOR_SALE`) must land on **main** before a marketing cut. The hard rule, the
-user-visible checklist, and the tip-diff receipt live in `docs/release-checklist.md`
-（「主干先行」）. Architecture short-review checks 「用户可见是否在 main 祖先」.
+`READY_FOR_SALE`) must land on **main** before a marketing cut. Run the **automatic**
+main scan (`bash scripts/main-first-user-visible-scan.sh <BASE_RFS> [origin/main]` →
+`docs/status/main-first-scan-…md`); do not rely on manual `git grep` alone. **Missing
+scan receipt = BLOCKED** on submit/marketing paths that claim shipped IA is on main.
+Hard rule + checklist: `docs/release-checklist.md`（「主干先行」）;
+how-to: `docs/main-first-scan.md`. Architecture short-review checks 「用户可见是否在
+main 祖先」.
+
+**Large-merge gate (BEL-126):** before merging a large feature, **must** (not spot-check)
+diff against the previous RFS tip (`scripts/tip-user-visible-diff.sh`) **and** stamp
+`docs/status/merge-user-visible-checklist-<BASE8>-vs-<HEAD8>.md` against
+`docs/product/user-visible-checklist.md`. Missing either = merge QD **BLOCKED**.
 
 ## Domain design (architecture) — REQUIRES HUMAN REVIEW
 

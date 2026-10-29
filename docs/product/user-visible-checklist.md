@@ -1,17 +1,44 @@
 # 用户可见 checklist（真源）
 
 BEL-126。这是「用户看得见的东西有没有在后一版里还在」的勾选真源。机器对照表在
-`scripts/tip-user-visible-diff.sh`（标记与本表同一批路径）；怎么跑、收据放哪，见
+`scripts/lib/user-visible-markers.txt`（`tip-user-visible-diff.sh` / `main-first-user-visible-scan.sh` 共用；与本表同一批路径）；怎么跑、收据放哪，见
 [`docs/tip-user-visible-diff.md`](../tip-user-visible-diff.md)。硬规则见
 [`docs/release-checklist.md`](../release-checklist.md)「主干先行」。
 
-## 什么时候勾
+## 什么时候勾（强制）
 
-大合入之前，以及从 main **新切 marketing / 提审 tip** 之前，用**上一正式上架** tip 当
-BASE 勾本表。上一正式上架 = App Store 上曾经或正在 `READY_FOR_SALE` 的那个 tip，
+**大合入 / 合大功能**（进 main，或进将打 marketing 的长驻分支）之前：**必须**用**上一正式上架** tip 当
+BASE 勾本表，并留下机器收据 + 人工盖章（见下「强制合入门」）。从 main **新切 marketing / 提审 tip** 之前同样必须勾。
+上一正式上架 = App Store 上曾经或正在 `READY_FOR_SALE` 的那个 tip，
 不从仓库的 tag 或 README 推断（`AGENTS.md`「Release state」）。
 
+本表不再是「可抽查」——大合入缺勾 / 缺收据 = merge QD **BLOCKED**。
+
 每一行都是可勾的。勾上表示：这一项在本 tip 上仍在，**或者**已有产品卡写明补回或退役。
+
+
+## 强制合入门（BEL-126）
+
+大合入 / 合大功能进 main 前，两证缺一不可：
+
+1. **机器收据**：`bash scripts/tip-user-visible-diff.sh <BASE_RFS> <MERGE_HEAD>`
+   → `docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md`
+2. **人工盖章**：`docs/status/merge-user-visible-checklist-<BASE8>-vs-<HEAD8>.md`
+   至少含：日期（Asia/Shanghai）、BASE/HEAD SHA、「已按本表勾完」、机器收据相对路径、签名/执行人
+
+**缺任一 = merge QD BLOCKED**，不得合入。说明见 [`docs/tip-user-visible-diff.md`](../tip-user-visible-diff.md)。
+
+盖章模板示例：
+
+```markdown
+# merge-user-visible-checklist-<BASE8>-vs-<HEAD8>
+- date: YYYY-MM-DD HH:MM Asia/Shanghai
+- BASE (RFS): <sha>
+- HEAD (merge): <sha>
+- 已按 docs/product/user-visible-checklist.md 勾完
+- 机器收据路径: docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md
+- 执行人: <name>
+```
 
 ## 丢了怎么办
 

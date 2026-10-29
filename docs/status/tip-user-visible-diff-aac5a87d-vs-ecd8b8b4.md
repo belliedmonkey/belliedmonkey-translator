@@ -2,8 +2,9 @@
 
 - Base: `aac5a87d08234ed1c9d634521955c00708a376da` — fix(1.21.2): deliver mic PCM to JS when thaiGrokStt so Grok STT gets audio
 - Head: `ecd8b8b4d19e965942ab738366b767e4032a7a79` — feat(agent): Claude Code and Codex packaging for N25 H1 (#598)
-- Generated: 2026-10-28T16:54Z by `scripts/tip-user-visible-diff.sh`
+- Generated: 2026-10-29T15:26Z by `scripts/tip-user-visible-diff.sh`
 - Checklist: `docs/product/user-visible-checklist.md`
+- Markers: `scripts/lib/user-visible-markers.txt`
 
 Counts: PRESENT 0 · MISSING 22 · NEW 0 · ABSENT 0
 
