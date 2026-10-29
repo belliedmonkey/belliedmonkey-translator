@@ -201,8 +201,9 @@ revoke all on function public.bt_rollup_day(date) from public, anon, authenticat
 -- 还没聚合的那一天删掉。
 -- pg_cron 是 Supabase 自带的扩展，**普通 PostgreSQL 没有**。中国版境内后端（deploy/china，
 -- postgres:15-alpine）按这份文件建库时，2026-09-22 第一次实跑就停在这里，后面的表一张都没建。
--- 所以改成「有才建」：Supabase 上行为逐字不变；境内没有它 —— 中国版不发遥测（这两个任务管的是
--- bt_events），流水清理见下面 bt_grant_usage 那一段的注释。
+-- 所以改成「有才建」：Supabase 上行为逐字不变；境内 postgres:15-alpine 没有 pg_cron，
+-- 汇总 / 180 天清理在那边跳过。表仍是这份文件的 bt_events 段，不另建中国表。
+-- 流水清理见下面 bt_grant_usage 那一段的注释。
 do $cron$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
@@ -211,7 +212,7 @@ begin
     perform cron.schedule('bt_events_rollup',    '17 3 * * *', $$select public.bt_rollup_day((now() - interval '1 day')::date)$$);
     perform cron.schedule('bt_events_retention', '27 3 * * *', $$delete from public.bt_events where received_at < now() - interval '180 days'$$);
   else
-    raise notice 'pg_cron 不可用：跳过 bt_events 的汇总 / 清理任务（中国版境内后端不收遥测）';
+    raise notice 'pg_cron 不可用：跳过 bt_events 的汇总 / 清理任务（表仍是同一份 schema.sql，不另建中国表）';
   end if;
 end
 $cron$;

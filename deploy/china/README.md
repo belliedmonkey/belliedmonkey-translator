@@ -14,6 +14,8 @@
 >   单独 `grants.sql` —— 翻 `grant.china.ready` 之前必须先跑它，否则中继的 `/check`、`/charge`
 >   与领取都没有落点（**账本与账号同库**，2026-09-22 裁定）。
 > - 删号服务只听 8000（共享文件 `Deno.serve(handler)` 不读 PORT）—— 原配置的 8080 已改。
+> - 匿名用量入口 `bt-ingest` 的接线在 §7（BEL-135 Phase B）。表不另写，用同一份
+>   `supabase/schema.sql` 的遥测段。这个提交不部署；现网要在杭州侧起容器并做 SQL 回读。
 > - **不做迁移**（用户裁定，读数：东京里大陆 IP 的外部账号 11 个，有像样数据的 2 个且与用户本人同网段）。
 >   切过去那一版的版本说明 + 隐私页写清「需重新登录、东京旧卡片不自动过来、本机卡片会重新同步」。
 
@@ -213,3 +215,55 @@ curl -s -X POST https://api.belliedmonkey.com/functions/v1/bt-grant-ledger/check
 5. **腾讯云 API 网关触发器已停止售卖**（`FailedOperation.LimitingResourceCreated`）：
    老的 `Type: apigw` 建不出来，公网访问要走**函数 URL**（`CreateTrigger --Type http`，
    与触发器共用接口）。中继地址因此形如 `https://<app-id>-<url-id>.<region>.tencentscf.com`。
+
+---
+
+## 7. 匿名用量入口 `bt-ingest`（BEL-135 Phase B）
+
+与 `grant` 同构：`docker-compose.yml` 里一个 `ingest` 服务，挂
+`supabase/functions/bt-ingest`（只读，不把实现抄进 `deploy/china`），只听 8000。
+`Caddyfile` 在 `handle_path /functions/v1/*` 兜底**之前**加一条具名路由
+`/functions/v1/bt-ingest` → `ingest:8000`。函数不校验 JWT，也不需要 `ANON_KEY`；
+环境只有 `SUPABASE_URL=http://proxy:8081` 与 `SUPABASE_SERVICE_ROLE_KEY`。
+
+**不另建表。** 灌的是同一份 [`supabase/schema.sql`](../../supabase/schema.sql) 遥测段
+（`bt_events` / `bt_daily` / `bt_optouts`，以及 `bt_rollup_day` / `bt_optout_bump`）。
+§3 第 ③ 步已经整份灌过。机器若早于这段：再灌一次同一份文件（`create table if not exists`），
+然后 `docker compose restart rest`。没有中国版专用 SQL。postgres:15-alpine 没有
+`pg_cron`，那段打一条 notice 后跳过汇总 / 180 天清理，表照建。
+
+上机只从**杭州 Mac** 或**极空间** SSH。云代理、CI、本仓库会话不 SSH、不部署。
+仓库里没有这台机器的密码；从别的机器排查走 [`docs/troubleshooting.md`](../../docs/troubleshooting.md)
+§1.2 的腾讯云 TAT，不要在 SSH 上耗。下面的命令是给那两台机器上的人跑的。
+没看到 curl 正文和 SQL 那一行，就不算接上。这个提交本身没有做这两步。
+
+```bash
+cd /opt/bt/deploy/china
+docker compose up -d ingest
+docker compose up -d --force-recreate proxy   # Caddyfile 改了要重载
+# 停：docker compose stop ingest
+```
+
+冒烟（内容脚本发的是 `content-type: text/plain` 的 JSON 数组，这里对齐它）。
+`ts` 必须落在服务器时钟 ±7 天内，否则整条被拒、库里没有行。
+
+```bash
+ID=00000000-0000-4000-8000-0000000000b2
+TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+curl -sS -X POST https://api.belliedmonkey.com/functions/v1/bt-ingest \
+  -H 'content-type: text/plain' \
+  -d "[{\"name\":\"heartbeat\",\"install_id\":\"$ID\",\"ts\":\"$TS\",\"v\":\"1.23.0\",\"flavor\":\"china\",\"host\":\"app\"}]"
+# 期望 {"accepted":1,"rejected":[]}
+# {"error":"missing bearer token"} = 请求落到删号兜底（Caddy 没把这条路径分给 ingest）
+# {"error":"insert_failed"} = 函数到了，表或 PostgREST 没到（重灌 schema.sql 并 restart rest）
+```
+
+SQL 回读（先看到行，再删掉这枚冒烟 id，别把探针留在表里）：
+
+```bash
+docker compose exec -T db psql -U postgres -c \
+  "select name, flavor, host from public.bt_events where install_id = '00000000-0000-4000-8000-0000000000b2';"
+# 期望一行：heartbeat | china | app
+docker compose exec -T db psql -U postgres -c \
+  "delete from public.bt_events where install_id = '00000000-0000-4000-8000-0000000000b2';"
+```
