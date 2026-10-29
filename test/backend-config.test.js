@@ -194,14 +194,36 @@ describe('build.js — 两条路都要在', () => {
   });
 });
 
-// ── Gate D（docs/telemetry-design.md §2 第 6 条）：中国版产物里没有遥测端点 ──
-describe('telemetry — 中国版一个字节都不发', () => {
+// ── BEL-135：中国版遥测与国际版同一白名单，入口是境内 bt-ingest ──
+function telemetryFrom(src) {
+  const line = src.split('\n').find((l) => l.startsWith('window.MT_TELEMETRY = '));
+  if (!line) return null;
+  return JSON.parse(line.slice('window.MT_TELEMETRY = '.length).replace(/;$/, ''));
+}
+describe('telemetry — 中国版打境内 ingest，白名单与国际版同一份', () => {
   const gen = path.join(ROOT, 'dist-china', 'content', 'providers.gen.js');
-  test('dist-china 的 providers.gen.js 里 MT_TELEMETRY 是 null，且没有 bt-ingest', () => {
+  test('build.js 不再把中国版遥测焊成 null', () => {
+    const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8')
+      .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    ok(!/const telemetry = flavor === 'china' \? null/.test(build), '中国版遥测仍是 null 三元');
+    ok(/chinaBackend\(\)\.url/.test(build) && /\/functions\/v1\/bt-ingest/.test(build),
+      '中国版 URL 不是由境内后端拼出来的');
+  });
+  test('dist-china 的 MT_TELEMETRY.url 主机是 china 后端，路径含 bt-ingest', () => {
     if (!fs.existsSync(gen)) { ok(true, '（未构建 china flavor，跳过）'); return; }
     const src = fs.readFileSync(gen, 'utf8');
-    ok(/window\.MT_TELEMETRY = null;/.test(src), 'china 产物里 MT_TELEMETRY 不是 null');
-    ok(!/bt-ingest/.test(src), 'china 产物里出现了遥测端点');
+    ok(!/window\.MT_TELEMETRY = null;/.test(src), 'china 产物里 MT_TELEMETRY 仍是 null');
+    const tel = telemetryFrom(src);
+    ok(tel && tel.url, 'china 产物解析不出 MT_TELEMETRY');
+    const u = new URL(tel.url);
+    const want = new URL(CFG.china.url);
+    eq(u.protocol, 'https:');
+    eq(u.hostname, want.hostname);
+    ok(/\/functions\/v1\/bt-ingest$/.test(u.pathname), u.pathname);
+    ok(!/supabase\.co/i.test(tel.url), 'china ingest 指到了 supabase.co');
+    const cfg = require(path.join(ROOT, 'build/telemetry.config.js'));
+    eq(JSON.stringify(Object.keys(tel.spec.events)), JSON.stringify(Object.keys(cfg.EVENTS)));
+    eq(JSON.stringify(tel.spec.common.flavor), JSON.stringify(cfg.COMMON.flavor));
   });
   test('global 产物里有端点与白名单', () => {
     const g = path.join(ROOT, 'dist', 'content', 'providers.gen.js');

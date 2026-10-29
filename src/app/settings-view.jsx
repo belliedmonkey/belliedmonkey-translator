@@ -1244,12 +1244,17 @@ export default function SettingsView() {
     }
     $('feedback-rate').addEventListener('click', () => { MTFeedback.open(MTFeedback.rateUrl()); });
     // 匿名用量事件的开关：独立键（tm:on），不进任何 saveAll。
-    // 遥测脚本的在位与否经注册表读（中国版没有脚本，整块藏掉）。
+    // 有 MT_TELEMETRY 就亮出整块（中国版与国际版同一句、同一个开关）。
     try {
       if (Registry.telemetryEnabled() && typeof MTTelemetry !== 'undefined') {
         $('telemetry-block').hidden = false;
         MTTelemetry.enabled().then((on) => { $('telemetry-on').checked = !!on; });
         $('telemetry-on').addEventListener('change', () => { MTTelemetry.setEnabled($('telemetry-on').checked); });
+        const what = $('telemetry-what');
+        if (what) what.addEventListener('click', () => {
+          const hooks = settingsModel.hooks();
+          if (hooks.openExternal) hooks.openExternal(Registry.telemetryPrivacyUrl());
+        });
       }
     } catch (_) {}
 
@@ -1821,11 +1826,12 @@ export default function SettingsView() {
           <button id="feedback-rate" type="button" className="secondary">{t('feedback_rate', '去商店评分')}</button>
           <p className="note" id="feedback-note">{t('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。')}</p>
         </div>
-        {/* 匿名用量事件的开关（docs/telemetry-design.md §5）。中国版没有遥测脚本，整块藏掉。 */}
+        {/* 匿名用量事件的开关（docs/telemetry-design.md §5）。有 MT_TELEMETRY 才揭开，句形不改。 */}
         <div id="telemetry-block" hidden>
           <h3 id="telemetry-title">{t('telemetry_section', '匿名用量数据')}</h3>
           <label className="row-toggle"><span id="telemetry-label">{t('telemetry_toggle', '分享匿名用量数据')}</span><input type="checkbox" id="telemetry-on" /></label>
           <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</p>
+          <button id="telemetry-what" type="button" className="secondary">{t('telemetry_what', '会发送什么')}</button>
         </div>
         {/* 诊断日志（§0.4.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
             内部排障面，不走产品稿（用户裁定：只有我们自己看）；不上传 —— 复制出来贴给排障的人。 */}

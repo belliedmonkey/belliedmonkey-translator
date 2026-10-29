@@ -19,10 +19,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > [`docs/telemetry-design.md`](docs/telemetry-design.md), governed by `AGENTS.md`
 > rule 4 (amended 2026-09-05) and released through `docs/learning-design.md` §10
 > Gate D. The event whitelist there is the only registry — adding an event or a
-> property is a domain-design change. The China flavor sends no telemetry-whitelist
-> events; it sends only the separately-disclosed, content-free anonymous diagnostics
-> channel — no original text, no translation, ever (`docs/telemetry-design.md`
-> §诊断上报, 2026-10-06 L2).
+> property is a domain-design change. The China flavor sends the **same** telemetry
+> whitelist as intl, to the in-country ingest (`api.belliedmonkey.com/.../bt-ingest`,
+> never Tokyo / `*.supabase.co`; BEL-135, 2026-10-29). It also sends the
+> separately-disclosed, content-free anonymous diagnostics channel — no original
+> text, no translation, ever (`docs/telemetry-design.md` §诊断上报, 2026-10-06 L2).
+> In-country ingest deploy and read-back (Phase B) is still separate.
 >
 > **Two hosts（双宿主）:** this repo is driven by **Claude Code** *and* **Reasonix**,
 > and the working tree is the only place their configuration lives — see

@@ -66,7 +66,12 @@ these in order when designing anything new:
     内容 / URL / 账号 / 密钥一个键都进不来）POST 到自有后端信箱 `bt_diag_events`（**INSERT-only**）。
     它**不走遥测白名单**（没有 `track()`），是**单独披露**的一条通道：默认开、设置里可关、
     启动后 5 秒或每 40 条一批、失败静默。⇒ 两站隐私页措辞必须**同版本**改写（不再写「一个字节都不发」）；
-    改这句承诺本身是域设计变更，见 #569。 Adding an event, a property, or a join is a
+    改这句承诺本身是域设计变更，见 #569。
+   *(Note 2026-10-29 — BEL-135.)* **中国 flavor 的匿名用量白名单 ≡ 国际版**（同一 `EVENTS` / `SEAMS`）。
+   入口是境内 `api.belliedmonkey.com/functions/v1/bt-ingest`（`MT_BACKEND.china.url`），**不**共东京生产、
+   不走 `*.supabase.co`。诊断通道（上一段）仍独立、不并进 `track()`。原文 / 译文 / 音频 / URL / 账号 / key 仍硬禁。
+   这覆盖 2026-10-24「仅 listen_* / 白名单 0 行」。境内 ingest 现网部署与回读是 Phase B，未回读不得宣称生产已对齐。
+   Adding an event, a property, or a join is a
    domain-design change (governance rule below), not a code change. Model inference on
    user content (translation, quiz generation, grading) is allowed **only** when the
    user chose it and is paying for it, because it is a real recurring cost (rule 8).

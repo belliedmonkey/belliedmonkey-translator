@@ -212,7 +212,7 @@
 - BAN-25 别拿自己注入的测试 hack 当出货代码的证据；要验已构建 / 已加载的扩展 —— 来源「docs/verification-spec.md:2539-2540」
 - BAN-26 竞品全名绝不进 App Store keywords（官网 / README / HN / Reddit 可以写）—— 来源「docs/seo-geo-checklist.md:57-58」「docs/growth-spec.md:137」
 - BAN-27 永远不要把第三方的短码直接写进产品或 README；对外发自己域名下的 307 短链（不用 308，它会被浏览器永久缓存）—— 来源「docs/growth-spec.md:64-72」
-- BAN-28 绝不用第三方分析（无 SDK、无第三方统计、无第三方分析平台）；遥测数据直连自有后端；中国版一条遥测事件都不发（另有单独披露的、不含内容的匿名诊断通道，原文 / 译文一律不发）—— 来源「docs/telemetry-design.md:66-75」
+- BAN-28 绝不用第三方分析（无 SDK、无第三方统计、无第三方分析平台）；遥测数据直连自有后端。中国版与国际版同一份用量白名单，入口是境内 ingest，不共东京；诊断通道仍单独披露、不含原文 / 译文（2026-10-29，BEL-135）—— 来源「docs/telemetry-design.md §2 原则 6」
 - BAN-29 台账（账号 ↔ 花费）与遥测永不 join；中继转发的文本不进任何表、不进日志 —— 来源「docs/telemetry-design.md:75-78」「docs/telemetry-design.md:129」
 - BAN-30 采集是汇绝不是源：Collector 绝不反向施压引擎（不影响选活跃、不改泵节奏、不标记单元、绝不自发翻译请求）；运行时删掉学习层，翻译输出必须逐字节相同 —— 来源「docs/learning-design.md:213-217」
 - BAN-31 禁止自我采集：注入的学习 UI 必须带 `translate="no"` 且带跳过区标记；Collector 跳过译文节点与所有 `#mt-*` 子树 —— 来源「docs/learning-design.md:239-242」
@@ -320,7 +320,7 @@
 - CON-06 旧测试计数 —— **已处理**：`docs/verification-spec.md:3289`（1635，标 2026-09-11 历史读数）、`docs/verification-spec.md:3478`（2294，标 2026-09-28）、`docs/device-verification.md:420`（2382，2026-10-04）、`:495`（2384）、`:517`（2386）、`:541`（2387，2026-10-05）全部标成带日期的历史读数，并指向现行基线 2628/2628（`docs/release-baseline-1.19.3.md:8`）。
 - CON-07 旧 Node 下限 —— **已处理**：`docs/amo-build.md:10-12` 按 `CLAUDE.md` 分档改写——构建与真 Chrome 门 **≥22**，`npm test` **≥20**，`package.json` engines ≥20。
 - CON-08 旧 VM 位置（Windows 测试）—— **已处理**：`.claude/skills/win-matrix/SKILL.md:3`、`:6`、`:17-32` 目标改为**现行是 Omarchy 上的 Windows VM**（Edge / Chrome / Firefox 都在那台测；需要人工介入就放弃该项并如实记 ⬜），VMware Fusion 那段标「历史」保留；`docs/verification-spec.md:1335-1352`（§H 标题与目标段）、`CLAUDE.md:53-60` 同口径改写。
-- CON-09 中国版「一个字节都不发」 —— **已处理**：`docs/telemetry-design.md:66-75`（原则 6）、`:116`、`:122`、`:550`，`docs/troubleshooting.md:237`、`:247`，`docs/learning-design.md:4512` 统一为「**中国版只发不含内容的匿名诊断，原文和译文一律不发**」，与 `AGENTS.md:64-69` 的 2026-10-06 诊断 L2 一致。`docs/china-backend-cost.md:30` 未改——那句指同步（未登录不上传），不是遥测。
+- CON-09 中国版「一个字节都不发」 —— **2026-10-29 再改（BEL-135）**：用量白名单与国际版相同，入口境内；诊断通道仍不含原文和译文。现行文在 `docs/telemetry-design.md` 原则 6、`docs/decisions.md` §2.4、`AGENTS.md` 规则 4 的 2026-10-29 注。`docs/china-backend-cost.md:30` 未改——那句指同步（未登录不上传），不是遥测。
 - CON-10 云端实时「待人评审」与已落地的删除 —— **已处理**：`docs/domain-design.md:254`、`docs/domain-design.md:1309`、`docs/verification-spec.md:725`、`docs/telemetry-design.md:294` 四处旧口径标注「**已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删）」，不删。
 - CON-11 提供方清单被复述 —— **已处理**：`CLAUDE.md:100-103` 删掉复述，改为指向唯一注册表 `build/providers.config.js` → `content/providers.gen.js`，并说明「不再在此复述」。
 - CON-12 oauth-design 整篇过期 —— **已处理**：`docs/oauth-design.md:3-8` 文件开头加醒目标注「**已过期（2026-10-12）：仅作历史，订阅认证以 `docs/subscription-auth-research.md` 为准**」，正文与 2026-09-09 复核记录保留不删。

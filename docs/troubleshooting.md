@@ -163,7 +163,7 @@ docker compose logs --since 72h auth 2>&1 | grep -F '<IP>' | tail -60
    所以它不该在界面上变成报错。
 3. 「连不上服务器」这**句文案**只有一个来源：`src/app/shell-model.js` 的 `humanError()`
    —— `code === 'network' || code === 'offline'`。即 **fetch 根本没完成**。
-   按 §0 的表，**这类失败服务端日志里查不到、遥测也上报不了** —— `auth_fail` 0 行因此是**预期**，不是埋点漏了。
+   按 §0 的表，**设备根本发不出请求时**服务端日志里查不到，遥测 POST 也到不了。2026-10-03 这次中国版 `auth_fail` 0 行还有第二个原因：当时 `MT_TELEMETRY` 是 null。自 2026-10-29（BEL-135）起，在线的中国版会把 `auth_fail` 发到境内 ingest；0 行不再能用「中国版不发遥测」解释。Phase B 未回读前，404 也不是「没发」。
 
 ### 1.5 所以下次怎么查这条
 
@@ -232,19 +232,20 @@ npm run verify:app-fresh -- "<…/BelliedMonkey Translator CN.app>" china   # �
 `ASAuthorizationController` 的面板出不来 ⇒ **Apple 这条路本机复现不了**，只能真机
 （仓库里一直记着「未验：真机中国版 Apple 登录」，见 `deploy/china/README.md` §4 第 2 条）。
 
-### 1.9 中国版怎么留证据：本机诊断 `mt:diag`（2026-10-03 加）
+### 1.9 中国版登录失败的证据（2026-10-29 改；本机 `mt:diag` 只是没有 URL 时的兜底）
 
-中国版按承诺不发遥测事件（规则 4；2026-10-06 起另有不含内容的匿名诊断通道，原文与译文一律不发，见 `docs/telemetry-design.md`「诊断上报」），于是**登录失败在那个 flavor 里原本不留任何痕迹** ——
-而境内后端只有那个 flavor 会碰到。折中：**同样的记录，换个落点 —— 留在本机、绝不外发**。
+中国版与国际版走同一条 `track`（BEL-135）。`auth_fail` 发到境内
+`api.belliedmonkey.com/functions/v1/bt-ingest`，不发到东京。诊断通道（L2）仍是另一条、不含原文与译文。
 
-`extension/learn/telemetry.js`：当 `spec() === null`（＝**这个 build 根本没有遥测**）时，
-把 `auth_fail` 追加到本机 `localStorage['mt:diag']`（JSON 数组，**上限 20 条**，只记 auth_fail）。
+`extension/learn/telemetry.js`：只有 `spec() === null`（这个 build **没有**遥测 URL，例如境内后端未就绪）时，
+才把 `auth_fail` 追加到本机 `localStorage['mt:diag']`（JSON 数组，**上限 20 条**，只记 auth_fail）。
+有 URL 时不写本机环，避免拿它代替外发。
 
 - **判定用 `spec() === null`，不是 `enabled()`** —— 用户自己关掉遥测（有 spec、`tm:on=false`）
   **不写**：那是他的选择，不该被一个本机副本绕过。
 - 记录形状与遥测那条相同（`{name, props, ts}`），props 就是 `auth_fail` 的白名单键
   （`provider` / `stage` / `code` / `http` / `attempt`）。没有 install id、没有 URL、没有邮箱。
-- **仍然不发任何遥测事件**（诊断通道走的是另一条路径、不含内容）—— 回归钉住了：`test/telemetry.test.js` 的 ⑤ / ⑤b / ⑤c。
+- 回归：`test/telemetry.test.js` 的 ⑤（无规格留本机）/ ⑤b / ⑤c / ⑤d（中国版外发到境内主机，`flavor=china`）。
 
 **怎么读出来**（真机、USB 连着、**解锁**）：
 
@@ -254,8 +255,7 @@ xcrun devicectl device info files --device <UDID> \
 ```
 
 拿到 WebKit 的 LocalStorage sqlite 后 copy 出来，`sqlite3` 查 key = `mt:diag`（值是 UTF-16 或 UTF-8，
-按 `strings` 兜底也行）。**别用模拟器验这条** —— 中国版模拟器包的 `MT_TELEMETRY` 同样是 `null`，
-行为一致，但模拟器碰不到境内后端。
+按 `strings` 兜底也行）。这条只在**没有遥测 URL** 的包上有行。现行中国版包有境内 URL 时，`auth_fail` 在队列和境内表里，不在 `mt:diag`。模拟器碰不到境内后端，不能用它宣称 Phase B 已回读。
 
 `stage` 读出来怎么分：`native` = 原生那步没给出 id_token；`id_token` = 换会话那个 POST 失败
 （`code='offline'` 就是「连不上服务器」那句）。
@@ -361,8 +361,9 @@ update public.bt_model_sources set active = false, updated_at = now()
 
 ## 4. 不要做的事
 
-- **不要为了查问题去开中国版遥测。** 它要改的是一条**写死的承诺**（`AGENTS.md` 规则 4 + 官网隐私页，
-  且隐私页必须与功能同版本发），成本远高于问题本身；而 §0 说了，它对网络类失败**根本抓不到**。
+- **不要把中国版遥测指到东京来查问题。** 中国版已经发与国际版同一份白名单，入口只能是境内
+  `api.belliedmonkey.com/.../bt-ingest`（`AGENTS.md` 规则 4，2026-10-29）。指到 `*.supabase.co` 是跨境，合规门会红。
+  设备根本发不出请求时，服务端和遥测都没有这一行（§0）；Phase B 未回读前，404 不是「遥测关着」。
 - **不要动 `previousUrl`。** 合规门（`build/china-gate.js`）为它开了豁免，它是归属比较用的，删了会让
   老用户的库挂到一个登不上的身份下（`docs/learning-design.md` §8.4.3）。
 - **不要把 `172.18.x.x` 当用户。** 见 §1.3。

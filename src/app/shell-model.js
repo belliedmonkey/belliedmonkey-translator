@@ -2050,8 +2050,8 @@ export function bootShell() {
       $('ob-xb-box').hidden = !xbNeeded;
       $('ob-kv').hidden = false;
       obKv([[t('ob_kv_twice', '扩展里也要登录一次'), t('ob_kv_twice_note', '两边的存储是分开的，所以会收到两次验证码。用同一个邮箱。')]]);
-      // 匿名用量事件说在前面（docs/telemetry-design.md §5）。中国版 App 同一份 bundle，
-      // 但 MT_TELEMETRY 为 null，这一句藏掉。
+      // 匿名用量事件说在前面（docs/telemetry-design.md §5）。有 MT_TELEMETRY 就露出
+      // #ob-telemetry，句形两个 flavor 相同。
       const tn = $('ob-telemetry');
       if (tn) { tn.hidden = !Registry.telemetryEnabled(); tn.textContent = t('telemetry_onboard', '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。'); }
     }

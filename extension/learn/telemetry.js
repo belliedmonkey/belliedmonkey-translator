@@ -9,9 +9,11 @@
 //   ③ **可关且关了即删**：tm:on=false 之后 track() 是空操作；关的那一刻发唯一一条
 //      telemetry_off（服务端据此删掉这个 id 的全部行），本机 id 与队列一并清掉。
 //
-// 中国版：build.js 把 MT_TELEMETRY 发成 null。那个 flavor 里这个文件**不发任何东西**，
-// 但**不是**空操作：`auth_fail` 会留在本机（`mt:diag`，上限 20 条，见 trackOne 的注释）。
-// 理由：境内后端只有中国版会碰到，而那条路上「登录失败」原本不留任何痕迹。
+// 中国版与国际版走同一条 track（BEL-135）：build.js 给中国版发境内
+// `MT_TELEMETRY.url`（api.belliedmonkey.com/.../bt-ingest），事件名与属性是同一张表。
+// `auth_fail` 因此也外发，只是落在境内，不落东京。
+// 只有这个 build **根本没有**遥测规格（spec() === null，例如 china.ready 仍为 false）
+// 时，`auth_fail` 才留在本机（`mt:diag`，上限 20 条）。那不是「中国版不发」的承诺。
 //
 // 传输：事件先入 chrome.storage.local 的队列（上限 200，满了丢最旧），满 10 条、或
 // 距上次 ≥ 60 s、或扩展页打开时 flush 一次。请求体用 text/plain —— 简单请求，不触发
@@ -146,21 +148,26 @@ var MTTelemetry = (() => {
     p.catch(() => { if (idFlight === p) idFlight = null; });
     return p;
   }
+  // 信封上的 flavor 跟构建走。写死 global 会把中国版的行记成国际版。
+  function buildFlavor() {
+    try {
+      const f = (typeof window !== 'undefined' && window.MT_FLAVOR) || '';
+      if (f === 'china' || f === 'global') return f;
+    } catch (_) {}
+    return 'global';
+  }
   function envelope(id, e) {
     return {
-      install_id: id, ts: e.ts, v: version(), flavor: 'global', host: host(),
+      install_id: id, ts: e.ts, v: version(), flavor: buildFlavor(), host: host(),
       device: device(), ui: ui(), name: e.name, props: e.props,
     };
   }
 
-  // ── 本机诊断（只有「这个 build 根本没有遥测」时才写）────────────────────────
-  // 中国版**按承诺一个字节都不发**（AGENTS.md 规则 4；belliedmonkey.com 写死）。代价是
-  // 「登录失败」在那个 flavor 里不留任何痕迹 —— 而境内后端恰恰只有那个 flavor 会碰到。
-  // 折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**。
-  //
-  // 判定用 `spec() === null`（＝这个 build 压根没有遥测），**不是** `enabled()`：
-  // 用户自己把遥测关掉（有 spec、`tm:on=false`）**不写** —— 那是他的选择，
-  // 不该被一个本机副本绕过。
+  // ── 本机诊断（只有「这个 build 根本没有遥测规格」时才写）────────────────────
+  // 中国版有境内 ingest 之后，auth_fail 走上面的 track，发到境内。这里只兜
+  // spec() === null 的构建（没有 URL 可发）。判定**不是** enabled()：用户自己关掉
+  // 遥测（有 spec、tm:on=false）不写 —— 那是他的选择，不该被本机副本绕过。
+  // 本机环不是「中国版不发遥测」的出口。
   const DIAG_KEY = 'mt:diag', DIAG_CAP = 20;
   function diag(name, props, now) {
     try {
@@ -185,8 +192,9 @@ var MTTelemetry = (() => {
   }
   async function trackOne(name, props, now) {
     try {
-      // 这个 build 没有遥测（中国版）：不发，但把登录失败留在本机（见上）。
+      // 这个 build 没有遥测规格：不发，但把登录失败留在本机（见上）。
       // 只记 auth_fail —— 其余事件没有「查一个具体故障」的用途，留了只是噪声。
+      // 中国版规格在时不进这里，auth_fail 与别的事件一样入队、发往境内。
       if (!spec()) {
         if (name === 'auth_fail') diag(name, props, now);
         return false;
@@ -329,7 +337,7 @@ var MTTelemetry = (() => {
     track, once, flush, init, enabled, setEnabled, installId, dwell,
     // 测试与调试
     _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
-    // 本机诊断（中国版那条路）：只读出口，给测试与「从设备容器里读回来」用。
+    // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
 })();

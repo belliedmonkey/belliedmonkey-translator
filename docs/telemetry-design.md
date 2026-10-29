@@ -18,7 +18,9 @@
 > document first, reviewed by a human, then code.
 > **2026-10-28（BEL-113，待人评审）**：App 首启听译漏斗加 `mic_permission` / `asr_start` /
 > `asr_fail` / `translate_start`。已有 `asr_entry` / `translate_ok` / `translate_fail` 语义不变。
-> 中国版仍不发白名单事件。起因与互斥口径在 §3.16。
+> 起因与互斥口径在 §3.16。
+> **2026-10-29（BEL-135）**：中国 flavor 的白名单 ≡ intl，入口境内。见 §2 原则 6。本注册表尚无
+> `listen_session` / `listen_first_line`，本修订不新造这两条。
 
 ## 0. Why this exists (issue #174, answered)
 
@@ -67,15 +69,20 @@ If a proposed event does not serve one of these rows, it does not go in.
    switch in settings, a privacy-page section listing every field.
 5. **The event set is a whitelist.** Same rule as the provider registry: one place,
    reviewed, nothing restated elsewhere.
-6. **The China flavor sends no telemetry-whitelist events — only the content-free anonymous
-   diagnostics channel.** `belliedmonkey.com` promises 「『无遥测』是长期承诺 ……不随版本变化」 in
-   writing, and that stays true of the anonymous usage-event whitelist: the china build strips the
-   telemetry module and its URL, and no event crosses the border under PIPL. Since 2026-10-06 (L2)
-   the china flavor additionally ships the **separately-disclosed diagnostic upload** (random install
-   id + event name + counts into an INSERT-only mailbox) — **the original text and the translation are
-   never sent, nor is any page content, URL, account or key** (field whitelist enforced in `push`).
-   See 「诊断上报」 below and the `AGENTS.md` rule 4 note. The two privacy pages must be reworded in
-   the same version (#569): stop writing an unqualified 「一个字节都不发」.
+6. **中国 flavor：事件白名单 ≡ intl（同一 `EVENTS` / `SEAMS`）；入口仍境内。**（2026-10-29，BEL-135。
+   **覆盖** 2026-10-24「仅 listen_*」与「默认 0 行」，以及本文件里凡写「中国版照旧一条不发 / `MT_TELEMETRY`
+   为 null」的现行承诺。那些句子若出现在更早的修订节里，只记载当时，不再是现在的规则。）
+   中国构建发出与国际版同一注册表的匿名用量事件；`COMMON.flavor` 含 `china`；`MT_TELEMETRY.url` 派生自
+   `MT_BACKEND.china.url` + `/functions/v1/bt-ingest`。**禁**共东京生产 / `*.supabase.co`。china-gate 按**主机维**
+   放行境内 ingest，东京路径上的 grant/relay 仍禁。诊断通道（L2）独立并列，不并进 `track()`。原文/译文/音频/URL/账号/key
+   硬禁。`bt_grants` 永不与 `install_id` join。
+   listen_* 若已在 intl 注册表里，字段与 intl 全表相同；本仓当前没有 `listen_session` / `listen_first_line`，
+   本修订不新造事件。若产品书面保留子集，须另列 ACCEPT 并改隐私表。
+   隐私页 / 首启与发出事件同版；.cc ≡ .com；商店 `privacy.html` 硬 URL 不改 path（旁观 BEL-128）。
+   客户端句形沿用已有 `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint`，不另造句。中国包亮出
+   `#ob-telemetry` 与设置里的同一开关。
+   境内 ingest 现网部署+回读（Phase B）另批；未回读不得宣称「已对齐上线」。
+   诊断上报仍是单独披露的通道（见「诊断上报」）：随机安装 id + 事件名 + 计数，**原文与译文一律不发**。
 7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
    （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
    转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
@@ -160,15 +167,12 @@ post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`�
 6. 否则有过 `mic_permission` 且从未 `granted` → 权限没给（再按最后的 `permission_state` 拆）
 7. 一条 `mic_permission` 都没有 → 未知（旧包，或原生桥还不会回报状态）
 
-扩展不发这四条。中国版 `MT_TELEMETRY` 仍是 null，这四条在那里同样不进 `bt_events`。服务端要收新事件名，得用更新后的 `events.gen.json` 重新部署 `bt-ingest`；表结构不用改，`props` 已是 jsonb。
+扩展不发这四条。中国版与国际版同一份白名单（原则 6），这四条在中国版进境内 `bt-ingest`，不进东京。服务端要收新事件名，得用更新后的 `events.gen.json` 重新部署**该入口的** `bt-ingest`；表结构不用改，`props` 已是 jsonb。境内这一侧的现网部署是 Phase B。
 
-**`auth_fail` 在中国版留在本机（2026-10-03，§3.14 附注）。** 中国版不发任何遥测白名单事件（2026-10-06 起另有不含内容的匿名诊断通道，见「诊断上报」；原文与译文一律不发），
-于是「登录失败」在那个 flavor 里**原本不留任何痕迹** —— 而境内后端只有那个 flavor 会碰到
-（`docs/troubleshooting.md` §1）。折中只有一个落点：**同样的记录，换个落点 —— 留在本机、绝不外发**
-（`extension/learn/telemetry.js`，`localStorage['mt:diag']`，上限 20 条，**只记 `auth_fail`** ——
-其余事件没有「查一个具体故障」的用途，留了只是噪声）。判定用 `spec() === null`（＝这个 build
-根本没有遥测），**不是** `enabled()`：用户自己关掉遥测（有 spec、`tm:on=false`）**不写**。
-承诺一个字没动（遥测白名单一条都不发；诊断通道另计、不含内容），读法见 `docs/troubleshooting.md` §1.9。
+**`auth_fail` 外发（2026-10-29 覆盖 2026-10-03 的本机-only 附注）。** 中国版走与国际版同一条 `track`。
+`auth_fail` 发往境内 ingest，不发往东京。本机 `localStorage['mt:diag']`（上限 20 条，只记 `auth_fail`）
+只在 `spec() === null`（这个 build 根本没有遥测 URL）时写，**不是** `enabled()`：用户自己关掉遥测
+（有 spec、`tm:on=false`）不写。它不再被当成「中国版不发遥测」的出口。读法见 `docs/troubleshooting.md` §1.9。
 
 **免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
 `grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
@@ -483,7 +487,7 @@ domain-design §2.6 / learning-design §9.9 加了两个 App 专属的表面。�
    id 自己发（第二条发送实现）；而把事件排进采集收件箱让 App 代发，会破坏收件箱「只存六个字段」的承诺，`ts` 也会漂出
    ±7 天窗口。它的用量由一个不带内容的既有信号间接回答：收件箱第一次摄入成功时的 `capture_first`。够不够，出货一个月后再看。
 4. **`host` 不加值。** Mac 面板在 App 进程里，仍是 `app`。
-5. **中国版照旧一条不发**，`ExtEngine.js` 里本来也没有遥测模块。
+5. **中国版照旧一条不发**（此句止于 2026-10-29；现行见原则 6），`ExtEngine.js` 里本来也没有遥测模块。
 
 合并后的顺序照旧：`build/telemetry.config.js` → `node scripts/gen-telemetry.js` → 部署 `bt-ingest` → registry 测试。
 
@@ -596,7 +600,7 @@ edge function neither stores nor logs them as a field).
 
 ⚠️ 两条限制写在前面：`ui=zh` **不等于身在中国大陆**（中文界面可能在任何地方），16 vs 7
 也说明不了统计意义。**这是方向，不是结论。** 另外这四倍差在**国际版内部**（按 `ui` 切），
-与 flavor 无关 —— 中国版按 §2 原则 6 不发遥测白名单事件（诊断通道另计、不含内容），不要混为一谈。
+与 flavor 无关。中国版自 2026-10-29 起按原则 6 发同一份白名单（入口境内）；诊断通道仍另计、不含内容。
 
 **现在的数据回答不了「为什么」。** `onboarding_done` 有 `surface` / `result` / `step`，
 所以我们知道**他停在第 1 屏**，但分不开这两种人：
@@ -691,7 +695,7 @@ edge function neither stores nor logs them as a field).
 两者都不再是成功判据。
 
 **口径与隐私不变**：仍然只有分钟级 `ts`、没有卡的内容、没有页面地址；日级节奏由
-`(install_id, ts::date)` 去重得出，**不引入任何新字段**。中国版照旧一条不发。
+`(install_id, ts::date)` 去重得出，**不引入任何新字段**。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
 
 **不在本提案里的那一半**：如果判据是「有没有回来」，那么复习面把「清空今天」当终点的框法、
 以及 `dailyNew: 15` / `deckSize: 20` 这两个默认值都该重估 —— 一个每天都清不完的任务，
@@ -831,7 +835,7 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
 把第六问（「提示被看见了吗、有人理吗」）的数据搅浑。
 
 **口径与隐私不变**：仍然只有枚举，没有内容、没有页面地址、没有句数；「跨 ≥2 天」的日期集合只存本机
-（与 `mtOkSessions` 同处），**不上报**。中国版照旧一条不发。
+（与 `mtOkSessions` 同处），**不上报**。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
 
 **第三轮（2026-09-25 晚，用户对话中同意）：Chrome / Firefox 也不再要评分。** 第二轮留着它的理由只有
 「5.6.1 管不到」—— 那只说明**可以**问，不说明**应该**问：Chrome 12 台 / 90 次展示同样 0 点击；Chrome / Firefox 商店的评分
@@ -875,7 +879,7 @@ custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主�
   `prefs` = 打开 macOS 的 Safari 扩展设置，**不写这个键**。合并会让「问过多少人」与「走的是哪条路」重新搅在一起
   —— 与 §3.7 B 把 `check` 从 `setup` 拆出来是同一条理由。
 
-**边界与隐私**：两条都只发枚举值 —— 不带内容、不带页面地址、不带系统版本、不加字段；中国版照旧一条不发（规则 4）。
+**边界与隐私**：两条都只发枚举值 —— 不带内容、不带页面地址、不带系统版本、不加字段。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
 
 ### 3.14 2026-10-02 amendment（**当日用户评审通过**）：登录失败是黑的 —— 扩展与 App 都补一条 `auth_fail`
 
@@ -904,7 +908,7 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
 —— 不另写一份白名单与归一化（同 §3.4「发布点跟着共用层，不挂调用方」）。`test/telemetry-registry.test.js`
 钉住两宿主的发送点。
 
-**边界与隐私**：不带账号、邮箱、手机号、令牌、任何正文或地址；只有枚举与数字。中国版照旧一条不发（规则 4）。
+**边界与隐私**：不带账号、邮箱、手机号、令牌、任何正文或地址；只有枚举与数字。中国版自 2026-10-29 起把同一条发往境内 ingest（原则 6）；本机环只在没有遥测 URL 时兜底。
 注册表的 `FORBIDDEN_KEY_WORDS` 是机器判据 —— 谁往属性名里塞内容/身份类的词，测试直接红。
 
 ## 4. Transport
@@ -914,9 +918,8 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   `flush()` runs when the queue reaches 10, or 60 s have passed, or any extension page
   opens; `navigator.sendBeacon` first, `fetch(keepalive)` as fallback. The host app runs
   the same bytes via `Script.js`.
-- **Endpoint** `MT_BACKEND.url + '/functions/v1/bt-ingest'`, emitted by `build.js` as
-  `window.MT_TELEMETRY_URL` into `providers.gen.js` (which content scripts already
-  load). **No anon key**: the function is deployed `--no-verify-jwt`, so content scripts
+- **Endpoint** global: `MT_BACKEND.url + '/functions/v1/bt-ingest'`. China: `MT_BACKEND.china.url + '/functions/v1/bt-ingest'` (in-country; never `*.supabase.co`). `build.js` emits `window.MT_TELEMETRY = { url, spec }` into `providers.gen.js` (which content scripts already
+  load). China is `null` only while `china.ready` is false. **No anon key**: the function is deployed `--no-verify-jwt`, so content scripts
   never load `backend.config.js` — `build.js`'s standing rule is that the anon key must
   not ride in a script injected into every page; the URL alone is public anyway.
 - **Server** `supabase/functions/bt-ingest/index.ts`: event name and property keys
@@ -939,9 +942,11 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
 - **Onboarding, last screen**, one sentence with a link to the privacy section:
   「会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。」
 - **Settings → About** (extension and app alike): a switch 「分享匿名用量数据」 and a
-  「会发送什么」 link. The switch is a **standalone key** in the `engineChosen` style —
-  not part of `saveAll()`'s literal reads — so the China flavor, which has no such
-  control, cannot break saving.
+  「会发送什么」 link to `privacy.html#usage` (China → `belliedmonkey.com`, intl → `belliedmonkey.cc`).
+  The switch is a **standalone key** in the `engineChosen` style —
+  not part of `saveAll()`'s literal reads. Both flavors show it when `MT_TELEMETRY` is set.
+  Sentence keys stay `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint` / `telemetry_what`.
+  App last screen shows `#ob-telemetry` with the same onboard sentence. No new screen.
 - **Privacy page** (`belliedmonkey.cc`, 12 locales): a new section listing every
   field, the default, the switch, deletion on opt-out, and the retention period.
   「5. No tracking」 narrows to cross-site tracking / profiles / third-party analytics
@@ -982,7 +987,7 @@ is not restated here. The one-sentence disclosure used verbatim everywhere:
 - **查询口径（#387）**：修复出货之前，App 面的 `installed` / `heartbeat` **按条数数约是两倍**（259 台里 257 台
   重复，256 台重复在同一分钟、同一批上报，中位 2 条、最多 12 条）。比率一直用 `count(distinct install_id)`，
   不受影响；**凡是按事件条数数装机或日活的查询，一律改成按 `install_id` 去重**，旧数据永远带着这个洞。
-- `test/backend-config.test.js` — the china artifact contains no `MT_TELEMETRY_URL`.
+- `test/backend-config.test.js` — the china artifact's `MT_TELEMETRY.url` host is `MT_BACKEND.china.url` and the path contains `bt-ingest`; it is not `*.supabase.co`.
 - `npm run test:smoke` — a local stub endpoint; translate one paragraph; assert a
   `translate_ok` arrives and the payload has **no** URL or text field.
   **2026-09-10：这条此前只写在这里、没有实现**（`verify-extension-smoke.js` 里零命中）；PR1 落地，
@@ -1007,7 +1012,7 @@ marketing sentence — "no telemetry" — retired in favour of "no third party, 
 switch, never your content". **Benefit:** funnel, retention and failure codes, of which
 we have none today. **Cost of not doing it:** already being paid — #174's table, plus
 a whole day on 2026-09-05 spent asking users by email what a heartbeat would have said.
-The China flavor pays nothing and breaks no promise.
+The China flavor sends the same whitelist to the in-country ingest (principle 6). Phase B (deploy and read-back of that ingest) is still separate; until that read-back, do not claim production is aligned.
 
 
 ## 诊断上报（diagnostic upload）—— **独立通道，不进遥测白名单**（2026-10-06，L2）
@@ -1026,8 +1031,8 @@ The China flavor pays nothing and breaks no promise.
 排障读回走 `npm run diag:latest` / `diag:dump -- <uuid>`（SSH 直连，不经 anon）。
 
 **披露与开关。** **单独披露**的一条路径（§2.1 第 3 条的形状）：设置页「诊断日志」（复制 / 清空），
-默认开、可关，关掉即停止上报。**中国版同样只发这一类，且不含任何内容** —— 因此
-`belliedmonkey.com` 的隐私页措辞必须同版本改写（#569），不再写「一个字节都不发」。
+默认开、可关，关掉即停止上报。**中国版同样发这一类，且不含任何内容**；自 2026-10-29 起中国版**另外**发与国际版同一份用量白名单（原则 6，入口境内），诊断通道仍不并进 `track()`。
+`belliedmonkey.com` 的隐私页措辞必须同版本改写（#569 / BEL-135），不再写「一个字节都不发」或「无遥测是长期承诺」。网站正文由另一次改，不在客户端这个 PR 里。
 
 **为什么不做成遥测事件。** 遥测白名单的门禁要求「每个事件在每个宿主有真实发送点」——
 诊断上报没有这样的发送点，硬塞进去只会逼出一个假的 `track()` 调用，把「白名单 = 真发的东西」这条判据做虚。

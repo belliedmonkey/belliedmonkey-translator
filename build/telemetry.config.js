@@ -17,7 +17,7 @@ const COMMON = {
   install_id: 'uuid',      // 本机随机生成，与账号无关；关掉开关即删
   ts: 'iso',               // 客户端时间，取整到分钟；服务端只接受 ±7 天内
   v: 'semver',             // 扩展版本
-  flavor: ['global'],      // 中国版永远不发（AGENTS.md 规则 4）—— 'china' 直接拒
+  flavor: ['global', 'china'],  // 中国版与国际版同一份白名单（BEL-135）；入口仍是境内，不在这张表里
   host: ['safari', 'chrome', 'firefox', 'app'],
   device: ['iPhone', 'iPad', 'Mac', 'Windows', 'Android', 'Linux', ''],
   ui: 'lang',              // 界面语言，粗到 zh / en 这一级；/^[a-z]{2,3}$/

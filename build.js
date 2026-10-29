@@ -358,13 +358,22 @@ function generateProviders(dir, flavor) {
   }
   // 匿名用量事件（docs/telemetry-design.md §4）：端点 + 白名单一起搭这辆车 —— 内容
   // 脚本已经加载 providers.gen.js，而它们不能加载 backend.config.js（anon key）。这里
-  // 只发 URL，不发 key；边缘函数不校验 JWT。**中国版发 null**：那个 flavor 一个字节
-  // 都不发（AGENTS.md 规则 4），下面的门禁会核对产物里没有端点。
+  // 只发 URL，不发 key；边缘函数不校验 JWT。
+  // 两个 flavor 同一份白名单（BEL-135）。国际版打东京 MT_BACKEND.url；中国版打境内
+  // china.url + /functions/v1/bt-ingest。china.ready 未就绪才发 null（没有境内入口
+  // 就不指一个地址）。绝不把中国版指到 *.supabase.co。
   const TELEMETRY = require('./build/telemetry.config.js');
-  const telemetry = flavor === 'china' ? null : {
-    url: require('./extension/learn/backend.config.js').url + '/functions/v1/bt-ingest',
-    spec: { common: TELEMETRY.COMMON, events: TELEMETRY.EVENTS, limits: TELEMETRY.LIMITS },
-  };
+  const telemetrySpec = { common: TELEMETRY.COMMON, events: TELEMETRY.EVENTS, limits: TELEMETRY.LIMITS };
+  let telemetry = null;
+  if (flavor === 'china') {
+    if (chinaBackendReady()) {
+      const base = String(chinaBackend().url).replace(/\/+$/, '');
+      telemetry = { url: base + '/functions/v1/bt-ingest', spec: telemetrySpec };
+    }
+  } else {
+    const base = String(require('./extension/learn/backend.config.js').url).replace(/\/+$/, '');
+    telemetry = { url: base + '/functions/v1/bt-ingest', spec: telemetrySpec };
+  }
   // 免费额度（learning-design §8.10）。搭同一辆车，理由同 telemetry：设置页与引导页
   // 都已经加载 providers.gen.js，而它们不能加载 backend.config.js（里面有 anon key）。
   //
@@ -688,7 +697,11 @@ function complianceGateChina(dir, label) {
       files.push({ name: path.relative(dir, p), text: fs.readFileSync(p, 'utf8') });
     }
   })(dir);
-  const hits = G.scan(files, { grantHost: cn ? cn.host : '' });
+  let ingestHost = '';
+  if (chinaBackendReady()) {
+    try { ingestHost = new URL(chinaBackend().url).hostname.toLowerCase(); } catch (_) { ingestHost = ''; }
+  }
+  const hits = G.scan(files, { grantHost: cn ? cn.host : '', ingestHost });
   if (hits.length) {
     err(`China compliance gate FAILED — forbidden brand/endpoint references in ${label || 'dist-china'}/:`);
     hits.slice(0, 30).forEach((h) => console.error('   ' + h));

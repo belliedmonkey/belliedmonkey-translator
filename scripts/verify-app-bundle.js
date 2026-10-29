@@ -193,7 +193,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'drive-audio-cache','btn-drive-clear-audio',
           // 反馈 / 评分出口（2026-09-05）：产品里此前一个 mailto 都没有
           'feedback-title','feedback-mail','feedback-rate','feedback-note',
-          // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在（中国版只是 hidden）
+          // 匿名用量事件的开关（Gate D，2026-09-05）：DOM 里必须在。有 MT_TELEMETRY 才揭开（中国版与国际版同一块）
           'telemetry-block','telemetry-on','telemetry-note',
           'clean-known','settings-signout','delete-account','gear',
           // 2026-09-17 设置页信息架构：四节节头、依赖行、离线模型行、识别语言包行。
@@ -1244,7 +1244,7 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
           'auth_fail 没记对（provider/stage/code/http）：' + JSON.stringify(af));
         need(af.n === 1, '一次失败记了 ' + af.n + ' 条 auth_fail —— 应当只有一条');
       } else {
-        need(af.n === 0, '中国版产物里竟然攒出了 auth_fail —— Gate D 说好一个字节都不发');
+        need(af.n === 0, '没有 MT_TELEMETRY 的包却攒出了 auth_fail');
       }
 
       // ─── 设置页文字不许出界：**12 语种 × 最窄视口**（2026-10-03，设计稿已签）────────────

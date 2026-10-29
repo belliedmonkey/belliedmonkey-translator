@@ -4,14 +4,23 @@
 //   ② 属性值含 http / @ / 超过 64 字符 ⇒ 不入队 —— 没人能把 URL、邮箱、原文塞进来
 //   ③ 关掉开关 ⇒ track 是空操作，队列与 install id 一并清掉；发出的最后一条是 telemetry_off
 //   ④ heartbeat 同一天只入队一次；installed 只在 id 首次生成时
-//   ⑤ 中国版（MT_TELEMETRY = null）⇒ 一个字节都不发；但 auth_fail 留在本机（mt:diag）
+//   ⑤ 没有遥测规格（MT_TELEMETRY = null）⇒ 不外发；auth_fail 留在本机（mt:diag）
+//   ⑤d 中国版有境内 URL ⇒ 与国际版同一条 track；auth_fail 发往该主机，flavor=china
 const { loadModule, describe, test, ok, eq } = require('./harness');
 const cfg = require('../build/telemetry.config.js');
 
-function load({ china = false, sends = [] } = {}) {
+function load({ china = false, sends = [], flavor = null, telemetry = undefined } = {}) {
   const store = {};
   const ls = {};                       // WKWebView / 页面里的 localStorage（本机诊断落在它上面）
-  const window = { MT_VERSION: '9.9.9', MT_TELEMETRY: china ? null : { url: 'https://x.test/functions/v1/bt-ingest', spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS } } };
+  const tel = telemetry !== undefined ? telemetry : (china ? null : {
+    url: 'https://x.test/functions/v1/bt-ingest',
+    spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+  });
+  const window = {
+    MT_VERSION: '9.9.9',
+    MT_FLAVOR: flavor || (china ? 'china' : 'global'),
+    MT_TELEMETRY: tel,
+  };
   const sandbox = {
     window,
     localStorage: {
@@ -131,7 +140,7 @@ describe('MTTelemetry — 开关与心跳', () => {
     await ctx.MTTelemetry.init({ flushNow: true });
     eq(sends.length, 0); ok(T);
   });
-  test('⑤ 中国版：MT_TELEMETRY 为 null ⇒ 一律不发；只有 auth_fail 留在本机', async () => {
+  test('⑤ 没有遥测规格：一律不发；只有 auth_fail 留在本机', async () => {
     const { T, store, sends, ls } = load({ china: true });
     eq(await T.enabled(), false);
     eq(await T.track('heartbeat'), false);
@@ -143,7 +152,7 @@ describe('MTTelemetry — 开关与心跳', () => {
     eq(await T.track('auth_fail', { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' }), false);
     const d = JSON.parse(ls[T.DIAG_KEY] || '[]');
     eq(d.length, 1); eq(d[0].name, 'auth_fail'); eq(d[0].props.stage, 'id_token');
-    eq(sends.length, 0);                                  // 仍然一个字节都不发
+    eq(sends.length, 0);                                  // 没有 URL，不外发
 
     const before = ls[T.DIAG_KEY];
     eq(await T.track('heartbeat'), false);
@@ -154,6 +163,33 @@ describe('MTTelemetry — 开关与心跳', () => {
     await T.setEnabled(false);
     eq(await T.track('auth_fail', { provider: 'apple', stage: 'native', code: 'apple_failed', http: 0, attempt: '1' }), false);
     eq(ls[T.DIAG_KEY], undefined);
+  });
+  test('⑤d 中国版：同一条 track，auth_fail 发往境内 ingest，信封 flavor=china', async () => {
+    const url = 'https://api.belliedmonkey.com/functions/v1/bt-ingest';
+    const { T, sends, ls } = load({
+      flavor: 'china',
+      telemetry: {
+        url,
+        spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+        allowAutomation: true,
+      },
+    });
+    const props = { provider: 'apple', stage: 'id_token', code: 'offline', http: 0, attempt: '1' };
+    eq(await T.track('auth_fail', props), true);
+    eq(ls[T.DIAG_KEY], undefined);
+    eq(await T.track('translate_ok', { provider: 'deepseek', kind: 'page', ms: 3, text: 'secret' }), false);
+    await T.flush();
+    await new Promise((r) => setTimeout(r, 20));
+    ok(sends.length >= 1, '没有打到境内 ingest');
+    const u = new URL(sends[0].url);
+    eq(u.hostname, 'api.belliedmonkey.com');
+    ok(/bt-ingest/.test(u.pathname), u.pathname);
+    ok(!/supabase\.co/i.test(sends[0].url));
+    const row = sends[0].body.find((e) => e.name === 'auth_fail');
+    ok(row, 'auth_fail 没有外发');
+    eq(row.flavor, 'china');
+    ok(!row.props || !row.props.text, '外发带了内容键');
+    ok(!/https?:\/\/|@/.test(JSON.stringify(row.props || {})), 'auth_fail 属性里出现了 URL 或邮箱');
   });
   test('⑤c 本机诊断有上限，且里面没有 URL / 邮箱', async () => {
     const { T, ls } = load({ china: true });

@@ -9,7 +9,8 @@ const G = require('../build/china-gate.js');
 
 const TOKYO = 'https://cavezcufztzqsohpjmup.supabase.co';
 const CN = 'relay.example.cn';
-const scan = (text, grantHost) => G.scan([{ name: 'x.js', text }], { grantHost });
+const INGEST = 'api.belliedmonkey.com';
+const scan = (text, grantHost, ingestHost) => G.scan([{ name: 'x.js', text }], { grantHost, ingestHost });
 
 describe('中国合规门：品牌与东京路径（与额度开没开无关）', () => {
   test('品牌词红', () => {
@@ -22,10 +23,24 @@ describe('中国合规门：品牌与东京路径（与额度开没开无关）'
   });
   test('东京三条路径：境内主机配了也照样红', () => {
     for (const host of ['', CN]) {
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-ingest"`, host).length === 1, 'bt-ingest 没被拦（' + host + '）');
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-grant"`, host).length === 1, '东京 bt-grant 没被拦（' + host + '）');
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-relay/chat/completions"`, host).length === 1, '东京 bt-relay 没被拦（' + host + '）');
+      ok(scan(`u = "${TOKYO}/functions/v1/bt-ingest"`, host, INGEST).length === 1, '东京 bt-ingest 没被拦（' + host + '）');
+      ok(scan(`u = "${TOKYO}/functions/v1/bt-grant"`, host, INGEST).length === 1, '东京 bt-grant 没被拦（' + host + '）');
+      ok(scan(`u = "${TOKYO}/functions/v1/bt-relay/chat/completions"`, host, INGEST).length === 1, '东京 bt-relay 没被拦（' + host + '）');
     }
+  });
+  test('境内 bt-ingest 放行；别的主机或未就绪仍红', () => {
+    const url = `https://${INGEST}/functions/v1/bt-ingest`;
+    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, CN, INGEST).length === 0, '境内 ingest 被误拦');
+    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, '', INGEST).length === 0, '没配额度时境内 ingest 被误拦');
+    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, CN, '').length === 1, 'ingestHost 为空却放行了');
+    ok(scan(`window.MT_TELEMETRY = {"url":"https://evil.example/functions/v1/bt-ingest"};`, CN, INGEST).length === 1, '别的主机的 bt-ingest 被放行');
+    ok(scan(`window.MT_TELEMETRY = {"url":"http://${INGEST}/functions/v1/bt-ingest"};`, CN, INGEST).length === 1, 'http 的境内 ingest 被放行');
+  });
+  test('grant/relay：东京仍红；境内 grantHost 上不由路径字面量误杀', () => {
+    ok(scan(`u = "https://${CN}/functions/v1/bt-grant"`, CN, INGEST).length === 0, '境内 bt-grant 被路径字面量误杀');
+    ok(scan(`u = "https://${CN}/functions/v1/bt-relay/chat/completions"`, CN, INGEST).length === 0, '境内 bt-relay 被路径字面量误杀');
+    ok(scan(`u = "https://evil.example/functions/v1/bt-grant"`, CN, INGEST).length === 1, '非 grantHost 的 bt-grant 被放行');
+    ok(scan(`u = "https://${CN}/functions/v1/bt-grant"`, '', INGEST).length === 1, 'grantHost 为空时 bt-grant 被放行');
   });
 });
 
