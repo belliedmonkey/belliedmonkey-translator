@@ -7,7 +7,7 @@
 //   · 事件名、属性键、枚举值必须在 events.gen.json（由 build/telemetry.config.js 生成）里
 //   · 字符串 ≤ 64 字符，且不能含 http / @ —— 没人能把 URL、邮箱、原文塞进来
 //   · 单条 ≤ 1 KB、单批 ≤ 50 条、请求体 ≤ 64 KB、每个 install_id 每分钟 ≤ 60 条
-//   · flavor 只收 'global'：中国版按设计一个字节都不发，收到就是有人伪造
+//   · flavor 只收 events.gen.json 里的枚举（global 与 china，同一份白名单）。表外的值整条拒
 //
 // telemetry_off 不落库：收到即删掉该 install_id 的全部行，并给 bt_optouts 计一次数。
 //

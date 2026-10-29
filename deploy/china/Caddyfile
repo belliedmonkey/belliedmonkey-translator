@@ -71,14 +71,18 @@
 		# 删号那个小服务（替代 Supabase 的 /functions/v1/bt-delete-account）。
 		# 客户端调用点：auth.js:310。失败只降级为 partial 不抛，所以它不在
 		# 关键路径上 —— 但没有它，用户删号时云端数据会留着。
-		# 额度那两条**必须写在兜底之前**（Caddy 的 handle 按书写顺序匹配）：
-		# 函数自己会把路径截到 `/bt-grant-ledger` 之后（见那个文件第 53 行），
+		# 具名函数**必须写在兜底之前**（Caddy 的 handle 按书写顺序匹配）。
+		# bt-grant-ledger 自己会把路径截到 `/bt-grant-ledger` 之后（见那个文件第 53 行），
 		# 所以这里用 handle 而不是 handle_path，前缀留着也不影响。
+		# bt-ingest 同形：不校验 JWT，只认这条路径；落到下面的兜底会打进删号函数。
 		handle /functions/v1/bt-grant-ledger/* {
 			reverse_proxy ledger:8000
 		}
 		handle /functions/v1/bt-grant {
 			reverse_proxy grant:8000
+		}
+		handle /functions/v1/bt-ingest {
+			reverse_proxy ingest:8000
 		}
 		handle_path /functions/v1/* {
 			reverse_proxy fn:8000

@@ -152,6 +152,23 @@ services:
     expose:
       - "8000"
 
+  # 匿名用量入口（BEL-135）。与 grant 同构：挂共享目录、只听默认 8000，路径分派在 Caddy。
+  # 跑的是 supabase/functions/bt-ingest/index.ts 本身，不往 deploy/china 抄一份实现。
+  # 不校验 JWT，也不读 ANON —— 调用方是内容脚本，只认 URL（见该文件头注释）。
+  # 不写 depends_on: [proxy] —— 同 grant / fn（proxy 依赖它们，写了就是循环）。
+  ingest:
+    image: denoland/deno:alpine-2.1.4
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ../../supabase/functions/bt-ingest:/app:ro
+    command: ["run", "--allow-net", "--allow-env", "index.ts"]
+    environment:
+      SUPABASE_URL: http://proxy:8081
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY:?必须设置}
+    expose:
+      - "8000"
+
   # 把 GoTrue 与 PostgREST 挂在**同一个域名**下，路径与 Supabase 逐字相同
   # （/auth/v1/* 与 /rest/v1/*）—— 客户端因此一个字节都不用改。
   proxy:
