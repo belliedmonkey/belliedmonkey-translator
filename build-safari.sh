@@ -74,7 +74,15 @@ if [ "$PLATFORM" = "macos" ] && [ -d "${PROJ_BASE}-macos" ]; then
 fi
 
 # 版本号的唯一真源是 package.json(build.js 已强制 manifest.json 与它一致)。
+# global 与 china 共用这一个号。不要在某一边另写营销号。
 VERSION=$(node -p "require('./package.json').version")
+
+# xcodebuild 会把同名环境变量当成 build setting，盖过下面写入 pbxproj 的营销号。
+# build 号仍用 CURRENT_PROJECT_VERSION，不走这条。
+if [ -n "${MARKETING_VERSION+x}" ]; then
+  echo "❌ 环境里设了营销版本变量。营销号只来自 package.json，由本脚本写入两棵工程。请 unset 后重跑。"
+  exit 1
+fi
 
 echo ""
 echo "🌿 Safari 扩展构建（flavor: $FLAVOR · platform: $PLATFORM · $BUNDLE_ID · v$VERSION）"
@@ -157,6 +165,12 @@ echo "   ✓ MARKETING_VERSION = $VERSION（跟随 package.json）"
 echo "   ✓ 出口合规豁免已声明（ITSAppUsesNonExemptEncryption = NO）"
 echo "   ✓ App 类别 = $APP_CATEGORY（macOS 必需，iOS 侧忽略）"
 
+# 归档提示打印之前先对一遍。非 0 就停：此时工程里的营销号已经写成 $VERSION，
+# 对不上 package.json / MT_VERSION 就不要进入上传。
+echo ""
+echo "▶ 归档前版本一致性（非 0 则停，不要上传）"
+node scripts/verify-version-consistency.js
+
 # build 号：App Store 要求同一平台每次上传都必须递增，且 iOS 与 macOS 各自独立计数。
 # 仓库无从得知商店现状，所以只在显式给出时才写，否则原样保留并提醒。
 if [ -n "$BUILD_NUMBER" ]; then
@@ -192,8 +206,10 @@ echo " 这棵树是双平台的，scheme 有两个；本次要归档的是："
 echo "   $SCHEME"
 echo ""
 echo " 命令行归档 + 直传（不用开 Xcode，登录态自动过 2FA）："
+echo "   上面的版本一致性非 0 时不要归档。"
+echo "   不要在 xcodebuild 上覆盖营销版本，环境里也不要留同名变量。build 号用 CURRENT_PROJECT_VERSION。"
 echo "   npm run app:sync      # 必须先跑：宿主 App 资源 + 四个补丁都在这一步"
-echo "   xcodebuild -project \"$XCODEPROJ\" -scheme \"$SCHEME\" \\"
+echo "   env -u MARKETING_VERSION xcodebuild -project \"$XCODEPROJ\" -scheme \"$SCHEME\" \\"
 echo "     -configuration Release -destination \"$DEST\" \\"
 echo "     -archivePath /tmp/archive.xcarchive DEVELOPMENT_TEAM=<TEAM> \\"
 echo "     -allowProvisioningUpdates archive"

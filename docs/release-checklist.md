@@ -231,11 +231,14 @@ plutil -p "<app>/en.lproj/InfoPlist.strings" | head -3              # 三个键�
 
 ### 发 TestFlight 的完整命令
 
+营销号不要在 xcodebuild 上另覆，环境里也不要留同名变量。`verify-version-consistency.js` 非 0 就停，不要上传。
+
 ```bash
 node build.js                       # 工程直接引用 ../../../dist/，必须先重建
+node scripts/verify-version-consistency.js
 npm run verify:ios                  # 逐文件比对，缺一个就非零退出
 
-xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+env -u MARKETING_VERSION xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
   -scheme "BelliedMonkey Translator (iOS)" -configuration Release \
   -destination "generic/platform=iOS" -archivePath /tmp/bmt-archive.xcarchive \
   -allowProvisioningUpdates archive
