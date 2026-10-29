@@ -6,6 +6,7 @@
 勾选真源：[`docs/product/user-visible-checklist.md`](product/user-visible-checklist.md)。
 硬规则：[`docs/release-checklist.md`](release-checklist.md)「主干先行」。
 tip↔tip 提审硬闸（BEL-124）：[`docs/tip-user-visible-diff.md`](tip-user-visible-diff.md)。
+提审合裁总装：[`docs/quality/TEMPLATE-QD-JUDGE-submit.md`](quality/TEMPLATE-QD-JUDGE-submit.md)。
 
 ## 怎么跑
 

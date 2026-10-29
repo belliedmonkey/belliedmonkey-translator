@@ -8,6 +8,8 @@
 **大合入（合大功能）** 另见 BEL-126：**强制合入门**——机器 tip-diff 收据 + 人工 checklist
 盖章缺一不可，缺证 = merge QD **BLOCKED**（不再是「可抽查」）。
 
+提审合裁总装（含本闸）：[`docs/quality/TEMPLATE-QD-JUDGE-submit.md`](quality/TEMPLATE-QD-JUDGE-submit.md)。
+
 ## 怎么跑
 
 在仓库根目录：
