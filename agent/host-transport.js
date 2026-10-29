@@ -22,7 +22,11 @@ const REGISTRY_ID = {
 
 const PROBE = 'Hi.';
 const BUDGET = 32;
+// One caller segment. Covers TEXT_MAX=2000 in both directions. Not scaled per call.
+const PAGE_BUDGET = 4096;
+const TARGET_LANG = 'zh-CN';
 const TIMEOUT_MS = 20000;
+const PAGE_ACTIONS = new Set(['translate_page', 'translate_video_captions']);
 
 let cached = null;
 
@@ -109,10 +113,11 @@ function entryFor(providers, provider) {
   return null;
 }
 
-function quotaRecord(action, cred, http, code, usage) {
+function quotaRecord(action, cred, http, code, usage, probe) {
   const observed = !!(usage && (
     usage.prompt_tokens != null || usage.completion_tokens != null || usage.total_tokens != null
   ));
+  // probe marks the billing-probe track. The row never carries page text or a translation.
   return {
     action: action || '',
     kind: cred.kind,
@@ -122,14 +127,43 @@ function quotaRecord(action, cred, http, code, usage) {
     observed: observed,
     http: http || 0,
     code: code,
+    probe: probe === true,
     prompt_tokens: usage && usage.prompt_tokens != null ? usage.prompt_tokens : null,
     completion_tokens: usage && usage.completion_tokens != null ? usage.completion_tokens : null,
     total_tokens: usage && usage.total_tokens != null ? usage.total_tokens : null,
   };
 }
 
-function miss(action, cred, code) {
-  return { ok: false, code: code, quota: quotaRecord(action, cred, 0, code, null) };
+// explain_or_drill already sends src.text. Page and captions: empty text stays
+// the billing probe; non-empty text is one host MT shot. The caller segments.
+function shotFor(action, text) {
+  if (action === 'explain_or_drill') {
+    return {
+      userText: String(text || ''),
+      budget: BUDGET,
+      system: 'Explain the user message in one short sentence.',
+      probe: false,
+    };
+  }
+  const raw = String(text || '');
+  if (PAGE_ACTIONS.has(action) && raw.trim() !== '') {
+    return {
+      userText: raw,
+      budget: PAGE_BUDGET,
+      system: 'Translate to ' + TARGET_LANG + '.',
+      probe: false,
+    };
+  }
+  return {
+    userText: PROBE,
+    budget: BUDGET,
+    system: 'Reply with OK.',
+    probe: PAGE_ACTIONS.has(action),
+  };
+}
+
+function miss(action, cred, code, probe) {
+  return { ok: false, code: code, quota: quotaRecord(action, cred, 0, code, null, probe) };
 }
 
 async function charge(input) {
@@ -137,34 +171,31 @@ async function charge(input) {
   const cred = src.cred || {};
   const env = src.env || {};
   const action = src.action || '';
+  const shot = shotFor(action, src.text);
   if (cred.kind !== 'host_subscription' && cred.kind !== 'host_key') {
-    return miss(action, cred, 'quota_or_key');
+    return miss(action, cred, 'quota_or_key', shot.probe);
   }
   const secret = env[cred.via];
-  if (typeof secret !== 'string' || secret.trim() === '') return miss(action, cred, 'quota_or_key');
+  if (typeof secret !== 'string' || secret.trim() === '') return miss(action, cred, 'quota_or_key', shot.probe);
   const transport = loadTransport();
   const entry = entryFor(transport.providers, cred.provider);
-  if (!entry || !entry.defaultEndpoint) return miss(action, cred, 'quota_or_key');
+  if (!entry || !entry.defaultEndpoint) return miss(action, cred, 'quota_or_key', shot.probe);
   const fixed = fixtureUrl(env);
   const url = fixed || transport.WireFormat.resolveEndpoint('', entry);
   const model = entry.defaultModel || '';
   const fmt = transport.WireFormat.formatFor(url, entry.type, model);
-  const userText = action === 'explain_or_drill' ? String(src.text || '') : PROBE;
-  const system = action === 'explain_or_drill'
-    ? 'Explain the user message in one short sentence.'
-    : 'Reply with OK.';
   const req = transport.RequestShape.build(fmt, {
     url: url,
     apiKey: secret.trim(),
     model: model,
     providerId: entry.id,
-    system: system,
-    user: userText,
-    budget: BUDGET,
-    targetLang: 'zh-CN',
+    system: shot.system,
+    user: shot.userText,
+    budget: shot.budget,
+    targetLang: TARGET_LANG,
     prefs: {},
   });
-  if (!req || req.error || !req.body) return miss(action, cred, 'quota_or_key');
+  if (!req || req.error || !req.body) return miss(action, cred, 'quota_or_key', shot.probe);
   const fetchImpl = src.fetch || globalThis.fetch;
   let status = 0;
   let json = null;
@@ -179,11 +210,11 @@ async function charge(input) {
     const text = await res.text();
     try { json = JSON.parse(text); } catch (_) { json = null; }
   } catch (_) {
-    return miss(action, cred, 'network_unavailable');
+    return miss(action, cred, 'network_unavailable', shot.probe);
   }
   let code = classify(status, json, cred.kind);
   const usage = code === 'ok' ? usageOf(json) : null;
-  const quota = quotaRecord(action, cred, status, code, usage);
+  const quota = quotaRecord(action, cred, status, code, usage, shot.probe);
   if (code === 'ok' && !quota.observed) {
     quota.code = 'quota_or_key';
     return { ok: false, code: 'quota_or_key', quota: quota };

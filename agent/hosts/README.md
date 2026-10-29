@@ -83,3 +83,5 @@ dsh --profile <profile> --patch "$PWD/agent/hosts/dsh/repo-mcp.patch.yml"
 `ready.check` · `open_setup` · `start_live_subtitles` · `translate_page` · `translate_video_captions` · `capture_to_study` · `explain_or_drill`
 
 敏感工具先在本机确认。回执是 JSON，不是一条深链。细节在 W2 规格 `architecture/SPEC-AGENT-W2-MCP-IMPL-2026-10-26.md` 和 skill 里。确认卡 / 失败卡文案以 `agent/copy.js` 的锁文为准。
+
+Empty text on translate_page and translate_video_captions is a billing probe; with text it is host page MT. Probe success is not a full page done.

@@ -15,6 +15,7 @@ const { spawn } = require('child_process');
 const { describe, test, ok, eq } = require('./harness');
 const { charge, fixtureUrl, loadTransport } = require('../agent/host-transport');
 const confirm = require('../agent/confirm');
+const contract = require('../agent/contract');
 
 const ROOT = path.join(__dirname, '..');
 const KEY = 'sk-test-host-key';
@@ -22,9 +23,12 @@ const SUB = 'sub-token-should-not-leak';
 const OTHER = 'key-should-not-be-used';
 const OAUTH = 'oauth-token-should-not-leak';
 const SENTENCE = 'The harbor is quiet today.';
+const PAGE_TEXT = 'The quay holds twelve crates of tea.';
+const CAPTION_TEXT = 'Caption line about the harbor bell.';
 const PAGE = 'https://page-token-not-for-provider.example/a';
 const VIDEO = 'https://video-token-not-for-provider.example/b';
 const REPLY = 'OK-FROM-PROVIDER';
+const TRACK_LINE = 'Empty text on translate_page and translate_video_captions is a billing probe; with text it is host page MT. Probe success is not a full page done.';
 
 const HOST_ENV = [
   'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN',
@@ -124,6 +128,10 @@ function quotaLines(file) {
   return fs.readFileSync(file, 'utf8').trim().split('\n').filter(Boolean).map((line) => JSON.parse(line));
 }
 
+function bodyOf(raw) {
+  return JSON.parse(raw);
+}
+
 function noSecret(text, label) {
   ok(!text.includes(KEY), label + ' leaked host key');
   ok(!text.includes(SUB), label + ' leaked subscription');
@@ -194,12 +202,20 @@ describe('ARCH-SHORT host-subscription-cli-wire §6', () => {
       }
       ok(seen[0].body.includes('Hi.'));
       ok(seen[1].body.includes('Hi.'));
+      eq(bodyOf(seen[0].body).messages[1].content, 'Hi.');
+      eq(bodyOf(seen[1].body).messages[1].content, 'Hi.');
+      eq(bodyOf(seen[0].body).messages[0].content, 'Reply with OK.');
+      eq(bodyOf(seen[1].body).messages[0].content, 'Reply with OK.');
       ok(seen[2].body.includes(SENTENCE));
+      eq(bodyOf(seen[2].body).messages[0].content, 'Explain the user message in one short sentence.');
       const lines = quotaLines(quotaFile);
       eq(lines.length, 3);
       eq(lines[0].action, 'translate_page');
       eq(lines[1].action, 'translate_video_captions');
       eq(lines[2].action, 'explain_or_drill');
+      eq(lines[0].probe, true);
+      eq(lines[1].probe, true);
+      eq(lines[2].probe, false);
       for (let i = 0; i < lines.length; i++) {
         eq(lines[i].kind, 'host_key');
         eq(lines[i].via, 'DEEPSEEK_API_KEY');
@@ -266,6 +282,9 @@ describe('ARCH-SHORT host-subscription-cli-wire §6', () => {
       eq(lines[0].code, 'subscription_cannot_pay');
       eq(lines[0].observed, false);
       eq(lines[0].http, 401);
+      eq(lines[0].probe, false);
+      eq(lines[1].action, 'translate_page');
+      eq(lines[1].probe, true);
       noSecret(JSON.stringify({ explained, page, lines }), 'E2');
       ok(!JSON.stringify(explained).includes(SENTENCE));
     } finally {
@@ -387,8 +406,186 @@ describe('ARCH-SHORT host-subscription-cli-wire §6', () => {
     eq(unpaid.ok, false);
     eq(unpaid.code, 'quota_or_key');
     eq(unpaid.quota.observed, false);
+    eq(unpaid.quota.probe, true);
     eq(calls.length, 2);
+    const explainBody = JSON.parse(calls[0].opts.body);
+    eq(explainBody.max_tokens, 32);
+    eq(explainBody.messages[1].content, SENTENCE);
+    eq(rejected.quota.probe, false);
+    const probeBody = JSON.parse(calls[1].opts.body);
+    eq(probeBody.max_tokens, 32);
+    eq(probeBody.messages[1].content, 'Hi.');
+    ok(!JSON.stringify(unpaid).includes('Hi.'));
     eq(fixtureUrl({ MT_AGENT_TRANSPORT_FIXTURE: 'https://example.com/v1/chat/completions' }), '');
     eq(fixtureUrl({ MT_AGENT_TRANSPORT_FIXTURE: 'http://127.0.0.1:9/v1/messages' }), 'http://127.0.0.1:9/v1/messages');
+
+    // The loopback fixture host is not in the parameter table, so max_tokens is
+    // omitted there. The registry endpoint is where PAGE_BUDGET is written.
+    const shaped = [];
+    async function shapeFetch(url, opts) {
+      shaped.push({ url: url, body: JSON.parse(opts.body) });
+      return {
+        status: 200,
+        async text() {
+          return JSON.stringify({
+            choices: [{ message: { content: REPLY } }],
+            usage: { prompt_tokens: 8, completion_tokens: 4, total_tokens: 12 },
+          });
+        },
+      };
+    }
+    const pageShot = await charge({
+      action: 'translate_page',
+      cred: cred,
+      env: env,
+      text: PAGE_TEXT,
+      fetch: shapeFetch,
+    });
+    const capShot = await charge({
+      action: 'translate_video_captions',
+      cred: cred,
+      env: env,
+      text: CAPTION_TEXT,
+      fetch: shapeFetch,
+    });
+    const blankShot = await charge({
+      action: 'translate_page',
+      cred: cred,
+      env: env,
+      text: '   ',
+      fetch: shapeFetch,
+    });
+    eq(pageShot.ok, true);
+    eq(pageShot.quota.probe, false);
+    eq(capShot.quota.probe, false);
+    eq(blankShot.quota.probe, true);
+    eq(shaped[0].body.max_tokens, 4096);
+    eq(shaped[1].body.max_tokens, 4096);
+    eq(shaped[2].body.max_tokens, 32);
+    eq(shaped[0].body.messages[1].content, PAGE_TEXT);
+    eq(shaped[1].body.messages[1].content, CAPTION_TEXT);
+    eq(shaped[2].body.messages[1].content, 'Hi.');
+    eq(shaped[0].body.messages[0].content, 'Translate to zh-CN.');
+    ok(!shaped[0].url.includes(PAGE_TEXT));
+    const shapedDump = JSON.stringify({ pageShot, capShot, blankShot });
+    noSecret(shapedDump, 'shape');
+    ok(!shapedDump.includes(PAGE_TEXT));
+    ok(!shapedDump.includes(CAPTION_TEXT));
+    ok(!shapedDump.includes(REPLY));
+  });
+
+  test('page text is host MT and empty text stays the probe', async () => {
+    const pageTool = contract.TOOLS.find((t) => t.name === 'translate_page');
+    const capTool = contract.TOOLS.find((t) => t.name === 'translate_video_captions');
+    ok(pageTool.inputSchema.properties.text);
+    ok(capTool.inputSchema.properties.text);
+    ok(pageTool.description.includes('billing probe'));
+    ok(capTool.description.includes('billing probe'));
+    ok(pageTool.description.includes('Probe success is not a full page done'));
+    ok(capTool.description.includes('Probe success is not a full page done'));
+    const docs = [
+      'agent/hosts/README.md',
+      'agent/hosts/codex/README.md',
+      'agent/hosts/dsh/README.md',
+      'agent/hosts/claude-code/skills/belliedmonkey/SKILL.md',
+      'agent/hosts/dsh/skills/belliedmonkey/SKILL.md',
+    ];
+    for (let i = 0; i < docs.length; i++) {
+      ok(fs.readFileSync(path.join(ROOT, docs[i]), 'utf8').includes(TRACK_LINE), docs[i]);
+    }
+
+    const seen = [];
+    const server = await listen((req, body, res) => {
+      seen.push({ body: body });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({
+        choices: [{ message: { content: REPLY } }],
+        usage: { prompt_tokens: 11, completion_tokens: 7, total_tokens: 18 },
+      }));
+    });
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-page-'));
+    const quotaFile = path.join(home, 'quota.log');
+    const port = server.address().port;
+    const client = mcp(childEnv({
+      MT_AGENT_HOME: home,
+      MT_AGENT_READINESS: prepare(home, READY),
+      MT_AGENT_QUOTA_LOG: quotaFile,
+      MT_AGENT_TRANSPORT_FIXTURE: 'http://127.0.0.1:' + port + '/v1/chat/completions',
+      DEEPSEEK_API_KEY: KEY,
+    }));
+    const atLimit = 'a'.repeat(contract.TEXT_MAX);
+    const over = 'b'.repeat(contract.TEXT_MAX + 1);
+    try {
+      await handshake(client);
+      const page = receiptOf(await client.request('tools/call', {
+        name: 'translate_page', arguments: { text: PAGE_TEXT, url: PAGE },
+      }));
+      const caps = receiptOf(await client.request('tools/call', {
+        name: 'translate_video_captions', arguments: { text: CAPTION_TEXT, url: VIDEO },
+      }));
+      const blank = receiptOf(await client.request('tools/call', {
+        name: 'translate_page', arguments: { text: '   ' },
+      }));
+      const fitted = receiptOf(await client.request('tools/call', {
+        name: 'translate_page', arguments: { text: atLimit },
+      }));
+      eq(page.code, 'ok');
+      eq(caps.code, 'ok');
+      eq(blank.code, 'ok');
+      eq(fitted.code, 'ok');
+      eq(seen.length, 4);
+      const pageBody = bodyOf(seen[0].body);
+      const capBody = bodyOf(seen[1].body);
+      const blankBody = bodyOf(seen[2].body);
+      const fitBody = bodyOf(seen[3].body);
+      eq(pageBody.messages[1].content, PAGE_TEXT);
+      eq(capBody.messages[1].content, CAPTION_TEXT);
+      eq(pageBody.messages[0].content, 'Translate to zh-CN.');
+      eq(capBody.messages[0].content, 'Translate to zh-CN.');
+      ok(!seen[0].body.includes('Hi.'), 'page text still sent the probe');
+      ok(!seen[1].body.includes('Hi.'), 'caption text still sent the probe');
+      eq(blankBody.messages[1].content, 'Hi.');
+      eq(blankBody.messages[0].content, 'Reply with OK.');
+      eq(fitBody.messages[1].content, atLimit);
+      eq(fitBody.messages[0].content, 'Translate to zh-CN.');
+      ok(!seen[0].body.includes(PAGE));
+      ok(!seen[1].body.includes(VIDEO));
+      const lines = quotaLines(quotaFile);
+      eq(lines.length, 4);
+      eq(lines[0].probe, false);
+      eq(lines[1].probe, false);
+      eq(lines[2].probe, true);
+      eq(lines[3].probe, false);
+      eq(lines[0].observed, true);
+      eq(lines[0].action, 'translate_page');
+      eq(lines[1].action, 'translate_video_captions');
+      const dumped = JSON.stringify({ page, caps, blank, fitted, lines });
+      noSecret(dumped, 'page');
+      ok(!dumped.includes(PAGE_TEXT), 'page text echoed onto the receipt or quota log');
+      ok(!dumped.includes(CAPTION_TEXT), 'caption text echoed onto the receipt or quota log');
+      ok(!dumped.includes(REPLY), 'provider text echoed onto the receipt');
+      ok(!dumped.includes(atLimit), 'segment echoed onto the receipt or quota log');
+      ok(!dumped.includes(PAGE));
+
+      const tooLong = receiptOf(await client.request('tools/call', {
+        name: 'translate_page', arguments: { text: over },
+      }));
+      const capsLong = receiptOf(await client.request('tools/call', {
+        name: 'translate_video_captions', arguments: { text: over },
+      }));
+      eq(tooLong.ok, false);
+      eq(tooLong.code, 'bad_request');
+      eq(tooLong.message, '句子超过长度上限');
+      eq(capsLong.code, 'bad_request');
+      eq(capsLong.message, '句子超过长度上限');
+      eq(seen.length, 4);
+      eq(quotaLines(quotaFile).length, 4);
+      const refused = JSON.stringify({ tooLong, capsLong });
+      ok(!refused.includes(over));
+      noSecret(refused, 'over');
+    } finally {
+      client.stop();
+      await new Promise((resolve) => server.close(resolve));
+    }
   });
 });

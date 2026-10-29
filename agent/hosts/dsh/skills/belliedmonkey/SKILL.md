@@ -35,6 +35,8 @@ Only the seven names above are tools. A tool result is receipt JSON in `content[
 
 The receipt has no page text, transcript, or translation. Do not ask the tool to return the sentence, and do not paste the user's API key into a tool argument.
 
+Empty text on translate_page and translate_video_captions is a billing probe; with text it is host page MT. Probe success is not a full page done.
+
 ## User-visible copy
 
 When you describe the confirm card or a failure card, use these strings verbatim. A near-synonym is a failure. Banned near-synonyms: 语音包, 收录复习.
