@@ -255,7 +255,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 - [我们如何为听译、字幕与页译选模型](https://belliedmonkey.cc/technology/model-selection)
 - [听译为何默认用端上 Apple SpeechAnalyzer](https://belliedmonkey.cc/technology/model-selection/listen-asr)
 - [免费听译翻译为何坚持 Qwen plus](https://belliedmonkey.cc/technology/model-selection/subtitle-mt)
-- [国际页译为何默认 Google 免费通道](https://belliedmonkey.cc/technology/model-selection/page-mt)
+- [国际页译为何默认境外零配置免费通道](https://belliedmonkey.cc/technology/model-selection/page-mt)
 
 中国版是独立 App、独立站点：
 [belliedmonkey.com 上的同题页](https://belliedmonkey.com/technology/model-selection)。
