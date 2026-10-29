@@ -2086,7 +2086,7 @@ flavor，境内后端就绪后中国版直接复用，DashScope 本来就没有 
 
 **落地后的门禁形状（2026-09-22）**：领取也由境内中继代转（`POST /claim` → 东京 `bt-grant`，只带
 登录令牌），于是中国版产物里**一个东京的额度路径都没有**。`build/china-gate.js` 因此是两层：
-东京的 `bt-ingest` / `bt-grant` / `bt-relay/(chat|audio)` **无论开没开都禁**；`MT_GRANT = {…}` 与注册表
+东京（`*.supabase.co`）上的 `bt-ingest` / `bt-grant` / `bt-relay/(chat|audio)` **无论开没开都禁**。境内主机上的 `bt-ingest` 自 2026-10-29（BEL-135）放行，URL 来自 `MT_BACKEND.china.url`。`MT_GRANT = {…}` 与注册表
 里 `grantOnly` 条目的**每一个**地址都必须在 `relayUrl` 那台主机上 —— relayUrl 为空时两者等价于
 改写前的「不许有」。单测对每条判据都喂过该红的输入，四处变异证伪过（其中「未就绪即红」那一支
 是等价变异：摘掉它，规格仍会因地址不在空主机上而红）。
@@ -2095,9 +2095,9 @@ flavor，境内后端就绪后中国版直接复用，DashScope 本来就没有 
 出境）；`deploy/china-relay/README.md` 第 0 节那张表（运行处 = 首选腾讯云云函数 · 默认域名的境内回读 · 百炼 key · 实价）。
 （百炼条款：用户 2026-09-22 裁定「API 肯定可以调用」，不再列为前置。）
 
-**可观测性要提前说清**：中国版一条遥测都不发，所以额度发出去之后**客户端一个数都没有** ——
-领取率、使用率只能从服务端的 grant 表看账号侧。这不是阻塞，但要写在前面，免得又来一轮
-「0 到底是没人用还是量不到」。
+**可观测性要提前说清**：自 2026-10-29 起中国版把与国际版同一份匿名用量发到境内 ingest（原则 6）。
+额度台账仍是账号侧，**永不**与 `install_id` join。境内 `bt-ingest` 现网未回读（Phase B）之前，
+客户端可以持有 URL，但抓包见不到 2xx 就不得把「0 行」说成「没人用」。
 
 #### 8.10.2 出境告知与单独同意 —— 这是今天就存在的缺口（2026-09-22 提案；**同日用户裁定「现在就补」并落地**）
 
@@ -4308,8 +4308,8 @@ flavor 的 App 名不同而它必须等于 App 名）；菜单名 12 个语种�
 
 ### 中国版（AGENTS 规则 10）
 
-两个面都带。国行 iPhone 上「默认翻译 App」这一行存在且可选（读数 T1）。差别只在既有的三处：没有免费额度
-（未配置态只有「配置引擎」一个主按钮）、不发遥测、文案无第三方品牌。`ExtEngine.js` 同样过 brand / strip 门。
+两个面都带。国行 iPhone 上「默认翻译 App」这一行存在且可选（读数 T1）。差别只在既有的几处：没有我们代领的免费额度
+（未配置态只有「配置引擎」一个主按钮）、用量事件走境内 ingest 而不是东京（BEL-135，白名单与国际版同一份）、文案无第三方品牌。`ExtEngine.js` 同样过 brand / strip 门。
 
 ### 遥测
 
@@ -4364,8 +4364,8 @@ CLI 的卡片，反之亦然。
 - 免费路径完整：不登录、不付费也能翻译与复习（语料来自本地文件）。
 - v1 **不接免费额度中继**（§8.10）；将来若要接，属 §2.1 / Gate F 的改动。
 - v1 **不发遥测**；将来若要发，属 `telemetry-design.md` 白名单改动（治理门）。
-- 中国版：同一功能集（`AGENTS.md` 规则 10），差异仍只有既有的三处（无免费额度、无遥测、
-  brand-free 文案），并过同一合规门。披露随代码同版（§10）。
+- 中国版：同一功能集（`AGENTS.md` 规则 10），差异仍是既有的那几处（无我们代领的免费额度、用量走境内 ingest 而非东京、
+  brand-free 文案），并过同一合规门。披露随代码同版（§10）。CLI v1 本身仍不发遥测。
 
 **模块。** `CliApp`（`cli/`）、`CliEngine`（`build/cli-bundle.js` → `dist-cli/engine.js` +
 `cli/node-shim.js` + `cli/entry.js`）；纯逻辑复用 `LearnModel` / `LearnScheduler` / `LearnChunk` /
@@ -4552,13 +4552,13 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 |---|---|---|
 | `AGENTS.md` rule 4 | No telemetry, ever | amended 2026-09-05 (done in the docs PR, ahead of code — the one place where "before" is right, because it is the design, not the disclosure) |
 | `README.md` / `README.zh-CN.md` | "No tracking, no telemetry" | "No tracking, no third-party analytics. Anonymous usage events (never page content or URLs), off in one switch." |
-| `build.js` Gate B | asserts the README does **not** say "no telemetry" | inverted: README ×2 and the 12-locale `telemetry_hint` must carry the "anonymous usage / 匿名用量" stem; the **china artifact must not contain `MT_TELEMETRY_URL`** |
+| `build.js` Gate B | asserts the README does **not** say "no telemetry" | inverted: README ×2 and the 12-locale `telemetry_hint` must carry the "anonymous usage / 匿名用量" stem. **2026-10-29（BEL-135）**：中国版产物的 `MT_TELEMETRY.url` 主机是境内后端、路径含 `bt-ingest`；`*.supabase.co` 上的 ingest 仍禁。不再要求中国版产物里没有遥测 URL |
 | Firefox `data_collection_permissions` (`WANT_DCP`) | 3 categories, exact set | + `technicalAndInteraction` |
 | App Store privacy labels | User Content = yes; **Usage Data = no** (Gate B) | Usage Data → **Product Interaction, not linked to you**. Refill both app records at submission |
 | Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
 | `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
 | `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
-| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **no anonymous usage events**, so that sentence stays true; but since 2026-10-06 (L2) the China flavor ships the separately-disclosed, content-free diagnostic upload (no original text, no translation), so the page must be reworded in the same version (#569) rather than an unqualified 「不随版本变化」 |
+| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **2026-10-29（BEL-135）覆盖**：中国版发与国际版同一份匿名用量白名单，入口境内 `api.belliedmonkey.com/.../bt-ingest`，不共东京。该句与「一个字节都不发」必须删掉，字段表与 intl 同构。诊断通道（L2）仍并列、不含原文与译文。网站正文另一次改；未回读境内 ingest（Phase B）不得宣称生产已对齐 |
 | `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
 | Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
 

@@ -90,7 +90,7 @@
       }));
       // 「看没看见绿灯」（telemetry-design §3.7 B，#384，2026-09-22 用户评审通过：自家域名上凡检测到就发）。
       // 每装机一次、无属性。只在这个 if 里 —— 与上面那个标记同一条安全边界，别的网站永远触发不了它。
-      // 中国版 MT_TELEMETRY 为 null，once 是空操作。
+      // 没有 MT_TELEMETRY 时 once 是空操作。中国版有境内 URL 时与国际版同一条 track。
       if (typeof MTTelemetry !== 'undefined') MTTelemetry.once('setup_detected');
     } catch (_) { /* 探测标记失败绝不能影响翻译本身 */ }
 

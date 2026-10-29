@@ -1212,7 +1212,7 @@ function Options() {
 
       // 版本号来自 manifest，不来自翻译（十一份译文的那个教训）。
       try { setVersion('v' + chrome.runtime.getManifest().version); } catch (_) { setVersion(''); }
-      // 匿名用量事件的开关：独立键，不进 saveNow。中国版没有这个块。
+      // 匿名用量事件的开关：独立键，不进 saveNow。两个 flavor 在有 MT_TELEMETRY 时都亮。
       const tb = Registry.telemetryEnabled();
       setTelAvail(tb);
       if (tb && typeof MTTelemetry !== 'undefined') {
@@ -2239,7 +2239,7 @@ function Options() {
             </p>
             <p className="note">{T('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。')}</p>
             {/* 匿名用量事件（telemetry-design §5）：默认开、一个开关可关、关了即删。
-                中国版整块藏掉。 */}
+                有 MT_TELEMETRY 才画（中国版与国际版同一句）。 */}
             {telAvail && (
             <div id="telemetry-block" className="field row">
               <label htmlFor="telemetry-on">{T('telemetry_toggle', '分享匿名用量数据')}</label>
@@ -2254,7 +2254,7 @@ function Options() {
             <p className="note" id="telemetry-hint">
               <span>{T('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</span>
               {' '}
-              <a id="telemetry-what" target="_blank" rel="noopener" href="https://belliedmonkey.cc/privacy.html#usage">{T('telemetry_what', '会发送什么')}</a>
+              <a id="telemetry-what" target="_blank" rel="noopener" href={Registry.telemetryPrivacyUrl()}>{T('telemetry_what', '会发送什么')}</a>
             </p>
             )}
             {/* ZIP 直装提示：官网早就说了这句，但装完的人不会回去看官网。 */}

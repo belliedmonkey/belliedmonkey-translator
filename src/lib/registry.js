@@ -39,16 +39,20 @@ const Registry = (() => {
   // 构建期 flavor 名。原样透传不兜底：onboard 把它喂给 renderGrant，与旧版传
   // window.MT_FLAVOR 的 undefined 语义逐字相同（grant.js 自己决定 undefined 走哪张卡）。
   const flavor = () => get('MT_FLAVOR');
-  // 遥测开关（telemetry.js 顶上的布尔；中国版没有该脚本）。!! 归一 —— src/ 的字符串
-  // 字面量过不了 src-boundaries 的 MT_ 门，收口在 registry 的命中区里。
+  // 遥测开关。两个 flavor 在 MT_TELEMETRY 有 URL 时都亮（BEL-135）；null 才藏。
+  // !! 归一 —— src/ 的字符串字面量过不了 src-boundaries 的 MT_ 门，收口在这里。
   const telemetryEnabled = () => !!get('MT_TELEMETRY');
+  // 「会发送什么」链到隐私 #usage。中国版去 .com，国际版去 .cc。path 不变。
+  const telemetryPrivacyUrl = () => (flavor() === 'china'
+    ? 'https://belliedmonkey.com/privacy.html#usage'
+    : 'https://belliedmonkey.cc/privacy.html#usage');
   // 一键配置的推荐平台序（providers.gen.js 顺带发射）：platforms() 按它把推荐平台排前。
   const recommendedHosts = () => get('MT_RECOMMENDED_HOSTS') || [];
   // 目标语言的默认值（langs.gen.js 发射）。tryUrl() 认不出 targetLang 时拿它兜底。
   const defaultTargetLang = () => get('MT_DEFAULT_TARGET_LANG') || '';
 
   return { get, providers, palette, langs, messages, modelParams, version,
-    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled,
+    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled, telemetryPrivacyUrl,
     recommendedHosts, defaultTargetLang };
 })();
 

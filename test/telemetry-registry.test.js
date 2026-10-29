@@ -31,8 +31,8 @@ describe('telemetry registry — 白名单是唯一登记处', () => {
     const rules = [...Object.values(cfg.COMMON), ...Object.values(cfg.EVENTS).flatMap((p) => Object.values(p))];
     for (const r of rules) ok(Array.isArray(r) ? r.every((v) => typeof v === 'string' && v.length <= 32) : allowed.has(r), 'bad rule: ' + JSON.stringify(r));
   });
-  test('flavor 只允许 global —— 中国版一个字节都不发', () => {
-    eq(JSON.stringify(cfg.COMMON.flavor), JSON.stringify(['global']));
+  test('flavor 允许 global 与 china —— 同一份白名单，中国版不再被 shape 层拒掉', () => {
+    eq(JSON.stringify(cfg.COMMON.flavor), JSON.stringify(['global', 'china']));
   });
   test('设计文档 §3 列的 11 个事件与注册表逐一对应', () => {
     const doc = fs.readFileSync(path.join(ROOT, 'docs/telemetry-design.md'), 'utf8');

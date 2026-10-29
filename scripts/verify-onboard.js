@@ -584,8 +584,8 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       //      用户，免得每跑一次门禁就往线上表里写两行）。这是它自己留的逃生口，smoke 也用它。
       //      **只入队、不 flush**（FLUSH_AT 10 / FLUSH_MS 60s），所以一个字节都不会发出去。
       //   ② tm:on —— 走完这几屏的过程中那个开关被点掉了。
-      // 中国版产物里 MT_TELEMETRY **根本不存在**（不是关着）—— 那是 Gate D 的承诺。
-      // 所以这一条在中国版上反过来断言：点完跳过，队列必须仍然是空的。
+      // 没有 MT_TELEMETRY（规格未发出）时，点完跳过队列必须仍然是空的。
+      // 中国版自 BEL-135 起有境内 URL，走下面与国际版相同的断言。
       if(!window.MT_TELEMETRY){
         const sk0=document.getElementById('ob-skip'); if(sk0) sk0.click();
         await new Promise(r=>setTimeout(r,400));
@@ -609,8 +609,8 @@ setTimeout(()=>{console.log('\n✗ 超时');process.exit(2);},90000).unref();
       return JSON.stringify({err:'点了跳过，队列里却没有 onboarding_done · 诊断 '+JSON.stringify(diag)});
     })()`);
     if(skipped.china){
-      if(skipped.n) fail(`中国版产物里竟然攒出了 ${skipped.n} 条遥测 —— Gate D 说好一条都不发`);
-      else pass('中国版：点完跳过队列仍为空（没有 MT_TELEMETRY，一条都不发）');
+      if(skipped.n) fail(`没有 MT_TELEMETRY 的包却攒出了 ${skipped.n} 条遥测`);
+      else pass('没有 MT_TELEMETRY：点完跳过队列仍为空');
     }
     else if(skipped.err) fail(skipped.err);
     else{

@@ -502,7 +502,7 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 > `bt_events` SQL（flush：terminate+activate 后等几分钟）。**[H]** = 只能人做（输密码、人耳听声）。
 > **双 flavor**：两台模拟器各装一版（§2.0 一机一版）；标注「intl-only / cn-only」的除外，
 > 中国版的判据见各项尾注（chips 无 google/openai/claude、额度位置放的是**阿里云官方**那张卡而不是
-> 我们那张、遥测零发送 Gate D）。
+> 我们那张。用量事件与国际版同一白名单，发往境内 `api.belliedmonkey.com/.../bt-ingest`，不共东京（BEL-135）。Phase B 未回读不得把 404 当成没发）。
 > 声源一律用播放代替真人（§0.3：Mac `afplay` conv 语料 / 外放英语视频）。
 
 ### 9.0 前置（每次开跑前）
@@ -598,7 +598,7 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   第 4 次自动收起（expired）；✕ 当场永久（dismissed）；已配引擎根本不出。
 - [ ] **冷启动两支。** 已配引擎 / 已登录 ⇒ 无引导无卡。已登录者登出再进不重弹引导。
 - [ ] **flavor 面。** cn：引擎 chips 无 google/openai/claude（有即红）；「免费通道」话术零出现；
-  登录屏**无**出境同意框（境内后端）；全程 `tm:queue` 恒空 + SQL 零行（Gate D）。
+  登录屏**无**出境同意框（境内后端）；`tm:queue` 里的用量事件与国际版同一白名单，flush 的主机是 `api.belliedmonkey.com` 且路径含 `bt-ingest`（不是 supabase.co）。Phase B 未回读前 SQL 可以还没有这行。
 - [ ] **语言与布局。** zh（模拟器默认）+ en（真机系统语言，期望文案以 `_locales/en` 为准）；
   iPad 布局抽查；系统 Dynamic Type +2 档 welcome 屏主行动完整可见。
 
@@ -626,7 +626,7 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
   的「官方免费额度三步卡在、链接是真地址、没有登录字样」。）
   **Expected:** 快速档出现「先领一份官方免费额度」+「去开通 ↗」+ 三步（注册并打开控制台 → 领免费额度
   → 把 API Key 粘到下面一键配好三槽）；**不出现**我们的卡（「领取」/余额行 `$x / $0.20`/
-  「改回免费额度」）；粘上百炼 key 后三槽配好、`engine_test` 走通；全程遥测零行（Gate D）。
+  「改回免费额度」）；粘上百炼 key 后三槽配好、`engine_test` 走通；`engine_test` 入 `tm:queue`（与国际版同一事件），不因「中国版零行」被判失败。
   登录本身照常（境内后端）。
 
 ### 9.4 对话 · 实时听译（§9.6）

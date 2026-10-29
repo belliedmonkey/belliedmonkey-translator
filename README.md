@@ -324,7 +324,7 @@ Stated up front, because finding them yourself is worse.
   to improve the listen experience. Those events carry no audio and no transcript, and the
   extension does not send this set. A random per-install id, never joined to an
   account; turning it off in Settings deletes what that device sent. The China edition sends
-  nothing. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
+  the same anonymous usage events to our in-country server. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
 - **Learning material is built on your device.** If you turn on the learning feature, the
   extension keeps the sentences you actually read — with the page URL, its title, and how long
   the text was on screen — in local storage on that device, so it can show them to you again

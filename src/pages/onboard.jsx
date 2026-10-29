@@ -453,8 +453,8 @@ function Onboard() {
   // done 屏的反馈地址与遥测披露。地址坏了不能拖垮收尾页（原版 catch 里 hidden）。
   let fbHref = '';
   try { fbHref = MTFeedback.mailtoUrl('onboarding'); } catch (_) {}
-  // 匿名用量事件说在前面（docs/telemetry-design.md §5）：默认开、设置里可关。中国版没有
-  // telemetry.js，经 Registry 的命名 getter 读那个布尔（src-boundaries 门）。
+  // 匿名用量事件说在前面（docs/telemetry-design.md §5）：默认开、设置里可关。
+  // 两个 flavor 都经 Registry 读 MT_TELEMETRY（src-boundaries 门）；有规格就露出这一句。
   const telemetryOn = Registry.telemetryEnabled();
 
   function openGrantPage() {
@@ -668,13 +668,13 @@ function Onboard() {
               href={fbHref} hidden={!fbHref}>{T('feedback_row', '发送反馈')}</a>
           </p>
           {/* 匿名用量事件说在前面（docs/telemetry-design.md §5）：默认开、设置里可关。
-              中国版没有 telemetry.js，整行不出。 */}
+              有 MT_TELEMETRY 才露出，句形与国际版相同。 */}
           <p id="ob-done-telemetry" className="hint" hidden={!telemetryOn}>
             <span id="ob-done-telemetry-text">{T('telemetry_onboard',
               '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。')}</span>
             {' '}
             <a id="ob-done-telemetry-link" target="_blank" rel="noopener"
-              href="https://belliedmonkey.cc/privacy.html#usage">{T('telemetry_what', '会发送什么')}</a>
+              href={Registry.telemetryPrivacyUrl()}>{T('telemetry_what', '会发送什么')}</a>
           </p>
           <button id="ob-done-close" type="button"
             onClick={() => { try { window.close(); } catch (_) {} }}>{T('extob_done_close', '知道了')}</button>
