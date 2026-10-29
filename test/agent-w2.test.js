@@ -49,7 +49,7 @@ describe('agent W1 parse + confirm + receipt', () => {
       'ok', 'need_confirm', 'cancelled', 'unsupported_action', 'bad_request',
       'untrusted_denied', 'need_app', 'need_ext', 'need_login', 'need_packs',
       'need_engine', 'need_os', 'need_permission_mic', 'site_unsupported',
-      'quota_or_key', 'study_capture_off', 'network_unavailable',
+      'quota_or_key', 'subscription_cannot_pay', 'study_capture_off', 'network_unavailable',
     ]);
   });
 

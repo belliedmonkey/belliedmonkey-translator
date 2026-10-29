@@ -77,7 +77,7 @@ const FAILURES = {
     primary: '去登录',
     secondary: '取消',
   },
-  // Receipt wire code stays quota_or_key (§6). The card code is this key.
+  // Receipt wire codes quota_or_key and subscription_cannot_pay. The card code is this key.
   grant_or_key_unavailable: {
     line: '本机额度或密钥不可用',
     primary: '去配置引擎与密钥',
@@ -94,6 +94,7 @@ const FAILURES = {
 // Wire codes that render a card under a different COPY-LOCK code.
 const RECEIPT_CARD = {
   quota_or_key: 'grant_or_key_unavailable',
+  subscription_cannot_pay: 'grant_or_key_unavailable',
 };
 
 function failureRow(code) {

@@ -14,7 +14,9 @@ Local stdio is the daily server. Remote MCP is later. A remote MCP is not publis
 | Codex | `OPENAI_ACCESS_TOKEN`、`CODEX_ACCESS_TOKEN` | `OPENAI_API_KEY`、`CODEX_API_KEY` |
 | dsh | `DEEPSEEK_AUTH_TOKEN` | `DEEPSEEK_API_KEY` |
 
-回执不带这些变量的值。`grant_or_key_unavailable` 的主按钮是「去配置引擎与密钥」，脚注是「亦可在宿主配置自有 Key 或订阅」。
+宿主 API Key 会按注册表向提供方发请求。用量记在配额观测里，不进回执，回执也不带变量的值。宿主订阅令牌走同一条请求。提供方不肯为这枚令牌代付时，回执码是 `subscription_cannot_pay`（用户看见的卡仍是 `grant_or_key_unavailable`）。这条失败不会改走大肚猴额度假装成功。环境变量非空本身不是成功，也不是额度。`capture_to_study` 不走这条传输，不会把句子发给提供方。`start_live_subtitles` 的计费不在这条线上。
+
+`grant_or_key_unavailable` 的主按钮是「去配置引擎与密钥」，脚注是「亦可在宿主配置自有 Key 或订阅」。
 
 本包装不包含 Grok 或 Muse 的本地插件。
 

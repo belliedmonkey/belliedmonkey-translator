@@ -107,6 +107,14 @@ const ENGINE_ACTIONS = new Set([
   'explain_or_drill',
 ]);
 
+// Provider wire for stdio. capture_to_study is a local write, not this
+// transport. start_live_subtitles stays off this wire.
+const HOST_BILLABLE = new Set([
+  'translate_page',
+  'translate_video_captions',
+  'explain_or_drill',
+]);
+
 function preconditions(action, ctx) {
   const query = ctx.query || {};
   const scheme = ctx.scheme;
@@ -249,9 +257,37 @@ async function runAgentAction(action, ctx) {
     }
   }
 
-  const fn = portFor(action, ctx.ports);
   const cred = credentialOf(ctx);
+  let chargedOk = false;
+  if (HOST_BILLABLE.has(action)
+      && (cred.kind === 'host_subscription' || cred.kind === 'host_key')
+      && typeof ctx.charge === 'function') {
+    let billed = null;
+    try {
+      billed = await ctx.charge({
+        action,
+        cred: publicAuth(cred),
+        env: ctx.env || {},
+        text: suppliedText(query, confirmed),
+      });
+    } catch (_) {
+      billed = { ok: false, code: 'network_unavailable' };
+    }
+    if (billed && billed.quota && typeof ctx.observeQuota === 'function') {
+      try { ctx.observeQuota(billed.quota); } catch (_) {}
+    }
+    if (!billed || billed.ok !== true) {
+      const code = billed && CODE_SET.has(billed.code) ? billed.code : 'quota_or_key';
+      return { receipt: receipt(action, code, messageFor(code, {}), fixFor(code, scheme, source)) };
+    }
+    chargedOk = true;
+  }
+
+  const fn = portFor(action, ctx.ports);
   if (typeof fn !== 'function') {
+    if (chargedOk) {
+      return { receipt: receipt(action, 'ok', successMessage(action, query), {}), grants: nextGrants };
+    }
     const code = missingCode(action);
     return { receipt: receipt(action, code, messageFor(code, {}), fixFor(code, scheme, source)) };
   }
