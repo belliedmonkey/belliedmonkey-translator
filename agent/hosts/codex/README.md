@@ -17,3 +17,5 @@ codex mcp add belliedmonkey -- node "$PWD/agent/hosts/claude-code/stdio.js"
 `codex mcp list` 应看到服务器 `belliedmonkey`。
 
 `ready.check` · `open_setup` · `start_live_subtitles` · `translate_page` · `translate_video_captions` · `capture_to_study` · `explain_or_drill`
+
+Empty text on translate_page and translate_video_captions is a billing probe; with text it is host page MT. Probe success is not a full page done.

@@ -146,6 +146,8 @@ function preconditions(action, ctx) {
       const host = hostnameOf(query.url);
       if (ctx.siteSupported(query.url) === false) return fail('site_unsupported', { host });
     }
+    const text = suppliedText(query, null);
+    if (text && codePoints(text) > TEXT_MAX) return fail('bad_request', { bad: copy.MESSAGES.textTooLong });
     return null;
   }
   if (action === 'capture_to_study') {
@@ -258,6 +260,12 @@ async function runAgentAction(action, ctx) {
   }
 
   const cred = credentialOf(ctx);
+  const billedText = suppliedText(query, confirmed);
+  // The caller segments. One charge is one shot, and it is the same text.
+  if ((action === 'translate_page' || action === 'translate_video_captions')
+      && billedText && codePoints(billedText) > TEXT_MAX) {
+    return { receipt: receipt(action, 'bad_request', copy.MESSAGES.textTooLong, {}) };
+  }
   let chargedOk = false;
   if (HOST_BILLABLE.has(action)
       && (cred.kind === 'host_subscription' || cred.kind === 'host_key')
@@ -268,7 +276,7 @@ async function runAgentAction(action, ctx) {
         action,
         cred: publicAuth(cred),
         env: ctx.env || {},
-        text: suppliedText(query, confirmed),
+        text: billedText,
       });
     } catch (_) {
       billed = { ok: false, code: 'network_unavailable' };

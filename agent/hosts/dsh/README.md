@@ -46,3 +46,5 @@ ln -sfn "$PWD/agent/hosts/dsh/skills/belliedmonkey" "${DSH_HOME:-$HOME/.dsh}/ski
 `node agent/hosts/dsh/stdio.js` 走 MCP `initialize` 与 `tools/list`，七个工具名与 `agent/contract.js` 的动作 ID 逐字相同。`test/agent-h2.test.js` 用这个入口对照 W2 内核。它不驱动 App，也不驱动浏览器扩展。dsh → App / 扩展的端到端留给 QD，标 OPEN。
 
 `ready.check` · `open_setup` · `start_live_subtitles` · `translate_page` · `translate_video_captions` · `capture_to_study` · `explain_or_drill`
+
+Empty text on translate_page and translate_video_captions is a billing probe; with text it is host page MT. Probe success is not a full page done.
