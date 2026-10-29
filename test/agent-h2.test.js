@@ -119,7 +119,8 @@ describe('agent H2 dsh packaging', () => {
     eq(pkg.type, 'module');
     deepEq(pkg.dsh, { bundle: { patch: './cordis.patch.yml' } });
     ok(pkg.dependencies == null, 'dsh package must not depend on a second schema');
-    eq(JSON.parse(read(path.join(ROOT, 'package.json'))).version, '1.19.4');
+    // 产品版本。上面的 dsh 包 version 是另一条轨，不跟这里对齐。
+    eq(JSON.parse(read(path.join(ROOT, 'package.json'))).version, '1.22.3');
 
     const bundle = read(BUNDLE_PATCH);
     const repo = read(REPO_PATCH);

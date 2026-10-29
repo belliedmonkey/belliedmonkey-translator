@@ -220,7 +220,10 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 1. **先 bump 版本，再 `build-safari.sh`。** `MARKETING_VERSION` 是生成工程时从
    `package.json` 写进 pbxproj 的。顺序反了，工程里还是旧版本号，而 `xcodebuild` 不会说
    什么 —— 归档出来的 Info.plist 仍是旧版，直到上传被 Apple 拒了才发现。
-   版本是**两处**：`package.json` 与 `extension/manifest.json`，`build.js` 有漂移门会拦。
+   版本是 **`package.json` ≡ `extension/manifest.json` ≡ `window.MT_VERSION` ≡ 两棵工程的 `MARKETING_VERSION`**。
+   `build.js` 守前两处；`node scripts/verify-version-consistency.js` 守全部。归档前跑它，非 0 就停。
+   不要在 xcodebuild 的参数或环境里覆盖营销版本；build 号仍只用 `CURRENT_PROJECT_VERSION`。
+   global 与 china 都从同一份 `package.json` 写入。
 2. **已发布版本的 train 是关着的。** 同一个 `CFBundleShortVersionString` 不能再传新
    build（`Invalid Pre-Release Train … is closed for new build submissions`）。要传就必须
    进下一个版本号 —— 也就是说，**真机验收会顺带消耗一个版本号**，这也是它比 USB 贵的地方。
@@ -3456,7 +3459,7 @@ iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro �
 | **机器门禁** | 30 条，29 ✅ | `test:setup-page` 红 = 站点（不是包）：启用页深色对比度旧账 + cc 站 `alternatives.html` 的 FAQPage 有 1 条问答不在可见正文里（新） |
 | **A iPhone Safari 模拟器（iOS 17.2）** | R00 / R07 / R09 / R06 两卡 + 领取 + 中继 / R10 ✅ | 上期脚本里 R03 `#qs-live` 与 R06「登录」计数 = **脚本过时**（1.12.0 设置页重做、云端实时转写下线）；R06 领取 = 脚本时序（清存储晚于点击），按正确时序重跑通过 |
 | **B iPad 模拟器（iOS 17.2）** | 同 A ✅ | 同构建复用 A |
-| **C macOS Safari（1.13.1，用户输密码 + 亲手勾扩展）** | 全新实例点悬浮按钮 ⇒ 引导页 ✅ · R00 plato 15 段 ✅ · #326：长广告结束后 5 s 双语字幕、全程 0 次「字幕不可用」✅ · **#345 整条路**：后台标签页里视频停在 0、开「译」共 38 s（后 18 s 已非广告）叠层为空 → 切过去开播 5 s 内双语字幕 ✅ | 扩展列表里 6 行同名（幽灵行），逐行看版本号才知道哪条是要验的；代点扩展复选框会触发「检测到干扰点按的 App…使用触控 ID」，那一步只能人来；本机出包要传 `MARKETING_VERSION`，否则 pluginkit 登记转换时的旧版本号 |
+| **C macOS Safari（1.13.1，用户输密码 + 亲手勾扩展）** | 全新实例点悬浮按钮 ⇒ 引导页 ✅ · R00 plato 15 段 ✅ · #326：长广告结束后 5 s 双语字幕、全程 0 次「字幕不可用」✅ · **#345 整条路**：后台标签页里视频停在 0、开「译」共 38 s（后 18 s 已非广告）叠层为空 → 切过去开播 5 s 内双语字幕 ✅ | 扩展列表里 6 行同名（幽灵行），逐行看版本号才知道哪条是要验的；代点扩展复选框会触发「检测到干扰点按的 App…使用触控 ID」，那一步只能人来；（历史，1.13.1）笔记曾要求出包时另传营销版本，否则 pluginkit 登记转换时的旧版本号；现行禁止另传，营销号只由 build-safari.sh 从 package.json 写入 |
 | **D macOS Chrome** | R00 / R09 / R07（干净 profile）/ R06 领取 + 中继 + 弹窗四态 / R10 全表 / R11 / R18 ✅ | 用户日常 Chrome（已登录）复验 #345：两段片头广告 → 正片 → 开「译」10 s 内双语字幕；暂停在 2:18 开「译」立刻出。受控 Chrome 里 YouTube 不给 timedtext（同上期） |
 | **E Firefox 156** | R00 plato 5 段 · en.wikipedia 30 段全通（#84 对照，0 失败）· R09 → AMO · R07（清缓存后）· R06 领取 + 中继 · R10 第 1·2 页 ✅ | **Firefox 156 的 BiDi 不再允许对扩展页（特权作用域）发命令**：文档段后半与 H 面 firefox.js 的后续段因此中止 —— 驱动脚本待跟进，不是扩展缺陷 |
 | **F iOS App 模拟器（iOS 17.2）** | R05 首页三行 · **R19**「译成」13 项、落盘、还原 · 快速翻译块不出现（caps=null）· **R20** 来源管理渲染 ✅ | Mac 调试版与模拟器会抢同一个控制通道：首跑读数混进了 Mac 的回报（caps 里出现 Mac 才有的字段），退出 Mac 调试版后重跑干净 |

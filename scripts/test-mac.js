@@ -42,6 +42,8 @@ function cleanEnv() {
   const env = { ...process.env };
   for (const k of ['http_proxy', 'https_proxy', 'HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'all_proxy'])
     delete env[k];
+  // xcodebuild 会把同名环境变量当成营销号，盖过 pbxproj。build 号不在这里。
+  delete env['MARKETING_VERSION'];
   return env;
 }
 

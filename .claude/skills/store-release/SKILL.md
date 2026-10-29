@@ -114,11 +114,20 @@ npm run app:sync                                  # ⚠️ 必须在归档前
   平台时在 `xcodebuild` 上加 `CURRENT_PROJECT_VERSION=<n>` 覆盖。
 - **本机的 `NODE_OPTIONS` 会让任何 node 先崩**（指向一个不存在的 cmux preload）。
   所有 node / 含 node 的脚本都要 `env -u NODE_OPTIONS`。
+- **不要在 xcodebuild 上覆盖营销版本**，环境里也不要留同名变量。营销号只由
+  `build-safari.sh` 从 `package.json` 写入 global 与 china 两棵工程。build 号覆盖仍用
+  `CURRENT_PROJECT_VERSION`。
+
+归档前先跑。非 0 就停，不要上传：
+
+```bash
+node scripts/verify-version-consistency.js
+```
 
 归档：
 
 ```bash
-env -u NODE_OPTIONS xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+env -u NODE_OPTIONS -u MARKETING_VERSION xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
   -scheme "BelliedMonkey Translator (iOS)" -configuration Release \
   -destination "generic/platform=iOS" -archivePath /tmp/mt-ios.xcarchive \
   DEVELOPMENT_TEAM=X2Q85MABWK CURRENT_PROJECT_VERSION=<n> -allowProvisioningUpdates archive
