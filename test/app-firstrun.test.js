@@ -283,8 +283,8 @@ describe('App 首屏三段式 —— 六条红线（#532）', () => {
       "OB 里还有 'ext' —— 网页翻译配置引导应只在设置页");
     ok(!/obEngineChips/.test(model), 'obEngineChips 还留着 —— 首屏不再有模型清单');
     ok(/id="webext-setup"/.test(read(SETTINGS)), '设置页没有 #webext-setup —— 网页翻译配置入口不见了');
-    ok(/webext-setup'\)\.addEventListener\('click', \(\) => openExternal\(setupPageUrl\(\)\)\)/.test(model),
-      '设置页那个入口没接到 setupPageUrl —— 点了不会打开设置页');
+    ok(/webext-setup'\)\.addEventListener\('click', \(\) => openExternal\(withUtm\(setupPageUrl\(\), 'webext_setup'\)\)\)/.test(model),
+      '设置页那个入口没接到 setupPageUrl+UTM —— 点了不会打开设置页');
   });
 
   test('R1c · 系统翻译横幅在首页永不出现（2026-10-01 裁定：引导只放设置页）', () => {

@@ -22,6 +22,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
+import { withUtm } from '../shared/utm.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
@@ -1253,7 +1254,7 @@ export default function SettingsView() {
         const what = $('telemetry-what');
         if (what) what.addEventListener('click', () => {
           const hooks = settingsModel.hooks();
-          if (hooks.openExternal) hooks.openExternal(Registry.telemetryPrivacyUrl());
+          if (hooks.openExternal) hooks.openExternal(withUtm(Registry.telemetryPrivacyUrl(), 'settings_privacy'));
         });
       }
     } catch (_) {}

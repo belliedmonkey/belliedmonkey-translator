@@ -57,4 +57,8 @@ module.exports = { ENTRIES: [
   //     「Firefox/Safari 实测不过时再启用」的备用路 —— 若矩阵真的红了，要回答的
   //     是「菜单改回命令式」这个新设计，不是翻开这行注释。
   { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'esm' },
+  // BEL-155：官网外链 UTM。扩展 options/onboard/popup 在 feedback.js 之前挂
+  // <script src="../learn/utm.js">；产物由本条目覆盖。App 经 main.jsx 副作用
+  // import utm-host（§9.4 对账）。算法只在 src/shared/utm.js。
+  { entry: 'src/shared/utm-host.js', out: 'learn/utm.js' },
 ] };
