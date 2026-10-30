@@ -16,6 +16,7 @@
 
 import { labelOf } from './engine-fields.js';
 import Registry from '../lib/registry.js';
+import { withUtm } from './utm.js';
 import {
   platforms, plan, tryUrl, tryVisible,
 } from './quick-setup.js';
@@ -206,7 +207,7 @@ export function render(box, opts) {
   tryNote.textContent = t('qs_try_note',
     '打开一页真实网页，点右下角的悬浮按钮，原文下面就会出现译文。');
   tryBtn.addEventListener('click', () => {
-    try { window.open(tryUrl(opts.targetLang), '_blank', 'noopener'); } catch (_) {}
+    try { window.open(withUtm(tryUrl(opts.targetLang), 'quick_setup'), '_blank', 'noopener'); } catch (_) {}
   });
   wrap.append(tryNote, tryBtn);
 

@@ -41,6 +41,7 @@ import { presentAgentDeepLink } from './agent-face.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
@@ -2262,7 +2263,8 @@ export function bootShell() {
     $(chk).addEventListener('change', (e) => xbSet(e.target.checked));
     $(box).querySelector('.xb-link').addEventListener('click', (ev) => {
       ev.preventDefault();
-      openExternal('https://belliedmonkey.com/privacy.html#sync');
+      const syncHost = (Registry.flavor() === 'china') ? 'belliedmonkey.com' : 'belliedmonkey.cc';
+      openExternal(withUtm('https://' + syncHost + '/privacy.html#sync', 'settings_privacy_sync'));
     });
   }
   // 拦在**捕获阶段**、挂在卡片上：四条路各自的监听器都在按钮/表单本身上，捕获阶段先到，
@@ -3003,11 +3005,11 @@ export function bootShell() {
     extBannerTrack('setup');
     extBannerDone = true;
     try { chrome.storage.local.set({ [EXT_DONE]: Date.now() }, () => {}); } catch (_) {}
-    openExternal(setupPageUrl());
+    openExternal(withUtm(setupPageUrl(), 'ext_banner_setup'));
     paintExtBanner(extState);
   });
   // 网页翻译配置引导（2026-10-02 #547）：从引导首屏搬到设置页 —— 这里开外链同样走原生桥。
-  if ($('webext-setup')) $('webext-setup').addEventListener('click', () => openExternal(setupPageUrl()));
+  if ($('webext-setup')) $('webext-setup').addEventListener('click', () => openExternal(withUtm(setupPageUrl(), 'webext_setup')));
   $('ext-banner-done').addEventListener('click', () => {
     extBannerDone = true;
     extBannerTrack('done');
@@ -3015,7 +3017,7 @@ export function bootShell() {
     paintExtBanner(extState);
   });
   $('ob-setup').addEventListener('click', () => {
-    openExternal(setupPageUrl());
+    openExternal(withUtm(setupPageUrl(), 'ob_setup'));
     // 这一屏没有「继续」，所以这个按钮同时是前进键 —— 否则点了它的人（也就是照做
     // 的人）会被卡在这一屏，后面三屏只能靠「以后再设置」整个跳过。
     // ext 现在是**最后一屏**（2026-09-22 重排），所以这个按钮兼作收尾键；
@@ -3249,7 +3251,7 @@ export function bootShell() {
         return openSettings('sec-account').then(() => ({ ok: true }));
       }
       if (step === 'install_ext') {
-        openExternal(setupPageUrl());
+        openExternal(withUtm(setupPageUrl(), 'install_ext'));
         return { ok: true };
       }
       if (step === 'mic' || step === 'install_app' || !step) {

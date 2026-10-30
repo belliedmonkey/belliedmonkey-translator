@@ -35,6 +35,8 @@ import '../shared/engine-fields-host.js'; // PR7b 副作用：挂 window.EngineF
 import '../shared/grant-host.jsx';    // PR7b 副作用：挂 window.LearnGrant 纯逻辑 ABI ——
                                       // shell-model / settings-model / docs-model / quick-model
                                       // 与 verify-listen / verify-quick 的裸全局调用靠它。
+import '../shared/utm-host.js';       // BEL-155 副作用：挂 window.MTUtm —— feedback.js
+                                       // 的 discussUrl 与 §9.4 对账门（扩展 learn/utm.js）靠它。
 import { boot as bootReview } from '../shared/review.js'; // PR7c：复习面（boot()，体内与扩展
                                       // 同一份字节）。只在下面 #quick 分流的 else 分支调 ——
                                       // quick 模式整段不执行（原 MAIN_ONLY 的组合根接棒）。

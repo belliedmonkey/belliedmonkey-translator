@@ -45,6 +45,7 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
+import { withUtm } from '../shared/utm.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import SettingsStore from '../store/settings-store.js';
 import { useSettings, useSettingsStatus, useUiLang } from '../store/hooks.js';
@@ -2254,7 +2255,7 @@ function Options() {
             <p className="note" id="telemetry-hint">
               <span>{T('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</span>
               {' '}
-              <a id="telemetry-what" target="_blank" rel="noopener" href={Registry.telemetryPrivacyUrl()}>{T('telemetry_what', '会发送什么')}</a>
+              <a id="telemetry-what" target="_blank" rel="noopener" href={withUtm(Registry.telemetryPrivacyUrl(), 'options_privacy')}>{T('telemetry_what', '会发送什么')}</a>
             </p>
             )}
             {/* ZIP 直装提示：官网早就说了这句，但装完的人不会回去看官网。 */}

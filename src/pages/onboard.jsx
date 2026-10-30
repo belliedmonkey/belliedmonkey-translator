@@ -45,6 +45,7 @@ import { useSettings, useSettingsStatus, useUiLang } from '../store/hooks.js';
 // 纯逻辑经各自的源文件进来。
 import EngineFields from '../shared/engine-fields.js';
 import QuickSetup from '../shared/quick-setup.js';
+import { withUtm } from '../shared/utm.js';
 import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
 import * as LearnGrant from '../shared/grant.js';
 import { render as renderGrant } from '../shared/grant-view.jsx';
@@ -513,7 +514,7 @@ function Onboard() {
     // 地址走 QuickSetup.tryUrl —— 设置页的「现在翻一页看看」去的是同一页，
     // 两处各写一份 flavor→域名 的映射迟早会漂。按**目标语言**选页：目标是英文的
     // 人打开一页英文示例，看到的是英文翻英文。
-    window.open(QuickSetup.tryUrl(s.targetLang), '_blank', 'noopener');
+    window.open(withUtm(QuickSetup.tryUrl(s.targetLang), 'try_page'), '_blank', 'noopener');
     // 它同时是收尾键。try 现在**永远是最后一屏**（见 OB 的注释：它是终止屏，
     // 点下去人就去了另一个标签），所以这里必须 finish() —— 否则 extObSeen 不写，
     // 弹窗会一直提示「第一次用？」。
@@ -674,7 +675,7 @@ function Onboard() {
               '会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。')}</span>
             {' '}
             <a id="ob-done-telemetry-link" target="_blank" rel="noopener"
-              href={Registry.telemetryPrivacyUrl()}>{T('telemetry_what', '会发送什么')}</a>
+              href={withUtm(Registry.telemetryPrivacyUrl(), 'onboard_privacy')}>{T('telemetry_what', '会发送什么')}</a>
           </p>
           <button id="ob-done-close" type="button"
             onClick={() => { try { window.close(); } catch (_) {} }}>{T('extob_done_close', '知道了')}</button>

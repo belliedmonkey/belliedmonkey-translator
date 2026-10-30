@@ -129,7 +129,14 @@ var MTFeedback = (() => {
   }
 
   function communityUrl() {
-    return flavor() === 'china' ? COMMUNITY_URL_CHINA : COMMUNITY_URL_GLOBAL;
+    if (flavor() === 'china') return COMMUNITY_URL_CHINA; // GitHub Discussions：非我方 host，不打 UTM
+    const url = COMMUNITY_URL_GLOBAL;
+    try {
+      if (typeof MTUtm !== 'undefined' && MTUtm && typeof MTUtm.withUtm === 'function') {
+        return MTUtm.withUtm(url, 'discuss');
+      }
+    } catch (_) {}
+    return url;
   }
   function discussUrl() { return communityUrl(); }
 
