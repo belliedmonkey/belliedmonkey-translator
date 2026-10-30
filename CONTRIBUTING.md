@@ -10,6 +10,16 @@ Thanks for looking. Two kinds of contribution are the most useful, and both star
 
 Questions, ideas, "what do you use it for" — [Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions), any language.
 
+## Good first issues
+
+Looking for a first PR? Start from issues labeled
+[`good first issue`](https://github.com/belliedmonkey/belliedmonkey-translator/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+— for example [#83](https://github.com/belliedmonkey/belliedmonkey-translator/issues/83)
+(keep the pending sync code-entry state when settings close) or
+[#385](https://github.com/belliedmonkey/belliedmonkey-translator/issues/385)
+(validate engine endpoint shape on blur / every test entry).
+Read `AGENTS.md` before coding; open a PR against `main`.
+
 ## Pull requests
 
 - Read [`AGENTS.md`](AGENTS.md) first. It is short on ceremony and long on the rules that are
