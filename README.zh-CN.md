@@ -9,32 +9,51 @@
 </p>
 
 <p align="center">
-大肚猴翻译（BelliedMonkey Translator）是一款免费、开源（GPL-3.0）的 App 与浏览器扩展，支持 Safari（iPhone、iPad、Mac）、Chrome 与 Firefox。它让网页和视频字幕同时显示两种语言；App 还能给 Mac 与 iPhone 上正在播放的声音配实时字幕，并做面对面的对话听译。它把你真正读过的句子变成间隔重复的复习卡；用你自己的 AI 密钥，或者不填密钥用免费通道。没有订阅，不强制注册账号。
-</p>
-
-<p align="center">
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-GPL--3.0-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
   <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
 </p>
 
 <p align="center">
   <a href="README.md">English</a> · <b>简体中文</b>
 </p>
 
+<!-- BEL-153 首屏：一键装扩展 + 商店深链 + 星标路径 -->
+<p align="center">
+  <a href="https://apps.apple.com/cn/app/id6789718038"><img alt="中国大陆 App Store" src="https://img.shields.io/badge/App%20Store-大肚猴翻译-000000?logo=apple&logoColor=white"></a>
+  &nbsp;
+  <a href="https://apps.apple.com/app/belliedmonkey-translator/id6787190032"><img alt="International App Store" src="https://img.shields.io/badge/App%20Store-International-555555?logo=apple&logoColor=white"></a>
+  &nbsp;
+  <a href="https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf"><img alt="Chrome 扩展" src="https://img.shields.io/badge/Chrome-安装扩展-4285F4?logo=googlechrome&logoColor=white"></a>
+  &nbsp;
+  <a href="https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/"><img alt="Firefox 扩展" src="https://img.shields.io/badge/Firefox-安装扩展-FF7139?logo=firefoxbrowser&logoColor=white"></a>
+</p>
+<p align="center">
+  <a href="https://belliedmonkey.com/"><b>中国站 belliedmonkey.com</b></a>
+  ·
+  <a href="https://belliedmonkey.cc/#install"><b>安装指南 →</b></a>
+  ·
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator"><b>★ 给本仓库点 Star</b></a>
+</p>
+
+<p align="center">
+  <img src="docs/media/app-live-subtitles.gif" alt="iPhone 实时听译 / Live Subtitles：画中画小窗浮在其他 App 上，每一句口语叠着译文——英文加粗，中文原文在下。" width="27%">
+</p>
+<p align="center"><sub><b>听译（实时字幕）：</b>对准正在播放的声音，双语字幕浮在画中画小窗里。<a href="https://belliedmonkey.cc/#app-preview">看 30 秒预览 →</a></sub></p>
+
 <p align="center">
   <img src="docs/media/hero-bilingual.gif" alt="一个维基百科页面：点一下悬浮按钮，每个段落保留原文，译文用另一种颜色紧跟在下面。" width="720">
 </p>
-
-<p align="center"><sub>点一下悬浮按钮。原文保留，译文在下面。维基百科，用你自己的 key 翻的。</sub></p>
+<p align="center"><sub>点一下悬浮按钮。原文保留，译文在下面。</sub></p>
 
 <p align="center">
   <img src="docs/media/review-phone.gif" alt="手机上：复习页出现一句从文章里记下的句子，选出正确译文，给自己打分，下一张卡接着来。" width="27%">
   &nbsp;&nbsp;
   <img src="docs/media/review-mac.gif" alt="Mac 上同一轮复习：卡片、带下次复习间隔的四档评分、下一张卡。" width="66%">
 </p>
-<p align="center"><sub>真正读过的句子会变成复习卡 —— 手机上、Mac 上都能复习。选译文、打分，间隔重复安排下一次。</sub></p>
+<p align="center"><sub>真正读过的句子会变成复习卡 —— 手机上、Mac 上都能复习。</sub></p>
 
 ---
 
