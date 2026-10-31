@@ -101,7 +101,11 @@ function decisionFromElicitation(result, card) {
 }
 
 function needsConfirm(action, grants, callerId) {
-  if (!isSensitive(action)) return false;
+  // BEL-151: an inbound open_setup stops at the confirm card too. It is not one
+  // of the five SENSITIVE tools (it opens a settings page; it never opens the
+  // mic, reads the page, or writes the study library), so it stays out of
+  // contract.SENSITIVE and only shares the confirm gate.
+  if (!(isSensitive(action) || action === 'open_setup')) return false;
   return !hasGrant(grants, action, callerId);
 }
 

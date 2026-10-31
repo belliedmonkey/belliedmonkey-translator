@@ -36,15 +36,17 @@ Flavor：环境变量 `MT_FLAVOR=china` 时，回执里的 `fix.open_setup` 用 
 
 公共键：`source`（`agent` \| `mcp` \| `deeplink` \| `web` \| `ext`）、`v`、`caller`、`caller_id`、`lang`、`return`。
 
-| 工具名 | 敏感 | 额外入参 | 执行 |
+| 工具名 | 敏感 / 确认 | 额外入参 | 执行 |
 | --- | --- | --- | --- |
 | `ready.check` | 否 | — | 返回就绪摘要。不改设置、权限、学习库 |
-| `open_setup` | 否 | `step`：`install_app` \| `install_ext` \| `login` \| `packs` \| `mic` \| `engine` | 打开既有设置步。非法 `step` → `bad_request` |
+| `open_setup` | 确认：是（入站）· 副作用敏感：否 | `step`：`install_app` \| `install_ext` \| `login` \| `packs` \| `mic` \| `engine` | 打开既有设置步。**入站须 Confirm-anon**（深链 / MCP 与五个副作用敏感工具走同一条确认路径，但不标开麦敏感；touches 照实写「打开本机设置页」，不宣称开麦）。非法 `step` → `bad_request` |
 | `start_live_subtitles` | 是 | `video_lang`、`my_lang` | 确认后进入字幕独立表面。**不**调用开麦 |
 | `translate_page` | 是 | `url`（提示，不抓取） | 扩展执行。无扩展 → `need_ext`，不读页 |
 | `translate_video_captions` | 是 | `url`（提示，不抓取） | 扩展执行。站点探针为否 → `site_unsupported`（message 带主机名） |
 | `capture_to_study` | 是 | `text` 或 `quote` | 确认后才写。皆无则确认卡可贴。回执无句子 |
 | `explain_or_drill` | 是 | `text` / `quote`、`mode`：`explain` \| `drill`（默认 explain） | 确认后才解析。回执无句子 |
+
+「确认：是（入站）」只加确认门，不加副作用敏感：`contract.SENSITIVE` 仍是那五个动作，`isSensitive('open_setup') === false`。两种口径分开写，免得下一个读表的人把开设置页当成开麦。
 
 `tools/call` 的结果是 MCP `content[0].text`，其正文是下一节的回执 JSON。业务失败仍是 `isError: false`，失败在回执的 `code` 里。把深链 URL 字符串当作工具结果并标成 D3，是 FAIL。
 
@@ -123,7 +125,7 @@ BEL-104 附录卡（文案在 `agent/copy.js`）。`quota_or_key` 是回执码�
 
 ## 5. 确认门
 
-敏感工具（上表「是」）在副作用之前停住：
+副作用敏感的五个工具（上表「是」）与**入站 `open_setup`**（上表「确认：是（入站）」）都在副作用之前停住：
 
 1. 先做不碰麦 / 页 / 库的前置失败（`need_ext`、`need_login`、`need_packs`、`need_permission_mic`、`need_os`、`need_engine`、`quota_or_key`、`study_capture_off`、`site_unsupported`、`bad_request`）
 2. 已有本机授权则直接执行
@@ -131,6 +133,8 @@ BEL-104 附录卡（文案在 `agent/copy.js`）。`quota_or_key` 是回执码�
 4. 客户端 `accept` = 允许这一次。`decline` / `cancel` → `cancelled`，不执行
 5. 客户端没声明 elicitation，或 elicitation 失败 → 回执 `need_confirm`，不执行
 6. 工具参数里的 `confirmed` / `allow` / `grant` **删掉**，不能自证
+
+**入站 `open_setup`（BEL-151）**：深链 / MCP 进来的 `open_setup` 与上表五个敏感工具走**同一条确认路径** —— 须 `confirmed.allow` 或本机已有授权，才调用 `ports.openSetup`；点「取消」→ 回执 `cancelled`（「已取消」），**不**回「已打开设置」。`remember` / `persistGrants` 用同一个门，所以 `本机始终允许（打开设置）` 能落盘、下一次不再问。但它**不**并进 `isSensitive()` / `contract.SENSITIVE`：开设置页不开麦、不读页、不写学习库，确认卡的 touches 照实写「打开本机设置页（安装或就绪检查）」，不宣称开麦。确认卡来源行对匿名入站是「来自：深链 / MCP（无法确认助手身份）」，动作名「打开本机设置（安装引导）」，短名「打开设置」。中 / 国际同策（`MT_FLAVOR` 只改回执里的 scheme），stdout 上仍是同一条 elicitation 路径。
 
 匿名（没有合法 `caller_id`）的确认卡**没有** `始终允许此助手`。出现即 FAIL。
 

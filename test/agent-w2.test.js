@@ -116,7 +116,7 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(anon.actionLabel, '开实时双语字幕');
     eq(anon.deviceAllow, '本机始终允许（实时字幕）');
     eq(anon.footnote, '确认前不开麦、不读页、不写学习库');
-    eq(anon.origin, '未知助手');
+    eq(anon.origin, '深链 / MCP（无法确认助手身份）');
     ok(!JSON.stringify(anon).includes('始终允许此助手'));
     ok(!JSON.stringify(anon).includes('收录复习'));
     ok(!JSON.stringify(anon).includes('语音包'));
@@ -126,7 +126,7 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(named.origin, '已识别助手');
     const msg = confirm.elicitationMessage(anon);
     ok(!msg.includes('始终允许此助手'));
-    ok(msg.includes('来自：未知助手'));
+    ok(msg.includes('来自：深链 / MCP（无法确认助手身份）'));
     ok(!msg.includes('已识别助手'));
     ok(!msg.includes(SENTENCE));
     const schema = confirm.elicitationSchema(anon);
@@ -147,9 +147,9 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(f.site_unsupported.primary, '改用实时字幕');
     eq(f.need_engine.line, '还没配置翻译引擎');
     eq(f.need_engine.primary, '去配置引擎与密钥');
-    eq(f.need_app.line, '需要安装 App');
-    eq(f.need_app.primary, '去安装 App');
-    eq(f.need_app.secondary, '取消');
+    eq(f.need_app.line, '尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。');
+    eq(f.need_app.primary, '去安装 / 打开 App');
+    eq(f.need_app.secondary, '打开安装说明');
     eq(f.need_login.line, '需要登录');
     eq(f.need_login.primary, '去登录');
     eq(f.grant_or_key_unavailable.line, '本机额度或密钥不可用');
@@ -160,7 +160,7 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(f.network_unavailable.secondary, '取消');
     eq(copy.FAILURE_TITLE, '还差一步');
     eq(copy.HOST_KEY_HONEST, '宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径');
-    deepEq(Object.keys(copy.ACTIONS).sort(), ['capture_to_study', 'start_live_subtitles']);
+    deepEq(Object.keys(copy.ACTIONS).sort(), ['capture_to_study', 'open_setup', 'start_live_subtitles']);
     ok(!JSON.stringify(copy.ACTIONS).includes('整页双语'));
     ok(!JSON.stringify(copy.ACTIONS).includes('译网页'));
     ok(!JSON.stringify(copy.ACTIONS).includes('讲解或操练'));
@@ -256,6 +256,145 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(card.assistantAllow, null);
     eq(receipt.code, 'ok');
     ok(!JSON.stringify(receipt).includes('transcript'));
+  });
+});
+
+describe('BEL-151 inbound open_setup confirm', () => {
+  const URL_OPEN = 'belliedmonkey://agent/v1/open_setup?step=install_app&source=mcp';
+
+  test('open_setup needs a confirm but stays outside SENSITIVE', () => {
+    // The confirm gate and the side-effect-sensitivity set are two facts.
+    eq(contract.isSensitive('open_setup'), false);
+    eq(contract.SENSITIVE.has('open_setup'), false);
+    eq(confirm.needsConfirm('open_setup', { device: {}, assistants: {} }, ''), true);
+    eq(confirm.needsConfirm('start_live_subtitles', { device: {}, assistants: {} }, ''), true);
+    eq(confirm.needsConfirm('open_setup', { device: { open_setup: true }, assistants: {} }, ''), false);
+    eq(confirm.needsConfirm('ready.check', { device: {}, assistants: {} }, ''), false);
+
+    const card = confirm.buildConfirmCard('open_setup', {});
+    eq(card.title, '确认调用');
+    eq(card.actionLabel, '打开本机设置（安装引导）');
+    eq(card.origin, '深链 / MCP（无法确认助手身份）');
+    deepEq(card.touches, [
+      '打开本机设置页（安装或就绪检查）',
+      '确认前不开麦、不读页、不写学习库',
+      '不把全文发回聊天（默认）',
+    ]);
+    eq(card.deviceAllow, '本机始终允许（打开设置）');
+    eq(card.assistantAllow, null);
+    eq(card.primary, '允许这一次');
+    eq(card.cancel, '取消');
+    eq(card.footnote, '确认前不开麦、不读页、不写学习库');
+    ok(!JSON.stringify(card).includes('始终允许此助手'));
+    // touches are honest: opening a settings page never claims the microphone.
+    ok(!JSON.stringify(card.touches).includes('麦克风'));
+
+    const named = confirm.buildConfirmCard('open_setup', { caller_id: 'host-1' });
+    eq(named.assistantAllow, '始终允许此助手');
+    eq(named.origin, '已识别助手');
+
+    const msg = confirm.elicitationMessage(card);
+    ok(msg.includes('打开本机设置（安装引导）'));
+    ok(msg.includes('来自：深链 / MCP（无法确认助手身份）'));
+    ok(msg.includes('本机始终允许（打开设置）'));
+    ok(!msg.includes('始终允许此助手'));
+    ok(!msg.includes(SENTENCE));
+    const schema = confirm.elicitationSchema(card);
+    ok(!schema.properties.assistant);
+    ok(schema.properties.device);
+  });
+
+  test('deeplink open_setup: decline cancels without opening, accept opens settings', async () => {
+    const opened = [];
+    const cards = [];
+    const ctx = {
+      hostConnected: true,
+      readiness: {},
+      ports: { openSetup(req) { opened.push(req.step); return { ok: true }; } },
+    };
+    const declined = await session.handleAgentUrl(URL_OPEN, ctx, {
+      confirm(card) { cards.push(card); return { allow: false }; },
+      show() {},
+    });
+    eq(cards.length, 1);
+    eq(cards[0].actionLabel, '打开本机设置（安装引导）');
+    eq(declined.code, 'cancelled');
+    eq(declined.message, '已取消');
+    eq(opened.length, 0);
+    ok(!JSON.stringify(declined).includes('已打开设置'));
+
+    const accepted = await session.handleAgentUrl(URL_OPEN, ctx, {
+      confirm() { return { allow: true }; },
+      show() {},
+    });
+    deepEq(opened, ['install_app']);
+    eq(accepted.code, 'ok');
+    eq(accepted.message, '已打开设置');
+  });
+
+  test('open_setup device allow lands in grants and skips the next confirm', async () => {
+    let saved = null;
+    let confirms = 0;
+    let opens = 0;
+    const ctx = {
+      hostConnected: true,
+      readiness: {},
+      grants: { device: {}, assistants: {} },
+      ports: { openSetup() { opens++; return { ok: true }; } },
+      persistGrants(next) { saved = next; },
+    };
+    const first = await session.handleAgentUrl(URL_OPEN, ctx, {
+      confirm() { confirms++; return { allow: true, device: true }; },
+      show() {},
+    });
+    eq(first.code, 'ok');
+    eq(opens, 1);
+    eq(confirms, 1);
+    eq(saved.device.open_setup, true);
+    ctx.grants = saved;
+    const second = await session.handleAgentUrl(URL_OPEN, ctx, {
+      confirm() { confirms++; return { allow: false }; },
+      show() {},
+    });
+    eq(second.code, 'ok');
+    eq(opens, 2);
+    eq(confirms, 1);
+  });
+
+  test('open_setup without a decision is untrusted_denied; a bad step never opens', async () => {
+    let opens = 0;
+    const denied = await run.runAgentAction('open_setup', {
+      scheme: 'belliedmonkey',
+      hostConnected: true,
+      readiness: {},
+      ports: { openSetup() { opens++; return { ok: true }; } },
+    });
+    eq(denied.receipt.code, 'untrusted_denied');
+    eq(opens, 0);
+    const bad = await run.runAgentAction('open_setup', {
+      scheme: 'belliedmonkey',
+      hostConnected: true,
+      readiness: {},
+      query: { step: 'nope' },
+      confirmed: { allow: true },
+      ports: { openSetup() { opens++; return { ok: true }; } },
+    });
+    eq(bad.receipt.code, 'bad_request');
+    eq(opens, 0);
+  });
+
+  test('ready.check still never asks for a confirm', async () => {
+    let asked = 0;
+    const receipt = await session.handleAgentUrl('belliedmonkey://agent/v1/ready.check?source=mcp', {
+      hostConnected: true,
+      readiness: {},
+    }, {
+      confirm() { asked++; return { allow: false }; },
+      show() {},
+    });
+    eq(asked, 0);
+    eq(receipt.code, 'ok');
+    eq(receipt.message, copy.MESSAGES.readyOk);
   });
 });
 
@@ -405,8 +544,9 @@ describe('BEL-104 appendix cards and host key', () => {
       ports: {},
     });
     eq(missing.receipt.code, 'need_app');
-    eq(missing.receipt.message, '需要安装 App');
-    eq(confirm.failureCard('need_app').primary, '去安装 App');
+    eq(missing.receipt.message, '尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。');
+    eq(confirm.failureCard('need_app').primary, '去安装 / 打开 App');
+    eq(confirm.failureCard('need_app').secondary, '打开安装说明');
     ok(!missing.receipt.message.includes(SECRET));
     const aliased = await run.runAgentAction('translate_page', {
       scheme: 'belliedmonkey',
@@ -667,6 +807,69 @@ describe('agent W2 stdio MCP', () => {
       const pending = await c2.request('tools/call', { name: 'translate_page', arguments: { confirmed: true } });
       const rec = receiptOf(pending);
       eq(rec.code, 'need_ext');
+      eq(asked, false);
+      eq(contract.CODE_SET.has(rec.code), true);
+    } finally { c2.stop(); }
+  });
+
+  test('open_setup confirms on the wire; without elicitation it does not open', async () => {
+    const home = tmp();
+    const log = path.join(home, 'effects.log');
+    const c = client({ MT_AGENT_HOME: home, MT_AGENT_TEST_HOST: '1', MT_AGENT_EFFECT_LOG: log });
+    try {
+      await c.handshake(true);
+      const cards = [];
+      c.onServerRequest = (msg) => {
+        cards.push(msg);
+        c.proc.stdin.write(JSON.stringify({
+          jsonrpc: '2.0', id: msg.id, result: { action: 'decline' },
+        }) + '\n');
+      };
+      // `confirmed: true` in the arguments is dropped; only the card can say yes.
+      const declined = await c.request('tools/call', {
+        name: 'open_setup',
+        arguments: { step: 'install_app', confirmed: true },
+      });
+      eq(receiptOf(declined).code, 'cancelled');
+      eq(cards.length, 1);
+      eq(cards[0].method, 'elicitation/create');
+      ok(cards[0].params.message.includes('打开本机设置（安装引导）'));
+      ok(cards[0].params.message.includes('来自：深链 / MCP（无法确认助手身份）'));
+      ok(cards[0].params.message.includes('本机始终允许（打开设置）'));
+      ok(!cards[0].params.message.includes('始终允许此助手'));
+      eq(fs.existsSync(log), false);
+
+      c.onServerRequest = (msg) => {
+        c.proc.stdin.write(JSON.stringify({
+          jsonrpc: '2.0', id: msg.id, result: { action: 'accept', content: {} },
+        }) + '\n');
+      };
+      const accepted = await c.request('tools/call', {
+        name: 'open_setup',
+        arguments: { step: 'install_app' },
+      });
+      const rec = receiptOf(accepted);
+      eq(rec.code, 'ok');
+      eq(rec.message, '已打开设置');
+      const lines = fs.readFileSync(log, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      eq(lines.length, 1);
+      eq(lines[0].op, 'openSetup');
+      eq(lines[0].step, 'install_app');
+      ok(!fs.readFileSync(log, 'utf8').includes('startMic'));
+    } finally { c.stop(); }
+
+    const c2 = client({ MT_AGENT_HOME: tmp(), MT_AGENT_TEST_HOST: '1' });
+    try {
+      await c2.handshake(false);
+      let asked = false;
+      c2.onServerRequest = () => { asked = true; };
+      const pending = await c2.request('tools/call', {
+        name: 'open_setup',
+        arguments: { step: 'install_app', confirmed: true },
+      });
+      const rec = receiptOf(pending);
+      eq(rec.code, 'need_confirm');
+      eq(rec.message, '需要你在本机点确认');
       eq(asked, false);
       eq(contract.CODE_SET.has(rec.code), true);
     } finally { c2.stop(); }
