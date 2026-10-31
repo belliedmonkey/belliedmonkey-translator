@@ -38,6 +38,7 @@ import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 import { parseAgentDeepLink } from '../../agent/parse.js';
 import { presentAgentDeepLink } from './agent-face.js';
+import { deviceBridgeHost } from './device-bridge-host.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
@@ -2814,6 +2815,11 @@ export function bootShell() {
   // 断网自愈：网络回来立刻补一次进入级同步。
   window.addEventListener('online', () => { quietSync({ online: true }); });
 
+  // BEL-151 设备桥：与 quietSync 同一个「进 App / 回前台」入口 —— 已配对就 heartbeat
+  // 一次并把 2–5 分钟的存活 interval 挂上；未登录 / 未配对是安静的 no-op，不在用户
+  // 没打开的页上画错误。boot 同时订阅登录态变化（退出 / 换账号 ⇒ 清掉本机 cred）。
+  try { deviceBridgeHost.boot(); } catch (_) { /* 设备桥不能挡住 App 启动 */ }
+
   // ─── Review ───────────────────────────────────────────────────────────────
   // `review.js` runs its own boot on load and owns everything inside #review-view.
   // The app only shows and hides that view — reaching into its internals here would
@@ -3175,6 +3181,9 @@ export function bootShell() {
         scheme,
         hostConnected: true,
         grants: agentGrants,
+        // BEL-151：入站 open_setup 的短命 bootstrap 也走同一条 Bearer 路径。
+        // 它是 lazy 的 —— 这里只交出客户端门面，真正取 token / 发请求发生在 allow 之后。
+        deviceBridge: deviceBridgeHost.agentBridge(),
         persistGrants(next) {
           agentGrants.device = (next && next.device) || {};
           agentGrants.assistants = (next && next.assistants) || {};

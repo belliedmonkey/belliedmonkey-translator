@@ -26,6 +26,7 @@ import { withUtm } from '../shared/utm.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
+import { deviceBridgeHost, PAIR_HINT, PAIR_LABEL } from './device-bridge-host.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
 
@@ -777,6 +778,18 @@ export default function SettingsView() {
     } finally { btn.disabled = false; }
   };
 
+  // BEL-151：设备桥的状态行。文案全部来自 agent/copy.js 的锁（配对成功 / 需要登录 /
+  // 网络暂时不可用），这一层不另写句子。空态 = 不占位（hidden）。
+  function paintPairStatus() {
+    const el = $('pair-device-status');
+    if (!el) return;
+    let s = null;
+    try { s = deviceBridgeHost.status(); } catch (_) { s = null; }
+    const text = s && s.text ? s.text : '';
+    el.textContent = text;
+    el.hidden = !text;
+  }
+
   // 整页重画（旧 paint(session, say)）。session 现读 settingsModel.currentSession()
   // （设置页开着时登录态变了要用新的，见 model 那边注释）；say 动态取宿主钩子。
   async function paintNow() {
@@ -833,6 +846,7 @@ export default function SettingsView() {
     $('stt-model').value = cur.sttModel || '';
     paintSttFields($('stt-engine').value);
     $('account-who').textContent = LearnAuth.displayName(session);
+    paintPairStatus();
 
     const [stats, reviews] = await Promise.all([LearnStore.stats(), LearnStore.allReviews()]);
     $('settings-counts').textContent =
@@ -1258,6 +1272,27 @@ export default function SettingsView() {
         });
       }
     } catch (_) {}
+
+    // BEL-151 设备桥（Mac P0）。入口只在 Mac 揭开（JSX 的 hidden），这里仍判空 ——
+    // iPhone 上按钮在 DOM 里但点不到，加监听无害。确认卡与文案锁都在 agent/ 那侧：
+    // 未登录时卡片说「需要登录」并把主按钮接到登录页，一个请求都不发。
+    const pairBtn = $('pair-device-btn');
+    if (pairBtn) {
+      pairBtn.addEventListener('click', async () => {
+        pairBtn.disabled = true;
+        try {
+          const hooks = settingsModel.hooks();
+          await deviceBridgeHost.pair({ onSignIn: () => { if (hooks.onSignIn) hooks.onSignIn(); } });
+        } catch (_) {
+          // 卡片自己收口；宿主级异常不许被说成「已配对」。
+        } finally {
+          pairBtn.disabled = false;
+          paintPairStatus();
+        }
+      });
+    }
+    deviceBridgeHost.onStatus(() => paintPairStatus());
+    paintPairStatus();
 
     $('settings-signout').addEventListener('click', async () => {
       const btn = $('settings-signout');
@@ -1796,6 +1831,14 @@ export default function SettingsView() {
         <div className="sgroup" id="g-account">
           <h3 id="account-title">{t('app_set_account', '账号')}</h3>
           <p className="note" id="account-who"></p>
+          {/* BEL-151 设备桥（Mac P0）。按钮字与说明都逐字取 agent/copy.js 的锁
+              （ACTIONS.pair_device），不在这里造第二句；点击走 needsConfirm 的确认卡。
+              只在 Mac 揭开：device-bridge 的 platform 就是 mac，iPhone 上没有可配对的
+              另一半，给一个按钮就是给一个假的承诺。状态行由 paintPairStatus 涂写。 */}
+          <button id="pair-device-btn" type="button" className="secondary"
+            hidden={!listenModel.isMacHost()}>{PAIR_LABEL}</button>
+          <p className="note" id="pair-device-hint" hidden={!listenModel.isMacHost()}>{PAIR_HINT}</p>
+          <p className="note" id="pair-device-status" role="status" aria-live="polite"></p>
           <button id="settings-signout" type="button" className="secondary">{t('app_set_signout', '退出登录')}</button>
           {/* Apple requires in-app account deletion wherever accounts exist
                (learning-design §10 Gate B). Not a nice-to-have: without it the app cannot

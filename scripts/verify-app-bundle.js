@@ -181,6 +181,9 @@ setTimeout(() => { console.log('\n✗ 超时（60s），没有结论'); process.
         // §10 Gate B the app cannot ship without it, which makes its absence a
         // release blocker rather than a missing feature.
         settingsMissing: ['app-settings','settings-back','daily','tts-mode','target-lang',
+          // BEL-151 设备桥入口（Mac 设置面）：按钮 + 说明 + 状态行必须在 DOM 里。
+          // 说明与按钮字来自 agent/copy.js 的锁；paintPairStatus 要找到状态行。
+          'pair-device-btn','pair-device-hint','pair-device-status',
           // speech engine + its registry-declared credential fields (§7.2 / §9.1)
           'tts-engine','tts-api-key','tts-base-url','tts-model',
           'tts-voice','tts-auto','tts-rate',

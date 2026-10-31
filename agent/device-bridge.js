@@ -11,15 +11,11 @@
 //   createClient({ flavor, baseUrl, fetch, getAccessToken, getAppVersion,
 //                  store, now, paths, setTimeout, clearTimeout })
 //
-// The App should pass a persistent store (Keychain / UserDefaults). The default
-// store is a 0600 JSON file under ~/.belliedmonkey so a CLI pairing still keeps
-// one device id per install.
+// No Node I/O lives here on purpose: this module is also bundled into the App
+// (src/app/device-bridge-host.js), whose page has no `fs`. The caller always
+// supplies a store, and the Node/CLI default (a 0600 JSON file under
+// ~/.belliedmonkey) lives in agent/device-bridge-store.js.
 'use strict';
-
-const crypto = require('crypto');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 
 const PLATFORM = 'mac';
 const DEFAULT_TTL_SEC = 900; // growth freeze: 900s (15 min) without a heartbeat
@@ -56,18 +52,27 @@ function baseUrlForFlavor(flavor) {
 }
 
 function newDeviceId() {
-  if (crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  const bytes = crypto.randomBytes(16);
+  // Web Crypto first (same call in the App and Node ≥20), then a plain v4 so a
+  // page without a secure-context `randomUUID` still gets a stable, well-formed
+  // id. The id is not a credential — see KEYS below.
+  const web = (typeof globalThis !== 'undefined' && globalThis.crypto) ? globalThis.crypto : null;
+  if (web && typeof web.randomUUID === 'function') {
+    try { return web.randomUUID(); } catch (_) { /* fall through */ }
+  }
+  const bytes = new Uint8Array(16);
+  if (web && typeof web.getRandomValues === 'function') web.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
-  const hex = bytes.toString('hex');
+  let hex = '';
+  for (let i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0');
   return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-' + hex.slice(12, 16) + '-'
     + hex.slice(16, 20) + '-' + hex.slice(20);
 }
 
-// One store shape for both injected and default storage. A store is either
-// browser-like (getItem/setItem/removeItem) or the tiny (get/set/remove) shape
-// the App host can back with Keychain without importing this file's fs defaults.
+// One store shape for the injected storage. A store is either browser-like
+// (getItem/setItem/removeItem) or the tiny (get/set/remove) shape the App host
+// can back with its own storage without importing Node I/O.
 function apiOf(store) {
   if (!store) throw new Error('device-bridge: store required');
   if (typeof store.getItem === 'function' && typeof store.setItem === 'function') {
@@ -105,50 +110,10 @@ function memoryStore(seed) {
   };
 }
 
-function fileStore(file) {
-  const target = file || process.env.MT_AGENT_DEVICE_STORE
-    || path.join(os.homedir(), '.belliedmonkey', 'agent-device.json');
-  function readAll() {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(target, 'utf8'));
-      return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch (_) {
-      return {};
-    }
-  }
-  function writeAll(all) {
-    fs.mkdirSync(path.dirname(target), { recursive: true, mode: 0o700 });
-    fs.writeFileSync(target, JSON.stringify(all, null, 2) + '\n', { mode: 0o600 });
-  }
-  return {
-    path: target,
-    getItem(key) {
-      const value = readAll()[key];
-      return value == null ? null : value;
-    },
-    setItem(key, value) {
-      const all = readAll();
-      all[key] = String(value);
-      writeAll(all);
-    },
-    removeItem(key) {
-      const all = readAll();
-      delete all[key];
-      writeAll(all);
-    },
-  };
-}
-
-let defaultStoreRef = null;
-function defaultStore() {
-  if (!defaultStoreRef) defaultStoreRef = fileStore();
-  return defaultStoreRef;
-}
-
 // Stable per-install id. A malformed or missing value is replaced once and
 // written back; the id itself is not a credential and survives clearLocalCred().
 function getOrCreateDeviceId(store) {
-  const api = apiOf(store || defaultStore());
+  const api = apiOf(store);
   const found = api.get(KEYS.deviceId);
   if (typeof found === 'string' && UUID_RE.test(found)) return found;
   const id = newDeviceId();
@@ -177,7 +142,7 @@ function createClient(options) {
   const opts = options || {};
   const baseUrl = String(opts.baseUrl || baseUrlForFlavor(opts.flavor)).replace(/\/+$/, '');
   const paths = pathsWith(opts.paths);
-  const store = apiOf(opts.store || defaultStore());
+  const store = apiOf(opts.store);
   const doFetch = opts.fetch || (typeof globalThis.fetch === 'function' ? globalThis.fetch : null);
   const getAccessToken = opts.getAccessToken || (() => '');
   const getAppVersion = opts.getAppVersion || (() => '');
@@ -405,5 +370,4 @@ module.exports = {
   getOrCreateDeviceId,
   createClient,
   memoryStore,
-  fileStore,
 };
