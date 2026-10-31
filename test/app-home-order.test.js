@@ -50,29 +50,48 @@ describe('App 首页出场顺序（2026-10-01 设计稿 · J01/J03/J05/J07）', 
     ok(/chip\.setAttribute\('aria-label'/.test(model), '缺失 chip 没有 aria-label 指明目标页');
   });
 
-  test('J03/J17 · 实心 CTA 恰好是两位主角；带内有中英两行（不是空装饰层）', () => {
+  test('J03/J17 + BEL-168 · 实心 CTA 恰好是两位主角；CTA 只中文、hug、右下', () => {
     const css = read('app/style.css').replace(/\/\*[\s\S]*?\*\//g, '');
     // J17（2026-10-02 真机修订）：`::after` 装饰带就是「空橙块」的根因 —— 必须彻底消失。
     ok(!/#app-(?:listen|subs)-entry::after/.test(css),
       '主角卡还留着 ::after 装饰带 —— 那正是空橙块的根因（J17）');
-    ok(/#app-listen-entry \.cta[\s\S]{0,220}background: var\(--accent/.test(css),
+    ok(/#app-listen-entry \.cta[\s\S]{0,220}background: var\(--cta-bg/.test(css),
       '实时听译卡没有实心启动带 —— 主角没有可点的实心 CTA');
-    ok(/#app-subs-entry \.cta[\s\S]{0,220}background: var\(--accent/.test(css),
+    ok(/#app-subs-entry \.cta[\s\S]{0,220}background: var\(--cta-bg/.test(css),
       '实时字幕卡没有实心启动带');
     ok(/\.today \.row #review[\s\S]{0,160}color-mix/.test(css),
       '复习键仍是实心 —— 判据 J03 要求折叠线以内实心 CTA 只有两位主角');
-    // J17：每条带内 `.cn` / `.en` 两个子节点都必须存在，且颜色各自显式声明（不靠继承）。
+    // BEL-168（2026-10-31）：CTA 从全卡宽双语胶囊改成 hug content + 右下；EN 移到标题下。
     const lv = read('src/app/listen-view.jsx');
     for (const k of ['home_cta_listen', 'home_cta_subs']) {
-      ok(new RegExp("t\\('" + k + "'").test(lv), k + ' 没走 i18n（J17 的中英两行要能翻译）');
+      ok(new RegExp("t\\('" + k + "'").test(lv), k + ' 没走 i18n（CTA 中文主标要能翻译）');
     }
     eq([...lv.matchAll(/className="cta"/g)].length, 2, '两张主角卡应各有一条 .cta 带');
     eq([...lv.matchAll(/className="cn"/g)].length, 2, '每条 .cta 带应有 .cn 子节点');
-    eq([...lv.matchAll(/className="en"/g)].length, 2, '每条 .cta 带应有 .en 子节点');
-    for (const cls of ['cn', 'en']) {
-      ok(new RegExp('#app-listen-entry \\.cta \\.' + cls + '[\\s\\S]{0,160}color:').test(css),
-        `.cta .${cls} 的颜色没有显式声明 —— 空橙块正是继承/透明造成的（J17）`);
-    }
+    eq([...lv.matchAll(/className="en"/g)].length, 0,
+      'CTA 里又出现了 .en —— 按钮只许中文主标（禁全宽双语胶囊）');
+    eq([...lv.matchAll(/className="mode-sub"/g)].length, 2, '两张主角卡应各有一条标题下 EN sub');
+    ok(lv.includes('Conversation · Live interpretation'), '听译卡的 EN sub 与 COPY-LOCK 不一致');
+    ok(lv.includes('Live bilingual subtitles'), '字幕卡的 EN sub 与 COPY-LOCK 不一致');
+    // EN sub 必须在标题之后、说明之前（标题下 secondary）。
+    ok(/mode-title[\s\S]{0,240}mode-sub[\s\S]{0,240}mode-desc/.test(lv), 'EN sub 不在标题与说明之间');
+    ok(new RegExp('#app-listen-entry \\.cta \\.cn[\\s\\S]{0,160}color:').test(css),
+      '.cta .cn 的颜色没有显式声明 —— 空橙块正是继承/透明造成的（J17）');
+    // hug：不许 stretch / width:100%，必须右下。
+    ok(/#app-listen-entry \.cta[\s\S]{0,260}align-self: flex-end/.test(css),
+      'CTA 不是 hug + 右下（align-self: flex-end）—— 又变回全卡宽了');
+    ok(!/#app-(?:listen|subs)-entry \.cta[^}]*align-self: stretch/.test(css),
+      'CTA 仍是 stretch —— 全宽胶囊复发了');
+    ok(!/#app-(?:listen|subs)-entry \.cta[^}]*(?:^|[;{\s])width:\s*100%/.test(css),
+      'CTA 被写成 width:100% —— 全宽胶囊复发了');
+    // 宽窗双列：同一 720 断点，两卡并排；指针设备才压到设计稿的 30 高。
+    ok(/@media \(min-width: 720px\) \{[\s\S]{0,220}\.heroes \{ display: grid; grid-template-columns: repeat\(2,/.test(css),
+      '≥720 宽窗没有双列 —— Mac 首页仍是上下叠的两张大卡');
+    ok(/@media \(min-width: 720px\) and \(hover: hover\) and \(pointer: fine\) \{[\s\S]{0,260}height: 30px/.test(css),
+      'Mac 指针设备上的 CTA 没有按设计稿收到 ~30 高');
+    // 老壳不回 audio-caps 时字幕卡整行不存在：剩下那张听译卡必须占满，不能半宽空着。
+    ok(/\.heroes:not\(:has\(#app-subs-entry:not\(\[hidden\]\)\)\) \{ grid-template-columns: minmax\(0, 1fr\)/.test(css),
+      '只剩一张主角卡时仍是双列 —— 会留半宽空白列');
   });
 
   test('J01 · 主角卡的 sfx 必须默认成登录后那一份（否则两张卡永远 hidden）', () => {
