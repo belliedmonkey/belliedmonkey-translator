@@ -107,6 +107,18 @@ const ENGINE_ACTIONS = new Set([
   'explain_or_drill',
 ]);
 
+// device-bridge returns its own codes. The receipt vocabulary stays §6, so a
+// device failure is translated instead of leaking a new code onto the wire.
+const PORT_CODES = {
+  unauthorized: 'need_login',
+  not_paired: 'need_app',
+  confirm_required: 'bad_request',
+  bad_response: 'bad_request',
+  // A 5xx is retryable. §6 has no server_error code, and "network" is the
+  // closest honest card: it does not tell the user to change a setting.
+  server_error: 'network_unavailable',
+};
+
 // Provider wire for stdio. capture_to_study is a local write, not this
 // transport. start_live_subtitles stays off this wire.
 const HOST_BILLABLE = new Set([
@@ -125,6 +137,14 @@ function preconditions(action, ctx) {
     action, code, messageFor(code, extra), fixFor(code, scheme, source));
 
   if (action === 'ready.check' || action === 'open_setup') return null;
+
+  // BEL-151 pairing is a cloud call for a logged-in App user. It is not one of
+  // the five SENSITIVE tools and does not need an engine, packs, or microphone.
+  if (action === 'pair_device') {
+    if (r.network === false) return fail('network_unavailable');
+    if (r.login === false) return fail('need_login');
+    return null;
+  }
 
   // Offline is recoverable. The card retries; it does not open key or login setup.
   if (r.network === false && ENGINE_ACTIONS.has(action)) return fail('network_unavailable');
@@ -171,6 +191,7 @@ function preconditions(action, ctx) {
 
 function successMessage(action, query) {
   if (action === 'open_setup') return copy.MESSAGES.openedSetup;
+  if (action === 'pair_device') return copy.MESSAGES.paired;
   if (action === 'start_live_subtitles') return copy.MESSAGES.openedSubtitles;
   if (action === 'capture_to_study') return copy.MESSAGES.captured;
   if (action === 'explain_or_drill') {
@@ -183,6 +204,7 @@ function successMessage(action, query) {
 function portFor(action, ports) {
   const p = ports || {};
   if (action === 'open_setup') return p.openSetup;
+  if (action === 'pair_device') return p.pairDevice;
   if (action === 'start_live_subtitles') return p.enterSubtitle;
   if (action === 'translate_page') return p.translatePage;
   if (action === 'translate_video_captions') return p.translateCaptions;
@@ -195,6 +217,7 @@ function missingCode(action) {
   if (action === 'translate_page' || action === 'translate_video_captions') return 'need_ext';
   if (action === 'explain_or_drill') return 'need_app';
   if (action === 'capture_to_study') return 'need_app';
+  if (action === 'pair_device') return 'need_app';
   return 'need_app';
 }
 
@@ -231,10 +254,11 @@ async function runAgentAction(action, ctx) {
   const blocked = preconditions(action, ctx);
   if (blocked) return { receipt: blocked };
 
-  // BEL-151: inbound open_setup confirms like the five sensitive tools, but it
-  // is not side-effect sensitive — SENSITIVE stays untouched, and the card does
-  // not claim the microphone. The gate only decides "confirmed.allow or grant".
-  const gate = isSensitive(action) || action === 'open_setup';
+  // BEL-151: inbound open_setup and pair_device confirm like the five sensitive
+  // tools, but neither is side-effect sensitive — SENSITIVE stays untouched, and
+  // neither card claims the microphone. The gate only decides
+  // "confirmed.allow or grant".
+  const gate = isSensitive(action) || action === 'open_setup' || action === 'pair_device';
   const granted = hasGrant(grants, action, callerId);
   const confirmed = ctx.confirmed;
   if (gate && !granted && !(confirmed && confirmed.allow === true)) {
@@ -295,7 +319,13 @@ async function runAgentAction(action, ctx) {
     chargedOk = true;
   }
 
-  const fn = portFor(action, ctx.ports);
+  let fn = portFor(action, ctx.ports);
+  // The App may inject the device client instead of a port wrapper. register
+  // is called with confirm:true only after this gate has seen the user's yes.
+  if (typeof fn !== 'function' && action === 'pair_device'
+      && ctx.deviceBridge && typeof ctx.deviceBridge.register === 'function') {
+    fn = () => ctx.deviceBridge.register({ confirm: true });
+  }
   if (typeof fn !== 'function') {
     if (chargedOk) {
       return { receipt: receipt(action, 'ok', successMessage(action, query), {}), grants: nextGrants };
@@ -308,7 +338,7 @@ async function runAgentAction(action, ctx) {
   if (typeof fn === 'function') {
     const text = suppliedText(query, confirmed);
     try {
-      portResult = await fn({
+      const request = {
         action,
         step: query.step ? String(query.step) : '',
         mode: query.mode && EXPLAIN_MODES.has(String(query.mode)) ? String(query.mode) : 'explain',
@@ -316,7 +346,12 @@ async function runAgentAction(action, ctx) {
         langs: langs(query),
         site: hostnameOf(query.url),
         auth: publicAuth(cred),
-      }) || { ok: true };
+      };
+      // The port sees the same yes the gate saw. A device client called through
+      // this path can assert it, and register({confirm:true}) still refuses a
+      // caller that arrives here without it.
+      if (action === 'pair_device') request.confirm = true;
+      portResult = await fn(request) || { ok: true };
     } catch (_) {
       return { receipt: receipt(action, 'bad_request', copy.MESSAGES.badRequest, {}) };
     }
@@ -325,7 +360,8 @@ async function runAgentAction(action, ctx) {
   if (portResult && portResult.ok === false && portResult.code && portResult.code !== 'ok') {
     // Card code and wire code differ for the grant/key failure. A code outside
     // §6 must not fall through to ok.
-    const code = portResult.code === 'grant_or_key_unavailable' ? 'quota_or_key' : portResult.code;
+    let code = portResult.code === 'grant_or_key_unavailable' ? 'quota_or_key' : portResult.code;
+    if (PORT_CODES[code]) code = PORT_CODES[code];
     if (!CODE_SET.has(code)) {
       return { receipt: receipt(action, 'bad_request', copy.MESSAGES.badRequest, {}) };
     }
@@ -334,7 +370,24 @@ async function runAgentAction(action, ctx) {
     return { receipt: receipt(action, code, messageFor(code, extra), fixFor(code, scheme, source)) };
   }
 
+  // open_setup succeeded: tell the cloud this Mac is here for a short while.
+  // A bootstrap failure never turns the already-opened settings page into an
+  // error, and it never becomes the long-lived paired credential.
+  if (action === 'open_setup') await bootstrapAfterOpenSetup(ctx);
+
   return { receipt: receipt(action, 'ok', successMessage(action, query), {}), grants: nextGrants };
+}
+
+async function bootstrapAfterOpenSetup(ctx) {
+  const ports = ctx.ports || {};
+  let call = null;
+  if (typeof ports.deviceBootstrap === 'function') {
+    call = () => ports.deviceBootstrap({ source: 'open_setup' });
+  } else if (ctx.deviceBridge && typeof ctx.deviceBridge.bootstrap === 'function') {
+    call = () => ctx.deviceBridge.bootstrap({ source: 'open_setup' });
+  }
+  if (!call) return null;
+  try { return await call(); } catch (_) { return null; }
 }
 
 function cancelledReceipt(action) {
