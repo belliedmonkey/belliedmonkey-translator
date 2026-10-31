@@ -275,8 +275,8 @@ function patchViewController(sharedDir) {
   // MCP OAuth 的 refresh token Keychain 槽（BEL-151）。**两个平台都装** ——
   // 与 vault 那行不同，这里不能包 #if os(iOS)：Mac 正是这条功能的第一站。
   // 锚在测试桥那一整块后面（与离线字幕同一处），不落进 vault 的 #if 里。
-  const MCPO_NEEDLE = 'MTMcpOAuth.shared.install';
-  const MCPO_LINES = '        MTMcpOAuth.shared.install(webView: self.webView)';
+  const MCPO_NEEDLE = 'MTMcpOAuth.install';
+  const MCPO_LINES = '        MTMcpOAuth.install(webView: self.webView)';
   if (src.includes(MCPO_NEEDLE)) {
     notes.push('mcp oauth install already patched');
   } else if (src.includes(TESTB_LINES)) {
