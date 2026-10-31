@@ -152,9 +152,12 @@ final class MTWebAuth: NSObject, ASWebAuthenticationPresentationContextProviding
             }
             let get = { (n: String) in items.first { $0.name == n }?.value }
             guard let code = get("code") else { self?.deliver(error: get("error") ?? "no_code"); return }
-            // 只带 code 回去。回跳地址不许带查询串（Supabase 白名单是精确匹配），
-            // 所以我们自己的 state 不绕这一圈；绑定由页面那一侧的 code_verifier 承担。
-            self?.deliver(code: code, state: get("st"))
+            // 只带 code 与 state 回去。回跳地址不许带查询串（Supabase 白名单是精确匹配），
+            // 所以登录那条路的 state 不绕这一圈；绑定由页面那一侧的 code_verifier 承担。
+            // MCP OAuth（BEL-151）是标准授权码流程，`state` 由授权服务器原样带回 —— 页面
+            // 用同一张系统鉴权会话开它，所以两种拼写都认：`state` 优先，`st` 是本站登录
+            // 落地页用的那个（见 test/error-copy.test.js 的回调拼写说明）。
+            self?.deliver(code: code, state: get("state") ?? get("st"))
         }
         s.presentationContextProvider = self
         // 每次都用干净的会话：留着上一次的 cookie，换账号时会**静默**登回上一个人。

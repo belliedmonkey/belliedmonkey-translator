@@ -4,9 +4,9 @@
 // Near-synonyms are a failure. Slots ({动作短名}) are the only part that varies.
 // Banned: 语音包, 收录复习.
 //
-// User-facing action names exist only for the three locked actions (open_setup
-// since BEL-151). The other four tools keep their action ids and do not grow a
-// short name here.
+// User-facing action names exist for the locked actions and for pair_device
+// (BEL-151 local device bridge). The other four tools keep their action ids and
+// do not grow a short name here.
 'use strict';
 
 const TITLE = '确认调用';
@@ -39,6 +39,18 @@ const ACTIONS = {
       '打开本机设置页（安装或就绪检查）',
       '确认前不开麦、不读页、不写学习库',
       '不把全文发回聊天（默认）',
+    ],
+  },
+  // BEL-151: pairing tells the already-connected assistant that this Mac is
+  // reachable. The honest line is a touch, not a footnote. No microphone and no
+  // "listening works" claim: this action only writes a device session.
+  'pair_device': {
+    name: '连接此设备到助手',
+    short: '连接设备',
+    touches: [
+      '将把本机可达状态告知已连接的助手',
+      '只告知这台 Mac 可达；不发送页面内容或文件',
+      '确认前不发送设备信息，也不开麦、不读页',
     ],
   },
   'start_live_subtitles': {
@@ -131,6 +143,11 @@ const MESSAGES = {
   readyOk: '本机就绪',
   gapPrefix: '缺口 ',
   openedSetup: '已打开设置',
+  paired: '已连接此设备',
+  // BEL-151 / T6: the device credential or the MCP grant was refused (401) or the
+  // refresh token is gone. "需要登录" would send a signed-in user to a screen that
+  // changes nothing; this says the actual next step — allow the device again.
+  reconnect: '需重新允许连接此设备',
   openedSubtitles: '已打开实时双语字幕。点「开始」后才会使用麦克风。',
   captured: '已收进复习',
   explained: '已开始解析',

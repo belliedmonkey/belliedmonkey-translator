@@ -184,6 +184,44 @@ function isNetwork(receipt, fail) {
     || (fail && fail.code === 'network_unavailable');
 }
 
+// BEL-151 local pairing: the same confirm sheet and the same failure cards the
+// agent/v1 path uses, minus the retry / install-extension branches that belong to
+// deep links. `onSignIn` switches the App to its sign-in screen when the receipt
+// says 需要登录 — the pairing itself is never retried behind the user's back.
+export function pairingUi(onSignIn) {
+  return {
+    confirm(card) {
+      return mount(Object.assign({}, card, {
+        secondary: card.secondary || card.cancel || '',
+      }), {});
+    },
+    async show(receipt, fail) {
+      if (receipt && (receipt.ok || receipt.code === 'cancelled')) {
+        await mount({ title: receipt.message || '', primary: CLOSE }, {});
+        return;
+      }
+      const card = fail ? {
+        title: fail.title,
+        line: fail.line,
+        footnote: fail.footnote || '',
+        primary: fail.primary,
+        secondary: fail.secondary,
+      } : {
+        title: FAILURE_TITLE,
+        message: receipt.message,
+        primary: ctaFor(receipt) || CLOSE,
+        secondary: ctaFor(receipt) ? CLOSE : '',
+      };
+      await mount(card, {
+        onPrimary: async () => {
+          if (receipt.code === 'need_login' && typeof onSignIn === 'function') onSignIn();
+          return { allow: false };
+        },
+      });
+    },
+  };
+}
+
 export async function presentAgentDeepLink(raw, host) {
   let retry = false;
   const ui = {

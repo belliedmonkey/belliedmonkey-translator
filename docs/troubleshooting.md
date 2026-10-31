@@ -357,6 +357,24 @@ update public.bt_model_sources set active = false, updated_at = now()
 **为什么这一页特别容易踩**：设置页的 DOM 会随账号长出来（来源管理、卡片数），
 **在 A 账号上量得到的东西，在 B 账号上可能根本不在快照里** —— 别用「我这台量不到」推「它不存在」。
 
+### 3.1 WKWebView 的 `setTimeout` receiver 与 `visibilityState`（2026-10-31，BEL-151 D.8）
+
+两个**静默**的 App 侧坑，都会让「启动/回前台」这一跳根本没发出去：
+
+- **`setTimeout` 必须拿 Window 当 receiver。** 把原生 `setTimeout` 存进对象再
+  `timers.setTimeout(...)` 调用，Safari/WKWebView 直接抛
+  `Can only call Window.setTimeout on instances of Window`。如果调用点在
+  `try/catch` 里（或 promise 被 `.catch(noop)` 收口），症状是**一条请求都没有**，
+  不是报错。判据：`performance.getEntriesByType('resource')` 里该端点条目为 0；
+  修法：`Reflect.apply(fn, globalThis, args)`，别以普通对象为 receiver。
+- **启动时 `document.visibilityState` 可能是 `hidden`，且之后不补 `visibilitychange`。**
+  WKWebView 窗口被遮挡/尚未 key 时页面就报 hidden；窗口出现不保证发事件。所以
+  「启动即入口」不能 `if (visibilityState === 'visible')` 才跑 —— 那一跳会永久错过，
+  云端 revoke 永远没人发现。回前台仍可听 `visibilitychange`，但**启动那一跳要无条件**。
+
+**回读**：修复后 401 前 `device-sessions/heartbeat` 能从 0 条变成 1 条；401 后
+`device_cred` 清空、Keychain `mcp_access` 消失、status 显示「需重新允许连接此设备」。
+
 ---
 
 ## 4. 不要做的事

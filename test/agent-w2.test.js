@@ -160,7 +160,7 @@ describe('agent W1 parse + confirm + receipt', () => {
     eq(f.network_unavailable.secondary, '取消');
     eq(copy.FAILURE_TITLE, '还差一步');
     eq(copy.HOST_KEY_HONEST, '宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径');
-    deepEq(Object.keys(copy.ACTIONS).sort(), ['capture_to_study', 'open_setup', 'start_live_subtitles']);
+    deepEq(Object.keys(copy.ACTIONS).sort(), ['capture_to_study', 'open_setup', 'pair_device', 'start_live_subtitles']);
     ok(!JSON.stringify(copy.ACTIONS).includes('整页双语'));
     ok(!JSON.stringify(copy.ACTIONS).includes('译网页'));
     ok(!JSON.stringify(copy.ACTIONS).includes('讲解或操练'));
