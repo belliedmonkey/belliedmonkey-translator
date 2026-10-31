@@ -20,6 +20,36 @@
   --dim: var(--text-secondary);
   --line: var(--border);
   --field: var(--card-bg);
+  /* 首页入口 CTA 的设计稿两色（亮 #ac6231/白字；暖暗 #c67139/深字）。只服务这两张卡，
+     不扩散到全局按钮 —— 深色下很多按钮仍走 --accent + 白字，那条路也过 AA。 */
+  --cta-bg: var(--accent);
+  --cta-fg: #fff;
+}
+
+/* BEL-168（2026-10-31 Mac 首页 remaster）：App 壳的深色从共享的冷 slate 换成设计稿的
+   暖棕黑（`design/html/dark.html`：bg #2a211c / card #3a2f28 / well #4a3a30 / ink #f7efe6）。
+   只覆盖 App 包；扩展三页继续用 build/palette.config.js 的共享 token —— 那里是另一个
+   宿主，没有「暖暗」这版稿。文字与底色都仍过 AA（test:app 的深浅双扫会量）。 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #2a211c;
+    --card-bg: #3a2f28;
+    --section-bg: #4a3a30;
+    --input-bg: #332a24;
+    --border: #544338;
+    --text: #f7efe6;
+    --text-secondary: #c2b0a0;
+    --accent-deep: #f0b07a;
+    --link: #f0b07a;
+    --accent-track: #5a4336;
+    --sage: #aebf92;
+    --sage-strong: #aebf92;
+    --sage-text: #aebf92;
+    --sage-light: #3d472b;
+    --sage-deep: #ccdbb2;
+    --cta-bg: #c67139;
+    --cta-fg: #1a120e;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -962,7 +992,10 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
   border-radius: 999px; background: color-mix(in oklab, #c67139 11%, transparent); color: var(--accent-deep);
   border: 0; font: inherit; line-height: 1.35; text-align: left; white-space: normal; overflow-wrap: anywhere; }
 
-/* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。 */
+/* 两位主角（J01/J02/J03）：等高同权，各自整卡可点（触控比卡内小按钮更好按）。
+   BEL-168（2026-10-31 Mac 首页 remaster）：≥720 宽窗两卡并排双列；卡内 CTA 只留中文、
+   hug content、右下角 —— 不再是全卡宽的中英双语胶囊。窄窗仍叠放（本拍未画叠态，
+   记 ACCEPT），但 CTA 同样 hug，命中区在触控宽度保持 ≥44。 */
 .heroes { display: flex; flex-direction: column; gap: 10px; margin: 0 0 10px; }
 #app-listen-entry, #app-subs-entry {
   /* J15（2026-10-02 真机修订）：卡高是**常量**，不是 min-height —— 文案长度 / 字体回退 / Dynamic Type
@@ -970,33 +1003,58 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
      纵向 flex + overflow:hidden 让卡内任何多余内容只能被裁掉，不能撑开卡片。 */
   position: relative; height: 236px; padding: 18px; border-radius: var(--radius-lg);
   background: var(--card-bg); border: 1.5px solid var(--line); box-shadow: 0 1px 2px rgba(32, 30, 29, .05);
-  display: flex; flex-direction: column; overflow: hidden;
+  display: flex; flex-direction: column; overflow: hidden; align-items: stretch; gap: 0;
 }
 #app-listen-entry .mode-title, #app-subs-entry .mode-title {
-  /* J16：标题单行（中文一行 + 英文一行），超长在块内截断 —— 折行不得撑高卡片。 */
+  /* J16：标题单行（中文单行 + 标题下 EN sub 单行），超长在块内截断 —— 折行不得撑高卡片。 */
   font-size: 1.25rem; font-weight: 700; color: var(--fg);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
 }
-#app-listen-entry .mode-desc, #app-subs-entry .mode-desc { font-size: 0.85rem; color: var(--muted, var(--fg)); }
-#app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; }
+/* EN sub（COPY-LOCK：标题下 secondary，不是按钮里的第二行）。它是设计稿钉死的固定
+   英文对照，故意不进 t()。 */
+#app-listen-entry .mode-sub, #app-subs-entry .mode-sub {
+  margin: 2px 0 0; font-size: 0.78125rem; font-weight: 500; line-height: 1.3;
+  color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#app-listen-entry .mode-desc, #app-subs-entry .mode-desc {
+  margin-top: 6px; font-size: 0.85rem; color: var(--dim);
+}
+#app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; margin-bottom: 12px; }
 #app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
-/* 卡底那一条实心「启动带」：两卡完全同款（判据 J02 钉的就是这个 —— 不许把听译悄悄降级）。
-   J17（2026-10-02 真机修订）：它以前是一条 `::after` 装饰层，卡内那个 78px 的下内边距就是
-   给它留的位 —— 真机上是一条**空橙块**（文字在带外，根本没有文字）。现在把它做成卡内一个
-   真实的 <span class="cta">（卡是 <button>，不能嵌套 button），中英两行各自显式声明颜色。
-   根因消散：带与「按钮」是同一个元素，文案不可能是带外的东西。 */
+/* CTA：hug content（不 stretch）、卡内右下；只有中文主标。它是卡内真实元素，不是
+   ::after 装饰层 —— 整卡可点，所以是 span 不是 button。窄窗 44 命中区；Mac 宽窗按
+   设计稿压到 30 高（见下面的 ≥720 块）。 */
 #app-listen-entry .cta, #app-subs-entry .cta {
-  flex: none; align-self: stretch; margin-top: auto; height: 50px;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
-  background: var(--accent, #ac6231); border-radius: var(--radius-md, 12px); overflow: hidden;
+  flex: none; align-self: flex-end; margin-top: auto;
+  height: 44px; min-height: 44px; padding: 0 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--cta-bg, var(--accent, #ac6231)); border-radius: 999px; overflow: hidden;
 }
 #app-listen-entry .cta .cn, #app-subs-entry .cta .cn {
-  max-width: 100%; color: #fff; font-size: 1.0625rem; font-weight: 600; line-height: 1.3;
+  max-width: 100%; color: var(--cta-fg, #fff); font-size: 1rem; font-weight: 600; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-#app-listen-entry .cta .en, #app-subs-entry .cta .en {
-  max-width: 100%; color: rgba(255, 255, 255, .86); font-size: 0.78125rem; font-weight: 500; line-height: 1.25;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+
+/* Mac 宽窗（≥720，与 #app-listen 同一断点）：两卡并排双列，卡面收紧到桌面尺度。
+   设计源：~/qa/bel168-design-20261031/design/html/{light,dark}.html（~820 窗、卡 min 188）。
+   iPad 全屏同属宽版（同一份 CSS，不为 iPad 另写布局）。 */
+@media (min-width: 720px) {
+  .heroes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+  #app-listen-entry, #app-subs-entry {
+    height: 220px; padding: 18px; border-radius: var(--radius-md, 16px);
+  }
+  #app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 36px; height: 36px; }
+  #app-listen-entry .mode-title, #app-subs-entry .mode-title { font-size: 1rem; }
+  #app-listen-entry .mode-sub, #app-subs-entry .mode-sub { margin-top: 4px; font-size: 0.6875rem; }
+  #app-listen-entry .mode-desc, #app-subs-entry .mode-desc { margin-top: 8px; font-size: 0.78125rem; line-height: 1.5; }
+}
+/* 指针设备（Mac）才把 CTA 收到设计稿的 ~30 高；iPad 是触控，保留 44 命中区
+   （AGENTS.md：宽版 iPad 命中区 ≥44，不依赖 hover）。 */
+@media (min-width: 720px) and (hover: hover) and (pointer: fine) {
+  #app-listen-entry .cta, #app-subs-entry .cta {
+    height: 30px; min-height: 30px; margin-top: 14px; padding: 0 20px;
+  }
+  #app-listen-entry .cta .cn, #app-subs-entry .cta .cn { font-size: 0.8125rem; }
 }
 
 /* 复习条（J10）：从整屏大卡压到一条 —— 看得见、一眼能开始，但不抢主角。
