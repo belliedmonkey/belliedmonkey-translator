@@ -92,16 +92,19 @@ function ListenEntryButtons({ sfx = '' }) {
         hidden={listen ? listen.hidden : true} disabled={listen ? listen.disabled : false}
         onClick={listenModel.open}>
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /><path d="M9 21h6" /></svg></span>
-        <span className="mode-text"><span className="mode-title">{t('listen_entry', '对话 · 实时听译')}</span><span className="mode-desc" id={`app-listen-entry-hint${sfx}`}>{listen ? listen.hint : ''}</span></span>
+        {/* EN sub 是设计稿钉死的**固定英文**（BEL-168 COPY-LOCK：Conversation · Live
+            interpretation），不是界面语言的译文 —— 所以它故意不进 t()；它原来塞在
+            CTA 里，和中文一起做成全宽双语胶囊（Mac 上像手机首页被拉宽）。 */}
+        <span className="mode-text">
+          <span className="mode-title">{t('listen_entry', '对话 · 实时听译')}</span>
+          <span className="mode-sub" id={`app-listen-entry-sub${sfx}`}>Conversation · Live interpretation</span>
+          <span className="mode-desc" id={`app-listen-entry-hint${sfx}`}>{listen ? listen.hint : ''}</span>
+        </span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
-        {/* 实心 CTA 带（J17，2026-10-02 真机修订）：带本身是卡内一个真实节点，
-            不是 ::after 装饰层 —— 空橙块的根因就是「带是装饰层、文字在带外」。
-            卡本身已是 button，这里绝不嵌套 button，所以它只能是 span（整卡仍可点）。
-            两行：第 1 行 = 界面语言的动作（走 i18n），第 2 行 = 固定英文（与译名对齐），
-            两个子节点都必须非空、颜色各自显式声明 —— J17 的判据。 */}
+        {/* CTA 只留中文主标（COPY-LOCK：按钮仅「开始听译」/「开始实时字幕」）；
+            EN 已移到标题下 .mode-sub。卡本身仍是 button，所以这里只能是 span。 */}
         <span className="cta">
           <span className="cn">{t('home_cta_listen', '开始听译')}</span>
-          <span className="en">Start Conversation</span>
         </span>
       </button>
       {/* 实时字幕（learning-design §9.8）：原生不回 audio-caps（老壳）时整行不存在；门没过时灰掉 + 一句原因。 */}
@@ -109,11 +112,14 @@ function ListenEntryButtons({ sfx = '' }) {
         hidden={subs ? subs.hidden : true} disabled={subs ? subs.disabled : false}
         onClick={() => listenModel.open('subtitle')}>
         <span className="mode-icon mode-icon-terra"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M7 13h4" /><path d="M13 13h4" /><path d="M8 21h8" /></svg></span>
-        <span className="mode-text"><span className="mode-title">{t('subtitle_entry', '实时字幕')}</span><span className="mode-desc" id={`app-subs-entry-hint${sfx}`}>{subs ? subs.hint : ''}</span></span>
+        <span className="mode-text">
+          <span className="mode-title">{t('subtitle_entry', '实时字幕')}</span>
+          <span className="mode-sub" id={`app-subs-entry-sub${sfx}`}>Live bilingual subtitles</span>
+          <span className="mode-desc" id={`app-subs-entry-hint${sfx}`}>{subs ? subs.hint : ''}</span>
+        </span>
         <svg className="mode-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
         <span className="cta">
           <span className="cn">{t('home_cta_subs', '开始实时字幕')}</span>
-          <span className="en">Start Live Subtitles</span>
         </span>
       </button>
     </>
