@@ -1,0 +1,4212 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: ترجمة ثنائية + مراجعة"
+  },
+  "extension_description": {
+    "message": ": صفحات ثنائية اللغة وترجمة مزدوجة. الجمل التي تقرؤها تصبح بطاقات مراجعة. مفتاحك الخاص."
+  },
+  "action_title": {
+    "message": "مترجم القرد البدين"
+  },
+  "msg_loading": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "msg_preparing": {
+    "message": "⏳ يجري التحضير…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ فشلت الترجمة — اضغط لإعادة المحاولة"
+  },
+  "fab_translate": {
+    "message": "ترجمة"
+  },
+  "fab_toggle": {
+    "message": "تبديل الترجمة"
+  },
+  "fab_enable": {
+    "message": "تشغيل الترجمة"
+  },
+  "fab_disable": {
+    "message": "إيقاف الترجمة"
+  },
+  "yt_btn_title": {
+    "message": "مترجم القرد البدين · ترجمة الفيديو"
+  },
+  "yt_sub_on": {
+    "message": "تشغيل ترجمة الترجمة"
+  },
+  "yt_sub_off": {
+    "message": "إيقاف ترجمة الترجمة"
+  },
+  "yt_display_type": {
+    "message": "عرض الترجمة"
+  },
+  "yt_mode_both": {
+    "message": "ثنائي اللغة"
+  },
+  "yt_mode_trans": {
+    "message": "الترجمة فقط"
+  },
+  "yt_mode_orig": {
+    "message": "الأصل فقط"
+  },
+  "yt_download_srt": {
+    "message": "تنزيل الترجمة (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "الترجمة غير جاهزة بعد — حاول بعد تحميل الترجمة"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ جارٍ تحميل الترجمة…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "الترجمة غير متوفرة"
+  },
+  "podcast_sub_on": {
+    "message": "تشغيل ترجمة البودكاست"
+  },
+  "podcast_sub_off": {
+    "message": "إيقاف ترجمة البودكاست"
+  },
+  "settings": {
+    "message": "الإعدادات"
+  },
+  "popup_target_lang": {
+    "message": "اللغة الهدف"
+  },
+  "popup_provider": {
+    "message": "محرك الترجمة"
+  },
+  "provider_google_free": {
+    "message": "ترجمة Google (مجانية)"
+  },
+  "placeholder_api_key": {
+    "message": "أدخل مفتاح API…"
+  },
+  "toggle_show_hide": {
+    "message": "إظهار/إخفاء"
+  },
+  "label_custom_api": {
+    "message": "عنوان نقطة النهاية (كامل)"
+  },
+  "label_optional": {
+    "message": "(اختياري)"
+  },
+  "btn_translate_page": {
+    "message": "ترجمة الصفحة"
+  },
+  "btn_view_original": {
+    "message": "عرض الأصل"
+  },
+  "btn_more_settings": {
+    "message": "مزيد من الإعدادات"
+  },
+  "status_translated": {
+    "message": "مُترجَم"
+  },
+  "status_untranslated": {
+    "message": "غير مُترجَم"
+  },
+  "toast_lang_switched": {
+    "message": "تم تغيير اللغة"
+  },
+  "toast_provider_switched": {
+    "message": "تم تغيير المحرك"
+  },
+  "toast_restored_original": {
+    "message": "تمت استعادة الأصل"
+  },
+  "toast_translating": {
+    "message": "جارٍ الترجمة…"
+  },
+  "options_title": {
+    "message": "مترجم القرد البدين — الإعدادات"
+  },
+  "options_engine_section": {
+    "message": "محرك الترجمة"
+  },
+  "options_engine_label": {
+    "message": "المحرك"
+  },
+  "provider_google_free_long": {
+    "message": "ترجمة Google (مجانية، بدون مفتاح API)"
+  },
+  "options_custom_api_hint": {
+    "message": "اتركه فارغًا لاستخدام نقطة النهاية الافتراضية لهذا المحرك. وإذا ملأته فاكتب عنوان الطلب الكامل بما في ذلك مساره — نرسله كما هو تمامًا ولا نضيف إليه شيئًا. يصلح للوسطاء وللخدمات المستضافة ذاتيًا."
+  },
+  "options_lang_section": {
+    "message": "اللغة"
+  },
+  "options_style_section": {
+    "message": "نمط العرض"
+  },
+  "options_webpage_color": {
+    "message": "لون ترجمة الويب"
+  },
+  "options_color_preview": {
+    "message": "هذه معاينة لنمط الترجمة"
+  },
+  "options_yt_color": {
+    "message": "لون ترجمة YouTube"
+  },
+  "options_yt_preview": {
+    "message": "معاينة الترجمة الثنائية"
+  },
+  "options_font_size": {
+    "message": "حجم الترجمة (نسبةً للأصل)"
+  },
+  "options_font_s": {
+    "message": "أصغر (0.8×)"
+  },
+  "options_font_m": {
+    "message": "صغير (0.9×)"
+  },
+  "options_font_body": {
+    "message": "مطابق للأصل (1.0×)"
+  },
+  "options_font_l": {
+    "message": "أكبر (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "إظهار الزر العائم"
+  },
+  "options_cache_section": {
+    "message": "التخزين المؤقت"
+  },
+  "options_cache_hint": {
+    "message": "تُخزَّن الترجمات مؤقتًا 12 ساعة لتقليل طلبات API."
+  },
+  "options_clear_cache": {
+    "message": "مسح ذاكرة الترجمة"
+  },
+  "options_about_section": {
+    "message": "حول"
+  },
+  "options_about_desc": {
+    "message": "ترجمة ثنائية اللغة + حلقة تعلم: الجمل التي تقرؤها تصبح بطاقات مراجعة."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: فعّله من الإعدادات → Safari → الإضافات."
+  },
+  "toast_provider_saved": {
+    "message": "تم حفظ المحرك"
+  },
+  "toast_endpoint_cleared": {
+    "message": "تم تغيير المحرك — وأُفرِغ عنوان نقطة النهاية",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "تم حفظ مفتاح API"
+  },
+  "toast_apiurl_saved": {
+    "message": "تم حفظ عنوان API"
+  },
+  "toast_lang_saved": {
+    "message": "تم حفظ اللغة"
+  },
+  "toast_fontsize_saved": {
+    "message": "تم حفظ الحجم"
+  },
+  "toast_color_saved": {
+    "message": "تم حفظ اللون"
+  },
+  "toast_yt_color_saved": {
+    "message": "تم حفظ لون ترجمة YouTube"
+  },
+  "toast_clearing": {
+    "message": "جارٍ المسح…"
+  },
+  "toast_cache_empty": {
+    "message": "الذاكرة فارغة"
+  },
+  "toast_cache_cleared": {
+    "message": "تم مسح الذاكرة"
+  },
+  "hint_openai": {
+    "message": "مفتاح OpenAI API (sk-…)."
+  },
+  "hint_claude": {
+    "message": "مفتاح Anthropic API (sk-ant-…)."
+  },
+  "hint_deepseek": {
+    "message": "مفتاح DeepSeek API."
+  },
+  "hint_glm": {
+    "message": "مفتاح GLM (Zhipu AI) API (يوجد حد مجاني)."
+  },
+  "ui_lang_label": {
+    "message": "لغة الواجهة"
+  },
+  "ui_lang_auto": {
+    "message": "اتّباع النظام"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "الأكبر (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key."
+  },
+  "hint_qwen_mt": {
+    "message": "مفتاح API لـ Qwen MT (DashScope). نموذج متخصص في الترجمة، أرخص وأسرع من نموذج المحادثة العام. نفس مفتاح Qwen."
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "النموذج الافتراضي:"
+  },
+  "hint_custom_chat": {
+    "message": "أي نقطة نهاية محادثة بصيغة Chat Completions. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح. وإذا انتهى العنوان بـ responses فسنرسل بصيغة Responses."
+  },
+  "hint_custom_msg": {
+    "message": "أي نقطة نهاية محادثة بصيغة Messages. اكتب عنوان نقطة النهاية الكامل والنموذج والمفتاح."
+  },
+  "label_custom_model": {
+    "message": "الطراز"
+  },
+  "options_custom_model_hint": {
+    "message": "اتركه فارغًا لاستخدام النموذج الافتراضي للمحرك."
+  },
+  "options_advanced": {
+    "message": "إعدادات متقدمة"
+  },
+  "label_adv_temperature": {
+    "message": "العشوائية (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "اتركه فارغًا لاستخدام 0.3. القيمة الأقل تعطي ترجمة أكثر ثباتًا."
+  },
+  "label_adv_max_tokens": {
+    "message": "أقصى طول للمخرجات لكل طلب"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "اتركه فارغًا لاستخدام 2000. ارفعه إذا كانت الفقرات الطويلة تُقتطع."
+  },
+  "label_adv_timeout": {
+    "message": "مهلة الطلب (بالثواني)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "اتركه فارغًا لاستخدام 20 ثانية. ارفعه إذا كانت الخدمة الذاتية أو نموذج الاستدلال بطيئًا."
+  },
+  "label_adv_concurrency": {
+    "message": "الطلبات المتوازية"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "اتركه فارغًا لاستخدام 5. اخفضه عند تقييد المعدل؛ رفعه لن يُسرّع الطلبات المنتظرة بالفعل."
+  },
+  "options_adv_unsupported": {
+    "message": "هذا النموذج لا يقبل هذا الإعداد، لذلك لن يُرسل."
+  },
+  "label_adv_custom": {
+    "message": "معاملات طلب مخصّصة"
+  },
+  "options_adv_custom_hint": {
+    "message": "كائن JSON يُدمج في جسم الطلب ويتجاوز الحقول أعلاه. مخصّص للنقاط الذاتية الاستضافة أو الداخلية التي لم نقِسها."
+  },
+  "options_adv_custom_bad": {
+    "message": "تعذّر التحليل، ولن يُرسل شيء: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "يجب أن يكون كائن JSON؛ لن يُرسل شيء."
+  },
+  "options_adv_custom_ok": {
+    "message": "سيُرسل: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "لا يمكن تجاوزه، تم تجاهله: "
+  },
+  "options_adv_custom_none": {
+    "message": "(لا شيء)"
+  },
+  "err_reasoning_starved": {
+    "message": "استهلك النموذج كامل ميزانية المخرجات في التفكير ولم يُنتج ترجمة. ارفع «أقصى طول للمخرجات لكل طلب» في الإعدادات المتقدمة، أو انتقل إلى نموذج بلا استدلال."
+  },
+  "toast_model_saved": {
+    "message": "تم حفظ الطراز"
+  },
+  "setup_need_key": {
+    "message": "يحتاج هذا المحرّك إلى مفتاح API. لن تعمل الترجمة حتى تُدخل مفتاحًا في الأسفل."
+  },
+  "popup_need_setup": {
+    "message": "لم تُهيَّأ الترجمة بعد — اضغط هنا لفتح الإعدادات؛ مفتاح واحد يكفي."
+  },
+  "learn_title": {
+    "message": "المراجعة"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — المراجعة"
+  },
+  "learn_review": {
+    "message": "المراجعة"
+  },
+  "learn_reveal": {
+    "message": "إظهار الترجمة"
+  },
+  "learn_grade_again": {
+    "message": "نسيت"
+  },
+  "learn_grade_hard": {
+    "message": "صعب"
+  },
+  "learn_grade_good": {
+    "message": "تذكرت"
+  },
+  "learn_grade_easy": {
+    "message": "سهل جدًا"
+  },
+  "learn_empty_title": {
+    "message": "لا توجد مواد تعلم بعد"
+  },
+  "learn_empty_body": {
+    "message": "فعّل الالتقاط ثم تصفّح وترجم كالمعتاد. تُحفظ الجمل التي قرأتها فعلاً — أما التي مررت عليها سريعًا فلا."
+  },
+  "learn_open_settings": {
+    "message": "فعّل الالتقاط من الإعدادات"
+  },
+  "learn_alldone_title": {
+    "message": "انتهيت الآن"
+  },
+  "learn_alldone_body": {
+    "message": "واصل التصفح والترجمة — ستصل مواد جديدة تلقائيًا."
+  },
+  "learn_next_due": {
+    "message": "البطاقة التالية مستحقة {when}."
+  },
+  "learn_in_minutes": {
+    "message": "خلال {n} دقيقة تقريبًا"
+  },
+  "learn_in_hours": {
+    "message": "خلال {n} ساعة تقريبًا"
+  },
+  "learn_in_days": {
+    "message": "خلال {n} يوم تقريبًا"
+  },
+  "learn_progress": {
+    "message": "التقدّم"
+  },
+  "learn_done_run": {
+    "message": "أنجزت {n} في هذه الجلسة"
+  },
+  "learn_settings": {
+    "message": "الإعدادات"
+  },
+  "learn_unknown_source": {
+    "message": "مصدر غير معروف"
+  },
+  "learn_count_due": {
+    "message": "مستحق"
+  },
+  "learn_count_learning": {
+    "message": "قيد التعلم"
+  },
+  "learn_count_new": {
+    "message": "مرشحة"
+  },
+  "learn_count_known": {
+    "message": "متقنة"
+  },
+  "learn_count_total": {
+    "message": "الإجمالي"
+  },
+  "learn_section": {
+    "message": "التعلّم"
+  },
+  "learn_section_hint": {
+    "message": "عند التفعيل، تُحفظ الجمل التي قرأتها فعلًا على هذا الجهاز مع عنوان الصفحة وعنوانها الرئيسي ومدة العرض، وتُعرض عليك مجددًا وفق منحنى النسيان. التمرير السريع لا يُحتسب. لا يُرفع أي شيء ما لم تُفعّل المزامنة، وزر واحد يمسح كل شيء."
+  },
+  "learn_enable": {
+    "message": "جمع مواد التعلّم"
+  },
+  "learn_daily_new": {
+    "message": "أقصى عدد بطاقات جديدة يوميًا"
+  },
+  "learn_open_review": {
+    "message": "افتح صفحة المراجعة"
+  },
+  "learn_clear": {
+    "message": "مسح مكتبة التعلّم"
+  },
+  "learn_clear_confirm": {
+    "message": "مسح مكتبة التعلّم؟ ستُحذف كل الجمل المجمّعة وكل تقدّم المراجعة، ولا يمكن التراجع."
+  },
+  "learn_stats": {
+    "message": "{n} عنصرًا · {due} مستحق · نحو {kb} كيلوبايت"
+  },
+  "learn_stats_empty": {
+    "message": "مكتبة التعلّم فارغة"
+  },
+  "toast_learn_on": {
+    "message": "بدأ جمع مواد التعلّم"
+  },
+  "toast_learn_off": {
+    "message": "توقّف الجمع (يبقى ما جُمع سابقًا)"
+  },
+  "toast_learn_cleared": {
+    "message": "تم مسح مكتبة التعلّم"
+  },
+  "toast_learn_clear_failed": {
+    "message": "تعذّر المسح"
+  },
+  "toast_saved": {
+    "message": "تم الحفظ"
+  },
+  "learn_replay": {
+    "message": "▶ أعد سماع هذا المقطع"
+  },
+  "learn_replay_hint": {
+    "message": "يفتح المصدر في تبويب جديد عند تلك اللحظة — والترجمة الثنائية تعمل هناك أيضًا."
+  },
+  "tts_section": {
+    "message": "القراءة بصوت عالٍ"
+  },
+  "tts_section_hint": {
+    "message": "حوّل بطاقات المراجعة إلى تدريب استماع. يستخدم صوت جهازك افتراضيًا — بلا شبكة ولا تكلفة. ويمكنك توجيهه إلى خادم نطق تشغّله بنفسك."
+  },
+  "tts_mode": {
+    "message": "وضع النطق"
+  },
+  "tts_mode_off": {
+    "message": "مغلق"
+  },
+  "tts_mode_assist": {
+    "message": "إظهار النص مع زر تشغيل"
+  },
+  "tts_mode_audio_first": {
+    "message": "استمع أولًا (النص مخفي في البداية)"
+  },
+  "tts_engine": {
+    "message": "محرّك النطق"
+  },
+  "tts_engine_browser": {
+    "message": "صوت الجهاز المدمج (مجاني · دون اتصال)"
+  },
+  "tts_engine_local": {
+    "message": "نقطة نطق محلية / ذاتية الاستضافة"
+  },
+  "tts_hint_browser": {
+    "message": "يستخدم الأصوات الموجودة في نظام تشغيلك. لا يُرسَل شيء ولا يُخزَّن شيء — هذا المحرّك ينطق فقط ولا يمكنه إعادة بيانات صوتية."
+  },
+  "tts_hint_local": {
+    "message": "خادم تحويل نص إلى كلام على جهازك أو شبكتك المحلية — اكتب العنوان الكامل وفق المثال الظاهر في الحقل. تُخزَّن نتائج التركيب محليًا، فلا تدفع ثمن الجملة إلا مرة واحدة."
+  },
+  "tts_hint_openai": {
+    "message": "يستخدم مفتاح API الخاص بك. يُخزَّن الصوت المُركَّب محليًا فلا تُدفع تكلفة الجملة إلا مرة واحدة."
+  },
+  "tts_base_url": {
+    "message": "عنوان نقطة النطق"
+  },
+  "tts_api_key": {
+    "message": "مفتاح API للنطق"
+  },
+  "tts_model": {
+    "message": "نموذج النطق"
+  },
+  "tts_voice": {
+    "message": "الصوت"
+  },
+  "tts_voice_auto": {
+    "message": "تلقائي (حسب لغة البطاقة)"
+  },
+  "tts_voice_hint": {
+    "message": "تُطابَق الأصوات مع لغة كل بطاقة. الصوت الذي تختاره هنا لا يُستخدم إلا إذا كان ينطق تلك اللغة فعلًا."
+  },
+  "tts_rate": {
+    "message": "السرعة"
+  },
+  "tts_autoplay": {
+    "message": "التشغيل تلقائيًا عند فتح البطاقة"
+  },
+  "tts_test": {
+    "message": "جرّب جملة"
+  },
+  "tts_test_sample": {
+    "message": "هكذا ستبدو بطاقات المراجعة عند قراءتها."
+  },
+  "tts_testing": {
+    "message": "جارٍ التركيب…"
+  },
+  "tts_test_ok": {
+    "message": "قيد التشغيل"
+  },
+  "tts_play": {
+    "message": "▶ استمع"
+  },
+  "tts_replay": {
+    "message": "▶ استمع مرة أخرى"
+  },
+  "tts_playing": {
+    "message": "قيد التشغيل…"
+  },
+  "tts_loading": {
+    "message": "جارٍ تحميل الصوت…"
+  },
+  "tts_no_voice": {
+    "message": "لا يوجد صوت لهذه اللغة في نظامك"
+  },
+  "tts_unsupported": {
+    "message": "لا يوفّر هذا المتصفح نطقًا مدمجًا"
+  },
+  "tts_no_base": {
+    "message": "لم تُدخل عنوان نقطة النطق بعد"
+  },
+  "tts_no_key": {
+    "message": "لم تُدخل مفتاح API للنطق بعد"
+  },
+  "tts_blocked": {
+    "message": "حظر المتصفح التشغيل التلقائي — اضغط للتشغيل"
+  },
+  "tts_http": {
+    "message": "أعادت خدمة النطق خطأً"
+  },
+  "tts_failed": {
+    "message": "لا يمكن نطق هذه الجملة الآن"
+  },
+  "tts_cache": {
+    "message": "ذاكرة النطق: {n} مقطعًا · نحو {mb} ميغابايت (الحد {cap} ميغابايت)"
+  },
+  "tts_cache_empty": {
+    "message": "ذاكرة النطق فارغة"
+  },
+  "tts_cache_na": {
+    "message": "لا ينتج صوت الجهاز المدمج أي ذاكرة مؤقتة"
+  },
+  "tts_clear_cache": {
+    "message": "مسح ذاكرة النطق"
+  },
+  "toast_tts_cleared": {
+    "message": "تم مسح ذاكرة النطق"
+  },
+  "learn_reveal_orig": {
+    "message": "إظهار النص"
+  },
+  "learn_clean_known": {
+    "message": "امسح البطاقات التي أتقنتها"
+  },
+  "learn_clean_known_n": {
+    "message": "امسح {n} بطاقة أتقنتها"
+  },
+  "learn_pressure_dropped": {
+    "message": "تعذّر حفظ {n} عنصرًا مجمّعًا — يحدث هذا عندما تمتلئ المكتبة."
+  },
+  "learn_pressure_evicted": {
+    "message": "المكتبة ممتلئة — حُذفت {n} بطاقة قديمة تلقائيًا لإفساح المجال."
+  },
+  "learn_pressure_near": {
+    "message": "المكتبة أوشكت على الامتلاء ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "تم مسح {n} بطاقة أتقنتها"
+  },
+  "learn_export": {
+    "message": "تصدير مكتبة التعلّم"
+  },
+  "learn_import": {
+    "message": "استيراد من ملف"
+  },
+  "toast_exported": {
+    "message": "تم تصدير {n} بطاقة"
+  },
+  "toast_export_empty": {
+    "message": "لا يوجد ما يُصدَّر بعد"
+  },
+  "toast_export_failed": {
+    "message": "فشل التصدير"
+  },
+  "toast_imported": {
+    "message": "تم استيراد {n} بطاقة"
+  },
+  "toast_import_skipped": {
+    "message": "تم تخطي {n} سطرًا غير قابل للقراءة"
+  },
+  "toast_import_bad_format": {
+    "message": "هذا ليس ملف تصدير لمكتبة التعلّم"
+  },
+  "toast_import_failed": {
+    "message": "فشل الاستيراد"
+  },
+  "sync_section": {
+    "message": "تسجيل الدخول · المزامنة بين الأجهزة"
+  },
+  "sync_section_hint": {
+    "message": "اختياري. كل شيء يعمل دون تسجيل الدخول — المزامنة تجعل الجمل التي تقرؤها في المتصفح تظهر أيضًا في التطبيق وعلى أجهزتك الأخرى. بعد تسجيل الدخول تتم مزامنة كل ما تجمعه، بما في ذلك المرشَّحة التي لم تدخل المراجعة بعد."
+  },
+  "sync_email": {
+    "message": "البريد الإلكتروني"
+  },
+  "sync_send_code": {
+    "message": "إرسال الرمز"
+  },
+  "sync_code": {
+    "message": "رمز من 6 أرقام من البريد"
+  },
+  "sync_verify": {
+    "message": "تسجيل الدخول"
+  },
+  "sync_now": {
+    "message": "زامن الآن"
+  },
+  "sync_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "sync_delete": {
+    "message": "حذف بيانات السحابة والحساب"
+  },
+  "sync_err_offline": {
+    "message": "تعذّر الوصول إلى الخادم، وسنعيد المحاولة لاحقًا. كل ما تعلّمته موجود على هذا الجهاز."
+  },
+  "sync_err_quota": {
+    "message": "مساحتك السحابية ممتلئة، لذا لا يُرفع أي محتوى جديد (هذا الجهاز غير متأثر). حذف البطاقات المُتقنة يوفّر مساحة."
+  },
+  "sync_err_signed_out": {
+    "message": "انتهت صلاحية جلستك. سجّل الدخول من جديد."
+  },
+  "sync_err_rate": {
+    "message": "طلبت رموزًا كثيرة. حاول بعد بضع دقائق."
+  },
+  "sync_err_generic": {
+    "message": "لم تكتمل المزامنة"
+  },
+  "sync_signed_in": {
+    "message": "مسجّل الدخول: {email}"
+  },
+  "sync_usage": {
+    "message": "المستخدم {used} من {quota} · {n} كتلة"
+  },
+  "sync_need_email": {
+    "message": "أدخل بريدك الإلكتروني أولًا"
+  },
+  "sync_sending": {
+    "message": "جارٍ الإرسال…"
+  },
+  "sync_code_sent": {
+    "message": "أُرسل الرمز إلى {email}. أدخله بالأسفل."
+  },
+  "sync_verifying": {
+    "message": "جارٍ التحقق…"
+  },
+  "sync_signed_in_now": {
+    "message": "تم تسجيل الدخول. قد تستغرق المزامنة الأولى بضع ثوانٍ."
+  },
+  "sync_bad_code": {
+    "message": "الرمز غير صحيح أو منتهي الصلاحية. اطلب رمزًا جديدًا."
+  },
+  "sync_running": {
+    "message": "جارٍ المزامنة…"
+  },
+  "sync_done": {
+    "message": "اكتملت المزامنة · وصلت {in} · رُفعت {out}"
+  },
+  "sync_status_running": {
+    "message": "جارٍ المزامنة مع الخادم…"
+  },
+  "sync_status_done_at": {
+    "message": "اكتملت المزامنة · {time}"
+  },
+  "sync_status_offline": {
+    "message": "الشبكة غير متصلة حاليًا، ستتم إعادة المحاولة تلقائيًا. سجلات التعلم محفوظة على هذا الجهاز."
+  },
+  "sync_status_error": {
+    "message": "لم تكتمل المزامنة، ستتم إعادة المحاولة تلقائيًا."
+  },
+  "sync_status_signed_out": {
+    "message": "غير مسجَّل الدخول — بيانات هذا الجهاز فقط"
+  },
+  "sync_signed_out": {
+    "message": "تم تسجيل الخروج. مكتبتك على هذا الجهاز باقية كما هي."
+  },
+  "sync_delete_confirm": {
+    "message": "حذف بيانات السحابة والحساب؟ سيُحذف كل ما على الخادم وهذا الحساب نهائيًا. وتبقى مكتبتك على هذا الجهاز."
+  },
+  "sync_deleting": {
+    "message": "جارٍ الحذف…"
+  },
+  "sync_deleted": {
+    "message": "حُذفت بيانات السحابة والحساب. ومكتبتك على هذا الجهاز باقية."
+  },
+  "sync_deleted_partial": {
+    "message": "حُذفت بيانات السحابة، لكن تعذّر حذف الحساب ({why}). يمكنك إعادة المحاولة أو مراسلتنا."
+  },
+  "sync_err_upgrade": {
+    "message": "توجد في السحابة بيانات لا تستطيع هذه النسخة قراءتها بعد (غالبًا كتبتها نسخة أحدث). حدّث الإضافة ثم زامن — لم يُفقد شيء، فقط تعذّرت قراءته الآن."
+  },
+  "toast_import_upgrade": {
+    "message": "أُنشئ هذا الملف بنسخة أحدث من الإضافة. حدّثها ثم استورده. الملف نفسه سليم."
+  },
+  "options_init_failed": {
+    "message": "تعذّر تحميل صفحة الإعدادات ({err}). أعد فتح الصفحة؛ وإذا استمر ذلك فأبلغنا بهذه الرسالة."
+  },
+  "settings_read_failed": {
+    "message": "تعذّرت قراءة إعداداتك المحفوظة، لذا تظهر القيم الافتراضية أدناه. لا تحفظ من هذه الصفحة — فسيؤدي ذلك إلى استبدال إعداداتك. ({why})"
+  },
+  "learn_relearn": {
+    "message": "إعادة التعلّم",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "قوة الذاكرة",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "يومًا",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "كيف تعمل المراجعة",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "تذكّرت → تطول الفترة وتعود البطاقة لاحقًا.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "نسيت → تبدأ من جديد وتعود قريبًا.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "عند بلوغ القوة 180 يومًا تتخرّج البطاقة.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "فهمت",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "حتى {n} بطاقة جديدة يوميًا — قابل للتعديل في الإعدادات.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "تمرين حر",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "التمرين لا يصنع الإتقان، لكنه يكشف النسيان.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "قيد التعلّم",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "الكل (بما فيه الجديد والمُتقن)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "بلا حد",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "ابدأ التمرين",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "تمرين {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "انتهى التمرين — {n} بطاقة.",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "قراءة",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "استماع",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "كتابة",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "إتقان كامل",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "كرّرها بصوت عالٍ (تمرين — دون تقييم)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "تحقّق",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "أكمل الجملة",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "استُبدلت بالإجابة الصحيحة",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "اشرح هذه الجملة",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "يستخدم واجهتك المهيأة — استدعاء واحد، مخزّن دائمًا",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "جارٍ التحليل…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "فشل التحليل — حاول لاحقًا",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "لم يُرجِع النموذج أي نص — نماذج التفكير (الاستدلال) لا تناسب تحليل الجمل؛ اختر نموذج محادثة من الإعدادات."
+  },
+  "learn_notes_words": {
+    "message": "مفردات",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "عبارات",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "قاعدة نحوية",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "فيديو ومحادثات ومستندات — تُترجَم أثناء الاستماع. يُتعرَّف على الكلام على جهازك. يُرسَل النص المتعرَّف عليه للترجمة: مع مفتاحك الخاص يذهب مباشرةً إلى المزوّد الذي أعددته؛ ومع الرصيد المجاني يمر عبر خادمنا، ولا نحفظ النص."
+  },
+  "app_email_label": {
+    "message": "البريد الإلكتروني"
+  },
+  "app_send": {
+    "message": "إرسال الرمز"
+  },
+  "app_sending": {
+    "message": "جارٍ الإرسال…"
+  },
+  "app_code_label": {
+    "message": "الرمز (تحقق من بريدك)"
+  },
+  "app_verify": {
+    "message": "تسجيل الدخول"
+  },
+  "app_verifying": {
+    "message": "جارٍ تسجيل الدخول…"
+  },
+  "app_back_email": {
+    "message": "استخدام بريد آخر"
+  },
+  "app_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "app_settings_link": {
+    "message": "الإعدادات"
+  },
+  "app_review_start": {
+    "message": "بدء المراجعة"
+  },
+  "app_review_back": {
+    "message": "رجوع"
+  },
+  "app_sync": {
+    "message": "مزامنة"
+  },
+  "app_syncing": {
+    "message": "جارٍ المزامنة…"
+  },
+  "app_unit_cards": {
+    "message": "بطاقة"
+  },
+  "app_unit_reviews": {
+    "message": "مراجعة"
+  },
+  "app_unit_sources": {
+    "message": "مصدر"
+  },
+  "app_never_synced": {
+    "message": "لم تتم المزامنة بعد"
+  },
+  "app_sync_empty": {
+    "message": "تمت المزامنة، لكن الخادم فارغ — التقط بعض الجمل في المتصفح أولاً ثم زامن مجدداً."
+  },
+  "app_up_to_date": {
+    "message": "كل شيء محدّث."
+  },
+  "app_code_sent": {
+    "message": "تم إرسال الرمز — تحقق من بريدك."
+  },
+  "app_code_bad": {
+    "message": "الرمز خاطئ أو منتهي الصلاحية — حاول مجدداً."
+  },
+  "app_offline": {
+    "message": "تعذر الوصول إلى الخادم — تحقق من اتصالك وأعد المحاولة."
+  },
+  "app_needs_upgrade": {
+    "message": "لدى الخادم محتوى لا تستطيع هذه النسخة قراءته — حدّث التطبيق."
+  },
+  "app_received": {
+    "message": "تم استلام {n} بطاقة · {m} مراجعة"
+  },
+  "app_uploaded_n": {
+    "message": "تم رفع {n} مراجعة"
+  },
+  "app_uploaded_only": {
+    "message": "تم رفع {n} مراجعة"
+  },
+  "app_sync_disabled": {
+    "message": "المزامنة غير مفعّلة في هذا الإصدار. لا يتأثر الالتقاط والمراجعة في إضافة المتصفح — كل شيء يبقى على جهازك."
+  },
+  "app_set_title": {
+    "message": "الإعدادات"
+  },
+  "app_set_daily": {
+    "message": "الحد الأقصى للبطاقات الجديدة يومياً"
+  },
+  "app_set_tts_auto": {
+    "message": "نطق تلقائي عند عرض الترجمة"
+  },
+  "app_set_tts_rate": {
+    "message": "سرعة النطق"
+  },
+  "app_set_tts_note": {
+    "message": "البطاقات مجهولة اللغة (مثل الملتقطة في Safari حيث لا يوجد اكتشاف لغة) تُقرأ فقط بالصوت المختار أعلاه؛ وبدون اختيار لا يمكن نطقها. مفتاح API الصوتي مثل مفتاح تحليل الجملة: يبقى على هذا الجهاز فقط نصاً صريحاً ولا يتزامن مع حسابك."
+  },
+  "app_set_notes_title": {
+    "message": "الترجمة وتحليل الجملة"
+  },
+  "app_set_notes_provider": {
+    "message": "المحرك"
+  },
+  "app_set_notes_none": {
+    "message": "بدون"
+  },
+  "app_set_notes_key": {
+    "message": "مفتاح API"
+  },
+  "app_set_notes_base": {
+    "message": "عنوان نقطة نهاية مخصص"
+  },
+  "app_set_notes_model": {
+    "message": "النموذج"
+  },
+  "app_set_notes_note": {
+    "message": "هذا المحرك يتولى كل ترجمة داخل التطبيق: ترجمة النظام، والترجمة السريعة، وترجمة المستندات، وترجمات المحادثة والترجمة المباشرة، إضافة إلى تحليل الجملة (مفردات / عبارات / قواعد). يستدعي واجهتك البرمجية أنت. يبقى المفتاح على هذا الجهاز فقط ولا يُزامَن مع حسابك، وهو منفصل عن مفتاح إضافة المتصفح وبالأمان نفسه — كلاهما محفوظ كنص عادي على الجهاز."
+  },
+  "app_set_corpus": {
+    "message": "المكتبة"
+  },
+  "app_set_clean_known": {
+    "message": "تنظيف البطاقات المتقنة"
+  },
+  "app_set_cleaned": {
+    "message": "تم تنظيف {n} بطاقة"
+  },
+  "app_set_clean_none": {
+    "message": "لا شيء للتنظيف"
+  },
+  "app_set_account": {
+    "message": "الحساب"
+  },
+  "app_set_signout": {
+    "message": "تسجيل الخروج"
+  },
+  "app_set_delete": {
+    "message": "حذف الحساب وبيانات السحابة"
+  },
+  "app_set_delete_note": {
+    "message": "يؤدي الحذف إلى إزالة موادك وسجل مراجعاتك نهائياً من الخادم وإغلاق الحساب. المحتوى المنزَّل على هذا الجهاز لا يتأثر — لحذفه أيضاً احذف التطبيق."
+  },
+  "app_set_confirm_delete": {
+    "message": "هل تريد حذف حسابك؟ سيُزال كل شيء على الخادم نهائياً ولا يمكن استرجاعه."
+  },
+  "app_set_deleting": {
+    "message": "جارٍ الحذف…"
+  },
+  "app_set_deleted": {
+    "message": "تم حذف الحساب."
+  },
+  "app_unit_known": {
+    "message": "متقنة"
+  },
+  "tts_no_voice_und": {
+    "message": "لغة هذه البطاقة غير معروفة — اختر صوتاً في الإعدادات ليتم التشغيل"
+  },
+  "app_set_tts_voice": {
+    "message": "الصوت"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "تلقائي (حسب لغة البطاقة)"
+  },
+  "learn_langs_label": {
+    "message": "اللغات التي تتعلمها"
+  },
+  "learn_langs_all": {
+    "message": "الكل (افتراضي)"
+  },
+  "learn_langs_hint": {
+    "message": "تُلتقط فقط الجمل باللغات المحددة. عندما يتعذر على Safari تحديد اللغة، يُعتمد نظام الكتابة؛ ما تحفظه بالضغط المطوّل لا يُرشَّح أبدًا."
+  },
+  "learn_sources_manage": {
+    "message": "إدارة المصادر"
+  },
+  "learn_sources_empty": {
+    "message": "لا توجد مصادر ملتقطة بعد"
+  },
+  "learn_sources_count": {
+    "message": "{n} بطاقة"
+  },
+  "learn_src_delete": {
+    "message": "حذف المحفوظ"
+  },
+  "learn_src_block": {
+    "message": "إيقاف الالتقاط"
+  },
+  "learn_src_unblock": {
+    "message": "استئناف الالتقاط"
+  },
+  "learn_src_blocked": {
+    "message": "محظور"
+  },
+  "learn_src_blocked_by": {
+    "message": "محظور بالقاعدة {pattern}"
+  },
+  "learn_block_title": {
+    "message": "قواعد الحظر"
+  },
+  "learn_block_hint": {
+    "message": "تدعم أحرف البدل: example.com يطابق النطاق كاملًا (مع النطاقات الفرعية)؛ *.example.com/news/* يطابق مسارًا."
+  },
+  "learn_block_add": {
+    "message": "إضافة"
+  },
+  "learn_block_placeholder": {
+    "message": "مثال: *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "القاعدة غير صالحة"
+  },
+  "learn_delete_confirm": {
+    "message": "حذف {n} بطاقة من {host}؟ سيتزامن هذا مع جميع أجهزتك ولا يمكن التراجع عنه."
+  },
+  "learn_delete_done": {
+    "message": "تم حذف {n} بطاقة"
+  },
+  "learn_delete_none": {
+    "message": "لا يوجد ما يُحذف من هذا المصدر"
+  },
+  "popup_site_section": {
+    "message": "هذا الموقع"
+  },
+  "popup_site_capture": {
+    "message": "الالتقاط في هذا الموقع"
+  },
+  "popup_site_manage": {
+    "message": "إدارة…"
+  },
+  "learn_card_src_actions": {
+    "message": "إجراءات المصدر"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "تعذّرت قراءة حالة تسجيل الدخول (فشل قراءة التخزين)؛ ستُعاد المحاولة قريبًا — هذا لا يعني أنه تم تسجيل خروجك."
+  },
+  "learn_backup_failed": {
+    "message": "تعذّرت كتابة النسخة الاحتياطية المحلية ({why}). مكتبة التعلّم نفسها غير متأثرة."
+  },
+  "notes_engine": {
+    "message": "محرك التحليل"
+  },
+  "notes_engine_hint": {
+    "message": "محرك المحادثة المستخدم في «تحليل هذه الجملة». يتبع محرك الترجمة أعلاه افتراضيًا؛ نماذج التفكير لا تناسب التحليل."
+  },
+  "notes_follow": {
+    "message": "اتباع محرك الترجمة (افتراضي)"
+  },
+  "notes_api_key": {
+    "message": "مفتاح API للتحليل"
+  },
+  "notes_base_url": {
+    "message": "عنوان API للتحليل"
+  },
+  "notes_model": {
+    "message": "نموذج التحليل"
+  },
+  "learn_badge_speak": {
+    "message": "التحدث",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "تمرين إضافي · لا يؤثر على الفاصل الزمني",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "اختر الترجمة الصحيحة",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "استمع أولاً ثم اختر الكلمات التي سمعتها",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "تأكيد الاختيار",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "يجري إنشاء أسئلة هذه البطاقة عبر واجهة API الخاصة بك (استدعاء واحد، تخزين دائم)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "فشل إنشاء الأسئلة — تم استخدام التمرين المحلي بدلاً منه",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "محرك التفريغ الصوتي",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "غير مضبوط (بدون تمرين تحدث)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "نقطة تفريغ محلية / مستضافة ذاتيًا",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "تُرسل تسجيلات تمرين التحدث إلى نقطة النهاية المضبوطة هنا للتفريغ ثم تُحذف — لا تُخزَّن ولا تُزامَن. بدون محرك لا يظهر تمرين التحدث. يبقى المفتاح على هذا الجهاز. يجب أن يسمح الخادم المستضاف ذاتيًا بطلبات CORS.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "مفتاح API للتفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "عنوان نقطة التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "نموذج التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "اقرأ هذه الجملة بصوت عالٍ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 بدء التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 إعادة التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ إيقاف",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "جارٍ التسجيل — اقرأ الجملة أعلاه",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "جارٍ التفريغ…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "مطابقة الجملة {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "فائت: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "يستخدم نقطة النهاية التي ضبطتها — استدعاء واحد لكل تسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "لم تُضبط نقطة تفريغ بعد",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "لم يُدخل مفتاح API للتفريغ بعد",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "لا يستطيع هذا المتصفح الوصول إلى الميكروفون",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "رُفض إذن الميكروفون — سنستخدم تمارين أخرى في هذه الجلسة",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "أعادت خدمة التفريغ خطأً",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "لم يُتعرَّف على كلام — حاول مرة أخرى",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "هذا المتصفح لا يدعم التسجيل",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "فشل التفريغ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "تعذّر الوصول إلى نقطة التفريغ — تحقّق من العنوان؛ والخادم المستضاف ذاتيًا يجب أن يسمح بطلبات CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "اختبار الاتصال",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "جارٍ الاختبار…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ يعمل · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "الرد: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "لم ينجح",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "لم يُدخل عنوان نقطة النهاية",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "لم يُدخل مفتاح API",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "لم يُختر محرك",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "هذا الإصدار لا يتعرف على المحرك المحفوظ — اختر واحدًا من الأعلى",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "استجابت نقطة النهاية لكن تعذّر تحليل المحتوى",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "المفتاح خاطئ أو بلا صلاحية",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "عنوان نقطة النهاية (بما في ذلك مساره) أو اسم النموذج غير صحيح",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "رفض الخادم هذا الطلب",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "هذا العنوان يحتوي على المضيف فقط دون مسار نقطة النهاية — اكتب عنوان الطلب الكامل (انظر المثال في الحقل)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "لا يبدأ العنوان بـ http:// أو https:// — وبدون المخطَّط يُعامَل كمسار نسبي فلا يُرسَل أي طلب",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "لم تستجب نقطة النهاية قبل انتهاء المهلة",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "العنوان المطلوب: {url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "أُرسل عبر: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "خلفية الإضافة (لا تخضع لـ CORS ولا ترسل preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "الصفحة نفسها (ترسل preflight من نوع OPTIONS أولًا)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "رد الخادم: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "(أُعيدت المحاولة تلقائيًا عبر خلفية الإضافة أيضًا وفشلت — إذن ليست مشكلة CORS، بل العنوان غير قابل للوصول فعليًا من هذا الجهاز.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "لم يُعِد النموذج أي محتوى — نماذج الاستدلال غير مناسبة هنا؛ استخدم نموذج محادثة",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "تقسيم البطاقات الطويلة"
+  },
+  "learn_split_failed": {
+    "message": "فشل التقسيم"
+  },
+  "learn_split_none": {
+    "message": "لا توجد بطاقات طويلة للتقسيم"
+  },
+  "learn_split_done": {
+    "message": "تم تقسيم {p} بطاقة طويلة إلى {c} بطاقة جملة"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} بقيت كما هي — الترجمة غير متوافقة)"
+  },
+  "app_use_pw": {
+    "message": "تسجيل الدخول بكلمة مرور",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "كلمة المرور",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "استخدام رمز بدلًا من ذلك",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "البريد الإلكتروني أو كلمة المرور غير صحيحة — حاول مرة أخرى.",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "وضع البودكاست",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ إيقاف مؤقت",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ متابعة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ التالي",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 إعادة الاستماع",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "البطاقة {i} من {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 اشرح هذه",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "الجولة {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "جارٍ التحليل…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "قراءة الشرح تحتاج أولًا إلى إعداد محرّك (الإعدادات ← الترجمة وتحليل الجملة)"
+  },
+  "drive_notes_empty": {
+    "message": "لا يوجد شرح لقراءته في هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "تعذّرت قراءة إعداداتك المحفوظة — أعد المحاولة بعد قليل",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 عشوائي",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ بالترتيب",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 تكرار الكل",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 تكرار واحدة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "جولة أخرى",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "جارٍ تشغيل الشرح…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "جارٍ تحليل هذه الجملة…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "قراءة شرح الجملة بصوت عالٍ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "تُقرأ بعد كل بطاقة شروحها (مفردات وعبارات ونقطة نحوية). مفعَّل افتراضيًا: البطاقة التي لم تُحلَّل من قبل تُحلَّل فورًا بالمحرك الذي أعددته — تُحتسب التكلفة مرة واحدة لكل بطاقة ثم تُقرأ من الذاكرة المؤقتة. أوقفه إن كنت تفضّل عدم الإنفاق؛ وعند الإيقاف تُقرأ الجملة وترجمتها فقط.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "قراءة الشرح: البطاقة غير المحلَّلة تستدعي محركك — وتُحتسب مرة واحدة لكل بطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "مفردات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "عبارات: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "نحو: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "تعذَّر تحليل هذه البطاقة — تم تخطّيها",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "محرّك الشرح غير مُعد — تم تخطّي شرح هذه البطاقة",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "تعذَّرت قراءة هذه البطاقة — انتقلنا إلى التالية",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "تشغيل النص الأصلي…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "تشغيل الترجمة…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "متوقف مؤقتًا",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "انتهت هذه الجولة",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "لا توجد بطاقات يمكن قراءتها",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "نطاق التحميل المسبق",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "مجموعة اليوم",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "اليوم + 3 أيام قادمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "اليوم + 7 أيام قادمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "تحميل مسبق للاستخدام دون اتصال",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "اضغط قبل الانطلاق لتنزيل الصوت والتحليل والترجمة التي ستستمع إليها على هذا الجهاز، فتُشغَّل الجلسة كاملة دون اتصال. الضغطة الأولى تحسب التكلفة فقط ولا تنفق شيئًا — تحقّق من عدد الطلبات قبل الضغط مرة أخرى.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "جارٍ التحقّق ممّا هو موجود على هذا الجهاز…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} بطاقة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} مقطعًا صوتيًا بحاجة إلى توليد",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} بطاقة بحاجة إلى تحليل",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} بطاقة بلا ترجمة",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "الصوت المدمج في الجهاز لا يُنشئ ذاكرة مؤقتة ويعمل أصلًا دون اتصال، لذا لا يُحمَّل هنا سوى التحليل والترجمة.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "لم يُضبط محرّك التحليل، لذا لن تحصل البطاقات بلا ترجمة على ترجمة هذه المرة (الإعدادات ← تحليل الجملة)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "كل هذا موجود على الجهاز بالفعل — لن تحتاج إلى اتصال أثناء الطريق.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "تأكيد التحميل المسبق (نحو {n} طلبًا مدفوعًا)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "إيقاف",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "جارٍ التحميل المسبق {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "اكتمل {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "تم الإيقاف: اكتمل {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} حالة إخفاق ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "محرّك الصوت غير مضبوط ({reason})، لذا لن يُولَّد أي مقطع صوتي هذه المرة (الإعدادات ← محرّك الصوت)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "محرّك الصوت غير مضبوط، لذا لن يُقرأ شيء بصوت عالٍ في هذه الجولة (الإعدادات ← محرّك الصوت)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "حجب النظام التشغيل التلقائي — اضغط للمتابعة",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "لا يوجد محرّك صوت صالح للاستخدام على هذا الجهاز",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "تعذّر الوصول إلى محرّك الصوت، لذا لن يُقرأ شيء في هذه الجولة. البطاقات المحمّلة مسبقًا وحدها تعمل دون اتصال (الإعدادات ← تحميل مسبق للاستخدام دون اتصال)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "انتهت مهلة خدمة الصوت — تحقّق من الشبكة أو جرّب عنوانًا آخر"
+  },
+  "tts_network": {
+    "message": "تعذّر الوصول إلى خدمة الصوت — تحقّق من الشبكة ومن العنوان"
+  },
+  "tts_empty": {
+    "message": "لا تحتوي هذه البطاقة على نص لقراءته"
+  },
+  "drive_bg_session_failed": {
+    "message": "لا يمكن لهذا الجهاز بدء جلسة صوت في الخلفية الآن، لذا يتوقف التشغيل مؤقتًا عندما يغادر التطبيق الشاشة."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "يتوقف صوت الجهاز المدمج بمجرد مغادرة التطبيق للشاشة. لمواصلة الاستماع، اضبط نقطة نهاية للنطق (الإعدادات ← محرك النطق)."
+  },
+  "drive_awake_note": {
+    "message": "لا تُقفل الشاشة تلقائيًا أثناء وجود وضع البودكاست في المقدمة. لمواصلة رؤية البطاقة بعد القفل، فعّل خاصية العرض الدائم في النظام: الإعدادات ← العرض والسطوع ← دائم التشغيل."
+  },
+  "app_empty_body": {
+    "message": "مادة التعلّم تأتي من إضافة المتصفح — وهذا التطبيق مخصّص لمراجعتها."
+  },
+  "app_empty_how": {
+    "message": "فعّل BelliedMonkey Translator من الإعدادات ← Safari ← الإضافات، وشغّل الالتقاط، ثم تصفّح وترجم كالمعتاد."
+  },
+  "app_ext_off_title": {
+    "message": "لم يتم تفعيل الإضافة بعد"
+  },
+  "app_ext_off_body": {
+    "message": "تأتي البطاقات من إضافة Safari. لم يتم تفعيلها، لذا ستبقى هذه الصفحة فارغة."
+  },
+  "app_ext_unknown_title": {
+    "message": "اضبط جانب المتصفح أولاً"
+  },
+  "app_ext_ios_body": {
+    "message": "تأتي البطاقات من إضافة Safari: في Safari اضغط على أيقونة الإضافات على يسار شريط العنوان ← «إدارة الإضافات» ← شغّل BelliedMonkey Translator."
+  },
+  "app_ext_open_prefs": {
+    "message": "فتح إعدادات إضافات Safari"
+  },
+  "app_ext_open_setup": {
+    "message": "إكمال الإعداد على الويب"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "إضافة Safari لم تُفعَّل بعد"
+  },
+  "app_ext_open_safari": {
+    "message": "فعِّل الإضافة في Safari ←"
+  },
+  "app_ext_done": {
+    "message": "لقد فعّلتها"
+  },
+  "app_signin_why": {
+    "message": "بعد تسجيل الدخول يصلك الرصيد المجاني وتُنزَّل حزم الصوت على هذا الجهاز — لا إعدادات بعد ذلك."
+  },
+  "app_signin_open": {
+    "message": "تسجيل الدخول"
+  },
+  "ob_next": {
+    "message": "متابعة"
+  },
+  "ob_skip": {
+    "message": "الإعداد لاحقًا"
+  },
+  "ob_start": {
+    "message": "لنبدأ"
+  },
+  "ob_welcome_title": {
+    "message": "أنت من يختار نموذج الترجمة"
+  },
+  "ob_welcome_body": {
+    "message": "النظام لا يملك سوى محركه الخاص. هنا تختار أنت — تصلك الترجمة منه مباشرة ولا تمر عبر خوادمنا."
+  },
+  "ob_ios_1": {
+    "message": "في Safari اضغط على أيقونة الإضافات على يسار شريط العنوان"
+  },
+  "ob_ios_2": {
+    "message": "اختر «إدارة الإضافات» وشغّل BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "اضبط الأذونات على «سماح» لجميع المواقع"
+  },
+  "ob_browser_title": {
+    "message": "أمران آخران، في المتصفح"
+  },
+  "ob_browser_body": {
+    "message": "كلا المفتاحين موجودان في إعدادات الإضافة — لا يستطيع التطبيق تغييرهما، فالتخزين منفصل."
+  },
+  "ob_kv_engine": {
+    "message": "أضف مفتاح API للترجمة"
+  },
+  "ob_kv_capture": {
+    "message": "فعّل الالتقاط"
+  },
+  "ob_kv_capture_note": {
+    "message": "مُفعّل بالفعل. الجمل التي تتوقّف عندها تتحوّل إلى بطاقات — أوقفه من هنا إن لم ترغب."
+  },
+  "ob_read_title": {
+    "message": "اذهب واقرأ شيئًا"
+  },
+  "ob_read_body": {
+    "message": "اكتمل الإعداد: تصفّح وترجم كالمعتاد. يتراكم ما تقرؤه؛ ولحفظ جملة فورًا اضغط مطوّلًا على ترجمتها."
+  },
+  "ob_signin_title": {
+    "message": "الخطوة الأخيرة: تسجيل الدخول"
+  },
+  "ob_kv_twice": {
+    "message": "ستسجّل الدخول داخل الإضافة أيضًا"
+  },
+  "ob_kv_twice_note": {
+    "message": "يخزّن الجانبان البيانات كلٌّ على حدة — سجّل الدخول بالحساب نفسه في كليهما."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "إعدادات الإضافة ← محرك الترجمة. لا مفرّ من هذه الخطوة: بدون مفتاح لن تتم أي ترجمة."
+  },
+  "extob_header": {
+    "message": "مترجم القرد البدين · البدء"
+  },
+  "extob_welcome_title": {
+    "message": "اقرأ واحتفظ بما تتعلمه دون مغادرة الصفحة"
+  },
+  "extob_welcome_body": {
+    "message": "يبقى النص الأصلي في مكانه وتظهر الترجمة تحته مباشرة. الجمل التي تتوقف عندها فعلاً تتحول إلى بطاقات مراجعة تعود إليك وفق منحنى النسيان."
+  },
+  "extob_use_1": {
+    "message": "افتح صفحة بلغة أخرى"
+  },
+  "extob_use_2": {
+    "message": "اضغط على الزر العائم أسفل اليمين"
+  },
+  "extob_use_3": {
+    "message": "تظهر الترجمة أسفل النص الأصلي، والجمل التي تُنهي قراءتها فعلًا تصبح بطاقات مراجعة"
+  },
+  "ob_fork_title": {
+    "message": "كيف تريد أن تبدأ؟"
+  },
+  "ob_fork_sub": {
+    "message": "كلا الطريقين يعمل، ويمكنك التبديل في أي وقت."
+  },
+  "ob_fork_grant_title": {
+    "message": "ابدأ برصيد مجاني"
+  },
+  "ob_fork_grant_badge": {
+    "message": "موصى به"
+  },
+  "ob_fork_grant_desc": {
+    "message": "لا حاجة لطلب مفتاح API — سجّل الدخول وابدأ الترجمة. يكفي لقراءة بضع مئات من فقرات الصفحات والترجمات."
+  },
+  "ob_fork_grant_cta": {
+    "message": "ابدأ مجانًا ←"
+  },
+  "ob_fork_key_title": {
+    "message": "لديّ مفتاح API خاص بي"
+  },
+  "ob_fork_key_desc": {
+    "message": "مفتاح واحد يهيّئ الترجمة والقراءة الصوتية والتفريغ معًا، أو اضبط كل محرّك على حدة."
+  },
+  "ob_fork_key_cta": {
+    "message": "اذهب إلى الإعداد ←"
+  },
+  "ob_fork_foot": {
+    "message": "نفد الرصيد؟ بدّل إلى مفتاحك الخاص في أي وقت — خطوة واحدة في الإعدادات."
+  },
+  "ob_fork_waiting": {
+    "message": "جارٍ الحصول عليه في تبويب جديد… عُد إلى هنا بعد تسجيل الدخول وسيكمل تلقائيًا."
+  },
+  "ob_fork_landed": {
+    "message": "تم استلام الرصيد — ننقلك إلى الخطوة التالية…"
+  },
+  "ob_fork_reopen": {
+    "message": "إعادة فتح صفحة الحصول"
+  },
+  "extob_engine_title": {
+    "message": "اختر محرك ترجمة"
+  },
+  "extob_engine_body_key": {
+    "message": "لا مفرّ من هذه الخطوة: بدون مفتاح لن تُترجم كلمة واحدة."
+  },
+  "extob_key_label": {
+    "message": "مفتاح API"
+  },
+  "extob_capture_title": {
+    "message": "ما تقرؤه يتحوّل إلى بطاقات مراجعة"
+  },
+  "extob_capture_body": {
+    "message": "مُفعّل بالفعل. الجمل التي تنهي قراءتها فعلاً (التمرير السريع لا يُحتسب) تُحفَظ كبطاقات مراجعة على هذا الجهاز فقط — أوقفه من هنا إن لم ترغب."
+  },
+  "extob_capture_toggle": {
+    "message": "حفظ الجمل التي أقرؤها كبطاقات مراجعة"
+  },
+  "extob_capture_note": {
+    "message": "الجمل التي تنهي قراءتها فقط. يمكنك إيقافه في أي وقت وحذف كل شيء من موقع واحد دفعة واحدة."
+  },
+  "extob_try_title": {
+    "message": "جرّب ترجمة صفحة الآن"
+  },
+  "extob_try_body": {
+    "message": "افتح صفحة حقيقية واضغط الزر العائم في الزاوية، فتظهر الترجمة أسفل كل فقرة."
+  },
+  "extob_try_cta": {
+    "message": "افتح صفحة تجريبية"
+  },
+  "extob_finish": {
+    "message": "تم"
+  },
+  "extob_done_title": {
+    "message": "تم الإعداد"
+  },
+  "extob_done_text": {
+    "message": "افتح أي صفحة بلغة أجنبية واضغط الزر العائم. الإعدادات وإعادة عرض هذا الدليل موجودان في صفحة إعدادات الإضافة."
+  },
+  "extob_done_close": {
+    "message": "حسنًا"
+  },
+  "extob_reonboard": {
+    "message": "إعادة عرض دليل البدء"
+  },
+  "extob_unpacked_note": {
+    "message": "مثبَّت من ملف ZIP: هذه النسخة لا تُحدَّث تلقائيًا. نزّل الإصدارات الجديدة من الموقع، أو ثبّت من المتجر للحصول على التحديث التلقائي."
+  },
+  "extob_first_run": {
+    "message": "أول مرة؟ دقيقتان لإعداده ←"
+  },
+  "qs_title": {
+    "message": "إعداد كل شيء بمفتاح واحد"
+  },
+  "qs_sub": {
+    "message": "على هذه المنصات، مفتاح واحد يضبط الترجمة والقراءة والتفريغ معًا. لأي محرّك آخر، انتقل إلى «تفصيلي» بالأعلى."
+  },
+  "qs_platform": {
+    "message": "المنصة"
+  },
+  "qs_only_one": {
+    "message": "المنصة: {p}"
+  },
+  "qs_key": {
+    "message": "مفتاح API"
+  },
+  "qs_get_key": {
+    "message": "لا تملك مفتاحًا بعد؟ احصل عليه من {p} ↗"
+  },
+  "qs_try": {
+    "message": "جرّب ترجمة صفحة الآن"
+  },
+  "qs_try_note": {
+    "message": "افتح صفحة ويب حقيقية واضغط على الزر العائم، وستظهر الترجمة أسفل كل فقرة."
+  },
+  "extob_quick_sub": {
+    "message": "مفتاح واحد يضبط الترجمة والقراءة والتفريغ معًا."
+  },
+  "extob_mode_quick": {
+    "message": "مفتاح واحد"
+  },
+  "extob_mode_manual": {
+    "message": "إعداد كل محرّك"
+  },
+  "qs_key_ph": {
+    "message": "ألصقه مرة واحدة — يهيّئ الثلاثة"
+  },
+  "qs_privacy": {
+    "message": "المفاتيح تبقى على هذا الجهاز فقط."
+  },
+  "qs_grant_replaced": {
+    "message": "(استُبدل مفتاح الرصيد المجاني)"
+  },
+  "stt_device_no_file": {
+    "message": "التفريغ على الجهاز مخصّص للمحادثة والترجمة الفورية فقط، ولا يدعم تمارين التحدّث بعد"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ التعرّف على الجهاز متاح · حزمة اللغة جاهزة (بلا شبكة، ولا نقطة اتصال لاختبارها)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ التعرّف على الجهاز متاح · تُنزَّل حزمة اللغة تلقائيًا في أول مرة تبدأ فيها الاستماع"
+  },
+  "engine_test_device_timeout": {
+    "message": "لا يستجيب التعرّف على الجهاز — أغلق التطبيق وأعد فتحه ثم حاول مجددًا"
+  },
+  "listen_downloading": {
+    "message": "جارٍ تنزيل نموذج {lang} دون اتصال · {pct}٪"
+  },
+  "listen_assets_failed": {
+    "message": "فشل تنزيل النموذج دون اتصال: {why} — غالبًا مشكلة في الشبكة؛ حاول مرة أخرى لاحقًا — اضغط «ابدأ الاستماع» مرة أخرى أو اختر محركًا سحابيًا من الإعدادات."
+  },
+  "listen_entry_privacy_device": {
+    "message": "التفريغ على الجهاز: يظهر النص أثناء تحدثك؛ وتُرسل كل جملة مكتملة إلى محرك الترجمة الذي أعددته."
+  },
+  "listen_cost_line_device": {
+    "message": "استمع {t}"
+  },
+  "listen_device_privacy": {
+    "message": "التفريغ على الجهاز: يظهر النص أثناء تحدثك؛ وتُرسل كل جملة مكتملة مع الجمل السابقة للسياق للترجمة: مع مفتاحك الخاص تذهب مباشرةً إلى المزوّد الذي أعددته؛ ومع الرصيد المجاني تمر عبر خادمنا، ولا نحفظ النص. عند القراءة على الجهاز، يُركَّب الصوت على جهازك ويُنزَّل نموذج دون اتصال مرة واحدة عند أول استخدام."
+  },
+  "listen_raw_label": {
+    "message": "النص المتعرَّف عليه"
+  },
+  "tts_device_lang_fallback": {
+    "message": "قُرئ بصوت النظام (النموذج دون اتصال لا يشمل {lang})"
+  },
+  "qs_apply": {
+    "message": "إعداد الترجمة والقراءة والتفريغ"
+  },
+  "qs_testing": {
+    "message": "جارٍ الاختبار…"
+  },
+  "qs_untouched": {
+    "message": "— دون تغيير · سبق أن هيّأته ({cur})"
+  },
+  "qs_unknown": {
+    "message": "إعداد موجود"
+  },
+  "qs_slot_chat": {
+    "message": "الترجمة"
+  },
+  "qs_slot_tts": {
+    "message": "القراءة الصوتية"
+  },
+  "qs_slot_stt": {
+    "message": "التفريغ"
+  },
+  "qs_slot_notes": {
+    "message": "تحليل الجُمل"
+  },
+  "qs_notes_follow": {
+    "message": "يتبع محرك الترجمة (دون تغيير)"
+  },
+  "qs_tts_untried": {
+    "message": "(لم يُشغَّل بعد — استخدم «تشغيل عيّنة» في بطاقة الصوت أدناه)"
+  },
+  "qs_stt_failed_note": {
+    "message": "هذا لا يُشغّل التسجيل. ما أُرسل للتو نغمة جيبية مدتها 0.6 ثانية، وليس صوتك."
+  },
+  "qs_retry": {
+    "message": "إعادة محاولة هذا"
+  },
+  "engine_test_empty_audio": {
+    "message": "استجاب الطرف الخادم لكنه لم يُعِد أي صوت"
+  },
+  "opt_mode_quick": {
+    "message": "سريع"
+  },
+  "opt_mode_detail": {
+    "message": "تفصيلي"
+  },
+  "options_wipe_all": {
+    "message": "محو جميع البيانات على هذا الجهاز"
+  },
+  "options_wipe_hint": {
+    "message": "حذف التطبيق لا يمحو هذه البيانات. لمحوها نهائيًا، امحُها من هنا أولاً."
+  },
+  "options_wipe_confirm": {
+    "message": "محو جميع البيانات على هذا الجهاز؟ ستُحذف مفاتيح API وجميع الإعدادات والجمل المجمَّعة وتقدّم المراجعة، وسيتم تسجيل خروجك. لا يمكن التراجع عن ذلك.\n\nما تمت مزامنته في السحابة لن يتأثر — تسجيل الدخول مجددًا سيعيده."
+  },
+  "toast_wipe_failed": {
+    "message": "لم يتم المحو بالكامل — أعد المحاولة"
+  },
+  "app_sync_empty_who": {
+    "message": "اكتملت المزامنة، لكن لا يوجد شيء بعد ضمن {email}. إذا كنت قد جمعت جملًا في امتداد المتصفح، فتأكد من أنه مسجَّل الدخول بالبريد نفسه."
+  },
+  "app_owner_mismatch": {
+    "message": "مكتبة التعلّم على هذا الجهاز تخصّ حسابًا آخر. سجّل الدخول بذلك البريد، أو امحُ بيانات هذا الجهاز من إعدادات الامتداد وابدأ من جديد."
+  },
+  "app_owner_unknown": {
+    "message": "لمكتبة التعلّم على هذا الجهاز مالك، لكنك غير مسجَّل الدخول. سجّل الدخول لمتابعة المزامنة."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "مكتبة التعلّم على هذا الجهاز تخصّ حسابًا آخر. سجّل الدخول بذلك البريد، أو امحُ جميع البيانات على هذا الجهاز وابدأ من جديد."
+  },
+  "sync_err_owner_unknown": {
+    "message": "لمكتبة التعلّم على هذا الجهاز مالك، لكنك غير مسجَّل الدخول. سجّل الدخول لمتابعة المزامنة."
+  },
+  "app_err_upgrade": {
+    "message": "توجد في السحابة محتويات لا تستطيع هذه النسخة قراءتها بعد (على الأرجح من امتداد أحدث). حدِّث التطبيق ثم زامن من جديد — لم يُفقد شيء، إنما يتعذّر قراءته الآن."
+  },
+  "site_next_title": {
+    "message": "تمت الترجمة. التالي: أوصِل هذه البطاقات إلى التطبيق"
+  },
+  "site_next_body": {
+    "message": "الجمل التي توقفت عندها صارت بالفعل بطاقات مراجعة، هنا في هذا المتصفح. ولا تصل إلى التطبيق إلا بعد تسجيل الدخول. كل شيء يعمل دون تسجيل دخول، غير أن التطبيق سيبقى فارغًا."
+  },
+  "site_next_body_off": {
+    "message": "«جمع مواد التعلّم» ما زال مغلقًا، فلا تُنشأ بطاقات بعد. فعّله أولًا من إعدادات الامتداد."
+  },
+  "site_next_cta": {
+    "message": "اعرض بطاقاتك"
+  },
+  "site_next_cta_off": {
+    "message": "تشغيل «جمع مواد التعلّم»"
+  },
+  "site_next_signin": {
+    "message": "سجّل الدخول الآن ←"
+  },
+  "sync_next_app": {
+    "message": "التالي: سجّل الدخول في تطبيق iPhone / Mac بالبريد نفسه ({email}) — بذلك تظهر هذه البطاقات هناك."
+  },
+  "app_dl_mismatch_title": {
+    "message": "ليسا الحساب نفسه"
+  },
+  "app_dl_mismatch_body": {
+    "message": "امتداد المتصفح مسجَّل الدخول بحساب آخر، وهذا التطبيق مسجَّل باسم {email}. البطاقات تخصّ حسابًا، فما دام الحسابان مختلفين لن يظهر هنا ما تجمعه هناك."
+  },
+  "app_dl_switch": {
+    "message": "تسجيل الخروج واستخدام حساب الامتداد"
+  },
+  "app_dl_keep": {
+    "message": "الإبقاء على هذا الحساب"
+  },
+  "app_dl_signin": {
+    "message": "امتداد المتصفح مسجَّل الدخول بالفعل. سجّل الدخول هنا بالحساب نفسه لتتم مزامنة البطاقات."
+  },
+  "app_dl_signin_none": {
+    "message": "سجّل الدخول في الامتداد أولًا ثم عد إلى هنا وسجّل بالحساب نفسه — البطاقات تُجمع هناك."
+  },
+  "review_go_app": {
+    "message": "تابع في التطبيق ←"
+  },
+  "site_setup_next_engine": {
+    "message": "إعداد محرك الترجمة ←"
+  },
+  "setup_not_configured": {
+    "message": "لم تُعِدّ أي محرك ترجمة بعد. استخدم الإعداد بمفتاح واحد أعلاه، أو انتقل إلى «تفصيلي» لاختيار محرك وإدخال مفتاحه."
+  },
+  "toast_wipe_failed_what": {
+    "message": "لم يتم المحو بالكامل — ما زال موجودًا: {what}. أعد المحاولة."
+  },
+  "wipe_left_unreadable": {
+    "message": "تعذّرت إعادة قراءة التخزين"
+  },
+  "site_next_title_off": {
+    "message": "تمت الترجمة — لكن لا يُحفظ شيء كبطاقات بعد"
+  },
+  "drive_skipped_media": {
+    "message": "تم تخطّي {n} من بطاقات ترجمة الفيديو — ليس فيها نص يُقرأ بصوت عالٍ"
+  },
+  "drive_skipped_voice": {
+    "message": "تم تخطّي {n}: لا يوجد في هذا الجهاز صوت يستطيع قراءتها. أعِدّ واحدًا من الإعدادات ← محرك النطق، أو اختر صوت نظام آخر."
+  },
+  "sync_next_cards": {
+    "message": "اعرض بطاقاتك"
+  },
+  "site_next_body_local": {
+    "message": "الجمل التي توقفت عندها صارت بالفعل بطاقات مراجعة، هنا في هذا المتصفح. اذهب وانظر إليها."
+  },
+  "learn_empty_on": {
+    "message": "الجمع مفعَّل بالفعل. تابع التصفّح والترجمة — ستظهر هنا الجمل التي تتوقف عندها، أما ما تمرّ عليه سريعًا فلا."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "غير مسجَّل الدخول، على هذا الجهاز فقط — سجّل الدخول لتراجع في التطبيق أيضًا ←"
+  },
+  "app_open_failed": {
+    "message": "تعذّر فتح التطبيق على هذا الجهاز.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "التنزيل من App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "التطبيق متاح على iPhone وiPad وMac فقط. على هذا الجهاز، راجِع من داخل المتصفّح.",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey للترجمة",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "لم تعُد عملية تسجيل الدخول هذه — تغيّر المتصفّح أو مُسحت البيانات. ابدأها من جديد من هذه الصفحة.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "عملية تسجيل الدخول هذه لا تطابق التي بدأناها، فأوقفناها. أعد المحاولة من فضلك.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "تعذّرت قراءة التخزين المحلي، لذا لا يمكن إتمام هذه الخطوة. أعد فتح الصفحة وحاول مجدداً؛ وإن تكرّر الأمر فأخبرنا.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "المتابعة عبر Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "المتابعة عبر Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "أو عبر البريد / الهاتف:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "البريد أو رقم الهاتف",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "رمز من 6 أرقام",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "جارٍ فتح تسجيل الدخول عبر Apple…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "لم يكتمل تسجيل الدخول عبر Apple. يمكنك استخدام البريد أو الهاتف بالأسفل.",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "يحتوي هذا الجهاز أيضاً على مواد حساب آخر. أنت الآن مسجَّل بحساب مختلف — لم يُفقد شيء؛ سجّل الدخول بالحساب الأصلي وستعود.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "أو عبر البريد:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "أدخل {what} أولاً",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "غير مُعد (بدون قراءة صوتية)"
+  },
+  "tts_not_configured": {
+    "message": "لم يتم إعداد الصوت بعد — اختر محركًا من الإعدادات › القراءة بصوت عالٍ"
+  },
+  "feedback_section": {
+    "message": "ملاحظات"
+  },
+  "feedback_row": {
+    "message": "إرسال ملاحظات"
+  },
+  "feedback_rate": {
+    "message": "قيّمه في المتجر"
+  },
+  "feedback_discuss": {
+    "message": "النقاشات على GitHub"
+  },
+  "feedback_hint": {
+    "message": "يفتح تطبيق البريد لديك. يحمل الموضوع الإصدار والمنصة فقط؛ ولا يُرسل أي شيء آخر."
+  },
+  "extob_done_feedback": {
+    "message": "شيء لا يعمل؟ راسلني — أقرأ كل رسالة."
+  },
+  "sync_why": {
+    "message": "سجّل الدخول بالحساب نفسه، فتتزامن الجمل التي قرأتها في المتصفح مع التطبيق وأجهزتك الأخرى."
+  },
+  "sync_use_email": {
+    "message": "أو سجّل الدخول بالبريد الإلكتروني"
+  },
+  "sync_change_email": {
+    "message": "استخدام بريد آخر"
+  },
+  "sync_resend": {
+    "message": "إعادة إرسال الرمز"
+  },
+  "telemetry_section": {
+    "message": "بيانات استخدام مجهولة"
+  },
+  "telemetry_toggle": {
+    "message": "مشاركة بيانات استخدام مجهولة"
+  },
+  "telemetry_what": {
+    "message": "ما الذي يُرسل"
+  },
+  "telemetry_hint": {
+    "message": "فقط أي الميزات تُستخدم، وعلى أي متصفح، وهل نجحت الترجمة أم فشلت — لا الصفحات التي تقرأها ولا النص ولا العناوين ولا مفاتيحك ولا حسابك أبدًا. إيقافها يحذف ما أرسله هذا الجهاز."
+  },
+  "diag_section": {
+    "message": "سجل التشخيص"
+  },
+  "diag_copy": {
+    "message": "نسخ سجل التشخيص"
+  },
+  "diag_clear": {
+    "message": "مسح"
+  },
+  "diag_hint": {
+    "message": "سجلات محلية لحل المشكلات (تنزيل النماذج / محركات الصوت / مراحل تسجيل الدخول، نحو 200 عنصرًا). لا تحتوي على أي شيء قلته أو ترجمته. لا تخرج من الجهاز إلا عندما تنسخها وتلصقها بنفسك لشخص ما."
+  },
+  "diag_copied": {
+    "message": "تم النسخ"
+  },
+  "diag_audio_toggle": {
+    "message": "تحميل الصوت التشخيصي (تصحيح التفريغ الصوتي)"
+  },
+  "diag_audio_hint": {
+    "message": "عند التشغيل، يتم تجميع صوت الميكروفون وصوت القراءة والنص المقابل لجلسات الترجمة الفورية وتحميلها إلى خادمنا (لأغراض تصحيح التفريغ الصوتي فقط، حذف تلقائي بعد 72 ساعة). معطل افتراضيًا؛ وإيقافه يوقف الجمع فورًا."
+  },
+  "telemetry_onboard": {
+    "message": "تُرسل بيانات استخدام مجهولة للمساعدة في تحسين المنتج (لا محتوى الصفحات ولا عناوينها أبدًا). يمكن إيقافها من الإعدادات."
+  },
+  "asr_offer": {
+    "message": "🎙 ترجمة صوتية بالذكاء الاصطناعي"
+  },
+  "asr_needs_engine": {
+    "message": "اختر محرك التفريغ الصوتي في الإعدادات أولاً"
+  },
+  "asr_status_file": {
+    "message": "⏳ جارٍ تفريغ الصوت كاملاً…"
+  },
+  "asr_stop": {
+    "message": "إيقاف التفريغ"
+  },
+  "asr_err_silent": {
+    "message": "لم يُلتقط أي صوت — تم إيقاف التفريغ"
+  },
+  "asr_err_mse": {
+    "message": "لا يستطيع Safari التقاط صوت هذا الفيديو المتدفق، لذا لا يمكن تفريغ هذه الصفحة",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "تعذّر قراءة هذا الصوت"
+  },
+  "asr_err_ws": {
+    "message": "انقطع اتصال التفريغ"
+  },
+  "asr_err_toolarge": {
+    "message": "الصوت كبير جدًا لتفريغه دفعة واحدة"
+  },
+  "asr_err_nocues": {
+    "message": "هذا المحرك لا يُعيد طوابع زمنية فلا يمكنه إنشاء ترجمة"
+  },
+  "asr_gesture_needed": {
+    "message": "اضغط على الصفحة لبدء الالتقاط"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ اضغط لبدء النسخ المباشر"
+  },
+  "asr_err_settings": {
+    "message": "تغيّر محرك التفريغ — تم الإيقاف"
+  },
+  "popup_asr_go": {
+    "message": "🎙 نسخ مباشر + ترجمة"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 فرّغ هذه الوسائط + ترجم"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 فرّغ هذه الوسائط — اختر محركًا أولًا ←"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 استخدم التطبيق لسماع جهازك"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "ابدأ هناك أولًا ثم شغّل"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "يعمل مع البث المباشر ومواقع الفيديو"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 استخدم التطبيق لسماع جهازك ←"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 ابدأ في التطبيق أولًا ثم عُد وشغّل ←"
+  },
+  "asr_media_app_only": {
+    "message": "لا يستطيع الامتداد استخراج الصوت من هذه الوسائط (مواقع الفيديو والبث المباشر كلها كذلك). استخدم التطبيق لسماع ما يشغّله جهازك — أي مصدر يعمل."
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 نسخ مباشر + ترجمة — اختر محركًا أولًا ←"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} لا يدعم الواجهة المباشرة: لا يمكن نسخ البث، لكن الصوت القابل للتنزيل يُنسخ كاملًا · إعداد محرك مباشر ←"
+  },
+  "popup_asr_no_media": {
+    "message": "لم يُعثر على فيديو أو صوت قيد التشغيل في هذه الصفحة — شغّله ثم اضغط هنا مجددًا"
+  },
+  "popup_asr_none_found": {
+    "message": "لم يُعثر على فيديو أو صوت يمكن نسخه. قد يكون المشغّل في إطار آخر أو لم يبدأ بعد."
+  },
+  "popup_asr_iframe": {
+    "message": "المشغّل في إطار آخر داخل الصفحة؛ افتحه في تبويب جديد للنسخ ↗"
+  },
+  "popup_asr_live": {
+    "message": "بث مباشر"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "المدة غير معروفة"
+  },
+  "asr_incremental": {
+    "message": "ترجمة أثناء الكلام (سريعة، قد تتغير)"
+  },
+  "asr_history": {
+    "message": "لوحة سجل الترجمة"
+  },
+  "asr_history_title": {
+    "message": "السجل · جمل كاملة"
+  },
+  "app_listen_back": {
+    "message": "‹ رجوع"
+  },
+  "listen_source_label": {
+    "message": "محادثة"
+  },
+  "listen_entry": {
+    "message": "محادثة · مترجم فوري"
+  },
+  "listen_entry_hint": {
+    "message": "شخصان يتحدثان وجهًا لوجه: كلاهما يتكلم بشكل عادي، وتظهر اللغتان على الشاشة وتُقرأ الترجمة بصوت عالٍ. يُرسَل الصوت فقط إلى نقطة التفريغ التي أعددتها."
+  },
+  "listen_title": {
+    "message": "محادثة"
+  },
+  "listen_history": {
+    "message": "الجمل النهائية"
+  },
+  "listen_pending": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "listen_me_prefix": {
+    "message": "أنا: "
+  },
+  "listen_me_badge": {
+    "message": "قلته أنا"
+  },
+  "listen_star": {
+    "message": "نجمة"
+  },
+  "listen_lang_me": {
+    "message": "إلى {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "لغة الطرف الآخر"
+  },
+  "listen_pill_listening": {
+    "message": "يستمع · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "متوقف مؤقتاً · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "انتهى · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● يستمع · إيقاف مؤقت"
+  },
+  "listen_toggle_start": {
+    "message": "ابدأ الاستماع"
+  },
+  "listen_copy_all": {
+    "message": "نسخ الكل",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "تم النسخ",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "تعذّر النسخ",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "يعمل أيضًا في الاجتماعات عبر الإنترنت ومكالمات الفيديو: دع صوت الطرف الآخر يخرج من مكبّرات الصوت فحسب.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "استُمع {t} · الصوت يذهب فقط إلى نقطة النسخ الخاصة بك"
+  },
+  "listen_flip_hint": {
+    "message": "أظهر للطرف الآخر · المس أي مكان للعودة"
+  },
+  "listen_flip_speaking": {
+    "message": "يُقرأ بصوت عالٍ"
+  },
+  "listen_stop_denied": {
+    "message": "رُفض الميكروفون — اسمح لـ BelliedMonkey Translator في الإعدادات › الخصوصية › الميكروفون."
+  },
+  "listen_stop_socket": {
+    "message": "انقطع اتصال النسخ: {why} — ما سُمع محفوظ."
+  },
+  "listen_stop_locked": {
+    "message": "أوقف النظام التسجيل (مكالمة أو تطبيق آخر يستخدم الميكروفون) — يُستأنف تلقائياً بعد انتهائها، أو المس «ابدأ الاستماع»."
+  },
+  "listen_stop_silence": {
+    "message": "لا صوت منذ 30 ثانية — توقف مؤقتاً لتجنب التكاليف."
+  },
+  "listen_stop_failed": {
+    "message": "تعذر تشغيل الميكروفون: {why} — المس «ابدأ الاستماع» مرة أخرى."
+  },
+  "listen_np_title": {
+    "message": "محادثة · مترجم فوري"
+  },
+  "listen_np_album": {
+    "message": "محادثة · يستمع · {t} · {n} جمل"
+  },
+  "listen_settings_title": {
+    "message": "محادثة · مترجم فوري"
+  },
+  "listen_capture_label": {
+    "message": "إضافة المحادثات إلى المراجعة (المصدر «محادثة»)"
+  },
+  "listen_capture_note": {
+    "message": "يبث «محادثة · مترجم فوري» الميكروفون إلى نقطة النسخ التي ضبطتها، فقط بعد النقر على زر تسجيل في الأسفل وإلى تلك النقطة فقط؛ خوادمنا لا تلمس الصوت أبداً؛ لا يُحفظ أي تسجيل، فقط النص — وفقط ما دام هذا المفتاح مفعلاً."
+  },
+  "listen_who_them": {
+    "message": "الطرف الآخر"
+  },
+  "listen_who_me": {
+    "message": "أنا"
+  },
+  "listen_who_guessed": {
+    "message": "لغة خاطئة؟ اضغط ↔ للتبديل إلى اللغة الأخرى"
+  },
+  "listen_swap_to_them": {
+    "message": "تغيير إلى: قاله الطرف الآخر"
+  },
+  "listen_swap_to_me": {
+    "message": "تغيير إلى: قلته أنا"
+  },
+  "listen_flip_kept_card": {
+    "message": "تم التبديل إلى اللغة الأخرى — البطاقة السابقة تمت مراجعتها، لذا تبقى في «المصادر › المحادثة»"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "يتحدث…"
+  },
+  "listen_live_badge": {
+    "message": "● مباشر"
+  },
+  "listen_reading": {
+    "message": "جارٍ القراءة"
+  },
+  "listen_autospeak_off": {
+    "message": "توقّفت القراءة التلقائية · {why} — زر كل سطر ما زال يعمل"
+  },
+  "listen_tts_unusable": {
+    "message": "القراءة التلقائية غير متاحة — لم يتم إعداد محرك الصوت. اختر واحدًا في الإعدادات › الصوت"
+  },
+  "listen_autospeak_echo": {
+    "message": "أُوقفت القراءة التلقائية مؤقتًا — رُصدت حلقة صدى. اخفض الصوت أو استخدم سماعات ثم أعد تشغيلها."
+  },
+  "listen_read_queue_n": {
+    "message": "جارٍ القراءة · {n} في الانتظار"
+  },
+  "listen_ephemeral_label": {
+    "message": "لا تحتفظ بهذه المرة"
+  },
+  "listen_ephemeral_locked": {
+    "message": "بدأت هذه الجلسة بالفعل — لعدم حفظ أي شيء، أنهِها ثم ابدأ من جديد"
+  },
+  "listen_ephemeral_pill": {
+    "message": "لا يُحفظ"
+  },
+  "listen_my_lang_label": {
+    "message": "لغتي"
+  },
+  "listen_lang_note": {
+    "message": "يتم التعرّف تلقائيًا بين اللغتين اللتين اخترتهما. يمكنك تغييرهما في أي وقت من صفحة الاستماع."
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "غير مدعوم بواسطة المحرك الحالي"
+  },
+  "listen_lang_change_engine": {
+    "message": "تغيير المحرك"
+  },
+  "listen_lang_swapped": {
+    "message": "يجب أن تختلف اللغتان — تم التبديل"
+  },
+  "listen_autospeak_label": {
+    "message": "قراءة الترجمة بصوت عالٍ"
+  },
+  "listen_autospeak_note": {
+    "message": "تُقرأ كل جملة مترجمة بصوت عالٍ: جملته لك، وجملتك له."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "اختر أولًا محرك نطق من «الإعدادات › القراءة بصوت عالٍ»"
+  },
+  "listen_lang_me_label": {
+    "message": "أنا"
+  },
+  "listen_lang_other_label": {
+    "message": "الطرف الآخر"
+  },
+  "listen_sources_note": {
+    "message": "كل جملة من النسخ وترجمتها من محركك؛ كلاهما قد يخطئ — الجمل ذات النجمة تدخل المراجعة أولاً."
+  },
+  "app_today_due": {
+    "message": "مستحق اليوم"
+  },
+  "home_cta_subs": {
+    "message": "بدء الترجمة المباشرة"
+  },
+  "home_cta_listen": {
+    "message": "بدء المحادثة"
+  },
+  "app_last_sync": {
+    "message": "آخر مزامنة {t}"
+  },
+  "app_modes_label": {
+    "message": "استمع"
+  },
+  "drive_entry_hint": {
+    "message": "مجموعة اليوم تُقرأ متتابعة دون استخدام اليدين"
+  },
+  "listen_entry_short": {
+    "message": "شخصان وجهًا لوجه — كلاهما يتكلم وتُقرأ الترجمة"
+  },
+  "listen_entry_privacy": {
+    "message": "الصوت يذهب فقط إلى نقطة النسخ التي ضبطتها."
+  },
+  "listen_pill_preparing": {
+    "message": "جارٍ التحضير"
+  },
+  "listen_toggle_preparing": {
+    "message": "جارٍ التحضير…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "جارٍ إعادة الاتصال…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "انقطع اتصال النسخ: {why} — جارٍ إعادة الاتصال…"
+  },
+  "listen_history_empty": {
+    "message": "تحدّثا كما تشاءان — تظهر كل جملة مكتملة هنا. لغة خاطئة؟ اضغط ↔ للتبديل إلى اللغة الأخرى"
+  },
+  "listen_tr_failed": {
+    "message": "فشلت الترجمة · أعد المحاولة"
+  },
+  "listen_read_aloud": {
+    "message": "قراءة بصوت عالٍ"
+  },
+  "listen_show_other": {
+    "message": "أظهر للطرف الآخر"
+  },
+  "listen_close": {
+    "message": "إغلاق"
+  },
+  "listen_leave_confirm": {
+    "message": "ما زال يستمع. المغادرة تنهي هذه المحادثة؛ ما سُمع محفوظ."
+  },
+  "dialog_ok": {
+    "message": "موافق"
+  },
+  "dialog_cancel": {
+    "message": "إلغاء"
+  },
+  "listen_leave_ok": {
+    "message": "إنهاء والمغادرة"
+  },
+  "grant_err_exhausted": {
+    "message": "انتهى رصيدك المجاني. يمكنك إضافة مفتاح API خاص بك للمتابعة (مفتاح واحد يغطي الترجمة والنطق والتفريغ الصوتي)، أو السؤال في المجتمع."
+  },
+  "grant_err_unavailable": {
+    "message": "ليست المشكلة أنك استنفدت رصيدك — بل إن رصيدنا المجاني المشترك نفد ونحن نعيد تعبئته. استخدم مفتاحك الخاص الآن، أو عد لاحقًا."
+  },
+  "grant_err_misconfigured": {
+    "message": "هناك خطأ في إعداد الرصيد المجاني من جهتنا، وقد سجّلناه. ليست هذه غلطتك؛ استخدم مفتاحك الخاص الآن."
+  },
+  "grant_err_revoked": {
+    "message": "تم إيقاف هذا الرصيد المجاني (تسجيل الخروج أو حذف الحساب يوقفه). سجّل الدخول بالحساب نفسه وسيعود برصيده كما هو."
+  },
+  "grant_err_invalid": {
+    "message": "لم يعد هذا الرصيد المجاني معروفًا. افتح الإعدادات واطلبه من جديد."
+  },
+  "grant_err_model": {
+    "message": "يعمل الرصيد المجاني مع النموذج المحدد فقط. لقد غيّرت النموذج من «متقدم» — أعده كما كان، أو أضف مفتاحك الخاص."
+  },
+  "grant_err_busy": {
+    "message": "الطلبات كثيرة جدًا الآن. انتظر بضع ثوانٍ ثم أعد المحاولة."
+  },
+  "grant_title": {
+    "message": "رصيد مجاني"
+  },
+  "grant_body_signin": {
+    "message": "سجّل الدخول لتحصل على رصيد مجاني يكفي لبضع مئات من الصفحات، ويغطي الترجمة والنطق والتفريغ الصوتي."
+  },
+  "grant_signin": {
+    "message": "سجّل الدخول للحصول على رصيد مجاني"
+  },
+  "grant_signin_again": {
+    "message": "سجّل الدخول مرة أخرى"
+  },
+  "grant_body_signed_out": {
+    "message": "أدى تسجيل الخروج إلى إيقاف رصيدك المجاني. الرصيد ما يزال موجودًا — سجّل الدخول بالحساب نفسه وسيعود."
+  },
+  "grant_body_unclaimed": {
+    "message": "لم تحصل بعد على رصيدك المجاني. يكفي لبضع مئات من الصفحات في الترجمة والنطق والتفريغ الصوتي."
+  },
+  "grant_claim": {
+    "message": "احصل عليه"
+  },
+  "grant_claiming": {
+    "message": "جارٍ الحصول عليه…"
+  },
+  "grant_privacy": {
+    "message": "رصيد مجاني (اختياري). بعد تسجيل الدخول والحصول عليه، يمكنك استخدام 0.20 دولار على حسابنا في الترجمة والنطق والتفريغ الصوتي. في هذا المسار يمر نصك عبر خادمنا في طريقه إلى مزوّد النموذج ({vendor})؛ لا نحفظ المحتوى ولا نسجّله، بل نسجّل فقط كم أنفق كل طلب. يتوقف الرصيد عند نفاده ولا يحاسبك أبدًا. مسار المفتاح الخاص بك لم يتغيّر: ذلك النص يذهب من متصفحك إلى المزوّد مباشرة ولا نراه. تسجيل الخروج يوقف الرصيد على هذا الجهاز؛ وحذف الحساب يحذف سجلّه أيضًا."
+  },
+  "grant_body_active": {
+    "message": "الرصيد المجاني قيد الاستخدام. عند نفاده يمكنك إضافة مفتاح API خاص بك والمتابعة."
+  },
+  "grant_body_low": {
+    "message": "أوشك رصيدك المجاني على النفاد. بعدها يمكنك إضافة مفتاح API خاص بك والمتابعة."
+  },
+  "grant_body_exhausted": {
+    "message": "انتهى رصيدك المجاني. أضف مفتاح API خاصًا بك للمتابعة — مفتاح واحد يغطي الترجمة والنطق والتفريغ الصوتي."
+  },
+  "grant_body_unavailable": {
+    "message": "ليست المشكلة أنك استنفدت رصيدك — بل إن رصيدنا المجاني المشترك نفد ونحن نعيد تعبئته. استخدم مفتاحك الخاص الآن، أو عد لاحقًا."
+  },
+  "grant_body_replaced": {
+    "message": "أنت تستخدم مفتاحك الخاص حاليًا. الرصيد المجاني ما يزال موجودًا، ويمكنك العودة إليه في أي وقت."
+  },
+  "grant_restore": {
+    "message": "العودة إلى الرصيد المجاني"
+  },
+  "grant_byo": {
+    "message": "استخدام مفتاحي الخاص"
+  },
+  "grant_community": {
+    "message": "اسأل في المجتمع"
+  },
+  "grant_engine_label": {
+    "message": "رصيد BelliedMonkey المجاني"
+  },
+  "grant_restore_confirm": {
+    "message": "العودة إلى الرصيد المجاني ستستبدل المفتاح الذي أدخلته. هل تريد المتابعة؟"
+  },
+  "grant_signout_confirm": {
+    "message": "تسجيل الخروج يعطّل الرصيد المجاني على هذا الجهاز (يُحفظ الرصيد؛ سجّل الدخول مجددًا لاستعادته). هل تريد تسجيل الخروج؟"
+  },
+  "grant_claimed_toast": {
+    "message": "تم إعداد الرصيد المجاني"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "تم الحصول على الرصيد المجاني. مفتاحك الخاص لا يزال مستخدمًا — اضغط «العودة إلى الرصيد المجاني» لاستخدامه."
+  },
+  "grant_page_halt": {
+    "message": "انتهى الرصيد المجاني — اضغط لمعرفة كيفية المتابعة"
+  },
+  "grant_page_halt_ours": {
+    "message": "الرصيد المجاني غير متاح الآن (ليست المشكلة أنك استنفدته) — اضغط لمعرفة كيفية المتابعة"
+  },
+  "auth_page_halt": {
+    "message": "رفض المزوّد هذا المفتاح (HTTP 401/403) — اضغط للتحقق منه",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "فتح الإعدادات",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "رفض المزوّد هذا المفتاح (HTTP 401/403). تحقّق من صحة المفتاح ومن أن لديه صلاحية لهذا النموذج.",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "هل أعجبك؟ قيّمنا في المتجر ←"
+  },
+  "app_nudge_text": {
+    "message": "الجمل التي قرأتها اليوم — راجعها في التطبيق ←"
+  },
+  "review_nudge_text": {
+    "message": "الجمل التي قرأتها اليوم — راجعها ←"
+  },
+  "doc_title": {
+    "message": "ترجمة المستندات"
+  },
+  "doc_to_review": {
+    "message": "إلى المراجعة ←"
+  },
+  "doc_upload": {
+    "message": "رفع مستند (PDF / Word / صورة)"
+  },
+  "doc_privacy": {
+    "message": "تبقى المستندات على هذا الجهاز — لا تُزامَن ولا تُصدَّر. عند الترجمة يُرسَل نص الصفحة المفتوحة فقط إلى نقطة الترجمة التي ضبطتها — لا الملف كاملًا، ولا عند الرفع؛ وتُرسَل الصور والصفحات الممسوحة كصور إلى النقطة نفسها فقط إن كان محركك يدعم الصور."
+  },
+  "doc_privacy_grant": {
+    "message": "تبقى المستندات على هذا الجهاز. عند الترجمة تمرّ الصفحة المفتوحة عبر مرحّلنا إلى مزوّد النموذج (لا تُحفظ ولا تُسجَّل)؛ الرصيد المجاني لا يتعرّف على الصور — تحتاج الصور والصفحات الممسوحة إلى مفتاح API الخاص بك."
+  },
+  "doc_list_empty": {
+    "message": "لا مستندات بعد. المدعوم: PDF وWord (.docx) والنص والصور."
+  },
+  "doc_row_meta": {
+    "message": "{pages} صفحة · عند الصفحة {page} · جُمعت {n} جملة"
+  },
+  "doc_delete": {
+    "message": "حذف"
+  },
+  "doc_delete_confirm": {
+    "message": "حذف هذا المستند؟ ستُحذف بطاقاته أيضًا (يُزامَن إلى كل الأجهزة) ولا يمكن التراجع."
+  },
+  "doc_unsupported_kind": {
+    "message": "صيغة غير مدعومة (المدعوم: PDF و.docx والنص والصور). لملفات .doc احفظها بصيغة .docx في Word."
+  },
+  "doc_too_large": {
+    "message": "الملف كبير جدًا (الحد 30 م.ب)."
+  },
+  "doc_grant_no_image": {
+    "message": "الرصيد المجاني لا يتعرّف على الصور — استخدم مفتاح API الخاص بك."
+  },
+  "doc_no_vision": {
+    "message": "المحرك الحالي لا يتعرّف على الصور · غيّر النموذج من الإعدادات"
+  },
+  "doc_store_failed": {
+    "message": "تعذّر حفظ المستند: "
+  },
+  "doc_missing": {
+    "message": "لم يعد هذا المستند على هذا الجهاز."
+  },
+  "doc_opening": {
+    "message": "جارٍ القراءة…"
+  },
+  "doc_open_failed": {
+    "message": "تعذّرت قراءة هذا المستند: "
+  },
+  "doc_back": {
+    "message": "المستندات"
+  },
+  "doc_lang": {
+    "message": "لغة المستند"
+  },
+  "doc_lang_auto": {
+    "message": "تلقائي"
+  },
+  "doc_prev": {
+    "message": "السابقة"
+  },
+  "doc_next": {
+    "message": "التالية"
+  },
+  "doc_ocr_running": {
+    "message": "جارٍ التعرّف على هذه الصفحة…"
+  },
+  "doc_ocr_failed": {
+    "message": "فشل التعرّف: "
+  },
+  "doc_page_empty": {
+    "message": "لا نص قابل للاستخراج في هذه الصفحة."
+  },
+  "doc_old_engine": {
+    "message": "تُرجمت هذه الصفحة بمحرك أقدم — أُعيدت ترجمتها بالمحرك الحالي."
+  },
+  "doc_page_stat": {
+    "message": "هذه الصفحة: {units} فقرة · نحو {chars} حرفًا"
+  },
+  "doc_go_settings": {
+    "message": "الإعدادات ←"
+  },
+  "doc_translating": {
+    "message": "⏳ جارٍ الترجمة…"
+  },
+  "doc_star": {
+    "message": "إضافة إلى المراجعة"
+  },
+  "doc_translate_failed": {
+    "message": "فشلت الترجمة · اضغط لإعادة المحاولة"
+  },
+  "doc_popup_row": {
+    "message": "📄 ترجمة مستند (PDF / Word / صورة)"
+  },
+  "doc_open_page": {
+    "message": "ترجمة مستند (PDF / Word / صورة)"
+  },
+  "doc_review_entry": {
+    "message": "📄 ترجمة مستند"
+  },
+  "doc_source_label": {
+    "message": "مستند"
+  },
+  "doc_page_n": {
+    "message": "الصفحة {n}"
+  },
+  "doc_sources_note": {
+    "message": "الحذف يزيل المستند نفسه أيضًا."
+  },
+  "doc_app_entry_hint": {
+    "message": "ترجمة صفحة تلو صفحة؛ يمكن إضافة الترجمات إلى المراجعة"
+  },
+  "doc_app_back": {
+    "message": "‹ رجوع"
+  },
+  "doc_capture_label": {
+    "message": "ترجمات المستندات تدخل المراجعة (المصدر «مستند»)"
+  },
+  "doc_prefetch_label": {
+    "message": "تحليل الصفحة التالية مسبقًا (دون ترجمة)"
+  },
+  "rate_prompt_dismiss": {
+    "message": "لا تسأل مجددًا"
+  },
+  "grant_popup_model": {
+    "message": "الرصيد المجاني يعمل مع النموذج المحدد فقط — اضغط لإعادته"
+  },
+  "grant_popup_exhausted": {
+    "message": "انتهى الرصيد المجاني — اضغط لمعرفة كيفية المتابعة"
+  },
+  "grant_popup_low": {
+    "message": "أوشك الرصيد المجاني على النفاد — اضغط للاطلاع"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "لم تسجّل الدخول — هذا الجهاز فقط. تسجيل الدخول يمنحك أيضًا رصيدًا مجانيًا ←"
+  },
+  "grant_cn_title": {
+    "message": "ابدأ برصيد المزوّد المجاني"
+  },
+  "grant_cn_body": {
+    "message": "بعد التسجيل، يأتي مع كل نموذج رصيد مجاني يكفي فترة. هو من المزوّد، لا يمر بنا."
+  },
+  "grant_cn_step1": {
+    "message": "سجّل وافتح لوحة التحكم"
+  },
+  "grant_cn_step2": {
+    "message": "احصل على الرصيد المجاني (المقدار الدقيق على صفحتهم)"
+  },
+  "grant_cn_step3": {
+    "message": "ألصق مفتاح API بالأسفل لإعداد الترجمة والنطق والتفريغ دفعة واحدة"
+  },
+  "grant_cn_open": {
+    "message": "افتح لوحة التحكم ←"
+  },
+  "grant_cn_why": {
+    "message": "لا نمنح رصيدًا بأنفسنا بعد: ذلك يحتاج إلى مُرحّل يعمل داخل البلد، ولم يُفتح بعد."
+  },
+  "subtitle_source_label": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_entry": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_entry_hint": {
+    "message": "ترجمة ثنائية اللغة للفيديو أو البث أو الاجتماع الجاري تشغيله"
+  },
+  "subtitle_need_key": {
+    "message": "لم يُدخل بعد مفتاح API لمحرك التفريغ الصوتي"
+  },
+  "subtitle_need_key_go": {
+    "message": "أدخله في الإعدادات ←"
+  },
+  "subtitle_title": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_start": {
+    "message": "ابدأ"
+  },
+  "subtitle_capture_label": {
+    "message": "أضف الترجمات إلى المراجعة (المصدر «ترجمة مباشرة»)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "لغة الفيديو:"
+  },
+  "subtitle_tip_mac": {
+    "message": "بعد البدء تظهر الترجمة في شريط عائم أسفل الشاشة، وتُدرج كل جملة مكتملة هنا أيضًا."
+  },
+  "subtitle_tip_ios": {
+    "message": "اضغط «ابدأ» أولًا، ثم شغّل الصوت عبر السماعة في أي تطبيق (المتصفح والفيديو والبودكاست…)؛ تطفو الترجمة في نافذة صورة داخل صورة. مع سماعات الأذن لا يُسمع الصوت."
+  },
+  "subtitle_privacy": {
+    "message": "لا يستمع إلى ما يشغّله جهاز Mac هذا إلا بعد الضغط على «ابدأ». يُتعرّف على الصوت على هذا الجهاز (أو يُرسل فقط إلى نقطة التفريغ التي ضبطتها)؛ لا يُسجَّل شيء ولا يُحفظ، ولا تشارك خوادمنا أبدًا. يبقى النص المتعرَّف عليه في مراجعتك فقط ما دام «أضف الترجمات إلى المراجعة» مفعّلًا."
+  },
+  "subtitle_privacy_ios": {
+    "message": "لا يستمع إلى ما يشغّله هاتف iPhone هذا عبر السماعة إلا بعد الضغط على «ابدأ». يُتعرّف على الصوت على هذا الجهاز (أو يُرسل فقط إلى نقطة التفريغ التي ضبطتها)؛ لا يُسجَّل شيء ولا يُحفظ، ولا تشارك خوادمنا أبدًا. يبقى النص المتعرَّف عليه في مراجعتك فقط ما دام «أضف الترجمات إلى المراجعة» مفعّلًا."
+  },
+  "subtitle_pill_live": {
+    "message": "● الترجمة جارية · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "الآن"
+  },
+  "subtitle_history_empty": {
+    "message": "ستظهر هنا كل جملة مكتملة."
+  },
+  "subtitle_stop_silence": {
+    "message": "لا صوت منذ 30 ثانية — أُوقف مؤقتًا لتجنّب الرسوم. اضغط «متابعة» عندما يعود الفيديو للتشغيل."
+  },
+  "subtitle_leave_confirm": {
+    "message": "ما زال يستمع. المغادرة تُنهي الترجمة، وتبقى الجمل التي ظهرت."
+  },
+  "subtitle_summary_title": {
+    "message": "جلسة الترجمة هذه"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} جملة · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "أُضيف إلى المراجعة (المصدر «ترجمة مباشرة») {k} · منها بنجمة {s}"
+  },
+  "subtitle_summary_note": {
+    "message": "لم يُحفظ أي صوت، النص فقط. يمكنك إدارة هذه الجمل أو حذفها من «المصادر › ترجمة مباشرة»."
+  },
+  "subtitle_bar_waiting": {
+    "message": "بانتظار الإذن — انقر «السماح» في نافذة النظام"
+  },
+  "subtitle_bar_listening": {
+    "message": "يستمع إلى صوت النظام…"
+  },
+  "subtitle_bar_paused": {
+    "message": "متوقف مؤقتًا"
+  },
+  "subtitle_bar_silence": {
+    "message": "لا صوت منذ 30 ثانية — أُوقف مؤقتًا لتجنّب الرسوم"
+  },
+  "subtitle_bar_denied": {
+    "message": "لا يُسمع صوت النظام — اسمح لـ BelliedMonkey Translator في إعدادات النظام › الخصوصية والأمن › تسجيل الشاشة وصوت النظام"
+  },
+  "subtitle_bar_socket": {
+    "message": "انقطع اتصال التفريغ الصوتي"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "جارٍ إعادة الاتصال…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "تنزيل موارد التعرّف على {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "فشلت ترجمة هذه الجملة · أعد المحاولة في النافذة الرئيسية"
+  },
+  "subtitle_bar_headphones": {
+    "message": "صوت الفيديو غير مسموع · انزع السماعات واستخدم السماعة الخارجية"
+  },
+  "subtitle_ctl_pause": {
+    "message": "إيقاف مؤقت"
+  },
+  "subtitle_ctl_resume": {
+    "message": "متابعة"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "تمرير النقرات"
+  },
+  "subtitle_ctl_main": {
+    "message": "النافذة الرئيسية"
+  },
+  "subtitle_ctl_end": {
+    "message": "إنهاء"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "فتح إعدادات النظام"
+  },
+  "subtitle_menu_show_main": {
+    "message": "إظهار النافذة الرئيسية"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "إيقاف تمرير النقرات لشريط الترجمة"
+  },
+  "subtitle_menu_end": {
+    "message": "إنهاء الترجمة المباشرة"
+  },
+  "subtitle_pip_float": {
+    "message": "إظهار نافذة الترجمة"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "يستمع إلى السماعة…"
+  },
+  "subtitle_pip_title": {
+    "message": "ترجمة مباشرة"
+  },
+  "subtitle_pip_hint": {
+    "message": "شغّل فيديو أو صوتًا عبر السماعة في أي تطبيق — ستظهر الترجمة هنا"
+  },
+  "subtitle_pip_close": {
+    "message": "اضغط النافذة: ⏸ إيقاف · ⏪⏩ السجل · ✕ إغلاق (أعد فتحها من التطبيق)"
+  },
+  "subtitle_pip_history": {
+    "message": "السجل · اضغط ⏩ للأحدث"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "بعد الضغط على «ابدأ» تظهر هنا معاينة نافذة الترجمة، وتطفو فوق التطبيقات الأخرى عند مغادرة التطبيق"
+  },
+  "subtitle_pip_note_live": {
+    "message": "معاينة نافذة الترجمة — تطفو فوق التطبيقات الأخرى عند مغادرة التطبيق"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "انتهت هذه الترجمة وأُغلقت النافذة"
+  },
+  "subtitle_bar_silent": {
+    "message": "لم يُسمع صوت النظام بعد — الفيديو يعمل بلا ترجمة؟ ربما لم يُسمح بتسجيل صوت النظام"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "لا صوت منذ 30 ثانية — تم الإيقاف المؤقت. إن كان الفيديو يعمل بلا ترجمة فربما لم يُسمح بتسجيل صوت النظام: إعدادات النظام › الخصوصية والأمان › تسجيل الشاشة وصوت النظام، اسمح لـ BelliedMonkey Translator ثم اضغط «متابعة»."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "لا صوت منذ 30 ثانية — تم الإيقاف المؤقت. الفيديو يعمل بلا ترجمة؟ ربما لم يُسمح بتسجيل صوت النظام"
+  },
+  "listen_need_os": {
+    "message": "تتطلب المحادثة والترجمة المباشرة iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "أداة التعرف المدمجة لا تدعم هذه اللغة — جرّب لغة أخرى"
+  },
+  "listen_assets_failed2": {
+    "message": "فشل تنزيل النموذج دون اتصال: {why} — غالبًا مشكلة في الشبكة؛ حاول مرة أخرى لاحقًا — اضغط «ابدأ الاستماع» مرة أخرى لإعادة المحاولة."
+  },
+  "tts_engine_device": {
+    "message": "نطق مدمج في الجهاز (نموذج دون اتصال · التطبيق فقط)"
+  },
+  "tts_hint_device": {
+    "message": "يُصنَّع الصوت على جهازك؛ يُنزَّل النموذج دون اتصال مرة واحدة عند أول استخدام (ملف النموذج فقط). اللغات غير المشمولة تعود إلى صوت النظام، ويُذكر ذلك في السطر."
+  },
+  "tts_pack_label": {
+    "message": "النموذج دون اتصال"
+  },
+  "tts_pack_installed": {
+    "message": "النموذج دون اتصال مثبّت · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "النموذج دون اتصال غير منزَّل · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "تنزّله أول قراءة تلقائيًا أيضًا؛ تُنزَّل ملفات النموذج فقط ولا يُرفع أي شيء."
+  },
+  "tts_pack_dl": {
+    "message": "تنزيل"
+  },
+  "tts_pack_fallback": {
+    "message": "العنوان غير متاح — جارٍ المحاولة بعنوان آخر…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "tts_pack_downloading": {
+    "message": "يجري تنزيل النموذج دون اتصال · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "فشل تنزيل النموذج دون اتصال: {why} — غالبًا مشكلة في الشبكة؛ حاول مرة أخرى لاحقًا"
+  },
+  "tts_pack_no_bridge": {
+    "message": "القراءة المدمجة متاحة في التطبيق فقط"
+  },
+  "tts_test_dl": {
+    "message": "تنزيل وتشغيل عينة ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "يعمل · النموذج دون اتصال لا يتضمن هذه اللغة، يُستخدم صوت النظام"
+  },
+  "tts_assets": {
+    "message": "لم يُنزَّل النموذج دون اتصال بعد — نزّله من الإعدادات › القراءة بصوت عالٍ، أو بدّل إلى صوت النظام"
+  },
+  "listen_pack_ready": {
+    "message": "حزم لغات التعرف جاهزة · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "حزم لغات التعرف غير منزَّلة · {langs} · ينزّلها النظام؛ بدء الاستماع ينزّلها أيضًا"
+  },
+  "listen_pack_dl": {
+    "message": "تنزيل"
+  },
+  "listen_pack_downloading": {
+    "message": "يجري تنزيل حزمة اللغة · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "فشل تنزيل حزمة اللغة: {why} — غالبًا مشكلة في الشبكة؛ حاول مرة أخرى لاحقًا"
+  },
+  "opt_sec_engines": {
+    "message": "المحركات والمفاتيح"
+  },
+  "opt_sec_features": {
+    "message": "الميزات"
+  },
+  "opt_sec_account": {
+    "message": "الحساب والبيانات"
+  },
+  "opt_adv_hint": {
+    "message": "الإعداد بمفتاح واحد تحت «سريع» →"
+  },
+  "stt_section": {
+    "message": "تفريغ المقطع كاملًا"
+  },
+  "stt_section_use": {
+    "message": "تمرين النطق · تفريغ مقطع صوتي/مرئي كامل"
+  },
+  "review_section": {
+    "message": "المراجعة"
+  },
+  "data_section": {
+    "message": "مكتبة التعلّم"
+  },
+  "notes_block_title": {
+    "message": "شرح هذه الجملة (اختياري)"
+  },
+  "grant_summary_claimed": {
+    "message": "تم استلام الرصيد المجاني · إدارة →"
+  },
+  "dep_label": {
+    "message": "يعتمد على"
+  },
+  "dep_unset": {
+    "message": "غير مُعدّ"
+  },
+  "dep_go": {
+    "message": "إعداد →"
+  },
+  "dep_follow": {
+    "message": "يتبع محرك الترجمة"
+  },
+  "dep_quick": {
+    "message": "يوفّره الإعداد بمفتاح واحد ✓"
+  },
+  "dep_live": {
+    "message": "التفريغ المباشر"
+  },
+  "dep_live_device": {
+    "message": "مدمج في الجهاز (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "الترجمة إلى"
+  },
+  "target_lang_follow": {
+    "message": "اتباع لغة الواجهة ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "تُستخدم في ترجمة المستندات وترجمة النظام والترجمة السريعة. للمحادثة والترجمة النصية المباشرة إعدادات لغة خاصة بهما."
+  },
+  "handoff_source_label": {
+    "message": "نص مُرسل إلينا"
+  },
+  "src_handoff_system": {
+    "message": "ترجمة النظام"
+  },
+  "src_handoff_select": {
+    "message": "ترجمة التحديد"
+  },
+  "src_handoff_shot": {
+    "message": "ترجمة لقطة الشاشة"
+  },
+  "src_handoff_input": {
+    "message": "ترجمة النص المكتوب"
+  },
+  "quick_title": {
+    "message": "الترجمة السريعة"
+  },
+  "quick_enabled_label": {
+    "message": "البقاء في شريط القوائم"
+  },
+  "quick_enabled_note": {
+    "message": "عند الإيقاف تختفي الأيقونة من شريط القوائم، وإغلاق النافذة ينهي التطبيق."
+  },
+  "quick_menu_open": {
+    "message": "فتح BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "إعدادات الترجمة السريعة…"
+  },
+  "quick_menu_quit": {
+    "message": "إنهاء"
+  },
+  "quick_resident_title": {
+    "message": "لا يزال BelliedMonkey في شريط القوائم"
+  },
+  "quick_resident_body": {
+    "message": "تبقى الاختصارات تعمل. للإنهاء الكامل اختر «إنهاء» من أيقونة شريط القوائم أو اضغط ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "حسنًا"
+  },
+  "quick_resident_off": {
+    "message": "لا أريد البقاء"
+  },
+  "quick_tag_selection": {
+    "message": "النص المحدد"
+  },
+  "quick_tag_clipboard": {
+    "message": "الحافظة"
+  },
+  "quick_tag_service": {
+    "message": "الخدمات"
+  },
+  "quick_tag_shot": {
+    "message": "لقطة شاشة"
+  },
+  "quick_tag_input": {
+    "message": "إدخال"
+  },
+  "quick_pin": {
+    "message": "تثبيت"
+  },
+  "quick_close": {
+    "message": "إغلاق"
+  },
+  "quick_copy": {
+    "message": "نسخ الترجمة"
+  },
+  "quick_src_label": {
+    "message": "النص الأصلي"
+  },
+  "quick_src_placeholder": {
+    "message": "اكتب النص المراد ترجمته أو الصقه"
+  },
+  "quick_clip_concealed": {
+    "message": "محتوى الحافظة موسوم بأنه مخفي (غالبًا كلمة مرور). لم تتم قراءته ولم يُرسَل أي شيء."
+  },
+  "quick_clip_empty": {
+    "message": "لا يوجد نص في الحافظة. حدّد نصًا واضغط ⌘C ثم الاختصار، أو شغّل «الالتقاط المحسّن» من الإعدادات للاستغناء عن ⌘C."
+  },
+  "quick_clip_same": {
+    "message": "النص نفسه كالمرة السابقة — هل نسيت الضغط على ⌘C؟"
+  },
+  "quick_no_selection": {
+    "message": "تعذّر الحصول على النص المحدد — ربما لم يتم تحديد شيء، أو أن هذا التطبيق لا يسمح بالنسخ."
+  },
+  "quick_use_shot": {
+    "message": "استخدم ترجمة لقطة الشاشة"
+  },
+  "quick_same_lang": {
+    "message": "النص بالفعل بـ {lang}"
+  },
+  "sys_empty": {
+    "message": "لا يوجد نص للترجمة."
+  },
+  "sys_slow": {
+    "message": "ما زالت الترجمة جارية — الرصيد المجاني يمر عبر خادمنا الوسيط، وهو أبطأ من مفتاحك الخاص."
+  },
+  "quick_slow": {
+    "message": "ما زالت الترجمة جارية…"
+  },
+  "quick_unconfigured": {
+    "message": "لا يوجد محرك ترجمة بعد. احصل على الرصيد المجاني أو أدخل مفتاح API الخاص بك."
+  },
+  "quick_open_settings": {
+    "message": "فتح الإعدادات"
+  },
+  "quick_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "quick_saved": {
+    "message": "تم الحفظ في مكتبة المراجعة"
+  },
+  "quick_saved_off": {
+    "message": "لم يُحفظ · الالتقاط متوقف"
+  },
+  "quick_saved_long": {
+    "message": "طويل جدًا، لن يُحفظ في مكتبة المراجعة"
+  },
+  "quick_shot_nothing": {
+    "message": "لم يتم التعرف على أي نص في هذه المنطقة."
+  },
+  "quick_shot_again": {
+    "message": "حدّد مرة أخرى"
+  },
+  "quick_menu_clip": {
+    "message": "ترجمة الحافظة"
+  },
+  "quick_menu_input": {
+    "message": "اكتب للترجمة"
+  },
+  "quick_clip_blocked": {
+    "message": "لم يسمح لنا macOS بقراءة الحافظة. اسمح بذلك في إعدادات النظام › الخصوصية والأمن › اللصق من تطبيقات أخرى، أو استخدم قائمة «الخدمات» بالنقر بالزر الأيمن."
+  },
+  "quick_enh_label": {
+    "message": "الالتقاط المحسّن"
+  },
+  "quick_enh_hint": {
+    "message": "حدّد النص واضغط الاختصار مباشرة دون ⌘C أولًا. يحتاج إلى إذن واحد من النظام. متوقف افتراضيًا."
+  },
+  "quick_enh_explain_title": {
+    "message": "تشغيل الالتقاط المحسّن"
+  },
+  "quick_enh_explain_does": {
+    "message": "ما يفعله: عند ضغط الاختصار يضغط ⌘C مرة واحدة نيابةً عنك، ويقرأ النص المحدد، ثم يعيد الحافظة كما كانت تمامًا."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "ما لا يفعله أبدًا: لا يراقب لوحة المفاتيح، ولا يقرأ أي شيء ما لم تضغط الاختصار."
+  },
+  "quick_enh_continue": {
+    "message": "متابعة"
+  },
+  "quick_enh_not_now": {
+    "message": "ليس الآن"
+  },
+  "quick_enh_relaunch": {
+    "message": "أعد الفتح الآن"
+  },
+  "quick_enh_open_privacy": {
+    "message": "فتح إعدادات النظام"
+  },
+  "quick_enh_pending": {
+    "message": "في نافذة النظام التي ظهرت، اختر «فتح إعدادات النظام»، ثم ابحث عن «{app}» في القائمة وشغّل مفتاحه. يسري ذلك بعد إعادة فتح التطبيق."
+  },
+  "quick_enh_denied": {
+    "message": "لم يمنح macOS الإذن، لذا يبقى الالتقاط المحسّن متوقفًا. ما زال الضغط على ⌘C ثم الاختصار يعمل كالمعتاد."
+  },
+  "quick_enh_lost": {
+    "message": "أُوقف إذن الالتقاط المحسّن، لذا تُرجمت الحافظة هذه المرة. أعد تشغيله من الإعدادات لاستعادته."
+  },
+  "quick_menu_shot": {
+    "message": "ترجمة لقطة شاشة"
+  },
+  "quick_shot_busy": {
+    "message": "جارٍ التعرف على النص على هذا الـ Mac…"
+  },
+  "quick_shot_first": {
+    "message": "أول استخدام على هذا الـ Mac: يحتاج إلى نحو 20 ثانية للتجهيز. بعد ذلك يستغرق أقل من نصف ثانية."
+  },
+  "quick_shot_perm_explain": {
+    "message": "تحتاج ترجمة لقطة الشاشة إلى إذن «تسجيل الشاشة». لا تلتقط إلا المنطقة التي تحددها وفي تلك اللحظة فقط، ويتم التعرف عليها على هذا الـ Mac ثم تُحذف فورًا."
+  },
+  "quick_shot_perm_pending": {
+    "message": "بقيت خطوة واحدة: في إعدادات النظام شغّل مفتاح «{app}» في القائمة. يسري ذلك بعد إعادة فتح التطبيق."
+  },
+  "quick_shot_cloud": {
+    "message": "أعد المحاولة بمحركي الداعم للصور"
+  },
+  "quick_shot_cloud_note": {
+    "message": "خيار «أعد المحاولة بمحركي الداعم للصور» يرسل لقطة الشاشة هذه إلى المحرك الذي أعددته ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "جارٍ التعرف باستخدام محركك…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "تم حذف لقطة الشاشة هذه بالفعل. حدّد المنطقة مرة أخرى."
+  },
+  "quick_hk_title": {
+    "message": "الاختصارات"
+  },
+  "quick_hk_reset": {
+    "message": "استعادة الإعدادات الافتراضية"
+  },
+  "quick_hk_translate": {
+    "message": "ترجمة النص المحدد أو الحافظة"
+  },
+  "quick_hk_shot": {
+    "message": "ترجمة لقطة شاشة"
+  },
+  "quick_hk_input": {
+    "message": "اكتب للترجمة"
+  },
+  "quick_hk_unset": {
+    "message": "غير معيَّن"
+  },
+  "quick_hk_record": {
+    "message": "تسجيل"
+  },
+  "quick_hk_cancel": {
+    "message": "إلغاء"
+  },
+  "quick_hk_change": {
+    "message": "تغيير"
+  },
+  "quick_hk_clear": {
+    "message": "مسح"
+  },
+  "quick_hk_press": {
+    "message": "اضغط التركيبة التي تريدها…"
+  },
+  "quick_hk_clash": {
+    "message": "يستخدم تطبيق آخر هذه التركيبة بالفعل، فلن تصل إلينا عند الضغط عليها. اختر تركيبة أخرى."
+  },
+  "quick_hk_deny": {
+    "message": "التركيبات التي تستخدم ⌥ وحده غير موثوقة. اختر تركيبة تتضمن ⌃ أو ⌘."
+  },
+  "quick_hk_system": {
+    "message": "هذه التركيبة يستخدمها macOS أو التطبيقات نفسها. اختر تركيبة أخرى."
+  },
+  "quick_hk_nomod": {
+    "message": "أضف مفتاح تعديل مثل ⌃ أو ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "هذه التركيبة نفسها المستخدمة في «{name}»."
+  },
+  "quick_capture_label": {
+    "message": "الحفظ في مكتبة المراجعة"
+  },
+  "quick_capture_hint": {
+    "message": "الجمل التي تترجمها تدخل المراجعة (المصدر: التحديد أو لقطة الشاشة أو الإدخال). عند الإيقاف تستمر الترجمة ولا يُحفظ شيء."
+  },
+  "quick_login_label": {
+    "message": "الفتح عند تسجيل الدخول"
+  },
+  "quick_login_hint": {
+    "message": "يبدأ في شريط القوائم عند تسجيل الدخول. متوقف افتراضيًا."
+  },
+  "quick_login_approval": {
+    "message": "يجب أيضًا السماح به مرة واحدة في إعدادات النظام › عناصر تسجيل الدخول."
+  },
+  "quick_screen_ok": {
+    "message": "تسجيل الشاشة · مسموح ✓ (لترجمة لقطة الشاشة)"
+  },
+  "quick_screen_off": {
+    "message": "تسجيل الشاشة · غير مسموح بعد. ستُسأل عند أول استخدام لترجمة لقطة الشاشة."
+  },
+  "quick_shot_needs14": {
+    "message": "تتطلب ترجمة لقطة الشاشة macOS 14 أو أحدث."
+  },
+  "quick_services_link": {
+    "message": "تعيين اختصار لعنصر قائمة «الخدمات» →"
+  },
+  "quick_more": {
+    "message": "خيارات إضافية"
+  },
+  "quick_shot_perm_second": {
+    "message": "عند تحديد منطقة لأول مرة، سيطلب macOS تأكيدًا إضافيًا، فاسمح به. بعد ذلك سيسأل macOS مجددًا بين حين وآخر، وهذا ما يفعله مع كل تطبيق يلتقط الشاشة."
+  },
+  "systrans_title": {
+    "message": "ترجمة النظام"
+  },
+  "systrans_intro": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» ليُترجَم بالمحرّك الذي أعددته. اجعل BelliedMonkey Translator التطبيق الافتراضي أولًا:"
+  },
+  "systrans_step1": {
+    "message": "افتح تطبيق «الإعدادات»"
+  },
+  "systrans_step2": {
+    "message": "انتقل إلى «التطبيقات» ← «الترجمة»"
+  },
+  "systrans_step3": {
+    "message": "اضغط «تطبيق الترجمة الافتراضي» واختر BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "يتطلب iOS أو iPadOS 18.4 أو أحدث. على الأنظمة الأقدم لن نظهر في تلك القائمة."
+  },
+  "systrans_state_pending": {
+    "message": "لم تتم المزامنة بعد. تتم المزامنة تلقائيًا عند فتح هذا التطبيق."
+  },
+  "systrans_state_ok": {
+    "message": "تمت مزامنة المحرّك: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "لم تُعدّ أي محرّك بعد. ستتم المزامنة تلقائيًا بمجرد إعداد واحد."
+  },
+  "systrans_state_failed": {
+    "message": "فشلت المزامنة ({code}). جرّب الحفظ مرة أخرى من «المحرّكات والمفاتيح»."
+  },
+  "systrans_capture_label": {
+    "message": "الحفظ في مكتبة المراجعة"
+  },
+  "systrans_capture_hint": {
+    "message": "تدخل الجمل المترجمة إلى المراجعة تحت المصدر «ترجمة النظام». عند الإيقاف تستمر الترجمة، لكنها لا تُحفظ."
+  },
+  "systrans_font_label": {
+    "message": "حجم النص"
+  },
+  "systrans_font_small": {
+    "message": "صغير"
+  },
+  "systrans_font_std": {
+    "message": "قياسي"
+  },
+  "systrans_font_large": {
+    "message": "كبير"
+  },
+  "systrans_font_hint": {
+    "message": "حجم النص الأصلي والمترجم في النافذة (الأزرار والملاحظات لا تتغير). يسري عند فتح النافذة مرة أخرى."
+  },
+  "sys_disclose_direct": {
+    "message": "يُرسَل النص المحدّد مباشرةً إلى المحرّك الذي أعددته ({name})، ولا يمر عبر خوادمنا إطلاقًا."
+  },
+  "sys_disclose_grant": {
+    "message": "تستخدم الرصيد المجاني: يُمرَّر النص المحدّد عبرنا إلى مزوّد الخدمة، ولا نحتفظ بالمحتوى."
+  },
+  "sys_fail_network": {
+    "message": "تعذّر الوصول إلى محرّك الترجمة. تحقّق من الاتصال وحاول مرة أخرى."
+  },
+  "sys_fail_timeout": {
+    "message": "لم يردّ المحرّك في الوقت المحدّد."
+  },
+  "sys_fail_http": {
+    "message": "أعاد المحرّك خطأً."
+  },
+  "sys_fail_no_base": {
+    "message": "يحتاج هذا المحرّك إلى عنوان، ولا يوجد عنوان محدّد. افتح BelliedMonkey Translator وأدخِله."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "لم يعد هذا المحرّك متاحًا. اختر محرّكًا آخر في BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "لم يُعدّ أي محرّك ترجمة بعد. افتح BelliedMonkey Translator مرة واحدة وسيعمل هنا."
+  },
+  "sys_fail_not_synced": {
+    "message": "افتح BelliedMonkey Translator مرة واحدة لمشاركة إعدادات المحرّك مع هذه الورقة."
+  },
+  "sys_fail_empty": {
+    "message": "لا يوجد نص قابل للترجمة في التحديد."
+  },
+  "sys_fail_empty_result": {
+    "message": "لم يُعِد المحرّك شيئًا هذه المرة."
+  },
+  "sys_fail_engine": {
+    "message": "لم يبدأ محرّك الترجمة."
+  },
+  "sys_fail_unknown": {
+    "message": "فشلت الترجمة."
+  },
+  "sys_ui_translating": {
+    "message": "جارٍ الترجمة…"
+  },
+  "sys_ui_slow": {
+    "message": "ما زالت جارية — قد يكون الرصيد المجاني بطيئًا."
+  },
+  "sys_ui_replace": {
+    "message": "استبدال"
+  },
+  "sys_ui_open_app": {
+    "message": "فتح BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "جاهز للاستخدام"
+  },
+  "setup_done_checking": {
+    "message": "جارٍ التحقق…"
+  },
+  "setup_done_failed_title": {
+    "message": "غير قابل للاستخدام بعد"
+  },
+  "setup_done_failed": {
+    "message": "العنصر المعلَّم بـ ✗ أعلاه لم ينجح. صحّحه وسيُختبَر تلقائيًا مرة أخرى."
+  },
+  "setup_done_settings": {
+    "message": "تم إعداد المحرّك. ترجمة المستندات والترجمة الفورية والترجمة المباشرة تعمل جميعًا الآن."
+  },
+  "setup_done_systrans": {
+    "message": "تم إعداد المحرّك. عُد إلى التطبيق الذي كنت فيه واضغط «ترجمة» مرة أخرى — لا شيء آخر تفعله هنا."
+  },
+  "setup_done_quick": {
+    "message": "تم إعداد المحرّك. عُد إلى لوحة الترجمة السريعة وأعد ترجمة تلك الجملة."
+  },
+  "setup_done_home": {
+    "message": "العودة إلى الرئيسية"
+  },
+  "setup_from_systrans": {
+    "message": "لقد وصلت من ترجمة النظام. بعد الإعداد، عُد إلى ذلك التطبيق واضغط «ترجمة» مرة أخرى."
+  },
+  "systrans_discover_title": {
+    "message": "اجعل «الترجمة» المدمجة في iPhone تستخدم BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» — ستستخدم النافذة المحرّك الذي أعددته. يُضبط مرة واحدة فقط."
+  },
+  "systrans_discover_done": {
+    "message": "أعددتها"
+  },
+  "systrans_discover_used_title": {
+    "message": "ترجمة النظام · قيد الاستخدام"
+  },
+  "systrans_discover_used": {
+    "message": "حدّد نصًا في أي تطبيق واضغط «ترجمة» — المحرّك الذي أعددته هو الذي يترجم. الجمل المترجمة موجودة في مكتبة المراجعة."
+  },
+  "systrans_discover_see": {
+    "message": "عرضها في المراجعة ←"
+  },
+  "ob_signin_grant_title": {
+    "message": "سجّل الدخول واحصل على رصيد مجاني"
+  },
+  "ob_signin_grant_body": {
+    "message": "الرصيد على حسابنا ويكفي للبداية؛ ويمكنك أيضًا استخدام مفتاحك الخاص. تسجيل الدخول يزامن بطاقاتك أيضًا مع أجهزتك الأخرى."
+  },
+  "ob_signin_sync_title": {
+    "message": "تسجيل الدخول (اختياري)"
+  },
+  "ob_signin_sync_body": {
+    "message": "تسجيل الدخول يزامن بطاقاتك مع أجهزتك الأخرى. للترجمة، أضف مفتاحك الخاص في الإعدادات."
+  },
+  "ob_signin_later": {
+    "message": "ليس الآن"
+  },
+  "ob_signin_email": {
+    "message": "تسجيل الدخول بالبريد الإلكتروني"
+  },
+  "ob_try_title": {
+    "message": "جرّب جملة الآن"
+  },
+  "ob_try_body": {
+    "message": "لا حاجة للبحث عن شيء — ها هي جملة. ترجمها أو استمع إليها."
+  },
+  "ob_try_translate": {
+    "message": "ترجمة هذه الجملة"
+  },
+  "ob_try_listen": {
+    "message": "الاستماع إلى هذه الجملة"
+  },
+  "ob_try_working": {
+    "message": "جارٍ الترجمة…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "لا يوجد محرك ترجمة بعد. سجّل الدخول وسيُضاف رصيد مجاني تلقائيًا، أو أضف مفتاحك في الإعدادات."
+  },
+  "ob_try_noengine_key": {
+    "message": "لا يوجد محرك ترجمة بعد — أضف مفتاحًا في الإعدادات وستكون جاهزًا."
+  },
+  "ob_try_sample_alt": {
+    "message": "حين تقرأ بلغة ثانية، تصادف الكلمات نفسها مرارًا حتى لا تعود بحاجة إلى البحث عنها."
+  },
+  "xb_consent": {
+    "message": "أوافق موافقة منفصلة: بعد تسجيل الدخول، تُنقل بيانات حسابي (البريد الإلكتروني أو معرّف حساب Apple) وبطاقات الدراسة (الجمل التي قرأتها وترجماتها وعناوين الصفحات المصدر وأسماؤها) وتُخزَّن على خوادم في طوكيو، اليابان، تديرها Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "الجهة المستلمة والغرض وطريقة السحب: سياسة الخصوصية، القسم 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "لتسجيل الدخول، حدّد المربع أعلاه أولًا. يعمل التطبيق بدونه، لكن بطاقاتك لن تُزامَن.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "أكمل الإعداد · بقي {n} خطوات",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "تابع من حيث توقفت — يستغرق دقيقة أو اثنتين.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "المتابعة من حيث توقفت",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "عدم الإظهار مرة أخرى",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "امتداد Safari",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "ضغطت سابقًا على «{done}»، لذا أُخفي التلميح في الشاشة الرئيسية. إن لم يكن مفعّلًا بعد فأعِده من هنا.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "إظهار تلميح «تفعيل الامتداد» مرة أخرى",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "تمت الاستعادة — ارجع إلى الشاشة الرئيسية لتراه.",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "خطوتان فقط"
+  },
+  "ob_web_only": {
+    "message": "أريد ترجمة صفحات الويب فقط"
+  },
+  "ob_intent_listen": {
+    "message": "للاستماع أساسًا · ترجمات فورية"
+  },
+  "ob_intent_both": {
+    "message": "كلاهما — القراءة والاستماع"
+  },
+  "qs_base": {
+    "message": "عنوان نقطة النهاية (كامل)"
+  },
+  "qs_key_ph_one": {
+    "message": "ألصقه مرة واحدة ليُضبط الترجمة"
+  },
+  "qs_apply_one": {
+    "message": "اضبط الترجمة بهذا العنوان"
+  },
+  "qs_absent": {
+    "message": "— هذه المنصة لا توفّره"
+  },
+  "qs_absent_custom": {
+    "message": "— هذا العنوان لا يوفّره"
+  },
+  "learn_habit_streak": {
+    "message": "عُدتَ اليوم · {n} أيام متتالية"
+  },
+  "learn_habit_today": {
+    "message": "عُدتَ اليوم"
+  },
+  "learn_nothing_due_title": {
+    "message": "لا شيء للمراجعة اليوم"
+  },
+  "learn_group_done": {
+    "message": "انتهت هذه المجموعة لليوم"
+  },
+  "learn_group_left": {
+    "message": "بقيت {n} اليوم — لا داعي لإنهائها كلها دفعة واحدة."
+  },
+  "learn_group_left_none": {
+    "message": "الباقي يمكن أن ينتظر الغد."
+  },
+  "learn_group_more": {
+    "message": "مجموعة أخرى"
+  },
+  "learn_group_stop": {
+    "message": "يكفي لليوم"
+  },
+  "learn_group_bye": {
+    "message": "الباقي ينتظر —— يكفي أن تعود."
+  },
+  "firstrun_packs_title": {
+    "message": "نزّل حزم الصوت أولًا"
+  },
+  "firstrun_packs_lede": {
+    "message": "بعد ذلك لن تحتاج إلى أي إعداد آخر — الترجمة والترجمة الفورية والترجمات المرئية والقراءة الصوتية تعمل مباشرة. يُتعرَّف على الكلام على جهازك. يُرسَل النص المتعرَّف عليه للترجمة: مع مفتاحك الخاص يذهب مباشرةً إلى المزوّد الذي أعددته؛ ومع الرصيد المجاني يمر عبر خادمنا، ولا نحفظ النص."
+  },
+  "firstrun_packs_asr": {
+    "message": "حزمة التعرّف على الكلام (الترجمة الفورية / الترجمات المباشرة)"
+  },
+  "firstrun_packs_tts": {
+    "message": "حزمة صوت عالية الجودة (القراءة الصوتية / البودكاست)"
+  },
+  "firstrun_packs_done": {
+    "message": "جاهز"
+  },
+  "firstrun_packs_net": {
+    "message": "يُفضّل التنزيل عبر Wi-Fi، ويمكن استخدام بيانات الجوال — القرار لك."
+  },
+  "firstrun_packs_busy": {
+    "message": "جارٍ التنزيل…"
+  },
+  "firstrun_packs_go": {
+    "message": "تنزيل ومتابعة"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "تنزيل حزمة الصوت فقط ومتابعة"
+  },
+  "firstrun_packs_err": {
+    "message": "لم يكتمل التنزيل: {why} — تحقق من الاتصال وحاول مرة أخرى."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "توقّف تنزيل حزمة الصوت في النظام — تحقّق من الاتصال ثم أعد المحاولة."
+  },
+  "engine_status_ok": {
+    "message": "مضبوط بحسابك: ترجمة · تفريغ · قراءة — جاهز هنا مباشرة"
+  },
+  "engine_status_missing": {
+    "message": "ينقص شيء واحد: "
+  },
+  "engine_status_fix_tts": {
+    "message": "محرّك القراءة غير مضبوط — الإعدادات › القراءة، اختر صوتًا"
+  },
+  "engine_status_fix_translate": {
+    "message": "محرّك الترجمة غير مضبوط — الإعدادات › المحرّك"
+  },
+  "listen_lang_detecting": {
+    "message": "جارٍ التعرّف على اللغة…"
+  },
+  "listen_lang_detected": {
+    "message": "تم التعرّف: {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "جارٍ التعرّف على لغة الفيديو…"
+  },
+  "subtitle_lang_detected": {
+    "message": "تم التعرّف: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "لا تلمس هذا إلا إذا أخطأ في تحديد اللغة"
+  },
+  "listen_lang_auto": {
+    "message": "التعرّف تلقائيًا"
+  },
+  "listen_lang_manual": {
+    "message": "تحديد يدوي"
+  },
+  "subtitle_partner_auto": {
+    "message": "لغة الفيديو: {lang} (تلقائي)"
+  },
+  "listen_need_locales": {
+    "message": "مُعرّف الجهاز يحمل 5 لغات كحد أقصى وقد امتلأ — اخرج من الاستماع ثم عُد."
+  },
+  "listen_lang_assets_missing": {
+    "message": "لم تُثبَّت حزمة التعرّف على هذه اللغة بعد. اتصل بالإنترنت واضغط «ابدأ الاستماع» مرة واحدة لتنزيلها."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "هذا الجهاز لا يتعرّف على تلك اللغة — عدنا إلى «{lang}»"
+  },
+  "listen_speak_lang_label": {
+    "message": "اللغة التي أتحدّثها"
+  },
+  "listen_lang_dirs2": {
+    "message": "تسمع {a} ← يُترجم إلى {b}؛ تسمع {b} ← يُترجم إلى {a}"
+  },
+  "lang_auto": {
+    "message": "تلقائي"
+  },
+  "listen_listening": {
+    "message": "جارٍ الاستماع…"
+  },
+  "listen_ptt_say": {
+    "message": "تحدّث {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "أستمع إلى {lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "انقر للبدء"
+  },
+  "listen_ptt_recording": {
+    "message": "● جارٍ التسجيل · انقر للإيقاف"
+  },
+  "firstrun_packs_back": {
+    "message": "رجوع"
+  },
+  "firstrun_packs_all_title": {
+    "message": "حزم اللغات جاهزة"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "يمكن الاستماع والترجمة والقراءة لـ {langs}. أضف لغات أخرى لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "جارٍ تنزيل حزم اللغات"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "كل عنصر يعرض تقدمه. يستمر التنزيل في الخلفية ويستأنف بعد عودة الشبكة."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "اختر اللغات المراد تنزيلها"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "المحدد افتراضيًا: لغة النظام + 中文 + English. أضف غيرها لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "يبقى اختيارك. يبدأ التنزيل تلقائيًا عند الاتصال بـ Wi-Fi."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "كل شيء جاهز. بعد الدخول اضغط «{mine}» أو زر اللغة الأخرى."
+  },
+  "firstrun_packs_foot": {
+    "message": "حوالي {size}، بالإضافة إلى حزم التعرف الخاصة بالنظام. على شبكة خلوية نسألك قبل التنزيل."
+  },
+  "firstrun_packs_locked": {
+    "message": "لا يمكن تغيير الاختيار أثناء التنزيل. أضف أو احذف لاحقًا من الإعدادات."
+  },
+  "firstrun_packs_enter": {
+    "message": "ابدأ الاستماع المباشر"
+  },
+  "firstrun_packs_remain": {
+    "message": "جارٍ التنزيل · تبقّى {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "غير محدد"
+  },
+  "firstrun_packs_queued": {
+    "message": "في الانتظار"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "اللغات (حزم التعرف)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "حزمة التعرف · ينزّلها النظام"
+  },
+  "firstrun_packs_system": {
+    "message": "لغة النظام"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} لغات أخرى"
+  },
+  "firstrun_packs_together": {
+    "message": "تُنزَّل معًا"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "قراءة · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "حزمة واحدة تغطي 中文 و English. تعليم 中文 أو English يضيفها تلقائيًا"
+  },
+  "firstrun_packs_bytes": {
+    "message": "حوالي {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "قراءة · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "غير محددة افتراضيًا. الاستماع والترجمة المكتوبة يعملان بدونها. قراءة الترجمة التايلاندية فقط هي التي تتوقف"
+  },
+  "firstrun_packs_optional": {
+    "message": "حوالي {size} · اختياري"
+  },
+  "firstrun_packs_base": {
+    "message": "المكوّنات الأساسية"
+  },
+  "firstrun_packs_base_note": {
+    "message": "التعرف على اللغة (ECAPA) وكشف الصوت (VAD): يميّز من يتحدث أي لغة. لا يبدأ الاستماع قبل اكتمالها"
+  },
+  "firstrun_packs_required": {
+    "message": "حوالي {size} · مطلوب"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "أنت على شبكة خلوية"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "هذا التنزيل حوالي {size} (حزم التعرف الخاصة بالنظام إضافية ويحدد حجمها النظام) وقد يستهلك بيانات الجوال."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "انتظار Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "التنزيل عبر الشبكة الخلوية"
+  },
+  "firstrun_packs_manage": {
+    "message": "إدارة حزم اللغات"
+  },
+  "listen_ptt_preparing": {
+    "message": "جارٍ التجهيز · تنزيل {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ جاهز"
+  },
+  "listen_not_ready": {
+    "message": "لا يمكن البدء بعد. اضغط بعد اكتمال التنزيل"
+  },
+  "listen_ready_tap": {
+    "message": "اكتمل التنزيل. اضغط الزر بالأسفل للبدء"
+  },
+  "listen_prep_detail": {
+    "message": "جارٍ تنزيل {what} · {pct}% · {ready} جاهز"
+  },
+  "listen_ready_tap_sub": {
+    "message": "لن يبدأ تلقائيًا · اضغط «{mine}» أو «{other}» لبدء الاستماع"
+  },
+  "drive_skipped": {
+    "message": "تم تخطي {n} بطاقة لا يمكن قراءتها (بطاقات وسائط أو بلا صوت)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "أصبح بالإمكان الترجمة الفورية لـ {langs}، والقراءة بصوت عالٍ لـ {speak}. أضف لغات أخرى في أي وقت من الإعدادات · حزم الصوت."
+  },
+  "firstrun_quota_cancel": {
+    "message": "إلغاء"
+  },
+  "firstrun_quota_days": {
+    "message": "الأقل استخدامًا مؤخرًا · منذ {n} يوم"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "تنزيل"
+  },
+  "firstrun_quota_in_use": {
+    "message": "زوج اللغات الحالي · لا يمكن التخلي عنه"
+  },
+  "firstrun_quota_label": {
+    "message": "لغات التعرّف"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "غير مُنزّل"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "جاهز · يشغل خانة"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "غير جاهز · يمكن استعادته"
+  },
+  "firstrun_quota_never": {
+    "message": "الأقل استخدامًا مؤخرًا"
+  },
+  "firstrun_quota_note": {
+    "message": "حدّ Apple: {max} لغات تعرّف كحد أقصى في وقت واحد"
+  },
+  "firstrun_quota_note_full": {
+    "message": "جميع الخانات الـ {max} مشغولة · أي لغة جديدة ستُعلَّم أولًا بـ «غير جاهز»"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "استعادة"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "اضغط للاستعادة · نحو 1–2 ثانية"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "يتغيّر الزر حسب اللغة التي تختارها."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "تخلَّ عن {yield} · استعد {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "لاستعادة {need}، تخلَّ عن لغة واحدة أولًا. ستعود إلى «غير جاهز» وتُستعاد خلال نحو 1–2 ثانية عند الحاجة، دون إعادة تنزيل."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "اختر لغة للتخلي عنها (الافتراضي: الأقل استخدامًا مؤخرًا)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "لغات التعرّف ممتلئة ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "غير مُنزّل"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "يشغل خانة"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "غير جاهز"
+  },
+  "firstrun_quota_today": {
+    "message": "استُخدم اليوم"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} من {max} مستخدمة"
+  },
+  "firstrun_quota_working": {
+    "message": "جارٍ الاستعادة…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "غير جاهز · اللغة {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "لن يُنزَّل هذه المرة"
+  },
+  "firstrun_quota_over_title": {
+    "message": "امتلأت الخانات الـ {max}: ستُعلَّم {langs} بـ «غير جاهز»"
+  },
+  "firstrun_quota_over_body": {
+    "message": "اضغط لاستعادتها عند الحاجة (نحو 1–2 ثانية)، وستتخلى اللغة الأقل استخدامًا عن خانتها. إن لم ترغب في ذلك فلا تحددها الآن."
+  },
+  "listen_pill_quota_full": {
+    "message": "الخانات ممتلئة"
+  },
+  "listen_ptt_quota_full": {
+    "message": "الخانات ممتلئة · تخلَّ عن واحدة لاستخدامها"
+  },
+  "listen_quota_card_btn": {
+    "message": "تخلَّ عن واحدة واستعد"
+  },
+  "listen_quota_card_hint": {
+    "message": "نحو 1–2 ثانية · دون إعادة تنزيل"
+  },
+  "listen_quota_card_sub": {
+    "message": "كانت {lang} مثبّتة، لكن خانتها ذهبت إلى لغة أخرى — ليس فشلًا في التنزيل ولا علاقة للشبكة بذلك."
+  },
+  "listen_quota_card_title": {
+    "message": "لا يمكن الاستماع إلى {lang} بعد: جميع خانات التعرّف الـ {max} مشغولة"
+  },
+  "listen_quota_sheet_go": {
+    "message": "تخلَّ عن {yield} · استعد {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "لاستخدام {lang}، تخلَّ عن لغة واحدة أولًا."
+  },
+  "fail_quota_label": {
+    "message": "رصيد مجاني"
+  },
+  "fail_credit_title": {
+    "message": "انتهى الرصيد المجاني"
+  },
+  "fail_credit_next": {
+    "message": "غيّر المسار، أو أدخل مفتاح API الخاص بك."
+  },
+  "fail_go_grant": {
+    "message": "غيّر المسار"
+  },
+  "fail_fill_key": {
+    "message": "أدخل مفتاحك"
+  },
+  "fail_grant_title": {
+    "message": "الرصيد غير متاح مؤقتًا"
+  },
+  "fail_grant_next": {
+    "message": "لم ينفد رصيدك. أعد المحاولة لاحقًا أو غيّر المسار."
+  },
+  "fail_model_title": {
+    "message": "النموذج ليس في القائمة المجانية"
+  },
+  "fail_model_next": {
+    "message": "الرصيد المجاني يعمل فقط مع النموذج المحدد. أعده."
+  },
+  "fail_go_model": {
+    "message": "غيّر النموذج"
+  },
+  "fail_auth_title": {
+    "message": "المفتاح مرفوض"
+  },
+  "fail_auth_next": {
+    "message": "رفض المزود هذا المفتاح. راجعه أو أدخله من جديد."
+  },
+  "fail_go_engine": {
+    "message": "أدخل المفتاح"
+  },
+  "fail_use_free": {
+    "message": "استخدم المسار المجاني"
+  },
+  "fail_timeout_title": {
+    "message": "تعذر الاتصال، وتوقف الإرسال"
+  },
+  "fail_timeout_next": {
+    "message": "توقف إعادة المحاولة تلقائيًا. عند عودة الشبكة اضغط إعادة المحاولة، أو انتقل إلى المسار المجاني."
+  },
+  "fail_timeout_next_cn": {
+    "message": "توقف إعادة المحاولة تلقائيًا. عند عودة الشبكة اضغط إعادة المحاولة."
+  },
+  "fail_timeout_footnote": {
+    "message": "يتوقف فقط بعد 5 مهلات متتالية. المهلة الواحدة لا توقف."
+  },
+  "fail_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "fail_switch_free": {
+    "message": "انتقل إلى المسار المجاني"
+  },
+  "firstrun_packs_sum": {
+    "message": "حوالي {size} · يشمل أساس الاستماع"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "تفاصيل التقدم"
+  },
+  "langpacks_manage": {
+    "message": "إدارة"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "استخدم اللمسة"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "جارٍ التنزيل"
+  },
+  "firstrun_quota_mini": {
+    "message": "حتى 5 لغات تعرّف"
+  },
+  "qs_key_local_only": {
+    "message": "المفاتيح تبقى على هذا الجهاز فقط"
+  },
+  "firstrun_packs_retry": {
+    "message": "إعادة المحاولة"
+  },
+  "langpacks_title": {
+    "message": "حزم اللغة والقراءة"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · الإعداد بلمسة جاهز"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "جارٍ التنزيل {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "قراءة دون اتصال · غير منزّلة · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "تفاصيل التنزيل"
+  },
+  "langpacks_need_os": {
+    "message": "حزم اللغة · يلزم نظام أحدث"
+  },
+  "engine_keys_status_detail": {
+    "message": "الإعداد لكل محرك جاهز"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "الاختيار يلغي الإعداد بلمسة"
+  },
+  "langpacks_tts_na": {
+    "message": "قراءة دون اتصال · في التطبيق فقط"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "استخدم كل محرك"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "التبديل إلى اللمسة يستبدل إعداد كل محرك الحالي"
+  },
+  "langpacks_ready": {
+    "message": "جاهز · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "غير مُعد"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · حوالي {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "للمحركات الأخرى استخدم الإعداد لكل محرك."
+  },
+  "langpacks_tts_ready": {
+    "message": "قراءة دون اتصال · جاهزة"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "الاختيار يستبدل إعداد كل محرك"
+  },
+  "engine_keys_row": {
+    "message": "المحركات والمفاتيح"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "إلغاء"
+  },
+  "langpacks_missing": {
+    "message": "غير منزّل · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "التبديل إلى كل محرك يلغي إعداد اللمسة الحالي"
+  }
+}

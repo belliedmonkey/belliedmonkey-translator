@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>interleave keeps the original readable as an original</title>
+<style>
+  /* The single-blob interleave path hides the original and re-draws each original
+     paragraph followed by its translation, inside a holder that is itself a
+     .mt-translation element — and bilingual.css gives .mt-translation the
+     translation colour (#0a7a3c).
+
+     Before the fix the re-drawn ORIGINAL rows set no colour of their own, so they
+     inherited the translation colour and the whole block rendered in one solid
+     green: the bilingual pair could no longer be told apart. That breaks the one
+     rule interaction-spec keeps as the distinguishing property —
+     "the ONLY font-related property that stays distinct is the color".
+
+     The page here gives the original a deliberately distinctive colour so the
+     assertion is about the ORIGINAL's own colour being preserved, not about any
+     particular default. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  article { width: 100%; padding: 24px 0; }
+  #blob { max-width: 640px; margin: 16px auto; white-space: pre-line; line-height: 1.6;
+          color: rgb(17, 34, 51); }
+</style>
+<body>
+<article>
+  <div id="blob">Learning a language by reading real articles beats memorizing word lists.
+
+The trick is seeing the same words appear again and again in living sentences.</div>
+</article>
+<script type="application/json" id="mt-expect">
+{
+  "name": "interleave-original-color",
+  "unitCount": 1,
+  "skipUniversal": {
+    "belowOriginal": [
+      "#blob"
+    ],
+    "originalGeometryStable": [
+      "#blob"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#blob",
+      "assert": [
+        "holderReplacesOriginal",
+        "interleaveRowColors"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

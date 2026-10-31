@@ -1,0 +1,37 @@
+/* 展示字与正文字 —— design/handoff.md §2 承诺的两个家族，DS-01 把它落地
+   （2026-09-30，1.19.0 scope #528 / 审计 #524）。
+
+   两个家族都只带 **拉丁子集**：CJK 由后面的系统字兜底，所以中英混排时中文落在系统字上
+   （handoff §2 的原话是「CJK 自动回落系统字体」）。拉丁字重：Figtree 是可变的，一份
+   文件覆盖 400–700；Caprasimo 只有 400（展示字）。
+
+   加载顺序有要求：本文件必须在各页自己的 CSS **之后** link —— 三个页面的 body 字体栈
+   （`-apple-system, …`）与这里的 `body` 规则同特异性，靠顺序取胜。这就是顺序的全部理由。
+
+   字体文件与它们的 OFL 许可同在 fonts/（Caprasimo / Figtree，两者都是 SIL OFL 1.1）。 */
+
+@font-face {
+  font-family: 'Caprasimo';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/caprasimo-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 100 900;   /* 可变字体：一份文件覆盖正文用到的 400–700 */
+  font-display: swap;
+  src: url('../fonts/figtree-latin-var.woff2') format('woff2');
+}
+
+:root {
+  --font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-heading: 'Caprasimo', 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+body { font-family: var(--font-body); }
+
+/* 展示字只给层级标题（onboarding 的 ob-title / 设置页四节 h2 / 弹窗与复习页 h1 都在这条上）。 */
+h1, h2, h3 { font-family: var(--font-heading); }

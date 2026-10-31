@@ -1,0 +1,2140 @@
+# Translation Domain Design (领域设计)
+
+> **Authoritative source of truth for the translation domain model.** Code must
+> conform to this document. Any change that touches the domain design (the model,
+> the extractor/engine/renderer boundary, the device principle, the DomSegmenter
+> rules) **must update this doc first and pass human domain-design review before
+> the code changes** — see the governance rule in `AGENTS.md`.
+
+## 1. Core idea — one pipeline for everything
+
+Every kind of "parsing" reduces to the same pipeline:
+
+```
+source → Extractor (parse into units) → Engine (state machine + scheduling + retry) → Renderer
+```
+
+Only **three things are platform/source specific**: the **Extractor**, the
+**scheduling strategy** (`selectActive`), and the **Renderer**. Everything in the
+middle is generic and lives in `TranslationCore`.
+
+```
+                ┌──────────────── TranslationCore (platform-agnostic) ────────────────┐
+                │  TranslationUnit { text, tr, _fetching,_done,_err,_tries, payload }  │
+                │  Engine = createEngine({ translate, selectActive, targetLang, detect? }) │
+                │     setUnits · pump · stateOf · retry · reset                       │
+                │     state machine: pending → translating → (done | nothing | error→retry) │
+                │     pump(): only translate units selectActive() picks; backoff retry │
+                │  helpers: isTranslated · isAlreadyTargetLanguage · looksLikeCode ·   │
+                │           language helpers · createPager · MSG · t · DEFAULT_TARGET_LANG │
+                └──────────▲────────────────────────────────────────────▲─────────────┘
+        DOM source (units{node})                                  timed text (units{start,end})
+   ┌──────────────────────┴───────────────────────────┐   ┌──────────┴─────────────────────┐
+   │ DomSegmenter — normal webpages + YouTube          │   │ SubtitleSource — video subtitles │
+   │   title / description / comments                  │   │   yt-hook → parseJson3 → cues    │
+   │   standard-HTML segmentation                      │   │   → mergeSentences               │
+   │   scheduling = viewport-priority + lazy           │   │   scheduling = time-window       │
+   │   renderer = child injection (+ rich text)        │   │   renderer = subtitle overlay    │
+   └────────────────────────────────────────────────────┘   └────────────────────────────────┘
+```
+
+One **sink** hangs off the end of this pipeline — the learning layer's Collector
+(§9). It is not a fourth stage: it reads what the Renderer already displayed and can
+never influence anything upstream of it. Deleting it at runtime must leave
+translation output byte-for-byte identical.
+
+## 2. The split is "is the source DOM?", not "which site"
+
+- **Anything that IS DOM** (normal pages **and** YouTube's title/description/
+  comments) → the single general **`DomSegmenter`**. No per-site selectors; in
+  particular **no `YT_TARGETS`**.
+- **Video/audio subtitles are NOT DOM** — they are a timed transcript fetched
+  whole (YouTube `/api/timedtext` json3; podcast WebVTT/SRT). There is no DOM to
+  segment, so they use a different **kind** of extractor (`SubtitleSource` /
+  `PodcastSource`), but feed the **same Engine**. This is a *source-kind* difference,
+  not a site difference.
+- **A third source kind — `AsrSource` (§2.4, added 2026-09-06).** When no timed
+  transcript exists anywhere, the user may *ask* for one: on their explicit tap the
+  page's own media is transcribed by the speech-to-text endpoint they configured, and
+  the resulting timed cues feed the **same Engine** through the same harness. It is a
+  source, never a different pipeline — the Engine and Renderer cannot tell it apart
+  from a fetched transcript.
+- **A fourth source kind — `DocumentSource` (§2.5, added 2026-09-11).** A file the
+  user *uploads* (PDF, Word `.docx`, plain text, an image) is neither DOM nor a timed
+  transcript: it is a sequence of pages, each a list of paragraphs. The document
+  reader turns **one page at a time** into units and feeds the **same Engine** through
+  a page-scoped scheduler; the Renderer is a reader view (original paragraph, translation
+  beneath), not an injected sibling. Same pipeline, same Engine, same Collector sink —
+  the Engine cannot tell a PDF page from a web page.
+- **Podcast bilingual subtitles** are the audio analogue of video subtitles — see
+  **§2.2**. Where a podcast has no timed transcript, it is just a **page** (show
+  notes / a text transcript) and falls to the normal `DomSegmenter` text path —
+  plus the §2.4 offer, which the user may take or ignore.
+
+### 2.1 YouTube subtitle core constraint (核心约束 — do not break)
+
+The YouTube subtitle path follows **one** logic, identical on every platform
+(Safari iOS, Chrome) and identical to the Chrome-extension logic:
+
+1. **Fetch the COMPLETE transcript up front, in one shot.** Acquire every cue for
+   the current video as a single transcript before/at playback start — never
+   caption-by-caption off the live player DOM. `AsrSource`'s file tier (§2.4)
+   satisfies this rule literally; its live tier is the **one written exception**,
+   bounded in §2.4 — it appends whole sentences in playback order and still never
+   translates a caption or a word.
+2. **Translate ahead in a 60-second sliding window, in batches** (`engine.pump`
+   over `WINDOW.AHEAD_MS = 60000`). Whole merged sentences, with context.
+3. **No word-by-word / per-caption translation.** We never translate YouTube's
+   rolling live-caption text as the steady-state path. As long as translation
+   throughput ≥ playback speed (the normal case, because work runs ahead), the
+   **`⏳ 译文准备中…` state must not recur** during steady playback.
+4. **Acquisition must not depend on `world:"MAIN"`.** Safari iOS does not support
+   `world:"MAIN"` content scripts, so the page-world `fetch` hook in `yt-hook.js`
+   can never capture the transcript there. And the caption-track `baseUrl` from
+   `ytInitialPlayerResponse` **cannot be fetched directly** — `/api/timedtext`
+   enforces a `pot` (proof-of-origin) token that only YouTube's own player mints,
+   so a forged request returns `HTTP 200` with an **empty body** (verified).
+   Therefore the transcript is acquired by the **isolated content script** like so:
+   - Enable the player's captions once (so YouTube itself fetches the transcript,
+     minting a valid `pot`) — cross-platform CC auto-enable.
+   - Read YouTube's **own** `/api/timedtext` request URL (which carries the live
+     `pot`/signature) from the **Resource Timing API**
+     (`performance.getEntriesByType('resource')`, readable from the isolated world).
+   - **Re-fetch that exact URL** ourselves (forcing `&fmt=json3`) to get the full
+     transcript body, then `parseJson3 → mergeSentences → engine`.
+
+   A `world:"MAIN"` fetch hook (`yt-hook.js`) remains only as an **opportunistic**
+   capture that hands us the body directly on platforms that support it (Chrome) —
+   never the sole source.
+
+   **Acquisition is paused while an ad plays** (`acquireGate: () => !adShowing()`, #325,
+   2026-09-18). During a pre-roll the main video's `/api/timedtext` request does not exist
+   yet, so every attempt is a miss; with the attempt cap (8 × 2.5 s ≈ 20 s) a longer ad
+   used to exhaust it and latch 「字幕不可用」 for the whole video even though YouTube served
+   the track seconds later — measured on a signed-in desktop Chrome: 200 / 46 KB json3, the
+   URL recorded, our own re-fetch succeeding, the overlay still saying unavailable. While
+   the gate is closed no attempt starts and nothing is counted; when the ad ends the budget
+   is fresh, a cap-exhausted `unavailable` is un-latched, and the CC / forced-refetch
+   one-shots are re-armed so their grace runs from the main video. A backend's own final
+   `'unavailable'` and a started §2.4 session are not affected.
+
+   **…and until the main video has actually started** (`!adShowing() && mainStarted()`,
+   #345, 2026-09-19). Same cause, different trigger: YouTube requests the main video's
+   `/api/timedtext` only once that video is running, so a page whose video sits paused at 0
+   (autoplay blocked, opened in a background tab, a slow start after a skipped ad) spent the
+   whole budget on nothing and latched 「字幕不可用」 — measured on Windows 11 Edge 153: latched
+   after 27 s paused at 0, and still latched with the main video 138 s in and YouTube's own
+   CC on. `SubtitleAdapter.playbackLatch` answers "has this media played yet", once per media
+   key: it turns true the first time the element has `currentTime > 0` while no ad is showing
+   (paused mid-video counts — YouTube fetched that transcript long ago, and turning subtitles
+   on while paused must show them at once), and then STAYS true — a mid-video pause must not reopen the gate and hand
+   out eight more attempts — until the video id changes. Before it turns true nothing is
+   drawn (no 「字幕加载中…」 over a video nobody has started); the tick it turns true re-arms
+   the same one-shots as the end of an ad.
+
+   **Request discipline: an empty transcript is TERMINAL, and we send at most 3 requests
+   per video** (2026-09-28, EF-1). YouTube rate-limits repeated caption fetches: past a
+   handful of requests (≈5, per user report; easier to trip during ads) it cuts off the
+   whole caption pipeline for the session — every `/api/timedtext` answers `200` with a
+   0-byte body, YouTube's own captions included. The old acquire loop made that easy to
+   trip: an empty body cleared `ttFetchedUrl`, so the next tick re-fetched the SAME signed
+   URL, up to `maxAttempts` (8) times per video — precisely the pattern that trips the
+   limit. Measured 2026-09-28 under the block, Chrome 153 via CDP: 9 timedtext responses,
+   all 200/0 bytes, native captions dead in two browsers. So: an empty body no longer
+   clears the recorded URL (terminal for that signature — only a freshly minted one from
+   a CC re-enable, a track switch, or a video change may be tried), and the extension
+   itself spends at most 3 fetches per video id, keyed to the video so toggle boundaries
+   (`onMediaKeyChange`/`onActiveChange` clear the URL memory) cannot mint more. 宁可
+   「字幕不可用」，不踩封禁线。 The ad-end/first-start transition resets the one-shot
+   flags but NOT the URL memory — an ad-end refetch of an already-dead signature is
+   exactly the request we no longer send.
+
+If the transcript genuinely cannot be obtained (no caption track, re-fetch blocked),
+show a one-line notice — **do not** silently regress to per-caption translation.
+
+### 2.2 Podcast subtitle core constraint (核心约束 — do not break)
+
+Podcast bilingual subtitles are the **audio analogue of §2.1** and follow the same
+one logic, reusing the same Engine (`createSubtitleEngine`, 60s translate-ahead) and
+overlay renderer. The only podcast-specific parts are the **source** (where the
+timed cues come from) and the **renderer anchor** (no video frame → fixed to the
+viewport, not a player element).
+
+1. **Prefer an EXISTING timestamped transcript; generate one only via §2.4, on the
+   user's tap.** Acquire the COMPLETE timed transcript up front from a source that
+   already carries timestamps:
+   - **In-page caption file** — a WebVTT/SRT URL embedded in the page (e.g. Substack
+     embeds a CloudFront-**signed** `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`;
+     also `<track src>`). Use the *signed* URL; the bare URL is rejected. Fetch it
+     from the isolated content script (cross-origin allowed via `<all_urls>` host
+     permission, like the YouTube timedtext re-fetch) and `parseVtt/parseSrt → cues`.
+   - **Podcasting 2.0 `<podcast:transcript>`** — discover the feed
+     (`<link rel="alternate" type="application/rss+xml">`), match the current episode
+     by its audio enclosure URL, read the `url`/`type` (prefer `text/vtt` /
+     `application/x-subrip`), fetch + parse.
+   - **Spotify synced transcript** (Phase B) — scrape the "Read along" cue nodes
+     from the Now Playing DOM (audio is DRM/EME, but `currentTime` is still readable).
+2. **Translate ahead in the 60-second sliding window, in batches**; whole merged
+   sentences (`mergeSentences`), with context — identical to §2.1.
+3. **No word-by-word.** The `⏳ 字幕加载中…` / steady-state must not flap; once loaded,
+   never regress to per-line live translation.
+4. **Sync to the `<audio>` element's `currentTime`** (`getCurrentTime` reads the page
+   media element). DRM (Spotify/EME) hides the samples, **not** the playback clock.
+5. **No *automatic* ASR.** If no timed transcript exists, show `字幕不可用` **with the
+   §2.4 offer** (a button; nothing starts until it is tapped), and let the existing
+   webpage text path translate the show-notes / transcript **page** as the floor.
+   *(Before 2026-09-06 this rule read "No ASR / no self-generated transcripts
+   (no-backend; infeasible on Safari iOS)". Both premises fell: the transcription
+   runs on the endpoint the user configured, never on a backend of ours, and the
+   file tier is two operations — fetch bytes, POST them — that Safari iOS already
+   performs on the VTT path. See §2.4 and §5.3.)*
+
+Platforms: **generic in-page VTT/SRT + RSS `podcast:transcript`** (incl. Substack)
+are Phase A; **Spotify** synced-DOM is Phase B. **Apple Podcasts web** and **小宇宙**
+expose no timed transcript on web → **text-only** (page path), no subtitle overlay.
+
+### 2.3 Twitter/X video subtitle core constraint (核心约束 — do not break)
+
+x.com/twitter.com in-tweet video is the **video analogue of §2.1/§2.2** and follows
+the same one logic, reusing the same Engine (`createSubtitleEngine`, 60s translate-
+ahead) and overlay renderer. Twitter-specific parts are only the **source**
+(HLS-embedded WebVTT) and the **renderer anchor** (the active tweet's video).
+
+1. **VTT-ONLY — never ASR, never per-caption.** X serves video as HLS
+   (`video.twimg.com/amplify_video/<id>/pl/<hash>.m3u8`). Captions exist **only when
+   the uploader/X provided a WebVTT subtitle track** — surfaced in the HLS **master
+   playlist** as `#EXT-X-MEDIA:TYPE=SUBTITLES,…,URI="…"` (X auto-generates one for
+   many videos, `CHARACTERISTICS="twitter.auto-generated"`). If there is **no
+   SUBTITLES track**, show `字幕不可用` — this is a **first-class, common** outcome,
+   never a word-by-word fallback and never an *automatic* ASR fallback. The §2.4
+   offer applies here as on every subtitle surface; X video and Spaces are MSE
+   (`blob:`) media, so only §2.4's live tier can serve them.
+2. **Acquire the COMPLETE transcript up front** (verified 2026-07-18 on the target
+   video): master m3u8 → SUBTITLES `URI` → a VOD **subtitle sub-playlist** whose
+   `#EXTINF` lists `.vtt` segment(s) (`/subtitles/amplify_video/<id>/<seg>/<hash>.vtt`)
+   → fetch + **concatenate** the segments. Unlike YouTube's `/api/timedtext`, these
+   URLs are **NOT pot-locked** — a direct fetch from the isolated content script
+   returns the real body (`<all_urls>` host permission covers cross-origin
+   `video.twimg.com`). The `.vtt` text wraps words in a custom `<X-word-ms …>` tag;
+   the shared `parseTimedText` strips `<[^>]+>` and yields clean text, so **the
+   podcast VTT parser is reused unchanged**.
+3. **Discovery must not depend on `world:"MAIN"`** (Safari iOS). The master `.m3u8`
+   URL is recorded from the **Resource Timing API** by an isolated `document_start`
+   observer (`content/tw-media-observer.js`, `window.__mtTwHlsUrls`) — same pattern as
+   `yt-timedtext-observer.js`. Multi-segment VTT carries `X-TIMESTAMP-MAP`; honor per
+   segment (or trust absolute cue times for a single segment) before `mergeSentences`.
+4. **Translate ahead in the 60-second window, whole merged sentences** — identical to
+   §2.1/§2.2; once loaded the `字幕准备中…` state must not recur during steady playback.
+5. **A tweet/feed can hold MANY `<video>` elements.** The active media is the
+   playing / most-viewport-visible one, chosen with **hysteresis**: the current active
+   video is kept until it stops/leaves the viewport or another video's visible area
+   clearly exceeds it (≥1.3×), so two comparably-sized videos do not flip every 250ms
+   tick (a flip changes `mediaKey` → engine reset). `mediaKey` = the tweet's status id
+   (from the nearest `a[href*="/status/"]`) so scrolling to another playing video
+   re-acquires that video's transcript. See §5.
+6. **Overlay AND the `译` button are anchored INSIDE the active video's player
+   container** (re-parented into it, `position:absolute`), not left `position:fixed`
+   on `document.body`. This is the §2.1 YouTube pattern (`placeOverlay` →
+   `player.appendChild(ov)`) and is **load-bearing for fullscreen**: the browser
+   promotes only ONE element into the top layer on fullscreen, so a body-level `fixed`
+   sibling of the fullscreened player is not painted and the subtitle vanishes. Placing
+   both controls *inside* the container that X fullscreens makes them ride into the top
+   layer and survive. A `fullscreenchange` / `webkitfullscreenchange` listener is the
+   fallback: if `document.fullscreenElement` differs from our container, re-parent
+   overlay + button into it. **Desktop fullscreen with bilingual subtitles is a
+   first-class, must-verify surface (Chrome + Safari on x.com);** it is a **permanent
+   matrix item** per `verification-spec.md` §0. (iOS uses the OS's native video
+   fullscreen — a DOM overlay cannot cover it; that is a documented N/A, never faked.)
+
+### 2.4 AI 转写字幕 — user-initiated transcription (核心约束 — do not break)
+
+> **2026-09-16 修订（待人评审）**：Tier B（边说边出的实时档）**从扩展端下掉**，只保留在 App。
+> 理由与后果写在下方第 3 条。Tier A（整段转写）逐字不变。
+
+> **2026-09-17 修订（待人评审）—— 已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删；「待人评审」只剩流程标签，不再表示口径未定）：实时转写在 App 里也**不再是一个引擎**。云端实时条目
+> （`openai_transcribe` / `qwen_asr` 上的 `liveEndpoint / liveType / liveModel / liveRate /
+> liveKeyProtocol`）与 `device` 这条 STT 注册表条目一并**从注册表删除**；「对话 · 实时听译」与
+> 「实时字幕」**固定**走本机识别器（SpeechAnalyzer，iOS 26 / macOS 26），`app/listen.js` 直接读
+> `NativeSpeech`，不再读 `sttEngine`。用户裁定（2026-09-17）原话要点：「实时语音…纯 api 效果太差…
+> 必须结合本地模型转写修正」，这是把 2026-09-12 的判断推到底。连带三条：**系统要求只管对话 · 实时字幕**
+> （App 与扩展的下限仍是 iOS 16.4 / macOS 13.3，`build/os-floor.config.js` 不动；旧系统上这两块不出现，
+> 其余功能照常）；对话的语言只列本机识别器支持的语种（设备当场报出，不写死清单）；说题**不接**本机
+> （整段转写下拉只列云端 / 自建，§9.4 那条悬案关闭）。后果：转写从此只剩**一个**槽 —— 整段转写
+> （`sttEngine` 四元组）—— 没有第二把 key、没有「填了实时 key 就替换整段引擎」、没有四处各算一遍的
+> 「有没有实时接口」。第 3 条里「`content/ws-transcribe.js` 不删 —— App 的听译仍在用它」自此失效：
+> 只留 `splitSentences` / `sentenceCutter`，ws 传输与 `wire-format.js` 的 ws 分支一起删。
+> 每个 flavor 的门（下 §7）改写。Tier A 仍逐字不变。
+
+Added 2026-09-06 after PR0 measurement (`scripts/asr-probe.js`, `scripts/asr-cors-probe.js`;
+ledger rows `api.openai.com × whisper-1 / gpt-live-transcribe`). The measured question was
+"is a transcription endpoint fast and accurate enough to be a subtitle *source*"; the
+answer for OpenAI was yes on every threshold (streaming lag p90 2.24 s en / 2.45 s zh,
+WER 3.7 % / CER 3.9 %, 99 % of sentences closed on punctuation, no drops in 12 minutes).
+Gemini and Meta are measured the same way before their entries ship.
+
+1. **User-initiated only. Never automatic.** Nothing is captured, fetched or sent until
+   the user taps the offer — a button inside the `字幕不可用` notice, or the popup's
+   「实时转写 + 翻译」 action. A decorative `<video>` never surfaces subtitle
+   UI (`docs/regression-tests.md` §4) — the popup action is the *only* entry for a
+   video with no transcript hint, so `drivesPodcast()` is unchanged. After any stop the
+   offer must be tapped again; there is no auto-restart (a media-key flap must not
+   restart a paid session).
+   *Amended 2026-09-11 (第九期 — the entry was too deep):* the popup action is shown
+   **whenever the page has any media element** — including one inside an open shadow
+   root and one whose metadata has not loaded yet (`duration` NaN) — because opening
+   the popup and tapping the row *is* the user's initiative; the ≥ 30 s gate stays only
+   on the in-notice offer (which appears on its own). When no element is found the row
+   still exists and says so (「没找到正在播放的视频/音频」) instead of vanishing: a
+   silent absence was the bug the users reported (「明明有视频却什么都没有」). Media
+   lookup is **one shared module** (`content/media-finder.js`) used by every subtitle
+   backend and by `getPageStatus`: it walks open shadow roots (the same traversal
+   `DomSegmenter` already performs for text), waits up to 3 s for `loadedmetadata`
+   when asked to start, and picks *playing › live (`duration === Infinity`) › longest
+   › metadata-less › first*. A player inside an **iframe** is reported by a
+   lightweight `all_frames` probe (`content/media-probe.js`, duration / playing /
+   frame `href` only, never page content) so the popup can offer 「在新标签页打开播放器」;
+   the probe never starts a session — the subtitle stack stays top-frame-only.
+   The in-notice offer appears from the **first** failed acquire attempt (inside the
+   `⏳ 字幕加载中…` line, ≈ 2.5 s) rather than after six; once acquisition settles the
+   line is `字幕不可用` + offer as before. On YouTube the popup action dispatches to
+   the YouTube backend only — there is no fall-through to the podcast backend (it is
+   never initialised there).
+2. **Tier A — file mode — is the baseline, and it obeys §2.1 rule 1 literally.** When
+   the media has a fetchable `http(s)` URL, the whole file is fetched and transcribed
+   *once*; the complete timed transcript arrives before it is used, exactly like a VTT.
+   This tier needs nothing Safari iOS lacks (§5.3).
+3. **Tier B — live mode — 不在扩展里做。**（2026-09-16 用户裁定，取代下方原文。）
+   浏览器扩展**够不到本机转写**：`build/stt.config.js` 里 `device` 与 `local` 两档
+   在扩展侧只能是 `live:false`，因为那是 iOS / macOS 的原生能力，要走原生桥。于是
+   扩展端的实时转写只剩**纯远程流式 API** —— 全注册表里够格的只有两个条目
+   （国际版一个、中国版一个），其余五个 `live:false`。这不是调优能解决的差距，是结构性的：
+   用户裁定「纯 API 效果太差，必须结合本机模型转写 + 远程修正，效果和实时性才到位」。
+   那套架构（本机识别 → 一次远程修正 → 本地朗读）只有 App 跑得起来，写在
+   `docs/learning-design.md` §9.8。
+
+   **后果，按重要性排序：**
+
+   - **§2.1 规则 1 在扩展端重新变成没有例外。** 「先拿到完整转录，再 60 秒滑窗译在前面」
+     这条核心约束，此前唯一的书面例外就是 Tier B。扩展端不再有边说边出的路径，
+     也就不再有「开口的尾句」「provisional 的 partial」「字幕历史面板」这些只为它存在的概念。
+   - **实时场景从扩展端移出，不是消失。** 没有可取 URL 的媒体（`blob:`/MSE — 视频站、
+     直播、语音房）仍然可以转写，但落点是 App：它听的是**设备正在放的声音**
+     （macOS 取系统音频，iPhone 听外放），与哪个 App 在放无关 —— 扩展那四道门
+     （DRM、无媒体元素、页内手势、引擎要有实时接口）在那条路上一道都不存在。
+     扩展端遇到这类媒体时给出口，交互形态另行评审。
+   - **Tier A 不动。** 整段模式仍是 baseline，仍逐字遵守 §2.1 规则 1，仍不需要
+     Safari iOS 缺的任何东西（§5.3）。它不是实时场景，用户裁定明确只针对实时那一档。
+   - **`content/ws-transcribe.js` 不删** —— App 的听译仍在用它（`app/listen.js`）。
+     变的是扩展侧不再调用它，不是这个模块的存废。
+
+4. **Capture is the capability, not the floor.**
+   *(2026-09-16：Tier B 下掉之后，这一条从「扩展里怎么做实时」变成「扩展为什么做不了实时」
+   的证据，逐字保留。下面每一个约束都是实测得来的，而它们加起来正是第 3 条那个裁定的
+   技术依据 —— 删掉它等于把结论留下、把论据丢了。)*
+   Tier B depends on
+   `HTMLMediaElement.captureStream()` (Chrome, Firefox) or Web Audio's
+   `createMediaElementSource` (Safari), both of which refuse or silence cross-origin
+   media loaded without `crossorigin` — and Safari's node is silent for MSE (`blob:`)
+   sources outright (measured 2026-09-07), so on Safari tier B exists only for http(s)
+   media, and a `blob:` source stops with a named notice before any socket opens. A
+   live session otherwise first probes the media URL
+   with a CORS `GET`, reloads the element with `crossOrigin='anonymous'` at the same
+   position, and only then attaches. Where the CDN sends no CORS header, live mode is
+   impossible and the notice says so. Where capture attaches but yields silence for
+   3 s while the element is playing and unmuted, the session stops and the notice says
+   so. **Never a silent failure**: every stop (silence, CORS refusal, socket close,
+   region refusal) is a visible line in the overlay. *(2026-09-13:)* Safari's MSE silence
+   is not fixed in the extension. It is covered by the host app as an **additional
+   surface** (rule 8): the extension's named stop stays, and gains one pointer
+   sentence to the app's 「实时字幕」 (user ruling 2026-09-13 — a pointer, not a behaviour
+   change; the extension still never talks to the app).
+   *(2026-09-16：)* **第 3 条的裁定正是把这一句从特例推广成通例。** 2026-09-13 只对
+   「Safari 的 MSE 静音」这一种走不通给了指路；现在**每一种**走不通（没有实时接口的引擎、
+   页内手势、CORS 拒绝、采集静音、页面根本没有媒体元素）都落到同一个出口。形式不变 ——
+   仍然只是一句指路，扩展仍然不与 App 通信。
+5. **Audio goes only to the endpoint the user configured. Our server never sees it.**
+   This is AGENTS.md product rule 5 restated for this source: we transmit page media
+   to the user's own STT endpoint at the user's request, and nothing of ours stores,
+   proxies or logs it. The privacy copy ships in the same version (`release-checklist`
+   §2). There is no zero-config engine here for the same reason there is none for 说
+   (`stt.config.js` header): an empty `sttEngine` means the offer opens settings.
+   *(Amended 2026-09-12:)* **on-device transcription in the host app is the one
+   exception, and it is an exception to the letter, not to the reason.** The rule
+   exists because recordings leave for a server the user did not choose; with the
+   `device` engine (`type: 'device-transcribe'`, `build/stt.config.js`) the audio
+   **never leaves the device** — the system recogniser runs locally — so there is
+   nothing the rule protects against. What does leave is the recognised **text**, with
+   a few preceding sentences as context, sent to the translation engine the user
+   configured for correction + translation in one call; our server is not in that
+   path either. The `stt.config.js` header's "there is NO zero-config engine" is
+   likewise read as *no zero-config **cloud** engine* — the device entry is the only
+   exception, and it is zero-config precisely because no server is involved. Pipeline
+   in `docs/learning-design.md` §9.6; the privacy copy ships in the same version as
+   the code, §10 Gate H. The extension never gains this engine (§5.3 fourth instance).
+6. **Stops are total.** A `mediaKey` change, `disable()`, or a change to the
+   transcription settings aborts the capture, closes the socket and drops the open
+   tail; already-appended sentences keep their translations (the Engine's `reset()`
+   keeps units and re-translates, as today).
+
+Registry consequences are in §7 (`liveEndpoint` / `liveType` / `liveModel` /
+`uploadEndpoint` on `build/stt.config.js` entries, and the subprotocol / query-string
+key carve-outs). Module consequences are in §6. Per-surface expectations are named in
+`docs/verification-spec.md`.
+
+7. **The host app's 对话 mode is the same source with a different microphone**
+   *(2026-09-07, `docs/learning-design.md` §9.6)*. Rules 3, 5 and 6 apply verbatim:
+   sentences close on the same cutter, audio goes only to the user's live endpoint,
+   every stop is visible and total. What differs is the capture: the device microphone
+   through a **native** `AVAudioEngine` tap in the host app, because WebKit mutes
+   `getUserMedia` whenever the app is not visible (measured on a real iPhone, three
+   runs — `docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」). Per §5.3 this is
+   a host-app capability: **the extension never gains a microphone source**, and the
+   streaming adapter (`ws-transcribe.js`) stays one file shared by both hosts.
+   *(Amended 2026-09-12 — the on-device path changes what the microphone feeds:)*
+   with the `device` transcription engine selected, the native tap's PCM goes to the
+   system recogniser in Swift and **only `mic-level` (RMS, 10 Hz) crosses the bridge**
+   instead of base64 PCM — the tap is installed once and shared, never a second time.
+   Sentence closing is **client-side**: the recogniser's finals are lazy time-slices,
+   not sentences (measured 2026-09-12: p90 8–14 s to a final without intervention,
+   and finals cut mid-word), so the app runs its own silence detector (RMS,
+   300–500 ms) and calls `finalize(through:)` itself, after which the whole sentence
+   lands in ≈ 0.4–0.9 s; the finals are then concatenated and cut on punctuation by
+   the same `sentenceCutter` as every other source (rule 3 holds verbatim). Cloud
+   live engines are unchanged and remain the complete baseline.
+
+8. **The host app may take the sound the device is playing as a source**
+   *(2026-09-13, `docs/learning-design.md` §9.8 「实时字幕」)*. Rule 7 swapped a page's
+   media for the microphone; this rule swaps it for **the device's own playback**, so
+   the sources Safari silences in the page (MSE `blob:`, HLS — rule 4) get subtitles
+   too. Three captures, all native, all inside the host app: **macOS** — a Core Audio
+   process tap on system audio (macOS 14.4+, the "System Audio Recording Only"
+   permission, our own process excluded); **iOS phase 1** — the rule-7 microphone tap
+   listening to the speaker while another app plays, the app in the background on a
+   mixable session; **iOS phase 2** — app audio from a ReplayKit broadcast upload
+   extension, handed to the host app through an App Group ring buffer, screen frames
+   discarded unread. Rules 1, 3, 5 and 6 apply verbatim: a session starts only from
+   the user's tap in the host app (a broadcast is accepted only while such a session is
+   armed), sentences close on the same cutter, audio goes only to the user's configured
+   endpoint or stays on the device, and every stop is visible and total. PCM never
+   outlives the session and nothing is recorded. The output is one-directional (every
+   sentence is the other side, translated into the user's language), never read aloud,
+   and drawn outside the app's window: a floating always-on-top panel on macOS, a
+   picture-in-picture subtitle window on iOS (switched from the Live Activity /
+   lock-screen card on 2026-09-13 after an on-device check). **The extension never gains a system-audio
+   source and never receives these subtitles** — no local channel from the app to the
+   extension is added (§9.3 holds: the only bridge between the two corpora is the
+   server), and `ws-transcribe.js` stays one file shared by both hosts.
+
+### 2.5 文档翻译 — uploaded documents, one page at a time (核心约束 — do not break)
+
+Added 2026-09-11 (第九期, `docs/learning-design.md` §9.7). The user asked for PDF /
+Word / image translation in **both** hosts (extension pages and the host app), with the
+translations usable as learning material, and with an explicit cost shape: *open a page,
+translate a page; never the whole document at once*.
+
+1. **A document is a source, not a mode.** `DocumentSource` produces units
+   `{page, idx, text}` exactly as `DomSegmenter` produces `{node, text}`; the Engine
+   is `createEngine` with a **page-scoped `selectActive`** (the document's analogue of
+   the webpage viewport scheduler): only units on the page the user has open — plus at
+   most the next page when the user opts into prefetch — are ever offered to `pump()`.
+   Concurrency is the transport queue's (`TranslationAPI` `enqueue`, `reqConcurrency`);
+   the reader writes no second concurrency gate.
+2. **Parsing is local and dependency-light; recognition is the user's endpoint.** Text
+   PDFs are read through the vendored pdf.js text layer (Apache-2.0, unmodified files,
+   version + sha256 pinned by `test/vendor.test.js`); `.docx` through our own ~120-line
+   zip + `word/document.xml` reader (`DecompressionStream('deflate-raw')`, the same
+   primitive `learn/chunk.js` already uses); plain text and Markdown directly. **Images
+   and scanned PDF pages** (a page whose text layer is empty) have no local path — a
+   WebAssembly OCR fails the extension CSP and §5.3's floor — so they are sent **as
+   images to the translation engine the user configured**, only when that engine's
+   registry entry says it accepts images (`vision`), and the page says so when it does
+   not. Two steps, not one: OCR returns the source text, then the normal translation
+   path runs — so (text, tr) pairs align, the translation cache applies, and the
+   learning sink sees ordinary units.
+3. **The floor is complete on Safari iOS.** pdf.js is pure JS (the WebAssembly it can
+   use is only for JPX/JBIG2 image decoding, never for the text layer) and runs in a
+   WKWebView and a Safari extension page alike; `<input type="file">` works in iOS
+   WKWebView without host code. macOS is the surface that *lacks* something —
+   `WKUIDelegate.runOpenPanel` — and the host app must gain it (D5), because a button
+   that silently does nothing violates §5.3 rule 3 (degradation must be total, not a
+   half-state). Whether pdf.js can run inside the host app's `file://` origin (Worker
+   and `import()` policy) is **measured first** (D0); if it cannot, the app uses a
+   native PDFKit bridge with the same three operations (open / text of page n / image of
+   page n) so both hosts stay a single design.
+4. **Nothing is sent that the user has not opened.** Uploading parses metadata and the
+   first page only (PDF is lazily indexed; `.docx` is parsed once, then paginated).
+   Turning to a page is what sends that page. There is no "translate all"; a document of
+   500 pages costs 500 deliberate page turns. Per-page unit caps (≤ 80 units; a paragraph
+   over ~1 200 characters is split at sentence terminals) bound a single request burst.
+5. **Files stay on the device.** The document, its page texts, OCR results and
+   translations live in a **separate** IndexedDB (`mt-docs`) in the host's own origin,
+   never in the learning corpus store and never in sync (documents can be tens of MB;
+   the corpus is sentences). What *does* enter the corpus is governed by the Collector
+   laws (§9): the reader is a **Renderer**, the sink reads what it displayed.
+6. **Disclosure is per path (Gate G).** A document's text goes, page by page, to the
+   user's own translation endpoint (or, on the free-credit path, through our relay under
+   Gate F's existing promise); **the free credit never recognises images** (user
+   decision 2026-09-11): with the credit active, an image file is refused at the picker
+   and a text-less PDF page is refused per page — no bytes read, no request sent, one
+   sentence pointing to "use your own API key". Images go only to the user's own
+   endpoint, never through the relay. The privacy copy ships in the same version
+   (`release-checklist` §2).
+
+Module consequences are in §6 (`DocCore` / `DocReader` / `DocStore` / `DocView`); the
+learning-side contract (anchor kind `doc`, caps) is `docs/learning-design.md` §9.7.
+
+### 2.6 交来的文字 — text handed over by the system, another app, or the screen (核心约束 — do not break)
+
+Added 2026-09-19 (`docs/learning-design.md` §9.9). Two host-app surfaces translate text
+that did **not** come from a page, a player or a file the user opened in us: on iOS the
+system hands us the user's selection when we are the **default translation app**
+(`TranslationUIProvider`, iOS 18.4+); on macOS the user hands it over with a global
+shortcut, the Services menu, a typed line, or a region of the screen (「快速翻译」).
+Interaction: canvas `design/system-translate/` (user-approved 2026-09-19, 12 rulings) and
+`docs/interaction-spec.md`. Every number below was **measured first** (spikes T1 / T2,
+`.local/spike/READINGS.md`), the same order §2.5 used for D0.
+
+1. **Handed-over text is a source, not a mode.** `HandoffSource` yields exactly one unit
+   `{text, via}` (`via ∈ system | select | input | shot | service`); the Engine cannot
+   tell it from a paragraph of a web page. There is no DOM, no timeline and no page, so
+   there is no scheduler either: one hand-over is one `TranslationAPI.translate` call
+   (a long selection is split at paragraph breaks and offered in order — the document
+   path's per-unit cap applies). Target language is the app-wide 「译成」 setting
+   (`targetLang`; default = follow the UI language, which is what the app silently did
+   before); source language is ours to guess — **the system tells us neither** — and a
+   unit already in the target language is translated the other way (中↔英) rather than
+   answered with "nothing to do".
+2. **One transport — even inside another process.** The iOS extension is a separate
+   process with no WebView. It does **not** get a Swift translator: it runs the *same
+   bytes* (`providers.gen.js`, `langs.gen.js`, `engine-state.js`, `wire-format.js`,
+   `request-shape.js`, `translation-api.js`) in JavaScriptCore behind a shim that supplies
+   only what those files touch (`window`, a dictionary-backed `chrome.storage.local`,
+   `chrome.runtime.getURL`, `fetch`→`URLSession`, `AbortController`, `setTimeout`).
+   Measured: 87 KB, ready in 3–10 ms, +3 MB, against a ~230 MB extension limit; the
+   request it sends is key-for-key the app's (`bodyKeys`, `paramRow`, `route: direct`).
+   A second prompt or a second format branch is exactly what §7 forbids; `npm test`
+   proves the equality (`test/ext-bundle.test.js`). On macOS the panel is a second
+   `WKWebView` on the app's own `file://` origin loading the shipped bundle in a
+   `#quick` mode — same origin ⇒ same `localStorage` ⇒ same engine configuration, with
+   nothing mirrored.
+3. **The default path asks for no permission.** macOS: the Services menu (the host app
+   *gives* us the selection) and a Carbon hot key that translates the **clipboard** need
+   no TCC grant and work in the App Store sandbox. Reading another app's selection
+   directly is forbidden there; the only compliant way to spare the user ⌘C is
+   `PostEvent` — we press ⌘C *for* them, read, and **restore the pasteboard
+   byte-for-byte** — and that lives behind a switch that is **off by default**
+   (「增强取词」), requested through the system API only (never "drag the app into the
+   list"), and effective after a relaunch. Screenshot translation asks for Screen
+   Recording the first time it is used, not before. A feature the user never invokes
+   never prompts.
+4. **Three clipboard traps are product rules, not edge cases.** (a) empty or non-text ⇒
+   no request, one sentence teaching both routes; (b) identical to the last hand-over ⇒
+   show the previous result and say "forgot ⌘C?" — no second request; (c) the pasteboard
+   carries the *concealed / transient* marker password managers set ⇒ **do not read, do
+   not send, do not capture**. (c) is not a setting. And with 「增强取词」 on, a
+   pasteboard that does not change within 0.3 s means *nothing was selected* — we stop;
+   we never fall back to whatever was on the clipboard before.
+5. **Recognition of the screen is local first** *(this reverses §2.5 rule 2 for this
+   source only)*. §2.5 sends images to the user's multimodal engine because a
+   WebAssembly OCR fails the extension CSP and the Safari floor. Neither constraint
+   exists in the native macOS host: Vision is on the device, free, offline, and measured
+   at 100 % on Simplified Chinese, 94–98 % on English / Japanese, ~0.1–0.4 s per region.
+   So the pixels **stay on the Mac**; only the recognised text follows the normal
+   translation path. If Vision finds nothing *and* the configured engine accepts images,
+   one explicit button sends that one screenshot to the user's own endpoint — never the
+   relay, never silently. §2.5's rule is unchanged for documents.
+6. **The reader is a Renderer; capture is still a sink (§9).** The sheet and the panel
+   display; they never write the corpus. The iOS extension cannot even reach it — it
+   drops `{text, tr, lang, trLang, ts, via}` into a **bounded inbox** in the App Group
+   container and the app ingests it on next launch through the ordinary gates; the
+   macOS panel relays to the main page, which is the single writer (§9.2, §9.3).
+   Hand-overs longer than 2 000 characters are translated and **not** captured.
+7. **Configuration crosses the process boundary one way.** The app mirrors the
+   *resolved* engine triple + `targetLang` + the capture switches into App Group
+   `UserDefaults`, and the key into a shared Keychain access group; the extension only
+   reads. A full snapshot, not a delta — so signing out, clearing local data or removing
+   a key removes it there too. This is step 1 of the Keychain migration approved
+   2026-08-23 (`learning-design` §8); `localStorage` remains the source of truth until
+   step 2.
+8. **Disclosure is per path (Gate J).** "Text you select in other apps is sent to the
+   engine you configured" is a new disclosure surface. iOS shows its own one-time page
+   first ("所选内容将发送给…进行翻译处理"); ours follows it, names the engine, and is
+   never a gate. The screenshot, 「增强取词」 and clipboard sentences are listed in the
+   canvas copy table and ship in the same version as the feature (`release-checklist` §2).
+9. **No crippled flavor.** The China artifact carries both surfaces (the row is present
+   and selectable on a mainland-model iPhone — measured); it differs only where it
+   already does: no free credit, no telemetry, brand-free strings.
+
+Module consequences are in §6 (`HandoffCore` / `AppHandoff` / `AppQuick` / `MTExt`); the
+learning-side contract (anchor kind `handoff`, inbox format, the two bridge protocols)
+is `docs/learning-design.md` §9.9.
+
+### 2.7 命令行 (CLI) — 第三个宿主，同一份传输 (核心约束 — do not break)
+
+新增 2026-09-30（**已评审通过 2026-09-30**）。CLI 是产品继浏览器扩展与配套 App 之后的**第三个
+宿主**，不是一个新管线。它存在的理由与 §2.6 规则 2 逐字相同：传输层每一处调参（四种 wire
+format、可选字段三态、停机码、重试、注册表）只能有一份实现，每多一个宿主就多一处要同时改的
+地方，而漂开的症状是「扩展好好的、CLI 少一个字段」且没有一行日志会说。
+
+1. **同一份传输字节，Node 垫片。** CLI 把 §7 的传输文件
+   （`providers.gen.js` → `engine-state.js` → `wire-format.js` → `request-shape.js` →
+   `translation-api.js`）在 Node 里拼成 `dist-cli/engine.js`（`build/cli-bundle.js`，照
+   `build/ext-bundle.js`），垫片提供 `window` / `chrome.storage.local` / Node 全局 `fetch` /
+   `AbortController` / 定时器，**刻意不给 `runtime.sendMessage`**（代理探测立即失败 ⇒ 直连
+   提供方，与 `app/ext-shim.js` 同一条）。CLI 的请求与扩展 / App **逐字节同形**是 `npm test`
+   的门禁。
+2. **它引入三种来源，都是既有 source kind，不给管线加分支。**
+   - **命令行文本** —— §2.6 `HandoffSource` 的 CLI 形态（`via:'input'`）：参数 / stdin / 文件
+     里的文字，一段一 unit；译入语言取设置的 `targetLang`，源语言我们猜，已是目标语言则反向
+     （中↔英）。长文本按段落拆开依次翻译。
+   - **本地文档** —— §2.5 `DocumentSource`：`DocReader` 打开 pdf/docx/txt/md，**打开一页翻
+     一页**，`DocCore.unitsFor` 出 unit，同一个 Engine。文档本体与页文本在 CLI 上是本地文件，
+     不是 `mt-docs` IndexedDB；§2.5 规则 5「文件留在设备上」逐字成立。
+   - **本地字幕文件** —— §2.2/§2.3 `SubtitleSource` 的文件档：读一整份 `.vtt`/`.srt` →
+     cues → `mergeSentences` → 同一个 Engine → 译文字幕文件。**不含 YouTube 实时抓取**
+     （依赖浏览器，见 §8）。
+3. **Renderer 是 stdout / 文件，不是注入的 DOM。** 双语排版（原文一段、译文一段）的交互约定
+   在 `docs/interaction-spec.md`「命令行」；本节只固定「它仍是管线末端的 Renderer」。
+4. **词汇表仍只有一个注册表，CLI 是第五个消费者。** `build/providers.config.js` 不动；CLI 按
+   构建期 flavor 读生成物（`dist-cli/` 国际、`dist-cli-china/` 中国），**两个独立产物、同一
+   合规门**，与扩展 / App 的 flavor 纪律一致（§7）。CLI 里不得出现第二张 provider 表。
+5. **免费路径完整、默认自带 key、CLI → 提供方直连。** v1 不接免费额度中继（§8.10 of
+   `learning-design`）；不登录也能翻译与复习（语料来自本地文件）。与 `AGENTS.md` 规则 2/11 同形。
+6. **不发遥测。** v1 CLI 不实现遥测（中国版本来就零发送）；将来若要发，属
+   `docs/telemetry-design.md` 的白名单改动，走治理门，不是代码决定。
+
+模块后果在 §6（`CliEngine` / `CliApp`）；学习侧契约（CLI 作为 Reviewer ± Collector、语料用
+`mt-learn/1` 文件交换）在 `docs/learning-design.md` §9.10。
+
+### 2.8 Mac 完整视频离线字幕 — 不是听译，也不是 §2.7 的翻译 CLI (核心约束 — do not break)
+
+Added 2026-10-28（BEL-103，产品已认 ARCH-SHORT）。这条管线只做一件事：Mac App 上用户点名的**完整视频文件** → 16 kHz 单声道 → 锁版离线转写 → SRT + VTT。它**不是** §2.4 的听译 / SpeechAnalyzer，**不是** §2.7 那个复用 `translation-api.js` 的翻译 CLI，也**不是** Engine 的一个 source。删掉这一节对应的模块，网页翻译、听译和 §2.7 CLI 的字节保持不变。
+
+1. **一个推理入口。** `tools/offline-video-asr` 的 `python -m offline_video_asr`。唯一媒体参数是 `--input`（视频或音轨）。`extract_to_wav` 收成 16 kHz 单声道 PCM，然后只调用 `transcribe_wav`。Mac App 用 `Process` 调**同一个**模块（`app/native/offline-video-asr.swift`），不在 App 里再抽一套模型。
+2. **抽轨顺序写死在 CLI 里。** 已是契约 WAV 则直接用；否则 AVFoundation 小工具（`macos/extract.swift`，bootstrap 编译，不进 App 包）→ `afconvert` → `ffmpeg`。失败码往上抛，不写空字幕。
+3. **ForcedAligner 单段 ≤ 300 秒**（`pin.json` 的 `fa_segment_s`）。更长的文件先切开再把时间戳加回偏移。默认墙钟 14400 秒。
+4. **权重不进包。** 按需下到 Application Support `models/qwen3-asr/<repo>/<revision>/`，启动前对锁版 sha256。包版本 `mlx-qwen3-asr==0.4.4`。可选 1.7B 只在 `--profile 1.7b` 时启用，默认关。
+5. **编译与入口隔离。** 原生文件整份 `#if os(macOS)`，install 行也在 `#if os(macOS)` 里。Feature flag `offlineVideoAsr` 默认关，且只在 macOS 桥存在时页面才发得动。不 import 听译 SA client、流式泵，不改默认翻译引擎。
+6. **遥测单独一条** `offline_video_asr_task`（`docs/telemetry-design.md`）。只带 `result` / `code`。不写听译漏斗，也不拿来和本机听写比。
+7. **学习层不挂。** 不写 `LearnStore`，不把 hyp 送进 Collector。capture 仍只读翻译 Renderer 已经显示过的东西。
+
+## 3. Generality — DomSegmenter uses only standard HTML semantics
+
+`DomSegmenter` relies on: block/inline classification (by computed `display` —
+`inline`/`contents` are inline, `inline-block`/`inline-flex`/… are blocks),
+`getComputedStyle` visibility, **open Shadow DOM traversal** (web components like
+reddit's `<shreddit-*>` keep the nav / sidebar / description in shadow roots — a
+plain TreeWalker on `document.body` never enters them, so we recurse into every
+open `shadowRoot`), standard attributes (`translate="no"`, `.notranslate`,
+`aria-hidden`, `contenteditable`), **script-aware minimum length** (CJK/Hangul/Thai
+floor 2, Latin/Cyrillic floor 10 — a flat char count is biased against dense
+scripts), and text heuristics (Unicode `\p{L}` "has a letter" + URL/email/@/#/
+`looksLikeCode`). **Zero site selectors.** Reddit's inline `SML.load([[…]])` is not
+translated because it lives in a non-rendered / hidden node and looks like code —
+a consequence of the generic rules, true on GitHub/Medium/any SPA alike.
+
+**Inline code is KEPT VERBATIM; block code is excluded.** `pre` and any
+`code`/`kbd`/`samp`/`var` whose computed display is block-level are never
+translated and never descended into — that is what the exclusion is for. But the
+same tags used **inline inside a text-bearing paragraph** carry sentence-critical
+content, and dropping them does not produce a shorter sentence, it produces a
+**wrong** one:
+
+> `Apps start from a hotkey (<kbd>Super + Return</kbd> for the terminal, …)`
+> extracted as `Apps start from a hotkey ( for the terminal, …)`
+> → 「应用通过热键启动（终端用热键，浏览器用热键…）」
+
+The engine did nothing wrong; it faithfully translated a sentence with holes in
+it. So inline code-ish elements contribute their text to the unit **unchanged**,
+and are handed to the engine as ordinary words.
+
+Deliberately NOT done: a placeholder protocol (`⟦1⟧` … restore after). It buys
+protection against an engine rewriting `Super + Return`, and costs a wire format
+that every engine must honor — and when one doesn't, the failure is a paragraph
+with visible garbage markers rather than a slightly-reworded key name. The
+original stays on the page next to the translation (bilingual display is the
+whole product), so a reworded identifier is recoverable by looking one line up; a
+hole is not recoverable by anything.
+
+**Leaf-block detection must see through `display:contents`.** A unit is a *leaf
+block* (collected whole) only when it has no block-level child; otherwise we
+descend. `display:contents` generates **no box** (so it is neither block nor
+inline for layout), but its children DO render as blocks. So `hasBlockChild` must
+treat a `display:contents` child as **transparent and recurse into it** — a
+container whose only child is a `display:contents` wrapper (e.g. Substack's
+`.single-post` → `div.pencraft[display:contents]` → the real paragraphs) would
+otherwise be mis-seen as a leaf and its **entire subtree collected as ONE giant
+unit**. That produces a single multi-thousand-px blob translation (duplicating the
+real per-paragraph translations nested inside it), and when that blob re-renders
+above the viewport the browser's scroll anchoring jumps the page far down. The rule
+is symmetric with the visibility rule above, which already treats `display:contents`
+as "render its children."
+
+**…and an INLINE-LEVEL box must not break a paragraph.** The mirror image of the
+same mistake. `inline-block` / `inline-flex` / `inline-grid` / `inline-table` are
+**inline-level**: they sit in the parent's *inline* formatting context, in the line
+box next to the text. They are decorations *within* a paragraph — an emoji wrapper,
+a badge, an inline icon — not a break in it. Only `block` / `flex` / `grid` /
+`list-item` / `table` are block-level and end a paragraph.
+
+Counting them as blocks silently deletes the paragraph: `hasBlockChild` reports the
+paragraph as a container, so the walker declines to collect it and descends instead;
+inside, the prose lives in `inline` spans that the walk rejects, and the badge itself
+fails `minLen`. **Nothing is collected — no translation, no placeholder, no error**,
+which is worse than a visible failure because there is nothing for the user to
+retry. (Found on x.com, where a tweet body is spans + `inline-flex` emoji wrappers —
+but this is not site knowledge: any page with an inline badge inside running text has
+it.)
+
+So "does this child break the paragraph?" is a **different question** from "could
+this element be a unit?", and the two must not share one predicate. Leaf-block
+detection asks the former; an inline-level child answers *no*.
+
+**Guard — do not resurrect the giant-blob failure.** A container whose children are
+*all* inline-level boxes with no text-bearing inline content between them (an
+inline-block card grid) is still a layout container and must be descended into,
+exactly as above. An inline-level child therefore stops breaking the paragraph only
+when the element **also holds inline content that actually bears text**. That keeps
+both cases: decorated paragraph → one unit; card grid → one unit per card.
+
+**Don't translate the media-player region.** The video player's chrome (live
+captions, controls) and our own subtitle overlay belong to the **subtitle/player
+path**, not the webpage extractor — so `DomSegmenter` skips any subtree inside a
+video player (`<video>`'s player container) and our `#mt-yt-overlay`. Otherwise
+the webpage path collects the live caption text and injects a "translating…"
+placeholder under it (the duplicated-caption bug).
+
+Real players nest several wrappers, and caption/transcript layers can live in
+an OUTER shell as *siblings* of the inner video wrapper the generic
+`closest('[class*="player"]')` finds (Substack: `playerShell > stage >
+{video-player > VIDEO, captions, transcript scroller}` — the live caption rows
+end up inside the collected page text, churn per word, and get translation
+placeholders injected). Per domain review (2026-07-12): widening is
+**site-specific knowledge and belongs to the platform adapters**, exactly like
+the YouTube and Spotify adapters — the segmenter itself stays free of per-site
+branches. Mechanism: an adapter marks the player shell it knows with
+**`data-mt-player-region`**, and `DomSegmenter.computePlayerRegions` honors
+that marker generically (marked subtree = player region, excluded from the
+webpage path). The Substack adapter (in the podcast path, which already owns
+Substack transcript acquisition) feature-detects the player shell by its
+stable class prefix (`[class*="playerShell"]` containing a media element) and
+re-asserts the marker each tick, so SPA re-renders can't shed it.
+
+**Non-content chrome regions — the `data-mt-skip-region` marker (second generic
+seam).** Some sites wrap large, unambiguous **non-content chrome** in a structure
+that the content filters below cannot cleanly reject: a feed's trends /
+who-to-follow sidebar, a footer link farm, a "subscribe to Premium" promo. Its
+text is long, letter-bearing, real prose — so `minLen` / `isUntranslatable` pass
+it, and it clutters the page with translations of things nobody reads bilingually
+(x.com is the motivating case — see the Twitter adapter). This is site-specific
+knowledge, so — exactly like `data-mt-player-region` above — it enters through a
+**generic marker, never a segmenter selector**: a platform adapter that KNOWS its
+chrome marks the subtree with **`data-mt-skip-region`**, and `DomSegmenter`'s
+`computeSkipRegions` honors that marker generically (marked subtree = excluded
+from the webpage path, pruned in `hardSkip` like a player region). The segmenter
+itself gains no `data-testid`/host branches. The marker is the **only** sanctioned
+way to skip a *region*; it is a deliberate, adapter-scoped exception to the
+"skip by content, not by region" rule below, and adapters — not the segmenter —
+are the sole writers of it (each adapter feature-detects its own site, so the
+global marker never fires elsewhere).
+
+**Skip by content, not by semantic region.** We do NOT blanket-skip
+`<nav>/<header>/<footer>/<aside>` — SPAs (e.g. reddit) put real content (sidebar
+descriptions, rules, nav labels) inside them, and the reference translates those.
+A unit is dropped only by: excluded/hidden/attribute (hard, prunes subtree),
+control roles (`button/menu/menuitem/tab/…`) or ad/chrome class patterns
+(`ad/banner/cookie/…`, soft — skip the unit, keep descending), `looksLikeCode`/
+URL/symbol text, or `< 10` chars. Short UI labels ("Home", "Wiki") fall out via
+the length filter; long content (descriptions, rules) translates.
+
+## 4. Consistency — webpage and subtitle paths are isomorphic
+
+Both are `source → Extractor → units → same Engine (state machine + retry) →
+Renderer`. The webpage path uses the **same per-unit state machine** as subtitles
+(pending / translating / done / nothing-to-translate / error-with-retry). The old
+ad-hoc `translateNode` (no retry/error UI) and the `YT_TARGETS` special path are
+folded into `DomSegmenter + Engine`.
+
+YouTube page-text specials become **general renderer capabilities**, not site
+selectors: child injection (resists Polymer re-render, also fine on normal
+pages — see the renderer contract below for why it is a child and not a
+sibling), clickable URLs (general), interleaved description. Only "timestamp click →
+`video.currentTime`" is a small optional renderer hook.
+
+**Engine settings are read late, not captured at construction.** `createEngine`
+accepts `targetLang` as either a string or a **getter function**, and `pump()` reads
+it per tick. The subtitle harness needs the getter: `createSubtitleUI` builds its
+engine at module scope, *before* `init`/`enable`/`updateSettings` ever assign
+`settings` — capturing the value there froze the same-language check to
+`DEFAULT_TARGET_LANG` for the whole session, so subtitles ignored the user's chosen
+target language entirely. `translate` was already injected as a late-reading closure
+for exactly this reason; `targetLang` now matches it. Anything else the engine reads
+from user settings must follow the same rule.
+
+**Renderer contract: the translation is a CHILD of its original, and the mirror is
+not a one-shot.**
+
+- **The translation goes INSIDE the original block, as its last child** — not
+  beside it. This is the load-bearing half of the contract, and it is not a style
+  preference: **an extra child in a container the page's framework owns is a
+  correctness bug.** React (and every position-matching reconciler) aligns its
+  children by index. A foreign node inserted between two of them shifts every
+  position after it, so the next commit does not patch — it moves the whole list.
+  Measured on `lennysnewsletter.com` (2026-08-23), one selection change inside the
+  article:
+
+  | our nodes in `div.body.markup` | mutations | `<p>` moved |
+  |---|---|---|
+  | 3, as siblings | 188 | **76** |
+  | 0 | 12 | **0** |
+  | 3, as children of their paragraphs | 6 | **0** |
+
+  Three was enough. The nodes are *moved* (same objects re-inserted), not
+  replaced — which is why this was survivable for a year: a live selection could
+  be snapshotted and re-asserted. **Clicks could not.** A real mouse click landing
+  dead centre on a hyperlink reported `mousedown`/`mouseup` with
+  `target = DIV.single-post-container` instead of the `<a>`, and two mousedowns
+  produced one `click`: the paragraph is moved out from under the pointer between
+  press and release, so the browser retargets the click to a common ancestor or
+  drops it. The anchor never activates. **「链接打不开」and「选不中」are one bug.**
+
+  The 2026-08-12 note in `content-webpage.js` had already measured the same
+  asymmetry ("ZERO paragraph mutations without our siblings and hundreds with
+  them") and answered it with repair-after-the-fact — a pre-paint re-anchor pass
+  plus a selection keeper. Repair cannot reach a click that was never dispatched.
+  So the fix moved to the cause.
+
+  Being a child also *removes* machinery rather than adding it: inside the
+  original's own box there is no parent flex direction to reverse the pair
+  (`computePlacement`), no sibling to constrain (`layoutCss` width mirroring), and
+  no flex item to un-wrap on the parent (`flowFixCss`). Those exist to compensate
+  for being a sibling. What replaces them is narrower: when the ORIGINAL is itself
+  a flex/grid container our child becomes one of its items, and only then does it
+  need a full-row escape.
+
+- **The interleave holder stays a sibling, and that is not an oversight.** The
+  interleave path HIDES the original (`data-mt-hidden`); a holder placed inside a
+  `display:none` node would be hidden with it. So blobs keep the old placement and
+  the old exposure. Acceptable because the two do not meet in practice: interleave
+  only fires on multi-paragraph blobs, and `INTERLEAVE_UNSAFE` already bails out
+  any blob containing a link, button, or media. A framework container full of
+  blank-line blobs would still churn — write the fixture the day a real page does.
+
+- **Placement follows VISUAL order, not DOM order.** "Original above, translation
+  below" is the invariant. As a child, last-child achieves it unconditionally —
+  the reversal rule below now applies only to the interleave holder, which is
+  still a sibling. In a container whose visual order is reversed
+  (`flex-direction:column-reverse`, or a row with `flex-wrap:wrap-reverse`, where
+  the lines stack upward) the renderer anchors that holder *before* the original
+  instead. The decision is computed from the parent's computed style at render
+  time and cached on the node, so the per-tick re-anchor pass never forces a
+  style recalc.
+
+- **The cost we accepted: selecting a paragraph now selects its translation too.**
+  A child is inside the original's range, so 划选整段 / ⌘A / copy picks up both
+  languages. That is the same trade every in-place bilingual reader makes, and it
+  is the honest side of the trade — the alternative is a pair the page's own
+  framework destroys on every click.
+- **The mirror is re-measured when the viewport changes.** The copied geometry is
+  viewport-time pixels (width cap, inline-start indent, the flex-row wrap fix), so
+  rotation / resize / a media-query breakpoint invalidates it. The renderer drops
+  the frozen state (debounced) and re-arms the render key; the next tick re-runs
+  the **same** first-render path — there is deliberately no second layout code
+  path. A hidden interleave original is briefly restored inside the same task
+  (never painted) so it can be measured rather than served from a stale cache.
+
+## 5. The control/render adapter — the only variation point (device × site × capability)
+
+**Principle: parsing / segmentation / engine are single implementations. ALL
+variation lives in one thin control/render adapter, and that adapter varies along
+exactly THREE axes — DEVICE, SITE and BROWSER CAPABILITY.**
+
+Naming the second axis is deliberate. The adapter always carried it (YouTube's
+overlay anchors into `#movie_player`, the podcast overlay anchors to the viewport
+because an audio page has no player), but the doc only described the device axis, so
+the first *button*-level site difference (Twitter, below) read as an unexplained
+exception. It isn't one — it is the site axis doing its job. The third axis is named
+for the same reason: the adapter already carried it (`yt-hook.js` exists only where
+`world:"MAIN"` does, §2.1), and leaving it unnamed would make the next
+capability-conditional feature read as an exception too. What must stay closed is
+the boundary: three axes, in one layer, and nowhere else.
+
+*(Scoped 2026-09-19:)* the three axes constrain the **content-script adapter** — the
+layer that anchors controls and renders into somebody else's page. §2.6's two surfaces
+(the iOS system-translation sheet, the macOS quick-translate panel) render into a
+surface the host app owns outright; they are hosts in §9.4's sense, not a fourth axis.
+They add no branch to the adapter, the segmenter or the Engine, which is the whole test.
+
+**When a SITE difference is legitimate** — all three must hold, or it is an
+anti-pattern:
+
+1. It lives **only** in the control/render adapter. Nothing reaches `DomSegmenter`,
+   `SubtitleSource` or the Engine — in particular **no `dom-processor` selectors**
+   (the §3 rule stands; site knowledge into the extractor still enters *only* through
+   the generic `data-mt-player-region` / `data-mt-skip-region` markers).
+2. It is forced by an **observable property of the host's own player/DOM** — the shape
+   of what that site fullscreens, whether a media element exists at all — not by
+   taste, and not by "this site felt nicer that way".
+3. The **reason is written down here** next to the difference, so the next site is
+   judged against the property, not against the precedent.
+
+- `DomSegmenter` / `SubtitleSource` / `Engine` are **single implementations, not
+  per-device and not per-site**. Standard HTML semantics apply identically to mobile and
+  desktop DOM. *Needing a per-device or per-site branch in the segmenter means it has
+  regressed into selector dependence (anti-pattern).* Device-specific behavior (touch
+  tap-to-translate, FAB, viewport size) belongs to the **interaction layer**;
+  viewport size is read at runtime (`innerHeight`), not branched in code.
+
+### 5.1 The DEVICE axis — mobile vs desktop vs embed
+
+- **YouTube video module** is unified; the desktop/mobile/embed differences are
+  isolated in a `PlayerContext` adapter (the only variation point):
+  - **desktop (non-touch)**: floating 译 button controls video subtitles; the page FAB
+    controls page text separately (two independent controls).
+  - **mobile (any touch device)**: **no separate 译 button** — the page FAB drives BOTH
+    video subtitles and page text. This is `m.youtube.com` (no control bar) AND a
+    phone / iPad on the desktop-layout `www.youtube.com` (which DOES have a control bar).
+    The device is detected by a **single shared signal**, `TranslationCore.isMobileLayout()`
+    (`navigator.maxTouchPoints > 0` or a mobile UA) — used by BOTH `content-main` (which
+    control drives YouTube) and `content-youtube` (whether to mount the 译 button), so the
+    two can never disagree. (Keying "mobile" off the `m.youtube.com` host in one place and
+    the `.ytp-right-controls` DOM in the other is what produced the two-button bug.)
+  - embed (iframe): floating 译 button; menu fixed
+  The subtitle core (SubtitleSource + Engine + OverlayRenderer) is shared across all three.
+
+### 5.2 The SITE axis today — control anchoring
+
+The one place sites currently diverge is **where the overlay and the `译` button are
+anchored**. Current state, stated plainly rather than as a rule, because the two sites
+are not symmetric:
+
+| site | overlay | desktop `译` button |
+|---|---|---|
+| **YouTube** | inside the player — `placeOverlay` → `player.appendChild(ov)` on `#movie_player` | **floating**, `position:fixed` on `document.body` (`content-youtube.js` `btnCss`), sitting above the page FAB |
+| **Twitter/X** | inside the active tweet's player container | **inside the same container**, `position:absolute`, top-right |
+| **Podcast** | viewport-anchored `position:fixed` — an audio page has **no player element to anchor to** (§2.2) | floating control, shown only while subtitles are active |
+
+**Why Twitter embeds its button** (test #2 above — an observable property of the host):
+X's desktop player fullscreens **its own container `div`**, which can host child nodes.
+The browser promotes only ONE element into the top layer, so a body-level `fixed`
+sibling of that container is not painted — the control would vanish in fullscreen.
+Putting both the overlay and the button *inside* the container that X fullscreens makes
+them ride into the top layer (§2.3.6), and additionally binds the button unambiguously
+to the video it controls, which matters because a feed holds many videos (§2.3.5).
+Verified live in fullscreen on macOS Safari, macOS Chrome and Firefox.
+
+**Why YouTube's button is still floating: history, not a decision.** It predates the
+Twitter work; the overlay was moved into `#movie_player` but the button was not. An
+earlier draft of this section justified it as "YouTube's control bar auto-hides, so an
+in-bar button would disappear" — that reasoning is **wrong and has been removed**:
+*inside the player container* is not *inside the control bar*. Twitter's button is an
+`position:absolute` child of the container, not part of X's control chrome, and it does
+not auto-hide. Nothing about YouTube prevents the same treatment.
+
+> **Open question — not verified.** By the §2.3.6 top-layer argument, YouTube's
+> body-level `fixed` button should **disappear when the video is fullscreened** (the
+> overlay survives; the button is not inside `#movie_player`). This has **not** been
+> tested — two attempts to drive YouTube into fullscreen did not land, and no claim is
+> made here either way. If it reproduces, the fix is to anchor YouTube's button into
+> `#movie_player` exactly as Twitter does, which would collapse this row of the table
+> and make in-container anchoring a genuine cross-site rule. Tracked separately; do not
+> cite the current asymmetry as intentional design.
+
+Mobile (touch) is unaffected on both sites: the `译` button is suppressed and the page
+FAB drives both page text and subtitles, via the shared
+`TranslationCore.isMobileLayout()` signal.
+
+### 5.3 The BROWSER-CAPABILITY axis — opportunistic, never load-bearing
+
+Some browsers expose a capability others do not. `world:"MAIN"` (§2.1) was the first;
+**browser-native language detection is the second**. The rule that keeps this axis from
+becoming a second product:
+
+1. **The baseline must be complete on the weakest surface.** Safari iOS is the floor.
+   A feature whose *correctness* depends on a capability Safari lacks is out of scope
+   (that is the §8 argument against *in-browser* ASR, i.e. recognition running in the
+   browser itself). A capability may only make an already-correct baseline **cheaper
+   or sharper** — never supply the only working path.
+2. **The capability is injected into the core, never probed by it.** The adapter
+   probes, and passes a plain function in. The core's contract is that function's
+   signature, not the browser behind it — `TranslationCore` must not call
+   `chrome.i18n.detectLanguage`, test for `world:"MAIN"`, or sniff a UA.
+   State the rule against the *capability*, not a namespace: `TranslationCore` does
+   legitimately call `chrome.i18n.getUILanguage` / `getMessage` for locale lookup, so
+   "must not contain the string `chrome.i18n`" would be false the day it was written —
+   and a governance rule that fails on its own codebase gets ignored.
+3. **Degradation is silent and total.** Absent capability, broken capability, and a
+   capability that throws all reduce to the same thing: the baseline path, byte for
+   byte. No retry loop, no user-visible notice, no half-state.
+4. **The difference is written down here, and named in `docs/verification-spec.md`
+   as a per-surface expectation** — so a regression on the surfaces that *lack* the
+   capability is a test failure, not an untested assumption.
+
+**Today's instance — same-language skip.** `createEngine` takes an optional
+`detect(text)`. When absent (all Safari rows), the engine uses only the script-based
+`isAlreadyTargetLanguage()`, which is decidable for zh/ja/ko targets and returns false
+for everything else. When present (Chrome/Edge via `chrome.i18n.detectLanguage`,
+Firefox likewise), the engine may additionally skip a unit whose detected language
+matches a **non**-script-decidable target — the English/French case script cannot
+separate. zh/ja/ko targets never consult the detector, so the most-used path is
+identical on every surface by construction.
+
+**Second instance — AI 转写字幕 (§2.4), 2026-09-06.** The baseline is tier A, file
+mode: fetch the media bytes, POST them to the user's transcription endpoint, receive a
+complete timed transcript. Those are the same two operations the VTT path already
+performs on Safari iOS, so the baseline is complete on the floor. In-page audio
+capture (tier B) is the capability: it exists on Chrome/Firefox (`captureStream`) and
+on Safari (`createMediaElementSource`, with the crossorigin reload), and it only
+**sharpens** the case where the baseline already failed for a reason outside our
+control — the media has no fetchable URL. Where capture is absent, refused (CORS) or
+silent, the surface behaves exactly as if tier B did not exist, with one deliberate
+departure from rule 3: because the user *tapped* for this, the degradation is
+**named in the overlay** rather than silent — §9.1's "never silent to a user who opted
+in" outranks rule 3's silence, which was written for automatic sharpening nobody asked
+for. iOS native HLS (`src=.m3u8`) is expected to yield silence from Web Audio and is a
+matrix row, not an assumption.
+*2026-09-11:* Safari (both) requires the `AudioContext` to be created **inside a user
+gesture in the page**; the toolbar popup is a gesture in the popup, not in the page, so
+a popup-started live session on Safari cannot capture. The adapter therefore treats
+`AudioContext.state !== 'running'` after attach as a named stop (`gesture`) and the
+notice offer becomes 「▶ 点此开始实时转写」 — one more tap, inside the page, and the
+same `start()` runs with the gesture. This is a capability check, not a UA check: it
+never fires inside a real gesture, and it would catch Chrome's autoplay policy the same
+way. Tier A (file mode) needs no AudioContext and starts from the popup on every surface.
+
+**Third instance — 文档翻译 (§2.5), 2026-09-11.** The baseline is the text layer:
+pdf.js (pure JS) and our own `.docx` reader run identically on every surface, and the
+file picker is native on iOS. The capability here is **image recognition**, and it is
+deliberately not a browser capability at all: it is the user's multimodal endpoint,
+gated by the registry (`vision`) exactly the way transcription is gated by
+`liveEndpoint`. Where the engine lacks it the reader says so on the page and sends
+nothing — rule 3's silence is again outranked by "never silent to a user who opted
+in", because the user just uploaded a scan and is waiting. The one surface that lacks
+something is macOS's host app (no `runOpenPanel`), and per rule 1 that is fixed in the
+host, not papered over in the page.
+
+**Fourth instance — on-device transcription and on-device speech in the host app
+(§2.4 rule 5 amendment, `docs/learning-design.md` §9.6), 2026-09-12.** The baseline is
+unchanged: the cloud live engine (`liveEndpoint` + `liveType` + key) remains the
+complete 对话 path, and the Safari iOS extension floor is untouched because these two
+engines (`device` in `build/stt.config.js`, `device` in `build/tts.config.js`) **exist
+only in the host app** — they never appear in an extension dropdown. The capability is
+the system recogniser (iOS 26 / macOS 26 `SpeechAnalyzer`) and an offline synthesis
+model, both behind the native bridge (`NativeSpeech.probe()`); rule 1 is satisfied
+because they make an already-working path cheaper and private, never the only working
+path. Rule 2 applied literally: `engine-fields.populate` receives a caller-injected
+`deviceOk` boolean and **never probes the bridge itself** — the host page probes and
+passes a plain value in, so the component's contract is that boolean, not the bridge
+behind it, and the extension pages simply never pass `true`. Degradation is **named,
+not silent**, under the same carve-out the second and third instances use — §9.1's
+"never silent to a user who opted in" outranks rule 3, because the user chose this
+engine: an older OS ⇒ the entry is disabled with a reason (「设备内置转写需要 iOS 26 /
+macOS 26 —— 或去设置里选一个云端实时引擎」); assets not yet on the device ⇒ a named
+`downloading` state with progress, and a failed download ⇒ a named `listen_assets_failed`
+state that leaves the cloud exit in reach; a language the offline voice does not cover
+⇒ the row says so and falls back to the platform voice (`browser`). Registry
+consequences are in §7 (third endpoint carve-out).
+
+**Fifth instance — the host app's system-audio subtitles (§2.4 rule 8,
+`docs/learning-design.md` §9.8), 2026-09-13.** The baseline is unchanged: the
+extension's tier A (file) and the page-text path remain the complete Safari floor, and
+nothing on any extension surface changes. The capability is the host app hearing the
+device's playback — the macOS 14.4 process tap, the iOS microphone in the background,
+the iOS ReplayKit broadcast — and it makes a source the extension cannot reach (MSE /
+HLS on Safari) *reachable in another surface*, never the only path to something the
+baseline promises. Rule 2 applied literally: the page asks the native bridge once
+(`caps-probe` → `audio-caps`) and injects the answer; JS never sends a system-audio
+request the bridge has not reported, because an older native shell would silently
+ignore the field and open the microphone instead. Degradation is **named**, under the
+same carve-out as the fourth instance (the user opted in by tapping the entry): the
+entry is greyed with the reason (no live engine / no key /「对话 · 实时字幕需要 iOS 26 / macOS 26」; the
+macOS 14.4 line was removed 2026-09-29 — the on-device recognizer's iOS/macOS 26 floor always gates first),
+a denied permission is a named line with the path to System Settings, and on iOS
+phase 1 the headphones case is named because the microphone cannot hear it.
+
+> **Accepted asymmetry — reviewed, not overlooked.** This axis is weaker than the
+> other two: DEVICE and SITE change *where* things are drawn, whereas this one can
+> change *what the user sees*. With an `en` target on an English page, Chrome draws
+> nothing under the paragraph and Safari draws a redundant translation line. That is
+> deliberate — Safari's behaviour is exactly today's behaviour, so no surface
+> regresses, and the alternative (holding every browser to Safari's floor) means
+> permanently burning provider quota on requests whose answers are discarded. The
+> asymmetry is bounded by the strict gates in `docs/interaction-spec.md`: the detector
+> can only ever *remove* a line that duplicates the original.
+
+### 5.4 The RESTRICTION axis — when a browser takes something away
+
+§5.3 covers a browser having a capability others lack, and its rule is that the extra
+capability may only sharpen an already-complete baseline. **This axis is the mirror
+image and needs the opposite rule:** a browser can *forbid* something the baseline
+depends on, and then the compensating path is not opportunistic — it is the only
+working path on that surface, and it must be built.
+
+**Today's instance — Firefox applies the host page's CSP to content-script `fetch`.**
+
+Measured 2026-08-06, same Mac, same page (`en.wikipedia.org`, whose CSP `default-src`
+allows `*.googleapis.com` / `api.openai.com` / `api.anthropic.com` but **not**
+`api.deepseek.com`), same DeepSeek key, same extension code:
+
+| Browser | Result |
+|---|---|
+| macOS Safari | 26 / 26 paragraphs translated |
+| Firefox | every paragraph `翻译失败` |
+
+On a page with no CSP the same Firefox translates perfectly. So on Firefox **whether
+translation works depends on which site the reader is on**, and the user has no way to
+tell why — changing key or model does nothing.
+
+Chrome and WebKit both exempt content-script fetches from the page CSP; Firefox does
+not. This is not a capability we can decline to use. It breaks the product.
+
+#### The rule
+
+1. **The default stays Safari's.** All translation `fetch` lives in
+   `content/translation-api.js` because Safari iOS's service worker goes permanently
+   `undefined` after device lock (§5.3.1 / CLAUDE.md). Safari is the floor and the
+   floor sets the default.
+2. **A restriction earns exactly one exception, at one chokepoint.** Firefox routes
+   the same request through the background page, which is not subject to any page's
+   CSP. The exception lives in `apiFetch()` — the single function every provider
+   already funnels through — so the provider adapters, the retry/timeout policy and
+   the error shape are untouched and cannot drift per browser.
+3. **Detect the runtime by a fact, never by a UA string.** `chrome.runtime.getURL('')`
+   returns `moz-extension://…` on Firefox and nothing else. §5.3 rule 2 forbids UA
+   sniffing; this honours it — the check is on what the runtime *is*, not what it
+   claims to be.
+4. **No silent fallback to the blocked path.** If the background proxy fails, the
+   error surfaces. A fallback to the direct fetch would work on CSP-free pages and
+   fail on others, i.e. it would restore exactly the site-dependent unpredictability
+   this exists to remove — and §7.1 / the #74 decision already ruled that a silent
+   fallback that hides a misconfiguration is worse than a visible failure.
+5. **The background stays state-only everywhere else — but that is enforced on the
+   CALLER side, not by withholding the handler.** The proxy handler used to be
+   registered only when the background was running on Firefox, on the theory that this
+   made the Safari rule true by construction. It did not; it made §5.5's fallback a
+   no-op instead (2026-08-19: the caller shipped for Chrome, the message had no
+   listener, and the settings self-check still passed because an extension page is
+   CORS-exempt — so the failure only appeared on real pages). The handler is now
+   registered unconditionally. What actually holds the rule is that `apiFetch` always
+   attempts the direct fetch first; a handler nobody calls creates no dependency.
+
+#### Why this does not reopen §5.3 rule 1
+
+Rule 1 says a capability may never supply the only working path. That protects the
+*floor*: Safari must be complete without help. Here the floor is fine — Safari uses the
+default path and works. What is broken is a surface *above* the floor, and the
+compensation is confined to that surface. The invariant "Safari iOS is complete on the
+default path" is untouched; nothing about Firefox's exception is load-bearing for it.
+
+### 5.5 The same axis, second instance — a strict-CORS endpoint
+
+§5.4's restriction came from the *browser*. This one comes from the *endpoint*, and it
+is worth writing down separately because the compensating path is the same one and the
+naive reading is that it contradicts §5.4 rule 4.
+
+**The instance (measured 2026-08-19, real machine, corporate gateway).** A content
+script's `fetch` goes out **as the page**: with the user reading `en.wikipedia.org`, the
+request carries `Origin: https://en.wikipedia.org`. Our request also carries
+`Authorization` and a JSON body, so it is not a *simple* request — the browser must send
+an `OPTIONS` preflight first. The gateway answered that preflight **403**, so the browser
+never sent the POST at all and `fetch` rejected with a bare `TypeError`.
+
+The DevTools evidence is unambiguous and worth knowing by sight, because none of it
+appears in our own error text:
+
+| Symptom | What it means |
+|---|---|
+| paired rows: `403 · preflight` then `CORS error · fetch` | the preflight was refused; the real request never happened |
+| `Provisional headers are shown` | the request was stopped locally and never hit the network |
+| `Referer: https://en.wikipedia.org/` | it was being sent **as the page**, not as the extension |
+
+This also explains the reports that preceded it: the same URL and key work in
+command-line clients (no `Origin`, no preflight) and in other extensions (which send
+from the background), while our public-API providers were unaffected because they answer
+`Access-Control-Allow-Origin: *`.
+
+#### The rule — one request, one route
+
+The first attempt at this shipped as "direct first, fall back to the background on a
+CORS failure". It worked, and it was wrong in two ways that only real use showed:
+
+- **Every paragraph paid two round trips.** With translation running concurrently across
+  a page, the whole first batch each hit a doomed preflight before discovering the
+  fallback. The user's word for it was simply "slower".
+- **It needed a memory of failure, and that memory poisoned the page.** Remembering
+  "this origin cannot be reached either way" meant one transient miss — an MV3 worker
+  mid-wake under concurrency — latched the origin into direct-only, and every later
+  paragraph then skipped the background and failed outright. Symptom: the first few
+  paragraphs translate, the rest all fail.
+
+So the routing is chosen up front, per runtime, and the retry is only insurance:
+
+| Runtime | Route | Why |
+|---|---|---|
+| Firefox | background **only**, no fallback | §5.4: the page's CSP governs a content script's fetch, and falling back would make success depend on which site you are reading |
+| everything else | background first, direct as fallback | one request, no preflight, and it works against permissive and strict endpoints alike |
+
+**Whether the background is usable is measured, not guessed.** An earlier version split
+Safari out by runtime (`safari-web-extension://`) because its worker goes permanently
+`undefined` after device lock. That carve-out was withdrawn on request, and removing it
+needed something to replace it — the proxy's own timeout cannot serve, because it has to
+cover the whole round trip (the background performs the API call before answering, so it
+is a ~20s budget), and a dead worker would then cost 20s *per paragraph*.
+
+So the content script asks the background one cheap question — `{action:'ping'}`, local
+IPC, 1.5s ceiling — and routes on the answer. This is strictly better than the runtime
+guess it replaced: it covers *every* reason a background can be unavailable, not just the
+one we happened to know about, and it needs no assumption about whether a device has been
+locked. The result is cached per page and **invalidated whenever a proxy attempt fails at
+the transport level**, so a worker that was merely mid-wake is used again on the next
+request rather than written off — the same self-healing discipline as the route memory
+below, and for the same reason.
+
+**The memory only ever records success.** `originRoute` stores the route that worked for
+an origin; a failure never writes to it. A failure is a moment, a success is a fact about
+the endpoint — and the version that recorded failures is the one that broke the page.
+`timeout` never switches routes either: an abort means the request did reach the network,
+so resending only doubles the wait.
+
+#### Why this is not the fallback §5.4 rule 4 forbids
+
+The two run in opposite directions. §5.4 rule 4 forbids falling back **to the blocked
+path** (Firefox → direct fetch): it would succeed on CSP-free pages and fail elsewhere,
+reintroducing site-dependent unpredictability. Nothing here falls back to a blocked path;
+each runtime's fallback is the path the *other* runtimes use as their default. It is also
+not the #74 pattern: #74 was a silent switch to a *different provider*, which produced a
+plausible answer and hid a broken key. Here the endpoint, the credential and the body are
+identical — only the sender changes.
+
+#### What this costs the test harness
+
+CDP's `Fetch` domain is scoped **per target**, so intercepting on the page session no
+longer sees the traffic: it now originates in the extension's service worker. The layout
+suite must attach to that target for **every** fixture, not just the error-path ones —
+without it the mocked provider is bypassed entirely and the fixtures hit the real
+network (measured: 1/36 green, 559s). A paused request must also be answered on **its
+own** session; replying on the page's session leaves it pending forever, which surfaces
+as units stuck at 「翻译中…」 rather than as a clean failure.
+
+**Scope, stated plainly:** only the translation transport is covered today. Notes, TTS
+and transcription each own their own `fetch` and would hit the same wall against the
+same endpoint. `AsrSource` (§2.4) adds two more: the file-tier media fetch, which on
+Chrome is subject to the *page's* CORS (measured 2026-09-06: Transistor, Megaphone,
+Blubrry, 小宇宙 and archive.org enclosures are readable from a foreign origin;
+Substack's are not) and therefore rides `apiFetch` so the Firefox/strict-CORS
+compensation applies; and a **WebSocket** for the live tier, which has no CORS at all —
+all three vendors' sockets were opened from a page origin in real Chrome. Whether a
+content-script WebSocket on Firefox is subject to the page's `connect-src` is measured
+in PR3, not assumed.
+
+## 6. Module map
+
+| Module | File | Role |
+|---|---|---|
+| `TranslationCore` | `content/translation-core.js` | generic: `createEngine` (state machine + retry, `selectActive`, optional injected `detect` — §5.3), `createSubtitleEngine` (time-window specialization), helpers (`isTranslated`, `isAlreadyTargetLanguage`, `looksLikeCode`, language, pager, i18n) |
+| `LangDetect` | `content/lang-detect.js` | **optional** browser-native language detection (§5.3): probes `chrome.i18n.detectLanguage` (Chrome/Edge/Firefox; absent on all Safari), caches results, and exposes a **synchronous** three-state `detect(text)` — result / `undefined` (in flight) / `null` (never available) — so the engine's `pump()` stays sync. Latches off permanently on any error. Never the sole source of a skip decision |
+| `DomSegmenter` | `content/dom-processor.js` | general DOM extractor: `isVisible`, `shouldSkip`, `isInline`, `getText` (visibility-aware), `collectUnits`; honors two generic adapter markers — `computePlayerRegions` (`data-mt-player-region`) and `computeSkipRegions` (`data-mt-skip-region`) |
+| `TwitterSite` | `content/site-twitter.js` | x.com/twitter.com **site adapter** (DOM/text dimension): feature-detects the tweet UI and marks non-content chrome (trends/who-to-follow sidebar, left nav, per-tweet engagement bar, and the tweet author/metadata line) with `data-mt-skip-region` so the generic segmenter excludes it; re-asserted via a `MutationObserver` against the virtualized feed. No selectors leak into `DomSegmenter`. |
+| `SubtitleSource` | `content-youtube.js` + `yt-timedtext-observer.js` (+ optional `yt-hook.js`) | timed-text extractor: `yt-timedtext-observer.js` (isolated, `document_start`) records YouTube's own pot-bearing `/api/timedtext` URLs from the Resource Timing API before they're evicted; `content-youtube.js` re-fetches the full json3 transcript → cues → `mergeSentences`. `yt-hook.js` is an optional `world:MAIN` opportunistic body-capture (unavailable on Safari) |
+| `WebpageTranslator` | `content/content-webpage.js` | all DOM (normal + YouTube page text): DomSegmenter → engine → child renderer (interleave holder stays a sibling) |
+| `YouTubeTranslator` | `content/content-youtube.js` | video subtitles only: SubtitleSource → engine → overlay; `PlayerContext` device adapter |
+| `PodcastTranslator` | `content/content-podcast.js` | audio subtitles (§2.2): resolve an existing timed transcript (in-page VTT/SRT, RSS `podcast:transcript`, or Spotify synced DOM) → cues → `mergeSentences` → same Engine → viewport-anchored overlay; synced to the `<audio>` element's `currentTime`. Supplies the §2.4 offer (`unavailableAction`) and starts an `AsrSource` session on the user's tap |
+| `AsrSource` | `content/asr-source.js` | the §2.4 source: resolves the media URL, runs tier A (fetch bytes → transcription endpoint → cues) or tier B (CORS probe → crossorigin reload → `captureStream` / `createMediaElementSource` → PCM → `WsTranscribe`), the 3-second silence guard, and one `AbortController` per session. Pushes closed sentences into the harness; never touches the Engine directly |
+| `WsTranscribe` | `content/ws-transcribe.js` | the live-tier transport: one WebSocket client with per-vendor message adapters keyed by the registry's `liveType` (`ws-openai` subprotocol key + `input_audio_buffer.append`; `ws-gemini` `?key=` + `realtimeInput.audio` with the 10-minute reconnect; `ws-meta`). Emits `{kind:'partial'|'final', text, startMs?, endMs?}`; connect timeout, idle heartbeat, never a silent close |
+| `DocCore` | `learn/doc-core.js` | the §2.5 source's pure logic (both hosts): `docId` (content hash), text-item → paragraph grouping for pdf.js pages, pagination for `.docx`/text (`maxChars` / `maxParas`), `unitsFor(page)` (sentence split above ~1 200 chars), `pageStats`, and the learning-side `sourceFor` / `draftFor` / `shouldWrite` with the per-page / per-document caps (`CAPS`). No DOM, no storage — unit-tested in the vm harness |
+| `DocReader` | `learn/doc-reader.js` | file IO: `sniff` (extension + magic bytes), `openPdf(bytes, pdfjs)` → `{pages, textOf(n), imageOf(n)}`, `openDocx(bytes)` (own zip central-directory reader + `DecompressionStream('deflate-raw')` + `DOMParser` over `word/document.xml`), `openText`, `openImage` (canvas downscale → JPEG data URL). pdf.js is injected, never required — the app may hand in a native bridge instead |
+| `DocStore` | `learn/doc-store.js` | the separate IndexedDB `mt-docs` (documents, page texts, OCR results, translations keyed by provider/base/model). Never synced, never in the corpus store, wiped alongside 「清除本机全部数据」 |
+| `DocView` | `learn/doc-view.js` | the reader (both hosts, ids prefixed `docv-`): document list, pager, original + translation per paragraph, ★, retry rows; owns the page-scoped `createEngine` and its tick; reports through callbacks (`pickFile`, `translate`, `ocr`, `onShown`, `onStar`, `onDelete`) and touches no storage itself |
+| `HandoffCore` | `app/quick-core.js` | the §2.6 source's pure logic (vm-testable): target-language choice incl. the same-language reversal, the clipboard traps (empty / same-as-last / concealed marker), the 2 000-character capture cap, paragraph splitting for long hand-overs, and reading-order assembly of Vision line boxes |
+| `AppHandoff` | `app/handoff.js` | the single corpus writer for §2.6 (app main page only): `ingest(records)` runs the ordinary gates and `LearnStore.mergeBatch`; drains the iOS App Group inbox on launch / foreground and receives the macOS panel's relayed captures. Anchor kind `handoff` (`learning-design` §9.9) |
+| `AppQuick` | `app/quick.js` | the macOS quick-translate panel page: the shipped bundle in `#quick` mode (boots only `TranslationAPI` + i18n + error copy — no sync, no telemetry init, no `LearnStore`); talks to native over `mtQuick` |
+| `MTExt` | `build/ext-bundle.js` → `dist-app/ExtEngine.js` (+ `app/ext-shim.js`, `app/ext-entry.js`) | the iOS system-translation extension's engine: the transport files of §7, unmodified, behind a JavaScriptCore shim. One export, `MTExt.translate(text, cfg)`. Byte-equality of the request with the app bundle's is a `npm test` gate |
+| `CliEngine` | `build/cli-bundle.js` → `dist-cli/engine.js` (+ `cli/node-shim.js`, `cli/entry.js`) | the CLI host's engine (§2.7): the transport files of §7, unmodified, behind a Node shim. Exposes `translate` / `detectLanguage` / the provider list; byte-equality of the request with the extension/App is a `npm test` gate |
+| `CliApp` | `cli/` | the CLI host (§2.7; learning-side contract `learning-design` §9.10): commands `translate` / `detect` / `providers` / `config` / `doc` / `batch` / `subtitle` / `plan` / `review` / `import` / `export` / `sync`, config under `~/.config/belliedmonkey/`, corpus as an `mt-learn/1` file. Reuses `LearnModel` / `LearnScheduler` / `LearnChunk`; **never `LearnStore`** |
+| `OfflineVideoAsr` | `tools/offline-video-asr/` + `app/offline-video-asr.js` + `app/native/offline-video-asr.swift` | §2.8 Mac file subtitles. One CLI (`python -m offline_video_asr`); the app `Process` launches that module. Not the listen bridge, not §2.7's translate CLI, not an Engine source |
+| `VaultMirror` | `app/vault-mirror.js` + `app/native/vault-bridge.swift` (`mtVault`) | one-way, full-snapshot mirror of the *resolved* engine configuration into App Group `UserDefaults` and of the key into the shared Keychain group, for the extension to read (§2.6 rule 7) |
+| `TwitterTranslator` | `content/content-twitter.js` + `content/tw-media-observer.js` | x.com/twitter.com in-tweet **video** subtitles (§2.3): `tw-media-observer.js` (isolated, `document_start`) records `video.twimg.com` HLS `.m3u8` URLs from the Resource Timing API into `window.__mtTwHlsUrls`; `content-twitter.js` fetches the master → SUBTITLES sub-playlist → `.vtt` segments → `parseTimedText` → `mergeSentences` → same Engine → overlay anchored to the active tweet's `<video>`. VTT-only, no ASR. (Shared overlay/tick/menu/SRT to be factored into `subtitle-adapter.js` — PR2a.) |
+| `TranslationAPI` | `content/translation-api.js` | provider-agnostic transport (timeout/429/retry, concurrency queue); dispatches by request **format** (`chat-compat` / `messages-compat` / `google`) read from the build-time registry — see §7 |
+| Provider registry | `build/providers.config.js` → `content/providers.gen.js` | single source of truth for the provider list, resolved per **region flavor** at build time (§7) |
+| `LearnModel` | `content/learn-model.js` | learning layer (§9): pure — content-addressed id (FNV-1a, **not** `crypto.subtle`, which is absent on plain-`http` pages), text normalization, script-aware salience scoring, `Item` factory |
+| `LearnScheduler` | `content/learn-scheduler.js` | learning layer (§9): pure Ebbinghaus scheduler — `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
+| `LearnCollector` | `content/learn-collector.js` | learning layer (§9): the **sink** — dwell observation, salience gate, bounded `lq:` outbox writes. Reads only what the Renderer already displays; never originates a translation |
+| `LearnStore` | `learn/store.js` + `learn/drain.js` | learning layer (§9): the corpus. IndexedDB opened **only in extension pages** (a content script's `indexedDB` belongs to the host page's origin) + the outbox→corpus drain/merge |
+| `Reviewer` | `learn/review.{html,css,js}` | learning layer (§9): the review surface — one implementation covering all five matrix rows, hosted in an extension page **and** in the host app's `WKWebView` (§9.4) |
+| Host app | `safari-project/…/Shared (App)/` | learning layer (§9.4): the one-tap surface on iOS + macOS. **Not a second engine** — it loads the same review UI and scheduler, swapping only the host shims. Requires sign-in; the server is its only source (§9.3) |
+
+> **UI framework note (2026-09-25)**: the view layer of the page-type surfaces above
+> (`Reviewer`, `DocView`, and both hosts' pages) is governed by §10 — React, one
+> source module per shared surface, one compilation, zero forks (§10.3).
+
+## 7. Provider transport & region flavors (合规双分发)
+
+The transport is **provider-agnostic and format-keyed**, and the provider *list*
+is a build-time concern, not a runtime one.
+
+> **Authentication is a key the user owns.** Every entry is BYO-key or the metered
+> free-grant relay (§8.10 of `docs/learning-design.md`). Routing a provider through
+> someone's **subscription** was researched to exhaustion and the product **does not do
+> it**: no vendor issues us our own OAuth client, GLM/Qwen/Kimi Coding Plans forbid our
+> app shape in writing, and the ChatGPT/Codex route works only by impersonating another
+> client. The clean path for a user who wants their subscription is a **local proxy**
+> (cliproxyapi and the like) behind our existing **custom-endpoint** provider — the
+> credentials and the terms risk live in the proxy on the user's own machine, exactly
+> like a corporate gateway. See [`docs/subscription-auth-research.md`](subscription-auth-research.md)
+> (2026-09-09) and the superseded [`docs/oauth-design.md`](oauth-design.md). Related: #149, #150.
+
+- **Single source of truth.** `build/providers.config.js` is the one registry of
+  translation providers. Each entry declares `{ id, type, flavors, needsKey,
+  supportsBaseUrl, supportsModel, requiresEndpoint, defaultEndpoint, placeholder,
+  defaultModel, label, labelKey, hintKey }`. It replaces the four previously-duplicated
+  lists (the two HTML `<select>`s, the two settings scripts, and the transport's own
+  provider table). The build generates `content/providers.gen.js`
+  (`window.MT_FLAVOR` + `window.MT_PROVIDERS`), which every runtime surface reads —
+   `translation-api.js` (dispatch), `options.js`/`popup.js` (UI), and, since §2.7, the
+   CLI host — so they can never drift.
+
+- **The endpoint is used EXACTLY as stored. We concatenate nothing, ever.**
+  `defaultEndpoint` is a COMPLETE request URL, path included, and a user-supplied
+  address is sent verbatim — the only processing permitted is trimming surrounding
+  whitespace on save. `content/wire-format.js` is the one place that resolves an
+  address, and all four transports (translation, notes, speech, transcription) go
+  through it — and, since §2.4, the live-transcription socket: `build/stt.config.js`
+  entries may carry `liveEndpoint` (a complete `wss://` URL, used exactly as stored),
+  `liveType` (the socket's message shape), `liveModel`, and `uploadEndpoint` (Gemini's
+  Files API for media above the inline limit). They are *stored addresses*, not
+  derivations: `https://…/interactions` → `wss://…/BidiGenerateContent` has no regular
+  mapping, and inventing one would be the `defaultBase + path` mistake again. A
+  user-supplied `sttBaseUrl` overrides the file endpoint only; the live socket stays the
+  registry's (v1). *2026-09-11:* "which transcription engine in this flavor has a live
+  interface" is **derived** from the presence of `liveEndpoint` + `liveType` — no
+  `live: true` flag, no second list — so the one-key card's optional 「实时转写」 row,
+  the `· 实时` suffix in the engine dropdown and the popup's `file_only` state all read
+  the same two fields. *(Amended 2026-09-12:)* a `type` of `device-transcribe` is
+  **also** a live interface — derived from `type`, the same way `google` and `browser`
+  are dispatched by `type` — so "has a live interface" is *`liveEndpoint && liveType`,
+  or `type === 'device-transcribe'`*; still no boolean flag, still no second list, and
+  the same three consumers read it. The cloud live engine remains each flavor's
+  existence precondition (the `AGENTS.md` rule 10 gate in `test/registry.test.js` —
+  「每个 flavor 至少有一个带实时接口的转写引擎」 — is unchanged and does not count a
+  `device` entry toward it). OpenRouter has no realtime endpoint (checked 2026-09-10: only
+  `POST /api/v1/audio/transcriptions`), which is why the global one-key platform needs
+  a second key for live transcription rather than a second entry. *(Amended 2026-09-17,
+  待人评审 — **已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**，保留为历史:)* the whole "has a live interface" derivation above is **retired**, together
+  with the thing it derived. No `build/stt.config.js` entry carries `liveEndpoint`,
+  `liveType`, `liveModel`, `liveRate` or `liveKeyProtocol`; there is no
+  `device-transcribe` type and no `device` STT entry; `content/ws-transcribe.js` keeps
+  only `splitSentences`. Live transcription is a **device capability** reached through
+  the native bridge (`NativeSpeech`), not a provider the user picks — the same standing
+  as the microphone itself. The transcription registry therefore answers exactly one
+  question again, "where does a whole recording go", which is what §9.4 always said it
+  was for. The rule-10 gate in `test/registry.test.js` inverts: it now asserts that **no**
+  stt entry carries a `live*` field and none is `device-transcribe` (the way back would
+  be a registry change, and a registry change goes through this document). Downstream
+  consumers of the derivation go with it: the one-key card has no 「实时转写」 row, the
+  engine dropdown has no `· 实时` suffix, the popup has no `file_only` state, and the
+  App's home-screen grey state for an unsupported OS no longer offers 「去设置里选择 →」
+  (there is nothing to configure). OpenRouter was re-checked 2026-09-17 — still only
+  `POST /api/v1/audio/transcriptions`; the question is now moot. Its sibling `content/request-shape.js` answers the question that is left
+  once the shape is fixed — **which optional fields go in the body** — and the same
+  four transports go through that one instead of each carrying its own copy (two of
+  them used to, character for character, comments included).
+
+  This replaced a `defaultBase + path` model, and the reason is not tidiness. That
+  model assumed a regularity that never existed: `qwen`'s own default already carried
+  a `/compatible-mode` path segment and `google` had no path at all, so "base = origin"
+  was already false inside our own registry. Worse, it made a real configuration
+  unreachable — one host can serve **two different request shapes** from two paths
+  (Chat Completions and Responses), and appending a registry-chosen path meant the user
+  had no way to say which one they wanted. Third-party proxies compound this: their
+  path conventions need not match the vendor's, so anything we append is a guess about
+  someone else's routing.
+
+  `placeholder` carries the example address for entries with no default. It lives in
+  the registry rather than in UI copy for the same reason every other endpoint does:
+  a path written into eleven translated strings is a second copy that drifts.
+
+- **Transport is keyed by request FORMAT, and the format is declared in two places,
+  in this order:**
+
+  1. **The endpoint URL's path suffix** — `/chat/completions`, `/responses`,
+     `/messages`, `/audio/speech`, `/audio/transcriptions`. A path is part of an API
+     contract, not part of a vendor's identity.
+  2. **The registry entry's `type`** — the default shape, used when the address says
+     nothing we recognise.
+
+  The URL wins because `type` is our *guess* about an id, while the URL is the user's
+  *statement* about their endpoint. Vendors participate in neither: no adapter names
+  one, and the suffix table contains only protocol paths. `anthropic-version` is sent
+  for `messages-compat` as a required *protocol* header, not a brand reference.
+
+  Matching is **family-closed**: the suffix only selects a variant *within the same
+  capability* (chat / speech / transcription), so a speech endpoint that happens to end
+  in `/messages` can never be turned into a chat transport. It is also **end-anchored
+  on the path** with the query string stripped first — `…/messages/v1/chat/completions`
+  is Chat Completions, and an Azure-shaped `…/chat/completions?api-version=…` is
+  recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
+  what keeps every unknown third-party endpoint behaving exactly as it does today.
+
+  **A third declaration, added 2026-08-20 for translation-specialised models: within a
+  single address, a model family may carry its own shape.** `qwen-mt-*` is served from
+  the very same `…/compatible-mode/v1/chat/completions` URL as every other Qwen model,
+  so the address cannot distinguish it — yet it is not Chat Completions at all:
+
+  | probe (real endpoint, 2026-08-20) | result |
+  |---|---|
+  | a `system` message | `400 Role must be in [user, assistant].` |
+  | more than one message | `400 The length of the input.messages field has exceeded the limit. only one` |
+  | one user message + `translation_options` | `200`, correct translation |
+  | **one user message, no `translation_options`** | **`200`, the SOURCE TEXT echoed back** |
+
+  That last row is why this is a **shape** and not a row in the capability table. The
+  table's licence (see below, and the header of `build/model-params.config.js`) holds
+  only while a missing row costs us a capability, never a correct request. Here a
+  missing field costs neither loudly: the server answers 200 with the English original,
+  `isTranslated()` accepts any non-empty string — deliberately, since a correct
+  translation may equal its input — and the page renders English under English, with no
+  error anywhere and a 12-hour cache entry to match. A required field whose omission is
+  answered with a plausible 200 must be **structural**: `request-shape.js` builds
+  `translate-compat` with `translation_options` always present, so there is no code path
+  that can omit it.
+
+  The discriminator is **host + model prefix, both verified**, and it is deliberately
+  narrow because *both* directions fail silently: sending the translate shape to a model
+  that does not want it means sending bare text with no instruction, which also returns
+  a plausible-looking 200. So it is a short pinned list in `wire-format.js` next to the
+  suffix table — the file that already answers "which shape" — and never a wildcard.
+  Anything not on it stays exactly as it is today.
+
+- **The request BODY is looked up in a table, and anything not in it gets the
+  protocol minimum.** Picking the right address and the right shape still leaves a
+  third variable: the optional fields inside the body. `chat-compat` faces the entire
+  compatibility zoo — every proxy, gateway and self-hosted server speaks it, and they
+  disagree about `temperature`, `max_tokens`, the `system` role, and whether a
+  non-streaming request is accepted at all. Newer models reject several of these
+  outright with HTTP 400.
+
+  The diagnostic that isolates this: **same address, same key, works in another
+  client.** That rules out the URL and the credential and leaves the body — and the
+  clients it works in are the ones that send none of the fields in question.
+
+  Two rules, and the second is a reversal of what this section said until #159:
+
+  1. **The server's own sentence is carried, never replaced.** A 400 names the exact
+     parameter it will not accept. `apiFetch` reads the error body as **text** (so a
+     gateway answering HTML or plain text survives), unwraps a gateway's layered
+     re-forwarding down to the innermost human sentence, and puts it on
+     `err.serverMessage`. The settings page prints it verbatim under our own hint: our
+     hint is a guess, that sentence is evidence, and paraphrasing evidence makes it
+     un-searchable. This rule is unchanged and now carries the whole weight — it is
+     what a user sees when we get the body wrong.
+  2. **We send what `build/model-params.config.js` says the endpoint takes, and
+     nothing else.** Matching is by **host + longest model-name prefix**, not by
+     registry id: the vendors users most need covered (openrouter, grok, minimax) are
+     not registry entries at all — they are reached through `custom_chat` — while a
+     corporate gateway runs on its own domain and matches nothing, which is the point.
+     A miss yields the minimum the protocol requires (`{model, messages}` for
+     `chat-compat`) and a miss is the *default*, not an error.
+
+  **This overturns the rule that stood here from 2026-08-18 to 2026-08-20**, which
+  read: *"On a 400/422 we concede the named field and retry… The alternative — a table
+  of model names and their accepted parameters — is the same mistake as a vendor list:
+  it is a copy of someone else's decisions and it starts rotting the day it is
+  written."* That argument is kept here rather than deleted, because it is still
+  correct about the design it was aimed at, and because the reversal only holds while
+  the difference below holds:
+
+  - It aimed at a table used to **construct an optimistic body**. Such a table breaks
+    requests the day it goes stale. This one's default is the opposite: not in the
+    table ⇒ minimum ⇒ cannot be rejected for something we sent. Its failure mode when
+    stale is *conservative*, not *wrong*.
+  - So the licence is conditional, and the condition is written at the top of the
+    config file: **the moment anyone adds a field whose absence breaks a request**
+    (an auth-header type, an endpoint rewrite, a required parameter), the table
+    becomes the 2026-08-18 frozen-migration table again — the kind where a missing row
+    computes a wrong URL — and this argument no longer protects it.
+
+  What forced the reversal was not taste. Negotiation read the field name out of the
+  server's sentence, and a real gateway (2026-08-20) forwarded the upstream error
+  wrapped three deep: the field name `temperature` sat at character 100 of a 296-char
+  wrapper against a 300-char truncation limit. A slightly longer trace id and the
+  retry would have **neither fired nor errored** — the request would go out, be
+  rejected, and the page would silently fail to translate. Whether the product worked
+  depended on what the other side's error message happened to look like. Unwrapping
+  improved the odds of that bet; it did not stop it being a bet.
+
+  Two costs, both accepted and both visible rather than silent:
+  - An endpoint that is not in the table no longer receives `temperature: 0.3`, so its
+    translation randomness is whatever that server defaults to. The advanced panel
+    lets a user set it back.
+  - A gateway that accepts **only** streaming requests is no longer rescued (that
+    concession, and the `sseMerge` that made it work, are gone). It now fails with the
+    server's own sentence shown. A table cannot express that case either: "send
+    non-streaming first, retry as a stream" *is* negotiation.
+
+  **The table is the default, not the ceiling (#162).** Private endpoints — corporate
+  gateways, self-hosted services, small vendors — can never be measured by us: we have no
+  key, no route, and no business asking a user to hand over an internal address. For them
+  the minimum body is safe, but it also left the user with **no way to say** "mine does
+  take `thinking`" — and that knowledge is something they have and we don't. So the panel
+  carries a free-form JSON field, merged into the body **last**, scoped **per engine**.
+
+  Merging last means **the user overrides the table**, which reverses the rule this
+  section carried until #162 ("the table wins, and the panel says why"). The reversal is
+  narrow and deliberate: that rule was written for the four numeric fields, where the
+  table's authority comes from a measurement of *that host*. For a host we never touched,
+  the user's knowledge is better than ours, and being wrong costs a 400 carrying the
+  server's own sentence — visible and recoverable, which is the failure mode this whole
+  design prefers.
+
+  What the field may **not** override is structural: `model`, `messages`, `system`,
+  `input`, `instructions`, `stream`, `translation_options`. Changing those is not tuning a
+  request, it is substituting a different one, and two of them fail silently rather than
+  loudly — `stream` returns a body the parser cannot read (`sseMerge` went with the
+  negotiation), and `translation_options` is the *definition* of `translate-compat`, whose
+  absence is answered with a plausible 200 containing the untranslated source.
+
+  The licence above is untouched: with nothing typed in, a host the table does not know
+  still receives exactly `{model, messages}`. The escape hatch is explicit, per-engine,
+  and owned by the person who opened it.
+
+  The user-facing counterpart is the advanced-parameters panel (temperature, output
+  budget, timeout, concurrency): collapsed by default, **unset** by default — the keys
+  are absent from storage rather than present-with-a-default, because "not set" and
+  "set to the default" must stay distinguishable. When the table says the current
+  model refuses a parameter, the table wins and the panel **says so in place**: a
+  dropped parameter is invisible otherwise, since no server complains about a field it
+  never received.
+
+  Retry policy follows the same logic: the outer retry loop only retries failures that
+  might resolve themselves (network, timeout, 408, 429, 5xx). It used to retry
+  everything three times, so one wrong key cost three doomed requests **per paragraph**
+  — 150 on a 50-paragraph page — delaying the user's error message and burning the
+  endpoint's rate limit for nothing.
+
+- **`google` is an explicit carve-out.** Its two endpoints are built with query
+  parameters at call time and cannot be expressed as one stored address; the user can
+  never supply one either (`supportsBaseUrl: false`). It therefore declares
+  `defaultEndpoint: null` **explicitly** — an absent field is the failure mode
+  `test/registry.test.js` exists to catch, not a permitted default. Same shape as the
+  palette carve-out for page-injected CSS: the exception is written down and gated,
+  never left as an unmentioned gap.
+
+- **Live-transcription sockets are the second carve-out, same shape.** A browser
+  WebSocket cannot send an `Authorization` header, so each vendor's socket carries the
+  key the only way it can: OpenAI as a subprotocol (`openai-insecure-api-key.<key>`,
+  their documented browser path), Gemini as `?key=` on the URL (their documented path),
+  DashScope as `?api_key=` on the URL (measured 2026-09-07: the only header-free spelling
+  its handshake accepts), Meta in the handshake as measured. `content/ws-transcribe.js` is the one place this
+  happens, the registry's `liveType` names which, and `test/wire-format.test.js` pins
+  that a `?key=` is stripped before suffix matching and never logged. Written down and
+  gated, never an unmentioned gap.
+
+- **On-device engines are the third carve-out, same shape** *(2026-09-12, §2.4 rule 5
+  amendment, §5.3 fourth instance)*. `device` in `build/stt.config.js`
+  (`type: 'device-transcribe'`) and `device` in `build/tts.config.js`
+  (`type: 'device-speech'`) speak **no HTTP at all** — recognition and synthesis run on
+  the device — so they declare `defaultEndpoint: null` **explicitly**, exactly as
+  `google` does (an absent field is still the failure mode `test/registry.test.js`
+  catches). They are dispatched by `type` **before** any address is resolved, in the
+  same place `google` (translation) and `browser` (speech) are, so `resolveEndpoint`
+  never sees them; they need no `perf-ledger` row because there is no host to measure
+  (`test/perf-ledger.test.js` already exempts null-default entries); and they ship in
+  **both** flavors, since nothing crosses a border. The registry **field sets do not
+  change** — `KNOWN_KEYS` in `test/registry.test.js` is untouched; "is it on-device"
+  and "is it live" are both derived from `type`, never from a new boolean. The two
+  entries, verbatim:
+
+  ```js
+  // build/stt.config.js（放 local 之前；header 「永远没有零配置引擎」改为「云端无零配置项；本机条目是唯一例外」）
+  { id: 'device', type: 'device-transcribe', flavors: ['global','china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '',
+    labelKey: 'stt_engine_device', label: '设备内置转写（免费 · 离线 · 仅 App）', hintKey: 'stt_hint_device' }
+  // build/tts.config.js（放 browser 之后）
+  { id: 'device', type: 'device-speech', flavors: ['global','china'],
+    needsKey: false, supportsKey: false, supportsBaseUrl: false, supportsModel: false, requiresEndpoint: false,
+    defaultEndpoint: null, placeholder: null, defaultModel: '', voices: null, returnsAudio: false,
+    labelKey: 'tts_engine_device', label: '设备内置朗读（离线模型 · 仅 App）', hintKey: 'tts_hint_device' }
+  ```
+
+  Both entries appear only in the host app's dropdowns (`engine-fields.populate` is
+  handed `deviceOk` by the caller, §5.3 rule 2); extension pages never list them. The
+  `stt.config.js` header's "there is NO zero-config engine" narrows to *no zero-config
+  **cloud** engine* — the reason (recordings leave for a vendor's server) does not
+  apply to an engine that sends nothing.
+
+- **`resolveEndpoint` has exactly two branches, and neither of them concatenates.**
+  Empty stored value ⇒ the registry's `defaultEndpoint`; anything else ⇒ that value,
+  trimmed and otherwise untouched. There is no capability argument, no stamp, no table.
+
+  1.5.2 shipped a weaker version of this rule: verbatim *when a per-field
+  `{key}Verbatim` stamp was present*, and otherwise a "legacy" branch that reproduced
+  the old `base + path` expression from a frozen table, so that a device whose one-time
+  migration had not run would keep working. That design was withdrawn in 1.5.3 after it
+  produced two field failures in one session, and the lesson generalises past this
+  module:
+
+  - **A conditional promise is not a promise.** The condition travelled as a positional
+    `verbatim` argument through six call sites. The settings page's 「测试连接」 did not
+    pass it, so the self-check silently fell back to concatenation and reported a 404
+    against `…/v1` + `/v1/chat/completions` while the address the user had typed was
+    correct. Concatenation was not the exception; it was whatever happened when someone
+    forgot an argument.
+  - **A safety net that writes is not a safety net.** The same frozen table drove the
+    one-time migration, and the migration did not consult the stamp — so it would append
+    a path to an address the user had *just saved as complete*, corrupting a correct
+    configuration on the next settings-page load.
+
+  The exception would always have landed exactly where the user most needed us not to
+  improvise: on an address whose shape we do not recognise. So the cost is accepted
+  instead: an install upgrading from ≤1.5.2 that stored an old-style base address and
+  never reopens settings will request that base and fail. It fails **loudly** — the
+  transport names the failure and the settings page echoes the URL actually requested —
+  and the field's own hint says to enter the full path. Trading a mechanism that
+  corrupts correct configurations for one that inconveniences stale ones is the right
+  direction of trade.
+
+- **Region flavor is a build/distribution concern, decided at build time — never a
+  runtime per-request branch.** `node build.js --flavor global|china` filters the
+  registry by each entry's `flavors` and resolves flavor-varying `defaultEndpoint` /
+  `label` to a single value:
+  - **global** (`dist/`, `com.belliedmonkeytranslator`): Google, OpenAI, Claude,
+    DeepSeek, GLM, Qwen, Kimi + custom (Chat / Messages). International endpoints
+    (`api.z.ai`, `dashscope-intl…`, `api.moonshot.ai`). **Not available in China.**
+  - **china** (`dist-china/`, `com.belliedmonkeytranslator.cn`): DeepSeek, GLM
+    (智谱), Qwen (通义千问), Kimi + two brand-free custom endpoints (Chat / Messages
+    format, user-supplied base URL). Domestic endpoints (`open.bigmodel.cn`,
+    `dashscope.aliyuncs.com`, `api.moonshot.cn`). **No Google/OpenAI/Claude, and no
+    vendor brand strings anywhere in UI or metadata.**
+
+- **Why two binaries (not runtime storefront gating).** An App Store app record
+  serves one binary to every storefront, so China-mainland legal isolation
+  (Guideline 5 — generative-AI services need MIIT permits; OpenAI/ChatGPT
+  references are disallowed) requires **two app records / two bundle ids**, driven
+  by the same codebase via flavor. `build-safari.sh [china]` produces the matching
+  Xcode project + bundle id.
+
+- **Compliance gate (build-enforced).** After a `--flavor china` build, `build.js`
+  greps `dist-china/` for `/ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i`
+  and **fails the build on any hit**. Brand-free labels + no default global
+  endpoints + description substitution together keep this at zero.
+
+- **China has no free/no-key default.** Google is absent (blocked in China), so the
+  china build defaults to a keyed domestic provider (GLM has a free tier); the
+  China onboarding must include a "get a free GLM key" step. Fallback differs too:
+  global builds fall back to Google on total provider failure; **china builds must
+  not** — they surface the error instead (no reachable Google).
+
+- **Residual risk.** A user-supplied custom endpoint in the china build is a generic
+  BYO-endpoint; a reviewer could read it as indirect access to a disallowed service.
+  Mitigated by brand-free labels + no default endpoint + Review Notes; the fallback
+  if rejected is to drop the custom endpoints from the china flavor and keep only
+  pure domestic-brand providers.
+
+**免费额度的中继（2026-09-08，`docs/learning-design.md` §8.10）。** 免费额度在传输层眼里
+**就是又一个提供方**：注册表加三个 `flavors:['global']` 条目（翻译 / 朗读 / 转写），
+`defaultEndpoint` 是我们边缘函数的完整地址（`…/functions/v1/bt-relay/chat/completions`、
+`…/audio/speech`、`…/audio/transcriptions` —— 路径后缀就是现有三种形状，`wire-format.js`
+一处不改），key 槽里放的是登录后领到的**额度令牌**（`bmg_` 前缀，不是提供方的 key）。
+它经 `QuickSetup.plan()` 写进与自带 key 相同的三槽，所以一键配置的「同一 host 一把 key
+通吃三样」规则原样成立。中继在服务端把 `model` 钉死、计量、到顶即停，**从不改写请求
+形状**。新增的具名错误：HTTP **402** → `credit_exhausted`（不可重试，引擎**停机**：首个
+402 之后未译单元直接置 error，不再发请求；`retry()` 解锁）—— 对自带 key 同样成立（余额
+不足的 key 也会 402），渲染器按 `EngineState.grantActive` 分两句话；**503** `grant_unavailable`
+（我们的池子空了，不是用户用完了）；**403** `model_not_allowed`。**2026-09-10 加 `auth`**：任何提供方的
+HTTP **401/403**，只要请求头带了**非空、非 `bmg_` 额度令牌**的 key，就是「这把 key 被服务商拒绝」——
+与 402 同一套停机（不可重试、未译单元置 error、`retry()` 解锁），渲染器落到设置页的引擎块；
+不带 key 的免费通道仍是普通 `http`，不停机。起因：5 天里 308 条 401 来自同一台机器逐段重试。
+钉住的模型来自
+`build/recommend.config.js` 新轴 `axis:'grant'`，同一条「先实测再登记」的台账门；中继主机
+本身也要一行台账。
+
+**2026-09-27 提案（待人评审）：连续 `timeout` 也该有熔断 —— 同族的第三个成员。**
+上面那两族修的都是「**必然失败**」：402 是余额没了、401/403 是这把 key 被服务商拒了，
+所以「停机 + `retry()` 解锁」是对的。`timeout` 不属这一类 —— **单看一次**它是「瞬时、可能自己好」，
+所以它按设计走每单元重试计数（`MAX_RETRIES = 3` + 800 ms 退避）。但**连起来看**，它可以
+是同一条该停的路：
+
+回读（2026-09-27，`bt_events` + `bt_grant_usage`，取证在 issue #472）：
+`translate_fail{provider:'grant', code:'timeout'}` 近 28 天 **1 109 次 / 23 台**，其中
+**98% 来自 10 台**；最极端那台 09-25 一天 **397 次**、全挤在 16:00–17:00 两小时（≈每 18 秒一次）。
+而**同一小时中继的 avg 只有 1 389 ms、p95 与近 14 天基线一致**（那小时还有 761 次成功调用）
+⇒ **服务端与上游都没有慢**，是客户端在**高频面**（字幕滑动窗口，每 tick 至多 6 个单元）上的正反馈：
+超时 → 按设计继续推新单元/重试 → 并发更高 → 更多超时。
+
+**待人评审的三点**（这里不预设立场）：
+
+1. **阈值**：连续 N 次 timeout？还是滚动窗口内的比率？N 取多少不会误伤单次慢请求。
+2. **停机还是退避**：停机（`halted`，`retry()` 解锁，与上面两族一致）更彻底，但坏网络恢复后要
+   用户点一下；指数退避更温和，但仍在持续打中继，只是频率低。
+3. **真慢网络的误伤**：用户在地铁里、真的一直慢 —— 停机是否比「继续重试」更好？现有的
+   `STALL_MS = 120000` 只覆盖「**单单元卡死**」，不含「连续多单元超时」这一形状。
+
+**判据**（写成行为，不写「PR 合并」）：坏网络下（网络模拟器）连续 timeout 达阈值后进入
+**可点重试的停机态**，且**不再自动发新请求**；`bt_events` 里该场景单机单日的
+`translate_fail{code:'timeout'}` 数量级下降。
+
+**裁定（2026-09-27 用户同意，实现随后同一版落地）：** 阈值取**连续 5 次单元级 timeout**，
+动作取**停机**（`halted` —— 与上面两族同一套：未译单元置 error、不再发请求、`retry()` 解锁）。
+理由：
+
+- **用「连续次数」而不是窗口比率**：数据里的形状本来就是一条**连续链**（同一台机器、同一小时内
+  397 次），连续计数能精确抓住它，也不需要在引擎里多留一份时间窗状态。取 5 的语义是
+  「不止一个单元、也不止一次重试都超时了」—— 单个单元本来已允许 `MAX_RETRIES`(3) 次重试，
+  所以 5 次**单元级**失败约等于两个单元的彻底失败。
+- **停机而不是指数退避**：退避仍在打中继（只是频率低），而这里要治的恰恰是「一直在打」；
+  停机能真正切断那条正反馈，且与 402 / auth 两族行为一致 —— 一致的代价是坏网络恢复后
+  要用户点一下 `retry()`，而那本来就是这个产品对「引擎停车」一贯的出口。
+- **成功即清零**；**非 timeout 的失败也清零**（http / auth / 配置类）：那是别的问题，
+  不该算进「网络一直不通」。边界：`e.stalled`（单单元卡死 120 s）**不计入** ——
+  它已经直接给可点重试，且「一个 promise 不落地」与「一连串请求都超时」不是同一件事。
+
+实现：`extension/content/translation-core.js` 的 `WINDOW.TIMEOUT_STREAK_MAX`（= 5）与 `catch` 里
+那处计数（成功分支清零、`retry()` / `reset()` 清零）。判据在 `test/translation-core.test.js`：
+连续达阈值 ⇒ 停机且之后一个请求都不再发 · 中途成功过一次 ⇒ 计数清零不熔断 · 非 timeout 的失败
+不算进这条链。
+
+**N26 扩展停机表（2026-10-28，移植 mobiletranslator main `b0ddea77` / PR#16 tip `c9a51503`；待架构形检，未合 main）。**
+停机不再看 `e.grant || e.halt` 这个布尔。`classifyFail` 先把错误收进封闭码表
+`FAIL_CODES`（与 `build/telemetry.config.js` 的 `translate_fail.code` 同一份：`timeout` /
+`network` / `http` / `reasoning_starved` / `no_base` / `unknown_provider` /
+`credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`）。表外的名字不另造遥测码：
+`grant_invalid` / `grant_revoked` / `grant_misconfigured` 归一成 `grant_unavailable`；
+HTTP 429 与 `busy` 归一成 `http`。`HALT_IMMEDIATE` 是其中四码
+（`credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`），一次失败即
+`enterHalt`，`haltCode` 记下该码，之后 `pump()` 不再发请求。`timeout` 仍只在连续
+`TIMEOUT_STREAK_MAX`（5）次单元级失败后 `enterHalt('timeout')`。`http` / `network` / 429
+不升格。`e.stalled` 仍不计入连续超时。行上的下一步在 `fail-surface.js`：即停四码去
+`options.html#grant` 或 `#engine`，超时停机的点击是 `retry()`。
+
+## 8. Out of scope
+
+No Readability-style full-article extraction fallback (the reference extension
+uses one for unstructured pages); rule-based semantic segmentation is sufficient
+for bilingual injection. Revisit only if unstructured pages prove inadequate.
+*(Narrowed 2026-09-11:)* this rules out extracting **web pages** into an article
+view. An **uploaded file** is explicit user intent, not a page, and §2.5 reads it
+through a dedicated reader — that is not the fallback this paragraph forbids.
+*(Narrowed 2026-09-19, §2.6:)* text the user **hands over** from another app — the
+system's Translate action, a shortcut, the Services menu, a region of the screen — is in
+scope for the host app. Still out of scope, permanently: reading other apps' selections
+through the Accessibility API, Apple Events, a resident clipboard or keyboard monitor,
+and anything that observes the user when they did not invoke us.
+*(Added 2026-09-30, §2.7 — the CLI host:)* out of scope for the CLI are the surfaces that
+need a browser or media we do not have: live YouTube/podcast caption acquisition, in-page
+OCR, and microphone/system-audio capture. The CLI reads **files the user names** and text
+the user pipes in; it never watches a page, a player or a microphone. The free-grant relay
+is also out for v1 (§8.10 of `learning-design`), and the CLI sends no telemetry.
+
+**In-browser ASR and backend-side ASR stay out of scope.** Recognition running in the
+browser itself is infeasible on Safari iOS, and the learning layer's optional backend
+(§9) is explicitly not a licence to transcribe — it carries text and scheduling state,
+never media, and never audio we would have to transcribe. *(Amended 2026-09-06:)* what
+is **in** scope is §2.4 — transcription on the endpoint the **user** configured, started
+by the user's tap, with the audio never touching a server of ours. Podcasts with
+neither a timed transcript nor a text transcript page get the page path plus that
+offer, nothing automatic. *(Amended 2026-09-07:)* the host app's 对话 mode
+(`docs/learning-design.md` §9.6) transcribes the **device microphone** on the same
+terms — user's tap, user's endpoint, nothing of ours in the path — with capture done
+natively because WebKit silences it in the background. *(Amended 2026-09-12:)*
+"in-browser" stays out — recognition inside the browser is still infeasible on Safari
+iOS, and the browser's own `SpeechRecognition` still ships audio to its vendor.
+What is now **in** scope is **system-level on-device recognition and on-device
+synthesis inside the host app** (§2.4 rule 5 amendment, `docs/learning-design.md`
+§9.6): no audio leaves the device, so neither the "recordings leave for a server the
+user did not choose" objection nor the backend prohibition is touched — only the
+recognised text goes out, to the user's own translation engine. The extension never
+gains either engine (§5.3 rule 1 / fourth instance; §9.4 — the host app is an
+additional surface, never the only working path). *(Amended 2026-09-13:)* the host app may also transcribe
+**the sound the device is playing** — system audio on macOS, the speaker through the
+microphone on iOS, and app audio from a ReplayKit broadcast — on the same terms (§2.4
+rule 8): the user's tap in the app, the user's endpoint or on-device recognition,
+nothing recorded, nothing of ours in the path. **The app never records the screen**:
+broadcast video frames are discarded inside the extension before any code reads them.
+The extension still gains no audio source of any kind.
+
+**Amended 2026-08-02 — "no backend" narrows to "no backend in the translation
+path".** The original formulation treated *any* server of ours as out of scope. The
+learning layer (§9) adds an **optional, opt-in, free** account whose server does
+exactly one thing: hold the user's learning corpus so it can follow them between
+devices, under a fixed free quota (`docs/learning-design.md` §8). It is stored in
+plaintext, which carries real obligations — §8.7 lists them, and they are not
+optional. Sync is opt-in and a signed-out user has a complete product.
+
+What does **not** change, and is now load-bearing rather than incidental:
+
+- **Translation DEFAULTS to browser → provider, on the user's own key, and that path
+  stays free and fully capable forever.** It is never degraded to make a paid path
+  look better. A server-side model may be offered as an **opt-in paid alternative**
+  (`docs/learning-design.md` §2.1), which means `README.md`'s "no servers of ours in
+  the middle" must be stated **per path** rather than as a blanket claim. The
+  invariant that survives is not our abstinence — it is that **someone who never pays
+  and never signs in has a complete product.**
+- **The server runs no model and performs no computation on user data.** It stores
+  opaque bytes.
+  *(Amended 2026-09-08 — one bounded exception, `docs/learning-design.md` §8.10:)* the
+  **free-grant relay** forwards a signed-in user's translation / speech / transcription
+  requests to the provider on our account, meters them, and stops at 0.2 USD per
+  account. It runs no model and stores no content — the text passes through and is
+  neither logged nor kept; what is written is the spend. That path is disclosed on its
+  own (§10 Gate F); the BYO path above is untouched and remains the default.
+- **Anonymous usage events are the one thing the product sends unasked** *(amended
+  2026-09-05)*: a whitelist of event names with a random per-install id, never page
+  content, URLs, hostnames, keys or account ids, off in one switch, and none at all
+  in the China flavor. The whitelist is a domain-design artifact — adding an event or
+  a property goes through the governance rule, not a PR. Design and Gate D:
+  `docs/telemetry-design.md`, `docs/learning-design.md` §10.
+- **The extension is complete without an account.** Sync is additive; every learning
+  feature works fully offline and signed-out, on every surface.
+
+See `AGENTS.md` 「产品原则：普惠优先」 for the governing rule, and
+`docs/learning-design.md` §2 and §8 for the model.
+
+## 9. The learning domain (记忆层) — a sink attached to the pipeline
+
+> Full model, scheduler math, salience gate, storage tiers, sync protocol and crypto
+> live in **[`docs/learning-design.md`](learning-design.md)**, which is the single
+> source of truth for that domain. This section fixes only the part that constrains
+> the *translation* domain — i.e. the boundary.
+
+The extension already holds, for every page and video, a large set of aligned
+`(source, translation)` pairs. The learning layer retains them and re-surfaces them
+on an Ebbinghaus forgetting curve. It attaches as a **bypass sink**, downstream of
+the Renderer:
+
+```
+source → Extractor → Engine → Renderer
+                                  │
+                                  └──▶ Collector ──▶ Store ──▶ Scheduler ──▶ Reviewer
+```
+
+### 9.1 核心约束 — the four Collector laws (do not break)
+
+1. **Capture is a sink, never a source.** The Collector reads only what the Renderer
+   has already decided to display. It never back-pressures the engine: it does not
+   influence `selectActive`, does not alter `pump()` cadence, does not mark units, and
+   **never originates a translation request**. *If the learning layer were deleted at
+   runtime, translation output must be byte-for-byte identical.*
+
+2. **Silent in the browsing flow — never silent to a user who opted in.**
+   *(Amended 2026-08-04. The original wording was "degradation is silent and total",
+   which conflated two separate things and let the second one hide behind the first.)*
+   - **Toward the page: absolutely silent.** Storage full, IndexedDB unavailable,
+     outbox overflow — all reduce to *no capture*, with the translation path
+     untouched. No retry loop, no notice injected into the page, no half-state (same
+     shape as §5.3.3). Reading a page must never be interrupted by the learning
+     layer's problems.
+   - **Toward a user who turned capture ON: never silent.** Anything that stops
+     capture, or discards material already collected, **must be visible in the
+     learning surfaces** (review page, settings, popup) with an action that fixes it.
+     A learner who finds out months later that collection quietly stopped is the
+     worst outcome this feature has — worse than being told on day one. (This is the
+     same rule `learning-design.md` §8.5 already applies to the server quota; law 2
+     used to contradict it.)
+   - **Dropping captures is still a normal path, not an error path** — it just is not
+     an *invisible* one.
+
+3. **Nothing reaches `DomSegmenter`.** The Collector adds **zero selectors**. Site
+   knowledge enters only through the two markers the segmenter already honors,
+   `data-mt-player-region` and `data-mt-skip-region` (§3). Needing a per-site or
+   per-device branch to decide *what to capture* means the design has regressed into
+   selector dependence — fix the salience model instead.
+
+   *Carve-out (2026-08-09): user-authored consent rules are not site knowledge.*
+   A source blocklist (来源屏蔽) or learning-language whitelist (学习语言白名单)
+   that the **user** writes is user governance — the same kind of consent as the
+   `learnEnabled` switch, scoped narrower. Such rules gate only *whether the sink
+   runs at all* for a page or a sentence (`learning-design.md` §4.1, §9): they never
+   reach the segmenter, never add a selector, and never influence what is translated
+   or rendered (law 1 holds byte-for-byte). What stays forbidden is **shipped**
+   per-site knowledge — a rule list we author and distribute. Per law 2, a page or
+   sentence where user rules stop capture must remain visible with a fix action; the
+   popup's 本站 section and the options 来源管理 are those surfaces.
+
+4. **Self-capture is forbidden.** Injected learning UI carries `translate="no"` **and**
+   `data-mt-skip-region`; the Collector skips `.mt-translation` and every `#mt-*`
+   subtree. Without this the extension translates its own translations and captures
+   the result — an unbounded loop that corrupts the corpus.
+
+> *Scope note (2026-08-12):* the learning layer's 说 exercise records the **user's
+> own voice** at their explicit tap and sends it only to the transcription endpoint
+> they configured (`learning-design.md` §9.4). This does not touch §2's subtitle
+> rule: the translation pipeline consumes transcripts that already exist, or — since
+> 2026-09-06, §2.4 — one the user explicitly asked their own endpoint to generate.
+> Either way the Collector sees only what the Renderer displayed.
+
+### 9.2 Where it attaches (the only three touch points)
+
+> *(Amended 2026-09-07:)* the host app's 对话 mode adds a fourth, **app-only** point —
+> `app/listen.js`, when a finalized pair is first rendered into the history list
+> (`docs/learning-design.md` §9.6). It writes through `LearnStore.putItem` in the app's
+> own origin (§9.3); `learn-collector.js` still ships in no app bundle.
+>
+> *(Amended 2026-09-11:)* 文档翻译 (§2.5) adds a fifth point, present in **both** hosts
+> but again outside `learn-collector.js`: `DocView`'s `onShown(unit, page)`, fired when a
+> paragraph's translation is first rendered on an open page. The host (`learn/docs-page.js`
+> or `app/docs.js`) runs `DocCore.shouldWrite` — the same laws, plus the §9.7 caps — and
+> writes through `LearnStore.mergeBatch`. Still a sink: it never requests a translation.
+>
+> *(Amended 2026-09-19:)* §2.6 adds a sixth, **app-only** point with two feeders and one
+> writer: `AppHandoff.ingest(records)` in the app's main page. The iOS extension feeds it
+> through the App Group inbox (drained on launch / foreground), the macOS panel through
+> the native relay (`mtQuick` `quick-capture`). Neither feeder opens `LearnStore` — the
+> store is per-account (`useDb`) and a second opener would hold a stale database name.
+> `ingest` runs `LearnRules.langAllowed` → `LearnModel.shouldCapture` → `mergeBatch`;
+> with the capture switch off it **discards and empties** the inbox rather than keeping
+> a backlog the user cannot see.
+
+| Surface | Attachment | Why there |
+|---|---|---|
+| Webpage | `content-webpage.js` `renderUnit`, inside the `st.translation && !sameAsOriginal` branch | This is **after** the same-language backstop, so only genuine translations reach it; node, source text and translation are all in hand |
+| Subtitles | `subtitle-adapter.js`, after `renderOverlay` | The sentence carries `{start, end, text, tr}`; capture requires the playhead to have actually crossed `[start, end]` — seeking past is not watching |
+| Session boundary | `spec.onMediaKeyChange` / `WebpageTranslator.disable()` | Flush point; also where the dwell observers are disconnected |
+
+`dom-processor.js` is **not modified**. It knows neither URL nor title by design
+(§3); the Collector reads `location.href` / `document.title` itself.
+
+### 9.3 Storage — the boundary is an origin boundary, not a preference
+
+> **A content script's `indexedDB` belongs to the HOST PAGE's origin.** The corpus
+> cannot live there: it would scatter across every visited site and be readable by the
+> page. And the service worker cannot be in the path either — it goes permanently
+> `undefined` on Safari iOS after device lock (§5.3.1).
+
+Hence three tiers: content script → bounded `lq:` outbox in `chrome.storage.local` →
+IndexedDB opened only in extension pages. Same reason `crypto.subtle` is unusable in
+content scripts (plain-`http` pages are not secure contexts), so the item id uses a
+synchronous FNV-1a hash rather than `crypto.subtle`.
+
+**The host app is a FOURTH origin, and the only bridge to it is the server**
+*(2026-08-07)*. The app's `WKWebView` can no more read the extension's IndexedDB than
+a content script can — it is a different origin again, and origin is the whole reason
+this boundary exists. So there are two corpora, and exactly one thing connects them:
+
+| Surface | Corpus lives in | Review surface | Signed out |
+|---|---|---|---|
+| Chrome / Firefox / Safari extension | extension-page IndexedDB | the extension's review page | **complete** |
+| iOS / macOS app | the app's own store | the app | **empty** — and the app must say so |
+
+Consequences, both counter-intuitive enough to be worth stating:
+
+- **On one iPhone, Safari's corpus and the app's corpus still meet by going through
+  the server.** Same device, same user, two origins.
+- *(2026-09-19)* **The App Group inbox is not a second bridge.** It connects the app to
+  *its own* extension process, not one corpus to another: a bounded outbox for the app's
+  corpus, the same shape as the `lq:` tier above (producer that cannot open the store →
+  bounded queue → the one page that can). The rejected 2026-08-07 design failed because
+  it put the *extension's upload* in the hands of a process the user may never launch;
+  here review only ever happens in the app, so a user who never opens it loses nothing,
+  and the caps (200 records / 512 KB / 30 days) bound what an unopened app accumulates.
+- **The extension owns the upload.** It pushes its own captures and holds its own
+  progress cursor; the app is downstream. The rejected alternative — draining the
+  outbox to native and letting the app upload — is recorded in `learning-design.md`
+  §12: it puts upload in the hands of a process the user may never launch, and the
+  extension could not even observe whether its data had arrived.
+
+### 9.4 Device axis
+
+There are **two** review implementations, and the split is an *entry-depth* problem,
+not a capability one: on iOS, reaching an extension page costs three taps (address bar
+→ extension → review) because that is where iOS puts extension UI **by construction**.
+An app icon is one tap. Both surfaces run the same engine (`learn-model.js`,
+`learn-scheduler.js`); §5.1's principle still holds inside each — viewport size is read
+at runtime, never branched.
+
+| Implementation | Covers | Requires sign-in |
+|---|---|---|
+| Extension review page | all five matrix rows | no |
+| Host app (iOS + macOS) | the two Apple rows | **yes** — the server is the only bridge (§9.3) |
+
+> **核心约束 — the host app is an ADDITIONAL surface, never the only working path.**
+> Safari iOS must be complete without it, per §5.3.1.
+>
+> **This constraint survived a design that was aimed directly at it** *(2026-08-07)*.
+> The proposal was to retire the extension's review page everywhere and make the app
+> the sole learning surface. It was rejected: it would leave a signed-out user without
+> a review surface at all, against `AGENTS.md` rules 2 and 3. **Keeping the extension's
+> review page is what makes signing in buy multi-device sync and a better surface,
+> rather than buying the feature itself.**
+
+> **2026-09-25 restatement**: both surfaces' shared UI moves to React; the "loads the
+> same review UI" guarantee is restated as **同一份源模块、同一次编译、零分叉** —
+> see §10.3, including how it is enforced by machine (metafile 对账门).
+
+## 10. UI 层框架 (React) — the view layer (2026-09-25)
+
+> **Status**: 用户 2026-09-25 裁定采纳；本节随 docs-only PR 过人评审后生效。
+> **管辖**：两宿主所有页面型 UI（扩展 popup / options / onboard / review / docs 五个
+> 页面 + App 全部视图）与注入 UI 的岛（悬浮球、字幕 overlay、翻译 chip）。
+> 本节属领域设计：改动本节任何规则先出 docs PR 过人评审（`AGENTS.md` 治理规则）。
+
+### 10.1 The decision — React 19 + esbuild, runtime stays zero-dep
+
+- 页面型 UI 全部迁 **React 19 + JSX**，esbuild 打包为 **IIFE**（`target` 取自
+  `build/os-floor.config.js`，单一来源；`jsx:'automatic'`；production define；
+  **不 minify** —— AMO 可读、门禁可读、diff 可人审）。
+- **「零依赖」约定修订为：运行时零依赖不变；构建期依赖仅限 devDependencies**
+  （esbuild / react / react-dom），版本经 `package-lock.json` 的 sha512 integrity
+  钉死（与 pdf.js vendor 的 sha256、`fetch-native-deps` 的钉法同族），CI 用
+  `npm ci`。产物里不出现任何 CDN、任何运行时 npm 依赖。
+- **不迁的东西（永久）**：纯逻辑模块（translation-core、translation-api、
+  wire-format、request-shape、listen-core、quick-core…）、原生桥适配器
+  （native-speech / native-audio / quick-host / vault-mirror —— 不迁 JSX、不改
+  路径，PROTOCOL 对表零扰动）、`dom-processor` 的分段逻辑、CSS 文件。
+- App 三文件契约（`Main.html` / `Script.js` / `Style.css`）不破：App 端 UI 收敛为
+  **单个** esbuild 产物拼进 `Script.js` 尾部；**一个 Script.js 里绝不允许出现两份
+  React**，这是 App UI 必须单入口的硬理由。
+
+### 10.2 State — one store, reactivity is the point (核心约束 — do not break)
+
+- `chrome.storage.local`（扩展）/ `app/chrome-shim.js`（App，原样保留）仍是唯一
+  持久层。其上是唯一的 **settings-store**（纯 JS，不 import React，两宿主同一份）：
+  启动经 `PageSettings.read` 全量读（**ok:false 语义必须透传** —— 读失败 ≠ 空配置）；
+  全页面**唯一一处** `storage.onChanged` 订阅；写 = 乐观更新 + `pendingEcho` 回声
+  去重；**写入方也订阅**。React 侧经 `useSyncExternalStore` 暴露。
+- **`SETTINGS_SCHEMA` 是设置键的唯一登记处**。各页手拷键清单（SETTINGS_KEYS /
+  POPUP_KEYS / READ_KEYS / docs KEYS）废除；新键必须进 SCHEMA，同一条一注册规则
+  与 §7 的 provider registry 同族。
+- **视图路由进 view-store**：顶层按单一 view 值条件渲染，section 互斥从「约定」
+  变成「结构」；`#quick` 分叉是 view-store 的初始值来源（`MAIN_ONLY` 拼接机制
+  随之退役，其行为不变量由 `test:quick` 行为门继续把守）。
+- i18n 收敛为一份 `t()` / `useT()`；`uiLang` 变更自动整树重渲染。`applyI18n` /
+  `paintStatic` 的打补丁模式废除。
+- **手动重绘一律废除**（depsOnWrite、paint*() 链、entry/entry2 双份同步）。此后
+  「某处改了设置、另一处界面不刷新」是 store 的 bug，不再是页面的疏忽。
+
+### 10.3 §9.4 restated — 同一份源模块、同一次编译、零分叉
+
+旧表述「两个宿主跑同一份**字节**」在打包世界不再成立；诚实的等价物是：
+
+1. 共享面（`Reviewer`、`DocView`、`SourcesView`、`EngineFields`、`QuickSetup`、
+   `Dialog`、`DepLine`、`Grant`）每个是**全仓唯一源文件**（`src/shared/`），两宿主
+   入口 import 同一路径 —— 仍然只有一份实现，App 不是第二套 UI。
+2. 执法机器化：esbuild **metafile 对账门** —— 扩展 review bundle 与 App UI bundle
+   的共享组件源文件集合必须一致、react 版本单源（lockfile）；加上源码级单实现
+   断言（`grant-one-implementation` 同款）与 `test:learn` 双宿主同产物驱动。
+3. 本仓各文档中历史叙述里的「同一份字节」，自本节起一律按「同一份源模块、同一次
+   编译」读；历史文本不逐处改写。
+
+### 10.4 hidden 纪律的 React 落法 (核心约束 — do not break)
+
+- **可见性是派生布尔值，传给始终挂载元素的 `hidden` 属性**；今天存在于 DOM 的
+  节点**不许条件卸载**。保的是三样东西：现有端到端门的 `.hidden` 断言、
+  `hidden-guard`、以及靠切 hidden 遍历 section 的深浅对比度 sweep。
+- 仅今天本来就 create/remove 的瞬态节点（dialog 弹层等）可条件渲染。
+- **现有 id 全部保留** —— id 是测试与原生桥的锚点，不是实现细节。
+
+### 10.5 迁移过渡 — 命令式孤岛规则
+
+React 页挂载尚未翻转的共享渲染器时：ref 容器挂载，React **承诺永不重渲染孤岛
+子树**（稳定 key、无 children）；hidden 分权 —— React 只写 section 级 hidden，
+孤岛只写自己内部的。两套机制抢写同一属性的竞态由此杜绝。翻转顺序：先两宿主壳，
+后共享模块（把孤岛换成 import），接缝窗口最短；全程共享模块只有一份实现。
+
+### 10.6 Content 注入 UI 的边界
+
+> **2026-09-28 as-built 补记（PR8a–PR8c 落地后）**：计划原列「悬浮球、字幕
+> overlay、翻译 chip 各一个 React root」，落地后 **React root 只给字幕控制菜单**
+> —— 其余注入面维持命令式，判据逐条如下；测试锚点见
+> `test/content-ui.test.js`（结构门）与 `scripts/verify-content-inject.js`
+> / `scripts/verify-content-menu.js`（真 Chrome 门）。
+
+- **字幕控制菜单 = 唯一的 React root**（PR8a）：`src/content/sub-menu.jsx` →
+  `content/sub-menu.bundle.js`（ESM），不在 manifest 的 content_scripts 列表
+  —— 用户第一次开菜单才动态 `import()`，同步注入面零新增字节；行判据（行序 /
+  文案 / 勾选 / 定位公式）留在 `subtitle-adapter.js`，bundle 只拿行数据。
+- **悬浮球 FAB + 翻译 chip 维持命令式**（PR8a 偏离声明）：FAB 的 SVG 改
+  `createElementNS` 逐节点构建 —— 消掉 YouTube Trusted Types 面上最后一个字符
+  串内联 HTML 注入点；chip 本就 `textContent`。FAB 是一次性静态子树，为它引
+  框架没有响应式收益。
+- **字幕 overlay 维持命令式**（PR8b 判据报告）：① 全路径零 HTML 写入汇（下方
+  结构门钉死）；② 懒加载降级不对称 —— 菜单开不出可接受，字幕不显示是核心功能
+  死；静态注入 +677KB 又击穿 +150KB 同步预算门，**回退开关与预算门互斥**；
+  ③ overlay DOM 结构是外部契约（win-matrix 读回判据、`dom-processor` 的排除、
+  `verify-asr`、商店素材脚本都盯着 `#mt-yt-overlay` / `.mt-yt-orig` /
+  `.mt-yt-trans`）。
+- **`.mt-translation` 译文块保留 createElement 直插**（不 React 化）：它是插进
+  宿主文档流的兄弟节点，宿主框架随时删搬，与 React 所有权模型冲突；42 个布局
+  fixture 按结构断言；本质 write-once 文本，无响应式需求。只把状态读取换成
+  store 订阅。**去留判据**（满足任一即维持命令式）：(a) 真机上逐节点 root 超
+  内存/首译延迟预算；(b) 结构被迫变动致 fixture 改断言 > 5 个；(c) `__mtTrans`
+  背引用需要绕过 reconciler 的 hack。PR8c 裁定：三条全中 —— (a) 每段一个
+  root（长文数百个）本身就是预算灾难；(b) 邻接兄弟结构正是 fixture 的断言目标
+  （portal 出去即全灭）；(c) `__mtTrans` 是引擎单元模型、孤儿重挂与 assert-lib
+  的共同背引用，「单 root + portal」在此不存在可行形态。
+- **注入面零 HTML 写入汇**（PR8b/PR8c 结构门）：`subtitle-adapter.js`、
+  `content-youtube/podcast/twitter.js`、`content-webpage.js`、
+  `dom-processor.js` 不得出现 HTML 写入汇（赋值 / `insertAdjacentHTML` /
+  `document.write`；读不咬 —— podcast 读 `documentElement.innerHTML` 扫字幕
+  地址是合法的）。这是「维持命令式」面能安全保留的**前提不变量**。
+- **懒加载**：content UI bundle 构建为 ESM 进 `web_accessible_resources`，由
+  引用方在第一次要画 UI 时 `import(chrome.runtime.getURL(...))`（PR8a 起没有
+  独立 loader 文件，import 点在 `subtitle-adapter.js`）。Firefox/Safari 实测
+  不过则回退静态 IIFE 注入 —— 注意这只对**菜单**成立（降级可接受）；overlay
+  / `.mt-translation` 不在此回退路径上（见上，预算门互斥）。**预算门**：
+  同步注入面 ≤ 基线 +150KB（`contentSyncBytesGate`）且冷注入中位耗时增幅
+  ≤ 10ms（`verify-content-inject`），超了构建/门即红。
+- Trusted Types：React 不走 innerHTML；`src/` 全域禁 `dangerouslySetInnerHTML`
+  （grep 门）；图标用 JSX `<svg>` 子元素，不用字符串注入。
+
+### 10.7 注册表与桥在 React 世界的位置
+
+- **生成注册表不进 bundle**：`*.gen.js`、`i18n-messages.js`（1.19MB）、
+  `backend.config.js` 继续独立 script 标签 / 拼接段挂 `window.MT_*`（flavor 正则
+  改写依赖「独立文件恰好命中一次」）。`src/` 新代码一律经 `src/lib/registry.js`
+  唯一读口；grep 门禁止 `src/` 直接摸 `window.MT_` 或 import gen 文件。
+- **window 级原生回调名是 ABI**（`window.show`、`__mtAppleResult`、
+  `__mtWebAuthResult`、`__mtDeepLink`、`AppQuick._fromNative`、
+  `NativeSpeech._fromNative`、`NativeAudio._fromNative`、`AppVault.onNative`…）：
+  由 `installBridgeGlobals()` 幂等挂回，签名逐字不变，实现体转发到 emitter；
+  store 订阅桥事件，React 不直接摸全局。
+
+### 10.8 迁移期验收基线 — 行为与像素双不变
+
+见 `interaction-spec.md` 全局原则新增条。测试纪律：**不变量不能丢，只能换锚点**；
+每个迁移 PR 的描述附「不变量 → 旧锚点 → 新锚点」表；没有任何测试被删除后不留
+等强度替代；禁止为组件测试引 jsdom（组件渲染走真 Chrome CDP 门）。
+
+### 10.9 页面迁移范式 — 每页怎么搬（popup 是范本，PR3）
+
+后续每页照此搬，**不要每页重新发明一遍**。范本：`src/pages/popup.jsx`
+（494 行 IIFE → React，全部 id 保留、行为不变）。
+
+1. **产出形态**：源码进 `src/pages/<page>.jsx`，登记进
+   `build/ui-entries.config.js`；esbuild 产物**覆盖 dist 里同名 .js**，HTML 的
+   script 标签、路径、顺序一字不动。静态 DOM 全删，换 `<div id="root">` +
+   一段说明注释；原 HTML 注释搬成 `{/* */}`。
+2. **id 全保留**。可见性走派生布尔值挂 `hidden` 属性，元素**始终挂载**——
+   不许条件卸载今天在 DOM 里的节点（§10.4）。唯一豁免：原版本来就用
+   create/remove 的瞬态节点。
+3. **设置读取**：`SETTINGS_SCHEMA.keysFor('<surface>')` 取键 +
+   `useSettings()` 订阅；**手抄键清单在本 PR 删掉**，并在
+   `test/store-schema-i18n.test.js` 加一条正向断言（清单名不许回潮）。
+   文案走 `lib/i18n.js` 的 `t()`，本页的 t()/applyI18n 拷贝删掉。
+4. **注册表与命令式孤岛**：`window.MT_*` 一律经 `lib/registry.js` getter
+   （`Registry.grant()/sttEngines()/backend()`）；尚未迁移的模块
+   （`EngineState`、`LearnGrant`、`AsrEntry`… 仍是 bundle 外全局）直接用
+   裸名 + `typeof x !== 'undefined'` 守卫——它们是互操作对象，不是要消灭的
+   全局。遥测 `MTTelemetry.track(...)` 的**字面量保真**：seed 检查
+   （`test/telemetry-registry.test.js`）按 stripComments 后的源文本匹配，
+   改写调用形状会红。
+5. **首帧门控**：`status !== 'loading'`（store 初始化完成）之前不渲染依赖
+   设置的派生区块，防 schema 默认值抢闪。行为变化要声明：原版先画 HTML 里的
+   中文兜底再 `applyI18n` 换语言（闪一次），React 版首帧即按生效语言渲染，
+   **无闪烁**——这算改善，仍要在 PR 描述里写明。
+6. **事件处理器**：`chrome.*` 调用原样保留（tabs.sendMessage、action.setBadge…）；
+   失败路径 `catch → null` 的静默语义照旧，不许顺手「修好」。异步 UX 状态
+   （busy/toast）进 useState，计时器进 ref 防叠。
+7. **测试锚点跟着搬**（见 §10.8 与 PR3 描述的锚点表）：
+   - 源文件路径改了 → grep 型测试的文件清单同步（`engine-state`、
+     `ext-ob-seen`、`no-hardcoded-copy`、`engine-fields` 的语言项对账面）。
+   - **effect 在 JSX 之前**（文本顺序）：原来锚在「某 id 的 DOM 读点」的顺序
+     断言会错位——换成 effect 里的**带实参调用**（如 `setDue(n > 0`），
+     渲染点存在性单独断言。
+   - JSX 文本节点的中文没有引号，字面量扫描看不见 → `no-hardcoded-copy`
+     对 `.jsx` 加「`>…中文…<`」文本形状扫描；`stripComments` 对 JSX 安全
+     （`{/* */}` 走块注释态，`</tag>` 的 `/` 短暂进正则态即退）。
+   - 扫描面扩到 `src/` 的门（`ext-ob-seen`）记得排除 `src/store/schema.js`
+     —— 键的**登记处**出现键名不是「读取」。
+8. **死代码就地死**：搬移时发现「定义了但没有任何调用点」的旧代码
+   （popup 的 `PROVIDERS`/`providerById`）不搬、在 PR 描述里点名，不留进 JSX。

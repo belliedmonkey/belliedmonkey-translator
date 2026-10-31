@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>中国版额度 · 方案 C：身份走东京，原文只走境内</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1800px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">中国版的免费额度走通义千问，且原文一步都不出境</h1><span>2026-09-22 裁定：模型用 Qwen · 中继放境内 · 账号与额度仍挂在现有后端</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>国际版（现状）</b><span>一条线，全在境外</span></div><div style="display:flex;flex-direction:column;gap:7px">
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>扩展 / App</b>（原文 + 令牌）</div>
+      <div style="text-align:center;color:var(--muted)">↓</div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>bt-relay</b>（东京）· 扣额度、钉死模型</div>
+      <div style="text-align:center;color:var(--muted)">↓</div>
+      <div style="border:1px solid var(--border);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>OpenRouter</b> → 模型</div>
+    </div>
+    <p class="hint">中继今天打的是 OpenRouter（<code>bt-relay/index.ts:30</code>），模型在服务端钉死、忽略客户端送的。</p></div>
+  <div class="cell"><div class="cap"><b>中国版（提议 C）</b><span>两条线分开 —— 这是整个方案的要点</span></div><div style="display:flex;flex-direction:column;gap:7px">
+      <div style="border:1px solid #1f4a7a;border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5;background:#e9f0f8">
+        <b>身份线</b>：App / 扩展 → 现有后端（东京）→ 拿回额度令牌<br>
+        <span style="color:#1f4a7a;font-weight:700">只传身份与令牌，不含任何原文</span></div>
+      <div style="border:1px solid var(--sage);border-radius:12px;padding:9px 11px;font-size:.8rem;line-height:1.5;background:var(--tint)">
+        <b>原文线</b>：App / 扩展 → <b>境内中继</b> → 阿里云百炼 · 通义千问<br>
+        <span style="color:var(--sage);font-weight:700">原文一步都不出境</span></div>
+    </div>
+    <p class="hint">为什么不选另外两条：<b>A（东京中继→千问）</b>原文仍然出境，还要绕中国→东京→杭州→东京→中国；<b>B（整套后端搬境内）</b>要重建 GoTrue 与库，而额度以 <code>user_id</code> 为主键、账号体系本来就在东京。</p></div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>要新建的</b><span>比整套境内后端小得多</span></div><ul class="steps" style="font-size:.8rem"><li>一台<b>境内中继</b>（只转发原文 + 校验令牌 + 扣额度，不存内容）</li><li><code>bt-relay</code> 加一条中国线：不打 OpenRouter，直连百炼</li><li>构建期把中国版的额度端点指向境内中继</li><li>中国合规门那三条禁令要连同 2026-09-08 那次泄漏一起重新裁定</li></ul></div>
+  <div class="cell"><div class="cap"><b>落地前必须先确认的两件</b><span>不是工程问题</span></div><ul class="steps" style="font-size:.8rem"><li><b>百炼的条款</b>：我们是<b>替用户转发</b>而不是用户自己调 —— 「代他人调用 / 转售」这类条款要单独确认（与「订阅套餐禁止自建应用」是两码事，那条针对订阅、不针对 API 计费）</li><li><b>出境告知与单独同意</b>：身份线仍然出境，所以那层文案与同意动作<b>必须同版落地</b>，不能先发额度后补</li></ul></div>
+</div>
+<div class="ask"><b>成本不是问题</b>国际版 47 个账号 11 天总共花了 <b>$0.72</b>；千问单价更低，中国版近 30 天下载 106 次。量级可以忽略 —— 这条的成本在工程与合规，不在钱。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

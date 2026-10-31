@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>iOS 判不了扩展开没开 ⇒ 唯一可靠的回读是检测页</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">结构性事实：iOS 上 App 拿不到扩展的开关状态</h1><span>app/app.js 的 iOS 分支把状态写死成「不知道」</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>现在</b><span>横幅只能「说」，说完就把人送出 App</span></div><div class="flow">
+      <div class="node now"><b>横幅</b>教三步</div><span class="arr">→</span>
+      <div class="node now"><b>系统 Safari</b>打开我们的网页</div><span class="arr">→</span>
+      <div class="node now"><b>？</b>他照做了没有<br>我们永远不知道</div>
+    </div>
+    <p class="hint">那个网页<b>已经是检测页</b>（打开它就能看见绿灯），但它现在只是横幅角落里一行小字「不确定？打开检测页看绿灯 →」，而且它的点击与主按钮记成同一个来源。</p></div>
+  <div class="cell"><div class="cap"><b>提议</b><span>把检测页从附属链接升成主路径</span></div><div class="flow">
+      <div class="node new"><b>横幅</b>一句话 + 一个按钮</div><span class="arr">→</span>
+      <div class="node new"><b>检测页</b>绿灯 / 红灯<br>它<b>知道</b>扩展在不在</div><span class="arr">→</span>
+      <div class="node new"><b>回到 App</b>状态行变成「已打开」</div>
+    </div>
+    <p class="hint">检测页是唯一一处<b>能证明</b>扩展开了的地方 —— 扩展注入到那个页面上，绿灯是机器判的，不是人自称的。</p>
+    <div class="ask"><b>要裁定的第二件：绿灯怎么回到 App？</b>两条路：<br><b>A.</b> 检测页给一个深链（回 App 并带上「我看见绿灯了」）—— 一次点击，但仍是人点的。<br><b>B.</b> 扩展在检测页上顺手写一次同步/账号侧的标记，App 下次启动读它 —— 真回读，但只对登录用户成立，而且要过领域设计（多一条跨面的状态）。<br>我倾向 <b>A 先做</b>：它把「自称」变成「在绿灯页上自称」，成本一行；B 留给 #386 那轮一起看。</div></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

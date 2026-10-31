@@ -1,0 +1,170 @@
+// learn/backend.config.js — where the optional sync backend lives.
+// See docs/learning-design.md §8.4.1.
+//
+// The host and the *publishable* anon key are **injected at build time**
+// (build/backend-inject.js; values from CI secrets or the private side-repo recipe).
+// What is checked in here are inert placeholders — a real anon key is still publishable
+// (RLS keyed on `auth.uid()` means no session can read/write anything), but the OSS
+// tree does not carry a copy. A key that must stay secret must never appear in this
+// file at all: the build rejects a `service_role` JWT instead of injecting it.
+//
+// This is also the whole "which backend" decision, in one object. §8.4.1 explains why
+// the client is written so that changing it is a one-file change.
+
+var MT_BACKEND = {
+  // ─── SHIPPING SWITCH ─────────────────────────────────────────────────────
+  // true since v1.4.0 (Gate B, 2026-08-09): sync is PUBLIC. The flip landed in
+  // the same commit as the honest privacy copy — README ×2, the in-product
+  // learn_section_hint ×11 locales, and the Firefox data_collection_permissions
+  // growing to three entries — exactly as learning-design §10 required. The
+  // build gates that used to block this flag now guard the OPPOSITE direction:
+  // enabled:true with any stale "never uploaded / no account" sentence anywhere
+  // in the repo fails the build (see build.js validateManifest, Gate B block).
+  //
+  // The CHINA flavor's EXTENSION ships with this flipped back to false at build
+  // time (build.js china override). The China HOST APP, however, ships the one
+  // shared app bundle — enabled:true, sign-in included — by explicit decision
+  // (2026-08-17, App Review Route A: reviewers require a username+password demo
+  // account, so the login stays). Known asymmetry: a China user's extension does
+  // not upload, so the app's sync only pulls what other (global-flavor) devices
+  // pushed. Unifying the china extension's sync is a separate decision with its
+  // own PIPL/cross-border gate.
+  //
+  // Sign-in stays optional: signed out, every feature except multi-device sync
+  // works fully and locally (§8.2 stance — sync is an upgrade, not a gate).
+  enabled: true,
+
+  // Dedicated project, Tokyo (ap-northeast-1) — 2026-08-04. Tokyo rather than the
+  // us-east-1 the other projects use: sync is not latency-critical, but the users
+  // are, and from mainland China us-east-1 is ~250-350ms and unreliable where Tokyo
+  // is ~50-80ms. Region cannot be changed after creation, so it is a decision, not
+  // a default. **The real host/key are injected at build time**, not committed.
+  // Placeholders are deliberately not resolvable: an un-injected build points at an
+  // .invalid host and cannot silently reach a real backend.
+  url: 'https://backend.invalid',
+  anonKey: 'PUBLIC_ANON_KEY_INJECTED_AT_BUILD',
+  table: 'bt_chunks',
+  quotaBytes: 50 * 1024 * 1024,
+
+  // 后端**真的开着**的第三方登录（§8.4.1.2）。界面只提供这里列出的。
+  //
+  // 为什么要有这张表：一个 provider 在 Supabase 那边没配时，点它会跳到一个
+  // 「Unsupported provider」的错误页 —— 一个必然失败的按钮，和「点了没反应」
+  // 是同一类。而「配没配」是**后端的状态**，客户端猜不出来，只能被告知。
+  //
+  // 加一个 provider 的顺序永远是：先在 Supabase 配好并实测授权入口 302 到对的地方，
+  // 再把它写进这张表。反过来做，就是发一个坏按钮出去。
+  //   apple  —— 2026-09-03 配好（Services ID + secret，实测 302 到 appleid.apple.com）
+  //   google —— 2026-09-03 配好（OAuth client 950198135110-…，实测 302 到
+  //             accounts.google.com 且 client_id 与本地那份逐字一致）
+  //
+  // 排序就是界面上的排序。Apple 在前：按下载数据用户几乎全在苹果设备上，而在那些
+  // 设备上 Sign in with Apple 是系统级的一次点击，Google 要走一次浏览器往返。
+  providers: ['apple', 'google'],
+
+  // 手机号验证码。**还没接通** —— Supabase 的 Send SMS Hook 与阿里云 PNVS 都没配。
+  // 界面按这个值决定说不说「手机号」；auth.js 那一侧早就支持了，但**能力不等于承诺**：
+  // 在没接通时把「邮箱或手机号」写在标签上，是让用户填一个必然失败的东西。
+  //
+  // 接通之后这里也**不能直接写 true** —— PNVS 只发中国大陆号码（+86）。对一个法国
+  // 用户说「手机号」同样是假话。所以它的取值是**地域相关**的：
+  //   'cn'   —— 只在中国版构建里提供（那个 flavor 的用户几乎必然是 +86）
+  //   true   —— 所有地区都提供（只有换成一家全球可达的短信服务之后才成立）
+  //   false  —— 不提供（现在）
+  // 判据永远是「这条路对**这个**用户真的能走通吗」，不是「我们实现了吗」。
+  phoneOtp: false,
+
+  // ─── 中国版的境内后端（§C，2026-09-05）──────────────────────────────────
+  //
+  // 上面那个 `url` 在东京（ap-northeast-1）。中国版 **App** 今天就在打它 ——
+  // 也就是说中国版现在有数据出境。「怎么说」这一半 2026-09-22 已经补齐：
+  // `belliedmonkey.com/privacy.html` 第 3 节写明东京、接收方与行权方式，App 登录前
+  // 有一次单独同意（app.js `xbNeeded`，learning-design §8.10.2）。境内后端要解决的
+  // 是另一半 —— 数据去哪；它就绪之后那个同意框按值自动消失。
+  // （此前这里写着「隐私政策写着『绝不上传』」—— 2026-09-19 起就不对了，别据此判紧迫性。）
+  //
+  // 形状是「一台轻量服务器跑整套」：Postgres + GoTrue + PostgREST + 反代。
+  // **协议一个字节不变** —— 客户端对 Supabase 的特有依赖近乎为零（没有
+  // supabase-js、没有 Storage/Realtime），它说的是标准 GoTrue + PostgREST，
+  // 而 `auth.uid()` / `auth.users` 是 GoTrue 的产物不是 Supabase 独有。
+  // 所以这里只换地址与 key，`supabase/schema.sql` 原样复用。
+  // 部署契约见 `deploy/china/README.md`。
+  //
+  // ⚠️ **`ready` 是这个块存在的全部理由。**
+  //
+  // 机器、备案、SMTP 三件事任何一件没就绪，切过去就是把中国版所有用户送进一个
+  // 连不上的地址 —— 那比现在的状态坏得多。所以：
+  //
+  //   ready: false —— 构建行为**与从前逐字相同**（中国版扩展 sync 关闭）。
+  //                   这是今天的值，代码与门禁先落地，不动运行时。
+  //   ready: true  —— 中国版产物的 url/anonKey 换成下面这两个，且**不再关 sync**。
+  //
+  // 翻它之前必须全部为真（compliance 私仓的 `deploy/china/README.md` 有逐条判据）：
+  //   1. 服务器上五条真实链路都跑通了（Apple 登录 · 邮箱 OTP · push · pull · 删号）
+  //   2. `url` 那个域名的 ICP 备案已通过，且接入商就是这台机器所在的云厂商
+  //   3. `anonKey` 是该后端 GoTrue 同一个 JWT secret 签出的 `role: anon` 长期 token
+  //
+  // 只有一处写死了「境内」这件事：门禁要求 `url` 不是 *.supabase.co
+  // （见 test/backend-config.test.js）—— 否则「切过去了」会是一句假话。
+  // 2026-09-22 翻（用户裁定「1.15.0 就切」）：服务器五条链路 + 一小时刷新已验，真机 Apple
+  // 登录随 1.15.0 验收矩阵补。已有中国版用户的东京数据**不迁移**（用户裁定），发布说明与隐私页写明。
+  // **2026-11-01（BEL-172）**：真实 host / anon key 改为 build 注入，仓库只留占位。
+  china: {
+    ready: true,
+    url: 'https://cn.backend.invalid',
+    // 占位；真实值来自 CI secret / 私仓配方（MT_CHINA_BACKEND_URL / MT_CHINA_BACKEND_ANON_KEY）
+    anonKey: 'PUBLIC_CN_ANON_KEY_INJECTED_AT_BUILD',
+  },
+
+  // ─── 免费额度（§8.10，2026-09-08）────────────────────────────────────────
+  //
+  // 每个**已登录**用户一份封顶 0.2 美元的额度。用户拿到的是一枚**令牌**
+  // （`bmg_` + 43 字符），不是提供方的 key —— 提供方的 key 只在边缘函数
+  // `bt-relay` 的环境变量里，永不离开服务器。请求经我们的中继转发并计量。
+  //
+  // 这与 AGENTS 规则 2「免费路径不需要我们的服务器」并不冲突，因为它**不是免费
+  // 路径**：自带 key 与免费 Google 引擎一个字节都没变，额度是登录带来的附加福利。
+  // 用户 2026-09-08 的原话：「额度不走自带 key，额度走我们服务端。我没有违反免费承诺。」
+  //
+  // ⚠️ **`enabled` 是这个块存在的全部理由**，同 `china.ready` 的先例：
+  //   false —— 构建产物里**没有** MT_GRANT，客户端所有额度分支都取不到 spec，
+  //            行为与从前逐字相同。这是今天的值：代码与门禁先落地，不动运行时。
+  //   true  —— 全球版发射 MT_GRANT，领取入口出现。翻它是 G6 的动作，
+  //            前置是 README ×2 与两站隐私的 Gate F 文案**同版**上线。
+  //
+  // 中国版**恒为 null**，不是「关着」而是「不存在」：中国用户的原文会经东京中转，
+  // 而境内后端未就绪（同 `china.ready` 的三件外部事）。中国版走的是另一条路 ——
+  // 引导用户去领百炼官方的免费额度，那份额度是阿里云给的，不经我们的手。
+  grant: {
+    enabled: true,
+    vendor: 'openrouter',
+    // 披露文案里要显示的名字。**只写这一处** —— Gate F 那段话要出现在 README ×2、
+    // 两个站点、12 份 locale 的卡上；把厂商名抄进那些地方就是十几份会漂的副本，
+    // 而这个仓库已经为「抄下来的名字不再跟着注册表走」付过一次学费（DeepSeek 的
+    // 提示写死了模型名，API 早就不认了还在那儿）。文案里用 {vendor} 占位。
+    vendorLabel: 'OpenRouter',
+    limitUsd: 0.2,
+    // 中继的三个地址。**在这里由 url 拼出来，不在别处再写一遍主机名** ——
+    // 换后端时只改上面那个 `url`。生成到产物里的是完整地址，运行时原样使用
+    // （wire-format 的「地址原样请求」承诺，domain-design §7）。
+    relayPath: '/functions/v1/bt-relay',
+    // ─── 中国版额度：方案 C（learning-design §8.10.1，2026-09-22 裁定）─────────
+    //
+    // 原文**只走境内**：客户端 → 境内中继（同一份 bt-relay 代码，上游换成百炼 · 千问）。
+    // 境内中继同时代转「领取」（/claim → 东京 bt-grant，只带登录令牌），所以中国版产物里
+    // **一个东京的额度路径都没有** —— 合规门（build/china-gate.js）就按这一条验：
+    // 产物里出现的每一个额度端点都必须落在 relayUrl 那台主机上。
+    //
+    //   ready: false —— 中国版 MT_GRANT 恒为 null，产物与从前逐字相同（今天的值）。
+    //   ready: true  —— relayUrl 必须是 https、不在 *.supabase.co；否则构建直接失败。
+    //
+    // 翻它之前（hosted 私仓的 deploy/china-relay/README.md 有逐条判据）：境内机器上 /spec 回读到千问、
+    // 在境内手机网络下回读通过（首选腾讯云云函数的默认地址，不绑域名就不涉及备案）、出境单独同意已随版上线（#399）。
+    // **只有翻译这一槽**：百炼没有与中继同形状的朗读 / 转写接口，中国版额度不含那两槽。
+    // 披露文案里的 {vendor} 不在这里写：取注册表 qwen 条目的中国区 label（build.js chinaGrant）。
+    // **2026-11-01（BEL-172）**：真实 relay URL 改为 build 注入（MT_CHINA_RELAY_URL）。
+    china: { ready: true, relayUrl: 'https://relay.invalid', vendor: 'dashscope' },
+  },
+};
+
+if (typeof module !== 'undefined' && module.exports) module.exports = MT_BACKEND;

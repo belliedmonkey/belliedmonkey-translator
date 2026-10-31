@@ -1,0 +1,4212 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey：対訳・二重字幕・単語復習"
+  },
+  "extension_description": {
+    "message": "対訳ページと二重字幕。実際に読んだ文が間隔反復カードになります。キーはご自身のものを使用。"
+  },
+  "action_title": {
+    "message": "大肚猴翻訳"
+  },
+  "msg_loading": {
+    "message": "⏳ 翻訳中…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 翻訳を準備中…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 翻訳に失敗 — タップで再試行"
+  },
+  "fab_translate": {
+    "message": "翻訳"
+  },
+  "fab_toggle": {
+    "message": "翻訳を切り替え"
+  },
+  "fab_enable": {
+    "message": "翻訳をオン"
+  },
+  "fab_disable": {
+    "message": "翻訳をオフ"
+  },
+  "yt_btn_title": {
+    "message": "大肚猴翻訳 · 動画字幕"
+  },
+  "yt_sub_on": {
+    "message": "字幕翻訳をオン"
+  },
+  "yt_sub_off": {
+    "message": "字幕翻訳をオフ"
+  },
+  "yt_display_type": {
+    "message": "字幕の表示"
+  },
+  "yt_mode_both": {
+    "message": "バイリンガル"
+  },
+  "yt_mode_trans": {
+    "message": "訳文のみ"
+  },
+  "yt_mode_orig": {
+    "message": "原文のみ"
+  },
+  "yt_download_srt": {
+    "message": "字幕をダウンロード (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "字幕がまだ準備できていません。翻訳の読み込み後にお試しください"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ 字幕を読み込み中…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "字幕は利用できません"
+  },
+  "podcast_sub_on": {
+    "message": "ポッドキャスト字幕をオン"
+  },
+  "podcast_sub_off": {
+    "message": "ポッドキャスト字幕をオフ"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "popup_target_lang": {
+    "message": "翻訳先の言語"
+  },
+  "popup_provider": {
+    "message": "翻訳エンジン"
+  },
+  "provider_google_free": {
+    "message": "Google 翻訳（無料）"
+  },
+  "placeholder_api_key": {
+    "message": "API キーを入力…"
+  },
+  "toggle_show_hide": {
+    "message": "表示/非表示"
+  },
+  "label_custom_api": {
+    "message": "エンドポイント URL（完全）"
+  },
+  "label_optional": {
+    "message": "（任意）"
+  },
+  "btn_translate_page": {
+    "message": "このページを翻訳"
+  },
+  "btn_view_original": {
+    "message": "原文を表示"
+  },
+  "btn_more_settings": {
+    "message": "詳細設定"
+  },
+  "status_translated": {
+    "message": "翻訳済み"
+  },
+  "status_untranslated": {
+    "message": "未翻訳"
+  },
+  "toast_lang_switched": {
+    "message": "言語を切り替えました"
+  },
+  "toast_provider_switched": {
+    "message": "エンジンを切り替えました"
+  },
+  "toast_restored_original": {
+    "message": "原文に戻しました"
+  },
+  "toast_translating": {
+    "message": "翻訳中…"
+  },
+  "options_title": {
+    "message": "大肚猴翻訳 — 設定"
+  },
+  "options_engine_section": {
+    "message": "翻訳エンジン"
+  },
+  "options_engine_label": {
+    "message": "エンジン"
+  },
+  "provider_google_free_long": {
+    "message": "Google 翻訳（無料・API キー不要）"
+  },
+  "options_custom_api_hint": {
+    "message": "空欄ならこのエンジンの既定エンドポイントを使います。入力する場合はパスを含む完全なリクエスト URL を書いてください——入力どおりに送信し、パスを補完しません。プロキシや自前サーバーにも使えます。"
+  },
+  "options_lang_section": {
+    "message": "言語"
+  },
+  "options_style_section": {
+    "message": "表示スタイル"
+  },
+  "options_webpage_color": {
+    "message": "ウェブ訳文の色"
+  },
+  "options_color_preview": {
+    "message": "これは訳文スタイルのプレビューです"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕の色"
+  },
+  "options_yt_preview": {
+    "message": "バイリンガル字幕プレビュー"
+  },
+  "options_font_size": {
+    "message": "訳文サイズ（原文比）"
+  },
+  "options_font_s": {
+    "message": "小さめ (0.8×)"
+  },
+  "options_font_m": {
+    "message": "やや小さめ (0.9×)"
+  },
+  "options_font_body": {
+    "message": "原文と同じ (1.0×)"
+  },
+  "options_font_l": {
+    "message": "やや大きめ (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "フローティングボタンを表示"
+  },
+  "options_cache_section": {
+    "message": "キャッシュ"
+  },
+  "options_cache_hint": {
+    "message": "翻訳結果は API リクエストを減らすため 12 時間キャッシュされます。"
+  },
+  "options_clear_cache": {
+    "message": "翻訳キャッシュを消去"
+  },
+  "options_about_section": {
+    "message": "このアプリについて"
+  },
+  "options_about_desc": {
+    "message": "対訳翻訳 + 学習ループ：実際に読んだ文が復習カードになります。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：設定 → Safari → 機能拡張 で有効化。"
+  },
+  "toast_provider_saved": {
+    "message": "エンジンを保存しました"
+  },
+  "toast_endpoint_cleared": {
+    "message": "エンジンを変更したため、エンドポイント URL をクリアしました",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "API キーを保存しました"
+  },
+  "toast_apiurl_saved": {
+    "message": "API URL を保存しました"
+  },
+  "toast_lang_saved": {
+    "message": "言語を保存しました"
+  },
+  "toast_fontsize_saved": {
+    "message": "文字サイズを保存しました"
+  },
+  "toast_color_saved": {
+    "message": "色を保存しました"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕の色を保存しました"
+  },
+  "toast_clearing": {
+    "message": "消去中…"
+  },
+  "toast_cache_empty": {
+    "message": "キャッシュは空です"
+  },
+  "toast_cache_cleared": {
+    "message": "キャッシュを消去しました"
+  },
+  "hint_openai": {
+    "message": "OpenAI API キー（sk-…）。"
+  },
+  "hint_claude": {
+    "message": "Anthropic API キー（sk-ant-…）。"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API キー。"
+  },
+  "hint_glm": {
+    "message": "GLM（智譜 AI）API キー（無料枠あり）。"
+  },
+  "ui_lang_label": {
+    "message": "表示言語"
+  },
+  "ui_lang_auto": {
+    "message": "システムに従う"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "大きめ (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key."
+  },
+  "hint_qwen_mt": {
+    "message": "Qwen MT（DashScope）の API キー。翻訳専用モデルで、汎用チャットモデルより安く高速です。Qwen と同じキーを使います。"
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "既定モデル："
+  },
+  "hint_custom_chat": {
+    "message": "Chat Completions 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。末尾が responses の場合は Responses 形式で送信します。"
+  },
+  "hint_custom_msg": {
+    "message": "Messages 形式の対話エンドポイント。完全なエンドポイント URL・モデル・キーを入力してください。"
+  },
+  "label_custom_model": {
+    "message": "モデル"
+  },
+  "options_custom_model_hint": {
+    "message": "空欄にすると、そのエンジンの既定モデルを使います。"
+  },
+  "options_advanced": {
+    "message": "詳細パラメータ"
+  },
+  "label_adv_temperature": {
+    "message": "ランダム性（temperature）"
+  },
+  "options_adv_temperature_hint": {
+    "message": "空欄なら 0.3。低いほど訳文が安定します。"
+  },
+  "label_adv_max_tokens": {
+    "message": "1 回あたりの最大出力長"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "空欄なら 2000。長い段落が途切れる場合は上げてください。"
+  },
+  "label_adv_timeout": {
+    "message": "リクエストのタイムアウト（秒）"
+  },
+  "options_adv_timeout_hint": {
+    "message": "空欄なら 20 秒。自己ホストや推論モデルが遅い場合は上げてください。"
+  },
+  "label_adv_concurrency": {
+    "message": "同時リクエスト数"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "空欄なら 5。レート制限を受ける場合は下げてください。上げても待機中のリクエストは速くなりません。"
+  },
+  "options_adv_unsupported": {
+    "message": "このモデルはこのパラメータを受け付けないため、送信されません。"
+  },
+  "label_adv_custom": {
+    "message": "カスタムリクエストパラメータ"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON オブジェクト。リクエスト本体にマージされ、上の項目を上書きします。当方で未計測の自己ホスト／社内エンドポイント向けです。"
+  },
+  "options_adv_custom_bad": {
+    "message": "解析できないため送信されません："
+  },
+  "options_adv_custom_notobj": {
+    "message": "JSON オブジェクトが必要です。送信されません。"
+  },
+  "options_adv_custom_ok": {
+    "message": "送信する項目："
+  },
+  "options_adv_custom_dropped": {
+    "message": "上書き不可のため無視："
+  },
+  "options_adv_custom_none": {
+    "message": "（なし）"
+  },
+  "err_reasoning_starved": {
+    "message": "モデルが出力予算をすべて推論に使い、訳文を返しませんでした。詳細パラメータの「1 回あたりの最大出力長」を上げるか、推論しないモデルに切り替えてください。"
+  },
+  "toast_model_saved": {
+    "message": "モデルを保存しました"
+  },
+  "setup_need_key": {
+    "message": "このエンジンには API キーが必要です。下に入力するまで翻訳は動作しません。"
+  },
+  "popup_need_setup": {
+    "message": "翻訳エンジンがまだ未設定です —— ここをタップして設定を開くと、キーひとつで設定できます。"
+  },
+  "learn_title": {
+    "message": "復習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻訳 · 復習"
+  },
+  "learn_review": {
+    "message": "復習"
+  },
+  "learn_reveal": {
+    "message": "訳を表示"
+  },
+  "learn_grade_again": {
+    "message": "忘れた"
+  },
+  "learn_grade_hard": {
+    "message": "難しい"
+  },
+  "learn_grade_good": {
+    "message": "わかった"
+  },
+  "learn_grade_easy": {
+    "message": "簡単すぎ"
+  },
+  "learn_empty_title": {
+    "message": "学習素材はまだありません"
+  },
+  "learn_empty_body": {
+    "message": "収集をオンにして、いつも通り閲覧・翻訳してください。実際に読んだ文だけが保存され、素早くスクロールして通り過ぎた文は保存されません。"
+  },
+  "learn_open_settings": {
+    "message": "設定で収集をオンにする"
+  },
+  "learn_alldone_title": {
+    "message": "今回の復習は完了です"
+  },
+  "learn_alldone_body": {
+    "message": "閲覧と翻訳を続ければ、新しい素材が自動的に入ってきます。"
+  },
+  "learn_next_due": {
+    "message": "次のカードは{when}に予定されています。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 時間後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 日後"
+  },
+  "learn_progress": {
+    "message": "進捗"
+  },
+  "learn_done_run": {
+    "message": "今回 {n} 枚完了"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "出典不明"
+  },
+  "learn_count_due": {
+    "message": "復習待ち"
+  },
+  "learn_count_learning": {
+    "message": "学習中"
+  },
+  "learn_count_new": {
+    "message": "候補"
+  },
+  "learn_count_known": {
+    "message": "習得済み"
+  },
+  "learn_count_total": {
+    "message": "合計"
+  },
+  "learn_section": {
+    "message": "学習"
+  },
+  "learn_section_hint": {
+    "message": "オンにすると、実際に読んだ文がページのアドレス・タイトル・表示時間とともにこの端末に保存され、忘却曲線に沿って再表示されます。素早くスクロールした分は含まれません。同期をオンにしない限りアップロードは行われず、ボタン一つで全消去できます。"
+  },
+  "learn_enable": {
+    "message": "学習素材を収集する"
+  },
+  "learn_daily_new": {
+    "message": "1 日に導入する新規カードの上限"
+  },
+  "learn_open_review": {
+    "message": "復習ページを開く"
+  },
+  "learn_clear": {
+    "message": "学習ライブラリを消去"
+  },
+  "learn_clear_confirm": {
+    "message": "学習ライブラリを消去しますか？収集済みの文と復習の進捗はすべて削除され、元に戻せません。"
+  },
+  "learn_stats": {
+    "message": "{n} 件 · 復習待ち {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "学習ライブラリは空です"
+  },
+  "toast_learn_on": {
+    "message": "学習素材の収集を開始しました"
+  },
+  "toast_learn_off": {
+    "message": "収集を停止しました（収集済みの内容は保持されます）"
+  },
+  "toast_learn_cleared": {
+    "message": "学習ライブラリを消去しました"
+  },
+  "toast_learn_clear_failed": {
+    "message": "消去できませんでした"
+  },
+  "toast_saved": {
+    "message": "保存しました"
+  },
+  "learn_replay": {
+    "message": "▶ このクリップを聴き直す"
+  },
+  "learn_replay_hint": {
+    "message": "元の動画をその時刻で新しいタブに開きます（そこでも二言語字幕が使えます）"
+  },
+  "tts_section": {
+    "message": "読み上げ"
+  },
+  "tts_section_hint": {
+    "message": "復習カードをリスニング教材にします。既定では端末内蔵の音声を使い、通信も費用も不要です。自分で立てた音声サーバーを指定することもできます。"
+  },
+  "tts_mode": {
+    "message": "音声モード"
+  },
+  "tts_mode_off": {
+    "message": "オフ"
+  },
+  "tts_mode_assist": {
+    "message": "原文を表示し、再生ボタンを添える"
+  },
+  "tts_mode_audio_first": {
+    "message": "先に聴く（原文は最初は非表示）"
+  },
+  "tts_engine": {
+    "message": "音声エンジン"
+  },
+  "tts_engine_browser": {
+    "message": "端末内蔵の音声（無料・オフライン）"
+  },
+  "tts_engine_local": {
+    "message": "ローカル / 自前の音声エンドポイント"
+  },
+  "tts_hint_browser": {
+    "message": "OS が既に持っている音声を使います。何も送信せず、キャッシュも作りません — このエンジンは読み上げるだけで、音声データを返せません。"
+  },
+  "tts_hint_local": {
+    "message": "自分のマシンや LAN 上の音声サーバー。入力欄の例にならって完全なアドレスを入力してください。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_hint_openai": {
+    "message": "あなた自身の API キーを使います。合成結果はローカルにキャッシュされ、同じ文の費用は一度きりです。"
+  },
+  "tts_base_url": {
+    "message": "音声エンドポイントの URL"
+  },
+  "tts_api_key": {
+    "message": "音声 API キー"
+  },
+  "tts_model": {
+    "message": "音声モデル"
+  },
+  "tts_voice": {
+    "message": "声"
+  },
+  "tts_voice_auto": {
+    "message": "自動（カードの言語に合わせる）"
+  },
+  "tts_voice_hint": {
+    "message": "カードの言語に合わせて自動で選ばれます。ここで選んだ声は、その言語を話せる場合にのみ使われます。"
+  },
+  "tts_rate": {
+    "message": "速度"
+  },
+  "tts_autoplay": {
+    "message": "カードを開いたら自動再生"
+  },
+  "tts_test": {
+    "message": "テスト再生"
+  },
+  "tts_test_sample": {
+    "message": "復習カードはこんなふうに読み上げられます。"
+  },
+  "tts_testing": {
+    "message": "合成中…"
+  },
+  "tts_test_ok": {
+    "message": "再生中"
+  },
+  "tts_play": {
+    "message": "▶ 聴く"
+  },
+  "tts_replay": {
+    "message": "▶ もう一度聴く"
+  },
+  "tts_playing": {
+    "message": "再生中…"
+  },
+  "tts_loading": {
+    "message": "音声を読み込み中…"
+  },
+  "tts_no_voice": {
+    "message": "この言語の音声が端末にありません"
+  },
+  "tts_unsupported": {
+    "message": "このブラウザには内蔵音声がありません"
+  },
+  "tts_no_base": {
+    "message": "音声エンドポイントの URL が未設定です"
+  },
+  "tts_no_key": {
+    "message": "音声 API キーが未設定です"
+  },
+  "tts_blocked": {
+    "message": "自動再生がブロックされました。タップして再生してください"
+  },
+  "tts_http": {
+    "message": "音声サービスがエラーを返しました"
+  },
+  "tts_failed": {
+    "message": "この文はいま読み上げられません"
+  },
+  "tts_cache": {
+    "message": "音声キャッシュ {n} 件 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "音声キャッシュは空です"
+  },
+  "tts_cache_na": {
+    "message": "端末内蔵の音声はキャッシュを作りません"
+  },
+  "tts_clear_cache": {
+    "message": "音声キャッシュを消去"
+  },
+  "toast_tts_cleared": {
+    "message": "音声キャッシュを消去しました"
+  },
+  "learn_reveal_orig": {
+    "message": "原文を表示"
+  },
+  "learn_clean_known": {
+    "message": "習得済みのカードを整理"
+  },
+  "learn_clean_known_n": {
+    "message": "習得済みの {n} 枚を整理"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} 件の収集内容を保存できませんでした（ライブラリが満杯のときに起こります）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "ライブラリが満杯のため、空きを作るために古いカード {n} 枚を自動的に削除しました。"
+  },
+  "learn_pressure_near": {
+    "message": "ライブラリがまもなく満杯です（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "習得済みの {n} 枚を整理しました"
+  },
+  "learn_export": {
+    "message": "学習ライブラリを書き出す"
+  },
+  "learn_import": {
+    "message": "ファイルから読み込む"
+  },
+  "toast_exported": {
+    "message": "{n} 枚を書き出しました"
+  },
+  "toast_export_empty": {
+    "message": "書き出せるカードがまだありません"
+  },
+  "toast_export_failed": {
+    "message": "書き出しに失敗しました"
+  },
+  "toast_imported": {
+    "message": "{n} 枚を読み込みました"
+  },
+  "toast_import_skipped": {
+    "message": "読み取れない {n} 行をスキップしました"
+  },
+  "toast_import_bad_format": {
+    "message": "学習ライブラリの書き出しファイルではありません"
+  },
+  "toast_import_failed": {
+    "message": "読み込みに失敗しました"
+  },
+  "sync_section": {
+    "message": "ログイン · 複数端末で同期"
+  },
+  "sync_section_hint": {
+    "message": "任意です。ログインしなくてもすべて使えます —— 同期は、ブラウザで読んだ文を App や他の端末にも表示させるためのものです。ログインすると、収集した文（復習前の候補も含む）がすべて同期されます。"
+  },
+  "sync_email": {
+    "message": "メールアドレス"
+  },
+  "sync_send_code": {
+    "message": "確認コードを送信"
+  },
+  "sync_code": {
+    "message": "メールに届く 6 桁のコード"
+  },
+  "sync_verify": {
+    "message": "ログイン"
+  },
+  "sync_now": {
+    "message": "今すぐ同期"
+  },
+  "sync_signout": {
+    "message": "ログアウト"
+  },
+  "sync_delete": {
+    "message": "クラウドのデータとアカウントを削除"
+  },
+  "sync_err_offline": {
+    "message": "サーバーに接続できません。後で自動的に再試行します。学習した内容はこの端末に残っています。"
+  },
+  "sync_err_quota": {
+    "message": "クラウドの容量がいっぱいのため、新しい内容はアップロードされていません（この端末には影響しません）。習得済みのカードを整理すると空きができます。"
+  },
+  "sync_err_signed_out": {
+    "message": "ログインの有効期限が切れました。もう一度ログインしてください。"
+  },
+  "sync_err_rate": {
+    "message": "コードの送信が多すぎます。数分後にお試しください。"
+  },
+  "sync_err_generic": {
+    "message": "同期を完了できませんでした"
+  },
+  "sync_signed_in": {
+    "message": "ログイン中：{email}"
+  },
+  "sync_usage": {
+    "message": "クラウド使用量 {used} / {quota} · {n} チャンク"
+  },
+  "sync_need_email": {
+    "message": "先にメールアドレスを入力してください"
+  },
+  "sync_sending": {
+    "message": "送信中…"
+  },
+  "sync_code_sent": {
+    "message": "{email} にコードを送りました。下に入力してください。"
+  },
+  "sync_verifying": {
+    "message": "確認中…"
+  },
+  "sync_signed_in_now": {
+    "message": "ログインしました。初回の同期には数秒かかることがあります。"
+  },
+  "sync_bad_code": {
+    "message": "コードが正しくないか期限切れです。もう一度送信してください。"
+  },
+  "sync_running": {
+    "message": "同期中…"
+  },
+  "sync_done": {
+    "message": "同期完了 · 受信 {in} 枚 · 送信 {out} 枚"
+  },
+  "sync_status_running": {
+    "message": "サーバーと同期中…"
+  },
+  "sync_status_done_at": {
+    "message": "同期完了 · {time}"
+  },
+  "sync_status_offline": {
+    "message": "現在オフラインです。後で自動的に再試行します。学習記録はこの端末に保存されています。"
+  },
+  "sync_status_error": {
+    "message": "同期できませんでした。後で自動的に再試行します。"
+  },
+  "sync_status_signed_out": {
+    "message": "未ログイン — この端末のデータのみ"
+  },
+  "sync_signed_out": {
+    "message": "ログアウトしました。この端末の学習ライブラリはそのまま残ります。"
+  },
+  "sync_delete_confirm": {
+    "message": "クラウドのデータとアカウントを削除しますか？サーバー上のすべての内容とこのアカウントが完全に削除されます。この端末のライブラリは残ります。"
+  },
+  "sync_deleting": {
+    "message": "削除中…"
+  },
+  "sync_deleted": {
+    "message": "クラウドのデータとアカウントを削除しました。この端末のライブラリは残っています。"
+  },
+  "sync_deleted_partial": {
+    "message": "クラウドのデータは削除しましたが、アカウントを削除できませんでした（{why}）。再試行するかご連絡ください。"
+  },
+  "sync_err_upgrade": {
+    "message": "クラウドに、このバージョンではまだ読めない内容があります（新しいバージョンの拡張機能で保存されたものと思われます）。拡張機能を更新してから同期してください。データは失われていません、今は読めないだけです。"
+  },
+  "toast_import_upgrade": {
+    "message": "このファイルは新しいバージョンの拡張機能で作成されています。更新してからインポートしてください。ファイル自体に問題はありません。"
+  },
+  "options_init_failed": {
+    "message": "設定ページを読み込めませんでした（{err}）。このページを開き直してください。それでも続く場合は、このメッセージをご報告ください。"
+  },
+  "settings_read_failed": {
+    "message": "保存済みの設定を読み取れなかったため、以下は初期値です。このページから保存しないでください——元の設定が上書きされます。（{why}）"
+  },
+  "learn_relearn": {
+    "message": "もう一度",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "記憶の強さ",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "日",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "復習のしくみ",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "覚えていれば → 間隔が伸び、次はもっと後に出ます。",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "忘れていれば → 最初からやり直し、すぐにまた出ます。",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "強さが180日に達すると、このカードは卒業です。",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "わかった",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "新しいカードは1日{n}枚まで — 設定で変更できます。",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "自由練習",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "練習で習得は稼げませんが、忘却は見つけられます。",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "学習中",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "すべて（候補・習得済みを含む）",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "無制限",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "練習を始める",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "練習 {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "練習完了 — {n}枚。",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "読",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "聴",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "書",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "完全習得",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "声に出して読んでみる（練習・判定なし）",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "チェック",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "文を完成させる",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "正解に置き換えました",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "この文を解説",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "設定済みのAPIを使用 — 1回だけ呼び出し、永久キャッシュ",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "解析中…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "解析に失敗しました。後でもう一度",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "モデルが本文を返しませんでした——思考（推論）型モデルは文の解析に向きません。設定で会話型モデルに切り替えてください。"
+  },
+  "learn_notes_words": {
+    "message": "単語",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "フレーズ",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "文法",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "動画も会話も書類も —— 聞きながら翻訳。音声は端末内で認識します。認識した文字は翻訳のために送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。"
+  },
+  "app_email_label": {
+    "message": "メールアドレス"
+  },
+  "app_send": {
+    "message": "認証コードを送信"
+  },
+  "app_sending": {
+    "message": "送信中…"
+  },
+  "app_code_label": {
+    "message": "認証コード（メールをご確認ください）"
+  },
+  "app_verify": {
+    "message": "ログイン"
+  },
+  "app_verifying": {
+    "message": "ログイン中…"
+  },
+  "app_back_email": {
+    "message": "別のメールアドレスを使う"
+  },
+  "app_signout": {
+    "message": "ログアウト"
+  },
+  "app_settings_link": {
+    "message": "設定"
+  },
+  "app_review_start": {
+    "message": "復習を始める"
+  },
+  "app_review_back": {
+    "message": "← 戻る"
+  },
+  "app_sync": {
+    "message": "同期"
+  },
+  "app_syncing": {
+    "message": "同期中…"
+  },
+  "app_unit_cards": {
+    "message": "枚のカード"
+  },
+  "app_unit_reviews": {
+    "message": "件の復習記録"
+  },
+  "app_unit_sources": {
+    "message": "件のソース"
+  },
+  "app_never_synced": {
+    "message": "まだ同期していません"
+  },
+  "app_sync_empty": {
+    "message": "同期は完了しましたが、サーバーにはまだ何もありません。まずブラウザで文を収集してから、もう一度同期してください。"
+  },
+  "app_up_to_date": {
+    "message": "すでに最新です。"
+  },
+  "app_code_sent": {
+    "message": "認証コードを送信しました。メールをご確認ください。"
+  },
+  "app_code_bad": {
+    "message": "認証コードが違うか期限切れです。もう一度お試しください。"
+  },
+  "app_offline": {
+    "message": "サーバーに接続できません。ネットワークを確認して再試行してください。"
+  },
+  "app_needs_upgrade": {
+    "message": "サーバーにこのバージョンでは読めないコンテンツがあります。アプリを更新してください。"
+  },
+  "app_received": {
+    "message": "{n} 枚のカード・{m} 件の復習記録を受信"
+  },
+  "app_uploaded_n": {
+    "message": "{n} 件の復習記録を送信"
+  },
+  "app_uploaded_only": {
+    "message": "{n} 件の復習記録を送信しました"
+  },
+  "app_sync_disabled": {
+    "message": "このバージョンでは同期はまだ有効になっていません。ブラウザ拡張機能の収集と復習は影響を受けず、すべて端末内に保存されます。"
+  },
+  "app_set_title": {
+    "message": "設定"
+  },
+  "app_set_daily": {
+    "message": "1日に学ぶ新しいカードの上限"
+  },
+  "app_set_tts_auto": {
+    "message": "訳文の表示時に自動で読み上げる"
+  },
+  "app_set_tts_rate": {
+    "message": "読み上げ速度"
+  },
+  "app_set_tts_note": {
+    "message": "言語不明のカード（言語検出のない Safari で収集したものなど）は、上で選んだ音声でのみ再生されます。未選択の場合は再生できません。音声 API キーは文の解説のキーと同様に、この端末にのみ平文で保存され、アカウントと同期されません。"
+  },
+  "app_set_notes_title": {
+    "message": "翻訳と文の解説"
+  },
+  "app_set_notes_provider": {
+    "message": "エンジン"
+  },
+  "app_set_notes_none": {
+    "message": "使用しない"
+  },
+  "app_set_notes_key": {
+    "message": "APIキー"
+  },
+  "app_set_notes_base": {
+    "message": "カスタムエンドポイント"
+  },
+  "app_set_notes_model": {
+    "message": "モデル"
+  },
+  "app_set_notes_note": {
+    "message": "このエンジンがアプリ内のすべての翻訳を担当します：システム翻訳、クイック翻訳、ドキュメント翻訳、会話とリアルタイム字幕の訳文、そして文の解説（語句 / フレーズ / 文法）。あなた自身の API を呼び出します。キーはこの端末にのみ保存され、アカウントとは同期しません。ブラウザ拡張のキーとは別物で、安全性は同じ —— どちらも端末内に平文で保存されます。"
+  },
+  "app_set_corpus": {
+    "message": "学習ライブラリ"
+  },
+  "app_set_clean_known": {
+    "message": "習得済みカードを整理"
+  },
+  "app_set_cleaned": {
+    "message": "{n} 枚を整理しました"
+  },
+  "app_set_clean_none": {
+    "message": "整理できるカードはありません"
+  },
+  "app_set_account": {
+    "message": "アカウント"
+  },
+  "app_set_signout": {
+    "message": "ログアウト"
+  },
+  "app_set_delete": {
+    "message": "アカウントとクラウドデータを削除"
+  },
+  "app_set_delete_note": {
+    "message": "削除すると、サーバー上の教材と復習記録は完全に削除され、アカウントも解約されます。この端末にダウンロード済みの内容は影響を受けません。まとめて消したい場合はアプリを削除してください。"
+  },
+  "app_set_confirm_delete": {
+    "message": "アカウントを削除しますか？サーバー上のすべての内容が完全に削除され、元に戻せません。"
+  },
+  "app_set_deleting": {
+    "message": "削除中…"
+  },
+  "app_set_deleted": {
+    "message": "アカウントを削除しました。"
+  },
+  "app_unit_known": {
+    "message": "習得済み"
+  },
+  "tts_no_voice_und": {
+    "message": "このカードの言語は不明です。設定で音声を選ぶと再生できます"
+  },
+  "app_set_tts_voice": {
+    "message": "読み上げ音声"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "自動（カードの言語に合わせる）"
+  },
+  "learn_langs_label": {
+    "message": "学習する言語"
+  },
+  "learn_langs_all": {
+    "message": "すべて（デフォルト）"
+  },
+  "learn_langs_hint": {
+    "message": "選択した言語の文だけを収集します。Safari で言語を判定できない場合は文字体系で判断します。長押し保存は制限されません。"
+  },
+  "learn_sources_manage": {
+    "message": "ソース管理"
+  },
+  "learn_sources_empty": {
+    "message": "まだソースがありません"
+  },
+  "learn_sources_count": {
+    "message": "{n} 枚"
+  },
+  "learn_src_delete": {
+    "message": "保存分を削除"
+  },
+  "learn_src_block": {
+    "message": "収集しない"
+  },
+  "learn_src_unblock": {
+    "message": "収集を再開"
+  },
+  "learn_src_blocked": {
+    "message": "ブロック中"
+  },
+  "learn_src_blocked_by": {
+    "message": "ルール {pattern} でブロック中"
+  },
+  "learn_block_title": {
+    "message": "ブロックルール"
+  },
+  "learn_block_hint": {
+    "message": "ワイルドカード対応：example.com はドメイン全体（サブドメイン含む）、*.example.com/news/* はパスに一致します。"
+  },
+  "learn_block_add": {
+    "message": "追加"
+  },
+  "learn_block_placeholder": {
+    "message": "例：*.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "ルールの形式が正しくありません"
+  },
+  "learn_delete_confirm": {
+    "message": "{host} の {n} 枚のカードを削除しますか？すべての端末に同期され、元に戻せません。"
+  },
+  "learn_delete_done": {
+    "message": "{n} 枚を削除しました"
+  },
+  "learn_delete_none": {
+    "message": "このソースに削除できるカードはありません"
+  },
+  "popup_site_section": {
+    "message": "このサイト"
+  },
+  "popup_site_capture": {
+    "message": "このサイトで収集"
+  },
+  "popup_site_manage": {
+    "message": "管理…"
+  },
+  "learn_card_src_actions": {
+    "message": "ソース操作"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "ログイン状態を読み取れません（ストレージ読み取り失敗）。まもなく再試行します —— ログアウトされたわけではありません。"
+  },
+  "learn_backup_failed": {
+    "message": "ローカルバックアップを書き込めませんでした（{why}）。学習ライブラリ自体は影響を受けません。"
+  },
+  "notes_engine": {
+    "message": "解析エンジン"
+  },
+  "notes_engine_hint": {
+    "message": "「この文を解析」で使う会話エンジン。既定では上の翻訳エンジンに従います。思考（推論）型モデルは解析に向きません。"
+  },
+  "notes_follow": {
+    "message": "翻訳エンジンに従う（既定）"
+  },
+  "notes_api_key": {
+    "message": "解析 API キー"
+  },
+  "notes_base_url": {
+    "message": "解析 API エンドポイント"
+  },
+  "notes_model": {
+    "message": "解析モデル"
+  },
+  "learn_badge_speak": {
+    "message": "話す",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "もう一問 · 復習間隔には影響しません",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "正しい訳文を選んでください",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "まず聞いてから、聞こえた単語を選んでください",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "選択を確定",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "設定した API でこのカードの問題を生成中（1 回の呼び出し、永久キャッシュ）…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "問題の生成に失敗したため、ローカルの問題形式に切り替えました",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "文字起こしエンジン",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "未設定（「話す」問題は出ません）",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "ローカル / 自前の文字起こしエンドポイント",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "「話す」問題の録音はここで設定したエンドポイントに送られ、文字起こし後すぐ破棄されます（保存も同期もされません）。未設定なら「話す」問題は出ません。キーはこの端末にのみ保存。自前サーバーは CORS の許可が必要です。",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "文字起こし API キー",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "文字起こしエンドポイント URL",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "文字起こしモデル",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "この文を音読してください",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 録音開始",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 もう一度録音",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ 停止",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "録音中——上の文を読み上げてください",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "認識中…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "原文との一致率 {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "読み落とし：",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "設定した文字起こしエンドポイントを使用（録音ごとに 1 回呼び出し）",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "文字起こしエンドポイントが未設定です",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "文字起こし API キーが未入力です",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "このブラウザではマイクを利用できません",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "マイクの許可が拒否されました——このセッションでは他の問題形式を使います",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "文字起こしサービスがエラーを返しました",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "音声を認識できませんでした。もう一度どうぞ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "このブラウザは録音に対応していません",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "文字起こしに失敗しました",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "文字起こしエンドポイントに接続できません——URL を確認してください。自前サーバーは CORS の許可も必要です",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "接続をテスト",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "テスト中…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ 成功 · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "応答：",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "失敗しました",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "エンドポイント URL が未入力です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "API キーが未入力です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "エンジンが未選択です",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "このバージョンは保存されているエンジンを認識できません。上で選び直してください",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "エンドポイントは応答しましたが、内容を解析できません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "キーが違うか権限がありません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "エンドポイント URL（パスを含む）かモデル名が違います",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "サーバーがこのリクエストを拒否しました",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "このアドレスはホスト名だけでエンドポイントのパスがありません — 完全なリクエスト URL を入力してください（入力欄の例を参照）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "アドレスが http:// または https:// で始まっていません — スキームがないと相対パスとして扱われ、リクエストは送信されません",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "タイムアウトまでにエンドポイントから応答がありませんでした",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "リクエスト先：{url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "経路: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "拡張機能のバックグラウンド（CORS の対象外、プリフライトなし）",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "ページから直接（先に OPTIONS プリフライトを送信）",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "サーバーの応答: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "（拡張機能のバックグラウンド経由でも自動的に再試行しましたが失敗しました。CORS の問題ではなく、このマシンからこのアドレスに到達できません）",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "モデルが本文を返しませんでした——推論型モデルは不向きです。対話モデルに変更してください",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "長文カードを分割"
+  },
+  "learn_split_failed": {
+    "message": "分割に失敗しました"
+  },
+  "learn_split_none": {
+    "message": "分割できる長文カードはありません"
+  },
+  "learn_split_done": {
+    "message": "{p} 枚の長文カードを {c} 枚の文カードに分割しました"
+  },
+  "learn_split_skipped": {
+    "message": "（{k} 枚は訳文が揃わないためそのまま）"
+  },
+  "app_use_pw": {
+    "message": "パスワードでサインイン",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "パスワード",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "確認コードでサインイン",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "メールアドレスまたはパスワードが正しくありません。もう一度お試しください。",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "ポッドキャストモード",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ 一時停止",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ 再開",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ 次のカード",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 もう一度聞く",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "{n} 枚中 {i} 枚目",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 この文を解説",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "{i} 回目",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "解析中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "解説の読み上げにはエンジンの設定が必要です（設定 → 翻訳と文の解説）"
+  },
+  "drive_notes_empty": {
+    "message": "このカードには読み上げる解説がありません",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "保存済みの設定を読み込めません。少し後でもう一度お試しください",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 シャッフル",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ 順番に再生",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 全曲リピート",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 1件リピート",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "もう一周",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "解説を再生中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "この文を解析中…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "再生時に文の解説も読み上げる",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "各カードの原文と訳文のあとに解説（単語・フレーズ・文法）も読み上げます。既定でオン：未解析のカードはその場で解析され、設定したエンジンを使います（カードごとに一度だけ課金、以降はキャッシュ）。費用をかけたくなければオフに。オフなら原文と訳文だけです。",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "解説の読み上げ中：未解析のカードは設定したエンジンを呼び出します（カードごとに一度だけ課金）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "単語：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "フレーズ：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "文法：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "このカードは解析できませんでした（スキップ）",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "解説エンジンが未設定のため、このカードの解説は飛ばしました",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "このカードは読み上げられないため、次に進みました",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "原文を再生中…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "訳文を再生中…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "一時停止中",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "今回の分はここまでです",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "読み上げられるカードがありません",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "事前ダウンロードの範囲",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "今日のデッキ",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "今日＋今後 3 日間",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "今日＋今後 7 日間",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "オフライン用にダウンロード",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "出発前にタップすると、これから聞く音声・解説・訳文をこの端末に保存します。オフラインでも一巡まるごと再生できます。最初のタップは見積もりだけで課金は発生しません。呼び出し回数を確認してからもう一度タップしてください。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "この端末にある分を確認しています…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} 枚のカード",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "未生成の音声 {n} 件",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "未解析のカード {n} 枚",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "訳文のないカード {n} 枚",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "端末内蔵の音声はキャッシュを作らず、もともとオフラインで動きます。ここで先に取得するのは解説と訳文だけです。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "解析エンジンが未設定のため、訳文のないカードには今回訳文を付けられません（設定 → 文の解説）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "これらはすべて端末にあります。走行中にネットワークは不要です。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "事前ダウンロードを実行（課金対象の呼び出し 約 {n} 回）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "停止",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "ダウンロード中 {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "完了 {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "停止しました：{done}/{total} 完了",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} 件失敗（{reasons}）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "音声エンジンが未設定です（{reason}）。今回は音声を一つも生成できません（設定 → 音声エンジン）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "音声エンジンが未設定のため、この回は読み上げできません（設定 → 音声エンジン）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "自動再生がブロックされました。タップして続けてください",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "この端末には利用できる音声エンジンがありません",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "音声エンジンに接続できないため、この回は読み上げできません。オフラインで再生できるのは事前ダウンロード済みのカードだけです（設定 → オフライン用にダウンロード）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "音声サービスがタイムアウトしました —— ネットワークを確認するか、別のエンドポイントをお試しください"
+  },
+  "tts_network": {
+    "message": "音声サービスに接続できません —— ネットワークとエンドポイントのアドレスを確認してください"
+  },
+  "tts_empty": {
+    "message": "このカードには読み上げるテキストがありません"
+  },
+  "drive_bg_session_failed": {
+    "message": "このデバイスではバックグラウンドオーディオセッションを開始できないため、アプリが画面から離れると再生が一時停止します。"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "デバイス内蔵の音声はアプリが画面から離れると停止します。流しっぱなしで聴くには音声エンドポイントを設定してください（設定 → 音声エンジン）。"
+  },
+  "drive_awake_note": {
+    "message": "ポッドキャストモードが前面にある間、画面は自動ロックされません。ロック後もカードを表示し続けるには、システムの「常時表示」をオンにしてください：設定 → 画面表示と明るさ → 常時表示。"
+  },
+  "app_empty_body": {
+    "message": "学習素材はブラウザ拡張機能から届きます —— このアプリは復習用です。"
+  },
+  "app_empty_how": {
+    "message": "「設定 → Safari → 拡張機能」で大肚猴翻訳を有効にし、収集をオンにしてから、いつものように閲覧・翻訳してください。"
+  },
+  "app_ext_off_title": {
+    "message": "拡張機能がまだ有効になっていません"
+  },
+  "app_ext_off_body": {
+    "message": "カードは Safari 拡張機能から届きます。有効になっていないため、ここは空のままです。"
+  },
+  "app_ext_unknown_title": {
+    "message": "まずブラウザ側を設定します"
+  },
+  "app_ext_ios_body": {
+    "message": "カードは Safari 機能拡張から来ます：Safari でアドレスバー左側の機能拡張アイコン →「機能拡張を管理」→ 大肚猴翻訳をオン。"
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari 拡張機能の設定を開く"
+  },
+  "app_ext_open_setup": {
+    "message": "ウェブで設定を完了する"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "Safari 拡張機能がまだオンになっていません"
+  },
+  "app_ext_open_safari": {
+    "message": "Safari で拡張機能をオンにする →"
+  },
+  "app_ext_done": {
+    "message": "オンにしました"
+  },
+  "app_signin_why": {
+    "message": "サインインすると無料クレジットが届き、音声パックをこの端末にダウンロードします。以降の設定は要りません。"
+  },
+  "app_signin_open": {
+    "message": "サインイン"
+  },
+  "ob_next": {
+    "message": "続ける"
+  },
+  "ob_skip": {
+    "message": "あとで設定する"
+  },
+  "ob_start": {
+    "message": "設定を始める"
+  },
+  "ob_welcome_title": {
+    "message": "翻訳に使うモデルは、あなたが選ぶ"
+  },
+  "ob_welcome_body": {
+    "message": "システムのエンジンは一つだけ。ここでは好きなものを選べます —— 訳文はそのモデルから直接届き、私たちのサーバーは通りません。"
+  },
+  "ob_ios_1": {
+    "message": "Safari でアドレスバー左側の機能拡張アイコンをタップ"
+  },
+  "ob_ios_2": {
+    "message": "「機能拡張を管理」を選び、大肚猴翻訳をオンにする"
+  },
+  "ob_ios_3": {
+    "message": "権限は「許可」、対象は「すべての Web サイト」"
+  },
+  "ob_browser_title": {
+    "message": "ブラウザ側であと 2 つ"
+  },
+  "ob_browser_body": {
+    "message": "この 2 つのスイッチは拡張機能側の設定にあります。アプリからは変更できません（保存領域が別です）。"
+  },
+  "ob_kv_engine": {
+    "message": "翻訳エンジンの API キーを入れる"
+  },
+  "ob_kv_capture": {
+    "message": "「学習素材の収集」をオンにする"
+  },
+  "ob_kv_capture_note": {
+    "message": "すでにオンです。立ち止まって読んだ文がカードになります。不要ならここでオフに。"
+  },
+  "ob_read_title": {
+    "message": "何か読んでみる"
+  },
+  "ob_read_body": {
+    "message": "設定は完了です。いつも通り閲覧・翻訳してください。読んだ文が貯まります。すぐ保存したい文は訳文を長押し。"
+  },
+  "ob_signin_title": {
+    "message": "最後に：サインイン"
+  },
+  "ob_kv_twice": {
+    "message": "拡張機能側でもサインインします"
+  },
+  "ob_kv_twice_note": {
+    "message": "両側のデータは別々に保存されます。同じアカウントでサインインしてください。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "拡張機能の設定 → 翻訳エンジン。これは省けません。キーがないと何も翻訳されません。"
+  },
+  "extob_header": {
+    "message": "大肚猴翻訳 · セットアップ"
+  },
+  "extob_welcome_title": {
+    "message": "ページを離れずに、読みながら覚える"
+  },
+  "extob_welcome_body": {
+    "message": "原文はそのまま、訳文がその下に表示されます。立ち止まって読んだ文は復習カードになり、忘却曲線に沿って戻ってきます。"
+  },
+  "extob_use_1": {
+    "message": "外国語のページを開く"
+  },
+  "extob_use_2": {
+    "message": "右下のフローティングボタンをタップ"
+  },
+  "extob_use_3": {
+    "message": "訳文が原文の下に現れ、最後まで読んだ文は復習カードになります"
+  },
+  "ob_fork_title": {
+    "message": "どちらで始めますか？"
+  },
+  "ob_fork_sub": {
+    "message": "どちらでも使えます。あとからいつでも変更できます。"
+  },
+  "ob_fork_grant_title": {
+    "message": "無料クレジットで始める"
+  },
+  "ob_fork_grant_badge": {
+    "message": "おすすめ"
+  },
+  "ob_fork_grant_desc": {
+    "message": "API キーの申請は不要。サインインするだけで翻訳できます。ページや字幕を数百段落分読むのに十分です。"
+  },
+  "ob_fork_grant_cta": {
+    "message": "無料で始める →"
+  },
+  "ob_fork_key_title": {
+    "message": "自分の API キーを使う"
+  },
+  "ob_fork_key_desc": {
+    "message": "キー 1 つで翻訳・読み上げ・文字起こしをまとめて設定。エンジンごとの設定も可能です。"
+  },
+  "ob_fork_key_cta": {
+    "message": "設定する →"
+  },
+  "ob_fork_foot": {
+    "message": "使い切っても、設定からいつでも自分のキーに切り替えられます。"
+  },
+  "ob_fork_waiting": {
+    "message": "新しいタブで受け取り中…サインインが済んだらこの画面に戻ってください。自動で続きます。"
+  },
+  "ob_fork_landed": {
+    "message": "クレジットを受け取りました。次のステップへ移動します…"
+  },
+  "ob_fork_reopen": {
+    "message": "受け取りページを開き直す"
+  },
+  "extob_engine_title": {
+    "message": "翻訳エンジンを選ぶ"
+  },
+  "extob_engine_body_key": {
+    "message": "この手順は省けません。キーがないと一文字も翻訳されません。"
+  },
+  "extob_key_label": {
+    "message": "API キー"
+  },
+  "extob_capture_title": {
+    "message": "読んだ文がそのまま復習カードになります"
+  },
+  "extob_capture_body": {
+    "message": "すでにオンです。実際に読み終えた文（素早くスクロールしたものは対象外）がこの端末だけに復習カードとして保存されます。不要ならここでオフに。"
+  },
+  "extob_capture_toggle": {
+    "message": "読んだ文を復習カードとして保存する"
+  },
+  "extob_capture_note": {
+    "message": "実際に読み終えた文だけを保存します。いつでもオフにでき、サイト単位でまとめて削除できます。"
+  },
+  "extob_try_title": {
+    "message": "実際に 1 ページ翻訳してみる"
+  },
+  "extob_try_body": {
+    "message": "実際のページを開いて右下の丸いボタンを押すと、各段落の下に訳文が出ます。"
+  },
+  "extob_try_cta": {
+    "message": "サンプルページを開く"
+  },
+  "extob_finish": {
+    "message": "完了"
+  },
+  "extob_done_title": {
+    "message": "準備完了"
+  },
+  "extob_done_text": {
+    "message": "外国語のページを開いて丸いボタンを押すだけです。設定の変更もこの案内の再表示も、拡張機能の設定ページにあります。"
+  },
+  "extob_done_close": {
+    "message": "わかりました"
+  },
+  "extob_reonboard": {
+    "message": "はじめての案内をもう一度見る"
+  },
+  "extob_unpacked_note": {
+    "message": "ZIP から直接インストールされています。この版は自動更新されません。新しい版は公式サイトから、または自動更新が必要ならストア版をご利用ください。"
+  },
+  "extob_first_run": {
+    "message": "はじめて？2 分で設定できます →"
+  },
+  "qs_title": {
+    "message": "ひとつのキーですべて設定"
+  },
+  "qs_sub": {
+    "message": "これらのプラットフォームなら、キー1つで翻訳・読み上げ・文字起こしをまとめて設定できます。他のエンジンは上の〈詳細〉で個別に設定してください。"
+  },
+  "qs_platform": {
+    "message": "プラットフォーム"
+  },
+  "qs_only_one": {
+    "message": "対象プラットフォーム：{p}"
+  },
+  "qs_key": {
+    "message": "API キー"
+  },
+  "qs_get_key": {
+    "message": "キーがまだありませんか？{p} で取得 ↗"
+  },
+  "qs_try": {
+    "message": "さっそく1ページ翻訳してみる"
+  },
+  "qs_try_note": {
+    "message": "実際のウェブページを開いてフローティングボタンをタップすると、段落の下に訳文が表示されます。"
+  },
+  "extob_quick_sub": {
+    "message": "キー1つで翻訳・読み上げ・文字起こしをまとめて設定できます。"
+  },
+  "extob_mode_quick": {
+    "message": "キー1つ"
+  },
+  "extob_mode_manual": {
+    "message": "エンジンごとに設定"
+  },
+  "qs_key_ph": {
+    "message": "一度貼るだけで 3 つとも設定"
+  },
+  "qs_privacy": {
+    "message": "キーはこの端末だけに保存されます。"
+  },
+  "qs_grant_replaced": {
+    "message": "（無料枠のキーを置き換えました）"
+  },
+  "stt_device_no_file": {
+    "message": "端末内文字起こしは会話とリアルタイム字幕専用です。スピーキング練習にはまだ対応していません"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 端末内認識が使えます · 言語パック準備済み（ネットワーク不要、テストするエンドポイントなし）"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 端末内認識が使えます · 言語パックは初めて聞き取りを始めるときに自動でダウンロードされます"
+  },
+  "engine_test_device_timeout": {
+    "message": "端末内認識から応答がありません —— App を終了して開き直してください"
+  },
+  "listen_downloading": {
+    "message": "{lang}のオフラインモデルをダウンロード中 · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "オフラインモデルのダウンロードに失敗：{why} — 「聞き始める」をもう一度押すか、設定でクラウドのリアルタイムエンジンを選んでください。"
+  },
+  "listen_entry_privacy_device": {
+    "message": "端末内蔵の文字起こし。話すそばから文字が出て、文が確定するとあなたが設定した翻訳エンジンに送られます。"
+  },
+  "listen_cost_line_device": {
+    "message": "{t} 聞き取り"
+  },
+  "listen_device_privacy": {
+    "message": "端末内蔵の文字起こしでは、話すそばから文字が出て、文が確定すると直前の数文とともに翻訳へ送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。端末内蔵の読み上げでは音声は端末上で合成され、初回はオフラインモデルを一度だけダウンロードします。"
+  },
+  "listen_raw_label": {
+    "message": "認識した原文"
+  },
+  "tts_device_lang_fallback": {
+    "message": "システム音声で読み上げ（オフラインモデルは{lang}非対応）"
+  },
+  "qs_apply": {
+    "message": "翻訳・読み上げ・文字起こしを設定"
+  },
+  "qs_testing": {
+    "message": "テスト中…"
+  },
+  "qs_untouched": {
+    "message": "— 変更なし · すでに設定済みです（{cur}）"
+  },
+  "qs_unknown": {
+    "message": "既存の設定"
+  },
+  "qs_slot_chat": {
+    "message": "翻訳"
+  },
+  "qs_slot_tts": {
+    "message": "読み上げ"
+  },
+  "qs_slot_stt": {
+    "message": "文字起こし"
+  },
+  "qs_slot_notes": {
+    "message": "文の解説"
+  },
+  "qs_notes_follow": {
+    "message": "翻訳エンジンに追従（変更なし）"
+  },
+  "qs_tts_untried": {
+    "message": "（まだ再生していません —— 下の〈音声〉カードの「一文を試聴」で確認してください）"
+  },
+  "qs_stt_failed_note": {
+    "message": "これで録音が有効になることはありません。今送られたのは 0.6 秒の正弦波で、あなたの声ではありません。"
+  },
+  "qs_retry": {
+    "message": "これだけ再試行"
+  },
+  "engine_test_empty_audio": {
+    "message": "エンドポイントは応答しましたが、音声が返りませんでした"
+  },
+  "opt_mode_quick": {
+    "message": "かんたん"
+  },
+  "opt_mode_detail": {
+    "message": "詳細"
+  },
+  "options_wipe_all": {
+    "message": "この端末のデータをすべて消去"
+  },
+  "options_wipe_hint": {
+    "message": "アプリを削除してもここのデータは消えません。完全に消すには、先にここで消去してください。"
+  },
+  "options_wipe_confirm": {
+    "message": "この端末のデータをすべて消去しますか？API キー、すべての設定、収集した文と復習の進捗が削除され、サインアウトします。元に戻せません。\n\nクラウドに同期済みの内容は影響を受けません。再度サインインすると戻ります。"
+  },
+  "toast_wipe_failed": {
+    "message": "消去しきれませんでした。もう一度お試しください"
+  },
+  "app_sync_empty_who": {
+    "message": "同期は完了しましたが、{email} のアカウントにはまだ内容がありません。ブラウザ拡張機能で文を収集していた場合は、そちらが同じメールアドレスでログインしているか確認してください。"
+  },
+  "app_owner_mismatch": {
+    "message": "この端末の学習ライブラリは別のアカウントのものです。そのメールアドレスでログインするか、拡張機能の設定でこの端末のデータを消去してやり直してください。"
+  },
+  "app_owner_unknown": {
+    "message": "この端末の学習ライブラリには所有者がいますが、現在ログインしていません。ログインすると同期を続けられます。"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "この端末の学習ライブラリは別のアカウントのものです。そのメールアドレスでログインするか、この端末のデータをすべて消去してやり直してください。"
+  },
+  "sync_err_owner_unknown": {
+    "message": "この端末の学習ライブラリには所有者がいますが、現在ログインしていません。ログインすると同期を続けられます。"
+  },
+  "app_err_upgrade": {
+    "message": "クラウドにこのバージョンではまだ読めない内容があります（新しい拡張機能からのものと思われます）。App を更新してから同期してください —— 失われてはいません、今は読めないだけです。"
+  },
+  "site_next_title": {
+    "message": "翻訳できました。次は、このカードを App へ"
+  },
+  "site_next_body": {
+    "message": "立ち止まって読んだ文はすでに復習カードとして、このブラウザにあります。App に届くのはログインしてからです。ログインしなくてもすべて使えますが、App 側は空のままになります。"
+  },
+  "site_next_body_off": {
+    "message": "「学習素材の収集」がまだオフなので、カードはまだ作られません。先に拡張機能の設定でオンにしてください。"
+  },
+  "site_next_cta": {
+    "message": "カードを見る"
+  },
+  "site_next_cta_off": {
+    "message": "「学習素材を収集する」をオンにする"
+  },
+  "site_next_signin": {
+    "message": "いますぐログイン →"
+  },
+  "sync_next_app": {
+    "message": "次に：iPhone / Mac の App で同じメールアドレス（{email}）でログインしてください。そうして初めてカードが向こうに現れます。"
+  },
+  "app_dl_mismatch_title": {
+    "message": "両方が同じアカウントではありません"
+  },
+  "app_dl_mismatch_body": {
+    "message": "ブラウザ拡張機能は別のアカウントでログインしています。この App は {email} です。カードはアカウントに属するので、両者が違う限り、あちらで集めたものはこちらに現れません。"
+  },
+  "app_dl_switch": {
+    "message": "ログアウトして拡張機能のアカウントにする"
+  },
+  "app_dl_keep": {
+    "message": "今のアカウントのまま"
+  },
+  "app_dl_signin": {
+    "message": "ブラウザ拡張機能はすでにログイン済みです。ここでも同じアカウントでログインすると、カードが同期されます。"
+  },
+  "app_dl_signin_none": {
+    "message": "まずブラウザ拡張機能でログインし、それからここで同じアカウントでログインしてください —— カードはあちらで集められます。"
+  },
+  "review_go_app": {
+    "message": "App で続きを復習 →"
+  },
+  "site_setup_next_engine": {
+    "message": "翻訳エンジンを設定する →"
+  },
+  "setup_not_configured": {
+    "message": "翻訳エンジンがまだ設定されていません。上のワンキー設定を使うか、「詳細」に切り替えてエンジンを選び、キーを入力してください。"
+  },
+  "toast_wipe_failed_what": {
+    "message": "消去しきれませんでした。残っているもの：{what}。もう一度お試しください。"
+  },
+  "wipe_left_unreadable": {
+    "message": "ストレージを読み戻せません"
+  },
+  "site_next_title_off": {
+    "message": "翻訳できました —— ただ今はまだカードとして保存されません"
+  },
+  "drive_skipped_media": {
+    "message": "{n} 件の動画字幕カードをスキップしました —— 読み上げる本文がありません"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} 件をスキップ：この端末に読み上げられる音声がありません。設定 → 音声エンジンで設定するか、別のシステム音声を選んでください。"
+  },
+  "sync_next_cards": {
+    "message": "カードを見る"
+  },
+  "site_next_body_local": {
+    "message": "立ち止まって読んだ文はすでに復習カードとして、このブラウザにあります。見てみましょう。"
+  },
+  "learn_empty_on": {
+    "message": "収集はすでにオンです。いつも通り閲覧・翻訳してください。立ち止まって読んだ文がここに現れます —— さっと流した分は入りません。"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "未ログイン・この端末のみ —— ログインすると App でも復習できます →"
+  },
+  "app_open_failed": {
+    "message": "この端末ではアプリを開けませんでした。",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "App Store で入手 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "このアプリは iPhone・iPad・Mac のみです。この端末ではブラウザのまま復習してください。",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey 翻訳",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "今回のログインは戻ってきませんでした（ブラウザが変わった、またはデータを消した可能性があります）。このページからもう一度始めてください。",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "今回のログインは、こちらが開始したものと一致しませんでした。中止しました。もう一度お試しください。",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "端末のストレージを読めなかったため、この操作を完了できません。ページを開き直してお試しください。繰り返す場合はご連絡ください。",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Apple でログイン",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Google でログイン",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "またはメール / 電話番号で：",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "メールまたは電話番号",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6 桁の確認コード",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Apple ログインを開いています…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple ログインを完了できませんでした。下のメールまたは電話番号をお使いください。",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "この端末には別のアカウントの学習素材もあります。いまは別のアカウントでログイン中です — 失われてはいません。元のアカウントでログインすれば戻ります。",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "またはメールで：",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "まず{what}を入力してください",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "未設定（読み上げなし）"
+  },
+  "tts_not_configured": {
+    "message": "音声エンジンが未設定です —— 「設定 › 読み上げ」で選んでください"
+  },
+  "feedback_section": {
+    "message": "フィードバック"
+  },
+  "feedback_row": {
+    "message": "フィードバックを送る"
+  },
+  "feedback_rate": {
+    "message": "ストアで評価する"
+  },
+  "feedback_discuss": {
+    "message": "GitHub のディスカッション"
+  },
+  "feedback_hint": {
+    "message": "メールアプリが開きます。件名にバージョンとプラットフォームが入るだけで、それ以外は何も送信されません。"
+  },
+  "extob_done_feedback": {
+    "message": "うまく動かないところがあれば、メールしてください。すべて目を通しています。"
+  },
+  "sync_why": {
+    "message": "同じアカウントでサインインすると、ブラウザで読んだ文がアプリや他のデバイスに同期されます。"
+  },
+  "sync_use_email": {
+    "message": "またはメールでサインイン"
+  },
+  "sync_change_email": {
+    "message": "別のメールアドレスを使う"
+  },
+  "sync_resend": {
+    "message": "コードを再送信"
+  },
+  "telemetry_section": {
+    "message": "匿名の利用データ"
+  },
+  "telemetry_toggle": {
+    "message": "匿名の利用データを共有する"
+  },
+  "telemetry_what": {
+    "message": "送信される内容"
+  },
+  "telemetry_hint": {
+    "message": "送信するのは、どの機能をどのブラウザで使ったか、翻訳が成功したか失敗したかだけです。読んだページ・本文・URL・キー・アカウントは含まれません。オフにすると、この端末が送ったデータは削除されます。"
+  },
+  "diag_section": {
+    "message": "診断ログ"
+  },
+  "diag_copy": {
+    "message": "診断ログをコピー"
+  },
+  "diag_clear": {
+    "message": "クリア"
+  },
+  "diag_hint": {
+    "message": "トラブルシューティング用の端末内記録（モデルDL / 音声エンジン / ログイン段階、約200件）。話した内容・翻訳文は一切含まれません。コピーして自分で貼り付ける時だけ端末外に出ます。"
+  },
+  "diag_copied": {
+    "message": "コピーしました"
+  },
+  "diag_audio_toggle": {
+    "message": "診断録音をアップロード（文字起こし品質の調査用）"
+  },
+  "diag_audio_hint": {
+    "message": "オンにすると、通訳セッションのマイク音声・読み上げ音声と対応するテキストがパッケージ化され、当社サーバーへアップロードされます（文字起こし問題の調査専用、72時間後に自動削除）。デフォルトはオフ。オフにすると即時収集を停止します。"
+  },
+  "telemetry_onboard": {
+    "message": "改善のため匿名の利用データを送信します（ページの内容や URL は含みません）。設定でオフにできます。"
+  },
+  "asr_offer": {
+    "message": "🎙 AI 文字起こし字幕"
+  },
+  "asr_needs_engine": {
+    "message": "先に設定で文字起こしエンジンを選んでください"
+  },
+  "asr_status_file": {
+    "message": "⏳ 音声全体を文字起こし中…"
+  },
+  "asr_stop": {
+    "message": "文字起こしを停止"
+  },
+  "asr_err_silent": {
+    "message": "音声を取得できないため停止しました"
+  },
+  "asr_err_mse": {
+    "message": "Safari はこの種のストリーミング動画の音声を取得できないため、このページは文字起こしできません",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "この音声を読み取れません"
+  },
+  "asr_err_ws": {
+    "message": "文字起こしの接続が切れました"
+  },
+  "asr_err_toolarge": {
+    "message": "音声が大きすぎて一括で文字起こしできません"
+  },
+  "asr_err_nocues": {
+    "message": "このエンジンはタイムスタンプを返さないため字幕にできません"
+  },
+  "asr_gesture_needed": {
+    "message": "ページ上でタップすると取り込みを開始します"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ タップしてリアルタイム文字起こしを開始"
+  },
+  "asr_err_settings": {
+    "message": "文字起こしエンジンが変更されたため停止しました"
+  },
+  "popup_asr_go": {
+    "message": "🎙 リアルタイム文字起こし + 翻訳"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 このメディアを文字起こし＋翻訳"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 このメディアを文字起こし — まずエンジンを選択 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 App で端末の音を聞く"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "先に App で開始してから再生"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "ライブや動画サイトにも対応"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 App で端末の音を聞く →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 先に App で開始し、戻って再生 →"
+  },
+  "asr_media_app_only": {
+    "message": "この メディアは拡張機能では音声を取り出せません（動画サイトやライブは全てこうです）。App で端末が再生中の音を聞けば、どんなソースでも文字起こしできます。"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 リアルタイム文字起こし + 翻訳 — まず認識エンジンを選ぶ →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} はリアルタイムに非対応：配信は文字起こしできませんが、ダウンロード可能な音声は全体を文字起こしできます · リアルタイム対応エンジンを設定 →"
+  },
+  "popup_asr_no_media": {
+    "message": "このページで再生中の動画・音声が見つかりません — 再生してからここをもう一度"
+  },
+  "popup_asr_none_found": {
+    "message": "文字起こしできる動画・音声が見つかりません。プレーヤーが別のフレームにあるか、まだ再生されていません。"
+  },
+  "popup_asr_iframe": {
+    "message": "プレーヤーはこのページ内の別フレームにあります。新しいタブで開いてから文字起こし ↗"
+  },
+  "popup_asr_live": {
+    "message": "ライブ"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "長さ不明"
+  },
+  "asr_incremental": {
+    "message": "話しながら翻訳（速い・訳文は更新される）"
+  },
+  "asr_history": {
+    "message": "字幕履歴パネル"
+  },
+  "asr_history_title": {
+    "message": "履歴 · 確定文"
+  },
+  "app_listen_back": {
+    "message": "‹ 戻る"
+  },
+  "listen_source_label": {
+    "message": "会話"
+  },
+  "listen_entry": {
+    "message": "会話 · リアルタイム通訳"
+  },
+  "listen_entry_hint": {
+    "message": "対面で話す二人へ：どちらもそのまま話すだけで、画面に両言語が出て訳文が読み上げられます。音声はあなたが設定した文字起こしエンドポイントにのみ送られます。"
+  },
+  "listen_title": {
+    "message": "会話"
+  },
+  "listen_history": {
+    "message": "確定した文"
+  },
+  "listen_pending": {
+    "message": "⏳ 翻訳中…"
+  },
+  "listen_me_prefix": {
+    "message": "私："
+  },
+  "listen_me_badge": {
+    "message": "自分の発言"
+  },
+  "listen_star": {
+    "message": "スター"
+  },
+  "listen_lang_me": {
+    "message": "{to} へ"
+  },
+  "listen_other_lang_label": {
+    "message": "相手の言語"
+  },
+  "listen_pill_listening": {
+    "message": "通訳中 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "一時停止 · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "終了 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 聞いています · 一時停止"
+  },
+  "listen_toggle_start": {
+    "message": "聞き始める"
+  },
+  "listen_copy_all": {
+    "message": "全文をコピー",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "コピーしました",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "コピーできませんでした",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "オンライン会議やビデオ通話でも使えます。相手の声をスピーカーから流すだけです。",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "{t} 聞きました · 音声は設定したエンドポイントにのみ送信"
+  },
+  "listen_flip_hint": {
+    "message": "相手に見せる · どこかをタップで戻る"
+  },
+  "listen_flip_speaking": {
+    "message": "読み上げ中"
+  },
+  "listen_stop_denied": {
+    "message": "マイクが拒否されました — 「設定 › プライバシー › マイク」で許可してください。"
+  },
+  "listen_stop_socket": {
+    "message": "文字起こしの接続が切れました：{why} — 聞いた文は残っています。"
+  },
+  "listen_stop_locked": {
+    "message": "システムが録音を停止しました（着信や他のアプリがマイクを使用）— 終わると自動で再開、または「聞き始める」。"
+  },
+  "listen_stop_silence": {
+    "message": "30 秒間無音 — 課金を避けるため一時停止しました。"
+  },
+  "listen_stop_failed": {
+    "message": "マイクを開始できません：{why} — もう一度「聞き始める」を押してください。"
+  },
+  "listen_np_title": {
+    "message": "会話 · 通訳中"
+  },
+  "listen_np_album": {
+    "message": "会話 · 通訳中 · {t} · {n} 文"
+  },
+  "listen_settings_title": {
+    "message": "会話 · リアルタイム通訳"
+  },
+  "listen_capture_label": {
+    "message": "会話を復習に入れる（ソース「会話」）"
+  },
+  "listen_capture_note": {
+    "message": "「会話 · リアルタイム通訳」はマイクの音声を、あなたが設定した文字起こしエンドポイントにのみ、下部の録音キーで収音を始めた後だけ送信します。当方のサーバーは音声に触れず、録音は保存せずテキストのみ（このスイッチがオンの間だけ）保持します。"
+  },
+  "listen_who_them": {
+    "message": "相手"
+  },
+  "listen_who_me": {
+    "message": "自分"
+  },
+  "listen_who_guessed": {
+    "message": "言語が違う？ ↔ で切り替え"
+  },
+  "listen_swap_to_them": {
+    "message": "相手の発言に変更"
+  },
+  "listen_swap_to_me": {
+    "message": "自分の発言に変更"
+  },
+  "listen_flip_kept_card": {
+    "message": "もう一方の言語に切り替えました。前のカードは復習済みのため「ソース › 会話」に残ります"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "発話中…"
+  },
+  "listen_live_badge": {
+    "message": "● ライブ"
+  },
+  "listen_reading": {
+    "message": "読み上げ中"
+  },
+  "listen_autospeak_off": {
+    "message": "自動読み上げを停止しました · {why} — 行末のボタンからは読み上げられます"
+  },
+  "listen_tts_unusable": {
+    "message": "自動読み上げを使えません —— 読み上げエンジンが未設定です。設定 › 読み上げ で選んでください"
+  },
+  "listen_autospeak_echo": {
+    "message": "自動読み上げを一時停止しました — エコーのループを検出。音量を下げるかイヤホンを使うと再開できます。"
+  },
+  "listen_read_queue_n": {
+    "message": "読み上げ中 · あと {n} 文"
+  },
+  "listen_ephemeral_label": {
+    "message": "今回は記録しない"
+  },
+  "listen_ephemeral_locked": {
+    "message": "このセッションはすでに始まっています。記録しないには、いったん終了してから始め直してください"
+  },
+  "listen_ephemeral_pill": {
+    "message": "記録しません"
+  },
+  "listen_my_lang_label": {
+    "message": "自分の言語"
+  },
+  "listen_lang_note": {
+    "message": "選んだ2つの言語の間で自動的に識別します。聞き取りページでいつでも変更できます。"
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "現在のエンジンでは対応していません"
+  },
+  "listen_lang_change_engine": {
+    "message": "エンジンを変更"
+  },
+  "listen_lang_swapped": {
+    "message": "2 つは別の言語である必要があります — 入れ替えました"
+  },
+  "listen_autospeak_label": {
+    "message": "訳文を自動で読み上げる"
+  },
+  "listen_autospeak_note": {
+    "message": "文が訳し終わるたびに読み上げます。相手の発言はあなたに、あなたの発言は相手に。"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "先に「設定 › 読み上げ」で読み上げエンジンを選んでください"
+  },
+  "listen_lang_me_label": {
+    "message": "自分"
+  },
+  "listen_lang_other_label": {
+    "message": "相手"
+  },
+  "listen_sources_note": {
+    "message": "原文は文字起こし、訳文はあなたの翻訳エンジンによるもので、どちらも誤りうる — スター付きの文が優先して復習に入ります。"
+  },
+  "app_today_due": {
+    "message": "今日の復習"
+  },
+  "home_cta_subs": {
+    "message": "リアルタイム字幕を開始"
+  },
+  "home_cta_listen": {
+    "message": "リアルタイム通訳を開始"
+  },
+  "app_last_sync": {
+    "message": "最終同期 {t}"
+  },
+  "app_modes_label": {
+    "message": "聞く"
+  },
+  "drive_entry_hint": {
+    "message": "今日のデッキを続けて読み上げ、置いたまま聞く"
+  },
+  "listen_entry_short": {
+    "message": "対面で話す二人へ — どちらも話すだけ、訳文は読み上げ"
+  },
+  "listen_entry_privacy": {
+    "message": "音声は設定した文字起こしエンドポイントにのみ送信。"
+  },
+  "listen_pill_preparing": {
+    "message": "準備中"
+  },
+  "listen_toggle_preparing": {
+    "message": "準備中…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "再接続中…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "文字起こしの接続が切れました：{why} — 再接続中…"
+  },
+  "listen_history_empty": {
+    "message": "二人とも普通に話してください。確定した文がここに出ます。言語が違う？ ↔ で切り替え"
+  },
+  "listen_tr_failed": {
+    "message": "翻訳失敗 · 再試行"
+  },
+  "listen_read_aloud": {
+    "message": "読み上げ"
+  },
+  "listen_show_other": {
+    "message": "相手に見せる"
+  },
+  "listen_close": {
+    "message": "閉じる"
+  },
+  "listen_leave_confirm": {
+    "message": "まだ聞いています。離れるとこの会話は終了しますが、聞いた文は残ります。"
+  },
+  "dialog_ok": {
+    "message": "決定"
+  },
+  "dialog_cancel": {
+    "message": "キャンセル"
+  },
+  "listen_leave_ok": {
+    "message": "終了して戻る"
+  },
+  "grant_err_exhausted": {
+    "message": "無料クレジットを使い切りました。自分の API キーを入れれば続けられます（1 つのキーで翻訳・読み上げ・文字起こしすべて）。コミュニティで相談することもできます。"
+  },
+  "grant_err_unavailable": {
+    "message": "あなたが使い切ったのではありません。こちらの無料クレジットの残高が尽きており、補充中です。今は自分のキーを使うか、しばらくしてからお試しください。"
+  },
+  "grant_err_misconfigured": {
+    "message": "無料クレジットの設定がこちら側で誤っています。記録しました。あなたのせいではありません。今は自分のキーをお使いください。"
+  },
+  "grant_err_revoked": {
+    "message": "この無料クレジットは停止されています（ログアウトまたはアカウント削除で停止します）。同じアカウントで再度ログインすれば残高そのままで戻ります。"
+  },
+  "grant_err_invalid": {
+    "message": "この無料クレジットを認識できません。設定から取得し直してください。"
+  },
+  "grant_err_model": {
+    "message": "無料クレジットは指定されたモデルでのみ使えます。「詳細」でモデルを変更しています。戻すか、自分のキーを入れてください。"
+  },
+  "grant_err_busy": {
+    "message": "現在リクエストが集中しています。数秒待ってからお試しください。"
+  },
+  "grant_title": {
+    "message": "無料クレジット"
+  },
+  "grant_body_signin": {
+    "message": "ログインすると無料クレジットを受け取れます。数百ページ分あり、翻訳・読み上げ・文字起こしすべてに使えます。"
+  },
+  "grant_signin": {
+    "message": "ログインして無料クレジットを受け取る"
+  },
+  "grant_signin_again": {
+    "message": "もう一度ログイン"
+  },
+  "grant_body_signed_out": {
+    "message": "ログアウトで無料クレジットは停止しました。残高はそのままです。同じアカウントで再度ログインすれば戻ります。"
+  },
+  "grant_body_unclaimed": {
+    "message": "無料クレジットをまだ受け取っていません。数百ページ分あり、翻訳・読み上げ・文字起こしに使えます。"
+  },
+  "grant_claim": {
+    "message": "受け取る"
+  },
+  "grant_claiming": {
+    "message": "受け取り中…"
+  },
+  "grant_privacy": {
+    "message": "無料クレジット（任意）。ログインして受け取ると、当方が負担する 0.20 ドル分を翻訳・読み上げ・文字起こしに使えます。この経路では、あなたのテキストはモデル提供元（{vendor}）へ向かう途中で当方のサーバーを経由します。内容は保存も記録もせず、各回いくら使ったかだけを記録します。使い切れば停止し、自動課金はありません。自分のキーを使う経路は変わりません。そちらのテキストはブラウザから提供元へ直接送られ、当方は一切見ません。ログアウトするとこの端末でクレジットは停止し、アカウントを削除するとクレジットの記録も削除されます。"
+  },
+  "grant_body_active": {
+    "message": "無料クレジットを使用中です。使い切ったら自分の API キーを入れて続けられます。"
+  },
+  "grant_body_low": {
+    "message": "無料クレジットが残りわずかです。使い切ったら自分の API キーを入れて続けられます。"
+  },
+  "grant_body_exhausted": {
+    "message": "無料クレジットを使い切りました。自分の API キーを入れれば続けられます。1 つのキーで翻訳・読み上げ・文字起こしすべてに対応します。"
+  },
+  "grant_body_unavailable": {
+    "message": "あなたが使い切ったのではありません。こちらの無料クレジットの残高が尽きており、補充中です。今は自分のキーを使うか、しばらくしてからお試しください。"
+  },
+  "grant_body_replaced": {
+    "message": "今は自分のキーを使っています。無料クレジットは残っているので、いつでも戻せます。"
+  },
+  "grant_restore": {
+    "message": "無料クレジットに戻す"
+  },
+  "grant_byo": {
+    "message": "自分のキーを使う"
+  },
+  "grant_community": {
+    "message": "コミュニティで聞く"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey 無料クレジット"
+  },
+  "grant_restore_confirm": {
+    "message": "無料クレジットに戻すと、今入力しているキーが置き換わります。続けますか？"
+  },
+  "grant_signout_confirm": {
+    "message": "サインアウトするとこの端末で無料枠が無効になります（残高は保持され、再サインインで戻ります）。サインアウトしますか？"
+  },
+  "grant_claimed_toast": {
+    "message": "無料クレジットを設定しました"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "無料枠を受け取りました。ご自身のキーはそのままです。無料枠に切り替えるには「無料枠に戻す」を押してください。"
+  },
+  "grant_page_halt": {
+    "message": "無料クレジットを使い切りました — 続け方はこちら"
+  },
+  "grant_page_halt_ours": {
+    "message": "無料クレジットは今使えません（あなたが使い切ったのではありません）— 続け方はこちら"
+  },
+  "auth_page_halt": {
+    "message": "このキーは提供元に拒否されました（HTTP 401/403）— タップして確認",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "設定を開く",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "提供元がこのキーを拒否しました（HTTP 401/403）。キーが正しいか、このモデルの権限があるか確認してください。",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "役に立ちましたか？ストアで評価する →"
+  },
+  "app_nudge_text": {
+    "message": "今日読んだ文を、アプリで復習 →"
+  },
+  "review_nudge_text": {
+    "message": "今日読んだ文を復習する →"
+  },
+  "doc_title": {
+    "message": "文書翻訳"
+  },
+  "doc_to_review": {
+    "message": "復習へ →"
+  },
+  "doc_upload": {
+    "message": "文書をアップロード（PDF / Word / 画像）"
+  },
+  "doc_privacy": {
+    "message": "文書はこの端末にのみ保存され、同期も書き出しもされません。翻訳時は開いたページの文字だけが設定した翻訳エンドポイントへ送られます —— ファイル全体でも、アップロード時でもありません。画像とスキャンページは、エンジンが画像認識に対応している場合のみ、画像として同じエンドポイントへ送られます。"
+  },
+  "doc_privacy_grant": {
+    "message": "文書はこの端末にのみ保存されます。翻訳時は開いたページが当方の中継を経由してモデル提供元へ送られます（保存・記録しません）。無料枠は画像を認識しません —— 画像とスキャンページにはご自身の API キーが必要です。"
+  },
+  "doc_list_empty": {
+    "message": "まだ文書がありません。PDF、Word（.docx）、テキスト、画像に対応しています。"
+  },
+  "doc_row_meta": {
+    "message": "{pages} ページ · {page} ページ目 · {n} 文を収集"
+  },
+  "doc_delete": {
+    "message": "削除"
+  },
+  "doc_delete_confirm": {
+    "message": "この文書を削除しますか？カードも削除され（全端末に同期）、元に戻せません。"
+  },
+  "doc_unsupported_kind": {
+    "message": "この形式には対応していません（PDF、.docx、テキスト、画像に対応）。.doc は Word で .docx として保存してください。"
+  },
+  "doc_too_large": {
+    "message": "ファイルが大きすぎます（上限 30 MB）。"
+  },
+  "doc_grant_no_image": {
+    "message": "無料枠では画像を認識できません —— ご自身の API キーをお使いください。"
+  },
+  "doc_no_vision": {
+    "message": "現在のエンジンは画像認識に非対応 · 設定でモデルを変更"
+  },
+  "doc_store_failed": {
+    "message": "文書を保存できませんでした："
+  },
+  "doc_missing": {
+    "message": "この文書はもうこの端末にありません。"
+  },
+  "doc_opening": {
+    "message": "読み込み中…"
+  },
+  "doc_open_failed": {
+    "message": "この文書を読めませんでした："
+  },
+  "doc_back": {
+    "message": "文書一覧"
+  },
+  "doc_lang": {
+    "message": "文書の言語"
+  },
+  "doc_lang_auto": {
+    "message": "自動"
+  },
+  "doc_prev": {
+    "message": "前のページ"
+  },
+  "doc_next": {
+    "message": "次のページ"
+  },
+  "doc_ocr_running": {
+    "message": "このページを認識中…"
+  },
+  "doc_ocr_failed": {
+    "message": "認識に失敗："
+  },
+  "doc_page_empty": {
+    "message": "このページに抽出できる文字がありません。"
+  },
+  "doc_old_engine": {
+    "message": "このページは以前のエンジンで翻訳されていました —— 現在のエンジンで再翻訳しました。"
+  },
+  "doc_page_stat": {
+    "message": "このページ：{units} 段落 · 約 {chars} 文字"
+  },
+  "doc_go_settings": {
+    "message": "設定へ →"
+  },
+  "doc_translating": {
+    "message": "⏳ 翻訳中…"
+  },
+  "doc_star": {
+    "message": "復習に追加"
+  },
+  "doc_translate_failed": {
+    "message": "翻訳失敗 · タップで再試行"
+  },
+  "doc_popup_row": {
+    "message": "📄 文書を翻訳（PDF / Word / 画像）"
+  },
+  "doc_open_page": {
+    "message": "文書を翻訳（PDF / Word / 画像）"
+  },
+  "doc_review_entry": {
+    "message": "📄 文書を翻訳"
+  },
+  "doc_source_label": {
+    "message": "文書"
+  },
+  "doc_page_n": {
+    "message": "{n} ページ"
+  },
+  "doc_sources_note": {
+    "message": "削除すると文書本体も削除されます。"
+  },
+  "doc_app_entry_hint": {
+    "message": "開いたページだけ翻訳。訳文は復習に追加できます"
+  },
+  "doc_app_back": {
+    "message": "‹ 戻る"
+  },
+  "doc_capture_label": {
+    "message": "文書の訳文を復習に追加（出典「文書」）"
+  },
+  "doc_prefetch_label": {
+    "message": "次のページを先に解析（翻訳はしない）"
+  },
+  "rate_prompt_dismiss": {
+    "message": "今後表示しない"
+  },
+  "grant_popup_model": {
+    "message": "無料クレジットは指定モデルでのみ動きます — タップして戻す"
+  },
+  "grant_popup_exhausted": {
+    "message": "無料クレジットを使い切りました — 続け方はこちら"
+  },
+  "grant_popup_low": {
+    "message": "無料クレジットが残りわずかです — タップして確認"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未ログイン・この端末のみ — ログインすると無料クレジットももらえます →"
+  },
+  "grant_cn_title": {
+    "message": "まず提供元の無料クレジットを"
+  },
+  "grant_cn_body": {
+    "message": "登録すると各モデルに無料クレジットが付き、しばらく使えます。提供元からのもので、当方は介在しません。"
+  },
+  "grant_cn_step1": {
+    "message": "登録してコンソールを開く"
+  },
+  "grant_cn_step2": {
+    "message": "無料クレジットを受け取る（金額は提供元のページに従う）"
+  },
+  "grant_cn_step3": {
+    "message": "下に API キーを貼れば翻訳・読み上げ・文字起こしが一度に整う"
+  },
+  "grant_cn_open": {
+    "message": "コンソールを開く ↗"
+  },
+  "grant_cn_why": {
+    "message": "無料クレジットの代行提供はまだです。それには国内で中継を動かす必要があり、まだ開通していません。"
+  },
+  "subtitle_source_label": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_entry": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_entry_hint": {
+    "message": "再生中の動画・ライブ配信・会議に2か国語字幕を表示"
+  },
+  "subtitle_need_key": {
+    "message": "文字起こしエンジンの API キーがまだ入力されていません"
+  },
+  "subtitle_need_key_go": {
+    "message": "設定で入力 →"
+  },
+  "subtitle_title": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_start": {
+    "message": "開始"
+  },
+  "subtitle_capture_label": {
+    "message": "字幕を復習に追加（ソース「ライブ字幕」）"
+  },
+  "subtitle_video_lang_label": {
+    "message": "動画の言語："
+  },
+  "subtitle_tip_mac": {
+    "message": "開始すると、字幕は画面下部のフローティングバーに表示されます。確定した文はここにも一覧で残ります。"
+  },
+  "subtitle_tip_ios": {
+    "message": "先に「開始」を押してから、どのアプリ（ブラウザ、動画、ポッドキャストなど）でもスピーカーで再生してください。字幕はピクチャ・イン・ピクチャの小窓に表示されます。イヤホン使用中は音が聞こえません。"
+  },
+  "subtitle_privacy": {
+    "message": "「開始」を押した後だけ、この Mac で再生中の音を聞き取ります。音声はこのデバイス上で認識されるか、あなたが設定した文字起こしエンドポイントにだけ送られます。録音も保存もせず、当社のサーバーは関与しません。「字幕を復習に追加」がオンのときだけ、認識した文字が復習に残ります。"
+  },
+  "subtitle_privacy_ios": {
+    "message": "「開始」を押した後だけ、この iPhone のスピーカーから流れる音を聞き取ります。音声はこのデバイス上で認識されるか、あなたが設定した文字起こしエンドポイントにだけ送られます。録音も保存もせず、当社のサーバーは関与しません。「字幕を復習に追加」がオンのときだけ、認識した文字が復習に残ります。"
+  },
+  "subtitle_pill_live": {
+    "message": "● 字幕表示中 · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "いま"
+  },
+  "subtitle_history_empty": {
+    "message": "確定した文がここに表示されます。"
+  },
+  "subtitle_stop_silence": {
+    "message": "30 秒間音がありません — 課金を避けるため一時停止しました。動画を再生したら「再開」を押してください。"
+  },
+  "subtitle_leave_confirm": {
+    "message": "まだ聞き取り中です。離れると字幕は終了します。ここまでの文は残ります。"
+  },
+  "subtitle_summary_title": {
+    "message": "今回の字幕"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · 全 {n} 文 · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "復習に追加（ソース「ライブ字幕」）{k} 文 · うちスター {s} 文"
+  },
+  "subtitle_summary_note": {
+    "message": "音声は保存せず、文字だけを残しました。復習の文は「ソース › ライブ字幕」で管理・一括削除できます。"
+  },
+  "subtitle_bar_waiting": {
+    "message": "システムの許可待ち — 表示された確認で「許可」をクリックしてください"
+  },
+  "subtitle_bar_listening": {
+    "message": "システム音声を聞いています…"
+  },
+  "subtitle_bar_paused": {
+    "message": "一時停止中"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 秒間音がないため、課金を避けて一時停止しました"
+  },
+  "subtitle_bar_denied": {
+    "message": "システム音声が聞こえません — システム設定 › プライバシーとセキュリティ › 画面収録とシステムオーディオ録音 で BelliedMonkey Translator を許可してください"
+  },
+  "subtitle_bar_socket": {
+    "message": "文字起こしの接続が切れました"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "再接続中…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "{lang} の認識データをダウンロード中 · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "この文の翻訳に失敗 · メインウインドウで再試行"
+  },
+  "subtitle_bar_headphones": {
+    "message": "動画の音が聞こえません · イヤホンを外してスピーカーで再生"
+  },
+  "subtitle_ctl_pause": {
+    "message": "一時停止"
+  },
+  "subtitle_ctl_resume": {
+    "message": "再開"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "クリック透過"
+  },
+  "subtitle_ctl_main": {
+    "message": "メインウインドウ"
+  },
+  "subtitle_ctl_end": {
+    "message": "終了"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "システム設定を開く"
+  },
+  "subtitle_menu_show_main": {
+    "message": "メインウインドウを表示"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "字幕バーのクリック透過を解除"
+  },
+  "subtitle_menu_end": {
+    "message": "ライブ字幕を終了"
+  },
+  "subtitle_pip_float": {
+    "message": "字幕ウインドウを表示"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "スピーカーの音を聞いています…"
+  },
+  "subtitle_pip_title": {
+    "message": "ライブ字幕"
+  },
+  "subtitle_pip_hint": {
+    "message": "どのアプリでも動画や音声をスピーカー再生すると、ここに字幕が出ます"
+  },
+  "subtitle_pip_close": {
+    "message": "小窓をタップ：⏸ 一時停止 · ⏪⏩ 履歴 · ✕ 閉じる（アプリから再表示）"
+  },
+  "subtitle_pip_history": {
+    "message": "履歴 · ⏩ で最新へ"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "「開始」を押すと、ここに字幕小窓のプレビューが出ます。このアプリを離れると他のアプリの上に浮かびます"
+  },
+  "subtitle_pip_note_live": {
+    "message": "字幕小窓のプレビュー —— アプリを離れると他のアプリの上に浮かびます"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "今回の字幕は終了し、小窓は閉じました"
+  },
+  "subtitle_bar_silent": {
+    "message": "まだシステムの音が聞こえません — 動画は再生中なのに字幕が出ない？システム音声の収録が許可されていないかもしれません"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "30 秒間音がありません — 一時停止しました。動画が再生中なのに字幕が出なかった場合、システム音声の収録が許可されていないかもしれません：システム設定 › プライバシーとセキュリティ › 画面収録とシステムオーディオ録音 で「大肚猴翻訳」を許可し、「再開」を押してください。"
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "30 秒間音がないため一時停止しました — 動画は再生中なのに字幕が出ない？システム音声の収録が許可されていないかもしれません"
+  },
+  "listen_need_os": {
+    "message": "会話・ライブ字幕には iOS 26 / macOS 26 が必要です"
+  },
+  "listen_need_locale": {
+    "message": "デバイス内蔵の認識器はこの言語に対応していません — 別の言語をお試しください"
+  },
+  "listen_assets_failed2": {
+    "message": "オフラインモデルのダウンロードに失敗しました：{why} —— 多くはネットワークの問題です。しばらくしてからやり直してください — 「聞き始める」をもう一度タップして再試行してください。"
+  },
+  "tts_engine_device": {
+    "message": "端末内蔵の読み上げ（オフラインモデル・アプリのみ）"
+  },
+  "tts_hint_device": {
+    "message": "音声は端末内で合成されます。初回のみオフラインモデルをダウンロードします（モデルファイルのみ）。モデルにない言語はシステム音声に切り替わり、行にその旨が表示されます。"
+  },
+  "tts_pack_label": {
+    "message": "オフラインモデル"
+  },
+  "tts_pack_installed": {
+    "message": "オフラインモデルはインストール済み · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "オフラインモデルは未ダウンロード · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "初回の読み上げ時にも自動でダウンロードされます。モデルファイルのダウンロードのみで、何もアップロードしません。"
+  },
+  "tts_pack_dl": {
+    "message": "ダウンロード"
+  },
+  "tts_pack_fallback": {
+    "message": "このアドレスに接続できません — 別のアドレスで再試行中…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "再試行"
+  },
+  "tts_pack_downloading": {
+    "message": "オフラインモデルをダウンロード中 · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "オフラインモデルのダウンロードに失敗しました：{why} —— 多くはネットワークの問題です。しばらくしてからやり直してください"
+  },
+  "tts_pack_no_bridge": {
+    "message": "デバイス内蔵の読み上げはアプリ内でのみ使えます"
+  },
+  "tts_test_dl": {
+    "message": "ダウンロードして試聴（{size}）"
+  },
+  "tts_test_ok_fallback": {
+    "message": "再生中 · オフラインモデルにこの言語がないためシステム音声を使用"
+  },
+  "tts_assets": {
+    "message": "オフラインモデルがまだダウンロードされていません — 「設定 › 読み上げ」でダウンロードするか、システム音声に切り替えてください"
+  },
+  "listen_pack_ready": {
+    "message": "認識用言語パックは準備済み · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "認識用言語パックは未ダウンロード · {langs} · システムがダウンロードします。聞き始めるときにも自動で取得"
+  },
+  "listen_pack_dl": {
+    "message": "ダウンロード"
+  },
+  "listen_pack_downloading": {
+    "message": "認識用言語パックをダウンロード中 · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "認識用言語パックのダウンロードに失敗しました：{why} —— 多くはネットワークの問題です。しばらくしてからやり直してください"
+  },
+  "opt_sec_engines": {
+    "message": "エンジンとキー"
+  },
+  "opt_sec_features": {
+    "message": "機能"
+  },
+  "opt_sec_account": {
+    "message": "アカウントとデータ"
+  },
+  "opt_adv_hint": {
+    "message": "ワンキー設定は「クイック」にあります →"
+  },
+  "stt_section": {
+    "message": "一括文字起こし"
+  },
+  "stt_section_use": {
+    "message": "スピーキング練習 · 音声/動画を一括文字起こし"
+  },
+  "review_section": {
+    "message": "復習"
+  },
+  "data_section": {
+    "message": "学習ライブラリ"
+  },
+  "notes_block_title": {
+    "message": "この文を解説（任意）"
+  },
+  "grant_summary_claimed": {
+    "message": "無料クレジット取得済み · 管理 →"
+  },
+  "dep_label": {
+    "message": "依存"
+  },
+  "dep_unset": {
+    "message": "未設定"
+  },
+  "dep_go": {
+    "message": "設定する →"
+  },
+  "dep_follow": {
+    "message": "翻訳エンジンに従う"
+  },
+  "dep_quick": {
+    "message": "ワンキー設定で提供 ✓"
+  },
+  "dep_live": {
+    "message": "リアルタイム文字起こし"
+  },
+  "dep_live_device": {
+    "message": "デバイス内蔵（iOS 26 / macOS 26）"
+  },
+  "target_lang_label": {
+    "message": "翻訳先の言語"
+  },
+  "target_lang_follow": {
+    "message": "表示言語に合わせる（{lang}）"
+  },
+  "target_lang_hint": {
+    "message": "文書翻訳・システム翻訳・クイック翻訳で使います。会話とライブ字幕には専用の言語設定があります。"
+  },
+  "handoff_source_label": {
+    "message": "渡されたテキスト"
+  },
+  "src_handoff_system": {
+    "message": "システム翻訳"
+  },
+  "src_handoff_select": {
+    "message": "選択テキストの翻訳"
+  },
+  "src_handoff_shot": {
+    "message": "スクリーンショット翻訳"
+  },
+  "src_handoff_input": {
+    "message": "入力翻訳"
+  },
+  "quick_title": {
+    "message": "クイック翻訳"
+  },
+  "quick_enabled_label": {
+    "message": "メニューバーに常駐"
+  },
+  "quick_enabled_note": {
+    "message": "オフにするとメニューバーのアイコンが消え、ウインドウを閉じるとアプリが終了します。"
+  },
+  "quick_menu_open": {
+    "message": "BelliedMonkey Translator を開く"
+  },
+  "quick_menu_settings": {
+    "message": "クイック翻訳の設定…"
+  },
+  "quick_menu_quit": {
+    "message": "終了"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey はメニューバーに残っています"
+  },
+  "quick_resident_body": {
+    "message": "ショートカットは引き続き使えます。完全に終了するには、メニューバーのアイコンから「終了」を選ぶか ⌘Q を押してください。"
+  },
+  "quick_resident_ok": {
+    "message": "わかりました"
+  },
+  "quick_resident_off": {
+    "message": "常駐しない"
+  },
+  "quick_tag_selection": {
+    "message": "選択したテキスト"
+  },
+  "quick_tag_clipboard": {
+    "message": "クリップボード"
+  },
+  "quick_tag_service": {
+    "message": "サービス"
+  },
+  "quick_tag_shot": {
+    "message": "スクリーンショット"
+  },
+  "quick_tag_input": {
+    "message": "入力"
+  },
+  "quick_pin": {
+    "message": "固定"
+  },
+  "quick_close": {
+    "message": "閉じる"
+  },
+  "quick_copy": {
+    "message": "訳文をコピー"
+  },
+  "quick_src_label": {
+    "message": "原文"
+  },
+  "quick_src_placeholder": {
+    "message": "翻訳するテキストを入力またはペースト"
+  },
+  "quick_clip_concealed": {
+    "message": "クリップボードの内容は非表示としてマークされています（おそらくパスワードです）。読み取っておらず、送信もしていません。"
+  },
+  "quick_clip_empty": {
+    "message": "クリップボードにテキストがありません。テキストを選択して ⌘C を押してから、ショートカットを押してください。設定で「拡張キャプチャ」をオンにすると ⌘C を省けます。"
+  },
+  "quick_clip_same": {
+    "message": "前回と同じテキストです — ⌘C を押し忘れていませんか？"
+  },
+  "quick_no_selection": {
+    "message": "選択したテキストを取得できませんでした — 何も選択されていないか、この App がコピーを許可していません。"
+  },
+  "quick_use_shot": {
+    "message": "スクリーンショット翻訳を使う"
+  },
+  "quick_same_lang": {
+    "message": "原文はすでに{lang}です"
+  },
+  "sys_empty": {
+    "message": "翻訳できるテキストがありません。"
+  },
+  "sys_slow": {
+    "message": "翻訳中です — 無料クレジットは当方の中継を経由するため、ご自身のキーより遅くなります。"
+  },
+  "quick_slow": {
+    "message": "翻訳中です…"
+  },
+  "quick_unconfigured": {
+    "message": "翻訳エンジンがまだありません。無料クレジットを受け取るか、ご自身の API キーを入力してください。"
+  },
+  "quick_open_settings": {
+    "message": "設定を開く"
+  },
+  "quick_retry": {
+    "message": "再試行"
+  },
+  "quick_saved": {
+    "message": "復習ライブラリに保存しました"
+  },
+  "quick_saved_off": {
+    "message": "未保存 · 取り込みはオフです"
+  },
+  "quick_saved_long": {
+    "message": "長すぎるため復習ライブラリには保存しません"
+  },
+  "quick_shot_nothing": {
+    "message": "この範囲ではテキストを認識できませんでした。"
+  },
+  "quick_shot_again": {
+    "message": "もう一度範囲を選ぶ"
+  },
+  "quick_menu_clip": {
+    "message": "クリップボードを翻訳"
+  },
+  "quick_menu_input": {
+    "message": "入力して翻訳"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS がクリップボードの読み取りを許可しませんでした。「システム設定 › プライバシーとセキュリティ › ほかの App からペースト」で許可するか、右クリックの「サービス」をお使いください。"
+  },
+  "quick_enh_label": {
+    "message": "拡張キャプチャ"
+  },
+  "quick_enh_hint": {
+    "message": "テキストを選択してショートカットを押すだけ。先に ⌘C を押す必要はありません。システムの許可が 1 つ必要で、初期設定はオフです。"
+  },
+  "quick_enh_explain_title": {
+    "message": "拡張キャプチャをオンにする"
+  },
+  "quick_enh_explain_does": {
+    "message": "行うこと：ショートカットを押したとき、代わりに ⌘C を 1 回押し、選択したテキストを読み取ったあと、クリップボードを元どおりに戻します。"
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "行わないこと：キーボードを監視しません。ショートカットを押していないときは何も読み取りません。"
+  },
+  "quick_enh_continue": {
+    "message": "続ける"
+  },
+  "quick_enh_not_now": {
+    "message": "今はしない"
+  },
+  "quick_enh_relaunch": {
+    "message": "今すぐ再起動"
+  },
+  "quick_enh_open_privacy": {
+    "message": "システム設定を開く"
+  },
+  "quick_enh_pending": {
+    "message": "表示されたシステムのウインドウで「システム設定を開く」を選び、リストの「{app}」のスイッチをオンにしてください。App を再起動すると有効になります。"
+  },
+  "quick_enh_denied": {
+    "message": "macOS から許可が得られていないため、拡張キャプチャはオフのままです。⌘C を押してからショートカットを押す方法はこれまでどおり使えます。"
+  },
+  "quick_enh_lost": {
+    "message": "拡張キャプチャの許可がオフにされたため、今回はクリップボードを翻訳しました。元に戻すには設定でもう一度オンにしてください。"
+  },
+  "quick_menu_shot": {
+    "message": "スクリーンショットを翻訳"
+  },
+  "quick_shot_busy": {
+    "message": "この Mac でテキストを認識中…"
+  },
+  "quick_shot_first": {
+    "message": "この Mac では初回のため、準備に約 20 秒かかります。次回からは 0.5 秒もかかりません。"
+  },
+  "quick_shot_perm_explain": {
+    "message": "スクリーンショット翻訳には「画面収録」の許可が必要です。範囲を選んだその瞬間に、選んだ部分だけを取り込み、この Mac 上で認識し、終わりしだい破棄します。"
+  },
+  "quick_shot_perm_pending": {
+    "message": "あと一歩：システム設定のリストで「{app}」のスイッチをオンにしてください。App を再起動すると有効になります。"
+  },
+  "quick_shot_cloud": {
+    "message": "自分の画像対応エンジンでもう一度試す"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「自分の画像対応エンジンでもう一度試す」を選ぶと、このスクリーンショットが設定済みのエンジン（{engine}）に送信されます。"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "あなたのエンジンで認識中…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "このスクリーンショットはすでに破棄されています。もう一度範囲を選んでください。"
+  },
+  "quick_hk_title": {
+    "message": "ショートカット"
+  },
+  "quick_hk_reset": {
+    "message": "デフォルトに戻す"
+  },
+  "quick_hk_translate": {
+    "message": "選択したテキストまたはクリップボードを翻訳"
+  },
+  "quick_hk_shot": {
+    "message": "スクリーンショットを翻訳"
+  },
+  "quick_hk_input": {
+    "message": "入力して翻訳"
+  },
+  "quick_hk_unset": {
+    "message": "未設定"
+  },
+  "quick_hk_record": {
+    "message": "記録"
+  },
+  "quick_hk_cancel": {
+    "message": "キャンセル"
+  },
+  "quick_hk_change": {
+    "message": "変更"
+  },
+  "quick_hk_clear": {
+    "message": "消去"
+  },
+  "quick_hk_press": {
+    "message": "使いたい組み合わせを押してください…"
+  },
+  "quick_hk_clash": {
+    "message": "この組み合わせはほかの App が使用中のため、押してもこちらには届きません。別の組み合わせにしてください。"
+  },
+  "quick_hk_deny": {
+    "message": "⌥ だけの組み合わせは不安定です。⌃ または ⌘ を含むものにしてください。"
+  },
+  "quick_hk_system": {
+    "message": "この組み合わせは macOS または各 App 自身が使用しています。別のものにしてください。"
+  },
+  "quick_hk_nomod": {
+    "message": "⌃ や ⌘ などの修飾キーを含めてください。"
+  },
+  "quick_hk_dup": {
+    "message": "「{name}」と同じ組み合わせです。"
+  },
+  "quick_capture_label": {
+    "message": "復習ライブラリに保存"
+  },
+  "quick_capture_hint": {
+    "message": "翻訳した文は復習に入ります（出どころ：選択 / スクリーンショット / 入力）。オフにしても翻訳はそのまま使え、保存だけされなくなります。"
+  },
+  "quick_login_label": {
+    "message": "ログイン時に開く"
+  },
+  "quick_login_hint": {
+    "message": "ログイン後、自動的にメニューバーに常駐します。初期設定はオフです。"
+  },
+  "quick_login_approval": {
+    "message": "システム設定の「ログイン項目」でも一度許可する必要があります。"
+  },
+  "quick_screen_ok": {
+    "message": "画面収録 · 許可済み ✓（スクリーンショット翻訳で使用）"
+  },
+  "quick_screen_off": {
+    "message": "画面収録 · まだ許可されていません。スクリーンショット翻訳を初めて使うときに確認されます。"
+  },
+  "quick_shot_needs14": {
+    "message": "スクリーンショット翻訳には macOS 14 以降が必要です。"
+  },
+  "quick_services_link": {
+    "message": "「サービス」メニュー項目にショートカットを割り当てる →"
+  },
+  "quick_more": {
+    "message": "その他のオプション"
+  },
+  "quick_shot_perm_second": {
+    "message": "初めて範囲を選ぶとき、macOS からもう一度確認が表示されます。許可してください。その後も一定期間ごとに再確認されますが、これは画面を取り込むすべての App に対する macOS の仕様です。"
+  },
+  "systrans_title": {
+    "message": "システム翻訳"
+  },
+  "systrans_intro": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンで翻訳します。まず既定の翻訳アプリに設定してください："
+  },
+  "systrans_step1": {
+    "message": "「設定」アプリを開く"
+  },
+  "systrans_step2": {
+    "message": "「アプリ」→「翻訳」へ進む"
+  },
+  "systrans_step3": {
+    "message": "「デフォルトの翻訳App」をタップし、大肚猴翻译を選ぶ"
+  },
+  "systrans_need": {
+    "message": "iOS / iPadOS 18.4 以降が必要です。それより古いシステムではこのアプリは一覧に表示されません。"
+  },
+  "systrans_state_pending": {
+    "message": "まだ同期していません。このアプリを開くと自動で同期します。"
+  },
+  "systrans_state_ok": {
+    "message": "エンジンを同期しました：{name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "エンジンが未設定です。設定すると自動で同期します。"
+  },
+  "systrans_state_failed": {
+    "message": "同期に失敗しました（{code}）。「エンジンとキー」でもう一度保存してみてください。"
+  },
+  "systrans_capture_label": {
+    "message": "復習ライブラリに保存"
+  },
+  "systrans_capture_hint": {
+    "message": "翻訳した文は「システム翻訳」という出典で復習に入ります。オフにしても翻訳はできますが、保存されません。"
+  },
+  "systrans_font_label": {
+    "message": "ポップアップの文字サイズ"
+  },
+  "systrans_font_small": {
+    "message": "小"
+  },
+  "systrans_font_std": {
+    "message": "標準"
+  },
+  "systrans_font_large": {
+    "message": "大"
+  },
+  "systrans_font_hint": {
+    "message": "テキストを選んで翻訳するときの原文と訳文の文字サイズ（ボタンと注記は変わりません）。次回ポップアップから有効になります。"
+  },
+  "sys_disclose_direct": {
+    "message": "選択したテキストは、設定したエンジン（{name}）に直接送られます。当社のサーバーを経由しません。"
+  },
+  "sys_disclose_grant": {
+    "message": "無料クレジットを使用中：選択したテキストは当社を経由して提供元に送られます。内容は保存しません。"
+  },
+  "sys_fail_network": {
+    "message": "翻訳エンジンに接続できません。通信を確認してもう一度お試しください。"
+  },
+  "sys_fail_timeout": {
+    "message": "エンジンから時間内に応答がありませんでした。"
+  },
+  "sys_fail_http": {
+    "message": "エンジンがエラーを返しました。"
+  },
+  "sys_fail_no_base": {
+    "message": "このエンジンにはアドレスが必要ですが、未設定です。大肚猴翻译を開いて入力してください。"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "このエンジンはもうありません。大肚猴翻译で別のものを選んでください。"
+  },
+  "sys_fail_needs_setup": {
+    "message": "翻訳エンジンが未設定です。大肚猴翻译を一度開いて設定すれば、ここで使えます。"
+  },
+  "sys_fail_not_synced": {
+    "message": "大肚猴翻译を一度開いて、エンジン設定をこのシートに共有してください。"
+  },
+  "sys_fail_empty": {
+    "message": "選択範囲に翻訳できるテキストがありません。"
+  },
+  "sys_fail_empty_result": {
+    "message": "エンジンから何も返りませんでした。"
+  },
+  "sys_fail_engine": {
+    "message": "翻訳エンジンを起動できませんでした。"
+  },
+  "sys_fail_unknown": {
+    "message": "翻訳できませんでした。"
+  },
+  "sys_ui_translating": {
+    "message": "翻訳中…"
+  },
+  "sys_ui_slow": {
+    "message": "まだ翻訳中 · 無料クレジットは遅いことがあります。"
+  },
+  "sys_ui_replace": {
+    "message": "置き換える"
+  },
+  "sys_ui_open_app": {
+    "message": "大肚猴翻译を開く"
+  },
+  "setup_done_title": {
+    "message": "使えます"
+  },
+  "setup_done_checking": {
+    "message": "確認中…"
+  },
+  "setup_done_failed_title": {
+    "message": "まだ使えません"
+  },
+  "setup_done_failed": {
+    "message": "上の ✗ が付いた項目がまだ通っていません。直すと自動でもう一度テストします。"
+  },
+  "setup_done_settings": {
+    "message": "エンジンを設定しました。ドキュメント翻訳・リアルタイム通訳・リアルタイム字幕がすべて使えます。"
+  },
+  "setup_done_systrans": {
+    "message": "エンジンを設定しました。さっきのアプリに戻って、もう一度「翻訳」をタップしてください —— ここですることはもうありません。"
+  },
+  "setup_done_quick": {
+    "message": "エンジンを設定しました。クイック翻訳のパネルに戻って、さっきの文をもう一度翻訳してください。"
+  },
+  "setup_done_home": {
+    "message": "ホームに戻る"
+  },
+  "setup_from_systrans": {
+    "message": "システム翻訳から来ました。設定が終わったら、さっきのアプリに戻ってもう一度「翻訳」をタップしてください。"
+  },
+  "systrans_discover_title": {
+    "message": "iPhone 標準の「翻訳」で大肚猴を使う"
+  },
+  "systrans_discover_body": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンで翻訳します。一度設定するだけです。"
+  },
+  "systrans_discover_done": {
+    "message": "設定しました"
+  },
+  "systrans_discover_used_title": {
+    "message": "システム翻訳 · 使用中"
+  },
+  "systrans_discover_used": {
+    "message": "どのアプリでもテキストを選んで「翻訳」をタップすれば、設定したエンジンが使われます。翻訳した文は復習ライブラリにあります。"
+  },
+  "systrans_discover_see": {
+    "message": "復習ライブラリで見る →"
+  },
+  "ob_signin_grant_title": {
+    "message": "ログインして無料クレジットを受け取る"
+  },
+  "ob_signin_grant_body": {
+    "message": "クレジットはこちらで負担します。まずは十分使えます。自分のキーも使えます。ログインするとカードを他のデバイスにも同期できます。"
+  },
+  "ob_signin_sync_title": {
+    "message": "ログイン（任意）"
+  },
+  "ob_signin_sync_body": {
+    "message": "ログインするとカードを他のデバイスに同期できます。翻訳エンジンは設定で自分のキーを入力してください。"
+  },
+  "ob_signin_later": {
+    "message": "今はログインしない"
+  },
+  "ob_signin_email": {
+    "message": "メールでログイン"
+  },
+  "ob_try_title": {
+    "message": "さっそく一文試す"
+  },
+  "ob_try_body": {
+    "message": "素材を探す必要はありません。ここにあります。翻訳するか、聞いてみてください。"
+  },
+  "ob_try_translate": {
+    "message": "この文を翻訳"
+  },
+  "ob_try_listen": {
+    "message": "この文を聞く"
+  },
+  "ob_try_working": {
+    "message": "翻訳中…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "使える翻訳エンジンがまだありません。ログインすると無料クレジットが自動で追加されます。設定で自分のキーを入れることもできます。"
+  },
+  "ob_try_noengine_key": {
+    "message": "使える翻訳エンジンがまだありません —— 設定でキーを入れればすぐ使えます。"
+  },
+  "ob_try_sample_alt": {
+    "message": "外国語で読んでいると、同じ単語に何度も出会ううちに、もう調べなくてもよくなる。"
+  },
+  "xb_consent": {
+    "message": "私は個別に同意します：サインイン後、アカウント情報（メールアドレスまたは Apple アカウント識別子）と学習カード（読んだ文、訳文、元ページのアドレスとタイトル）は、日本・東京のサーバーに転送・保存されます。受領者は Supabase Pte. Ltd. です。",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "受領者・目的・撤回方法はプライバシーポリシー第 3 節へ",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "サインインするには、上の項目にチェックを入れてください。チェックしなくても使えますが、カードは同期されません。",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "設定を続ける · 残り {n} ステップ",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "前回止まった画面から続けられます。1〜2 分で終わります。",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "前回の続きから",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "今後表示しない",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari 機能拡張",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "以前「{done}」をタップしたので、ホームのヒントは非表示です。まだオンにしていない場合は、ここから戻せます。",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "ホームに「機能拡張をオンにする」ヒントを再表示",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "戻しました。ホームに戻ると表示されます。",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "2 ステップだけ"
+  },
+  "ob_web_only": {
+    "message": "ウェブページの翻訳だけでいい"
+  },
+  "ob_intent_listen": {
+    "message": "主に聴く · リアルタイム字幕"
+  },
+  "ob_intent_both": {
+    "message": "読むのも聴くのも両方"
+  },
+  "qs_base": {
+    "message": "エンドポイント URL（完全）"
+  },
+  "qs_key_ph_one": {
+    "message": "一度貼るだけで翻訳を設定"
+  },
+  "qs_apply_one": {
+    "message": "このエンドポイントで翻訳を設定"
+  },
+  "qs_absent": {
+    "message": "— このプラットフォームでは提供されません"
+  },
+  "qs_absent_custom": {
+    "message": "— このエンドポイントでは提供されません"
+  },
+  "learn_habit_streak": {
+    "message": "今日は来ました · {n} 日連続"
+  },
+  "learn_habit_today": {
+    "message": "今日は来ました"
+  },
+  "learn_nothing_due_title": {
+    "message": "今日は復習するものがありません"
+  },
+  "learn_group_done": {
+    "message": "今日のこの一組は終わりです"
+  },
+  "learn_group_left": {
+    "message": "今日はあと {n} 枚 —— 一度に終わらせなくて大丈夫。"
+  },
+  "learn_group_left_none": {
+    "message": "残りは明日に。"
+  },
+  "learn_group_more": {
+    "message": "もう一組"
+  },
+  "learn_group_stop": {
+    "message": "今日はここまで"
+  },
+  "learn_group_bye": {
+    "message": "残りは明日で大丈夫 —— また来てください。"
+  },
+  "firstrun_packs_title": {
+    "message": "先に音声パックをダウンロード"
+  },
+  "firstrun_packs_lede": {
+    "message": "これを入れてしまえば、あとは何も設定しなくて大丈夫 —— 翻訳・通訳・字幕・読み上げがそのまま使えます。音声は端末内で認識します。認識した文字は翻訳のために送られます：自分の key なら設定した事業者へ直接、無料枠なら当社のサーバーを経由して転送され、文字は保存しません。"
+  },
+  "firstrun_packs_asr": {
+    "message": "音声認識パック（通訳 / リアルタイム字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高品質読み上げパック（読み上げ / ポッドキャスト）"
+  },
+  "firstrun_packs_done": {
+    "message": "準備完了"
+  },
+  "firstrun_packs_net": {
+    "message": "Wi-Fi でのダウンロードがおすすめです。モバイル通信でも構いません。"
+  },
+  "firstrun_packs_busy": {
+    "message": "ダウンロード中…"
+  },
+  "firstrun_packs_go": {
+    "message": "ダウンロードして続ける"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "読み上げパックだけ入れて続ける"
+  },
+  "firstrun_packs_err": {
+    "message": "ダウンロードできませんでした：{why} —— 通信を確認してもう一度。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "システム音声パックのダウンロードが進みません — 通信を確認して、もう一度。"
+  },
+  "engine_status_ok": {
+    "message": "サインインで設定済み：翻訳・文字起こし・読み上げ —— この画面ですぐ使えます"
+  },
+  "engine_status_missing": {
+    "message": "あと 1 つ："
+  },
+  "engine_status_fix_tts": {
+    "message": "読み上げエンジンが未設定 — 設定 › 読み上げ で音声を選ぶ"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻訳エンジンが未設定 — 設定 › エンジン で選ぶ"
+  },
+  "listen_lang_detecting": {
+    "message": "言語を識別しています…"
+  },
+  "listen_lang_detected": {
+    "message": "識別済み：{a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "動画の言語を識別しています…"
+  },
+  "subtitle_lang_detected": {
+    "message": "識別済み：{lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "認識を間違えたときだけ触ってください"
+  },
+  "listen_lang_auto": {
+    "message": "自動識別"
+  },
+  "listen_lang_manual": {
+    "message": "手動で指定"
+  },
+  "subtitle_partner_auto": {
+    "message": "動画の言語：{lang}（自動）"
+  },
+  "listen_need_locales": {
+    "message": "オンデバイス認識器は同時に最大5言語までです。上限に達しました — 一度聞き取りを出て入り直してください。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "この言語の認識パックがまだ入っていません。ネットにつないで「聞き始める」を一度押すと入ります。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "この端末ではその言語を認識できません — 「{lang}」に戻しました"
+  },
+  "listen_speak_lang_label": {
+    "message": "私が話す言語"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} を聞いたら {b} に、{b} を聞いたら {a} に翻訳"
+  },
+  "lang_auto": {
+    "message": "自動"
+  },
+  "listen_listening": {
+    "message": "聞き取り中…"
+  },
+  "listen_ptt_say": {
+    "message": "{lang}で話す"
+  },
+  "listen_listening_lang": {
+    "message": "{lang}を聞き取り中…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "タップして開始"
+  },
+  "listen_ptt_recording": {
+    "message": "● 録音中 · タップして停止"
+  },
+  "firstrun_packs_back": {
+    "message": "戻る"
+  },
+  "firstrun_packs_all_title": {
+    "message": "言語パックのダウンロードが完了しました"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} で聞き取りと読み上げができます。ほかの言語は設定から追加できます。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "言語パックをダウンロードしています"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "項目ごとに進捗を表示します。バックグラウンドでも続き、回線が戻れば途中から再開します。"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "ダウンロードする言語を選ぶ"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "初期状態では、システムの言語 + 中文 + English にチェックが入ります。ほかは必要に応じて。あとから設定でも追加できます。"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "選択はそのまま残ります。Wi-Fi につながると自動でダウンロードを始めます。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "準備できました。入ったあと「{mine}」か相手の言語のボタンを押すと始まります。"
+  },
+  "firstrun_packs_foot": {
+    "message": "合計約 {size}。システムの認識パックは別です。モバイル通信のときは、ダウンロードの前に確認します。"
+  },
+  "firstrun_packs_locked": {
+    "message": "ダウンロード中はチェックを変えられません。終わったら設定で増減できます。"
+  },
+  "firstrun_packs_enter": {
+    "message": "リアルタイム聞き取りへ"
+  },
+  "firstrun_packs_remain": {
+    "message": "ダウンロード中 · 残り {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未選択"
+  },
+  "firstrun_packs_queued": {
+    "message": "待機中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "言語（認識パック）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "認識パック · システムがダウンロード"
+  },
+  "firstrun_packs_system": {
+    "message": "システム言語"
+  },
+  "firstrun_packs_more": {
+    "message": "ほかの {n} 言語"
+  },
+  "firstrun_packs_together": {
+    "message": "いっしょにダウンロード"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "読み上げ · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "中文と English を一つのパックでカバーします。中文か English にチェックすると自動で付きます"
+  },
+  "firstrun_packs_bytes": {
+    "message": "約 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "読み上げ · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "初期状態ではオフです。なくても聞き取りと訳文は使えます。タイ語の訳文だけ読み上げません"
+  },
+  "firstrun_packs_optional": {
+    "message": "約 {size} · 任意"
+  },
+  "firstrun_packs_base": {
+    "message": "基本コンポーネント"
+  },
+  "firstrun_packs_base_note": {
+    "message": "言語識別（ECAPA）と音声検出（VAD）：誰がどの言語を話しているか分けます。これがないと聞き取りを始められません"
+  },
+  "firstrun_packs_required": {
+    "message": "約 {size} · 必須"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "モバイル通信を使っています"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "今回は約 {size} です（システムの認識パックは別で、大きさはシステムが決めます）。通信料がかかることがあります。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wi-Fi を待つ"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "モバイル通信でダウンロード"
+  },
+  "firstrun_packs_manage": {
+    "message": "言語パックを管理"
+  },
+  "listen_ptt_preparing": {
+    "message": "準備中 · {lang} を {pct}% ダウンロード"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 準備完了"
+  },
+  "listen_not_ready": {
+    "message": "まだ始められません。ダウンロードが終わってから押してください"
+  },
+  "listen_ready_tap": {
+    "message": "ダウンロード完了。下のボタンを押すと始まります"
+  },
+  "listen_prep_detail": {
+    "message": "{what}をダウンロード中 · {pct}% · {ready}は準備完了"
+  },
+  "listen_ready_tap_sub": {
+    "message": "自動では始まりません · 「{mine}」か「{other}」を押すと聞き取りが始まります"
+  },
+  "drive_skipped": {
+    "message": "読み上げできないカード {n} 枚をスキップ（メディアカードまたは音声なし）"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} の通訳ができます。{speak} は読み上げもできます。ほかの言語は「設定 · 音声パック」からいつでも追加できます。"
+  },
+  "firstrun_quota_cancel": {
+    "message": "キャンセル"
+  },
+  "firstrun_quota_days": {
+    "message": "最も長く未使用 · {n} 日前"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "ダウンロード"
+  },
+  "firstrun_quota_in_use": {
+    "message": "使用中の言語ペア · 譲れません"
+  },
+  "firstrun_quota_label": {
+    "message": "認識言語"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "未ダウンロード"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "準備完了 · 枠を使用"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "未準備 · 復元可"
+  },
+  "firstrun_quota_never": {
+    "message": "最も長く未使用"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple の制限：認識言語は同時に最大 {max} 個まで"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max} 枠すべて使用中 · 新しく追加すると先に「未準備」になります"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "復元"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "タップで復元 · 約 1〜2 秒"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "ボタンは選んだ言語に合わせて変わります。"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "{yield} を譲る · {need} を復元"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "{need} を復元するには、先に 1 つ譲ってください。譲った言語は「未準備」に戻り、次に使うときに約 1〜2 秒で復元します。再ダウンロードは不要です。"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "譲る言語を選択（既定：最も長く未使用）"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "認識言語が上限の {max} 個に達しました"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "未ダウンロード"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "枠を使用"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "未準備"
+  },
+  "firstrun_quota_today": {
+    "message": "今日使用"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} / {max} 使用中"
+  },
+  "firstrun_quota_working": {
+    "message": "復元中…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "未準備 · {n} 個目"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "今回はダウンロードしません"
+  },
+  "firstrun_quota_over_title": {
+    "message": "{max} 枠が満杯：{langs} は「未準備」になります"
+  },
+  "firstrun_quota_over_body": {
+    "message": "使うときにタップで復元（約 1〜2 秒）。そのとき最も長く使っていない言語が枠を譲ります。譲りたくなければ、今はチェックしないでください。"
+  },
+  "listen_pill_quota_full": {
+    "message": "枠が満杯"
+  },
+  "listen_ptt_quota_full": {
+    "message": "枠が満杯 · 1 つ譲ると使えます"
+  },
+  "listen_quota_card_btn": {
+    "message": "1 つ譲って復元"
+  },
+  "listen_quota_card_hint": {
+    "message": "約 1〜2 秒 · 再ダウンロード不要"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} はインストール済みですが、枠をほかの言語に譲っています。ダウンロード失敗ではなく、ネットワークとも関係ありません。"
+  },
+  "listen_quota_card_title": {
+    "message": "まだ {lang} を聞き取れません：認識言語の枠 {max} 個がすべて使用中です"
+  },
+  "listen_quota_sheet_go": {
+    "message": "{yield} を譲る · {need} を復元"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "{lang} を使うには、先に 1 つ譲ってください。"
+  },
+  "fail_quota_label": {
+    "message": "無料枠"
+  },
+  "fail_credit_title": {
+    "message": "無料枠を使い切りました"
+  },
+  "fail_credit_next": {
+    "message": "経路を変えるか、自分の API Key を入力してください。"
+  },
+  "fail_go_grant": {
+    "message": "経路を変える"
+  },
+  "fail_fill_key": {
+    "message": "自分の Key を入力"
+  },
+  "fail_grant_title": {
+    "message": "プールは一時的に使えません"
+  },
+  "fail_grant_next": {
+    "message": "使い切ったのではありません。しばらくしてから再試行するか、経路を変えてください。"
+  },
+  "fail_model_title": {
+    "message": "モデルは無料の対象外です"
+  },
+  "fail_model_next": {
+    "message": "無料枠は指定のモデルだけ使えます。戻してください。"
+  },
+  "fail_go_model": {
+    "message": "モデルを変える"
+  },
+  "fail_auth_title": {
+    "message": "キーが無効です"
+  },
+  "fail_auth_next": {
+    "message": "プロバイダにキーを拒否されました。確認するか、入れ直してください。"
+  },
+  "fail_go_engine": {
+    "message": "キーを入力"
+  },
+  "fail_use_free": {
+    "message": "無料経路に切り替える"
+  },
+  "fail_timeout_title": {
+    "message": "接続できず、一時停止しました"
+  },
+  "fail_timeout_next": {
+    "message": "自動再試行を止めました。回線が戻ったら再試行するか、無料経路に切り替えてください。"
+  },
+  "fail_timeout_next_cn": {
+    "message": "自動再試行を止めました。回線が戻ったら再試行してください。"
+  },
+  "fail_timeout_footnote": {
+    "message": "5 回連続でタイムアウトしたときだけ停止します。1 回では止まりません"
+  },
+  "fail_retry": {
+    "message": "再試行"
+  },
+  "fail_switch_free": {
+    "message": "無料経路に変える"
+  },
+  "firstrun_packs_sum": {
+    "message": "約 {size} · 聞き取りの基礎を含む"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "進捗の詳細"
+  },
+  "langpacks_manage": {
+    "message": "管理"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "ワンタップに切り替える"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "ダウンロード中"
+  },
+  "firstrun_quota_mini": {
+    "message": "認識は最大 5 言語"
+  },
+  "qs_key_local_only": {
+    "message": "キーはこの端末だけに保存されます"
+  },
+  "firstrun_packs_retry": {
+    "message": "再試行"
+  },
+  "langpacks_title": {
+    "message": "言語パックと読み上げ"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · ワンタップ設定済み"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "ダウンロード中 {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "オフライン読み上げ · 未ダウンロード · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "ダウンロード内容の詳細"
+  },
+  "langpacks_need_os": {
+    "message": "言語パック · より新しいシステムが必要"
+  },
+  "engine_keys_status_detail": {
+    "message": "項目別に設定済み"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "選ぶとワンタップ設定を破棄します"
+  },
+  "langpacks_tts_na": {
+    "message": "オフライン読み上げ · アプリのみ"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "項目別に切り替える"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "ワンタップに切り替えると、今の項目別設定は上書きされます"
+  },
+  "langpacks_ready": {
+    "message": "準備完了 · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "未設定"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · 約 {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "ほかのエンジンは項目別で設定してください。"
+  },
+  "langpacks_tts_ready": {
+    "message": "オフライン読み上げ · 準備完了"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "選ぶと項目別の設定を上書きします"
+  },
+  "engine_keys_row": {
+    "message": "エンジンとキー"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "キャンセル"
+  },
+  "langpacks_missing": {
+    "message": "未ダウンロード · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
+  }
+}

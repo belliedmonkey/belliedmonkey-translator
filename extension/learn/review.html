@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大肚猴翻译 — 复习</title>
+  <link rel="stylesheet" href="../styles/organic-tokens.gen.css">
+  <link rel="stylesheet" href="review.css">
+  <link rel="stylesheet" href="../styles/typography.css">
+</head>
+<body>
+  <div class="page">
+    <header class="bar">
+      <h1 data-i18n="learn_title">复习</h1>
+      <div class="counts" id="counts"></div>
+      <!-- interaction-spec「多设备同步一致性」: 常驻同步状态行。五态：同步中 /
+           同步完成·时间 / 离线 / 失败 / 未登录。公开构建（sync 未编入）整行隐藏。 -->
+      <div class="sync-line" id="sync-line" hidden></div>
+      <!-- 跨面交接（learning-design §8.4.1.1）：把人送去 App 继续复习，并把一个
+           **不透明 userId** 带过去，好让 App 那边发现「两边不是同一个账号」——
+           在这之前没有任何一侧发现得了。只在已登录时出现：没登录时既没有 id 可带，
+           那边也拉不到任何东西。 -->
+      <button id="go-app" type="button" class="go-app" hidden></button>
+      <!-- 文档翻译（§9.7）：只在扩展页显示；App 里由 AppDocs 提供入口（D4）。 -->
+      <a id="go-docs" class="go-app" href="docs.html" hidden data-i18n="doc_review_entry">📄 翻译文档</a>
+    </header>
+
+    <!-- Empty: no corpus at all. Says how material gets collected, rather than
+         「暂无数据」 (interaction-spec: 复习 / Review → States). -->
+    <!-- 存储压力。绝不在网页里出现，但对开了采集的用户绝不隐瞒
+         （domain-design §9.1 铁律二）。它不挡卡片——库满了照样能复习。 -->
+    <div class="pressure" id="pressure" hidden>
+      <span id="pressure-msg"></span>
+      <button id="pressure-fix" data-i18n="learn_clean_known">清理已掌握的卡</button>
+    </div>
+
+    <section class="panel" id="empty" hidden>
+      <h2 data-i18n="learn_empty_title">还没有学习材料</h2>
+      <!-- 两支：采集**没开**（要去开）与采集**已经开着**（只是还没攒到）。
+           原来共用一句，于是一个两分钟前刚在引导里亲手打开采集的人，翻完一段点进来，
+           被告知「去设置里打开采集」—— 骂错了人，而且他会以为自己哪里做错了。
+           判据是 learnEnabled，不是只数 items.length。 -->
+      <p id="empty-off" data-i18n="learn_empty_body">打开采集开关，然后照常浏览、照常翻译。你真正读过的句子会自动存进来 —— 快速滚过去的不算。</p>
+      <p id="empty-on" hidden data-i18n="learn_empty_on">采集已经开着了。照常浏览、照常翻译，你**停下来读完**的句子会出现在这里 —— 快速滚过去的不算。</p>
+      <!-- 第三支，比上面两支更要紧（§8.4.1.2 身份合并）：这台设备上**有**卡，
+           只是挂在另一个账号下。换一个身份登录（Apple 的「隐藏我的邮箱」、手机号）
+           会拿到一个新账号 + 一个独立的空库，而整条路**一个错都不报** ——
+           用户看到的就是这一页，然后以为自己的东西没了。
+           它出现时，上面两支要让位：那两句在这种情况下都是错的。 -->
+      <p id="empty-other" hidden data-i18n="learn_empty_other_account">这台设备上还有另一个账号的学习材料。你现在登录的是另一个账号 —— 那些卡没有丢，用原来的账号登录就会回来。</p>
+      <p id="empty-settings-row"><a href="#" id="empty-settings" data-i18n="learn_open_settings">去设置里打开采集</a></p>
+      <!-- 扩展侧的引导入口。这是用户产生「为什么一张卡都没有」疑问的地方，也是唯一
+           能回答它的地方。
+           ⚠️ 它在 App 里必须**藏起来**：App 打不开 chrome-extension:// 页面，而且 App
+           结构上不采集（材料只经同步进来），一个「去把扩展配好」的按钮在那里是死链。
+           App 侧由 paintAppEmptyState() 负责隐藏 —— 见 src/app/shell-model.js。 -->
+      <p id="empty-onboard-row" hidden><a href="#" id="empty-onboard" data-i18n="extob_reonboard">重看开始使用引导</a></p>
+    </section>
+
+    <!-- One-time explainer (interaction-spec 复习: first visit, three sentences,
+         dismissed forever). Non-blocking: it sits above the card, never instead. -->
+    <section class="panel howto" id="howto" hidden>
+      <h2 data-i18n="learn_howto_title">复习是怎么运作的</h2>
+      <p data-i18n="learn_howto_1">记得 → 间隔拉长，下次更晚出现。</p>
+      <p data-i18n="learn_howto_2">忘了 → 重新开始，很快再见。</p>
+      <p data-i18n="learn_howto_3">记忆强度攒满 180 天，这张卡就毕业了。</p>
+      <button id="howto-ok" data-i18n="learn_howto_ok">知道了</button>
+    </section>
+
+    <!-- Empty: corpus exists, nothing due. Says WHEN the next card comes up; never
+         fabricates work by advancing cards early. -->
+    <section class="panel" id="nothing-due" hidden>
+      <h2 id="alldone-title"></h2>
+      <!-- 习惯条（#386，2026-09-24 用户裁定「每天或每周回来就好，养成习惯远比学很大量重要」）：
+           **先确认他来过**，再说别的。来过的判据是「打开了复习面」，不是「评了几张」——
+           目标就是回来。数据只在本机（reviewDays），不同步、不进遥测。 -->
+      <div id="habit" hidden>
+        <p id="habit-line"></p>
+        <div id="habit-days" class="habit-days" aria-hidden="true"></div>
+      </div>
+      <p id="next-due"></p>
+      <!-- The daily-new cap has a setting; a wall nobody can see the dial for reads
+           as a defect (§5.1). -->
+      <p class="cap-hint" id="cap-hint"></p>
+    </section>
+
+    <!-- 一组做完了（#386 画布板 B，2026-09-24）：终点从「今天全部清完」改成**一小组**。
+         「今天该刷的全清了」对攒了几天的人几乎不可能 —— 一个每天都清不完的任务，
+         对养成习惯是反作用。这一屏只在**还有卡**时出现；真清空了仍走 #nothing-due。 -->
+    <section class="panel" id="group-done" hidden>
+      <h2 id="group-done-title"></h2>
+      <div id="group-habit" hidden>
+        <p id="group-habit-line"></p>
+        <div id="group-habit-days" class="habit-days" aria-hidden="true"></div>
+      </div>
+      <p id="group-left"></p>
+      <button id="group-more" type="button"></button>
+      <button id="group-stop" type="button" class="secondary"></button>
+    </section>
+
+    <!-- §5.3 free practice. Shown whenever the deck is done, or on demand from the
+         footer — the deck-done screen is no longer a dead end. -->
+    <section class="panel practice-setup" id="practice-setup" hidden>
+      <p class="practice-rule" data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+      <div class="practice-row">
+        <select id="practice-pool">
+          <option value="learning" selected data-i18n="learn_pool_learning">学习中</option>
+          <option value="all" data-i18n="learn_pool_all">全部（含候选与已掌握）</option>
+        </select>
+        <select id="practice-batch">
+          <option value="10">10</option>
+          <option value="20" selected>20</option>
+          <option value="0" data-i18n="learn_batch_unlimited">不限</option>
+        </select>
+        <button id="practice-start" data-i18n="learn_practice_start">开始练习</button>
+      </div>
+    </section>
+
+    <section class="card" id="card" hidden>
+      <div class="src" id="src"></div>
+      <!-- 来源操作（interaction-spec「来源治理」）：⋯ 展开，删除随同步传播（§7.4）。 -->
+      <div class="src-actions" id="src-actions" hidden></div>
+
+      <!-- Memory strength, always visible (§5.1): the first place 「已掌握」 has a
+           user-visible definition — strength reaching 180 days. -->
+      <div class="strength" id="strength">
+        <div class="strength-track"><div class="strength-bar" id="strength-bar"></div></div>
+        <span class="strength-label" id="strength-label"></span>
+      </div>
+
+      <!-- §5.2/§5.4 skill badges: lit when that exercise form was passed at
+           ≥「记得」; lit-but-stale (past the freshness window) renders dashed.
+           All available skills fresh + strength full ⇒ 全面掌握. -->
+      <div class="badges" id="badges">
+        <span class="badge" id="badge-read" data-i18n="learn_badge_read">读</span>
+        <span class="badge" id="badge-listen" data-i18n="learn_badge_listen">听</span>
+        <span class="badge" id="badge-speak" hidden data-i18n="learn_badge_speak">说</span>
+        <span class="badge" id="badge-write" data-i18n="learn_badge_write">写</span>
+        <span class="badge full" id="badge-full" hidden data-i18n="learn_mastered_full">全面掌握</span>
+      </div>
+
+      <!-- 语音。在 audio-first 模式下原文先藏起来，先听再看。播放原文不揭晓
+           任何东西，所以不违反「揭晓永远由用户发起」——那条约束的是译文。 -->
+      <div class="audio" id="audio" hidden>
+        <button class="play" id="play" data-i18n="tts_play">▶ 听一遍</button>
+        <span class="audio-note" id="audio-note"></span>
+      </div>
+
+      <!-- §5.2 说 = shadowing at the listen tier, labelled practice, never a test.
+           ASR stays out (§11/§12) — the browser's recognition API ships recordings
+           to vendor servers, which the no-telemetry promise cannot absorb. -->
+      <p class="shadow-hint" id="shadow" hidden data-i18n="learn_shadow_hint">跟着读一遍（练习，不计入验证）</p>
+
+      <p class="orig" id="orig"></p>
+
+      <!-- §9.3 exercise variants: 译文选择题 / 盲听选词 / 理解题 render here. One
+           tap (or 确认 for the multi-select pick) locks the options, reveals, and
+           the objective result constrains the grades — the cloze rule, reused.
+           #ex-status doubles as the pack cost/status line (§9.3 cost contract). -->
+      <p class="shadow-hint" id="ex-prompt" hidden></p>
+      <div class="ex-options" id="ex-options" hidden></div>
+      <button class="reveal" id="ex-check" hidden data-i18n="learn_check_pick">确认选择</button>
+      <p class="shadow-hint" id="ex-status" hidden></p>
+
+      <!-- §9.4 说题卡: record → the USER'S OWN transcription endpoint → local
+           score. The recording is discarded after the transcript returns — never
+           stored, never synced (§10 Gate C). Transcript renders textContent-only. -->
+      <div class="speak-box" id="speak-box" hidden>
+        <button class="reveal" id="speak-record" data-i18n="learn_speak_record">🎙 开始录音</button>
+        <p class="shadow-hint" id="speak-status"></p>
+        <p class="speak-transcript" id="speak-transcript" hidden></p>
+        <p class="shadow-hint" id="speak-score" hidden></p>
+      </div>
+
+      <!-- §5.2 write tier: translation shown, the original with blanks. The inputs
+           are checked automatically — the one objectively verified skill. -->
+      <p class="shadow-hint" id="write-prompt" hidden data-i18n="learn_write_prompt">把原句补全</p>
+      <p class="cloze" id="cloze" hidden></p>
+      <p class="shadow-hint" id="write-replaced" hidden data-i18n="learn_write_replaced">已替换为正确答案</p>
+
+      <div class="media" id="media" hidden></div>
+
+      <button class="reveal secondary" id="reveal-orig" hidden data-i18n="learn_reveal_orig">显示原文</button>
+      <button class="reveal" id="reveal" data-i18n="learn_reveal">显示译文</button>
+      <button class="reveal" id="cloze-check" hidden data-i18n="learn_check">检查</button>
+
+      <div class="answer" id="answer" hidden>
+        <p class="tr" id="tr"></p>
+        <!-- Practice honesty (§5.1 must survive §5.3): in practice the grade buttons
+             cannot promise intervals they will not grant, so their .when labels are
+             replaced and this one line explains what a practice rep does instead. -->
+        <p class="practice-rule" id="practice-note" hidden data-i18n="learn_practice_rule">练习不能刷出掌握，但能暴露遗忘。</p>
+        <!-- §5.4 second exercise: same honesty rule as practice — grades 1–3 grant
+             no interval here, and this line says so before the user grades. -->
+        <p class="practice-rule" id="extra-note" hidden data-i18n="learn_second_exercise">再练一项 · 不再计入复习间隔</p>
+        <!-- §9.2 sentence notes — rendered only when a chat-capable engine is
+             configured (capability gate; no engine ⇒ no entry point, never a
+             disabled button with an apology). Cost is stated at the point of use. -->
+        <div class="notes-wrap" id="notes-wrap" hidden>
+          <button class="reveal secondary" id="notes-btn" data-i18n="learn_notes_btn">解析这句</button>
+          <p class="shadow-hint" id="notes-cost" data-i18n="learn_notes_cost">使用你配置的 API，一次调用，永久缓存</p>
+          <div class="notes-box" id="notes-box" hidden></div>
+        </div>
+
+        <!-- data-i18n lives on the inner span, NOT the button: applyI18n rewrites
+             textContent, which would wipe the .when consequence label (§5.1). -->
+        <div class="grades" id="grades">
+          <button class="grade g0" data-grade="0"><span data-i18n="learn_grade_again">不记得</span><small class="when"></small></button>
+          <button class="grade g1" data-grade="1"><span data-i18n="learn_grade_hard">有点难</span><small class="when"></small></button>
+          <button class="grade g2" data-grade="2"><span data-i18n="learn_grade_good">记得</span><small class="when"></small></button>
+          <button class="grade g3" data-grade="3"><span data-i18n="learn_grade_easy">太简单</span><small class="when"></small></button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span id="progress"></span>
+      <span class="foot-links">
+        <a href="#" id="practice-open" data-i18n="learn_practice">自由练习</a>
+        <a href="#" id="open-settings" data-i18n="learn_settings">设置</a>
+      </span>
+    </footer>
+  </div>
+
+  <script src="page-settings.js"></script>
+
+  <script src="../content/i18n-messages.js"></script>
+  <script src="i18n.js"></script>
+  <script src="../content/learn-model.js"></script>
+  <script src="../content/learn-rules.js"></script>
+  <script src="../content/learn-scheduler.js"></script>
+  <script src="../content/learn-exercises.js"></script>
+  <script src="../content/tts.gen.js"></script>
+  <script src="../content/stt.gen.js"></script>
+  <script src="../content/providers.gen.js"></script>
+  <script src="../content/langs.gen.js"></script>
+  <script src="../content/engine-state.js"></script>
+  <script src="../content/stt-state.js"></script>
+  <script src="../content/wire-format.js"></script>
+  <script src="../learn/grant.js"></script>   <!-- 免费额度（§8.10）。这一页只用 enabled()：未登录那行说哪句话、链接落到哪 -->
+  <script src="../content/request-shape.js"></script>
+  <!-- 语言未知的卡补语言（review.js backfillLang，learning-design §4.1）：拉丁字母要问一次翻译引擎。
+       缺这两行时 TranslationAPI 不存在，review.js 跳过引擎却照记 langAsked=true —— 卡永远是 und（全回归 2026-09-14 F05）。
+       顺序同 docs.html：translation-core 在 request-shape 之后、translation-api 之前。 -->
+  <script src="../content/translation-core.js"></script>
+  <script src="../content/translation-api.js"></script>
+  <script src="store.js"></script>
+  <script src="tts.js"></script>
+  <script src="speech-input.js"></script>
+  <script src="notes.js"></script>
+  <script src="exercise-pack.js"></script>
+  <script src="drain.js"></script>
+  <!-- §8.8 auto-sync: opening this page is the heartbeat. These three (plus the
+       backend config) exist here ONLY for that — review.js itself never pushes. -->
+  <script src="backend.config.js"></script>
+  <script src="auth.js"></script>
+  <script src="chunk.js"></script>
+  <!-- 本地备份（§7.5）：仅扩展页 —— App 的 IDB 已实证耐久，bundle 刻意不含它。 -->
+  <script src="backup.js"></script>
+  <script src="sync.js"></script>
+  <!-- 「去 App 里复习」这一跳（地址 + 打不开时的出口）。必须在 review.js 之前。 -->
+  <script src="app-link.js"></script>
+  <script src="telemetry.js"></script>
+  <script src="dialog.js"></script>
+  <!-- PR7c：learn/review.js 产物改由 src/shared/review-host.js bundle（同名覆盖），
+       在本标签位调 boot() —— 旧 IIFE「加载即执行」的时序不变。App 里本页 body 内联进
+       主 HTML 的 REVIEW 槽（script 标签剥离），boot 由 main.jsx 在 #quick 分支外调。 -->
+  <script src="review.js"></script>
+</body>
+</html>

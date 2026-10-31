@@ -1,0 +1,234 @@
+// content/wire-format.js — 端点地址的两个纯问题：**请求哪个地址**，和**用哪种请求形状**。
+//
+// 第三个问题「这种形状的请求体长什么样」在 content/request-shape.js —— 它要读
+// chrome.storage（用户的高级参数），而本文件刻意保持纯函数、零加载期依赖，测试把它
+// 当依赖直接注入而不是打桩。把一次存储读塞进来会毁掉那个性质。
+//
+// See docs/domain-design.md §7. 三条传输（翻译、解析、语音、转写）全部经过这里，
+// 所以「怎么得到最终 URL」在整个产品里只有一份实现。
+//
+// ── 零拼接，无条件 ────────────────────────────────────────────────────────
+// 用户填的地址**原样使用**，我们一个字符都不加，**没有任何例外分支**。旧模型是
+// 「注册表写死一段 path + 用户填的 base」，它有两个真实后果：同一个对话端点今天分成
+// /v1/chat/completions 与 /v1/responses 两套请求形状而用户无从选择；中转代理的路径
+// 约定与官方不一致时，用户填的地址被我们二次加工之后就不是他要的那个端点了。
+//
+// 「base 是 origin」这个前提本来也不成立：qwen 的默认地址本身就带 /compatible-mode
+// 路径段，而 google 条目根本没有 path。旧模型是在描述一个并不存在的规整世界。
+//
+// 1.5.2 只做到了「有戳时逐字」——留了一条无戳时按老语义拼接的兜底路径，代价是拼接
+// 变成了默认行为，只要哪个调用点忘了传戳就悄悄回去了。1.5.3 把那条路径连同它依赖
+// 的冻结表、一次性迁移一起删掉：**没有戳，没有表，没有条件**。理由见 resolveEndpoint。
+//
+// ── 形状由地址声明 ────────────────────────────────────────────────────────
+// wire shape 优先看 URL 的路径后缀，认不出来才回落到注册表 `type`。理由：`type` 是
+// **我们对一个 id 的猜测**，URL 是**用户对端点的陈述**。判定家族封闭——后缀只在同一
+// 能力（对话／语音／转写）内部选变体，所以一个碰巧以 /messages 结尾的语音端点绝不会
+// 被翻译成对话传输。厂商在两处都不参与：后缀表里全是协议路径，没有一个是厂商名。
+
+var WireFormat = (() => {
+  // ─── 后缀 → wire shape ──────────────────────────────────────────────────
+  const FAMILY = {
+    'chat-compat': 'chat',
+    'translate-compat': 'chat',
+    'messages-compat': 'chat',
+    'responses-compat': 'chat',
+    'speech-compat': 'speech',
+    'transcribe-compat': 'transcribe',
+    'transcribe-dashscope': 'transcribe',
+    'transcribe-gemini': 'transcribe',
+    // 2026-09-06 → 09-17 这里还有第五个家族 transcribe-live（ws-realtime / ws-bidi / ws-duplex，
+    // 一条 WebSocket）。实时转写自 2026-09-17 起固定为设备内置、经原生桥，注册表里没有 wss 地址，
+    // 那个家族连同它的后缀表一起删除（domain-design §7 同日修订）。
+    'speech-dashscope': 'speech',
+    'speech-audio-chat': 'speech',
+  };
+
+  // 后缀取**最后两段、不含版本段**：`/chat/completions` 而不是
+  // `/v1/chat/completions`。版本段（/v1、/api/paas/v4、Azure 的无版本段）正是用户
+  // 抱怨的那个变量，把它写进匹配规则等于重新引入我们要去掉的假设。
+  const RULES = {
+    chat: [
+      ['/chat/completions', 'chat-compat'],
+      ['/responses', 'responses-compat'],
+      ['/messages', 'messages-compat'],
+    ],
+    speech: [
+      ['/audio/speech', 'speech-compat'],
+      // 与转写**同一个地址**。家族封闭在这里不是理论：同一串 URL 在朗读引擎下是
+      // speech-dashscope，在转写引擎下是 transcribe-dashscope，分派只看引擎属于哪个
+      // 家族，厂商永不参与。
+      ['/multimodal-generation/generation', 'speech-dashscope'],
+    ],
+    transcribe: [
+      ['/audio/transcriptions', 'transcribe-compat'],
+      // DashScope 的转写不走上面那条通用路：它没有 /audio/transcriptions（实测 404，
+      // 带 key 也一样），语音能力挂在自家的多模态生成端点上。后缀仍取最后两段，
+      // 规则不变。
+      //
+      // 这条注释原本点了一个品牌名，被中国版的合规门禁当场拦下 —— 源码注释是要进
+      // 包体的。同类的疤已经有过一次（CI 里那次），所以写在这里。
+      ['/multimodal-generation/generation', 'transcribe-dashscope'],
+      // 去掉版本段之后只剩一段 —— 与 chat 家族的 /responses 同一种情形
+      ['/interactions', 'transcribe-gemini'],
+    ],
+  };
+  // 最长优先，在模块初始化时排一次——这样以后往表里加一行不可能破坏优先级。
+  for (const fam of Object.keys(RULES)) RULES[fam].sort((a, b) => b[0].length - a[0].length);
+
+  // ─── 同一地址内，模型家族自带形状 ────────────────────────────────────────
+  // 翻译专用模型跟普通对话模型共用同一个地址，所以地址区分不了它们，只有模型名能。
+  // 判据是 **host + 模型前缀两者都命中**，而且刻意窄——两个方向都会**静默**出错：
+  //
+  //   该用 translate 形状却没用 ⇒ 服务端 200，把原文原样吐回来（实测 2026-08-20）。
+  //                                isTranslated 只看非空，于是英文段落下面渲染出同一
+  //                                句英文，没有任何报错，还会进 12 小时缓存。
+  //   不该用却用了           ⇒ 发出去的是一句没有任何指令的裸文本，同样是个像模像样
+  //                                的 200。
+  //
+  // 所以这里不做通配、不按 host 通行、不按模型名单独匹配。表外 = 今天的行为，一字不变。
+  const MODEL_SHAPES = [
+    { hosts: ['dashscope.aliyuncs.com', 'dashscope-intl.aliyuncs.com'],
+      prefixes: ['qwen-mt'], shape: 'translate-compat' },
+  ];
+
+  // 归一化**只用于判定**，绝不影响真正发出去的 URL。
+  //   · 丢 query：Azure 形态是 `…/chat/completions?api-version=2024-…`，不丢就永远认不出。
+  //     （真正发请求时 query 原样保留——旧的拼接模型根本表达不了 query，这是新语义
+  //     顺带解锁的能力。）
+  //   · 丢一层尾斜杠：让 `…/v1/responses/` 也认得出。
+  //   · 小写：主机名本就大小写不敏感；没有任何真实端点靠路径大小写区分请求形状，
+  //     认不出的代价远大于认错。
+  function normalize(url) {
+    return String(url == null ? '' : url).trim()
+      .split('#')[0].split('?')[0]
+      .replace(/\/+$/, '')
+      .toLowerCase();
+  }
+
+  // 末尾锚定匹配，不是 `includes`。`includes` 会把
+  // `https://api.example/messages/v1/chat/completions` 判成 Messages 形状；而末尾
+  // 锚定既能正确判成 chat，又能命中带中转前缀的 `https://proxy/upstream/v1/chat/completions`。
+  // （示例地址刻意不写厂商名：这个文件进出货包，而中国合规门连注释一起扫。）
+  //
+  // `fallbackType` 不在 FAMILY 里（google / browser）时直接原样返回：那两个条目
+  // 根本没有用户可填的地址，判定无从谈起。
+  function formatFor(url, fallbackType, model) {
+    const fam = FAMILY[fallbackType];
+    if (!fam) return fallbackType;
+    // 模型自带的形状只在 chat 家族内生效，且要 host 与模型前缀同时命中。放在后缀判定
+    // **之前**：后缀会把 qwen-mt 判成 chat-compat，而那正是要覆盖掉的结论。
+    if (fam === 'chat' && model) {
+      const h = hostOf(url);
+      const m = String(model).trim().toLowerCase();
+      for (const r of MODEL_SHAPES) {
+        if (r.hosts.indexOf(h) < 0) continue;
+        if (r.prefixes.some((pre) => m.indexOf(pre) === 0)) return r.shape;
+      }
+    }
+    const n = normalize(url);
+    for (const rule of RULES[fam]) if (n.endsWith(rule[0])) return rule[1];
+    return fallbackType;
+  }
+
+  // 主机名之后是否有非空路径。只在设置页的「测试连接」里用来把「你保存的地址少了
+  // 接口路径」从 CORS / 不可达里切出来——运行时**不拦**，因为「原样使用」是承诺，
+  // 不该因为一个极罕见的根路径端点就剥夺用户的能力。
+  function hasPath(url) {
+    const m = /^(?:https?|wss?):\/\/[^/?#]+(\/[^?#]*)?/i.exec(String(url == null ? '' : url).trim());
+    if (!m) return false;
+    return (m[1] || '').replace(/\/+$/, '').length > 0;
+  }
+
+  // `wss://` 一并算绝对地址：注册表的 liveEndpoint 就是这种（§2.4）。
+  function isAbsolute(url) {
+    return /^(?:https?|wss?):\/\/[^/?#]+/i.test(String(url == null ? '' : url).trim());
+  }
+
+  // 主机名，小写，**不带端口、不带用户信息段**。
+  //   · 端口不参与匹配：没有任何厂商靠端口区分模型能力，而带上端口会让
+  //     `https://api.example.com:443/…` 匹配不到 `api.example.com` 那一行。
+  //   · `user:pass@` 一并丢掉 —— 那是凭证，不该出现在任何比较里，更不该被
+  //     哪天有人打进日志。
+  // request-shape.js 的参数表按它匹配；translation-api.js 的路由记忆按 origin
+  // 记，两者都从这里取，免得同一个「地址的哪一部分算数」有两份实现。
+  function hostOf(url) {
+    const m = /^(?:https?|wss?):\/\/([^/?#]+)/i.exec(String(url == null ? '' : url).trim());
+    if (!m) return '';
+    return m[1].split('@').pop().split(':')[0].toLowerCase();
+  }
+
+  // 最终地址。**两个分支，没有第三个**：
+  //
+  //   存值为空   → 注册表的 defaultEndpoint
+  //   存值非空   → 逐字使用（只 trim 首尾空白）
+  //
+  // 这里曾经有第三个分支：无戳时按「注册表 path + 用户填的 base」复刻老代码，好让
+  // 一次性迁移没跑成的设备继续工作。它是 2026-08-18 两次真机故障的共同原因，删除的
+  // 理由不是它写错了，而是**它存在本身就是错的**：
+  //
+  //   · 它是条件性的，而条件靠一个叫 `verbatim` 的位参数在六个调用点之间传递。少传
+  //     一处就静默回到拼接——设置页的「测试连接」正是少传的那一处，于是自检对着
+  //     `…/upstream/v1/v1/chat/completions` 报 404，而用户框里填的地址完全正确。
+  //   · 同一张表还驱动着一次性迁移，而迁移不看戳，会把用户**刚存好的完整地址**再接
+  //     一次路径写回存储。也就是说这条兜底路径不只是没帮上忙，它会主动改坏正确配置。
+  //
+  // 「原样请求」是对用户的承诺，而一个有例外的承诺不是承诺——例外恰恰会落在用户填了
+  // 我们认不出的地址那一刻，也就是他最需要我们别自作主张的那一刻。所以这里不做任何
+  // 形状判断：不看后缀、不看戳、不查表。地址是用户的陈述，我们只负责发出去。
+  //
+  // 代价说清楚：从 ≤1.5.2 升上来、存的是老语义 base 地址、且升级后从未打开过设置页
+  // 的设备，会拿这个 base 去请求而失败。这不是静默失败——失败具名，并且把真正请求的
+  // 地址回显出来（options.js 的 withUrl），用户照着输入框的提示补上路径即可。用一个
+  // 会改坏正确配置的机制去救这批人，是拿多数人的正确性换少数人的方便。
+  function resolveEndpoint(stored, entry) {
+    const s = String(stored == null ? '' : stored).trim();
+    if (!s) return (entry && entry.defaultEndpoint) || '';
+    return s;
+  }
+
+  // ── 免费额度中继的具名错误（learning-design §8.10）
+  //
+  // 为什么放在这里：四个调用点（网页翻译、复习解析、朗读、语音输入）各自 fetch、
+  // 各自抛错，而它们**唯一都能看见**的模块就是这一个（扩展两个块 + App 包 + 复习页
+  // 都加载它）。抄四份映射表的那天，就是它们开始各走各的那天 —— 提供方列表的先例
+  // 已经演过一遍（DeepSeek 的提示写死了模型名，API 早就不认了还在那儿）。
+  //
+  // 判据是**状态码加中继自己的具名 error**，不是猜。中继与提供方会回同样的 402，
+  // 但含义天差地别：中继的 402 是「你的免费额度用完了」，提供方的 402 是「你自己的
+  // 账户没钱了」—— 两句话指向完全不同的出口，认错了就是把用户支到错的地方去。
+  // 所以没有具名 error 时**一律返回空**，让调用方回到原来的 http 分支。
+  const GRANT_CODES = new Set([
+    'credit_exhausted',    // 402 你的 0.2 美元用完了
+    'grant_unavailable',   // 503 我们的池子空了 —— 不是你用完了，文案必须分开
+    'grant_misconfigured', // 503 我们配错了，同样不是用户的问题
+    'grant_revoked',       // 403 这枚令牌被停用了（删号 / 退出登录）
+    'grant_invalid',       // 401 令牌不认识
+    'model_not_allowed',   // 403 在「详细」里把模型改掉了
+    'busy',                // 429 限流
+  ]);
+  // 模型名是不是**翻译专用模型**（host 无关）：判据只取 MODEL_SHAPES 的 prefixes —— 一处真相。
+  // 用途（2026-10-10）：听译的「模型断句」只用于通用对话模型；自定义端点里填 qwen-mt-*
+  // 这类翻译专用模型，即使主机名不在表里（formatFor 判不成 translate-compat）也要拦住。
+  function translationModelName(model) {
+    const m = String(model || '').trim().toLowerCase();
+    if (!m) return false;
+    for (const r of MODEL_SHAPES) if (r.prefixes.some((pre) => m.indexOf(pre) === 0)) return true;
+    return false;
+  }
+
+  function grantError(status, bodyText) {
+    if (!status || status < 400) return '';
+    let name = '';
+    try {
+      const j = JSON.parse(String(bodyText == null ? '' : bodyText));
+      name = j && typeof j.error === 'string' ? j.error : '';
+    } catch (_) { return ''; }        // 不是 JSON ⇒ 不是我们的中继
+    return GRANT_CODES.has(name) ? name : '';
+  }
+
+  return { formatFor, hasPath, isAbsolute, hostOf, resolveEndpoint, normalize, translationModelName, grantError };
+})();
+
+if (typeof window !== 'undefined') window.WireFormat = WireFormat;
+if (typeof module !== 'undefined' && module.exports) module.exports = WireFormat;

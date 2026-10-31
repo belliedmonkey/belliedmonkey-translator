@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>row-reverse flex with wrap-reverse lines</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  /* wrap-reverse stacks the LINES bottom-to-top. The renderer already gives the
+     translation its own line (flex-basis:100%), but that line lands ABOVE the
+     original's line — the same reversed-order bug as column-reverse (issue #28). */
+  .bar { display: flex; flex-direction: row-reverse; flex-wrap: wrap-reverse; gap: 12px; padding: 20px; }
+  /* originalGeometryStable is opted out (not weakened): giving each translation
+     its own line necessarily reflows the row, and in row-reverse the originals
+     slide to the right edge of their new lines. Fixture 04 gets the same
+     exemption implicitly, via its declared flex-wrap mutation; here the page is
+     already wrap-reverse so there is no mutation to declare. The reversed-order
+     failure this fixture exists for is `belowOriginal`, which stays armed. */
+</style>
+<body>
+<div class="bar">
+  <div>Nearly five thousand people liked this video.</div>
+  <div>Around 290 thousand views so far.</div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "row-reverse-wrap-reverse",
+  "unitCount": 2,
+  "skipUniversal": {
+    "originalGeometryStable": [
+      ".bar > div"
+    ]
+  },
+  "targets": [
+    {
+      "sel": ".bar > div:not(.mt-translation)",
+      "assert": [
+        "ownRow",
+        "fullRowWidth:6",
+        "noOverlapWithSiblings"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

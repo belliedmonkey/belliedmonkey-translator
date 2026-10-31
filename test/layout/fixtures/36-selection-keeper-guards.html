@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>selection keeper guards: repair the kill, never override intent</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  #article { max-width: 640px; margin: 24px auto; line-height: 1.6; }
+  #editor { border: 1px solid #ccc; padding: 8px; }
+</style>
+<body>
+<div id="article">
+  <p id="p0">Founders who lived the problem speak with unmatched credibility to customers.</p>
+  <p id="p1">When a problem rearranged your life, you carry a unique narrative power.</p>
+  <p id="p2">That narrative is one of the strongest tools for building brand loyalty.</p>
+  <p id="p3">Problem founders position themselves as the customer first, owner second.</p>
+  <div id="editor" contenteditable="true">Editable draft text the page's editor framework owns entirely.</div>
+</div>
+<button id="t-partial" translate="no">partial</button>
+<button id="t-editor" translate="no">editor</button>
+<button id="t-other" translate="no">other</button>
+<button id="t-other2" translate="no">other2</button>
+<script>
+  // Each trigger performs ONE real childList mutation (remove+reinsert at the
+  // SAME position — order unchanged, but Chrome clamps any selection endpoint
+  // living inside the moved node; MutationObservers see a real batch).
+  const reinsert = (id) => {
+    const el = document.getElementById(id);
+    el.parentElement.insertBefore(el, el.nextSibling);
+  };
+  document.getElementById('t-partial').addEventListener('click', () => reinsert('p2'));   // the FOCUS endpoint's paragraph
+  document.getElementById('t-editor').addEventListener('click', () => reinsert('editor'));
+  document.getElementById('t-other').addEventListener('click', () => reinsert('p3'));
+  document.getElementById('t-other2').addEventListener('click', () => reinsert('p1'));
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "selection-keeper-guards",
+  "unitCount": 4,
+  "targets": [
+    { "sel": "#article > p", "assert": ["sameLeft:2", "sameWidth:2"] }
+  ],
+  "keeperGuards": {
+    "from": "#p0",
+    "to": "#p2",
+    "movePartial": "#t-partial",
+    "editor": "#editor",
+    "moveEditor": "#t-editor",
+    "moveOther": "#t-other",
+    "moveOther2": "#t-other2"
+  }
+}
+</script>
+</body>
+</html>

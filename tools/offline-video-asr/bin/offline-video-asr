@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stage-0 entry. The Mac app launches `python -m offline_video_asr` with this tree on PYTHONPATH.
+ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m offline_video_asr "$@"

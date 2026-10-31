@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>被数据否掉的（二）：任何延时提醒都触达不到</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:2040px; height:940px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">我上一版说「复核那条直接做，有硬证据」—— 错了</h1><span>用户问「有没有人点完以后没卡、但 7 天后还回到 App」。答案：一台都没有</span></div></div>
+
+<div>
+  <span class="tag-now">原来的提议（已作废）</span>
+  <div class="tl" style="margin-top:8px">
+    <div class="step"><span class="day">第 0 天</span><div class="ph-sm"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> Safari 扩展还没打开</h4><p>要先把浏览器那半边打开。</p><button class="btn p" type="button">在 Safari 里打开扩展 →</button><button class="btn s" type="button">我已打开</button></div></div><p class="why">18 台点过「我已打开」且从来没有过卡。</p></div>
+    <span class="arr">→</span>
+    <div class="step"><span class="day">点完当下</span><div class="ph-sm"><div class="empty">
+  <div class="homeline w3"></div><div class="homeline w2"></div><div class="homeline w3"></div><div class="homeline w2"></div></div></div><p class="why">横幅收起。</p></div>
+    <span class="arr">→</span>
+    <div class="step"><span class="day">第 1 天</span><div class="ph-sm"><div class="err"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg><div><b>0 台</b>隔天回来过</div></div></div><p class="why">不是「少」，是零。</p></div>
+    <span class="arr">→</span>
+    <div class="step"><span class="day">第 7 天 · 这块横幅</span><div class="ph-sm"><div class="err"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg><div><b>0 台</b>能看到它<br><span class="code">其中 7 台已经过了 7 天窗口</span></div></div></div><p class="why">画得再对也没用 —— 没有人会在那一天打开 App。</p></div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>更狠的一条</b><span>不只是「隔天不回来」</span></div><div class="num"><div class="stat"><b>18</b><span>点过「我已打开」且没卡</span></div><div class="stat bad"><b>16</b><span>点完之后<b>再没有任何事件</b></span></div><div class="stat bad"><b>0</b><span>点完半小时后还在</span></div></div>
+     <p class="hint"><b>「我已打开」基本是这个人在这个 App 里的最后一个动作。</b>任何在它<b>之后</b>触发的东西 —— 7 天后、1 天后、哪怕半小时后 —— 都到不了人。</p></div>
+  <div class="cell"><div class="cap"><b>还活着的窗口只有一个</b><span>App 会话的形状</span></div><div class="num"><div class="stat bad"><b>176 / 247</b><span>整个生命周期不到 5 分钟</span></div><div class="stat good"><b>66</b><span>有过 3 分钟以上的「离开再回来」</span></div><div class="stat good"><b>33</b><span>其中超过半小时</span></div></div>
+     <p class="hint">247 台里 223 台首末事件在同一天，跨度中位数是 <b>0 秒</b>。但有 <b>66 台</b>出现过「隔几分钟又回来」—— 那正是<b>去 Safari 弄一下再回来</b>的形状。<b>这是唯一还活着的窗口。</b></p></div>
+</div>
+<div class="ask"><b>所以能设计的只剩两处</b>① <b>第一次那几分钟里说什么</b> —— 没有第二次机会，这一次说不动就结束了。<br>② <b>「去 Safari 再回来」那一段怎么闭环</b> —— 66 台走过这条路，而我们对它<b>一个数都没有</b>（检测页那一侧全黑）。<br><br>至于真机上「误点了没法撤销」那个坑：改用<b>设置里一个重置入口</b>（一行）解决，不是靠 7 天后自动回来 —— 那条路已经证明触达为 0。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2040,"height":940}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

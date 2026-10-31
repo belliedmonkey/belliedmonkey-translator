@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+    .pop { width:320px; background:#f5ead8; border:1px solid #dcd3c4; border-radius:14px; overflow:hidden; }
+    .sec { border-top:1px solid #dcd3c4; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+    .sec:first-child { border-top:none; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; }
+    .lab { font-size:.95rem; }
+    .val { color:#6a6255; font-size:.84rem; }
+    .note { background:#f9f4ed; border:1px solid #dcd3c4; border-radius:10px; padding:10px; font-size:.84rem; color:#6a6255; line-height:1.5; }
+    .cta { background:#ac6231; color:#fff; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:.92rem; }
+    .quiet { border:1px solid #dcd3c4; color:#8c491a; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+    .cap { font-size:.78rem; font-weight:700; color:#6a6255; letter-spacing:.04em; }
+    .foot { border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:13px 16px; display:flex; flex-direction:column; gap:6px; font-size:.84rem; line-height:1.5; color:#6a6255; }
+    b { color:#201e1d; }
+  </style>
+</helmet>
+<div style="padding:22px; display:flex; flex-direction:column; gap:14px; height:620px; box-sizing:border-box">
+  <div>
+    <div style="font-size:1.05rem; font-weight:700">那个出口，三个平台说三句话</div>
+    <div style="font-size:.86rem; color:#6a6255; margin-top:4px">这不是本地化差异，是<b>能力差异</b>。实时档下掉之后这是唯一的出口，写成一句通用文案，必有两个平台被骗。</div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; flex:1; min-height:0">
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">Mac · 可以「现在就去」</div>
+      <div class="pop" style="width:auto">
+        <div class="sec">
+          <div class="row"><span class="lab">🔊 用 App 听设备的声音</span></div>
+          <div class="cta">在 App 里开始听 →</div>
+          <div class="note">视频继续放着就行 —— App 直接取系统声音。</div>
+        </div>
+      </div>
+      <div style="font-size:.82rem; color:#6a6255; line-height:1.5">进程音频 tap（macOS 14.4+，「仅录制系统音频」权限）。<b>切到 App 视频不会停</b>，所以可以先播放、再去开。</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">iPhone / iPad · 顺序必须反过来</div>
+      <div class="pop" style="width:auto">
+        <div class="sec">
+          <div class="row"><span class="lab">🔊 用 App 听设备的声音</span></div>
+          <div class="cta">先去 App 开始听 →</div>
+          <div class="note" style="border-color:#b3261e; color:#201e1d"><b>顺序要紧：</b>先在 App 里点「开始」，<b>再回来播放</b>。</div>
+        </div>
+      </div>
+      <div style="font-size:.82rem; color:#6a6255; line-height:1.5">一离开前台，iOS 立刻暂停网页视频（<code>pause</code> 与 <code>visibility=hidden</code> 同一毫秒，尖刺 S5 实测）。<b>写成「现在就去」等于教人走一条必然失败的路。</b>App 听的是外放，与哪个 App 在放无关。</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">Windows / Linux / Android · 整行不出</div>
+      <div class="pop" style="width:auto; opacity:.5">
+        <div class="sec">
+          <div class="row"><span class="lab">🎙 实时转写 + 翻译</span><span class="val">›</span></div>
+          <div style="font-size:.82rem; color:#6a6255">（没有第二行）</div>
+        </div>
+      </div>
+      <div style="font-size:.82rem; color:#6a6255; line-height:1.5">这个 App 在这些平台<b>根本不存在</b>。判据用现成的 <code>AppLink.applePlatform()</code>，不自己再判一次 UA。提一个装不了的东西比不提更糟。</div>
+    </div>
+  </div>
+
+  <div class="foot" style="border-top:1px dashed #dcd3c4">
+    <div class="cap">还有两条既有裁定，落地时不许违反</div>
+    <div>① <b>文案不点名 Safari</b>（你 2026-09-13 的原话：「为啥一定要提 safari，现在不管是 chrome safari 或者其他任何 app 的声音都可以用」）—— 听的是设备的声音，与哪个 App 在放无关。</div>
+    <div>② <b>没装 App 的人点了要有去处</b>：<code>AppLink</code> 已经有 <code>deepLink</code> + <code>storeUrl</code>，而且处理了「自定义 scheme 没人接 ⇒ 页面不失焦 ⇒ 把出口说出来」那条 —— 点了没反应正是本仓反复付代价的那一类。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

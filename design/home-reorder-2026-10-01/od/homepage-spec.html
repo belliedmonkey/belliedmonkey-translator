@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>一页规格 + 判据 · 登录后首页 | 大肚猴翻译</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caprasimo&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5ead8; --surface:#ffffff; --fg:#201e1d; --muted:#6b645c; --line:#e0d5c2;
+  --terra:#c67139; --btn:#ac6231; --ok:#56633f; --danger:#b3261e;
+  --terra-ink:oklch(0.47 .105 52);
+  --btn-hover:oklch(0.50 .12 52); --btn-press:oklch(0.455 .12 52);
+  --terra-wash:oklch(0.633 .128 51 / .11); --terra-wash-ink:oklch(0.44 .10 52);
+  --ok-wash:oklch(0.45 .07 118 / .12); --ok-ink:oklch(0.40 .075 118);
+  --danger-wash:oklch(0.42 .13 27 / .10); --danger-ink:oklch(0.40 .15 27);
+  --hair:oklch(0.93 .012 75);
+  --sheet:#e9e6e0; --card:#fbfaf8; --ink:#221f1c; --ink-2:#5c564e; --rule:#d8d2c7;
+  --font-body:'Figtree','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;
+  --font-title:'PingFang SC','Hiragino Sans GB','Figtree',system-ui,sans-serif;
+  --font-disp:'Caprasimo','Songti SC','PingFang SC',serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sheet);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.62;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1120px;margin:0 auto;padding:0 30px 110px}
+h1,h2,h3,h4{margin:0;font-family:var(--font-title);font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--btn);text-underline-offset:3px}
+code{font-family:var(--font-disp);font-size:.94em;letter-spacing:0}
+
+.head{padding:58px 0 34px;border-bottom:1px solid var(--rule)}
+.kicker{font-size:11.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{font-size:38px;line-height:1.2;margin:12px 0 0;max-width:24ch}
+.lede{margin:16px 0 0;max-width:66ch;color:var(--ink-2);font-size:16.5px}
+.toc{margin:24px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.toc a{font-size:12.5px;color:var(--ink);text-decoration:none;border:1px solid var(--rule);border-radius:999px;
+  padding:6px 12px;background:rgba(255,255,255,.6)}
+.toc a:hover{border-color:var(--btn);color:var(--btn)}
+
+section{margin:56px 0 0}
+.sec-head{display:flex;align-items:baseline;gap:12px;padding-bottom:12px;border-bottom:2px solid var(--ink);margin-bottom:24px}
+.sec-head .n{font-family:var(--font-disp);font-size:19px;color:var(--ink-2)}
+.sec-head h2{font-size:23px}
+.sec-head .note{margin-left:auto;font-size:12.5px;color:var(--ink-2);text-align:right}
+p.lead{font-size:15.5px;color:var(--ink-2);max-width:70ch;margin:0 0 18px}
+
+.card{background:var(--card);border:1px solid var(--rule);border-radius:14px;overflow:hidden;margin:0 0 20px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:10px 13px;text-align:left;border-bottom:1px solid var(--hair);vertical-align:top}
+thead th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);background:rgba(0,0,0,.022);
+  font-weight:600;border-bottom:1px solid var(--rule)}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--font-disp);letter-spacing:.01em}
+.sw{display:inline-flex;align-items:center;gap:7px}
+.sw i{width:15px;height:15px;border-radius:4px;flex:none;border:1px solid rgba(0,0,0,.14)}
+.pass{color:var(--ok);font-weight:600}
+.mid{color:#8a5a20;font-weight:600}
+.fail{color:var(--danger);font-weight:600}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+h3.blk{font-size:16px;margin:26px 0 10px}
+
+/* 判据 */
+.crit{border:1px solid var(--rule);border-radius:12px;background:var(--card);padding:15px 18px;display:grid;
+  grid-template-columns:auto 1fr;gap:4px 14px;margin:0 0 10px;align-items:start}
+.crit.done{background:#f4f7ef;border-color:#cbd8bb}
+.crit input{margin-top:5px;width:17px;height:17px;accent-color:var(--ok);flex:none;cursor:pointer}
+.crit .id{font-family:var(--font-disp);font-size:14px;color:var(--btn);flex:none;min-width:38px}
+.crit .t{font-size:14.5px;font-weight:600;line-height:1.5}
+.crit .m{grid-column:2;font-size:12.5px;color:var(--ink-2);line-height:1.55;padding-top:3px}
+.crit .m b{color:var(--ink);font-weight:600}
+.bar-top{display:flex;align-items:center;gap:12px;margin:0 0 14px;font-size:13px;color:var(--ink-2)}
+.bar-top .track{width:150px;height:6px;border-radius:999px;background:var(--rule);overflow:hidden}
+.bar-top .track i{display:block;height:100%;width:0;background:var(--ok);transition:width .2s}
+.bar-top b{color:var(--ink);font-weight:600}
+
+.callout{background:#fdf6f2;border:1px solid #e8d2c2;border-radius:12px;padding:16px 18px;font-size:13.5px;
+  line-height:1.62;color:#6d3f24}
+.callout b{color:#5a3018}
+.callout.neutral{background:#fffdf9;border-color:var(--rule);color:var(--ink-2)}
+.callout.neutral b{color:var(--ink)}
+ul{margin:8px 0 0;padding-left:20px}
+li{margin:3px 0}
+.two-l{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px;margin:0}
+.two-l dt{color:var(--ink-2);font-size:12.5px;padding-top:2px}
+.two-l dd{margin:0;color:var(--ink-2)}
+.two-l dd b{color:var(--ink);font-weight:600}
+footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--rule);font-size:12.5px;color:var(--ink-2);line-height:1.6}
+@media (max-width:860px){.grid2{grid-template-columns:1fr}.wrap{padding:0 18px 80px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="head" data-od-id="spec-header">
+  <p class="kicker">大肚猴翻译 · 登录后首页 · 一页规格</p>
+  <h1>层级理由、档位表，以及 14 条可写进门禁的判据</h1>
+  <p class="lede">这份规格只描述已定版的部分。产品负责人在评审画布第 04 节的四个待拍板项确认后，本页相应条目才可锁进交互规约；未确认项在下文以「待确认」标注。</p>
+  <nav class="toc">
+    <a href="#s1">1 品牌 token 与字体</a>
+    <a href="#s2">2 层级与尺寸</a>
+    <a href="#s3">3 间距与字号档位</a>
+    <a href="#s4">4 按钮与状态系统</a>
+    <a href="#s5">5 引擎状态矩阵</a>
+    <a href="#s6">6 判据 J01–J14</a>
+    <a href="#s7">7 iOS / macOS 差异</a>
+    <a href="#s8">8 待确认与依赖</a>
+  </nav>
+</header>
+
+<!-- ═══ 1 ═══ -->
+<section id="s1" data-od-id="spec-tokens">
+  <div class="sec-head"><span class="n">01</span><h2>品牌 token 与字体</h2><span class="note">色板沿用，未新增色相</span></div>
+  <p class="lead">给定七个品牌色不变。派生色一律用 <code>oklch()</code> 从既有色推出，规则是「只沿 OKLch L 轴加深 0.06–0.12」，因此每个交互态的前景/背景对比度都只能变好，不可能变差 —— 这条比逐个手调 hex 更适合进门禁。</p>
+
+  <h3 class="blk">给定色 · 实测对比度</h3>
+  <div class="card">
+    <table>
+      <thead><tr><th>token</th><th>值</th><th>用途</th><th>on #f5ead8</th><th>on #ffffff</th><th>判定</th></tr></thead>
+      <tbody>
+        <tr><td><code>--bg</code></td><td class="n"><span class="sw"><i style="background:#f5ead8"></i>#f5ead8</span></td><td>页面底</td><td class="n">—</td><td class="n">—</td><td>—</td></tr>
+        <tr><td><code>--surface</code></td><td class="n"><span class="sw"><i style="background:#fff"></i>#ffffff</span></td><td>卡片、面板</td><td class="n">1.07:1</td><td class="n">—</td><td class="mid">仅作面，不做字</td></tr>
+        <tr><td><code>--fg</code></td><td class="n"><span class="sw"><i style="background:#201e1d"></i>#201e1d</span></td><td>正文、标题</td><td class="n pass">13.95:1</td><td class="n pass">15.5:1</td><td class="pass">AAA</td></tr>
+        <tr><td><code>--muted</code></td><td class="n"><span class="sw"><i style="background:#6b645c"></i>#6b645c</span></td><td>次要文字、说明</td><td class="n pass">4.90:1</td><td class="n pass">5.83:1</td><td class="pass">AA</td></tr>
+        <tr><td><code>--line</code></td><td class="n"><span class="sw"><i style="background:#e0d5c2"></i>#e0d5c2</span></td><td>分隔线、描边</td><td class="n">—</td><td class="n">—</td><td>非文字，仅 3:1 图形需求</td></tr>
+        <tr><td><code>--terra</code></td><td class="n"><span class="sw"><i style="background:#c67139"></i>#c67139</span></td><td>主色：图标、波形、图表、≥20pt 大字</td><td class="n mid">3.03:1</td><td class="n mid">3.30:1</td><td class="mid">仅大字/图标（≥3:1），<b>不得</b>用于 13pt 以下文字</td></tr>
+        <tr><td><code>--btn</code></td><td class="n"><span class="sw"><i style="background:#ac6231"></i>#ac6231</span></td><td>实心按钮底 + 按钮文字</td><td class="n mid">3.88:1</td><td class="n pass">4.62:1</td><td class="pass">白字 4.62:1 通过 AA</td></tr>
+        <tr><td><code>--ok</code></td><td class="n"><span class="sw"><i style="background:#56633f"></i>#56633f</span></td><td>就位态、成功</td><td class="n pass">5.43:1</td><td class="n pass">6.46:1</td><td class="pass">AA</td></tr>
+        <tr><td><code>--danger</code></td><td class="n"><span class="sw"><i style="background:#b3261e"></i>#b3261e</span></td><td>仅失败态</td><td class="n pass">5.97:1</td><td class="n pass">6.53:1</td><td class="pass">AA</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 class="blk">派生色 · 全部由 oklch 沿 L 轴推出</h3>
+  <div class="card">
+    <table>
+      <thead><tr><th>token</th><th>值</th><th>由谁推出</th><th>ΔL</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td><code>--terra-ink</code></td><td class="n mono">oklch(0.47 0.105 52)</td><td class="mono">--terra (L .633)</td><td class="n">−0.163</td><td>主色小字专用。cream 上约 5.9:1，替代 #c67139 承担一切文本职责</td></tr>
+        <tr><td><code>--btn-hover</code></td><td class="n mono">oklch(0.50 0.12 52)</td><td class="mono">--btn (L .571)</td><td class="n">−0.071</td><td>白字对比度升到约 6.2:1。hover 只动背景，不动前景</td></tr>
+        <tr><td><code>--btn-press</code></td><td class="n mono">oklch(0.455 0.12 52)</td><td class="mono">--btn</td><td class="n">−0.116</td><td>约 7.5:1</td></tr>
+        <tr><td><code>--terra-wash</code></td><td class="n mono">oklch(0.633 .128 51 / .11)</td><td class="mono">--terra</td><td class="n">0</td><td>图标底、缺失 chip 底</td></tr>
+        <tr><td><code>--terra-wash-ink</code></td><td class="n mono">oklch(0.44 0.10 52)</td><td class="mono">--terra</td><td class="n">−0.19</td><td>wash 上的文字</td></tr>
+        <tr><td><code>--ok-wash</code> / <code>--ok-ink</code></td><td class="n mono">oklch(0.45 .07 118 / .12) · oklch(0.40 .075 118)</td><td class="mono">--ok</td><td class="n">−0.13</td><td>就位标签</td></tr>
+        <tr><td><code>--danger-wash</code> / <code>--danger-ink</code></td><td class="n mono">oklch(0.42 .13 27 / .10) · oklch(0.40 .15 27)</td><td class="mono">--danger</td><td class="n">−0.17</td><td>仅失败态的行内说明</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout"><b>颜色纪律三条</b>　① <code>--terra</code> 纯色每屏最多出现在两处（一张卡的图标/波形 + 一枚按钮）。② 红色只表示<strong>失败</strong>：权限被拒、引擎崩溃、文件解析失败。「还没配某个引擎」是<strong>待办</strong>，用 <code>--terra-wash</code> + <code>--terra-ink</code>。③ 不引入第七个色相做「强调」；需要区分就调 L 和 C。</div>
+
+  <h3 class="blk">字体规则</h3>
+  <div class="card">
+    <table>
+      <thead><tr><th>角色</th><th>栈</th><th>硬规则</th></tr></thead>
+      <tbody>
+        <tr><td>拉丁显示（品牌词、数字、英文大字）</td><td class="mono">Caprasimo 400</td><td><b>仅限 ≥20pt。</b>更小的英文一律回 Figtree —— Caprasimo 的装饰性在 12pt 以下会压过中文</td></tr>
+        <tr><td>中文标题 / 卡标题</td><td class="mono">PingFang SC 600</td><td>Caprasimo 无中文字形，中文标题不落 Caprasimo（否则中英混排会出现衬线/无衬线割裂）</td></tr>
+        <tr><td>正文 / 按钮 / 说明</td><td class="mono">Figtree 400–600 → PingFang SC</td><td>默认档；中英混排时英文自动落 Figtree</td></tr>
+        <tr><td>中英双行按钮</td><td>主行 17/600 + 英文 12.5/500</td><td>英文行只用 Figtree，不加 Caprasimo</td></tr>
+        <tr><td>数字</td><td class="mono">Caprasimo 400 + tabular-nums</td><td>所有会跳动的数字（计时、计数）必须 tabular，否则跳宽</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ 2 ═══ -->
+<section id="s2" data-od-id="spec-hierarchy">
+  <div class="sec-head"><span class="n">02</span><h2>层级与尺寸：每一块为什么在这里</h2><span class="note">iPhone 竖屏 390×844 为基准</span></div>
+  <p class="lead">这一屏只回答一个问题：<strong>现在能干什么</strong>。所有与「已经做完的事」有关的内容（系统翻译接管、词库总量统计）都必须让位给还没开始的事。</p>
+  <div class="card">
+    <table>
+      <thead><tr><th>块</th><th>级</th><th>iOS 尺寸</th><th>理由</th></tr></thead>
+      <tbody>
+        <tr><td>顶栏</td><td>H2</td><td class="n">44pt · 高 52</td><td>只承载身份与账号。账号行（邮箱 + 设置/退出）从独立 48pt 横带收进 44×44 圆形键 —— 它是全局动作，不该占首屏版面</td></tr>
+        <tr><td>引擎状态行</td><td>H3</td><td class="n">高 32 · 命中 44</td><td><b>唯一的前置条件说明位。</b>就位时是低对比绿摘要（保证），缺失时原地变成可点 chip（待办）。放在它前面是因为待办必须前置 —— 现状把它扔在 y=1275 的页脚，用户要滚 431pt 才看到</td></tr>
+        <tr><td>实时字幕卡</td><td>H1</td><td class="n">高 236 · 按钮 50</td><td>本页主角。构成：32pt 图标 + 20pt 标题 + 就绪标 + 13.5pt 两行说明 + 46pt 波形带 + 50pt 实心按钮。波形带既是说明也是进行态的实时表面，不是装饰</td></tr>
+        <tr><td>实时听译卡</td><td>H1</td><td class="n">高 236 · 按钮 50</td><td>与字幕<strong>等高同权</strong>。只有卡内视觉不同（波形 vs A·B 译文条）。两个实心按钮对应两个不同动作，不违反「一个动作一枚主 CTA」</td></tr>
+        <tr><td>复习条</td><td>H3</td><td class="n">高 76 · 按钮 40</td><td>裁定 4 要求「看得见、一眼能开始」。76pt 是同时满足可点与不抢戏的最小值；按钮用淡色档而不是实心，主动降一档</td></tr>
+        <tr><td>文档分区 + 行</td><td>H4</td><td class="n">20 + 56</td><td>异步任务，落在折叠线附近。列表行形态，不给卡片。独立于「听」分区</td></tr>
+        <tr><td>系统翻译行</td><td>H4</td><td class="n">56 · 起 y≈845</td><td>就位后才成立的事实陈述。轻：真实系统图标 + 一行主副文案 + chevron，点了才展开说明</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3 class="blk" style="margin-top:0">iOS 首屏预算（844pt）</h3>
+      <div class="card" style="margin-bottom:0">
+        <table>
+          <thead><tr><th>区块</th><th>起 y</th><th>高</th><th>累计</th></tr></thead>
+          <tbody>
+            <tr><td>状态栏 + 顶栏</td><td class="n">0</td><td class="n">99</td><td class="n">99</td></tr>
+            <tr><td>引擎状态行</td><td class="n">99</td><td class="n">32</td><td class="n">131</td></tr>
+            <tr><td>实时字幕</td><td class="n">145</td><td class="n">236</td><td class="n">381</td></tr>
+            <tr><td>实时听译</td><td class="n">393</td><td class="n">236</td><td class="n">629</td></tr>
+            <tr><td>复习条</td><td class="n">641</td><td class="n">76</td><td class="n">717</td></tr>
+            <tr><td>文档分区 + 行</td><td class="n">737</td><td class="n">96</td><td class="n">833</td></tr>
+            <tr><td>系统翻译行</td><td class="n">845</td><td class="n">56</td><td class="n">折叠线以下</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3 class="blk" style="margin-top:0">macOS 1440×900 预算</h3>
+      <div class="card" style="margin-bottom:0">
+        <table>
+          <thead><tr><th>区块</th><th>高</th><th>位置</th></tr></thead>
+          <tbody>
+            <tr><td>窗口标题栏</td><td class="n">38</td><td>系统 chrome</td></tr>
+            <tr><td>主区头（标题 + 状态行）</td><td class="n">32 + 18</td><td>主区</td></tr>
+            <tr><td>两张主卡（双栏 1fr 1fr，gap 20）</td><td class="n">268</td><td>主区</td></tr>
+            <tr><td>单词卡条</td><td class="n">84</td><td>主区</td></tr>
+            <tr><td>文档工具行</td><td class="n">96</td><td>主区</td></tr>
+            <tr><td>快捷键条</td><td class="n">50</td><td>主区</td></tr>
+            <tr><td>合计（含内边距 44）</td><td class="n">≈688</td><td class="pass">无需滚动</td></tr>
+            <tr><td>系统翻译</td><td class="n">30</td><td>侧栏项</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 3 ═══ -->
+<section id="s3" data-od-id="spec-scale">
+  <div class="sec-head"><span class="n">03</span><h2>间距与字号档位</h2><span class="note">HIG 舒服档 · 4pt 栅格</span></div>
+  <div class="grid2">
+    <div>
+      <h3 class="blk" style="margin-top:0">间距（只用这 7 档）</h3>
+      <div class="card" style="margin-bottom:0">
+        <table>
+          <thead><tr><th>档</th><th>值</th><th>用在哪</th></tr></thead>
+          <tbody>
+            <tr><td>s1</td><td class="n">4</td><td>图标与文字、chip 内间距</td></tr>
+            <tr><td>s2</td><td class="n">8</td><td>标题与说明、同行元素</td></tr>
+            <tr><td>s3</td><td class="n">12</td><td>卡内分组、按钮组间距</td></tr>
+            <tr><td>s4</td><td class="n">16</td><td><strong>页面左右边距</strong>、卡内边距</td></tr>
+            <tr><td>s5</td><td class="n">20</td><td>块与块之间、分区上下</td></tr>
+            <tr><td>s6</td><td class="n">24</td><td>主区顶部、弹层留白</td></tr>
+            <tr><td>s8</td><td class="n">32</td><td>大区块、标题区上下</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <table>
+          <thead><tr><th>圆角</th><th>值</th><th>用在哪</th></tr></thead>
+          <tbody>
+            <tr><td>卡片</td><td class="n">16（Mac 14）</td><td>两张主卡、复习条、工具卡</td></tr>
+            <tr><td>内嵌块</td><td class="n">10</td><td>波形带、A·B 条、检查表、弹层</td></tr>
+            <tr><td>按钮</td><td class="n">12（Mac 10）</td><td>实心 / 淡色 / 描边</td></tr>
+            <tr><td>标签 chip</td><td class="n">6 – 8</td><td>就绪标、缺失 chip</td></tr>
+            <tr><td>列表行</td><td class="n">12</td><td>文档、系统翻译</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div>
+      <h3 class="blk" style="margin-top:0">字号档位</h3>
+      <div class="card" style="margin-bottom:0">
+        <table>
+          <thead><tr><th>角色</th><th>iOS</th><th>Mac</th><th>字重 · 字距</th></tr></thead>
+          <tbody>
+            <tr><td>主区分组标题</td><td class="n">—</td><td class="n">26/32</td><td>600 · −0.015em</td></tr>
+            <tr><td>卡标题</td><td class="n">20/26</td><td class="n">20/24</td><td>600 · −0.01em</td></tr>
+            <tr><td>拉丁显示 / 计数数字</td><td class="n">20 / 22</td><td class="n">22</td><td>Caprasimo 400</td></tr>
+            <tr><td>块正文（标题旁说明）</td><td class="n">17/22</td><td class="n">15/22</td><td>600</td></tr>
+            <tr><td>卡说明</td><td class="n">13.5/21</td><td class="n">13.5/21</td><td>400 · --muted</td></tr>
+            <tr><td>次要 / 统计行</td><td class="n">12/17</td><td class="n">12.5/18</td><td>400 · --muted</td></tr>
+            <tr><td>分区眉</td><td class="n">12/16</td><td class="n">11.5/16</td><td>600 · +0.08em</td></tr>
+            <tr><td>状态标签 chip</td><td class="n">11/16</td><td class="n">11/16</td><td>600 · +0.04em</td></tr>
+            <tr><td>字幕 / 译文行</td><td class="n">12.5/18</td><td class="n">13/19</td><td>500 · 原文 --muted</td></tr>
+            <tr><td>页脚</td><td class="n">11/16</td><td class="n">11.5/16</td><td>400 · --muted</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout neutral" style="margin-top:20px"><b>关于按钮字号</b>　iOS 主按钮 17pt（= HIG body），Mac 主按钮 15pt —— 因为 Mac 上指针精度高、按钮宽 40 高足够，17pt 在 40pt 高的行里会显得挤。降字号不是妥协，是平台适配。</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 4 ═══ -->
+<section id="s4" data-od-id="spec-controls">
+  <div class="sec-head"><span class="n">04</span><h2>按钮与状态系统</h2><span class="note">三档，不允许第四档</span></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>档</th><th>外观</th><th>用途</th><th>hover</th><th>press</th></tr></thead>
+      <tbody>
+        <tr><td><b>实心 filled</b></td><td class="n"><span class="sw"><i style="background:#ac6231"></i>底 --btn / 字 #fff</span></td><td>仅两个：开始实时字幕、开始听译</td><td class="n mono">--btn-hover（L −0.071）</td><td class="n mono">--btn-press（L −0.116）</td></tr>
+        <tr><td><b>淡色 tinted</b></td><td class="n"><span class="sw"><i style="background:#f5ead8;border-color:#e0d5c2"></i>底 --bg / 字 --fg</span></td><td>开始复习、去配置（在面板内）</td><td class="n">换面为 --surface + 边框 --muted</td><td class="n">边框 --muted</td></tr>
+        <tr><td><b>描边 ghost</b></td><td class="n"><span class="sw"><i style="background:#fff;border-color:#e0d5c2"></i>底 --surface / 字 --fg</span></td><td>取消、停止、结束并保存</td><td class="n">底 --bg + 边框 --muted</td><td class="n">边框 --muted</td></tr>
+        <tr><td><b>文字 plain</b></td><td class="n"><span class="sw"><i style="background:transparent"></i>字 --terra-ink</span></td><td>查看统计、字幕浮窗</td><td class="n">底 --terra-wash</td><td class="n">同上</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout"><b>禁止的四件事</b>　① hover 时把文字变 <code>--muted</code> 或任何更接近背景的颜色。② 同屏出现两枚以上同档实心按钮指向同一动作。③ 用 <code>--terra</code> 纯色做 13pt 以下的文字（3.03:1 不够）。④ 给可点元素留 &lt;44pt 命中区而不标注外扩。</div>
+  <div class="card" style="margin-top:20px">
+    <table>
+      <thead><tr><th>态</th><th>规则</th></tr></thead>
+      <tbody>
+        <tr><td>hover</td><td>只动背景 L（±0.06–0.12）或边框 / 阴影 / 位移。<strong>前景永不变淡</strong></td></tr>
+        <tr><td>active / pressed</td><td>同向再深一档；不允许出现比默认态更低的对比度</td></tr>
+        <tr><td>focus-visible</td><td>2.5px <code>--terra-ink</code> 描边 + 2px offset，落在任何可 Tab 到的元素上</td></tr>
+        <tr><td>disabled</td><td>唯一允许降低对比度的状态。底 --line，字仍需 ≥3:1；本设计中不使用 disabled —— 缺引擎时按钮<strong>变为可点的去配置</strong>而不是变灰</td></tr>
+        <tr><td>VoiceOver</td><td>每张卡的按钮独立朗读（「开始实时字幕，按钮」），缺失 chip 带 aria-label 指明目标页</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ 5 ═══ -->
+<section id="s5" data-od-id="spec-matrix">
+  <div class="sec-head"><span class="n">05</span><h2>引擎状态矩阵</h2><span class="note">裁定 2 的落地表</span></div>
+  <p class="lead">「登录完就该所有引擎都配好」是目标态。下表是这个目标态失效时各能力的真实退化路径 —— <b>没有一条路径是纯文本告警</b>。</p>
+  <div class="card">
+    <table>
+      <thead><tr><th>缺失 / 异常</th><th>状态行</th><th>实时字幕卡</th><th>实时听译卡</th><th>系统翻译段</th></tr></thead>
+      <tbody>
+        <tr><td>全部就位（默认）</td><td>绿摘要「已就位」，非交互</td><td>就绪 + 实心「开始」</td><td>就绪 + 实心「开始」</td><td class="pass">渲染一行</td></tr>
+        <tr><td>朗读缺失</td><td><code>朗读 · 去配置 ›</code> chip（terra）</td><td class="pass">不受影响，仍可开始</td><td>按钮变「朗读未选声音 · 先选一个 ›」</td><td class="pass">不渲染</td></tr>
+        <tr><td>语音转写缺失</td><td><code>语音转写 · 去配置 ›</code> chip</td><td>按钮变「先选一个转写引擎 ›」</td><td>按钮变同左</td><td class="pass">不渲染</td></tr>
+        <tr><td>翻译引擎缺失</td><td><code>翻译 · 去配置 ›</code> chip</td><td>按钮变「先选翻译引擎 ›」</td><td>按钮变同左</td><td class="pass">不渲染</td></tr>
+        <tr><td>麦克风权限被拒</td><td>不占用状态行（那是引擎态）</td><td colspan="2">卡片内失败行 + 红色「进行中」标签位 + 一枚 <b>ghost</b> 按钮「去开启麦克风」；这是唯一允许出现红色的场景</td><td>若引擎就位，仍渲染</td></tr>
+        <tr><td>待复习 = 0</td><td>不变</td><td>不变</td><td>不变</td><td>不变</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="callout neutral" style="margin-top:18px"><b>为什么用 terra 而不是红色标注缺失</b>　缺一个引擎是<strong>待办</strong>，红色会让用户以为出故障了、进而放弃这个功能。红色留给「你按了按钮但它失败了」—— 那种情况才需要 alarming。同时这也顺手解决了现状页底部红字滥用的问题。</div>
+</section>
+
+<!-- ═══ 6 ═══ -->
+<section id="s6" data-od-id="spec-criteria">
+  <div class="sec-head"><span class="n">06</span><h2>判据 J01–J14</h2><span class="note">可直接搬进 CI / 评审 checklist</span></div>
+  <div class="bar-top">
+    <span class="track"><i id="pg"></i></span>
+    <span>已勾选 <b id="pgN">0</b> / 14</span>
+    <span style="margin-left:auto">「怎么测」一栏写的是可自动化的判据；原型左侧的门禁自检面板已经实现了其中 6 条的实时判定</span>
+  </div>
+
+  <label class="crit"><input type="checkbox"><span class="id">J01</span><span class="t">首屏 844pt 内必须完整出现「实时字幕」「实时听译」「今天待复习」三块，顺序固定为 引擎状态行 → 实时字幕 → 实时听译 → 复习条</span>
+    <span class="m"><b>怎么测</b>　三块的 <code>getBoundingClientRect().bottom</code> 均 ≤ 844，且 offsetTop 严格递增。<b>对应裁定</b>　3 + 4</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J02</span><span class="t">两张主卡等高、等宽，主按钮的颜色 / 圆角 / 高度 / 字号完全一致；任何一卡被降级为描边或淡色即不通过</span>
+    <span class="m"><b>怎么测</b>　两张卡 offsetHeight 差 = 0；主按钮 computed style 五项全等。<b>说明</b>　这一条是为了防止后来者以「视觉节制」为名悄悄把听译降级</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J03</span><span class="t">折叠线以内实心按钮数 ≤ 2，且恰好是「开始实时字幕」「开始听译」</span>
+    <span class="m"><b>怎么测</b>　筛选 backgroundColor === rgb(172,98,49) 且 top &lt; 844 的 button，计数。复习必须是 tinted 或 plain。<b>说明</b>　两个不同动作允许两枚实心；同一动作不允许</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J04</span><span class="t">所有可点元素命中区 ≥ 44×44 CSS px；视觉高度不足 44 的（状态行 chip、行内链接）必须由外扩命中区补足并在源码标注</span>
+    <span class="m"><b>怎么测</b>　遍历 button / [role=button]，rect 宽高均 ≥44，或元素带 <code>data-hit="44"</code> 标记。<b>例外</b>　macOS 指针场景 HIG 允许 24pt，但本设计仍统一 44 以求两端一致</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J05</span><span class="t">三引擎就位前，「系统翻译」区块<strong>不得进入渲染树</strong> —— 不是 display:none、不是 visibility:hidden、不是空占位容器</span>
+    <span class="m"><b>怎么测</b>　状态行报告缺失时，<code>document.querySelector('[data-od-id="row-system-translate"]')</code> 必须为 null。<b>对应裁定</b>　1</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J06</span><span class="t">页面内不得存在任何 <code>color: #b3261e</code> 的文字；该色只允许作为非文字元素（进行中标签底、错误行底）的背景</span>
+    <span class="m"><b>怎么测</b>　遍历可见叶子节点取 computed color，无一等于 #b3261e。违反即视为红色滥用</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J07</span><span class="t">不得出现任何无恢复路径的纯文本告警（现状的「还没配语音引擎 —— 到设置里选一个」）；每个缺失项必须挂在状态行上且自身可点</span>
+    <span class="m"><b>怎么测</b>　全文检索「还没配」类句式；且状态行每个 .miss 元素必须是 button 且带 aria-label。<b>对应裁定</b>　2</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J08</span><span class="t">引擎状态行三种态（全部就位 / 部分缺失 / 全部缺失）高度一致，切换时下方两块主卡的 offsetTop 不变</span>
+    <span class="m"><b>怎么测</b>　三态下录 offsetTop 比对，差 = 0。<b>说明</b>　稳定高度是为了让「实时字幕」不会因为用户去配了朗读而位移</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J09</span><span class="t">每个缺失项的命中区必须带 aria-label 指明目标页，例：「朗读引擎未配置，前往 设置 › 朗读 选择语音」</span>
+    <span class="m"><b>怎么测</b>　每个 .seg.miss 的 aria-label 必须匹配 /前往/ 且含目标路径。<b>说明</b>　否则 VoiceOver 用户只会听到「朗读 · 去配置」而不知道要去哪</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J10</span><span class="t">复习卡首屏展示数字 ≤ 2 个；「已掌握 0」不得作为首页主视觉（0% 空进度条同样不得出现）</span>
+    <span class="m"><b>怎么测</b>　strip 内可见计数数字 ≤ 2；无 width 为 0 的进度条。原始四数在二级面板内按真值呈现</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J11</span><span class="t">「翻译文档」不得出现在「听」分区内；实时音频入口与文档类入口必须分属不同分区或列表</span>
+    <span class="m"><b>怎么测</b>　结构断言：文档入口的最近分区眉 ≠ 「听」。<b>对应裁定</b>　3（守住实时能力的能力边界预期）</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J12</span><span class="t">折叠线以下只允许出现列表行与分区眉，不得出现任何主要操作按钮</span>
+    <span class="m"><b>怎么测</b>　top &gt; 844 的可见 button 计数 = 0（行内 chevron 不算 button）</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J13</span><span class="t">任一交互态（hover / press / focus-visible）的文本对比度不得低于默认态；每个可 Tab 元素必须有 ≥2.5px 可见焦点环</span>
+    <span class="m"><b>怎么测</b>　三态取色算 WCAG 对比度并断言 单调不减；遍历 tabbable 断言 outline-width ≥2.5px</span></label>
+
+  <label class="crit"><input type="checkbox"><span class="id">J14</span><span class="t">系统翻译行的文案必须是事实陈述，不得含步骤、教程、「我已设好」类按钮</span>
+    <span class="m"><b>怎么测</b>　该区块内 button 数 = 0；文案匹配 /已交给|已接管/。<b>对应裁定</b>　1</span></label>
+</section>
+
+<!-- ═══ 7 ═══ -->
+<section id="s7" data-od-id="spec-platform">
+  <div class="sec-head"><span class="n">07</span><h2>iOS 与 macOS 的四处刻意差异</h2><span class="note">同层级，不同落地</span></div>
+  <div class="card">
+    <table>
+      <thead><tr><th>项</th><th>iPhone 390×844</th><th>Mac 1440×900</th><th>为什么不统一</th></tr></thead>
+      <tbody>
+        <tr><td>账号与设置 / 退出</td><td>顶栏 44×44 圆形键 → 底部面板</td><td>侧栏底部常驻</td><td>宽屏有侧栏这件事本身就是答案：不该再让账号占用主区版面</td></tr>
+        <tr><td>权限呈现</td><td>系统权限弹窗（原生层呈现，界面内不重绘）</td><td>macOS TCC 提示由系统承接；界面内只有准备态检查表</td><td>WKWebView 无法自绘权限弹窗。两端各写一套文案必然漂移，规约里必须写死由原生层承接</td></tr>
+        <tr><td>系统翻译的落点</td><td>主区列表行（折叠线以下）</td><td>侧栏项</td><td>宽屏上「轻」的最省事落地：侧栏本来就是目的地列表，不需要在主区再造一块</td></tr>
+        <tr><td>主按钮</td><td>满宽 50pt</td><td>左对齐定宽 40pt</td><td>HIG：macOS 的 prominent 按钮是行内元素，满宽按钮在桌面端读起来像网页表单</td></tr>
+        <tr><td>卡片圆角 / 主按钮字号</td><td>16 / 17pt</td><td>14 / 15pt</td><td>40pt 高的按钮行里 17pt 会挤</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ═══ 8 ═══ -->
+<section id="s8" data-od-id="spec-open">
+  <div class="sec-head"><span class="n">08</span><h2>待确认与外部依赖</h2><span class="note">确认后才能锁进交互规约</span></div>
+  <div class="callout neutral" style="margin-bottom:20px"><b>本规格未覆盖的两类问题</b><br>
+  ① <b>取音路径的定义。</b>两张卡的说明文案（「这台设备正在播放的声音」与「面对面的说话」）已经把取音对象写死了，但 iOS 上「设备播放声音」与「麦克风拾音 + 回声消除」是两条完全不同的实现路径，会带来不同的权限文案与失败态。规约必须先写死这一条，否则两张卡的文案会在实现期互相矛盾。<br>
+  ② <b>「实时字幕」的浮窗 / 锁屏形态。</b>本稿按「浮窗开关只在进行中态」处理（见评审画布待拍板第 3 条）。若产品决定把它提为首页常驻项，H1 卡的高度预算与 J01 都要重算。</div>
+  <div class="card">
+    <table>
+      <thead><tr><th>待确认</th><th>影响到的条目</th><th>谁来定</th></tr></thead>
+      <tbody>
+        <tr><td>系统翻译的触发条件＝三引擎就位，还是「三引擎 + 扩展已授权」</td><td>J05、§05 矩阵、画布 04-1</td><td>产品负责人</td></tr>
+        <tr><td>首页是否保留一行「已掌握 0 / 候选 4474」</td><td>J10</td><td>产品负责人（画布 04-2）</td></tr>
+        <tr><td>字幕浮窗是否提为首页常驻项</td><td>J01、§02 预算表</td><td>产品负责人（画布 04-3）</td></tr>
+        <tr><td>Mac 是否维持侧栏结构，还是与 iPhone 完全对称</td><td>§07 整表</td><td>产品负责人（画布 04-4）</td></tr>
+        <tr><td>窄机型（iPhone SE 320pt）状态行的压缩规则</td><td>J08</td><td>设计（已给预案：隐藏「引擎」标签、缺失项优先、摘要后置）</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer data-od-id="spec-footer">
+  配套文件：<a href="homepage-canvas.html">评审画布</a>（现状问题 + 取舍对比）· <a href="homepage-prototype.html">iPhone 可点击原型</a> · <a href="homepage-prototype-mac.html">Mac 可点击原型</a>。<br>
+  素材：页面中唯一的真实参照素材为 Apple「翻译」App 图标 <code>assets/apple-translate-icon.png</code>（253×253，Apple Inc.，取自 Wikimedia Commons；商标归 Apple 所有，此处仅作界面指代）。大肚猴品牌标识未提供源文件，顶栏「BM」圆形账户键为占位，交付前需替换。<br>
+  数据：复习相关数字 190 / 190 / 4664 / 4474 / 0 全部沿用线上真值；字幕与听译中的示例句子是功能演示文案，不代表产品内数据。
+</footer>
+
+</div>
+<script>
+const boxes=[...document.querySelectorAll('.crit input')];
+const pg=document.getElementById('pg'),pgN=document.getElementById('pgN');
+function sync(){const n=boxes.filter(b=>b.checked).length;pgN.textContent=n;pg.style.width=(n/boxes.length*100)+'%';}
+boxes.forEach(b=>{b.closest('.crit').classList.toggle('done',b.checked);b.addEventListener('change',()=>{b.closest('.crit').classList.toggle('done',b.checked);sync();});});
+sync();
+</script>
+</body>
+</html>

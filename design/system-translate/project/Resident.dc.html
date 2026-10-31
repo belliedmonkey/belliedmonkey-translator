@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>常驻行为</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:560px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">关掉窗口之后</h1><span>为了让快捷键随时可用，App 要留在菜单栏里。这改变了一个老行为，所以第一次要说。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>第一次关主窗口</b><span>一次性提示，之后不再出现。</span></div><section class="card"><h3>大肚猴还在菜单栏</h3><p class="hint">快捷键照常可用。要完全退出，用菜单栏图标里的「退出」，或按 ⌘Q。</p><div class="split"><button class="btn p sm" type="button">知道了</button><a href="#off">不想常驻 →</a></div></section></div>
+<div class="cell"><div class="cap"><b>「不想常驻」</b><span>带到设置块，那个开关就是答案。</span></div><section class="card"><div class="row"><div class="l"><span>在菜单栏常驻</span><small>关掉后菜单栏图标消失，关闭窗口即退出 App</small></div><span class="sw"></span></div></section></div>
+<div class="cell"><div class="cap"><b>关掉常驻之后</b><span>回到今天的行为：关窗即退出；快捷键与服务菜单随之失效（App 没在跑）。实时字幕进行中仍照旧不退出 —— 那条规则不变。</span></div><div class="old"><div class="c"><span>菜单栏：没有图标</span></div><div class="c"><span>关闭主窗口 ⇒ App 退出</span></div><div class="c"><span>实时字幕进行中 ⇒ 不退出（原规则）</span></div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

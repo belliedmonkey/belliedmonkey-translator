@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>零权限路径 · 三个陷阱</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:680px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">没开「增强取词」时：快捷键翻的是剪贴板</h1><span>装上就能用、不要任何权限 —— 代价是下面三个坑，每个都要有话说。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>① 剪贴板是空的，或不是文字</b><span>不发请求。一句话同时教两条路。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">剪贴板</span><span style="flex:1"></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="hint" style="font-size:.9rem">剪贴板里没有文字。先选中并按 <span class="keys"><i>⌘</i><i>C</i></span>，再按 <span class="keys"><i>⌃</i><i>⌥</i><i>T</i></span>。</div><div class="split"><a href="#enh">想省掉 ⌘C？打开「增强取词」→</a></div></div></div>
+<div class="cell"><div class="cap"><b>② 和上一次翻的一模一样</b><span>多半是忘了 ⌘C。照样显示上次的结果（不重发请求），顶上一行提醒。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">剪贴板</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox">The committee postponed the vote until the new figures were published.</div><div class="note" style="font-size:.8rem">和上次翻的是同一段 —— 是不是忘了按 ⌘C？</div><div class="tr" style="padding:0 2px">委员会把表决推迟到新数据公布之后。</div><div class="pfoot"><span class="saved"><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>已存入复习库</span><span class="split" style="gap:2px"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></span></div></div></div>
+<div class="cell"><div class="cap"><b>③ 剪贴板带「隐藏 / 临时」标记</b><span>密码管理器复制密码时会打这个标记。<b>不读内容、不发请求、不进复习库</b>，只说一句原因。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">剪贴板</span><span style="flex:1"></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="hint" style="font-size:.9rem; display:flex; gap:8px"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>剪贴板里的内容被标记为隐藏（多半是密码），没有读取，也没有发出去。</span></div></div></div>
+</div><p class="mini" style="margin:0">③ 是硬规则，不是设置项。代价：少数没打标记的密码管理器我们认不出 —— 所以来源标签「剪贴板」和可见的原文框同样是防线：用户一眼看得到发出去的是什么。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":680}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

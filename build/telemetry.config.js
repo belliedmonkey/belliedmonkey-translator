@@ -1,0 +1,345 @@
+// build/telemetry.config.js — 匿名用量事件的**唯一**登记处（docs/telemetry-design.md §3）。
+//
+// 客户端 (learn/telemetry.js) 与服务端 (supabase/functions/bt-ingest) 都从这里取白名单：
+// 服务端读的是 `node scripts/gen-telemetry.js` 生成的 events.gen.json（Deno 不能 require）。
+// test/telemetry-registry.test.js 钉住两边一致，且钉住这张表**永远不含**内容/身份类字段。
+//
+// 加一个事件或一个属性 = 改 docs/telemetry-design.md 过评审 → 改这里 → 重新生成。
+// 不是「顺手在 track() 调用处多传一个字段」—— 服务端会把它整条拒掉。
+//
+// 值类型（服务端逐条校验，客户端 track() 同样校验后才入队）：
+//   'int'    非负整数，≤ 10 位
+//   'id'     /^[a-z0-9_-]{1,32}$/   —— 引擎 id 这种
+//   [...]    枚举，只允许列出的值
+'use strict';
+
+const COMMON = {
+  install_id: 'uuid',      // 本机随机生成，与账号无关；关掉开关即删
+  ts: 'iso',               // 客户端时间，取整到分钟；服务端只接受 ±7 天内
+  v: 'semver',             // 扩展版本
+  flavor: ['global', 'china'],  // 中国版与国际版同一份白名单（BEL-135）；入口仍是境内，不在这张表里
+  host: ['safari', 'chrome', 'firefox', 'app'],
+  device: ['iPhone', 'iPad', 'Mac', 'Windows', 'Android', 'Linux', ''],
+  ui: 'lang',              // 界面语言，粗到 zh / en 这一级；/^[a-z]{2,3}$/
+};
+
+const EVENTS = {
+  installed: {},
+  heartbeat: {},
+  // 2026-09-22（§3.6 提案评审通过）：加 `result` 与 `step`，**不加事件**。
+  //
+  // 此前这条只有「完成」一个观测点，而且**跳过也发** —— 于是「走完」与「放弃」在表里
+  // 长得一模一样（§3.4 那条教训的又一种形状：结果看得见，过程全黑）。
+  //
+  // `step` = 离开引导时停在哪一屏，**只在离开的那一刻记一条**，不是每屏一条 ——
+  // 每屏一条回答不了 §1 的任何一问，只是噪声。取值与两个宿主的屏序数组**同源**
+  // （`src/app/shell-model.js` 的 OB 与 `src/pages/onboard.jsx` 的 OB），所以是并集；
+  // 屏序改了这里要跟着改（加枚举值，门禁只认事件名，不会自己红）。
+  onboarding_done: {
+    // app_resume / shown / dismissed / expired（2026-09-22，§3.8，用户评审通过）：「继续设置」卡 ——
+    // 出现（每次启动至多一条）· 点 ✕ · 第 4 次启动自动收起。点「继续」之后仍由 surface:'app' 那条回答。
+    surface: ['ext', 'app', 'app_resume'],
+    // web_only（2026-09-24，§3.9 提案 B，用户评审通过）：第一屏那条「我只要网页翻译 →」。
+    // 它与 done / skipped **并列**，不是 skipped 的子类 —— 说的是「他自己讲了要哪一半」，
+    // 不是「他放弃了」。只有 surface:'app' 会发（扩展引导里人已经在浏览器里，没有这条出口）。
+    // **2026-10-02（#547）那条出口撤了 ⇒ 这个取值不再产生**；枚举照留，收老客户端的行。
+    result: ['done', 'skipped', 'shown', 'dismissed', 'expired', 'web_only'],
+    // 2026-09-22 屏序重排后：App 加了 firstuse；browser / read / capture 三屏已删，
+    // 但**值留着** —— 线上历史行还在用它们，删掉会让回读旧数据时这些行被当成非法。
+    step: ['welcome', 'ext', 'browser', 'read', 'signin', 'engine', 'capture', 'try', 'firstuse'],
+    // dwell（2026-09-24，§3.9 提案 A，用户评审通过）：从引导出现到离开，**分桶的秒数**。
+    // 为什么要它：1.15.0 出货后 `skipped@welcome` 占了装机的一半还多，而 `step` 只说
+    // 「停在第 1 屏」，分不开「没读就跳」（动线问题：「以后再设置」和主按钮等宽）与
+    // 「读了还是跳」（文案问题）—— 这两种的修法完全相反。
+    // 为什么分桶不是秒数：原则 1 的延伸，精确停留时长在小样本上接近指纹。
+    // 只有 surface ext / app 带它；app_resume 那张卡没有「停留」可言，不带（键缺席是合法的）。
+    dwell: ['0-2', '3-9', '10-29', '30+'],
+  },
+  // onboard_intent（2026-09-28，#486/#487，用户评审通过）：迎新首屏「你想怎么用」的选择。
+  // 粗粒度枚举，只回答「他第一目的是什么」—— 此前没有这条读数（#384 调查里那句「缺的第一目的」）。
+  // 选 'listen' 的人首页不挂扩展横幅（interaction-spec「迎新页意图分叉」）。只记选择，不含内容。
+  onboard_intent: { goal: ['read', 'listen', 'both'] },
+  engine_set: { provider: 'id' },
+  // engine_test（2026-09-16，telemetry-design §3.3.1）：「填 key → 点测试 → 失败 → 放弃」
+  // 这一整段此前零遥测，而 learn/engine-test.js 的四个调用方全在激活路径上（设置页、
+  // 字段行、一键卡、**引导页**）。只记「哪一槽、成没成、哪一类错」。
+  //
+  // code 用**自己的**枚举，不复用 translate_fail 的。提案里写的是复用，落地时改了：
+  // engine-test 抛的码有一半不在那张表里（no_key / bad_url / no_path / bad_output /
+  // empty_audio…），而那几个恰恰是最有价值的——「没填 key 就点了测试」「地址写错了」。
+  // 不在枚举里的 code 会被客户端白名单**静默丢掉**（同 credit_exhausted 那条教训），
+  // 于是失败原因分布会是一片空白。`other` 兜住 reason() 的 default 分支（无 code 的错）。
+  engine_test: {
+    slot: ['chat', 'notes', 'tts', 'stt'],
+    result: ['ok', 'fail'],
+    code: ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
+      'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
+      'reasoning_starved', 'device_no_file', 'other'],
+  },
+  translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc', 'quick'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
+  translate_fail: {
+    provider: 'id',
+    // 免费额度那三个必须在枚举里（§8.10 / telemetry-design §3）：不在枚举里的 code
+    // 会被客户端白名单**静默丢掉**，于是「有多少人把 0.2 美元用完了」这个数永远是 0
+    // —— 而那正是判断这笔钱该不该继续花的唯一依据。
+    code: ['timeout', 'network', 'http', 'reasoning_starved', 'no_base', 'unknown_provider',
+      'credit_exhausted', 'grant_unavailable', 'model_not_allowed',
+      // auth（2026-09-10，第八期）：401/403 且请求带了非空、非 bmg_ 额度令牌的 key ——
+      // 「这把 key 被服务商拒绝」，引擎停机。5 天里 308 条 401 来自同一台机器逐段重试。
+      'auth'],
+    status: 'int',
+    route: ['direct', 'proxy', ''],
+    ms: 'int',
+  },
+  subtitle_on: { site: ['youtube', 'substack', 'podcast', 'other'] },
+  capture_first: {},
+  // 文档翻译（2026-09-11，learning-design §9.7）：一份文档打开一次。只有格式与页数 —— 不带文件名、字数、页文本。
+  doc_open: { kind: ['pdf', 'docx', 'txt', 'image'], pages: 'int' },
+  // result / left（2026-09-22，§3.7 A）：离开复习面也发；done 与 left 互斥、每轮一条。
+  // opened / nothing_due（2026-09-24，§3.10，用户裁定「每天或每周回来就好，养成习惯
+  // 远比学很大量重要」）：判据从「刷完」换成「有没有回来」。
+  //   · opened     露出第一张卡**立刻**发 —— 这一套里**唯一不依赖「善终」的观测点**。
+  //                 done / left 都要求清空或走正门，而 App 被直接杀掉两个都不触发，
+  //                 于是这个事件在线上**全历史零行**（同期 capture_first 65 台）。
+  //   · nothing_due 打开了复习面，但今天没有到期卡 —— 他来了，而我们没有东西给他。
+  //                 这是新用户第二天最常见的画面，此前连「他来了」都看不见。
+  // 每轮：opened 一条 + 结局一条（done / left / nothing_due 三选一，互斥）。
+  review_session: { graded: 'int', result: ['done', 'left', 'opened', 'nothing_due'], left: 'int' },
+  // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
+  // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
+  // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
+  grant_claimed: {},
+  grant_exhausted: {},
+  sync_on: {},
+  // auth_fail（2026-10-02，telemetry-design §3.14，用户报障 + 评审通过）：**新账号第三方登录
+  // 第一次失败、第二次成功**，扩展与 App 都有。此前登录失败只在用户眼前一闪，我们这边零行。
+  // 只记形状 —— 哪条路（provider）、断在哪个断点（stage）、什么码（code）、HTTP 几位、本页面/
+  // 会话里第几次失败（attempt）。**永不带账号 / 邮箱 / 令牌 / 正文**：那几样在注册表的
+  // FORBIDDEN_KEY_WORDS 里，是机器判据（原则 1）。
+  //
+  // stage 与 `extension/learn/auth.js` 的断点同源：
+  //   prepare   = prepareProviderSignIn 没备好 PKCE（还没点开登录页）
+  //   authorize = providerSignInUrl 返回空（点下去开不了登录页）
+  //   exchange  = completeProviderSignIn 换票失败（扩展托管回调 / App 系统鉴权会话那条路）
+  //   id_token  = signInWithIdToken 失败（App 原生 Sign in with Apple）
+  //   native    = 原生那一步本身失败（App 的 apple-result 带 error），由宿主 App 报
+  //   otp       = 邮箱/手机号发码失败   verify = 验码失败   password = 密码 grant 失败
+  //   post_login= 交换成功、但「登录之后」那一步失败（show() / doSync()）。2026-10-02 补：
+  //               App 的红字「连不上服务器」也可能从这条来，而它此前完全没有记录 ——
+  //               用户很确定自己装的是带埋点的包，却没有一条 auth_fail，这就是那个洞。
+  // code 用 'id' 型（小写字母数字下划线连字符，≤32）：`errorFrom()` 的 GoTrue error_code，
+  // 或调用方传的字面码（pkce_missing / storage_error / native_error…）。没归一化的会**静默
+  // 丢掉**（同 translate_fail.code 那条教训），所以 authFail() 负责归一化。
+  auth_fail: {
+    provider: ['apple', 'google', 'email', 'phone', 'unknown'],
+    stage: ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'],
+    code: 'id',
+    http: 'int',              // 没有 HTTP 响应（网络不通 / 本地失败）时为 0
+    attempt: ['1', '2+'],     // 本页面/会话里第几次 auth_fail（'1' = 第一次）
+  },
+  // 第六问（telemetry-design §1，2026-09-10）：我们的提示被看见了吗、有人点吗。
+  // 只有一个枚举属性，永不带页面、文案或输入。
+  // 2026-09-25（§3.12，三轮）：译文末尾那一行不再要评分（Safari 撞苹果 5.6.1；Chrome / Firefox 同样 0 点击、
+  // 商店评分对量几乎无影响）。shown / tap / dismiss 只剩**老版本客户端**还会发，服务端照收；
+  // requested = App 在收获时刻向系统发出了评分请求（requestReview 不回调，所以不是曝光）。
+  rate_prompt: { action: ['shown', 'tap', 'dismiss', 'requested'] },
+  // 译文末尾「今天读过的句子，去复习 →」（§3.12）。目的地由公共字段 host 区分：safari → App 的复习屏，
+  // chrome / firefox → 扩展自己的复习页。seen = 行至少一半进入视口、连续 ≥1 秒（shown 只说明插进了页面）；
+  // no_app = Safari 那一跳的 AppLink.open 兜底被触发（没有人接住 scheme）。
+  review_nudge: { action: ['shown', 'seen', 'tap', 'dismiss', 'no_app'] },
+  ext_banner: { action: ['shown', 'setup', 'done', 'check'] },     // App 首页「扩展还没打开」横幅；check（「打开检测页」那一行）2026-09-27 已从 UI 淘汰，枚举照留以收老客户端（§3.7 B）
+  // 扩展在自家域名上检测到自己（亮绿灯那一刻），每装机一次（§3.7 B）。
+  setup_detected: {},
+  // 第九期（2026-09-11，telemetry-design §3.2）：转写功能上线以来零遥测。两个枚举，不带 URL。
+  // `app_home`（2026-09-16）= App 首页那两张模式卡。App 的听译/实时字幕**不经过**
+  // asr-source.js，前三个值都是网页里的入口，一个都落不到它头上（telemetry-design §3.3）。
+  // `popup_app_row` / `to_app`（2026-09-17）：实时档从扩展端下掉之后，弹窗里多了一条
+  // **常驻**的「用 App 听设备的声音」，走不通的媒体也统一落到去 App 的出口。这两处点击
+  // 需要自己的具名值 —— 第一版用 `no_media` 记它，那是拿「没找到媒体」冒充「用户选择
+  // 去 App」，与 engine_set 那次语义漂移同型（§3.3.1）。
+  //
+  // `gesture_needed` **保留但不再产生**：Safari 页内手势那套机制随 Tier B 一起下掉了
+  // （domain-design §2.4 第 3 条）。枚举留着是因为历史行还在表里，删掉会让旧数据读不回来。
+  asr_entry: {
+    surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
+    result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
+  },
+  // 首启听译漏斗（2026-10-28，BEL-113，telemetry-design §3.16）。
+  // asr_entry 只回答「打开了听译/字幕页」。下面四条把「没授权 / 没真开麦 / 听译失败 /
+  // 出了字但翻译没跑」拆开。公共信封已经带 host / v / device，这里不再复制一份。
+  // engine / locale_pair 可缺：键不在就不发，发了就必须过 id 型（整条否则被丢掉）。
+  mic_permission: {
+    permission_state: ['prompted', 'granted', 'denied', 'restricted', 'not_determined'],
+    kind: ['mic', 'system'],
+    engine: 'id',
+    locale_pair: 'id',
+  },
+  asr_start: { engine: 'id', locale_pair: 'id' },
+  asr_fail: {
+    fail_reason: ['permission', 'interrupted', 'socket', 'assets', 'device', 'os',
+      'capture', 'locale', 'quota', 'timeout', 'other'],
+    engine: 'id',
+    locale_pair: 'id',
+  },
+  translate_start: { engine: 'id', locale_pair: 'id' },
+  // Mac 完整视频离线字幕（domain-design §2.8 / telemetry-design §3.15，BEL-103）。
+  // 不进听译漏斗。成功不带 code。code 里没有路径和原文。
+  offline_video_asr_task: {
+    result: ['ok', 'fail', 'cancelled'],
+    code: ['no_audio_track', 'codec_unsupported', 'media_encrypted', 'drm',
+      'model_missing', 'model_hash_mismatch', 'download_failed', 'disk_low',
+      'oom', 'sidecar_crash', 'cancelled', 'timeout', 'empty_hyp', 'pin_mismatch', 'busy'],
+  },
+  telemetry_off: {},       // 服务端收到即删该 install_id 的全部行，不落这一条
+};
+
+// ── 发送点（docs/telemetry-design.md §3.4，2026-09-19）────────────────────────────
+//
+// **构建期元数据，不出这个文件**：不进 events.gen.json（服务端不需要知道谁在发），不进
+// window.MT_TELEMETRY（客户端不需要）。它只有一个读者 —— test/telemetry-registry.test.js，
+// 对着代码核每一项。
+//
+// 为什么要有它：白名单守得住「发了不该发的」，守不住「该发的没人发」。一个登记了却没接线的
+// 事件，对所有测试与「一切正常」无法区分；到了线上，与「没人触发」同样是 0。这个洞发作过三次
+// （§3.1 `<all_urls>` 漏统计、§3.3 App 侧核心事件全黑、§3.4 领取与听译），第三次离第二次
+// 只隔三天 —— 第二次的教训写成了一句话，没写成门禁。
+//
+// 每个事件、每个宿主（ext = 扩展，app = 宿主 App）：
+//   { host, file, match? }   file 里必须有 track/once('<事件>'…；带 match 的，那个字面量也必须在
+//                            同一个文件里（区分同名事件的不同表面，如 kind: 'subtitle'）。
+//                            host:'app' 而 file 在 extension/ 下 ⇒ 还要在 build/app-bundle.js 的
+//                            MODULES 里：「同名模块进了包」与「接上了」是两件事，两件都核。
+//   { host, none: '理由' }   这个宿主**有意**不发。不许留空 ——「不做」也要有机器可读的形状。
+//                            可带 surface 标出是哪个表面（同一宿主另有发送点时）。
+//
+// 新增事件、新增宿主、挪动发送点 = 改这里。门禁红了先问「接上了吗」，不是改门禁。
+const SHARED = (file, extra) => [Object.assign({ host: 'ext', file }, extra), Object.assign({ host: 'app', file }, extra)];
+const SEAMS = {
+  installed: SHARED('extension/learn/telemetry.js'),
+  heartbeat: SHARED('extension/learn/telemetry.js'),
+  onboarding_done: [
+    // ext 侧的发送点已迁 src/pages/onboard.jsx（React 版，§10.9）—— file 指源码，
+    // 门禁对源码核 track/once 与 match 字面量。
+    { host: 'ext', file: 'src/pages/onboard.jsx', match: "surface: 'ext'" },
+    // dwell（§3.9 提案 A）：属性也钉住。少带一个诊断属性不会让任何门禁自己红 ——
+    // 事件照发、表照样合法，只是那一列永远是空的（§3.4 那条教训的属性版）。
+    { host: 'ext', file: 'src/pages/onboard.jsx', match: 'dwell: d' },
+    // app 侧正文已迁 src/app/shell-model.js（原 app/app.js，PR6a）—— 同 ext 侧，file 指源码。
+    { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app'" },
+    { host: 'app', file: 'src/app/shell-model.js', match: 'dwell: d' },
+    // 2026-10-02（#547）：`obTrackLeave('web_only')` 那条出口撤了 —— 这个 seam 随之删掉。
+    // 枚举里的 `web_only` 照留（收老客户端的行），但**不再有发送点**。
+    { host: 'app', file: 'src/app/shell-model.js', match: "surface: 'app_resume'" },
+  ],
+  onboard_intent: [
+    // 迎新页只在 App：扩展引导里人已经在浏览器里，没有「你想怎么用」这一步。
+    { host: 'ext', none: '迎新页只在 App：扩展引导里人已经在浏览器里，没有「你想怎么用」这一步' },
+    { host: 'app', file: 'src/app/shell-model.js', match: "track('onboard_intent'" },
+  ],
+  engine_set: [
+    { host: 'ext', file: 'src/pages/options.jsx' },
+    // 一键卡与领免费额度两条路都走 trackEngineSet()；后者由 verify-onboard 的行为断言守着。
+    // PR6b：trackEngineSet 落在 src/app/settings-model.js（原 app/settings.js）。
+    { host: 'app', file: 'src/app/settings-model.js' },
+  ],
+  engine_test: SHARED('extension/learn/engine-test.js'),
+  // auth_fail（§3.14）：两个宿主都走 extension/learn/auth.js 的同一份字节（该文件在 App 包的
+  // MODULES 里）。App 原生那一步（apple-result 带 error）另外经 LearnAuth.noteAuthFail 报，
+  // 仍落在这个文件里 —— 发送点只有一处，与「登录即注册」只有一份实现同一条纪律。
+  auth_fail: SHARED('extension/learn/auth.js'),
+  translate_ok: [
+    { host: 'ext', file: 'extension/content/content-webpage.js', match: "kind: 'page'" },
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js', match: "kind: 'subtitle'" },
+    ...SHARED('src/shared/doc-view.js', { match: "kind: 'doc'" }),
+    { host: 'app', file: 'src/app/listen-model.js', match: "kind: 'subtitle'" },
+    // quick：Mac 快速翻译（telemetry-design §3.5）。面板页不初始化遥测，经 mtQuick 中继到主页面，由 handoff.js 代发。
+    { host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" },
+    { host: 'ext', surface: 'translate-fill', none: '补译文是学习层给已捕获的卡片补一个译文，不是一次用户发起的翻译会话（§3.3 裁定 2）' },
+    { host: 'app', surface: 'translate-fill', none: '同一份 translate-fill.js，同一条裁定：后台补译文不算翻译会话' },
+  ],
+  translate_fail: [
+    { host: 'ext', file: 'extension/content/content-webpage.js' },
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
+    ...SHARED('src/shared/doc-view.js'),
+    { host: 'app', file: 'src/app/listen-model.js' },
+    { host: 'app', file: 'app/handoff.js' },
+  ],
+  subtitle_on: [
+    { host: 'ext', file: 'extension/content/subtitle-adapter.js' },
+    { host: 'app', none: "App 没有网页字幕会话；它的入口由 asr_entry{surface:'app_home'} 回答" },
+  ],
+  capture_first: [
+    { host: 'ext', file: 'extension/content/learn-collector.js' },
+    { host: 'app', file: 'src/app/docs-model.js' },
+    { host: 'app', file: 'src/app/listen-model.js' },
+  ],
+  doc_open: SHARED('src/shared/doc-view.js'),
+  review_session: SHARED('src/shared/review.js')
+    // §3.10：少带一个取值不会让任何门禁自己红 —— 事件照发、表照样合法，只是那一列
+    // 永远是空的。所以两个新取值各钉一条（同 onboarding_done 的 dwell）。
+    .concat([
+      { host: 'ext', file: 'src/shared/review.js', match: "sessOpened()" },
+      { host: 'app', file: 'src/shared/review.js', match: "sessOpened()" },
+      { host: 'ext', file: 'src/shared/review.js', match: "'nothing_due'" },
+      { host: 'app', file: 'src/shared/review.js', match: "'nothing_due'" },
+    ]),
+  // PR7b：claim 逻辑与发送点（grant.js:96 track）一起进了 src/shared/grant.js（纯逻辑
+  // 层，两宿主同一次编译）。file 指源码，门禁对源码核 track 字面量 —— 同 onboarding_done 先例。
+  grant_claimed: SHARED('src/shared/grant.js'),
+  grant_exhausted: SHARED('extension/learn/telemetry.js'),
+  sync_on: SHARED('extension/learn/sync.js'),
+  rate_prompt: [
+    { host: 'ext', none: '§3.12 第三轮：译文末尾不再主动要评分，评分只留常驻链接（不发事件）；老版本客户端仍会发 shown/tap/dismiss，服务端照收' },
+    // §3.12：App 在收获时刻向系统请求评分，发 requested。
+    { host: 'app', file: 'extension/learn/feedback.js', match: "action: 'requested'" },
+  ],
+  review_nudge: [
+    { host: 'ext', file: 'extension/content/content-webpage.js' },
+    { host: 'app', none: '「去复习」那一行挂在网页译文末尾；content-webpage 不进 App 包，App 里没有它' },
+  ],
+  setup_detected: [
+    { host: 'ext', file: 'extension/content/content-main.js' },
+    { host: 'app', none: '自家官网上的扩展标记只由扩展的内容脚本注入；App 不是浏览器' },
+  ],
+  ext_banner: [
+    { host: 'app', file: 'src/app/shell-model.js' },
+    { host: 'ext', none: '「扩展还没打开」横幅只在 App 首页' },
+  ],
+  asr_entry: [
+    { host: 'ext', file: 'extension/content/asr-source.js' },
+    { host: 'ext', file: 'extension/content/content-main.js', match: "surface: 'popup'" },
+    { host: 'ext', file: 'src/pages/popup.jsx', match: "surface: 'popup_app_row'" },
+    { host: 'app', file: 'src/app/listen-model.js', match: "surface: 'app_home'" },
+  ],
+  // BEL-113：漏斗只挂在 App 的听译/实时字幕。扩展继续用 asr_entry 与 translate_ok/fail，
+  // 不另开一套入口事件。
+  mic_permission: [
+    { host: 'ext', none: '首启麦克风/系统录音权限只在 App 原生桥上读；扩展网页转写不走这条权限' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('mic_permission'" },
+  ],
+  asr_start: [
+    { host: 'ext', none: '扩展转写入口已由 asr_entry 回答；asr_start 只记 App 里用户真的开了麦' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_start'" },
+  ],
+  asr_fail: [
+    { host: 'ext', none: '扩展听译失败不进 App 首启漏斗；网页翻译失败仍是 translate_fail' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('asr_fail'" },
+  ],
+  translate_start: [
+    { host: 'ext', none: '网页翻译没有「听出字再开翻」这一跳；成功与失败仍是 translate_ok / translate_fail' },
+    { host: 'app', file: 'src/app/listen-model.js', match: "track('translate_start'" },
+  ],
+  offline_video_asr_task: [
+    { host: 'ext', none: '完整视频离线字幕只在 Mac App；扩展没有这条入口，也不进听译漏斗' },
+    { host: 'app', file: 'app/offline-video-asr.js', match: "track('offline_video_asr_task'" },
+  ],
+  telemetry_off: SHARED('extension/learn/telemetry.js'),
+};
+
+// 这些词出现在任何键名里都说明有人在往遥测里塞内容或身份 —— 测试会红。
+const FORBIDDEN_KEY_WORDS = ['url', 'href', 'text', 'title', 'email', 'user', 'uid', 'key',
+  'token', 'name', 'hostname', 'domain', 'message', 'body', 'ip'];
+
+const LIMITS = { batch: 50, eventBytes: 1024, bodyBytes: 64 * 1024, perMinute: 60, strMax: 64 };
+
+module.exports = { COMMON, EVENTS, SEAMS, FORBIDDEN_KEY_WORDS, LIMITS };

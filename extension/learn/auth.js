@@ -1,0 +1,672 @@
+// learn/auth.js — the ONLY module that knows what an identity provider is.
+// See docs/learning-design.md §8.4.1.
+//
+// Surface is deliberately narrow — signIn / verify / signInPassword / token /
+// signOut / deleteAccount. `sync.js` speaks PostgREST and never learns how the
+// token was obtained, so changing identity provider is a one-file change. That is
+// not speculative tidiness: the current backend is shared with another product and
+// is expected to move (§8.4.1).
+//
+// Sign-in is a 6-DIGIT CODE, not a magic link. A link needs a page we host to catch
+// the redirect, and we host nothing; a code is typed into the extension and needs no
+// callback, no `identity` permission and no web navigation. This has a setup
+// consequence worth stating where someone will find it: the provider's email template
+// must render the code itself (GoTrue: `{{ .Token }}`) — the stock template sends a
+// link, and a link cannot be completed from here.
+//
+// EXTENSION PAGES ONLY. The session lives in `chrome.storage.local` (key
+// `learnAuth`) since 2026-08-09 — learning-design §8.4.1「会话存储位置」. It used
+// to live in the extension's own IndexedDB, which on Safari sits on a
+// `safari-web-extension://<random-UUID>` origin that ROTATES on reinstall or
+// re-signing, orphaning the session (and forcing a re-login on every update).
+// `chrome.storage.local` is keyed by the extension bundle id and survives.
+// The exposure tradeoff is stated in the doc: our content scripts read EXPLICIT
+// key lists only, and `learnAuth` never joins them.
+
+var LearnAuth = (() => {
+  const KEY = 'learnAuth';
+  // 只装 userId 的独立键（§8.4.1.1 的跨面交接）。内容脚本读得到的就只有它。
+  const UID_KEY = 'learnUserId';
+  // PKCE 的 code_verifier + state。**只在扩展页之间存在**，从不跨内容脚本边界 ——
+  // 这正是「回调里那个 code 可以被内容脚本看到」的前提（§8.4.1.1 第二条裁定）。
+  const PKCE_KEY = 'learnAuthPkce';
+  // 内容脚本从回调页取回的一次性 code（只有 code 与 state，没有别的）。
+  const CODE_KEY = 'learnAuthCode';
+  // Pre-2026-08-09 location (IndexedDB meta). Read once for migration, then
+  // cleared after a successful forward-write. An orphaned legacy bucket simply
+  // migrates nothing — one final sign-in, never again.
+  const LEGACY_KEY = 'auth';
+  // Refresh a minute early: a token that expires mid-request fails the request.
+  const SKEW_MS = 60 * 1000;
+
+  let cached = null;
+  let loaded = false;
+  let loadError = null;                // last storage-read failure, for the UI
+  let refreshing = null;               // single in-flight refresh, see token()
+  const listeners = [];
+
+  function api() { return MT_BACKEND.url + '/auth/v1'; }
+  function baseHeaders() {
+    return { apikey: MT_BACKEND.anonKey, 'Content-Type': 'application/json' };
+  }
+
+  // GoTrue reports failures in three different shapes depending on the endpoint and
+  // the version. Normalising here keeps every caller from having to know that.
+  // `hasBody` marks a DEFINITIVE provider answer: a 400 with a GoTrue error body
+  // is "this refresh token is dead"; a body-less 400 from a proxy/captive portal
+  // is not, and must never sign anyone out (§8.4.1 判死收紧).
+  function errorFrom(status, body) {
+    const msg = (body && (body.error_description || body.msg || body.message ||
+      body.error)) || ('HTTP ' + status);
+    const e = new Error(msg);
+    e.status = status;
+    e.hasBody = !!body;
+    e.code = (body && body.error_code) ||
+      (status === 429 ? 'rate_limited' : status === 401 ? 'unauthorized' : 'http_' + status);
+    return e;
+  }
+
+  async function post(path, body, headers) {
+    let res;
+    try {
+      res = await fetch(api() + path, {
+        method: 'POST',
+        headers: Object.assign(baseHeaders(), headers || {}),
+        body: JSON.stringify(body || {}),
+      });
+    } catch (netErr) {
+      // Offline is not an auth failure and must not read like one, or the user will
+      // go hunting for a wrong password that does not exist.
+      const e = new Error(String(netErr && netErr.message || netErr));
+      e.code = 'offline';
+      throw e;
+    }
+    const text = await res.text();
+    let json = null;
+    try { json = text ? JSON.parse(text) : null; } catch (_) { /* keep null */ }
+    if (!res.ok) throw errorFrom(res.status, json);
+    return json;
+  }
+
+  // ─── 登录失败埋点（telemetry-design §3.14，2026-10-02）──────────────────────
+  //
+  // 用户报「新账号第一次登录失败、第二次成功」（第三方登录，扩展 + App）。此前登录失败只在
+  // 用户眼前一闪，`bt_events` 零行 —— 这一条是唯一能回答「断在哪一步」的读数。只记形状：
+  // 哪条路、哪个断点、什么码、HTTP 几位、本页面/会话里第几次失败。**永不带账号 / 邮箱 /
+  // 令牌 / 正文**（注册表 FORBIDDEN_KEY_WORDS 是机器判据）。取值为空的那几个会被服务端整条
+  // 拒，所以这里先把 provider / stage / code 归一化。发送点只有这一处 —— App 原生那一步
+  // （apple-result 带 error）也调回这里（noteAuthFail），不另写一份白名单或归一化。
+  const AUTH_STAGES = ['prepare', 'authorize', 'exchange', 'id_token', 'native', 'otp', 'verify', 'password', 'post_login', 'unknown'];
+  const AUTH_PROVIDERS = ['apple', 'google', 'email', 'phone', 'unknown'];
+  let authFails = 0;
+  // err 可以是 Error（带 code / status）或一个字面字符串码。永不抛 —— 埋点不能挡住登录。
+  function authFail(provider, stage, err) {
+    try {
+      authFails += 1;
+      const e = (typeof err === 'string') ? { code: err } : (err || {});
+      const code = String(e.code || 'other').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32) || 'other';
+      const p = AUTH_PROVIDERS.includes(provider) ? provider : 'unknown';
+      const s = AUTH_STAGES.includes(stage) ? stage : 'unknown';
+      const http = Number(e.status) > 0 ? Number(e.status) : 0;
+      if (typeof MTTelemetry !== 'undefined' && MTTelemetry && MTTelemetry.track) {
+        MTTelemetry.track('auth_fail', {
+          provider: p, stage: s, code: code, http: http, attempt: authFails <= 1 ? '1' : '2+',
+        });
+      }
+    } catch (_) { /* 埋点永远不能挡住登录 */ }
+  }
+
+  // ─── Session persistence (chrome.storage.local, §8.4.1) ──────────────────
+  //
+  // The one rule both functions obey: a FAILED read/write is never latched as
+  // "signed out". The page-settings incident (2026-08-05) is the whole doctrine:
+  // a broken storage layer must present as a failure the UI can name, not as an
+  // empty profile silently painted over. `loaded` latches only on a truthful
+  // answer; a failure records `loadError` and retries on the next call.
+
+  async function load() {
+    if (loaded) return cached;
+    const r = await PageSettings.read([KEY]);
+    if (!r.ok) {
+      loadError = r.error || 'storage read failed';
+      return cached;                       // NOT latched — next call retries
+    }
+    if (KEY in r.data) {
+      cached = r.data[KEY] || null;
+      loaded = true;
+      loadError = null;
+      return cached;
+    }
+    // No session in storage.local — migrate from the pre-2026-08-09 location
+    // (IndexedDB meta). A thrown legacy read also must not latch: the classic
+    // moment is first launch after an update, mid-onupgradeneeded.
+    let legacy;
+    try { legacy = await LearnStore.getMeta(LEGACY_KEY, null); }
+    catch (e) {
+      loadError = (e && e.message) || 'legacy storage read failed';
+      return cached;                       // retry next call
+    }
+    if (legacy) {
+      cached = legacy;
+      loaded = true;
+      loadError = null;
+      // Forward-write, and clear the legacy copy ONLY after the write is known
+      // good — a divergence window (both copies present) is harmless because
+      // storage.local wins the read order; a lost session is not.
+      const w = await PageSettings.write({ [KEY]: legacy });
+      if (w.ok) { try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {} }
+      return cached;
+    }
+    cached = null;
+    loaded = true;
+    loadError = null;
+    return cached;
+  }
+
+  async function store(next) {
+    cached = next;
+    loaded = true;
+    if (next) {
+      const w = await PageSettings.write({ [KEY]: next });
+      if (!w.ok) loadError = w.error || 'storage write failed';   // stays in memory
+      // 身份与会话**分开存**（§8.4.1.1）。跨面交接要传的只是一个不透明 id，
+      // 而 `learnAuth` 里有 access / refresh token —— 把整个会话放进内容脚本读得到
+      // 的键列表是另一件事，那件事仍然禁止。这个键只装 userId，别的一个字节都没有。
+      try { await PageSettings.write({ [UID_KEY]: next.userId || '' }); } catch (_) {}
+    } else {
+      await PageSettings.removeKeys([KEY, UID_KEY]);
+      // Best-effort: a sign-out must not leave a resurrectable legacy copy.
+      try { await LearnStore.setMeta(LEGACY_KEY, null); } catch (_) {}
+    }
+    for (const fn of listeners.slice()) { try { fn(next); } catch (_) {} }
+    return next;
+  }
+
+  function sessionFrom(json) {
+    if (!json || !json.access_token) {
+      const e = new Error('no session in response');
+      e.code = 'bad_response';
+      throw e;
+    }
+    return {
+      accessToken: json.access_token,
+      refreshToken: json.refresh_token || null,
+      expiresAt: Date.now() + (Number(json.expires_in) || 3600) * 1000,
+      email: (json.user && json.user.email) || null,
+      // 手机号用户没有 email（§8.4.1.2）。带上它，界面才有东西可显示 ——
+      // 少了这一行的表现是「登录成功却显示空白」。
+      phone: (json.user && json.user.phone) || null,
+      userId: (json.user && json.user.id) || null,
+      // 哪个后端签的（learning-design §8.4.3「后端换了」）。两个后端的 userId 不可比，bindCorpus 只让
+      // 当前后端签出的会话去认领 / 接管主库。老会话没有这个字段 ⇒ 按「本构建之前的后端」算。
+      backend: MT_BACKEND.url,
+    };
+  }
+
+  // 界面上「你是谁」只有一个口径。手机号用户没有 email，邮箱用户没有 phone，
+  // 而三个面（设置页 / 复习页 / App）都要显示同一件事 —— 写在这里，不是各写一遍。
+  function displayName(session) {
+    if (!session) return '';
+    return session.email || session.phone || '';
+  }
+
+  // 邮箱还是手机号。只判「像不像手机号」，不判归属地 —— 归属地由服务端说了算。
+  // 写成 if 而不是三元，是为了避开 test/error-copy.test.js 的扫法：它把
+  // `? 'x' : 'y'` 当作「从状态码分支出来的错误 code」。这两个不是错误 code。
+  function idField(who) {
+    const v = String(who == null ? '' : who).trim();
+    if (/^\+?\d[\d\s-]{5,}$/.test(v)) return 'phone';
+    return 'email';
+  }
+  // 手机号统一成 E.164：Supabase 要的是 +8613800138000 这种形状。
+  // 纯 11 位且以 1 开头 → 按中国大陆补 +86（PNVS 只发 +86，见 §8.4.1.2）。
+  function normPhone(v) {
+    const t = String(v || '').replace(/[\s-]/g, '');
+    if (t.startsWith('+')) return t;
+    if (/^1\d{10}$/.test(t)) return '+86' + t;
+    return '+' + t;
+  }
+
+  // ─── The five ────────────────────────────────────────────────────────────
+
+  // Asks the provider to email a code. `create_user` means signing in and signing up
+  // are the same action: there is no password to choose, so a separate registration
+  // step would be a form that asks for nothing.
+  //
+  // `who` 是**邮箱或手机号**（§8.4.1.2）。同一个端点，换一个字段 —— 所以手机号那条
+  // 路没有第二份状态机、第二种 session 形状、第二处刷新逻辑。发送侧的差别（邮件
+  // 模板 vs Send SMS Hook → 阿里云 PNVS）整个在服务端，客户端看不见。
+  function signIn(who) {
+    const field = idField(who);
+    const body = field === 'phone'
+      ? { phone: normPhone(who), create_user: true }
+      : { email: String(who || '').trim(), create_user: true };
+    return post('/otp', body)
+      .then(() => ({ ok: true, via: field }))
+      .catch((e) => { authFail(field, 'otp', e); throw e; });
+  }
+
+  async function verify(who, code) {
+    const field = idField(who);
+    try {
+      const json = await post('/verify', field === 'phone'
+        ? { type: 'sms', phone: normPhone(who), token: String(code || '').trim() }
+        : { type: 'email', email: String(who || '').trim(), token: String(code || '').trim() });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail(field, 'verify', e);
+      throw e;
+    }
+  }
+
+  // Password sign-in (2026-08-17, §8.4.1) — the SAME provider, a second grant
+  // type, so sync.js still never learns how the token was obtained. Added for
+  // App Review: reviewers need a username+password demo account, and an
+  // OTP-only flow cannot hand one over (the code lands in a mailbox they don't
+  // have). Passwords are set server-side per account for now — there is no
+  // in-product "set password" surface, so OTP remains the path every real user
+  // takes; this grant simply accepts an account that HAS one.
+  async function signInPassword(email, password) {
+    try {
+      const json = await post('/token?grant_type=password', {
+        email: String(email || '').trim(),
+        password: String(password || ''),
+      });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail('email', 'password', e);
+      throw e;
+    }
+  }
+
+  // Returns a currently-valid access token, refreshing if needed, or null when signed
+  // out. Callers treat null as "sync is off", never as an error.
+  async function token() {
+    const s = await load();
+    if (!s) return null;
+    if (Date.now() < s.expiresAt - SKEW_MS) return s.accessToken;
+    if (!s.refreshToken) { await store(null); return null; }
+
+    // Several callers (push, pull, usage) can hit an expired token at once. Without
+    // this guard each fires its own refresh, and a provider that rotates refresh
+    // tokens invalidates the others mid-flight — which presents as a random
+    // signed-out, hard to reproduce and easy to blame on the network.
+    if (!refreshing) {
+      const attempt = () =>
+        post('/token?grant_type=refresh_token', { refresh_token: s.refreshToken });
+      refreshing = attempt()
+        .catch((e) => {
+          // Sign out ONLY on a definitive provider rejection: 400/401 WITH a
+          // GoTrue error body (invalid_grant and friends). Offline, 5xx, and
+          // body-less 4xx (proxies, captive portals, hiccups) get ONE immediate
+          // retry — GoTrue's refresh-reuse grace interval covers this window —
+          // and then throw WITHOUT killing the session. 判死收紧, §8.4.1: a
+          // server hiccup must never read as "you were signed out".
+          if ((e.status === 400 || e.status === 401) && e.hasBody) throw e;
+          return attempt();
+        })
+        .then((json) => store(sessionFrom(json)))
+        .catch(async (e) => {
+          if ((e.status === 400 || e.status === 401) && e.hasBody) {
+            await store(null);
+            return null;
+          }
+          throw e;   // transient: session survives, caller sees offline/http error
+        })
+        .finally(() => { refreshing = null; });
+    }
+    const next = await refreshing;
+    return next ? next.accessToken : null;
+  }
+
+  // 数据接口对这张访问令牌回了 401（sync.js 的 call）：它在服务端眼里不算数了 —— 被吊销，或者根本是别的
+  // 后端签的（2026-09-22 中国版切境内后端：东京签的令牌仍在有效期内，境内 PostgREST 不认）。只在内存里把它
+  // 标成过期，下一次 token() 就会走刷新：刷新被明确拒绝 ⇒ 判死（既有逻辑）；刷新成功 ⇒ 新令牌照常落盘。
+  // 不写存储、不通知监听者 —— 这还不是一次会话变化。只作废调用方手里那一张：别人已经刷新过就什么都不做。
+  async function expireAccess(staleToken) {
+    const s = await load();
+    if (!s || (staleToken && s.accessToken !== staleToken)) return;
+    cached = Object.assign({}, s, { expiresAt: 0 });
+  }
+
+  async function signOut() {
+    const s = await load();
+    if (s && s.accessToken) {
+      // Best-effort: the local session must be dropped whether or not the provider
+      // acknowledges. A user who clicked sign-out is signed out.
+      try { await post('/logout', {}, { Authorization: 'Bearer ' + s.accessToken }); } catch (_) {}
+    }
+    await store(null);
+    return { ok: true };
+  }
+
+  // §8.7: deletion must be ONE action, and must include the account itself — not just
+  // the rows. Deleting the auth user needs a privileged key we correctly do not ship,
+  // so it goes through an Edge Function that authenticates the caller and deletes only
+  // the caller. If that half fails we report a PARTIAL result: the data really is
+  // gone, the account really is not, and saying "deleted" would be a lie the user
+  // cannot check.
+  async function deleteAccount() {
+    const t = await token();
+    if (!t) { const e = new Error('not signed in'); e.code = 'signed_out'; throw e; }
+    const auth = { Authorization: 'Bearer ' + t };
+
+    const res = await fetch(
+      MT_BACKEND.url + '/rest/v1/' + MT_BACKEND.table + '?seq=gt.0',
+      { method: 'DELETE', headers: Object.assign(baseHeaders(), auth) });
+    if (!res.ok && res.status !== 404) {
+      throw errorFrom(res.status, await res.json().catch(() => null));
+    }
+
+    let account = true, reason = null;
+    try {
+      const fn = await fetch(MT_BACKEND.url + '/functions/v1/bt-delete-account',
+        { method: 'POST', headers: Object.assign(baseHeaders(), auth) });
+      if (!fn.ok) { account = false; reason = 'HTTP ' + fn.status; }
+    } catch (e) {
+      account = false;
+      reason = String(e && e.message || e);
+    }
+
+    await store(null);
+    return { data: true, account, reason };
+  }
+
+  // ─── Read-only helpers for the UI ────────────────────────────────────────
+
+  async function current() { return await load(); }
+  // sync.js is allowed to ask "who am I". It is NOT allowed to take the session
+  // object apart — §8.4.1 keeps it ignorant of where the token comes from, and a
+  // field read here would be exactly that knowledge leaking one file over.
+  // Signed out returns null rather than throwing: "no identity" is a legitimate
+  // row of the owner truth table, not a failure.
+  async function userId() { const s = await load(); return (s && s.userId) || null; }
+
+  // #335（2026-09-19 观察到）：首页与设置页对「登录了没有」给出相反答案。两处其实都从
+  // current() 读，但 current() 在「真没登录」和「存储读失败」两种情况下**都返回 null**
+  // （load() 对失败不闩锁、只记 loadError，§8.4.1），只有 lastLoadError() 能区分 ——
+  // 宿主 App 的 localStorage 在 WKWebView 启动早期可能短暂读不出，首页把那一次瞬断
+  // 画成了未登录，稍后设置页重读成功又是已登录。修法：把「带重试的读」做成 auth 侧的
+  // 出口 currentStable()，两个页面的初次读都走它 ——
+  //   · 读成功（含确认没登录，loadError 为空）⇒ 立即返回，零重试，正常启动零开销；
+  //   · 读失败 ⇒ 退避重试（瞬断通常亚秒级恢复；默认 5 次 × 500ms，最坏 2.5s，只发生在
+  //     存储真坏的机器上）；耗尽仍失败 ⇒ 返回 null，调用方按 lastLoadError() 把状态行
+  //     写成「读不到 ≠ 已退出」，而不是画一张登录表单冒充「已退出」。
+  async function currentStable(opts) {
+    const o = opts || {};
+    const tries = Math.max(0, o.tries != null ? o.tries : 5);
+    const delay = Math.max(0, o.delayMs != null ? o.delayMs : 500);
+    const sleep = o.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+    let s = await current().catch(() => null);
+    for (let i = 0; !s && lastLoadError() && i < tries; i++) {
+      await sleep(delay);
+      s = await current().catch(() => null);
+    }
+    return s;
+  }
+
+  // ─── Which corpus this account uses (§ account switch) ───────────────────
+  // The policy needs both halves — the session (this file) and chrome.storage
+  // (PageSettings) — so it lives here. LearnStore owns only the MECHANISM
+  // (`useDb`) and stays free of any notion of an account.
+  //
+  // The primary database keeps its name and its bytes, and belongs to the first
+  // account that signs in. Every device in the world is in exactly that state
+  // today, so this CLAIMS rather than migrates: nothing is copied, nothing moves,
+  // and an existing user reads byte-for-byte the same corpus as before. Only a
+  // second, different account gets a database of its own.
+  const DB_OWNER = 'learnDbOwner';     // userId that owns the primary database
+  const DB_ACTIVE = 'learnActiveDb';   // database currently selected
+  // 主库是在哪个后端认领的（learning-design §8.4.3「后端换了」）。两个后端的 userId 不可比。
+  const DB_OWNER_BACKEND = 'learnDbOwnerBackend';
+  const REHOME = 'learnRehome';        // 待办：下一次 ownerGate 清掉旧后端的同步账（sync.js）
+  // 没有记录的主库按「本构建之前的后端」算：切过后端的产物由构建写入 previousUrl，没切过的就是当前后端。
+  const priorBackend = () => (MT_BACKEND.previousUrl || MT_BACKEND.url);
+
+  async function bindCorpus(session) {
+    // Read the session DIRECTLY instead of through load(): load() also carries the
+    // pre-2026-08-09 legacy migration, which touches IndexedDB — and deciding WHICH
+    // database to use must not itself require opening one. It deadlocked exactly
+    // there: the bind became the first thing to open the store, early enough to
+    // collide with a connection that had not closed yet, and the review page's
+    // whole bootstrap stopped behind it with a blank screen and nothing said.
+    let me = null; let sess = null;
+    if (session !== undefined) sess = session || null;
+    else {
+      const c = cachedSession();
+      if (c) sess = c;
+      else {
+        const r = await PageSettings.read([KEY]);
+        sess = (r.ok && r.data[KEY]) || null;
+      }
+    }
+    me = (sess && sess.userId) || null;
+    // 旧后端签的会话（升级那一刻本机还存着的东京会话）不许认领、不许接管 —— 它马上会被判死；
+    // 让它先动了归属，真正的新账号登录时主库就已经「属于别人」了（2026-09-22 模拟器实测踩到）。
+    // 这种会话按「未登录」选库：保留上次选中的库，什么都不写。
+    const stale = !!(me && (sess.backend || priorBackend()) !== MT_BACKEND.url);
+    let want;
+    if (!me || stale) {
+      // Signed out keeps whatever was last selected. "Signing out is not a reason
+      // to lose what you learned" is the existing stance; revealing the PREVIOUS
+      // account's corpus after signing out of this one would break that promise
+      // from the other side.
+      const r = await PageSettings.read([DB_ACTIVE]);
+      want = (r.ok && r.data[DB_ACTIVE]) || LearnStore.DB_NAME;
+    } else {
+      const r = await PageSettings.read([DB_OWNER, DB_OWNER_BACKEND]);
+      const owner = r.ok ? (r.data[DB_OWNER] || null) : null;
+      const ownerBackend = (r.ok && r.data[DB_OWNER_BACKEND]) || priorBackend();
+      if (!owner) {
+        // Unclaimed: this is every upgrading device. Claim the primary — do not
+        // create a second database and do not move anything into it.
+        await PageSettings.write({ [DB_OWNER]: me, [DB_OWNER_BACKEND]: MT_BACKEND.url });
+        want = LearnStore.DB_NAME;
+      } else if (r.ok && ownerBackend !== MT_BACKEND.url) {
+        // 后端换了：旧 owner 是另一个后端的 id，与 me 不可比 ⇒ 这次登录的人接管主库，库内清账交给
+        // ownerGate（这里不许开库）。只在读成功时走这条 —— 读失败不能把别人的库改名给我。
+        await PageSettings.write({ [DB_OWNER]: me, [DB_OWNER_BACKEND]: MT_BACKEND.url, [REHOME]: me });
+        want = LearnStore.DB_NAME;
+      } else {
+        want = (owner === me) ? LearnStore.DB_NAME : LearnStore.dbNameFor(me);
+      }
+    }
+    await LearnStore.useDb(want);
+    await PageSettings.write({ [DB_ACTIVE]: want });
+    return want;
+  }
+  // 这台设备上的**主库**是不是属于别人（§8.4.1.2 的身份合并那一节）。
+  //
+  // 为什么需要它：换一个身份登录时 bindCorpus 会给这个账号一个独立的空库，
+  // ownerGate 读的是库内部的戳，新库是空的于是直接认领 —— 整条路**一个错都不报**。
+  // 用户看到的是一个空的复习页，而他那堆卡还在这台设备上、只是挂在另一个身份下。
+  // 「隐藏我的邮箱」和手机号都会走到这里（都不参与按邮箱的自动并号）。
+  //
+  // 不开数据库：只读两个 storage 键。§8.4.3 那条「绑定不许要求打开数据库」的纪律
+  // 是为死锁付过代价的，这里没有理由再碰它。
+  // ownerGate 取走「后端换了」的待办：只对同一个人生效（标记里记着接管者），取走即清。
+  async function takeRehome(me) {
+    const r = await PageSettings.read([REHOME]);
+    const who = r.ok ? r.data[REHOME] : null;
+    if (!who || who !== me) return false;
+    await PageSettings.removeKeys([REHOME]);
+    return true;
+  }
+
+  async function otherAccountOnDevice() {
+    const r = await PageSettings.read([DB_OWNER]);
+    const owner = (r.ok && r.data[DB_OWNER]) || null;
+    if (!owner) return false;
+    const me = await userId();
+    return !!(me && owner !== me);
+  }
+
+  function cachedSession() { return cached; }          // sync read for first paint
+  // Non-null when the LAST load/store hit a storage failure. The UI uses it to
+  // say 「存储读取失败」 instead of painting the signed-out state (law 2).
+  function lastLoadError() { return loadError; }
+  function onChange(fn) {
+    listeners.push(fn);
+    return () => { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); };
+  }
+  // ─── 第三方登录（§8.4.1.2）────────────────────────────────────────────────
+  //
+  // 一条流程覆盖 Chrome / Firefox / Safari。**不用 chrome.identity.launchWebAuthFlow**：
+  // Safari 上它不工作，而 Safari 是用户主力；且 Safari 扩展的源
+  // `safari-web-extension://<UUID>` 每次重装都轮换，登记不成固定回调地址。
+  //
+  // 所以回调落在我们自己的站点上，内容脚本只把 `code` + `state` 递回来 ——
+  // 那张票没有 `code_verifier` 兑换不出任何东西，而 verifier 只在这里，从不跨界。
+
+  function b64url(bytes) {
+    let s = '';
+    for (const b of bytes) s += String.fromCharCode(b);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function randomB64(n) {
+    const a = new Uint8Array(n);
+    crypto.getRandomValues(a);
+    return b64url(a);
+  }
+  async function challengeOf(verifier) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    return b64url(new Uint8Array(buf));
+  }
+
+  // PKCE 的准备**必须提前做完**，不能放在点击处理器里。两条约束叠在一起：
+  //   ① 用户手势必须同步用掉 —— 任何 await 都会把它消耗掉（test/user-gesture.test.js）
+  //   ② 开窗要带 noopener，否则登录页拿得到 window.opener
+  // 而 `window.open(..., 'noopener')` 按规范**返回 null** —— 所以「先开空窗、算完
+  // URL 再塞给它」这条路走不通：根本没有那个窗口对象。2026-09-03 的行为探针抓到的
+  // 正是这个：按钮点了，什么都不发生，而代码看起来完全正确。
+  //
+  // 所以拆成两步：页面加载时备好（异步），点击时同步取用。
+  let prepared = null;      // { verifier, state, challenge }
+
+  async function prepareProviderSignIn() {
+    try {
+      const verifier = randomB64(64);
+      const state = randomB64(16);
+      const challenge = await challengeOf(verifier);
+      await PageSettings.write({ [PKCE_KEY]: { verifier, state, at: Date.now() } });
+      prepared = { verifier, state, challenge };
+      return true;
+    } catch (e) {
+      authFail('unknown', 'prepare', e);
+      throw e;
+    }
+  }
+
+  // **同步**。没备好就返回 null —— 调用方据此让按钮先不可点，而不是开一个空窗。
+  function providerSignInUrl(provider, redirectTo) {
+    if (!prepared) { authFail(String(provider), 'authorize', 'pkce_missing'); return null; }
+    // 记下这次点的是哪家 —— 回跳兑换时（completeProviderSignIn）才知道该把失败记到谁头上。
+    // 只存在内存里（同一页完成兑换）；prepared 在 finally 里被重建，不会跨次串味。
+    prepared.provider = String(provider);
+    // **回跳地址必须与 Supabase 白名单里登记的那条逐字相同 —— 不许带查询串。**
+    //
+    // 这里曾经往 redirect_to 上拼过一个 `?st=<state>`，想让自己的 state 绕一圈回来。
+    // 代价是白名单不再匹配（那是精确匹配），Supabase 于是回退到 Site URL，用户落在
+    // `localhost:3000/?code=…`（2026-09-03 实测）。而 Site URL 的默认值就是 localhost
+    // —— 也就是说**任何一次回跳地址写错，都会长成「无法连接服务器」**，看不出真因。
+    //
+    // 去掉 state 不是妥协，是把一个多余的环节删掉：**PKCE 的 verifier 本身就是绑定**。
+    // 别人塞给我们一个他自己的 code 也换不出东西 —— 那个 code 是对着他的 challenge
+    // 签发的，而我们手上只有自己的 verifier。Supabase 自家的客户端也是这么做的。
+    const q = [
+      ['provider', String(provider)],
+      ['code_challenge', prepared.challenge],
+      ['code_challenge_method', 's256'],
+      ['redirect_to', String(redirectTo)],
+    ].map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+    return api() + '/authorize?' + q;
+  }
+
+  // 回调之后在**扩展页**里兑换。不经 background：Safari iOS 锁屏后 service worker
+  // 永久 undefined，sendMessage 会静默失败（项目须知里的头号约束：Safari 的后台脚本不可依赖）。
+  // `direct` 是 App 那条路传进来的票：系统鉴权会话把 code 直接给了页面，
+  // **不经内容脚本**（那一侧根本不存在）。两条路之后完全合流 —— 同一个 state 校验、
+  // 同一个兑换、同一个 sessionFrom。
+  async function completeProviderSignIn(direct) {
+    const provider = (prepared && prepared.provider) || 'unknown';
+    const r = await PageSettings.read([PKCE_KEY, CODE_KEY]);
+    // 存储读失败不是「没有票」。混同的话，一次读失败会被画成「登录没发生」，
+    // 而用户明明刚走完一整圈 —— 同 load() 里 loadError 的那条纪律。
+    if (!r.ok) { const e = new Error(r.error || 'storage read failed'); e.code = 'storage_error'; authFail(provider, 'exchange', e); throw e; }
+    const pending = r.data[PKCE_KEY];
+    const ticket = direct || r.data[CODE_KEY];
+    if (!ticket || !ticket.code) return null;               // 没有票，什么都不做
+    // 票用过就作废，无论后面成不成 —— 留着会在下次开设置页时重放一次必然失败的兑换。
+    if (!direct) await PageSettings.removeKeys([CODE_KEY]);
+    if (!pending || !pending.verifier) {
+      const e = new Error('no pending sign-in'); e.code = 'pkce_missing'; authFail(provider, 'exchange', e); throw e;
+    }
+    // state 只在**两边都有**时才校验。它现在不再绕一圈回来（回跳地址不许带查询串，
+    // 见 providerSignInUrl），所以常态是没有 —— 绑定由 verifier 承担。留着这个分支
+    // 是因为 App 那条路（自定义 scheme）将来若要带回 state，判据不该另写一份。
+    if (ticket.state && pending.state && ticket.state !== pending.state) {
+      await PageSettings.removeKeys([PKCE_KEY]);
+      const e = new Error('state mismatch'); e.code = 'pkce_state'; authFail(provider, 'exchange', e); throw e;
+    }
+    try {
+      const json = await post('/token?grant_type=pkce', {
+        auth_code: String(ticket.code),
+        code_verifier: pending.verifier,
+      });
+      return store(sessionFrom(json));
+    } catch (e) {
+      authFail(provider, 'exchange', e);
+      throw e;
+    } finally {
+      // verifier 是一次性的：成败都作废，**并且当场备下一份**。内存里那份 `prepared`
+      // 与 storage 里那份是同一个东西，不能只清一半 —— 2026-09-07 TestFlight 87：
+      // Google 登录成功（storage 里的 verifier 被清）→ 删除账号 → 再点 Google，
+      // 按钮用内存里的旧 challenge 开了会话，回来时 storage 里没有 verifier，
+      // 报 pkce_missing。之前只在失败分支由宿主重新备，成功分支谁都没备。
+      prepared = null;
+      await PageSettings.removeKeys([PKCE_KEY]);
+      await prepareProviderSignIn().catch(() => {});
+    }
+  }
+
+  // App 侧的原生登录（Sign in with Apple / Google），走 id_token grant。
+  // 原生那边拿到 identityToken 与 nonce，桥进来的只有这两样。
+  // 2026-10-04：**第一发自动重试**。真机反复是「第一次 Apple 登录报『连不上服务器』、第二次就好」，
+  // 而境内后端在用户报错的那一分钟里记到的是**成功**的 `POST /token`（2026-10-03T21:02:15Z = 05:02:15 CST，
+  // 200、provider=apple、泰国 IP），近 6h 非 2xx 为空 ⇒ 失败发生在**换会话这一发 POST 的网络层**
+  // （`code network|offline`，服务端因此无痕，§0）。
+  // 这个兑换对同一个用户是**幂等**的（同一 id_token、同一账号），所以自动重试安全 —— 与 §1.8
+  // 记的「把那一次重试自动化，就是这个症状的对症修法」一致。
+  // 只重试**网络类**失败：4xx/5xx 是服务端给了答复，重试没有意义。
+  async function signInWithIdToken(provider, idToken, nonce) {
+    const body = { provider: String(provider), id_token: String(idToken) };
+    if (nonce) body.nonce = String(nonce);
+    const retryable = (e) => !!(e && (e.code === 'network' || e.code === 'offline'));
+    let last = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const json = await post('/token?grant_type=id_token', body);
+        return store(sessionFrom(json));
+      } catch (e) {
+        last = e;
+        if (!retryable(e) || attempt === 2) break;
+        await new Promise((r) => setTimeout(r, 400 + attempt * 800));
+      }
+    }
+    authFail(String(provider), 'id_token', last);
+    throw last;
+  }
+
+  function _reset() { cached = null; loaded = false; loadError = null; refreshing = null; listeners.length = 0; }
+
+  return {
+    signIn, verify, signInPassword, token, expireAccess, signOut, deleteAccount,
+    prepareProviderSignIn, providerSignInUrl, completeProviderSignIn, signInWithIdToken,
+    current, currentStable, userId, displayName, bindCorpus, takeRehome, otherAccountOnDevice,
+    cachedSession, lastLoadError, onChange,
+    noteAuthFail: authFail,
+    _reset,
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = LearnAuth;

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>第三轮：Chrome / Firefox 也不要评分，改成去扩展复习页</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:820px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">第二轮留着它的理由只有「5.6.1 管不到」—— 那只说明可以问，不说明应该问</h1><span>用户问：「Chrome / Firefox 为什么仍然让人去评分，而不是去复习？」</span></div></div>
+<table class="tbl">
+  <tr><th></th><th>读数（09-25）</th></tr>
+  <tr><td>Chrome 评分行</td><td class="no">12 台看过 90 次，<b>点击 0</b> —— 和 Safari 同一个结论</td></tr>
+  <tr><td>这两个商店的评分值多少</td><td class="no">量 85% 以上来自 App Store 搜索；Chrome 商店 28 天 3 次安装</td></tr>
+  <tr><td>Chrome 真在用</td><td>7 台：<b>6 台 Mac 全都开了学习</b>、1 台 Windows 没开</td></tr>
+  <tr><td>Firefox 真在用</td><td>0 台</td></tr>
+</table>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>改成</b><span>「今天读过的句子，去复习 →」</span></div><div class="ph-sm" style="min-height:170px"><div class="homeline w3"></div><div class="homeline w2"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div class="homeline w2"></div><div class="homeline w3"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sage);font-size:.84rem;border-top:1px dashed var(--rule);padding-top:7px">
+  <span>今天读过的句子，去复习 →</span><span style="color:var(--muted)">×</span></div></div></div>
+  <div class="cell"><div class="cap"><b>打开的是</b><span>扩展自己的复习页（learn/review.html）</span></div><p class="hint">不需要登录、Windows 上也有、不用跳出浏览器；<b>只要开了学习</b>就出现。门槛与节奏同 Safari。评分只留常驻链接（设置页 / 弹窗）。</p></div>
+</div>
+<div class="ask"><b>量要说实话</b>最多 6 台 Mac Chrome，而我们自己的开发机、测试机也在里面 —— 真实用户可能只有一两个。改它是因为<b>便宜、口径一致</b>（落地 PR 还没合），不是因为它能带来很多东西。</div>
+<p class="hint">遥测：事件 <code class="code">app_nudge</code> 改名 <code class="code">review_nudge</code>，两种浏览器共用，目的地由公共字段 <code class="code">host</code> 区分，不另加取值。</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

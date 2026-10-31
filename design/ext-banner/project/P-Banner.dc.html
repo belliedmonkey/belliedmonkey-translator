@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>① 首页横幅：教程 → 状态行</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:780px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">改动一：横幅不再教三步，改成说「现在到底成没成」</h1><span>理由：104 台只看过它一次 —— 教程说第二遍不会更有效</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>现在</b><span>一张教程，三步文字占满</span></div><div class="phoneframe"><div class="ban"><h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> Safari 扩展还没打开</h4>
+      <p>网页翻译在浏览器里，复习在这个 App 里。要先把浏览器那半边打开。</p>
+      <ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol><button class="btn p" type="button">在 Safari 里打开扩展 →</button><button class="btn s" type="button">我已打开</button>
+      <p style="font-size:.8rem;margin:0">不确定？打开检测页看绿灯 →</p></div><p class="hint" style="margin:0">点主按钮 = 打开我们的网页。他照没照做，我们永远不知道。</p></div></div>
+  <div class="cell"><div class="cap"><b>提议</b><span>一句状态 + 一个按钮；三步搬进检测页</span></div><div class="phoneframe"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 浏览器那半边还没打通</h4><p>到现在还没收到任何一张卡。网页翻译在 Safari 里，要先把扩展打开。</p><button class="btn p" type="button">打开检测页，一眼看出通没通 →</button><button class="btn s" type="button">我已经打开了</button></div><p class="hint" style="margin:0">主按钮落到<b>检测页</b>：那一页自己知道扩展在不在（绿灯是机器判的），三步教程也在那一页上，照着做完当场能验。</p></div></div>
+</div>
+<div class="ask"><b>文案要你挑字（这几句会进 12 个语种）</b>标题「浏览器那半边还没打通」/ 正文「到现在还没收到任何一张卡」/ 主按钮「打开检测页，一眼看出通没通 →」/ 次按钮「我已经打开了」。<br>其中<b>「还没收到任何一张卡」</b>是刻意的：它是我们真的知道的事实（本机 0 张卡且从未同步成功），比「扩展还没打开」诚实 —— 后者在 iOS 上我们其实判不了。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+// build/providers.config.js — SINGLE SOURCE OF TRUTH for translation providers.
+//
+// Consumed at BUILD time by build.js, which filters this list by the chosen
+// `flavor` (global | china), resolves per-flavor `defaultEndpoint`/`label` down to a
+// single value, and writes extension/content/... → dist/content/providers.gen.js
+// (`window.MT_FLAVOR` + `window.MT_PROVIDERS`). The runtime (translation-api.js,
+// options.js, popup.js) reads only that generated file — never this one.
+//
+// Per docs/domain-design.md: region↔provider separation is a BUILD/DISTRIBUTION
+// concern, not a runtime per-request branch. China builds must contain NO
+// OpenAI/ChatGPT/Claude brand strings and NO api.openai.com / api.anthropic.com
+// endpoints (Guideline 5 — Chinese MIIT permitting). build.js enforces this with
+// a compliance grep gate over dist-china/.
+//
+// Field notes:
+//   type            'google' | 'chat-compat' (OpenAI Chat Completions format)
+//                   | 'messages-compat' (Anthropic Messages format). BRAND-FREE
+//                   type names on purpose so the China bundle carries no brand word.
+//                   It is the DEFAULT shape; the endpoint URL's path suffix refines it
+//                   at runtime (content/wire-format.js, domain-design §7).
+//   defaultEndpoint string | { china, global } | null. The COMPLETE request URL, path
+//                   included — never an origin to append to. null = the user must
+//                   supply the whole address (the generic custom endpoints); it is
+//                   written out EXPLICITLY even then, because a silently absent field
+//                   is how the China bundle once shipped a brand-named engine
+//                   (test/registry.test.js header).
+//   placeholder     string | null. Example address shown in the empty input, and only
+//                   meaningful when defaultEndpoint is null. It lives here rather than
+//                   in the i18n copy for the same reason every other endpoint does:
+//                   a path written into UI strings is a second copy that drifts
+//                   (CLAUDE.md — the DeepSeek model-name incident).
+//   label           string | { china, global }. China labels are brand-free.
+//   flavors         which builds include this provider.
+//   supportsBaseUrl / supportsModel  whether the UI shows the endpoint / model field.
+//
+// There is no `path` field and there must never be one again. Splitting an endpoint
+// into origin + path assumed a regularity that never held — qwen's own default already
+// carries a `/compatible-mode` path segment, and `google` has no path at all — and it
+// left users unable to choose between two request shapes served from one host.
+//
+// Verified endpoints (2026-07): GLM domestic open.bigmodel.cn vs international
+// Z.ai api.z.ai; Kimi api.moonshot.cn vs api.moonshot.ai (keys are region-bound);
+// Qwen dashscope.aliyuncs.com vs dashscope-intl.aliyuncs.com; DeepSeek single
+// api.deepseek.com for both.
+
+// 免费额度的中继（learning-design §8.10）。地址由 backend.config.js 的 url + relayPath
+// 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
+const MT_BACKEND = require('../extension/learn/backend.config.js');
+const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+// 中国版额度（方案 C）：境内中继，只在 grant.china.ready 时进中国版注册表。
+// 合法性（https、不在 *.supabase.co）由 build.js 的 chinaGrant() 把关，这里只取值。
+const CN = (MT_BACKEND.grant && MT_BACKEND.grant.china) || {};
+const CN_READY = CN.ready === true && !!CN.relayUrl;
+const CN_RELAY = String(CN.relayUrl || '').replace(/\/+$/, '');
+
+const LIST = [
+  {
+    id: 'google', type: 'google', flavors: ['global'],
+    vision: false,
+    needsKey: false, supportsBaseUrl: false, supportsModel: false,
+    // The free endpoint builds its URL with query parameters at call time
+    // (translation-api.js), so it cannot be expressed as one stored address — and the
+    // user can never supply one either (supportsBaseUrl:false). Declared null
+    // EXPLICITLY: an absent field is the failure mode registry.test.js exists to catch.
+    defaultEndpoint: null, placeholder: null,
+    label: { global: 'Google 翻译（免费，无需 API Key）' }, labelKey: 'provider_google_free_long', hintKey: null,
+  },
+  // `vision`（2026-09-11，learning-design §9.7）：该引擎的**默认模型**接不接受 chat-compat 的
+  // `image_url` 内容块。true = 可识图；false = 不能（界面明说并 0 次请求）；缺省 = 未知
+  // （自定义端点：试发一次，400 且报文含 image 则记住不再发）。qwen / glm 的默认模型是纯文本，
+  // 要识图得在「详细」里换成各家的多模态模型 —— 那时 visionOf 仍回 false，v2 再按模型名判。
+  {
+    id: 'openai', type: 'chat-compat', flavors: ['global'],
+    vision: true,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: { global: 'https://api.openai.com/v1/chat/completions' }, placeholder: null,
+    defaultModel: 'gpt-4o-mini', label: { global: 'ChatGPT (OpenAI)' }, hintKey: 'hint_openai',
+    keyUrl: { global: 'https://platform.openai.com/api-keys' },
+  },
+  {
+    id: 'claude', type: 'messages-compat', flavors: ['global'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: { global: 'https://api.anthropic.com/v1/messages' }, placeholder: null,
+    defaultModel: 'claude-haiku-4-5-20251001', label: { global: 'Claude (Anthropic)' }, hintKey: 'hint_claude',
+  },
+  {
+    id: 'deepseek', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: 'https://api.deepseek.com/v1/chat/completions', placeholder: null,
+    defaultModel: 'deepseek-v4-flash', label: 'DeepSeek', hintKey: 'hint_deepseek',
+  },
+  {
+    id: 'glm', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: {
+      china: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+      global: 'https://api.z.ai/api/paas/v4/chat/completions',
+    },
+    placeholder: null, defaultModel: 'glm-4-flash',
+    label: { china: '智谱 GLM', global: 'GLM (Z.ai)' }, hintKey: 'hint_glm',
+  },
+  {
+    id: 'qwen', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    // The one entry whose old `defaultBase` already carried a path segment
+    // (`/compatible-mode`) — the standing proof that "base = origin" never held.
+    defaultEndpoint: {
+      china: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      global: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+    },
+    placeholder: null, defaultModel: 'qwen-plus',
+    label: { china: '通义千问', global: 'Qwen' }, hintKey: 'hint_qwen',
+    // 按 flavor 分，理由与 defaultEndpoint 同一条：这家的账号体系是**分区域**的，
+    // 拿错区域的控制台给用户，他签出来的 key 打不通这个端点，而报错只会说 401 ——
+    // 他会以为是自己粘错了。
+    //
+    // 两条都带**区域路径段**，这不是多余的：2026-08-31 实测，不带区域的
+    // `bailian.console.alibabacloud.com/?tab=model#/api-key` 会跳到
+    // modelstudio.console.alibabacloud.com 并**默认落在 cn-beijing**，而 global 的
+    // 端点是 dashscope-intl（新加坡）—— 正好是这条注释在防的那个错。
+    // 钉 /ap-southeast-1 后落地页读到「Singapore · API Key」。
+    keyUrl: {
+      china: 'https://bailian.console.aliyun.com/cn-beijing?tab=model#/api-key',
+      global: 'https://modelstudio.console.alibabacloud.com/ap-southeast-1?tab=model#/api-key',
+    },
+  },
+  {
+    // 翻译专用模型。`type` 写 chat-compat 而不是 translate-compat，是刻意的：`type` 的
+    // 语义是「地址认不出来时的兜底形状」，而这个条目的真实形状由**模型名**声明
+    // （domain-design §7 第三条）。用户把模型改成 qwen-plus 时，它就该退回普通对话，
+    // 那正是 chat-compat 兜底给出的结果。
+    id: 'qwen_mt', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: {
+      china: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+      global: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions',
+    },
+    placeholder: null, defaultModel: 'qwen-mt-turbo',
+    label: { china: '通义千问·翻译版', global: 'Qwen MT' }, hintKey: 'hint_qwen_mt',
+  },
+  {
+    id: 'kimi', type: 'chat-compat', flavors: ['global', 'china'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: {
+      china: 'https://api.moonshot.cn/v1/chat/completions',
+      global: 'https://api.moonshot.ai/v1/chat/completions',
+    },
+    // ⚠️ 2026-08-21 实测：国际站 api.moonshot.ai 上 `moonshot-v1-8k` 已经 **404**
+    // （Not found the model … or Permission denied），也就是说任何人选了 Kimi、不手填
+    // 模型，第一次翻译就报错 —— 这个引擎开箱即不可用。改成实测可用的 kimi-k2.6。
+    // 国内站那个值**保持不动**：手上没有 .cn 的 key，无法验证；改一个没验过的值去替换
+    // 另一个没验过的值，只是把风险从一边挪到另一边。见 perf-ledger 里 api.moonshot.cn 那行。
+    placeholder: null, defaultModel: { global: 'kimi-k2.6', china: 'moonshot-v1-8k' },
+    label: 'Kimi', hintKey: 'hint_kimi',
+  },
+  {
+    // 聚合网关：**一个 key 覆盖四种能力**（翻译 / 解析 / 转写 / 朗读），这正是它值得
+    // 从 custom_chat 升为一等公民的理由 —— 官网教程推荐的就是它，而教程里的地址不该
+    // 靠用户手抄。
+    //
+    // GLOBAL ONLY：域名与它下面的模型名都带品牌，中国版不发。
+    //
+    // defaultModel 由实测选出（2026-08-30，真 key，见 perf-ledger）：基线每段思考
+    // 1369 tok / 13.3 秒，降档后思考归零、2.9–3.3 秒，译文长度不变。选它而不是更便宜的
+    // flash-lite，是因为 model-params 里有为它准备的降档行（openrouter-thinking）；
+    // 换一个没有对应行的模型，用户会安静地拿到最慢的那一档。
+    id: 'openrouter', type: 'chat-compat', flavors: ['global'],
+    vision: true,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true,
+    defaultEndpoint: { global: 'https://openrouter.ai/api/v1/chat/completions' }, placeholder: null,
+    defaultModel: 'google/gemini-3.7-flash', label: { global: 'OpenRouter' }, hintKey: null,
+    keyUrl: { global: 'https://openrouter.ai/keys' },
+  },
+  {
+    // Generic OpenAI Chat-Completions-format endpoint. User supplies the COMPLETE
+    // endpoint URL + model + key (self-hosted / third-party / proxy). Brand-free.
+    id: 'custom_chat', type: 'chat-compat', flavors: ['global', 'china'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    defaultEndpoint: null, placeholder: 'https://your-endpoint.example/v1/chat/completions',
+    defaultModel: '',
+    label: { china: '自定义 · Chat Completions 格式', global: 'Custom (OpenAI-compatible)' },
+    hintKey: 'hint_custom_chat',
+  },
+  {
+    // Generic Anthropic Messages-format endpoint (also brand-free). The transport
+    // sends the protocol header `anthropic-version` — a technical API-format
+    // requirement for ANY Messages-compatible endpoint, NOT a Claude/brand
+    // reference. See docs/domain-design.md compliance note.
+    id: 'custom_msg', type: 'messages-compat', flavors: ['global', 'china'],
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: true,
+    defaultEndpoint: null, placeholder: 'https://your-endpoint.example/v1/messages',
+    defaultModel: '',
+    label: { china: '自定义 · Messages 格式', global: 'Custom (Anthropic-compatible)' },
+    hintKey: 'hint_custom_msg',
+  },
+  // 免费额度的中继。**不进任何下拉**（grantOnly）—— 它不是一个用户可以选的引擎，
+  // 是领取额度之后系统替他填上的那一档。手动选它只会得到 401（没有令牌）。
+  // 模型由服务端钉住；客户端在「详细」里改模型会拿到 403 model_not_allowed，
+  // 那句话有专门的文案（改回去，或填自己的 key）。
+  {
+    id: 'grant', type: 'chat-compat', flavors: CN_READY ? ['global', 'china'] : ['global'], grantOnly: true,
+    vision: false,
+    needsKey: true, supportsBaseUrl: false, supportsModel: false,
+    // 未就绪时只写国际版那一个值 —— 注册表与从前逐字相同，不留一个指向空主机的中国区地址。
+    defaultEndpoint: CN_READY ? { global: RELAY + '/chat/completions', china: CN_RELAY + '/chat/completions' } : RELAY + '/chat/completions',
+    // 中国线的模型**不在这里另写** —— 取注册表里 qwen 那一条的中国区默认值（一处真相）。
+    // 境内中继的 GRANT_MODELS.chat 必须与它一致，否则每次请求都撞 403 model_not_allowed。
+    defaultModel: { global: 'deepseek/deepseek-v4-flash', china: null },   // ← 下面从 qwen 那一条填
+    label: { global: 'BelliedMonkey 免费额度', china: '大肚猴免费额度' },
+    labelKey: 'grant_engine_label',
+  },
+];
+
+if (CN_READY) {
+  const qwen = LIST.find((p) => p.id === 'qwen');
+  const grant = LIST.find((p) => p.id === 'grant');
+  grant.defaultModel.china = (qwen && qwen.defaultModel && (qwen.defaultModel.china || qwen.defaultModel)) || '';
+} else {
+  const grant = LIST.find((p) => p.id === 'grant');
+  grant.defaultModel = grant.defaultModel.global;
+  grant.label = { global: grant.label.global };
+}
+
+module.exports = LIST;

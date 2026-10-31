@@ -1,0 +1,3587 @@
+# Verification spec (验证规约) — the single source of truth
+
+This file is the **single, authoritative source** for how any change or bug in
+「大肚猴翻译 / BelliedMonkey Translator」 is **verified**. It is referenced by
+[`AGENTS.md`](../AGENTS.md); the verification rules formerly scattered across
+`AGENTS.md`, `docs/device-verification.md`, and `docs/regression-tests.md` now live
+here. **Every verification / testing task MUST follow this spec exactly.**
+
+---
+
+## 0. The rule (load-bearing)
+
+> **Every verification runs the FULL MATRIX of every surface the product has been
+> adapted to — a full regression, every time. Once a device or browser is adapted,
+> it is permanently added to the matrix and included in every future verification.**
+
+Corollaries:
+
+- **No single-surface "canonical" pass.** Verifying a fix on iPhone alone (or Chrome
+  alone) is **not** verification. A change is "verified" only when it has been
+  exercised across the **entire current matrix** (§1) or its inapplicability to a
+  surface is stated explicitly.
+- **The matrix only grows.** When a new device/browser is adapted (e.g. a new iOS
+  version, Firefox Android, Edge), add a row to §1 and it is thereafter part of every
+  regression. Never quietly drop a surface.
+- **State honestly what was and wasn't run.** For each task, report the per-surface
+  result: verified-live (screenshot/recording) · documented-not-run · N/A. Never imply
+  full coverage you didn't perform. (See §4 honesty rules.)
+- **两个宿主的同一个控件族，必须由同一个组件渲染。** 扩展页与宿主 App 是两个
+  origin、两份存储（`docs/domain-design.md` §9.3），但**规则只能有一份**。手写第二份
+  的代价不是重复代码，是**静默漂移**：它不报错、不被任何现有门禁看见，只在某个引擎的
+  某个字段上表现为「另一边没有这个框」。2026-09-04 实测到六处，全部来自
+  `app/settings.js` 手抄 options 页的显隐规则：`supportsKey ?? needsKey` 只有一半的
+  地方判 · 解析引擎那处干脆不判 `needsKey`（选了引擎就露 Key 框）· 示例地址只有一半
+  的地方给 · 一半用 `hidden` 一半用 `style.display`（前者会被后者压掉）· 四个输入框
+  id 与注册表对不上 · 同一概念两份 i18n key。**守它的门禁必须覆盖每一个 host** ——
+  原来那道只 grep `options.js`，于是 App 那三份从来不会让任何测试变红。见 §3.1.4。
+- **Drive real surfaces via cua-driver only** — never `claude-in-chrome` or other
+  browser/computer-use tools — for every surface, including desktop Chrome.
+- **装 App 之前先验资源新鲜度，且构建输出一律不许吞掉（2026-10-01，#536）。** App 的资源是
+  `node build.js` → `npm run app:sync` → `xcodebuild` 三步灌进去的。**任何一步被跳过或失败，
+  `simctl install` 仍会照装一份旧包** —— 而截图、观察、结论全都来自旧包。2026-10-01 那轮
+  「白屏」排查正是这样得出两个**假结论**（「Debug 白屏 / Release 正常」与「首屏是引导欢迎屏」）：
+  链里的 `npm run app:sync` 返回了 `exit 1`（`dist-app-china/` 比源码旧），`&&` 断了、构建没跑，
+  而分号后面的 `simctl install` 照跑；输出被 `>/dev/null` 吞掉，所以断链无声。
+  判据是可执行的：**`npm run verify:app-fresh -- "<… .app>"` 必须绿**（`.app` 里每一份由
+  `dist-app/` 灌进去的资源都与它逐字节相同）。陈旧构建**不许**作为任何结论的依据。
+  `app:sync` 的非零退出码是真的要处理的，不是可以重定向掉的东西。
+- **Configure DeepSeek on every surface before verifying — never verify on the free
+  Google endpoint (mandatory, 2026-07-27).** The free `translate_a/single` is not a
+  stable baseline and derailed one full-matrix pass three separate ways: it returned a
+  real translation and a verbatim echo for the *same* input minutes apart; its `sl=auto`
+  classified a Chinese-dominant mixed block as zh and echoed the whole block, so the
+  mixed-language cases never reached the code under test; and it echoed a Chinese line
+  with the spaces around embedded Latin words stripped, manufacturing a duplicate-row
+  symptom. Any of these turns "not exercised" into something that reads as a pass or a
+  failure. **Check the provider first; do not settle for the default and explain
+  afterwards.** The key lives only in the browser's extension storage — never in git,
+  never baked into a build artifact. Safari's temporary extension and a default
+  `web-ext` profile both wipe storage on quit, so either use a persistent profile
+  (§2.E) or count "re-enter the key" as a setup step for that surface.
+
+Scope: the full matrix applies to any change with an observable runtime surface —
+a URL/page render, a subtitle/overlay, layout, a control, a provider, i18n. A
+pure-logic change with **no** on-device surface needs only the automated gate (§3),
+but say so.
+
+---
+
+## 1. Current surface matrix
+
+The product is adapted to these surfaces (`README.md` 平台支持). **Only iPhone + iPad
+run in the Xcode Simulator** (it only simulates iOS-family devices); the three desktop
+browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot+restore
+— nothing permanent left behind).
+
+| # | Surface | Execution mode | Status |
+|---|---|---|---|
+| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
+| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
+| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified（2026-09-05 重验：引导页语音哨兵 + DeepSeek 测试连接 663ms 通过 + 整页双语）— see §2.C；勾选与选文件夹是仅有的两步人工 |
+| 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
+| 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
+| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
+| 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。**模拟器承载不了这个扩展点**（2026-09-20 量过：里面没有苹果的「翻译」App，因此没有「默认翻译App」那一行）—— 但收件箱摄入那一半可以在模拟器上验，见 §2.I | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
+| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
+| 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 设计通过）。自动化门见 §3.1.13 `npm run test:cli` |
+> **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
+> 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
+> 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
+> 用户改口时再加回。
+>
+> **Windows 曾与 Linux 同列（同日凌晨的裁定，#321），当晚用户改口「windows 进入验收矩阵」，于是有了第 8 行。** 按 §0
+> 「矩阵只增不减」，它从此是每次回归的一行；没跑就写 ⬜，不写 N/A。
+
+Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
+(`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
+not run there, and `domain-design.md` §9.4's constraint (the app is an *additional*
+surface, never the only working path) means a change to translation is N/A for them by
+construction, not by exemption.
+
+Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
+
+### 0.1 凭证与登录：两件事，两个固定来源（2026-08-23）
+
+验证要花的两样东西——**引擎凭证**和**一个登录态**——都有固定来源。两条都是**纪律**，
+不是建议：每次开口问，验证就从「跑一遍」变成「等人回话」，而这两样东西一直都在机器上。
+
+1. **API key 一律从 `.local/keys.md` 读，不要问用户。** 那个文件是本机唯一的凭证册
+   （`node scripts/local-keys.js check` 只报槽位填没填、不回显内容），按引擎分行，
+   国内/国际分开。**永远不要**把值贴进对话、日志、提交或 PR —— 读它、用它、不复述它。
+   解析测试用 **DeepSeek**，不要用免费 Google 通道（响应不稳，曾三次把全矩阵验证带偏）。
+   要验音频缓存那一路，语音引擎必须选**会返回字节**的（`returnsAudio: true`，
+   例如 `openai_speech`）：设备内置语音按构造就不产生缓存（§9.1），用它等于没验。
+
+2. **App 的登录走用户已连接的 Gmail 取验证码，不要让用户手输。** App 不登录就没有语料
+   （learning-design §7.2），所以任何 App 侧的验收都从这一步开始。走 App 自己那条 API，
+   不要去戳模拟器的键盘：
+
+   ```
+   POST {MT_BACKEND.url}/auth/v1/otp     {email, create_user:true}   # 发信
+   # → 从 Gmail 读 6 位码（主题「大肚猴翻译 · 登录验证码」）
+   POST {MT_BACKEND.url}/auth/v1/verify  {type:'email', email, token} # 换 session
+   ```
+
+   拿到的 `{accessToken, refreshToken, expiresAt, email, userId}` 就是 `learnAuth`
+   的形状（`learn/auth.js` 的 `sessionFrom`），直接写进目标设备的存储即可。
+
+**为什么是写存储而不是在界面里打字（模拟器实测 2026-08-23）**：iOS 模拟器上
+`type_text` 会把每个字符都变成 `a`，`⌘A`/`⌘V` 被吞，长按与双击的手势识别器对合成鼠标
+事件不响应——`press_key` 单键是准的，但一次调用一个字符，50 位的 key 根本不现实。
+设置界面本身已经由 `test:app` / `test:learn` 覆盖；模拟器要验的是**运行时行为**，
+所以设置从存储层灌进去，操作用点击驱动。App 的 `chrome.storage.local` 就是
+`localStorage`（`app/chrome-shim.js` 加 `mt:` 前缀），落在容器里的
+`…/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3`，
+表是 `ItemTable(key, value)`，**value 是 UTF-16LE**。写之前先把 App 停掉。
+（脚本形态见 §2 F 行的 simulator 记录。）
+
+### 0.2 真机：一律走 iPhone 镜像驱动（2026-08-23 用户裁定）
+
+**真机验收由 iPhone 镜像（iPhone Mirroring）全程驱动，用户只做两件物理动作：把包弄上机、
+把手机锁屏。** 其余（点按、翻页、截图取证、判定）都不该再麻烦人 —— 一个每步都要人伸手的
+「真机验证」，跑一次就没有下一次了。
+
+- **镜像要求手机处于锁屏状态。** 屏幕上写着「iPhone 使用中，锁定 iPhone 以连接」时，
+  不是坏了，是手机正被拿在手里。装完包请把它放下、锁屏、别再碰。
+- **窗口底部约 70px 是悬浮条，会吃掉点击** —— 目标落在那一带时先滚动，别硬点。
+- **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.1）。
+- **镜像只用来驱动屏幕；任何要读麦克风的环节先把它退出（2026-09-12）。** 镜像开着时
+  Mac 占用手机麦克风：tap 帧照流（47.7k 帧/s）、样本**全零**（Mac 弹「无法从 Mac 使用
+  iPhone 麦克风」）。09-07 的尖刺记过一次、09-12 又废掉探针的前两轮读数，所以升成规则：
+  **音频读数 = 镜像已关**。被测 App 自己留 append-only 时间戳日志，读数在重开镜像后
+  回读（同下文「关掉镜像窗口就是锁屏」那条的做法）。声源按 §0.3 用播放语料，不用真人。
+
+**把包弄上机的两条路，代价不同：**
+
+| 路 | 代价 | 什么时候用 |
+|---|---|---|
+| USB + `devicectl device install app` | 要用户插线并信任一次；`xcrun devicectl list devices` 显示 `unavailable` / `tunnelState: unavailable` 就是没连上 | 默认。不碰 TestFlight、不占构建号、不对外发任何东西 |
+| TestFlight | 不用插线，但**会把一个未合并分支的构建推到 Apple 服务器并占掉一个构建号**，其他测试员也看得见 | 用户明确点头才走 |
+
+**镜像里的输入实测（2026-08-23，与模拟器不同，别把两套结论混用）：**
+
+| 动作 | 真机镜像 | 模拟器 |
+|---|---|---|
+| `type_text` 打字 | **准** —— 邮箱、验证码都一次打对 | 每个字符都变成 `a` |
+| `⌘V` | 吞 | 吞 |
+| 长按 / 双击唤出「粘贴」 | 不响应合成事件 | 不响应合成事件 |
+| 滚动 | **只有指针压在纯文本上时才滚**；压在 `<select>` 或页面外边距上，滚轮事件不落到页面滚动器 | 拖拽即可 |
+| 拖拽当滑动 | 会变成**选中文字**，不是滚动 | 可用 |
+
+由此得到两条操作纪律：
+
+- **短文本直接打，长凭证别想着粘。** 密钥这类长串在镜像里没有可靠的自动输入路径 ——
+  `type_text` 虽然准，但把密钥当参数传属于凭证处理，会被拦；而所有粘贴路径都不通。
+  真机上要配引擎，**目前只能请用户自己粘一次**（把值放到 Mac 剪贴板，用户在手机上
+  长按 → 粘贴，通用剪贴板会带过去）。
+- **别用拖拽滚动**，用滚轮，并且把指针放在一段纯文本上。
+
+**飞行模式与 iPhone 镜像互斥。** 镜像走 Wi-Fi/蓝牙，飞行模式把两个都关了，屏幕会变成
+「未找到 iPhone」。所以**真飞行模式的离线验收只能人眼看**，驱动不了也截不了图 —— 自动化
+那一版要用「把端点地址指到死地址」代替（`cacheKey` 不含 baseUrl，缓存照样全命中，而任何
+真发出的请求都会响亮失败）。两者证明力还不一样：飞行模式只证明「发不出去」，死地址证明
+「根本没发」。真机那一遍的增量仅仅是「真把无线电关掉也一样」，值得跑一次，但别指望能自动化。
+
+**锁屏与灵动岛：镜像验不了，模拟器可以（2026-08-25 实证）。**
+
+- **iPhone 镜像不能用来验这两个面。** 镜像自己会占掉灵动岛的一个位置（右边那个
+  「正在镜像」指示），于是我们的媒体活动被挤成一个通用喇叭图标 —— 看上去像「没生效」，
+  其实是观察工具在污染观察对象。锁屏更直接：镜像要求手机锁屏，所以镜像期间根本看不到
+  锁屏。**这两个面在镜像下的任何结论都不作数。**
+- **模拟器锁屏是可信的观察面**，而且是这一轮唯一把根因照出来的东西：`⌘L` 锁屏 →
+  `xcrun simctl io booted screenshot`。**灵动岛在模拟器上不可信**（它对灵动岛的支持
+  不完整，空着不代表真机空）。
+- 判据要连着看四样，不能只看封面：标题是不是卡片原文（是**页面标题**就说明 WebKit 自己
+  那套 now-playing 赢了）、有没有拖动条、是不是 ⏪10/⏩10、封面是不是空方块。
+  **四样同时不对时是同一个病因**，分开看会当成四个 bug —— 这一轮就差点这么查。
+
+**后台播放的验收怎么做（2026-08-24，播客模式 §9.5）。** 镜像的两条既有性质在这里
+恰好变成工具：
+
+- **「按 Home 退到后台」可以驱动**：镜像里回主屏，App 真的进后台，而镜像本身还在 ——
+  所以「退后台 60 秒后还在不在播」这一段全程可自动化、可截图。
+- **「关掉镜像窗口」就是锁屏**：手机回到自己的锁屏并熄屏。**这是唯一一个不可驱动的
+  时刻**，所以被测的东西必须自己留下证据（页面里 append-only 的时间戳日志 +
+  `localStorage`），重开镜像后一次读回来 —— 而不是指望有人盯着看。
+- **锁屏卡片有一个可驱动的代理**：镜像会话里下拉**控制中心的 Now Playing 小组件**，
+  它读的就是 `MPNowPlayingInfoCenter` 的同一份数据。真锁屏那一张请用户拍照。
+- **一律用手机扬声器，不要蓝牙耳机。** 镜像占蓝牙，用 AirPods 会让「声音停了」分不清
+  是后台策略还是耳机被抢走 —— 测的又变成了环境不是功能。
+
+**还有两处会吃掉点击**：窗口底部约 70px 的悬浮条（既有结论），以及 App 切换器里的
+横向滑动 —— 想「上滑关掉某个 App」时，合成的拖拽会变成横向翻卡，翻出用户的其它 App。
+**真要杀进程请让用户自己动手**：在别人的手机上乱翻是隐私问题，不是操作问题。
+
+**走 TestFlight 之前，三件事顺序不能错**（2026-08-23 各踩一次）：
+
+1. **先 bump 版本，再 `build-safari.sh`。** `MARKETING_VERSION` 是生成工程时从
+   `package.json` 写进 pbxproj 的。顺序反了，工程里还是旧版本号，而 `xcodebuild` 不会说
+   什么 —— 归档出来的 Info.plist 仍是旧版，直到上传被 Apple 拒了才发现。
+   版本是 **`package.json` ≡ `extension/manifest.json` ≡ `window.MT_VERSION` ≡ 两棵工程的 `MARKETING_VERSION`**。
+   `build.js` 守前两处；`node scripts/verify-version-consistency.js` 守全部。归档前跑它，非 0 就停。
+   不要在 xcodebuild 的参数或环境里覆盖营销版本；build 号仍只用 `CURRENT_PROJECT_VERSION`。
+   global 与 china 都从同一份 `package.json` 写入。
+2. **已发布版本的 train 是关着的。** 同一个 `CFBundleShortVersionString` 不能再传新
+   build（`Invalid Pre-Release Train … is closed for new build submissions`）。要传就必须
+   进下一个版本号 —— 也就是说，**真机验收会顺带消耗一个版本号**，这也是它比 USB 贵的地方。
+3. **`npm run verify:ios` 必须对着这一次的 `.xcarchive` 跑**：
+   `npm run verify:ios -- /tmp/mt-ios.xcarchive`。不给参数它读的是 `/tmp/bt-dd` 里
+   **上一次**的产物 —— 2026-08-23 它就这样对着两周前的旧 appex 报「少了
+   `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
+   同一个默认路径也可能让一个真的漏文件的包通过。
+
+### 0.2.0 真机验证的固定做法：QuickTime 展示 + `screencapture` 录屏 + 逐帧判定（2026-10-09 用户裁定，**强制**）
+
+> **以后所有真机验证都必须这么做。** 做不到就说清原因并停下 —— 不许退回「一张末态截图 + DOM 断言」。
+
+为什么立这条：2026-10-09 用户在 iPhone 14 上实测出两条 bug ——
+**①停止对话后锁屏 Now Playing 卡不消失；②中/英两个键切换几次之后不再转写+翻译**。
+两条都是**随时间显现**的：末态截图看不出「卡没被清」，DOM 断言也看不出「第 N 次切换之后归属闸开始整句丢」。
+只有把**序列**录下来逐帧看，才看得见。
+
+**四个角色，别混：**
+
+| 角色 | 用什么 | 注意 |
+|---|---|---|
+| 驱动 | XCUITest runner（`tools/ios-runner` → 工作区 `.local/spike/S6`），JSON `testDrive` | **不用 iPhone 镜像**：镜像占设备麦克风（§0.2）且与收音互斥 |
+| 展示（给人看） | QuickTime Player → 文件 › 新建影片录制 → 源选 **iPhone** | **麦克风必须选「无」**：选设备麦会占麦，选 Mac 麦会把环境音录进去 |
+| 录屏（判据） | Mac 本机 `screencapture`（cap）录 **Mac 屏幕**（含 QuickTime 窗口） | `screencapture -v -V <秒> -x out.mov`（定时）或 `-v -x` 手动起停；**不要加 `-g`**（那是录 Mac 麦克风） |
+| 逐帧分析 | `ffmpeg -i out.mov -vf fps=2 frames/%04d.png` | 按用例判据**逐帧**读，不是只看末态；必要时 `fps=4` |
+
+**跑法（一次完整真机验证）：**
+
+```bash
+# 0. 装被测包（USB + devicectl；不碰 TestFlight、不占构建号）
+xcrun devicectl device install app --device <UDID> "<…/BelliedMonkey Translator.app>"
+
+# 1. QuickTime 开「新建影片录制」并选 iPhone 源（麦克风：无）—— 人点一次即可，之后不用再碰
+open -a "QuickTime Player"
+
+# 1b. QuickTime「显示 › 浮动在最前面」—— 否则别的窗口一拿焦点就盖在 iPhone 画面上
+# 2. 开始录 Mac 屏幕（含 QuickTime 窗口），录多久就让显示器亮多久
+screencapture -v -V 180 -x .local/dev-verify/<日期>-<用例>.mov &
+caffeinate -d -u -w $! &
+
+# 3. 驱动（JSON 脚本；每条用例给足等待）
+TEST_RUNNER_MT_TARGET_BUNDLE=com.belliedmonkeytranslator \
+TEST_RUNNER_MT_SCRIPT='[…]' \
+xcodebuild test-without-building -project runner/S56Runner.xcodeproj -scheme S56Runner \
+  -destination id=<UDID> -derivedDataPath dd-runner -resultBundlePath x.xcresult \
+  -only-testing:S56UITests/S56UITests/testDrive
+
+# 4. 逐帧
+ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/frames/%04d.png
+```
+
+**取证要求**：`.mov` + 抽帧目录 + 一份**逐条判据表**（每条用例写「第几秒到第几秒、屏幕上应当出现什么」）。
+判据读的是**帧**，不是 `passed`（§0.2.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
+
+**录屏前的两条（2026-10-12 一次真机验收里各废了一段录像）：**
+
+- **显示器睡了，录像就断。** 这台 Mac `displaysleep 30`、`screenLock delay is immediate`，而无人值守的验收
+  全程是脚本在动，不算用户活动 ⇒ 用户最后一次碰键盘后 30 分钟屏幕关、立刻锁，cap 报「找不到任何要捕捉的显示器」中断
+  （`pmset -g log` 里那一秒正是 `Display is turned off`）。**录之前起 `caffeinate -d -u -w <录屏进程 pid>`**：
+  录屏进程在，显示器就不睡也不锁；录屏一结束断言自动撤掉。不去改 `pmset`/系统设置 —— 改了要还原，
+  脚本中途崩了就会把「永不睡眠」留在用户机器上；断言跟着进程走，没有「忘了还原」这回事。
+- **录窗口 ≠ 录那个窗口的内容。** `cap record start --window <QuickTime>` 录的是那块屏幕区域，Cursor 一拿焦点
+  盖上去，28 分钟里几乎每一帧都是 Cursor。先给 QuickTime 开「浮动在最前面」再录**整屏**（浮动后它离开 layer 0，
+  `cap record windows` 里就找不到它了，按窗口录也录不成）。开录后先抽一帧看 iPhone 画面在不在，再开始驱动。
+
+### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
+
+Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18 或更高版本**并设置为使用密码**」。
+测试机把密码去掉之后，`open -b com.apple.ScreenContinuity` 直接弹配对向导，「继续」→「无法连接 iPhone，
+请确保已开机…蓝牙和 Wi-Fi」—— 而 `devicectl` 明明 `connected localNetwork`、蓝牙也配着。**排查顺序：先问手机
+有没有密码，再查网络。** 没密码这条路就不存在，别在「重试」上耗。
+
+### 0.2.2 真机：镜像之外的两条路，以及哪条能走（2026-09-17 实测）
+
+09-17 晚要在真机上验设置页改版（离线模型行、识别语言包行），镜像因上面那条连不上，把另外两条路都走了一遍。
+**结论先写：XCUITest 在 Wi-Fi 连接下被拒，走不通；「调试包 + 局域网控制通道 + devicectl 截屏」走通了全部真机项。**
+
+| 路 | 结果 | 一句话 |
+|---|---|---|
+| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试。**⚠️ 2026-09-23 推翻：那一整天几十轮 `test-without-building` 全部正常起了 runner**（见 §0.2.3）⇒ 这条不是恒真的路障，别因为它跳过 XCUITest；再遇到先插 USB |
+| Device Hub「View Screen」（Xcode 27 `Contents/Applications/DeviceHub.app`） | 半通 | 能实时看真机屏幕（AX 里 `AXButton (View Screen)` 可按），但 cua 的像素点击 / 前台点击 / 按住松开都**落不到手机上** —— 只当监视器 |
+| 调试包 + 局域网控制通道 + `devicectl` 截屏 | ✓ | 下面这一节 |
+
+**配方（脚本在 `.local/spike/ctl/`：`ctl-server.js` 服务端 + `run '<js>'` 客户端、`inject-ctl.js` 注入器，`MT_CTL_LAN=<Mac 局域网 IP>` 给真机）：**
+
+1. `node build.js`（**两个 flavor 都出**，否则 `app:sync` 的产物过期守卫会拦）→ 往 `dist-app/Script.js` 的
+   `// ─── src/app/main.jsx (esbuild bundle — React runtime included) ─` 标记**之前**插控制通道：每 600 ms `fetch('http://<Mac 局域网 IP>:8766/cmd')` → `eval` →
+   POST `/report`；Mac 端一个 30 行的 node 服务（`/enqueue` `/cmd` `/report` `/result`），**listen `0.0.0.0`**，并按
+   `req.socket.remoteAddress` 打一行日志。
+2. `npm run app:sync` → `xcodebuild build -destination id=<UDID> -derivedDataPath … DEVELOPMENT_TEAM=X2Q85MABWK
+   -allowProvisioningUpdates` → `xcrun devicectl device install app` → `devicectl device process launch --terminate-existing`。
+3. **调试包的 iOS `Info.plist` 必须先加两项，否则手机永远不来拉、而且哪里都不报错**：
+   `NSLocalNetworkUsageDescription`（本地网络权限）与 `NSAppTransportSecurity.NSAllowsLocalNetworking = true`
+   （局域网明文 HTTP 被 ATS 拦；模拟器里 `127.0.0.1` 在 ATS 白名单，所以模拟器上看不出这个问题）。
+   用 `PlistBuddy -c 'Add …'` 改 `safari-project/…/iOS (App)/Info.plist`，**验完还原**。
+4. 新装包首次联网会弹系统框「允许"大肚猴翻译"使用无线数据？」（境内 iOS），点掉之前通道不通。
+   这个框我们点不到（见上表）—— 要么请用户点，要么走能点系统框的 XCUITest（`allowSystemAlerts`）。
+5. **真机截屏不需要镜像也不需要 XCUITest**：`xcrun devicectl device capture screenshot --device <id> --destination x.png`
+   （Xcode 27，出 1179×2556 PNG）。判据 = DOM 回读 + 这张图，两样都要。
+6. 验完：还原 Swift / Info.plist 的临时改动，`node build.js`（两个 flavor）+ `npm run app:sync` 把工程刷回干净，`git status` 必须 0 改动。
+
+**三个当天各花了半小时以上的坑（都要写进判据）：**
+
+- **模拟器会抢通道。** iPhone 17 模拟器里同一个调试包也在拉 `/cmd`（服务端 listen `0.0.0.0` 后 `localhost` 也算），
+  一小时内所有「真机」结果其实全是模拟器的：`SpeechTranscriber.isAvailable=false`、`supportedLocales=[]`、UA `iPhone OS 18_7`，
+  差一点被当成 1.12.0 的发版 bug（「iOS 27 真机报需要 iOS 26」）。**验真机前 `xcrun simctl shutdown all`；服务端日志里
+  必须看到手机的局域网 IP 才算通道是真机的。**
+- **`app:sync` 的产物过期守卫会静默丢掉 Swift 补丁。** 改了 `app/native/*.swift` 后没先 `node build.js`，sync 打印一行
+  `✗ dist-app-china/ 比源码旧` 就跳过，而 `xcodebuild` 照样 BUILD SUCCEEDED、装上去的还是旧原生代码。判据：sync 输出
+  无 `✗`，且 `grep` 工程里的 `ViewController.swift` 能找到你的改动。**标记字符串要 > 15 字节**，短字符串被 Swift 内联，
+  `strings` 二进制 grep 不到，会误判成「没编进去」。
+- **控制通道的命令回调里一定 `try/catch` 后 `r("ERR …")`**：`setTimeout` 回调里一抛，promise 永不落定 ⇒ 只看到 TIMEOUT，
+  没有任何线索。
+
+**这一轮真机读到的事实（ZHAO的iPhone / iPhone 14 Pro / iOS 27.0，有截图）：**
+`SpeechTranscriber.isAvailable = true`，`supportedLocales` 45 个，已装 `zh-CN` / `en-US`（`ja-JP` 未装）；
+识别语言包行从「未下载 · zh-CN · ja-JP」到「已就绪」用了 15 s；离线朗读模型（GitHub Releases，129 MB）在这台手机的网络下
+`HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败，行进入「下载失败 · 重试」—— **失败态是对的，但境内网络拉不动 GitHub 是事实**，
+china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
+
+### 0.2.3 XCUITest 驱动真机：一天里踩实的十件事（2026-09-23）
+
+09-23 用 XCUITest（`.local/spike/S6/runner`，`test-without-building`）在 ZHAO的iPhone 上补拍中国版与国际版的
+「系统翻译」商店原料，全程无人值守。**这条路今天是通的** —— 上表里那条「XCUITest 在 Wi-Fi 下被拒」当天没有重现，
+几十轮 `test-without-building` 都正常起了 runner。下面是当天真正花掉时间的十件事，按撞到的顺序。
+
+**驱动与环境**
+
+1. **`TEST_RUNNER_` 前缀**：要把环境变量传进**设备上的测试进程**，必须写成 `TEST_RUNNER_MT_URL=…`。
+   直接 `MT_URL=…` 只进 `xcodebuild` 自己的环境，测试里 `ProcessInfo.processInfo.environment` 读不到。
+   **症状很欺骗**：测试「passed」，但只跑了 14 秒走默认分支 —— 判据要看附件，不看 passed。
+2. **触发证书校验的是「装新 App 的二进制」，不是「重建 runner」。**
+   装上一个这个开发者身份签的**新 App 二进制**之后，iOS 要联网校验一次证书；没完成时
+   **同一身份签的其它程序（含 XCUITest runner）一起被挡**，报
+   `profile has not been explicitly trusted by the user` / `Developer App Certificate is not trusted`。
+   `devicectl` 没有「信任证书」这个能力，**而且它不触发校验**。
+   **已知可行的解法（顺序不能错）：关掉手机上的代理 → 人在主屏点一下 `S56UITests-Runner`
+   图标 → 再把代理打开。**（「VPN与设备管理」里**没有**「开发者App」那一节，别去那儿找。）
+   **2026-09-25 钉死的**：变的只有可执行文件的 CDHash —— 证书与描述文件两个月一个字节没动，
+   所以「卸了 runner」和「重装主 App」这两条旧归因都不准确；准确的是「装了新 App 二进制」。
+   ⚠️ 当天一度断言「Shadowrocket 放行 ppq.apple.com 就根治了」，**那个结论已被证伪**（详见 §2.I）。
+   ⇒ 真正省事的仍是**少装少重建**：加新流程用脚本驱动的 `testDrive`（`tools/ios-runner/README.md`），写 JSON 不改 Swift。
+3. **锁屏做不到，所以 iPhone 镜像在无人值守时不可用。** `devicectl` 没有 lock 子命令；XCUITest 的私有选择器
+   `pressLockButton` 调用成功但**没有效果**（截图回读手机仍亮着）。而镜像自己要求「连接前请锁定 iPhone」
+   （窗口原话），加上 §0.2.1 的密码前提 —— 两道都得人来。
+4. **Safari 会缓存本机测试页。** 改了 `http://<Mac IP>:<port>/` 的内容后必须加 `?v=N`，否则真机拍到的还是旧文案，
+   而页面看起来完全正常。
+5. **境内真机打不开 Wikipedia。** 第一次拍中国版原料得到一张**纯白页**。真机要英文正文时，用本机起的页走局域网
+   （同 §0.2.2 的控制通道那套 IP），别依赖外网站点 —— 何况中国版商店图本来就不该出现境内打不开的站点。
+
+**两份 App 并存的代价（扩展 §2.0）**
+
+6. §2.0 说「一台机器上只能装一份」。09-23 为拍两版原料**同时装了国际版与中国版**，代价是：系统「设置 › 应用 ›
+   默认 App › 翻译」里出现**两个同名「大肚猴翻译」**，名字上分不开 —— 只能靠**当前选中的那个带蓝勾**认出来，
+   点另一个切换。列表行不是 `cell` 类型（`st.cells` 匹配到 0 个），用 `staticTexts` 按序号点。
+7. **判断到底是哪个 App 在答话，看弹层底部披露行里的引擎名**（中国版 `qwen` / 国际版 `openrouter`），
+   **不要看 App 名** —— 两个都叫「大肚猴翻译」。切默认 App 之后的验证判据就是这一行变了没有。
+
+**WKWebView 里的控件**
+
+8. **密码框清不掉，已有值时再填会追加。** 框里已有 35 个字符时填一把 73 的 key，结果是 **108**
+   （`enterKey` 的「清空：35 → 35」当场记下了失败）。长按调粘贴也不行（callout 不暴露给 XCUITest，`menuItems` 为空）；
+   `devicectl device pasteboard copy` 能把内容写进手机剪贴板（回读字节数一致），但粘不进这个框。
+   **唯一可靠的清空办法是卸载重装拿一个空框**，判据照旧是**圆点数 == key 长度**。
+   ⚠️ 占位符也会被读成 value：中国版一键卡的「粘贴一次，三样一起配好」正好 11 个字，
+   所以「填之前长度 11」**不代表里面有东西**。
+9. **`<select>` 点开是原生弹层**，选项不在普通元素树里、而且懒加载：`find(label CONTAINS 'DeepSeek')` 一无所获，
+   滚动重查也没用。**先截一张图看清到底有几个选项**再决定怎么点 —— 那次截图直接证明了下拉里根本没有 DeepSeek。
+
+**配引擎（拍任何「翻译出结果」的原料之前）**
+
+10. **App 里没有主翻译引擎的控件。** `index.html` 只有 notes-provider / tts-engine / stt-engine；
+    而 `LearnNotes.resolveConfig` 里 **`notesProvider` 优先于 `provider`**，**系统翻译镜像（`vault-mirror.js`）
+    与快速翻译都走它** ⇒ **要让下游真翻得出东西，配「详细 › 句子解析」那一格**，别去一键卡找「翻译」。
+    一键卡**按 flavor 给不同平台**：中国版只认通义千问，国际版只给 OpenRouter / OpenAI 且**不给填地址**。
+    境内网络下国际版那两个都不通 —— OpenAI 打不开；OpenRouter 端点可达（同一次配置里「转写 ✓ 3304ms」）
+    但默认模型被服务端 403 `This model is not available in your region`。
+
+**贯穿这一天的一条**：**判据必须在目标设备上读。** 同一把 OpenRouter key、同一个默认模型，
+Mac 上 `curl` 两次都是 **200**（Mac 走代理），手机上 **403**（境内直连）。只在 Mac 上验这把 key，
+会得出与事实完全相反的结论。
+
+### 0.3 语音类验证：用播放代替真人（2026-09-12 用户裁定）
+
+**语音类验证一律不靠真人说话。** 凡是要往麦克风里送声音的验证 ——「对话 · 实时听译」的
+云端路与本机路、AI 转写字幕的 tier B、回声消除、锁屏续听 —— 声源一律是 **Mac 或另一台
+iPhone 播放的音频 / 视频 / TTS 语料**。用户原话（2026-09-12）：「语音类验证一律不靠真人
+说话，用 Mac / 另一台 iPhone 播放音频、视频或 TTS 语料代替，以后都这么走。」这是规则，
+不是建议；一条「我对着手机念了一句，出字了」不是验证。
+
+为什么（三条，每条都是 09-12 付过代价才写下的）：
+
+- **同一段波形可以重放。** 真人说两遍不是同一段音频，于是 AEC 开/关、VP 开/关、单路/双路
+  之间的读数没有可比性；播放语料时两次之间的差只剩被测变量。09-12 的 S10 表
+  （VP 关 zh CER 25.6% vs VP 开 32.2% / 34.4%，同一段 conv 语料）就是这么得到的 ——
+  换成真人，那张表一行都不成立。
+- **无人值守。** 读数要跑几分钟到十几分钟（有声书 3 分钟一档、实时转写 12 分钟一档、
+  锁屏 60 s 一档）。让人对着手机念 12 分钟的验证，跑一次就没有下一次（同 §0.2 的理由）。
+- **错误率要有分母。** 语料带参照文本（`.local/spike/conv/ref.txt`、`.local/asr/*`），
+  CER / WER 才算得出来；真人说的话没有参照，只剩「听着差不多」，而那不是读数。
+
+**配方**（`.local/spike/lab-server.js` + `.local/spike/SpikeApp`，09-12 真机跑通）：
+
+1. Mac 上起一个局域网小服务，**排队**要手机执行的命令（下发模型 / 语料、切阶段，
+   例如 `▶ mic-asr`）并收回读数。
+2. 手机端 App **轮询**该服务，按队列执行、回传每一档的读数（帧数、dBFS、finals、时间戳）。
+3. Mac 侧一看到 mic 阶段开始，立刻 `afplay <语料>`（手机放在 Mac 扬声器旁；用另一台
+   iPhone 播放同理）。要比较 AEC 开/关，就把**同一段语料**在两个窗口各放一遍。
+
+**语料**：
+
+| 语料 | 内容 | 用途 |
+|---|---|---|
+| `.local/spike/conv/*` | Piper 合成的中英交替 12 句对话，句间 **1.5 s 静音**，56 s，参照 `conv/ref.txt` | 停顿是刻意的：它就是「停顿 → 定稿」那条判据的测量条件；也是双识别器归属的测试集 |
+| `.local/asr/*` | 有声书（`zh-12` 鲁迅散文、`en-12` 福尔摩斯）前 3 分钟，无停顿 | 量错误率（CER / WER）与懒定稿的 p90 |
+
+**今天踩到的坑，每条都是规则：**
+
+| 现象 | 真相 | 规则 |
+|---|---|---|
+| 麦克风 tap 帧在流（47.7k 帧/s）、样本**全零**、识别器一字不出 | **iPhone 镜像在 Mac 上开着**，Mac 占了手机麦克风 | **任何要读麦克风的环节之前先退出 iPhone 镜像**；镜像只用来驱动屏幕（§0.2）。探针前两轮读数全废在这上面，09-07 的尖刺已记过一次、这次又踩，所以升成规则 |
+| 探针跑到一半没读数了，重开镜像看到它被挂起 | 探针没持有后台音频会话，锁屏 / 切走即挂起 | **探针 / 测试 App 必须持有后台音频会话**（`.playAndRecord` 已激活 + `UIBackgroundModes: audio`），否则锁屏那一档量到的是「挂起」不是功能 |
+| `xcrun devicectl device process launch` 报 `RequestDenied` | 手机锁着 | **launch 只在解锁后做**；解锁后可 launch 任意 bundle id（含 `com.apple.Preferences`，用来把人带到权限页）。与 F-bis 那张表一致：USB 要解锁、镜像要锁屏 |
+| 第二次装探针后麦克风权限没再弹，采集 0 帧 | 权限曾被拒，iOS 不再提示 | **被拒的麦克风权限不会再弹**；iOS 27 路径：设置 → 应用 → <App> → 麦克风。判据是权限状态**回读**，不是「弹没弹」 |
+| 记忆与本文都说测试机是 iOS 26.5 | 真机已升到 **iOS 27.0（24A5430a）** | 本文其它地方的「iOS 26.5」是当时读数的条件，只增不改；**新读数一律标 27.0** |
+
+**系统下限（2026-09-13 用户裁定）：iOS 16.4 / macOS 13.3（= Safari 16.4 一代 WebKit）**，唯一登记处
+`build/os-floor.config.js`；`app:sync` 把两棵 Xcode 工程的部署目标钉到它，`build.js` 的「解析期语法门」按它扫
+dist/ 与 dist-app/ 的每个 .js（比下限更新的解析期语法 ⇒ 红）。缘起：2026-09-12 用户来信 iOS 15.8.8 打开 App
+是一扇空窗 —— `learn-model.js` 两处正则后行断言（Safari 16.4 起支持）让拼接的 Script.js 整份解析失败；裁定抬
+下限而不是改写，因为「优质」档系统语音（AVSpeechSynthesisVoiceQuality.premium）iOS 16 起才有，而对话朗读
+已改走原生系统语音。能装 16.0 的每一台设备都能升到 16.7，16.4 比 16.0 不多排除任何硬件；iOS 15 的设备
+（iPhone 6s / 7 / SE 一代）拿不到新版本，已装的版本继续可用。矩阵里的模拟器最低跑 iOS 17.2（本机没有 16.x 运行时）。
+
+**「对话 · 实时听译」延迟目标（2026-09-12；本机路与云端路同用）。** 每一行的实测来自
+`.local/spike/READINGS.md`（iPhone 14 Pro · iOS 27.0，Mac M2 Pro · macOS 26.5）；
+时间类判据一律以录像或时间戳日志为证，不许目测（§4）：
+
+| 环节 | 目标 | 09-12 实测（本机路） | 备注 |
+|---|---|---|---|
+| 句子开口 → 首个 volatile | **≤ 2 s** | 1.0–1.9 s | 云端 `delay:minimal` 是 0.18–0.35 s；本机的 volatile 只做「看到字」的反馈 |
+| 停顿 → 整句定稿 | **≤ 1.0 s** | 0.4–0.9 s | **前提是自己的静音检测（RMS，300–500 ms）调 `analyzer.finalize(through:)`**。默认定稿是懒的（停顿不收口，有声书 p90 14 s），系统 `SpeechDetector` 模块无帮助；final 是时间片不是句子，串起来按标点切 |
+| 定稿 → 修正 + 译文落地 | **≤ 1.0 s** | Mac 0.1–0.5 s（DeepSeek `deepseek-v4-flash` 思考关，p50 ≈ 100 / p90 ≈ 200 / max 475 ms）；**真机 09-13：p50 0.74–0.94 / p90 1.0–1.4 s**（同一 key 同一体，手机家用 Wi-Fi 无代理直连 api.deepseek.com；裸调用 3 次 819–889 ms，App 与裸调用一致 ⇒ 差在路由不在代码）；免费额度中继 `grant` 走同一句 **p50 5.4 / p90 20 s** | 一次远程调用（`T:` / `X:` 两行契约）。手机上能连到的 16 个候选里 DeepSeek 仍最快（`docs/model-recommendations.md` DeepSeek/fast）；p90 已擦到 1.0 s 线 |
+| 译文 → 朗读起声 | **≤ 0.5 s** | Piper：≈ 0.2 s（尖刺首块均值 zh 176 / en 157 ms；**09-13 App 内 `lat.ttsStart` p50 162 / p90 266 ms**）；系统语音 `browser`（super-compact 档）：**p50 7–23 / p90 22–109 ms**（三轮） | 边合成边播，首块到即出声。两引擎都在线内，A/B 的差别在音质与 158 MB 下载，见 learning-design §9.1 `device` 条目引文 |
+| 错误率（远程修正后） | **zh CER ≤ 12% · en WER ≤ 8%** | zh 有声书 13.1% → 5.4%；en 3.1% → 1.9%；conv 中文 17.8% → 10.0%；**真机 App 内 09-13（Mac 喇叭 → 房间 → 手机麦，自动朗读关）：zh 13.3% → 4.3%，en 38.3% → 36.7%** | 沿用 `scripts/asr-probe.js` 的 `THRESH`；分母是语料参照文本。真机英文那个数**不是修正的问题**：中→英切换时英文句头丢 1–2 个词（"The quote…"→"quote…"）、一整句没听到，修正救不回丢掉的词 —— 与尖刺 S10 经声学链路的 en 28% 同量级；待办另修。打分脚本 `scripts/spike/score-rows.js` |
+
+**云端转写两条在测试机上打不到（2026-09-13）。** 同机同料的「本机路 vs 云端路」并排只做成了一半：`openai_transcribe` 两次都 `socket error`（会话停在 halted，句子还在），`gemini_transcribe` 8 s 超时，`qwen_asr` 国际版包里没有；同一时刻 `api.deepseek.com` 103 ms、`openrouter.ai` 608 ms 都通。这是家用 Wi-Fi 无代理的真实网络，不是环境故障 —— **在这种网络下本机路是唯一能用的转写**，准确率并排只能拿 Mac 侧直喂 PCM 的旧读数（OpenAI 实时 zh 3.9% / en 3.7%、千问 5.2% / 3.6%）对本机路修正后的 zh 4.3%。云端两档在真机的读数是欠条，等有代理的网络补。
+
+### 0.4 分层验证矩阵：Mac 版当自动化音频验证台（2026-10-05 用户拍板）
+
+**音频链路的改动（STT / TTS / 回声闸 / 模型下载）先在 Mac 版 App 上自验通过，才准出
+TestFlight 包。** 用户原话（2026-10-05）：「如果某 iOS 真机才能验证的功能，恰好 mac app
+模拟，两边代码逻辑本来就一样。」这是规则，不是建议 —— 88/89 号包那种「出包 → 用户在
+TestFlight 上发现哑 / 回声 / 语言对跳掉 → 再出包」的循环，从这条起断掉。
+
+为什么 Mac 版能替真机（2026-10-05 逐文件数的，不是推断）：
+
+- **Web 层同一份包。** `dist-app/Script.js` 两平台加载同一文件，逐字节相同。
+- **语音桥逐字共享。** `app/native/speech-bridge.swift`（STT/TTS/回声整条管线）里只有
+  2 处 `#if os(iOS)`，内容都只是一句 `AVAudioSession.setActive(true)`；mtTranscriberFor、
+  MTSystemSpeech 的 write()→MTSpeechChunkBox→自有 AVAudioPlayerNode（#565 六轮修的那条）
+  两平台跑同一份代码。
+- **一个工程四个 scheme**（iOS/macOS × global/CN，`safari-project*/`），macOS 现役 build 94/87。
+
+| 层 | 跑在哪 | 覆盖 | 驱动 |
+|---|---|---|---|
+| 逻辑 | `npm test` | 纯函数：回声闸 token、firstrun、语言对 | CI / 一键 |
+| Web | Chrome + CDP（`test:app`） | 页面起得来、模块齐、样式载入 | 自动 |
+| UI | iOS 模拟器 | 界面、导航、Dictation 回落路径 | `__mtTest` + DEBUG 端点 |
+| **音频** | **Mac 版 App（`test:mac`）** | **识别→翻译→朗读→回声 端到端，真扬声器 + 真麦克风** | DEBUG 端点 + `say`/`afplay` |
+| 抽查 | iPhone 14 Pro（USB） | iOS 硬件差异点 | devicectl / XCUITest |
+| 终验 | iPhone 15 Pro（TestFlight） | 听感、中断、锁屏 | 用户 |
+
+**机制（三件，全部 DEBUG-only，Release 包里符号不存在）：**
+
+1. `app/test-harness.js` → `window.__mtTest`（`say` / `partial` / `runAsync` / `state` /
+   `waitFor`）。只在 `buildAppBundle` 收到 `opts.testHarness` 时进包；正常 `node build.js`
+   不带它（npm test 有门：不带该 opt 构建出的 Script.js 出现 `__mtTest` 即红）。它自己
+   不发起任何网络请求 —— 没有端点的包里它是死代码。**只注入事件、只读状态，不替 App
+   做决定**：`say()` 伪装的是「麦克风听到了这句」（原生事件 `stt-final`），朗读走页面
+   自己的真管线 —— 模拟器层（无声学回环）与 Mac 层（真回环）因此能用同一份 case。
+2. `app/native/test-bridge.swift` → `MTTestBridge`：DEBUG-only 的 localhost 控制端点，
+   只绑 127.0.0.1，在 127.0.0.1:8790–8799 扫第一个空口（开发机上固定口会被占 ——
+   2026-10-05 实测本机 8790 躺着一个 Python http.server；驱动对同一段范围逐个 /ping
+   找活的），`GET /ping` 探活、`POST /eval` 在 WKWebView 里求值 JS 回 JSON。
+   整份 `#if DEBUG` —— 编译器裁掉，不是运行时关掉。抽查（发版前随手跑一次）：
+   `strings <Release 可执行文件> | grep MTTestBridge` ⇒ 必须为空。
+3. `scripts/test-mac.js`（`npm run test:mac`）：重建带 harness 的 App 包 → `app:sync` →
+   xcodebuild macOS Debug → 起 App → 等 `/ping` → 跑 case → `screencapture` 留证。
+   iOS 模拟器层复用同一个端点：模拟器进程就是 Mac 进程，它的 127.0.0.1 就是宿主的。
+   沙盒注意：App Store 包是 sandboxed，**监听端口要 `ENABLE_INCOMING_NETWORK_CONNECTIONS`**
+   —— 驱动只在这条 Debug 命令行上给；Release 归档不带它，App Store 的 entitlement 一个
+   字节不变。判据是端点真的 /ping 得通，不是「构建没报错」。
+
+**step 0 实测（2026-10-05，MacBook M2 Pro · macOS 26.x）**：`say` 语音 zh 21 / en 45 /
+**th 1（Kanya）** —— 泰语音源不必依赖 afplay 或 App 自身 vits，`say -v Kanya` 直接可用；
+STT 探测 zh / en / th 全部 `ok:true`（本机识别资产已装）。macOS 上 SpeechTranscriber 可用，
+#563 那个 iOS 假阳性在 Mac 上未复现 —— 恰好是「Mac 替代不了的四样」第 4 条的佐证。
+
+**音源三板斧**（接 §0.3「播放代替真人」—— 同一条规则的延伸，不是第二条）：
+
+- zh / en：`say -v Ting-Ting` / `say -v Samantha`
+- th：**`say -v Kanya`**（本机实测有，step 0）；或 `afplay` 泰语语料；或**用 App 自己的
+  vits-mms-tha 当音源**（App 念泰语 → 扬声器 → 麦克风 → 识别 → 回声闸），完全自包含
+- 对照重放：同一段波形放两遍 —— §0.3 的可比性论据（A/B 之间只差被测变量）原样成立
+
+**M 系列 case**（对着 2026-10 的未验证项，进 `test:mac`；跑一条勾一条）：
+
+| # | 验什么 | 对应 |
+|---|---|---|
+| M1 | 包屏只下所选语言对的模型（zh/en 对**不出现** th 下载） | a1e9a232（2026-10-05） |
+| M2 | zh 输入 → th 译文 → 朗读出声 | #565 |
+| M3 | 自己念的被认回来 → 拦住（真回声） | #565 四轮 |
+| M4 | 对方说不同的话 → 放行（不误杀） | 裁定 5 |
+| M5 | TTS 失败**不静默堵死**（连杀三句在途朗读，队列仍活、会话不掉） | #565 六轮（88 号包） |
+| M8 | 听译进场只下**当前语言对**（删掉泰语模型后 zh/en 开听，零泰语事件） | 90 号包真机（2026-10-06） |
+| M9 | 听译内切语言**按新对补包**（zh/en 起听后切泰语：当场下载、就绪、自动续听、不动 en） | 92 号包真机（2026-10-06） |
+
+M5 的「assets/timeout **即报**」半边在 Mac 层注入够不着（`speakOut` 启动后返回
+`ok:true`，在途失败只打死 `done`、泵看不见 —— 这是 #568 的发现），由 `npm test` 的
+speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克风）；物理版（扬声器→麦克风
+真回环）是这层的看家场景，静音之外另案观察。
+| M6 | 语言对下载后不跳 | #564 |
+| M7 | 多轮对话历史逐行累积 | 89 号包待验 |
+
+**Mac 替代不了的四样**（仍走真机行；列在这里防止「Mac 绿了就当全绿」）：
+
+1. **会话中断**（来电 / Siri 抢音频）—— audio-bridge 的 iOS 半边，Mac 上不存在这条代码路径
+2. **锁屏 / 灵动岛** —— Mac 无此形态
+3. **蓝牙路由** —— 两边都要真实蓝牙设备
+4. **#563 的原始触发**（iOS 26 `supportedLocale` 假阳性）—— macOS 若无此毛病，坏分支在
+   Mac 上不会自然触发；防御代码在包里，触发条件本身验不了
+
+**同步更新规则（用户 2026-10-05 原话：「要修改也同步更新文档」）：** 改这套流程的任何
+一处 —— harness 接口、端点行为、音源、case 清单 —— 同一 commit 更新本节。矩阵只增不减
+（§0 总规则）；Mac 层是**新增的自动化层**，不替代任何既有行，也不豁免任何一次全矩阵回归。
+
+### 0.4.1 取证靠自己：观察项一律代理侧完成（2026-10-06 用户裁定）
+
+**人工验证时的一切观察由代理自己完成 —— SSH 读服务器日志、Debug 包仪器读设备状态 ——
+不依赖用户肉眼观察与口述反馈。** 用户原话：「这几条都应该是你自己打日志 我操作 你在
+服务器自己读日志完成，而不应该是靠我观察反馈」；「你要有证据，有确认的用户访问日志
+证据，我可以改架构。但是先要有证据」。
+
+由此落地的三条纪律：
+
+1. **证据通道前置**：每次验证设计先问「这件事的证据通道是什么」。没有通道的（如中国版
+   零遥测 ⇒ 下载完成率没有服务器侧真值，因为传输直连魔搭不过我们）必须**显式登记为
+   缺口**，要么补通道（设备侧「已就绪」态 / Debug 包仪器），要么写明不可观察 —— 不许拿
+   「进度条看起来动了」当证据。
+2. **服务器侧仪器（已就位）**：`ssh -i ~/.ssh/tencent_bt.key root@49.233.0.7`（轻量服务器
+   的密钥走**控制台绑定**；手改 authorized_keys 不是它的支持路径，2026-10-06 实测被平台
+   层拒绝）。Caddy 访问日志在 `china-proxy-1:/data/access.log`（JSON：源 IP/状态/耗时），
+   GoTrue 在 `docker logs china-auth-1`，DB 在 `china-db-1`。Apple 出海质量监控
+   `/var/log/bt-jwks-probe.log`（cron 每 5 分钟）。
+3. **设备侧仪器（L2 已启用，2026-10-06 用户拍板）**：诊断日志自动上报到自有后端的
+   write-only 信箱 `bt_diag_events`（六类事件、字段白名单零内容、失败静默；启动后 5s +
+   每 40 条 + 失败类快发）。**中国库已部署并端到端验通**（真包 POST→201→SSH 读回，
+   `npm run diag:latest` / `diag:dump -- <uuid>` 自查）；东京库待建。**上架 App Store 前
+   必须回来处理**：国际版遥测白名单加 diag 事件类 + 中国版隐私页措辞同版本更新
+   （「正式版一个字节不发」的承诺随 L2 生效需要改写；TestFlight 期间为内测通道）。
+3. **改架构以日志为先**：链路类结论（「连不上」「下载失败」）必须先有访问日志里的实据
+   （源 IP 到没到、状态码、耗时分布）才许下判断。2026-10-06 首例：登录 504 的实据是
+   `87.124.74.53 … 504 10004ms /auth/v1/token?grant_type=id_token` + GoTrue 全程秒级
+   + 服务器直测 Apple JWKS 0.5–1.9s 抖动 —— 病根为**大陆服务器出海到 Apple**，与手机
+   网络无关；架构决策（出海代理/JWKS 镜像等）待 `bt-jwks-probe.log` 积累后定。
+
+### 1.0 Provider matrix — every shipped engine must have been reached at least once
+
+> **Every entry in `build/{providers,tts,stt}.config.js` that we ship must have been
+> driven against its REAL endpoint at least once, and the result recorded in §1.0's
+> table. An engine nobody has ever reached is an untested claim in the settings list.**
+
+`build/model-params.config.js` (#159) inherits this rule with **one asymmetry that is
+deliberate**, spelled out in the file's own header:
+
+- A row saying a parameter **is** accepted (`true`) may come from vendor documentation.
+  If it is wrong, we send the field, the server answers 400, and the user sees the
+  server's own sentence. Visible, recoverable.
+- A row saying a parameter is **not** accepted (`false`) must come from a **real
+  server rejection**, with the sentence quoted in that row's `note`. If it is wrong,
+  we silently stop sending a value the user set, and no server will ever complain
+  about a field it did not receive. That failure has no reporter, so it needs evidence
+  up front.
+
+An undated 「能用」 still is not a verification. A `false` with no quoted rejection is
+not one either.
+
+**The ledger (#160).** `build/perf-ledger.config.js` records what was actually observed
+per (host, model): baseline, every candidate tried, and the verdict. It exists because a
+conclusion without its evidence rots into a docs excerpt — and because the three outcomes
+must stay distinguishable:
+
+| verdict | means | cost of not recording it |
+|---|---|---|
+| `adopted` | a better parameter was found and shipped | — |
+| `rejected` | reached it; nothing worth writing (no gain, unstable, doesn't think) | the next person adds it back from vendor docs, undoing a measured decision |
+| `unreachable` | no key / no balance / no usable model id | the gap is silently forgotten |
+| `inferred` | not measured on this host; carries the conclusion from another domain of the **same vendor** | — |
+
+**Inheritance is bounded by one rule** (#161): a conclusion may be carried from one host
+to another **only when both hosts share a `model-params` row**. That test is exactly
+equivalent to "same vendor, different domain" — the capability table already groups a
+vendor's regional domains into one row and gives `openrouter.ai` a row of its own — so
+gateway-to-first-party inheritance is structurally impossible, and no hand-maintained
+gateway list exists to go stale.
+
+Why gateways are excluded is measured, not assumed. The same `deepseek-v4-flash` thinks
+278 tokens by default on `api.deepseek.com` (silenced by `thinking:{type:'disabled'}`)
+and **zero** by default through `openrouter.ai`, where `reasoning:{effort:'low'}` *raises*
+it to 78–233. Same model, two endpoints, opposite defaults — and the spellings are not
+portable either (`api.openai.com` answers 400 `Unknown parameter` to all three of the
+others' spellings). Two further limits: an `inferred` row may not descend from another
+`inferred` row, and a measured row always displaces an inferred one for the same
+(host, model).
+
+`test/perf-ledger.test.js` locks the ledger to `model-params.config.js` in both
+directions: a shipped parameter with no `adopted` evidence is red, and an `adopted`
+measurement nobody shipped is red too. Adding a provider without any ledger row is red,
+naming the engine and pointing at `/perf-tune`. CI has neither network nor keys, so the
+gate checks that the measurement was recorded and landed — it cannot check that it was
+done carefully. That is the right division: 2026-08-20's failure was not a careless
+measurement, it was **no measurement at all**.
+
+This matrix is **orthogonal to the surface matrix above**, and deliberately so. Which
+provider answers, and whether we speak its wire format correctly, is a **transport**
+property — it does not vary by device, so verifying it on all seven surfaces would be
+7× the cost for zero extra information. The two rules compose like this:
+
+- **Per surface (§1, every regression):** DeepSeek, per §0. It is the stable baseline;
+  that rule is unchanged.
+- **Per provider (§1.0, once per entry, and again whenever its transport changes):** one
+  live call on any ONE surface, recorded below.
+
+**A row is per (entry × flavor), not per entry.** `glm`, `qwen` and `kimi` ship
+*different endpoints* in the china and global builds (`build/providers.config.js`), and
+in at least the DashScope case a key issued for one region is not valid for the other.
+Two endpoints are two things that can be broken; they are two rows. `deepseek` ships the
+same endpoint in both flavors and is therefore one row.
+
+**What a row's pass means** — all four, or it is not a pass:
+
+1. The endpoint answered `200` and we extracted non-empty text/audio from its response
+   shape (i.e. the `type`'s wire format is right, not merely that the host is up).
+2. **The URL actually requested was the one intended.** Read it off the 「测试连接」
+   result line, which echoes it (`options.js` `runTest`). This is the check that would
+   have caught a mis-folded endpoint, and it costs one glance.
+3. The failure paths are named, not raw: a wrong key gives `http 401/403` with the
+   key hint, a wrong address gives something other than the bare CORS copy.
+4. Recorded here with a date. An undated "works" is not a verification (§4).
+
+**How the two brand-free custom entries are verified.** `custom_chat` / `custom_msg`
+have no endpoint of their own — the thing under test is "user supplies a complete
+endpoint URL of this wire shape, and we speak it".
+
+Pointing `custom_chat` at an endpoint that ALSO ships as its own registry row (say
+DeepSeek's) exercises the code path but proves almost nothing that row 4 does not
+already prove: same host, same body, same response shape, and an address we ourselves
+chose. The feature being claimed is different — **someone else's endpoint, whose path
+convention we do not control**. So the driver for row 11 is a third-party aggregator:
+
+> `custom_chat` → **OpenRouter**, `https://openrouter.ai/api/v1/chat/completions`
+> (`base_chat_custom_chat` / `key_chat_custom_chat` in `.local/keys.md`; the model is
+> a required field here — OpenRouter ids are namespaced, e.g. `openai/gpt-4o-mini`).
+
+Why this one specifically: it is a real aggregator in front of many vendors, its path
+is not any single vendor's, its model ids are not any single vendor's, and it is
+reachable without a corporate network — so it is the row that actually stands behind
+the sentence 「中转代理与自建服务都适用」 in the settings hint. It also exercises the
+address→shape rule end to end: the suffix `/chat/completions` is what selects the
+transport, and nothing in the registry names OpenRouter at all.
+
+`custom_msg` still reuses any Messages-shaped endpoint we hold a key for (row 3).
+
+**Self-hosted rows need a server, not a key.** `local` (TTS) needs any
+`/v1/audio/speech`-shaped server; `local` (STT) has one in-repo already —
+`scripts/dev-whisper-server.js` on `127.0.0.1:18790`. Both must be reached from the
+surface under test, which on a real device means the Mac's LAN IP and a server that
+**allows cross-origin requests** — without CORS, WebKit reports only a bare
+`TypeError` and the run looks like "unreachable" (§9.4 of `learning-design.md`).
+
+| # | Entry | Flavor | Wire format | Needs | Last verified |
+|---|---|---|---|---|---|
+| 1 | `google` | global | `google` | — (free endpoint, no key) | ❌ 未记录 |
+| 2 | `openai` | global | `chat-compat` | OpenAI key | ❌ 未记录（key 在手） |
+| 3 | `claude` | global | `messages-compat` | Anthropic key | ❌ **缺 key** |
+| 4 | `deepseek` | global + china（同一端点） | `chat-compat` | DeepSeek key | ✅ 长期基线（§0） |
+| 5 | `glm` | global (`api.z.ai`) | `chat-compat` | Z.ai key | ❌ **缺 key** |
+| 6 | `glm` | china (`open.bigmodel.cn`) | `chat-compat` | 智谱 key | ❌ **缺 key** |
+| 7 | `qwen` | global (`dashscope-intl`) | `chat-compat` | DashScope 国际版 key | ❌ **缺 key** |
+| 8 | `qwen` | china (`dashscope`) | `chat-compat` | DashScope 国内版 key | ❌ **缺 key** |
+| 9 | `kimi` | global (`api.moonshot.ai`) | `chat-compat` | Moonshot 海外 key | ❌ **缺 key** |
+| 10 | `kimi` | china (`api.moonshot.cn`) | `chat-compat` | Moonshot 国内 key | ❌ **缺 key** |
+| 11 | `custom_chat` | global + china | `chat-compat` | OpenRouter key（第三方中转，见上） | ✅ 2026-08-18 Chrome 真机（`qwen/qwen3.8-27b`；`/v1/chat/completions` 自检 3538ms + 整页翻译；**同 host 换 `/v1/responses` 后自检 10317ms 通过**，同一把 key，形状由后缀判定） |
+| 12 | `custom_msg` | global + china | `messages-compat` | 需一个 Messages 形状端点 | ❌ **依赖第 3 行的 key** |
+| 13 | `browser` (TTS) | global + china | `browser`；**宿主 App 内经 `mtSpeech` 桥走原生 `AVSpeechSynthesizer`（2026-09-13 起）**，桥不在 / 该语言原生无声 / 原生开口失败 ⇒ WebKit `speechSynthesis` | — (系统语音；App 内按 优质 > 增强 > 默认 挑) | ✅ 随复习流程长期在跑；原生路 2026-09-13 真机（iPhone 14 Pro · iOS 27.0）探针：婷婷增强 / Han 优质 / Ava 优质 / Samantha 增强 开口 2–5 ms。**为什么要原生**：WKWebView 的 `getVoices()` 只暴露 compact / super-compact（70 个），原生有 209 个含 premium 4 / enhanced 12 —— 用户装的高档声只有原生拿得到 |
+| 14 | `local` (TTS) | global + china | `speech-compat` | 自建 `/v1/audio/speech` 服务 | ❌ **缺服务** |
+| 15 | `openai_speech` | global | `speech-compat` | OpenAI key | ✅ 已在用 |
+| 16 | `local` (STT) | global + china | `transcribe-compat` | `scripts/dev-whisper-server.js` | ✅ M10 真机跑通 |
+| 17 | `openai_transcribe` | global | `transcribe-compat` | OpenAI key | ✅ M10 真机跑通（1.3MB 音频） |
+| 18 | `openrouter` | global | `chat-compat` | OpenRouter key | ✅ 2026-08-30 探针（`google/gemini-3.7-flash` 2162ms；11 个模型全通，见 §1.0 备注） |
+| 19 | `openrouter_transcribe` | global | `transcribe-compat` | 同一把 OpenRouter key | ✅ 2026-08-30 探针（5 个模型逐字转对；`gpt-4o-mini-transcribe` 600ms/$0.000035） |
+| 20 | `openrouter_speech` | global | `speech-compat` | 同一把 OpenRouter key | ✅ 2026-08-30 探针（`deepgram/aura-2` 692ms / 99884B；⚠ 声明 `audio/pcm` 实为 RIFF） |
+| 21 | `openrouter_audio` | global | `speech-audio-chat` | 同一把 OpenRouter key | ✅ 2026-08-30 端到端（`openai/gpt-audio-mini` SSE→pcm16→WAV，1368ms / 108KB，transcript 逐字相符） |
+| 22 | `qwen_asr` | china | `transcribe-dashscope` | 千问AI平台 key | ✅ 2026-08-30 端到端（base64 data URI，1036ms，转写正确） |
+| 23 | `qwen_tts` | china | `speech-dashscope` | 同一把千问 key | ✅ 2026-08-30 端到端（两步：合成 1.7s → 取音频 0.15s，141KB WAV） |
+| 24 | `openai_transcribe` **live tier** (§2.4) | global | `ws-realtime` | OpenAI key（子协议鉴权） | ✅ 2026-09-06 `scripts/asr-probe.js`（12 分钟英文滞后 p90 2.24s / WER 3.7%，中文 p90 2.45s / CER 3.9%）+ 真 Chrome 页面源握手成功（`asr-cors-probe.js`）；`npm run test:asr` 用假服务端验抓流→PCM→整句 |
+| 25 | `gemini_transcribe` (file tier) | global | `transcribe-gemini` | Gemini key | ✅ 2026-09-06 探针（英文 29.8 分钟 69.4s / WER 2.9%，中文 19.9 分钟 CER 12.0%；mode 必须 verbatim）+ 真 Chrome 页面源 POST 可读 |
+| 26 | `gemini_transcribe` **live tier** | global | `ws-bidi` | 同一把 Gemini key（`?key=`） | ❌ **未登记**（2026-09-06）：首测 finals 是段落级（每 ~35s 一条）⇒ 改为从累计 interim 切句；免费档 interim 被限流（12 分钟 126 帧 vs 首轮 1473），滞后 p50 8.6s，不过 §2.4 判据。适配器 `ws-bidi` 已实现有单测；付费档复测过线再登记（台账 `gemini-3.5-transcribe-live` 行） |
+| 27 | `qwen_asr` **live tier** (§2.4) | china | `ws-duplex` | 同一把千问 key（`?api_key=`） | ✅ 2026-09-07 `scripts/asr-probe.js`（12 分钟英文滞后 p90 1.56s / WER 3.6%，中文 p90 1.42s / CER 5.2%，0 断流）+ 真 Chrome 页面源握手并收到 task-started（`asr-cors-probe.js`）；单测覆盖 run-task / 二进制帧 / 累计中间态切句 / task-failed。**中国版 App「对话 · 实时听译」的存在前提**（AGENTS 规则 10） |
+| 28 | `device` (STT) | global + china | `device-transcribe`（**无 HTTP**；`defaultEndpoint: null`，iOS 26 / macOS 26 `SpeechAnalyzer` + `SpeechTranscriber`） | —（系统能力 / 离线模型：zh_CN / zh_TW 与 9 个英语变体预装，其它 locale 首次用时由系统下载，进度可读） | ✅ 2026-09-12 尖刺（`.local/spike/READINGS.md`，harness `scripts/spike/device-asr.swift` + `.local/spike/SpikeApp`；**iPhone 14 Pro · iOS 27.0** 与 Mac M2 Pro · macOS 26.5）：zh 有声书 CER 13.1% 原始 → **5.4%** 远程修正后（云端 OpenAI 3.9% / 千问 5.2%）；en 有声书 WER 3.1% → **1.9%**（云端 3.7%）；conv 中文 17.8% → 10.0%。**定稿默认是懒的**（停顿不收口，有声书 p90 14 s）—— 要自己的 VAD 调 `finalize(through:)` 才有停顿后 0.4–0.9 s；final 是时间片不是句子；`contextualStrings` 热词对同音字零效果；双识别器归属先看文字系再看置信度。真机 45 个 locale，en-US 资产 Mac 上 46 s 装完。**未测（D2 前必补，见 F-bis 2026-09-12 补充）**：真机双路 CPU（Instruments）、中国网络资产下载、转写中插拔耳机。仅宿主 App；扩展 **N/A by design**（§3.1.4） |
+| 29 | `device` (TTS) | global + china | `device-speech`（**无 HTTP**；sherpa-onnx v1.13.8 本地推理，静态链接 ≈ 35 MB；模型不进包，首次用时从我们的文件服务器下载、sha256 钉住） | —（离线模型：Piper zh_CN-huayan / en_US-lessac 各 79 MB；未覆盖的语言回落 `browser` 并在行上具名） | ✅ 2026-09-12 尖刺真机（iPhone 14 Pro · iOS 27.0，CPU provider，2 线程）：Piper zh 首块均值 / 最大 **176 / 264 ms** · RTF 0.053 · 加载 1.6 s；en **157 / 216 ms** · RTF 0.050 · 加载 1.3 s；边合成边播（playerNode 按块调度）跑通、首块到即出声。弃 Kokoro（真机首块 1.3–2 s、加载 10–20 s；int8 反比 fp32 慢 3–4×；CoreML 无提速）。**未测**：中国网络模型下载。仅宿主 App；扩展 **N/A by design** |
+
+> **2026-09-17（待人评审）—— 已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**（设备内置识别是唯一路，云端实时条目已删；本节保留为历史）：第 24 / 26 / 27 行（云端**实时档**）与第 28 行（`device` STT 条目）**下线** —— 实时转写固定为设备内置，云端实时引擎从注册表删除（domain-design §2.4 / §7，learning-design §9.6 门控同日修订）。三行读数保留为历史；第 22（`qwen_asr`）/ 24 所在条目降为纯文件档，文件档那几行照旧有效。第 29 行（`device` TTS）不受影响。本机识别器本身不再作为注册表条目验，改在 §3.1.5 与真机行 M24 / M25 验。
+
+> **两行 `device` 条目与台账（2026-09-12）。** 它们不说 HTTP，没有 host、没有 model
+> 参数可调，所以 `build/perf-ledger.config.js` 里没有它们的行。`test/perf-ledger.test.js`
+> 的「注册表条目无台账行即红」**已经**放行 `defaultEndpoint` 为空的条目（`google`、`browser`
+> 与自填地址的条目同理 —— 「量不了一个不存在的地址」），所以两行 `device` 条目不需要改那道门，
+> 也不许为它们编一行 HTTP 读数。它们的证据在本表这两行与 `.local/spike/READINGS.md`。
+
+> **⚠️ 以上 6 行都是「桌面 Node 走扩展代码路径」级别的实证，不是真机。** 三条新语音链路
+> （`transcribe-dashscope` / `speech-dashscope` / `speech-audio-chat`）**一条都没在
+> iOS / macOS 真机上跑过**：录音采集、WKWebView 的音频解码、`data:` URI 的大小上限
+> 各有脾气，而 Node 里一个都测不到（混合内容策略就是这样漏掉的 —— 见 request-shape.js
+> 里 http→https 那处注释）。发版前必须补全矩阵。
+
+
+**这张表是活的**：注册表加一个条目就加一行（`node scripts/local-keys.js init` 会从注册表
+重新生成本地凭证模板，不要手抄引擎清单）。一个条目在没有任何一行记录之前**不得出现在
+出货的引擎列表里**——那是在向用户承诺一件我们从没试过的事。
+
+**凭证从哪来**：`.local/keys.md`（`node scripts/local-keys.js init` 生成，在 `.gitignore`
+里，永不提交）。每个需要 key 的条目在那里各占一个槽位——一个 `apiKey` 槽位只能验证一个
+provider，逐条验证要求逐条填。
+
+**Mandatory: desktop fullscreen playback with bilingual subtitles.** For any change
+touching video subtitles, **entering native fullscreen on every desktop browser × every
+video site is a required check** — the bilingual overlay must remain inside the
+fullscreened player and keep advancing (and exiting fullscreen must restore it). This is
+a **permanent matrix item** (per §0; it was a shipped x.com regression — overlay vanished
+in fullscreen — so it is added forever):
+
+| Desktop browser | YouTube fullscreen | x.com fullscreen | Podcast |
+|---|---|---|---|
+| macOS Safari | required | required | N/A (audio, no video) |
+| macOS Chrome / Edge | required | required | N/A |
+| Firefox | required | required | N/A |
+| Windows Chrome / Edge · Firefox | required — **Chrome 153 ✅ 2026-09-18 with real subtitles** (real desktop: overlay inside the fullscreen element, visible, translation advancing; exit via `exitFullscreen()` keeps it); Firefox 156 mechanics ✅ (VM, with the notice in the overlay); Edge ⬜ — see §2.H | required — ⬜ | N/A |
+
+**iOS (iPhone/iPad) fullscreen = N/A**: iOS uses the OS's *native* video-player
+fullscreen (a system surface), which a DOM overlay cannot cover — a documented platform
+limitation, **never** reported as passing. Verify iOS subtitles only in inline
+(non-fullscreen) playback.
+
+**Mandatory: the same-language skip, checked in BOTH directions.** The skip has a
+browser-capability layer (`docs/domain-design.md` §5.3 — `chrome.i18n.detectLanguage`
+exists on Chrome/Edge/Firefox, on no Safari), so the surfaces that *lack* it need a
+check of their own. Testing only the rows where the feature fires would let a broken
+probe — one that throws, or silently skips everything — ship to Safari unnoticed. This
+is a **permanent matrix item** for any change touching the skip:
+
+**Check the REQUEST, not the rendered line.** With an `en` target on an English paragraph
+the DOM is byte-identical on every surface — a unit the engine skipped and a unit whose
+echoed translation the renderer's identical-output backstop suppressed both render as
+"no translation line". The only observable difference is whether the provider was
+called. (Burned 2026-07-28: this table originally said Safari would "still get a
+translation line"; it does not, and reading the DOM would have passed a broken detector.)
+
+| Surface | Target `en`, long English paragraph | Target `zh-CN`, Chinese page |
+|---|---|---|
+| iPhone / iPad / macOS Safari | the paragraph **IS sent** to the provider (no detector — today's behaviour); no translation line is drawn either, and **no console error** mentioning `detectLanguage`. Measured on all three: macOS Safari 2026-07-28, iPhone (iOS 26.5) and iPad Air (iOS 17.2) 2026-07-28 via §1.1 | no translation lines, nothing sent (script layer, unchanged) |
+| macOS Chrome / Edge | the paragraph is **NOT sent**; a French paragraph and a <60-letter English one still are | no translation lines (script layer — the detector must **not** be consulted) |
+| Firefox | same as Chrome / Edge | same as Chrome / Edge |
+| Windows Chrome / Edge · Firefox | same as macOS Chrome / Edge — `chrome.i18n.detectLanguage` **present on all three**（2026-09-18 读回：Chrome 153 / Edge 145 / Firefox 156）；the request-level check itself ⬜ 未量 | same — ⬜ 未量 |
+
+**Mandatory: speech (TTS) is a per-surface expectation.** The on-device engine is
+a browser capability, so per `docs/domain-design.md` §5.3.4 its per-surface behaviour
+is named here rather than assumed:
+
+| Surface | Expected |
+|---|---|
+| macOS Chrome / Edge · Firefox · macOS Safari | ▶ plays; autoplay on card open works |
+| **Windows Chrome / Edge · Firefox** | ▶ plays; autoplay on card open works — ⬜ 播放本身未量。**语音清单已读回（2026-09-18，简体中文 Windows 11 ARM）**：Chrome 153 = 22 条，本地只有 3 条且全是 zh-CN（Microsoft Huihui / Kangkang / Yaoyao），其余 19 条是 Google 在线声；Edge 145 = 26 条，本地同样那 3 条 zh-CN，其余是 Microsoft Online（Natural）；Firefox 156 = 5 条全本地 SAPI（3 条 zh-CN + Huihui Desktop + **Zira Desktop en-US**），且 **三处都真播了**（`start` 事件）：Firefox zh 373 ms / en 94 ms；Chrome zh 57 ms / en（Google 在线声）**首次 15 s 无声无错、第二次 802 ms**；Edge zh 52 ms / en（微软在线 Natural）1.8–2.1 s。Chrome/Edge 需要一次用户激活，否则 `speak()` 被静默丢弃。**含义**：装的是中文系统就没有本地英文声（Chrome / Edge 靠在线声、Firefox 只有 Zira）；试听必须按目标语言选到一个真实存在的声音，且 #320 那句「这个浏览器不提供内置语音」在这三处都**不该**出现（出现即缺陷）|
+| **iPhone / iPad Safari** | ▶ plays (verified 2026-08-03, iOS 17.2, 111 voices in the extension page). **Autoplay is REFUSED** — the card renders with the ▶ control enabled and nothing is spoken until tapped. This is expected; a run that reports iOS autoplay working is reporting a bug in the *test*, not a feature |
+| **iOS / macOS host app — `device` (TTS, 离线模型; designed 2026-09-12, verifiable from D2)** | ▶ plays from the Swift-side `playerNode`; **PCM never crosses into JS** — assert on the bridge's `tts-start` / `tts-end`, not on an `<audio>` element (there is none), and on a human ear for the sound itself (M25). First use ⇒ the named 「正在下载{lang}离线模型 · {pct}%」 state; download failure ⇒ `listen_assets_failed` with the `browser` / cloud exit visible. A language Piper does not cover ⇒ falls back to `browser` **and the row names the fallback**. Must stay audible with the app backgrounded (M25, F-bis). **Extension pages: N/A by design** — the entry never appears in the extension dropdown (§3.1.4, `deviceOk`) |
+
+**Check that silence is reported as silence.** iOS drops `speechSynthesis.speak()`
+without a gesture with no exception, no error event and no sound — so a test that
+only asserts "speak() did not throw" passes over total silence. Assert on the
+utterance's `start` event, or on the ▶ label flipping to its replay wording (which
+only happens on a confirmed start).
+
+**Mandatory: AI 转写字幕 (`docs/domain-design.md` §2.4) is a per-surface expectation.**
+Tier A (file) is the floor; tier B (live capture) is a browser capability, so per §5.3
+rule 4 each surface's behaviour is named here. Every row is verified **during ≥ 30 s of
+real playback, with a recording** (the claim is about timing), on a public-domain
+sample (LibriVox chapter on archive.org: CORS-readable, so tier A) and on a `blob:`/MSE
+source (a YouTube video with captions disabled, or a Twitch/YouTube live stream: tier
+B). DeepSeek as the translation engine; the transcription engine is the one under
+test with the key from `.local/keys.md`.
+
+| Surface | Tier A (fetchable URL) | Tier B (`blob:`/MSE) | Stop visibility |
+|---|---|---|---|
+| macOS Chrome / Edge | pair appears after one upload; no per-sentence requests to the STT endpoint (check the network log) | `captureStream` after the crossorigin reload keeps the playhead position; sentences appear ≈ 2 s after speech | Substack episode ⇒ 「无法读取该音频」 within 10 s; muting a tainted source ⇒ 「捕获不到声音」 within 3 s |
+| Firefox | same, via `apiFetch`'s background route where the CDN has no CORS (R1: body must survive `sendMessage`) | `captureStream` (Firefox ≥ 149); **measure** whether the content-script socket obeys the page's `connect-src` on a strict-CSP page | same |
+| Windows Chrome / Edge · Firefox | expected as the macOS rows above — ⬜ 未量 | expected as the macOS rows — ⬜ 未量 | same — ⬜ 未量 |
+| macOS Safari | ✅ **measured 2026-09-07** (Safari 26.5, transistor.fm, whisper-1 + DeepSeek, driven by AppleScript `do JavaScript` — log `.local/asr/results/2026-09-07-safari-macos-file-tier.log`): the entry appears once the page's own subtitles are ruled out (≈16 s, 6 acquire attempts), one upload of the whole 25-min file, first pair 101 s after the tap, pairs follow playback. Content-script fetch of the CDN worked as on Chrome. | ❌ **measured 2026-09-07: MSE (`blob:`) sources are SILENT** — Twitch live and a YouTube video both stayed audible while `createMediaElementSource` output RMS 0.00000, confirmed in the page world with a real click and a `running` AudioContext (`2026-09-07-safari-macos-live-tier.log`). Since #216 the session stops **before** the socket opens with the named 「Safari 抓不到这类流媒体视频的声音」; before that the silence guard reported 「捕获不到声音」 within 5 s (correct, but blamed the speakers). Http(s) `<audio>` with CORS (the crossorigin-reload path) is unmeasured on Safari — every real podcast page took tier A. | same; plus: an AudioContext created outside a user gesture stays `suspended` in Safari and `resume()` never settles, so the **toolbar-popup entry** (a gesture in the popup, not in the page) cannot start capture on Safari — the in-page notice button is the path that works. *Since 2026-09-11 (第九期)* the popup entry on Safari lands on a named `gesture` stop and the notice offer reads 「▶ 点此开始实时转写」 — one in-page tap, then capture (to be measured on a real iPhone: the Simulator cannot produce a real gesture) |
+| iPhone / iPad Safari (≥ iOS 17.1) | ✅ **measured 2026-09-08** (iPhone 15 Pro Simulator, iOS 17.2, transistor.fm, whisper-1 + DeepSeek, driven by `safaridriver` — extensions DO run inside a WebDriver session on the Simulator; log `.local/asr/results/2026-09-07-safari-ios-sim-file-tier.log`): entry after 12 s, one upload, **first pair 90 s** after the tap, pairs follow playback | ❌ **measured 2026-09-08**: native HLS (`<video src=.m3u8>`, Apple's bipbop sample) stops by name 「Safari 抓不到这类流媒体视频的声音」 within 3 s (#216 treats a manifest URL as a non-fetchable source; before that it took tier A and failed as 「无法读取该音频」 — a playlist is not audio). m.youtube.com on iOS 17.2 serves a **progressive http(s)** `googlevideo` URL (not MSE): the CORS probe passed, the element was reloaded with `crossorigin`, then 「捕获不到声音」 3 s after 「实时转写中」 — the trigger was a WebDriver click (no user gesture, AudioContext suspended), so whether a real tap captures audio on an http(s) source is **still unmeasured** (manual taps are blocked while a WebDriver session is open, and ending the session blanks the tab). iPad not run separately (same WebKit, same layout code). | same; the named stops above all appear within 3 s, no stuck state seen | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
+| iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
+| iOS / macOS host app — **本机路** (`device` STT → own VAD → `finalize(through:)` → `sentenceCutter` → **one** remote correct+translate call → `device` TTS; designed 2026-09-12, verifiable from D2) | N/A (no page media) | Source per §0.3: a played corpus, **mirroring closed**. The row shows the **raw** sentence first (`row.raw`), then swaps to the corrected text with the translation; timing per the §0.3 table (volatile ≤ 2 s · pause → final ≤ 1.0 s · final → corrected+translated ≤ 1.0 s · translation → speech ≤ 0.5 s), proven by a timestamped log or recording. The corpus stores the **corrected** text. The bridge carries `mic-level {rms}` only — never base64 PCM (`mic-start.deliver === 'level'`). iPhone real device: **60 s locked ⇒ `stt-final` keeps arriving** (M24). iOS < 26 / macOS < 26 ⇒ entry greyed with the named sentence 「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」; the cloud live engine stays the full baseline | named `downloading` / `listen_assets_failed` with the cloud exit; switching a language on the device path **reconnects** (one locale per recognizer) — a silent no-op here is a defect; an all-zero `mic-level` is an invalid reading, not silence (§4, 2026-09-12) |
+| iOS / macOS host app — **实时字幕** (learning-design §9.8, designed 2026-09-13) | N/A (no page media) | the device's **playback** is the source, captured natively: macOS system-audio process tap (14.4+), iOS microphone in the background listening to the speaker, iOS phase 2 ReplayKit broadcast (app audio, screen frames dropped unread). **This row exists to close the Safari tier-B cells above**: a YouTube / Twitch MSE video playing in macOS Safari, and a video playing in iPhone Safari on the speaker, must produce subtitles in the floating panel / picture-in-picture subtitle window. ⬜ not yet measured (M26, M31) | named stops on the panel / page: 30 s silence ⇒ paused (no auto-resume), permission denied (with the System Settings path), socket lost, asset download progress; iOS phase 1 names the headphones case; closing the macOS main window does **not** stop (M28) |
+
+**Check the request, not the overlay.** A live session that re-sends an already-closed
+sentence produces byte-identical subtitles; only the socket log shows the waste. Assert
+that the number of closed sentences pushed equals the number the vendor emitted, and
+that the STT endpoint received exactly one upload per file-tier session.
+
+**Mandatory: the learning layer (记忆层).** Permanent matrix item for any change
+touching `content/learn-*.js`, `learn/**`, or the two capture attachment points
+(`content-webpage.js` `renderUnit`, `subtitle-adapter.js` after `renderOverlay`). See
+[`docs/learning-design.md`](learning-design.md).
+
+Each row runs the same five steps, in order:
+
+| # | Step | What proves it |
+|---|---|---|
+| 1 | **Non-interference** — translate a long article with capture **off**, then with capture **on** | Same unit count, same translation lines, no new console output. Domain-design §9.1 law 1 says translation must be *byte-for-byte* identical; a screenshot pair is the minimum, a DOM unit-count comparison is better |
+| 2 | **Capture** — read 2–3 paragraphs for >3 s each, scroll past others fast | Only the dwelled ones appear in the review page. **The fast-scrolled ones must be absent** — that is the assertion that matters, and it is invisible unless you look for it |
+| 3 | **Review** — open the review page, complete one full grading round | Cards render, all four grades present, source link resolves back to the page |
+| 4 | **Persistence** — quit the browser / kill the app, reopen, open the review page | Scheduling state survived. On iOS this is also the only real check that a dead service worker did not take the corpus with it |
+| 5 | **Origin isolation** — on the host page, evaluate `indexedDB.databases()` | **`mt-learn` must NOT be there.** The corpus lives in the extension origin; if it shows up under the host page, laws in domain-design §9.3 are broken and the user's reading history is readable by every site |
+
+**Video cards must be verified during real playback** (§4): capture from a YouTube
+video requires the playhead to actually cross the sentence, so a paused player
+captures nothing — a run that "looked fine" without ≥20–30 s of playback has verified
+nothing about subtitle capture.
+
+**iOS rows:** `xcrun simctl erase` is still the only thing that refreshes content
+scripts (§1.1), and any instrumentation must ship a build marker. Purge the `tr:`
+cache *and* the `lq:` outbox between runs, or a previous run's captures will be
+mistaken for this one's.
+
+### 1.1 Request-level checks on the iOS simulators — the working recipe
+
+**Achieved 2026-07-28.** An earlier note here claimed this was impossible because
+simulator text entry is broken. The text entry *is* broken — cua-driver's synthesized
+keystrokes arrive mangled (`http://127.0.0.1:8788` became `Aaaaaaaa…`, then `Vfff`),
+`⌘V` types a literal "V" even after `xcrun simctl pbcopy`, and `⇧⌘K` does not restore
+host-key delivery. But typing was never actually required: **stop configuring the app
+and configure the build.**
+
+1. Copy `dist/` to a throwaway dir and instrument the COPY only — never the repo:
+   - `content/providers.gen.js` → point the provider's `defaultEndpoint` at a local
+     logging endpoint. Leaving 自定义 API 地址 empty then resolves to it, no typing.
+   - `background.js` `DEFAULT_SETTINGS` → preset `targetLang` / `provider` / `apiKey`.
+   - `content/translation-api.js` → `apiKey = apiKey || '<key>'`, because storage may
+     already hold an empty key and `onInstalled` only fills **absent** keys.
+2. `xcrun safari-web-extension-converter <throwaway-dist> --ios-only --copy-resources`,
+   build with `CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO`, `simctl install`.
+3. Enable the extension (page menu → 管理扩展 → toggle) and grant host access. Both are
+   taps; the target-language and engine pickers are taps too. Only free text is broken.
+4. Read the endpoint's log for which texts were sent.
+
+**⚠️ `simctl install` does NOT refresh the extension's content scripts.** Reinstalling
+the host app, terminating Safari, and rebooting the simulator all left the PREVIOUS
+build's scripts running — with a correct new bundle verifiably on disk
+(`simctl get_app_container` + grep confirmed it). Only **`xcrun simctl erase`** picked
+up the new resources. Budget for that: erase wipes extension enablement, host
+permission and all settings, so plan to re-grant afterwards.
+
+**⚠️ Ship a build marker with any instrumented build.** Without one you cannot tell
+"instrumented build running" from "stale copy", and every downstream reading is
+uninterpretable. A fixed banner painted by a content script works:
+
+```js
+var b = document.createElement('div');
+b.textContent = 'BUILD=instrumented base=' + provider.defaultEndpoint;
+b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#b00;color:#fff';
+(document.body || document.documentElement).appendChild(b);
+```
+
+Paint it **immediately** — content scripts run at `document_idle`, so a
+`DOMContentLoaded` listener never fires and the marker silently never appears. That
+false negative cost an incorrect "Safari is serving stale scripts" conclusion.
+Note the banner is itself page text, so it shows up as a translatable unit in the log.
+
+**How to see the requests.** Chrome exposes them over CDP `Network.requestWillBeSent`.
+Firefox's BiDi `network.beforeRequestSent` proved **unreliable** (a run that demonstrably
+translated reported zero requests) — do not trust it; and Safari has no such channel at
+all. The portable instrument is to point 自定义 API 地址 at a local Chat-Completions-shaped
+endpoint that logs each text and answers with a marked echo, so "was it sent" becomes
+both logged and visible in the page. Always assert a **positive control** (a text you
+know was translated must appear in the log); without one, "no request seen" is
+indistinguishable from "I could not see".
+
+**Purge the translation cache between runs.** It is keyed `tr:{provider}:{lang}:{text}`
+with a 12h TTL, so a rerun serves the previous run's answers and issues no requests at
+all — which reads as "the skip fired" for every paragraph. Either clear the `tr:` keys or
+weave a per-load nonce into every paragraph of the fixture.
+
+**And on all five rows**: set the target to something other than `zh-CN` (e.g. `ja`) and
+play a subtitled video — the subtitle path must honour that target. It previously froze
+to `DEFAULT_TARGET_LANG` at construction regardless of settings.
+
+> **Measured in real content scripts (2026-07-27), keep for the next person.** Chrome:
+> `chrome.i18n` exposes `detectLanguage`, returns a Promise *and* fires a callback.
+> Firefox: `detectLanguage` is present but **callback-only** — it returns `undefined`,
+> so a promise-only implementation never resolves there. The same English paragraph
+> scores 100% on Chrome and **99%** on Firefox, which is why the confidence gate sits at
+> 90 rather than 100. Neither of these is guessable from the compat tables; re-measure
+> rather than assume if the wrapper is rewritten.
+
+---
+
+## 2. Per-surface build → install → enable → open-URL → drive
+
+### 2.0 一台机器上只能装一份大肚猴翻译 —— 国际版与中国版**不可并存**
+
+任何浏览器上，**同一时刻只允许安装一份**大肚猴翻译。国际版和中国版是两个 bundle id
+（`com.belliedmonkeytranslator` / `…​.cn`），系统允许它们同时存在，但**我们的验证不允许**：
+测完一个，**卸载**，再装另一个。
+
+不是「建议先关掉另一个」——是**卸载**。关掉的那一份仍然出现在扩展列表里、仍然参与
+LaunchServices 的注册竞争，于是「跑的是哪一份」这个最基本的问题就没有确定答案，
+而验证的全部价值就建立在这个答案上。
+
+**这条规矩是被违反出来的**（2026-08-21）：为了同时验四条线，两个版本被同时装进
+一台 iPhone 和一台 Mac，结果：
+
+- macOS Safari 的扩展列表里出现 **4 条同名「大肚猴翻译」**（还有历史副本掺进来），
+  AX 树只给 bundle id、不给版本号，无法分辨哪条对应哪个包；
+- iPhone 上两份并存、一开一关，随后出现**部分标签页翻译卡在「翻译中…」不动**，
+  而同一时刻新开的页面翻译正常 —— 排查时无法排除「另一份的残留状态」这个变量。
+
+**执行判据**（每个宿主一条，先读再动手）：
+
+```bash
+# macOS：认的是哪一份，只信这一行的版本号（不是「App 起来了」）
+pluginkit -m -p com.apple.Safari.web-extension | grep -i belliedmonkey
+# 期望：**恰好一行**
+
+# iPhone：设置 → App → Safari浏览器 → 扩展
+# 期望：「大肚猴翻译」**恰好一条**（不是「一条打开一条关闭」）
+```
+
+出现两条 ⇒ **先卸载多余的那一份再开始验证**，这一轮此前的观测全部作废。
+
+Shared first step for all Safari surfaces:
+
+```bash
+node build.js            # → dist/
+# Regenerate the Xcode project WITH macOS targets — do NOT use --ios-only:
+xcrun safari-web-extension-converter dist \
+  --app-name "BelliedMonkey Translator" \
+  --bundle-identifier com.belliedmonkeytranslator \
+  --project-location /tmp/mt-safari --force --no-open --no-prompt
+```
+
+Confirmed generated schemes: **`BelliedMonkey Translator (iOS)`** and
+**`BelliedMonkey Translator (macOS)`**.
+
+> **更正（2026-08-22）**：这里原来写着「`build-safari.sh` 传 `--ios-only`，所以不要用它
+> 跑全矩阵」。**那句话已经不成立** —— 脚本现在 `CONVERTER_PLATFORM=""`，一个 flavor 出
+> 的就是一棵双平台树（`Shared (App)` / `iOS (App)` / `macOS (App)`），而 `app:sync` 的
+> 六个补丁全按双平台布局写死。所以全矩阵**应该**用 `build-safari.sh`，
+> 不该再手敲上面那条 converter 命令。发布路径见 `/store-release`。
+
+### A. iPhone Safari (Xcode Simulator) — ✅ verified
+
+```bash
+xcodebuild -project "/tmp/mt-safari/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (iOS)" -sdk iphonesimulator \
+  -configuration Debug -derivedDataPath /tmp/mt-dd CODE_SIGNING_ALLOWED=NO build
+APP="/tmp/mt-dd/Build/Products/Debug-iphonesimulator/BelliedMonkey Translator.app"
+xcrun simctl install <iPhone-UDID> "$APP"
+xcrun simctl launch  <iPhone-UDID> com.belliedmonkeytranslator   # container shows "turn on in Settings"
+xcrun simctl openurl <iPhone-UDID> "<test-url>"
+```
+
+Enable (once per fresh install; cua-driver AX clicks): Settings → `Safari浏览器` → `扩展`
+→ the extension row → **允许扩展** ON → per-site permission → **始终允许 → 在此网站上始终允许**,
+then terminate + reopen Safari. **Per-site grant resets to "ask" on a fresh install** —
+until granted, content scripts silently don't inject (no FAB); this masquerades as a
+code bug. (A reinstall sometimes *preserves* the toggle+grant — environment-dependent.)
+
+Drive: `xcrun simctl io <UDID> screenshot x.png` to view cheaply; the FAB/overlay are
+**web content, not AX-bridged** → locate them in a `get_window_state` window screenshot
+and **pixel-click**. Record time-based behavior: `xcrun simctl io <UDID> recordVideo out.mov`.
+
+> **不要在模拟器里打字或滚动 —— 直接写扩展存储。**（2026-09-04 全矩阵实测）
+>
+> 这一轮 cua 对模拟器窗口的 AX 全程解析不到（`ax_window_unresolved`），后果是：
+> **像素点击照常работа，但 `type_text` 一个字符都进不去、`scroll` 与 `drag` 都不滚页**。
+> 长按也调不出「粘贴」菜单，`ios-sim-input-only-longpress-paste` 那条配方在这个状态下
+> 整条失效。绕过去的办法不是重试，是**换一个面**：
+>
+> ```bash
+> DB=$(find ~/Library/Developer/CoreSimulator/Devices/<UDID>/data/Containers/Data/Application \
+>       -path '*Safari/WebExtensions*' -name 'local.db' | head -1)
+> sqlite3 "$DB" "select key, value from extension_storage;"   # 就是 chrome.storage.local
+> ```
+>
+> 表是 `extension_storage(key TEXT PRIMARY KEY, value TEXT)`，value 是 **JSON**
+> （字符串带引号）。写完 **terminate + relaunch Safari** 才会被读到。
+> 两个前置条件：**扩展先在设置里启用过**（否则这个库根本不存在），
+> 且目录名带团队 id（`com.belliedmonkeytranslator.extension (X2Q85MABWK)`）——
+> 旁边可能还躺着一个 `(UNSIGNED)` 的旧安装，别写错那个。
+>
+> 顺带：这个库也是**回读本机默认值**最便宜的地方。2026-09-04 就是在这里读到
+> `ttsEngine=""` · `ttsMode="off"` · `sttEngine=""`，一次 sqlite 查询顶一屏截图。
+>
+> 页面太长看不全时，用 Safari 自己的**「大小」→「小」**缩到 50%（下限），
+> 比试图滚动可靠 —— 但 50% 仍装不下整个设置页，够不到的那几段要另找判据。
+
+### B. iPad Safari (Xcode Simulator) — ✅ verified
+
+**Same iOS build**, different simulator UDID. `xcrun simctl install <iPad-UDID> "$APP"`
+→ launch → openurl → drive. iPad Safari uses the **desktop-layout** (two-column) page;
+the FAB injects at the bottom-right of the content column. Enable path is the same
+Settings → Safari → 扩展 flow (its split-view Settings layout differs from iPhone — map
+AX tokens fresh).
+
+### C. macOS Safari (real Mac, sandboxed) — ⚠️ version-sensitive
+
+**Snapshot first** (for restore): `cp ~/Library/Preferences/com.apple.Safari.plist <backup>`
+and note whether the **Develop (开发)** menu is already visible. Then:
+
+```bash
+xcodebuild -project "/tmp/mt-safari/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (macOS)" -sdk macosx \
+  -configuration Debug -derivedDataPath /tmp/mt-dd-mac CODE_SIGNING_ALLOWED=NO build
+open "/tmp/mt-dd-mac/Build/Products/Debug/BelliedMonkey Translator.app"   # registers the extension
+```
+
+**Critical (verified 2026-07-11, macOS 26.5.1):** a build made with
+`CODE_SIGNING_ALLOWED=NO` (or merely `codesign -s -` ad-hoc) does **NOT** register with
+pluginkit/LaunchServices, so it **never appears in Settings → 扩展** — even after enabling
+"允许未签名的扩展", even copied to `~/Applications` + `lsregister -f` + ad-hoc signed.
+(Confirmed: the working extensions 1Password / 沉浸式翻译 DO show in `pluginkit -m`; ours
+never does.) "允许未签名的扩展" governs Safari *loading*, not pluginkit *registration*.
+
+So there are two real paths for macOS Safari — **prefer the first**:
+
+- **(A) Recommended — side-load `dist/` unpacked, no Xcode:** Safari → Settings (`⌘,`) →
+  **开发者 (Developer)** tab → check **允许未签名的扩展 (Allow Unsigned Extensions)** →
+  **添加临时扩展… (Add Temporary Extension)**. Its prompt is *"选取包含扩展资源的文件夹或
+  归档"* — it loads an **unpacked folder with `manifest.json`, like Chrome's Load
+  Unpacked**, so you point it straight at **`dist/`**. No `xcodebuild (macOS)`, no signing.
+  It loads as a *temporary* extension (auto-cleared on Safari quit → self-cleaning for
+  verification). On macOS 26 the "允许未签名的扩展" toggle lives on this **开发者** Settings
+  tab (on macOS ≤ 15 it's Develop menu → 允许未签名的扩展). **Session-scoped on every macOS
+  version, 26 included — see the password/persistence note below.** Then grant host
+  access **在每个网站上始终允许**, open the test URL, drive the FAB by pixel-click.
+
+  **⚠️ Update semantics — the temporary extension is a SNAPSHOT (verified 2026-07-12).**
+  Unlike Chrome (Load-Unpacked / CDP `Extensions.loadUnpacked` read from the `dist/` path,
+  so rebuild + page reload runs new code), Safari **copies the folder at add-time**:
+  - Rebuilding `dist/` does **NOT** update the loaded temporary extension — page reloads
+    keep running the old snapshot. (Verified live: after a fix was built, Safari still
+    reproduced the pre-fix bug on a fresh page load while Chrome and the iOS sims ran the
+    new code — a stale snapshot masquerades as "fix didn't work", or worse, silently
+    passes a regression check against the OLD build.)
+  - The snapshot survives page loads and window closes while Safari stays running; it is
+    cleared only when Safari quits.
+  - **After re-adding, RELOAD the test page (⌘R) before observing.** An already-open tab
+    keeps running the PREVIOUS injection's content scripts — and keeps their injected DOM
+    artifacts — so observing it says nothing about the newly added build (burned
+    2026-07-12: a playing tab predating the re-add still showed the old bug signature).
+  - **Never let TWO copies of the extension be loaded at once (burned 2026-07-12).**
+    Re-adding does not replace the previous temporary extension — both stay installed,
+    each injecting content scripts into a **separate isolated world** (the
+    `window.__mtMainLoaded` double-init guard cannot dedupe across worlds). Symptom: the
+    two instances FIGHT — the inactive one removes the 译 button every tick while the
+    active one re-creates it → **the button visibly blinks**; fixed-position FABs stack
+    invisibly. Before verifying, Settings → 扩展 must show exactly ONE copy; the
+    deterministic reset is **quit Safari (clears all temp extensions) → reopen → add
+    once**.
+  - **Rule: after EVERY `node build.js`, re-add the temporary extension** (开发者 →
+    添加临时扩展 → `dist/`) before verifying anything on macOS Safari — treat "re-add" as
+    part of the build step for this surface. Before trusting a Safari result, confirm the
+    loaded code is current (e.g. check a marker introduced by the change under test via
+    Web Inspector, such as an attribute or log the new build emits).
+  - **⚠️ Multiple `dist/` folders exist — verify the PATH picked in the file dialog
+    (burned 2026-07-12).** The main checkout (`~/mobiletranslator/dist`, built from
+    `main`) and each git worktree (`…/.claude/worktrees/<name>/dist`, built from the
+    feature branch) all have a `dist/`, plus `dist-china/` / `dist-firefox/`. A re-add
+    that picks the WRONG dist silently loads code without the change under test — the
+    symptom looks exactly like "the fix doesn't work on Safari". Before re-adding, state
+    the **absolute path** of the dist being verified and confirm its freshness
+    (`ls -la <dist>/content/<changed-file>` mtime, or grep the fix marker in the file).
+- **(B) Signed app path:** build the `(macOS)` scheme **with a real Apple Development
+  signing identity** (not `CODE_SIGNING_ALLOWED=NO`), `open` the container so it registers,
+  then it appears in Settings → 扩展 → enable + grant host.
+
+  - **⚠️ 允许未签名的扩展 needs the user's macOS PASSWORD (2026-07-27).** Ticking it raises a
+    system authorization prompt ("Safari浏览器正尝试允许未签名的扩展"). An agent must not type
+    it — hand this step to the user together with the folder pick, in ONE ask, so they are
+    interrupted once rather than twice. `defaults write com.apple.Safari
+    AllowUnsignedAppExtensions` is **not** a way around it: Safari's prefs live in a
+    sandboxed container and the write fails outright without Full Disk Access.
+  - **⚠️ That authorization is SESSION-SCOPED — it does NOT persist (corrected 2026-07-28,
+    macOS 26.5.1).** The checkbox is clear again after every Safari quit and the password
+    prompt returns. So **once the user has authorized, do not quit Safari** for the rest of
+    the run — quitting throws their authorization away and costs them a second interruption
+    for nothing. (Burned 2026-07-28: quitting to force a clean snapshot did exactly that.)
+    This supersedes the earlier "once granted the setting persists".
+  - **⚠️ Do NOT use the extension detail pane's 重新载入 to pick up a rebuild (2026-07-27).**
+    It left the extension loaded but inert — the FAB injected and no unit ever translated.
+    (Re-confirmed 2026-07-28: after 重新载入 the extension's own options page renders blank
+    and a ⌘R does not revive it — its old UUID is dead.) To load a fresh build **without
+    quitting**, use 卸载 then 添加临时扩展 again; reserve quit → reopen for when no
+    authorization is at stake.
+  - **⚠️ An off-screen Safari window screenshots BLANK — that is a capture artifact, not a
+    bug (2026-07-27).** `list_windows` reporting `is_on_screen: false` while the title is
+    correct means the capture will be empty white; `bring_to_front` first. Cost an
+    incorrect "the extension broke the page" conclusion.
+  - **⚠️ 加临时扩展之前先清空「已安装」里的同名扩展（2026-09-05）。** 每一次
+    `open` 一个本地 Debug 构建的宿主 App，Safari 就多注册一份扩展条目；这一轮跑完
+    矩阵后设置里躺着**四份**「大肚猴翻译」，而且**全部勾着** —— 正是上面那条
+    「两份同时加载会打架」的形状，只是更糟。`pluginkit -m` 看不到它们（Debug 构建
+    本来就不注册到 pluginkit），所以**判据是 Safari 设置 → 扩展这个列表本身**，
+    不是 pluginkit。清理要连**磁盘上的 App 副本**一起删（`/tmp/mt-dd-*/…/*.app`），
+    否则下次 `open` 它又回来了。
+  - **原生 `<select>`：用首字母跳转，别用方向键（2026-09-05）。** 每一次
+    `press_key(down)` 都会把下拉重新打开，净位移不等于按键次数（实测「按 3 次 ↓
+    + 回车」只移动了一格）。按目标项的**首字母**（DeepSeek → `d`）一次到位。
+  - **⌘V 在 Safari 网页里也被吞，但 `type_text` 可用（2026-09-05）。** 与
+    `macos-webview-input-unreliable` 记的宿主 App 情况不同：这里 `type_text` 把
+    35 字符的 API key 一字不差地打进去了（判据不是看框里的圆点数，是**点「测试连接」
+    让服务端回读** —— 它返回 200 就证明没有字符错位）。
+
+**Restore after:** if you enabled "允许未签名的扩展", uncheck it; remove any temporary
+extension / app copy; return Develop-menu visibility to its snapshotted state.
+
+> **Verified 2026-07-12 (macOS 26.5.1) ✅:** path A works end-to-end. Confirmed the
+> unsigned/ad-hoc build won't register (path A required); 允许未签名的扩展 + 添加临时扩展 →
+> `dist/` loaded (folder selection in the Open panel was done by hand — its ⌘⇧G/keyboard
+> navigation resists the automation layer under multi-app focus contention; ~10s manual
+> step, everything else scriptable). On `latent.space/p/modal2026`: FAB injected; a
+> **foreground-delivery pixel click** (background click did NOT land on Safari web content —
+> escalate per the click ladder) turned translation on → full-page bilingual render (title,
+> description, in-player title) + the 译 podcast control. Screenshot captured. Reproduces the
+> same cross-surface podcast bugs (duplicate 字幕加载中 loaders, sidebar translation
+> overflowing its card).
+
+**Dead end — safaridriver CANNOT load extensions (probed live 2026-07-12, Safari 26.5).**
+Do not attempt a Chrome-style automated load via safaridriver; three-way evidence:
+1. **Classic protocol:** the man page documents no extension capability, and a session
+   created with every plausible key (`safari:extensions`, `safari:loadExtension`,
+   `safari:webExtensions`, `webextension:path`, `safari:enableExtensions` → all pointing at
+   `dist/`) navigated to the test page with **no FAB, zero extension nodes**. (safaridriver
+   echoes back ALL requested capability keys, known or not — echo ≠ recognized.)
+2. **WebDriver BiDi:** supported, but the standard `webExtension.install` command's domain
+   does not exist — *"'webExtension' domain was not found"*. Available BiDi domains are only
+   `session`, `browsingContext`, `script`, `browser`, `storage` (no private extension domain
+   either: `extensions`/`safariExtensions`/`safari`/`permissions` all absent).
+3. WebDriver sessions run in an isolated automation profile where extensions are off anyway.
+
+Useful safaridriver facts discovered for OTHER purposes: enabling needs Settings → 开发者 →
+**允许远程自动化** (or `safaridriver --enable`, needs sudo); **BiDi socket is gated behind the
+undocumented capability `safari:experimentalWebSocketUrl: true`** (with `webSocketUrl: true`;
+response then carries a real `ws://127.0.0.1:<port>/session/<id>` URL); safaridriver can also
+target **iOS simulators** (`platformName: iOS`, `safari:useSimulator`, `safari:deviceUDID`) —
+possibly useful for scripted page-level checks on the sim rows, untested with extensions.
+
+### D. macOS Chrome / Edge (real Mac, throwaway profile) — ⚠️
+
+**Critical (verified 2026-07-11, Chrome 150):** modern Chrome (since ~v137) **disables the
+`--load-extension` command-line switch by default** (`DisableLoadExtensionCommandLineSwitch`),
+so a throwaway `--user-data-dir --load-extension=dist` launch **silently does not load the
+extension** — content scripts never inject (verified via CDP: no extension execution
+context, `#mt-fab` absent on both latent.space AND example.com). `--disable-features=
+DisableLoadExtensionCommandLineSwitch` did **not** re-enable it on Chrome 150. This is a
+**harness limitation, not an extension defect** (the same `dist/` injects fine on iOS/iPad
+Safari).
+
+**⚠️ Rebuilding `dist/` is NOT enough — reload the extension (burned 2026-07-26, twice).**
+An already-loaded unpacked extension keeps serving the content scripts it loaded with;
+a page reload runs the OLD code. Symptom: you rebuild with a fix, reload the tab, the bug
+is still there, and you conclude the fix does not work. On a **long-lived** Chrome
+(`chrome://extensions` → the extension's ⟳ **reload** icon) this is mandatory after every
+`node build.js`; then reload the page. **Firefox has the same trap** (§2.E:
+`about:debugging` → **重载 / Reload** on the temporary add-on, then reload the page) — and
+Safari's temporary extension is worse still, being a snapshot (§2.C). Only the throwaway
+CDP flow below is exempt, because it loads the extension fresh each run.
+
+**Recommended — CDP `Extensions.loadUnpacked` (no GUI, no CLI flag):** launch a throwaway
+profile with only `--remote-debugging-port`, then load the extension over the browser-level
+CDP endpoint. This bypasses **both** the `--load-extension` block **and** the GUI file-picker:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --user-data-dir="$PROF" --no-first-run --no-default-browser-check \
+  --remote-debugging-port=9225 "chrome://newtab/" &
+# browser WS endpoint from http://localhost:9225/json/version → call:
+#   Extensions.loadUnpacked  {path: "<abs path to dist>"}   → returns {id}
+# then open the test URL and eval  !!document.querySelector('#mt-fab')
+```
+
+Alternatives if you prefer: `chrome://extensions` → Developer mode → **Load unpacked** →
+`dist/` (GUI, has the file-picker keyboard-nav caveat); or **Chrome for Testing**
+(`npx @puppeteer/browsers install chrome`), whose automation build still honors
+`--load-extension`. A fresh Chrome may show its *own* Google-Translate bubble — unrelated;
+don't mistake it for the extension.
+
+**⚠️ Chrome unpacked extensions CACHE the loaded build (burned 2026-07-12).** Same trap
+class as the Safari temp-extension snapshot: rebuilding `dist/` on disk does NOT update an
+already-loaded unpacked extension in a long-running Chrome (the daily browser, not a
+throwaway). **After every `node build.js`: `chrome://extensions` → click the extension
+card's reload (⟳) → then RELOAD the test page** (existing tabs keep the previous
+injection's scripts). A stale cached build reproduces already-fixed bugs and reads exactly
+as "the fix doesn't work" — verified live: on the user's real Chrome, the pre-reload build
+flashed on 3/3 body clicks (whole-page translations vanish/return, ~194k px A→B→A on the
+display recording); after ⟳ + page reload, the same tab showed 0/3. Before trusting a
+result from a persistent Chrome profile, confirm the loaded code is current (reload ⟳ is
+cheap — just do it).
+
+> **Verified 2026-07-11 (Chrome 150) ✅:** loaded `dist/` via `Extensions.loadUnpacked`,
+> opened `latent.space/p/modal2026` → FAB present (`title:开启翻译`); clicking it → `关闭翻译`
+> and **11 `.mt-translation` lines** rendered (e.g. "潜在空间：人工智能工程师播客", title →
+> "为什么 AI 基础设施必须发展以提供座席体验 —…"). Screenshot captured. **Chrome surface works.**
+> It also reproduces the same podcast-overlay bugs as iOS/iPad (duplicate "字幕加载中…"
+> loaders floating over the article). Cleanup: `pkill -f "$PROF"; rm -rf "$PROF"` + remove any
+> staged `dist/` copy.
+
+### E. Firefox desktop (real Mac, throwaway profile) — ✅ verified
+> **⚠️ `--start-url` 早于扩展安装（2026-10-03 实测，差点误报成产品缺陷）。**
+> `web-ext run --start-url moz-extension://<uuid>/…` 是**先起浏览器、后装临时扩展** ⇒ 那一跳落在
+> **还没人认领的 URL** 上 ⇒ **白屏**，此后一直白着（手动刷新也可能没送达页面）。
+> 症状具有极强的误导性：白屏 + 页面脚本一条都不执行 + 连**静态文件**（如 `manifest.json`）都取不出来 ——
+> 看起来像「扩展的页面全废了」，实际只是 URL 在那个会话里没有主人。
+> **正确做法**：`--start-url about:blank`，等日志出现 `Installed … as a temporary add-on`，
+> **再用地址栏导航**（⌘L → 输 URL → 回车）到 `moz-extension://<uuid>/<page>`。
+> 判据：窗口标题应变成该页的 `<title>`（如「大肚猴翻译 — 设置」）。
+> 附：Firefox 的清单错误只从这里露出 —— `_locales/` 存在时 `default_locale` 必填，否则
+> `installTemporaryAddon: Extension is invalid`。
+(real Mac, throwaway profile) — ✅ verified
+
+```bash
+node build.js firefox        # → dist-firefox/ (MV3, gecko id set)
+npx --yes web-ext run --source-dir dist-firefox \
+  --firefox /Applications/Firefox.app/Contents/MacOS/firefox \
+  --profile-create-if-missing --keep-profile-changes \
+  -p "$HOME/.mt-verify-firefox" \
+  --start-url "<test-url>" --no-config-discovery
+```
+
+> **驱动扩展自己的页面（options / onboard）—— 2026-09-04 首次跑通，三个坑**
+>
+> 上面这条配方验的是**内容脚本**那一面（FAB、整页双语），那些是普通网页，BiDi 直接
+> 能开。**扩展自己的页面不行**，要另一套做法：
+>
+> 1. **`--args` 必须合成一个 argv token**：`--args=--remote-debugging-port=9333`。
+>    分开写会被 web-ext 的 yargs 当成它自己的参数（实测报「无法识别这些选项」）。
+> 2. **Firefox 的 BiDi 没有 CDP 那套 `/json/version` 发现端点**（实测 404）。
+>    WebSocket 直接在 `ws://127.0.0.1:<port>/session` 上，握手就是 `session.new`。
+> 3. **BiDi 拒绝把内容标签页导航到 `moz-extension://`** ——
+>    实测报 `Navigation to "moz-extension://…" is not allowed in this context`。
+>    **出路是跑两趟**：UUID 在同一个 profile 里是稳定的（存在 `prefs.js` 的
+>    `extensions.webextensions.uuids`），所以第一趟只为把它写进去，第二趟用
+>    `--start-url <那个地址>` 让 **Firefox 自己打开**，BiDi 只负责读、不负责导航。
+>
+> 还有一条进程卫生：**web-ext 把 Firefox 起成孙进程**，`child.kill()` 杀不到它，
+> 上一轮残留的 Firefox 会一直占着 BiDi session，下一轮 `session.new` 直接报
+> 「Maximum number of active sessions」。启动前和收尾都要按端口特征 `pkill` 一次。
+
+**Use a PERSISTENT profile, not the default throwaway one.** §0 requires DeepSeek, and
+the API key lives in extension storage — a throwaway profile wipes it on every quit, so
+each run would need the key re-entered by hand. `--profile-create-if-missing
+--keep-profile-changes -p <dir>` keeps the key (and the granted permissions) across
+runs. The profile dir is outside the repo and holds only the key, so it never reaches
+git; delete it to reset. This is still fully sandboxed — it is NOT the daily browser
+profile.
+
+`web-ext run` (Mozilla's official tool, npx-fetched — not a repo dependency) launches a
+**fresh throwaway profile** with the add-on temporarily installed (auto-clears on quit;
+it live-references `dist-firefox/`, and about:debugging has a per-extension **Reload**
+button — friendlier than Safari's snapshot semantics).
+
+**⚠️ A PENDING Firefox update blocks this row entirely (2026-07-27).** If an update is
+staged under `~/Library/Caches/Mozilla/updates/Applications/Firefox/updates/0/`
+(`update.mar` present), every launch hands off to `org.mozilla.updater`, which then waits
+for **all** Firefox instances to quit — so the daily browser being open leaves it spinning
+forever and `web-ext` dies with `ECONNREFUSED` on its debugger port. It looks like a
+web-ext/harness failure and is not. `--pref app.update.*=false` does **not** help: the
+staged update is applied by the launcher before prefs are read. Check first:
+
+```bash
+ls ~/Library/Caches/Mozilla/updates/Applications/Firefox/updates/0/update.mar 2>/dev/null
+pgrep -x firefox; pgrep -f org.mozilla.updater
+```
+
+The fix is the user's call, not the agent's — ask them to quit Firefox so the update
+applies (they get the security update and it stops recurring). Moving the staged update
+aside works too but touches their update cache, so it needs explicit consent.
+
+**⚠️ That Reload button is mandatory, not optional (burned 2026-07-26).** Like Chrome
+(§2.D), a loaded add-on keeps serving the content scripts it started with: after
+`node build.js firefox` you must hit **重载 / Reload** on the add-on in
+`about:debugging`, *then* load the page — otherwise you are testing the previous build
+and will wrongly conclude the fix failed. **A logged-in session is a reason to prefer
+the real profile over `web-ext run`:** the throwaway profile has no cookies, so for a
+login-gated site load the temporary add-on into your normal Firefox instead
+(`about:debugging` → 临时载入附加组件 → `dist-firefox/manifest.json`; it still
+auto-clears when Firefox quits). Manual alternative:
+`about:debugging#/runtime/this-firefox` → 临时载入附加组件 → `dist-firefox/manifest.json`.
+
+Drive/verify over **WebDriver BiDi** (Firefox ≥129 removed CDP): raw WebSocket at
+`ws://127.0.0.1:<port>/session` → `session.new` → `browsingContext.getTree` →
+`script.evaluate` for DOM assertions, `input.performActions` for TRUSTED clicks,
+`browsingContext.captureScreenshot` for pixel-diff evidence.
+**Gotcha: Firefox allows exactly ONE BiDi session and does not reap it promptly when the
+socket closes** — "Maximum number of active sessions" on reconnect. Do the ENTIRE
+verification in one connection, or restart web-ext between attempts.
+
+> **Verified 2026-07-12 (Firefox 152.0.5) ✅:** FAB injects; FAB on → page bilingual (8
+> units incl. sidebar); podcast playback (spec §4 playback rule) → overlay exactly 2
+> clean pilled lines, 0 `.mt-translation` / 0 `data-mt-processed` inside, live pair
+> advancing ("That this was your natural choice." / "这是你自然的选择。"); trusted click
+> on body text → **0 changed px** across before/+150ms/+500ms/+1.7s screenshots (overlay
+> band masked). Screenshot captured. Firefox is fully adapted.
+
+### H. Windows 11 Chrome / Edge / Firefox (Windows VM on Omarchy — current; VMware Fusion VM 2026-09-18 历史) — ✅ verified 2026-09-18
+
+> **Executable half: run `/win-matrix`** (`.claude/skills/win-matrix/SKILL.md`) — the commands, the
+> read-back criterion for each step, and the trap index. This section keeps the record and the reasons.
+>
+> **Current target (user ruling 2026-10-12): the Windows VM hosted on Omarchy.** Chrome, Edge and
+> Firefox are all tested on that one VM, driven over the network; **any item that needs a human
+> inside the guest is abandoned and recorded ⬜**, never forced. The concrete address / entry channel
+> for that VM is not pinned here — read it off the live setup each run.
+>
+> **Historical (2026-09-18): the VMware Fusion VM on the Mac.** It was the only Windows target then
+> (user ruling 2026-09-18 evening — 「跑矩阵的时候 windows 部分就是虚拟机流程」). The same day a second
+> target, a real Windows 11 x64 desktop on the LAN driven over SSH, was brought up and measured once
+> (Chrome 153, 1.12.1: page translation 1.06 s, 29 voices, fullscreen **with real subtitles** ✅ — it
+> is where #325 was found) and then retired; its scripts are not in the repo (see the first commit of
+> PR #327). Readings from it stay in this section as records, marked "real desktop". The Fusion test
+> page address was `MT_WIN_PAGE` (then `http://192.168.2.1:8765/page.html`, the VM's view of the Mac) —
+> a value of that setup, not a constant.
+
+Added 2026-09-18 (user ruling 「windows 进入验收矩阵」, reversing the same morning's
+exclusion in #321) and **run the same day**: Chrome 153, Edge 145 and Firefox 156, all
+loading the 1.12.1 `dist/` / `dist-firefox/`, all rendering the bilingual page through
+DeepSeek. Everything below is what was measured; the traps are listed because every one
+of them cost a loop.
+
+**What exists:** VMware Fusion 13.6.4, VM
+`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`, NAT on vmnet8, hostname
+`DESKTOP-1ME3A1R`, Windows in Simplified Chinese. The Mac reaches it by IP; read the
+current lease rather than remembering one:
+
+```bash
+grep -A5 '^lease' /var/db/vmware/vmnet-dhcpd-vmnet8.leases | tail -6   # ip … client-hostname (6 lines per block)
+```
+
+OOBE had no network (Fusion's virtual NIC needs VMware Tools); bypassed with
+`oobe\bypassnro`, then VMware Tools from the 虚拟机 menu — after that NAT works with no
+configuration. **The Windows profile folder is `C:\Users\张钊`, not the login name `zhao`**
+— list `file:///C:/Users/` through the browser before guessing a path.
+
+**Principle (§0, device principle):** the same `dist/` / `dist-firefox/` the stores get,
+loaded fresh each run, driven **from the Mac** so the recipe stays scriptable and the
+in-VM state stays throwaway. Nothing is installed permanently except the browsers.
+Pixel-driving the Fusion window from cua-driver does **not** work (measured: the hover
+tooltip appears, the click never reaches the guest) — everything goes over the network.
+
+**One-time setup inside the VM (done 2026-09-18):** Chrome, Edge, Firefox (ARM64 builds).
+Then, in an **elevated** PowerShell — a normal one answers 「请求的操作需要提升」 and
+installs nothing, and Windows PowerShell 5.1 has no `&&`; use `;` — forward an outside
+port to the browsers' loopback debug port and open it:
+
+```
+netsh interface portproxy add v4tov4 listenport=9223 listenaddress=0.0.0.0 connectport=9222 connectaddress=127.0.0.1; netsh advfirewall firewall add rule name=cdp9223 dir=in action=allow protocol=TCP localport=9223; netsh interface portproxy show v4tov4
+```
+
+**Why a port proxy (measured):** desktop Chrome **ignores `--remote-debugging-address`**
+(only headless honours it) — with `=0.0.0.0` the VM never bound 9222 on its NIC. Firefox's
+remote agent is loopback-only too. The proxy makes 9222 reachable as 9223; the firewall
+rule lets the packet in; both are silent when missing (the Mac just times out), so read
+the proxy table back. The proxy has one side effect that bites Firefox — see below.
+
+**Getting `dist/` into the VM — there are NO shared folders on this guest** (the ARM
+Windows VM's settings panel has no 「共享」 pane). Serve from the Mac and download inside:
+
+```bash
+# Mac side — vmnet8 host address 192.168.2.1 (bridge101); a folder holding dist-chrome.zip, dist-firefox.zip, page.html
+python3 -m http.server 8765 --bind 0.0.0.0
+curl -sI --noproxy '*' http://192.168.2.1:8765/dist-chrome.zip | head -1   # 200 — this shell's proxy env gives 503 without --noproxy
+```
+
+In the VM open `http://192.168.2.1:8765/`, unzip to `C:\Users\<user>\Downloads\mt\dist` and
+`…\mt\dist-firefox`. **`scripts/win-matrix/page.html` is the test page** (three English
+paragraphs + a heading); the drivers load it from that same server.
+
+**Mac side, all three:** run with the shell's proxy variables cleared — Node 22 honours
+`NODE_USE_ENV_PROXY` and the proxy answers 503 for the VM:
+
+```bash
+env -u NODE_USE_ENV_PROXY -u HTTP_PROXY -u http_proxy -u HTTPS_PROXY -u https_proxy -u ALL_PROXY \
+  node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' chrome
+env … node scripts/win-matrix/chromium.js 192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist' edge
+env … node scripts/win-matrix/firefox.js  192.168.2.128 9223 'C:\Users\张钊\Downloads\mt\dist-firefox'
+```
+
+Each writes `.local/win/<label>.json` + screenshots and asserts: extension loaded and its
+version, options page renders with **no** `Runtime.exceptionThrown`, `#mt-fab` present with
+title 开启翻译, click → **≥ 3 `.mt-translation` all containing Han and none still the
+「⏳ 翻译中…」 placeholder** (the placeholder contains Han too — the first assertion passed
+on it in 5 ms and read as a 30 s stall until the log was read), plus the Windows readings:
+`speechSynthesis.getVoices()`, `chrome.i18n.detectLanguage` presence, scrollbar width,
+translation font. The Chromium driver also logs every request the service worker makes.
+
+**Chrome (✅ 153):** launch from **Win+R** (it expands `%TEMP%`; in PowerShell `%TEMP%` is a
+literal, a trailing `^` doesn't continue the line, and `chrome.exe` in quotes needs `&`):
+
+```
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --user-data-dir=%TEMP%\mt-prof --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* about:blank
+```
+
+`Extensions.loadUnpacked` works over the proxied port. Repeating it on the same path
+**reloads** the extension, and the service-worker target you just matched may be the one
+on its way out (`chrome is not defined` on evaluate) — the driver re-finds the worker and
+retries. Read-back: FAB, 4 translations (title + 3 paragraphs), scrollbar **15 px**
+(classic scrollbar takes layout width), `detectLanguage` present, 22 voices.
+
+**Edge (✅ 145):** `Extensions.loadUnpacked` answers **「Method not available」** on Edge.
+What works: `--enable-unsafe-extension-debugging --load-extension=<dist>` at launch (the
+`--load-extension` block Chrome ≥ 137 has is not in Edge 145), and the driver falls back
+to finding the already-loaded extension's service worker. PowerShell form (Win+R's
+`msedge` short name is not a PowerShell command):
+
+```
+Start-Process msedge -ArgumentList "--user-data-dir=$env:TEMP\mt-edge2 --no-first-run --no-default-browser-check --remote-debugging-port=9222 --remote-allow-origins=* --enable-unsafe-extension-debugging --load-extension=C:\Users\张钊\Downloads\mt\dist about:blank"
+```
+
+Read-back: FAB, 4 translations in 1.45 s, **service worker → api.deepseek.com ×4, all 200
+at 0.3 s** (the proof the request left the machine — Chrome's run was cache-warm),
+scrollbar **0 px** (overlay scrollbars), 26 voices.
+
+**Firefox (✅ 156, WebDriver BiDi — five traps, in order):**
+
+```
+Start-Process "C:\Program Files\Mozilla Firefox\firefox.exe" -ArgumentList "--remote-debugging-port 9222 --remote-allow-hosts 192.168.2.128 --remote-allow-origins http://192.168.2.128:9223 -remote-allow-system-access -no-remote -profile $env:TEMP\mt-ff about:blank"
+```
+
+1. **The WebSocket upgrade must carry `Host: 127.0.0.1:9222`** — every other Host (the
+   VM's IP with either port, `localhost:9222`) is 400 even with `--remote-allow-hosts`.
+   Node's built-in `WebSocket` cannot set Host, so `firefox.js` carries a 60-line RFC 6455
+   client. (`curl -i` with the upgrade headers and different `Host:` values is how this
+   was found: only the loopback one answers 101.)
+2. **`webExtension.install {type:'path'}` installs the temporary add-on** — but BiDi refuses
+   `browsingContext.navigate` to `about:debugging` *and* to any `moz-extension://` URL
+   (「not allowed in this context」), so neither the internal UUID nor the options page is
+   reachable the obvious way. The UUID is read from the throwaway profile's `prefs.js`
+   over `file://` (`extensions.webextensions.uuids`), and the options page is reached by
+   letting a normal web page **navigate itself** there — `options/options.html` is
+   `web_accessible` for `<all_urls>`, and a page-initiated navigation is not policed.
+3. **Evaluating inside that extension page needs `-remote-allow-system-access`** at launch
+   (「System access is required」 otherwise). With it, `browser.storage.local.set(...)` seeds
+   DeepSeek and `getVoices()` is read there. `captureScreenshot` of that page still refuses
+   (「privileged scope」) — cosmetic, the web page screenshot is the evidence.
+4. **One BiDi session at a time, and the port proxy keeps a dead client's session alive**:
+   a driver killed by a watchdog leaves Firefox saying 「Maximum number of active sessions」
+   until Firefox is restarted — the Mac side shows only TIME_WAIT, the inner 127.0.0.1
+   leg is what the proxy holds. `firefox.js` therefore ends its session on **every** exit
+   path (normal, error, watchdog, SIGTERM). If you see that error, restart Firefox; no
+   amount of retrying frees it.
+5. Reinstalling the add-on closes its own pages, and onboarding opens only on a first
+   install — never count on an extension tab already being there.
+
+Read-back: FAB, 4 translations in 1.55 s (fresh profile — a real DeepSeek round trip),
+scrollbar 0 px, `detectLanguage` present, 5 voices (all local SAPI, incl. Zira en-US).
+
+**What this row can see that macOS cannot — first readings, 2026-09-18:**
+
+- **Speech.** A Chinese-locale Windows ships **only three local voices, all zh-CN**. Chrome
+  and Edge pad the list with online voices (Google / Microsoft Natural); Firefox exposes
+  the SAPI set only (5, incl. one English). Any language-specific fallback logic must be
+  checked against this shape, not macOS's ~100-voice list. Actual playback ⬜ unmeasured.
+- **Layout.** CJK text renders in Microsoft YaHei (screenshots in `.local/win/`), the
+  bilingual line and the FAB sit where they do on macOS. Chrome's classic scrollbar eats
+  15 px of layout width; Edge's and Firefox's overlay scrollbars eat 0.
+- **Speech playback (measured, `start` / `end` events on the utterance):**
+  - Firefox 156: zh-CN Huihui `start` 373 ms (`end` 4070), en-US Zira Desktop `start` 94 ms
+    (`end` 3391) — no user activation needed.
+  - Chrome 153 (after one CDP-dispatched click for user activation — without it Chrome
+    drops `speak()`): zh-CN Huihui `start` 57–272 ms. en-US has **no local voice** on this
+    system, so the pick is 「Google US English」 (online): the **first** utterance of the
+    session produced no `start`, `end` or `error` within 15 s — silence with no signal, the
+    exact shape §1.0 warns about — and the second call 30 s later fired `start` at 802 ms
+    (`end` 3136). Treat the first online-voice utterance as a warm-up that may be silent;
+    the review-card ▶ must not report 「播放中」 on `speak()` returning alone.
+  - Edge 145 (same activation click): zh-CN Huihui `start` 52–230 ms; en-US picks a Microsoft
+    Online (Natural) voice — `start` 1757 ms and 2055 ms on two runs (`end` ≈ 5 s), no silent
+    first call. Note the en-US pick differed between runs (Aria en-US, then William
+    Multilingual en-AU): Edge's `getVoices()` order is not stable, so pick by `lang`, never by
+    index.
+- **Fullscreen (measured):** on a YouTube watch page the in-player 「译」 button appears;
+  `#mt-yt-btn` opens a menu and the **first row** is the on/off switch (a `.click()` on the
+  button alone only opens the menu).
+  - Firefox 156 (VM): a trusted `f` (BiDi `input.performActions`) enters fullscreen,
+    `#mt-yt-overlay` is inside `document.fullscreenElement` and visible, the video advances,
+    Esc exits and the overlay survives — measured with the *notice* in the overlay, not yet
+    with real subtitles.
+  - **Chrome 153 (real desktop, 2026-09-18): ✅ with real subtitles** — the trusted click on
+    `.ytp-fullscreen-button` enters fullscreen, the overlay is inside the fullscreen element and
+    visible, and the translation moves on between t = 16 s and t = 24 s. A CDP-dispatched Esc
+    does **not** leave fullscreen (it only reaches the page); exit with
+    `document.exitFullscreen()` — the overlay survives.
+  - VM Chrome / Edge ⬜ (nothing blocks it since #325 — just not run yet).
+- **⚠ Correction (2026-09-18, same evening): everything this section said earlier that day
+  about YouTube on the VM was wrong.** It claimed, in turn, that the video "stalls at ≈ 48 s
+  and snaps back to 0:00" because YouTube blocks signed-out sessions; that "YouTube needs a
+  signed-in session to serve video and captions"; that a 200 / 0-byte `/api/timedtext`
+  proved a server-side pot-block of the VM; and that Chrome was "refused outright". None of
+  it holds: **the signed-out VM Edge shows subtitles 4 s after its pre-roll ad is skipped.**
+  The snap-back was a 45 s pre-roll ending (the main video does not autoplay without a
+  gesture); the 0-byte timedtext was read while the video sat at 0:00 and was not filtered by
+  video id — an ad's own caption request is empty; the navigation timeouts were a slow VM.
+  The one real cause was a product defect: nobody in an automated run clicks "skip", the ad
+  outlasted the 8 × 2.5 s acquisition budget, and the status latched at 「字幕不可用」
+  (#325, fixed by `acquireGate` in PR #326). **Rules that came out of it** — a YouTube
+  reading is only valid if it carries the ad state (`#movie_player.ad-showing` /
+  `.ad-interrupting`); filter `timedtext` Resource Timing entries by the current `v=`; never
+  judge YouTube's native captions by eye while 「译」 is on, because the extension hides them
+  with `.ytp-caption-window-container{opacity:0}` (`injectCaptionStyle`) — read
+  `.ytp-caption-segment` instead; and before attributing, run the cheapest test that could
+  falsify the attribution (here: skip the ad and look — ten seconds).
+  `scripts/win-matrix/yt-subtitles.js` does all of this; `yt-probe.js` is the read-only form.
+- One more reading: with a Chinese browser UI YouTube auto-selects the video's human-made
+  **Chinese** caption track, so the original is already the target language, the same-language
+  skip applies, and the overlay shows one Chinese line with no translation. By design.
+- **AI 转写字幕** (§1.0 table) ⬜ not yet run here.
+
+**Not in scope of this row:** the host app (Apple only), and anything the Windows
+browser shares byte-for-byte with its macOS build (the transports, the engine).
+
+### Stage 2 spike — what the app's `WKWebView` can actually do (2026-08-07)
+
+`ViewController.swift` uses `loadFileURL`, so the whole learning UI would run on a
+**`file://` origin**. Everything the corpus and sync need is a platform capability
+there, and §5.3 forbids basing a baseline on an unverified one — so it was measured on
+all three surfaces before any app code was written. **Identical on all three:**
+
+| | macOS | iOS 17.2 | iOS 26.5 |
+|---|---|---|---|
+| `isSecureContext` | ✅ true | ✅ | ✅ |
+| `indexedDB` (write + read back) | ✅ | ✅ | ✅ |
+| `crypto.subtle` / `CompressionStream` | ✅ | ✅ | ✅ |
+| `fetch` → Supabase auth / rest | ✅ 200 | ✅ 200 | ✅ 200 |
+
+Two results worth keeping, because both are the opposite of the safe assumption:
+
+- **`file://` is a secure context here.** In a browser it is not, which is exactly why
+  `domain-design` §9.3 has content scripts using FNV-1a instead of `crypto.subtle`.
+  The app is not under that constraint.
+- **CORS does not block Supabase**, despite a `file://` page sending `Origin: null`.
+  A custom `WKURLSchemeHandler` to manufacture a real origin — the obvious fallback —
+  is **not needed**.
+
+So the app needs **no Swift for capabilities**. The only Swift change Stage 2 requires
+is `isScrollEnabled = false` on iOS, which exists to keep the converter's one-screen
+template from bouncing and would trap a scrolling review list.
+
+> **Measuring this cost one wrong turn worth recording:** the first iOS run reported
+> the *previous* `Main.html`. Xcode's incremental build had not re-copied the changed
+> resource, and the app came up looking fine — a stale-resource result that reads
+> exactly like a real one. `rm -rf` the derivedData before believing an app-resource
+> measurement. (Related to, but distinct from, the ios-sim issue where *new* files
+> never enter the bundle at all.)
+
+### I. iOS 系统翻译扩展（真机）— ⬜ 配方来自尖刺 T1（2026-09-19）
+
+**为什么只认真机**：共享钥匙串、扩展的内存上限、「默认翻译 App」那一行出不出现，这三样在模拟器上的读数不能当真。
+
+**模拟器到底能不能用，2026-09-20 量过了，答案分两半**（此前这一行写的是「未量」）：
+
+| | 模拟器 |
+|---|---|
+| 扩展那一半（弹层、翻译、写收件箱）| **不能**。模拟器里**根本没有苹果的「翻译」App**（`simctl listapps` 里 `com.apple.Translate` 0 条命中），设置 › App 下只有我们自己一条，所以没有「默认翻译App」这一行，弹层无从触发 |
+| App 那一半（收件箱摄入 → 写库 → ack → 删文件）| **能，而且比真机好用**：App Group 容器就是 Mac 上一个普通目录（`simctl get_app_container <udid> <bid> group.<group>`），可以直接往 `handoff-inbox/` 里种记录，也可以直接回读它空没空 |
+
+⚠️ 模拟器包要**带 entitlements** 才有 App Group：用 `CODE_SIGNING_ALLOWED=NO` 出的包
+`codesign -d --entitlements` 读回空，`containerURL(forSecurityApplicationGroupIdentifier:)` 返回 nil，
+收件箱必然写不进去 —— 而这与「代码有 bug」在现象上一模一样。带 `DEVELOPMENT_TEAM` 正常构建即可
+（模拟器的 entitlements 在 `*-Simulated.xcent` 里，`codesign` 读不出来，要去 `Build/Intermediates.noindex/` 看）。
+
+⚠️ 回读学习库**不能用 `strings` 找原文** —— 语料是压缩存的（`learn/chunk.js` 的 deflate-raw）。
+判据用 `sourceId`：`strings IndexedDB.sqlite3-wal | grep handoff:system:<月份>`。**要连 `-wal` 一起看**，
+刚写进去的还在日志里。
+
+⚠️ UI 测试程序在模拟器上要改一处才编得过：`XCUIDevice.shared.press(.volumeUp)` 在模拟器上
+**编译期**就不可用（不是运行时失败），要用 `#if !targetEnvironment(simulator)` 岔开，`if` 不行。
+
+1. **装包**：`xcodebuild … -destination id=<UDID> -allowProvisioningUpdates build` → `xcrun devicectl device install app`。
+   **新增 capability 的那一次构建要用 Xcode 登录态** —— 带 ASC API key 三参数会报 `Authentication failed`（T1 连试 5 次）。
+   读回：`codesign -d --entitlements - --xml <app>`：App 有 `com.apple.developer.translation-app` + App Group + 钥匙串组；
+   `<app>/Extensions/<ext>.appex`（**不是 `PlugIns/`**）有 App Group + 钥匙串组。
+2. **配引擎**：在 App 里配 DeepSeek（§0 规则：不用免费 Google），读回 `vault-ack`。调试包可用
+   `devicectl device process launch --environment-variables '{"…":"…"}'` 或 UI 测试的 `launchEnvironment` 把 key 传进去 ——
+   **key 不进包、不进日志**（xcodebuild 会把 `TEST_RUNNER_<NAME>` 去掉前缀传给测试进程）。
+   也可以直接种进 App 的 `localStorage`（一次性夹具，2026-09-20 走通）：从 `appDataContainer` 拉
+   `Library/WebKit/WebsiteData/Default/<hash>/<hash>/LocalStorage/localstorage.sqlite3`，写 `mt:provider` / `mt:apiKey`，推回去。
+   三处容易错：① **值是 JSON 编码的**（`app/chrome-shim.js` 用 `JSON.parse` 读，写裸 `deepseek` 会解析失败并**静默丢掉这个键**，
+   表现是「种了却像没种」）；② WebKit 存的是 **UTF-16LE**；③ 推回去之前要 `PRAGMA wal_checkpoint(TRUNCATE)`，
+   并把设备上的 `-wal` / `-shm` 覆盖成空文件，否则旧 WAL 会盖回来。种完启动一次 App，回读 App Group 的 plist 确认镜像出去了。
+3. **设为默认**（UI 测试程序）：设置 › App › 搜「翻译」› 翻译 › 默认翻译App › 选我们。**iOS 27 的设置页里行不是 cell** ——
+   按文字找任意后代（`descendants(matching: .any)`）；设置根页的搜索搜不到「默认翻译」。判据：页面文案变成「"…"将用于翻译文本」。
+4. **翻一次**：`XCUIDevice.shared.system.open(URL)` 开一个英文页（Safari 地址栏的元素在 iOS 27 上按标签找不到）→ 对段落
+   `press(forDuration: 1.3)` → 点「翻译」。**第一次（以及每次重装后）系统先弹一页「所选内容将发送给…进行翻译处理」** —— 点「继续」。
+   判据：弹层里出现译文（截整屏），设备日志里 `translate ok`。
+5. **可替换**：**不要往用户的备忘录里写东西**（打开就是用户的真笔记）。在宿主 App 自己的可编辑文本框里全选 › 翻译 › 「替换原文」，
+   读回文本框的值。编辑菜单翻页的「›」**没有可用的标签**：按屏宽 87.5%、与菜单项同一行的位置点。
+5.5 **`app:sync` 的输出必须看。** 改了 `app/**`（含 `app/native/**`）之后 `dist-app/` 就比源码旧，
+   这时 `app:sync` **整个退出 1**，Swift 一个字都不会进工程 —— 而你照样能构建成功、照样能装上去，
+   装的是**上一版**。2026-09-20 我把它的输出重定向到 `/dev/null`，然后花了三轮去查「为什么新加的那行
+   没生效」，真因就是这个。修法是那行输出自己说的：先 `node build.js`，再 `app:sync`。
+   **别把 `app:sync` 的输出丢掉。**
+
+6. **读 App Group 的内容**：`devicectl device info files --domain-type appGroupDataContainer --domain-identifier group.<bundle>`
+   与同域的 `copy from` **是通的**（2026-09-20 实测，开发签名包）。回读镜像过来的配置就靠它：
+   `Library/Preferences/group.<bundle>.plist` 里的 `mt.vault.snapshot.v1`（key 不在这里，按设计只进共享钥匙串）。
+   > 尖刺 T1 记的是「被拒（Access restricted）」，那条**已经不成立**；旧的绕法（宿主把日志抄一份到自己的
+   > `Documents/`，从 `appDataContainer` 拉）仍然有效，但不是必须的。第一次列目录报
+   > `The system failed to get a list of files` 时别当成被拒 —— 目录还不存在时就是这个报法。
+   **反过来写不行**：`copy to` 往 App Group 容器里放文件会**报成功但什么都没落地**（回读目录里没有，三种写法都试过）。
+   要给收件箱种记录，只能让扩展自己写。
+7. **进复习库**：翻完后打开 App ⇒ 来源管理里出现「系统翻译 · <月份>」、卡片来源行是纯文字；关掉 `handoffCapture` 再翻一次 ⇒
+   App 读回收件箱目录为空。清除本机数据后再翻 ⇒ 弹层是未配置态。
+8. **收尾**：把手机装回正常的包；`devicectl device info apps` 读回版本。
+
+陷阱：联网键写在**宿主 App** 的 Info.plist（写在扩展里 ⇒ `NSURLError -1009`，而宿主自己联网是 200，很像「手机没网」）；
+`openURL` 拉不起宿主 = 宿主没注册那个地址协议，不是系统不许。
+
+**UI 测试程序会突然起不来**（2026-09-20 撞到，同一台机器上午还是好的）：
+
+```
+Unable to launch cc.belliedmonkey.spike.s56uitests.xctrunner because … its profile
+has not been explicitly trusted by the user
+```
+
+这不是代码问题，也不是签名坏了。逐条排除过（2026-09-20）：主 App 用同一把
+`Apple Development: … (DT6MT97DP4)` 签名、**照常启动**；runner 的描述文件有效到 2027、这台设备在
+`ProvisionedDevices` 里、`codesign` 读回同一个 TeamIdentifier。**只有测试程序被挡。**
+
+要人在手机上点一次 —— **在主屏点那个 `S56UITests-Runner` 图标**（灰色空白图标，点开可能一闪就退，
+那是正常的）。**不要去「设置 → 通用 → VPN 与设备管理」找「开发者 App」那一节：开发者模式开着时
+那一节根本不存在**（2026-09-25 实测，此前这里写的路径是错的）。
+
+**卸载 runner 再装一遍偶尔能绕过一次，但不可靠。** 同一天里：第一次这么做通了，之后每次重装主 App
+它就又被挡，再用同样的办法（卸载 + `build-for-testing` + `test-without-building`、`xcodebuild test`
+整跑、`devicectl install` 装 runner）三种都试过，一次都没再通。
+
+> **2026-09-25 把真因钉死了：触发条件是「runner 的二进制变了」，不是「卸了 runner」也不是
+> 「重装了主 App」。** 那天既没卸 runner、也没重装主 App，只改了 `S56UITests.swift` 重建，照样被挡。
+> 逐项回读过（同一天）：
+>
+> | 项 | 读数 |
+> |---|---|
+> | 签名证书 | 钥匙串里**只有一张**有效的 iOS 开发证书（`Apple Development: ZHAO ZHANG`，2026-06-27 签发、2027-06 到期），两个月没变 |
+> | 描述文件 | Host 与 Runner 嵌的是**同一份**（UUID `9607f946…`，2026-09-12 建、2027-09 到期），`embedded.mobileprovision` 的 md5 两者相同，且 09-21 之后一个新 profile 都没生成 |
+> | 每次重建变的 | **只有可执行文件的 CDHash 与签名时间戳** |
+>
+> ⇒ 装上新二进制就要**联网重新校验一次开发者证书**（记忆 `ios-dev-cert-online-verification`），
+> 校验没当场完成就报这个错，而点图标正是在前台触发那次校验。
+>
+> **对策不是「修签名」。** 当天先落的是「少重建」：runner 里有脚本驱动的通用用例
+> `testDrive`（`tools/ios-runner/README.md`），加新流程写 JSON、不改 Swift、不重建，
+> 也就不会触发这一关。改 Swift 之前先问一句「这个能不能用 testDrive 表达」。
+
+#### 那条「根治」已被证伪（2026-09-25 当天推翻）
+
+当天用户点破了一层真因：
+
+> 「这一次也是先关 shadowrocket vpn 再打开 app 再开 shadowrocket vpn 才可以。」
+
+**关掉代理确实有效**，这一条两次实测都成立，是目前已知可行的解法。但我由此断言
+「把 `ppq.apple.com` 与几个 OCSP/CRL 域名放直连就根治了」，并写进了文档、记忆和 PR ——
+**同一天晚些时候被证伪**：装完主 App 的新包之后 runner 被挡，用户点图标，
+**此时代理是开着的、放行模块也装着，弹窗照样报「无法验证App」**。
+
+我当时拿来当证据的是「导入模块后重建 runner 三次全过」。但那批观测有**两个**解释：
+
+| | 解释 A（我写下的） | 解释 B |
+|---|---|---|
+| 模块导入后重建全过 | 模块放行了校验 | **重建 runner 根本不需要重新校验** —— 证书早已受信，变的只有二进制哈希 |
+| 模块导入前重建失败两次 | 没有模块 | 那两次前面**装过新 App**，欠的是那一次校验 |
+
+两个都装得下同一批数据，而分开它们的测试一直在手边（关掉模块重建一次）。**我没做，
+就把先想到的那个写成了结论。** 这和当天早些时候的两个错误归因（「卸了 runner」、
+「Xcode 轮换了证书」）是同一个毛病，而三次都是用户的一句观察把它翻过来的。
+
+⇒ 判断口径补一条：**当一批观测能被两个解释装下时，先做能把它们分开的那个测试，
+再写结论。** 写不了就把不确定标在结论里。
+
+模块文件仍留在 `tools/ios-runner/`（域名清单是对的，可能还有用），但 README 与门禁
+都已改成「**未证实，不要当解法**」。
+
+**镜像那条路仍然不行**（ZHAO的iPhone 没有锁屏密码，而没有密码的机器永远连不上镜像）——
+但那与本条无关了：证书校验这一关现在不需要人。
+
+### J. macOS 快速翻译（真机、签名构建）— ✅ verified 2026-09-19（配方来自尖刺 T2）
+
+1. **装**：签名构建拷到 `/Applications`，跑一次；`/System/Library/CoreServices/pbs -update` 后
+   `pbs -dump | grep -A14 <App>` 读回服务条目**含 `NSRequiredContext`**（不含 ⇒ 已登记但默认不启用，菜单里永远找不到，无报错）。
+2. **热键**：别的 App 在前台时用 System Events 发 `key code 17 using {control down, option down}`；判据：面板窗口出现
+   （`list_windows`）且前台 App 没变。
+3. **服务菜单**：宿主 App 里选中文字 → System Events 打开「应用菜单 › 服务」→ 读子菜单项 → 点我们那一项。
+   **服务子菜单是惰性的**：不真的打开它，AX 树里只有「服务设置…」。判据：面板里的原文与选中文字一致，且 1 秒后前台仍是原来的 App。
+   至少过：Safari、Chrome、Firefox、文本编辑、预览（PDF）、Pages；跨平台框架做的 App 单独记。
+4a. **截图翻译的录屏权限是两道系统框，不是一道（macOS 27 实测，2026-09-19）。** 第一道是「想要录制此电脑的屏幕和音频」
+   （`CGRequestScreenCaptureAccess`，去「录屏与系统录音」打开开关，授权后要重开）。**第二道在第一次真的截屏时才出现**：
+   「正在请求绕过系统无痕浏览窗口选择器，直接访问屏幕和音频」，按钮是「打开系统设置 / 允许」—— 这是系统对「不经系统选择器、
+   直接用 ScreenCaptureKit 截屏」的 App 追加的确认，**系统还会定期重新问**。两道都**由人点**。第二道弹出时那一次截屏已经完成
+   （面板里已经是结果）。系统选择器只能选窗口 / 整块屏，选不了任意矩形，所以这道框绕不开。
+   **产品里预告它（用户裁定 2026-09-19）**：「还差一步」那一态多一句「第一次框选时，系统还会再弹一次确认…之后每隔一段时间会再问一次」，
+   只在会有这一道的系统上说（原生报 `second` = macOS 15 起）。
+4. **增强取词**：系统弹窗与系统设置里的开关**由人点**。那一页在 macOS 27 上叫 **隐私与安全性 ›「设备控制和数据访问」**（更早的系统叫「辅助功能」；`x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility` 两边都能直达，2026-09-19 实测），列表里显示的是**包名**（国际版 `BelliedMonkey Translator`、中国版带 ` CN`），不是界面上的「大肚猴翻译」。判「生效没有」别看界面：`sqlite3 -readonly '/Library/Application Support/com.apple.TCC/TCC.db'` 读 `kTCCServicePostEvent` 的值与时间，`ps -o lstart` 读进程启动时间 —— 进程早于授权就是读不到。授权后**要重开 App** 才读到（`CGPreflightPostEventAccess`）。
+   判据：选中一句 → 热键 → 面板原文一致；`clipboard_read` 读回的旧剪贴板**逐字节不变**。不选任何东西再按 ⇒ 什么都不翻。
+5. **剪贴板隐私**：沙盒 App 的偏好在**容器里** ——
+   `defaults write ~/Library/Containers/<bundle>/Data/Library/Preferences/<bundle> EnablePasteboardPrivacyDeveloperPreview -bool yes`
+   （写到宿主域无效，会误读成「无影响」）。判据：面板 1 秒内落到「系统没有让我们读到剪贴板」，**不卡死**。验完删掉这个键。
+6. **截图翻译**：录屏授权由人点。三张固定图（英 / 简中 / 日）各框一次；判据：面板原文与真值的字符级一致率 ≥ 0.9，
+   且设备上没有任何截图文件落盘。macOS 13.x 上入口不出现。
+7. **常驻与复习**：关主窗口后进程仍在、热键仍响应；主窗口的来源管理里出现「划词翻译 / 截图翻译 · <月份>」；
+   `quickEnabled` 关掉后关窗即退出。
+8. **收尾**：系统设置里两处授权条目由人删。**测试时打开的别人的 App 不要替用户退出**（先记下原来开着哪些）。
+
+### F. iOS host app (Xcode Simulator) — ✅ Stage 2 + 3 verified 2026-08-07
+
+**Stage 3 (review in the app).** iPhone 17 Pro · iOS 26.5, continuing from the Stage 2
+corpus: 开始复习 → a real card (`en.wikipedia.org · Forgetting curve`, synced from a
+browser) → 显示译文 → 记得 → 待复习 1→0, 「下一张卡片约 6 小时后到期」,「本次完成 1
+张」 → terminate + relaunch → **schedule still there**. The review surface is the
+extension's own `review.js` / `review.html` / `review.css`, inlined at build time.
+
+> **The bug inlining creates, found by screenshot on the first build: id collisions.**
+> Both documents were written as whole pages, each free to use any id. Merged, a
+> duplicate is not an error anywhere — `getElementById` returns the first match — so
+> `review.js` wrote its counts into the app shell's `#counts` and the app's card
+> totals silently vanished. `build/app-bundle.js` now **fails the build** on any
+> clash, and the app shell is the side that renames (`review.html` is shared source).
+> The DOM assertions in `test:app` could not see this: they use `getElementById` too,
+> which is exactly what the collision fools.
+
+**Push-back verified the same session.** The grade given above was still local; with
+`doSync()` switched from `pull()` to `sync()` it uploaded as **「已上传 1 条复习记录」**
+(复习记录 11→12), and the next run settled to 「已经是最新的」 — §8.4.2 convergence, in
+both directions, on a real device against the real backend.
+
+> **The same wording confusion, shipped twice in one file.** A converged pull still
+> READS a chunk — the cursor does not skip rows this device just wrote — so keying the
+> message on `r.chunks` announced 「收到 0 张卡 · 0 条复习记录」 immediately after a
+> perfectly successful sync. Earlier the same day, keying it on `!r.chunks` announced
+> 「服务器上还没有内容」 next to a count of 11. **Both times the healthy state was
+> rendered as a failure**, and both times the fix was to key on what was actually NEW
+> (`r.cards || r.reviews`) rather than on transport-level activity.
+
+**iPhone 17 Pro · iOS 26.5, real backend, real email OTP.** The full loop:
+
+| Step | Result |
+|---|---|
+| Sign in (`LearnAuth.signIn` → GoTrue → email OTP → `verify`) | ✅ |
+| Auto-pull on verify | ✅ **11 cards · 11 reviews · 2 sources** — material captured in a browser arrived in the app |
+| Sync again | ✅ 0 chunks — converged (§8.4.2's criterion) |
+| Reinstall over the top + relaunch | ✅ session, corpus and last-sync time all survived |
+
+That is Stage 2's acceptance criterion met: the extension's corpus reaches the app, and
+the server is the only thing between them (§7.2).
+
+**Simulator text input — the recipe, and one correction to it.** `type_text` still
+turns every character into `a` (23 a's, reproduced again here). The working path is
+`pbcopy` → `xcrun simctl pbsync host <udid>` → focus the field → **原地 `drag` with
+`duration_ms: 2200`** (that is the long-press; there is no hold-click) → **Select All**
+→ **Paste**.
+
+- **Do NOT press ⌘⇧K "to enable the hardware keyboard".** It is a toggle and the
+  hardware keyboard is already on — pressing it *disconnects* it and raises the
+  software keyboard, which is the opposite of the intent and looks like the fix failed.
+- **The two coordinate spaces are different and it is easy to mix them up.** cua-driver
+  wants window-local pixels from `get_window_state` (device screen + simulator chrome);
+  `xcrun simctl io … screenshot` gives device pixels only. Locate tap targets in the
+  `get_window_state` image, never in a `simctl` screenshot.
+
+**Stage 4 (settings) verified 2026-08-07.** 设置 reachable from both the header and
+the review page footer — and that second path is the whole point: before this it
+called `chrome.runtime.openOptionsPage()`, which the shim throws on, so a user could
+reach a dead end in two taps. The page carries 每日新卡上限 / 自动朗读 / 朗读速度
+(written to the SAME `chrome.storage` keys `review.js` reads, so there is no second
+settings model to drift), 学习库 counts + §7.1's targeted 清理已掌握的卡, and 账号:
+退出登录 plus **删除账号与云端数据**.
+
+> **The account deletion is a release gate, not a feature.** §10 Gate B: Apple
+> requires in-app account deletion wherever accounts exist. `npm run test:app` now
+> fails by name if that button goes missing, and the failure message says why.
+
+### F-bis. 真机 iPhone（ZHAO的iPhone / iOS 26.5）— ✅ verified 2026-09-05
+
+USB（`devicectl`）与蓝牙/Wi-Fi（iPhone 镜像）**是两条独立的路，缺一不可**，而且
+它们对锁屏状态的要求正好相反：
+
+| 要做的事 | 走哪条 | 设备状态要求 |
+|---|---|---|
+| 装包 / 读写容器 / 启动 App | `devicectl`（USB） | **必须解锁**（`FBSOpenApplicationErrorDomain error 7 = Locked`） |
+| 看屏幕 / 点击 / 打字 | iPhone 镜像（蓝牙+Wi-Fi） | **必须锁屏**，且「最近解锁过」 |
+
+所以顺序是固定的：**先解锁装包 → 再锁屏遥控**。2026-09-05 卡在
+「未找到 iPhone」十分钟，真因是**手机蓝牙关着** —— USB 连着、`devicectl` 一切正常，
+完全不影响，所以别拿 `devicectl list devices` 的 `available (paired)` 当镜像也能连的证据。
+
+> **真机是唯一能验「存量用户」的地方。** 模拟器与 Chrome 每次都是全新态；这台机器上
+> 躺着的是真实的历史数据。2026-09-05 就是在这里读到 1.6.8 时代留下的
+> `ttsMode="assist"` + **`ttsEngine` 不存在** —— 正是 A2 点名的那个危险组合
+> （「模式开着但引擎为空 ⇒ 点了必然失败的播放键」）。取证方式不需要镜像：
+>
+> ```bash
+> xcrun devicectl device copy from --device <id> \
+>   --domain-type appDataContainer --domain-identifier com.belliedmonkeytranslator \
+>   --source "Library/WebKit/WebsiteData/Default/<salt>/<salt>/LocalStorage/localstorage.sqlite3" \
+>   --destination ./dev-ls.sqlite3
+> ```
+>
+> 升级前先拉一份当基线，升级后再拉一份对比 —— 这是「存量用户会被这次改动影响成
+> 什么样」唯一的直接证据。
+
+> **⚠️ 手机那条网络与 Mac 不是一回事。** Mac 上挂着代理，手机没有。2026-09-05
+> `en.wikipedia.org` 与 `stackoverflow.com` 在手机上都打不开（前者直接报
+> 「已丢失网络连接」）。**验证站点要挑国内直连的英文页**（实测 `www.apple.com/newsroom/`
+> 可用）。别把这个误判成扩展坏了。
+
+2026-09-05 verified：装 1.7.13 → 启用扩展（重装会把开关重置回「关闭」）→
+站点授权**从另一台设备同步过来**（「在设备之间共享」开着时不必重新授权）→
+FAB 注入 → 点一下整页双语（`September Event` → `九月活动`、`Latest News` → `最新新闻`），
+走存量的 DeepSeek 配置。
+
+#### F-bis 补充（2026-09-12）：真机已是 iOS 27.0；本机语音两行 M24 / M25；D2 前欠的三项读数
+
+- **真机现在是 iOS 27.0（24A5430a）。** 本节标题与 §2 各处的「iOS 26.5」是当时读数的
+  条件，只增不改；新读数一律标 27.0。
+- §0.3 那张坑表在这一行全部适用：先退出镜像再读麦克风；`devicectl … process launch`
+  要解锁；被拒的麦克风权限不再弹（设置 → 应用 → <App> → 麦克风）；探针要持有后台
+  音频会话。声源按 §0.3 用 Mac `afplay` 语料，不用真人。
+
+**本机语音（device-speech，D2–D6）在这一行新增两项，与 M21–M23 同列**（G 行 macOS
+宿主 App 同样跑 M25；M24 的锁屏一档 macOS 无对应，记 N/A）。`learn-regression.md` 的
+M 表要同步加这两行，编号在此钉住：
+
+| # | 项 | 怎么做 | 通过判据 |
+|---|---|---|---|
+| **M24** | 本机转写锁屏 60 s 续听 | 引擎选「设备内置转写」，按 §0.3 配方开始听译，Mac `afplay` conv 语料；**退出镜像 = 真锁屏**，60 s 后重开镜像回读 | 锁屏窗口内 `stt-final` 持续到达（App 内 append-only 时间戳日志，≥ 5 条 final 的时间戳落在锁屏窗口内），历史里多出对应的定稿 + 译文；`mic-level` 的 rms **不是恒 0**（恒 0 是镜像没退干净或权限被拒，§4 2026-09-12）。M22 的云端路基线同场跑一遍，不得退化 |
+| **M25** | 本机朗读后台出声 | 引擎选「设备内置朗读（离线模型）」，触发一句自动朗读，按 Home 退到后台（镜像可驱动这一步，§0.2） | 后台期间桥收到 `tts-start` / `tts-end`，且**用户人耳听到声音**（Swift 侧 playerNode 出声，JS 里没有任何可断言的音频元素 —— 这是 §4「静音要报成静音」在本机路的形态）；模型未下载时先出具名 `downloading` 态，下载失败 `listen_assets_failed` 并留 `browser` / 云端出口 |
+| **M25-sys** | 系统语音（原生后端）锁屏出声 | 引擎选「设备内置语音」（App 内走原生 `AVSpeechSynthesizer`，P3 #251），开始听，**用户按电源键锁屏**（远程锁不了：无密码 + App 前台使用中时 iPhone 镜像连不上，`devicectl` 无锁屏命令），Mac 连放两遍 conv.wav | 锁屏期间每行 `lat.ttsOk` 为真、`ttsStart` 与前台同量级，且**用户人耳听到译文**。✅ **2026-09-13 11:55 真机通过**（iPhone 14 Pro · iOS 27.0）：锁屏 83 s 内 21 句到齐、21 句全由原生系统语音念出、0 失败、开口 86–108 ms；用户回读「锁屏期间听到在念译文了」 |
+| **M26** | Mac 系统声音字幕 | App「实时字幕」开始 → Mac `afplay conv.wav`；再用 Safari 播一个 MSE 视频（YouTube，扩展在 Safari 里静音的那格） | ≥ 11/12 句定稿；说完 ≤ 3 s 悬浮条出双语；把输出切到耳机再跑一遍仍出字幕；记 CER 与 `lat.pass`（数字声音应优于麦克风读数）。**开始后 ~10 s 没有第一条定稿就当这一档没通过** —— 本地重签的包会静默采到静音而界面照说「正在听」，先按 §2.G 第 6 条切一次「仅系统录音」授权（#420） |
+| **M27** | 悬浮条层级与焦点 | 条盖在全屏 Safari 视频与全屏 Zoom 上；点条后按空格；拖到别处后重启 App | 条始终在最上层；空格仍暂停视频（焦点没被抢）；位置、宽度、字号还在 |
+| **M28** | Mac 关主窗口不停 | 会话中关主窗口 10 min，`afplay` 循环 | 定稿与译文节奏与窗口可见时相差 ≤ 20%（`AppListen._debug().lat`）；点 Dock 回来历史完整 |
+| **M29** | Mac 系统版本门 | macOS 13.x（虚拟机） | 入口灰 +「系统声音字幕需要 macOS 14.4 或更新」 |
+| **M30** | 系统录音权限被拒 | 首次弹窗点「不允许」，然后放视频（或：系统设置 › 屏幕与系统录音 › 仅系统录音 关掉「大肚猴翻译」再开始 —— 09-15 两次 `tccutil reset` 后点弹框都被 TCC 记成允许，关开关才稳定造出拒绝；TCC 读回 `auth_value=0`） | HAL 返回（点「不允许」后约 15 s，M30 读数；关开关时立即返回）再过约 3 s，条上出不中断提示「还没听到系统声音 — …可能没开系统录音权限」+「打开系统设置」，会话**不停**；30 s 后静音门暂停，页面暂停句**与条上**都指向权限：条上「30 秒没有声音，已暂停 — …可能没开系统录音权限」+「打开系统设置」（2026-09-15 修订二 + O2） |
+| **M30b** | 已授权但开始瞬间静音（F13） | 权限已给；某 App 开着输出但不出声（`pmset -g assertions` 有 audio-out）→ 开始 → 10 s 后再 `afplay conv.wav` | 开始后**不出现「被拒」、不停会话**；可以出「还没听到系统声音」提示；放声后 ≤ 3 s 提示撤掉、出双语定稿 |
+| **M30c** | 原生一声不吭、样本恒零（#424） | 权限给着但采集链路是死的（本地重签那一类，§2.G 第 6 条）；**按我们自己教的顺序**来：先在 App 里点「开始」，**再**切到浏览器点播放 | 开始后 ~8 s 出不中断提示「还没听到系统声音 — …可能没开系统录音权限」+「打开系统设置」，会话**不停**；到 30 s 静音门时，暂停句与条上都指向**权限**，不是「没有声音」。判据是**收到的样本是不是全零**（`session.heardAny`），与语音门限无关 —— 原生那条 silent 判据只在开始后 3 s 量一次，那时通常还没开始播，所以量不到 |
+| **M31** | iPhone 后台听外放 | App 开始 → 切 Safari 外放 lab-server 页的 `conv.wav`，再放一个 YouTube 视频，再换 Chrome 与 YouTube App 各放 1 min，共 5 min（先退出 iPhone 镜像） | 三个 App 都不被暂停、音量前后 ±3 dB（Mac 麦克风测）；定稿持续；画中画小窗离开 App 自动浮出、随句滚动、捏合放大后可读；**国际版 + 中国版**各一遍 |
+| **M32** | iPhone 屏幕录制 + 耳机（二期） | App「用屏幕录制方式开始」→ Safari 播 YouTube，戴 AirPods 10 min；另测未在 App 里开始就直接录制 | 定稿持续；广播扩展内存峰值 < 25 MB；未布防 ⇒ 立即结束并显示那句话 |
+
+**D2 写代码之前欠的三项读数**（09-12 尖刺没拿到；不补就是「没测」，按 §0 不得写成通过）：
+
+| 欠的读数 | 为什么现在没有 | 怎么补 | 判据 |
+|---|---|---|---|
+| 真机双识别器 CPU | 探针里的采样器写错了（线程时间差出负数），**没量准**；只有旁证：四档转写 `thermalState` 全程 nominal，双路 conv 与单路 conv 的滞后 / 首字无差别 | Instruments（Time Profiler + Energy Log），zh+en 双路对 conv 语料 3 分钟，镜像已关 | 进程 CPU 均值与 max 写进 `READINGS.md`；`thermalState` 不进 `serious`；与单路的差值具名 |
+| 中国网络下的资产下载（无 VPN） | 手机一直在家里 Wi-Fi，走的是有代理的网 | 手机关 VPN，走蜂窝或国内直连 Wi-Fi；触发一个**未预装** locale（如 ja）的 `SpeechTranscriber` 资产下载 + 一次 Piper 模型下载（我们的文件服务器） | 两条进度都到 1.0，用时记下；失败必须出具名 `listen_assets_failed`，不许转圈。这一项**没有绿之前，中国版不得把两个 `device` 条目放进出货列表** |
+| 转写中插拔耳机（音频路由切换） | 没跑 | 本机路转写进行中，插入 / 拔出有线耳机各一次（蓝牙耳机与镜像互斥，§0.2；所以这一档也是镜像关着、日志回读） | `AVAudioEngineConfigurationChange` 后 tap 继续有帧、`stt-final` 继续到，历史不断；掉帧要具名，不许静默停 |
+
+另有一条尖刺**未解**，D2 必须单独验：`setVoiceProcessingEnabled(true)` 在挂了 playerNode
+的 engine 上 tap 收 **0 帧**（两次都是），不挂 player 时开 VP 能正常收帧并识别外部人声。
+正式桥里先试「先 attach player 再开 VP」与「VP 下 tap 用 nil 格式」；两条都不通就把 VP
+关掉出货，并在 `READINGS.md` 记下回声读数（不开 VP 时扬声器→麦克风回声约 +7 dB，播放中
+采集不掉帧）—— 关 VP 是一个有读数的决定，不是默认。
+
+### G. macOS host app (real Mac) — ✅ verified 2026-08-08
+
+Same three built files as row F, same Xcode project, so what this row tests is the
+macOS *host*, not the product logic. Signed build → `/Applications` → `open` (§2.G's
+recipe below). Verified: launch and layout; signed-in state pulling **11 cards · 12
+reviews**; sync; grading a card **persisted to IndexedDB** (+66 KB, `grade` +3,
+`lastReviewAt` +6 on disk); and — the one that matters most — **explicit sign-out
+survives a relaunch**.
+
+> **Two operator lessons, both cost real time.**
+>
+> 1. **Driving the app's `WKWebView` from outside is unreliable on macOS.**
+>    `type_text` interleaves characters (`belliedmonkey@gmail.com` came out
+>    `bellicedmoonkdey@gmaeil.com`), and ⌘A/⌘V do not land in the web view at all.
+>    Unlike the simulator there is no long-press-paste fallback. **Hand text entry to
+>    the human on this row** rather than burning attempts; everything else drives fine.
+> 2. **When a human is in the loop, ASK before investigating an anomaly.** The app
+>    appeared signed-in without an OTP, and the possibility that it was a broken auth
+>    path justified looking — but the first move should have been one question. It
+>    cost a container audit, two IndexedDB inspections and a full data wipe to
+>    establish something the user answered in three words: they had signed in
+>    themselves. **A wipe is also destructive**, and it was aimed at a hypothesis that
+>    a question would have eliminated for free.
+>
+> The reflex worth keeping is the other half: what made this safe to conclude was not
+> the explanation, it was the **falsifying test** — sign out, relaunch, confirm it
+> stays out. That distinguishes "a session I forgot about" from "sessions resurrect"
+> without needing to know where the session came from.
+
+> **两条 2026-09-04 花了十几轮买来的（同一行、同一个 App）**
+>
+> 3. **这个 App 的 localStorage 有两个可能的位置，先用 `lsof` 问它在读哪一份。**
+>    带 App Sandbox 的构建（正式签名 / 有 provisioning profile）落在
+>    `~/Library/Containers/com.belliedmonkeytranslator/Data/Library/WebKit/…`；
+>    去掉沙箱的本地 Debug 构建落在 `~/Library/WebKit/com.belliedmonkeytranslator/…`。
+>    **两份都可能存在、都装着看起来很像的 `mt:` 键**，而旧的那份是历史遗留。
+>    我对着没在用的那份改了六轮种子，每次都得到「没生效」，并据此推出了一个
+>    错误的结论（「macOS 上外部写 WKWebView 的 localStorage 不生效」）。判据是：
+>
+>    ```bash
+>    for q in $(pgrep -f WebKit.Networking); do
+>      lsof -p $q 2>/dev/null | grep "localstorage.sqlite3$"
+>    done
+>    ```
+>
+>    顺带：种子要写进 **WebKit 自己建过的**那个库（它是 WAL），别用 sqlite3 新建一个。
+>
+> 4. **窗口截图全白 ≠ App 挂了。** 先证明渲染进程是死是活，再谈回归。同一个
+>    `lsof` 就够了：WebContent/Networking 还打开着那个 sqlite，就说明页面在跑 JS。
+>    这一条把「是不是我刚才那次改动把 App 改白屏了」从猜测变成可判定的事 ——
+>    而它当时的答案是「不是」（`npm test` 与两个 flavor 的 `test:app` 全绿）。
+>
+> 5. **「白屏」是假的 —— 那是窗口捕捉坏了，不是 App（2026-09-04 误判，09-05 更正）。**
+>    我连续判定这一行「白屏、未决、not-run」，写进了这份文档，**结论是错的**。
+>    真相是屏幕上的窗口一直在正常显示，坏掉的是我这一侧的观察：cua 对**这一个 App**
+>    的窗口捕捉失败（`ScreenCaptureKit ... 无法开始流播放` / `could not create image
+>    from window`），返回的空白被我读成了 App 画的白 —— 而同一时刻它对 Safari 和
+>    模拟器截得好好的，这个「别处都正常」恰恰让误判显得可信。
+>
+>    **判据要用不依赖捕捉的那些，而且要能分清三层**：
+>
+>    | 想知道什么 | 判据 | 不受捕捉影响 |
+>    |---|---|---|
+>    | 进程死了吗 | `sample <pid>`：主线程停在 `NSApplication run → nextEventMatchingMask → mach_msg` 就是**健康空闲**，不是死锁 | ✅ |
+>    | 页面 boot 走完了吗 | 删掉只有渲染到登录态才会写的键（`mt:learnDbOwner`，由 `show()` → `bindCorpus` 写），重启看它**写不写回来** | ✅ |
+>    | 屏幕上到底长什么样 | **问用户** | ✅ |
+>
+>    ⚠️ **`osascript` + System Events 在 Bash 沙箱里读不到任何 App 的窗口** ——
+>    它对 Safari、Chrome 一律返回 `count windows = 0`。我拿它「独立验证」过一次
+>    「AX 层真的看不到窗口」，那条推断整个作废。**任何 AX 判据都要先跑一个已知正常
+>    的 App 当对照**，否则量到的是自己的权限，不是被测对象。
+>
+>    同理，shell 里的 `screencapture` 在这个沙箱里出的是**全黑图**（有字节数、看起来
+>    像成功），不是黑屏。
+>
+>    这一整轮的代价：十几次重建 + 三种签名配置的对照实验 + 一条写错的 not-run。
+>    **`ask-before-investigating-anomalies` 那条记忆正是为此存在的** ——
+>    人在回路里的时候，「你看一眼屏幕」是最便宜的一次测量。
+>
+>    权限恢复后同一个进程立刻截得出内容、AX 也回来了 —— 这本身就是最终判据：
+>    **App 一个字节都没变，变的只有观察。**
+
+> **一条 2026-09-23 花掉一个下午的（#420）**
+>
+> 6. **本地重签的包，「仅系统录音」的授权会对新签名失效 —— 而且不弹框。实时字幕
+>    于是静默采到全静音。** 现象：字幕条正常浮出、写着「正在听系统声音…」，**没有**
+>    任何权限弹窗（所以看起来授权还在），30 秒后变成「30 秒没有声音，已暂停以免计费」，
+>    一个字都没出。声源是确实在响的 `afplay conv.wav`（阻塞满 22 秒）与 `say`，
+>    输出设备是内置扬声器、音量 100、未静音 —— **不是没播，是采到了静音**。
+>
+>    **判据必须是「真的出字幕」，不是「界面说在听」。** 这一行（M26 / M28 / M31 的
+>    Mac 半边）以及任何用实时字幕当素材的工作（商店预览视频），开始后若 ~10 秒内
+>    没有第一条定稿，就当**这一条没通过**，不要接着往下拍 —— 我当时把它读成
+>    「环境没声音」，为此另开了一条错误的排查线。
+>
+>    **怎么修**：系统设置 › 隐私与安全性 › **屏幕录制与系统录音** → 下面那节
+>    **「仅系统录音」**（不是上面的「录屏与系统录音」，#420 当天在上面那节里找不到
+>    条目，差点判成「授权丢了」）→ 把「大肚猴翻译」**关掉再打开**（需要 Touch ID），
+>    然后**完全退出并重开 App**。已证伪：同一个声源、同一份包，切换前后一个是
+>    30 秒静音暂停，一个是两句定稿 + 译文、悬浮条实时滚动、「已听 00:45」。
+>    假设 B（采集侧代码 bug）由此排除。
+>
+>    **对商店用户是否成立：未验证。** App Store 的更新保持同一 designated requirement，
+>    正式版大概率不受影响；但这只是推断，不要当结论写进任何对外文案。
+>
+>    留下的产品问题不在这一条里：那句兜底文案说的是「没有声音」，而真实原因可能是
+>    「拿不到系统声音」。见 #424。
+
+**Scope note:** relaunch-persistence of the graded state was not re-driven here (the
+on-disk write is the evidence, and the same IndexedDB path was verified end-to-end on
+row F). Not claimed as more than that.
+
+Same loop as F. The one thing that must not be improvised is the install:
+
+```bash
+node build.js
+xcodebuild -project "safari-project/…/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (macOS)" -configuration Debug \
+  -derivedDataPath /tmp/bmt-mac-signed -allowProvisioningUpdates build   # NOT CODE_SIGNING_ALLOWED=NO
+rm -rf "/Applications/BelliedMonkey Translator.app"
+cp -R "/tmp/bmt-mac-signed/Build/Products/Debug/BelliedMonkey Translator.app" /Applications/
+open "/Applications/BelliedMonkey Translator.app"
+pluginkit -m -p com.apple.Safari.web-extension | grep belliedmonkey     # proof it registered
+```
+
+**An app built with `CODE_SIGNING_ALLOWED=NO` is never registered by Safari, even from
+`/Applications`** (measured). This is also what finally explained a full day of
+intermittent 「扩展突然不跑了」 on row 3: an unsigned temporary extension is switched
+off at every Safari restart and needs an admin password to re-enable, whereas a really
+signed container app installs once and survives. **Prefer the signed app to 添加临时扩展
+for any session longer than a few minutes.**
+
+---
+
+## 3. Automated gates (mandatory, before every push)
+
+### 3.1 `npm test` — pure logic (every push)
+
+`npm test` (`node test/run.js`, zero-dep, Node ≥18) covers the pure-logic core: the
+translate-ahead subtitle engine + state machine, cue→sentence merge, i18n/locale
+resolution, and every provider's request-building / caching / retry-fallback. **It must
+be green before you push.** When you change logic, add/update tests in the same commit.
+**Never push on a red suite.**
+
+**Learning layer (记忆层).** `learn-model.js` and `learn-scheduler.js` are pure by
+construction and belong here in full; `learn-collector.js` is testable with an
+injected clock and an `IntersectionObserver` stub. All three land in §3.1.1's line of
+fire, and the mapping is not optional:
+
+- **(1) production config** — the scheduler must be asserted against the exported
+  `DEFAULTS`, with one case passing a deliberately partial config. A scheduler whose
+  `dailyNew` silently reads `undefined` still returns a plausible-looking deck.
+- **(2) work not done** — a segment below the dwell threshold must produce **zero**
+  storage writes, and a mature card must be **absent** from the deck. Both are
+  invisible in the output; only call counts see them.
+- **(3) resource lifetime** — `disable()` must disconnect every `IntersectionObserver`
+  and clear the flush timer. Inject recording stubs; do not assume cleanup.
+
+#### 3.1.1 Three blind spots a green suite does not cover
+
+Found the hard way (2026-07-28): a pre-landing review caught three defects in a
+feature whose suite was 76/76 green, one of which silently disabled the whole
+feature. None were oversights — each sat in a place the assertions structurally
+could not look. When you add a test, ask which of these it needs:
+
+1. **Assert on the config PRODUCTION builds, not one the test assembles.** The
+   detector tests passed `createEngine` a window object they had built correctly;
+   the bug was in the partial literal an *adapter* writes. A default that a caller
+   can silently omit fails open (`n <= undefined` is false), so the guard vanishes
+   with every test still green. Prefer merging over defaults (`Object.assign({},
+   WINDOW, cfg.window)`) so a partial override cannot be wrong, and keep one test
+   that passes the *incomplete* shape on purpose.
+2. **Assert on work NOT done, not only on output.** A wasted provider call, a
+   redundant IPC, or a skipped unit produces byte-identical output. If the feature's
+   value is a negative — "this is not sent", "this is not asked" — then only a
+   call-count or a request log can see it. This project's whole same-language skip
+   is such a feature; `expectNotRequested` (§3.2) and `asked === 0` unit assertions
+   exist for exactly this reason.
+3. **Assert on resource lifetime where it matters.** Timers, caches and retained
+   strings are invisible to outcome assertions. The vm harness merges whatever
+   globals you pass, so inject a recording `setTimeout`/`clearTimeout` rather than
+   assuming cleanup happens.
+
+The recurring shape behind all three: **a green suite proves the happy path
+produced the right output; it proves nothing about cost, cleanup, or wiring.**
+
+### 3.1.2 `npm run test:idb` — the IndexedDB upgrade, on every `DB_VERSION` bump
+
+**Mandatory whenever `learn/store.js`'s `DB_VERSION` changes.** Real Chrome, throwaway
+profile (Node ≥22, same launcher as §3.2): it seeds a database at the *previous*
+shipped schema, opens it through `LearnStore.open()` itself, and asserts the old
+items, reviews, meta and indexes all survive and the new store is writable.
+
+This is the one migration that touches data **users already have**, and `npm test`
+structurally cannot see it — the zero-dep harness has no IndexedDB. The comment in
+`store.js` ("every create is guarded by `contains`, so bumping the version never
+touches existing data") is true of *added stores* and says nothing about an index
+added to an existing one, which is the shape that would actually eat a corpus.
+
+Three ways of getting it wrong were confirmed to make this fail, by breaking
+`store.js` on purpose: not bumping the version, adding an index to an existing store,
+and deleting-then-recreating a store. Keep that habit — a migration check that has
+never been seen red is not evidence.
+
+> **The checker itself had this bug first.** `db.transaction([...])` throws
+> *synchronously* for a missing store, so the initial version's promise never settled
+> and a genuinely broken upgrade came out as a 90-second hang rather than a ✗. Same
+> family as §4's rule about `close()`: **a check that hangs is indistinguishable from
+> one that is still working.** Wrap the body, and give every long-running check a
+> hard timeout that prints a verdict.
+
+### 3.1.3 `npm run test:learn` — the learning suite, end to end, in both hosts
+
+**Mandatory whenever the learning surface changes** (`extension/learn/**`,
+`extension/content/learn-*`, review-related `app/**`). Real Chrome, two hosts —
+the shipped app bundle (dist-app, shipped layout) and the extension review page
+(dist/learn/review.html plus the app's own chrome shim) — walked through the whole
+loop with a seeded per-tier corpus, asserting against the DATABASE for behavior and
+sweeping the visible surface after every step (non-empty labels, foreground ≠
+background — the class of bug that only exists where CSS cascades differ per host).
+Case list and manual-matrix complement: [`learn-regression.md`](learn-regression.md).
+
+### 3.1.5 `npm run test:listen` — 「对话 · 实时听译」端到端（2026-09-07）
+
+learning-design §9.6 的整条链在真 Chrome 里走一遍：页内注入一个按 `mtAudio` 协议回话的假原生桥
+（`mic-pcm` / `mic-state` / `session-ready`，即出货的原生采集路），本机假流式端点（RFC 6455）
+与假翻译端点，CDP 发真指针按住。断言：未配实时引擎时入口不存在、配好后出现；socket 真开且收到
+PCM；定稿 + 译文进历史；按住期间到达的句子归「我」，松手翻面大字 = 译文；语料里来源 `conv:<id>`、
+锚点 `k:'conv'`、对方句 lang = 「对方的语言」；加星落盘；结束小结数字与历史一致、socket 关闭、
+桥收到 `mic-stop`。改 `app/listen*.js`、桥的 mic 协议、Swift 输入半边、来源/复习卡的 conv 分支
+时必跑。真机上仍要人验的只剩两件：锁屏续听（M22，09-07 已实证 3 分钟不断）与朗读有没有声（M23）。
+
+**为什么这一门跑在真 Chrome 里而不是模拟器或真机**（2026-09-07 三条路都试过，逐条堵死）：
+① 模拟器的麦克风是 **0 字节** —— 有帧无声，链路看着通，断言全是假绿；② cua 发的「按住」
+到不了 `WKWebView` 里的 `pointerdown`，而按住正是这一门要验的交互；③ 真机的麦克风被
+iPhone 镜像占着。所以出货的原生采集路只能用**按 `mtAudio` 协议回话的假桥**来代表 ——
+这是有意的取舍，不是偷懒。
+
+**2026-09-12 追加（device-speech，D2 起）：第二个假桥 `mtSpeech`。** 本机路
+（`device-transcribe` / `device-speech`，domain-design §7）在 JS 侧能看到的只有桥消息，
+所以门禁再注入一个按 `mtSpeech` 协议回话的假原生桥：`stt-probe` → `stt-state {state:'ready'}`；
+`stt-start {locales}` → 定时吐 `stt-partial` 与 `stt-final`（**两个 locale 都吐，带 `conf` 与
+`alts`**，其中一路是另一路的噪声，好让文字系优先的归属规则真的被走到）；`tts-probe` →
+`tts-state`；`tts-speak {id}` → `tts-start {id}` / `tts-end {id}`。本机假翻译端点对本机路的
+请求回 `T: <修正后原文>` / `X: <译文>` 两行（云端路照旧回整段）。断言：
+
+- 只配了本机引擎（没有云端实时引擎、没有 key）时**入口存在且可用**；
+- 行**先出原文**（`row.raw`，与假桥 final 串起来切句后逐字相同），再换成修正文 + 译文
+  （与端点的 `T:` / `X:` 逐字相同）；修正文与原文不同时行尾有「识别原文」；
+- **语料写的是修正文**，不是原文（判据是 DB 回读，同 §3.1.3）；
+- 桥收到的 `mic-start.deliver === 'level'`（本机路只传 `mic-level {rms}`，不传 base64 PCM）；
+- 假桥回 `stt-state {state:'unsupported'}`（旧系统）⇒ 入口灰，且页面上出现具名句
+  「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」—— 断言那句话
+  的文本，不是「入口不可点」；
+- 目标语言不在 Piper 覆盖内 ⇒ 朗读回落 `browser`，且**行上具名**（断言那行的文本）；
+- 云端路（原有 `mtAudio` 假桥 + RFC 6455 假流式端点）的全部既有断言仍绿 —— 本机路是
+  加法，不是替换；两个假桥在同一次运行里都要被真的走到。
+
+真机上仍要人验的于是变成四件：M22、M23（云端路）与 M24、M25（本机路，F-bis 2026-09-12）。
+
+**2026-09-14 追加（实时字幕，learning-design §9.8，H 段）：同一个 `mtAudio` 假桥多记两件事。**
+它把收到的每条非 PCM 消息记下来，并在测试给了能力时对 `caps-probe` 回 `audio-caps`。断言：
+
+- 假桥**不回** `caps-probe`（老原生壳）⇒ 「实时字幕」整行不显示；
+- 回 `audio-caps {system:'os'}` ⇒ 行灰掉，屏上是「系统声音字幕需要 macOS 14.4 或更新」那句，且**没有**
+  「去设置」按钮（设置解决不了系统版本）；回 `{system:'ok'}` ⇒ 行可用；
+- 点入口 ⇒ 停在准备态（准备区、隐私句可见），**桥没收到新的 `mic-start`**；点「开始」⇒
+  `record-mode {on:true, profile:'subtitle'}` 与 `mic-start {source:'system'}`，并发过 `subtitle-config`；
+- 英文句与中文句**都**归对方（单向）；历史里没有 ↔、没有「给对方看 / 朗读」；自动朗读即使在设置里开着也不出声；
+- 桥收到过 `subtitle-show {partial:true}` 与带译文的 `subtitle-show {partial:false}`；
+- 语料 `anchor.k === 'conv'` 且 `anchor.mode === 'subtitle'`，来源标题「实时字幕 · 日期」；
+- 原生先回 `mic-state {state:'waiting', reason:'waiting-permission'}`（Mac 系统录音权限框还没点，§9.8 协议补充决定 10）⇒
+  页面停在准备中、页面上说「等待系统授权」、字幕条收到 `subtitle-state waiting-permission`；随后 `granted` ⇒ listening；
+- 原生发 `mic-state {state:'silent', reason:'zero-frames'}`（修订二）⇒ phase **仍是 listening**、页面出不中断的「还没听到系统声音」提示、桥收到 `subtitle-state {state:'silent'}`；随后 `mic-state {state:'sound'}` ⇒ 提示撤掉、桥收到 `subtitle-state {state:'listening'}`；`silent` 之后没有 `sound` 就到了 30 秒静音门 ⇒ 暂停句是指向权限的那句，且桥收到 `subtitle-state {state:'silence-permission'}`（不是 `silence`）、`labels.state` 里有 `silence-permission`；听到过声音再到静音门 ⇒ 照旧 `silence`（O2）；
+- 原生发 `remote {command:'font-up'}`（字幕条 A+，协议补充决定 9）⇒ `subtitleFontScale` 落盘为 1.2、桥收到恰好一条
+  `subtitle-config {fontScale: 1.2}`；
+- 原生发 `remote {command:'end'}`（字幕条上的「结束」）⇒ 会话结束、桥收到 `subtitle-hide`、小结标题「这次字幕」。
+
+- **iPhone 一期（H9，2026-09-14，§9.8 协议补充决定（三））**：假桥改回 `audio-caps {system:'unsupported'}` ⇒ 准备页「现在」卡换成
+  小窗预览占位、隐私句与提示是 iPhone 版；开始 ⇒ `record-mode.profile === 'subtitle'`、`mic-start` **不带** `source`（麦克风）、
+  页面发 `subtitle-float {rect}`（占位块矩形，宽高 > 0）；原生报 `subtitle-window {state:'closed', reason:'not-active'}` ⇒ 出「浮出字幕窗」、
+  **不暂停**，点它 ⇒ 一条不带 `rect` 的 `subtitle-float`；`floating` ⇒ 按钮藏起；`remote end` ⇒ `subtitle-hide`、按钮藏起。
+  **✕ 关窗（2026-09-15 修订，§9.8 协议补充决定（三）19）**：正在听时原生报**不带 `reason`** 的 `subtitle-window {state:'closed'}` ⇒
+  phase 变 `paused`、`pauseReason === 'user'`、桥收到 `mic-stop` 与 `subtitle-float {rect: null}`、页面主按钮是「继续」、**不出小结**；
+  点「继续」⇒ phase 回 `listening`、桥收到 `mic-start` 与一条带 `rect` 的 `subtitle-float`。
+
+字幕条本身（NSPanel、画中画窗）是原生界面，由 M26–M32 真机行验。
+
+**2026-09-17 追加（待人评审，实时转写固定为设备内置 · learning-design §9.6 门控修订）：云端路的段删除，本机路成为唯一路。**
+上文「云端路（原有 `mtAudio` 假桥 + RFC 6455 假流式端点）的全部既有断言仍绿」那句作废：假流式端点与 `e2e_live`
+测试引擎一起删，`mtSpeech` 假桥是转写的唯一来源。新增断言：
+
+- **不配任何转写引擎**（`sttEngine` 为空）时入口**照样可用** —— 入口只看桥；反过来 `sttEngine` 填了云端
+  条目也**不影响**入口（说题的槽与对话无关）。
+- 假桥回 `stt-state {state:'unsupported', reason:'os'}` ⇒ 入口灰，屏上是「对话 · 实时字幕需要 iOS 26 / macOS 26」，
+  且页面上**没有**「去设置里选择」按钮（设置解决不了系统版本）；设置页「对话 · 实时听译 与 实时字幕」块整块是那一句。
+- 假桥 `stt-probe` 回 `locales` 只含 zh / en ⇒ 设置页与准备页的三个语言下拉**只列这两种**；选不到 ar / ru。
+- **启动迁移**：种 `{sttEngine:'device', sttApiKey:'', sttBaseUrl:'', sttModel:''}` 启动 ⇒ 回读四键为空；
+  种 `{sttEngine:'openai_transcribe', sttApiKey:'k'}` ⇒ 回读**不变**。
+- 「识别语言包」行三态：`assets:'installed'` ⇒ 「已就绪」；`assets:'supported'` 后 `stt-assets` 按 `assets-progress`
+  回进度 ⇒ 「正在下载 … pct%」；失败 ⇒ 具名 + 重试。
+- 朗读卡「离线模型」行五态与试听两态（learning-design §9.1.1），假桥 `tts-probe` 回 `assets:'missing'` 起跑。
+
+真机上仍要人验的：M24 / M25（本机路）+ 离线模型行进度 + 语言包行进度（ZHAO的iPhone）。M22 / M23（云端路）作废。
+
+### 3.1.6 `npm run test:quick` — macOS「快速翻译」面板页端到端（2026-09-19）
+
+**何时必跑：** 改 `app/quick.js`、`app/quick-core.js`、`src/app/main.jsx` 的 `#quick` 分叉（原 `app/app.js`，PR6a）、`build/app-bundle.js` 的
+`MODULES` / `MAIN_ONLY`，或面板用到的共享样式 token。
+
+面板是同一份 `Main.html` 以 `#quick` 加载的第二个 WKWebView（`learning-design.md` §9.9）。这条门用出货布局
+（`dist-app`）+ 假 `mtQuick` 桥 + 本机假翻译端点，判据一律是**端点收到了什么、桥收到了什么**：
+
+| 段 | 断言 |
+|---|---|
+| A 冷启动 | 只显示面板；document-start 探针读回 `indexedDB.open` 0 次、`MTTelemetry.init` 0 次、`fetch` 0 次；目标语言选项从「译成」克隆、没有「跟随界面语言」 |
+| B 译文 | 译文上屏；端点恰好 1 次且方向对；`quick-capture` 恰好 1 条、字段是闭集；`quick-result{ok,provider,ms:int}`；复制交给原生；三个图标钮量几何与描边（SVG 没有自有文字，对比度清扫量不到） |
+| C 三陷阱 | 隐藏标记 ⇒ **端点 0 请求**且那段文字不出现在页面任何地方；空 ⇒ 0 请求 + 指引；和上次一样 ⇒ 显示上次的、0 请求；三者都不再交一条进复习库 |
+| D | 原文已是目标语言 ⇒ 反向并写明原因；只有数字符号 ⇒ 0 请求 |
+| E 取消 | 上一句还在翻时再触发：迟到的结果不上屏、不进复习库 |
+| F | 两段各出一条译文；行框乱序交来按阅读顺序拼；零产出 ⇒「重新框选」交原生；输入翻译聚焦、⇧回车不发请求、回车翻译且 `via:'input'` |
+| G 失败两态 | 401 ⇒ 只给「打开设置」；5xx ⇒ 只给「重试」，重试成功后错误消失；`quick-result` 依次是 失败(auth) / 失败 / 成功 |
+| H | 改目标语言写回 `targetLang` 并立刻重翻；采集关 ⇒ 照翻、不交、底栏照实说；未配置 ⇒ 0 请求 +「打开设置」交原生 |
+| I | Esc ⇒ `quick-close`；钉住 ⇒ `quick-pin{on:true}`；出站消息全在 `AppQuick.PROTOCOL` 内；全程学习库 0 次打开 |
+
+译文 / 失败 / 未配置三态各过一遍 `scripts/lib/sweep.js` 的深浅两色清扫。`MT_SHOTS=<目录>` 顺手留两色截图给人看，
+门禁本身不看图。**先红后绿的记录：** 第一次跑就红在 A —— `review.js` 在面板页里照常自启动并打开了 `mt-learn`
+（`app.js` 的分流管不到它，它是另一个加载即执行的模块），由此才有 `MAIN_ONLY`；同一轮还量出三个图标钮的 SVG
+宽度是 0（弹性容器里被压没了）与浅色下译文 3.53:1。原生那一半（面板、热键、剪贴板、截图）不在这条门里，走矩阵
+第 10 行的真机配方。
+
+### 3.1.4 引擎配置的**跨宿主一致性** — `npm test` + `npm run test:app`
+
+**Mandatory whenever any of these change**：`app/settings.js` · `app/index.html` 的
+设置区 · `extension/options/**` · `extension/learn/engine-fields.js` ·
+`build/app-bundle.js` 的 `MODULES`，以及任何 `app/**` 改动。
+
+**这一门的第一层职责是「宿主页起不起得来」，而它只有在出货布局下才成立。**
+`test:app` 伺服的是**出货的那一份目录结构** —— `Main.html` 在 `Base.lproj/` 里、
+`Script.js` 在根上。用平铺布局跑会把 404 藏起来，而那个 404 正是让 App 变成一张
+**全白页**的东西。同 §3.1.11 的那条：跑的必须是出货的那一份，不是一份好跑的复制品。
+
+促成它的报障（2026-09-04）：用户报「App 的设置页居然没有与扩展端保持一致」。
+根因是 `engine-fields.js` —— 那个为消灭手抄而抽出来的组件 —— **不在 App 包的
+`MODULES` 里**，所以 `app/settings.js` 只能继续手抄，而守它的门禁只 grep
+`options.js`。两件事叠在一起，等于这条路修了一半、且没有人会被告知。
+
+两层，缺一不可：
+
+- **静态（`npm test` · `test/engine-fields.test.js`）** —— App 侧不许再自己判
+  `supportsKey/needsKey/supportsBaseUrl/supportsModel`；三组引擎配置都接在
+  `EngineFields.visibility()` 上；下拉一律走 `populate()`；输入框 id 从
+  `EngineFields.SLOTS` 取而**不是第八份手抄表**；组件（含 `engine-test.js`）
+  真的在 `MODULES` 里且排在 `app/settings.js` 之前。
+- **真渲染（`npm run test:app`）** —— 在真 Chrome 里进设置页、切到「详细」，
+  把三个下拉的**每一个引擎**都选一遍，断言三个字段行的**渲染后可见性**与
+  `EngineFields.visibility(entry)` 逐项相等。
+
+**同一族里的第三条（`npm test`）：App 读得到的设置，设置页必须管得到。**
+`app/driving.js` 的读取清单减去 `app/settings.js` 的键集，差集必须**恰好等于**一张
+写明理由的白名单。多出来的那个键会**静默赢过**设置页写的值，而用户看不见也清不掉它。
+
+> ⚠️ 这条不许用「把那半组从读取清单里删掉」来修。`extension/learn/review.js` 是与
+> 扩展**同一份字节**打进 App 包的，它自己也读 notes* 也调 `resolveConfig`；只删一处
+> 的结果是同一个 App 里播客模式回落到基础组、复习页仍用 notes 组 —— 从「一个静默赢」
+> 变成「两处解出两个不同引擎」。而 review.js 那份不能动：扩展那边 notes 组是真实可配的。
+> **所以钉的是不变量本身，不是某一处读取。** 2026-09-04 动手前查出来的。
+
+今天白名单上有六个，其中 `uiLang` 是**已知缺口而不是设计**：`driving.js` 已经在读它，
+App 里却没有任何控件，界面语言永远落到 `navigator.language`。
+
+两条判据上的纪律：
+
+- **问渲染后的可见性（`offsetParent`），不问 `.hidden` 的属性值。** 一条 display
+  声明就能把 `hidden` 压掉（`test/hidden-guard.test.js` 就是为它立的），而那正是
+  六处漂移里最难发现的一处。
+- **期望值来自组件，不是一张写死的表。** 写死的表是第八份手抄，注册表一变它就成了谎话。
+- 断言必须**先真的进设置页**：祖先 `hidden` 时 `offsetParent` 对每一个后代都是 null，
+  于是「全部不可见」会以一种很像真发现的方式全线报错。这条已经踩过一次。
+- 门禁要**证伪**过：删掉 `MODULES` 里的一行、恢复一处手写显隐、把旧 id 放回来、
+  让某个字段恒显 —— 四种破坏方式当场各红一次，才算这道门存在。
+
+**2026-09-12 追加（device-speech）：本机条目只在 App 的下拉出现。** `device`（STT）与
+`device`（TTS）两个注册表条目由 `engine-fields.populate()` 按**调用方注入的 `deviceOk`**
+决定出不出现 —— 组件自己不探桥，扩展页永远传不出 `true`。于是「真渲染」那层的引擎计数
+谓词要**按 `deviceOk` 过滤**：App 段（`test:app` 的 dist-app 布局）注入 `deviceOk:true`
+时期望多出这两个条目，且它们的三个字段行按 `EngineFields.visibility(entry)` 全部不可见
+（`supportsKey` / `supportsBaseUrl` / `supportsModel` 都是 `false`）；扩展段不注入，
+**计数不含它们**。一个在扩展下拉里出现的「设备内置转写」正是这道门要红的那种漂移 ——
+它向用户承诺了一个扩展永远到不了的桥。静态层不变：两个条目不加新字段，「是否本机 / 是否
+实时」由 `type` 推导（domain-design §7）。证伪一次：把 `deviceOk` 在扩展段硬编成 `true`，
+扩展段的计数断言必须当场红。
+
+**2026-09-17 追加（待人评审）：上一段撤回 —— 本机条目不再存在于 STT 注册表。** `device`（STT）随实时转写
+固定为设备内置一起从 `build/stt.config.js` 删除（domain-design §7），`deviceOk` 只剩 TTS 那一个用途
+（`device`（TTS）条目照旧只在 App 段出现）。真渲染层：**三个下拉**（翻译 / 解析 / 整段转写 / 朗读 —— 解析
+与翻译共用注册表，计四张槽卡三个注册表）× 每一个引擎，断言字段行渲染后可见性 == `EngineFields.visibility(entry)`；
+整段转写下拉在**两个宿主**都不含任何 `device-*` 条目。设置页重组（interaction-spec「设置页信息架构」）
+之后这道门多守三件：① `#mode-tabs` 切档只影响「引擎与密钥」一节 —— ②③④ 节里的每个控件在两档都 `offsetParent`
+非空；② 从 `adv-only` 搬进 ②③ 的控件（`tts-mode` / `tts-rate` / `tts-autoplay` / `learn-daily-new` /
+`cache-card` / `tts-cache`）快速档可见，`verify-extension-smoke` 的 `ENGINE_CARDS` 互斥清单加 `stt-card`；
+③ 锚点规则：对每个 `.adv-only` 内的锚点目标调 `openSettings` / `#anchor` 后目标 `offsetParent` 非空（先切档）。
+证伪：把 `tts-mode` 的 `adv-only` 加回去，快速档可见性断言当场红。
+
+### 3.1.7 `npm run test:smoke` — 真实安装冒烟，**改传输层必跑**
+
+把 `dist/` 用 `Extensions.loadUnpacked` 装进真 Chrome（Node ≥22），配一个 `custom_chat`
+端点 —— 故意让它 `OPTIONS → 403`、不给 CORS 头，**即企业网关的形状** —— 打开网页翻一段，
+断言页面上真的出现了译文，并报告走的是直连还是扩展后台。
+
+**为什么单独有这一门**：其余各门都只看一层。`npm test` 看模块、`test:layout` 用 google
+通道看渲染、`test:app` 看宿主页起不起得来 —— 没有一门会因为「装上去根本不工作」而变红。
+2026-08-19 一天之内被这个形状咬了三次：1.5.4 的回退是空转、1.5.5 的路线记忆毒化整页、
+1.5.8 被报完全不可用时手上没有任何证据。
+
+### 3.1.8 `npm run test:wipe` — 「清除本机全部数据」真的清干净了吗
+
+**改 options 的清除路径、`learn/store.js` 的库命名、或 `chrome.storage` 键面时必跑**
+（real Chrome, Node ≥22）。种两个学习库（`mt-learn` + `mt-learn-<uid>`，**并故意开着一个
+连接**）+ API Key + 翻译缓存，点清除，然后**回读**。
+
+**判据必须是回读**：`deleteDatabase` 撞上未关闭的连接会发 `blocked` 然后永远不落定 ——
+不报错，界面照样说「已清除」，而库原封不动。同 §4 的那条纪律：**不报错不等于做成了。**
+
+### 3.1.9 `npm run test:asr` — 「AI 转写字幕」端到端
+
+**改 `content/asr-source.js`、`content/ws-transcribe.js`、`subtitle-adapter.js` 的流式钩子、
+或 stt 注册表的 `live*` 字段时必跑**（real Chrome, Node ≥22）。本机假 STT 端点 + 手写
+RFC 6455 假流式服务端：文件一档断言整段**只上传一次**且叠层出原文 + 译文；流式一档断言
+`captureStream` 真把 PCM 送到了端点（≥20 帧）且叠层出整句。
+
+厂商本身不在这一门里 —— 由 `scripts/asr-probe.js` 对真实端点验。
+
+### 3.1.10 `npm run test:docs` — 「文档翻译」端到端
+
+**改 `learn/doc-*.js`、`docs-page.js`、`pdfjs-loader.js`、request-shape 的图片形状、
+`translation-api.ocr`、`app/docs.js`、或 app-bundle 的 `MODULES` 时必跑**（real Chrome,
+Node ≥22）。本机假 chat 端点记下**每一次请求**，断言：3 页 PDF 只发第 1 页、翻页只发第 2 页、
+并发峰值 ≤ `reqConcurrency` 且真叠起来、docx 分页、PNG 恰好识别 1 次、重开 0 请求、语料
+`anchor.k=doc` 每页 ≤ 10、不识图引擎与免费额度下图片 0 请求。App 段走出货布局（dist-app）：
+首页入口 → 同一份 PDF 经 `__MT_PDFJS` 的 blob 路 → 只发第 1 页 → 返回真隐藏。
+
+**判据是端点收到了什么，不是页面画了什么** —— 「整份一次翻掉」在界面上看不出来，只有请求
+日志能看见。同 §3.1.1 的第 2 条：断言「没做的事」。
+
+### 3.1.11 `npm run test:inbox` — 系统翻译的收件箱（只在本机跑，不进 CI）
+
+**改 `app/native/translate-ext/ExtInbox.swift` 必跑**。需要 `swiftc`。在 Mac 上跑
+**出货的那一份** `MTExtInbox`：macOS 没有 `TranslationUIProvider`，弹层那条路只能上真机
+（矩阵 §2.I），但**写收件箱这段逻辑与平台无关**。驱动脚本把它拷过来**只改一行**（App Group
+容器 → 临时目录）并断言差异恰好一行 —— 否则跑的就不是出货的那一份了。
+
+第一次跑就抓到一个真 bug：文件名用 `%d` 拼毫秒时间戳，按 32 位截成了负数。而 `trim()`
+删最旧的、`drain()` 读顺序都靠「文件名有序 = 时间有序」，错位之后**删掉的是最新的几条，
+且不报错**。
+
+### 3.1.12 `npm run app:sync` — 把 `dist-app/` 推进生成的 Xcode 工程
+
+**每次重新生成 `safari-project/` 之后都要跑。** 那棵树是 gitignored、可丢弃的；仓库里的
+`app/` 才是真正的源。它同时会 patch `ViewController`。
+
+⚠️ 它有**产物过期守卫**，触发时会**静默丢掉 Swift 补丁** —— 见 §0.2.2 与 §F 的记录。
+
+### 3.1.13 `npm run test:cli` — 命令行宿主端到端（未出货，2026-09-30 设计通过）
+
+新宿主（learning-design §9.10）的三件必测，落在 `npm test` 或此门里：
+
+1. **请求逐字节相等** —— CLI 传输包（`dist-cli/engine.js`）在 Node 里对端点发出的请求，与
+   扩展 / App 对同一 `(provider, model, text, targetLang)` 发的**逐键相等**（照
+   `test/ext-bundle.test.js`）。这是 domain-design §2.7 规则 1 的执法点。
+2. **语料往返** —— `learn/chunk.js` 的 build → toJsonl → deflate → inflate → fromJsonl → replay
+   幂等；导入导出的卡与扩展 / App 互认。
+3. **plan / review 纯逻辑** —— `buildDeck` / `buildDeckAhead` / `introducedToday` / `applyReview`
+   的既有断言在 CLI 调用方式下仍成立（不新增调度实现）。
+
+端到端（默认 mock fetch，联网可选）：`translate` 出双语、`doc` 逐页、`subtitle` 出译文字幕、
+`plan` 打印而不写、`review` 打分后语料文件真的变了。
+
+### 3.3 `npm run test:chrome-cleanup` — 门禁自己起的 Chrome 有没有收干净
+
+**改 `test/layout/chrome.js` 必跑。** 正常结束 / SIGTERM / 抛异常 / `process.exit` / SIGKILL
+五种方式各起一个子 node，回读 Chrome 主进程、带该 profile 的进程、profile 目录**都没了**。
+
+这门守的是门禁基础设施本身：全回归 2026-09-14 的 F14 —— 本机积过 **441 个**测试 Chrome，
+负载高时 `test:layout` 从 42/42 掉到 34/42。一个会漏进程的门禁，最终表现成别的门随机变红。
+
+### 3.2 `npm run test:layout` — layout regression corpus
+
+`npm run test:layout` (`node test/layout/run-layout.js`, zero-dep, Node ≥22 for the
+built-in WebSocket) drives the **real sibling renderer in a real Chrome layout engine**:
+it builds `dist/`, loads it into a throwaway-profile Chrome via the §2.D CDP
+`Extensions.loadUnpacked` flow, serves the local fixture pages in
+`test/layout/fixtures/` over localhost, intercepts the Google translate endpoints with
+canned deterministic responses (fully offline), and asserts geometry invariants on the
+injected `.mt-translation` siblings (below the original, same column, no parent-style
+pollution, no horizontal overflow, …). A fixture can also declare a **mid-run
+viewport change** (`resize` in its manifest — `Emulation.setDeviceMetricsOverride`),
+which re-runs every assert after the renderer's debounced re-measure: that is the
+rotation / window-resize / media-query-breakpoint path. Screenshots land in
+`test/layout/artifacts/` (gitignored, pid-locked so concurrent runs don't clobber
+each other) for human eyeballing. ~80s wall time (headless Chrome — the behavioral
+phases' in-page settles account for the growth past the old ~50s).
+
+Five manifest keys reach beyond geometry, because some behaviour is **invisible in the
+DOM**:
+
+- `"cfg": {…}` overlays the run's settings for that fixture — `targetLang` above all.
+  Fixtures default to a `zh-CN` target; the same-language rules behave differently under
+  a Latin target, and that path needs its own fixture (29).
+- `"expectNotRequested"` / `"expectRequested"` assert on the **provider requests the
+  page actually issued** (the harness already intercepts them). This is the only way to
+  test a unit the engine skips ahead of time: the renderer's identical-output backstop
+  would suppress that line anyway, so the rendered DOM is byte-identical with and
+  without the skip — what changes is the request that was never sent, i.e. the user's
+  quota. A DOM-only fixture for such a change passes for the wrong reason and would
+  stay green if the feature were deleted.
+- `"selection": { from, to, movesFrom? }` drives a real drag-shaped selection and
+  asserts it survives the page's SPA re-render (interaction-spec: 「…never destroy
+  the user's text selection」, fixture 33). Async in-page phase; outcomes cross the
+  isolated/main world boundary via DOM `dataset` attributes written by the
+  fixture's main-world script, with an anti-vacuous guard (the fixture must prove
+  its reconciler actually moved nodes — `movesFrom` names the container whose
+  child moves are counted, default `#article`).
+- `"interaction": { counters, clicks, contextmenu, pageSelection }` asserts the
+  page's OWN content still behaves as the page wrote it after translation
+  (interaction-spec: 翻译文字插入后不要影响网页原有内容的交互动作 — fixtures
+  34–35): page links stay visible and their listeners still fire, `contextmenu`
+  on originals is not default-prevented, and a page-programmatic selection is
+  never overridden by the selection keeper. Same dataset channel; the fixture
+  seeds every counter with a pre-enable self-test, so a listener that never
+  worked fails the run instead of passing vacuously.
+- `"keeperGuards": { from, to, movePartial, editor, moveEditor, moveOther,
+  moveOther2 }` pins the selection keeper's load-bearing behaviors that no
+  geometry can see (fixture 36): the partial-kill repair restores the EXACT
+  text, selections inside editors are never snapshotted or restored, a gesture
+  deselect and a quiet programmatic `removeAllRanges()` both stay deselected
+  across later mutation batches. Verified to bite: neutering the keeper turns
+  the partial-kill case red; removing the hideOriginal no-clobber guard turns
+  fixture 34's resize-phase `hiddenAttrEquals` red.
+
+**Mandatory before every push that touches `extension/content/**` or
+`extension/styles/**`; recommended otherwise.** No Chrome on the machine is a hard
+failure (set `CHROME_BIN=/path/to/chrome`), never a silent skip.
+
+**The incremental-adaptation contract** (the reason this suite exists):
+
+1. Every site-specific layout fix MUST land with a new fixture in
+   `test/layout/fixtures/` distilled from that site's minimal layout pattern, and that
+   fixture must **fail before the fix** (record the red run in the GitHub issue).
+2. The fixture passes after the fix.
+3. **All pre-existing fixtures stay green.** A fixture is never edited to accommodate a
+   new fix — unless the fixture's own assertion is demonstrably wrong, justified in the
+   issue. This is what guarantees each adaptation is an increment, not a regression.
+
+**Learning layer.** The Collector is a sink and must be geometrically inert, so it
+owes this suite a fixture of its own: with capture enabled, **every geometry
+invariant must hold unchanged**, and the injected `.mt-translation` siblings must
+never themselves be collected (domain-design §9.1 law 4). When the in-page review
+card lands, it injects DOM into the page and therefore falls under the contract above
+in full — new fixture, **red before the change**, all pre-existing fixtures green.
+
+Scope honesty: this gate catches **renderer-logic regressions** (`flowFixCss`,
+`layoutCss`, `ensureSibling`, interleave) in Chromium's layout engine. It does NOT
+cover WebKit/Gecko engine differences, real devices, or subtitles/overlays — those
+remain owned by the §1 full matrix via cua-driver. Colour contrast is **not** on that
+list any more: every page gate (test:learn / test:app / test:onboard / test:signin /
+test:sync / test:setup-page) runs the shared sweep in `scripts/lib/sweep.js` under
+**both** colour schemes and fails any visible text under WCAG AA (4.5:1, large text
+3:1); the registry side is pinned by `test/palette-contrast.test.js`. Before 2026-09-06
+the sweep only compared foreground to background for equality and only ran in light
+mode, which is how a 1.9:1 default-blue link shipped on the onboarding page.
+
+---
+
+## 4. Verification-honesty rules (mandatory)
+
+### 4.0 卡死的后台任务不是静止的 —— 杀掉那一步，它会跑完剩下的（2026-09-25）
+
+仓库里已经有一条「**后台任务活没活，看产物不看进程**」
+（记忆 `background-task-liveness-by-output`）。这是它的下半句，当天用一次真事故换来的。
+
+**事故**：本次会话早期挂了一个后台任务（证伪某道门禁，链子是
+`cp 备份 → 改坏 → 跑测试 → cp 还原 → 重建 → npm test`）。它卡在「跑测试」那一步，
+**满核空转了 30 小时**没人发现。一天后清理进程时把它 kill 掉 —— 那条 shell 命令链
+**立刻接着往下跑**，于是：
+
+```
+cp /tmp/rev.bak extension/learn/review.js   ← 用 30 小时前的备份覆盖
+node build.js                                ← 拿被覆盖的源码重建 dist/
+```
+
+`extension/learn/review.js` 被回滚了 **110 行**，`dist/` 也跟着错。这发生在**当天所有
+上传之后**，所以出货产物没事（判据：从 GitHub 直链重新下载，包内 `review.js` 与本地
+正确版本 **md5 相同**）—— 但工作树错了。
+
+**口径**：
+
+1. **杀掉任何一个卡住的后台步骤之后，立刻 `git status`。** 那条链子的下一步可能是
+   `cp` / `mv` / `rm` / `build`，而你只看见「进程没了」。
+2. 后台任务里凡是有「改坏 → 还原」这种成对操作的，**还原那一步依赖的备份会随时间腐烂**。
+   卡得越久，备份越旧，还原造成的破坏越大。⇒ 证伪类任务**别挂后台**，前台跑完再走。
+3. `pgrep` 说「在跑」与「在做有用功」是两回事。一个正常 1 分钟结束的 `npm test` 跑了
+   30 小时，判据不是它的存在，是**它的产物和它的 CPU 时间**（`%CPU=100`、
+   `TIME=1825 分钟` 是空转的指纹）。
+
+**反过来说一句同样重要的**：这次**门禁是抓得住的** —— 当天我先断言「没有任何东西会红」，
+随后把那份坏文件放回去实测，`npm test` 立刻红在
+`review_session/app: extension/learn/review.js 里没有 sessOpened()`，`test:learn` 也红。
+**所以要补的不是一道新门，是「杀完回读工作树」这个动作**；门已经在了，缺的是让它跑到。
+（断言之前先测 —— 我那句「不会红」是错的，测了才知道。）
+
+
+**A DOM element existing is NOT proof the user sees it.** This burned us: the YouTube
+`.mt-yt-dual` element was present (`querySelectorAll` found it) but invisible — clipped
+by an ancestor's `overflow:hidden`.
+
+- For anything the user looks at (translations, subtitles, layout), **verify with a
+  screenshot of the built + loaded extension** showing the actual rendered result — not
+  a DOM/console check. Confirm the text is really visible and correctly placed.
+- **Interaction / visual bugs (behavior over time) MUST be verified with a screen
+  RECORDING, not a screenshot** — a flash on click, a layout that shifts then reverts,
+  subtitle timing, scroll jank. A still cannot capture the transient. Keep the **before
+  (repro)** and **after (fix)** clips. Simulators: `xcrun simctl io <UDID> recordVideo`.
+  **Desktop Chrome and desktop Safari: record with the `cap` CLI** (Cap.app's bundled
+  CLI, `~/.cap/bin/cap` — agent-oriented, `--json` everywhere). Not installed? One-liner
+  (also works for contributors on a fresh machine):
+
+  ```bash
+  curl -fsSL https://cap.so/install-cli.sh | sh
+  ```
+
+  Proven pipeline:
+
+  ```bash
+  export PATH="$HOME/.cap/bin:$PATH"
+  cap doctor --json                    # permissions.screenRecording must be "granted"
+  cap record windows --json            # window list; ids match CGWindowIDs (list_windows)
+  cap record start --window <id> --duration <N> --fps 15 --path out.cap --json
+  cap export out.cap --output out.mp4 --json
+  ffmpeg -y -i out.mp4 -vframes 1 frame0.png   # then per-frame extraction as needed
+  ```
+
+  Gotchas (all hit live):
+  - **The target window must be FRONTMOST while recording.** `--window` capture is
+    region-style: an occluding window (e.g. the terminal running the command) is what
+    gets recorded. Activate the target app once (`osascript -e 'tell application
+    "Safari" to activate'`), then drive it with **background** cua-driver clicks only —
+    a foreground-delivery click restores the prior frontmost app and ruins the clip.
+  - **Frame-0 honesty check is mandatory**: extract the first frame and confirm it shows
+    the target window (not the terminal) before trusting anything in the clip.
+  - `--duration N` self-stops (no detach/stop dance needed for short clips); the `.cap`
+    project dir and exported `.mp4` land in `--path`/`--output` (use the scratchpad).
+- **截图/录像之前先确认屏幕真的在显示 —— `bash scripts/ensure-screen-awake.sh`。**
+  屏保运行时 WebKit 会节流不渲染，而这件事伪装得非常像产品缺陷：
+
+  | 现象 | 真相 |
+  |---|---|
+  | 窗口标题栏截得到，网页内容一片空白 | 标题栏是 AppKit 画的，WKWebView 被节流了 |
+  | 整屏截图只有壁纸，连别的 App 都没有 | 屏保盖住了一切 |
+  | `list_windows` 仍报 `is_on_screen: true` | 它只管几何，不管有没有真被画出来 |
+  | 每条输入路由都是 `off_space_or_ax_unresolved` | **工具已经在提示了** |
+
+  2026-08-29 因此判错一小时：把「macOS 未签名 Debug 包白屏」当成了包的问题，
+  甚至做了对照实验（未打补丁的旧包也白屏）却把两次都归因成「包有问题」——
+  共同原因其实是「屏幕没在显示」。随后又误怪到 `codesign --deep` 和
+  LaunchServices 陈旧注册头上。解锁后同一个包立刻正常渲染。
+
+  **教训不是「记得看屏保」，是：抓不到画面时，先怀疑观察手段，再怀疑被观察对象。**
+  这与本节开头那条同源 —— DOM 里有 ≠ 用户看得见；反过来，截图里没有 ≠ 产品坏了。
+
+  ⚠️ 脚本只能解屏保，**解不了锁屏**（要密码，脚本给不了也不该给）。
+  `sysadminctl -screenLock status` 若是 `immediate`（本机即是），自动解除那条路
+  永远走不通，脚本必然落到「请手动解锁」。所以它的价值是**检测 + 大声失败**，
+  不是无人值守续命 —— 但正是这声失败能挡住上面那种误判。
+
+- **麦克风读数里样本全零不是「房间很安静」，是设备被别人占着或权限被拒（2026-09-12）。**
+  09-12 探针的前两轮读数全废：帧在流（47.7k 帧/s）、样本全零、识别器一字不出，真因是
+  iPhone 镜像在 Mac 上开着（Mac 占了手机麦克风）。安静的房间是 −45 到 −50 dBFS 的底噪
+  （09-12 实测环境 −46.8 dB），不是 −∞。所以任何麦克风读数**同时报帧率（帧/s）与
+  dBFS**，并且把 **−120 dBFS（rms 恒 0）判为无效读数**、大声失败 —— 报的不是
+  「未检测到声音」，而是「观察手段坏了」（§0.3 的坑表列了三种：镜像未退出、权限被拒、
+  探针被挂起）。这与本节开头那条同源：抓不到画面先怀疑观察手段，再怀疑被观察对象。
+  §0.3 的声源规则是它的另一半：真人说话时「没出字」分不清是没说清还是没收到，播放语料
+  时帧率 + dBFS 两个数就能把「没收到」钉死。
+
+- Don't trust your own injected test hacks as proof of the shipped code — verify the
+  **built/loaded** extension.
+- **Be honest about what was vs wasn't verified** (static check vs runtime vs screenshot
+  vs recording; which surfaces of §1 were actually run). State it plainly.
+- Real captions/overlays only render in a **foreground** tab — background tabs throttle
+  `requestAnimationFrame`, so automated screenshots of a backgrounded tab may miss them.
+- **Pages with a podcast/video MUST be verified DURING PLAYBACK.** Press play and let it
+  run (≥20-30s): the subtitle pipeline (transcript fetch → cue sync → overlay pair →
+  pager) only exercises while the clock advances. A loader-state-only check
+  (`⏳ 字幕加载中…` visible, playback never started) verifies almost nothing — it misses
+  stale-fragment accumulation, cue-sync errors, pager bugs, and ad/seek behavior.
+  Capture the overlay showing a **matched bilingual pair advancing with playback**
+  (screenshot for a moment-in-time claim; recording for anything about timing).
+
+---
+
+## 5. Manual scenario checklist
+
+The itemized, per-feature scenarios (controls, webpage bilingual, YouTube, podcast,
+i18n, providers, cross-platform, build) live in
+[`docs/regression-tests.md`](regression-tests.md). For any change touching UI/DOM/layout/
+a platform surface/a provider, work through the relevant sections **on every matrix
+surface (§1)** and screenshot every visual item.
+
+---
+
+## 6. cua-driver tooling reference
+
+- **Setup (one-time, needs the user):** install `com.trycua.driver`; grant **Accessibility
+  + Screen Recording** (`cua-driver permissions grant`); register at **user scope**
+  (`claude mcp add --scope user --transport stdio cua-driver -- cua-driver mcp`). Gotcha:
+  before grants, `cua-driver mcp` prints a plain-text line on stdout that corrupts the
+  JSON-RPC handshake — grant, then restart, then tools appear.
+- **Native macOS / iOS-Simulator UI is AX-bridged** → click by `element_token` (no pixel
+  math), works on backgrounded windows. Find the Simulator window
+  (`com.apple.iphonesimulator`) or Safari window via `list_windows`.
+- **Injected web content (our FAB/overlay) is NOT AX-bridged** → **pixel clicks**: take a
+  `get_window_state` window screenshot (`screenshot_out_file` + low `max_elements` to
+  avoid dumping a 10k-node tree), Read it, locate the element in window pixels, click
+  `{x, y, window_id}`.
+- **Big AX trees overflow context** — a Safari Settings tree is 250k+ chars. Pass
+  `screenshot_out_file` + `max_elements`, or when it spills to a file, `jq`/`python3` out
+  only the `element_token` you need. Do **not** Read the raw dump.
+- **See the iOS screen cheaply:** `xcrun simctl io <UDID> screenshot x.png` then Read it.
+- The cua-driver `page` tool does **not** support the Simulator
+  (`Unsupported browser: com.apple.iphonesimulator`); for the sim's web DOM use Safari
+  Web Inspector (Mac Safari → Develop → Simulator). On real desktop Safari/Chrome the
+  `page` tool works for DOM inspection.
+- **Watch for system dialogs.** Running `screencapture` from the terminal can trigger a
+  macOS "allow <terminal> to record the screen" prompt — a real permission change; leave
+  it for the user, don't auto-approve. Avoid triggering JS `alert/confirm` dialogs, which
+  freeze the automation channel.
+
+---
+
+## 7. Governance
+
+This spec is the single source of truth for verification. Changes to it should be made
+deliberately and referenced from `AGENTS.md`. The separate **change-documentation rule**
+(every change gets a GitHub issue capturing problem / solution / reasoning) lives in
+[`AGENTS.md`](../AGENTS.md) — it is a process rule, not a verification rule, and is
+unaffected by this consolidation.
+
+---
+
+## Safari bundle completeness — a gate, because the build cannot see this
+
+`xcrun safari-web-extension-converter` captures the extension's **file list** at
+conversion time. Files added to `extension/` afterwards are never referenced by the
+Xcode project, so they are silently absent from the built `.appex` — while the build
+succeeds, the manifest validates, and every one of our own gates stays green.
+
+**This had already happened.** The entire `learn/` directory was missing from the iOS
+build. The visible consequence was not "the learning feature is absent": `options.html`
+loaded seven scripts that were not there, `options.js` threw on the first undefined
+global, and **the whole settings page was dead — including the field where the API key
+is entered**. Found by running the matrix, not by any test.
+
+Before any iOS/macOS verification run, and before any Safari release:
+
+```bash
+node build.js
+xcodebuild -scheme "BelliedMonkey Translator (iOS)" \
+  -destination 'id=<SIM_UDID>' -configuration Debug \
+  -derivedDataPath /tmp/bt-dd CODE_SIGNING_ALLOWED=NO build
+npm run verify:ios            # every dist/ file must exist in the .appex
+```
+
+A non-zero exit means **regenerate the project** (the command is printed in the
+failure) and rebuild. Do not hand-add files in Xcode: the next added file reproduces
+the same silent gap.
+
+---
+
+## 更正与未决（iPhone 行，2026-08-05）
+
+**更正一条已推送的错误声明。** commit `8036d83` 的信息里写着「同一篇 Wikipedia、同一个
+DeepSeek key……改后 30 秒内全部渲染」。**那次的译文其实来自免费 Google 端点**，不是
+DeepSeek——覆盖安装（`simctl install` 不卸载）**会清空扩展设置**，而我只验证了代码
+刷新、没验证存储保留，就把结论说满了。
+
+识别它的信号当时就在眼前：那段译文前后大半是**原文回显**，正是本文件 §0 记录的免费
+端点典型故障，我却当成模型质量问题带过去了。**「验证用的是不是你以为的那条路」必须
+在每次重装后重新确认，不能沿用。**
+
+重配 DeepSeek 后已重新验证：译文全中文、无回显。所以
+
+- 悬挂 promise 的修复 **成立**（该 bug 在 fetch 之前，与引擎无关）；
+- 「iOS 上 DeepSeek 端到端翻译」**现在才成立**。
+
+### 本行仍未验证
+
+- 采集是否真的写入学习库、复习页、TTS、长按加星。
+- **已修但未在设备上验证**：Safari iOS 上**扩展页读不回 `chrome.storage.local`**。
+  决定性证据：设置页重新加载后显示 Google，而**同一时刻内容脚本正拿着已保存的
+  DeepSeek key 成功翻译**。所以写入是好的，读不回来的只有扩展页（设置页、弹窗、
+  复习页）。用户的真实体验是「每次打开设置页配置都像消失了，得重填 API Key」。
+  修法见 `extension/learn/page-settings.js`：**机制尚未隔离**（需要 Web Inspector），
+  所以不赌任何一种——正常数组读一次；仅当结果里一个目标 key 都没有时才回退到整桶读
+  并过滤。数组形式正常的平台上零变化。有 5 个单测，其中一条专门断言「正常路径只有
+  一次调用」，避免让所有平台替 Safari 买单。
+  **真因（2026-08-05 用 Safari Web Inspector 查明）。** 同一个调用的两种形式互相矛盾：
+
+  ```
+  回调形式   → cb(undefined)，一声不吭
+  promise 形式 → reject: "Invalid call to browser.storage.local.get().
+                          Failed to create extension storage directory."
+  ```
+
+  **存储层是坏的，而回调形式把它报成了「空结果」。** 我们的代码拿到空结果只能画默认值，
+  于是用户看到自己的引擎和 API Key 悄悄退回免费通道——从外面看，和「从没保存过」
+  完全一样。
+
+  两条更正，都是我先前判断错的：
+  - 「回调永远不执行」**是错的**。它执行，只是带着 `undefined`。
+  - 「promise 一直 pending」**也是错的**——`Promise {pending}` 只是**创建瞬间**的状态，
+    任何异步调用都长这样，它什么也不证明。**这个 console 里 `console.log` 的输出根本
+    不显示**，只有表达式返回值会显示；我据此做的推断全部作废。正确的做法是把结果存进
+    全局变量，隔几秒再以表达式读它。
+
+  **已修的是那份沉默**（`page-settings.js` + 三个扩展页）：优先用 promise 形式（唯一说
+  真话的那个），检查 `chrome.runtime.lastError`，把「读失败」和「配置为空」区分开，并在
+  设置页顶部明确告知——**且提醒不要在此保存，否则会覆盖原有配置**。
+
+  **结案：那是脏模拟器的环境故障，不是 iOS 上的产品缺陷。** `simctl erase` 后重装、
+  重新配置，设置页离开再回来**正常显示 DeepSeek**。扩展页在 iOS 上读得到
+  `chrome.storage.local`；先前那台模拟器建不出扩展存储目录，是它自己被反复安装/卸载
+  折腾出来的状态。
+
+  `page-settings.js` 保留，但**目的不是绕过某个平台缺陷**——而是让**下一次存储失败，
+  无论来自哪里，都不能再伪装成「配置为空」并被默认值悄悄覆盖**。查明过程暴露的那个真
+  问题依然成立：存储坏掉时只有 promise 形式说真话。
+
+  > **核心约束 — 平台「不可能」时，先 erase 再下结论。** 一台被反复安装/卸载折腾过的
+  > 模拟器能制造出与产品缺陷难以区分的症状（本次是扩展存储目录建不出来）。判据：当某个
+  > 平台 API 的行为**在文档上讲不通**时，`simctl erase` 一次的成本远低于沿着错误前提
+  > 继续排查。本次没有先做，代价是数轮返工。
+
+### 本行仍未验证
+
+- 采集是否真的写入学习库、复习页、TTS、长按加星。
+- **已修但未在设备上验证**：Safari iOS 上**扩展页读不回 `chrome.storage.local`**。
+  决定性证据：设置页重新加载后显示 Google，而**同一时刻内容脚本正拿着已保存的
+  DeepSeek key 成功翻译**。所以写入是好的，读不回来的只有扩展页（设置页、弹窗、
+  复习页）。用户的真实体验是「每次打开设置页配置都像消失了，得重填 API Key」。
+  修法见 `extension/learn/page-settings.js`：**机制尚未隔离**（需要 Web Inspector），
+  所以不赌任何一种——正常数组读一次；仅当结果里一个目标 key 都没有时才回退到整桶读
+  并过滤。数组形式正常的平台上零变化。有 5 个单测，其中一条专门断言「正常路径只有
+  一次调用」，避免让所有平台替 Safari 买单。
+  **状态：验证不通过，缺陷仍然存在。** 2026-08-05 在设备上按预先写死的判据验收——
+  配好 DeepSeek → 离开设置页 → 重新打开——**仍然显示 Google**。
+
+  否定结果缩小了范围：整桶读 `get(null)` 也拿不回来，**所以不是「数组形式不被支持」**。
+  扩展页在该平台上似乎完全读不到 `chrome.storage.local`，而同一设备上的内容脚本读得到，
+  且这个页面自己的写入确实持久化了（内容脚本能看到）。
+
+  `page-settings.js` 保留但**已在文件头标注它不是修复**——只是让扩展页的读取变得防御性
+  （不抛、不挂、不返回 undefined），并把重试收在一处。**下一步只有 Safari Web Inspector**：
+  除了 console，没有别的办法区分「读返回了空」和「读根本没返回」。
+- **（此前记为独立缺陷的）弹窗显示 Google**：同一根因，不是两个 bug——设置页显示
+  DeepSeek 且译文确由 DeepSeek 产生时，弹窗仍显示「Google 翻译（免费）」并展示免费
+  通道提示。状态本身（已翻译/未翻译）是对的。用户会因此以为自己的 key 没生效。
+  与 `options.js` 的 init 失败同族（`chrome.storage.local.get` 在该平台上的回调行为），
+  但 popup 有 `s || {}` 兜底，所以不是崩溃而是**静默退回默认值**——更难发现。
+
+### 一条操作纪律
+
+`simctl install` 覆盖安装**会重置扩展存储**（也会重置 Safari 的扩展开关与站点授权）。
+每次重装后：重新配 provider + key，并**用「译文里有没有原文回显」确认自己确实在验
+预期的那条路径**。
+
+---
+
+## 矩阵执行记录：iPhone 与 iPad（2026-08-05 / 08-06）
+
+### iPhone 17 Pro · iOS 26.5 —— 已跑完
+
+**6 个真缺陷，全部已修并在设备上复验**：
+
+| # | 缺陷 | 症状 |
+|---|---|---|
+| 1 | `learn/` 整个目录从未进过 Safari 包 | 设置页全死，含填 API Key 处 |
+| 2 | `init()` 在 `s0.uiLang` 上抛错，且 `init()` 无 `.catch()` | 页面渲染正常但所有 JS 行为失效 |
+| 3 | 失败后静默回退 Google | 掩盖真错误、违反 §0、误导用户 |
+| 4 | `try` 只包住 `get()` 调用而非回调体 | promise 永久悬挂，翻译永不落地 |
+| 5 | 存储读失败被当成「配置为空」 | 用默认值悄悄覆盖用户配置 |
+| 6 | `.pressure{display:flex}` 打败 `[hidden]` | 空库上虚报「清理已掌握的卡」 |
+
+**通过**：扩展加载 · 内容脚本 · FAB · popup · 设置页 · 引擎注册表 · API Key 保存 ·
+IndexedDB · 同步区正确缺席 · **DeepSeek 端到端翻译** · 双语渲染 · **采集写入（候选 6）** ·
+**复习页** · **TTS（进入 onstart 后才有的激活态）**
+
+### iPad (A16) · iOS 26.5 —— 已跑，含一个未修的排版缺陷
+
+**通过**：扩展加载 / 启用 / 站点授权 · 内容脚本 · **popup 以 popover 渲染**（非 iPhone
+的底部抽屉）· **FAB 出现**——即 `isMobileLayout()` 正确将 iPad 判为触摸设备 · 引擎与
+语言选择器 · 宽屏下引导提示不溢出
+
+**已补跑**：配置持久化（引擎选择在弹窗与设置页之间正确保留）· **DeepSeek 端到端翻译**
+（整段捐款横幅、标题、正文均为干净中文，无原文回显）。
+
+**已修的缺陷 — `table-caption` 的译文压在原文上**：en.wikipedia.org 上图注译文与原文
+重叠。**我最初把症状读成「`|` 分隔的链接行重叠」，据此写的 fixture 是绿的——形状猜错了。**
+用 Web Inspector 读真实 DOM 才看清：
+
+```
+prevTag: FIGCAPTION   parentTag: FIGURE   prevDisplay: table-caption
+```
+
+Wikipedia 的 `<figure>` 是 `display:table`，`<figcaption>` 是它的 caption；往 caption
+后面插一个 block 兄弟节点会被浏览器包进**匿名表格盒**，于是译文压在图注上、caption 宽度
+被撑大。**与 issue #59（表格单元格必须把译文作为子节点）是同一机制**，只是 `isCell()`
+当初只测了 `table-cell`，漏了 `table-caption`。判据已改为一组表格 display 值。
+
+按 §3.2 先红后修，全程有据：`32-figcaption-table-caption.html` 先红——
+`belowOriginal: trans.top 240.4 < 328.7`、`width 320.0 -> 510.7`——修完转绿。
+
+**两条我自己的错误，记下来比结论更有用：**
+
+1. **猜形状不如读 DOM。** 那个绿 fixture 什么都没钉住，已删除。
+2. **「Firefox 上那页没重叠 ⇒ 这是 Safari 特有的」这个推断是错的。** 它在 headless
+   Chrome 里就能复现——我当时比较的根本不是同一个元素。**跨浏览器的目视比对不能替代
+   读 DOM。**
+
+**值得记的信号**：iPhone 上修的六个缺陷在 iPad 上**一个都不复现**。这说明它们修在了
+共用路径上，而不是某台设备的怪癖——否则第二行会重现其中一部分。
+
+### Firefox (desktop) —— 结构与合规声明通过，DeepSeek 链路未跑
+
+`node build.js firefox` → `dist-firefox/` 完整（`learn/` 下新文件全部在包内）。
+`npx web-ext run` 临时载入后验证通过：
+
+- 扩展载入 · 内容脚本运行 · FAB 渲染 · 页面无异常
+- `about:addons` 里**版本显示 1.3.0**——即版本号来自 manifest 的修复在 Firefox 上同样
+  生效（此前十一份译文各写死一个 v1.0.0）
+- 扩展描述正确本地化
+- **「权限与数据」页：数据收集 → 必要 →「开发者称此扩展收集：网站内容」。** 这是
+  `data_collection_permissions: ["websiteContent"]` 渲染给用户看的样子——**Gate A 的
+  声明在用户真正会看到的界面上得到了验证**，且未提及浏览活动或个人数据，对 V1 正确。
+  权限列表亦正确：所有网站（可选）、youtube/x/twitter，**本地文件为关**。
+- 内联链接行（`|` 分隔）译文正确排在下方。**当时据此推断「iPad 上那个重叠是 Safari
+  特有的」——后来证明是错的**（真凶是 `table-caption`，headless Chrome 里就能复现）。
+  留在这里作为提醒：**目视比对两个浏览器时，先确认你比的是同一个元素。**
+
+**未跑，且不含糊**：
+
+- **DeepSeek 链路。** 页面上观察到的翻译来自**默认的免费 Google 通道**，按 §0 这不算
+  验证。Firefox 的扩展选项入口没能通过 `about:addons` 打开（该页只有「详细信息 / 权限
+  与数据」两个标签，没有首选项），需要改从工具栏弹窗配置。
+- 采集 → 复习页 → TTS。
+- 「同语言跳过」的 Firefox 侧：§1 要求**看请求而不是看 DOM**，需要 devtools。
+
+---
+
+## 矩阵当前进度（2026-08-06）
+
+| 行 | 状态 |
+|---|---|
+| iPhone Safari | ✅ 跑完，6 个缺陷已修并复验 |
+| iPad Safari | ◐ 结构通过；翻译链路待补（需 key） |
+| macOS Safari | ✅ 跑完（读 DOM 代替截图）；DeepSeek 链路未跑 |
+| macOS Chrome | ✅ 跑过（抓到 3 个缺陷，均已修） |
+| Firefox | ◐ 结构通过；翻译链路 + 探测器请求检查待补 |
+
+按 §0，**这不构成一次完整验证**。上表就是「诚实说明哪些跑了、哪些没跑」本身。
+
+### macOS Safari —— 跑完（用「读 DOM」代替截图）
+
+**两处与旧笔记不符，已更正：**
+
+1. **「允许未签名的扩展」这次已经是勾上的**（距上次授权多日、Safari 中间退出过多次），
+   **没有再要密码**。旧结论「session-scoped、每次都要重新授权」不成立。**先读 AX 里那个
+   复选框的 value 再决定要不要麻烦用户。**
+2. **卡住 agent 的不是密码，是「添加临时扩展…」按钮**：AX `AXPress` 返回 -25204，前台
+   像素点击也不弹面板——文件夹选择器由 macOS 沙盒的 Open/Save Panel Service **出进程**
+   托管。§2.C 把「选文件夹」标为人工步骤是对的，实测它是**唯一**的人工步骤。
+
+**观察手段：`osascript … do JavaScript`，不是截图。** `get_window_state` 抓 Safari 的
+窗口时内容区**永远是空白**——而实测 `document.body.innerText.length` 是 11566，页面渲染
+完全正常。**那张空白截图什么都不是**（§见「抓不到画面时不要用『看起来没问题』代替验证」）。
+需要临时打开「允许 Apple 事件中的 JavaScript」（会弹确认框），**用完必须关回去**——它让
+本机任何脚本都能在 Safari 页面里执行 JS。本次已关回。
+
+**已验证**：临时扩展载入并启用 · 版本 1.3.0 · 描述本地化 · **内容脚本运行（`#mt-fab`
+存在）** · 页面渲染正常 · 点 FAB 后 **76 个 unit、14 条译文**（分段与渲染管线在 Safari
+上工作）。
+
+**`table-caption` 修复在本引擎上的前后对照**（同一页面、同一段测量代码、同一引擎）：
+
+| | trans | overlaps | 图注译文作为子节点 |
+|---|---|---|---|
+| 修复前快照 | 14 | **2**（均为 FIGCAPTION / table-caption / FIGURE） | 0 |
+| 修复后快照 | 14 | **0** | **2** |
+
+这同时**彻底否掉了「那个缺陷是 Safari 特有」的推断**：headless Chrome、iPad Safari、
+macOS Safari 三处都复现。
+
+**未跑**：DeepSeek 链路（上述译文来自默认的免费 Google 通道，按 §0 不算翻译验证）、
+采集 / 复习页 / TTS。Safari 的临时扩展没有可从 `about:` 页打开的选项入口，配置 key 需要
+走弹窗 UI。
+
+> **核心约束 — 抓不到画面时，不要用「看起来没问题」代替验证。** 本次差一点把一张空白
+> 截图读成结论。判据：若某个观察手段**在成功与失败下产出相同的输出**，它就不是证据。
+> 下一步需要换手段（Safari Web Inspector 读 DOM，或屏幕录制），而不是再截一张图。
+
+## 多设备同步端到端（2026-08-06）—— 两台真实浏览器 + 真实后端
+
+**这是同步 UI 第一次被点过。**此前所有验证都是直接调用客户端模块，那只能证明模块
+能跑，说明不了那个界面。V1 发布不带这个功能（`enabled: false`），本轮是为它转正做
+准备。
+
+### 环境搭建（可复现）
+
+- Chrome 150 起，`--load-extension` **已被封死**，`--disable-features=DisableLoadExtensionCommandLineSwitch`
+  这个老办法也失效：扩展被静默忽略，profile 里一个扩展都没有。
+- 走 **CDP `Extensions.loadUnpacked`**（浏览器级 target）。完全脚本化，且两个
+  `--user-data-dir` 各自独立，互不共享 `chrome.storage` 与 IndexedDB，构成两台设备。
+- 交互一律派发**真实输入事件**（`Input.dispatchMouseEvent` / `insertText`），不是直
+  接调扩展的函数——本轮的全部意义就在那个从没被点过的界面上。
+- 登录验证码从 Gmail 读取，全流程无人值守。
+
+### 跑通的闭环
+
+采集（真实翻译一篇维基文章，DeepSeek）→ 复习 5 张 → 登录（邮箱验证码）→ 推送 →
+第二台设备登录 → 拉取 → 在第二台设备上采集并学习 → 推回 → 第一台设备收到，
+**排程逐字段一致**（`lastReviewAt`、难度 `d`）→ 删除账号（含账号本身）。
+
+### 发现并修复的三条缺陷
+
+全部对既有门禁不可见：单元测试从没把同一个块重放两次，也从没合并过带排程的条目。
+
+| 症状 | 根因 |
+|---|---|
+| 每个块被拉下来后原样推回，新设备登录即复制整份语料 | push 只看 `touchedAt > PUSHED`，分不清本地改动与刚收到的内容 |
+| 同一条卡的 dwellMs 在两台设备上差约 2 倍 | `mergeItem` 相加，而拉取游标不跳过自己写的行，重放即放大 |
+| 在 A 上复习完，B 上照旧到期 | `sched` 不在 `mergeItem` 的覆盖列表里，本地排程永远赢 |
+
+领域结论写进 `learning-design.md` §8.4.2。
+
+### 验收判据：收敛
+
+无任何用户活动时，连续三轮双向同步稳定在「收到 0 · 上传 0」。这条比任何单点断言都
+难糊弄——回声、非幂等累加、水位算错都会让它一直不为零。
+
+### 两条本轮暴露的操作纪律
+
+1. **`node build.js` 会 `rm -rf dist/`，而 Chrome 正加载着那个目录。** 扩展会被静默
+   卸载：页面照常打开、`readyState` 是 `complete`，但整段界面不在 DOM 里、
+   `MT_BACKEND` 未定义。看起来像产品缺陷，其实是重建。**构建之后必须重新装载扩展。**
+2. **关闭 CDP 连接不等于关闭标签页。** 驱动里 `close()` 只断了 WebSocket，被「关掉」
+   的维基页全都还开着，采集器每 60 秒照常刷一次外发箱——于是每轮同步都真的有新材料
+   要推，看起来完全像同步不收敛。**改变了被观察对象的观察工具，产出的是假象。**
+
+### 仍未做
+
+- 三条链路只在 macOS Chrome 上跑过。**iOS / iPadOS Safari 上的同步一次都没跑过**，
+  而那才是产品的地板；Safari 的存储与网络行为与 Chrome 不同（见 §「更正与未决」）。
+- 远端删号后，另一台设备仍显示已登录、同步照常报成功，直到令牌过期（约 1 小时）后
+  刷新失败才登出。无状态 JWT 下难以更好，但界面此刻在说一件不真的事。
+- 设置页一关，待输验证码的状态就没了，必须重新发码。
+
+
+### 同步在 iOS Safari 上跑通（2026-08-06，iPhone 17 Pro · iOS 26.5）
+
+上一节的同步闭环只在 macOS Chrome 上跑过，而 iOS 才是产品地板。这一行补上。
+
+**结果（关键判据全部成立）：**
+
+| 断言 | 实测 |
+|---|---|
+| 设置页与「多设备同步」区块在 iOS 上渲染 | ✅ 首次在真机形态上看到这个区块 |
+| 邮箱验证码登录 | ✅ 「已登录：belliedmonkey@gmail.com」 |
+| 新设备拉取 | ✅ **收到 9 张**，学习库 8 → 17 条 |
+| **新设备不回推**（ISSUE-081 的地板验证） | ✅ **上传 0 张**。修复前这台 `PUSHED=0` 的设备会立刻把整份语料推回 |
+| 收敛 | ✅ 再点一次：**收到 0 · 上传 0** |
+| 排程随卡片同步 | ✅ 「待复习 0」——那 9 张刚在桌面端复习过，iOS 知道它们没到期 |
+
+翻译走的是 **DeepSeek**（弹窗里引擎选择器显示 DeepSeek、Key 字段已填，是直接读到的状态，
+不是推断——§0 与 2026-08-05 那次误判要求这里必须有直接证据）。
+
+**包完整性：** 重新生成 + `npm run verify:ios` → 62/62 文件齐全，含本轮修复（`syncedAt`）。
+
+### 更正两条既有笔记
+
+1. **卸载重装并不会重置 Safari 扩展开关与站点授权。** 旧笔记说会，本轮实测：重装后打开
+   维基页，FAB 直接出现，翻译引擎、API Key、学习库（8 条）全部保留。设置 App 那一整段
+   导航可以跳过。
+2. **模拟器里的文字输入不需要人工介入。** 旧笔记说「pbcopy + 长按粘贴也可能不通，试满三次
+   就请人手动 ⌘V」。可行的配方是：
+
+   - `xcrun simctl pbcopy <dev>` 写剪贴板
+   - 点一下字段**先聚焦**（这一步不能省）
+   - **长按 ≈2 秒、位移 1px** 的 drag（`delivery_mode: "foreground"`，背景 drag 在 macOS 上不可用）
+   - 弹出 粘贴 / 选择 / 全选 / 自动填充 → 需要替换就先「全选」，再长按一次点「粘贴」
+
+   另外：`ConnectHardwareKeyboard` 打开后，**单键 `press_key` 的键码是准的**（6 位验证码逐键
+   输入一次成功），但 `type_text` 的字符合成**全部映射成 `a`**（23 个字符 → 23 个 a），
+   而**修饰键仍然被吞**（⌘V 只落一个 `v`）。所以：数字/字母用 `press_key`，含 `@`、`.`
+   或大写的串一律走剪贴板长按粘贴。
+
+
+#### 补完：iOS 侧的上行（同日稍后）
+
+上一节只验了 iOS 拉取。这一节补上「在 iOS 学 → 推回 → 桌面收到」。
+
+**做法：** iPhone 上翻译一篇两端都没见过的文章（`Mnemonic`，DeepSeek），滚动停留让 dwell
+真实累积，在复习页评了 2 张卡（一张「记得」、一张「太简单」——**故意给不同评分**，这样
+排程差异本身就是一个可判别的信号），然后「立即同步」。
+
+| 环节 | 实测 |
+|---|---|
+| iOS 采集 + 复习 | 学习中 9 → 11、候选 18 → 16 |
+| iOS 推送 | **上传 2 张**（数据块 10 → 11）。不是整份语料，也不是 0 |
+| 桌面拉取 | **收到 2 张 · 上传 0 张** —— 收到之后没有回声推回 |
+| 桌面已评分卡 | 9 → **11** |
+| 排程是否跟着走 | ✅ 两张的 `d` 分别是 **5** 与 **4.1**，对应 iOS 上按的两个不同评分 |
+| 收敛 | ✅ 桌面连跑两轮、iOS 再跑一轮，全部「收到 0 · 上传 0」 |
+
+`d` 的差异是这一节最有用的断言：如果排程在传输中被重置或用默认值重建，两张卡会拿到
+同一个难度。它们没有。
+
+**至此闭环双向验证完毕**：桌面 ⇄ 桌面、桌面 → iOS、**iOS → 桌面**，且每次结束都收敛。
+
+### 仍未做
+
+- iPad 那台没跑（第三台设备的边际价值低，收敛判据已在 iPhone 上成立）。
+- ~~iOS 侧的上行未验证~~ —— **已于同日补完，见上一小节**（iOS 上传 2 张、桌面收到 2 张、
+  排程随卡片同行、两端收敛）。
+
+
+## #80 收尾：iPad ✅ / Firefox ✅（并发现 Firefox 独有缺陷）/ macOS Safari 仍缺（2026-08-06）
+
+### 判据改了，比原来硬
+
+原判据是「看译文里有没有原文回显」。**#74 移除静默回退之后有更硬的判据**：既然失败不会再
+悄悄退回免费 Google，那么「引擎选的是 DeepSeek + 段落出译文（不是 ⚠️）」本身就证明请求
+走的是 DeepSeek。不再依赖对译文风格的肉眼判断。
+
+### iPad Safari ✅
+
+发布配置重建 + 重装（`verify:ios` 62/62）。弹窗里引擎显示 DeepSeek、Key 已填（**直接读到的
+状态，不是推断**），点「翻译本页」后整页流畅译文，无 ⚠️。
+
+顺带更正一条旧笔记：**卸载重装并不会重置 Safari 扩展开关、站点授权与扩展存储**——重装后
+FAB 直接出现，引擎/Key/学习库全部保留。
+
+### Firefox ✅，但暴露了一个 Firefox 独有的真缺陷（issue #84）
+
+用 `web-ext run` 装临时扩展（免文件选择器，可脚本化）。同一个 Firefox、同一份扩展、同一个 key：
+
+| 页面 | 页面 CSP | 结果 |
+|---|---|---|
+| en.wikipedia.org | `default-src` 白名单**不含** `api.deepseek.com` | **每一段都翻译失败** |
+| plato.stanford.edu | **无 CSP** | **整页流畅译文** |
+
+**Firefox 让内容脚本的 `fetch` 受宿主页面 CSP 约束；Chrome 豁免；WebKit 也豁免**——今天 iPad
+在**同一个维基页面**上用 DeepSeek 翻译成功，这就是对照。
+
+所以之前几轮 Firefox「看起来能翻译」是因为 `*.googleapis.com` 恰好在维基的白名单里。
+
+**这条同时说明：#80 原来的怀疑方向（key 没填对）是错的，真因是浏览器差异。**
+DeepSeek 链路本身在 Firefox 上是通的，详见 #84。
+
+### macOS Safari ❌ 仍未验证 —— 卡在人工步骤
+
+macOS 目标已编译（`xcodebuild -scheme "BelliedMonkey Translator (macOS)"`）、容器 app 已运行、
+Safari 已注册该扩展。卡在最后两步，自动化打不进去：
+
+1. Safari → 设置 → **开发者 → 允许未签名的扩展**（新版 Safari 已不在「开发」菜单里，
+   移进了设置的开发者分页）
+2. Safari → 设置 → **扩展 → 勾选大肚猴翻译**
+
+实测不通的手段：合成 ⌘,、`invoke_menu`（Safari浏览器 → 设置…，AX 返回成功但窗口不出现）、
+AppleScript 打开设置。设置窗口在 WindowServer 与 AX 两个视角下都不出现。
+
+**这是 iOS 输入解决之后，矩阵里剩下的唯一一处真正需要人的地方。** 值得写下来而不是每次
+重新发现。
+
+
+### macOS Safari ✅（同日补完，#80 收尾）
+
+macOS 目标编译 → 运行容器 app → Safari 注册扩展。人工两步：设置 → 开发者 → **允许未签名的
+扩展**；设置 → 扩展 → **勾选**。之后引擎选 DeepSeek、粘贴 key、点「翻译本页」。
+
+实测（`do JavaScript` 直接读 DOM，非截图）：
+
+```
+{"total":26,"real":26,"pending":0,"failed":0}
+```
+
+最长一段译文抽样通顺完整。**页面是 en.wikipedia.org** —— 就是那个 CSP 白名单里没有
+`api.deepseek.com` 的页面。
+
+#### 这一行同时给了 #84 一个桌面对桌面的对照
+
+| 浏览器 | 同一页面（维基，含限制性 CSP） | 同一服务商 | 结果 |
+|---|---|---|---|
+| macOS Safari | ✅ | DeepSeek | **26/26 全译** |
+| Firefox | ✅ | DeepSeek | **全线失败** |
+
+此前的对照是 iPad 对 Firefox（跨设备），现在是**同一台 Mac 上两个浏览器**。
+「内容脚本 fetch 受页面 CSP 约束」确定是 Firefox 独有。
+
+#### 一条测量纪律
+
+这个 Safari 窗口的**截图全程是全白的**，而 DOM 里有 37 段正文、FAB 已注入。
+照截图下结论会报出一个根本不存在的「页面渲染失败」。**截图不渲染 ≠ 页面是空的**——
+窗口被遮挡/未合成时，`get_window_state` 的截图可以是空白而窗口内容完好。
+可读 DOM 的场合一律以 DOM 为准。
+
+（前置条件：Safari → 设置 → 开发者 → **允许 Apple 事件中的 JavaScript**。这个开关
+AX 可点，不必麻烦人；只有「允许未签名的扩展」和扩展勾选需要人。）
+
+### #80 结论
+
+| 行 | DeepSeek 链路 |
+|---|---|
+| iPhone Safari | ✅ |
+| iPad Safari | ✅ |
+| macOS Chrome | ✅ |
+| macOS Safari | ✅ |
+| Firefox | ✅（无 CSP 页面；有 CSP 页面见 #84） |
+
+**五行全部用 DeepSeek 验证过。** 用免费 Google 通道跑矩阵不仅不算数，而且会掩盖缺陷——
+#84 正是因为坚持用 DeepSeek 才暴露的。
+
+
+## Safari 扩展的可重复启用 —— 用真签名，不要临时扩展（2026-08-07）
+
+**今天一整天反复出现的「扩展突然不跑了」，根因是一直在用未签名的临时扩展。**
+
+| | 临时扩展（未签名） | 容器 App 真签名 |
+|---|---|---|
+| 每次 Safari 重启 | 「允许未签名的扩展」被关闭，重开要**管理员密码** | 不需要 |
+| 添加方式 | 设置 → 开发者 → 添加临时扩展… → **文件选择器**（必须人点） | `cp` 到 `/Applications` + `open`，全脚本化 |
+| 列在哪 | 「临时」 | **「已安装」** |
+| 跨重启 | 丢失 | 存活 |
+
+可脚本化的流程：
+
+```bash
+node build.js
+xcodebuild -project "safari-project/…/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (macOS)" -configuration Debug \
+  -derivedDataPath /tmp/bmt-mac-signed -allowProvisioningUpdates build     # 不要 CODE_SIGNING_ALLOWED=NO
+
+rm -rf "/Applications/BelliedMonkey Translator.app"
+cp -R "/tmp/bmt-mac-signed/Build/Products/Debug/BelliedMonkey Translator.app" /Applications/
+open "/Applications/BelliedMonkey Translator.app"
+
+pluginkit -m -p com.apple.Safari.web-extension | grep belliedmonkey   # 登记成功的证据
+```
+
+**`CODE_SIGNING_ALLOWED=NO` 构建出的 app，即使放进 `/Applications` 也不会被 Safari 注册**
+（实测确认）。必须用 `Apple Development` 身份真签名，工程里 `DEVELOPMENT_TEAM` 与
+`CODE_SIGN_STYLE = Automatic` 都要在。
+
+首次仍需人点两下（一次性，此后存活）：设置 → 扩展 → 勾选；以及详情里的
+**「在每个网站上始终允许…」**。勾选框在 AX 里可读可点（id 形如
+`com.belliedmonkeytranslator.extension (X2Q85MABWK)-checkbox`），站点授权按钮要按像素点。
+
+## Stage 0 尖刺结论：原生消息在哪些上下文可用（2026-08-07）
+
+学习模块迁入 App 的方案，基线假设是「扩展能把采集到的内容送进原生」。实测：
+
+| 上下文 | `sendNativeMessage` | 说明 |
+|---|---|---|
+| **内容脚本** | **不存在** | `chrome` 与 `browser` 命名空间下都是 `undefined`——不是调用失败，是 API 根本不暴露 |
+| **background** | **存在且可用** | 见下方时延 |
+
+background 实测（macOS Safari，回声型 handler）：
+
+```
+tiny      ERR   289ms   "未能与帮助应用程序通信"   ← 冷启动，第一次必然失败
+batch40   OK    821ms   40 条草稿，含帮助 app 启动
+batch400  OK     10ms   400 条草稿（约 200KB）
+serial10  OK      8ms   10 次调用 ≈ 0.8ms/次
+```
+
+### 三条直接影响设计的结论
+
+1. **采集器写不了原生。** 采集跑在内容脚本里，那里没有这个 API。数据通路只能是
+   `内容脚本 → chrome.storage.local 外发箱 → background/扩展页 → 原生`。
+   外发箱保持不变这一点因此不是可选项，而是唯一可行解。
+2. **第一次调用必然失败。** 帮助 app 冷启动时报「未能与帮助应用程序通信」。排空逻辑
+   必须容忍并重试首次失败，否则每次冷启动都丢一批。**这条不实测就发现不了。**
+3. **吞吐不是瓶颈。** 200KB 往返 10ms，热态下每次调用不到 1 毫秒。批量大小可以放心设计。
+
+### 尚未验证
+
+- **Safari iOS 上 background service worker 锁屏后永久失效**（本项目最老的约束）。若排空
+  依赖 background，锁屏之后就再也不会发生，直到扩展重新加载。因此排空**还必须**能从
+  用户打开的扩展页面发起——扩展页是否可用尚未实测（探针已写好，卡在 macOS 上打不开
+  options 页；background 可用强烈提示扩展页同样可用，但**这是推断，不是测量**）。
+- App Group 共享容器尚未验证（标准能力，风险低，但没测就是没测）。
+
+---
+
+## 尖刺：WKWebView 能不能后台录（2026-09-07）—— **真机已跑，三轮**
+
+「对话 · 实时听译」（`docs/learning-design.md` §9.6）要在锁屏后继续录音。§9.5 的播客尖刺
+证明了 WKWebView 能后台**播**；这里问的是能不能后台**录**，答案不能从前者推出来。
+探针是 App 里一个 flag 门控的隐藏页（`app/listen.js`，分支 `spike/app-listen-l0`）：
+`getUserMedia` → ScriptProcessor → 重采样 → `WsTranscribe` socket，读数面板记帧数、峰值、
+锁屏期间的帧 / JS 计时器 tick / finals。真机 ZHAO的iPhone（iOS 26.5），经 iPhone 镜像遥控；
+**退出镜像 = 真锁屏**，80 s 后重连读数。
+
+| 轮 | 条件 | 锁屏期间 | 结论 |
+|---|---|---|---|
+| L0d / L0e | `.playAndRecord` 已激活 + `UIBackgroundModes: audio`，页内无音频 | JS tick **2 / 96 s**，采集帧 **0** | 整个 WebContent 进程约 2 s 后挂起 |
+| L0f | 同上 + 页内循环一段 −60 dBFS 不可闻 `<audio>` | JS tick **48 / 92 s**（1 s 计时器被节流成 2 s），采集帧 **0**，页面一可见立刻恢复 | 页内音频保活能让 JS 活着；**WebKit 在 App 不可见时一律静音 `getUserMedia`** |
+
+另两条读数：(a) `file://` 页面开 wss **未证伪** —— 同一页面到 DeepSeek 主机 HTTPS 401 /
+wss 握手 0.3 s 内被拒（TCP/TLS 通），到 OpenAI 的 HTTPS 与 wss 都 8 s 超时，是手机网络没走
+Mac 代理（F-bis 那条网络提醒的又一次应验）；(b) 麦克风权限可拿、track live，但**镜像期间
+iPhone 麦克风被 Mac 占用**（Mac 弹「无法从 Mac 使用 iPhone 麦克风」，PCM 全 0），有声与否
+只能人耳验。顺带：WKWebView 的麦克风权限每次重装都重新弹（宿主未实现
+`decideMediaCapturePermissionsFor`）。
+
+判读（写在跑之前的规则，与 §9.5 尖刺同型）：采集帧为 0 而 JS 活着 ⇒ **采集必须原生**，
+socket 与翻译留在 JS —— 用户 2026-09-07 裁定「原生做吧」。PR-L2 真机必验的两条：原生 tap
+在锁屏 60 s 内帧数持续增长且 finals 到达；原生录音本身是否已足以保住 WebContent（是则去掉
+页内保活音频）。
+
+## 尖刺：WKWebView 能不能后台播（2026-08-24）—— **模拟器已跑，真机未跑**
+
+播客模式的后台/锁屏播放（`docs/learning-design.md` §9.5「后台与锁屏播放」）建立在几条
+**没有测过的平台假设**上。按本文档 §0 的规矩，没测就是没测 —— 所以先量，再决定要写多少
+原生代码。**下面的表在跑完之前一格都不许填。**
+
+**只能在真 App 里测，不能在 iOS Safari 里测。** 问的是「一个声明了
+`UIBackgroundModes: audio` 的宿主 App 的 web 视图」；Safari 标签页没有那个能力，
+在那里测只会得到一个正确但无关的答案。（顺带钉住一个容易读错的地方：播客模式**不进扩展
+任何字节**，App 的界面是 `app/**` 由 `loadFileURL` 加载进 App 自己的 web 视图 ——
+那是这个 App 的渲染层，不是一个浏览器。）
+
+**这个尖刺只为 iOS 存在。** macOS 上进程不会被挂起，最小化 / ⌘H / 切走都不会停，
+所以那边没有「能不能」的问题，只有「我们有没有多余地停下来」的问题 —— 那是一条回归用例
+（`learn-regression` M17），不是一次测量。macOS 唯一值得看一眼的是控制中心的
+「正在播放」长什么样，跟着 M17 一起看。
+
+**装机走 USB**（`xcrun devicectl device install app`，§0.2 的默认路径），不碰 TestFlight
+—— 尖刺不该消耗一个构建号，更不该消耗一个版本号。
+
+**音频素材内联，运行期零网络**：照 `scripts/verify-sim-audio.js` 的做法用 `say` +
+`afconvert` 生成真 AAC，构建时内联成 data:URL。这样「没声了」不会和「网断了」混在一起，
+而且播放形状与 `learn/tts.js` 的 `speech-compat` 分支逐字节同构（`new Audio('data:…')`，
+禁 blob，同一条纪律）。
+
+> **实际怎么跑的（2026-08-24）：没有造探针页，直接用真功能量。** 计划里写的是一个一次性
+> 探针 App，但真功能本身就是最好的探针 —— 把播放顺序切成**顺序播放**（序号单调递增），
+> 退到后台放一段固定时间，回来看序号涨了几张。这一个数同时回答了 A1 和 B：
+> 序号要涨，音频链必须在播（A1）**且** JS 必须在跑（B），因为下一张卡是 `ended`
+> 事件驱动出来的。**「跨了几张」是要害** —— 只看「当前这张播完了没有」分不出
+> 「播完一张就停」和「一直在播」，而那正是这个功能的全部内容。
+>
+> 判据的力量来自对照：把「播放解析」关掉能让每张卡长度接近一致，两个引擎才可比。
+
+| 探针 | 测什么 | 结论 |
+|---|---|---|
+| A1+B | data:URL 链播跨「退后台」（顺序播放，数跨了几张卡） | **✅ 模拟器绿**（iPhone 15 Pro · iOS 17.2，`openai_speech` 引擎但端点指向死地址 ⇒ 全部走本地音频缓存，纯离线）：后台 120 秒，**第 1 张 → 第 3 张**，回来仍在播。音频在播且 JS 在跑，两件事一个数就证完了 |
+| C | 设备内置语音（`speechSynthesis`）在后台停不停 | **✅ 模拟器绿，与预期相反**：把 `backgroundCapable()` 临时改成只看 `ready()`（探针改动，测完当场还原），设备语音 + 关掉播放解析，后台 **240 秒 → 第 1 张走到第 6 张**（跨 5 张），回来仍在「第 2 遍 · 播放译文」。速率与 A1 那组相当（≈120 秒 2~2.5 张），所以不是「播一张就停」。**结论：`speechSynthesis` 并不因为 App 退到后台而停 —— 只要宿主声明了 `UIBackgroundModes: audio` 且会话是 `.playback`** |
+| A2 | 段间插 5 秒真静默 —— 静默期容忍度 | ⬜ 未跑（A1/C 都绿，暂时没有做保活的理由；真机若发现空档挂起再补） |
+| D | `navigator.mediaSession` 的 action handler 在锁屏上按下时进不进 JS | ⬜ 未跑 —— 已改为直接走原生 `MPRemoteCommandCenter`（macOS 侧已实证可用，见 D-mac），所以这条不再是必答题 |
+| D-mac | macOS：控制中心的「正在播放」是否显示我们的元数据、按钮是否真的到得了 JS | **✅ 真 Mac 绿**：面板里显示原句/译句、只有 ⏸ 与 ⏭、无进度条；退出会话后菜单栏那一项消失。见 `learn-regression` M17 |
+| E | 后台时 Swift 的 `evaluateJavaScript` 还通不通 | ⬜ 未单测；C 与 D-mac 都要求这条通，但那是推断不是测量 |
+
+**判读规则先写死，结论不能事后编：**
+
+| 观察到 | 结论 | 后果 |
+|---|---|---|
+| `hidden` 期间新的 `ended` 继续出现且有声 | data:URL 链跨后台成立 | 不需要原生播放队列，按 §9.5 的方案走 |
+| 有声但不再出现新的 `play()` | web 进程被挂起 | 连播必须整卡/整轮交给原生排队 —— **另一个规模的改动，停下来重新评审** |
+| 一进后台就没声 | 会话类别 / plist 没生效 | 先修这个再重测，别急着下别的结论 |
+| 心跳停但 `ended` 照常 | 只是定时器节流 | 链路安全 |
+| A2 挂而 A1 不挂 | 静默期容忍有限 | 要做保活（音量 0 的静音循环），并把「冷卡等网络」列进 §9.5 已知风险 |
+| C 停 | 设备语音后台必停 | **必须做原生语音合成桥**（`AVSpeechSynthesizer`），让默认引擎也走 App 自己的音频会话出声 —— 中国版没有云端语音，而「中国版没有后台播放」被 AGENTS.md 规则 10 直接禁止（§9.5 的 2026-08-24 裁定）。不是「说明一下就算了」<br>**模拟器上 C 没停**（见上表），所以这条暂时没有触发。**但模拟器不是真机**：它对后台挂起的执行宽松得多，这个绿只够撤销「必须现在就做原生桥」的紧迫性，不够撤销那道 `returnsAudio` 门 —— 门要等真机 |
+| D 绿 | Media Session 够用 | 原生只剩「设音频会话」几行，不建消息桥 |
+| E 绿 | 后台 Swift→JS 通 | 遥控链路成立 |
+
+> **模拟器的绿是弱证据，红才是强证据。** 模拟器不像真机那样严格挂起后台 App，所以
+> 「在模拟器上没停」推不出「在 iPhone 上不会停」；反过来「在模拟器上都停了」则一定
+> 在真机上也停。上表里的 ✅ 全部按这个折扣读 —— 它们撤销的是**紧迫性**（不必现在就
+> 抢着做原生语音合成桥），不是**判据**（那道 `returnsAudio` 门要等真机才动）。
+
+> **证据必须是回前台后读得到的东西。** 后台时没有屏幕可看：日志 append 进
+> `localStorage`（跨挂起、跨杀进程存活）+ 一个 `<pre>`，回前台一次读回。
+> 往 Mac 上 `fetch` 是旁证，可选，且**失败不得被读成「JS 停了」** —— 无线电可能只是
+> 休眠了。仲裁者永远是 `localStorage` 那一份。
+
+---
+
+## 矩阵执行记录：全回归（2026-09-11 起）
+
+1.8.0 → 1.10.0 六天合了 #200–#242 四十余个 PR、五个版本。用户裁定「先跑全矩阵，全回归，
+不急着发下个版本」。执行体：机器门禁本地跑、八个面用各自的驱动配方（A/B safaridriver + plist
+补丁 + 直写 extension_storage；C AppleScript `do JavaScript`；D CDP `Extensions.loadUnpacked`；
+E `web-ext` + BiDi；F/G 注入 LAN 控制通道经 sim-oracle）。翻译引擎 DeepSeek，实时转写 OpenAI，
+证据落 `.local/regress-2026-09/<面>/`（gitignored）。
+
+### 本轮发现并修复的产品缺陷（先红后绿，均合入 `regress/2026-09`）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| F14 | A（iOS 17.2 扩展页） | docs 上传 PDF 后阅读器一直空白、`textOf` 15 s 超时 | 扩展路 `new Worker(vendor worker)` 起的 Worker 全局缺 `Promise.withResolvers`（iOS 17.2），`getTextContent` 永不落定；loader 原注释误以为「Worker 里不需要垫片」 | 新 `learn/pdfjs-worker.mjs`（先 import `pdfjs-polyfill.mjs` 再 import vendor worker），扩展路 Worker 指向它；vendor 一字节不改 |
+| F15 | 全平台 | 文档列表永远「0 页」 | `openPdf` 把 `rec.bytes` 直接交给 `getDocument({data})`，pdf.js 把缓冲区 transfer 给 Worker，`rec.bytes` 变 detached，随后 `put(rec)` 抛 DataCloneError 被 `catch(_){}` 吞 | `getDocument({ data: new Uint8Array(bytes) })` 拷一份；verify-docs ⑥ 加「列表行以『3 页』开头」断言 |
+| F16 | F（iOS App 未登录冷启动） | 点过「我已打开」后重开 App 横幅又回来 | Swift `didFinish` 里 `window.show('ios')` 早于 app.js 里 `extBannerDoneAt` 的异步预读；预读完成后未登录路径没有再画横幅 | `show()` 未登录分支末尾补 `paintExtBanner`；`verify-app-bundle.js` 加「冷启动」幕（`addScriptToEvaluateOnNewDocument` 让新文档一 DOMContentLoaded 就 show('ios')，reload 后读横幅） |
+
+顺带修一条已知洞：**「这次不留记录」会话中灰掉时屏上没有原因**（TODO 2026-09-08）——
+`listen.js` `paint()` 补一行灰字「这一场已经开始，要不留记录请先结束再重开」（12 份 locale），
+`test:listen` 加 C3 先红后绿。
+
+顺带补一道门禁（§五）：**`verify:ios` 加 pbxproj 顶层目录引用完整性**——dist 每个顶层目录都
+要在两棵 Safari 工程的 pbxproj 里有引用（构建前早警报；post-build 的 dist-vs-appex 已覆盖但要先
+花一次 xcodebuild）。用旧工程验红（缺 `vendor`）、重生成后验绿。
+
+### 各面结果（R00–R14；✅ verified-live / ◐ documented-not-run 附原因 / ⬜ 本轮不跑附理由 / N/A 构造性）
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **A iPhone Safari 模拟器** | R00/R01 文件档+MSE 具名停机/R02 offer+▶+nolive/R03/R06 引导+设置卡+退出清 key/R07/R09/**R10 pdf.js（F14 修后）**/R11/R13 ✅ | R10 第 1 页 2 s 译完、★ 写 doc 卡、列表「3 页」（F15 修后）、重开直达第 2 页 |
+| **B iPad 模拟器** | 同 A（布局子集）✅ | 同构建复用 A |
+| **C macOS Safari** | R00/R01 MSE 具名停机/R02 五态+▶/R06 领取+402/503 假中继/R07 三面/R09/**R10 pdf.js（换包 UUID 经 setup 交接块取）**/R11/R13 ✅ | R10 第 1 页译完、列表「3 页」、重开直达第 2 页 |
+| **D macOS Chrome** | R00–R13 全表 ✅（R01 真厂商一次） | 全自动 CDP |
+| **E Firefox** | R00/R01 假端点/R06/R07/R09/R10/R11/R13 ✅；#84 CSP 站点对照（wikipedia 红=预期） | web-ext + BiDi |
+| **F iOS App 模拟器** | R03/R04（界面/门控/归属/两向翻译/不留记录原因/返回确认/小结）/R05/R06/**R08（F16 修后）**/R10/R11/R13 ✅；R04 phase→listening 与「有声」◐（模拟器麦克风给帧不给声） | R10 只发第 1 页（5 次）、翻页只发第 2 页、★ 写 doc 卡 |
+| **F-bis 真机 iPhone** | **go/no-go 通过**（系统升级后镜像点击恢复）；含全部修复的设备包已签名安装并跑起来；R05 引导+签收出首页（含文档翻译入口）、R08 横幅 iOS 形态 + 「我已打开」收起（F16 真机验证）、R04 门控 ✅；有声/回声/锁屏/来电/拔耳机/M15 留用户人耳与物理动作 | ZHAO的iPhone(14 Pro，iOS 26.x) |
+| **G macOS App** | R03/R04（两栏 grid + 复制全文真实点击回读剪贴板）/R05/R06/R08 对照/R10 结构/R11/R13 ✅ | 窗口 820px 两栏 382+382；复制全文经 execCommand 兜底 |
+| **中国版关键行** | 合规门两产物绿；真禁端点路径全 0（`/functions/v1/bt-grant`、`bt-relay/chat`、`bt-ingest`、`MT_GRANT = {`）；sync `enabled:false`；无 google；默认 deepseek；评分 rateUrl 中国版返回 null（评分行不出现）；test:app:china / test:onboard dist-china 绿 | — |
+
+**机器门禁（全绿；`npm test` 1635 是 2026-09-11 的历史读数，已过时——现行基线以 `docs/release-baseline-1.19.3.md` 的 2628/2628 为准）**：`npm test` 1635 · build ×3 flavor · test:layout 42/42 · test:smoke · test:grant ·
+test:asr · test:listen（+C3）· test:onboard · test:wipe · test:idb · test:learn · test:docs · test:app（+冷启动幕）。
+`test:setup-page` 红是既有旧账（TODO 234 站点对比度 + 站点 VERSION 1.9.2 vs 已发 1.9.0），非本次引入。
+
+**两处工具坑（记入配方）**：① macOS Safari 换包后扩展页 UUID 变，页面世界里交接块 href 显示为
+`webkit-masked-url://hidden/`，只能点开 `<a>` 再读 tabs 拿 UUID。② 两个宿主 App 共用一条 oracle
+控制通道时都会应答 `/cmd`，必须先 `simctl terminate` 模拟器 App，否则读到 iPhone 的 UA/宽度
+（一度把 macOS 宽度误判为 393px）。
+
+### E1 实测：`simctl install` 覆盖安装是否重置扩展开关/授权/存储
+
+四处文档此前不一致（§2.A「看环境」、§1.1「只有 erase 才刷新」、记忆、M15）。一次对照实验定论：
+
+| 读数 | iPad（两次覆盖） | iPhone（两次覆盖） |
+|---|---|---|
+| 扩展存储（apiKey 等键） | 保留（键数 69–77，apiKey 在） | 保留（键数 123–131，apiKey 在） |
+| 扩展开关 Enabled / 站点授权 | 保留 | **重置为空**（Enabled None、授权 None） |
+| base URI | 换新 UUID | 换新 UUID |
+
+**结论**：覆盖安装**不动扩展存储**；开关/授权**「看环境」**（同一 iOS 17.2 两台结果不同）。
+装后必须读 `Extensions.plist` 回读并补。（顺带发现 iPhone 的 plist 里还留着陈旧的签名条目
+X2Q85MABWK，历史签名包，删掉再看。`learn/` 是文件夹引用，新文件不需重生成工程即入包；
+「新增文件永不入包」只对新**顶层**目录成立。）
+
+### 免费额度（R06）各面预期表
+
+| 面 | 引导两卡 | 设置卡领取 | 退出清 key | BYO 覆盖 | 402/503 | 弹窗四态 |
+|---|---|---|---|---|---|---|
+| A/B iPhone/iPad Safari | ✅ 两并列卡，「登录」只在额度卡内 | ✅ 三槽写入、`grantTail`、中继翻页 | ✅ 先确认再清三槽 | ✅ 「替换免费额度的 key」 | ⬜ 真中继打不出（假中继验于 C/D） | ◐ 弹窗五态在 C 面验 |
+| C macOS Safari | ✅ | ✅ | ✅ | ✅ | ✅ 假中继：402「已用完」两出口/503「不是你用完了」 | — |
+| D macOS Chrome | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 四态（写 grantBalance 造 low/exhausted/model/signed_out，零请求） |
+| E Firefox | ✅ | ✅（无 CSP 页） | ✅ | ✅ | ✅ | — |
+| F/G App | ✅ 额度卡登录未领→「领取」 | ✅ | ✅ 先确认 | ✅ | ⬜ | — |
+| 中国版 | N/A（`MT_GRANT` 恒 null；百炼三步卡，无「登录」、无 OpenRouter） | N/A | N/A | N/A | N/A | N/A |
+
+### 文档翻译（R10）各面预期表
+
+| 面 | 入口 | pdf.js 起得来 | 只发当前页 | 翻页 | ★ 写卡 | 列表页数 | 重开 |
+|---|---|---|---|---|---|---|---|
+| A/B iPhone/iPad Safari 扩展页 | docs.html | ✅（**F14 修后**：Worker 垫片经扩展文件进 Worker，blob: Worker 被扩展页 CSP 拒） | ✅ 第 1 页 | ✅ 只发第 2 页 | ✅ `anchor.k=doc` | ✅「3 页」（**F15 修后**） | ✅ 直达 lastPage、缓存译文 |
+| C macOS Safari 扩展页 | docs.html | ✅ `safari-web-extension://` 下 blob import + 模块 Worker 通 | ✅ | ✅ | ✅ | ✅ | ✅ |
+| D macOS Chrome | 弹窗/设置/复习三入口 | ✅ `chrome.runtime.getURL` 直 import | ✅ 并发峰值 ≤ reqConcurrency | ✅ | ✅ | ✅ | ✅ 0 新请求 |
+| E Firefox | docs.html | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| F iOS App | 首页两入口 → `#app-docs` | ✅ `__MT_PDFJS` blob 路（D0 探针：file:// 不通、blob: 通） | ✅ 第 1 页（5 次） | ✅ 只发第 2 页 | ✅ | ✅ | ✅ 返回 `[hidden]` 真隐藏 |
+| G macOS App | 首页两入口 | ✅ 同 F | 结构验通（NSOpenPanel 四步留人工/AX） | — | — | — | — |
+| 中国版 | 同上（图片走多模态，免费额度文字走中继、图片不走 —— 中国版无额度） | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+
+## 矩阵执行记录：全回归（2026-09-14）
+
+上期（2026-09-11，a2b1379）之后 main 合了 25 个提交、128 个文件：对话改本机转写 + 原生朗读（#244–#251）、
+系统下限 iOS 16.4 / macOS 13.3、学习卡语言推断（20a1460）、App 设置页外链（#256）、实时字幕 Mac 原生与
+iPhone 画中画（#255–#266）。用户裁定「全矩阵全回归，14 Pro 的部分回家操作」。基线 main `a6edddf`，
+证据落 `.local/regress-2026-09-14/`（gitignored）。本期新增行：**R15** 本机转写 / 原生朗读 · **R16** 实时字幕 ·
+**R17** App 设置页外链 · **R18** 学习卡语言推断。
+
+### 本轮发现并修复的产品缺陷（先红后绿）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| F05 | 扩展复习页（全平台扩展） | 复习页里 `lang:'und'` 的拉丁字母卡被看过后 `langAsked=true` 却仍是 `und`，翻译引擎请求 0 条（日文卡按脚本猜成 ja 正常） | `extension/learn/review.html` 没加载 `content/translation-api.js`（及 translation-core / engine-state / langs.gen），`TranslationAPI` 不存在 ⇒ review.js 跳过引擎、照记 langAsked，此后永不再问。App 包 MODULES 本来就有。20a1460 合入于 1.10.0 发版之后，未发给用户 | review.html 按 docs.html 的顺序补四个脚本；`test:learn` 断言「页面上加载了 TranslationAPI.detectLanguage」——先红（扩展 ✗ / App ✓）后绿；真 Chrome + DeepSeek 复跑法文卡读回 `fr` |
+
+### 各面结果
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **机器门禁** | 28 条 ✅（`npm test` 首跑红 = 本机 vendor 的 SherpaOnnxC plist 13.0，#265 新门禁照设计抓到，修后 1700/0）；`test:setup-page` 红 = 站点启用页深色对比度旧账（TODO 234），版本链一致那一半本期已绿 | F05 修后 test:learn 双宿主 / smoke / signin / sync / app ×2 复跑绿 |
+| **A iPhone Safari 模拟器（iOS 17.2）** | R00 / R13 / R07 / R09 / R06 两卡 + 领取 + 中继 / R03 / R10 / R01 文件档 ✅；R01 HLS（data: 页不注入）◐、R02（iOS 弹窗要真手势）◐ | 覆盖安装后 `GrantedPermissionOrigins` 必须是**字典** `{来源: 过期时间}`，写成列表 = 没授权、内容脚本不注入（工具修正） |
+| **B iPad 模拟器（iOS 17.2）** | R00 / R07 / R09 / R06 / R03 / R10 ✅ | 同构建复用 A |
+| **C macOS Safari（用户输密码开「允许未签名的扩展」后）** | R00 plato 8 段 / R01 MSE 具名停 / R07 / R09 / R06 领取 + 中继 / R10 第 1·2 页 + 列表 3 页 + 重开直达 / R11 / **R18（F05 修后）日文 ja · 法文 fr** ✅ · R03 实时段可见 ✅、自动聚焦 ◐（AppleScript 驱动时窗口非 key）· YouTube 双字幕 ◐（同上期：本机 YouTube 自己不发 timedtext）· **R01 文件档 ❓ 待查**：transistor 页音频在播、叠层 150 s 停在「字幕加载中」、offer 不出现；扩展后台 ping / proxyFetch 均正常；同链接 A 面 iOS Safari 今晚通过 | 本机 Safari 扩展列表会缓存同名旧行，勾之前选中看详情里的版本号；收尾把 /tmp 调试包的登记注销、生产包登记回来 |
+| **D macOS Chrome** | R00 / R09 / R07 / R06 全表 + R11 / R03 / R02 五态 / R10 全表 / R00 YouTube / R01 实时档 + 菜单三行 + 改引擎停机 + 换视频 / **R18（F05 修后）** ✅ | R07 要干净 profile（同 profile 前面译过的页命中缓存）；R01 采集要 CDP 真指针（`.click()` 不算手势） |
+| **E Firefox 155** | R00 / R09 / R06 两卡 / R03 / R07（清缓存后）/ R06 领取 + 中继（种会话）/ R10（清库后）✅ | 持久 profile 里上期同名 PDF 会「重开直达第 2 页」；docs-page 在点「上传」时才挂 change 监听 |
+| **F iOS App 模拟器（iOS 17.2）** | **R15** 选设备内置转写 ⇒ 两入口灰 + 「需要 iOS 26 / macOS 26」✅ · **R16** 准备页（不点名 Safari / Gate I 隐私句 / 预览说明 / 4:5）+ 开始 listening·inline + 定稿 + 结束说明 ✅（首跑 denied = 模拟器未授麦克风，具名出口本身也验了）· **R17** ◐（脚本点击不算 linkActivated，留真机）· R05 / R04 门控 + 归属 + 两向翻译 + 返回确认 + 小结 / R03 / R06 / R08 / R11 / R10 全表 ✅ | 观察 O1：两个入口原因相同时首页下方同一句连写两遍（待用户判断） |
+| **F-bis 真机 14 Pro** | 验证包（国际 + 中国）已装；M31 画中画、R17 手点留用户回家 | — |
+| **G macOS App（macOS 26.5）** | R05 首页三行 / R08 横幅收起 / R03 / R06 / R11 / R04 宽屏两栏 / R10 文档视图结构 ✅ · **R15** 设备转写资产 installed、入口可用 ✅ · **R16** 准备页无画中画、提示悬浮条、开始 listening ✅ · R04 复制全文剪贴板读回空 ◐ · R17 真点击 ◐ · M26 系统声音（权限现为「不允许」）留用户 | 首跑遇 Mac 息屏，页面不应答控制通道；用户解锁后跑完。调试包与生产包共用容器 ⇒ 开跑前备份、跑完还原；/tmp 构建会被 pluginkit 登记成同 id 多行，收尾逐个注销 |
+| **中国版关键行** | 真禁端点路径全 0、无 google、默认 deepseek、同步 `enabled:false`、浏览器宿主评分行藏掉（rateUrl null）、合规门与 china 门禁全绿 ✅ | — |
+
+### 全回归 2026-09-14 · 09-15 凌晨补的真机读数（用户在场）
+
+| 面 | 行 | 结果 |
+|---|---|---|
+| **F-bis 14 Pro 真机** | M31 国际版 + 中国版 | ✅ 离开 App 画中画自动浮出、随句滚动、中英对照正确、Safari 视频不被暂停（中国版首次开始弹 iOS 麦克风权限，用户点允许；UI 测试程序不代点）。每轮之间要先结束上一个 App —— 上一场的小窗会盖住下一个 App 首页入口行的中心。音量 ±3 dB 未测 ◐ |
+| **F-bis 14 Pro 真机** | R17 设置页外链（#256） | ✅ 国际版「还没有 key？去 … 申请」、中国版「去开通 ↗」手点都跳到 Safari（模拟器脚本点击不算 linkActivated，是工具限制） |
+| **G macOS App** | M26 系统声音 | ✅ 先 `afplay conv.wav` 再开始：本机转写 5 句 + DeepSeek 译文全对，悬浮字幕条随状态显示、30 秒静音自动暂停 |
+| **G macOS App** | F13（产品缺陷） | ❌ 权限已给、开始瞬间静音且有进程开着输出 ⇒ 3 秒内误判 `denied/zero-frames`。修法见 learning-design §9.8 协议补充决定 10 修订二、本表 M30 / M30b |
+| **G macOS App** | M30b（09-15 07:4x，#272 验证包） | ✅ `afplay` 静音文件占着输出 → 开始：+3.0 s `silent`、页面与条出「还没听到系统声音」+「打开系统设置」，没有 `denied`、会话不停 → 放 `conv.wav` 后 148 ms 收到 `sound`、1.2 s 内提示撤掉 → 双语定稿 |
+| **G macOS App** | M30（09-15 07:5x，同一验证包） | ✅（拒绝用系统设置开关造）两次 `tccutil reset` + 用户点弹框都被 TCC 记成 `auth_value=2 / auth_reason=2`、声音照常进来，测不到拒绝；用户关掉「仅系统录音」开关（读回 `auth_value=0`）后：HAL 152 ms 返回、+3.0 s `silent` 不中断提示 + 条上「打开系统设置」、会话不停 → +30.7 s 静音门暂停，页面暂停句指向权限 |
+| **G macOS App** | O2（观察 → 用户裁定改） | 同一次 M30 暂停时，底部字幕条仍是通用的「30 秒没有声音，已暂停以免计费 · 继续」，不提权限；全屏看视频只看得见条。修法见 learning-design §9.8 决定 10 修订二「补（O2）」：条上改发 `silence-permission` |
+| **C macOS Safari** | F12（待修） | ❌ transistor 播客页一直「字幕加载中」、不出文件档 offer：取字幕那一步（fetch 头之后读正文、或跨域请求挂着）没有总上限 ⇒ 另开修复 PR |
+
+### 全回归 2026-09-14 · 09-15 上午补的真机读数与修复
+
+| 面 | 行 | 结果 |
+|---|---|---|
+| **G macOS App** | M30（O2 修复后复跑，#274 合入的 main 49a7158） | ✅ 拒绝仍用「仅系统录音」开关造（TCC 读回 `auth_value=0`）：+3.0 s `silent` 不中断提示 → +30.6 s 静音门暂停，页面暂停句指向权限，**条收到 `silence-permission`（没有 `silence`），截图里条上「30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限 · 打开系统设置」** |
+| **C macOS Safari** | F12 复验（#270 合入后，main 49a7158 的测试包；读回包内有 `fetchTextWithTimeout` 与 `ACQUIRE_TIMEOUT_MS`） | ✅ FAB 开启后 2–3 s「⏳ 字幕加载中… 🎙 AI 转写字幕」、15 s 落定「字幕不可用 🎙 AI 转写字幕」，不再卡在加载中（修前 150 s 无 offer）；落定后点 offer ⇒「⏳ 正在转写整段音频…」⇒ 首对 96 s / 108 s（上期 115 s） |
+| **C macOS Safari** | F12 首轮旁支（未复现） | ◐ 首轮在「加载中」一行里 3 s 点 offer，240 s 没字幕、最后回到「字幕不可用 + offer」，点击之后的叠层过程没记下；两次复现未再现（0.7 s 点 ⇒ 2.9 s 进入「正在转写」）。原因未定，记录在案 |
+| **C macOS Safari** | O3（观察 → 用户裁定修） | 「加载中」一行里的 offer 一闪一闪：2.7 s 有、11.1 s 没、16.7 s 落定再出 —— `subtitle-adapter` 只在两次 acquire 之间（`!inFlight`）渲染它，与 interaction-spec「offer 从**第一次** acquire 失败起就出现在 `⏳ 字幕加载中…` 那一行里」不符（实现缺陷，不改设计）⇒ 另开修复 PR |
+| **F-bis 14 Pro 真机** | M31 国际版 · 音量 ±3 dB（Mac 麦克风测） | ✅ UI 测试 `testM31Vol`：音量键按满 → A 段只有 Safari 外放 `conv.wav`（循环）75 s → App「实时字幕」开始 → 回 Safari 再放 75 s；Mac 按设备名录「MacBook Pro麦克风」，两段各取一整圈 56.3 s 算 RMS：**A −29.4 dB、B −28.2 dB，差 +1.2 dB**（第二个整圈窗口 −29.4 / −28.1）；房间底噪 −53 dB。B 段结束截图 Safari「播放中」、画中画双语字幕滚动。前两轮不作数：验证包首启停在引导页 / 手机离 Mac 远只高出底噪 3 dB；重装清掉麦克风权限、权限框挡住 Safari 播放键 |
+| **机器门禁（本机）** | F14 修复 | ✅ #275（main 320eced）：`test/layout/chrome.js` 在进程退出 / 信号时关掉还开着的测试 Chrome，每个 Chrome 另配一个 `sh` 看守兜 SIGKILL；新门禁 `npm run test:chrome-cleanup` 先红（SIGTERM / 抛异常 / `process.exit` / SIGKILL 四种泄漏）后绿（五种 ≤ 1 s 收干净）；`test:layout` 42/42、跑完本机残留 0 |
+
+## 矩阵执行记录：全回归（2026-09-19，1.13.x 提审前）
+
+上期（2026-09-14，a6edddf）之后发过 1.11.0 / 1.12.0 / 1.12.1。本期基线 `v1.13.0`（609918a），用户裁定「提审前完整真机回归」；
+回归查出 #345 后用户裁定「先修」，后半程（C / F-bis 与发版）用 **1.13.1**（`v1.13.1` = e0d3a96）的包。证据落
+`.local/regress-2026-09-19/`（gitignored）。相对 1.12.1 的改动面：YouTube 片头广告（#326）、遥测补线（#329）、「译成」设置、
+`handoff` 锚点三个读者、Mac 快速翻译 M-1…M-7。本期新增行：**R19**「译成」设置 · **R20** handoff 锚点读者 · **J 面**（矩阵第 10 行，首跑）。
+第 9 行（iOS 系统翻译扩展）N/A：未出货（Gate J-2）。
+
+### 本轮发现并修复的产品缺陷（先红后绿）
+
+| # | 面 | 症状 | 根因 | 修 |
+|---|---|---|---|---|
+| #345 | YouTube 字幕（全平台扩展）；非本期引入，线上 1.12.1 同样 | 「译」开着而视频还停在 0（iPhone Safari 视频页不自动播最典型）：约 20–27 s 后锁「字幕不可用」，之后按播放、正片播到 138 s、YouTube 自己的 CC 开着也不恢复 | YouTube 只有在正片真的播起来之后才去取 `/api/timedtext`；那之前 8 次取字幕全是空转。#326 只把广告挡在计数之外，没挡「还没开始」 | #346：`SubtitleAdapter.playbackLatch`（`currentTime > 0` 且非广告才算播起来过，按视频 id 记一次）接进 `acquireGate`；开播前叠层不画；4 条用例先红后绿。第一版把闩写成「此刻正在播」，暂停在中途开「译」会空着 —— 在用户日常 Chrome 上复验时发现并改掉 |
+
+### 各面结果
+
+| 面 | 覆盖 | 关键读数 |
+|---|---|---|
+| **机器门禁** | 30 条，29 ✅ | `test:setup-page` 红 = 站点（不是包）：启用页深色对比度旧账 + cc 站 `alternatives.html` 的 FAQPage 有 1 条问答不在可见正文里（新） |
+| **A iPhone Safari 模拟器（iOS 17.2）** | R00 / R07 / R09 / R06 两卡 + 领取 + 中继 / R10 ✅ | 上期脚本里 R03 `#qs-live` 与 R06「登录」计数 = **脚本过时**（1.12.0 设置页重做、云端实时转写下线）；R06 领取 = 脚本时序（清存储晚于点击），按正确时序重跑通过 |
+| **B iPad 模拟器（iOS 17.2）** | 同 A ✅ | 同构建复用 A |
+| **C macOS Safari（1.13.1，用户输密码 + 亲手勾扩展）** | 全新实例点悬浮按钮 ⇒ 引导页 ✅ · R00 plato 15 段 ✅ · #326：长广告结束后 5 s 双语字幕、全程 0 次「字幕不可用」✅ · **#345 整条路**：后台标签页里视频停在 0、开「译」共 38 s（后 18 s 已非广告）叠层为空 → 切过去开播 5 s 内双语字幕 ✅ | 扩展列表里 6 行同名（幽灵行），逐行看版本号才知道哪条是要验的；代点扩展复选框会触发「检测到干扰点按的 App…使用触控 ID」，那一步只能人来；（历史，1.13.1）笔记曾要求出包时另传营销版本，否则 pluginkit 登记转换时的旧版本号；现行禁止另传，营销号只由 build-safari.sh 从 package.json 写入 |
+| **D macOS Chrome** | R00 / R09 / R07（干净 profile）/ R06 领取 + 中继 + 弹窗四态 / R10 全表 / R11 / R18 ✅ | 用户日常 Chrome（已登录）复验 #345：两段片头广告 → 正片 → 开「译」10 s 内双语字幕；暂停在 2:18 开「译」立刻出。受控 Chrome 里 YouTube 不给 timedtext（同上期） |
+| **E Firefox 156** | R00 plato 5 段 · en.wikipedia 30 段全通（#84 对照，0 失败）· R09 → AMO · R07（清缓存后）· R06 领取 + 中继 · R10 第 1·2 页 ✅ | **Firefox 156 的 BiDi 不再允许对扩展页（特权作用域）发命令**：文档段后半与 H 面 firefox.js 的后续段因此中止 —— 驱动脚本待跟进，不是扩展缺陷 |
+| **F iOS App 模拟器（iOS 17.2）** | R05 首页三行 · **R19**「译成」13 项、落盘、还原 · 快速翻译块不出现（caps=null）· **R20** 来源管理渲染 ✅ | Mac 调试版与模拟器会抢同一个控制通道：首跑读数混进了 Mac 的回报（caps 里出现 Mac 才有的字段），退出 Mac 调试版后重跑干净 |
+| **F-bis 真机 14 Pro（1.13.1 调试包 + 局域网控制通道）** | R08 首页横幅三步 · R05 / R19 / R20 / 快速翻译块不出现 ✅；扩展 + #345 整条路：**用户亲手操作并报告通过**（不是回读） | 覆盖安装后黑屏 ×5：手机上占着正式 bundle id 的「1.12.1 (1)」是白天 T1 尖刺的宿主（SwiftUI 生命周期），系统按旧场景会话恢复窗口 ⇒ 黑；任务切换器里划掉即好。尖刺收尾要加一条「手机上装回正式包」 |
+| **G macOS App** | R05 · **R19** · **R20**（库内 handoff 18 条，via = select / shot / service / input）✅ · M26 系统声音出字 ✅ · **M26+**（本期 `subtitle-bar.swift` 的改动点）：会话中关窗进程与会话都在 → 窗口收着时结束会话不被弹回 → 叫回再关进程仍在 ⇒ 字幕守卫摘掉时没连常驻守卫一起摘 ✅ | 系统框「想访问以录制你的系统音频」由用户点；脚本用 `pgrep -f` 数进程会把包着命令的 shell 也数进去，按 pid 核对 |
+| **H Windows 11 虚拟机（Chrome 153 / Edge 153 / Firefox 156）** | 三个浏览器装载 + 翻译 ✅（1.4–1.6 s，标题 + 三段全中文）· Edge 英文在线声 ✅ · Chrome 中文声 ✅、英文在线声两次超时（环境，未过）· YouTube：有广告跳过后 4 s 出字幕（#326 ✅），并查出 #345 | 带远程调试参数的会话跑久了 YouTube 播放器会报「出了点问题。请刷新或稍后重试」，之后视频停在 0 不走 —— 不是扩展的事；调试协议没法让虚拟机里的标签页变成可见（`visibilityState` 恒 `hidden`），「开播后」的读数要人点或换到 Mac 上验 |
+| **J macOS 快速翻译（矩阵第 10 行，首跑）** | 见 §1 第 10 行 ✅；J4 增强取词「有权限」一支 ◐（用户当晚关了权限，沿用同日读数）· J5 剪贴板隐私预览 ◐（本期无改动点） | 观察：同 bundle id 换签名装进 /Applications 后系统横幅「登录项已添加」，而系统「登录时打开」列表里没有我们、设置页读数为关 —— 系统侧旧记录被重新通告，非缺陷 |
+| **中国版关键行** | 出货归档拆包：`.cn`、同步 `enabled:false`、品牌词 0、无 google、默认 deepseek；china 门禁全绿 ✅ | 拆包判据要直接读文件：`grep enabled:` 会先命中注释里的 `enabled:true` |
+
+## 矩阵执行记录：1.15.0 发版前（2026-09-22）
+
+基线 `v1.14.0`，分支 `release/1.15.0`。改动面：引导重排（4 屏）、登录即领额度、就地试一句、「继续设置」卡、设置里找回扩展横幅、
+没填 key 离线提示、遥测修复与新读数，以及当天加入的**中国版切境内后端**（`china.ready=true`，发信改 QQ 邮箱）。
+证据在 `.local/regress-2026-09-22/`、scratchpad `m15/`、`.local/win/`（均不提交）。
+
+### 本轮发现并修复的产品缺陷（先红后绿）
+
+| 面 | 症状 | 根因 | 修 |
+|---|---|---|---|
+| 遥测（全宿主） | 整批事件在 20–50 ms 内 POST 两次；`ext_banner shown` 每次启动都记 | 同页两个 `init({flushNow})` 并发 flush；`show('ios')` 早于当天戳预读 | e2fe88f：flush 页内单飞；预读与继续设置卡定了再记 |
+| 中国版 App | 只翻开关的话 App 仍连东京 | App 包拼的是源码配置 | 02b9c15：app-bundle 同步切换 + 构建门禁 |
+| 境内后端 | App / 扩展登录全被浏览器拦（`Load failed`、界面说离线） | Caddy 的 `handle_path` 优先于 `handle`，预检块从没生效；curl 测不出 | bcbece6：`route {}` 包住；README §4 第 6 条 |
+| App 同步 | 会话被判死后首页仍挂邮箱与「退出」，点同步说「验证码不对」 | 界面不对账 | bcbece6：`reconcileSession` |
+| 中国版老用户 | 东京令牌在境内 401 只说「稍后重试」；重登后本机 4660 张卡永久看不见 | 401 不触发刷新；主库归属按 userId、跨后端不可比；升级瞬间旧会话先动了归属 | 2f84ded：401 强制刷新一次；主库归属 = (userId, 后端)；旧后端会话不许动归属（learning-design §8.4.3） |
+
+### 各行结果
+
+| # | 面 | 结果 |
+|---|---|---|
+| 1 | iPhone Safari（模拟器 iOS 17.2） | ✅ plato 整页双语；真站 setup.html「已检测到扩展已启用」 |
+| 2 | iPad Safari（模拟器） | ✅ 整页双语 |
+| 3 | macOS Safari | ✅ 1.15.0 签名构建装 /Applications（pluginkit 恰好一行 1.15.0）；wikipedia Coffee 29/29 段译出 |
+| 4 | macOS Chrome | ✅ R00 / R09 / R07（换未翻过的页，避缓存）/ R06 领取 + 中继 / 没填 key 两个「测试连接」离线提示、0 请求 |
+| 5 | Firefox | ✅ R00 + wikipedia 30 段 0 失败 / R07 / R06 领取 + 中继；R10 段 BiDi 特权作用域（驱动限制，同上期） |
+| 6 | iOS 宿主 App（模拟器 iOS 27） | ✅ 新引导四屏、就地试一句（无引擎提示领额度 / DeepSeek 出译文）、继续设置卡 3 次后收起、找回横幅；中国版：切境内后同意框消失、老用户升级端到端（见上） |
+| 7 | macOS 宿主 App | ✅ 签名构建、宿主页 78 KB、横幅按真实状态；观察：直达「打开 Safari 扩展设置」未出现，由原生 `useSettingsDeepLink` 决定，本版未改 |
+| 8 | Windows 11 虚拟机 | ✅ Chrome 153 / Edge 153：1.15.0、`problems: []`、4 条译文、DeepSeek 4×200；Firefox：4 条译文，版本读数受 BiDi 限制 |
+| 9 | iOS 系统翻译（真机 ZHAO的iPhone / iOS 27） | ✅ 装包与 entitlements、配 DeepSeek（882 ms）、设为默认、Safari 选字出译文、进复习库（系统翻译 · 2026-09 · 2 张卡）；◐「替换原文」：WKWebView 输入框里 XCUITest 选不中文字，本版 `app/native/` 零改动，沿用 09-21 |
+| 10 | macOS 快速翻译 | ✅ ⌃⌥T 出面板；未开增强取词时先说「先 ⌘C」；复制后「大家早上好。会议九点开始。」+「已存入复习库」 |
+| — | 中国版真机登录 | ✅ 邮箱验证码（QQ 邮箱发信）→ 登录后拉到 4661 张卡；Apple 登录真机用户决定先不测（无锁屏密码时要输 Apple 账户密码） |
+
+## 矩阵执行记录：全回归（2026-09-28，React 迁移 #494 合入后）
+
+基线 `main` @ 5265cab3（PR9 清扫合入，React 迁移 PR0–PR9 收官），回归分支 `regress/2026-09-28`。
+改动面：UI 全栈 React 化（popup / options / onboard / App 壳与各 View / 共享组件翻转 / content 注入 UI
+root 化 + ui.bundle 懒加载），非 UI 纯逻辑模块（translation-core/api、wire-format、request-shape、
+dom-processor、桥适配器）按 domain-design §「UI 层框架」未动。证据与驱动脚本在
+`.local/regress-2026-09-28/`（不提交；各面细节见同目录 AB-README / D-README / E-README / F/README）。
+
+### 本轮发现的产品缺陷（先红后绿）
+
+| 面 | 症状 | 根因 | 处置 |
+|---|---|---|---|
+| E Firefox | YouTube 双字幕整链断：双语模式播 3 分钟+ 无 overlay；屏幕上是 YouTube **原生**自动翻译中文字幕（CC 被 `ensureCaptionsOn` 自动打开），完美掩盖故障；「下载 .srt」弹原生 alert（引擎零句子，subtitle-adapter 的空态）才露馅 | **2026-09-28 深挖改判：不是 Firefox 回归。** 复现全部发生在 YouTube 服务端字幕封锁下——匿名会话本就被闸（未登录拿不到字幕），而扩展自己的重试循环在踩 YouTube 的封禁线（用户口径：反复请求约 >5 次即封，广告期间更易触发）：空结果清 `ttFetchedUrl`，下一 tick 重发同一签名 URL，`maxAttempts:8` ⇒ 每视频最多 8 发同一 URL——恰好就是触发封禁的行为。铁证：Chrome 同环境 CDP 抓到 9 条 timedtext 全 200/0 字节、原生字幕双浏览器同亡；上表旧根因两条均被证伪（隔离世界能看到 resource entries——refetch 循环在跑；`world:MAIN` 在 Firefox 156 可用——`__mtYtHookInstalled=true`） | **已修（EF-1 请求纪律，2026-09-28）**：同签名 URL 空结果终态，绝不重发；扩展每视频最多 3 次请求——宁可「字幕不可用」，不踩封禁线；广告结束/正片开始重置 one-shot 标记但不清 URL 记忆。行为测试钉在 `test/asr-subtitles.test.js`（vm 装真模块数 fetch）。happy path 的最终确认留在登录环境（用户日常 Chrome）。另议「原生 CC 与本扩展 overlay 共存」的视觉策略——引擎空转超时后不该让原生 CC 独自扮演译文（画布先行，另开 PR） |
+
+### 本轮顺手修的工具链（回归路上一红一绿，随 regress 分支提交）
+
+| 文件 | 症状 | 修 |
+|---|---|---|
+| `build-safari.sh` | 新版 converter 默认 app id 是双点的 `com.yourCompany.BelliedMonkey-Translator`，旧正则 `[A-Za-z0-9-]+` 匹配不到第二个点 → 替换静默失效 → 嵌入扩展与父 App 前缀不匹配，ValidateEmbeddedBinary 报 3 failures | 字符类加 `.` + `\Q\E` 精确引用；扩展行（`.Extension`）必须先于通配行处理，否则后缀被一起吃掉、扩展与 App 同 id |
+| `scripts/fetch-native-deps.js` | 上游 csukuangfj/onnxruntime-libs 09-17 重打同名 release asset（tag 不动），sha256 校验失败 | ios/macos 两个 sha 跟进，旧值留注释 |
+| `test/stt-state.test.js` | walk() 扫进 gitignored 的 `native/vendor` xcframework，上游包里 Headers/ 有坏符号链接，`statSync` ENOENT 测试红 | 跳过 `native/vendor` + `lstatSync` 遇符号链接 continue |
+
+### 各行结果
+
+| # | 面 | 结果 |
+|---|---|---|
+| 0 | 机器门禁 | ✅ `npm test` 2294 项全绿（2026-09-28 历史读数，已过时；现行基线 2628/2628 见 `docs/release-baseline-1.19.3.md`）；`node build.js` 与 `--flavor china` 全门绿（Gate B–J-2、中国合规 grep、palette、OS floor、defaultProvider、contentSyncBytes） |
+| 1 | iPhone Safari（模拟器 iOS 26.5） | ✅ plato 整页双语（translate_ok{deepseek,page,ms:2364} + tr: 缓存 9 键）、React options、React onboard；safaridriver 会话不注入扩展（Xcode 27 新断点）⇒ 改 LocalStorage.db 直写 + appex 测试钩子 + sqlite 回读配方（AB-README §工具链） |
+| 2 | iPad Safari（模拟器 iOS 26.5） | ✅ 双栏 plato 全双语（ms:1531 + 17 键）、宽屏 options/onboard；iOS 27 补充观察：注入正常但 safaridriver 桥断，主判据在 26.5 拿全 |
+| 3 | macOS Safari | ⬜ 待跑（需人工输密码勾「未签名扩展」开关） |
+| 4 | macOS Chrome | ✅ 5/6：React options / DeepSeek 配置+测试连接（✓877ms，storage+note 双判据）/ plato 双语（14 行 + 13 缓存键）/ popup + **状态一致性正向证据**（options 改 targetLang，未刷新的 popup 即时跟随）/ onboard 三步卡；YouTube 判「环境受限不可判」——未登录自动化实例两次播到 60s 整被 YouTube 服务端掐断（连 timedtext pot 都不铸），Firefox 同姿势不被掐 ⇒ 环境差异非回归；扩展侧注入 / CC 自动开 / gate 抑制均成立。**Chrome 153 已删尽 --load-extension**，本轮配方：`--remote-debugging-port=0 --enable-unsafe-extension-debugging` + CDP `Extensions.loadUnpacked`（test/layout/chrome.js 同款）；storage 回读必须走扩展页 target（内容页是主世界，MV3 SW target 常不存在） |
+| 5 | Firefox | ✅ 3/4：React options + DeepSeek 测试连接 1470ms / plato 双语 / 字幕菜单懒加载（React ui.bundle）全过；第 4 项（YouTube 双字幕）= 上表 EF-1，深挖后改判为 YouTube 服务端字幕封锁 + 扩展重试循环踩封禁线，已修（请求纪律） |
+| 6 | iOS 宿主 App（模拟器 iPhone 18 Pro） | ✅ 新引导四屏逐屏（obStep 自报）、就地试一句无引擎（领额度分支）与 DeepSeek（真译文 2.0s）、继续设置卡 3 次后收起（重启 4 次状态回读）、卡 ✕ 永久收起、找回横幅三步指引与让路、首页三行、ext 屏 iOS 形态（8/8） |
+| 7 | macOS 宿主 App | ⬜ 待跑 |
+| 8 | Windows 11 虚拟机 | ⬜ 待 /win-matrix（需在 VM 里粘一行 PowerShell 启动浏览器） |
+| 9 | 真机（ZHAO的iPhone） | ⬜ 待用户安排 |
+| — | 中国版关键行 | ✅ 拆包判据直接读 `dist-china/`：default_locale=zh_CN；OpenAI/ChatGPT/Claude 零命中（「anthropic」仅存于 Messages 线格式协议头与第三方 DOM 注释，非 provider 引用，与已出货版本一致）；MT_PROVIDERS 仅 deepseek/glm/qwen/qwen_mt/kimi/custom_*（global 的 google/openai/claude/anthropic/grant/grok/minimax/openrouter 全不在）；默认引擎 = 注册表首项 deepseek（EngineState.defaultId()=MT_PROVIDERS[0]，构建期 defaultProviderGate 已查 background.js）；MT_TELEMETRY=null（中国版不发）；MT_SYNC_ENABLED=true 为当前正确状态（1.16.1 已更正「中国版 sync 关」的过时判据）；dist-app-china 后端=api.belliedmonkey.com |
+
+### 遗留
+
+- EF-1 已修（请求纪律，见上表）；YouTube happy path 最终确认需要登录环境（闸下能验的只有纪律：同 URL 不重发、每视频 ≤3 次封顶，已钉进行为测试），日常 Chrome 人工复核即可；D 面 React dist 的 YouTube 链路留到下版装新 dist 后顺带看。
+- 本轮三处新驱动配方（Chrome 153 loadUnpacked、safaridriver 不注入的存储直写替代、Firefox foreground 像素点菜单）已沉淀在各面 README，下次回归直接用。
+
+---
+
+## 硬编码禁令（2026-10-05 用户裁定）
+
+**模型下载地址不得以明文出现在编译进客户端包的任何文件里。**
+
+理由：反编译二进制/Script.js 能看到全部字符串 —— 真实托管地址（GitHub Release / ModelScope / hf-mirror）写在那里，等于把 CC-BY-NC 模型的来源暴露给任何人（vits-mms-tha 是 Meta 的 MMS-TTS，许可是 CC-BY-NC 4.0）。用户裁定：避免被服务提供商告侵权。
+
+**地址的正确存放位置（按优先级）：**
+
+1. **`bt_model_sources` 表**（运行时查询替换，`app/model-sources.js` 的优先路）
+2. **Caddy `/models/*` 重定向**（`deploy/china/Caddyfile`，部署侧文件，不进客户端包）
+3. `app/device-models.config.js` 的兜底 URL 只允许 `api.belliedmonkey.com/models/` 前缀（自家域名中继，反编译看不出实际指向）
+
+**sha256 / size 不在此限** —— 它们是「下什么」的校验（客户端必须知道），不是「去哪下」（客户端不该知道）。
+
+**LLM 提供方端点不在此限** —— 用户自己配 key 时需要看见 `api.deepseek.com` 等地址；它们是产品功能，不是需要隐藏的托管。
+
+---
+
+## TTS 不得静默堵死（2026-10-05 用户裁定，#565 六轮真机教训）
+
+**任何 TTS 失败必须在 3 秒内让用户知道，任何 TTS 卡住不得阻塞整条队列。**
+
+build 88 真机：加了泰语模型后 `ensureDeviceReady` 检查全部模型（含 105 MB 泰语），GitHub 境内
+不通 → 下载挂住 → `speakOut` 永不返回 → `speakPump` 死锁在第一句上 → **中文也全哑、
+没有一行报错、手工重试也排不进队列**。用户原话："tts 堵死为什么没有报错和手工重试"。
+
+三条判据（`test/app-listen.test.js` 钉住形状）：
+
+### 1. speakPump 每句必须超时
+`speakOut` 挂住（下载卡死 / 网络不通）不得阻塞后续句子。超时后**跳过该句、标失败、继续下一句**。
+判据：源码里 `speakPump` 的 `await speakOut(...)` 必须带 `Promise.race` 超时。
+
+### 2. assets 类失败第一次就说
+`reason === 'assets'`（模型没下好）**不是瞬态错误** —— 它不会自愈，用户等 3 次只是在等一个
+不会来的好转。判据：`onSpeakResult` 里 `assets` 类不等 `speakFails >= 3`，第一次就出提示。
+
+### 3. 听译页要有下载进度/卡住的出口
+下载中 → 行上画进度（包屏那套 `onProgress` 已有）；卡住 → 给「重试」按钮。
+判据：源码里 `speakPump` 或 `speakOut` 必须把 `onProgress` 透传到 UI。

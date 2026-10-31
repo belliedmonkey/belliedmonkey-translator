@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>先补的：四条埋点，否则改完仍判断不了</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">现在能看见的只有「点了没点」，看不见「到了没到、成了没成」</h1><span>这四条按 AGENTS.md 属于加属性值 ⇒ 随定稿后的 docs PR 一起过评审</span></div></div>
+<table class="tbl">
+  <tr><th>缺口</th><th>现在</th><th>补上之后能回答</th></tr>
+  <tr><td><b>检测页那一侧全黑</b></td><td class="no">我们自己的网页上一个埋点都没有</td><td class="yes">多少人真的到了那一页、多少人看见绿灯 —— <b>这一条最值钱</b></td></tr>
+  <tr><td><b>macOS 曝光量不到</b></td><td class="no"><code class="code">shown</code> 只在 iOS 那一支发，Mac 54 台装机恒为 0</td><td class="yes">Mac 那条一键直达的路到底有没有人走</td></tr>
+  <tr><td><b>直达按钮没埋点</b></td><td class="no">macOS「打开 Safari 扩展设置」点了不记</td><td class="yes">唯一一条能一键到位的路的转化</td></tr>
+  <tr><td><b>两个来源混用</b></td><td class="no">主按钮与「不确定？看绿灯」共用一个 <code class="code">setup</code></td><td class="yes">检测页升成主路径之后，升了有没有用</td></tr>
+</table>
+<p class="hint">为什么必须先补：上一块板的结论就是「主按钮没效果」—— 而我们连「他有没有到那一页」都不知道。<b>不补，这一轮改完还是只能得到同一张分不出因果的表。</b>这正是复习那条（#386）现在的处境。</p>
+<div class="ask"><b>判据（出货后回读 bt_events）</b>① 检测页有自己的到达数与绿灯数；② macOS 形态有曝光数；③ 直达按钮有点击数；④「点过我已打开 / 看过横幅」比例从现在的 20% 起算，能分平台看。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

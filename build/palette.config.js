@@ -1,0 +1,185 @@
+// build/palette.config.js — the Organic palette registry (design/handoff.md §1).
+//
+// SINGLE SOURCE OF TRUTH for every brand colour, in the same spirit as
+// providers.config.js: the build emits
+//   · content/palette.gen.js        (window.MT_PALETTE — runtime JS consumers:
+//     content-main / content-webpage / subtitle-adapter fallbacks, options.js
+//     defaults, sources-view chips, the shared round-button style helper)
+//   · styles/organic-tokens.gen.css (CSS custom properties — linked by the
+//     popup / options / review pages and prepended into the app's Style.css by
+//     build/app-bundle.js, so the two halves of that concatenated file share
+//     ONE token set instead of colliding on same-named :root variables)
+// and build.js's legacyBrandGate refuses to ship any file still carrying the
+// pre-2026-08 green (#0a7a3c family) outside the storage migration that
+// retires it.
+//
+// background.js (the MV3 service worker) deliberately KEEPS literals — a
+// worker can't <script>-load the gen module, and importScripts plumbing isn't
+// worth it for two values. test/background.test.js pins those literals to this
+// registry (asserting against `runtime`/`migration`, never restated hexes);
+// build.js's legacyBrandGate additionally caps background.js at EXACTLY the
+// expected legacy occurrences so nothing new can hide behind the exemption.
+
+'use strict';
+
+// ── Primitive ramps (only the steps the product actually uses) ─────────────
+const ramps = {
+  terra100: '#fff2eb', terra200: '#ffe1d0', terra300: '#ffc6a5', terra400: '#f6a06b',
+  terra500: '#c67139', terra600: '#b2622d', terra700: '#8c491a', terra800: '#643312',
+  // terra550：白字压在上面刚好过 AA（4.62:1）的最浅一档 —— terra500 只有 3.61:1，
+  // terra600 是 4.49:1 差一线。由 scripts/lib/contrast.js 的 darkenUntil 算出，不是挑的。
+  // 页面上的填色按钮用它；内容脚本的圆钮（runtime.brand）仍是 terra500，那是压在
+  // 视频画面上的半透明钮，量的是另一回事。
+  terra550: '#ac6231',
+  sage100: '#f0fae1', sage200: '#e1eecc', sage300: '#ccdbb2', sage400: '#aebf92',
+  sage500: '#8fa073', sage600: '#728157', sage700: '#56633f', sage800: '#3d472b',
+  sage900: '#272e1b',
+  cream: '#f5ead8', creamWell: '#f9f4ed',
+  ink: '#201e1d', neutral300: '#dcd3c4', neutral600: '#82796a',
+  // neutral700：浅色模式的次要文字。2026-09-06 从 neutral600（奶油底上只有 3.61:1）
+  // 提到 #71695c，那是「过 AA 的最浅一档」—— 奶油底上 4.55:1，只高出门槛 0.05。
+  //
+  // 2026-09-09 再提一档到 #6a6255。触发点是免费额度卡的全矩阵验证：扩展页的卡压在
+  // 白底上读 5.42，而**宿主 App 的同一张卡压在奶油底上只有 4.55** —— 同一个 token、
+  // 同一段文字，两个宿主差 0.87，而低的那个正好贴着线。门禁只问「过不过 AA」，所以
+  // 它一直是绿的；贴线意味着任何一次底色微调都会把它推到线下，而那种回归没人看得见。
+  //   #6a6255 → 奶油 5.05 / 奶油井 5.50 / 白 6.02（最差项余量从 0.05 涨到 0.55）
+  //   与正文 ink 的层级比 3.07 → 2.76，次要文字仍明显浅于正文。
+  neutral700: '#6a6255',
+  danger: '#b3261e',
+  // dark-mode neutrals (Organic ships no dark ramp — handoff §1 keeps the
+  // pre-rebrand slate structure, greens swapped for sage light steps)
+  darkBg: '#0f172a', darkCard: '#1e293b', darkWell: '#273549',
+  darkBorder: '#374151', darkText: '#f9fafb', darkDim: '#9ca3af',
+  // darkDanger 从 #ff6b6b 提到 #ff7070：在 darkWell 上 4.47:1 差一线（2026-09-06 核查）。
+  // 深色的悬停不再单独更浅（#d67f48 上白字只有 3.0:1）—— 两种配色的悬停都走 terra700。
+  darkDanger: '#ff7070',
+  // dark setup-note grounds (tinted, derived from the sage/terra families)
+  noteDarkSageBg: '#1c2114', noteDarkTerraBg: '#2b1c10',
+  // Third-party marks on the sign-in buttons (design/signin/, 2026-09-05). NOT our
+  // brand — registered so the palette gate can tell "a mark we chose to draw" from
+  // drift. Google's four-colour G is the only place these may appear.
+  googleRed: '#ea4335', googleBlue: '#4285f4', googleYellow: '#fbbc05', googleGreen: '#34a853',
+};
+
+// ── Runtime defaults (JS consumers) ────────────────────────────────────────
+const runtime = {
+  textColor: ramps.sage700,        // .mt-translation default
+  ytTextColor: ramps.sage300,      // subtitle translation default
+  brand: ramps.terra500,
+  brandBtnBg: 'rgba(198,113,57,.92)', // 字幕悬浮圆钮底色 (terra500 at .92)
+  chipOn: ramps.sage700,           // sources-view language chip on-state（白字压在上面 6.5:1；
+                                   // sage600 只有 4.2:1，2026-09-06 深浅色核查）
+  chipOnHover: 'rgba(114,129,87,.08)',
+  // ── 页内注入层（OVL-01/02，2026-09-30 审计 #524）─────────────────────────
+  // 字幕叠层 / 字幕控制菜单这两个注入界面的颜色原先写死在 content/subtitle-adapter.js
+  // 与 src/content/sub-menu.jsx 里 —— palette 门禁的 pinned 名单只管页面 CSS，注入层
+  // 整片漏过去（审计 OVL-01：「palette 门禁管不到」）。登记到注册表后这两个文件也进了
+  // pinned 名单（build.js legacyBrandGate）。
+  // 注意：pinned 只校验六位 hex，rgba() 登记在这里但不受门禁约束 —— 改色要搜注册表。
+  overlayEnText: '#ffffff',             // 原文行
+  overlayFailText: '#ffb3b3',           // 行内失败态
+  overlayPendingText: '#d6d6d6',        // 占位 / 待重试 / 半句
+  overlayRowBg: 'rgba(8,8,8,0.82)',     // 叠层行底
+  overlayMenuBg: 'rgba(28,28,28,.97)',  // 字幕控制菜单面板
+  overlayMenuText: '#eeeeee',
+  overlayMenuDim: '#9a9a9a',            // 菜单表头
+  overlayMenuSep: 'rgba(255,255,255,.12)',
+  overlayMenuHover: 'rgba(255,255,255,.1)',
+  overlayTick: ramps.sage600,           // 勾选 / 已开启（原 Material 绿 #4caf50，OVL-03）
+  // 圆角三档（design/handoff.md §2）：指示性小元件 8 / 卡片与面板 16 / 控件胶囊。
+  // OVL-02：注入层原先的 3 / 10 / 12px 是第四套语言。
+  overlayChipRadius: '8px',
+  overlayPanelRadius: '16px',
+  overlayControlRadius: '999px',
+};
+
+// ── The shared CSS token sheet ─────────────────────────────────────────────
+// Semantic names are the ones the page stylesheets already speak. Each page
+// keeps only its true per-surface differences in its own :root.
+function tokensCss() {
+  const r = ramps;
+  return `/* AUTO-GENERATED by build.js from build/palette.config.js — do not edit by hand.
+   Shared Organic tokens (design/handoff.md §1) for the popup / options / review
+   pages and the app shell (prepended into Style.css by build/app-bundle.js).
+   角色对（文字 × 底色）的 WCAG 比值由 test/palette-contrast.test.js 钉住；
+   --link 是链接的唯一颜色来源 —— 没有它的那三年里 <a> 走浏览器默认蓝，深色底上 1.9:1
+   （2026-09-06）。color-scheme 让原生控件（复选框、下拉弹层、滚动条）跟着配色走。 */
+:root {
+  color-scheme: light dark;
+  --accent: ${r.terra550};
+  --accent-hover: ${r.terra700};
+  --accent-deep: ${r.terra700};
+  --link: ${r.terra700};
+  --accent-track: ${r.terra200};
+  --sage: ${r.sage600};
+  --sage-strong: ${r.sage700};
+  --sage-text: ${r.sage800};
+  --sage-light: ${r.sage200};
+  --sage-deep: ${r.sage900};
+  --text: ${r.ink};
+  --text-secondary: ${r.neutral700};
+  --border: ${r.neutral300};
+  --bg: ${r.cream};
+  --card-bg: #ffffff;
+  --section-bg: ${r.creamWell};
+  --input-bg: ${r.creamWell};
+  --danger: ${r.danger};
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 14px;
+  --shadow-sm: 0 1px 2px rgba(46, 43, 37, 0.14);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent-deep: ${r.terra400};
+    --link: ${r.terra400};
+    --accent-track: ${r.terra800};
+    --sage: ${r.sage500};
+    --sage-strong: ${r.sage400};
+    --sage-text: ${r.sage400};
+    --sage-light: ${r.sage800};
+    --sage-deep: ${r.sage300};
+    --text: ${r.darkText};
+    --text-secondary: ${r.darkDim};
+    --border: ${r.darkBorder};
+    --bg: ${r.darkBg};
+    --card-bg: ${r.darkCard};
+    --section-bg: ${r.darkWell};
+    --input-bg: ${r.darkWell};
+    --danger: ${r.darkDanger};
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* 基础 UI 基线（POP-01，2026-09-30）：键盘焦点在四个面是同一条 —— 扩展三页各自
+   link 这份 sheet，App 壳由 build/app-bundle.js 把它 prepend 进 Style.css。
+   放在 token 之后、页面样式之前：页面自己的 :focus 规则（options / review / app
+   各有）在后，仍然覆盖它。 */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+`;
+}
+
+// ── The shared round translate-button style (字幕/播客/推特 圆钮) ──────────
+// One string, three content-script call sites — the 2026-08 recolor needed
+// three synchronized edits, which is exactly the drift this kills.
+function roundBtnCssJs() {
+  return `window.MT_PALETTE.roundBtnCss = function (fontPx) {
+  return 'border:none;cursor:pointer;background:' + window.MT_PALETTE.brandBtnBg +
+    ';color:#fff;font-size:' + (fontPx || 15) + 'px;font-weight:700;';
+};`;
+}
+
+// Pre-rebrand defaults — the one-shot storage migration in background.js
+// matches these by VALUE. Deliberately NOT part of `runtime`: emitting them
+// into palette.gen.js / the app's Script.js would force the legacy gate to
+// exempt those whole files, opening a hole for a real legacy-colour use.
+// test/background.test.js asserts against this object, which is what pins
+// background.js's literals to the registry.
+const migration = { legacyTextColor: '#0a7a3c', legacyYtTextColor: '#ffffff' };
+
+// Legacy brand hexes that must never ship again. background.js is the sole
+// permitted mention (exact occurrence counts enforced by legacyBrandGate).
+const forbiddenLegacy = ['#0a7a3c', '#065f46', '#4ade80', '#16a34a', '#86efac', '#dcfce7', '#4ec98a'];
+
+module.exports = { ramps, runtime, migration, tokensCss, roundBtnCssJs, forbiddenLegacy };

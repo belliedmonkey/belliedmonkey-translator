@@ -1,0 +1,59 @@
+dist/
+dist-china/
+dist-firefox/
+safari-project/
+safari-project-china/
+safari-project-macos/
+# 生成工程的本机备份（`.bak-1243`、`.rel-bak-1813` …）也是生成物。上面三行逐个点名，
+# 漏掉了这类后缀，于是 #397 那次 `git add` 把五份备份（185 个文件）一起带进了 main。
+safari-project*/
+*.zip
+*.xpi
+node_modules/
+__pycache__/
+*.pyc
+.gstack/
+pnpm-lock.yaml
+
+# macOS
+.DS_Store
+
+# layout regression suite output (screenshots + results.json)
+test/layout/artifacts/
+test/layout/artifacts-*/
+
+# Claude Code: share the project settings, keep per-machine state out
+.claude/settings.local.json
+.claude/worktrees/
+
+# 双宿主（Claude Code + Reasonix）：共享面提交，本机覆盖不提交。两个宿主都认
+# `<指令文件>.local.md` 作为「本目录的、只属于这台机器」的补充（Reasonix
+# 的 load order 是 user → ancestor → project → **project-local**，后加载者更具体），
+# 所以一份机器专属的覆盖一旦提交，就会变成所有人的规则。见 AGENTS.md 的
+# "Two hosts, one project"。
+AGENTS.local.md
+CLAUDE.local.md
+REASONIX.local.md
+# Reasonix 每条后台任务的运行记录（events / snapshot / lock），本机状态。
+.reasonix/tasks/
+
+# Local secrets — provider API keys for verification runs live in the shell
+# environment (MT_API_KEY), never in the repo.
+.env
+.env.*
+dist-app/
+# 中国版宿主 App 包。它在 47134d0（修「中国版带国际版注册表」那次）被顺手
+# git add 进来了 —— 四个同类产物目录里只有它漏了忽略，于是每次
+# `node build.js --flavor china` 都会弄脏工作树，还带着 1MB 生成物进版本库。
+dist-app-china/
+
+# 本地凭证（scripts/local-keys.js 生成，永不提交）
+.local/
+design/.thumbnail
+supabase/.temp/
+
+# 原生二进制依赖（scripts/fetch-native-deps.js 拉取，钉版本 + sha256）
+app/native/vendor/
+
+# 回归证据（第三十批起）：命令输出、截图、汇总表 —— 本地留存，不进仓库。
+out-reg/

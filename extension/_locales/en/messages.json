@@ -1,0 +1,4212 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: Bilingual + Review"
+  },
+  "extension_description": {
+    "message": "Bilingual pages and dual subtitles. Sentences you truly read become spaced-repetition cards. Bring your own key."
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Translating…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Preparing translation…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Translation failed — tap to retry"
+  },
+  "fab_translate": {
+    "message": "Translate"
+  },
+  "fab_toggle": {
+    "message": "Toggle translation"
+  },
+  "fab_enable": {
+    "message": "Turn on translation"
+  },
+  "fab_disable": {
+    "message": "Turn off translation"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey Translator · Video subtitles"
+  },
+  "yt_sub_on": {
+    "message": "Turn on subtitle translation"
+  },
+  "yt_sub_off": {
+    "message": "Turn off subtitle translation"
+  },
+  "yt_display_type": {
+    "message": "Subtitle display"
+  },
+  "yt_mode_both": {
+    "message": "Bilingual"
+  },
+  "yt_mode_trans": {
+    "message": "Translation only"
+  },
+  "yt_mode_orig": {
+    "message": "Original only"
+  },
+  "yt_download_srt": {
+    "message": "Download subtitles (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Subtitles not ready yet — try again after the translation loads"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ Loading subtitles…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Subtitles unavailable"
+  },
+  "podcast_sub_on": {
+    "message": "Turn on podcast subtitles"
+  },
+  "podcast_sub_off": {
+    "message": "Turn off podcast subtitles"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "popup_target_lang": {
+    "message": "Target language"
+  },
+  "popup_provider": {
+    "message": "Translation engine"
+  },
+  "provider_google_free": {
+    "message": "Google Translate (free)"
+  },
+  "placeholder_api_key": {
+    "message": "Enter API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "Show/Hide"
+  },
+  "label_custom_api": {
+    "message": "Endpoint URL (complete)"
+  },
+  "label_optional": {
+    "message": "(optional)"
+  },
+  "btn_translate_page": {
+    "message": "Translate page"
+  },
+  "btn_view_original": {
+    "message": "View original"
+  },
+  "btn_more_settings": {
+    "message": "More settings"
+  },
+  "status_translated": {
+    "message": "Translated"
+  },
+  "status_untranslated": {
+    "message": "Not translated"
+  },
+  "toast_lang_switched": {
+    "message": "Language switched"
+  },
+  "toast_provider_switched": {
+    "message": "Engine switched"
+  },
+  "toast_restored_original": {
+    "message": "Original restored"
+  },
+  "toast_translating": {
+    "message": "Translating…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Settings"
+  },
+  "options_engine_section": {
+    "message": "Translation engine"
+  },
+  "options_engine_label": {
+    "message": "Engine"
+  },
+  "provider_google_free_long": {
+    "message": "Google Translate (free, no API Key)"
+  },
+  "options_custom_api_hint": {
+    "message": "Leave blank to use this engine's default endpoint. If you fill it in, enter the complete request URL including its path — we send it exactly as typed and never append anything. Works for proxies and self-hosted services."
+  },
+  "options_lang_section": {
+    "message": "Language"
+  },
+  "options_style_section": {
+    "message": "Display style"
+  },
+  "options_webpage_color": {
+    "message": "Webpage translation color"
+  },
+  "options_color_preview": {
+    "message": "This is a preview of the translation style"
+  },
+  "options_yt_color": {
+    "message": "YouTube subtitle color"
+  },
+  "options_yt_preview": {
+    "message": "Bilingual subtitle preview"
+  },
+  "options_font_size": {
+    "message": "Translation size (relative to original)"
+  },
+  "options_font_s": {
+    "message": "Smaller (0.8×)"
+  },
+  "options_font_m": {
+    "message": "Small (0.9×)"
+  },
+  "options_font_body": {
+    "message": "Match original (1.0×)"
+  },
+  "options_font_l": {
+    "message": "Larger (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "Show floating button"
+  },
+  "options_cache_section": {
+    "message": "Cache"
+  },
+  "options_cache_hint": {
+    "message": "Translations are cached for 12 hours to reduce API requests."
+  },
+  "options_clear_cache": {
+    "message": "Clear translation cache"
+  },
+  "options_about_section": {
+    "message": "About"
+  },
+  "options_about_desc": {
+    "message": "Bilingual translation + a learning loop: sentences you actually read become review cards."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: enable it in Settings → Safari → Extensions."
+  },
+  "toast_provider_saved": {
+    "message": "Engine saved"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Engine changed — the endpoint URL was cleared",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key saved"
+  },
+  "toast_apiurl_saved": {
+    "message": "API URL saved"
+  },
+  "toast_lang_saved": {
+    "message": "Language saved"
+  },
+  "toast_fontsize_saved": {
+    "message": "Font size saved"
+  },
+  "toast_color_saved": {
+    "message": "Color saved"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube subtitle color saved"
+  },
+  "toast_clearing": {
+    "message": "Clearing…"
+  },
+  "toast_cache_empty": {
+    "message": "Cache is empty"
+  },
+  "toast_cache_cleared": {
+    "message": "Cache cleared"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key (sk-…)."
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key (sk-ant-…)."
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key."
+  },
+  "hint_glm": {
+    "message": "GLM (Zhipu AI) API Key (free tier available)."
+  },
+  "ui_lang_label": {
+    "message": "Interface language"
+  },
+  "ui_lang_auto": {
+    "message": "Follow system"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "Largest (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key."
+  },
+  "hint_qwen_mt": {
+    "message": "Qwen MT (DashScope) API Key. A translation-specialised model — cheaper and faster than a general chat model. Same key as Qwen."
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Default model:"
+  },
+  "hint_custom_chat": {
+    "message": "Any Chat-Completions-format chat endpoint. Enter the complete endpoint URL, model and key. If the address ends in responses, the Responses format is sent instead."
+  },
+  "hint_custom_msg": {
+    "message": "Any Messages-format chat endpoint. Enter the complete endpoint URL, model and key."
+  },
+  "label_custom_model": {
+    "message": "Model"
+  },
+  "options_custom_model_hint": {
+    "message": "Leave blank to use the engine's default model."
+  },
+  "options_advanced": {
+    "message": "Advanced parameters"
+  },
+  "label_adv_temperature": {
+    "message": "Randomness (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Blank uses 0.3. Lower is steadier."
+  },
+  "label_adv_max_tokens": {
+    "message": "Max output per request"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Blank uses 2000. Raise it if long paragraphs get cut off."
+  },
+  "label_adv_timeout": {
+    "message": "Request timeout (seconds)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Blank uses 20s. Raise it for slow self-hosted or reasoning models."
+  },
+  "label_adv_concurrency": {
+    "message": "Parallel requests"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Blank uses 5. Lower it if you are being rate-limited; raising it will not speed up requests already waiting."
+  },
+  "options_adv_unsupported": {
+    "message": "This model does not accept this parameter, so it will not be sent."
+  },
+  "label_adv_custom": {
+    "message": "Custom request parameters"
+  },
+  "options_adv_custom_hint": {
+    "message": "A JSON object, merged into the request body and overriding the fields above. For self-hosted or internal endpoints we have not measured."
+  },
+  "options_adv_custom_bad": {
+    "message": "Could not parse, so nothing will be sent: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Must be a JSON object; nothing will be sent."
+  },
+  "options_adv_custom_ok": {
+    "message": "Will send: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "Cannot be overridden, ignored: "
+  },
+  "options_adv_custom_none": {
+    "message": "(none)"
+  },
+  "err_reasoning_starved": {
+    "message": "The model spent its entire output budget on reasoning and produced no translation. Raise \"Max output per request\" under Advanced parameters, or switch to a non-reasoning model."
+  },
+  "toast_model_saved": {
+    "message": "Model saved"
+  },
+  "setup_need_key": {
+    "message": "This engine needs an API key. Translation will not work until you enter one below."
+  },
+  "popup_need_setup": {
+    "message": "Translation is not set up yet — tap here to open Settings; one key configures everything."
+  },
+  "learn_title": {
+    "message": "Review"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Review"
+  },
+  "learn_review": {
+    "message": "Review"
+  },
+  "learn_reveal": {
+    "message": "Show translation"
+  },
+  "learn_grade_again": {
+    "message": "Forgot"
+  },
+  "learn_grade_hard": {
+    "message": "Hard"
+  },
+  "learn_grade_good": {
+    "message": "Got it"
+  },
+  "learn_grade_easy": {
+    "message": "Too easy"
+  },
+  "learn_empty_title": {
+    "message": "No learning material yet"
+  },
+  "learn_empty_body": {
+    "message": "Turn on capture, then just browse and translate as usual. Sentences you actually read get saved — the ones you scroll straight past do not."
+  },
+  "learn_open_settings": {
+    "message": "Turn on capture in settings"
+  },
+  "learn_alldone_title": {
+    "message": "Done for now"
+  },
+  "learn_alldone_body": {
+    "message": "Keep browsing and translating — new material arrives on its own."
+  },
+  "learn_next_due": {
+    "message": "The next card is due {when}."
+  },
+  "learn_in_minutes": {
+    "message": "in about {n} min"
+  },
+  "learn_in_hours": {
+    "message": "in about {n} h"
+  },
+  "learn_in_days": {
+    "message": "in about {n} days"
+  },
+  "learn_progress": {
+    "message": "Progress"
+  },
+  "learn_done_run": {
+    "message": "{n} done this session"
+  },
+  "learn_settings": {
+    "message": "Settings"
+  },
+  "learn_unknown_source": {
+    "message": "Unknown source"
+  },
+  "learn_count_due": {
+    "message": "Due"
+  },
+  "learn_count_learning": {
+    "message": "Learning"
+  },
+  "learn_count_new": {
+    "message": "Candidates"
+  },
+  "learn_count_known": {
+    "message": "Known"
+  },
+  "learn_count_total": {
+    "message": "Total"
+  },
+  "learn_section": {
+    "message": "Learning"
+  },
+  "learn_section_hint": {
+    "message": "When on, sentences you actually read are kept ON THIS DEVICE together with the page address, its title and how long the text was on screen, and resurfaced on a forgetting curve. Skimming past does not count. Nothing is uploaded unless you turn on sync, and one button erases all of it."
+  },
+  "learn_enable": {
+    "message": "Collect learning material"
+  },
+  "learn_daily_new": {
+    "message": "New cards per day (max)"
+  },
+  "learn_open_review": {
+    "message": "Open the review page"
+  },
+  "learn_clear": {
+    "message": "Erase the learning corpus"
+  },
+  "learn_clear_confirm": {
+    "message": "Erase the learning corpus? Every collected sentence and all review progress will be deleted, and this cannot be undone."
+  },
+  "learn_stats": {
+    "message": "{n} items · {due} due · about {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "The learning corpus is empty"
+  },
+  "toast_learn_on": {
+    "message": "Collecting learning material"
+  },
+  "toast_learn_off": {
+    "message": "Collection stopped (what was already collected is kept)"
+  },
+  "toast_learn_cleared": {
+    "message": "Learning corpus erased"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Could not erase"
+  },
+  "toast_saved": {
+    "message": "Saved"
+  },
+  "learn_replay": {
+    "message": "▶ Replay this clip"
+  },
+  "learn_replay_hint": {
+    "message": "Opens the source in a new tab at that timestamp — bilingual subtitles work there too."
+  },
+  "tts_section": {
+    "message": "Read-aloud"
+  },
+  "tts_section_hint": {
+    "message": "Turn review cards into listening practice. Uses your device's own voice by default — no network, no cost. You can also point it at a speech server you run yourself."
+  },
+  "tts_mode": {
+    "message": "Speech mode"
+  },
+  "tts_mode_off": {
+    "message": "Off"
+  },
+  "tts_mode_assist": {
+    "message": "Show the text, with a play button"
+  },
+  "tts_mode_audio_first": {
+    "message": "Listen first (text hidden until you ask)"
+  },
+  "tts_engine": {
+    "message": "Speech engine"
+  },
+  "tts_engine_browser": {
+    "message": "Built-in device voice (free · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Local / self-hosted speech endpoint"
+  },
+  "tts_hint_browser": {
+    "message": "Uses the voices your operating system already has. Nothing is sent anywhere and nothing is cached — this engine only speaks, it cannot hand back audio."
+  },
+  "tts_hint_local": {
+    "message": "A speech server on your own machine or LAN — enter the complete address, following the example shown in the field. Synthesis is cached locally, so a sentence costs you only once."
+  },
+  "tts_hint_openai": {
+    "message": "Uses your own API key. Synthesized audio is cached locally so a card is only paid for once."
+  },
+  "tts_base_url": {
+    "message": "Speech endpoint URL"
+  },
+  "tts_api_key": {
+    "message": "Speech API key"
+  },
+  "tts_model": {
+    "message": "Engine model name"
+  },
+  "tts_voice": {
+    "message": "Voice"
+  },
+  "tts_voice_auto": {
+    "message": "Automatic (matched to the card's language)"
+  },
+  "tts_voice_hint": {
+    "message": "Voices are matched to each card's language. The one you pick here is only used when it actually speaks that language."
+  },
+  "tts_rate": {
+    "message": "Speed"
+  },
+  "tts_autoplay": {
+    "message": "Play automatically when a card opens"
+  },
+  "tts_test": {
+    "message": "Play a test sentence"
+  },
+  "tts_test_sample": {
+    "message": "This is what your review cards will sound like."
+  },
+  "tts_testing": {
+    "message": "Synthesizing…"
+  },
+  "tts_test_ok": {
+    "message": "Playing"
+  },
+  "tts_play": {
+    "message": "▶ Listen"
+  },
+  "tts_replay": {
+    "message": "▶ Listen again"
+  },
+  "tts_playing": {
+    "message": "Playing…"
+  },
+  "tts_loading": {
+    "message": "Loading audio…"
+  },
+  "tts_no_voice": {
+    "message": "Your system has no voice for this language"
+  },
+  "tts_unsupported": {
+    "message": "This browser offers no built-in speech"
+  },
+  "tts_no_base": {
+    "message": "No speech endpoint URL yet"
+  },
+  "tts_no_key": {
+    "message": "No speech API key yet"
+  },
+  "tts_blocked": {
+    "message": "The browser blocked autoplay — tap to play"
+  },
+  "tts_http": {
+    "message": "The speech service returned an error"
+  },
+  "tts_failed": {
+    "message": "This sentence cannot be spoken right now"
+  },
+  "tts_cache": {
+    "message": "Speech cache: {n} clips · about {mb} MB (limit {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "The speech cache is empty"
+  },
+  "tts_cache_na": {
+    "message": "The built-in device voice produces no cache"
+  },
+  "tts_clear_cache": {
+    "message": "Clear the speech cache"
+  },
+  "toast_tts_cleared": {
+    "message": "Speech cache cleared"
+  },
+  "learn_reveal_orig": {
+    "message": "Show the text"
+  },
+  "learn_clean_known": {
+    "message": "Clear cards you've mastered"
+  },
+  "learn_clean_known_n": {
+    "message": "Clear {n} mastered cards"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} captured items could not be saved — this happens when the corpus is full."
+  },
+  "learn_pressure_evicted": {
+    "message": "The corpus is full — {n} old cards were dropped automatically to make room."
+  },
+  "learn_pressure_near": {
+    "message": "The corpus is nearly full ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Cleared {n} mastered cards"
+  },
+  "learn_export": {
+    "message": "Export the corpus"
+  },
+  "learn_import": {
+    "message": "Import from a file"
+  },
+  "toast_exported": {
+    "message": "Exported {n} cards"
+  },
+  "toast_export_empty": {
+    "message": "Nothing to export yet"
+  },
+  "toast_export_failed": {
+    "message": "Export failed"
+  },
+  "toast_imported": {
+    "message": "Imported {n} cards"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unreadable lines skipped"
+  },
+  "toast_import_bad_format": {
+    "message": "That is not a learning-corpus export file"
+  },
+  "toast_import_failed": {
+    "message": "Import failed"
+  },
+  "sync_section": {
+    "message": "Sign in · Sync across devices"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Everything works signed out — sync only makes the sentences you read in the browser show up in the app and on your other devices too. Once signed in, everything you capture (including candidates not yet in review) syncs across."
+  },
+  "sync_email": {
+    "message": "Email"
+  },
+  "sync_send_code": {
+    "message": "Send code"
+  },
+  "sync_code": {
+    "message": "6-digit code from the email"
+  },
+  "sync_verify": {
+    "message": "Sign in"
+  },
+  "sync_now": {
+    "message": "Sync now"
+  },
+  "sync_signout": {
+    "message": "Sign out"
+  },
+  "sync_delete": {
+    "message": "Delete cloud data and account"
+  },
+  "sync_err_offline": {
+    "message": "Can't reach the server; this will retry later. Everything you have learned is on this device."
+  },
+  "sync_err_quota": {
+    "message": "Your cloud storage is full, so new material is not being uploaded (this device is unaffected). Clearing mastered cards frees space."
+  },
+  "sync_err_signed_out": {
+    "message": "Your session expired. Please sign in again."
+  },
+  "sync_err_rate": {
+    "message": "Too many codes requested. Try again in a few minutes."
+  },
+  "sync_err_generic": {
+    "message": "Sync did not finish"
+  },
+  "sync_signed_in": {
+    "message": "Signed in as {email}"
+  },
+  "sync_usage": {
+    "message": "{used} of {quota} used · {n} chunks"
+  },
+  "sync_need_email": {
+    "message": "Enter your email first"
+  },
+  "sync_sending": {
+    "message": "Sending…"
+  },
+  "sync_code_sent": {
+    "message": "Code sent to {email}. Enter it below."
+  },
+  "sync_verifying": {
+    "message": "Verifying…"
+  },
+  "sync_signed_in_now": {
+    "message": "Signed in. The first sync may take a few seconds."
+  },
+  "sync_bad_code": {
+    "message": "That code is wrong or expired. Request a new one."
+  },
+  "sync_running": {
+    "message": "Syncing…"
+  },
+  "sync_done": {
+    "message": "Sync complete · {in} received · {out} uploaded"
+  },
+  "sync_status_running": {
+    "message": "Syncing with server…"
+  },
+  "sync_status_done_at": {
+    "message": "Synced · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Currently offline — will retry automatically. Your learning data is saved on this device."
+  },
+  "sync_status_error": {
+    "message": "Sync failed — will retry automatically."
+  },
+  "sync_status_signed_out": {
+    "message": "Not signed in — local data only"
+  },
+  "sync_signed_out": {
+    "message": "Signed out. Your learning library stays on this device, untouched."
+  },
+  "sync_delete_confirm": {
+    "message": "Delete cloud data and account? Everything on the server and this account will be deleted permanently. Your library on this device is kept."
+  },
+  "sync_deleting": {
+    "message": "Deleting…"
+  },
+  "sync_deleted": {
+    "message": "Cloud data and account deleted. Your library on this device is kept."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud data deleted, but the account could not be removed ({why}). You can retry or contact us."
+  },
+  "sync_err_upgrade": {
+    "message": "There is something in the cloud this version can't read yet (probably written by a newer build). Update the extension, then sync — nothing is lost, it just can't be read yet."
+  },
+  "toast_import_upgrade": {
+    "message": "This file was written by a newer version of the extension. Update, then import it. There is nothing wrong with the file."
+  },
+  "options_init_failed": {
+    "message": "The settings page failed to load ({err}). Reopen this page; if it keeps happening, please report this message to us."
+  },
+  "settings_read_failed": {
+    "message": "Your saved settings could not be read, so the defaults are shown below. Do not save from this page — it would overwrite what you had. ({why})"
+  },
+  "learn_relearn": {
+    "message": "Relearn",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "Memory strength",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "days",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "How review works",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "Remember it → the interval grows, the card returns later.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "Forget it → it starts over and returns soon.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "When strength reaches 180 days, the card graduates.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "Got it",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "Up to {n} new cards a day — adjustable in Settings.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "Free practice",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "Practice cannot grind out mastery, but it can expose forgetting.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "Learning",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "Everything (incl. new & known)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "No limit",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "Start practice",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "Practice {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "Practice done — {n} cards.",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "Read",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "Listen",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "Write",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "Fully mastered",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "Say it aloud (practice — not graded)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "Check",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "Complete the sentence",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "Replaced with the correct answer",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "Explain this sentence",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "Uses your configured API — one call, cached forever",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "Analyzing…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "Analysis failed — try again later",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "The model returned no answer text — thinking/reasoner models don't suit sentence notes; pick a chat model in settings."
+  },
+  "learn_notes_words": {
+    "message": "Vocabulary",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "Phrases",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "Grammar",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "Video, conversations, documents — translated as you listen. Speech is recognized on your device. The recognized text is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text."
+  },
+  "app_email_label": {
+    "message": "Email"
+  },
+  "app_send": {
+    "message": "Send code"
+  },
+  "app_sending": {
+    "message": "Sending…"
+  },
+  "app_code_label": {
+    "message": "Code (check your email)"
+  },
+  "app_verify": {
+    "message": "Sign in"
+  },
+  "app_verifying": {
+    "message": "Signing in…"
+  },
+  "app_back_email": {
+    "message": "Use a different email"
+  },
+  "app_signout": {
+    "message": "Sign out"
+  },
+  "app_settings_link": {
+    "message": "Settings"
+  },
+  "app_review_start": {
+    "message": "Start review"
+  },
+  "app_review_back": {
+    "message": "← Back"
+  },
+  "app_sync": {
+    "message": "Sync"
+  },
+  "app_syncing": {
+    "message": "Syncing…"
+  },
+  "app_unit_cards": {
+    "message": "cards"
+  },
+  "app_unit_reviews": {
+    "message": "reviews"
+  },
+  "app_unit_sources": {
+    "message": "sources"
+  },
+  "app_never_synced": {
+    "message": "Not synced yet"
+  },
+  "app_sync_empty": {
+    "message": "Synced, but the server has nothing yet — capture some sentences in the browser first, then sync again."
+  },
+  "app_up_to_date": {
+    "message": "Already up to date."
+  },
+  "app_code_sent": {
+    "message": "Code sent — check your email."
+  },
+  "app_code_bad": {
+    "message": "Wrong or expired code — try again."
+  },
+  "app_offline": {
+    "message": "Can't reach the server — check your connection and retry."
+  },
+  "app_needs_upgrade": {
+    "message": "The server has content this version can't read — please update the app."
+  },
+  "app_received": {
+    "message": "Received {n} cards · {m} reviews"
+  },
+  "app_uploaded_n": {
+    "message": "uploaded {n} reviews"
+  },
+  "app_uploaded_only": {
+    "message": "Uploaded {n} reviews"
+  },
+  "app_sync_disabled": {
+    "message": "Sync isn't enabled in this build. The browser extension's capture and review are unaffected — everything stays on your device."
+  },
+  "app_set_title": {
+    "message": "Settings"
+  },
+  "app_set_daily": {
+    "message": "Max new cards per day"
+  },
+  "app_set_tts_auto": {
+    "message": "Auto-speak when the translation is shown"
+  },
+  "app_set_tts_rate": {
+    "message": "Speech rate"
+  },
+  "app_set_tts_note": {
+    "message": "Cards with an unknown language (e.g. captured in Safari, which has no language detection) play only with the voice chosen above; without a choice they can't be spoken. The speech API key works like the sentence-notes key: it stays on this device only, never syncs with your account, and is stored in plaintext."
+  },
+  "app_set_notes_title": {
+    "message": "Translation & sentence notes"
+  },
+  "app_set_notes_provider": {
+    "message": "Engine"
+  },
+  "app_set_notes_none": {
+    "message": "None"
+  },
+  "app_set_notes_key": {
+    "message": "API Key"
+  },
+  "app_set_notes_base": {
+    "message": "Custom endpoint URL"
+  },
+  "app_set_notes_model": {
+    "message": "Engine model name"
+  },
+  "app_set_notes_note": {
+    "message": "This engine does every translation in the app: system translation, quick translate, document translation, the translations in conversation and live subtitles — and sentence notes (words / phrases / grammar). It calls your own API. The key stays on this device only and never syncs with your account; it is separate from the one in the browser extension, and just as safe — both are stored in plain text on the device."
+  },
+  "app_set_corpus": {
+    "message": "Library"
+  },
+  "app_set_clean_known": {
+    "message": "Clean up mastered cards"
+  },
+  "app_set_cleaned": {
+    "message": "Cleaned up {n} cards"
+  },
+  "app_set_clean_none": {
+    "message": "Nothing to clean up"
+  },
+  "app_set_account": {
+    "message": "Account"
+  },
+  "app_set_signout": {
+    "message": "Sign out"
+  },
+  "app_set_delete": {
+    "message": "Delete account and cloud data"
+  },
+  "app_set_delete_note": {
+    "message": "Deleting permanently removes your material and review history from the server and closes the account. Content already downloaded to this device is unaffected — to remove that too, delete the app."
+  },
+  "app_set_confirm_delete": {
+    "message": "Delete your account? Everything on the server will be permanently removed and cannot be recovered."
+  },
+  "app_set_deleting": {
+    "message": "Deleting…"
+  },
+  "app_set_deleted": {
+    "message": "Account deleted."
+  },
+  "app_unit_known": {
+    "message": "mastered"
+  },
+  "tts_no_voice_und": {
+    "message": "This card's language is unknown — pick a voice in settings and it will play"
+  },
+  "app_set_tts_voice": {
+    "message": "Voice"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automatic (by card language)"
+  },
+  "learn_langs_label": {
+    "message": "Languages to learn"
+  },
+  "learn_langs_all": {
+    "message": "All (default)"
+  },
+  "learn_langs_hint": {
+    "message": "Only sentences in the selected languages are captured. Where Safari cannot detect the language, the writing system decides; long-press saves are never filtered."
+  },
+  "learn_sources_manage": {
+    "message": "Manage sources"
+  },
+  "learn_sources_empty": {
+    "message": "No sources captured yet"
+  },
+  "learn_sources_count": {
+    "message": "{n} cards"
+  },
+  "learn_src_delete": {
+    "message": "Delete saved"
+  },
+  "learn_src_block": {
+    "message": "Stop capturing"
+  },
+  "learn_src_unblock": {
+    "message": "Resume capturing"
+  },
+  "learn_src_blocked": {
+    "message": "Blocked"
+  },
+  "learn_src_blocked_by": {
+    "message": "Blocked by rule {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Block rules"
+  },
+  "learn_block_hint": {
+    "message": "Wildcards supported: example.com matches the whole domain (subdomains too); *.example.com/news/* matches a path."
+  },
+  "learn_block_add": {
+    "message": "Add"
+  },
+  "learn_block_placeholder": {
+    "message": "e.g. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Not a valid rule"
+  },
+  "learn_delete_confirm": {
+    "message": "Delete {n} cards from {host}? This syncs to all your devices and cannot be undone."
+  },
+  "learn_delete_done": {
+    "message": "Deleted {n} cards"
+  },
+  "learn_delete_none": {
+    "message": "Nothing left to delete from this source"
+  },
+  "popup_site_section": {
+    "message": "This site"
+  },
+  "popup_site_capture": {
+    "message": "Capture on this site"
+  },
+  "popup_site_manage": {
+    "message": "Manage…"
+  },
+  "learn_card_src_actions": {
+    "message": "Source actions"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "Couldn't read the sign-in state (storage read failed); will retry shortly — this does not mean you were signed out."
+  },
+  "learn_backup_failed": {
+    "message": "Local backup could not be written ({why}). The learning library itself is unaffected."
+  },
+  "notes_engine": {
+    "message": "Notes engine"
+  },
+  "notes_engine_hint": {
+    "message": "The chat engine used by “Explain this sentence”. Follows the translation engine above by default; thinking/reasoner models don't suit notes."
+  },
+  "notes_follow": {
+    "message": "Follow translation engine (default)"
+  },
+  "notes_api_key": {
+    "message": "Notes API Key"
+  },
+  "notes_base_url": {
+    "message": "Notes API endpoint"
+  },
+  "notes_model": {
+    "message": "Notes model"
+  },
+  "learn_badge_speak": {
+    "message": "Speak",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "One more skill · does not affect the interval",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Pick the correct translation",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Listen first, then pick the words you heard",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Confirm choices",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Generating this card's questions with your API (one call, cached forever)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Question generation failed — using the local exercise instead",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "Transcription engine",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "Not configured (no speaking exercise)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "Local / self-hosted transcription endpoint",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "Speaking-exercise recordings go to the endpoint configured here for transcription, then are discarded — never stored, never synced. No engine means no speaking exercise. The key stays on this device. A self-hosted server must allow cross-origin requests (CORS).",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "Transcription API key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "Transcription endpoint URL",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "Engine model name",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "Read this sentence aloud",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 Start recording",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 Record again",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ Stop",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "Recording — read the sentence above",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "Transcribing…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "Matches the sentence {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "Missed: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "Uses your configured transcription endpoint — one call per recording",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "No transcription endpoint configured yet",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "No transcription API key yet",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "This browser cannot access a microphone",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "Microphone permission denied — using other exercises this session",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "The transcription service returned an error",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "No speech recognized — try again",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "This browser does not support recording",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "Transcription failed",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Cannot reach the transcription endpoint — check the URL, and note a self-hosted server must allow cross-origin requests (CORS)",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Test connection",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Testing…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Works · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "reply: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Did not work",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "No endpoint URL yet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "No API key yet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "No engine selected",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "This version doesn't recognise the saved engine — pick one above",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "The endpoint answered, but the content could not be parsed",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "the key is wrong or lacks permission",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "the endpoint URL (including its path) or the model name is wrong",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "the server refused this request",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "This address has only a host and no endpoint path — enter the complete request URL (see the example in the field)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "The address does not start with http:// or https:// — without a scheme it is treated as a relative path and no request leaves at all",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "The endpoint did not answer before the timeout",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Requested: {url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "Sent via: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "the extension background (not subject to CORS, no preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "the page itself (sends an OPTIONS preflight first)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "The server said: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "(Automatically retried from the extension background too, and that failed as well — so this is not a CORS problem; the address is genuinely unreachable from this machine.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "The model returned no content — reasoning models do not fit here; switch to a chat model",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Split long cards"
+  },
+  "learn_split_failed": {
+    "message": "Split failed"
+  },
+  "learn_split_none": {
+    "message": "No long cards to split"
+  },
+  "learn_split_done": {
+    "message": "Split {p} long cards into {c} sentence cards"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} kept whole — translation did not align)"
+  },
+  "app_use_pw": {
+    "message": "Sign in with a password",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Password",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Use a code instead",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "Wrong email or password — try again.",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "Podcast mode",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ Pause",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ Resume",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ Next",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 Replay",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "Card {i} of {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 Explain this",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Pass {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Analysing…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Reading the notes aloud needs an engine first — set one up in Settings → Translation & sentence notes"
+  },
+  "drive_notes_empty": {
+    "message": "This card has no notes to read",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Cannot read your saved settings — try again in a moment",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Shuffle",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ In order",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Repeat all",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Repeat one",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Play again",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Playing the notes…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Analysing this sentence…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Read the sentence notes aloud",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "Each card is followed by its notes (words, phrases, one grammar point). On by default: a card that has never been analysed is analysed on the spot, using the engine you configured — charged once per card, cached from then on. Turn it off if you would rather not spend that; off, only the sentence and its translation are read.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Reading notes: a card that has never been analysed calls your configured engine — charged once per card",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Words: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Phrases: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Grammar: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Could not analyse this card — skipped",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "The notes engine is not configured — skipped the notes for this card",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "This card cannot be read aloud — skipped to the next",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "Playing the original…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "Playing the translation…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "Paused",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "That's the end of this round",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "No cards can be read aloud",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Preload range",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Today's deck",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Today + next 3 days",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Today + next 7 days",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Preload for offline",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Tap this before you set off and the speech, notes and translations you are about to hear are downloaded to this device, so a whole session plays with no network. The first tap only prices it and spends nothing — check how many calls it will make before you tap again.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Checking what is already on this device…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} cards",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} clips to synthesize",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} cards to analyse",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} cards needing a translation",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "The on-device voice produces no cache and already works offline, so only notes and translations are preloaded here.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "No analysis engine configured, so cards without a translation cannot get one this time (Settings → Sentence notes)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "All of this is already on the device — you will not need a network on the road.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Confirm preload (about {n} billed calls)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Stop",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Preloading {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Done {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Stopped: {done}/{total} done",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} failures ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "The speech engine is not configured ({reason}), so no audio can be synthesized this time (Settings → Speech engine)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "The speech engine is not configured, so nothing can be read aloud this round (Settings → Speech engine)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "The system blocked autoplay — tap to continue",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "No usable speech engine on this device",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Cannot reach the speech engine, so nothing can be read aloud this round. Only preloaded cards play offline (Settings → Preload for offline)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "The speech service timed out — check your network, or try another endpoint"
+  },
+  "tts_network": {
+    "message": "Cannot reach the speech service — check your network and the endpoint address"
+  },
+  "tts_empty": {
+    "message": "This card has no text to read aloud"
+  },
+  "drive_bg_session_failed": {
+    "message": "This device cannot start a background audio session right now, so playback pauses when the app leaves the screen."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "The built-in device voice stops once the app leaves the screen. To keep listening, configure a speech endpoint (Settings → Speech engine)."
+  },
+  "drive_awake_note": {
+    "message": "The screen won't auto-lock while podcast mode is in front. To keep seeing the card after you lock the phone, turn on the system's Always-On display: Settings → Display & Brightness → Always On."
+  },
+  "app_empty_body": {
+    "message": "Learning material comes from the browser extension — this app is where you review it."
+  },
+  "app_empty_how": {
+    "message": "Enable BelliedMonkey Translator in Settings → Safari → Extensions, turn on capture, then browse and translate as usual."
+  },
+  "app_ext_off_title": {
+    "message": "The extension isn't on yet"
+  },
+  "app_ext_off_body": {
+    "message": "Cards come from the Safari extension. It is not enabled, so this stays empty."
+  },
+  "app_ext_unknown_title": {
+    "message": "Set up the browser half first"
+  },
+  "app_ext_ios_body": {
+    "message": "Cards come from the Safari extension: in Safari, tap the extensions icon at the left of the address bar → “Manage Extensions” → turn on BelliedMonkey Translator."
+  },
+  "app_ext_open_prefs": {
+    "message": "Open Safari Extension Settings"
+  },
+  "app_ext_open_setup": {
+    "message": "Finish setup on the web"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "Safari extension isn't on yet"
+  },
+  "app_ext_open_safari": {
+    "message": "Open the extension in Safari →"
+  },
+  "app_ext_done": {
+    "message": "I've turned it on"
+  },
+  "app_signin_why": {
+    "message": "Signing in brings the free credit and downloads the speech packs to this device — no further setup."
+  },
+  "app_signin_open": {
+    "message": "Sign in"
+  },
+  "ob_next": {
+    "message": "Continue"
+  },
+  "ob_skip": {
+    "message": "Set this up later"
+  },
+  "ob_start": {
+    "message": "Get started"
+  },
+  "ob_welcome_title": {
+    "message": "You pick the model that translates"
+  },
+  "ob_welcome_body": {
+    "message": "The system has only its own engine. Here you choose one — the translation comes straight from it, never through our servers."
+  },
+  "ob_ios_1": {
+    "message": "In Safari, tap the extensions icon at the left of the address bar"
+  },
+  "ob_ios_2": {
+    "message": "Choose “Manage Extensions” and turn on BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Set permissions to Allow, for All Websites"
+  },
+  "ob_browser_title": {
+    "message": "Two more things, in the browser"
+  },
+  "ob_browser_body": {
+    "message": "Both switches live in the extension's own settings — this app cannot change them; the two sides have separate storage."
+  },
+  "ob_kv_engine": {
+    "message": "Add a translation API key"
+  },
+  "ob_kv_capture": {
+    "message": "Turn on capture"
+  },
+  "ob_kv_capture_note": {
+    "message": "Already on. Sentences you actually stop to read become cards — turn it off here if you would rather not."
+  },
+  "ob_read_title": {
+    "message": "Go read something"
+  },
+  "ob_read_body": {
+    "message": "You are set up — just browse and translate as usual. What you read accumulates; to keep a sentence right away, long-press its translation."
+  },
+  "ob_signin_title": {
+    "message": "Last step: sign in"
+  },
+  "ob_kv_twice": {
+    "message": "You will sign in inside the extension too"
+  },
+  "ob_kv_twice_note": {
+    "message": "The two sides store data separately — sign in with the same account on both."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Extension settings → translation engine. This one is unavoidable: without a key nothing gets translated."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Get started"
+  },
+  "extob_welcome_title": {
+    "message": "Read and remember, without leaving the page"
+  },
+  "extob_welcome_body": {
+    "message": "The original stays where it is; the translation appears right below it. Sentences you actually stop and read become review cards that come back on a forgetting curve."
+  },
+  "extob_use_1": {
+    "message": "Open a page in another language"
+  },
+  "extob_use_2": {
+    "message": "Tap the floating button at the bottom right"
+  },
+  "extob_use_3": {
+    "message": "The translation appears under the original; sentences you actually finish reading become review cards"
+  },
+  "ob_fork_title": {
+    "message": "How do you want to start?"
+  },
+  "ob_fork_sub": {
+    "message": "Both work. You can switch any time."
+  },
+  "ob_fork_grant_title": {
+    "message": "Start with free credit"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Recommended"
+  },
+  "ob_fork_grant_desc": {
+    "message": "No API key needed — just sign in and translate. Enough for a few hundred paragraphs of pages and subtitles."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Start free →"
+  },
+  "ob_fork_key_title": {
+    "message": "I have my own API key"
+  },
+  "ob_fork_key_desc": {
+    "message": "One key sets up translation, speech and transcription — or configure each engine separately."
+  },
+  "ob_fork_key_cta": {
+    "message": "Set it up →"
+  },
+  "ob_fork_foot": {
+    "message": "Run out? Switch to your own key any time — one step in settings."
+  },
+  "ob_fork_waiting": {
+    "message": "Claiming in a new tab… come back here when you are signed in and it continues automatically."
+  },
+  "ob_fork_landed": {
+    "message": "Credit received — taking you to the next step…"
+  },
+  "ob_fork_reopen": {
+    "message": "Reopen the claim page"
+  },
+  "extob_engine_title": {
+    "message": "Pick a translation engine"
+  },
+  "extob_engine_body_key": {
+    "message": "No way around this one: without a key nothing gets translated."
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "What you read turns into review cards"
+  },
+  "extob_capture_body": {
+    "message": "Already on. Sentences you actually finish reading (scrolling past does not count) are saved as review cards on this device only — turn it off here if you would rather not."
+  },
+  "extob_capture_toggle": {
+    "message": "Save sentences I read as review cards"
+  },
+  "extob_capture_note": {
+    "message": "Only sentences you actually finish reading. You can turn this off any time, and delete everything from a site at once."
+  },
+  "extob_try_title": {
+    "message": "Now translate a page"
+  },
+  "extob_try_body": {
+    "message": "Open a real page and tap the floating button in the corner — the translation appears under each paragraph."
+  },
+  "extob_try_cta": {
+    "message": "Open a sample page"
+  },
+  "extob_finish": {
+    "message": "Done"
+  },
+  "extob_done_title": {
+    "message": "You're set up"
+  },
+  "extob_done_text": {
+    "message": "Open any page in another language and tap the floating button. Settings and this walkthrough are both in the extension's settings page."
+  },
+  "extob_done_close": {
+    "message": "Got it"
+  },
+  "extob_reonboard": {
+    "message": "Show the getting-started walkthrough again"
+  },
+  "extob_unpacked_note": {
+    "message": "Installed from a ZIP: this copy does not update itself. Grab new versions from the website, or install from the store for automatic updates."
+  },
+  "extob_first_run": {
+    "message": "First time? Two minutes to set it up →"
+  },
+  "qs_title": {
+    "message": "Engines & keys"
+  },
+  "qs_sub": {
+    "message": "Pick a platform, paste the API key it gave you, and set up translation, speech, and transcription at once."
+  },
+  "qs_platform": {
+    "message": "Platform"
+  },
+  "qs_only_one": {
+    "message": "Platform: {p}"
+  },
+  "qs_key": {
+    "message": "API key"
+  },
+  "qs_get_key": {
+    "message": "Get a key at {p}"
+  },
+  "qs_try": {
+    "message": "Translate a page now"
+  },
+  "qs_try_note": {
+    "message": "Open a real web page and tap the floating button — the translation appears under each paragraph."
+  },
+  "extob_quick_sub": {
+    "message": "One key sets up translation, speech, and transcription at once."
+  },
+  "extob_mode_quick": {
+    "message": "One-tap"
+  },
+  "extob_mode_manual": {
+    "message": "Per engine"
+  },
+  "qs_key_ph": {
+    "message": "Paste the API key QwenCloud gave you"
+  },
+  "qs_privacy": {
+    "message": "Keys stay on this device only."
+  },
+  "qs_grant_replaced": {
+    "message": "(replaced the free-credit key)"
+  },
+  "stt_device_no_file": {
+    "message": "On-device transcription is only for conversation and live subtitles; speaking practice is not supported yet"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ On-device recognition works · language pack ready (no network, no endpoint to test)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ On-device recognition works · the language pack downloads the first time you start listening"
+  },
+  "engine_test_device_timeout": {
+    "message": "On-device recognition didn't respond — quit and reopen the app, then try again"
+  },
+  "listen_downloading": {
+    "message": "Downloading the {lang} offline model · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "Offline model download failed: {why} — usually a network problem; try again later — tap “Start listening” again to retry, or pick a cloud live engine in Settings."
+  },
+  "listen_entry_privacy_device": {
+    "message": "On-device transcription: words appear as you speak; each finished sentence goes to the translation engine you configured."
+  },
+  "listen_cost_line_device": {
+    "message": "Listened {t}"
+  },
+  "listen_device_privacy": {
+    "message": "On-device transcription: words appear as you speak; each finished sentence, with the previous few for context, is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text. With on-device speech, the voice is synthesised on your device and a one-time offline model is downloaded on first use."
+  },
+  "listen_raw_label": {
+    "message": "Recognised text"
+  },
+  "tts_device_lang_fallback": {
+    "message": "Read with the system voice (the offline model does not cover {lang})"
+  },
+  "qs_apply": {
+    "message": "Set up with one tap"
+  },
+  "qs_testing": {
+    "message": "Testing…"
+  },
+  "qs_untouched": {
+    "message": "— left alone · you already configured this ({cur})"
+  },
+  "qs_unknown": {
+    "message": "existing setup"
+  },
+  "qs_slot_chat": {
+    "message": "Translation"
+  },
+  "qs_slot_tts": {
+    "message": "Read-aloud"
+  },
+  "qs_slot_stt": {
+    "message": "Transcription"
+  },
+  "qs_slot_notes": {
+    "message": "Sentence notes"
+  },
+  "qs_notes_follow": {
+    "message": "follows the translation engine (unchanged)"
+  },
+  "qs_tts_untried": {
+    "message": "(not played yet — use “Play a sample” in the Voice card below to hear it)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Recording is not switched on by this. What was just sent was a 0.6-second sine tone, not your voice."
+  },
+  "qs_retry": {
+    "message": "Retry this one"
+  },
+  "engine_test_empty_audio": {
+    "message": "The endpoint responded but returned no audio"
+  },
+  "opt_mode_quick": {
+    "message": "One-tap"
+  },
+  "opt_mode_detail": {
+    "message": "Per engine"
+  },
+  "options_wipe_all": {
+    "message": "Erase all data on this device"
+  },
+  "options_wipe_hint": {
+    "message": "Deleting the app does not erase this data. To wipe it for good, erase it here first."
+  },
+  "options_wipe_confirm": {
+    "message": "Erase all data on this device? Your API keys, all settings, every captured sentence and all review progress will be deleted, and you will be signed out. This cannot be undone.\n\nAnything already synced to the cloud is unaffected — signing back in will bring it back."
+  },
+  "toast_wipe_failed": {
+    "message": "Not fully erased — please try again"
+  },
+  "app_sync_empty_who": {
+    "message": "Sync finished, but there is nothing under {email} yet. If you captured sentences in the browser extension, check that it is signed in with the same email."
+  },
+  "app_owner_mismatch": {
+    "message": "The corpus on this device belongs to a different account. Sign in with that email, or erase this device's data in the extension settings and start over."
+  },
+  "app_owner_unknown": {
+    "message": "The corpus on this device has an owner, but you are not signed in. Sign in to keep syncing."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "The corpus on this device belongs to a different account. Sign in with that email, or erase all data on this device and start over."
+  },
+  "sync_err_owner_unknown": {
+    "message": "The corpus on this device has an owner, but you are not signed in. Sign in to keep syncing."
+  },
+  "app_err_upgrade": {
+    "message": "The cloud has content this version cannot read yet (probably from a newer extension). Update the app, then sync again — nothing is lost, it is just unreadable for now."
+  },
+  "site_next_title": {
+    "message": "It translated. Next: get these cards into the app"
+  },
+  "site_next_body": {
+    "message": "The sentences you stopped to read are already review cards, here in this browser. They reach the app only once you sign in. You can keep using everything signed out; the app will just be empty."
+  },
+  "site_next_body_off": {
+    "message": "“Collect learning material” is still off, so no cards are being made yet. Turn it on in the extension settings first."
+  },
+  "site_next_cta": {
+    "message": "See your cards"
+  },
+  "site_next_cta_off": {
+    "message": "Turn on “Collect learning material”"
+  },
+  "site_next_signin": {
+    "message": "Sign in now →"
+  },
+  "sync_next_app": {
+    "message": "Next: sign in to the iPhone / Mac app with this same email ({email}) — that is what brings these cards over."
+  },
+  "app_dl_mismatch_title": {
+    "message": "These are two different accounts"
+  },
+  "app_dl_mismatch_body": {
+    "message": "The browser extension is signed in to a different account; this app is signed in as {email}. Cards belong to an account, so while the two differ, what you collect there will not appear here."
+  },
+  "app_dl_switch": {
+    "message": "Sign out and use the extension's account"
+  },
+  "app_dl_keep": {
+    "message": "Keep this account"
+  },
+  "app_dl_signin": {
+    "message": "The browser extension is already signed in. Sign in here with the same account and the cards will sync over."
+  },
+  "app_dl_signin_none": {
+    "message": "Sign in to the browser extension first, then come back and sign in here with the same account — the cards are collected there."
+  },
+  "review_go_app": {
+    "message": "Continue in the app →"
+  },
+  "site_setup_next_engine": {
+    "message": "Set up a translation engine →"
+  },
+  "setup_not_configured": {
+    "message": "No translation engine set up yet. Use the one-tap setup above, or switch to “Per engine” to pick an engine and enter its key."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Not fully erased — still there: {what}. Please try again."
+  },
+  "wipe_left_unreadable": {
+    "message": "storage could not be read back"
+  },
+  "site_next_title_off": {
+    "message": "It translated — but nothing is being saved as cards yet"
+  },
+  "drive_skipped_media": {
+    "message": "Skipped {n} video-subtitle cards — they have no body text to read aloud"
+  },
+  "drive_skipped_voice": {
+    "message": "Skipped {n}: this device has no voice that can read them. Set one up under Settings → Speech engine, or pick a different system voice."
+  },
+  "sync_next_cards": {
+    "message": "See your cards"
+  },
+  "site_next_body_local": {
+    "message": "The sentences you stopped to read are already review cards, here in this browser. Go look at them."
+  },
+  "learn_empty_on": {
+    "message": "Collecting is already on. Keep browsing and translating — the sentences you stop to read will show up here. The ones you scroll past will not."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Signed out, local only — sign in to review in the app too →"
+  },
+  "app_open_failed": {
+    "message": "Couldn’t open the app on this device.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Get it on the App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "The app is only for iPhone, iPad and Mac. On this device, review right here in the browser.",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey Translator",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "That sign-in did not come back — the browser changed, or site data was cleared. Just start it again from this page.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "That sign-in came back from somewhere we did not start it. Stopped. Please start it again.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "Could not read local storage, so this step cannot finish. Reopen this page and try again; if it keeps happening, tell us about it.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Continue with Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Continue with Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "Or use email / phone:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "Email or phone",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6-digit code",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Opening Apple sign-in…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple sign-in did not complete. You can use email or phone below instead.",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "This device also holds another account’s material. You are signed in as someone else right now — nothing was lost; sign back in with the original account and it returns.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "Or use email:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "Enter your {what} first",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Not set up (no read-aloud)"
+  },
+  "tts_not_configured": {
+    "message": "Speech is not set up yet — choose an engine in Settings › Read-aloud"
+  },
+  "feedback_section": {
+    "message": "Feedback"
+  },
+  "feedback_row": {
+    "message": "Send feedback"
+  },
+  "feedback_rate": {
+    "message": "Rate it on the store"
+  },
+  "feedback_discuss": {
+    "message": "Discussions on GitHub"
+  },
+  "feedback_hint": {
+    "message": "Opens your mail app. The subject carries the version and platform; nothing else is sent."
+  },
+  "extob_done_feedback": {
+    "message": "Something not working? Write to me — I read every message."
+  },
+  "sync_why": {
+    "message": "Sign in with the same account and the sentences you read in the browser sync to the app and your other devices."
+  },
+  "sync_use_email": {
+    "message": "Or sign in with email"
+  },
+  "sync_change_email": {
+    "message": "Use a different email"
+  },
+  "sync_resend": {
+    "message": "Resend code"
+  },
+  "telemetry_section": {
+    "message": "Anonymous usage data"
+  },
+  "telemetry_toggle": {
+    "message": "Share anonymous usage data"
+  },
+  "telemetry_what": {
+    "message": "What is sent"
+  },
+  "telemetry_hint": {
+    "message": "Only which features are used, on which browser, and whether a translation succeeded or failed — never the pages you read, the text, the addresses, your keys or your account. Turning it off deletes what this device sent."
+  },
+  "diag_section": {
+    "message": "Diagnostic log"
+  },
+  "diag_copy": {
+    "message": "Copy diagnostic log"
+  },
+  "diag_clear": {
+    "message": "Clear"
+  },
+  "diag_hint": {
+    "message": "Local records for troubleshooting (model downloads / speech engines / sign-in stages, about 200 entries). Contains none of your spoken or translated text. It leaves this device only when you tap Copy and paste it to someone yourself."
+  },
+  "diag_copied": {
+    "message": "Copied"
+  },
+  "diag_audio_toggle": {
+    "message": "Upload diagnostic audio (transcription debugging)"
+  },
+  "diag_audio_hint": {
+    "message": "When on, microphone audio, read-aloud audio and the matching text of interpretation sessions are packaged and uploaded to our server (only for troubleshooting transcription, auto-deleted after 72 hours). Off by default; turning it off stops collection immediately."
+  },
+  "telemetry_onboard": {
+    "message": "Anonymous usage data is sent to help improve the product (never page content or addresses). You can turn it off in Settings."
+  },
+  "asr_offer": {
+    "message": "🎙 AI subtitles"
+  },
+  "asr_needs_engine": {
+    "message": "Choose a transcription engine in Settings first"
+  },
+  "asr_status_file": {
+    "message": "⏳ Transcribing the whole audio…"
+  },
+  "asr_stop": {
+    "message": "Stop transcribing"
+  },
+  "asr_err_silent": {
+    "message": "No sound captured — transcription stopped"
+  },
+  "asr_err_mse": {
+    "message": "Safari can't capture the audio of this streaming video, so this page can't be transcribed",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "Cannot read this audio"
+  },
+  "asr_err_ws": {
+    "message": "Transcription connection lost"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio too large to transcribe in one go"
+  },
+  "asr_err_nocues": {
+    "message": "This engine returns no timestamps, so it cannot make subtitles"
+  },
+  "asr_gesture_needed": {
+    "message": "Tap here to start live transcription"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Tap to start live transcription"
+  },
+  "asr_err_settings": {
+    "message": "Transcription engine changed — stopped"
+  },
+  "popup_asr_go": {
+    "message": "🎙 Live transcription + translation"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 Transcribe this media + translate"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Transcribe this media — pick an engine first →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Use the app to hear your device"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Start there first, then play"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Works for live streams and video sites"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Use the app to hear your device →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Start in the app first, then come back and play →"
+  },
+  "asr_media_app_only": {
+    "message": "The extension can't pull audio from this media (video sites and live streams are all like this). Use the app to hear what your device is playing — any source works."
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Live transcription + translation — choose an engine first →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} has no live interface: streams can't be transcribed, downloadable audio still can · set up a live engine →"
+  },
+  "popup_asr_no_media": {
+    "message": "No playing video or audio found on this page — press play, then tap here to look again"
+  },
+  "popup_asr_none_found": {
+    "message": "No transcribable video or audio found. The player may be in another frame, or hasn't started playing."
+  },
+  "popup_asr_iframe": {
+    "message": "The player is in another frame on this page; open it in a new tab to transcribe ↗"
+  },
+  "popup_asr_live": {
+    "message": "Live"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "length unknown"
+  },
+  "asr_incremental": {
+    "message": "Translate as they speak (fast, may revise)"
+  },
+  "asr_history": {
+    "message": "Subtitle history panel"
+  },
+  "asr_history_title": {
+    "message": "History · full sentences"
+  },
+  "app_listen_back": {
+    "message": "‹ Back"
+  },
+  "listen_source_label": {
+    "message": "Conversation"
+  },
+  "listen_entry": {
+    "message": "Conversation · live interpreter"
+  },
+  "listen_entry_hint": {
+    "message": "Two people talking face to face: both just speak, both languages show on screen, translations are read aloud. Audio goes only to the transcription endpoint you configured."
+  },
+  "listen_title": {
+    "message": "Conversation"
+  },
+  "listen_history": {
+    "message": "Finalized sentences"
+  },
+  "listen_pending": {
+    "message": "⏳ Translating…"
+  },
+  "listen_me_prefix": {
+    "message": "Me: "
+  },
+  "listen_me_badge": {
+    "message": "said by me"
+  },
+  "listen_star": {
+    "message": "Star"
+  },
+  "listen_lang_me": {
+    "message": "{to} for them"
+  },
+  "listen_other_lang_label": {
+    "message": "Their language"
+  },
+  "listen_pill_listening": {
+    "message": "Listening · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Paused · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "Ended · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Listening · pause"
+  },
+  "listen_toggle_start": {
+    "message": "Start listening"
+  },
+  "listen_copy_all": {
+    "message": "Copy all",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Copied",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Copy failed",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Works for online meetings and video calls too: just let the other side's voice play through the speakers.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "Listened {t} · audio goes only to your transcription endpoint"
+  },
+  "listen_flip_hint": {
+    "message": "Show them · tap anywhere to go back"
+  },
+  "listen_flip_speaking": {
+    "message": "Speaking aloud"
+  },
+  "listen_stop_denied": {
+    "message": "Microphone denied — allow BelliedMonkey Translator under Settings › Privacy › Microphone."
+  },
+  "listen_stop_socket": {
+    "message": "Transcription connection lost: {why} — what was heard is kept."
+  },
+  "listen_stop_locked": {
+    "message": "The system stopped the recording (a call or another app took the microphone) — it resumes when that ends, or tap “Start listening”."
+  },
+  "listen_stop_silence": {
+    "message": "No sound for 30 s — paused to avoid charges."
+  },
+  "listen_stop_failed": {
+    "message": "Microphone failed to start: {why} — tap “Start listening” again."
+  },
+  "listen_np_title": {
+    "message": "Conversation · live interpreter"
+  },
+  "listen_np_album": {
+    "message": "Conversation · listening · {t} · {n} sentences"
+  },
+  "listen_settings_title": {
+    "message": "Conversation · live interpreter"
+  },
+  "listen_capture_label": {
+    "message": "Add conversations to review (source “Conversation”)"
+  },
+  "listen_capture_note": {
+    "message": "“Conversation · live interpreter” streams the microphone to the transcription endpoint you configured, only after you tap a record key at the bottom and only to that endpoint; our servers never touch the audio; no recording is kept, only text — and only while this switch is on."
+  },
+  "listen_who_them": {
+    "message": "Them"
+  },
+  "listen_who_me": {
+    "message": "Me"
+  },
+  "listen_who_guessed": {
+    "message": "Wrong language? Tap ↔ to switch to the other one"
+  },
+  "listen_swap_to_them": {
+    "message": "Change to: they said this"
+  },
+  "listen_swap_to_me": {
+    "message": "Change to: I said this"
+  },
+  "listen_flip_kept_card": {
+    "message": "Switched to the other language — the earlier card was already reviewed, so it stays under Sources › Conversation"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Speaking…"
+  },
+  "listen_live_badge": {
+    "message": "● Live"
+  },
+  "listen_reading": {
+    "message": "Reading aloud"
+  },
+  "listen_autospeak_off": {
+    "message": "Auto read-aloud stopped · {why} — the per-row button still works"
+  },
+  "listen_tts_unusable": {
+    "message": "Auto-speak unavailable — the speech engine is not configured. Pick one in Settings › Speech"
+  },
+  "listen_autospeak_echo": {
+    "message": "Auto read-aloud paused — an echo loop was detected. Lower the volume or use earphones, then turn it back on."
+  },
+  "listen_read_queue_n": {
+    "message": "Reading aloud · {n} more queued"
+  },
+  "listen_ephemeral_label": {
+    "message": "Don't keep this one"
+  },
+  "listen_ephemeral_locked": {
+    "message": "This session has already started — to keep nothing, end it and start again"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Not kept"
+  },
+  "listen_my_lang_label": {
+    "message": "My language"
+  },
+  "listen_lang_note": {
+    "message": "Recognized automatically between the two languages you picked. You can change them anytime on the listen page."
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "not supported by the current engine"
+  },
+  "listen_lang_change_engine": {
+    "message": "Change engine"
+  },
+  "listen_lang_swapped": {
+    "message": "The two languages must differ — swapped them"
+  },
+  "listen_autospeak_label": {
+    "message": "Read translations aloud"
+  },
+  "listen_autospeak_note": {
+    "message": "Each finished sentence is read aloud once translated — theirs for you, yours for them."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Pick a speech engine under Settings › Read-aloud first"
+  },
+  "listen_lang_me_label": {
+    "message": "Me"
+  },
+  "listen_lang_other_label": {
+    "message": "Them"
+  },
+  "listen_sources_note": {
+    "message": "Each sentence comes from transcription and its translation from your engine; both can be wrong — starred sentences go to review first."
+  },
+  "app_today_due": {
+    "message": "Due today"
+  },
+  "home_cta_subs": {
+    "message": "Start Live Subtitles"
+  },
+  "home_cta_listen": {
+    "message": "Start Conversation"
+  },
+  "app_last_sync": {
+    "message": "Last synced {t}"
+  },
+  "app_modes_label": {
+    "message": "Listen"
+  },
+  "drive_entry_hint": {
+    "message": "Today’s deck read aloud, hands-free"
+  },
+  "listen_entry_short": {
+    "message": "Two people talking face to face — both just speak, translations read aloud"
+  },
+  "listen_entry_privacy": {
+    "message": "Audio goes only to the transcription endpoint you configured."
+  },
+  "listen_pill_preparing": {
+    "message": "Getting ready"
+  },
+  "listen_toggle_preparing": {
+    "message": "Getting ready…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Reconnecting…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Transcription connection lost: {why} — reconnecting…"
+  },
+  "listen_history_empty": {
+    "message": "Just talk, both of you — each finished sentence shows up here. Wrong language? Tap ↔ to switch to the other one"
+  },
+  "listen_tr_failed": {
+    "message": "Translation failed · retry"
+  },
+  "listen_read_aloud": {
+    "message": "Read aloud"
+  },
+  "listen_show_other": {
+    "message": "Show them"
+  },
+  "listen_close": {
+    "message": "Close"
+  },
+  "listen_leave_confirm": {
+    "message": "Still listening. Leaving ends this conversation; what was heard is kept."
+  },
+  "dialog_ok": {
+    "message": "OK"
+  },
+  "dialog_cancel": {
+    "message": "Cancel"
+  },
+  "listen_leave_ok": {
+    "message": "End and leave"
+  },
+  "grant_err_exhausted": {
+    "message": "Your free credit is used up. You can add your own API key to keep going (one key covers translation, speech and transcription), or ask in the community."
+  },
+  "grant_err_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_err_misconfigured": {
+    "message": "Something is misconfigured on our side for free credit, and we've logged it. This isn't your fault; use your own key for now."
+  },
+  "grant_err_revoked": {
+    "message": "This free credit has been deactivated (signing out or deleting your account deactivates it). Sign back in to the same account and it returns, with the same balance."
+  },
+  "grant_err_invalid": {
+    "message": "This free credit is no longer recognised. Open settings and claim it again."
+  },
+  "grant_err_model": {
+    "message": "Free credit only works with the model it pins. You changed the model under Per engine — change it back, or add your own key."
+  },
+  "grant_err_busy": {
+    "message": "Too many requests right now. Wait a few seconds and try again."
+  },
+  "grant_title": {
+    "message": "Free credit"
+  },
+  "grant_body_signin": {
+    "message": "Sign in and you can claim free credit — enough for a few hundred pages. It covers translation, speech and transcription."
+  },
+  "grant_signin": {
+    "message": "Sign in for free credit"
+  },
+  "grant_signin_again": {
+    "message": "Sign back in"
+  },
+  "grant_body_signed_out": {
+    "message": "Signing out deactivated your free credit. The balance is still there — sign back in to the same account and it returns."
+  },
+  "grant_body_unclaimed": {
+    "message": "You haven't claimed your free credit yet. It is good for a few hundred pages, across translation, speech and transcription."
+  },
+  "grant_claim": {
+    "message": "Claim"
+  },
+  "grant_claiming": {
+    "message": "Claiming…"
+  },
+  "grant_privacy": {
+    "message": "Free credit (optional). Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider ({vendor}); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record."
+  },
+  "grant_body_active": {
+    "message": "Your free credit is in use. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_low": {
+    "message": "Your free credit is nearly gone. When it runs out you can add your own API key and carry on."
+  },
+  "grant_body_exhausted": {
+    "message": "Your free credit is used up. Add your own API key to carry on — one key covers translation, speech and transcription."
+  },
+  "grant_body_unavailable": {
+    "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
+  },
+  "grant_body_replaced": {
+    "message": "You are using your own key right now. The free credit is still there; you can switch back any time."
+  },
+  "grant_restore": {
+    "message": "Switch back to free credit"
+  },
+  "grant_byo": {
+    "message": "Use your own key"
+  },
+  "grant_community": {
+    "message": "Ask in the community"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey free credit"
+  },
+  "grant_restore_confirm": {
+    "message": "Switching back to free credit will replace the key you have entered. Continue?"
+  },
+  "grant_signout_confirm": {
+    "message": "Signing out deactivates the free credit on this device (the balance is kept; sign in again to get it back). Sign out?"
+  },
+  "grant_claimed_toast": {
+    "message": "Free credit is set up"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "Free credit claimed. Your own key stays in place — tap “Switch back to free credit” to use the credit instead."
+  },
+  "grant_page_halt": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_page_halt_ours": {
+    "message": "Free credit is unavailable right now (not you running out) — tap to see how to carry on"
+  },
+  "auth_page_halt": {
+    "message": "This key was rejected by the provider (HTTP 401/403) — tap to check it",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Open settings",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "The provider rejected this key (HTTP 401/403). Check that the key is correct and has permission for this model.",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "Finding it useful? Leave a rating in the store →"
+  },
+  "app_nudge_text": {
+    "message": "Sentences you read today — review them in the App →"
+  },
+  "review_nudge_text": {
+    "message": "Sentences you read today — review them →"
+  },
+  "doc_title": {
+    "message": "Document translation"
+  },
+  "doc_to_review": {
+    "message": "Go to review →"
+  },
+  "doc_upload": {
+    "message": "Upload a document (PDF / Word / image)"
+  },
+  "doc_privacy": {
+    "message": "Documents stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload; images and scanned pages are sent as images to the same endpoint, only when your engine supports images."
+  },
+  "doc_privacy_grant": {
+    "message": "Documents stay on this device. When translating, the page you open goes through our relay to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key."
+  },
+  "doc_list_empty": {
+    "message": "No documents yet. PDF, Word (.docx), plain text and images are supported."
+  },
+  "doc_row_meta": {
+    "message": "{pages} pages · at page {page} · {n} sentences collected"
+  },
+  "doc_delete": {
+    "message": "Delete"
+  },
+  "doc_delete_confirm": {
+    "message": "Delete this document? Its cards are deleted too (synced to all devices) and cannot be recovered."
+  },
+  "doc_unsupported_kind": {
+    "message": "Unsupported format (PDF, .docx, plain text and images are supported). For .doc, save as .docx in Word."
+  },
+  "doc_too_large": {
+    "message": "File too large (limit 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "The free credit can't recognise images — use your own API key."
+  },
+  "doc_no_vision": {
+    "message": "Your current engine can't recognise images · switch the model in Settings"
+  },
+  "doc_store_failed": {
+    "message": "Couldn't save the document: "
+  },
+  "doc_missing": {
+    "message": "This document is no longer on this device."
+  },
+  "doc_opening": {
+    "message": "Reading…"
+  },
+  "doc_open_failed": {
+    "message": "Couldn't read this document: "
+  },
+  "doc_back": {
+    "message": "Documents"
+  },
+  "doc_lang": {
+    "message": "Document language"
+  },
+  "doc_lang_auto": {
+    "message": "Auto"
+  },
+  "doc_prev": {
+    "message": "Previous"
+  },
+  "doc_next": {
+    "message": "Next"
+  },
+  "doc_ocr_running": {
+    "message": "Recognising this page…"
+  },
+  "doc_ocr_failed": {
+    "message": "Recognition failed: "
+  },
+  "doc_page_empty": {
+    "message": "No extractable text on this page."
+  },
+  "doc_old_engine": {
+    "message": "This page was translated with an older engine — retranslated with the current one."
+  },
+  "doc_page_stat": {
+    "message": "This page: {units} paragraphs · about {chars} characters"
+  },
+  "doc_go_settings": {
+    "message": "Settings →"
+  },
+  "doc_translating": {
+    "message": "⏳ Translating…"
+  },
+  "doc_star": {
+    "message": "Add to review"
+  },
+  "doc_translate_failed": {
+    "message": "Translation failed · tap to retry"
+  },
+  "doc_popup_row": {
+    "message": "📄 Translate a document (PDF / Word / image)"
+  },
+  "doc_open_page": {
+    "message": "Translate a document (PDF / Word / image)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Translate a document"
+  },
+  "doc_source_label": {
+    "message": "Document"
+  },
+  "doc_page_n": {
+    "message": "page {n}"
+  },
+  "doc_sources_note": {
+    "message": "Deleting also removes the document itself."
+  },
+  "doc_app_entry_hint": {
+    "message": "Translate one page at a time; translations can go into review"
+  },
+  "doc_app_back": {
+    "message": "‹ Back"
+  },
+  "doc_capture_label": {
+    "message": "Document translations go into review (source “Document”)"
+  },
+  "doc_prefetch_label": {
+    "message": "Parse the next page ahead (no translation)"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Don't ask again"
+  },
+  "grant_popup_model": {
+    "message": "Free credit only works with its pinned model — tap to change it back"
+  },
+  "grant_popup_exhausted": {
+    "message": "Free credit used up — tap to see how to carry on"
+  },
+  "grant_popup_low": {
+    "message": "Free credit is nearly gone — tap to take a look"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Signed out — this device only. Signing in also gets you free credit →"
+  },
+  "grant_cn_title": {
+    "message": "Start with the provider’s own free credit"
+  },
+  "grant_cn_body": {
+    "message": "After signing up, each model comes with free credit that lasts a while. It comes from the provider, not from us."
+  },
+  "grant_cn_step1": {
+    "message": "Sign up and open the console"
+  },
+  "grant_cn_step2": {
+    "message": "Claim the free credit (their page states the exact amount)"
+  },
+  "grant_cn_step3": {
+    "message": "Paste the API key below to set up translation, speech and transcription at once"
+  },
+  "grant_cn_open": {
+    "message": "Open the console ↗"
+  },
+  "grant_cn_why": {
+    "message": "We do not hand out credit ourselves here yet: that needs a relay running inside the country, and it is not open yet."
+  },
+  "subtitle_source_label": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_entry": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_entry_hint": {
+    "message": "Bilingual subtitles for the video, stream or meeting that’s playing"
+  },
+  "subtitle_need_key": {
+    "message": "The transcription engine has no API key yet"
+  },
+  "subtitle_need_key_go": {
+    "message": "Add it in Settings →"
+  },
+  "subtitle_title": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_start": {
+    "message": "Start"
+  },
+  "subtitle_capture_label": {
+    "message": "Add subtitles to review (source “Live Subtitles”)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Video language:"
+  },
+  "subtitle_tip_mac": {
+    "message": "After you start, subtitles appear in a floating bar at the bottom of the screen; every finished sentence is also listed here."
+  },
+  "subtitle_tip_ios": {
+    "message": "Tap Start first, then play out loud in any app (browser, video, podcasts…); subtitles float in a picture-in-picture window. With headphones on, the audio can’t be heard."
+  },
+  "subtitle_privacy": {
+    "message": "Listens to what this Mac is playing only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Listens to what this iPhone plays through its speaker only after you tap “Start”. The audio is recognized on this device (or sent only to the transcription endpoint you configured); nothing is recorded or saved, and our servers are never involved. Recognized text stays in your review only while “Add subtitles to review” is on."
+  },
+  "subtitle_pill_live": {
+    "message": "● Subtitling · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Now"
+  },
+  "subtitle_history_empty": {
+    "message": "Each finished sentence will appear here."
+  },
+  "subtitle_stop_silence": {
+    "message": "No sound for 30 seconds — paused to avoid charges. Tap “Resume” once the video plays again."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Still listening. Leaving ends these subtitles; the sentences so far are kept."
+  },
+  "subtitle_summary_title": {
+    "message": "This subtitle session"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} sentences · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} added to review (source “Live Subtitles”) · {s} starred"
+  },
+  "subtitle_summary_note": {
+    "message": "No audio was kept, only text. Manage or delete these sentences under Sources › Live Subtitles."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Waiting for permission — click “Allow” in the system prompt"
+  },
+  "subtitle_bar_listening": {
+    "message": "Listening to system audio…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Paused"
+  },
+  "subtitle_bar_silence": {
+    "message": "No sound for 30 seconds — paused to avoid charges"
+  },
+  "subtitle_bar_denied": {
+    "message": "Can’t hear system audio — allow BelliedMonkey Translator in System Settings › Privacy & Security › Screen & System Audio Recording"
+  },
+  "subtitle_bar_socket": {
+    "message": "Transcription connection lost"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Reconnecting…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Downloading {lang} recognition assets · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "This translation failed · retry in the main window"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Can’t hear the video · take off headphones and use the speaker"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Pause"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Resume"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Click-through"
+  },
+  "subtitle_ctl_main": {
+    "message": "Main window"
+  },
+  "subtitle_ctl_end": {
+    "message": "End"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Open System Settings"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Show Main Window"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Turn Off Subtitle Bar Click-through"
+  },
+  "subtitle_menu_end": {
+    "message": "End Live Subtitles"
+  },
+  "subtitle_pip_float": {
+    "message": "Show subtitle window"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Listening to the speaker…"
+  },
+  "subtitle_pip_title": {
+    "message": "Live Subtitles"
+  },
+  "subtitle_pip_hint": {
+    "message": "Play video or audio out loud in any app — subtitles appear here"
+  },
+  "subtitle_pip_close": {
+    "message": "Tap the window: ⏸ pause · ⏪⏩ browse history · ✕ close (reopen from the app)"
+  },
+  "subtitle_pip_history": {
+    "message": "History · tap ⏩ for the latest"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "After you tap “Start”, this previews the subtitle window — it floats over other apps when you leave"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Subtitle window preview — it floats over other apps when you leave"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "These subtitles have ended and the window is closed"
+  },
+  "subtitle_bar_silent": {
+    "message": "No system sound heard yet — video playing but no subtitles? System audio recording may not be allowed"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "No sound for 30 seconds — paused. If the video was playing but no subtitles appeared, system audio recording may not be allowed: go to System Settings › Privacy & Security › Screen & System Audio Recording, allow BelliedMonkey Translator, then tap “Resume”."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "No sound for 30 seconds — paused. Video playing but no subtitles? System audio recording may not be allowed"
+  },
+  "listen_need_os": {
+    "message": "Conversation and live subtitles need iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "The on-device recognizer doesn't support this language — try another"
+  },
+  "listen_assets_failed2": {
+    "message": "Offline model download failed: {why} — usually a network problem; try again later — tap “Start listening” again to retry."
+  },
+  "tts_engine_device": {
+    "message": "On-device speech (offline model · App only)"
+  },
+  "tts_hint_device": {
+    "message": "Speech is synthesised on your device; the first use downloads the offline model once (the model file only). Languages the model does not cover fall back to the system voice, and the row says so."
+  },
+  "tts_pack_label": {
+    "message": "Offline speech"
+  },
+  "tts_pack_installed": {
+    "message": "Offline speech ready · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "Offline speech not downloaded · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "First playback also downloads; files only, nothing is uploaded."
+  },
+  "tts_pack_dl": {
+    "message": "Download"
+  },
+  "tts_pack_fallback": {
+    "message": "That address isn’t reachable — trying another…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "Retry"
+  },
+  "tts_pack_downloading": {
+    "message": "Downloading offline speech · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "Offline speech download failed: {why} — usually the network; try again later"
+  },
+  "tts_pack_no_bridge": {
+    "message": "On-device read-aloud is only available in the app"
+  },
+  "tts_test_dl": {
+    "message": "Download and play a sample ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "Playing · the offline model has no voice for this language, using the system voice"
+  },
+  "tts_assets": {
+    "message": "The offline model isn’t downloaded yet — download it in Settings › Read-aloud, or switch to the system voice"
+  },
+  "listen_pack_ready": {
+    "message": "Recognition language packs ready · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "Recognition language packs not downloaded · {langs} · downloaded by the system; starting to listen downloads them too"
+  },
+  "listen_pack_dl": {
+    "message": "Download"
+  },
+  "listen_pack_downloading": {
+    "message": "Downloading recognition language pack · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "Recognition language pack download failed: {why} — usually a network problem; try again later"
+  },
+  "opt_sec_engines": {
+    "message": "Engines & keys"
+  },
+  "opt_sec_features": {
+    "message": "Features"
+  },
+  "opt_sec_account": {
+    "message": "Account & data"
+  },
+  "opt_adv_hint": {
+    "message": "One-tap setup is under “One-tap” →"
+  },
+  "stt_section": {
+    "message": "Whole-clip transcription"
+  },
+  "stt_section_use": {
+    "message": "Speaking practice · transcribe a whole audio/video clip"
+  },
+  "review_section": {
+    "message": "Review"
+  },
+  "data_section": {
+    "message": "Learning library"
+  },
+  "notes_block_title": {
+    "message": "Explain this sentence (optional)"
+  },
+  "grant_summary_claimed": {
+    "message": "Free credit claimed · manage →"
+  },
+  "dep_label": {
+    "message": "Needs"
+  },
+  "dep_unset": {
+    "message": "not set up"
+  },
+  "dep_go": {
+    "message": "Set up →"
+  },
+  "dep_follow": {
+    "message": "follows the translation engine"
+  },
+  "dep_quick": {
+    "message": "provided by one-key setup ✓"
+  },
+  "dep_live": {
+    "message": "Live transcription"
+  },
+  "dep_live_device": {
+    "message": "on-device (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Translate into"
+  },
+  "target_lang_follow": {
+    "message": "Follow interface language ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Used by document translation, system translation and quick translate. Conversation and live subtitles have their own language settings."
+  },
+  "handoff_source_label": {
+    "message": "Text handed over"
+  },
+  "src_handoff_system": {
+    "message": "System translation"
+  },
+  "src_handoff_select": {
+    "message": "Selection translate"
+  },
+  "src_handoff_shot": {
+    "message": "Screenshot translate"
+  },
+  "src_handoff_input": {
+    "message": "Typed translate"
+  },
+  "quick_title": {
+    "message": "Quick translate"
+  },
+  "quick_enabled_label": {
+    "message": "Stay in the menu bar"
+  },
+  "quick_enabled_note": {
+    "message": "When off, the menu bar icon goes away and closing the window quits the app."
+  },
+  "quick_menu_open": {
+    "message": "Open BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "Quick translate settings…"
+  },
+  "quick_menu_quit": {
+    "message": "Quit"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey is still in the menu bar"
+  },
+  "quick_resident_body": {
+    "message": "Shortcuts keep working. To quit completely, use “Quit” in the menu bar icon, or press ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "Got it"
+  },
+  "quick_resident_off": {
+    "message": "Don’t stay resident"
+  },
+  "quick_tag_selection": {
+    "message": "Selection"
+  },
+  "quick_tag_clipboard": {
+    "message": "Clipboard"
+  },
+  "quick_tag_service": {
+    "message": "Services"
+  },
+  "quick_tag_shot": {
+    "message": "Screenshot"
+  },
+  "quick_tag_input": {
+    "message": "Typed"
+  },
+  "quick_pin": {
+    "message": "Pin"
+  },
+  "quick_close": {
+    "message": "Close"
+  },
+  "quick_copy": {
+    "message": "Copy translation"
+  },
+  "quick_src_label": {
+    "message": "Original"
+  },
+  "quick_src_placeholder": {
+    "message": "Type or paste text to translate"
+  },
+  "quick_clip_concealed": {
+    "message": "The clipboard content is marked as concealed (most likely a password). It was not read and nothing was sent."
+  },
+  "quick_clip_empty": {
+    "message": "There is no text on the clipboard. Select some text, press ⌘C, then press the shortcut — or turn on Enhanced Capture in Settings to skip ⌘C."
+  },
+  "quick_clip_same": {
+    "message": "Same text as last time — did you forget to press ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "Couldn’t get the selected text — nothing may be selected, or this app doesn’t allow copying."
+  },
+  "quick_use_shot": {
+    "message": "Use screenshot translation instead"
+  },
+  "quick_same_lang": {
+    "message": "Already in {lang}"
+  },
+  "sys_empty": {
+    "message": "There is no text to translate."
+  },
+  "sys_slow": {
+    "message": "Still translating — the free credit goes through our relay, which is slower than your own key."
+  },
+  "quick_slow": {
+    "message": "Still translating…"
+  },
+  "quick_unconfigured": {
+    "message": "No translation engine yet. Claim the free credit, or enter your own API key."
+  },
+  "quick_open_settings": {
+    "message": "Open Settings"
+  },
+  "quick_retry": {
+    "message": "Retry"
+  },
+  "quick_saved": {
+    "message": "Saved to review library"
+  },
+  "quick_saved_off": {
+    "message": "Not saved · capture is off"
+  },
+  "quick_saved_long": {
+    "message": "Too long to save to the review library"
+  },
+  "quick_shot_nothing": {
+    "message": "No text was recognized in this area."
+  },
+  "quick_shot_again": {
+    "message": "Select again"
+  },
+  "quick_menu_clip": {
+    "message": "Translate Clipboard"
+  },
+  "quick_menu_input": {
+    "message": "Type to Translate"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS did not let us read the clipboard. Allow it in System Settings › Privacy & Security › Paste from Other Apps, or use the right-click Services menu instead."
+  },
+  "quick_enh_label": {
+    "message": "Enhanced Capture"
+  },
+  "quick_enh_hint": {
+    "message": "Select text and press the shortcut — no ⌘C first. Needs one system permission. Off by default."
+  },
+  "quick_enh_explain_title": {
+    "message": "Turn on Enhanced Capture"
+  },
+  "quick_enh_explain_does": {
+    "message": "What it does: when you press the shortcut, it presses ⌘C once for you, reads the selected text, then puts your clipboard back exactly as it was."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "What it never does: it does not watch your keyboard, and it reads nothing unless you press the shortcut."
+  },
+  "quick_enh_continue": {
+    "message": "Continue"
+  },
+  "quick_enh_not_now": {
+    "message": "Not now"
+  },
+  "quick_enh_relaunch": {
+    "message": "Relaunch now"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Open System Settings"
+  },
+  "quick_enh_pending": {
+    "message": "In the system window that appeared, choose Open System Settings, find “{app}” in the list and turn its switch on. It takes effect after you relaunch the app."
+  },
+  "quick_enh_denied": {
+    "message": "macOS has not granted the permission, so Enhanced Capture is off. Pressing ⌘C and then the shortcut still works."
+  },
+  "quick_enh_lost": {
+    "message": "The permission for Enhanced Capture was turned off, so this time the clipboard was translated. Turn it back on in Settings to restore it."
+  },
+  "quick_menu_shot": {
+    "message": "Translate Screenshot"
+  },
+  "quick_shot_busy": {
+    "message": "Recognizing text on this Mac…"
+  },
+  "quick_shot_first": {
+    "message": "First time on this Mac: it needs about 20 seconds to get ready. After that it takes under half a second."
+  },
+  "quick_shot_perm_explain": {
+    "message": "Screenshot translation needs the Screen Recording permission. It captures only the area you select, only at that moment, recognizes it on this Mac, and discards it right after."
+  },
+  "quick_shot_perm_pending": {
+    "message": "One more step: in System Settings, turn on the switch for “{app}” in the list. It takes effect after you relaunch the app."
+  },
+  "quick_shot_cloud": {
+    "message": "Try again with my image-capable engine"
+  },
+  "quick_shot_cloud_note": {
+    "message": "“Try again with my image-capable engine” sends this screenshot to the engine you configured ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Recognizing with your engine…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "This screenshot has already been discarded. Select the area again."
+  },
+  "quick_hk_title": {
+    "message": "Shortcuts"
+  },
+  "quick_hk_reset": {
+    "message": "Restore defaults"
+  },
+  "quick_hk_translate": {
+    "message": "Translate selection or clipboard"
+  },
+  "quick_hk_shot": {
+    "message": "Translate screenshot"
+  },
+  "quick_hk_input": {
+    "message": "Type to translate"
+  },
+  "quick_hk_unset": {
+    "message": "Not set"
+  },
+  "quick_hk_record": {
+    "message": "Record"
+  },
+  "quick_hk_cancel": {
+    "message": "Cancel"
+  },
+  "quick_hk_change": {
+    "message": "Change"
+  },
+  "quick_hk_clear": {
+    "message": "Clear"
+  },
+  "quick_hk_press": {
+    "message": "Press the combination you want…"
+  },
+  "quick_hk_clash": {
+    "message": "Another app already uses this combination, so pressing it won’t reach us. Choose a different one."
+  },
+  "quick_hk_deny": {
+    "message": "Combinations that use only ⌥ are unreliable. Choose one that includes ⌃ or ⌘."
+  },
+  "quick_hk_system": {
+    "message": "This combination is used by macOS or by apps themselves. Choose a different one."
+  },
+  "quick_hk_nomod": {
+    "message": "Include a modifier key such as ⌃ or ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "This is the same combination as “{name}”."
+  },
+  "quick_capture_label": {
+    "message": "Save to review library"
+  },
+  "quick_capture_hint": {
+    "message": "Sentences you translate go into review, under Selection, Screenshot or Typed. Turn it off and translation still works — nothing is saved."
+  },
+  "quick_login_label": {
+    "message": "Open at login"
+  },
+  "quick_login_hint": {
+    "message": "Starts in the menu bar when you log in. Off by default."
+  },
+  "quick_login_approval": {
+    "message": "You also need to allow it once in System Settings › Login Items."
+  },
+  "quick_screen_ok": {
+    "message": "Screen Recording · allowed ✓ (used by screenshot translation)"
+  },
+  "quick_screen_off": {
+    "message": "Screen Recording · not allowed yet. You’ll be asked the first time you use screenshot translation."
+  },
+  "quick_shot_needs14": {
+    "message": "Screenshot translation requires macOS 14 or later."
+  },
+  "quick_services_link": {
+    "message": "Assign a shortcut to the Services menu item →"
+  },
+  "quick_more": {
+    "message": "More options"
+  },
+  "quick_shot_perm_second": {
+    "message": "The first time you select an area, macOS asks for one more confirmation — just allow it. After that, macOS asks again every so often; it does this for every app that captures the screen."
+  },
+  "systrans_title": {
+    "message": "System translation"
+  },
+  "systrans_intro": {
+    "message": "Select text in any app and tap Translate to translate it with the engine you configured. First set BelliedMonkey Translator as the default:"
+  },
+  "systrans_step1": {
+    "message": "Open the Settings app"
+  },
+  "systrans_step2": {
+    "message": "Go to Apps → Translate"
+  },
+  "systrans_step3": {
+    "message": "Tap Default Translation App and pick BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Requires iOS or iPadOS 18.4 or later. On older systems we will not appear in that list."
+  },
+  "systrans_state_pending": {
+    "message": "Not synced yet. It syncs automatically when you open this app."
+  },
+  "systrans_state_ok": {
+    "message": "Engine synced: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "No engine set up yet. It syncs automatically once you configure one."
+  },
+  "systrans_state_failed": {
+    "message": "Sync failed ({code}). Try saving again under Engines & keys."
+  },
+  "systrans_capture_label": {
+    "message": "Save to review library"
+  },
+  "systrans_capture_hint": {
+    "message": "Sentences you translate go into review, under the source \"System translation\". Turn it off and translation still works, it just isn't saved."
+  },
+  "systrans_font_label": {
+    "message": "Sheet text size"
+  },
+  "systrans_font_small": {
+    "message": "Small"
+  },
+  "systrans_font_std": {
+    "message": "Standard"
+  },
+  "systrans_font_large": {
+    "message": "Large"
+  },
+  "systrans_font_hint": {
+    "message": "Size of the original and translated text in the translation sheet (buttons and notes stay as they are). Takes effect the next time the sheet opens."
+  },
+  "sys_disclose_direct": {
+    "message": "The selected text goes straight to the engine you configured ({name}); it never passes through our servers."
+  },
+  "sys_disclose_grant": {
+    "message": "Using free credit: the selected text is relayed by us to the provider. We do not keep the content."
+  },
+  "sys_fail_network": {
+    "message": "Couldn't reach the translation engine. Check your connection and try again."
+  },
+  "sys_fail_timeout": {
+    "message": "The engine didn't answer in time."
+  },
+  "sys_fail_http": {
+    "message": "The engine returned an error."
+  },
+  "sys_fail_no_base": {
+    "message": "This engine needs an address and none is set. Open BelliedMonkey Translator and fill it in."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "This engine is no longer available. Pick another one in BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "No translation engine is set up yet. Open BelliedMonkey Translator once and it will work here."
+  },
+  "sys_fail_not_synced": {
+    "message": "Open BelliedMonkey Translator once so it can share your engine settings with this sheet."
+  },
+  "sys_fail_empty": {
+    "message": "Nothing to translate in the selection."
+  },
+  "sys_fail_empty_result": {
+    "message": "The engine returned nothing this time."
+  },
+  "sys_fail_engine": {
+    "message": "The translation engine didn't start."
+  },
+  "sys_fail_unknown": {
+    "message": "Translation failed."
+  },
+  "sys_ui_translating": {
+    "message": "Translating…"
+  },
+  "sys_ui_slow": {
+    "message": "Still going — free credit can be slow."
+  },
+  "sys_ui_replace": {
+    "message": "Replace"
+  },
+  "sys_ui_open_app": {
+    "message": "Open BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "Ready to use"
+  },
+  "setup_done_checking": {
+    "message": "Checking…"
+  },
+  "setup_done_failed_title": {
+    "message": "Not usable yet"
+  },
+  "setup_done_failed": {
+    "message": "The item marked ✗ above didn't get through. Fix it and it will be tested again."
+  },
+  "setup_done_settings": {
+    "message": "The engine is set up. Document translation, live interpreting and live subtitles all work now."
+  },
+  "setup_done_systrans": {
+    "message": "The engine is set up. Go back to the app you were in and tap Translate again — nothing more to do here."
+  },
+  "setup_done_quick": {
+    "message": "The engine is set up. Go back to the Quick Translate panel and translate that sentence again."
+  },
+  "setup_done_home": {
+    "message": "Back to home"
+  },
+  "setup_from_systrans": {
+    "message": "You came here from System translation. Once this is set up, go back to that app and tap Translate again."
+  },
+  "systrans_discover_title": {
+    "message": "Let iPhone's built-in Translate use BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "Select text in any app and tap Translate — the sheet that opens uses the engine you configured. Set it once."
+  },
+  "systrans_discover_done": {
+    "message": "I've set it"
+  },
+  "systrans_discover_used_title": {
+    "message": "System translation · in use"
+  },
+  "systrans_discover_used": {
+    "message": "Select text in any app and tap Translate — it uses the engine you configured. The sentences you translate are in your review library."
+  },
+  "systrans_discover_see": {
+    "message": "See them in review →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Sign in and get free credit"
+  },
+  "ob_signin_grant_body": {
+    "message": "The credit is on us and covers plenty to start; you can also use your own key. Signing in also syncs your cards to your other devices."
+  },
+  "ob_signin_sync_title": {
+    "message": "Sign in (optional)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Signing in syncs your cards to your other devices. For translation, add your own key in Settings."
+  },
+  "ob_signin_later": {
+    "message": "Not now"
+  },
+  "ob_signin_email": {
+    "message": "Sign in with email"
+  },
+  "ob_try_title": {
+    "message": "Try a sentence now"
+  },
+  "ob_try_body": {
+    "message": "No need to find anything — here’s one. Translate it, or listen to it."
+  },
+  "ob_try_translate": {
+    "message": "Translate this"
+  },
+  "ob_try_listen": {
+    "message": "Listen to this"
+  },
+  "ob_try_working": {
+    "message": "Translating…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "No translation engine yet. Sign in and free credit is added automatically — or add your own key in Settings."
+  },
+  "ob_try_noengine_key": {
+    "message": "No translation engine yet — add a key in Settings and you’re set."
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二语言里读东西，同一个词见得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "I separately consent: once I sign in, my account details (email or Apple account identifier) and study cards (sentences I read, their translations, source page addresses and titles) are transferred to and stored on servers in Tokyo, Japan, operated by Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Recipient, purpose and how to withdraw: Privacy Policy, section 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "To sign in, tick the box above first. You can use the app without it — your cards just won’t sync.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Finish setting up · {n} steps left",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Pick up where you left off — it takes a minute or two.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Continue where I left off",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Don’t show again",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari extension",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "You tapped “{done}” earlier, so the tip on the home screen is hidden. If it isn’t actually on yet, bring the tip back here.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Show the “turn on the extension” tip again",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Restored — go back to the home screen to see it.",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Just two steps"
+  },
+  "ob_web_only": {
+    "message": "I only want web page translation"
+  },
+  "ob_intent_listen": {
+    "message": "Mainly to listen · Live Subtitles"
+  },
+  "ob_intent_both": {
+    "message": "Both — reading and listening"
+  },
+  "qs_base": {
+    "message": "Endpoint URL (full)"
+  },
+  "qs_key_ph_one": {
+    "message": "Paste once, translation set up"
+  },
+  "qs_apply_one": {
+    "message": "Set up translation with this endpoint"
+  },
+  "qs_absent": {
+    "message": "— not offered by this platform"
+  },
+  "qs_absent_custom": {
+    "message": "— not offered by this endpoint"
+  },
+  "learn_habit_streak": {
+    "message": "You came back today · {n} days in a row"
+  },
+  "learn_habit_today": {
+    "message": "You came back today"
+  },
+  "learn_nothing_due_title": {
+    "message": "Nothing to review today"
+  },
+  "learn_group_done": {
+    "message": "That group is done for today"
+  },
+  "learn_group_left": {
+    "message": "{n} left today — no need to finish it all at once."
+  },
+  "learn_group_left_none": {
+    "message": "The rest can wait for tomorrow."
+  },
+  "learn_group_more": {
+    "message": "One more group"
+  },
+  "learn_group_stop": {
+    "message": "That is it for today"
+  },
+  "learn_group_bye": {
+    "message": "The rest can wait — just come back."
+  },
+  "firstrun_packs_title": {
+    "message": "Download the speech packs first"
+  },
+  "firstrun_packs_lede": {
+    "message": "Once these are in place you won’t need to set anything else up — translation, live interpreting, subtitles and read-aloud all work right away. Speech is recognized on your device. The recognized text is sent off to be translated: with your own key it goes straight to the provider you configured; on the free credit it is relayed through our server, and we don’t store the text."
+  },
+  "firstrun_packs_asr": {
+    "message": "Speech recognition pack (interpreting / live subtitles)"
+  },
+  "firstrun_packs_tts": {
+    "message": "High-quality voice pack (read-aloud / podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Ready"
+  },
+  "firstrun_packs_net": {
+    "message": "Wi-Fi is recommended; cellular works too — your call."
+  },
+  "firstrun_packs_busy": {
+    "message": "Downloading"
+  },
+  "firstrun_packs_go": {
+    "message": "Download and continue"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Download speech only, continue"
+  },
+  "firstrun_packs_err": {
+    "message": "The download didn't finish: {why} — check your connection and try again."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "System language pack download stalled — check the network and try again."
+  },
+  "engine_status_ok": {
+    "message": "Set up with your account: translation · speech-to-text · read-aloud — usable right here"
+  },
+  "engine_status_missing": {
+    "message": "One thing missing: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Read-aloud engine not set — go to Settings › Read-aloud to pick a voice"
+  },
+  "engine_status_fix_translate": {
+    "message": "Translation engine not set — go to Settings › Engine to pick one"
+  },
+  "listen_lang_detecting": {
+    "message": "Detecting language…"
+  },
+  "listen_lang_detected": {
+    "message": "Detected: {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Detecting the video's language…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Detected: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Only touch this if it got the language wrong"
+  },
+  "listen_lang_auto": {
+    "message": "Detect automatically"
+  },
+  "listen_lang_manual": {
+    "message": "Set by hand"
+  },
+  "subtitle_partner_auto": {
+    "message": "Video language: {lang} (auto)"
+  },
+  "listen_need_locales": {
+    "message": "The on-device recognizer can hold at most 5 languages at once and is full — leave listening and come back."
+  },
+  "listen_lang_assets_missing": {
+    "message": "This language’s recognition pack isn’t installed yet. Get online and tap “Start listening” once and it’ll be added."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "This device cannot recognize that language — back to “{lang}”."
+  },
+  "listen_speak_lang_label": {
+    "message": "The language I speak"
+  },
+  "listen_lang_dirs2": {
+    "message": "Hear {a} → translated into {b}; hear {b} → translated into {a}"
+  },
+  "lang_auto": {
+    "message": "Auto"
+  },
+  "listen_listening": {
+    "message": "Listening…"
+  },
+  "listen_ptt_say": {
+    "message": "Say {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "Listening to {lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "Tap to start"
+  },
+  "listen_ptt_recording": {
+    "message": "● Recording · tap to stop"
+  },
+  "firstrun_packs_back": {
+    "message": "Back"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Language packs are ready"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} are ready to listen and speak. Add more anytime in Settings · Language packs."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Downloading"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "You can switch away — come back when it finishes"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Choose languages"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "Select the languages you want to listen and translate"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
+  },
+  "firstrun_packs_foot": {
+    "message": "About {size} · includes listen base"
+  },
+  "firstrun_packs_locked": {
+    "message": "Selection is locked while downloading; change packs later in Settings · Language packs."
+  },
+  "firstrun_packs_enter": {
+    "message": "Start live listening"
+  },
+  "firstrun_packs_remain": {
+    "message": "Downloading · {n} left"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Not selected"
+  },
+  "firstrun_packs_queued": {
+    "message": "Queued"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Languages"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Not downloaded"
+  },
+  "firstrun_packs_system": {
+    "message": "System language"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} more languages"
+  },
+  "firstrun_packs_together": {
+    "message": "Download details"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Read aloud · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "One pack covers 中文 and English. Checking 中文 or English includes it automatically"
+  },
+  "firstrun_packs_bytes": {
+    "message": "About {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Read aloud · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "Off by default. Listening and the written translation still work without it. Only the Thai translation is not read aloud."
+  },
+  "firstrun_packs_optional": {
+    "message": "About {size} · optional"
+  },
+  "firstrun_packs_base": {
+    "message": "Listen base"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Tells who is speaking which language — required before listening"
+  },
+  "firstrun_packs_required": {
+    "message": "About {size} · required"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "You are on a cellular network"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "This download is about {size} (system language packs are separate). Cellular data charges may apply."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wait for Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Download on cellular"
+  },
+  "firstrun_packs_manage": {
+    "message": "Manage language packs"
+  },
+  "listen_ptt_preparing": {
+    "message": "Preparing · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Ready"
+  },
+  "listen_not_ready": {
+    "message": "Not ready yet. Tap again after the download"
+  },
+  "listen_ready_tap": {
+    "message": "Ready. Tap a button below to start"
+  },
+  "listen_prep_detail": {
+    "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_ready_tap_sub": {
+    "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "Skipped {n} cards that cannot be read aloud (media cards or no voice)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} are ready to listen; {speak} can speak. Add more anytime in Settings · Language packs."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Cancel"
+  },
+  "firstrun_quota_days": {
+    "message": "Least recently used · {n} days ago"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Download"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Current language pair · cannot give up"
+  },
+  "firstrun_quota_label": {
+    "message": "Recognition languages"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Not downloaded"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Ready · uses a slot"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Not ready · can restore"
+  },
+  "firstrun_quota_never": {
+    "message": "Least recently used"
+  },
+  "firstrun_quota_note": {
+    "message": "Up to {max} recognition languages"
+  },
+  "firstrun_quota_note_full": {
+    "message": "All {max} slots are in use · a new one will be marked “Not ready” first"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Restore"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Tap to restore · about 1–2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "The button follows the language you pick."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Give up {yield} · restore {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "To restore {need}, give up one language first. It goes back to “Not ready” and restores in about 1–2 s when you need it again — no re-download."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Pick one to give up (default: least recently used)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Recognition languages full ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Not downloaded"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Uses a slot"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Not ready"
+  },
+  "firstrun_quota_today": {
+    "message": "Used today"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} of {max} used"
+  },
+  "firstrun_quota_working": {
+    "message": "Restoring…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Not ready · language {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Not downloaded this time"
+  },
+  "firstrun_quota_over_title": {
+    "message": "All {max} slots taken: {langs} will be marked “Not ready”"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Tap to restore it when you need it (about 1–2 s); the least recently used language gives up its slot. If you don’t want that, leave it unchecked for now."
+  },
+  "listen_pill_quota_full": {
+    "message": "Slots full"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Slots full · give one up to use this"
+  },
+  "listen_quota_card_btn": {
+    "message": "Give one up and restore"
+  },
+  "listen_quota_card_hint": {
+    "message": "About 1–2 s · no re-download"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} was installed, but its slot went to another language — this is not a failed download and has nothing to do with your network."
+  },
+  "listen_quota_card_title": {
+    "message": "Can’t listen to {lang} yet: all {max} recognition slots are in use"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Give up {yield} · restore {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "To use {lang}, give up one language first."
+  },
+  "fail_quota_label": {
+    "message": "Free credit"
+  },
+  "fail_credit_title": {
+    "message": "Free credit used up"
+  },
+  "fail_credit_next": {
+    "message": "Switch channel, or enter your own API key."
+  },
+  "fail_go_grant": {
+    "message": "Switch channel"
+  },
+  "fail_fill_key": {
+    "message": "Enter your own key"
+  },
+  "fail_grant_title": {
+    "message": "Credit pool unavailable"
+  },
+  "fail_grant_next": {
+    "message": "You did not use it up. Try again later, or switch channel."
+  },
+  "fail_model_title": {
+    "message": "Model is not on the free list"
+  },
+  "fail_model_next": {
+    "message": "Free credit only works with its assigned model. Switch it back."
+  },
+  "fail_go_model": {
+    "message": "Change model"
+  },
+  "fail_auth_title": {
+    "message": "Key rejected"
+  },
+  "fail_auth_next": {
+    "message": "The provider rejected this key. Check it or enter it again."
+  },
+  "fail_go_engine": {
+    "message": "Enter key"
+  },
+  "fail_use_free": {
+    "message": "Use free credit"
+  },
+  "fail_timeout_title": {
+    "message": "Can't connect — paused"
+  },
+  "fail_timeout_next": {
+    "message": "Auto-retry is paused. When the network is back, tap retry, or switch to free credit."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Auto-retry is paused. When the network is back, tap retry."
+  },
+  "fail_timeout_footnote": {
+    "message": "Pauses only after 5 timeouts in a row. One timeout does not stop."
+  },
+  "fail_retry": {
+    "message": "Retry"
+  },
+  "fail_switch_free": {
+    "message": "Switch to free credit"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Switching will discard one-tap setup"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Switching will overwrite per-engine setup"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Switching to per-engine will discard your current one-tap setup"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Use per engine"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Switching to one-tap will overwrite your current per-engine setup"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Use one-tap"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Cancel"
+  },
+  "qs_others_in_detail": {
+    "message": "For other engines, use Per engine."
+  },
+  "qs_key_local_only": {
+    "message": "Keys stay on this device only"
+  },
+  "engine_keys_status_none": {
+    "message": "Not set up"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · one-tap ready"
+  },
+  "engine_keys_status_detail": {
+    "message": "Per-engine ready"
+  },
+  "engine_keys_row": {
+    "message": "Engines & keys"
+  },
+  "firstrun_packs_details": {
+    "message": "Download details"
+  },
+  "firstrun_packs_sum": {
+    "message": "About {size} · includes listen base"
+  },
+  "firstrun_quota_mini": {
+    "message": "Up to 5 recognition languages"
+  },
+  "langpacks_manage": {
+    "message": "Manage"
+  },
+  "langpacks_missing": {
+    "message": "Not downloaded · {langs}"
+  },
+  "langpacks_need_os": {
+    "message": "Language packs · newer OS required"
+  },
+  "langpacks_ready": {
+    "message": "Ready · {langs}"
+  },
+  "langpacks_title": {
+    "message": "Language packs & speech"
+  },
+  "langpacks_tts_missing": {
+    "message": "Offline speech · Not downloaded · {size}"
+  },
+  "langpacks_tts_na": {
+    "message": "Offline speech · App only"
+  },
+  "langpacks_tts_ready": {
+    "message": "Offline speech · Ready"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Progress details"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Downloading"
+  },
+  "firstrun_packs_retry": {
+    "message": "Retry"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Downloading {n}%"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · about {size}"
+  }
+}

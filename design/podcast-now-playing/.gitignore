@@ -1,0 +1,3 @@
+# 设计画布的打包产物（约 2MB）。源是同目录的 *.dc.html + canvas.json，
+# 用 /design 的 seed-canvas.mjs 重新拼出来即可，不进版本库。
+podcast-lock-screen.html

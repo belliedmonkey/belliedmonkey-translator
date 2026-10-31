@@ -1,0 +1,422 @@
+// asr-source.js — the §2.4 subtitle source: 「AI 转写字幕」(docs/domain-design.md §2.4).
+//
+// Started ONLY from the user's tap (the offer inside `字幕不可用`, or the popup action).
+// Two tiers, tried in order, every outcome visible in the overlay:
+//   A. file  — the media has a fetchable http(s) URL: fetch the bytes, transcribe them
+//              (in ≤ CHUNK_BYTES slices so the first subtitles arrive early), push the
+//              timed cues. Complete transcript per slice — §2.1 rule 1 holds.
+//   B. live  — no fetchable URL (blob:/MSE) or the CDN refuses cross-origin reads:
+//              capture the element's audio in-page, stream PCM over WsTranscribe, push
+//              whole sentences as they close. The one written exception to "complete
+//              transcript up front" (§2.4 rule 3).
+//   C. neither — ctx.fail(<why>): the notice names the reason and re-offers.
+//
+// Capture is the capability, never the floor (§5.3 second instance):
+//   · Chrome/Firefox: HTMLMediaElement.captureStream() — REFUSES cross-origin data
+//     loaded without `crossorigin` (measured 2026-09-06: it throws, it does not mute).
+//   · Safari: no captureStream; Web Audio createMediaElementSource() reroutes the
+//     element's audio through the graph and outputs SILENCE for cross-origin media.
+//   So for an http(s) source both paths first probe CORS with a ranged GET, reload the
+//   element with crossOrigin='anonymous' at the same position, then attach.
+//   blob:/MSE sources are same-origin and attach directly.
+//   Silence guard: RMS ≈ 0 for 3 s while playing & unmuted ⇒ stop, say so.
+//
+// Audio goes only to the endpoint the user configured (§2.4 rule 5). Nothing here
+// touches our backend, IndexedDB, or the sync chunk.
+'use strict';
+
+var AsrSource = (() => {
+  const CHUNK_BYTES = 6 * 1024 * 1024;     // ≈ 6 min at 128 kbps: first subtitles in ~20 s
+  const MAX_BYTES = 120 * 1024 * 1024;      // ≈ 2 h at 128 kbps — beyond this, say so
+  const INLINE_LIMIT = 18 * 1024 * 1024;    // Gemini inline base64 ceiling (docs: ~20 MB)
+  const SILENCE_MS = 3000;
+  const SILENCE_RMS = 1e-4;
+  const PROCESSOR_FRAMES = 4096;
+  const MIN_DURATION_S = 30;                // the offer only for media at least this long
+  const STT_KEYS = ['sttEngine', 'sttApiKey', 'sttBaseUrl', 'sttModel'];
+  const MODE_KEY = 'asrLiveMode'; // 'incremental' (default, 边说边译) | 'sentence'
+  const HISTORY_KEY = 'asrHistoryPanel'; // 'on' (default) | 'off'
+
+  const T = (k, fb) => (typeof TranslationCore !== 'undefined' ? TranslationCore.t(k, fb) : fb);
+
+  // ─── Settings / engine ─────────────────────────────────────────────
+  function engineById(id) {
+    const list = (typeof window !== 'undefined' && window.MT_STT_ENGINES) || [];
+    return list.find((e) => e.id === id) || null;
+  }
+  async function readSttConfig() {
+    const s = await RequestShape.storageGet(STT_KEYS.concat([MODE_KEY, HISTORY_KEY]));
+    // 「配好了没有」只有一份判据（content/stt-state.js）：这里、说题、弹窗三处此前各算一遍
+    const r = SttState.fileReady(s);
+    if (!r.ok) return { ok: false, reason: r.reason };
+    return { ok: true, eng: r.eng, apiKey: r.apiKey, baseUrl: r.baseUrl, model: r.model,
+      incremental: s[MODE_KEY] !== 'sentence', history: s[HISTORY_KEY] !== 'off' };
+  }
+  // §2.4 rule 6: a change to the transcription settings stops every running session,
+  // visibly. Sessions register here; the storage listener below fans out.
+  const sessions = new Set();
+  function stopAllForSettings() {
+    for (const s of Array.from(sessions)) { try { s.fail(T('asr_err_settings', '转写引擎已更改，已停止转写')); } catch (_) {} }
+    sessions.clear();
+  }
+  // Synchronous "is an engine configured" for the offer label: read once, cached, refreshed
+  // whenever storage changes. The offer must not await storage on every tick.
+  let cached = null;
+  function primeConfig() {
+    readSttConfig().then((c) => { cached = c; }).catch(() => { cached = { ok: false, reason: 'no_engine' }; });
+  }
+  try { chrome.storage.onChanged.addListener((ch) => { if (STT_KEYS.some((k) => k in ch)) { primeConfig(); stopAllForSettings(); } }); } catch (_) {}
+  primeConfig();
+
+  // ─── Media URL ─────────────────────────────────────────────────────
+  // A streaming manifest (HLS .m3u8 / DASH .mpd) is a playlist, not audio: fetching it and
+  // posting the text to a transcription endpoint yields a meaningless 「无法读取该音频」
+  // (measured 2026-09-07, iOS 17.2 Simulator, Apple's bipbop sample). Not a tier-A URL.
+  const MANIFEST_RE = /\.(m3u8|mpd)(\?|#|$)/i;
+  function mediaUrl(el) {
+    const src = (el && (el.currentSrc || el.src)) || (el && el.querySelector && (el.querySelector('source') || {}).src) || '';
+    return /^https?:/i.test(src) && !MANIFEST_RE.test(src) ? src : '';
+  }
+  function fetchWithTimeout(url, init, ms) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    const onAbort = () => ctl.abort();
+    if (init && init.signal) init.signal.addEventListener('abort', onAbort, { once: true });
+    return fetch(url, Object.assign({}, init, { signal: ctl.signal })).finally(() => { clearTimeout(timer); });
+  }
+  // Can this origin read the media bytes? A ranged GET, not HEAD (archive.org HEAD stalls).
+  async function corsReadable(url, signal) {
+    try {
+      const r = await fetchWithTimeout(url, { mode: 'cors', headers: { Range: 'bytes=0-1023' }, signal }, 8000);
+      return r.ok || r.status === 206;
+    } catch (_) { return false; }
+  }
+
+  // ─── Tier A: file ──────────────────────────────────────────────────
+  async function fileTier({ url, cfg, ctx, signal, language }) {
+    ctx.mode('file');
+    ctx.notice(T('asr_status_file', '⏳ 正在转写整段音频…'));
+    const endpoint = WireFormat.resolveEndpoint(cfg.baseUrl, cfg.eng);
+    const fmt = WireFormat.formatFor(endpoint, cfg.eng.type);
+    const enc = RequestShape.audioEncoding(fmt);
+    const r = await fetchWithTimeout(url, { mode: 'cors', signal }, 60000);
+    if (!r.ok) throw named('media', 'HTTP ' + r.status);
+    const len = +(r.headers.get('content-length') || 0);
+    if (len > MAX_BYTES) throw named('toolarge', Math.round(len / 1048576) + 'MB');
+    const buf = new Uint8Array(await r.arrayBuffer());
+    if (buf.length > MAX_BYTES) throw named('toolarge', Math.round(buf.length / 1048576) + 'MB');
+    const mime = (r.headers.get('content-type') || '').split(';')[0] || guessMime(url);
+    const ext = extOf(mime, url);
+    if (fmt === 'transcribe-gemini' && buf.length > INLINE_LIMIT && false) { /* Files API path: reserved (uploadEndpoint) */ }
+
+    // Slice on byte boundaries. MP3/AAC frames resync at the next header, so a slice
+    // transcribes fine; the slice's time offset comes from the previous response's
+    // reported duration (or its last cue end), which keeps drift to a frame or two.
+    let offsetMs = 0, total = 0, gotAny = false;
+    for (let at = 0; at < buf.length; at += CHUNK_BYTES) {
+      if (signal.aborted) return;
+      const slice = buf.subarray(at, Math.min(buf.length, at + CHUNK_BYTES));
+      const o = { url: endpoint, apiKey: cfg.apiKey, model: cfg.model, language, wantCues: true,
+        filename: 'audio.' + ext, audioMime: mime, audioFormat: ext };
+      if (enc === 'blob') o.file = new Blob([slice], { type: mime });
+      else if (enc === 'base64') o.audioBase64 = b64(slice);
+      else o.audioDataUri = 'data:' + mime + ';base64,' + b64(slice);
+      const req = RequestShape.build(fmt, o);
+      if (req.error) throw named('media', req.error);
+      const resp = await fetchWithTimeout(endpoint, { method: 'POST', headers: req.headers, body: req.body, signal }, Math.max(RequestShape.timeoutMs(), 60000 + 4000 * Math.ceil(slice.length / 1048576)));
+      const text = await resp.text();
+      let d = null; try { d = JSON.parse(text); } catch (_) {}
+      if (!resp.ok) throw named('http', 'HTTP ' + resp.status + ' ' + serverSays(d, text));
+      const cues = req.extractCues ? req.extractCues(d) : [];
+      if (!cues.length) {
+        // A text-only answer (an engine without timestamps) is NOT a subtitle source —
+        // never regress to translating a plain transcript per line (§2.1 rule 3).
+        throw named('nocues', cfg.eng.label || cfg.eng.id);
+      }
+      const shifted = splitAtTerminals(cues).map((c) => ({ start: c.start + offsetMs, end: c.end + offsetMs, text: c.text }));
+      ctx.push(shifted); gotAny = true;
+      const dur = req.durationOf ? req.durationOf(d) : null;
+      offsetMs += dur || shifted[shifted.length - 1].end - offsetMs;
+      total += slice.length;
+      ctx.notice(T('asr_status_file', '⏳ 正在转写整段音频…') + ' ' + Math.round((total / buf.length) * 100) + '%');
+    }
+    if (gotAny) { ctx.notice(''); ctx.done(); }
+  }
+
+  // Cut a cue at sentence terminals with proportional timing — the same rule the
+  // probe measured (boundary hit 36 % → 95 % on whisper segments).
+  function splitAtTerminals(cues) {
+    const out = [];
+    const splitter = (typeof WsTranscribe !== 'undefined' && WsTranscribe.splitSentences) || ((t) => [t]);
+    for (const c of cues) {
+      const parts = splitter(String(c.text));
+      if (!parts.length) parts.push(String(c.text));
+      const total = parts.reduce((a, p) => a + p.length, 0) || 1;
+      let t = c.start;
+      for (const p of parts) {
+        const dur = (c.end - c.start) * (p.length / total);
+        const txt = p.trim();
+        if (txt) out.push({ start: Math.round(t), end: Math.round(t + dur), text: txt });
+        t += dur;
+      }
+    }
+    return out;
+  }
+
+  // ─── Tier B: live ──────────────────────────────────────────────────
+  let audioCtx = null;
+  const elementSources = new WeakMap(); // createMediaElementSource is once-per-element
+  // Must run INSIDE the tap handler on iOS: an AudioContext created outside a gesture
+  // stays suspended forever, silently.
+  function prepareAudioContext() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    } catch (_) { audioCtx = null; }
+    return audioCtx;
+  }
+
+  async function attachCapture(el, url, signal) {
+    const noCapture = typeof el.captureStream !== 'function' && typeof el.mozCaptureStream !== 'function';
+    // Safari + MSE (blob: — YouTube, Twitch, X): measured 2026-09-07 on macOS 26.5 with a real
+    // user gesture and a running AudioContext — `createMediaElementSource` outputs silence while
+    // the element stays audible. Say so before opening a socket; the generic 「捕获不到声音」
+    // would blame the user's speakers for what is the browser's limitation.
+    const srcNow = el.currentSrc || el.src || '';
+    if (noCapture && (/^blob:/i.test(srcNow) || MANIFEST_RE.test(srcNow))) throw named('mse', srcNow);
+    const ac = prepareAudioContext();
+    if (!ac) throw named('media', 'no AudioContext');
+    let sourceNode;
+    if (!noCapture) {
+      // Chrome / Firefox. A cross-origin http(s) source must be reloaded with
+      // crossorigin, or captureStream throws "Cannot capture from element with cross-origin data".
+      if (url && !el.crossOrigin) {
+        if (!(await corsReadable(url, signal))) throw named('cors', url);
+        await reloadWithCors(el, url);
+      }
+      const stream = (el.captureStream || el.mozCaptureStream).call(el);
+      const tracks = stream.getAudioTracks();
+      if (!tracks.length) throw named('media', 'no audio track');
+      sourceNode = ac.createMediaStreamSource(new MediaStream([tracks[0]]));
+    } else {
+      // Safari: the element's audio is REROUTED through the graph — keep it audible by
+      // wiring the node to the destination, and never attach to a source that would
+      // output silence (cross-origin without CORS).
+      if (url && !el.crossOrigin) {
+        if (!(await corsReadable(url, signal))) throw named('cors', url);
+        await reloadWithCors(el, url);
+      }
+      sourceNode = elementSources.get(el);
+      if (!sourceNode) { sourceNode = ac.createMediaElementSource(el); elementSources.set(el, sourceNode); sourceNode.connect(ac.destination); }
+    }
+    return { ac, sourceNode };
+  }
+  function reloadWithCors(el, url) {
+    return new Promise((resolve) => {
+      const t = el.currentTime, wasPaused = el.paused;
+      el.crossOrigin = 'anonymous';
+      const done = () => { el.removeEventListener('loadedmetadata', done); try { el.currentTime = t; } catch (_) {} if (!wasPaused) el.play().catch(() => {}); resolve(); };
+      el.addEventListener('loadedmetadata', done);
+      setTimeout(done, 8000); // never wait forever on a stalled reload
+      el.src = url; el.load();
+    });
+  }
+
+  // Float32 @ ac.sampleRate → Int16 @ rate, averaging over the decimation window.
+  function makeResampler(fromRate, toRate) {
+    const ratio = fromRate / toRate;
+    let carry = new Float32Array(0);
+    return (f32) => {
+      const input = carry.length ? concatF32(carry, f32) : f32;
+      const n = Math.floor(input.length / ratio);
+      const out = new Int16Array(n);
+      for (let i = 0; i < n; i++) {
+        const a = Math.floor(i * ratio), b = Math.max(a + 1, Math.floor((i + 1) * ratio));
+        let s = 0; for (let j = a; j < b; j++) s += input[j];
+        const v = s / (b - a);
+        out[i] = v < 0 ? Math.max(-32768, Math.round(v * 32768)) : Math.min(32767, Math.round(v * 32767));
+      }
+      const used = Math.floor(n * ratio);
+      carry = input.subarray(used);
+      return out;
+    };
+  }
+  function concatF32(a, b) { const o = new Float32Array(a.length + b.length); o.set(a); o.set(b, a.length); return o; }
+
+  // ── Tier B（边说边出的实时档）已于 2026-09-16 从扩展端下掉 ──────────────
+  //
+  // 用户裁定：「实时语音和实时听译一样做成只有 app 才能用。纯 api 效果太差，
+  // 必须结合本地模型转写 + 修正，效果和实时性才到位。」领域设计见
+  // docs/domain-design.md §2.4 第 3 条（PR #298）。
+  //
+  // 结构性原因，不是调优问题：扩展**够不到本机转写**。build/stt.config.js 里
+  // device 与 local 在扩展侧只能 live:false（那是原生能力，要走原生桥），于是这一档
+  // 在扩展里只剩纯远程流式 API —— 七个条目里够格的只有两个。
+  //
+  // 走不通的媒体现在落到 appPointer()：一句具名原因 + 一个去 App 的出口。
+  // content/ws-transcribe.js **保留**（app/listen.js 仍在用），只是这里不再调用它。
+
+
+  // ─── Session ───────────────────────────────────────────────────────
+  function named(code, detail) { const e = new Error(detail || code); e.code = code; return e; }
+  function serverSays(d, text) {
+    const m = d && ((d.error && (d.error.message || d.error)) || d.message);
+    return String(m || text || '').replace(/\s+/g, ' ').slice(0, 120);
+  }
+  function failMessage(e) {
+    const c = e && e.code;
+    if (c === 'cors' || c === 'media') return T('asr_err_media', '无法读取该音频');
+    if (c === 'mse') return T('asr_err_mse', 'Safari 抓不到这类流媒体视频的声音，此页无法转写');
+    if (c === 'silent') return T('asr_err_silent', '捕获不到声音，已停止转写');
+    if (c === 'toolarge') return T('asr_err_toolarge', '音频太大，无法整段转写') + '（' + e.message + '）';
+    if (c === 'nocues') return T('asr_err_nocues', '该转写引擎不返回时间戳，无法做字幕') + '（' + e.message + '）';
+    // `nolive` / `gesture` 随 Tier B 一起下掉（2026-09-16）：不再产生这两个码。
+    if (c === 'http') return T('asr_err_ws', '转写连接中断') + '：' + String(e.message).slice(0, 100);
+    if (e && e.name === 'AbortError') return '';
+    return T('asr_err_ws', '转写连接中断') + (e && e.message ? '：' + String(e.message).slice(0, 80) : '');
+  }
+  function guessMime(url) {
+    const u = String(url).split('?')[0].toLowerCase();
+    if (/\.m4a$|\.mp4$|\.aac$/.test(u)) return 'audio/mp4';
+    if (/\.wav$/.test(u)) return 'audio/wav';
+    if (/\.ogg$|\.oga$|\.opus$/.test(u)) return 'audio/ogg';
+    if (/\.flac$/.test(u)) return 'audio/flac';
+    if (/\.webm$/.test(u)) return 'audio/webm';
+    return 'audio/mpeg';
+  }
+  function extOf(mime, url) {
+    const m = String(mime).toLowerCase();
+    if (/mp4|m4a|aac/.test(m)) return 'm4a';
+    if (/wav/.test(m)) return 'wav';
+    if (/ogg|opus/.test(m)) return 'ogg';
+    if (/flac/.test(m)) return 'flac';
+    if (/webm/.test(m)) return 'webm';
+    if (/mpeg|mp3/.test(m)) return 'mp3';
+    return extOf(guessMime(url), '');
+  }
+  function b64(bytes) {
+    let s = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(s);
+  }
+
+  // The acquire the harness runs (via ui.acquireVia). Returns 'streaming' and feeds ctx.
+  function startSession({ el, ctx, settings }) {
+    const ctl = new AbortController();
+    const signal = ctl.signal;
+    const session = { fail: (msg) => { ctl.abort(); ctx.fail(msg); } };
+    sessions.add(session);
+    signal.addEventListener('abort', () => sessions.delete(session), { once: true });
+    ctx.onAbort(() => ctl.abort());
+    const language = ''; // auto-detect; the media's language is not the target language
+    (async () => {
+      const cfg = await readSttConfig();
+      if (!cfg.ok) { ctx.fail(T('asr_needs_engine', '先在设置里选择转写引擎')); return; }
+      const url = mediaUrl(el);
+      try {
+        if (url && await corsReadable(url, signal)) { await fileTier({ url, cfg, ctx, signal, language }); return; }
+      } catch (e) {
+        if (signal.aborted) return;
+        // 引擎类失败（没有时间戳、HTTP 错、文件过大）是终局，与媒体无关 —— 换个面也一样。
+        if (e.code === 'nocues' || e.code === 'http' || e.code === 'toolarge') { ctx.fail(failMessage(e)); return; }
+      }
+      // 到这里 = 这段媒体扩展转不了（blob:/MSE、CORS 拒绝、或 fileTier 的媒体类失败）。
+      // 以前落到 Tier B 流式；现在落到一句具名原因 + 去 App 的出口。
+      if (signal.aborted) return;
+      lastFail = { code: 'to_app', el };
+      ctx.fail(T('asr_media_app_only',
+        '这段媒体扩展取不出音轨（视频站与直播都是这样）。用 App 听设备正在放的声音，什么来源都能转。'));
+    })();
+    return 'streaming';
+  }
+  // 最后一次失败：`to_app` ⇒ offer 变成去 App 的出口（2026-09-16，取代原来的
+  // `gesture`（再点一次）与 `nolive`（去配带实时接口的引擎）两支）。
+  let lastFail = { code: '', el: null };
+  let lastSurface = 'notice';
+  function track(surface, result) {
+    try { if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface, result }); } catch (_) {}
+  }
+  function openOptions(hash) {
+    try { window.open(chrome.runtime.getURL('options/options.html') + hash, '_blank'); } catch (_) {}
+  }
+
+  // ── 去 App 的出口（2026-09-16）────────────────────────────────────────────
+  //
+  // 这是 2026-09-13 那句 pointer 的推广（§2.4 规则 4 末段）：那天只对「Safari 的 MSE
+  // 静音」给指路，现在每一种走不通都落到这里。**形式不变 —— 只是一句指路，扩展仍然
+  // 不与 App 通信。**
+  //
+  // 三个平台说三句话，因为这是能力差异不是本地化差异：
+  //   · Mac —— 取系统音频，切过去视频不会停 ⇒ 可以「现在就去」
+  //   · iPhone/iPad —— 一离开前台 iOS 立刻暂停网页视频（尖刺 S5 实测：pause 与
+  //     visibility=hidden 同一毫秒）⇒ 必须说清「先去 App 开始，再回来播放」，
+  //     否则就是教人走一条必然失败的路
+  //   · 其它平台 —— App 根本不存在 ⇒ 返回 null，一个字都不提
+  //
+  // 文案**不点名 Safari**（用户 2026-09-13 裁定）：App 听的是设备的声音，与哪个
+  // 浏览器或 App 在放无关。
+  function appPointer(surface) {
+    if (typeof AppLink === 'undefined' || !AppLink.applePlatform()) return null;
+    const ua = (navigator.userAgent || '') + ' ' + (navigator.platform || '');
+    const handheld = /iPhone|iPad|iPod/i.test(ua);
+    const label = handheld
+      ? T('asr_app_go_ios', '🔊 先去 App 开始听，再回来播放 →')
+      : T('asr_app_go_mac', '🔊 用 App 听设备的声音 →');
+    return {
+      label,
+      onClick: () => {
+        // `to_app` 而不是 `no_media`（2026-09-17，telemetry-design §3.3.2）：
+        // 第一版拿「这一页没找到媒体」记「用户选择去 App」，那是 engine_set 那次
+        // 语义漂移的同型——两件事从此在数据里分不开，而旧数据看起来完全正常。
+        track(surface || 'notice', 'to_app');
+        // AppLink.open 自己处理「自定义 scheme 没人接 ⇒ 页面没失焦 ⇒ 把出口说出来」，
+        // 这正是本仓最怕的「点了没反应」。没装 App 的人由它送去 App Store。
+        try { AppLink.open('', () => { try { window.open(AppLink.storeUrl(), '_blank'); } catch (_) {} }, 1200, 'listen'); } catch (_) {}
+      },
+    };
+  }
+
+  // ─── The offer (shared by every subtitle backend) ─────────────────
+  // offerFor(getEl, ui, getSettings) → () => {label, onClick} | null, for spec.unavailableAction.
+  function offerFor(getEl, getUi, getSettings) {
+    return () => {
+      const el = getEl();
+      const ui = getUi();
+      if (!el || !ui || !(el.duration >= MIN_DURATION_S)) return null;
+      if (ui.streaming) return null;
+      const c = cached;
+      if (!c || !c.ok) {
+        return { label: T('asr_needs_engine', '先在设置里选择转写引擎'), onClick: () => { track('notice', 'no_engine'); openOptions('#stt'); } };
+      }
+      // 这段媒体扩展转不了 ⇒ 去 App。非 Apple 平台上 App 不存在，那里回 null，
+      // 于是 offer 退回下面那条默认的「再试一次」—— 绝不给一个装不了的去处。
+      if (lastFail.code === 'to_app' && lastFail.el === el) {
+        const p = appPointer('notice');
+        if (p) return p;
+      }
+      return { label: T('asr_offer', '🎙 AI 转写字幕'), onClick: () => startFrom('notice', el, ui, getSettings()) };
+    };
+  }
+  // 三处入口（弹窗 / 通知行 / 页内再点一次）都走这里：同一个会话、同一条遥测。
+  // 返回 {ok, reason}：弹窗把 reason 写进副行。
+  function startFrom(surface, el, ui, settings) {
+    lastSurface = surface || 'notice';
+    if (!el) { track(lastSurface, 'no_media'); return { ok: false, reason: 'no_media' }; }
+    if (!ui) return { ok: false, reason: 'busy' };
+    if (ui.streaming) return { ok: false, reason: 'busy' };
+    if (!cached || !cached.ok) { track(lastSurface, 'no_engine'); return { ok: false, reason: 'no_engine' }; }
+    lastFail = { code: '', el: null };
+    prepareAudioContext(); // inside the gesture
+    ui.acquireVia((ctx) => startSession({ el, ctx, settings }));
+    track(lastSurface, 'started');
+    return { ok: true, reason: 'started' };
+  }
+  function start(el, ui, settings) { return startFrom('notice', el, ui, settings).ok; }
+
+  function eligible(el) { return !!el && el.duration >= MIN_DURATION_S; }
+
+  return { startSession, offerFor, start, startFrom, eligible, prepareAudioContext, attachCapture, splitAtTerminals, makeResampler, mediaUrl, MANIFEST_RE, MIN_DURATION_S, CHUNK_BYTES };
+})();
+
+if (typeof window !== 'undefined') window.AsrSource = AsrSource;
+if (typeof module !== 'undefined' && module.exports) module.exports = AsrSource;

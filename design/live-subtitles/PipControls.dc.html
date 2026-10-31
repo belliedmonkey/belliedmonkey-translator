@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>I6 · 点开控件 · 收起 · 关掉</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="root" style="width: 520px; height: 720px; padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; background: #f9f4ed;">
+<div style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 12px; font-weight: 700; color: #8c491a; border: 1px dashed #ac6231; border-radius: 999px; padding: 1px 9px;">系统控件示意</span><span style="color: #6a6255; font-size: 13px;">画中画里只有系统给的三个按钮</span></div>
+<div style="display: flex; flex-direction: column; align-items: center; gap: 8px;"><div style="position: relative; width: 272px; height: 153px; border-radius: 12px; overflow: hidden; background: rgb(22,20,18); box-shadow: 0 10px 28px rgba(0,0,0,0.35);"><div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px;"><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: #ffffff; font-size: 14px; line-height: 1.3; font-weight: 600;">如果定金周五前到账，我们下周二就能发第一批货。</div><div style="color: rgba(255,255,255,0.62); font-size: 11px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">We can ship the first batch next Tuesday if the deposit arrives by Friday.</div></div><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: #ffffff; font-size: 14px; line-height: 1.3; font-weight: 600;">报价里已经包含了运费和保险，但不含关税。</div><div style="color: rgba(255,255,255,0.62); font-size: 11px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">The quote already includes freight and insurance, but not customs duties.</div></div></div><div style="position: absolute; left: 0; right: 0; top: 0; height: 28px; background: linear-gradient(rgb(22,20,18), rgba(22,20,18,0));"></div><div style="position: absolute; inset: 0; background: rgba(0,0,0,0.46); display: flex; align-items: center; justify-content: center;"><span style="position: absolute; left: 11px; top: 7px; color: #ffffff; font-size: 17px; font-weight: 600;">✕</span><span style="position: absolute; right: 11px; top: 7px; color: #ffffff; font-size: 17px;">⧉</span><span style="width: 42px; height: 42px; border-radius: 50%; background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center; color: #ffffff;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6v12"></path><path d="M15 6v12"></path></svg></span></div></div><span style="font-size: 12.5px; color: #6a6255; line-height: 1.5; text-align: center;">① 点一下小窗：✕ 关小窗 · ⧉ 回到 App · ⏸ 暂停听（和 App 里的暂停是同一个）<br>注意：回到 App 时 Safari 视频会被系统暂停（尖刺 S5），回 Safari 要再点播放</span></div>
+<div style="display: flex; gap: 20px; align-items: flex-start; justify-content: center;">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 210px;"><div style="position: relative; width: 210px; height: 120px; border-radius: 12px; background: #e6e1d8; overflow: hidden;"><div style="position: absolute; right: 0; top: 34px; width: 22px; height: 52px; border-radius: 10px 0 0 10px; background: rgb(22,20,18); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 15px;">‹</div></div><span style="font-size: 12.5px; color: #6a6255; line-height: 1.5; text-align: center;">② 滑到屏幕边缘：收成把手，字幕照常记录；拉回来接着看</span></div>
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; width: 210px;"><div style="width: 210px; height: 120px; border-radius: 12px; background: #ffffff; border: 1.5px dashed #dcd3c4; display: flex; align-items: center; justify-content: center; color: #6a6255; font-size: 13px; line-height: 1.5; text-align: center;">小窗已关<br>听译继续</div><span style="font-size: 12.5px; color: #6a6255; line-height: 1.5; text-align: center;">③ 点 ✕ 关掉：<strong>不停止听译</strong>；回 App 点「浮出字幕窗」再打开（I9）</span></div>
+</div>
+<p style="color: #6a6255; font-size: 13px; line-height: 1.6;">要结束，回到 App 里点「结束」。小窗里放不了「上一句」「结束」这类自己的按钮 —— 系统不允许。</p>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":520,"height":720}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

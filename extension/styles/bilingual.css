@@ -1,0 +1,97 @@
+/* bilingual.css — 双语对照显示样式 */
+
+/* The font (family/size/weight/style/line-height) is copied from the ORIGINAL element
+   inline by content-webpage.js so the translation matches the source — so it is NOT set
+   here. Only the distinguishing color + structural separators live in CSS. */
+.mt-translation {
+  display: block;
+  margin-top: 4px;
+  padding: 3px 0 2px;
+  border-top: 1px solid rgba(86, 99, 63, 0.18);
+  color: #56633f;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  -webkit-user-select: text;
+  user-select: text;
+  text-decoration: none;
+  /* Never let our injected translations be chosen as the browser's scroll anchor.
+     On SPA re-renders (e.g. Substack re-rendering the article on a click) our nodes
+     are added/removed; if the anchor lands on one, the page jumps. Anchor on the
+     stable original content instead. */
+  overflow-anchor: none;
+}
+
+/* 评分提示行（interaction-spec「评分提示」）：挂在最后一段译文之下，跟着阅读走，
+   不 fixed、不遮内容。颜色与译文同一对（sage700 / sage400 —— 与上面的 .mt-translation
+   逐字相同，palette 门禁认这两个值；test/rate-row.test.js 钉住两处一致）。 */
+.mt-rate-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 2px 0;
+  font-size: 0.85em;
+  line-height: 1.5;
+  color: #56633f;
+  overflow-anchor: none;
+}
+.mt-rate-text { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.mt-rate-x {
+  background: none; border: 0; padding: 0 6px; margin: 0;
+  font: inherit; font-size: 1.1em; line-height: 1; color: inherit; cursor: pointer; opacity: .7;
+}
+.mt-rate-x:hover { opacity: 1; }
+@media (prefers-color-scheme: dark) {
+  .mt-rate-row { color: #aebf92; }
+}
+
+/* Subtle source indicator */
+.mt-translation::before {
+  display: none;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .mt-translation {
+    color: #aebf92;
+    border-top-color: rgba(174, 191, 146, 0.18);
+  }
+}
+
+/* Progress bar */
+.mt-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #c67139, #f6a06b);
+  z-index: 2147483647;
+  pointer-events: none;
+  transition: width 0.25s ease, opacity 0.5s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Tap-to-translate chip */
+.mt-translate-chip {
+  position: fixed;
+  background: #c67139;
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: -apple-system, system-ui, sans-serif;
+  z-index: 2147483646;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  animation: mt-chip-in 0.15s ease;
+}
+
+@keyframes mt-chip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}

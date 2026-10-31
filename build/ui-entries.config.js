@@ -1,0 +1,64 @@
+// build/ui-entries.config.js — React UI bundle 的唯一登记处（domain-design §10）。
+//
+// 每项 { entry, out }：entry 是仓库根相对的 .jsx/.js 入口，out 是 DIST 内的相对
+// 路径。esbuild 产物**覆盖** dist 里同名文件 —— HTML 的 <script> 标签、manifest、
+// web_accessible_resources 全都不用改；迁移一页 = 加一条 + 删旧 .js（同一个 PR）。
+// 清单为空时 build.js 完全跳过 esbuild（连 require 都不发生）：dist 与迁移前
+// byte 级相同 —— 这正是工具链 PR 的验收判据。
+//
+// 规则（§10.7）：flavor 敏感文本（品牌、端点、默认引擎名）不许进 bundle 源码 ——
+// 它们属于 *.gen.js / backend.config.js 这些留在 bundle 外的独立文件；bundle 源码
+// 一律经 src/lib/registry.js 读 window.MT_*，不直接摸全局、不 import gen 文件。
+'use strict';
+
+module.exports = { ENTRIES: [
+  // PR3 试点页：extension/popup/popup.js 的后继（同名覆盖，popup.html 的 script
+  // 标签不变）。旧 IIFE 已删 —— 迁移一页 = 加一条 + 删旧 .js。
+  { entry: 'src/pages/popup.jsx', out: 'popup/popup.js' },
+  // PR4：extension/onboard/onboard.js 的后继。三个命令式渲染器（LearnGrant /
+  // QuickSetup / EngineFields）按 §10.9 规则 4 以孤岛挂载，仍在独立 <script> 里。
+  { entry: 'src/pages/onboard.jsx', out: 'onboard/onboard.js' },
+  // PR5：extension/options/options.js 的后继（saveAll → saveNow 的键域收进
+  // src/pages/options-model.js 的 SAVE_KEYS，test/options-model.test.js 对账 schema）。
+  { entry: 'src/pages/options.jsx', out: 'options/options.js' },
+  // PR7a「同名产物覆盖」：learn/dialog.js 的 HTML <script> 标签（review.html / docs.html）
+  // 一个不改，产物改由 dialog-host.jsx bundle —— 旧 IIFE 的 window.LearnDialog ABI
+  // 原样挂回，未迁移的 review.js / docs-page.js 照常吃页内确认框。旧
+  // extension/learn/dialog.js 已删（同一 PR）。
+  { entry: 'src/shared/dialog-host.jsx', out: 'learn/dialog.js' },
+  // PR7b「同名产物覆盖」×2：learn/engine-fields.js（options:44 / onboard:62）与
+  // learn/grant.js（popup:30 / options:53 / onboard:65 / review:239 / docs:38）的
+  // <script> 标签一个不改，产物改由 *-host 壳 bundle —— 只挂纯逻辑 ABI
+  // （window.EngineFields / window.LearnGrant），渲染翻转成 React 组件随各自页面
+  // bundle（grant 的 render 不再是公共 ABI）。App 侧 main.jsx import 同两个壳。
+  { entry: 'src/shared/engine-fields-host.js', out: 'learn/engine-fields.js' },
+  { entry: 'src/shared/grant-host.jsx', out: 'learn/grant.js' },
+  // PR7c「同名产物覆盖」×2：learn/review.js（review.html:264）与 learn/doc-view.js
+  // （docs.html:45）的 <script> 标签一个不改，产物改由 *-host 壳 bundle —— review
+  // 壳在原标签位调 boot()（加载即执行的时序不变），doc-view 壳挂回 window.DocView。
+  // 纯逻辑源在 src/shared/{review,doc-view}.js；App 侧不走这两个壳（main.jsx 在
+  // #quick 分流的 else 分支调 boot，docs-model 直接 import DocView）—— 壳也因此不住
+  // src/shared/（§9.4 对账门按目录集合对两宿主，单侧组合根放 src/pages/ 与 popup 同族）。
+  { entry: 'src/pages/review-host.js', out: 'learn/review.js' },
+  { entry: 'src/pages/doc-view-host.js', out: 'learn/doc-view.js' },
+  // PR8a：字幕控制菜单的行渲染 —— content 的第一个 React root。**懒加载**：产物
+  // 是 ESM、不进 manifest 的 content_scripts 列表，subtitle-adapter.js 在用户第一
+  // 次点开菜单时 import(chrome.runtime.getURL(...))（web_accessible_resources 有
+  // 登记），同步注入面零新增字节；scripts/verify-content-inject.js 与 build.js 的
+  // 同步字节门守着这条边界（test/content-ui.test.js 咬「esm 产物不得进 js 列表」
+  // 的一致式）。
+  // PR9 按 #491 §② 收紧此条目的两个边界：
+  //   · 懒加载**仅许可菜单这一类条目** —— 它的降级不对称可接受（动态 import 失败 =
+  //     菜单开不出，FAB 还在，翻译功能无恙）。凡「失败即核心功能死」的注入面
+  //     （overlay 三站点，#491 的正主）静态与懒加载两条路都不走。
+  //   · **没有回退开关** —— 「改 format:'iife' 静态注入」与预算门互斥：bundle
+  //     677KB 进同步注入面，超 +150KB 预算 4 倍多，contentSyncBytesGate 直接红；
+  //     content-ui 的结构门也咬着 format==='esm'。这条路在设计上就不存在，不是
+  //     「Firefox/Safari 实测不过时再启用」的备用路 —— 若矩阵真的红了，要回答的
+  //     是「菜单改回命令式」这个新设计，不是翻开这行注释。
+  { entry: 'src/content/sub-menu.jsx', out: 'content/sub-menu.bundle.js', format: 'esm' },
+  // BEL-155：官网外链 UTM。扩展 options/onboard/popup 在 feedback.js 之前挂
+  // <script src="../learn/utm.js">；产物由本条目覆盖。App 经 main.jsx 副作用
+  // import utm-host（§9.4 对账）。算法只在 src/shared/utm.js。
+  { entry: 'src/shared/utm-host.js', out: 'learn/utm.js' },
+] };

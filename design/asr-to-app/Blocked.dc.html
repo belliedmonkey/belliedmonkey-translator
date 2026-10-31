@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+    .pop { width:320px; background:#f5ead8; border:1px solid #dcd3c4; border-radius:14px; overflow:hidden; }
+    .sec { border-top:1px solid #dcd3c4; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+    .sec:first-child { border-top:none; }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:44px; }
+    .lab { font-size:.95rem; }
+    .val { color:#6a6255; font-size:.84rem; }
+    .note { background:#f9f4ed; border:1px solid #dcd3c4; border-radius:10px; padding:10px; font-size:.84rem; color:#6a6255; line-height:1.5; }
+    .cta { background:#ac6231; color:#fff; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:.92rem; }
+    .quiet { border:1px solid #dcd3c4; color:#8c491a; border-radius:10px; min-height:44px; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
+    .cap { font-size:.78rem; font-weight:700; color:#6a6255; letter-spacing:.04em; }
+    .foot { border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:13px 16px; display:flex; flex-direction:column; gap:6px; font-size:.84rem; line-height:1.5; color:#6a6255; }
+    b { color:#201e1d; } code { font-family:ui-monospace,Menlo,monospace; font-size:.8rem; color:#8c491a; }
+    .gone { text-decoration:line-through; opacity:.45; }
+  </style>
+</helmet>
+<div style="padding:20px; display:flex; flex-direction:column; gap:12px; height:660px; box-sizing:border-box">
+  <div>
+    <div style="font-size:1.05rem; font-weight:700">走不通的四种，落到同一个出口</div>
+    <div style="font-size:.86rem; color:#6a6255; margin-top:3px">原因各自具名（绝不静默），出口只有一个 —— 这是 2026-09-13 那句 pointer 的推广。</div>
+  </div>
+  <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px; flex:1; min-height:0">
+    <div class="pop" style="width:auto">
+      <div class="sec">
+        <div class="cap">① 媒体是 blob:/MSE</div>
+        <div class="note">视频站与直播的音轨取不出来（<code>blob:</code> 源）。</div>
+        <div class="cta">🔊 用 App 听设备的声音 →</div>
+      </div>
+    </div>
+    <div class="pop" style="width:auto">
+      <div class="sec">
+        <div class="cap">② CORS 拒绝</div>
+        <div class="note">这个站不允许跨域读取它的音频文件。</div>
+        <div class="cta">🔊 用 App 听设备的声音 →</div>
+      </div>
+    </div>
+    <div class="pop" style="width:auto">
+      <div class="sec">
+        <div class="cap">③ 页面没有媒体元素</div>
+        <div class="note">没找到正在播放的视频/音频。</div>
+        <div class="cta">🔊 用 App 听设备的声音 →</div>
+      </div>
+    </div>
+    <div class="pop" style="width:auto">
+      <div class="sec">
+        <div class="cap">④ 没配转写引擎</div>
+        <div class="note">还没选转写引擎。<b>App 里有本机转写，不用配 key。</b></div>
+        <div class="cta">🔊 用 App 听设备的声音 →</div>
+        <div class="quiet">或在设置里选一个引擎</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">
+    <div><b>④ 是新增的一条路。</b>今天没配引擎只会被送去设置页填 key；而 App 的 <code>device</code> 档是本机模型，<b>一个 key 都不用填</b>。对「不想配 key 的人」这是从死路变成了活路。</div>
+    <div><b>原因行一个都不许省。</b>「点了没反应」「界面不说」是本仓反复付代价的那一类；出口是新增的，具名停止是原来就有的，两者并存。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

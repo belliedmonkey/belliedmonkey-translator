@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>被数据否掉的：主按钮现在没有可见效果</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:780px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">把 155 台按「点了什么」分组，看它们后来到底有没有收到卡</h1><span>有卡 = sync_on / capture_first / review_session / doc_open 任一</span></div></div>
+<table class="tbl">
+  <tr><th>分组</th><th>装机</th><th>后来有卡</th><th>比例</th></tr>
+  <tr><td>A 两个都没点</td><td>109</td><td>25</td><td><b>23%</b></td></tr>
+  <tr><td>B 只点主按钮（去网页）</td><td>15</td><td>3</td><td class="no"><b>20%</b></td></tr>
+  <tr><td>C 只点「我已打开」</td><td>11</td><td>9</td><td class="yes"><b>82%</b></td></tr>
+  <tr><td>D 两个都点了</td><td>20</td><td>5</td><td><b>25%</b></td></tr>
+</table>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>读法一：B / D 与 A 在同一档</b></div><p class="hint">点过主按钮的（20% / 25%）与什么都没点的（23%）没有差别。样本小（15 / 20 / 109），20 与 23 之间是噪声 —— 但<b>看不到任何抬升</b>。</p></div>
+  <div class="cell"><div class="cap"><b>读法二：C 那个 82% 是选择效应</b></div><p class="hint">只点「我已打开」、没去点主按钮的人，多半<b>本来就已经弄好了</b>，顺手关掉提示。不能读成「这个按钮有用」。</p></div>
+</div>
+<p class="hint"><b>背景数，比横幅更大：</b>237 台 App 装机里 <b>212 台只活跃过 1 天（89.5%）</b>，回来第二天的只有 25 台。「第一次没说动就没有第二次」是整个 App 的形状，不只是这张横幅的。</p>
+<div class="ask"><b>所以设计问题变了</b>不是「这句话怎么写更有说服力」，而是 —— <b>离开 App 之后那一截完全是黑的</b>。主按钮把人送到我们自己的网页上，而<b>那一页一个埋点都没有</b>：多少人到了、多少人看见了绿灯、多少人照着做完了，一个数都没有。<br>在补上之前，换任何文案都只是换一种我们判断不了的写法。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

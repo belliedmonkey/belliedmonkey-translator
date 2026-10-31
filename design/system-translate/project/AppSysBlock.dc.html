@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>App 设置 ·「系统翻译」块四态</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page phone" style="width:1700px; height:760px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">App 设置里的「系统翻译」块</h1><span>放在「功能」一节，与「文档翻译」「对话与字幕」并列。只在 iPhone / iPad 上出现。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:20px; align-items:start">
+<div class="cell"><div class="cap"><b>系统太旧</b><span>整块变淡 + 一句具名原因。不跳转、不弹框。</span></div><section class="card" style="opacity:.62"><h3>系统翻译<span class="use">在任何 App 里选字 › 翻译</span></h3><div class="dep"><b>系统翻译</b> · 需要 iOS 18.4 或更新的系统</div><p class="hint">这台设备是 iOS 17.6。升级系统后这里会亮起来；App 的其它功能不受影响。</p></section></div>
+<div class="cell"><div class="cap"><b>引擎还没配</b><span>依赖行指到「引擎与密钥」；指引与开关照常可见 —— 先去系统里设好也没关系。</span></div><section class="card" ><h3>系统翻译<span class="use">在任何 App 里选字 › 翻译</span></h3><div class="dep"><b>引擎</b> · <span class="no">还没同步</span> <a href="#go">去配置引擎 →</a></div><div class="steps"><div>打开 iPhone 的「设置」</div><div>往下找到「翻译」（在「App」分组里）</div><div>点「默认翻译 App」，选「大肚猴翻译」</div></div><div class="row"><div class="l"><span>存入复习库</span><small>系统翻译过的句子进复习，来源「系统翻译」</small></div><span class="sw on"></span></div></section></div>
+<div class="cell"><div class="cap"><b>已同步（常态）</b><span>依赖行写明同步过去的是哪个引擎、译成什么语言。</span></div><section class="card" ><h3>系统翻译<span class="use">在任何 App 里选字 › 翻译</span></h3><div class="dep"><b>引擎</b> · DeepSeek <span class="ok">✓</span> 已同步给系统翻译 · 译成 简体中文</div><div class="steps"><div>打开 iPhone 的「设置」</div><div>往下找到「翻译」（在「App」分组里）</div><div>点「默认翻译 App」，选「大肚猴翻译」</div></div><div class="row"><div class="l"><span>存入复习库</span><small>系统翻译过的句子进复习，来源「系统翻译」</small></div><span class="sw on"></span></div><div class="split"><button class="btn s sm" type="button">打开「设置」</button><span class="mini">只能带你到「设置」首页，系统不提供直达那一页的链接。</span></div></section></div>
+<div class="cell"><div class="cap"><b>同步失败</b><span>少见，但不能沉默：一句原因 + 再试 + 反馈出口。</span></div><section class="card" ><h3>系统翻译<span class="use">在任何 App 里选字 › 翻译</span></h3><div class="note w">引擎配置没能同步给系统翻译（钥匙串写入失败 · -34018）。系统翻译暂时用不了；App 里的翻译不受影响。</div><div class="split"><button class="btn p sm" type="button">再同步一次</button><a href="#fb">发送反馈</a></div></section></div>
+</div>
+<p class="mini" style="margin:0">同步 = App 把「用哪个引擎、哪把 key、译成什么」单向抄一份给系统翻译用。key 放进钥匙串，不落明文文件。改了引擎、退出登录、清除数据时自动跟着变。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1700,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

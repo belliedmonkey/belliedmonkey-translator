@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<!-- screenshots-cn/src/scene.html — 中国版商店合成图模板（Organic 设计语言）。
+     用法: scene.html?f=1..4&w=1242&h=2688
+     render.sh 用 headless Chrome 按精确分辨率截图（同 store-assets/src 的流水线）。
+
+     与全球版模板（store-assets/src/scene.html）刻意不同的两点，都是「只讲中国版
+     真做得到的事」：
+       · 没有视频字幕帧 —— YouTube 在境内不可达，审核员打不开的功能不该出现在商店页；
+       · 没有「电脑上读、手机上复习」的跨设备帧 —— china flavor 的扩展同步是关的
+         （backend enabled:false），语料不上传，所以那个闭环在中国版不成立。
+     配色取自 build/palette.config.js 的品牌色（陶土 / 奶油），与 App 内一致。 -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root { --accent: #c67139; --ink: #201e1d; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+    background: linear-gradient(160deg, #f5ead8 0%, #f9f4ed 45%, #ebddc5 100%);
+    display: flex; flex-direction: column; align-items: center; color: var(--ink);
+  }
+  .headline { text-align: center; font-weight: 800; padding: 6% 6% 2%; line-height: 1.22; }
+  .headline .big { font-size: var(--h1); display: block; }
+  .headline .sub { font-size: var(--h2); display: block; margin-top: .55em; font-weight: 500; color: #645c50; }
+  .stage { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 0 5% 6%; }
+  .mac { background: #fff; border-radius: 18px; box-shadow: 0 30px 80px rgba(46,43,37,.28); overflow: hidden; max-width: 100%; max-height: 100%; }
+  .mac .bar { height: 34px; background: #ececec; display: flex; align-items: center; padding-left: 14px; gap: 7px; }
+  .mac .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .mac img { display: block; width: 100%; height: auto; }
+  .phone { background: #111; border-radius: 46px; padding: 12px; box-shadow: 0 30px 80px rgba(46,43,37,.32); max-height: 100%; }
+  .tablet { background: #111; border-radius: 32px; padding: 20px; box-shadow: 0 30px 80px rgba(46,43,37,.32); max-height: 100%; }
+  .tablet img { display: block; border-radius: 16px; width: 100%; height: auto; }
+  .phone img { display: block; border-radius: 36px; width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<div class="headline"><span class="big" id="big"></span><span class="sub" id="sub"></span></div>
+<div class="stage" id="stage"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const f = q.get('f') || '1';
+const W = +q.get('w') || 1242, H = +q.get('h') || 2688;
+const portrait = H > W;
+document.documentElement.style.setProperty('--h1', Math.round((portrait ? W : H) * (portrait ? 0.058 : 0.075)) + 'px');
+document.documentElement.style.setProperty('--h2', Math.round((portrait ? W : H) * (portrait ? 0.031 : 0.040)) + 'px');
+
+// 文案纪律：不承诺同步/多设备（china flavor 扩展不上传），不提视频字幕。
+const COPY = {
+  1: ['照常读外网', '原文与译文，同屏对照'],
+  2: ['用你自己的大模型 Key', 'DeepSeek · 智谱 GLM · 通义千问（含翻译版）· Kimi，也可自定义接口'],
+  3: ['读过的句子，自动变成复习卡', '快速滚过的不算——只留下你真正读过的'],
+  4: ['收什么、怎么学，你说了算', '按语言筛选 · 按来源管理 · 一键导出，随时清空'],
+  5: ['整份文档也能翻', 'PDF、Word、图片 —— 打开一页翻一页，译文可收进复习'],
+  // 6 / 7：1.11 的 App 功能，原料是 dist-app-china 的实拍（capture-app.js）。
+  6: ['任何 App 的声音，都有双语字幕', 'Mac 上是悬浮字幕条，iPhone 上是画中画字幕窗'],
+  7: ['面对面，实时听译', '两个人自由说话，自动分边、自动朗读'],
+  // 8：系统翻译（1.14 起）。**只有 iPhone 有这个功能**，原料也只有手机档实拍
+  // （`cn-phone-systrans.png`，ZHAO的iPhone 上中国版商店包拍的）。所以它只进
+  // iPhone 那一集与官网，不进 iPad / Mac —— 与国际版帧 10 同一条理由。
+  8: ['在任何 App 里翻译', '选中文字 → 翻译。用你自己配的引擎，不经过我们的服务器'],
+};
+const [big, sub] = COPY[f];
+document.getElementById('big').textContent = big;
+document.getElementById('sub').textContent = sub;
+
+const macW = (() => {
+  if (portrait) return '96%';
+  const imgH = H * 0.68 - 34;
+  return Math.min(W * 0.9, imgH * 1728 / 868) + 'px';
+})();
+const mac = (src) => `<div class="mac" style="width:${macW}"><div class="bar"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div><img src="${src}"></div>`;
+const phone = (src) => `<div class="phone"><img src="${src}"></div>`;
+
+const stage = document.getElementById('stage');
+// 帧 1 复用全球版的文章双语帧（语言无关的产品实拍）；2/3/4 是 dist-china 的实拍
+// （src/capture.js 从出货产物截取，不是手绘 mock）。
+//
+// 竖版（iPhone / iPad）用手机尺寸的实拍，横版（Mac App Store）用桌面尺寸的实拍：
+// Mac 商店页要展示的是 Mac 上的样子，把一张手机图塞进横幅里是另一个平台的截图。
+const DESK = { '2': 'assets/cn-desk-engine.png', '3': 'assets/cn-desk-review.png', '4': 'assets/cn-desk-learn.png' };
+const TAB = { '2': 'assets/cn-tab-engine.png', '3': 'assets/cn-tab-review.png', '4': 'assets/cn-tab-learn.png' };
+const PHONE = { '2': 'assets/cn-options-engine.png', '3': 'assets/cn-review-card.png', '4': 'assets/cn-options-learn.png' };
+
+// 第 1 帧的原料与国际版共用（翻译发生时的画面与 flavor 无关）。竖版画布放手机 / 平板视口拍的，
+// 横版放 Mac 的 —— 同上面那条规矩，也是 store-assets/README.md 的硬规矩：画布是什么设备就放什么设备看到的。
+const tablet = (src) => `<div class="tablet"><img src="${src}"></div>`;
+const ARTICLE = portrait ? (W >= 1500 ? '../../store-assets/src/assets/tablet-article.png' : '../../store-assets/src/assets/phone-article.png') : '../../store-assets/src/assets/f1-article.png';
+const DOCS = portrait ? (W >= 1500 ? '../../store-assets/src/assets/zh-tablet-docs.png' : '../../store-assets/src/assets/zh-phone-docs.png') : '../../store-assets/src/assets/zh-desk-docs.png';
+const APP = { '6': 'subs', '7': 'listen' };
+const appShot = (k) => `assets/cn-${portrait ? (W >= 1500 ? 'tablet' : 'phone') : 'desk'}-${k}.png`;
+// 帧 6 的 Mac 画布放中国版调试包真机拍的「视频 + 悬浮字幕条」合成图（cn-desk-subsbar）
+// 帧 6 的手机画布放中国版调试包 14 Pro 真机 USB 录屏抽的帧「Safari 测试页 + 画中画字幕窗」（cn-phone-subspip）
+if (APP[f]) stage.innerHTML = portrait ? (W >= 1500 ? tablet(appShot(APP[f])) : phone(appShot(f === '6' ? 'subspip' : APP[f]))) : mac(appShot(f === '6' ? 'subsbar' : APP[f]));
+else if (f === '1') stage.innerHTML = portrait ? (W >= 1500 ? tablet(ARTICLE) : phone(ARTICLE)) : mac(ARTICLE);
+// 帧 8：系统翻译。**永远用手机框，不跟画布走** —— 只有手机档原料；这不违反
+// 「画布是什么设备就放那个设备的图」，那条说的是设备框要配得上截图的视口。
+else if (f === '8') stage.innerHTML = phone('assets/cn-phone-systrans.png');
+else if (f === '5') stage.innerHTML = portrait ? (W >= 1500 ? tablet(DOCS) : phone(DOCS)) : mac(DOCS);
+else if (portrait && W >= 1500) stage.innerHTML = tablet(TAB[f]);
+else if (portrait) stage.innerHTML = phone(PHONE[f]);
+else stage.innerHTML = mac(DESK[f]);
+
+if (portrait) document.querySelectorAll('.phone, .tablet').forEach((p) => { p.style.width = W >= 1500 ? '86%' : '78%'; });
+// 帧 8 在**横版**画布（官网 1280×800）上也立手机框 —— 而上面那行只管竖版，
+// 不给宽度的话手机会按舞台整宽铺开、直接溢出画布。按可用高度反推宽度。
+if (!portrait) document.querySelectorAll('.phone').forEach((p) => {
+  const img = p.querySelector('img');
+  const fit = () => { const ratio = (img.naturalHeight || 2556) / (img.naturalWidth || 1178);
+    p.style.width = Math.min(W * 0.34, (H * 0.60) / ratio) + 'px'; };
+  if (img.complete) fit(); else img.onload = fit;
+});
+// 横版的桌面帧是 2200×1520（比 f1 的 1728×868 高），按可用高度反推宽度铺满舞台。
+if (!portrait && f !== '1') {
+  const imgH = H * 0.66 - 34;
+  document.querySelectorAll('.mac').forEach((m) => {
+    m.style.width = Math.min(W * 0.82, imgH * 2200 / 1520) + 'px';
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1256 @@
+// test/learn-sync.test.js — auth and the sync client.
+//
+// What is asserted here is mostly what must NOT happen: that a full account does not
+// look like a successful upload, that a failed push is retried rather than skipped,
+// that one bad row cannot wedge sync forever, and that a half-completed account
+// deletion is never reported as a whole one. Those are the paths a happy-path test
+// run never reaches and a user hits on their worst day.
+
+const { loadModule, describe, test, ok, eq, rejects } = require('./harness');
+const { makeChrome } = require('./stubs');
+
+// Auth persists in chrome.storage.local since §8.4.1 (2026-08-09). The stub can be
+// told to fail its next N reads/writes — the class of transient storage failure
+// load() must survive WITHOUT latching the signed-out state.
+function makeAuthChrome(seed = {}) {
+  const chrome = makeChrome({ store: Object.assign({}, seed) });
+  let failReads = 0, failWrites = 0;
+  const real = { get: chrome.storage.local.get, set: chrome.storage.local.set, remove: chrome.storage.local.remove };
+  chrome.storage.local.get = (keys, cb) => {
+    if (failReads > 0) { failReads--; return Promise.reject(new Error('storage read broke')); }
+    return real.get(keys, cb);
+  };
+  chrome.storage.local.set = (obj, cb) => {
+    if (failWrites > 0) { failWrites--; return Promise.reject(new Error('storage write broke')); }
+    return real.set(obj, cb);
+  };
+  chrome._failReads = (n) => { failReads = n; };
+  chrome._failWrites = (n) => { failWrites = n; };
+  return chrome;
+}
+
+function loadAuth({ chrome, store, fetchFn }) {
+  const PageSettings = loadModule('learn/page-settings.js', { window: {}, chrome }).PageSettings;
+  return loadModule('learn/auth.js', {
+    window: {}, MT_BACKEND: BACKEND, LearnStore: store, PageSettings, chrome,
+    fetch: fetchFn, Date,
+  }).LearnAuth;
+}
+
+const BACKEND = {
+  url: 'https://example.supabase.co',
+  anonKey: 'anon-key',
+  table: 'bt_chunks',
+  quotaBytes: 50 * 1024 * 1024,
+};
+
+const T0 = 1700000000000;
+
+function card(id, over) {
+  return Object.assign({
+    id, text: 'Sentence ' + id, tr: '译文 ' + id, lang: 'en', sourceId: 'src1',
+    state: 'learning', starred: false, createdAt: T0, lastSeenAt: T0, seenCount: 1,
+    sched: { s: 3, d: 5, lastReviewAt: T0, dueAt: T0, reps: 1, lapses: 0 },
+  }, over);
+}
+
+// A fetch that answers from a queue of handlers and records every request.
+function fakeFetch(routes) {
+  const calls = [];
+  const fn = async (url, init) => {
+    calls.push({ url, method: (init && init.method) || 'GET', init });
+    for (const r of routes) {
+      if (r.match(url, init)) return r.reply(url, init);
+    }
+    return { ok: true, status: 200, text: async () => '[]', json: async () => [] };
+  };
+  fn.calls = calls;
+  return fn;
+}
+const reply = (status, body) => ({
+  ok: status >= 200 && status < 300, status,
+  text: async () => (body == null ? '' : JSON.stringify(body)),
+  json: async () => body,
+});
+
+function fakeStore(seed = {}) {
+  const meta = Object.assign({}, seed.meta);
+  const items = (seed.items || []).slice();
+  const reviews = (seed.reviews || []).slice();
+  const sources = (seed.sources || []).slice();
+  const dels = new Map(seed.dels || []);
+  const bumps = [];
+  return {
+    meta, items, reviews, sources, dels, bumps,
+    // §7.4 ledger, mirrored from the real store (delete iff touchedAt <= at; the
+    // fake's items carry explicit timestamps, so touchedAt reduces to their max).
+    applyDels: (entries) => {
+      let deleted = 0;
+      for (const e of entries || []) {
+        if (!e || !e.id) continue;
+        const i = items.findIndex((x) => x.id === e.id);
+        if (i >= 0) {
+          const it = items[i];
+          const touched = Math.max(it.createdAt || 0, it.lastSeenAt || 0,
+            (it.sched && it.sched.lastReviewAt) || 0);
+          if (touched <= (e.at || 0)) { items.splice(i, 1); deleted++; }
+        }
+        dels.set(e.id, Math.max(dels.get(e.id) || 0, e.at || 0));
+      }
+      return Promise.resolve(deleted);
+    },
+    userDels: () => Promise.resolve(new Map(dels)),
+    allDels: () => Promise.resolve(Array.from(dels, ([id, at]) => ({ id, at }))),
+    getMeta: (k, d) => Promise.resolve(k in meta ? meta[k] : d),
+    setMeta: (k, v) => { meta[k] = v; return Promise.resolve(); },
+    // Per-account corpora (§ account switch). The fake defaults to the PRIMARY
+    // database, which is what every pre-existing test means by "the corpus";
+    // seed `db` to exercise a secondary one.
+    DB_NAME: 'mt-learn',
+    currentDbName: () => seed.db || 'mt-learn',
+    dbNameFor: (uid) => (uid ? 'mt-learn-' + uid : 'mt-learn'),
+    useDb: () => Promise.resolve(seed.db || 'mt-learn'),
+    allItems: () => Promise.resolve(items.slice()),
+    allSources: () => Promise.resolve(sources.slice()),
+    allReviews: () => Promise.resolve(reviews.slice()),
+    mergeBatch: (inc) => { let added = 0; for (const c of inc) if (!items.some((x) => x.id === c.id)) { items.push(c); added++; } return Promise.resolve(added); },
+    recordReview: (itemId, grade, at) => { reviews.push({ itemId, grade, at }); return Promise.resolve(); },
+    evictIfNeeded: () => Promise.resolve(0),
+    // §7.3. Defaults are the "nothing has been evicted here" case, so every test
+    // written before tombstones existed keeps the meaning it was written with.
+    tombstones: () => Promise.resolve(new Set(seed.tombs || [])),
+    hasEverEvicted: () => Promise.resolve(!!seed.everEvicted),
+    bumpPressure: (f, n) => { bumps.push({ f, n }); return Promise.resolve(); },
+    clearSyncStamps: () => { let n = 0; for (const it of items) if (it.syncedAt) { delete it.syncedAt; n++; }
+      for (const r of reviews) if (r.viaSync) { delete r.viaSync; n++; } return Promise.resolve(n); },
+  };
+}
+
+function setup(opts = {}) {
+  const LearnStore = opts.store || fakeStore();
+  const fetchFn = opts.fetch || fakeFetch([]);
+  const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+  const LearnScheduler = loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
+  const LearnChunk = loadModule('learn/chunk.js', {
+    window: {}, LearnStore, LearnModel, LearnScheduler,
+    TextEncoder, TextDecoder, Response, Date,
+  }).LearnChunk;
+
+  const authChrome = opts.chrome || makeAuthChrome();
+  const LearnAuth = opts.auth || loadAuth({ chrome: authChrome, store: LearnStore, fetchFn });
+
+  const sandbox = {
+    window: {}, MT_BACKEND: BACKEND, LearnStore, LearnAuth, LearnChunk, LearnModel,
+    fetch: fetchFn, Date, Math, TextEncoder, TextDecoder, Response,
+  };
+  if (opts.navigator) sandbox.navigator = opts.navigator;
+  const LearnSync = loadModule('learn/sync.js', sandbox).LearnSync;
+
+  return { S: LearnSync, A: LearnAuth, C: LearnChunk, store: LearnStore, fetchFn };
+}
+
+// A signed-in session that will not expire during a test.
+const liveSession = () => ({
+  accessToken: 'tok', refreshToken: 'ref',
+  expiresAt: Date.now() + 3600e3, email: 'a@b.c', userId: 'u1',
+});
+
+describe('LearnAuth — sessions', () => {
+  function authOnly(routes, meta, chromeSeed) {
+    const store = fakeStore({ meta: meta || {} });
+    const fetchFn = fakeFetch(routes);
+    const chrome = makeAuthChrome(chromeSeed || {});
+    const A = loadAuth({ chrome, store, fetchFn });
+    return { A, store, fetchFn, chrome };
+  }
+
+  test('signed out yields a null token, which is not an error', async () => {
+    const { A } = authOnly([]);
+    eq(await A.token(), null);
+  });
+
+  test('verify() stores a session and token() returns it without a network call', async () => {
+    const { A, fetchFn } = authOnly([{
+      match: (u) => /\/verify$/.test(u),
+      reply: () => reply(200, {
+        access_token: 'AT', refresh_token: 'RT', expires_in: 3600,
+        user: { id: 'u1', email: 'a@b.c' },
+      }),
+    }]);
+    const s = await A.verify('a@b.c', '123456');
+    eq(s.email, 'a@b.c');
+    const before = fetchFn.calls.length;
+    eq(await A.token(), 'AT');
+    eq(fetchFn.calls.length, before, 'a live token must not cost a request');
+  });
+
+  test('CONCURRENT callers on an expired token trigger exactly ONE refresh', async () => {
+    // Rotating refresh tokens invalidate each other; a second in-flight refresh
+    // therefore presents as a random sign-out that nobody can reproduce.
+    let refreshes = 0;
+    const { A } = authOnly([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => {
+        refreshes++;
+        return reply(200, { access_token: 'NEW', refresh_token: 'RT2', expires_in: 3600, user: { id: 'u1' } });
+      },
+    }], { auth: { accessToken: 'OLD', refreshToken: 'RT', expiresAt: 1, email: 'a@b.c' } });
+
+    const [a, b, c] = await Promise.all([A.token(), A.token(), A.token()]);
+    eq(refreshes, 1);
+    eq(a, 'NEW'); eq(b, 'NEW'); eq(c, 'NEW');
+  });
+
+  test('a REJECTED refresh signs out rather than retrying forever', async () => {
+    const { A, store } = authOnly([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => reply(400, { error: 'invalid_grant' }),
+    }], { auth: { accessToken: 'OLD', refreshToken: 'DEAD', expiresAt: 1 } });
+    eq(await A.token(), null);
+    eq(store.meta.auth, null, 'the dead session must not be left on disk');
+  });
+
+  test('a network failure reads as offline, not as a bad code', async () => {
+    const { A } = authOnly([{
+      match: () => true,
+      reply: () => { throw new Error('Failed to fetch'); },
+    }]);
+    await rejects(A.signIn('a@b.c'), (e) => e.code === 'offline');
+  });
+
+  test('sign-out drops the local session even when the provider errors', async () => {
+    const { A, store } = authOnly([{ match: () => true, reply: () => reply(500, { msg: 'nope' }) }],
+      { auth: liveSession() });
+    await A.signOut();
+    eq(store.meta.auth, null);
+    eq(await A.token(), null);
+  });
+
+  test('a FAILED account deletion is reported as partial, never as success', async () => {
+    // The rows really are gone and the account really is not. Reporting "deleted"
+    // here would be a claim the user has no way to check.
+    const { A } = authOnly([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: (u) => /functions\/v1/.test(u), reply: () => reply(500, { error: 'boom' }) },
+    ], { auth: liveSession() });
+    const r = await A.deleteAccount();
+    eq(r.data, true);
+    eq(r.account, false, 'the account half failed and must say so');
+    ok(r.reason, 'a partial result without a reason is not actionable');
+  });
+
+  test('a full deletion reports both halves', async () => {
+    const { A, store } = authOnly([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: (u) => /functions\/v1/.test(u), reply: () => reply(200, { deleted: 'u1' }) },
+    ], { auth: liveSession() });
+    const r = await A.deleteAccount();
+    eq(r.data, true); eq(r.account, true);
+    eq(store.meta.auth, null);
+  });
+});
+
+describe('LearnSync — push', () => {
+  test('signed out, push refuses with a code rather than silently doing nothing', async () => {
+    const { S } = setup({ store: fakeStore({ items: [card('a')] }) });
+    await rejects(S.push(T0 + 1), (e) => e.code === 'signed_out');
+  });
+
+  test('only cards touched SINCE the last push travel', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 100 },
+      items: [card('old'), card('new', { lastSeenAt: T0 + 500 })],
+      sources: [{ id: 'src1', url: 'u' }],
+    });
+    let body = null;
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { body = JSON.parse(i.body); return reply(201, [{ seq: 1 }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 1000);
+    eq(r.pushed, 1);
+    const text = await C.inflate(S.fromHex(body.blob));
+    const back = C.fromJsonl(text);
+    eq(back.cards.length, 1);
+    eq(back.cards[0].id, 'new');
+    eq(body.kind, 'bundle');
+  });
+
+  test('nothing to say ⇒ no row is written at all', async () => {
+    const store = fakeStore({ meta: { auth: liveSession(), syncPushedAt: T0 + 100 }, items: [card('old')] });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 200);
+    eq(r.pushed, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0,
+      'an empty chunk would burn quota to say nothing');
+  });
+
+  // Reversed 2026-08-07 with §8.5 lever 1. This test used to assert the opposite
+  // ("candidates never leave the device"), and that assertion is exactly what the
+  // host app deadlocks on: a card only enters the deck by being reviewed, so a user
+  // who reviews only in the app would push nothing forever.
+  test('a corpus of nothing but candidates IS pushed', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items: [card('cand', { state: 'candidate', sched: null, lastSeenAt: T0 + 900 })],
+    });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+    eq((await S.push(T0 + 1000)).pushed, 1, '不上行 = App 永远拿不到第一张卡');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 1);
+  });
+
+  // ─── Batching (§8.4) ──────────────────────────────────────────────────────
+  // Before the candidate pool travelled, a push was a few hundred cards and one
+  // request was fine. Now the first push after signing in is the whole corpus —
+  // ~20,000 items, ~1.7 MB compressed, and PostgREST carries bytea as a `\x` hex
+  // literal, so a ~3.4 MB body in a single request that either lands or does not.
+
+  test('a corpus larger than one batch is split across several chunks', async () => {
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.push(T0 + 1000);
+    eq(r.chunks, 3, '450 张按 200 一批 = 3 个块');
+    eq(r.pushed, 450, '分批不能丢卡');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 3);
+  });
+
+  test('every card appears in exactly one chunk — no gap, no duplicate', async () => {
+    // The assertion that actually catches an off-by-one in the slice loop. A count
+    // alone would survive `i += PUSH_BATCH - 1` (overlap) or a dropped tail.
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const posts = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: posts.length }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    await S.push(T0 + 1000);
+    const seen = [];
+    for (const p of posts) {
+      const text = await C.inflate(S.fromHex(p.blob));
+      for (const c of C.fromJsonl(text).cards) seen.push(c.id);
+    }
+    eq(seen.length, 450, '卡片总数对不上就是漏了或重了');
+    eq(new Set(seen).size, 450, '同一张卡出现在两个块里 = 重复计费');
+  });
+
+  test('a review whose card was EVICTED still reaches the server', async () => {
+    // `evictIfNeeded` deletes items and leaves their reviews behind, so an orphan
+    // review is a normal consequence of a full corpus, not a corruption. `build()`
+    // drops reviews whose card is not in the bundle — so without explicit handling
+    // this review is dropped while PUSHED advances past it: silent, permanent loss.
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items: [card('alive')],
+      reviews: [{ itemId: 'alive', grade: 2, at: T0 + 500 },
+        { itemId: 'evicted-card', grade: 3, at: T0 + 600 }],
+    });
+    const posts = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: 1 }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    const r = await S.push(T0 + 1000);
+    eq(r.reviews, 2, '被淘汰卡片的复习记录也必须上行');
+    const text = await C.inflate(S.fromHex(posts[0].blob));
+    const ids = C.fromJsonl(text).reviews.map((x) => x.itemId).sort();
+    eq(ids.join(','), 'alive,evicted-card');
+  });
+
+  test('QUOTA EXCEEDED is surfaced AND the material is kept for retry', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [card('a')] });
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: () => reply(500, { code: '53100', message: 'bt: quota exceeded (…)' }),
+    }]);
+    const { S } = setup({ store, fetch: fetchFn });
+    await rejects(S.push(T0 + 1), (e) => e.code === 'quota');
+    eq(store.bumps.length, 1);
+    eq(store.bumps[0].f, 'quotaBlocked');
+    ok(!('syncPushedAt' in store.meta),
+      'advancing the cursor past a failed push would lose that material forever');
+  });
+});
+
+describe('LearnSync — pull', () => {
+  function rowsFrom(C, bundles) {
+    return Promise.all(bundles.map(async (b, i) => ({
+      seq: i + 1,
+      blob: '\\x' + Array.from(new TextEncoder().encode(C.toJsonl(b)))
+        .map((n) => n.toString(16).padStart(2, '0')).join(''),
+    })));
+  }
+
+  test('a pulled chunk is replayed and the cursor advances', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let served = false;
+    const holder = {};
+    const fetchFn = fakeFetch([{
+      match: (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u),
+      reply: () => { if (served) return reply(200, []); served = true; return reply(200, holder.rows); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    holder.rows = await rowsFrom(C, [C.build([card('x'), card('y')], [{ id: 'src1', url: 'u' }], [], T0)]);
+
+    const r = await S.pull();
+    eq(r.chunks, 1);
+    eq(r.cards, 2);
+    eq(store.items.length, 2);
+    eq(store.meta.syncCursor, 1);
+  });
+
+  test('ONE unreadable row cannot wedge sync — it is skipped, counted, and passed', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let served = false;
+    const hex = (s) => '\\x' + Array.from(new TextEncoder().encode(s))
+      .map((n) => n.toString(16).padStart(2, '0')).join('');
+    const fetchFn = fakeFetch([{
+      match: (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u),
+      reply: () => {
+        if (served) return reply(200, []);
+        served = true;
+        return reply(200, [{ seq: 7, blob: hex('{"format":"someone-else/9"}\n') }]);
+      },
+    }]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.pull();
+    eq(r.skipped, 1);
+    eq(r.chunks, 0);
+    eq(store.meta.syncCursor, 7, 'the cursor MUST move past a row we cannot use');
+  });
+});
+
+// 2026-09-22：中国版切境内后端。老用户手里是东京签的访问令牌 —— 还在有效期内，所以 token() 不会刷新，
+// 境内 PostgREST 却回 401（签名对不上）。修前 App 只会说「同步没能完成，稍后自动重试」，要等最多一小时
+// 令牌自然过期才走到刷新、才发现刷新令牌早已作废。401 本身就是「这张令牌不算数」：作废它、强制刷新一次。
+describe('LearnSync — 数据接口 401 ⇒ 作废访问令牌、强制刷新一次', () => {
+  const ROWS = (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u);
+  test('刷新被服务端明确拒绝（400 + 错误体）⇒ 会话判死，pull 以 signed_out 结束', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let refreshes = 0;
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: () => reply(401, { code: 'PGRST301', message: 'JWSError JWSInvalidSignature' }) },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => { refreshes++; return reply(400, { code: 400, error_code: 'refresh_token_not_found', msg: 'Invalid Refresh Token: Refresh Token Not Found' }); } },
+    ]);
+    const { S, A } = setup({ store, fetch: fetchFn });
+    const e = await S.pull().then(() => null, (x) => x);
+    ok(e, 'pull 应当失败');
+    eq(e.code, 'signed_out', '401 之后刷新被拒，应当是 signed_out 而不是 ' + (e && e.code));
+    eq(refreshes, 1, '应当恰好强制刷新一次');
+    eq(await A.current(), null, '会话应当被清掉');
+  });
+  test('刷新成功 ⇒ 用新令牌重试一次，pull 成功', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const seen = [];
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: (u, i) => { const a = i.headers.Authorization; seen.push(a); return a === 'Bearer NEW' ? reply(200, []) : reply(401, { code: 'PGRST301', message: 'JWT expired' }); } },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => reply(200, { access_token: 'NEW', refresh_token: 'RT2', expires_in: 3600, user: { id: 'u1', email: 'a@b.c' } }) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.pull();
+    eq(r.chunks, 0);
+    eq(seen.join(','), 'Bearer tok,Bearer NEW');
+  });
+  test('重试后仍 401 ⇒ 不再无限刷新，按 http_401 报出', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    let refreshes = 0;
+    const fetchFn = fakeFetch([
+      { match: ROWS, reply: () => reply(401, { message: 'nope' }) },
+      { match: (u) => /grant_type=refresh_token/.test(u), reply: () => { refreshes++; return reply(200, { access_token: 'NEW' + refreshes, refresh_token: 'R' + refreshes, expires_in: 3600, user: { id: 'u1' } }); } },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const e = await S.pull().then(() => null, (x) => x);
+    eq(e && e.code, 'http_401'); eq(refreshes, 1);
+  });
+});
+
+describe('LearnSync — 后端换了：ownerGate 清掉旧后端的同步账（§8.4.3）', () => {
+  // 从旧后端拉下来的卡带着 syncedAt、复习记录带 viaSync —— 不抹掉，它们永远不会被推上新后端。
+  test('待办在 ⇒ 清归属戳 / 游标 / 水位 / 已同步戳，然后整库推上去；再推一次为 0（收敛）', async () => {
+    const store = fakeStore({
+      meta: { corpusOwner: { userId: 'u-tokyo', at: T0 }, syncCursor: 42, syncPushedAt: T0 + 9e6 },
+      items: [card('a', { syncedAt: T0 }), card('b', { syncedAt: T0 }), card('c')],
+      reviews: [{ itemId: 'a', grade: 3, at: T0, viaSync: true }],
+      sources: [{ id: 'src1', url: 'u' }],
+    });
+    let pending = true;
+    const auth = { userId: async () => 'u-cn', token: async () => 'tok', expireAccess: async () => {},
+      takeRehome: async (me) => { if (pending && me === 'u-cn') { pending = false; return true; } return false; } };
+    const bodies = [];
+    const fetchFn = fakeFetch([{ match: (u, i) => i && i.method === 'POST', reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: bodies.length }]); } }]);
+    const { S, C } = setup({ store, fetch: fetchFn, auth });
+    const r = await S.push(T0 + 1e7);
+    eq(store.meta.corpusOwner && store.meta.corpusOwner.userId, 'u-cn', '清完应认领为新账号');
+    eq(store.meta.syncCursor, 0);
+    ok(r.pushed >= 1, '应当推了');
+    const back = C.fromJsonl(await C.inflate(S.fromHex(bodies[0].blob)));
+    eq(back.cards.length, 3, '三张卡都该上去（含从旧后端拉下来的两张）');
+    const r2 = await S.push(T0 + 2e7);
+    eq(r2.pushed, 0, '第二次推送应当收敛为 0');
+  });
+  test('没有待办 ⇒ 旧的归属戳照常拦 owner_mismatch（保护不打折）', async () => {
+    const store = fakeStore({ meta: { corpusOwner: { userId: 'u-a', at: T0 } }, items: [card('a')] });
+    const auth = { userId: async () => 'u-b', token: async () => 'tok', takeRehome: async () => false };
+    const { S } = setup({ store, auth });
+    await rejects(S.push(T0 + 1), (e) => e.code === 'owner_mismatch');
+  });
+});
+
+describe('LearnSync — a chunk from a NEWER client', () => {
+  function serve(bundleJsonl) {
+    const store = fakeStore({ meta: { auth: liveSession(), syncCursor: 3 } });
+    let served = false;
+    const hex = (s) => '\\x' + Array.from(new TextEncoder().encode(s))
+      .map((n) => n.toString(16).padStart(2, '0')).join('');
+    const fetchFn = fakeFetch([
+      { match: (u, i) => (!i || i.method === 'GET') && /seq=gt/.test(u),
+        reply: () => { if (served) return reply(200, []); served = true;
+          return reply(200, [{ seq: 9, blob: hex(bundleJsonl) }]); } },
+      { match: (u, i) => i && i.method === 'POST', reply: () => reply(201, [{ seq: 10 }]) },
+    ]);
+    return { store, fetchFn };
+  }
+
+  test('pull STALLS and does NOT advance the cursor', async () => {
+    // Skipping would step over the row permanently: upgrading later would then
+    // never recover it. A stalled sync is recoverable; a skipped chunk is not.
+    const setupOnce = setup();
+    const b = setupOnce.C.build([card('a')], [], [], T0);
+    b.header.enc = 'age-x25519';
+    const { store, fetchFn } = serve(setupOnce.C.toJsonl(b));
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.pull();
+    eq(r.needsUpgrade, 'age-x25519');
+    eq(r.chunks, 0);
+    eq(store.meta.syncCursor, 3, 'THE CURSOR MUST NOT MOVE PAST IT');
+  });
+
+  test('sync() does not push on top of what it could not read', async () => {
+    const setupOnce = setup();
+    const b = setupOnce.C.build([card('a')], [], [], T0);
+    b.header.enc = 'age-x25519';
+    const { store, fetchFn } = serve(setupOnce.C.toJsonl(b));
+    store.items.push(card('local'));
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.sync(T0 + 1000);
+    ok(r.pulled.needsUpgrade, 'the stall is reported');
+    eq(r.pushed, null, 'nothing was pushed');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0,
+      'a push would land above the stalled chunk and a later compaction could sweep it');
+  });
+});
+
+describe('LearnSync — compaction', () => {
+  test('below the threshold, compaction writes nothing', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [card('a')] });
+    const fetchFn = fakeFetch([{
+      match: (u, i) => (!i || i.method === 'GET'),
+      reply: () => reply(200, [{ seq: 1, generation: 0 }, { seq: 2, generation: 0 }]),
+    }]);
+    const { S } = setup({ store, fetch: fetchFn });
+    eq((await S.compact(T0)).compacted, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'POST' || c.method === 'DELETE').length, 0);
+  });
+
+  test('an EMPTY corpus never compacts — it would erase the account', async () => {
+    // The delete is justified only by the snapshot being complete. A device that has
+    // not pulled yet has an empty corpus, and letting it write a snapshot of nothing
+    // and then sweep everything below would destroy the user's whole history on
+    // behalf of the one device that knows the least.
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [] });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.compacted, 0);
+    eq(r.skipped, 'empty-corpus', '要说清楚是为什么没压缩，不能静默返回 0');
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0,
+      '一次 DELETE 就抹掉了整个账号的历史');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST' && !/rpc/.test(c.url)).length, 0);
+  });
+
+  test('a device that has EVER evicted never compacts (§7.3)', async () => {
+    // The severe half of the eviction conflict. Such a device holds a working set,
+    // not the archive; its snapshot is missing whatever it evicted, and the DELETE
+    // that follows would remove those rows from the server permanently — for every
+    // device, of material the user never asked to delete.
+    //
+    // A non-empty corpus deliberately: this must not be mistaken for the empty-corpus
+    // guard, and it must fire even when the device looks perfectly healthy.
+    const items = [];
+    for (let i = 0; i < 300; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items, everEvicted: true });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.compacted, 0);
+    eq(r.skipped, 'ever-evicted');
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0,
+      '这一次 DELETE 会把被淘汰的内容从所有设备上永久抹掉');
+    eq(fetchFn.calls.filter((c) => c.method === 'POST' && !/rpc/.test(c.url)).length, 0);
+  });
+
+  test('a large snapshot is split, and every part is written BEFORE the sweep', async () => {
+    // A snapshot is the whole corpus — up to the 20,000-item cap — so it needs the
+    // same batching as a push. Splitting does not weaken what compaction rests on:
+    // "complete" is a property of the SET of rows above the deletion point, not of
+    // there being exactly one row. But the ORDER is load-bearing — if the delete ran
+    // before the last part landed, the corpus would have a hole with nothing left
+    // below to recover it.
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i));
+    const store = fakeStore({ meta: { auth: liveSession() }, items });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const order = [], bodies = [];
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'POST' && !/rpc/.test(u),
+        reply: (u, i) => { order.push('POST'); bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: 46 }]); } },
+      { match: (u, i) => i && i.method === 'DELETE',
+        reply: () => { order.push('DELETE'); return reply(204, null); } },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.cards, 450, '快照必须完整，否则它没有资格取代下面的行');
+    eq(bodies.length, 3, '450 张按 200 一批 = 3 个块');
+    eq(order.indexOf('DELETE'), order.length - 1, 'DELETE 必须在所有分片写完之后');
+
+    const seen = [];
+    for (const b of bodies) {
+      ok(b.generation === r.generation, '同一次压缩的所有分片必须同代');
+      const text = await C.inflate(S.fromHex(b.blob));
+      for (const c of C.fromJsonl(text).cards) seen.push(c.id);
+    }
+    eq(new Set(seen).size, 450, '快照缺一张卡，就是把它从服务器上抹掉了');
+  });
+
+  test('a snapshot is COMPLETE and only rows at-or-below it are swept', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items: [card('a'), card('b'), card('c')],
+      sources: [{ id: 'src1', url: 'u' }],
+    });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    let body = null, deleteUrl = null;
+    const fetchFn = fakeFetch([
+      { match: (u, i) => i && i.method === 'POST' && !/rpc/.test(u),
+        reply: (u, i) => { body = JSON.parse(i.body); return reply(201, [{ seq: 46 }]); } },
+      { match: (u, i) => i && i.method === 'DELETE',
+        reply: (u) => { deleteUrl = u; return reply(204, null); } },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+
+    const r = await S.compact(T0);
+    eq(r.compacted, 45);
+    eq(r.generation, 1);
+    eq(r.cards, 3, 'a partial snapshot would delete rows nobody can reconstruct');
+    const back = C.fromJsonl(await C.inflate(S.fromHex(body.blob)));
+    eq(back.cards.length, 3);
+    ok(/seq=lte\.45$/.test(deleteUrl), 'must sweep only what was read: ' + deleteUrl);
+  });
+});
+
+describe('LearnSync — plumbing', () => {
+  test('hex round-trips every byte value', () => {
+    const { S } = setup();
+    const bytes = new Uint8Array(256);
+    for (let i = 0; i < 256; i++) bytes[i] = i;
+    const back = S.fromHex(S.toHex(bytes));
+    eq(back.length, 256);
+    ok(Array.from(back).every((b, i) => b === i), 'a byte lost in hex is a corrupt chunk');
+  });
+
+  test('forget() clears the pointers and NOT the corpus', async () => {
+    const store = fakeStore({ meta: { syncCursor: 9, syncPushedAt: 5 }, items: [card('a')] });
+    const { S } = setup({ store });
+    await S.forget();
+    eq(store.meta.syncCursor, 0);
+    eq(store.meta.syncPushedAt, 0);
+    eq(store.items.length, 1, 'signing out is not a reason to lose what you learned');
+  });
+});
+
+// ─── The echo ────────────────────────────────────────────────────────────────
+// Found on 2026-08-06 running two real devices against the real backend. Every
+// chunk a device pulled came straight back up as a chunk of its own:
+//
+//   seq 6  device A pushes 13 cards / 3 sources / 14 reviews
+//   seq 7  device B pushes 13 cards / 3 sources / 14 reviews   ← the same material
+//   seq 8  device A pushes 5 cards
+//   seq 9  device B pushes 5 cards                              ← again
+//
+// Cause: push selects `touchedAt(item) > PUSHED`, and replaying a remote item writes
+// the remote timestamps locally, so anything just received looks freshly touched.
+// Worst case is a NEW device, whose PUSHED is 0: its first pull is immediately
+// followed by a push of the ENTIRE corpus back to the server. The user pays for that
+// twice out of a 50 MB quota — a 25 MB corpus fills the account by adding a device.
+
+describe('LearnSync — 拉下来的东西不许再推回去', () => {
+  function echoStore(seed) {
+    const s = fakeStore(seed);
+    const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+    s.mergeBatch = (inc, srcs, opts) => {
+      let added = 0;
+      for (const c of inc) {
+        const i = s.items.findIndex((x) => x.id === c.id);
+        const merged = i < 0 ? c : LearnModel.mergeItem(s.items[i], c, opts);
+        if (opts && opts.markSynced) merged.syncedAt = LearnModel.touchedAt(merged);
+        if (i < 0) { s.items.push(merged); added++; } else s.items[i] = merged;
+      }
+      return Promise.resolve(added);
+    };
+    s.recordReview = (itemId, grade, at, opts) => {
+      s.reviews.push(Object.assign({ itemId, grade, at }, opts && opts.viaSync ? { viaSync: 1 } : {}));
+      return Promise.resolve();
+    };
+    return s;
+  }
+
+  // Build the wire form of a chunk the way another device would have sent it.
+  async function remoteChunk(C, cards, reviews) {
+    const bundle = C.build(cards, [{ id: 'src1', url: 'u', title: 't' }], reviews || [], T0 + 5000);
+    const bytes = await C.deflate(C.toJsonl(bundle));
+    let hex = '\\x';
+    for (const b of bytes) hex += b.toString(16).padStart(2, '0');
+    return hex;
+  }
+
+  async function runOnce(store, chunkHex) {
+    const posts = [];
+    const fetchFn = fakeFetch([
+      { match: (u, i) => (i && i.method) === 'POST' && /bt_chunks/.test(u),
+        reply: (u, i) => { posts.push(JSON.parse(i.body)); return reply(201, [{ seq: 99 }]); } },
+      { match: (u) => /seq=gt/.test(u),
+        reply: (u) => reply(200, /seq=gt\.0/.test(u) ? [{ seq: 42, blob: chunkHex }] : []) },
+    ]);
+    const { S, store: st } = setup({ store, fetch: fetchFn });
+    st.meta.auth = liveSession();
+    await S.sync();
+    return { posts, store: st };
+  }
+
+  test('新设备登录后不会把刚拉到的整份语料原样推回去', async () => {
+    const store = echoStore({ meta: { syncCursor: 0, syncPushedAt: 0 } });
+    const { C } = setup({ store });
+    const hex = await remoteChunk(C, [card('a'), card('b')], [{ itemId: 'a', grade: 2, at: T0 + 1 }]);
+    const { posts, store: st } = await runOnce(store, hex);
+    eq(st.items.length, 2, '拉取本身应当落地');
+    const cards = posts.flatMap((p) => (p.blob ? [p] : []));
+    eq(cards.length, 0, `刚拉到的内容被推了回去（${cards.length} 个块）`);
+  });
+
+  test('拉到之后本地又复习过的卡，仍然要推上去', async () => {
+    const store = echoStore({ meta: { syncCursor: 0, syncPushedAt: 0 } });
+    const { C } = setup({ store });
+    const hex = await remoteChunk(C, [card('a')], []);
+    await runOnce(store, hex);
+    // 本地复习：必须晚于上一次 push 的水位（push 盖的是真实当前时间，
+    // 不是 T0 那套假时间 —— 第一版测试在这里把复习写成了「发生在过去」）。
+    const later = Date.now() + 1000;
+    const it = store.items[0];
+    it.sched = { s: 4, d: 7, lastReviewAt: later, dueAt: later, reps: 2, lapses: 0 };
+    const { posts } = await runOnce(store, hex);
+    ok(posts.length > 0, '本地复习过的卡没有被推上去 —— 这才是真的丢数据');
+  });
+});
+
+describe('LearnSync — autoSync（§8.8 页面打开即心跳）', () => {
+  test('未登录 ⇒ null，且一个请求都不发', async () => {
+    const { S, fetchFn } = setup();
+    eq(await S.autoSync(T0), null);
+    eq(fetchFn.calls.length, 0, '未登录的自动同步碰了网络');
+  });
+
+  test('已登录首跑 ⇒ 真同步一次，并盖下节流水位', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    const r = await S.autoSync(at);
+    ok(r && r.pulled, '成功的自动同步要把结果交给调用方');
+    eq(store.meta.autoSyncAt, at, '成功后必须盖水位，否则每次打开都重跑');
+    ok(fetchFn.calls.length > 0);
+  });
+
+  test('10 分钟内再触发 ⇒ null，不再发请求；过窗后恢复', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    await S.autoSync(at);
+    const n = fetchFn.calls.length;
+    eq(await S.autoSync(at + S.AUTO_MIN_MS - 1), null, '节流窗内不许重跑');
+    eq(fetchFn.calls.length, n, '节流命中却发了请求');
+    ok(await S.autoSync(at + S.AUTO_MIN_MS + 1) !== null, '过窗后应当恢复心跳');
+  });
+
+  test('失败 ⇒ 静默 null、不盖水位，下次打开重试', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const fetchFn = (() => {
+      const calls = [];
+      const fn = async (url, init) => { calls.push({ url }); throw new Error('net down'); };
+      fn.calls = calls;
+      return fn;
+    })();
+    const { S } = setup({ store, fetch: fetchFn });
+    const at = Date.now();
+    eq(await S.autoSync(at), null, '自动路径的失败必须静默（§8.8 规则 1）');
+    eq(store.meta.autoSyncAt, undefined, '失败也盖水位 = 离线一次就静音十分钟');
+    await S.autoSync(at + 1000);
+    ok(fetchFn.calls.length >= 2, '失败后下次打开应当重试');
+  });
+
+  test('并发触发去重成一次 —— 两个面同时打开只跑一趟', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    const [r1, r2] = await Promise.all([S.autoSync(at), S.autoSync(at)]);
+    ok(r1 === r2, '两个并发调用应共享同一趟运行的结果');
+    const pulls = fetchFn.calls.filter((c) => c.method === 'GET').length;
+    eq(pulls, 1, `并发触发拉了 ${pulls} 次 —— 应当只有一次`);
+  });
+});
+
+describe('LearnSync — 进入即同步与状态通道（interaction-spec「多设备同步一致性」）', () => {
+  test('force 绕过 10 分钟节流；非强制照旧被节流', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store });
+    const at = Date.now();
+    await S.autoSync(at);
+    const n = fetchFn.calls.length;
+    eq(await S.autoSync(at + 1000), null, '非强制在窗内必须节流');
+    ok(await S.autoSync(at + 2000, { force: true }) !== null,
+      '进入级同步必须穿透节流 —— 每次进入必同步是用户裁定');
+    ok(fetchFn.calls.length > n, 'force 却没发请求');
+  });
+
+  test('onStatus 成功序列 running → done，且统一盖 lastSyncOkAt', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    const at = Date.now();
+    await S.sync(at);
+    eq(JSON.stringify(seen), JSON.stringify(['running', 'done']));
+    eq(store.meta[S.LAST_OK], at, '手动 sync() 也必须盖统一成功戳');
+  });
+
+  test('fetch 抛错 ⇒ onStatus 报 offline（自动路径仍静默返回 null）', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const fetchFn = (() => {
+      const calls = []; const fn = async (url) => { calls.push({ url }); throw new Error('net down'); };
+      fn.calls = calls; return fn;
+    })();
+    const { S } = setup({ store, fetch: fetchFn });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['running', 'offline']),
+      '离线必须以状态事件可见 —— 「静默」的旧规则已被用户裁定修订');
+    eq(store.meta[S.LAST_OK], undefined, '失败不得盖成功戳');
+  });
+
+  test('navigator.onLine === false ⇒ 秒报 offline，零请求', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S, fetchFn } = setup({ store, navigator: { onLine: false } });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['offline']), '预检必须直接报离线');
+    eq(fetchFn.calls.length, 0, '明知离线还发请求');
+  });
+
+  test('未登录 ⇒ onStatus 报 signed_out（头部据此显示「未登录，仅本机数据」）', async () => {
+    const { S } = setup();
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['signed_out']));
+  });
+
+  test('监听器抛错不许打断同步本身', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store });
+    S.onStatus(() => { throw new Error('listener bug'); });
+    const r = await S.autoSync(Date.now(), { force: true });
+    ok(r && r.pulled, '状态监听器的 bug 炸掉了同步');
+  });
+});
+
+describe('LearnSync — 离线预检不许把 autoSync 永久卡死（inflight 尸体回归）', () => {
+  test('离线命中一次后，网络恢复的下一次调用必须真的跑', async () => {
+    // 事故形状：预检路径没有 await，async 体同步跑完，finally 清掉 inflight 之后
+    // 赋值语句才把已解决的尸体 promise 盖回去 —— 此后每次 autoSync 都返回尸体，
+    // 同步静默至页面重开。
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const nav = { onLine: false };
+    const { S, fetchFn } = setup({ store, navigator: nav });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null, '离线时照旧返回 null');
+    nav.onLine = true;   // 网络回来了
+    const r = await S.autoSync(Date.now(), { force: true });
+    ok(r && r.pulled, '恢复后的调用吃到了 inflight 尸体 —— 同步被永久卡死');
+    ok(seen.indexOf('done') >= 0, '恢复后的运行必须真的发生（有 done 事件）');
+    ok(fetchFn.calls.length > 0, '恢复后必须真的发请求');
+  });
+
+  test('连续两次离线预检各自落定，互不粘连', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() } });
+    const { S } = setup({ store, navigator: { onLine: false } });
+    const seen = [];
+    S.onStatus((ev) => seen.push(ev.state));
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(await S.autoSync(Date.now(), { force: true }), null);
+    eq(JSON.stringify(seen), JSON.stringify(['offline', 'offline']),
+      '第二次也必须是新的一次运行（再报一次 offline），而不是尸体');
+  });
+});
+
+// ─── §7.4 / §8.9 — user deletes and governance rules ride the same log ───────
+// The failure modes these guard: a delete that never leaves the device (the other
+// phone keeps showing the cards), a delete swept away by compaction before a stale
+// device saw it (it comes back), and a push that thinks "no fresh cards" means
+// "nothing to say" while a delete is waiting.
+
+describe('LearnSync — 用户删除与规则随推送传播（§7.4/§8.9）', () => {
+  test('a push with ONLY a delete due still writes a chunk', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 100 },
+      items: [card('old')],                      // nothing fresh
+      dels: [['gone', T0 + 500]],                // but a delete happened
+    });
+    let body = null;
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { body = JSON.parse(i.body); return reply(201, [{ seq: 1 }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 1000);
+    eq(r.dels, 1, '「没有新卡」不等于「没话要说」——删除也在等着上行');
+    const back = C.fromJsonl(await C.inflate(S.fromHex(body.blob)));
+    eq(back.dels.length, 1);
+    eq(back.dels[0].id, 'gone');
+  });
+
+  test('a delete already pushed does not travel again', async () => {
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 900 },
+      dels: [['gone', T0 + 500]],                // before the watermark
+    });
+    const fetchFn = fakeFetch([]);
+    const { S } = setup({ store, fetch: fetchFn });
+    const r = await S.push(T0 + 1000);
+    eq(r.dels, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'POST').length, 0);
+  });
+
+  test('deletes and rules ride the FINAL chunk of a multi-batch push', async () => {
+    const items = [];
+    for (let i = 0; i < 450; i++) items.push(card('c' + i, { lastSeenAt: T0 + 500 }));
+    const store = fakeStore({
+      meta: { auth: liveSession(), syncPushedAt: T0 + 100 },
+      items, dels: [['gone', T0 + 600]],
+    });
+    const bodies = [];
+    const fetchFn = fakeFetch([{
+      match: (u, i) => i && i.method === 'POST',
+      reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: bodies.length }]); },
+    }]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    await S.push(T0 + 1000);
+    ok(bodies.length >= 2, '450 张卡必须分批');
+    for (let i = 0; i < bodies.length; i++) {
+      const back = C.fromJsonl(await C.inflate(S.fromHex(bodies[i].blob)));
+      eq(back.dels.length, i === bodies.length - 1 ? 1 : 0,
+        'd 行只搭最后一节车厢，跟孤儿 review 同一规则');
+    }
+  });
+
+  test('a compaction snapshot ends with the FULL ledger — that is how deletion becomes permanent', async () => {
+    const items = [];
+    for (let i = 0; i < 250; i++) items.push(card('c' + i));
+    const store = fakeStore({
+      meta: { auth: liveSession() },
+      items,
+      dels: [['old-del', T0 - 5000], ['new-del', T0 + 5]],   // BOTH, not just recent
+    });
+    const rows = [];
+    for (let i = 1; i <= 45; i++) rows.push({ seq: i, generation: 0 });
+    const bodies = [];
+    const fetchFn = fakeFetch([
+      {
+        match: (u, i) => i && i.method === 'POST',
+        reply: (u, i) => { bodies.push(JSON.parse(i.body)); return reply(201, [{ seq: 100 + bodies.length }]); },
+      },
+      { match: (u, i) => i && i.method === 'DELETE', reply: () => reply(204, null) },
+      { match: () => true, reply: () => reply(200, rows) },
+    ]);
+    const { S, C } = setup({ store, fetch: fetchFn });
+    const r = await S.compact(T0 + 10);
+    ok(r.compacted > 0);
+    ok(bodies.length >= 2, '250 张卡的快照要分批');
+    const parts = [];
+    for (const b of bodies) parts.push(C.fromJsonl(await C.inflate(S.fromHex(b.blob))));
+    for (let i = 0; i < parts.length - 1; i++) eq(parts[i].dels.length, 0);
+    eq(parts[parts.length - 1].dels.length, 2,
+      '快照必须携带完整台账 —— 游标落后的设备只靠它自愈，缺一条就复活一条');
+  });
+
+  test('a pulled d row deletes locally and reports it', async () => {
+    const store = fakeStore({ meta: { auth: liveSession() }, items: [card('doomed')] });
+    const LearnModel = loadModule('learn-model.js', { window: {} }).LearnModel;
+    const LearnScheduler = loadModule('learn-scheduler.js', { window: {} }).LearnScheduler;
+    const C0 = loadModule('learn/chunk.js', {
+      window: {}, LearnStore: store, LearnModel, LearnScheduler,
+      TextEncoder, TextDecoder, Response, Date,
+    }).LearnChunk;
+    const blob = await C0.deflate(C0.toJsonl(C0.build([], [], [], T0 + 10, [{ id: 'doomed', at: T0 + 10 }])));
+    let hex = '\\x';
+    for (const b of blob) hex += b.toString(16).padStart(2, '0');
+    const fetchFn = fakeFetch([{
+      match: (u, i) => (!i || i.method === 'GET') && /seq=gt\./.test(u),
+      reply: (u) => (/seq=gt\.0/.test(u) ? reply(200, [{ seq: 1, blob: hex }]) : reply(200, [])),
+    }]);
+    const { S, store: st } = setup({ store, fetch: fetchFn });
+    const stats = await S.pull();
+    eq(stats.deleted, 1, '拉取要把删除落地并报数');
+    eq(st.items.length, 0);
+    eq(st.dels.get('doomed'), T0 + 10);
+  });
+});
+
+// ─── §8.4.1 — 会话持久化（chrome.storage.local）与判死收紧 ───────────────────
+// 三类失败必须各归各位：存储读失败 ≠ 未登录（不闩死、可自愈）；网络/5xx/无 body
+// 4xx ≠ 会话失效（重试一次后抛出、绝不清会话）；只有带 GoTrue 错误体的 400/401
+// 才是判死。升级不重登的机制本体：会话在 bundle-id 落盘的 storage.local 里。
+
+describe('LearnAuth — 会话持久化与判死收紧（§8.4.1）', () => {
+  const live = () => ({ accessToken: 'AT', refreshToken: 'RT',
+    expiresAt: Date.now() + 3600e3, email: 'a@b.c', userId: 'u1' });
+  const expired = () => ({ accessToken: 'OLD', refreshToken: 'RT',
+    expiresAt: 1, email: 'a@b.c', userId: 'u1' });
+
+  function authOnly2(routes, meta, chromeSeed) {
+    const store = fakeStore({ meta: meta || {} });
+    const fetchFn = fakeFetch(routes);
+    const chrome = makeAuthChrome(chromeSeed || {});
+    const A = loadAuth({ chrome, store, fetchFn });
+    return { A, store, fetchFn, chrome };
+  }
+
+  test('verify 后会话落在 storage.local；同一 storage 新实例（=升级重载）直接可用，不重登', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /\/verify$/.test(u),
+      reply: () => reply(200, { access_token: 'AT', refresh_token: 'RT', expires_in: 3600, user: { id: 'u1', email: 'a@b.c' } }),
+    }]);
+    await A.verify('a@b.c', '123456');
+    ok(chrome._store.learnAuth && chrome._store.learnAuth.accessToken === 'AT',
+      '会话必须写进 storage.local 的 learnAuth');
+    // “升级”：同一份 storage，全新的 LearnAuth 模块实例（新的空 IDB 也一样）
+    const A2 = loadAuth({ chrome, store: fakeStore(), fetchFn: fakeFetch([]) });
+    const s = await A2.current();
+    eq(s && s.accessToken, 'AT', '重载后无需任何网络往返即恢复登录态');
+  });
+
+  test('legacy 迁移：IDB meta 的旧会话被采用、回写 learnAuth、旧位清空', async () => {
+    const { A, store, chrome } = authOnly2([], { auth: live() });
+    const s = await A.current();
+    eq(s && s.accessToken, 'AT');
+    eq(chrome._store.learnAuth && chrome._store.learnAuth.accessToken, 'AT', '必须回写新位');
+    eq(store.meta.auth, null, '回写成功后旧位必须清空（防复活分歧）');
+  });
+
+  test('存储读失败不闩死：当次报 lastLoadError，下次调用自愈且不重登', async () => {
+    const { A, chrome } = authOnly2([], {}, { learnAuth: live() });
+    chrome._failReads(1);
+    eq(await A.current(), null, '失败当次拿不到会话是诚实的');
+    ok(A.lastLoadError(), '但必须记下失败原因，界面据此说「存储读取失败」而非「未登录」');
+    const s2 = await A.current();
+    eq(s2 && s2.accessToken, 'AT', '存储恢复后的下一次调用必须自愈');
+    eq(A.lastLoadError(), null);
+  });
+
+  test('刷新遇网络失败：重试一次后抛出，会话保留（离线永不登出）', async () => {
+    const { A, chrome, fetchFn } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => { throw new Error('Failed to fetch'); },
+    }], {}, { learnAuth: expired() });
+    await rejects(A.token(), (e) => e.code === 'offline');
+    eq(fetchFn.calls.length, 2, '必须重试一次（GoTrue 复用宽限期覆盖此窗口）');
+    ok(chrome._store.learnAuth, '会话必须原样保留');
+    ok(A.cachedSession(), '内存中的会话也不许被清');
+  });
+
+  test('刷新 500 后重试成功：拿到新 token，无人被登出', async () => {
+    let calls = 0;
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => (++calls === 1
+        ? reply(500, { message: 'internal' })
+        : reply(200, { access_token: 'NEW', refresh_token: 'RT2', expires_in: 3600, user: { id: 'u1' } })),
+    }], {}, { learnAuth: expired() });
+    eq(await A.token(), 'NEW');
+    eq(chrome._store.learnAuth.accessToken, 'NEW');
+  });
+
+  test('无 body 的 400（代理/门户）不判死：抛出且会话保留', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => reply(400, null),
+    }], {}, { learnAuth: expired() });
+    await rejects(A.token());
+    ok(chrome._store.learnAuth, '没有 GoTrue 错误体就没有判死资格');
+  });
+
+  test('带 GoTrue 错误体的 400 才判死：会话清空', async () => {
+    const { A, chrome } = authOnly2([{
+      match: (u) => /grant_type=refresh_token/.test(u),
+      reply: () => reply(400, { error_code: 'invalid_grant', msg: 'refresh token revoked' }),
+    }], {}, { learnAuth: expired() });
+    eq(await A.token(), null);
+    eq(chrome._store.learnAuth, undefined, '确定性拒绝后会话必须移除');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 归属闸（§ 账号切换）
+//
+// 一台设备一份语料曾经是硬编码的事实：DB_NAME 是常量，谁登录都看同一份。显示错
+// 只是表象；真正的损害是**旧账号的语料会被推进新账号的云端** —— push 的挡板是
+// `t > (it.syncedAt||0)`，而 syncedAt 只在拉取路径盖章，所以本机自采的卡对它完全
+// 免疫。这一组用例钉住的是那个损害，不是那个显示。
+//
+// 判据一律是**零请求**（fetchFn.calls.length === 0），不是「上传了 0 张卡」：
+// 一次发出去才发现不该发的请求，和一次根本没发生的请求，是两件事。
+// ─────────────────────────────────────────────────────────────────────────────
+describe('LearnSync — 归属闸：语料属于账号，闸在数据层', () => {
+  const sessionFor = (uid) => Object.assign(liveSession(), { userId: uid });
+  const stamp = (uid) => ({ userId: uid, at: T0 });
+
+  test('归属不符 ⇒ push 抛 owner_mismatch，且一个请求都没发出去', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: T0 },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.push(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_mismatch');
+    eq(fetchFn.calls.length, 0);
+    // 水位线必须没动。一次推进了 PUSHED 的拒绝 = 静默丢素材：那些卡此后再也不满足
+    // `touchedAt > since`，于是它们对**正确的**账号也永远不会被上传。
+    eq(store.meta.syncPushedAt, T0);
+  });
+
+  test('点名那个 bug：forget() 之后的形状（since=0、卡没有 syncedAt）⇒ 依然零请求', async () => {
+    // 这正是今天走扩展设置页退出、再登入另一个账号时的整库上传形状。
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: 0 },
+      items: [card('a'), card('b'), card('c')],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('删除账本与治理规则同样一个字节都不出网', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A'), syncPushedAt: 0 },
+      dels: [{ id: 'gone', at: T0 + 5 }],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('sync() 两个方向都不动 —— 只挡 push 会把别人的卡拉进这份语料，计数就开始撒谎', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A') },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.sync(T0 + 1000).catch(() => null);
+    eq(fetchFn.calls.length, 0);   // GET 也要是 0
+  });
+
+  test('compact() 拒绝 —— 它是唯一同时上传和 DELETE 的函数', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-B'), corpusOwner: stamp('u-A') },
+      items: [card('a')],
+    });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.compact(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_mismatch');
+    eq(fetchFn.calls.length, 0);
+    eq(fetchFn.calls.filter((c) => c.method === 'DELETE').length, 0);
+  });
+
+  test('无戳 + 有身份 ⇒ 认领后照常上传（这是每一台升级上来的设备，只发生一次）', async () => {
+    const store = fakeStore({
+      meta: { auth: sessionFor('u-A'), syncPushedAt: 0 },
+      items: [card('a')],
+    });
+    const { S, store: st } = setup({ store });
+    await S.push(T0 + 1000);
+    eq(st.meta.corpusOwner.userId, 'u-A');
+  });
+
+  test('无戳 + 无身份 ⇒ 放行且**不认领** —— 中国版扩展永远走这一行，行为逐字节不变', async () => {
+    const store = fakeStore({ meta: {}, items: [card('a')] });
+    const { S, store: st } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    eq(st.meta.corpusOwner == null, true);
+  });
+
+  test('有戳 + 读不到身份 ⇒ owner_unknown（fail-closed：身份不明时不发东西出去）', async () => {
+    const store = fakeStore({ meta: { corpusOwner: stamp('u-A') }, items: [card('a')] });
+    const { S, fetchFn } = setup({ store });
+    let code = null;
+    try { await S.push(T0 + 1000); } catch (e) { code = e.code; }
+    eq(code, 'owner_unknown');
+    eq(fetchFn.calls.length, 0);
+  });
+
+  test('次级语料不上传认领之前写下的治理规则 —— block 是用户屏蔽过的站点，属于隐私面', async () => {
+    // 规则住在 chrome.storage，不随语料分库。主语料上传它是对的（同一个人）；
+    // 次级语料上传它，等于把上一个使用者的屏蔽列表交给这个账号。
+    const store = fakeStore({
+      db: 'mt-learn-u-B',
+      meta: { auth: sessionFor('u-B'), corpusOwner: { userId: 'u-B', at: T0 + 500 }, syncPushedAt: 0 },
+      storage: { learnRules: { v: 1, block: ['secret.example'], langs: null, updatedAt: T0 } },
+    });
+    const { S, fetchFn } = setup({ store });
+    await S.push(T0 + 1000).catch(() => null);
+    const bodies = fetchFn.calls.map((c) => String((c.init && c.init.body) || ''));
+    eq(bodies.some((b) => b.includes('secret.example')), false);
+  });
+});

@@ -1,0 +1,345 @@
+# 发布清单（release checklist）
+
+> **要真的跑一次发布，去 `/store-release`**（`.claude/skills/store-release/SKILL.md`）。
+> 那边是**可执行的那一半**：六个面各自的命令、参数，以及每一步的回读判据。
+> 这份文件是另一半 —— 闸门清单、设备矩阵、隐私文案同版、Gate B 的历史论证。
+> 两边不重复：凡是能直接敲的，都在 skill 里；凡是需要人判断的，留在这里。
+
+> **这份清单收的是「构建闸门看不见的东西」。** 仓库里能自动化的都已经是闸门——版本漂移、
+> `data_collection_permissions`、locale 目录名、译文里的版本号字面量、`enabled` 与隐私文案
+> 的耦合、Safari 包完整性（`npm run verify:ios`）。**下面这些跨仓库或跨账号，闸门够不到，
+> 只能靠这张表。**
+>
+> **清单比闸门弱。** 它依赖有人在发版时打开它。凡是能变成闸门的项，都应该从这里搬进
+> `build.js` 然后从这里删掉——这份文件越短越好。
+
+> **阶段闸门（2026-10-12 用户规定）：提审 / 推送 / 传浏览器扩展 / 发 GitHub Release 默认禁止**，
+> 只有用户**当次明确授权**才能做；一次授权只覆盖那一次、那个面，不继承、不推定。**只上传
+> TestFlight 不在此限**，但「已在 TestFlight」只以 ASC 读回该 build 为 `VALID` 为准（当前基线
+> `docs/release-baseline-1.19.3.md`）。本清单里相应步骤（§2 的推送、商店与扩展相关步骤）
+> 执行前必须先确认被本次授权覆盖；命令与判据仍保留在 `/store-release` 里作知识。
+
+## 主干先行（BEL-125）— 已上架的用户可见改动必须先在 main
+
+> Any IA / user-visible change that has shipped (including once READY_FOR_SALE) MUST land on **main** first, then cut marketing builds from main. Never leave shipped UX only on a submit tip.
+
+对照什么、怎么对照：
+
+- 用户可见项的勾选真源是 [`docs/product/user-visible-checklist.md`](product/user-visible-checklist.md)。
+- **自动扫 main（替代纯人工 git grep）**：`bash scripts/main-first-user-visible-scan.sh <BASE_RFS_TIP> [MAIN_REF]`
+  → `docs/status/main-first-scan-<BASE8>-vs-<MAIN8>.md`。说明与 **缺收据 = BLOCKED** 规则见 [`docs/main-first-scan.md`](main-first-scan.md)。
+  提审 / marketing 落条宣称「上架过 IA 已在 main」时必须附此收据。
+- tip↔tip 机器收据（BEL-124 提审硬闸）：`bash scripts/tip-user-visible-diff.sh <BASE_TIP> <HEAD_TIP>`，写到 `docs/status/tip-user-visible-diff-<BASE8>-vs-<HEAD8>.md`。怎么跑、缺证会怎样，见 [`docs/tip-user-visible-diff.md`](tip-user-visible-diff.md)。`QD-JUDGE-submit-*` 没有这份收据就是 **BLOCKED**，不得 PASS。
+- **提审合裁总装**：[`docs/quality/TEMPLATE-QD-JUDGE-submit.md`](quality/TEMPLATE-QD-JUDGE-submit.md) — README · 124 ·（适用）125 ·（适用）126 · HEAD钉 / NO-PPO / 冒烟 / ASC 四端；缺适用硬门证不得 PASS / PASS-WITH-ACCEPT。
+- **大合入强制合入门（BEL-126）**：合大功能前 **必须** 对照上一正式上架 tip 勾 checklist，并同时交出 tip-diff 机器收据 + `docs/status/merge-user-visible-checklist-<BASE8>-vs-<HEAD8>.md` 人工盖章；**缺任一 = merge QD BLOCKED**（不再「可抽查」）。
+- 表上有、后一 tip 没有，而且没有产品卡说明补回或退役：**禁止静默丢掉，不得 Submit。**
+
+**架构形检**须核「用户可见是否在 **main 祖先**」（可引用 main-first-scan 收据中的 ancestry + MISSING）。曾上架（含曾经 `READY_FOR_SALE`）的 IA / 用户可见项若不在 main 祖先上，形检不通过 —— 只堆在提审 tip 上不算入库。
+
+## 交互改动：先有 Pencil 稿，再有人工评审（**2026-10-01 起强制；稿子的工具 2026-10-08 改成 Pencil**）
+
+**任何交互改动，没有「Pencil 稿 + 人工签署」就不发版。** 顺序固定：Pencil 稿 → 人工签署 →
+`docs/interaction-spec.md` → 代码 → 门禁。画不出稿子时**停下**，不要先写代码
+（理由与两条推论见 `AGENTS.md` 的「Interaction / UX constraints」）。
+**不用 OpenDesign / OD** —— 那是 **2026-10-08 之前的**历史**工具，不要据 OD 稿实现任何界面。
+出稿由 pen.dev 自带 AI 做：我们写需求（`--in` / `--out` / `--prompt`），负责审稿，不合要求打回
+重画、最多 3 轮（见 `.claude/skills/pencil-draft/SKILL.md`）。内部诊断页与开发开关不算用户可见，不需要稿。
+
+---
+
+## 各商店状态：**别从这里读，去复验**（2026-08-08）
+
+> **下面这张表是 2026-08-01 / 08-08 的历史读数，已过时**；只是事故记录，不要拿它判断现状。
+> 现行商店状态一律以 gbrain 权威页 + ASC / 商店接口回读为准（`AGENTS.md`「Release state」），
+> 发版基线见 `docs/release-baseline-1.19.3.md`。
+
+权威页是 gbrain 的 `belliedmonkey-translator-release-state`，**但它自己写着会过时**，
+所以每次用之前跑那一页的「怎么复验」。08-08 实测，与 08-01 的记载有两处不符：
+
+| 行 | 权威页（08-01） | 实测（08-08） |
+|---|---|---|
+| **Firefox AMO** | 1.2.0 仍在审核（401） | **已上架**：`status: public`、1.2.0、2 个日活 |
+| iOS App Store | 1.3.0 已上传待审 | 线上仍是 **1.2.0**（07-29 发布）——1.3.0 传上去一周还没放出来，值得去 ASC 看是不是被拒了 |
+
+```bash
+curl -s "https://itunes.apple.com/lookup?id=6787190032" | ...   # iOS 线上版本
+curl -s https://addons.mozilla.org/api/v5/addons/addon/mobiletranslator@belliedmonkey/
+```
+
+**Firefox 已上架这条会改变 Gate B 的成本**：`data_collection_permissions` 不再是首次
+提交时随便填，而是**修改一条已公开的声明**，会被审核看见。
+
+## 0. 门禁（都能自动跑，跑之前别做下面任何一步）
+
+```bash
+npm test                 # 纯逻辑
+npm run test:layout      # 真实 headless Chrome，36+ fixture（含行为 phase：选区/交互）
+npm run boundary         # 公仓/旁仓边界（BOUNDARY.md §2；CI 也跑）
+node build.js            # Chrome/Safari；含全部构建期闸门
+node build.js firefox    # Firefox
+```
+
+**开源分轨（BEL-172，2026-11-01）**：OSS tag 从 orphan MIT 根切，**不等于**商店 tip；
+开源准备禁盲合未 scrub 的商店 tip。见 [`oss-release.md`](oss-release.md)。商店轨的
+BEL-123～126 防丢闸不因开源撤销。发版前另查：公仓无旁仓引用 / 无闭源符号
+（`npm run boundary` + `gitleaks dir . -c .gitleaks.toml`），后端 host/anon key 仅由构建注入。
+
+## 1. 设备矩阵
+
+按 [`verification-spec.md`](verification-spec.md) §0：**全矩阵，每次**。
+每一行要么跑过，要么显式标 N/A —— 不写「大概没影响」。
+
+**配 DeepSeek，不要在免费 Google 端点上验证**（§0，强制）。判据：**译文里不该有原文回显**。
+免费端点的典型故障就是对同一输入既返回真译文又返回逐字回显——本项目曾因此把一次 Google
+的结果误当成 DeepSeek 验证通过。
+
+## 2. 隐私文案必须与本次发布的功能同版上线 ⚠️
+
+**这一条是承诺，不是惯例。** `belliedmonkey.com/privacy.html` 自己写着：
+
+> 本 App 将来若在你的设备上保存更多内容，会在本节逐项列出，并在**该功能上线的同一个版本**
+> 更新本页——**不提前写，也不事后补**。
+
+所以两个站点的隐私改动**必须与扩展发版同时推送**：
+
+> ⚠️ **推送默认禁止**（见本文件开头 2026-10-12 闸门）：两个站点仓库的 push / 自动部署只有用户
+> **当次明确授权**才能做。下面的命令只作知识保留。
+
+```bash
+git -C ~/belliedmonkey-com push    # EdgeOne Pages，推送即自动部署
+git -C ~/belliedmonkey-cc  push    # Vercel，同上
+```
+
+- **提前推**：页面描述一个用户还没有的功能——违反「不提前写」，且用户会去找一个不存在的开关。
+- **事后推**：功能已经在采集数据而页面还没说——违反「不事后补」，这一头严重得多。
+
+> **Gate A（V1 本地采集）的站点部分已于 2026-08-06 推送并上线**，早于扩展发版。这是刻意
+> 选择的：`.com` 先被推了，而**两个站点说法不一致比提前写严重**，所以 `.cc` 也补上了。
+
+### ⚠️ 商店页里那个 URL 是第三件事，而且它会被 Apple 锁住
+
+改好页面、推上线，**不等于 App Store 上的链接指向它**。那是 App Store Connect 里
+`appInfoLocalizations.privacyPolicyUrl` 一个独立的字段，可以指向任何地方 ——
+2026-09-05 实测，中国版那个字段指的是
+
+```
+https://cli-d7gpsjbn104fdb724-1320551096.tcloudbaseapp.com/privacy-cn.html
+```
+
+一个**脱离两个仓库管理**的 CloudBase 托管点，挂着 2026-07-11 的版本，写着
+「大肚猴翻译**没有后端服务器**、没有账号系统」—— 而那时中国版 App 已经在同步。
+App 内的链接、support、marketing 早就都指向 `belliedmonkey.com` 了，**只有商店页
+那一个是孤儿**，所以从代码和站点两侧都看不出来。
+
+**这个字段在 `READY_FOR_SALE` 状态下改不了**，Apple 直接拒：
+
+```
+409 · The field 'privacyPolicyUrl' can not be modified in the current state.
+```
+
+要改它必须有一个**进行中的版本**（`PREPARE_FOR_SUBMISSION` 等）。也就是说：
+
+> **隐私政策 URL 只能跟着一次发版改。** 发版时顺手核一次，比事后单独为它开一个
+> 版本便宜得多 —— 而事后你会发现它根本改不了。
+
+核对命令（只读）：
+
+```bash
+node -e 'const {api,apps}=require("./scripts/lib/asc-client.js");(async()=>{
+  for(const a of await apps()){const i=await api("GET",`/apps/${a.id}/appInfos`);
+  for(const f of i.data){const l=await api("GET",`/appInfos/${f.id}/appInfoLocalizations`);
+  for(const x of l.data) if(x.attributes.privacyPolicyUrl)
+    console.log(a.bundleId,x.attributes.locale,"→",x.attributes.privacyPolicyUrl);}}})()'
+```
+> 下次发版**不要**再推这两条——它们已经在线上。已核对：`.com` 有「学习材料」条目；`.cc`
+> 的 8 种语言（ar/en/es/fr/hi/pt/ru/zh-CN）全部带 `privacy.s2li4`，没有空条目。
+>
+> 顺带记一个既有的不一致（非本次引入）：`.cc` 只有 8 种语言，而扩展有 11 种——**日语、
+> 韩语、繁体中文的用户会看到英文站**。
+
+对应关系（`learning-design.md` §10）：
+
+| 发布内容 | 闸门 |
+|---|---|
+| V1 本地采集 | **Gate A** —— README 隐私段 + 两个站点的「本机存储的数据」条目 |
+| V3 同步 | **Gate B** —— 「无账号」那句必须改；`build.js` 已有闸门：`learn/backend.config.js` 的 `enabled` 为 true 而 README 仍写着旧句子时**构建失败** |
+| 免费额度（learning-design §8.10） | **Gate F** —— 新增一段而不是改口（「我们不参与该连接」对自带 key 仍为真，改成按路径说；额度这条路文本经我们的中继，不保存不记录）：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站一句「不提供」、卡上 `grant_privacy` ×12、ASC 隐私标签（花费总数 = 与账号关联的用量数据，**手填人审**）、CWS 披露；`build.js`：`grant.enabled:true` ⇒ README 含「免费额度」词干且 12 份 locale 有 `grant_privacy`，china 产物不得含 `bt-grant` / `bt-relay` / `MT_GRANT = {` |
+| 文档翻译（learning-design §9.7） | **Gate G** —— 新披露面「用户上传的文件内容」，新增一段不改口：README ×2、cc 站隐私 ×12 + llms.txt + 重生成语言页、com 站「本机存储的数据」加「上传的文档与译文」、页内 `doc_privacy` ×12（额度激活时 `doc_privacy_grant`）、ASC「用户内容」问卷复核（手填）、AMO `data_collection_permissions` 复核；`build.js`：产物含 `learn/doc-view.js` ⇒ README ×2 含「上传的文档」词干且 12 份 locale 有 `doc_privacy` |
+| Mac 快速翻译（learning-design §9.9）· **随 1.13.0** | **Gate J-1** —— 新披露面「你在别的 App 里、或从屏幕上交给我们的文字」，新增一段不改口：README ×2、cc 站隐私 ×12 + llms.txt + **重生成语言页**、com 站同步、产品内文案 ×12（`quick_enh_explain_*`、`quick_shot_perm_*`、`quick_shot_cloud_note`、`quick_clip_concealed` —— 录屏与「增强取词」**没有**系统的用途说明键，披露全靠这几句，缺一个语种 = 1.12.1 那次被拒的同一类问题）、`ServicesMenu.strings` ×12、ASC 隐私标签复核（手填）、**macOS 两线的审核备注三条**（增强取词默认关且用的是系统的请求接口、不引导手动添加；截图只截框选的区域、本机识别、不保存；常驻菜单栏为了全局快捷键、可关）、商店「新功能」只在 Mac 两线提；`build.js`：产物用到 `quick_enh_explain_does` ⇒ README ×2 含「快速翻译」词干、12 份 locale 齐、`NSServices` 含 `NSRequiredContext`。**真机回读**：签名包里 `plutil -extract NSServices` 有 `NSRequiredContext`、`NSPortName` 已展开成 App 名、12 份 `ServicesMenu.strings` 在包里 |
+| iPhone 系统翻译（learning-design §9.9）· **未出货，随 iPhone 线 I-8** | **Gate J-2** —— **新增一段**，不改 J-1 的口：README ×2、两站隐私 ×12 + llms.txt、产品内 `sys_disclose_*` ×12、ASC 隐私标签复核；`build.js`：产物用到 `sys_disclose_direct` ⇒ README ×2 含「系统翻译」词干、12 份 locale 齐、联网键在 iOS App 的 plist 而**不在**扩展的。**首次带这个功能出包**：归档要用 Xcode 登录态（新增了 `DEFAULT_TRANSLATION_APP` 与 `APP_GROUPS` 两项能力；带 API key 三参数会报认证失败）；三个产物各跑一次 `codesign -d --entitlements` 回读 |
+
+## 3. 商店文案
+
+`extension_description` 与商店描述由注册表驱动，不要手写服务商清单（AGENTS.md「一个注册表，
+N 个消费者」；已因此漂移过两次：DeepSeek 模型名、版本号）。
+
+**系统要求写在功能旁边，不写在 App 头上（2026-09-17）。** App 与扩展的下限是 `build/os-floor.config.js`
+里的 iOS 16.4 / macOS 13.3；「对话 · 实时听译」与「实时字幕」另外要求 **iOS 26 / macOS 26**（本机识别器，
+learning-design §9.6 门控 2026-09-17 修订）。商店描述、官网功能页、发布说明里凡提到这两项，紧跟一句
+「需要 iOS 26 / macOS 26」；**不许**把 ASC 的最低系统版本抬到 26 —— 那会让旧系统的网页翻译用户拿不到更新
+（learning-design §12 2026-09-17 否决记录）。判据：`asc.js versions` 读回的 `minimumOsVersion` 仍是 16.4 / 13.3，
+且描述里两项功能旁有那句。
+
+### 发布说明要带齐历史版本 —— **先生成、后提交**（2026-09-30 踩中）
+
+`CHANGELOG.md` 与官网 `changelog.html` 都由 `node scripts/gen-changelog.js` 从
+`store-assets/release-notes-*.md` 生成（发布说明是唯一真源）。而**发布说明只活在各自的
+release 分支上**（main 不带它们）——于是从 main 切出的新 release 分支里缺少上两版：
+
+- **症状**：生成出来的 CHANGELOG / 官网页从本版**直接跳到上上版**（2026-09-30 那条是
+  1.19.0 → 1.16.0），等于把 1.17.0/1.18.0 从公开页面**删掉**。生成器写站点那份时的 diff
+  是「14 增 44 删」，差点就这么推上去。
+- **做法**（沿用 1.18.0 分支当年的先例）：把缺的说明从各自 release 分支 checkout 进本树
+  ——`git checkout origin/release/<上两版> -- store-assets/release-notes-<版本>*.md` ——
+  再生成。
+- **顺序**：**先生成、后提交**。生成器的日期取「该说明**首次进本树**的提交日」；先提交
+  再跑，会给历史上本来没有日期的版本补上今天的日期（线上对 1.17.0/1.18.0 就没有日期），
+  那是一次没必要的页面改动。
+- **判据**：`grep -n '^## ' CHANGELOG.md | head -5` 里本版下面**紧邻**上一版，中间不跳号；
+  `node scripts/gen-changelog.js --check` 绿。
+- **站点那半**：生成器会顺手写 `~/belliedmonkey-cc/changelog.html`；**只在发版那刻随版
+  提交推送**（跨仓同版义务），平时保持工作区干净。
+
+## 4. Issue 与 PR
+
+AGENTS.md 要求每个改动一个 issue。**修复合并进 `main` 之后才关闭 issue**——分支上就关，
+等于声称一件还没进产品的事已经做完了。
+
+## 权限弹窗的文案也是本地化的一部分（2026-09-18，1.12.1 国际 iOS 被拒）
+
+审核原话（Guideline 4 - Design）：「the app includes permissions requests that are not written in
+the same language as the app's localization」。审核机是英文 iPad Air，App 界面跟着系统是英文，
+而麦克风 / 语音识别的权限弹窗是中文 —— 因为 `NSMicrophoneUsageDescription` 等三句只写在
+Info.plist 里、只有中文，包里没有任何 `InfoPlist.strings`。之前七个版本都带着这个问题过了审，
+说明它只在审核员恰好碰到权限弹窗时才炸。
+
+规则：**Info.plist 里放英文**（`CFBundleDevelopmentRegion = en`，没翻的语言落到它），App 界面支持的
+每个语种（`extension/_locales` 的 12 个）各一份 `<lproj>/InfoPlist.strings`。三句原文与 12 份翻译都在
+`scripts/sync-app-assets.js` 的 `PLIST_L10N`，`app:sync` 把它们写进工程并挂到两个 App target 的
+Resources 阶段（`patchInfoPlistStrings`）；`test/build-scripts.test.js` 钉住语种清单与 `_locales` 一致、
+Info.plist 默认值无中文。
+
+出包后的回读（归档之后翻 `.app`，不看构建日志）：
+
+```bash
+ls "<archive>/Products/Applications/*.app" | grep -c lproj          # 期望 13（Base + 12）
+plutil -p "<app>/en.lproj/InfoPlist.strings" | head -3              # 三个键都是英文
+/usr/libexec/PlistBuddy -c 'Print NSMicrophoneUsageDescription' "<app>/Info.plist"   # 英文
+```
+
+## iOS：重新生成 Safari 工程会静默重置三样东西
+
+`xcrun safari-web-extension-converter --force` 每跑一次，都会把工程恢复成转换器的
+默认值。**这三样都只在发布那一刻才炸，本地跑模拟器一切正常。**
+
+| 被重置的 | 默认值 | 正确值 | 不改会怎样 |
+|---|---|---|---|
+| `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` | `1.0` / `1` | 当前版本 / 上次 build + 1 | 传上去是 1.0(1)，被 ASC 当成版本回退 |
+| 扩展 target 的 `PRODUCT_BUNDLE_IDENTIFIER` | `…​.Extension`（大写 E） | `…​.extension`（小写） | 导出直接失败：`No profiles for '…​.Extension' were found` |
+| `DEVELOPMENT_TEAM` | 空 | `X2Q85MABWK` | 自动签名找不到团队 |
+
+第三项之外，**文件清单**曾经也是这类问题（#72），已由 `npm run verify:ios` 覆盖。
+
+### 发 TestFlight 的完整命令
+
+营销号不要在 xcodebuild 上另覆，环境里也不要留同名变量。`verify-version-consistency.js` 非 0 就停，不要上传。
+
+```bash
+node build.js                       # 工程直接引用 ../../../dist/，必须先重建
+node scripts/verify-version-consistency.js
+npm run verify:ios                  # 逐文件比对，缺一个就非零退出
+
+env -u MARKETING_VERSION xcodebuild -project "safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj" \
+  -scheme "BelliedMonkey Translator (iOS)" -configuration Release \
+  -destination "generic/platform=iOS" -archivePath /tmp/bmt-archive.xcarchive \
+  -allowProvisioningUpdates archive
+
+xcodebuild -exportArchive -archivePath /tmp/bmt-archive.xcarchive \
+  -exportOptionsPlist /tmp/exportOptions.plist -exportPath /tmp/bmt-export \
+  -allowProvisioningUpdates
+```
+
+导出后**必须核对**（历史上每一项都出过错）：
+
+```bash
+codesign -dv --verbose=2 <app>      # Authority 必须是 Apple Distribution，不是 Development
+                                    # appex id 必须是小写 .extension
+                                    # version / build 必须是你以为的那个
+```
+
+### 上传需要凭证 —— 这台机器上一个都没有
+
+`xcrun altool` / `xcodebuild` 上传需要二者之一：
+
+- **ASC API key**：`~/.appstoreconnect/private_keys/AuthKey_XXXX.p8` + Key ID + Issuer ID
+- **App 专用密码**：Apple ID + [appleid.apple.com](https://appleid.apple.com) 生成的专用密码
+
+两者都没有时，只剩 **Xcode Organizer 图形界面**这一条路（用已登录的 Apple ID）。
+配一次 API key 之后整条链路就能无人值守。
+
+### 商店描述有两个不同的上限，小的那个只在上传时才检查
+
+| 面 | 上限 | 谁来查 |
+|---|---|---|
+| Chrome Web Store 摘要 | 132 | 商店后台 |
+| **Safari 扩展 `extension_description`** | **112** | **只有 App Store Connect 的上传校验** |
+
+2026-08-07 实测：六个 locale 写到 121–125 字符，`npm test`、`test:layout`、三个构建、
+`verify:ios`、归档、导出**全部通过**，模拟器安装运行正常，**只在 TestFlight 上传那一刻**
+被逐 locale 拒绝：
+
+```
+Invalid messages file. The messages.json validation failed for locale de …
+The description field must be present, of string type, and 112 or fewer characters long.
+```
+
+已由 `descriptionLengthGate`（build.js 第五道闸门）覆盖，**两个 flavor 都跑**——中国版
+描述是构建期生成的，一样会超长。另有两条单元测试。
+
+### 上传成功与否，看本地分发日志，不要只看界面
+
+```bash
+LATEST=$(ls -dt /var/folders/*/*/T/*.xcdistributionlogs | head -1)
+grep -rhiE 'UPLOAD SUCCEEDED|ERROR ITMS|Invalid' "$LATEST" | tail -5
+grep -rhoE 'BelliedMonkey[^"]*\.xcarchive|"cfBundleVersion" : "[0-9]+"' "$LATEST" | sort -u
+```
+
+第二条命令能确认**上传的到底是哪个归档、哪个 build 号**——Organizer 里同时躺着好几个
+版本相近的归档时，这是唯一能证明「传的是修好的那个」的证据。
+
+## Gate B 的缺口：逃生口挡得住 .zip，挡不住 iOS 归档
+
+`MT_SYNC_E2E=1` 的设计是「能测，但发不出去」——它把 `.zip` withhold 掉。**但 iOS 的
+可发布产物不是 `.zip`，是 `.xcarchive` / `.ipa`**，而 Xcode 工程直接读 `dist/`，
+`dist/` 照常生成，所以归档、导出、上传 TestFlight 全程无阻。
+
+2026-08-07 实测确认：以 `MT_SYNC_E2E=1` 构建的 sync-enabled `dist/` 归档出的
+build 14 顺利导出并可上传。当时是**刻意**这么做的（见下），但缺口本身不该靠人记得。
+
+**✅ 已补（2026-08-09，Gate B 落地同批）**：任何 `SKIP_ZIP` 路径现在都会在 `dist/`
+写 `.not-shippable` 标记（内容 = 不可发布的原因），`verify:ios` 见标记即非零退出并
+指路重跑正常构建；正常构建自动清除标记。实测：E2E 构建 → 标记落盘 → verify:ios 拒绝。
+
+> 已知例外（2026-08-07）：TestFlight build 14 是**明知故犯**地开着同步上传的，用于
+> 家庭范围内的真机测试。产品所有者在被告知承诺冲突后仍确认要这么做。这不构成先例，
+> 也不改变下面 Gate B 的发布前要求。
+
+## 打开同步之前必须改完的（Gate B 全清单）—— v1.4.0 执行记录（2026-08-09）
+
+同步一旦对公众发布，下面每一项都必须先改完 —— 前四项是**承诺**，第五项是**登记**：
+
+1. ✅ `README.md` / `README.zh-CN.md`（v1.4.0 同一提交；中文版顺带补上了缺失的
+   Gate A bullet。闸门已扩展：中文 README 与 11 locale 的 `learn_section_hint`
+   假句、声明值不足三项，任一残存都拒绝构建）
+2. **官网隐私页**：`.cc` 8 个语言逐个改（执行中）；**`.com` 不改** —— 它是中国版
+   站点，而 china flavor 的产物在构建时把同步翻回 false（合规未评估，另行开门），
+   中国版口径仍然为真。
+3. **Chrome Web Store** 的数据用途声明（提交 1.4.0 时后台更新）
+4. ✅ **Firefox** 的 `gecko.data_collection_permissions` → 三项（v1.4.0 manifest；
+   这是修改已公开声明，AMO 审核可见）
+5. **App Store Connect 的 App Privacy** —— 如实登记「收集邮箱」与「收集用户内容
+   （学习语料）」，以及是否与身份关联。**这一项不是文案，是法律登记**，写错比写少更糟。
+   （提交 1.4.0 时在 ASC 填写）
+
+发布前的自检：把「我们不接收你的任何内容」这句话在整个仓库和两个站点里 grep 一遍，
+每一条命中都要能回答「同步开着的时候这句话还真吗」。

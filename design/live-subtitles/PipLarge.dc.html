@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>I5 · 捏合放大</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; ">
+<div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; background: #f4f2ee; display: flex; flex-direction: column; gap: 14px; padding: 70px 16px 20px;">
+  <div style="aspect-ratio: 16 / 9; width: 100%; border-radius: 12px; position: relative; background: linear-gradient(135deg, #4a4540 0%, #2a2724 55%, #1a1917 100%);"><div style="position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.85); font-size: 11px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6v12"></path><path d="M15 6v12"></path></svg><div style="flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.25);"><div style="width: 38%; height: 100%; background: #f6a06b; border-radius: 999px;"></div></div><span>12:41</span></div></div>
+  <div style="height: 16px; width: 88%; border-radius: 6px; background: #dcd6cc;"></div><div style="height: 12px; width: 60%; border-radius: 6px; background: #e6e1d8;"></div>
+  <div style="display: flex; gap: 10px; margin-top: 6px;"><div style="flex: 1; aspect-ratio: 16 / 10; border-radius: 10px; background: #e2dcd2;"></div><div style="flex: 1; aspect-ratio: 16 / 10; border-radius: 10px; background: #e2dcd2;"></div></div>
+  <div style="height: 12px; width: 76%; border-radius: 6px; background: #e6e1d8;"></div><div style="height: 12px; width: 52%; border-radius: 6px; background: #e6e1d8;"></div>
+</div>
+<div style="position: absolute; left: 16px; top: 290px;"><div style="position: relative; width: 358px; height: 240px; border-radius: 12px; overflow: hidden; background: rgb(22,20,18); box-shadow: 0 10px 28px rgba(0,0,0,0.35);"><div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px;"><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: #ffffff; font-size: 18px; line-height: 1.3; font-weight: 600;">如果定金周五前到账，我们下周二就能发第一批货。</div><div style="color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">We can ship the first batch next Tuesday if the deposit arrives by Friday.</div></div><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: #ffffff; font-size: 18px; line-height: 1.3; font-weight: 600;">报价里已经包含了运费和保险，但不含关税。</div><div style="color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">The quote already includes freight and insurance, but not customs duties.</div></div><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: #ffffff; font-size: 18px; line-height: 1.3; font-weight: 600;">我们需要先看一下样品，再决定订单数量。</div><div style="color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">We need to see a sample first before we decide on the order quantity.</div></div><div style="display: flex; flex-direction: column; gap: 1px;"><div style="color: rgba(255,255,255,0.86); font-size: 18px; line-height: 1.3; font-weight: 600; font-style: italic;">付款方式可以是信用证，也可以是电汇，你们更倾向哪一种？…</div><div style="color: rgba(255,255,255,0.5); font-size: 13px; line-height: 1.3; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Payment can be by letter of credit or wire transfer, which do you prefer?…</div></div></div><div style="position: absolute; left: 0; right: 0; top: 0; height: 28px; background: linear-gradient(rgb(22,20,18), rgba(22,20,18,0));"></div></div></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px; display: flex; flex-direction: column; gap: 8px;"><div style="background: #fff7c7; color: #3a3326; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 6px rgba(0,0,0,0.12); "><strong>捏合放大</strong>一次看 3–4 句，字号跟着窗口变大 —— 系统会回报新的渲染尺寸（尖刺 S7 读到过），按新尺寸重画，不是把小图拉糊。</div><div style="background: #fff7c7; color: #3a3326; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 6px rgba(0,0,0,0.12); ">最大尺寸由系统决定（竖屏大约是屏幕宽）。</div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>reading column across a viewport resize</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; }
+  /* A PERCENTAGE column: its used width changes with the viewport, so a mirror
+     frozen at 1280px is visibly wrong at 640px (issue #28). */
+  p.col { width: 70%; margin: 16px auto; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <p class="col">The quick brown fox jumps over the lazy dog near the quiet river bank.</p>
+  <p class="col">Reading foreign articles every morning is a simple habit that compounds into fluency.</p>
+  <p class="col">Most people underestimate how much vocabulary they absorb from context alone.</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "resize-reading-column",
+  "unitCount": 3,
+  "resize": {
+    "width": 640,
+    "height": 900
+  },
+  "targets": [
+    {
+      "sel": "p.col",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2",
+        "maxWidthLE",
+        "centeredInParent:3"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

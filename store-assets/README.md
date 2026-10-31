@@ -1,0 +1,120 @@
+# 国际版商店素材（store-assets/）
+
+App Store（`com.belliedmonkeytranslator`）、Chrome Web Store、AMO 共用的截图与预览片。
+出货图是 `{zh,en}-{iphone,ipad,mac,web}-1..9.png`，外加两帧**只有一种设备有**的：
+
+| 帧 | 功能 | 原料只有 | 出货到 |
+|---|---|---|---|
+| 10 | 系统翻译 | phone 档 | `{zh,en}-iphone-10.png`（iPhone 集）+ `{zh,en}-web-10.png`（只给官网）|
+| 11 | 快速翻译 | desk 档 | `{zh,en}-mac-11.png`（Mac 集）+ `{zh,en}-web-11.png`（只给官网）|
+
+两帧镜像对称：帧 10 在横版画布上也立手机框，帧 11 在竖版画布上也立 Mac 窗口框 ——
+**设备框配的是截图的视口，不是画布方向**，见下面那条硬规矩。
+
+**这两帧的 web 档漏不进扩展两店**：CWS / AMO 与 ASC 都按 `asc-media.js` 的
+`ORDER_GLOBAL` / `ORDER_IPHONE` / `ORDER_MAC` / `ORDER_CN` 逐帧取图，而两店读的是
+`ORDER_GLOBAL`，10 与 11 都不在里面。
+
+以上都由 `src/scene.html` 把**实拍产品图**合进版式框里渲染而成。
+帧号的含义见 `src/scene.html` 的 `COPY` 表，**只往后加、不重排** —— 官网直接按帧号取图，
+`scripts/asc-media.js` 的 `ORDER` 也按帧号写死了商店里的显示顺序。中国版的对应目录是 [`screenshots-cn/`](../screenshots-cn/)。
+
+## 一条硬规矩：画布是什么设备，就放那个设备看到的东西
+
+**手机画布（iPhone）只放手机视口拍的图；iPad 画布只放平板视口拍的图；Mac / Chrome
+商店的横幅只放桌面视口拍的图。** 不许把一个 Mac 窗口塞进手机图，也不许把一台手机塞进
+Mac 横幅。
+
+为什么是硬规矩（2026-09-06，用户原话「人类看起来很糟糕」）：此前第 1、2、5 帧在 iPhone
+画布里放的是 1728 宽的 Mac 窗口 —— 缩到 1160 像素宽之后正文一个字都看不清，画布上下各
+空出四成；反过来第 3、4、6 帧在 2880 宽的 Mac 横幅里放一台手机，同样是另一个平台的截图。
+用户在商店页看到的第一眼就是这些图，它们比任何文案都先说话。
+
+`src/scene.html` 按画布判档位：横版 → `desk`；竖版且宽 ≥ 1500 → `tablet`；否则 `phone`。
+**唯一的例外**是横版第 5 帧「电脑上读，手机上复习」：手机是那一帧的主语，Mac 窗口旁边
+的那台手机是内容本身，不是错放。竖版第 5 帧没有 Mac（手机画布是两台手机斜叠、iPad
+画布是 iPad + 手机），标题也换成「读到哪，复习到哪」。
+
+## 实拍图矩阵 —— 三个档位，两种来源
+
+| 档位 | 视口 | 文章双语 | 视频字幕 | 复习卡 / 统计 / 一键配置 |
+|---|---|---|---|---|
+| `phone`（iPhone） | 402×874 @3x | `phone-article.png` ← `capture-live.js` | `phone-video.png` ← **真机/模拟器手拍** | `{en,zh}-phone-{card,stats,onboard}.png` ← `capture.js` |
+| `tablet`（iPad） | 1032×1376 @2x | `tablet-article.png` ← `capture-live.js` | `tablet-video.png` ← **模拟器手拍** | `{en,zh}-tablet-*.png` ← `capture.js` |
+| `desk`（Mac / Web） | 1280×800（f1/f2）· 1100×760 @2x | `f1-article.png` ← **真 Safari 手拍** | `f2-video.png` ← **真 Safari 手拍** | `{en,zh}-desk-*.png` ← `capture.js` |
+
+两种来源的分界只有一条：**页面是不是扩展自己的**。复习卡、统计、一键配置是扩展自己的
+页面，可以在 headless 里连数据一起造，于是脚本化了（`capture.js`，18 张一次出）。文章
+双语要真实扩展跑在真实站点上，`capture-live.js` 用真 Chrome 装上 `dist/` 去翻维基百科，
+三个档位都拍得出来；**视频字幕在受控 Chrome 里拍不出来** —— YouTube 对自动化浏览器直接
+报「Something went wrong」，headless / 有头 / 换 UA / 先暖 cookie 都试过（2026-09-06），
+所以视频那一列永远是手拍。
+
+语言也是拍出来的：`capture.js` 按页面自己的 `uiLang` 设置分 en / zh 各拍一套。此前
+en-* 商店图里的复习页是中文界面。语料始终是 EN→ZH 的对照 —— 那是产品在做的事。
+
+## 重做流程
+
+改了 UI 就得重跑，否则商店图与实包不符。
+
+```bash
+node build.js                                   # 出 dist/
+node store-assets/src/capture.js                # 18 张扩展页面（自带 http 服务，不用另起）
+node store-assets/src/capture-live.js phone article
+node store-assets/src/capture-live.js tablet article
+# 视频两张 + 桌面 f1/f2：手拍，见 .claude/skills/store-release/assets.md「手工那几张」
+bash store-assets/src/render.sh                 # 合成 72 张（9 帧 × 2 语种 × 4 尺寸）+ iPhone 第 10 帧
+```
+
+### 手拍的判据
+
+**拍之前要清掉三样东西**，它们都真的进过出货图：
+
+- **未完成状态**。旧 `f1`（08-15）有两段停在「⏳ 翻译中…」。等到全部收敛再拍。
+- **你自己的浏览记录**。用只有一个标签页的新窗口，否则标签栏会把你所有标签页印上去。
+- **你的账号**。旧 `f3`/`f4` 印着真实邮箱 —— 那是公开页面。脚本拍的那些不登录，
+  页面显示「未登录，仅本机数据」；YouTube 也别登录（头像会进图）。
+
+## App Preview 视频（`compose-preview.sh` / `compose-preview-ios.sh`）
+
+成片在 `store-assets/video/{en,zh}-{ios,mac}.mp4`。输入分两半：
+
+```bash
+bash store-assets/src/make-preview-inputs.sh    # 题卡 + 三条音轨，默认写 .local/store-media/
+# 剩下的只能现场录屏，见下
+bash store-assets/src/compose-preview.sh zh     # STORE_MEDIA 不传就用 .local/store-media/
+```
+
+**可复现的那一半**（`make-preview-inputs.sh` 全包了）：六张题卡（`preview-card.html`）、
+声源音轨 `en.wav` / `zh.wav`（`say` 念 `.local/spike/conv/ref.txt` 的单语侧）、合成的环境音床
+`music.wav`、以及对话段的 `conv.wav`。
+
+**只能现场拍的那一半**：四段录屏 `rec/{en,zh}-subs.mov`、`rec/{en,zh}-talk-v2.mov`，
+各配一个 `.start.txt`（录屏开始那一刻音轨已经播到第几秒，合成脚本按它对声画）。
+
+- **字幕段**：Chrome 开 `preview-stage.html?lang=<声源语言>`（`--app=` 窗口铺满屏幕，
+  **不要 `--kiosk`** —— 那会进独立 Space，App 的窗口就点不到了），App 里开「实时字幕」，
+  Mac 外放对应的 wav。**判据是真的出字幕**：开始后 ~10 s 没有第一条定稿就停下，
+  先按 `docs/verification-spec.md` §2.G 第 6 条查「仅系统录音」授权，别接着往下拍。
+- 录屏用 `ffmpeg -f avfoundation -capture_cursor 0 -i "<screen>:<mic>"`：它出的是
+  **3024×1964 真视网膜像素**，而 cua-driver 的录像只有 1512×982（放大到 2560×1600 会糊）。
+  顺带把麦克风录进去 —— 只用来对齐：`silencedetect` 比出录屏里第一声与 wav 里第一声的
+  差值，就是 `.start.txt` 要写的偏移，不用猜。
+- 录之前把 cua 的**代理光标关掉**（`set_agent_cursor_enabled {"enabled":false}`），
+  它是一个真的覆盖窗口，会被录进去。
+- 裁掉菜单栏与 Chrome 的标题条，并裁成 16:10 再交给合成脚本，例如
+  `crop=2934:1834:45:130`（3024×1964 的屏）。
+
+## 上传
+
+`node scripts/asc-media.js` 打印计划，`--apply` 才真替换。资产上传是三步（预留 → 传字节
+→ 提交 md5 校验和），**漏了校验和会停在 `UPLOAD_COMPLETE` 而商店页看不到图，且 API
+不报错** —— 所以传完必须回读 `assetDeliveryState.state === 'COMPLETE'`。
+
+官网首页五张与 README 六张都是从这里拷过去的 —— **别再手工 cp**：
+`bash ~/belliedmonkey-cc/media/src/sync-from-store-assets.sh` 会把 `en-web-{1,4,7,8,9}` 与
+`en-iphone-{1,2,4,7,8,9}` 同步过去，并写一份 `PROVENANCE.txt`（来源 / 时间 / sha256）。
+**重出之后必须跟着同步**：2026-09-03 与 2026-09-21 两次事故都是「原料重拍了、拷贝没跟上」——
+第一次让官网挂了三周的「⏳ 翻译中…」和作者真实邮箱。
+
+首页那支演示视频同样取自这里的 `src/assets/`，配方见 `~/belliedmonkey-cc/media/src/README.md`。

@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可点击原型 · 登录后首页 · Mac | 大肚猴翻译</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caprasimo&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5ead8; --surface:#ffffff; --fg:#201e1d; --muted:#6b645c; --line:#e0d5c2;
+  --terra:#c67139; --btn:#ac6231; --ok:#56633f; --danger:#b3261e;
+  --terra-ink:oklch(0.47 .105 52);
+  --btn-hover:oklch(0.50 .12 52); --btn-press:oklch(0.455 .12 52);
+  --terra-wash:oklch(0.633 .128 51 / .11); --terra-wash-ink:oklch(0.44 .10 52);
+  --ok-wash:oklch(0.45 .07 118 / .12); --ok-ink:oklch(0.40 .075 118);
+  --danger-wash:oklch(0.42 .13 27 / .10); --danger-ink:oklch(0.40 .15 27);
+  --hair:oklch(0.93 .012 75);
+  --win:#e4e0d8; --win-line:#cdc7bb;
+  --font-body:'Figtree','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;
+  --font-title:'PingFang SC','Hiragino Sans GB','Figtree',system-ui,sans-serif;
+  --font-disp:'Caprasimo','Songti SC','PingFang SC',serif;
+  --inst:#1d1b19; --inst-ink:#f1ebe1; --inst-dim:#a49b8f; --inst-line:#3b3733; --inst-mark:#d59a6a;
+  --sheet:#e9e6e0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sheet);color:#221f1c;font-family:var(--font-body);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2.5px solid var(--terra-ink);outline-offset:2px;border-radius:6px}
+
+.page{display:grid;grid-template-columns:300px minmax(0,1fr);gap:34px;max-width:1858px;margin:0 auto;padding:30px 26px 80px;align-items:start}
+.rail{min-width:0;position:sticky;top:30px;max-height:calc(100vh - 60px);overflow:auto;background:var(--inst);color:var(--inst-ink);
+  border-radius:16px;padding:20px 18px 22px;box-shadow:0 20px 44px -30px rgba(0,0,0,.7)}
+.rail h1{font-size:17px;font-weight:600;margin:0;line-height:1.4}
+.rail h1 span{color:var(--inst-mark)}
+.rail .sub{font-size:12px;color:var(--inst-dim);margin:7px 0 0;line-height:1.55}
+.rail .sep{height:1px;background:var(--inst-line);margin:16px -18px}
+.rail h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--inst-dim);margin:0 0 10px;font-weight:700}
+.grp{margin:0 0 14px}
+.grp > b{display:block;font-size:11.5px;color:var(--inst-mark);font-weight:600;margin:0 0 5px}
+.st{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 9px;border-radius:8px;font-size:13px;
+  color:var(--inst-ink);border:1px solid transparent}
+.st:hover{background:#2c2825;border-color:var(--inst-line)}
+.st[aria-current="true"]{background:#332d28;border-color:var(--inst-mark);color:#fff}
+.st .k{font-family:var(--font-disp);font-size:12px;color:var(--inst-mark);flex:none;width:20px}
+.st .e{margin-left:auto;font-size:10.5px;color:var(--inst-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:112px}
+.gate{display:grid;gap:6px}
+.g{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline;font-size:12px;line-height:1.45}
+.g .b{font:700 9.5px/16px var(--font-body);letter-spacing:.06em;padding:0 6px;border-radius:4px;flex:none}
+.g.pass .b{background:#2f3a24;color:#b6d19a}
+.g.fail .b{background:#4a201c;color:#f0a89e}
+.g.na   .b{background:#332f2b;color:var(--inst-dim)}
+.g span{color:var(--inst-dim)} .g.pass span{color:#cbc3b6}
+.diff{font-size:11.5px;color:var(--inst-dim);line-height:1.55;margin:10px 0 0}
+.diff b{color:#e0b892;font-weight:600}
+.resets{display:flex;gap:8px;margin-top:14px}
+.rbtn{flex:1;padding:8px 10px;border:1px solid var(--inst-line);border-radius:8px;font-size:12px;color:var(--inst-ink);text-align:center}
+.rbtn:hover{background:#2c2825;border-color:var(--inst-mark)}
+
+/* ═════════ 窗口 ═════════ */
+.stage{display:grid;justify-items:center;gap:16px;min-width:0}
+.bar{width:100%;max-width:1440px;display:flex;align-items:baseline;gap:10px;font-size:13px;color:#5c564e}
+.bar b{font-weight:600;color:#221f1c}
+.bar .en{margin-left:auto;font-size:11.5px;color:#6b645c}
+.win{width:1440px;height:900px;border-radius:12px;overflow:hidden;box-shadow:0 0 0 1px var(--win-line),0 34px 66px -38px rgba(40,30,20,.6);
+  background:var(--bg)}
+.titlebar{height:38px;background:var(--win);border-bottom:1px solid var(--win-line);display:flex;align-items:center;
+  padding:0 12px;gap:8px;position:relative}
+.tl{display:flex;gap:8px}
+.tl i{width:12px;height:12px;border-radius:50%;display:block}
+.tl .r{background:#ff5f57}.tl .y{background:#febc2e}.tl .g{background:#28c840}
+.titlebar .ttl{position:absolute;left:0;right:0;text-align:center;font-size:13px;font-weight:600;color:#4a453f;
+  pointer-events:none}
+.titlebar .rtl{margin-left:auto;display:flex;gap:14px;color:#5f5952;font-size:12.5px}
+
+.split{display:grid;grid-template-columns:232px 1fr;height:862px;overflow:hidden}
+.main{min-width:0;overflow-y:auto}
+/* 侧栏 */
+.side{background:var(--win);border-right:1px solid var(--win-line);padding:14px 10px 12px;display:flex;flex-direction:column}
+.side .mark{padding:2px 8px 14px}
+.side .mark b{display:block;font-family:var(--font-title);font-size:15px;font-weight:600;letter-spacing:-.01em}
+.side .mark em{display:block;font-style:normal;font-family:var(--font-disp);font-size:12px;color:var(--muted);letter-spacing:.01em;margin-top:1px}
+.side .gh{font-size:10.5px;font-weight:600;letter-spacing:.08em;color:#8a8279;padding:0 8px;margin:12px 0 4px}
+.si{display:flex;align-items:center;gap:8px;width:100%;text-align:left;height:30px;padding:0 8px;border-radius:6px;
+  font-size:13.5px;color:#3d3833}
+.si:hover{background:rgba(0,0,0,.07)}
+.si[aria-current="true"]{background:rgba(0,0,0,.1);font-weight:600;color:var(--fg)}
+.si .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.si.miss .dot{background:var(--terra)}
+.si .bd{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--bg);background:var(--terra);border-radius:999px;
+  padding:1px 7px;font-variant-numeric:tabular-nums}
+.si .ch{margin-left:auto;color:#8a8279;font-size:13px}
+.side .foot{margin-top:auto;border-top:1px solid var(--win-line);padding-top:10px}
+.side .who{font-size:12.5px;color:#5f5952;padding:0 8px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.side .acts{display:flex;gap:4px;padding:0 4px}
+.side .acts button{flex:1;height:26px;border-radius:6px;font-size:12.5px;color:var(--terra-ink)}
+.side .acts button:hover{background:var(--terra-wash)}
+
+/* 主区 */
+.main{padding:24px 28px 20px;min-width:0;display:flex;flex-direction:column}
+.mhead{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.mhead h2{font-family:var(--font-title);font-size:26px;font-weight:600;letter-spacing:-.015em;margin:0;line-height:1.25}
+.engines{display:flex;align-items:center;gap:8px;margin-left:auto;height:32px;padding:0 11px;background:rgba(255,255,255,.8);
+  border:1px solid var(--line);border-radius:8px;font-size:12.5px;flex:none}
+.engines .lb{font-weight:500;color:var(--fg)}
+.seg{display:inline-flex;align-items:center;gap:5px;color:var(--fg);font-weight:500;position:relative;flex:none}
+.seg .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.seg.miss{color:var(--terra-ink);background:var(--terra-wash);border-radius:7px;padding:5px 8px;margin:-5px -2px;font-weight:600}
+.seg.miss::after{content:"";position:absolute;left:-2px;right:-2px;top:-7px;bottom:-7px;border-radius:11px}
+.seg.miss:hover{background:oklch(0.633 .128 51 / .2)}
+.engines .sum{margin-left:4px;color:var(--ok-ink);font-weight:600;font-size:12px}
+.engines .todo{margin-left:4px;color:var(--terra-ink);font-weight:600;font-size:12px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+/* 缺陷① 修法（Mac 同规则）：卡高写死，标题块写死两行，标题折行改不动卡高 */
+.card{--card-h:272px;height:var(--card-h);background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0;overflow:hidden}
+.chead{flex:none;height:46px;display:flex;align-items:center;gap:11px}
+.ctitle{display:grid;min-width:0;flex:1 1 auto}
+.ctitle h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctitle .en{font:500 12.5px/16px var(--font-body);color:var(--muted);letter-spacing:.02em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ic{width:32px;height:32px;border-radius:9px;background:var(--terra-wash);color:var(--terra-ink);display:grid;
+  place-items:center;flex:none}
+.ic svg{width:19px;height:19px;display:block}
+.chead h3{font-family:var(--font-title);font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0;line-height:24px}
+.tag{margin-left:auto;font-size:11px;font-weight:600;padding:3px 9px;border-radius:6px;flex:none}
+.tag.ok{color:var(--ok-ink);background:var(--ok-wash)}
+.tag.live{color:#fff;background:var(--danger);display:inline-flex;align-items:center;gap:5px}
+.tag.live i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blip 1.2s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+.card .hd{flex:1 1 auto;min-height:0;overflow:hidden;font-size:13.5px;line-height:1.55;color:var(--muted);margin:0;max-width:46ch}
+.band{flex:none;height:74px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;
+  gap:4px;padding:0 14px;overflow:hidden}
+.band i{flex:1;min-width:3px;background:var(--terra);border-radius:2px;height:30%;opacity:.9}
+.band.live i{animation:pulse 1.05s ease-in-out infinite alternate;height:26%}
+@keyframes pulse{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+.ab{flex:none;height:74px;border-radius:10px;background:var(--bg);border:1px solid var(--line);padding:9px 12px;display:grid;
+  gap:3px;align-content:center;overflow:hidden}
+.ab span{font-size:12.5px;line-height:1.45;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab .en{color:var(--muted)} .ab .zh{color:var(--fg);font-weight:500}
+.live-rows{flex:none;padding:11px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:grid;gap:4px}
+.live-rows .r{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start}
+.live-rows .lg{font:600 10px/17px var(--font-body);color:#6b645c;border:1px solid var(--line);border-radius:4px;text-align:center}
+.live-rows .tx{font-size:13px;line-height:1.45;color:var(--fg)}
+.live-rows .tx.en{color:var(--muted)}
+.live-hd{flex:none;display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.live-hd b{color:var(--fg);font-weight:600}
+.hear{display:flex;align-items:center;gap:8px;font-size:12px;color:#6b645c}
+.hear i{width:7px;height:7px;border-radius:50%;background:var(--terra);animation:blip 1.2s ease-in-out infinite}
+
+.acts-row{flex:none;margin-top:auto;display:flex;align-items:center;gap:14px;margin-top:2px}
+/* 缺陷② 修法：Mac 上 solid CTA 同样是按钮本身，文案是 .cn/.en 两个真实子节点 */
+.btn.one{font:600 15px/44px var(--font-body)}
+.btn{height:44px;padding:0 20px;border-radius:10px;background:var(--btn);color:#fff;font:600 15px/44px var(--font-body);
+  transition:background .12s;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.btn .cn{color:#fff;font:600 15px/19px var(--font-body);letter-spacing:.01em}
+.btn .en{color:rgba(255,255,255,.86);font:500 11.5px/14px var(--font-body);letter-spacing:.02em}
+.btn:hover{background:var(--btn-hover)} .btn:active{background:var(--btn-press)}
+.btn:focus-visible{outline:2.5px solid var(--terra-ink);outline-offset:2px}
+.btn.ghost{background:var(--surface);border:1px solid var(--line);color:var(--fg);padding:0 18px}
+.btn.ghost:hover{background:var(--bg);border-color:var(--muted)}
+.btn.tinted{background:var(--bg);border:1px solid var(--line);color:var(--fg)}
+.btn.tinted:hover{background:var(--surface);border-color:var(--muted)}
+.btn[disabled]{background:var(--line);border-color:var(--line);color:#fff;cursor:default}
+.link{height:34px;padding:0 10px;border-radius:8px;font-size:13.5px;color:var(--btn);font-weight:500}
+.link:hover{background:var(--terra-wash);color:var(--terra-ink)}
+.link.danger{color:var(--danger-ink)} .link.danger:hover{background:var(--danger-wash)}
+
+.checks{flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.checks .hd{font-size:11.5px;font-weight:600;color:var(--muted);padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+.chk{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:13px;border-top:1px solid var(--hair)}
+.chk:first-of-type{border-top:0}
+.chk .mk{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.chk .mk.y{background:var(--ok-wash);color:var(--ok-ink)}
+.chk .mk.w{background:var(--terra-wash);color:var(--terra-wash-ink)}
+.chk .vv{margin-left:auto;font-size:12.5px;color:var(--muted);flex:none}
+.note-line{display:flex;gap:8px;font-size:12.5px;line-height:1.5;color:var(--muted);padding:9px 12px 11px}
+.note-line i{font-style:normal;color:var(--terra);font-weight:700;flex:none}
+
+/* 单词卡 */
+.strip{margin-top:20px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;
+  display:flex;align-items:center;gap:16px}
+.strip .lft{display:grid;gap:2px;min-width:0}
+.strip .big{font-family:var(--font-title);font-size:16px;font-weight:600;display:flex;align-items:baseline;gap:6px}
+.strip .big i{font-style:normal;font-family:var(--font-disp);font-size:22px;line-height:1}
+.strip .mini{display:flex;align-items:center;gap:8px;margin-top:5px}
+.mini-link{position:relative;width:auto;height:auto;padding:0;margin-top:3px;font-size:12.5px;color:var(--terra-ink);
+  justify-self:start;text-align:left}
+.mini-link:hover{background:var(--terra-wash)}
+.mini-link::after{content:'';position:absolute;inset:-12px -9px}
+.mini em{font-style:normal;font-size:12px;color:#6b645c}
+.strip .stats{font-size:12.5px;color:#6b645c;margin-top:4px}
+.strip .go{margin-left:auto;display:flex;align-items:center;gap:10px}
+
+/* 工具列表 */
+.tools{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.tlist{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.tlist .cap{padding:12px 16px 8px;font-family:var(--font-title);font-size:11.5px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.trow{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:0 16px;height:56px;border-top:1px solid var(--hair)}
+.trow:hover{background:#fffdf9}
+.trow .thumb{width:28px;height:28px;border-radius:8px;flex:none;background:var(--bg);border:1px solid var(--line);
+  display:grid;place-items:center;overflow:hidden}
+.trow .thumb img{width:21px;height:21px;border-radius:6px}
+.trow .t{font-size:14.5px;font-weight:500;line-height:1.35}
+.trow .s{font-size:12px;color:var(--muted);line-height:1.35}
+.trow .ch{margin-left:auto;color:var(--fg);font-size:16px}
+
+.keys{margin-top:22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:14px 18px;background:rgba(255,255,255,.62);
+  border:1px solid var(--line);border-radius:12px;font-size:12.5px;color:var(--muted)}
+.keys .t{font-weight:600;color:var(--fg)}
+kbd{display:inline-flex;align-items:center;height:21px;padding:0 6px;border-radius:5px;background:var(--surface);
+  border:1px solid var(--line);box-shadow:0 1px 0 var(--line);font:500 11.5px/21px var(--font-body);color:var(--fg);margin-right:4px}
+.foot{margin-top:auto;padding-top:18px;font-size:11.5px;color:var(--muted)}
+
+.var{display:none !important}
+.var.on{display:var(--d,block) !important}
+
+/* 弹层（Mac 用 sheet，不自绘 TCC 弹窗） */
+.veil{position:absolute;inset:0;z-index:30;display:flex !important;align-items:flex-start;justify-content:center;padding-top:96px}
+.veil .scrim{position:absolute;inset:0;background:rgba(0,0,0,.26);width:100%;cursor:default}
+.dialog{position:relative;width:460px;background:var(--bg);border:1px solid var(--win-line);border-radius:12px;overflow:hidden;
+  box-shadow:0 30px 60px rgba(0,0,0,.32)}
+.dialog h3{font-family:var(--font-title);font-size:17px;font-weight:600;margin:0;padding:16px 18px 4px}
+.dialog .crumb{font-size:12.5px;color:var(--muted);margin:0;padding:0 18px 14px}
+.dialog .body{background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.drow{display:flex;align-items:center;gap:10px;padding:11px 18px;border-top:1px solid var(--hair);width:100%;text-align:left}
+.drow:first-child{border-top:0}
+.drow:hover{background:#fffdf9}
+.drow .t{font-size:14.5px} .drow .s{font-size:12px;color:var(--muted);margin-top:1px}
+.drow .tick{color:var(--ok-ink);font-weight:700}
+.drow .ch{margin-left:auto;color:var(--fg);font-size:15px}
+.dialog .foot-row{display:flex;justify-content:flex-end;gap:10px;padding:14px 18px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line)}
+.kv div{background:var(--surface);padding:12px 14px}
+.kv b{display:block;font-family:var(--font-disp);font-size:20px;font-weight:400;line-height:1.2}
+.kv span{font-size:11.5px;color:var(--muted)}
+/* 评审板在窄屏（含 1440 笔记本）把工具栏折到上方，避免为了容纳 1440 窗口而横向滚动 */
+@media (max-width:1700px){.page{grid-template-columns:minmax(0,1fr);max-width:1500px}
+  .rail{position:static;max-height:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<aside class="rail" data-od-id="review-rail">
+  <h1>登录后首页 · 可点击原型 <span>Mac</span></h1>
+  <p class="sub">1440×900 逻辑像素 · 侧栏 232 + 主区 · 面板为评审工具，不属于产品</p>
+  <div class="sep"></div>
+  <h2>状态索引 · 9</h2>
+  <div class="grp"><b>稳态</b>
+    <button class="st" data-go="home"><span class="k">01</span>三引擎就绪<span class="e">Home</span></button>
+    <button class="st" data-go="home-missing"><span class="k">02</span>朗读缺失<span class="e">Missing engine</span></button>
+    <button class="st" data-go="home-noext"><span class="k">03</span>扩展未开启（侧栏一行）<span class="e">Extension off</span></button>
+  </div>
+  <div class="grp"><b>实时字幕</b>
+    <button class="st" data-go="cap-armed"><span class="k">03</span>准备中<span class="e">Armed</span></button>
+    <button class="st" data-go="cap-live"><span class="k">04</span>进行中<span class="e">Live</span></button>
+  </div>
+  <div class="grp"><b>实时听译</b>
+    <button class="st" data-go="int-armed"><span class="k">05</span>准备中<span class="e">Armed</span></button>
+    <button class="st" data-go="int-live"><span class="k">06</span>进行中<span class="e">Live</span></button>
+  </div>
+  <div class="grp"><b>单词卡</b>
+    <button class="st" data-go="review-panel"><span class="k">07</span>二级统计面板<span class="e">Panel</span></button>
+    <button class="st" data-go="review-zero"><span class="k">08</span>待复习 0<span class="e">Empty</span></button>
+  </div>
+
+  <div class="sep"></div>
+  <h2>门禁自检</h2>
+  <div class="gate" id="gate"></div>
+  <p class="diff"><b>与 iPhone 版的四处刻意差异</b><br>
+  ① 权限不出现弹窗态 —— macOS 麦克风授权是系统 TCC 提示，WKWebView 不能自绘，规约里必须写明由原生层承接，否则两端会出现两套授权文案。<br>
+  ② 账号行落入侧栏底部，省下主区一整条 48pt 横带。<br>
+  ③ 系统翻译落到<strong>侧栏项</strong>而非主区列表行 —— 宽屏版对「轻」最省事的落地。<br>
+  ④ 主按钮改为左对齐定宽，macOS 上不做整行满宽。</p>
+  <div class="resets">
+    <button class="rbtn" id="prev">← 上一个</button>
+    <button class="rbtn" id="next">下一个 →</button>
+  </div>
+</aside>
+
+<main class="stage">
+  <div class="bar"><b id="stateName">三引擎就绪</b><span class="en" id="stateEn">Home</span></div>
+
+  <div class="win" data-od-id="mac-window">
+    <div class="titlebar">
+      <span class="tl"><i class="r"></i><i class="y"></i><i class="g"></i></span>
+      <span class="ttl">大肚猴翻译</span>
+      <span class="rtl"><span>—</span><span>▢</span><span>✕</span></span>
+    </div>
+
+    <div class="split">
+      <!-- 侧栏 -->
+      <nav class="side" data-od-id="mac-sidebar" aria-label="主导航">
+        <div class="mark"><b>大肚猴</b><em>BelliedMonkey</em></div>
+        <div class="gh">实时</div>
+        <button class="si"><i class="dot"></i>实时字幕</button>
+        <button class="si"><i class="dot"></i>实时听译</button>
+        <div class="gh">学习</div>
+        <button class="si" data-act="dlg-review">单词卡<span class="bd">190</span></button>
+        <div class="gh">工具</div>
+        <button class="si" data-act="dlg-doc"><span class="dot" style="background:var(--line)"></span>翻译文档<span class="ch">›</span></button>
+        <button class="si var on" data-for="sys-on" data-act="dlg-sys" data-od-id="row-system-translate">
+          <img src="assets/apple-translate-icon.png" alt="" width="16" height="16" style="border-radius:4px;margin:-2px 0 -2px 0">
+          系统翻译<span class="ch">›</span>
+        </button>
+        <button class="si miss var" data-for="ext-off" data-act="dlg-ext" data-od-id="row-extension">
+          <img src="assets/apple-translate-icon.png" alt="" width="16" height="16" style="border-radius:4px;margin:-2px 0 -2px 0">
+          扩展未开启<span class="ch">›</span>
+        </button>
+        <div class="foot">
+          <div class="who">已登录账户</div>
+          <div class="acts"><button data-act="dlg-acct">设置</button><button data-act="dlg-acct">退出</button></div>
+        </div>
+      </nav>
+
+      <!-- 主区 -->
+      <div class="main" id="main">
+        <div class="mhead">
+          <h2>实时翻译</h2>
+          <div class="engines" data-od-id="engine-status-row" role="group" aria-label="翻译引擎状态">
+            <span class="var on" data-for="eng-ready" style="--d:contents">
+              <span class="lb">引擎</span>
+              <span class="seg"><i class="dot"></i>翻译</span><span class="seg"><i class="dot"></i>语音转写</span>
+              <span class="seg"><i class="dot"></i>朗读</span><span class="sum">已就位</span>
+            </span>
+            <span class="var" data-for="eng-miss" style="--d:contents">
+              <span class="lb">待办</span>
+              <span class="seg"><i class="dot"></i>翻译</span><span class="seg"><i class="dot"></i>语音转写</span>
+              <button class="seg miss" data-act="dlg-speech" data-hit="44" aria-label="朗读引擎未配置，前往 设置 › 朗读">朗读 · 去配置 ›</button>
+              <span class="todo">1 项待配置</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="grid2">
+          <!-- 实时字幕 -->
+          <section class="card" data-od-id="card-live-captions" aria-label="实时字幕">
+            <div class="chead">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M6.5 10.5h5M6.5 14h8"/></svg></span>
+              <span class="ctitle"><h3>实时字幕</h3><span class="en">Live Subtitles</span></span>
+              <span class="tag ok var on" data-for="cap-idle,cap-armed">就绪</span>
+              <span class="tag var" data-for="cap-armed" style="--d:inline-block;color:var(--terra-ink);background:var(--terra-wash)">准备中</span>
+              <span class="tag live var" data-for="cap-live"><i></i>进行中</span>
+            </div>
+            <p class="hd var on" data-for="cap-idle,cap-armed">听这台设备正在播放的声音，实时出双语字幕。</p>
+            <div class="live-hd var" data-for="cap-live"><b>字幕已上屏</b><span id="capTimer">00:42</span>
+              <button class="link" style="height:26px;margin-left:auto;font-size:12.5px" data-act="cap-float">字幕浮窗</button></div>
+            <div class="band var on" data-for="cap-idle,cap-armed" aria-hidden="true">
+              <i style="height:34%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:88%"></i>
+              <i style="height:52%"></i><i style="height:70%"></i><i style="height:38%"></i><i style="height:80%"></i>
+              <i style="height:46%"></i><i style="height:66%"></i><i style="height:30%"></i><i style="height:58%"></i>
+              <i style="height:74%"></i><i style="height:42%"></i><i style="height:60%"></i><i style="height:36%"></i>
+              <i style="height:78%"></i><i style="height:50%"></i><i style="height:64%"></i><i style="height:40%"></i>
+            </div>
+            <div class="checks var" data-for="cap-armed">
+              <div class="hd">开始前的三项检查</div>
+              <div class="chk"><span class="mk y">✓</span>翻译引擎<span class="vv">就绪</span></div>
+              <div class="chk"><span class="mk y">✓</span>语音转写引擎<span class="vv">就绪</span></div>
+              <div class="chk"><span class="mk y">✓</span>麦克风授权<span class="vv">已允许（系统）</span></div>
+              <div class="note-line"><i>!</i><span>字幕来自设备<strong>正在播放</strong>的声音；耳机输出时需要取音授权。</span></div>
+            </div>
+            <div class="live-rows var" data-for="cap-live">
+              <div class="band live" style="height:40px;margin-bottom:2px">
+                <i style="height:30%"></i><i style="height:70%"></i><i style="height:44%"></i><i style="height:88%"></i>
+                <i style="height:52%"></i><i style="height:66%"></i><i style="height:36%"></i><i style="height:78%"></i>
+                <i style="height:48%"></i><i style="height:60%"></i><i style="height:34%"></i><i style="height:72%"></i>
+                <i style="height:42%"></i><i style="height:56%"></i><i style="height:38%"></i><i style="height:64%"></i>
+              </div>
+              <div class="r"><span class="lg">EN</span><span class="tx en">…the flight leaves at 6:40, gate B12.</span></div>
+              <div class="r"><span class="lg">ZH</span><span class="tx">航班六点四十起飞，登机口 B12。</span></div>
+            </div>
+            <div class="acts-row">
+              <button class="btn var on" data-for="cap-idle,cap-armed" data-act="cap-arm" data-od-id="cta-live-subtitles"><span class="cn">开始实时字幕</span><span class="en">Start Live Subtitles</span></button>
+              <button class="link var" data-for="cap-armed" data-act="cap-stop">取消</button>
+              <button class="btn ghost var" data-for="cap-live" data-act="cap-stop"><span class="cn">停止</span><span class="en">Stop</span></button>
+              <span class="link var" data-for="cap-live" style="color:var(--muted)">字幕浮窗常驻需在 设置 › 字幕 中开启</span>
+            </div>
+          </section>
+
+          <!-- 实时听译 -->
+          <section class="card" data-od-id="card-live-interpret" aria-label="实时听译">
+            <div class="chead">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a2.6 2.6 0 0 1 2.6 2.6v4.9a2.6 2.6 0 0 1-5.2 0V6A2.6 2.6 0 0 1 12 3.4Z"/><path d="M6.4 11.1a5.6 5.6 0 0 0 11.2 0M12 16.7V20.4M9 20.4h6"/></svg></span>
+              <span class="ctitle"><h3>实时听译</h3><span class="en">Conversation</span></span>
+              <span class="tag ok var on" data-for="int-idle,int-armed">就绪</span>
+              <span class="tag var" data-for="int-armed" style="--d:inline-block;color:var(--terra-ink);background:var(--terra-wash)">准备中</span>
+              <span class="tag var" data-for="int-blocked" style="--d:inline-block;color:var(--terra-ink);background:var(--terra-wash)">待配置朗读</span>
+              <span class="tag live var" data-for="int-live"><i></i>进行中</span>
+            </div>
+            <p class="hd var on" data-for="int-idle,int-armed,int-blocked">面对面逐句转写 → 翻译 → 朗读，一人一句。</p>
+            <div class="live-hd var" data-for="int-live"><b>中 ⇄ 英</b><span id="intTimer">00:18</span><span>已完成 3 句</span></div>
+            <div class="ab var on" data-for="int-idle,int-armed,int-blocked" aria-hidden="true">
+              <span class="en">Good evening. How was the flight?</span>
+              <span class="zh">晚上好。航班怎么样？</span>
+            </div>
+            <div class="checks var" data-for="int-armed">
+              <div class="hd">开始前</div>
+              <div class="note-line" style="padding-top:10px;padding-bottom:2px"><i>·</i><span>把 Mac <strong>放在两人中间</strong>，一次一人一句，说完自动断句。</span></div>
+              <div class="chk"><span class="mk y">✓</span>麦克风授权<span class="vv">已允许（系统）</span></div>
+              <div class="chk"><span class="mk y">✓</span>识别语言<span class="vv">自动 · 中英互译</span></div>
+              <div class="chk"><span class="mk y">✓</span>朗读输出<span class="vv">Tingting</span></div>
+            </div>
+            <div class="live-rows var" data-for="int-live">
+              <div class="r"><span class="lg">EN</span><span class="tx en">Good evening.</span></div>
+              <div class="r"><span class="lg">ZH</span><span class="tx">晚上好。&nbsp;·&nbsp;点按重播</span></div>
+              <div class="r"><span class="lg">EN</span><span class="tx en">How was the flight?</span></div>
+              <div class="r"><span class="lg">ZH</span><span class="tx">航班怎么样？&nbsp;·&nbsp;点按重播</span></div>
+              <div class="r"><span class="lg">··</span><span class="hear"><i></i>还在听…</span></div>
+            </div>
+            <div class="acts-row">
+              <button class="btn var on" data-for="int-idle,int-armed" data-act="int-arm" data-od-id="cta-conversation"><span class="cn">开始听译</span><span class="en">Start Conversation</span></button>
+              <button class="link var" data-for="int-armed" data-act="int-stop">取消</button>
+              <button class="btn tinted var" data-for="int-blocked" data-act="dlg-speech"><span class="cn">朗读未选声音 · 先选一个</span><span class="en">Pick a Voice First</span></button>
+              <button class="btn ghost var" data-for="int-live" data-act="int-stop"><span class="cn">结束并保存</span><span class="en">End &amp; Save</span></button>
+            </div>
+          </section>
+        </div>
+
+        <!-- 单词卡 -->
+        <section class="strip var on" data-for="review-190" data-od-id="review-strip" aria-label="单词卡">
+          <div class="lft">
+            <span class="big"><i>190</i>今天待复习</span>
+            <button class="mini-link" data-act="dlg-review" data-hit="44">查看统计 ›</button>
+          </div>
+          <div class="go">
+            <button class="btn tinted" data-act="dlg-review"><span class="cn">开始复习</span><span class="en">Start Review</span></button>
+          </div>
+        </section>
+
+        <section class="strip var" data-for="review-zero" data-od-id="review-strip-empty" aria-label="单词卡">
+          <div class="lft">
+            <span class="big">今天没有待复习</span>
+            <span class="stats">新词进入复习队列后会出现在这里</span>
+          </div>
+          <div class="go"><button class="btn tinted" data-act="dlg-review"><span class="cn">提前复习</span><span class="en">Review Ahead</span></button></div>
+        </section>
+
+        <!-- 工具行：Mac 上系统翻译在侧栏，主区只留文档 -->
+        <div class="tools var on" data-for="doc-on" data-od-id="row-document">
+          <div class="tlist">
+            <div class="cap">文档</div>
+            <button class="trow" data-act="dlg-doc">
+              <span class="thumb"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#201e1d" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M6.5 3.5h7L18.5 8.5v12h-12z"/><path d="M13.5 3.5v5h5"/></svg></span>
+              <span><span class="t">翻译文档</span><br><span class="s">PDF / Word / 图片 · 异步 · 上次同步 ——</span></span>
+              <span class="ch">›</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="keys">
+          <span class="t">建议快捷键（待确认）</span>
+          <span><kbd>⌘</kbd><kbd>⇧</kbd><kbd>C</kbd>实时字幕</span>
+          <span><kbd>⌘</kbd><kbd>⇧</kbd><kbd>I</kbd>实时听译</span>
+          <span><kbd>⌘</kbd><kbd>⇧</kbd><kbd>R</kbd>开始复习</span>
+          <span style="margin-left:auto"><kbd>⌘</kbd><kbd>,</kbd>设置</span>
+        </div>
+
+        <div class="foot">大肚猴翻译 · 已登录（版本号与账号待接入）</div>
+      </div>
+    </div>
+
+    <!-- 弹层 -->
+    <div class="veil var" data-for="dlg-ext" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog" data-od-id="dialog-extension">
+        <h3>系统翻译扩展</h3><p class="crumb">未开启 · 说明只在这一项被点开后才出现</p>
+        <div class="drow"><span><span class="t">系统「翻译」App 设置</span><br><span class="s">App 列表 › 翻译 › 扩展</span></span><span class="ch">›</span></div>
+        <div class="drow"><span><span class="t">Safari 扩展</span><br><span class="s">设置 › Safari › 扩展 › 大肚猴翻译</span></span><span class="ch">›</span></div>
+        <div class="foot-row"><button class="link" data-act="close">取消</button><button class="btn one" data-act="close">好</button></div>
+      </div>
+    </div>
+    <div class="veil var" data-for="dlg-speech" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog" data-od-id="dialog-settings-speech">
+        <h3>朗读</h3><p class="crumb">设置 › 朗读 · 来自「朗读缺失」提示</p>
+        <div class="body">
+          <button class="drow"><span><span class="t">Tingting</span><br><span class="s">普通话 · 中国大陆</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">Meijia</span><br><span class="s">普通话 · 中国大陆台湾</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">Samantha</span><br><span class="s">英语 · 美国</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">Kyoko</span><br><span class="s">日本語 · 日本</span></span><span class="ch">›</span></button>
+        </div>
+        <div class="foot-row"><button class="link" data-act="close">取消</button><button class="btn one" data-act="close">完成</button></div>
+      </div>
+    </div>
+
+    <div class="veil var" data-for="dlg-sys" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog" data-od-id="dialog-system-translate">
+        <h3>系统翻译</h3><p class="crumb">已交给「翻译」App</p>
+        <div class="body">
+          <button class="drow"><span><span class="t">打开系统「翻译」App</span><br><span class="s">用系统键盘输入，走大肚猴的翻译与朗读引擎</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">Safari 扩展设置</span><br><span class="s">Safari › 设置 › 扩展 › 大肚猴翻译</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">重新接管</span><br><span class="s">如果系统不再调用，重新授权一次</span></span><span class="ch">›</span></button>
+        </div>
+        <div class="foot-row"><button class="btn one" data-act="close">好</button></div>
+      </div>
+    </div>
+
+    <div class="veil var" data-for="dlg-doc" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog">
+        <h3>翻译文档</h3><p class="crumb">PDF / Word / 图片 · 异步任务，不占用实时通道</p>
+        <div class="body">
+          <button class="drow"><span><span class="t">选择文件…</span><br><span class="s">从 Finder 或「文件」中选取</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">从照片选取</span><br><span class="s">图片 OCR 后翻译</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">粘贴文本</span><br><span class="s">粘贴一段文本</span></span><span class="ch">›</span></button>
+        </div>
+        <div class="foot-row"><button class="link" data-act="close">取消</button></div>
+      </div>
+    </div>
+
+    <div class="veil var" data-for="dlg-review" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog" data-od-id="dialog-review">
+        <h3>单词卡</h3><p class="crumb">首页那一行的全部数据在这里 · 二级</p>
+        <div class="body">
+          <div class="kv">
+            <div><b>190</b><span>今天待复习</span></div>
+            <div><b>190</b><span>学习中</span></div>
+            <div><b>4664</b><span>总计</span></div>
+            <div><b>4474</b><span>候选</span></div>
+          </div>
+          <div class="drow" style="border-top:1px solid var(--hair)"><span><span class="t">已掌握</span><br><span class="s">0 · 词库同步 ——</span></span><span class="tick">0</span></div>
+        </div>
+        <div class="foot-row">
+          <button class="link" data-act="sync">同步词库</button>
+          <button class="btn" data-act="rev-start"><span class="cn">开始复习</span><span class="en">190 张 · 190 Cards</span></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="veil var" data-for="dlg-acct" style="--d:flex">
+      <button class="scrim" data-act="close" aria-label="关闭"></button>
+      <div class="dialog">
+        <h3>已登录账户</h3><p class="crumb">账号 · Mac 上落在侧栏底部，不占主区</p>
+        <div class="body">
+          <button class="drow"><span><span class="t">设置</span><br><span class="s">引擎、语言、朗读、词库</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">订阅与用量</span><br><span class="s">剩余 —— 待接入</span></span><span class="ch">›</span></button>
+          <button class="drow"><span><span class="t">退出登录</span><br><span class="s">退出后需重新登录才能开实时字幕</span></span><span class="ch link danger">›</span></button>
+        </div>
+        <div class="foot-row"><button class="btn one" data-act="close">好</button></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="bar" style="color:#6b645c;font-size:12px;max-width:1440px">
+    主区高度预算：标题 24 + 头 32 + 18 + 卡 268 + 20 + 复习 84 + 22 + 工具 96 + 22 + 快捷键 50 + 页脚 —— 全部落在 900pt 内，无需滚动。点击侧栏项与按钮走真实流转。
+  </p>
+</main>
+</div>
+
+<script>
+const STATES = {
+  'home':         {n:'三引擎就绪',        en:'Home',            v:['eng-ready','cap-idle','int-idle','review-190','doc-on','sys-on']},
+  'home-missing': {n:'朗读未配置',        en:'Missing engine',  v:['eng-miss','cap-idle','int-blocked','review-190','doc-on']},
+  'home-noext':   {n:'扩展未开启',        en:'Extension off',   v:['eng-ready','cap-idle','int-idle','review-190','doc-on','ext-off']},
+  'cap-armed':    {n:'实时字幕 · 准备中', en:'Armed',           v:['eng-ready','cap-armed','int-idle','review-190','doc-on','sys-on']},
+  'cap-live':     {n:'实时字幕 · 进行中', en:'Live',            v:['eng-ready','cap-live','int-idle','review-190','doc-on','sys-on']},
+  'int-armed':    {n:'实时听译 · 准备中', en:'Armed',           v:['eng-ready','cap-idle','int-armed','review-190','doc-on','sys-on']},
+  'int-live':     {n:'实时听译 · 进行中', en:'Live',            v:['eng-ready','cap-idle','int-live','review-190','doc-on','sys-on']},
+  'review-panel': {n:'单词卡 · 二级面板', en:'Panel',           v:['eng-ready','cap-idle','int-idle','review-190','doc-on','sys-on','dlg-review']},
+  'review-zero':  {n:'单词卡 · 待复习 0', en:'Empty',           v:['eng-ready','cap-idle','int-idle','review-zero','doc-on','sys-on']}
+};
+const ORDER = Object.keys(STATES);
+const EXPECT_SYS = { 'home-missing':false };
+// 默认版面态：两卡都是 idle 形态（armed/live 会合法地长高，位移属预期，不参与「两卡等高」判定）
+const BASE_STATES = ['home','home-missing','home-noext','review-panel','review-zero'];
+let cur='home', dlg=null, dlgFrom='home';
+const scr = document.querySelector('.win'), main = document.getElementById('main');
+
+function go(id){
+  if(!STATES[id]) return;
+  cur = id;
+  const st = STATES[id];
+  const active = st.v.concat(dlg?[dlg]:[]);
+  scr.dataset.state = id;
+  document.querySelectorAll('.var').forEach(el=>{
+    el.classList.toggle('on', active.some(v=>el.dataset.for.split(',').includes(v)));
+  });
+  document.getElementById('stateName').textContent = st.n;
+  document.getElementById('stateEn').textContent = st.en;
+  document.querySelectorAll('.st').forEach(b=>b.setAttribute('aria-current',String(b.dataset.go===id)));
+  localStorage.setItem('bm-proto-mac', id);
+  tick(); gate();
+}
+
+document.addEventListener('click', e=>{
+  const s = e.target.closest('.st');
+  if(s){ dlg=null; go(s.dataset.go); return; }
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  const a = b.dataset.act;
+  if(a.startsWith('dlg-')){ dlg=a; dlgFrom=cur; go(cur); return; }
+  if(a==='close'){ dlg=null; go(dlgFrom); return; }
+  if(a==='cap-arm'||a==='cap-float'){ if(a==='cap-float'){ b.textContent='浮窗已开'; return; } dlg=null; go('cap-armed'); return; }
+  if(a==='int-arm'){ dlg=null; go('int-armed'); return; }
+  if(a==='cap-stop'||a==='int-stop'){ dlg=null; go('home'); return; }
+  if(a==='rev-start'){ b.textContent='已进入复习 · 190 张'; return; }
+  if(a==='sync'){ b.textContent='词库已同步'; return; }
+});
+
+document.getElementById('prev').onclick = ()=>{ dlg=null; go(ORDER[(ORDER.indexOf(cur)-1+ORDER.length)%ORDER.length]); };
+document.getElementById('next').onclick = ()=>{ dlg=null; go(ORDER[(ORDER.indexOf(cur)+1)%ORDER.length]); };
+
+let t=null;
+function tick(){
+  clearInterval(t);
+  if(cur==='cap-live'||cur==='int-live'){
+    let s = cur==='cap-live'?42:18;
+    t = setInterval(()=>{
+      s++;
+      const el = document.getElementById(cur==='cap-live'?'capTimer':'intTimer');
+      if(el) el.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    },1000);
+  }
+}
+
+const gateBox = document.getElementById('gate');
+function row(ok,label,detail){
+  return '<div class="g '+(ok===null?'na':ok?'pass':'fail')+'"><span class="b">'+(ok===null?'N/A':ok?'PASS':'FAIL')+'</span><span>'+label+' · '+detail+'</span></div>';
+}
+function gate(){
+  const vis = el => el && getComputedStyle(el).display!=='none' && el.offsetParent!==null;
+  const rows = [];
+  const cap = scr.querySelector('[data-od-id="card-live-captions"]');
+  const int = scr.querySelector('[data-od-id="card-live-interpret"]');
+  // 默认版面态：两卡都是 idle 形态（armed/live 会合法地长高，位移属预期）
+  const isBase = BASE_STATES.includes(cur);
+  const d = Math.abs(cap.offsetHeight-int.offsetHeight);
+  const dc = cap.querySelector('.chead'), di = int.querySelector('.chead');
+  const dt = Math.abs(dc.offsetHeight-di.offsetHeight);
+  rows.push(row(vis(cap)&&vis(int)&&isBase ? d===0 : null,
+    '两张主卡等高', vis(cap)&&vis(int) ? (isBase ? ('卡高 '+cap.offsetHeight+'pt，差 '+d+'pt') : '进行中/准备中 · 不适用') : '—'));
+  rows.push(row(vis(cap)&&vis(int)&&isBase ? dt===0 : null,
+    '两张标题块等高', isBase ? ('标题块 '+dc.offsetHeight+'pt，差 '+dt+'pt') : '—'));
+  const ctas = [...main.querySelectorAll('.btn')].filter(b=>vis(b) && getComputedStyle(b).backgroundColor==='rgb(172, 98, 49)');
+  const blanks = ctas.filter(b=>{
+    const cn=b.querySelector('.cn'), en=b.querySelector('.en');
+    const c=cn?getComputedStyle(cn).color:'';
+    return !cn || !cn.textContent.trim() || !en || !en.textContent.trim() || c==='rgba(0, 0, 0, 0)';
+  });
+  rows.push(row(ctas.length===0?null:blanks.length===0, '实心 CTA 带内有文案',
+    ctas.length===0?'当前态无实心 CTA':(blanks.length===0?ctas.length+' 条 · '+ctas.map(b=>b.querySelector('.cn').textContent.trim()+' / '+b.querySelector('.en').textContent.trim()).join(' ｜ '):blanks.length+' 条为空橙块')));
+  rows.push(row(ctas.length<=2, '主区实心按钮 ≤ 2', '实测 '+ctas.length+' 枚'));
+  const small = [...scr.querySelectorAll('button')].filter(b=>{
+    if(!vis(b)) return false;
+    const r = b.getBoundingClientRect();
+    return (r.width<44||r.height<44) && !b.dataset.hit;
+  });
+  rows.push(row(small.length===0, '命中区 ≥ 44×44（鼠标可 24pt）',
+    small.length===0?'全部达标':small.length+' 个：'+small.map(b=>b.textContent.trim().slice(0,8)).join(' / ')));
+  const sysItem = scr.querySelector('.side .si[data-for="sys-on"]');
+  const extItem = scr.querySelector('.side .si[data-for="ext-off"]');
+  const want = EXPECT_SYS[cur]!==false;
+  const ok = (want===vis(sysItem)) && ((cur==='home-noext')===vis(extItem));
+  rows.push(row(ok, '扩展槽位在侧栏（不进主区）', ok?('「'+(cur==='home-noext'?'扩展未开启':want?'系统翻译':'无')+'」侧栏一行'):'状态与渲染不一致'));
+  const strip = main.querySelector('.strip');
+  const sd = strip ? ((strip.innerText.match(/\d/g)||[]).length) : 0;
+  rows.push(row(sd<=2, '复习条数字 ≤ 2', strip?('实测 '+sd+' 个：'+strip.innerText.replace(/\s+/g,' ').trim().slice(0,40)):'—'));
+  rows.push(row(!scr.textContent.includes('还没配语音引擎'), '旧版红字已移除', '全窗口 0 处'));
+  const noX = main.scrollWidth<=main.clientWidth+1;
+  rows.push(row(noX, '主区无横向溢出', 'scrollWidth '+main.scrollWidth+' / clientWidth '+main.clientWidth));
+  const mainH = main.scrollHeight, viewH = main.clientHeight;
+  rows.push(row(mainH<=viewH+1, '主区无需滚动（900pt 内）', '内容 '+mainH+'pt / 视口 '+viewH+'pt'));
+  const digits = (main.innerText.match(/\d[\d,\.]*/g)||[]).length;
+  rows.push(row(digits<=12, '主区数字密度可控', '首页可见数字 '+digits+' 个（含倒计时/时长，判据只约束复习卡）'));
+  gateBox.innerHTML = rows.join('');
+}
+
+const saved = localStorage.getItem('bm-proto-mac');
+go(saved && STATES[saved] ? saved : 'home');
+window.addEventListener('resize', gate);
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:860px; height:760px; padding:24px; display:flex; flex-direction:column; gap:22px">
+<div class="frame-h"><h1>方案 B · 保留按引擎类型分组 + 加「用途」列（未选）</h1><span class="mini">改动最小，但复习/听译的旋钮仍与引擎混排；用户还得自己把「用途」拼成心智模型</span></div>
+<div class="grid2">
+<section class="card"><h3>转写引擎</h3><table class="tbl"><tr><th>引擎</th><th>用途</th></tr><tr><td>OpenRouter · transcription</td><td>说题 · 字幕</td></tr><tr><td>设备内置转写</td><td>对话 · 实时字幕</td></tr></table><p class="hint">用途成了一列文字，仍然是一个槽位 —— 选了设备内置，说题照旧消失；只是多了一句解释。</p></section>
+<section class="card"><h3>语音</h3><table class="tbl"><tr><th>控件</th><th>用途</th></tr><tr><td>语音模式 · 语速 · 自动播放</td><td>复习</td></tr><tr><td>引擎 · 声音 · 试听</td><td>朗读</td></tr></table><p class="hint">复习的旋钮还是要开「详细」才看得到。</p></section>
+</div><p class="mini" style="margin:0 4px">留档理由：下次有人问「为什么不只加一列」时不必重推。它只回应了投诉 ④ 的一半，① ② ③ ⑤ 都没解。</p>
+<p class="mini" style="margin:0 4px">同日上午还有一版「两槽方案」（整段槽 + 实时槽 + 第二把 key），被下午「实时转写 = 设备内置、云端实时去掉」的裁定取代 —— 见 git 历史 design/settings-ia。</p>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":860,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

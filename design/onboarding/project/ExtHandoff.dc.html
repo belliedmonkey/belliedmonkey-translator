@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>扩展那边怎么接上：不是「把登录态带过去」，是扩展自己登</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1800px; height:860px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">用户问：跳转扩展时能不能顺便把登录态和额度带过去</h1><span>答案：登录态不能带（规约红线），额度不用带（账号级自己就有）</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start">
+  <div class="cell"><div class="cap"><b>❌ 直觉里的做法：App 把东西推过去</b><span>这条走不通</span></div><div class="flow" style="display:flex;gap:10px;flex-wrap:wrap">
+      <div class="node now" style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--danger);border-radius:13px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>App</b>把会话 / 额度令牌塞进跳转地址</div>
+      <div class="node now" style="flex:1;min-width:150px;background:var(--card);border:1px solid var(--danger);border-radius:13px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>扩展</b>取走、直接用</div>
+    </div>
+    <p class="hint"><b>被 §8.4.1.1 明文挡住</b>（2026-09-02 裁定）：那条通道「只能传身份，<b>不能传任何语料、任何凭证</b>」。会话与额度令牌都是凭证，而且<b>单独就能兑换</b>（拿到就能花钱）。</p>
+    <p class="hint">就算改成「一次性票」也不行：票之所以被放宽，是因为<b>它单独不可兑换</b> —— 兑换要 code_verifier，而 verifier 只在扩展侧。<b>App 生成的票没有扩展侧的 verifier</b>，性质当场破掉。</p></div>
+  <div class="cell"><div class="cap"><b>✅ 能走的做法：扩展自己发起一次登录</b><span>这条路已经上线，不是新设计</span></div><div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--sage);border-radius:13px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>扩展</b>生成 verifier，开登录页</div>
+      <div style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--sage);border-radius:13px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>网页回调</b>带一次性 code</div>
+      <div style="flex:1;min-width:140px;background:var(--card);border:1px solid var(--sage);border-radius:13px;padding:9px 11px;font-size:.8rem;line-height:1.5"><b>扩展</b>用自己的 verifier 兑换</div>
+    </div>
+    <p class="hint">体感上接近「带过去」：App 的 Apple 登录走 <code>ASWebAuthenticationSession</code>，<b>与 Safari 共享 cookie</b> —— 在 App 里登过之后，扩展这次「用 Apple 登录」在 Safari 里基本是<b>一键，不用再输任何东西</b>。</p>
+    <p class="hint"><b>额度不用管</b>：登上同一个账号，<code>claim()</code> 自己把三个槽配好。扩展那边现在就是这个形状（34 台登录 / 30 台配好）。</p></div>
+</div>
+<div class="ask"><b>时序：这件事不可能发生在「跳转的那一刻」</b>引导最后一屏跳转时，<b>扩展通常还没启用</b> —— 没有进程能接收任何东西。真实时序只能是：<br><b>启用扩展 → 扩展第一次打开设置页 / 检测页 → 那时一键登录 → 额度自动到位。</b><br>所以那个「把这台浏览器也登上」的按钮该放在<b>检测页</b>上，而不是 App 的跳转里。检测页本来就是扩展有内容脚本在跑的自家域名。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1800,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

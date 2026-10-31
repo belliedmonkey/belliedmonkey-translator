@@ -1,0 +1,1038 @@
+# Telemetry design — anonymous usage events（匿名用量事件）
+
+> Status: **design approved 2026-09-05; backend (PR-D1) live; client + copy (PR-D2/D3) implemented the same day.**
+> **2026-09-10 amendment（第八期，待人评审）**：加第六问（§1）、`translate_fail.code` 加 `auth`、新事件
+> `rate_prompt` / `ext_banner`（§3）、修 `translate_ok` 的 Seam、§8 的 smoke 断言这次真正落地并加自动化守卫。
+> 起因写在 §3.1。
+> **2026-09-19 amendment（二，同日用户评审通过）**：`translate_ok.kind` 加 `quick`（Mac 快速翻译）；iOS 系统翻译扩展**不发**任何事件（§3.5）。
+> **2026-09-19 amendment（当日用户裁定通过；A、B 两条都发）**：§3 表的 Seam 一列进注册表、由 `npm test` 对着代码核（§3.4）——
+> 起因是 1.12.x 首次回读时同一种洞第三次发作：三个事件登记了却没有发送点。事件、属性、枚举值**一个不加**。
+> **2026-09-17**：`asr_entry` 加 `popup_app_row` / `to_app`（实时档下掉后的去 App 出口），起因写在 §3.3.2。
+> **2026-09-16 amendment（第十二期，4 条已由用户裁定通过）**：新事件 `engine_test`（引擎测试整个是盲区）；
+> `engine_set` 的判据从「选了下拉」改成 `EngineState.needsSetup`；`asr_entry.surface` 加 `app_home`；
+> 澄清 App 的听译/实时字幕出译文归 `translate_ok{kind:'subtitle'}`（不新增 kind），以及补译文**不发**
+> `translate_ok`。起因写在 §3.3。Governed by
+> `AGENTS.md` rule 4 (amended the same day) and released through
+> `docs/learning-design.md` §10 **Gate D**. The event whitelist in §3 is a
+> domain-design artifact: adding an event, a property, or a join is a change to this
+> document first, reviewed by a human, then code.
+> **2026-10-28（BEL-113，待人评审）**：App 首启听译漏斗加 `mic_permission` / `asr_start` /
+> `asr_fail` / `translate_start`。已有 `asr_entry` / `translate_ok` / `translate_fail` 语义不变。
+> 起因与互斥口径在 §3.16。
+> **2026-10-29（BEL-135）**：中国 flavor 的白名单 ≡ intl，入口境内。见 §2 原则 6。本注册表尚无
+> `listen_session` / `listen_first_line`，本修订不新造这两条。
+
+## 0. Why this exists (issue #174, answered)
+
+Until 2026-09-05 the product had **zero** telemetry, by constitution. Everything called
+"measurement" (`scripts/store-stats.js`, `asc.js reviews`, direct Supabase queries)
+reads what stores hand to their operators; not one byte ever left a user's device
+unasked. The cost was paid silently: 75 sync accounts, 54 of which never produced a
+single card, and no way to say why. The owner's decision, in their words: 「就算改隐私
+描述，改卖点我都要做遥测。」
+
+Three decisions were taken with it: **on by default, switch in settings** ·
+**activation funnel + retention + translation-failure diagnostics; no site hostnames**
+· **our own Supabase, no third party**.
+
+## 1. The five questions the data must answer
+
+| Question | Today | Events |
+|---|---|---|
+| Of the people who installed, how many configured an engine and translated something? | unknown | `engine_set` `translate_ok` |
+| App 首装之后，听译卡在权限、入口、开麦、识别，还是翻译？ | `installed`→`asr_entry`→`translate_ok` 分不开 | `mic_permission` `asr_start` `asr_fail` `translate_start`（§3.16，BEL-113） |
+| Where do translations fail — which engine, which error? | only when someone writes in | `translate_fail` |
+| How many people still use it (DAU / WAU / retention)? | Apple gives downloads; AMO says 3 | `heartbeat` |
+| Where does the learning loop break? | unknown | `capture_first` `review_session` `sync_on` —— **判据是回访节奏，不是「刷完」**（2026-09-24 §3.10）：按 `(install_id, ts::date)` 去重，数 7 天里有几天出现过 `review_session{result:'opened'}` |
+| Safari vs Chrome vs the app — what share? | guessed from an unset WKWebView UA (#175) | `host` on every event —— **扩展到底有多少人真的启用了，判据也在这里**：`installed` 按 `host` 分组。**不是** `setup_detected`（那一条只覆盖来过我们自己站的人，见 §3.11 B） |
+| **(6, 2026-09-10)** When we ask the user for something — rate us, turn the extension on — is the ask ever *seen*, and does anyone act on it? | unknown: App Store 评分 5 天里 0 条，`review_session` 0 条，而我们不知道提示有没有出现过 | `rate_prompt` `ext_banner` |
+
+If a proposed event does not serve one of these rows, it does not go in.
+
+第六问是 2026-09-10 加的，不是原五问的注脚：前五问量的是**用户做了什么**，第六问量的是
+**我们的提示做了什么** —— 一个从未被看见的提示与一个被看见却没人点的提示，对产品是两种
+完全不同的病，而没有这一行两者都记成「评分为 0」。它只准放**提示的曝光与点击**，永远不带
+提示的内容、页面、或用户输入。
+
+## 2. Principles（写进规则 4 的那几条）
+
+1. **Events, never content.** Never sent: source text, translations, page URLs, page
+   titles, hostnames, API keys, emails, account ids, and the server's own error text
+   (`serverMessage` can quote user text).
+2. **One random id per device**, a UUID in `chrome.storage.local`, **never joined to an
+   account**: events carry no `user_id`, and the server has no column that could link an
+   `install_id` to `auth.users`. Turning the switch off = delete the local id, send one
+   final `telemetry_off`, and the server deletes every row for that id.
+3. **No third party.** Straight into our own Supabase; no SDK, no GA, no PostHog. "No
+   third-party analytics" stays literally true; "no telemetry" is the sentence that changes.
+4. **On by default, off in one switch, said up front.** One sentence in onboarding, a
+   switch in settings, a privacy-page section listing every field.
+5. **The event set is a whitelist.** Same rule as the provider registry: one place,
+   reviewed, nothing restated elsewhere.
+6. **中国 flavor：事件白名单 ≡ intl（同一 `EVENTS` / `SEAMS`）；入口仍境内。**（2026-10-29，BEL-135。
+   **覆盖** 2026-10-24「仅 listen_*」与「默认 0 行」，以及本文件里凡写「中国版照旧一条不发 / `MT_TELEMETRY`
+   为 null」的现行承诺。那些句子若出现在更早的修订节里，只记载当时，不再是现在的规则。）
+   中国构建发出与国际版同一注册表的匿名用量事件；`COMMON.flavor` 含 `china`；`MT_TELEMETRY.url` 派生自
+   `MT_BACKEND.china.url` + `/functions/v1/bt-ingest`。**禁**共东京生产 / `*.supabase.co`。china-gate 按**主机维**
+   放行境内 ingest，东京路径上的 grant/relay 仍禁。诊断通道（L2）独立并列，不并进 `track()`。原文/译文/音频/URL/账号/key
+   硬禁。`bt_grants` 永不与 `install_id` join。
+   listen_* 若已在 intl 注册表里，字段与 intl 全表相同；本仓当前没有 `listen_session` / `listen_first_line`，
+   本修订不新造事件。若产品书面保留子集，须另列 ACCEPT 并改隐私表。
+   隐私页 / 首启与发出事件同版；.cc ≡ .com；商店 `privacy.html` 硬 URL 不改 path（旁观 BEL-128）。
+   客户端句形沿用已有 `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint`，不另造句。中国包亮出
+   `#ob-telemetry` 与设置里的同一开关。
+   境内 ingest 现网部署+回读（Phase B）另批；未回读不得宣称「已对齐上线」。
+   诊断上报仍是单独披露的通道（见「诊断上报」）：随机安装 id + 事件名 + 计数，**原文与译文一律不发**。
+7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
+   （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
+   转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
+   且服务器上没有任何一列能把 `install_id` 连到 `bt_grants`。
+
+**8. 命令行宿主（CLI，2026-09-30 设计通过）v1 不发任何事件。** 它是新的 `host` 值（`cli`）的候选，
+但 v1 不实现遥测模块：没有 `install_id`、没有心跳、没有 `translate_ok`。将来若要发，先在这里进
+白名单、过 §6 Gate D，再写代码 —— 与「事件集是白名单」（原则 5）同一条。
+
+## 3. Event whitelist v1
+
+**On every event:** `install_id` · `ts` (client time, rounded to the minute) · `v`
+(extension version) · `flavor` · `host` (`safari | chrome | firefox | app`, from
+`MTFeedback.host()`) · `device` (`iPhone | iPad | Mac | Windows | Android | Linux`,
+from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
+
+| Event | Props | When | Seam (located 2026-09-05) |
+|---|---|---|---|
+| `installed` | — | the id is first generated | telemetry module first init |
+| `heartbeat` | — | at most once per calendar day | any extension page / content script init, keyed by a local date stamp |
+| `onboarding_done` | `surface: ext \| app \| app_resume` · `result: done \| skipped \| shown \| dismissed \| expired \| web_only` · `step`（离开时停在哪一屏，取值与两个宿主的屏序数组同源） · `dwell: 0-2 \| 3-9 \| 10-29 \| 30+`（从引导出现到离开的秒数，**分桶**；只有 `ext` / `app` 带，`app_resume` 没有停留可言） | 引导**离开**时 —— 走完与跳过都发，靠 `result` 分开（2026-09-22，§3.6）。`surface:'app_resume'` = App 首页「继续设置」卡：出现（`shown`，每次启动至多一条）· 点 ✕（`dismissed`）· 第 4 次启动自动收起（`expired`）（2026-09-22，§3.8）。`dwell` 分开「没读就跳」与「读了还是跳」（2026-09-24，§3.9 提案 A）。`result:'web_only'` = 第一屏那条「我只要网页翻译 →」，与 done / skipped **并列**，只有 `surface:'app'` 会发（2026-09-24，§3.9 提案 B）。**← 2026-10-02（#547）：那条出口撤了 ⇒ `web_only` 不再产生**（枚举照留，用来收老客户端的行） | `extension/onboard/onboard.js` `finish()` · `src/app/shell-model.js` `obFinish()` 与 `obResumeTrack()` |
+| `onboard_intent` | `goal: read \| listen \| both` | 迎新首屏「你想怎么用」的选择（2026-09-28，#486/#487，用户评审通过；`interaction-spec.md`「迎新页意图分叉」）。只记选择，不含任何内容。选 `listen` 的人首页不挂扩展横幅 | `src/app/shell-model.js`（用户选定时） |
+| `engine_set` | `provider` | **配置真的完成了**（不是「在下拉里选了一下」） | `options.js` 的 `saveAll()` 末尾（`maybeTrackEngineSet`）· `app/settings.js` 的 `trackEngineSet()`（一键卡**与领免费额度**两条路都走它，§3.4）。**判据是 `EngineState.needsSetup`**，两个宿主同一个出口，不另写一份。2026-09-16 修正：此前挂在 provider 的 `change` 上，点开下拉就记一条 —— 理由见 §3.3 |
+| `engine_test` | `slot: chat \| notes \| tts \| stt` · `result: ok \| fail` · `code`（失败时，**自己的**枚举，见 §3.3.1） | 用户点了一次「测试」并拿到结果（2026-09-16 用户裁定） | `learn/engine-test.js` 的**导出处**（`probe()` 包住四个方法）——设置页 / 字段行 / 一键卡 / 引导页都调这四个函数，包在这一层一处覆盖全部，也覆盖 App（该文件在 App 包里）。不带 key、不带端点、**不带 `serverMessage`**（它会引用用户输入，原则 1 明禁） |
+| `auth_fail` | `provider: apple \| google \| email \| phone \| unknown` · `stage: prepare \| authorize \| exchange \| id_token \| native \| otp \| verify \| password \| post_login \| unknown` · `code`（归一化的错误码，`id` 型）· `http`（int，没有响应就 0）· `attempt: 1 \| 2+`（**本页面/会话里第几次失败**，`1` = 第一次） | 一次登录失败（2026-10-02，§3.14；用户报「新账号第一次登录失败、第二次成功」，第三方登录，扩展与 App 都有）。此前登录失败只在用户眼前一闪，服务端零行 | `extension/learn/auth.js` 的六个断点（prepare / authorize / exchange / id_token / otp / verify）——两宿主同一份字节。App 原生那一步（`apple-result` 带 error）由 `src/app/shell-model.js` 调 `LearnAuth.noteAuthFail('apple','native',…)` |
+| `translate_ok` | `provider` `kind: page \| subtitle \| doc` `ms` | **once per page session** (first translation painted), never per paragraph | `content-webpage.js` `makeEngine().onOk`（`okSent` 每会话一次；2026-09-10 修正，此前写的 `tick()` 与代码不符）· `subtitle-adapter.js` `onOk` · `learn/doc-view.js` `onOk`（`kind:'doc'`，两宿主同一份字节）· **App 的听译/实时字幕（2026-09-16）**：`app/listen.js` 定稿出译文处，`kind:'subtitle'` —— **不新增 kind**，理由见 §3.3 |
+| `translate_fail` | `provider` `code` `status` (number only) `route` `ms`（**这一次请求**的耗时；与 `translate_ok.ms` 含义不同，后者是「从开启到第一段译文」—— 2026-09-24，§3.11 A 提案，落地前它量的是页面会话已开多久，**历史数据不可用于延迟分析**） | a request fails for good | `translation-core.js` where `it._err = true`; `code` ∈ `timeout / network / http / reasoning_starved / no_base / unknown_provider / credit_exhausted / grant_unavailable / model_not_allowed / auth` from `translation-api.js`（`credit_*`/`grant_*`/`model_*` 来自免费额度中继，§8.10；**`auth`** = 2026-09-10 加：HTTP 401/403 且请求带了**非空、非额度令牌**的 key —— 「这把 key 被服务商拒绝」，引擎停机，见 §3.1） · **2026-09-19（§3.4 裁定 A、B）**：`app/listen.js` 定稿句译文失败处（每会话每 code 一条）· `learn/doc-view.js` 的 `onFail`（每页一条，两宿主同一份字节） |
+| `subtitle_on` | `site: youtube \| substack \| podcast \| other` (a **class**, not a domain) | a subtitle session starts | `subtitle-adapter.js` `setActive(true)` |
+| `capture_first` | — | first capture ever written on this install | `learn-collector.js` inside the write-success callback — **never** on the failure path (Collector law 2) |
+| `doc_open` | `kind: pdf \| docx \| txt \| image` · `pages` (int) | a document is opened in the reader（2026-09-11，learning-design §9.7）；`translate_ok{kind:'doc'}` 是该文档第一页译文落地那一次 | `learn/doc-view.js` 打开文档处（两个宿主同一份代码）。不带文件名、字数、页文本 —— 只回答「有没有人用、文档多大」 |
+| `review_session` | `graded` · `result: opened \| done \| left \| nothing_due` · `left`（int，离开时还剩几张） | **打开**：露出第一张卡立刻发 `opened`（每轮一条，§3.10 —— 唯一不依赖「善终」的观测点）。**结局**：**`done` = 评过分**（`graded ≥ 1`）—— 清空牌组、做满一组（5 张）后收尾、或评过几张就走，都算善终（**2026-09-27 用户裁定**：「完成 1 卡也要记，只要进入了学习学了一小会都算学了」）· **`left` = 一张都没评**（`graded === 0`：露出过卡但没学）· 一进来就没有到期卡（`nothing_due`，那一轮根本没开始）—— 三者互斥、每次打开至多一条（2026-09-22 §3.7 A，2026-09-24 §3.10，**2026-09-27 改口径**：此前的 `done` 只含「清空牌组」，**改前改后的 `done` 装机数不可直接比较**） | `review.js` `sessOpened()`（opened）· `sessEnd()`：`!deck.length` 分支与 `group-stop`（done）· `leave()` 按 `sess.graded > 0` 分流出 done / left（2026-09-27）· `pagehide` / `visibilitychange→hidden`（left，仅一张没评时）· `sessNothingDue()`（nothing_due） |
+| `grant_claimed` | — | 一次**新的**领取成功（服务端回 `reused` 的不记：读余额、重新登录拿回同一枚） | `learn/grant.js` 的 `claim()` 落定处 —— 两宿主同一份字节，不在调用方（§3.4） |
+| `grant_exhausted` | — | 首次因额度用完而翻译失败（每装机一次） | `learn/telemetry.js` 内部：`translate_fail{code:'credit_exhausted'}` 经过 `track()` 时带出（§3.4） |
+| `sync_on` | — | first successful sync (once per install) | subscribe to `sync.js` `onStatus` `done` |
+| `rate_prompt` | `action: shown \| tap \| dismiss \| requested`（`requested` 2026-09-25，§3.12） | **App** 在收获时刻向系统发出评分请求（`requested`，requestReview 不回调，**不是曝光**）。`shown` / `tap` / `dismiss` 是**旧口径**（1.16.x 及更早：译文末尾「去商店给个评分」那一行）—— §3.12 第三轮起新版本不再发，服务端为老客户端照收 | `learn/feedback.js` `noteValueMoment()`（requested，App）。~~挂上即等于 `mtRatingAskedAt` 落盘~~ —— 这半句从来不成立，见 §3.12 |
+| `review_nudge` | `action: shown \| seen \| tap \| dismiss \| no_app` | 译文末尾「今天读过的句子，去复习 →」被挂上 / 真进入视线（至少一半、连续 ≥1 秒）/ 被点 / 被关 / 点了但没人接住 scheme（`no_app`，只 Safari）。**目的地由 `host` 区分**：`safari` → App 的复习屏（只给已登录且开了学习的人），`chrome` / `firefox` → 扩展自己的复习页（开了学习即可）。每装机每本地日至多 1 条 `shown`、每 90 天至多 5 条（2026-09-25，§3.12） | `content-webpage.js` `placeRateRow()`、`watchSeen()` 与行内两个 click handler；Safari 那一跳的 `AppLink.open` 兜底回调 |
+| `ext_banner` | `action: shown \| setup \| done \| check` | App 首页「扩展还没打开」横幅显示 / 点「在 Safari 里打开扩展」/ 点「我已打开」/ 点「不确定？打开检测页」（`check`，2026-09-22 从 `setup` 拆出；**2026-09-27 UI 已淘汰**，枚举照留以收老客户端的行，§3.7 B） | `src/app/shell-model.js` `paintExtBanner()`（`shown` 按 `tm:extBannerDay` 每日一条）与两个 listener |
+| `setup_detected` | — | 扩展在自家域名（`belliedmonkey.cc / .com`）上检测到自己、页面亮绿灯那一刻；**每装机一次**（2026-09-22，§3.7 B）· ⚠️ **不是激活率**：那条域名判断是安全边界（见 §3.11 B），所以它只覆盖「装了扩展**并且**来过我们自己站」的人 —— 扩展激活看 `installed` 按 `host` 分组 | `content-main.js` 设 `data-mt-extension` 并派发 `mt-extension-ready` 的那个 `MT_SITES` 分支 —— 与标记同一条安全边界 |
+| `asr_entry` | `surface: popup \| notice \| pill \| app_home \| popup_app_row` · `result: started \| no_media \| no_engine \| no_live \| gesture_needed \| to_app` | 用户从某个入口尝试开始转写，**或选择去 App 听**（2026-09-11，§3.2；09-16 加 `app_home`；09-17 加 `popup_app_row` / `to_app`，§3.3.2）。**App 上这是打开听译/字幕页，不是开麦**（§3.16） | `asr-source.js` `startFrom(surface, …)` 与 `appPointer()`（`to_app`）· `content-main.js` `transcribeMedia` 找不到媒体处（`no_media`）· `popup.js` 的常驻 App 行（`popup_app_row`）· `app/listen.js` `open()`（`app_home`+`started`）与 `src/app/shell-model.js` 的 need-live-go（`app_home`+`no_live`）。**`gesture_needed` 保留但不再产生** —— 那套机制随 Tier B 下掉（domain-design §2.4 第 3 条），枚举留着是因为历史行还在表里 |
+| `mic_permission` | `permission_state: prompted \| granted \| denied \| restricted \| not_determined` · `kind: mic \| system` · 可选 `engine` · `locale_pair` | App 读到麦克风（或 Mac 系统录音）权限的结果。系统框弹出记 `prompted`，框关掉记最终态；回到前台（含从系统设置返回）再读一次。同一种 `kind`+状态不重复记。**不是**自由文本 | `src/app/listen-model.js`：原生 `mic-perm`（启动 / 回前台 / 请求回调）与 `mic-state` 的 granted·denied·waiting-permission。扩展不发（§3.16） |
+| `asr_start` | 可选 `engine` · `locale_pair` | App 里用户**真的开始一场听译或实时字幕**（开麦那一下），每场一次。打开页面只算 `asr_entry` | `src/app/listen-model.js` `micStart()`；若在开麦前就停机，由 `asr_fail` 补记这一条，使「开了又失败」成对 |
+| `asr_fail` | `fail_reason`（短枚举，见 §3.16）· 可选 `engine` · `locale_pair` | 这一场听译/字幕**停机**，每场第一条。用户暂停、点结束、断线重连中途都不算。`fail_reason` 禁止塞系统长文 | `src/app/listen-model.js` `halt()`（`socket-retry` 除外）与开麦前的名额已满 |
+| `translate_start` | 可选 `engine` · `locale_pair` | 这场已经有识别文字，**并且翻译请求即将发出**，每场一次。没配引擎、请求没发出去，不记 —— 那一格就是「听过但翻译没跑」 | `src/app/listen-model.js`：`translate()` / `passRow()` / `segCall()` 真正调用翻译之前 |
+| `telemetry_off` | — | the user turns the switch off | settings switch `change` |
+| `offline_video_asr_task` | `result: ok \| fail \| cancelled` · `code`（失败或取消时，见 §3.15；成功不带 `code`） | Mac App 一条完整视频离线字幕任务结束。**不是**听译漏斗，扩展不发 | `app/offline-video-asr.js`（只发 `result` 与 `code`） |
+
+### 3.15 2026-10-28（BEL-103，产品已认 ARCH-SHORT）：Mac 完整视频离线字幕
+
+一条事件，`offline_video_asr_task`。只回答「一条文件任务结束了没有、什么码」。`code` 的枚举是 `no_audio_track` / `codec_unsupported` / `media_encrypted` / `drm` / `model_missing` / `model_hash_mismatch` / `download_failed` / `disk_low` / `oom` / `sidecar_crash` / `cancelled` / `timeout` / `empty_hyp` / `pin_mismatch` / `busy`。不带路径、文件名、原文、hyp。扩展宿主不发（没有这条入口）。它不进 `asr_entry`，也不用来和本机听写比较。
+
+### 3.16 2026-10-28（BEL-113）：App 首启听译漏斗
+
+post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`，中间掉的人分不清是没给麦克风、打开了页没开麦、识别失败，还是听出了字但翻译没跑。四条新事件只回答这个。`asr_entry` / `translate_ok` / `translate_fail` 的名字和属性不动。
+
+**信封已经有的，不再加同义键。** 每条事件本来就带 `install_id`、`host`、`v`（应用版本）、`device`（iPhone / iPad / Mac，即平台）。不另造 `app_version` / `platform`。可选的 `engine` 是翻译引擎 id，`locale_pair` 是 `zh-en` 这种小写基码，都是 `id` 型；对不上就**整键省略**，免得一条非法值把整条事件丢掉。
+
+**`mic_permission.permission_state`** 与系统状态的对应：
+
+| 记录值 | 系统状态 |
+|---|---|
+| 未问过 not_determined | AVAudioApplication / AVAudioSession `.undetermined`，或 AVCapture `.notDetermined` |
+| 正在问 prompted | 系统权限框正在出现（请求前状态是未决定，或 Mac 系统声音 `mic-state waiting` / `waiting-permission`） |
+| 已允许 granted | `.granted` / `.authorized`，或 `mic-state granted` |
+| 已拒绝 denied | `.denied`，或 `mic-state denied`（含系统声音 90 秒超时） |
+| 受限制 restricted | AVCapture `.restricted`（家长控制 / MDM）。iOS 录音权限 API 没有这一档，只在采集授权状态上读得到 |
+
+`kind`：`mic` 是麦克风，`system` 是 Mac 系统录音。同一 `kind` 连续读到同一个状态不重发；从设置回来如果从 `denied` 变成 `granted`，会再发一条。
+
+**`asr_fail.fail_reason`** 只允许这些短码，长的系统错误串一律收成 `capture` 或 `other`：
+
+`permission` · `interrupted`（来电、耳机挡住外放）· `socket` · `assets` · `device` · `os` · `capture`（麦引擎起不来）· `locale` · `quota`（识别语言名额满）· `timeout` · `other`。
+
+每场只发**第一条**停机。`socket-retry` 不发（还在重连）。用户暂停和点结束不发。
+
+**互斥口径**（同一 `install_id`，`host='app'`，按这个顺序归到一格，合计是这批 `installed`）：
+
+1. 有 `translate_ok` → 翻译成功
+2. 否则有 `asr_fail` → 听译失败（再按 `fail_reason` 拆）
+3. 否则有 `asr_start` → 听过，但没有 `translate_start` 或没有成功
+4. 否则有 `asr_entry` → 进了页面，没开麦
+5. 否则有 `mic_permission` 且曾 `granted` → 给了权限，没进听译
+6. 否则有过 `mic_permission` 且从未 `granted` → 权限没给（再按最后的 `permission_state` 拆）
+7. 一条 `mic_permission` 都没有 → 未知（旧包，或原生桥还不会回报状态）
+
+扩展不发这四条。中国版与国际版同一份白名单（原则 6），这四条在中国版进境内 `bt-ingest`，不进东京。服务端要收新事件名，得用更新后的 `events.gen.json` 重新部署**该入口的** `bt-ingest`；表结构不用改，`props` 已是 jsonb。境内这一侧的现网部署是 Phase B。
+
+**`auth_fail` 外发（2026-10-29 覆盖 2026-10-03 的本机-only 附注）。** 中国版走与国际版同一条 `track`。
+`auth_fail` 发往境内 ingest，不发往东京。本机 `localStorage['mt:diag']`（上限 20 条，只记 `auth_fail`）
+只在 `spec() === null`（这个 build 根本没有遥测 URL）时写，**不是** `enabled()`：用户自己关掉遥测
+（有 spec、`tm:on=false`）不写。它不再被当成「中国版不发遥测」的出口。读法见 `docs/troubleshooting.md` §1.9。
+
+**免费额度的两条已于 2026-09-08（G2）进注册表**，见上表的 `grant_claimed` 与
+`grant_exhausted`。两条都无属性：需要的只是「多少人领了」与「多少人用完了」。
+`translate_fail.code` 的枚举同时加了 `credit_exhausted`（402）、`model_not_allowed`
+（403 钉住模型）、`grant_unavailable`（503 池空）—— 不在枚举里的 code 会被客户端白名单
+**静默丢掉**，于是「有多少人用完了」这个数永远是 0，而那正是判断这笔钱该不该继续花的
+唯一依据。台账与遥测**永不 join**（原则 7）。
+
+### 3.1 2026-09-10 amendment（第八期：评分为 0 的真因是激活）
+
+三件事，全部来自 09-05 → 09-10 这 5 天的 900 条事件：
+
+1. **测量本身有洞。** `learn/telemetry.js` 只在 YouTube 那块 `content_scripts` 里，`<all_urls>` 块
+   没有 —— 普通网页上 `MTTelemetry` 是 undefined，`translate_ok{kind:page}` 只可能从 youtube.com
+   发出。「118 台装机只有 9 台翻成功过」这个漏斗数是漏统计的。修法是把模块加进 `<all_urls>` 块
+   （代码改动，PR1），本文档不变；顺带把 `translate_ok` 的 Seam 改对（上表）。
+2. **`auth`**：317 条 `translate_fail` 里 308 条来自同一台 Chrome —— 一把错的 key，401，每个段落
+   砸一次，5 天 308 次，界面上没有一个「key 被拒了」的停机出口（`credit_exhausted` 有 halt，401 没有）。
+   `code:'auth'` 的判据是 **401 或 403，且请求头带了非空的 key，且那把 key 不是额度令牌**
+   （`Bearer bmg_…` 是中继的，上游 401 透传时不能把领额度的人送去改一把不存在的 key）；免费
+   Google 通道不带 key，它的 4xx 仍是 `http`。停机后同一装机不会再发请求，所以这个码在一个页面
+   会话里的条数 ≤ 停机那一刻在飞的并发数。
+3. **`rate_prompt` / `ext_banner`**：出口早就出货了（#185，1.7.15），评分仍为 0 是因为唯一触发点
+   （App 里刷完一轮复习 ≥ 3 张）5 天里一次没发生；App 装机 72、Safari 扩展装机 25，装了 App 的人
+   大多没把扩展打开。两个提示各自要能回答「被看见了吗、有人点吗」—— 这是 §1 的第六问。
+   两个事件都**只有一个枚举属性**，不带页面、不带文案、不带任何输入。
+
+### 3.2 2026-09-11 amendment（第九期：实时转写入口）
+
+转写功能上线以来**零遥测**：入口有没有被看见、有没有人点、点了停在哪一档，一条数据都没有。
+`asr_entry` 只有两个枚举属性：`surface`（从哪个入口：弹窗 / 叠层通知行 / 页内「再点一次」）与
+`result`（开始了 / 没找到媒体 / 没配引擎 / 引擎没有实时接口 / Safari 需要页内手势）。不带媒体
+URL、不带 frame href（探针上报给弹窗的 href 只在客户端用于「新标签页打开」，不进事件）、不带
+引擎 id（引擎已在 `engine_set`）。它回答 §1 的第一问（激活：多少人真的走到了转写）与第六问
+（这个入口被看见了吗）。
+
+### 3.3 2026-09-16 amendment（第十二期：装机最多的那个面是黑的）
+
+起因是一次「现在有哪些活跃用户」的例行查询。`bt_events` 里 **App 宿主 138 台装机（占全部
+244 台的 57%）**，除 `installed` / `heartbeat` / `ext_banner` / `onboarding_done` /
+`sync_on` 外**一条核心事件都没有**。静态查实：不是没人用，是这些 seam 在 App 侧**代码层面
+就不存在**——
+
+| 事件 | App 里的发送点 | |
+|---|---|---|
+| `engine_set` | 只在 `extension/options/options.js`；`app/settings.js` 一处都没有 | ❌ 缺口 |
+| `capture_first` | 只在 `content/learn-collector.js`，内容脚本不进 App 包 | ❌ 缺口 |
+| `translate_ok` | 只有 `doc-view.js`（文档）；听译 / 实时字幕 / 补译文零 seam | ❌ 缺口 |
+| `asr_entry` | 只在内容脚本；App 的实时字幕是 `app/listen*.js` 另一套 | ❌ 缺口 |
+| `review_session` | `review.js` 在 App 包里，能发 | ✅ 真的没人刷完一轮 |
+| `doc_open` | `doc-view.js`，两宿主的 `track` 都接了 | ✅ 真的没人开过文档 |
+
+**2026-09-27 复核：上表四条缺口全部已接线**（本表自此是历史诊断，不是待办）。
+
+09-27 逐条到代码里核。这次核对的起因不是「补缺口」，而是**有人（一个 agent 会话）照着它去补** ——
+差一点补出一次回归；记在这里是因为「照过时的文档做事」和「照没接线的表读数」是同一类错的两种形状：
+
+| 事件 | 09-16 | 2026-09-27 实际 | 证据 |
+|---|---|---|---|
+| `engine_set` | ❌ App 无发送点 | ✅ | `app/settings.js` 的 `trackEngineSet()`，注释写着「与扩展那侧**同一个出口**」 |
+| `capture_first` | ❌ 只在内容脚本 | ✅ | `app/docs.js` · `app/handoff.js` · `app/listen.js` 三处各接一条 —— App 结构上不采集，所以接的是「**第一张卡到了**」那三条路 |
+| `translate_ok` | ❌ 听译 / 实时字幕 / 补译文零 seam | ✅ 两条已接，一条**有意不发** | `app/listen.js`（`kind:'subtitle'`，听译与实时字幕共用）· `app/handoff.js`（`kind:'quick'`）；补译文按 §3.3 裁定 2 不发 |
+| `asr_entry` | ❌ App 是另一套 | ✅ | `app/listen.js`（`surface:'app_home'`，`started` / `no_live`） |
+| `review_session` | ✅ | ✅ 不变 | `extension/learn/review.js`（两宿主同一份字节） |
+| `doc_open` | ✅ | ✅ 不变 | `extension/learn/doc-view.js` |
+
+**为什么这次不用照表补：** §3.4 的修法已经落地 —— 每个事件 × 每个宿主的接线位置（或「有意不发」
+的理由）登记在 `build/telemetry.config.js` 的 `SEAMS`，`test/telemetry-registry.test.js` 对着代码核：
+登记了却没接线、或接线了却没登记，`npm test` 都会红。**所以本文档的每一张 Seam 表都只是历史诊断
+记录，现状一律以注册表为准**（§3.4 修法第 4 条）。
+
+**这是 §3.1 第 1 条那次 `<all_urls>` 漏统计的第二次发作**，而且更贵：漏掉的是装机最多的面，
+后果是 §1 第一问的激活漏斗在 App 上整条是黑的，而且数字看上去像「用户不活跃」——
+一个从未被接线的 seam 与一个没人触发的 seam，在表里都记成 0，这正是 §1 第六问那条教训的
+另一种形状。**凡是新宿主上线，都要逐条问「这个事件在这个宿主有发送点吗」，不能假定同名模块
+进了包就等于接上了。**
+
+三条判断，两条不动白名单：
+
+1. **App 的听译 / 实时字幕出译文 ⇒ `translate_ok{kind:'subtitle'}`，不新增 kind。**
+   领域设计里已经有这条先例：`listen-core.js` 的语料锚点「字幕句子沿用 `k:'conv'`
+   （不新增 kind），只多一个 `mode`」（learning-design §9.8）。同理，每条事件都带 `host`，
+   于是 `host='app'` + `kind='subtitle'` 本就唯一地指向 App 的听译/字幕，而
+   `host='safari'` + `kind='subtitle'` 是网页视频字幕 —— **不需要第四个 kind 就已经分得开**。
+   少一个枚举值，就少一处会和 `host` 打架的维度。
+2. **`translate-fill.js` 的补译文不发 `translate_ok`。** 它是学习层给一张已捕获的卡片补一个
+   译文（§9.5），不是一次用户发起的翻译会话；而 `translate_ok` 的定义是「一次会话里第一次
+   译文落地」。把它算进来会让激活漏斗的分子里混进后台动作，比漏掉它更糟。**结论是不做**，
+   写在这里是为了下次有人再问时不必重新推一遍。
+3. **`asr_entry.surface` 加 `app_home`。** 理由见 §3 表格那行：App 的听译/实时字幕不经过
+   `asr-source.js`，现有 `popup | notice | pill` 三个值都是网页里的入口，一个都落不到 App
+   首页那两张模式卡头上。
+
+### 3.3.1 激活漏斗的第二个洞：引擎测试是盲区，而 `engine_set` 在说谎
+
+同一次排查里翻出来的，比 App 那个洞更贵，因为它**污染的是已有的数**而不只是缺数。
+
+**`engine_set` 记的是「在下拉里选了一下」，不是「配好了」。** 它挂在 provider 的 `change` 上，
+key 一个字没填也记一条。而本仓早就写明过判据（`quick-setup.js` §「空」的判据）：
+
+> 非空 key 是「用户有意配过」的**唯一无歧义证据**。provider 不能当判据 ——「选了 google」
+> 与「从没碰过」在存储里一模一样。
+
+遥测里的后果：7 台「配了 `openai`」的装机，6 台从没翻译过，**且一条失败记录都没有**。
+那不是「配好了不用」，是根本没配完 —— 激活漏斗的分母虚高，卡点被记错了位置。对照组很刺眼：
+
+| 配置方式 | 要填 key | 装机 | 翻成功 |
+|---|---|---|---|
+| 免费额度 `grant` | **不用** | 12 | **10（83%）** |
+| 自带 key `openrouter` | 要 | 13 | 5（38%） |
+| 自带 key `openai` | 要 | 7 | 1（14%） |
+
+**而「填 key → 点测试 → 失败 → 放弃」这一整段没有任何事件。** `learn/engine-test.js` 零遥测，
+四个调用方全在激活路径上，其中一个就是**引导页**。于是漏斗上最关键的一跳——人有没有跨过
+「配一把能用的 key」——我们既看不见成功，也看不见失败。
+
+两条改法，性质不同：
+
+- **`engine_set` 改判据**（不动白名单，只改 Seam）：调 `EngineState.needsSetup`，挂在
+  `saveAll()` 末尾——保存是所有配置路径的唯一汇合处。两个宿主同一个出口，不另写一份判据。
+  **已在 #293 落地**。注意这改变了该事件的语义，与 09-16 之前的历史数据不可直接比。
+- **新事件 `engine_test`**（动白名单；2026-09-16 用户裁定「做」，已进 §3 的表）。
+  它回答的是 §1 第一问里一直缺的那半：**人卡在配置这一步，是因为没试，还是因为试了不通。**
+  不带 key、不带端点、不带服务器原文——`serverMessage` 可能引用用户输入，原则 1 已禁。
+
+  落地时与提案有**两处偏离**，都是实现时才看清的：
+
+  1. **`code` 用自己的枚举，不复用 `translate_fail.code`。** `engine-test.js` 抛的码
+     有一半不在那张表里（`no_key` / `bad_url` / `no_path` / `bad_output` / `empty_audio`…），
+     而那几个恰恰最有价值——「没填 key 就点了测试」「地址写错了」正是我们要找的卡点。
+     不在枚举里的 code 会被客户端白名单**静默丢掉**，于是失败原因分布会是一片空白：
+     这就是 `credit_exhausted` 那条教训的原样重演。`other` 兜住 `reason()` 的 default 分支。
+  2. **slot 多一个 `notes`。** 笔记解析引擎是独立的一槽（App 设置页有自己的下拉），
+     并进 `chat` 会把两件事记成一件。
+  3. **Seam 从「四个调用方」收到「`engine-test.js` 的导出处」**：四个页面都调同样这四个
+     函数，包在导出处一处覆盖全部，还顺带覆盖了 App —— 比在四个调用方各接一次少三份
+     会漂的副本。
+
+**为什么这一行还没进 §3 的表**（下一个提案的人会撞上同一件事，写在这里省一轮）：
+`test/telemetry-registry.test.js` 用正则从 §3 的表里抓事件名，与 `build/telemetry.config.js`
+**双向**比对——文档有而注册表没有，同样红。所以「新增事件」的正确流程不是「docs PR 先改表」，
+而是：**docs PR 只写提案（不进表）→ 人评审 → 一个 PR 同时改表 + 注册表 + 生成物 + 代码**。
+本 PR 另外两处改动不受影响：`engine_set` 是改已有行的判据，`asr_entry.surface` 是加枚举值，
+门禁只认事件名。**另注**：那条正则认的是「行首 `| \`x\` |`」这个形状，所以本文档里任何表格
+的第一格都不要写成孤零零一个反引号词——引擎名 `openai` 会被当成事件名（本节那张对比表
+因此在第一格加了「自带 key」前缀）。
+
+落地顺序（本文档合并之后）：`build/telemetry.config.js`（唯一登记处）→
+`node scripts/gen-telemetry.js` 重新生成 → 服务端 `bt-ingest` 随之更新 →
+`test/telemetry-registry.test.js` 钉两边一致。判断 1、2 与 `engine_set` / `capture_first`
+两处缺口**不动白名单**，已在 PR #293 先行落地。
+
+### 3.3.2 2026-09-17：去 App 的那两处点击要有自己的名字
+
+实时档从扩展端下掉之后（domain-design §2.4 第 3 条），扩展里多了两处「去 App」的点击：
+弹窗里那条**常驻**的「用 App 听设备的声音」，以及走不通的媒体落到的那个出口。
+
+第一版把它们记成 `asr_entry{result:'no_media'}` —— 拿「这一页没找到媒体」冒充「用户选择
+去 App 听」。**这与 `engine_set` 那次语义漂移是同一型**（§3.3.1）：一个值被借去表示另一件事，
+两件事从此在数据里分不开，而且旧数据看起来完全正常。所以给它们自己的名字：
+
+- **`result: 'to_app'`** —— 用户点了去 App 的出口。它与 `started`（在扩展里开始转写）是
+  互斥的两件事；合并记录等于放弃「下掉实时档之后，人是留在扩展里还是去了 App」这个问题。
+- **`surface: 'popup_app_row'`** —— 弹窗里那条常驻行，与 `notice`（页内走不通时的出口）
+  分开。两者回答的问题不同：一个是「主动发现」，一个是「撞墙之后」。这正是免费额度那次
+  学到的 —— 83% vs 14% 的差距是**按入口**劈开才看见的。
+
+**`gesture_needed` 保留但不再产生。** Safari 页内手势那套机制随 Tier B 一起下掉了。枚举留在
+表里是因为历史行还在（180 天保留期内），删掉枚举会让那些行读不回来 —— **白名单同时是读的
+契约，不只是写的闸门。**
+
+### 3.3.3 2026-09-17：实时转写固定为设备内置 —— 白名单不变，两个值改含义（待人评审；**已被 `docs/verification-spec.md` §3.1.5 与 `docs/learn-regression.md` M22 / M23 的作废记录取代**，保留为历史）
+
+云端实时引擎下线、实时转写固定为本机（learning-design §9.6 门控 2026-09-17 修订）之后，**不加事件、不加
+属性、不加值**。变的是两个既有值的含义，写在这里免得下次读数时按旧义解：
+
+- **`asr_entry.result: 'no_live'`**（`surface: 'app_home'`）—— 原义「转写引擎没有实时接口 / 没填 key」，
+  现在只可能是「本机识别器不可用」（系统太旧或语言不支持）。它仍回答同一个问题「首页入口灰了多少次」，
+  所以不改名；但 09-17 前后的 `no_live` **不可比** —— 之前含配置问题，之后不含。
+- **`engine_test.code: 'device_no_file'`** —— 随 `device` STT 注册表条目一起**不可达**（说题下拉里没有本机项了）。
+  枚举保留（读的契约，同上一节），文档注明它自 09-17 起应恒为 0；如果不是 0，那是旧客户端还在跑。
+- `engine_test.slot` **不加 `stt_live`**：上午两槽方案里要加的那个值，随方案一起作废。
+
+### 3.4 2026-09-19 amendment：Seam 一列要能自己变红（当日用户裁定通过）
+
+**起因。** 1.12.0 带着 §3.3 的四条裁定出货。09-19 首次回读（出货约 1.5 天），逐个事件、逐个
+宿主核发送点，又是发送点不存在：
+
+| 事件 | 本文档 §3 写的 Seam | 代码里实际的 | 后果 |
+|---|---|---|---|
+| `grant_claimed` | `learn/grant.js` 的 `claim()` 落定处（两宿主同一份字节） | 只在 `extension/options/options.js` 领取按钮的 handler 里；`app/settings.js` 的领取路径没有 | App 的领取恒为 0（1.12.x：App 0 条，safari 3 条）。App 是装机最多的面，账号侧 `bt_grants` 每天新领 2–6 个，其中多少来自 App 无从得知 |
+| `engine_set`（领取这条路） | `app/settings.js` 的 `applyQuickSetup` | App 的领取路径直接 `set(plan.writes)`，不经 `applyQuickSetup` | 在 App 里领了额度 = 配好了引擎，却不记 `engine_set`。§3.3 补的 seam 只接住了一键卡；#293 的依据「一键卡是 App 里设置主翻译引擎的唯一入口」当时就不成立 |
+| `translate_ok{kind:'subtitle'}`（App） | `app/listen.js` 定稿出译文处（§3.3 裁定 1，09-16 写进上表） | 没有 | 1.12.x 有 7 台 App 开始了听译，译文事件 0 条 |
+| `grant_exhausted` | 收到 `credit_exhausted` 且余额判定用完处 | **全仓库零发送点**（两个宿主都没有） | 线上表 0 行。而 §3 自己写着这个数是「判断这笔钱该不该继续花的唯一依据」—— 09-08 进注册表至今从未被量过 |
+
+> **更正（同日）。** 这一节的初稿写「#297 把『免费开始』提成了 App 引导的默认路径，于是流量被
+> 引向一条没有读数的路」—— **错的**。first grant 分流屏在**扩展**的引导页
+> （`extension/onboard/`），领取落在扩展设置页，那条路上 `grant_claimed` 与 `engine_set` 一直
+> 在发；#297 的效果在扩展一侧是量得到的（只是样本还小）。量不到的是 App 设置页里那张额度卡。
+> 错因与本节要治的是同一种病：没去读代码，凭一句待办摘要就断言了「哪个宿主」。留下这段更正
+> 而不是悄悄改掉，是因为它正好说明为什么「哪个宿主有发送点」不能靠人记。
+
+同一次核对里顺带查到、需要裁定的两处（不是漏接线，是从未决定过）：`translate_fail` 在
+App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有发送点 —— 于是这两条路只有成功数、
+没有失败数，成功率算不出来。
+
+**2026-09-27 复核：上表四条 + 顺带查到的两处，全部已接线。** 上表写于 09-19；09-27 逐条到代码
+里核，六条无一残留：
+
+| 事件 | 09-19 代码里实际的 | 2026-09-27 实际 | 证据 |
+|---|---|---|---|
+| `grant_claimed` | 只在扩展设置页领取按钮的 handler | ✅ 已挪进 `learn/grant.js` 的 `claim()` 落定处 | 正是 §3 表写的那个 seam；两宿主同一份字节，App 与扩展都经过它 |
+| `engine_set`（领取这条路） | 不经 `applyQuickSetup` | ✅ `app/settings.js` 的 `trackEngineSet()` | 与扩展那侧走**同一个出口判据**（`EngineState.needsSetup`），所以两宿主的 `engine_set` 表示同一件事 |
+| `translate_ok{kind:'subtitle'}`（App） | 没有 | ✅ `app/listen.js` | 听译与实时字幕共用一条（§3.3 裁定 1：不新增 kind） |
+| `grant_exhausted` | **全仓库零发送点** | ✅ `learn/telemetry.js` 内部 | 由 `translate_fail{code:'credit_exhausted'}` 带出（`once` ⇒ 每装机一次），正是 §3 表写的位置；挂在这一行是因为四条路都经过它 |
+| `translate_fail`（App 听译 / 实时字幕） | 没有 | ✅ `app/listen.js` | 与上面那条 `translate_ok` 同一处 |
+| `translate_fail`（文档阅读器，两宿主） | 没有 | ✅ `extension/learn/doc-view.js` | 与 `translate_ok{kind:'doc'}` 同一处 |
+
+**本节的价值不在表，在它逼出来的那道门禁。**「一个登记了却没接线的事件」现在会让 `npm test`
+变红（`build/telemetry.config.js` 的 `SEAMS` + `test/telemetry-registry.test.js`），所以
+「上表还要不要重核一遍」**不该再由人回答** —— 注册表与代码一旦不一致，门禁先红。这两张表自此是
+历史记录；两者打架时改文档（修法第 4 条），而 **2026-09-27 这次正是打架状态：表里写着 ❌ /
+「全仓库零发送点」，注册表里六条全部有接线。**
+
+**为什么每一道门禁都是绿的。** 现有的遥测门禁守三件事：白名单与服务端一致、白名单里没有
+内容/身份字段（`telemetry-registry.test.js`）、`MTTelemetry` 模块自己的行为
+（`telemetry.test.js`）。**没有任何一道守「这个事件有人调用」。** 一个登记了却没接线的事件，
+对所有测试来说与「一切正常」无法区分；到了线上，与「没人触发」同样是 0。§3.3 已经写下
+「凡是新宿主上线，都要逐条问这个事件在这个宿主有发送点吗」—— 那是一句话，不是门禁，
+三天后就复发了。上表第 1、3 行更直接：**文档的 Seam 一列与代码不一致，而没有任何东西在比对它们。**
+
+另有一处流程上的原因：§3.3 裁定 1 的结论是「不动白名单」，于是它没有走「改注册表 → 重生成
+→ 部署 bt-ingest」那条有清单的路，也没有留下代码侧的待办；裁定随文档合并，待办按「PR 合并」
+标了完成。
+
+**修法（本次修订的全部内容）：Seam 一列进注册表，由 `npm test` 对着代码核。**
+
+1. `build/telemetry.config.js` 每个事件加 `seams`：一个数组，每项
+   `{ host: 'ext' | 'app', file, match? }` —— `file` 是仓库内路径，`match` 是可选的、
+   必须与调用同现的字面量（如 `kind: 'subtitle'`），用来区分同名事件的不同表面。两宿主同一份
+   字节的模块（`learn/*.js`）写一项 `host: 'ext'` 加一项 `host: 'app'`，后者的 `file` 相同，
+   门禁额外核它在 `build/app-bundle.js` 的 `MODULES` 里 —— 「同名模块进了包」与「接上了」
+   是两件事（§3.3），两件都要核。
+2. 某个宿主**有意**不发的，写 `{ host, none: '<一句理由>' }`，不许留空。例：`subtitle_on`
+   在 App 是 `none`（App 的入口由 `asr_entry{surface:'app_home'}` 回答）；`rate_prompt` 在
+   App 是 `none`（评分提示挂在网页译文末尾，App 没有这个表面 —— **§3.12 起不再成立**，App 的系统评分请求也要发）；`ext_banner` 在扩展是 `none`。
+   §3.3 裁定 2（补译文不发 `translate_ok`）也落成这样一项，于是「不做」第一次有了机器可读的形状。
+3. 新门禁（并入 `test/telemetry-registry.test.js`）：① 每个事件、每个宿主，要么有 `seams`
+   项要么有 `none`；② 每个 `seams` 项的 `file` 里真的有 `track('<事件>'` / `once('<事件>'`
+   （或该事件在 `telemetry.js` 内部直发的等价形状），带 `match` 的还要同现；③ `host:'app'` 且
+   `file` 在 `extension/` 下的，必须在 App 包的 `MODULES` 里。
+4. **`seams` 不出注册表。** 它是构建期的元数据：不进 `events.gen.json`（服务端不需要知道
+   谁在发），不进 `window.MT_TELEMETRY`（客户端不需要），也就不改线上契约 —— 事件、属性、
+   枚举值一个不加。本文档 §3 表的 Seam 一列保留给人读，但**以注册表为准**；两者打架时改文档。
+5. 静态核对只证明「有调用」，证明不了「走得到」。两条用户路径各加一条行为断言，挂在已有的
+   端到端门禁里。自动化下 `MTTelemetry` 是空操作（`navigator.webdriver`，§8），所以断言的是
+   **`track` 被以什么参数调用**，并拿注册表核参数在白名单内：`npm run test:listen` 的 T 段 ——
+   一场定稿两句 ⇒ `translate_ok{kind:'subtitle'}` **恰好 1 条**；端点 401 连说两句 ⇒
+   `translate_fail` **恰好 1 条**；T2 段 —— 在 App 设置页真点「领取」（只换掉网络与登录）⇒
+   `grant_claimed` ×1 + `engine_set{provider:'grant'}`。`npm run test:grant` 对扩展设置页钉同一对
+   事件 —— 发送点挪进 `claim()` 之后，扩展这一侧不能反过来丢掉。
+6. **遥测待办的完成判据**一律写成「在 `bt_events` 里读到 `<host>` 的 `<event>`」，不写
+   「PR 合并」。判据写成合并，就等于把「接上了」交给下一次偶然的回读去发现。
+
+**随代码 PR 一起补的发送点（白名单不变）：**
+
+- `grant_claimed` 挪回本文档一直写着的位置：`learn/grant.js` 的 `claim()` 落定处
+  （`!reused` 时发）—— 一处覆盖两个宿主，`options.js` 那一处删掉。与 `engine_test` 包在
+  导出处是同一个理由（§3.3.1 第 3 条）。
+- App 的领取路径在写完配置后走与 `applyQuickSetup` 相同的 `EngineState.needsSetup` 判据发
+  `engine_set`。
+- `app/listen.js`：每个会话第一条译文定稿时发一次 `translate_ok{kind:'subtitle'}`
+  （与网页侧「每会话一次」同义）。
+- `grant_exhausted`：挂在 `learn/telemetry.js` 内部 —— `track('translate_fail', {code:
+  'credit_exhausted'})` 经过时带出一条 `once('grant_exhausted')`（每装机一次，定义见 §3 表）。
+  `credit_exhausted` 会从网页、字幕、文档、App 听译四条路上来，挂在任何一个调用方都会漏另外三条，
+  而四条路都经过这一行。§3 表里原先写的 `balance(force)` 二次判定在代码里并不存在 —— 中继的 402
+  本身就是「用完了」的判定，不再加一道。它因此依赖裁定 A、B：那两条路不发 `translate_fail`，
+  在那两条路上用完额度的人就不会被数到。
+
+**裁定的两条（2026-09-19 用户裁定：A、B 都发；都不动白名单，枚举现成）：**
+
+- **A. App 听译 / 实时字幕的 `translate_fail`** —— **发**：定稿句的译文请求失败（界面出
+  「译文失败 · 重试」）时记，`code` 用现有枚举，**每会话每个 code 至多一条**（一场里三十句全
+  401 是一件事；网页侧一段一条，§3.1 那 308 条 401 就是这么来的）。半句的增量翻译失败不记；
+  没配引擎不算一次失败的翻译。
+  理由：没有失败数，`translate_ok` 只能说明「有人成功过」，说明不了「这条路通不通」。
+- **B. 文档阅读器的 `translate_fail`**（两宿主）—— 建议**发**，同上，挂在 `doc-view.js`
+  页状态落到 `error` 处，每页至多一条。
+
+**历史数据怎么读。** first grant 分流屏（#297）的效果看 `host in (safari, chrome, firefox)` 的
+`onboarding_done → grant_claimed → engine_set`，这条线一直是通的。`grant_claimed` 在 App 上、`translate_ok{subtitle}` 在 App 上、
+`grant_exhausted` 在所有宿主上，**修复版本出货之前的 0 都是「量不到」**，不可与之后比较；
+账号侧 `bt_grants` 的逐日新领数（09-15 起每天 2–6 个）是这段时间唯一可用的领取读数，
+按原则 7 它不与遥测 join。
+
+### 3.5 2026-09-19 amendment（二）：系统翻译与快速翻译（同日用户评审通过）
+
+domain-design §2.6 / learning-design §9.9 加了两个 App 专属的表面。白名单的改动只有**一个枚举值**。
+
+1. **`translate_ok.kind` 加 `quick`** —— Mac 的快速翻译（划词 / 剪贴板 / 服务 / 输入 / 截图，五个入口同一个值）。
+   不能归进 `page`（没有网页）、`subtitle`（§3.3 裁定 1 已把 `host='app' + kind='subtitle'` 定义为听译 / 实时字幕，
+   再塞进来这个数就读不出来了）或 `doc`。**不按入口再分**：`via` 是五个值，拆开之后每个值的日量都是个位数，
+   而「哪个入口有人用」由 `asr_entry` 式的入口事件回答更合适 —— 第一版不加，满一个月看 `quick` 的量再议。
+   `translate_fail` 不加属性：它本来就不带 `kind`。每次面板会话一条（同 §3「每会话一次」），不是每次重翻一条。
+2. **发送点在主页面，不在面板页。** 面板是第二个 WKWebView，若它也启动 `MTTelemetry`，两个页面会各发一次
+   `heartbeat`、各持一份队列。面板页经 `mtQuick` 把「翻成了 / 失败了 + 码」交给主页面，由 `app/handoff.js` 代发。
+   `SEAMS`：`translate_ok` 加 `{ host: 'app', file: 'app/handoff.js', match: "kind: 'quick'" }`，`translate_fail` 同。
+3. **iOS 系统翻译扩展不发任何事件**，`SEAMS` 写
+   `{ host: 'app', surface: 'system-translate', none: '系统翻译扩展是独立进程，够不到 App 的遥测队列与开关；不为它开第二条发送路径' }`。
+   理由是 §2 的两条原则：关掉开关必须**一处生效并删掉本机 id** —— 扩展要么自带一个 id（第二个 id），要么读镜像过去的
+   id 自己发（第二条发送实现）；而把事件排进采集收件箱让 App 代发，会破坏收件箱「只存六个字段」的承诺，`ts` 也会漂出
+   ±7 天窗口。它的用量由一个不带内容的既有信号间接回答：收件箱第一次摄入成功时的 `capture_first`。够不够，出货一个月后再看。
+4. **`host` 不加值。** Mac 面板在 App 进程里，仍是 `app`。
+5. **中国版照旧一条不发**（此句止于 2026-10-29；现行见原则 6），`ExtEngine.js` 里本来也没有遥测模块。
+
+合并后的顺序照旧：`build/telemetry.config.js` → `node scripts/gen-telemetry.js` → 部署 `bt-ingest` → registry 测试。
+
+### 3.6 2026-09-22 amendment（**提案，待人评审**）：引导是黑的
+
+> **本节只写提案，不进 §3 的表。** 按 §3.3.1 那条流程：docs PR 只写提案 → 人评审 →
+> **一个** PR 同时改表 + 注册表 + 生成物 + 代码。现在把事件名写进 §3 的表会让
+> `telemetry-registry.test.js` 当场变红（它拿文档的表与注册表**双向**比对）。
+
+**现象。** 两个面的引导都只有「完成」一个观测点，而且**跳过也发**：
+
+- App 引导 5 屏（`welcome → ext → browser → read → signin`），跳过与走完走的是同一个收尾。
+- 扩展引导 4 屏（`welcome → engine → capture → try`）。
+
+于是「走完」与「放弃」在表里**长得一模一样** —— 这正是 §3.3 / §3.4 那条教训的又一种形状：
+结果看得见，过程全黑。
+
+**读数（2026-09-21/22）。** 扩展这条引导**只要人走到第 2 屏就成了**：走完引导的装机里几乎
+全部配好了引擎（iPhone 20 / 20，Mac 19 / 18）。问题纯粹在走完率 —— iPhone 27%、Mac 31%、
+Chrome 17%、Firefox 8%。而 Chrome 是个反例，**不能一刀切**：没走完引导但自己去设置页配好的
+有 21 台，比走完的 9 台还多一倍（主动去商店装扩展的人画像不同）。真正的损失是 Safari 那
+68 台 —— 既没走完也没配好。
+
+**提案 A：让「走完」与「跳过」分得开。** 给现有的完成事件加一个属性，取值只有两种（走完 /
+跳过）。这是加属性值，不是加事件。
+
+**提案 B：停在第几屏。** 只在**离开引导时**记一条「停在第几屏」，**不是每屏一条** ——
+按 §3 的准入筛子，每屏一条是噪声，回答不了 §1 的任何一问；而「停在第几屏」直接回答
+「这 4 屏里哪一屏劝退」。屏名用稳定的短枚举（与代码里的屏序数组同源），不带任何内容。
+
+**为什么值得现在提。** 2026-09-22 已裁定要动两个面的屏序（`learning-design` §0 当日行）。
+**先补这两条，再改交互** —— 否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。
+这也是复习那条（`review_session` 至今 0）现在的处境。
+
+### 3.7 2026-09-22 amendment（**同日用户评审通过**）：复习与「去 Safari 再回来」这两段是黑的
+
+> 用户 2026-09-22 裁定两条都「先补可观测性」（#386、#384），同日评审：**不改隐私页**（隐私页只写
+> 匿名用量数据的类别，不逐条列事件）；`setup_detected` **自家域名上凡检测到就发**，不限检测页路径。
+> 已进 §3 的表、注册表、生成物与代码（同一个 PR）。以下是提案原文，B 第 3 条按裁定改了发送范围。
+
+#### A · 复习：`review_session` 只在「清空」时发，于是 0 分不清是「没人复习」还是「量不到」（#386）
+
+**读数（2026-09-21）**：52 台存过第一条语料，`review_session` **0 条**。根因叠了两层：
+一轮的门槛是「今天全部清完」——对刚存下第一批语料的新用户，每副牌 4 张新卡、当日新卡预算 15
+（`learn-scheduler.js`），**要一口气连评满 15 张才会发出第一条**；而**中途退出没有任何记录**
+（`review.js` 没有 pagehide，App 的返回只重算计数）。卡级进度是落库的，缺的只是读数。
+
+**提案**：不加事件，改 `review_session`：
+
+| | 现在 | 提案 |
+|---|---|---|
+| 属性 | `graded`（int） | `graded`（int）· **`result: done \| left`** · **`left`（int，离开时还剩几张）** |
+| 何时发 | 牌组清空（`!deck.length`） | 清空时发 `done`；**离开复习面时**（扩展 `pagehide`、App 返回键）若这一轮**已经露出过卡**且没清空，发 `left` —— `graded` 可以是 0（「打开了、一张没评就走」本身就是答案） |
+| 每会话 | 一条 | 仍至多一条（`done` 与 `left` 互斥） |
+
+回答的问题：没人来 / 来了没评 / 评了几张就走 / 离清完差多少 —— 这四种今天在表里都是同一个 0。
+下一步要不要降门槛（画布），等这张表出来再定。
+
+#### B · 「去 Safari 再回来」：App 把人送去检测页，而检测页那一侧一个数都没有（#384）
+
+**读数（2026-09-21，#384 第三条评论）**：247 台 App 装机里 176 台（71%）生命周期不到 5 分钟；
+**唯一还活着的窗口**是 66 台出现过「隔几分钟又回来」——正是去 Safari 弄一下再回来的形状。
+而 `ext_banner{setup}` 之后发生了什么，我们一个数都没有；`setup` 本身还混着两个来源（主按钮与
+「不确定？打开检测页看绿灯」共用一个 action）。
+
+**提案**：把这一段补成三节漏斗，**只新增一个事件**：
+
+1. **App 里点了哪个**：`ext_banner.action` 加一个值 `check`（「打开检测页」那一行），`setup` 只留给主按钮。加枚举值，不加事件。（2026-09-27：`check` 那一行的 UI 已淘汰 —— 30 天只有 1 台点过；枚举保留，照收老客户端的行。）
+2. **到没到检测页**：**不新增采集**。`belliedmonkey.cc` 已有 Vercel Web Analytics（09-20 起），
+   `/setup` 的访问量就是这一节。只读汇总数、不与 `bt_events` join（原则 7）。
+3. **看没看见绿灯**：新事件 **`setup_detected`**，无属性，**每装机一次**（`once`）。发送点是
+   `content-main.js` 在自家域名上设 `data-mt-extension` 并派发 `mt-extension-ready` 的那一处
+   （**裁定：自家域名上凡检测到就发**，不限 `/setup` —— 从哪一页亮绿灯都说明扩展真的开起来了）。它是扩展侧的事件（`host = safari | chrome | firefox`），
+   回答「多少台 Safari 真的把扩展开起来、并且回到了我们给的那一页」。
+
+**边界**：`setup_detected` 只在我们自己的域名上发（那段代码本来就只在 `MT_SITES` 里跑，见它上面
+那条「不给任何网站造指纹面」的注释），不带页面地址、不带版本以外的任何东西；中国版不发（规则 4）。
+App 侧与扩展侧的 `install_id` 天然不同，**不拼接** —— 这三节只看各自的总数与比例。
+
+### 3.8 2026-09-22 amendment（**同日用户评审通过**）：「继续设置」卡被看到 / 被点
+
+> 用户 2026-09-22 裁定「加」。已进 §3 的表、注册表、生成物与代码；「已登录或已有引擎」那条收起**不记**（那是做完了，不是这张卡的结局）。以下是提案原文。
+
+**要回答的问题**：跳过的人里，有多少会第二次打开 App（卡被看到）、看到之后有多少点了继续、有多少点 ✕、有多少被
+第 4 次自动收起。今天离开引导那一刻已有 `onboarding_done{result:'skipped', step}`，之后的一段是黑的。
+
+**提案**：不加事件，给 `onboarding_done` 的 `surface` 加一个值 **`app_resume`**，并在卡上补三处发送：卡**出现**时
+`result:'shown'`（每次启动至多一条，本来就按启动计数）、点 ✕ 时 `result:'dismissed'`、自动收起时 `result:'expired'`；
+点「继续」之后，引导走完 / 再次跳过仍由原来那条 `surface:'app'` 的 `onboarding_done` 回答。`result` 因此多三个值。
+**影响面先说**：89.5% 的 App 装机只活跃过 1 天，这条读数的分母会很小 —— 它回答的是「这个补丁值不值得留」，不是增长。
+
+**Explicitly not collected:** site hostnames (owner's call) · crash stacks · review
+answers · per-paragraph translation events · precise timestamps · IP addresses (the
+edge function neither stores nor logs them as a field).
+
+### 3.9 2026-09-23 amendment：第一屏为什么留不住人（**A / B 均已落地**）
+
+> **状态（2026-09-24 用户评审）**：**A 与 B 都通过并已落地**。A（`dwell` 分桶）先走，
+> B（`result:'web_only'`）随第一屏改版一起 —— 画布板 B2 用户点头后落地，按 `AGENTS.md`
+> 的「动交互要画布先行」。两次都是一个 PR 同时改表 + 注册表 + 生成物 + 代码（§3.6 的流程）。
+> 本节原文保留，作为「当时凭什么这么提」的记录。
+
+**现象。** 1.15.0 的引导重排（5 → 4 屏、登录提到第 2 屏、登录即领额度）出货后第一批读数：
+**流失集中在第 1 屏**，而且按**界面语言**差四倍。
+
+| 界面语言（公共字段 ui） | App 装机 | `skipped@welcome` | 领到额度 | 点过「测试连接」 |
+|---|---|---|---|---|
+| zh | 16 | **9（56%）** | 3 | **4** |
+| en | 7 | **1（14%）** | 1 | **0** |
+
+⚠️ 两条限制写在前面：`ui=zh` **不等于身在中国大陆**（中文界面可能在任何地方），16 vs 7
+也说明不了统计意义。**这是方向，不是结论。** 另外这四倍差在**国际版内部**（按 `ui` 切），
+与 flavor 无关。中国版自 2026-10-29 起按原则 6 发同一份白名单（入口境内）；诊断通道仍另计、不含内容。
+
+**现在的数据回答不了「为什么」。** `onboarding_done` 有 `surface` / `result` / `step`，
+所以我们知道**他停在第 1 屏**，但分不开这两种人：
+
+- **没读就跳** —— 视觉动线问题。第一屏的「以后再设置」是**与主按钮等宽的灰色按钮**，
+  两个并排看不出该点哪个。这个坑 `ext` 屏 2026-09-02 撞过一次，当时的修法是把次要按钮降级。
+- **读了还是跳** —— 价值主张问题。文案没说服他，或者说服他「这儿没有我要的东西」
+  （现文案最后一句是「网页翻译在浏览器那半边」）。
+
+**这两种的修法完全相反**，而现在的表把它们记成同一行。这正是 §3.3 / §3.4 / §3.6 那条教训的
+第四种形状。
+
+**提案 A：给 `onboarding_done` 加 `dwell`（纯埋点，不动界面）。** ✅ **2026-09-24 已落地。**
+
+取值是**桶**，不是秒数：`0-2 | 3-9 | 10-29 | 30+`。
+
+落地时钉死的三件（代码里有对应注释）：
+
+1. **「引导出现」的时刻各宿主自己记**：扩展是独立一页，页面加载即出现；App 是首页里的
+   一屏，有**两条**进场路（首次运行、从「继续设置」卡点进来），两条都打点 ——
+   只打一条的话，从卡进来的那批人会被算成「从启动到现在」。
+2. **算不出来就整个不带这个键**（没记开始时间、时钟倒流）。`dwell` 是枚举，
+   带一个空串会被 `shape()` 判成非法值，**整条事件丢掉** —— 为了一个诊断属性丢掉
+   主事件是本末倒置。键缺席本来就是合法的。
+3. **`surface:'app_resume'` 不带 `dwell`**：那是一张卡的出现/关闭，没有「停留」可言。
+
+- **为什么分桶**：原则 1 的延伸。精确停留时长在小样本上接近指纹，而分桶足够回答这一问。
+- **它能回答什么**：`skipped@welcome` 若绝大多数落在 `0-2`，问题在动线（按钮等权）；
+  若落在 `10-29`，问题在文案。**先分清楚，再决定改哪个。**
+- 这是**加属性**，不是加事件；只在既有的「离开引导」那一次发送点上多带一个字段。
+
+**提案 B：第一屏给一个明确出口，点了记下来（依赖交互改动）。** ✅ **2026-09-24 已落地。**
+
+在第一屏加一条「**我只要网页翻译 →**」，点它记 `result: 'web_only'`。
+
+- **它首先是对用户有用的**：只想要网页翻译的人被直接送到扩展设置，而不是在一个讲 App
+  功能的屏上被迫二选一。**其次**才是证据。
+- **它是可证伪的**：被大量点击 ⇒「用户只想要网页翻译」的假说坐实；没人点 ⇒ 假说被推翻。
+  现在这个假说既没有支持也没有反证，只有一个四倍差在那儿。
+- ⚠️ 这一条**动交互**，按 `AGENTS.md` 与 `docs/domain-design.md` 的规约要**画布先行**。
+  画布已出（第一屏改版，板 B2），**未获点头前不落地**。提案 A 不依赖它，可以单独走。
+
+**准入筛子（§1）。** 两条都落在第一问「装了之后有没有开始用」的**第一段**：
+装机 → 引导 → 配好引擎。这一段现在的形状是「知道有人掉队，不知道为什么」。
+
+**为什么现在提。** 第一屏的交互改动（画布方案 B：标题改成讲用户要办的事、删掉那句分工、
+「以后再设置」降成文字链、加「两步，约 30 秒」）**已经选定**。**先补这两条，再改交互** ——
+否则改完仍然只能拿到同一张分不出因果的表，等于白改一轮。与 §3.6 当日写下的是同一句话。
+
+> **2026-09-30 补记（#528）**：上面那句「两步，约 30 秒」的**时长承诺已去掉**（12 语种改成
+> 「两步就好」一类）。原因：点了「我只要网页翻译」之后的 ext 屏要人**离开 App、去手工点 Safari
+> 设置**，「约 30 秒」与事实不符（设计审计 `ONB-04` 抓到的就是这一点）。出口本身维持 #493 不变。
+
+### 3.10 2026-09-24 amendment（**同日用户评审通过并已落地**）：复习的判据从「刷完」换成「有没有回来」
+
+**读数（2026-09-24 回读）**：`review_session` **全历史零行** —— 不是 14 天窗口里少，是这个事件
+存在以来一条都没有。同期 `capture_first` 有 **65 台**（存过第一条语料）。§3.7 A 补的 `left`
+也一样是 0。
+
+**为什么还是 0，三层叠着**（都有代码依据）：
+
+1. **门槛是「今天该刷的全清了」。** 一副牌最多 `deckSize: 20`，配比 due 0.7 / 新 0.2 /
+   已掌握 0.1；新用户没有到期卡，第一副牌只有 `round(20 × 0.2) = 4` 张，评完重建再来 4 张，
+   直到当天新卡预算 `dailyNew: 15` 用完 —— **要连评 15 张**才发得出第一条 `done`。
+2. **两个终点都要求「善终」。** `done` = 牌堆重建为空；`left` = 显式离开（扩展 `pagehide`、
+   App 里 `app.js` 调 `LearnReview.leave()`）。**App 被直接杀掉两个都不触发** ——
+   而那恰恰是 iOS / macOS 上最常见的退出方式。
+3. **来了但今天没有到期卡，连「他来了」都没有。** `sess.open` 只在露出计划卡时才为真，
+   `nothing-due` 那一屏不设它 —— 而这正是新用户第二天最可能看到的画面。
+
+**用户裁定（2026-09-24）**：产品目标**不是**「刷完整天的任务」。原话是「我更看重的是每天或者
+每周有重新进来复习就好了，养成习惯远比单词学很大量重要」。**判据要跟着改** ——
+「刷完一轮」本来就不该是成功的定义，它只是今天唯一量得到的东西。
+
+**提案：不加事件，改 `review_session` 的发送时机与取值。** ✅ **2026-09-24 已落地**
+（表、注册表、生成物、代码、门禁在同一个 PR；`bt-ingest` 先于客户端部署）。
+
+| | 现在 | 提案 |
+|---|---|---|
+| `result` 的取值 | `done \| left` | 加 **`opened`**（露出第一张卡**立刻**发，不等结束）与 **`nothing_due`**（打开了复习面但今天没有到期卡） |
+| `left` 的触发 | 扩展 `pagehide`、App 的返回 | 再加 **`visibilitychange → hidden`** —— WKWebView 会给这个事件，`pagehide` 不给；「评了几张就切走」从此落得到表里 |
+| 每轮条数 | 至多一条 | `opened` 一条 + 结局一条（`done` / `left` / `nothing_due` 三选一，互斥） |
+| `graded` / `left`（张数） | int | 不变 |
+
+**`opened` 是这套里唯一一个不依赖「善终」的观测点** —— 它一旦发出，后面无论用户怎么退出，
+「他今天来过」这件事都已经落库。
+
+**它让第四问变得可答，并且换了判据。** §1 第四问（学习闭环在哪断）今天的判据是「有没有刷完」，
+提案之后改成**回访节奏**：按 `(install_id, ts::date)` 去重，数 7 天里有几天出现过
+`review_session{result:'opened'}`。**这正是「习惯」的定义**，也正是裁定要的那个数。
+「刷了几张」退为次要读数（`graded`），「刷完没有」退为一个诊断项（`done` 的比例），
+两者都不再是成功判据。
+
+**口径与隐私不变**：仍然只有分钟级 `ts`、没有卡的内容、没有页面地址；日级节奏由
+`(install_id, ts::date)` 去重得出，**不引入任何新字段**。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
+
+**不在本提案里的那一半**：如果判据是「有没有回来」，那么复习面把「清空今天」当终点的框法、
+以及 `dailyNew: 15` / `deckSize: 20` 这两个默认值都该重估 —— 一个每天都清不完的任务，
+对「养成习惯」是反作用。但那动的是交互与领域设计，按 `AGENTS.md` 要**画布先行**，另开。
+
+### 3.11 2026-09-24 amendment（**同日用户评审通过并已落地**：规约 #436、代码 #438）：两个读数在骗人
+
+09-24 查激活漏斗时被自己的表带偏了两次。两处都不是数错，是**字段的含义与它看起来的含义
+不一样**，而表上没有一个字写明。一个读表的人（这次是模型，下次可能是人）会按字面去理解。
+
+#### A. `translate_fail.ms` 量的不是这次请求，是这个页面开了多久
+
+`content-webpage.js` 的 `onFail` 里写的是 `ms: Date.now() - enabledAt`，而 `enabledAt`
+是**这个页面开启翻译的时刻**。`onOk` 有 `okSent` 守着、每会话只发一条，所以
+`translate_ok.ms` 确实是「从开启到第一段译文」——有意义。但 **`onFail` 没有任何去重**：
+页面开着多久，后面每一条失败的 `ms` 就有多大。
+
+**而且三个发送点是三种不同的东西**，落在同一列里：
+
+| 发送点 | `ms` 实际是什么 | 去重 |
+|---|---|---|
+| `content-webpage.js` `onFail` | `Date.now() - enabledAt`（网页会话已开多久） | 无 —— 每次失败一条 |
+| `subtitle-adapter.js` `onFail` | `Date.now() - subSince`（字幕会话已开多久） | 无 |
+| `learn/doc-view.js` `onFail` | **写死 `0`** | `failSent`，每份文档一条 |
+
+所以对 `translate_fail.ms` 做任何聚合，都是把「会话年龄」和一堆常数 0 混在一起平均。
+（`learn/doc-view.js` 的 `translate_ok.ms` 同样写死 `0`，一并纳入本提案。）
+
+实测把人带偏到什么程度（09-24 回读，14 天窗口）：
+
+| 引擎 · 错误码 | 设备 | 次数 | `ms` 的 p50 |
+|---|---|---|---|
+| 免费额度（`grant`）· `timeout` | 14 | 547 | **962.8 秒** |
+
+于是「免费额度这条路中位要等 16 分钟」这个结论被写了出来，最长的一条 `ms=69635302`
+（**19.3 小时**）还被当成了一次挂死的请求。**都不成立**：客户端两条通路的上限都是
+`RequestShape.timeoutMs()`，默认 **20 秒**（`directFetch` 的 `AbortController`、
+`proxyFetch` 的 `Promise.race`）。20 秒的闸门不可能量出 16 分钟 —— 那只是一个开了很久的标签页。
+
+**本该在「20 秒的上限量出 16 分钟」时就怀疑指标**，而不是怀疑代码。这条教训与 §3.3.1
+（`engine_set` 在说谎）是同一个形状：一个字段的名字承诺了它没有做到的事。
+
+**提案：`translate_fail.ms` 改成量这一次请求的耗时。**
+
+- 不加字段、不改白名单 —— `ms` 已经在表里，改的是它在**哪里**被算出来。
+- 实现上与 `route` 完全对称：`translation-api.js` 已经在抛出的错误对象上挂
+  `code` / `status` / `route` / `url`，在同样那几处挂上 `ms`（请求开始到失败的毫秒数）即可；
+  **三个 `onFail` 都改成读 `e.ms`**，读不到时**不发这个字段**，而不是退回去发一个会误导人的数
+  —— 一个缺席的数能看出来是缺席，一个错的数看不出来。`doc-view.js` 写死的两个 `0` 一并去掉。
+- `translate_ok.ms` **不动**：它每会话一条，「从开启到第一段译文」正是它该量的东西。
+  两个事件的 `ms` 含义从此不同，所以表上必须各写各的。
+
+> 备选是把 `ms` 从 `translate_fail` 上去掉。不采纳：请求耗时正是诊断 `timeout` / `network`
+> 唯一有用的那个数，去掉等于把这一类故障重新变黑。
+
+#### B. `setup_detected` 不是激活率，是「来过官网的人里有多少亮了绿灯」
+
+`content-main.js` 里它只在一个 `if` 里发：
+
+```js
+const MT_SITES = /^(www\.)?belliedmonkey\.(cc|com)$/;
+if (MT_SITES.test(location.hostname)) { … MTTelemetry.once('setup_detected'); }
+```
+
+这条域名边界是**安全边界，不是可以放宽的优化** —— 同一段注释写着：在 `<all_urls>` 上
+都注入标记，等于让任何网站都能探测出用户装了这个扩展，对一个把「不追踪」写进 README
+的产品，那是自己给自己造指纹面。所以它永远只覆盖**装了扩展并且来过我们自己站**的人。
+
+⇒ **`setup_detected` 回答的是一个更窄的问题**：官网那个启用教程页的绿灯，被多少人看见过。
+它是激活人群的一个子集，**不能拿来当激活率**，也不能用它的低值推断「没人启用扩展」。
+
+**真正的扩展激活信号已经有了，是 `installed` 按 `host` 分组。** `content-main.js:523`
+在每个页面调 `MTTelemetry.init()`，`installed` 在 install_id 首次生成时发一条
+（`telemetry.js` 的 `if (fresh) await track('installed')`）—— 扩展跑起来过，就说明它被启用了。
+09-24 回读（14 天）：`host='safari'` **138** 台、`host='chrome'` 42 台、`host='app'` 238 台。
+
+**提案：只改文档，不动代码。** 把上面这两句话写进 §3 的表（下面已改），并在 §1 的问题表里
+把「装了扩展的有多少」这一问的判据钉成 `installed` 按 host 分组，而不是 `setup_detected`。
+
+#### 这两条为什么值得单独记一笔
+
+`AGENTS.md` 规则 4 管住了「不许加什么字段」，`telemetry-registry.test.js` 管住了
+「表与注册表不许对不上」。**但没有任何东西管住「字段的含义有没有被写清楚」** ——
+而这次两个误读都出在这里，且都是在有表、有门禁、全绿的情况下发生的。
+所以判据只能是文档：**每个字段写清它量的是哪一段时间、覆盖的是哪一群人。**
+
+### 3.12 2026-09-25 amendment（**同日用户评审通过**，两轮裁定）：评分提示换口径 —— Safari 改「回 App」，App 的系统评分请求第一次被量到
+
+**起因（09-25 回读）**：星级评分两条线 12 个店面全是 0，文字评论 0，而 App Store 曝光 ~99% 来自搜索 ——
+评分是排序的权重项。评分画布（https://claude.ai/artifact/RmJMXH1TF59zKm66xgs54y ，源 `design/rating-moments/`）
+算清了三件事：
+
+- **机会在 Safari 扩展，不在 App**：成功翻译过的设备 Safari 58 / App 9；「成功 ≥3 次且跨 ≥2 天」Safari 17 / App 1。
+- **网页评分行在打扰人却没换来点击**：Safari 37 台见过 389 次、Chrome 12 台 90 次，合计点 1 次、关 3 次；
+  那 1 次发生在第 98 次展示、第 4 天 —— **而它很可能是我们自己点的**（用户 09-25：「不太记得了，但很可能是我点的」）
+  ⇒ **真实用户的点击约为 0**。
+- **我们其实不知道有没有人看见过它**：`shown` 在行被插进页面的那一刻就记了（`content-webpage.js` 的
+  `placeRateRow()`，没有任何可见判断），而行挂在「文档里最靠后的已译段落」之后 —— 网页翻译会提前翻视线下方的内容，
+  所以这个位置通常在屏幕下面、还跟着往下挪。479 次「展示」里谁真的看见过，一个数都没有。
+
+**苹果审核指南 5.6.1**（原文）：*Use the provided API to prompt users to review your app; this functionality allows
+customers to provide an App Store rating and review without the inconvenience of leaving your app, and we will disallow
+custom review prompts.* —— Safari 扩展是 App 的一部分，网页里主动出现的「去商店给个评分」就是自定义评分提示。
+「没看到」与「看到没点」两个分支的自然修法，在 Safari 上一个撞这条、一个撞「浏览器里没有一键打星」—— 两条都把答案
+推到同一处：**Safari 那一行不该再要评分，而是把真在用的人带回 App，由 App 在收获时刻调系统评分 API。**
+
+**用户裁定（2026-09-25，两轮，画布板 C）**：
+① **Safari 那一行改成「回 App」**：「今天读过的句子，去 App 里复习 →」，点了走现成的 `AppLink.open(uid, …, 'review')`。
+   **只给已登录的人**（句子要同步过去，否则把人送进一个必然空着的屏 —— 与 `review.js` `renderGoApp` 同一条规矩）；
+   09-25：17 台真在用的里 11 台已登录。
+② **Chrome / Firefox 那一行照旧要评分**（苹果的规则管不到、去的也不是 App Store），口径改为
+   **每个本地日至多出现一次、最多出现在 5 个不同的日子**，第 5 个日子挂过后自动进 90 天冷却；点或 × 立刻进 90 天冷却。
+   Safari 的「回 App」行用同一节奏。
+③ 两种行都只对**成功 ≥3 次、且出现在 ≥2 个不同本地日**的装机出现。
+④ **App 的系统评分请求**从「一轮复习 ≥3 张」挪到真实的收获时刻：从 Safari 那一行进来、在复习里评完 ≥5 张
+   （iOS 上最主要的一条）· 听译 / 实时字幕结束且有句子 · Mac 快速翻译成功 · 系统翻译收件箱进卡 · 复习 opened；
+   同③的门槛；**只在事件回调里调，不在任何按钮点击里调**（点「回 App」是按钮，评完卡片才是收获）。
+⑤ 扩展与 App 的冷却**不打通**，各自 90 天 —— 交互规约里「共用同一个键与同一个冷却」改成实话。
+
+**遥测改什么**：
+
+| | 现在 | 裁定 |
+|---|---|---|
+| `rate_prompt.action` 取值 | `shown \| tap \| dismiss` | 加 **`seen`**、**`requested`** |
+| `rate_prompt` 在各宿主 | ext：`content-webpage.js`；app：`none` | ext：仍是 `content-webpage.js`，但 **Safari 不再发**（那一行换成 `app_nudge`）；app：`extension/learn/feedback.js` `maybeRequestRating` 真发出 `request-review` 那一刻发 `requested` |
+| **新事件 `app_nudge`**（第三轮改名 `review_nudge`，见下） | — | `action: shown \| seen \| tap \| dismiss \| no_app`；只在 Safari 的「回 App」行发（`host='safari'`）；`no_app` = `AppLink.open` 的兜底被触发（没有人接住 scheme） |
+| `shown` 的上限 | 名义「90 天一组」，实际每页一条 | 每装机每个本地日至多 1 条、每 90 天至多 5 条（两种行都是） |
+
+**`seen` 的定义**：行至少一半进入视口、连续停留 ≥1 秒，每一行至多记一次。从此「展示」分成两层：`shown` = 插进了页面，
+`seen` = 真的进了视线。**历史上的 `shown` 只能按「插进了页面」读**，不能与 `seen` 相比，也不能当曝光。
+
+**`requested` 为什么不能记成 `shown` / 曝光**：`SKStoreReviewController.requestReview` 不回调，Apple 每 365 天最多弹 3 次、
+其余静默丢弃 —— App 只知道「请求了」。所以 `requested` 只回答「门槛有没有被跨过、那个时刻有没有发生」；
+评分效果只看商店的 `userRatingCount`（`scripts/store-stats.js`）。
+
+**为什么 Safari 的新行用新事件、不复用 `rate_prompt`**：它不再是评分提示。复用会让 Safari 的 `tap` 不再等于「去评分」，
+把第六问（「提示被看见了吗、有人理吗」）的数据搅浑。
+
+**口径与隐私不变**：仍然只有枚举，没有内容、没有页面地址、没有句数；「跨 ≥2 天」的日期集合只存本机
+（与 `mtOkSessions` 同处），**不上报**。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
+
+**第三轮（2026-09-25 晚，用户对话中同意）：Chrome / Firefox 也不再要评分。** 第二轮留着它的理由只有
+「5.6.1 管不到」—— 那只说明**可以**问，不说明**应该**问：Chrome 12 台 / 90 次展示同样 0 点击；Chrome / Firefox 商店的评分
+对量几乎没有影响（85% 以上来自 App Store 搜索）；而「把真在用的人带进复习」对哪个浏览器都成立。回读：Chrome 真在用 7 台
+（6 台 Mac 全都开了学习，1 台 Windows 没开），Firefox 0 台。所以：
+
+- Chrome / Firefox 那一行改为「今天读过的句子，去复习 →」，打开**扩展自己的复习页**（`learn/review.html`）——不需要登录、
+  Windows 上也有，只要开了学习就出现。节奏、门槛同上。评分只留常驻链接（设置页 / 弹窗），不发事件。
+- 事件 `app_nudge` **改名 `review_nudge`**，两种浏览器共用；目的地由公共字段 `host` 区分，**不另加取值**。
+  `app_nudge` 从未有客户端发过（落地 PR 合并前改名），服务端同步改。
+- `rate_prompt` 在扩展一侧不再发；`shown` / `tap` / `dismiss` 只剩老版本客户端，服务端照收；`seen` 从未发过，撤回。
+
+**顺序**（与 §3.6 同一套）：本节评审通过 → 一个 PR 同时改 §3 表（`rate_prompt` 行 + 新增 `app_nudge` 行）+
+`build/telemetry.config.js`（取值、送出点、新事件）+ 生成物 → **先部署 `bt-ingest` 并回读它接受 `seen` / `requested` /
+`app_nudge`** → 代码 PR（`feedback.js` 门槛与冷却、`content-webpage.js` 两种行与 `seen`、App 各时刻接线、
+`interaction-spec.md` §评分提示同提交改写）。
+
+### 3.13 2026-09-30 amendment（**提案，待用户评审**）：`ext_banner` 的两条平台缺口 —— macOS 的曝光与一键直达都没被量到
+
+> **状态**：提案。评审通过后按 §3.6 / §3.12 同一套顺序落地 —— ② 不改白名单，可与 ③ 一起走一个 PR；
+> ③ 加枚举值 ⇒ **先改注册表与生成物、重部署 `bt-ingest` 并回读它接受 `prefs`**，再改代码。
+
+**起因**（ext-banner 画布 `design/ext-banner/` 板 E-Measure / Telemetry）：画布共列四个埋点缺口，
+两个已落地（① 检测页那一侧改用官网 Vercel Web Analytics、**不与 `bt_events` join**，§3.7 B 第 2 节；
+④ 「打开检测页」那一行与主按钮分开计 —— 该行 2026-09-27 已从 UI 淘汰，`check` 只收老客户端的行，§3.7 B 第 1 节）。
+**剩下两个都在 macOS**：
+
+| # | 缺口 | 现在的形状 | 补上之后能回答 |
+|---|---|---|---|
+| ② | `ext_banner{shown}` **只在 iOS 发** | `src/app/shell-model.js` `paintExtBanner()` 里写的是 `if (ios && extBannerPrimed)`；而 `ios` 的定义是「拿不到扩展真实状态」（`!canOpenPrefs && !known`）⇒ macOS 一条不发 | Mac 那边（装机 54）的横幅到底有多少**曝光** —— 今天的 0 不是「没人看到」，是「没发」 |
+| ③ | macOS 的**一键直达按钮不记** | `ext-banner-act`（文案「打开 Safari 扩展设置」→ `openSafariPrefs`）的 listener 只有接线、没有 `extBannerTrack()` | Mac 上「一键直达 Safari 扩展设置」这条路**有没有人走** |
+
+**提案**：
+
+- **② 不新增取值、不新增字段**：把 `if (ios && extBannerPrimed)` 里的 `ios &&` 去掉，让 `shown` 在两个平台
+  都按 `tm:extBannerDay` 每装机每本地日至多一条。随之改变的是**这一条事件的含义**（从「iOS 横幅曝光」变成
+  「横幅曝光 · 两平台」）—— 所以 §3 表那一行要在落地 PR 里同时写明（§3.11 B 的教训：**字段的含义必须写在表上**）。
+  **历史数据只能按「只有 iOS」读，与改后不可直接比较。**
+- **③ 加一个取值 `prefs`**（`ext_banner.action: shown | setup | done | check | prefs`），只有 `ext-banner-act` 发它。
+  **不复用 `setup`**：两者是不同的动作 —— `setup` = 去检测页，且**一次动作即写 `extBannerDoneAt`**（「问过就不再问」，#485）；
+  `prefs` = 打开 macOS 的 Safari 扩展设置，**不写这个键**。合并会让「问过多少人」与「走的是哪条路」重新搅在一起
+  —— 与 §3.7 B 把 `check` 从 `setup` 拆出来是同一条理由。
+
+**边界与隐私**：两条都只发枚举值 —— 不带内容、不带页面地址、不带系统版本、不加字段。中国版自 2026-10-29 起见原则 6（当时这条写的是「一条不发」）。
+
+### 3.14 2026-10-02 amendment（**当日用户评审通过**）：登录失败是黑的 —— 扩展与 App 都补一条 `auth_fail`
+
+**起因**：用户真机报「**新账号第三方登录（Apple 等）第一次失败、第二次成功**」，扩展与 App 都有。
+而登录失败此前**没有任何读数** —— 它在用户眼前一闪（`say(humanError(err))` / `setSyncMsg(syncErrorText(…))`），
+`bt_events` 里一行都没有。于是「断在哪一步、什么码」只能靠猜。
+
+**为什么不是本地日志**：用户在真机上复现，而 iPhone 取本地日志要 Safari 网页检查器 —— 门槛高、容易记错。
+匿名事件是**唯一**能在下一次真机复现时自动留档的机制（2026-10-02 用户裁定走遥测）。
+
+**加一个事件 `auth_fail`**，不复用 `translate_fail`（登录不是一次翻译，`provider` / `stage` 两张表也不同源）。
+五个属性都是枚举 / `id` / `int`，**没有一个内容或身份字段**：
+
+- `provider` = `apple | google | email | phone | unknown` —— 哪条登录路。
+- `stage` = `prepare | authorize | exchange | id_token | native | otp | verify | password | post_login | unknown` —— 断在哪个断点。
+  **2026-10-02（同日补，用户真机）**：`post_login` = 交换成功、但「登录之后」那一步失败（`show()` / `doSync()`）。
+  App 的红字「连不上服务器，检查网络后重试。」有两条来源 —— 交换本身（`exchange`/`id_token`）与登录之后（`post_login`），
+  后者此前**完全没有记录**：用户很确定自己装的是带埋点的包，`auth_fail` 却 0 行，这就是那个洞。
+  同批补上的还有 `password`（密码 grant）与 Google 原生失败（`native`）两条路。
+- `code` = `id` 型（GoTrue `error_code`，或 `pkce_missing` / `storage_error` / `native_error`… 字面码）—— 什么错。
+- `http` = int（无 HTTP 响应时 0）—— 服务端怎么看。
+- `attempt` = `1 | 2+` —— 本页面/会话里第几次失败。
+
+**发送点只有一处半**：`extension/learn/auth.js` 的六个断点包在 `authFail()` 一处覆盖两个宿主；
+App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('apple','native',…)` 回同一个出口
+—— 不另写一份白名单与归一化（同 §3.4「发布点跟着共用层，不挂调用方」）。`test/telemetry-registry.test.js`
+钉住两宿主的发送点。
+
+**边界与隐私**：不带账号、邮箱、手机号、令牌、任何正文或地址；只有枚举与数字。中国版自 2026-10-29 起把同一条发往境内 ingest（原则 6）；本机环只在没有遥测 URL 时兜底。
+注册表的 `FORBIDDEN_KEY_WORDS` 是机器判据 —— 谁往属性名里塞内容/身份类的词，测试直接红。
+
+## 4. Transport
+
+- **Client module** `extension/learn/telemetry.js` (`MTTelemetry`). `track(name, props)`
+  only enqueues (key `tm:queue` in `chrome.storage.local`, cap 200, drop oldest).
+  `flush()` runs when the queue reaches 10, or 60 s have passed, or any extension page
+  opens; `navigator.sendBeacon` first, `fetch(keepalive)` as fallback. The host app runs
+  the same bytes via `Script.js`.
+- **Endpoint** global: `MT_BACKEND.url + '/functions/v1/bt-ingest'`. China: `MT_BACKEND.china.url + '/functions/v1/bt-ingest'` (in-country; never `*.supabase.co`). `build.js` emits `window.MT_TELEMETRY = { url, spec }` into `providers.gen.js` (which content scripts already
+  load). China is `null` only while `china.ready` is false. **No anon key**: the function is deployed `--no-verify-jwt`, so content scripts
+  never load `backend.config.js` — `build.js`'s standing rule is that the anon key must
+  not ride in a script injected into every page; the URL alone is public anyway.
+- **Server** `supabase/functions/bt-ingest/index.ts`: event name and property keys
+  must be on the whitelist; ≤ 1 KB per event, ≤ 50 per batch; per-`install_id` rate
+  limit (60/min); on `telemetry_off`, `delete where install_id = ?`; writes with the
+  service role.
+- **Table** (`supabase/schema.sql`): `bt_events(id bigint identity, install_id uuid,
+  ts timestamptz, v text, flavor text, host text, device text, ui text, name text,
+  props jsonb, received_at timestamptz default now())`. RLS **denies everything** to
+  `anon` and `authenticated` — only the edge function writes, and nothing reads from a
+  client.
+- **Retention**: raw rows deleted after **180 days** by pg_cron; daily materialized
+  rollups (installs, DAU, funnel, failure rate by provider) are kept and carry no
+  `install_id`.
+- **Volume**: ~200 installs/month × ~10 events per active day — tens of thousands of
+  rows a month, inside the free tier.
+
+## 5. What the user sees
+
+- **Onboarding, last screen**, one sentence with a link to the privacy section:
+  「会发送匿名用量数据（不含网页内容与地址），帮助改进；设置里可关。」
+- **Settings → About** (extension and app alike): a switch 「分享匿名用量数据」 and a
+  「会发送什么」 link to `privacy.html#usage` (China → `belliedmonkey.com`, intl → `belliedmonkey.cc`).
+  The switch is a **standalone key** in the `engineChosen` style —
+  not part of `saveAll()`'s literal reads. Both flavors show it when `MT_TELEMETRY` is set.
+  Sentence keys stay `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint` / `telemetry_what`.
+  App last screen shows `#ob-telemetry` with the same onboard sentence. No new screen.
+- **Privacy page** (`belliedmonkey.cc`, 12 locales): a new section listing every
+  field, the default, the switch, deletion on opt-out, and the retention period.
+  「5. No tracking」 narrows to cross-site tracking / profiles / third-party analytics
+  and points at the new section.
+
+## 6. Gate D
+
+The full surface-by-surface table lives in `docs/learning-design.md` §10 Gate D and
+is not restated here. The one-sentence disclosure used verbatim everywhere:
+
+> We collect anonymous usage events — which features are used, on which browser, and
+> whether a translation succeeded or failed. Never the pages you read, the text, the
+> addresses, your keys or your account. On by default; off in one switch; turning it
+> off deletes what that device sent.
+
+## 7. Delivery order
+
+1. **PR-D0 — docs only** (this file, `AGENTS.md` rule 4, learning-design §2/§10/§11,
+   domain-design §8). Human review. Nothing below starts before it merges.
+2. **PR-D1 — backend**: `bt_events` + RLS + pg_cron in `supabase/schema.sql`; the
+   `bt-ingest` edge function; a verification section in `supabase/README.md`.
+3. **PR-D2 — client**: `learn/telemetry.js`, the eleven seams, the switch (extension +
+   app), the onboarding sentence, `telemetry_hint` / `telemetry_toggle` × 12 locales,
+   `build.js` URL emission + china stripping, Gate B inverted, `WANT_DCP` grown.
+4. **PR-D3 — copy**: README ×2, `store-assets/aso.md`, `amo-listing.md`, the `.cc`
+   site × 12. Ships with the next version; the App Store privacy labels and the CWS
+   data disclosure are refilled by hand at submission (`/store-release` §4.5 gains a step).
+
+## 8. Verification
+
+- `npm test` — new `test/telemetry.test.js`: ① an event name or property key off the
+  whitelist throws; ② any property value containing `http`, `@`, or longer than 64
+  characters is rejected (nobody gets to smuggle a URL, an email or a sentence in);
+  ③ after the switch is off, `track` is a no-op and the queue is cleared;
+  ④ `heartbeat` enqueues once per day. ④b/④c（2026-09-22，#387）：**并发**的 `init` / `once` 只记一条 ——
+  原来的 ④ 是顺序调三次，所以永远红不了，而线上的 bug 恰恰是并发（App 包里 `app.js` 与 `review.js` 各调一次
+  `init`）。修复前这两条实测为红。
+- **查询口径（#387）**：修复出货之前，App 面的 `installed` / `heartbeat` **按条数数约是两倍**（259 台里 257 台
+  重复，256 台重复在同一分钟、同一批上报，中位 2 条、最多 12 条）。比率一直用 `count(distinct install_id)`，
+  不受影响；**凡是按事件条数数装机或日活的查询，一律改成按 `install_id` 去重**，旧数据永远带着这个洞。
+- `test/backend-config.test.js` — the china artifact's `MT_TELEMETRY.url` host is `MT_BACKEND.china.url` and the path contains `bt-ingest`; it is not `*.supabase.co`.
+- `npm run test:smoke` — a local stub endpoint; translate one paragraph; assert a
+  `translate_ok` arrives and the payload has **no** URL or text field.
+  **2026-09-10：这条此前只写在这里、没有实现**（`verify-extension-smoke.js` 里零命中）；PR1 落地，
+  并加两条：假端点回 401 的那一幕收到 `translate_fail{code:'auth'}` 且**停机后不再增长**；
+  自动化下的遥测只许打本机桩 —— `MT_TELEMETRY` 加 `allowAutomation` 字段由测试注入，`spec()`
+  先看它再看 `navigator.webdriver`（headed 跑法 `webdriver` 为假，此前会把 `installed/heartbeat`
+  打进线上表）。
+- **发送点（2026-09-19，§3.4）**：`npm test` 的 `telemetry seams` —— 注册表的 `SEAMS` 去掉注释后对着
+  代码逐项核，并带「门禁自己能红」的用例（同一张表对修复前的 main：8 处红）。走得到由
+  `test:listen` 的 T / T2 段与 `test:grant` 守，两段在修复前均实测为红。**新增事件、新增宿主、
+  挪动发送点 ⇒ 改 `SEAMS`**；门禁红了先问「接上了吗」，不是改门禁。
+- Real device: Safari iOS, translate a page →
+  `select name, host from bt_events order by id desc limit 5` shows
+  `translate_ok / safari`; flip the switch off → zero rows for that `install_id`.
+- Gate B, negative: put "no telemetry" back into the README → `node build.js` must go red.
+
+## 9. The ledger (#174, closed by this design)
+
+**Cost:** one review-visible disclosure change across six surfaces (about a day), two
+days of backend + client work, two extra hand-filled fields at every release, and one
+marketing sentence — "no telemetry" — retired in favour of "no third party, off in one
+switch, never your content". **Benefit:** funnel, retention and failure codes, of which
+we have none today. **Cost of not doing it:** already being paid — #174's table, plus
+a whole day on 2026-09-05 spent asking users by email what a heartbeat would have said.
+The China flavor sends the same whitelist to the in-country ingest (principle 6). Phase B (deploy and read-back of that ingest) is still separate; until that read-back, do not claim production is aligned.
+
+
+## 诊断上报（diagnostic upload）—— **独立通道，不进遥测白名单**（2026-10-06，L2）
+
+> 与 §3 的事件白名单**并列**，不是它的一部分。加事件才动白名单；这条通道**没有 `track()` 调用**，
+> 是设备把本机环形日志**原样搬运**到自有后端信箱，因此纪律写在这里，而不是 §3 的表里。
+
+**它发什么。** `app/diag-log.js` 的环形日志（六类：`dl` 下载 tier 链 / `tts_engine` 装载失败 /
+`speak` 结局 / `probe` / `auth` 里程碑 / `engine_fix` 自愈），外加安装 id、flavor、App 版本与构建号、OS。
+**字段白名单在 `push` 处强制** —— 文本、译文、URL、账号、密钥一个键都进不来；上报器只搬运、不再加工。
+
+**它发到哪。** 自有后端的 `bt_diag_events`（`deploy/diag-events.sql`）：**write-only 信箱** ——
+`anon` 只有 `INSERT`，没有 `SELECT` / `UPDATE` / `DELETE`；服务端 cron 30 天清理。
+
+**什么时候发。** 启动后 5 秒 + 每 40 条 + 失败类（`tts_engine` / `dl`）快发；时间戳游标只发增量；失败静默。
+排障读回走 `npm run diag:latest` / `diag:dump -- <uuid>`（SSH 直连，不经 anon）。
+
+**披露与开关。** **单独披露**的一条路径（§2.1 第 3 条的形状）：设置页「诊断日志」（复制 / 清空），
+默认开、可关，关掉即停止上报。**中国版同样发这一类，且不含任何内容**；自 2026-10-29 起中国版**另外**发与国际版同一份用量白名单（原则 6，入口境内），诊断通道仍不并进 `track()`。
+`belliedmonkey.com` 的隐私页措辞必须同版本改写（#569 / BEL-135），不再写「一个字节都不发」或「无遥测是长期承诺」。网站正文由另一次改，不在客户端这个 PR 里。
+
+**为什么不做成遥测事件。** 遥测白名单的门禁要求「每个事件在每个宿主有真实发送点」——
+诊断上报没有这样的发送点，硬塞进去只会逼出一个假的 `track()` 调用，把「白名单 = 真发的东西」这条判据做虚。

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>text already in the target language is not translated</title>
+<style>
+  /* Target language is zh-CN (run-layout CFG). Three units that constrain each other:
+
+       #native   pure Chinese          → MUST get no translation sibling at all
+       #foreign  English               → MUST still be translated  (over-suppression guard)
+       #mixed    Chinese + English run → MUST still be translated  (a few foreign words
+                                         are enough to be worth translating)
+
+     Before the fix every unit was sent to the provider and every unit rendered a
+     sibling, so #native showed a duplicate of itself — RED on `noTranslationSibling`.
+
+     #foreign and #mixed are not decoration: a predicate that over-suppresses would
+     silently drop real translations (the #43 failure class — no output, no placeholder,
+     no error), and these two are what turns that into a red suite instead of a
+     user-visible regression. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 640px; padding: 24px; }
+  p { margin: 16px 0; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <p id="native">公司真开起来，你会发现最简单的就是开公司本身了，办个营业执照线上填表就行，现在连公章都免费送了。</p>
+
+  <p id="foreign">Reading foreign articles every morning is a simple habit that compounds into fluency over time.</p>
+
+  <p id="mixed">我们最近在读 Attention Is All You Need 这篇论文，里面的 self-attention 机制值得反复推敲。</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "same-language-not-translated",
+  "unitCount": 2,
+  "skipUniversal": {
+    "translationVisible": [
+      "#native"
+    ],
+    "translationContent": [
+      "#native"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#native",
+      "assert": [
+        "noTranslationSibling"
+      ]
+    },
+    {
+      "sel": "#foreign",
+      "assert": [
+        "translationMarked",
+        "sameLeft:2"
+      ]
+    },
+    {
+      "sel": "#mixed",
+      "assert": [
+        "translationMarked",
+        "sameLeft:2"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

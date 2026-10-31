@@ -1,0 +1,43 @@
+# r/Safari（工具向；同一份稍改后发 r/iphone、r/chrome_extensions）
+
+**规则要点**：r/Safari 与 r/iphone 对开发者自荐较宽容，但要求 flair 选「Extension」/「App」
+并在正文里说明「我是作者」。r/chrome_extensions 是开发者社区，可以更技术。
+**隔一天发一个 sub。**
+
+## 标题
+
+```
+[Extension] Open-source bilingual translation for Safari on iPhone/iPad/Mac — original and translation side by side, bring your own key
+```
+
+## 正文
+
+Developer here. This is a Safari extension (one App Store listing covers iPhone, iPad and
+Mac) that translates a page without replacing it: each paragraph keeps its original, with the
+translation right beneath in a distinct color. YouTube gets dual subtitles the same way. The
+app that carries the extension now also does Live Subtitles — bilingual subtitles for whatever
+the device plays, as a picture-in-picture window on iPhone or a floating bar on Mac — and a live
+conversation interpreter.
+
+Why I made it instead of using what's out there: the existing options on iOS are subscriptions
+that route the page text through their own servers. This one is GPL open source, has no
+account requirement, and no server of mine in the translation path when you use your own key.
+Google's free endpoint works with zero setup; or paste your own OpenAI / Claude / DeepSeek / GLM
+key and use that. The only thing it reports is anonymous usage events (which features, never
+page content), and there's a switch for that. Honest comparison with the other options:
+https://belliedmonkey.cc/alternatives.html
+
+Safari-iOS specifics people here may care about:
+
+- The extension's background worker dies permanently after the device locks (a known Safari
+  behavior), so everything runs from the content script — it keeps working after you unlock.
+- YouTube's caption endpoint is token-gated on iOS. We don't fight it: YouTube fetches its own
+  captions, we read the URL back from the Resource Timing API. No word-by-word fallback.
+- Safari hands extensions silence for YouTube's audio, so transcribing inside the page can't
+  work there. That's why Live Subtitles lives in the app and listens to the device's sound.
+- Optional learning mode: sentences you actually read become review cards. Off by default.
+
+App Store: https://apps.apple.com/app/belliedmonkey-translator/id6787190032
+Source: https://github.com/belliedmonkey/belliedmonkey-translator
+
+Tell me what breaks — site names are the most useful thing you can give me.

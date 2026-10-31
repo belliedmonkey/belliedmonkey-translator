@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>M10 · 某句翻译失败</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 820px; height: 640px; ">
+<div style="width: 820px; height: 640px; display: flex; flex-direction: column; background: var(--bg);">
+  <div style="height: 32px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--section); border-bottom: 1px solid var(--line);"><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--line);"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--line);"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: var(--line);"></span><span style="flex: 1; text-align: center; font-size: 13px; color: var(--dim); margin-right: 52px;">大肚猴翻译</span></div>
+  <div style="flex: 1; min-height: 0; padding: 20px; display: flex; flex-direction: column; gap: 12px; "><div style="display: flex; gap: 16px; flex: 1; min-height: 0;">
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><span style="color: var(--accent-deep); text-decoration: underline; padding: 6px 0; font-size: 16px;">← 返回</span><h2 style="font-size: 20px; margin: 0; flex: 1; font-weight: 700;">实时字幕</h2><span style="font-size: 12.8px; line-height: 1.4; color: var(--sage-strong); background: var(--card); border-radius: 999px; padding: 4px 10px; white-space: nowrap; flex: none;">● 字幕中 · 03:12</span></div>
+    <p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; margin: 0;">English → 中文 · 设备内置转写 · 字幕条在屏幕下方</p>
+    <div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; "><div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12.8px; color: var(--dim);"><span>现在</span><span style="color: var(--accent-deep);">● 实时</span></div><p style="font-size: 21.6px; line-height: 1.5; margin: 6px 0 0; font-style: italic;">Payment can be by letter of credit or wire</p><p style="color: var(--sage-strong); font-size: 17.6px; line-height: 1.5; margin: 2px 0 0; font-style: italic;">付款方式可以是信用证，也可以是电汇</p></div>
+    <button type="button" style="font-size: 16.8px; font-weight: 700; color: #ffffff; background: var(--accent); border: 0; border-radius: 16px; padding: 14px 12px; min-height: 64px; ">● 正在听 · 暂停</button>
+    <p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; ">已听 03:12 · 音频不离开设备</p>
+  </div>
+  <div style="flex: 1; min-width: 0; display: flex; flex-direction: column;"><div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1;"><div style="display: flex; justify-content: space-between; align-items: baseline; font-size: 12.8px; color: var(--dim);"><span>整句定稿</span><span style="display: flex; gap: 12px;"><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 12.8px;">复制全文</span><span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; font-size: 12.8px;">结束</span></span></div><div style="display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line);"><div style="flex: 1; min-width: 0;"><div style="font-size: 16px; line-height: 1.45;">We can ship the first batch next Tuesday if the deposit arrives by Friday.</div><div style="color: var(--sage-strong); font-size: 15.2px; line-height: 1.45;">如果定金周五前到账，我们下周二就能发第一批货。</div></div><span style="color: var(--dim); padding: 2px 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"></path></svg></span></div><div style="display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line);"><div style="flex: 1; min-width: 0;"><div style="font-size: 16px; line-height: 1.45;">The quote already includes freight and insurance, but not customs duties.</div><div style="color: var(--sage-strong); font-size: 15.2px; line-height: 1.45;">报价里已经包含了运费和保险，但不含关税。</div></div><span style="color: var(--accent); padding: 2px 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"></path></svg></span></div><div style="display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line);"><div style="flex: 1; min-width: 0;"><div style="font-size: 16px; line-height: 1.45;">We need to see a sample first before we decide on the order quantity.</div><div style="color: var(--danger); font-size: 13.6px; text-decoration: underline; padding-top: 2px;">译文失败 · 重试</div></div><span style="color: var(--dim); padding: 2px 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"></path></svg></span></div><div style="display: flex; gap: 8px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line);"><div style="flex: 1; min-width: 0;"><div style="font-size: 16px; line-height: 1.45;">Lead time for this batch is forty-five days.</div><div style="color: var(--sage-strong); font-size: 15.2px; line-height: 1.45;">这批货的交期是四十五天。</div></div><span style="color: var(--dim); padding: 2px 4px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"></path></svg></span></div></div></div>
+</div></div>
+</div>
+<div style="position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%);"><div style="position: relative; width: 560px; max-width: 100%; background: rgba(22,20,18,0.74); border: 1px solid rgba(255,255,255,0.08); border-radius: 15px; padding: 12px 19px 14px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 12px 34px rgba(0,0,0,0.38); backdrop-filter: blur(18px);  "><div style="display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.4;"><span style="flex: 1; min-width: 0;">We need to see a sample first before we decide on the order quantity.</span></div><div style="color: rgba(255,255,255,0.62); font-size: 12px; line-height: 1.45; padding-left: 0px;">这句译文失败 · 主窗口里可重试</div></div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":820,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

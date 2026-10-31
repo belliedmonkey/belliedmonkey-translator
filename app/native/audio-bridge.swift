@@ -1,0 +1,1212 @@
+// app/native/audio-bridge.swift — 播客模式 (§9.5「后台与锁屏播放」) 的原生一半。
+//
+// 这个文件**不是 Xcode 工程的成员**。`scripts/sync-app-assets.js` 在每次
+// `npm run app:sync` 时把它整块贴进 `Shared (App)/ViewController.swift`
+// （`import WebKit` 之后，一对 BEGIN/END 标记之间）。要改它就改这里，
+// 改工程里那一份会在下一次 app:sync 时被原样覆盖。
+//
+// 为什么是「贴进已有文件」而不是「加一个源文件」：`safari-project*/` 是
+// safari-web-extension-converter 的一次性产物，重新生成会重置 pbxproj 的文件清单。
+// 贴进一个**本来就在 target 里**的文件，就永远不需要碰 PBXFileReference / PBXBuildFile
+// —— 那是最容易被重生成打回原形的地方（learning-design §12，2026-08-17 那行否决的正题）。
+//
+// 为什么不是内联在 sync-app-assets.js 的 JS 字符串里：一百多行 Swift 拼在字符串里
+// 没有高亮、没有编译器、`\(...)` 要和 JS 转义打架、git blame 全落在一行 `+` 上。
+// 同一个理由让 macOS 菜单补丁写成了数据而不是字面量。
+//
+// ── 零文案纪律 ───────────────────────────────────────────────────────────────
+// 这个文件里**没有一个用户可见的字**。锁屏/控制中心上显示的每一个字都由 JS 传进来，
+// 因此照常走 `_locales/` 的 11 份 messages.json。原生侧一旦自己写文案，那句话就永远
+// 不会被翻译，也永远不会跟着产品名改。
+//
+// ── 两个平台，两半代码 ──────────────────────────────────────────────────────
+//   iOS   : 进程会被挂起 ⇒ 需要 UIBackgroundModes: audio + AVAudioSession(.playback)
+//   macOS : 进程不会被挂起 ⇒ 后台播放无条件成立，这里只装媒体遥控那一半
+// `AVAudioSession` 是 iOS-only 的 API，macOS 上不存在，所以会话那一半整个在 #if os(iOS) 里。
+import WebKit
+import AVFoundation
+import MediaPlayer
+#if os(iOS)
+import ActivityKit
+#endif
+#if os(macOS)
+import AppKit
+#endif
+
+#if os(iOS)
+/// Live Activity 的属性（§9.5 灵动岛）。**这份定义在两个 target 各编译一份**
+/// （App 与 Widget 扩展），所以它和 `app/native/widget/LiveActivity.swift` 里那份
+/// 必须逐字一致 —— 字段名对不上时不会编译报错，只会在运行时解码失败、岛上什么都不显示。
+/// `npm test` 有一条断言逐字比对这两处。
+struct MTPodcastAttributes: ActivityAttributes {
+    public struct ContentState: Codable, Hashable {
+        var title: String
+        var subtitle: String
+        var progress: String
+        var playing: Bool
+    }
+    var sessionId: String
+}
+#endif
+
+#if os(iOS)
+import UIKit
+typealias MTImage = UIImage
+#else
+import AppKit
+typealias MTImage = NSImage
+#endif
+
+/// 把 App 内 web 视图里的播客播放器接到系统音频栈上：音频会话（iOS）、
+/// 媒体遥控与「正在播放」（两个平台）。
+final class MTAudioBridge: NSObject, WKScriptMessageHandler {
+
+    static let shared = MTAudioBridge()
+
+    /// 通道名。JS 侧 `window.webkit.messageHandlers.mtAudio` 与
+    /// sync-app-assets.js 的 install 行必须用同一个字符串 —— `npm test` 有一条断言钉住这三处。
+    static let channel = "mtAudio"
+
+    private weak var webView: WKWebView?
+    private var commandsInstalled = false
+
+    /// 当前卡片的封面（由 JS 画好送过来）。锁屏那一档用它。
+    private var cardArt: MTImage?
+#if os(iOS)
+    /// 当前的 Live Activity。iOS 16.1+ 才有 —— 低版本上它恒为 nil，灵动岛那一半
+    /// 不存在，其余（后台播放、锁屏封面、遥控）照常。能力语义，不是降级。
+    private var activityBox: Any?
+#endif
+    /// 系统实际用哪些尺寸来问封面 —— Apple 没有公开这件事，所以这里如实记下来
+    /// 回传给 JS，让「小尺寸阈值」由实测决定而不是猜。只回传没见过的尺寸。
+    private var seenArtSizes = Set<Int>()
+
+    /// 小于这个宽度（pt）就给 App 图标，不给卡片：那个尺寸上放不下一个句子，
+    /// 缩过去只会是一团糊 —— 灵动岛那个「问号」位就在这一档。
+    /// **这是个待实测的初值**，见 seenArtSizes。
+    private static let iconMaxWidth: CGFloat = 120
+
+    // MARK: - 安装
+
+    /// 由 ViewController.viewDidLoad 调用（补丁插入）。可以被调用多次而不出事。
+    func install(webView: WKWebView) {
+        self.webView = webView
+        let ucc = webView.configuration.userContentController
+        // 先摘再挂：同名 handler 重复注册在 WebKit 里是 fatal error，而 viewDidLoad
+        // 在某些生命周期下确实会跑第二次。
+        ucc.removeScriptMessageHandler(forName: MTAudioBridge.channel)
+        ucc.add(self, name: MTAudioBridge.channel)
+
+#if os(iOS)
+        let nc = NotificationCenter.default
+        nc.removeObserver(self)
+        nc.addObserver(self, selector: #selector(onInterruption(_:)),
+                       name: AVAudioSession.interruptionNotification, object: nil)
+        nc.addObserver(self, selector: #selector(onRouteChange(_:)),
+                       name: AVAudioSession.routeChangeNotification, object: nil)
+        // 路由切换（插拔耳机/蓝牙）后 inputNode 的格式会变，引擎自己停下、tap 作废 ——
+        // 原来的 converter 是起会话时一次性钉死的，之后每块都转出全零而没有任何报错
+        // （2026-09-12 尖刺 S12 记录的缺陷）。听到配置变化就按同样的参数重起一次采集。
+        nc.addObserver(self, selector: #selector(onEngineConfigChange(_:)),
+                       name: .AVAudioEngineConfigurationChange, object: nil)
+        // 屏幕常亮要在每次回前台重申一次。`isIdleTimerDisabled` 只在 viewDidLoad 设过
+        // 一次，而它只在 App 处于前台时被系统尊重 —— 从后台回来之后不重申，播客模式
+        // 放着放着屏幕就自己灭了，而用户看到的只是「屏幕黑了」，无从归因。
+        //
+        // 注意这解决的**不是**「锁屏后保持亮屏」：那件事第三方 App 做不到，手动锁屏后
+        // 屏幕必灭，唯一能让锁屏内容持续可见的是系统的「息屏常显」。
+        nc.addObserver(self, selector: #selector(onDidBecomeActive),
+                       name: UIApplication.didBecomeActiveNotification, object: nil)
+#endif
+#if os(macOS)
+        // 从系统设置回到 App：再读一次麦克风授权。JS 按状态去重，没变就不记第二条。
+        let macNc = NotificationCenter.default
+        macNc.removeObserver(self, name: NSApplication.didBecomeActiveNotification, object: nil)
+        macNc.addObserver(self, selector: #selector(onDidBecomeActiveMac),
+                          name: NSApplication.didBecomeActiveNotification, object: nil)
+#endif
+    }
+
+    // MARK: - JS → 原生
+
+    func userContentController(_ userContentController: WKUserContentController,
+                               didReceive message: WKScriptMessage) {
+        // 安全解包，不是 `as!`：一个形状对不上的 body 应该被忽略，不该让 App 崩掉。
+        guard let body = message.body as? [String: Any],
+              let type = body["type"] as? String else { return }
+        switch type {
+        case "session-start":  startSession()
+        case "session-stop":   stopSession()
+        case "now-playing":    updateNowPlaying(body); updateActivity(body)
+        case "now-playing-artwork": updateArtwork(body)
+        case "playing-state":  updatePlaybackState(body)
+        case "record-mode":    setRecordMode(body)   // 实时听译（§9.6）/ 字幕档（§9.8 协议补充决定 2、16）
+        case "mic-start":      micStart(rate: (body["rate"] as? Double) ?? 24000,
+                                        deliverPcm: (body["deliver"] as? String) != "level",
+                                        system: (body["source"] as? String) == "system")
+        case "mic-stop":       micStop()
+        case "mic-perm-read":  emitMicPerm(micAuthState(), kind: "mic")
+        // 实时字幕（learning-design §9.8）。Mac：系统声音 + 悬浮字幕条。iOS 在一期（画中画字幕窗）落地之前
+        // 不回 caps-probe ⇒ 页面按老壳处理、iPhone 上入口不显示（§9.8 协议补充决定 3、11）。
+        case "caps-probe":      capsProbe()
+        case "subtitle-config": subtitleConfig(body)
+        case "subtitle-show":   subtitleShow(body)
+        case "subtitle-state":  subtitleState(body)
+        case "subtitle-float":  subtitleFloat(body)
+        case "subtitle-hide":   subtitleHide()
+        default: break   // 未知类型静默忽略：JS 比原生新是半同步开发树的常态
+        }
+    }
+
+    // MARK: - 麦克风（§9.6 对话·实时听译 —— 原生采集）
+    //
+    // 为什么在这儿而不在网页里：WebKit 在 App 不可见时一律静音页内的 getUserMedia
+    // （2026-09-07 真机三轮实证：锁屏期间采集帧恒为 0，页面一可见立刻恢复；页内音频
+    // 保活只能保住 JS，保不住采集）。AVAudioEngine 的输入 tap 不受这条限制 —— 只要
+    // 会话是 .playAndRecord 且声明了 UIBackgroundModes: audio，锁屏后照常出块。
+    //
+    // 形状：inputNode 的原生格式 → AVAudioConverter → 单声道 Int16 @ 请求的采样率
+    // （注册表 liveRate，OpenAI 是 24 kHz）→ base64 → 一条 `mic-pcm`。每块 ≈ 85 ms
+    // （4096 帧 @ 48 kHz），≈ 12 条/s、≈ 64 KB/s base64 —— evaluateJavaScript 扛得住。
+    //
+    // 权限由这里一次性要（AVAudioApplication / AVAudioSession），不再让 WKWebView 每次
+    // 重装都重新弹。拒绝 ⇒ `mic-state denied`，JS 那边有一句指路文案。
+
+    private var micEngine: AVAudioEngine?
+    private var micConverter: AVAudioConverter?
+    /// 转换器是按哪个输入格式建的。路由一变（插拔耳机、蓝牙切换）tap 交上来的格式就变，
+    /// 拿旧转换器去转会返回 FormatNotSupported —— 见 micDeliver 里的懒建。
+    private var micConverterIn: AVAudioFormat?
+    private var micOutFormat: AVAudioFormat?
+    private var micRate: Double = 24000
+    /// 本机路（§9.6.1）：`mic-start {deliver: 'level'}` ⇒ 不发 base64 PCM，只发 `mic-level {rms}`（≤10 Hz）。
+    /// 每秒十几块 base64 的主线程往返在云端路是必需的（socket 在 JS），本机路里是纯浪费 —— 音频
+    /// 留在原生，由 micSink 直接交给识别器。
+    private var micDeliverPcm = true
+    private var lastLevelAt: TimeInterval = 0
+    /// 朗读期间静音输入（learning-design §9.6 回声段，2026-09-13 用户裁定「App 自己朗读的声音不能再被自己听到并翻译」）。
+    /// speech-bridge 在出声时置 true、念完置 false（之后再静 350 ms 吃掉尾音与房间混响）。tap 照常在跑，
+    /// 但交给识别器 / JS 的是同长度的**静音帧**而不是丢帧：识别器的静音检测会把朗读前的半句正常收口，
+    /// JS 的电平表也如实显示 0；朗读一结束麦克风立刻恢复，不用重开会话。
+    var muteInput = false { didSet { if oldValue && !muteInput { muteUntil = Date().timeIntervalSince1970 + 0.35 } } }
+    private var muteUntil: TimeInterval = 0
+    /// 与 tap 共享一份缓冲的第二个消费者（speech-bridge.swift 的设备内置转写）。
+    /// **不第二次装 tap** —— 同一个 inputNode 装两个 tap 是运行期 trap。在 tap 线程上被调用。
+    ///
+    /// 预录（1.19.4 r6，真机「听译英文丢前 1–2 个词」）：识别器要等 `prepareToAnalyze` 完才挂上来，
+    /// 而麦克风 granted 时界面已经是「正在听」—— 这段空窗里的帧以前直接丢了。现在没有 sink 时帧进
+    /// `preRoll`，挂上 sink 的那一刻先按原顺序补喂。缓冲里只有**还没被任何识别器看过**的声音
+    /// （有 sink 时不进缓冲；每次开麦清空），所以不会重复识别。补喂与实时帧共用一把锁，顺序不乱。
+    var micSink: ((AVAudioPCMBuffer) -> Void)? {
+        get { sinkLock.lock(); defer { sinkLock.unlock() }; return sinkStore }
+        set {
+            sinkLock.lock(); defer { sinkLock.unlock() }
+            sinkStore = newValue
+            if let sink = newValue {
+                let pending = preRoll
+                preRoll = []; preRollSec = 0
+                for b in pending { sink(b) }
+            } else {
+                preRoll = []; preRollSec = 0
+            }
+        }
+    }
+    private var sinkStore: ((AVAudioPCMBuffer) -> Void)?
+    private let sinkLock = NSLock()
+    private var preRoll: [AVAudioPCMBuffer] = []
+    private var preRollSec: Double = 0
+    static let preRollMaxSec: Double = 3
+
+    private func resetPreRoll() {
+        sinkLock.lock(); preRoll = []; preRollSec = 0; sinkLock.unlock()
+    }
+
+    /// 把一块交给 sink；没有 sink 就拷一份进预录（tap 的缓冲由引擎复用，不能直接留引用）。
+    private func deliverToSink(_ buffer: AVAudioPCMBuffer) {
+        sinkLock.lock(); defer { sinkLock.unlock() }
+        if let sink = sinkStore { sink(buffer); return }
+        guard buffer.format.sampleRate > 0, let copy = MTAudioBridge.copyBuffer(buffer) else { return }
+        preRoll.append(copy)
+        preRollSec += Double(copy.frameLength) / copy.format.sampleRate
+        while preRollSec > MTAudioBridge.preRollMaxSec, let first = preRoll.first {
+            preRoll.removeFirst()
+            preRollSec -= Double(first.frameLength) / first.format.sampleRate
+        }
+    }
+
+    static func copyBuffer(_ b: AVAudioPCMBuffer) -> AVAudioPCMBuffer? {
+        guard let c = AVAudioPCMBuffer(pcmFormat: b.format, frameCapacity: b.frameLength) else { return nil }
+        c.frameLength = b.frameLength
+        let src = UnsafeMutableAudioBufferListPointer(UnsafeMutablePointer(mutating: b.audioBufferList))
+        let dst = UnsafeMutableAudioBufferListPointer(c.mutableAudioBufferList)
+        for i in 0..<min(src.count, dst.count) {
+            guard let s = src[i].mData, let d = dst[i].mData else { continue }
+            memcpy(d, s, Int(min(src[i].mDataByteSize, dst[i].mDataByteSize)))
+        }
+        return c
+    }
+
+    private func micStart(rate: Double, deliverPcm: Bool = true, system: Bool = false) {
+        micStop()
+        micRate = rate
+        micDeliverPcm = deliverPcm
+        if system {
+            // 实时字幕（§9.8）：系统声音。页面只在收到 audio-caps.system === 'ok' 之后才会发 source:'system'，
+            // 这里再按系统版本守一次 —— **绝不静默改开麦克风**（老调用方以为在听视频，其实在听房间）。
+#if os(macOS)
+            if #available(macOS 14.4, *) { systemBegin(rate: rate); return }
+#endif
+            emit(["type": "mic-state", "state": "failed", "reason": "os", "source": "system"])
+            return
+        }
+        requestMicPermission { [weak self] granted in
+            guard let self = self else { return }
+            guard granted else { self.emit(["type": "mic-state", "state": "denied"]); return }
+            self.micBegin(rate: rate)
+        }
+    }
+
+    /// 缓冲的 RMS（线性，0–1）。Float32 与 Int16 两种原生格式都认；识别器的静音检测与
+    /// `mic-level` 都用它，所以它是 static 的。
+    static func rms(_ buffer: AVAudioPCMBuffer) -> Double {
+        let n = Int(buffer.frameLength)
+        guard n > 0 else { return 0 }
+        var acc = 0.0
+        if let ch = buffer.floatChannelData {
+            for i in 0..<n { let v = Double(ch[0][i]); acc += v * v }
+        } else if let ch = buffer.int16ChannelData {
+            for i in 0..<n { let v = Double(ch[0][i]) / 32768; acc += v * v }
+        } else { return 0 }
+        return (acc / Double(n)).squareRoot()
+    }
+
+    /// 麦克风授权的短码（telemetry-design §3.16）。只这些词，不带系统长文。
+    /// `restricted` 只在 AVCapture 上有；iOS 录音权限 API 没有这一档，所以先看采集状态。
+    private func micAuthState() -> String {
+        let cap = AVCaptureDevice.authorizationStatus(for: .audio)
+        if cap == .restricted { return "restricted" }
+#if os(iOS)
+        if #available(iOS 17.0, *) {
+            switch AVAudioApplication.shared.recordPermission {
+            case .granted: return "granted"
+            case .denied: return "denied"
+            default: return "not_determined"
+            }
+        } else {
+            switch AVAudioSession.sharedInstance().recordPermission {
+            case .granted: return "granted"
+            case .denied: return "denied"
+            default: return "not_determined"
+            }
+        }
+#else
+        switch cap {
+        case .authorized: return "granted"
+        case .denied: return "denied"
+        case .notDetermined: return "not_determined"
+        default: return "not_determined"
+        }
+#endif
+    }
+
+    private func emitMicPerm(_ state: String, kind: String) {
+        emit(["type": "mic-perm", "state": state, "kind": kind])
+    }
+
+    private func requestMicPermission(_ done: @escaping (Bool) -> Void) {
+        let before = micAuthState()
+        if before == "not_determined" { emitMicPerm("prompted", kind: "mic") }
+        else { emitMicPerm(before, kind: "mic") }
+        let finish: (Bool) -> Void = { [weak self] ok in
+            guard let self = self else { done(ok); return }
+            if before == "not_determined" {
+                let after = self.micAuthState()
+                let state = (after == "granted" || after == "denied" || after == "restricted") ? after : (ok ? "granted" : "denied")
+                self.emitMicPerm(state, kind: "mic")
+            }
+            done(ok)
+        }
+#if os(iOS)
+        if #available(iOS 17.0, *) {
+            AVAudioApplication.requestRecordPermission { ok in DispatchQueue.main.async { finish(ok) } }
+        } else {
+            AVAudioSession.sharedInstance().requestRecordPermission { ok in DispatchQueue.main.async { finish(ok) } }
+        }
+#else
+        AVCaptureDevice.requestAccess(for: .audio) { ok in DispatchQueue.main.async { finish(ok) } }
+#endif
+    }
+
+    private func micBegin(rate: Double) {
+#if os(iOS)
+        // 录音会话：不管 JS 有没有先发 record-mode，这里都把类别钉成可录的那一档。
+        // 漏掉这一步的表现是「权限给了、tap 装了、块里全是 0」—— 查起来极贵。
+        let session = AVAudioSession.sharedInstance()
+        do {
+            try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+            try session.setActive(true)
+        } catch {
+            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            return
+        }
+#endif
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let inFormat = input.outputFormat(forBus: 0)
+        guard inFormat.sampleRate > 0, inFormat.channelCount > 0 else {
+            emit(["type": "mic-state", "state": "failed", "reason": "input-format"])
+            return
+        }
+        guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
+              let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
+            emit(["type": "mic-state", "state": "failed", "reason": "converter"])
+            return
+        }
+        resetPreRoll()
+        micEngine = engine
+        micConverter = converter
+        micConverterIn = inFormat
+        micOutFormat = outFormat
+        input.installTap(onBus: 0, bufferSize: 4096, format: inFormat) { [weak self] buffer, _ in
+            self?.micDeliver(buffer)
+        }
+        do {
+            engine.prepare()
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
+            emit(["type": "mic-state", "state": "failed", "reason": String(describing: error)])
+            return
+        }
+        emit(["type": "mic-state", "state": "granted"])
+#if os(iOS)
+        checkHeadphones()
+#endif
+    }
+
+    private func micDeliver(_ raw: AVAudioPCMBuffer) {
+        var buffer = raw
+        if muteInput || Date().timeIntervalSince1970 < muteUntil {
+            guard let z = AVAudioPCMBuffer(pcmFormat: raw.format, frameCapacity: raw.frameLength) else { return }
+            z.frameLength = raw.frameLength     // 新分配的缓冲区全零 ⇒ 静音帧
+            buffer = z
+        }
+        deliverToSink(buffer)
+        // §0.4.1 诊断录音（2026-10-06）：麦克风的同一 PCM 顺手落盘（默认关；文本 sidecar
+        // 只随音频包走，零内容事件通道不变）。写失败静默 —— 排障仪器绝不影响主功能。
+        #if canImport(AVFoundation)
+        MTDiagAudio.shared.write("mic", buffer)
+        #endif
+        if !micDeliverPcm {
+            let now = Date().timeIntervalSince1970
+            guard now - lastLevelAt >= 0.1 else { return }
+            lastLevelAt = now
+            emit(["type": "mic-level", "rms": MTAudioBridge.rms(buffer)])
+            return
+        }
+        guard let outFormat = micOutFormat else { return }
+        // 转换器按**这一块的实际格式**懒建 + 缓存。原来是会话开始时按 inFormat 一次性钉死的，
+        // 而路由一变（插拔耳机、蓝牙切换、系统重协商）输入格式就跟着变 —— 喂进一个格式不符的块，
+        // convert 返回 FormatNotSupported，然后被 guard 静默丢掉，从此一块 PCM 都不出来：
+        // 界面上看不出任何异常，听译就是「不出字」。（原在 #222 里顺手修的，那条线已关，单独取出来。）
+        if micConverter == nil || micConverterIn != buffer.format {
+            guard let c = AVAudioConverter(from: buffer.format, to: outFormat) else { return }
+            micConverter = c
+            micConverterIn = buffer.format
+        }
+        guard let converter = micConverter else { return }
+        let ratio = outFormat.sampleRate / buffer.format.sampleRate
+        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio) + 16
+        guard let out = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: capacity) else { return }
+        var consumed = false
+        var error: NSError?
+        converter.convert(to: out, error: &error) { _, status in
+            if consumed { status.pointee = .noDataNow; return nil }
+            consumed = true
+            status.pointee = .haveData
+            return buffer
+        }
+        guard error == nil, out.frameLength > 0, let ch = out.int16ChannelData else { return }
+        let bytes = Data(bytes: ch[0], count: Int(out.frameLength) * MemoryLayout<Int16>.size)
+        emit(["type": "mic-pcm", "b64": bytes.base64EncodedString()])
+    }
+
+    private func micStop() {
+#if os(macOS)
+        if let tap = systemTap {
+            systemTap = nil
+            systemGen += 1          // 还悬着的「等授权 / 超时」回调认得出自己过期了
+            if #available(macOS 14.4, *) { (tap as? MTSystemTap)?.stop() }
+            micConverter = nil; micOutFormat = nil
+            resetPreRoll()
+            emit(["type": "mic-state", "state": "ended", "source": "system"])
+            return
+        }
+#endif
+        guard let engine = micEngine else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        micEngine = nil; micConverter = nil; micConverterIn = nil; micOutFormat = nil
+        resetPreRoll()
+        emit(["type": "mic-state", "state": "ended"])
+    }
+
+    /// 实时听译要的是「一边录一边（可能）放」的会话；播客模式仍是只放不录。
+    /// 由 JS 在 session-start 之前用 record-mode 声明，原生只在建会话时读它。
+    private var recordMode = false
+    private var sweptOrphans = false   // 冷启动对账只做一次（见 sweepOrphanActivities）
+
+    private func setRecordMode(_ body: [String: Any]) {
+        recordMode = (body["on"] as? Bool) ?? false
+#if os(iOS)
+        recordProfile = recordMode ? ((body["profile"] as? String) ?? "conv") : "conv"
+#endif
+    }
+
+#if os(iOS)
+    /// 这次录音会话的档（§9.8 协议补充决定 16）。**所有重申类别的地方都按它**：建会话、起引擎、playing-state 重申、
+    /// 路由变化后重起 —— 硬写对话档的 .allowBluetooth 会让字幕档连着 AirPods 时被强切通话音质。
+    private var recordProfile = "conv"
+    private var recordOptions: AVAudioSession.CategoryOptions {
+        recordProfile == "subtitle" ? [.mixWithOthers, .defaultToSpeaker] : [.defaultToSpeaker, .allowBluetooth, .mixWithOthers]
+    }
+
+    /// 戴耳机（协议补充决定 21）：字幕档听的是外放，输出走耳机 / 蓝牙时麦克风听不到视频。开始时判一次，路由变化再判；
+    /// 摘下不自动恢复（由用户点「继续」）。
+    private func checkHeadphones() {
+        guard recordProfile == "subtitle", micEngine != nil else { return }
+        let phones: [AVAudioSession.Port] = [.headphones, .bluetoothA2DP, .bluetoothLE, .bluetoothHFP]
+        guard AVAudioSession.sharedInstance().currentRoute.outputs.contains(where: { phones.contains($0.portType) }) else { return }
+        micStop()
+        emit(["type": "mic-state", "state": "interrupted", "reason": "headphones", "source": "mic"])
+    }
+#endif
+
+    private func startSession() {
+#if os(iOS)
+        let session = AVAudioSession.sharedInstance()
+        do {
+            // .playback = 「这是内容音频，静音键不该关掉它，后台要继续」。
+            // .spokenAudio = 口播语义：蓝牙/车机路由与「暂停别人的播客」都按这个来。
+            // 不加 .mixWithOthers —— 播客模式就是要接管，混着播等于两个人同时说话。
+            if recordMode {
+                // .playAndRecord + 扬声器 + 蓝牙 + 可混音：线下对话手机放桌上，声音要从外放出、耳机要能用；
+                // **可混音是必须的** —— 页内的保活音频与朗读走 WebKit 自己（GPU 进程）的音频会话，不可混音的
+                // 录音会话会被它当场打断（2026-09-07 真机：TestFlight 84 一进来就「录音被系统停止了」）。
+                try session.setCategory(.playAndRecord, mode: .default, options: recordOptions)
+            } else {
+                try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            }
+            try session.setActive(true)
+        } catch {
+            // 建不起来就如实说，让 JS 退回「隐藏即暂停」的老行为，而不是继续假装能后台播。
+            emit(["type": "session-failed", "reason": String(describing: error)])
+            return
+        }
+#endif
+        installCommands()
+        // 冷启动对账：这一进程的第一次起会话，先把上一次被杀留下的残留活动 / Now Playing 清掉。
+        if !sweptOrphans { sweptOrphans = true; sweepOrphanActivities() }
+        // `suspends` 是 JS 用来判断「隐藏之后还能不能出声」的唯一依据。由原生报，
+        // 而不是让 JS 去嗅 UA —— domain-design §5.3 规则 2 禁止用 UA 做能力判断，
+        // 而这恰恰是一个平台能力问题：iOS 会挂起进程，macOS 不会。
+#if os(iOS)
+        emit(["type": "session-ready", "platform": "ios", "suspends": true])
+#else
+        emit(["type": "session-ready", "platform": "macos", "suspends": false])
+#endif
+    }
+
+    /// 启动对账（改稿 D，2026-10-09）：上一次进程被杀（强杀 / 崩溃 / 被系统回收 / Mac 上 Cmd-Q）时，    /// 我们没机会走 `stopSession()` —— 而 ActivityKit 的活动是**系统渲染**的，不保证跟着进程一起消失，
+    /// 可能一直挂在灵动岛 / 锁屏上，让用户看到一条「明明已经不在录」的状态。所以每次起会话前先把所有
+    /// 残留活动与 Now Playing 清掉。**不依赖「系统会不会自己清」**（各 iOS 版本行为不一致）。
+    private func sweepOrphanActivities() {
+#if os(iOS)
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        guard #available(iOS 16.1, *) else { return }
+        let orphans = Activity<MTPodcastAttributes>.activities
+        guard !orphans.isEmpty else { return }
+        Task { for a in orphans { await a.end(dismissalPolicy: .immediate) } }
+#endif
+    }
+
+    private func stopSession() {
+        micStop()
+        endActivity()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+#if os(iOS)
+        // .notifyOthersOnDeactivation：让刚才被我们打断的那个 App 能自己恢复。
+        try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+#endif
+    }
+
+    private func installCommands() {
+        guard !commandsInstalled else { return }
+        commandsInstalled = true
+        let center = MPRemoteCommandCenter.shared()
+
+        center.playCommand.addTarget            { [weak self] _ in self?.remote("play");     return .success }
+        center.pauseCommand.addTarget           { [weak self] _ in self?.remote("pause");    return .success }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ in self?.remote("toggle");   return .success }
+        center.nextTrackCommand.addTarget       { [weak self] _ in self?.remote("next");     return .success }
+        // 「上一曲」= 再听一遍。播客模式没有「上一张」：随机是一次性排列，往回退没有定义。
+        center.previousTrackCommand.addTarget   { [weak self] _ in self?.remote("previous"); return .success }
+
+        for command in [center.playCommand, center.pauseCommand, center.togglePlayPauseCommand,
+                        center.nextTrackCommand, center.previousTrackCommand] {
+            command.isEnabled = true
+        }
+        // 一张卡三遍五段，任何进度条都会撒谎 —— 时间轴一律不给。
+        for command in [center.changePlaybackPositionCommand, center.seekForwardCommand,
+                        center.seekBackwardCommand, center.skipForwardCommand,
+                        center.skipBackwardCommand] {
+            command.isEnabled = false
+        }
+    }
+
+    // MARK: - 「正在播放」
+
+    private func updateNowPlaying(_ body: [String: Any]) {
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPMediaItemPropertyTitle]      = body["title"] as? String ?? ""
+        info[MPMediaItemPropertyArtist]     = body["subtitle"] as? String ?? ""
+        info[MPMediaItemPropertyAlbumTitle] = body["album"] as? String ?? ""
+        // 无时间轴 ⇒ 系统不画拖动条。见 installCommands 里关掉 seek 的同一个理由。
+        info[MPNowPlayingInfoPropertyIsLiveStream] = true
+        info.removeValue(forKey: MPMediaItemPropertyPlaybackDuration)
+        info.removeValue(forKey: MPNowPlayingInfoPropertyElapsedPlaybackTime)
+        if let index = body["index"] as? Int, let count = body["count"] as? Int, count > 0 {
+            info[MPNowPlayingInfoPropertyPlaybackQueueIndex] = index
+            info[MPNowPlayingInfoPropertyPlaybackQueueCount] = count
+        }
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    // MARK: - 灵动岛（Live Activity）
+
+    // 系统的媒体形态在收起态只给「图标 + 波形」，第三方加不了字 —— 想在岛上看到
+    // 正在念的是哪一句，只有 Live Activity 一条路。它与系统媒体形态**并存**，
+    // 岛上会挤，这是已知代价（§9.5）。
+    //
+    // iOS 16.1 以下：`activityBox` 恒为 nil，这一半整个不存在，其余照常。
+    private func startActivity(_ body: [String: Any]) {
+#if os(iOS)
+        guard #available(iOS 16.1, *), activityBox == nil else { return }
+        // 用户可以在系统设置里关掉实时活动 —— 关了就别再试，也不该有任何提示：
+        // 那是他自己的选择，不是一个要解释的故障。
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        let state = contentState(body)
+        do {
+            activityBox = try Activity.request(
+                attributes: MTPodcastAttributes(sessionId: UUID().uuidString),
+                contentState: state, pushType: nil)
+        } catch {
+            // 起不来就算了。灵动岛是锦上添花，绝不能因为它影响播放。
+            activityBox = nil
+        }
+#endif
+    }
+
+    private func updateActivity(_ body: [String: Any]) {
+#if os(iOS)
+        guard #available(iOS 16.1, *) else { return }
+        guard let activity = activityBox as? Activity<MTPodcastAttributes> else {
+            // 还没起来（会话刚开始、或上一次起失败）：拿这条 now-playing 当种子起一个。
+            startActivity(body)
+            return
+        }
+        let state = contentState(body)
+        Task { await activity.update(using: state) }
+#endif
+    }
+
+    private func endActivity() {#if os(iOS)
+        guard #available(iOS 16.1, *),
+              let activity = activityBox as? Activity<MTPodcastAttributes> else { return }
+        activityBox = nil
+        // `.immediate`：会话结束了，岛上不该再留一条已经不动的信息。
+        Task { await activity.end(dismissalPolicy: .immediate) }
+#endif
+    }
+
+#if os(iOS)
+    @available(iOS 16.1, *)
+    private func contentState(_ body: [String: Any]) -> MTPodcastAttributes.ContentState {
+        MTPodcastAttributes.ContentState(
+            title: body["title"] as? String ?? "",
+            subtitle: body["subtitle"] as? String ?? "",
+            progress: body["album"] as? String ?? "",
+            playing: lastPlaying)
+    }
+    /// 播放状态由 `playing-state` 单独送来，而 Live Activity 的一次更新要带上全部字段
+    /// —— 所以这里存一份最后已知值。
+    private var lastPlaying = true
+#endif
+
+    // MARK: - 封面
+
+    /// data URL → 图片。只认 base64 那一种（JS 侧是 canvas.toDataURL，永远是它）。
+    private func decode(_ dataUrl: String) -> MTImage? {
+        guard let comma = dataUrl.firstIndex(of: ",") else { return nil }
+        let b64 = String(dataUrl[dataUrl.index(after: comma)...])
+        guard let data = Data(base64Encoded: b64) else { return nil }
+        return MTImage(data: data)
+    }
+
+    /// 小尺寸那一档：App 图标。原生这边本来就有（Assets.xcassets），不用过桥传。
+    private func appIcon() -> MTImage? {
+#if os(iOS)
+        return UIImage(named: "AppIcon")
+#else
+        return NSApp.applicationIconImage
+#endif
+    }
+
+    /// 按系统要的尺寸重画一张。**这不是优化，是契约**：`requestHandler` 的文档写的是
+    /// 「Returns the artwork image for an item at a given size」，不管要多大都甩回一张
+    /// 1024² 是常见的「代码跑了但封面就是不显示」的原因。
+    private func scaled(_ image: MTImage, to size: CGSize) -> MTImage {
+        guard size.width > 0, size.height > 0 else { return image }
+#if os(iOS)
+        let fmt = UIGraphicsImageRendererFormat.default()
+        fmt.opaque = true
+        return UIGraphicsImageRenderer(size: size, format: fmt).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+#else
+        let out = NSImage(size: size)
+        out.lockFocus()
+        image.draw(in: CGRect(origin: .zero, size: size))
+        out.unlockFocus()
+        return out
+#endif
+    }
+
+    private func updateArtwork(_ body: [String: Any]) {
+        guard let url = body["image"] as? String, let image = decode(url) else { return }
+        cardArt = image
+        let icon = appIcon()
+        let art = MPMediaItemArtwork(boundsSize: image.size) { [weak self] size in
+            guard let self = self else { return image }
+            self.noteArtSize(size)
+            let source = (size.width > 0 && size.width < MTAudioBridge.iconMaxWidth && icon != nil)
+                ? icon! : (self.cardArt ?? image)
+            return self.scaled(source, to: size)
+        }
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPMediaItemPropertyArtwork] = art
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
+    private func noteArtSize(_ size: CGSize) {
+        let w = Int(size.width), h = Int(size.height)
+        let key = w * 100_000 + h
+        DispatchQueue.main.async {
+            guard !self.seenArtSizes.contains(key) else { return }
+            self.seenArtSizes.insert(key)
+            // 宽高按数字送，不在原生这边拼串：这个文件一个字符串字面量都不该多出来
+            // （零文案纪律有测试钉着），而结构化数据本来也更好用。
+            self.emit(["type": "artwork-size", "w": w, "h": h])
+        }
+    }
+
+    private func updatePlaybackState(_ body: [String: Any]) {
+        let playing = (body["playing"] as? Bool) ?? false
+#if os(iOS)
+        if #available(iOS 16.1, *) {
+            lastPlaying = playing
+            // 暂停/继续要在岛上立刻看得出来 —— 用最后已知的文案重发一次。
+            if let activity = activityBox as? Activity<MTPodcastAttributes> {
+                let state = MTPodcastAttributes.ContentState(
+                    title: activity.contentState.title, subtitle: activity.contentState.subtitle,
+                    progress: activity.contentState.progress, playing: playing)
+                Task { await activity.update(using: state) }
+            }
+        }
+#endif
+        MPNowPlayingInfoCenter.default().playbackState = playing ? .playing : .paused
+        var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+        info[MPNowPlayingInfoPropertyPlaybackRate] = playing ? 1.0 : 0.0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+#if os(iOS)
+        if playing {
+            // WebKit 每开一个 <audio> 都会按它自己的判断动一次音频会话类别。重申一次的
+            // 代价是零，而漏掉一次的代价是「播到第三段忽然不能后台了」这种查不到的 bug。
+            //
+            // 实时听译（§9.6）也发这条消息（锁屏卡片的播放态），那时必须重申成**可录**的
+            // 那一档 —— 2026-09-07 真机实证：结束再开始时这句把类别打回 .playback，
+            // 麦克风引擎随即起不来（第一次能成只是因为权限查询把引擎启动排到了它后面）。
+            if recordMode || micEngine != nil {
+                try? AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .default, options: recordOptions)
+            } else {
+                try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .spokenAudio, options: [])
+            }
+        }
+#endif
+    }
+
+    // MARK: - 原生 → JS
+
+#if os(iOS)
+    @objc private func onInterruption(_ note: Notification) {
+        guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: raw) else { return }
+        if type == .began {
+            emit(["type": "interrupt", "phase": "begin"])
+            // 录音中被打断（来电等）：引擎已被系统停掉，如实说，JS 那边停在具名态。
+            if micEngine != nil { micStop(); emit(["type": "mic-state", "state": "interrupted"]) }
+            return
+        }
+        let options = AVAudioSession.InterruptionOptions(
+            rawValue: note.userInfo?[AVAudioSessionInterruptionOptionKey] as? UInt ?? 0)
+        // `.shouldResume` 是系统在说「刚才那件事结束了，你可以接着播」。只有它为真才自动续播
+        // —— 播放器不得在一次真正的中断之后自作主张地重新开口（§9.5）。
+        let shouldResume = options.contains(.shouldResume)
+
+        // ⚠️ 这次重新激活**必须留在这个 if 里**。它曾经是无条件的，那是个真缺陷：
+        //
+        // 中断的定义就是「系统停用了我们的会话」（Apple: "An audio interruption is the
+        // deactivation of your app's audio session"），所以 `.ended` 时会话确实是非活跃的
+        // —— 看起来「当然该重新激活一下」。但 `setActive(true)` 不是一个读操作，是**抢占**：
+        // 我们的类别是 .playback（非混音），激活它就会打断当时正在出声的任何东西。而
+        // shouldResume 为假时我们**不播**，于是结果是「我们占着一个活跃的非混音会话却一个
+        // 字都不出」—— 最坏表现是**两边都没声**：刚开始播的音乐被我们掐掉，我们自己不响，
+        // 屏幕上没有任何变化。这种静音在真机上几乎不可能归因。
+        //
+        // 只在真的要接着播时才激活。`test/build-scripts.test.js` 有一条断言钉住这个顺序。
+        if shouldResume {
+            try? AVAudioSession.sharedInstance().setActive(true)
+        }
+        emit(["type": "interrupt", "phase": "end", "resume": shouldResume])
+    }
+
+    @objc private func onDidBecomeActive() {
+        UIApplication.shared.isIdleTimerDisabled = true
+        emitMicPerm(micAuthState(), kind: "mic")
+    }
+
+    @objc private func onEngineConfigChange(_ note: Notification) {
+        guard let engine = micEngine, (note.object as? AVAudioEngine) === engine else { return }
+        let sink = micSink
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.micEngine === engine else { return }
+            engine.inputNode.removeTap(onBus: 0)
+            engine.stop()
+            self.micEngine = nil; self.micConverter = nil; self.micOutFormat = nil
+            self.micBegin(rate: self.micRate)
+            self.micSink = sink
+        }
+    }
+
+    @objc private func onRouteChange(_ note: Notification) {
+        DispatchQueue.main.async { [weak self] in self?.checkHeadphones() }
+        guard let raw = note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              AVAudioSession.RouteChangeReason(rawValue: raw) == .oldDeviceUnavailable else { return }
+        // 耳机被拔了。暂停，且重连时**不**自动播 —— 拔掉耳机后从外放里冒出声音是所有
+        // 音乐 App 都在避免的那件事。
+        emit(["type": "route", "change": "device-lost"])
+    }
+#endif
+
+#if os(macOS)
+    @objc private func onDidBecomeActiveMac() {
+        emitMicPerm(micAuthState(), kind: "mic")
+    }
+#endif
+
+    // MARK: - 实时字幕（learning-design §9.8）
+
+    /// 能力回话（协议补充决定 11、15）。iOS 一期（字幕档会话 + 画中画字幕窗）整体到位，开始回 system:'unsupported'（麦克风听外放）。
+    private func capsProbe() {
+#if os(macOS)
+        if #available(macOS 14.4, *) {
+            emit(["type": "audio-caps", "sources": ["mic", "system"], "system": "ok", "broadcast": "unsupported"])
+        } else {
+            emit(["type": "audio-caps", "sources": ["mic"], "system": "os", "broadcast": "unsupported"])
+        }
+#else
+        emit(["type": "audio-caps", "sources": ["mic"], "system": "unsupported", "broadcast": "unsupported"])
+#endif
+    }
+
+    private func subtitleConfig(_ body: [String: Any]) {
+#if os(macOS)
+        let bar = MTSubtitleBar.shared
+        bar.onRemote = { [weak self] command in self?.remote(command) }
+        bar.configure(body, window: webView?.window)
+#else
+        let pip = MTSubtitlePip.shared
+        pip.onRemote = { [weak self] command in self?.remote(command) }
+        pip.onWindow = { [weak self] info in
+            var payload = info
+            payload["type"] = "subtitle-window"
+            self?.emit(payload)
+        }
+        if let webView = webView { pip.configure(body, webView: webView) }
+#endif
+        tickOn()   // 协议补充决定 13、22：字幕会话期间两个平台都发
+    }
+
+    private func subtitleShow(_ body: [String: Any]) {
+#if os(macOS)
+        MTSubtitleBar.shared.show(body)
+#else
+        MTSubtitlePip.shared.show(body)
+#endif
+    }
+
+    private func subtitleState(_ body: [String: Any]) {
+#if os(macOS)
+        MTSubtitleBar.shared.setState(body)
+#else
+        MTSubtitlePip.shared.setState(body)
+#endif
+    }
+
+    /// iOS：带 rect = 小窗预览的位置；不带 = 重新浮出画中画（协议补充决定 17、20）。Mac 没有这个动作。
+    private func subtitleFloat(_ body: [String: Any]) {
+#if os(iOS)
+        MTSubtitlePip.shared.float(body)
+#endif
+    }
+
+    private func subtitleHide() {
+#if os(macOS)
+        MTSubtitleBar.shared.hide()
+#else
+        MTSubtitlePip.shared.hide()
+#endif
+        tickOff()
+    }
+
+    /// tick（尖刺 S3，协议补充决定 13）：主窗口隐藏 / 被盖住时页面计时器被钳到 1 Hz，原生 → 页面的桥消息不受影响。
+    /// 只在字幕条存在期间发。
+    private var tickTimer: Timer?
+    private func tickOn() {
+        guard tickTimer == nil else { return }
+        let timer = Timer(timeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.emit(["type": "tick", "t": Int(Date().timeIntervalSince1970 * 1000)])
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        tickTimer = timer
+    }
+    private func tickOff() {
+        tickTimer?.invalidate()
+        tickTimer = nil
+    }
+
+#if os(macOS)
+    /// 系统声音采集（MTSystemTap 是 macOS 14.4+ 才有的类型，所以按 AnyObject 存）。
+    private var systemTap: AnyObject?
+    /// 每次开始 / 停止 +1：迟到的「等授权」「超时」「HAL 返回」回调据此认出自己已经过期。
+    private var systemGen = 0
+
+    /// 尖刺 S1：权限框没点时建 IOProc 同步卡约 60 s、Start 再卡约 30 s，之后返回 0 却一帧不来 ⇒ HAL 调用全放
+    /// MTSystemTap 自己的队列；2 s 没回来如实报「在等授权」，90 s 仍没回来按拒绝处理（协议补充决定 10）。
+    /// 就绪（granted）不等于有声音：IO 回调要等真有声音在播才开始，没声音由页面的 30 秒静音门接管。
+    @available(macOS 14.4, *)
+    private func systemBegin(rate: Double) {
+        systemGen += 1
+        let gen = systemGen
+        let tap = MTSystemTap()
+        systemTap = tap
+        var settled = false
+        tap.onFormat = { [weak self] mono in
+            guard let self = self,
+                  let out = AVAudioFormat(commonFormat: .pcmFormatInt16, sampleRate: rate, channels: 1, interleaved: true),
+                  let conv = AVAudioConverter(from: mono, to: out) else { return }
+            self.micConverter = conv
+            self.micOutFormat = out
+        }
+        // 与麦克风同一个出口：静麦 → micSink（设备内置转写）→ mic-level / mic-pcm
+        tap.onBuffer = { [weak self] buffer in self?.micDeliver(buffer) }
+        tap.onLost = { [weak self] status in
+            guard let self = self, self.systemGen == gen else { return }
+            self.micStop()
+            self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
+        }
+        // M30 真机读数（2026-09-14）：点「不允许」之后 HAL 照常返回成功、IO 照常来，但每个样本都是 0。
+        // 可权限已给、开始那一刻恰好静音时也是全零（全回归 F13 真机）⇒ 不判拒绝、不撤采集，
+        // 只报 silent 让页面出不中断的提示；之后第一个非零帧报 sound 撤掉提示（协议补充决定 10 修订二）。
+        tap.onSilent = { [weak self] in
+            guard let self = self, self.systemGen == gen else { return }
+            self.emit(["type": "mic-state", "state": "silent", "reason": "zero-frames", "source": "system"])
+        }
+        tap.onSound = { [weak self] in
+            guard let self = self, self.systemGen == gen else { return }
+            self.emit(["type": "mic-state", "state": "sound", "source": "system"])
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            self.emit(["type": "mic-state", "state": "waiting", "reason": "waiting-permission", "source": "system"])
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 90) { [weak self] in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            settled = true
+            self.micStop()
+            self.emit(["type": "mic-state", "state": "denied", "reason": "timeout", "source": "system"])
+        }
+        tap.start { [weak self] status in
+            guard let self = self, !settled, self.systemGen == gen else { return }
+            settled = true
+            if status == noErr {
+                self.emit(["type": "mic-state", "state": "granted", "source": "system"])
+            } else {
+                self.micStop()
+                self.emit(["type": "mic-state", "state": "failed", "reason": String(status), "source": "system"])
+            }
+        }
+    }
+#endif
+
+    private func remote(_ command: String) {
+        emit(["type": "remote", "command": command])
+    }
+
+    private func emit(_ payload: [String: Any]) {
+        guard let webView = self.webView,
+              let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+        DispatchQueue.main.async {
+            // 短路写法是必须的：这条通道在页面还没加载完、或者宿主里根本没有播客模式时
+            // 会打到一个不存在的全局上。converter 模板自带的 `show('ios')` 就是这么一直在
+            // 静默抛 ReferenceError 的（app.js 的 show 在 IIFE 里，从来不是全局）。
+            webView.evaluateJavaScript(
+                "window.NativeAudio && window.NativeAudio._fromNative(\(json))",
+                completionHandler: nil)
+        }
+    }
+}
+
+#if os(macOS)
+import CoreAudio
+
+/// Mac 系统声音采集（learning-design §9.8）：Core Audio process tap（全系统、排除本进程）+ 私有聚合设备 + IOProc。
+/// IOProc 里降混成单声道 Float32，交给 MTAudioBridge 的同一个出口 micDeliver。
+/// 权限是「仅系统录音」（NSAudioCaptureUsageDescription），不是屏幕录制（尖刺 S1 截图为证）。
+/// 默认输出设备变了（插耳机、切 AirPlay）⇒ 聚合设备的主子设备跟着换，在队列上重建一次。
+@available(macOS 14.4, *)
+final class MTSystemTap {
+    /// 建好 tap、IOProc 开始之前，在主线程上调一次（桥据此建转换器）。
+    var onFormat: ((AVAudioFormat) -> Void)?
+    /// IO 线程上调：单声道 Float32、tap 的采样率。
+    var onBuffer: ((AVAudioPCMBuffer) -> Void)?
+    /// 运行中重建失败，在主线程上调。
+    var onLost: ((OSStatus) -> Void)?
+    /// 就绪后「连续 3 秒样本全为 0，且有别的进程正在输出声音」⇒ 可能没开系统录音权限，在主线程上调一次。
+    /// 两个条件缺一不可：已授权时句间停顿也是精确 0（尖刺 S1），没人在放声音时的全零是正常静音。
+    /// 它只是提示，不是判决：权限已给而开始瞬间静音也满足（全回归 F13），所以采集照常继续。
+    var onSilent: (() -> Void)?
+    /// onSilent 之后第一个非零帧，在主线程上调一次（权限是有的，提示该撤了）。
+    var onSound: (() -> Void)?
+    private var zeroSince: CFAbsoluteTime = 0
+    private var heardSound = false
+    private var silentReported = false
+    private var soundReported = false   // 只在主线程读写
+
+    private let queue = DispatchQueue(label: MTAudioBridge.channel)
+    private var tapID = AudioObjectID(kAudioObjectUnknown)
+    private var aggID = AudioObjectID(kAudioObjectUnknown)
+    private var procID: AudioDeviceIOProcID?
+    private var listener: AudioObjectPropertyListenerBlock?
+    private var running = false
+    private var stopped = false
+
+    /// done 在主线程上调：noErr = HAL 已就绪。
+    func start(_ done: @escaping (OSStatus) -> Void) {
+        queue.async {
+            let st = self.stopped ? OSStatus(-1) : self.build()
+            if st == noErr { self.running = true; self.watchDefaultOutput() } else { self.teardown() }
+            DispatchQueue.main.async { done(st) }
+        }
+    }
+
+    /// 异步：排在还卡着的 start 后面，等 HAL 返回再拆。
+    func stop() {
+        queue.async {
+            self.stopped = true
+            self.running = false
+            self.unwatch()
+            self.teardown()
+        }
+    }
+
+    private static func address(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
+        AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
+    }
+
+    private static func defaultOutputUID() -> String? {
+        var dev = AudioObjectID(kAudioObjectUnknown)
+        var addr = address(kAudioHardwarePropertyDefaultOutputDevice)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &dev) == noErr else { return nil }
+        var uid: Unmanaged<CFString>?
+        var uaddr = address(kAudioDevicePropertyDeviceUID)
+        size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
+        guard AudioObjectGetPropertyData(dev, &uaddr, 0, nil, &size, &uid) == noErr, let u = uid?.takeRetainedValue() else { return nil }
+        return u as String
+    }
+
+    private func build() -> OSStatus {
+        var pid = getpid()
+        var own = AudioObjectID(kAudioObjectUnknown)
+        var size = UInt32(MemoryLayout<AudioObjectID>.size)
+        var addr = MTSystemTap.address(kAudioHardwarePropertyTranslatePIDToProcessObject)
+        _ = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, UInt32(MemoryLayout<pid_t>.size), &pid, &size, &own)
+        // 排除本进程（尖刺 S1b 实证有效）：App 自己的提示音不进字幕。WebKit 的声音来自它自己的 GPU 进程，不在此列（§9.8）。
+        let desc = CATapDescription(stereoGlobalTapButExcludeProcesses: own == kAudioObjectUnknown ? [] : [own])
+        desc.uuid = UUID()
+        desc.name = MTAudioBridge.channel
+        desc.isPrivate = true
+        desc.muteBehavior = .unmuted
+        var tap = AudioObjectID(kAudioObjectUnknown)
+        var st = AudioHardwareCreateProcessTap(desc, &tap)
+        guard st == noErr else { return st }
+        tapID = tap
+
+        var asbd = AudioStreamBasicDescription()
+        size = UInt32(MemoryLayout<AudioStreamBasicDescription>.size)
+        var fmtAddr = MTSystemTap.address(kAudioTapPropertyFormat)
+        st = AudioObjectGetPropertyData(tap, &fmtAddr, 0, nil, &size, &asbd)
+        guard st == noErr else { return st }
+        guard let format = AVAudioFormat(streamDescription: &asbd),
+              let mono = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: asbd.mSampleRate, channels: 1, interleaved: false),
+              let outUID = MTSystemTap.defaultOutputUID() else { return OSStatus(-1) }
+
+        let dict: [String: Any] = [
+            kAudioAggregateDeviceNameKey: MTAudioBridge.channel,
+            kAudioAggregateDeviceUIDKey: UUID().uuidString,
+            kAudioAggregateDeviceMainSubDeviceKey: outUID,
+            kAudioAggregateDeviceIsPrivateKey: true,
+            kAudioAggregateDeviceIsStackedKey: false,
+            kAudioAggregateDeviceTapAutoStartKey: true,
+            kAudioAggregateDeviceSubDeviceListKey: [[kAudioSubDeviceUIDKey: outUID]],
+            kAudioAggregateDeviceTapListKey: [[kAudioSubTapDriftCompensationKey: true, kAudioSubTapUIDKey: desc.uuid.uuidString]],
+        ]
+        var agg = AudioObjectID(kAudioObjectUnknown)
+        st = AudioHardwareCreateAggregateDevice(dict as CFDictionary, &agg)
+        guard st == noErr else { return st }
+        aggID = agg
+
+        DispatchQueue.main.sync { self.onFormat?(mono) }
+        let channels = Int(format.channelCount)
+        let interleaved = format.isInterleaved
+        var proc: AudioDeviceIOProcID?
+        st = AudioDeviceCreateIOProcIDWithBlock(&proc, agg, nil) { [weak self] _, inData, _, _, _ in
+            guard let self = self, let sink = self.onBuffer,
+                  let src = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: inData, deallocator: nil),
+                  src.frameLength > 0, let s = src.floatChannelData,
+                  let dst = AVAudioPCMBuffer(pcmFormat: mono, frameCapacity: src.frameLength),
+                  let d = dst.floatChannelData?[0] else { return }
+            let n = Int(src.frameLength)
+            dst.frameLength = src.frameLength
+            let k = Float(max(channels, 1))
+            var nonzero = false
+            for i in 0..<n {
+                var acc: Float = 0
+                for c in 0..<channels { acc += interleaved ? s[0][i * channels + c] : s[c][i] }
+                d[i] = acc / k
+                if acc != 0 { nonzero = true }
+            }
+            self.noteFrames(nonzero: nonzero)
+            sink(dst)
+        }
+        guard st == noErr, let proc = proc else { return st == noErr ? OSStatus(-1) : st }
+        procID = proc
+        return AudioDeviceStart(agg, proc)
+    }
+
+    /// IO 线程上调。只做计时；真正去问「有没有别的进程在出声」放到自己的队列上（HAL 属性查询不进 IO 线程）。
+    private func noteFrames(nonzero: Bool) {
+        if nonzero {
+            if heardSound { return }
+            heardSound = true
+            if silentReported { DispatchQueue.main.async { self.reportSound() } }
+            return
+        }
+        if heardSound || silentReported { return }
+        let now = CFAbsoluteTimeGetCurrent()
+        if zeroSince == 0 { zeroSince = now; return }
+        guard now - zeroSince >= 3 else { return }
+        zeroSince = now          // 这一轮不成立的话，最早 3 秒后再问一次
+        queue.async {
+            guard !self.stopped, !self.silentReported, !self.heardSound, MTSystemTap.othersOutputting() else { return }
+            self.silentReported = true
+            DispatchQueue.main.async {
+                self.onSilent?()
+                // 问 HAL 的这一拍里 IO 线程可能已经见到非零帧、却还没看到 silentReported：在这里补发
+                if self.heardSound { self.reportSound() }
+            }
+        }
+    }
+
+    /// 主线程：sound 至多一次（IO 线程与上面的补发可能都走到这里）。
+    private func reportSound() {
+        guard !soundReported, !stopped else { return }
+        soundReported = true
+        onSound?()
+    }
+
+    /// 系统里除本进程外，有没有进程正在输出声音（kAudioProcessPropertyIsRunningOutput，macOS 14.2+）。
+    private static func othersOutputting() -> Bool {
+        var addr = address(kAudioHardwarePropertyProcessObjectList)
+        var size: UInt32 = 0
+        guard AudioObjectGetPropertyDataSize(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size) == noErr, size > 0 else { return false }
+        var ids = [AudioObjectID](repeating: 0, count: Int(size) / MemoryLayout<AudioObjectID>.size)
+        guard AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &addr, 0, nil, &size, &ids) == noErr else { return false }
+        let me = getpid()
+        for id in ids {
+            var pid: pid_t = 0
+            var pidAddr = address(kAudioProcessPropertyPID)
+            var pidSize = UInt32(MemoryLayout<pid_t>.size)
+            guard AudioObjectGetPropertyData(id, &pidAddr, 0, nil, &pidSize, &pid) == noErr, pid != me else { continue }
+            var running: UInt32 = 0
+            var runAddr = address(kAudioProcessPropertyIsRunningOutput)
+            var runSize = UInt32(MemoryLayout<UInt32>.size)
+            if AudioObjectGetPropertyData(id, &runAddr, 0, nil, &runSize, &running) == noErr, running != 0 { return true }
+        }
+        return false
+    }
+
+    private func watchDefaultOutput() {
+        guard listener == nil else { return }
+        var addr = MTSystemTap.address(kAudioHardwarePropertyDefaultOutputDevice)
+        let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in
+            guard let self = self, self.running, !self.stopped else { return }
+            self.teardown()
+            let st = self.build()
+            if st != noErr {
+                self.running = false
+                self.teardown()
+                DispatchQueue.main.async { self.onLost?(st) }
+            }
+        }
+        listener = block
+        _ = AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, queue, block)
+    }
+
+    private func unwatch() {
+        guard let block = listener else { return }
+        var addr = MTSystemTap.address(kAudioHardwarePropertyDefaultOutputDevice)
+        _ = AudioObjectRemovePropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &addr, queue, block)
+        listener = nil
+    }
+
+    private func teardown() {
+        if aggID != kAudioObjectUnknown, let p = procID {
+            _ = AudioDeviceStop(aggID, p)
+            _ = AudioDeviceDestroyIOProcID(aggID, p)
+        }
+        procID = nil
+        if aggID != kAudioObjectUnknown {
+            _ = AudioHardwareDestroyAggregateDevice(aggID)
+            aggID = AudioObjectID(kAudioObjectUnknown)
+        }
+        if tapID != kAudioObjectUnknown {
+            _ = AudioHardwareDestroyProcessTap(tapID)
+            tapID = AudioObjectID(kAudioObjectUnknown)
+        }
+    }
+}
+#endif

@@ -1,0 +1,201 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-09-25T13:00:00Z"
+  },
+  "title": "评分为什么是 0 · 评分触发点交互稿",
+  "launch": {
+    "view": "canvas",
+    "page": "p1"
+  },
+  "pages": [
+    {
+      "id": "p1",
+      "name": "① 数据说了什么 · 要你裁定的"
+    },
+    {
+      "id": "p2",
+      "name": "② 提议"
+    },
+    {
+      "id": "p3",
+      "name": "③ 现状与规约矛盾"
+    }
+  ],
+  "boards": {
+    "A-Where.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 760,
+      "page": "p1",
+      "title": "评分的机会在哪：成功发生在 Safari 扩展，不在 App"
+    },
+    "B-Row.dc.html": {
+      "x": 1400,
+      "y": 0,
+      "w": 1320,
+      "h": 760,
+      "page": "p1",
+      "title": "评分行：被看了 479 次，点了 1 次"
+    },
+    "C-Ask.dc.html": {
+      "x": 0,
+      "y": 920,
+      "w": 1320,
+      "h": 900,
+      "page": "p1",
+      "title": "第二轮要你裁定的（09-25 下午）"
+    },
+    "I-Rule.dc.html": {
+      "x": 1400,
+      "y": 920,
+      "w": 1320,
+      "h": 900,
+      "page": "p1",
+      "title": "两个分支推下去，汇到同一处"
+    },
+    "D-Cooldown.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 2040,
+      "h": 960,
+      "page": "p2",
+      "title": "Chrome / Firefox 评分行的冷却：三种口径（Safari 那一行改走板 J）"
+    },
+    "E-Qualify.dc.html": {
+      "x": 2120,
+      "y": 0,
+      "w": 1320,
+      "h": 760,
+      "page": "p2",
+      "title": "只问真在用的人"
+    },
+    "F-App.dc.html": {
+      "x": 0,
+      "y": 1120,
+      "w": 1320,
+      "h": 860,
+      "page": "p2",
+      "title": "App 系统评分：挪到真实的收获时刻"
+    },
+    "J-BackToApp.dc.html": {
+      "x": 1400,
+      "y": 1120,
+      "w": 2040,
+      "h": 960,
+      "page": "p2",
+      "title": "Safari 那一行：从「去商店评分」改成「回 App 复习」"
+    },
+    "K-Browsers.dc.html": {
+      "x": 0,
+      "y": 2240,
+      "w": 1320,
+      "h": 820,
+      "page": "p2",
+      "title": "第三轮：Chrome / Firefox 也不要评分，改成去扩展复习页"
+    },
+    "G-Now.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1320,
+      "h": 700,
+      "page": "p3",
+      "title": "现在的三处评分入口"
+    },
+    "H-Spec.dc.html": {
+      "x": 1400,
+      "y": 0,
+      "w": 1320,
+      "h": 880,
+      "page": "p3",
+      "title": "规约自相矛盾的三处，和要补的埋点"
+    }
+  },
+  "order": [
+    "A-Where.dc.html",
+    "B-Row.dc.html",
+    "C-Ask.dc.html",
+    "I-Rule.dc.html",
+    "D-Cooldown.dc.html",
+    "E-Qualify.dc.html",
+    "F-App.dc.html",
+    "J-BackToApp.dc.html",
+    "K-Browsers.dc.html",
+    "G-Now.dc.html",
+    "H-Spec.dc.html"
+  ],
+  "notes": {
+    "t1": {
+      "x": 0,
+      "y": -320,
+      "text": "数据说了什么 —— 评分的机会在 Safari 扩展，不在 App",
+      "kind": "title1",
+      "maxW": 3600,
+      "page": "p1"
+    },
+    "t2": {
+      "x": 0,
+      "y": -320,
+      "text": "提议 —— 数字都是用已发生的数据重放的",
+      "kind": "title1",
+      "maxW": 3600,
+      "page": "p2"
+    },
+    "t3": {
+      "x": 0,
+      "y": -320,
+      "text": "现状与规约矛盾 —— 备查",
+      "kind": "title1",
+      "maxW": 3600,
+      "page": "p3"
+    },
+    "why": {
+      "x": 3960,
+      "y": 0,
+      "w": 540,
+      "maxH": 520,
+      "page": "p1",
+      "color": "orange",
+      "text": "这张稿是 ASO / 评分长期方案的 P1b + P2（2026-09-25 用户批准）。\n\n用户已裁定：评分行的冷却口径「先出画布再定」。\n\n口径：遥测从 2026-09-05 起收 · 中国版一条不发 · 我们自己的机器也在里面 · install_id 按宿主分，App 与扩展不能当同一个人。星级评分数来自 iTunes lookup（按店面），文字评论来自 customerReviews。"
+    },
+    "rule": {
+      "x": 3960,
+      "y": 600,
+      "w": 540,
+      "maxH": 360,
+      "page": "p1",
+      "color": "purple",
+      "text": "流程：画布 → 你逐条点头 → 改 docs/interaction-spec.md §评分提示 → 遥测 docs PR（修第 98 行 + App 送出点 + requested）过评审 → 先部署 bt-ingest → 代码 PR（标题写「画布落地」）。\n\n代码门禁：test/feedback.test.js 判定表 · test:layout（新 fixture：挂满后下一页不出，先红后绿）· test:smoke 第七幕 · test:app · test:listen · test:quick。"
+    },
+    "round3": {
+      "x": 3960,
+      "y": 2100,
+      "w": 540,
+      "maxH": 360,
+      "page": "p1",
+      "color": "green",
+      "text": "✓ 第三轮（09-25 晚）：用户问「Chrome / Firefox 为什么仍然让人去评分？」→ 查数（真在用 7 台，6 台 Mac 全开了学习；Firefox 0）→ 用户「好的 改吧」。\n\nChrome / Firefox 那一行也改成「去复习」，打开扩展复习页（板 K）；评分只留常驻链接。事件改名 review_nudge。"
+    },
+    "round2": {
+      "x": 3960,
+      "y": 1560,
+      "w": 540,
+      "maxH": 480,
+      "page": "p1",
+      "color": "green",
+      "text": "第二轮（09-25 下午）：用户问「为什么这么多人看到却没人评分？没有这个答案做什么都意义不大」→ 推两个分支（板 I）→ 发现苹果 5.6.1 禁止自定义评分提示 ⇒ Safari 那一行改「回 App」（板 J），Chrome / Firefox 照旧。\n\n✓ 09-25 用户：「451 我点头」—— 第二轮五件全部通过。规约 §3.12 已按第二轮重写并合入（#451）；落地 PR 进行中。"
+    },
+    "ruled": {
+      "x": 3960,
+      "y": 1040,
+      "w": 540,
+      "maxH": 460,
+      "page": "p1",
+      "color": "green",
+      "text": "✓ 2026-09-25 用户裁定：板 C 四件**全部按建议**。\n\n① 评分行：每天至多一次、最多 5 个不同日子，点或 × 立刻进 90 天冷却\n② 只问成功 ≥3 次且跨 ≥2 天的人\n③ App 系统评分挪到听译结束 / 快速翻译 / 系统翻译收件箱 / 复习 opened，同一门槛\n④ 扩展与 App 冷却不打通，规约改成实话\n\n补记：板 B 那次唯一的点击，用户答「很可能是我点的」⇒ 真实点击按 0 算。① 选「按日」而不是「按次」的理由里，「保住第 4 天那次点击」这条不再成立；剩下的理由仍够：同样的曝光预算分散到回访的日子，比堆在同一天的连续页面合理，且最多一台从 98 次降到 5 次。不需要重新裁定。\n\n下一步：遥测 docs PR（§3.12）过评审 → 部署 bt-ingest → 代码 PR（interaction-spec 同提交改）。"
+    }
+  },
+  "designSystems": []
+}

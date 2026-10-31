@@ -1,0 +1,377 @@
+// learn-scheduler.js — Ebbinghaus forgetting-curve scheduler (记忆层).
+// See docs/learning-design.md §5. PURE: `now` is always injected, never read from
+// the ambient clock — a scheduler that reads Date.now() internally is untestable.
+
+var LearnScheduler = (() => {
+  const DAY = 86400000;
+
+  // Stability `s` is in DAYS and uses the FSRS convention R(s) = 0.9, i.e. an item
+  // reviewed exactly `s` days ago has ~90% recall probability.
+  const DEFAULTS = {
+    targetR: 0.90,
+    S0: [0.15, 0.7, 1.5, 4.0],      // first-grade → initial stability (days)
+    FACTOR: [0.35, 1.15, 2.4, 3.6],
+    DELTA_D: [1.2, 0.35, 0, -0.5],  // difficulty increment per grade
+    S_MIN: 0.02, S_MAX: 365,        // ~29 min … 1 year
+    KNOWN_S: 180,                   // s ≥ this ⇒ state 'known'
+    // §5.2 mastery-ladder gates — same "unvalidated, cheap to retune" caveat as §6.
+    TIER_LISTEN_S: 4,               // s ≥ this ⇒ the listen form (when TTS can speak it)
+    TIER_SPEAK_S: 4,                // s ≥ this ⇒ the speak form (mic + transcription engine, §5.4)
+    TIER_WRITE_S: 30,               // s ≥ this ⇒ the write form (cloze, auto-checked)
+    FRESH_MULT: 1.5,                // §5.4 — a skill verification stays fresh for s × this (days)
+    SPACING_GAIN: 1.0,              // a late-but-correct review earns extra
+    dailyNew: 15,
+    deckSize: 20,
+    MAX_PER_SOURCE_RUN: 3,          // no more than N consecutive cards from one page
+    KNOWN_RESURFACE_R: 0.95,
+    MIX: { due: 0.7, fresh: 0.2, known: 0.1 },
+  };
+
+  function cfgOf(cfg) {
+    const c = Object.assign({}, DEFAULTS, cfg || {});
+    c.MIX = Object.assign({}, DEFAULTS.MIX, (cfg && cfg.MIX) || {});
+    return c;
+  }
+  function clamp(n, lo, hi) { return n < lo ? lo : n > hi ? hi : n; }
+
+  function freshSched(now) {
+    return { s: 0, d: 5, lastReviewAt: now, dueAt: now, reps: 0, lapses: 0 };
+  }
+
+  // R(t) = 0.9 ^ (t / s). An item never reviewed has no retention to model — treat
+  // it as fully forgotten so it sorts ahead of everything in the due queue.
+  function retrievability(sched, now) {
+    if (!sched || !sched.s || !sched.lastReviewAt) return 0;
+    const days = Math.max(0, (now - sched.lastReviewAt) / DAY);
+    return Math.pow(0.9, days / sched.s);
+  }
+
+  function nextDue(sched, cfg) {
+    const c = cfgOf(cfg);
+    if (!sched || !sched.s) return sched ? sched.lastReviewAt : 0;
+    const factor = Math.log(c.targetR) / Math.log(0.9);
+    return sched.lastReviewAt + sched.s * factor * DAY;
+  }
+
+  // grade: 0 again · 1 hard · 2 good · 3 easy
+  function applyReview(sched, grade, now, cfg) {
+    const c = cfgOf(cfg);
+    const g = clamp(Math.round(grade), 0, 3);
+    const prev = sched && sched.s ? sched : null;
+
+    let s, d;
+    if (!prev) {
+      s = c.S0[g];
+      // A first answer of "again" means it is hard for this user; "easy" the reverse.
+      d = clamp(5 + (2 - g) * 0.9, 1, 10);
+    } else {
+      const R = retrievability(prev, now);
+      d = clamp(prev.d + c.DELTA_D[g], 1, 10);
+      if (g === 0) {
+        s = prev.s * 0.35;
+      } else {
+        const diffMod = (11 - prev.d) / 10;            // harder items grow slower
+        const spacing = 1 + (1 - R) * c.SPACING_GAIN;  // reviewing late earns more
+        s = prev.s * (1 + (c.FACTOR[g] - 1) * diffMod * spacing);
+      }
+    }
+    s = clamp(s, c.S_MIN, c.S_MAX);
+
+    const out = {
+      s, d,
+      lastReviewAt: now,
+      dueAt: 0,
+      reps: (prev ? prev.reps : 0) + 1,
+      lapses: (prev ? prev.lapses : 0) + (g === 0 ? 1 : 0),
+    };
+    out.dueAt = nextDue(out, c);
+    return out;
+  }
+
+  // §5.2/§5.4 — which skills EXIST for this card right now, in ladder order. The
+  // strength ladder gates difficulty; capabilities gate existence — a missing
+  // capability (`caps.listen`: a voice for this language; `caps.speak`: mic +
+  // transcription engine) means the form DOES NOT EXIST for the card, never that
+  // the card failed.
+  function eligibleSkills(item, caps, cfg) {
+    const c = cfgOf(cfg);
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    const out = ['read'];
+    if (s >= c.TIER_LISTEN_S && caps && caps.listen) out.push('listen');
+    if (s >= c.TIER_SPEAK_S && caps && caps.speak) out.push('speak');
+    if (s >= c.TIER_WRITE_S) out.push('write');
+    return out;
+  }
+
+  // §5.4 — a skill verification has a shelf life that scales with memory strength:
+  // the stronger the card, the longer one verification stays fresh — same curve
+  // shape as forgetting itself. Legacy boolean `1` values (pre-timestamp) are
+  // ancient timestamps and therefore always stale, which is exactly what a badge
+  // lit under the old regime deserves: re-verify first, never un-light.
+  function skillFresh(item, skill, now, cfg) {
+    const c = cfgOf(cfg);
+    const at = item && item.skills ? Number(item.skills[skill]) || 0 : 0;
+    if (!at) return false;
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    return now - at <= Math.max(s, 1) * c.FRESH_MULT * DAY;
+  }
+
+  // §5.4 — the rotation: least-recently-verified eligible skill first (missing = 0
+  // = most urgent); ties break toward the HARDEST form, preserving §5.2's "the
+  // stronger the memory, the harsher the test" for cards with no per-skill history.
+  // A SECOND skill is appended only when it too is past its freshness window — one
+  // due date never turns into an exam, and the second exercise advances no
+  // schedule (the caller applies practiceOutcome to it, §5.3's asymmetric rule).
+  const SKILL_RANK = { read: 0, listen: 1, speak: 2, write: 3 };
+  function pickSkills(item, caps, now, cfg) {
+    const c = cfgOf(cfg);
+    const sk = (item && item.skills) || {};
+    const list = eligibleSkills(item, caps, c).sort((a, b) =>
+      ((Number(sk[a]) || 0) - (Number(sk[b]) || 0)) || (SKILL_RANK[b] - SKILL_RANK[a]));
+    const out = [list[0]];
+    if (list[1] && !skillFresh(item, list[1], now, c)) out.push(list[1]);
+    return out;
+  }
+
+  // §5.4 — 「全面掌握」: strength at the known bar AND every skill that exists for
+  // this card verified recently. Display-layer only — stateFor stays pure-s, so no
+  // existing user's 已掌握 ever regresses.
+  function fullyMastered(item, caps, now, cfg) {
+    const c = cfgOf(cfg);
+    const s = item && item.sched && item.sched.s ? item.sched.s : 0;
+    if (s < c.KNOWN_S) return false;
+    return eligibleSkills(item, caps, c).every((k) => skillFresh(item, k, now, c));
+  }
+
+  // §5.2's original single-form view, kept as pickSkills' first pick: for an item
+  // with no per-skill history the tie-break reproduces the old ladder exactly
+  // (hardest eligible form), so pre-§5.4 callers and tests keep their contract.
+  function tierFor(item, caps, cfg) {
+    return pickSkills(item, caps, 0, cfg)[0];
+  }
+
+  // §5.1 — every grade button previews its own consequence. This runs the SAME
+  // applyReview the button would run, so the label can never drift from the act:
+  // preview[g] is exactly the interval the user gets by pressing g.
+  function previewIntervals(sched, now, cfg) {
+    const c = cfgOf(cfg);
+    const out = [];
+    for (let g = 0; g <= 3; g++) {
+      const next = applyReview(sched, g, now, c);
+      out.push(Math.max(0, next.dueAt - now));
+    }
+    return out;
+  }
+
+  function stateFor(item, cfg) {
+    const c = cfgOf(cfg);
+    if (item.state === 'muted') return 'muted';
+    if (!item.sched || !item.sched.s) return item.starred ? 'learning' : (item.state || 'candidate');
+    return item.sched.s >= c.KNOWN_S ? 'known' : 'learning';
+  }
+
+  // Interleave so a session is never one article read back to itself.
+  //
+  // The greedy "take the first card that doesn't extend the run" is not enough: it
+  // drains one source faster than the other and leaves a long single-source tail
+  // (8+8 cards produced a run of 6). Always drawing from the source with the MOST
+  // cards remaining keeps the drain rates balanced, which is what actually bounds
+  // the run. A run longer than maxRun is then only possible when a single source is
+  // all that is left — at which point interleaving is impossible and dropping cards
+  // would be worse.
+  function spreadBySource(cards, maxRun) {
+    const buckets = new Map();
+    for (const c of cards) {
+      const k = c.sourceId || '';
+      if (!buckets.has(k)) buckets.set(k, []);
+      buckets.get(k).push(c);
+    }
+    const out = [];
+    let lastSrc = null, run = 0;
+    while (out.length < cards.length) {
+      let best = null, bestN = -1;
+      for (const [k, arr] of buckets) {
+        if (!arr.length) continue;
+        if (k === lastSrc && run >= maxRun) continue;
+        if (arr.length > bestN) { best = k; bestN = arr.length; }
+      }
+      if (best === null) {
+        for (const [k, arr] of buckets) if (arr.length) { best = k; break; }
+        if (best === null) break;
+      }
+      const c = buckets.get(best).shift();
+      run = best === lastSrc ? run + 1 : 1;
+      lastSrc = best;
+      out.push(c);
+    }
+    return out;
+  }
+
+  // The queue. Sorting by R ascending means "closest to being forgotten first" —
+  // one continuous ranking, rather than a binary due/not-due bucket.
+  //
+  // `newToday` is how many brand-new cards were already introduced today, so the
+  // daily cap survives across sessions. Callers that don't track it pass 0.
+  function buildDeck(items, now, cfg, newToday) {
+    const c = cfgOf(cfg);
+    const size = c.deckSize;
+    const introduced = newToday || 0;
+
+    const learning = [], fresh = [], known = [];
+    for (const it of items) {
+      const st = stateFor(it, c);
+      if (st === 'muted') continue;
+      if (st === 'candidate') { fresh.push(it); continue; }
+      const R = retrievability(it.sched, now);
+      if (st === 'known') { if (R < c.KNOWN_RESURFACE_R) known.push({ it, R }); continue; }
+      if (R <= c.targetR) learning.push({ it, R });
+    }
+
+    learning.sort((a, b) => a.R - b.R);
+    known.sort((a, b) => a.R - b.R);
+    fresh.sort((a, b) => (b.salience || 0) - (a.salience || 0));
+
+    const nFresh = Math.min(
+      fresh.length,
+      Math.max(0, c.dailyNew - introduced),
+      Math.round(size * c.MIX.fresh));
+    const nKnown = Math.min(known.length, Math.round(size * c.MIX.known));
+    const nDue = Math.min(learning.length, size - nFresh - nKnown);
+
+    const picked = []
+      .concat(learning.slice(0, nDue).map((x) => x.it))
+      .concat(fresh.slice(0, nFresh))
+      .concat(known.slice(0, nKnown).map((x) => x.it));
+
+    // Backfill from whatever is left if a bucket came up short, so a user with only
+    // new cards still gets a full deck.
+    if (picked.length < size) {
+      const taken = new Set(picked.map((x) => x.id));
+      const rest = []
+        .concat(learning.map((x) => x.it), fresh, known.map((x) => x.it))
+        .filter((x) => !taken.has(x.id));
+      for (const x of rest) {
+        if (picked.length >= size) break;
+        // The daily cap is a real limit, not a suggestion: never backfill with new cards.
+        if (stateFor(x, c) === 'candidate') continue;
+        picked.push(x);
+      }
+    }
+
+    return spreadBySource(picked, c.MAX_PER_SOURCE_RUN);
+  }
+
+  // §9.5 出发前预载 — the deck for today PLUS the next `days` days, as one set.
+  //
+  // Preloading has to know what the driver might hear, and "today's deck" is not that
+  // set once they want to cover a few days of commuting. There is no separate
+  // scheduling rule here: the same `buildDeck` runs again with the clock moved forward
+  // a day at a time, and the results are unioned by id.
+  //
+  // Two things about that are deliberate:
+  //   · Only day 0 carries `newToday`. A future day's daily-new budget starts over,
+  //     which is what actually happens when that day arrives.
+  //   · The result is a SUPERSET of what will really be played — reviewing a card
+  //     today changes tomorrow's deck, and preloading happens before the reviewing.
+  //     Over-covering costs a few hundred KB of cache; under-covering costs silence
+  //     in the car, so the superset is the right direction to err in.
+  //
+  // `days = 0` must be byte-for-byte `buildDeck` — the preload button's default, and
+  // the property the tests pin.
+  function buildDeckAhead(items, now, cfg, newToday, days) {
+    // `Number()` first, and it is load-bearing: the horizon arrives from a <select>,
+    // so it is a STRING. `Math.floor('x')` is NaN, `Math.max(0, NaN)` is NaN, and
+    // `d <= NaN` is false — the loop would never run and the preload button would
+    // report "0 cards" while looking like it worked. Degrade to today, never to empty.
+    const n = Math.max(0, Math.floor(Number(days) || 0));
+    const seen = new Set();
+    const out = [];
+    for (let d = 0; d <= n; d++) {
+      for (const it of buildDeck(items, now + d * DAY, cfg, d === 0 ? newToday : 0)) {
+        if (seen.has(it.id)) continue;
+        seen.add(it.id);
+        out.push(it);
+      }
+    }
+    return out;
+  }
+
+  // §5.3 — free practice draws from the corpus without the daily-deck quotas:
+  // weakest first, optionally bounded, interleaved as always. Candidates score
+  // R = 0 (never reviewed ⇒ fully forgotten), which puts fresh exposure ahead when
+  // the user explicitly chose the wider pool; salience breaks the tie among them.
+  function buildPracticeDeck(items, now, cfg, opts) {
+    const c = cfgOf(cfg);
+    const pool = (opts && opts.pool) === 'all' ? 'all' : 'learning';
+    const limit = opts && opts.limit > 0 ? opts.limit : 0;   // 0 ⇒ the whole pool
+    const picked = [];
+    for (const it of items) {
+      const st = stateFor(it, c);
+      if (st === 'muted') continue;
+      if (pool === 'learning' && st !== 'learning') continue;
+      picked.push({ it, R: retrievability(it.sched, now), sal: it.salience || 0 });
+    }
+    picked.sort((a, b) => (a.R - b.R) || (b.sal - a.sal));
+    const take = limit ? picked.slice(0, limit) : picked;
+    return spreadBySource(take.map((x) => x.it), c.MAX_PER_SOURCE_RUN);
+  }
+
+  // §5.3 — the asymmetric practice rule as a PURE decision, because it is the one
+  // behavior that guards schedule integrity and must be testable without a DOM:
+  //   · fail on a scheduled card  → a real lapse (forgetting is evidence any time)
+  //   · pass                      → null (just seen ⇒ proves nothing about memory)
+  //   · candidate, either way     → null (introduction belongs to the daily deck)
+  // Returns the new sched to store, or null meaning "write nothing".
+  function practiceOutcome(sched, grade, now, cfg) {
+    const hadSched = !!(sched && sched.s);
+    if (grade === 0 && hadSched) return applyReview(sched, 0, now, cfg);
+    return null;
+  }
+
+  // How many brand-new cards entered review TODAY — derived from the SYNCED
+  // review log, not from device-local meta, so every device under one account
+  // agrees on how much of the daily-new budget is spent (interaction-spec
+  // 「多设备同步一致性」). Introduction = an item's FIRST non-practice review.
+  // Reviews that arrived via sync COUNT — that is the whole point: a card
+  // introduced on the phone spends the laptop's budget too. Day boundary is
+  // UTC on purpose: one account, one day, every timezone (todayKey has always
+  // been toISOString-based; documented in learning-design §5).
+  function introducedToday(reviews, now) {
+    const day = new Date(now).toISOString().slice(0, 10);
+    const first = new Map();   // itemId → earliest non-practice review time
+    for (const r of reviews || []) {
+      // `extra` rows (§5.4 second exercise) never advance a schedule, so they are
+      // not an introduction either — skipped explicitly rather than relying on the
+      // first exercise's row always sorting earlier.
+      if (!r || r.practice || r.extra || !r.itemId) continue;
+      const prev = first.get(r.itemId);
+      if (prev === undefined || r.at < prev) first.set(r.itemId, r.at);
+    }
+    let n = 0;
+    for (const at of first.values()) {
+      if (new Date(at).toISOString().slice(0, 10) === day) n++;
+    }
+    return n;
+  }
+
+  // How many cards are waiting right now (for the popup / options counter).
+  function dueCount(items, now, cfg) {
+    const c = cfgOf(cfg);
+    let n = 0;
+    for (const it of items) {
+      const st = stateFor(it, c);
+      if (st !== 'learning') continue;
+      if (retrievability(it.sched, now) <= c.targetR) n++;
+    }
+    return n;
+  }
+
+  return {
+    DEFAULTS, DAY,
+    freshSched, retrievability, nextDue, applyReview, previewIntervals, tierFor, stateFor,
+    eligibleSkills, pickSkills, skillFresh, fullyMastered,
+    buildDeck, buildDeckAhead, buildPracticeDeck, practiceOutcome, dueCount, introducedToday, spreadBySource,
+  };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = LearnScheduler;

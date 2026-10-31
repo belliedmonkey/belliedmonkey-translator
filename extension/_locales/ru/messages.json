@@ -1,0 +1,4212 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: перевод + повтор"
+  },
+  "extension_description": {
+    "message": "Двуязычные страницы и двойные субтитры. Прочитанные фразы становятся карточками для повторения. Свой ключ."
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Перевод…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Подготовка…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Ошибка — нажмите, чтобы повторить"
+  },
+  "fab_translate": {
+    "message": "Перевод"
+  },
+  "fab_toggle": {
+    "message": "Переключить перевод"
+  },
+  "fab_enable": {
+    "message": "Включить перевод"
+  },
+  "fab_disable": {
+    "message": "Выключить перевод"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey · Субтитры видео"
+  },
+  "yt_sub_on": {
+    "message": "Включить перевод субтитров"
+  },
+  "yt_sub_off": {
+    "message": "Выключить перевод субтитров"
+  },
+  "yt_display_type": {
+    "message": "Отображение субтитров"
+  },
+  "yt_mode_both": {
+    "message": "Двуязычные"
+  },
+  "yt_mode_trans": {
+    "message": "Только перевод"
+  },
+  "yt_mode_orig": {
+    "message": "Только оригинал"
+  },
+  "yt_download_srt": {
+    "message": "Скачать субтитры (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Субтитры ещё не готовы — повторите после загрузки перевода"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ Загрузка субтитров…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Субтитры недоступны"
+  },
+  "podcast_sub_on": {
+    "message": "Включить субтитры подкаста"
+  },
+  "podcast_sub_off": {
+    "message": "Выключить субтитры подкаста"
+  },
+  "settings": {
+    "message": "Настройки"
+  },
+  "popup_target_lang": {
+    "message": "Целевой язык"
+  },
+  "popup_provider": {
+    "message": "Движок перевода"
+  },
+  "provider_google_free": {
+    "message": "Google Переводчик (бесплатно)"
+  },
+  "placeholder_api_key": {
+    "message": "Введите API-ключ…"
+  },
+  "toggle_show_hide": {
+    "message": "Показать/Скрыть"
+  },
+  "label_custom_api": {
+    "message": "URL эндпоинта (полный)"
+  },
+  "label_optional": {
+    "message": "(необязательно)"
+  },
+  "btn_translate_page": {
+    "message": "Перевести страницу"
+  },
+  "btn_view_original": {
+    "message": "Показать оригинал"
+  },
+  "btn_more_settings": {
+    "message": "Дополнительно"
+  },
+  "status_translated": {
+    "message": "Переведено"
+  },
+  "status_untranslated": {
+    "message": "Не переведено"
+  },
+  "toast_lang_switched": {
+    "message": "Язык изменён"
+  },
+  "toast_provider_switched": {
+    "message": "Движок изменён"
+  },
+  "toast_restored_original": {
+    "message": "Оригинал восстановлен"
+  },
+  "toast_translating": {
+    "message": "Перевод…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Настройки"
+  },
+  "options_engine_section": {
+    "message": "Движок перевода"
+  },
+  "options_engine_label": {
+    "message": "Движок"
+  },
+  "provider_google_free_long": {
+    "message": "Google Переводчик (бесплатно, без ключа)"
+  },
+  "options_custom_api_hint": {
+    "message": "Оставьте пустым, чтобы использовать эндпоинт этого движка по умолчанию. Если заполняете — укажите полный URL запроса вместе с путём: мы отправляем его ровно так, как введено, и ничего не добавляем. Подходит для прокси и самостоятельно размещённых сервисов."
+  },
+  "options_lang_section": {
+    "message": "Язык"
+  },
+  "options_style_section": {
+    "message": "Стиль отображения"
+  },
+  "options_webpage_color": {
+    "message": "Цвет перевода (веб)"
+  },
+  "options_color_preview": {
+    "message": "Это предпросмотр стиля перевода"
+  },
+  "options_yt_color": {
+    "message": "Цвет субтитров YouTube"
+  },
+  "options_yt_preview": {
+    "message": "Предпросмотр двуязычных субтитров"
+  },
+  "options_font_size": {
+    "message": "Размер перевода (относительно)"
+  },
+  "options_font_s": {
+    "message": "Меньше (0.8×)"
+  },
+  "options_font_m": {
+    "message": "Небольшой (0.9×)"
+  },
+  "options_font_body": {
+    "message": "Как оригинал (1.0×)"
+  },
+  "options_font_l": {
+    "message": "Больше (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "Показать плавающую кнопку"
+  },
+  "options_cache_section": {
+    "message": "Кэш"
+  },
+  "options_cache_hint": {
+    "message": "Переводы кэшируются на 12 часов для снижения числа запросов к API."
+  },
+  "options_clear_cache": {
+    "message": "Очистить кэш перевода"
+  },
+  "options_about_section": {
+    "message": "О программе"
+  },
+  "options_about_desc": {
+    "message": "Двуязычный перевод + учебный цикл: прочитанные фразы становятся карточками."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: включите в Настройки → Safari → Расширения."
+  },
+  "toast_provider_saved": {
+    "message": "Движок сохранён"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Движок изменён — URL эндпоинта очищен",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "API-ключ сохранён"
+  },
+  "toast_apiurl_saved": {
+    "message": "URL API сохранён"
+  },
+  "toast_lang_saved": {
+    "message": "Язык сохранён"
+  },
+  "toast_fontsize_saved": {
+    "message": "Размер сохранён"
+  },
+  "toast_color_saved": {
+    "message": "Цвет сохранён"
+  },
+  "toast_yt_color_saved": {
+    "message": "Цвет субтитров YouTube сохранён"
+  },
+  "toast_clearing": {
+    "message": "Очистка…"
+  },
+  "toast_cache_empty": {
+    "message": "Кэш пуст"
+  },
+  "toast_cache_cleared": {
+    "message": "Кэш очищен"
+  },
+  "hint_openai": {
+    "message": "Ключ OpenAI API (sk-…)."
+  },
+  "hint_claude": {
+    "message": "Ключ Anthropic API (sk-ant-…)."
+  },
+  "hint_deepseek": {
+    "message": "Ключ DeepSeek API."
+  },
+  "hint_glm": {
+    "message": "Ключ GLM (Zhipu AI) API (есть бесплатный лимит)."
+  },
+  "ui_lang_label": {
+    "message": "Язык интерфейса"
+  },
+  "ui_lang_auto": {
+    "message": "Как в системе"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "Самый большой (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key."
+  },
+  "hint_qwen_mt": {
+    "message": "API-ключ Qwen MT (DashScope). Модель, специализированная на переводе — дешевле и быстрее универсальной чат-модели. Тот же ключ, что и у Qwen."
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Модель по умолчанию:"
+  },
+  "hint_custom_chat": {
+    "message": "Любой чат-эндпоинт формата Chat Completions. Укажите полный URL, модель и ключ. Если адрес заканчивается на responses, отправляется формат Responses."
+  },
+  "hint_custom_msg": {
+    "message": "Любой чат-эндпоинт формата Messages. Укажите полный URL, модель и ключ."
+  },
+  "label_custom_model": {
+    "message": "Модель"
+  },
+  "options_custom_model_hint": {
+    "message": "Оставьте пустым, чтобы использовать модель движка по умолчанию."
+  },
+  "options_advanced": {
+    "message": "Дополнительные параметры"
+  },
+  "label_adv_temperature": {
+    "message": "Случайность (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Пусто — 0,3. Чем ниже, тем стабильнее перевод."
+  },
+  "label_adv_max_tokens": {
+    "message": "Макс. длина ответа на запрос"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Пусто — 2000. Увеличьте, если длинные абзацы обрезаются."
+  },
+  "label_adv_timeout": {
+    "message": "Тайм-аут запроса (секунды)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Пусто — 20 с. Увеличьте для медленных собственных или рассуждающих моделей."
+  },
+  "label_adv_concurrency": {
+    "message": "Параллельные запросы"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Пусто — 5. Уменьшите при ограничении частоты; увеличение не ускорит уже ожидающие запросы."
+  },
+  "options_adv_unsupported": {
+    "message": "Эта модель не принимает данный параметр, поэтому он не будет отправлен."
+  },
+  "label_adv_custom": {
+    "message": "Свои параметры запроса"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON-объект: добавляется в тело запроса и переопределяет поля выше. Для собственных или внутренних эндпоинтов, которые мы не измеряли."
+  },
+  "options_adv_custom_bad": {
+    "message": "Не удалось разобрать, ничего не будет отправлено: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Требуется JSON-объект; ничего не будет отправлено."
+  },
+  "options_adv_custom_ok": {
+    "message": "Будет отправлено: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "Нельзя переопределить, пропущено: "
+  },
+  "options_adv_custom_none": {
+    "message": "(нет)"
+  },
+  "err_reasoning_starved": {
+    "message": "Модель израсходовала весь бюджет вывода на рассуждения и не выдала перевод. Увеличьте «Макс. длину ответа на запрос» в дополнительных параметрах или выберите модель без рассуждений."
+  },
+  "toast_model_saved": {
+    "message": "Модель сохранена"
+  },
+  "setup_need_key": {
+    "message": "Этому движку нужен ключ API. Пока вы не введёте его ниже, перевод не заработает."
+  },
+  "popup_need_setup": {
+    "message": "Перевод ещё не настроен — нажмите здесь, чтобы открыть настройки; хватит одного ключа."
+  },
+  "learn_title": {
+    "message": "Повторение"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Повторение"
+  },
+  "learn_review": {
+    "message": "Повторение"
+  },
+  "learn_reveal": {
+    "message": "Показать перевод"
+  },
+  "learn_grade_again": {
+    "message": "Забыл"
+  },
+  "learn_grade_hard": {
+    "message": "Трудно"
+  },
+  "learn_grade_good": {
+    "message": "Помню"
+  },
+  "learn_grade_easy": {
+    "message": "Слишком легко"
+  },
+  "learn_empty_title": {
+    "message": "Пока нет материала"
+  },
+  "learn_empty_body": {
+    "message": "Включите сбор и просматривайте и переводите как обычно. Сохраняются предложения, которые вы действительно прочитали, а не те, мимо которых пролистали."
+  },
+  "learn_open_settings": {
+    "message": "Включить сбор в настройках"
+  },
+  "learn_alldone_title": {
+    "message": "На сейчас всё"
+  },
+  "learn_alldone_body": {
+    "message": "Продолжайте читать и переводить — новый материал появится сам."
+  },
+  "learn_next_due": {
+    "message": "Следующая карточка — {when}."
+  },
+  "learn_in_minutes": {
+    "message": "примерно через {n} мин"
+  },
+  "learn_in_hours": {
+    "message": "примерно через {n} ч"
+  },
+  "learn_in_days": {
+    "message": "примерно через {n} дн."
+  },
+  "learn_progress": {
+    "message": "Прогресс"
+  },
+  "learn_done_run": {
+    "message": "Сделано за сессию: {n}"
+  },
+  "learn_settings": {
+    "message": "Настройки"
+  },
+  "learn_unknown_source": {
+    "message": "Неизвестный источник"
+  },
+  "learn_count_due": {
+    "message": "К повтору"
+  },
+  "learn_count_learning": {
+    "message": "Изучается"
+  },
+  "learn_count_new": {
+    "message": "Кандидаты"
+  },
+  "learn_count_known": {
+    "message": "Освоено"
+  },
+  "learn_count_total": {
+    "message": "Всего"
+  },
+  "learn_section": {
+    "message": "Обучение"
+  },
+  "learn_section_hint": {
+    "message": "Если включено, действительно прочитанные предложения сохраняются НА ЭТОМ УСТРОЙСТВЕ вместе с адресом страницы, её заголовком и временем на экране и показываются снова по кривой забывания. Быстрая прокрутка не считается. Ничего не отправляется, пока вы не включите синхронизацию, а одна кнопка стирает всё."
+  },
+  "learn_enable": {
+    "message": "Собирать материал"
+  },
+  "learn_daily_new": {
+    "message": "Новых карточек в день (макс.)"
+  },
+  "learn_open_review": {
+    "message": "Открыть страницу повторения"
+  },
+  "learn_clear": {
+    "message": "Очистить библиотеку"
+  },
+  "learn_clear_confirm": {
+    "message": "Очистить библиотеку? Все собранные предложения и весь прогресс будут удалены безвозвратно."
+  },
+  "learn_stats": {
+    "message": "{n} записей · {due} к повтору · около {kb} КБ"
+  },
+  "learn_stats_empty": {
+    "message": "Библиотека пуста"
+  },
+  "toast_learn_on": {
+    "message": "Сбор материала включён"
+  },
+  "toast_learn_off": {
+    "message": "Сбор остановлен (собранное сохраняется)"
+  },
+  "toast_learn_cleared": {
+    "message": "Библиотека очищена"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Не удалось очистить"
+  },
+  "toast_saved": {
+    "message": "Сохранено"
+  },
+  "learn_replay": {
+    "message": "▶ Прослушать фрагмент"
+  },
+  "learn_replay_hint": {
+    "message": "Открывает источник в новой вкладке на этой отметке — двуязычные субтитры там тоже работают."
+  },
+  "tts_section": {
+    "message": "Озвучивание"
+  },
+  "tts_section_hint": {
+    "message": "Превращает карточки в аудирование. По умолчанию использует голос вашего устройства — без сети и без затрат. Можно указать и собственный сервер синтеза речи."
+  },
+  "tts_mode": {
+    "message": "Режим речи"
+  },
+  "tts_mode_off": {
+    "message": "Выкл."
+  },
+  "tts_mode_assist": {
+    "message": "Показывать текст и кнопку воспроизведения"
+  },
+  "tts_mode_audio_first": {
+    "message": "Сначала слушать (текст скрыт)"
+  },
+  "tts_engine": {
+    "message": "Движок синтеза"
+  },
+  "tts_engine_browser": {
+    "message": "Встроенный голос устройства (бесплатно · офлайн)"
+  },
+  "tts_engine_local": {
+    "message": "Локальная / своя конечная точка синтеза"
+  },
+  "tts_hint_browser": {
+    "message": "Использует голоса, уже установленные в вашей системе. Ничего не отправляется и не кэшируется — этот движок только произносит и не отдаёт аудиоданные."
+  },
+  "tts_hint_local": {
+    "message": "Речевой сервер на вашей машине или в локальной сети — укажите полный адрес по образцу в поле. Синтез кэшируется локально, поэтому фраза оплачивается лишь один раз."
+  },
+  "tts_hint_openai": {
+    "message": "Использует ваш собственный API-ключ. Синтезированное аудио кэшируется локально, поэтому фраза оплачивается один раз."
+  },
+  "tts_base_url": {
+    "message": "Адрес конечной точки синтеза"
+  },
+  "tts_api_key": {
+    "message": "API-ключ синтеза"
+  },
+  "tts_model": {
+    "message": "Модель синтеза"
+  },
+  "tts_voice": {
+    "message": "Голос"
+  },
+  "tts_voice_auto": {
+    "message": "Автоматически (по языку карточки)"
+  },
+  "tts_voice_hint": {
+    "message": "Голоса подбираются под язык каждой карточки. Выбранный здесь используется, только если он действительно говорит на этом языке."
+  },
+  "tts_rate": {
+    "message": "Скорость"
+  },
+  "tts_autoplay": {
+    "message": "Автовоспроизведение при открытии карточки"
+  },
+  "tts_test": {
+    "message": "Проверить голос"
+  },
+  "tts_test_sample": {
+    "message": "Вот так будут звучать ваши карточки для повторения."
+  },
+  "tts_testing": {
+    "message": "Синтезируется…"
+  },
+  "tts_test_ok": {
+    "message": "Воспроизведение"
+  },
+  "tts_play": {
+    "message": "▶ Прослушать"
+  },
+  "tts_replay": {
+    "message": "▶ Прослушать снова"
+  },
+  "tts_playing": {
+    "message": "Воспроизведение…"
+  },
+  "tts_loading": {
+    "message": "Загрузка аудио…"
+  },
+  "tts_no_voice": {
+    "message": "В системе нет голоса для этого языка"
+  },
+  "tts_unsupported": {
+    "message": "В этом браузере нет встроенного синтеза речи"
+  },
+  "tts_no_base": {
+    "message": "Адрес конечной точки не указан"
+  },
+  "tts_no_key": {
+    "message": "API-ключ синтеза не указан"
+  },
+  "tts_blocked": {
+    "message": "Браузер заблокировал автовоспроизведение — нажмите, чтобы прослушать"
+  },
+  "tts_http": {
+    "message": "Сервис синтеза вернул ошибку"
+  },
+  "tts_failed": {
+    "message": "Сейчас это предложение не может быть озвучено"
+  },
+  "tts_cache": {
+    "message": "Кэш речи: {n} фрагм. · около {mb} МБ (лимит {cap} МБ)"
+  },
+  "tts_cache_empty": {
+    "message": "Кэш речи пуст"
+  },
+  "tts_cache_na": {
+    "message": "Встроенный голос устройства не создаёт кэш"
+  },
+  "tts_clear_cache": {
+    "message": "Очистить кэш речи"
+  },
+  "toast_tts_cleared": {
+    "message": "Кэш речи очищен"
+  },
+  "learn_reveal_orig": {
+    "message": "Показать текст"
+  },
+  "learn_clean_known": {
+    "message": "Убрать освоенные карточки"
+  },
+  "learn_clean_known_n": {
+    "message": "Убрать освоенных карточек: {n}"
+  },
+  "learn_pressure_dropped": {
+    "message": "Не удалось сохранить собранных элементов: {n} — так бывает, когда библиотека заполнена."
+  },
+  "learn_pressure_evicted": {
+    "message": "Библиотека заполнена — автоматически удалено старых карточек: {n}, чтобы освободить место."
+  },
+  "learn_pressure_near": {
+    "message": "Библиотека почти заполнена ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "Убрано освоенных карточек: {n}"
+  },
+  "learn_export": {
+    "message": "Экспортировать библиотеку"
+  },
+  "learn_import": {
+    "message": "Импортировать из файла"
+  },
+  "toast_exported": {
+    "message": "Экспортировано карточек: {n}"
+  },
+  "toast_export_empty": {
+    "message": "Пока нечего экспортировать"
+  },
+  "toast_export_failed": {
+    "message": "Не удалось экспортировать"
+  },
+  "toast_imported": {
+    "message": "Импортировано карточек: {n}"
+  },
+  "toast_import_skipped": {
+    "message": "Пропущено нечитаемых строк: {n}"
+  },
+  "toast_import_bad_format": {
+    "message": "Это не файл экспорта библиотеки"
+  },
+  "toast_import_failed": {
+    "message": "Не удалось импортировать"
+  },
+  "sync_section": {
+    "message": "Вход · Синхронизация между устройствами"
+  },
+  "sync_section_hint": {
+    "message": "Необязательно. Всё работает и без входа — синхронизация лишь делает так, чтобы прочитанные в браузере предложения появлялись и в приложении, и на других ваших устройствах. После входа синхронизируется всё собранное, включая кандидатов, ещё не попавших в повторение."
+  },
+  "sync_email": {
+    "message": "Почта"
+  },
+  "sync_send_code": {
+    "message": "Отправить код"
+  },
+  "sync_code": {
+    "message": "6-значный код из письма"
+  },
+  "sync_verify": {
+    "message": "Войти"
+  },
+  "sync_now": {
+    "message": "Синхронизировать"
+  },
+  "sync_signout": {
+    "message": "Выйти"
+  },
+  "sync_delete": {
+    "message": "Удалить данные в облаке и аккаунт"
+  },
+  "sync_err_offline": {
+    "message": "Сервер недоступен, попробуем позже. Всё выученное хранится на этом устройстве."
+  },
+  "sync_err_quota": {
+    "message": "Место в облаке закончилось, новое не выгружается (на это устройство это не влияет). Удаление освоенных карточек освободит место."
+  },
+  "sync_err_signed_out": {
+    "message": "Сессия истекла. Войдите снова."
+  },
+  "sync_err_rate": {
+    "message": "Слишком много запросов кода. Повторите через несколько минут."
+  },
+  "sync_err_generic": {
+    "message": "Синхронизация не завершилась"
+  },
+  "sync_signed_in": {
+    "message": "Вы вошли как {email}"
+  },
+  "sync_usage": {
+    "message": "Использовано {used} из {quota} · блоков: {n}"
+  },
+  "sync_need_email": {
+    "message": "Сначала введите почту"
+  },
+  "sync_sending": {
+    "message": "Отправляем…"
+  },
+  "sync_code_sent": {
+    "message": "Код отправлен на {email}. Введите его ниже."
+  },
+  "sync_verifying": {
+    "message": "Проверяем…"
+  },
+  "sync_signed_in_now": {
+    "message": "Вход выполнен. Первая синхронизация может занять несколько секунд."
+  },
+  "sync_bad_code": {
+    "message": "Код неверный или устарел. Запросите новый."
+  },
+  "sync_running": {
+    "message": "Синхронизация…"
+  },
+  "sync_done": {
+    "message": "Синхронизация завершена · получено {in} · отправлено {out}"
+  },
+  "sync_status_running": {
+    "message": "Синхронизация с сервером…"
+  },
+  "sync_status_done_at": {
+    "message": "Синхронизировано · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Сеть недоступна — повторим автоматически. Ваши данные сохранены на этом устройстве."
+  },
+  "sync_status_error": {
+    "message": "Синхронизация не удалась — повторим автоматически."
+  },
+  "sync_status_signed_out": {
+    "message": "Вы не вошли — только локальные данные"
+  },
+  "sync_signed_out": {
+    "message": "Вы вышли. Библиотека на этом устройстве осталась без изменений."
+  },
+  "sync_delete_confirm": {
+    "message": "Удалить данные в облаке и аккаунт? Всё на сервере и сам аккаунт будут удалены безвозвратно. Библиотека на этом устройстве сохранится."
+  },
+  "sync_deleting": {
+    "message": "Удаляем…"
+  },
+  "sync_deleted": {
+    "message": "Данные в облаке и аккаунт удалены. Библиотека на этом устройстве сохранена."
+  },
+  "sync_deleted_partial": {
+    "message": "Данные в облаке удалены, но аккаунт удалить не удалось ({why}). Попробуйте ещё раз или напишите нам."
+  },
+  "sync_err_upgrade": {
+    "message": "В облаке есть данные, которые эта версия пока не может прочитать (вероятно, они записаны более новой версией). Обновите расширение и синхронизируйте снова — ничего не потеряно, просто пока не читается."
+  },
+  "toast_import_upgrade": {
+    "message": "Этот файл создан более новой версией расширения. Обновите её и импортируйте снова. С самим файлом всё в порядке."
+  },
+  "options_init_failed": {
+    "message": "Страница настроек не загрузилась ({err}). Откройте её заново; если повторится, сообщите нам это сообщение."
+  },
+  "settings_read_failed": {
+    "message": "Не удалось прочитать сохранённые настройки, ниже показаны значения по умолчанию. Не сохраняйте с этой страницы — это перезапишет ваши настройки. ({why})"
+  },
+  "learn_relearn": {
+    "message": "Заново",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "Прочность памяти",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "дн.",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "Как работает повторение",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "Помните → интервал растёт, карточка вернётся позже.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "Забыли → всё сначала, карточка скоро вернётся.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "При прочности 180 дней карточка выучена.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "Понятно",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "До {n} новых карточек в день — настраивается в настройках.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "Свободная практика",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "Практика не накручивает освоение, но выявляет забытое.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "В изучении",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "Все (вкл. новые и выученные)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "Без лимита",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "Начать",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "Практика {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "Практика завершена — {n} карт.",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "Чтение",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "Слух",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "Письмо",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "Полное освоение",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "Повторите вслух (практика — без оценки)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "Проверить",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "Дополните предложение",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "Заменено правильным ответом",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "Разобрать это предложение",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "Использует ваш API — один вызов, кэш навсегда",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "Разбор…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "Не удалось — попробуйте позже",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "Модель не вернула текст — «думающие» (reasoning) модели не подходят для разбора предложений; выберите чат-модель в настройках."
+  },
+  "learn_notes_words": {
+    "message": "Слова",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "Выражения",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "Грамматика",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "Видео, разговоры, документы — перевод по ходу прослушивания. Речь распознаётся на вашем устройстве. Распознанный текст отправляется на перевод: со своим ключом — напрямую выбранному вами провайдеру; на бесплатном лимите — через наш сервер, и текст мы не сохраняем."
+  },
+  "app_email_label": {
+    "message": "Эл. почта"
+  },
+  "app_send": {
+    "message": "Отправить код"
+  },
+  "app_sending": {
+    "message": "Отправка…"
+  },
+  "app_code_label": {
+    "message": "Код (проверьте почту)"
+  },
+  "app_verify": {
+    "message": "Войти"
+  },
+  "app_verifying": {
+    "message": "Вход…"
+  },
+  "app_back_email": {
+    "message": "Другой адрес почты"
+  },
+  "app_signout": {
+    "message": "Выйти"
+  },
+  "app_settings_link": {
+    "message": "Настройки"
+  },
+  "app_review_start": {
+    "message": "Начать повторение"
+  },
+  "app_review_back": {
+    "message": "← Назад"
+  },
+  "app_sync": {
+    "message": "Синхронизировать"
+  },
+  "app_syncing": {
+    "message": "Синхронизация…"
+  },
+  "app_unit_cards": {
+    "message": "карточек"
+  },
+  "app_unit_reviews": {
+    "message": "повторений"
+  },
+  "app_unit_sources": {
+    "message": "источников"
+  },
+  "app_never_synced": {
+    "message": "Ещё не синхронизировано"
+  },
+  "app_sync_empty": {
+    "message": "Синхронизировано, но на сервере пока пусто — сначала соберите предложения в браузере, затем синхронизируйте снова."
+  },
+  "app_up_to_date": {
+    "message": "Уже актуально."
+  },
+  "app_code_sent": {
+    "message": "Код отправлен — проверьте почту."
+  },
+  "app_code_bad": {
+    "message": "Неверный или просроченный код — попробуйте ещё раз."
+  },
+  "app_offline": {
+    "message": "Сервер недоступен — проверьте сеть и повторите."
+  },
+  "app_needs_upgrade": {
+    "message": "На сервере есть данные, которые эта версия не может прочитать — обновите приложение."
+  },
+  "app_received": {
+    "message": "Получено {n} карточек · {m} повторений"
+  },
+  "app_uploaded_n": {
+    "message": "отправлено {n} повторений"
+  },
+  "app_uploaded_only": {
+    "message": "Отправлено {n} повторений"
+  },
+  "app_sync_disabled": {
+    "message": "Синхронизация в этой сборке не включена. Сбор и повторение в расширении браузера работают как прежде — всё хранится на устройстве."
+  },
+  "app_set_title": {
+    "message": "Настройки"
+  },
+  "app_set_daily": {
+    "message": "Макс. новых карточек в день"
+  },
+  "app_set_tts_auto": {
+    "message": "Озвучивать при показе перевода"
+  },
+  "app_set_tts_rate": {
+    "message": "Скорость речи"
+  },
+  "app_set_tts_note": {
+    "message": "Карточки с неизвестным языком (например, собранные в Safari, где нет определения языка) озвучиваются только выбранным выше голосом; без выбора они не читаются. Ключ API речи — как ключ разбора предложения: хранится только на этом устройстве, открытым текстом, и не синхронизируется с аккаунтом."
+  },
+  "app_set_notes_title": {
+    "message": "Перевод и разбор предложения"
+  },
+  "app_set_notes_provider": {
+    "message": "Движок"
+  },
+  "app_set_notes_none": {
+    "message": "Не использовать"
+  },
+  "app_set_notes_key": {
+    "message": "API-ключ"
+  },
+  "app_set_notes_base": {
+    "message": "Свой адрес API"
+  },
+  "app_set_notes_model": {
+    "message": "Модель"
+  },
+  "app_set_notes_note": {
+    "message": "Этот движок выполняет любой перевод в приложении: системный перевод, быстрый перевод, перевод документов, переводы в разговоре и живых субтитрах, а также разбор предложения (слова / выражения / грамматика). Он обращается к вашему собственному API. Ключ хранится только на этом устройстве и никогда не синхронизируется с аккаунтом; он отдельный от ключа расширения и так же безопасен — оба лежат на устройстве открытым текстом."
+  },
+  "app_set_corpus": {
+    "message": "Библиотека"
+  },
+  "app_set_clean_known": {
+    "message": "Убрать освоенные карточки"
+  },
+  "app_set_cleaned": {
+    "message": "Убрано {n} карточек"
+  },
+  "app_set_clean_none": {
+    "message": "Нечего убирать"
+  },
+  "app_set_account": {
+    "message": "Аккаунт"
+  },
+  "app_set_signout": {
+    "message": "Выйти"
+  },
+  "app_set_delete": {
+    "message": "Удалить аккаунт и облачные данные"
+  },
+  "app_set_delete_note": {
+    "message": "Удаление навсегда стирает материал и историю повторений с сервера и закрывает аккаунт. Уже загруженное на это устройство не затрагивается — чтобы удалить и его, удалите приложение."
+  },
+  "app_set_confirm_delete": {
+    "message": "Удалить аккаунт? Всё на сервере будет удалено безвозвратно."
+  },
+  "app_set_deleting": {
+    "message": "Удаление…"
+  },
+  "app_set_deleted": {
+    "message": "Аккаунт удалён."
+  },
+  "app_unit_known": {
+    "message": "освоено"
+  },
+  "tts_no_voice_und": {
+    "message": "Язык этой карточки неизвестен — выберите голос в настройках, и озвучка заработает"
+  },
+  "app_set_tts_voice": {
+    "message": "Голос"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Автоматически (по языку карточки)"
+  },
+  "learn_langs_label": {
+    "message": "Изучаемые языки"
+  },
+  "learn_langs_all": {
+    "message": "Все (по умолчанию)"
+  },
+  "learn_langs_hint": {
+    "message": "Сохраняются только предложения на выбранных языках. Если Safari не может определить язык, решает система письма; сохранённое долгим нажатием не фильтруется."
+  },
+  "learn_sources_manage": {
+    "message": "Управление источниками"
+  },
+  "learn_sources_empty": {
+    "message": "Источников пока нет"
+  },
+  "learn_sources_count": {
+    "message": "{n} карточек"
+  },
+  "learn_src_delete": {
+    "message": "Удалить сохранённое"
+  },
+  "learn_src_block": {
+    "message": "Не собирать"
+  },
+  "learn_src_unblock": {
+    "message": "Снова собирать"
+  },
+  "learn_src_blocked": {
+    "message": "Заблокировано"
+  },
+  "learn_src_blocked_by": {
+    "message": "Заблокировано правилом {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Правила блокировки"
+  },
+  "learn_block_hint": {
+    "message": "Поддерживаются шаблоны: example.com — весь домен (включая поддомены); *.example.com/news/* — путь."
+  },
+  "learn_block_add": {
+    "message": "Добавить"
+  },
+  "learn_block_placeholder": {
+    "message": "напр. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Неверное правило"
+  },
+  "learn_delete_confirm": {
+    "message": "Удалить {n} карточек с {host}? Это синхронизируется со всеми устройствами и необратимо."
+  },
+  "learn_delete_done": {
+    "message": "Удалено {n} карточек"
+  },
+  "learn_delete_none": {
+    "message": "Из этого источника больше нечего удалять"
+  },
+  "popup_site_section": {
+    "message": "Этот сайт"
+  },
+  "popup_site_capture": {
+    "message": "Собирать на этом сайте"
+  },
+  "popup_site_manage": {
+    "message": "Настроить…"
+  },
+  "learn_card_src_actions": {
+    "message": "Действия с источником"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "Не удалось прочитать состояние входа (сбой чтения хранилища); скоро повторим — это не означает, что вы вышли из аккаунта."
+  },
+  "learn_backup_failed": {
+    "message": "Не удалось записать локальную резервную копию ({why}). Сама библиотека обучения не затронута."
+  },
+  "notes_engine": {
+    "message": "Движок разбора"
+  },
+  "notes_engine_hint": {
+    "message": "Чат-движок для «Разобрать предложение». По умолчанию следует за движком перевода выше; «думающие» модели не подходят."
+  },
+  "notes_follow": {
+    "message": "Как движок перевода (по умолчанию)"
+  },
+  "notes_api_key": {
+    "message": "API-ключ разбора"
+  },
+  "notes_base_url": {
+    "message": "Адрес API разбора"
+  },
+  "notes_model": {
+    "message": "Модель разбора"
+  },
+  "learn_badge_speak": {
+    "message": "Говорение",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "Ещё одно упражнение · не влияет на интервал",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Выберите правильный перевод",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Сначала прослушайте, затем выберите услышанные слова",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Подтвердить выбор",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Генерация вопросов этой карточки через ваш API (один вызов, кэш навсегда)…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Не удалось сгенерировать — используется локальное упражнение",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "Движок транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "Не настроен (без устных упражнений)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "Локальный / собственный сервер транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "Записи устного упражнения отправляются на настроенный здесь сервер и после распознавания удаляются — никогда не сохраняются и не синхронизируются. Без движка устных упражнений нет. Ключ хранится только на этом устройстве. Собственный сервер должен разрешать CORS.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "API-ключ транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "Адрес сервера транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "Модель транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "Прочитайте это предложение вслух",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 Начать запись",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 Записать снова",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ Стоп",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "Идёт запись — прочитайте предложение выше",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "Распознавание…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "Совпадение с предложением {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "Пропущено: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "Использует ваш сервер — один вызов на запись",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "Сервер транскрипции ещё не настроен",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "API-ключ транскрипции ещё не указан",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "Этот браузер не может получить доступ к микрофону",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "Доступ к микрофону запрещён — в этой сессии другие упражнения",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "Сервис транскрипции вернул ошибку",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "Речь не распознана — попробуйте ещё раз",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "Этот браузер не поддерживает запись",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "Ошибка транскрипции",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Не удаётся связаться с сервером транскрипции — проверьте адрес; собственный сервер должен также разрешать CORS",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Проверить соединение",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Проверка…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Работает · {ms} мс",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "ответ: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Не сработало",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Адрес сервера ещё не указан",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "API-ключ ещё не указан",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "Движок не выбран",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "Эта версия не распознаёт сохранённый движок — выберите другой выше",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "Сервер ответил, но содержимое не разобрать",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "ключ неверен или без прав",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "неверный URL эндпоинта (включая путь) или название модели",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "сервер отклонил запрос",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "В этом адресе есть только хост и нет пути эндпоинта — укажите полный URL запроса (см. пример в поле)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "Адрес не начинается с http:// или https:// — без схемы он считается относительным путём, и запрос вообще не уходит",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "Эндпоинт не ответил до истечения тайм-аута",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Запрошенный адрес: {url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "Отправлено через: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "фоновый процесс расширения (не подпадает под CORS, без preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "саму страницу (сначала отправляет preflight OPTIONS)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "Ответ сервера: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "(Мы также автоматически повторили запрос из фонового процесса расширения, и он тоже не прошёл — значит, дело не в CORS: адрес действительно недоступен с этого компьютера.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "Модель не вернула текст — рассуждающие модели здесь не подходят, выберите чат-модель",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Разделить длинные карточки"
+  },
+  "learn_split_failed": {
+    "message": "Не удалось разделить"
+  },
+  "learn_split_none": {
+    "message": "Нет длинных карточек для разделения"
+  },
+  "learn_split_done": {
+    "message": "{p} длинных карточек разделено на {c} карточек-предложений"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} оставлено как есть — перевод не выравнивается)"
+  },
+  "app_use_pw": {
+    "message": "Войти по паролю",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Пароль",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Войти по коду",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "Неверная почта или пароль — попробуйте ещё раз.",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "Режим подкаста",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ Пауза",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ Продолжить",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ Дальше",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 Ещё раз",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "Карточка {i} из {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 Разобрать",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Проход {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Разбираю…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Чтобы читать разбор, сначала настройте движок (Настройки → Перевод и разбор предложения)"
+  },
+  "drive_notes_empty": {
+    "message": "У этой карточки нет разбора для чтения",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Не удаётся прочитать сохранённые настройки — попробуйте чуть позже",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Вперемешку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ По порядку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Повтор всех",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Повтор одной",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Ещё круг",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Читаю разбор…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Разбираю предложение…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Читать вслух разбор предложения",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "После каждой карточки читается её разбор (слова, выражения, один пункт грамматики). По умолчанию включено: ни разу не разобранная карточка разбирается на месте вашим настроенным движком — списывается один раз за карточку, дальше из кэша. Выключите, если не хотите тратить; выключено — читаются только фраза и перевод.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Чтение разбора: неразобранная карточка вызывает ваш движок — списывается один раз за карточку",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Слова: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Выражения: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Грамматика: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Не удалось разобрать карточку — пропущено",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "Движок разбора не настроен — разбор этой карточки пропущен",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Эту карточку не удаётся прочитать — перешли к следующей",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "Читаю оригинал…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "Читаю перевод…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "На паузе",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "Этот круг закончен",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "Нет карточек для чтения вслух",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Объём предзагрузки",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Сегодняшняя колода",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Сегодня + 3 дня",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Сегодня + 7 дней",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Загрузить для офлайна",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Нажмите перед выездом — речь, разборы и переводы, которые вы будете слушать, скачаются на это устройство, и целый сеанс проиграется без сети. Первое нажатие только считает стоимость и ничего не тратит: посмотрите, сколько будет вызовов, прежде чем нажать снова.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Проверяем, что уже есть на этом устройстве…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "нужно синтезировать: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "разобрать карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "без перевода карточек: {n}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "Встроенный голос не создаёт кэш и и так работает офлайн — здесь заранее загружаются только разборы и переводы.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "Движок разбора не настроен, поэтому карточки без перевода в этот раз его не получат (Настройки → Разбор предложения)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "Всё это уже на устройстве — сеть в дороге не понадобится.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Подтвердить предзагрузку (примерно {n} платных вызовов)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Остановить",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Предзагрузка {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Готово {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Остановлено: готово {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "ошибок: {n} ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "Речевой движок не настроен ({reason}) — в этот раз не удастся синтезировать ни одного фрагмента (Настройки → Речевой движок)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Речевой движок не настроен — в этом круге ничего не будет прочитано вслух (Настройки → Речевой движок)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "Система заблокировала автовоспроизведение — нажмите, чтобы продолжить",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "На этом устройстве нет доступного речевого движка",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Речевой движок недоступен — в этом круге ничего не будет прочитано. Офлайн играют только предзагруженные карточки (Настройки → Загрузить для офлайна)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "Время ожидания голосового сервиса истекло — проверьте сеть или укажите другой адрес"
+  },
+  "tts_network": {
+    "message": "Не удаётся подключиться к голосовому сервису — проверьте сеть и адрес"
+  },
+  "tts_empty": {
+    "message": "На этой карточке нет текста для озвучивания"
+  },
+  "drive_bg_session_failed": {
+    "message": "На этом устройстве сейчас не удаётся запустить фоновую аудиосессию, поэтому воспроизведение приостановится, когда приложение уйдёт с экрана."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "Встроенный голос устройства останавливается, когда приложение уходит с экрана. Чтобы слушать дальше, настройте речевую конечную точку (Настройки → Речевой движок)."
+  },
+  "drive_awake_note": {
+    "message": "Пока режим подкаста на переднем плане, экран не блокируется автоматически. Чтобы карточка оставалась видимой после блокировки, включите системный режим «Всегда включён»: Настройки → Экран и яркость → Всегда включён."
+  },
+  "app_empty_body": {
+    "message": "Материал для изучения приходит из расширения браузера — в этом приложении вы его повторяете."
+  },
+  "app_empty_how": {
+    "message": "Включите BelliedMonkey Translator в «Настройки → Safari → Расширения», включите сбор, затем читайте и переводите как обычно."
+  },
+  "app_ext_off_title": {
+    "message": "Расширение ещё не включено"
+  },
+  "app_ext_off_body": {
+    "message": "Карточки приходят из расширения Safari. Оно не включено, поэтому здесь пусто."
+  },
+  "app_ext_unknown_title": {
+    "message": "Сначала настройте браузерную часть"
+  },
+  "app_ext_ios_body": {
+    "message": "Карточки приходят из расширения Safari: в Safari нажмите значок расширений слева от адресной строки → «Управление расширениями» → включите BelliedMonkey Translator."
+  },
+  "app_ext_open_prefs": {
+    "message": "Открыть настройки расширений Safari"
+  },
+  "app_ext_open_setup": {
+    "message": "Завершить настройку в вебе"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "Расширение Safari ещё не включено"
+  },
+  "app_ext_open_safari": {
+    "message": "Включить расширение в Safari →"
+  },
+  "app_ext_done": {
+    "message": "Я включил(а)"
+  },
+  "app_signin_why": {
+    "message": "После входа придёт бесплатный лимит, а голосовые пакеты скачаются на это устройство — больше ничего настраивать не нужно."
+  },
+  "app_signin_open": {
+    "message": "Войти"
+  },
+  "ob_next": {
+    "message": "Далее"
+  },
+  "ob_skip": {
+    "message": "Настроить позже"
+  },
+  "ob_start": {
+    "message": "Начать"
+  },
+  "ob_welcome_title": {
+    "message": "Модель для перевода выбираете вы"
+  },
+  "ob_welcome_body": {
+    "message": "У системы есть только её собственный движок. Здесь вы выбираете свой — перевод приходит прямо от него и не проходит через наши серверы."
+  },
+  "ob_ios_1": {
+    "message": "В Safari нажмите значок расширений слева от адресной строки"
+  },
+  "ob_ios_2": {
+    "message": "Выберите «Управление расширениями» и включите BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Разрешения — «Разрешить», для всех сайтов"
+  },
+  "ob_browser_title": {
+    "message": "Ещё два шага, в браузере"
+  },
+  "ob_browser_body": {
+    "message": "Оба переключателя находятся в настройках расширения — приложение не может их изменить, хранилища разделены."
+  },
+  "ob_kv_engine": {
+    "message": "Добавьте ключ API для перевода"
+  },
+  "ob_kv_capture": {
+    "message": "Включите сбор"
+  },
+  "ob_kv_capture_note": {
+    "message": "Уже включено. Предложения, на которых вы задержались, становятся карточками — выключите здесь, если не нужно."
+  },
+  "ob_read_title": {
+    "message": "Почитайте что-нибудь"
+  },
+  "ob_read_body": {
+    "message": "Готово: читайте и переводите как обычно. Прочитанное накапливается; чтобы сохранить фразу сразу, нажмите и удерживайте её перевод."
+  },
+  "ob_signin_title": {
+    "message": "Последний шаг: вход"
+  },
+  "ob_kv_twice": {
+    "message": "Вы войдёте и в расширении"
+  },
+  "ob_kv_twice_note": {
+    "message": "Данные на двух сторонах хранятся отдельно — войдите с одним аккаунтом на обеих."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Настройки расширения → движок перевода. Этот шаг не обойти: без ключа ничего не переводится."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Начало работы"
+  },
+  "extob_welcome_title": {
+    "message": "Читайте и запоминайте, не покидая страницу"
+  },
+  "extob_welcome_body": {
+    "message": "Оригинал остаётся на месте, перевод появляется прямо под ним. Предложения, на которых вы действительно остановились, становятся карточками и возвращаются по кривой забывания."
+  },
+  "extob_use_1": {
+    "message": "Откройте страницу на другом языке"
+  },
+  "extob_use_2": {
+    "message": "Нажмите плавающую кнопку справа внизу"
+  },
+  "extob_use_3": {
+    "message": "Перевод появляется под оригиналом, а предложения, которые вы дочитали, становятся карточками для повторения"
+  },
+  "ob_fork_title": {
+    "message": "С чего начнём?"
+  },
+  "ob_fork_sub": {
+    "message": "Оба варианта работают. Переключиться можно в любой момент."
+  },
+  "ob_fork_grant_title": {
+    "message": "Начать с бесплатным лимитом"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Рекомендуем"
+  },
+  "ob_fork_grant_desc": {
+    "message": "Ключ API не нужен — войдите и переводите. Хватит на несколько сотен абзацев страниц и субтитров."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Начать бесплатно →"
+  },
+  "ob_fork_key_title": {
+    "message": "У меня есть свой ключ API"
+  },
+  "ob_fork_key_desc": {
+    "message": "Один ключ настраивает перевод, озвучку и расшифровку — или настройте каждый движок отдельно."
+  },
+  "ob_fork_key_cta": {
+    "message": "Настроить →"
+  },
+  "ob_fork_foot": {
+    "message": "Закончился? В любой момент переключитесь на свой ключ — один шаг в настройках."
+  },
+  "ob_fork_waiting": {
+    "message": "Получаем в новой вкладке… вернитесь сюда после входа, и всё продолжится само."
+  },
+  "ob_fork_landed": {
+    "message": "Лимит зачислен — переходим к следующему шагу…"
+  },
+  "ob_fork_reopen": {
+    "message": "Открыть страницу получения заново"
+  },
+  "extob_engine_title": {
+    "message": "Выберите движок перевода"
+  },
+  "extob_engine_body_key": {
+    "message": "Этот шаг не обойти: без ключа ничего не переведётся."
+  },
+  "extob_key_label": {
+    "message": "API-ключ"
+  },
+  "extob_capture_title": {
+    "message": "Прочитанное само становится карточками"
+  },
+  "extob_capture_body": {
+    "message": "Уже включено. Предложения, которые вы действительно дочитали (быстрая прокрутка не считается), сохраняются как карточки только на этом устройстве — выключите здесь, если не нужно."
+  },
+  "extob_capture_toggle": {
+    "message": "Сохранять прочитанные предложения как карточки"
+  },
+  "extob_capture_note": {
+    "message": "Только дочитанные предложения. Можно отключить в любой момент и удалить всё с сайта разом."
+  },
+  "extob_try_title": {
+    "message": "Теперь переведите страницу"
+  },
+  "extob_try_body": {
+    "message": "Откройте настоящую страницу и нажмите плавающую кнопку в углу — перевод появится под каждым абзацем."
+  },
+  "extob_try_cta": {
+    "message": "Открыть пример страницы"
+  },
+  "extob_finish": {
+    "message": "Готово"
+  },
+  "extob_done_title": {
+    "message": "Всё настроено"
+  },
+  "extob_done_text": {
+    "message": "Откройте любую страницу на другом языке и нажмите плавающую кнопку. Настройки и это руководство — в настройках расширения."
+  },
+  "extob_done_close": {
+    "message": "Понятно"
+  },
+  "extob_reonboard": {
+    "message": "Показать вводное руководство снова"
+  },
+  "extob_unpacked_note": {
+    "message": "Установлено из ZIP: эта копия не обновляется сама. Новые версии — на сайте, либо установите из магазина для автообновления."
+  },
+  "extob_first_run": {
+    "message": "Первый раз? Настройка займёт две минуты →"
+  },
+  "qs_title": {
+    "message": "Настроить всё одним ключом"
+  },
+  "qs_sub": {
+    "message": "На этих платформах один ключ настраивает перевод, озвучивание и расшифровку. Для другого движка переключитесь на «Подробно» выше."
+  },
+  "qs_platform": {
+    "message": "Платформа"
+  },
+  "qs_only_one": {
+    "message": "Платформа: {p}"
+  },
+  "qs_key": {
+    "message": "API-ключ"
+  },
+  "qs_get_key": {
+    "message": "Нет ключа? Получите его на {p} ↗"
+  },
+  "qs_try": {
+    "message": "Перевести страницу прямо сейчас"
+  },
+  "qs_try_note": {
+    "message": "Откройте настоящую веб-страницу и нажмите плавающую кнопку — перевод появится под каждым абзацем."
+  },
+  "extob_quick_sub": {
+    "message": "Один ключ настраивает перевод, озвучивание и расшифровку сразу."
+  },
+  "extob_mode_quick": {
+    "message": "Один ключ"
+  },
+  "extob_mode_manual": {
+    "message": "Настроить каждый движок"
+  },
+  "qs_key_ph": {
+    "message": "Вставьте один раз — настроит все три"
+  },
+  "qs_privacy": {
+    "message": "Ключи хранятся только на этом устройстве."
+  },
+  "qs_grant_replaced": {
+    "message": "(заменил ключ бесплатного лимита)"
+  },
+  "stt_device_no_file": {
+    "message": "Расшифровка на устройстве работает только для диалога и субтитров в реальном времени; упражнения на говорение пока не поддерживаются"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Распознавание на устройстве доступно · языковой пакет готов (без сети, проверять нечего)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Распознавание на устройстве доступно · языковой пакет загрузится при первом прослушивании"
+  },
+  "engine_test_device_timeout": {
+    "message": "Распознавание на устройстве не отвечает — закройте и снова откройте приложение"
+  },
+  "listen_downloading": {
+    "message": "Загрузка офлайн-модели {lang} · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "Не удалось загрузить офлайн-модель: {why} — обычно это проблема сети; попробуйте позже — нажмите «Начать слушать» ещё раз или выберите облачный движок в настройках."
+  },
+  "listen_entry_privacy_device": {
+    "message": "Расшифровка на устройстве: текст появляется по мере речи; каждое завершённое предложение идёт в настроенный вами движок перевода."
+  },
+  "listen_cost_line_device": {
+    "message": "Прослушано {t}"
+  },
+  "listen_device_privacy": {
+    "message": "Расшифровка на устройстве: текст появляется по мере речи; каждое завершённое предложение вместе с предыдущими для контекста отправляется на перевод: со своим ключом — напрямую выбранному вами провайдеру; на бесплатном лимите — через наш сервер, и текст мы не сохраняем. При синтезе на устройстве голос создаётся на вашем устройстве, а офлайн-модель скачивается один раз при первом использовании."
+  },
+  "listen_raw_label": {
+    "message": "Распознанный текст"
+  },
+  "tts_device_lang_fallback": {
+    "message": "Озвучено системным голосом (офлайн-модель не поддерживает {lang})"
+  },
+  "qs_apply": {
+    "message": "Настроить перевод, озвучивание и расшифровку"
+  },
+  "qs_testing": {
+    "message": "Проверка…"
+  },
+  "qs_untouched": {
+    "message": "— не изменено · уже настроено ({cur})"
+  },
+  "qs_unknown": {
+    "message": "существующая настройка"
+  },
+  "qs_slot_chat": {
+    "message": "Перевод"
+  },
+  "qs_slot_tts": {
+    "message": "Озвучивание"
+  },
+  "qs_slot_stt": {
+    "message": "Расшифровка"
+  },
+  "qs_slot_notes": {
+    "message": "Разбор предложений"
+  },
+  "qs_notes_follow": {
+    "message": "следует движку перевода (без изменений)"
+  },
+  "qs_tts_untried": {
+    "message": "(ещё не воспроизводилось — нажмите «Прослушать пример» в карточке «Голос» ниже)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Запись от этого не включается. Только что был отправлен синусоидальный тон длиной 0,6 секунды, а не ваш голос."
+  },
+  "qs_retry": {
+    "message": "Повторить этот"
+  },
+  "engine_test_empty_audio": {
+    "message": "Эндпоинт ответил, но не вернул аудио"
+  },
+  "opt_mode_quick": {
+    "message": "Быстро"
+  },
+  "opt_mode_detail": {
+    "message": "Подробно"
+  },
+  "options_wipe_all": {
+    "message": "Стереть все данные на этом устройстве"
+  },
+  "options_wipe_hint": {
+    "message": "Удаление приложения не стирает эти данные. Чтобы стереть их полностью, сначала сделайте это здесь."
+  },
+  "options_wipe_confirm": {
+    "message": "Стереть все данные на этом устройстве? Ключи API, все настройки, собранные предложения и прогресс повторений будут удалены, и вы выйдете из аккаунта. Отменить нельзя.\n\nТо, что уже синхронизировано в облаке, не затрагивается — после повторного входа оно вернётся."
+  },
+  "toast_wipe_failed": {
+    "message": "Стёрто не всё — попробуйте ещё раз"
+  },
+  "app_sync_empty_who": {
+    "message": "Синхронизация завершена, но под {email} пока ничего нет. Если вы собирали предложения в расширении браузера, проверьте, что там выполнен вход с той же почтой."
+  },
+  "app_owner_mismatch": {
+    "message": "Материалы на этом устройстве принадлежат другому аккаунту. Войдите с той почтой или сотрите данные этого устройства в настройках расширения и начните заново."
+  },
+  "app_owner_unknown": {
+    "message": "У материалов на этом устройстве есть владелец, но вы не вошли. Войдите, чтобы продолжить синхронизацию."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "Материалы на этом устройстве принадлежат другому аккаунту. Войдите с той почтой или сотрите все данные на этом устройстве и начните заново."
+  },
+  "sync_err_owner_unknown": {
+    "message": "У материалов на этом устройстве есть владелец, но вы не вошли. Войдите, чтобы продолжить синхронизацию."
+  },
+  "app_err_upgrade": {
+    "message": "В облаке есть содержимое, которое эта версия пока не может прочитать (вероятно, из более нового расширения). Обновите приложение и синхронизируйте снова — ничего не потеряно, просто пока не читается."
+  },
+  "site_next_title": {
+    "message": "Перевелось. Дальше — перенести эти карточки в приложение"
+  },
+  "site_next_body": {
+    "message": "Предложения, на которых вы задержались, уже стали карточками повторения — здесь, в этом браузере. В приложение они попадут только после входа. Без входа всё работает; просто приложение будет пустым."
+  },
+  "site_next_body_off": {
+    "message": "«Собирать учебный материал» ещё выключено, поэтому карточки не создаются. Сначала включите это в настройках расширения."
+  },
+  "site_next_cta": {
+    "message": "Посмотреть карточки"
+  },
+  "site_next_cta_off": {
+    "message": "Включить «Собирать материал»"
+  },
+  "site_next_signin": {
+    "message": "Войти сейчас →"
+  },
+  "sync_next_app": {
+    "message": "Дальше: войдите в приложение на iPhone / Mac с той же почтой ({email}) — только так карточки появятся там."
+  },
+  "app_dl_mismatch_title": {
+    "message": "Это разные аккаунты"
+  },
+  "app_dl_mismatch_body": {
+    "message": "В расширении браузера выполнен вход под другим аккаунтом, а в этом приложении — {email}. Карточки принадлежат аккаунту, поэтому пока они различаются, собранное там здесь не появится."
+  },
+  "app_dl_switch": {
+    "message": "Выйти и войти под аккаунтом расширения"
+  },
+  "app_dl_keep": {
+    "message": "Оставить этот аккаунт"
+  },
+  "app_dl_signin": {
+    "message": "В расширении браузера уже выполнен вход. Войдите здесь под тем же аккаунтом — и карточки синхронизируются."
+  },
+  "app_dl_signin_none": {
+    "message": "Сначала войдите в расширении, затем вернитесь и войдите здесь под тем же аккаунтом — карточки собираются там."
+  },
+  "review_go_app": {
+    "message": "Продолжить в приложении →"
+  },
+  "site_setup_next_engine": {
+    "message": "Настроить движок перевода →"
+  },
+  "setup_not_configured": {
+    "message": "Движок перевода ещё не настроен. Воспользуйтесь настройкой одним ключом выше или переключитесь на «Подробно», выберите движок и введите его ключ."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Стёрто не всё — осталось: {what}. Попробуйте ещё раз."
+  },
+  "wipe_left_unreadable": {
+    "message": "не удалось перечитать хранилище"
+  },
+  "site_next_title_off": {
+    "message": "Перевелось — но карточки пока не сохраняются"
+  },
+  "drive_skipped_media": {
+    "message": "Пропущено {n} карточек с субтитрами видео — у них нет текста для чтения вслух"
+  },
+  "drive_skipped_voice": {
+    "message": "Пропущено {n}: на этом устройстве нет голоса, способного их прочитать. Настройте его в «Настройки → Движок речи» или выберите другой системный голос."
+  },
+  "sync_next_cards": {
+    "message": "Посмотреть карточки"
+  },
+  "site_next_body_local": {
+    "message": "Предложения, на которых вы задержались, уже стали карточками повторения — здесь, в этом браузере. Посмотрите их."
+  },
+  "learn_empty_on": {
+    "message": "Сбор уже включён. Продолжайте читать и переводить — предложения, на которых вы задерживаетесь, появятся здесь. Пролистанные — нет."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Вход не выполнен, только это устройство — войдите, чтобы повторять и в приложении →"
+  },
+  "app_open_failed": {
+    "message": "Не удалось открыть приложение на этом устройстве.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Загрузить в App Store →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "Приложение есть только для iPhone, iPad и Mac. На этом устройстве занимайтесь прямо в браузере.",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey Переводчик",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "Этот вход не вернулся — сменился браузер или были очищены данные. Просто начните заново на этой странице.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "Этот вход пришёл не от того запроса, который мы начали. Остановлено. Начните заново.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "Не удалось прочитать локальное хранилище, поэтому шаг не завершён. Откройте страницу заново и попробуйте ещё раз; если повторяется — сообщите нам.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Войти через Apple",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Войти через Google",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "Или по почте / телефону:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "Почта или телефон",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6-значный код",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Открываем вход через Apple…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Вход через Apple не завершён. Используйте почту или телефон ниже.",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "На этом устройстве есть материал и другой учётной записи. Сейчас вы вошли под другой — ничего не потеряно: войдите под прежней, и всё вернётся.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "Или по почте:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "Сначала укажите {what}",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Не настроено (без озвучивания)"
+  },
+  "tts_not_configured": {
+    "message": "Голос ещё не настроен — выберите движок в «Настройки › Озвучивание»"
+  },
+  "feedback_section": {
+    "message": "Обратная связь"
+  },
+  "feedback_row": {
+    "message": "Написать разработчику"
+  },
+  "feedback_rate": {
+    "message": "Оценить в магазине"
+  },
+  "feedback_discuss": {
+    "message": "Обсуждения на GitHub"
+  },
+  "feedback_hint": {
+    "message": "Откроется ваше почтовое приложение. В теме будут версия и платформа; больше ничего не отправляется."
+  },
+  "extob_done_feedback": {
+    "message": "Что-то не работает? Напишите мне — я читаю каждое письмо."
+  },
+  "sync_why": {
+    "message": "Войдите с одним и тем же аккаунтом — и предложения, прочитанные в браузере, синхронизируются с приложением и другими устройствами."
+  },
+  "sync_use_email": {
+    "message": "Или войти по эл. почте"
+  },
+  "sync_change_email": {
+    "message": "Использовать другой адрес"
+  },
+  "sync_resend": {
+    "message": "Отправить код ещё раз"
+  },
+  "telemetry_section": {
+    "message": "Анонимные данные об использовании"
+  },
+  "telemetry_toggle": {
+    "message": "Делиться анонимными данными об использовании"
+  },
+  "telemetry_what": {
+    "message": "Что отправляется"
+  },
+  "telemetry_hint": {
+    "message": "Только какие функции используются, в каком браузере и удался ли перевод — никогда не прочитанные страницы, текст, адреса, ваши ключи или учётная запись. Выключение удаляет то, что отправило это устройство."
+  },
+  "diag_section": {
+    "message": "Журнал диагностики"
+  },
+  "diag_copy": {
+    "message": "Скопировать журнал"
+  },
+  "diag_clear": {
+    "message": "Очистить"
+  },
+  "diag_hint": {
+    "message": "Локальные записи для отладки (загрузка моделей / речевые движки / этапы входа, ~200 записей). Не содержат ваших слов и переводов. Покидают устройство только когда вы сами скопируете и вставите их кому-то."
+  },
+  "diag_copied": {
+    "message": "Скопировано"
+  },
+  "diag_audio_toggle": {
+    "message": "Загружать диагностические записи (отладка транскрибации)"
+  },
+  "diag_audio_hint": {
+    "message": "Если включено, звук микрофона, звук озвучки и соответствующий текст сеансов интерпретации упаковываются и загружаются на наш сервер (только для отладки транскрибации, автоудаление через 72 часа). По умолчанию выключено; выключение немедленно останавливает сбор."
+  },
+  "telemetry_onboard": {
+    "message": "Для улучшения продукта отправляются анонимные данные об использовании (никогда — содержимое или адреса страниц). Отключается в настройках."
+  },
+  "asr_offer": {
+    "message": "🎙 ИИ-субтитры"
+  },
+  "asr_needs_engine": {
+    "message": "Сначала выберите движок распознавания в настройках"
+  },
+  "asr_status_file": {
+    "message": "⏳ Распознаём всю запись…"
+  },
+  "asr_stop": {
+    "message": "Остановить распознавание"
+  },
+  "asr_err_silent": {
+    "message": "Звук не захвачен — распознавание остановлено"
+  },
+  "asr_err_mse": {
+    "message": "Safari не может захватить звук этого потокового видео, поэтому расшифровать эту страницу нельзя",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "Не удалось прочитать эту запись"
+  },
+  "asr_err_ws": {
+    "message": "Соединение с распознаванием потеряно"
+  },
+  "asr_err_toolarge": {
+    "message": "Запись слишком велика для распознавания целиком"
+  },
+  "asr_err_nocues": {
+    "message": "Этот движок не возвращает тайм-коды, субтитры невозможны"
+  },
+  "asr_gesture_needed": {
+    "message": "Нажмите на странице, чтобы начать захват"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Нажмите, чтобы начать живую транскрипцию"
+  },
+  "asr_err_settings": {
+    "message": "Движок распознавания изменён — остановлено"
+  },
+  "popup_asr_go": {
+    "message": "🎙 Живая транскрипция + перевод"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 Расшифровать это медиа + перевод"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Расшифровать это медиа — сначала выберите движок →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Слушать устройство через приложение"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Сначала начните там, потом включайте"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Работает и с трансляциями"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Слушать устройство через приложение →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Сначала начните в приложении, потом вернитесь и включайте →"
+  },
+  "asr_media_app_only": {
+    "message": "Расширение не может извлечь звук из этого медиа (видеосайты и трансляции все такие). Слушайте через приложение то, что играет устройство, — подойдёт любой источник."
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Живая транскрипция + перевод — сначала выберите движок →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} без интерфейса реального времени: потоки не транскрибируются, скачиваемое аудио — целиком · настроить живой движок →"
+  },
+  "popup_asr_no_media": {
+    "message": "На этой странице не найдено воспроизводимое видео/аудио — включите воспроизведение и нажмите снова"
+  },
+  "popup_asr_none_found": {
+    "message": "Не найдено видео/аудио для транскрипции. Плеер может быть в другом фрейме или ещё не запущен."
+  },
+  "popup_asr_iframe": {
+    "message": "Плеер находится в другом фрейме страницы; откройте его в новой вкладке ↗"
+  },
+  "popup_asr_live": {
+    "message": "Прямой эфир"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "длительность неизвестна"
+  },
+  "asr_incremental": {
+    "message": "Переводить по ходу речи (быстро, перевод уточняется)"
+  },
+  "asr_history": {
+    "message": "Панель истории субтитров"
+  },
+  "asr_history_title": {
+    "message": "История · целые предложения"
+  },
+  "app_listen_back": {
+    "message": "‹ Назад"
+  },
+  "listen_source_label": {
+    "message": "Разговор"
+  },
+  "listen_entry": {
+    "message": "Разговор · живой переводчик"
+  },
+  "listen_entry_hint": {
+    "message": "Двое говорят лицом к лицу: оба просто говорят, на экране оба языка, перевод читается вслух. Звук уходит только на настроенную вами конечную точку расшифровки."
+  },
+  "listen_title": {
+    "message": "Разговор"
+  },
+  "listen_history": {
+    "message": "Готовые фразы"
+  },
+  "listen_pending": {
+    "message": "⏳ Перевод…"
+  },
+  "listen_me_prefix": {
+    "message": "Я: "
+  },
+  "listen_me_badge": {
+    "message": "сказано мной"
+  },
+  "listen_star": {
+    "message": "Звезда"
+  },
+  "listen_lang_me": {
+    "message": "на {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Язык собеседника"
+  },
+  "listen_pill_listening": {
+    "message": "Слушаю · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Пауза · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "Завершено · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Слушаю · пауза"
+  },
+  "listen_toggle_start": {
+    "message": "Начать слушать"
+  },
+  "listen_copy_all": {
+    "message": "Скопировать всё",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Скопировано",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Не удалось скопировать",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Подходит и для онлайн-встреч и видеозвонков: просто выведите голос собеседника на динамики.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "Прослушано {t} · аудио уходит только на вашу точку транскрипции"
+  },
+  "listen_flip_hint": {
+    "message": "Показать · коснитесь где угодно, чтобы вернуться"
+  },
+  "listen_flip_speaking": {
+    "message": "Озвучивание"
+  },
+  "listen_stop_denied": {
+    "message": "Микрофон запрещён — разрешите BelliedMonkey Translator в Настройки › Конфиденциальность › Микрофон."
+  },
+  "listen_stop_socket": {
+    "message": "Соединение транскрипции потеряно: {why} — услышанное сохранено."
+  },
+  "listen_stop_locked": {
+    "message": "Система остановила запись (звонок или другое приложение заняло микрофон) — продолжится автоматически, или нажмите «Начать слушать»."
+  },
+  "listen_stop_silence": {
+    "message": "30 с тишины — пауза, чтобы не тратить деньги."
+  },
+  "listen_stop_failed": {
+    "message": "Микрофон не запустился: {why} — нажмите «Начать слушать» ещё раз."
+  },
+  "listen_np_title": {
+    "message": "Разговор · живой переводчик"
+  },
+  "listen_np_album": {
+    "message": "Разговор · слушаю · {t} · {n} фраз"
+  },
+  "listen_settings_title": {
+    "message": "Разговор · живой переводчик"
+  },
+  "listen_capture_label": {
+    "message": "Добавлять разговоры в повторение (источник «Разговор»)"
+  },
+  "listen_capture_note": {
+    "message": "«Разговор · живой переводчик» передаёт микрофон на настроенную вами точку транскрипции, только после нажатия кнопки записи внизу и только туда; наши серверы не касаются аудио; запись не хранится, только текст — и только пока этот переключатель включён."
+  },
+  "listen_who_them": {
+    "message": "Собеседник"
+  },
+  "listen_who_me": {
+    "message": "Я"
+  },
+  "listen_who_guessed": {
+    "message": "Не тот язык? Нажмите ↔, чтобы сменить"
+  },
+  "listen_swap_to_them": {
+    "message": "Отметить как сказанное собеседником"
+  },
+  "listen_swap_to_me": {
+    "message": "Отметить как сказанное мной"
+  },
+  "listen_flip_kept_card": {
+    "message": "Переключено на другой язык — прежняя карточка уже повторялась и остаётся в «Источники › Разговор»"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Говорит…"
+  },
+  "listen_live_badge": {
+    "message": "● В эфире"
+  },
+  "listen_reading": {
+    "message": "Читает"
+  },
+  "listen_autospeak_off": {
+    "message": "Автоозвучивание остановлено · {why} — кнопка в строке всё ещё работает"
+  },
+  "listen_tts_unusable": {
+    "message": "Автоозвучивание недоступно — речевой движок не настроен. Выберите его в Настройки › Озвучка"
+  },
+  "listen_autospeak_echo": {
+    "message": "Автоозвучивание приостановлено — обнаружено эхо. Убавьте громкость или наденьте наушники и включите снова."
+  },
+  "listen_read_queue_n": {
+    "message": "Читает · ещё {n}"
+  },
+  "listen_ephemeral_label": {
+    "message": "Не сохранять этот разговор"
+  },
+  "listen_ephemeral_locked": {
+    "message": "Этот сеанс уже начался — чтобы ничего не сохранять, завершите его и начните заново"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Не сохраняется"
+  },
+  "listen_my_lang_label": {
+    "message": "Мой язык"
+  },
+  "listen_lang_note": {
+    "message": "Автоопределение между двумя выбранными языками. Их можно изменить в любой момент на странице прослушивания."
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "не поддерживается текущим движком"
+  },
+  "listen_lang_change_engine": {
+    "message": "Сменить движок"
+  },
+  "listen_lang_swapped": {
+    "message": "Языки должны отличаться — поменяли местами"
+  },
+  "listen_autospeak_label": {
+    "message": "Читать перевод вслух"
+  },
+  "listen_autospeak_note": {
+    "message": "Каждая переведённая фраза читается вслух: его — вам, ваша — ему."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Сначала выберите движок озвучивания в «Настройки › Озвучивание»"
+  },
+  "listen_lang_me_label": {
+    "message": "Я"
+  },
+  "listen_lang_other_label": {
+    "message": "Собеседник"
+  },
+  "listen_sources_note": {
+    "message": "Каждая фраза — из транскрипции, перевод — из вашего движка; оба могут ошибаться. Фразы со звездой идут в повторение первыми."
+  },
+  "app_today_due": {
+    "message": "На сегодня"
+  },
+  "home_cta_subs": {
+    "message": "Начать живые субтитры"
+  },
+  "home_cta_listen": {
+    "message": "Начать разговор"
+  },
+  "app_last_sync": {
+    "message": "Последняя синхронизация {t}"
+  },
+  "app_modes_label": {
+    "message": "Слушать"
+  },
+  "drive_entry_hint": {
+    "message": "Сегодняшняя колода подряд вслух, без рук"
+  },
+  "listen_entry_short": {
+    "message": "Двое лицом к лицу — оба говорят, перевод читается вслух"
+  },
+  "listen_entry_privacy": {
+    "message": "Аудио уходит только на настроенную вами точку транскрипции."
+  },
+  "listen_pill_preparing": {
+    "message": "Подготовка"
+  },
+  "listen_toggle_preparing": {
+    "message": "Подготовка…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Переподключение…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Соединение транскрипции потеряно: {why} — переподключение…"
+  },
+  "listen_history_empty": {
+    "message": "Говорите оба как обычно — каждая законченная фраза появится здесь. Не тот язык? Нажмите ↔, чтобы сменить"
+  },
+  "listen_tr_failed": {
+    "message": "Перевод не удался · повторить"
+  },
+  "listen_read_aloud": {
+    "message": "Озвучить"
+  },
+  "listen_show_other": {
+    "message": "Показать"
+  },
+  "listen_close": {
+    "message": "Закрыть"
+  },
+  "listen_leave_confirm": {
+    "message": "Ещё слушаю. Выход завершит разговор; услышанное сохранится."
+  },
+  "dialog_ok": {
+    "message": "ОК"
+  },
+  "dialog_cancel": {
+    "message": "Отмена"
+  },
+  "listen_leave_ok": {
+    "message": "Завершить и выйти"
+  },
+  "grant_err_exhausted": {
+    "message": "Бесплатный лимит исчерпан. Можно добавить собственный API-ключ и продолжить (один ключ покрывает перевод, озвучивание и расшифровку) или спросить в сообществе."
+  },
+  "grant_err_unavailable": {
+    "message": "Дело не в вас — у нас закончился общий запас бесплатного лимита, мы его пополняем. Пока используйте свой ключ или зайдите позже."
+  },
+  "grant_err_misconfigured": {
+    "message": "С бесплатным лимитом что-то настроено неверно на нашей стороне, мы это записали. Вы ни при чём; пока используйте свой ключ."
+  },
+  "grant_err_revoked": {
+    "message": "Этот бесплатный лимит отключён (выход из аккаунта или его удаление отключают лимит). Войдите в тот же аккаунт — он вернётся с тем же остатком."
+  },
+  "grant_err_invalid": {
+    "message": "Этот бесплатный лимит больше не распознаётся. Откройте настройки и получите его заново."
+  },
+  "grant_err_model": {
+    "message": "Бесплатный лимит работает только с закреплённой моделью. Вы изменили модель в разделе «Подробно» — верните её или добавьте свой ключ."
+  },
+  "grant_err_busy": {
+    "message": "Сейчас слишком много запросов. Подождите несколько секунд и повторите."
+  },
+  "grant_title": {
+    "message": "Бесплатный лимит"
+  },
+  "grant_body_signin": {
+    "message": "Войдите — и сможете получить бесплатный лимит: хватит на несколько сотен страниц. Он покрывает перевод, озвучивание и расшифровку."
+  },
+  "grant_signin": {
+    "message": "Войти и получить лимит"
+  },
+  "grant_signin_again": {
+    "message": "Войти снова"
+  },
+  "grant_body_signed_out": {
+    "message": "После выхода из аккаунта бесплатный лимит отключён. Остаток сохранён — войдите в тот же аккаунт, и он вернётся."
+  },
+  "grant_body_unclaimed": {
+    "message": "Вы ещё не получили бесплатный лимит. Его хватит на несколько сотен страниц: перевод, озвучивание и расшифровка."
+  },
+  "grant_claim": {
+    "message": "Получить"
+  },
+  "grant_claiming": {
+    "message": "Получаем…"
+  },
+  "grant_privacy": {
+    "message": "Бесплатный лимит (по желанию). Войдя и получив его, вы располагаете 0,20 $ за наш счёт на перевод, озвучивание и расшифровку. На этом пути ваш текст проходит через наш сервер по дороге к поставщику модели ({vendor}); мы не храним и не пишем в журнал содержимое — только сколько стоил каждый вызов. Лимит останавливается, когда заканчивается, и никогда не выставляет счёт. Путь со своим ключом не меняется: тот текст идёт из браузера прямо к поставщику, и мы его не видим. Выход из аккаунта отключает лимит на этом устройстве; удаление аккаунта удаляет и запись о нём."
+  },
+  "grant_body_active": {
+    "message": "Бесплатный лимит используется. Когда он закончится, можно добавить свой API-ключ и продолжить."
+  },
+  "grant_body_low": {
+    "message": "Бесплатный лимит почти закончился. Потом можно добавить свой API-ключ и продолжить."
+  },
+  "grant_body_exhausted": {
+    "message": "Бесплатный лимит исчерпан. Добавьте свой API-ключ и продолжайте — один ключ покрывает перевод, озвучивание и расшифровку."
+  },
+  "grant_body_unavailable": {
+    "message": "Дело не в вас — у нас закончился общий запас бесплатного лимита, мы его пополняем. Пока используйте свой ключ или зайдите позже."
+  },
+  "grant_body_replaced": {
+    "message": "Сейчас вы используете свой ключ. Бесплатный лимит на месте — вернуться к нему можно в любой момент."
+  },
+  "grant_restore": {
+    "message": "Вернуться к бесплатному лимиту"
+  },
+  "grant_byo": {
+    "message": "Использовать свой ключ"
+  },
+  "grant_community": {
+    "message": "Спросить в сообществе"
+  },
+  "grant_engine_label": {
+    "message": "Бесплатный лимит BelliedMonkey"
+  },
+  "grant_restore_confirm": {
+    "message": "Возврат к бесплатному лимиту заменит введённый вами ключ. Продолжить?"
+  },
+  "grant_signout_confirm": {
+    "message": "При выходе бесплатный лимит на этом устройстве отключится (остаток сохраняется; войдите снова, чтобы вернуть). Выйти?"
+  },
+  "grant_claimed_toast": {
+    "message": "Бесплатный лимит настроен"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "Бесплатный лимит получен. Ваш собственный ключ остаётся — нажмите «Вернуться к бесплатному лимиту», чтобы использовать его."
+  },
+  "grant_page_halt": {
+    "message": "Бесплатный лимит исчерпан — нажмите, чтобы узнать, как продолжить"
+  },
+  "grant_page_halt_ours": {
+    "message": "Бесплатный лимит сейчас недоступен (дело не в вас) — нажмите, чтобы узнать, как продолжить"
+  },
+  "auth_page_halt": {
+    "message": "Провайдер отклонил этот ключ (HTTP 401/403) — нажмите, чтобы проверить",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Открыть настройки",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "Провайдер отклонил этот ключ (HTTP 401/403). Проверьте, что ключ верный и у него есть доступ к этой модели.",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "Нравится? Оставьте оценку в магазине →"
+  },
+  "app_nudge_text": {
+    "message": "Предложения, прочитанные сегодня, — повторите в приложении →"
+  },
+  "review_nudge_text": {
+    "message": "Предложения, прочитанные сегодня, — повторить →"
+  },
+  "doc_title": {
+    "message": "Перевод документов"
+  },
+  "doc_to_review": {
+    "message": "К повторению →"
+  },
+  "doc_upload": {
+    "message": "Загрузить документ (PDF / Word / изображение)"
+  },
+  "doc_privacy": {
+    "message": "Документы остаются на этом устройстве — не синхронизируются и не экспортируются. При переводе на настроенную конечную точку отправляется только текст открытой страницы — не весь файл и не при загрузке; изображения и сканы отправляются как изображения туда же, только если ваш движок понимает изображения."
+  },
+  "doc_privacy_grant": {
+    "message": "Документы остаются на этом устройстве. При переводе открытая страница идёт через наш ретранслятор к провайдеру модели (не хранится, не логируется); бесплатный лимит не распознаёт изображения — для изображений и сканов нужен ваш собственный API-ключ."
+  },
+  "doc_list_empty": {
+    "message": "Документов пока нет. Поддерживаются PDF, Word (.docx), текст и изображения."
+  },
+  "doc_row_meta": {
+    "message": "{pages} стр. · на стр. {page} · собрано {n} предложений"
+  },
+  "doc_delete": {
+    "message": "Удалить"
+  },
+  "doc_delete_confirm": {
+    "message": "Удалить этот документ? Его карточки тоже удалятся (на всех устройствах), без возврата."
+  },
+  "doc_unsupported_kind": {
+    "message": "Формат не поддерживается (PDF, .docx, текст, изображения). Для .doc сохраните как .docx в Word."
+  },
+  "doc_too_large": {
+    "message": "Файл слишком большой (лимит 30 МБ)."
+  },
+  "doc_grant_no_image": {
+    "message": "Бесплатный лимит не распознаёт изображения — используйте собственный API-ключ."
+  },
+  "doc_no_vision": {
+    "message": "Текущий движок не распознаёт изображения · смените модель в настройках"
+  },
+  "doc_store_failed": {
+    "message": "Не удалось сохранить документ: "
+  },
+  "doc_missing": {
+    "message": "Этого документа больше нет на устройстве."
+  },
+  "doc_opening": {
+    "message": "Чтение…"
+  },
+  "doc_open_failed": {
+    "message": "Не удалось прочитать документ: "
+  },
+  "doc_back": {
+    "message": "Документы"
+  },
+  "doc_lang": {
+    "message": "Язык документа"
+  },
+  "doc_lang_auto": {
+    "message": "Авто"
+  },
+  "doc_prev": {
+    "message": "Назад"
+  },
+  "doc_next": {
+    "message": "Далее"
+  },
+  "doc_ocr_running": {
+    "message": "Распознаю страницу…"
+  },
+  "doc_ocr_failed": {
+    "message": "Ошибка распознавания: "
+  },
+  "doc_page_empty": {
+    "message": "На этой странице нет извлекаемого текста."
+  },
+  "doc_old_engine": {
+    "message": "Эта страница была переведена старым движком — переведена заново текущим."
+  },
+  "doc_page_stat": {
+    "message": "Эта страница: {units} абзацев · около {chars} символов"
+  },
+  "doc_go_settings": {
+    "message": "Настройки →"
+  },
+  "doc_translating": {
+    "message": "⏳ Перевожу…"
+  },
+  "doc_star": {
+    "message": "Добавить в повторение"
+  },
+  "doc_translate_failed": {
+    "message": "Ошибка перевода · нажмите, чтобы повторить"
+  },
+  "doc_popup_row": {
+    "message": "📄 Перевести документ (PDF / Word / изображение)"
+  },
+  "doc_open_page": {
+    "message": "Перевести документ (PDF / Word / изображение)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Перевести документ"
+  },
+  "doc_source_label": {
+    "message": "Документ"
+  },
+  "doc_page_n": {
+    "message": "стр. {n}"
+  },
+  "doc_sources_note": {
+    "message": "Удаление также удалит сам документ."
+  },
+  "doc_app_entry_hint": {
+    "message": "Перевод постранично; переводы можно добавить в повторение"
+  },
+  "doc_app_back": {
+    "message": "‹ Назад"
+  },
+  "doc_capture_label": {
+    "message": "Переводы документов идут в повторение (источник «Документ»)"
+  },
+  "doc_prefetch_label": {
+    "message": "Разбирать следующую страницу заранее (без перевода)"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Больше не спрашивать"
+  },
+  "grant_popup_model": {
+    "message": "Бесплатный лимит работает только с закреплённой моделью — нажмите, чтобы вернуть"
+  },
+  "grant_popup_exhausted": {
+    "message": "Бесплатный лимит исчерпан — нажмите, чтобы продолжить"
+  },
+  "grant_popup_low": {
+    "message": "Бесплатный лимит почти закончился — нажмите, чтобы посмотреть"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Вы не вошли — только на этом устройстве. При входе ещё и бесплатный лимит →"
+  },
+  "grant_cn_title": {
+    "message": "Начните с бесплатного лимита провайдера"
+  },
+  "grant_cn_body": {
+    "message": "После регистрации у каждой модели есть бесплатный лимит, которого хватает на время. Его даёт провайдер, а не мы."
+  },
+  "grant_cn_step1": {
+    "message": "Зарегистрируйтесь и откройте консоль"
+  },
+  "grant_cn_step2": {
+    "message": "Получите бесплатный лимит (точный объём указан на их странице)"
+  },
+  "grant_cn_step3": {
+    "message": "Вставьте ключ API ниже — перевод, озвучивание и расшифровка настроятся разом"
+  },
+  "grant_cn_open": {
+    "message": "Открыть консоль ↗"
+  },
+  "grant_cn_why": {
+    "message": "Мы пока не выдаём кредит сами: для этого нужен релей внутри страны, он ещё не запущен."
+  },
+  "subtitle_source_label": {
+    "message": "Живые субтитры"
+  },
+  "subtitle_entry": {
+    "message": "Живые субтитры"
+  },
+  "subtitle_entry_hint": {
+    "message": "Двуязычные субтитры для видео, трансляции или встречи, которые сейчас идут"
+  },
+  "subtitle_need_key": {
+    "message": "У движка расшифровки ещё нет API-ключа"
+  },
+  "subtitle_need_key_go": {
+    "message": "Указать в настройках →"
+  },
+  "subtitle_title": {
+    "message": "Живые субтитры"
+  },
+  "subtitle_start": {
+    "message": "Начать"
+  },
+  "subtitle_capture_label": {
+    "message": "Добавлять субтитры в повторение (источник «Живые субтитры»)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Язык видео:"
+  },
+  "subtitle_tip_mac": {
+    "message": "После старта субтитры появятся на плавающей панели внизу экрана; каждая готовая фраза также попадает в список здесь."
+  },
+  "subtitle_tip_ios": {
+    "message": "Сначала нажмите «Начать», затем включите звук через динамик в любом приложении (браузер, видео, подкасты…); субтитры будут в окне «картинка в картинке». В наушниках звук не слышен."
+  },
+  "subtitle_privacy": {
+    "message": "Слушает то, что играет этот Mac, только после нажатия «Начать». Звук распознаётся на этом устройстве (или отправляется только на указанный вами адрес расшифровки); ничего не записывается и не сохраняется, наши серверы не участвуют. Распознанный текст остаётся в повторении, только пока включено «Добавлять субтитры в повторение»."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Слушает звук из динамика этого iPhone только после нажатия «Начать». Звук распознаётся на этом устройстве (или отправляется только на указанный вами адрес расшифровки); ничего не записывается и не сохраняется, наши серверы не участвуют. Распознанный текст остаётся в повторении, только пока включено «Добавлять субтитры в повторение»."
+  },
+  "subtitle_pill_live": {
+    "message": "● Субтитры идут · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Сейчас"
+  },
+  "subtitle_history_empty": {
+    "message": "Здесь появится каждая готовая фраза."
+  },
+  "subtitle_stop_silence": {
+    "message": "30 секунд тишины — пауза, чтобы не было списаний. Нажмите «Продолжить», когда видео снова зазвучит."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Ещё слушаю. Если выйти, субтитры закончатся; уже полученные фразы сохранятся."
+  },
+  "subtitle_summary_title": {
+    "message": "Эти субтитры"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · фраз: {n} · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "в повторение (источник «Живые субтитры»): {k} · со звёздочкой: {s}"
+  },
+  "subtitle_summary_note": {
+    "message": "Звук не сохранялся, только текст. Этими фразами можно управлять или удалить их в «Источники › Живые субтитры»."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Ждём разрешения — нажмите «Разрешить» в системном окне"
+  },
+  "subtitle_bar_listening": {
+    "message": "Слушаю системный звук…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Пауза"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 секунд тишины — пауза, чтобы не было списаний"
+  },
+  "subtitle_bar_denied": {
+    "message": "Системный звук не слышен — разрешите BelliedMonkey Translator в «Системных настройках › Конфиденциальность и безопасность › Запись экрана и системного аудио»"
+  },
+  "subtitle_bar_socket": {
+    "message": "Соединение расшифровки прервано"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Переподключение…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Загрузка данных распознавания ({lang}) · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Перевод этой фразы не удался · повторите в главном окне"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Видео не слышно · снимите наушники и включите динамик"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Пауза"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Продолжить"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Сквозные клики"
+  },
+  "subtitle_ctl_main": {
+    "message": "Главное окно"
+  },
+  "subtitle_ctl_end": {
+    "message": "Завершить"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Открыть Системные настройки"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Показать главное окно"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Выключить сквозные клики панели"
+  },
+  "subtitle_menu_end": {
+    "message": "Завершить живые субтитры"
+  },
+  "subtitle_pip_float": {
+    "message": "Показать окно субтитров"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Слушаю динамик…"
+  },
+  "subtitle_pip_title": {
+    "message": "Живые субтитры"
+  },
+  "subtitle_pip_hint": {
+    "message": "Включите видео или аудио через динамик в любом приложении — субтитры появятся здесь"
+  },
+  "subtitle_pip_close": {
+    "message": "Коснитесь окна: ⏸ пауза · ⏪⏩ история · ✕ закрыть (снова откроется из приложения)"
+  },
+  "subtitle_pip_history": {
+    "message": "История · ⏩ — к последнему"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "После «Начать» здесь будет превью окна субтитров; когда вы выйдете из приложения, оно всплывёт поверх других"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Превью окна субтитров — когда вы выйдете из приложения, оно всплывёт поверх других"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Субтитры завершены, окно закрыто"
+  },
+  "subtitle_bar_silent": {
+    "message": "Системный звук пока не слышен — видео идёт, а субтитров нет? Возможно, запись системного звука не разрешена"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "Нет звука 30 секунд — пауза. Если видео шло, а субтитров не было, возможно, запись системного звука не разрешена: Системные настройки › Конфиденциальность и безопасность › Запись экрана и системного звука, разрешите BelliedMonkey Translator и нажмите «Продолжить»."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "Нет звука 30 секунд — пауза. Видео идёт, а субтитров нет? Возможно, запись системного звука не разрешена"
+  },
+  "listen_need_os": {
+    "message": "Для разговора и живых субтитров нужны iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "Встроенный распознаватель не поддерживает этот язык — попробуйте другой"
+  },
+  "listen_assets_failed2": {
+    "message": "Не удалось загрузить офлайн-модель: {why} — обычно это проблема сети; попробуйте позже — нажмите «Начать слушать» ещё раз, чтобы повторить."
+  },
+  "tts_engine_device": {
+    "message": "Встроенная озвучка на устройстве (офлайн-модель · только в приложении)"
+  },
+  "tts_hint_device": {
+    "message": "Речь синтезируется на вашем устройстве; при первом использовании один раз загружается офлайн-модель (только файл модели). Языки, которых нет в модели, озвучиваются системным голосом, и строка об этом сообщает."
+  },
+  "tts_pack_label": {
+    "message": "Офлайн-модель"
+  },
+  "tts_pack_installed": {
+    "message": "Офлайн-модель установлена · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "Офлайн-модель не загружена · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "При первом озвучивании она также загрузится автоматически; загружаются только файлы модели, ничего не отправляется."
+  },
+  "tts_pack_dl": {
+    "message": "Загрузить"
+  },
+  "tts_pack_fallback": {
+    "message": "Адрес недоступен — пробуем другой…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "Повторить"
+  },
+  "tts_pack_downloading": {
+    "message": "Загрузка офлайн-модели · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "Не удалось загрузить офлайн-модель: {why} — обычно это проблема сети; попробуйте позже"
+  },
+  "tts_pack_no_bridge": {
+    "message": "Встроенное озвучивание доступно только в приложении"
+  },
+  "tts_test_dl": {
+    "message": "Загрузить и прослушать пример ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "Воспроизведение · в офлайн-модели нет этого языка, используется системный голос"
+  },
+  "tts_assets": {
+    "message": "Офлайн-модель ещё не загружена — загрузите её в Настройках › Озвучивание или переключитесь на системный голос"
+  },
+  "listen_pack_ready": {
+    "message": "Языковые пакеты распознавания готовы · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "Языковые пакеты не загружены · {langs} · их загружает система; запуск прослушивания тоже загрузит"
+  },
+  "listen_pack_dl": {
+    "message": "Загрузить"
+  },
+  "listen_pack_downloading": {
+    "message": "Загрузка языкового пакета · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "Не удалось загрузить языковой пакет: {why} — обычно это проблема сети; попробуйте позже"
+  },
+  "opt_sec_engines": {
+    "message": "Движки и ключи"
+  },
+  "opt_sec_features": {
+    "message": "Функции"
+  },
+  "opt_sec_account": {
+    "message": "Аккаунт и данные"
+  },
+  "opt_adv_hint": {
+    "message": "Настройка одним ключом — во вкладке «Быстро» →"
+  },
+  "stt_section": {
+    "message": "Транскрипция целиком"
+  },
+  "stt_section_use": {
+    "message": "Устная практика · транскрипция аудио/видео целиком"
+  },
+  "review_section": {
+    "message": "Повторение"
+  },
+  "data_section": {
+    "message": "Библиотека обучения"
+  },
+  "notes_block_title": {
+    "message": "Разбор предложения (необязательно)"
+  },
+  "grant_summary_claimed": {
+    "message": "Бесплатный кредит получен · управлять →"
+  },
+  "dep_label": {
+    "message": "Зависит от"
+  },
+  "dep_unset": {
+    "message": "не настроено"
+  },
+  "dep_go": {
+    "message": "Настроить →"
+  },
+  "dep_follow": {
+    "message": "как у движка перевода"
+  },
+  "dep_quick": {
+    "message": "настроено одним ключом ✓"
+  },
+  "dep_live": {
+    "message": "Живая транскрипция"
+  },
+  "dep_live_device": {
+    "message": "на устройстве (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Переводить на"
+  },
+  "target_lang_follow": {
+    "message": "Как язык интерфейса ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Используется для перевода документов, системного перевода и быстрого перевода. У разговора и живых субтитров свои настройки языков."
+  },
+  "handoff_source_label": {
+    "message": "Переданный текст"
+  },
+  "src_handoff_system": {
+    "message": "Системный перевод"
+  },
+  "src_handoff_select": {
+    "message": "Перевод выделенного"
+  },
+  "src_handoff_shot": {
+    "message": "Перевод со снимка экрана"
+  },
+  "src_handoff_input": {
+    "message": "Перевод введённого"
+  },
+  "quick_title": {
+    "message": "Быстрый перевод"
+  },
+  "quick_enabled_label": {
+    "message": "Оставаться в строке меню"
+  },
+  "quick_enabled_note": {
+    "message": "Если выключить, значок исчезнет из строки меню, а закрытие окна завершит приложение."
+  },
+  "quick_menu_open": {
+    "message": "Открыть BelliedMonkey Translator"
+  },
+  "quick_menu_settings": {
+    "message": "Настройки быстрого перевода…"
+  },
+  "quick_menu_quit": {
+    "message": "Завершить"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey остаётся в строке меню"
+  },
+  "quick_resident_body": {
+    "message": "Сочетания клавиш продолжают работать. Чтобы выйти полностью, выберите «Завершить» в значке строки меню или нажмите ⌘Q."
+  },
+  "quick_resident_ok": {
+    "message": "Понятно"
+  },
+  "quick_resident_off": {
+    "message": "Не оставаться в строке меню"
+  },
+  "quick_tag_selection": {
+    "message": "Выделенный текст"
+  },
+  "quick_tag_clipboard": {
+    "message": "Буфер обмена"
+  },
+  "quick_tag_service": {
+    "message": "Службы"
+  },
+  "quick_tag_shot": {
+    "message": "Снимок экрана"
+  },
+  "quick_tag_input": {
+    "message": "Ввод"
+  },
+  "quick_pin": {
+    "message": "Закрепить"
+  },
+  "quick_close": {
+    "message": "Закрыть"
+  },
+  "quick_copy": {
+    "message": "Копировать перевод"
+  },
+  "quick_src_label": {
+    "message": "Оригинал"
+  },
+  "quick_src_placeholder": {
+    "message": "Введите или вставьте текст для перевода"
+  },
+  "quick_clip_concealed": {
+    "message": "Содержимое буфера обмена помечено как скрытое (скорее всего, это пароль). Оно не было прочитано, и ничего не отправлено."
+  },
+  "quick_clip_empty": {
+    "message": "В буфере обмена нет текста. Выделите текст, нажмите ⌘C, затем сочетание клавиш — или включите расширенный захват в настройках, чтобы обойтись без ⌘C."
+  },
+  "quick_clip_same": {
+    "message": "Тот же текст, что и в прошлый раз — забыли нажать ⌘C?"
+  },
+  "quick_no_selection": {
+    "message": "Не удалось получить выделенный текст — возможно, ничего не выделено или это приложение не разрешает копирование."
+  },
+  "quick_use_shot": {
+    "message": "Перевести снимок экрана"
+  },
+  "quick_same_lang": {
+    "message": "Уже на языке: {lang}"
+  },
+  "sys_empty": {
+    "message": "Нет текста для перевода."
+  },
+  "sys_slow": {
+    "message": "Перевод ещё идёт — бесплатный кредит проходит через наш ретранслятор, это медленнее, чем свой ключ."
+  },
+  "quick_slow": {
+    "message": "Перевод ещё идёт…"
+  },
+  "quick_unconfigured": {
+    "message": "Движок перевода ещё не настроен. Получите бесплатный кредит или укажите свой API-ключ."
+  },
+  "quick_open_settings": {
+    "message": "Открыть настройки"
+  },
+  "quick_retry": {
+    "message": "Повторить"
+  },
+  "quick_saved": {
+    "message": "Сохранено в библиотеку повторения"
+  },
+  "quick_saved_off": {
+    "message": "Не сохранено · сбор выключен"
+  },
+  "quick_saved_long": {
+    "message": "Слишком длинно — в библиотеку повторения не сохраняется"
+  },
+  "quick_shot_nothing": {
+    "message": "В этой области текст не распознан."
+  },
+  "quick_shot_again": {
+    "message": "Выбрать заново"
+  },
+  "quick_menu_clip": {
+    "message": "Перевести буфер обмена"
+  },
+  "quick_menu_input": {
+    "message": "Ввести и перевести"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS не разрешил нам прочитать буфер обмена. Разрешите это в «Системные настройки › Конфиденциальность и безопасность › Вставка из других приложений» или используйте меню «Службы» по правому клику."
+  },
+  "quick_enh_label": {
+    "message": "Расширенный захват"
+  },
+  "quick_enh_hint": {
+    "message": "Выделите текст и нажмите сочетание клавиш — без ⌘C. Нужно одно системное разрешение. По умолчанию выключено."
+  },
+  "quick_enh_explain_title": {
+    "message": "Включить расширенный захват"
+  },
+  "quick_enh_explain_does": {
+    "message": "Что делает: когда вы нажимаете сочетание клавиш, один раз нажимает ⌘C за вас, читает выделенный текст и возвращает буфер обмена в прежнее состояние."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "Чего не делает никогда: не следит за клавиатурой и ничего не читает, пока вы не нажмёте сочетание клавиш."
+  },
+  "quick_enh_continue": {
+    "message": "Продолжить"
+  },
+  "quick_enh_not_now": {
+    "message": "Не сейчас"
+  },
+  "quick_enh_relaunch": {
+    "message": "Перезапустить сейчас"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Открыть Системные настройки"
+  },
+  "quick_enh_pending": {
+    "message": "В появившемся системном окне выберите «Открыть Системные настройки», найдите в списке «{app}» и включите переключатель. Изменение вступит в силу после перезапуска приложения."
+  },
+  "quick_enh_denied": {
+    "message": "macOS не выдал разрешение, поэтому расширенный захват выключен. Нажать ⌘C, а затем сочетание клавиш по-прежнему можно."
+  },
+  "quick_enh_lost": {
+    "message": "Разрешение для расширенного захвата отключено, поэтому на этот раз переведён буфер обмена. Чтобы вернуть, включите его снова в настройках."
+  },
+  "quick_menu_shot": {
+    "message": "Перевести снимок экрана"
+  },
+  "quick_shot_busy": {
+    "message": "Распознаём текст на этом Mac…"
+  },
+  "quick_shot_first": {
+    "message": "Первый запуск на этом Mac: подготовка займёт около 20 секунд. Дальше — меньше половины секунды."
+  },
+  "quick_shot_perm_explain": {
+    "message": "Для перевода снимка экрана нужно разрешение «Запись экрана». Захватывается только выделенная область и только в этот момент; распознавание идёт на этом Mac, после чего снимок сразу удаляется."
+  },
+  "quick_shot_perm_pending": {
+    "message": "Остался один шаг: в Системных настройках включите переключатель «{app}» в списке. Изменение вступит в силу после перезапуска приложения."
+  },
+  "quick_shot_cloud": {
+    "message": "Повторить с моим движком с поддержкой изображений"
+  },
+  "quick_shot_cloud_note": {
+    "message": "«Повторить с моим движком с поддержкой изображений» отправит этот снимок экрана в настроенный вами движок ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Распознаём с помощью вашего движка…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "Этот снимок экрана уже удалён. Выделите область ещё раз."
+  },
+  "quick_hk_title": {
+    "message": "Сочетания клавиш"
+  },
+  "quick_hk_reset": {
+    "message": "Восстановить по умолчанию"
+  },
+  "quick_hk_translate": {
+    "message": "Перевести выделенное или буфер обмена"
+  },
+  "quick_hk_shot": {
+    "message": "Перевести снимок экрана"
+  },
+  "quick_hk_input": {
+    "message": "Ввести и перевести"
+  },
+  "quick_hk_unset": {
+    "message": "Не задано"
+  },
+  "quick_hk_record": {
+    "message": "Записать"
+  },
+  "quick_hk_cancel": {
+    "message": "Отмена"
+  },
+  "quick_hk_change": {
+    "message": "Изменить"
+  },
+  "quick_hk_clear": {
+    "message": "Очистить"
+  },
+  "quick_hk_press": {
+    "message": "Нажмите нужное сочетание…"
+  },
+  "quick_hk_clash": {
+    "message": "Это сочетание уже занято другим приложением и до нас не дойдёт. Выберите другое."
+  },
+  "quick_hk_deny": {
+    "message": "Сочетания только с ⌥ работают ненадёжно. Выберите сочетание с ⌃ или ⌘."
+  },
+  "quick_hk_system": {
+    "message": "Это сочетание используется macOS или самими приложениями. Выберите другое."
+  },
+  "quick_hk_nomod": {
+    "message": "Добавьте клавишу-модификатор, например ⌃ или ⌘."
+  },
+  "quick_hk_dup": {
+    "message": "Это то же сочетание, что и у «{name}»."
+  },
+  "quick_capture_label": {
+    "message": "Сохранять в библиотеку повторения"
+  },
+  "quick_capture_hint": {
+    "message": "Переведённые фразы попадают в повторение (источник: выделение, снимок экрана или ввод). Если выключить, перевод работает как обычно, просто ничего не сохраняется."
+  },
+  "quick_login_label": {
+    "message": "Открывать при входе"
+  },
+  "quick_login_hint": {
+    "message": "Запускается в строке меню при входе в систему. По умолчанию выключено."
+  },
+  "quick_login_approval": {
+    "message": "Нужно ещё один раз разрешить это в «Системные настройки › Объекты входа»."
+  },
+  "quick_screen_ok": {
+    "message": "Запись экрана · разрешена ✓ (для перевода снимка экрана)"
+  },
+  "quick_screen_off": {
+    "message": "Запись экрана · пока не разрешена. Вопрос появится при первом переводе снимка экрана."
+  },
+  "quick_shot_needs14": {
+    "message": "Для перевода снимка экрана нужна macOS 14 или новее."
+  },
+  "quick_services_link": {
+    "message": "Назначить сочетание клавиш пункту меню «Службы» →"
+  },
+  "quick_more": {
+    "message": "Дополнительные параметры"
+  },
+  "quick_shot_perm_second": {
+    "message": "При первом выделении области macOS попросит ещё одно подтверждение — просто разрешите. В дальнейшем macOS будет время от времени спрашивать снова: так он поступает со всеми приложениями, захватывающими экран."
+  },
+  "systrans_title": {
+    "message": "Системный перевод"
+  },
+  "systrans_intro": {
+    "message": "Выделите текст в любом приложении и нажмите «Перевести» — перевод выполнит настроенный вами движок. Сначала назначьте BelliedMonkey Translator приложением по умолчанию:"
+  },
+  "systrans_step1": {
+    "message": "Откройте приложение «Настройки»"
+  },
+  "systrans_step2": {
+    "message": "Перейдите в «Приложения» → «Перевод»"
+  },
+  "systrans_step3": {
+    "message": "Нажмите «Приложение для перевода по умолчанию» и выберите BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Требуется iOS или iPadOS 18.4 и новее. На более старых системах нас не будет в этом списке."
+  },
+  "systrans_state_pending": {
+    "message": "Ещё не синхронизировано. Синхронизация происходит при открытии этого приложения."
+  },
+  "systrans_state_ok": {
+    "message": "Движок синхронизирован: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "Движок ещё не настроен. Как только настроите, синхронизация пройдёт сама."
+  },
+  "systrans_state_failed": {
+    "message": "Сбой синхронизации ({code}). Попробуйте сохранить ещё раз в разделе «Движки и ключи»."
+  },
+  "systrans_capture_label": {
+    "message": "Сохранять в библиотеку повторения"
+  },
+  "systrans_capture_hint": {
+    "message": "Переведённые фразы попадают в повторение с источником «Системный перевод». Если выключить, перевод продолжит работать, просто не будет сохраняться."
+  },
+  "systrans_font_label": {
+    "message": "Размер текста"
+  },
+  "systrans_font_small": {
+    "message": "Мелкий"
+  },
+  "systrans_font_std": {
+    "message": "Обычный"
+  },
+  "systrans_font_large": {
+    "message": "Крупный"
+  },
+  "systrans_font_hint": {
+    "message": "Размер оригинала и перевода в панели (кнопки и примечания не меняются). Действует со следующего открытия панели."
+  },
+  "sys_disclose_direct": {
+    "message": "Выделенный текст отправляется напрямую в настроенный вами движок ({name}) и никогда не проходит через наши серверы."
+  },
+  "sys_disclose_grant": {
+    "message": "Используется бесплатный лимит: выделенный текст передаётся через нас поставщику. Содержимое мы не храним."
+  },
+  "sys_fail_network": {
+    "message": "Не удалось связаться с движком перевода. Проверьте соединение и попробуйте снова."
+  },
+  "sys_fail_timeout": {
+    "message": "Движок не ответил вовремя."
+  },
+  "sys_fail_http": {
+    "message": "Движок вернул ошибку."
+  },
+  "sys_fail_no_base": {
+    "message": "Этому движку нужен адрес, а он не задан. Откройте BelliedMonkey Translator и укажите его."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Этого движка больше нет. Выберите другой в BelliedMonkey Translator."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Движок перевода ещё не настроен. Откройте BelliedMonkey Translator один раз, и здесь всё заработает."
+  },
+  "sys_fail_not_synced": {
+    "message": "Откройте BelliedMonkey Translator один раз, чтобы настройки движка попали сюда."
+  },
+  "sys_fail_empty": {
+    "message": "В выделении нечего переводить."
+  },
+  "sys_fail_empty_result": {
+    "message": "На этот раз движок ничего не вернул."
+  },
+  "sys_fail_engine": {
+    "message": "Движок перевода не запустился."
+  },
+  "sys_fail_unknown": {
+    "message": "Перевести не удалось."
+  },
+  "sys_ui_translating": {
+    "message": "Перевод…"
+  },
+  "sys_ui_slow": {
+    "message": "Ещё переводим — с бесплатным лимитом бывает медленно."
+  },
+  "sys_ui_replace": {
+    "message": "Заменить"
+  },
+  "sys_ui_open_app": {
+    "message": "Открыть BelliedMonkey Translator"
+  },
+  "setup_done_title": {
+    "message": "Готово к работе"
+  },
+  "setup_done_checking": {
+    "message": "Проверка…"
+  },
+  "setup_done_failed_title": {
+    "message": "Пока не работает"
+  },
+  "setup_done_failed": {
+    "message": "Пункт, отмеченный ✗ выше, не прошёл. Исправьте — и он будет проверен снова."
+  },
+  "setup_done_settings": {
+    "message": "Движок настроен. Перевод документов, живой переводчик и живые субтитры теперь работают."
+  },
+  "setup_done_systrans": {
+    "message": "Движок настроен. Вернитесь в приложение, где вы были, и нажмите «Перевести» ещё раз — здесь больше ничего делать не нужно."
+  },
+  "setup_done_quick": {
+    "message": "Движок настроен. Вернитесь к панели быстрого перевода и переведите ту фразу ещё раз."
+  },
+  "setup_done_home": {
+    "message": "На главную"
+  },
+  "setup_from_systrans": {
+    "message": "Вы пришли из системного перевода. Когда всё настроите, вернитесь в то приложение и нажмите «Перевести» ещё раз."
+  },
+  "systrans_discover_title": {
+    "message": "Пусть встроенный «Перевод» на iPhone работает через BelliedMonkey"
+  },
+  "systrans_discover_body": {
+    "message": "Выделите текст в любом приложении и нажмите «Перевести» — откроется окно с вашим движком. Настроить нужно один раз."
+  },
+  "systrans_discover_done": {
+    "message": "Уже настроил"
+  },
+  "systrans_discover_used_title": {
+    "message": "Системный перевод · работает"
+  },
+  "systrans_discover_used": {
+    "message": "Выделите текст в любом приложении и нажмите «Перевести» — переводит ваш движок. Переведённые фразы лежат в библиотеке повторения."
+  },
+  "systrans_discover_see": {
+    "message": "Посмотреть в повторении →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Войдите и получите бесплатный кредит"
+  },
+  "ob_signin_grant_body": {
+    "message": "Кредит за наш счёт, для начала его более чем хватит; можно использовать и свой ключ. Вход также синхронизирует ваши карточки на другие устройства."
+  },
+  "ob_signin_sync_title": {
+    "message": "Вход (необязательно)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Вход синхронизирует ваши карточки на другие устройства. Для перевода добавьте свой ключ в настройках."
+  },
+  "ob_signin_later": {
+    "message": "Не сейчас"
+  },
+  "ob_signin_email": {
+    "message": "Войти по почте"
+  },
+  "ob_try_title": {
+    "message": "Попробуйте фразу прямо сейчас"
+  },
+  "ob_try_body": {
+    "message": "Ничего искать не нужно — вот фраза. Переведите её или послушайте."
+  },
+  "ob_try_translate": {
+    "message": "Перевести эту фразу"
+  },
+  "ob_try_listen": {
+    "message": "Прослушать эту фразу"
+  },
+  "ob_try_working": {
+    "message": "Перевод…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "Движка перевода пока нет. Войдите — и бесплатный кредит добавится автоматически; или добавьте свой ключ в настройках."
+  },
+  "ob_try_noengine_key": {
+    "message": "Движка перевода пока нет — добавьте ключ в настройках, и всё готово."
+  },
+  "ob_try_sample_alt": {
+    "message": "Когда читаешь на втором языке, одни и те же слова встречаются так часто, что их больше не нужно искать."
+  },
+  "xb_consent": {
+    "message": "Я даю отдельное согласие: после входа данные моей учётной записи (e-mail или идентификатор Apple) и учебные карточки (прочитанные предложения, переводы, адреса и заголовки исходных страниц) передаются и хранятся на серверах в Токио (Япония); получатель — Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Получатель, цель и отзыв согласия: политика конфиденциальности, раздел 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Чтобы войти, сначала отметьте пункт выше. Без этого приложение работает, просто карточки не синхронизируются.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Завершить настройку · осталось шагов: {n}",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Продолжите с того места, где остановились, — это минута-две.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Продолжить с того же места",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Больше не показывать",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Расширение Safari",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "Раньше вы нажали «{done}», поэтому подсказка на главном экране скрыта. Если расширение ещё не включено, верните её здесь.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Снова показать подсказку «включить расширение»",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Восстановлено — вернитесь на главный экран, чтобы увидеть её.",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Всего два шага"
+  },
+  "ob_web_only": {
+    "message": "Мне нужен только перевод веб-страниц"
+  },
+  "ob_intent_listen": {
+    "message": "В основном слушать · живые субтитры"
+  },
+  "ob_intent_both": {
+    "message": "И то и другое"
+  },
+  "qs_base": {
+    "message": "Адрес эндпоинта (полный)"
+  },
+  "qs_key_ph_one": {
+    "message": "Вставьте один раз — перевод настроен"
+  },
+  "qs_apply_one": {
+    "message": "Настроить перевод по этому адресу"
+  },
+  "qs_absent": {
+    "message": "— эта платформа этого не даёт"
+  },
+  "qs_absent_custom": {
+    "message": "— этот адрес этого не даёт"
+  },
+  "learn_habit_streak": {
+    "message": "Сегодня вы заходили · {n} дней подряд"
+  },
+  "learn_habit_today": {
+    "message": "Сегодня вы заходили"
+  },
+  "learn_nothing_due_title": {
+    "message": "Сегодня нечего повторять"
+  },
+  "learn_group_done": {
+    "message": "Эта группа на сегодня готова"
+  },
+  "learn_group_left": {
+    "message": "Сегодня осталось {n} — не обязательно закончить всё сразу."
+  },
+  "learn_group_left_none": {
+    "message": "Остальное можно завтра."
+  },
+  "learn_group_more": {
+    "message": "Ещё одну группу"
+  },
+  "learn_group_stop": {
+    "message": "На сегодня хватит"
+  },
+  "learn_group_bye": {
+    "message": "Остальное подождёт — просто возвращайтесь."
+  },
+  "firstrun_packs_title": {
+    "message": "Сначала скачайте речевые пакеты"
+  },
+  "firstrun_packs_lede": {
+    "message": "После этого настраивать больше ничего не нужно: перевод, синхронный перевод, субтитры и озвучка работают сразу. Речь распознаётся на вашем устройстве. Распознанный текст отправляется на перевод: со своим ключом — напрямую выбранному вами провайдеру; на бесплатном лимите — через наш сервер, и текст мы не сохраняем."
+  },
+  "firstrun_packs_asr": {
+    "message": "Пакет распознавания речи (перевод / живые субтитры)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Пакет качественного голоса (озвучка / подкасты)"
+  },
+  "firstrun_packs_done": {
+    "message": "Готово"
+  },
+  "firstrun_packs_net": {
+    "message": "Лучше по Wi-Fi; можно и по мобильной сети — решать вам."
+  },
+  "firstrun_packs_busy": {
+    "message": "Скачивание…"
+  },
+  "firstrun_packs_go": {
+    "message": "Скачать и продолжить"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Скачать только голосовой пакет и продолжить"
+  },
+  "firstrun_packs_err": {
+    "message": "Скачать не удалось: {why} — проверьте связь и нажмите ещё раз."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "Загрузка системного голосового пакета зависла — проверьте соединение и повторите."
+  },
+  "engine_status_ok": {
+    "message": "Настроено при входе: перевод · расшифровка · чтение — работает прямо здесь"
+  },
+  "engine_status_missing": {
+    "message": "Не хватает одного: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Движок чтения не выбран — Настройки › Чтение, выберите голос"
+  },
+  "engine_status_fix_translate": {
+    "message": "Движок перевода не выбран — Настройки › Движок"
+  },
+  "listen_lang_detecting": {
+    "message": "Определяем язык…"
+  },
+  "listen_lang_detected": {
+    "message": "Определено: {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Определяем язык видео…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Определено: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Трогайте, только если язык определён неверно"
+  },
+  "listen_lang_auto": {
+    "message": "Определять автоматически"
+  },
+  "listen_lang_manual": {
+    "message": "Задать вручную"
+  },
+  "subtitle_partner_auto": {
+    "message": "Язык видео: {lang} (авто)"
+  },
+  "listen_need_locales": {
+    "message": "Встроенный распознаватель держит максимум 5 языков, места больше нет — выйдите и вернитесь."
+  },
+  "listen_lang_assets_missing": {
+    "message": "Пакет распознавания для этого языка ещё не установлен. Подключитесь к интернету и один раз нажмите «Начать слушать» — он загрузится."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Это устройство не распознаёт этот язык — вернулись к «{lang}»"
+  },
+  "listen_speak_lang_label": {
+    "message": "Язык, на котором я говорю"
+  },
+  "listen_lang_dirs2": {
+    "message": "Слышно {a} → перевод на {b}; слышно {b} → перевод на {a}"
+  },
+  "lang_auto": {
+    "message": "Авто"
+  },
+  "listen_listening": {
+    "message": "Слушаю…"
+  },
+  "listen_ptt_say": {
+    "message": "Говорить на {lang}"
+  },
+  "listen_listening_lang": {
+    "message": "Слушаю {lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "Коснитесь, чтобы начать"
+  },
+  "listen_ptt_recording": {
+    "message": "● Запись · коснитесь, чтобы остановить"
+  },
+  "firstrun_packs_back": {
+    "message": "Назад"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Языковые пакеты загружены"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} можно слушать и озвучивать. Другие языки добавляются в настройках."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Загрузка языковых пакетов"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "У каждого пункта свой прогресс. Загрузка идёт в фоне и продолжится, когда сеть вернётся."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Выберите языки для загрузки"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "По умолчанию отмечены язык системы + 中文 + English. Остальное — по необходимости, позже можно добавить в настройках."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Выбор сохранён. Загрузка начнётся сама, когда появится Wi-Fi."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Всё готово. Внутри нажмите «{mine}» или кнопку другого языка."
+  },
+  "firstrun_packs_foot": {
+    "message": "Около {size}, плюс системные пакеты распознавания. В сотовой сети спросим перед загрузкой."
+  },
+  "firstrun_packs_locked": {
+    "message": "Во время загрузки выбор нельзя менять. Добавить или убрать языки можно потом в настройках."
+  },
+  "firstrun_packs_enter": {
+    "message": "Начать живой перевод"
+  },
+  "firstrun_packs_remain": {
+    "message": "Загрузка · осталось {n}"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Не выбрано"
+  },
+  "firstrun_packs_queued": {
+    "message": "В очереди"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Языки (пакеты распознавания)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Пакет распознавания · загружает система"
+  },
+  "firstrun_packs_system": {
+    "message": "Язык системы"
+  },
+  "firstrun_packs_more": {
+    "message": "Ещё {n} языков"
+  },
+  "firstrun_packs_together": {
+    "message": "Загрузятся вместе"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Озвучка · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "Один пакет покрывает 中文 и English. Отметка 中文 или English включает его сама"
+  },
+  "firstrun_packs_bytes": {
+    "message": "Около {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Озвучка · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "По умолчанию выключено. Слушать и читать перевод можно и без него. Не озвучивается только тайский перевод"
+  },
+  "firstrun_packs_optional": {
+    "message": "Около {size} · по желанию"
+  },
+  "firstrun_packs_base": {
+    "message": "Базовые компоненты"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Определение языка (ECAPA) и детектор речи (VAD): кто говорит на каком языке. Без них слушать нельзя"
+  },
+  "firstrun_packs_required": {
+    "message": "Около {size} · обязательно"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "Сейчас используется сотовая сеть"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "Сейчас нужно около {size} (системные пакеты распознавания отдельно, размер задаёт система). Может списаться трафик."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Подождать Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Загрузить по сотовой сети"
+  },
+  "firstrun_packs_manage": {
+    "message": "Управление языковыми пакетами"
+  },
+  "listen_ptt_preparing": {
+    "message": "Подготовка · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Готово"
+  },
+  "listen_not_ready": {
+    "message": "Пока нельзя начать. Нажмите, когда загрузка закончится"
+  },
+  "listen_ready_tap": {
+    "message": "Загружено. Нажмите кнопку ниже, чтобы начать"
+  },
+  "listen_prep_detail": {
+    "message": "Загрузка {what} · {pct}% · готово: {ready}"
+  },
+  "listen_ready_tap_sub": {
+    "message": "Само не начнётся · нажмите «{mine}» или «{other}», чтобы слушать"
+  },
+  "drive_skipped": {
+    "message": "Пропущено карточек, которые нельзя озвучить: {n} (медиа или нет голоса)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs}: перевод речи готов; {speak}: озвучивание тоже. Другие языки можно добавить в «Настройки · Голосовые пакеты»."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Отмена"
+  },
+  "firstrun_quota_days": {
+    "message": "Дольше всех без дела · {n} дн. назад"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Скачать"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Текущая пара языков · нельзя освободить"
+  },
+  "firstrun_quota_label": {
+    "message": "Языки распознавания"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Не скачано"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Готово · занимает слот"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Не готово · можно вернуть"
+  },
+  "firstrun_quota_never": {
+    "message": "Дольше всех без дела"
+  },
+  "firstrun_quota_note": {
+    "message": "Ограничение Apple: не более {max} языков распознавания одновременно"
+  },
+  "firstrun_quota_note_full": {
+    "message": "Все {max} слотов заняты · новый язык сначала будет отмечен «Не готово»"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Вернуть"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Нажмите, чтобы вернуть · около 1–2 с"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "Кнопка меняется в зависимости от выбранного языка."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "Освободить {yield} · вернуть {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Чтобы вернуть {need}, сначала освободите один язык. Он станет «Не готово» и вернётся примерно за 1–2 с, когда понадобится, — без повторной загрузки."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Выберите язык, который освободить (по умолчанию — дольше всех без дела)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Языки распознавания заполнены ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Не скачано"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Занимает слот"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Не готово"
+  },
+  "firstrun_quota_today": {
+    "message": "Использовался сегодня"
+  },
+  "firstrun_quota_used": {
+    "message": "Занято {n} из {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "Возвращаем…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Не готово · язык {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "В этот раз не скачивается"
+  },
+  "firstrun_quota_over_title": {
+    "message": "Все {max} слотов заняты: {langs} будет отмечен «Не готово»"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Нажмите, чтобы вернуть его, когда понадобится (около 1–2 с); слот освободит язык, который дольше всех без дела. Если не хотите этого, пока не отмечайте его."
+  },
+  "listen_pill_quota_full": {
+    "message": "Слоты заняты"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Слоты заняты · освободите один, чтобы пользоваться"
+  },
+  "listen_quota_card_btn": {
+    "message": "Освободить один и вернуть"
+  },
+  "listen_quota_card_hint": {
+    "message": "Около 1–2 с · без повторной загрузки"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} был установлен, но его слот отдан другому языку — это не ошибка загрузки и не связано с сетью."
+  },
+  "listen_quota_card_title": {
+    "message": "Пока нельзя слушать {lang}: все {max} слотов распознавания заняты"
+  },
+  "listen_quota_sheet_go": {
+    "message": "Освободить {yield} · вернуть {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Чтобы пользоваться {lang}, сначала освободите один язык."
+  },
+  "fail_quota_label": {
+    "message": "Бесплатный кредит"
+  },
+  "fail_credit_title": {
+    "message": "Бесплатный кредит закончился"
+  },
+  "fail_credit_next": {
+    "message": "Смените канал или введите свой API Key."
+  },
+  "fail_go_grant": {
+    "message": "Сменить канал"
+  },
+  "fail_fill_key": {
+    "message": "Ввести свой Key"
+  },
+  "fail_grant_title": {
+    "message": "Пул сейчас недоступен"
+  },
+  "fail_grant_next": {
+    "message": "Это не вы его израсходовали. Попробуйте позже или смените канал."
+  },
+  "fail_model_title": {
+    "message": "Модель не в бесплатном списке"
+  },
+  "fail_model_next": {
+    "message": "Бесплатный кредит работает только с назначенной моделью. Верните её."
+  },
+  "fail_go_model": {
+    "message": "Сменить модель"
+  },
+  "fail_auth_title": {
+    "message": "Ключ отклонён"
+  },
+  "fail_auth_next": {
+    "message": "Провайдер отклонил Key. Проверьте или введите снова."
+  },
+  "fail_go_engine": {
+    "message": "Ввести Key"
+  },
+  "fail_use_free": {
+    "message": "Перейти на бесплатный канал"
+  },
+  "fail_timeout_title": {
+    "message": "Нет связи — пауза"
+  },
+  "fail_timeout_next": {
+    "message": "Автоповтор на паузе. Когда сеть вернётся, нажмите повтор или перейдите на бесплатный канал."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Автоповтор на паузе. Когда сеть вернётся, нажмите повтор."
+  },
+  "fail_timeout_footnote": {
+    "message": "Пауза только после 5 таймаутов подряд. Один раз не останавливает."
+  },
+  "fail_retry": {
+    "message": "Повторить"
+  },
+  "fail_switch_free": {
+    "message": "На бесплатный канал"
+  },
+  "firstrun_packs_sum": {
+    "message": "Около {size} · включая основу прослушивания"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Подробности"
+  },
+  "langpacks_manage": {
+    "message": "Управлять"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Одним нажатием"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Загрузка"
+  },
+  "firstrun_quota_mini": {
+    "message": "Не больше 5 языков распознавания"
+  },
+  "qs_key_local_only": {
+    "message": "Ключи хранятся только на этом устройстве"
+  },
+  "firstrun_packs_retry": {
+    "message": "Повторить"
+  },
+  "langpacks_title": {
+    "message": "Языковые пакеты и озвучка"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · одним нажатием готово"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Загрузка {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "Офлайн-озвучка · не загружена · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "Подробности загрузки"
+  },
+  "langpacks_need_os": {
+    "message": "Языковые пакеты · нужна более новая система"
+  },
+  "engine_keys_status_detail": {
+    "message": "По движкам настроено"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Выбор отменит настройку одним нажатием"
+  },
+  "langpacks_tts_na": {
+    "message": "Офлайн-озвучка · только в приложении"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "По движкам"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Переход к одному нажатию перезапишет текущую настройку по движкам"
+  },
+  "langpacks_ready": {
+    "message": "Готово · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "Не настроено"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · около {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "Другие движки настраиваются по отдельности."
+  },
+  "langpacks_tts_ready": {
+    "message": "Офлайн-озвучка · готова"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Выбор перезапишет настройку по движкам"
+  },
+  "engine_keys_row": {
+    "message": "Движки и ключи"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Отмена"
+  },
+  "langpacks_missing": {
+    "message": "Не загружено · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Переход к настройке по движкам отменит текущую настройку одним нажатием"
+  }
+}

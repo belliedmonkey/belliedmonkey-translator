@@ -1,0 +1,4213 @@
+{
+  "extension_name": {
+    "message": "大肚猴翻譯：雙語對照 + 影片雙字幕 + 生詞複習"
+  },
+  "extension_description": {
+    "message": "網頁雙語對照與影片雙字幕。你真正讀過的句子會變成複習卡，按遺忘曲線推回來。自帶 Key，不上傳原文。"
+  },
+  "action_title": {
+    "message": "大肚猴翻譯"
+  },
+  "msg_loading": {
+    "message": "⏳ 翻譯中…"
+  },
+  "msg_preparing": {
+    "message": "⏳ 譯文準備中…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ 翻譯失敗,點此重試"
+  },
+  "fab_translate": {
+    "message": "翻譯"
+  },
+  "fab_toggle": {
+    "message": "切換翻譯"
+  },
+  "fab_enable": {
+    "message": "開啟翻譯"
+  },
+  "fab_disable": {
+    "message": "關閉翻譯"
+  },
+  "yt_btn_title": {
+    "message": "大肚猴翻譯 · 影片字幕"
+  },
+  "yt_sub_on": {
+    "message": "開啟影片字幕翻譯"
+  },
+  "yt_sub_off": {
+    "message": "關閉影片字幕翻譯"
+  },
+  "yt_display_type": {
+    "message": "字幕顯示類型"
+  },
+  "yt_mode_both": {
+    "message": "雙語字幕"
+  },
+  "yt_mode_trans": {
+    "message": "僅譯文"
+  },
+  "yt_mode_orig": {
+    "message": "僅原文"
+  },
+  "yt_download_srt": {
+    "message": "下載字幕 (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "字幕還沒準備好,等翻譯載入後再試"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ 字幕載入中…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "字幕不可用"
+  },
+  "podcast_sub_on": {
+    "message": "開啟播客字幕翻譯"
+  },
+  "podcast_sub_off": {
+    "message": "關閉播客字幕翻譯"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "popup_target_lang": {
+    "message": "目標語言"
+  },
+  "popup_provider": {
+    "message": "翻譯引擎"
+  },
+  "provider_google_free": {
+    "message": "Google 翻譯（免費）"
+  },
+  "placeholder_api_key": {
+    "message": "輸入 API Key…"
+  },
+  "toggle_show_hide": {
+    "message": "顯示/隱藏"
+  },
+  "label_custom_api": {
+    "message": "介面位址（完整）"
+  },
+  "label_optional": {
+    "message": "（可選）"
+  },
+  "btn_translate_page": {
+    "message": "翻譯本頁"
+  },
+  "btn_view_original": {
+    "message": "查看原文"
+  },
+  "btn_more_settings": {
+    "message": "更多設定"
+  },
+  "status_translated": {
+    "message": "已翻譯"
+  },
+  "status_untranslated": {
+    "message": "未翻譯"
+  },
+  "toast_lang_switched": {
+    "message": "語言已切換"
+  },
+  "toast_provider_switched": {
+    "message": "翻譯引擎已切換"
+  },
+  "toast_restored_original": {
+    "message": "已恢復原文"
+  },
+  "toast_translating": {
+    "message": "正在翻譯…"
+  },
+  "options_title": {
+    "message": "大肚猴翻譯 — 設定"
+  },
+  "options_engine_section": {
+    "message": "翻譯引擎"
+  },
+  "options_engine_label": {
+    "message": "引擎"
+  },
+  "provider_google_free_long": {
+    "message": "Google 翻譯（免費，無需 API Key）"
+  },
+  "options_custom_api_hint": {
+    "message": "留空則使用該引擎的預設端點。要自己填就填完整的介面位址（含路徑）——我們原樣請求，不會自動補路徑。中轉代理與自建服務都適用。"
+  },
+  "options_lang_section": {
+    "message": "語言"
+  },
+  "options_style_section": {
+    "message": "顯示樣式"
+  },
+  "options_webpage_color": {
+    "message": "網頁譯文顏色"
+  },
+  "options_color_preview": {
+    "message": "這是譯文的樣式預覽"
+  },
+  "options_yt_color": {
+    "message": "YouTube 字幕顏色"
+  },
+  "options_yt_preview": {
+    "message": "雙語字幕預覽"
+  },
+  "options_font_size": {
+    "message": "譯文字級(相對原文)"
+  },
+  "options_font_s": {
+    "message": "較小 (0.8×)"
+  },
+  "options_font_m": {
+    "message": "略小 (0.9×)"
+  },
+  "options_font_body": {
+    "message": "與原文一致 (1.0×)"
+  },
+  "options_font_l": {
+    "message": "略大 (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "顯示懸浮按鈕"
+  },
+  "options_cache_section": {
+    "message": "快取管理"
+  },
+  "options_cache_hint": {
+    "message": "翻譯結果會快取 12 小時以減少 API 請求。"
+  },
+  "options_clear_cache": {
+    "message": "清除翻譯快取"
+  },
+  "options_about_section": {
+    "message": "關於"
+  },
+  "options_about_desc": {
+    "message": "雙語對照翻譯 + 學習閉環：真正讀過的句子變成複習卡。"
+  },
+  "options_about_safari": {
+    "message": "Safari iOS：在設定 → Safari → 擴充功能 中啟用。"
+  },
+  "toast_provider_saved": {
+    "message": "翻譯引擎已儲存"
+  },
+  "toast_endpoint_cleared": {
+    "message": "換引擎了，介面位址已清空",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "API Key 已儲存"
+  },
+  "toast_apiurl_saved": {
+    "message": "API 地址已儲存"
+  },
+  "toast_lang_saved": {
+    "message": "語言已儲存"
+  },
+  "toast_fontsize_saved": {
+    "message": "字號已儲存"
+  },
+  "toast_color_saved": {
+    "message": "顏色已儲存"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube 字幕顏色已儲存"
+  },
+  "toast_clearing": {
+    "message": "清除中…"
+  },
+  "toast_cache_empty": {
+    "message": "快取為空"
+  },
+  "toast_cache_cleared": {
+    "message": "快取已清除"
+  },
+  "hint_openai": {
+    "message": "OpenAI API Key（sk-…）。"
+  },
+  "hint_claude": {
+    "message": "Anthropic API Key（sk-ant-…）。"
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API Key。"
+  },
+  "hint_glm": {
+    "message": "智譜 AI API Key（有免費額度）。"
+  },
+  "ui_lang_label": {
+    "message": "介面語言"
+  },
+  "ui_lang_auto": {
+    "message": "跟隨系統"
+  },
+  "about_line": {
+    "message": "大肚猴翻譯"
+  },
+  "options_font_xl": {
+    "message": "較大 (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "通義千問（DashScope）API Key。"
+  },
+  "hint_qwen_mt": {
+    "message": "通義千問·翻譯版（DashScope）API Key。翻譯專用模型，比通用對話模型更便宜也更快，與通義千問共用同一把 Key。"
+  },
+  "hint_kimi": {
+    "message": "Kimi（Moonshot）API Key，請在對應區域平台申請（國內 moonshot.cn / 國際 moonshot.ai）。"
+  },
+  "label_default_model": {
+    "message": "預設模型："
+  },
+  "hint_custom_chat": {
+    "message": "任意 Chat Completions 格式的對話介面。填寫完整的介面位址、模型與 Key。位址末段是 responses 時按 Responses 格式傳送。"
+  },
+  "hint_custom_msg": {
+    "message": "任意 Messages 格式的對話介面。填寫完整的介面位址、模型與 Key。"
+  },
+  "label_custom_model": {
+    "message": "模型"
+  },
+  "options_custom_model_hint": {
+    "message": "留空則使用該引擎的預設模型。"
+  },
+  "options_advanced": {
+    "message": "進階參數"
+  },
+  "label_adv_temperature": {
+    "message": "隨機度 temperature"
+  },
+  "options_adv_temperature_hint": {
+    "message": "留空使用 0.3。數值越低譯文越穩定。"
+  },
+  "label_adv_max_tokens": {
+    "message": "單次最大輸出長度"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "留空使用 2000。長段落被截斷時可調高。"
+  },
+  "label_adv_timeout": {
+    "message": "單次請求逾時（秒）"
+  },
+  "options_adv_timeout_hint": {
+    "message": "留空使用 20 秒。自建或推理模型較慢時可調高。"
+  },
+  "label_adv_concurrency": {
+    "message": "並行請求數"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "留空使用 5。被限流時調低；調高不會加速已經在等的請求。"
+  },
+  "options_adv_unsupported": {
+    "message": "目前模型不接受此參數，本次不會送出。"
+  },
+  "label_adv_custom": {
+    "message": "自訂請求參數"
+  },
+  "options_adv_custom_hint": {
+    "message": "JSON 物件，會合併進請求本體，覆蓋上面幾項。適用於我們沒有實測過的自建或內網端點。"
+  },
+  "options_adv_custom_bad": {
+    "message": "解析不了，本次不會送出："
+  },
+  "options_adv_custom_notobj": {
+    "message": "需要是一個 JSON 物件，本次不會送出。"
+  },
+  "options_adv_custom_ok": {
+    "message": "將送出："
+  },
+  "options_adv_custom_dropped": {
+    "message": "不可覆蓋，已忽略："
+  },
+  "options_adv_custom_none": {
+    "message": "（無）"
+  },
+  "err_reasoning_starved": {
+    "message": "模型把整個輸出預算用在了思考上，沒有產出譯文。請在設定的「進階參數」裡調高「單次最大輸出長度」，或改用非推理模型。"
+  },
+  "toast_model_saved": {
+    "message": "模型已儲存"
+  },
+  "setup_need_key": {
+    "message": "這個引擎需要 API Key。填入下方的 Key 之後翻譯才會運作。"
+  },
+  "popup_need_setup": {
+    "message": "還沒設定好翻譯引擎 —— 點這裡去設定頁，一把 key 就能設定好。"
+  },
+  "learn_title": {
+    "message": "複習"
+  },
+  "learn_title_full": {
+    "message": "大肚猴翻譯 · 複習"
+  },
+  "learn_review": {
+    "message": "複習"
+  },
+  "learn_reveal": {
+    "message": "顯示譯文"
+  },
+  "learn_grade_again": {
+    "message": "不記得"
+  },
+  "learn_grade_hard": {
+    "message": "有點難"
+  },
+  "learn_grade_good": {
+    "message": "記得"
+  },
+  "learn_grade_easy": {
+    "message": "太簡單"
+  },
+  "learn_empty_title": {
+    "message": "還沒有學習材料"
+  },
+  "learn_empty_body": {
+    "message": "打開採集開關，然後照常瀏覽、照常翻譯。你真正讀過的句子會自動存進來 —— 快速滑過去的不算。"
+  },
+  "learn_open_settings": {
+    "message": "去設定裡打開採集"
+  },
+  "learn_alldone_title": {
+    "message": "今天的複習做完了"
+  },
+  "learn_alldone_body": {
+    "message": "繼續瀏覽和翻譯，新的材料會自動進來。"
+  },
+  "learn_next_due": {
+    "message": "下一張卡片{when}到期。"
+  },
+  "learn_in_minutes": {
+    "message": "約 {n} 分鐘後"
+  },
+  "learn_in_hours": {
+    "message": "約 {n} 小時後"
+  },
+  "learn_in_days": {
+    "message": "約 {n} 天後"
+  },
+  "learn_progress": {
+    "message": "本輪進度"
+  },
+  "learn_done_run": {
+    "message": "本次完成 {n} 張"
+  },
+  "learn_settings": {
+    "message": "設定"
+  },
+  "learn_unknown_source": {
+    "message": "未知來源"
+  },
+  "learn_count_due": {
+    "message": "待複習"
+  },
+  "learn_count_learning": {
+    "message": "學習中"
+  },
+  "learn_count_new": {
+    "message": "候選"
+  },
+  "learn_count_known": {
+    "message": "已掌握"
+  },
+  "learn_count_total": {
+    "message": "總計"
+  },
+  "learn_section": {
+    "message": "學習"
+  },
+  "learn_section_hint": {
+    "message": "開啟後，你真正讀過的句子會連同頁面位址、標題和停留時長一起，存在這台裝置上，按遺忘曲線重新推給你。快速捲過去的不算。除非你開啟同步，否則不上傳；一鍵可清空。",
+    "description": ""
+  },
+  "learn_enable": {
+    "message": "採集學習材料"
+  },
+  "learn_daily_new": {
+    "message": "每天最多引入的新卡片"
+  },
+  "learn_open_review": {
+    "message": "打開複習頁"
+  },
+  "learn_clear": {
+    "message": "清空學習庫"
+  },
+  "learn_clear_confirm": {
+    "message": "清空學習庫？所有已採集的句子與複習進度都會被刪除，且無法恢復。"
+  },
+  "learn_stats": {
+    "message": "學習庫 {n} 條 · 待複習 {due} · 約 {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "學習庫為空"
+  },
+  "toast_learn_on": {
+    "message": "已開始採集學習材料"
+  },
+  "toast_learn_off": {
+    "message": "已停止採集（已收集的內容保留）"
+  },
+  "toast_learn_cleared": {
+    "message": "學習庫已清空"
+  },
+  "toast_learn_clear_failed": {
+    "message": "清空失敗"
+  },
+  "toast_saved": {
+    "message": "已儲存"
+  },
+  "learn_replay": {
+    "message": "▶ 重聽這個片段"
+  },
+  "learn_replay_hint": {
+    "message": "在新分頁開啟原影片並跳到該處（那裡也會有雙語字幕）"
+  },
+  "tts_section": {
+    "message": "朗讀"
+  },
+  "tts_section_hint": {
+    "message": "把複習卡當成聽力材料。預設使用你裝置自帶的語音，不連網、不花錢；也可以指向你自己架的語音服務。"
+  },
+  "tts_mode": {
+    "message": "語音模式"
+  },
+  "tts_mode_off": {
+    "message": "關閉"
+  },
+  "tts_mode_assist": {
+    "message": "顯示原文，可點播放"
+  },
+  "tts_mode_audio_first": {
+    "message": "先聽後看（原文先隱藏）"
+  },
+  "tts_engine": {
+    "message": "語音引擎"
+  },
+  "tts_engine_browser": {
+    "message": "裝置內建語音（免費 · 離線）"
+  },
+  "tts_engine_local": {
+    "message": "本機 / 自建語音端點"
+  },
+  "tts_hint_browser": {
+    "message": "使用你作業系統既有的語音。不傳送任何資料，也不產生快取 —— 這個引擎只能朗讀，拿不到音訊資料。"
+  },
+  "tts_hint_local": {
+    "message": "跑在你自己的機器或區域網路上的語音服務，按輸入框裡的範例填完整位址。合成結果會快取在本機，同一句只花一次代價。"
+  },
+  "tts_hint_openai": {
+    "message": "用你自己的 API Key。合成結果會快取在本機，同一句只花一次錢。"
+  },
+  "tts_base_url": {
+    "message": "語音端點位址"
+  },
+  "tts_api_key": {
+    "message": "語音 API Key"
+  },
+  "tts_model": {
+    "message": "語音模型"
+  },
+  "tts_voice": {
+    "message": "聲音"
+  },
+  "tts_voice_auto": {
+    "message": "自動（按卡片語言挑選）"
+  },
+  "tts_voice_hint": {
+    "message": "按卡片的語言自動挑選。這裡選的聲音只在它會說那門語言時才會被採用。"
+  },
+  "tts_rate": {
+    "message": "語速"
+  },
+  "tts_autoplay": {
+    "message": "進入卡片自動播放"
+  },
+  "tts_test": {
+    "message": "試聽一句"
+  },
+  "tts_test_sample": {
+    "message": "你的複習卡片聽起來就是這樣。"
+  },
+  "tts_testing": {
+    "message": "正在合成…"
+  },
+  "tts_test_ok": {
+    "message": "播放中"
+  },
+  "tts_play": {
+    "message": "▶ 聽一遍"
+  },
+  "tts_replay": {
+    "message": "▶ 再聽一遍"
+  },
+  "tts_playing": {
+    "message": "播放中…"
+  },
+  "tts_loading": {
+    "message": "正在載入音訊…"
+  },
+  "tts_no_voice": {
+    "message": "系統裡沒有這門語言的語音"
+  },
+  "tts_unsupported": {
+    "message": "這個瀏覽器不提供內建語音"
+  },
+  "tts_no_base": {
+    "message": "還沒填語音端點位址"
+  },
+  "tts_no_key": {
+    "message": "還沒填語音 API Key"
+  },
+  "tts_blocked": {
+    "message": "瀏覽器擋下了自動播放，點一下播放"
+  },
+  "tts_http": {
+    "message": "語音服務回傳了錯誤"
+  },
+  "tts_failed": {
+    "message": "這句暫時讀不出來"
+  },
+  "tts_cache": {
+    "message": "語音快取 {n} 條 · 約 {mb} MB（上限 {cap} MB）"
+  },
+  "tts_cache_empty": {
+    "message": "語音快取為空"
+  },
+  "tts_cache_na": {
+    "message": "裝置內建語音不產生快取"
+  },
+  "tts_clear_cache": {
+    "message": "清空語音快取"
+  },
+  "toast_tts_cleared": {
+    "message": "語音快取已清空"
+  },
+  "learn_reveal_orig": {
+    "message": "顯示原文"
+  },
+  "learn_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "learn_clean_known_n": {
+    "message": "清理已掌握的 {n} 張卡"
+  },
+  "learn_pressure_dropped": {
+    "message": "有 {n} 條採集內容沒能存下來（學習庫滿時會發生）。"
+  },
+  "learn_pressure_evicted": {
+    "message": "學習庫已滿，已自動淘汰 {n} 張舊卡為新內容騰地方。"
+  },
+  "learn_pressure_near": {
+    "message": "學習庫快滿了（{n} / {cap}）。"
+  },
+  "toast_learn_cleaned": {
+    "message": "已清理 {n} 張已掌握的卡"
+  },
+  "learn_export": {
+    "message": "匯出學習庫"
+  },
+  "learn_import": {
+    "message": "從檔案匯入"
+  },
+  "toast_exported": {
+    "message": "已匯出 {n} 張卡片"
+  },
+  "toast_export_empty": {
+    "message": "還沒有可匯出的卡片"
+  },
+  "toast_export_failed": {
+    "message": "匯出失敗"
+  },
+  "toast_imported": {
+    "message": "已匯入 {n} 張卡片"
+  },
+  "toast_import_skipped": {
+    "message": "{n} 行無法解析已跳過"
+  },
+  "toast_import_bad_format": {
+    "message": "這不是學習庫匯出檔案"
+  },
+  "toast_import_failed": {
+    "message": "匯入失敗"
+  },
+  "sync_section": {
+    "message": "登入 · 多裝置同步"
+  },
+  "sync_section_hint": {
+    "message": "可選。不登入也能完整使用 —— 同步只是讓瀏覽器裡讀到的句子，也出現在 App 和你的其它裝置上。登入之後，擷取到的句子（含還沒進複習的候選）都會同步過去。"
+  },
+  "sync_email": {
+    "message": "電子郵件"
+  },
+  "sync_send_code": {
+    "message": "寄送驗證碼"
+  },
+  "sync_code": {
+    "message": "郵件裡的 6 位驗證碼"
+  },
+  "sync_verify": {
+    "message": "登入"
+  },
+  "sync_now": {
+    "message": "立即同步"
+  },
+  "sync_signout": {
+    "message": "登出"
+  },
+  "sync_delete": {
+    "message": "刪除雲端資料與帳號"
+  },
+  "sync_err_offline": {
+    "message": "連不上伺服器，稍後會自動重試。已學的內容都在本機。"
+  },
+  "sync_err_quota": {
+    "message": "雲端空間已滿，新內容暫時不再上傳（本機不受影響）。清理已掌握的卡片可以騰出空間。"
+  },
+  "sync_err_signed_out": {
+    "message": "登入已失效，請重新登入。"
+  },
+  "sync_err_rate": {
+    "message": "驗證碼寄得太頻繁了，等幾分鐘再試。"
+  },
+  "sync_err_generic": {
+    "message": "同步沒能完成"
+  },
+  "sync_signed_in": {
+    "message": "已登入：{email}"
+  },
+  "sync_usage": {
+    "message": "雲端已用 {used} / {quota} · {n} 個資料塊"
+  },
+  "sync_need_email": {
+    "message": "先填電子郵件"
+  },
+  "sync_sending": {
+    "message": "寄送中…"
+  },
+  "sync_code_sent": {
+    "message": "驗證碼已寄到 {email}，填在下面。"
+  },
+  "sync_verifying": {
+    "message": "驗證中…"
+  },
+  "sync_signed_in_now": {
+    "message": "已登入。第一次同步可能要幾秒。"
+  },
+  "sync_bad_code": {
+    "message": "驗證碼不對或已過期，重新寄一個。"
+  },
+  "sync_running": {
+    "message": "同步中…"
+  },
+  "sync_done": {
+    "message": "同步完成 · 收到 {in} 張 · 上傳 {out} 張"
+  },
+  "sync_status_running": {
+    "message": "與伺服器同步中…"
+  },
+  "sync_status_done_at": {
+    "message": "同步完成 · {time}"
+  },
+  "sync_status_offline": {
+    "message": "目前網路離線，稍後會自動重試。學習記錄已保存在本機。"
+  },
+  "sync_status_error": {
+    "message": "同步未能完成，稍後會自動重試。"
+  },
+  "sync_status_signed_out": {
+    "message": "未登入，僅本機資料"
+  },
+  "sync_signed_out": {
+    "message": "已登出。本機的學習庫原樣保留。"
+  },
+  "sync_delete_confirm": {
+    "message": "刪除雲端資料與帳號？伺服器上的所有內容與這個帳號都會被刪除，無法復原。本機的學習庫會保留。"
+  },
+  "sync_deleting": {
+    "message": "刪除中…"
+  },
+  "sync_deleted": {
+    "message": "雲端資料與帳號都已刪除。本機的學習庫保留。"
+  },
+  "sync_deleted_partial": {
+    "message": "雲端資料已刪除，但帳號沒能刪掉（{why}）。可以重試或聯絡我們。"
+  },
+  "sync_err_upgrade": {
+    "message": "雲端有這個版本還讀不了的內容（可能來自更新版本的擴充功能）。請升級後再同步——那些內容沒有遺失，只是暫時讀不了。"
+  },
+  "toast_import_upgrade": {
+    "message": "這個檔案來自更新版本的擴充功能，升級後才能匯入。檔案本身沒有問題。"
+  },
+  "options_init_failed": {
+    "message": "設定頁沒能載入完成（{err}）。請重新開啟這個頁面；若仍然如此，請把這條訊息回報給我們。"
+  },
+  "settings_read_failed": {
+    "message": "讀不到已儲存的設定，下面顯示的是預設值——請不要在此儲存，否則會覆蓋掉你原本的設定。（{why}）"
+  },
+  "learn_relearn": {
+    "message": "重新學",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "記憶強度",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "天",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "複習是怎麼運作的",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "記得 → 間隔拉長，下次更晚出現。",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "忘了 → 重新開始，很快再見。",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "記憶強度攢滿 180 天，這張卡就畢業了。",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "知道了",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "每天新卡上限 {n} 張，可在設定裡調整。",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "自由練習",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "練習不能刷出掌握，但能暴露遺忘。",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "學習中",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "全部（含候選與已掌握）",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "不限",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "開始練習",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "練習 {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "練習完成 {n} 張。",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "讀",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "聽",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "寫",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "全面掌握",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "跟著讀一遍（練習，不計入驗證）",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "檢查",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "把原句補全",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "已替換為正確答案",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "解析這句",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "使用你配置的 API，一次呼叫，永久快取",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "解析中…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "解析失敗，稍後再試",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "模型沒有返回正文——思考（推理）型模型不適合句子解析，請在設定中改用對話模型。"
+  },
+  "learn_notes_words": {
+    "message": "生詞",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "短語搭配",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "語法點",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "影片、對話、文件 —— 邊聽邊翻，聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
+  },
+  "app_email_label": {
+    "message": "電子郵件"
+  },
+  "app_send": {
+    "message": "傳送驗證碼"
+  },
+  "app_sending": {
+    "message": "傳送中…"
+  },
+  "app_code_label": {
+    "message": "驗證碼（請查收郵件）"
+  },
+  "app_verify": {
+    "message": "登入"
+  },
+  "app_verifying": {
+    "message": "登入中…"
+  },
+  "app_back_email": {
+    "message": "換一個電子郵件"
+  },
+  "app_signout": {
+    "message": "登出"
+  },
+  "app_settings_link": {
+    "message": "設定"
+  },
+  "app_review_start": {
+    "message": "開始複習"
+  },
+  "app_review_back": {
+    "message": "← 返回"
+  },
+  "app_sync": {
+    "message": "同步"
+  },
+  "app_syncing": {
+    "message": "同步中…"
+  },
+  "app_unit_cards": {
+    "message": "張卡"
+  },
+  "app_unit_reviews": {
+    "message": "條複習紀錄"
+  },
+  "app_unit_sources": {
+    "message": "個來源"
+  },
+  "app_never_synced": {
+    "message": "還沒有同步過"
+  },
+  "app_sync_empty": {
+    "message": "同步完成，但伺服器上還沒有內容 —— 先在瀏覽器裡採集一些，再回來同步。"
+  },
+  "app_up_to_date": {
+    "message": "已經是最新的。"
+  },
+  "app_code_sent": {
+    "message": "驗證碼已傳送，請查收郵件。"
+  },
+  "app_code_bad": {
+    "message": "驗證碼不對或已過期，請再試一次。"
+  },
+  "app_offline": {
+    "message": "連不上伺服器，請檢查網路後重試。"
+  },
+  "app_needs_upgrade": {
+    "message": "伺服器上有這個版本讀不了的內容，請更新 App。"
+  },
+  "app_received": {
+    "message": "收到 {n} 張卡 · {m} 條複習紀錄"
+  },
+  "app_uploaded_n": {
+    "message": "上傳 {n} 條複習紀錄"
+  },
+  "app_uploaded_only": {
+    "message": "已上傳 {n} 條複習紀錄"
+  },
+  "app_sync_disabled": {
+    "message": "同步尚未在這個版本中啟用。瀏覽器擴充功能的採集與複習不受影響，全部存在本機。"
+  },
+  "app_set_title": {
+    "message": "設定"
+  },
+  "app_set_daily": {
+    "message": "每天最多學幾張新卡"
+  },
+  "app_set_tts_auto": {
+    "message": "顯示譯文時自動朗讀"
+  },
+  "app_set_tts_rate": {
+    "message": "朗讀速度"
+  },
+  "app_set_tts_note": {
+    "message": "語言未知的卡（例如在 Safari 裡採集的 —— 那裡沒有語言偵測）只用上面選定的朗讀語音；不選則這類卡無法朗讀。語音 API Key 與句子解析的金鑰一樣：只存這台裝置、不隨帳號同步，本機明文保存。"
+  },
+  "app_set_notes_title": {
+    "message": "翻譯與句子解析"
+  },
+  "app_set_notes_provider": {
+    "message": "引擎"
+  },
+  "app_set_notes_none": {
+    "message": "不使用"
+  },
+  "app_set_notes_key": {
+    "message": "API Key"
+  },
+  "app_set_notes_base": {
+    "message": "自訂介面位址"
+  },
+  "app_set_notes_model": {
+    "message": "引擎模型名"
+  },
+  "app_set_notes_note": {
+    "message": "這個引擎負責 App 裡的每一處翻譯：系統翻譯、快速翻譯、文件翻譯、對話與即時字幕的譯文，以及句子解析（生字 / 片語 / 文法）。呼叫你自己的 API；密鑰只存在這台裝置上，不隨帳號同步；與瀏覽器擴充功能裡設定的密鑰互不相通，安全性也相同 —— 都是本機明文保存。"
+  },
+  "app_set_corpus": {
+    "message": "學習庫"
+  },
+  "app_set_clean_known": {
+    "message": "清理已掌握的卡"
+  },
+  "app_set_cleaned": {
+    "message": "已清理 {n} 張"
+  },
+  "app_set_clean_none": {
+    "message": "沒有可清理的卡"
+  },
+  "app_set_account": {
+    "message": "帳號"
+  },
+  "app_set_signout": {
+    "message": "登出"
+  },
+  "app_set_delete": {
+    "message": "刪除帳號與雲端資料"
+  },
+  "app_set_delete_note": {
+    "message": "刪除後，伺服器上的語料與複習紀錄會被永久移除，帳號也會註銷。這台裝置上已經下載的內容不受影響 —— 想一併清掉，刪除 App 即可。"
+  },
+  "app_set_confirm_delete": {
+    "message": "確定要刪除帳號嗎？伺服器上的所有內容會被永久移除，無法復原。"
+  },
+  "app_set_deleting": {
+    "message": "刪除中…"
+  },
+  "app_set_deleted": {
+    "message": "帳號已刪除。"
+  },
+  "app_unit_known": {
+    "message": "已掌握"
+  },
+  "tts_no_voice_und": {
+    "message": "這張卡的語言未知 —— 在設定裡選一個朗讀語音後即可朗讀"
+  },
+  "app_set_tts_voice": {
+    "message": "朗讀語音"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "自動（按卡片語言）"
+  },
+  "learn_langs_label": {
+    "message": "學習語言"
+  },
+  "learn_langs_all": {
+    "message": "全部（預設）"
+  },
+  "learn_langs_hint": {
+    "message": "只收錄選中語言的句子。Safari 無法精確識別語言時按文字系統判斷；長按收藏不受限制。"
+  },
+  "learn_sources_manage": {
+    "message": "來源管理"
+  },
+  "learn_sources_empty": {
+    "message": "還沒有採集到任何來源"
+  },
+  "learn_sources_count": {
+    "message": "{n} 張卡"
+  },
+  "learn_src_delete": {
+    "message": "刪除已存"
+  },
+  "learn_src_block": {
+    "message": "不再收錄"
+  },
+  "learn_src_unblock": {
+    "message": "恢復收錄"
+  },
+  "learn_src_blocked": {
+    "message": "已封鎖"
+  },
+  "learn_src_blocked_by": {
+    "message": "由規則 {pattern} 封鎖"
+  },
+  "learn_block_title": {
+    "message": "封鎖規則"
+  },
+  "learn_block_hint": {
+    "message": "支援萬用字元：example.com 匹配整個網域（含子網域）；*.example.com/news/* 匹配路徑。"
+  },
+  "learn_block_add": {
+    "message": "新增"
+  },
+  "learn_block_placeholder": {
+    "message": "例如 *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "規則格式不對"
+  },
+  "learn_delete_confirm": {
+    "message": "刪除 {host} 的 {n} 張卡？會同步到所有裝置，無法復原。"
+  },
+  "learn_delete_done": {
+    "message": "已刪除 {n} 張卡"
+  },
+  "learn_delete_none": {
+    "message": "這個來源已沒有可刪的卡"
+  },
+  "popup_site_section": {
+    "message": "本站"
+  },
+  "popup_site_capture": {
+    "message": "收錄本站"
+  },
+  "popup_site_manage": {
+    "message": "管理…"
+  },
+  "learn_card_src_actions": {
+    "message": "來源操作"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "讀不到登入狀態（儲存讀取失敗），稍後自動重試 —— 這不代表已登出。"
+  },
+  "learn_backup_failed": {
+    "message": "本地備份未能寫入（{why}）。學習庫本身不受影響。"
+  },
+  "notes_engine": {
+    "message": "解析引擎"
+  },
+  "notes_engine_hint": {
+    "message": "「解析這句」用的對話引擎。預設跟隨上面的翻譯引擎；思考（推理）型模型不適合解析。"
+  },
+  "notes_follow": {
+    "message": "跟隨翻譯引擎（預設）"
+  },
+  "notes_api_key": {
+    "message": "解析 API Key"
+  },
+  "notes_base_url": {
+    "message": "解析 API 位址"
+  },
+  "notes_model": {
+    "message": "解析模型"
+  },
+  "learn_badge_speak": {
+    "message": "說",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "再練一項 · 不再計入複習間隔",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "選出正確的譯文",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "先聽一遍，再選出你聽到的詞",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "確認選擇",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "正在用你配置的 API 生成本卡題目（一次調用，永久快取）…",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "題目生成失敗，已換用本地題型",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "轉寫引擎",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "未配置（不出「說」題）",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "本地 / 自建轉寫端點",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "「說」題的錄音會發到這裡配置的端點轉寫，識別完立即丟棄、不儲存不同步；未配置則不出「說」題。金鑰只存本機。自建服務需允許跨域（CORS）。",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "轉寫 API Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "轉寫端點地址",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "轉寫模型",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "朗讀這一句",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 開始錄音",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 再錄一次",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ 停止",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "錄音中——讀出上面的句子",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "識別中…",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "與原句匹配 {n}%",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "漏讀：",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "使用你配置的轉寫端點，每次錄音一次調用",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "還沒配置轉寫端點",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "還沒填轉寫 API Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "這個瀏覽器拿不到麥克風",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "麥克風權限被拒絕——本次會話改用其他題型",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "轉寫服務返回了錯誤",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "沒有識別到語音，再試一次",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "這個瀏覽器不支援錄音",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "轉寫失敗",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "連不上轉寫端點——檢查位址是否可達；自建服務還需允許跨域存取（CORS）",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "測試連線",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "測試中…",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ 通了 · {ms}ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "返回：",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "沒通",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "還沒填端點位址",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "還沒填 API Key",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "還沒選引擎",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "這個版本不認識目前儲存的引擎，請在上面重新選一個",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "端點通了，但返回的內容無法解析",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} —— {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "key 不對或沒有權限",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "介面位址（含路徑）或模型名不對",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "伺服器拒絕了這次請求",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "這個位址只有主機名稱，沒有介面路徑 —— 請填完整的介面位址（參考輸入框裡的範例）",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "位址不是以 http:// 或 https:// 開頭 —— 缺協定前綴會被當成相對路徑，請求根本發不出去",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "端點沒有在逾時前回應",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "請求位址：{url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "通路：{route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "擴充功能背景（不受跨域限制，不發預檢）",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "直連（從頁面發出，會先發 OPTIONS 預檢）",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "伺服器原話：{msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "（已自動改從擴充功能背景重試，仍未通——所以不是跨域問題，是這個位址從這台機器真的搆不著）",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "模型沒有返回正文——思考（推理）型模型不適合，請換對話模型",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "拆分長段卡"
+  },
+  "learn_split_failed": {
+    "message": "拆分失敗"
+  },
+  "learn_split_none": {
+    "message": "沒有可拆分的長段卡"
+  },
+  "learn_split_done": {
+    "message": "已把 {p} 張長段卡拆成 {c} 張句子卡"
+  },
+  "learn_split_skipped": {
+    "message": "（{k} 張譯文對不齊，保持原樣）"
+  },
+  "app_use_pw": {
+    "message": "使用密碼登入",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "密碼",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "改用驗證碼登入",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "信箱或密碼不對，重新試一次。",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "播客模式",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ 暫停",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ 繼續",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ 下一張",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 再聽一遍",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "第 {i} / {n} 張",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 解析這句",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "第 {i} 遍",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "正在解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "「播放解析」需要先在設定裡配好引擎（設定 → 翻譯與句子解析）"
+  },
+  "drive_notes_empty": {
+    "message": "這張卡沒有可播的解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "讀不到已儲存的設定，請稍後再試",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 隨機播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ 順序播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 循環播放",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 單曲循環",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "再來一輪",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "播放解析…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "正在解析這一句…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "播放時朗讀句子解析",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "每張卡在原文和譯文之後再讀一遍解析（生詞 / 片語 / 文法）。預設開著：沒解析過的卡會自動呼叫你設定的解析引擎——每張卡只收一次費，之後一直用快取。不想讓它花錢就關掉，關掉後只讀原文和譯文。",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "播放解析：沒解析過的卡會呼叫你設定的解析引擎，每張卡只收一次費",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "生詞：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "片語：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "文法：",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "這張卡的解析沒成功，已跳過",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "解析引擎還沒設定好，這張卡的解析跳過了",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "這張卡讀不出來，已跳到下一張",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "播放原文…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "播放譯文…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "已暫停",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "本輪聽完了",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "沒有可聽讀的卡",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "預載範圍",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "今天要聽的牌庫",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "今天 + 未來 3 天",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "今天 + 未來 7 天",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "預載離線資源",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "出發前點一下，把要聽的語音、解析、譯文全部下載到本機，路上沒網也能整輪播完。第一下只算帳、不花錢，看清楚要呼叫多少次再點第二下。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "正在核對本機已有的內容…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} 張卡",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "待合成 {n} 段語音",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "待解析 {n} 張",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "待補譯文 {n} 張",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "裝置內建語音不產生快取，本來就能離線播放；這裡只預載解析與譯文。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "沒設定解析引擎，沒有譯文的卡這次補不了譯文（設定 → 句子解析）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "這些內容已經全在本機，路上不需要連網。",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "確認預載（約 {n} 次付費呼叫）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "停止",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "預載中 {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "完成 {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "已停止：完成 {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} 處失敗（{reasons}）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "語音引擎還沒設定好（{reason}），這次一段音訊都合成不出來（設定 → 語音引擎）",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "語音引擎還沒設定好，這一輪讀不出聲（設定 → 語音引擎）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "系統攔下了自動播放，點一下繼續",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "這台裝置上沒有可用的語音引擎",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "連不上語音引擎，這一輪讀不出聲。已經預載過的卡才能離線播放（設定 → 預載離線資源）",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "語音服務逾時了 —— 檢查網路，或換一個語音端點"
+  },
+  "tts_network": {
+    "message": "連不上語音服務 —— 檢查網路和端點位址"
+  },
+  "tts_empty": {
+    "message": "這張卡沒有可朗讀的文字"
+  },
+  "drive_bg_session_failed": {
+    "message": "這台裝置現在建立不了背景音訊工作階段，App 退到背景或鎖定畫面後會暫停"
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "裝置內建語音在 App 退到背景或鎖定畫面後會停下來；想放著聽，請設定一個語音端點（設定 → 語音引擎）"
+  },
+  "drive_awake_note": {
+    "message": "播客模式在前景時螢幕不會自動鎖定。鎖定畫面後想一直看到卡片，請開啟系統的「永遠顯示」：設定 → 螢幕顯示與亮度 → 永遠顯示。"
+  },
+  "app_empty_body": {
+    "message": "學習材料來自瀏覽器擴充功能 —— 這個 App 負責複習它們。"
+  },
+  "app_empty_how": {
+    "message": "在 iOS「設定 → Safari → 擴充功能」中啟用大肚猴翻譯，打開採集，然後照常瀏覽、照常翻譯。"
+  },
+  "app_ext_off_title": {
+    "message": "擴充功能還沒啟用"
+  },
+  "app_ext_off_body": {
+    "message": "卡片來自 Safari 擴充功能。它還沒啟用，所以這裡會一直是空的。"
+  },
+  "app_ext_unknown_title": {
+    "message": "先把瀏覽器那半邊打通"
+  },
+  "app_ext_ios_body": {
+    "message": "卡片來自 Safari 擴充功能：在 Safari 裡點網址列左邊的擴充功能圖示 →「管理擴充功能」→ 打開大肚猴翻譯。"
+  },
+  "app_ext_open_prefs": {
+    "message": "開啟 Safari 擴充功能設定"
+  },
+  "app_ext_open_setup": {
+    "message": "在網頁上完成設定"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "Safari 擴充功能還沒打開"
+  },
+  "app_ext_open_safari": {
+    "message": "在 Safari 裡打開擴充功能 →"
+  },
+  "app_ext_done": {
+    "message": "我已打開"
+  },
+  "app_signin_why": {
+    "message": "登入後免費額度自動到帳，語言包下到本機，之後不用再做設定。"
+  },
+  "app_signin_open": {
+    "message": "登入"
+  },
+  "ob_next": {
+    "message": "繼續"
+  },
+  "ob_skip": {
+    "message": "以後再設定"
+  },
+  "ob_start": {
+    "message": "開始設定"
+  },
+  "ob_welcome_title": {
+    "message": "翻譯用哪個模型，你說了算"
+  },
+  "ob_welcome_body": {
+    "message": "系統只有它自己那一個引擎。這裡你挑一個 —— 譯文直接從它來，不經過我們的伺服器。"
+  },
+  "ob_ios_1": {
+    "message": "在 Safari 裡點網址列左邊的擴充功能圖示"
+  },
+  "ob_ios_2": {
+    "message": "選「管理擴充功能」，把「大肚猴翻譯」打開"
+  },
+  "ob_ios_3": {
+    "message": "權限選「允許」，網站選「所有網站」"
+  },
+  "ob_browser_title": {
+    "message": "還有兩件事在瀏覽器裡做"
+  },
+  "ob_browser_body": {
+    "message": "這兩個開關在擴充功能自己的設定頁裡 —— App 改不了它們，兩邊的儲存是分開的。"
+  },
+  "ob_kv_engine": {
+    "message": "填一把翻譯引擎的 Key"
+  },
+  "ob_kv_capture": {
+    "message": "打開「採集學習材料」"
+  },
+  "ob_kv_capture_note": {
+    "message": "已經開著了。你停下來讀過的句子會變成卡片；不想要可以在這裡關掉。"
+  },
+  "ob_read_title": {
+    "message": "去讀一篇"
+  },
+  "ob_read_body": {
+    "message": "設定完了就照常瀏覽、照常翻譯。讀過的句子會自己攢起來；想立刻收下某一句，長按它的譯文。"
+  },
+  "ob_signin_title": {
+    "message": "最後一步：登入"
+  },
+  "ob_kv_twice": {
+    "message": "擴充功能裡也要登入一次"
+  },
+  "ob_kv_twice_note": {
+    "message": "兩邊的儲存是分開的，用同一個帳號登入即可。"
+  },
+  "ob_kv_engine_note_required": {
+    "message": "擴充功能設定 → 翻譯引擎。這一步躲不掉：不填 Key 就翻不出任何東西。"
+  },
+  "extob_header": {
+    "message": "大肚猴翻譯 · 開始使用"
+  },
+  "extob_welcome_title": {
+    "message": "邊讀邊記，不用離開頁面"
+  },
+  "extob_welcome_body": {
+    "message": "原文留在原地，譯文長在下面。你真正停下來讀完的句子會變成複習卡，按遺忘曲線回來找你。"
+  },
+  "extob_use_1": {
+    "message": "打開一頁外語網頁"
+  },
+  "extob_use_2": {
+    "message": "點右下角的懸浮按鈕"
+  },
+  "extob_use_3": {
+    "message": "譯文長在原文下面；你真正讀完的句子會變成複習卡"
+  },
+  "ob_fork_title": {
+    "message": "你想怎麼開始？"
+  },
+  "ob_fork_sub": {
+    "message": "兩條路都能用，之後隨時能換。"
+  },
+  "ob_fork_grant_title": {
+    "message": "用免費額度開始"
+  },
+  "ob_fork_grant_badge": {
+    "message": "推薦"
+  },
+  "ob_fork_grant_desc": {
+    "message": "不用申請 API key，登入一下就能翻。夠日常讀幾百段網頁和字幕。"
+  },
+  "ob_fork_grant_cta": {
+    "message": "免費開始 →"
+  },
+  "ob_fork_key_title": {
+    "message": "我有自己的 API key"
+  },
+  "ob_fork_key_desc": {
+    "message": "一把 key 同時配好翻譯、朗讀、轉寫；也可以三個引擎分別配。"
+  },
+  "ob_fork_key_cta": {
+    "message": "去設定 →"
+  },
+  "ob_fork_foot": {
+    "message": "額度用完了隨時能換成自己的 key —— 設定裡一步。"
+  },
+  "ob_fork_waiting": {
+    "message": "正在新分頁裡領取…登入完成後回到這裡，會自動繼續。"
+  },
+  "ob_fork_landed": {
+    "message": "額度已到帳，正帶你去下一步…"
+  },
+  "ob_fork_reopen": {
+    "message": "重新開啟領取頁"
+  },
+  "extob_engine_title": {
+    "message": "選一個翻譯引擎"
+  },
+  "extob_engine_body_key": {
+    "message": "這一步躲不掉：不填 key 就一個字也翻不出來。"
+  },
+  "extob_key_label": {
+    "message": "API Key"
+  },
+  "extob_capture_title": {
+    "message": "讀過的句子會自己變成複習卡"
+  },
+  "extob_capture_body": {
+    "message": "已經開著了。你真正讀完的句子（快速滑過去的不算）會存成複習卡，只存在這台裝置上；不想要可以在這裡關掉。"
+  },
+  "extob_capture_toggle": {
+    "message": "把我讀過的句子存成複習卡"
+  },
+  "extob_capture_note": {
+    "message": "只收錄你真正停下來讀完的句子。隨時可以在設定裡關掉，已存的卡也能整站刪除。"
+  },
+  "extob_try_title": {
+    "message": "現在翻一頁看看"
+  },
+  "extob_try_body": {
+    "message": "打開一頁真實網頁，點右下角的懸浮按鈕，原文下面就會出現譯文。"
+  },
+  "extob_try_cta": {
+    "message": "打開範例頁面"
+  },
+  "extob_finish": {
+    "message": "完成"
+  },
+  "extob_done_title": {
+    "message": "設定好了"
+  },
+  "extob_done_text": {
+    "message": "打開任意外語網頁，點右下角的懸浮按鈕即可。想改設定或重看這段引導，都在擴充功能的設定頁裡。"
+  },
+  "extob_done_close": {
+    "message": "知道了"
+  },
+  "extob_reonboard": {
+    "message": "重看開始使用引導"
+  },
+  "extob_unpacked_note": {
+    "message": "你是用 ZIP 直接裝的：這一份不會自動更新。新版本請到官網下載，或改從商店安裝以取得自動更新。"
+  },
+  "extob_first_run": {
+    "message": "第一次用？兩分鐘把它配好 →"
+  },
+  "qs_title": {
+    "message": "用一把 key 設定好全部"
+  },
+  "qs_sub": {
+    "message": "下面這些平台，一把 key 能同時配好翻譯、朗讀、轉寫。其它引擎請切到上面的〈詳細〉逐個設定。"
+  },
+  "qs_platform": {
+    "message": "平台"
+  },
+  "qs_only_one": {
+    "message": "可用平台：{p}"
+  },
+  "qs_key": {
+    "message": "API 金鑰"
+  },
+  "qs_get_key": {
+    "message": "還沒有 key？去 {p} 申請 ↗"
+  },
+  "qs_try": {
+    "message": "現在翻一頁看看"
+  },
+  "qs_try_note": {
+    "message": "打開一頁真實網頁，點右下角的懸浮按鈕，原文下面就會出現譯文。"
+  },
+  "extob_quick_sub": {
+    "message": "一把 key 就能同時配好翻譯、朗讀、轉寫。"
+  },
+  "extob_mode_quick": {
+    "message": "一鍵設定"
+  },
+  "extob_mode_manual": {
+    "message": "三引擎分別設定"
+  },
+  "qs_key_ph": {
+    "message": "貼上一次，三樣一起設定好"
+  },
+  "qs_privacy": {
+    "message": "密鑰只存在本機。"
+  },
+  "qs_grant_replaced": {
+    "message": "（替換了免費額度的 key）"
+  },
+  "stt_device_no_file": {
+    "message": "裝置內建轉寫只用於對話與即時字幕，說題暫不支援"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ 本機辨識可用 · 語言包已就緒（不走網路，沒有端點可測）"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ 本機辨識可用 · 語言包會在第一次開始聽時自動下載"
+  },
+  "engine_test_device_timeout": {
+    "message": "本機辨識沒有回應 —— 關掉 App 重開再試"
+  },
+  "listen_downloading": {
+    "message": "正在下載{lang}離線模型 · {pct}%"
+  },
+  "listen_assets_failed": {
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試 — 再點一次「開始聽」重試，或到設定裡選一個雲端即時引擎。"
+  },
+  "listen_entry_privacy_device": {
+    "message": "裝置內建轉寫，邊說邊出字；整句定稿後接上你自己設定的翻譯引擎。"
+  },
+  "listen_cost_line_device": {
+    "message": "已聽 {t}"
+  },
+  "listen_device_privacy": {
+    "message": "裝置內建轉寫：邊說邊出字；整句定稿後連同前幾句上下文一起送去翻譯：自己設了 key 時直接送給你設的服務商，用免費額度時經我們的伺服器轉發，不儲存文字。選「裝置內建朗讀」時，語音在你的裝置上合成，首次使用會下載一次離線模型。"
+  },
+  "listen_raw_label": {
+    "message": "辨識原文"
+  },
+  "tts_device_lang_fallback": {
+    "message": "用系統語音朗讀（離線模型不含{lang}）"
+  },
+  "qs_apply": {
+    "message": "設定好翻譯、朗讀、轉寫"
+  },
+  "qs_testing": {
+    "message": "測試中…"
+  },
+  "qs_untouched": {
+    "message": "— 沒動 · 你已經設定過了（{cur}）"
+  },
+  "qs_unknown": {
+    "message": "已有設定"
+  },
+  "qs_slot_chat": {
+    "message": "翻譯"
+  },
+  "qs_slot_tts": {
+    "message": "朗讀"
+  },
+  "qs_slot_stt": {
+    "message": "轉寫"
+  },
+  "qs_slot_notes": {
+    "message": "解析"
+  },
+  "qs_notes_follow": {
+    "message": "跟隨翻譯引擎（未改動）"
+  },
+  "qs_tts_untried": {
+    "message": "（還沒試聽 —— 到下面的〈語音〉卡點「試聽一句」聽一次）"
+  },
+  "qs_stt_failed_note": {
+    "message": "錄音功能不會因此打開。剛才送出去的是一段 0.6 秒的正弦音，不是你的聲音。"
+  },
+  "qs_retry": {
+    "message": "重試這一項"
+  },
+  "engine_test_empty_audio": {
+    "message": "端點通了，但沒有回傳音訊"
+  },
+  "opt_mode_quick": {
+    "message": "一鍵"
+  },
+  "opt_mode_detail": {
+    "message": "分項"
+  },
+  "options_wipe_all": {
+    "message": "清除本機全部資料"
+  },
+  "options_wipe_hint": {
+    "message": "刪除 App 不會清除這裡的資料。要徹底清乾淨，請先在這裡清除。"
+  },
+  "options_wipe_confirm": {
+    "message": "清除這台裝置上的全部資料？API Key、所有設定、已擷取的句子與複習進度都會被刪除，並會登出。此操作無法復原。\n\n已同步到雲端的內容不受影響 —— 重新登入會把它們同步回來。"
+  },
+  "toast_wipe_failed": {
+    "message": "沒有清乾淨，請再試一次"
+  },
+  "app_sync_empty_who": {
+    "message": "同步完成，但 {email} 這個帳號下還沒有內容。如果你在瀏覽器擴充功能裡擷取過，確認那邊登入的是同一個信箱。"
+  },
+  "app_owner_mismatch": {
+    "message": "這台裝置上的學習庫屬於另一個帳號。用原來那個信箱登入，或在擴充功能的設定裡清除本機資料後重來。"
+  },
+  "app_owner_unknown": {
+    "message": "這台裝置上的學習庫有歸屬，但現在沒有登入。登入之後才能繼續同步。"
+  },
+  "sync_err_owner_mismatch": {
+    "message": "這台裝置上的學習庫屬於另一個帳號。用原來那個信箱登入，或先清除本機全部資料再重來。"
+  },
+  "sync_err_owner_unknown": {
+    "message": "這台裝置上的學習庫有歸屬，但現在沒有登入。登入之後才能繼續同步。"
+  },
+  "app_err_upgrade": {
+    "message": "雲端有這個版本還讀不了的內容（可能來自更新版本的擴充功能）。請升級 App 後再同步——那些內容沒有遺失，只是暫時讀不了。"
+  },
+  "site_next_title": {
+    "message": "譯文出來了。下一步：讓這些卡片也進 App"
+  },
+  "site_next_body": {
+    "message": "你停下來讀完的句子已經存成複習卡，就在這個瀏覽器裡。登入之後它們才會同步到 App —— 不登入也能一直用，只是 App 那邊會是空的。"
+  },
+  "site_next_body_off": {
+    "message": "「擷取學習材料」還沒打開，所以現在還不會產生複習卡。先在擴充功能設定裡打開它，讀過的句子才會存下來。"
+  },
+  "site_next_cta": {
+    "message": "看看你的卡"
+  },
+  "site_next_cta_off": {
+    "message": "去打開「採集學習材料」"
+  },
+  "site_next_signin": {
+    "message": "直接去登入 →"
+  },
+  "sync_next_app": {
+    "message": "接下來：在 iPhone / Mac 的 App 裡用同一個信箱（{email}）登入，這些卡才會出現在那邊。"
+  },
+  "app_dl_mismatch_title": {
+    "message": "兩邊不是同一個帳號"
+  },
+  "app_dl_mismatch_body": {
+    "message": "瀏覽器擴充功能登入的是另一個帳號，這台 App 登入的是 {email}。卡片屬於帳號，所以兩邊不是同一個帳號時，這邊看不到那邊擷取的東西。"
+  },
+  "app_dl_switch": {
+    "message": "登出，換成擴充功能那個帳號"
+  },
+  "app_dl_keep": {
+    "message": "保持目前帳號"
+  },
+  "app_dl_signin": {
+    "message": "瀏覽器擴充功能那邊已經登入了。在這裡用同一個帳號登入，卡片才會同步過來。"
+  },
+  "app_dl_signin_none": {
+    "message": "先在瀏覽器擴充功能裡登入，再回到這裡用同一個帳號登入 —— 卡片是那邊擷取的。"
+  },
+  "review_go_app": {
+    "message": "在 App 裡繼續複習 →"
+  },
+  "site_setup_next_engine": {
+    "message": "去設定翻譯引擎 →"
+  },
+  "setup_not_configured": {
+    "message": "還沒設定過翻譯引擎。用上面的一鍵設定，或切到「分項」裡選一個引擎並填上 Key。"
+  },
+  "toast_wipe_failed_what": {
+    "message": "沒有清乾淨，還剩：{what}。請再試一次。"
+  },
+  "wipe_left_unreadable": {
+    "message": "儲存讀不回來"
+  },
+  "site_next_title_off": {
+    "message": "譯文出來了。但現在還不會存成複習卡"
+  },
+  "drive_skipped_media": {
+    "message": "跳過 {n} 張影片字幕卡 —— 它們沒有可朗讀的正文"
+  },
+  "drive_skipped_voice": {
+    "message": "跳過 {n} 張：這台裝置上沒有能讀它們的語音。到設定 → 語音引擎裡配一個，或換一個系統音色。"
+  },
+  "sync_next_cards": {
+    "message": "去看你的卡"
+  },
+  "site_next_body_local": {
+    "message": "你停下來讀完的句子已經存成複習卡，就在這個瀏覽器裡。去看看它們。"
+  },
+  "learn_empty_on": {
+    "message": "擷取已經開著了。照常瀏覽、照常翻譯，你停下來讀完的句子會出現在這裡 —— 快速滑過去的不算。"
+  },
+  "sync_status_signed_out_cta": {
+    "message": "未登入，僅本機資料 —— 登入後也能在 App 裡複習 →"
+  },
+  "app_open_failed": {
+    "message": "這台裝置上沒能開啟 App。",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "去 App Store 下載 →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "這個 App 只有 iPhone、iPad 和 Mac 版。在這台裝置上，就在瀏覽器裡複習。",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "大肚猴翻譯",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "這次登入沒能接上 —— 中途換了瀏覽器、或清過資料。回到這一頁重新點一次登入就行。",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "這次登入的來源對不上，已經停下了。請重新點一次登入。",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "讀不到本機儲存，這一步暫時做不了。重開這一頁再試；如果一直這樣，請把這條訊息告訴我們。",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "用 Apple 登入",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "用 Google 登入",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "或者用電子郵件 / 手機號：",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "電子郵件或手機號",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6 位驗證碼",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "正在開啟 Apple 登入…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Apple 登入沒能完成。可以改用下面的電子郵件或手機號。",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "這台裝置上還有另一個帳號的學習材料。你現在登入的是另一個帳號 —— 那些卡沒有丟，用原來的帳號登入就會回來。",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "或者用電子郵件：",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "先填{what}",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "未設定（不朗讀）"
+  },
+  "tts_not_configured": {
+    "message": "還沒設定語音引擎 —— 到「設定 › 朗讀」裡選一個"
+  },
+  "feedback_section": {
+    "message": "意見回饋"
+  },
+  "feedback_row": {
+    "message": "傳送意見"
+  },
+  "feedback_rate": {
+    "message": "到商店評分"
+  },
+  "feedback_discuss": {
+    "message": "GitHub 討論區"
+  },
+  "feedback_hint": {
+    "message": "會開啟你的郵件 App。主旨帶著版本號與平台，除此之外什麼都不會送出。"
+  },
+  "extob_done_feedback": {
+    "message": "哪裡不對勁？寫信給我 —— 每一封我都會讀。"
+  },
+  "sync_why": {
+    "message": "登入同一個帳號，瀏覽器裡讀到的句子就會同步到 App 和你的其它裝置。"
+  },
+  "sync_use_email": {
+    "message": "或用電子郵件登入"
+  },
+  "sync_change_email": {
+    "message": "換一個信箱"
+  },
+  "sync_resend": {
+    "message": "重新傳送"
+  },
+  "telemetry_section": {
+    "message": "匿名使用資料"
+  },
+  "telemetry_toggle": {
+    "message": "分享匿名使用資料"
+  },
+  "telemetry_what": {
+    "message": "會傳送什麼"
+  },
+  "telemetry_hint": {
+    "message": "只傳送用了哪些功能、在哪個瀏覽器、翻譯成功還是失敗 —— 不含你讀的網頁、文字、網址、金鑰或帳號。關掉即刪除這台裝置傳過的資料。"
+  },
+  "diag_section": {
+    "message": "診斷日誌"
+  },
+  "diag_copy": {
+    "message": "複製診斷日誌"
+  },
+  "diag_clear": {
+    "message": "清空"
+  },
+  "diag_hint": {
+    "message": "排障用的本機記錄（模型下載 / 語音引擎 / 登入階段，約 200 條）。不含你說過或翻譯過的任何文字。只在你點「複製」並主動貼給別人時才會離開這台裝置。"
+  },
+  "diag_copied": {
+    "message": "已複製"
+  },
+  "diag_audio_toggle": {
+    "message": "上傳診斷錄音（排查轉寫品質）"
+  },
+  "diag_audio_hint": {
+    "message": "開啟後，聽譯會話的麥克風聲音、朗讀聲音和對應文字會打包上傳到我們的伺服器（僅用於排查轉寫問題，72 小時後自動刪除）。預設關閉；關閉即刻停止採集。"
+  },
+  "telemetry_onboard": {
+    "message": "會傳送匿名使用資料（不含網頁內容與網址），幫助改進；設定裡可關。"
+  },
+  "asr_offer": {
+    "message": "🎙 AI 轉寫字幕"
+  },
+  "asr_needs_engine": {
+    "message": "先在設定裡選擇轉寫引擎"
+  },
+  "asr_status_file": {
+    "message": "⏳ 正在轉寫整段音訊…"
+  },
+  "asr_stop": {
+    "message": "停止轉寫"
+  },
+  "asr_err_silent": {
+    "message": "擷取不到聲音，已停止轉寫"
+  },
+  "asr_err_mse": {
+    "message": "Safari 抓不到這類串流影片的聲音，此頁無法轉寫",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "無法讀取該音訊"
+  },
+  "asr_err_ws": {
+    "message": "轉寫連線中斷"
+  },
+  "asr_err_toolarge": {
+    "message": "音訊太大，無法整段轉寫"
+  },
+  "asr_err_nocues": {
+    "message": "該轉寫引擎不回傳時間戳，無法做字幕"
+  },
+  "asr_gesture_needed": {
+    "message": "需要在頁面上點一下才能開始擷取"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ 點此開始即時轉寫"
+  },
+  "asr_err_settings": {
+    "message": "轉寫引擎已更改，已停止轉寫"
+  },
+  "popup_asr_go": {
+    "message": "🎙 即時轉寫 + 翻譯"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 轉寫這段影音 + 翻譯"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 轉寫這段影音 — 先選一個轉寫引擎 →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 用 App 聽裝置的聲音"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "先開始聽，再回來播放"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "直播、影音網站都能轉"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 用 App 聽裝置的聲音 →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 先去 App 開始聽，再回來播放 →"
+  },
+  "asr_media_app_only": {
+    "message": "這段媒體擴充功能取不出音軌（影音網站與直播都是這樣）。用 App 聽裝置正在放的聲音，什麼來源都能轉。"
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 即時轉寫 + 翻譯 — 先選一個轉寫引擎 →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} 沒有即時介面：直播/串流轉寫不了，可下載的音訊仍能整段轉寫 · 另配即時引擎 →"
+  },
+  "popup_asr_no_media": {
+    "message": "這一頁沒找到正在播放的影片/音訊 — 先點播放，再點這裡重找"
+  },
+  "popup_asr_none_found": {
+    "message": "沒找到能轉寫的影片/音訊。播放器可能在另一個框架裡，或還沒開始播放。"
+  },
+  "popup_asr_iframe": {
+    "message": "播放器在頁內的另一個框架裡；在新分頁打開它再轉寫 ↗"
+  },
+  "popup_asr_live": {
+    "message": "直播"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "時長未知"
+  },
+  "asr_incremental": {
+    "message": "邊說邊譯（快，譯文會改）"
+  },
+  "asr_history": {
+    "message": "字幕歷史面板"
+  },
+  "asr_history_title": {
+    "message": "字幕歷史 · 整句定稿"
+  },
+  "app_listen_back": {
+    "message": "‹ 返回"
+  },
+  "listen_source_label": {
+    "message": "對話"
+  },
+  "listen_entry": {
+    "message": "對話 · 即時聽譯"
+  },
+  "listen_entry_hint": {
+    "message": "兩個人面對面談事情：各說各的話，螢幕上出雙語，譯文自動讀出來。音訊只送往你設定的轉寫端點。"
+  },
+  "listen_title": {
+    "message": "對話"
+  },
+  "listen_history": {
+    "message": "整句定稿"
+  },
+  "listen_pending": {
+    "message": "⏳ 譯文準備中…"
+  },
+  "listen_me_prefix": {
+    "message": "我："
+  },
+  "listen_me_badge": {
+    "message": "我說的"
+  },
+  "listen_star": {
+    "message": "加星"
+  },
+  "listen_lang_me": {
+    "message": "中文 → {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "對方的語言"
+  },
+  "listen_pill_listening": {
+    "message": "聽譯中 · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "已暫停 · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "已結束 · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● 正在聽 · 暫停"
+  },
+  "listen_toggle_start": {
+    "message": "開始聽"
+  },
+  "listen_copy_all": {
+    "message": "複製全文",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "已複製",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "複製失敗",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "線上會議、視訊通話也能用：讓對方的聲音從喇叭放出來即可。",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "已聽 {t} · 音訊只發往你設定的轉寫端點"
+  },
+  "listen_flip_hint": {
+    "message": "給對方看 · 點任意處返回"
+  },
+  "listen_flip_speaking": {
+    "message": "朗讀中"
+  },
+  "listen_stop_denied": {
+    "message": "麥克風被拒絕 — 到「設定 › 隱私 › 麥克風」允許大肚猴翻譯。"
+  },
+  "listen_stop_socket": {
+    "message": "轉寫連線中斷：{why} — 已聽的句子還在。"
+  },
+  "listen_stop_locked": {
+    "message": "錄音被系統停止了（來電或其它 App 佔用麥克風）— 掛斷後會自動繼續，或點「開始聽」。"
+  },
+  "listen_stop_silence": {
+    "message": "聽不到聲音（30 秒靜音）— 已暫停以免計費。"
+  },
+  "listen_stop_failed": {
+    "message": "麥克風啟動失敗：{why} — 再點一次「開始聽」。"
+  },
+  "listen_np_title": {
+    "message": "對話 · 即時聽譯中"
+  },
+  "listen_np_album": {
+    "message": "對話 · 即時聽譯中 · {t} · {n} 句"
+  },
+  "listen_settings_title": {
+    "message": "對話 · 即時聽譯"
+  },
+  "listen_capture_label": {
+    "message": "對話進複習（來源「對話」）"
+  },
+  "listen_capture_note": {
+    "message": "「對話 · 即時聽譯」把麥克風的聲音即時傳送到你自己設定的轉寫端點，只在你點底部錄音鍵開始收音之後、只傳那一個端點；我們的伺服器不接觸音訊；不保存任何錄音，只保留文字（且只在這個開關開著時保留）。"
+  },
+  "listen_who_them": {
+    "message": "對方"
+  },
+  "listen_who_me": {
+    "message": "我"
+  },
+  "listen_who_guessed": {
+    "message": "判錯了？點 ↔ 換成另一種語言"
+  },
+  "listen_swap_to_them": {
+    "message": "改成對方說的"
+  },
+  "listen_swap_to_me": {
+    "message": "改成我說的"
+  },
+  "listen_flip_kept_card": {
+    "message": "換到另一種語言了 · 之前那張卡你已經複習過，留在「來源 › 對話」裡"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "正在說…"
+  },
+  "listen_live_badge": {
+    "message": "● 即時"
+  },
+  "listen_reading": {
+    "message": "朗讀中"
+  },
+  "listen_autospeak_off": {
+    "message": "自動朗讀已停 · {why} — 行尾的朗讀仍可單句用"
+  },
+  "listen_tts_unusable": {
+    "message": "自動朗讀不可用 —— 朗讀引擎沒設定好，到 設定 › 朗讀 裡選一個"
+  },
+  "listen_autospeak_echo": {
+    "message": "自動朗讀暫停 · 偵測到回音迴圈 — 調低音量或用耳機後可重開"
+  },
+  "listen_read_queue_n": {
+    "message": "朗讀中 · 還有 {n} 句待讀"
+  },
+  "listen_ephemeral_label": {
+    "message": "這次不留記錄"
+  },
+  "listen_ephemeral_locked": {
+    "message": "這一場已經開始，要不留記錄請先結束再重開"
+  },
+  "listen_ephemeral_pill": {
+    "message": "這次不留記錄"
+  },
+  "listen_my_lang_label": {
+    "message": "我的語言"
+  },
+  "listen_lang_note": {
+    "message": "在你選的兩門語言之間自動辨識。聽譯頁裡可以隨時改這兩門語言。"
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "目前引擎不支援"
+  },
+  "listen_lang_change_engine": {
+    "message": "換引擎"
+  },
+  "listen_lang_swapped": {
+    "message": "兩邊不能是同一種語言 — 已對調"
+  },
+  "listen_autospeak_label": {
+    "message": "自動朗讀譯文"
+  },
+  "listen_autospeak_note": {
+    "message": "整句翻譯完之後自動讀出來。對方說的讀給你聽，你說的讀給對方聽。"
+  },
+  "listen_autospeak_need_tts": {
+    "message": "先到「設定 › 朗讀」選一個朗讀引擎"
+  },
+  "listen_lang_me_label": {
+    "message": "我"
+  },
+  "listen_lang_other_label": {
+    "message": "對方"
+  },
+  "listen_sources_note": {
+    "message": "每句原文來自轉寫、譯文來自你的翻譯引擎，都可能有錯——加星的句子優先進複習。"
+  },
+  "app_today_due": {
+    "message": "今天待複習"
+  },
+  "home_cta_subs": {
+    "message": "開始即時字幕"
+  },
+  "home_cta_listen": {
+    "message": "開始即時聽譯"
+  },
+  "app_last_sync": {
+    "message": "上次同步 {t}"
+  },
+  "app_modes_label": {
+    "message": "聽"
+  },
+  "drive_entry_hint": {
+    "message": "今天的牌庫連著讀，放著聽"
+  },
+  "listen_entry_short": {
+    "message": "兩個人面對面談事情，各說各的話，譯文自動讀出來"
+  },
+  "listen_entry_privacy": {
+    "message": "音訊只發往你設定的轉寫端點。"
+  },
+  "listen_pill_preparing": {
+    "message": "準備中"
+  },
+  "listen_toggle_preparing": {
+    "message": "準備中…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "重連中…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "轉寫連線中斷：{why} — 正在重連…"
+  },
+  "listen_history_empty": {
+    "message": "雙方隨便說，每句定稿後會出現在這裡。判錯了？點 ↔ 換成另一種語言"
+  },
+  "listen_tr_failed": {
+    "message": "譯文失敗 · 重試"
+  },
+  "listen_read_aloud": {
+    "message": "朗讀"
+  },
+  "listen_show_other": {
+    "message": "給對方看"
+  },
+  "listen_close": {
+    "message": "關閉"
+  },
+  "listen_leave_confirm": {
+    "message": "還在聽。離開會結束這次對話，已聽的句子保留。"
+  },
+  "dialog_ok": {
+    "message": "確定"
+  },
+  "dialog_cancel": {
+    "message": "取消"
+  },
+  "listen_leave_ok": {
+    "message": "結束並離開"
+  },
+  "grant_err_exhausted": {
+    "message": "免費額度已經用完了。你可以填一把自己的 key 繼續用（一把通吃翻譯、朗讀、轉寫），或者到社群裡問問。"
+  },
+  "grant_err_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_err_misconfigured": {
+    "message": "免費額度這條路我們這邊設定錯了，已經記下。這不是你的問題；先用自己的 key。"
+  },
+  "grant_err_revoked": {
+    "message": "這份免費額度已經停用了（登出或刪除帳號會停用它）。重新登入同一個帳號就會回來，餘額不變。"
+  },
+  "grant_err_invalid": {
+    "message": "這份免費額度認不出來了。到設定裡重新領一次。"
+  },
+  "grant_err_model": {
+    "message": "免費額度只能用它指定的那個模型。你在「分項」裡改過模型 —— 改回去，或者填一把自己的 key。"
+  },
+  "grant_err_busy": {
+    "message": "這會兒請求太密了，等幾秒再試。"
+  },
+  "grant_title": {
+    "message": "免費額度"
+  },
+  "grant_body_signin": {
+    "message": "登入之後可以領一份免費額度，夠翻幾百頁。翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_signin": {
+    "message": "登入領免費額度"
+  },
+  "grant_signin_again": {
+    "message": "重新登入"
+  },
+  "grant_body_signed_out": {
+    "message": "登出後免費額度停用了。餘額保留著 —— 用同一個帳號再登入就回來。"
+  },
+  "grant_body_unclaimed": {
+    "message": "你還沒領這份免費額度。夠翻幾百頁，翻譯、朗讀、轉寫都能用。"
+  },
+  "grant_claim": {
+    "message": "領取"
+  },
+  "grant_claiming": {
+    "message": "領取中…"
+  },
+  "grant_privacy": {
+    "message": "免費額度（可選）。登入並領取後，你可以用我們出的 0.2 美元額度翻譯、朗讀、轉寫。這條路上，你的文字會經過我們的伺服器轉發到模型提供方（{vendor}），我們不保存、不記錄內容，只記錄每次花了多少；額度用完即停，不會自動收費。自帶 key 的路徑不變：文字仍從你的瀏覽器直接發往提供方，我們看不到。登出時額度在這台裝置上停用；刪除帳號會一併刪除額度記錄。"
+  },
+  "grant_body_active": {
+    "message": "免費額度正在用。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_low": {
+    "message": "免費額度快用完了。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_exhausted": {
+    "message": "免費額度已經用完了。填一把自己的 key 就能繼續 —— 一把通吃翻譯、朗讀、轉寫。"
+  },
+  "grant_body_unavailable": {
+    "message": "不是你用完了 —— 是我們這邊的免費額度池空了，正在補。先用自己的 key，或者稍後再來。"
+  },
+  "grant_body_replaced": {
+    "message": "你現在用的是自己的 key。免費額度還留著，隨時可以換回來。"
+  },
+  "grant_restore": {
+    "message": "改回免費額度"
+  },
+  "grant_byo": {
+    "message": "用自己的 key"
+  },
+  "grant_community": {
+    "message": "加入社群問問"
+  },
+  "grant_engine_label": {
+    "message": "大肚猴免費額度"
+  },
+  "grant_restore_confirm": {
+    "message": "改回免費額度會替換掉你現在填的 key。要繼續嗎？"
+  },
+  "grant_signout_confirm": {
+    "message": "登出後免費額度會停用（餘額保留，再登入就回來）。要登出嗎？"
+  },
+  "grant_claimed_toast": {
+    "message": "免費額度已設好"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "免費額度已領到。你自己的 key 保留著 —— 想換用額度，點「改回免費額度」。"
+  },
+  "grant_page_halt": {
+    "message": "免費額度已用完 —— 點此看怎麼繼續"
+  },
+  "grant_page_halt_ours": {
+    "message": "免費額度暫時用不了（不是你用完了）—— 點此看怎麼繼續"
+  },
+  "auth_page_halt": {
+    "message": "這把 key 被服務商拒絕了（HTTP 401/403）—— 點此檢查",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "去設定",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "服務商拒絕了這把 key（HTTP 401/403）。檢查 key 是否填對、有沒有這個模型的權限。",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "覺得好用？去商店給個評分 →"
+  },
+  "app_nudge_text": {
+    "message": "今天讀過的句子，去 App 裡複習 →"
+  },
+  "review_nudge_text": {
+    "message": "今天讀過的句子，去複習 →"
+  },
+  "doc_title": {
+    "message": "文件翻譯"
+  },
+  "doc_to_review": {
+    "message": "去複習 →"
+  },
+  "doc_upload": {
+    "message": "上傳文件（PDF / Word / 圖片）"
+  },
+  "doc_privacy": {
+    "message": "文件只保存在本機，不同步、不匯出。翻譯時，文件的文字按你點開的頁發往你設定的翻譯端點 —— 不是整份，也不是打開就發；圖片與掃描頁以圖片形式發往同一端點辨識，只在你的引擎支援辨識圖片時。"
+  },
+  "doc_privacy_grant": {
+    "message": "文件只保存在本機。翻譯時按你點開的頁經我們的中繼發往模型提供方（不保存、不記錄）；免費額度不辨識圖片 —— 圖片和掃描頁要用你自己的 API key。"
+  },
+  "doc_list_empty": {
+    "message": "還沒有上傳過文件。支援 PDF、Word（.docx）、純文字、圖片。"
+  },
+  "doc_row_meta": {
+    "message": "{pages} 頁 · 讀到第 {page} 頁 · 已採 {n} 句"
+  },
+  "doc_delete": {
+    "message": "刪除"
+  },
+  "doc_delete_confirm": {
+    "message": "刪除這份文件？它的卡也會一併刪除（會同步到所有裝置），不可恢復。"
+  },
+  "doc_unsupported_kind": {
+    "message": "不支援這種格式（支援 PDF、.docx、純文字、圖片）。.doc 請在 Word 裡另存為 .docx。"
+  },
+  "doc_too_large": {
+    "message": "檔案太大（上限 30 MB）。"
+  },
+  "doc_grant_no_image": {
+    "message": "免費額度不能辨識圖片 —— 用自己的 API key。"
+  },
+  "doc_no_vision": {
+    "message": "目前引擎不支援辨識圖片 · 去設定換模型"
+  },
+  "doc_store_failed": {
+    "message": "儲存文件失敗："
+  },
+  "doc_missing": {
+    "message": "這份文件已不在本機。"
+  },
+  "doc_opening": {
+    "message": "正在讀取…"
+  },
+  "doc_open_failed": {
+    "message": "讀不了這份文件："
+  },
+  "doc_back": {
+    "message": "文件清單"
+  },
+  "doc_lang": {
+    "message": "文件語言"
+  },
+  "doc_lang_auto": {
+    "message": "自動"
+  },
+  "doc_prev": {
+    "message": "上一頁"
+  },
+  "doc_next": {
+    "message": "下一頁"
+  },
+  "doc_ocr_running": {
+    "message": "正在辨識這一頁…"
+  },
+  "doc_ocr_failed": {
+    "message": "辨識失敗："
+  },
+  "doc_page_empty": {
+    "message": "這一頁沒有可擷取的文字。"
+  },
+  "doc_old_engine": {
+    "message": "這一頁的譯文是用舊引擎譯的 —— 已按現在的引擎重譯。"
+  },
+  "doc_page_stat": {
+    "message": "本頁 {units} 段 · 約 {chars} 字"
+  },
+  "doc_go_settings": {
+    "message": "去設定 →"
+  },
+  "doc_translating": {
+    "message": "⏳ 翻譯中…"
+  },
+  "doc_star": {
+    "message": "收進複習"
+  },
+  "doc_translate_failed": {
+    "message": "翻譯失敗 · 點此重試"
+  },
+  "doc_popup_row": {
+    "message": "📄 翻譯文件（PDF / Word / 圖片）"
+  },
+  "doc_open_page": {
+    "message": "翻譯文件（PDF / Word / 圖片）"
+  },
+  "doc_review_entry": {
+    "message": "📄 翻譯文件"
+  },
+  "doc_source_label": {
+    "message": "文件"
+  },
+  "doc_page_n": {
+    "message": "第 {n} 頁"
+  },
+  "doc_sources_note": {
+    "message": "刪除會連文件本體一起刪掉。"
+  },
+  "doc_app_entry_hint": {
+    "message": "打開一頁翻一頁；譯文可收進複習"
+  },
+  "doc_app_back": {
+    "message": "‹ 返回"
+  },
+  "doc_capture_label": {
+    "message": "文件譯文進複習（來源「文件」）"
+  },
+  "doc_prefetch_label": {
+    "message": "提前解析下一頁（不翻譯）"
+  },
+  "rate_prompt_dismiss": {
+    "message": "不再提示"
+  },
+  "grant_popup_model": {
+    "message": "免費額度只能用它指定的模型 —— 點這裡改回去"
+  },
+  "grant_popup_exhausted": {
+    "message": "免費額度已用完 —— 點這裡看怎麼繼續"
+  },
+  "grant_popup_low": {
+    "message": "免費額度快用完了 —— 點這裡看看"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "未登入，僅本機資料 —— 登入還能領一份免費額度 →"
+  },
+  "grant_cn_title": {
+    "message": "先領一份官方免費額度"
+  },
+  "grant_cn_body": {
+    "message": "註冊後每個模型有一份免費額度，夠用一陣子。它是阿里雲給你的，不經我們的手。"
+  },
+  "grant_cn_step1": {
+    "message": "註冊並打開主控台"
+  },
+  "grant_cn_step2": {
+    "message": "領免費額度（具體多少以它的頁面為準）"
+  },
+  "grant_cn_step3": {
+    "message": "把 API Key 貼到下面，一鍵配好翻譯、朗讀、轉寫"
+  },
+  "grant_cn_open": {
+    "message": "去開通 ↗"
+  },
+  "grant_cn_why": {
+    "message": "我們暫時不提供代領的免費額度：代領要在境內跑一個中繼，還沒開通。"
+  },
+  "subtitle_source_label": {
+    "message": "即時字幕"
+  },
+  "subtitle_entry": {
+    "message": "即時字幕"
+  },
+  "subtitle_entry_hint": {
+    "message": "為正在播放的影片、直播、會議配雙語字幕"
+  },
+  "subtitle_need_key": {
+    "message": "轉寫引擎還沒填 API Key"
+  },
+  "subtitle_need_key_go": {
+    "message": "去設定裡填寫 →"
+  },
+  "subtitle_title": {
+    "message": "即時字幕"
+  },
+  "subtitle_start": {
+    "message": "開始"
+  },
+  "subtitle_capture_label": {
+    "message": "字幕進複習（來源「即時字幕」）"
+  },
+  "subtitle_video_lang_label": {
+    "message": "影片語言："
+  },
+  "subtitle_tip_mac": {
+    "message": "開始後，字幕會出現在螢幕下方的浮動列上；每句定稿也會列在這裡。"
+  },
+  "subtitle_tip_ios": {
+    "message": "先點開始，再去任意 App（瀏覽器、影片、Podcast…）外放播放；字幕會浮在子母畫面小窗裡。戴耳機時聽不到影片聲音。"
+  },
+  "subtitle_privacy": {
+    "message": "只在你點「開始」後聽這台 Mac 正在播放的聲音；聲音只在本機辨識（或只送往你設定的轉寫端點），不錄音、不儲存，我們的伺服器不參與。只有「字幕進複習」開著時，辨識出的文字才會留在複習裡。"
+  },
+  "subtitle_privacy_ios": {
+    "message": "只在你點「開始」後聽這台 iPhone 外放的聲音；聲音只在本機辨識（或只送往你設定的轉寫端點），不錄音、不儲存，我們的伺服器不參與。只有「字幕進複習」開著時，辨識出的文字才會留在複習裡。"
+  },
+  "subtitle_pill_live": {
+    "message": "● 字幕中 · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "現在"
+  },
+  "subtitle_history_empty": {
+    "message": "每句定稿後會出現在這裡。"
+  },
+  "subtitle_stop_silence": {
+    "message": "30 秒沒有聲音 — 已暫停以免計費。影片繼續播放後點「繼續」。"
+  },
+  "subtitle_leave_confirm": {
+    "message": "還在聽。離開會結束這次字幕，已出的句子保留。"
+  },
+  "subtitle_summary_title": {
+    "message": "這次字幕"
+  },
+  "subtitle_summary_body": {
+    "message": "時長 {t} · 共 {n} 句 · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "進複習（來源「即時字幕」）{k} 句 · 含 {s} 句加星"
+  },
+  "subtitle_summary_note": {
+    "message": "聲音沒有保存，只保留文字。進複習的句子可在「來源 › 即時字幕」裡管理或整段刪除。"
+  },
+  "subtitle_bar_waiting": {
+    "message": "等待系統授權 — 請在彈出的權限框裡點「允許」"
+  },
+  "subtitle_bar_listening": {
+    "message": "正在聽系統聲音…"
+  },
+  "subtitle_bar_paused": {
+    "message": "已暫停"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 秒沒有聲音，已暫停以免計費"
+  },
+  "subtitle_bar_denied": {
+    "message": "聽不到系統聲音 — 請到 系統設定 › 隱私權與安全性 › 螢幕與系統錄音，允許「大肚猴翻譯」"
+  },
+  "subtitle_bar_socket": {
+    "message": "轉寫連線中斷"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "正在重新連線…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "正在下載{lang}辨識資源 · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "這句譯文失敗 · 主視窗裡可重試"
+  },
+  "subtitle_bar_headphones": {
+    "message": "聽不到影片聲音 · 摘下耳機用外放"
+  },
+  "subtitle_ctl_pause": {
+    "message": "暫停"
+  },
+  "subtitle_ctl_resume": {
+    "message": "繼續"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "穿透"
+  },
+  "subtitle_ctl_main": {
+    "message": "主視窗"
+  },
+  "subtitle_ctl_end": {
+    "message": "結束"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "打開系統設定"
+  },
+  "subtitle_menu_show_main": {
+    "message": "顯示主視窗"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "取消字幕列穿透"
+  },
+  "subtitle_menu_end": {
+    "message": "結束即時字幕"
+  },
+  "subtitle_pip_float": {
+    "message": "浮出字幕窗"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "正在聽外放的聲音…"
+  },
+  "subtitle_pip_title": {
+    "message": "即時字幕"
+  },
+  "subtitle_pip_hint": {
+    "message": "在任意 App 裡外放影片或音訊，字幕會出現在這裡"
+  },
+  "subtitle_pip_close": {
+    "message": "點一下小窗：⏸ 暫停 · ⏪⏩ 翻看歷史 · ✕ 關掉（回 App 可再打開）"
+  },
+  "subtitle_pip_history": {
+    "message": "歷史 · 點 ⏩ 回到最新"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "點「開始」後，這裡是字幕小窗的預覽；離開本 App 時它會浮在其他 App 上"
+  },
+  "subtitle_pip_note_live": {
+    "message": "字幕小窗的預覽 —— 離開 App 時會浮在其他 App 上"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "這次字幕已結束，小窗已關閉"
+  },
+  "subtitle_bar_silent": {
+    "message": "還沒聽到系統聲音 — 影片在放卻一直沒字？可能沒開系統錄音權限"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "30 秒沒有聲音 — 已暫停。如果影片一直在放卻沒字，可能沒開系統錄音權限：到 系統設定 › 隱私權與安全性 › 螢幕與系統錄音 允許「大肚猴翻譯」，再點「繼續」。"
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "30 秒沒有聲音，已暫停 — 影片在放卻沒字？可能沒開系統錄音權限"
+  },
+  "listen_need_os": {
+    "message": "對話 · 即時字幕需要 iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "裝置內建辨識器不支援這個語言 —— 換一種語言試試"
+  },
+  "listen_assets_failed2": {
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試 — 再點一次「開始聽」重試。"
+  },
+  "tts_engine_device": {
+    "message": "裝置內建朗讀（離線模型 · 僅 App）"
+  },
+  "tts_hint_device": {
+    "message": "語音在你的裝置上合成；首次使用會下載一次離線模型（只是模型檔）。模型不含的語言會改用系統語音並在行上說明。"
+  },
+  "tts_pack_label": {
+    "message": "離線朗讀"
+  },
+  "tts_pack_installed": {
+    "message": "離線模型已安裝 · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "離線模型未下載 · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "首次朗讀也會自動下載；只下載模型檔，不上傳任何內容。"
+  },
+  "tts_pack_dl": {
+    "message": "下載"
+  },
+  "tts_pack_fallback": {
+    "message": "位址不可用，換一個重試…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "重試"
+  },
+  "tts_pack_downloading": {
+    "message": "正在下載離線模型 · {lang} · {pct}%"
+  },
+  "tts_pack_failed": {
+    "message": "離線模型下載失敗：{why}—— 多半是網路問題，稍後重試"
+  },
+  "tts_pack_no_bridge": {
+    "message": "裝置內建朗讀只在 App 裡可用"
+  },
+  "tts_test_dl": {
+    "message": "下載並試聽（{size}）"
+  },
+  "tts_test_ok_fallback": {
+    "message": "播放中 · 離線模型不含這個語言，改用系統語音"
+  },
+  "tts_assets": {
+    "message": "離線模型還沒下載好 —— 到「設定 › 朗讀」裡下載，或改用系統語音"
+  },
+  "listen_pack_ready": {
+    "message": "辨識語言包已就緒 · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "辨識語言包未下載 · {langs} · 由系統下載；開始聽時也會自動下載"
+  },
+  "listen_pack_dl": {
+    "message": "下載"
+  },
+  "listen_pack_downloading": {
+    "message": "正在下載辨識語言包 · {lang} · {pct}%"
+  },
+  "listen_pack_failed": {
+    "message": "辨識語言包下載失敗：{why}—— 多半是網路問題，稍後重試"
+  },
+  "opt_sec_engines": {
+    "message": "引擎與密鑰"
+  },
+  "opt_sec_features": {
+    "message": "功能"
+  },
+  "opt_sec_account": {
+    "message": "帳號與資料"
+  },
+  "opt_adv_hint": {
+    "message": "一鍵設定在「一鍵」裡 →"
+  },
+  "stt_section": {
+    "message": "整段轉寫"
+  },
+  "stt_section_use": {
+    "message": "說題 · 轉寫整段影音"
+  },
+  "review_section": {
+    "message": "複習"
+  },
+  "data_section": {
+    "message": "學習庫"
+  },
+  "notes_block_title": {
+    "message": "解析這句（選用）"
+  },
+  "grant_summary_claimed": {
+    "message": "免費額度已領取 · 管理 →"
+  },
+  "dep_label": {
+    "message": "依賴"
+  },
+  "dep_unset": {
+    "message": "未設定"
+  },
+  "dep_go": {
+    "message": "去設定 →"
+  },
+  "dep_follow": {
+    "message": "跟隨翻譯引擎"
+  },
+  "dep_quick": {
+    "message": "由一鍵設定提供 ✓"
+  },
+  "dep_live": {
+    "message": "即時轉寫"
+  },
+  "dep_live_device": {
+    "message": "裝置內建（本機 · iOS 26 / macOS 26）"
+  },
+  "target_lang_label": {
+    "message": "譯成"
+  },
+  "target_lang_follow": {
+    "message": "跟隨介面語言（{lang}）"
+  },
+  "target_lang_hint": {
+    "message": "文件翻譯、系統翻譯與快速翻譯會用它。對話 · 即時字幕有自己的語言設定。"
+  },
+  "handoff_source_label": {
+    "message": "交來的文字"
+  },
+  "src_handoff_system": {
+    "message": "系統翻譯"
+  },
+  "src_handoff_select": {
+    "message": "劃詞翻譯"
+  },
+  "src_handoff_shot": {
+    "message": "截圖翻譯"
+  },
+  "src_handoff_input": {
+    "message": "輸入翻譯"
+  },
+  "quick_title": {
+    "message": "快速翻譯"
+  },
+  "quick_enabled_label": {
+    "message": "常駐在選單列"
+  },
+  "quick_enabled_note": {
+    "message": "關掉後選單列圖示會消失，關閉視窗即結束 App。"
+  },
+  "quick_menu_open": {
+    "message": "打開大肚猴翻譯"
+  },
+  "quick_menu_settings": {
+    "message": "快速翻譯設定…"
+  },
+  "quick_menu_quit": {
+    "message": "結束"
+  },
+  "quick_resident_title": {
+    "message": "大肚猴還在選單列"
+  },
+  "quick_resident_body": {
+    "message": "快速鍵照常可用。要完全結束，請用選單列圖示裡的「結束」，或按 ⌘Q。"
+  },
+  "quick_resident_ok": {
+    "message": "知道了"
+  },
+  "quick_resident_off": {
+    "message": "不想常駐"
+  },
+  "quick_tag_selection": {
+    "message": "選取的文字"
+  },
+  "quick_tag_clipboard": {
+    "message": "剪貼簿"
+  },
+  "quick_tag_service": {
+    "message": "服務"
+  },
+  "quick_tag_shot": {
+    "message": "螢幕截圖"
+  },
+  "quick_tag_input": {
+    "message": "輸入"
+  },
+  "quick_pin": {
+    "message": "釘選"
+  },
+  "quick_close": {
+    "message": "關閉"
+  },
+  "quick_copy": {
+    "message": "複製譯文"
+  },
+  "quick_src_label": {
+    "message": "原文"
+  },
+  "quick_src_placeholder": {
+    "message": "輸入或貼上要翻譯的文字"
+  },
+  "quick_clip_concealed": {
+    "message": "剪貼簿裡的內容被標記為隱藏（多半是密碼），沒有讀取，也沒有送出。"
+  },
+  "quick_clip_empty": {
+    "message": "剪貼簿裡沒有文字。先選取並按 ⌘C，再按快速鍵；或者在設定裡打開「增強取詞」，省掉 ⌘C。"
+  },
+  "quick_clip_same": {
+    "message": "和上次翻的是同一段 —— 是不是忘了按 ⌘C？"
+  },
+  "quick_no_selection": {
+    "message": "沒有取到選取的文字 —— 可能沒有選取，或這個 App 不允許複製。"
+  },
+  "quick_use_shot": {
+    "message": "改用螢幕截圖翻譯"
+  },
+  "quick_same_lang": {
+    "message": "原文已是{lang}"
+  },
+  "sys_empty": {
+    "message": "沒有可翻譯的文字。"
+  },
+  "sys_slow": {
+    "message": "還在翻 —— 免費額度走我們的中轉，比自己的 key 慢。"
+  },
+  "quick_slow": {
+    "message": "還在翻…"
+  },
+  "quick_unconfigured": {
+    "message": "還沒有翻譯引擎。領一份免費額度，或填自己的 API key。"
+  },
+  "quick_open_settings": {
+    "message": "打開設定"
+  },
+  "quick_retry": {
+    "message": "重試"
+  },
+  "quick_saved": {
+    "message": "已存入複習庫"
+  },
+  "quick_saved_off": {
+    "message": "未存入 · 採集已關"
+  },
+  "quick_saved_long": {
+    "message": "太長，不存入複習庫"
+  },
+  "quick_shot_nothing": {
+    "message": "這一塊裡沒有認出文字。"
+  },
+  "quick_shot_again": {
+    "message": "重新框選"
+  },
+  "quick_menu_clip": {
+    "message": "翻譯剪貼簿"
+  },
+  "quick_menu_input": {
+    "message": "輸入翻譯"
+  },
+  "quick_clip_blocked": {
+    "message": "系統沒有讓我們讀取剪貼簿。到「系統設定 › 隱私權與安全性 › 從其他 App 貼上」裡允許，或改用右鍵「服務」。"
+  },
+  "quick_enh_label": {
+    "message": "增強取詞"
+  },
+  "quick_enh_hint": {
+    "message": "選取文字後直接按快速鍵，不用先按 ⌘C。需要一項系統權限，預設關閉。"
+  },
+  "quick_enh_explain_title": {
+    "message": "打開增強取詞"
+  },
+  "quick_enh_explain_does": {
+    "message": "會做：你按快速鍵時，替你按一次 ⌘C；讀到選取的文字後，把剪貼簿恢復成原來的樣子。"
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "不會做：不監聽鍵盤，不在你沒按快速鍵時讀任何東西。"
+  },
+  "quick_enh_continue": {
+    "message": "繼續"
+  },
+  "quick_enh_not_now": {
+    "message": "先不開"
+  },
+  "quick_enh_relaunch": {
+    "message": "現在重開"
+  },
+  "quick_enh_open_privacy": {
+    "message": "打開系統設定"
+  },
+  "quick_enh_pending": {
+    "message": "請在系統彈出的視窗裡點「打開系統設定」，在列表裡找到「{app}」並打開它的開關。打開之後要重新打開 App 才生效。"
+  },
+  "quick_enh_denied": {
+    "message": "系統沒有給權限，增強取詞沒有打開。先按 ⌘C 再按快速鍵照常能用。"
+  },
+  "quick_enh_lost": {
+    "message": "增強取詞的權限被關掉了，這次翻的是剪貼簿。要恢復，到設定裡重新打開它。"
+  },
+  "quick_menu_shot": {
+    "message": "螢幕截圖翻譯"
+  },
+  "quick_shot_busy": {
+    "message": "正在本機辨識文字…"
+  },
+  "quick_shot_first": {
+    "message": "這台 Mac 上第一次用：要準備一下，大約 20 秒，之後每次不到半秒。"
+  },
+  "quick_shot_perm_explain": {
+    "message": "螢幕截圖翻譯要用到「螢幕錄製」權限。只在你框選的那一刻截你框的那一塊，在本機辨識，辨識完即捨棄。"
+  },
+  "quick_shot_perm_pending": {
+    "message": "還差一步：在系統設定的列表裡打開「{app}」的開關。打開之後要重新打開 App 才生效。"
+  },
+  "quick_shot_cloud": {
+    "message": "用我的識圖引擎再試"
+  },
+  "quick_shot_cloud_note": {
+    "message": "「用我的識圖引擎再試」會把這張截圖傳給你設定的引擎（{engine}）。"
+  },
+  "quick_shot_cloud_busy": {
+    "message": "正在用你的引擎辨識…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "這張截圖已經捨棄了。重新框選一次。"
+  },
+  "quick_hk_title": {
+    "message": "快速鍵"
+  },
+  "quick_hk_reset": {
+    "message": "恢復預設"
+  },
+  "quick_hk_translate": {
+    "message": "翻譯選取的文字或剪貼簿"
+  },
+  "quick_hk_shot": {
+    "message": "螢幕截圖翻譯"
+  },
+  "quick_hk_input": {
+    "message": "輸入翻譯"
+  },
+  "quick_hk_unset": {
+    "message": "未設定"
+  },
+  "quick_hk_record": {
+    "message": "錄製"
+  },
+  "quick_hk_cancel": {
+    "message": "取消"
+  },
+  "quick_hk_change": {
+    "message": "更改"
+  },
+  "quick_hk_clear": {
+    "message": "清除"
+  },
+  "quick_hk_press": {
+    "message": "按下想用的組合…"
+  },
+  "quick_hk_clash": {
+    "message": "別的 App 已經佔了這個組合，按了不會到我們這裡。換一個。"
+  },
+  "quick_hk_deny": {
+    "message": "只有 ⌥ 的組合不穩定，換一個帶 ⌃ 或 ⌘ 的。"
+  },
+  "quick_hk_system": {
+    "message": "這個組合被系統或各個 App 自己佔著，換一個。"
+  },
+  "quick_hk_nomod": {
+    "message": "要帶上 ⌃ 或 ⌘ 這樣的修飾鍵。"
+  },
+  "quick_hk_dup": {
+    "message": "和「{name}」用的是同一個組合。"
+  },
+  "quick_capture_label": {
+    "message": "存入複習庫"
+  },
+  "quick_capture_hint": {
+    "message": "翻過的句子進複習，來源「劃詞翻譯 / 螢幕截圖翻譯 / 輸入翻譯」。關掉後照常翻譯，只是不存。"
+  },
+  "quick_login_label": {
+    "message": "登入時啟動"
+  },
+  "quick_login_hint": {
+    "message": "開機後自動待在選單列。預設關閉。"
+  },
+  "quick_login_approval": {
+    "message": "還要在系統設定的「登入項目」裡允許一次。"
+  },
+  "quick_screen_ok": {
+    "message": "螢幕錄製 · 已允許 ✓（螢幕截圖翻譯用）"
+  },
+  "quick_screen_off": {
+    "message": "螢幕錄製 · 還沒有允許。第一次用螢幕截圖翻譯時會問你。"
+  },
+  "quick_shot_needs14": {
+    "message": "螢幕截圖翻譯需要 macOS 14 或更新的系統。"
+  },
+  "quick_services_link": {
+    "message": "給右鍵「服務」綁快速鍵 →"
+  },
+  "quick_more": {
+    "message": "更多選項"
+  },
+  "quick_shot_perm_second": {
+    "message": "第一次框選時，系統還會再彈一次確認，允許即可。之後每隔一段時間系統會再問一次 —— 這是系統對所有截圖類 App 的做法。"
+  },
+  "systrans_title": {
+    "message": "系統翻譯"
+  },
+  "systrans_intro": {
+    "message": "在任何 App 裡選取文字點「翻譯」，用你自己設定的引擎翻。要先把大肚猴翻譯設為預設："
+  },
+  "systrans_step1": {
+    "message": "打開「設定」App"
+  },
+  "systrans_step2": {
+    "message": "進入「App」→「翻譯」"
+  },
+  "systrans_step3": {
+    "message": "點「預設翻譯App」，選「大肚猴翻譯」"
+  },
+  "systrans_need": {
+    "message": "需要 iOS 或 iPadOS 18.4 以上。系統版本低於它時，那個列表裡不會出現大肚猴翻譯。"
+  },
+  "systrans_state_pending": {
+    "message": "還沒同步。打開這個 App 時會自動同步一次。"
+  },
+  "systrans_state_ok": {
+    "message": "引擎已同步：{name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "還沒設定引擎。設定好之後會自動同步過去。"
+  },
+  "systrans_state_failed": {
+    "message": "同步失敗（{code}）。到「引擎與密鑰」裡重新儲存一次試試。"
+  },
+  "systrans_capture_label": {
+    "message": "存入複習庫"
+  },
+  "systrans_capture_hint": {
+    "message": "翻過的句子進複習，來源「系統翻譯」。關掉後照常翻譯，只是不存。"
+  },
+  "systrans_font_label": {
+    "message": "彈出視窗字號"
+  },
+  "systrans_font_small": {
+    "message": "小"
+  },
+  "systrans_font_std": {
+    "message": "標準"
+  },
+  "systrans_font_large": {
+    "message": "大"
+  },
+  "systrans_font_hint": {
+    "message": "選取文字翻譯時原文與譯文的字號（按鈕與說明不變）。改完下次彈出視窗生效。"
+  },
+  "sys_disclose_direct": {
+    "message": "選取的文字會直接傳送給你設定的引擎（{name}），不經過我們的伺服器。"
+  },
+  "sys_disclose_grant": {
+    "message": "用的是免費額度：選取的文字經我們中轉傳給服務商，我們不保存內容。"
+  },
+  "sys_fail_network": {
+    "message": "連不上翻譯引擎。檢查一下網路再試。"
+  },
+  "sys_fail_timeout": {
+    "message": "引擎這次沒有按時回話。"
+  },
+  "sys_fail_http": {
+    "message": "引擎回了一個錯誤。"
+  },
+  "sys_fail_no_base": {
+    "message": "這個引擎要填地址，而現在是空的。打開大肚猴翻譯填一次。"
+  },
+  "sys_fail_unknown_provider": {
+    "message": "這個引擎已經不在了。到大肚猴翻譯裡另選一個。"
+  },
+  "sys_fail_needs_setup": {
+    "message": "還沒設定翻譯引擎。打開大肚猴翻譯設定一次，這裡就能用了。"
+  },
+  "sys_fail_not_synced": {
+    "message": "打開一次大肚猴翻譯，把引擎設定同步過來。"
+  },
+  "sys_fail_empty": {
+    "message": "選取的內容裡沒有可翻譯的文字。"
+  },
+  "sys_fail_empty_result": {
+    "message": "引擎這次什麼都沒回傳。"
+  },
+  "sys_fail_engine": {
+    "message": "翻譯引擎沒能啟動。"
+  },
+  "sys_fail_unknown": {
+    "message": "這次沒翻成。"
+  },
+  "sys_ui_translating": {
+    "message": "正在翻譯…"
+  },
+  "sys_ui_slow": {
+    "message": "還在翻 · 免費額度會慢一些。"
+  },
+  "sys_ui_replace": {
+    "message": "取代原文"
+  },
+  "sys_ui_open_app": {
+    "message": "打開大肚猴翻譯"
+  },
+  "setup_done_title": {
+    "message": "可以用了"
+  },
+  "setup_done_checking": {
+    "message": "正在檢查…"
+  },
+  "setup_done_failed_title": {
+    "message": "還不能用"
+  },
+  "setup_done_failed": {
+    "message": "上面標 ✗ 的那一項還沒通。改完會自動再測一次。"
+  },
+  "setup_done_settings": {
+    "message": "引擎設定好了。文件翻譯、對話聽譯、即時字幕現在都能用了。"
+  },
+  "setup_done_systrans": {
+    "message": "引擎設定好了。回到剛才那個 App，再點一次「翻譯」即可 —— 這裡不用再做什麼。"
+  },
+  "setup_done_quick": {
+    "message": "引擎設定好了。回到快速翻譯面板，剛才那句可以重新翻一次。"
+  },
+  "setup_done_home": {
+    "message": "回到首頁"
+  },
+  "setup_from_systrans": {
+    "message": "從系統翻譯過來的：設定好之後，回到剛才的 App 再點一次「翻譯」。"
+  },
+  "systrans_discover_title": {
+    "message": "讓 iPhone 內建的「翻譯」用上大肚猴"
+  },
+  "systrans_discover_body": {
+    "message": "在任何 App 裡選取文字 › 翻譯，彈出來的就是你設定的引擎。設一次就好。"
+  },
+  "systrans_discover_done": {
+    "message": "我已設好"
+  },
+  "systrans_discover_used_title": {
+    "message": "系統翻譯 · 已在用"
+  },
+  "systrans_discover_used": {
+    "message": "在任何 App 裡選取文字點「翻譯」，用的就是你設定的引擎。翻過的句子在複習庫裡。"
+  },
+  "systrans_discover_see": {
+    "message": "在複習庫裡看 →"
+  },
+  "ob_signin_grant_title": {
+    "message": "登入，順手領一份免費額度"
+  },
+  "ob_signin_grant_body": {
+    "message": "額度由我們出，夠先用一陣；也可以用你自己的 key。登入還能把卡片同步到你的其他裝置。"
+  },
+  "ob_signin_sync_title": {
+    "message": "登入（可選）"
+  },
+  "ob_signin_sync_body": {
+    "message": "登入用來把卡片同步到你的其他裝置。翻譯引擎可以在設定裡填你自己的 key。"
+  },
+  "ob_signin_later": {
+    "message": "先不登入"
+  },
+  "ob_signin_email": {
+    "message": "用電子郵件登入"
+  },
+  "ob_try_title": {
+    "message": "現在就試一句"
+  },
+  "ob_try_body": {
+    "message": "不用自己找素材，這句就在這裡。翻翻看，或者聽一遍。"
+  },
+  "ob_try_translate": {
+    "message": "翻這一句"
+  },
+  "ob_try_listen": {
+    "message": "聽這一句"
+  },
+  "ob_try_working": {
+    "message": "正在翻譯…"
+  },
+  "ob_try_noengine_grant": {
+    "message": "還沒有可用的翻譯引擎。登入一下就會自動領一份免費額度；也可以在設定裡填自己的 key。"
+  },
+  "ob_try_noengine_key": {
+    "message": "還沒有可用的翻譯引擎 —— 在設定裡填一把 key 就能用。"
+  },
+  "ob_try_sample_alt": {
+    "message": "在第二語言裡讀東西，同一個詞見得多了，就不再需要查了。"
+  },
+  "xb_consent": {
+    "message": "我單獨同意：登入後，我的帳號資訊（電子郵件或 Apple 帳號識別碼）與學習卡片（讀過的句子、譯文、來源頁面的網址與標題）傳輸到位於日本東京的伺服器儲存，接收方為 Supabase Pte. Ltd.。",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "接收方、用途與如何撤回，見隱私權政策第 3 節",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "要登入，請先勾選上面這一條。不勾也能使用，只是卡片不會同步。",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "繼續設定 · 還差 {n} 步",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "從上次停下的那一頁接著來，一兩分鐘就好。",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "從上次停下的地方繼續",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "不再提示",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari 延伸功能",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "你之前點過「{done}」，首頁那張提示已經收起。如果其實還沒開啟，從這裡把它找回來。",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "在首頁重新顯示「開啟延伸功能」提示",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "已恢復 —— 回到首頁就能看到那張提示。",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "兩步就好"
+  },
+  "ob_web_only": {
+    "message": "我只要網頁翻譯"
+  },
+  "ob_intent_listen": {
+    "message": "主要想聽 · 即時字幕"
+  },
+  "ob_intent_both": {
+    "message": "讀網頁 + 聽，都要"
+  },
+  "qs_base": {
+    "message": "介面位址（完整）"
+  },
+  "qs_key_ph_one": {
+    "message": "貼上一次，配好翻譯"
+  },
+  "qs_apply_one": {
+    "message": "用這個位址配好翻譯"
+  },
+  "qs_absent": {
+    "message": "— 這個平台不提供"
+  },
+  "qs_absent_custom": {
+    "message": "— 這個位址不提供"
+  },
+  "learn_habit_streak": {
+    "message": "今天來過了 · 連續 {n} 天"
+  },
+  "learn_habit_today": {
+    "message": "今天來過了"
+  },
+  "learn_nothing_due_title": {
+    "message": "今天沒有要複習的"
+  },
+  "learn_group_done": {
+    "message": "今天這一組做完了"
+  },
+  "learn_group_left": {
+    "message": "今天還剩 {n} 張 —— 不急著一次做完。"
+  },
+  "learn_group_left_none": {
+    "message": "剩下的明天再來。"
+  },
+  "learn_group_more": {
+    "message": "再來一組"
+  },
+  "learn_group_stop": {
+    "message": "今天就到這兒"
+  },
+  "learn_group_bye": {
+    "message": "剩下的明天再說 —— 回來就好。"
+  },
+  "firstrun_packs_title": {
+    "message": "先把語言包下好"
+  },
+  "firstrun_packs_lede": {
+    "message": "下好這些，之後你不用再做任何設定 —— 翻譯、聽譯、字幕、朗讀都能直接用。聲音在你的裝置上辨識。辨識出的文字會送去翻譯：自己設了 key 時直接送給你設的服務商；用免費額度時經我們的伺服器轉發，不儲存文字。"
+  },
+  "firstrun_packs_asr": {
+    "message": "辨識語言包（聽譯 / 即時字幕）"
+  },
+  "firstrun_packs_tts": {
+    "message": "高品質朗讀包（朗讀 / 播客）"
+  },
+  "firstrun_packs_done": {
+    "message": "已就緒"
+  },
+  "firstrun_packs_net": {
+    "message": "建議在 Wi-Fi 下下載；用行動網路也行，你自己決定。"
+  },
+  "firstrun_packs_busy": {
+    "message": "下載中"
+  },
+  "firstrun_packs_go": {
+    "message": "下載並繼續"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "只下朗讀包，繼續"
+  },
+  "firstrun_packs_err": {
+    "message": "下載沒成功：{why} —— 檢查網路再點一次。"
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "系統語音包下載沒有動靜 — 檢查網路，再點一次。"
+  },
+  "engine_status_ok": {
+    "message": "登入已配好：翻譯 · 轉寫 · 朗讀 —— 這一屏可以直接用"
+  },
+  "engine_status_missing": {
+    "message": "還差一樣："
+  },
+  "engine_status_fix_tts": {
+    "message": "朗讀引擎未設定，前往 設定 › 朗讀 選擇語音"
+  },
+  "engine_status_fix_translate": {
+    "message": "翻譯引擎未設定，前往 設定 › 引擎 選一個"
+  },
+  "listen_lang_detecting": {
+    "message": "正在辨識語言…"
+  },
+  "listen_lang_detected": {
+    "message": "已辨識：{a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "正在辨識影片語言…"
+  },
+  "subtitle_lang_detected": {
+    "message": "已辨識：{lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "辨識錯了才需要動這裡"
+  },
+  "listen_lang_auto": {
+    "message": "自動辨識"
+  },
+  "listen_lang_manual": {
+    "message": "手動指定"
+  },
+  "subtitle_partner_auto": {
+    "message": "影片語言：{lang}（自動）"
+  },
+  "listen_need_locales": {
+    "message": "本機辨識器一次最多只能開 5 種語言，已經佔滿了 — 退出聽譯再進一次就好。"
+  },
+  "listen_lang_assets_missing": {
+    "message": "這門語言的辨識包還沒裝好。連上網後點一次「開始聽」就能補上。"
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "這門語言這台裝置辨識不了 — 已經回到「{lang}」"
+  },
+  "listen_speak_lang_label": {
+    "message": "我說的語言"
+  },
+  "listen_lang_dirs2": {
+    "message": "聽到{a} → 譯成{b}；聽到{b} → 譯成{a}"
+  },
+  "lang_auto": {
+    "message": "自動"
+  },
+  "listen_listening": {
+    "message": "正在聽…"
+  },
+  "listen_ptt_say": {
+    "message": "說{lang}"
+  },
+  "listen_listening_lang": {
+    "message": "正在聽{lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "點一下開始"
+  },
+  "listen_ptt_recording": {
+    "message": "● 正在錄 · 點一下停"
+  },
+  "firstrun_packs_back": {
+    "message": "返回"
+  },
+  "firstrun_packs_all_title": {
+    "message": "語言包都下好了"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} 可以聽譯和朗讀了。要加別的語言，隨時去「設定 · 語音包」裡加。"
+  },
+  "firstrun_packs_dl_title": {
+    "message": "正在下載"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "可以切到後台，下完再回來"
+  },
+  "firstrun_packs_pick_title": {
+    "message": "選擇語言"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "勾選你要聽譯的語言"
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "勾選保留著。連上 Wi-Fi 後會自動開始下載。"
+  },
+  "firstrun_packs_all_foot": {
+    "message": "都就緒了。進去之後點「說{mine}」或對方的語言鍵就能開始。"
+  },
+  "firstrun_packs_foot": {
+    "message": "共約 {size}，另加系統識別包。用蜂窩網路時，下載前會先問你。"
+  },
+  "firstrun_packs_locked": {
+    "message": "下載中不能改勾選；下完以後去「設定 · 語音包」增減。"
+  },
+  "firstrun_packs_enter": {
+    "message": "進入即時聽譯"
+  },
+  "firstrun_packs_remain": {
+    "message": "下載中 · 還剩 {n} 項"
+  },
+  "firstrun_packs_unselected": {
+    "message": "未選"
+  },
+  "firstrun_packs_queued": {
+    "message": "排隊中"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "語言（識別包）"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "識別包 · 系統下載"
+  },
+  "firstrun_packs_system": {
+    "message": "系統語言"
+  },
+  "firstrun_packs_more": {
+    "message": "其他 {n} 種語言"
+  },
+  "firstrun_packs_together": {
+    "message": "會一起下載"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "朗讀 · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "一個包覆蓋中英兩門；勾了中文或 English 就自動帶上"
+  },
+  "firstrun_packs_bytes": {
+    "message": "約 {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "朗讀 · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "預設不勾。不下也能聽譯，看譯文，只是泰語譯文不朗讀"
+  },
+  "firstrun_packs_optional": {
+    "message": "約 {size} · 可選"
+  },
+  "firstrun_packs_base": {
+    "message": "聽譯基礎"
+  },
+  "firstrun_packs_base_note": {
+    "message": "分辨誰在說哪門語言，下好才能開始聽"
+  },
+  "firstrun_packs_required": {
+    "message": "約 {size} · 必需"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "現在用的是蜂窩網路"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "這次要下約 {size}（系統識別包另算，大小由系統決定），可能產生流量費用。"
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "等連上 Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "用蜂窩下載"
+  },
+  "firstrun_packs_manage": {
+    "message": "管理語言包"
+  },
+  "listen_ptt_preparing": {
+    "message": "準備中 · {lang} 下載 {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ 已就緒"
+  },
+  "listen_not_ready": {
+    "message": "還不能開始，下好後再點"
+  },
+  "listen_ready_tap": {
+    "message": "下好了，點下面的鍵開始"
+  },
+  "listen_prep_detail": {
+    "message": "{what}下載中 · {pct}% · {ready}已就緒"
+  },
+  "listen_ready_tap_sub": {
+    "message": "不會自動開始 · 點「說{mine}」或「{other}」開始收音"
+  },
+  "drive_skipped": {
+    "message": "略過 {n} 張讀不出來的卡（媒體卡或無語音）"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs} 可以聽譯了；{speak} 可以朗讀。要加別的語言，隨時去「設定 · 語音包」裡加。"
+  },
+  "firstrun_quota_cancel": {
+    "message": "取消"
+  },
+  "firstrun_quota_days": {
+    "message": "最久沒用 · {n} 天前"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "下載"
+  },
+  "firstrun_quota_in_use": {
+    "message": "目前語言對 · 不能讓出"
+  },
+  "firstrun_quota_label": {
+    "message": "辨識語言"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "未下載"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "已就緒 · 占名額"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "未就緒 · 可補回"
+  },
+  "firstrun_quota_never": {
+    "message": "最久沒用"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple 限制：同時最多 {max} 種辨識語言"
+  },
+  "firstrun_quota_note_full": {
+    "message": "{max} 種都占著名額 · 再裝新的會先標為「未就緒」"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "補回"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "點一下補回 · 約 1–2 秒"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "按鈕跟著你選的語言變。"
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "讓出 {yield} · 補回 {need}"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "要補回 {need}，需要先讓出一種。被讓出的會變回「未就緒」，再用時補回，約 1–2 秒，不用重新下載。"
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "選一種讓出（預設：最久沒用）"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "辨識語言已滿 {max} 種"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "未下載"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "占名額"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "未就緒"
+  },
+  "firstrun_quota_today": {
+    "message": "今天用過"
+  },
+  "firstrun_quota_used": {
+    "message": "已用 {n} / {max}"
+  },
+  "firstrun_quota_working": {
+    "message": "正在補回…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "未就緒 · 第 {n} 種"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "這次不下載"
+  },
+  "firstrun_quota_over_title": {
+    "message": "已滿 {max} 種：{langs} 會標為「未就緒」"
+  },
+  "firstrun_quota_over_body": {
+    "message": "要用時點一下補回（約 1–2 秒），同時讓出最久沒用的語言；不想讓就先別勾。"
+  },
+  "listen_pill_quota_full": {
+    "message": "名額已滿"
+  },
+  "listen_ptt_quota_full": {
+    "message": "名額已滿 · 讓出一種才能用"
+  },
+  "listen_quota_card_btn": {
+    "message": "讓出一種並補回"
+  },
+  "listen_quota_card_hint": {
+    "message": "約 1–2 秒 · 不用重新下載"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} 裝過，但名額讓給了別的語言 —— 不是下載失敗，跟網路也無關。"
+  },
+  "listen_quota_card_title": {
+    "message": "還不能聽 {lang}：辨識語言已占滿 {max} 種"
+  },
+  "listen_quota_sheet_go": {
+    "message": "讓出 {yield} · 補回 {need}"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "要用 {lang}，需要先讓出一種。"
+  },
+  "fail_quota_label": {
+    "message": "免費額度"
+  },
+  "fail_credit_title": {
+    "message": "免費額度用完"
+  },
+  "fail_credit_next": {
+    "message": "去改通道，或填自己的 API Key。"
+  },
+  "fail_go_grant": {
+    "message": "去改通道"
+  },
+  "fail_fill_key": {
+    "message": "填自己的 Key"
+  },
+  "fail_grant_title": {
+    "message": "池子暫不可用"
+  },
+  "fail_grant_next": {
+    "message": "不是你用完了，稍後再試或改通道。"
+  },
+  "fail_model_title": {
+    "message": "模型不在免費名單"
+  },
+  "fail_model_next": {
+    "message": "免費額度只能用指定模型，請改回。"
+  },
+  "fail_go_model": {
+    "message": "去改模型"
+  },
+  "fail_auth_title": {
+    "message": "金鑰無效"
+  },
+  "fail_auth_next": {
+    "message": "Key 被服務商拒絕，請檢查或重填。"
+  },
+  "fail_go_engine": {
+    "message": "去填 Key"
+  },
+  "fail_use_free": {
+    "message": "改用免費通道"
+  },
+  "fail_timeout_title": {
+    "message": "連不上，已暫停"
+  },
+  "fail_timeout_next": {
+    "message": "已暫停自動重試；網路好了再點重試，或改免費通道。"
+  },
+  "fail_timeout_next_cn": {
+    "message": "已暫停自動重試。網路好了再點重試。"
+  },
+  "fail_timeout_footnote": {
+    "message": "連續 5 次逾時才暫停；單次逾時不會停機"
+  },
+  "fail_retry": {
+    "message": "重試"
+  },
+  "fail_switch_free": {
+    "message": "改免費通道"
+  },
+  "firstrun_packs_details": {
+    "message": "下載內容詳情"
+  },
+  "firstrun_packs_sum": {
+    "message": "約 {size} · 含聽譯基礎"
+  },
+  "firstrun_quota_mini": {
+    "message": "識別最多 5 門"
+  },
+  "langpacks_manage": {
+    "message": "管理"
+  },
+  "langpacks_missing": {
+    "message": "未下載 · {langs}"
+  },
+  "langpacks_need_os": {
+    "message": "語言包 · 需要較新系統"
+  },
+  "langpacks_ready": {
+    "message": "已就緒 · {langs}"
+  },
+  "langpacks_title": {
+    "message": "語言包與朗讀"
+  },
+  "langpacks_tts_missing": {
+    "message": "離線朗讀 · 未下載 · {size}"
+  },
+  "langpacks_tts_na": {
+    "message": "離線朗讀 · 僅 App 可用"
+  },
+  "langpacks_tts_ready": {
+    "message": "離線朗讀 · 已就緒"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "進度詳情"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "改用一鍵"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "下載中"
+  },
+  "qs_key_local_only": {
+    "message": "密鑰只存在本機"
+  },
+  "firstrun_packs_retry": {
+    "message": "重試"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · 一鍵已配"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "下載中 {n}%"
+  },
+  "engine_keys_status_detail": {
+    "message": "分項已配"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "選用將作廢一鍵配置"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "改用分項"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "改用一鍵會覆蓋目前的分項配置"
+  },
+  "engine_keys_status_none": {
+    "message": "未配置"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · 約 {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "其它引擎請到分項配置。"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "選用將覆蓋分項配置"
+  },
+  "engine_keys_row": {
+    "message": "引擎與密鑰"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "取消"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "改用分項會作廢目前的一鍵配置"
+  }
+}

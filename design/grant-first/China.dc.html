@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div style="display:flex; flex-direction:column; height:780px">
+  <div style="flex:1; min-height:0; padding:32px 20px 24px; display:flex; flex-direction:column; gap:18px">
+
+    <div style="display:flex; align-items:center; gap:12px; font-weight:700">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ac6231" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8 5v3c0 3-1.6 5.6-4 7"/><path d="M6 11c1.4 2.4 3.6 4.2 6 5"/><path d="M13 19l4-9 4 9M14.6 16h4.8"/></svg>
+      <span>大肚猴翻译</span>
+    </div>
+
+    <div style="height:4px; background:#dcd3c4; border-radius:999px; overflow:hidden; flex:none">
+      <div style="height:100%; width:50%; background:#8fa073; border-radius:999px"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px; flex:1; min-height:0">
+      <h2 style="margin:0; font-size:1.35rem; line-height:1.3">配一个翻译引擎</h2>
+      <p style="margin:0; color:#6a6255">填一把 API key —— 一把同时配好翻译、朗读、转写。</p>
+
+      <div style="display:flex; gap:0; margin:4px 0; border:1px solid #dcd3c4; border-radius:999px; overflow:hidden; width:fit-content">
+        <div style="padding:7px 22px; background:#ac6231; color:#fff; font-size:.92rem">一键配置</div>
+        <div style="padding:7px 22px; color:#6a6255; font-size:.92rem">三引擎分别配</div>
+      </div>
+
+      <div style="background:#fff; border:1px solid #dcd3c4; border-radius:14px; padding:16px; display:flex; flex-direction:column; gap:12px">
+        <div style="font-weight:600">一把 key 配好全部</div>
+        <div style="display:flex; flex-direction:column; gap:6px">
+          <div style="font-size:.85rem; color:#6a6255">API key</div>
+          <div style="height:40px; border:1px solid #dcd3c4; border-radius:10px; background:#f9f4ed; display:flex; align-items:center; padding:0 12px; color:#a49b8d; font-size:.9rem">sk-...</div>
+        </div>
+        <div style="display:flex; justify-content:flex-end">
+          <div style="background:#ac6231; color:#fff; padding:13px 26px; border-radius:12px; font-weight:600; font-size:.95rem">配好</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:14px; flex:none; padding-top:4px">
+      <div style="background:#ac6231; color:#fff; padding:15px 30px; border-radius:12px; font-weight:600">继续</div>
+      <div style="color:#8c491a; font-size:.95rem">以后再设置</div>
+    </div>
+  </div>
+
+  <div style="flex:none; border-top:1px dashed #dcd3c4; background:#f9f4ed; padding:14px 20px; display:flex; flex-direction:column; gap:6px">
+    <div style="font-size:.8rem; font-weight:700; color:#6a6255; letter-spacing:.04em">中国版 · 分流屏不出现</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255">中国版注册表里**没有 grant**（build 输出：<code style="font-size:.82rem">china: deepseek, glm, qwen, qwen_mt, kimi, custom_chat, custom_msg</code>），也没有一个 <code style="font-size:.82rem">needsKey:false</code> 的引擎 —— 分流屏上「免费额度」那张卡**一张都画不出来**，剩一张卡的选择题不是选择题。</div>
+    <div style="font-size:.84rem; line-height:1.5; color:#6a6255"><b style="color:#201e1d">所以中国版直接沿用今天这一屏，一个像素不改。</b>判据按注册表内容判，**不按 flavor 名** —— 沿用 <code style="font-size:.82rem">app/app.js:308-312</code> 已确立的规则：有没有 <code style="font-size:.82rem">needsKey:false</code> 的引擎，有就画分流屏，没有就跳过。</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

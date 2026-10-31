@@ -1,0 +1,4876 @@
+# Learning Domain Design (记忆层领域设计)
+
+> **Authoritative source of truth for the learning/memory domain.** Code must
+> conform to this document. The learning layer is a **new stage attached to the
+> translation pipeline**, so this doc is subordinate to
+> [`docs/domain-design.md`](domain-design.md) — where the two disagree, the
+> translation domain wins. Any change touching the model, the Collector boundary,
+> the scheduler contract, or the storage tiers **must update this doc first and
+> pass human domain-design review before the code changes** (see `AGENTS.md`).
+>
+> User-facing interaction rules for the review surfaces live in
+> [`docs/interaction-spec.md`](interaction-spec.md); verification lives in
+> [`docs/verification-spec.md`](verification-spec.md).
+
+---
+
+## 0. 评审记录 (domain-design review log)
+
+| 日期 | 评审人 | 范围 | 结论 |
+|---|---|---|---|
+| 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **难音频上「归属要稳住才认」+ silero VAD**（用户要求「YouTube 上找泰语视频、单人和多人都试试」后加的）：真语音实测发现多人对谈 + 背景乐 + 低电平的音频上 LID 判词会在十几门语言之间乱跳，而单条判词放行就会漏出中文垃圾行（`那你你给我们也不`/`乌克兰。`）。两层修法：① 归属只认**稳住 ≥1.5s** 的判词（稳不住 ⇒ 什么都不上屏）；② 加 silero VAD（644KB，走既有通道），**只把话音喂 LID**。效果：难音频 5 行（2 条中文垃圾）→ **1 行全泰文**；清晰单人 2 → 3 行泰文；标准 5 例仍 5/5。边界如实记：该难音频上 whisper-tiny **本身**只有 19% 判成泰语（不是门能修的）。新增 §9.6.1.4。 | 待评审（代码先行） |
+| 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **语种识别（LID）取代手写规则**（用户裁定「不要再用硬代码处理语言理解逻辑，直接上模型」）：半句/定稿的归属改由**端上 LID 模型**（sherpa-onnx 自带 SLID / whisper tiny，Swift API 已就绪、零新运行时、模型 zip 60.3MB 走既有模型通道）判定；`dominantScript` 文字系比、置信度三档、`§9.6.1.2` 的「定稿确立」全部退场。代价如实记：半句预览延到 ~1–3s 才出；准确率 80–90%（非零错）。闭集 ⇒ VAD 门 + 静音不判。新增 §9.6.1.3。**实装（2026-10-07）**：模型已托管（ModelScope，sha256 校验过）+ Caddy 302 中转 + `MT_DEVICE_LID` 入清单 + `verify:model-urls` 覆盖；原生 `MTDeviceLid`（`lid-probe`/`lid-assets` → `assets-progress{kind:'lid'}`/`lid-state`/`lid-live`/`lid-result`）；JS `NativeSpeech.onLid/ensureLid/lidProbe`，`listen-model` 两处闸改 `sideMatchesLid`，`makeFinalArbiter`/`arbScore`/`pickPartial`/`partialEstablished` 已删。 | 待评审（代码先行，评审通过不改变实现方向） |
+| 2026-10-07 | belliedmonkey | **听译页文案：撤下「音频不离开设备 / 不发往任何服务器」的绝对声明**（用户裁定）：页内只讲转写/朗读的**行为**，也**不写「会上传服务器」**。改 `_locales ×12` 三键（`listen_entry_privacy_device` / `listen_device_privacy` / `listen_cost_line_device`）+ `src/app/listen-model.js` 兜底串 + `verify-listen` 的 B 断言 + interaction-spec。**Gate H 的披露正文不变**（README ×2 / 两个站点隐私页 / `NSMicrophoneUsageDescription` / 三类 usage 串）—— 页内撤下的只是绝对声明。 | 已按用户指名裁定执行（2026-10-07：「换成只讲转写效果」「入口提示一起改」） |
+| 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **半句层仲裁 + 回声优先**（95/96 号包真机反馈）：(e) 半句层改用与定稿同一套三档判据 `pickPartial` + 300 ms 扣留，取消「半句粘滞」—— 修「说中文先闪泰文再改中文」；(f) 仲裁窗口里任一路匹配我们自己朗读的文本 ⇒ 整窗判成回声、两路都丢，判定在**到达时刻**做；(g) 「**播放进行中 + 同语言 ⇒ 丢**」—— 真机时序实测回声总在 `speak` 后 ~500ms、播放中到达，文字比对不足以拦（代价：抢话那几秒同语言会丢，念完后回话照收，M4 已改）。另修诊断采集（真机 mic.caf 超接收器 25MB 被整包拒 → 每流 20MB 上限；sidecar 先传 + 写 meta.json）。§9.6.1.2 追加 (e)(f)(g)。 | 待评审 |
+| 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.3 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
+| 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
+| 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
+| 2026-09-22（待人评审） | belliedmonkey | **引导屏序重排 + 额度发放三件**（由 2026-09-21/22 的线上读数驱动）。用户当日已裁定：① 登录从 App 引导第 5 屏**提到第 2 屏** ② 登录之后**自动**领额度、不再问 ③ 扩展引导第 3 屏（采集，默认已开）**砍掉** ④ 中国版**也给免费额度**，模型走**通义千问** ⑤ 中继按**方案 C**（身份走现有后端、只传令牌不含原文；**原文只走境内中继 → 千问，一步不出境**）。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf （3 页 13 板）。本行涉及**额度发放规则**与**跨境路径**，按 `AGENTS.md` 规则 2/4 与治理条属领域设计改动 ⇒ 先出本提案（§8.10.1）过评审，代码不先走。 |
+| 2026-09-19 | belliedmonkey | **系统翻译（iPhone「默认翻译 App」）+ 快速翻译（Mac 划词 / 输入 / 截图）**（用户提议，App 专属）。用户已裁定：Mac 第一版含截图翻译；Mac 取词分层（默认零权限 = 服务菜单 +「翻译剪贴板」热键，「增强取词」默认关、打开才申请权限并原样还原剪贴板）；两个面翻过的句子**都进复习库**；先交互稿 → 两个尖刺 → 文档 → 代码。交互画布用户已点头（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，12 条裁定「按默认」，工作文件 `design/system-translate/`）；两个尖刺 T1 / T2 已量完、两面都无阻断项（读数 `.local/spike/READINGS.md`）。本次改动：domain-design §2.6（第六种来源「交来的文字」）+ §5 作用域 + §8 收窄 + §9.2 第六挂点 + §9.3 收件箱不是第二座桥；本文 §8（密钥镜像 = Keychain 迁移第 1 步）、新 §9.9、§10 新 **Gate J**、§12 五条；telemetry-design §3.5（`translate_ok.kind` 加 `quick`）；interaction-spec 两节；verification-spec 矩阵第 9、10 行；release-checklist Gate J | **通过（2026-09-19，用户评审 PR #331；五个重点判断全部按原文）** |
+| 2026-09-19 | belliedmonkey | **Gate J 拆成 J-1（Mac 快速翻译，随 1.13.0）与 J-2（iPhone 系统翻译，随 iPhone 线 I-8）**。用户同日裁定：Mac 先发、版本号 1.13.0、中国版带上。原稿把两个面写成同一段隐私说明、同一版出货；Mac 线 M-1…M-7 已全部合入 main，iPhone 线未动 —— 隐私文案必须与那一版真的有的功能逐字对得上，所以 J-1 只说 Mac，J-2 出货时**新增一段**、不改 J-1 的口。J-1 的段落比原稿多两句落地后才说得准的细节（截图不保存；增强取词只在按下快捷键的那一刻替你按一次 ⌘C 并恢复剪贴板）；键名以落地后的为准（原稿表里的 `quick_enh_does` / `quick_shot_pre` 是拟名）；审核备注从一条扩到三条；`build.js` 的耦合判据各自独立。本次改动：§10 Gate J、§12、`release-checklist.md` Gate 表。docs-only。 | **通过（2026-09-19，用户评审 PR #342；四处重点全部按原文）** |
+| 2026-09-17（晚，待人评审） | belliedmonkey | **离线朗读模型的下载地址改为后端配置表决定**（用户提议「地址存入数据库，每次从数据库获取，以后地址不能用了还可以换」）。清单 `app/device-models.config.js` 继续钉 **sha256 与 size**（服务器只能说「去哪下」，不能说「下什么」——换了文件过不了校验照旧丢），`url` 变成兜底默认值；表里每个文件放**默认 + 备用**两个地址；客户端：没缓存先问服务器，有缓存先探可用性、可用直下、不可用重新问，新默认也不可用才用当次的备用（备用不缓存），服务器连不上才回清单。动因：09-17 真机实测境内拉不动 GitHub，换托管每次都要发版；同日建了两处我们自己的托管：ModelScope `belliedmonkey/belliedmonkey-device-models`（真机 18.7 MB/s，中国版默认）与 Hugging Face 同名仓库（经 hf-mirror ≈580 KB/s，备选）；Supabase 公开桶也可用但按流量计费，只作最后备选。不进包（用户同日收回「存包」：不同语言要不同模型）。§9.6.1 新增 §9.6.1.1；§10 Gate H 隐私文案补一句。 | 待评审 |
+| 2026-09-17 | belliedmonkey | **设置体验重设计**（用户提议，App + 扩展）：① 实时转写**固定为设备内置**（SpeechAnalyzer，iOS 26 / macOS 26），云端实时条目的 `live*` 字段与 `device` STT 注册表条目一并删除 —— 转写从此只剩整段转写一个槽，没有第二把 key、没有一键卡「实时转写（可选）」格；② 系统要求只管对话 · 实时字幕，App 与扩展下限仍 iOS 16.4 / macOS 13.3；③ 对话语言只列本机识别器支持的语种（设备报出）；④ 说题不接本机（§9.4 悬案关闭）；⑤ 设置页按用途分四节（引擎与密钥 / 功能 / 账号与数据 / 关于），「快速 / 详细」只管第一节，控件只搬不改 id；⑥ 朗读卡加「离线模型」行五态，四处首播统一走同一个下载入口（今天只有对话开始那一步会下载，设置试听 / 复习 ▶ 静默失败为 `blocked`）；⑦ 对话块加「识别语言包」行；`subtitleVideoLang` 进设置页。画布用户已点头：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo（工作文件 `design/settings-ia/`） | **待评审（本 PR，docs-only）** —— 见 §9.1.1 / §9.4 / §9.6 门控 / §9.8 / §12；domain-design §2.4、§7，interaction-spec「实时转写（可选）」退役 + 新节「设置页信息架构」，telemetry §3.3.3，verification-spec §1.0 表注、§3.1.4、§3.1.5 同 PR 修订 |
+| 2026-09-15 | belliedmonkey | iPhone「实时字幕」画中画小窗点 ✕ **改为暂停听**（原 2026-09-13 画布 v5「✕ 关小窗不停止听译」）：用户问「关掉画中画以后是不是录音就结束了」—— 关掉后屏幕上已看不到任何字幕，麦克风却还在听、云端转写还在计费，只剩系统的橙色麦克风点提示。给了 A 维持 / B 暂停 / C 结束三个选项，用户选 B。§9.8 协议补充决定（三）19 加修订；Mac 不受影响（条上 ✕ 本来就是结束） | 待评审 |
+| 2026-09-13 | belliedmonkey | 「实时字幕」（用户提议，App 专属）：App 直接听这台设备**正在播放的声音**，给扩展在 Safari 上抓不到的视频（MSE / HLS）配双语字幕 —— 与对话·实时听译**同一条管线**，只是单向、不朗读、显示在 App 窗口之外。Mac：Core Audio process tap（macOS 14.4+）+ 置顶悬浮字幕条；iPhone 一期：后台麦克风听外放 + 画中画悬浮字幕窗（09-13 晚用户看真机后改选，取代灵动岛 / 锁屏卡）；iPhone 二期：屏幕录制广播扩展（戴耳机可用，一期发版后另开）。交互画布用户已点头（https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19，工作文件 `design/live-subtitles/`）。新 Gate I | **待评审（本 PR，docs-only）** —— 见 §9.8 / §10 Gate I / §12；domain-design §2.4 规则 8、§2.4 规则 4 注、§5.3 第五例、§8，interaction-spec「实时字幕」，verification-spec §2.4 表与 M26–M32，learn-regression M26–M32。**两处已裁定（用户 2026-09-13：「进复习。加一句。」）**：①字幕句子进复习 —— 默认开、单独开关「字幕进复习」、沿用 `k:'conv'` 加 `mode:'subtitle'` ②Safari 扩展遇流媒体停下时，停机提示后**加一句**指向 App 的「实时字幕」（domain-design §2.4 规则 4 注、interaction-spec「AI 转写字幕」停机表） |
+| 2026-09-12 | belliedmonkey | 对话模式的**本机转写 + 远程修正 + 本地朗读**（用户提议，App 专属）：SpeechAnalyzer（iOS 26 / macOS 26 起，每语言一路）快速吐字 + 我们自己的静音检测主动收口 → 按标点切句 → **一次**远程调用返回「修正后原文 + 译文」→ Piper 本地 TTS 朗读；注册表加 `device` STT / `device` TTS 两条本机条目（只在 App 下拉出现，rule-10 门不改）；旧系统入口灰 + 具名；新 Gate H。真机尖刺（Mac + iPhone 14 Pro）读数在 `.local/spike/READINGS.md` | **待评审（本 PR，D1 docs-only）** —— 见 §9.1「`device` 条目」/ §9.4 / §9.6 门控 / §9.6.1 / §10 Gate H / §11 / §12；domain-design、interaction-spec、verification-spec 同 PR 各自修订。**待裁定两处**：①本机转写要不要也接进「说」题型（第一版不接，§9.4）；②「朗读期间静音 analyzer 输入」那道可选闸要不要做成设置项（默认不做，§9.6 回声段）—— **2026-09-13 裁定：常开、不做设置项**（§9.6 回声段追加） |
+| 2026-09-11 | belliedmonkey | 文档翻译（用户提议，扩展与 App 两端）：上传 PDF / Word / 图片，**打开一页翻一页**、并发走既有传输队列、不一次性翻整份；译文进学习语料但**限量**（每页 ≤ 10 句、每份 ≤ 100 句，用户裁定）；新来源类别「文档」与新 anchor kind `doc`；图片与扫描页发用户自配的多模态引擎识别；文档与译文存独立 IDB 不同步；新 Gate G。domain-design §2 第四种来源 + §2.5 + §8 收窄 | **已评审（2026-09-11，#235 合入）**；实现 D1 #237 / D2 #238 / D3 #239 / D4 #240 / D5 #241，Gate G 落点随 D6 —— 见 §9.7 / §10 Gate G / §11 / §12，domain-design §2.5，interaction-spec「文档翻译」，telemetry §3 |
+| 2026-08-04 | belliedmonkey | 记忆层 V1 + TTS + V3 同步（`feat/learn-tts`, PR #71） | 通过，附 4 项修订（见下） |
+| 2026-08-07 | belliedmonkey | 学习面进配套 App；上行范围含候选池 | **已评审通过 2026-08-23（回溯批量确认）** —— 本次改动见 §7.2 / §8.5 / §8.6 / §12 |
+| 2026-08-08 | belliedmonkey | 学习循环重设计：掌握阶梯 / 自由练习 / 评分透明 / 句子解析 | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §5.1–5.3 / §4 / §9.2 / §11 / §12 |
+| 2026-08-08 (二) | belliedmonkey | App 与扩展的功能落差三项：App 侧凭证（解析入 App）；自动同步触发；App 语音默认 `assist` | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §7.2 / §8.8 / §9.2 / §12，及 interaction-spec 语音节修订 |
+| 2026-08-15 | belliedmonkey | §4.2 采集单位改为句子：捕获时按句对齐拆分（数量相等才配对，绝不猜对齐）；存量长段卡走显式「拆分长段卡」动作经删除台账传播 | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §4.2 |
+| 2026-08-15 | belliedmonkey | §4.2b 计数和解：数不等时只在已知分词歧义点（嵌入引号问句/省略号/`. @handle`/`. 数字`/单字母缩写）做有界修复，须恰好补平、结果唯一、**每个操作有跨侧佐证 + 合并须单飞且支配所有替代位置**、过长度比守卫（等数快路径同守卫），否则仍保整；输入 >10K 直接保整；另修引注簇结尾被规则②回粘的 bug 与引注内类二次方回溯（真机第二轮 + 五代对抗毒例全数钉死） | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §4.2b |
+| 2026-08-15 | belliedmonkey | §4.2c LLM 对齐裁决：结构证据拒绝的失配对，在「拆分长段卡」显式动作里交用户自己的聊天引擎分组——LLM 只提议、代码机械验证（分区+逐字切片+比值守卫），失败只会保整；每次按键至多 40 次调用；采集路径仍纯本地零花费 | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §4.2c |
+| 2026-08-16 | belliedmonkey | §4.2d 按句重译兜底（用户提议）：分组也救不了的失配对（含译文残缺），按源句重调翻译引擎——句对天然对齐；唯一允许 `tr` 偏离页面所见之处；每次按键 ≤80 句、走翻译缓存；仅扩展 options 侧（**「App 永不翻译」已于 2026-08-23 在 §9.5 补译文范围内让位；§4.2d 本身仍是扩展 only**） | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §4.2d |
+| 2026-08-08 (三) | belliedmonkey | 真机 bug 双修：§9.2 提示词点名生词只取自原句 + 缓存带提示词版本（「永不重复扣费」的刻意例外）；§9.1 speak() 补 iOS 解卡（resume + cancel 让位） | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §9.2 |
+| 2026-08-09 | belliedmonkey | 多设备同步一致性（用户裁定）：§8.8 规则 1 静默→状态行可见；进入即同步（force 绕节流）；每日新卡预算改账户级（复习台账推导，UTC 日界）；`lastSyncOkAt` 统一成功戳；MT_SYNC=on 自用构建通道 | **已评审通过 2026-08-23（回溯批量确认）** —— 见 §8.8 及 interaction-spec「多设备同步一致性」 |
+| 2026-08-09 (二) | belliedmonkey | 解析引擎独立于翻译引擎（用户裁定：完整四字段覆盖，空=跟随）：`notesProvider/notesApiKey/notesBaseUrl/notesModel`，整组跟随或整组覆盖，永不半借 | 见 §9.2 |
+| 2026-08-23 | belliedmonkey | 播客模式离线化（用户提议）：①开卡并行预热全部段落 + 前瞻下一张音频（`peekNext` 纯前瞻、`getAudio` in-flight 去重）；②设置页「出发前预载」按钮（今天牌库 + 未来 N 天）。连带两条规约让位：§9.2「绝不自动批量生成」收窄为「绝不在用户没看见账单的情况下批量」（四个构成要件）；§7.2/§4.2d「App 从不翻译」在 §9.5 补译文范围内失效——补译文是派生物，永不同步、永不写 `item.tr` | **已评审通过 2026-08-23**，三条裁定：①§9.2 的四条件例外**只此一处**，第二个功能要重新评审；②派生物的「至多一次」**按设备算**，写进 §9.2；③失败分类改封闭清单算 bug 修复、不算模型变更 —— 见 §9.2 / §9.5 / §7.2 / §4.2d |
+| 2026-08-24 | belliedmonkey | 播客模式后台/锁屏播放与遥控（用户提议）：**范围 = iOS 与 macOS 两个宿主 App，扩展一个字节都不进**（播客模式本来就是 App 专属）。推翻 §12 2026-08-17 的「前台 only」裁定 —— iOS 加 `UIBackgroundModes: audio` + 原生音频会话、macOS 只需解掉我们自己那行「隐藏即暂停」，退到后台/锁屏继续播，锁屏与车机遥控映射到既有的 `tap_*` 事件（上一曲 = 再听一遍），锁屏显示卡片正文。连带一条规约让位：§9.5「隐藏即暂停，恢复只能手点」缩窄为「**真正的中断**才暂停，且中断结束带 `.shouldResume` 时自动续播」 | **已评审通过 2026-08-24**，一条裁定：**中国版必须同样有后台播放**（AGENTS.md 规则 10「无阉割版本」）。若实测证明设备内置语音在后台会停，解法是**把音频做成真的**（原生语音合成桥），而不是让中国版没有这个功能 —— 见 §9.5「后台与锁屏播放」 |
+| 2026-08-26 | belliedmonkey | 播客模式：解析跟读（锁屏封面逐行高亮）+ 亮屏。**连带推翻一条规约**：§9.5「封面只承载卡级为真的事实」—— 它的依据是「跟着段走就要每段过桥、一张 123 KB」，而 iOS 改走 `navigator.mediaSession` 之后逐行更新不过桥，依据不复存在。收窄为「封面上不放没有对应语音段的东西」（遍次仍出局）。另：解析拆成三块逐行念，旧的整段音频缓存成为孤儿，已有用户需重新预载一次 | **已评审通过 2026-08-26** —— 见 §9.5「解析跟读」 |
+| 2026-09-08 | belliedmonkey | 对话模式改成**双方自由说话 + 译文自动朗读**（商务洽谈场景）：去掉「按住我说」，归属按**语言**判（现成的字符集函数 + 语言注册表的 `scripts` 字段，不新写识别），判不出时先粘性再归对方、每行可点 ↔ 改边并回收语料；两边都自动朗读、排队逐句读完；「我的语言」与「对方的语言」分别可设；新增「这次不留记录」（一场为单位）。**推翻两条旧裁定**：裁定 D「朗读只在点了才读」、09-07「我说 = 按住说话，按住期间对方的话接受漏掉」。回声由 JS 自己堵四道闸，原生回声消除是升级不是前提 | **待评审** —— 见 §9.6、§12，interaction-spec「对话 · 实时听译」 |
+| 2026-09-08 | belliedmonkey | 免费额度（用户提议）：每个登录的国际版用户 **0.2 美元**的额度，请求经我们的服务端中继转发到提供方、服务端计量到顶即停（用户裁定「额度走我们服务端」）；客户端走现有一键配置三槽（key 槽放额度令牌）；402 停机并引导「自带 key / 社群」；中国版不出钱、引导百炼官方额度。画布 D1–D5 已裁定（D4 改为「必须登录才能用」）。**规约加注五处**（`AGENTS.md` 规则 2/3/4/8/11）、§2.1 加一条**有界免费样品**例外、§12 2026-08-03 那行部分重开 | **待评审** —— 见 §8.10 / §10 Gate F / §11 / §12，domain-design §7–§8，telemetry §2–§3，interaction-spec「免费额度」 |
+| 2026-09-07 | belliedmonkey | 对话 · 实时听译（用户提议，App 专属）：随时录音 → 转写 → 翻译，双显（当下逐词 + 整句定稿历史）；定稿句对进复习作为**新来源类别「对话」**（默认开）；锁屏也继续；双向（按住「我说」中文 → 译成外语给对方看并朗读）。真机 spike（PR-L0）三轮读数：WebKit 在后台一律静音 `getUserMedia`，页内音频保活能让 JS 活着但采集帧为 0 ⇒ **麦克风采集必须原生**（用户 09-07 裁定「原生做吧」）。见 §9.6 | **待评审（本 PR）**：三处裁定 —— ①「我说」的句子是否也进复习（默认进，标「我」）；②语言对是否给手动选（默认自动识别 → 界面语言）；③翻面大字卡是否保留（默认保留） |
+
+> **关于上面那批「已评审通过 2026-08-23（回溯批量确认）」。** 它们不是九次独立的审议，
+> 而是一次**回溯确认**：这些改动早已随 1.x 出货、在日常使用中跑了几周，产品方在
+> 2026-08-23 一次性确认保留。这么标是为了让台账停止说谎 —— 一行长期挂着「待评审」的
+> 已出货改动，既不是「待评审」，也不该看起来像刚通过评审。真正逐条审议过的只有当天
+> 那一行（播客模式离线化，三条裁定写在该行里）。
+
+**2026-08-08 的评审范围**由真机使用反馈驱动：评分按钮后果不可见、「学习好了」无
+标准、牌组耗尽后精力无处使。三个方向已由产品在设计前定下（AskUserQuestion）：
+掌握 = 读听写三技能阶梯；练习 = 答错算数、答对不加速；解析 = 按需生成、自带 key。
+
+**2026-08-07 这次是前置评审**（文档先于代码），与上一次相反。起因是真机使用发现
+**手机上进复习页要三步**（地址栏扩展图标 → 大肚猴翻译 → 复习），而这是 iOS 放置扩展
+UI 的构造位置，不是可以靠调菜单解决的。
+
+结论是加一个配套 App 作为浅入口，**同时保留浏览器端复习页**。过程中被否掉的两个方案
+连同证据都记在 §12：走原生消息把语料交给 App 上传（上传进度会落到 App 手里），以及
+把扩展退成纯采集器（会使产品对未登录用户不完整）。
+
+**这是一次追溯性评审。** `AGENTS.md` 要求领域改动「先更新文档、过人工评审、再改代码」；
+实际顺序是反的——评审发生时已有 15 个 commit。记在这里不是自责，是因为**追溯评审有一个
+前置评审没有的失败模式**：评审人会锚定在既有实现上，把评审做成盖章。将来读到这一行的人
+应当知道，下面这些结论是在那个偏置下做出的。
+
+本轮四项结论：
+
+1. **铁律二维持修订后的范围**（§3 law 2 / `domain-design.md` §9.1）。范围是「**任何**
+   导致采集停止或丢弃已采集内容的事」，而不是只有「存储满」。已知代价：每新增一条可能
+   丢数据的路径，必须同时做一个用户可见的面。**这是有意保留的约束，不是疏漏。**
+2. **§2.1 增加可执行闸门**（下详）。原文只有「本地部署优先」一句倾向，没有任何机制
+   阻止重心往服务端漂。
+3. **§6 改为如实描述**。原文把这道门写成「显著性选择器」，实际行为是垃圾过滤器；
+   真正的限流阀是调度器的 `dailyNew`。数字不变，描述改。
+4. **新增 §12 否决记录**。文档此前只保留最后一版方案，被否的路径和原因全部丢失。
+
+---
+
+## 1. Why this exists
+
+The extension is currently amnesiac. It builds, for every page and every video the
+user consumes, a large set of **aligned `(source, translation)` pairs** — the most
+expensive asset in language learning — and then throws them away when the 12-hour
+translation cache expires.
+
+The learning layer keeps them, and re-surfaces them on an Ebbinghaus forgetting
+curve. What the user *has already read* becomes what the user *studies*. Nothing is
+authored, imported, or bought: the corpus is a by-product of ordinary browsing.
+
+Two scopes are deliberately **out** of the model (decided 2026-08-02):
+
+- **No vocabulary/word cards.** The unit of study is the sentence the user actually
+  met, in the context they met it. Word extraction needs frequency lists per
+  language, and would break the "language-agnostic" property the translation domain
+  fought for (§3 of domain-design).
+- **Media cards replay the ORIGINAL audio, never a synthesized substitute.** A
+  YouTube sentence is re-heard as it was actually said. (Text cards are a different
+  matter — they have no original audio, so §9.1 gives them synthesized speech. The
+  rule is "never replace real speech with synthetic", not "never synthesize".)
+  - Replay **opens the source at the timestamp**; it is not an inline player.
+    YouTube's embedded player only accepts an http(s) embedding origin and refuses
+    `chrome-extension://` with error 153 — verified across four URL/referrer
+    variants on 2026-08-02, including the no-referrer case that also covers a
+    sandboxed page. A future iOS host app (§V4) may be able to embed natively; the
+    extension cannot, ever.
+
+---
+
+## 2. Product shape — free for everyone
+
+There is no paid tier and no subscription. This follows the **普惠优先 / free by
+default** product principle in `AGENTS.md`, which this feature is the first to be
+designed under.
+
+| | Everyone |
+|---|---|
+| Translation | **defaults** to the user's own key, browser → provider directly, and that path stays free and fully capable forever. A server-side model may be offered as an opt-in **paid** alternative (§2.1). *(2026-09-08:)* a signed-in global-flavor user may claim a **0.2 USD sample** spent through **our relay** on our provider account (§8.10) — a bounded exception to §2.1, disclosed on its own |
+| Learning corpus | device-local IndexedDB; optionally synced to our server under a fixed free quota (§8), with one-action export at any time |
+| LLM quizzes | the user's own key by default; a paid server-side path is permitted under §2.1 |
+| Account & sync | free, optional, opt-in. A signed-out user has a complete product |
+| Storage at rest | **plaintext** on our server (§8.6), under the obligations in §8.7 |
+
+> **核心约束 — the free path never needs a server of ours.** A person who never pays
+> and never signs in must have a *complete* product: capture, scheduling, review,
+> on-device speech, and BYO-key translation all work with no account and no network
+> of ours. The local path is never degraded to make a paid path look better. This is
+> the invariant that survived — it is **not** "we never run a model".
+
+### 2.1 When a server-side model is allowed
+
+*(Amended 2026-08-04. This section previously read "the server never runs a model,
+and that is load-bearing", justified by end-to-end encryption. §8.4 removed the
+encryption, so that justification is gone; the rule was narrowed rather than kept
+for its own sake.)*
+
+Three conditions, all required:
+
+1. **The user chose it and is paying for it.** Inference is a real recurring cost, so
+   pricing it is exactly what `AGENTS.md` rule 8 permits — and BYO-key stays free, so
+   rule 8's other half (never convert something already shipped free into a paid
+   feature) is not touched either.
+2. **It demonstrably beats what the local path can do.** "Convenient for us to host"
+   is not a reason. If a user's own key produces the same result, there is nothing to
+   sell.
+3. **What that path processes is disclosed for that path specifically** — never
+   averaged away into a claim about the product as a whole (§10).
+
+**Local deployment stays first.** Default, recommended, and the one the onboarding
+teaches. A hosted model is an alternative for people who want it, never the path of
+least resistance.
+
+**有界的免费样品 —— 本节的唯一例外（2026-09-08，用户裁定）。** 免费额度（§8.10）让已登录
+用户经**我们的服务端中继**用我们的提供方账号翻译 / 朗读 / 转写，不收费。它不满足第 1 条
+「正在付费」，而第 1 条的理由是推理是**无上限**的经常性成本 —— 例外的形状正好把上限补回来：
+（a）每账号封顶 0.2 美元，服务端计量强制、到顶即停（`AGENTS.md` 规则 7 的形状）；（b）成本
+按规则 9 事先估算（§8.10）；（c）这条路处理什么**单独披露**（第 3 条照旧，§10 Gate F）；
+（d）本地 / 自带 key 的等价物早已出货且仍是默认（规则 11 通过）；（e）中继不跑模型、不存
+内容 —— 它转发、计量、停。「托管模型仍是付费可选或不上」对样品之外的一切照旧成立。
+
+> **披露的位置可以变，单独披露这件事不变（2026-10-09 改稿 D）。** 「对话 · 实时听译」的说明段
+> （含免费额度那条路「经我们的服务器转发」）与实时字幕的 Gate I 隐私段，**从听译页搬到了
+> 「设置 › 听译」** —— 文字一字不改，只是换位置。它仍然是**对这条路单独披露**（第 3 条照旧、
+> §10 Gate F 照旧）：看得到、跟功能同版、不被别处的整体承诺平均掉。听译页变短不是披露被稀释。
+
+> **核心约束 — a server-side model feature may not ship before its local equivalent.**
+> *(Added 2026-08-04 by domain review; `AGENTS.md` rule 11.)* Any capability that depends on a model
+> running on our server may be released only once the same capability already works
+> on the local / self-hosted path. The hosted version may be faster or better; it may
+> not be the **only** version.
+>
+> **Why this needs to be a gate and not a preference.** "Local first" was one
+> sentence, and nothing enforced it — while the pull toward the server is real and
+> constant: hosting spares us the user's GPU, their endpoint configuration, and error
+> messages in eleven languages. Every individual feature looks more sensible hosted.
+> Drift is the accumulation of decisions that were each locally correct, which is
+> exactly the kind of drift a preference cannot stop. This gate inverts the pull:
+> **to ship the hosted version you must first build the local one**, so the easy path
+> stops being a shortcut.
+>
+> It is also checkable, which a preference is not. Before release, ask: *can someone
+> who never signs in and never pays use this?* A "no" blocks the release.
+
+**Telemetry is anonymous usage events only** — a whitelist of event names, never
+content or identity, off in one switch, none at all in the China flavor. It is
+specified in `docs/telemetry-design.md` and gated by §10 Gate D. *(Amended
+2026-09-05; this line used to say "permanently forbidden". See `AGENTS.md` rule 4 for
+why it moved.)*
+
+---
+
+## 3. 核心约束 — the Collector laws (do not break)
+
+The pipeline in domain-design §1 gains **one bypass sink**:
+
+```
+source → Extractor → Engine → Renderer
+                                  │
+                                  └──▶ Collector ──▶ Store ──▶ Scheduler ──▶ Reviewer
+```
+
+1. **Capture is a sink, never a source.** The Collector reads only what the Renderer
+   has *already decided to display*. It never back-pressures the engine: it does not
+   influence `selectActive`, does not change `pump()` cadence, does not mark units,
+   and **never originates a translation request**. If the learning layer were deleted
+   at runtime, translation output must be byte-for-byte identical.
+
+2. **Silent in the browsing flow — never silent to a user who opted in.**
+   *(Amended 2026-08-04; see §7.1 for what the surfaces must show.)*
+   - **Toward the page: absolutely silent.** Storage full, IndexedDB unavailable,
+     quota denied, outbox overflow — all reduce to *no capture*, with the translation
+     path untouched. No retry loop, no notice injected into the page, no half-state
+     (same shape as domain-design §5.3.3).
+   - **Toward a user who turned capture ON: never silent.** Anything that stops
+     capture, or discards material already collected, must be **visible in the
+     learning surfaces with an action that fixes it**. §8.5 already says exactly this
+     about the server quota; the original wording of this law contradicted it, and
+     the contradiction was resolved in favour of telling the user.
+   - **Dropping captures is still a normal path, not an error path** — it just is not
+     an *invisible* one.
+
+3. **Nothing reaches `DomSegmenter`.** The Collector adds **zero selectors**. Site
+   knowledge enters only through the two generic markers the segmenter already
+   honors — `data-mt-player-region` and `data-mt-skip-region` (domain-design §3).
+   Needing a per-site or per-device branch to decide what to capture means the design
+   has regressed; fix the salience model instead.
+
+4. **Self-capture is forbidden.** Any injected learning UI carries `translate="no"`
+   **and** `data-mt-skip-region`, and the Collector skips `.mt-translation` and every
+   `#mt-*` subtree. Without this the extension translates its own translations and
+   captures the result — an unbounded feedback loop that corrupts the corpus.
+
+---
+
+## 4. Data model
+
+One `Item` type. The study granularities are distinguished by the `anchor`
+union, **not** by three parallel types — same reasoning as domain-design §2 ("the
+split is the source kind, not the site").
+
+```js
+Item = {
+  id,              // FNV-1a(lang \0 normText) as 16 hex chars — content-addressed
+  text, tr,        // source / translation
+  lang,            // SOURCE language = the language being learned; 'und' if unknown
+  targetLang,
+  kind: 'sentence' | 'passage',
+  anchor:
+      { k:'dom',   url, title, siteKind, quote }            // passage re-read: quote locates it again
+    | { k:'media', url, mediaKey, title, startMs, endMs },  // clip replay: jumps back to the segment
+    | { k:'conv',  sessionId, title, startMs, endMs, who },  // 对话 (§9.6): no replay — the recording is gone; who = 'them' | 'me'
+    | { k:'doc',   docId, title, page, quote },               // 文档 (§9.7): re-opens the document at that page; quote locates the sentence
+  createdAt, lastSeenAt, seenCount, dwellMs,
+  salience,        // 0..1, computed deterministically at capture time
+  state: 'candidate' | 'learning' | 'known' | 'muted',
+  sched: { s, d, lastReviewAt, dueAt, reps, lapses },
+  starred,         // explicit user save → bypasses the salience gate
+  skills,          // {read?, listen?, write?, speak?} — per-skill last-verified
+                   // timestamp in ms (§5.4). Legacy value `1` (pre-2026-08-12
+                   // boolean) is a valid-but-ancient timestamp: truthy ⇒ badge
+                   // stays lit; ancient ⇒ rotation re-verifies it first.
+}
+```
+
+A review-log row is `{ itemId, grade, at }` plus, since 2026-08-08, two optional
+fields: `mode: 'read' | 'listen' | 'write'` (which exercise form was graded, §5.2;
+`'speak'` joins the union with §5.4) and `practice: 1` (a free-practice rep, §5.3 —
+logged but not schedule-advancing). Since 2026-08-12 a third: `extra: 1` (the
+same-card second exercise of §5.4 — logged, badge-refreshing, never
+schedule-advancing on a pass). All are additive: the log is append-only and JSONL
+carries unknown fields through old readers untouched, so the chunk format (§8.4)
+does not version-bump for any of them.
+
+- **`id` is content-addressed.** The same sentence met on a second device, or on a
+  second site, collapses onto one item and increments `seenCount`. This is what makes
+  sync idempotent without a server-assigned identity.
+- **`id` must use a synchronous non-cryptographic hash (FNV-1a).** `crypto.subtle` is
+  unavailable in content scripts on plain-`http` pages (not a secure context), so a
+  SHA-based id would silently fail on exactly the long tail of sites we care about.
+- **`text` / `tr` / `anchor` are immutable after creation.** Only `sched`, `state`,
+  `starred`, `skills` and the counters mutate. This is what shrinks the sync conflict
+  surface to almost nothing (§8.3).
+- **`skills` merges per-key by `Math.max`** *(2026-08-12; previously boolean UNION —
+  max is the same operation once the values are timestamps)*. A skill verified
+  anywhere is verified everywhere, and the LATEST verification wins. Per-key max is
+  idempotent and commutative under *both* of §8.4.2's merge semantics, so it needs
+  no accumulate/copy branch and cannot echo-amplify — the union argument carries
+  over unchanged, and legacy `1` values participate as ancient timestamps that lose
+  to any real one. Known, accepted looseness: a device still running the union code
+  merges with `Object.assign` (incoming wins), which can briefly regress a timestamp
+  to `1`; the next merge on an updated device heals it (max), and the visible effect
+  meanwhile is only "stale, re-verify sooner" — failure in the safe direction.
+
+### 4.1 The learned language is the source language
+
+`item.lang` is the **source** language, not "English". Detection order:
+`LangDetect` (Chrome/Edge/Firefox; absent on every Safari) → script inference →
+`'und'`. Per domain-design §5.3.2 the detector is **injected by the adapter, never
+probed by the Collector**, and an undetected language is stored as `'und'` and
+grouped separately in the review UI — capture is never blocked on detection.
+
+The user picks which languages to study; the default is *every* language that is not
+`targetLang`. No language is hard-coded anywhere in the learning layer.
+
+**Implemented (2026-08-09) as the whitelist half of `learnRules`** (`{v, block,
+langs, updatedAt}` in `chrome.storage.local`; §8.9 for how it syncs). `langs: null`
+is the default and means "everything ≠ targetLang"; a non-null array is the
+whitelist. The gate runs at capture (`LearnCollector.flush`) and again at drain —
+**never** on the corpus, so tightening the whitelist later does not delete what was
+already saved (deletion is §7.4's job, a separate user action).
+
+**On Safari every candidate is `'und'`** (no detector), so a literal whitelist would
+capture nothing on the product's primary platform. The fallback: when
+`lang === 'und'`, the gate passes iff the text's dominant Unicode script
+(`LearnRules.dominantScript`) is compatible with at least one whitelisted language,
+per the `scripts` table in the language registry (`build/langs.config.js` →
+`window.MT_LANGS`). The stored `lang` stays `'und'` — the script check is a capture
+gate only and never changes `itemId`. Known looseness, accepted and deliberate:
+scripts are shared across languages (whitelist `[zh]` admits pure-kanji Japanese;
+`[ja]` admits Han + Kana; `[en]` admits French). The gate errs toward capturing —
+per §3 law 2, over-capture is recoverable (delete), silent under-capture is not.
+A **starred** draft (explicit long-press) bypasses the whitelist: a deliberate
+gesture outranks a standing filter.
+
+**2026-10-03（泰国语进白名单，随 #556 的界面语言泰语一起）。** `build/langs.config.js` 加一门：
+`{ code:'th', labelKey:'lang_th', label:'ไทย', scripts:['Thai'] }` —— 用户裁定「加」。三点与本段相关：
+- **泰文不与别的语言共享脚本。** 上面那句「known looseness」在泰语这里**不适用**：Han/Latin/Kana
+  那种互相放行只发生在共享脚本的语言之间，泰文是独一份，所以「纯泰文」的判定是干净的 ——
+  白名单里有 `th` 就收，没有就不收，没有中间态。
+- **判定链的两端早就认得泰语**，缺的一直只是白名单这一格：`LearnRules.dominantScript` 有
+  `['Thai', /\p{Script=Thai}/u]`，`guessLang` 会猜 `th`（见下面 2026-09-13 那条）。
+- 泰文**无词间空格**，所以泰语卡的切句/切词完全依赖 `Intl.Segmenter`（`LearnModel.splitSentences`）；
+  WebKit/Safari 的 ICU 支持泰语，但它与拉丁语系的切分不是同一档确定性 —— 泰语卡的分段质量
+  比中英更容易受实现差异影响，这一条留作已知项。
+
+**2026-09-13 修订（用户裁定「不知道为啥会有语言未知；就算真的未知，也应该靠 AI 推断语言出来」）。** 「stored
+`lang` stays `'und'`」这句收窄为：**采集门不改它，但两个地方会补上它**——
+- **文档打开时**（`doc-view.startEngine`）：用户没手选语言的文档，先按第一段的主导脚本猜（`LearnRules.guessLang`：
+  汉字 zh / 假名 ja / 谚文 ko / 西里尔 ru / 阿拉伯 ar / 天城 hi / 泰 th / 希腊 el / 希伯来 he，同步免费），拉丁字母
+  再问一次翻译引擎（`TranslationAPI.detectLanguage`：系统提示只允许回一个 ISO 639-1 码，答非所问 ⇒ 空）。猜到
+  就写回 `doc.lang`（下拉随之显示，用户仍可改），此后这份文档采集的每张卡都带语言。**一份文档只问一次**
+  （`doc.langAsked` 落盘），样本是本页的一整段（不会把别的页发出去）。之前的「语言未知」就是这里：`doc.lang`
+  只有用户手选才有值，于是 256 张里 250 张都是 `und`。
+- **复习看到时**（`review.backfillLang`）：`lang === 'und'` 的存量卡在被看到那一刻同样先猜脚本、再问引擎，
+  猜到写回这张卡（`LearnStore.putItem`）；一张卡只问一次（`item.langAsked`）；引擎没配 / 出错 ⇒ 仍是 `und`，
+  不报错。朗读的可用性判断同时把卡文本带上（`LearnTTS.available(lang, _, text)`）—— 此前这里没带文本，
+  于是 `pickVoice` 连脚本兜底都用不上，才会对一张纯英文的卡说「这张卡的语言未知」。
+- 仍然成立的：`itemId` 不因语言补上而变；采集门（whitelist）在 `und` 上照旧按脚本判；模型的判断可能错
+  （法语被当英语），用户在文档下拉里改一次即覆盖。这不是 domain-design §5.3 的「检测器」——那条说的是
+  Collector 不探测浏览器 API；这里是学习面事后补一次标签，Collector 一个字节没动。
+
+### 4.2 The capture unit is the SENTENCE — split at capture (2026-08-15)
+
+§3's first law of material ("The unit of study is the sentence the user actually
+read") was never enforced: the Collector stored whatever unit the RENDERER handed
+it, which for webpages is the paragraph. A five-sentence Lenny's-Newsletter
+paragraph became one 700-character card — unmemorizable, and `kind: 'sentence'`
+was a lie. Real-device screenshot, 2026-08-15.
+
+**Rule: a webpage (text, tr) pair is split into aligned sentence pairs at capture
+time, in the Collector, before ids are computed.**
+
+- **Mechanism** (`LearnModel.splitPair`, pure): both sides are segmented with
+  `Intl.Segmenter` (granularity `sentence`; available on every engine we ship to —
+  Chrome 87+, Safari 14.1+, Firefox 125+ — with a terminal-punctuation regex
+  fallback), then post-processed with repairs each earned by a real-corpus find
+  (2026-08-15, 869-item library): a SHORT (≤5 chars) whitespace-free segment
+  ending in `.` merges forward (`Dr.` / `e.g.` — the cap keeps `Apparently.` its
+  own sentence), a segment ending in a lone letter + `.` merges forward (German
+  `z. B.`), a segment lacking any sentence terminal merges forward (mid-token
+  cuts, including the segmenter breaking INSIDE `[2]`), a Latin segment starting
+  lowercase merges backward (dialogue attribution `…?" asks Matthew`), wiki
+  citation clusters split after `terminal+[n]` and a leading `[n]` cluster moves
+  back to the sentence it cites, and an orphan OPENING quote/bracket at a
+  segment's tail moves to the head of the next (the `他睡了。“` case). All
+  merging concatenates RAW segments — inserting even one joining character would
+  put text into a sentence the paragraph never had. Regression-tested across
+  every registry language (en/ja/ko/zh/fr/de/es/pt/it/ru/ar + und).
+- **Pairing is by COUNT equality only.** If source and translation split into the
+  same number (>1) of sentences, they pair 1:1 and each pair becomes its own item
+  (content-addressed id per sentence — the same sentence met in two different
+  paragraphs collapses, which is the §4 id property working as designed). If the
+  counts differ, the pair is kept WHOLE. A long card is a nuisance; a *misaligned*
+  (text, tr) pair is silent corpus corruption that `text`/`tr` immutability makes
+  permanent. Never guess an alignment.
+- **§4.2b Count reconciliation (2026-08-15, second real-device pass).** A survey
+  of every kept-whole mismatch in the real library showed most were not translator
+  restructuring but ONE of a handful of known segmenter coin-flips, where the
+  *other* language's count is exactly the evidence that resolves the flip. Before
+  keeping a mismatched pair whole, `splitPair` makes one bounded reconciliation
+  attempt: **merge candidates** on the over-count side (a segment ending with a
+  terminal *inside* a closing quote — the zh `…发一次帖？”` + `这类问题的答案。`
+  embedded-question over-split — or a bare-ellipsis tail, unless the next segment
+  opens with a quote/dash) and **split candidates** on the under-count side
+  (Latin-terminal positions the segmenter refused: before an `@handle`, before a
+  digit `…by volume. 750ml bottles…`, after a single-letter initial `…Comando G.
+  My cellar…`). The never-guess doctrine holds four ways: operations happen ONLY
+  at candidate boundaries; **every op must be corroborated by cross-side
+  evidence in the pairing it produces** (see below); the chosen subset must land
+  the counts exactly equal with **exactly one** surviving pairing (two distinct
+  survivors = the evidence cannot tell them apart = keep whole); and every
+  surviving pair must pass a per-pair length-ratio guard (band 3.2×, calibrated
+  on the library's 1300+ known-good pairs whose worst legitimate deviation is
+  2.37×) — a guard the equal-count fast path now also runs (0 rejections across
+  the calibration library). Merges and splits are performed by SLICING the
+  normalized paragraph at recorded offsets, so a joining character can never be
+  invented, and inputs over 10K chars skip splitting entirely (no sane card, and
+  the citation regexes are super-linear on pathological no-whitespace runs).
+  Split candidates are Latin-terminal only by design: on the CJK side the same
+  punctuation evidence is ambiguous, and offering both sides' candidates makes
+  genuinely fixable cases fail the uniqueness rule.
+  **Corroboration** exists because three independent adversarial reviews each
+  constructed a natural paragraph where translator restructuring at a
+  NON-candidate boundary was "uniquely" bridged by an incidental candidate
+  elsewhere — uniqueness among candidates is not evidence of correctness. Each
+  op class carries its own cross-side check: a quote-terminal merge requires the
+  counterpart sentence to contain the SAME terminal class inside a closing quote
+  (`？”` ↔ `?”`; a `。”` does not vouch for a `？”`) and its continuation must
+  not start with an uppercase letter (`?” He said` is a normally-cased REAL
+  break — the observed coin-flip is the caseless CJK `？”这类` continuation); an
+  ellipsis merge requires the counterpart to contain an INTERNAL (non-final)
+  ellipsis — proof the translator ran the sentences together too; `@handle` and
+  digit splits require the literal anchor in the counterpart (handles and digit
+  runs survive translation); an initial split requires the preceding name
+  (`Comando`). Because punctuation echoes can themselves be incidental (the
+  third-generation poison had the same-class echo on BOTH sides), merges carry
+  one further requirement: they fly solo (only in 1-count reconciliations) and
+  must **dominate** — the candidate boundary must be the strictly best-fitting
+  single merge under the pair-ratio metric across every alternative position
+  (measured: real wins 1.05–1.60 at the candidate with alternatives worse;
+  every poison's true non-candidate boundary fit better, 1.04–1.16 vs the
+  candidate's 1.42–1.59). No corroboration or no dominance → keep whole,
+  honestly. Corpus regression after all guards: 1050 items, 1040 byte-identical,
+  10 whole→split (every pairing hand-verified), 0 split→whole, 0 pairings
+  changed; all five reviewer poison constructions keep whole (pinned as tests).
+- Sentences inherit the paragraph's dwell/seen/starred (reading the paragraph is
+  reading its sentences); each gets its own per-sentence `anchor.quote`. The
+  salience gate then runs per sentence, unchanged.
+- **Subtitle/media captures are NOT split**: the engine's cue merge already emits
+  sentence units, and the media anchor's `startMs/endMs` describes the whole cue.
+- Still a sink: splitting is pure local computation. Law 1 intact.
+
+**§4.2c LLM alignment adjudication (2026-08-15).** What §4.2b's structural
+evidence cannot certify — translator restructuring above all — can still be a
+perfectly alignable pair. For those refusals only, the 拆分长段卡 action gains a
+second phase: the user's OWN configured chat engine (the §9.2 notes engine,
+riding the same `LearnNotes.chat` transport) is shown both numbered sentence
+lists and asked to GROUP consecutive sentences 1:1 — it never rewrites text.
+**The LLM proposes, the code disposes**: `LearnModel.alignByGroups` verifies the
+proposal mechanically (both sides partition their indices in order into the same
+number of groups; pairs are built by verbatim slicing of the normalized
+paragraph; the §4.2b ratio guard applies), so a hallucinating or misaligned
+model can only fail closed to keep-whole. Bounded spend: at most 40 adjudication
+calls per press (`LearnAlign.MAX_CALLS`), candidates chosen by the pure
+`LearnStore.llmCandidatesFor` (dom-anchored, both sides ≥2 sentences, under the
+splitter input cap, structurally refused). Runs ONLY behind the explicit button
+press that already consented to rewriting collected material — never at capture
+(capture stays a free, pure, local sink; law 1 intact). No engine configured →
+the phase is skipped and the count surface reports the un-split remainder as
+before.
+
+**§4.2d Re-translation fallback (2026-08-16, 用户提议).** When even grouping
+cannot rescue a pair — the translation was restructured beyond recognition, or
+truncated/garbled outright — the SOURCE side still splits reliably, so the last
+resort is to re-translate it per sentence through the user's configured
+translation engine: the resulting pairs are aligned **by construction**, and a
+broken stored translation (unfixable by any alignment) is rescued outright.
+This is the ONE place a card's `tr` deviates from what the page showed —
+acceptable because the paragraph-level translation is discarded on split anyway,
+and the alternative is an unmemorizable (or broken) card. Bounded spend: 80
+sentence calls per press (`LearnAlign.MAX_RETRANSLATE_SENTENCES`, riding the
+translation cache), candidates by the pure `LearnStore.retranslateCandidatesFor`
+(a superset of §4.2c's: no tr-side sentence requirement). Runs in the extension
+options page only; sync carries the healed cards over.
+
+> *(2026-08-23.)* The clause that used to end that sentence — "the app never
+> translates (its own first law)" — no longer holds; §7.2 records where it gave way.
+> **This paragraph's rule is unchanged**, and the two must not be conflated: §4.2d
+> **overwrites a card's `tr`** and is therefore still the ONE place a stored `tr`
+> deviates from what the page showed, still extension-only. §9.5's 补译文 does the
+> opposite — it never touches `item.tr` at all, and caches a device-local derived
+> translation beside the notes. A card healed by §4.2d syncs; a card filled by §9.5
+> does not.
+
+**Existing long cards** (captured before this rule) are healed by an EXPLICIT
+maintenance action, never silently on upgrade (§3 law 2: anything touching
+collected material must be visible): `LearnStore.splitLongItems()` — offered as
+「拆分长段卡」 in the options 学习 card and the App's settings. It walks
+`anchor.k === 'dom'` items whose pair splits alignably, creates the children
+(inheriting `sched`/`state`/`skills`/counters — they were genuinely reviewed as
+part of the paragraph), and deletes the parent through the §7.4 deletion ledger so
+the split propagates to every synced device exactly like a user deletion. Children
+sync as ordinary new items. Media items and unalignable items are left untouched
+and counted in the result surface ("拆 N 张为 M 张，跳过 K 张").
+
+---
+
+## 5. The scheduler (`learn-scheduler.js` — pure functions)
+
+Exponential forgetting, in the FSRS stability convention (`R(S) = 0.9`), which is the
+same Ebbinghaus curve with a more controllable parameterization:
+
+```
+R(t) = 0.9 ^ (t / S)                              // t, S in days
+dueAt = lastReviewAt + S * ln(targetR) / ln(0.9)  // targetR 0.90 ⇒ interval = S
+```
+
+> **Why a continuous `R` rather than a binary due-queue.** The product promise is
+> "keeps recommending", not "37 cards are due today". Sorting by `R` ascending yields
+> "closest to being forgotten first" as a *continuous* ranking, and one piece of math
+> then serves the review page queue, the in-page card picker (V2), and the
+> notification threshold (V2) without three different definitions of "due".
+
+Grades: `0 again · 1 hard · 2 good · 3 easy`.
+
+```js
+const DEFAULTS = {
+  targetR: 0.90,
+  S0:      [0.15, 0.7, 1.5, 4.0],   // days; first grade sets initial stability
+  FACTOR:  [0.35, 1.15, 2.4, 3.6],
+  DELTA_D: [1.2, 0.35, 0, -0.5],    // difficulty increment
+  S_MIN: 0.02, S_MAX: 365,          // ~29 minutes .. 1 year
+  KNOWN_S: 180,                     // S ≥ 180d ⇒ state = 'known'
+  SPACING_GAIN: 1.0,
+  dailyNew: 15, deckSize: 20,
+};
+
+R       = pow(0.9, elapsedDays / s)
+diffMod = (11 - d) / 10                    // d ∈ [1,10]; harder items grow slower
+spacing = 1 + (1 - R) * SPACING_GAIN       // a late-but-correct review earns more
+s' = grade === 0
+     ? clamp(s * 0.35, S_MIN, S_MAX)                              // lapses++
+     : clamp(s * (1 + (FACTOR[grade] - 1) * diffMod * spacing), S_MIN, S_MAX)
+d' = clamp(d + DELTA_D[grade], 1, 10)
+```
+
+**`buildDeck(now, opts)` — a 70 / 20 / 10 mix:**
+
+- **70%** `state='learning'` with `R ≤ targetR`, sorted by `R` ascending.
+- **20%** `state='candidate'`, sorted by `salience` descending, bounded by `dailyNew`.
+- **10%** `state='known'` whose `R` has slipped below 0.95 — interleaving, so that
+  "learned" never means "never seen again".
+
+No more than 3 consecutive cards from the same source (same URL / same video), so a
+session is not one article read back to itself.
+
+**Contracts this module must satisfy** (verification-spec §3.1.1):
+
+- `now()` is **injected**, never read from the ambient clock — otherwise none of this
+  is testable.
+- Config is **merged**, `Object.assign({}, DEFAULTS, cfg)`, and asserted against the
+  production `DEFAULTS`, with at least one case passing a deliberately partial config.
+- The valuable behaviors here are **negative** (a mature card must *not* appear, a
+  new card beyond `dailyNew` must *not* appear). Those need call-count assertions —
+  a deck that merely *looks* right proves nothing about what was correctly withheld.
+
+### 5.1 核心约束 — 评分的后果必须可见（2026-08-08）
+
+*(真机反馈原话：「『太简单了』『我记住了』等状态我不知道点击完后意味着什么」。
+这不是文案问题——是调度器的全部输出都停在内部数字上，界面一个都不给。)*
+
+- **四个评分按钮各自标注后果。** 对当前卡预演 `applyReview(sched, g, now)` 四次
+  （纯函数，零成本），把间隔写在按钮上：「不记得 → 重新学」「有点难 → 2 天后」
+  「记得 → 5 天后」「太简单 → 12 天后」。新增纯函数
+  `previewIntervals(sched, now, cfg) → [ms, ms, ms, ms]`，和调度器的其余部分一样
+  注入 `now`、可测。选择即预览，是把调度器从黑箱变成可预期工具的最小改动。
+- **记忆强度常驻可见。** 卡片上一条小进度条 + 「记忆强度 {s} 天 / 180 天」。
+  「已掌握」由此第一次有了用户可见的定义：**强度达到 180 天，约等于半年不碰
+  仍有九成概率记得**（`R(180d) = 0.9`，§5 的公式直译成人话）。
+- **首次进入复习页给一张一次性说明卡**，三句话讲完循环：记得 → 间隔拉长；
+  忘了 → 重来；强度攒满 → 毕业。看过存 `meta`，永不再弹。
+- **牌组耗尽页说明上限并给出路。**「今天的复习做完了」页面注明「每天新卡上限
+  {n}，可在设置调整」——上限本来就可调（1–200），只是没人知道；同页给 §5.3 的
+  练习入口，耗尽不再是死路。
+- **一轮的善终门槛是「学过」，不是「清空」（2026-09-27 用户裁定）。** 做满一组（5 张）后
+  点「今天就到这儿」、或评过 ≥1 张后离开复习面，都算这一轮善终
+  （`review_session{result:'done'}`）；只有**一张都没评**才记 `left`。原话：
+  「完成 1 卡也要记，只要进入了学习学了一小会都算学了」。理由：这个读数要回答的是
+  「他今天来过、并且学了一点吗」，不是「他把债还清了吗」—— 后者正是把回访门槛架到
+  15 张、以致 52 台存过语料却有 0 台刷完一轮的那个形状（Issue #386）。取值口径见
+  [`telemetry-design.md`](telemetry-design.md) §3。
+
+### 5.2 核心约束 — 掌握是一个阶梯，不是一个阈值（2026-08-08）
+
+**「学习好了」的标准：同一个句子，能认、能听懂、能写出来。** 三种题型共用
+**一套排程**，按记忆强度逐级升难：
+
+| 阶段 | 题型 | 门控 |
+|---|---|---|
+| **认读** | 看原句 → 自评含义（原有流程） | `s < TIER_LISTEN_S` |
+| **听懂** | 只放音频 → 自评含义（复用既有 audio-first 机制，`review.js` 已有） | `TIER_LISTEN_S ≤ s < TIER_WRITE_S`，且该卡 TTS 可用 |
+| **产出** | 看译文 → 补全原句挖空（1–3 空按长度带），**输入自动判对** | `s ≥ TIER_WRITE_S` |
+
+```js
+TIER_LISTEN_S: 4,   // days — same "unvalidated, cheap to retune" caveat as §6
+TIER_WRITE_S: 30,
+```
+
+- **为什么一套排程带三种题型，而不是每技能一张时间表**：独立排程使 `sched` 变成
+  三份、同步合并的「按 lastReviewAt 取新」拆成三路、复习债×3，而换来的精度建立在
+  两个本就未经验证的阈值上（§12 已否决）。强度本身就是难度的正确门控——记忆越牢，
+  测试越苛刻，这正是「拉通听说读写」在间隔重复框架里的诚实实现。
+- **验证的诚实边界，写明而不是含混** *(2026-08-12 更新)*：**客观判定的是「有确定
+  性判分函数」的题型**——写（挖空归一化后精确比对）、说（转写重合度，§5.4/§9.4）、
+  读与听的选择题变体（选项对错，§9.3）；读与听的自评回忆变体仍是自评。宣称
+  「科学验证」只覆盖客观判定的部分，文档与界面都不夸大。
+- **挖空是本地纯函数** `LearnModel.clozeFor(text, lang)`：脚本感知选实词（沿用
+  §6 长度带的 CJK/Latin 区分），不调用任何模型。放 `learn-model.js` 因为两个宿主
+  （扩展页 + App）都已加载它。
+- **说（2026-08-12 三审改判，§12）：转写引擎配好且有麦克风时，是第四种题型。**
+  朗读原句 → 录音发到**用户自己配置的** `/v1/audio/transcriptions` 端点 → 本地
+  纯函数比对转写与原句、客观约束评分（§5.4、§9.4）。浏览器自带的
+  SpeechRecognition（录音送 Chrome→Google / Safari→Apple）维持永久否决。能力门
+  关着时说档**不存在**；听懂阶段的「跟着读一遍」跟读提示保留为无验证的兜底练习，
+  界面仍明标「练习，不验证」。
+- **技能徽章**：每张卡显示 读 / 听 / 写（说档开着时加 说）徽章，各自在该题型下
+  拿过 ≥「记得」即点亮并刷新时间戳，落 `item.skills`（逐键 max 合并，§4）。点亮
+  但超出 §5.4 新鲜窗的徽章标「待重验」，不熄灭。
+- **「全面掌握」= `s ≥ KNOWN_S` 且该卡每个可用技能都新鲜（§5.4 `skillFresh`）。**
+  这是**展示层**概念：`stateFor` / `known` 保持纯 `s` 判定不动——调度器状态机零
+  迁移，已有用户的「已掌握」不回退，只是技能未全/过窗的卡在界面上标为
+  「记忆已牢，技能待验」。
+- **TTS 不可用（无引擎 / 无该语言语音）的卡自动跳过听懂档**：能力缺失意味着该档
+  *不存在*，不是该卡失败——同 domain-design §5.3 规则 1 的能力语义。
+- **生词 / 语法 / 短语不进掌握标准。** 学习单位是句子（§1、§11 不变）；词汇与
+  语法作为句子卡的**解析面**提供（§9.2），帮助理解，不单独考、不单独排程。
+
+### 5.3 核心约束 — 自由练习：答错算数，答对不加速（2026-08-08）
+
+*(真机反馈：「每次只能学几个句子，太少了。应该允许用户根据自己的精力情况反复
+学习所有在学习库里的内容。」)*
+
+- **入口**：牌组耗尽页的「继续巩固练习」按钮 + 复习页常驻「自由练习」。
+- **池子**：默认「学习中」（按 R 升序，最接近遗忘的先出）；可切「全部」（含候选
+  与已掌握）。批量 10 / 20 / 不限；`spreadBySource` 照常防单文章连读。
+- **对排程的影响是不对称的，这是本节的核心**：
+  - **答错 → 照实算**：记录 + `applyReview(grade 0)`，打回重学、尽快再见。
+    任何时刻的遗忘都是真实证据。
+  - **答对 → 只记录，不写 `sched`**：刚见过就答对，证明不了长期记忆——把它计入
+    会让连点两遍「记得」刷出几个月的假间隔，正是「科学验证」的反面（Anki 对
+    cram 的处理同理；§12 记录了对称方案的否决）。
+  - 界面一句话讲清：**「练习不能刷出掌握，但能暴露遗忘。」**
+- **候选卡在练习里只曝光**：无论答对答错都不建 `sched`。新卡的正式引入只走每日
+  牌组——`dailyNew` 的意义就是防止今天的热情变成明天的复习债，练习不得绕开它。
+- 练习记录带 `practice: 1` 与 `mode`（§4），照常进 append-only 日志、照常同步；
+  重放端不因它推进任何排程（排程本来就随条目走、不由日志重建，§8.4.2 的机制
+  天然覆盖）。收敛判据不变：无活动时双向同步仍须稳定 0 / 0。
+
+### 5.4 核心约束 — 技能轮换与四技能矩阵（2026-08-12，用户裁定）
+
+**「学好」的完整定义：同一个句子，读、听、写、说四项能力都被验证过，且到期重测
+时都还在。** §5.2 的阶梯不变（强度门控题型难度）；本节在它之上补两件事：每次到期
+测**哪个**技能，以及「全面掌握」怎样随时间失效再重验。
+
+- **`skills` 从布尔升级为时间戳**：`{read?, listen?, write?, speak?}`，值为该技能
+  最近一次拿到 ≥「记得」的时刻（ms）。旧数据的 `1` 是合法但极旧的时间戳——truthy
+  所以徽章不回退，极旧所以轮换把它排最前（恰是「该重验」的语义）——**零迁移**。
+  合并规则见 §4（逐键 max）。
+- **`pickSkills(item, caps, now, cfg)`（纯函数）**：先按 §5.2 阶梯过滤出该卡存在
+  的技能——read 恒在；listen / speak 需 `s ≥ TIER_LISTEN_S` 且各自能力开着
+  （`TIER_SPEAK_S` 与 `TIER_LISTEN_S` 同值 4，独立命名以便单独重调）；write 需
+  `s ≥ TIER_WRITE_S`——再按 `skills[k] || 0` 升序取最久未验证的 1–2 个。
+- **一次到期，一条曲线，至多两题**：第 1 题照常 `applyReview` 推进排程；第 2 题
+  仅当其技能也已过新鲜窗时追加，走 §5.3 的 `practiceOutcome`（答错 lapse——遗忘
+  证据任何时刻有效；答对只刷新技能时间戳、不写排程），复习行记 `{mode, extra: 1}`。
+  这就是它与 §12 已否决的「独立排程」的边界：**到期永远只由一条曲线决定，第二题
+  改变的只是技能矩阵，从不制造第二张时间表**。
+- **新鲜窗 `skillFresh(item, k, now, cfg)`**：`now − skills[k] ≤ max(s, 1) ×
+  FRESH_MULT × DAY`（`FRESH_MULT: 1.5`，与 §5.2 阈值同一句话：未经验证、调整
+  便宜）。窗口随强度伸缩：强度越高，一次技能验证的有效期越长——与遗忘曲线同构。
+- **「全面掌握」= `s ≥ KNOWN_S` 且该卡每个可用技能都新鲜**（§5.2 的定义由此收紧
+  为带时效的版本）。仍是展示层概念：`stateFor` / `known` 不动，已有用户的
+  「已掌握」不回退；徽章点亮但过窗时标「待重验」，不熄灭。
+- **知识点轮换取材，不单独记账**：出题时从该句的解析面（§9.2 的 words / phrases /
+  grammar）轮流取材——这次挖这个词、下次听力考那个短语——由确定性种子
+  （`hash16(itemId | reps)`）驱动，保证每个知识点被轮到而无需知识点级存储。掌握
+  矩阵的粒度是**句子 × 技能**（4 格）；知识点 × 技能全矩阵已否决（§12）。词汇不
+  单独考、不单独排程的边界（§5.2 末条、§11）不动。
+- **每个技能先有确定性本地题型，AI 题包只是增强**——分工与成本纪律见 §9.3。
+- **能力语义照旧**：无 TTS 的卡没有听档，无麦克风或无转写引擎的卡没有说档——
+  缺失的技能不进「可用技能」集合，不拦「全面掌握」（同 domain-design §5.3 规则 1）。
+- **播客模式（§9.5）不参与本节，一行都不参与**：它是播放器，只曝光材料，
+  不写复习行、不盖技能戳、不动排程。2026-08-18 之前它曾用跟读题推进度，那条路
+  已经拆掉——录音窗口必然打断连续播放，而连续播放是那个模式的全部内容（§9.5/§12）。
+
+---
+
+## 6. What counts as "seen" — the capture gate
+
+*(Renamed and rewritten 2026-08-04 by domain review. It was called a "salience gate"
+and described as selecting what stands out. The numbers do not do that, and the
+mismatch is what the review caught — see below. The numbers were kept; the
+description was corrected. Also fixed here: the formula previously written in this
+doc had four terms including a `sourceRecency` that **does not exist in the code**.)*
+
+The gate is **deterministic, LLM-free, word-list-free and language-agnostic**:
+
+```
+salience = 0.50*dwell + 0.28*lengthBand + 0.22*repeat        # learn-model.js W
+gate:      salience ≥ 0.45  AND  (dwellMs ≥ 2500 OR playedThrough)
+starred ⇒ salience = 1.0, gate bypassed
+```
+
+> **What this actually does, stated plainly.** On a first encounter `repeat` is 0 and
+> an in-band length contributes 0.28, so clearing 0.45 needs only `dwell ≥ 0.34` —
+> about 2 s, under the 2.5 s hard floor that applies anyway. **Any in-band sentence
+> you looked at for 2.5 seconds is captured the first time you see it; the repeat term
+> never has to participate.** Subtitles are stronger still: `playedThrough` scores
+> dwell 1.0, so every fully-played sentence lands at 0.78.
+>
+> So this is a **junk filter, not a selector**. It removes what you scrolled past,
+> what is too short to be a card, code, and text already in your language. What
+> survives is *everything you actually read* — on the order of 100–150 captures a day
+> for a normal reading habit, or 200+ from one 20-minute video, reaching the 20,000
+> cap in roughly two to three months of daily use, after which §7.1 eviction begins.
+>
+> **Selection happens one layer down, in the scheduler**: `dailyNew` (15) is the real
+> limiter on what enters review. The corpus is a firehose and the deck is a trickle,
+> and that is the design — not an accident of tuning. Anyone re-tuning these weights
+> should know they are adjusting *what is kept*, not *what is studied*.
+
+- **dwell** — `IntersectionObserver` at threshold 0.5, accumulating visible
+  milliseconds; `clamp(dwellMs / 6000, 0, 1)`. This is the honest reading of "看过":
+  a segment that scrolled past in 200 ms was not read.
+- **lengthBand** — script-aware, mirroring the segmenter's own script-aware floor
+  (`dom-processor.js` `minLen`): 8–60 chars for CJK/Hangul/Thai, 40–220 for
+  Latin/Cyrillic. Tapers outside the band rather than cutting hard.
+- **repeat** — `min(1, (seenCount - 1) / 3)`. Meeting the same sentence again is
+  evidence it matters. In practice it only ever *raises* an already-passing score.
+- Noise is removed with judgments that **already exist**: `looksLikeCode()`,
+  `isAlreadyTargetLanguage()`, and the `data-mt-skip-region` marker.
+- **Subtitles** — a sentence counts only if the playhead actually crossed
+  `[start, end]` while the overlay was showing (`playedThrough`). Seeking past a
+  sentence is not watching it.
+
+**These numbers are unvalidated.** They were chosen to have the shape of an FSRS-like
+model, not from evidence. Retuning the gate is cheap forever — it changes only what is
+captured next, never an existing card. Retuning the **scheduler** shifts the due dates
+of cards that already have history, and lowering either **cap** evicts data
+permanently; those two are the ones that get expensive.
+
+---
+
+## 7. 核心约束 — storage is three tiers, and the reason is origin
+
+> *(§7.2 adds the host app, which is a **fourth** origin and therefore a second corpus.
+> The three tiers below describe the extension's, and are unchanged by it.)*
+
+> **A content script's `indexedDB` belongs to the HOST PAGE's origin, not the
+> extension's.** Writing the corpus there would scatter it across every site the user
+> visits and expose it to the page's own scripts. It is not an option.
+>
+> **The service worker cannot be in the path either** — it goes permanently
+> `undefined` on Safari iOS after device lock (`background.js:1-4`, domain-design
+> §5.3.1). Capture, write and drain must all work with a dead SW.
+
+```
+content script  ──write──▶  chrome.storage.local  ──drain──▶  IndexedDB
+(host-page origin)          `lq:` bounded outbox            (chrome-extension:// origin)
+                            one key per page session         the real corpus
+```
+
+1. During a page session the Collector accumulates in memory (`Map<id, draft>`).
+2. On flush (`pagehide`, `mediaKey` change, every 30 s, `disable()`) it writes **one**
+   key: `lq:<sessionId> = Item[]`, and updates `lq:index`.
+3. `lq:index` is capped (40 sessions / ~1.5 MB); the oldest are dropped. Per Collector
+   law 2, **dropping is a normal path**.
+4. Any extension page (review / popup / options) drains the outbox into IndexedDB on
+   open and deletes the keys. Browsers with a living SW also drain there.
+
+Merge on drain: existing `id` ⇒ `seenCount++`, `dwellMs +=`, `lastSeenAt` updated,
+`salience = max(…)`. `text` / `tr` / `anchor` are never overwritten.
+
+**IndexedDB `mt-learn` v2** — `items` (keyPath `id`; indexes `state`, `lang`,
+`createdAt`, `salience`), `sources`, `reviews` (append-only; indexes `itemId`, `at`),
+`meta` (sync cursor, device id, daily-new counter, key material), and `audio` (§9.1's
+speech cache; added in v2). Every `createObjectStore` is guarded by `contains`, so a
+version bump only ever adds.
+
+**Capacity.** Hard cap 20,000 items; eviction order `state='known'` → `salience`
+ascending → `createdAt` ascending. V1 deliberately does **not** request
+`unlimitedStorage` (a new permission affects store review); the cap plus a usage
+readout in settings is the mechanism instead.
+
+> **Pre-existing debt this forces us to fix.** `chrome.storage.local.get(null)`
+> (whole-bucket read) appears in 5 places — `background.js:62,83`, `options.js:148,216`,
+> `popup.js:61`, `content-main.js:12`. With an outbox in the same bucket, every
+> settings read on every page load would drag the outbox along. These must move to
+> explicit key lists before the Collector ships. (`DEFAULT_SETTINGS` has also drifted:
+> `apiModel` and `ytTextColor` are written at runtime but absent from it, and
+> `bilingualMode` is dead.)
+
+---
+
+### 7.1 Storage pressure must be visible — and fixable
+
+Law 2 (§3) requires that anything which stops capture, or discards material already
+collected, is visible **in the learning surfaces**. Concretely there are three
+pressure states, and they are genuinely different:
+
+| State | What actually happens today | What the user is told |
+|---|---|---|
+| **Outbox overflowed** (`lq:` past 40 sessions) | Captures from the oldest page sessions were **lost before ever reaching the corpus** — this is the one that really means "capture stopped". Happens when the user browses a lot but never opens an extension page | 「有采集内容没能存下来」 + how to prevent it (opening the review page drains the outbox) |
+| **Corpus at the cap** (20,000 items) | Capture does **not** stop — the corpus recycles, dropping `known` first, then lowest-salience, then oldest, never a starred card. But material the user collected is being discarded | 「学习库已满，正在自动淘汰旧卡」 + the cleanup action below |
+| **Server quota full** (50 MB, V3) | New card *text* stops uploading; progress keeps syncing (§8.5) | 「已达云端上限」 + cleanup, and this is the one place a paid tier is coherent |
+
+**Two cleanup actions, not one.** 「清空学习库」 (erase everything) already exists but
+is nuclear — it throws away months of scheduling progress to reclaim space. The
+primary action must be **targeted**: drop `state='known'` cards, which are by
+definition the ones the scheduler has decided you no longer need, and never touch a
+starred card or one you are actively learning.
+
+> **核心约束 — do not offer to sell local storage.** The 20,000-item cap is
+> *self-imposed*: it exists so V1 need not request the `unlimitedStorage` permission,
+> which affects store review. Local storage costs the project nothing, so charging
+> for more of it would violate `AGENTS.md` rule 8 on both counts — price only what
+> genuinely cannot be carried, **and** never convert something already shipped free
+> into a paid feature. A paid option
+> may appear **only** against the server quota — a cost that is actually incurred —
+> and only once such a tier exists. Never show an upgrade path to a tier that does
+> not exist.
+
+### 7.2 核心约束 — there are TWO corpora, and only the server joins them
+
+*(2026-08-07, with the host app.)* The three tiers above describe **one** corpus, the
+extension's. The host app has its own, in its own `WKWebView` origin, and **origin is
+the entire reason §7 exists** — the app can no more read the extension's IndexedDB
+than a content script can. There is no shared-container shortcut: see §12 for why the
+native-messaging bridge was rejected on product grounds even though it works.
+
+```
+extension: content script ─▶ lq: outbox ─▶ IndexedDB ─┐
+                                                       ├─▶ §8 sync (the server)
+app:                                    app store ────┘
+```
+
+Three consequences that surprise people, so state them where they will be read:
+
+1. **Same device, still through the server.** On one iPhone, Safari's corpus and the
+   app's corpus meet only via §8.
+2. **The app is empty until you sign in**, and must say so in those words rather than
+   showing an empty deck. The extension's review page is the signed-out path (§8.1).
+3. **The extension owns the upload** — it holds `syncPushedAt` and can therefore tell
+   the user what has and has not reached the server. Nothing else can.
+
+**2026-09-30 — 第三个语料：CLI 的文件库（提案，§9.10）。** CLI 的语料是一个 `mt-learn/1`
+文件，不属于任何浏览器源，也没有 `IndexedDB`。它与上面两份的连接方式仍是 §8.2 既有的
+**导出/导入**：CLI 读扩展 / App 导出的 `.mtlearn`，也能把自己采集的卡片导出回去。这**不是**
+2026-08-07 被否的那条「用导出/导入当扩展↔App 的日常同步」（§12）——那条否的是**替代**同步的
+手动仪式；这里文件只是 CLI 这个无浏览器宿主**唯一可能的本地载体**，而跨设备仍由 §8 服务端承担。
+
+**App 侧凭证（2026-08-08 (二) 放宽，边界如下；同日稍晚扩至语音引擎）。** 此前的
+边界是「翻译引擎 / API key / 自定义端点一律留在浏览器侧」，理由是 App 从不翻译。
+§9.2 的解析改变了后半个前提：App 里的复习面有确实需要用户自备引擎的功能。因此
+App 的设置页**可以**配置：一个 chat 类引擎 + key（供 §9.2 解析与 §9.5 补译文），
+以及一个语音引擎 + key（仅供 §9.1 朗读；引擎表来自 `MT_TTS_ENGINES` 注册表，本地
+优先的排序照旧）—— App 仍然从不采集。三条不放宽的边界（对两把 key 同样成立）：
+
+> **「App 从不翻译」于 2026-08-23 失效，范围严格限定在 §9.5 的补译文。** 这条边界
+> 从 2026-08-08 起就只剩半句成立（那天 §9.2 让 App 有了自己的 chat 引擎），现在另外
+> 半句也让位了：播客模式要在没网的车里播译文，而没有 `tr` 的裸句卡在 App 里无处可补。
+> 让位的**只是那一句话**，不是它守的东西 —— 补译文仍然是**用户按一下按钮才发生**的
+> 显式动作，仍然只发到用户自己配置的端点，而且它产出的译文是**派生物**，与 §9.1 的
+> 音频、§9.2 的解析、§9.3 的题包同一档：设备本地、可重造、**永不同步、永不写进
+> `item.tr`**。`item.tr` 继续只记录「页面当时真的显示了什么」。
+
+1. **凭证是设备本地的，永不同步。** key 不进 chunk、不进服务器 —— §8.6 已裁定
+   服务器无 E2E，把凭证放上去等于把泄露半径从一台设备扩到整个服务端（§12）。
+   换设备重新填一次 key，代价与收益相称。
+2. **配置是可选的，空着不减损其它一切。** 解析的能力门控（§9.2）本来就规定
+   「没引擎 ⇒ 入口不渲染」；App 不配 key 就是这个状态，不是降级。
+> **凭证进 Keychain（2026-08-23 提出，同日评审通过；实现待排期）。** 上面三条讲的是
+> **泄露**半径，没有讲**丢失**。App 的 key 落在 `localStorage`，也就是 WKWebView 的
+> WebsiteData —— 那是一个**系统可以回收**的位置，而且这次真机上出现过一次「升级之后
+> 登录态、两把 key、19 MB 语音缓存全没」（learn-regression M15；同日模拟器的原地覆盖
+> 安装却完好，所以原因未查明）。
+>
+> 代价是**不对称**的，这才是它值得单列的理由：语音缓存丢了只是重新花钱下载，是可再生的
+> 派生物；**key 丢了没有任何地方找得回来** —— 它按设计不上云（第 1 条），用户只能重新去
+> 供应商后台复制一次。一个「每次升级都要重配引擎」的 App，等于把 §9.2 的能力门变成了
+> 一道反复关上的门。
+>
+> **裁定：把凭证与会话移到 Keychain**（跨升级保留、不受 WebsiteData 回收波及），语料与
+> 音频缓存留在 IndexedDB 不动 —— 前者是用户给的、不可再生，后者是我们造的、可再生。
+>
+> 实现上要认一件事：**这需要原生代码**。WKWebView 里的 JS 够不到 Keychain，必须走一个
+> `WKScriptMessageHandler` 桥。本仓库「零手写 Swift」的现状是刻意的（§12，2026-08-17），
+> 但那条约束的真正内容是**不维护独立 Swift 文件**，而不是不碰 Swift —— `app:sync` 已经
+> 在幂等地改 `ViewController.swift`（滚动、媒体手势门、常亮三处）。所以这件事的形状是
+> **第 9 个 app:sync 补丁 + 一个 JS 垫片**，不是新开一棵原生代码树。
+>
+> 迁移必须是**单向且不丢**的：首次读优先 Keychain，回落 `localStorage` 并顺手写回
+> Keychain，然后删掉 `localStorage` 里那份；反过来永不回写。否则一次降级安装就会把明文
+> 那份留在原地，等于既没搬走也多了一处。
+>
+> *（2026-09-19，同日评审通过：）* **第 1 步随系统翻译落地（§9.9）：镜像，不搬家。** iOS 的系统翻译
+> 扩展是另一个进程，读不到 WKWebView 的 `localStorage`，所以宿主 App 把**解析后的**翻译引擎
+> 三元组与 key **单向**抄一份：非机密进 App Group `UserDefaults`，key 进共享 Keychain 组
+> （`kSecAttrAccessibleAfterFirstUnlock`、不进 iCloud 钥匙串）。方向与上面那条规则一致 ——
+> 只有 `localStorage → Keychain`，扩展只读，永不回写。**代价要明说：第 2 步（翻转真源、删掉
+> `localStorage` 那一份）落地之前，key 同时存在于两处。** 现在不做全量迁移的理由：它改的是
+> `chrome.storage` 垫片的读路径，回归面是整个 App，与这次新增的表面无关；另开 issue，不挡路。
+> 真机读数（T1）：扩展里读共享 Keychain `status 0`、值一致；写在 App 这边同样 `status 0`。
+
+3. **存放风险如实陈述**：App 的 `chrome.storage` 垫片背靠 `localStorage`，明文，
+   与扩展侧 `chrome.storage.local` 的现状同级（都不加密）。这不是新增风险面，
+   但设置页的措辞不得暗示比扩展更安全。2026-08-09 起同步会话（`learnAuth`）也在
+   这一层与 API key 并排明文存放（§8.4.1 会话存储位置）—— 同暴露级、无新面，
+   换来的是跨升级不重登。
+
+### 7.3 Eviction and compaction cancel each other out
+
+*(Found 2026-08-07 while reversing §8.5 lever 1; direction decided and both mechanisms
+built the same day.)*
+
+Device A hits the 20,000 cap and evicts 5,000 `known` cards per §7.1. Device B later
+compacts (§8.4): it writes a snapshot **from its own complete corpus** and deletes
+every row below it. A's next pull replays that snapshot and **receives the 5,000 cards
+it just evicted**, putting it straight back over the cap.
+
+It does not loop forever — replayed items carry the `syncedAt` watermark (§8.4.2) so
+they are not pushed back — but **eviction is undone at every compaction**, and the
+user sees 「清理完又满了」. While only cards that had entered the deck were uploaded
+this was years away for a real user; with the candidate pool travelling (§8.5) the cap
+arrives in **two to three months** (§6), so this is now on the normal path.
+
+#### The churn is the mild half. Compaction from an evicting device destroys data.
+
+Reverse the roles. **Device A evicts 5,000 cards and then compacts**: it writes a
+snapshot from a corpus that is now missing those 5,000, and deletes every row below
+it. Nothing else on the server holds them. **They are gone for every device and for
+good** — not churn, not a re-download, permanent loss of material the user never asked
+to delete.
+
+Compaction's licence to delete rests entirely on the snapshot being COMPLETE (§8.4).
+Eviction is precisely the thing that makes a device incomplete. The two features are
+not merely awkward together; **as written, one of them is a data-loss bug in the
+presence of the other**, and eviction went from "years away" to "two to three months"
+when the candidate pool started travelling.
+
+#### 核心约束 — eviction is local pressure, not the user deleting something
+
+This is the sentence that decides the design, and both of the directions this section
+originally floated violate it:
+
+> A device running out of room is a fact about **that device**. It is not a statement
+> about what the corpus should contain, and it must never remove anything from another
+> device or from the server.
+
+- **Eviction propagates (tombstones in the chunk format)** — rejected. It converts
+  "this phone is full" into "delete this everywhere". A user whose phone fills up
+  would silently lose corpus on their laptop. Wrong semantics, and a format change
+  besides.
+- **Snapshots exclude what a device evicted** — rejected. Same wrong semantics,
+  reached by a different route, plus it breaks the completeness property outright.
+
+**Decision (2026-08-07): the server is the ARCHIVE, each device keeps a WORKING SET.**
+Two mechanisms follow, and they are small:
+
+1. **Eviction records a local tombstone, and the tombstone filters the SYNC PULL only.**
+   `chunk.js`'s `replay()` already distinguishes the two callers via `opts.fromServer`
+   (§8.4.2) — the same seam. A tombstoned id is not re-admitted from a chunk, so the
+   churn stops. Tombstones **never sync**; they are per-device by definition.
+   - **Capture always wins.** If the user reads the sentence again, the Collector
+     captures it and the drain re-admits it, tombstone or not. Only the server path is
+     filtered. This preserves law 1's direction of travel and matches §8.4.2's
+     existing split between "a new observation" and "a copy of the same fact".
+   - Reviews arriving for a tombstoned card are **kept**, not dropped — they are 13
+     bytes and they are the user's actual history. See PR #88 for why orphan reviews
+     are already a normal state.
+   - The tombstone set is bounded like everything else here; on overflow the oldest
+     are forgotten and those cards may return once. Degrades to today's behaviour,
+     which is the right direction for a bound to fail in.
+2. **Only a device that can prove its corpus is complete may compact.** In practice a
+   device that has ever evicted cannot prove that, so the workable rule is blunt:
+   **a device that has ever evicted never compacts.**
+   - The gate is an `everEvicted` **latch in `meta`**, deliberately not a read of the
+     tombstone store or of the `evicted` pressure counter. Both of those are erasable
+     — tombstones age out, and `clearPressure` is a user action — and a permission to
+     delete server rows must not come back just because the evidence was tidied away.
+
+**Storage layout** (`store.js`, IndexedDB **v3**): a `tombs` store keyed by item id,
+with an `at` index for aging. Both selection decisions — which items are evicted, and
+which tombstones are forgotten — are pure exported functions (`doomedFor`,
+`staleTombs`) so the suite can assert on them; everything around them is IndexedDB
+plumbing. The v2→v3 migration has its own gate, `npm run test:idb`
+(`verification-spec` §3.1.2), because it is the one change that touches data users
+already have and `npm test` structurally cannot see it.
+
+#### What this costs, stated plainly: the storage bound is not real
+
+Rule 2 has a consequence that has to be said rather than buried. Eviction is on the
+normal path now, so **most active accounts will end up with no device eligible to
+compact** — and §8.5's lever 4, the thing that makes stored bytes *bounded*, stops
+applying to exactly the users who generate the most data.
+
+So the honest position, until something changes:
+
+- Storage follows §8.5's **flow** row: ~3.6 MB/user-year, **unbounded**, reaching the
+  50 MB quota in ~14 years.
+- That is beyond any horizon this project is planning for, so **doing nothing is a
+  legitimate answer** — and it is the current answer. `compact()` has no production
+  caller anyway (§8.5), so nothing regresses.
+- If a bound is ever wanted, the shape that survives this section is **server-side
+  compaction** (a Postgres function over the user's own rows, which by construction
+  sees the complete archive), not a smarter client. Recorded here so the next person
+  does not re-derive the client-side version and re-discover why it deletes data.
+
+### 7.4 核心约束 — 用户删除 ≠ 淘汰：删除是账号级意图，必须传播（2026-08-09）
+
+§7.3 pinned eviction as a fact about one device. A **user-initiated delete** (整站
+清理 in 来源管理, per-card source actions in review) is the opposite kind of fact:
+a statement about what the corpus should contain. It therefore **propagates to every
+device and to the server**, and it must not reuse any part of the eviction path:
+
+> Eviction says "this device is full". User delete says "I don't want this".
+> The first must never leave the device; the second must never stay on it.
+
+Mechanism, all additive to the `mt-learn/1` format (§8.4):
+
+1. **A local delete ledger** — IndexedDB store `dels` `{id, at}` (v5), bounded at
+   20,000 like everything else, aged by the pure `staleDels`. Distinct from `tombs`
+   in every consequence: it syncs, it applies on import, and it **never touches
+   `everEvicted`** — after a user delete, "local minus deleted" *is* the intended
+   archive, so the device keeps its licence to compact.
+2. **A `{t:'d', v:{ids, at}}` row** in the chunk. **Concrete item ids only, never a
+   pattern** — a pattern replayed elsewhere would delete matches the user never saw.
+   Replay applies it on the sync pull **and** on file import (intent travels with
+   the corpus, unlike tombstones), then upserts the ledger with `max(at)`.
+3. **The resolution rule is per item and time-based**: an item dies iff
+   `touchedAt(item) <= del.at`; an incoming card is suppressed iff the ledger holds
+   `del.at >= touchedAt(incoming)`. A card genuinely re-touched *after* the delete
+   (re-read, reviewed elsewhere) wins and re-admits — same direction of travel as
+   §7.3's "capture always wins". The rule is commutative and idempotent over an
+   append-only log ordered by `seq`, so every device converges to the same set
+   regardless of replay interleaving.
+4. **Compaction is how a delete becomes permanent server-side.** Every snapshot part
+   ends with the **full** dels ledger (and the current `g` row, §8.9): the deleted
+   cards and their reviews are simply absent from the snapshot, and the riding
+   ledger heals any device — including an old client that skipped `d` rows before
+   updating — whose cursor was behind the swept rows. A local delete also removes
+   the item's local review rows (privacy intent; keeps `introducedToday` honest);
+   their copies in old server rows vanish at the next compaction.
+5. **Failure directions**, chosen to match §7.3: ledger overflow forgets the oldest
+   deletes and a very stale device may re-introduce those cards once. Old clients
+   count `d`/`g` rows as `skipped` and keep working. Rules read failure at capture
+   time fails **open** (capture proceeds unfiltered) — a genuinely broken storage
+   read also loses `learnEnabled === true`, so the realistic broken state captures
+   nothing rather than capturing wrongly.
+
+UI copy consequence (Gate B, §10): deletion is described as account-wide —
+「删除会同步到所有设备」 — and the 「删了又回来」 case has the explanation "you
+touched it again on another device", not a bug report.
+
+### 7.5 持久性与本地备份（2026-08-09）
+
+「升级后状态还在」不是感觉，是逐面测过的事实表（磁盘取证 2026-08-09，模拟器
+iPhone 17 Pro；重装 = install over-the-top）：
+
+| 面 | 存储 | 跨升级/重装 | 证据 |
+|---|---|---|---|
+| App 设置与 key | localStorage（`mt:*`，file:// origin） | ✅ 存活 | 8-07 出生的 `localstorage.sqlite3` 活过 8-09 重装 |
+| App 语料/会话 | IndexedDB（file:// origin） | ✅ 存活 | 同上；origin 序列化为 `("file","",nil)`，不含容器路径 |
+| 扩展设置与 key | `chrome.storage.local`（bundle id 目录） | ✅ 存活 | key 从未丢过 |
+| **扩展语料（+旧制会话）** | IndexedDB（`safari-web-extension://<UUID>`） | ❌ **UUID 轮换即孤儿** | 同一模拟器两个孤儿桶 |
+
+两条只能文档不能修的边界：**dev 构建的扩展存储目录带 `(UNSIGNED)` 后缀**，与
+TestFlight/商店签名版不同目录 —— 换签名形态必然分桶，属 OS 身份模型；WebKit 把
+IndexedDB Blob 存成文件句柄，容器搬家后句柄悬空（§audio 已用 ArrayBuffer 规避）。
+
+**本地备份（`learn/backup.js`，LearnBackup）** 是对最后一行 ❌ 的救生方案：
+
+- **格式零新增**：就是 `LearnChunk.exportBytes` 的 `mt-learn/1` 字节（含 dels 台账
+  与 learnRules），base64 后存 `chrome.storage.local` 单键 `learnBackup`；小键
+  `learnBackupMeta` 供节流判断，不反序列化大负载。
+- **节奏**：6 小时节流（无备份时必跑），fire-and-forget，空库跳过；体积上限 4MB
+  base64（§8.5 的 2 万条全量 ≈ 1.7MB 压缩，含裕量；不申请 `unlimitedStorage`），
+  超限跳过并记入 `learnBackupMeta.lastError`，在 options 学习区以 pressure 式一行
+  可见 —— 备份失败不是丢失（语料还活着），永不进浏览流。
+- **恢复**：扩展页启动时若语料为空且有备份 ⇒ `importBytes` 重放（幂等、应用 dels、
+  不打 `syncedAt` —— 恢复出的语料会重新上传，顺带治愈服务器），**先于 drain 与
+  进入即同步**：未登录用户由备份兜底，已登录用户随后的 pull 再补齐。
+- **清空守卫**：「清空学习库」在 `clearAll()` 后连带删除备份 —— 用户要的清空不许
+  下次打开还魂。
+- **只在扩展页跑**：App 的 IDB 已实证耐久，而 2–3MB base64 会压垮 shim 的
+  localStorage —— App 侧刻意不装（review.js 以 `typeof LearnBackup` 守卫，共享
+  字节保持 App 安全）。
+- 设置/API key **不进备份**：它们本就在耐久层，双份只添分歧风险，零收益。
+
+## 8. Sync (V3) — hosted, with a fixed free quota
+
+*(Settled 2026-08-04, after two reversals. The design went: our server with E2E →
+the user's own cloud folder → **our server, plaintext, fixed quota**. The middle
+option was dropped because a browser extension has no settable "data directory":
+`showDirectoryPicker` is Chromium-desktop only — not Firefox, not macOS Safari, and
+**impossible on iOS**, where an extension cannot reach the Files app or iCloud Drive.
+A default path that works on one of five matrix rows, and not the primary one, is not
+a default. The reasoning is kept here because it is the kind of thing that looks
+attractive again in six months.)*
+
+### 8.1 The shape
+
+- The corpus syncs to **our server**, as the same append-only chunks. Stored in
+  **plaintext** (§8.4 — the trust answer is that the project is open source and the
+  backend self-hostable, plus §8.2's export).
+- **Every account has a fixed free quota** (currently 50 MB, `AGENTS.md` rule 7),
+  enforced by a database constraint, never by client-side good behaviour.
+- **On reaching it**: stop accepting new card text, keep syncing review progress, say
+  so plainly, and offer cleanup (§8.3). **Never silently drop data.**
+- Sync is **opt-in**. A signed-out user has a complete product; that is rule 2 and it
+  does not bend.
+- **Since 2026-08-07 sync has a second job: it is the only way material reaches the
+  host app** (§7.2). Both sentences have to be said together, and neither may be
+  dropped to make the other sound better:
+  - *Signing in is not required to learn.* The extension's review page is complete
+    without an account, on every browser. That is what keeps rule 2 intact.
+  - *Without signing in, the app has nothing.* Not a degraded app — an empty one.
+    Say it in those words, at the point where a user would otherwise wait for cards
+    that are never coming.
+
+  What an account buys is therefore **multi-device sync and a one-tap surface**, not
+  the feature itself. If that ever inverts, rule 2 has been broken, whatever the
+  release notes say.
+
+### 8.2 核心约束 — export stays, and it is not a nicety
+
+> **A one-action export of everything, and an import that restores it, ship with
+> sync — not after.** Three independent reasons, any one of which is sufficient:
+>
+> 1. **It is the data-portability right** (GDPR Art. 20). We now hold the data, so
+>    this is no longer optional in the way it was when we held nothing.
+> 2. **It is the exit, not a transport.** *(Reworded 2026-08-07.)* This used to read
+>    "it is the no-account path — carry the file between your own devices". That is no
+>    longer what it is for, and leaving the old wording would have quietly made a file
+>    shuttle into the answer for signed-out users.
+> 3. **It is the honest answer to "I don't trust you".** That answer must not be
+>    "self-host Supabase" — realistically nobody will. It is "take your file and go",
+>    and it has to actually work.
+
+**The no-account path is the extension's own review page** (§8.1), not a file. A file
+bridge between the extension and the app was considered and dropped on product
+grounds, not principle: *nobody imports and exports by hand several times a week to
+keep studying.* Building it would satisfy the rule on paper and produce a feature no
+one uses, and a feature no one uses is not compliance — it is decoration. **A rule is
+kept by the path people actually take.**
+
+> **The export used not to match this section, and now does** *(fixed 2026-08-07)*.
+> `chunk.js`'s `build()` filtered through `isGraduated`, and `exportBytes()` goes
+> through that same `build()` — so 「一键导出**全部**」 silently omitted the entire
+> candidate pool for as long as the filter existed. Nobody noticed because the export
+> *worked*: it produced a valid, importable file that was simply missing most of the
+> corpus. Reversing §8.5 lever 1 removed the filter and fixed this in the same edit.
+>
+> The format is the §8.4 chunk format unchanged, so this costs almost nothing to
+> provide and would be indefensible to withhold.
+
+### 8.3 Quota pressure — the third state in §7.1
+
+The server quota is the third of the three pressure states §7.1 already describes,
+and it reuses that machinery: a line in the review page and settings, with a cleanup
+action beside it, never a blocker and never a page-level interruption.
+
+**The quota's real job is anti-abuse, not rationing.** An ordinary account grows at
+~3.6 MB/user-year (§8.5), so 50 MB is **~14 years** of daily use — a normal user will
+not see it. It exists so that free storage with open sign-up does not quietly become a
+file host.
+
+> *(Corrected twice on 2026-08-07, and the second correction matters more than the
+> first.)* This first said 「~0.55 MB/人年 ⇒ 约 90 年」, then 「收敛到 ~2 MB 并停在
+> 那里」 once compaction was framed as a bound. **The second version was wrong for a
+> more interesting reason than the first**: compaction is not something an evicting
+> device may safely do (§7.3), and eviction is now on the normal path — so for exactly
+> the heaviest users, no bound applies. The plain unbounded number is the one that
+> survives contact with §7.3, and it is still comfortable.
+>
+> Worth keeping the shape of the mistake, since it is the sort that repeats: **the
+> second version was more sophisticated than the first and wronger in a way that was
+> harder to see.** 「~0.55 MB/人年 ⇒ 约 90 年」 was merely a stale rate. 「收敛到
+> ~2 MB」 introduced a *bound* by reasoning about a mechanism (compaction) without
+> checking whether that mechanism could actually run — it had no production caller
+> (§8.5) and, once §7.3 was worked through, turned out to be unsafe for most accounts
+> anyway. A number derived from a mechanism is only as true as the mechanism.
+
+So: build the cleanup path properly, but do **not** build an elaborate
+quota-management experience for a state real users will not reach, and do not
+advertise "limited storage" as though it were a constraint they will feel.
+
+Cleanup is the same targeted action as local (§7.1): drop `state='known'` cards —
+what the scheduler itself concluded you no longer need — never a starred card or one
+being actively learned.
+
+### 8.4 Chunk format and transport
+
+```sql
+-- 实际落地的表（2026-08-04）。RLS 开启，策略只有 select / insert / delete。
+bt_chunks (
+  seq        bigint generated always as identity primary key,   -- 服务端分配
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  kind       text not null check (kind in ('cards','reviews','sources')),
+  blob       bytea not null,                                    -- deflate-raw, 未加密
+  generation int  not null default 0,
+  created_at timestamptz not null default now())
+```
+
+**Row kinds are additive (2026-08-09).** The JSONL body carries `{t, v}` rows;
+`fromJsonl` counts an unknown `t` as `skipped` and keeps going, which is what makes
+new kinds a compatible extension rather than a format break. The format stays
+`mt-learn/1` with five kinds: `s` (source), `c` (card), `r` (review), and since
+2026-08-09 `d` (user delete, §7.4) and `g` (governance rules, §8.9). An old client
+skips `d`/`g` rows — it merely lags on deletes/rules until it updates, then heals
+from the next compaction snapshot, which always carries the full ledger (§7.4).
+
+Two deliberate deviations from the earlier sketch, both discovered while applying it:
+
+- **`seq` is server-assigned (`identity`), not `PRIMARY KEY (user_id, seq)` written by
+  the client.** Client-assigned sequence numbers race: two devices pushing at the same
+  moment pick the same next number and one insert fails, or worse, silently wins.
+  Pull semantics are unchanged — `where user_id = auth.uid() and seq > cursor`.
+- **Append-only is enforced by the ABSENCE of an UPDATE policy**, not by client
+  discipline. With RLS on and no UPDATE policy, nothing in the system — including our
+  own client, including a bug in it — can rewrite a chunk that has been written.
+  That is the kind of invariant worth having the database hold rather than a comment.
+
+**Quota is a `BEFORE INSERT` trigger** summing `octet_length(blob)` for that user, and
+it raises rather than truncating — `AGENTS.md` rule 7's "enforced by a database
+constraint, never by client-side good behaviour" plus "never silently drop data". The
+client turns that error into §7.1's pressure state with a cleanup action.
+
+**核心约束 — a push is batched at ~200 cards per chunk** *(promoted from an assumption
+to a rule, and implemented, 2026-08-07)*. §8.5 lever 3 had always described chunks as
+"~200 cards packed together", but `sync.js`'s `push()` built **one** bundle from
+everything fresh and did **one** `insert`. That was harmless while only cards that had
+entered the deck travelled — a few hundred at most. With the candidate pool travelling,
+a user who has been capturing for three months pushes ~20,000 items the first time they
+sign in:
+
+- ~1.7 MB compressed, and PostgREST carries `bytea` as a `\x` hex literal, so the
+  **request body is ~3.4 MB** (§8.4's deliberate 2×-on-the-wire trade).
+- A single failure loses the whole push; there is no partial progress to resume from.
+
+Batching also gives the surfaces something honest to show, which law 2 (§3) requires:
+「已上传 3,400 / 19,800」 rather than one opaque wait.
+
+**`PUSHED` stays all-or-nothing, and that is deliberate.** Advancing it per batch so an
+interrupted push resumes looks obviously right and is a trap: `revs` is selected by
+`at > since`, and **a review can be older than the card carrying it** (a later re-read
+lifts `lastSeenAt`, and `touchedAt` is the max). A partly-advanced watermark would
+therefore step over reviews whose card had not been sent yet — silent, permanent loss,
+in exchange for saving a retransmit. Idempotent replay already makes the whole-push
+retry safe; the cost is bandwidth, and bandwidth is the cheap thing here.
+
+**The same batching applies to compaction**, which writes the entire corpus. Splitting a
+snapshot does not weaken what compaction rests on — "a snapshot supersedes everything
+below it *because* it is complete" is a property of the SET of rows above the deletion
+point, not of there being exactly one row — but **every part must be written before
+anything is deleted**, or a failure part-way leaves a hole with nothing below to
+recover it. Compaction also now **refuses to run from an empty corpus**: the delete is
+justified only by completeness, and a device that has not pulled yet would otherwise
+erase the account's whole history on behalf of the one device that knows the least.
+
+### 8.4.1 核心约束 — this project's identity system belongs to the learning layer
+
+As of 2026-08-04 these tables live **in the champagne project**, distinguished by the
+`bt_` prefix, and **`auth.users` is ours**. That second half is a decision, recorded
+here because it binds the other product:
+
+> Champagne is paused and will not use Supabase Auth. Its three users live in its own
+> Prisma `User` table (`Account` / `Session` / `VerificationToken`) and have never
+> touched GoTrue — `auth.users` was empty when we took it. **If champagne ever needs a
+> Supabase identity system, champagne moves to its own project, not us.**
+
+That is the right way round: we are the only occupant with users under `auth.uid()`,
+and RLS on every one of our tables is written against it. Moving the party that has no
+GoTrue rows costs nothing; moving the party that does costs every user a
+re-registration, because rows can be dumped and moved and auth identities cannot.
+
+**Why the prefix alone could not have settled this.** A prefix namespaces tables; it
+cannot namespace identity, because a Supabase project has exactly one `auth.users`.
+Two products both using it would share one set of email templates, one JWT secret, one
+rate limit, one user list. The decision above removes the second occupant rather than
+trying to partition something that does not partition.
+
+**Replacing GoTrue with a self-hosted framework was considered and rejected** (same
+day) — it would have made this worse, not better:
+
+- Auth.js / NextAuth and friends **need a server to run on**. We do not have one, and
+  §2.1 plus `AGENTS.md` rule 4 make acquiring one a real decision, not a detail.
+- PostgREST validates JWTs against the **project's single JWT secret**, which is also
+  what `auth.uid()` reads. Handing that secret to a second auth service lets it mint
+  valid tokens for the other product's users, and vice versa — promoting an
+  inconvenience into each product holding a master key to the other.
+
+**The client still treats the backend as replaceable.** `learn/auth.js` exposes exactly
+`signIn / verify / token / signOut / deleteAccount / startProviderSignIn /
+completeProviderSignIn / signInWithIdToken` and is the only module that knows what
+GoTrue is; `learn/sync.js` speaks PostgREST and never learns how the token was
+obtained. Changing provider — or moving to a dedicated project — is a one-file change
+with the sync path untouched. `signIn` / `verify` take **an email or a phone number**
+(§8.4.1.2); every route lands on the same `sessionFrom()`, which is why `learnUserId`,
+`bindCorpus` and the ownerGate never learn how the user got in.
+
+**Setup consequence, easy to lose:** email sign-in is a **6-digit code**, not a magic
+link. The provider's email template must therefore render `{{ .Token }}`; the stock
+template sends a link, and a link cannot be completed from inside an extension.
+
+> **这条理由的前提在 2026-09-03 变了，如实记下来。** 原文写的是「一个链接需要一个
+> 我们自己托管的页面去接住跳转，**而我们什么都不托管**」。今天我们托管
+> `belliedmonkey.cc` / `belliedmonkey.com`，而且内容脚本已经跑在上面
+> （`content-main.js` 的 `MT_SITES` 交接块）。所以 OAuth 现在办得到 —— 见 §8.4.1.2。
+>
+> **但 magic link 仍然不做**，理由换了一条更硬的：magic link 把**会话**放进 URL，
+> 而 URL 会经过内容脚本、浏览历史、可能还有转发。PKCE 的 `code` 不是会话 ——
+> 没有只存在扩展这边的 `code_verifier`，它兑换不出任何东西。区别不是「链接 vs 验证码」，
+> 是**跨界的那个东西本身值不值钱**。
+
+#### 会话存储位置 — `chrome.storage.local`（2026-08-09，取代旧裁定）
+
+会话（`{accessToken, refreshToken, expiresAt, email, userId}`）存 **`chrome.storage.local`
+键 `learnAuth`**，不再存 IndexedDB `meta['auth']`。这推翻了 auth.js 原头注「特意放
+IDB，因为内容脚本读得到 storage.local」的理由，依据是磁盘取证（2026-08-09）：
+
+> Safari 给扩展页的 origin 是 `safari-web-extension://<随机UUID>`，**重装/换签名时
+> 轮换** —— 装着语料与会话的 IndexedDB 整桶变孤儿，无迁移无报错（同一台模拟器上
+> 找到两个孤儿桶实证）。而 `chrome.storage.local` 落在**按扩展 bundle id 命名**的
+> 目录里，跨升级存活 —— API key 从来没丢过，正是因为它在这一层。
+> 「每次升级都要重新登录」的结构性根因就是会话放错了层。
+
+暴露面权衡，如实陈述：内容脚本理论上可读 `chrome.storage.local`，但本仓库的内容
+脚本**只读显式键列表**（`content-main.js` SETTINGS_KEYS，§7 的既有纪律），
+**`learnAuth` 永不加入任何 SETTINGS_KEYS / POPUP_KEYS**。页面自身的脚本在隔离世界
+之外，本就读不到扩展存储。净效果：会话与 API key 同层同暴露级（§7.2 第 3 条的
+风险陈述本来就覆盖明文存储），换来跨升级不重登。
+
+迁移语义（读穿式，一次性）：`load()` 先读 `learnAuth`；没有时读 legacy
+`meta['auth']`；读到则采用并回写 `learnAuth`，**回写成功后**才清空 legacy（清除
+失败留双份无害 —— 读序上 storage.local 优先，下会话重试清除）。已被 UUID 轮换
+孤儿化的旧桶自然迁移落空 = **最后一次重新登录**，此后不再发生。
+
+判死收紧（同日同因修复）：刷新令牌只在**确定性拒绝**（400/401 且带 GoTrue 错误体）
+时清会话；离线、5xx、无 body 的 4xx 一律重试一次后抛出而**不登出** —— 离线永远
+不是登出理由。存储读取失败也不是「未登录」：`load()` 失败不闩定、下次重试，界面
+按 §7 的 page-settings 事故准则显示「存储读取失败」，绝不静默画成登出态。
+
+#### 密码登录 — 同一提供方的第二种 grant（2026-08-17）
+
+App 审核要求提供 username+password 演示账号，而纯 OTP 流程给不出（验证码落在
+审核员没有的邮箱里）。`LearnAuth.signInPassword(email, password)` 走 GoTrue 的
+`token?grant_type=password`——**同一个身份提供方、同一个会话形状、同一条存储
+路径**，`sync.js` 依旧不知道令牌怎么来的。边界刻意收窄：产品内**没有**「设置
+密码」的面，OTP 仍是每个真实用户走的路径；密码登录只接受服务端已设过密码的
+账号（当前即审核演示账号）。App 登录页提供「使用密码登录」切换（验证码为默认），
+`invalid_credentials` 具名映射为「邮箱或密码不对」。若将来开放用户自设密码，
+需补：设置面、强度要求、忘记密码流程——那是一个独立决定，别顺手做。
+
+### 8.4.1.1 跨面交接：唯一允许离开这一层的身份，是不透明的 userId（2026-09-02，用户裁定）
+
+§7.2 定的是「两份语料，只有服务器把它们连起来」。这一节开一个**窄口子**：两个面之间
+允许有一条**本地**通道，且它**只能传身份，不能传任何语料、任何凭证**。
+
+**为什么要开。** 用户在扩展里翻译、采集、登录之后，产品的下一步在 App 里。而在这之前
+那一步是断的：扩展没有办法唤起 App；更糟的是，两边登了不同账号时**没有任何一侧发现得了**
+—— App 拉到 0 行，然后显示「先在浏览器里采集一些」，反过来指责一个已经采集了一周的人
+（2026-09-01 探查记录）。要让任何一侧发现它，就必须有一个两边都认得的值跨过去。
+
+**跨过去的是什么，以及为什么不是别的：**
+
+| 候选 | 裁定 |
+|---|---|
+| 会话（`learnAuth`） | **永不**。里面有 access / refresh token，泄露半径是整个账号。它继续不进任何 SETTINGS_KEYS。 |
+| 邮箱 | 不传。它是可读的个人标识，而自定义 scheme 可被别的 App 抢注 —— 收益（登录界面能预填）撑不起这个代价。 |
+| **`userId`** | **传这个。** 不透明、对第三方无意义，而它恰好是**唯一**需要的东西：两边比一下相不相等。 |
+
+**实现上的一条硬规矩：`userId` 与会话分开存。** `auth.js` 在写会话的同时写一个独立的
+`learnUserId` 键，内容脚本只读它。把 `learnAuth` 整个放进内容脚本可读的键列表是**另一件
+事**，那件事仍然禁止 —— 这里放宽的是「一个不透明 id」，不是「会话」。
+
+**通道形状：**
+
+- App 注册自定义 scheme，两个 flavor 各一个（`belliedmonkey://` / `belliedmonkeycn://`）。
+  同名会让两版同时在场时由 iOS 随机挑一个，而「跑的是哪一份」没有确定答案正是
+  `verification-spec.md` §2.0 已经付过代价的那件事。
+- 扩展打开 `…://review?uid=<userId>`；扩展未登录时**不带** `uid`（不带 ≠ 空串：
+  「没登录」与「登录了但 id 读不出来」必须能分开）。
+- App 收到之后三支，每一支都必须说得出**事实**而不是猜测：
+  - App 未登录 → 引导登录，并说明扩展那边已经登录了，请用同一个账号；
+  - 两边 id 相同 → 直接进复习，并强制同步一次；
+  - 两边 id 不同 → 拦下来，如实说两边不是同一个账号，给两个动作
+    （退出并换成扩展那个账号 / 保持当前）。**不许自动切换** ——
+    §8.4.3 的归属闸告诉过我们，账号切换会把一份语料推进另一个账号的云端。
+
+**这条通道不改变 §7.2。** 语料仍然只经服务器相遇；这里传的东西不构成任何语料，
+也不足以代表用户去调用任何接口。
+
+**第二样允许跨界的东西：PKCE 的一次性 code（2026-09-03）。** 第三方登录的回调落在
+我们自己的站点上，取值的是内容脚本 —— 所以要问同一个问题：跨过去的那个东西值多少钱。
+
+判据是**它单独不可兑换**：换 session 还需要 `code_verifier`，而 verifier 只存在扩展
+的 `chrome.storage.local['learnAuthPkce']` 里，从不离开扩展页。所以跨界的是一张
+**一次性、短命、无 verifier 即废**的票，不是钥匙。三条硬性要求：
+
+- 内容脚本**只取 `code` 与 `state` 两个查询参数**，不读响应体、不发任何请求；
+- 兑换只发生在扩展页（设置页），**不经 background** —— Safari iOS 锁屏后 service
+  worker 永久 undefined，`chrome.runtime.sendMessage` 会静默失败（CLAUDE.md 头号约束）；
+- `state` 不符即整条流程停住，且不发网络请求。
+
+**会话仍然永不跨界。** 这里放宽的是「一张换不出东西的票」，与 `userId` 同级；
+把 `learnAuth` 放进内容脚本可读的键列表，仍然是禁止的。
+
+### 8.4.1.2 登录方式：Apple + Google（全球）· 手机号短信（中国）（2026-09-03）
+
+用户问「为各地区准备最常见的登录方式」时列的是 Google / 微信 / WhatsApp / Instagram。
+调研之后，清单里有一半不成立 —— **把裁定连同真因写下来，免得下次再调研一遍**：
+
+| 候选 | 裁定 | 真因 |
+|---|---|---|
+| WhatsApp | **不存在** | 没有面向消费者的 OAuth「用 WhatsApp 登录」。所谓 WhatsApp Login 是**用 WhatsApp 发 OTP**（Business Platform，模板需审核、按条计费）—— 一条发送通道，不是身份提供方 |
+| Instagram | **不可用** | Basic Display API 2024-12-04 关停；替代品要 Creator/Business 账号，且面向内容读取 |
+| 微信 | **卡在主体** | 开放平台网站/移动应用需企业或个体工商户营业执照 + ￥300 资质认证；Supabase 无内置，且微信不是合规 OIDC（返回 openid/unionid），要自建 Edge Function 交换 |
+| **手机号 + 短信** | **做** | 覆盖同一批中国用户，且**不用等主体** |
+| **Google** | **做** | Supabase 内置，零第三方资质 |
+| **Sign in with Apple** | **做，且被强制** | 苹果 4.8：一旦提供任何第三方登录，App 必须同时提供等效的隐私保护登录 |
+
+> **今天我们是豁免的**：只用自家邮箱账号体系不触发 4.8。加 Google 的那一刻起，
+> Sign in with Apple 从「可选」变成「必须」—— 这两件事绑在一起，不能分期做。
+
+**扩展侧一条流程覆盖三个浏览器**：托管回调 + PKCE（§8.4.1.1 的第二条跨界裁定）。
+不用 `chrome.identity.launchWebAuthFlow`，两个原因都是硬的：Safari 上它不工作；而
+Safari 扩展的 `safari-web-extension://<UUID>` 源**每次重装都轮换**（同 §8.4.1 会话
+搬家那条依据），根本没法登记成固定回调地址。
+
+**App 侧走原生**：Sign in with Apple 用 `ASAuthorization`，Google 用
+`ASWebAuthenticationSession`（Google 禁止在内嵌 WebView 里跑 OAuth）。App 也必须有
+Google —— 在扩展里用 Google 建的账号必须能在 App 登进同一个账号，否则跨设备同步对
+这批人是断的，而那是登录存在的唯一理由。
+
+**手机号为什么选阿里云号码认证服务(PNVS)，不是短信服务(SMS)**：后者的验证码短信
+**明确要求企业资质**，前者**个人开发者免资质** —— 只要个人实名认证，不需要 ICP 备案、
+不需要签名报备、不需要模板申请。代价照实说：签名与模板系统赠送不可自定义，且
+**只发中国大陆号码（+86）**。海外用户继续走邮箱；装作支持全球会在用户输完号码之后
+才失败，那比不提供更糟。发送侧：Supabase 的 Send SMS Hook → 我们的 Edge Function
+→ PNVS。**防刷不是可选项** —— 短信按条计费而这是免费产品。
+
+**手机号戳破的一条既有假设：`session.email` 不再必然存在。** 手机号用户没有邮箱，
+所有渲染 `session.email` 的地方都要落到 `email || phone`。这是跨三个面的显示口径，
+不是一处 if；漏掉一处的表现是「登录成功却显示空白」。
+
+**身份合并 —— 这条链上最容易伤到老用户的地方。** Supabase 默认按**已验证邮箱**自动
+并号（未验证不并，防 pre-account-takeover），所以「先邮箱、后 Google、同一邮箱」是
+同一个 userId，ownerGate 照旧通过。但**两种情况必然造出第二个账号**：
+
+1. Apple 的「隐藏我的邮箱」给 `xxx@privaterelay.appleid.com`，与原邮箱不同；
+2. 手机号不参与邮箱维度的合并。
+
+两种都会在 §8.4.3 的归属闸上撞出 `owner_mismatch`。**那一刻不许甩一个错误码给用户** ——
+要说清楚「这台设备上的学习库属于另一个账号」，给两个出口（换回原账号 / 只用新账号
+从头开始），并且**永远不自动切换**（§8.4.1.1 已有的裁定）。
+
+#### 服务端那一侧要配什么（2026-09-03 实配一遍之后记下来的）
+
+代码只占一半。另一半在三个控制台里，**它们出错的样子都不像登录出错**，所以逐条写下来。
+
+**Supabase → Authentication**
+
+| 项 | 值 | 配错时的样子 |
+|---|---|---|
+| Providers → Apple → Client IDs | `<Services ID>, <bundle id>, <bundle id .cn>`，**Services ID 必须排第一** | 顺序反了：网页流程拿 bundle id 去跑，Apple 拒 |
+| Providers → Apple → Secret Key | `node scripts/apple-client-secret.js` 生成的 JWT，**六个月过期** | 到期后**只坏一半**：扩展登录失败而 App 正常（原生走 id_token，不用 secret）。门禁会在剩 30 天时红 |
+| Providers → Google | Google Cloud 的 Web OAuth client id/secret | — |
+| URL Configuration → Redirect URLs | `https://belliedmonkey.cc/auth/done.html`、`https://belliedmonkey.com/auth/done.html`、`belliedmonkey://auth`、`belliedmonkeycn://auth` | **精确匹配**。不匹配就回退到 Site URL |
+| URL Configuration → **Site URL** | `https://belliedmonkey.cc` | 默认是 `http://localhost:3000`。留着它，**任何一次回跳地址写错都会长成「Safari 无法连接服务器」** —— 与登录二字毫无关系，查不出真因。改成自己的站，至少一眼看得出是回跳的问题 |
+
+**Apple Developer**
+
+- App ID 要先勾 Sign in with Apple（否则 Services ID 的 Primary App ID 下拉是空的）
+- Services ID → Configure：Domains 填 `<project>.supabase.co`，Return URL 填
+  `https://<project>.supabase.co/auth/v1/callback`。**不是**我们自己的站 ——
+  我们那个登记在 Supabase 的 Redirect URLs 里，两处填反是最常见的卡点
+- Key → Configure 只选 Primary App ID，**没有 URL 字段**
+
+**Google Cloud**
+
+- Web 类型的 OAuth client，redirect URI 只需
+  `https://<project>.supabase.co/auth/v1/callback`
+
+> **回跳地址永远不许带查询串。** 曾经往 `redirect_to` 上拼过 `?st=<state>`，白名单
+> 当场不匹配，用户落到 `localhost:3000/?code=…`。绑定由 PKCE 的 verifier 承担，
+> state 那一圈是多余的（test/learn-auth.test.js 钉住了这条）。
+
+### 8.4.2 核心约束 — 合并有两种语义，混淆它们就是数据损坏
+
+**2026-08-06 两台真实设备打真实后端跑完整闭环时定下的。** 三条缺陷同源：把
+「同一条卡的两次合并」当成了一回事。它们不是。
+
+| 语义 | 谁触发 | dwellMs / seenCount |
+|---|---|---|
+| **新的观察** | 采集器：这段文字被又读了一次 | **相加**——那是两份独立证据 |
+| **同一事实的副本** | 同步重放、文件导入 | **取 max**——同一批经历的拷贝 |
+
+同步会例行地重放**自己**推上去的块（拉取游标不跳过自己写的行），所以相加式合并
+会让每一轮同步都把累加量放大。实测：一次重放之后同一条卡的 dwellMs 在两台设备上
+是 2639657 对 220812。`sync.js` 压缩逻辑旁边那句「Idempotent replay is what makes
+that a non-event rather than a corruption」写的正是这条要求，而代码原本不满足它。
+
+**排程按 `lastReviewAt` 取较新的一方。** 在此之前 `sched` 根本不在 `mergeItem` 的
+覆盖列表里，本地排程永远赢：两台设备都有这张卡之后，在 A 上复习完，B 上那张卡照旧
+到期。复习日志同步了、排程没同步——而这恰好是多设备学习唯一必须做对的事。
+
+**拉下来的东西不许再推回去。** 重放时给条目盖 `syncedAt` 水印（复习记录则是
+`viaSync`），push 只发 `touchedAt > max(PUSHED, syncedAt)` 的东西。没有这道闸门时，
+新设备的 PUSHED 是 0，于是它拉完整份语料之后**立刻把整份推回服务器**——用户为同一
+份数据在 50 MB 配额里付两次钱，25 MB 的库加一台设备就直接顶满。水印**只在同步路径
+盖，不在文件导入路径盖**：导入的语料本来就该上传，盖了会被静默地永远挡在本地。
+
+验收判据是**收敛**：无任何用户活动时，连续多轮双向同步必须稳定在「收到 0 · 上传
+0」。这条比任何单点断言都难糊弄——回声、非幂等累加、水位算错，都会让它一直不为零。
+
+### 8.4.3 核心约束 — 语料属于账号，而不属于设备
+
+**2026-08-31，真机 1.7.0 build 52 实证。** 同一台 iPhone 上用 A 登录看到
+2999 / 147 / 153 / 2846，退出后用一个**全新账号** B 登录，四个数一模一样。
+
+原因是本地库从一开始就没有账号维度：`store.js` 的 `DB_NAME` 是硬编码常量，
+`auth.js` 早就把 `userId` 存进了会话却**从没有任何地方读它**。而
+`signOut()` 只删会话 key、按设计保留语料 —— 那条设计（「Signing out is not a
+reason to lose what you learned」）只考虑过「同一个人退出再登回来」，从没考虑过
+「换成另一个人」。
+
+显示错只是表象。**真正的损害是旧账号的语料会被推进新账号的云端**：`push()` 的
+挡板是 `t > (it.syncedAt || 0)`，而 `syncedAt` 只在**拉取**路径盖章，所以本机
+自采的卡对它完全免疫。走扩展设置页退出（会跑 `forget()`，`since = 0`）就是
+**整库上传**；走 App 退出则是评一张推一张的渐进污染。`dels` 与 `learnRules`
+连 `syncedAt` 孪生字段都没有，而 `learnRules.block` 装的是用户屏蔽过的站点，
+是隐私面。
+
+#### 存储模型：主库不搬家
+
+- **`mt-learn` 是主库**，归**第一个登录的账号**所有。未认领的（今天世界上每一台
+  设备）在首次登录时被认领 —— 所以升级**不拷贝、不迁移、不移动任何字节**，
+  现有用户读到的语料逐字节不变。
+- **只有「另一个账号」才新建 `mt-learn-<userId>`。** 单账号设备永远只有一个库，
+  不存在存储放大。
+- 解析规则住在 `chrome.storage.local` 的两个键：`learnDbOwner`（拥有主库的
+  userId）与 `learnActiveDb`（当前选中的库名）。策略在 `auth.js` 的
+  `bindCorpus()`，机制在 `store.js` 的 `useDb()` —— **store 不认识账号这个概念**。
+- **退出登录不切库。** 「退出不该让你失去学到的东西」这条立场原样成立；而且退出
+  B 之后露出 A 的语料，是从另一侧破坏同一个承诺。
+- **绑定不许需要数据库。** `bindCorpus()` 直接读会话键，不走 `load()` —— 后者带着
+  2026-08-09 之前的遗留迁移，会打开 IndexedDB。写成那样时它死锁过：绑定成了第一个
+  打开库的人，撞上尚未关闭的连接，复习页整页停死且什么都不说。
+
+#### 后端换了：主库跟着第一个登录的人走（2026-09-22）
+
+**起因**：中国版 1.15.0 把同步从东京切到境内（`backend.config.js` 的 `china.ready`）。模拟器实测老用户
+升级 → 回到登录卡 → 用**同一个邮箱**在境内登录：境内签出的 userId 与东京那个不同，上面那张表把它判成
+「另一个账号」，给了一个新的空库 —— 首页「总计 0」，本机 4660 张卡还在 `mt-learn` 里，却**再也看不到**：
+东京账号已经登不上，退出也不切回主库。用户裁定：「留在本机并上传到国内」。
+
+**规则**：主库的归属是 **(userId, 认领时的后端地址)** 这一对，不只是 userId。
+
+- 新键 `learnDbOwnerBackend`：认领主库时写下 `MT_BACKEND.url`。
+- 没有这个键的设备（1.15.0 之前认领的，今天的每一台）按「**本构建之前**的后端」算：切过后端的产物里
+  构建写入 `MT_BACKEND.previousUrl`（中国版 = 东京），没切过的产物没有这一项，就等于当前后端 —— 国际版
+  行为逐字不变。
+- 登录时若主库的认领后端 ≠ 当前后端：**两个后端的 userId 不可比**，「是不是同一个人」这个问题在这里没有
+  答案，所以不走 `owner_mismatch` 那条保护，而是**由这次登录的账号接管主库**（改写 owner 与 backend，
+  选中主库），并写一个待办标记 `learnRehome`。
+- `bindCorpus()` 不开数据库（上面那条死锁纪律），所以库内的清账挪到 `ownerGate()` —— 它本来就在读任何
+  本地素材之前开库。它消费 `learnRehome`：清 `corpusOwner`（随后照常认领为新账号）、`syncCursor`、
+  `syncPushedAt`，并**抹掉所有卡的 `syncedAt` 与复习记录的 `viaSync`** —— 否则从旧后端拉下来的卡带着
+  「已同步」的戳，永远不会被推上新后端。下一次推送 = 整库上传（受 50 MB 配额约束，超了照常报 `quota`）。
+
+**为什么这不违反「不迁移」**：用户的裁定是**服务器之间**不搬数据（东京库不导出、不导入境内）。这里的字节
+从用户自己的手机直接传到境内服务器，由他本人的一次登录触发，不经过东京 —— 和他在新手机上采集后同步是同一
+条路。
+
+**只动主库**：设备上若还有东京时代的第二个账号库（`mt-learn-<旧 userId>`），不接管、不删除。那是「同一台设备
+登过两个东京账号」的人，极少；强行合并反而会把两个人的语料推进同一个境内账号。
+
+**判据**（`test/learn-sync.test.js` 与模拟器）：老设备升级后在新后端登录 ⇒ 首页计数与升级前逐字相同；
+第一次同步的推送包含全部卡；再同步一次上传 0（收敛）；国际版产物（无 `previousUrl`）同一流程什么都不变。
+
+#### 归属闸：不变量在数据层，不在 UI
+
+`meta.corpusOwner` + `sync.js` 的 `ownerGate()`，插在 `push()` / `pull()` /
+`compact()` 三处，都在**读取任何本地素材之前**。
+
+| `corpusOwner` | 当前 userId | 动作 |
+|---|---|---|
+| 无 | 无 | 放行，**不认领**（今天的行为；中国版扩展永远走这一行） |
+| 无 | 有 | **认领**后放行（每台升级设备一次） |
+| 有 | 无 | 拒绝 `owner_unknown`（fail-closed） |
+| 有 | 相同 | 放行 |
+| 有 | 不同 | 拒绝 `owner_mismatch` |
+
+**为什么分库之后还要闸**：分库解决「看到谁的数据」，不解决「登录成功」与
+「切库完成」之间那个窗口，而 `visibilitychange` / `online` 都会打后台同步，全仓
+已有六个 push 触发点。把不变量放 UI 一定会漏 —— 证据就在本仓库里：App 的退出路径
+写着要调 `forget()`，而它从来没调过。
+
+第三行选 fail-closed 而不是 fail-open：`userId` 从 sync 落地的第一个提交起就在
+会话里，这一行现实中不可达，所以选严零成本。（对比 §7.4.5 `userDels` 的
+fail-open —— 那里是一个可能损坏的账本，这里是身份，方向相反。）
+
+**次级语料不上传认领之前写下的 `learnRules`**：规则住在 `chrome.storage`，不随
+语料分库。主库上传它是对的（同一个人一直在用这台设备）；次级语料上传它，等于把
+上一个使用者的屏蔽列表交给这个账号。
+
+#### 承认一个一次性盲区
+
+升级之后、在**从未打开过任何学习面**的情况下直接退出旧号登新号的用户，没有任何
+证据可以回填旧归属，主库会被新账号认领 —— 也就是**重演一次这个 bug，仅此一次、
+仅在这个窗口内**。`syncPushedAt > 0` 只能证明「这份语料被某个账号推过」，证明不了
+是哪个，所以它给不出比认领更强的判断。不假装解决了。
+
+#### 判据
+
+- `test/learn-sync.test.js` 的「归属闸」一组：五行真值表 + 四条「必须不发生」。
+  判据一律是**零请求**（`fetchFn.calls.length === 0`）而不是「上传了 0 张卡」，
+  并断言 `syncPushedAt` **没被推进** —— 一次推进了水位线的拒绝等于静默丢素材。
+- `npm run test:idb` 第二幕：从零建一个 `mt-learn-<uid>`，断言八个 store 与四个
+  索引全部建出（`contains` 守卫在这条路上是唯一被执行的分支），且**主库一寸未动**。
+
+### 8.5 Storage cost — three levers (one reversed), and the estimate rule 9 requires
+
+**Assumptions.** Capture runs at ~125/day (§6's measured 100–150) ⇒ ~45,000
+captures per user-year; the corpus is hard-capped at 20,000 items, so it turns over
+~2.3× a year. A card's `text` + `tr` is ~220 B of plaintext. `dailyNew = 15` ⇒ ~5,000
+cards enter the deck per user-year, each accruing ~8 reviews at ~13 B. ~30 cards come
+from one page ⇒ ~1,500 sources a year at ~160 B.
+
+| Lever | What it does | Saves |
+|---|---|---|
+| ~~**1 — sync only cards that entered the deck**~~ | **REVERSED 2026-08-07 — see below.** The candidate pool now travels | ~~~10×~~ |
+| **2 — normalize the source** | URL + title is ~160 B, nearly half a card. A `Source` row is shared by every card from the same page (~30 for an article) | 160 B → ~5 B |
+| **3 — compress in batches** | Compressing one short sentence is near-useless, so ~200 cards are packed into one immutable chunk and compressed together. Mixed CJK/Latin batches at ~3× | ~3× |
+| **4 — append-only + whole-snapshot compaction** | Chunks are only appended. Past a threshold the client pulls everything, rewrites one snapshot chunk, deletes the superseded ones. **No incremental merge machinery** — the local corpus is hard-capped at 20,000 items, so a whole rewrite is affordable | 5,000 rows → ~25 |
+
+#### Why lever 1 was reversed
+
+**A card only enters the deck by being reviewed.** Lever 1's own justification — "the
+candidate pool *should* be a product of what you read on this device, while cards you
+have started learning *should* follow you" — quietly assumed the deck and the corpus
+live on the same device. With the host app (§7.2) they do not, and the assumption
+becomes a deadlock:
+
+> Someone who wants to study in the app will not first go and study in the browser.
+> So nothing enters their deck → nothing is uploaded → **the app stays empty forever**
+> and they never get a first card. The extension meanwhile reports 「同步成功 ·
+> 上传 0 张」, which is the worst possible shape: correct, cheerful, and useless.
+
+Uploading the candidate pool is the only thing that breaks the cycle. The cost of
+doing so is below; it is real but it is not close to a limit.
+
+#### The estimate rule 9 requires
+
+**Written per user-year** (bandwidth, and what the quota trigger sees):
+
+| | Raw | Compressed |
+|---|---|---|
+| Captures 45,000 × 220 B | 9.9 MB | **~3.3 MB** |
+| Review log 40,000 × 13 B | 520 KB | ~173 KB |
+| Sources ~1,500 × 160 B | 240 KB | ~80 KB |
+| **Per user-year** | ~10.7 MB | **~3.6 MB** |
+
+**Stored, if lever 4 ever applies** — read the caveat below before using this table;
+for an account whose devices evict, it does not apply at all (§7.3). Lever 4 sweeps
+every superseded row, and the local corpus cannot exceed 20,000 items, so an account
+converges rather than growing:
+
+| | Compressed |
+|---|---|
+| Snapshot: 20,000 cards | ~1.47 MB |
+| + review log, + ~700 sources | ~0.21 MB |
+| + up to `COMPACT_AT` (40) increment chunks | ~0.36 MB |
+| **Steady state per account** | **~2.1 MB** |
+
+So: ~6.5× the old flow figure. **For planning, use the flow row** — ~3.6 MB/user-year,
+i.e. the 50 MB quota in ~14 years, and Supabase's free 500 MB holding roughly **140
+account-years** of active use (the 8 GB paid tier ~2,300). The ~2.1 MB ceiling applies
+only to an account no device of which has ever evicted, which §7.3 shows is not the
+common case.
+
+> **The bound is conditional, and the condition is not met today** *(found
+> 2026-08-07 while implementing the batching)*. Every "stored is bounded" claim above
+> rests on lever 4, and **`LearnSync.compact()` has no production caller** — it is
+> reachable only from the test suite. Nothing schedules it, and `sync()` does not call
+> it. Until something does, storage follows the *flow* row (~3.6 MB/user-year,
+> unbounded), not the ceiling: an account reaches the 50 MB quota in roughly **14
+> years** rather than never.
+>
+> That is still not a number a real user meets, so this is not urgent — but it is the
+> difference between a designed bound and an accident, and the cost model must not be
+> read as describing behaviour that no code performs.
+>
+> **Do not treat this as a gap waiting to be closed by scheduling `compact()`.** §7.3
+> settled the eviction conflict the same day and the answer runs the other way: a
+> device that has evicted cannot write a complete snapshot, and letting it compact
+> would **permanently delete** the material it evicted, for every device. Since
+> eviction is now on the normal path, most active accounts will have no device
+> eligible to compact at all. **Lever 4 therefore does not apply to the users who
+> generate the most data, and the honest number for them is the flow row.** If a bound
+> is ever wanted it has to be *server-side* compaction (§7.3), not a client that has
+> been made cleverer.
+
+**What the server never stores**: audio, video, images, screenshots, and full page
+text. Media is a pointer only — `mediaKey` plus start/end offsets, ~20 bytes.
+
+> **The candidate pool used to be on that list.** It is not any more, and that is a
+> privacy change, not a billing one — it is the difference between "the sentences you
+> chose to study" and "everything you read". §8.6 is re-argued against the wider
+> dataset; do not treat this as a line-item edit.
+
+### 8.6 No end-to-end encryption — decided 2026-08-04, with the door held open
+
+**What is actually stored is not "some sentences" — it is a reading history.** A chunk
+carries the sentences and translations, the **source table (URL + title)**, and the
+review log (card id, grade, **timestamp**). Together those reconstruct which pages a
+person read, when, and which sentences they keep forgetting. The sensitive column is
+the URL, not the prose. Any argument about this data that reasons about "just text"
+is reasoning about the wrong object.
+
+#### Re-argued 2026-08-07, because the dataset got much wider
+
+This section was decided when only cards that had entered the deck were uploaded —
+~5,000 a year, **selected by the user**. Since §8.5 lever 1 was reversed, what leaves
+the device is the candidate pool: by §6's own description, **everything you actually
+read** — every in-band segment you looked at for 2.5 seconds — at ~45,000 a year, with
+URL, title and timestamp.
+
+The difference is a change of kind, not of volume:
+
+| | Before | Now |
+|---|---|---|
+| Granularity | pages you studied from | **paragraphs you read** |
+| Selection | you chose them | the junk filter kept them |
+| Reconstructs | a study record | **a reading history, near-complete** |
+
+**The decision does not change, and the reasons it does not are the same ones:** key
+management would fall hardest on the users least able to carry it (§2 普惠), a lost key
+is unrecoverable, and E2E is mutually exclusive with §2.1. None of that is affected by
+the corpus getting wider.
+
+**What does change is what we owe the user, and it changes in three places:**
+
+1. **The disclosure must name the real thing.** Not "the sentences you're studying" —
+   **"every sentence you read on a page you translated, in readable form on our
+   servers"**. §10 Gate B is rewritten accordingly. A disclosure calibrated to the
+   narrower dataset is now inaccurate, and it is inaccurate in our favour, which is
+   the kind that costs trust when someone notices.
+2. **§8.7's obligations get sharper, not merely restated** — deletion, retention and
+   breach notification now cover a reading history rather than a flashcard deck.
+3. **The case for optional E2E is materially stronger than it was**, and the `enc`
+   door (below) is now the most valuable thing in this section rather than a hedge.
+   This does not make it ship; it makes it the first thing to revisit.
+
+**Decision: no E2E for now; optional E2E later; the format door is open today.**
+
+What E2E would buy, stated honestly because it is not nothing:
+
+- A dump of the database becomes noise instead of every user's reading history.
+- **It takes us out of the trust chain — which "open source" does not.** Open source
+  proves the CLIENT is honest: anyone can read it and confirm what it uploads. It says
+  nothing about what runs on our server, which we can change unobserved. And
+  self-hosting is not a real option for ~all users; it means running a Supabase. The
+  relationship is the other way round from how §8.6 used to put it: **E2E is what
+  would make "we are open source" an actual answer**, because then the thing you must
+  verify is the client, and the client is verifiable.
+- Materially smaller breach exposure (ciphertext, no key). Not zero — we still hold
+  email addresses.
+
+What it would cost, and why the cost decided it:
+
+- **Key management would become the hardest UX problem in the product, and it
+  collides with §2's free-for-everyone.** The key must reach the second device: a
+  recovery code the user will lose, or a password — and login is deliberately
+  passwordless OTP precisely to keep friction near zero. Either way, **the users least
+  able to manage a key are the ones who would lose everything**, which is the wrong
+  people to hand the burden to in a product whose whole premise is 普惠.
+- Lost key = permanently unreadable, with support powerless. Value here accrues over
+  months.
+- **Collides with §2.1** (paid server-side models): a server that cannot read the
+  corpus can never run anything over it.
+- It is not "we know nothing" regardless: email, upload times, chunk sizes and
+  frequency stay in the clear, and that metadata alone shows when someone reads.
+
+**Not a technical obstacle.** `crypto.subtle` is unavailable in content scripts on
+plain-http pages (§7), but sync runs entirely in extension pages, which are secure
+contexts. Everything blocking this is product cost, not implementation cost.
+
+**What ships today instead: the `enc` field.** Every chunk header declares
+`enc: 'none'`, and a reader that meets an `enc` it does not know **refuses with its
+own code** (`enc_unsupported`) rather than treating the ciphertext as damaged lines.
+Two consequences worth stating, because both are easy to undo by accident:
+
+- **The header line stays plaintext, forever.** Whatever encryption arrives encrypts
+  the records, never the header — a reader that cannot decrypt must still be able to
+  say *why*. Encrypting the header would turn "update the extension" into "your data
+  is corrupt", which sends the user to look for a fault that does not exist.
+- **On pull, an unreadable-because-newer chunk STALLS sync and does not advance the
+  cursor** (§8.4). This is the opposite of the handling for an unparseable row, and
+  the difference is recoverability: a stalled sync resumes after an update, whereas a
+  skipped chunk is stepped over permanently and no later version ever gets it back.
+
+> **核心约束 — do not oversell "open source" as the privacy answer.** Being open
+> source lets people verify the client. It does not constrain the server, and
+> self-hosting is not available to the people who most need the assurance. Until E2E
+> exists, the honest sentence is "we can read what you sync" — say that, rather than
+> implying the licence protects them.
+
+### 8.7 核心约束 — we hold personal data now, and the obligations are not optional
+
+> **What the plaintext actually is**: the sentences you read, their translations, the
+> page URL and title, and when you reviewed them. That is a **reading history** — the
+> most sensitive thing this product touches — tied to an email address.
+>
+> This is personal data under GDPR and 个人信息保护法 (whose Art. 3 extra-territorial
+> reach covers PRC residents wherever we run). There is no argument left that we hold
+> only opaque bytes; that argument died with the encryption, and pretending otherwise
+> would be the dishonest kind of shortcut.
+
+**Build these before the first byte is stored, not after:**
+
+- **RLS on every table**, so one account can never read another's;
+- **one-action export** (§8.2) and **one-action deletion** of everything, from
+  settings — deletion must remove the account too, not just its rows;
+- **breach notification** capability: know what you hold and who to tell;
+- **TLS in transit, provider encryption at rest** — table stakes, not features;
+- **retention that is stated and honoured**, including what happens to an abandoned
+  account.
+- **the free-grant relay holds nothing but the spend** (§8.10, 2026-09-08): the text it
+  forwards is not logged and not stored — the only rows are the account's spend total
+  and a per-request cost line (kind, cost, ms; no content, 90-day retention); deleting
+  the account deletes them with it, and the grant token stops working the same moment.
+
+*This is the engineering shape of the argument, not legal advice. Have it reviewed
+before any of it is published as a privacy claim.*
+
+### 8.8 自动同步触发 — 打开即同步，静默失败，手动按钮不动（2026-08-08 (二)）
+
+真机用出来的问题：全仓库只有两个同步触发点，且都是手动按钮（扩展选项页、App 主
+页）。用户在浏览器里采集了一周，App 里的库还停在上次点按钮那天 —— 表现为「App 没
+有我账号的例句」，实际是**没人扮演心跳**。
+
+**触发模型：页面打开就是心跳，不引入定时器。**
+
+- **扩展**：复习页与选项页打开时，若已登录则自动 `sync()`（推 + 拉），节流
+  **10 分钟**（meta `autoSyncAt`，设备本地）。扩展页都是短命页面，打开事件天然
+  就是「用户在用」的信号；Safari iOS 的后台 SW 会永久死掉（Critical Safari Bug），
+  任何 alarms / 周期任务在主力面上都是假心跳（§12）。
+- **App**：启动（及从后台回前台）时，若已登录则自动 `sync()`。App 的拉取本来就
+  发生在这两个时刻之后的手动点击里 —— 把点击省掉，语义不变。
+- **复习面时效性**：App 是常驻单页，deck 在 bundle 加载时建一次 —— 自动拉取若不
+  伴随重建，新材料到了库里、复习面却看不见。因此**进入复习视图时重建 deck**
+  （`review.js` 暴露 `start()`，App 进视图时调用）。扩展侧复习页每次打开都是新
+  页面，天然重建，行为不变。
+
+**三条规则（规则 1 于 2026-08-09 修订）：**
+
+1. **自动同步可见但不打断（修订，2026-08-09 用户裁定）。** 原文是「静默失败」；
+   现在复习页头部有常驻状态行（interaction-spec「多设备同步一致性」），自动路径
+   的每个状态——同步中 / 同步完成·时间 / 离线 / 失败 / 未登录——都写进那一行。
+   仍然**不弹任何东西、不打断评分**（IO 规则的明确豁免：自动路径没有触发控件）；
+   配额满的可见性仍由 §8.3 的压力状态负责。「静默」死掉的原因：离线和失败完全
+   不可见，用户只能靠两台设备数字对不上来发现同步断了——正是 2026-08-09 真机
+   实测的事故形状。
+2. **手动按钮原样保留，语义不变。** 它仍然是「现在就同步，并把结果说给我听」——
+   成功报数字、失败报原因。自动路径永远不能替代一条用户能主动拽的绳子。
+3. **收敛判据不变。** 自动触发只是把既有 `sync()` 在既有时机之外多调几次；无
+   活动时双向同步仍须稳定「收到 0 · 上传 0」。若自动化让 0/0 破了，坏的是
+   sync，不是触发器 —— 修那边。
+
+**进入即同步（2026-08-09 用户裁定，追加到触发模型）：** App 启动、App 回前台、
+扩展**复习页**每次打开都是「进入」，进入**强制**触发完整 `sync()`
+（`autoSync(now, {force:true})`，绕过 10 分钟节流；节流只对被动面——选项页——
+继续生效）。`online` 事件视同进入。成功统一盖 `lastSyncOkAt`（手动/自动同戳，
+所有「上次同步/同步完成·时间」读它；旧 `appLastSync` 只读回退不迁移）。
+
+**每日新卡预算改为账户级（2026-08-09）：** `newToday` 设备本地 meta 废弃；今天已
+引入的新卡数由 `LearnScheduler.introducedToday(reviews, now)` 从**同步的复习台账**
+推导——每卡首条非练习复习落在 **UTC 今天**（`todayKey` 一直是 toISOString 取日，
+这里把 UTC 日界升格为刻意约定：一个账号一个日界，跨时区一致）。`viaSync` 的复习
+**计入**——手机上引入的新卡消耗电脑侧的当日预算，这正是账户级的含义。
+
+#### 2026-09-01 追加：弹窗也是心跳
+
+上面那个触发模型漏了一批人。全仓的入口级触发点只有**复习页与设置页**，而一个装好扩展、
+天天在网页上翻译、采集攒了几百张卡、却从没点开过那两页的人，服务器上是空的 —— 他在
+App 里读到「同步完成，但服务器上还没有内容」，而他什么都没做错。
+
+弹窗是他最常点的那一面，所以它也算一次「进入」。这**推翻了** `popup.js` 里那条明写的
+决定（「弹窗不加载 auth.js，它的全部职责是快点画出一个数字」）：那条决定的前提是
+「别的面会推」，而它不成立。
+
+三条约束：心跳排在**画完计数之后**、**不带 force**（受 10 分钟节流）、失败全吞。
+
+代价如实记：弹窗一关 JS 就死，push 可能被打断。后果是下次重推 ⇒ 服务器上多一条 chunk 行
+（append-only，`replay` 幂等），**不是数据损坏**；水位线 `syncPushedAt` 是全有或全无
+（`sync.js` 的 `push` 末尾），被打断时不推进。这与本节规则 1「用户没主动发起的运行
+不许打断他」一致。门禁 `test/popup-heartbeat.test.js`。
+
+### 8.9 治理规则同步（`g` 行）— LWW，整组覆盖（2026-08-09）
+
+`learnRules = {v, block, langs, updatedAt}`（`chrome.storage.local` 单键）随同步
+链路走：`push()` 在 `learnRules.updatedAt > PUSHED` 时于末批附一条
+`{t:'g', v:learnRules}`；重放（拉取与文件导入皆然）按 **last-writer-wins 整组
+覆盖** —— `incoming.updatedAt > local.updatedAt` 才采纳，不做逐条合并。规则集小
+（几十条封顶）、编辑是显式用户动作，逐条 CRDT 的复杂度买不来任何东西；两台设备
+同分钟内各改一次，后写的赢，先写的在下一次打开设置页时看得见结果并可改回。
+
+- **未登录用户规则留在本地**，功能完整（同步是增值，不是门槛 —— §8.2 同款立场）。
+- 规则**不**写入 IndexedDB meta：采集门在内容脚本里跑，内容脚本只有
+  `chrome.storage.local`（§7 origin 边界）。App 侧经 chrome-shim 落 localStorage。
+- 压实快照携带当前 `g` 行（§7.4 机制 4），游标落后的设备从快照拿到最新规则。
+- 读取失败（`PageSettings` `ok:false`）按 §7.4 机制 5 **失败开放**。
+
+### 8.10 免费额度 — 每个登录用户 0.2 美元，经我们的服务端中继（2026-09-08，用户裁定）
+
+交互稿：https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 （12 块画板：10 个表面 × 13 种状态，
+文案清单，五个裁定）。上位规约：`AGENTS.md` 规则 2 / 3 / 4 / 8 / 11 的 2026-09-08 注；§2.1 的
+「有界的免费样品」例外。
+
+**为什么。** 外部 40 个用户经 App 进来 0 激活，多半死在「先填 key」这一步；一键配置把
+「一把 key 通吃翻译 + 朗读 + 转写」做成了主推，但 key 本身仍是门槛。额度让第一次翻译
+不必先去申请 key。
+
+**它是什么，一句话。** 已登录的国际版用户在「一键配置」里点「领取」，扩展页 / App 调边缘函数
+`bt-grant` 领到一枚**额度令牌**（`bmg_` 前缀的随机串；服务端只存 hash）；客户端把令牌当作
+key 喂给**现有的** `QuickSetup.plan()`，平台 = 我们的中继（注册表里三个 `flavors:['global']`
+条目：`…/functions/v1/bt-relay/chat/completions`、`/audio/speech`、`/audio/transcriptions`），
+三槽写法与自带 key 完全一样。之后每次翻译 / 朗读 / 转写：浏览器 → **`bt-relay`**（验令牌、
+查余额、钉模型、转发到 OpenRouter、按返回的 `usage.cost` 或价目表记账）→ 提供方。到 0.2 美元
+即回 402，客户端停机并引导。
+
+**为什么走服务端而不是给用户铸一把提供方的 key（用户 2026-09-08 裁定「额度走我们服务端」）。**
+一套机制两个 flavor（境内后端就绪后中国版直接复用，DashScope 本来就没有 key 级上限）；
+上限由我们自己的计量表强制，不依赖提供方的管理 API 与条款；提供方的 key 永不离开服务器，
+用户从存储里挖到的只是一枚封顶 0.2 美元、随账号作废的令牌。代价如实写：**这条路上用户的
+文本经过我们的服务端**，所以它是 §2.1 的例外而不是 BYO 的变体，隐私要对这条路单独披露
+（§10 Gate F），且不保存、不记录内容。
+
+**它不是什么。** 不是订阅制的前奏（§12 2026-08-03 那行的**部分重开**：重开的是「我们出钱、
+免费、封顶的样品额度」，付费本身仍否决）；不是第二条默认路径（自带 key 仍是默认、引导仍
+教它；用完回到 BYO 与免费引擎，一字不改）；不是遥测（台账与遥测永不 join，telemetry §2 原则 7）。
+
+#### 六条裁定（画布 D1–D5 + 金额，2026-09-08）
+
+| # | 裁定 | 理由 |
+|---|---|---|
+| 金额 | **0.2 美元**，卡上不写数字（「够翻几百页」），进度条显示 $x / $0.20，金额从 `MT_GRANT.limitUsd` 注入 | 翻译一页约 0.0004 美元：0.2 美元 ≈ 560 页 + 几十句朗读 + 约 30 分钟转写。烧钱的是朗读与转写，不是翻译；用户原话「体验个十来个网页就好」。100 美元的池子够 500 人领 |
+| D1 | 换设备 / App↔扩展再领 = **回传同一枚令牌**（`reused:true`，余额共用） | 吊旧发新会让另一台设备突然 401，而它什么都没做错。令牌只在服务端 hash 存着，回传要能重现明文 ⇒ 令牌用 KEK 加密另存一份（`token_ct`），**不走同步通道**（§12 2026-08-08 (二)：凭证不进 chunk） |
+| D2 | 引导第三屏一键 tab 里**两张并列卡**：「登录领免费额度」/「用自己的 key」；「三引擎分别配」与免费 Google 引擎不动；「继续」永远可点 | 推翻 interaction-spec 09-02 不变量 1「登录不在引导里」，改写为「登录永远不是墙」。门禁改判据，见 interaction-spec |
+| D3 | **在额度卡上完成登录 = 领取**（一个手势）；从 App 首页 / 同步区登录的回到卡上显式点「领取」 | 领取会写三槽引擎配置，不该在别处静默发生 |
+| D4 | **必须登录才能用。** 退出登录的动作本身清掉本机三槽里的额度令牌与 `grantTail` / `grantBalance`，只留 `grant` 记录；弹窗与页面回到「未配」；再登录同一账号在卡上自动再领（`reused`）；登另一账号 = 领它自己的；`grantActive` 时退出登录先确认一次 | 用户裁定（推翻推荐的「退出后照用」）。规则 3 仍成立：额度是登录的附带权益，BYO 与免费引擎不受影响。令牌本身随账号存亡，退出登录不吊销（否则 D1 的「同一枚」就没有了）；挖走令牌的人最多用到 0.2 美元 |
+| D5 | 余额低（< $0.02）只在设置页一键卡与弹窗提示；阅读中不打断、叠层不出字；用完（S5a）才在叠层出一句 | 「快用完了」不是错误，不该打断一次阅读 |
+
+#### 后端
+
+- **表 `bt_grants`**（`supabase/schema.sql`）：`user_id uuid primary key references auth.users on delete cascade`、`token_hash text unique`、`token_ct` / `token_iv`（AES-256-GCM，KEK 只在函数密钥 `GRANT_KEK`；只为 D1 回传同一枚）、`limit_usd numeric`、`spent_usd numeric default 0`、`status active | revoked`、`created_at`、`last_used_at`。**表 `bt_grant_usage`**：`user_id`、`at`、`kind chat | tts | stt`、`model`、`cost_usd`、`ms` —— **没有内容列，也没有 URL 列**；90 天清扫。两表 RLS 开、**零策略**（同 `bt_events`：只有 service role）。记账走一个 SQL 函数 `bt_grant_charge(hash, cost)`：`update … set spent_usd = spent_usd + cost where token_hash = $1 and status = 'active' returning limit_usd - spent_usd` —— 原子，且是**唯一**的写路径。
+- **`bt-grant`**（领取；鉴权照抄 `bt-delete-account`：经 `GET /auth/v1/user` 解析调用者，不接受任何 user id 入参；限流照抄 `bt-ingest`）：OPTIONS → 鉴权 → 每 IP ≤ 5/小时 → 已有行 `active` ⇒ 解密回传 `reused:true`；`revoked` ⇒ 409 → 全局日上限 `GRANT_DAILY_CAP=50` → 生成令牌、写 hash + 密文 → `200 {token, limit_usd, reused:false}`。错误只回 `{error:<snake_id>}`，日志不带 user id。
+- **`bt-relay`**（中继；**不用 Supabase JWT**，用令牌 —— 内容脚本永不持有 `learnAuth`，§8.4.1.1）：OPTIONS（ACAO `*`，同 `bt-ingest`）→ `Authorization: Bearer bmg_…` → hash 查行（`active` 且 `spent_usd < limit_usd`，否则 **402** `credit_exhausted`）→ 每令牌限速（≤ 60 请求/分钟）、体积上限（chat 64 KB、stt 25 MB）→ 按路径后缀分三种：`chat/completions` 只放行 `{model, messages, temperature, max_tokens, response_format}`，`model` 必须等于钉住的模型（否则 **403** `model_not_allowed`），补 `usage:{include:true}`；`audio/speech` 放行 `{model, input, voice, response_format}`，`model` 钉住；`audio/transcriptions` 透传 multipart，`model` 钉住 → 用我们的 `OPENROUTER_GRANT_KEY` 转发 → 记账：chat 用返回的 `usage.cost`，tts 按字符数 × 价目表，stt 按时长 × 价目表（价目表是函数环境变量，改价不发版）→ 原样回传状态码与正文（**不改写请求或响应的形状**，`wire-format` / `request-shape` 眼里它就是一个兼容端点）。池子：转发前每 10 分钟查一次 `GET /api/v1/credits`，低于 `GRANT_FLOAT_MIN_USD=5` 回 **503** `grant_unavailable`。`GET bt-relay/balance`（带令牌）→ `{spent_usd, limit_usd}`。**不记日志正文**：日志只有 hash 前 8 位、kind、cost、ms、状态码。
+- **`bt-delete-account`**：`on delete cascade` 带走两表；响应加 `grant: true|false`。
+- **`scripts/grant-float.js`**（`npm run grant:status`）：池子余额、各状态计数、30 天花费总和与分布、清扫 `bt_grant_usage` 90 天以外的行。先手动每周跑，日上限兜底。
+
+#### 规则 9 的估算（写在花钱之前）
+
+约 200 下载/月、约 40% 登录 ⇒ 约 100 次领取/月；**最大暴露 20 美元/月**（100 × 0.2），实际消耗
+预计 15–30%（翻译烧不完 0.2 美元，朗读 / 转写能）。中继本身：按每人 300 次请求算，3 万次
+边缘函数调用/月 + 约 1 GB 出流量，在 Supabase 免费档（50 万次、5 GB）之内；超出档位的价格是
+每百万次 2 美元。刷号的对策：上限在**我们的表**里（服务端强制，不靠客户端）；日领取上限 50；
+池子小（100 美元，手动补）且低于 5 美元停转发；每令牌限速与体积上限；模型钉死。**池子空 =
+所有人同时 503**：客户端把「你用完了」（402）与「我们的池子空了，不是你用完了」（503）分成
+两句（状态 `unavailable`），后者只给社群出口。记账的误差：转发前查余额、转发后记账，最后一次
+请求可能让 `spent_usd` 略过 0.2（几分钱）—— 接受，不做预扣。
+
+#### 客户端形状（G2–G4）
+
+- **注册表**：`build/providers.config.js` / `tts.config.js` / `stt.config.js` 各加一个 `grant` 条目（`flavors:['global']`，`needsKey:true`，`defaultEndpoint` 是中继的完整地址，`defaultModel` 是钉住的模型，`grantOnly:true` 让它不出现在平台下拉里 —— 令牌只能领，不能手粘）。`build/perf-ledger.config.js` 给中继主机一行（G6 前 `unreachable` 欠条，G6 `/perf-tune` 实测填上）。
+- `extension/learn/grant.js`（`LearnGrant`），与 `quick-setup.js` 同纪律：**只算 patch，宿主写**。`spec()` 读 `window.MT_GRANT`（中国版为 null）；`claim()`（Supabase JWT，走 `sync.js` 那种头）；`plan(token, settings)` = `QuickSetup.plan({platform: grant, key: token, settings, pinModel, replaceKeyTail})` + marks `{grant:{limitUsd, at, userId}, grantTail}`；`balance()` = `GET bt-relay/balance`（令牌），缓存 `grantBalance` 10 分钟；`status()` → none / unclaimed / active / replaced / low / exhausted / unavailable；`render(box)`（ids `gr-*`）。
+- `EngineState.grantActive(s)` = `apiKey` 以 `bmg_` 开头（无身份）；`grant` 记录只在扩展页。三个新键不进 `SETTINGS_KEYS`。
+- 402 → `credit_exhausted`、503 `grant_unavailable` → `unavailable`、403 `model_not_allowed` —— 三个都具名、不可重试；引擎 `halt`（domain-design §7）。不再需要猜「是谁的钱用完了」：中继的状态码就是答案。
+- 出口一律 `MTFeedback.open()`：「一键配置自带 key」= 注册表 `keyUrl`（自带 key 的那家），「加入社群」= `COMMUNITY_URL`。
+- 构建：`build.js` 发射 `window.MT_GRANT = {relay, limitUsd, model}`（global 且 `backend.config.js grant.enabled`），china 恒 null；中国合规门加字节级断言：`dist-china` 不得出现 `bt-grant` / `bt-relay` / `MT_GRANT = {`。翻开关只在 G6。
+
+#### 中国版：不出钱，引导百炼官方额度
+
+中继机制本身中国版**可以**复用 —— 但它要跑在境内后端上，而境内后端还等 ICP / SES /
+Lighthouse 三件外部事（§8.4.1.2）；用东京的中继就是把中国用户原文经东京转发，现在不上。
+卡是静态三步：「注册阿里云百炼 ↗」「领官方免费额度（每模型 100 万 token、90 天，以百炼
+页面为准）↗」「把 API Key 粘到下面」+「这份额度是阿里云给你的，不经我们的手」+ 诚实的
+「境内后端未就绪，中国版暂不提供我们代领的免费额度」。链接全部来自注册表 `keyUrl`；文案零
+「登录」、零 OpenRouter。原因记三处（同同步先关着的先例）：`backend.config.js grant.china`
+注释、`build.js` 日志、本节。
+
+#### 隐私：§10 Gate F
+
+#### 8.10.1 提案（2026-09-22，**待人评审**）：登录即额度 · 中国版开放（千问 · 方案 C）
+
+> **✅ 2026-09-30 用户裁定：通过**，并在 **1.19.0 范围内落地** —— 含**中国版额度翻转**：境内后端
+> （账号 + 同步）自 1.15.0 起**已在线**（`backend.config.js` 的 `china.ready: true`），缺的是把
+> **额度账本落进同一台机器** + 部署中继（同一份 `bt-relay`，上游百炼·千问）+ 翻
+> `grant.china.ready`。落地归 **#532**（首屏改版），画布见 `design/firstrun-3step/`。
+
+> **⚠️ 2026-09-22 当天用户改方向：中国版不依赖东京。方案 C（境内中继 + 东京记账）撤回。**
+> 原话：「还是不要东京中继了……数据迁移后再开服」，随后裁定「什么都不动，只是额度先不开」。
+> 新路线：中国版保持现状（登录同步仍在东京）→ 按 `deploy/china/README.md` 在北京轻量服务器
+> （`lhins-6amaoj8m`，09-22 回读：Ubuntu 24.04、2 核 2G、从未跑过任何服务，官网在 EdgeOne Pages）
+> 搭整套境内后端（账号 + 同步 + 额度账本 + 中继同机）→ 迁移中国版用户 → 切过去时一起开额度。
+> 为什么记账不能单独留在东京：额度是每个账号一份，防重领 / 删号作废 / 多设备共用余额都要账本与
+> 账号在同一个库。
+> 当天部署过、已全部删除并回读（09-22）：腾讯云 Web 函数 `bt-relay`（北京）、东京 Edge Function
+> `bt-grant-ledger`、密钥 `LEDGER_KEY`。**代码保留**（`build/china-gate.js`、`bt-relay` 的
+> `UPSTREAM=dashscope` 与 `CLAIM_PROXY`、`deploy/china-relay/`）：境内后端上线时中继照样用同一份代码，
+> 只是账本改连本机库；`bt-grant-ledger` 与 `LEDGER_*` 分支到那时可删。
+> 实测留档：境内网络经中继翻译中位 1.73 s（直连百炼 0.82 s，多出的主要是去东京查账记账的两个往返）；
+> 中国版扩展没有登录，「额度」判据须带上「这个构建有登录」（未合，stash 在本机）。
+
+> **（一·补）2026-10-02**：这条 2026-09-22 就写明「**两个宿主**共用 `learn/grant.js` 的同一份
+> 字节、不在调用方各写一遍」，但落地（#396–#398）只做了 App（`shell-model.js` 的
+> `autoClaimGrant`）—— 扩展侧一直只有设置页那张卡的「领取」按钮，登录后要用户自己点
+> （用户 2026-10-02 报障「登录后扩展端需要手动领取」）。现补齐：`src/pages/options.jsx` 加
+> `autoClaimGrant`，**同一套闸**（`LearnGrant.enabled()` + `overwrite:false` + 一次只试一次），
+> 挂在登录汇合点 `refreshSyncUI`（邮箱验证码 / 第三方回跳 / 打开设置页时已登录三条路都会走到）。
+> 判据：`test/grant-one-implementation.test.js`。
+
+> **（一）已落地**（#396–#398：登录成功自动领取）。**（二）（三）的代码 2026-09-22 已落地、开关未翻**：
+> `grant.china.ready` 仍是 `false`，此时中国版 `MT_GRANT` 恒为 null、产物除注释外逐字不变。
+> 落地的是：`backend.config.js` 的 `grant.china { ready, relayUrl, vendor }`；`build.js`
+> `chinaGrant()`（就绪却配错 ⇒ 构建失败，不静默退回 null）；注册表 `grant` 条目在就绪时进中国版
+> （端点在 relayUrl、模型取 qwen 的中国区默认值）；合规门改写到 `build/china-gate.js`（纯函数 +
+> `test/china-gate.test.js`，见下「要改的门禁」）；`bt-relay` 加 `UPSTREAM=dashscope` 与 `CLAIM_PROXY`
+> （不设时行为不变）；`grant.js` / `quick-setup.js` 接受只有翻译一槽的平台。部署契约与翻开关前的
+> 回读在 `deploy/china-relay/README.md`。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf
+
+**读数（2026-09-21/22；口径：只从 2026-09-05 起收 · 中国版一条不发 · 我们自己的机器也在
+里面 · `install_id` 按宿主分，两个面不能 join）**
+
+- App 侧 **54 台登录并同步过，其中 47 台（87%）既没配引擎也没领额度** —— 我们让他们登了，
+  却没顺手把额度给他们。扩展侧是反例：登录 34 台、配好 30 台，**登录 ≈ 配好**。
+- 清洁样本（1.13.1 / 1.14.0 两个 seam 都在的版本，45 台）：登录过 29%、**有引擎只有 13%**、
+  在 App 里开始过听译 24%（其中一多半手里没引擎）、撞「设备不支持」20%。
+- **247 台 App 装机里 176 台（71%）整个生命周期不到 5 分钟**，223 台首末同一天 ⇒
+  没有第二次会话，任何「下次打开再说」的设计都到不了人（横幅那条线上已经证伪过一次）。
+
+**（一）登录即额度。** 现状是登录之后还要用户在设置页 / 一键卡里点一次「领取」。提案：
+**登录成功后自动 `claim()`**（两个宿主共用 `learn/grant.js` 的同一份字节，不在调用方各写
+一遍），并就地出三行自检回执（形状照 `quick-setup.js` 那四行「按下那一刻就存在」）。
+**要评审的点**：额度是我们出钱，自动领取要不要仍然保留一次明示同意？本提案建议**不保留**
+—— 理由是那一步正是 47/54 掉队的地方，而额度本身有硬上限、随账号作废，误领的代价是我们
+的几分钱，不是用户的任何东西。
+
+**（二）中国版开放额度，模型走通义千问。** §8.10 原文已经预留了这条路（「一套机制两个
+flavor，境内后端就绪后中国版直接复用，DashScope 本来就没有 key 级上限」）。用户 2026-09-22
+裁定：中国版也给，模型走千问。注册表侧没有新增负担 —— `qwen` / `qwen_mt` 的 `flavors`
+本来就含 `china`。
+
+**（三）方案 C：身份走现有后端，原文只走境内。** 两条线分开是整个方案的要点：
+
+- **身份线**：App / 扩展 → 现有后端（东京）→ 拿回额度令牌。**只传身份与令牌，不含任何原文。**
+- **原文线**：App / 扩展 → **境内中继** → 阿里云百炼 · 通义千问。**原文一步都不出境。**
+
+为什么不是另外两条：**A（东京中继 → 千问）** 原文仍然出境，还要绕中国 → 东京 → 杭州 →
+东京 → 中国；**B（整套后端搬境内）** 要重建 GoTrue 与库，而额度以 `user_id` 为主键、账号
+体系本来就在东京（中国版 App 的登录今天打的就是它）。
+
+**要新建的**：一台境内中继（只转发原文 + 校验令牌 + 扣额度，**不存内容**）· `bt-relay` 加
+一条中国线（今天它打的是 OpenRouter，`bt-relay/index.ts:30`，模型服务端钉死、忽略客户端
+送的）· 构建期把中国版的额度端点指向境内中继。
+
+**要改的门禁，且必须连同那次事故一起裁定**：`build.js` 的中国合规门现在明文禁止产物里
+出现 `MT_GRANT = {`、`/functions/v1/bt-grant`、`bt-relay/(chat|audio)`。**那条门禁是证伪
+出来的** —— 2026-09-08 把 `grant.enabled` 试着翻成 true 时，中国版产物里真的漏出过完整的
+`MT_GRANT` 与三条中继条目（`flipSyncFlag` 撞上嵌套的 `enabled` 中途退出，产物停在没被覆盖
+的全球版上）。所以放开它不能只改一个布尔：**新的门禁要能证明「中国版产物里的额度端点是
+境内那一个」，而不是「没有额度端点」。**
+
+**落地后的门禁形状（2026-09-22）**：领取也由境内中继代转（`POST /claim` → 东京 `bt-grant`，只带
+登录令牌），于是中国版产物里**一个东京的额度路径都没有**。`build/china-gate.js` 因此是两层：
+东京（`*.supabase.co`）上的 `bt-ingest` / `bt-grant` / `bt-relay/(chat|audio)` **无论开没开都禁**。境内主机上的 `bt-ingest` 自 2026-10-29（BEL-135）放行，URL 来自 `MT_BACKEND.china.url`。`MT_GRANT = {…}` 与注册表
+里 `grantOnly` 条目的**每一个**地址都必须在 `relayUrl` 那台主机上 —— relayUrl 为空时两者等价于
+改写前的「不许有」。单测对每条判据都喂过该红的输入，四处变异证伪过（其中「未就绪即红」那一支
+是等价变异：摘掉它，规格仍会因地址不在空主机上而红）。
+
+**翻开关前必须先有的**：出境告知与单独同意（§8.10.2，#399 已落地，需随版上架 —— 身份线仍然
+出境）；`deploy/china-relay/README.md` 第 0 节那张表（运行处 = 首选腾讯云云函数 · 默认域名的境内回读 · 百炼 key · 实价）。
+（百炼条款：用户 2026-09-22 裁定「API 肯定可以调用」，不再列为前置。）
+
+**可观测性要提前说清**：自 2026-10-29 起中国版把与国际版同一份匿名用量发到境内 ingest（原则 6）。
+额度台账仍是账号侧，**永不**与 `install_id` join。境内 `bt-ingest` 现网未回读（Phase B）之前，
+客户端可以持有 URL，但抓包见不到 2xx 就不得把「0 行」说成「没人用」。
+
+#### 8.10.2 出境告知与单独同意 —— 这是今天就存在的缺口（2026-09-22 提案；**同日用户裁定「现在就补」并落地**）
+
+**落地（2026-09-22）**：① App 登录前的单独同意框（交互见 `docs/interaction-spec.md`「出境单独同意」；
+只在 `xbNeeded` —— 中国版且后端在 `*.supabase.co` —— 时出现，默认不勾，不勾四条登录路全拦）；
+② `belliedmonkey.com/privacy.html` 第 3 节补境外接收方名称 / 联系方式 / 行权方式与撤回方式（站点仓库，随 App
+同版上线 —— growth-spec §4）；③ `backend.config.js` 那条过时注释已改。**仍欠**：个人信息保护影响评估
+（第十条的第三项，PIPL 第 55–56 条，书面、留存 3 年）；以及**已经登录过的中国版老用户**没被问过 ——
+框只拦「新登录」，已有会话不弹。两件都记进 `.local/TODO.md`。
+
+以下是提案原文：
+
+**与额度无关，先于额度。** 中国版 App 的同步今天就打东京那个后端（与国际版同一个项目）。
+
+- **已经做对的**：`belliedmonkey.com` 隐私页第 3 节逐字写着「目前存放在**位于日本东京的
+  服务器**上（Supabase，ap-northeast-1）」「我们正在搭建境内服务器」「你有权知道数据当下
+  在哪」。（顺带：`extension/learn/backend.config.js:77` 那条注释还写着「App Store 中国区
+  指向的隐私政策写着『绝不上传』」—— **已过时**，应一并改掉，否则下一个人会把「建境内
+  后端」的紧迫性判高。）
+- **缺的两样**（PIPL 第 39 条的告知项）：境外接收方的**联系方式**、**向境外接收方行使权利
+  的方式**。
+- **更要紧的第三样**：**中国版登录屏上一个字都没提出境** —— `app/`、`extension/` 的用户
+  可见文案里「境外 / 出境 / 跨境」grep **0 命中**，只在代码注释与 docs 里。同步虽是 opt-in
+  （动作或许算「单独」），但**没有告知就不是「知情的」单独同意**。
+
+**条文依据（2026-09-22 查过原文）**：数据本地化（PIPL 第 40 条）只管关键信息基础设施运营者
+与「达到规定数量」的处理者（实务参照 100 万人），我们不沾，且该条只要求**数据**本地化、
+不要求系统本地化；《促进和规范数据跨境流动规定》第五条（四）给了「当年累计不满 10 万人
+个人信息（不含敏感）」**免予申报**安全评估 / 标准合同 / 认证；但**第十条**明写「数据处理者
+向境外提供个人信息的，应当依法履行**告知、取得个人单独同意、进行个人信息保护影响评估**等
+义务」—— 免予申报不免除这一层。**Apple 侧零障碍**：App Review Guidelines 全文不提 China、
+无任何服务器位置要求；ASC 的「中国大陆合规信息」只要公司中文名 + 统一社会信用代码（且只对
+大陆机构主体）。Apple 真正卡的是 ICP 备案，而我们早就有。
+
+**判据**：登录前能看到出境告知且同意是一次单独动作；隐私页回读到境外接收方联系方式与行权
+方式。⚠️ 这一层动的是同意流程（交互）+ 对外文案，落地前建议取得一次专业意见。
+
+## 9. Module map additions
+
+These rows are mirrored into `docs/domain-design.md` §6.
+
+| Module | File | Role |
+|---|---|---|
+| `LearnModel` | `content/learn-model.js` | pure: content-addressed id (FNV-1a), text normalization, script-aware salience scoring, `Item` factory, shared constants |
+| `LearnScheduler` | `content/learn-scheduler.js` | pure: `retrievability` / `nextDue` / `applyReview` / `buildDeck`; `now()` injected, config merged over production `DEFAULTS` |
+| `LearnCollector` | `content/learn-collector.js` | the sink (§3): dwell observation via `IntersectionObserver`, salience gate, bounded `lq:` outbox writes. Never originates a translation |
+| `LearnStore` | `learn/store.js` + `learn/drain.js` | extension-page-only IndexedDB corpus and the outbox→corpus drain/merge |
+| `Reviewer` | `learn/review.{html,css,js}` | the review surface; one implementation for all five matrix rows, hosted **both** in an extension page and in the app's `WKWebView` (domain-design §9.4) |
+| `LearnNotes` | `learn/notes.js` *(planned, §9.2)* | 句子解析：生词 / 短语 / 语法点。调用用户配置的 chat 类引擎，结果落 IndexedDB `notes` 表（v4），永不同步 |
+| `LearnRules` | `content/learn-rules.js` | pure: URL/domain wildcard matcher, `dominantScript`, whitelist gate `langAllowed` (§4.1), delete selection `doomedFor`, rules LWW merge (§8.9). Registry-injected (`window.MT_LANGS`), zero storage access |
+| `LearnExercises` | `content/learn-exercises.js` *(planned, §5.4/§9.3)* | pure: 题型注册表、确定性轮换与知识点取材、译文选择题 / 盲听选词生成、`speakScore` 转写重合度、`gradeGate` 客观结果→评分约束 |
+| `ExercisePack` | `learn/exercise-pack.js` *(planned, §9.3)* | AI 题包：按卡生成/缓存/合规检查，`PACK_VERSION`，复用 §9.2 的引擎门与传输 |
+| `LearnSpeech` | `learn/speech-input.js` *(planned, §9.4)* | 录音 + BYO 转写：`getUserMedia`/`MediaRecorder`，multipart `/v1/audio/transcriptions`，录音用后即弃 |
+| `LearnDriving` | `content/learn-driving.js` *(§9.5)* | pure: 播放顺序（`buildOrder` / `advance`，随机是排列不是抽样）、`peekNext` 非破坏性前瞻（不改 `order`、不吃随机）、`cardPlan` 分段、`notesToSpeech` 解析口播渲染、会话状态机 `reduce`。**无任何写进度的函数**——这是契约，不是遗漏 |
+| `AppDriving` | `app/driving.js` *(§9.5)* | App 专属编排器：执行状态机 effects（TTS 链 / 解析补全 / 视图）、开卡并行预热、出发前预载 `preload()`，进 bundle 不进扩展。**不调用 `putItem` / `recordReview`** |
+| `LearnTranslateFill` | `app/translate-fill.js` *(§9.5 补译文)* | App 专属：给没有 `tr` 的卡按需补一条译文，骑 `TranslationAPI.translate` + §9.2 的引擎组。缓存进现有 `notes` 表，key `itemId + '\0tr'`（无新表 ⇒ 无 `DB_VERSION` bump），带 `TR_VERSION`、in-flight 去重。**永不写 `items`、永不同步** |
+| `SourcesView` | `learn/sources-view.js` | shared 来源管理 renderer (domain-per-row list + block chips), used by options **and** the app shell; ids prefixed `srcm-` |
+| Host app | `app/` → `dist-app/` | the one-tap surface on iOS + macOS. **Not a second engine**: `build/app-bundle.js` concatenates the SAME `learn-model.js` / `learn-scheduler.js` / `store.js` / `auth.js` / `chunk.js` / `sync.js` the extension ships, plus `src/app/shell-model.js` (since PR6a the React UI bundle built from
+`src/app/main.jsx` lands in the same segment). Stage 2 needs **no host shim at all** — none of those modules touch `chrome.*` at runtime |
+| `CliApp` | `cli/` *(§9.10)* | the command-line host: translation commands (text / document / batch / subtitle) and the learning surface (`plan` read-only, `review` interactive). Config under `~/.config/belliedmonkey/`; corpus is an `mt-learn/1` file. Reuses `LearnModel` / `LearnScheduler` / `LearnChunk`; **never `LearnStore`**. Adding `putItem` / `recordReview` is the review host's write path; `plan` writes nothing |
+| `CliEngine` | `build/cli-bundle.js` → `dist-cli/engine.js` (+ `cli/node-shim.js`, `cli/entry.js`) | the CLI host's translation engine: the §7 transport files, unmodified, behind a Node shim. Request byte-equality with the extension / App is a `npm test` gate (domain-design §2.7) |
+
+> **Why the app is exactly three files.** `safari-project/` is gitignored and gets
+> regenerated, which resets the Xcode project's file list (release-checklist #72). The
+> converter's App target already references `Main.html`, `Script.js` and `Style.css` —
+> so emitting those three names and no others means **the app can grow forever without
+> a pbxproj edit**, and regeneration stays routine instead of destructive. The cost is
+> a concatenated bundle rather than separate modules; the alternative was
+> hand-maintaining an Xcode project or re-meeting "new files never enter the bundle"
+> every time. `npm run app:sync` copies them in and patches the one Swift line the
+> converter gets wrong for us (`isScrollEnabled`).
+
+---
+
+## 9.1 Speech (TTS)
+
+Registry: `build/tts.config.js` → `content/tts.gen.js` (`window.MT_TTS_ENGINES`).
+A **second** registry, deliberately: `build/providers.config.js` is the registry of
+*translation* providers (domain-design §7), and folding a different capability into it
+would grow every translation entry fields it never uses. The three rules carry over
+unchanged — transport keyed by **format** not vendor, the registry is the only place
+an engine/model/voice/endpoint is written down, and no runtime region branching.
+
+Two formats cover the whole space:
+
+| type | why it exists |
+|---|---|
+| `browser` | the platform's `speechSynthesis`. Free, offline, zero-config, **the default**. It only *speaks*: the Web Speech API exposes no way to obtain the audio data, so nothing from this engine can ever be cached or uploaded. That is a property of the API, not a gap to close |
+| `speech-compat` | the OpenAI `/v1/audio/speech` request shape — which is also what self-hosted TTS servers implement. **One format therefore covers both "my own machine" and "a cloud key"**, which is exactly what 本地优先 needs |
+| `device-speech` *(2026-09-12)* | **本机离线模型**（Piper，经 sherpa-onnx，Swift 侧合成与播放），仅宿主 App。上面「Two formats cover the whole space」自 2026-09-12 起不再完整：这是第三种 —— 既不是 `speechSynthesis`，也不说 HTTP。理由与规则见本节末「`device` 条目」段 |
+
+**Audio is a derived artifact, not content.** Same text + same engine + same voice =
+same audio, so the *configuration* is what syncs; each device synthesizes locally.
+That is better than syncing audio on every axis that matters: offline, instant,
+zero egress, and changing the voice takes effect everywhere at once.
+
+**Local cache** (endpoint engines only): IndexedDB `audio` store, keyed
+`hash16(engineId ␀ model ␀ voice ␀ lang ␀ normText)`. Synthesis costs the user money
+or CPU and a card is replayed many times, so this is not an optimization — it is what
+makes a paid engine usable. Capped (200 MB default) with **least-recently-played**
+eviction: `at` is refreshed on every cache *hit*, so the sentences actually being
+reviewed stay resident while one-off synthesis ages out.
+
+**The cache key is already the sync key.** When optional audio upload lands (§8),
+the local → server → synthesize fallback falls out of this without a migration.
+
+**Measured platform behaviour (2026-08-03, iPhone simulator iOS 17.2, in the real
+`safari-web-extension://` page):** `speechSynthesis` is present, `getVoices()`
+returns 111 voices (31 of them English), and `LearnTTS.speak()` resolves `ok` with
+the utterance's `start` and `end` both firing — **so the on-device engine is fully
+usable on iOS, which is what made it safe to keep as the default.** Autoplay without
+a user gesture is **refused**; the utterance is dropped silently, which is why
+`speak()` waits for `start` rather than trusting a non-throwing call. Not verified:
+whether one gesture unlocks autoplay for the rest of the page session.
+
+**Voice selection is language-aware** (§4.1's rule, applied): the user's preferred
+voice is used only if it speaks the card's language; otherwise the best system voice
+for that language; otherwise **the feature reports itself unavailable with a reason**
+rather than reading the sentence in the wrong language.
+
+**`device` 条目 —— 本机离线朗读模型（2026-09-12，用户裁定）。** 用户先裁定「朗读用第三方本地
+TTS 模型，不选系统语音 `AVSpeechSynthesizer`」，后又裁定「**音质不管，差一点没关系，确保功能先通**」。
+按第二句选 **Piper**（zh / en 各 ≈79 MB，经 sherpa-onnx v1.13.8）。真机（iPhone 14 Pro）读数：Piper zh
+首块 176 / 264 ms、RTF 0.053；en 157 / 216 ms；Matcha zh 116 / 166 ms 但只有中文；Kokoro fp32 首块
+1330–1999 ms、加载 10–20 s，int8 反而比 fp32 慢 3–4 倍 —— 后两者弃（§12）。CoreML provider 无提速。
+边合成边播（playerNode 按块调度）真机跑通。
+
+> **2026-09-12 晚用户重开这个问题：「iOS/macOS 自带语音效果若差不多，就不必让用户下这么大的包。」**
+> 真机 A/B（iPhone 14 Pro · iOS 27.0，同一段 conv.wav，自动朗读开，`row.lat.ttsStart` 打点）：
+> 系统语音 `browser` 首声 **p50 7–23 / p90 22–109 ms**（三轮），Piper `device` **p50 162 / p90 266 ms**
+> —— 系统语音快一个数量级，两者都在「译文 → 出声 ≤ 0.5 s」之内，**用户听不出快慢，差别只在音质与要不要
+> 下 158 MB**。前提修正：`pickVoice` 此前完全不挑音质（拿到的是 compact 那档机器音），2026-09-12 起按
+> Premium > Enhanced > compact 排序（P1 #249）；这轮 A/B 的系统语音仍是 super-compact（手机没装更高档）。
+> **2026-09-13 00:25 闭合。** 用户装了婷婷（增强）、Han / Lili / Lilian（优质）、Samantha（增强）、Ava（优质）
+> 之后，原生 `AVSpeechSynthesisVoice.speechVoices()` 有 209 个（premium 4 / enhanced 12），而 **WKWebView 的
+> `speechSynthesis.getVoices()` 只有 70 个、全是 compact / super-compact，重启 App 两次不变** —— WebKit 那条路
+> 永远拿不到增强/优质档，`pickVoice` 的音质排序在 App 里排不到东西。探针用原生合成器念了四个高档声 + Piper
+> 中英各一句给用户听，**用户裁定「优质和增强的都挺好，你选一个」** ⇒ 选**系统语音，走原生
+> `AVSpeechSynthesizer`**，按 优质 > 增强 > 默认 自动挑（用户在系统里装了哪档就用哪档，没装就是默认档），
+> Piper 留作可选、不再是对话的推荐路。落地形状（不动注册表）：`browser` 条目在 App 里经
+> `speech-bridge.swift` 的第二后端 `MTSystemSpeech` 合成（`tts-speak` 带 `backend:'system'`，协议与 Piper
+> 完全相同，`tts-state` 多带 `system` / `systemLangs`），`tts.js` 的 `speakBrowser` 先问桥
+> `systemVoice(lang)`，有就走原生、没有 / 老桥 / 原生开口失败 ⇒ 照旧 WebKit；扩展一个字节不变。
+> **系统下限随之抬到 iOS 16.4 / macOS 13.3**（`build/os-floor.config.js`，verification-spec §0）：「优质」档 iOS 16 起才有。
+> 原生合成走 App 自己的音频会话，**锁屏出声 2026-09-13 11:55 真机通过**（M25-sys：锁屏 83 s 内 21 句全念出、0 失败、开口 86–108 ms，用户耳朵确认）。探针读数：原生高档声从 `speak()` 到开口
+> 2–5 ms，Piper 同机首块 157–222 ms。
+
+- **注册表形状**：`build/tts.config.js` 在 `browser` 之后加 `{ id:'device', type:'device-speech',
+  flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false,
+  supportsModel:false, requiresEndpoint:false, defaultEndpoint:null, placeholder:null, defaultModel:'',
+  voices:null, returnsAudio:false, labelKey:'tts_engine_device', label:'设备内置朗读（离线模型 · 仅 App）',
+  hintKey:'tts_hint_device' }`。**不加新字段**：「是否本机」由 `type` 推导（domain-design §7 既有原则）；
+  `defaultEndpoint: null` 显式写出；**免性能台账**（`build/perf-ledger.config.js` 那条门只管说 HTTP 的
+  条目，这条不说 HTTP）。条目**只在宿主 App 的下拉出现**（`engine-fields.populate` 收调用方注入的
+  `deviceOk`，组件自己不探桥）；扩展页永远不出现。
+- **模型不进包，首次使用时下载**：sherpa-onnx + onnxruntime 静态链接 ≈35 MB 已经进包；模型文件按语言
+  从我们的文件服务器下载一次，**sha256 钉住**（构建时写死、下载后校验、不符即丢），进度走 §9.6 门控的
+  `downloading` 具名态，失败具名 `listen_assets_failed`。下载的只是模型文件，不含任何用户内容
+  （§10 Gate H 的原话）。中国网络下的下载 **2026-09-17 真机测了：GitHub Releases 拉不动**（HEAD 10 s 超时、2.5 分钟
+  停在 1%），所以**地址不再写死**，见 §9.6.1.1；清单里的 `url` 降为兜底默认值，中国版默认值改为魔搭 ModelScope（同机实测 67 MB 3.4 s；hf-mirror ≈580 KB/s 作备选）。
+- **`returnsAudio: false`，与 `browser` 同**：音频在 Swift 侧 playerNode 边合成边播，**永不回到 JS**，
+  所以同样不可缓存、不可上传 —— 上面「Local cache（endpoint engines only）」对它不适用；不是漏了，
+  是它和 `browser` 一样，页面拿不到字节。
+- **语言回落具名**：模型没覆盖的语言（第一版只有 zh / en）**回落 `browser`（系统语音）**，并在那一行
+  具名（「{lang} 无离线模型，用系统语音」）；上面语言感知的选声规则原样适用于回落的那一段。回落按**行**判，
+  不按会话：一场中英对话里中文走 Piper、法文走系统语音是正常态，不是错误。
+- **合成与播放在 Swift 侧**：`app/native/speech-bridge.swift`（handler `mtSpeech`，协议见 §9.6.1）；
+  块按序调度到同一个 `AVAudioEngine` 的 playerNode。**这同时闭合了 §9.5「三个待裁定」第 1 条**：朗读走
+  App 自己的音频会话出真音频，中国版（注册表里只有 `browser` + `local`）也有了后台出声路 ——
+  2026-08-24 裁定要求的「原生语音合成桥」由这个设计闭合，只是桥后面接的是 Piper 而不是
+  `AVSpeechSynthesizer`（用户裁定）。
+- **工程接法**（写在这里，免得 D2 再踩一次）：sherpa-onnx 是 SPM 包，但 `xcodebuild` 下远程二进制下载
+  会卡 ⇒ **本地包**（curl 拉 xcframework zip，`binaryTarget(path:)`，`XCLocalSwiftPackageReference`）；
+  C 类型要 `import SherpaOnnxC`。`safari-project` 是可重生成的，这些全都得是 `app:sync` 的幂等补丁
+  （§9.5 2026-08-24 的同一条代价）。
+
+#### 8.10.3 提案（2026-09-30，**待人评审**）：领取不再问「配没配过」，占用判据改成「能不能用」
+
+**问题（模拟器实测，2026-09-30；issue #513）**：§8.10.1（一）落地的是「登录即额度」，但**两道
+闸都拿「apiKey 非空」当「配过了」**，于是最该被救的那群人在两个地方掉队：
+
+- `src/app/shell-model.js` `autoClaimGrant()` 的守卫：`if (!EngineState.needsSetup(cur)) return;`
+  —— 而 `EngineState.needsSetup`（`engine-state.js:54`）只要 `apiKey` 非空就为假。**设备上有一把
+  残值 key（失效/被替换/手写错的）且没有 provider 时，整条领取被跳过**：不写 `mt:grant`、不写
+  `grantTail`、不写 model，引擎坏着也不自愈（登录即领取是唯一自愈路径）。
+- `src/shared/quick-setup.js:188` 的占用判据：`chat: has(s.apiKey) ? 'configured' : 'empty'`，
+  而 `overridable()` 只认**尾号命中** ⇒ 一把非额度的 key 在 `overwrite:false` 下永不可覆盖，
+  翻译槽整个跳过（`skipped{slot:'chat', reason:'already'}`），**朗读/转写照写** ⇒ 半套应用。
+  用户点「领取」（`overwrite:false`）会看到 **「免费额度已配好」**，而翻译仍用那把死 key。
+
+读数语境没变：§8.10.1 那条 **47/54（87%）既没配引擎也没领额度** 说的就是这群人；两道闸让
+他们中的一部分**即使点了领取也拿不到翻译那一槽**。
+
+**提案（最终只落两处 —— 第三处的撤回过程本身是结论）**：
+
+1. **去掉 `autoClaimGrant` 的「已配好引擎」守卫**。理由：`plan()` 本来就是 `overwrite:false`
+   —— 它只写空槽，用户的有效配置一个字节都不会动；守卫是多余的，且它挡住的恰恰是坏配置的人。
+   **副作用是想要的**：每次登录都会 claim 一次（幂等、服务端以 user_id 为主键），于是余额也会
+   **每次登录刷新一次** —— 今天「额度用尽后卡片仍显示旧余额」的观察（§9.0.2 台账）随之消失。
+   明示同意的问题沿用 §8.10.1（一）的裁定：**不保留**（额度有硬上限、随账号作废，误领的代价是
+   我们几分钱）。
+2. **「领取」的回执不许与结果不一致**：回执只在**翻译槽真被写了**时才能说「配好了」；翻译槽被
+   跳过（用户自己有 key）而朗读/转写被写时，说「额度已领到。你自己的 key 保留着 —— 想换用额度，
+   点「改回免费额度」」（`grant_claimed_kept_toast` 已存在）。今天按「有没有写过任何一槽」
+   判断（`wroteAny = plan.tests.length > 0`），残值 key 的用户会看到「已配好」而翻译仍是那把
+   旧 key —— 一句假成功。做成共用层的小纯函数（两个宿主同一条判据）。
+
+**撤回的第三处（过程留档，别再提一遍）**：原提案还有一条「占用判据从『key 非空』改成『provider
+能不能解析』」。实现时被两条既有门禁拦下 —— `test/grant.test.js` 的「用户自己粘的 key 一个字节
+都不动」与「尾号只差一位就不许覆盖」：**空 provider 是能用的配置**（走注册表默认；老安装里
+provider 常常就是空的），判它「没配」会让额度**覆盖掉用户自己那把 key**。判据比直觉更严是对的，
+这一处保持不动；上面第 2 条把它的用户可见代价（假成功）收掉。
+
+**判据（回归）**：①残值 key + 空 provider ⇒ **登录后领取发生**（`grant`/`grantTail`/`grantBalance`
+写入、服务端行重建），**用户那把 key 与其 provider 一字不动**（空着的朗读/转写槽照常拿到额度），
+回执走「领到/保留」那支；②用户自己的有效三槽在 `overwrite:false` 下逐字节不变（既有门禁）；
+③二次登录不重复领取、不重复计费；④用尽后再次登录，客户端余额刷新为服务端真值（D10 那条观察
+随之消解）；⑤「领取」toast 与最终状态一致。
+
+**2026-09-30 实测（模拟器 · 修复后，三条全过）**：①残值 key 场景 —— `grant`+`grantTail`+
+`grantBalance` 写入、服务端行重建（旧行为：什么都不写）、`provider`/`apiModel` 仍为空、`apiKey`
+仍是那把旧 key（**按设计不动**）、`sttEngine` 拿到 `grant_stt`；②用户有效引擎（deepseek 四件套）
+—— 四键**逐字节不变**，同时领取照常发生、空的朗读/转写槽拿到额度；③服务端 `spent_usd` 置 0.2
+后重新登录 ⇒ 客户端 `grantBalance.spentUsd` **刷新为 0.2**（旧行为停在 0）。回执那半在**自动**
+领取路径上不显示（`claimAndApply` 不传 `say`），由单测四态钉着、两处手动入口已接。
+
+**为什么先出这份提案**：`AGENTS.md` 治理条 —— 额度发放规则与「免费路径不许被降级」直接相关，
+属领域设计改动；§8.10.1 的三闸是写进注释的既定设计，改它要人评审。
+
+### 9.6.1.1 离线模型的下载地址由后端配置表决定（2026-09-17，待人评审）
+
+**问题**：模型托管在哪里是会变的（GitHub 在境内拉不动；镜像站也可能有一天关掉），而地址写死在清单里，
+换一次就要发一版、等一轮审核，存量用户在过审前一直失败。用户裁定（2026-09-17）：「下载地址存入数据库，
+每次从数据库获取，以后这个地址不能用了我还可以换。」
+
+**规则（三条，缺一条就是另一个设计）：**
+
+1. **服务器只能说「去哪下」，不能说「下什么」。** `app/device-models.config.js` 继续是唯一注册表，
+   **sha256 与 size 钉在构建里**，下载后照旧校验、不符即丢（§9.6.1 既有）。远端能改的只有 `url`。
+   于是被人换了文件的托管**只会让下载失败**，不会让别的东西跑进设备 —— 这是把地址交给可变配置的前提。
+2. **地址先缓存、用前先探、坏了才重新问；备用地址永远取当次最新（2026-09-17 用户口述的下载逻辑，逐条对应）。**
+   请求形状：匿名 `GET {MT_BACKEND.url}/rest/v1/bt_model_sources?select=path,url,url_alt&kind=eq.tts&flavor=eq.{flavor}&active=is.true`
+   （只带 anon key，**不带任何个人数据、不带账号**，5 s 超时）。每次「下载」（设置页按钮或四处首播的自动下载）按下面走：
+   1. **本地没有缓存过地址** ⇒ 先问服务器，拿到「默认 + 备用」，用**默认地址**下，并把默认地址缓存到
+      `chrome.storage.local` 的 `deviceModelSources`（按 `flavor + path` 存，**不设过期时间** —— 可用性由下一条决定，不由时间决定）。
+   2. **本地已有缓存的地址** ⇒ 先**探一下可用性**：`Range: bytes=0-0` 的 GET（有的托管不认 HEAD），5 s 超时，2xx / 206 即可用
+      ⇒ 直接下；不可用 ⇒ **重新问服务器拿最新地址**，用新的默认地址下并更新缓存。
+   3. **新拿到的默认地址也不可用** ⇒ 用当次拿到的**备用地址**下。备用地址**不缓存**，每次都是当次从服务器拿到的最新那一个。
+   4. **下载中途失败与探测失败同一处理**（都是「地址不可用」）：默认失败 ⇒ 按 ii / iii 换地址再下，进度归零；
+      三处（缓存默认 → 新默认 → 备用）都失败才进「下载失败」态，`{why}` 记最后一次的原因，进度行每次切换写一句
+      「地址不可用，换一个重试…」（`tts_pack_fallback`）。
+   5. **服务器本身连不上**（离线、后端挂了、`MT_BACKEND.enabled=false`）：有缓存用缓存的，没缓存用**清单里内置的默认值** ——
+      这是最后兜底，不是常规路；这一步永远不能成为下载失败的原因。启动时不问，扩展侧不问（模型只有 App 用）。
+   探测与切换都在 JS 侧（`ModelSources.pick` + `ensureDeviceReady` 的重试），原生下载器只收一个地址、不知道有几个。
+3. **换地址是一条 SQL，不是一次发版。** `update bt_model_sources set url = … where kind='tts' and flavor='china' and path='piper-zh.zip'`
+   ⇒ 新下载立刻用新地址，已缓存的设备最迟 24 h 后跟上。清单里的默认值仍要维护（首次启动离线、后端整个不可达时用它），
+   但它不再是「唯一的那份」。
+
+**表**（`public.bt_model_sources`，与 §8 的 `bt_*` 同一个后端）：
+
+| 列 | 类型 | 说明 |
+|---|---|---|
+| `kind` | text | `'tts'`（将来 STT 语言包不走这里 —— 那是系统下载的） |
+| `flavor` | text | `'global'` / `'china'` |
+| `path` | text | 与清单 `files[].path` 相同（`piper-zh.zip`），**按它对上**，不按 lang |
+| `url` | text | **默认地址**（完整 https） |
+| `url_alt` | text，可空 | **备选地址**（用户 2026-09-17 补充「放两个地址，一个默认一个备选」）：默认地址下载失败（连不上 / 超时 / 非 2xx / 校验不符）才用它 |
+| `active` | boolean | 关掉一行 = 回到清单默认值 |
+| `note` / `updated_at` | text / timestamptz | 运维用 |
+
+主键 `(kind, flavor, path)`。RLS：anon **只读**、且只读 `active = true` 的行；写只走 SQL 控制台 / service role，**没有任何写接口**。
+
+**清单里也允许每个文件带 `urlAlt`**（同样按 flavor 分），作为服务器不可达且无缓存时的第二兜底。
+
+**表里首次填入的地址（2026-09-17 用户裁定；三处都是同一份 zip、同一个 sha256）：**
+
+| flavor | `url`（默认） | `url_alt`（备用） |
+|---|---|---|
+| `global` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（**2026-10-01 改**：美国出口 6.4–6.9 MB/s、国内 6.4 MB/s） | GitHub Releases `…/releases/download/device-models-1/piper-{zh,en}.zip`（国外 13–14 MB/s，国内只有 20–40 KB/s） |
+| `china` | 魔搭 ModelScope `www.modelscope.cn/models/belliedmonkey/belliedmonkey-device-models/resolve/master/piper-{zh,en}.zip`（真机 18.7 MB/s） | hf-mirror.com 同名仓库（真机 ≈580 KB/s） |
+
+**为什么 global 也改指魔搭（2026-10-01）：** 原先 global 默认 GitHub —— 国外快，但**国内直连只有 20–40 KB/s**，
+真机上 67 MB 要下约 1 小时（ZHAO的iPhone 实测 ≈1%/分钟），而屏 2 是硬门 ⇒ 国内的国际版用户卡死在这一屏。
+魔搭换过去后：国内 6.4 MB/s（≈10 s）、美国出口 6.4–6.9 MB/s（≈10 s，比 GitHub 慢约一倍、首字节多约 1 s）。
+即用「国外慢约一倍」换掉最坏的那一格。字节来自 `cdn-lfs-cn-1.modelscope.cn`（中国 CDN，**没有国际节点**；
+`modelscope.com` 只是 `.cn` 的英文入口，`modelscope.ai` 上这个仓库 404）。清单默认值与服务器表两处同改。
+
+
+Supabase 公开桶 `device-models` 也传了同一份，按流量计费（Pro 250 GB/月后 0.09 美元/GB），**不进表**，留作两处都倒下时手工切换的最后一手。
+不记录谁来问过（不是事件，不进 `bt_events`；telemetry-design 白名单不动）。
+
+**隐私文案随之补一句**（§10 Gate H、官网隐私页 §8、商店描述「设备内置朗读」段）：
+「下载前会向我们的服务器询问一次最新的下载地址，请求里不含任何个人数据；模型文件本身从该地址下载。」
+中国版 App 本来就与这个后端通信（登录 / 同步），这一句对两个 flavor 同样成立。
+
+**验证：** `npm test`：`ModelSources.resolve` 按 `path` 覆盖、非 200 / 超时 / 空表 / `enabled:false` 回默认、
+缓存**不按时间过期**、**server 返回的 sha256/size 字段被忽略**；下载顺序五种情形各一条：无缓存先问服务器；有缓存先探、可用直下；
+探测失败重新问并更新缓存；新默认失败用当次备用且备用不落缓存；服务器不可达时有缓存用缓存、无缓存用清单。三次尝试用的是**同一个** sha256。`test:listen`：假后端返回覆盖地址 ⇒ 原生收到的
+`tts-assets` 清单 `url` 是覆盖值而 sha256 是构建里的；假后端 500 ⇒ 是清单默认值、且没有多出任何失败态。
+真机：改一行 SQL 指向 hf-mirror ⇒ 下载到「已安装」、试听出声。
+
+### 9.1.1 离线模型的下载入口 —— 四处首播同一条路（2026-09-17，待人评审）
+
+用户报障（2026-09-17）：「系统 tts 下载触发也没感受到。」查因：`device`（TTS）模型的下载
+（`NativeSpeech.ensureAssets('tts', …)`）**只在**「对话 · 实时听译」开始那一步触发（`app/listen.js`
+的 `downloading` 态）。设置页选了「设备内置朗读」、点「试听一句」、复习卡按 ▶、播客首播 ——
+四条路都走 `LearnTTS.speak → speakNative`，模型不在就失败为 `blocked`，**不下载、不显示进度**，
+上面 §9.6.1 写的「首次使用会下载一次离线模型」对这四处是假话。
+
+> **2026-10-01 更新（#532）**：多了一个**前置**入口 —— App 首次运行的**屏 2 · 资源包**是**硬门**
+> （识别语言包 + 朗读离线模型必须下完才放行，见 `docs/interaction-spec.md`「App 首屏三段式」）。
+> 本节这四处**仍是懒加载入口**，用于「模型被系统清掉」与「用户后来换了语言」这两类情形；
+> 两者不矛盾：首次是前置，之后是补齐。
+
+规则：
+
+- **一个下载入口** `LearnTTS.ensureDeviceReady(onProgress)`（包 `ensureAssets`），四处首播
+  （设置试听 · 复习 ▶ · 播客首播 · 对话开始）都走它；`listen.js` 现有的那段改为调它。进度显示在
+  **各自的状态行**（试听结果行 / 卡片行尾 / 播放器状态 / 对话 pill），不弹框。
+- **设置页朗读卡有一行「离线模型」**，仅在 `device-speech` 选中时出现，五态：
+  「未下载 · {langs} · {size} · [下载]」（副句「首次朗读也会自动下载；只下模型文件，不上传任何内容」）
+  → 「正在下载 {lang} · {pct}%」+ 进度条 + [停止] → 「已安装 · {langs} · [重新下载]」→
+  「下载失败：{why} · [重试] · 或换系统语音」（与 `listen_assets_failed` 同源）→ 试听结果里的回落具名
+  「{lang} 无离线模型，用系统语音」（§9.1 `device` 条目的 `fallback:'lang'` 落到界面，不再静默）。
+  大小从 `MT_DEVICE_TTS_MODELS[].files[].size` 求和（≈129 MB），不写死。
+- **试听按钮两态**：模型未装 ⇒ 「下载并试听（{size}）」；否则「试听一句」。一个会先失败再让人去找
+  下载按钮的试听，是 §9.2 说的「灰按钮加解释」的变体。
+- **对话块的「识别语言包」行同一形状**（§9.6 `downloading` 态的设置页镜像）：「已就绪 · {langs} ·
+  换语言时由系统按需下载」/「正在下载 {lang} 识别语言包 · {pct}%」。STT 的语言包由系统下载
+  （`ensureAssets('stt', locales)`），不是我们的文件服务器 —— 副句如实区分。
+- 系统语音仍是推荐路（§9.1 2026-09-13 裁定「Piper 留作可选」）；这一节只保证选了 Piper 的人**能看见**
+  它在做什么。
+
+验证：`test:listen` 假 `mtSpeech` 桥回 `tts-state {assets:'missing'}` ⇒ 朗读卡出「未下载」行、试听按钮
+文案是「下载并试听」；`tts-assets` 后按 `assets-progress` 回进度 ⇒ 行变「正在下载 · 43%」；`installed`
+⇒ 「已安装」；回 `{reason:'download'}` 失败 ⇒ 「下载失败」+ 重试。真机（ZHAO的iPhone）看一次进度。
+
+## 9.2 句子解析 (sentence notes) — 生词、短语、语法（2026-08-08）
+
+答案面新增「解析这句」：用**用户已配置的引擎**为当前句子生成生词表（词 + 释义）、
+短语 / 搭配、一个语法点。定位是**句子卡的一个面**，帮助理解——不拆词卡、不单独考、
+不进掌握标准（§5.2、§11 的边界都不动）。
+
+- **能力门控，同 domain-design §5.3 规则 1。** 只有 chat 类引擎（`MT_PROVIDERS`
+  中 `type` 为 `chat-compat` / `messages-compat`）能做这件事；免费 Google 通道是
+  翻译 API，做不了。没配可用引擎时**整个入口不渲染**——能力缺失 = 功能不存在，
+  不是灰按钮加解释。
+- **「至多一次」是按设备算的（2026-08-23 评审裁定，写明既有的隐含语义）。** 所有派生物
+  —— §9.1 的音频、§9.2 的解析、§9.3 的题包、§9.5 的补译文 —— 都**不同步**，所以「每张卡
+  至多收一次费，永远」这句话的作用域是**一台设备**：换一台设备，同一张卡会再生成一次、
+  再收一次费。这不是新规定，是「不同步」的必然结果；写出来，是因为那个「永远」很容易被
+  读成跨设备也只有一次。
+- **按需生成，一次缓存，永不重复扣费。** 结果按卡 id 落 IndexedDB 新 `notes` 表
+  （**DB_VERSION 3 → 4**，建表照例带 `contains` 守卫；这是唯一碰用户已有数据的
+  改动，`npm run test:idb` 必跑）。重看即时出。UI 注明：「使用你配置的 API，
+  一次调用，永久缓存」——成本可预期。
+- **绝不在用户没看见账单的情况下批量生成（2026-08-23 修订）。** 这条原本写的是
+  「绝不自动批量生成」，那是把「批量」当成了病因。真正的病因是**用户不知道这一下
+  要花多少钱**：§9.5 的播客模式默认开着播放解析，一轮听下来本来就会把整副牌解析一遍，
+  它没有违反这条规矩，靠的是把成本那句话说了两遍——**说清楚，而不是设闸**（§12 已记录
+  「设上限」被否决）。所以规矩收窄为：批量生成允许存在，但必须同时满足四件事——
+  **先算账**（在花任何钱之前，只查缓存，把「要发生多少次调用」写在用户眼前）、
+  **第二下才开跑**（第一下只出账单，不发请求）、**过程中可停**、
+  **结束具名报账**（完成多少、失败多少、失败的具名原因）。缺任何一件，它就退回
+  「自动批量」，仍然禁止。
+  **例外只此一处（2026-08-23 评审裁定）**：目前唯一的实例是 §9.5 的「出发前预载」。
+  再有第二个功能想用这条例外，**必须重新过领域评审** —— 不能自称「我也满足四条件」就直接
+  用。把一条绝对禁令换成四条件例外，代价就是它会被逐个「也满足」地注水，而每一次都显得
+  合理。锁在这里，是为了让下一次注水必须先说服一个人。
+- **不同步。** 解析是可再生的衍生物：换设备按需重新生成即可。省掉的是 chunk
+  格式变更与 50 MB 配额占用（§8.5 的成本模型不因它改一个字）。
+- **提示词英文**（同翻译系统提示词的既有惯例），解释语言跟 `uiLang`；要求 JSON
+  输出并防御性解析——模型输出不可信是前提，不是意外。
+- **提示词必须点名「生词只取自原句」，且缓存带提示词版本号（2026-08-08 (三)）。**
+  v1 提示词只说 "given a sentence and its translation"，没规定生词来自哪一侧；
+  而 Safari 采集的卡 `lang` 全是 `und`（domain-design §5.3——检测器缺失不是边缘
+  情况），模型没有任何学习语言的信号，真机实测把中文**译文**当成了学习对象（英文
+  卡解析出带拼音的中文生词）。修正后的提示词明确：生词/短语**逐字取自原句**、
+  永不取译文，解释用 `uiLang`。**「永不重复扣费」增加一个刻意的例外**：缓存记录
+  带 `v`（提示词版本），版本不符视为未命中、下次点击重新生成——每卡每次版本升级
+  至多多扣一次费。版本号只在提示词修正**错误输出**时才允许升，措辞打磨不算。
+- 规约走查：用户自己的 key、设备发起、结果不落我们的服务器 —— 规约 1 / 2 / 4 全
+  满足，不涉及 §2.1 的付费服务端路径。
+- **App 里同样可用（2026-08-08 (二)）**：App 设置页可配 chat 引擎 + key（§7.2 的
+  放宽及其三条边界），配了之后同一个能力门自然打开 —— `review.js` 是同一份字节，
+  门控逻辑一行不改。App 侧需要把 `providers.gen.js` 进 bundle（注册表仍是唯一
+  来源，App 不复述任何引擎名）。不配 key 的 App 维持现状：入口不渲染。
+- **解析引擎可独立于翻译引擎（2026-08-09，用户裁定）**。此前扩展端解析直接复用
+  翻译引擎四字段，翻译与解析被耦合在同一个模型上 —— 真机实测暴露了它们的要求
+  不同：思考型模型（如 DeepSeek 默认的 flash 系）翻译正常、解析却在推理段烧完
+  预算返回空正文。新增四个**覆盖键** `notesProvider` / `notesApiKey` /
+  `notesBaseUrl` / `notesModel`：**`notesProvider` 为空 = 跟随翻译引擎**（四字段
+  整组跟随，老用户零感知）；一旦选定解析引擎，解析只读 notes 组四字段（key/地址/
+  模型都不再从翻译组借 —— 半借半覆盖会出现 provider 与 key 错配）。解析引擎
+  候选仍从注册表按 `type` 过滤（chat 类），任何面不复述引擎名。App 侧存储与扩展
+  互不相通（§7.2 设备本地凭证），其「解析引擎」区块写的本就是 App 自己的引擎
+  四字段、无翻译功能可耦合，语义不变；两端在呈现上对齐：都有名为「解析引擎」的
+  设置面。回退解析逻辑收敛为一个纯函数（`LearnNotes.resolveConfig`），进 vm
+  测试。
+
+## 9.3 题包 (exercise packs) — AI 生成的题面素材（2026-08-12）
+
+§5.4 的题型分两类：**本地确定性**（恒存在、零成本）与 **AI 题包增强**（门控、
+缓存）。每个技能必须先有本地题型，AI 只做本地做不出的部分——§2.1 本地先行门的
+直接应用：
+
+| 技能 | 本地（纯函数，恒存在） | 题包增强 |
+|---|---|---|
+| 读 | 认读自评；译文选择题（干扰项确定性取自语料库其他条目的 `tr`） | 更像样的干扰项；理解题 |
+| 听 | 音频先行自评；盲听选词（正确项 = 句中实词，干扰项 = 其他条目的词） | 听感相近的干扰词；听力理解题 |
+| 写 | 挖空（`clozeFor`，§5.2；已缓存解析时按 §5.4 从生词/短语取材、随 reps 轮换） | `accept` 替代答案集（拼写/词形变体放宽判定） |
+| 说 | —（能力门控题型，§9.4；门关着即不存在，不需要本地兜底题） | 录音 → 转写 → 本地重合度评分 |
+
+- **独立模块、独立版本，不并入解析 prompt。** 并入会 bump notes 的
+  `PROMPT_VERSION`、全量作废已缓存解析并重复扣费——§9.2 的版本纪律只允许纠错时
+  升版（§12 记录了这次否决）。题包自有 `PACK_VERSION`，缓存记录同 §9.2 形状
+  `{id, data, at, provider, v}`，key 为 `itemId + '\0pack'`，落现有 `notes` 表
+  （无新表、无索引变更 ⇒ 无 DB_VERSION bump）。
+- **能力门 = 解析引擎的门**（chat 类引擎 + key，§9.2 的 `resolveConfig` 原样
+  复用），传输共用同一条链路。没配引擎时 AI 题型不存在，本地题型照常——题包永远
+  只是增强，不是依赖。
+- **成本上界写死**：每卡每版本至多一次调用；仅当轮换命中 AI 题型且缓存未命中时
+  生成（用到才生成，不预热、不批量）；最坏情形 ≤ deckSize 次/天。在途去重、缓存
+  写失败不得二次扣费——与 §9.2 同一组契约、同一组测试形状。成本文案在生成前
+  可见（同「解析这句」的成本行惯例）。
+- **模型输出不可信是前提**：防御性解析 + 机械合规检查——`mcq.distractors[]`
+  归一化后不得等于/包含 `item.tr`；`listen.foils[]` 不得出现在原句中、
+  `listen.heard[]` 必须逐字来自原句（§9.2 verbatim 检查同款）；`comprehension[]`
+  结构校验（2–4 个选项、`correct` 在界内）；`accept` 替代答案归一化后必须 ≠ 原
+  答案。违规逐项丢弃、部分可用照用；全废判 `bad_output`。
+- **题包失败永不挡复习**：任何失败（无引擎、HTTP、bad_output）都回落到同技能的
+  本地题型。失败具名，走 §9.2 的错误码惯例。
+- **不同步**，同 §9.2 的理由：可再生的衍生物，换设备按需重造。
+
+## 9.4 语音输入 (speech input) — 说题型的转写引擎（2026-08-12）
+
+§12 三审的裁定：被否的从来是「录音离开用户自选的端点」。浏览器 SpeechRecognition
+维持永久否决；解禁的是与 §9.1 语音（TTS）完全同构的 BYO 路径。
+
+- **第三个注册表**：`build/stt.config.js` → `content/stt.gen.js`
+  （`window.MT_STT_ENGINES`），理由同 §9.1 的第二注册表——不同能力不合并进翻译
+  注册表。一种格式覆盖全空间：`transcribe-compat`（OpenAI
+  `/v1/audio/transcriptions` 的 multipart 形状，自托管 whisper 服务器同样实现它）
+  ——「我自己的机器」与「一朵云上的 key」共用一条传输，本地优先要的正是这个。
+  china flavor 合规扫描照跑（注册表是唯一出处，别处永不复述引擎名/端点）。
+- **`device` 条目 —— 本机转写（2026-09-12，用户裁定「只上 iOS 26 / macOS 26 的 SpeechAnalyzer」）。**
+  上面「一种格式覆盖全空间」自此不再完整：`build/stt.config.js` 在 `local` 之前加第二种 `type`
+  `device-transcribe` —— 不说 HTTP、没有端点、没有 key。条目：`{ id:'device', type:'device-transcribe',
+  flavors:['global','china'], needsKey:false, supportsKey:false, supportsBaseUrl:false, supportsModel:false,
+  requiresEndpoint:false, defaultEndpoint:null, placeholder:null, defaultModel:'',
+  labelKey:'stt_engine_device', label:'设备内置转写（免费 · 离线 · 仅 App）', hintKey:'stt_hint_device' }`。
+  **不加新字段**：「是否本机 / 是否实时」由 `type` 推导（`device-transcribe` 即实时，对 §9.6 门控的意义
+  等价于云端条目的 `liveEndpoint && liveType`）；`defaultEndpoint: null` 显式写出；**免性能台账**（那条门只
+  拦说 HTTP 的条目）。该文件头上那句「**永远没有零配置引擎**」改为「**云端无零配置项；本机条目是唯一
+  例外**」—— 原句的精神保留：任何说 HTTP 的条目仍必须有用户填的地址或 key。
+  - **只在宿主 App 的下拉出现**：`engine-fields.populate` 收调用方注入的 `deviceOk`（App 传桥
+    `stt-probe` 的结果；扩展页不传 ⇒ 永远过滤掉），组件自己**不探桥**。扩展里没有 SpeechAnalyzer，也没有
+    音频会话（§9.6 开头）；`npm run test:app` 两端的引擎下拉计数按 `deviceOk` 过滤。
+  - **rule-10 门不改**：云端实时引擎仍是每个 flavor 的存在前提（每个 flavor 至少一条 `liveEndpoint`
+    条目），`device` 不算数 —— 它只在 iOS 26 / macOS 26 起存在，旧系统与扩展都靠云端。
+  - **它接的是 §9.6 的对话模式**（流式 + 主动收口 + 远程修正，见 §9.6.1）。「说」题型要的是一段整体
+    录音的一次转写（`transcribe-compat` 形状），第一版**不**把本机路接进说题；接不接是后续议题（§0 待裁定）。
+
+  > **2026-09-17 修订（待人评审）：上面这整条 `device` 条目从注册表删除。** 本机转写不再是用户在
+  > 下拉里选的一个引擎，而是对话 · 实时字幕**固定**的能力（domain-design §2.4 / §7 同日修订）。于是：
+  > - 「一种格式覆盖全空间」重新成立：`build/stt.config.js` 里只有说 HTTP 的 `transcribe-*` 条目，文件头
+  >   「永远没有零配置引擎」那句恢复原文。`deviceOk` 注入、`· 实时 · 本机` 后缀、`device_no_file` 都随之消失。
+  > - **说题悬案关闭：不接本机。** 用户裁定（2026-09-17）「整段转写只列云端 / 自建」。说题与扩展整段字幕
+  >   的录音去向仍是这四个键，且下拉里没有任何本机项 —— 「选了 `device` 说题就消失」这一类组合从此选不出来。
+  > - **rule-10 门改写**：不再要求「每个 flavor 至少一条 `liveEndpoint` 条目」，改为断言**没有**条目带
+  >   `live*` 字段、没有 `device-transcribe` 类型。云端实时引擎不再是任何 flavor 的存在前提；中国版与国际版
+  >   走同一条本机路。
+  > - **迁移**（App 启动一次，幂等）：存储里 `sttEngine === 'device'` ⇒ 四个键清空（说题哨兵；它在文件槽
+  >   从未工作过，不算清掉能用的配置）。云端条目的 key 不动 —— 它们的文件档照旧。
+  > - 键不变、不新增：`sttEngine / sttBaseUrl / sttApiKey / sttModel` 只表示整段转写；「录音去哪儿必须是
+  >   一次显式选择」照旧。
+
+- **设置键** `sttEngine / sttBaseUrl / sttApiKey / sttModel`，**不跟随**翻译组或
+  解析组——录音去哪儿必须是一次显式选择，没有「顺便」。两宿主同面（options 学习
+  区 + App 设置），App 侧是 §7.2 的设备本地凭证。
+- **隐私契约（§10 Gate C，披露与代码同 PR）**：录音只发往用户配置的端点；转写
+  返回即弃——不落 IndexedDB、不进 chunk、不同步、我们的服务器永远收不到。未配置
+  引擎或无麦克风时说档**不存在**（能力语义，§5.2/§5.4），永远不是灰按钮加道歉。
+- **评分在本地**：转写文本与原句的重合度是纯函数（§5.4 引用的 `speakScore`——
+  密集文字字符二元组、稀疏文字词多重集），客观约束评分的方式与挖空同款。模型只
+  做转写、不做裁判——裁判必须可测、可重放。
+- **自建端点必须允许跨域（CORS）**（2026-08-13 iOS 模拟器实测）。复习页的 origin 永远
+  不等于转写服务器的 origin，所以这总是一个跨域 POST；服务器若不回
+  `Access-Control-Allow-Origin`，WebKit 在我们看到任何状态码之前就判死 fetch——
+  抛一个光秃秃的 TypeError（Safari 文案 “Load failed”），与「地址不通」无法区分。
+  实测那次服务器其实已经收下并处理了上传，页面却只看见 TypeError。因此：传输层
+  捕获它并具名为 `network`，文案同时点出**可达性**与 **CORS** 两个用户能动手的原因；
+  设置面的提示也写明这条要求。云端点（OpenAI 一类）本就为浏览器开了 CORS，不受影响。
+- **用户填的是完整的接口地址，我们原样请求**（2026-08 起，domain-design §7 零拼接）。
+  从前这里写的是「尾斜杠要裁掉，否则拼出 `…//v1/audio/transcriptions`」——那条规则的前提
+  是我们会往用户填的地址后面接一段路径，而现在不接了，所以它连同它防的那个 bug 一起消失。
+  尾斜杠现在是用户自己敲进去的字符，我们不替他修：真要修，也该是他在看得见完整地址的
+  输入框里修，而不是我们在他看不见的地方猜。老装机的地址由 `content/wire-format.js` 的
+  legacy 分支按当年的规则（转写这一路是**裁**）逐字节复刻，升级不改变任何出网地址。
+- **失败具名**：`no_base / no_key / no_mic / mic_denied / network / http /
+  empty_transcript / unsupported`，界面文案逐一对应（§9.1 reason 惯例）。
+  会话中途 `mic_denied` ⇒ 本会话说档关闭、卡片按下一顺位技能重渲——不出死卡。
+- **IO 在途，控件不可用**（interaction-spec 全局原则）：录音与转写全程，说题
+  控件整体禁用并给具名状态文案。
+
+## 9.5 播客模式 (podcast mode) — App 卡片播放器（2026-08-17；2026-08-18 重定位并改名）
+
+> **名字**：2026-08-18 之前叫「驾车模式」。改名只动产品名——存储键 `drivePlaybackMode` /
+> `drivePlayNotes` 与模块名 `LearnDriving` / `AppDriving` 保持不变：前者改名等于再来一次
+> 迁移而用户永远看不到键名；后者是因为 `podcast` 在本仓库已指扩展的播客字幕翻译
+> （`content/content-podcast.js`），同名会让两个不同的东西在代码里撞车。**drive\* = 播客模式**。
+
+把牌组变成「放在支架上听」的播放列表：对每张卡，TTS 依次朗读**原文 → 译文**（可选
+再读一遍**解析**），一张播完**自动进下一张**，全程没有等用户的环节。播放顺序有四种，
+默认随机。目标场景：开车时被动地过一遍今天该复习的材料。
+
+### 它写什么：什么都不写
+
+**没有复习行、没有技能戳、不动 `lastSeenAt`、不碰调度器。** 这个模式只曝光材料，
+不产生任何关于记忆的证据，因此它对曲线的影响恒为零。
+
+这是 2026-08-18 的一次**方向反转**，值得把理由写下来。v1 曾在每张卡末口播
+「有没有疑问？」并对到期卡追加一道跟读题，让司机能免提地推进真实进度。两者都去掉了：
+**录音窗口的存在必然打断连续播放，而连续播放正是「开车时听」的全部内容**。一个每张卡
+都停下来等你说话的播放器，不是播放器。学习层的写路径因此全部留在复习页——那里用户看得见
+自己在给什么打分。§12 记录被否决的两条。
+
+- **后台与锁屏播放见下面同名一节（2026-08-24）** —— 「前台 only」那条裁定已被推翻，
+  §12 的对应行标注了推翻。屏幕常亮仍由 `app:sync` 的 `isIdleTimerDisabled` 补丁保证。
+  **App 专属**：iOS Safari 扩展页拒绝无手势播放（§9.1 实测），连续播放在那里不可能
+  存在——按能力语义，播客模式不进扩展任何字节。
+- **播放列表 = 复习页那套牌库**（到期卡 + 当日新卡，`buildDeck`），不是整个语料库。
+  听的是今天该过的东西，与学习节奏一致；随机播放也不会把三年前的卡翻出来。
+  候选卡照常在列——曝光不写东西，所以它也绕不开 `dailyNew`。
+
+### 播放顺序（四种，默认随机）
+
+| 模式 | 行为 | 会结束吗 |
+|---|---|---|
+| **随机播放**（默认） | 每张卡恰好一次的随机排列；走完重新洗牌 | 否 |
+| 顺序播放 | 按牌库原序 | **是** |
+| 循环播放 | 按原序，走完绕回开头 | 否 |
+| 单曲循环 | 停在当前这张 | 否 |
+
+- **默认是随机**，因为任何按序模式都会让每天回到同一副牌的用户永远先听开头那几张——
+  而那恰恰是他已经最熟的材料。
+- **随机是「每张一次的排列」，不是「每次随机抽一张」**。后者会重复播某些卡而另一些
+  永远轮不到，在十几张的牌库上一眼就看得出来是 bug。绕圈时**重新洗牌**，所以第二轮
+  不是第一轮的重播。
+- **模式按钮永不打断正在播的音频**：它只改变这张卡结束之后发生什么。这是它在行驶中
+  可以被按的全部理由。
+- **「下一张」在单曲循环里也必须能跳走**——一个不理会自己下一张按钮的播放器是坏的。
+- 只有顺序播放会走到「本轮听完了」；其余三种没有终点。
+
+### 一张卡三遍（2026-08-18）
+
+| 遍次 | 内容 |
+|---|---|
+| 第一遍 | 原句 |
+| 第二遍 | 原句 + 译句 +（可选）解析 |
+| 第三遍 | 原句 |
+
+- 段序列**摊平成一维**给状态机按下标走，但每段带 `pass`。摊平之后界面无法从 `what` 区分
+  「第一遍的原句」和「第三遍的原句」，而听的人需要知道自己在第几遍——`pass` 就是为这一行
+  存在的。加一遍或改顺序因此是**数据变化，不是新状态**。
+- 没有译文的卡三遍都只读原句。这是「播三遍」对一张裸卡的正确读法，不是要特判的退化情形。
+- **会话长约 2.5 倍**（15 张卡从 ≈2 分钟到 ≈5 分钟）。开车场景要的就是这个方向；若真机
+  听下来太啰嗦，**先退的是第三遍，不是解析**。
+- 遍次之间不插人工静音（v1）：TTS 的 utterance 边界本身有停顿，插静音要么用 `setTimeout`
+  造一个新的可被打断的异步点，要么播一段空音频，两者都要新的中断处理。记为已知限制。
+- 「再听一遍」回到**第一遍开头**，不是当前遍次的开头。
+
+### 播放解析（默认**开**）
+
+每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 一个语法点，§9.2 的产物）。
+**没解析过的卡会当场解析**——调用用户自己配置的解析引擎。
+
+默认开是 2026-08-18 的裁定。代价必须说清楚：**第一轮听读会把牌库里每一张没解析过的卡都
+解析一遍**。§9.2 的「每张卡至多收一次费，永远」仍然成立，但那一次现在会在用户没主动开启
+的情况下发生 —— 所以成本那句话出现**两处**（设置项旁 + 播放中界面上的常驻行），而不是一处。
+
+**解析预取**：开卡时就发起解析请求，而不是等走到第二遍那一段。否则会在
+「原句 → 译句 → ★几秒静默★ → 解析」中间留一个听起来像卡住的空档。不会重复扣费——
+`notes.js` 的 `inflight` map 按 `item.id` 去重，两次调用拿到同一个 promise。
+
+- §9.2 的成本合同不变：`LearnNotes.get` 缓存优先，**每张卡至多收一次费，永远**。
+  新的地方是**播客会话可以成为触发那一次收费的东西**，而且是在手机架在支架上、
+  用户没在看的时候。所以：默认关；设置项旁边写清楚会调用你的引擎；播放中界面上
+  常驻一行费用提示。**不设上限**——上限会让一轮听读中途莫名其妙地不再有解析，
+  而「每张卡只收一次」本身已经是一个收敛的承诺。
+- 解析为空 → 跳过这一段（**不播空音频**：那会让界面停在一个和「卡住了」完全一样的
+  状态上）。解析失败 → 具名跳过这一段，整场继续——卡本身已经读完了，一次解析失败
+  不是终止整场的理由。
+- **解析引擎没配置时必须说话。** 这不是「能力语义下的形态不存在」——用户**明确打开了一个
+  开关**，什么都不发生就必须给出理由，而且要点名去哪配。2026-08-18 真机（build 38）实证
+  了反面：开关开着、引擎没配，于是 `cardPlan` 不生成解析段，整个 App 里没有一个字提到这
+  件事，表现得和功能没做完全一样。修法是会话开始时在**常驻行**说一次（不是每张卡，也不能
+  写进逐卡的提示行——那一行会被下一张卡的渲染抹掉）。
+- 这个缺陷能上到真机，是因为自动化测试**自己造出了真机上不成立的前提**：它在打开开关的
+  同一次写入里把 `provider` / `apiKey` 也写好了，于是永远走不到「引擎没配」那条分支。
+  回归用例因此必须**先清掉那两个键**再打开开关（learn-regression §2.1 步骤 10d′）。
+
+### 开卡并行预热（2026-08-23）
+
+到这个日期为止，播客模式是**边播边取**的：`execSpeak` 走到哪一段，才在那一刻让
+`LearnTTS.speak` 去合成那一段的音频。一张卡三遍五段，于是一张卡最多有五个网络往返，
+每一个都落在「上一段刚播完」的那个静默里。上面「解析预取」修的是五个空档里的一个。
+
+规则统一成一条：**开卡的那一瞬间，这张卡需要联网的东西全部并行发出。**
+
+- 并行发出的是：原句音频、译句音频、解析请求；**解析文本一回来，立刻预热解析音频**。
+  最后这条是原来最大的空档——解析的文本要等 API 回来才知道，所以它的音频在旧写法里
+  必然是现取的，「解析预取」根本救不到它。
+- **再往前看一张**：只预热下一张卡的原句/译句音频，**不碰它的解析**。音频与解析在这里
+  不对称，理由是钱：下一张卡的音频迟早要合成（合成过就在缓存里，LRU 之外没有浪费），
+  而用户随时可能停下来退出，为一张没听到的卡付一次解析钱是不该发生的。
+- 前瞻不能用 `advance`：那个函数会重洗牌、会消耗随机数，拿它「看一眼下一张」就等于
+  提前把随机序列走掉了。因此另有一个纯的 `LearnDriving.peekNext(pos, order, mode)`，
+  不改 `order`、不吃随机；随机模式走到需要重洗的边界时它返回 `null`——**不猜**。
+- **去重是这件事成立的前提，不是优化。** 预热在途、播放就轮到了，如果两条路各自
+  `getAudio`，用户会为同一段音频付两次钱，整个预热就是负收益。所以 `getAudio` 套一个
+  按 `cacheKey` 去重的 in-flight map，`speak()` 也走它——与 `notes.js` 按 `item.id`
+  去重的是同一套纪律。
+- **播放途中永不现场翻译。** 译句只认 `item.tr`，其次认已缓存的补译文；两者都没有，
+  这张卡就按「没有译文」的既有读法三遍都读原句。行驶中不制造用户看不见的账单，也不让
+  播放器停在一个网络往返上——补译文的生成只发生在下面那个按钮里。
+
+### 出发前预载（2026-08-23）
+
+设置页「播客模式」区的一个按钮：**在还有网的时候，把接下来要听的东西全部落到本地**，
+上车之后整轮零网络。这是 §9.2 修订后「允许的批量」目前唯一的实例，四个构成要件一个不少。
+
+- **范围 = 今天的牌库 + 未来 N 天**（N 由旁边的选择器决定，存 `drivePreloadDays`）。
+  实现是纯函数 `LearnScheduler.buildDeckAhead`：对 `d = 0..N` 各调一次 `buildDeck`，
+  时间轴平移一天，按 `id` 求并集；只有第 0 天带今天已引入的新卡数，之后每天的新卡预算
+  按各自那天重新算。这必然是个**超集**——用户今天复习了什么会改变明天的牌库，而预载
+  发生在复习之前。超集是对的方向：多预载几张的代价是几百 KB，少预载一张的代价是路上没声。
+  过滤规则与 `buildSession` 完全共用一份（媒体卡跳过、任一侧无音色跳过）。
+- **第一下只算账，不花钱。** 只查缓存——音频查 `cacheKey` 对应的 `audio` 记录，解析查
+  `LearnNotes.cached`，译文查补译文缓存——然后把「N 张卡 · 待合成 P 段音频 · 待解析 M 张 ·
+  待补译文 K 张」写在按钮上方。按钮文字随之变成带调用次数的确认文案。**第二下才发请求。**
+- **过程中可停**，并发上限 4（串行太慢；无上限撞限流）。**结束具名报账**：完成多少、
+  失败多少、失败的具名原因，绝不静默（§3 law 2）。
+  > **「可停」建立在「每个请求都有界」之上（2026-08-23 真机实证）。** 语音那条 fetch
+  > 从前没有**应用层**的超时 —— 别的三条传输都用 `AbortController` +
+  > `RequestShape.timeoutMs()`（20 秒）兜底，只有它裸奔，实际边界是 iOS URLSession
+  > 的默认值（一分钟量级）。真机上端点不可达时，20 张卡的预载在「18/20」上停了两分多钟，
+  > 「停止」按下去变灰却迟迟不结束：工人都停在一个还没到期的 `await` 里，走不到下一次
+  > `shouldStop()`。**它最后是会回来的** —— 屏幕上如实报了「已停止：完成 20/20 ·
+  > 32 处失败（network ×32）」，报账那一半是好的 —— 但「等一分钟」和「等二十秒」对一个
+  > 站在门口准备出发的人是两件事，而按了停止还要再等一分钟，就是这条碳出要件的失效。
+  > 所以边界属于传输层，不属于调用方；停止最迟在一个请求预算之内生效。应用层超时具名为
+  > `timeout`，与 `network` 分开 —— 「没回应」和「连不上」是两种故障。
+  >
+  > *（同一次实测还暴露了一件与代码无关的事：那台手机在国内网络下够不着
+  > `api.openai.com`。32 次失败全是这个。真机验收要么带好代理，要么用够得着的端点 ——
+  > 否则测的是网络，不是功能。）*
+- **`returnsAudio: false` 的引擎不假装在下载。** 设备内置语音（默认）拿不到音频字节
+  （§9.1，这是 Web Speech API 的性质），它本来就离线可用。这种情况下按钮如实说明自己
+  只预载解析与译文，而不是显示一个永远是 0 的音频进度。
+- **引擎没配就必须说话**，同上面 build 38 的教训：算账那一步就点名「未配置解析引擎，
+  这 M 张卡的解析与译文会被跳过」并指出去哪配，而不是默默把它们从计划里删掉。
+- 同一区块顺带给 App 补上音频缓存读数与「清空」——扩展的 options 早有（`tts_cache`），
+  而预载正是唯一会让这个数字变大的动作，读数和它放在一起才有意义。
+- **它仍然什么都不写**：预载只填缓存，不产生复习行、不盖技能戳、不动 `lastSeenAt`、
+  不碰调度器。§9.5 开头那条契约对这个按钮同样成立。
+
+### 后台与锁屏播放（2026-08-24）
+
+到这个日期为止，播客模式是**前台 only** 的：`visibilitychange` 一发现页面不可见就暂停，
+屏幕不锁只靠 `isIdleTimerDisabled`。用户报上来的第一句话是「退出 App 就不继续播了」——
+而「架在支架上听」的常态恰恰是**把手机放下、屏幕黑掉、人在开车**。
+
+规则改成一条：**播客会话在后台、锁屏、切 App 时继续播；锁屏和车机上有一套真的控制。**
+
+#### 两个宿主 App，两种代价（2026-08-24 修订：范围含 macOS）
+
+**这一节只关于宿主 App。** 播客模式从来不进扩展（本节开头那条「App 专属」不变），
+所以下面说的「后台」指的是 **App 退到后台**，与浏览器、与 Safari 扩展页无关。
+App 的界面是 `app/` 那几个文件由 `loadFileURL` 加载进 App 自己的 web 视图 ——
+它是这个 App 的渲染层，不是一个浏览器。
+
+| | iOS | macOS |
+|---|---|---|
+| 进程会不会被系统挂起 | **会** —— 除非声明 `UIBackgroundModes: audio` 且真的在出声 | **不会**。窗口最小化 / ⌘H / 切到别的 App，进程照常跑 |
+| 需要的 plist 声明 | `UIBackgroundModes: audio`（**只进 iOS App target**） | 无 |
+| 需要的音频会话 | `AVAudioSession` 设 `.playback` / `.spokenAudio` 并激活 | **无此 API**（`AVAudioSession` 是 iOS-only），也不需要 |
+| 挡着它的到底是什么 | 系统的挂起策略 | **只有我们自己那行 `visibilitychange`** |
+| 设备语音（`speechSynthesis`）能不能后台说 | 待实测（很可能不能，见下） | 能 —— 进程没被挂起，没有理由停 |
+| 遥控表面 | 锁屏卡片、车机、耳机 | 键盘媒体键、AirPods、**控制中心 / 菜单栏的「正在播放」**（macOS 没有锁屏卡片） |
+| 要写的原生 | 音频会话 + 媒体遥控 | **只有媒体遥控那一半** |
+
+> **macOS 侧已实证（2026-08-24，真 Mac，默认设备内置语音）。** 顺序播放下最小化 120 秒，
+> 序号从第 10 张走到第 17 张 —— **后台连续跨了 7 张卡**，不是把当前这张播完就停。
+> 控制中心的「正在播放」显示原句/译句、只有 ⏸ 与 ⏭、没有进度条；退出会话后那一项从菜单栏
+> 消失。判据与证据见 `docs/learn-regression.md` M17。**iOS 侧仍未实测**（见下面「三个待裁定 /
+> 待实测的点」）。
+
+**macOS 那一侧几乎是白送的**：把「隐藏即暂停」的条件解掉，最小化和切走就继续播了；
+`MPRemoteCommandCenter` / `MPNowPlayingInfoCenter` 在 macOS 上同样可用（10.12.2+），
+所以媒体键和「正在播放」是同一份代码的另一半。两边共用一份 `app/native/audio-bridge.swift`，
+用 `#if os(iOS)` / `#if os(macOS)` 分开各自那一半。
+
+#### 能做到的三件、做不到的第四件
+
+| | |
+|---|---|
+| ✅ 退到后台 / 锁屏 / 切 App | 继续播 |
+| ✅ App 还活着（前台或后台）时，锁屏 / 车机 / 耳机按播放键 | 续播 |
+| ✅ 来电等中断结束、且系统带 `.shouldResume` | 自动续播 |
+| ❌ **上滑杀掉 App 之后，连上车机自动开播** | **做不到，任何第三方 App 都做不到** |
+
+最后这行必须写在这里，否则下一个人会把它当 bug 修：进程没了就没有任何东西能被遥控唤醒。
+iOS 不给第三方 App 这个能力，`UIBackgroundModes` 也不是干这个的。
+
+#### 后台能力是有条件的，条件不成立时必须说话
+
+后台音频断言由**宿主进程**给（`UIBackgroundModes: audio` + `AVAudioSession` 的
+`.playback` 类别），而 WKWebView 用的是宿主的会话。两个条件缺一不可：
+
+1. **宿主真的把会话建起来了** —— 不是「桥在」，是 `setCategory` / `setActive` 真的成功了。
+   建不起来（另一个 App 独占、系统拒绝）就必须退回前台 only 的老行为，而不是继续
+   假装能后台播。
+2. **引擎产出音频字节** —— 注册表里已有的 `returnsAudio`（§9.1）。理由曾经是：
+   `speechSynthesis` 拿不到字节是 Web Speech API 的性质，所以它大概也活不过后台。
+
+   > **2026-08-24 模拟器实测把这个理由推翻了一半。** 把这道门临时打开，设备内置语音
+   > 在 iOS 17.2 模拟器上后台连播 240 秒、跨了 5 张卡 —— **`speechSynthesis` 并没有
+   > 因为退到后台就停**，只要宿主声明了 `UIBackgroundModes: audio` 且会话是 `.playback`。
+   > 「拿不到字节」和「活不过后台」原来是两件事，前者是 API 性质，后者是我们的猜测。
+   >
+   > **门先不动，等真机。** 模拟器对后台挂起的执行比真机宽松得多，所以这个绿是弱证据
+   > （反过来红才是强证据）。它撤销的是「必须现在就做原生语音合成桥」的紧迫性，
+   > 不是这道门本身。真机若复现，这一条就删掉，中国版的问题随之消失；
+   > 真机若相反，就按上面那条裁定做原生桥。证据在 `docs/verification-spec.md` 的尖刺表。
+
+**上面两条都是 iOS 的条件。macOS 两条都不适用** —— 那里进程不会被挂起，所以后台播放
+无条件成立，`speechSynthesis` 也照样能说。这不是特判，是同一条判据在两个平台上取值不同：
+判据永远是「这个宿主能不能在不可见时继续出声」。
+
+任一条不成立 ⇒ 隐藏时照旧暂停，**并在常驻行上说出是哪一条、去哪儿改**。这是「用户明确
+打开了一个开关，什么都不发生就必须给出理由」那条规则（build 38 的教训）的同型应用，
+不是能力语义的静默缺席 —— 用户对着一个叫「播客模式」的东西，期待的就是音乐 App 的形状。
+
+> **反过来，后台无条件成立时一个字都不说。** macOS 上不需要解释「为什么会停」，
+> 因为它不会停。不存在的形态不解释，存在但受限的形态才解释。
+
+#### 遥控 = 屏幕上那四个按钮的第二个表面
+
+锁屏、车机、耳机的命令**原样映射到既有的 `tap_*` 事件**，`content/learn-driving.js`
+的状态机因此**一个字节都不用改** —— 没有新事件、没有新状态。这不是巧合：`tap_*` 的语义
+本来就是「用户在控制」，锁屏按钮和屏幕按钮是同一件事的两个表面。
+
+| 遥控 | 事件 | 备注 |
+|---|---|---|
+| play | `tap_resume` | |
+| pause | `tap_pause` | |
+| togglePlayPause | 按当前状态二选一 | 与屏幕上那个 ⏸/▶ 共用同一个 helper |
+| nextTrack（下一曲） | `tap_next` | |
+| **previousTrack（上一曲）** | **`tap_repeat`** | 播客模式没有「上一张」：随机是一次性排列，往回退没有定义。上一曲 = 🔁 再听一遍（回第一遍开头） |
+| 中断开始 | `tap_pause` | |
+| 中断结束 + `.shouldResume` | `tap_resume` | 本次新裁定的自动续播 |
+| 耳机拔出（`oldDeviceUnavailable`） | `tap_pause` | **重连不自动播**，等播放键 —— 拔耳机之后从外放里冒出声音是所有音乐 App 都避免的事 |
+
+**时间轴一律不给。** 一张卡三遍五段，任何进度条都会撒谎：`changePlaybackPosition` /
+`seek` / `skip` 全部关掉，Now Playing 按「无时间轴」发布。
+
+#### 锁屏上显示的是卡片正文
+
+媒体控件那一行：大字 = 原句，副行 = 译句，第三行 = `第 i / n 张 · 第 k 遍`。这是
+「锁屏显示卡片内容」这条决策的必然落点，**是特性不是疏漏**：锁屏上会出现用户正在学的
+句子，和任何播客 App 在锁屏上显示节目标题是同一件事。写在这里是为了让它被明确点头，
+而不是有一天被当成泄漏报上来。文案全部由 JS 传给原生（原生侧零文案），所以它照常走
+11 份 `messages.json`。
+
+#### 封面：把那张卡真的画出来（2026-08-25）
+
+到这个日期为止没有 `MPMediaItemPropertyArtwork`，于是锁屏上没有封面、**灵动岛上是一个
+问号占位符** —— 系统在没有封面时就画那个。真机反馈的正是它。
+
+**封面的内容就是当前那张卡**：`app/now-playing-art.js` 用 canvas 画一张 1024×1024，
+排版从 App 内的卡片推导（`.orig` 21 / `.tr` 19 / 元信息 12，按 2.5× 放大，**比例不变**），
+颜色读 `organic-tokens.gen.css` 的 token，因此**自动跟随系统深浅色**。
+
+- **为什么封面要存在**：媒体控件那一行只有一行且会截断，而我们的句子经常很长。
+  **封面是长句子唯一真能读完的地方**，这就是它承担的事。
+> **⚠️ iOS 上这件事归 `navigator.mediaSession`，不归原生（2026-08-25 实证后改）。**
+>
+> 最初的实现走 `MPNowPlayingInfoCenter`。在 iOS 上它**完全不起作用**：模拟器锁屏上
+> 显示的是「大肚猴翻译 · 复习」—— 那是我们页面的 `document.title` —— 还带着一根拖动条
+> 和 ⏪10/⏩10，而我们明明设了 `IsLiveStream` 且禁掉了 seek。
+>
+> 原因是 **WebKit 会为页面里的 `<audio>` 元素自动发布一套自己的 now-playing 会话**。
+> 而播客模式每播一段就 `new Audio(...)` 一次，于是 WebKit 每段都重新发布一遍，把我们
+> 从原生侧写进去的东西盖掉。**我们在跟 WebKit 抢一个它本来就拥有的东西。**
+> （macOS 上反过来是我们赢，所以那边一直是好的 —— 两个平台谁赢不一样。）
+>
+> 所以：**音频归 web 层，媒体会话就该归 web 层。** 现在 iOS 的锁屏内容由
+> `navigator.mediaSession` 提供，原生那一半只保留音频会话与后台断言（那部分实测有效）。
+> `MPNowPlayingInfoCenter` 留着只对 macOS 有意义。
+
+实证钉住的三条细节（都是「不这样就不工作」，不是风格）：
+
+- **封面必须是 `blob:` URL，`data:` URL 不认。** 同一张图、同一份 metadata，
+  换成 `data:` 就是一个空方块。canvas 出来的 data URL 在 JS 里同步解码成 Blob 再
+  `createObjectURL`（不走 `fetch` —— `file://` 下那是又一个可能被拦的地方）。
+- **`setPositionState({duration: Infinity})` 是去掉那根会撒谎的进度条的唯一办法**，
+  而且它顺带拿掉了 ⏪10/⏩10。实测过反面：不标实时 ⇒ 进度条与 ⏪10 一起回来，
+  **而我们注册的 `nexttrack`/`previoustrack` 并不能替换掉它们**。代价是紧凑态锁屏
+  控件上不再画传输键 —— 换掉两个会撒谎的元素，值。
+- **小尺寸那一档（灵动岛 ~24pt）仍由原生 `MPMediaItemArtwork` 的按尺寸回调负责**：
+  `init(boundsSize:requestHandler:)` 会带着系统要的尺寸来问，小尺寸返回 App 图标。
+  **requestHandler 必须返回该尺寸的图** —— 不管要多大都甩回 1024² 是「代码跑了但封面
+  不显示」的常见原因。系统实际用哪些尺寸问 Apple 没有公开，原生把见过的尺寸回传，
+  `AppDriving._debug().bridge.artSizes` 读得到。
+- **封面上不放遍次。** 遍次没有对应的语音段，写上去仍然是一句会过期的话；它归媒体控件
+  那一行 —— 那行跟着段走。
+
+  > **「封面只承载卡级为真的事实」这条已于 2026-08-26 推翻**（见下「解析跟读」）。
+  > 它原来的依据不是「卡级才对」，而是**成本**：一张 1024² PNG ≈123 KB，跟着段走就要
+  > 每段过一次桥。iOS 改走 `navigator.mediaSession` 之后逐行更新**根本不过桥**，
+  > 那个依据不复存在。规约因此收窄成一句更准的话：**封面上不放没有对应语音段的东西**
+  > —— 遍次仍然出局，解析行进来了。
+- **裸卡不留空洞。** 没有译文的卡三遍都只读原句（§9.5 既有读法），封面上原句自己涨上去
+  占满，而不是照搬「原句 + 译句」的版式在下半张留一块白。
+- **换卡时推一次，走独立消息。** 一张 1024² PNG 实测 ≈123 KB；`now-playing` 那条的去重是
+  `JSON.stringify(整个 payload)` 且每次重绘都跑，把图塞进去等于每次重绘都对上百 KB
+  做一次序列化。封面因此是 `now-playing-artwork`，按**卡片 id** 去重。
+- **只用 canvas 图元，绝不 `drawImage` 外部素材**：App 是 `file://` origin，画进外部图会
+  污染 canvas，`toDataURL()` 直接抛 `SecurityError`。图标那一档由原生给（它手上就有
+  `Assets.xcassets`），不从 web 层走。
+- **画不出来就没有封面，不影响播放**：`render()` 失败返回空串，调用方什么都不做。
+- **已知边界**：封面在换卡那一刻渲染，会话中途切换系统外观时封面是旧的，到下一张卡才
+  跟上。可接受 —— 写在这里，免得被当 bug 报。
+
+#### 解析跟读：念到哪一行，封面就亮哪一行（2026-08-26）
+
+播到解析那一段时，锁屏上原本一动不动 —— 还是原句和译句，而耳朵里已经在念生词了。
+
+**锁屏上没有任何歌词类 API**（`MPNowPlayingInfoCenter` 没有这个字段，而 iOS 上真正生效
+的是 WebKit 的 mediaSession），媒体控件那一行的三格也已经被原句/译句/进度占满。
+**唯一还能放第三行的地方是封面那张图。**
+
+- **解析按「生词 / 短语 / 语法」三块逐行念**（`notesToLines`），封面下方对应三行，
+  **当前行高亮、其余压暗**，并画一根强调色的竖条指着它。
+- **为什么按这三块，而不是按句**：块数 ≤ 3 且**结构上已知**，所以「出发前预载」在解析
+  文本还没取回时也能给出一个诚实的上界（按 `NOTE_LINES_MAX` 估，宁可多报）。按句切的话
+  「这张卡的解析有几句」在算账那一刻根本不可知 —— 连上界都给不出来。
+- **状态机一个字没改。** plan 里仍然只有一个 `notes` 段（`[s1,s2,tr2,n2,s3]` 形状不变），
+  「一段变三行」整个发生在 `execSpeak` 内部，全部念完才 `tts_done`。让 plan 在解析文本
+  回来时动态长出几段，就是给这个模块引入一个新的可变性来源 —— 不值得。
+- **逐行不过桥**：`artworkLocal` 只更新 mediaSession 的 blob URL；过桥的那一次仍然是
+  卡级的（给 macOS）。这就是上面那条规约得以让位的全部理由。
+- **解析区贴着卡的底边**，不跟着上面的文字块浮动 —— 逐行高亮时它必须待在同一个位置，
+  否则每换一行整块都在跳，看起来像页面在抖而不是「念到这儿了」。带解析时原句的字号上限
+  压到 72，否则一张长卡会把解析挤没。
+- **空块不产行**：§9.5「不播空音频」下沉到每一行 —— 产一个空行等于产一个空 utterance，
+  听起来和卡住一模一样。
+- **一次性代价**：`cacheKey` 含归一化文本，所以旧的「整段解析」音频缓存条目全部变成
+  孤儿，等 LRU 清。**已有用户要重新预载一次**才恢复整轮离线可播。
+- **听感已验（2026-08-26 真机）**：一段变三段多出两个 utterance 边界，实际听下来
+  **自然，不是卡顿** —— 拆分粒度保持三块。「一顿一顿就先退拆分粒度（三块 → 整段），
+  不是砍掉高亮」这条退路**没有触发**，留在这里是为了下次改粒度时知道往哪退。
+
+#### 灵动岛：Live Activity（2026-08-26）
+
+系统的媒体播放形态在灵动岛**收起态**只给「图标 + 波形」，第三方加不了字。想在那儿看到
+正在念的是哪一句，只有 Live Activity 一条路 —— 而它必须住在一个 WidgetKit 扩展里。
+
+**这是本仓库第一个「凭空造 target」的补丁，也是所有原生补丁里最脆的一个。**
+2026-08-17 那条后台桥的否决理由（每行原生代码都得变成 app:sync 幂等补丁）在这里达到
+上限：`patchWidgetTarget` 要在 pbxproj 里新增八类对象并接起来，而 `safari-project*/`
+每次重生成都会抹掉它们。
+
+**之所以还是做成了**：转换器自己已经生成了「Safari 扩展嵌进 App」的完整结构，Widget
+扩展是**同一个形状**（`productType` 只差一个字），所以补丁是照着抄，不是凭空发明 ——
+抄的对象就在同一个文件里，形状漂移时对照得出来。
+
+冒险验证（写任何 SwiftUI 之前先做的）四条判据全过：Xcode 认这个工程 · iOS 构建成功 ·
+`.appex` 真的嵌进了 App 且扩展点标识正确 · `app:sync` 跑两次 pbxproj 一字不改。
+
+**中国版当场证伪了第一版**：那棵树的 target 叫「… CN (iOS)」，而补丁按产品名找 App
+target，于是**整体跳过** —— 而「跳过」的表现是「中国版没有灵动岛」，没有任何一行输出
+会说这件事。改成按 `productType` 找，并用三个不同产品名各跑一遍钉住。
+
+- **收起态放进度**（`第 i / n 张`）而不是句子：那儿只有约 24pt 宽，句子放不下，
+  而进度短且是这个尺寸上唯一还读得出来的信息。展开态才给原句 + 译句。
+- **大肚猴是画出来的，不是引资源**：扩展有独立 bundle，引 App 的资产目录要么多一份
+  拷贝、要么多一个 App Group —— 而这只猴子只有几个圆。颜色与 `icons/icon.svg` 逐字一致。
+- **属性定义在两个 target 各编译一份**（App 与 Widget）。字段对不上时**不会编译报错**，
+  只会在运行时解码失败、岛上什么都不显示 —— 而「岛上什么都没有」正是这个功能要修的
+  症状，查起来会绕一大圈。`npm test` 有一条断言逐字比对这两处结构。
+- **`NSSupportsLiveActivities` 缺了会静默失效**：ActivityKit 直接拒绝启动，不抛异常。
+  它同样只进 iOS App target。
+- **iOS 16.1 以下这一半整个不存在**，其余（后台播放、锁屏封面、遥控）照常 —— 能力语义，
+  不是降级。用户在系统设置里关掉实时活动同理：不重试、不提示，那是他的选择。
+- **已知代价（2026-08-26 真机实测，不是预警）**：Live Activity 与系统媒体形态**确实
+  并存**，岛上两个都在 —— 但观感可以接受，**裁定保留，不退回只留系统形态**。
+  另：「只有一个 App 能占 Now Playing，音乐类优先」仍然成立。
+- **模拟器验不了灵动岛**（iOS 17.2 模拟器不渲染它）。能在模拟器上确认的只有一件事，
+  但那件事是决定性的：系统日志里 `chronod` 真的把 `MTPodcastWidget` 进程拉起来了 ——
+  说明 Live Activity 注册成功、扩展被加载。**外观只能真机验。**
+
+#### 屏幕不黑：前台能保证，锁屏之后不能（2026-08-26）
+
+- **前台**：`app:sync` 的 `isIdleTimerDisabled` 补丁保证不自动锁屏。它原来只在
+  `viewDidLoad` 设一次，现在**每次回前台重申** —— 那个属性只在 App 处于前台时被系统
+  尊重，从后台回来不重申，放着放着屏幕就自己灭了，而用户看到的只是「屏幕黑了」，
+  无从归因。
+- **锁屏之后保持亮屏：第三方 App 做不到。** `isIdleTimerDisabled` 只在前台有效，手动
+  锁屏后屏幕必灭。唯一能让锁屏卡片持续可见的是**系统的「息屏常显」**。设置页因此写的是
+  「去哪儿开」（设置 → 显示与亮度 → 始终显示），**不是「我们做不到」** —— 用户要的是结果。
+  写在这里，免得下一个人把它当成一个可以修的 bug。
+
+#### 它仍然什么都不写
+
+§9.5 开头那条契约对后台播放同样成立：没有复习行、没有技能戳、不动 `lastSeenAt`、
+不碰调度器。后台播放改变的只是「声音在什么条件下继续」，不是「曝光算不算证据」。
+
+#### 三个待裁定 / 待实测的点
+
+1. **设备内置语音在 iOS 后台停不停 —— 这是唯一真正待测的一件事。**
+   `speechSynthesis` 不是媒体元素，WebKit 没有理由把它当成「正在出声的页面」。而
+   `build/tts.config.js` 里中国版只有 `browser`（`returnsAudio: false`）和 `local`
+   （用户自建端点），没有云端语音 —— 所以受影响的正是**默认装机的中国版 iPhone**。
+
+   > **裁定（2026-08-24）：中国版必须同样有后台播放。** 依据是 AGENTS.md 规则 10 ——
+   > **「合规或分发压力靠收窄发行范围解决，绝不给某些用户少功能的版本」**。「中国版没有
+   > 后台播客模式」这个结局被那条规则直接禁止，它不是一个可以接受的能力语义后果。
+   > 所以实测若为红，**原生语音合成桥（`AVSpeechSynthesizer`）不是将来的独立议题，
+   > 而是本次的必要组成部分**：让设备语音也走 App 自己的音频会话出声，形状与任何一个
+   > 音乐 App 相同（用户的原话：QQ 音乐、网易云都能后台播 —— 它们播的是真音频，
+   > 而这正是这条解法要做的事）。
+   >
+   > 这条裁定同时解冻了 §12 里 2026-08-17 那行否决的**另一半**：当时原生语音合成桥
+   > 和后台模式是被一起否掉的。
+
+   **macOS 不受影响**：那里进程不会被挂起，设备语音本来就能在不可见时继续说。
+
+   > **2026-09-12 闭合。** 这一条由 §9.1「`device` 条目」的设计闭合：朗读改走 Swift 侧 playerNode 出
+   > 真音频（Piper 本地模型，`app/native/speech-bridge.swift`），形状与音乐 App 相同，中国版同样成立
+   > （`device` 条目 `flavors:['global','china']`）。上面的原话保留：「原生语音合成桥（`AVSpeechSynthesizer`）」
+   > 写的是当时的候选实现；用户 2026-09-12 裁定不用系统语音而用第三方本地模型 —— 桥的**位置**没变，
+   > 桥后面的合成器换了。「设备内置语音在 iOS 后台停不停」**因此不必再测**：选 `device` 时它不再是出声路；
+   > 只选 `browser` 的用户仍按原样，且那一档的回落行具名。
+   > **2026-09-13 部分重开并再闭合：** 用户重问「系统语音若差不多就别下大包」；真机实证 WKWebView 拿不到
+   > 增强/优质档，用户听过原生高档声后裁定用系统语音 ⇒ 「原生语音合成桥（`AVSpeechSynthesizer`）」这句原话
+   > **就是现在的实现**（`MTSystemSpeech`，与 Piper 共用一条桥），细节见 §9.1 `device` 条目下的引文。
+   > 「后台停不停」由原生合成走 App 音频会话回答：**2026-09-13 真机锁屏 83 s 不停、21 句全念出**（verification-spec M25-sys）。
+2. **锁屏遥控可能根本不需要原生代码。** iOS 15+ 的 WebKit 支持 W3C Media Session API，
+   并把它桥到系统的 Now Playing / 锁屏遥控。若实测成立，原生只剩「设音频会话」那几行。
+   躲不掉的永远是音频会话那一半 —— WKWebView 用宿主的会话，宿主不设类别就没有后台断言。
+3. **静默期的容忍度未知。** 后台断言由「正在播音频」给出，而冷卡要等解析的网络往返、
+   开卡要等一次 IndexedDB 读。若这些空档超过系统容忍，App 会被挂起、整场戛然而止。
+   兜底方案（会话期间常开一段音量为 0 的静音循环）先不写，由真机尖刺决定。
+
+### 暂停时的「解析这句」
+
+暂停时出现一个按钮，点了当场解析（没解析过就补）、显示文字、并朗读一遍，**读完回到暂停**。
+
+- 回到暂停而不是顺势恢复播放：暂停的语义是「我在控制」，读完一段解析不该替用户决定继续。
+  「继续」仍然要他自己点。
+- **`seg` 必须原样带回**。带不回来，「继续」就会从错的那一段重来，用户会听到一段刚听完的
+  东西——而这种错在开车时既难察觉又难解释。
+- 按钮只在解析引擎可用时存在（能力语义）；不可用时由上面那条常驻说明解释原因。
+- 按需解析用的是同一条 `LearnNotes.get`，缓存优先、每卡一次收费——它不是第二条计费路径。
+
+### 中断与失败具名（§9.1/§9.4 reason 惯例）
+
+**失败要分得开**，这是这一节唯一容易做错的地方：
+
+- **单卡级失败是一份封闭清单**：`no_voice` / `no_voice_und` / `empty` —— 只有「这一张
+  读不出来」才跳过并继续。一张读不出来的卡不该毁掉一场其余卡都能读的会话。
+- **其余一律是整机级**（`blocked` 自动播放被拦、`unsupported` 不支持语音、`network`
+  连不上、`no_base` / `no_key` 没配好、`http` 服务端拒绝）→ 停在具名原因上。它会在每一
+  张卡上重演，继续下去只是空转。
+  > **判据写成「哪些是单卡级」，不是「哪些是整机级」（2026-08-23 修订）。** 原来写的是
+  > `fatal = blocked || unsupported`，于是**其余每一个引擎级原因都悄悄变成了单卡级**：
+  > 端点连不上时，一副 20 张的牌跳 20 次、十二秒走完，界面上打出「本轮听完了」，而一声
+  > 都没读出来。开放式的「哪些算致命」清单，漏一个就静默一类。模拟器实证于 §9.5 的
+  > 出发前预载验收（learn-regression M14′）—— 而那个功能正是把「端点够不着」从罕见
+  > 变成常态的东西。
+- 两者都**绝不静默**：一张卡无声无息地消失，读起来就像数据丢了。
+- **提示语必须点名是哪个引擎**：语音与解析共用 reason 码（`no_base` 对两者都成立），
+  所以 `note` 效果带 `src`（`'tts'` / `'notes'`）。少了它，一个够不着的**语音**端点会被
+  报成「这张卡的解析没成功」——说的是另一个功能，指的是另一个设置区。同日同一次实证。
+- **隐藏不再等于暂停（2026-08-24 修订，见下面「后台与锁屏播放」）。** 后台能力成立时
+  `visibilitychange` 什么都不做，继续播；不成立时才照旧暂停并停 TTS，并说出为什么。
+  **真正的中断**（来电）由音频会话报上来，那时才暂停；中断结束且系统带
+  `.shouldResume` 时**自动续播**。暂停记住停在哪一段，继续时从那一段重来。
+  > 原文这条写的是「隐藏 → 暂停并停 TTS，**恢复只能手点** —— 一辆自己重新开口说话的车
+  > 比一辆等着的更糟」。那句话没有错，错的是它赖以成立的前提：**「隐藏 = 用户走开了」**。
+  > 在一个前台 only 的播放器里这个前提成立（屏幕黑了就没人在听）；有了后台播放之后它
+  > 不再成立 —— 隐藏往往正是「把手机塞回口袋、继续听」。所以规约缩窄到它真正想防的那件
+  > 事上：**播放器不得在一次真正的中断（来电、被别的 App 抢走音频）之后自作主张地重新
+  > 开口**，除非系统本身告诉我们「可以恢复了」（`.shouldResume`）。切后台不是中断。
+
+### 隐私
+
+无新披露面：不录音（跟读已移除，麦克风完全不参与）、解析用用户自己的 key、设备发起、
+结果不落我们的服务器、无遥测。媒体卡的 §11 边界不动：只朗读文本卡，媒体卡在队列里
+跳过（合成音永不替代原声，开车也不该去开原片）。
+
+---
+
+## 9.6 对话 · 实时听译 (live conversation) — App 专属（2026-09-07）
+
+把 §2.4（domain-design）那条「AI 转写字幕」管线从**网页媒体**转到**这台设备的麦克风**：
+两个人面对面谈事情（商务洽谈是主场景）：**双方自由说话，不按任何键**，每句转写定稿后按
+**语言**判断是谁说的，译成另一种语言，译文**自动朗读**。显示与扩展直播双显同型：上半块是
+**当下**（逐词原文 + 边说边译的临时译文），下半块是**整句定稿历史**（原文 + 整句译文，可加星）。
+*(2026-09-08 改：原来是「按住我说」的推挽式，见 §12。)* 设计稿：
+https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f 。
+
+**App 专属**，理由与播客模式同一条：它要一个能在锁屏后继续录音的音频会话，而 Safari
+扩展页没有任何会话可言（§9.5 开头）。iPhone 优先，macOS App 同步做（用户 09-06 裁定）。
+
+### 它写什么：定稿句对，作为新来源「对话」
+
+与播客模式相反，**这个模式写**。每一句定稿（转写闭合成整句 + 译文到达）都是一次真实的
+「看过」：用户正对着对方、正等着这句中文。所以它进语料，来源类别叫**「对话」**，默认开，
+会话内可关（设置项「对话进复习」）。
+
+| 字段 | 取值 | 为什么 |
+|---|---|---|
+| `sourceId` | `conv:<sessionId>`（每次会话一个） | 来源治理按**会话**分组（「🎙 对话 · 2026-09-07 机场问路 · 23 句」），可整段删除；没有 host 可分组 |
+| `sources` 记录 | `{ id, url: 'conv://<sessionId>', title }`，`title` = 日期 + 第一句定稿的前 12 字 | 来源管理与卡片 ⓘ 行显示 `title`；`url` 不可点（没有可回放的音频） |
+| `anchor` | `{ k:'conv', sessionId, title, startMs, endMs, who: 'them' \| 'me' }` | **不复用 `k:'media'`**：媒体锚点的语义是「跳回那段音频」，而对话的录音已丢弃，复用会让复习卡长出一个永远失败的 ▶。新 kind 要求每个读者显式分支（review 卡、来源管理、`driving.js` 的媒体计数）——这是有意的，未知 kind 静默落进默认分支才是坑 |
+| `text` / `tr` | 对方说的：`text` = 外语原文，`tr` = 中文。**我说的**：`text` = 译出的外语，`tr` = 我说的中文，`who:'me'` | 学的永远是外语那一侧；「我说」的句子是**我想说但不会说的话**，学习价值不低于对方说的。卡片显示「我」标记。**待裁定**（§0 行）：是否默认进 |
+| `lang` | 转写引擎回的语言；拿不到就 `und` | 同 §4 |
+| 采集时机 | **定稿译文首次渲染进历史**时采集一次，`playedThrough = true` | 与 domain-design §2.4 直播面板同一先例；不是「在屏幕上停留 1.5s」——历史面板的行不会消失 |
+| 门 | 照走 §6 的门（`playedThrough` ⇒ dwell 1.0，落在 0.78）；**语言白名单**照走 `LearnRules.langAllowed`；加星绕过门与白名单 | 没有新门。会话里的每一句都过门，是因为每一句都被看了 |
+| 写入路径 | App 端 `LearnStore.putItem`（`file://` 语料，§7.2），随同步上行 | 与播客模式「什么都不写」相反，所以它**不在**扩展里，`learn-collector.js` 一个字节不进 App（`verify-app-bundle.js` 的断言不变）|
+
+**「一句都可能有错」要说在来源管理里**：原文来自转写、译文来自翻译引擎，两层都可能错。
+所以来源「对话」的说明写明这一点，且**加星的句子优先进复习**（星 = 用户亲手确认过这句）。
+
+### 原生采集：为什么麦克风不能留在网页里（2026-09-07 真机 spike，PR-L0）
+
+`app/listen.js` 探针页在真机（ZHAO的iPhone / iOS 26.5）跑了三轮，读数记在
+`docs/verification-spec.md`「尖刺：WKWebView 能不能后台录」：
+
+| 轮 | 条件 | 锁屏期间 JS 计时器 tick | 锁屏期间采集帧 |
+|---|---|---|---|
+| L0d/L0e | `.playAndRecord` 已激活 + `UIBackgroundModes: audio`，页内无音频 | **2 / 96 s** —— 整个 WebContent 进程约 2 s 后挂起 | 0 |
+| L0f | 同上 + 页内循环一段不可闻 `<audio>` | **48 / 92 s**（1 s 计时器被节流成 2 s，即全程活着） | **0**，页面一可见立刻恢复 |
+
+结论有两半：**页内有音频在放，WebContent 就活着**（与 §9.5 的播客模式同一机制）；
+**但 WebKit 在 App 不可见时一律把 `getUserMedia` 静音**，这不是我们能配置掉的。
+用户裁定「原生做吧」。于是：
+
+| 谁 | 做什么 |
+|---|---|
+| **Swift**（`app/native/audio-bridge.swift` 的输入半边） | `AVAudioEngine.inputNode` 装 tap → 单声道 Float32 → 重采样到注册表 `liveRate`（OpenAI 24 kHz）→ Int16 PCM → base64 → `evaluateJavaScript` 推给页面（≈48 KB/s 原始、≈64 KB/s base64）。音频会话 `.playAndRecord` + `.defaultToSpeaker` + `.allowBluetooth`。**权限由原生一次授权**（`AVAudioApplication.requestRecordPermission`），顺带解决 WKWebView 每次重装重问的问题 |
+| **JS**（`app/listen.js`） | 一切不动：`WsTranscribe` 的 socket、边说边译、定稿切句、翻译、历史、加星、写语料、TTS。PCM 从「自己录的」变成「桥送来的」 |
+| 桥协议 | JS→原生：`mic-start {rate}`、`mic-stop`、既有 `record-mode` / `session-start` / `now-playing`；原生→JS：`mic-pcm {b64}`、`mic-state {state, reason}`（`granted` / `denied` / `interrupted` / `ended`）。PROTOCOL 两侧同步，`test/build-scripts.test.js` 的 Swift 字符串白名单跟着改 |
+| 保活 | 会话期间页内循环那段不可闻音频（L0f 实证）。**PR-L2 真机若证明原生录音本身已足以保住 WebContent，就删掉它**——先按实证过的做法走，别按猜测 |
+| macOS | `AVAudioEngine` 同一份代码；无 `AVAudioSession`；沙箱 entitlement `com.apple.security.device.audio-input` 已由 `app:sync` 写入（M10 实证）。进程不挂起，所以没有锁屏问题，只有「有没有多余地停」（同 §9.5 macOS 段） |
+| **本机路：PCM 不过桥**（2026-09-12，§9.6.1） | 转写引擎选 `device`（`type:'device-transcribe'`）时，tap 仍只装一次（`MTAudioBridge` 加 `micSink`），Float32 **留在 Swift 侧**直接喂 `SpeechAnalyzer` 的输入流；过桥的只有 `mic-level {rms}`（10 Hz，`mic-start` 带 `deliver:'level'`）。不发 base64 PCM —— 云端路 ≈64 KB/s 的那条管在本机路上是零。上一行「PCM 从自己录的变成桥送来的」对本机路不成立：JS 收到的是**文字**（`stt-partial` / `stt-final`），不是音频 |
+| **本机 TTS：音频不回 JS**（2026-09-12，§9.1 `device`） | Piper 在 Swift 侧合成，块按序调度到同一个 `AVAudioEngine` 的 playerNode 边合成边播（真机实证）；JS 只收 `tts-start` / `tts-end` / `tts-failed {id}`。PCM **永不过桥**：既省带宽，也让「朗读走 App 自己的音频会话」这件事在中国版同样成立（§9.5 2026-08-24 裁定的闭合点） |
+
+§12 记两条否决：整条管线搬进原生（不必要：JS 活着）；采集留在网页（不可能：WebKit 静音）。
+
+### 门控：没有实时接口的转写引擎，入口就不存在
+
+> **2026-09-17 修订（待人评审）：本节标题所述的条件整体退役。** 入口不再看转写引擎 —— 没有云端路了
+> （domain-design §2.4 / §7 同日修订）。**入口可用 ⇔ 原生桥报告本机识别器可用**（`NativeSpeech.probe(locales)`
+> → `ready`）。不可用时**灰 + 一句具名原因**，只剩两种、互斥：
+> - 系统太旧（桥回 `os`）：「对话 · 实时字幕需要 iOS 26 / macOS 26」—— **没有**「去设置里选择 →」，因为
+>   这不是配置问题；App 与扩展的下限仍是 iOS 16.4 / macOS 13.3（`build/os-floor.config.js`），只有这两块要 26。
+> - 语言不支持（桥回 `locale`）：「本机识别器不支持{lang}」+ 换语言的出口。对话的语言下拉**只列本机识别器
+>   支持的语种**（`probe` 返回的 `locales` ∩ 我们的语言表，由设备当场报出，不写死清单）；后果是阿拉伯语 /
+>   俄语 / 印地语用户没有对话与实时字幕，其余功能不受影响 —— 用户裁定「官方支持的几种即可」。
+> 下面 2026-09-07 原文与 2026-09-12 追加里凡涉及「云端 `liveEndpoint && liveType && key`」「云端实时引擎是
+> 完整基线」「去设置里选一个云端实时引擎」的句子**作废**；`downloading` 态、本机路改语言要重连、语料写修正文
+> 等与本机路本身有关的规则**照旧**。设置页里这块的形状（依赖行 + 「识别语言包」行 + 语言 + 开关）见
+> interaction-spec「设置页信息架构」。**隐私文案随发布同版更新（§10）**：Gate E 那句「音频只发往你配置的转写端点」
+> 在 App 里不再为真，统一改用 Gate H 的本机句；扩展的整段转写（Gate C）不变。
+
+与播客模式同一规矩：转写引擎带 `liveEndpoint`（`build/stt.config.js`，目前只有
+`openai_transcribe`）且 key 已填 ⇒ 首页出现「🎙 对话 · 实时听译」；否则**入口不存在**，
+并留一条可见、有标签、直达设置页转写那一档的路（「需要一个带实时接口的转写引擎 → 去设置里
+选择」）。翻译引擎照 `LearnNotes.resolveConfig` 的整组规则；目标语言 = 界面语言（§3.1.4
+已知缺口：App 没有目标语言控件；**待裁定**是否给手动选）。
+
+> **2026-09-12 追加：入口有第二条路 —— 本机转写。** 上面「转写引擎带 `liveEndpoint` 且 key 已填」
+> 仍是云端那条路的全部条件，一字不改（且「目前只有 `openai_transcribe`」是当时的快照，读注册表为准）。
+> 现在**入口可用 ⇔ 云端 `liveEndpoint && liveType && key` 或 转写引擎 `type === 'device-transcribe'`
+> （§9.4 `device` 条目）且桥报告本机资产可用**（`NativeSpeech.probe()` → `stt-state ready`）。
+> 「是否本机 / 是否实时」由 `type` 推导，不加布尔字段（domain-design §7）。
+> - **旧系统具名**：SpeechAnalyzer 只在 iOS 26 / macOS 26 起有（用户裁定：旧系统该引擎不出现）。
+>   用户选了 `device` 而桥回 `unsupported` ⇒ 入口**灰** + 具名原因「设备内置转写需要 iOS 26 / macOS 26
+>   —— 或去设置里选一个云端实时引擎」。这是 §9.6 里唯一一处「灰按钮 + 原因」而不是「入口不存在」：
+>   引擎是用户亲手选的，入口凭空消失会让他以为选错了地方；云端实时引擎照旧是完整基线。
+> - **新具名态 `downloading`**：「正在下载{lang}离线模型 · {pct}%」—— 转写语言资产（`stt-assets`）与
+>   §9.1 的 TTS 模型（`tts-assets`）**共用这一种态**，进度来自桥的 `assets-progress {kind, locale, fraction}`。
+>   下载失败具名 **`listen_assets_failed`**，并**留云端出口**（一句直达设置页转写档的路）—— 不是死灰。
+>   读数：en-US 资产 46 s 装完（Mac）；zh / en 预装；Mac 30 / iPhone 45 个 locale。
+> - **本机路改语言要重连**：每个 SpeechTranscriber 只认**一个 locale**（我方 / 对方各一路），改「我的
+>   语言」或「对方的语言」= 停掉那一路、按新 locale 重建（资产没装先走 `downloading`）。interaction-spec
+>   「对话 · 实时听译」里「改语言**不重连** socket」这条**对云端路照旧为真**（语言从不下发给云端转写端）；
+>   本机路是它的例外：重连只动那一路，另一路照听，临时行清空、历史不动。
+
+### 会话内的规则
+
+- **计费可见**：常驻行显示已听时长与按注册表 `cost` 估的花费；**30 s 静音自动暂停**
+  （以免计费），说明「已暂停以免计费；点开始听继续」。
+- **谁在说 = 按语言判**（2026-09-08，取代按住说话）：比两边语言的**文字系统**，只命中一边
+  就定；两边都含汉字（中↔日、中↔韩）再按假名/谚文消歧一次。判断器是 `LearnRules.dominantScript`，
+  文字系统表读语言注册表自己的 `scripts` 字段 —— **不新写语种识别，也不重述任何语言列表**。
+  能判到什么程度如实说：中↔外全判准，中↔日/韩多数判准，**拉丁对拉丁判不出**（进会话时
+  屏上留一句灰字说清）。判不出时**先粘性**（跟上一句同一边）**再归对方** —— 归错成「我」会
+  把这句译成对方的语言并朗读出来，等于当着客户念一句莫名其妙的话；错误往安静的方向倒。
+  凡走到兜底的行标虚线，行尾一个 **↔** 可改边。
+- **↔ 改边要连语料一起回收**：翻转并钉住 → **先按旧方向**算出已写进语料的那张卡并删掉
+  （语料里「学的永远是外语那一面」，改边让两面互换，不回收就留下一张面反了的卡）→ 按新方向
+  重译。旧卡已被复习过时删除会被保护挡下，**如实说一句，不假装删干净了**。改边后不自动重读。
+- **译文自动朗读**（2026-09-08，推翻裁定 D）：两边都读（对方的话读给我听、我的话读给对方听），
+  **排队逐句读完**（朗读引擎每次开口前会掐掉上一次，队列不是为了优雅）。开关默认开，没配
+  TTS 引擎时灰掉 + 一句原因。改边后的重译与手动重试不自动读。连续三次失败只关本场。
+- **回声由 JS 自己堵，不押在原生回声消除上**：朗读的是译文，语言恰好是对话另一边的 ——
+  被自己的麦克风录回去就会判成「另一个人说的」，再翻译、再朗读，无限循环。四道闸：定稿前
+  整句丢弃 · **半句也拦**（边说边译在半句上就会花钱）· 同段 60 秒不重读 · 10 秒 6 句的保险丝。
+  明确不做「按语言丢弃朗读期间的句子」那一层：它会把对方插话整句吃掉，而插话正是最要紧的。
+  *(2026-09-12 追加：)* **两端都原生之后，扬声器→麦克风的回声更直接**：真机实测不开 voice processing
+  时播放中采集不掉帧，但回声 **+7 dB**（`.local/spike/READINGS.md`）。上面四道闸照旧是**唯一前提**，
+  且在本机路上对 `row.raw` 与 `row.text` 都比（§9.6.1）。原生回声消除（`setVoiceProcessingEnabled(true)`）
+  是 **D2 要测的升级，不是前提** —— 目前读数：不挂 playerNode 时开 VP 能识别外部人声、不误伤；
+  **挂了 playerNode 的 engine 上开 VP，tap 收到 0 帧（未解）**。可选的一道追加闸（本机路专有；不是
+  §12 否掉的那道「按语言丢」）：**朗读期间把喂给 analyzer 的输入静音**（`micSink` 丢帧，tap 不停、
+  `mic-level` 照发）—— 它丢的是所有人的话，包括插话，所以只能是用户可关的选项，默认关。
+  *(2026-09-13 裁定，推翻上一句的「默认关」：)* 用户真机实测「App 自己朗读的声音也会被 App 重新听到、
+  再翻译」（09-13 凌晨的对话场里 43 句有 6 句是自己的译文被录回去，如「发货时间是45天说得好到」），
+  裁定「请修复」⇒ **这道闸常开、不做设置项**：`MTAudioBridge.muteInput` 在两个原生朗读后端出声时置
+  true、念完 / 被停后置 false 并再静 350 ms 吃尾音；tap 不停，交给识别器与 JS 的是**同长度的静音帧**
+  （不是丢帧：识别器的静音检测借此把朗读前的半句收口，电平表如实显示 0）。代价如上一句所述：朗读期间
+  对方插话听不到 —— 接受，因为回声循环比漏一句插话糟得多；若插话被吃的反馈多起来，再把它做成开关。
+  JS 的四道闸仍是兜底（WebKit 路的 `browser` 朗读没有这道原生闸）。
+- **「这次不留记录」**（裁定 6）：开始前勾一下，这一场的句子只在屏幕上存在 —— 不写语料、
+  不同步、结束就没了（报价、客户名、条款这类场合）。**中途不可改**（改了之后前半场已经写进去
+  的怎么办，没有诚实的答案），**也不进存储**（记住上次的勾选反而危险，用户会以为在留记录）。
+  这一场里**星整个不出现**：星的语义是「绕过一切门确保进复习」，给一颗按了没用的星，就是
+  「界面说它做了、其实没做」。
+- **给对方看 = 点任一历史行放大**：全屏展示卡（外语大字 + 中文小字 + 朗读/关闭），底下照常在听；
+  卡上不放星（星在行上）。
+- **不可用的样子只有一种**（45% 透明、文案不变），且屏上一定有原因。socket 断开先自动重连
+  一次（2 s）。*(2026-09-08：按住键没了，随之消失的还有它那四种灰的条件。)*
+- **返回**在会话进行中先确认一次再结束（语料已逐句写了，不丢）；结束后小结卡替换上卡，历史留着。
+- **锁屏**：复用 §9.5 的 Now Playing 通道，卡片 = 最近一句定稿（原文 + 译文）+ 暂停/停止
+  两键，映射到会话的 `tap_pause` / `tap_stop`；没有时间轴。
+- **结束态**：小结（时长、对方 N 句、我 N 句、进复习 N 句含加星、约花费），一句「录音已
+  丢弃，只保留文字」。
+- **停止态四种，每种写明原因并回到「开始听」**：麦克风被拒绝（指路系统设置）；转写连接
+  中断（服务端原话 ≤ 1 行，已听的句子还在）；锁屏后系统停止了录音（原生采集下不该出现，
+  出现即 bug，但文案保留作兜底）；30 s 静音自动暂停。
+- **停止是彻底的**：关 socket、停 tap、丢开口尾句、停保活音频、`setActive(false)`。
+  *(2026-09-12：本机路多两件 —— `stt-stop` 关两路 analyzer、`tts-stop` 掐 playerNode 队列。)*
+
+### 9.6.1 本机转写 + 远程修正 + 本地朗读（2026-09-12）
+
+用户裁定（原话要点）：①「本地转写模型快速吐字 + 断句。断句完了交由远程模型修正转写，再交由远程翻译
+模型翻译。TTS 看看有没有快速的本地模型。」②修正 + 翻译**合成一次**远程调用。③本机转写**只上
+iOS 26 / macOS 26** 的 SpeechAnalyzer；旧系统该引擎不出现，给具名原因；云端实时引擎照旧是完整基线。
+④朗读用第三方本地模型（不选 `AVSpeechSynthesizer`），「音质不管，先通」⇒ Piper（§9.1 `device`）。
+尖刺读数全表在 `.local/spike/READINGS.md`（Mac + iPhone 14 Pro / iOS 27.0，2026-09-12）；本节只引
+**推出了规则**的那几条。
+
+**管线。** 本机 `SpeechTranscriber`（**每个语言一路**，我方 / 对方各一）→ 我们自己的静音检测
+→ `analyzer.finalize(through:)` 主动收口 → final 串起来按标点切句（复用 `WsTranscribe.sentenceCutter`）
+→ **立即**渲染原始句（`row.raw`）→ **一次**远程 chat 调用返回「修正后原文 + 译文」→ `row.text`
+换成修正文、`row.tr` 落地 → 语料写**修正文** → 自动朗读走本地 TTS（§9.1 `device`）。volatile 文本
+即时显示为「正在说」的临时行（现有 `partial` 机制，一字不改）。
+
+**每条规则背后的读数（不是猜的）：**
+
+| 读数（2026-09-12） | 推出的规则 |
+|---|---|
+| **定稿默认是懒的**：停顿不触发收口，按内部时间片成批吐（有声书 p90 **14 s**）；系统 `SpeechDetector` 模块无帮助 | 静音检测**自己做**（RMS，300–500 ms 无声）并调 `finalize(through:)`；停顿后整句 ≈0.4–0.9 s 到。不靠系统收口 |
+| **定稿是时间片不是句子**：会切在词中间（「记 / 得他…」「The / quote already…」）；文本自带标点，句末标点率 13–28% | final **串起来再按标点切句**，复用 `sentenceCutter`；绝不把一个 final 当一句 |
+| 首个 volatile 在开口后 ≈1.0–1.9 s（云端 `delay:minimal` 是 0.18–0.35 s） | 临时行照显示；延迟目标定 ≤ 2 s（下表），如实承认比云端慢 |
+| 每个 final 带置信度；约半数带 1–3 个**同音**候选（`.alternativeTranscriptions`，「由」→「有」） | 候选词随句**送给远程修正**，作为「Recognizer candidates」段 |
+| **系统热词 `AnalysisContext.contextualStrings` 对同音字零效果**（输出逐字相同） | 修正**在远程做**，不在本机做；不给用户「热词表」这种看着有用其实没用的设置 |
+| 远程修正（DeepSeek `deepseek-chat`，temperature 0，前 6 句上下文 + 候选）：鲁迅散文 CER 13.1% → **5.4%**（云端 OpenAI 3.9% / 千问 5.2%）；福尔摩斯 WER 3.1% → **1.9%**（云端 3.7%）；对话语料中文 17.8% → 10.0%（残留是数字：「四十五天」→「7045天」）。命中例：定进→订金、到张→到账、报家→报价、爆含→包含、保险单不含→保险，但不含、定单→订单、信用正业→信用证、电灰→电汇 | 修正后的本机路**与云端实时引擎同一量级**，所以它是一条正式的路而不是降级；数字仍是已知弱点，写进来源「对话」的「一句都可能有错」说明 |
+| 修正 + 翻译一次往返 p50 ≈ 100 ms / p90 ≈ 200 ms / max 475 ms | 合成一次调用（裁定 ②）成立；两次调用的变体只留一个常量 |
+
+**远程修正 + 翻译契约（行标签，不用 JSON）。**
+- system：*You are the correction stage of a live conversation interpreter…* 两件事：1. correct
+  recognition errors **only**（homophones、mis-segmented words、wrong numbers），keep wording / order /
+  length，never paraphrase；2. translate into <目标语>。Output exactly two lines：`T: <corrected>` /
+  `X: <translation>`。提示词英文（§9.2 惯例）。
+- user：**Context**（最近 **6** 行 `{who, text, tr}`，用的是修正后的 `text`）+ **Recognizer
+  candidates**（本句的候选词）+ **Transcript sentence**（`row.raw`）。
+- 解析：双标签 ⇒ `{text, tr}`；只有 `X:` 或无标签 ⇒ `{text: raw, tr: 整段}` —— **原文永不丢**，模型
+  不守格式的代价只是没修正。
+- **修正接受门**：`T:` 相对 `raw` 的 token 长度比在 **0.7–1.3** 之间**且** `LearnRules.dominantScript`
+  不变，否则弃修正、只取译文。门在这里，是因为「修正」的授权只有同音 / 分词 / 数字 —— 长度变了或文字系
+  变了，就是改写或串了语言，不是修正。
+- 两次调用的变体（先修正、再翻译）= 一个常量 `LISTEN_PASS = 'one' | 'two'`，默认 `'one'`；**不是设置项**。
+  留着它是为了将来某个引擎两步更准时能一行切换并可测，不是为了给用户选。
+
+**行语义。**
+- `row.raw` = 本机识别原文（切句后、修正前）；`row.text` = 修正后原文（到达前等于 `raw`）；`row.tr`
+  = 译文。历史行**先出 raw 再换 text**，换的时候不闪、不重排。
+- **语料写修正文**（`text = row.text`）：学的是「对方说的那句话」，不是识别器听错的那句。`raw` 不进语料。
+- **回声闸（上文四道）两个都比**：`isEcho` 对 `raw` 与 `text` 都跑 —— 朗读的是译文，被录回去时本机
+  识别器给的是 `raw`，修正后可能更像译文。
+- **「识别原文」affordance**：`text !== raw` 时行尾小字「识别原文」可点，翻面卡副行显示 `raw`。不常显 ——
+  修正命中率高时 raw 只是噪声，但它必须**一点就有**，否则「修正」是一个用户看不见的黑箱。
+- 云端路（§9.6 原有）没有 `raw`：`row.raw === undefined`，所有读者按此分支，affordance 不出现。
+
+**双语归属：先看文字系，置信度只做第二判据。** 两路识别器同时跑，同一段声音两边都会给结果：
+zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–0.92）；en 路对中文音频置信度 0.05–0.27
+—— 所以置信度不能当第一判据。规则：
+1. zh 路输出以拉丁字母为主（`dominantScript`）⇒ 这段是英文，取 en 路；
+2. en 路置信度 < 0.4 **且** zh 路输出是汉字 ⇒ 取 zh 路；
+3. 同文字系语言对（en / fr）仍是缺口：退回 §9.6 既有的 `sideOf` 脚本判并在行上记 `guessed: true`
+   （虚线 + ↔ 改边，同上文兜底行）。
+
+归属定了之后，谁在说 = 那一路的语言，其余规则（粘性、归对方、↔ 回收语料）原样。
+
+**延迟目标（写进规约；D2 起 `test:listen` 的假桥按这几个数出定时）：**
+
+| 段 | 目标 | 实测 |
+|---|---|---|
+| 开口 → 首个 volatile | ≤ 2 s | 1.0–1.9 s |
+| 停顿 → 整句定稿 | ≤ 1.0 s | 0.4–0.9 s（靠主动收口；不收口 p90 14 s） |
+| 定稿 → 修正 + 译文 | ≤ 1.0 s | 0.1–0.5 s |
+| 译文 → 朗读起声 | ≤ 0.5 s | ≈0.2 s（Piper 首块 157–264 ms） |
+| 错误率（修正后） | zh CER ≤ 12%、en WER ≤ 8%（沿用 `THRESH`） | 5.4% / 1.9%（朗读语料）、10.0%（对话语料 zh） |
+
+**原生桥协议（D2，`app/native/speech-bridge.swift`，handler `mtSpeech`，`emit()` →
+`window.NativeSpeech._fromNative(json)`）。** 与 `audio-bridge.swift` 的 `mtAudio` 并列，不合并：
+一个管音频会话与采集，一个管识别与合成。
+- JS→Swift：`stt-probe {locales}` / `stt-assets {locales}` / `stt-start {locales, rate}` / `stt-stop` /
+  `tts-probe` / `tts-assets` / `tts-speak {id, text, lang, voice, rate}` / `tts-stop`。
+- Swift→JS：`stt-state {state: ready|unsupported|failed|ended, reason}` /
+  `assets-progress {kind: stt|tts, locale, fraction, state}` / `stt-partial {locale, text, conf}` /
+  `stt-final {locale, text, conf, alts, t0, t1}` / `tts-state {state, reason, langs}` /
+  `tts-start {id}` / `tts-end {id}` / `tts-failed {id, reason}`。
+- 音频共享：**不第二次装 tap**。`MTAudioBridge` 加 `micSink`，本机路时 Float32 直接喂 analyzer 输入流，
+  JS 只收 `mic-level {rms}`（10 Hz），不发 base64 PCM（`mic-start` 带 `deliver: 'level'`）。TTS 音频在
+  Swift 侧 playerNode 播，**PCM 不回 JS**（上文原生采集表的两行）。PROTOCOL 两侧同步，
+  `test/build-scripts.test.js` 的 Swift 字符串白名单跟着改（同 `mtAudio` 的惯例）。
+- 权限、会话类别、保活仍是 `audio-bridge.swift` 的事；`speech-bridge.swift` 不碰 `AVAudioSession`。
+
+**没变的东西，点名一遍**：来源「对话」的字段表、`anchor.k:'conv'`、门、「这次不留记录」、↔ 改边回收、
+停止态、锁屏通道。计费行：本机路**没有转写计费**，只有修正 + 翻译那一次调用按翻译引擎估。`AppListen`
+的会话状态机不变；`downloading` / `listen_assets_failed` 是入口与改语言时的具名态。本机路只换了
+「转写从哪来」和「朗读怎么出声」。
+
+**验证**：语音类验证一律不靠真人说话（用户裁定：用 Mac / 另一台 iPhone 播放音频、视频或 TTS 语料代替），
+配方与门禁写在 verification-spec；`npm run test:listen` 加假 `mtSpeech` 桥，断言本机路入口、行先 raw
+后 corrected、语料写 corrected、`mic-start.deliver === 'level'`、旧系统假桥 ⇒ 入口灰 + 具名句、语言
+回落具名、云端路回归。**iPhone 镜像在 Mac 上开着时手机麦克风恒为静音** —— 真机验证前先关镜像。
+
+### 隐私：§10 Gate E
+
+一句披露，与代码同 PR：**「对话 · 实时听译」把麦克风音频实时发送到你自己配置的转写端点，
+只在你按下「开始听」之后、只发那一个端点；我们的服务器不接触音频；不保存任何录音，
+只保留文字（且只在你开着「对话进复习」时保留）。** 落点：README 两份、App 设置转写那一档
+的提示、`NSMicrophoneUsageDescription`（`scripts/sync-app-assets.js`，措辞从「识别后立即
+丢弃」扩到覆盖连续听译）、两个站的 privacy.html（发版时，`release-checklist` §2）。
+*(2026-09-12：本机路的披露是另一段、另一道门 —— §10 Gate H；Gate E 这段对云端路照旧为真，不改。)*
+
+### 模块
+
+| 模块 | 位置 | 职责 |
+|---|---|---|
+| `AppListen` | `app/listen.js` | 状态机 idle / listening / speaking / showing / ended；边说边译；定稿历史；加星；写语料；计费行；停止态 |
+| `WsTranscribe` | `extension/content/ws-transcribe.js`（进 `build/app-bundle.js` MODULES） | 与扩展同一份流式适配器 |
+| 原生输入半边 | `app/native/audio-bridge.swift` | tap、重采样、桥推 PCM、权限、会话类别。*(2026-09-12：加 `micSink`，本机路只发 `mic-level`)* |
+| 来源管理 | `extension/learn/sources-view.js` | `conv://` 来源按会话一行，只有「删除已存」（屏蔽规则对会话无意义） |
+| `NativeSpeech`（2026-09-12） | `app/native-speech.js` | `mtSpeech` 桥的 JS 半边：`probe()`、资产下载态、两路 `stt-partial` / `stt-final` 归并、`speak()` 队列 |
+| 原生识别与合成（2026-09-12） | `app/native/speech-bridge.swift` | SpeechAnalyzer 两路、静音检测 + `finalize(through:)`、资产下载（sha256 钉住）、Piper（sherpa-onnx）合成 → playerNode |
+| 修正 + 翻译（2026-09-12） | `app/listen-core.js`（纯函数） | `T:` / `X:` 解析、接受门（0.7–1.3 + `dominantScript`）、双语归属（文字系先、置信度后）、`LISTEN_PASS` |
+
+### 9.6.1.2 双语定稿仲裁：错语言那一路不许赢（2026-10-06，待人评审）
+
+**问题（真机 94 号，中国版中泰）。** 说中文时，泰语路把中文语音硬解成一串**泰文**，成为一行
+`who:'them'`（「说中文转成泰文」）。现有两道防线对这对语言**都失效**：
+
+- **文字系**：泰文假字本身是泰文字符，`script` 检查（`ListenCore.rejectDeviceFinal`）认它「对得上泰语」⇒ 放行。
+  （第一批已补全 `scriptOfLocale` 的泰/俄/阿等脚本，修掉的是**跨**文字系漏网，对泰文假字无效。）
+- **置信度**：`MTDeviceTranscriber.start` 的 `needDictation` —— 只要有一门语言需要 `DictationTranscriber`，
+  **整个会话**都换成它；`deliverDictation` 不报置信度（`conf:-1`）⇒ 置信度那道规则也永不触发。
+
+**根因两条**：①会话级引擎降级把 zh 从更准的 `SpeechTranscriber` 拖走、置信度信号整体丢失；
+②JS 侧没有跨语言仲裁 —— 两路对同一段音频都会出 final，各自按自己的 locale 建行。
+
+**设计。**
+
+**(a) 每种语言各按自己的引擎定，不整体降级。** 删掉会话级 `needDictation`；每个 locale 由
+`mtTranscriberFor(id)` 决定 `SpeechTranscriber` / `DictationTranscriber`，**同一个 `SpeechAnalyzer`
+里混装两种模块**（现有代码已是「每个模块一个 reader」的结构，只差不去强制统一）。zh 因此拿回置信度。
+这不是新机制 —— `SpeechAnalyzer(inputSequence:modules:)` 收的就是 `[any SpeechModule]`，两种转写器
+都符合。
+
+**(b) 定稿仲裁：三档判据（可信 / 可疑 / 中性）。** 每个 final 到达时先**扣住 W ms**（初值 600 ms，
+实测覆盖两路对同一段的到达差 —— 两路共用同一个 `SpeechAnalyzer`、同一次 `finalize(through:)`，
+到达差只有几十毫秒）。扣住期间若**另一 locale** 也来了 final **且两片文字系不同**：
+
+- **高置信**（`conf ≥ 0.4`）＝**可信**；**已知低置信**（`0 ≤ conf < 0.4`）＝**可疑**；**无置信**
+  （Dictation，`conf:-1`）＝**中性**。
+- 可信压中性、中性压可疑；同档 ⇒ **都放行**（不猜）。
+- **同文字系不仲裁**：那是「同一路的拉丁碎片 vs 另一路的拉丁垃圾」，交给既有 script/conf 规则 ——
+  否则会破坏 2026-09-18 的句头救回（低置信拉丁句头 vs 高置信拉丁垃圾）。
+
+判据**不是**「置信度最高赢」—— 那会让泰语音频被 zh 路的低置信假字压过。三档才对：
+
+- 中文语音：zh 高置信（可信）vs 泰文假字（中性）⇒ 留 zh，假字被压掉。
+- 泰语音频：zh 低置信（可疑）vs 泰文真话（中性）⇒ zh 被压掉，留 th。
+- 真实的双语快切（两次发声相隔 ≥ 一个 final 的到达时延）不撞窗口，两句都留。
+- 判据位置：`app/listen-core.js` 的 `makeFinalArbiter` / `arbScore`（纯函数、可单测），
+  `listen-model.js` 的 `final` 分支改成经它出口；会话结束 `closeSocket` 调 `flushAll` 不丢扣住的片。
+
+**(c) 已知缺口，不假装解决。** 两边**都只能用 Dictation** 的语言对（如 th↔ru）没有置信度可比，
+仲裁退化为「都放行」，症状可能残留。写在这里，作为下一批的输入。
+
+**(d) 校准。** 门限 T（初值 0.4）与窗口 W（初值 600 ms）由 §0.3 判分台在真机录音上校准：
+`npm run diag:judge` 用 whisper large-v3-turbo 独立转写当参考、数**伪行**（locale 与参考语种不符）
+与 CER/WER，取伪行最少的一组。初值来自 §9.6.1 已有的 0.4（错语言拉丁音频 0.05–0.27、正确
+0.7–0.98）与「两路共用一次 `finalize(through:)`」的到达差；真机读数回来前按初值走。
+
+**为什么必须走评审。** 它动了转写器架构（「一个会话一种转写器」→ 每语言各自选）与定稿归属规则
+（新增跨语言仲裁），属 `AGENTS.md` 的领域设计治理条。**代码在本提案评审通过后才动。**
+
+**与既有规则的关系。** §9.6.1 的「先看文字系」保留为**第一判据**（快、零成本）；本节的置信度仲裁是
+**第二判据**，只在文字系分不开的场合生效。
+
+**(e) 半句层用同一套判据（2026-10-06，95 真机「说中文先闪泰文再改中文」）。** 上面只管定稿；半句是
+另一条显示路径。规则：每路留最新半句，**文字系不同**时按同一三档分留高分那一路（同文字系取最新）；
+只有一路候选时先**扣 300 ms** 等另一路（若有）到齐再择一，不先画错语言。旧的「半句粘滞
+（`PARTIAL_STICKY_MS`）」取消 —— 仲裁取代它。判据是 `listen-core.js` 的 `pickPartial`（纯函数、可单测）。
+
+**(f) 回声优先于仲裁（2026-10-06，95 真机「朗读完泰文译文后多出一句转写」）。** 我们自己朗读的声音被
+麦克风采回时，两路都会给结果；原来的文字闸只对**单条**定稿判，错语言那一路不匹配，于是漏一行。
+规则：仲裁窗口里**只要有一路**匹配「我们自己刚读出去的文本」，这一整段音频就是我们的声音，**两路都丢**；
+判定在 final **到达时刻**做 —— 放行要等 W ms，用放行时刻会把判定推出 `ECHO_TAIL_MS`（M3 抖动实证）。
+代价如实记：对方若恰与我们**朗读同一句**（罕见）会被一并丢掉。
+
+**实测佐证（95 号包真机，`bt_diag_events` 的 `stt_final` / `speak` 时序）**：`speak` 之后 **~470 ms** 到
+的同语言定稿即回声；`speak` 日志记的是**播放开始**（`speakImpl` 返回 start，`done` 才是结束），
+所以「朗读进行中」与回声窗是重叠的。
+
+**(g) 播放进行中 + 同语言 ⇒ 丢（2026-10-06，95/96 真机时序定案）。** (f) 的文字比对在真机上**不够**：
+扬声器→空气→麦克风一圈后识别劣化，错语言那一路文字对不上、正确语言那一路若被定稿仲裁压掉就漏一行。
+真机 `bt_diag_events` 实测：回声定稿**总在 `speak`（= 播放开始）之后 ~500 ms、播放进行中**到达，且
+**与朗读同语言**（`speak th` → `stt_final th conf -1`；`speak zh` → `stt_final zh-CN`）。所以补一道更硬的：
+**正在朗读语言 L 的期间，L 的定稿与半句直接丢**（`echo.playingLangs`）；朗读**结束之后**仍走 (f) 的文字闸。
+
+**代价如实记**：对方若**恰在我们出声的那几秒**用同一门语言抢话，这一句会被丢；我们**念完之后**回话
+照常收（M4 钉着这个现实时机：现在 M4 等朗读念完再注入）。这道闸是拿真机数据换来的 —— 文字闸单独
+用时不稳，而回声是**每句必现**、抢话是**罕见**。
+
+### 9.6.1.3 语种识别（LID）：用模型判「这段是哪门语言」（2026-10-07，已实装 · 待评审复核）
+
+**问题。** 半句与定稿的归属一直靠**手写规则**：比文字系（`dominantScript`）、比置信度三档、再到
+`§9.6.1.2` 的「定稿确立后才上屏」。这些规则**只在「两路识别器都报了同一门语言的两种解读」时才有判据**，
+而 Dictation 路**不报置信度** ⇒ 两路分数相同、文字系又不同时**根本无从选择**（真音频实测，见 #574）。
+后果：说中文时泰语假字闪现、说泰语时中文垃圾成行（真泰语新闻实测出 `me:一文`）。
+
+**方案：把「谁在说哪门语言」交给一个语种识别模型。** 不再用脚本/置信度硬编码判语言。
+
+- **模型**：`sherpa-onnx` 自带 **Spoken Language Identification（SLID，whisper tiny）**——**Swift API 已在
+  你们打包的 vendored sherpa-onnx 里**（`SherpaOnnxSpokenLanguageIdentificationWrapper.decode(samples:)` →
+  `lang`），**零新运行时**。模型 = encoder + decoder ONNX（~103MB），走**既有离线模型通道**
+  （`bt_model_sources` + sha256 + 校验、`app/device-models.config.js`）；许可 MIT/Apache。
+  （备选：Core ML 版 VoxLingua107 ECAPA 21M，40.8MB、走系统 ANE——更小更快，但要多写一个 Swift 前端。）
+- **接线**：同一段麦克风 PCM（`micSink`）**顺手喂 LID**，逐句累计、判定，把语言码发给 JS。
+- **归属改为 LID 决定**：**半句只显示 LID 判定的那一路的文本；定稿只接受 `locale == LID` 的那一路**。
+  原来的 `dominantScript` 文字系比、置信度三档、以及「定稿确立」那套**全部退场**——语言理解不再有手写规则。
+
+**实测读数（Mac，whisper-tiny SLID，CPU）：**
+
+| 输入 | 判 zh | 判 th |
+|---|---|---|
+| 干净 TTS | **≥1s 稳** | **≥3s 稳**（1–2s 会飘成 ms/id） |
+| 真泰语新闻（YouTube，真实讲话） | — | 1s **47%** · 2s **73%** · 3s **80%** |
+| 真机麦克风（build 98 那场，10 句中文） | ≤1s **90%** · ≥2s **80%** | —（我们自己的朗读被 AEC 压掉，测不到） |
+
+单次判定 **40–160ms**；模型只吃 **<30s**（超出只用前 30s）。
+
+**12 门语言的覆盖与准确率（2026-10-07，`scripts/lid-eval-real.py` + `yt-dlp` 抓的 12 门**真语音**
+新闻/播客各 45s）。覆盖是**充分的** —— whisper 的判别头是 **99 类闭集**，我们支持的 12 门
+（en ja ko zh fr de es pt it ru ar th，以及听译语言表里的粤语 `yue`）**全在集合里**。
+
+| 模型 | 原始体积 | 交付 zip | 1s | 2s | 3s | 5s | 整段 |
+|---|---|---|---|---|---|---|---|
+| **whisper-tiny（现用）** | 102.8MB | **60.3MB** | 50% | 83% | 83% | 92% | **100%** |
+| whisper-base（试过，弃） | 159.8MB | — | 67% | 92% | 83% | 83% | 92% |
+| VoxLingua107 ECAPA（Core ML，试过，弃） | — | 40.8MB | 40% | 67% | 73% | 73% | 73% |
+
+⇒ **维持 tiny**。base 用 1.6 倍体积换不到更好的结果；VoxLingua107 体积虽小但**明显更差**
+（它的前端在 Swift 侧逐值对过 Python 参考实现：`11.283152` vs `11.283154`，所以不是移植误差；
+评测工具 `scripts/lid-eval-coreml.swift`）。
+
+⇒ **首次判定门槛定为 2s**（`MTDeviceLid.feed` 里 `buf.count >= 32000`）：1s 的判词只有 50%，基本是
+掷硬币，而判错一次就会让错语言那一路的半句上屏（正是要根治的那件事）。代价：每句话开头约 2s 没预览。
+
+**⚠⚠ 两次「模型判错」的结论都是我评估方法的问题，不是模型的问题 —— 记下来免得再犯：**
+1. **TTS 合成音不能用来评。** 第一版 12 门用 macOS `say` 合成，西班牙语被判成 `zh`/`en`；
+   换成真语音后**西班牙语 1s 起就全对**。合成音的韵律/音色会把判别头带偏。
+2. **片头音乐不能用来评。** 第二版发现「德语被判成英语」（tiny 在 1–5s 全错），拿同一份模型让它
+   **转写**那些窗口，看到的是 `*Musik*` / `(upbeat music)` —— 那些秒数是新闻/纪录片的**片头音乐**，
+   根本没有人说话。真正的德语语音段（ZDF heute）判词是 `de`（2s 即对）。
+   ⇒ **所谓「en+de 语言对里德语会被判成英语」并不存在**，不需要为此换模型或加规则。
+
+⇒ 现在的已知边界只有两条：**① 1s 的判词不可信（故门槛 2s）；② 非语音（音乐）会给垃圾判词** ——
+App 侧靠能量门只喂话音（`MTDeviceLid.feed(_:speech:)`），而能量门分不开「音乐」和「说话」，
+所以外放音乐时可能收到一条错语言的判词。日常对话里没有这个场景；如实记在这儿。
+
+另有一条闭集纪律做不到：**「只在会话的两门候选里取最大」这个 API 没有** ——
+`SherpaOnnxSpokenLanguageIdentificationResult` **只有 `lang` 一个字段**（`c-api.h`，2026-10-07 核对），
+没有 probs，配置里也不能限定语言集 ⇒ 只能拿它对 99 类的 argmax，再判它是不是那两门之一，
+**不是就保持沉默**（显示「正在说…」）。要补上得改 vendors 的 sherpa-onnx 或换模型。
+（另一条路存在但本轮没走：offline whisper ASR 的 `ys_log_probs` + 逐候选语言强制解码，
+能给真正的「两候选似然」；代价是每句两次解码 + 两个 recognizer 实例的内存。）
+
+### 9.6.1.4 难音频上「归属要稳住才认」+ silero VAD（2026-10-07，用户要求真机视频实测后加）
+
+**怎么发现的。** 用户要求「在 YouTube 上找一个泰语视频，单人说话的和多人说话的都试试准确率」。
+用 `yt-dlp` 取三条真语音频（YouTube 自动字幕当参照），从外放喂进 App（`myLang=zh / otherLang=th`）：
+
+| 用例 | stt-final | 泰文行 | **错语言行** |
+|---|---|---|---|
+| 单人 · 泰语讲语言学习（清晰） | 6（3 th + 3 zh） | 2 条，语义通顺 | **0** |
+| 多人 · 泰英混讲教学 | 45（12 th + 33 zh） | 4 条（1 条 `ว` 垃圾） | **1**（`你。`） |
+| 多人 · 纯泰语对谈（演播室） | 75（20 th + 55 zh） | 3 条（偏碎） | **2**（`那你你给我们也不`、`乌克兰。`） |
+
+**机制**（把 LID 判词与每条定稿按时间戳录下来看）：那段多人对谈的判词是
+
+```
+zh → th → ko → fr → ja → es → la → ru → ur → ko → el → ar → bo → ar → el → ko…
+```
+
+**乱跳**。而只要有一条判成 `zh`，中文识别路那条垃圾定稿就被放行了 —— 这就是漏行的全部原因。
+不是「LID 不认识泰语」，而是**单条判词不可信，而当时我们拿单条判词就放行**。
+
+**两层修法（都实装）。**
+
+1. **归属只认稳住的判词**（`listen-model` 的 `lidStable`）。判词换过来后要**稳住 ≥ `LID_SETTLE_MS`
+   （1.5s）**才拿去归属半句与定稿；稳不住（乱跳）⇒ 什么都不上屏 —— **宁可不显示，也不显示错的**。
+   代价：清晰音频上第一句的预览再晚 ~1.5s。
+2. **silero VAD 只把话音喂给 LID**（`MTDeviceVad`，644KB，走既有模型通道、sha256 钉住）。
+   `MTDeviceLid.feed(_:speech:)` 的 `speech` 现在由它给（拿不到 VAD ⇒ 退回原来的能量门）。
+   实测它单独不够：**只喂 VAD 确认的语音段，whisper-tiny 在这条音频上仍只有 19% 判成泰语**
+   （`en 4 / de 3 / th 4 / sv 2 / es·fi·la·fr·pt·ms·da·zh 各 1`，VAD 判出 43% 的声音是语音）。
+
+**效果（同一批音频，改前 → 改后）**：
+
+| 用例 | 改前（只 LID） | 改后（VAD + 稳住才算） |
+|---|---|---|
+| 多人 · 纯泰语对谈 | 5 行，**2 条中文垃圾** | **1 行，全是泰文**（0 错语言） |
+| 单人 · 清晰泰语 | 2 行泰文 | **3 行泰文**（更完整、通顺） |
+| 标准 5 例（Mac 音频层回归） | 5/5 · 0 错语言 | 5/5 · 0 错语言 |
+
+**如实记的边界**：难音频（背景乐 + 多人交叠 + 低电平，且这轮是「外放 → 麦克风」的二次录音）上，
+whisper-tiny SLID **本身判不出来**（19%）—— 这不是门能修的，是模型的能力边界。此时的正确行为就是
+**少显示**（现在正是这样），而不是拿一条乱跳的判词去猜。真机上「手机听现场」比这条链路好得多，
+待真机复测（这一条与 §9.6.1.2 的「第一个真机录音批」同一批待补）。
+
+**评估工具（都留在仓库）**：
+- `scripts/lid-eval-real.py` —— 真语音准确率矩阵（别用 TTS、别用片头音乐，见上）；
+- `scripts/lid-eval-coreml.swift` —— Core ML 候补模型同款矩阵；
+- `.local/lid-yt/`（本地，不入库）—— run-listen / diag（判词 + 定稿时间线）/ acc 三个驱动脚本。
+
+**两处如实记的代价。**
+1. **半句预览会变慢**：LID 要 ~2–3s 才判得可信 ⇒ 预览最早 ~2–3s 才出现（现在是 ~1s）。这是「判不出就
+   先不说」的代价——与设计里既有的「判不出就说『正在说…』」同源。
+2. **准确率不是 100%**：真机中文 80–90%、真泰语 3s 80% ⇒ 仍会有错判。比现在「无从判断」好，但不是零错。
+
+**闭集纪律。** 模型是闭集（永远挑一个，静音/噪声实测判成 `nn`）⇒ 必须：**VAD 门**（只在真有语音时判）
++ **只在会话的那两门候选里取最大**（不是 107 类 argmax）+ **置信度门限**（低于门限 ⇒ 不判，显示「正在说…」）。
+
+**范围与纪律。** 端上模型（**服务端不参与**；免费路径完整，满足规则 2/11）；不进扩展，只进宿主 App
+（本机转写本来就是 App 专属）；模型走既有下载通道、钉 sha256/size。
+
+**代码退场清单（实装时删掉/改掉的）**：
+- **删**：`listen-core.makeFinalArbiter` / `arbScore` / `ARB_TRUST_CONF` / `ARB_WINDOW_MS` / `pickPartial`
+  （跨语言仲裁与半句三档择一）；`listen-model` 的 `partialEstablished` / `partialHoldTimer` / `arb`。
+- **保留**：VAD/静音检测、切句器（`makeStreamCutter`）、回声闸、修正契约，以及**同一路之内**的文字质量闸
+  `acceptDeviceFinal`/`makeFinalGate`（它的文字系比现在只是「这一路自己的字对不对」的兜底，
+  **不再承担选语言**；句头救回仍靠它）。归属的唯一判据是新加的 `lidBase`/`sideMatchesLid`。
+
+**实装记录（2026-10-07）。**
+- **模型托管**：打包 **60.3MB** zip（`tiny-encoder.int8.onnx` 12.9MB + `tiny-decoder.int8.onnx` 89.9MB，
+  zip 压缩后 60.3MB），上传 **ModelScope** `belliedmonkey/belliedmonkey-device-models`（LFS），
+  sha256 `ae0ba8b75d2f0d299807a41915d66a329c01cb5459832879d22a28411a684501`（下载回验一致）；
+  `deploy/china/Caddyfile` 加 `/models/sherpa-onnx-whisper-tiny.zip` → ModelScope 302，
+  `api.belliedmonkey.com` 中转实测 302；`app/device-models.config.js` 加 `MT_DEVICE_LID` +
+  `mtDeviceLidModelsFor(flavor)`；`verify:model-urls` 把它纳入（8 个地址全通）。
+- **原生**（`app/native/speech-bridge.swift` 的 `MTDeviceLid`）：入口 `lid-probe` / `lid-assets`
+  （与 TTS 同一条下载/校验/安装戳通道，落 `Application Support/mt-lid/<dir>/`）；出口
+  `assets-progress {kind:'lid'}` / `lid-state` / **`lid-live {lang}`**（边说边判，≥1s 且有话音、
+  语言变了才发）/ **`lid-result {lang,ms}`**（与识别器 `finalize(through:)` 同一时刻判，给这一句定音）。
+  喂的是**同一段麦克风 PCM**（`MTDeviceLid.shared.feed`，tap 线程只做 16k 单声道转换 + 入队；
+  判定在专用串行队列上，不进 tap 线程）。**静音不判**：累计里没有话音（RMS ≤ 0.01）就不发判词——
+  闭集模型对静音会给 `nn` 这类垃圾。
+- **JS**：`app/native-speech.js` 加 `lidProbe` / `ensureLid` / `onLid` / `lidLatest`（协议两组字符串
+  与 `.swift` 的 case 逐字对表，`npm test` 有门禁）；`src/app/listen-model.js` 在
+  `ensurePacksForPair` 里把 LID 模型纳入下载（与转写资产/朗读模型共用 downloading 态），
+  会话开始订阅判词，**半句与定稿两处闸**都写成 `C.sideMatchesLid(ev.locale, lidLang)`。
+- **UI 文案**：一处没加（判词只在 `_debug()` 里露一个 `lid` 字段，给回归脚本读）。
+- **未做 / 待补**：真机多场录音下的门限校准（`scripts/lid-eval.py`，等服务端诊断录音）；首启屏 2
+  未把 LID 模型纳入（进场听译时才下）。
+
+**要不要把这 60.3MB 打进 App 包？（2026-10-07 用户提出）**
+**裁定（2026-10-07，用户）：先不打包，保持可替换。** 理由：换模型只需改一行 sha256/URL
+（`app/device-models.config.js` + 服务端表），打包后要等一次 App 更新 + 审核。下面的体积读数是
+当时（模型还没定）的留档 —— 后来真语音把模型选择定在了 tiny（见上表），**要不要重新考虑打包，
+以上表与下面两行的取舍为准**。
+实测（macOS Release）：`BelliedMonkey Translator.app` 现 **62MB**（其中主二进制 **42MB** —— sherpa-onnx
+静态库本来就在里面），资源 5.5MB。把模型打进去：
+
+| 方式 | 交付体积 | 总数 |
+|---|---|---|
+| 现状（进场下载） | **0**（每人一次 60.3MB，只在第一次听译时） | 62MB |
+| 包内放 **zip**、首次运行解到 Application Support | +60.3MB | ≈ **122MB** |
+| 包内放**原始 onnx** | +102.8MB | ≈ **165MB** |
+
+**好处**：零等待；**没网也能用** —— 听译恰恰常在国外/网络差的地方用，这一条是真的。
+**代价**：① 体积涨到 2–2.7 倍，且**每个用户都付**（含从不听译的人）；② **模型被冻在版本里** ——
+现在换模型是改一行 sha256/URL（`app/device-models.config.js` + 服务端表），打包后要等一次 App 更新
++ 审核；③ 两个 flavor 都要重新出包。结合上表的准确率读数（es 会判错、pt 看语音），模型的挑选还可能
+再动一次 ⇒ 先把「可替换」留着更划算。
+
+### 9.6.1.5 不用预设语言：语言选择收起来（2026-10-07，用户拍板；Pencil 稿已通过）
+
+**用户的要求。**「YouTube 上找一下既有中文又有其他语言的视频测试一下。确保不用预设语言也能准确听译。
+效果如果达到，用 pen 设计下交互，干掉没必要的语言选择下拉框。**包括听译和实时字幕的**。」
+
+**测出来的能力（用户指名的那种视频）。** 中英双语访谈（中文提问 + 英文回答），从外放喂进 App：
+
+| 片段 | stt-final | 出的行 | 结果 |
+|---|---|---|---|
+| 30–150s | 211 en + 15 zh | **85 行** | 英文侧**逐句准**（`Hey, buddy, can you speak English?` / `So are you graduating this year or next year?`） |
+| 150–265s | 82 en + 14 zh | **23 行** | 同上（`How long have you been studying English?` / `I think I've been studying English for like, um, 12 years`） |
+
+那几十条 `zh-CN` 定稿其实是**中文识别器在念英文**（`haven't think`、`do't know I wanto like the stust`）——
+**归属门 100% 丢掉了**，一条都没变成中文垃圾行。「逐句换判」在标准回归的 `zh-th-zh` 用例里也验着
+（中→泰→中三句各自归对）。⇒ **能力够了，可以做。**
+
+**⚠ 技术上的一条硬发现：`SpeechAnalyzer.setModules()` 不能用。** 它确实存在（会话中途换识别器的
+唯一入口），但 2026-10-07 在 macOS 27 SDK 上**直接 trap**：`EXC_BREAKPOINT` 崩在 Apple 内部的
+`TranscriberCommon.worker.setter`（`setModules` → `prepareModulesIfNeeded` → `setWorkers`）。
+所以**不做「就地换模块」**，改走**既有那条换语言的路**：`langChange('other', L)` —— 补语言包 +
+重连识别器（麦克风不停；既有代码、已验证）。
+
+**交互（Pencil 稿「稿 · 听译与实时字幕 · 自动识别语言（干掉下拉框） 2026-10-07」，用户 2026-10-07 通过）：**
+- **听译页**：原来的「我的语言 ⇄ 对方语言」两个下拉**不再常驻**，换成一**行被动状态** ——
+  刚点「开始听」是「正在识别语言…」；判出来并稳住之后是「已识别：中文 · English」；判词乱跳（难音频）
+  就一直停在「正在识别语言…」。行尾一个「**语言不对？**」文字按钮：点了才摊开那两个下拉（兜底，很少用）。
+- **实时字幕**：视频语言同样自动；条上沿用既有的状态行。
+- **「对方」那一格自动跟着 LID 走**：判出稳住的语言 L，且 L 既不是我的语言、也不是当前对方语言 ⇒
+  换成 L（防抖 2s），并记住它（`listenOtherLang` / `subtitleVideoLang`）—— 下次进场拿它当起点，
+  紧接着又被 LID 修正。**「我的语言」默认取界面语言**（中文界面 ⇒ 外语话译成中文）。
+
+**如实记的三条代价。** ① 一门语言**第一次**出现时，识别器是在判出来之后才挂上的 ⇒ 那**第一句不会成行**
+（每句话开头那 2–3.5s 的「正在识别语言…」就是这一段）；② 难音频上会长时间停在「正在识别语言…」（不猜）；
+③ 引擎不支持的语言识别到了也翻不了 —— 出路仍在（现在收进「语言不对？」里）。
+
+### 9.6.1.6 「译成」目标语言：默认跟**系统语言**（2026-10-07，真机反馈后定稿；Pencil 稿已通过）
+
+**用户真机反馈（批 27）：**「当用户系统语言是中文时，不知道应该翻译成什么语言，应该给用户设置他想
+翻译到的目标语言，然后其他语言都翻译到系统语言。」
+
+**根因。** §9.6.1.5 那版把「我的语言」（= 外语话译成什么）**跟着界面语言推**
+（`listenMyLang ‖ uiLang ‖ navigator.language ‖ zh`）。界面语言不是中文的人（或 `uiLang='auto'`
+解析路径不同的人），外语音就被译成界面语言而不是「他自己读得懂的那门」。
+
+**改成（用户三点拍板）：**
+1. **默认值 = 系统语言**（`listenMyLang ‖ navigator.language ‖ zh`），不再是界面语言；
+2. **听译保留双向**：对方的话 → 译成；**我自己说的 → 对方的语言**（面对面给对方看）；
+3. **设置就放听译页一处**：一个**看得见的**「译成」下拉（复用 `target_lang_label`「译成」）。
+   它旁边的「对方说的：{lang}（自动）」是 LID 判出来的那门，被动显示；认错了点「语言不对？」，
+   半屏 sheet 里**只改这一格**（`listen_partner_auto` / `subtitle_partner_auto`）。
+   **实时字幕**单向：视频的话 → 译成（同一个下拉），视频语言仍然自动。
+
+**实测（Mac，系统语言 zh_CN，两个语言键都清掉）：** 放英文访谈音频 ⇒ **82 行，82/82 全部译成中文**
+（`Hey, buddy, can you speak English?` → 「你准备好了吗？」一类）。
+
+**如实记：** ① 「译成」改的是**方向**，不改识别 —— 对方说什么语言仍然是 LID 判（判错仍然可能）；
+② 「译成」（你读得懂的）与「对方说的语言」（决定你自己的话译成什么）是两件事，别混；
+③ 默认值只在**没设过**时生效，设过一次就存下来、不再跟系统变；
+④ 设置页那一项「译成」（只管文档 / 系统 / 快速翻译）**不动** —— 听译这一处是它自己的键
+（`listenMyLang`），两处不互相改。
+
+### 9.6.1.7 真机批 28 的四条反馈：locale 名额、重复下载、误报、误伤（2026-10-07）
+
+批 28 真机测出四条，**同源的多、独立的一条是 Apple 的 locale 名额**：
+
+**(1) ★ `SFSpeechErrorDomain Code=11 "Too many allocated locales, 5 maximum."`**（English⇄한국어 点
+「开始听」就失败）。**根因**：**每次 `stt-start` 都新建一个 transcriber，而旧那一对的 locale 从来没释放过** ——
+Apple 对每个 App 的已分配 locale 有硬上限 **5** 个，来回切几次语言就撞上。**修**：`MTDeviceTranscriber`
+持一份进程内的「已占 locale」表，**每次 start 之前先 `AssetInventory.release(reservedLocale:)` 掉不在
+当前这一对里的**（必须先释放再建新模块 —— 新模块自己也要占名额），只留当前语言对。
+
+**(2) 「对方说的：nn」**（LID 吐了 `nn` 就把对方语言换成了它）。**根因**：LID 是 **99 类闭集**，
+`nn`（挪威尼诺斯克）是它在静音/噪声/短音频上最常见的垃圾标签，而自动跟随**直接采纳**了它 ⇒ 拿 `nn`
+去探本机识别器 ⇒ `unsupported/locale` ⇒ 整场 halt。**修**：`langSupported(code, codes)`（`listen-core`）——
+归属与自动跟随**只认注册表里的 12 门**；顺带**读取时自愈**（存量的坏值 `listenOtherLang` 不再带进下一场）。
+
+**(3) 改「译成」触发下载 + 卡「准备中…」**（顶部「正在下载离线模型 · 15%」）。**根因**：「译成」走的是
+**语言对那条重连**（`langChange('my', …)` 以前无差别地 `closeSocket` + `ensurePacksForPair`），而它只改
+译文**方向**、一个识别器都不动。**修**：`which === 'my'` 直接短路（不重连、不补包）。
+
+**(4) 首启下过的包，进听译又被当成没下好**（重复下载、卡「准备中…」）。**根因**：自动识别换来的语言会
+走 `ensurePacksForPair` 的**朗读包**下载 —— 首启按 zh/en 下的，LID 认出泰语之后又要下泰语朗读包（105MB）。
+**修**：自动跟随走 `{ skipTts: true }` —— 只补识别资产，**不因为「听到一门新语言」悄悄下朗读包**；
+没有那个包不影响听译（朗读回落系统语音，既有行为）。
+
+**(5) 首启语音包页「什么都没点」就挂红字「连不上服务器，检查网络后重试。」**。**根因**：`bootShell`
+的兜底 catch 把**任何**异常都当成「会话坏了」→ `show(null)` + `say(humanError(err), true)`；而登录态刷新
+/额度领取之类**自动**请求在网络抖一下时抛的就是网络错 ⇒ 页尾红字（那一屏用户什么都还没点）。
+**修**：① 兜底 catch 里带 `code: network/offline`（或消息像网络错）的**不当登出、也不弹红字**；
+② `say()` 在首启屏（`firstRunScreen === 'packs'`）上不画错误 —— 那一屏有自己的错误行（`#packs-err`），
+只画**下载**的失败。
+
+**(6) 错误要说真实原因，不许误报网络。** 原生以前有 5 处把 `String(describing: error)` 当 `reason` 送出去
+（协议规矩是「reason 是 id，人话由 JS 拼」），于是 `Error Domain=SFSpeechErrorDomain Code=11 …` 被拼进
+「离线模型下载失败……多半是网络问题」。**修**：全部换成协议码（`mtdlCode` / 新的 `mtPrepareCode`，
+把 `SFSpeechErrorDomain Code=11` 映射成 `locales`），JS 侧：`locales` 有一条专门的文案
+（`listen_need_locales`：语言名额用满），`assets` 失败走 `LearnTTS.reason()` 把码翻成人话。
+
+**(7) 顺手补的两处（同一条回归里暴露的）**：
+- **自动跟随要过「设备支持」这一道**：`langOk` 以前只看注册表那 12 门，而**注册表里有、这台设备的
+  识别器没有**的语言（实测 Mac 上 `fr`/`de` 在注册表里但本机清单没有）会被自动跟随选中 ⇒ 探针
+  `locale` 失败 ⇒ 整场 halt。现在设备报过清单就以它为准（没报过才退回注册表）。
+- **切到设备没有的语言 ⇒ 回到上一对**，不是把整场丢掉：`langChange` 的重连失败且 `pauseReason` 是
+  `device` 时，把「对方」那一格**改回切换前那门**、用回旧那一对重起，并说一句
+  `listen_lang_unsupported_revert`（「这门语言这台设备识别不了 — 已经回到「X」」）。
+  另外「转写连接中断：localeway」这种**协议码当原文印**也修了（`locale` 走既有的「不支持这个语言」）。
+
+**验证**：`npm test` **2425 passed / 0 failed**（含新增：`releaseUnused` 必须在建模块之前、
+协议码不许回退成系统原文、`langSupported` 的闭集外来码、`skipTts`、「译成」短路）；
+Mac 真机路径回归 `.local/lid-yt/switch-langs.js` —— **连切 6 门（> 5 个名额）**不再出现
+「名额 / 网络」误报，切到设备没有的语言会**回到上一对**并说明；标准 5 例回归 5/5 · 错语言样本 0。
+
+### 9.6.1.8 两门语言**对称互译** + LID 提速（2026-10-07，用户改主意；Pencil 稿已通过）
+
+**用户的话。**「界面改成让用户选两种语言，不管到底几方是哪种语言对方是哪种语言，反正就是听到一种
+语言，就译另一种语言。比方说用户选了中文和泰文，那听到中文就译泰文，听到泰文就译中文。然后 LID 识别
+语言的速度快一点，因为只要做二分选择了，应该可以更快了。」
+
+**取代了什么**（§9.6.1.5 / §9.6.1.6 的语言选择部分作废，那几节的**bug 修复**仍然有效）：
+- 「我的语言 / 对方的语言」的角色语义没了 —— 两门只是 A、B；
+- 「译成 / 我说的语言」没了；
+- **自动跟随没了**（语言由用户指定，LID 不再改语言）；
+- 「语言不对？」半屏 sheet 没了（两门都直接摊在页上）。
+
+**现在的样子**：
+- **听译页**：`［中文 ▾］ ⇄ ［泰文 ▾］` + 常驻一行「听到{a} → 译成{b}；听到{b} → 译成{a}」。
+- **实时字幕**：`视频语言：［自动 ▾］ → 译成 ［中文 ▾］`（那页没有「我」这一侧，所以按角色标；
+  同一对键、同一个控件）。左格默认**「自动」**（2026-10-07 用户裁定）：
+  - 指了具体语言 ⇒ 只开那一路识别器；
+  - 「自动」⇒ 开「**上次认出来的那门（或 `en`）+ 译成**」两路，由 LID 在两门里取，并把认出来的那门
+    记进 `subtitleVideoLang`（下次「自动」的候选就是它）。
+    **天然限制（如实）**：候选只有两门 ⇒ 「自动」覆盖的是「上次见过的那门 + 译成」，
+    一门全新的视频语言第一次要靠手选。
+  - **2026-10-07 修的一处**：`deviceLocales` 对字幕以前用的是 `otherLang`（= 译成），而左格标的是
+    「视频的语言」—— **两格是挂反的**（识别器开在译成上、译文去了视频语言）。现在识别器用左格。
+  - 字幕恒**单向**：`targetLangFor()` 在字幕模式恒回 `otherLang`（= 译成）。
+- **方向**：行归属仍由 LID 判（`who` 由 locale 推），目标 = **两门里的另一门**
+  （`targetLangFor`：`row.who === 'me' ? otherLang : myLang`，而 `who` 本来就是「这一路是 A 还是 B」）
+  —— 于是「听到 A 译 B、听到 B 译 A」天然成立，不需要新逻辑。
+
+**LID 提速（用户点名的第二件）**：
+| | 旧（§9.6.1.4 起） | 新 |
+|---|---|---|
+| 起判 | ≥2.0s 话音 | **≥0.5s** |
+| 节奏 | 每 1.0s | **每 0.5s** |
+| 采用条件 | 判词要**稳住 ≥1.5s** | **落在两门里** + **持续 ≥0.5s**（`LID_CONFIRM_MS`） |
+| 第一句预览 | ~3.5s | 实测 **~1.5–2.1s**（见下「实测的边界」） |
+
+为什么两门之后可以更快：判词落在**第三门**上不是「另一个答案」，只是「还没判到」—— 丢掉继续听就行。
+**但「落在两门里」还不足以立刻用**：0.5s 那一条判词本来就会乱报，而两门**之间**的错报挡不住
+（Mac 实测：泰语在 ~2s 上屏的第一条半句是**中文垃圾** —— 早期判成 `zh`，正好落在两门里）。
+所以还留一道**0.5s 确认**（同一门持续 ≥0.5s 才用），把「一条就翻」滤掉，代价只是晚半秒。
+**整行的定稿**曾经再稳一道（1.5s 闸，`1ae1280a`）—— 默认引擎换 ECAPA 后**已撤**，见 §9.6.1.10
+（那段记了为什么加、又为什么撤）。半句与定稿现在用同一道 0.5s 确认。
+
+**实测的边界（如实）**：把起判从 2s 降到 0.5s 之后，**泰语**的第一条半句并没有真的更早 ——
+whisper SLID 在泰语开头 1–2s 本来就先报 `ms`/`id`/`zh`（第三门丢掉、`zh` 会被 0.5s 确认滤掉），
+所以它仍然要 ~1.5–2.1s 才落到 `th`；**中文**这种一判就准的语言则确实提前了（第一条半句 ~1s）。
+把起判降下来的真实收益在**中文/英语等早期就稳的语言**上，泰语这类「开头会飘」的语言收益有限。
+
+**如实记的代价**：① 判词在 A/B 之间翻错时，译文会译成另一门（门多时是「不显示」，两门时只剩两个可能，
+这就是用户选的那条路）；② CPU 略升（解码更频繁，单次 40–160ms；每 0.5s 一次）。
+
+### 9.6.1.9 「正在听…」占位 + 泰文断句修复（2026-10-08；Pencil 稿已通过）
+
+**(1) 开口到第一行有 3–12s 空白 ⇒ 加占位。** Mac 实测（`zh⇄th`，各 5 次）：首条半句 P50
+**3311ms**（泰语）/ 12s（中文那组含识别器自己出字晚的情形）；第一行更晚。用户裁定加占位，
+Pencil 稿「稿 · 听译『正在听…』占位（首行之前那段空白）2026-10-08」已通过：
+
+- **「现在」卡**：没有半句**且会话还在听**时显示「**正在听…**」（`listen_listening`）；
+  不是 listening 的态（暂停/准备）仍旧「正在说…」—— 那时说「正在听」是假的。
+- **「整句定稿」卡空态**：上面加一行同样的「正在听…」，下面保留原来那句说明。
+- 两处**同一个词**、不带图标、不带秒数、不加动画；一有半句或定稿就撤掉。
+- 占位**不缩短**那段延迟，只是让它看得出在干活（延迟本身取决于识别器与音频）。
+
+**(2) 泰文断句坏了（用户实测发现，已修）。** 时间轴实测（`zh⇄th`，放泰语）：
+
+```
+LIVE th   ≈3.3s        ← LID 早就判出来了
+final th  +56s (!)     ← 泰语识别器 56 秒才吐第一片
+final th  +25s / +30s  ← 之后每 25–30s 一片
+```
+
+**根因**：识别器的 final 是**懒时间片**，而收口原来只按「停顿 ≥ `vadMs`(400ms)」。**泰语句末是
+空格、没有标点**，说话人不停顿 ⇒ 25–56s 才出一片 ⇒ 切句器再快也没东西可切（它的 4s 绝对上限
+只在「已经有文本」时才开始计时）。**修**：给一句话加**绝对上限** —— 连续说话累计到
+`maxUtterMs`（5s）就强制 `finalize(through:)`，停顿收口照旧。
+**效果**：泰语第一行 **43.3s → 12.98s（P50）**，行从「每 25–56s 一行」变成几秒一行。
+
+**(3) 收口优先切在停顿上（2026-10-08，接 (2)）。** 5s 上限是**硬切**，会切在词中间（泰文实测切出
+「บ่ายโ」这种半个词）。用户问「有没有现成的断句模型」——查实的结果：
+- **苹果 `NLTokenizer(unit:.sentence)` 只认标点**（泰文没标点 ⇒ 实测 1 句到底，连空格都不切）✗；
+  `NLTokenizer(unit:.word)` 泰文分词**可用** ✓（系统自带），但**词表法在这里无效** ——
+  上限切出来的是「音频窗口里的半个词」，把它丢给分词器，它只会把 `โ` 当成一个「词」，看不出是前缀 ✗。
+- HF/ModelScope：标点恢复模型有，但覆盖 en/de/fr/it/he/ca/孟加拉… **没有泰文**；泰文相关的只有
+  分词/词性/摘要/LLM，**没有句子切分** ✗。
+
+⇒ **句子边界在泰文里本来就只能靠声学信号**。所以改成：上限触发时**优先切在最近一次够长的停顿上**
+（`pauseFed`，门限 `pauseCutMs = 150ms`）—— 识别器切在停顿处，词就是完整的；这一句里没有可用停顿
+才硬切。停顿触发的那条路本来就切在停顿上，不变。
+
+**(4) 不分「说 / 听」；行标签改成语言名（2026-10-08 用户拍，Pencil 稿已过）。** 用户：「不需要区分
+正在说还是听这个概念，对于 app 来说都是正在听，谁说话都是听。」
+- **「现在」卡**：listening 时**永远**「正在听…」（不再有「我正在说 / 对方正在说」）；非 listening
+  的态（暂停 / 准备）仍用既有的「正在说…」。
+- **行左侧标签**：从「我 / 对方」改成**那门语言的名字**（「中文」/「泰语」）。两门对称之后 `who`
+  本来就只是「这行落在 A 还是 B」，而「A 是哪门」用户自己选过 ⇒ 标语言名才是行上有用的信息。
+- **↔ 的语义写清**：判错了点它 —— 这句换到另一门去。
+
+**(5) 一条流程教训（测试别动用户的设置）。** Debug 包与用户装的正版**同 bundle id ⇒ 共用容器**
+（见 `scripts/test-mac.js` 头部）。2026-10-08 就吃过一次：量音频的脚本写了 `listenAutoSpeak:false`，
+把用户自己的「自动朗读译文」关掉了 —— 用户报「没有自动朗读」看起来像功能回归，其实是测试污染。
+**规矩**：`.local/lid-yt/*.js` 一律先 `stashInit()` 存原值、跑完 `stashRestore()` 还回去。
+
+### 9.6.1.10 默认语种识别引擎换成 ECAPA；「1.5s 稳住」闸随之撤掉（2026-10-08）
+
+**这一段记两次相反的决定，别只看后半段。**
+
+**(1) 上午：加了一道「整句落行要判词稳住 1.5s」的闸（`1ae1280a`）。** 起因：会话开头那几条 LID
+判词证据最少，`zh⇄th` 放泰语时首行落成**「甜汤萨蛋」**（中文识别器在泰语音频上吐的垃圾）。当时查实
+三条更聪明的路都走不通 —— 整句判（`lid-result`）**也一样错**（实测 `result=zh(3698ms)`）、置信度对
+CJK **分不开**（中文正文 0.39–0.71 vs 垃圾 0.09–0.60 完全重叠）、「判词一翻就丢」会**误丢换人那一行**
+（垃圾行与正常换人在外部同形）。所以在时间上兜：没稳住先扣住、判词稳住成另一门才丢、超时丢。
+
+**(2) 下午：默认引擎换成 SpeechBrain ECAPA（VoxLingua107）CoreML，那道闸整条撤掉。**
+用户拍板「把 ECAPA 正式接进去，撤掉 1.5 秒稳住闸」。为什么闸可以撤：**它的前提是 whisper 判词乱跳**
+—— 同一条 Mac 外放→麦克风路径实测，每场判词变更 whisper **27–36 次**、ECAPA **恒为 1 次**。前提没了，
+闸就只剩白等与推迟第一行。
+
+**实测对照**（2 引擎 × 2 语言 × 5 场，40 s 真语音频，同一台 Mac、同一条外放→麦克风路径）：
+
+| 组 | 错语言行 | 行数 | 定下来 P50 | 定下来时话音 | 首行 P50 | 单次判定 | CPU |
+|---|---|---|---|---|---|---|---|
+| ECAPA / 泰 | 0/5 | 41 | 1343 ms | 605 ms | **5347 ms** | 182 ms | **16.8 %** |
+| ECAPA / 中 | 0/5 | 41 | 1215 ms | 312 ms | **4082 ms** | 196 ms | **15.2 %** |
+| whisper / 泰 | 0/5 | 29 | 1528 ms | 1087 ms | 10610 ms | 114 ms | 27.4 % |
+| whisper / 中 | 0/5 | 27 | 1217 ms | 586 ms | 4341 ms | 112 ms | 24.5 % |
+
+**判法**（照调研报告）：只比用户选的**两门**，取 log 概率之差的 LLR；**从开口起累积**音频，每 0.25 s
+（按**音频时间**，不是墙上时钟）重算，|LLR| ≥ 阈值（默认 6）才定。实测证明「累积」是要害：0.5 s 两门
+还没分开（泰语 −0.53），1.0 s 就分开（+5.36）。纯逻辑在 `app/native/lid-ecapa.swift`。
+
+**两条实测教训（都是花掉整轮才定位的）：**
+- **输入窗口不能一直长大**：CoreML 对**每个没见过的输入形状**都要重新 plan —— 实测每个新形状冷启动
+  40–70 ms、12 个形状合计 1065 ms，而每 0.25 s 话音就换一个形状 ⇒ App 里 CPU 冲到 85–95 %。改成
+  **固定 4 档**（0.5/1.0/2.0/4.0 s，取当前音频能填满的最大档、帧取自开口）。
+- **前端不能写标量三重循环**：~1 ms/帧（100 帧/秒吃满单核）。换 BLAS 后 40 s 全量 3.83 s → 1.36 s。
+  坑：`vDSP_mmul` 收**行主序**（同帧标量对照：行主序偏差 4.6e-5 / 列主序 83），摆错表 ⇒ 特征全错 ⇒
+  真机 10 场**一行都不出**。
+
+**如实记的残留：** ① 乱码行在那一轮**两边都没复现**（0/5 vs 0/5），所以「ECAPA 是否消掉它」**没有直接
+证据**，撤闸的依据是「判词不再乱跳」这条根因 + 上表；真机（iPhone 麦）待验。② 阈值 6 是在离线干净
+音频上定的，**未在真机路径上校准**。③ 走 `lidEngine = 'whisper'` 回到旧引擎时，那一行错语言是
+**已知缺口**（不再是默认路径）。④ ECAPA CoreML 要 iOS 18 / macOS 15，而听译这条路本身要 iOS 26 /
+macOS 26 ⇒ 不冲突。
+
+**开发开关**（刻意不进 settings schema，避免变成用户可见改动）：`lidEngine`（默认 ECAPA、
+`'whisper'` 回旧引擎）、`lidThreshold`、`lidCpuOnly`。
+
+### 9.6.1.11 1.19.4 第 6 轮：句头不丢、首启不回、名额不乱（2026-10-12，真机 110 的三条）
+
+用户在 iOS 中国版 1.19.4（110）上实测三条；三条都是两个 flavor 共用的代码。
+
+**① 听译英文丢前 1–2 个词。** 两处，各自都能丢：
+- **原生空窗**：麦克风 `granted` 时界面就亮「正在听」，而识别器要等 `prepareToAnalyze` 完才挂
+  `micSink` —— 中间的帧以前直接丢。现在 `MTAudioBridge` 在没有 sink 时把帧拷进**预录缓冲**
+  （上限 3 s），挂上 sink 的那一刻按原顺序补喂。缓冲只放**还没被任何识别器看过**的声音：有 sink
+  时不进缓冲、每次开麦 / 关麦清空，所以不会重复识别。补喂与实时帧共用一把锁，顺序不乱。
+  「正在听」的亮起时机**不改** —— 空窗里的话已经不会丢，这句话从此是真的。
+- **句头闸**：低置信的句首短片（`Hello.`）扣住等下一片；下一片隔 >120 ms 才到时，旧代码记
+  `gate:drop/gap` 把句首扔了。这违反了闸开头那条「低置信拉丁片**只有**跨语言重叠能丢」。
+  现在不紧接也接回（`gate:release/gap`），已被中文侧判重叠（`conflict`）的照旧丢。
+- **句首独自成行**（Mac 外放实测补上的第三处：字都在，但 `Please` 单独一行「请。」、后半句另起一行；
+  6 句里 2 句）。点停时 `settle('stop')` 给**每一路**都置 `force`，可账本已空（这句早按空闲送完）时
+  没人消费它，它就漏到下一次收音：下一句的首片一进账本就被当成收尾单独送出。现在 `force` 只给
+  还有字在等的那一路，回到 `open` 时清掉残留。连带一处：行是否 `pinned`（录音键说的行不画 ↔）
+  原来按**出行时刻**看 `pttForce`，断句回执常在点停之后到 ⇒ 改按**文字进账本的时刻**落在哪段
+  收音窗里判（这条以前靠上面那个漏过来的 `force` 碰巧过了 P-12）。
+
+**② 划掉重进又回到下载页。** 首启屏序原来每次冷启动都按**当场探针**重算，而冷启动是系统模型
+清单最不稳的时刻（探针超时 / 一时报未装）⇒ 已经下好的人被打回包屏。现在包屏**完成过一次**就记
+`listenPacksDone`（下载完成那一刻记，不等「进入实时听译」），`FirstRun.step` 见到它直接首页；
+之后哪门真没就绪，由首页与听译页的「未就绪 · 补回」接住，不由屏序接住。1.19.3 升上来的老用户
+没有这个标记：首次启动探针全齐就补记。
+
+**③ 名额判断混乱**（系统里早就下过听写模型的用户最明显）。四条纪律：
+1. **探针不占名额。** 状态查询前后各读一次 `AssetInventory.reservedLocales`，这次探针新多出来的、
+   又不是会话正在用的，当场 `release`。探针前就占着的不动（那是用户装过的，放掉会把 `.installed`
+   打回 `.supported`）。原来光是打开包屏看一眼，「已用 N」就涨。
+2. **「装过」只记本 App 占过名额的。** `.installed` 可能只是系统听写 / Siri 下的共享模型 ——
+   记成「装过」会被画成「未就绪 · 可补回」，可我们从没占过它。只有本 App 占着名额（或下载成功、
+   或让出）时才记。
+3. **已用从全部预留起算。** 首启多选的 `quotaSelectPlan` 原来只数「勾了且占着」的，占着却没勾的
+   不算 ⇒ 第 6 门照样撞 `Code=11`。系统的上限数的是本 App 占着的每一门。
+4. **让出在重开后也有效。** `releaseExplicit` 原来只从进程内的两张表里找 locale，App 重开后表是
+   空的 ⇒ 「让出一门」什么也没放掉。现在表里找不到的按短码去系统的 `reservedLocales` 里找。
+
+首启勾到第 N+1 门按改稿 H 第 1 张接上（r5 写了 `quotaSelectPlan` 但没接线）：放不下的标「未就绪 ·
+第 N 门」、这次不下，**就绪判定与下载都只看放得下的那些** —— 否则勾到第 6 门的人会被一门永远装不上
+的语言卡在包屏。
+
+**一并补上：** 第 4/5 轮的 36 个 App 文案 key 一个都没进 `_locales`（13 种界面语言看到的全是中文
+兜底）；补齐，并加门 `test/app-i18n-keys.test.js`（App 里每个 `t('key', …)` 的 key 都必须在表里）。
+
+**待定（要出稿）：** 系统里已有、本 App 没占名额的语言，在管理页仍显示「未下载」+「下载」（点了
+立刻就绪，不真下载）。它该有自己的状态（「本机已有 · 启用」一类）——这是可见文案 / 状态的新增，
+按 `pencil-draft` 先出稿过审。
+
+## 9.7 文档翻译 (document translation) — 两端（2026-09-11）
+把 domain-design §2.5 那条「上传的文件是第四种来源」落到学习层：用户上传 PDF / Word /
+图片，阅读器**打开一页翻一页**；读过的页里的句对进语料，来源类别叫**「文档」**，默认开
+（设置项「文档进复习」`docCapture`），且**限量**。
+
+**两端都有**（与 §9.5/§9.6 的 App 专属不同）：扩展页 `learn/docs.html` 与 App 的 `#app-docs`
+共用同一套模块（`learn/doc-*.js`，同 `sources-view.js` 的「一个渲染器、两个宿主」）。
+`learn-collector.js` 仍不进 App 包，写入点在宿主（§9.2 第五点）。
+
+### 用户裁定（2026-09-11）
+
+| 事 | 裁定 |
+|---|---|
+| 版本 | 另起 **1.10.0**，先出本节过评审再写代码（第九期 A/B 进 1.9.2） |
+| 格式 | 第一版 = `.pdf .docx .txt .md` + 图片（`.png .jpg .webp`）与扫描版 PDF 页；`.doc .pptx .epub .xlsx .rtf` 明说不支持 |
+| 图片 / 扫描页 | 走**用户自配的多模态翻译引擎**（按页计费）；本地 OCR（tesseract 是 wasm）过不了扩展 CSP 与 Safari iOS 底线，出局 |
+| 免费额度 × 图片 | **不允许**（用户裁定 2026-09-11）：额度在用时，上传图片**在选文件那一刻就拦下**，提示「免费额度不能识别图片 —— 用自己的 API key」并给去设置的出口；扫描版 PDF 的无文字层页同样拦（文字页照翻）。不经中继、也不发任何请求 |
+| 语料上限 | **每页最多 10 句、每份文档最多 100 句**；句长过既有 `BAND`（8–60 字 / 40–220 字符）门槛 |
+
+### 它写什么：读过的页里的句对，作为新来源「文档」
+
+| 字段 | 取值 | 为什么 |
+|---|---|---|
+| `sourceId` | `doc:<docId>`（`docId` = 文件大小 + 头尾采样的 `LearnModel.hash16`） | 来源治理按**文档**分组（「📄 合同草案.pdf · 32 句」），可整份删除；同一文件在两端上传得到同一个 id |
+| `sources` 记录 | `{ id, url: 'doc://<docId>', title }`，`title` = 文件名（去后缀）+ ` · N 页` | `url` 不可点：文档只在本机；复习卡 ⓘ 行显示 `title` |
+| `anchor` | `{ k:'doc', docId, title, page, quote }` | **显式新 kind**（§12 2026-09-07 那条裁定同样适用）：不复用 `dom`（没有 URL 可回）、不复用 `conv`（有页可回）。每个读者显式分支：复习卡（扩展里可点 → `docs.html#doc=<id>&page=<n>`；App 里回调 `AppDocs.open`；文档已删则纯文本）、来源管理（`isDoc` / `groupDocuments`）、`driving.js` 的媒体计数（不计） |
+| `kind` | `'sentence'`：`LearnModel.splitPair(text, tr, lang, targetLang)` 配对成功的每一句；配不上且整段 ≤ `BAND.hi × 1.5` 时整段 `'passage'`；再长就跳过 | 与网页采集同一套切分，不写第二份 |
+| `lang` | 用户在文档页选的「文档语言」，默认 `LearnRules.dominantScript` 推断 | Safari 上没有语言检测器，与 §4.1 同一回落 |
+| 采集时机 | 该段译文**首次渲染到打开的页上**时一次，`playedThrough = true, dwellMs = 0` | 与 §9.6 同一先例：打开这一页就是「看过」；不是停留时长 |
+| 写入路径 | 宿主 `LearnStore.mergeBatch([item], [source])`（同 `listen.js maybeWrite`），随同步上行 | 语料本来就同步；**文档本体与译文不同步**（`DocStore`，见下） |
+
+### 门（`DocCore.shouldWrite`，纯函数，七条按顺序）
+
+1. 这一单元已写过 ⇒ 否；`text` 或 `tr` 为空 ⇒ 否。
+2. **★ ⇒ 是**（绕过下面所有门，含配额 —— 星是用户逐句手点，成本本身是闸）。
+3. `docCapture` 关 ⇒ 否。
+4. `LearnRules.langAllowed` 否 ⇒ 否（语言白名单照走）。
+5. **句长硬闸**：长度 > `BAND[dense|sparse][1] × 1.5`（90 / 330）⇒ 否。§6 的 `lengthScore` 是
+   taper 不是硬切（一个 800 字的段落 salience ≈ 0.577 仍过门），所以这里显式硬切。
+6. **配额**：本页已 ≥ **10** 句、或本文档已 ≥ **100** 句 ⇒ 否（`DocCore.CAPS`，不做设置键；
+   计数回写 `DocStore.docs.captured`）。超过的页只翻不采。
+7. `LearnModel.shouldCapture(draft)`（§6 的门）。
+
+每日新卡上限（`learnDailyNew`）仍在 scheduler，不动：语料是消防水管，牌库是涓流。
+
+### 文档本体：独立存储，不同步，可整份删
+
+| 存哪 | `DocStore`：独立 IndexedDB `mt-docs` v1（`docs` / `pages` 两个 store），宿主自己的 origin | 不 bump `LearnStore.DB_VERSION`（那是对全体用户语料的风险，§7.4）；文档可能几十 MB，语义是**缓存**不是语料 |
+| 存什么 | 文档元数据 + 原始字节（PDF）、每页段落文本、OCR 结果、译文（记 provider/base/model 三元组） | 换了引擎显示「用旧引擎译的 · 重译」，不自动重发（费用） |
+| 上限 | 单文件 ≤ 30 MB；本机最多 50 份（LRU 提示删除） | 页数不限：按页解析本来就 O(1) |
+| 删除 | 来源管理里删「这份文档的卡」**连文档本体一起删**（确认框写明）；「清除本机全部数据」多调一次 `DocStore.wipe()` | 一份没了卡的文档和一份没了文档的卡，都是半状态 |
+| 预取 | 设置键 `docPrefetch`：`0`（默认）/ `1`（下一页）；预取页用剩余名额，当前页永远先排 | 「打开一页翻一页」是裁定，预取是可选的便利 |
+
+### 图片与扫描页：两步，走用户的多模态引擎
+
+- 注册表加 `vision` 布尔（`build/providers.config.js`，§7 单一登记处）：该引擎的默认模型接受
+  `image_url` 内容块（第一版只做 `chat-compat` 形状；`messages-compat` 与其它形状回
+  `vision_unsupported`）。不支持 ⇒ 段位显示「当前引擎不支持识别图片 · 去设置换模型 →」且
+  **0 次请求**；未知（自定义端点）⇒ 试发一次，400 且报文含 image ⇒ 同一句话并记住不再重发。
+- OCR 提示词只要原文（逐字、按阅读顺序、段落间空行、不翻译不解释）；结果存 `pages.ocr`，
+  再走普通翻译。**两步而不是一步**：(text, tr) 对齐、翻译缓存复用、写卡不写第二份。
+- **免费额度不识别图片**（用户裁定 2026-09-11）：额度在用（`EngineState.grantActive`，即翻译槽装的是额度
+  令牌）时：① 选中图片文件 ⇒ **上传即拦**，不读取、不入库、不发请求，一句「免费额度不能识别图片 ——
+  用自己的 API key」+「去设置 →」（落 `options.html#quick`，App 落一键卡）；② PDF 的无文字层页 ⇒ 该页
+  显示同一句话且 0 次请求，文字页照常经中继翻译；③ 用户换成自己的 key 后，同一份文档重开即可识别。
+  判据是**翻译槽**（图片识别与翻译走同一把 key），不是转写槽。文字仍走中继（与 Gate F 同一句）。
+
+### 与「打开一页翻一页」相关的模块边界
+
+| 谁 | 做什么 | 不做什么 |
+|---|---|---|
+| `DocReader` | 解析：pdf.js 文本层 / 自写 docx / 文本 / 图片缩放 | 不翻译、不存储 |
+| `DocCore` | 分段、分页（`maxChars 1800 / maxParas 60`）、切句（>1200 字）、`draftFor / shouldWrite / CAPS` | 无 DOM、无 IO |
+| `DocView` | 阅读器 + `createEngine{ selectActive: u.page === cur }` + 350 ms tick；回调上报 | 不碰存储，不写卡 |
+| 宿主（`docs-page.js` / `app/docs.js`） | 文件选择、`TranslationAPI.translate/ocr`、`DocStore`、`LearnStore.mergeBatch` | 不写第二份并发闸（传输层 `reqConcurrency` 是唯一的） |
+
+### 隐私：§10 Gate G
+
+用户本地文件的内容是一个**新披露面**（不是网页内容，不是麦克风音频）。措辞见 Gate G。
+
+---
+
+## 9.8 实时字幕 (live subtitles) — App 专属（2026-09-13）
+
+用户原话（2026-09-13）：「mac app 是不是可以用相同的实时听译架构解决浏览器扩展端实时字幕的问题，只是最后不播放声音而已。手机扩展端的实时听译也可以这么解决？用手机 app 在后台听译？」
+用户裁定：Mac 用 **App 自己的置顶悬浮字幕条**（不做 App → 扩展通道）；iPhone **两期都做，先麦克风**；iPhone 字幕原定 **灵动岛 + 锁屏卡**（不做画中画），**同日 20:10 用户看真机后改为画中画悬浮字幕窗**（见本节 S6 / S7 读数）。交互画布已点头：https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19（工作文件 `design/live-subtitles/`，3 页 31 张；画板编号在 interaction-spec「实时字幕」里引用）。
+
+**为什么要有它。** domain-design §2.4 规则 4：Safari 对 MSE（`blob:`）恒静音、HLS 清单具名停（verification-spec §2.4 表，2026-09-07/08 实测），扩展在 Safari 上只剩文件档，而用户最想要字幕的 YouTube / Twitch / X 全在外面。这在网页里修不了；App 不经过网页。
+
+**与 §9.6 的差异（未列出的一律照 §9.6 / §9.6.1）**
+
+| | §9.6 对话 · 实时听译 | §9.8 实时字幕 |
+|---|---|---|
+| 来源 | 麦克风（两个人） | Mac：系统声音（process tap，排除本进程）· iOS 一期：麦克风听外放 · iOS 二期：广播扩展交来的 App 声音 |
+| 方向 | 双向，按语言判 me / them，可 ↔ | 单向：一律 `them`，译成「我的语言」；无 ↔、无「给对方看」 |
+| 本机识别器 | 两路（我方 + 对方语言） | 一路（「视频的语言」） |
+| 朗读 | 自动朗读 | 不朗读（`autoSpeak` 恒关） |
+| 静音 | 自适应底噪 | 静态门：持续音乐是内容不是噪声，不许抬底噪；30 秒没有声音 ⇒ 暂停以免计费，**不自动恢复** |
+| 显示 | App 窗口 | Mac：置顶悬浮字幕条（`NSPanel`，不抢焦点，盖在全屏视频上）+ 主窗口历史；iOS：画中画悬浮字幕窗（`AVSampleBufferDisplayLayer` 自绘最近几句，`AVPictureInPictureController` 离开 App 时自动浮出）+ App 页历史 |
+| 进复习 | 「对话进复习」，来源「对话」 | 「字幕进复习」（新键 `subtitleCapture`，默认开），来源「实时字幕」 |
+
+**语料。** 沿用 `anchor.k:'conv'` 与 `sourceId conv:<sessionId>`，加 `anchor.mode:'subtitle'`、`who:'them'`；来源标题「实时字幕 · 日期时间」。理由：锚点语义与对话相同（按会话、声音不保存、不可回放）；新 kind `'live'` 会让每个读者多一个分支而行为无差别（§12）。「这次不留记录」照用；采集门、限量、写入时机与 §9.6 一致。
+
+**采集（原生；「只搬录音这一件事」照旧 —— `ws-transcribe.js`、修正 + 翻译契约都留在页面里）**
+- **Mac**：`CATapDescription`（全系统、排除本进程）+ `AudioHardwareCreateProcessTap` + 聚合设备 + IOProc，IOProc 内降混单声道，送进与麦克风**同一个出口** `deliver()`（`muteInput` → `micSink` → `mic-level` / `mic-pcm`）。权限是「仅系统录音」（`NSAudioCaptureUsageDescription`），不是屏幕录制。默认输出设备变化时重建聚合设备。WebKit 的声音来自它自己的 GPU 进程，不在「排除本进程」内 —— 字幕模式不朗读、Mac 上不放保活音频，可接受。macOS 13.3–14.3 入口灰 + 具名（这些 API 的可用性是 14.0 / 14.2，编进 13.3 目标必须 `#available` 包住）。
+  **尖刺 S1 读数（2026-09-13，沙箱 App，macOS 26.5.1）**：建 tap、聚合设备都成功；系统弹的是「想访问以录制你的系统音频」+ 我们的 `NSAudioCaptureUsageDescription` 原文（**不是屏幕录制**）。权限框没被点时 `AudioDeviceCreateIOProcIDWithBlock` 同步等约 60 s、`AudioDeviceStart` 再等约 30 s，之后返回 0 但**一帧 IO 回调都没有**；去掉沙箱表现相同（不是沙箱的问题）。⇒ 建 tap / IOProc / Start 一律放后台队列；**以收到第一个 IO 回调为「在抓」的唯一证据**（`AudioDeviceStart` 返回 0 不算）；页面有「等待系统授权」的具名态（画布 M6 ⓪），超时按未授权处理并给「打开系统设置」。**授权之后（同日第 5 轮，用户在场点了「允许」）✅**：HAL 调用立即返回（0.65 s 就绪）；播放对话语料时逐秒 RMS 0.05–0.11、句间停顿恰为 0；**IO 回调要等到真有声音在播才开始**（开始后静音也持续送零帧）⇒ 「等待系统授权」看 HAL 调用是否超时，「在等声音」看回调，两个态分开判。抓到的声音转写的中文 CER 13.3%，与直接喂原文件**完全一致**（数字原样）。**排除本进程实测有效**：外部放静音让 IO 跑着、本进程连放 3 次提示音 ⇒ RMS 始终 0；随后外部放一句 ⇒ 0.07–0.09。
+- **iOS 一期**：§9.6 的麦克风 tap，会话 profile `subtitle` = `.playAndRecord` + `[.mixWithOthers, .defaultToSpeaker]`，**不带 `.allowBluetooth`**（连着 AirPods 会被强切通话音质，Safari 的视频声音跟着变差）。前提由尖刺 S5 证明：Safari 不被暂停、音量不被压、5 分钟不中断。戴耳机时麦克风听不到 ⇒ 静音提示里具名。
+- **iOS 二期**（一期发版后另开）：ReplayKit 广播上传扩展只收 `.audioApp`，视频帧在扩展里立即释放、不读；降混重采样后写进 App Group 容器里的固定大小环形文件（持续覆盖、不落盘）；App 轮询后以 `source:'broadcast'` 调同一个 `deliver()`。扩展里不识别、不联网、不持 key（50 MB 上限；§12 否决过整条原生化）。只在 App 已**布防**一场字幕会话时接受广播，否则立即结束，并显示 App 事先写进组里的一句话。新 App Group entitlement 只给 iOS App 与广播两个 target。
+
+**桥协议（`mtAudio`，只加字段与动词）**
+
+| 方向 | 消息 |
+|---|---|
+| JS → 原生 | `caps-probe` · `record-mode {on, profile?: 'conv' \| 'subtitle'}` · `mic-start {rate, deliver?, source?: 'mic' \| 'system' \| 'broadcast'}` · `subtitle-config {labels, clickThrough, fontScale, opacity}` · `subtitle-show {orig, tr, partial}` · `subtitle-state {state, pct?}` · `subtitle-float {rect?}`（iOS：带 rect = 小窗预览在视口里的位置；不带 = 重新浮出画中画）· `subtitle-hide` · 二期 `broadcast-picker` · `broadcast-arm {on}` |
+| 原生 → JS | `tick {t}`（会话中每 250 ms，页面不可见时驱动计时器环节，S3）· `audio-caps {sources, system: 'ok' \| 'os' \| 'unsupported', broadcast}` · `mic-state {state, reason, source}`（新 state `waiting` / `silent` / `sound`；新 reason `os` / `waiting-permission` / `headphones` / `timeout` / `zero-frames`；`silent` 与 `sound` 见协议补充决定 10 的 2026-09-15 修订）· `remote {command}` 新增 `end` / `open-app` / `font-up` / `font-down`（字幕条按钮）· iOS `subtitle-window {state: 'inline' \| 'floating' \| 'closed', reason?}`（画中画小窗的状态） |
+
+缺省 `source` = 麦克风，老调用逐字节不变。**没收到 `audio-caps.system === 'ok'` 绝不发 `source:'system'`**：老原生壳会无视这个字段、静默打开麦克风。原生侧不含任何用户可见文案（字幕条上的字与按钮提示全由 JS 传入），沿用字符串白名单测试。
+
+**协议补充决定（2026-09-14，实现前澄清；上表已按此改）**
+1. **字幕条 / 画中画的状态走 `subtitle-state {state, pct?}`**，与 `subtitle-show` 分开。`state` ∈ `listening` · `waiting-permission` · `paused` · `silence` · `denied` · `socket` · `reconnecting` · `downloading`（带 `pct`）· `tr-failed` · `silent`（2026-09-15 补：不中断的「还没听到系统声音」提示，见决定 10 修订二；会话仍在听）· `silence-permission`（2026-09-15 补：30 秒静音门暂停、且本场收到过 `silent` 从未收到 `sound`；条上文字指向权限、行内出口「打开系统设置」，见决定 10 修订二 O2）。每个状态的文字放在 `subtitle-config.labels.state[state]`，按钮提示与菜单项文字放在 `labels.controls` / `labels.menu` —— 原生照旧零文案（M6 / M9 / I8）。
+2. **会话档 `profile` 挪到 `record-mode`**。音频会话类别在 `record-mode` / `session-start` 时就定了，放在 `mic-start` 上来不及；`mic-start` 只带 `source`。缺省 `profile` = `conv`，老调用不变。
+3. **老原生壳**：`caps-probe` 发出后 1.5 s 内没收到 `audio-caps` ⇒ 这个壳不认识实时字幕 ⇒ 首页**不显示**「实时字幕」这一行（不是灰掉：没有能对用户说的原因，也没有出口）。因此 JS 可以先于原生合入 —— 在不回 `audio-caps` 的壳上功能完全不可达；§10 Gate I 的发布检查随「原生开始回 `audio-caps`」的那一步一起上。
+4. **字幕条的「结束」叫 `remote end`，不叫 `stop`**：锁屏 / 媒体控制的 `stop` 现在映射成暂停（`native-audio.js`），同名会撞。`end` 在对话模式里同样是结束。
+5. **字幕模式两个平台都不播保活音频**：iOS 的后台由麦克风引擎维持（尖刺 S5 真机 6 分钟没有保活音频照常），WebKit 的 `<audio>` 反而可能改动会话类别。
+6. **语言设置**：「视频的语言」用新键 `subtitleVideoLang`（缺省 `en`）；「我的语言」沿用 `listenMyLang`（同一个人的母语）。字号 `subtitleFontScale` 由 JS 存设置、经 `subtitle-config` 下发；字幕条位置由原生自存（窗口 frame autosave）。
+7. **耳机**：iOS 字幕档下输出路由是耳机 ⇒ `mic-state {reason:'headphones'}`，App 页与小窗具名（I10 / I8）。Mac 抓的是系统混音，不受耳机影响。
+8. **协议镜像测试**（`test/build-scripts.test.js`：JS `PROTOCOL` 的每个动词 Swift 都有 `case`）：JS 先合入时，Swift 同一个 PR 加**空的** `case`（不回复）—— 空 case 恰好就是第 3 条的「老壳」。
+
+**协议补充决定（二）（2026-09-14，Mac 原生实现前澄清；上表已按此改）**
+9. **字幕条上的按钮怎么回页面。** 「暂停 / 继续」复用 `remote pause` / `remote play`；「结束」= `remote end`（第 4 条）；「A− / A+」= `remote font-down` / `remote font-up`，页面在三档（0.85 / 1 / 1.2）之间移动 `subtitleFontScale`、落盘、重发 `subtitle-config`（第 6 条：字号由 JS 存）。「主窗口」由原生直接把主窗口拉回来（页面这时可能正被节流，S3），同时发 `remote open-app` 供页面记账，页面可以忽略；「打开系统设置」由原生直接打开「隐私与安全性 › 屏幕与系统录音」，不回页面。「穿透」是原生本地状态（初值取 `subtitle-config.clickThrough`），取消只走菜单（穿透中的条收不到点击）。
+10. **等待系统授权的消息形状。** 建 tap / 聚合设备 / IOProc 放后台队列（S1：权限框没点时同步卡约 60 s + 30 s）。
+    - 2 秒内没返回 ⇒ `mic-state {state:'waiting', reason:'waiting-permission', source:'system'}`，页面停在「准备中」，条上显示 `labels.state['waiting-permission']`。
+    - 返回成功 ⇒ `mic-state {state:'granted', source:'system'}`；HAL 报错 ⇒ `failed`。
+    - 90 秒仍没返回 ⇒ 撤掉这次尝试，发 `mic-state {state:'denied', reason:'timeout', source:'system'}`，按拒绝处理（条上给「打开系统设置」）。
+    - 「在等声音」不是一个态（S1：IO 回调要等真有声音才开始）：授权后页面就是 listening，没声音由 30 秒静音门接管。
+    - ~~点「不允许」之后的真实返回由 M30 真机读数定~~ **M30 真机读数（2026-09-14，macOS 26.5.1，用户确认点的是「不允许」）**：约 15 s 后 HAL 调用照常返回成功、IO 回调照常来，但**每个样本都是 0**（播放英文句子的 5 秒里 52 次电平读数全为 0）—— 不报错、不卡住。按本条原写法，页面会显示「● 字幕中」、条上「正在听系统声音…」却永远没字，30 秒后还以「没有声音」暂停：静默失败。
+    - ~~**修订（同日）**：`granted` 之后，原生若看到**连续 3 秒样本全为 0，且系统里有别的进程正在输出声音**~~（**2026-09-15 被下一条取代**，原文留作记录）：`granted` 之后，原生若看到连续 3 秒样本全为 0，且系统里有别的进程正在输出声音（`kAudioHardwarePropertyProcessObjectList` 中非本进程的 `kAudioProcessPropertyIsRunningOutput`），就撤掉这次采集并发 `mic-state {state:'denied', reason:'zero-frames', source:'system'}`，页面与条按拒绝处理（具名句 +「打开系统设置」）。两个条件缺一不可：已授权时句间停顿也是精确 0（S1 读数），没人在放声音时的全零是正常静音，交给 30 秒静音门。用户去系统设置打开权限后点「继续」⇒ 重新建 tap。
+    - **修订二（2026-09-15，全回归 F13 真机实证）：零帧不再判「被拒」，改为不中断的提示。** 读数：Mac 上**权限已给**（系统设置开关回读 1、`tccutil reset` 后弹框用户点了「允许」），开始那一刻 Mac 恰好没在出声、而某个进程**开着输出但放的是静音**（`pmset -g assertions` 里常驻一条 audio-out）⇒ 3 秒内 `denied/zero-frames`，页面把用户引去系统设置改一个根本没问题的权限；同一台 Mac 先 `afplay` 再开始 ⇒ 本机转写 5 句 + 译文全对。`kAudioProcessPropertyIsRunningOutput` 只说明「输出通道开着」，不说明「在出声」；macOS 也没有能直接问「系统录音授权给了没有」的公开接口 ⇒ **只凭零帧分不开「被拒」与「真静音」**，前一条修订的判据会误伤。
+      - 原生：`granted` 之后连续 3 秒全零且有别的进程在跑输出 ⇒ 发 `mic-state {state:'silent', reason:'zero-frames', source:'system'}`，**不撤掉采集**；此后第一个非零帧 ⇒ 发 `mic-state {state:'sound', source:'system'}`。每次会话各至多一次。
+      - 页面：`silent` ⇒ phase 仍是 listening，页面上显示一句**不中断**的提示，并发 `subtitle-state {state:'silent'}` 让条上画 `labels.state['silent']`；`sound` ⇒ 发 `subtitle-state {state:'listening'}`（2026-09-15 补：`subtitle-state` 是封闭集合，原文只写了原生 → JS 的 `mic-state`，条上没有消息可画 —— #269 Codex 评审 P2）。条上提示「还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限 · 打开系统设置」（条上带「打开系统设置」）；`sound` ⇒ 提示撤掉，字幕照常。
+      - 真被拒的用户也不会静默：提示一直在；30 秒静音门照旧暂停，暂停句在「曾收到 silent 且从未收到 sound」时换成指向权限的那句（`subtitle_stop_silence_permission`），「继续」⇒ 重新建 tap。
+      - **补（2026-09-15，M30 真机观察 O2，用户裁定「条上也提权限」）**：上一条只换了页面上的暂停句，条上仍发 `subtitle-state {state:'silence'}`、画通用的「30 秒没有声音，已暂停以免计费 · 继续」—— 全屏看视频的人只看得见条，等于没告诉他。同一条件下（曾收到 `silent` 且从未收到 `sound`）页面改发 `subtitle-state {state:'silence-permission'}`，条上画 `labels.state['silence-permission']`（`subtitle_bar_silence_permission`：「30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限」），**行内出口是「打开系统设置」**（与 `denied` / `silent` 同一个出口），不是「继续」：权限真被拒时点「继续」只会 30 秒后再停一次。「继续」仍在悬停控件的暂停/继续钮上（非 listening 态显示「继续」）。条件不成立（听到过声音，或根本没收到过 `silent`）照旧发 `silence`。原生：`silence-permission` 算停下的态（不是 listening），出口按 `denied` 处理；iPhone 画中画不会收到它（iOS 不发 `silent`）。
+      - `denied` 只剩两个来源：`reason:'timeout'`（权限框 90 秒没点）与系统明确拒绝（iOS / 麦克风路）。`reason:'zero-frames'` 不再出现在 `denied` 上。
+11. **iOS 在一期（画中画字幕窗）落地前继续不回 `caps-probe`**，iPhone 上入口仍不显示（第 3 条）。Mac：14.4 及以上回 `{sources:['mic','system'], system:'ok', broadcast:'unsupported'}`，以下回 `{sources:['mic'], system:'os', broadcast:'unsupported'}`（原生契约不变；入口灰的那句**不是** 14.4 —— 2026-09-17 §9.6 修订后实时转写只走设备内置识别器，<14.4 的机器必然 deviceOk=false，entryGate 先回系统下限那句「需要 iOS 26 / macOS 26」；原「macOS 14.4」文案已于 2026-09-29 删除）。
+12. **菜单项也由 `labels.menu` 在运行时建**（「窗口」菜单顶部三项 + 一条分隔线），不写进 storyboard —— 原生零文案照旧；`subtitle-hide` 时移除。条上 A− / A+ 两个字形是符号，不是文案，写在原生里。
+13. **`tick` 只在字幕条存在期间发**（`subtitle-config` 之后到 `subtitle-hide`），对话模式不发。页面不可见时用它刷时钟。边说边译的 900 ms 去抖在不可见时被钳到 ≤ 1 s，差值在 M28 的 ≤ 20% 判据之内，先不改；真机读数不过再改成吃 `tick`。
+14. **会话中关主窗口 = `orderOut`。** 原生给主窗口套一层关闭守卫（其余委托方法原样转给原来的窗口委托）：会话中 `windowShouldClose` 隐藏而不关。`subtitle-hide` 时摘掉守卫；若主窗口正隐藏着就 `orderFront`（不激活 App、不把用户拽出全屏 Space），让小结可见。点 Dock 走 `applicationShouldHandleReopen` 找回。
+
+**协议补充决定（三）（2026-09-14，iPhone 一期实现前澄清；上表已按此改）**
+15. **iPhone 什么时候开始回 `caps-probe`**：iOS 原生一期（字幕档会话 + 画中画字幕窗）**整体合入的同一个 PR** 里开始回 `{sources:['mic'], system:'unsupported', broadcast:'unsupported'}` —— 回了 iPhone 首页才出现入口；第 11 条随之结束。一期里任何一块没做完都不回。
+16. **字幕档音频会话**：`record-mode {on:true, profile:'subtitle'}` ⇒ `.playAndRecord` + `[.mixWithOthers, .defaultToSpeaker]`，**不带 `.allowBluetooth`**（连着 AirPods 会被强切通话音质，Safari 视频声音跟着变差）。原生记住这次的 profile，**所有重申类别的地方按同一个 profile**：建会话、麦克风起引擎、`playing-state` 重申、路由变化后重起引擎 —— 现状这几处硬写着对话档的 `.allowBluetooth`，一期要改成读 profile。
+17. **画中画的来源要在屏幕上，所以 iPhone 字幕页的「现在」卡换成小窗预览**。`canStartPictureInPictureAutomaticallyFromInline` 要求来源图层在窗口里可见（尖刺 S7 探针放的是一个 160×90 的可见小视图）。做法：页面在「现在」卡的位置留一个 16:9 占位块，把它在视口里的矩形发给原生（`subtitle-float {rect}`，版面变化与滚动时节流重发）；原生在 WKWebView 上方同位置放一个不接触摸的预览视图（与小窗同一帧：深色底、最近两三句），离开 App 时由它自动浮出。占位块滚出视口 ⇒ 发 `rect: null`，原生隐藏预览。待真机：预览最小多大、半透明时是否仍能自动浮出。
+18. **小窗里画什么**：原生按 `subtitle-show` 维护最近 12 句（半句斜体、定稿正体；只有标点的半句不画，同 Mac 条），按 `subtitle-state` 在底部画一行状态（文字取 `labels.state`），停下时最后一句留着（I8）。收到 `didTransitionToRenderSize` 就按新尺寸重画（I5）。内容没变不送帧，变了至多每 0.5 s 送一帧。
+19. **小窗的系统控件怎么回页面**：⏸ / ▶（`setPlaying`）= `remote pause` / `remote play`（与锁屏遥控同一组）。小窗浮出、被 ✕ 关掉、回到 App 内联，都发新的原生 → JS 动词 `subtitle-window {state:'floating' | 'closed' | 'inline'}`；页面据此显示或藏起「浮出字幕窗」按钮（I9）。⧉ 回到 App 由系统完成，原生只报 `inline`。
+    - **修订（2026-09-15，用户裁定）：✕ 关掉小窗 = 暂停听。** 原先 ✕ 只关窗、继续听。用户问「关掉画中画以后是不是录音就结束了」：关掉后屏幕上已看不到任何字幕，麦克风却还在听、用云端转写时还在计费，只剩系统的橙色麦克风点 —— 用户会以为已经停了。三个选项（A 维持 / B 暂停 / C 结束会话）用户选 B：看不到字幕就不再听，但这一场不断、已出的句子留着。
+    - **原生不变**：仍报 `subtitle-window {state:'closed'}`，✕ 不带 `reason`；`failed` / `not-active` 带 `reason`，那两种不是用户关的。
+    - **页面**：收到**不带 `reason`** 的 `closed` 且正在听 ⇒ 按用户暂停处理（与 App 里点暂停同一条路：`mic-stop`、会话不释放、句子保留、不出小结；系统麦克风指示随之消失）。状态句「已暂停」，预览下方出主按钮「继续」。带 `reason` 的 `closed` 不暂停，照旧出「浮出字幕窗」。
+    - **暂停期间离开 App 不自动浮出小窗**：页面发 `subtitle-float {rect: null}` 收起预览（第 17 条），不然用户刚关掉的窗一离开 App 又弹出来。点「继续」⇒ 恢复听、重发预览矩形，之后离开 App 照旧自动浮出。
+    - 小窗里的 ⏸ 本来就是暂停（`remote pause`），✕ 现在与它结果相同，区别只是窗还在不在。⧉ 回到 App（`inline`）不暂停。
+    - Mac 不受影响：字幕条上的 ✕ 本来就是「结束」（interaction-spec M9）。
+20. **「浮出字幕窗」只在 App 前台活跃时能成**（S7：场景非前台活跃时 `startPictureInPicture` 报 -1001）。失败回 `subtitle-window {state:'closed', reason:'not-active'}`，页面按钮保持可点，不弹错。
+21. **戴耳机（第 7 条的判据）**：字幕档会话里，当前输出路由含 `headphones` / `bluetoothA2DP` / `bluetoothLE` / `bluetoothHFP` 任一 ⇒ `mic-state {state:'interrupted', reason:'headphones', source:'mic'}`。开始时判一次，之后每次路由变化再判。摘下耳机**不自动恢复**，由用户点「继续」（同 30 秒静音）。
+22. **`tick` 扩到 iOS**：第 13 条的「只在字幕条存在期间」在 iOS 上读作「只在字幕会话期间」（`subtitle-config` 到 `subtitle-hide`）。App 在后台时页面计时器同样被节流，时钟靠它。
+23. **审核**：尖刺 S7 欠账 ④ 已查证（2026-09-14，无实测）。App Review Guidelines 全文**没有**画中画条款；同类「系统声音 / 麦克风 → 画中画浮窗双语字幕」的 App 已上架（Caplo 等）。风险中低。提审时审核备注写明：「画中画窗显示的是正在播放音频的实时字幕，用户点开始才出现，关窗不影响听」。真被拒的退路：iPhone 只在 App 页显示字幕。
+
+**协议补充决定（四）（2026-09-14，iPhone 一期在 15 Pro 上手测后，用户裁定）**
+24. **小窗默认 4:5 偏竖**（用户：「这个小窗能不能垂直拉长」）。画中画窗口的宽高比由帧决定，用户只能等比缩放；16:9 一次只看得清两句 ⇒ 帧改成 4:5，一次看 4–5 句。
+25. **借系统后退 / 前进按钮翻看字幕历史**（用户：「能不能手动滚动字幕历史」；小窗不接受触摸滚动）。
+    - 做法：`requiresLinearPlayback = false`，时间范围给有限的滑动窗，系统才会给出这两个按钮。
+    - 后退 = 往回翻 3 句，前进 = 往新翻 3 句；翻看时顶部一行 `labels.pip.history`；新句子到来不把画面拽回最新。
+    - 原生本地状态，不回页面。
+    - 待真机：按钮是否出现、进度条是否碍眼。
+26. **空窗说明**（用户：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙，能不能在小窗上给客户提示」）。
+    - 离开 App 时自动浮出不能推迟（只能在前台触发）⇒ 还没有一句字幕时，小窗画三行说明：`labels.pip.title / hint / close`。
+    - `subtitle-config.labels` 新增 `pip {title, hint, close, history}`，原生照旧零文案。
+27. **iPhone 的状态文案按平台分**：iPhone（`system:'unsupported'`）上的 `labels.state.listening` 是「正在听外放的声音…」，`denied` 是麦克风被拒；不沿用 Mac 的「系统声音」说法（15 Pro 手测时发现）。
+28. **iPhone 文案不点名 Safari**（用户：「为啥一定要提 safari。我感觉现在不管是 chrome safari 或者其他任何 app 的声音都可以用啊」）。一期听的是外放出来的声音，与哪个 App 在放无关；15 Pro 手测 YouTube 与日语广告都出了字幕。提示卡、空窗说明、预览说明一律写「任意 App」，提示卡在括号里举 Safari / Chrome / YouTube / 播客。S5 的「先开始、再去播放」顺序保留：Safari 网页视频离开前台即停，别的 App 未必，但这个顺序对谁都不吃亏。M31 加 Chrome 与 YouTube App 各一段。
+
+**Mac 窗口行为。** 会话进行中关主窗口 = 隐藏（管线在它的 WKWebView 里）；`applicationShouldTerminateAfterLastWindowClosed` 返回「没有字幕会话」；点 Dock 找回；菜单「窗口」加「显示主窗口 / 取消字幕条穿透 / 结束实时字幕」（穿透中的条收不到点击，出口必须在别处）；会话期间持 `ProcessInfo.beginActivity`。
+**尖刺 S3 读数（2026-09-13）**：窗口隐藏或被完全盖住时，页面里的 `setTimeout` / `setInterval` 被 WebKit 钳到 **1 Hz**、rAF 停；`beginActivity` 与 `WKPreferences.inactiveSchedulingPolicy = .none` **都挡不住**。但**原生 → 页面的桥消息不受影响**（原生 250 ms 定时 `evaluateJavaScript` 往返 1–2 ms），网络也不受影响。⇒ 音频块、识别结果、云端 socket 消息都准时；受影响的只有页面里靠计时器的环节（边说边译 900 ms 去抖、切句 flush、静音检测、时钟）。做法：会话进行中原生每 250 ms 发一条 `tick`（新 fromNative 动词），这些环节在页面不可见时改吃 `tick`；可见时照旧。M28 以真实管线复测。
+**尖刺 S4 读数（2026-09-13）✅**：`NSPanel [.nonactivatingPanel, .borderless]` + `.floating` + `[.canJoinAllSpaces, .fullScreenAuxiliary]` + `hidesOnDeactivate = false` 盖在全屏窗口上可见、`isKey=false`，全屏窗口始终保持焦点；**跨进程同样成立**（字幕条进程以 accessory 启动、从不激活，盖在另一个进程的全屏 Space 上，截图为证）。系统 `hudWindow` 材质在深色底上显浅灰 ⇒ 自绘深色半透明底 `rgba(22,20,18,0.74)`。
+**尖刺 S5 读数（2026-09-13，iPhone 14 Pro / iOS 27.0，经 iPhone 镜像遥控，部分）**：①**Safari 一离开前台，iOS 就暂停网页视频**（`pause` 与 `visibility=hidden` 同一毫秒，当时 App 还没开始会话）⇒ 一期顺序只能是「先在 App 里点开始，再切到 Safari 点播放」，I2 / I3 的提示照此写。②按这个顺序：App 录音会话活着（`.playAndRecord` + `.mixWithOthers`）时切回 Safari，视频自动续播，此后持续播放并循环，**零暂停、零音量变化**，会话活着的整 5 分钟未被打断。镜像期间手机麦克风静音、声音走 Mac，App 约 30 秒后因静音停了录音引擎（会话仍在），所以「引擎持续跑 5 分钟不打断」与「外放能被麦克风听清」当时欠着。**真机补测（同日 19:30，不开镜像，UI 测试程序遥控）✅**：字幕档会话（`.playAndRecord` + `[.mixWithOthers, .defaultToSpeaker]`）开着麦克风引擎连续 6 分钟、App 全程在后台，Safari 外放连续播放 391 秒，零打断、零路由变化、零引擎重配；麦克风逐秒电平没有一秒静音；录下的声音转写英文基本全对，中文错字率从原始语料的 13.3% 升到 26.7%–40.4%（近音错与丢字），靠远程修正那一步兜。
+**尖刺 S6 读数（2026-09-13，模拟器 iPhone 17 Pro / iOS 26.5）**：App 在后台、Safari 在前台，每 8 s 更新一次灵动岛，带 `AlertConfiguration` 与不带交替。**带提醒的更新 7 次全部自动展开**，大岛显示两行原文 + 译文，约 5.5 s 后收回；**普通更新 7 次一次都不展开**，只改收起态的数字；8 s 一次的频率下没有限流。⇒ 画布 I6 的「每句短暂展开」在机制上成立，做法是每句定稿用带提醒的更新。欠三件只有真机算数的：频繁提醒是否被限流、提醒能否无声不震、锁屏时的表现；真机不行就退回长按（I5）。**真机读数（同日，iPhone 14 Pro / iOS 27.0，UI 测试程序遥控）**：前两轮截图与人眼都是一次不展开 —— 查因是 Mac 的「工作」专注模式被智能触发打开并同步到手机，专注模式压掉了提醒。**关掉全部专注模式后第三轮 ✅**：抽看 14 次带提醒更新全部自动展开（更新后 0.3–1.7 s 展开，约 6–7 s 收回），到第 45 次仍不限流；提示音有但小，不震动。⇒ 机制成立，但**用户专注模式开着时整条路失效**（而专注模式常开）。**用户看了真机后裁定方向（2026-09-13）：「这个灵动岛展示没什么意义，字小看不清」，希望在网页内容区展示可滚动的字幕列表** —— iPhone 字幕位置需重新裁定，本节的灵动岛 / 锁屏卡方案待改。
+**用户裁定（2026-09-13 20:10）：iPhone 字幕改为「画中画悬浮字幕窗」**（取代灵动岛 + 锁屏卡；备选「Safari 扩展在网页上画字幕框」「只在 App 页面」未选）。**画布 v5 第 2 页用户已同意**（同日「看完了 同意」），两处设计点随之确认：点 ✕ 关掉小窗不停止听译（**2026-09-15 用户裁定改为暂停听**，见协议补充决定（三）19 的修订）、回 App 点「浮出字幕窗」再打开；锁屏卡不做。**尖刺 S7 读数（同日真机）**：自绘字幕帧经 `AVSampleBufferDisplayLayer` 进画中画可行 —— 离开 App 时自动进画中画（`canStartPictureInPictureAutomaticallyFromInline`，1.7 s 内出现），小窗浮在 Safari 上持续滚动更新 112 s，App 在后台麦克风引擎不停，Safari 外放零暂停。App 在前台手动启动那一次失败（场景非前台活跃：当时盖着系统软件更新弹窗），干净条件待补。待定：~~画中画显示非视频内容的审核风险~~（2026-09-14 查证：审核指南无画中画条款、同类已上架，见协议补充决定（三）23）、放大后的可读性、锁屏表现；画布第 2 页与 interaction-spec I3–I8、verification-spec 按画中画重写。
+
+**门控。** 与 §9.6 同一条 `liveCapable`，Mac 另加 `audio-caps.system === 'ok'`。不可用时入口灰 + 一条具名原因（§9.6「灰按钮 + 原因」家规的延续）。首页独立入口「实时字幕」，不做成对话里的开关：权限、隐私、心智都不同。
+*（2026-09-17 修订，待人评审：）* `liveCapable` 随 §9.6 门控同日改写 —— 只看本机识别器；「视频的语言」只列本机支持的语种；**`subtitleVideoLang` 进设置页**（对话与字幕那一块，与准备页里那处是「两处一份设置」，interaction-spec 语言对规则）。上表「云端路 `qwen_asr`」一格与「中国版」段里「云端路 … 吃同一转换器输出」作废：两个 flavor 都只有本机路。「已知限制」里「长视频持续云端转写有费用」一句作废 —— 识别在本机，费用只有修正 + 翻译那一次远程调用。
+
+**已知限制（写给用户看的，不是待办）。** iPhone 字幕在画中画小窗里：默认小窗一次只看得清两三句，要看更多得捏合放大或回 App；锁屏时系统不显示画中画（待真机确认），锁屏期间照常听、解锁后小窗回来。长视频持续云端转写有费用：费用行 + 30 秒无声暂停 + 不自动恢复。
+
+**中国版（AGENTS 规则 10）。** 同样有：云端路 `qwen_asr`（16 kHz）吃同一转换器输出；本机路同样可用；画中画不需要额外的扩展 target，两棵工程同样可用（Live Activity widget 仍在，只给播客模式用）。两者都要真机读数，不假设。
+
+**验证。** verification-spec §2.4 表 App 行 + M26–M32；`test:listen` 新 H 段（假桥：不回 `audio-caps` ⇒ 入口不显示、`record-mode.profile`、`mic-start.source`、零次 `tts-speak`、`subtitle-show` 先半句后定稿、`subtitle-state` 随停机态变化、语料锚点 `k:'conv'` / `mode:'subtitle'`、`remote end` 即停）。
+
+## 9.9 系统翻译与快速翻译 (system translation & quick translate) — App 专属（2026-09-19）
+
+用户提议：iPhone 上让大肚猴翻译出现在「设置 › 翻译 › 默认翻译 App」里（在任何 App 里选字 › 翻译，
+弹出来的是我们）；Mac 上选中文字 → 快捷键 → 鼠标旁浮窗出译文，外加输入翻译、菜单栏图标、截图翻译。
+来源模型与九条核心约束在 domain-design §2.6；交互在画布 `design/system-translate/`（用户 2026-09-19
+「按默认」，12 条裁定）与 interaction-spec「系统翻译」「快速翻译」两节；这里只写学习层与桥的契约。
+
+**先量后写。** 两个一次性尖刺（`.local/spike/TranslateExtSpike`、`.local/spike/QuickTranslateSpike`，
+读数 `.local/spike/READINGS.md`「T1」「T2」）在动笔之前把每一条「Apple 没写明」的事量了一遍；下面凡是
+写成事实的句子都有一条读数。
+
+### 来源字段
+
+| 字段 | 值 | 理由 |
+|---|---|---|
+| `sourceId` | `handoff:<via>:<YYYY-MM>` | **按月一组**，不是每次一条：这是几十次零散的查词，不是一场会话。来源管理里显示「系统翻译 · 2026-09」「划词翻译 · 2026-09」「截图翻译 · …」「输入翻译 · …」|
+| `url` | `handoff://<via>/<YYYY-MM>` | 不可点（同 `conv://` / `doc://`）：没有网页可回 |
+| `anchor` | `{ k: 'handoff', via, at }`，`via ∈ system \| select \| input \| shot \| service` | **显式新 kind**（§12 2026-09-07 那条裁定同样适用）：不复用 `dom`（没有 URL）、不复用 `doc`（没有页）、不复用 `conv` —— `conv` 的语义是「按会话分组、有说话人、有起止」，而这里没有会话也没有说话人，读者行为确实不同（来源行纯文字、不可回放、按月分组）。未知 kind 静默落进默认分支才是坑 ⇒ `review.js` / `sources-view.js` / `driving.js` 各加显式分支，`npm test` 的读者分支门守着 |
+| `text` / `tr` | 交来的原文 / 译文 | **不记来源 App、不记窗口标题**：系统本来也不给；给了也不记 |
+| 长度上限 | 原文 > 2 000 字 ⇒ **照翻、不采集** | 那是一篇文章，不是一张卡（画布裁定 10）|
+| 采集开关 | `handoffCapture`（iPhone）· `quickCapture`（Mac），默认开，受 `learnEnabled` 总闸控制 | 与 `docCapture` / `listenCapture` / `subtitleCapture` 同形：每个来源各有一个找得回来的开关 |
+| 过门 | `LearnRules.langAllowed` → `LearnModel.shouldCapture({ playedThrough: true, dwellMs: 0 })` | 「用户亲手要的译文」算已消费，先例 `doc-core.js` / `listen-core.js` |
+
+### 唯一写入者：`AppHandoff.ingest(records)`（`app/handoff.js`，只在 App 主页面里）
+
+两个输入端都**不开** `LearnStore` —— 学习库按账号分库（`store.js` `useDb`），第二个打开者手里会握着过期的库名。
+
+- **iPhone · App Group 收件箱。** 扩展把每条记录写成 `<AppGroup>/handoff-inbox/<msEpoch>-<8hex>.json`
+  （**每条一个文件、原子写** —— 不用追加文件，避开两个进程并发追加与半行损坏），内容**只有**
+  `{ v: 1, text, tr, lang, trLang, ts, via: 'system' }`。扩展只在镜像里 `learnEnabled && handoffCapture`
+  为真、翻译成功、原文 ≠ 译文、原文 ≤ 2 000 字时写；失败路径永不写（Collector law 2）。
+  上限 **200 条 / 512 KB**，超了删最旧的；摄入时丢弃 `ts` 超过 30 天的。
+  App 启动与回到前台时发 `inbox-drain` → 原生回 `inbox-batch` → 逐条过门 → `mergeBatch` → `inbox-ack{names}`
+  → 原生删文件。**先写库后删文件**：item id 是内容哈希、merge 幂等，中途崩溃下次重来即可。
+  **开关关着 ⇒ 整个收件箱丢弃并清空**，不留用户看不见的积压。摄入静默，不弹「收进 N 句」（画布裁定 4）。
+- **Mac · 原生中继。** 面板页发 `mtQuick` `quick-capture{text,tr,lang,trLang,ts,via}` → 原生 `MTQuick`
+  转给主 WebView 的 `window.NativeQuick._fromNative` → 同一个 `ingest`。主页面没就绪时原生侧排队
+  （照抄 `MTDeepLink.pending`）。S3 已量过：桥消息在隐藏态 1–2 ms 送达，不受计时器节流影响。
+
+「清除本机全部数据」与「清空学习库」同时发 `inbox-clear`；前者再加 `vault-clear`（清 Keychain 组里那一份与
+App Group `UserDefaults`）—— 否则 App 里看着清干净了，系统翻译还能拿旧 key 接着翻。退出登录（额度在用）
+⇒ 镜像里的额度令牌随之清掉，扩展落回未配置态。
+
+### 桥协议
+
+**`mtVault`（iOS；`app/vault-mirror.js` ↔ `app/native/vault-bridge.swift`，整份 `#if os(iOS)`）**
+
+| 方向 | 消息 | 内容 |
+|---|---|---|
+| JS → 原生 | `vault-sync` | **全量快照**（不是增量：快照里没有的键要在原生侧删掉 —— iOS 的 Keychain 卸载后仍在，增量会留下「扩展里有 key、App 里没配」）。`nonSecret`：`provider`（先过 `EngineState.byId`，过期 id 不许静默回落到免费引擎）、`baseUrl`、`model`、`targetLang`、`uiLang`、`req*` 五项、`grantTail`、`learnEnabled`、`learnLangs`、`handoffCapture`、`flavor`、`schema: 1`；`secret.apiKey`（额度在用时是 `bmg_…` 令牌）|
+| 原生 → JS | `vault-ack` | 键名列表 + `OSStatus`。**永不回传 key 的值** |
+| JS → 原生 | `vault-clear` | 清空两处 |
+| JS → 原生 | `inbox-drain` / `inbox-ack{names}` / `inbox-clear` | 见上 |
+| 原生 → JS | `inbox-batch{records}` | 文件名 + 记录 |
+
+镜像的是**解析后的结果**（`LearnNotes.resolveConfig` 的「解析引擎优先」规则留在 JS 里，Swift 不重写解析）。
+触发：启动时一次 + `chrome-shim.js` 的 `onChanged` 总线上相关键变化时。
+
+**`mtQuick`（macOS；`app/quick.js` ↔ `app/native/quick-panel.swift` 等，整份 `#if os(macOS)`）**
+
+| 方向 | 消息 |
+|---|---|
+| 原生 → 面板页 | `quick-show{via, origin, text?, concealed?, own?, blocked?, fresh, perm?, busy?, first?, appName?}` · `quick-ocr{lines}` · `quick-image{dataUri}` |
+| 面板页 → 原生 | `quick-ready` · `quick-resize{h}` · `quick-close` · `quick-pin{on}` · `quick-copy{text}` · `quick-capture{…}` · `quick-result{ok, code, provider, ms, status, route}` · `quick-open-settings` · `quick-reselect` · `quick-request-perm{which}` · `quick-open-privacy{which}` · `quick-relaunch` · `quick-ocr-cloud` |
+| 原生 → 主页面 | `quick-caps{resident, panel, postEvent, appName, sck, screen, loginItem}` · `quick-hotkeys-result{failed}` · `quick-perm{postEvent, screen}` · `quick-first-close` · `quick-open-settings` ·（M-3 起）中继来的 `quick-capture` / `quick-result` |
+| 主页面 → 原生 | `quick-probe` · `quick-config{…, enhanced}` · `quick-close-main` · `quick-request-perm{which}` · `quick-open-privacy{which: postEvent / screen / services / loginItems}` · `quick-hotkeys{translate, shot, input, paused}` · `quick-login-item{on}` · `quick-relaunch` |
+
+**一条通道、两张页面（实现时定，2026-09-19）。** 同一个 `mtQuick` 处理器挂在两个 WKWebView 上：主页面那头是
+`app/quick-host.js`（`AppQuickHost`：设置、权限、常驻），面板页那头是 `app/quick.js`（`AppQuick`：显示与翻译）。
+各自的 `PROTOCOL` 表是闭集，`test:quick` 断言面板页的出站消息全在表内。`origin`（`selection | clipboard |
+service | screen | typed`）只决定来源标签与「零权限三陷阱」走不走；`via` 才是进复习库的那个闭集。
+`concealed:true` 时原生**不带 `text`**，面板页也不会去读它（`HandoffCore.classifyClipboard` 先看标记）。
+`own:true` = 剪贴板里是我们自己刚复制出去的译文（原生在 `quick-copy` 时记下 `changeCount`）⇒ 当作「和上次一样」，
+不再翻一遍；`blocked:true` = 读剪贴板 1 秒没返回（剪贴板隐私开着时后台读取会卡住，T2 读数），面板说去哪里允许；
+`fresh:true` = 面板此前不可见，即一个**面板会话**的起点 —— 遥测「每会话一条成功、每个码一条失败」按它算。
+面板不抢焦点 ⇒ Esc 到不了它：面板可见且未钉住的这段时间里，由 `MTHotkey` 临时占用无修饰键的 Esc，收起即释放。
+
+**设置块与快捷键（M-7，`app/hotkey-core.js` + `app/quick-settings.js` + `app/native/login-item.swift`）。** 三个全局快捷键可改、可清、
+可恢复默认：存储键 `quickHotkeys = {translate, shot, input}`，每项 `{code, modifiers}` 或 `null`；**没存过 = 默认值（⌃⌥T · ⌃⌥S · 空），
+存的是 `null` = 用户清掉了、重启后仍是空**（`HotkeyCore.normalize`）。键码表只有一份、在页面这边（`KeyboardEvent.code` → macOS 虚拟键码，
+`npm test` 钉锚点）；原生只收两个数和菜单上要写的字符。校验在录制当场做，**被拒的不保存、留着上一个值并说怎么改**：没有修饰键
+（`nomod`）、只有 ⌥ 加字母数字（`deny`，新系统上对沙盒 App 不稳）、系统占着或只有 ⌘ 加字母数字（`system`，会盖掉每个 App 自己的
+快捷键）、和另一个功能撞了（`dup`）。**录制期间全局快捷键全部放开**（`quick-hotkeys{paused:true}`）：不然按下现有的组合会被 Carbon
+抢在网页之前吃掉，既录不到、又真的触发一次翻译。原生注册失败（别的 App 占了同一个组合）经 `quick-hotkeys-result{failed}` 报回，
+那一行显示「已设 + 一句冲突」，值留着由用户决定。菜单栏菜单上写的是当前的快捷键。「存入复习库」= `quickCapture`（默认开，受学习总闸
+控制）。「登录时启动」= `SMAppService.mainApp`，**默认关**，界面显示的是系统的**实际状态**（`quick-caps.loginItem`：on / off /
+approval / unsupported；拨完由原生重发能力回执，登记失败时开关自己弹回去），任何地方都不自己把它打开。块内的「更多选项」折叠区
+（默认收起）里是：输入翻译的快捷键、屏幕录制状态（未允许时一个「打开系统设置」）、登录时启动、给右键「服务」绑快捷键的直达。
+**画布写的是「详细档多露几行」，落地时没有照做**：「快速 / 详细」两档只许管「引擎与密钥」一节是设置体验重设计立下、由 `test:app`
+守着的不变量，这一块不跟全局档位（`test:quick` 断言块内没有 `.adv-only` / `.quick-only`）。macOS 低于 14 ⇒ 截图的快捷键行
+不出现，状态行写明原因。
+
+**截图翻译（M-6，`app/native/screen-ocr.swift`）。** ⌃⌥S / 菜单 / 面板里的「重新框选」「改用截图翻译」都到 `MTQuickPanel.translateScreenshot()`：
+没有录屏权限 ⇒ **不框选**，面板里先说话（`quick-show{perm:'screen', appName}`）—— 我们自己那句「只在你框选的那一刻截你框的那一块，
+在本机识别，识别完即丢弃」在系统弹窗之前；系统同样不回调允许 / 拒绝、授权后要重开 ⇒ 说过一次（`quickShotAsked`）之后只有一态
+「还差一步 · 打开之后要重开」+「现在重开」「打开系统设置」，入口不因为被拒而消失。有权限 ⇒ 每块屏一层变暗的框选层（十字光标、
+尺寸标注、Esc 取消、小于 12 × 12 当误触）→ `SCScreenshotManager` 只截 `sourceRect`（我们自己的窗口排除在外；AppKit 左下原点换成
+显示器内左上原点）→ 面板立刻出现「正在本机识别文字…」（`busy`；这台 Mac 上 Vision 没跑过时多一行「大约 20 秒」，`first`）→
+`VNRecognizeTextRequest` 的行框换成左上原点 → `quick-ocr{lines}` → `HandoffCore.assembleLines` 拼段 → 照常翻译。Vision 在 App 空闲时
+预热一次（识别的是一张自己画的小图，不碰屏幕、不要权限）。**截图不落盘；像素只经一条路离开原生** —— 本机零产出、引擎支持识图且
+不是免费额度时，面板多一个次级按钮「用我的识图引擎再试」，旁边写明发给谁；**点了**才发 `quick-ocr-cloud`，原生才回
+`quick-image{dataUri}`（长边压到 1600），页面走既有的 `TranslationAPI.ocr` 拿原文、再照常 `translate()`。内存里那一张在下一次框选
+开始或面板收起时丢弃。macOS 低于 14 ⇒ `quick-caps.sck:false`：热键不注册、菜单里没有这一项。以上各条由 `npm test` 对着源码钉，
+`test:quick` 用假端点数「带图片的请求」：点之前 0 张、点之后恰好 1 张、免费额度在用时没有那个按钮。
+
+**增强取词（M-5，`app/native/capture.swift` + `AppQuickHost.setEnhanced / reconcile`）。** 两个键：`quickEnhanced` 是用户的
+**意图**，真正生效还要系统权限在（`quick-caps.postEvent`，启动那一刻的 `CGPreflightPostEventAccess()`）；原生在**每次按键时**
+再现读一次权限，想开且权限在才取词，否则落回「翻译剪贴板」—— 事后被撤销不报错、不卡住。系统弹窗不回调、授权后正在运行的进程
+读不到新权限 ⇒ 点了「继续」之后只有一态「允许之后要重开才生效」（`quickEnhancedNote:'pending'`，开关仍显示为关）；下一次启动
+`reconcile()` 对账：权限在 ⇒ 开；不在 ⇒ 意图弹回 + `'denied'`；**原来是开着的**却没了（用户在系统设置里撤销）⇒ 另给面板页留一次性的
+`quickEnhancedLost`，下一次面板出来时说一句。启动时**从不**自己去调系统的请求接口。取词的四条不变量写在 `capture.swift` 头上并由
+`npm test` 对着源码钉：先快照再按键、变过就原样写回且写回在交结果之前；0.3 秒没变 ⇒ 交空文字、**这条分支里不读剪贴板**；带隐藏 /
+临时标记不读文字；全程后台队列 + 1 秒总时限。按键前先等用户松开快捷键的修饰键（最多 0.4 秒），否则宿主收到的是 ⌃⌥⌘C。
+协议新增 `quick-open-privacy{which}`；`quick-show` 的 `concealed` / `blocked` 从此对「取词」来源同样成立（读的也是通用剪贴板）。
+
+**右键「服务」（M-4，`app/native/services.swift`）。** 宿主 App 把选中的文字放在一块**专用的**剪贴板里交过来 —— 不经过
+通用剪贴板，所以零权限三陷阱不适用，来源标签是「服务」、`via:'service'`（进复习库时与划词并成一组）。三条落地时定的事：
+① **不看「在菜单栏常驻」**：菜单项是 `Info.plist` 里的静态条目，运行时撤不掉，点了没反应才是坏行为 ⇒ 开关关着、甚至 App
+是被这次点击冷启动的，都照样翻（面板按需建；页面随后发来的「常驻关着」拆不掉正在用的面板）；提供方在原生安装时就登记，
+不等页面的 `quick-config`。② 系统调用服务时会把我们激活到前台 ⇒ 收到文字的同一刻 `lastOther.activate()` 还回去；
+「刚才那个 App」靠监听激活通知记下来，因为回调发生时最前面的已经是我们自己。③ `NSPortName` 写 `$(PRODUCT_NAME)`（两个
+flavor 的 App 名不同而它必须等于 App 名）；菜单名 12 个语种在 `ServicesMenu.strings`，与 `InfoPlist.strings` 共用同一个
+变体组补丁（`patchPbxprojStringsGroup`，ID 段各自独立）。
+`quick-result` 是遥测的中继：面板页不初始化 `MTTelemetry`（心跳与补发只归主页面），成功 / 失败交给主页面去发
+`translate_ok{kind:'quick'}` / `translate_fail`。
+
+**面板页不启动主壳。** `app.js` 的 IIFE 在 `#quick` 下第一行就返回；而 `review.js` 与扩展**同字节**、加载即自
+启动（开学习库、发心跳），不能为 App 的一个模式去改它 —— 由 `build/app-bundle.js` 的 `MAIN_ONLY` 在包里包一层
+`if (!#quick) { … }`，字节不动。漏列的模块由 `npm run test:quick` 抓：它在 document-start 装探针，数
+`indexedDB.open` 与 `MTTelemetry.init` 的次数、记下每一次 `fetch`，三者在面板页都必须是 0。
+
+`quick-caps` 沿用 §9.8 老原生壳那条纪律：原生不回 ⇒ 设置块与菜单入口**不显示**（不是灰掉）。`sck:false`
+（macOS < 14）⇒ 截图入口整个不出现。两张协议表由 `npm test` 钉住（JS 与 Swift 两边的消息名逐字一致）。
+
+### 扩展里的翻译引擎（`build/ext-bundle.js` → `dist-app/ExtEngine.js`）
+
+同一份字节，不写 Swift 版（domain-design §2.6 规则 2）。`MODULES` = `app/ext-shim.js`、`providers.gen.js`、
+`langs.gen.js`、`engine-state.js`、`wire-format.js`、`request-shape.js`、`translation-api.js`、`app/ext-entry.js`。
+垫片清单来自逐文件 grep，尖刺在一个只有三个原生钩子的空上下文里验过：不碰 `URL` / `TextDecoder` /
+`crypto` / `document` / `navigator`；`chrome.runtime.sendMessage` **故意缺席** ⇒ 代理探测抛错 ⇒ 走直连
+（与 `app/chrome-shim.js` 同形）。真机读数：87 KB、就绪 3–10 ms、+3 MB、总占用 ≈ 18 MB，扩展上限 ≈ 230 MB。
+
+### 原生侧的形状（与 §9.5 灵动岛的先例不同，别照抄）
+
+- **这个扩展是 ExtensionKit 类型**：产品类型 `com.apple.product-type.extensionkit-extension`，嵌在
+  `<App>.app/Extensions/`（copy-files `dstSubfolderSpec = 16`），Info.plist 用
+  `EXAppExtensionAttributes › EXExtensionPointIdentifier = com.apple.public.translation-ui-provider`，
+  **没有** `NSExtension` 字典。`patchWidgetTarget` 造的是 `app-extension` + `PlugIns/`，不能直接参数化 ——
+  重构成 `patchExtensionTarget(spec)` 时要多支持一种产品类型与一个独立的嵌入阶段（widget 输出逐字节不变是门）。
+  开发者论坛上「上传被拒：缺 `NSExtensionPrincipalClass`」的死结正是拿 app-extension 的壳装这个扩展点；
+  用对形状后 `altool --validate-app` 读到 `VERIFY SUCCEEDED with no errors`。
+- **entitlement**：`com.apple.developer.translation-app` 只给 **iOS App**（自助能力，不用申请）；App Group 与
+  Keychain 组给 iOS App 与扩展两个 target。现在一份 `app.entitlements` 被 iOS 与 macOS 两个 App 共用 ⇒ 拆成
+  每 target 一份，`patchEntitlements` 的全局守卫改为按配置块判断。**新增能力的那一次归档必须用 Xcode 登录态**
+  （带 ASC API key 三参数会报认证失败，读数 T1）。
+- **联网键写在宿主 App 的 Info.plist**：`com.apple.developer.translation-ui-provider.network-access = true`
+  （`PLIST_KEYS` 的 `only: 'iOS (App)'`）。写在扩展的 plist 里无效 —— 三个地址一律 `NSURLError -1009`（读数 T1）。
+  写对之后可达任意 https 端点（不按域名限制），并且系统在**第一次使用时自己弹一页告知**。
+- **Mac**：`NSServices` 条目必须带 `NSRequiredContext`（空字典即可），否则服务「已登记、默认不启用、无报错」；
+  服务被调用时系统会把我们激活到前台 ⇒ 回调里立刻 `prev.activate()` 把焦点还回去；热键用 Carbon
+  `RegisterEventHotKey`（零权限、沙盒可用）；`CGRequestPostEventAccess()` 授权后**要重开 App 才生效**；
+  读剪贴板放后台队列 + 1 秒上限（系统的剪贴板隐私预览开启时，后台读取会卡住 90 秒以上）；
+  `WKWebView.loadFileURL` 不接受 `#fragment` ⇒ document-start 注入 `location.hash`；Vision 用旧 API 即可
+  （新旧两条结果逐项相同），一台机器上的首次调用 20 秒量级 ⇒ App 空闲时预热一次。
+- **常驻**：`MTResident` 持有 `NSStatusItem`；`applicationShouldTerminateAfterLastWindowClosed` 那条既有补丁
+  **改写**为 `!(MTSubtitleBar.sessionActive || MTResident.keepAlive)`（它是「含 needle 即跳过」式的，不能叠第二个）；
+  已经打过旧版那一行的工程由补丁**原地升级**（那一行是我们自己写进去的、逐字已知），两种形状都不是才报锚点缺失。
+  两个关闭守卫（实时字幕的 `MTCloseGuard`、常驻的 `MTResidentCloseGuard`）谁先装不一定，`original` 都是 weak ——
+  字幕会话结束时只摘自己；被包着就把自己从链上剪出去，否则会连常驻守卫一起摘掉，或让链断在一个已释放的对象上。
+  `quickEnabled`（默认开）关掉 ⇒ 回到今天「关窗即退出」；`quickLoginItem`（`SMAppService.mainApp`）**默认关**。
+
+### 门控
+
+| 面 | 条件 | 不满足时 |
+|---|---|---|
+| iPhone 系统翻译 | iOS 18.4+（扩展 target 的部署下限单独是 18.4，App 仍是 16.4）| 设置块变淡 + 「需要 iOS 18.4 或更新的系统」；首页发现卡不出现 |
+| Mac 快速翻译 | 原生回了 `quick-caps` | 设置块与菜单入口不显示 |
+| Mac 截图翻译 | macOS 14+（ScreenCaptureKit 的截图接口）| 入口整个不出现；设置块里那一行写明原因 |
+| 引擎没配 | — | 弹层 / 面板出未配置态 + 「打开大肚猴翻译 / 打开设置」（T1：弹层里 `openURL` 拉得起宿主）|
+
+### 中国版（AGENTS 规则 10）
+
+两个面都带。国行 iPhone 上「默认翻译 App」这一行存在且可选（读数 T1）。差别只在既有的几处：没有我们代领的免费额度
+（未配置态只有「配置引擎」一个主按钮）、用量事件走境内 ingest 而不是东京（BEL-135，白名单与国际版同一份）、文案无第三方品牌。`ExtEngine.js` 同样过 brand / strip 门。
+
+### 遥测
+
+扩展进程**不发**（`SEAMS` 写 `none` 行）；Mac 快译照常发，`translate_ok.kind` 加 `quick`，由主页面代发（面板页
+不启动 `MTTelemetry`，免得两个页面各发一次心跳）。理由与白名单改动见 telemetry-design §3.5。
+
+### 验证
+
+`npm test`：`test/ext-bundle.test.js`（裁剪包在空 vm 上下文里对四种请求形状与 App 包**深度相等**；Abort ⇒
+`timeout`、401 ⇒ `auth`、`credit_exhausted` 透传）、`test/handoff.test.js`、`test/quick-core.test.js`、
+`test/build-scripts.test.js`（widget 逐字节不变、第二次 `app:sync` 零改动、两个 flavor、每 target entitlements、
+`NSServices` 含 `NSRequiredContext`、联网键在 iOS App 的 plist 而不在扩展的）、协议表门、读者分支门、
+telemetry seams。新真 Chrome 门 `npm run test:quick`（`Main.html#quick` + 假 `mtQuick` 桥：读回译文与出站消息，
+确认没有启动同步 / 心跳 / `LearnStore`）。`test:listen` 式假桥门里加 `vault-sync` 是全量快照、清除 ⇒
+`vault-clear` + `inbox-clear`。真机：verification-spec 矩阵第 9、10 行与配方 I / J。
+
+## 9.10 命令行宿主 (CLI) — 第三个宿主（2026-09-30，提案 · 待人评审）
+
+> **状态**：用户 2026-09-30 确认范围并评审通过（PR #509）。CLI 是产品第三个宿主，
+> 翻译侧约束在 `docs/domain-design.md` §2.7，本节只写学习侧。
+
+**它是什么。** 一个独立的命令行程序（`cli/` + `build/cli-bundle.js` → `dist-cli/`，按 flavor
+两个产物），既是**翻译面**（文本 / 文档 / 批量 / 本地字幕，domain-design §2.7），也是**学习面的
+一个 Reviewer 宿主**：读语料 → 算复习计划 → 打印或交互式复习。
+
+**语料：一个 `mt-learn/1` 文件，不用 `LearnStore`。** `LearnStore` 绑 IndexedDB（§7），CLI
+没有；改用 `learn/chunk.js` 的 `build` / `toJsonl` / `fromJsonl` / `deflate` / `inflate`，把语料
+存成一个文件。三条来源：
+
+1. **导入 / 导出** `mt-learn/1`（§8.1 / §8.2）：读扩展 / App 导出的 `.mtlearn`，也能导出回去。
+2. **翻译时采集**：CLI 翻译文本 / 文档时，把 `(text, tr)` 交给 `LearnModel.splitPair` 切句、
+   `makeItem` 造卡、并入文件语料。与扩展同一套采集规则（§4.2）与同一道 salience 门（§6）。这是
+   §3 law 1 的又一次应用：**采集是 sink**，绝不改译文。
+3. **登录后同步**（§8）：复用 `learn/auth.js` + `learn/sync.js`，在文件语料上包一层适配器；
+   语料仍属于账号，文件只是本机副本。
+
+**它写什么。**
+
+- `plan`（只读）：`LearnScheduler.buildDeck`（今日牌库）+ `introducedToday`（§8.4 账号级日界）+
+  `dueCount` + `buildDeckAhead(days)`（「出发前预载」同款预测）。**不写任何数据**——与 §9.5 预载
+  同一条纪律。
+- `review`（交互式）：展示卡片 → 收评分 `0..3`（§5）→ `applyReview` 推进 `sched` →
+  `recordReview` 追加日志 → 回写语料文件。技能轮换（§5.4）v1 走 `mode:'read'`，其余技能随后补
+  （`pickSkills` / `skillFresh` 已是纯函数）。
+
+**anchor kind 不新增。** CLI 文本用 `k:'handoff'`（`via:'input'`，§9.9 同一 union），文档用
+`k:'doc'`（§9.7），字幕用现有媒体 / 对话锚点或 `handoff`。语料格式因此不改，扩展 / App 读得懂
+CLI 的卡片，反之亦然。
+
+**门控与披露。**
+
+- 免费路径完整：不登录、不付费也能翻译与复习（语料来自本地文件）。
+- v1 **不接免费额度中继**（§8.10）；将来若要接，属 §2.1 / Gate F 的改动。
+- v1 **不发遥测**；将来若要发，属 `telemetry-design.md` 白名单改动（治理门）。
+- 中国版：同一功能集（`AGENTS.md` 规则 10），差异仍是既有的那几处（无我们代领的免费额度、用量走境内 ingest 而非东京、
+  brand-free 文案），并过同一合规门。披露随代码同版（§10）。CLI v1 本身仍不发遥测。
+
+**模块。** `CliApp`（`cli/`）、`CliEngine`（`build/cli-bundle.js` → `dist-cli/engine.js` +
+`cli/node-shim.js` + `cli/entry.js`）；纯逻辑复用 `LearnModel` / `LearnScheduler` / `LearnChunk` /
+`LearnRules`。不引入新的调度或存储实现。
+
+**验证。** `npm test`：CLI 传输包与扩展 / App **请求逐字节相等**（照 `test/ext-bundle.test.js`），
+`learn/chunk.js` 往返，调度 / 采集纯逻辑。新增 verification-spec 矩阵第 11 行（CLI）与一条
+`npm run test:cli` 端到端（默认 mock fetch）。
+
+## 10. Privacy statement changes — a release gate, not a follow-up
+
+`README.md`, `README.zh-CN.md` and `belliedmonkey.cc/privacy.html` currently make
+claims that the learning layer falsifies. **These edits ship in the same PR as the
+code that falsifies them — never before (the feature does not exist yet) and never
+after (that is shipping a false statement).** They are listed here so the target is
+reviewed once, up front, rather than improvised under release pressure.
+
+### Gate A — ships with V1 (local capture)
+
+Today's text and why it moves:
+
+| Current claim | Status at V1 | Required change |
+|---|---|---|
+| "**No servers of ours.** … there is no 'we' in the path at all." | **still true** | none |
+| "**Your API key never leaves your device.**" | **still true** | none |
+| "**What is sent** is the text to be translated. Not the URL, not the page title, …" | **still true** — capture adds zero network traffic | none, but do **not** delete it; it is the sentence that stays true when the next one changes |
+| "**No account, no tracking, no telemetry.** Nothing to sign up for." | **no longer complete** | must gain the local-history disclosure below |
+
+Required new bullet, adjacent to the "no account" bullet:
+
+> - **Learning material is built on your device.** If you turn on the learning
+>   feature, the extension keeps the sentences you actually read — with the page URL,
+>   its title, and how long the text was on screen — in local storage on that device,
+>   so it can show them to you again later. It is off until you turn it on, it is
+>   never uploaded, and one button erases all of it.
+
+`extension/manifest.json` Firefox `data_collection_permissions.required` stays
+`["websiteContent"]` at V1: nothing new is transmitted.
+
+### Gate B — ships with V3 (sync)
+
+*(Rewritten twice on 2026-08-04 as §8 moved: our server → the user's cloud folder →
+our server again. That churn is exactly why this gate exists as a written target
+rather than as wording improvised at release time. The version below matches the
+settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
+
+- **"No servers of ours in the middle"** (README hero, line 6) and "**No servers of
+  ours.** Requests go from your browser to the engine you picked" **stay verbatim** —
+  they describe the *translation* path, which is unchanged and still goes straight
+  from the browser to the engine the user chose. Do not weaken them to cover sync;
+  weakening a true statement to cover a different thing is how a privacy page stops
+  meaning anything.
+- **"No account, no tracking, no telemetry. Nothing to sign up for."** is the one that
+  changes, and it must change honestly. No tracking and no telemetry stay literally
+  true. What is added is an **optional account** for syncing, which the extension
+  works completely without — and, for people who turn it on, **every sentence they
+  read on a translated page is stored on our servers in readable form**, along with
+  the page URL, its title and the time. Say it in those words. It is the sentence a
+  reader deserves to find without digging.
+  *(Sharpened 2026-08-07 per §8.6: this used to say "the corpus", which was accurate
+  when only cards you had chosen to study were uploaded. Since the candidate pool
+  travels, "the corpus" understates it to the reader's disadvantage.)*
+- **A hosted model (§2.1), if it ever ships, is a separate disclosure**: that path
+  sends page text through us. Name it as its own exception; never fold it into a
+  sentence about sync.
+- **The host app needs its own disclosure, and it must not lean on the extension's.**
+  *(Added 2026-08-07.)* The app is useless without an account (§7.2), so the person
+  reading its App Store page is by definition someone who will sign in — the "works
+  completely without an account" sentence that is true of the extension is
+  **misleading if it is the first thing they read**. State it the other way round for
+  the app: this app syncs your learning corpus through our servers, in readable form;
+  the browser extension works without an account and stores everything locally.
+  *(This bullet replaces a duplicate of the one above, which had drifted into the
+  list twice with slightly different wording — itself a small warning about how a
+  privacy statement decays.)*
+- **Firefox `data_collection_permissions`** must be re-evaluated against `build.js`
+  (which already carries this reminder and a build-time assertion). Syncing transmits
+  website content **and** browsing activity, readable on the receiving end, so the
+  declaration almost certainly has to grow — and the wording must not lean on "it's
+  encrypted", because it is not.
+- **App Store privacy labels** must be refilled — adds "User Content"; *(2026-09-05: and
+  "Usage Data · Product Interaction, not linked to you", once Gate D ships — this line
+  used to say "not Usage Data, since there is still no telemetry")* — and the host app
+  must offer in-app **account deletion**, an Apple requirement wherever accounts exist.
+- **Export ships with sync, not after** (§8.2). It is simultaneously the portability
+  right, the no-account path, and the honest answer to "I don't trust you".
+- **`belliedmonkey.cc/privacy.html` lives outside this repo.** Per `AGENTS.md`, look
+  its current state up in gbrain first; never infer it from this repository.
+
+#### The exact replacement text (written 2026-08-08, ships WITH sync, not before)
+
+> **✅ Gate B LANDED 2026-08-09（v1.4.0）**：下表文案已逐字落进 README.md /
+> README.zh-CN.md（中文版同时补上了缺失的 Gate A bullet），`learn_section_hint`
+> ×11 locale 换为「除非你开启同步，否则不上传」口径，manifest 声明升为三项，
+> `backend.config.js enabled: true` —— 全部同一提交。build.js 的 Gate B 闸门
+> 反转为守护相反方向：enabled:true 时任何残存的旧句（英文/中文 README、11 locale
+> 的 hint、声明值不足三项）都拒绝构建；`MT_SYNC_E2E` 逃生口现会在 dist/ 写
+> `.not-shippable` 标记、`verify:ios` 见标记即拒 —— iOS 归档洞已闭合。
+> china flavor 的产物在构建时把开关翻回 false（PIPL/跨境合规未评估，另行开门）。
+
+This section used to describe the changes. Descriptions get re-interpreted under
+release pressure, which is the thing §10 exists to prevent — so here is the text.
+
+**Nothing below may land early.** With `MT_BACKEND.enabled === false` the current
+README is TRUE, and replacing it now would make the project claim it stores a reading
+history that it does not store. False in the frightening direction is still false.
+`build.js`'s gate enforces exactly this pairing: it blocks `enabled: true` while the
+old sentence is present, so the flip is one atomic change.
+
+**README.md § Privacy — four sentences change, and the fourth is the dangerous one:**
+
+| Now | Becomes |
+|---|---|
+| **No servers of ours.** … We never handle, store or upload your data — there is no "we" in the path at all. | **No servers of ours in the translation path.** Requests go from your browser to the engine you picked. *(Keep the first half verbatim — it is still true and §10 forbids weakening a true statement to cover a different one. Delete only the "there is no 'we' at all" clause, which sync makes false.)* |
+| **No account, no tracking, no telemetry.** Nothing to sign up for. | **No tracking, no telemetry — and no account unless you want one.** Syncing your learning material between your own devices needs a free account; everything else works without one. |
+| It is off until you turn it on, **it is never uploaded**, and one button erases all of it. | It is off until you turn it on, it stays on your device **unless you turn on sync**, and one button erases all of it. |
+| **What is sent** is the text to be translated. Not the URL, not the page title, not the referrer… | **What is sent for translation** is the text, and nothing else — not the URL, not the page title, not the referrer, not any identifier. **What sync sends, if you turn it on, is different and larger: every sentence the extension kept, the page URL and title it came from, and when you reviewed it — in readable form on our servers.** |
+
+The last row is the one to get right. Per §8.6 the corpus is now the candidate pool,
+i.e. **everything you read**, not a flashcard deck — a disclosure calibrated to the
+narrower dataset would be inaccurate *in our favour*, which is the kind that costs
+trust when someone notices.
+
+**One sentence added with 来源治理 (2026-08-09), same gate:** deleting learning
+material by source is account-wide — 「删除会同步到所有设备」. It rides wherever the
+sync disclosure lives (options 学习/同步 copy and the README sync paragraph), because
+a delete that the user believes is local but that propagates — or the reverse — is a
+consent error in either direction.
+
+**`manifest.json` → `browser_specific_settings.gecko.data_collection_permissions`:**
+
+```jsonc
+{ "required": ["websiteContent", "browsingActivity", "personallyIdentifyingInfo"] }
+```
+
+- `browsingActivity` — the source table is URL + title + time. §8.6: "the sensitive
+  column is the URL". The current declaration deliberately says *not*
+  `browsingActivity`, and that comment must go with it.
+- `personallyIdentifyingInfo` — the account is an email address.
+- **Firefox is LIVE on AMO** (re-verified 2026-08-08: `status: public`, 1.2.0), so this
+  is a change to a published declaration, not a first submission. Growing it is a
+  review-visible event; budget for it.
+
+### Gate C — ships with the 说 exercise (§5.4 / §9.4)
+
+One disclosure, same PR as the code that makes it true (never before, never after):
+
+> **If you configure a transcription engine and use the speaking exercise, your
+> recording is sent to that endpoint you chose — and nowhere else — then discarded
+> once the transcript comes back.** It is never stored, never synced, and never
+> touches a server of ours.
+
+- README.md / README.zh-CN.md gain that sentence next to the learning-feature
+  disclosure; the options 学习 hint and the App settings 「转写引擎」 hint carry the
+  same sentence at the point of configuration.
+- The translation-path sentences ("No servers of ours in the translation path", "your
+  API key never leaves your device") stay verbatim — §10's rule against weakening a
+  true statement to cover a different thing applies here too; the speak path gets its
+  **own** sentence, named for what it sends (a voice recording), to the endpoint the
+  user picked.
+- App Store privacy labels and the Firefox `data_collection_permissions` do **not**
+  grow for this: nothing new reaches us or any party the user did not explicitly
+  configure — same shape as BYO-key translation. Re-verify that reading against the
+  stores' current definitions at PR4 time; if a store's definition counts
+  user-configured endpoints, grow the declaration rather than argue with the form.
+
+### Gate D — ships with anonymous usage telemetry (`docs/telemetry-design.md`)
+
+*(Added 2026-09-05. The first gate that makes a privacy statement **weaker** rather
+than more specific — which is exactly why it is a gate: every surface below is
+review-visible, and shipping the code before any one of them is shipping a lie.)*
+
+What becomes true, in one sentence used verbatim everywhere it is disclosed:
+
+> **We collect anonymous usage events — which features are used, on which browser,
+> and whether a translation succeeded or failed. Never the pages you read, the text,
+> the addresses, your keys or your account. On by default; off in one switch; turning
+> it off deletes what that device sent.**
+
+Every surface that currently says "no telemetry", and what replaces it — all in the
+**same PR as the code**, or the release does not ship:
+
+| Surface | Today | Gate D |
+|---|---|---|
+| `AGENTS.md` rule 4 | No telemetry, ever | amended 2026-09-05 (done in the docs PR, ahead of code — the one place where "before" is right, because it is the design, not the disclosure) |
+| `README.md` / `README.zh-CN.md` | "No tracking, no telemetry" | "No tracking, no third-party analytics. Anonymous usage events (never page content or URLs), off in one switch." |
+| `build.js` Gate B | asserts the README does **not** say "no telemetry" | inverted: README ×2 and the 12-locale `telemetry_hint` must carry the "anonymous usage / 匿名用量" stem. **2026-10-29（BEL-135）**：中国版产物的 `MT_TELEMETRY.url` 主机是境内后端、路径含 `bt-ingest`；`*.supabase.co` 上的 ingest 仍禁。不再要求中国版产物里没有遥测 URL |
+| Firefox `data_collection_permissions` (`WANT_DCP`) | 3 categories, exact set | + `technicalAndInteraction` |
+| App Store privacy labels | User Content = yes; **Usage Data = no** (Gate B) | Usage Data → **Product Interaction, not linked to you**. Refill both app records at submission |
+| Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
+| `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
+| `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
+| `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **2026-10-29（BEL-135）覆盖**：中国版发与国际版同一份匿名用量白名单，入口境内 `api.belliedmonkey.com/.../bt-ingest`，不共东京。该句与「一个字节都不发」必须删掉，字段表与 intl 同构。诊断通道（L2）仍并列、不含原文与译文。网站正文另一次改；未回读境内 ingest（Phase B）不得宣称生产已对齐 |
+| `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
+| Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
+
+The Gate B sentence above ("**not** Usage Data, since there is still no telemetry")
+is superseded by this table; it is left in place as history.
+
+### Gate E — ships with 对话 · 实时听译 (§9.6)
+
+Same shape as Gate C, extended from "one recording, discarded after the transcript" to
+"continuous listening": the microphone streams to the transcription endpoint the user
+configured, only after 「开始听」, only to that endpoint; nothing of ours touches the
+audio; no recording is kept, only text — and text only while 「对话进复习」 is on.
+README (both), the App transcription-engine hint, `NSMicrophoneUsageDescription`, and
+both sites' privacy pages carry it in the same version.
+
+### Gate F — ships with 免费额度 (§8.10)
+
+*(Added 2026-09-08.)* This is the first path on which **user text passes through a
+server of ours**. The sites' 「我们不参与该连接，也看不到这些文本」 stays true **for the BYO
+path** and must now be said *per path* (domain-design §8 already requires that). So the
+disclosure is a **new paragraph** beside the BYO sentence, never a softening of it.
+Verbatim, on every surface, in the same PR as the code:
+
+> **免费额度（可选）。** 登录并领取后，你可以用我们出的 0.2 美元额度翻译、朗读、转写。这条路
+> 上，你的文本会经过我们的服务器转发到模型提供方（OpenRouter），我们不保存、不记录内容，
+> 只记录每次花了多少；额度用完即停，不会自动收费。自带 key 的路径不变：文本仍从你的浏览器
+> 直接发往提供方，我们看不到。退出登录时额度在这台设备上停用；删除账号会一并删除额度记录。
+
+英文面（`README.md`、两个站点的英文版）用的是同一段话的英文，权威版本是
+`_locales/en` 的 `grant_privacy`，逐字如下：
+
+> Free credit (optional). Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
+
+**`{vendor}` 是占位符，不是抄下来的名字。** 12 份 locale 里写的都是 `{vendor}`，
+运行时从 `MT_GRANT.vendorLabel` 代入，而那个名字只在 `backend.config.js` 写一处 ——
+把厂商名抄进十几个面，就是十几份会在换供应商那天集体说谎的副本。
+取不到名字时**退到厂商 id，绝不因此把整段丢掉**：少露一个好看的名字，
+远好过在没有披露的情况下让人点「领取」。
+
+| Surface | Gate F |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above; the BYO sentence stays and is scoped: 「用自己的 key 时，文本从不经过我们的服务器」 |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + the prerendered language sets | the paragraph above as its own section; the 「我们不参与该连接」 sentence gains 「（自带 key 时）」; **regenerate the language pages** |
+| `belliedmonkey.com` | one line: 中国版不提供我们代领的免费额度（百炼官方额度不经我们的手） |
+| The claim card (`grant_privacy` ×12 locales) | the paragraph above, shown **before** the claim button (same place as `qs_privacy`) |
+| App Store privacy labels | spend total = **Usage Data, linked to you**; the relayed text is **not collected** (not stored) — refill both app records at submission, **by hand, reviewed** |
+| Chrome Web Store data disclosure | + the same item; the three attestations stay |
+| `build.js` Gate F coupling | `grant.enabled:true` ⇒ README ×2 carry the 「免费额度」 stem **and** all 12 locales have `grant_privacy`; the **china artifact must contain none of** `bt-grant` / `bt-relay` / `MT_GRANT = {` |
+
+### Gate G — ships with 文档翻译 (§9.7)
+
+*(Added 2026-09-11.)* A new disclosure surface: the contents of **files the user
+uploads**. Same shape as Gate C/E/F — a new paragraph per path, never a softening of the
+existing sentences. Verbatim, on every surface, in the same PR as the code:
+
+> **文档翻译（可选）。** 你上传的 PDF、Word、图片只保存在这台设备上，不同步、不进导出。翻译时，
+> 文档的文字**按你点开的页**发往你配置的翻译端点 —— 不是整份，也不是打开就发。图片与没有文字层
+> 的扫描页会以图片形式发往同一端点识别，只在你的引擎支持识别图片时。使用免费额度时，文字经我们
+> 的服务器转发到模型提供方（不保存、不记录内容）；**免费额度不识别图片** —— 图片和扫描页要用你自己的
+> API key，且从不经过我们。译文里被你读过的句子可以进
+> 学习语料（可关）；删除这份文档会一并删除它的卡。
+
+English (authoritative in `_locales/en` `doc_privacy`):
+
+> Document translation (optional). The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
+
+| Surface | Gate G |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above under Privacy |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + prerendered language sets | the paragraph as its own section; **regenerate the language pages** |
+| `belliedmonkey.com` | 「本机存储的数据」 gains 「上传的文档与译文」; the same paragraph without the free-credit sentence |
+| In-page (`docs.html`, `#app-docs`) | `doc_privacy` ×12 above the upload button; `doc_privacy_grant` variant when the credit is active |
+| App Store privacy labels | no new category (file contents are not collected by us); re-check the 「用户内容」 questionnaire at submission, **by hand** |
+| Chrome Web Store / AMO | no new category on the BYO path; AMO `data_collection_permissions` reviewed for whether uploaded files count as `personalContent` |
+| `build.js` Gate G coupling | `learn/doc-view.js` present in the artifact ⇒ README ×2 carry the 「上传的文档」 stem **and** all 12 locales have `doc_privacy` |
+
+### Gate H — ships with 本机转写 + 本地朗读 (§9.6.1; §9.4 / §9.1 `device`)
+
+*(Added 2026-09-12.)* Same shape as Gate G — a new paragraph per path, never a softening of
+the existing sentences. Two facts a user must be able to read before choosing the on-device
+engines: **audio never leaves the device** on this path (the opposite direction from Gate E,
+which is why it is its own paragraph and not a footnote to E), and **text does** — the
+recognised sentence plus a few preceding lines, to the translation engine they configured, for
+correction and translation; plus one **download** from our file server (the model file, never
+content). Verbatim, on every surface, in the same PR as the code and **in the same version —
+never before** (a promise about an engine that does not exist yet) **and never after** (an
+engine shipping without its disclosure):
+
+> **设备内置转写与朗读（可选）。** 选「设备内置转写」时，麦克风的声音只在你的设备上识别，不发往任何服务器；识别出的文字连同前几句上下文一起发到**你自己配置的翻译引擎**做修正与翻译，我们的服务器不参与。选「设备内置朗读（离线模型）」时，语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件，不含任何你的内容）；下载前会向我们的服务器询问一次最新的下载地址，请求里不含任何个人数据。不保存录音，只留文字。
+
+English (authoritative in `_locales/en`, key `listen_device_privacy` — name to be fixed by D2,
+the gate requires the same key on all 12):
+
+> **On-device transcription and speech (optional).** With "On-device transcription" selected, microphone audio is recognised on your device and never sent to any server. The recognised text, with a few preceding sentences for context, goes to the translation engine you configured for correction and translation — our servers are not involved. With "On-device speech (offline model)" selected, speech is synthesised on your device; the first use downloads the offline model once from our file server (the model file only, never any of your content). No recording is kept, only text.
+
+| Surface | Gate H |
+|---|---|
+| `README.md` / `README.zh-CN.md` | the paragraph above under Privacy, beside Gate E's; Gate E's sentence stays and is scoped to the cloud engine |
+| `_locales` ×12 | `listen_device_privacy` on all 12（**2026-10-07 起这句是页内的「转写效果」说明，不再承担绝对声明**；Gate H 的披露正文在 README ×2 + 两个站点，见下注） |
+| App home privacy line (`#modes-privacy`, today `listen_entry_privacy` 「音频只发往你配置的转写端点」) | the on-device variant whenever `device` is the selected transcription **or** speech engine — a second variant of the existing line, not a second line; the cloud wording must not be shown on the on-device path (it would be false in the reassuring direction) |
+| `NSMicrophoneUsageDescription` (`scripts/sync-app-assets.js`) | extended to name on-device recognition: on that path audio stays on the device |
+| **All three usage strings, localized** (`PLIST_L10N` in `scripts/sync-app-assets.js`, 2026-09-18) | Info.plist carries the **English** default (`CFBundleDevelopmentRegion = en`); every UI locale (the 12 of `extension/_locales`) gets a `<lproj>/InfoPlist.strings`. Reason: App Review rejected 1.12.1 iOS under Guideline 4 because the permission prompt was Chinese on an English iPad while the app UI was English — "permissions requests that are not written in the same language as the app's localization". A usage string is UI copy and follows the same 12-locale rule as every other string. |
+| `belliedmonkey.cc` `privacy.*` ×12 + `llms.txt` + prerendered language sets | the paragraph as its own section; **regenerate the language pages** |
+| `belliedmonkey.com` | the same paragraph; the model download is the only network access on this path and the China flavor makes it too (China-network download untested — a D2 reading, see §9.1) |
+| App Store privacy labels | no new category (audio is not collected; text goes to the user's endpoint as before); re-check at submission, **by hand** |
+| `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
+
+*(2026-10-07 用户裁定：**App 页内不再做「音频不离开设备 / 不发往任何服务器」的绝对声明。** 理由：
+`§0.4.1` 的「上传诊断录音」是一条**可选**通道（默认关、设置里单独披露），它存在时页内那句
+「音频不离开设备」不再**无条件**为真；用户同时裁定页内**也不写「会上传服务器」** ⇒ 页内只描述
+转写/朗读的**行为**（「边说边出字…自己配置的翻译引擎…语音在设备上合成、首次下离线模型」）。
+**Gate H 的披露正文不变**（README ×2、两个站点隐私页、`NSMicrophoneUsageDescription`、本地化的
+三类 usage 串）—— 页内撤下的只是那两句绝对声明，披露仍随功能同版上线。
+同 PR 改了：`_locales ×12` 的三条键（`listen_entry_privacy_device` / `listen_device_privacy` /
+`listen_cost_line_device`）、`src/app/listen-model.js` 的兜底串、`verify-listen` 的 B 断言
+（费用行不再含绝对说法）。`build.js` 的 Gate H 长度检查不变（页内句仍 ≥60 字）。)*
+
+### Gate I — ships with 实时字幕 (§9.8)
+
+> 「实时字幕」只在你点「开始」后，听这台设备**正在播放的声音**（Mac 为系统声音；iPhone 为外放经麦克风，或屏幕录制时系统交给我们的 App 声音）。声音只在你的设备上识别，或只发送到你自己配置的转写端点；不录音、不保存，也从不经过我们的服务器。只有「字幕进复习」开着时，识别出的**文字**才会留在你的复习里。使用屏幕录制方式时，屏幕画面在收到的那一刻即被丢弃，一帧都不读。
+
+| Surface | Gate I |
+|---|---|
+| README.md / README.zh-CN.md | feature line + privacy bullet, **in the same version as the code** (not in this docs PR). This PR only replaces the stale "No speech recognition, ever / 没有语音识别，以后也不会有" caveat, which already contradicted §2.4 |
+| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app |
+| `_locales` ×12 `subtitle_privacy` | under the start button; iPhone and screen-broadcast variants (canvas X2) |
+| `NSAudioCaptureUsageDescription` (macOS App only) | 「"实时字幕"会在你点开始后识别这台 Mac 正在播放的声音；声音只在本机识别或只发往你配置的转写端点，不录音、不保存。」 |
+| `NSMicrophoneUsageDescription` | extended to name 实时字幕 (iPhone phase 1 listens to the speaker) |
+| App Store privacy labels | no new data category (audio is not collected); re-check at submission by hand; phase 2 adds the broadcast extension to the review notes |
+| `build.js` Gate I coupling | `dist-app*` uses `subtitle_privacy` ⇒ README ×2 contain the 「实时字幕」 stem, all 12 locales have the key, and the macOS plist row exists |
+
+### Gate J — 系统翻译与快速翻译 (§9.9)，**分两次出货**
+
+*(Added 2026-09-19；同日修订：用户裁定 Mac 先发（1.13.0），iPhone「系统翻译」那条线做完再发 —— 一个 Gate 拆成 J-1 / J-2。)*
+Same shape as Gate G — a new paragraph per path. The new fact is that text the user hands over
+**from other apps or from the screen** reaches the engine they configured.
+
+**为什么拆，而不是等。** 原稿把两个面写成同一段、同一版出货。Mac 线 M-1…M-7 已全部合入 main 并逐步真机读回，iPhone 线
+I-1…I-8 一行未写、且带外部风险（新能力首次出包、审核）。隐私文案必须与**这一版真的有的功能**逐字对得上：写了
+「在 iPhone 上点系统菜单里的翻译」而那一版没有这个功能，是一句假话，也会在审核里被问。所以 J-1 只说 Mac；J-2 在 iPhone
+上线的那一版**新增一段**（不改 J-1 那一段的口），届时两段并列。
+
+#### Gate J-1 — Mac 快速翻译，随 **1.13.0** 出货
+
+> 「快速翻译」只在你主动发起时工作：在 Mac 上按快捷键、用右键「服务」、输入、或框选屏幕。你交来的文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。截图里的文字在你的 Mac 上识别，截图不保存、不离开设备 —— 除非没认出来、而你点了「用我的识图引擎再试」。我们不读取你没有交给我们的内容：不监听键盘，不常驻读取剪贴板；「增强取词」默认关闭，打开后也只在你按下快捷键的那一刻替你按一次 ⌘C，读到选中的文字后把剪贴板恢复原样；剪贴板里被标记为隐藏的内容（例如密码）不读取、不发送。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+
+比原稿多出的两句（「截图不保存」「增强取词…替你按一次 ⌘C…恢复原样」）不是新事实，是 M-5 / M-6 落地后才说得准的细节：
+两者都由 `npm test` 对着原生源码钉着（`capture.swift` 四条不变量、`screen-ocr.swift` 全文件无写文件调用）。
+
+| Surface | Gate J-1 |
+|---|---|
+| README.md / README.zh-CN.md | feature line（Mac：划词 / 剪贴板 / 服务 / 输入 / 截图）+ privacy bullet, **in the same version as the code** |
+| Both sites' privacy pages ×12 + `llms.txt` | the paragraph above, same version as the app；改完字典**必须重生成语言页** |
+| `_locales` ×12（已随 M-2…M-7 合入，这里只是点名） | `quick_enh_explain_does` / `quick_enh_explain_doesnt`（增强取词：会做 / 不会做）、`quick_shot_perm_explain`（录屏：只截你框的那一块、本机识别、识别完即丢弃）、`quick_shot_perm_second`（系统还会再确认一次）、`quick_shot_cloud_note`（截图会发给谁）、`quick_clip_concealed`。**原稿表里写的 `quick_enh_does` / `quick_shot_pre` 是落地前的拟名，以这里为准。** |
+| Info.plist (macOS App) | `NSServices`（含 `NSRequiredContext`）+ `ServicesMenu.strings` ×12。Screen Recording 与 PostEvent **没有**用途说明键，披露全靠上面那几句 ×12（缺一个语种 = 1.12.1 被拒的同一类问题）|
+| App Store privacy labels | no new data category on the BYO path (we receive nothing); re-check by hand at submission |
+| 审核备注（macOS 两线）| 写明三件事：①「增强取词」默认关，用的是系统的请求接口 `CGRequestPostEventAccess`，**不引导用户手动把 App 加进列表**；② 截图翻译只截用户框选的区域、在本机识别、不保存；③ 常驻菜单栏是为了让全局快捷键可用，设置里可关 |
+| 商店文案 | 「新功能」与描述里提到快速翻译的那几句，Mac 两线各 12 语种；iOS 两线与扩展两店**不提**（那边没有这个功能）|
+| `build.js` Gate J-1 coupling | `dist-app*` 用到 `quick_enh_explain_does` ⇒ README ×2 含「快速翻译」词干、12 份 locale 上表的键齐、`scripts/sync-app-assets.js` 的 `servicesXml()` 含 `NSRequiredContext` |
+
+#### Gate J-2 — iPhone「系统翻译」，随 iPhone 线 I-8 出货（**未出货**）
+
+> 「系统翻译」只在你主动发起时工作：在 iPhone / iPad 上选中文字、点系统菜单里的「翻译」。选中的那段文字直接发给**你自己配置的翻译引擎**，不经过我们的服务器（用免费额度时经我们的中转发给服务商，我们不保存内容）。只有「存入复习库」开着时，原文与译文才会留在你的复习里。
+
+**新增一段，不改 J-1 的口。** 出货那一版的隐私页上两段并列。
+
+| Surface | Gate J-2 |
+|---|---|
+| README ×2 · 两站隐私 ×12 + `llms.txt` | 上面这一段 + feature line，same version as the code |
+| `_locales` ×12 | `sys_disclose_direct` / `sys_disclose_grant`（弹层里的首次披露，排在系统自己那一页之后）|
+| Info.plist (iOS App) | `com.apple.developer.translation-ui-provider.network-access` —— 不是用途说明，但正是它让系统弹出那页一次性的「所选内容将发送给…」；**必须在宿主 App 的 plist，不能在扩展的**（T1 读数：放错 ⇒ 全部请求 `-1009`）|
+| App Store privacy labels · 审核备注 | 同上人工复核；首次带 `DEFAULT_TRANSLATION_APP` / `APP_GROUPS` 出包要用 Xcode 登录态 |
+| `build.js` Gate J-2 coupling | `dist-app*` 用到 `sys_disclose_direct` ⇒ README ×2 含「系统翻译」词干、12 份 locale 齐、联网键在 iOS App 的 plist 而不在扩展的 |
+
+## 11. Out of scope
+
+- **In-browser OCR** (2026-09-11, §9.7). A WebAssembly recogniser fails the extension
+  CSP and the Safari iOS floor; recognition is the user's multimodal endpoint or nothing.
+- **Translating a whole uploaded document at once** (2026-09-11, §9.7). Pages are sent
+  when opened; there is no "translate all" and no background sweep — a large document
+  must cost what the user chose to read.
+- **Vocabulary/word cards and word-frequency lists** (§1). The unit is the sentence.
+  *(Re-examined 2026-08-08 with the mastery ladder: still out. §9.2's sentence notes
+  surface vocabulary and grammar as a FACET of the sentence card — they aid
+  understanding, are never separately tested, and never get their own schedule.)*
+- **Synthetic speech as a REPLACEMENT for real speech** (§1). A media card always
+  replays the original audio; it is never re-read by a synthetic voice. Synthesizing
+  speech for *text* cards — which have no original audio — is in scope and specified
+  in §9.1.
+- **A hosted model as the DEFAULT path** (§2.1). Local/BYO-key is the default and
+  stays fully capable; a server-side model is an opt-in paid alternative or it does
+  not ship at all.
+  *(Amended 2026-09-08:)* one bounded exception — §2.1's **free sample**: a signed-in
+  user's requests relayed through our server on our account, capped at 0.2 USD per
+  account and stopped there (§8.10). The default stays local/BYO; the sample is never the
+  path onboarding teaches first.
+- **Telemetry that carries content or identity**, permanently: page text, URLs,
+  hostnames, keys, emails, account ids, server error text, or any join between an
+  install and an account. *(Narrowed 2026-09-05 from "telemetry and usage analytics,
+  permanently" — anonymous whitelist events are in scope under §10 Gate D and
+  `docs/telemetry-design.md`.)*
+- **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid
+  server-side model is a *new* capability, not a conversion, which is the only reason
+  it is permitted.
+- **Vendor ASR (browser `SpeechRecognition`) stays permanently out** ~~（旧口径，**已被 `docs/learning-design.md` §9.4 与 §12 的 2026-08-12 三审收窄取代**：否定的是「录音离开用户自选端点」，不是「一切 ASR」；「学习层永不转写页面音视频」仍然成立）~~ — it ships the
+  user's recordings to vendor servers (Chrome→Google, Safari→Apple), which the
+  "nothing you said or read leaves the device unasked" promise cannot absorb. **The page-media rule is also unchanged**: the
+  learning layer consumes transcripts that already exist; it never transcribes page
+  audio or video (domain-design §2's "No ASR / no self-generated transcripts").
+  *(Re-scoped 2026-08-12 on third review — §12. What was rejected twice was
+  "recordings leave for a server the user did not choose". The BYO-key path —
+  recording the user's own voice at their explicit tap, sent only to the
+  `/v1/audio/transcriptions` endpoint they configured, discarded after the
+  response — is the same trust shape as BYO-key translation and TTS, and is now in
+  scope as the 说 exercise: §5.4, §9.4, §10 Gate C.)*
+  *(Amended 2026-09-07: the same trust shape, made continuous, is §9.6 对话 · 实时听译 —
+  the device microphone streams to the user's configured live endpoint at the user's
+  tap, in the host app only. Page audio is still never transcribed by the learning
+  layer; domain-design §2.4 covers page media, on the user's tap.)*
+  *(Amended 2026-09-12: the rejection reason has always been "recordings go to a vendor
+  server the user did not choose". The host app's **on-device recogniser** (Apple
+  `SpeechAnalyzer`, iOS 26 / macOS 26 — §9.4 `device`, §9.6.1) is ADMITTED because no audio
+  leaves the device at all — spike readings on a Mac and an iPhone 14 Pro, 2026-09-12,
+  `.local/spike/READINGS.md`. The reason does not apply, so neither does the rejection.
+  Browser `SpeechRecognition` stays rejected, unchanged: the page cannot see, let alone
+  guarantee, where the vendor's implementation sends the audio. What leaves the device on
+  the on-device path is TEXT — the recognised sentence plus six lines of context — to the
+  user's own configured translation engine, disclosed as §10 Gate H.)*
+- **Auto-capture without consent.** Capture is off until the user turns it on once,
+  and can be disabled and purged from settings at any time. See `README.md` — the
+  privacy statement is part of the product, not marketing copy.
+
+---
+
+## 12. 否决记录 (rejected alternatives)
+
+*(Added 2026-08-04 by domain review.)* This document used to keep only the surviving
+version of each decision. That is how a project re-walks a path it already found
+closed: the reasoning is in a chat log nobody reads, so the idea comes back, sounds
+reasonable, and costs the same investigation twice. **Every entry below was learned by
+trying it.**
+
+Add a row whenever a considered approach is dropped. One line is enough; the reason
+matters more than the detail.
+
+| 日期 | 被否的方案 | 为什么不行 |
+|---|---|---|
+| 2026-08-03 | 订阅制（服务端 LLM 额度 + Stripe/IAP） | 产品决策：改为公益普惠，BYO-key 永远免费。收费只用在成本确实扛不住的地方（`AGENTS.md` 规则 8） |
+| 2026-08-03 | 中国版单独构建（阉割功能集） | 产品决策：单一国际版；「我不要做成阉割版」。分发统一见 `domain-design.md` §7 |
+| 2026-08-03 | 复习页内嵌 YouTube 播放器重听 | **平台硬限制**：error 153。nocookie/youtube.com × 默认/no-referrer 四种变体全部同样失败，`no-referrer` 那两次也排除了「扩展页被沙箱」的解释。媒体卡改为跳转到时间点。**不要再加 iframe** |
+| 2026-08-04 | 端到端加密（原为「无例外」的核心约束） | 密钥管理会把最重的负担压在最不会保管密钥的用户身上，与 §2 普惠正面冲突；且与 §2.1 付费服务端模型互斥。完整得失见 §8.6。**留了 `enc` 信封的门** |
+| 2026-08-04 | 同步到用户自己的云盘目录（iCloud / Google Drive） | `showDirectoryPicker` 只有桌面 Chromium 有：Firefox 没有，macOS Safari 没有，**iOS 上根本不可能**——而 iOS 是主力面。浏览器扩展没有可设的「数据目录」 |
+| 2026-08-04 | 自建 auth 框架替代 GoTrue（Auth.js 之类） | 需要一台我们运维的服务器；更糟的是 PostgREST 用**项目唯一的** JWT secret 验签，把它交给第二个 auth 服务等于两个产品互持对方的万能钥匙。见 §8.4.1 |
+| 2026-08-04 | 与 champagne 共用 Supabase 项目（`bt_` 前缀隔离） | 前缀能隔离表，**隔离不了身份**——一个项目只有一个 `auth.users`。已迁至独立项目（东京）。当时迁移代价为零，因为表里还没有数据；有用户之后同样这一步要每个人重新注册 |
+| 2026-08-07 | 扩展经 `sendNativeMessage` 把外发箱排空给 App，由 **App 负责上传** | **不是不可行——尖刺跑通了**（`verification-spec.md` Stage 0，提交 `1f4113a`：内容脚本没有这个 API；background 有，200KB 往返 10ms、热态 ~0.8ms/次，但**冷启动第一次调用必然失败**）。否决理由是**上传进度会落到 App 手里**：用户不打开 App 就可能永远不上传，而扩展连数据到没到服务器都无从得知。改为扩展直传服务器、自己持有 `syncPushedAt`。连带省掉了原生桥、App Group，以及 `safari-project` 重新生成会抹掉手写 Swift 的整个冲突 |
+| 2026-08-07 | 扩展退成纯采集器，删掉浏览器端复习页，全部学习入口引导到 App | 未登录用户就没有复习面了，与 `AGENTS.md` 规约 2（不付费不登录也有完整产品）和规约 3（对未登录用户必须完整）正面冲突。保留浏览器复习页之后，登录换来的是**多端同步 + 一个一键可达的面**，而不是功能本身 |
+| 2026-08-07 | 用导出/导入文件做扩展↔App 的无账号通道 | **产品判断，不是原则妥协**：没有人会为了继续学习，每周手动导入导出几次。造出来就是没人用的功能，而没人用的功能不叫合规，叫装饰。规约要靠**用户真会走的那条路**来守——那条路是浏览器端自己的复习页（§8.2） |
+| 2026-08-08 | 读 / 听 / 写各自独立排程 | `sched` 变三份、同步「按 lastReviewAt 取新」拆三路、复习债 ×3，换来的精度建立在两个本就未经验证的阈值上。一套排程 + 按强度门控题型（§5.2）以十分之一的复杂度覆盖同一目标。**2026-08-12 复审维持否决**：§5.4 的技能轮换发生在单一 `sched` 的每次到期之内——到期只由一条曲线决定，第二题走 `practiceOutcome`（答错 lapse、答对不写排程），不是第二张时间表 |
+| 2026-08-08 | 自由练习正常推进排程 | 连点两遍「记得」就能把间隔刷到几个月——掌握变成可以刷出来的假象，恰是「科学验证」的反面。改为不对称规则：答错照实算（遗忘证据任何时刻有效），答对只记录（刚见过就答对证明不了长期记忆）。Anki 对 cram 的处理同理（§5.3） |
+| 2026-08-08 | ASR 语音评测（为「说」）——二次否决 | 浏览器 `SpeechRecognition` 把录音送厂商服务器（Chrome→Google、Safari→Apple），与「无遥测」承诺正面冲突；本地 ASR 模型则破坏零依赖。说 = 听懂档的跟读自评，界面明标「练习，不验证」（§5.2） |
+| 2026-08-08 (二) | API key 走账号同步通道（凭证进 chunk / 服务器），让 App「登录即有解析」 | §8.6 已裁定服务器无 E2E —— 凭证上服务器等于把泄露半径从一台设备扩到整个服务端，且解析本身是可再生衍生物（§9.2 本来就不同步）。换设备重填一次 key 的代价与收益相称。App 侧改为本地配置（§7.2） |
+| 2026-08-08 (二) | 后台定时自动同步（`chrome.alarms` / 周期任务 / App 后台刷新） | Safari iOS 的后台 SW 锁屏后永久 `undefined`（Critical Safari Bug），主力面上定时器就是假心跳 —— 表上有、实际不跑，比没有更糟（用户以为在同步）。页面打开事件才是真实可靠的「用户在用」信号，且免去一整类不可见失败面（§8.8） |
+| 2026-08-12 | 浏览器原生 `SpeechRecognition` 做说题评测（三审） | 维持否决：录音送厂商服务器（Chrome→Google、Safari→Apple）不可接受，永不使用。但三审把「ASR 一律出局」收窄为「录音离开用户自选端点即出局」——**BYO-key 转写路径解禁**：录音只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃，与 BYO-key 翻译/TTS 同一信任形状（§5.4、§9.4、§10 Gate C、§11） |
+| 2026-08-12 | 知识点 × 技能全矩阵掌握标准 | 解析面每句最多 8 词 + 4 短语 + 1 语法点，×4 技能 ≈ 50 格——实际不可达，且需要知识点级存储与同步。改为句子 × 四技能矩阵（4 格）+ 出题时知识点确定性轮换取材（§5.4）；词汇不单独考排的边界（§5.2、§11）不动 |
+| 2026-08-12 | 题包并入解析 prompt（一次调用两用） | 会 bump notes 的 `PROMPT_VERSION`、全量作废所有用户已付费缓存的解析并重复扣费——§9.2 的版本纪律只允许纠错时升版。题包独立模块、独立 `PACK_VERSION`（§9.3） |
+| 2026-08-17 | ~~播客模式 v1 做锁屏/后台播放（原生 `AVSpeechSynthesizer` 桥 + `UIBackgroundModes: audio`）~~ **已被 `docs/learning-design.md` §9.5「后台与锁屏播放」取代**（推翻于 2026-08-24），本行只作历史 | 本仓库零手写 Swift 的现状是刻意的：`safari-project` 重新生成会抹掉手写 Swift（2026-08-07 nativeMessage 否决的同型代价），每行原生代码都得变成 `app:sync` 幂等补丁。前台模式（支架 + 屏幕常亮）已覆盖播客主场景；后台桥列为后续独立议题（§9.5）。<br>**推翻理由（2026-08-24）**：①「已覆盖主场景」是错的 —— 用户实际报的就是「退出 App 就不播了」，支架 + 屏幕常亮覆盖的是坐在车里盯着手机的那一小半；②原生代码的代价被降下来了：Swift 不再是拼在 JS 字符串里的一坨，而是仓库里一份真文件 `app/native/audio-bridge.swift` + `app:sync` 的**标记块整块替换**，可读、可 diff、可测；③「后续独立议题」本来就是把它挂起来等一个专门的评审，这次就是那个评审 |
+| 2026-08-17 | 播客模式朗读选择题/挖空题（念选项作答） | 念四个选项让人凭记忆比对，测的是短时记忆不是技能，客观结果也无从约束评分——不诚实。v1 唯一题型是跟读，它是四技能中唯一手眼全免提的形态（§9.5） |
+| 2026-08-18 | 播客模式里的跟读题（免提推进真实学习进度） | **录音窗口的存在必然打断连续播放**，而连续播放是「开车时听」的全部内容。一个每张卡都停下来等你说话的播放器不是播放器。学习层的写路径全部留在复习页——那里用户看得见自己在给什么打分（§9.5） |
+| 2026-08-18 | 播客模式里的语音问答（卡末「有没有疑问？」） | 同上：它要求一个录音窗口，且把一次被动收听变成一连串需要应答的提示。免提问答本身仍是好想法，但它属于一个独立的语音助手形态，不属于播放器（§9.5） |
+| 2026-08-18 | 播放解析时给自动补全设每会话上限 | 上限会让一轮听读中途莫名其妙地不再有解析，而这种「有时有有时没有」比明确的成本更难理解。§9.2 的「每张卡至多收一次费，永远」本身已经是收敛的承诺；要做的是**说清楚**，不是设闸（§9.5） |
+| 2026-08-17 | 播客问答复用浏览器 `SpeechRecognition`（四审） | 维持三审裁定不重开：录音离开用户自选端点即出局。播客问答的录音同样只发用户配置的 `/v1/audio/transcriptions` 端点、用后即弃（§9.4 同一信任形状） |
+| 2026-08-17 | 播客会话引入新卡 / 问答结果缓存 | 引新卡会绕开 `dailyNew`（§5.3 候选只曝光的原则不因换个面失效）；问答是自由文本、缓存命中率趋零，缓存只会让「一次缓存永不重复扣费」的承诺在这里变成谎言——改为入口明示「每问一次调用，不缓存」（§9.5） |
+| 2026-09-07 | 对话模式的麦克风采集留在网页（`getUserMedia` + Web Audio） | 真机三轮实证 WebKit 在 App 不可见时一律静音采集（锁屏期间帧数恒为 0，页面一可见立刻恢复）；页内音频保活只能保住 JS，保不住采集。用户裁定「原生做吧」（§9.6） |
+| 2026-09-07 | 对话模式整条管线（采集 + socket + 翻译）都搬进 Swift | 不必要：页内不可闻音频在放时，锁屏 92 s 内 JS 计时器 48 tick（2 s 节流，全程活着），socket 与翻译是事件驱动的不受节流影响。只搬「录」这一件事，`WsTranscribe` 与翻译继续和扩展共用一份代码；整条原生化会让 App 与扩展的流式实现分叉（§9.6） |
+| 2026-09-08 | ~~「我说」= 按住说话（walkie-talkie）~~ **已推翻** | 那条裁定的场景是「线下听外语」，我偶尔说一句。商务洽谈里双方话量相当：每说一句按一次是对讲机不是对话，而「按住期间对方的话接受漏掉」在洽谈里不可接受 —— 漏掉的可能正是报价。改为按语言判归属（§9.6） |
+| 2026-09-08 | ~~裁定 D「朗读只在点了才读」~~ **已推翻** | 那时朗读是「给对方看一句」的辅助动作；现在它是把话传过去的主通道，每句都要。开关默认开、可关（§9.6） |
+| 2026-09-08 | 「朗读期间到达的句子，若语言等于正在朗读的那个就直接丢」（回声的第五道闸） | 它会把**对方在我朗读时插话**整句吃掉，而插话在洽谈里正是最要紧的那一句 —— 也正是「边放边听」这条裁定要保住的东西。回声只用相似度判，不用语言（§9.6） |
+| 2026-09-08 | 「这次不留记录」记进存储、下次沿用 | 记住上次的勾选反而危险：用户会以为在留记录而其实没有。它是**单场决定**，每次进来默认不勾（§9.6） |
+| 2026-09-08 | ~~服务端 LLM 额度~~（2026-08-03 那行的**部分重开**） | 重开的只是「我们出钱、免费、每账号封顶 0.2 美元的样品」：请求经我们的中继、服务端计量到顶即停（§8.10，§2.1 例外）。**订阅制 / Stripe / IAP 仍否决**：出口是自带 key 与社群，不是付费 |
+| 2026-09-08 | 国际版每人铸一把提供方的封顶 key 交给设备（画布第一稿的方案） | 用户裁定「额度走我们服务端」：一套机制两个 flavor、上限由我们的表强制、不依赖提供方管理 API 与条款、提供方 key 永不离开服务器。代价是文本经过我们的服务端 —— 单独披露（Gate F） |
+| 2026-09-08 | 中国版也每人一把 DashScope key | DashScope 的 key / 空间 / 子账号都没有金额上限（只有限流与事后分账），新用户免费额度全账号共享 ⇒ 一把 key 就是一个无上限的口子。计量代理要境内后端，而它未就绪且会把原文经东京转发 ⇒ 现在只引导百炼官方额度（§8.10） |
+| 2026-09-08 | 退出登录后免费额度的 key 留在设备上照用（画布 D4 的推荐项） | 用户裁定「必须登录才能用」：额度是登录的附带权益。退出登录清掉本机额度 key，再登录自动领回同一把（§8.10 D4） |
+| 2026-09-07 | 对话的句子复用 `anchor.k:'media'`（`mediaKey:'conv:…'`） | 媒体锚点的语义是「跳回那段音频」，而对话录音已丢弃 —— 复习卡会长出一个永远失败的 ▶，来源管理会拿一个假 host 分组。新 kind `conv` 让每个读者显式分支（§9.6） |
+| 2026-09-11 | 文档翻译用 tesseract.js 在本地 OCR | wasm：扩展页默认 CSP 无 `wasm-unsafe-eval`（加了要进三个商店审核），且违反 Safari iOS 底线（§5.3）。识别走用户自配的多模态引擎，与「录音只发用户端点」同一信任形状（§9.7） |
+| 2026-09-11 | 文档翻译一次性翻整份 / 后台预翻 | 用户裁定「打开一页翻一页」：有些文档几百页，整份翻是一张看不见的账单。页面打开才发；预取至多下一页且可关（§9.7） |
+| 2026-09-11 | 文档与译文存进 `LearnStore`（bump DB_VERSION） | 每次 bump 都是对全体用户语料的风险；文档可能几十 MB，语义是缓存不是语料，且不同步。独立 IDB `mt-docs`，删除语义单独定义（§9.7） |
+| 2026-09-11 | 支持 `.doc` / `.pptx` / `.epub` | `.doc` 是 OLE 二进制复合文档，零依赖下不值得写；`.pptx`/`.epub` 是另外两种页模型。第一版明说不支持，让用户在 Word 里另存为 `.docx`（§9.7） |
+| 2026-09-12 | 浏览器 `SpeechRecognition` 做对话模式的本机转写（五审） | 维持否决：页面看不见、更保证不了厂商实现把音频送到哪。**解禁的是宿主 App 的设备内置识别器**（SpeechAnalyzer，iOS 26 / macOS 26）：音频一个字节不离开设备，否决理由不成立 —— Mac + iPhone 14 Pro 尖刺读数为证（§9.4 `device`、§9.6.1、§11、§10 Gate H） |
+| 2026-09-13 | 让 App 把字幕送进扩展、画在网页的字幕层上 | 否决（用户裁定选悬浮字幕条）：要新建 App Group + 原生消息 + 视频时间对齐，只对装了扩展的 Safari 有效；悬浮条对任何 App 都可用，也不碰 §9.3「两份语料之间只有服务器」 |
+| 2026-09-13 | Mac 字幕条用第二个 WKWebView 来画 | 否决：多一个 WebContent 进程、没有 chrome 垫片与 i18n、透明与穿透难做；原生 `NSPanel` 只画 JS 传来的字 |
+| 2026-09-13 | 字幕句子用新锚点 `k:'live'` | 否决：锚点语义与 `conv` 相同（按会话、声音不保存、不可回放），新 kind 让每个读者多一个分支；改用 `k:'conv'` + `mode:'subtitle'`（§9.8） |
+| 2026-09-13 | 广播扩展自己连云端转写 | 否决：Swift 里复制一份流式实现、key 进扩展，违反 §9.6「只搬录音这一件事」；扩展只搬 PCM |
+| 2026-09-13 | iPhone 字幕用画中画浮窗 | 先否决（用户当时选灵动岛 + 锁屏卡：要把文字渲染成视频帧、画中画本意给视频、审核有风险）；**同日 20:10 翻案采用** —— 真机上灵动岛字太小看不清、专注模式开着时根本不展开，而画中画经尖刺 S7 真机证实可行。审核风险仍在，发版前要评估 |
+| 2026-09-13 | Mac 用 ScreenCaptureKit 抓系统声音 | 暂不选：权限是「屏幕录制」（与只听声音不符、难以如实披露），macOS 15 起还会每月重新询问；**只在尖刺 S1 证明 process tap 在沙箱里拿不到声音时启用**，届时回来问用户 |
+| 2026-09-14 | 「对话 · 实时听译」与「实时字幕」合成一个入口 | 否决（用户裁定维持两个入口：「不合了 就这样维持吧」）：代码已是同一模块（`listen-core` 的 `MODES` 两行），iPhone 一期两者都用麦克风收音，区别只在输出（画中画 / 不朗读 / 不走蓝牙 / 静态静音门）；Mac 与 iPhone 二期声音来源不同（系统声音 / 广播扩展 vs 麦克风） |
+| 2026-09-14 | 画中画后退 / 前进按按钮上的秒数翻（⏪10 = 回到 10 秒前） | 试过后否决（用户 15 Pro 复测 build 101：「翻页回滚到上一版设计吧」）：起因是按钮上的数字与「每次 3 句」对不上，而图标秒数由系统挑、App 无接口改；按秒翻让数字名副其实，但用户仍选回每次 3 句（决定 25 原样） |
+| 2026-09-14 | 画中画小窗不要 ⏸ / ▶ 按钮（15 Pro 实测点 ⏸ 会连同那边的视频一起暂停） | 否决（用户裁定维持现状）：iOS 26.5 SDK 画中画没有隐藏播放按钮的公开接口；私有接口（KVC 改控件样式）违反审核 2.5.1，而画中画字幕本已有审核风险；把按钮做成摆设（忽略 setPlaying）点了没反应、且视频若是系统停的照样会停。「一个暂停键让视频和字幕一起停」本身说得通 |
+| 2026-09-12 | 系统语音 `AVSpeechSynthesizer` 做对话朗读 | 用户裁定用第三方本地模型；后追加「音质不管，先通」⇒ Piper。§9.5 2026-08-24 那条「原生语音合成桥」的**位置**保留、桥后面的合成器换掉（§9.1 `device`） |
+| 2026-09-12 | Kokoro（fp32 / int8）、Matcha 做本地 TTS | Kokoro：真机首块 1330–1999 ms、加载 10–20 s，int8 比 fp32 还慢 3–4 倍，与「译文 → 起声 ≤ 0.5 s」差一个数量级；Matcha 快但只有中文。Piper zh / en 首块 157–264 ms（§9.1） |
+| 2026-09-12 | 本机修正：系统热词 `AnalysisContext.contextualStrings` | 对同音字零效果（输出逐字相同）。修正必须在远程做；不给用户一个看着有用其实没用的「热词表」设置（§9.6.1） |
+| 2026-09-12 | 靠系统 `SpeechDetector` / 默认定稿节奏断句 | 定稿是懒的时间片（有声书 p90 14 s、切在词中间）。自己做 RMS 静音检测 + `finalize(through:)`，再按标点切句（§9.6.1） |
+| 2026-09-12 | 修正与翻译分两次远程调用 | 用户裁定合成一次（一次往返 p50 100 ms / p90 200 ms）。两步变体只留常量 `LISTEN_PASS`，不是设置项（§9.6.1） |
+| 2026-09-12 | 本机转写向旧系统回落（iOS < 26 用别的识别器） | 用户裁定只上 SpeechAnalyzer：旧系统该引擎不出现、入口灰 + 具名原因，云端实时引擎是完整基线（§9.6 门控） |
+| 2026-09-12 | 原生回声消除（`setVoiceProcessingEnabled`）作为本机路的前提 | 挂了 playerNode 的 engine 上开 VP，tap 收 0 帧（未解）；不挂时能用。仍是 D2 要测的升级，四道 JS 闸是唯一前提（§9.6） |
+
+| 2026-09-17 | 给实时转写第二个槽（`sttLiveEngine / sttLiveApiKey`，云端实时 + 本机并列可选） | 同日上午的画布方案，下午被用户裁定取代：实时转写固定为设备内置、云端实时下线。两槽方案要新增两把键、启动迁移、四处谓词收编与一键卡第四行 —— 全部为了保留一条用户已判「效果太差」的路（§9.4 / §9.6 门控 2026-09-17 修订；工作文件历史在 `design/settings-ia` 的 git 记录里） |
+| 2026-09-17 | 把 App 与扩展的系统下限整体抬到 iOS 26 / macOS 26 | 抬整个 App 等于让 iOS 17–25 与全部 Intel Mac 的网页翻译用户拿不到更新；而想要的效果（实时功能只走本机）只需这两块自己要求 26。用户裁定「只管实时功能」，`build/os-floor.config.js` 不动 |
+| 2026-09-19 | Gate J 不拆：等 iPhone「系统翻译」做完，两个面同一版出货、同一段隐私说明 | 用户裁定 Mac 先发。不拆的代价是 Mac 七步与 #326 的修复一起压着；而把原稿那一段原样发出去（含「在 iPhone 上点系统菜单里的翻译」）是一句那一版不成立的话。拆开后 J-2 **新增一段**，不回头改 J-1 |
+| 2026-09-19 | 系统翻译扩展里用 Swift 重写一份翻译传输 | 第二份提示词 + 第二条格式分支，`request-shape` 每次调参都会让两份漂开（`build/app-bundle.js` 那条注释就是为此而写）。尖刺 T1：同一份 87 KB 的 JS 在 JavaScriptCore 里 3–10 ms 就绪、+3 MB，扩展上限约 230 MB —— 没有理由移植。退路保留：若将来内存吃紧，移植 + 由 JS 生成金向量逐条比对（§9.9）|
+| 2026-09-19 | 系统翻译扩展里放一个 WKWebView 跑 App 的整包 | 多起一个 WebContent 进程、内存不可控；而且扩展里的 `file://` 源是另一个容器，`localStorage` 并不共享，白付代价 |
+| 2026-09-19 | 扩展 / 快译面板直接打开 `LearnStore` 写语料 | 学习库按账号分库（`useDb`），第二个打开者握着过期的库名；扩展进程根本够不着 App 的 IndexedDB。改为收件箱 / 原生中继汇到主页面的单一写入者（§9.9）。**这不推翻 2026-08-07 对 App Group 的否决**：那次否的是「把扩展的上传交给一个用户可能永不打开的进程」；这里复习只发生在 App 里，不开 App 的人什么也没丢 |
+| 2026-09-19 | 截图翻译沿用 §9.7 的做法：把截图发给用户的多模态引擎识别 | §9.7 那样做是因为 WebAssembly OCR 过不了扩展 CSP 与 Safari 下限；原生 macOS 宿主没有这两条约束。Vision 在本机、免费、离线，T2 量到简中 100%、英日 94–98%、每块 0.1–0.4 s ⇒ **截图不离开设备**；只有「没认出来」且用户点了按钮才发给用户自己的端点，永不走中继。§9.7 对文档的规则不变 |
+| 2026-09-19 | Mac 取词直接读别的 App 的选区（辅助功能 API）或 AppleScript | 沙盒禁用，App Store 上被拒的案例都是这一类。合规的只有 `PostEvent`（替用户按 ⌘C），而它要权限 ⇒ 放在默认关的开关后面；零权限的服务菜单 + 剪贴板热键必须单独够用（用户裁定 2026-09-19）|
+| 2026-09-19 | 真实上传一个带扩展的包到 App Store Connect 来验「上传被拒」 | TestFlight 内部组 `hasAccessToAllBuilds = true`，传上去会自动进组、可能通知组员，与用户同意的范围不符。改为 `altool --validate-app`（不产生构建）⇒ 通过；用户裁定「校验通过就够」。处理阶段的退回留到正式版第一次出包时自然验到 |
+| 2026-09-17 | 说题接本机识别器（给 SpeechAnalyzer 补一条整段文件档） | 用户裁定不接：整段转写只列云端 / 自建。原生侧要新做一条「整段喂流式识别器」的路，换来的只是说题免费离线；且会让「整段转写」这个槽再次装两种能力（§9.4 2026-09-17 修订） |

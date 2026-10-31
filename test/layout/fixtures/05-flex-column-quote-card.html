@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>flex column quote card</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .wrap { display: flex; justify-content: center; padding: 24px; }
+  .card { display: flex; flex-direction: column; width: 420px; padding: 24px; background: #f0efe9; border-radius: 12px; }
+  .quote { flex: 1; font-size: 18px; line-height: 1.5; margin-bottom: 24px; }
+  .attrib { color: #555; }
+</style>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="quote">Reading foreign articles every morning is a simple habit that compounds into fluency. Most people underestimate how much vocabulary they absorb from context alone.</div>
+    <div class="attrib">Zimu Li, Member of Technical Staff.</div>
+  </div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "flex-column-quote-card",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": ".quote",
+      "card": ".card",
+      "assert": [
+        "parentNotMutated",
+        "sameWidth:4",
+        "withinCardBounds:2"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

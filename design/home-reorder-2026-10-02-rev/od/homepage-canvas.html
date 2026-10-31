@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录后首页 · 重设计评审画布 | 大肚猴翻译</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caprasimo&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* ——— 品牌（沿用，不换色板） ——— */
+  --bg:#f5ead8; --surface:#ffffff; --fg:#201e1d; --muted:#6b645c; --line:#e0d5c2;
+  --terra:#c67139; --btn:#ac6231; --ok:#56633f; --danger:#b3261e;
+  /* ——— 派生（oklch，全部经对比度校验） ——— */
+  --terra-ink:oklch(0.47 .105 52);
+  --btn-hover:oklch(0.50 .12 52); --btn-press:oklch(0.455 .12 52);
+  --terra-wash:oklch(0.633 .128 51 / .11); --terra-wash-ink:oklch(0.44 .10 52);
+  --ok-wash:oklch(0.45 .07 118 / .12);   --ok-ink:oklch(0.40 .075 118);
+  --danger-wash:oklch(0.42 .13 27 / .10); --danger-ink:oklch(0.40 .15 27);
+  /* ——— 评审稿用中性纸面（不是产品色） ——— */
+  --sheet:#e9e6e0; --card:#fbfaf8; --ink:#221f1c; --ink-2:#5c564e; --hair:#d8d2c7;
+  --inst:#1e1c1a; --inst-ink:#f0eae0; --inst-dim:#a79e92; --inst-line:#3a3633; --inst-mark:#d59a6a;
+  --font-body:'Figtree','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;
+  --font-title:'PingFang SC','Hiragino Sans GB','Figtree',system-ui,sans-serif;
+  --font-disp:'Caprasimo','Songti SC','PingFang SC',serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--sheet);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;background-image:radial-gradient(circle at 18% 0%,rgba(255,255,255,.7),transparent 42%)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 32px 120px}
+h1,h2,h3,h4{margin:0;font-family:var(--font-title);font-weight:600;letter-spacing:-.01em}
+p{margin:0}
+a{color:var(--btn);text-underline-offset:3px}
+
+/* ——— 抬头 ——— */
+.head{padding:64px 0 40px;border-bottom:1px solid var(--hair)}
+.kicker{font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-2)}
+h1{font-size:44px;line-height:1.18;margin:14px 0 0;max-width:20ch}
+h1 .disp{font-family:var(--font-disp);font-weight:400;letter-spacing:-.02em}
+.lede{margin:20px 0 0;max-width:62ch;color:var(--ink-2);font-size:17px;line-height:1.7}
+.meta{margin:26px 0 0;display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:12px;font-weight:500;padding:6px 11px;border:1px solid var(--hair);border-radius:999px;color:var(--ink-2);background:rgba(255,255,255,.55)}
+.chip b{color:var(--ink);font-weight:600}
+.linkset{margin:22px 0 0;display:flex;gap:18px;flex-wrap:wrap;font-size:14px}
+.linkset a{color:var(--ink);text-decoration:none;border-bottom:1.5px solid var(--btn);padding-bottom:2px}
+.linkset a:hover{color:var(--btn)}
+.linkset a:active{color:var(--terra-ink)}
+
+/* ——— 结论条 ——— */
+.verdict{margin:36px 0 0;background:var(--card);border:1px solid var(--hair);border-radius:16px;padding:26px 28px;display:grid;gap:18px}
+.verdict p.big{font-size:19px;line-height:1.6;max-width:70ch}
+.verdict b{font-weight:600}
+.ruling{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--hair);border:1px solid var(--hair);border-radius:12px;overflow:hidden}
+.ruling div{background:var(--card);padding:16px 18px}
+.ruling dt{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--btn);margin:0 0 6px}
+.ruling dd{margin:0;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+
+/* ——— 章节 ——— */
+section{margin:76px 0 0}
+.sec-head{display:flex;align-items:baseline;gap:14px;padding-bottom:14px;border-bottom:2px solid var(--ink)}
+.sec-head h2{font-size:24px}
+.sec-head .n{font-family:var(--font-disp);font-size:20px;color:var(--ink-2)}
+.sec-head .note{margin-left:auto;font-size:13px;color:var(--ink-2)}
+.sub{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:34px 0 14px}
+
+/* ——— 设备框 ——— */
+.stage{display:grid;grid-template-columns:auto 1fr;gap:44px;align-items:start}
+.dev{position:relative;flex:none}
+.frame{position:relative;width:390px;height:844px;border-radius:38px;overflow:hidden;
+  border:1px solid #cfc7ba;box-shadow:0 1px 0 #fff inset,0 24px 50px -28px rgba(40,32,24,.5);background:var(--bg)}
+.frame .clip{position:absolute;inset:0 0 0 0;overflow:hidden}
+.fold{display:flex;align-items:center;gap:10px;margin-top:14px;font-size:12px;color:var(--ink-2)}
+.fold::before,.fold::after{content:"";height:1px;background:var(--hair);flex:1}
+.dev-cap{margin-top:10px;font-size:12px;color:var(--ink-2);max-width:390px}
+
+/* 现状复原 */
+.sbar{height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 8px;
+  font-size:12.5px;font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums}
+.old{position:absolute;left:0;right:0}
+.old-hero{top:91px;height:508px;background:var(--surface);padding:20px 18px;display:grid;align-content:start;gap:14px}
+.old-hero h4{font-size:17px;line-height:1.4}
+.steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:12px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:22px 1fr;gap:10px;font-size:13px;line-height:1.55;color:var(--muted)}
+.steps li::before{content:counter(s);width:22px;height:22px;border-radius:50%;background:var(--terra-wash);color:var(--terra-ink);
+  font-size:12px;font-weight:700;display:grid;place-items:center}
+.old-hero .apple{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:2px}
+.old-hero .apple img{width:20px;height:20px;border-radius:5px}
+.btn-old{height:44px;border-radius:12px;background:var(--btn);color:#fff;font:600 16px/44px var(--font-body);text-align:center}
+.old-acct{top:615px;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13px;color:var(--muted)}
+.old-acct .acts{display:flex;gap:14px;color:var(--btn)}
+.old-rev{top:679px;height:396px;background:var(--surface);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px}
+.stat5{display:grid;grid-template-columns:repeat(2,1fr);gap:14px 10px}
+.stat5 .n{font-family:var(--font-disp);font-size:26px;line-height:1.1;color:var(--fg)}
+.stat5 .l{font-size:12px;color:var(--muted)}
+.bar{height:6px;border-radius:999px;background:var(--line);margin:18px 0 10px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--terra)}
+.bar-cap{font-size:11.5px;color:var(--muted)}
+.old-sechead{top:1095px;height:22px;padding:0 18px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.06em}
+.old-doc{top:1125px;height:128px;margin:0 18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;
+  display:grid;align-content:start;gap:8px}
+.old-doc .t{font-size:15px;font-weight:600}
+.old-doc .d{font-size:12.5px;color:var(--muted)}
+.old-red{top:1275px;padding:0 18px;font-size:12.5px;color:var(--danger);font-weight:500}
+
+/* 标注 */
+.pin{position:absolute;z-index:5;width:23px;height:23px;border-radius:50%;background:var(--btn);color:#fff;
+  font:700 12px/23px var(--font-body);text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.28);outline:2px solid #fff}
+.pin.p1{left:-11px;top:100px} .pin.p2{left:-11px;top:618px} .pin.p3{left:-11px;top:690px}
+.pin.p4{left:-11px;top:1122px} .pin.p5{left:-11px;top:1268px}
+.foldline{position:absolute;left:0;right:0;height:0;border-top:2px dashed var(--danger);z-index:4;pointer-events:none}
+.foldline span{position:absolute;right:6px;top:-19px;font-size:11px;font-weight:700;color:var(--danger);background:rgba(255,255,255,.86);
+  padding:1px 6px;border-radius:4px}
+
+/* ——— 问题卡 ——— */
+.probs{display:grid;gap:12px}
+.prob{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:18px 20px;display:grid;gap:8px}
+.prob .t{display:flex;gap:10px;align-items:flex-start;font-size:15.5px;font-weight:600;line-height:1.5}
+.prob .t em{font-style:normal;flex:none;width:21px;height:21px;border-radius:50%;background:var(--danger-wash);color:var(--danger-ink);
+  font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:2px}
+.prob p{font-size:13.5px;line-height:1.62;color:var(--ink-2)}
+.prob .fix{font-size:13px;line-height:1.6;border-left:2.5px solid var(--btn);padding:2px 0 2px 11px;color:var(--ink)}
+.prob .fix b{color:var(--btn);font-weight:600}
+.impact{margin-top:34px;background:#fffdf9;border:1px solid var(--hair);border-radius:14px;padding:20px 22px}
+.impact h4{font-size:14px;margin:0 0 12px}
+.impact table{width:100%;border-collapse:collapse;font-size:13px}
+.impact th,.impact td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--hair)}
+.impact th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.impact tr:last-child td{border-bottom:0}
+.impact td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.bad{color:var(--danger-ink);font-weight:600}
+.good{color:var(--ok-ink);font-weight:600}
+
+/* ——— 新版面 ——— */
+.new .sbar{color:var(--fg)}
+.new .hero-top .htitle{display:grid;min-width:0;flex:1 1 auto}
+.new .hero-top .htitle h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.new .hero-top .htitle .en{font:500 9.5px/13px var(--font-body);color:var(--muted);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.new .btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.2}
+.new .btn .cn{font:600 12px/16px var(--font-body)}
+.new .btn .en2{font:500 9px/12px var(--font-body);opacity:.86;letter-spacing:.02em}
+.nav{height:52px;display:flex;align-items:center;padding:0 16px 0 18px}
+.nav .brand{font-size:17px;font-weight:600}
+.nav .brand span{font-family:var(--font-disp);font-weight:400;letter-spacing:-.01em}
+.nav .acct{margin-left:auto;width:36px;height:36px;border-radius:50%;background:var(--terra-wash);border:1px solid var(--line);
+  color:var(--terra-ink);font-size:13px;font-weight:700;display:grid;place-items:center}
+.engines{height:32px;display:flex;align-items:center;gap:8px;margin:0 16px 14px;padding:0 12px;background:rgba(255,255,255,.72);
+  border:1px solid var(--line);border-radius:10px;font-size:12.5px}
+.engines .lb{color:var(--ink-2)}
+.engines .seg{display:inline-flex;align-items:center;gap:5px;font-weight:500;color:var(--ink)}
+.engines .seg .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.engines .sum{margin-left:auto;color:var(--ok-ink);font-weight:600;font-size:12px}
+.hero{position:relative;margin:0 16px 12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;
+  display:grid;gap:10px;box-shadow:0 1px 2px rgba(60,44,28,.04)}
+.hero-top{display:flex;align-items:center;gap:10px}
+.ic{width:28px;height:28px;border-radius:9px;background:var(--terra-wash);color:var(--terra-ink);display:grid;place-items:center;flex:none}
+.ic svg{width:17px;height:17px}
+.hero-top h4{font-size:20px;letter-spacing:-.01em}
+.hero-top .tag{margin-left:auto;font-size:11px;font-weight:600;color:var(--ok-ink);background:var(--ok-wash);padding:3px 8px;border-radius:6px}
+.hero p.d{font-size:13.5px;line-height:1.55;color:var(--muted)}
+.band{height:46px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;gap:3px;padding:0 12px;overflow:hidden}
+.band i{flex:1;background:var(--terra);border-radius:2px;opacity:.85;min-width:2px}
+.ab{height:46px;border-radius:10px;background:var(--bg);border:1px solid var(--line);padding:5px 10px;display:grid;gap:2px;align-content:center;overflow:hidden}
+.ab span{font-size:11.5px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab .en{color:var(--ink-2)} .ab .zh{color:var(--fg);font-weight:500}
+.hero .btn{height:50px;border-radius:12px;background:var(--btn);color:#fff;font:600 17px/50px var(--font-body);text-align:center}
+.hero .btn em{font-style:normal;font-family:var(--font-body);font-weight:500;font-size:12.5px;opacity:.86;margin-left:8px;letter-spacing:.01em}
+.stripline{position:relative;margin:0 16px 20px;height:76px;background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:0 12px 0 14px;display:flex;align-items:center;gap:12px}
+.stripline .lft{display:grid;gap:2px;min-width:0}
+.stripline .lft b{font-size:15.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.stripline .lft b i{font-style:normal;font-size:19px;margin-right:4px}
+.stripline .lft span{font-size:12px;color:var(--muted)}
+.stripline .lft .mini{display:flex;align-items:center;gap:7px;margin-top:3px}
+.mini .track{width:64px;height:4px;border-radius:999px;background:var(--line);overflow:hidden}
+.mini .track i{display:block;height:100%;width:34%;background:var(--terra)}
+.mini em{font-style:normal;font-size:11.5px;color:var(--ink-2)}
+.tinted{margin-left:auto;flex:none;height:40px;padding:0 16px;border-radius:11px;background:var(--bg);border:1px solid var(--line);
+  color:var(--fg);font:600 15px/38px var(--font-body)}
+.sechead{height:20px;margin:0 18px 8px;font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--ink-2)}
+.row{height:56px;margin:0 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:0 12px;
+  display:flex;align-items:center;gap:11px}
+.row .t{font-size:15px;font-weight:500}
+.row .s{font-size:12px;color:var(--muted);margin-top:1px}
+.row .ch{margin-left:auto;color:var(--ink-2);font-size:15px}
+.row .thumb{width:28px;height:28px;border-radius:8px;flex:none;background:var(--bg);border:1px solid var(--line);
+  display:grid;place-items:center;overflow:hidden}
+.row .thumb img{width:20px;height:20px;border-radius:5px}
+.ghost{margin:16px 16px 0;height:64px;border:1.5px dashed var(--terra);border-radius:12px;background:var(--terra-wash);
+  display:flex;align-items:center;gap:11px;padding:0 14px;color:var(--terra-ink);font-size:13.5px;font-weight:600}
+.ghost .tag{font-size:11px;font-weight:600;background:#fff;border:1px solid var(--terra);border-radius:6px;padding:2px 7px}
+.ghost .ch{margin-left:auto}
+.home{position:absolute;left:50%;bottom:9px;transform:translateX(-50%);width:134px;height:5px;border-radius:999px;background:var(--fg);opacity:.28}
+
+/* 层级表 */
+.hier{margin-top:30px;background:var(--card);border:1px solid var(--hair);border-radius:14px;overflow:hidden}
+.hier table{width:100%;border-collapse:collapse;font-size:13.5px}
+.hier th,.hier td{padding:11px 14px;text-align:left;border-bottom:1px solid var(--hair);vertical-align:top}
+.hier thead th{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);background:rgba(0,0,0,.02);font-weight:600}
+.hier tr:last-child td{border-bottom:0}
+.hier .lv{font-family:var(--font-disp);font-size:15px;white-space:nowrap}
+.hier .h{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;color:var(--ink-2)}
+.lv1{color:var(--btn)} .lv2{color:var(--ink)} .lv3{color:var(--ink-2)} .lv4{color:var(--ink-2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px}
+
+/* 取舍 */
+.trade{display:grid;gap:14px}
+.tcard{background:var(--card);border:1px solid var(--hair);border-radius:14px;padding:20px 22px;display:grid;gap:10px}
+.tcard .h{display:flex;gap:12px;align-items:flex-start;gap:8px;flex-wrap:wrap}
+.tcard h3{font-size:16.5px;flex:1;min-width:220px}
+.pill{font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:999px;letter-spacing:.03em}
+.pill.yes{background:var(--ok-wash);color:var(--ok-ink)}
+.pill.no{background:rgba(0,0,0,.05);color:var(--ink-2)}
+.tcard dl{margin:0;display:grid;grid-template-columns:74px 1fr;gap:6px 14px;font-size:13.5px;line-height:1.6}
+.tcard dt{font-size:11.5px;font-weight:600;letter-spacing:.04em;color:var(--ink-2);padding-top:2px}
+.tcard dd{margin:0;color:var(--ink-2)}
+.tcard dd b{color:var(--ink);font-weight:600}
+.risk{background:#fdf6f2;border:1px solid #e8d2c2;border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.55;color:#7a4326}
+
+/* 开放问题 */
+.openq{display:grid;gap:12px}
+.q{background:#fffdf9;border:1px solid var(--hair);border-left:3px solid var(--btn);border-radius:10px;padding:16px 18px}
+.q h4{font-size:15px;margin:0 0 6px}
+.q p{font-size:13.5px;line-height:1.6;color:var(--ink-2)}
+.q .ask{margin-top:8px;font-size:13.5px;font-weight:600;color:var(--btn)}
+.src{margin-top:26px;font-size:12px;color:var(--ink-2);line-height:1.6}
+footer{margin-top:70px;padding-top:20px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--ink-2)}
+@media (max-width:1000px){.stage{grid-template-columns:1fr}.ruling{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="head" data-od-id="review-header">
+  <p class="kicker">BelliedMonkey Translator · 登录后首页 · 重设计评审稿 v1</p>
+  <h1 data-od-id="review-title">把首屏还给<span class="disp">实时</span>字幕与听译</h1>
+  <p class="lede">这一稿只做一件事：把「登录后的第一屏」从<strong>系统翻译的安装说明书</strong>，改成<strong>两个别处做不到的能力的启动台</strong>。下面先解剖现状，再给新版层级，最后是取舍与待你拍板的地方。</p>
+  <div class="meta">
+    <span class="chip"><b>画布</b> 现状问题 + 新版层级</span>
+    <span class="chip"><b>主稿</b> iPhone 竖屏 390×844</span>
+    <span class="chip"><b>第二稿</b> Mac 宽屏 1440×900</span>
+    <span class="chip">Apple HIG · 44pt 命中区 / 实心-淡色-文字三级按钮</span>
+    <span class="chip">数据沿用线上真值：待复习 190 · 总计 4664 · 候选 4474 · 已掌握 0</span>
+  </div>
+  <nav class="linkset" data-od-id="review-nav">
+    <a href="homepage-prototype.html">可点击原型 · iPhone</a>
+    <a href="homepage-prototype-mac.html">可点击原型 · Mac</a>
+    <a href="homepage-spec.html">一页规格 + 判据</a>
+  </nav>
+</header>
+
+<div class="verdict" data-od-id="verdict">
+  <p class="big">结论：①「系统翻译」三步块从首屏<strong>移除</strong>，改为三引擎就位后才出现的<strong>一行</strong>状态入口；② 顶栏收编账号行；③ 首屏主体换成<strong>实时字幕</strong>与<strong>实时听译</strong>两张等权主卡；④ 复习卡压成<strong>一条</strong>；⑤ 删除底部红字，缺引擎改由顶部状态行<strong>可就地点击</strong>修复。</p>
+  <dl class="ruling">
+    <div><dt>裁定 1</dt><dd>系统翻译撤出首屏，配全后才出现，且做成一行而不是三步块。</dd></div>
+    <div><dt>裁定 2</dt><dd>登录即三引擎就位，实时字幕与实时听译<strong>直接可用</strong>，不再有「还没配」提示。</dd></div>
+    <div><dt>裁定 3</dt><dd>两张实时卡等高、等按钮样式、同色，作为本页唯一的两个实心按钮。</dd></div>
+    <div><dt>裁定 4</dt><dd>复习降为一条，首屏可见、一眼可开始；详细统计下沉到二级。</dd></div>
+  </dl>
+</div>
+
+<!-- ═══════ 1 现状 ═══════ -->
+<section data-od-id="sec-current">
+  <div class="sec-head"><span class="n">01</span><h2>现状解剖：首屏在讲一件已经做完的事</h2><span class="note">按现状描述复原 · 比例 1:1</span></div>
+
+  <div class="stage">
+    <div class="dev">
+      <div class="frame" data-od-id="current-screen-replica">
+        <div class="clip">
+          <div class="sbar"><span>9:41</span><span>大肚猴</span></div>
+
+          <div class="old old-hero">
+            <h4>让 iPhone 自带的「翻译」用上大肚猴</h4>
+            <ol class="steps">
+              <li>安装 Safari 扩展「大肚猴翻译」</li>
+              <li>在 设置 › 通用 › 键盘 › 键盘 › 新增键盘 里选它</li>
+              <li>回到这里点下面的按钮，大肚猴就会接管「翻译」</li>
+            </ol>
+            <div class="apple"><img src="assets/apple-translate-icon.png" alt="Apple「翻译」App 图标" width="20" height="20">目标：系统「翻译」App</div>
+            <div class="btn-old">我已设好</div>
+          </div>
+
+          <div class="old old-acct"><span>[账户邮箱]</span><span class="acts">设置&nbsp;&nbsp;退出</span></div>
+
+          <div class="old old-rev">
+            <div class="stat5">
+              <div><div class="n">190</div><div class="l">今天待复习</div></div>
+              <div><div class="n">190</div><div class="l">学习中</div></div>
+              <div><div class="n">4664</div><div class="l">总计</div></div>
+              <div><div class="n">4474</div><div class="l">候选</div></div>
+              <div><div class="n">0</div><div class="l">已掌握</div></div>
+            </div>
+            <div class="bar"><i></i></div>
+            <div class="bar-cap">已掌握进度 0%</div>
+            <div class="btn-old" style="margin-top:16px">开始复习</div>
+            <div style="text-align:center;margin-top:12px;font-size:13px;color:var(--btn)">同步</div>
+          </div>
+
+          <div class="old old-sechead">听</div>
+          <div class="old old-doc">
+            <div class="t">翻译文档</div>
+            <div class="d">PDF / Word / 图片</div>
+            <div class="d">异步任务 · 上次同步 ——</div>
+          </div>
+
+          <div class="old old-red">还没配语音引擎 —— 到「设置 › 朗读」里选一个</div>
+          <div class="home"></div>
+        </div>
+        <div class="foldline" style="top:844px"><span>折叠线 844</span></div>
+        <span class="pin p1">1</span><span class="pin p2">2</span><span class="pin p3">3</span>
+        <span class="pin p4">4</span><span class="pin p5">5</span>
+      </div>
+      <p class="dev-cap">红色虚线 = 844pt 折叠线。以上五块之外，这一屏<strong>没有任何</strong>实时字幕或听译的入口。</p>
+    </div>
+
+    <div>
+      <div class="probs" data-od-id="current-problems">
+        <article class="prob">
+          <div class="t"><em>1</em><span>顶部 508pt 讲的是「怎么装」，而用户早就装好了</span></div>
+          <p>三步操作说明 + 一枚「我已设好」按钮，占掉首屏 <strong>60.2%</strong>。这是一段 onboarding 语汇，出现在「登录之后」这个稳态里，就只剩信息噪音。真正的代价不是浪费空间，是它把两个核心入口<strong>挤到折叠线以下</strong>。</p>
+          <p class="fix"><b>改法</b>　撤出首屏。改成一行「系统翻译 · 已交给『翻译』App」，仅在三引擎就位后出现，点了才展开说明。</p>
+        </article>
+        <article class="prob">
+          <div class="t"><em>2</em><span>「我已设好」是一枚不推进任何状态的假按钮</span></div>
+          <p>点了不改变引擎状态、不改变版面、不给反馈。用户不知道它到底确认了没有，于是反复点。这类按钮会持续消耗首屏最贵的一块版面。</p>
+          <p class="fix"><b>改法</b>　删掉。配置状态改由顶部状态行如实呈现 —— 就位就是就位，缺失就是「可点的缺失」，没有一个需要「我已设好」的主语。</p>
+        </article>
+        <article class="prob">
+          <div class="t"><em>3</em><span>账号行占一条横带，却只装最低频的两个动作</span></div>
+          <p>邮箱 + 设置 / 退出被写成文字链，命中区不足 44pt，却是每屏必看的版面。行高 48pt 换来的信息量约等于一行页脚。</p>
+          <p class="fix"><b>改法</b>　收进顶栏 44×44 的账户按钮，设置 / 退出进二级面板。iPhone 上省下 48pt + 16pt 间距，Mac 上直接落到侧栏底部。</p>
+        </article>
+        <article class="prob">
+          <div class="t"><em>4</em><span>复习卡占 396pt，把五个等权数字摊开给你看</span></div>
+          <p>190 / 190 / 4664 / 4474 / 0 同字号同色，读者不知道该看哪个；进度条在「已掌握 0」时是一条 0% 的空槽，传达的是失败感；「开始复习」落在 y≈1010，<strong>必须滚动 166pt 才能完整看到</strong>。这违反了裁定 4 的「一眼能开始」。</p>
+          <p class="fix"><b>改法</b>　压成 76pt 一条：只留「今天待复习 190」+ 微型进度 + 淡色「开始复习」；其余四个数字与「同步」进二级页。</p>
+        </article>
+        <article class="prob">
+          <div class="t"><em>5</em><span>「翻译文档」被塞进「听」分区，破坏分区语义</span></div>
+          <p>文档翻译是异步离线任务，和「听这台设备的声音」不是同一件事。放在「听」下面，会让人以为它也是实时能力的一条分支。</p>
+          <p class="fix"><b>改法</b>　独立成「文档」分区、列表行形态，排在折叠线以下。首屏的两个实时能力是「声音」，文档是「文件」，不混。</p>
+        </article>
+        <article class="prob">
+          <div class="t"><em>6</em><span>红字告警在 y=1275，而且点不动</span></div>
+          <p>「还没配语音引擎 —— 到『设置 › 朗读』里选一个」需要滚动 431pt 才能看到；看到了也只能自己走。纯文本告警没有恢复路径，红色还把它渲染成一件严重的事，其实它只是一个待办。</p>
+          <p class="fix"><b>改法</b>　删。<strong>缺失态上移</strong>到顶部状态行，缺失项自身就是 44pt 命中区，点了直达设置对应页；红色只留给真正的失败（权限被拒、引擎崩溃）。</p>
+        </article>
+      </div>
+
+      <div class="impact" data-od-id="current-measurement">
+        <h4>首屏量算（iPhone 390×844）</h4>
+        <table>
+          <thead><tr><th>区块</th><th>起 y</th><th>高</th><th>844pt 内可见</th><th>代价</th></tr></thead>
+          <tbody>
+            <tr><td>① 系统翻译三步块</td><td class="n">91</td><td class="n">508</td><td class="n">508</td><td>首屏 <span class="bad">60.2%</span></td></tr>
+            <tr><td>② 账号行</td><td class="n">615</td><td class="n">48</td><td class="n">48</td><td>—</td></tr>
+            <tr><td>③ 复习卡</td><td class="n">679</td><td class="n">396</td><td class="n">165</td><td>「开始复习」在 y≈1010，<span class="bad">要滚 166pt</span></td></tr>
+            <tr><td>④ 听 › 翻译文档</td><td class="n">1125</td><td class="n">128</td><td class="n">0</td><td>折叠线以下</td></tr>
+            <tr><td>⑤ 红字提示</td><td class="n">1275</td><td class="n">20</td><td class="n">0</td><td>要滚 <span class="bad">431pt</span>，且不可点</td></tr>
+            <tr><td colspan="3"><strong>实时字幕 / 实时听译入口</strong></td><td class="n"><span class="bad">不存在</span></td><td>App 唯一不可替代的能力在首页缺席</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 2 新版面 ═══════ -->
+<section data-od-id="sec-new">
+  <div class="sec-head"><span class="n">02</span><h2>新版首页：首屏只回答「现在能干什么」</h2><span class="note">三引擎就位态 · 1:1</span></div>
+
+  <div class="stage">
+    <div class="dev">
+      <div class="frame new" data-od-id="new-screen-diagram">
+        <div class="clip">
+          <div class="sbar"><span>9:41</span><span>大肚猴</span></div>
+
+          <div class="nav">
+            <div class="brand">大肚猴 <span>BelliedMonkey</span></div>
+            <div class="acct">BM</div>
+          </div>
+
+          <div class="engines" data-od-id="new-engine-row">
+            <span class="lb">引擎</span>
+            <span class="seg"><i class="dot"></i>翻译</span>
+            <span class="seg"><i class="dot"></i>语音转写</span>
+            <span class="seg"><i class="dot"></i>朗读</span>
+            <span class="sum">已就位</span>
+          </div>
+
+          <div class="hero" data-od-id="new-hero-live-captions">
+            <div class="hero-top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 14.5h4M7 11h8"/></svg></span>
+              <span class="htitle"><h4>实时字幕</h4><span class="en">Live Subtitles</span></span>
+              <span class="tag">就绪</span>
+            </div>
+            <p class="d">听这台设备正在播放的声音，实时出双语字幕。</p>
+            <div class="band" aria-hidden="true">
+              <i style="height:34%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:88%"></i><i style="height:52%"></i>
+              <i style="height:70%"></i><i style="height:38%"></i><i style="height:80%"></i><i style="height:46%"></i><i style="height:66%"></i>
+              <i style="height:30%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:42%"></i><i style="height:60%"></i>
+            </div>
+            <div class="btn"><span class="cn">开始实时字幕</span><span class="en2">Start Live Subtitles</span></div>
+          </div>
+
+          <div class="hero" data-od-id="new-hero-live-interpret">
+            <div class="hero-top">
+              <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 3.5a2.5 2.5 0 0 1 2.5 2.5v5a2.5 2.5 0 0 1-5 0V6A2.5 2.5 0 0 1 12 3.5Z"/><path d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5V20"/></svg></span>
+              <span class="htitle"><h4>实时听译</h4><span class="en">Conversation</span></span>
+              <span class="tag">就绪</span>
+            </div>
+            <p class="d">面对面逐句转写 → 翻译 → 朗读，一人一句。</p>
+            <div class="ab" aria-hidden="true">
+              <span class="en">Good evening. How was the flight?</span>
+              <span class="zh">晚上好。航班怎么样？</span>
+            </div>
+            <div class="btn"><span class="cn">开始听译</span><span class="en2">Start Conversation</span></div>
+          </div>
+
+          <div class="stripline" data-od-id="new-review-strip">
+            <div class="lft">
+              <b><i>190</i>今天待复习</b>
+              <div class="mini"><em>查看统计 ›</em></div>
+            </div>
+            <div class="tinted">开始复习</div>
+          </div>
+
+          <div class="sechead">文档</div>
+          <div class="row" data-od-id="new-doc-row">
+            <span class="thumb"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#201e1d" stroke-width="1.7" stroke-linejoin="round"><path d="M6 3h7l5 5v13H6z"/><path d="M13 3v5h5"/></svg></span>
+            <span><span class="t">翻译文档</span><br><span class="s">PDF / Word / 图片 · 异步</span></span>
+            <span class="ch">›</span>
+          </div>
+          <div class="home"></div>
+        </div>
+        <div class="foldline" style="top:844px"><span>折叠线 844</span></div>
+      </div>
+
+      <div class="ghost" data-od-id="new-systranslate-ghost">
+        <img src="assets/apple-translate-icon.png" alt="Apple「翻译」App 图标" width="22" height="22" style="border-radius:6px">
+        <span>系统翻译 · 已交给「翻译」App</span><span class="tag">仅就位后出现</span><span class="ch">›</span>
+      </div>
+      <p class="dev-cap">虚线框 = 折叠线以下那一行，<strong>仅在三引擎就位后渲染</strong>；未就位时这个位置什么都不存在（不是空容器，见原型）。</p>
+    </div>
+
+    <div>
+      <p class="sub" style="margin-top:0">层级与理由</p>
+      <div class="hier" data-od-id="new-hierarchy-table">
+        <table>
+          <thead><tr><th>级</th><th>块</th><th>高</th><th>为什么在这个位置</th></tr></thead>
+          <tbody>
+            <tr><td class="lv lv2">H2</td><td>顶栏（品牌 + 账户按钮）</td><td class="h">52</td><td>只回答「我是谁 / 我是谁」。账户收成 44pt 圆形按钮，把原来独占一行的邮箱让出来。</td></tr>
+            <tr><td class="lv lv3">H3</td><td>引擎状态行</td><td class="h">32</td><td>先说清「前提已满足」。就位时是低对比绿摘要，缺失时<strong>原地变可点</strong> —— 待办必须前置，不能压在页脚。</td></tr>
+            <tr><td class="lv lv1">H1</td><td>实时字幕卡</td><td class="h">236</td><td>本页主角。标题 20pt + 两行说明 + 波形带（既是说明也是进行时的实时表面）+ 50pt 实心按钮。</td></tr>
+            <tr><td class="lv lv1">H1</td><td>实时听译卡</td><td class="h">236</td><td>与字幕<strong>等高同权</strong>：同圆角、同图标规格、同按钮色同尺寸，只用卡片内部视觉区分（波形 / A·B 译文条）。</td></tr>
+            <tr><td class="lv lv3">H3</td><td>复习条</td><td class="h">76</td><td>首屏第三块、一眼可点。淡色按钮而非实心：它真实，但不该和两个主角抢同一档。</td></tr>
+            <tr><td class="lv lv4">H4</td><td>文档分区 + 行</td><td class="h">96</td><td>异步任务，越线不亏。列表行形态，不给卡片。</td></tr>
+            <tr><td class="lv lv4">H4</td><td>系统翻译行</td><td class="h">56</td><td>就位后才有意义的事实陈述。一行、列表行、可点，不给说明块。</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="two">
+        <div class="impact" style="margin-top:0">
+          <h4>首屏预算（844pt 内）</h4>
+          <table>
+            <thead><tr><th>区块</th><th>起 y</th><th>高</th><th>累计</th></tr></thead>
+            <tbody>
+              <tr><td>状态栏 + 顶栏</td><td class="n">0</td><td class="n">99</td><td class="n">99</td></tr>
+              <tr><td>引擎状态行</td><td class="n">99</td><td class="n">32</td><td class="n">131</td></tr>
+              <tr><td><strong>实时字幕</strong></td><td class="n">145</td><td class="n">236</td><td class="n">381 <span class="good">✓</span></td></tr>
+              <tr><td><strong>实时听译</strong></td><td class="n">393</td><td class="n">236</td><td class="n">629 <span class="good">✓</span></td></tr>
+              <tr><td><strong>复习条</strong></td><td class="n">641</td><td class="n">76</td><td class="n">717 <span class="good">✓</span></td></tr>
+              <tr><td>文档分区 + 行</td><td class="n">737</td><td class="n">96</td><td class="n">833</td></tr>
+              <tr><td>系统翻译行</td><td class="n">845</td><td class="n">56</td><td class="n"><span class="bad">折叠线以下</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="impact" style="margin-top:0">
+          <h4>首屏内实心按钮 = 2</h4>
+          <table>
+            <thead><tr><th>行动</th><th>档位</th><th>理由</th></tr></thead>
+            <tbody>
+              <tr><td>开始实时字幕</td><td>实心</td><td>核心 · 50pt</td></tr>
+              <tr><td>开始听译</td><td>实心</td><td>核心 · 50pt · 与上行同规格</td></tr>
+              <tr><td>开始复习</td><td>淡色</td><td>次要但高频 · 40pt</td></tr>
+              <tr><td>缺失引擎项</td><td>片段 chip</td><td>局部可点 · 44pt</td></tr>
+              <tr><td>文档 / 系统翻译</td><td>列表行</td><td>低频 · 56pt 行高</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ 3 取舍 ═══════ -->
+<section data-od-id="sec-tradeoffs">
+  <div class="sec-head"><span class="n">03</span><h2>取舍：我考虑过什么，以及为什么这么定</h2><span class="note">5 个岔路口</span></div>
+  <div class="trade" data-od-id="tradeoff-cards">
+
+    <article class="tcard">
+      <div class="h"><h3>系统翻译块去哪：撤出首屏 / 移进设置 / 折叠收进折叠面板</h3><span class="pill yes">选定 撤出 + 置底一行</span></div>
+      <dl>
+        <dt>为什么</dt><dd>它的信息只在<strong>用户确认「已经接管」之后</strong>才有价值。所以正确的时机不是「登录后」，而是<strong>三引擎就位后</strong> —— 状态是它的开关，不是用户点的那枚按钮。</dd>
+        <dt>否掉 B</dt><dd>整段移进设置。代价是用户完全不知道系统「翻译」已经被接管了，而这件事是本产品相对系统 App 的<strong>独占优势</strong>，值得留在首页一行。留着「知道」的成本只有 56pt 列表行。</dd>
+        <dt>否掉 C</dt><dd>折叠成 accordion。收起时问题解决了，但用户一展开就回到今天的版面 —— 而且 accordion 会在首屏制造一个「还有更多」的假承诺。不可取。</dd>
+        <dt>形态</dt><dd>一行、带真实系统「翻译」App 图标、文案陈述事实（「已交给『翻译』App」），不再有步骤、不再有按钮。点击才展开说明。</dd>
+      </dl>
+      <div class="risk"><b>风险</b>　扩展被系统撤销后，这一行会变成失效陈述。规则：行右侧改为「需重新授权 ›」的 terra chip，且不消失（消失会让人以为功能没了）。</div>
+    </article>
+
+    <article class="tcard">
+      <div class="h"><h3>两个实时能力：同权双主卡，还是一主一次</h3><span class="pill yes">选定 同权双主卡</span></div>
+      <dl>
+        <dt>为什么</dt><dd>裁定 3 把两者并列为本页主角。若为了视觉节制把「实时听译」降成描边按钮，等于在版面上宣布它的能力比字幕低一档 —— 而这个产品里，面对面逐句转写＋翻译＋<strong>朗读</strong>是字幕做不到的闭环。</dd>
+        <dt>怎么压噪声</dt><dd>两卡<strong>等宽等高</strong>、同色同尺寸按钮，靠卡内视觉区分（波形带 vs A·B 译文条）。两个实心按钮在同屏出现，代价是首屏更满 —— 我认为这个代价值得，因为满的两张卡恰好也把复习条抬进了首屏。</dd>
+        <dt>否掉的</dt><dd>「卡片 + 整卡可点」方案：更省版面，但两张大卡当按钮，命中区大却语义模糊，VoiceOver 朗读出来是一整块卡片文字。</dd>
+      </dl>
+      <div class="risk"><b>需要你确认</b>　若你更看重首屏留白，备选是「字幕卡满宽 236 + 听译卡压缩成 120 单行条」。我按裁定 3 的字面意思做了同权版。</div>
+    </article>
+
+    <article class="tcard">
+      <div class="h"><h3>引擎状态行：放顶部还是留作页脚告警</h3><span class="pill yes">选定 顶部一行，三态同高</span></div>
+      <dl>
+        <dt>为什么</dt><dd>它有两种截然不同的身份：<strong>就绪时是保证</strong>（可以开始了），<strong>缺失时是待办</strong>（点这里去修）。保证可以低调，待办不能。放在同一条上，缺失项原地变成 44pt 的可点 chip，不用跳页也不用读页脚。</dd>
+        <dt>为什么不用红色</dt><dd>缺一个语音引擎是<strong>待办</strong>不是故障，用 terra 标注；#b3261e 只留给真正的失败（权限被拒、引擎崩溃、文件解析失败）。这条同时消掉了现状第 6 条的红色滥用。</dd>
+        <dt>稳定高度</dt><dd>就位 / 部分缺失 / 全缺三种态都是 32pt 高、同一位置 —— 引擎变化不会让下面两张主卡跳动，实时字幕不会因为朗读引擎被换掉而位移。</dd>
+      </dl>
+      <div class="risk"><b>风险</b>　三段名字 + 状态在 320pt 宽机型（如 SE）会挤。规则：最左标签「引擎」在 ≤359pt 隐藏，缺失项优先显示，摘要后置。</div>
+    </article>
+
+    <article class="tcard">
+      <div class="h"><h3>复习卡：压成一条，还是换个位置</h3><span class="pill yes">选定 首屏第三条</span></div>
+      <dl>
+        <dt>为什么</dt><dd>裁定 4 要它「仍看得见、一眼能开始」，所以不能沉底。76pt 是能同时满足「可点」和「不抢戏」的最小值：1 个数字（190）+ 1 条 11.5pt 的「查看统计 ›」文字入口 + 1 枚 40pt 淡色按钮。</dd>
+        <dt>丢掉什么</dt><dd>190/190/4664/4474/0 里的另外四个数字，以及「同步」。它们进二级页，由这条左下角的文字入口进入。<strong>0 不再作为主视觉</strong> —— 0% 的空进度条传达失败感；「已过 7 天」这类进度量需要真实统计口径支撑，本稿没有该数据，<strong>不做占位数字</strong>，只留入口。</dd>
+        <dt>否掉的</dt><dd>「复习」做成 Tab：单词是独立的学习行为，塞进首页的实时工作流里本来就别扭，Tab 是更彻底的解，但它超出现在这一屏的范围里。</dd>
+      </dl>
+      <div class="risk"><b>注意</b>　「已掌握 0」在详情页必须保留原样呈现（这是真数据）；被去掉的只是它在首页的主视觉位置。</div>
+    </article>
+
+    <article class="tcard">
+      <div class="h"><h3>「翻译文档」：留在「听」分区 / 移出 / 删</h3><span class="pill yes">选定 独立「文档」分区</span></div>
+      <dl>
+        <dt>为什么</dt><dd>「听」如果继续做分区，就该只装与声音实时有关的东西。文档是异步、离线、可离线的文件任务，混放会让用户对「听」的能力边界产生错误预期 —— 这正是你裁定 3 想守住的东西。</dd>
+        <dt>排序</dt><dd>文档与系统翻译都排在折叠线以下。低频不是问题，「低频却挤在首屏」才是问题。</dd>
+        <dt>否掉的</dt><dd>直接删掉。它是真实在用的功能（PDF/Word/图片），删掉等于让用户找不到，损失大于它在版面上占的 96pt。</dd>
+      </dl>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════ 4 待拍板 ═══════ -->
+<section data-od-id="sec-open">
+  <div class="sec-head"><span class="n">04</span><h2>评审时需要你拍板的四件事</h2><span class="note">这四条会影响写进交互规约的措辞</span></div>
+  <div class="openq">
+    <div class="q"><h4>1　「系统翻译」的触发条件，按哪个？</h4>
+      <p>我按<strong>三引擎全就位</strong>实现（一出现就说明整套东西都能用了）。备选是「三引擎就位 <em>且</em> 浏览器扩展已授权」—— 更贴合「交给『翻译』App」这句话的语义，但登录后短期内大概率不成立，那一行就长期不出现。裁定 1 写的是「等用户把引擎完整配好之后」，我按字面取「引擎」。</p><p class="ask">倾向：三引擎就位即出现。确认？</p></div>
+    <div class="q"><h4>2　「已掌握 0」在首页真的一个字都不留吗？</h4>
+      <p>我把首页的展示数字压到 1 个（190），0 完全进二级页。若你希望用户看到启动进度（毕竟 4474 候选 / 0 掌握是很早期的状态），我可以在复习条里加一行 4pt 高的文字「已掌握 0 / 候选 4474」，不占视觉重心。这与判据「首屏展示数字 ≤ 2」不冲突。</p><p class="ask">倾向：留白，把 0 放二级。你要哪一版？</p></div>
+    <div class="q"><h4>3　实时字幕要不要在首页就暴露「字幕浮窗 / 锁屏」？</h4>
+      <p>我做的是：开始后在卡内出双语字幕 + 计时，<strong>浮窗开关放在进行中态里</strong>，不进默认态。理由是默认态只留启动决策。但如果实时字幕的主要用法是「开着浮窗锁屏看」，那它值得占一个首页位置 —— 这会改变 H1 卡的高度预算。</p><p class="ask">倾向：留在进行中态。你确认？</p></div>
+    <div class="q"><h4>4　Mac 版是同一套卡片的宽屏，还是改成侧栏 + 双栏工作台？</h4>
+      <p>我按 macOS 原生范式做：侧栏 232pt 收纳目的地（实时字幕 / 实时听译 / 单词卡 / 文档 / 系统翻译），主区只放两张主卡 + 复习条；系统翻译在 Mac 上<strong>落在侧栏</strong>而不是主区列表行 —— 那是宽屏版对「轻」最省事的落地。若你要求两版结构完全对称，我改成主区同 iPhone 顺序。</p><p class="ask">倾向：Mac 走侧栏。你确认？</p></div>
+  </div>
+
+  <p class="src">素材说明：页面中唯一的真实参照素材是 Apple「翻译」App 图标 <code>assets/apple-translate-icon.png</code>（253×253，Apple Inc.，取自 Wikimedia Commons 公开页面；商标归 Apple 所有，此处仅作界面指代）。大肚猴品牌标识未在本次需求中提供源文件，顶栏的「BM」圆形账户键为占位，交付前需替换为真实账户头像 / 标识。</p>
+</section>
+
+<footer>
+  评审顺序建议：先看 <strong>02 新版首页</strong>确认层级是否对路 → 打开 <strong>可点击原型</strong>点一遍 11 个状态 → 用 <strong>一页规格</strong>里的 19 条判据逐条对门禁 → 回到本稿 04 拍板。<br>
+  <strong>2026-10-02 修订</strong>：本稿 02 的两张主卡已按真机评审修订 —— 标题改为中英两行定高块（标题折行不再撑高卡片），CTA 带内补上「开始实时字幕 / Start Live Subtitles」「开始听译 / Start Conversation」，顶部的 Safari 扩展引导卡被删除、改为折叠线以下的一行。逐条规则与文案见 <code>homepage-revision-spec.md</code>。
+  数据纪律：复习相关的 190 / 190 / 4664 / 4474 / 0 全部沿用线上真值；字幕与听译的示例句子是<strong>功能演示文案</strong>，不代表产品内数据；版本号、同步时间、用量余量、账户邮箱等本次未提供的字段一律以「——」或方括号占位，<strong>不做编造</strong>。
+</footer>
+
+</div>
+</body>
+</html>

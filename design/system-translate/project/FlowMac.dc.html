@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>状态机 · Mac 快速翻译</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1500px; height:860px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">状态机 · Mac</h1><span>五个入口，汇到同一个面板。</span></div></div>
+<div style="display:flex; flex-direction:column; gap:16px">
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">快捷键 ⌃⌥T</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">增强取词开着且有权限？</div><div class="arr">是 →</div><div class="node">替按 ⌘C ⇒ 0.3 秒内剪贴板变了？</div><div class="arr">变了 →</div><div class="node s">取到文字 ⇒ 还原剪贴板</div><div class="arr">没变 →</div><div class="node w">「没有取到选中的文字」· 改用截图</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl"></div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">否（默认）⇒ 读剪贴板</div><div class="arr">→</div><div class="node w">带隐藏标记 ⇒ 不读不发</div><div class="arr">→</div><div class="node w">空 / 不是文字 ⇒ 教两条路</div><div class="arr">→</div><div class="node">与上次相同 ⇒ 显示上次结果 + 提醒</div><div class="arr">→</div><div class="node s">拿到文字</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">右键 › 服务</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node s">宿主 App 交来文字</div><div class="arr">→</div><div class="node s">拿到文字</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">截图 ⌃⌥S</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">有屏幕录制权限？</div><div class="arr">没有 →</div><div class="node w">系统弹窗 ⇒ 允许 ⇒ 提示重开 App</div><div class="arr">有 →</div><div class="node">框选（Esc 取消 / 太小忽略）</div><div class="arr">→</div><div class="node">本机识别</div><div class="arr">空 →</div><div class="node w">重新框选 / 用识图引擎再试</div><div class="arr">有字 →</div><div class="node s">拿到文字</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">输入</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node s">面板带焦点打开</div><div class="arr">→</div><div class="node">回车</div><div class="arr">→</div><div class="node s">拿到文字</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">拿到文字之后</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node w">没配引擎 ⇒ 打开设置</div><div class="arr">→</div><div class="node">加载</div><div class="arr">→</div><div class="node s">译文（可改原文回车重翻、改目标语言）</div><div class="arr">→</div><div class="node w">失败 ⇒ 重试 / 打开设置</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">副作用</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">采集开着 且 不太长 且 译文 ≠ 原文</div><div class="arr">→</div><div class="node">交给主窗口那一页写进复习库（面板自己不写）</div><div class="arr">→</div><div class="node s">面板底栏显示「已存入」</div></div></div>
+<div style="display:grid; grid-template-columns:150px minmax(0,1fr); gap:14px; align-items:center"><div class="lbl">消失</div><div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap"><div class="node">Esc · ✕</div><div class="arr">→</div><div class="node">点外面 / 切 App（没钉住时）</div><div class="arr">→</div><div class="node x">再次触发 ⇒ 同一面板换内容</div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1500,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

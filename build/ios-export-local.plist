@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 只导出到本地，**不直传**。直传（ios-export.plist 的 destination=upload）走的是
+     Xcode 的登录态，那个会过期，而过期时的表现是卡住不动、最后失败 —— 2026-09-01
+     那次「xcode 直传挂了」就是它。上传改走 altool + ASC API key（不会过期）：
+
+       xcodebuild -exportArchive -archivePath <a> -exportOptionsPlist build/ios-export-local.plist -exportPath <out>
+       xcrun altool --upload-app -f <out>/*.ipa|*.pkg -t ios|macos \
+         --apiKey <ascKeyId> --apiIssuer <ascIssuerId>
+
+     ⚠️ altool 失败也返回 0。判据是 ASC 上那个 build 号真的出现（scripts/asc.js builds）。-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>method</key><string>app-store-connect</string>
+<key>destination</key><string>export</string>
+<key>teamID</key><string>X2Q85MABWK</string>
+<key>uploadSymbols</key><true/>
+</dict></plist>

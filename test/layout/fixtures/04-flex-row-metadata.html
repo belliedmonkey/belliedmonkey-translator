@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>flex row metadata</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .meta { display: flex; flex-wrap: nowrap; gap: 12px; padding: 20px; align-items: baseline; }
+  .meta div { white-space: nowrap; }
+</style>
+<body>
+<div class="meta">
+  <div>Nearly five thousand people liked this video.</div>
+  <div>Around 290 thousand views so far.</div>
+  <div>Uploaded about one year ago.</div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "flex-row-metadata",
+  "unitCount": 3,
+  "rerender": true,
+  "_note_mutations": "2026-08-23 起这里没有 mutations 了。译文挂进原文里之后，它不再是这一行的 flex item，页面自己的 flex-wrap 因此不必被我们改——这是契约收紧，不是断言放宽：我们少动了页面一处样式。原来的声明是 {sel:.meta, prop:flexWrap, to:wrap, marker:data-mt-flow-fix}。译文在 flex item 里不撑宽原文，靠的是 CHILD_BOX 的 width:0/min-width:100%，由 originalGeometryStable 钉住。",
+  "targets": [
+    {
+      "sel": ".meta > div:not(.mt-translation)",
+      "assert": [
+        "ownRow",
+        "fullRowWidth:6",
+        "noOverlapWithSiblings"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

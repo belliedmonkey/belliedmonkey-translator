@@ -1,0 +1,265 @@
+#!/usr/bin/env node
+// Does the built Safari .appex actually contain what dist/ contains?
+//
+// It did not, and nothing said so. `safari-web-extension-converter` captures the
+// extension's FILE LIST at conversion time; every file added afterwards is simply
+// never referenced by the Xcode project. The whole `learn/` directory had fallen out
+// that way — which on iOS meant options.html loaded seven scripts that were not
+// there, options.js died on the first undefined global, and the settings page (where
+// the API key is entered) was dead. The build succeeded. The manifest validated.
+//
+// The fix is to regenerate the project when files are added; this is the check that
+// makes forgetting loud instead of silent.
+//
+//   npm run verify:ios -- [/path/to/DerivedData]
+
+const fs = require('fs');
+const path = require('path');
+const { execFileSync } = require('child_process');
+
+const ROOT = path.resolve(__dirname, '..');
+const dd = process.argv[2] || '/tmp/bt-dd';
+
+function walk(dir, base = dir, out = new Set()) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) walk(p, base, out);
+    else out.add(path.relative(base, p));
+  }
+  return out;
+}
+
+// An iOS .appex keeps its resources at the bundle root; a macOS one puts them under
+// `Contents/Resources/`. Comparing a macOS bundle against the iOS assumption reports
+// every dist file as missing — 71 of 71, which reads as a catastrophic packaging
+// failure and is really just the wrong root. Read the layout off the bundle.
+function resourceRoot(appex) {
+  const mac = path.join(appex, 'Contents', 'Resources');
+  return fs.existsSync(mac) ? mac : appex;
+}
+
+function findAppex(root) {
+  const stack = [root];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { continue; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (!e.isDirectory()) continue;
+      if (e.name.endsWith('.appex')) return p;
+      stack.push(p);
+    }
+  }
+  return null;
+}
+
+// The APP bundle, not the extension. `findAppex` deliberately dives past it; this one
+// stops at the first `.app` that is not itself inside a `.appex`.
+function findApp(root) {
+  const stack = [root];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { continue; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (!e.isDirectory()) continue;
+      if (e.name.endsWith('.app')) return p;
+      if (e.name.endsWith('.appex')) continue;
+      stack.push(p);
+    }
+  }
+  return null;
+}
+
+// macOS keeps Info.plist under Contents/, iOS at the bundle root — same split as
+// resourceRoot(), and getting it wrong reads as "the key is missing".
+function plistPath(bundle) {
+  const mac = path.join(bundle, 'Contents', 'Info.plist');
+  return fs.existsSync(mac) ? mac : path.join(bundle, 'Info.plist');
+}
+
+function readPlist(f) {
+  if (!fs.existsSync(f)) return null;
+  try {
+    return JSON.parse(execFileSync('plutil', ['-convert', 'json', '-o', '-', f],
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+  } catch (_) { return null; }
+}
+
+// §9.5 background playback lives entirely in a plist key that `app:sync` injects into
+// a gitignored, regenerated tree. Forgetting `npm run app:sync` therefore produces an
+// app that installs fine and goes silent the moment the screen locks — the exact
+// shape of "the feature was never built", and nothing in the build log says a word.
+// So it is a gate, not a line in a checklist.
+function checkBackgroundAudio(app, appex) {
+  const isMac = fs.existsSync(path.join(app, 'Contents'));
+  const appPlist = readPlist(plistPath(app));
+  if (!appPlist) {
+    console.error('✗ 读不到 App target 的 Info.plist —— 无法确认后台播放声明');
+    return false;
+  }
+  const modes = appPlist.UIBackgroundModes || [];
+  if (isMac) {
+    // macOS is never suspended, so it needs nothing here — and declaring a background
+    // mode it cannot use is something review asks about.
+    if (modes.length) {
+      console.error('✗ macOS App 声明了 UIBackgroundModes —— 它不需要，而且审核会问');
+      return false;
+    }
+    console.log('✓ macOS App 没有 UIBackgroundModes（正确：那边进程不会被挂起）');
+    return true;
+  }
+  if (!modes.includes('audio')) {
+    console.error('✗ iOS App 的 Info.plist 里没有 UIBackgroundModes: audio');
+    console.error('  播客模式 (§9.5) 会在锁屏那一刻静音，而构建日志一个字都不会说。');
+    console.error('  修法：npm run app:sync（它必须在 xcodebuild archive 之前跑），然后重新归档。');
+    return false;
+  }
+  const exPlist = appex ? readPlist(plistPath(appex)) : null;
+  if (exPlist && (exPlist.UIBackgroundModes || []).length) {
+    console.error('✗ 扩展 target 也声明了 UIBackgroundModes —— 它永不播放音频，不该有');
+    return false;
+  }
+  console.log('✓ iOS App 声明了 UIBackgroundModes: audio（§9.5 后台播放），扩展 target 没有');
+  return true;
+}
+
+// dist 顶层每个目录都必须在两棵 Safari 工程的 pbxproj 里有引用 —— 这是「转换器把文件清单
+// 固化进工程、新顶层目录永不入包」（vendor/ 那次）的**构建前**早警报。post-build 的
+// dist-vs-appex 比对已经覆盖它，但要先花一次 xcodebuild；这个只 grep 文本，秒级。
+// 只在工程存在时跑（gitignored、可重生成）。2026-09-11 全回归 §五。
+function checkPbxprojDirs() {
+  const distDir = path.join(ROOT, 'dist');
+  if (!fs.existsSync(distDir)) return true;
+  const topDirs = fs.readdirSync(distDir, { withFileTypes: true })
+    .filter((e) => e.isDirectory()).map((e) => e.name);
+  const projects = [
+    'safari-project/BelliedMonkey Translator/BelliedMonkey Translator.xcodeproj/project.pbxproj',
+    'safari-project-china/BelliedMonkey Translator CN/BelliedMonkey Translator CN.xcodeproj/project.pbxproj',
+  ].map((p) => path.join(ROOT, p)).filter((p) => fs.existsSync(p));
+  let ok = true;
+  for (const proj of projects) {
+    const txt = fs.readFileSync(proj, 'utf8');
+    const gone = topDirs.filter((d) => !txt.includes('/' + d + '/') && !txt.includes(' ' + d + ' ') && !txt.includes('"' + d + '"') && !txt.includes('= ' + d + ';') && !txt.includes(d + '.'));
+    // 目录引用在 pbxproj 里表现为路径片段（.../dist*/<dir>/... 或组名）。逐目录确认它至少出现一次。
+    const reallyGone = topDirs.filter((d) => !new RegExp('[\\/\s"=(]' + d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[\\/\s",;)]').test(txt));
+    if (reallyGone.length) {
+      ok = false;
+      console.error('✗ ' + path.basename(path.dirname(path.dirname(proj))) + ' 的 pbxproj 里缺 dist 顶层目录引用: ' + reallyGone.join(', '));
+      console.error('  转换器把文件清单固化进工程，新顶层目录永不入包（vendor/ 那次）。修法：挪开旧工程后 bash build-safari.sh <flavor> 重生成。');
+    }
+  }
+  if (ok && projects.length) console.log('✓ pbxproj 覆盖 dist 全部 ' + topDirs.length + ' 个顶层目录（' + projects.length + ' 棵工程）');
+  return ok;
+}
+
+// ITMS-90332（issue #500）：.app 里带悬空/自指符号链接，altool 上传报「No errors」（只覆盖传输），
+// ASC 侧 build 静默消失、不进 PROCESSING，只有收件箱「Action needed」邮件知道。1.18.0 发版当天
+// onnxruntime 的 macOS 切片就这么丢了两个 build。fetch-native-deps.js 已在解压后根治源头；这道门
+// 是**归档后**的最后一道 —— .app（含其内嵌的 .appex / Frameworks）里任何解析不了的符号链接都是
+// 缺陷，在这里红，别等苹果的邮件。合法符号链接（Versions/Current、顶层四链接）都解析得了，不会误伤。
+// 2026-10-03（**真机上装不上才发现**）：扩展 bundle id 必须是「宿主 id + 一段**不含点**的后缀」。
+// 写成 `…translator.Extension.MTTranslateExt` 时 iOS 直接拒装，报的是
+// IXUserPresentableErrorDomain（「contains a '.' in the portion after the parent app's prefix」），
+// 而不是「id 非法」—— 而两棵工程都是本机态（gitignored），CI 里根本没有它 ⇒ 只能靠
+// **读装出来的包**来守。
+function checkExtensionIds(app) {
+  const parent = (readPlist(plistPath(app)) || {}).CFBundleIdentifier;
+  if (!parent) { console.error('✗ 读不到宿主 App 的 CFBundleIdentifier'); return false; }
+  const extDir = path.join(app, 'Extensions');
+  const exts = fs.existsSync(extDir) ? fs.readdirSync(extDir).filter((x) => x.endsWith('.appex')) : [];
+  const bad = [];
+  for (const e of exts) {
+    const id = (readPlist(plistPath(path.join(extDir, e))) || {}).CFBundleIdentifier;
+    const rest = id && id.startsWith(parent + '.') ? id.slice(parent.length + 1) : null;
+    if (!rest || rest.includes('.') || !/^[A-Za-z0-9-]+$/.test(rest)) bad.push(`${e} = ${id}（宿主 ${parent}）`);
+  }
+  if (bad.length) {
+    console.error('✗ 扩展 bundle id 不合法 —— iOS 会拒装（IXUserPresentableErrorDomain）：');
+    for (const b of bad) console.error('    ' + b);
+    console.error('  父前缀之后**不能有点**。查 scripts/sync-app-assets.js 里 bundlePrefix 的推导。');
+    return false;
+  }
+  console.log(`✓ 扩展 bundle id 合法（${parent} + 一段无点后缀，共 ${exts.length} 个）`);
+  return true;
+}
+
+function checkBundleSymlinks(app) {
+  const bad = [];
+  const stack = [app];
+  while (stack.length) {
+    const d = stack.pop();
+    let entries;
+    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch (_) { continue; }
+    for (const e of entries) {
+      const p = path.join(d, e.name);
+      if (e.isSymbolicLink()) { if (!fs.existsSync(p)) bad.push(path.relative(app, p)); } // 悬空与自指循环都是 false
+      else if (e.isDirectory()) stack.push(p); // 不跟进符号链接：既防循环，也防走出 .app
+    }
+  }
+  if (bad.length) {
+    console.error(`✗ ${path.basename(app)} 里有 ${bad.length} 条悬空/自指符号链接（ITMS-90332：上传后 ASC 静默拒包）：`);
+    for (const b of bad.slice(0, 20)) console.error('    ' + b);
+    if (bad.length > 20) console.error(`    …还有 ${bad.length - 20} 条`);
+    console.error('  修法：node scripts/fetch-native-deps.js（解压后自动整理），然后重新归档。');
+    return false;
+  }
+  console.log(`✓ ${path.basename(app)} 无悬空/自指符号链接（ITMS-90332 门）`);
+  return true;
+}
+
+function main() {
+  // Gate B's "you cannot ship it" must hold for the iOS path too: SKIP_ZIP builds
+  // (e.g. MT_SYNC_E2E) leave a .not-shippable marker in dist/, and the Xcode
+  // project reads dist/ directly — so this check is the archive path's zip-refusal.
+  const marker = path.join(ROOT, 'dist', '.not-shippable');
+  if (fs.existsSync(marker)) {
+    console.log('✗ dist/ 带 .not-shippable 标记（' + fs.readFileSync(marker, 'utf8').trim() + '）');
+    console.log('  这是一个不可发布的构建 —— 归档/上传前先用正常参数重跑 node build.js。');
+    process.exit(1);
+  }
+
+  const distDir = path.join(ROOT, 'dist');
+  if (!fs.existsSync(distDir)) {
+    console.error('✗ no dist/ — run `node build.js` first');
+    process.exit(1);
+  }
+  const appex = findAppex(dd);
+  if (!appex) {
+    console.error(`✗ no .appex under ${dd} — build the iOS scheme first:\n` +
+      `    xcodebuild -scheme "BelliedMonkey Translator (iOS)" -derivedDataPath ${dd} ... build`);
+    process.exit(1);
+  }
+
+  const inDist = walk(distDir);
+  const inAppex = walk(resourceRoot(appex));
+  const missing = [...inDist].filter((f) => !inAppex.has(f)).sort();
+
+  if (missing.length) {
+    console.error(`✗ ${missing.length} file(s) in dist/ are NOT in the built extension:`);
+    for (const f of missing) console.error('    ' + f);
+    console.error('\nThe Xcode project references a file list captured when it was generated.\n' +
+      'Regenerate it, then rebuild:\n' +
+      '    xcrun safari-web-extension-converter dist --project-location ./safari-project \\\n' +
+      '      --app-name "BelliedMonkey Translator" --bundle-identifier com.belliedmonkeytranslator \\\n' +
+      '      --swift --no-open --no-prompt --force');
+    process.exit(1);
+  }
+  console.log(`✓ Safari bundle complete — all ${inDist.size} dist files present in ${path.basename(appex)}`);
+
+  const app = findApp(dd);
+  if (!app) {
+    console.error(`✗ no .app under ${dd} —— 找不到宿主 App，无法检查后台播放声明`);
+    process.exit(1);
+  }
+  if (!checkBackgroundAudio(app, appex)) process.exit(1);
+  if (!checkBundleSymlinks(app)) process.exit(1);
+  if (!checkExtensionIds(app)) process.exit(1);
+  if (!checkPbxprojDirs()) process.exit(1);
+}
+
+if (require.main === module) main();
+
+module.exports = { resourceRoot, findApp, plistPath, checkBackgroundAudio, checkPbxprojDirs, checkBundleSymlinks, checkExtensionIds };

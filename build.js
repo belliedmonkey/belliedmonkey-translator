@@ -1,0 +1,1526 @@
+#!/usr/bin/env node
+// build.js — Build and package the extension
+// Usage:
+//   node build.js                    → Chrome/Safari build, GLOBAL flavor (dist/)
+//   node build.js --flavor china     → Chrome/Safari build, CHINA flavor (dist-china/)
+//   node build.js firefox            → Firefox build (dist-firefox/)
+//
+// Flavor: GLOBAL ships Google/OpenAI/Claude/DeepSeek/GLM/Qwen/Kimi + custom.
+// CHINA ships domestic only (DeepSeek/GLM/Qwen/Kimi + brand-free custom endpoints)
+// and MUST contain no OpenAI/ChatGPT/Claude brand strings or api.openai.com /
+// api.anthropic.com endpoints (App Store Guideline 5). Enforced by the compliance
+// gate below. Provider set is the single source of truth in build/providers.config.js.
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const argv = process.argv.slice(2);
+const TARGET = argv.includes('firefox') ? 'firefox' : 'chrome';
+
+function readFlavor() {
+  const i = argv.findIndex((a) => a === '--flavor');
+  if (i >= 0 && argv[i + 1]) return argv[i + 1];
+  const kv = argv.find((a) => a.startsWith('--flavor='));
+  return kv ? kv.split('=')[1] : 'global';
+}
+const FLAVOR = readFlavor() === 'china' ? 'china' : 'global';
+
+const ROOT = __dirname;
+const SRC = path.join(ROOT, 'extension');
+const DIST = path.join(ROOT,
+  TARGET === 'firefox' ? 'dist-firefox' : (FLAVOR === 'china' ? 'dist-china' : 'dist'));
+const ZIP = path.join(ROOT,
+  TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi'
+    : (FLAVOR === 'china' ? 'belliedmonkeytranslator-china.zip' : 'belliedmonkeytranslator.zip'));
+
+// BEL-172 (P0 scrub): backend host / anon key are build-time values. The source carries
+// inert placeholders; this installs the injected config into the require cache so every
+// registry generated below sees the same values. With no env/`.local/backend.env`, the
+// build still succeeds but deliberately points at *.invalid — it cannot reach a real
+// backend, and `log` says so below.
+const backendInject = require('./build/backend-inject.js');
+const backendInjection = backendInject.install(ROOT);
+
+// Set to a reason string when the build is deliberately NOT shippable. dist/ is
+// still written (so it can be loaded unpacked for testing) but the packaged
+// artifact is withheld — see the Gate B escape hatch in validateManifest().
+let SKIP_ZIP = null;
+
+// RETIRED as of Gate B (v1.4.0, 2026-08-09): the source switch is now true, so
+// `MT_SYNC=on` is a no-op kept only so old muscle memory / scripts don't fail.
+// It used to flip the OUTPUT's `enabled` while the source stayed false — the
+// self-use TestFlight channel for builds 14–23.
+const SYNC_ON = process.env.MT_SYNC === 'on';
+
+// Single-occurrence flip of the shipping switch inside a module's TEXT.
+// Refuses to guess: zero or multiple matches fail the build, so a reshaped
+// backend.config.js cannot be silently half-flipped. Since Gate B this runs in
+// the OPPOSITE direction, for the CHINA flavor only: the China app is
+// unreleased and its data-export compliance (PIPL, cross-border) has not been
+// evaluated, so its artifact ships with sync OFF until that is its own gated
+// release decision.
+function flipSyncFlag(text, what, direction) {
+  const on = direction === 'on';
+  // **缩进是判据的一部分**（2026-09-08）。原来用的是裸子串 `enabled: true,`，
+  // 而免费额度那个块里也有一个 `enabled`（四格缩进）—— 今天它是 false 所以碰巧
+  // 只命中一处；G6 把它翻成 true 的那一刻，中国版构建会当场以「expected exactly one」
+  // 死掉，而报错指向的是同步开关，跟真正的原因隔着十万八千里。
+  // 顶层那个同步开关是**两格缩进**，只认它。
+  const re = on ? /^ {2}enabled: false,/m : /^ {2}enabled: true,/m;
+  const all = text.match(new RegExp(re.source, 'gm')) || [];
+  if (all.length !== 1) {
+    console.error(`✗ sync flip: expected exactly one top-level \`${re.source}\` in ${what}, got ${all.length}`);
+    process.exit(1);
+  }
+  return text.replace(re, on
+    ? '  enabled: true, // flipped at build time — NOT SHIPPABLE'
+    : '  enabled: false, // CHINA build: sync off until its own compliance gate (build.js)');
+}
+
+// 中国版只提供 Apple 登录（2026-09-03 用户裁定）。
+//
+// Google 在中国大陆连不上。留着那个按钮，对绝大多数中国版用户就是一个点了转圈然后
+// 失败的东西 —— 与这一轮反复在修的「点了没反应」是同一类，只是原因在网络那一侧。
+// 而「能不能连上」是**用户所在网络的事实**，客户端猜不出来，只能由 flavor 决定。
+//
+// 判据同 flipSyncFlag：**恰好一处**，多一处或没有都退出 —— 静默改错一处的代价是
+// 中国版包里留着一个死按钮，而拆包 grep 之前没人看得见。
+// ── 中国版的境内后端（§C）────────────────────────────────────────────────
+//
+// 读**源码树**那一份，不是产物 —— 判据要在改写之前就定下来，否则会读到自己刚写的值。
+function chinaBackend() {
+  const cfg = require('./extension/learn/backend.config.js');
+  return (cfg && cfg.china) || { ready: false, url: '', anonKey: '' };
+}
+function chinaBackendReady() {
+  const cn = chinaBackend();
+  return cn.ready === true && !!cn.url && !!cn.anonKey;
+}
+
+// 中国版额度的境内中继（方案 C，learning-design §8.10.1）。未就绪 → null（今天的值，
+// 产物与从前逐字相同）。**就绪却配错就让构建失败**，不静默退回 null —— 「以为发了额度、
+// 其实没有」与「以为原文在境内、其实在东京」都是看不出来的谎。
+function chinaGrant() {
+  const cfg = require('./extension/learn/backend.config.js');
+  const cn = (cfg.grant && cfg.grant.china) || {};
+  if (cn.ready !== true) return null;
+  const bad = (why) => { err('grant.china.ready=true 但 ' + why + ' —— 修好配置或把 ready 改回 false'); process.exit(1); };
+  if (!cfg.grant.enabled) bad('grant.enabled 是 false');
+  let u; try { u = new URL(cn.relayUrl); } catch (_) { bad('relayUrl 不是合法地址（' + JSON.stringify(cn.relayUrl) + '）'); }
+  if (u.protocol !== 'https:') bad('relayUrl 不是 https');
+  if (/\.supabase\.co$/i.test(u.hostname)) bad('relayUrl 在 *.supabase.co（那是东京，原文会出境）');
+  return { relayUrl: String(cn.relayUrl).replace(/\/+$/, ''), host: u.hostname,
+    vendor: cn.vendor || 'dashscope',
+    // 披露里的名字取注册表（一处真相）：qwen 条目的中国区 label。
+    vendorLabel: (() => { const q = require('./build/providers.config.js').find((p) => p.id === 'qwen');
+      return (q && q.label && (q.label.china || q.label)) || 'dashscope'; })() };
+}
+
+// 把产物里的 url / anonKey 换成境内那一套。
+//
+// 与 flipSyncFlag / limitProviders 同一条纪律：**恰好一处**，否则 exit(1)。
+// 一个静默的 0 处替换会产出一个「说自己是中国版、其实还在打东京」的包 ——
+// 那是这个仓库最贵的那类谎，而它在产物里完全看不出来。
+function switchBackend(text, what, cn) {
+  // 切之前的地址留在产物里（previousUrl）：bindCorpus 靠它认出「主库是在旧后端认领的」
+  // （learning-design §8.4.3「后端换了」）—— 否则老用户在新后端一登录，本机的卡就挂到一个再也登不上的身份下。
+  const prev = (/^  url: '([^']*)',/m.exec(text) || [])[1] || '';
+  text = text.replace(/^(  url: '[^']*',.*)$/m, `$1\n  previousUrl: '${prev}', // CHINA build: 切后端之前的地址（build.js）`);
+  const out = [['url', cn.url], ['anonKey', cn.anonKey]].reduce((acc, [key, val]) => {
+    // 只匹配**顶层**那一条（行首两个空格），不碰 china 块里的同名键（四个空格）。
+    const RE = new RegExp(`^  ${key}: '[^']*',`, 'm');
+    const hits = acc.match(new RegExp(RE.source, 'gm')) || [];
+    if (hits.length !== 1) {
+      console.error(`✗ backend switch: expected exactly one top-level \`${key}\` in ${what}, got ${hits.length}`);
+      process.exit(1);
+    }
+    return acc.replace(RE, `  ${key}: '${val}', // CHINA build: 境内后端（build.js）`);
+  }, text);
+  // 产物里不该再留着那个块 —— 它只是源码里的一个决策记录，进了包就是第二个可信来源。
+  return out.replace(/\n  china: \{[\s\S]*?\n  \},\n/, '\n');
+}
+
+function limitProviders(text, what, list) {
+  const NEEDLE = "providers: ['apple', 'google'],";
+  const first = text.indexOf(NEEDLE);
+  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
+    console.error(`✗ providers: expected exactly one \`${NEEDLE}\` in ${what}`);
+    process.exit(1);
+  }
+  return text.replace(NEEDLE,
+    `providers: ${JSON.stringify(list).replace(/"/g, "'")}, // CHINA build: Google 在大陆连不上（build.js）`);
+}
+
+// 默认引擎必须是**本 flavor 注册表里存在**的 id。
+//
+// 2026-08-22 实测:中国版出货包的默认是 `provider: 'google'`,而 google 的 flavors 是
+// ['global'],于是它在中国版注册表里根本不存在。运行时 `providerById` 返回 null,
+// `callProvider` 的 `!p` 分支静默落到 translate.googleapis.com —— 一份刚装好、没填
+// 任何 Key 的中国版,真的把 38 段译文翻了出来,输出与直接打 Google 的返回逐字相同。
+//
+// 而设置页的 <select> 里没有 google 这个选项,浏览器把它强制显示成第一项(DeepSeek),
+// 于是**界面写着 DeepSeek,实际发的是 Google**。国内用户那条地址还不通,一段段等到
+// 20 秒超时——就是「翻译中…」不动的形状。静默兜底 + 界面与运行时不一致,两样都占。
+function rewriteDefaultProvider(text, what, providerId) {
+  const NEEDLE = "provider: 'google',";
+  const first = text.indexOf(NEEDLE);
+  if (first < 0 || text.indexOf(NEEDLE, first + 1) >= 0) {
+    console.error(`✗ default provider rewrite: expected exactly one \`${NEEDLE}\` in ${what}`);
+    process.exit(1);
+  }
+  return text.replace(NEEDLE, `provider: '${providerId}', // CHINA build: google is not in this flavor's registry (build.js)`);
+}
+
+// 门禁:两个 flavor 都查。**一个 flavor 的默认值指向它自己注册表里没有的引擎,是错误**,
+// 而这种错误在构建期完全看得见——上面那个 bug 出货了才被真机发现,不该再有第二次。
+function defaultProviderGate(dir, label, flavor) {
+  const bg = fs.readFileSync(path.join(dir, 'background.js'), 'utf8');
+  const m = /provider:\s*'([a-z_]+)'/.exec(bg);
+  if (!m) { err(`${label}: 在 background.js 里找不到默认 provider`); return; }
+  const want = m[1];
+  const reg = require('./build/providers.config.js');
+  const ids = reg.filter((p) => p.flavors.includes(flavor)).map((p) => p.id);
+  if (!ids.includes(want)) {
+    err(`${label}: 默认引擎 '${want}' 不在 ${flavor} 注册表里(${ids.join(', ')})`
+      + ' —— 运行时会静默落到 translateGoogle');
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function copyDir(src, dst) {
+  fs.mkdirSync(dst, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const dstPath = path.join(dst, entry.name);
+    if (entry.isDirectory()) copyDir(srcPath, dstPath);
+    else if (entry.name.endsWith('.jsx')) continue;   // bundle 源码（domain-design §10）不进 dist
+    else fs.copyFileSync(srcPath, dstPath);
+  }
+}
+
+function log(msg) { console.log(`\x1b[32m✓\x1b[0m ${msg}`); }
+function err(msg) { console.error(`\x1b[31m✗\x1b[0m ${msg}`); }
+
+if (FLAVOR === 'china' && TARGET === 'firefox') { err('--flavor china is only for the Chrome/Safari build'); process.exit(1); }
+
+// ─── i18n bundle ────────────────────────────────────────────────────────────
+// chrome.i18n.getMessage is locked to the browser/OS locale and can't be switched
+// at runtime. To support a user-selectable UI language we ship a synchronous JS
+// table of all locale messages, consulted by t() before falling back to
+// chrome.i18n. Generated from _locales/ so it never drifts.
+
+// Chrome resolves `_locales/<dir>` ONLY for names on its supported-locale list, and it
+// fails silently: an unsupported directory is simply never read, so `__MSG_*` in the
+// manifest falls back to default_locale and the Chrome Web Store does not even offer that
+// language for a store listing. Nothing in the repo can tell you — `_locales/pt` shipped a
+// complete, key-identical, JSON-valid messages.json for three releases while Chrome ignored
+// every byte of it, and it was only caught by noticing the store dashboard said 10 languages
+// where the package had 11 (issue #65).
+//
+// So the directory names are a build gate, like version drift and data_collection_permissions.
+// List per https://developer.chrome.com/docs/extensions/reference/api/i18n — note there is no
+// bare `pt` (only pt_BR / pt_PT) and no bare `en_*` shortcuts beyond the ones below.
+const CHROME_LOCALES = new Set([
+  'am', 'ar', 'bg', 'bn', 'ca', 'cs', 'da', 'de', 'el', 'en', 'en_GB', 'en_US', 'es',
+  'es_419', 'et', 'fa', 'fi', 'fil', 'fr', 'gu', 'he', 'hi', 'hr', 'hu', 'id', 'it',
+  'ja', 'kn', 'ko', 'lt', 'lv', 'ml', 'mr', 'ms', 'nl', 'no', 'pl', 'pt_BR', 'pt_PT',
+  'ro', 'ru', 'sk', 'sl', 'sr', 'sv', 'sw', 'ta', 'te', 'th', 'tr', 'uk', 'vi',
+  'zh_CN', 'zh_TW',
+]);
+
+function generateI18nMessages(dir) {
+  const localesDir = path.join(dir, '_locales');
+  const out = {};
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    if (!CHROME_LOCALES.has(loc)) {
+      err(`_locales/${loc} is not a locale Chrome recognises — it would be silently ignored ` +
+          `(no bare "pt": use pt_BR / pt_PT). See issue #65.`);
+      process.exit(1);
+    }
+    let raw;
+    try { raw = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { err(`Bad JSON in _locales/${loc}/messages.json`); process.exit(1); }
+    const flat = {};
+    for (const [k, v] of Object.entries(raw)) { if (v && typeof v.message === 'string') flat[k] = v.message; }
+    out[loc] = flat;
+  }
+  const banner = '// AUTO-GENERATED by build.js from _locales/*/messages.json — do not edit by hand.\n';
+  const body = 'window.MT_I18N_MESSAGES = ' + JSON.stringify(out) + ';\n';
+  fs.writeFileSync(path.join(dir, 'content', 'i18n-messages.js'), banner + body);
+  log(`Generated content/i18n-messages.js (${Object.keys(out).length} locales)`);
+}
+
+// ─── Provider registry bundle (per flavor) ──────────────────────────────────
+// build/providers.config.js is the single source of truth. Filter it by flavor,
+// resolve per-flavor defaultBase/label to single values, and emit providers.gen.js
+// (window.MT_FLAVOR + window.MT_PROVIDERS) read by translation-api / options / popup.
+
+// Per-flavor resolution, shared by all three registry emitters. An authored value is
+// either a plain value or a { china, global } map; the map form is a WRITING
+// convenience, never something the runtime should see — domain-design §7's rule is
+// that region is decided at build time and never branches per request.
+function pickFlavor(flavor) {
+  return (v) => (v && typeof v === 'object' && !Array.isArray(v)) ? (v[flavor] ?? null) : (v ?? null);
+}
+
+function generateProviders(dir, flavor) {
+  const CONFIG = require('./build/providers.config.js');
+  const pick = pickFlavor(flavor);
+  const providers = CONFIG
+    .filter((p) => p.flavors.includes(flavor))
+    .map((p) => ({
+      id: p.id, type: p.type, label: pick(p.label), labelKey: p.labelKey || null,
+      defaultEndpoint: pick(p.defaultEndpoint), placeholder: p.placeholder || null,
+      // 跟 label / defaultEndpoint 一样支持 { china, global } 映射。原来它漏了 pick，
+      // 于是两个 flavor 只能共用一个模型名 —— 而同一家厂商的国内外平台完全可能上下架
+      // 不同的模型（实测 2026-08-21：moonshot 国际站已经没有 moonshot-v1-8k 了）。
+      defaultModel: pick(p.defaultModel) || '',
+      needsKey: !!p.needsKey, supportsBaseUrl: !!p.supportsBaseUrl,
+      supportsModel: !!p.supportsModel, requiresEndpoint: !!p.requiresEndpoint, hintKey: p.hintKey || null,
+      // §8.10：免费额度那一档。运行时靠它把中继排除出一键配置与所有下拉 ——
+      // 它没有可粘的 key（令牌是登录之后系统发的），出现在选择器里就是一个必然
+      // 配不成功的选项。生成器漏掉这个字段的话，运行时那道判断永远读到 undefined。
+      grantOnly: !!p.grantOnly,
+      // 「去哪儿申请这把 key」。按 flavor 取，同 defaultEndpoint / label。
+      keyUrl: pick(p.keyUrl) || null,
+      // 识图能力（§9.7）：true / false / 缺省=未知。缺省时不发这个键。
+      ...(p.vision === undefined ? {} : { vision: !!p.vision }),
+    }));
+  // The model-parameter table rides this same file rather than getting one of its own.
+  // providers.gen.js is already on every surface that resolves an endpoint (both
+  // content_scripts blocks, options, popup, review, and the app bundle), so riding it
+  // costs ZERO load-site edits — and a load site missed is the worst failure this table
+  // has: the runtime would silently see an empty table, fall back to minimal bodies
+  // everywhere, and never报错. (`palette.gen.js` is the precedent for one emitter
+  // carrying more than one global.)
+  //
+  // It inherits the flavor filter for free, which it needs: `api.openai.com`,
+  // `api.anthropic.com` and the bare id `openai` are the three strings in this table
+  // that the China compliance grep would hit.
+  //
+  // The output field list is an ALLOWLIST, same discipline as the providers map above —
+  // a field added to the config but not named here silently never reaches the runtime.
+  // Two deliberate omissions:
+  //   · `note` — maintainer evidence, not runtime data, and the field most likely to
+  //     carry a vendor's error prose verbatim. Keeping it out shrinks the brand surface
+  //     to `id` / `hosts` / `models`.
+  //   · `!!` coercion — `temperature` and `budget` are THREE-state (true / false /
+  //     absent). `!!e.temperature` would flatten "we don't know" into "not supported",
+  //     which is exactly the distinction this table exists to carry. JSON.stringify
+  //     drops `undefined` keys, which is precisely the encoding we want.
+  const PARAMS = require('./build/model-params.config.js');
+  const params = PARAMS
+    .filter((e) => e.flavors.includes(flavor))
+    .map((e) => ({
+      id: e.id,
+      hosts: (e.hosts || []).map((h) => String(h).toLowerCase()),
+      models: (e.models || []).map((m) => String(m).toLowerCase()),
+      temperature: 'temperature' in e ? e.temperature : undefined,
+      budget: 'budget' in e ? e.budget : undefined,
+      systemRole: e.systemRole || undefined,
+      reasoning: e.reasoning || undefined,
+    }));
+
+  const banner = '// AUTO-GENERATED by build.js from build/providers.config.js '
+    + '+ build/model-params.config.js — do not edit by hand.\n';
+  // 「这个构建编进同步了吗」。内容脚本要它 —— 官网试翻页上的交接块会说「登录之后
+  // 卡片才到 App」，而中国版扩展的登录入口是被整节 remove 掉的，那句话对他就是死路。
+  //
+  // 为什么不直接在内容脚本里加载 backend.config.js：那个文件带着后端地址与 anon key，
+  // 而内容脚本会注入到**每一个页面**。判据搭已经在场的 providers.gen.js 的车，只发
+  // 一个布尔值，凭证一个字节都不扩散。
+  //
+  // 判据取自 backend.config.js 的 enabled 本身（**按值，不按 flavor 名**）——
+  // 中国版那个 false 是 build 期翻的，所以这里读的是翻过之后的值，与
+  // onboard.js 的 syncOn、options.js 的 remove 分支永远一致。
+  // ⚠️ 行首锚定，且**必须恰好命中一次**。第一版写的是 /enabled:\s*true/，它把文件
+  // 第 25 行注释里的「enabled:true, sign-in included」也算了进去 —— 于是中国版包里
+  // 这个布尔值是 true，而它决定要不要对用户说「登录之后卡片才到 App」。
+  // 匹配不到就硬失败：一个静默取错的布尔值，比构建红一次贵得多。
+  const cfgSrc = fs.readFileSync(path.join(dir, 'learn', 'backend.config.js'), 'utf8');
+  // 缩进也是判据的一部分（2026-09-08）：免费额度那个块里也有一个 `enabled`
+  // （四格缩进），而这里要的是**顶层那一个同步开关**（两格）。原来的 `^\s*` 把两个
+  // 都吃了进来，于是加一个无关的嵌套开关就会让构建红 —— 更坏的是，如果哪天顺序反了，
+  // 它会安静地读到嵌套那一个，而这个布尔值决定要不要对用户说「登录之后卡片才到 App」。
+  const on = cfgSrc.match(/^ {2}enabled:\s*true,/gm) || [];
+  const off = cfgSrc.match(/^ {2}enabled:\s*false,/gm) || [];
+  if (on.length + off.length !== 1) {
+    console.error(`✗ MT_SYNC_ENABLED: ${dir}/learn/backend.config.js 里 enabled 声明有 `
+      + `${on.length + off.length} 处，期望恰好 1 处`);
+    process.exit(1);
+  }
+  const syncOn = on.length === 1;
+
+  // 默认目标语言。唯一来源是 translation-core.js 的 DEFAULT_TARGET_LANG，这里只是
+  // 把它搭 providers.gen.js 的车发给**没加载 translation-core.js 的面**（设置页、
+  // 引导页 —— 它们要用它决定「打开示例页面」去哪一页）。
+  // 匹配不到就硬失败，理由同上：一个静默取错的默认语言会把人送到语言不对的示例页。
+  const coreSrc = fs.readFileSync(path.join(dir, 'content', 'translation-core.js'), 'utf8');
+  const dtl = coreSrc.match(/DEFAULT_TARGET_LANG\s*=\s*'([\w-]+)'/);
+  if (!dtl) {
+    console.error('✗ MT_DEFAULT_TARGET_LANG: translation-core.js 里读不到 DEFAULT_TARGET_LANG');
+    process.exit(1);
+  }
+  // 匿名用量事件（docs/telemetry-design.md §4）：端点 + 白名单一起搭这辆车 —— 内容
+  // 脚本已经加载 providers.gen.js，而它们不能加载 backend.config.js（anon key）。这里
+  // 只发 URL，不发 key；边缘函数不校验 JWT。
+  // 两个 flavor 同一份白名单（BEL-135）。国际版打东京 MT_BACKEND.url；中国版打境内
+  // china.url + /functions/v1/bt-ingest。china.ready 未就绪才发 null（没有境内入口
+  // 就不指一个地址）。绝不把中国版指到 *.supabase.co。
+  const TELEMETRY = require('./build/telemetry.config.js');
+  const telemetrySpec = { common: TELEMETRY.COMMON, events: TELEMETRY.EVENTS, limits: TELEMETRY.LIMITS };
+  let telemetry = null;
+  if (flavor === 'china') {
+    if (chinaBackendReady()) {
+      const base = String(chinaBackend().url).replace(/\/+$/, '');
+      telemetry = { url: base + '/functions/v1/bt-ingest', spec: telemetrySpec };
+    }
+  } else {
+    const base = String(require('./extension/learn/backend.config.js').url).replace(/\/+$/, '');
+    telemetry = { url: base + '/functions/v1/bt-ingest', spec: telemetrySpec };
+  }
+  // 免费额度（learning-design §8.10）。搭同一辆车，理由同 telemetry：设置页与引导页
+  // 都已经加载 providers.gen.js，而它们不能加载 backend.config.js（里面有 anon key）。
+  //
+  // **中国版恒为 null**，且不是「关着」而是「不存在」：中国用户的原文会经东京中转，
+  // 而境内后端未就绪。中国版走的是另一条路（引导去领百炼官方的免费额度）。
+  // 全球版也要 `grant.enabled` 为真才发 —— 那个开关是 G6 的动作，前置是两站隐私
+  // 与 README 的 Gate F 文案同版上线。发 null 时客户端所有额度分支都取不到 spec，
+  // 行为与从前逐字相同。
+  const BK = require('./extension/learn/backend.config.js');
+  // 中国版：方案 C（§8.10.1）。只在 grant.china.ready 且地址合法时才有；领取与翻译都打
+  // 境内中继（中继代转领取），产物里一个东京的额度路径都没有 —— 合规门按这一条验。
+  const cnGrant = flavor === 'china' ? chinaGrant() : null;
+  const grantCfg = cnGrant ? {
+    vendor: cnGrant.vendor,
+    vendorLabel: cnGrant.vendorLabel,
+    limitUsd: BK.grant.limitUsd,
+    claimUrl: cnGrant.relayUrl + '/claim',
+    models: { chat: (providers.find((p) => p.id === 'grant') || {}).defaultModel || '' },
+  } : (flavor === 'china' || !BK.grant || !BK.grant.enabled) ? null : {
+    vendor: BK.grant.vendor,
+    vendorLabel: BK.grant.vendorLabel || BK.grant.vendor,   // 披露文案里的 {vendor}
+    limitUsd: BK.grant.limitUsd,
+    claimUrl: BK.url + '/functions/v1/bt-grant',
+    // 三个槽各自钉住的模型 —— 客户端要把它们写进配置，否则用注册表默认会撞上
+    // 服务端的 403 model_not_allowed。**这三个值必须与中继的 GRANT_MODELS 一致**，
+    // 判据是 `npm run grant:status` 那一行（它读的是中继 /spec 的实际回值）。
+    models: {
+      chat: (providers.find((p) => p.id === 'grant') || {}).defaultModel || '',
+    },
+  };
+  let body = `window.MT_GRANT = ${JSON.stringify(grantCfg)};\n`
+    + `window.MT_FLAVOR = ${JSON.stringify(flavor)};\n`
+    + `window.MT_VERSION = ${JSON.stringify(require('./package.json').version)};\n`
+    + `window.MT_TELEMETRY = ${JSON.stringify(telemetry)};\n`
+    + `window.MT_SYNC_ENABLED = ${JSON.stringify(syncOn)};\n`
+    + `window.MT_DEFAULT_TARGET_LANG = ${JSON.stringify(dtl[1])};\n`
+    + `window.MT_PROVIDERS = ${JSON.stringify(providers)};\n`
+    + `window.MT_MODEL_PARAMS = ${JSON.stringify(params)};\n`;
+  // 「哪些 host 有实测推荐」——同样搭 providers.gen.js 的车（理由同上：这个文件已经
+  // 在每一个需要它的面上加载了）。它只是一个**排序提示**：一键配置卡把有实测推荐的
+  // 平台排在前面，其余按注册表顺序。
+  //
+  // 唯一来源是 build/recommend.config.js，不新造第二份 —— 那张表已经有门禁守着
+  // （每个 (平台, 能力) 必须有 default 轴），而注册表顺序是历史形成的、不是推荐序。
+  // 只发 host，不发平台名/模型/理由：排序只需要 host，多发的每一个字段都是一块
+  // 会漂的副本，也是中国包里多一分品牌词面。
+  const recHosts = [];
+  for (const r of require('./build/recommend.config.js').PICKS) {
+    if (r.host && recHosts.indexOf(r.host) < 0) recHosts.push(r.host);
+  }
+  body += `window.MT_RECOMMENDED_HOSTS = ${JSON.stringify(recHosts)};\n`;
+  fs.writeFileSync(path.join(dir, 'content', 'providers.gen.js'), banner + body);
+  log(`Generated content/providers.gen.js (${flavor}: ${providers.map((p) => p.id).join(', ')}`
+    + ` · ${params.length} param rows)`);
+}
+
+// ─── Palette registry bundle ────────────────────────────────────────────────
+// build/palette.config.js is the single source of truth for every brand colour
+// (design/handoff.md §1). Emits the runtime JS module and the shared CSS token
+// sheet; legacyBrandGate() below refuses to ship the pre-2026-08 green.
+
+function generatePalette(dir) {
+  const P = require('./build/palette.config.js');
+  const banner = '// AUTO-GENERATED by build.js from build/palette.config.js — do not edit by hand.\n';
+  const body = `window.MT_PALETTE = ${JSON.stringify(P.runtime)};\n${P.roundBtnCssJs()}\n`;
+  fs.writeFileSync(path.join(dir, 'content', 'palette.gen.js'), banner + body);
+  fs.writeFileSync(path.join(dir, 'styles', 'organic-tokens.gen.css'), P.tokensCss());
+  log('Generated content/palette.gen.js + styles/organic-tokens.gen.css');
+}
+
+// The pre-rebrand green family must never ship again. Only the storage
+// migration in background.js may mention the legacy defaults (it retires them).
+// `label` distinguishes the two gated artifacts (dist and dist-app).
+function legacyBrandGate(dir, label, extraSrcDirs) {
+  const P = require('./build/palette.config.js');
+  // No blanket file exemptions — that shape was a hole (anything else in an
+  // exempted file shipped ungated). background.js instead gets an EXACT
+  // occurrence budget: precisely the one-shot migration's mention and nothing
+  // more. Everything else: zero.
+  const expected = { 'background.js': { '#0a7a3c': 1 } };
+  // Legacy colours in every spelling that has actually appeared in this repo:
+  // lowercase hex plus the rgba() triples the round buttons used pre-refactor.
+  const forbidden = [...P.forbiddenLegacy, '10,122,60', '10, 122, 60'];
+  const offenders = [];
+  const count = (text, needle) => text.split(needle).length - 1;
+  const scanFile = (p, rel) => {
+    const text = fs.readFileSync(p, 'utf8').toLowerCase();
+    const budget = expected[rel] || {};
+    for (const needle of forbidden) {
+      const n = count(text, needle);
+      if (n !== (budget[needle] || 0)) offenders.push(`${rel} (${needle} ×${n}, expected ${budget[needle] || 0})`);
+    }
+  };
+  const walk = (root, d) => {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(root, p); continue; }
+      if (!/\.(js|css|html|json|svg)$/.test(e.name)) continue;
+      // posix-normalized so the expected-budget keys match on every OS
+      scanFile(p, path.relative(root, p).split(path.sep).join('/'));
+    }
+  };
+  walk(dir, dir);
+  // dist-app's Script.js is a concatenation — scanning the SOURCES it is built
+  // from keeps per-file attribution instead of exempting the whole bundle.
+  for (const extra of extraSrcDirs || []) walk(extra, extra);
+  if (offenders.length) {
+    err(`Legacy brand colours in ${label}: ${offenders.join(', ')} — palette lives in build/palette.config.js`);
+    process.exit(1);
+  }
+
+  // Membership pin for the files that MUST keep literal brand hexes (page-injected
+  // CSS and the mascot can't read a JS registry; the page stylesheets keep only
+  // registry-known hexes). 2026-09-30（审计 OVL-01）：**页内注入层也进名单** ——
+  // 字幕叠层与控制菜单原先整片漏过门禁（`#ffb3b3` / `#d6d6d6` / `#4caf50` 就是这么
+  // 躲过 registry 的）；它们现在读 `window.MT_PALETTE`，这里只用来钉住「不许再冒出
+  // 未登记的 hex」。rgba() 字面量仍不受门禁约束（阴影等合法用法太多），改色搜注册表。
+  const pinned = ['styles/floating-button.css', 'styles/bilingual.css', 'icons/icon.svg',
+    'options/options.html', 'popup/popup.css', 'options/options.css', 'learn/review.css',
+    'content/subtitle-adapter.js', 'content/sub-menu.bundle.js',
+    'background.js'].filter((f) => fs.existsSync(path.join(dir, f)));
+  const known = new Set(
+    [...Object.values(P.ramps), ...Object.values(P.runtime), ...Object.values(P.migration)]
+      .filter((v) => typeof v === 'string' && v.startsWith('#'))
+      .map((v) => v.toLowerCase()));
+  ['#ffffff', '#000000'].forEach((n) => known.add(n));
+  const drift = [];
+  for (const f of pinned) {
+    const text = fs.readFileSync(path.join(dir, f), 'utf8').toLowerCase();
+    for (const hex of text.match(/#[0-9a-f]{6}\b/g) || []) {
+      if (!known.has(hex)) drift.push(`${f} (${hex})`);
+    }
+  }
+  if (drift.length) {
+    err(`Brand hex not in the palette registry: ${drift.join(', ')} — add it to build/palette.config.js or use a registry colour`);
+    process.exit(1);
+  }
+  log(`Palette gate OK (${label}: legacy budget exact; pinned files match the registry)`);
+}
+
+// ─── China: brand-free _locales ─────────────────────────────────────────────
+// Rewrites dist-china/_locales/*/messages.json so the manifest's __MSG__ resolves
+// to a China-safe description, and strips brand hint keys (hint_openai/hint_claude)
+// that are unused in China but would otherwise carry OpenAI/Claude strings past the
+// compliance gate. The i18n table is regenerated from these afterward.
+
+// Which message keys belong ONLY to entries the China bundle does not ship — so their
+// strings (which may name a brand) never reach the compliance gate.
+//
+// This used to be a hand-written list, `['hint_openai', 'hint_claude']`. That list was
+// correct for the provider registry and silently wrong the moment a SECOND registry
+// (speech engines) arrived with a brand hint of its own. Derive it from the registries
+// instead: a list a human must remember to extend is not a gate, it is a wish. The
+// derived set must match the old literal for providers — it does.
+function chinaOnlyStripKeys() {
+  const keysOf = (e) => [e.hintKey, e.labelKey].filter(Boolean);
+  const out = new Set(), kept = new Set();
+  for (const reg of [require('./build/providers.config.js'), require('./build/tts.config.js'), require('./build/stt.config.js')]) {
+    for (const e of reg) for (const k of keysOf(e)) (e.flavors.includes('china') ? kept : out).add(k);
+  }
+  // A key shared with an entry China DOES ship must survive.
+  return [...out].filter((k) => !kept.has(k));
+}
+
+// Brand words come from build/brands.js so a test can require them — see the note
+// there about why this cannot live in build.js.
+const { providerBrands } = require("./build/brands.js");
+
+// ─── Gate: the store description must not name providers (issue #69) ───────
+// `extension_description` had drifted to naming 4 of 9 providers — and the one it
+// omitted was `google`, the zero-config default every new user meets first. Completing
+// the list would only move the bug to the next registry change (and 9 names do not fit
+// a 132-character store summary anyway), so the description describes the CAPABILITY
+// and this gate keeps it that way.
+//
+// GLOBAL builds only. The China description is generated at build time from
+// descriptions.china.js and already has the forbidden-brand grep over dist-china/.
+function descriptionBrandGate(dir) {
+  const brands = providerBrands();
+  const localesDir = path.join(dir, '_locales');
+  const hits = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const desc = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message || '';
+    for (const b of brands) {
+      if (desc.toLowerCase().indexOf(b.toLowerCase()) >= 0) hits.push(`${loc}: "${b}" in ${JSON.stringify(desc.slice(0, 90))}`);
+    }
+  }
+  if (hits.length) {
+    err('extension_description names a provider — the registry is the single source of truth\n' +
+        '  (CLAUDE.md: never re-state a model name, endpoint or provider list in UI strings).\n' +
+        '  Describe the capability instead; the list will drift the moment the registry changes.\n' +
+        hits.map((h) => '   ' + h).join('\n'));
+    process.exit(1);
+  }
+  log(`Store description is provider-neutral (checked ${brands.length} brand tokens)`);
+}
+
+// ─── Gate: Apple caps the description at 112 characters ────────────────────
+// Apple's App Store Connect validator rejects the whole upload with
+//   "Invalid messages file … The description field must be present, of string type,
+//    and 112 or fewer characters long."
+// per offending locale. Chrome's store summary allows 132, which is what the #69
+// rewrite was checked against — so six locales sailed through every local gate, built
+// fine, installed fine on the simulator, and only failed at the TestFlight upload.
+// Nothing before that point can see it, which is exactly why it is a gate now.
+//
+// Runs for BOTH flavors: the China descriptions are generated at build time and are
+// just as capable of being too long.
+const DESC_MAX = 112;
+
+function descriptionLengthGate(dir) {
+  const localesDir = path.join(dir, '_locales');
+  const over = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const desc = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_description || {}).message;
+    if (typeof desc !== 'string' || !desc) { over.push(`${loc}: missing or not a string`); continue; }
+    const n = [...desc].length;
+    if (n > DESC_MAX) over.push(`${loc}: ${n} chars (max ${DESC_MAX}) — ${JSON.stringify(desc.slice(0, 60))}…`);
+  }
+  if (over.length) {
+    err(`extension_description exceeds Apple's ${DESC_MAX}-character limit — App Store Connect\n` +
+        `  rejects the upload, one error per locale, after a successful archive and export:\n` +
+        over.map((o) => '   ' + o).join('\n'));
+    process.exit(1);
+  }
+  log(`Store description within Apple's ${DESC_MAX}-char limit (all locales)`);
+}
+
+// extension_name 的上限是 **40**，不是 manifest 那个 45。
+//
+// 2026-08-29 撞到的：`altool --upload-app` 在归档成功、导出成功、上传走到最后才拒：
+//   Invalid messages file. The messages.json validation failed for locale pt_BR …
+//   The name field must be present, of string type, and 40 or fewer characters long.
+//
+// 它一次只报**一个** locale，所以「改完再传」会一个一个撞过去；而本地此前只有描述
+// 有门禁，名称一道都没有。五个 locale（de/en/es/pt_BR/ru）同时超标，全靠 Apple 的
+// 服务器告诉我们 —— 那是这条链上最慢、最贵的反馈点。
+//
+// 40 是 Safari Web Extension 的限制，比 Chrome manifest 的 45 更严。两个 flavor 都跑：
+// 中国版的名称不经 applyChinaLocales 替换，同样会原样进 App Store。
+const NAME_MAX = 40;
+
+function nameLengthGate(dir) {
+  const localesDir = path.join(dir, '_locales');
+  const over = [];
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const name = (JSON.parse(fs.readFileSync(f, 'utf8')).extension_name || {}).message;
+    if (typeof name !== 'string' || !name) { over.push(`${loc}: missing or not a string`); continue; }
+    // Apple 数的是字符不是字节，和它的报错口径一致（[...s] 而不是 s.length）。
+    const n = [...name].length;
+    if (n > NAME_MAX) over.push(`${loc}: ${n} chars (max ${NAME_MAX}) — ${JSON.stringify(name)}`);
+  }
+  if (over.length) {
+    err(`extension_name exceeds Apple's ${NAME_MAX}-character limit — the upload is rejected\n` +
+        `  AFTER a successful archive and export, and Apple reports only ONE locale per try:\n` +
+        over.map((o) => '   ' + o).join('\n'));
+    process.exit(1);
+  }
+  log(`Store name within Apple's ${NAME_MAX}-char limit (all locales)`);
+}
+
+function applyChinaLocales(dir) {
+  const DESC = require('./build/descriptions.china.js');
+  const STRIP_KEYS = chinaOnlyStripKeys();
+  const localesDir = path.join(dir, '_locales');
+  for (const loc of fs.readdirSync(localesDir)) {
+    const f = path.join(localesDir, loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const raw = JSON.parse(fs.readFileSync(f, 'utf8'));
+    let dirty = false;
+    if (raw.extension_description) {
+      // A locale with no China description must FAIL the build, not silently take the
+      // English `_default`. That fallback hid #70 for two weeks: `_locales/pt` was
+      // renamed `pt_BR` (#65) and `descriptions.china.js` kept the old `pt` key, so
+      // Portuguese users of the China build would have seen an English description —
+      // a compliant, brand-free, perfectly buildable wrong answer.
+      //
+      // `_default` stays, but now only as the last line of defence for a locale dir
+      // that appears without warning; on the normal path it is never reached, and if
+      // it ever is, this throws first. Deleting it instead would write `undefined`
+      // into messages.json, which is worse than an English fallback.
+      if (!DESC[loc]) {
+        err(`no China description for locale "${loc}" — add it to build/descriptions.china.js.\n` +
+            `  Falling back to English would ship a wrong description that still builds and still passes\n` +
+            `  the brand grep (that is exactly how #70 survived). Present keys: ${Object.keys(DESC).filter((k) => k !== '_default').join(', ')}`);
+        process.exit(1);
+      }
+      raw.extension_description.message = DESC[loc];
+      dirty = true;
+    }
+    for (const k of STRIP_KEYS) { if (raw[k]) { delete raw[k]; dirty = true; } }
+    if (dirty) fs.writeFileSync(f, JSON.stringify(raw, null, 2) + '\n');
+  }
+  log('Applied China-flavor locales (brand-free description + stripped brand hints)');
+}
+
+// ─── Compliance gate (China only) ───────────────────────────────────────────
+// Fails the build if any brand reference to OpenAI/ChatGPT/Claude or a global
+// endpoint leaks into the China bundle. `anthropic-version` (a protocol header for
+// the generic Messages format) is intentionally NOT flagged — it is not a brand
+// reference. See docs/domain-design.md.
+
+function complianceGateChina(dir, label) {
+  // 公仓只守通用不变量（品牌词 + 无 *.supabase.co），判据与证伪在 build/china-gate.js。
+  // 区域策略（境内 host 白名单 / MT_GRANT 形状 / grantOnly 端点）在 compliance 私仓的
+  // china-gate/ —— BEL-172 拆仓，见 BOUNDARY.md §4。
+  const G = require('./build/china-gate.js');
+  const files = [];
+  (function walk(d) {
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) { walk(p); continue; }
+      if (!/\.(m?js|json|html|css|txt)$/.test(e.name)) continue;   // .mjs 也扫（vendor pdf.js，2026-09-11）
+      files.push({ name: path.relative(dir, p), text: fs.readFileSync(p, 'utf8') });
+    }
+  })(dir);
+  const hits = G.scan(files);
+  if (hits.length) {
+    err(`China compliance gate FAILED — forbidden brand/endpoint references in ${label || 'dist-china'}/:`);
+    hits.slice(0, 30).forEach((h) => console.error('   ' + h));
+    process.exit(1);
+  }
+  log(`China compliance gate passed for ${label || 'dist-china'} (public invariant:`
+    + ' no OpenAI/ChatGPT/Claude brand, no *.supabase.co host)');
+}
+
+// ─── Speech (TTS) engine registry bundle ────────────────────────────────────
+// build/tts.config.js is the single source of truth for speech engines. Same shape
+// and same rules as generateProviders() above — a second capability, a second
+// registry, never a hardcoded list at a call site.
+
+function generateTts(dir, flavor) {
+  const CONFIG = require('./build/tts.config.js');
+  const pick = pickFlavor(flavor);
+  const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
+    id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
+    defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
+    defaultModel: e.defaultModel || '', voices: e.voices || null,
+    needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
+    supportsBaseUrl: !!e.supportsBaseUrl,
+    supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
+    returnsAudio: !!e.returnsAudio, hintKey: e.hintKey || null,
+  }));
+  const banner = '// AUTO-GENERATED by build.js from build/tts.config.js — do not edit by hand.\n';
+  fs.writeFileSync(path.join(dir, 'content', 'tts.gen.js'),
+    banner + `window.MT_TTS_ENGINES = ${JSON.stringify(engines)};\n`);
+  log(`Generated content/tts.gen.js (${flavor}: ${engines.map((e) => e.id).join(', ')})`);
+}
+
+// ─── Speech-input (transcription) engine registry bundle ────────────────────
+// build/stt.config.js is the single source of truth for transcription engines
+// (learning-design §9.4). Same shape and rules as generateTts() above — a third
+// capability, a third registry, never a hardcoded list at a call site.
+
+function generateStt(dir, flavor) {
+  const CONFIG = require('./build/stt.config.js');
+  const pick = pickFlavor(flavor);
+  const engines = CONFIG.filter((e) => e.flavors.includes(flavor)).map((e) => ({
+    id: e.id, type: e.type, label: pick(e.label), labelKey: e.labelKey || null,
+    grantOnly: !!e.grantOnly,                    // §8.10，同 providers 那一份的理由
+    defaultEndpoint: pick(e.defaultEndpoint), placeholder: e.placeholder || null,
+    defaultModel: e.defaultModel || '',
+    needsKey: !!e.needsKey, supportsKey: e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey,
+    supportsBaseUrl: !!e.supportsBaseUrl,
+    supportsModel: !!e.supportsModel, requiresEndpoint: !!e.requiresEndpoint,
+    hintKey: e.hintKey || null,
+    // §2.4 / §2.5: stored address for the large-file upload (Gemini Files API). The live*
+    // socket fields that sat here 2026-09-06 → 09-17 are gone with the cloud live tier —
+    // live transcription is the device recogniser, reached through the native bridge.
+    uploadEndpoint: e.uploadEndpoint || null,
+  }));
+  const banner = '// AUTO-GENERATED by build.js from build/stt.config.js — do not edit by hand.\n';
+  fs.writeFileSync(path.join(dir, 'content', 'stt.gen.js'),
+    banner + `window.MT_STT_ENGINES = ${JSON.stringify(engines)};\n`);
+  log(`Generated content/stt.gen.js (${flavor}: ${engines.map((e) => e.id).join(', ')})`);
+}
+
+// ─── Learnable-language registry bundle ─────────────────────────────────────
+// build/langs.config.js is the single source of truth for the learning-language
+// whitelist (learning-design §4.1). Not flavored: language names carry no brand.
+
+function generateLangs(dir) {
+  const CONFIG = require('./build/langs.config.js');
+  const langs = CONFIG.map((l) => ({
+    code: l.code, labelKey: l.labelKey || null, label: l.label, scripts: l.scripts || [],
+    // 「按住说」对方那个键的小字（2026-10-08）：**用那门语言写**，不随界面语言翻译。
+    // 漏了它右键就只剩一个大字、没告诉对方怎么用（P-01 当场抓到）。
+    pttHint: l.pttHint || '',
+  }));
+  const banner = '// AUTO-GENERATED by build.js from build/langs.config.js — do not edit by hand.\n';
+  fs.writeFileSync(path.join(dir, 'content', 'langs.gen.js'),
+    banner + `window.MT_LANGS = ${JSON.stringify(langs)};\n`);
+  log(`Generated content/langs.gen.js (${langs.map((l) => l.code).join(', ')})`);
+}
+
+// ─── Firefox manifest patch ────────────────────────────────────────────────
+
+function patchManifestForFirefox() {
+  const manifestPath = path.join(DIST, 'manifest.json');
+  const m = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  m.background = { scripts: ['background.js'] };
+  fs.writeFileSync(manifestPath, JSON.stringify(m, null, 2));
+  log('Patched manifest.json for Firefox (background.scripts)');
+}
+
+// ─── Generate icons ────────────────────────────────────────────────────────
+
+function generateIcons(distDir) {
+  const iconDir = path.join(distDir, 'icons');
+  const isPng = (p) => {
+    if (!fs.existsSync(p)) return false;
+    const fd = fs.openSync(p, 'r');
+    const buf = Buffer.alloc(8);
+    fs.readSync(fd, buf, 0, 8, 0);
+    fs.closeSync(fd);
+    return buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  };
+  const missing = [16, 48, 128]
+    .filter((s) => !isPng(path.join(iconDir, `icon${s}.png`)))
+    .map((s) => `icon${s}.png`);
+  if (missing.length) {
+    err(`Missing or non-PNG icons: ${missing.join(', ')} — regenerate from extension/icons/icon.svg`);
+    process.exit(1);
+  }
+  log('Icons OK (real PNG)');
+}
+
+// ─── default_locale 按 flavor ──────────────────────────────────────────────
+//
+// `chrome.i18n` 对**没有对应 _locales/<locale> 目录**的用户，回落到 default_locale。
+// 这个值一直是 zh_CN，于是每一个我们没做本地化的市场，装完看到的是中文界面。
+//
+// 2026-09-04 用下载数据量出了代价：IT 是 30 天下载量第 3 名（18 次，8.9%），而
+// `_locales/` 里没有 it；加上 TR 9 / VN 6 / PL 4，共 37 次 = 国际版的 21.5%。
+// 这些人打开的是一个中文界面的翻译扩展。（`node scripts/store-stats.js` 的
+// 「市场缺口」那一节会持续报这个数。）
+//
+// 所以它按 flavor 分叉，而不是一个常量：
+//   · global / firefox —— `en`。国际版发到 36 个国家，英文是唯一合理的兜底。
+//   · china            —— `zh_CN`。它只在中国区分发，兜底成英文纯属倒退。
+//
+// 门禁而不是约定：这个值改错了**不会报错**，只会让一个市场安静地读到另一种语言
+// —— 和 issue #65 那个「目录名 Chrome 不认识就静默忽略」是同一类病。
+function defaultLocaleGate(distDir, label, flavor) {
+  const want = flavor === 'china' ? 'zh_CN' : 'en';
+  const m = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf8'));
+  if (m.default_locale !== want) {
+    err(`${label}: default_locale is "${m.default_locale}", expected "${want}" for flavor ${flavor}`);
+    process.exit(1);
+  }
+  // 兜底语言自己必须存在，否则回落的目的地是个空目录 —— 那比回落到别的语言更糟。
+  if (!fs.existsSync(path.join(distDir, '_locales', want, 'messages.json'))) {
+    err(`${label}: default_locale "${want}" has no _locales/${want}/messages.json`);
+    process.exit(1);
+  }
+  log(`default_locale gate OK (${label}: ${want})`);
+}
+
+// ─── Validate manifest ─────────────────────────────────────────────────────
+
+function validateManifest(distDir, isFirefox) {
+  const m = JSON.parse(fs.readFileSync(path.join(distDir, 'manifest.json'), 'utf8'));
+  if (m.manifest_version !== 3) { err('manifest_version must be 3'); process.exit(1); }
+  if (isFirefox && !m.background?.scripts) { err('Firefox build missing background.scripts'); process.exit(1); }
+  if (!isFirefox && !m.background?.service_worker) { err('Chrome build missing background.service_worker'); process.exit(1); }
+  if (!m.browser_specific_settings?.gecko?.id) { err('Missing gecko.id (required for AMO)'); process.exit(1); }
+  // Firefox requires an explicit data-collection disclosure on every new AMO
+  // submission since 2025-11-03; AMO's validator hard-fails without it. Since Gate B
+  // (v1.4.0, 2026-08-09) the honest value is THREE entries: `websiteContent` (page /
+  // transcript text goes to the user's chosen provider, and captured sentences go to
+  // sync), `browsingActivity` (the sync source table is URL + title + time — §8.6:
+  // "the sensitive column is the URL"), and `personallyIdentifyingInfo` (the account
+  // is an email address). The exact-value check lives in the Gate B block below —
+  // this one only guards presence, which AMO itself enforces.
+  const dcp = m.browser_specific_settings?.gecko?.data_collection_permissions?.required;
+  if (!Array.isArray(dcp) || dcp.length === 0) {
+    err('Missing gecko.data_collection_permissions.required (AMO rejects the upload without it)');
+    process.exit(1);
+  }
+  // A version literal inside a translated string has as many copies as there are
+  // locales and tracks none of them: `about_line` said "v1.0.0" in all eleven while
+  // the manifest was 1.3.0, and nothing anywhere noticed. Same disease as a model
+  // name in a hint — one registry, N consumers (AGENTS.md).
+  for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+    const f = path.join(distDir, '_locales', loc, 'messages.json');
+    if (!fs.existsSync(f)) continue;
+    const msgs = JSON.parse(fs.readFileSync(f, 'utf8'));
+    for (const [k, v] of Object.entries(msgs)) {
+      if (/\bv?\d+\.\d+\.\d+\b/.test(String(v && v.message))) {
+        err(`_locales/${loc}/messages.json key "${k}" hardcodes a version: ` +
+            `"${v.message}"\nRender it from chrome.runtime.getManifest().version instead — ` +
+            `a version inside a translation has N copies and tracks none of them.`);
+        process.exit(1);
+      }
+    }
+  }
+
+  // ─── Sync flag ↔ privacy promise, coupled mechanically ───────────────────
+  // learning-design.md §10 Gate B. Turning sync on makes four sentences false at
+  // once ("no account", "we receive nothing", "never uploaded", "no servers of
+  // ours in the middle" as applied to the corpus). Every one of them is somewhere
+  // a build cannot see — the README, a website, a store listing — so the only
+  // thing that can be checked here is the one that lives in this repo. A promise
+  // whose upkeep depends on someone remembering at release time is the kind that
+  // gets broken; this makes forgetting fail the build instead.
+  const backend = require('./extension/learn/backend.config.js');
+
+  // ── Gate F（docs/learning-design.md §10；2026-09-08）─────────────────────
+  //
+  // 免费额度是**整个产品里唯一一条用户文本会经过我们服务器的路**。所以它的披露
+  // 与开关必须同版上线 —— 而「同版」这件事靠人记着是不成立的（Gate B 与 Gate D
+  // 都为此立过同样形状的门）。
+  //
+  // 两个方向都查：
+  //   · 开关翻了而披露没跟上 ⇒ 我们在没有告知的情况下让用户的文本经过了我们。
+  //   · 中国版产物里出现额度的任何痕迹 ⇒ 那个 flavor 恒不提供它（已在合规门里查）。
+  // 只查一个方向的话，把披露整段删掉也能过。
+  const grant = backend.grant || {};
+  if (grant.enabled) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    // 词干而不是整句：整句一改标点就漏，而词干在的话那一段一定在。
+    if (!/free credit/i.test(rdEn)) miss.push('README.md 没有免费额度的披露（Gate F）');
+    if (!/免费额度/.test(rdZh)) miss.push('README.zh-CN.md 没有「免费额度」的披露（Gate F）');
+    // 每一门 locale 都要有那段披露，且**必须提到「经过我们的服务器」这件事**。
+    // 只查键在不在的话，写一句「有免费额度可以领」也能过，而那正是要防的那种话。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.grant_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 grant_privacy（Gate F）`); continue; }
+      if (!v.includes('{vendor}')) miss.push(`_locales/${loc} 的 grant_privacy 没有 {vendor} 占位符`);
+      if (v.length < 80) miss.push(`_locales/${loc} 的 grant_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    if (miss.length) {
+      err('Gate F FAILED —— grant.enabled 已翻，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate F：README ×2、两个站点、12 份 locale、商店隐私标签');
+      process.exit(1);
+    }
+    log('Gate F OK（免费额度的披露与开关同版）');
+  }
+
+  // ── Gate G（docs/learning-design.md §10；2026-09-11）─────────────────────
+  //
+  // 文档翻译是一个**新披露面**：用户上传的文件内容（不是网页、不是麦克风）。披露与功能
+  // 必须同版上线，判据形状与 Gate F 相同：产物里有阅读器 ⇒ README ×2 有那一段、12 份
+  // locale 有页内那一句。只查键在不在的话，一句「支持翻译文档」也能过 —— 所以还要它
+  // 提到「按你点开的页」这件事（整份一次发出去正是这段披露否认的）。
+  if (fs.existsSync(path.join(distDir, 'learn', 'doc-view.js'))) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/files you upload|documents? you upload/i.test(rdEn)) miss.push('README.md 没有「上传的文档」的披露（Gate G）');
+    if (!/上传的\s*(文档|PDF)/.test(rdZh)) miss.push('README.zh-CN.md 没有「上传的文档」的披露（Gate G）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of ['doc_privacy', 'doc_privacy_grant']) {
+        const v = String(m[k]?.message || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate G）`); continue; }
+        if (v.length < 60) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一段完整披露`);
+      }
+    }
+    if (miss.length) {
+      err('Gate G FAILED —— 产物带着文档翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate G：README ×2、两个站点、12 份 locale、商店问卷复核');
+      process.exit(1);
+    }
+    log('Gate G OK（文档翻译的披露与功能同版）');
+  }
+
+  // ── Gate H（docs/learning-design.md §10；2026-09-12）─────────────────────
+  //
+  // 设备内置转写 / 朗读是又一个新披露面，而且**方向与 Gate E 相反**：音频不出设备，出设备的是
+  // 文字（去用户自己配置的翻译引擎），外加一次离线模型下载。判据形状同 Gate G：App 包里有本机
+  // 语音的桥 ⇒ README ×2 有那一段、12 份 locale 有页内那一句。只查键在不在的话一句「支持本机
+  // 转写」也能过 —— 所以英文要提 on-device transcription，中文要提「设备内置转写」，且 locale
+  // 那句要够长像一段完整披露。
+  if (fs.existsSync(path.join(__dirname, 'app', 'native-speech.js'))) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/on-device transcription/i.test(rdEn) || !/never sent to any server/i.test(rdEn)) miss.push('README.md 没有「设备内置转写」的披露（Gate H）');
+    if (!/设备内置转写/.test(rdZh) || !/不发往任何服务器/.test(rdZh)) miss.push('README.zh-CN.md 没有「设备内置转写」的披露（Gate H）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.listen_device_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 listen_device_privacy（Gate H）`); continue; }
+      if (v.length < 60) miss.push(`_locales/${loc} 的 listen_device_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    if (miss.length) {
+      err('Gate H FAILED —— App 带着设备内置转写/朗读，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate H：README ×2、两个站点、12 份 locale、NSMicrophoneUsageDescription');
+      process.exit(1);
+    }
+    log('Gate H OK（设备内置转写/朗读的披露与功能同版）');
+  }
+
+  // ── Gate I（docs/learning-design.md §10；2026-09-14，随 Mac 原生开始回 audio-caps 一起上）──────────
+  //
+  // 实时字幕听的是「这台设备正在播放的声音」—— 又一个新披露面。App 页用着 subtitle_privacy ⇒
+  // README ×2 有那一段（英文提 Live Subtitles 且说「不录音不保存」，中文同）、12 份 locale 有页内那句、
+  // macOS 的系统录音权限说明在 sync-app-assets 的 plist 行里（缺了它系统弹窗没有说明句，审核会问）。
+  // PR6c：条件源随 listen 页迁移换锚点（app/listen.js → src/app/listen-model.js），不变量不丢：
+  // 只要页里用着 subtitle_privacy，README ×2 与 12 份 locale 的披露就必须在。
+if (fs.readFileSync(path.join(__dirname, 'src', 'app', 'listen-model.js'), 'utf8').includes("'subtitle_privacy'")) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/Live Subtitles/.test(rdEn) || !/nothing is recorded or saved/i.test(rdEn)) miss.push('README.md 没有「实时字幕」（Live Subtitles）的披露（Gate I）');
+    if (!/实时字幕/.test(rdZh) || !/不录音、不保存/.test(rdZh)) miss.push('README.zh-CN.md 没有「实时字幕」的披露（Gate I）');
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const v = String(m.subtitle_privacy?.message || '');
+      if (!v) { miss.push(`_locales/${loc} 缺 subtitle_privacy（Gate I）`); continue; }
+      if (v.length < 60) miss.push(`_locales/${loc} 的 subtitle_privacy 只有 ${v.length} 字 —— 不像一段完整披露`);
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'NSAudioCaptureUsageDescription', only: 'macOS \(App\)'/.test(sync)) miss.push('scripts/sync-app-assets.js 没有只给 macOS 的 NSAudioCaptureUsageDescription 行（Gate I）');
+    if (miss.length) {
+      err('Gate I FAILED —— App 带着实时字幕，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate I：README ×2、两个站点、12 份 locale、NSAudioCaptureUsageDescription');
+      process.exit(1);
+    }
+    log('Gate I OK（实时字幕的披露与功能同版）');
+  }
+
+  // ── Gate J-1（docs/learning-design.md §10；2026-09-19，随 Mac 快速翻译 1.13.0 一起上）──────────────
+  //
+  // 快速翻译把「你在别的 App 里、或从屏幕上交给我们的文字」发给用户配置的引擎 —— 又一个新披露面。而且这一面
+  // **没有系统的用途说明键**：增强取词（PostEvent）与截图（录屏）的系统弹窗里没有我们的一个字，披露全靠产品里那几句 ×12
+  // （缺一个语种 = 1.12.1 国际 iOS 被拒的同一类问题）。App 页用着 quick_enh_explain_does ⇒ README ×2 有那一段、
+  // 12 份 locale 六个键齐且不是半句话、macOS 的 NSServices 条目带 NSRequiredContext（不带 ⇒ 服务登记了却默认不启用、无报错）。
+  // J-2（iPhone 系统翻译）未出货，它的判据等那条线落地时再加 —— 两个判据各自独立，见 §10。
+  if (fs.readFileSync(path.join(__dirname, 'app', 'quick-host.js'), 'utf8').includes("'quick_enh_explain_does'")) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/Quick Translate/.test(rdEn) || !/restores your clipboard/i.test(rdEn) || !/screenshot is not saved/i.test(rdEn) || !/concealed/i.test(rdEn)) miss.push('README.md 没有「快速翻译」（Quick Translate）的完整披露（Gate J-1）');
+    if (!/快速翻译/.test(rdZh) || !/剪贴板恢复原样/.test(rdZh) || !/截图不保存/.test(rdZh) || !/标记为隐藏/.test(rdZh)) miss.push('README.zh-CN.md 没有「快速翻译」的完整披露（Gate J-1）');
+    const J1_KEYS = ['quick_enh_explain_does', 'quick_enh_explain_doesnt', 'quick_shot_perm_explain', 'quick_shot_perm_second', 'quick_shot_cloud_note', 'quick_clip_concealed'];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of J1_KEYS) {
+        const v = String(m[k]?.message || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate J-1）`); continue; }
+        if (v.length < 20) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一句完整披露`);
+      }
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'NSServices', only: 'macOS \(App\)'/.test(sync)) miss.push('scripts/sync-app-assets.js 没有只给 macOS 的 NSServices 行（Gate J-1）');
+    if (!/<key>NSRequiredContext<\/key>/.test(sync)) miss.push('NSServices 条目没有 NSRequiredContext —— 服务会「已登记、默认不启用、无报错」（Gate J-1）');
+    if (miss.length) {
+      err('Gate J-1 FAILED —— App 带着快速翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate J-1：README ×2、两个站点、12 份 locale 六个键、NSServices + NSRequiredContext');
+      process.exit(1);
+    }
+    log('Gate J-1 OK（快速翻译的披露与功能同版）');
+  }
+
+  // ── Gate J-2（docs/learning-design.md §10；随 iPhone 线 I-8 出货）────────────────────────────
+  //
+  // 系统翻译把「你在别的 App 里选中的文字」发给用户配置的引擎 —— 第二个新披露面。
+  // 与 J-1 一样没有系统的用途说明键可借：系统那页一次性告知只说「发送给<这个 App>」，
+  // 没说「发给你配置的引擎」，更没说免费额度那条路经我们中转。所以披露全靠产品里那两句 ×12。
+  //
+  // 判据：弹层用着 sys_disclose_direct ⇒ README ×2 有「系统翻译」那一段、12 份 locale 的键齐
+  // 且不是半句话、联网键在**宿主 App** 的 plist 而不在扩展的（T1 读数：放错 ⇒ 扩展里所有请求
+  // -1009，而且不报权限错误）。J-1 与 J-2 各自独立：两个面不同版出货，隐私文案必须与那一版
+  // 真的有的功能逐字对得上。
+  if (fs.readFileSync(path.join(__dirname, 'app', 'native', 'translate-ext', 'TranslateExt.swift'), 'utf8').includes('sys_disclose_direct')) {
+    const miss = [];
+    const rdEn = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    const rdZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (!/System translation/i.test(rdEn) || !/never passes through our servers/i.test(rdEn) || !/Default Translation App/i.test(rdEn)) miss.push('README.md 没有「系统翻译」（System translation）的完整披露（Gate J-2）');
+    if (!/系统翻译/.test(rdZh) || !/不经过我们的服务器/.test(rdZh) || !/默认翻译/.test(rdZh)) miss.push('README.zh-CN.md 没有「系统翻译」的完整披露（Gate J-2）');
+    const J2_KEYS = ['sys_disclose_direct', 'sys_disclose_grant', 'sys_fail_needs_setup', 'sys_fail_not_synced', 'systrans_intro', 'systrans_capture_hint'];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      for (const k of J2_KEYS) {
+        const v = String((m[k] && m[k].message) || '');
+        if (!v) { miss.push(`_locales/${loc} 缺 ${k}（Gate J-2）`); continue; }
+        if (v.length < 20) miss.push(`_locales/${loc} 的 ${k} 只有 ${v.length} 字 —— 不像一句完整披露`);
+      }
+      if (m.sys_disclose_direct && !String(m.sys_disclose_direct.message).includes('{name}')) {
+        miss.push(`_locales/${loc} 的 sys_disclose_direct 丢了 {name} —— 披露里说不出是哪个引擎`);
+      }
+    }
+    const sync = fs.readFileSync(path.join(__dirname, 'scripts', 'sync-app-assets.js'), 'utf8');
+    if (!/key: 'com\.apple\.developer\.translation-ui-provider\.network-access', only: 'iOS \(App\)'/.test(sync)) {
+      miss.push('联网键不在宿主 App 的 Info.plist（Gate J-2）—— 放在扩展的 plist 里，扩展的每一个请求都会 -1009 且不报权限错');
+    }
+    if (/plist:[\s\S]{0,400}network-access/.test(sync)) miss.push('扩展自己的 plist 里不该有联网键（Gate J-2）');
+    if (miss.length) {
+      err('Gate J-2 FAILED —— App 带着系统翻译，但披露没有同版上线：');
+      miss.slice(0, 20).forEach((x) => console.error('   ' + x));
+      console.error('   见 docs/learning-design.md §10 Gate J-2：README ×2、两个站点、12 份 locale、联网键在宿主 App 的 plist');
+      process.exit(1);
+    }
+    log('Gate J-2 OK（系统翻译的披露与功能同版）');
+  }
+
+  if (backend.enabled) {
+    // Gate B is LIVE (v1.4.0): the switch is on, so this block now guards the
+    // opposite direction — no stale "never uploaded / no account" sentence may
+    // survive anywhere the repo can see. Three checks, each a real incident
+    // class: the English README (the original gate), the Chinese README (was
+    // ungated and shipped without even the Gate A bullet), and the in-product
+    // learn_section_hint × 11 locales (README row 3's UI twin, was ungated).
+    const staleHits = [];
+    const readme = fs.readFileSync(path.join(__dirname, 'README.md'), 'utf8');
+    if (readme.includes('**No account, no tracking, no telemetry.**')) {
+      staleHits.push('README.md: "No account, no tracking, no telemetry"');
+    }
+    if (readme.includes('it is never uploaded')) {
+      staleHits.push('README.md: "it is never uploaded"');
+    }
+    const readmeZh = fs.readFileSync(path.join(__dirname, 'README.zh-CN.md'), 'utf8');
+    if (readmeZh.includes('无账号、无追踪、无遥测')) {
+      staleHits.push('README.zh-CN.md: 「无账号、无追踪、无遥测」');
+    }
+    // ── Gate D（docs/learning-design.md §10；2026-09-05）：匿名用量事件上线之后，
+    // 「no telemetry / 无遥测」在两份 README 里都是假话；反过来，「anonymous usage /
+    // 匿名用量」这句必须在。两个方向都查：只查反向，删掉整段也能过。
+    if (/no telemetry/i.test(readme)) staleHits.push('README.md: still says "no telemetry" (Gate D)');
+    if (!/anonymous usage/i.test(readme)) staleHits.push('README.md: no "anonymous usage" disclosure (Gate D)');
+    if (/无遥测/.test(readmeZh)) staleHits.push('README.zh-CN.md: 仍写着「无遥测」(Gate D)');
+    if (!/匿名用量/.test(readmeZh)) staleHits.push('README.zh-CN.md: 没有「匿名用量」的披露 (Gate D)');
+    // 产品内的开关与说明：每一门 locale 都要有，且说明不能是开关那一句的复读。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const tog = String(m.telemetry_toggle?.message || '');
+      const hint = String(m.telemetry_hint?.message || '');
+      if (!tog || !hint || hint === tog) staleHits.push(`_locales/${loc} 缺 telemetry_toggle / telemetry_hint（Gate D）`);
+    }
+    // ── 正向判据：每一门 locale 的 hint 都必须**提到同步** ──────────────────
+    //
+    // 下面那张 FALSE_CLAIMS 是**逐语言手写的谎言指纹**，写它的时候有 11 门语言而它
+    // 只覆盖 7 门（ko / ar / pt_BR / ru 从一开始就漏）。2026-09-04 加了 hi 之后变成
+    // 12 缺 5 —— 而这个仓库自己有一句话说这种东西：**「a list a human must remember
+    // to extend is not a gate, it is a wish」**。
+    //
+    // 所以补一条**语言无关、且不需要任何新表**的正向判据：那句 hint 必须含有本 locale
+    // 自己的「同步」这个词 —— 而那个词 `app_sync` 已经在同一个 messages.json 里。
+    // 两个 key 同源，所以**新增第 13 门语言会自动被覆盖**，没有谁要记得去扩哪张表。
+    //
+    // 取**前 8 个码点做词干**而不是整词：词形变化改的是词尾不是词干
+    // （de Synchronisieren→Synchronisierung · es Sincronizar→sincronización ·
+    //  ru Синхронизировать→синхронизацию）。实测 12 门全覆盖。
+    // 若将来某门语言的词干比这更短而落空，它会**变红**而不是静默放行 —— 失败方向是对的。
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const m = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const hint = String(m.learn_section_hint?.message || '');
+      const word = String(m.app_sync?.message || '');
+      if (!hint || !word) { staleHits.push(`_locales/${loc} 缺 learn_section_hint 或 app_sync`); continue; }
+      const stem = [...word].slice(0, 8).join('').toLowerCase();
+      if (!hint.toLowerCase().includes(stem)) {
+        staleHits.push(`_locales/${loc} learn_section_hint 没提到同步（找「${stem}」）`
+          + ' —— 不带同步限定的「不上传」在同步上线那天就是假话');
+      }
+    }
+
+    // 负向判据（保留，与上面互补）：已知的几种「无条件承诺不上传」的写法。
+    // 它只覆盖 7 门，所以**不能单独作数** —— 上面那条才是覆盖全部 locale 的那一条。
+    const FALSE_CLAIMS = [
+      /不会上传/, /不會上傳/, /Nothing is uploaded, and/, /アップロードは一切行われず/,
+      /Nichts wird hochgeladen, und/, /No se sube nada\./, /Rien n'est envoyé\./,
+    ];
+    for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
+      const f = path.join(distDir, '_locales', loc, 'messages.json');
+      if (!fs.existsSync(f)) continue;
+      const hint = String(JSON.parse(fs.readFileSync(f, 'utf8')).learn_section_hint?.message || '');
+      if (FALSE_CLAIMS.some((re) => re.test(hint))) {
+        staleHits.push(`_locales/${loc} learn_section_hint still claims no-upload`);
+      }
+    }
+    // The declaration must be the full Gate B value, not merely present.
+    const WANT_DCP = ['websiteContent', 'browsingActivity', 'personallyIdentifyingInfo'];
+    // technicalAndInteraction：匿名用量事件（Gate D，2026-09-05）。AMO 的校验器**只允许它出现在
+    // optional 里**（放进 required 会被拒：must be equal to one of the allowed values —— 09-05 实测）。
+    // 与产品内那个开关的语义一致：可关的东西就该是 optional。
+    const WANT_DCP_OPT = ['technicalAndInteraction'];
+    const dcpOpt = m.browser_specific_settings?.gecko?.data_collection_permissions?.optional;
+    if (JSON.stringify((dcpOpt || []).slice().sort()) !== JSON.stringify(WANT_DCP_OPT.slice().sort())) {
+      staleHits.push(`gecko.data_collection_permissions.optional is [${dcpOpt}] — Gate D requires exactly [${WANT_DCP_OPT}]`);
+    }
+    if (JSON.stringify((dcp || []).slice().sort()) !== JSON.stringify(WANT_DCP.slice().sort())) {
+      staleHits.push(`gecko.data_collection_permissions.required is [${dcp}] — Gate B requires exactly [${WANT_DCP}]`);
+    }
+    if (staleHits.length) {
+      // Escape hatch for end-to-end verification, and ONLY that: it forbids the
+      // shippable artifact instead of weakening the invariant — dist/ is built
+      // (loadable unpacked) but no .zip, and a .not-shippable marker blocks the
+      // iOS archive path via verify:ios.
+      if (process.env.MT_SYNC_E2E === '1') {
+        SKIP_ZIP = 'sync enabled with stale privacy copy (MT_SYNC_E2E)';
+        log(`\x1b[33mGate B bypassed for E2E testing — no .zip will be produced.\x1b[0m`);
+      } else {
+        err(`sync is enabled (learn/backend.config.js) but stale privacy copy survives:\n` +
+            staleHits.map((s) => `  · ${s}`).join('\n') + `\n` +
+            `Every one of these is false the moment an account exists — see ` +
+            `docs/learning-design.md §10 Gate B.\n` +
+            `To build a test bundle without shipping one: MT_SYNC_E2E=1 node build.js`);
+        process.exit(1);
+      }
+    }
+  }
+
+  // The extension version (manifest) and the repo version (package.json) are bumped
+  // by the same release step and must not drift — they silently did through 1.1.0.
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8')).version;
+  if (m.version !== pkgVersion) {
+    err(`version drift: manifest.json ${m.version} != package.json ${pkgVersion} — bump both`);
+    process.exit(1);
+  }
+  log('manifest.json valid');
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────
+
+const isFirefox = TARGET === 'firefox';
+console.log(`\n\x1b[1mBuilding Mobile Translator — ${isFirefox ? 'Firefox' : 'Chrome/Safari'} · flavor: ${FLAVOR}\x1b[0m\n`);
+
+// Clean
+if (fs.existsSync(DIST)) fs.rmSync(DIST, { recursive: true });
+if (fs.existsSync(ZIP)) fs.unlinkSync(ZIP);
+
+// Regenerate committed source bundles (always GLOBAL into extension/, so the
+// source tree never flips per flavor). China overrides them in DIST after copy.
+generateI18nMessages(SRC);
+generateProviders(SRC, 'global');
+generateTts(SRC, 'global');
+generateStt(SRC, 'global');
+generateLangs(SRC);
+generatePalette(SRC);
+
+// Copy sources
+copyDir(SRC, DIST);
+log(`Copied extension sources → ${path.basename(DIST)}/`);
+
+// BEL-172: inject the real backend host/anon key into the copied config (placeholders
+// stay when no values were supplied). This must run before the china override below,
+// because switchBackend reads the dist copy and swaps the top-level url/anonKey.
+backendInject.applyToDir(DIST, ROOT);
+if (backendInjection.values.injected) {
+  log('Backend host/key injected from env or .local/backend.env');
+} else {
+  log('\x1b[33mBackend: placeholders only (no MT_BACKEND_* / .local/backend.env) — this build cannot reach a real backend\x1b[0m');
+}
+
+// MT_SYNC=on retired (Gate B): sync is on in source. Warn instead of failing so
+// old scripts keep working, but make clear nothing special happened.
+if (SYNC_ON) {
+  log('\x1b[33mMT_SYNC=on is a no-op since v1.4.0 — sync is publicly enabled in source (Gate B).\x1b[0m');
+}
+
+// Flavor overrides applied to DIST only
+if (FLAVOR === 'china') {
+  applyChinaLocales(DIST);
+  // 兜底语言跟着 flavor 走 —— 源里是 en（国际版发 36 个国家），中国版只在中国区
+  // 分发，回落成英文纯属倒退。判据在 defaultLocaleGate。
+  {
+    const mp = path.join(DIST, 'manifest.json');
+    const mm = JSON.parse(fs.readFileSync(mp, 'utf8'));
+    mm.default_locale = 'zh_CN';
+    fs.writeFileSync(mp, JSON.stringify(mm, null, 2));
+    // 打印**回读**的值，不是写死的字面量 —— 一句写死的日志在赋值被改坏时照样说
+    // 「-> zh_CN」，那正是这个仓库最贵的那类谎。
+    log('China: default_locale -> '
+      + JSON.parse(fs.readFileSync(mp, 'utf8')).default_locale);
+  }
+  generateI18nMessages(DIST);      // rebuild i18n table from the scrubbed China locales
+  // Sync OFF in the China artifact (source stays true): the China app is
+  // unreleased and PIPL/cross-border compliance is unevaluated. Its own Gate,
+  // its own release decision — see backend.config.js header.
+  //
+  // ⚠️ **必须排在 generateProviders 之前。** providers.gen.js 现在还发一个
+  // window.MT_SYNC_ENABLED，而它是**读**这个文件的 enabled 得来的（按值，不按
+  // flavor 名）。翻在后面的话，中国版包里那个布尔值会是 true —— 而它决定官网试翻页
+  // 上要不要说「登录之后卡片才到 App」，对一个连登录入口都被 remove 掉的构建，
+  // 那句话是死路。
+  const cfgPath = path.join(DIST, 'learn', 'backend.config.js');
+  // 两条路，由 backend.config.js 的 `china.ready` 选 —— **按值，不按 flavor 名**，
+  // 与这个文件里其它 flavor 判据同一条纪律。
+  //
+  //   ready: false → 与从前逐字相同：关掉同步。
+  //   ready: true  → 换成境内后端，**不再关同步** —— 那正是这件事的目的。
+  //
+  // 为什么不是「改完 url 就自动开」：地址填了不等于服务跑起来了。让开关独立于
+  // 地址，是为了让「填地址」和「切过去」成为两个动作 —— 中间隔着一次真实链路验证。
+  if (chinaBackendReady()) {
+    const cn = chinaBackend();
+    fs.writeFileSync(cfgPath, switchBackend(fs.readFileSync(cfgPath, 'utf8'),
+      'dist-china/learn/backend.config.js', cn));
+    log('China flavor: backend → ' + cn.url + '（境内，同步保持开启）');
+  } else {
+    fs.writeFileSync(cfgPath, flipSyncFlag(fs.readFileSync(cfgPath, 'utf8'), 'dist-china/learn/backend.config.js', 'off'));
+    log('China flavor: sync disabled in artifact (enabled → false) —— 境内后端未就绪（china.ready=false）');
+  }
+  fs.writeFileSync(cfgPath, limitProviders(fs.readFileSync(cfgPath, 'utf8'),
+    'dist-china/learn/backend.config.js', ['apple']));
+  log('China flavor: providers → [apple]（Google 在大陆连不上）');
+  generateProviders(DIST, 'china'); // overwrite providers.gen.js with the China set
+  generateTts(DIST, 'china');       // …and tts.gen.js with the China speech set
+  generateStt(DIST, 'china');       // …and stt.gen.js with the China transcription set
+
+  // 默认引擎:google 只在 global 注册表里,中国版必须换成本 flavor 有的那个。
+  const bgPath = path.join(DIST, 'background.js');
+  fs.writeFileSync(bgPath, rewriteDefaultProvider(
+    fs.readFileSync(bgPath, 'utf8'), 'dist-china/background.js', 'deepseek'));
+  log('China flavor: default provider google → deepseek');
+}
+
+// ─── UI bundles（React，domain-design §10）──────────────────────────────────
+// 产物覆盖 DIST 内同名文件，随后的每一道门禁扫的都是 bundle 之后的出货目录。
+// 清单（build/ui-entries.config.js）为空时这里是严格 no-op —— 连 esbuild 都不 require。
+{
+  const { ENTRIES } = require('./build/ui-entries.config.js');
+  const { bundleUiEntries, checkSharedParity } = require('./build/run-esbuild.js');
+  const n = bundleUiEntries({ entries: ENTRIES, dist: DIST, log });
+  if (n) {
+    log(`esbuild: ${n} 个 UI bundle 已写入 ${path.basename(DIST)}/`);
+    // §9.4 对账门（PR7a 起）：App 单入口与扩展全部 bundle 的 src/shared 输入集合
+    // 必须相等 —— 两宿主挂的共享组件各奔东西即红。清单非空才有对账可言，故在 if 内。
+    checkSharedParity({ appEntry: require('./build/app-bundle.js').APP_ENTRY, entries: ENTRIES });
+    log('§9.4 对账门：两宿主 src/shared 集合一致');
+  }
+}
+
+// 默认引擎门禁——放在 flavor 覆写之后,查的是**出货目录**里的那份。
+defaultProviderGate(DIST, path.basename(DIST), FLAVOR);
+defaultLocaleGate(DIST, path.basename(DIST), TARGET === 'firefox' ? 'global' : FLAVOR);
+
+// Firefox-specific patches
+if (isFirefox) patchManifestForFirefox();
+
+// Generate icons
+generateIcons(DIST);
+
+// Palette gate — no legacy brand colours may ship
+legacyBrandGate(DIST, path.basename(DIST),
+  fs.existsSync(path.join(__dirname, 'src')) ? [path.join(__dirname, 'src')] : []);
+
+// Validate
+validateManifest(DIST, isFirefox);
+
+// Content 同步注入面的字节预算门（React 迁移 PR8a 起，计划 §C）。manifest
+// content_scripts 列出的 dist/content js 字节和不得超基线 +150KB —— 懒加载
+// （动态 import）是给新 UI 字节的唯一通道；把新字节塞进同步列表的改动在这里红，
+// 正当增长（如同步面本来就该有的东西）在 PR 里给数字并重新钉基线。
+// 基线 2026-10-03（第 13 门界面语言「泰国语」加入后，global flavor）：3756331 字节。
+//   上一次钉 3381059（2026-09-28，PR7c）。本次 +375272 字节，其中**泰国语 ≈ 336 KB** ——
+//   生成表里 `"th":{…}` 一段 168107 字节，而 i18n-messages.js 在同步清单里出现两次，
+//   和按清单字面求和（同一门语言的字节算两遍，见下面那句）。加泰语之前 ≈ 3420117，
+//   本就在 +150 KB 预算内；**一门语言一个人就超了预算**，所以这次必须显式重新钉。
+//   这是正当增长（同步面本来就该有的东西：一门语言的界面文案），不是把新 UI 塞进同步列表。
+// i18n-messages.js 在两个匹配块各出现一次，和按清单字面求和 —— 同步面执行几次就计几次。
+// 2026-10-12 再钉 3989865（1.19.4 r6）：3904741 → 3989865，+85124 字节，**全部是 _locales**：
+//   第 4/5 轮 34 个 App 文案 key 从没进表 + r6 新增 4 个，38 key × 13 语言补齐（钉前预算只剩 ≈5 KB）。
+//   这批是 **App 专用**文案，网页内容脚本用不到 —— 根治是把 App-only key 从内容脚本那份表里拆出去，
+//   不在发版前做（改产物结构），另开 issue 跟进。
+function contentSyncBytesGate(distDir) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
+  let total = 0;
+  for (const block of manifest.content_scripts || []) {
+    for (const js of block.js || []) {
+      if (!js.startsWith("content/")) continue;
+      const p = path.join(distDir, js);
+      if (!fs.existsSync(p)) {
+        throw new Error(`contentSyncBytesGate: ${js} 在 manifest 里但不在产物里 —— 列表与产物脱节`);
+      }
+      total += fs.statSync(p).size;
+    }
+  }
+  const PIN = 3989865;
+  const BUDGET = 150 * 1024;
+  if (total > PIN + BUDGET) {
+    throw new Error(`contentSyncBytesGate: 同步注入面 ${total} 字节 > 基线 ${PIN}+150KB。` +
+      " 新 UI 字节走懒加载（动态 import）；进同步列表的正当增长在 PR 里给数字并重新钉 PIN。");
+  }
+  log(`contentSyncBytesGate: 同步注入面 ${total} 字节 ≤ ${PIN}+150KB`);
+}
+contentSyncBytesGate(DIST);
+
+// China compliance gate (after all DIST content is final)
+if (FLAVOR === 'china') complianceGateChina(DIST);
+
+// Store-description gate (global builds only — see the function comment)
+if (FLAVOR !== 'china') descriptionBrandGate(DIST);
+
+// Length gate runs for BOTH flavors — Apple rejects the upload, not the build.
+descriptionLengthGate(DIST);
+nameLengthGate(DIST);
+
+// ─── Host app assets (learning-design §7.2) ─────────────────────────────────
+// Built from `app/` plus the SAME shared modules the extension ships — not copies of
+// them (§9: "not a second engine").
+//
+// **Per flavor, since 2026-08-23.** It used to be `if (FLAVOR === 'global')`, on the
+// stated grounds that "the China build has no App Store presence yet" — that stopped
+// being true when the China app shipped, and nothing went back to fix it. The effect:
+// `app:sync` pushed the ONE global `dist-app/` into BOTH project trees, so the China
+// host App carried the GLOBAL engine registry. Its settings page offered ChatGPT
+// (OpenAI), Claude (Anthropic) and Google with `api.openai.com` endpoints, while the
+// China extension right next to it had them stripped. Two standards inside one
+// product, and it shipped that way in 1.6.4.
+//
+// The China-flavor gate below catches the same class next time: the host bundle is a
+// concatenation of the SAME generated registries the extension uses, so if the
+// extension is clean and the app is not, the two were built from different flavors.
+{
+  const { buildAppBundle } = require('./build/app-bundle.js');
+  const APP_OUT = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+  // syncOn flip retired with Gate B — the source flag is true; the bundle
+  // concatenates it as-is.
+  // 中国版从 dist-china/ 取生成物（那里才是 flavor 过滤后的注册表）。
+  buildAppBundle(path.join(ROOT, APP_OUT), log,
+    FLAVOR === 'china' ? { genRoot: DIST, limitProviders,
+      rewriteHostLiterals: true,
+      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : {});
+  // 两条发射路径必须指向同一个后端：china.ready=true 时中国版 App 包里不许再出现 *.supabase.co。
+  if (FLAVOR === 'china' && chinaBackendReady()) {
+    const js = fs.readFileSync(path.join(ROOT, APP_OUT, 'Script.js'), 'utf8');
+    // previousUrl 那一行豁免：它只拿来比较（bindCorpus 认旧主库），从不发请求。别处出现一次都算红。
+    const tokyo = js.split('\n').filter((l) => !/^  previousUrl: '/.test(l)).join('\n').match(/https:\/\/[a-z0-9]+\.supabase\.co/g) || [];
+    if (tokyo.length) { err(`${APP_OUT}/Script.js 里还有 ${tokyo.length} 处 *.supabase.co（${[...new Set(tokyo)].join(', ')}）—— china.ready=true 时中国版 App 必须连境内后端`); process.exit(1); }
+    log('China flavor: App 包后端 → ' + chinaBackend().url + '（与扩展同一个）');
+  }
+  // 系统翻译扩展的裁剪包（learning-design §9.9）。与 App 包同一条 flavor 纪律：
+  // 中国版从 dist-china/ 取生成物。它也要过下面那两道门 —— 同一份传输代码，
+  // 品牌词与合规判据一个都不能少（AGENTS 规则 10）。
+  const { buildExtBundle } = require("./build/ext-bundle.js");
+  buildExtBundle(path.join(ROOT, APP_OUT), log, FLAVOR === "china" ? { genRoot: DIST } : {});
+  legacyBrandGate(path.join(ROOT, APP_OUT), APP_OUT, [path.join(ROOT, "app")]
+    .concat(fs.existsSync(path.join(ROOT, 'src')) ? [path.join(ROOT, 'src')] : []));
+  if (FLAVOR === 'china') complianceGateChina(path.join(ROOT, APP_OUT), APP_OUT);
+}
+
+// ─── 系统下限的解析期语法门（build/os-floor.config.js）────────────────────
+// 2026-09-12 用户来信：iOS 15.8.8 上 App 是一扇空窗。真因是 learn-model.js 里两处正则后行断言 ——
+// 扩展里它只弄死一个内容脚本文件，而 App 把所有模块拼成一份 Script.js，一处解析失败整页空白。
+// 门按 os-floor 的 Safari 下限扫 dist/ 与 dist-app/ 的每个 .js：比下限更新的解析期语法 ⇒ 红。
+// 只看解析期（运行时 API 有特性检测，grep 会误报）。下限抬高时表里的老条目自动不再报。
+{
+  const OSF = require('./build/os-floor.config.js');
+  const APP_OUT = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
+  const files = [];
+  const walk = (d) => { for (const n of fs.readdirSync(d)) { const q = path.join(d, n); if (fs.statSync(q).isDirectory()) walk(q); else if (/\.(m?js)$/.test(n)) files.push(q); } };
+  walk(DIST); walk(path.join(ROOT, APP_OUT));
+  const bad = [];
+  for (const f of files) {
+    if (/pdf\.worker|pdfjs-vendor|vendor\//.test(f)) continue;   // 第三方 vendor 自带垫片与自己的门槛（pdf.js ≥ iOS 17.2 已在 F14 记录）
+    for (const v of OSF.syntaxViolations(fs.readFileSync(f, 'utf8'), OSF.FLOOR.safari)) bad.push(`${path.relative(ROOT, f)}:${v.line} ${v.note}（Safari ${v.since}+，下限 ${OSF.FLOOR.safari}）  ${v.text}`);
+  }
+  if (bad.length) {
+    err(`OS floor gate FAILED —— ${bad.length} 处语法比下限 Safari ${OSF.FLOOR.safari} 更新，会让整份 Script.js 解析失败：`);
+    for (const b of bad.slice(0, 20)) console.error('   ' + b);
+    console.error('   改写它，或在 build/os-floor.config.js 里有据地抬下限（那是领域设计变更）');
+    process.exit(1);
+  }
+  log(`OS floor gate OK（iOS ${OSF.FLOOR.ios} / macOS ${OSF.FLOOR.macos}，${files.length} 个 js 无更新的解析期语法）`);
+}
+
+// ─── .not-shippable marker — closes the iOS archive hole ───────────────────
+// release-checklist「Gate B 的缺口」: SKIP_ZIP withholds the .zip, but the iOS
+// shippable is an .xcarchive built FROM dist/, which SKIP_ZIP never touched —
+// so a bypassed build could still reach TestFlight/App Store unimpeded. The
+// marker travels with dist/; scripts/verify-ios-bundle.js refuses (exit 1) when
+// it is present, and a normal build removes it.
+const MARKER = path.join(DIST, '.not-shippable');
+if (SKIP_ZIP) fs.writeFileSync(MARKER, SKIP_ZIP + '\n');
+else if (fs.existsSync(MARKER)) fs.unlinkSync(MARKER);
+
+// Zip (Firefox .xpi is just a zip)
+if (SKIP_ZIP) {
+  log(`\x1b[33mNOT packaged — ${SKIP_ZIP}.\x1b[0m`);
+  log(`${path.basename(DIST)}/ is loadable unpacked for testing only.`);
+} else try {
+  execSync(`cd "${DIST}" && zip -r "${ZIP}" .`, { stdio: 'pipe' });
+  const zipSize = Math.round(fs.statSync(ZIP).size / 1024);
+  log(`Packaged → ${path.basename(ZIP)} (${zipSize} KB)`);
+} catch (e) {
+  log(`zip not available — ${path.basename(DIST)}/ is ready`);
+}
+
+if (isFirefox) {
+  console.log(`
+\x1b[1mFirefox Build Done!\x1b[0m
+
+本地测试（Firefox 桌面版）:
+  1. 打开 about:debugging
+  2. "此 Firefox" → "临时载入附加组件"
+  3. 选择 \x1b[36m${ZIP}\x1b[0m（或 ${path.basename(DIST)}/manifest.json）
+`);
+} else if (FLAVOR === 'china') {
+  console.log(`
+\x1b[1mChina Build Done!\x1b[0m (domestic providers only)
+
+本地测试:
+  chrome://extensions/ → 开发者模式 → 加载已解压 → \x1b[36m${DIST}\x1b[0m
+
+转换为 Safari（中国版,独立 bundle id）:
+  bash build-safari.sh china
+`);
+} else {
+  console.log(`
+\x1b[1mChrome Build Done!\x1b[0m (global providers)
+
+本地测试:
+  chrome://extensions/ → 开发者模式 → 加载已解压 → \x1b[36m${DIST}\x1b[0m
+
+转换为 Safari（需 macOS + Xcode）:
+  xcrun safari-web-extension-converter ${DIST} --project-location ./safari-project --app-name "BelliedMonkey Translator"
+`);
+}

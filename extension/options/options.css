@@ -1,0 +1,423 @@
+/* options.css */
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element, so `.pressure{display:flex}` silently made a
+   `hidden` banner permanently visible — on a brand-new library it showed a cleanup
+   button for zero reclaimable cards, i.e. shouted about a problem that did not exist.
+   One line here beats remembering it at every future `display` rule. */
+[hidden] { display: none !important; }
+
+/* 链接颜色只有一个来源：--link。这页原来没有 a 规则，#about-links / #telemetry-what /
+   一键配置的申请 key 链接都是浏览器默认蓝，深色卡片上 1.56:1（2026-09-06）。 */
+a { color: var(--link); }
+
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Organic palette (design/handoff.md §1): terracotta = primary action,
+   sage = 译文/state, cream ground with white 24px cards.
+   All colour tokens (light + dark) come from ../styles/organic-tokens.gen.css
+   (emitted from build/palette.config.js — the single source of truth). This
+   file keeps only what is options-specific. */
+:root {
+  --radius: var(--radius-lg);   /* options cards are the 24px step */
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+/* ─── Header ─────────────────────────────────────────────── */
+
+.page-header {
+  padding: 20px 0 16px;
+}
+
+.page-header h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ─── Card ───────────────────────────────────────────────── */
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+/* ─── Field ──────────────────────────────────────────────── */
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field:last-child { margin-bottom: 0; }
+
+.field.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: var(--text-secondary);
+}
+
+.field.row label { margin-bottom: 0; color: var(--text); font-size: 14px; }
+
+.optional {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* The three engine self-check results, and only those: they print a second line
+   carrying the URL the transport actually requested. `.hint` collapses newlines, so
+   without pre-line the address would run into the reason as one sentence — and an
+   endpoint URL is long, so it also has to be allowed to break mid-token rather than
+   push the settings column sideways. */
+#test-provider-note,
+#test-notes-note,
+#test-stt-note {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* ─── Inputs ─────────────────────────────────────────────── */
+
+/* Styled by EXCLUSION, not by enumeration. The rule used to list
+   `[type="text"], [type="password"]`, which meant every new input type silently fell
+   back to the UA control — it had already happened twice before anyone rendered the
+   page (`type="number"` on 每天最多引入的新卡片, then `type="email"` on the sync
+   section). Listing the three types that must keep their native appearance is a
+   closed set; listing the ones that need ours never is. */
+input:not([type="checkbox"]):not([type="color"]):not([type="file"]),
+select,
+textarea {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 14px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+
+/* textarea 与上面共用外观，但有两处必须自己说：圆角胶囊形对多行是错的，而等宽字体
+   是为了让 JSON 的括号对齐 —— 那个输入框里填的就是 JSON。 */
+textarea {
+  border-radius: 14px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-row input { flex: 1; }
+
+.icon-btn {
+  background: var(--input-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 9px 11px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ─── Color row ──────────────────────────────────────────── */
+
+.color-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+input[type="color"] {
+  width: 44px;
+  height: 36px;
+  padding: 3px;
+  border-radius: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* 预览的是「译文压在网页上」的样子 —— 网页多半是白底，所以底色固定白，深色模式下也是：
+   否则深色卡片上预览一个为浅底选的绿字只有 2.3:1，看起来像坏了（2026-09-06）。
+   字幕预览同理固定黑底（见 options.html 的内联样式）。 */
+.color-preview {
+  display: inline-block;
+  font-size: 14px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: #ffffff;
+  transition: color 0.2s;
+}
+
+/* ─── Toggle switch ──────────────────────────────────────── */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.switch input:checked + .slider { background: var(--sage); }
+.switch input:checked + .slider::before { transform: translateX(18px); }
+
+/* ─── Buttons ────────────────────────────────────────────── */
+
+/* Plain action buttons. There was no base rule, so every unclassed <button> in a
+   card rendered as a raw UA control next to properly styled ones.
+   Organic: terracotta-outline pills (mock 1e). */
+.card button:not(.btn-danger):not(.icon-btn) {
+  background: none;
+  color: var(--accent-deep);
+  border: 1.5px solid var(--accent);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.card button:not(.btn-danger):not(.icon-btn):hover { background: var(--accent); color: #fff; }
+
+/* 登录卡（design/signin/，2026-09-05）：一键登录是主角。Apple 按 HIG（黑底白字带标，
+   暗色下反转成白底黑字）；Google 白底细边带四色 G。两者同高同宽，胶囊。
+   选择器带 #sync-section：要压过上面 .card button:not():not() 那条通用胶囊（0,3,1）。 */
+#sync-providers { display: flex; flex-direction: column; gap: 10px; }
+#sync-section button.provider {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  width: 100%; min-height: 48px; padding: 12px 18px;
+  font-size: 15px; font-weight: 600; border: 0;
+}
+#sync-section button.provider .provider-mark { flex: none; }
+#sync-section button.provider.apple { background: #000; color: #fff; }
+#sync-section button.provider.apple:hover { background: #000; color: #fff; filter: brightness(1.25); }
+#sync-section button.provider.google { background: #fff; color: var(--text); border: 1.5px solid var(--border); }
+#sync-section button.provider.google:hover { background: var(--section-bg); color: var(--text); }
+#sync-section button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 文字链接样式的按钮：备选路径。点击区仍然 ≥ 44px。 */
+#sync-section button.link-btn {
+  display: block; margin: 0 auto; background: none; border: 0;
+  min-height: 44px; padding: 10px 8px; font-size: 13px; font-weight: 500;
+  color: var(--accent-deep); text-decoration: underline; text-underline-offset: 3px;
+}
+#sync-section button.link-btn:hover { background: none; color: var(--accent); }
+.link-row { display: flex; justify-content: center; gap: 8px; }
+/* 邮箱 / 验证码这两步的主按钮通栏；「登录」是这一步的终点，填色。 */
+#sync-section #btn-sync-code, #sync-section #btn-sync-verify { width: 100%; min-height: 44px; font-size: 14px; }
+#sync-section #btn-sync-verify { background: var(--accent); color: #fff; }
+#sync-section #btn-sync-verify:hover { background: var(--accent-hover); color: #fff; }
+#sync-why { margin-bottom: 12px; }
+#sync-email-block, #sync-code-row { margin-top: 4px; }
+#sync-optional { margin-top: 12px; font-size: 12px; }
+
+/* interaction-spec 全局原则: an in-flight (disabled) control must LOOK disabled.
+   Wins over the hover fill above — a disabled button lighting up on hover was the
+   visual lie that made 立即同步's correct disable invisible. 45% = Organic value. */
+button:disabled, input:disabled, select:disabled {
+  opacity: .45; cursor: default; pointer-events: none;
+}
+
+.btn-danger {
+  background: none;
+  color: var(--danger);
+  border: 1.5px solid var(--danger);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+.cache-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+  min-height: 20px;
+}
+
+/* ─── About ──────────────────────────────────────────────── */
+
+.about p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+/* ─── Toast ──────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: #201e1d;
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Onboarding note ────────────────────────────────────────────────
+   Same two states as the popup (see popup.css). This is the surface the
+   first-run open lands on, so it carries the same text with more room.
+   Warn = terracotta 100/400/800; plain = sage 100/300/900 (handoff §1). */
+.setup-note {
+  margin: 0 0 18px;
+  padding: 13px 15px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  line-height: 1.6;
+  border: 1px solid #ccdbb2;
+  background: #f0fae1;
+  color: #272e1b;
+}
+.setup-note.warn {
+  border: 1.5px solid #f6a06b;
+  background: #fff2eb;
+  color: #643312;
+}
+@media (prefers-color-scheme: dark) {
+  .setup-note { border-color: #3d472b; background: #1c2114; color: #ccdbb2; }
+  .setup-note.warn { border-color: #8c491a; background: #2b1c10; color: #ffc6a5; }
+}
+
+/* 快速 / 详细 分段控件。只切显隐，不改 DOM —— 见 options.js 的 applyDetailMode。 */
+.mode-tabs { display: flex; gap: 0; margin: 0 0 18px; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; width: fit-content; }
+.mode-tabs button { margin: 0; width: auto; padding: 7px 22px; border: none; border-radius: 0; background: transparent; color: var(--text-secondary); font-size: .92rem; cursor: pointer; }
+.mode-tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+
+/* 锚点落点的一次性高亮。#learn 那个按钮把人送到这一页时，「到了」和「看见了」是
+   两件事 —— 这张卡有十来个控件，那个开关在用户眼里和其它九个长得一样
+   （2026-09-02 用户实测：按钮点了、人到了、开关没找到）。亮的是**那一行**。 */
+.field.anchor-flash {
+  border-radius: 10px;
+  animation: mt-anchor-flash 2.4s ease-out 1;
+}
+@keyframes mt-anchor-flash {
+  0%, 55% { box-shadow: 0 0 0 3px var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  100%    { box-shadow: 0 0 0 3px transparent; background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 动画关掉了，但「是哪一行」这件事仍然要说。静态描边留 2.4s（JS 摘类）。 */
+  .field.anchor-flash { animation: none; box-shadow: 0 0 0 3px var(--accent); }
+}
+
+@media (prefers-color-scheme: dark) {
+  /* HIG：暗色底上 Sign in with Apple 用白底黑字。 */
+  #sync-section button.provider.apple { background: #fff; color: #000; }
+  #sync-section button.provider.apple:hover { background: #fff; color: #000; filter: brightness(.92); }
+  #sync-section button.provider.google { background: var(--card-bg); color: var(--text); }
+}
+
+/* ─── 四节信息架构（2026-09-17，interaction-spec「设置页信息架构」）────────
+   节头 = 序号 + 标题（+ 第一节右侧的「快速 / 详细」）。「快速 / 详细」只管第一节，
+   所以 tabs 从页顶搬进节头；其余三节与档位无关、永远可见。 */
+.sec { margin-bottom: 28px; }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 4px 12px; flex-wrap: wrap; }
+.sec-title { display: flex; align-items: center; gap: 10px; }
+.sec-title h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
+.sec-n { width: 22px; height: 22px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.sec-head .mode-tabs { margin: 0; }
+/* 翻译卡里的「解析这句（可选）」子块 */
+.subblock { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--bg); }
+.subblock .lbl { font-size: 12px; font-weight: 700; letter-spacing: 0.4px; color: var(--text-secondary); margin: 0 0 10px; }
+/* 文字样式的按钮（「一键配置在「快速」里 →」、额度摘要行）：不套卡片按钮的底色 */
+.link-btn, .card .link-btn { background: none; border: none; padding: 0; margin: 0; width: auto; color: var(--accent-deep, var(--accent)); font: inherit; font-size: 13px; cursor: pointer; text-decoration: none; }
+.link-btn:hover, .card .link-btn:hover { text-decoration: underline; background: none; color: var(--accent-deep, var(--accent)); }
+#adv-hint { margin: -4px 4px 14px; }
+
+/* 功能块首行的「依赖」行（learn/dep-line.js，两宿主同形） */
+.dep { display: block; font-size: 12.5px; line-height: 1.5; color: var(--text-secondary); background: var(--bg); border-radius: 12px; padding: 8px 12px; margin-bottom: 14px; }
+.dep .dep-k { font-weight: 600; color: var(--text); }
+.dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
+.dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
+.card .dep .dep-go { background: none; border: none; padding: 0; margin: 0 0 0 .35em; width: auto; color: var(--link, var(--accent-deep)); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* N24v2：一键/分项互斥态（结构；像素后补） */
+.mode-tabs button.mode-tab-muted { opacity: .55; }
+.mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>App 设置 ·「快速翻译」块</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1000px; height:900px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">App 设置里的「快速翻译」块</h1><span>只在 Mac 上出现，放在「功能」一节。「快速 / 详细」只管「引擎与密钥」一节 —— 这一块两档下都在，但详细档多露几行。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>快速档</b><span>够用的最少几行。</span></div><section class="card"><h3>快速翻译<span class="use">选字 · 截图 · 输入</span></h3>
+<div class="row"><div class="l"><span>在菜单栏常驻</span><small>关掉后菜单栏图标消失，关闭窗口即退出 App</small></div><span class="sw on"></span></div>
+<div class="field"><label>翻译选中的文字或剪贴板</label><div class="rec"><span class="keys"><i>⌃</i><i>⌥</i><i>T</i></span><span class="split" style="gap:4px"><button class="btn s sm" type="button">改</button><button class="btn s sm" type="button">清除</button></span></div></div>
+<div class="field"><label>截图翻译</label><div class="rec"><span class="keys"><i>⌃</i><i>⌥</i><i>S</i></span><span class="split" style="gap:4px"><button class="btn s sm" type="button">改</button><button class="btn s sm" type="button">清除</button></span></div></div>
+
+<div class="row"><div class="l"><span>增强取词</span><small>选中文字后直接按快捷键，不用先 ⌘C · 需要一项系统权限</small></div><span class="sw"></span></div>
+
+<div class="row"><div class="l"><span>存入复习库</span><small>翻过的句子进复习，来源「快速翻译」</small></div><span class="sw on"></span></div>
+
+</section></div>
+<div class="cell"><div class="cap"><b>详细档</b><span>多出：输入翻译的快捷键、屏幕录制权限状态、登录时启动（<b>默认关</b>）、服务菜单指引。</span></div><section class="card"><h3>快速翻译<span class="use">选字 · 截图 · 输入</span></h3>
+<div class="row"><div class="l"><span>在菜单栏常驻</span><small>关掉后菜单栏图标消失，关闭窗口即退出 App</small></div><span class="sw on"></span></div>
+<div class="field"><label>翻译选中的文字或剪贴板</label><div class="rec"><span class="keys"><i>⌃</i><i>⌥</i><i>T</i></span><span class="split" style="gap:4px"><button class="btn s sm" type="button">改</button><button class="btn s sm" type="button">清除</button></span></div></div>
+<div class="field"><label>截图翻译</label><div class="rec"><span class="keys"><i>⌃</i><i>⌥</i><i>S</i></span><span class="split" style="gap:4px"><button class="btn s sm" type="button">改</button><button class="btn s sm" type="button">清除</button></span></div></div>
+<div class="field"><label>输入翻译</label><div class="rec"><span style="color:var(--muted)">未设置</span><button class="btn s sm" type="button">录制</button></div></div>
+<div class="row"><div class="l"><span>增强取词</span><small>选中文字后直接按快捷键，不用先 ⌘C · 需要一项系统权限</small></div><span class="sw"></span></div>
+<div class="dep"><b>屏幕录制</b> · 已允许 <span class="ok">✓</span>（截图翻译用）</div>
+<div class="row"><div class="l"><span>存入复习库</span><small>翻过的句子进复习，来源「快速翻译」</small></div><span class="sw on"></span></div>
+<div class="row"><div class="l"><span>登录时启动</span><small>开机后自动待在菜单栏</small></div><span class="sw"></span></div>
+<div class="split"><a href="#svc">给右键「服务」绑快捷键 →</a></div></section></div>
+</div><p class="mini" style="margin:0">「译成」不在这一块 —— 它在「语言」卡里，是全 App 共用的一个值。</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

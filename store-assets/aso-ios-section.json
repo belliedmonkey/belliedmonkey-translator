@@ -1,0 +1,62 @@
+{
+  "zh-Hans": {
+    "heading": "系统翻译（iPhone）",
+    "body": "在任何 App 里选中文字、点「翻译」，由你配好的引擎在一个小弹层里给出译文，不用离开当前 App。先在「设置 › App › 翻译 › 默认翻译 App」里选一次大肚猴翻译。这样翻过的句子可以直接进复习库。需要 iOS 18.4 及以上。"
+  },
+  "en-US": {
+    "heading": "SYSTEM TRANSLATION (IPHONE)",
+    "body": "Select text in any app and tap Translate — BelliedMonkey answers with the engine you configured, in a small sheet, without leaving the app. Choose BelliedMonkey once in Settings › Apps › Translate › Default Translate App. Sentences you translate this way can go straight into your review deck. Requires iOS 18.4 or later."
+  },
+  "zh-Hant": {
+    "heading": "系統翻譯（iPhone）",
+    "body": "在任何 App 裡選取文字、點「翻譯」，由你設定好的引擎在小視窗裡給出譯文，不用離開目前的 App。先到「設定」把大肚猴翻譯選為預設翻譯 App。這樣翻過的句子可以直接進入複習庫。需要 iOS 18.4 或以上版本。"
+  },
+  "ja": {
+    "heading": "システム翻訳（iPhone）",
+    "body": "どの App でもテキストを選択して「翻訳」をタップすると、設定したエンジンが小さなシートで訳文を返します。App を離れる必要はありません。最初に「設定」で BelliedMonkey をデフォルトの翻訳 App に選んでください。こうして翻訳した文はそのまま復習カードに入れられます。iOS 18.4 以降が必要です。"
+  },
+  "ko": {
+    "heading": "시스템 번역(iPhone)",
+    "body": "어떤 앱에서든 텍스트를 선택하고 '번역'을 탭하면, 설정한 엔진이 작은 시트에 번역을 보여 줍니다. 앱을 벗어날 필요가 없습니다. 먼저 '설정'에서 BelliedMonkey를 기본 번역 앱으로 선택하세요. 이렇게 번역한 문장은 바로 복습 카드에 넣을 수 있습니다. iOS 18.4 이상이 필요합니다."
+  },
+  "de-DE": {
+    "heading": "SYSTEMÜBERSETZUNG (IPHONE)",
+    "body": "Text in einer beliebigen App markieren und auf „Übersetzen“ tippen – BelliedMonkey antwortet mit der von dir eingerichteten Engine in einem kleinen Fenster, ohne die App zu verlassen. Wähle BelliedMonkey dazu einmal in den Einstellungen als Standard-Übersetzungs-App. So übersetzte Sätze können direkt in deine Wiederholungskarten wandern. Erfordert iOS 18.4 oder neuer."
+  },
+  "fr-FR": {
+    "heading": "TRADUCTION SYSTÈME (IPHONE)",
+    "body": "Sélectionnez du texte dans n’importe quelle app et touchez « Traduire » : BelliedMonkey répond avec le moteur que vous avez configuré, dans une petite fenêtre, sans quitter l’app. Choisissez une fois BelliedMonkey comme app de traduction par défaut dans Réglages. Les phrases traduites ainsi peuvent aller directement dans vos cartes de révision. Nécessite iOS 18.4 ou ultérieur."
+  },
+  "es-ES": {
+    "heading": "TRADUCCIÓN DEL SISTEMA (IPHONE)",
+    "body": "Selecciona texto en cualquier app y toca «Traducir»: BelliedMonkey responde con el motor que configuraste, en una pequeña ventana, sin salir de la app. Elige una vez BelliedMonkey como app de traducción predeterminada en Ajustes. Las frases traducidas así pueden ir directamente a tus tarjetas de repaso. Requiere iOS 18.4 o posterior."
+  },
+  "pt-BR": {
+    "heading": "TRADUÇÃO DO SISTEMA (IPHONE)",
+    "body": "Selecione um texto em qualquer app e toque em “Traduzir”: o BelliedMonkey responde com o mecanismo que você configurou, numa pequena janela, sem sair do app. Escolha uma vez o BelliedMonkey como app de tradução padrão em Ajustes. As frases traduzidas assim podem ir direto para os seus cartões de revisão. Requer iOS 18.4 ou posterior."
+  },
+  "ru": {
+    "heading": "СИСТЕМНЫЙ ПЕРЕВОД (IPHONE)",
+    "body": "Выделите текст в любом приложении и нажмите «Перевести» — BelliedMonkey ответит с помощью настроенного вами движка в небольшом окне, не покидая приложение. Один раз выберите BelliedMonkey приложением перевода по умолчанию в «Настройках». Переведённые так предложения можно сразу отправить в карточки для повторения. Требуется iOS 18.4 или новее."
+  },
+  "ar-SA": {
+    "heading": "الترجمة من النظام (iPhone)",
+    "body": "حدّد نصًا في أي تطبيق واضغط «ترجمة»، فيرد BelliedMonkey بالمحرّك الذي أعددته في نافذة صغيرة دون مغادرة التطبيق. اختر BelliedMonkey مرة واحدة كتطبيق الترجمة الافتراضي من «الإعدادات». يمكن أن تنتقل الجمل التي تترجمها بهذه الطريقة مباشرة إلى بطاقات المراجعة. يتطلب iOS 18.4 أو أحدث."
+  },
+  "it": {
+    "heading": "TRADUZIONE DI SISTEMA (IPHONE)",
+    "body": "Seleziona del testo in qualsiasi app e tocca «Traduci»: BelliedMonkey risponde con il motore che hai configurato, in una piccola finestra, senza uscire dall’app. Scegli una volta BelliedMonkey come app di traduzione predefinita in Impostazioni. Le frasi tradotte così possono finire direttamente nelle tue schede di ripasso. Richiede iOS 18.4 o successivo."
+  },
+  "tr": {
+    "heading": "SİSTEM ÇEVİRİSİ (IPHONE)",
+    "body": "Herhangi bir uygulamada metni seçip “Çevir”e dokunun; BelliedMonkey, ayarladığınız motorla küçük bir pencerede yanıt verir, uygulamadan çıkmanız gerekmez. Ayarlar’da BelliedMonkey’i bir kez varsayılan çeviri uygulaması olarak seçin. Bu şekilde çevirdiğiniz cümleler doğrudan tekrar kartlarınıza eklenebilir. iOS 18.4 veya üstü gerekir."
+  },
+  "vi": {
+    "heading": "DỊCH HỆ THỐNG (IPHONE)",
+    "body": "Chọn văn bản trong bất kỳ ứng dụng nào và chạm “Dịch” — BelliedMonkey trả lời bằng công cụ bạn đã cấu hình, trong một cửa sổ nhỏ, không cần rời ứng dụng. Chọn BelliedMonkey một lần làm ứng dụng dịch mặc định trong Cài đặt. Những câu dịch theo cách này có thể vào thẳng thẻ ôn tập của bạn. Yêu cầu iOS 18.4 trở lên."
+  },
+  "pl": {
+    "heading": "TŁUMACZENIE SYSTEMOWE (IPHONE)",
+    "body": "Zaznacz tekst w dowolnej aplikacji i stuknij „Przetłumacz” — BelliedMonkey odpowie wybranym przez ciebie silnikiem w małym oknie, bez wychodzenia z aplikacji. Raz wybierz BelliedMonkey jako domyślną aplikację do tłumaczenia w Ustawieniach. Zdania przetłumaczone w ten sposób mogą trafić prosto do twoich fiszek. Wymaga iOS 18.4 lub nowszego."
+  }
+}

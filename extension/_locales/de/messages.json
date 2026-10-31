@@ -1,0 +1,4212 @@
+{
+  "extension_name": {
+    "message": "BelliedMonkey: Zweisprachig + Lernen"
+  },
+  "extension_description": {
+    "message": "Zweisprachige Seiten und doppelte Untertitel. Gelesene Sätze werden zu Wiederholungskarten. Eigener Schlüssel."
+  },
+  "action_title": {
+    "message": "BelliedMonkey Translator"
+  },
+  "msg_loading": {
+    "message": "⏳ Übersetzen…"
+  },
+  "msg_preparing": {
+    "message": "⏳ Wird vorbereitet…"
+  },
+  "msg_translate_failed_retry": {
+    "message": "⚠️ Fehlgeschlagen — tippen zum Wiederholen"
+  },
+  "fab_translate": {
+    "message": "Übersetzen"
+  },
+  "fab_toggle": {
+    "message": "Übersetzung umschalten"
+  },
+  "fab_enable": {
+    "message": "Übersetzung ein"
+  },
+  "fab_disable": {
+    "message": "Übersetzung aus"
+  },
+  "yt_btn_title": {
+    "message": "BelliedMonkey · Video-Untertitel"
+  },
+  "yt_sub_on": {
+    "message": "Untertitel-Übersetzung ein"
+  },
+  "yt_sub_off": {
+    "message": "Untertitel-Übersetzung aus"
+  },
+  "yt_display_type": {
+    "message": "Untertitel-Anzeige"
+  },
+  "yt_mode_both": {
+    "message": "Zweisprachig"
+  },
+  "yt_mode_trans": {
+    "message": "Nur Übersetzung"
+  },
+  "yt_mode_orig": {
+    "message": "Nur Original"
+  },
+  "yt_download_srt": {
+    "message": "Untertitel herunterladen (.srt)"
+  },
+  "yt_subtitle_not_ready": {
+    "message": "Untertitel noch nicht bereit — nach dem Laden erneut versuchen"
+  },
+  "yt_subtitle_loading": {
+    "message": "⏳ Untertitel werden geladen…"
+  },
+  "yt_subtitle_unavailable": {
+    "message": "Untertitel nicht verfügbar"
+  },
+  "podcast_sub_on": {
+    "message": "Podcast-Untertitel einschalten"
+  },
+  "podcast_sub_off": {
+    "message": "Podcast-Untertitel ausschalten"
+  },
+  "settings": {
+    "message": "Einstellungen"
+  },
+  "popup_target_lang": {
+    "message": "Zielsprache"
+  },
+  "popup_provider": {
+    "message": "Übersetzungsmodul"
+  },
+  "provider_google_free": {
+    "message": "Google Übersetzer (kostenlos)"
+  },
+  "placeholder_api_key": {
+    "message": "API-Schlüssel eingeben…"
+  },
+  "toggle_show_hide": {
+    "message": "Anzeigen/Verbergen"
+  },
+  "label_custom_api": {
+    "message": "Endpunkt-URL (vollständig)"
+  },
+  "label_optional": {
+    "message": "(optional)"
+  },
+  "btn_translate_page": {
+    "message": "Seite übersetzen"
+  },
+  "btn_view_original": {
+    "message": "Original ansehen"
+  },
+  "btn_more_settings": {
+    "message": "Weitere Einstellungen"
+  },
+  "status_translated": {
+    "message": "Übersetzt"
+  },
+  "status_untranslated": {
+    "message": "Nicht übersetzt"
+  },
+  "toast_lang_switched": {
+    "message": "Sprache gewechselt"
+  },
+  "toast_provider_switched": {
+    "message": "Modul gewechselt"
+  },
+  "toast_restored_original": {
+    "message": "Original wiederhergestellt"
+  },
+  "toast_translating": {
+    "message": "Übersetzen…"
+  },
+  "options_title": {
+    "message": "BelliedMonkey Translator — Einstellungen"
+  },
+  "options_engine_section": {
+    "message": "Übersetzungsmodul"
+  },
+  "options_engine_label": {
+    "message": "Modul"
+  },
+  "provider_google_free_long": {
+    "message": "Google Übersetzer (kostenlos, kein API-Schlüssel)"
+  },
+  "options_custom_api_hint": {
+    "message": "Leer lassen, um den Standard-Endpunkt dieser Engine zu verwenden. Wenn Sie etwas eintragen, geben Sie die vollständige Anfrage-URL samt Pfad an — wir senden sie exakt so und hängen nichts an. Geeignet für Proxys und selbst gehostete Dienste."
+  },
+  "options_lang_section": {
+    "message": "Sprache"
+  },
+  "options_style_section": {
+    "message": "Anzeigestil"
+  },
+  "options_webpage_color": {
+    "message": "Webseiten-Übersetzungsfarbe"
+  },
+  "options_color_preview": {
+    "message": "Vorschau des Übersetzungsstils"
+  },
+  "options_yt_color": {
+    "message": "YouTube-Untertitelfarbe"
+  },
+  "options_yt_preview": {
+    "message": "Vorschau zweisprachiger Untertitel"
+  },
+  "options_font_size": {
+    "message": "Übersetzungsgröße (relativ)"
+  },
+  "options_font_s": {
+    "message": "Kleiner (0.8×)"
+  },
+  "options_font_m": {
+    "message": "Klein (0.9×)"
+  },
+  "options_font_body": {
+    "message": "Wie Original (1.0×)"
+  },
+  "options_font_l": {
+    "message": "Größer (1.1×)"
+  },
+  "options_show_fab": {
+    "message": "Schwebeschaltfläche anzeigen"
+  },
+  "options_cache_section": {
+    "message": "Cache"
+  },
+  "options_cache_hint": {
+    "message": "Übersetzungen werden 12 Stunden zwischengespeichert, um API-Anfragen zu reduzieren."
+  },
+  "options_clear_cache": {
+    "message": "Übersetzungs-Cache leeren"
+  },
+  "options_about_section": {
+    "message": "Über"
+  },
+  "options_about_desc": {
+    "message": "Zweisprachige Übersetzung + Lernschleife: Gelesene Sätze werden zu Wiederholungskarten."
+  },
+  "options_about_safari": {
+    "message": "Safari iOS: in Einstellungen → Safari → Erweiterungen aktivieren."
+  },
+  "toast_provider_saved": {
+    "message": "Modul gespeichert"
+  },
+  "toast_endpoint_cleared": {
+    "message": "Engine gewechselt — die Endpunkt-URL wurde geleert",
+    "description": "Settings toast"
+  },
+  "toast_apikey_saved": {
+    "message": "API-Schlüssel gespeichert"
+  },
+  "toast_apiurl_saved": {
+    "message": "API-URL gespeichert"
+  },
+  "toast_lang_saved": {
+    "message": "Sprache gespeichert"
+  },
+  "toast_fontsize_saved": {
+    "message": "Schriftgröße gespeichert"
+  },
+  "toast_color_saved": {
+    "message": "Farbe gespeichert"
+  },
+  "toast_yt_color_saved": {
+    "message": "YouTube-Untertitelfarbe gespeichert"
+  },
+  "toast_clearing": {
+    "message": "Wird gelöscht…"
+  },
+  "toast_cache_empty": {
+    "message": "Cache ist leer"
+  },
+  "toast_cache_cleared": {
+    "message": "Cache geleert"
+  },
+  "hint_openai": {
+    "message": "OpenAI API-Schlüssel (sk-…)."
+  },
+  "hint_claude": {
+    "message": "Anthropic API-Schlüssel (sk-ant-…)."
+  },
+  "hint_deepseek": {
+    "message": "DeepSeek API-Schlüssel."
+  },
+  "hint_glm": {
+    "message": "GLM (Zhipu AI) API-Schlüssel (kostenloses Kontingent)."
+  },
+  "ui_lang_label": {
+    "message": "Anzeigesprache"
+  },
+  "ui_lang_auto": {
+    "message": "System folgen"
+  },
+  "about_line": {
+    "message": "BelliedMonkey Translator"
+  },
+  "options_font_xl": {
+    "message": "Am größten (1.25×)"
+  },
+  "hint_qwen": {
+    "message": "Qwen (DashScope) API Key."
+  },
+  "hint_qwen_mt": {
+    "message": "Qwen MT (DashScope) API-Key. Ein auf Übersetzung spezialisiertes Modell — günstiger und schneller als ein allgemeines Chat-Modell. Derselbe Key wie bei Qwen."
+  },
+  "hint_kimi": {
+    "message": "Kimi (Moonshot) API Key from the matching region platform."
+  },
+  "label_default_model": {
+    "message": "Standardmodell:"
+  },
+  "hint_custom_chat": {
+    "message": "Beliebiger Chat-Endpunkt im Chat-Completions-Format. Vollständige Endpunkt-URL, Modell und Schlüssel eintragen. Endet die Adresse auf responses, wird das Responses-Format gesendet."
+  },
+  "hint_custom_msg": {
+    "message": "Beliebiger Chat-Endpunkt im Messages-Format. Vollständige Endpunkt-URL, Modell und Schlüssel eintragen."
+  },
+  "label_custom_model": {
+    "message": "Modell"
+  },
+  "options_custom_model_hint": {
+    "message": "Leer lassen, um das Standardmodell der Engine zu verwenden."
+  },
+  "options_advanced": {
+    "message": "Erweiterte Parameter"
+  },
+  "label_adv_temperature": {
+    "message": "Zufälligkeit (temperature)"
+  },
+  "options_adv_temperature_hint": {
+    "message": "Leer = 0,3. Niedriger bedeutet gleichmäßigere Übersetzungen."
+  },
+  "label_adv_max_tokens": {
+    "message": "Max. Ausgabelänge pro Anfrage"
+  },
+  "options_adv_max_tokens_hint": {
+    "message": "Leer = 2000. Erhöhen, wenn lange Absätze abgeschnitten werden."
+  },
+  "label_adv_timeout": {
+    "message": "Zeitlimit pro Anfrage (Sekunden)"
+  },
+  "options_adv_timeout_hint": {
+    "message": "Leer = 20 s. Erhöhen bei langsamen selbst gehosteten oder Reasoning-Modellen."
+  },
+  "label_adv_concurrency": {
+    "message": "Parallele Anfragen"
+  },
+  "options_adv_concurrency_hint": {
+    "message": "Leer = 5. Bei Ratenbegrenzung senken; Erhöhen beschleunigt bereits wartende Anfragen nicht."
+  },
+  "options_adv_unsupported": {
+    "message": "Dieses Modell akzeptiert diesen Parameter nicht, er wird nicht gesendet."
+  },
+  "label_adv_custom": {
+    "message": "Eigene Anfrageparameter"
+  },
+  "options_adv_custom_hint": {
+    "message": "Ein JSON-Objekt, das in den Anfragekörper eingefügt wird und die Felder oben überschreibt. Für selbst gehostete oder interne Endpunkte, die wir nicht gemessen haben."
+  },
+  "options_adv_custom_bad": {
+    "message": "Nicht lesbar, es wird nichts gesendet: "
+  },
+  "options_adv_custom_notobj": {
+    "message": "Muss ein JSON-Objekt sein; es wird nichts gesendet."
+  },
+  "options_adv_custom_ok": {
+    "message": "Wird gesendet: "
+  },
+  "options_adv_custom_dropped": {
+    "message": "Nicht überschreibbar, ignoriert: "
+  },
+  "options_adv_custom_none": {
+    "message": "(keine)"
+  },
+  "err_reasoning_starved": {
+    "message": "Das Modell hat sein gesamtes Ausgabebudget fürs Nachdenken verbraucht und keine Übersetzung geliefert. Erhöhen Sie „Max. Ausgabelänge pro Anfrage“ unter Erweiterte Parameter oder wechseln Sie zu einem Modell ohne Reasoning."
+  },
+  "toast_model_saved": {
+    "message": "Modell gespeichert"
+  },
+  "setup_need_key": {
+    "message": "Diese Engine benötigt einen API-Schlüssel. Ohne Eingabe unten funktioniert die Übersetzung nicht."
+  },
+  "popup_need_setup": {
+    "message": "Die Übersetzung ist noch nicht eingerichtet – tippe hier für die Einstellungen; ein Schlüssel genügt."
+  },
+  "learn_title": {
+    "message": "Wiederholen"
+  },
+  "learn_title_full": {
+    "message": "BelliedMonkey Translator — Wiederholen"
+  },
+  "learn_review": {
+    "message": "Wiederholen"
+  },
+  "learn_reveal": {
+    "message": "Übersetzung zeigen"
+  },
+  "learn_grade_again": {
+    "message": "Vergessen"
+  },
+  "learn_grade_hard": {
+    "message": "Schwer"
+  },
+  "learn_grade_good": {
+    "message": "Gewusst"
+  },
+  "learn_grade_easy": {
+    "message": "Zu leicht"
+  },
+  "learn_empty_title": {
+    "message": "Noch kein Lernmaterial"
+  },
+  "learn_empty_body": {
+    "message": "Erfassung einschalten und wie gewohnt surfen und übersetzen. Sätze, die Sie wirklich gelesen haben, werden gespeichert — überflogene nicht."
+  },
+  "learn_open_settings": {
+    "message": "Erfassung in den Einstellungen aktivieren"
+  },
+  "learn_alldone_title": {
+    "message": "Fürs Erste erledigt"
+  },
+  "learn_alldone_body": {
+    "message": "Surfen und übersetzen Sie weiter — neues Material kommt von selbst."
+  },
+  "learn_next_due": {
+    "message": "Die nächste Karte ist {when} fällig."
+  },
+  "learn_in_minutes": {
+    "message": "in etwa {n} Min."
+  },
+  "learn_in_hours": {
+    "message": "in etwa {n} Std."
+  },
+  "learn_in_days": {
+    "message": "in etwa {n} Tagen"
+  },
+  "learn_progress": {
+    "message": "Fortschritt"
+  },
+  "learn_done_run": {
+    "message": "{n} in dieser Sitzung"
+  },
+  "learn_settings": {
+    "message": "Einstellungen"
+  },
+  "learn_unknown_source": {
+    "message": "Unbekannte Quelle"
+  },
+  "learn_count_due": {
+    "message": "Fällig"
+  },
+  "learn_count_learning": {
+    "message": "Im Lernen"
+  },
+  "learn_count_new": {
+    "message": "Kandidaten"
+  },
+  "learn_count_known": {
+    "message": "Beherrscht"
+  },
+  "learn_count_total": {
+    "message": "Gesamt"
+  },
+  "learn_section": {
+    "message": "Lernen"
+  },
+  "learn_section_hint": {
+    "message": "Wenn aktiviert, werden tatsächlich gelesene Sätze AUF DIESEM GERÄT zusammen mit Seitenadresse, Titel und Anzeigedauer gespeichert und nach einer Vergessenskurve erneut gezeigt. Schnelles Vorbeiscrollen zählt nicht. Ohne aktivierte Synchronisierung wird nichts hochgeladen, und ein Knopf löscht alles."
+  },
+  "learn_enable": {
+    "message": "Lernmaterial sammeln"
+  },
+  "learn_daily_new": {
+    "message": "Neue Karten pro Tag (max.)"
+  },
+  "learn_open_review": {
+    "message": "Wiederholungsseite öffnen"
+  },
+  "learn_clear": {
+    "message": "Lernbibliothek löschen"
+  },
+  "learn_clear_confirm": {
+    "message": "Lernbibliothek löschen? Alle gesammelten Sätze und der gesamte Fortschritt werden entfernt — unwiderruflich."
+  },
+  "learn_stats": {
+    "message": "{n} Einträge · {due} fällig · ca. {kb} KB"
+  },
+  "learn_stats_empty": {
+    "message": "Die Lernbibliothek ist leer"
+  },
+  "toast_learn_on": {
+    "message": "Sammeln aktiviert"
+  },
+  "toast_learn_off": {
+    "message": "Sammeln gestoppt (bereits Gesammeltes bleibt erhalten)"
+  },
+  "toast_learn_cleared": {
+    "message": "Lernbibliothek gelöscht"
+  },
+  "toast_learn_clear_failed": {
+    "message": "Löschen fehlgeschlagen"
+  },
+  "toast_saved": {
+    "message": "Gespeichert"
+  },
+  "learn_replay": {
+    "message": "▶ Diesen Ausschnitt erneut hören"
+  },
+  "learn_replay_hint": {
+    "message": "Öffnet die Quelle an dieser Stelle in einem neuen Tab — die zweisprachigen Untertitel funktionieren dort ebenfalls."
+  },
+  "tts_section": {
+    "message": "Vorlesen"
+  },
+  "tts_section_hint": {
+    "message": "Macht aus Karten Hörübungen. Nutzt standardmäßig die Stimme Ihres Geräts — ohne Netz, ohne Kosten. Sie können auch einen eigenen Sprachserver angeben."
+  },
+  "tts_mode": {
+    "message": "Sprachmodus"
+  },
+  "tts_mode_off": {
+    "message": "Aus"
+  },
+  "tts_mode_assist": {
+    "message": "Text anzeigen, mit Wiedergabetaste"
+  },
+  "tts_mode_audio_first": {
+    "message": "Erst hören (Text zunächst verborgen)"
+  },
+  "tts_engine": {
+    "message": "Sprach-Engine"
+  },
+  "tts_engine_browser": {
+    "message": "Geräteeigene Stimme (kostenlos · offline)"
+  },
+  "tts_engine_local": {
+    "message": "Lokaler / selbst gehosteter Sprach-Endpunkt"
+  },
+  "tts_hint_browser": {
+    "message": "Nutzt die Stimmen, die Ihr Betriebssystem bereits hat. Es wird nichts gesendet und nichts zwischengespeichert — diese Engine spricht nur, sie kann kein Audio zurückgeben."
+  },
+  "tts_hint_local": {
+    "message": "Ein Sprachserver auf Ihrem Rechner oder im LAN — geben Sie die vollständige Adresse ein, wie im Beispiel im Feld. Die Synthese wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_hint_openai": {
+    "message": "Nutzt Ihren eigenen API-Schlüssel. Synthetisiertes Audio wird lokal zwischengespeichert, ein Satz kostet also nur einmal."
+  },
+  "tts_base_url": {
+    "message": "URL des Sprach-Endpunkts"
+  },
+  "tts_api_key": {
+    "message": "Sprach-API-Schlüssel"
+  },
+  "tts_model": {
+    "message": "Sprachmodell"
+  },
+  "tts_voice": {
+    "message": "Stimme"
+  },
+  "tts_voice_auto": {
+    "message": "Automatisch (passend zur Kartensprache)"
+  },
+  "tts_voice_hint": {
+    "message": "Stimmen werden der Sprache jeder Karte zugeordnet. Die hier gewählte wird nur verwendet, wenn sie diese Sprache tatsächlich spricht."
+  },
+  "tts_rate": {
+    "message": "Tempo"
+  },
+  "tts_autoplay": {
+    "message": "Beim Öffnen einer Karte automatisch abspielen"
+  },
+  "tts_test": {
+    "message": "Testsatz abspielen"
+  },
+  "tts_test_sample": {
+    "message": "So klingen deine Wiederholungskarten."
+  },
+  "tts_testing": {
+    "message": "Wird synthetisiert…"
+  },
+  "tts_test_ok": {
+    "message": "Wiedergabe"
+  },
+  "tts_play": {
+    "message": "▶ Anhören"
+  },
+  "tts_replay": {
+    "message": "▶ Nochmal anhören"
+  },
+  "tts_playing": {
+    "message": "Wiedergabe…"
+  },
+  "tts_loading": {
+    "message": "Audio wird geladen…"
+  },
+  "tts_no_voice": {
+    "message": "Ihr System hat keine Stimme für diese Sprache"
+  },
+  "tts_unsupported": {
+    "message": "Dieser Browser bietet keine integrierte Sprachausgabe"
+  },
+  "tts_no_base": {
+    "message": "Noch keine Endpunkt-URL"
+  },
+  "tts_no_key": {
+    "message": "Noch kein Sprach-API-Schlüssel"
+  },
+  "tts_blocked": {
+    "message": "Der Browser hat die automatische Wiedergabe blockiert — zum Abspielen tippen"
+  },
+  "tts_http": {
+    "message": "Der Sprachdienst hat einen Fehler zurückgegeben"
+  },
+  "tts_failed": {
+    "message": "Dieser Satz kann gerade nicht gesprochen werden"
+  },
+  "tts_cache": {
+    "message": "Sprach-Cache: {n} Clips · ca. {mb} MB (Limit {cap} MB)"
+  },
+  "tts_cache_empty": {
+    "message": "Der Sprach-Cache ist leer"
+  },
+  "tts_cache_na": {
+    "message": "Die geräteeigene Stimme erzeugt keinen Cache"
+  },
+  "tts_clear_cache": {
+    "message": "Sprach-Cache leeren"
+  },
+  "toast_tts_cleared": {
+    "message": "Sprach-Cache geleert"
+  },
+  "learn_reveal_orig": {
+    "message": "Text anzeigen"
+  },
+  "learn_clean_known": {
+    "message": "Beherrschte Karten aufräumen"
+  },
+  "learn_clean_known_n": {
+    "message": "{n} beherrschte Karten aufräumen"
+  },
+  "learn_pressure_dropped": {
+    "message": "{n} erfasste Einträge konnten nicht gespeichert werden — das passiert, wenn die Bibliothek voll ist."
+  },
+  "learn_pressure_evicted": {
+    "message": "Die Bibliothek ist voll — {n} alte Karten wurden automatisch entfernt, um Platz zu schaffen."
+  },
+  "learn_pressure_near": {
+    "message": "Die Bibliothek ist fast voll ({n} / {cap})."
+  },
+  "toast_learn_cleaned": {
+    "message": "{n} beherrschte Karten aufgeräumt"
+  },
+  "learn_export": {
+    "message": "Bibliothek exportieren"
+  },
+  "learn_import": {
+    "message": "Aus Datei importieren"
+  },
+  "toast_exported": {
+    "message": "{n} Karten exportiert"
+  },
+  "toast_export_empty": {
+    "message": "Noch nichts zu exportieren"
+  },
+  "toast_export_failed": {
+    "message": "Export fehlgeschlagen"
+  },
+  "toast_imported": {
+    "message": "{n} Karten importiert"
+  },
+  "toast_import_skipped": {
+    "message": "{n} unlesbare Zeilen übersprungen"
+  },
+  "toast_import_bad_format": {
+    "message": "Das ist keine exportierte Lernbibliothek"
+  },
+  "toast_import_failed": {
+    "message": "Import fehlgeschlagen"
+  },
+  "sync_section": {
+    "message": "Anmelden · Geräteübergreifende Synchronisierung"
+  },
+  "sync_section_hint": {
+    "message": "Optional. Alles funktioniert auch abgemeldet — die Synchronisierung sorgt nur dafür, dass die im Browser gelesenen Sätze auch in der App und auf Ihren anderen Geräten erscheinen. Nach der Anmeldung wird alles Erfasste (auch noch nicht wiederholte Kandidaten) synchronisiert."
+  },
+  "sync_email": {
+    "message": "E-Mail"
+  },
+  "sync_send_code": {
+    "message": "Code senden"
+  },
+  "sync_code": {
+    "message": "6-stelliger Code aus der E-Mail"
+  },
+  "sync_verify": {
+    "message": "Anmelden"
+  },
+  "sync_now": {
+    "message": "Jetzt synchronisieren"
+  },
+  "sync_signout": {
+    "message": "Abmelden"
+  },
+  "sync_delete": {
+    "message": "Cloud-Daten und Konto löschen"
+  },
+  "sync_err_offline": {
+    "message": "Server nicht erreichbar; es wird später erneut versucht. Alles Gelernte liegt auf diesem Gerät."
+  },
+  "sync_err_quota": {
+    "message": "Dein Cloud-Speicher ist voll, daher wird nichts Neues hochgeladen (dieses Gerät ist nicht betroffen). Beherrschte Karten zu löschen schafft Platz."
+  },
+  "sync_err_signed_out": {
+    "message": "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
+  },
+  "sync_err_rate": {
+    "message": "Zu viele Codes angefordert. Versuch es in ein paar Minuten erneut."
+  },
+  "sync_err_generic": {
+    "message": "Die Synchronisierung wurde nicht abgeschlossen"
+  },
+  "sync_signed_in": {
+    "message": "Angemeldet als {email}"
+  },
+  "sync_usage": {
+    "message": "{used} von {quota} belegt · {n} Blöcke"
+  },
+  "sync_need_email": {
+    "message": "Gib zuerst deine E-Mail-Adresse ein"
+  },
+  "sync_sending": {
+    "message": "Wird gesendet…"
+  },
+  "sync_code_sent": {
+    "message": "Code an {email} gesendet. Gib ihn unten ein."
+  },
+  "sync_verifying": {
+    "message": "Wird geprüft…"
+  },
+  "sync_signed_in_now": {
+    "message": "Angemeldet. Die erste Synchronisierung kann ein paar Sekunden dauern."
+  },
+  "sync_bad_code": {
+    "message": "Der Code ist falsch oder abgelaufen. Fordere einen neuen an."
+  },
+  "sync_running": {
+    "message": "Wird synchronisiert…"
+  },
+  "sync_done": {
+    "message": "Synchronisierung abgeschlossen · {in} empfangen · {out} hochgeladen"
+  },
+  "sync_status_running": {
+    "message": "Synchronisierung mit dem Server…"
+  },
+  "sync_status_done_at": {
+    "message": "Synchronisiert · {time}"
+  },
+  "sync_status_offline": {
+    "message": "Derzeit offline — es wird später automatisch erneut versucht. Deine Lerndaten bleiben auf diesem Gerät."
+  },
+  "sync_status_error": {
+    "message": "Synchronisierung fehlgeschlagen — es wird später automatisch erneut versucht."
+  },
+  "sync_status_signed_out": {
+    "message": "Nicht angemeldet — nur lokale Daten"
+  },
+  "sync_signed_out": {
+    "message": "Abgemeldet. Deine Lernbibliothek bleibt unverändert auf diesem Gerät."
+  },
+  "sync_delete_confirm": {
+    "message": "Cloud-Daten und Konto löschen? Alles auf dem Server und dieses Konto werden endgültig gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleting": {
+    "message": "Wird gelöscht…"
+  },
+  "sync_deleted": {
+    "message": "Cloud-Daten und Konto gelöscht. Deine Bibliothek auf diesem Gerät bleibt erhalten."
+  },
+  "sync_deleted_partial": {
+    "message": "Cloud-Daten gelöscht, aber das Konto konnte nicht entfernt werden ({why}). Versuch es erneut oder kontaktiere uns."
+  },
+  "sync_err_upgrade": {
+    "message": "In der Cloud liegt etwas, das diese Version noch nicht lesen kann (vermutlich von einer neueren Version geschrieben). Aktualisiere die Erweiterung und synchronisiere dann — es ist nichts verloren, es ist nur noch nicht lesbar."
+  },
+  "toast_import_upgrade": {
+    "message": "Diese Datei stammt aus einer neueren Version der Erweiterung. Aktualisiere und importiere sie dann. Mit der Datei selbst ist alles in Ordnung."
+  },
+  "options_init_failed": {
+    "message": "Die Einstellungsseite konnte nicht geladen werden ({err}). Öffne die Seite erneut; falls es weiter auftritt, melde uns bitte diese Meldung."
+  },
+  "settings_read_failed": {
+    "message": "Deine gespeicherten Einstellungen konnten nicht gelesen werden; unten stehen die Standardwerte. Speichere hier nicht — das würde deine Einstellungen überschreiben. ({why})"
+  },
+  "learn_relearn": {
+    "message": "Neu lernen",
+    "description": "Grade-0 consequence label on the review card"
+  },
+  "learn_strength": {
+    "message": "Gedächtnisstärke",
+    "description": "Memory strength label prefix"
+  },
+  "learn_days_unit": {
+    "message": "Tage",
+    "description": "Unit word for days in the strength label"
+  },
+  "learn_howto_title": {
+    "message": "So funktioniert die Wiederholung",
+    "description": "One-time review explainer: title"
+  },
+  "learn_howto_1": {
+    "message": "Gewusst → das Intervall wächst, die Karte kommt später wieder.",
+    "description": "Explainer line 1"
+  },
+  "learn_howto_2": {
+    "message": "Vergessen → es beginnt von vorn, die Karte kommt bald wieder.",
+    "description": "Explainer line 2"
+  },
+  "learn_howto_3": {
+    "message": "Bei 180 Tagen Stärke ist die Karte gemeistert.",
+    "description": "Explainer line 3"
+  },
+  "learn_howto_ok": {
+    "message": "Verstanden",
+    "description": "Explainer dismiss button"
+  },
+  "learn_cap_hint": {
+    "message": "Bis zu {n} neue Karten pro Tag — in den Einstellungen änderbar.",
+    "description": "Deck-done hint naming the daily new-card cap; {n} is the cap"
+  },
+  "learn_practice": {
+    "message": "Freies Üben",
+    "description": "Footer link opening free practice"
+  },
+  "learn_practice_rule": {
+    "message": "Üben erschleicht keine Meisterschaft, aber es deckt Vergessenes auf.",
+    "description": "One-line rule: practice fails count, passes do not lengthen intervals"
+  },
+  "learn_pool_learning": {
+    "message": "In Arbeit",
+    "description": "Practice pool option: learning cards only"
+  },
+  "learn_pool_all": {
+    "message": "Alles (inkl. neu & gemeistert)",
+    "description": "Practice pool option: whole corpus"
+  },
+  "learn_batch_unlimited": {
+    "message": "Ohne Limit",
+    "description": "Practice batch option: no limit"
+  },
+  "learn_practice_start": {
+    "message": "Üben starten",
+    "description": "Start practice button"
+  },
+  "learn_practice_progress": {
+    "message": "Üben {i} / {n}",
+    "description": "Practice progress; {i} current, {n} total"
+  },
+  "learn_practice_done": {
+    "message": "Üben beendet — {n} Karten.",
+    "description": "Practice summary; {n} cards done"
+  },
+  "learn_badge_read": {
+    "message": "Lesen",
+    "description": "Skill badge: reading"
+  },
+  "learn_badge_listen": {
+    "message": "Hören",
+    "description": "Skill badge: listening"
+  },
+  "learn_badge_write": {
+    "message": "Schreiben",
+    "description": "Skill badge: writing"
+  },
+  "learn_mastered_full": {
+    "message": "Voll gemeistert",
+    "description": "Badge when strength is full and all available skills passed"
+  },
+  "learn_shadow_hint": {
+    "message": "Sprich es nach (Übung — ohne Wertung)",
+    "description": "Shadowing invitation at the listen tier; explicitly practice, never graded"
+  },
+  "learn_check": {
+    "message": "Prüfen",
+    "description": "Write-tier check button"
+  },
+  "learn_write_prompt": {
+    "message": "Vervollständige den Satz",
+    "description": "Write-tier instruction line"
+  },
+  "learn_write_replaced": {
+    "message": "Durch die richtige Antwort ersetzt",
+    "description": "Note shown when wrong blanks were replaced with correct answers"
+  },
+  "learn_notes_btn": {
+    "message": "Diesen Satz erklären",
+    "description": "Answer-face button generating sentence notes"
+  },
+  "learn_notes_cost": {
+    "message": "Nutzt deine API — ein Aufruf, dauerhaft gecacht",
+    "description": "Cost line under the notes button; doubles as its status line"
+  },
+  "learn_notes_loading": {
+    "message": "Analysiere…",
+    "description": "Notes loading status"
+  },
+  "learn_notes_failed": {
+    "message": "Analyse fehlgeschlagen — später erneut versuchen",
+    "description": "Notes failure status"
+  },
+  "learn_notes_failed_empty": {
+    "message": "Das Modell hat keinen Antworttext geliefert — Reasoning-Modelle eignen sich nicht für die Satzanalyse; wähle in den Einstellungen ein Chat-Modell."
+  },
+  "learn_notes_words": {
+    "message": "Wörter",
+    "description": "Notes section header: vocabulary"
+  },
+  "learn_notes_phrases": {
+    "message": "Wendungen",
+    "description": "Notes section header: phrases"
+  },
+  "learn_notes_grammar": {
+    "message": "Grammatik",
+    "description": "Notes section header: grammar point"
+  },
+  "app_lede": {
+    "message": "Videos, Gespräche, Dokumente — übersetzt, während du zuhörst. Sprache wird auf deinem Gerät erkannt. Der erkannte Text geht zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht."
+  },
+  "app_email_label": {
+    "message": "E-Mail"
+  },
+  "app_send": {
+    "message": "Code senden"
+  },
+  "app_sending": {
+    "message": "Wird gesendet…"
+  },
+  "app_code_label": {
+    "message": "Code (E-Mail prüfen)"
+  },
+  "app_verify": {
+    "message": "Anmelden"
+  },
+  "app_verifying": {
+    "message": "Anmeldung…"
+  },
+  "app_back_email": {
+    "message": "Andere E-Mail verwenden"
+  },
+  "app_signout": {
+    "message": "Abmelden"
+  },
+  "app_settings_link": {
+    "message": "Einstellungen"
+  },
+  "app_review_start": {
+    "message": "Wiederholung starten"
+  },
+  "app_review_back": {
+    "message": "← Zurück"
+  },
+  "app_sync": {
+    "message": "Synchronisieren"
+  },
+  "app_syncing": {
+    "message": "Synchronisiere…"
+  },
+  "app_unit_cards": {
+    "message": "Karten"
+  },
+  "app_unit_reviews": {
+    "message": "Wiederholungen"
+  },
+  "app_unit_sources": {
+    "message": "Quellen"
+  },
+  "app_never_synced": {
+    "message": "Noch nicht synchronisiert"
+  },
+  "app_sync_empty": {
+    "message": "Synchronisiert, aber der Server ist noch leer — sammle zuerst Sätze im Browser und synchronisiere dann erneut."
+  },
+  "app_up_to_date": {
+    "message": "Bereits aktuell."
+  },
+  "app_code_sent": {
+    "message": "Code gesendet — E-Mail prüfen."
+  },
+  "app_code_bad": {
+    "message": "Code falsch oder abgelaufen — bitte erneut versuchen."
+  },
+  "app_offline": {
+    "message": "Server nicht erreichbar — Verbindung prüfen und erneut versuchen."
+  },
+  "app_needs_upgrade": {
+    "message": "Der Server enthält Inhalte, die diese Version nicht lesen kann — bitte App aktualisieren."
+  },
+  "app_received": {
+    "message": "{n} Karten · {m} Wiederholungen empfangen"
+  },
+  "app_uploaded_n": {
+    "message": "{n} Wiederholungen hochgeladen"
+  },
+  "app_uploaded_only": {
+    "message": "{n} Wiederholungen hochgeladen"
+  },
+  "app_sync_disabled": {
+    "message": "Sync ist in dieser Version nicht aktiviert. Sammeln und Wiederholen in der Browser-Erweiterung sind nicht betroffen — alles bleibt auf deinem Gerät."
+  },
+  "app_set_title": {
+    "message": "Einstellungen"
+  },
+  "app_set_daily": {
+    "message": "Max. neue Karten pro Tag"
+  },
+  "app_set_tts_auto": {
+    "message": "Automatisch vorlesen, wenn die Übersetzung erscheint"
+  },
+  "app_set_tts_rate": {
+    "message": "Sprechtempo"
+  },
+  "app_set_tts_note": {
+    "message": "Karten mit unbekannter Sprache (z. B. in Safari erfasst, das keine Spracherkennung hat) werden nur mit der oben gewählten Stimme vorgelesen; ohne Auswahl bleiben sie stumm. Der Sprach-API-Schlüssel verhält sich wie der Satzanalyse-Schlüssel: nur auf diesem Gerät, im Klartext, nie mit dem Konto synchronisiert."
+  },
+  "app_set_notes_title": {
+    "message": "Übersetzung und Satzanalyse"
+  },
+  "app_set_notes_provider": {
+    "message": "Engine"
+  },
+  "app_set_notes_none": {
+    "message": "Keiner"
+  },
+  "app_set_notes_key": {
+    "message": "API-Schlüssel"
+  },
+  "app_set_notes_base": {
+    "message": "Eigene Endpoint-URL"
+  },
+  "app_set_notes_model": {
+    "message": "Modell"
+  },
+  "app_set_notes_note": {
+    "message": "Diese Engine übernimmt jede Übersetzung in der App: Systemübersetzung, Schnellübersetzung, Dokumentübersetzung, die Übersetzungen in Gespräch und Live-Untertiteln — und die Satzanalyse (Wörter / Wendungen / Grammatik). Sie ruft deine eigene API auf. Der Schlüssel bleibt nur auf diesem Gerät und wird nie mit deinem Konto synchronisiert; er ist vom Schlüssel der Browser-Erweiterung getrennt und genauso sicher — beide liegen im Klartext auf dem Gerät."
+  },
+  "app_set_corpus": {
+    "message": "Bibliothek"
+  },
+  "app_set_clean_known": {
+    "message": "Gemeisterte Karten aufräumen"
+  },
+  "app_set_cleaned": {
+    "message": "{n} Karten aufgeräumt"
+  },
+  "app_set_clean_none": {
+    "message": "Nichts aufzuräumen"
+  },
+  "app_set_account": {
+    "message": "Konto"
+  },
+  "app_set_signout": {
+    "message": "Abmelden"
+  },
+  "app_set_delete": {
+    "message": "Konto und Cloud-Daten löschen"
+  },
+  "app_set_delete_note": {
+    "message": "Das Löschen entfernt Material und Wiederholungsverlauf dauerhaft vom Server und schließt das Konto. Bereits auf dieses Gerät geladene Inhalte bleiben erhalten — zum Entfernen die App löschen."
+  },
+  "app_set_confirm_delete": {
+    "message": "Konto löschen? Alles auf dem Server wird dauerhaft entfernt und kann nicht wiederhergestellt werden."
+  },
+  "app_set_deleting": {
+    "message": "Wird gelöscht…"
+  },
+  "app_set_deleted": {
+    "message": "Konto gelöscht."
+  },
+  "app_unit_known": {
+    "message": "gemeistert"
+  },
+  "tts_no_voice_und": {
+    "message": "Die Sprache dieser Karte ist unbekannt — wähle in den Einstellungen eine Stimme, dann wird vorgelesen"
+  },
+  "app_set_tts_voice": {
+    "message": "Stimme"
+  },
+  "app_set_tts_voice_auto": {
+    "message": "Automatisch (nach Kartensprache)"
+  },
+  "learn_langs_label": {
+    "message": "Zu lernende Sprachen"
+  },
+  "learn_langs_all": {
+    "message": "Alle (Standard)"
+  },
+  "learn_langs_hint": {
+    "message": "Nur Sätze in den gewählten Sprachen werden erfasst. Wenn Safari die Sprache nicht erkennen kann, entscheidet das Schriftsystem; per Langdruck Gespeichertes wird nie gefiltert."
+  },
+  "learn_sources_manage": {
+    "message": "Quellen verwalten"
+  },
+  "learn_sources_empty": {
+    "message": "Noch keine Quellen erfasst"
+  },
+  "learn_sources_count": {
+    "message": "{n} Karten"
+  },
+  "learn_src_delete": {
+    "message": "Gespeichertes löschen"
+  },
+  "learn_src_block": {
+    "message": "Nicht mehr erfassen"
+  },
+  "learn_src_unblock": {
+    "message": "Wieder erfassen"
+  },
+  "learn_src_blocked": {
+    "message": "Blockiert"
+  },
+  "learn_src_blocked_by": {
+    "message": "Blockiert durch Regel {pattern}"
+  },
+  "learn_block_title": {
+    "message": "Blockierregeln"
+  },
+  "learn_block_hint": {
+    "message": "Platzhalter möglich: example.com trifft die ganze Domain (inkl. Subdomains); *.example.com/news/* trifft einen Pfad."
+  },
+  "learn_block_add": {
+    "message": "Hinzufügen"
+  },
+  "learn_block_placeholder": {
+    "message": "z. B. *.example.com/news/*"
+  },
+  "learn_block_invalid": {
+    "message": "Keine gültige Regel"
+  },
+  "learn_delete_confirm": {
+    "message": "{n} Karten von {host} löschen? Wird auf alle Geräte synchronisiert und kann nicht rückgängig gemacht werden."
+  },
+  "learn_delete_done": {
+    "message": "{n} Karten gelöscht"
+  },
+  "learn_delete_none": {
+    "message": "Nichts mehr zu löschen für diese Quelle"
+  },
+  "popup_site_section": {
+    "message": "Diese Website"
+  },
+  "popup_site_capture": {
+    "message": "Auf dieser Website erfassen"
+  },
+  "popup_site_manage": {
+    "message": "Verwalten…"
+  },
+  "learn_card_src_actions": {
+    "message": "Quellen-Aktionen"
+  },
+  "lang_en": {
+    "message": "English"
+  },
+  "lang_ja": {
+    "message": "日本語"
+  },
+  "lang_ko": {
+    "message": "한국어"
+  },
+  "lang_zh": {
+    "message": "中文"
+  },
+  "lang_fr": {
+    "message": "Français"
+  },
+  "lang_de": {
+    "message": "Deutsch"
+  },
+  "lang_es": {
+    "message": "Español"
+  },
+  "lang_pt": {
+    "message": "Português"
+  },
+  "lang_it": {
+    "message": "Italiano"
+  },
+  "lang_ru": {
+    "message": "Русский"
+  },
+  "lang_ar": {
+    "message": "العربية"
+  },
+  "lang_th": {
+    "message": "ไทย"
+  },
+  "sync_status_storage_error": {
+    "message": "Anmeldestatus konnte nicht gelesen werden (Speicher-Lesefehler); es wird gleich erneut versucht — das bedeutet nicht, dass Sie abgemeldet wurden."
+  },
+  "learn_backup_failed": {
+    "message": "Lokales Backup konnte nicht geschrieben werden ({why}). Die Lernbibliothek selbst ist nicht betroffen."
+  },
+  "notes_engine": {
+    "message": "Analyse-Engine"
+  },
+  "notes_engine_hint": {
+    "message": "Chat-Engine für „Diesen Satz analysieren“. Folgt standardmäßig der Übersetzungs-Engine oben; Reasoning-Modelle eignen sich nicht."
+  },
+  "notes_follow": {
+    "message": "Übersetzungs-Engine folgen (Standard)"
+  },
+  "notes_api_key": {
+    "message": "Analyse-API-Key"
+  },
+  "notes_base_url": {
+    "message": "Analyse-API-Endpunkt"
+  },
+  "notes_model": {
+    "message": "Analyse-Modell"
+  },
+  "learn_badge_speak": {
+    "message": "Sprechen",
+    "description": "Skill badge: speaking"
+  },
+  "learn_second_exercise": {
+    "message": "Noch eine Übung · zählt nicht für das Intervall",
+    "description": "Note above grades during the appended second exercise (§5.4)"
+  },
+  "learn_mcq_prompt": {
+    "message": "Wähle die richtige Übersetzung",
+    "description": "MCQ exercise prompt (§9.3)"
+  },
+  "learn_listen_once": {
+    "message": "Erst anhören, dann die gehörten Wörter auswählen",
+    "description": "Blind-listen word-pick prompt (§9.3)"
+  },
+  "learn_check_pick": {
+    "message": "Auswahl bestätigen",
+    "description": "Confirm button for the word-pick exercise"
+  },
+  "learn_pack_loading": {
+    "message": "Fragen dieser Karte werden mit deiner API erzeugt (ein Aufruf, dauerhaft gecacht) …",
+    "description": "Pack generation status/cost line (§9.3)"
+  },
+  "learn_pack_failed": {
+    "message": "Generierung fehlgeschlagen — lokale Übungsform wird verwendet",
+    "description": "Pack failure line — local fallback used (§9.3)"
+  },
+  "stt_engine": {
+    "message": "Transkriptions-Engine",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_none": {
+    "message": "Nicht konfiguriert (keine Sprechübung)",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_engine_local": {
+    "message": "Lokaler / selbst gehosteter Transkriptions-Endpunkt",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_hint": {
+    "message": "Aufnahmen der Sprechübung gehen an den hier konfigurierten Endpunkt und werden danach verworfen — nie gespeichert, nie synchronisiert. Ohne Engine keine Sprechübung. Der Schlüssel bleibt auf diesem Gerät. Ein selbst gehosteter Server muss CORS erlauben.",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_api_key": {
+    "message": "Transkriptions-API-Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_base_url": {
+    "message": "Transkriptions-Endpunkt-URL",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_model": {
+    "message": "Transkriptionsmodell",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_prompt": {
+    "message": "Lies diesen Satz laut vor",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_record": {
+    "message": "🎙 Aufnahme starten",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_again": {
+    "message": "🎙 Erneut aufnehmen",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_stop": {
+    "message": "■ Stopp",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_recording": {
+    "message": "Aufnahme läuft — lies den Satz oben",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_busy": {
+    "message": "Wird transkribiert …",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_score": {
+    "message": "{n} % Übereinstimmung mit dem Satz",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_missed": {
+    "message": "Ausgelassen: ",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "learn_speak_cost": {
+    "message": "Nutzt deinen konfigurierten Endpunkt — ein Aufruf pro Aufnahme",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_base": {
+    "message": "Noch kein Transkriptions-Endpunkt konfiguriert",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_key": {
+    "message": "Noch kein Transkriptions-API-Key",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_no_mic": {
+    "message": "Dieser Browser hat keinen Mikrofonzugriff",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_mic_denied": {
+    "message": "Mikrofon verweigert — diese Sitzung nutzt andere Übungen",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_http": {
+    "message": "Der Transkriptionsdienst meldete einen Fehler",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_empty": {
+    "message": "Keine Sprache erkannt — versuch es erneut",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_unsupported": {
+    "message": "Dieser Browser unterstützt keine Aufnahme",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_failed": {
+    "message": "Transkription fehlgeschlagen",
+    "description": "Speak exercise / transcription engine (§9.4)"
+  },
+  "stt_network": {
+    "message": "Transkriptions-Endpunkt nicht erreichbar — URL prüfen; ein selbst gehosteter Server muss außerdem CORS erlauben",
+    "description": "Speak exercise: endpoint unreachable / CORS (§9.4)"
+  },
+  "engine_test": {
+    "message": "Verbindung testen",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_running": {
+    "message": "Wird getestet …",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_ok": {
+    "message": "✓ Funktioniert · {ms} ms",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_sample": {
+    "message": "Antwort: ",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_failed": {
+    "message": "Fehlgeschlagen",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_base": {
+    "message": "Noch keine Endpunkt-URL",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_key": {
+    "message": "Noch kein API-Key",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_engine": {
+    "message": "Keine Engine ausgewählt",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_unknown_provider": {
+    "message": "Diese Version kennt die gespeicherte Engine nicht – bitte oben eine auswählen",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_output": {
+    "message": "Der Endpunkt antwortete, aber der Inhalt war nicht lesbar",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_http": {
+    "message": "HTTP {n} — {hint}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_key": {
+    "message": "der Key ist falsch oder ohne Berechtigung",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_404": {
+    "message": "die Endpunkt-URL (samt Pfad) oder der Modellname ist falsch",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_hint_other": {
+    "message": "der Server hat die Anfrage abgelehnt",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_no_path": {
+    "message": "Diese Adresse enthält nur einen Host und keinen Endpunkt-Pfad — geben Sie die vollständige Anfrage-URL ein (siehe Beispiel im Feld)",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_bad_url": {
+    "message": "Die Adresse beginnt nicht mit http:// oder https:// — ohne Schema wird sie als relativer Pfad behandelt und es wird gar keine Anfrage gesendet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_timeout": {
+    "message": "Der Endpunkt hat vor dem Timeout nicht geantwortet",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_url": {
+    "message": "Angefragt: {url}",
+    "description": "Engine self-test (settings)"
+  },
+  "engine_test_route": {
+    "message": "Gesendet über: {route}",
+    "description": "Which transport path the self-check request actually used."
+  },
+  "engine_test_route_proxy": {
+    "message": "den Hintergrund der Erweiterung (nicht CORS-pflichtig, kein Preflight)",
+    "description": "Substituted into engine_test_route when the extension background sent it."
+  },
+  "engine_test_route_direct": {
+    "message": "die Seite selbst (sendet zuerst einen OPTIONS-Preflight)",
+    "description": "Substituted into engine_test_route when the page sent it."
+  },
+  "engine_test_server_said": {
+    "message": "Antwort des Servers: {msg}",
+    "description": "The server's own error sentence, shown verbatim under the engine self-check result."
+  },
+  "engine_test_via_proxy": {
+    "message": "(Auch über den Hintergrund der Erweiterung erneut versucht, ebenfalls ohne Erfolg — es ist also kein CORS-Problem; die Adresse ist von diesem Rechner aus wirklich nicht erreichbar.)",
+    "description": "Shown when the direct request was CORS-blocked and the background retry also failed."
+  },
+  "notes_test_empty": {
+    "message": "Das Modell lieferte keinen Inhalt — Reasoning-Modelle passen hier nicht; nimm ein Chat-Modell",
+    "description": "Engine self-test (settings)"
+  },
+  "learn_split_long": {
+    "message": "Lange Karten aufteilen"
+  },
+  "learn_split_failed": {
+    "message": "Aufteilen fehlgeschlagen"
+  },
+  "learn_split_none": {
+    "message": "Keine langen Karten zum Aufteilen"
+  },
+  "learn_split_done": {
+    "message": "{p} lange Karten in {c} Satzkarten aufgeteilt"
+  },
+  "learn_split_skipped": {
+    "message": " ({k} unverändert — Übersetzung nicht ausrichtbar)"
+  },
+  "app_use_pw": {
+    "message": "Mit Passwort anmelden",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_label": {
+    "message": "Passwort",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_back": {
+    "message": "Stattdessen Code verwenden",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "app_pw_bad": {
+    "message": "E-Mail oder Passwort falsch – versuch es noch einmal.",
+    "description": "Password sign-in (learning-design §8.4.1)"
+  },
+  "drive_entry": {
+    "message": "Podcast-Modus",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_pause": {
+    "message": "⏸ Pause",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_resume": {
+    "message": "▶ Fortsetzen",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_next": {
+    "message": "⏭ Weiter",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_repeat": {
+    "message": "🔁 Nochmal hören",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_progress": {
+    "message": "Karte {i} von {n}",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_explain": {
+    "message": "🔍 Erklären",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_pass": {
+    "message": "Durchgang {i}",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_explaining": {
+    "message": "Wird analysiert…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_engine_missing": {
+    "message": "Zum Vorlesen der Erläuterung braucht es zuerst eine Engine — unter Einstellungen → Übersetzung und Satzanalyse einrichten"
+  },
+  "drive_notes_empty": {
+    "message": "Diese Karte hat keine Erläuterung zum Vorlesen",
+    "description": "Driving mode (§9.5)"
+  },
+  "settings_read_failed_short": {
+    "message": "Gespeicherte Einstellungen nicht lesbar — bitte gleich noch einmal versuchen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_shuffle": {
+    "message": "🔀 Zufällig",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_sequential": {
+    "message": "⏭ Der Reihe nach",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_loop": {
+    "message": "🔁 Alle wiederholen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_mode_repeat_one": {
+    "message": "🔂 Eine wiederholen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_restart": {
+    "message": "Noch einmal",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_notes": {
+    "message": "Erläuterung wird gelesen…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_parsing": {
+    "message": "Satz wird analysiert…",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes": {
+    "message": "Satz-Erläuterung mitlesen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_play_notes_note": {
+    "message": "Auf jede Karte folgt ihre Erläuterung (Wörter, Wendungen, ein Grammatikpunkt). Standardmäßig an: Eine noch nie analysierte Karte wird sofort analysiert, mit der von Ihnen eingerichteten Engine — einmal pro Karte berechnet, danach aus dem Cache. Ausschalten, wenn Sie das nicht ausgeben möchten; aus werden nur Satz und Übersetzung gelesen.",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_cost": {
+    "message": "Erläuterungen: eine nie analysierte Karte ruft Ihre Engine auf — einmal pro Karte berechnet",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_words": {
+    "message": "Wörter: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_phrases": {
+    "message": "Wendungen: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_grammar": {
+    "message": "Grammatik: ",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_failed": {
+    "message": "Diese Karte konnte nicht analysiert werden — übersprungen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_notes_no_base": {
+    "message": "Die Erläuterungs-Engine ist nicht eingerichtet — Erläuterung übersprungen",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_skip_card": {
+    "message": "Diese Karte kann nicht vorgelesen werden — weiter zur nächsten",
+    "description": "Driving mode (§9.5)"
+  },
+  "drive_status_source": {
+    "message": "Original wird vorgelesen…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_tr": {
+    "message": "Übersetzung wird vorgelesen…",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_status_paused": {
+    "message": "Pausiert",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_done": {
+    "message": "Diese Runde ist zu Ende",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_empty": {
+    "message": "Keine vorlesbaren Karten",
+    "description": "Driving mode (learning-design §9.5)"
+  },
+  "drive_preload_days": {
+    "message": "Umfang des Vorabladens",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_0": {
+    "message": "Heutiges Kartendeck",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_3": {
+    "message": "Heute + nächste 3 Tage",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_days_7": {
+    "message": "Heute + nächste 7 Tage",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload": {
+    "message": "Für offline vorab laden",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_hint": {
+    "message": "Vor der Abfahrt einmal antippen: Sprachausgabe, Analysen und Übersetzungen werden auf dieses Gerät geladen, sodass eine ganze Sitzung ohne Netz läuft. Der erste Tipp berechnet nur die Kosten und gibt nichts aus — prüfen Sie die Anzahl der Aufrufe, bevor Sie erneut tippen.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_pricing": {
+    "message": "Prüfe, was bereits auf diesem Gerät liegt…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_cards": {
+    "message": "{n} Karten",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_audio": {
+    "message": "{n} Clips zu erzeugen",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_notes": {
+    "message": "{n} Karten zu analysieren",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tr": {
+    "message": "{n} Karten ohne Übersetzung",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_audio_cache": {
+    "message": "Die geräteeigene Stimme erzeugt keinen Cache und funktioniert ohnehin offline — hier werden nur Analysen und Übersetzungen vorab geladen.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_no_fill_engine": {
+    "message": "Keine Analyse-Engine konfiguriert — Karten ohne Übersetzung erhalten diesmal keine (Einstellungen → Satzanalyse)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_ready": {
+    "message": "Alles liegt bereits auf dem Gerät — unterwegs ist kein Netz nötig.",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_confirm": {
+    "message": "Vorabladen bestätigen (etwa {n} kostenpflichtige Aufrufe)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stop": {
+    "message": "Stoppen",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_progress": {
+    "message": "Lade vorab {done}/{total}…",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_done": {
+    "message": "Fertig {done}/{total}",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_stopped": {
+    "message": "Gestoppt: {done}/{total} fertig",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_failed": {
+    "message": "{n} Fehlschläge ({reasons})",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_preload_tts_bad": {
+    "message": "Die Sprach-Engine ist nicht konfiguriert ({reason}) — diesmal kann kein Audio erzeugt werden (Einstellungen → Sprach-Engine)",
+    "description": "Podcast mode preload (learning-design §9.5)"
+  },
+  "drive_tts_not_configured": {
+    "message": "Die Sprach-Engine ist nicht konfiguriert — in dieser Runde wird nichts vorgelesen (Einstellungen → Sprach-Engine)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_blocked": {
+    "message": "Automatische Wiedergabe wurde blockiert — zum Fortfahren tippen",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unsupported": {
+    "message": "Auf diesem Gerät ist keine Sprach-Engine verfügbar",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "drive_tts_unreachable": {
+    "message": "Die Sprach-Engine ist nicht erreichbar — in dieser Runde wird nichts vorgelesen. Nur vorab geladene Karten spielen offline (Einstellungen → Für offline vorab laden)",
+    "description": "Podcast mode: speech-engine failure (learning-design §9.5)"
+  },
+  "tts_timeout": {
+    "message": "Zeitüberschreitung beim Sprachdienst — Netzwerk prüfen oder andere Adresse versuchen"
+  },
+  "tts_network": {
+    "message": "Sprachdienst nicht erreichbar — Netzwerk und Adresse prüfen"
+  },
+  "tts_empty": {
+    "message": "Diese Karte enthält keinen vorlesbaren Text"
+  },
+  "drive_bg_session_failed": {
+    "message": "Auf diesem Gerät lässt sich derzeit keine Hintergrund-Audiositzung starten; die Wiedergabe pausiert, sobald die App den Bildschirm verlässt."
+  },
+  "drive_bg_needs_audio_engine": {
+    "message": "Die geräteeigene Stimme stoppt, sobald die App den Bildschirm verlässt. Zum Weiterhören einen Sprach-Endpunkt einrichten (Einstellungen → Sprach-Engine)."
+  },
+  "drive_awake_note": {
+    "message": "Solange der Podcast-Modus im Vordergrund ist, sperrt sich der Bildschirm nicht automatisch. Damit die Karte nach dem Sperren sichtbar bleibt, das systemeigene Always-On-Display einschalten: Einstellungen → Anzeige & Helligkeit → Immer aktiviert."
+  },
+  "app_empty_body": {
+    "message": "Das Lernmaterial stammt aus der Browser-Erweiterung — in dieser App wiederholst du es."
+  },
+  "app_empty_how": {
+    "message": "Aktiviere BelliedMonkey Translator unter Einstellungen → Safari → Erweiterungen, schalte das Sammeln ein und surfe und übersetze wie gewohnt."
+  },
+  "app_ext_off_title": {
+    "message": "Die Erweiterung ist noch nicht aktiv"
+  },
+  "app_ext_off_body": {
+    "message": "Karten kommen aus der Safari-Erweiterung. Sie ist nicht aktiviert, daher bleibt es hier leer."
+  },
+  "app_ext_unknown_title": {
+    "message": "Richte zuerst die Browser-Seite ein"
+  },
+  "app_ext_ios_body": {
+    "message": "Die Karten kommen aus der Safari-Erweiterung: Tippe in Safari auf das Erweiterungssymbol links in der Adressleiste → „Erweiterungen verwalten“ → BelliedMonkey Translator aktivieren."
+  },
+  "app_ext_open_prefs": {
+    "message": "Safari-Erweiterungseinstellungen öffnen"
+  },
+  "app_ext_open_setup": {
+    "message": "Einrichtung im Web abschließen"
+  },
+  "app_ext_banner_title_ios": {
+    "message": "Die Safari-Erweiterung ist noch nicht aktiviert"
+  },
+  "app_ext_open_safari": {
+    "message": "Erweiterung in Safari aktivieren →"
+  },
+  "app_ext_done": {
+    "message": "Ich habe sie aktiviert"
+  },
+  "app_signin_why": {
+    "message": "Beim Anmelden kommt das Gratis-Guthaben und die Sprachpakete werden auf dieses Gerät geladen — danach ist nichts weiter einzurichten."
+  },
+  "app_signin_open": {
+    "message": "Anmelden"
+  },
+  "ob_next": {
+    "message": "Weiter"
+  },
+  "ob_skip": {
+    "message": "Später einrichten"
+  },
+  "ob_start": {
+    "message": "Los geht's"
+  },
+  "ob_welcome_title": {
+    "message": "Du bestimmst, welches Modell übersetzt"
+  },
+  "ob_welcome_body": {
+    "message": "Das System hat nur seine eigene Engine. Hier wählst du eine aus — die Übersetzung kommt direkt von ihr und läuft nie über unsere Server."
+  },
+  "ob_ios_1": {
+    "message": "Tippe in Safari auf das Erweiterungssymbol links in der Adressleiste"
+  },
+  "ob_ios_2": {
+    "message": "Wähle „Erweiterungen verwalten“ und aktiviere BelliedMonkey Translator"
+  },
+  "ob_ios_3": {
+    "message": "Berechtigung auf Erlauben, für alle Websites"
+  },
+  "ob_browser_title": {
+    "message": "Noch zwei Dinge, im Browser"
+  },
+  "ob_browser_body": {
+    "message": "Beide Schalter liegen in den Einstellungen der Erweiterung — diese App kann sie nicht ändern, die Speicher sind getrennt."
+  },
+  "ob_kv_engine": {
+    "message": "Trage einen Übersetzungs-API-Schlüssel ein"
+  },
+  "ob_kv_capture": {
+    "message": "Schalte das Sammeln ein"
+  },
+  "ob_kv_capture_note": {
+    "message": "Schon an. Sätze, bei denen du stehen bleibst, werden zu Karten — hier ausschalten, wenn du das nicht willst."
+  },
+  "ob_read_title": {
+    "message": "Lies etwas"
+  },
+  "ob_read_body": {
+    "message": "Fertig eingerichtet: surfe und übersetze wie gewohnt. Gelesenes sammelt sich an; willst du einen Satz sofort behalten, drücke lange auf seine Übersetzung."
+  },
+  "ob_signin_title": {
+    "message": "Letzter Schritt: Anmelden"
+  },
+  "ob_kv_twice": {
+    "message": "Du meldest dich auch in der Erweiterung an"
+  },
+  "ob_kv_twice_note": {
+    "message": "Beide Seiten speichern getrennt — melden Sie sich auf beiden mit demselben Konto an."
+  },
+  "ob_kv_engine_note_required": {
+    "message": "Erweiterungseinstellungen → Übersetzungs-Engine. Unumgänglich: ohne Schlüssel wird nichts übersetzt."
+  },
+  "extob_header": {
+    "message": "BelliedMonkey Translator · Loslegen"
+  },
+  "extob_welcome_title": {
+    "message": "Lesen und behalten, ohne die Seite zu verlassen"
+  },
+  "extob_welcome_body": {
+    "message": "Das Original bleibt stehen, die Übersetzung erscheint direkt darunter. Sätze, bei denen du wirklich innehältst, werden zu Wiederholungskarten und kommen nach der Vergessenskurve zurück."
+  },
+  "extob_use_1": {
+    "message": "Öffnen Sie eine fremdsprachige Seite"
+  },
+  "extob_use_2": {
+    "message": "Tippen Sie unten rechts auf die schwebende Schaltfläche"
+  },
+  "extob_use_3": {
+    "message": "Die Übersetzung erscheint unter dem Original; Sätze, die Sie wirklich zu Ende lesen, werden zu Lernkarten"
+  },
+  "ob_fork_title": {
+    "message": "Wie möchtest du starten?"
+  },
+  "ob_fork_sub": {
+    "message": "Beides funktioniert. Du kannst jederzeit wechseln."
+  },
+  "ob_fork_grant_title": {
+    "message": "Mit Gratis-Guthaben starten"
+  },
+  "ob_fork_grant_badge": {
+    "message": "Empfohlen"
+  },
+  "ob_fork_grant_desc": {
+    "message": "Kein API-Schlüssel nötig — einfach anmelden und übersetzen. Reicht für ein paar hundert Absätze Seiten und Untertitel."
+  },
+  "ob_fork_grant_cta": {
+    "message": "Gratis starten →"
+  },
+  "ob_fork_key_title": {
+    "message": "Ich habe einen eigenen API-Schlüssel"
+  },
+  "ob_fork_key_desc": {
+    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein — oder konfiguriere jede Engine einzeln."
+  },
+  "ob_fork_key_cta": {
+    "message": "Einrichten →"
+  },
+  "ob_fork_foot": {
+    "message": "Aufgebraucht? Wechsle jederzeit zu deinem eigenen Schlüssel — ein Schritt in den Einstellungen."
+  },
+  "ob_fork_waiting": {
+    "message": "Wird in einem neuen Tab abgeholt… komm hierher zurück, sobald du angemeldet bist, dann geht es automatisch weiter."
+  },
+  "ob_fork_landed": {
+    "message": "Guthaben erhalten — weiter zum nächsten Schritt…"
+  },
+  "ob_fork_reopen": {
+    "message": "Abholseite erneut öffnen"
+  },
+  "extob_engine_title": {
+    "message": "Wähle eine Übersetzungs-Engine"
+  },
+  "extob_engine_body_key": {
+    "message": "An diesem Schritt führt kein Weg vorbei: ohne Schlüssel wird nichts übersetzt."
+  },
+  "extob_key_label": {
+    "message": "API-Schlüssel"
+  },
+  "extob_capture_title": {
+    "message": "Was du liest, wird zu Lernkarten"
+  },
+  "extob_capture_body": {
+    "message": "Schon an. Sätze, die du wirklich zu Ende liest (schnelles Scrollen zählt nicht), werden nur auf diesem Gerät als Lernkarten gespeichert — hier ausschalten, wenn du das nicht willst."
+  },
+  "extob_capture_toggle": {
+    "message": "Gelesene Sätze als Karten speichern"
+  },
+  "extob_capture_note": {
+    "message": "Nur Sätze, die du zu Ende liest. Jederzeit abschaltbar, und pro Website komplett löschbar."
+  },
+  "extob_try_title": {
+    "message": "Jetzt eine Seite übersetzen"
+  },
+  "extob_try_body": {
+    "message": "Öffne eine echte Seite und tippe unten rechts auf den Button — die Übersetzung erscheint unter jedem Absatz."
+  },
+  "extob_try_cta": {
+    "message": "Beispielseite öffnen"
+  },
+  "extob_finish": {
+    "message": "Fertig"
+  },
+  "extob_done_title": {
+    "message": "Alles eingerichtet"
+  },
+  "extob_done_text": {
+    "message": "Öffne eine fremdsprachige Seite und tippe auf den Button. Einstellungen und diese Einführung findest du beide in den Einstellungen der Erweiterung."
+  },
+  "extob_done_close": {
+    "message": "Verstanden"
+  },
+  "extob_reonboard": {
+    "message": "Einführung erneut ansehen"
+  },
+  "extob_unpacked_note": {
+    "message": "Aus einer ZIP installiert: diese Kopie aktualisiert sich nicht selbst. Neue Versionen gibt es auf der Website, oder installiere aus dem Store für automatische Updates."
+  },
+  "extob_first_run": {
+    "message": "Zum ersten Mal? In zwei Minuten eingerichtet →"
+  },
+  "qs_title": {
+    "message": "Alles mit einem Schlüssel einrichten"
+  },
+  "qs_sub": {
+    "message": "Bei diesen Plattformen richtet ein Schlüssel Übersetzung, Vorlesen und Transkription zugleich ein. Für andere Dienste wechseln Sie oben zu „Detailliert“."
+  },
+  "qs_platform": {
+    "message": "Plattform"
+  },
+  "qs_only_one": {
+    "message": "Plattform: {p}"
+  },
+  "qs_key": {
+    "message": "API-Schlüssel"
+  },
+  "qs_get_key": {
+    "message": "Noch kein Schlüssel? Bei {p} anfordern ↗"
+  },
+  "qs_try": {
+    "message": "Jetzt eine Seite übersetzen"
+  },
+  "qs_try_note": {
+    "message": "Öffnen Sie eine echte Webseite und tippen Sie auf die schwebende Schaltfläche – die Übersetzung erscheint unter jedem Absatz."
+  },
+  "extob_quick_sub": {
+    "message": "Ein Schlüssel richtet Übersetzung, Vorlesen und Transkription zugleich ein."
+  },
+  "extob_mode_quick": {
+    "message": "Ein Schlüssel"
+  },
+  "extob_mode_manual": {
+    "message": "Dienste einzeln einrichten"
+  },
+  "qs_key_ph": {
+    "message": "Einmal einfügen – richtet alle drei ein"
+  },
+  "qs_privacy": {
+    "message": "Schlüssel bleiben nur auf diesem Gerät."
+  },
+  "qs_grant_replaced": {
+    "message": "(hat den Gratis-Guthaben-Schlüssel ersetzt)"
+  },
+  "stt_device_no_file": {
+    "message": "Die Transkription auf dem Gerät gilt nur für Gespräche und Live-Untertitel; Sprechübungen werden noch nicht unterstützt"
+  },
+  "engine_test_device_ready": {
+    "message": "✓ Erkennung auf dem Gerät verfügbar · Sprachpaket bereit (kein Netzwerk, kein Endpunkt zu testen)"
+  },
+  "engine_test_device_assets": {
+    "message": "✓ Erkennung auf dem Gerät verfügbar · das Sprachpaket wird beim ersten Zuhören automatisch geladen"
+  },
+  "engine_test_device_timeout": {
+    "message": "Die Erkennung auf dem Gerät antwortet nicht — App beenden, neu öffnen und erneut versuchen"
+  },
+  "listen_downloading": {
+    "message": "Offline-Modell {lang} wird geladen · {pct} %"
+  },
+  "listen_assets_failed": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen – tippe erneut auf „Zuhören starten“ oder wähle in den Einstellungen eine Cloud-Engine."
+  },
+  "listen_entry_privacy_device": {
+    "message": "Geräteinterne Transkription: Der Text erscheint beim Sprechen; jeder fertige Satz geht an die von dir eingerichtete Übersetzungs-Engine."
+  },
+  "listen_cost_line_device": {
+    "message": "{t} gehört"
+  },
+  "listen_device_privacy": {
+    "message": "Geräteinterne Transkription: Der Text erscheint beim Sprechen; jeder fertige Satz geht mit den vorherigen zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht. Bei geräteinterner Sprachausgabe wird die Stimme auf deinem Gerät erzeugt und beim ersten Mal ein Offline-Modell einmalig heruntergeladen."
+  },
+  "listen_raw_label": {
+    "message": "Erkannter Text"
+  },
+  "tts_device_lang_fallback": {
+    "message": "Mit Systemstimme gelesen (Offline-Modell deckt {lang} nicht ab)"
+  },
+  "qs_apply": {
+    "message": "Übersetzung, Vorlesen und Transkription einrichten"
+  },
+  "qs_testing": {
+    "message": "Wird getestet…"
+  },
+  "qs_untouched": {
+    "message": "— unverändert · bereits eingerichtet ({cur})"
+  },
+  "qs_unknown": {
+    "message": "vorhandene Einrichtung"
+  },
+  "qs_slot_chat": {
+    "message": "Übersetzung"
+  },
+  "qs_slot_tts": {
+    "message": "Vorlesen"
+  },
+  "qs_slot_stt": {
+    "message": "Transkription"
+  },
+  "qs_slot_notes": {
+    "message": "Satzanalyse"
+  },
+  "qs_notes_follow": {
+    "message": "folgt der Übersetzungs-Engine (unverändert)"
+  },
+  "qs_tts_untried": {
+    "message": "(noch nicht abgespielt – nutze „Beispiel anhören“ in der Sprachkarte unten)"
+  },
+  "qs_stt_failed_note": {
+    "message": "Dadurch wird die Aufnahme nicht eingeschaltet. Gesendet wurde ein 0,6 Sekunden langer Sinuston, nicht deine Stimme."
+  },
+  "qs_retry": {
+    "message": "Diesen erneut versuchen"
+  },
+  "engine_test_empty_audio": {
+    "message": "Der Endpunkt hat geantwortet, aber kein Audio geliefert"
+  },
+  "opt_mode_quick": {
+    "message": "Schnell"
+  },
+  "opt_mode_detail": {
+    "message": "Alle Einstellungen"
+  },
+  "options_wipe_all": {
+    "message": "Alle Daten auf diesem Gerät löschen"
+  },
+  "options_wipe_hint": {
+    "message": "Das Löschen der App entfernt diese Daten nicht. Zum vollständigen Löschen zuerst hier löschen."
+  },
+  "options_wipe_confirm": {
+    "message": "Alle Daten auf diesem Gerät löschen? API-Schlüssel, sämtliche Einstellungen, alle erfassten Sätze und der Lernfortschritt werden gelöscht, und Sie werden abgemeldet. Das lässt sich nicht rückgängig machen.\n\nBereits in die Cloud synchronisierte Inhalte bleiben unberührt — bei erneuter Anmeldung kommen sie zurück."
+  },
+  "toast_wipe_failed": {
+    "message": "Nicht vollständig gelöscht — bitte erneut versuchen"
+  },
+  "app_sync_empty_who": {
+    "message": "Synchronisierung abgeschlossen, aber unter {email} gibt es noch nichts. Falls Sie in der Browser-Erweiterung Sätze erfasst haben, prüfen Sie, ob dort dieselbe E-Mail-Adresse angemeldet ist."
+  },
+  "app_owner_mismatch": {
+    "message": "Die Sammlung auf diesem Gerät gehört zu einem anderen Konto. Melden Sie sich mit jener E-Mail-Adresse an, oder löschen Sie die Daten dieses Geräts in den Einstellungen der Erweiterung und beginnen Sie neu."
+  },
+  "app_owner_unknown": {
+    "message": "Die Sammlung auf diesem Gerät hat einen Eigentümer, aber Sie sind nicht angemeldet. Melden Sie sich an, um weiter zu synchronisieren."
+  },
+  "sync_err_owner_mismatch": {
+    "message": "Die Sammlung auf diesem Gerät gehört zu einem anderen Konto. Melden Sie sich mit jener E-Mail-Adresse an, oder löschen Sie alle Daten auf diesem Gerät und beginnen Sie neu."
+  },
+  "sync_err_owner_unknown": {
+    "message": "Die Sammlung auf diesem Gerät hat einen Eigentümer, aber Sie sind nicht angemeldet. Melden Sie sich an, um weiter zu synchronisieren."
+  },
+  "app_err_upgrade": {
+    "message": "In der Cloud liegen Inhalte, die diese Version noch nicht lesen kann (vermutlich aus einer neueren Erweiterung). Aktualisieren Sie die App und synchronisieren Sie erneut — nichts ist verloren, es ist nur vorerst nicht lesbar."
+  },
+  "site_next_title": {
+    "message": "Es hat übersetzt. Als Nächstes: diese Karten in die App"
+  },
+  "site_next_body": {
+    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — hier in diesem Browser. In die App gelangen sie erst nach der Anmeldung. Abgemeldet funktioniert alles; die App bleibt dann nur leer."
+  },
+  "site_next_body_off": {
+    "message": "„Lernmaterial sammeln“ ist noch aus, es entstehen also noch keine Karten. Schalten Sie es zuerst in den Einstellungen der Erweiterung ein."
+  },
+  "site_next_cta": {
+    "message": "Ihre Karten ansehen"
+  },
+  "site_next_cta_off": {
+    "message": "„Lernmaterial sammeln“ einschalten"
+  },
+  "site_next_signin": {
+    "message": "Jetzt anmelden →"
+  },
+  "sync_next_app": {
+    "message": "Als Nächstes: Melden Sie sich in der iPhone-/Mac-App mit derselben E-Mail-Adresse ({email}) an — erst dann erscheinen diese Karten dort."
+  },
+  "app_dl_mismatch_title": {
+    "message": "Das sind zwei verschiedene Konten"
+  },
+  "app_dl_mismatch_body": {
+    "message": "Die Browser-Erweiterung ist mit einem anderen Konto angemeldet; diese App ist als {email} angemeldet. Karten gehören zu einem Konto — solange die beiden verschieden sind, erscheint hier nichts von dort."
+  },
+  "app_dl_switch": {
+    "message": "Abmelden und das Konto der Erweiterung nutzen"
+  },
+  "app_dl_keep": {
+    "message": "Dieses Konto behalten"
+  },
+  "app_dl_signin": {
+    "message": "Die Browser-Erweiterung ist bereits angemeldet. Melden Sie sich hier mit demselben Konto an, dann werden die Karten synchronisiert."
+  },
+  "app_dl_signin_none": {
+    "message": "Melden Sie sich zuerst in der Erweiterung an und dann hier mit demselben Konto — die Karten werden dort erfasst."
+  },
+  "review_go_app": {
+    "message": "In der App weiterlernen →"
+  },
+  "site_setup_next_engine": {
+    "message": "Übersetzungs-Engine einrichten →"
+  },
+  "setup_not_configured": {
+    "message": "Noch keine Übersetzungs-Engine eingerichtet. Nutzen Sie oben die Ein-Schlüssel-Einrichtung, oder wechseln Sie zu „Detailliert“, um eine Engine zu wählen und ihren Schlüssel einzugeben."
+  },
+  "toast_wipe_failed_what": {
+    "message": "Nicht vollständig gelöscht — übrig: {what}. Bitte erneut versuchen."
+  },
+  "wipe_left_unreadable": {
+    "message": "Speicher nicht rücklesbar"
+  },
+  "site_next_title_off": {
+    "message": "Es hat übersetzt — aber noch wird nichts als Karte gespeichert"
+  },
+  "drive_skipped_media": {
+    "message": "{n} Video-Untertitelkarten übersprungen — sie haben keinen vorlesbaren Text"
+  },
+  "drive_skipped_voice": {
+    "message": "{n} übersprungen: Auf diesem Gerät gibt es keine Stimme, die sie lesen kann. Richten Sie unter Einstellungen → Sprach-Engine eine ein, oder wählen Sie eine andere Systemstimme."
+  },
+  "sync_next_cards": {
+    "message": "Ihre Karten ansehen"
+  },
+  "site_next_body_local": {
+    "message": "Die Sätze, bei denen Sie stehen geblieben sind, sind bereits Lernkarten — hier in diesem Browser. Sehen Sie sie sich an."
+  },
+  "learn_empty_on": {
+    "message": "Das Sammeln ist bereits eingeschaltet. Surfen und übersetzen Sie wie gewohnt — die Sätze, bei denen Sie stehen bleiben, erscheinen hier. Die überflogenen nicht."
+  },
+  "sync_status_signed_out_cta": {
+    "message": "Abgemeldet, nur lokal — melden Sie sich an, um auch in der App zu wiederholen →"
+  },
+  "app_open_failed": {
+    "message": "Die App ließ sich auf diesem Gerät nicht öffnen.",
+    "description": "Shown when the belliedmonkey:// deep link is not handled by any app"
+  },
+  "app_open_store": {
+    "message": "Im App Store laden →",
+    "description": "Link to the App Store listing"
+  },
+  "app_not_on_platform": {
+    "message": "Die App gibt es nur für iPhone, iPad und Mac. Auf diesem Gerät kannst du direkt im Browser wiederholen.",
+    "description": "Shown on Windows/Linux where the app does not exist"
+  },
+  "product_name": {
+    "message": "BelliedMonkey Translator",
+    "description": "The product name as shown INSIDE the product (popup header). Deliberately NOT extension_name — that one is the store listing title and carries keywords for search, which costs three lines in a 320px popup."
+  },
+  "sync_err_pkce_missing": {
+    "message": "Diese Anmeldung kam nicht zurück — anderer Browser oder Daten gelöscht. Starte sie einfach auf dieser Seite neu.",
+    "description": "Third-party sign-in came back without a pending PKCE verifier"
+  },
+  "sync_err_pkce_state": {
+    "message": "Diese Anmeldung stammt nicht von der, die wir gestartet haben. Abgebrochen. Bitte erneut starten.",
+    "description": "Third-party sign-in returned with a state that does not match"
+  },
+  "sync_err_storage": {
+    "message": "Der lokale Speicher ließ sich nicht lesen, daher kann dieser Schritt nicht abschließen. Seite neu öffnen und erneut versuchen; wenn es bleibt, sag uns Bescheid.",
+    "description": "A local storage read failed mid-flow — not the signed-out state"
+  },
+  "sync_with_apple": {
+    "message": "Mit Apple anmelden",
+    "description": "Sign in with Apple button"
+  },
+  "sync_with_google": {
+    "message": "Mit Google anmelden",
+    "description": "Sign in with Google button"
+  },
+  "sync_or": {
+    "message": "Oder per E-Mail / Telefon:",
+    "description": "Divider above the email/phone field"
+  },
+  "sync_email_or_phone": {
+    "message": "E-Mail oder Telefon",
+    "description": "Label for the identifier field — accepts either"
+  },
+  "sync_code_any": {
+    "message": "6-stelliger Code",
+    "description": "Label for the OTP field (email or SMS)"
+  },
+  "app_apple_waiting": {
+    "message": "Apple-Anmeldung wird geöffnet…",
+    "description": "While the native Apple sheet is opening"
+  },
+  "app_apple_failed": {
+    "message": "Die Apple-Anmeldung wurde nicht abgeschlossen. Nutze stattdessen unten E-Mail oder Telefon.",
+    "description": "Native Apple sign-in failed (not user cancel)"
+  },
+  "learn_empty_other_account": {
+    "message": "Auf diesem Gerät liegt auch das Material eines anderen Kontos. Du bist gerade mit einem anderen Konto angemeldet — nichts ist weg; melde dich wieder mit dem ursprünglichen Konto an, dann ist es zurück.",
+    "description": "Empty review page while signed in as a different account than the one owning this device corpus"
+  },
+  "sync_or_email": {
+    "message": "Oder per E-Mail:",
+    "description": "Divider above the identifier field when only email is offered"
+  },
+  "sync_need_id_dyn": {
+    "message": "Zuerst {what} eingeben",
+    "description": "Prompt when the identifier field is empty; {what} is the field label"
+  },
+  "tts_engine_none": {
+    "message": "Nicht eingerichtet (kein Vorlesen)"
+  },
+  "tts_not_configured": {
+    "message": "Sprachausgabe ist nicht eingerichtet — wähle eine Engine unter Einstellungen › Vorlesen"
+  },
+  "feedback_section": {
+    "message": "Feedback"
+  },
+  "feedback_row": {
+    "message": "Feedback senden"
+  },
+  "feedback_rate": {
+    "message": "Im Store bewerten"
+  },
+  "feedback_discuss": {
+    "message": "Diskussionen auf GitHub"
+  },
+  "feedback_hint": {
+    "message": "Öffnet Ihre Mail-App. Der Betreff enthält Version und Plattform; sonst wird nichts gesendet."
+  },
+  "extob_done_feedback": {
+    "message": "Etwas funktioniert nicht? Schreiben Sie mir — ich lese jede Nachricht."
+  },
+  "sync_why": {
+    "message": "Mit demselben Konto anmelden, und die im Browser gelesenen Sätze werden in die App und auf Ihre anderen Geräte synchronisiert."
+  },
+  "sync_use_email": {
+    "message": "Oder mit E-Mail anmelden"
+  },
+  "sync_change_email": {
+    "message": "Andere E-Mail-Adresse verwenden"
+  },
+  "sync_resend": {
+    "message": "Code erneut senden"
+  },
+  "telemetry_section": {
+    "message": "Anonyme Nutzungsdaten"
+  },
+  "telemetry_toggle": {
+    "message": "Anonyme Nutzungsdaten teilen"
+  },
+  "telemetry_what": {
+    "message": "Was gesendet wird"
+  },
+  "telemetry_hint": {
+    "message": "Nur welche Funktionen genutzt werden, in welchem Browser, und ob eine Übersetzung gelang oder scheiterte — nie die gelesenen Seiten, den Text, die Adressen, Ihre Schlüssel oder Ihr Konto. Ausschalten löscht, was dieses Gerät gesendet hat."
+  },
+  "diag_section": {
+    "message": "Diagnoseprotokoll"
+  },
+  "diag_copy": {
+    "message": "Protokoll kopieren"
+  },
+  "diag_clear": {
+    "message": "Leeren"
+  },
+  "diag_hint": {
+    "message": "Lokale Aufzeichnungen zur Fehlerbehebung (Modell-Downloads / Sprach-Engines / Anmeldephasen, ca. 200 Einträge). Enthält nichts von dem, was du gesagt oder übersetzt hast. Verlässt das Gerät nur, wenn du es selbst kopierst und jemandem einfügst."
+  },
+  "diag_copied": {
+    "message": "Kopiert"
+  },
+  "diag_audio_toggle": {
+    "message": "Diagnose-Audio hochladen (Transkription-Debugging)"
+  },
+  "diag_audio_hint": {
+    "message": "Wenn aktiviert, werden Mikrofon-Audio, Vorlese-Audio und die passenden Texte der Dolmetsch-Sitzungen gepackt und auf unseren Server hochgeladen (nur zur Fehlersuche bei der Transkription, automatische Löschung nach 72 Std.). Standardmäßig aus; beim Ausschalten endet die Erfassung sofort."
+  },
+  "telemetry_onboard": {
+    "message": "Zur Verbesserung werden anonyme Nutzungsdaten gesendet (nie Seiteninhalte oder Adressen). In den Einstellungen abschaltbar."
+  },
+  "asr_offer": {
+    "message": "🎙 KI-Untertitel"
+  },
+  "asr_needs_engine": {
+    "message": "Wähle zuerst in den Einstellungen eine Transkriptions-Engine"
+  },
+  "asr_status_file": {
+    "message": "⏳ Gesamtes Audio wird transkribiert…"
+  },
+  "asr_stop": {
+    "message": "Transkription stoppen"
+  },
+  "asr_err_silent": {
+    "message": "Kein Ton erfasst — Transkription gestoppt"
+  },
+  "asr_err_mse": {
+    "message": "Safari kann den Ton dieses Streaming-Videos nicht erfassen; diese Seite lässt sich nicht transkribieren",
+    "description": "Safari + MSE (blob:) source: createMediaElementSource outputs silence (measured 2026-09-07); named stop before the socket opens"
+  },
+  "asr_err_media": {
+    "message": "Dieses Audio kann nicht gelesen werden"
+  },
+  "asr_err_ws": {
+    "message": "Transkriptionsverbindung unterbrochen"
+  },
+  "asr_err_toolarge": {
+    "message": "Audio zu groß für eine vollständige Transkription"
+  },
+  "asr_err_nocues": {
+    "message": "Diese Engine liefert keine Zeitstempel und kann keine Untertitel erzeugen"
+  },
+  "asr_gesture_needed": {
+    "message": "Auf der Seite tippen, um die Aufnahme zu starten"
+  },
+  "asr_gesture_tap": {
+    "message": "▶ Tippen, um die Live-Transkription zu starten"
+  },
+  "asr_err_settings": {
+    "message": "Transkriptions-Engine geändert — gestoppt"
+  },
+  "popup_asr_go": {
+    "message": "🎙 Live-Transkription + Übersetzung"
+  },
+  "popup_asr_go2": {
+    "message": "🎙 Dieses Medium transkribieren + übersetzen"
+  },
+  "popup_asr_no_engine2": {
+    "message": "🎙 Dieses Medium transkribieren — erst eine Engine wählen →"
+  },
+  "popup_asr_app_row": {
+    "message": "🔊 Mit der App das Gerät hören"
+  },
+  "popup_asr_app_hint_ios": {
+    "message": "Dort zuerst starten, dann abspielen"
+  },
+  "popup_asr_app_hint_mac": {
+    "message": "Auch für Livestreams und Videoseiten"
+  },
+  "asr_app_go_mac": {
+    "message": "🔊 Mit der App das Gerät hören →"
+  },
+  "asr_app_go_ios": {
+    "message": "🔊 Erst in der App starten, dann zurück und abspielen →"
+  },
+  "asr_media_app_only": {
+    "message": "Die Erweiterung kann aus diesem Medium keinen Ton ziehen (Videoseiten und Livestreams sind alle so). Höre mit der App, was dein Gerät gerade abspielt — jede Quelle funktioniert."
+  },
+  "popup_asr_no_engine": {
+    "message": "🎙 Live-Transkription + Übersetzung — zuerst eine Engine wählen →"
+  },
+  "popup_asr_file_only": {
+    "message": "{engine} hat keine Live-Schnittstelle: Streams lassen sich nicht transkribieren, herunterladbares Audio schon · Live-Engine einrichten →"
+  },
+  "popup_asr_no_media": {
+    "message": "Auf dieser Seite wurde kein laufendes Video/Audio gefunden — erst abspielen, dann hier erneut tippen"
+  },
+  "popup_asr_none_found": {
+    "message": "Kein transkribierbares Video/Audio gefunden. Der Player ist vielleicht in einem anderen Frame oder spielt noch nicht."
+  },
+  "popup_asr_iframe": {
+    "message": "Der Player liegt in einem anderen Frame dieser Seite; in neuem Tab öffnen und dort transkribieren ↗"
+  },
+  "popup_asr_live": {
+    "message": "Live"
+  },
+  "popup_asr_unknown_dur": {
+    "message": "Länge unbekannt"
+  },
+  "asr_incremental": {
+    "message": "Beim Sprechen übersetzen (schnell, wird nachgebessert)"
+  },
+  "asr_history": {
+    "message": "Untertitel-Verlaufspanel"
+  },
+  "asr_history_title": {
+    "message": "Verlauf · ganze Sätze"
+  },
+  "app_listen_back": {
+    "message": "‹ Zurück"
+  },
+  "listen_source_label": {
+    "message": "Gespräch"
+  },
+  "listen_entry": {
+    "message": "Gespräch · Live-Dolmetscher"
+  },
+  "listen_entry_hint": {
+    "message": "Zwei Menschen im Gespräch: beide sprechen einfach, beide Sprachen stehen auf dem Bildschirm, Übersetzungen werden vorgelesen. Audio geht nur an den von dir eingerichteten Transkriptions-Endpunkt."
+  },
+  "listen_title": {
+    "message": "Gespräch"
+  },
+  "listen_history": {
+    "message": "Fertige Sätze"
+  },
+  "listen_pending": {
+    "message": "⏳ Wird übersetzt…"
+  },
+  "listen_me_prefix": {
+    "message": "Ich: "
+  },
+  "listen_me_badge": {
+    "message": "von mir gesagt"
+  },
+  "listen_star": {
+    "message": "Stern"
+  },
+  "listen_lang_me": {
+    "message": "nach {to}"
+  },
+  "listen_other_lang_label": {
+    "message": "Sprache des Gegenübers"
+  },
+  "listen_pill_listening": {
+    "message": "Hört zu · {t}"
+  },
+  "listen_pill_paused": {
+    "message": "Pausiert · {t}"
+  },
+  "listen_pill_ended": {
+    "message": "Beendet · {t}"
+  },
+  "listen_toggle_pause": {
+    "message": "● Hört zu · Pause"
+  },
+  "listen_toggle_start": {
+    "message": "Zuhören starten"
+  },
+  "listen_copy_all": {
+    "message": "Alles kopieren",
+    "description": "Copy the whole conversation transcript"
+  },
+  "listen_copied": {
+    "message": "Kopiert",
+    "description": "Transient label after a successful copy"
+  },
+  "listen_copy_failed": {
+    "message": "Kopieren fehlgeschlagen",
+    "description": "Transient label after a failed copy"
+  },
+  "listen_mac_use": {
+    "message": "Funktioniert auch bei Online-Meetings und Videoanrufen: Lassen Sie die Stimme der anderen Seite einfach über die Lautsprecher laufen.",
+    "description": "macOS: grey line naming the typical use (online meetings / video calls)"
+  },
+  "listen_cost_line": {
+    "message": "{t} gehört · Audio geht nur an deinen Transkriptions-Endpunkt"
+  },
+  "listen_flip_hint": {
+    "message": "Zum Zeigen · irgendwo tippen, um zurückzukehren"
+  },
+  "listen_flip_speaking": {
+    "message": "Wird vorgelesen"
+  },
+  "listen_stop_denied": {
+    "message": "Mikrofon verweigert — erlaube BelliedMonkey Translator unter Einstellungen › Datenschutz › Mikrofon."
+  },
+  "listen_stop_socket": {
+    "message": "Transkriptionsverbindung unterbrochen: {why} — das Gehörte bleibt erhalten."
+  },
+  "listen_stop_locked": {
+    "message": "Das System hat die Aufnahme gestoppt (Anruf oder andere App am Mikrofon) — geht danach automatisch weiter, oder „Zuhören starten“ tippen."
+  },
+  "listen_stop_silence": {
+    "message": "30 s kein Ton — pausiert, um Kosten zu vermeiden."
+  },
+  "listen_stop_failed": {
+    "message": "Mikrofon konnte nicht starten: {why} — noch einmal „Zuhören starten“ tippen."
+  },
+  "listen_np_title": {
+    "message": "Gespräch · Live-Dolmetscher"
+  },
+  "listen_np_album": {
+    "message": "Gespräch · hört zu · {t} · {n} Sätze"
+  },
+  "listen_settings_title": {
+    "message": "Gespräch · Live-Dolmetscher"
+  },
+  "listen_capture_label": {
+    "message": "Gespräche zur Wiederholung hinzufügen (Quelle „Gespräch“)"
+  },
+  "listen_capture_note": {
+    "message": "„Gespräch · Live-Dolmetscher“ streamt das Mikrofon an den von dir konfigurierten Transkriptions-Endpunkt, erst wenn du unten eine Aufnahmetaste tippst und nur dorthin; unsere Server berühren das Audio nie; es wird keine Aufnahme gespeichert, nur Text — und nur solange dieser Schalter an ist."
+  },
+  "listen_who_them": {
+    "message": "Gegenüber"
+  },
+  "listen_who_me": {
+    "message": "Ich"
+  },
+  "listen_who_guessed": {
+    "message": "Falsche Sprache? Mit ↔ zur anderen wechseln"
+  },
+  "listen_swap_to_them": {
+    "message": "Als vom Gegenüber gesagt markieren"
+  },
+  "listen_swap_to_me": {
+    "message": "Als von mir gesagt markieren"
+  },
+  "listen_flip_kept_card": {
+    "message": "Zur anderen Sprache gewechselt — die frühere Karte wurde schon wiederholt und bleibt unter Quellen › Gespräch"
+  },
+  "listen_lang_pair": {
+    "message": "{a} ⇄ {b}"
+  },
+  "listen_now_any": {
+    "message": "Spricht…"
+  },
+  "listen_live_badge": {
+    "message": "● Live"
+  },
+  "listen_reading": {
+    "message": "Wird vorgelesen"
+  },
+  "listen_autospeak_off": {
+    "message": "Automatisches Vorlesen gestoppt · {why} — die Taste in jeder Zeile geht weiter"
+  },
+  "listen_tts_unusable": {
+    "message": "Automatisches Vorlesen nicht verfügbar — die Sprach-Engine ist nicht konfiguriert. Wähle eine unter Einstellungen › Sprache"
+  },
+  "listen_autospeak_echo": {
+    "message": "Automatisches Vorlesen pausiert — Echo-Schleife erkannt. Lautstärke senken oder Kopfhörer nutzen, dann wieder einschalten."
+  },
+  "listen_read_queue_n": {
+    "message": "Wird vorgelesen · noch {n}"
+  },
+  "listen_ephemeral_label": {
+    "message": "Diesmal nichts behalten"
+  },
+  "listen_ephemeral_locked": {
+    "message": "Diese Sitzung läuft bereits – um nichts zu behalten, beende sie und starte neu"
+  },
+  "listen_ephemeral_pill": {
+    "message": "Nicht behalten"
+  },
+  "listen_my_lang_label": {
+    "message": "Meine Sprache"
+  },
+  "listen_lang_note": {
+    "message": "Automatische Erkennung zwischen den zwei Sprachen, die du gewählt hast. Änderbar jederzeit auf der Mithör-Seite."
+  },
+  "listen_lang_engine_unsupported": {
+    "message": "von der aktuellen Engine nicht unterstützt"
+  },
+  "listen_lang_change_engine": {
+    "message": "Engine wechseln"
+  },
+  "listen_lang_swapped": {
+    "message": "Die Sprachen müssen verschieden sein — getauscht"
+  },
+  "listen_autospeak_label": {
+    "message": "Übersetzungen vorlesen"
+  },
+  "listen_autospeak_note": {
+    "message": "Jeder fertige Satz wird vorgelesen — seiner für Sie, Ihrer für ihn."
+  },
+  "listen_autospeak_need_tts": {
+    "message": "Wähle zuerst unter Einstellungen › Vorlesen eine Sprachausgabe"
+  },
+  "listen_lang_me_label": {
+    "message": "Ich"
+  },
+  "listen_lang_other_label": {
+    "message": "Gegenüber"
+  },
+  "listen_sources_note": {
+    "message": "Jeder Satz stammt aus der Transkription, die Übersetzung aus deiner Engine; beides kann falsch sein — Sätze mit Stern kommen zuerst in die Wiederholung."
+  },
+  "app_today_due": {
+    "message": "Heute fällig"
+  },
+  "home_cta_subs": {
+    "message": "Live-Untertitel starten"
+  },
+  "home_cta_listen": {
+    "message": "Gespräch starten"
+  },
+  "app_last_sync": {
+    "message": "Zuletzt synchronisiert {t}"
+  },
+  "app_modes_label": {
+    "message": "Hören"
+  },
+  "drive_entry_hint": {
+    "message": "Das heutige Deck am Stück vorgelesen, freihändig"
+  },
+  "listen_entry_short": {
+    "message": "Zwei Menschen im Gespräch — beide sprechen, Übersetzungen werden vorgelesen"
+  },
+  "listen_entry_privacy": {
+    "message": "Audio geht nur an den von dir konfigurierten Transkriptions-Endpunkt."
+  },
+  "listen_pill_preparing": {
+    "message": "Vorbereitung"
+  },
+  "listen_toggle_preparing": {
+    "message": "Vorbereitung…"
+  },
+  "listen_toggle_reconnecting": {
+    "message": "Verbinde neu…"
+  },
+  "listen_stop_socket_retry": {
+    "message": "Transkriptionsverbindung unterbrochen: {why} — verbinde neu…"
+  },
+  "listen_history_empty": {
+    "message": "Sprecht einfach beide — jeder fertige Satz erscheint hier. Falsche Sprache? Mit ↔ zur anderen wechseln"
+  },
+  "listen_tr_failed": {
+    "message": "Übersetzung fehlgeschlagen · erneut"
+  },
+  "listen_read_aloud": {
+    "message": "Vorlesen"
+  },
+  "listen_show_other": {
+    "message": "Zeigen"
+  },
+  "listen_close": {
+    "message": "Schließen"
+  },
+  "listen_leave_confirm": {
+    "message": "Hört noch zu. Verlassen beendet dieses Gespräch; das Gehörte bleibt erhalten."
+  },
+  "dialog_ok": {
+    "message": "OK"
+  },
+  "dialog_cancel": {
+    "message": "Abbrechen"
+  },
+  "listen_leave_ok": {
+    "message": "Beenden und verlassen"
+  },
+  "grant_err_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Du kannst mit einem eigenen API-Schlüssel weitermachen (ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab) oder in der Community nachfragen."
+  },
+  "grant_err_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_err_misconfigured": {
+    "message": "Beim Gratis-Guthaben ist auf unserer Seite etwas falsch konfiguriert; wir haben es notiert. Das liegt nicht an dir; nutze vorerst deinen eigenen Schlüssel."
+  },
+  "grant_err_revoked": {
+    "message": "Dieses Gratis-Guthaben wurde deaktiviert (Abmelden oder Konto löschen deaktiviert es). Melde dich mit demselben Konto wieder an, dann ist es zurück — mit gleichem Stand."
+  },
+  "grant_err_invalid": {
+    "message": "Dieses Gratis-Guthaben wird nicht mehr erkannt. Öffne die Einstellungen und hole es dir erneut."
+  },
+  "grant_err_model": {
+    "message": "Gratis-Guthaben funktioniert nur mit dem festgelegten Modell. Du hast das Modell unter „Erweitert“ geändert — stelle es zurück oder trage einen eigenen Schlüssel ein."
+  },
+  "grant_err_busy": {
+    "message": "Gerade zu viele Anfragen. Warte ein paar Sekunden und versuch es erneut."
+  },
+  "grant_title": {
+    "message": "Gratis-Guthaben"
+  },
+  "grant_body_signin": {
+    "message": "Melde dich an, dann kannst du Gratis-Guthaben holen — genug für ein paar hundert Seiten. Es deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_signin": {
+    "message": "Anmelden für Gratis-Guthaben"
+  },
+  "grant_signin_again": {
+    "message": "Erneut anmelden"
+  },
+  "grant_body_signed_out": {
+    "message": "Durch das Abmelden wurde dein Gratis-Guthaben deaktiviert. Der Stand bleibt erhalten — melde dich mit demselben Konto wieder an, dann ist es zurück."
+  },
+  "grant_body_unclaimed": {
+    "message": "Du hast dein Gratis-Guthaben noch nicht geholt. Es reicht für ein paar hundert Seiten, für Übersetzung, Vorlesen und Transkription."
+  },
+  "grant_claim": {
+    "message": "Holen"
+  },
+  "grant_claiming": {
+    "message": "Wird geholt …"
+  },
+  "grant_privacy": {
+    "message": "Gratis-Guthaben (optional). Sobald du dich anmeldest und es holst, stehen dir 0,20 $ auf unsere Kosten für Übersetzung, Vorlesen und Transkription zur Verfügung. Auf diesem Weg läuft dein Text auf dem Weg zum Modellanbieter ({vendor}) über unseren Server; wir speichern und protokollieren den Inhalt nicht, nur was jeder Aufruf gekostet hat. Das Guthaben stoppt, wenn es aufgebraucht ist, und rechnet nie etwas ab. Der Weg mit eigenem Schlüssel bleibt unverändert: Dieser Text geht von deinem Browser direkt zum Anbieter, und wir sehen ihn nie. Beim Abmelden wird das Guthaben auf diesem Gerät deaktiviert; beim Löschen des Kontos wird auch sein Datensatz gelöscht."
+  },
+  "grant_body_active": {
+    "message": "Dein Gratis-Guthaben ist in Gebrauch. Wenn es aufgebraucht ist, kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_low": {
+    "message": "Dein Gratis-Guthaben ist fast aufgebraucht. Danach kannst du mit einem eigenen API-Schlüssel weitermachen."
+  },
+  "grant_body_exhausted": {
+    "message": "Dein Gratis-Guthaben ist aufgebraucht. Trag einen eigenen API-Schlüssel ein und mach weiter — ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab."
+  },
+  "grant_body_unavailable": {
+    "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
+  },
+  "grant_body_replaced": {
+    "message": "Du nutzt gerade deinen eigenen Schlüssel. Das Gratis-Guthaben ist noch da; du kannst jederzeit zurückwechseln."
+  },
+  "grant_restore": {
+    "message": "Zurück zum Gratis-Guthaben"
+  },
+  "grant_byo": {
+    "message": "Eigenen Schlüssel nutzen"
+  },
+  "grant_community": {
+    "message": "In der Community fragen"
+  },
+  "grant_engine_label": {
+    "message": "BelliedMonkey Gratis-Guthaben"
+  },
+  "grant_restore_confirm": {
+    "message": "Zurück zum Gratis-Guthaben ersetzt den Schlüssel, den du eingetragen hast. Fortfahren?"
+  },
+  "grant_signout_confirm": {
+    "message": "Beim Abmelden wird das Gratis-Guthaben auf diesem Gerät deaktiviert (der Restbetrag bleibt; nach erneuter Anmeldung ist es wieder da). Abmelden?"
+  },
+  "grant_claimed_toast": {
+    "message": "Gratis-Guthaben ist eingerichtet"
+  },
+  "grant_claimed_kept_toast": {
+    "message": "Guthaben erhalten. Dein eigener Schlüssel bleibt aktiv – tippe auf „Zurück zum Gratis-Guthaben“, um es zu nutzen."
+  },
+  "grant_page_halt": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_page_halt_ours": {
+    "message": "Gratis-Guthaben gerade nicht verfügbar (nicht du bist am Ende) — tippen, um weiterzumachen"
+  },
+  "auth_page_halt": {
+    "message": "Dieser Schlüssel wurde vom Anbieter abgelehnt (HTTP 401/403) – tippen, um ihn zu prüfen",
+    "description": "Page halt line when the provider rejects the user's key (401/403); tap opens settings #engine"
+  },
+  "halt_open_settings": {
+    "message": "Einstellungen öffnen",
+    "description": "Button label on the subtitle halt notice"
+  },
+  "auth_err_key": {
+    "message": "Der Anbieter hat diesen Schlüssel abgelehnt (HTTP 401/403). Prüfe, ob er stimmt und für dieses Modell freigegeben ist.",
+    "description": "Settings/App error sentence for code auth"
+  },
+  "rate_prompt_text": {
+    "message": "Gefällt es dir? Bewerte uns im Store →"
+  },
+  "app_nudge_text": {
+    "message": "Heute gelesene Sätze – in der App wiederholen →"
+  },
+  "review_nudge_text": {
+    "message": "Heute gelesene Sätze wiederholen →"
+  },
+  "doc_title": {
+    "message": "Dokumentübersetzung"
+  },
+  "doc_to_review": {
+    "message": "Zum Wiederholen →"
+  },
+  "doc_upload": {
+    "message": "Dokument hochladen (PDF / Word / Bild)"
+  },
+  "doc_privacy": {
+    "message": "Dokumente bleiben auf diesem Gerät – nie synchronisiert, nie exportiert. Beim Übersetzen wird nur der Text der geöffneten Seite an den konfigurierten Endpunkt gesendet – nicht die ganze Datei und nicht beim Hochladen; Bilder und gescannte Seiten gehen als Bild an denselben Endpunkt, nur wenn deine Engine Bilder versteht."
+  },
+  "doc_privacy_grant": {
+    "message": "Dokumente bleiben auf diesem Gerät. Beim Übersetzen geht die geöffnete Seite über unser Relay zum Modellanbieter (nicht gespeichert, nicht protokolliert); das Gratis-Guthaben erkennt keine Bilder – Bilder und gescannte Seiten brauchen deinen eigenen API-Schlüssel."
+  },
+  "doc_list_empty": {
+    "message": "Noch keine Dokumente. PDF, Word (.docx), Text und Bilder werden unterstützt."
+  },
+  "doc_row_meta": {
+    "message": "{pages} Seiten · bei Seite {page} · {n} Sätze gesammelt"
+  },
+  "doc_delete": {
+    "message": "Löschen"
+  },
+  "doc_delete_confirm": {
+    "message": "Dieses Dokument löschen? Seine Karten werden ebenfalls gelöscht (auf alle Geräte synchronisiert) – nicht rückgängig zu machen."
+  },
+  "doc_unsupported_kind": {
+    "message": "Format nicht unterstützt (PDF, .docx, Text, Bilder). Für .doc in Word als .docx speichern."
+  },
+  "doc_too_large": {
+    "message": "Datei zu groß (Limit 30 MB)."
+  },
+  "doc_grant_no_image": {
+    "message": "Das Gratis-Guthaben erkennt keine Bilder – nutze deinen eigenen API-Schlüssel."
+  },
+  "doc_no_vision": {
+    "message": "Die aktuelle Engine erkennt keine Bilder · Modell in den Einstellungen wechseln"
+  },
+  "doc_store_failed": {
+    "message": "Dokument konnte nicht gespeichert werden: "
+  },
+  "doc_missing": {
+    "message": "Dieses Dokument ist nicht mehr auf diesem Gerät."
+  },
+  "doc_opening": {
+    "message": "Lese…"
+  },
+  "doc_open_failed": {
+    "message": "Dokument konnte nicht gelesen werden: "
+  },
+  "doc_back": {
+    "message": "Dokumente"
+  },
+  "doc_lang": {
+    "message": "Dokumentsprache"
+  },
+  "doc_lang_auto": {
+    "message": "Automatisch"
+  },
+  "doc_prev": {
+    "message": "Zurück"
+  },
+  "doc_next": {
+    "message": "Weiter"
+  },
+  "doc_ocr_running": {
+    "message": "Seite wird erkannt…"
+  },
+  "doc_ocr_failed": {
+    "message": "Erkennung fehlgeschlagen: "
+  },
+  "doc_page_empty": {
+    "message": "Kein extrahierbarer Text auf dieser Seite."
+  },
+  "doc_old_engine": {
+    "message": "Diese Seite wurde mit einer älteren Engine übersetzt – mit der aktuellen neu übersetzt."
+  },
+  "doc_page_stat": {
+    "message": "Diese Seite: {units} Absätze · etwa {chars} Zeichen"
+  },
+  "doc_go_settings": {
+    "message": "Einstellungen →"
+  },
+  "doc_translating": {
+    "message": "⏳ Übersetze…"
+  },
+  "doc_star": {
+    "message": "Zum Wiederholen hinzufügen"
+  },
+  "doc_translate_failed": {
+    "message": "Übersetzung fehlgeschlagen · tippen zum Wiederholen"
+  },
+  "doc_popup_row": {
+    "message": "📄 Dokument übersetzen (PDF / Word / Bild)"
+  },
+  "doc_open_page": {
+    "message": "Dokument übersetzen (PDF / Word / Bild)"
+  },
+  "doc_review_entry": {
+    "message": "📄 Dokument übersetzen"
+  },
+  "doc_source_label": {
+    "message": "Dokument"
+  },
+  "doc_page_n": {
+    "message": "Seite {n}"
+  },
+  "doc_sources_note": {
+    "message": "Löschen entfernt auch das Dokument selbst."
+  },
+  "doc_app_entry_hint": {
+    "message": "Seite für Seite übersetzen; Übersetzungen können ins Wiederholen"
+  },
+  "doc_app_back": {
+    "message": "‹ Zurück"
+  },
+  "doc_capture_label": {
+    "message": "Dokumentübersetzungen ins Wiederholen (Quelle „Dokument“)"
+  },
+  "doc_prefetch_label": {
+    "message": "Nächste Seite vorab analysieren (nicht übersetzen)"
+  },
+  "rate_prompt_dismiss": {
+    "message": "Nicht mehr fragen"
+  },
+  "grant_popup_model": {
+    "message": "Gratis-Guthaben läuft nur mit dem festgelegten Modell — tippen zum Zurücksetzen"
+  },
+  "grant_popup_exhausted": {
+    "message": "Gratis-Guthaben aufgebraucht — tippen, um weiterzumachen"
+  },
+  "grant_popup_low": {
+    "message": "Gratis-Guthaben fast aufgebraucht — tippen zum Ansehen"
+  },
+  "sync_status_signed_out_grant": {
+    "message": "Nicht angemeldet — nur dieses Gerät. Beim Anmelden gibt es außerdem Gratis-Guthaben →"
+  },
+  "grant_cn_title": {
+    "message": "Fang mit dem Gratis-Guthaben des Anbieters an"
+  },
+  "grant_cn_body": {
+    "message": "Nach der Anmeldung bringt jedes Modell ein Gratis-Guthaben mit, das eine Weile reicht. Es kommt vom Anbieter, nicht von uns."
+  },
+  "grant_cn_step1": {
+    "message": "Anmelden und die Konsole öffnen"
+  },
+  "grant_cn_step2": {
+    "message": "Gratis-Guthaben holen (den genauen Betrag nennt deren Seite)"
+  },
+  "grant_cn_step3": {
+    "message": "Den API-Schlüssel unten einfügen — Übersetzung, Vorlesen und Transkription auf einmal"
+  },
+  "grant_cn_open": {
+    "message": "Konsole öffnen ↗"
+  },
+  "grant_cn_why": {
+    "message": "Wir vergeben noch kein Guthaben selbst: Dafür braucht es einen Relay im Land, der noch nicht läuft."
+  },
+  "subtitle_source_label": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_entry": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_entry_hint": {
+    "message": "Zweisprachige Untertitel für laufende Videos, Streams und Meetings"
+  },
+  "subtitle_need_key": {
+    "message": "Für die Transkriptions-Engine fehlt noch der API-Schlüssel"
+  },
+  "subtitle_need_key_go": {
+    "message": "In den Einstellungen eintragen →"
+  },
+  "subtitle_title": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_start": {
+    "message": "Starten"
+  },
+  "subtitle_capture_label": {
+    "message": "Untertitel zur Wiederholung hinzufügen (Quelle „Live-Untertitel“)"
+  },
+  "subtitle_video_lang_label": {
+    "message": "Sprache des Videos:"
+  },
+  "subtitle_tip_mac": {
+    "message": "Nach dem Start erscheinen die Untertitel in einer schwebenden Leiste unten am Bildschirm; jeder fertige Satz steht auch hier."
+  },
+  "subtitle_tip_ios": {
+    "message": "Tippe zuerst auf „Starten“ und spiele dann in einer beliebigen App (Browser, Video, Podcasts …) laut ab; die Untertitel schweben in einem Bild-in-Bild-Fenster. Mit Kopfhörern ist der Ton nicht zu hören."
+  },
+  "subtitle_privacy": {
+    "message": "Hört erst nach „Starten“, was dieser Mac abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."
+  },
+  "subtitle_privacy_ios": {
+    "message": "Hört erst nach „Starten“, was dieses iPhone über den Lautsprecher abspielt. Der Ton wird auf diesem Gerät erkannt (oder nur an den von dir eingerichteten Transkriptions-Endpunkt gesendet); nichts wird aufgenommen oder gespeichert, unsere Server sind nie beteiligt. Der erkannte Text bleibt nur in deiner Wiederholung, solange „Untertitel zur Wiederholung hinzufügen“ an ist."
+  },
+  "subtitle_pill_live": {
+    "message": "● Untertitel laufen · {t}"
+  },
+  "subtitle_lang_line": {
+    "message": "{a} → {b}"
+  },
+  "subtitle_now_label": {
+    "message": "Jetzt"
+  },
+  "subtitle_history_empty": {
+    "message": "Jeder fertige Satz erscheint hier."
+  },
+  "subtitle_stop_silence": {
+    "message": "30 Sekunden kein Ton — pausiert, damit keine Kosten entstehen. Tippe auf „Fortsetzen“, sobald das Video wieder läuft."
+  },
+  "subtitle_leave_confirm": {
+    "message": "Hört noch zu. Beim Verlassen enden die Untertitel; die bisherigen Sätze bleiben erhalten."
+  },
+  "subtitle_summary_title": {
+    "message": "Diese Untertitel-Sitzung"
+  },
+  "subtitle_summary_body": {
+    "message": "{t} · {n} Sätze · {kept}"
+  },
+  "subtitle_summary_kept": {
+    "message": "{k} zur Wiederholung (Quelle „Live-Untertitel“) · {s} mit Stern"
+  },
+  "subtitle_summary_note": {
+    "message": "Es wurde kein Ton gespeichert, nur Text. Die Sätze kannst du unter Quellen › Live-Untertitel verwalten oder löschen."
+  },
+  "subtitle_bar_waiting": {
+    "message": "Warte auf Erlaubnis — klicke im Systemdialog auf „Erlauben“"
+  },
+  "subtitle_bar_listening": {
+    "message": "Höre den Systemton…"
+  },
+  "subtitle_bar_paused": {
+    "message": "Pausiert"
+  },
+  "subtitle_bar_silence": {
+    "message": "30 Sekunden kein Ton — pausiert, damit keine Kosten entstehen"
+  },
+  "subtitle_bar_denied": {
+    "message": "Systemton nicht hörbar — erlaube BelliedMonkey Translator unter Systemeinstellungen › Datenschutz & Sicherheit › Bildschirm- & Systemaudioaufnahme"
+  },
+  "subtitle_bar_socket": {
+    "message": "Transkriptionsverbindung unterbrochen"
+  },
+  "subtitle_bar_reconnecting": {
+    "message": "Verbinde neu…"
+  },
+  "subtitle_bar_downloading": {
+    "message": "Lade Erkennungsdaten für {lang} · {pct}%"
+  },
+  "subtitle_bar_tr_failed": {
+    "message": "Übersetzung fehlgeschlagen · im Hauptfenster erneut versuchen"
+  },
+  "subtitle_bar_headphones": {
+    "message": "Video nicht hörbar · Kopfhörer abnehmen und Lautsprecher nutzen"
+  },
+  "subtitle_ctl_pause": {
+    "message": "Anhalten"
+  },
+  "subtitle_ctl_resume": {
+    "message": "Fortsetzen"
+  },
+  "subtitle_ctl_clickthrough": {
+    "message": "Durchklicken"
+  },
+  "subtitle_ctl_main": {
+    "message": "Hauptfenster"
+  },
+  "subtitle_ctl_end": {
+    "message": "Beenden"
+  },
+  "subtitle_ctl_open_settings": {
+    "message": "Systemeinstellungen öffnen"
+  },
+  "subtitle_menu_show_main": {
+    "message": "Hauptfenster zeigen"
+  },
+  "subtitle_menu_cancel_clickthrough": {
+    "message": "Durchklicken der Untertitelleiste ausschalten"
+  },
+  "subtitle_menu_end": {
+    "message": "Live-Untertitel beenden"
+  },
+  "subtitle_pip_float": {
+    "message": "Untertitelfenster zeigen"
+  },
+  "subtitle_bar_listening_mic": {
+    "message": "Höre über den Lautsprecher mit…"
+  },
+  "subtitle_pip_title": {
+    "message": "Live-Untertitel"
+  },
+  "subtitle_pip_hint": {
+    "message": "Spiele Video oder Audio in einer beliebigen App laut ab – die Untertitel erscheinen hier"
+  },
+  "subtitle_pip_close": {
+    "message": "Fenster antippen: ⏸ Pause · ⏪⏩ Verlauf · ✕ schließen (in der App wieder öffnen)"
+  },
+  "subtitle_pip_history": {
+    "message": "Verlauf · ⏩ tippen für das Neueste"
+  },
+  "subtitle_pip_note_idle": {
+    "message": "Nach „Starten“ siehst du hier eine Vorschau des Untertitelfensters – verlässt du die App, schwebt es über anderen Apps"
+  },
+  "subtitle_pip_note_live": {
+    "message": "Vorschau des Untertitelfensters – es schwebt über anderen Apps, wenn du die App verlässt"
+  },
+  "subtitle_pip_note_ended": {
+    "message": "Diese Untertitel sind beendet, das Fenster ist geschlossen"
+  },
+  "subtitle_bar_silent": {
+    "message": "Noch kein Systemton zu hören – Video läuft, aber keine Untertitel? Vielleicht ist die Systemaudioaufnahme nicht erlaubt"
+  },
+  "subtitle_stop_silence_permission": {
+    "message": "Seit 30 Sekunden kein Ton – pausiert. Lief das Video, aber es kamen keine Untertitel, ist die Systemaudioaufnahme vielleicht nicht erlaubt: Systemeinstellungen › Datenschutz & Sicherheit › Bildschirm- & Systemaudioaufnahme, BelliedMonkey Translator erlauben, dann „Fortsetzen“."
+  },
+  "subtitle_bar_silence_permission": {
+    "message": "Seit 30 Sekunden kein Ton – pausiert. Video läuft, aber keine Untertitel? Vielleicht ist die Systemaudioaufnahme nicht erlaubt"
+  },
+  "listen_need_os": {
+    "message": "Gespräch und Live-Untertitel benötigen iOS 26 / macOS 26"
+  },
+  "listen_need_locale": {
+    "message": "Die integrierte Erkennung unterstützt diese Sprache nicht – versuche eine andere"
+  },
+  "listen_assets_failed2": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen – tippe erneut auf „Zuhören starten“, um es noch einmal zu versuchen."
+  },
+  "tts_engine_device": {
+    "message": "Geräteinterne Sprachausgabe (Offline-Modell · nur App)"
+  },
+  "tts_hint_device": {
+    "message": "Sprache wird auf dem Gerät erzeugt; beim ersten Mal wird das Offline-Modell einmal geladen (nur die Modelldatei). Nicht abgedeckte Sprachen nutzen die Systemstimme, und die Zeile sagt es."
+  },
+  "tts_pack_label": {
+    "message": "Offline-Modell"
+  },
+  "tts_pack_installed": {
+    "message": "Offline-Modell installiert · {langs}"
+  },
+  "tts_pack_missing": {
+    "message": "Offline-Modell nicht geladen · {langs} · {size}"
+  },
+  "tts_pack_note": {
+    "message": "Beim ersten Vorlesen wird es auch automatisch geladen; es werden nur Modelldateien geladen, nichts hochgeladen."
+  },
+  "tts_pack_dl": {
+    "message": "Laden"
+  },
+  "tts_pack_fallback": {
+    "message": "Adresse nicht erreichbar – versuche eine andere…",
+    "description": "朗读卡「离线模型」行：默认地址不可用、换备用地址重试时的进度行文案（learning-design §9.6.1.1）"
+  },
+  "tts_pack_retry": {
+    "message": "Erneut versuchen"
+  },
+  "tts_pack_downloading": {
+    "message": "Offline-Modell wird geladen · {lang} · {pct} %"
+  },
+  "tts_pack_failed": {
+    "message": "Download des Offline-Modells fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen"
+  },
+  "tts_pack_no_bridge": {
+    "message": "Das integrierte Vorlesen ist nur in der App verfügbar"
+  },
+  "tts_test_dl": {
+    "message": "Laden und Probe anhören ({size})"
+  },
+  "tts_test_ok_fallback": {
+    "message": "Wird abgespielt · Offline-Modell hat diese Sprache nicht, Systemstimme wird verwendet"
+  },
+  "tts_assets": {
+    "message": "Das Offline-Modell ist noch nicht geladen – lade es unter Einstellungen › Vorlesen oder wechsle zur Systemstimme"
+  },
+  "listen_pack_ready": {
+    "message": "Sprachpakete für die Erkennung bereit · {langs}"
+  },
+  "listen_pack_missing": {
+    "message": "Sprachpakete nicht geladen · {langs} · das System lädt sie; auch beim Zuhören-Start"
+  },
+  "listen_pack_dl": {
+    "message": "Laden"
+  },
+  "listen_pack_downloading": {
+    "message": "Sprachpaket wird geladen · {lang} · {pct} %"
+  },
+  "listen_pack_failed": {
+    "message": "Download des Sprachpakets fehlgeschlagen: {why} – meist ein Netzwerkproblem; später erneut versuchen"
+  },
+  "opt_sec_engines": {
+    "message": "Engines & Schlüssel"
+  },
+  "opt_sec_features": {
+    "message": "Funktionen"
+  },
+  "opt_sec_account": {
+    "message": "Konto & Daten"
+  },
+  "opt_adv_hint": {
+    "message": "Die Ein-Schlüssel-Einrichtung ist unter „Schnell“ →"
+  },
+  "stt_section": {
+    "message": "Ganze Aufnahme transkribieren"
+  },
+  "stt_section_use": {
+    "message": "Sprechübung · ganze Audio-/Videodatei transkribieren"
+  },
+  "review_section": {
+    "message": "Wiederholen"
+  },
+  "data_section": {
+    "message": "Lernbibliothek"
+  },
+  "notes_block_title": {
+    "message": "Diesen Satz erklären (optional)"
+  },
+  "grant_summary_claimed": {
+    "message": "Gratis-Guthaben eingelöst · verwalten →"
+  },
+  "dep_label": {
+    "message": "Braucht"
+  },
+  "dep_unset": {
+    "message": "nicht eingerichtet"
+  },
+  "dep_go": {
+    "message": "Einrichten →"
+  },
+  "dep_follow": {
+    "message": "folgt der Übersetzungs-Engine"
+  },
+  "dep_quick": {
+    "message": "durch Ein-Schlüssel-Einrichtung ✓"
+  },
+  "dep_live": {
+    "message": "Live-Transkription"
+  },
+  "dep_live_device": {
+    "message": "auf dem Gerät (iOS 26 / macOS 26)"
+  },
+  "target_lang_label": {
+    "message": "Übersetzen nach"
+  },
+  "target_lang_follow": {
+    "message": "Der Oberflächensprache folgen ({lang})"
+  },
+  "target_lang_hint": {
+    "message": "Gilt für Dokumentübersetzung, Systemübersetzung und Schnellübersetzung. Gespräch und Live-Untertitel haben eigene Spracheinstellungen."
+  },
+  "handoff_source_label": {
+    "message": "Übergebener Text"
+  },
+  "src_handoff_system": {
+    "message": "Systemübersetzung"
+  },
+  "src_handoff_select": {
+    "message": "Auswahl übersetzen"
+  },
+  "src_handoff_shot": {
+    "message": "Screenshot übersetzen"
+  },
+  "src_handoff_input": {
+    "message": "Eingabe übersetzen"
+  },
+  "quick_title": {
+    "message": "Schnellübersetzung"
+  },
+  "quick_enabled_label": {
+    "message": "In der Menüleiste bleiben"
+  },
+  "quick_enabled_note": {
+    "message": "Wenn aus, verschwindet das Symbol aus der Menüleiste und das Schließen des Fensters beendet die App."
+  },
+  "quick_menu_open": {
+    "message": "BelliedMonkey Translator öffnen"
+  },
+  "quick_menu_settings": {
+    "message": "Einstellungen für Schnellübersetzung…"
+  },
+  "quick_menu_quit": {
+    "message": "Beenden"
+  },
+  "quick_resident_title": {
+    "message": "BelliedMonkey ist noch in der Menüleiste"
+  },
+  "quick_resident_body": {
+    "message": "Kurzbefehle funktionieren weiter. Zum vollständigen Beenden „Beenden“ im Menüleistensymbol wählen oder ⌘Q drücken."
+  },
+  "quick_resident_ok": {
+    "message": "Verstanden"
+  },
+  "quick_resident_off": {
+    "message": "Nicht in der Menüleiste bleiben"
+  },
+  "quick_tag_selection": {
+    "message": "Auswahl"
+  },
+  "quick_tag_clipboard": {
+    "message": "Zwischenablage"
+  },
+  "quick_tag_service": {
+    "message": "Dienste"
+  },
+  "quick_tag_shot": {
+    "message": "Bildschirmfoto"
+  },
+  "quick_tag_input": {
+    "message": "Eingabe"
+  },
+  "quick_pin": {
+    "message": "Anheften"
+  },
+  "quick_close": {
+    "message": "Schließen"
+  },
+  "quick_copy": {
+    "message": "Übersetzung kopieren"
+  },
+  "quick_src_label": {
+    "message": "Originaltext"
+  },
+  "quick_src_placeholder": {
+    "message": "Text zum Übersetzen eingeben oder einfügen"
+  },
+  "quick_clip_concealed": {
+    "message": "Der Inhalt der Zwischenablage ist als verborgen markiert (vermutlich ein Passwort). Er wurde nicht gelesen und nichts wurde gesendet."
+  },
+  "quick_clip_empty": {
+    "message": "In der Zwischenablage ist kein Text. Text auswählen, ⌘C drücken, dann den Kurzbefehl – oder in den Einstellungen die erweiterte Übernahme einschalten und ⌘C weglassen."
+  },
+  "quick_clip_same": {
+    "message": "Derselbe Text wie beim letzten Mal — ⌘C vergessen?"
+  },
+  "quick_no_selection": {
+    "message": "Der ausgewählte Text konnte nicht gelesen werden — vielleicht ist nichts ausgewählt, oder diese App erlaubt kein Kopieren."
+  },
+  "quick_use_shot": {
+    "message": "Stattdessen Bildschirmfoto übersetzen"
+  },
+  "quick_same_lang": {
+    "message": "Bereits auf {lang}"
+  },
+  "sys_empty": {
+    "message": "Kein Text zum Übersetzen."
+  },
+  "sys_slow": {
+    "message": "Übersetzung läuft noch — das Gratisguthaben läuft über unser Relay und ist langsamer als ein eigener Schlüssel."
+  },
+  "quick_slow": {
+    "message": "Übersetzung läuft noch…"
+  },
+  "quick_unconfigured": {
+    "message": "Noch keine Übersetzungs-Engine. Gratisguthaben holen oder eigenen API-Schlüssel eintragen."
+  },
+  "quick_open_settings": {
+    "message": "Einstellungen öffnen"
+  },
+  "quick_retry": {
+    "message": "Erneut versuchen"
+  },
+  "quick_saved": {
+    "message": "In der Lernbibliothek gespeichert"
+  },
+  "quick_saved_off": {
+    "message": "Nicht gespeichert · Erfassung ist aus"
+  },
+  "quick_saved_long": {
+    "message": "Zu lang für die Lernbibliothek"
+  },
+  "quick_shot_nothing": {
+    "message": "In diesem Bereich wurde kein Text erkannt."
+  },
+  "quick_shot_again": {
+    "message": "Erneut auswählen"
+  },
+  "quick_menu_clip": {
+    "message": "Zwischenablage übersetzen"
+  },
+  "quick_menu_input": {
+    "message": "Text eingeben und übersetzen"
+  },
+  "quick_clip_blocked": {
+    "message": "macOS hat das Lesen der Zwischenablage nicht erlaubt. In Systemeinstellungen › Datenschutz & Sicherheit › Aus anderen Apps einsetzen erlauben, oder stattdessen das Dienste-Menü per Rechtsklick verwenden."
+  },
+  "quick_enh_label": {
+    "message": "Erweiterte Übernahme"
+  },
+  "quick_enh_hint": {
+    "message": "Text auswählen und Kurzbefehl drücken – ohne vorher ⌘C. Benötigt eine Systemberechtigung. Standardmäßig aus."
+  },
+  "quick_enh_explain_title": {
+    "message": "Erweiterte Übernahme einschalten"
+  },
+  "quick_enh_explain_does": {
+    "message": "Was sie tut: Wenn du den Kurzbefehl drückst, drückt sie einmal ⌘C für dich, liest den ausgewählten Text und stellt deine Zwischenablage danach genau wieder her."
+  },
+  "quick_enh_explain_doesnt": {
+    "message": "Was sie nie tut: Sie überwacht deine Tastatur nicht und liest nichts, solange du den Kurzbefehl nicht drückst."
+  },
+  "quick_enh_continue": {
+    "message": "Weiter"
+  },
+  "quick_enh_not_now": {
+    "message": "Jetzt nicht"
+  },
+  "quick_enh_relaunch": {
+    "message": "Jetzt neu starten"
+  },
+  "quick_enh_open_privacy": {
+    "message": "Systemeinstellungen öffnen"
+  },
+  "quick_enh_pending": {
+    "message": "Wähle im angezeigten Systemfenster „Systemeinstellungen öffnen“, suche „{app}“ in der Liste und schalte den Schalter ein. Wirksam wird es nach einem Neustart der App."
+  },
+  "quick_enh_denied": {
+    "message": "macOS hat die Berechtigung nicht erteilt, die erweiterte Übernahme bleibt aus. ⌘C und danach der Kurzbefehl funktioniert weiterhin."
+  },
+  "quick_enh_lost": {
+    "message": "Die Berechtigung für die erweiterte Übernahme wurde entzogen, deshalb wurde diesmal die Zwischenablage übersetzt. Schalte sie in den Einstellungen wieder ein."
+  },
+  "quick_menu_shot": {
+    "message": "Bildschirmfoto übersetzen"
+  },
+  "quick_shot_busy": {
+    "message": "Text wird auf diesem Mac erkannt…"
+  },
+  "quick_shot_first": {
+    "message": "Erste Verwendung auf diesem Mac: Die Vorbereitung dauert etwa 20 Sekunden. Danach jeweils unter einer halben Sekunde."
+  },
+  "quick_shot_perm_explain": {
+    "message": "Die Bildschirmfoto-Übersetzung braucht die Berechtigung „Bildschirmaufnahme“. Erfasst wird nur der ausgewählte Bereich, nur in diesem Moment; die Erkennung läuft auf diesem Mac, danach wird das Bild sofort verworfen."
+  },
+  "quick_shot_perm_pending": {
+    "message": "Noch ein Schritt: In den Systemeinstellungen den Schalter für „{app}“ in der Liste einschalten. Wirksam wird es nach einem Neustart der App."
+  },
+  "quick_shot_cloud": {
+    "message": "Mit meiner bildfähigen Engine erneut versuchen"
+  },
+  "quick_shot_cloud_note": {
+    "message": "„Mit meiner bildfähigen Engine erneut versuchen“ sendet dieses Bildschirmfoto an die von dir konfigurierte Engine ({engine})."
+  },
+  "quick_shot_cloud_busy": {
+    "message": "Erkennung mit deiner Engine…"
+  },
+  "quick_shot_cloud_gone": {
+    "message": "Dieses Bildschirmfoto wurde bereits verworfen. Bereich erneut auswählen."
+  },
+  "quick_hk_title": {
+    "message": "Kurzbefehle"
+  },
+  "quick_hk_reset": {
+    "message": "Standard wiederherstellen"
+  },
+  "quick_hk_translate": {
+    "message": "Auswahl oder Zwischenablage übersetzen"
+  },
+  "quick_hk_shot": {
+    "message": "Bildschirmfoto übersetzen"
+  },
+  "quick_hk_input": {
+    "message": "Text eingeben und übersetzen"
+  },
+  "quick_hk_unset": {
+    "message": "Nicht festgelegt"
+  },
+  "quick_hk_record": {
+    "message": "Aufnehmen"
+  },
+  "quick_hk_cancel": {
+    "message": "Abbrechen"
+  },
+  "quick_hk_change": {
+    "message": "Ändern"
+  },
+  "quick_hk_clear": {
+    "message": "Löschen"
+  },
+  "quick_hk_press": {
+    "message": "Gewünschte Kombination drücken…"
+  },
+  "quick_hk_clash": {
+    "message": "Eine andere App belegt diese Kombination bereits – sie kommt bei uns nicht an. Bitte eine andere wählen."
+  },
+  "quick_hk_deny": {
+    "message": "Kombinationen nur mit ⌥ sind unzuverlässig. Bitte eine mit ⌃ oder ⌘ wählen."
+  },
+  "quick_hk_system": {
+    "message": "Diese Kombination wird von macOS oder von den Apps selbst verwendet. Bitte eine andere wählen."
+  },
+  "quick_hk_nomod": {
+    "message": "Bitte eine Sondertaste wie ⌃ oder ⌘ verwenden."
+  },
+  "quick_hk_dup": {
+    "message": "Das ist dieselbe Kombination wie „{name}“."
+  },
+  "quick_capture_label": {
+    "message": "In der Lernbibliothek speichern"
+  },
+  "quick_capture_hint": {
+    "message": "Übersetzte Sätze landen in der Wiederholung (Quelle: Auswahl, Bildschirmfoto oder Eingabe). Ausgeschaltet wird weiter übersetzt, nur nichts gespeichert."
+  },
+  "quick_login_label": {
+    "message": "Bei der Anmeldung öffnen"
+  },
+  "quick_login_hint": {
+    "message": "Startet bei der Anmeldung in der Menüleiste. Standardmäßig aus."
+  },
+  "quick_login_approval": {
+    "message": "Zusätzlich einmal in Systemeinstellungen › Anmeldeobjekte erlauben."
+  },
+  "quick_screen_ok": {
+    "message": "Bildschirmaufnahme · erlaubt ✓ (für die Bildschirmfoto-Übersetzung)"
+  },
+  "quick_screen_off": {
+    "message": "Bildschirmaufnahme · noch nicht erlaubt. Bei der ersten Bildschirmfoto-Übersetzung wirst du gefragt."
+  },
+  "quick_shot_needs14": {
+    "message": "Die Bildschirmfoto-Übersetzung erfordert macOS 14 oder neuer."
+  },
+  "quick_services_link": {
+    "message": "Dem Dienste-Menüeintrag einen Kurzbefehl zuweisen →"
+  },
+  "quick_more": {
+    "message": "Weitere Optionen"
+  },
+  "quick_shot_perm_second": {
+    "message": "Beim ersten Auswählen eines Bereichs fragt macOS noch einmal nach – einfach erlauben. Danach fragt macOS in Abständen erneut; das tut es bei jeder App, die den Bildschirm aufnimmt."
+  },
+  "systrans_title": {
+    "message": "Systemübersetzung"
+  },
+  "systrans_intro": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ – übersetzt wird mit der Engine, die Sie eingerichtet haben. Legen Sie BelliedMonkey Translator zuerst als Standard fest:"
+  },
+  "systrans_step1": {
+    "message": "Öffnen Sie die App „Einstellungen“"
+  },
+  "systrans_step2": {
+    "message": "Gehen Sie zu „Apps“ → „Übersetzen“"
+  },
+  "systrans_step3": {
+    "message": "Tippen Sie auf „Standard-Übersetzungs-App“ und wählen Sie BelliedMonkey Translator"
+  },
+  "systrans_need": {
+    "message": "Erfordert iOS oder iPadOS 18.4 oder neuer. Auf älteren Systemen erscheinen wir nicht in dieser Liste."
+  },
+  "systrans_state_pending": {
+    "message": "Noch nicht synchronisiert. Beim Öffnen dieser App wird automatisch synchronisiert."
+  },
+  "systrans_state_ok": {
+    "message": "Engine synchronisiert: {name} ✓"
+  },
+  "systrans_state_noengine": {
+    "message": "Noch keine Engine eingerichtet. Sobald Sie eine einrichten, wird automatisch synchronisiert."
+  },
+  "systrans_state_failed": {
+    "message": "Synchronisierung fehlgeschlagen ({code}). Speichern Sie es unter „Engines & Schlüssel“ noch einmal."
+  },
+  "systrans_capture_label": {
+    "message": "In der Lernbibliothek speichern"
+  },
+  "systrans_capture_hint": {
+    "message": "Übersetzte Sätze landen in der Wiederholung, Quelle „Systemübersetzung“. Ausgeschaltet wird weiterhin übersetzt, nur nichts gespeichert."
+  },
+  "systrans_font_label": {
+    "message": "Textgröße im Fenster"
+  },
+  "systrans_font_small": {
+    "message": "Klein"
+  },
+  "systrans_font_std": {
+    "message": "Standard"
+  },
+  "systrans_font_large": {
+    "message": "Groß"
+  },
+  "systrans_font_hint": {
+    "message": "Größe von Original und Übersetzung im Fenster (Knöpfe und Hinweise bleiben unverändert). Wirkt beim nächsten Öffnen."
+  },
+  "sys_disclose_direct": {
+    "message": "Der markierte Text geht direkt an die von Ihnen eingerichtete Engine ({name}) und niemals über unsere Server."
+  },
+  "sys_disclose_grant": {
+    "message": "Mit Gratis-Guthaben: Der markierte Text wird von uns an den Anbieter weitergeleitet. Wir speichern den Inhalt nicht."
+  },
+  "sys_fail_network": {
+    "message": "Die Übersetzungs-Engine ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+  },
+  "sys_fail_timeout": {
+    "message": "Die Engine hat nicht rechtzeitig geantwortet."
+  },
+  "sys_fail_http": {
+    "message": "Die Engine hat einen Fehler zurückgegeben."
+  },
+  "sys_fail_no_base": {
+    "message": "Diese Engine braucht eine Adresse, und es ist keine eingetragen. Öffnen Sie BelliedMonkey Translator und tragen Sie sie ein."
+  },
+  "sys_fail_unknown_provider": {
+    "message": "Diese Engine gibt es nicht mehr. Wählen Sie in BelliedMonkey Translator eine andere."
+  },
+  "sys_fail_needs_setup": {
+    "message": "Es ist noch keine Übersetzungs-Engine eingerichtet. Öffnen Sie BelliedMonkey Translator einmal, dann funktioniert es hier."
+  },
+  "sys_fail_not_synced": {
+    "message": "Öffnen Sie BelliedMonkey Translator einmal, damit Ihre Engine-Einstellungen hierher übernommen werden."
+  },
+  "sys_fail_empty": {
+    "message": "In der Auswahl ist nichts zu übersetzen."
+  },
+  "sys_fail_empty_result": {
+    "message": "Die Engine hat diesmal nichts zurückgegeben."
+  },
+  "sys_fail_engine": {
+    "message": "Die Übersetzungs-Engine ist nicht gestartet."
+  },
+  "sys_fail_unknown": {
+    "message": "Übersetzung fehlgeschlagen."
+  },
+  "sys_ui_translating": {
+    "message": "Wird übersetzt…"
+  },
+  "sys_ui_slow": {
+    "message": "Läuft noch — Gratis-Guthaben kann langsam sein."
+  },
+  "sys_ui_replace": {
+    "message": "Ersetzen"
+  },
+  "sys_ui_open_app": {
+    "message": "BelliedMonkey Translator öffnen"
+  },
+  "setup_done_title": {
+    "message": "Einsatzbereit"
+  },
+  "setup_done_checking": {
+    "message": "Wird geprüft…"
+  },
+  "setup_done_failed_title": {
+    "message": "Noch nicht nutzbar"
+  },
+  "setup_done_failed": {
+    "message": "Der oben mit ✗ markierte Punkt ist nicht durchgekommen. Beheben Sie ihn, dann wird erneut getestet."
+  },
+  "setup_done_settings": {
+    "message": "Die Engine ist eingerichtet. Dokumentübersetzung, Live-Dolmetscher und Live-Untertitel funktionieren jetzt."
+  },
+  "setup_done_systrans": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück in die App von vorhin und tippen Sie erneut auf „Übersetzen“ — hier ist nichts weiter zu tun."
+  },
+  "setup_done_quick": {
+    "message": "Die Engine ist eingerichtet. Gehen Sie zurück zum Schnellübersetzungs-Panel und übersetzen Sie den Satz erneut."
+  },
+  "setup_done_home": {
+    "message": "Zurück zur Startseite"
+  },
+  "setup_from_systrans": {
+    "message": "Sie kommen von der Systemübersetzung. Sobald das hier eingerichtet ist, gehen Sie zurück in jene App und tippen Sie erneut auf „Übersetzen“."
+  },
+  "systrans_discover_title": {
+    "message": "Die iPhone-Übersetzen-Funktion mit BelliedMonkey nutzen"
+  },
+  "systrans_discover_body": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ — das Fenster nutzt die von Ihnen eingerichtete Engine. Einmal einrichten genügt."
+  },
+  "systrans_discover_done": {
+    "message": "Ist eingerichtet"
+  },
+  "systrans_discover_used_title": {
+    "message": "Systemübersetzung · aktiv"
+  },
+  "systrans_discover_used": {
+    "message": "Markieren Sie Text in einer beliebigen App und tippen Sie auf „Übersetzen“ — es übersetzt Ihre Engine. Die übersetzten Sätze liegen in Ihrer Lernbibliothek."
+  },
+  "systrans_discover_see": {
+    "message": "In der Wiederholung ansehen →"
+  },
+  "ob_signin_grant_title": {
+    "message": "Anmelden und kostenloses Guthaben erhalten"
+  },
+  "ob_signin_grant_body": {
+    "message": "Das Guthaben übernehmen wir, es reicht für den Anfang reichlich; du kannst auch deinen eigenen Schlüssel verwenden. Die Anmeldung synchronisiert außerdem deine Karten auf deine anderen Geräte."
+  },
+  "ob_signin_sync_title": {
+    "message": "Anmelden (optional)"
+  },
+  "ob_signin_sync_body": {
+    "message": "Die Anmeldung synchronisiert deine Karten auf deine anderen Geräte. Für die Übersetzung trägst du in den Einstellungen deinen eigenen Schlüssel ein."
+  },
+  "ob_signin_later": {
+    "message": "Jetzt nicht"
+  },
+  "ob_signin_email": {
+    "message": "Mit E-Mail anmelden"
+  },
+  "ob_try_title": {
+    "message": "Jetzt einen Satz ausprobieren"
+  },
+  "ob_try_body": {
+    "message": "Du musst nichts suchen – hier ist einer. Übersetze ihn oder hör ihn dir an."
+  },
+  "ob_try_translate": {
+    "message": "Diesen Satz übersetzen"
+  },
+  "ob_try_listen": {
+    "message": "Diesen Satz anhören"
+  },
+  "ob_try_working": {
+    "message": "Wird übersetzt …"
+  },
+  "ob_try_noengine_grant": {
+    "message": "Noch keine Übersetzungs-Engine. Melde dich an, dann wird kostenloses Guthaben automatisch hinzugefügt – oder trag deinen Schlüssel in den Einstellungen ein."
+  },
+  "ob_try_noengine_key": {
+    "message": "Noch keine Übersetzungs-Engine – trag einen Schlüssel in den Einstellungen ein, dann geht’s los."
+  },
+  "ob_try_sample_alt": {
+    "message": "Wer in einer Fremdsprache liest, muss dieselben Wörter irgendwann nicht mehr nachschlagen, weil sie immer wieder auftauchen."
+  },
+  "xb_consent": {
+    "message": "Ich willige gesondert ein: Nach der Anmeldung werden meine Kontodaten (E-Mail oder Apple-Konto-Kennung) und Lernkarten (gelesene Sätze, Übersetzungen, Adressen und Titel der Quellseiten) auf Server in Tokio, Japan, übertragen und dort gespeichert; Empfänger ist Supabase Pte. Ltd.",
+    "description": "Cross-border transfer consent checkbox label (China App only, shown before sign-in)"
+  },
+  "xb_consent_link": {
+    "message": "Empfänger, Zweck und Widerruf: Datenschutzerklärung, Abschnitt 3",
+    "description": "Link to privacy policy section on the cross-border transfer"
+  },
+  "xb_need": {
+    "message": "Zum Anmelden zuerst das Kästchen oben ankreuzen. Ohne funktioniert die App auch – nur werden die Karten nicht synchronisiert.",
+    "description": "Shown when user tries to sign in without ticking the cross-border consent box"
+  },
+  "ob_resume_title": {
+    "message": "Einrichtung abschließen · noch {n} Schritte",
+    "description": "App home: \"continue setup\" card title; {n} = screens left in onboarding"
+  },
+  "ob_resume_body": {
+    "message": "Machen Sie dort weiter, wo Sie aufgehört haben – ein, zwei Minuten.",
+    "description": "App home: continue-setup card body"
+  },
+  "ob_resume_go": {
+    "message": "Dort weitermachen, wo ich war",
+    "description": "App home: continue-setup card primary button"
+  },
+  "ob_resume_close": {
+    "message": "Nicht mehr anzeigen",
+    "description": "App home: accessible label of the ✕ that permanently dismisses the continue-setup card"
+  },
+  "extb_title": {
+    "message": "Safari-Erweiterung",
+    "description": "App settings: Safari extension group title (restore the home banner)"
+  },
+  "extb_note": {
+    "message": "Sie haben vorhin „{done}“ getippt, deshalb ist der Hinweis auf dem Startbildschirm ausgeblendet. Falls sie noch nicht aktiv ist, holen Sie ihn hier zurück.",
+    "description": "App settings: why the restore button is here. {done} = the banner button label (app_ext_done), filled at runtime"
+  },
+  "extb_restore": {
+    "message": "Hinweis „Erweiterung aktivieren“ wieder anzeigen",
+    "description": "App settings: button that brings back the home-screen “turn on the extension” banner"
+  },
+  "extb_done": {
+    "message": "Wiederhergestellt – auf dem Startbildschirm ist er wieder zu sehen.",
+    "description": "App settings: confirmation after restoring the banner"
+  },
+  "ob_welcome_hint": {
+    "message": "Nur zwei Schritte"
+  },
+  "ob_web_only": {
+    "message": "Ich will nur die Webseiten-Übersetzung"
+  },
+  "ob_intent_listen": {
+    "message": "Vor allem hören · Live-Untertitel"
+  },
+  "ob_intent_both": {
+    "message": "Beides — lesen und hören"
+  },
+  "qs_base": {
+    "message": "Endpunkt-URL (vollständig)"
+  },
+  "qs_key_ph_one": {
+    "message": "Einmal einfügen, Übersetzung ist eingerichtet"
+  },
+  "qs_apply_one": {
+    "message": "Übersetzung mit dieser URL einrichten"
+  },
+  "qs_absent": {
+    "message": "— von dieser Plattform nicht angeboten"
+  },
+  "qs_absent_custom": {
+    "message": "— von dieser URL nicht angeboten"
+  },
+  "learn_habit_streak": {
+    "message": "Heute warst du da · {n} Tage in Folge"
+  },
+  "learn_habit_today": {
+    "message": "Heute warst du da"
+  },
+  "learn_nothing_due_title": {
+    "message": "Heute gibt es nichts zu wiederholen"
+  },
+  "learn_group_done": {
+    "message": "Diese Gruppe ist für heute fertig"
+  },
+  "learn_group_left": {
+    "message": "Heute bleiben noch {n} — du musst nicht alles auf einmal schaffen."
+  },
+  "learn_group_left_none": {
+    "message": "Der Rest kann bis morgen warten."
+  },
+  "learn_group_more": {
+    "message": "Noch eine Gruppe"
+  },
+  "learn_group_stop": {
+    "message": "Für heute reicht es"
+  },
+  "learn_group_bye": {
+    "message": "Der Rest kann warten — komm einfach wieder."
+  },
+  "firstrun_packs_title": {
+    "message": "Zuerst die Sprachpakete laden"
+  },
+  "firstrun_packs_lede": {
+    "message": "Danach musst du nichts weiter einrichten — Übersetzen, Dolmetschen, Untertitel und Vorlesen funktionieren sofort. Sprache wird auf deinem Gerät erkannt. Der erkannte Text geht zum Übersetzen raus: mit eigenem Key direkt an den von dir eingerichteten Anbieter; mit dem Gratis-Guthaben über unseren Server — den Text speichern wir nicht."
+  },
+  "firstrun_packs_asr": {
+    "message": "Spracherkennung (Dolmetschen / Live-Untertitel)"
+  },
+  "firstrun_packs_tts": {
+    "message": "Hochwertige Stimme (Vorlesen / Podcast)"
+  },
+  "firstrun_packs_done": {
+    "message": "Bereit"
+  },
+  "firstrun_packs_net": {
+    "message": "Am besten über WLAN; mobil geht auch — deine Entscheidung."
+  },
+  "firstrun_packs_busy": {
+    "message": "Wird geladen…"
+  },
+  "firstrun_packs_go": {
+    "message": "Laden und weiter"
+  },
+  "firstrun_packs_go_tts": {
+    "message": "Nur das Stimm-Paket laden und weiter"
+  },
+  "firstrun_packs_err": {
+    "message": "Der Download ist nicht durchgelaufen: {why} — Verbindung prüfen und erneut tippen."
+  },
+  "firstrun_packs_stt_slow": {
+    "message": "Der Download des System-Sprachpakets hängt — Verbindung prüfen und erneut versuchen."
+  },
+  "engine_status_ok": {
+    "message": "Mit der Anmeldung eingerichtet: Übersetzen · Transkription · Vorlesen — hier sofort nutzbar"
+  },
+  "engine_status_missing": {
+    "message": "Eines fehlt: "
+  },
+  "engine_status_fix_tts": {
+    "message": "Vorlesen-Engine fehlt — Einstellungen › Vorlesen, Stimme wählen"
+  },
+  "engine_status_fix_translate": {
+    "message": "Übersetzungs-Engine fehlt — Einstellungen › Engine wählen"
+  },
+  "listen_lang_detecting": {
+    "message": "Sprache wird erkannt…"
+  },
+  "listen_lang_detected": {
+    "message": "Erkannt: {a} · {b}"
+  },
+  "subtitle_lang_detecting": {
+    "message": "Sprache des Videos wird erkannt…"
+  },
+  "subtitle_lang_detected": {
+    "message": "Erkannt: {lang}"
+  },
+  "listen_lang_sheet_note": {
+    "message": "Nur nötig, wenn die Sprache falsch erkannt wurde"
+  },
+  "listen_lang_auto": {
+    "message": "Automatisch erkennen"
+  },
+  "listen_lang_manual": {
+    "message": "Manuell festlegen"
+  },
+  "subtitle_partner_auto": {
+    "message": "Sprache des Videos: {lang} (automatisch)"
+  },
+  "listen_need_locales": {
+    "message": "Der lokale Erkennner kann höchstens 5 Sprachen gleichzeitig halten und ist voll – bitte Mithören verlassen und neu starten."
+  },
+  "listen_lang_assets_missing": {
+    "message": "Das Erkennungspaket für diese Sprache fehlt noch. Geh online und tippe einmal auf „Zuhören starten“, dann wird es nachgeladen."
+  },
+  "listen_lang_unsupported_revert": {
+    "message": "Dieses Gerät erkennt diese Sprache nicht – zurück zu „{lang}“"
+  },
+  "listen_speak_lang_label": {
+    "message": "Die Sprache, die ich spreche"
+  },
+  "listen_lang_dirs2": {
+    "message": "{a} gehört → auf {b}; {b} gehört → auf {a}"
+  },
+  "lang_auto": {
+    "message": "Automatisch"
+  },
+  "listen_listening": {
+    "message": "Höre zu…"
+  },
+  "listen_ptt_say": {
+    "message": "{lang} sprechen"
+  },
+  "listen_listening_lang": {
+    "message": "Höre {lang}…"
+  },
+  "listen_ptt_tap_start": {
+    "message": "Zum Starten tippen"
+  },
+  "listen_ptt_recording": {
+    "message": "● Aufnahme · zum Stoppen tippen"
+  },
+  "firstrun_packs_back": {
+    "message": "Back"
+  },
+  "firstrun_packs_all_title": {
+    "message": "Language packs are ready"
+  },
+  "firstrun_packs_all_lede": {
+    "message": "{langs} can be used for listening and reading aloud. Add more anytime in Settings."
+  },
+  "firstrun_packs_dl_title": {
+    "message": "Downloading language packs"
+  },
+  "firstrun_packs_dl_lede": {
+    "message": "Each item shows its own progress. Downloading continues in the background and resumes after the network returns."
+  },
+  "firstrun_packs_pick_title": {
+    "message": "Choose languages to download"
+  },
+  "firstrun_packs_pick_lede": {
+    "message": "Checked by default: the system language + 中文 + English. Check others as needed. You can add more later in Settings."
+  },
+  "firstrun_packs_cell_waiting": {
+    "message": "Your selection is kept. Downloading starts automatically when Wi-Fi connects."
+  },
+  "firstrun_packs_all_foot": {
+    "message": "Everything is ready. After you go in, tap Say {mine} or the other language button to start."
+  },
+  "firstrun_packs_foot": {
+    "message": "About {size} in total, plus the system recognition packs. On a cellular network you will be asked before the download."
+  },
+  "firstrun_packs_locked": {
+    "message": "You cannot change the selection while downloading. Add or remove languages later in Settings."
+  },
+  "firstrun_packs_enter": {
+    "message": "Start live listening"
+  },
+  "firstrun_packs_remain": {
+    "message": "Downloading · {n} left"
+  },
+  "firstrun_packs_unselected": {
+    "message": "Not selected"
+  },
+  "firstrun_packs_queued": {
+    "message": "Queued"
+  },
+  "firstrun_packs_row_pct": {
+    "message": "{pct}% · {done} / {total}"
+  },
+  "firstrun_packs_section_langs": {
+    "message": "Languages (recognition packs)"
+  },
+  "firstrun_packs_asr_sub": {
+    "message": "Recognition pack · downloaded by the system"
+  },
+  "firstrun_packs_system": {
+    "message": "System language"
+  },
+  "firstrun_packs_more": {
+    "message": "{n} more languages"
+  },
+  "firstrun_packs_together": {
+    "message": "Downloaded together"
+  },
+  "firstrun_packs_tts_shared": {
+    "message": "Read aloud · {langs}"
+  },
+  "firstrun_packs_tts_shared_note": {
+    "message": "One pack covers 中文 and English. Checking 中文 or English includes it automatically"
+  },
+  "firstrun_packs_bytes": {
+    "message": "About {size}"
+  },
+  "firstrun_packs_tts_one": {
+    "message": "Read aloud · {lang}"
+  },
+  "firstrun_packs_tts_th_note": {
+    "message": "Off by default. Listening and the written translation still work without it. Only the Thai translation is not read aloud."
+  },
+  "firstrun_packs_optional": {
+    "message": "About {size} · optional"
+  },
+  "firstrun_packs_base": {
+    "message": "Base components"
+  },
+  "firstrun_packs_base_note": {
+    "message": "Language ID (ECAPA) + voice detection (VAD): tells who is speaking which language. Listening cannot start until these are ready"
+  },
+  "firstrun_packs_required": {
+    "message": "About {size} · required"
+  },
+  "firstrun_packs_cell_title": {
+    "message": "You are on a cellular network"
+  },
+  "firstrun_packs_cell_body": {
+    "message": "This download is about {size} (system recognition packs are extra, and the system decides their size) and may use mobile data."
+  },
+  "firstrun_packs_cell_wait": {
+    "message": "Wait for Wi-Fi"
+  },
+  "firstrun_packs_cell_go": {
+    "message": "Download on cellular"
+  },
+  "firstrun_packs_manage": {
+    "message": "Manage language packs"
+  },
+  "listen_ptt_preparing": {
+    "message": "Preparing · {lang} {pct}%"
+  },
+  "listen_pill_pct": {
+    "message": "{lang} {pct}%"
+  },
+  "listen_pill_ready": {
+    "message": "✓ Ready"
+  },
+  "listen_not_ready": {
+    "message": "Not ready yet. Tap again after the download"
+  },
+  "listen_ready_tap": {
+    "message": "Ready. Tap a button below to start"
+  },
+  "listen_prep_detail": {
+    "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_ready_tap_sub": {
+    "message": "It will not start on its own · tap Say {mine} or {other} to listen"
+  },
+  "drive_skipped": {
+    "message": "{n} Karten ohne Vorlesen übersprungen (Medienkarten oder keine Stimme)"
+  },
+  "firstrun_packs_all_lede_listen": {
+    "message": "{langs}: Dolmetschen ist bereit; {speak}: Vorlesen ebenfalls. Weitere Sprachen jederzeit unter Einstellungen · Sprachpakete hinzufügen."
+  },
+  "firstrun_quota_cancel": {
+    "message": "Abbrechen"
+  },
+  "firstrun_quota_days": {
+    "message": "Am längsten unbenutzt · vor {n} Tagen"
+  },
+  "firstrun_quota_download_btn": {
+    "message": "Laden"
+  },
+  "firstrun_quota_in_use": {
+    "message": "Aktuelles Sprachpaar · kann nicht freigegeben werden"
+  },
+  "firstrun_quota_label": {
+    "message": "Erkennungssprachen"
+  },
+  "firstrun_quota_leg_absent": {
+    "message": "Nicht geladen"
+  },
+  "firstrun_quota_leg_ready": {
+    "message": "Bereit · belegt einen Platz"
+  },
+  "firstrun_quota_leg_recover": {
+    "message": "Nicht bereit · wiederherstellbar"
+  },
+  "firstrun_quota_never": {
+    "message": "Am längsten unbenutzt"
+  },
+  "firstrun_quota_note": {
+    "message": "Apple-Limit: höchstens {max} Erkennungssprachen gleichzeitig"
+  },
+  "firstrun_quota_note_full": {
+    "message": "Alle {max} Plätze belegt · eine neue Sprache wird zuerst als „Nicht bereit“ markiert"
+  },
+  "firstrun_quota_recover_btn": {
+    "message": "Zurückholen"
+  },
+  "firstrun_quota_recover_hint": {
+    "message": "Tippen zum Zurückholen · etwa 1–2 s"
+  },
+  "firstrun_quota_sheet_foot": {
+    "message": "Die Schaltfläche richtet sich nach der gewählten Sprache."
+  },
+  "firstrun_quota_sheet_go": {
+    "message": "{yield} freigeben · {need} zurückholen"
+  },
+  "firstrun_quota_sheet_lede": {
+    "message": "Um {need} zurückzuholen, gib zuerst eine Sprache frei. Sie wird wieder „Nicht bereit“ und ist bei Bedarf in etwa 1–2 s zurück – ohne erneuten Download."
+  },
+  "firstrun_quota_sheet_pick": {
+    "message": "Wähle eine Sprache zum Freigeben (Standard: am längsten unbenutzt)"
+  },
+  "firstrun_quota_sheet_title": {
+    "message": "Erkennungssprachen voll ({max})"
+  },
+  "firstrun_quota_tag_absent": {
+    "message": "Nicht geladen"
+  },
+  "firstrun_quota_tag_ready": {
+    "message": "Belegt einen Platz"
+  },
+  "firstrun_quota_tag_recover": {
+    "message": "Nicht bereit"
+  },
+  "firstrun_quota_today": {
+    "message": "Heute benutzt"
+  },
+  "firstrun_quota_used": {
+    "message": "{n} von {max} belegt"
+  },
+  "firstrun_quota_working": {
+    "message": "Wird zurückgeholt…"
+  },
+  "firstrun_quota_tag_later": {
+    "message": "Nicht bereit · Sprache {n}"
+  },
+  "firstrun_quota_skip_now": {
+    "message": "Diesmal nicht geladen"
+  },
+  "firstrun_quota_over_title": {
+    "message": "Alle {max} Plätze belegt: {langs} wird als „Nicht bereit“ markiert"
+  },
+  "firstrun_quota_over_body": {
+    "message": "Bei Bedarf antippen zum Zurückholen (etwa 1–2 s); die am längsten unbenutzte Sprache gibt dann ihren Platz frei. Wenn du das nicht willst, lass sie vorerst abgewählt."
+  },
+  "listen_pill_quota_full": {
+    "message": "Plätze voll"
+  },
+  "listen_ptt_quota_full": {
+    "message": "Plätze voll · gib einen frei, um das zu nutzen"
+  },
+  "listen_quota_card_btn": {
+    "message": "Eine freigeben und zurückholen"
+  },
+  "listen_quota_card_hint": {
+    "message": "Etwa 1–2 s · kein erneuter Download"
+  },
+  "listen_quota_card_sub": {
+    "message": "{lang} war installiert, aber ihr Platz ging an eine andere Sprache – kein fehlgeschlagener Download und unabhängig vom Netzwerk."
+  },
+  "listen_quota_card_title": {
+    "message": "{lang} kann noch nicht gehört werden: alle {max} Erkennungsplätze sind belegt"
+  },
+  "listen_quota_sheet_go": {
+    "message": "{yield} freigeben · {need} zurückholen"
+  },
+  "listen_quota_sheet_lede": {
+    "message": "Um {lang} zu nutzen, gib zuerst eine Sprache frei."
+  },
+  "fail_quota_label": {
+    "message": "Freiguthaben"
+  },
+  "fail_credit_title": {
+    "message": "Freiguthaben aufgebraucht"
+  },
+  "fail_credit_next": {
+    "message": "Kanal wechseln oder eigenen API-Key eintragen."
+  },
+  "fail_go_grant": {
+    "message": "Kanal wechseln"
+  },
+  "fail_fill_key": {
+    "message": "Eigenen Key eintragen"
+  },
+  "fail_grant_title": {
+    "message": "Pool gerade nicht verfügbar"
+  },
+  "fail_grant_next": {
+    "message": "Nicht aufgebraucht. Später erneut versuchen oder den Kanal wechseln."
+  },
+  "fail_model_title": {
+    "message": "Modell steht nicht auf der Freiliste"
+  },
+  "fail_model_next": {
+    "message": "Das Freiguthaben gilt nur für das vorgesehene Modell. Bitte zurücksetzen."
+  },
+  "fail_go_model": {
+    "message": "Modell ändern"
+  },
+  "fail_auth_title": {
+    "message": "Schlüssel abgelehnt"
+  },
+  "fail_auth_next": {
+    "message": "Der Anbieter hat den Key abgelehnt. Prüfen oder neu eintragen."
+  },
+  "fail_go_engine": {
+    "message": "Key eintragen"
+  },
+  "fail_use_free": {
+    "message": "Kostenlosen Kanal nutzen"
+  },
+  "fail_timeout_title": {
+    "message": "Keine Verbindung — pausiert"
+  },
+  "fail_timeout_next": {
+    "message": "Automatische Wiederholung ist pausiert. Wenn das Netz zurück ist, erneut versuchen oder den kostenlosen Kanal nutzen."
+  },
+  "fail_timeout_next_cn": {
+    "message": "Automatische Wiederholung ist pausiert. Wenn das Netz zurück ist, erneut versuchen."
+  },
+  "fail_timeout_footnote": {
+    "message": "Pause erst nach 5 Zeitüberschreitungen in Folge. Eine einzelne stoppt nicht."
+  },
+  "fail_retry": {
+    "message": "Erneut versuchen"
+  },
+  "fail_switch_free": {
+    "message": "Kostenlosen Kanal nutzen"
+  },
+  "firstrun_packs_sum": {
+    "message": "Etwa {size} · inklusive Hör-Basis"
+  },
+  "firstrun_packs_details_progress": {
+    "message": "Fortschritt"
+  },
+  "langpacks_manage": {
+    "message": "Verwalten"
+  },
+  "opt_mode_switch_to_quick_ok": {
+    "message": "Ein-Tipp"
+  },
+  "firstrun_packs_progress_indet": {
+    "message": "Wird geladen"
+  },
+  "firstrun_quota_mini": {
+    "message": "Höchstens 5 Erkennungssprachen"
+  },
+  "qs_key_local_only": {
+    "message": "Schlüssel bleiben nur auf diesem Gerät"
+  },
+  "firstrun_packs_retry": {
+    "message": "Erneut versuchen"
+  },
+  "langpacks_title": {
+    "message": "Sprachpakete und Vorlesen"
+  },
+  "engine_keys_status_quick": {
+    "message": "{p} · Ein-Tipp eingerichtet"
+  },
+  "firstrun_packs_busy_pct": {
+    "message": "Wird geladen {n}%"
+  },
+  "langpacks_tts_missing": {
+    "message": "Offline-Vorlesen · nicht geladen · {size}"
+  },
+  "firstrun_packs_details": {
+    "message": "Download-Details"
+  },
+  "langpacks_need_os": {
+    "message": "Sprachpakete · neueres System nötig"
+  },
+  "engine_keys_status_detail": {
+    "message": "Pro Engine eingerichtet"
+  },
+  "opt_mode_quick_hint_other": {
+    "message": "Wechsel verwirft die Ein-Tipp-Einstellung"
+  },
+  "langpacks_tts_na": {
+    "message": "Offline-Vorlesen · nur in der App"
+  },
+  "opt_mode_switch_to_detail_ok": {
+    "message": "Pro Engine"
+  },
+  "opt_mode_switch_to_quick": {
+    "message": "Wechsel zu Ein-Tipp überschreibt die aktuelle Einstellung pro Engine"
+  },
+  "langpacks_ready": {
+    "message": "Bereit · {langs}"
+  },
+  "engine_keys_status_none": {
+    "message": "Nicht eingerichtet"
+  },
+  "firstrun_packs_progress_pct": {
+    "message": "{pct}% · ca. {size}"
+  },
+  "qs_others_in_detail": {
+    "message": "Andere Engines unter „pro Engine“ einrichten."
+  },
+  "langpacks_tts_ready": {
+    "message": "Offline-Vorlesen · bereit"
+  },
+  "opt_mode_detail_hint_other": {
+    "message": "Wechsel überschreibt die Einstellung pro Engine"
+  },
+  "engine_keys_row": {
+    "message": "Engines und Schlüssel"
+  },
+  "opt_mode_switch_cancel": {
+    "message": "Abbrechen"
+  },
+  "langpacks_missing": {
+    "message": "Nicht geladen · {langs}"
+  },
+  "opt_mode_switch_to_detail": {
+    "message": "Wechsel zu „pro Engine“ verwirft die aktuelle Ein-Tipp-Einstellung"
+  }
+}

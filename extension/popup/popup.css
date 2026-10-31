@@ -1,0 +1,299 @@
+/* popup.css */
+/* `hidden` must actually hide. The UA rule `[hidden]{display:none}` loses to ANY
+   `display` declaration on the element, so `.pressure{display:flex}` silently made a
+   `hidden` banner permanently visible — on a brand-new library it showed a cleanup
+   button for zero reclaimable cards, i.e. shouted about a problem that did not exist.
+   One line here beats remembering it at every future `display` rule. */
+[hidden] { display: none !important; }
+
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Organic palette (design/handoff.md §1): terracotta = primary action,
+   sage = 译文/开启 state, cream ground with white cards.
+   All colour tokens (light + dark) come from ../styles/organic-tokens.gen.css
+   — the build-time emission of build/palette.config.js, the single source of
+   truth. This file keeps only what is popup-specific. */
+:root {
+  --radius: var(--radius-md);   /* popup cards are the 16px step */
+}
+
+/* Width pinned on <html> as well as body: once the popup's content grew past
+   Chrome's 600px height cap (来源治理 made it taller), the vertical scrollbar
+   made Blink report the UNSET html width as "max" and Chrome opened the popup
+   at its full 800px — body sat at 320 with a dead blank right half. Classic
+   extension-popup sizing trap; the explicit html width is the known fix. */
+html {
+  width: 320px;
+}
+
+body {
+  width: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Header ─────────────────────────────────────────────────── */
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 16px 14px;
+}
+
+.logo {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-header h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--section-bg);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.badge.on {
+  background: var(--sage-light);
+  color: var(--sage-deep);
+  border-color: transparent;
+}
+
+/* ─── Section — white cards on the cream ground (mock 1a) ─────── */
+
+.section {
+  background: var(--card-bg);
+  margin: 0 14px 12px;
+  padding: 4px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ─── Rows ────────────────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  gap: 12px;
+}
+
+/* 复习入口：整行可点，视觉上仍是一行设置，不是一个突兀的按钮。 */
+.row-btn {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+.row-btn:hover .row-label { color: var(--accent); }
+a.row-btn { display: flex; text-decoration: none; }
+.row-value {
+  font-size: 13px;
+  color: var(--text-secondary, #82796a);
+  font-variant-numeric: tabular-nums;
+}
+
+.row.col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.row-label {
+  font-size: 13px;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* ─── Toggle switch ───────────────────────────────────────────── */
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.switch input { opacity: 0; width: 0; height: 0; }
+
+.slider {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.switch input:checked + .slider { background: var(--sage); }
+.switch input:checked + .slider::before { transform: translateX(18px); }
+
+/* ─── Select ──────────────────────────────────────────────────── */
+
+.select {
+  font-size: 13px;
+  color: var(--text);
+  background: var(--section-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  outline: none;
+  cursor: pointer;
+  max-width: 180px;
+}
+
+/* ─── Input ───────────────────────────────────────────────────── */
+
+/* .input / .api-key-wrap / .eye-btn 随引擎配置一起removed —— 弹窗不再有输入框 */
+
+/* ─── Action buttons ──────────────────────────────────────────── */
+
+/* The buttons sit directly on the cream ground (mock 1a) — .actions is also a
+   .section in the markup, so undo the card chrome here. */
+.actions {
+  display: flex;
+  gap: 8px;
+  background: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 2px 14px 16px;
+}
+
+.btn-primary, .btn-secondary {
+  flex: 1;
+  padding: 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s, background 0.15s;
+}
+
+.btn-primary:active, .btn-secondary:active { transform: scale(0.97); }
+
+/* interaction-spec 全局原则: in-flight (disabled) controls must look disabled.
+   45% — the Organic spec value (handoff §2). */
+button:disabled, input:disabled, select:disabled {
+  opacity: .45; cursor: default; pointer-events: none;
+}
+.switch input:disabled + .slider { opacity: .45; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+}
+
+/* ─── Toast ───────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #201e1d;
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Onboarding note ────────────────────────────────────────────────
+   Two states, never both: `warn` = the chosen engine needs a key and none
+   is set (translation will fail); the plain state = the free no-key engine
+   is selected, which works but is not a stable endpoint. Both exist so the
+   user learns what to expect BEFORE a bad first result, not after.
+   Warn = terracotta 100/400/800; plain = sage 100/300/900 (handoff §1). */
+.setup-note {
+  margin: 0 14px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 1.5;
+  border: 1px solid #ccdbb2;
+  background: #f0fae1;
+  color: #272e1b;
+}
+
+/* 未配置时这条提示**整条可点**，点开设置页 —— 弹窗不再提供配置控件，它的职责
+   从「说明」变成了「引导」。给出可点的视觉线索，否则用户不会想到去点一段文字。 */
+.setup-note.clickable { cursor: pointer; text-align: left; width: 100%; }
+.setup-note.clickable:hover { filter: brightness(0.97); }
+.setup-note.warn {
+  border: 1.5px solid #f6a06b;
+  background: #fff2eb;
+  color: #643312;
+}
+@media (prefers-color-scheme: dark) {
+  .setup-note { border-color: #3d472b; background: #1c2114; color: #ccdbb2; }
+  .setup-note.warn { border-color: #8c491a; background: #2b1c10; color: #ffc6a5; }
+}
+
+/* ── 桌面版式 ────────────────────────────────────────────────────────────────
+   320px 是给手机上那张表单表定的（html 也钉死是为了治 Chrome 弹窗撑成 800px 的
+   老毛病，别把 width 去掉）。在电脑上它太窄：一行标题排不下，卡片之间全是折行。
+   判据是 content/device.js 判出来的设备类别，不是 `pointer: fine`：接了妙控键盘的
+   iPad 也报 fine，而它的主输入仍然是手指。放宽到 380 —— Chrome 弹窗上限 800，
+   380 仍然是个弹窗不是一扇窗。 */
+html[data-device="desktop"], html[data-device="desktop"] body { width: 380px; }

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>④ 引导第 2 屏：教程留在这里</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">改动四：三步教程不删，但只留在引导里</h1><span>引导是唯一一次有人愿意读完的时刻；首页不该再教一遍</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="cell"><div class="cap"><b>引导第 2 屏（保留，微调）</b><span>5 屏里的第 2 屏</span></div><div class="phoneframe"><div style="display:flex;flex-direction:column;gap:10px">
+      <b style="font-size:1.05rem">先把浏览器那半边打通</b>
+      <ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol><button class="btn p" type="button">打开检测页，照着做 →</button>
+      <p class="hint" style="margin:0">这一屏没有「继续」按钮，上面那个兼作前进键。</p>
+    </div><p class="hint" style="margin:0">只改一处：按钮从「在 Safari 里打开扩展 →」改成「打开检测页，照着做 →」—— 落到同一页，但说清楚了那一页能验。</p></div></div>
+  <div class="cell"><div class="cap"><b>首页横幅（不再重复教程）</b></div><div class="phoneframe"><div class="ban">
+  <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> 浏览器那半边还没打通</h4><p>到现在还没收到任何一张卡。</p><button class="btn p" type="button">打开检测页，一眼看出通没通 →</button><button class="btn s" type="button">我已经打开了</button></div><p class="hint" style="margin:0">同一件事只教一次。首页这张负责<b>回答「成没成」</b>，不负责教。</p></div></div>
+</div>
+<div class="ask"><b>要你裁定：这样收敛行不行</b>我建议<b>行</b>。反对的理由会是「跳过引导的人就再也看不到三步了」—— 但三步现在搬到了检测页上，主按钮每次都能到那一页，所以并没有丢。</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

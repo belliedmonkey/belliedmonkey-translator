@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>输入翻译</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1240px; height:560px; padding:24px; display:flex; flex-direction:column; gap:18px">
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">输入翻译</h1><span>快捷键默认留空；从菜单栏也能进。这是面板唯一主动拿键盘焦点的时候。</span></div></div>
+<div style="display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:22px; align-items:start">
+<div class="cell"><div class="cap"><b>刚打开</b><span>光标在原文框里。<span class="keys"><i>↩</i></span> 翻译，<span class="keys"><i>⇧</i><i>↩</i></span> 换行，<span class="keys"><i>Esc</i></span> 关。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">输入</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>自动</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox focus"><span class="caret"></span></div><div class="mini">输入或粘贴要翻译的文字</div></div></div>
+<div class="cell"><div class="cap"><b>输入中</b><span>不边打边翻（每个字一次请求既费钱又闪）。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">输入</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>自动</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox focus">Could you send me the revised forecast<span class="caret"></span></div><div class="mini"><span class="keys"><i>↩</i></span> 翻译</div></div></div>
+<div class="cell"><div class="cap"><b>翻完</b><span>焦点留在原文框，接着改、接着回车。</span></div><div class="panel" style="width:400px"><div class="panel-h"><span class="ptag">输入</span><span style="flex:1"></span><span class="langrow" style="gap:5px"><span>英语</span><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg><button class="lchip" type="button">简体中文<svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></span><button class="ibtn" type="button" aria-label="钉住"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17v5M8 3h8l-1 6 3 4H6l3-4z"/></svg></button><button class="ibtn" type="button" aria-label="关闭"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<div class="srcbox focus">Could you send me the revised forecast?</div><div class="tr" style="padding:0 2px">能把修订后的预测发给我吗？</div><div class="pfoot"><span class="saved"><svg class="ico sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z"/></svg>已存入复习库</span><span class="split" style="gap:2px"><button class="ibtn" type="button" aria-label="复制译文"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg></button></span></div></div></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1240,"height":560}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

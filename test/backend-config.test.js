@@ -1,0 +1,294 @@
+// test/backend-config.test.js — 后端地址这件事，谁都不许说谎。
+//
+// 这个文件守的是 §C（中国版境内后端）的三条不变量。它们全都是**结构性**的：
+// 不需要网络、不需要机器，改坏了当场变红。
+//
+// 为什么值得一道单独的门禁：中国版切后端是一次**看不出来的**改动。产物里
+// `url` 是一个字符串，写错了、没替换成功、或者替换了一半，包照样构建成功、
+// 照样能装、照样能翻译 —— 只有登录和同步会坏，而那要真的有一个中国用户
+// 去点才发现。这正是这个仓库反复付过钱的那类失败：**静默、且要别人替你发现。**
+
+const fs = require('fs');
+const path = require('path');
+const { describe, test, ok, eq, deepEq } = require('./harness');
+
+const ROOT = path.join(__dirname, '..');
+const CFG_PATH = path.join(ROOT, 'extension', 'learn', 'backend.config.js');
+const CFG_SRC = fs.readFileSync(CFG_PATH, 'utf8');
+const CFG = require('../extension/learn/backend.config.js');
+
+// 注释里出现的字面量不算数（`codeOf` 那条教训：一条解释自己的注释把断言绊倒过两次）。
+const code = CFG_SRC.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+
+describe('backend.config.js — 构建期文本替换的契约', () => {
+  // build.js 的 flipSyncFlag / limitProviders / switchBackend 全都要求「恰好一处」，
+  // 命中数不对就 exit(1)。那个失败发生在构建时，而这里让它发生在**改代码时** ——
+  // 早一步，且不需要记得去跑 china flavor 才看得见。
+  // **两格缩进**是判据的一部分。免费额度块里也有一个 enabled（四格缩进），
+  // 而 flipSyncFlag 要翻的从来只是顶层那个同步开关。2026-09-08 实测过这个坑：
+  // 用裸子串时，把 grant.enabled 翻成 true 会让中国版构建在 flipSyncFlag 处 exit(1)，
+  // 而产物停在没被覆盖的全球版上 —— 报错指向同步开关，跟真正的原因隔着十万八千里。
+  test('顶层 `enabled: true,` 恰好一处 —— flipSyncFlag 的前提', () => {
+    const hits = code.match(/^ {2}enabled: true,/gm) || [];
+    eq(hits.length, 1, `实际 ${hits.length} 处；多一处或少一处都会让 build.js 的 flipSyncFlag 直接 exit(1)`);
+  });
+
+  test('嵌套的 enabled 不许写成两格缩进 —— 否则它会被当成同步开关翻掉', () => {
+    // grant.enabled 必须是四格。写成两格就是把「翻同步开关」变成一次赌博。
+    const nested = code.match(/^ {4}enabled: (true|false),/gm) || [];
+    ok(nested.length >= 1, '免费额度块里应该有一个四格缩进的 enabled');
+  });
+
+  test("`providers: ['apple', 'google'],` 恰好一处 —— limitProviders 的前提", () => {
+    const hits = code.match(/providers: \['apple', 'google'\],/g) || [];
+    eq(hits.length, 1, `实际 ${hits.length} 处`);
+  });
+
+  test('顶层 url / anonKey 各恰好一处 —— switchBackend 的前提', () => {
+    for (const key of ['url', 'anonKey']) {
+      const hits = code.match(new RegExp(`^  ${key}: '[^']*',`, 'gm')) || [];
+      eq(hits.length, 1, `顶层 ${key} 实际 ${hits.length} 处 —— `
+        + 'switchBackend 靠行首两个空格区分顶层与 china 块，缩进变了它会静默替换 0 处');
+    }
+  });
+
+  test('china 块的键缩进是四个空格 —— 否则会被当成顶层键替换掉', () => {
+    ok(/\n  china: \{\n(?:    \w+: [^\n]*\n)+  \},/.test(code),
+      'china 块的形状变了：switchBackend 的顶层正则与「删掉 china 块」的正则都依赖它');
+  });
+});
+
+describe('backend.config.js — 境内后端（§C）', () => {
+  // ── 免费额度（§8.10）─────────────────────────────────────────────────
+  test('grant 块存在，且五个键齐全', () => {
+    const B = require('../extension/learn/backend.config.js');
+    ok(B.grant && typeof B.grant === 'object', 'backend.config.js 缺 grant 块');
+    for (const k of ['enabled', 'vendor', 'limitUsd', 'relayPath', 'china']) {
+      ok(k in B.grant, `grant 块缺 ${k}`);
+    }
+    eq(typeof B.grant.enabled, 'boolean');
+    ok(B.grant.limitUsd > 0 && B.grant.limitUsd <= 1,
+      '额度上限不在合理区间 —— 0.2 是裁定值，改它要同时改卡上的进度条与 §8.10 的估算');
+  });
+
+  test('中继地址由 url + relayPath 拼出来 —— 主机名在仓库里只写一处', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const P = require('../build/providers.config.js');
+    const g = P.find((x) => x.id === 'grant');
+    ok(g, 'providers 注册表里没有 grant 那一档');
+    // 2026-10-01 翻转后：中国版那条额度走**境内云函数**，主机名同样只写在 backend.config.js
+    // 一处（grant.china.relayUrl）。所以判据按 flavor 分，两边都从那一处拼出来。
+    const CN = (B.grant.china || {});
+    const cnReady = CN.ready === true && !!CN.relayUrl;
+    const expected = cnReady
+      ? {
+        global: B.url + B.grant.relayPath + '/chat/completions',
+        china: String(CN.relayUrl).replace(/\/+$/, '') + '/chat/completions',
+      }
+      : B.url + B.grant.relayPath + '/chat/completions';
+    deepEq(g.defaultEndpoint, expected,
+      '中继地址没有从 backend.config.js 拼出来 —— 那就是第二份主机名，换后端时必漏一处');
+    eq(g.grantOnly, true, 'grant 那一档必须 grantOnly（不进任何下拉）');
+    eq(g.flavors.includes('china'), cnReady,
+      cnReady ? '翻转后 grant 必须进中国版' : '未翻转时不许进中国版');
+  });
+
+  test('朗读与转写两档同规矩', () => {
+    const B = require('../extension/learn/backend.config.js');
+    const base = B.url + B.grant.relayPath;
+    const T = require('../build/tts.config.js').find((x) => x.id === 'grant_speech');
+    const S = require('../build/stt.config.js').find((x) => x.id === 'grant_stt');
+    eq(T.defaultEndpoint, base + '/audio/speech');
+    eq(S.defaultEndpoint, base + '/audio/transcriptions');
+    for (const e of [T, S]) {
+      eq(e.grantOnly, true);
+      ok(!e.flavors.includes('china'));
+    }
+    // 中继没有实时接口 —— 「对话 · 实时听译」不在额度覆盖范围内，卡上要提前说。
+    ok(!S.liveEndpoint, '转写那一档不该有 liveEndpoint：中继只转发一次性请求');
+  });
+
+  // ── 模型锁死（用户 2026-09-09 裁定：「锁定免费额度固定好默认模型，不允许换，
+  //    要换就自己去申请自己的 apikey」）────────────────────────────────────
+  //
+  // 这件事有**三道锁**，缺一道都会让用户撞上一次自己解不开的失败：
+  //   1. 注册表：supportsModel/supportsBaseUrl 为假 ⇒ 界面上根本没有那两个输入框。
+  //   2. 客户端：LearnGrant.plan 的 pinModel 把模型**显式写进配置**（留空会走注册表
+  //      默认，而用户可能在别处改过 apiModel）。
+  //   3. 服务端：中继按白名单放行，模型不对回 403 model_not_allowed。
+  // 这里守第 1 道。第 2 道在 test/grant.test.js，第 3 道是端到端实测过的。
+  test('免费额度那三档：模型与端点都不给改', () => {
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    const grantOnly = [...P, ...T, ...S].filter((e) => e.grantOnly);
+    eq(grantOnly.length, 3, `grantOnly 的条目应有三档（翻译/朗读/转写），实际 ${grantOnly.length}`);
+    for (const e of grantOnly) {
+      eq(!!e.supportsModel, false, `${e.id} 允许改模型 —— 改了必然撞 403，而用户看不出为什么`);
+      eq(!!e.supportsBaseUrl, false, `${e.id} 允许改端点 —— 那就绕开中继了，额度也就不计量了`);
+      ok(e.defaultModel, `${e.id} 没有钉住的默认模型 —— 留空会让请求带不上 model`);
+    }
+  });
+
+  test('这道门真的在读注册表 —— 扫不到东西的断言不是门禁', () => {
+    // 上一条如果因为「一条 grantOnly 都没扫到」而绿，它就什么也没守。
+    // 这一条把「扫到了三条」单独钉住，且顺带确认三档各自属于不同的注册表。
+    const P = require('../build/providers.config.js');
+    const T = require('../build/tts.config.js');
+    const S = require('../build/stt.config.js');
+    eq(P.filter((e) => e.grantOnly).length, 1, '翻译那一档不是恰好一条');
+    eq(T.filter((e) => e.grantOnly).length, 1, '朗读那一档不是恰好一条');
+    eq(S.filter((e) => e.grantOnly).length, 1, '转写那一档不是恰好一条');
+  });
+
+  test('china 块存在，且三个键齐全', () => {
+    ok(CFG.china && typeof CFG.china === 'object', 'MT_BACKEND.china 不见了');
+    eq(typeof CFG.china.ready, 'boolean', 'china.ready 必须是布尔 —— 它是「切没切」的唯一判据');
+    eq(typeof CFG.china.url, 'string', '');
+    eq(typeof CFG.china.anonKey, 'string', '');
+  });
+
+  // 这一条是整个文件的核心：**说自己切了，就必须真的切到境内。**
+  //
+  // ready 为假时不检查地址（那是今天的状态：代码就位、机器还没有），
+  // 但 ready 一旦为真，下面每一条都必须成立 —— 否则中国版会带着一个
+  // 连不上的、或者根本还在境外的地址发出去。
+  test('china.ready 为真时：地址必须是境内的、且与国际版不同', () => {
+    if (!CFG.china.ready) return;   // 未就绪：不检查地址，这是正当状态
+    const u = CFG.china.url;
+    ok(!!u, 'china.ready=true 但 url 是空的');
+    ok(!/\.supabase\.co/i.test(u),
+      `china.url 仍然是 Supabase 托管域名（${u}）—— 那不是境内后端，说切了就是假话`);
+    ok(/^https:\/\//.test(u), `china.url 必须是 https（${u}）`);
+    ok(u !== CFG.url, '两个 flavor 的 url 相同 —— 那意味着中国版根本没换后端');
+    ok(!!CFG.china.anonKey, 'china.ready=true 但 anonKey 是空的');
+    ok(CFG.china.anonKey !== CFG.anonKey,
+      'china 的 anonKey 与国际版相同 —— 一个后端签的 token 到另一个后端上是废纸，'
+      + '这几乎必然是复制粘贴时漏改的那一半');
+  });
+
+  test('china.ready 为假时：url 与 anonKey 必须都是空的', () => {
+    if (CFG.china.ready) return;
+    // 半填的状态最危险：它看起来像「配好了」，而 build.js 仍然走关同步那条路。
+    // 要么两个都填并把 ready 翻真，要么两个都空 —— 没有中间态。
+    eq(CFG.china.url, '', 'ready=false 却填了 url —— 半填状态会让人以为已经切了');
+    eq(CFG.china.anonKey, '', 'ready=false 却填了 anonKey');
+  });
+});
+
+describe('build.js — 两条路都要在', () => {
+  const BUILD = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8')
+    .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+
+  test('china override 按 china.ready 分叉，而不是无条件关同步', () => {
+    ok(/chinaBackendReady\(\)/.test(BUILD),
+      'build.js 不再按 china.ready 分叉 —— 那等于把境内后端这条路焊死在「关同步」上');
+    ok(/switchBackend\(/.test(BUILD), 'switchBackend 不见了');
+  });
+
+  test('switchBackend 仍然坚持「恰好一处」，不许静默替换 0 处', () => {
+    const fn = BUILD.slice(BUILD.indexOf('function switchBackend'));
+    ok(/hits\.length !== 1/.test(fn) && /process\.exit\(1\)/.test(fn),
+      'switchBackend 丢掉了命中数检查 —— 静默替换 0 处会产出一个「说自己是中国版、'
+      + '其实还在打东京」的包，而那在产物里完全看不出来');
+  });
+});
+
+describe('backend.config.js — build-time injection (BEL-172)', () => {
+  const INJECT = require('../build/backend-inject.js');
+
+  test('源码里没有真 JWT / 真后端主机', () => {
+    ok(!/eyJ[A-Za-z0-9_-]{10,}\.eyJ/.test(CFG_SRC), 'backend.config.js 又出现了 JWT 字面量');
+    // Comments may *name* the gate (e.g. "must not be *.supabase.co"); only code lines
+    // are the contract. A comment cannot route traffic.
+    const code = CFG_SRC.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    for (const host of ['supabase.co', 'api.belliedmonkey.com', 'tencentscf.com']) {
+      ok(!code.includes(host), `backend.config.js 又写死了 ${host}`);
+    }
+  });
+
+  test('占位符是惰性的：*.invalid + 非 JWT', () => {
+    eq(new URL(CFG.url).hostname, 'backend.invalid');
+    eq(new URL(CFG.china.url).hostname, 'cn.backend.invalid');
+    ok(!/^eyJ/.test(CFG.anonKey), 'anonKey 占位符不该长得像真 key');
+    ok(!/^eyJ/.test(CFG.china.anonKey));
+    eq(new URL(CFG.grant.china.relayUrl).hostname, 'relay.invalid');
+  });
+
+  test('apply() 注入后占位符消失', () => {
+    const values = {
+      url: 'https://real.example', anonKey: 'sb_publishable_real',
+      chinaUrl: 'https://cn.real.example', chinaAnonKey: 'sb_publishable_cn',
+      chinaRelay: 'https://relay.real.example',
+    };
+    const out = INJECT.apply(CFG_SRC, values);
+    for (const v of Object.values(values)) ok(out.includes(v), `注入结果缺 ${v}`);
+    for (const s of Object.values(INJECT.SENTINEL)) ok(!out.includes(s), `占位符 ${s} 还在`);
+  });
+
+  test('service_role / 非 https / 同后端 一律拒绝注入', () => {
+    const service = 'x.' + Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url') + '.y';
+    const throws = (fn, why) => { let hit = false; try { fn(); } catch (_) { hit = true; } ok(hit, why); };
+    throws(() => INJECT.resolve('/tmp/no-such-root', { MT_BACKEND_ANON_KEY: service }), 'service_role 被注入了客户端包');
+    throws(() => INJECT.resolve('/tmp/no-such-root', { MT_BACKEND_URL: 'http://plain.example' }), 'http 后端被接受');
+    throws(() => INJECT.resolve('/tmp/no-such-root', {
+      MT_BACKEND_URL: 'https://same.example', MT_CHINA_BACKEND_URL: 'https://same.example',
+    }), '两个 flavor 共用同一后端');
+  });
+
+  test('build.js 在 copy 之后、china override 之前注入', () => {
+    const BUILD = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8')
+      .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    const copy = BUILD.indexOf('copyDir(SRC, DIST)');
+    const inject = BUILD.indexOf('backendInject.applyToDir(DIST');
+    const china = BUILD.indexOf('applyChinaLocales(DIST)');
+    ok(copy >= 0 && inject > copy, 'applyToDir 没有排在 copyDir 之后');
+    ok(china < 0 || inject < china, 'applyToDir 必须排在 china override 之前');
+  });
+});
+
+function telemetryFrom(src) {
+  const line = src.split('\n').find((l) => l.startsWith('window.MT_TELEMETRY = '));
+  if (!line) return null;
+  return JSON.parse(line.slice('window.MT_TELEMETRY = '.length).replace(/;$/, ''));
+}
+describe('telemetry — 中国版打境内 ingest，白名单与国际版同一份', () => {
+  const gen = path.join(ROOT, 'dist-china', 'content', 'providers.gen.js');
+  test('build.js 不再把中国版遥测焊成 null', () => {
+    const build = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8')
+      .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    ok(!/const telemetry = flavor === 'china' \? null/.test(build), '中国版遥测仍是 null 三元');
+    ok(/chinaBackend\(\)\.url/.test(build) && /\/functions\/v1\/bt-ingest/.test(build),
+      '中国版 URL 不是由境内后端拼出来的');
+  });
+  test('dist-china 的 MT_TELEMETRY.url 主机是 china 后端，路径含 bt-ingest', () => {
+    if (!fs.existsSync(gen)) { ok(true, '（未构建 china flavor，跳过）'); return; }
+    const src = fs.readFileSync(gen, 'utf8');
+    ok(!/window\.MT_TELEMETRY = null;/.test(src), 'china 产物里 MT_TELEMETRY 仍是 null');
+    const tel = telemetryFrom(src);
+    ok(tel && tel.url, 'china 产物解析不出 MT_TELEMETRY');
+    const u = new URL(tel.url);
+    // Compare against the *dist* china config (it may carry injected values), falling back
+    // to the source placeholder when dist-china has not been built.
+    const cnCfg = path.join(ROOT, 'dist-china', 'learn', 'backend.config.js');
+    let cnUrl = CFG.china.url;
+    if (fs.existsSync(cnCfg)) {
+      const m = /^  url: '([^']*)',/m.exec(fs.readFileSync(cnCfg, 'utf8'));
+      if (m) cnUrl = m[1];
+    }
+    const want = new URL(cnUrl);
+    eq(u.protocol, 'https:');
+    eq(u.hostname, want.hostname);
+    ok(/\/functions\/v1\/bt-ingest$/.test(u.pathname), u.pathname);
+    ok(!/supabase\.co/i.test(tel.url), 'china ingest 指到了 supabase.co');
+    const cfg = require(path.join(ROOT, 'build/telemetry.config.js'));
+    eq(JSON.stringify(Object.keys(tel.spec.events)), JSON.stringify(Object.keys(cfg.EVENTS)));
+    eq(JSON.stringify(tel.spec.common.flavor), JSON.stringify(cfg.COMMON.flavor));
+  });
+  test('global 产物里有端点与白名单', () => {
+    const g = path.join(ROOT, 'dist', 'content', 'providers.gen.js');
+    if (!fs.existsSync(g)) { ok(true, '（未构建，跳过）'); return; }
+    const src = fs.readFileSync(g, 'utf8');
+    ok(/functions\/v1\/bt-ingest/.test(src) && /"events":\{/.test(src), 'global 产物缺遥测端点或白名单');
+  });
+});

@@ -1,0 +1,122 @@
+name: Bug report
+description: Something is broken on a specific page or platform
+title: "[bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        中文提交完全没问题，不用翻译成英文。
+
+        **Never paste an API key.** Keys live only in your browser's extension
+        storage and we never need to see one to reproduce a bug.
+
+  - type: input
+    id: url
+    attributes:
+      label: Page URL
+      description: The exact page where it happens. This is the single most useful field — without it a bug usually cannot be reproduced.
+      placeholder: https://example.com/some/article
+    validations:
+      required: true
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Platform / browser
+      description: Behaviour differs per surface far more than you would expect, so this decides where we look.
+      options:
+        - iPhone — Safari
+        - iPad — Safari
+        - Mac — Safari
+        - Chrome / Edge (desktop)
+        - Firefox (desktop)
+        - Firefox (Android)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install_source
+    attributes:
+      label: How did you install it?
+      options:
+        - App Store
+        - Chrome Web Store
+        - Firefox Add-ons (AMO)
+        - Built from source myself
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Settings page → bottom. If you are not sure, say so.
+      placeholder: "1.2.0"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: form
+    attributes:
+      label: Which part is broken?
+      description: Page text, video subtitles and audio subtitles are three different code paths.
+      options:
+        - label: Page text translation
+        - label: Video subtitles
+        - label: Audio / podcast subtitles
+        - label: The floating button or the 译 menu
+        - label: Settings / options page
+
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Translation engine
+      description: >
+        If you are on the free Google engine, please try again with an LLM engine before
+        filing. That endpoint is known to be unstable — it can return your original text
+        unchanged for the same input it translated a minute earlier, which looks exactly
+        like a bug in the extension.
+      options:
+        - Google (free, no key)
+        - An LLM engine with my own key
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: What did you expect, and what happened instead?
+      placeholder: |
+        Expected: each paragraph gets a translation line below it.
+        Actual: the article translates but one specific paragraph is skipped with no error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Does it happen every time, or only sometimes? "Only after the page sits for a while" or "only after locking the phone" are extremely useful clues.
+      placeholder: |
+        1. Open the URL above
+        2. Tap the green button
+        3. Scroll to the third paragraph
+        4. It stays untranslated
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshot or screen recording
+      description: >
+        For anything that involves playback or timing, a short recording is worth far more
+        than a screenshot — a subtitle that appears and then gets stuck is invisible in a
+        still frame.
+      placeholder: Drag files in here.
+    validations:
+      required: false

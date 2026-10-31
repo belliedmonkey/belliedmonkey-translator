@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>centered item in column flex</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .card { display: flex; flex-direction: column; align-items: center; padding: 24px; background: #f0efe9; }
+  .q { width: 60%; line-height: 1.5; margin-bottom: 12px; }
+</style>
+<body>
+<div class="card">
+  <div class="q">A centered narrow quote inside a column flex card should keep its translation aligned.</div>
+  <div class="q">Cross axis alignment must survive the sibling injection without shrink wrapping.</div>
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "flex-column-centered-item",
+  "unitCount": 2,
+  "targets": [
+    {
+      "sel": ".q",
+      "assert": [
+        "sameLeft:3",
+        "sameWidth:3",
+        "centeredInParent:4",
+        "parentNotMutated"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

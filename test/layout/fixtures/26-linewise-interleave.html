@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>line-structured block interleaves per line</title>
+<style>
+  /* A LINE-STRUCTURED block: one logical entry per line, separated by a SINGLE \n —
+     a chapter list, lyrics, a poem, a plain-text bullet list. x.com tweet bodies are
+     the motivating case, but nothing here is site knowledge.
+
+     Before the fix the splitter only recognised BLANK-LINE paragraphs
+     (content-webpage.js `split(/\n{2,}/)`), so the whole block counted as ONE
+     paragraph and rendered as N original lines followed by N translation lines —
+     exactly what interaction-spec forbids: "never a whole block of originals followed
+     by a whole block of translations".
+
+     RED before the fix: `interleaveAlternates` sees OOOO…TTTT… instead of OTOTOT…
+     (and with no blank line at all, the holder never even forms — the unit falls to
+     the plain-sibling path, so the count never settles). */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 100%; padding: 24px 0; }
+  #chapters { max-width: 640px; margin: 16px auto; white-space: pre-line; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <!-- The real x.com shape: an intro paragraph, a BLANK line, then a line-structured
+       block. Pairing only at paragraph level yields 2 slices and renders the whole
+       list as one original row above one translation row — which is what the first
+       attempt at this fix did, because it returned on the first strategy that
+       matched. The blank-line paragraphs must be expanded line-wise too. -->
+  <div id="chapters">My first interview with the co-founder of a research lab
+
+Reading foreign articles every morning is a simple habit
+The trick is seeing the same words appear in living sentences
+Most people underestimate how much vocabulary they absorb
+Learning a language beats memorizing long word lists</div>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "linewise-interleave",
+  "unitCount": 1,
+  "skipUniversal": {
+    "belowOriginal": [
+      "#chapters"
+    ],
+    "originalGeometryStable": [
+      "#chapters"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#chapters",
+      "assert": [
+        "holderReplacesOriginal",
+        "interleaveAlternates:10",
+        "interleaveRowColors"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

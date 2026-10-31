@@ -1,0 +1,549 @@
+// test/learn-auth.test.js — §8.4.1 password grant (2026-08-17).
+//
+// The load-bearing properties: signInPassword speaks the provider's password
+// grant and nothing else new (same sessionFrom shape, same storage path as
+// verify), a definitive rejection carries the provider's named code so the UI
+// can say 「邮箱或密码不对」 instead of a stack trace, and offline never reads
+// as an auth failure.
+
+const { loadModule, describe, test, ok, eq } = require('./harness');
+
+function load(fetchImpl) {
+  const stored = {};
+  const PageSettings = {
+    read: async (keys) => ({ ok: true, data: {} }),
+    write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+    removeKeys: async () => ({ ok: true }),
+  };
+  const LearnStore = { getMeta: async () => null, setMeta: async () => {} };
+  const calls = [];
+  const ctx = loadModule('learn/auth.js', {
+    window: {},
+    MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+    PageSettings, LearnStore,
+    fetch: async (url, init) => { calls.push({ url, init }); return fetchImpl(url, init); },
+  });
+  return { A: ctx.LearnAuth, calls, stored };
+}
+
+const okResponse = (body) => ({
+  ok: true, status: 200,
+  text: async () => JSON.stringify(body),
+});
+const errResponse = (status, body) => ({
+  ok: false, status,
+  text: async () => JSON.stringify(body),
+});
+
+describe('LearnAuth.signInPassword (§8.4.1 second grant)', () => {
+  test('posts the password grant and stores the same session shape as verify', async () => {
+    const { A, calls, stored } = load(async () => okResponse({
+      access_token: 'at', refresh_token: 'rt', expires_in: 3600,
+      user: { email: 'demo@example.com', id: 'u1' },
+    }));
+    const s = await A.signInPassword(' demo@example.com ', 'pw123');
+    eq(calls.length, 1);
+    ok(calls[0].url.endsWith('/auth/v1/token?grant_type=password'), calls[0].url);
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.email, 'demo@example.com', '邮箱应裁剪空白');
+    eq(body.password, 'pw123');
+    eq(s.accessToken, 'at');
+    eq(s.email, 'demo@example.com');
+    ok(stored.learnAuth && stored.learnAuth.accessToken === 'at', '会话应落 chrome.storage');
+  });
+
+  test('a definitive rejection carries the provider code — the UI names the fix', async () => {
+    const { A } = load(async () => errResponse(400, {
+      code: 400, error_code: 'invalid_credentials', msg: 'Invalid login credentials',
+    }));
+    let got = null;
+    try { await A.signInPassword('a@b.c', 'wrong'); } catch (e) { got = e; }
+    ok(got, '应抛错');
+    eq(got.code, 'invalid_credentials');
+    ok(got.hasBody, '带 GoTrue 错误体 = 权威回答');
+  });
+
+  test('offline is not an auth failure and must not read like one', async () => {
+    const { A } = load(async () => { throw new Error('Load failed'); });
+    let got = null;
+    try { await A.signInPassword('a@b.c', 'pw'); } catch (e) { got = e; }
+    eq(got.code, 'offline');
+  });
+});
+
+// ─── §8.4.1.2 手机号 + 第三方登录（2026-09-03）──────────────────────────────
+//
+// 这一组守的是「三条路收敛到同一个 sessionFrom」。收敛不成立的话，learnUserId /
+// bindCorpus / ownerGate 就会因为「用户是怎么进来的」而表现不同 —— 而那三样恰恰
+// 是最不该知道这件事的（§8.4.1 可替换性契约）。
+
+function loadWith(fetchImpl, seed) {
+  const stored = Object.assign({}, seed || {});
+  const removed = [];
+  const PageSettings = {
+    read: async (keys) => ({ ok: true,
+      data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+    write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+    removeKeys: async (keys) => { removed.push(...keys); for (const k of keys) delete stored[k]; return { ok: true }; },
+  };
+  const LearnStore = { getMeta: async () => null, setMeta: async () => {} };
+  const calls = [];
+  const ctx = loadModule('learn/auth.js', {
+    window: {},
+    MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+    PageSettings, LearnStore,
+    crypto: require('crypto').webcrypto,
+    TextEncoder,
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+    fetch: async (url, init) => { calls.push({ url, init }); return fetchImpl(url, init); },
+  });
+  return { A: ctx.LearnAuth, calls, stored, removed };
+}
+
+const SESSION = {
+  access_token: 'a', refresh_token: 'r', expires_in: 3600,
+  user: { id: 'u-1', email: 'x@y.com' },
+};
+
+describe('手机号走同一条路（§8.4.1.2）', () => {
+  test('signIn 认得手机号，打的是 {phone} 而不是 {email}', async () => {
+    const { A, calls } = loadWith(async () => okResponse({}));
+    const r = await A.signIn('13800138000');
+    eq(r.via, 'phone');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.phone, '+8613800138000', '11 位国内号要补成 E.164 —— Supabase 只认这个形状');
+    eq(body.email, undefined, '手机号那条路不许再带 email 字段');
+  });
+
+  test('verify 用 type:sms', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION));
+    await A.verify('+8613800138000', '123456');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.type, 'sms');
+    eq(body.phone, '+8613800138000');
+  });
+
+  test('邮箱那条路一个字都没变', async () => {
+    const { A, calls } = loadWith(async () => okResponse({}));
+    const r = await A.signIn('  x@y.com ');
+    eq(r.via, 'email');
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.email, 'x@y.com');
+    eq(body.phone, undefined);
+  });
+
+  test('session 带 phone，且 displayName 是唯一口径', async () => {
+    const { A } = loadWith(async () => okResponse({
+      access_token: 'a', refresh_token: 'r', expires_in: 3600,
+      user: { id: 'u-2', email: null, phone: '+8613800138000' },
+    }));
+    const s = await A.verify('13800138000', '123456');
+    eq(s.phone, '+8613800138000');
+    eq(A.displayName(s), '+8613800138000',
+      '手机号用户没有 email —— 界面读 email 会显示空白');
+    eq(A.displayName({ email: 'x@y.com', phone: null }), 'x@y.com');
+  });
+});
+
+describe('第三方登录：PKCE（§8.4.1.1 第二条跨界裁定）', () => {
+  test('★ 回跳地址不许带查询串 —— 白名单是精确匹配', async () => {
+    const { A } = loadWith(async () => okResponse({}));
+    await A.prepareProviderSignIn();
+    const url = A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
+    const rt = decodeURIComponent((/redirect_to=([^&]+)/.exec(url) || [])[1] || '');
+    eq(rt, 'https://belliedmonkey.cc/auth/done.html',
+      '回跳地址被加了东西。Supabase 的白名单是**精确匹配**，不匹配就回退到 Site URL '
+      + '（默认 localhost:3000）—— 用户看到的是「无法连接服务器」，看不出真因。'
+      + ' 2026-09-03 实测过一次。实际: ' + rt);
+  });
+
+  test('★ 备好之前 providerSignInUrl 返回 null —— 而不是一个开不出来的窗', () => {
+    const { A } = loadWith(async () => okResponse({}));
+    eq(A.providerSignInUrl('google', 'https://x/y'), null);
+  });
+
+  test('prepare 存 verifier；URL 由**同步**函数给出（手势不能等 await）', async () => {
+    const { A, stored } = loadWith(async () => okResponse({}));
+    await A.prepareProviderSignIn();
+    const url = A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
+    ok(url.startsWith('https://x.example/auth/v1/authorize?'), 'URL 形状不对: ' + url);
+    ok(url.includes('code_challenge_method=s256'), '没带 PKCE method');
+    const p = stored.learnAuthPkce;
+    ok(p && p.verifier && p.state, 'verifier/state 没落盘');
+    // challenge 必须是 verifier 的 s256 —— 不然服务端换不出来，而那要到用户走完
+    // 一整圈才会发现。
+    const h = require('crypto').createHash('sha256').update(p.verifier).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    ok(url.includes('code_challenge=' + encodeURIComponent(h).replace(/%2D/g, '-'),
+    ) || url.includes('code_challenge=' + h), 'challenge 不是 verifier 的 s256');
+  });
+
+  test('completeProviderSignIn 换到 session，并把 verifier 与票都清掉', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 's' },
+    });
+    const s = await A.completeProviderSignIn();
+    eq(s.userId, 'u-1');
+    ok(calls[0].url.includes('grant_type=pkce'), '打错端点: ' + calls[0].url);
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.auth_code, 'c');
+    eq(body.code_verifier, 'v');
+    ok(stored.learnAuthPkce && stored.learnAuthPkce.verifier !== 'v', 'verifier 必须一次性');
+    eq(stored.learnAuthCode, undefined, '票必须一次性 —— 留着会在下次开页时重放');
+  });
+
+  // 2026-09-07 TestFlight 87：Google 登录成功 → 删除账号 → 再点 Google → pkce_missing。
+  // 成功那次把 storage 里的 verifier 清了，内存里的 prepared 却还在，于是第二次
+  // 用旧 challenge 开了会话，回来兑换时 storage 里没有 verifier。
+  test('★ 兑换成功后：内存与 storage 里的 verifier 一起换成新的一份，下一次登录还能开', async () => {
+    const { A, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 's' },
+    });
+    await A.completeProviderSignIn();
+    const next = stored.learnAuthPkce;
+    ok(next && next.verifier && next.verifier !== 'v', '兑换后没有备下一份 verifier');
+    const url = A.providerSignInUrl('google', 'belliedmonkey://auth');
+    ok(url, '兑换后按钮变死（providerSignInUrl 返回 null）');
+    const h = require('crypto').createHash('sha256').update(next.verifier).digest('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    ok(url.includes('code_challenge=' + encodeURIComponent(h)) || url.includes('code_challenge=' + h),
+      '按钮用的 challenge 不是 storage 里那份新 verifier 的 —— 回来必然 pkce_missing');
+  });
+
+  test('★ state 不符：停住，且一个请求都不发', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', provider: 'google', at: Date.now() },
+      learnAuthCode: { code: 'c', state: 'NOT-s' },
+    });
+    let code = '';
+    try { await A.completeProviderSignIn(); } catch (e) { code = e.code; }
+    eq(code, 'pkce_state');
+    eq(calls.length, 0, 'state 不符还去换 —— 那等于把别人塞的票当成自己的');
+    eq(stored.learnAuthPkce, undefined);
+  });
+
+  test('没有票时返回 null，不报错 —— 每次开设置页都会调它一次', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION));
+    eq(await A.completeProviderSignIn(), null);
+    eq(calls.length, 0);
+  });
+
+  test('有票但没有 verifier → pkce_missing（换过浏览器/清过数据）', async () => {
+    const { A } = loadWith(async () => okResponse(SESSION), { learnAuthCode: { code: 'c', state: 's' } });
+    let code = '';
+    try { await A.completeProviderSignIn(); } catch (e) { code = e.code; }
+    eq(code, 'pkce_missing');
+  });
+});
+
+describe('原生登录：id_token grant（App 侧）', () => {
+  test('signInWithIdToken 打对端点，落成同一个 session 形状', async () => {
+    const { A, calls, stored } = loadWith(async () => okResponse(SESSION));
+    const s = await A.signInWithIdToken('apple', 'ID-TOKEN', 'NONCE');
+    ok(calls[0].url.includes('grant_type=id_token'), '打错端点: ' + calls[0].url);
+    const body = JSON.parse(calls[0].init.body);
+    eq(body.provider, 'apple');
+    eq(body.id_token, 'ID-TOKEN');
+    eq(body.nonce, 'NONCE');
+    eq(s.userId, 'u-1');
+    // 三条路收敛的实证：落盘的键与邮箱那条路逐字相同。
+    ok(stored.learnAuth && stored.learnAuth.accessToken === 'a', 'learnAuth 没落盘');
+    eq(stored.learnUserId, 'u-1', 'learnUserId 必须照旧写 —— 跨面交接靠它');
+  });
+});
+
+describe('这台设备上是不是还有别人的库（§8.4.1.2 身份合并）', () => {
+  // 换一个身份登录时，bindCorpus 给新账号一个独立的空库，ownerGate 读的是库内部的
+  // 戳（新库是空的 → 直接认领）—— 整条路**一个错都不报**。用户看到的是一个空的
+  // 复习页，而他的卡还在这台设备上挂在另一个身份下。这个判据是那一支文案的开关。
+  test('主库属于别人 → true', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnDbOwner: 'u-first',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-second' },
+    });
+    eq(await A.otherAccountOnDevice(), true);
+  });
+
+  test('主库就是我 → false', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnDbOwner: 'u-me',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-me' },
+    });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('主库没主人（升级上来的设备）→ false，不许吓人', async () => {
+    const { A } = loadWith(async () => okResponse({}), {
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-me' },
+    });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('没登录 → false（那是「未登录」，不是「另一个账号」）', async () => {
+    const { A } = loadWith(async () => okResponse({}), { learnDbOwner: 'u-first' });
+    eq(await A.otherAccountOnDevice(), false);
+  });
+
+  test('★ 不开数据库 —— §8.4.3 为死锁付过代价', async () => {
+    let opened = 0;
+    const stored = { learnDbOwner: 'u-first',
+      learnAuth: { accessToken: 'a', refreshToken: 'r', expiresAt: Date.now() + 3e6, userId: 'u-2' } };
+    const ctx = loadModule('learn/auth.js', {
+      window: {},
+      MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+      PageSettings: {
+        read: async (keys) => ({ ok: true,
+          data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+        write: async () => ({ ok: true }), removeKeys: async () => ({ ok: true }),
+      },
+      LearnStore: {
+        getMeta: async () => { opened += 1; return null; },
+        setMeta: async () => { opened += 1; },
+        useDb: async () => { opened += 1; },
+      },
+      fetch: async () => okResponse({}),
+    });
+    await ctx.LearnAuth.otherAccountOnDevice();
+    eq(opened, 0, '它开了数据库 —— 这个判据只该读两个 storage 键');
+  });
+});
+
+describe('只提供后端真的开着的登录方式（§8.4.1.2）', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const ROOT = path.join(__dirname, '..');
+  const cfg = require(path.join(ROOT, 'extension/learn/backend.config.js'));
+
+  test('backend.config 里有 providers 这张表', () => {
+    ok(Array.isArray(cfg.providers), 'providers 不是数组 —— 界面就没有依据可依');
+  });
+
+  test('两个界面都按这张表出按钮，而不是写死', () => {
+    // PR5 迁移：设置页经 src/lib/registry.js 的 Registry.backend() 读表，
+    // 不直接摸 window.MT_BACKEND —— 判据跟着换锚点。
+    const opt = fs.readFileSync(path.join(ROOT, 'src/pages/options.jsx'), 'utf8');
+    // PR6a 迁移：App 壳的逐字原文在 src/app/shell-model.js，同样经 Registry 读表。
+    const app = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
+    ok(/Registry\.backend\(\)/.test(opt) && /BE\.providers/.test(opt),
+      '设置页没读 providers —— 会发一个必然失败的按钮');
+    ok(/Registry\.backend\(\)\.providers/.test(app), 'App 没读 providers');
+  });
+
+  test('表里的每一个都是 auth.js 支持的 provider', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'extension/learn/auth.js'), 'utf8');
+    for (const p of cfg.providers) {
+      // 支持的证据：providerSignInUrl 以 provider 为参数，所以只要它不是被写死的
+      // 某一个即可；这里守的是「表里别出现一个显然不存在的名字」。
+      ok(/[a-z]/.test(p) && p.length < 20, `providers 里有个可疑的值：${JSON.stringify(p)}`);
+    }
+    ok(src.includes('providerSignInUrl'), 'auth.js 没有 provider 入口，这张表就没意义');
+  });
+});
+
+describe('App 那条路：票直接传进来（不经内容脚本）', () => {
+  test('direct 票也走同一套 state 校验与兑换', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', at: Date.now() },
+    });
+    const sess = await A.completeProviderSignIn({ code: 'c-native', state: 's' });
+    eq(sess.userId, 'u-1');
+    eq(JSON.parse(calls[0].init.body).auth_code, 'c-native');
+  });
+
+  test('★ direct 票的 state 不符，同样停住且不发请求', async () => {
+    const { A, calls } = loadWith(async () => okResponse(SESSION), {
+      learnAuthPkce: { verifier: 'v', state: 's', at: Date.now() },
+    });
+    let code = '';
+    try { await A.completeProviderSignIn({ code: 'c', state: 'WRONG' }); } catch (e) { code = e.code; }
+    eq(code, 'pkce_state');
+    eq(calls.length, 0);
+  });
+});
+
+// ─── learning-design §8.4.3「后端换了：主库跟着第一个登录的人走」（2026-09-22）──────────────
+describe('后端换了 ⇒ 主库由这次登录的人接管（中国版切境内）', () => {
+  function loadRehome(seed, backend) {
+    const stored = Object.assign({}, seed || {});
+    const PageSettings = {
+      read: async (keys) => ({ ok: true, data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+      write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+      removeKeys: async (keys) => { for (const k of keys) delete stored[k]; return { ok: true }; },
+    };
+    let used = null;
+    const LearnStore = { DB_NAME: 'mt-learn', dbNameFor: (u) => 'mt-learn-' + u, useDb: async (n) => { used = n; return n; },
+      getMeta: async () => null, setMeta: async () => {} };
+    const ctx = loadModule('learn/auth.js', { window: {}, MT_BACKEND: Object.assign({ anonKey: 'anon', table: 'bt_chunks' }, backend),
+      PageSettings, LearnStore, fetch: async () => { throw new Error('no network in this test'); } });
+    return { A: ctx.LearnAuth, stored, usedDb: () => used };
+  }
+  const TOKYO = 'https://tokyo.supabase.co'; const CN = 'https://api.example.cn';
+
+  test('老设备（主库无后端记录）+ 产物带 previousUrl ⇒ 新后端的账号接管主库，留待办', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo' }, { url: CN, previousUrl: TOKYO });
+    const want = await A.bindCorpus({ userId: 'u-cn', backend: CN });
+    eq(want, 'mt-learn', '应当选中主库，而不是给一个空库');
+    eq(stored.learnDbOwner, 'u-cn'); eq(stored.learnDbOwnerBackend, CN); eq(stored.learnRehome, 'u-cn');
+    eq(await A.takeRehome('u-other'), false, '待办只对接管者生效');
+    eq(await A.takeRehome('u-cn'), true); eq(await A.takeRehome('u-cn'), false, '取走即清');
+  });
+
+  test('国际版（没有 previousUrl）⇒ 行为逐字不变：另一个账号仍拿独立库、不留待办', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-a' }, { url: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-b' }), 'mt-learn-u-b');
+    eq(stored.learnDbOwner, 'u-a'); ok(!('learnRehome' in stored));
+  });
+
+  test('已在新后端认领过 ⇒ 同后端的另一个账号照旧拿独立库（保护不打折）', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-cn', learnDbOwnerBackend: CN }, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-cn2', backend: CN }), 'mt-learn-u-cn2');
+    eq(stored.learnDbOwner, 'u-cn'); ok(!('learnRehome' in stored));
+  });
+
+  test('★ 升级那一刻本机还存着旧后端的会话 ⇒ 它不许动归属（否则真正的新账号登录时主库已「属于别人」）', async () => {
+    const { A, stored } = loadRehome({ learnDbOwner: 'u-tokyo', learnActiveDb: 'mt-learn' }, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-tokyo' }), 'mt-learn', '旧会话（无 backend 字段）按未登录选库');
+    eq(stored.learnDbOwner, 'u-tokyo'); ok(!('learnDbOwnerBackend' in stored), '不许写认领后端'); ok(!('learnRehome' in stored));
+    // 随后新后端的账号登录：照常接管
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
+    eq(stored.learnDbOwner, 'u-cn'); eq(stored.learnRehome, 'u-cn');
+  });
+
+  test('首次认领顺手记下后端', async () => {
+    const { A, stored } = loadRehome({}, { url: CN, previousUrl: TOKYO });
+    eq(await A.bindCorpus({ userId: 'u-cn', backend: CN }), 'mt-learn');
+    eq(stored.learnDbOwnerBackend, CN); ok(!('learnRehome' in stored), '首次认领不是改户');
+  });
+});
+
+// ─── 登录失败埋点（telemetry-design §3.14，2026-10-02）──────────────────────────
+//
+// 用户报「新账号第三方登录第一次失败、第二次成功」，扩展与 App 都有。这一组守的是
+// 「失败真的会被记下来，而且记的是形状而不是内容」：六个断点里最常见的三条（兑换 /
+// id_token / 原生）各发一条，属性是枚举 / id / int，归一化不合法就落 'unknown'，
+// 且**没有遥测端点时也绝不抛**（埋点不能挡住登录）。
+describe('登录失败埋点 auth_fail（§3.14）', () => {
+  function loadT(fetchImpl, seed) {
+    const stored = Object.assign({}, seed || {});
+    const PageSettings = {
+      read: async (keys) => ({ ok: true,
+        data: Object.fromEntries((keys || []).filter((k) => k in stored).map((k) => [k, stored[k]])) }),
+      write: async (items) => { Object.assign(stored, items); return { ok: true }; },
+      removeKeys: async (keys) => { for (const k of keys) delete stored[k]; return { ok: true }; },
+    };
+    const LearnStore = { getMeta: async () => null, setMeta: async () => {} };
+    const sent = [];
+    const ctx = loadModule('learn/auth.js', {
+      window: {},
+      MT_BACKEND: { url: 'https://x.example', anonKey: 'anon', table: 'bt_chunks' },
+      PageSettings, LearnStore,
+      crypto: require('crypto').webcrypto,
+      TextEncoder,
+      btoa: (s) => Buffer.from(s, 'binary').toString('base64'),
+      MTTelemetry: { track: (name, props) => sent.push({ name, props }) },
+      fetch: async (url, init) => fetchImpl(url, init),
+    });
+    return { A: ctx.LearnAuth, sent, stored };
+  }
+
+  test('第三方兑换失败：provider / stage=exchange / code / http 全部落到位', async () => {
+    const { A, sent } = loadT(async () => errResponse(500, { error_code: 'unexpected_failure' }), {
+      learnAuthCode: { code: 'c' },
+    });
+    // provider 只在内存里（点击时记下）—— 先走一遍真实的点击形状，再兑换。
+    await A.prepareProviderSignIn();
+    A.providerSignInUrl('google', 'https://belliedmonkey.cc/auth/done.html');
+    let e = null;
+    try { await A.completeProviderSignIn(); } catch (x) { e = x; }
+    ok(e, '应抛错');
+    eq(sent.length, 1);
+    eq(sent[0].name, 'auth_fail');
+    eq(sent[0].props.provider, 'google');
+    eq(sent[0].props.stage, 'exchange');
+    eq(sent[0].props.code, 'unexpected_failure');
+    eq(sent[0].props.http, 500);
+    eq(sent[0].props.attempt, '1');
+  });
+
+  test('App 原生 id_token 失败：stage=id_token，provider 是 apple', async () => {
+    const { A, sent } = loadT(async () => errResponse(400, { error_code: 'validation_failed' }));
+    try { await A.signInWithIdToken('apple', 'tok', 'nonce'); } catch (_) {}
+    eq(sent.length, 1);
+    eq(sent[0].props.provider, 'apple');
+    eq(sent[0].props.stage, 'id_token');
+    eq(sent[0].props.code, 'validation_failed');
+    eq(sent[0].props.http, 400);
+  });
+
+  test('原生那一步失败（apple-result 带 error）经 noteAuthFail 回同一个出口', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('apple', 'native', 'native_error');
+    eq(sent.length, 1);
+    eq(sent[0].props.stage, 'native');
+    eq(sent[0].props.code, 'native_error');
+    eq(sent[0].props.http, 0, '没有 HTTP 响应时应是 0，不是 undefined');
+  });
+
+  test('authorize 断点：没备好就点，记 pkce_missing', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    eq(A.providerSignInUrl('google', 'https://x'), null);
+    eq(sent[0].props.stage, 'authorize');
+    eq(sent[0].props.code, 'pkce_missing');
+  });
+
+  test('归一化：枚举外的 provider / stage 落 unknown，非法字符落下划线', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('Dropbox', 'weird', 'Weird Code!');
+    eq(sent[0].props.provider, 'unknown');
+    eq(sent[0].props.stage, 'unknown');
+    eq(sent[0].props.code, 'weird_code_');
+  });
+
+  test('attempt 是本页面第几次失败：1 → 2+（「第一次失败」的直接读数）', async () => {
+    const { A, sent } = loadT(async () => okResponse({}));
+    A.noteAuthFail('apple', 'native', 'e1');
+    A.noteAuthFail('apple', 'native', 'e2');
+    eq(sent[0].props.attempt, '1');
+    eq(sent[1].props.attempt, '2+');
+  });
+
+  test('★ 没有遥测端点时也不抛 —— 埋点不能挡住登录', async () => {
+    // loadWith（本文件上方那个）**不带** MTTelemetry，走的是同一段 authFail。
+    const { A } = loadWith(async () => errResponse(400, { error_code: 'invalid_credentials' }));
+    let e = null;
+    try { await A.signInPassword('a@b.c', 'wrong'); } catch (x) { e = x; }
+    eq(e && e.code, 'invalid_credentials', 'authFail 把错误吃掉了');
+  });
+
+  test('App 原生那一步确实接了线（静态）', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'src/app/shell-model.js'), 'utf8');
+    ok(/noteAuthFail\('apple',\s*'native'/.test(app),
+      'shell-model.js 没接 noteAuthFail —— 原生失败仍是黑的');
+  });
+
+  test('密码 grant 失败：stage=password（此前完全没有记录）', async () => {
+    const { A, sent } = loadT(async () => errResponse(400, { error_code: 'invalid_credentials' }));
+    let e = null;
+    try { await A.signInPassword('a@b.c', 'pw'); } catch (x) { e = x; }
+    ok(e, '应抛错');
+    eq(sent.length, 1);
+    eq(sent[0].props.provider, 'email');
+    eq(sent[0].props.stage, 'password');
+    eq(sent[0].props.http, 400);
+  });
+
+  test('★「登录之后」那一步也接了线（静态）：四条登录路都要分得出 post_login', () => {
+    // 真机「登录已完成却报连不上服务器」最可能落在这里 —— 而它此前一条记录都没有。
+    const fs = require('fs');
+    const path = require('path');
+    const app = fs.readFileSync(path.join(__dirname, '..', 'src/app/shell-model.js'), 'utf8');
+    const n = (app.match(/noteAuthFail\([^,]+,\s*'post_login'/g) || []).length;
+    ok(n >= 4, `只有 ${n} 处 post_login —— apple / google / 验证码 / 密码 四条路都要分出来`);
+    ok(/noteAuthFail\('google',\s*'native'/.test(app), 'Google 原生失败没接线 —— 那条路仍然全黑');
+    ok(/noteAuthFail\('apple',\s*'native'/.test(app), 'Apple 原生失败那条断了');
+  });
+});

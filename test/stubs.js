@@ -1,0 +1,147 @@
+// test/stubs.js — reusable browser-global stubs for the vm sandbox.
+
+// In-memory chrome.storage.local + chrome.i18n. `store` is the backing object so a
+// test can seed/inspect it. onChanged is a no-op recorder (translation-core adds a
+// listener at load; we don't need to fire it).
+//
+// `opts.detectLanguage` models the OPTIONAL browser language detector: omit it to
+// simulate Safari (the method simply isn't there — the shape LangDetect probes for),
+// or pass (text) => {isReliable, languages:[…]} to simulate Chrome/Firefox. Throwing
+// from it exercises the latch-off path. `opts.detectMode` picks the calling
+// convention: 'promise' (default, Chrome MV3 without a callback) or 'callback'
+// (Firefox's chrome.* namespace) — both are supported in production, so both are
+// testable here.
+function makeChrome(opts = {}) {
+  const store = opts.store || {};
+  const listeners = [];
+  const i18n = {
+    getUILanguage: () => opts.uiLanguage || 'en-US',
+    getMessage: (key) => (opts.messages && opts.messages[key]) || '',
+  };
+  if (opts.detectLanguage) {
+    i18n.detectLanguage = (text, cb) => {
+      const r = opts.detectLanguage(text);   // may throw — that is a tested path
+      if (opts.detectMode === 'callback') {
+        Promise.resolve().then(() => cb && cb(r));
+        return undefined;
+      }
+      return Promise.resolve(r);
+    };
+  }
+  // `extensionOrigin` is how the code tells which browser it is running on without
+  // sniffing a UA (domain-design §5.4 rule 3): Firefox is the only runtime whose
+  // extension URLs are `moz-extension://`. `sendMessage` records every call so a test
+  // can assert the request was proxied rather than sent directly.
+  const sent = [];
+  const runtime = {
+    _sent: sent,
+    getURL: (p) => (opts.extensionOrigin || 'chrome-extension://abcdef/') + (p || ''),
+    sendMessage: (msg) => {
+      sent.push(msg);
+      if (!opts.onMessage) return Promise.resolve(undefined);
+      return Promise.resolve(opts.onMessage(msg));
+    },
+  };
+  return {
+    _store: store,
+    _fireChange(changes) { listeners.forEach((l) => l(changes)); },
+    runtime,
+    i18n,
+    storage: {
+      local: {
+        get: (keys, cb) => {
+          // Mirror real chrome.storage.local: MISSING keys are OMITTED from the
+          // result, not included as undefined. `'k' in result` is load-bearing
+          // for auth.js's signed-out-vs-not-yet-loaded distinction.
+          let out = {};
+          if (keys == null) out = Object.assign({}, store);
+          else if (typeof keys === 'string') { if (keys in store) out[keys] = store[keys]; }
+          else if (Array.isArray(keys)) keys.forEach((k) => { if (k in store) out[k] = store[k]; });
+          else Object.keys(keys).forEach((k) => { out[k] = k in store ? store[k] : keys[k]; });
+          if (cb) cb(out);
+          return Promise.resolve(out);
+        },
+        set: (obj, cb) => { Object.assign(store, obj); if (cb) cb(); return Promise.resolve(); },
+        remove: (keys, cb) => {
+          (Array.isArray(keys) ? keys : [keys]).forEach((k) => { delete store[k]; });
+          if (cb) cb();
+          return Promise.resolve();
+        },
+      },
+      onChanged: { addListener: (fn) => listeners.push(fn) },
+    },
+  };
+}
+
+// Deterministic fake DOM good enough for TranslationCore.createPager. scrollHeight is
+// modeled from text length / width / font-size (monospace-ish), so pagination is
+// reproducible without a real layout engine. `Mg` (the one-line reference) → 1 line.
+function makeFakeDocument() {
+  const byId = {};
+  function makeEl() {
+    let _text = '';
+    const style = {};
+    const el = {
+      id: '',
+      style,
+      get textContent() { return _text; },
+      set textContent(v) { _text = v == null ? '' : String(v); },
+      get scrollHeight() {
+        const fontSize = parseFloat(style.fontSize) || 16;
+        const width = parseFloat(style.width) || 300;
+        const contentW = Math.max(1, width - 20);        // padding: 0 10px
+        const charW = fontSize * 0.55;
+        const perLine = Math.max(1, Math.floor(contentW / charW));
+        const lines = Math.max(1, Math.ceil(_text.length / perLine));
+        return Math.round(lines * fontSize * 1.3);
+      },
+      setAttribute(name, value) {
+        if (name === 'id') { el.id = String(value); byId[el.id] = el; return; } // reflect like real DOM
+        el['_attr_' + name] = String(value);
+      },
+      getAttribute(name) {
+        if (name === 'id') return el.id || null;
+        const v = el['_attr_' + name]; return v == null ? null : v;
+      },
+      remove() { if (el.id) delete byId[el.id]; },
+      appendChild(child) { if (child.id) byId[child.id] = child; return child; },
+    };
+    return el;
+  }
+  const body = makeEl();
+  return {
+    body,
+    documentElement: body,
+    getElementById: (id) => byId[id] || null,
+    createElement: () => makeEl(),
+  };
+}
+
+// A fetch stub that returns programmed responses in order (or via a handler fn) and
+// records every call. Each programmed entry: {status?, json?, headers?}.
+function makeFetch(program) {
+  const calls = [];
+  async function fetchStub(url, opts) {
+    calls.push({ url, opts });
+    const r = typeof program === 'function'
+      ? program(url, opts, calls.length - 1)
+      : program[Math.min(calls.length - 1, program.length - 1)];
+    const status = r.status || 200;
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      statusText: r.statusText || '',
+      json: async () => (typeof r.json === 'function' ? r.json() : r.json),
+      // A real Response has BOTH. apiFetch reads error bodies as text (so a gateway's
+      // HTML/plain-text rejection survives), and a fake without text() turned every
+      // HTTP-error assertion into a TypeError instead.
+      text: async () => (typeof r.text === 'string' ? r.text
+        : JSON.stringify(typeof r.json === 'function' ? r.json() : r.json)),
+      headers: { get: (h) => (r.headers && r.headers[h.toLowerCase()]) || null },
+    };
+  }
+  fetchStub.calls = calls;
+  return fetchStub;
+}
+
+module.exports = { makeChrome, makeFakeDocument, makeFetch };

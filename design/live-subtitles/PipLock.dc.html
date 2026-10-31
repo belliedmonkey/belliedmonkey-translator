@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>I7 · 锁屏（待真机验证）</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; ">
+<div style="position: absolute; inset: 0; background: linear-gradient(170deg, #2c2a28 0%, #1d1c1a 50%, #0f0e0d 100%);"></div>
+<div style="position: absolute; left: 0; right: 0; top: 96px; text-align: center; color: rgba(255,255,255,0.92);"><div style="font-size: 17px; font-weight: 600;">9月13日 星期六</div><div style="font-size: 84px; font-weight: 600; line-height: 1.05; letter-spacing: -1px;">20:40</div></div>
+<div style="position: absolute; left: 16px; right: 16px; top: 330px; display: flex; justify-content: center;"><span style="font-size: 12px; font-weight: 700; color: #f6a06b; border: 1px dashed #f6a06b; border-radius: 999px; padding: 1px 9px;">待真机验证</span></div>
+<div style="position: absolute; left: 16px; right: 16px; bottom: 30px; display: flex; flex-direction: column; gap: 8px;"><div style="background: #fff7c7; color: #3a3326; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 6px rgba(0,0,0,0.12); "><strong>锁屏上不显示字幕</strong>：系统不在锁屏上放画中画。锁屏卡先不做 —— 它和灵动岛是同一套，字同样小。要保留请在画布上说。</div><div style="background: #fff7c7; color: #3a3326; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 6px rgba(0,0,0,0.12); ">锁屏期间照常听、照常记（尖刺 S5：后台录音不停）；解锁回到 Safari 后小窗回来，漏看的句子在 App 历史里（I9）。</div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

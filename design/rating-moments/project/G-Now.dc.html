@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>现在的三处评分入口</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1320px; height:700px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">一个会打扰人、一个几乎不出现、一个没人找得到</h1></div></div>
+<table class="tbl">
+  <tr><th>入口</th><th>在哪</th><th>什么时候</th><th>点了去哪</th></tr>
+  <tr><td><b>网页译文末尾一行</b></td><td>Safari / Chrome / Firefox 扩展</td><td>第 3 个成功的网页会话起，每页都出，直到点或 ×</td><td>Safari → App Store 写评论页；Chrome → CWS；Firefox → AMO（中国版 Chrome / Firefox 不出）</td></tr>
+  <tr><td><b>App 系统评分弹窗</b></td><td>iOS / macOS App</td><td>一轮复习 ≥3 张后，90 天一次</td><td>系统原生的打星弹层（不离开 App）</td></tr>
+  <tr><td>常驻「给我们评分」</td><td>App 设置 · 扩展弹窗 · 选项页</td><td>一直在</td><td>同第一行</td></tr>
+</table>
+<p class="hint">网页那一行点下去要<b>离开 Safari、跳进 App Store、找到写评论的地方</b> —— 路径长。App 里的系统弹层只要点一颗星，但 App 里几乎没有真在用的人。两者正好错开。</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1320,"height":700}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

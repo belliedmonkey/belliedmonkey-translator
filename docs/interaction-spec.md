@@ -1,0 +1,2738 @@
+# Interaction Spec (交互效果规范)
+
+Single source of truth for all **user-facing interaction / layout constraints**.
+Anything about how translations look or behave on screen is maintained HERE — not
+scattered across code comments or AGENTS.md. When changing interaction behavior,
+update this file in the same commit.
+
+Verify every item here with a **screenshot** of the built, loaded extension — a DOM
+element existing is not proof the user sees it (see AGENTS.md).
+
+## 全局原则 (global principles)
+
+- **IO 在途，控件不可用** *(2026-08-09，用户裁定)*。任何触发 IO 的操作（网络请求、
+  合成、读写存储、播放）在请求发出到结果落定之间，**触发它的控件必须处于
+  disabled 状态**，落定（成功收尾 / 失败 / 被打断）后恢复。两个目的：防止重复触发
+  重复扣费，以及让「正在干活」有一个不会说谎的物理信号。配套要求：在途期间要有
+  可见的状态文案（如「正在加载音频…」「播放中…」「解析中…」），失败要具名（见
+  各节的失败文案规则）。**disabled 必须看得见**：每个页面的样式表都要给
+  `:disabled` 一个可辨的视觉态（灰化 + 去 hover 反色）——功能上禁了、视觉上没变，
+  等于对着用户撒谎（2026-08-09 全面查漏的直接起因）。
+  已落地的面（2026-08-09 全产品查漏后）：语音 ▶ 与设置页试听（加载 + 播放全程）、
+  解析这句、评分四键、来源治理全部按钮与语言 chips（改为真 `<button>`）、练习开始、
+  存储压力清理、导入/导出、清空学习库、验证码/登录/退出/立即同步/删除账号、
+  弹窗翻译按钮与本站开关、App 端全部对应面。
+  **豁免（本条注明的不适用）**：settings 类控件的**即时本地保存**（select/checkbox/
+  文本框 change 即存 `chrome.storage`，毫秒级、幂等、整体覆盖式写）——禁用只产生
+  闪烁，双触发无害；但一旦该 change 处理器还串联了慢 IO（拉语音列表、跑统计、
+  强制同步），豁免失效，照常禁用。
+  新增任何 IO 操作时，这条默认适用，不适用要在本文注明理由。
+
+- **React 迁移期：行为与像素双不变** *(2026-09-25，随 domain-design §10 采纳)*。
+  UI 层向 React 迁移（`docs/domain-design.md` §10）的每一个 PR，其验收基线是
+  **本规范描述的一切交互效果与现有像素一字不变**：现有端到端门零改动即绿是默认
+  要求，改了断言的 PR 必须逐条列「不变量 → 旧锚点 → 新锚点」。**任何借迁移之机的
+  行为变化必须拆出独立 PR**，照常走画布 / 本规范流程 —— 迁移 PR 里出现行为 diff
+  即拆出去。因此迁移本身不触发「改交互画布先行」，本条就是那个边界。
+
+---
+
+## YouTube bilingual subtitles
+
+### Controls & activation
+- **Default OFF on every page load.** Nothing is translated until the user turns it
+  on. No persisted auto-start — a refresh always starts off.
+- **Desktop — two independent controls.** On a **desktop (non-touch)** `youtube.com`,
+  the in-player **译 button** controls VIDEO SUBTITLES (menu: 开启/关闭, plus
+  双语/仅译文/仅原文, .srt, settings); the page **FAB** controls WEBPAGE TEXT (title /
+  description / comments). They never affect each other.
+- **Mobile — ONE button drives everything.** On **any touch device** — both
+  `m.youtube.com` *and* a phone / iPad on the desktop-layout `www.youtube.com` — there is
+  **no separate 译 button**; the page **FAB** drives BOTH the video subtitles and the page
+  text. This prevents two near-identical brand-coloured circles colliding on a small screen.
+  "Mobile" is a single shared signal, `TranslationCore.isMobileLayout()`
+  (`navigator.maxTouchPoints > 0` or a mobile UA), used by both the router
+  (`content-main`) and the button gate (`content-youtube`) so they can never disagree.
+- **The 译 button widget (desktop + embed only).** Where it IS shown it is an
+  **always-visible terracotta circular floating button**, identical on desktop `youtube.com`
+  and third-party **embeds** — NOT mounted inside YouTube's auto-hiding control bar. On
+  desktop `youtube.com` it sits **above the page FAB** (`bottom:150px`); in an embed (no
+  page FAB) it sits at the corner (`bottom:10px`). The menu anchors just above it.
+
+### Source & timing
+- **Fetch the whole transcript up front, then translate-ahead.** Acquire the
+  COMPLETE `/api/timedtext` (json3) transcript for the video in one shot — the
+  isolated content script enables captions, reads YouTube's own pot-bearing
+  `/api/timedtext` URL from the Resource Timing API, and re-fetches the full
+  transcript itself, so it works on Safari iOS where `world:MAIN` is unavailable
+  (a direct caption `baseUrl` fetch is pot-blocked). Translate ahead in a
+  **60-second sliding window** and display by
+  matching `video.currentTime`. There must be **no per-caption translation lag** —
+  a slow LLM (e.g. DeepSeek) must not delay display, because the work is done in
+  advance. **Never** translate the live caption text word-by-word. (Core constraint
+  — see [`domain-design.md`](domain-design.md) §2.1.)
+- **Whole sentences, together.** Show the **original as a complete sentence** (merged
+  from cues), not YouTube's word-by-word rollup. Original line + translation line
+  appear **at the same time**, both driven by the current sentence.
+- **Sentence merge.** Cues are merged into sentences (break on sentence-ending
+  punctuation or a long pause) so the engine translates with context → fluent output,
+  not choppy fragments.
+
+### Layout (hard constraints)
+- **Self-rendered overlay.** We draw our OWN caption overlay and **hide YouTube's
+  native caption rendering** (`.ytp-caption-window-container { opacity:0 }`). Do NOT
+  render into YouTube's `.caption-window` (it rolls word-by-word and YouTube moves it).
+- **Fixed position.** The overlay is anchored to the player at a **constant** position
+  (`bottom: 11%`). It MUST NOT move when the cursor moves or the controls show/hide.
+- **Centered.** Horizontally centered (`left:50%; translateX(-50%)`), `text-align:center`.
+- **Max 1 line per language.** Each language line is capped at **a single line**.
+  Longer text is split into 1-line **pages** shown in sequence over the sentence's
+  time span. Line capping is **measured** at the current width (responsive — works on
+  desktop and narrow mobile alike), never a fixed character count.
+- **Width cap.** `max-width: ~82%` of the player so it never covers too much of the frame.
+- Translation line color follows the `ytTextColor` setting (default from build/palette.config.js — sage-light since 2026-08).
+
+### Loading state
+- When the active sentence's translation is **not ready yet**, show a hint
+  (**`⏳ 译文准备中…`**) in the translation line, dimmed/italic. When the translation
+  arrives, the next tick **auto-swaps** it in. Never show a blank or stuck line.
+
+### In-player control button + menu
+- A **`译` button** is an always-visible **terracotta circular floating button** (same widget
+  on youtube.com desktop/touch and on embeds — see Controls & activation above), not an
+  in-control-bar button.
+- Clicking opens a menu with:
+  - **字幕显示类型**: 双语字幕 / 仅译文 / 仅原文 (current mode checked)
+  - **下载字幕 (.srt)** — exports the transcript + translation as `.srt`
+    (bilingual / translation-only / original depending on the current mode)
+  - **设置** — opens the extension options page
+- 仅译文 hides the original line; 仅原文 hides the translation line.
+
+### Requirements / fallback
+- **A caption track must exist** for the video (auto or manual). We auto-enable
+  the player's captions so YouTube fetches `/api/timedtext` (minting a valid pot),
+  capture that URL, and re-fetch the full transcript ourselves — we do **not** rely
+  on a `world:MAIN` hook, and we do **not** translate the rendered live caption DOM.
+- If no transcript can be obtained (no caption track, or the fetch is blocked),
+  show a **one-line notice** in the overlay (`字幕不可用`) **with the 「AI 转写字幕」
+  offer button** (see that section below). Do **not** silently regress to
+  per-caption / word-by-word translation of the live caption DOM, and do **not**
+  start transcribing on your own.
+
+### Known tradeoff
+- A 1-line cap is tight, so pages can break mid-phrase (a page may end on a stray
+  word or start with punctuation). This is the accepted cost of "max 1 line". If it
+  reads too choppy, the line cap can be raised to 2 (more coverage, more natural breaks).
+
+---
+
+## Podcast bilingual subtitles
+
+The audio analogue of YouTube subtitles (see [`domain-design.md`](domain-design.md)
+§2.2). Same engine, same 60s translate-ahead, same display modes and loading/fallback
+states. Differences from YouTube are noted below.
+
+### Source & timing
+- **Use an existing timed transcript, fetched whole up front.** In-page WebVTT/SRT
+  (e.g. Substack's signed `…/en.vtt?Expires=…&Signature=…&Key-Pair-Id=…`, or a
+  `<track src>`), or a Podcasting 2.0 `<podcast:transcript>` from the feed, or
+  Spotify's synced "Read along" transcript (scraped from the episode page — see below).
+  Parse → merge into sentences → translate ahead in the 60-second window.
+  **No word-by-word; no automatic ASR** — the user may ask for one, see
+  「AI 转写字幕」 below.
+- **Synced to the `<audio>` element's `currentTime`.** Original + translation appear
+  together as whole sentences.
+
+### Layout (differs from YouTube)
+- **Self-rendered overlay anchored to the VIEWPORT** (audio pages have no video
+  frame): `position:fixed`, bottom-center (≈`bottom: 8%`), horizontally centered,
+  `pointer-events:none`, capped width. It must not overlap the site's own player
+  controls more than necessary.
+- **Max 1 line per language**, measured paging — same as YouTube.
+- Translation line color follows the `ytTextColor` setting (shared subtitle color).
+
+### Controls & activation
+- **Off by default.** The **FAB** turns podcast subtitles on/off (there is no
+  in-player button on an audio page) — the same FAB that turns on page-text
+  translation, mirroring mobile YouTube.
+- A small **floating 译 control** (shown only while subtitles are active) opens the
+  same menu as YouTube: **双语字幕 / 仅译文 / 仅原文**, **下载字幕 (.srt)**, **设置**.
+
+### Loading / fallback
+- While fetching/parsing the transcript, show **`⏳ 字幕加载中…`** (dimmed) — auto-swaps
+  to the bilingual pair when ready; never a stuck line.
+- **Notice states require playback.** A paused / never-started video must show NO
+  `⏳ 字幕加载中…` and no `字幕不可用` — a never-played video would otherwise pin a
+  loading box on the page indefinitely (the 译 control button itself stays). The
+  bilingual PAIR is different: it follows the active cue at `currentTime` regardless
+  of play/pause — pausing mid-sentence keeps the pair on screen (reading is a
+  feature), and enabling translation while paused inside a sentence shows that
+  sentence's pair. At a never-played 0:00 no cue is active, so nothing renders.
+- If no timed transcript exists on a host that MIGHT have one (generic audio pages),
+  show **`字幕不可用`** and do **not** synthesize one. The page's show-notes / text
+  transcript still translates via the webpage text path (the floor) when the FAB is on.
+- **Known text-only hosts → no subtitle overlay at all** (not even `字幕不可用`): the FAB
+  simply translates the page text. This is **`podcasts.apple.com`** and **`小宇宙`** — the
+  web pages expose **no timed transcript at all** (transcripts are App-only), so it's a
+  permanent text-only floor, independent of login. Routing gate: `isTextOnlyPodcast` in
+  `content-main.js`.
+- **Video posts are peers of audio — gated on a discoverable transcript.** An `<audio>`
+  element always engages the subtitle path. A **video-only** page (e.g. a Substack video
+  post with no audio companion) engages **only when a timed-transcript source is
+  discoverable** (a caption `<track>` or an embedded signed `.vtt`/`.srt` URL in the
+  page). Pages with decorative / hero / autoplaying background videos therefore never
+  grow a 译 button or a `字幕不可用` notice — same philosophy as the text-only floor.
+  When a page embeds several transcript URLs (the post's own + sidebar recommendations),
+  the one sharing a path segment (upload id) with the playing media's `src` wins.
+  Routing gate: `drivesPodcast()` + `PodcastTranslator.hasTranscriptHint()`.
+- **One subtitle display at a time — native `<track>` captions are suppressed while
+  ours drive.** WebKit (Safari / iOS / iPadOS) auto-enables a media element's subtitle
+  `<track>` per the system caption preference, and players (e.g. Substack's) sync their
+  own caption UI to the track mode — the user would see the native caption line AND our
+  bilingual overlay. While our overlay has a transcript to show, every text track on the
+  media element is forced to `disabled` (re-asserted each tick, like the Spotify
+  native-transcript hide); the original modes are restored the moment translation is
+  turned off. Our cue acquisition never reads `track.cues` (it fetches the track/page
+  URL), so suppression costs nothing.
+- **…and so are player-DRAWN caption layers that duplicate our overlay.** Some players
+  render captions as their own DOM (Substack's caption box), driven by their private UI
+  state — the `<track>` suppression can't reach it. While our overlay has a transcript:
+  an element inside an adapter-marked player region whose box overlaps the video and
+  whose text matches the currently-active cue is a caption display → hidden
+  (`data-mt-native-hidden`, restored the moment translation is off; re-asserted each
+  tick). A transcript **sidebar** that doesn't overlap the video stays visible.
+- **Adapter-marked player regions (Substack).** The Substack player nests
+  `playerShell > stage > {video-player > VIDEO, caption box, transcript scroller}` —
+  the segmenter's generic `closest('[class*="player"]')` finds only the inner wrapper,
+  so the per-word caption rows / transcript panel would be collected as page text and
+  polluted with translations. Per domain review, the **podcast adapter** (site
+  knowledge lives in adapters) feature-detects the shell (`[class*="playerShell"]`
+  containing a media element — works on custom-domain Substacks) and marks it
+  `data-mt-player-region`, re-asserted each tick, unconditionally (the pollution
+  happens whenever the webpage path runs, even with subtitles off). `DomSegmenter`
+  honors the marker generically (domain-design §3).
+- **Spotify (`open.spotify.com`) — synced "Read along" subtitles.** On an **episode**
+  page (only), when the episode has Spotify's auto-generated transcript, we scrape it
+  into timed cues and show the bilingual overlay like any other podcast. Details:
+  - The transcript only mounts when the episode's **转录 / Transcript** tab is active, so
+    we activate that tab once, then read the cue list. Each cue is a header row (a seek
+    `<button>` whose text starts with a `m:ss` timestamp, optionally `Speaker N`) followed
+    by its spoken-text rows. Cue classes are hashed → we anchor structurally on the
+    button + timestamp pattern, not on class names (fragile; re-verify periodically).
+  - **Position comes from the player's progress-bar slider** (`aria-valuenow`, in ms),
+    NOT the media element — Spotify streams via MSE so the `<video>`'s `currentTime` is a
+    buffer position, not the episode position. (`resolveSpotifyDom` / `positionMs` in
+    `content-podcast.js`.)
+  - Music / playlist pages, and episodes with no transcript, stay text-only (episodes
+    with no transcript show `字幕不可用` after the resolve retries).
+  - **While translation is on, Spotify's own transcript panel is hidden.** Otherwise the
+    native cue list and our bilingual overlay would show every English line twice. Once
+    the cues are scraped we hide *only* the transcript cue-list div — the 简介 / 转录 / 章节
+    tab bar stays usable — and restore it the moment translation is turned off. (The
+    creator's burned-in captions on a video podcast are part of the video, not Spotify
+    UI, so they are left untouched.)
+
+---
+
+---
+
+## AI 转写字幕 — user-initiated transcription (2026-09-06)
+
+Governed by [`domain-design.md`](domain-design.md) §2.4. One behaviour on every subtitle
+surface (YouTube, podcast/generic media, x.com).
+
+### Offer（2026-09-11 重写：入口太深）
+- 两个入口，**都由用户主动触发**：叠层通知行里的按钮，和弹窗里的一行 「🎙 实时转写 + 翻译」。
+  装饰性视频仍然不会长出字幕 UI（`drivesPodcast()` 不变）。
+- **叠层**：offer 从**第一次** acquire 失败起就出现在 `⏳ 字幕加载中…` 那一行里（podcast
+  第 1 次、YouTube 第 2 次 —— 它前 3 s 有 grace）；采集落定后仍是 `字幕不可用` + offer。
+  此前要等 6–8 次重试（≈ 15–20 s），多数人已经走了。
+- **弹窗**：那一行**常显**（只随「引擎未配置」整组隐藏，避免两条「先配置」打架），五态：
+
+  | 态 | 主行 | 副行 · 点击 |
+  |---|---|---|
+  | `ready` | 「🎙 实时转写 + 翻译」 | 副行 `mm:ss` / 「直播」/ 「时长未知」；点 → 页内开始，成功关弹窗，失败原因回显在副行 |
+  | `file_only` | 同上 | 「{engine} 没有实时接口：直播/流媒体转写不了，可下载的音频仍能整段转写 · 另配实时引擎 →」（副行可点 → `options.html#quick-live`）；主行仍可点（文件档可能成功） |
+  | `no_engine` | 「🎙 实时转写 + 翻译 — 先选一个转写引擎 →」 | → `options.html#stt`（锚点落在转写引擎下拉上） |
+  | `no_media` | 「🎙 实时转写 + 翻译」 | 「这一页没找到正在播放的视频/音频 — 先点播放，再点这里重找」；点 → 页内深扫（open shadow root）+ 等 3 s 元数据；仍没有 ⇒ 副行「没找到」 |
+  | `iframe_only` | 「🎙 实时转写 + 翻译」 | 「播放器在页内的另一个框架里；在新标签页打开它再转写 ↗」→ 新标签页打开该 frame |
+
+- **Safari 要在页内再点一次**：弹窗里的点击不是页面里的手势，AudioContext 起不来。弹窗点击后
+  页内通知行变成 「▶ 点此开始实时转写」，用户点它即开始（Chrome / Firefox 直接开始，不多这一下）。
+- 没配转写引擎：按钮读 「先在设置里选择转写引擎」，打开 `options.html#stt`。什么都不采集。
+- 引擎没有实时接口（`nolive` 停机）：通知行 「{engine} 没有实时接口，此媒体无法实时转写」+
+  按钮 「去配一个带实时接口的引擎 →」（`options.html#quick-live`；中国版回落 `#stt`）。
+  此前这句没有出口。
+- 弹窗点击的回码：`started | no_media | no_engine | busy`，页内按站分派（YouTube → YouTube
+  后端，x.com → Twitter 后端，其它 → 通用媒体后端），不再兜底到未初始化的后端。
+- 成本句与去向句（「约 $/分钟」「音频将发送到你配置的转写端点」）**仍是规约要求**，代码此前
+  未实现 —— 与本轮一起补上（副行）。
+
+### While running
+- File tier: 「⏳ 正在转写整段音频…」 (dimmed, italic — the loading style) until the
+  complete transcript is in, then the normal bilingual pair. A progress fraction is
+  shown when the upload is > 5 MB.
+- Live tier: 「● 实时转写中」 until the first words; then the original line shows the
+  words being spoken as they are recognised, and (with 「边说边译」 on, the default) the
+  translation line shows a provisional translation ending in `…` that is replaced as the
+  sentence grows. A closed sentence takes over both lines and stays for `HOLD_MS` (≈ 6 s)
+  or until the next sentence. `⏳ 译文准备中…` uses the live grace (4 s), so it is rare.
+- With 「字幕历史面板」 on (the default), a floating panel at the bottom-right of the
+  video — inside the player, above its control bar, on YouTube (a viewport-fixed panel
+  landed on the live chat column there, measured 2026-09-06); viewport-fixed
+  bottom-right on audio pages — (≈ 380 px wide, ≤ 40 % of the viewport high,
+  scrollable, last 40 sentences; **draggable by its header to anywhere on the page** —
+  once dragged it stays viewport-fixed at that spot, clamped inside the viewport, and
+  the spot is remembered)
+  lists every closed sentence with its whole-sentence translation (`⏳ 译文准备中…`
+  until it lands; a failed one in red, tap to retry); older rows are slightly dimmed;
+  new rows auto-scroll unless the viewer scrolled up. While the panel is on the
+  overlay shows only the stream (never a closed sentence); with it off the overlay
+  holds each closed sentence ≈ 6 s as above. The panel keeps its rows after a stop
+  and disappears with the media / when subtitles are turned off.
+- Tapping the 译 control shows 「字幕历史面板」 and 「边说边译（快，译文会改）」
+  (checkboxes) and 「停止转写」 rows while a session runs.
+
+### Stops — always visible, never automatic restart
+| Cause | Line shown |
+|---|---|
+| CDN refuses cross-origin reads and no capture path | 「无法读取该音频」 |
+| Safari and the source is `blob:` (MSE — YouTube, Twitch, X) or a streaming manifest (`.m3u8` / `.mpd`, native HLS on iOS) | 「Safari 抓不到这类流媒体视频的声音，此页无法转写」＋第二句「用 Mac / iPhone 上的大肚猴翻译 App「实时字幕」可以听这台设备播放的声音」（2026-09-13 用户裁定「加一句」；只是指路，扩展不与 App 通信） — before any socket opens (measured 2026-09-07/08: WebKit's `createMediaElementSource` is silent for MSE while the element stays audible; a manifest is a playlist, not audio, so it never takes the file tier either) |
+| capture attached but silent for 3 s while playing, unmuted | 「捕获不到声音，已停止转写」 |
+| socket closed / vendor error | 「转写连接中断」 + the server's sentence, ≤ 1 line |
+| media changed, subtitles turned off, STT settings changed | session ends; the notice reverts to `字幕不可用` + offer |
+After any stop the user taps the offer again. Sentences already shown keep their
+translations.
+
+## x.com / twitter.com
+
+Two independent things happen on x.com: **in-tweet video subtitles** (the video
+analogue of YouTube/Podcast — see [`domain-design.md`](domain-design.md) §2.3) and a
+**de-cluttered page-text pass** (§3's `data-mt-skip-region` marker). Same engine, same
+60s translate-ahead, same display modes as YouTube. Only the differences are listed.
+
+### Video subtitles — source & timing
+- **VTT-only. Never ASR, never per-caption.** Captions exist only when the uploader or X
+  provided a WebVTT track in the HLS master playlist. **No track → `字幕不可用`**, and
+  that is a **first-class, common outcome** — not a degraded mode, and never a
+  word-by-word fallback.
+- **Whole transcript up front**, then translate-ahead in the 60-second window. A visible
+  consequence the user can check: with subtitles on and the video **paused at the
+  start**, the first sentence's original line is **already on screen** — the transcript
+  was fetched whole, not scraped per caption. Once loaded, `字幕准备中…` must not recur
+  during steady playback.
+- **X's own captions are suppressed** while ours drive. The user must never see X's grey
+  native caption box and our bilingual overlay at the same time.
+
+### Video subtitles — layout & fullscreen
+- **Overlay is anchored INSIDE the active video's player container** (not
+  `position:fixed` on the page), bottom-centred over the video, original line above and
+  translation below.
+- **Fullscreen is first-class and must-verify.** Entering the player's own fullscreen
+  keeps **both the overlay and the `译` button visible inside the fullscreened player**,
+  and the pair keeps advancing with playback; exiting restores the inline overlay. This
+  is a permanent matrix item (`verification-spec.md` §0) on **Chrome, Safari and
+  Firefox** — it was a shipped regression once (a body-level `fixed` element is not
+  promoted into the browser's top layer, so the subtitle vanished).
+- **iOS (iPhone / iPad) fullscreen is N/A**, never "passing": iOS hands video fullscreen
+  to the OS's native player, which a DOM overlay cannot cover. On iOS, subtitles are an
+  **inline-playback** feature.
+
+### Video subtitles — controls
+- **Desktop: the `译` button is embedded in the video itself** (top-right, inside the
+  player container), not floating at the page corner. Two reasons the user feels: it
+  survives fullscreen, and in a feed of many videos it is unambiguous **which** video it
+  controls. (This differs from YouTube's floating button — see domain-design §5.2.)
+- **Mobile (any touch device): no separate `译` button.** The page **FAB drives both**
+  the video subtitles and the page text — one brand-coloured circle, never two.
+- The button's menu is the shared one: **开启/关闭视频字幕翻译**, **双语字幕 / 仅译文 /
+  仅原文**, **下载字幕 (.srt)**, **设置**.
+- **A feed holds many videos.** The subtitles follow the *active* one (playing, or
+  clearly the most visible) and switch only with **hysteresis** — two comparably sized
+  videos must not make the overlay flip back and forth while scrolling.
+
+### Page text — what is NOT translated
+- Tweet text translates through the **normal webpage path**, unchanged. What the adapter
+  removes is only **non-content chrome**, which must show **no** translation line: the
+  left nav, the right rail (**相关用户** / **有什么新鲜事** trends), the per-tweet
+  engagement bar (reply / repost / like / bookmark counts), the tweet author line, the
+  status page's `time · date · views` metadata row, the reply composer placeholder,
+  inline promos and the footer link farm.
+- **The three no-op residues are gone.** `帖子`, `广告` and `来自 <domain>` used to get a
+  duplicate of themselves; they were documented as left by design because they are bare
+  spans with no stable anchor to skip by *region*. They are all same-language duplicates,
+  so the universal "only translate what is in another language" rule above removes them
+  by *content* instead — no site-specific selector needed. Seeing one of them duplicated
+  again **is** a regression now.
+
+---
+
+## Webpage bilingual translation
+- **Off by default**; starts only when the FAB is turned on (per page load).
+- Translation is injected **under each original paragraph** (original kept above,
+  translation below), in the configured text color.
+- **Paragraph by paragraph.** Each paragraph in the viewport shows a **`⏳ 翻译中…`**
+  placeholder until its translation arrives, so the page fills in incrementally
+  (viewport-first, lazy for the rest).
+- **At most 5 paragraphs translate in parallel** (`TranslationAPI` concurrency cap).
+- **Error + retry.** If a paragraph's translation fails after retries, it shows a
+  clickable **`⚠️ 翻译失败,点此重试`** (same state machine as subtitles).
+- **一个需要译文的段落，永远不会「什么都不显示」** *(2026-08-13，真机 bug 定案)*。
+  静默终结**只允许**发生在请求发出**之前**——同语言跳过（本来就不该翻）。请求发出
+  **之后**没拿到可用译文，无论原因（网络失败、重试耗尽、或**模型回了空正文**），
+  一律进失败态并给重试入口。
+  此前空正文被当作「这段没东西可翻」而静默终结（引擎里那行注释写着 "nothing to
+  show, don't retry"），渲染器于是走「nothing to translate → 删掉兄弟节点」，
+  段落永久空白、无提示、无补救——用户看到的就是漏译。解析路径 2026-08-08 已为同一
+  形状加过 `empty_output`（思考型模型烧光预算返回空正文），翻译这条当时漏了。
+  **不自动重试仍然保留**：持续返回空正文的模型自动重试只会烧配额，重试交给用户点。
+- Skip non-content regions and non-text (nav/header/footer/aside, buttons, code,
+  scripts, hidden elements). Idempotent (never duplicate if injected twice).
+
+### 译文末尾一行：去复习（2026-09-10 起是评分提示；2026-09-25 三轮改写，不再要评分）
+
+用户裁定（09-10）：放在**译文末尾一行**，不是悬浮气泡、不是弹窗。
+**09-25 改写**（评分画布 https://claude.ai/artifact/RmJMXH1TF59zKm66xgs54y ，源 `design/rating-moments/`，
+三轮裁定；遥测见 telemetry-design §3.12）：原先这一行是「觉得好用？去商店给个评分 →」。星级评分两条线 12 个店面全是 0；
+这一行被插进页面几百次、真实点击约为 0，而且我们从来不知道有没有人真看见过它。**苹果审核指南 5.6.1 禁止自定义评分提示**
+（Safari 扩展是 App 的一部分）；Chrome / Firefox 虽不受它管，但同样 0 点击、商店评分对量几乎没有影响。
+所以这一行**不再要评分**，而是把真在用的人带进复习 —— 评分只留在常驻链接里，App 另在收获时刻用系统 API 请求（见下）。
+
+- **按宿主两种目的地**（同一句话的两个版本）：
+  - **Safari**（iOS / macOS）：「今天读过的句子，去 App 里复习 →」，点了走 `AppLink.open(uid, …, 'review')` 落在 App 的复习屏。
+    **只给已登录、且开了学习的人** —— 学习层默认关、没登录句子过不去，两者缺一都是把人送进一个必然空着的复习屏。
+  - **Chrome / Firefox**：「今天读过的句子，去复习 →」，打开**扩展自己的复习页**（`learn/review.html`）。
+    不需要登录、Windows 上也有，**只要开了学习**就出现。
+- **出现条件**（两种同一套，`MTFeedback.rowToOffer`）：这台装机**成功 ≥3 次、且出现在 ≥2 个不同本地日**
+  （键 `mtOkSessions` + `mtOkDays`；第一天连刷三页的人还在试）；不在 90 天冷却里（`mtRatingAskedAt`，沿用旧键名）；
+  **今天还没挂过**（每个本地日至多一次，键 `mtRowDays`）。
+- **节奏**：最多出现在 **5 个不同的日子**；第 5 个日子挂过之后**自动**进 90 天冷却。旧口径是「不理它就每页都出」——
+  09-25 回读最多一台 98 次。
+- **位置**：挂在文档序**最后一个已译段落的原文节点之后**（后一个兄弟，不进原文盒子），随翻译推进跟到新的最后一段之下。
+  ⚠️ 这个位置常在屏幕下方 —— 所以「挂上」与「看见」分开记（`shown` / `seen`）。
+- **形状**：一句话 + 一个 ×。带 `translate="no"` 与 `data-mt-skip-region`（自家 UI 的契约，见 §States）；
+  `data-mt-row-kind` = `app`（Safari）/ `review`（Chrome / Firefox）；样式继承译文字号，颜色来自注册表调色板。
+- **点句子**：在点击手势里**同步**打开目的地（自定义 scheme / `window.open`），然后写冷却、发 `review_nudge{tap}`、移除。
+  Safari 那一跳没有人接住时发 `review_nudge{no_app}`，并在原位说清出口（「这台设备上没能打开 App」/「这个 App 只有 iPhone、iPad 和 Mac 版」）。
+  **点 ×**：写冷却、发 `{dismiss}`、移除。点或关**一次即 90 天不再出**。
+- **计数**：挂上时发 `review_nudge{shown}`；行至少一半进入视口、连续停留 ≥1 秒时发 `{seen}`（每行至多一次；
+  没有 IntersectionObserver 的环境不发，宁缺勿假）。目的地由事件的公共字段 `host` 区分。
+- **App 的系统评分**（`MTFeedback.noteValueMoment`）：在**收获时刻**请求 —— 复习里做完一组（5 张，「这一组做完了」那一屏；
+  从 Safari 那一行进来的人走到这里就是那条路的终点）· 听译 / 实时字幕结束且出过句子 · Mac 快速翻译出了译文 ·
+  系统翻译收件箱进了卡。门槛同上（这些时刻 ≥3 次、跨 ≥2 个日子，键 `mtValueCount` / `mtValueDays`），90 天冷却；
+  **只在事件回调里调，不在任何按钮点击里调**（系统可能静默丢弃请求，按钮就成了点了没反应的按钮）。发 `rate_prompt{requested}`
+  —— 不是 `shown`：系统弹没弹我们不知道。原来的「一轮复习刷完且 ≥3 张」触发点取消（1.16.0 之前一次都没发生过）。
+- **冷却不打通**：扩展与 App 各有一份 `mtRatingAskedAt`（同名键、两个存储），各自 90 天。
+  （此前这里写的是「共用同一个键与同一个冷却」—— 从来不成立。）
+- **不动的**：弹窗 / 设置页 / 引导页的「给我们评分」仍是常驻链接（那是入口不是打扰，也不是 5.6.1 说的提示）。
+
+### One unified path (incl. YouTube) — see [`domain-design.md`](domain-design.md)
+- All DOM — normal pages **and** YouTube title/description/comments — goes through
+  the **single general `DomSegmenter`** (standard-HTML semantics, **no per-site
+  selectors**). Translation is inserted as the original's **LAST CHILD** — inside
+  its box, not beside it (resists YouTube Polymer re-render; works on normal pages
+  too) and re-applied by a ~1s recollect poll. **A sibling is a correctness bug on
+  any page whose framework owns the container**: an extra child shifts every
+  position after it, so the next React commit moves the whole child list instead of
+  patching it. See `docs/domain-design.md` §4 for the measured numbers. The
+  interleave holder is the one exception — it hides the original, so it cannot live
+  inside it.
+- **SPA re-renders never visibly disturb the page.** A mere click/selection makes
+  SPA frameworks (React on Substack) re-render the article — MOVING existing nodes.
+  As a child the translation travels with its paragraph and is never order-displaced;
+  the machinery below remains for the interleave holder (still a sibling) and for
+  pages that move our child themselves. Translations must stay glued to
+  their paragraphs with **no visible flash, layout jump, or remove→re-add blink** —
+  clicking body text produces **no perceptible action**. (A childList
+  MutationObserver runs the cheap re-anchor pass in the same microtask — before the
+  browser paints — so displaced order never renders; orphan adoption + the ~1s poll
+  remain the backstop for genuinely replaced nodes. The observer ignores mutations
+  involving only our own `mt-` nodes to avoid the YouTube observer-feedback-loop
+  gotcha.)
+- **…and never destroy the user's text selection.** The same re-render MOVES the
+  page's own paragraph nodes (remove+insert of the same objects) — verified live on
+  lennysnewsletter.com 2026-08-12: selecting text triggers a React commit that
+  performs **zero** paragraph mutations without our siblings and **hundreds** with
+  them, and any move containing a selection endpoint kills or half-kills the
+  selection（用户症状：「高亮闪一下就没」）. **Re-measured 2026-08-23 with the same
+  method: 3 sibling divs → 76 paragraphs moved per selection change; 0 divs → 0.**
+  That is why placement moved inside the original (above): the keeper below is now
+  the backstop, not the cure. It never was a cure for the other half of the same
+  bug — a click landing on a hyperlink was retargeted to a container ancestor, or
+  dropped entirely, and no amount of after-the-fact repair can re-dispatch a click
+  that never happened（用户症状：「超链接打不开」）. The renderer snapshots the live
+  selection (`selectionchange`) and, in the **same pre-paint microtask** as the
+  re-anchor pass, restores it via `setBaseAndExtent` when a real mutation batch
+  damaged it. Restore never fights intent: a user gesture after the snapshot, a
+  programmatic `removeAllRanges()` (no mutation batch), or endpoints that are no
+  longer connected all suppress it, and it is bounded per gesture (page wins after
+  8 rounds — the FAB-remount philosophy). Regression: layout fixture 33.
+- **…and never change how the page's own content behaves.**（翻译文字插入后不要
+  影响网页原有内容的交互动作。）The page's links, buttons, handlers, context
+  menu and selection must behave exactly as they would without the extension —
+  only our own injected UI (the `.mt-translation` child, FAB, subtitle
+  controls) is ever interactive on our behalf. **The strongest reading of this rule
+  is placement itself**: a translation node the page's framework has to reconcile
+  around is already changing how the page's own content behaves, before anyone
+  clicks anything. Concretely: the interleave redraw
+  is plain text with the source hidden, so it **bails to sibling rendering**
+  whenever the original contains interactive or non-text content (links,
+  buttons, media, code — the original stays visible and fully clickable; fewer
+  interleaves is the accepted price). Timestamp→seek anchors are created on
+  **YouTube hosts only** — a hero `<video>` elsewhere must never be scrubbed by
+  a translation. The selection keeper never overrides a selection the page set
+  itself (a damaged selection is collapsed, keeps a snapshot endpoint, or clamps
+  onto its ancestor; a page-set one shares none), never snapshots selections
+  inside editors, and counts IME / dictation / paste (`beforeinput`,
+  `compositionstart`) as user gestures. Every inline-style mutation on a page
+  element records the prior value and restores it on disable (`data-mt-hidden`
+  carries the prior `display`, `data-mt-pos-fix` the prior `position` — the
+  `data-mt-flow-fix` pattern). Regression: layout fixtures 34–36.
+- **Flex / grid rows: translation takes its own full-width line.** When the
+  **original itself** is a flex or grid container, the translation — now one of its
+  own children — would otherwise become an *item* placed inline beside the text and
+  overlap/spill off the row. So it is forced onto its own line below: flex →
+  `flex-basis:100%` + the container is made to wrap; grid → spans all columns. The
+  container's `flex-wrap` is restored on disable. (Before 2026-08-23 this applied to
+  the original's PARENT, because the translation was a sibling and therefore the
+  parent's item. Same rule, one level in — moving inside is what narrowed it.)
+- **Reversed flex containers: the translation still reads BELOW the original.**
+  A `flex-direction:column-reverse` container stacks its items bottom-to-top, and
+  a row with `flex-wrap:wrap-reverse` stacks its *lines* bottom-to-top — in both,
+  a translation appended after its original in the DOM would **paint above it**
+  and the bilingual pair would read backwards. Placement therefore follows
+  **visual order, not DOM order**. As a last child the translation lands below its
+  text unconditionally, so this now governs only the interleave holder, which is
+  still a sibling: in those containers it is anchored *before* the original so it
+  still renders below. (A plain
+  `row-reverse` only mirrors the main axis; its own-line translation already
+  lands below, so it is unchanged.)
+- **Rotation / resize / breakpoint re-measures the mirror.** The geometry a
+  translation copies from its original (the width cap, the indent, the flex-row
+  fix) is measured in **pixels at render time**. When the viewport changes —
+  iPhone rotation, a desktop window resize, a media-query breakpoint — those
+  frozen pixels are dropped (debounced) and every visible translation
+  re-measures on the next tick, so it keeps matching its original instead of
+  squeezing into a stale column. A row that a media query has flipped to a
+  column also gets its wrap fix reverted there and then. For a single-blob
+  interleave, whose original is hidden, the original is briefly restored *within
+  the same task* (never painted) to re-measure it.
+- **Translate only what's visible.** Hidden text (e.g. the collapsed-vs-expanded
+  description, `display:none` nodes) is excluded via computed-style visibility —
+  never translate text the user can't see.
+- **Preserve structure.** Multi-line / single-blob text (description, multi-line
+  comments) is rendered with `white-space: pre-wrap`, keeping line breaks; a
+  single blob with multiple paragraphs is re-rendered interleaved (see universal
+  rules below).
+
+---
+
+## Text translation — universal rules (ALL devices, ALL pages)
+These apply to every webpage text translation, on every platform:
+- **Only translate what is in ANOTHER language — and don't even ask the provider
+  otherwise.** A paragraph that is already in the target language must produce **no
+  translation line at all**: not a duplicate, not a placeholder, not an error. It must
+  also **not be sent to the provider** — an unnecessary request costs the user quota,
+  and the answer would be discarded anyway. A bilingual pair is only shown when the two
+  sides really are different languages; **a few foreign words are enough** to make a
+  paragraph worth translating, so a mostly-Chinese sentence quoting an English phrase
+  still gets translated.
+- **How the skip decides, in two layers.** The bias never changes: **erring toward
+  translating is deliberate**, because a wrongly skipped paragraph shows nothing at all
+  and gives the user nothing to retry — far worse than one redundant line. URLs,
+  `@handles` and `#tags` are excluded from every measurement below; they are Latin even
+  inside otherwise-native text.
+
+  **Layer 1 — script, on every surface.** Available everywhere, the only layer on
+  Safari. Script can only tell you *same script*, never *same language*, so it decides
+  **only Chinese / Japanese / Korean targets**, where the mapping is clean (Han without
+  kana → Chinese, kana → Japanese, Hangul → Korean). It answers "no" for every other
+  target.
+
+  **Layer 2 — browser-native detection, where the browser has it.** Chrome, Edge and
+  Firefox expose a language detector (`chrome.i18n.detectLanguage`); no Safari does.
+  Where present, it decides the targets layer 1 cannot — the English/French case — and
+  those units are skipped too.
+
+  **Layer 2 is never consulted for zh/ja/ko targets.** It has nothing to add there and
+  would cost consistency. Measured: the detector reports 繁體中文 as plain `zh`, the
+  same answer it gives 简体中文 — which is precisely the blind spot layer 1 already
+  has (both are Han without kana). Routing the most-used path through a
+  browser-conditional check would fix no case and make Safari and Chrome disagree.
+
+  > **Pre-existing limitation, recorded not fixed.** Because neither layer separates
+  > Traditional from Simplified, a 繁體中文 paragraph under a `zh-CN` target is skipped
+  > today and shows no translation (and the mirror case under `zh-TW`). That is a real
+  > gap, it predates the two-layer split, and a browser detector cannot close it —
+  > separating Hant from Hans needs character-repertoire analysis, not language
+  > detection. Tracked separately; do not cite it as intended behaviour.
+
+  **Layer 2 only fires under all three gates**, because a language detector is
+  confidently wrong on short text far more often than on long text: the detector
+  reports the result **reliable**, the winning language holds **≥ 90%** of the text,
+  and the text has **≥ 60 letters** after the exclusions above. Miss any one gate and
+  the unit is translated.
+
+  `isReliable` is the load-bearing gate and the length gate exists to feed it. Measured:
+  `"Bonjour."` comes back as **Norwegian at 100%** — with `isReliable: false`. A
+  percentage is a share of the text, not a confidence, so it is near-useless alone; and
+  a 48-letter English sentence still self-reports unreliable, which is where the 60
+  floor comes from. **When tuning, raise the length gate — never relax the other two.**
+
+  The 90% figure has headroom for a reason: the same unambiguous English paragraph
+  scores **100% on Chrome and 99% on Firefox**. The engines do not agree to the point,
+  so a gate at 100 would silently do nothing on Firefox.
+
+- **Known limit — stated, not hidden.** The two layers mean a browser without a
+  detector translates a paragraph that a browser with one skips: with an `en` target on
+  an English page, Chrome draws nothing under the paragraph and Safari draws a redundant
+  translation line. Safari's behaviour is exactly the behaviour every browser had
+  before, so nothing regresses — but the surfaces are not identical, and that is
+  accepted rather than accidental (`docs/domain-design.md` §5.3).
+- **Backstop for everything the two layers let through:** if a translation comes back
+  **identical** to the original after normalisation, draw nothing. Strict equality only —
+  never a similarity guess, which could suppress a genuine translation. This is what
+  keeps Safari's output correct (just costlier) without a detector, and it stays the
+  final net even where layer 2 runs — a unit under 60 letters is never skipped ahead of
+  time, so short native lines still land here.
+- **Normalisation ignores spacing that is typography rather than language.** Whitespace
+  runs collapse, and whitespace *touching a CJK character* is dropped entirely: providers
+  re-typeset freely around an embedded Latin word (Google returned
+  「我会创建一个 Obsidian 文档」 as 「我会创建一个Obsidian文档」), and treating that as a
+  translation draws the line twice. A space **between two Latin words** is untouched. This
+  stays strict equality — a real translation differs by far more than spacing — and it is
+  the comparison used for both the whole-unit and the per-line check.
+- **The backstop applies per LINE, not just per paragraph.** The skip decision is made
+  for a whole unit, but the reader sees the interleaved slices of it. A paragraph can
+  legitimately deserve translating (it quotes foreign words) and still contain an
+  individual line that is already the target language and comes back unchanged — that
+  line is drawn **once, with no translation row under it**, while its siblings keep
+  theirs. So the interleaved sequence is not always strictly original/translation/
+  original/translation: an original may stand alone. What is never allowed is a
+  translation row that does not sit directly under its own original.
+- **A table cell holds its translation INSIDE itself, not beside it.** "Below the
+  original" is a *visual* rule, not a DOM-sibling rule, and in one place the two
+  conflict: an element placed next to a `display: table-cell` unit lands in the
+  `<tr>`, where the browser wraps it in an anonymous cell — so the translations become
+  an extra **column** and the table's intrinsic width roughly doubles. Observed on a
+  floated Wikipedia infobox (issue #59): the prose column beside it collapsed to
+  ~115px while paragraphs below the table were untouched. Cells therefore take the
+  translation as their **last child**, and it must contribute **nothing** to the
+  table's intrinsic width — an auto-width table is sized from its cells' max-content,
+  so merely wrapping the translation still widens the column (+78px, measured).
+  Cells also skip the interleave path, which hides the original and would take the
+  translation down with it. Fixture 30; generic, not site knowledge.
+- **Interleaved, paragraph by paragraph.** Each original paragraph is **immediately
+  followed by its own translation** (original above, translation below) — never a
+  whole block of originals followed by a whole block of translations. If the
+  platform renders text as one blob with no per-paragraph nodes (e.g. the YouTube
+  description), re-render it ourselves to achieve the interleave.
+- **What counts as a "paragraph" here.** Leaving this undefined is how the rule above
+  got violated in practice, so: it is a blank-line-delimited paragraph **and, in
+  line-structured text, a single line**. A chapter list, lyrics, a poem or a
+  plain-text bullet list separates entries with one newline; treating the block as a
+  single paragraph makes N originals render above N translations — the very shape the
+  rule forbids. A newline only counts when it is **really rendered as a line break**
+  (the element's `white-space` is `pre` / `pre-wrap` / `pre-line` / `break-spaces`);
+  in ordinary HTML a newline between inline elements is source formatting and renders
+  as a space, so splitting on it would shred a normal paragraph into fake lines.
+- **Never mis-pair.** Original and translation are interleaved only when both sides
+  yield the **same** number of slices. If the model reflows the text and the counts
+  disagree, fall back to the single-translation-block rendering: fewer interleaves is
+  acceptable, attaching a translation to the wrong original is not.
+- **Translation style matches the original.** The translated paragraph mirrors the
+  original's formatting: line breaks / blank lines preserved (`white-space:
+  pre-wrap`), and inline elements kept functional — URLs stay clickable links and
+  timestamps stay seekable.
+- **Font matches the original exactly.** The translation copies the original
+  element's **computed font** — `font-family`, `font-size`, `font-weight`,
+  `font-style`, `line-height`, `letter-spacing` — read via `getComputedStyle(original)`
+  at render time. So a bold heading gets a bold heading-sized translation, body text
+  gets body text, a caption gets a caption. The **only** font-related property that
+  stays distinct is the **color** (configurable; the default lives in
+  `build/palette.config.js` — 2026-08 之后是鼠尾草 sage, dark-mode 用浅阶) so the bilingual pair is still tellable apart. The 「字号」 setting is a
+  **relative scale** applied on top (default `1.0×` = identical to the original;
+  `0.8×`–`1.25×` to tune all translations up/down; legacy unit values migrate to
+  `1.0×`). Applies to the sibling translation and to the re-rendered originals +
+  translations in the single-blob interleave path. Subtitle overlays are a separate
+  path (`lineCss`, keyed off `ytTextColor`) and are unaffected.
+- **…and in the interleave path the ORIGINAL keeps looking like an original.** When a
+  single-blob paragraph is re-drawn as alternating original / translation rows, the
+  re-drawn original rows carry the **source element's own color**, not the
+  translation color. The holder we draw them into is itself a `.mt-translation`
+  element, so without that the originals inherit the translation colour and the whole block
+  renders in one solid color — the bilingual pair stops being tellable apart, which
+  is the single thing color exists to do here. (Regression-tested by fixture 25.)
+
+---
+
+## First run — choosing an engine is a step, not a skip
+
+The default provider needs no key and works immediately, and **that is the trap**: it is
+not a stable endpoint (`verification-spec.md` §0 — it can return the original text
+unchanged for input it translated a minute earlier). A user who never opens settings meets
+that flakiness as their first impression and reads it as "the extension is broken".
+
+So the onboarding tells them what to expect **before** a bad first result, never after:
+
+- **On install only** (`reason === 'install'`, never on update) a **dot** is placed on the
+  toolbar icon, cleared the first time the popup opens. A dot rather than `!`, because the
+  shipped default is a *working* configuration and a permanent error badge on something
+  that works is crying wolf. Best-effort: wrapped, because `chrome.action` is not
+  guaranteed on every Safari surface and failing to show onboarding must never break the
+  install.
+  - **Not `openOptionsPage()`.** That was tried and rejected on evidence: opening a tab at
+    install time **hung the layout suite indefinitely**, because loading the extension over
+    CDP fires `onInstalled` and the surprise tab derailed the harness. A side effect our own
+    automation cannot survive is the wrong mechanism, not a harness bug to work around — and
+    what it does to a test run, it also does to a user who was mid-task.
+- **A setup note sits at the top of BOTH the popup and the options page**, in two mutually
+  exclusive states, never both:
+  - the chosen engine needs a key and none is set → **warn**: translation will not work
+    until a key is entered;
+  - the free no-key engine is selected → **plain**: it works and is fine for a first look,
+    it is not a stable endpoint and can hand back the original text unchanged, and any LLM
+    engine with your own key is more reliable and better.
+  - A configured keyed engine shows **nothing** — the note is onboarding, not chrome.
+- The note clears on `input`, not just `change`. Waiting for blur would leave "translation
+  will not work" on screen while the field is visibly full.
+- **免费引擎仍然选得到，但我们不再推荐它** *(2026-09-01，用户裁定，推翻本节原有的
+  「零配置试用是我们主推的第一印象」)*。原文是：「免费引擎不移除、不隐藏；零配置试用
+  是真功能，改变的只是告诉用户它是什么。」前半句仍然成立 —— 它在设置页的详细配置和
+  引导页的「三引擎分别配」里都选得到；**后半句不再成立**：我们给用户的第一优先级是
+  一键配置。
+
+  这条改的不只是文案，是**判据**。旧判据问「当前引擎需不需要 key」，于是出厂默认的
+  免费引擎让全球版全新安装的人**永远不会被推去配一次**。新判据（`content/engine-state.js`
+  的 `needsSetup`）问「配过没有」：
+
+  - 配过 key ⇒ 配好了；
+  - **主动点选过**一个不需要 key 的引擎 ⇒ 也算配好了（`engineChosen`）；
+  - 其余 ⇒ 没配好，弹窗只留一个入口、悬浮球点下去进引导页。
+
+  第二条不可省：只写「没 key = 没配好」会把**故意选了免费引擎的人困死**，悬浮球会一直
+  把他弹回引导页。出厂默认不算选择，用户自己点的才算 —— 这正是这条裁定要区分的东西。
+
+  随之删掉的三处「安抚免费通道」的分支：弹窗与设置页 setup note 的第三支、引导页第 2 屏
+  按 flavor 分的正文、App 引导第 3 屏那行说明。它们的共同作用是让一个我们其实想让他去配
+  的人安心不配。
+
+  ⚠️ **商店描述里承诺过零配置试用**（本节原文如此）。免费引擎仍在，所以承诺没有作废，
+  但下一次改商店文案时要重读这一条，别把「开箱即用、无需 Key」写成主打。
+
+## 免费额度 — 登录领 0.2 美元额度，经我们的服务端中继（2026-09-08）
+
+Governed by [`learning-design.md`](learning-design.md) §8.10. 交互稿（每个表面 × 每种
+状态，每格写「显示什么 · 可点什么去哪 · 不可见副作用」）：
+https://claude.ai/code/artifact/03de6027-eeb8-4562-b008-425669449b79 。这里只记**不变量**，画布是它们的展开。
+
+- **它是一键配置的一部分，不是第二张卡。** 额度段落在 `#quick-setup-card` 顶上
+  （`#grant-card`），与「用自己的 key」表单同一张卡、同一个 tab；「一键配置与逐引擎配置
+  永不同屏」照旧成立 —— 额度段不含任何引擎控件。锚点 `options.html#grant` 落到这一段，
+  落点前先切到快速 tab，沿用 `anchor-flash`。
+- **登录永远不是墙 —— 这一条只对浏览器扩展成立**（2026-10-01 加限定：#532 起 **App** 以登录为
+  前提，见「App 首屏三段式」；扩展侧一字不变）。引导第三屏的一键 tab 里是两张并列卡：「登录领免费额度（够翻几百页）」
+  与「用自己的 key」；「三引擎分别配」tab 与免费 Google 引擎不动；「继续」在未登录、未选
+  任何东西时就可点。「登录」字样只许出现在 `#ob-grant` 内，且与 `#ob-quick`、`#ob-next`
+  同屏可见 —— 这是 `verify-onboard.js` 的新判据（取代「四屏不出现登录」）。
+- **在额度卡上完成登录 = 领取**（一个手势）。从别处登录的（App 首页、同步区、复习页）回到
+  卡上显式点「领取」—— 领取会写三槽引擎配置，不该在别处静默发生。领取中（≤ 15 s）同屏
+  禁用：另一张卡、两个 tab、页脚「继续 / 先跳过」、「退出登录」「删除账号」。
+- **必须登录才能用**（用户裁定）。退出登录的动作本身清掉本机三槽里的额度令牌与
+  `grantTail` / `grantBalance`，只留 `grant` 记录；弹窗与页面回到「未配」那条；
+  `grantActive` 时退出登录先确认一次「退出登录后免费额度会停用（余额保留，再登录就回来）」。
+  再登录同一账号在卡上自动领回同一把（余额不变）；登另一账号 = 领它自己的。
+- **卡上的态只有一种来源**：`status()` ∈ none / unclaimed / active / replaced / low /
+  exhausted / unavailable，判据是本机三个键 + 10 分钟缓存的余额；弹窗只读缓存、不发请求。
+- **余额低不打断阅读。** < $0.02 只在设置页一键卡与弹窗提示。
+- **停机提示 —— 额度用完与 key 被拒是同一种 UI，两个码、两句话、两个落点**（2026-09-10 改写，
+  原文写的 `#quick` 锚点从未存在过）：
+  - 引擎停机（`translation-core.js` 的 `halted`）由**两类**具名错误触发：额度类（`credit_exhausted` /
+    `grant_unavailable` / `model_not_allowed` …，来自中继）与 **`auth`**（HTTP 401/403 且请求带了非空、
+    非额度令牌的 key —— 这把 key 被服务商拒绝）。停机后未译单元当场置 error，不再发请求；`retry()` 解锁。
+  - **网页未译段**各一句、**字幕叠层**一条 `notice`（带「去设置」按钮，走现成的 `renderNotice(msg, action)`
+    —— 这条此前只写在规约里，代码没做）、复习卡解析·朗读·转写各一句：额度类是「免费额度已用完 — 点此
+    查看」（池子空了另有一句「不是你用完了」），`auth` 是「key 被服务商拒绝了（HTTP 401/403）— 点此检查」。
+  - 点击在手势内 `open(options.html#…)`：额度类落 **`#grant`**（快速卡），`auth` 落 **`#engine`**（详细档的
+    引擎块；锚点自带「先切到详细」的前置，否则那块是 hidden 的）。
+  - 免费 Google 通道不带 key，它的 401/403 不算 `auth`、不停机，仍是普通「翻译失败，点此重试」。
+  - **N26（2026-10-28，移植 mobiletranslator `b0ddea77`，待架构形检）**：即停只认四码
+    `credit_exhausted` / `grant_unavailable` / `model_not_allowed` / `auth`。令牌类
+    （`grant_invalid` / `grant_revoked` / `grant_misconfigured`）先归一成 `grant_unavailable`。
+    `http` / `network` / 429 / `busy` 不停机，行上仍是「翻译失败，点此重试」。连续 5 次单元级
+    `timeout` 才停；那一行写「连不上，已暂停」，点击是重试（`retry()` 解锁），不去设置页。
+    即停四码的点击：额度与模型去 `#grant`，`auth` 去 `#engine`。停机后泵不再自动发请求。
+- **「你用完了」与「我们的池子空了」是两句话。** 中继的状态码就是答案：402 = 用完 ⇒ 两条路
+  并列，「一键配置自带 key ↗」（注册表 `keyUrl`）在前、「加入社群寻求帮助 ↗」（`COMMUNITY_URL`）
+  在后；503 = 我们的池子空了 ⇒ 状态 `unavailable`，卡上明写「不是你用完了」，只给社群出口。
+- **粘了自己的 key 就是自己的 key。** 免费槽（尾号命中）可覆盖，结果行如实写「替换免费额度
+  的 key」；卡上给「改回免费额度」（`LearnDialog.confirm`，会覆盖现有 key）。在「详细」里
+  改了模型 ⇒ 中继 403（服务端钉死模型）⇒ 一句「免费额度只能用 {model} — 改回」，只写 `apiModel`。
+- **额度不含实时听译**（中继只有三个 HTTP 端点，没有流式转写的 socket）。三处提前说：引导左卡的转写行、
+  设置页一键卡的转写行、App 首页听译入口灰掉的原因句。以后注册表有了 `liveEndpoint`，
+  三句自动消失。*2026-09-11：* 「设置页一键卡的转写行」由下一节「实时转写（可选）」那一段
+  兑现 —— 存储里的转写引擎没有实时接口时（含 `grant_stt`），一键卡显示那段副文。
+- **中国版是静态卡**：百炼三步 + 「这份额度是阿里云给你的，不经我们的手」+ 「境内后端
+  未就绪，中国版暂不提供我们代领的免费额度」；零「登录」、零 OpenRouter。
+- **文案**：键名前缀 `grant_`（清单在画布 12），金额从 `MT_GRANT.limitUsd` 注入 `{limit}`、
+  模型从 `MT_GRANT.model` 注入 `{model}`，串里不写死；两条旧串改口 ——
+  `extob_engine_body_key`「不填 key 就一个字也翻不出来」→「翻译要经过一个引擎。登录领
+  免费额度，或者填自己的 key —— 都行」（中国版：「领阿里云百炼的官方免费额度…」）；
+  `sync_section_hint` 去掉「同步只是…」，国际版运行时追加 `grant_home_hint`。
+
+## 文档翻译 — 上传 PDF / Word / 图片，打开一页翻一页（2026-09-11）
+
+Governed by [`domain-design.md`](domain-design.md) §2.5 与 [`learning-design.md`](learning-design.md) §9.7。
+两个宿主同一份阅读器（`learn/doc-view.js`）：扩展页 `learn/docs.html`，App 的 `#app-docs`。
+
+### 入口
+- 扩展：弹窗一节「📄 翻译文档」（在评分/反馈节之上，与转写节同形）→ 新标签页打开 `docs.html`；
+  设置页「学习」卡一个按钮；复习页顶栏一个入口。网页悬浮球**不加**。
+- App：首页「听」列表之下第三行「📄 文档翻译」（登录与未登录两份入口，照「对话」）；
+  进出视图照 `#app-listen`。
+- 上传控件是原生 `<input type="file" accept=".pdf,.docx,.txt,.md,image/*">`。iOS 由 WKWebView 弹系统
+  选择器；**macOS 宿主必须实现 `runOpenPanel`**，否则是死按钮（D5）。不支持的格式（`.doc .pptx .epub
+  .xlsx .rtf`）当场说：「不支持 .doc，请在 Word 里另存为 .docx」。单文件 > 30 MB 拒绝并明说。
+- 上传按钮上方常显 `doc_privacy`（Gate G 那段）；免费额度激活时换 `doc_privacy_grant`。
+- **免费额度在用时，图片在选文件那一刻就拦**（用户裁定 2026-09-11）：`accept` 不变（别让用户猜为什么选不了），
+  选中图片 ⇒ 不读取、不入库、不发请求，当场一句「免费额度不能识别图片 —— 用自己的 API key」+「去设置 →」
+  （扩展落 `options.html#quick`，App 落一键卡）。判据是翻译槽装的是不是额度令牌（`EngineState.grantActive`）。
+
+### 阅读器
+| 状态 | 显示 | 可点 |
+|---|---|---|
+| 列表 | 最近的文档：标题 · 页数 · 上次读到第 n 页 · 已采 m 句；「上传」 | 点开 → 阅读器；「删除」→ 确认框写明「会一并删除这份文档的卡」 |
+| 解析中 | 「正在读取…」（PDF 只取元数据与第 1 页；docx 一次解析后分页） | — |
+| 页 | 页码 `n / N`，本页 `X 段 · 约 Y 字`；每段原文在上、译文在下（与网页同色）；上/下页 | 「翻译这一页」（首次进入自动开始；换页自动开始 —— 打开即是意图）；每段 ★ |
+| 段落状态 | `⏳` 待译 / 译文 / 「翻译失败 · 重试」 | 重试走 `engine.retry()` |
+| 扫描页 / 图片 | 「正在识别这一页…」→ 识别出的段落 → 译文；引擎不支持 ⇒ 「当前引擎不支持识别图片 · 去设置换模型 →」且 0 次请求；**免费额度在用** ⇒ 该页「免费额度不能识别图片 —— 用自己的 API key · 去设置 →」且 0 次请求（文字页照翻） | 去设置 |
+| 停机 | 额度用完 / key 被拒 ⇒ 本页未译段全部错误行 + 「重试」，文案与网页停机行相同 | 同网页 |
+| 旧译文 | `pages` 记的引擎三元组与当前不同 ⇒ 顶部一行「用旧引擎译的 · 重译」 | 重译（不自动） |
+
+### 打开一页翻一页
+- 只有当前页（+ 预取 1 页，设置 `docPrefetch`，默认关）的段落进 `selectActive`；换页不 `reset()`
+  （已译页译文保留）。并发是传输层的 `reqConcurrency`（默认 5），阅读器不另设闸。扩展页与
+  网页翻译各持一把闸（不同 JS 上下文），说明写在这里。
+- 每页 ≤ 80 个单元；单段 > 1 200 字按句切成多单元。
+- 没有「翻译全部」按钮，也没有后台扫描。
+
+### 进语料
+- 该段译文首次渲染即算「看过」；每页 ≤ 10 句、每份 ≤ 100 句；句长过 `BAND` 硬闸；★ 绕过一切；
+  设置「文档进复习」（`docCapture`，默认开）。
+- 复习卡 ⓘ 行「📄 标题 · 第 n 页」，可点回到那一页；来源管理里按文档分组。
+- 「文档语言」在阅读器顶部可改，默认推断。
+
+### 遥测（telemetry-design §3）
+`doc_open { kind: pdf|docx|txt|image, pages: int }` 一份文档打开一次；`translate_ok.kind` 加 `doc`。
+不带文件名、不带字数、不带页文本。
+
+## 扩展引导是三屏（2026-09-22，画布第 1 页「扩展 4 → 3 屏」）
+
+`welcome → engine → try`。**不许再有第四屏教「采集学习材料」那个开关。**
+
+- 那个开关**首装就是开的**（`background.js` 写 `learnEnabled = true`），而它当初那一屏的
+  第一句话就是「已经开着了……不想要可以在这里关掉」—— 于是那一屏的净作用是：**在用户
+  还没见过一张卡、还不知道复习是什么的时候，专门给他一个关掉它的机会**。
+- 采集开关与采集语言的**唯一**入口是设置页（`#learn-enabled` 与 SourcesView 的语言
+  chips）。引导页不再是第二份实现，也就不会再漂。
+- `engine` 那一屏（分流：免费额度 / 自己的 key）**一个字不动** —— 走到它的人几乎全都配好了
+  引擎（2026-09-21 读数：iPhone 20/20、Mac 19/18）。这条引导的问题从来不是它讲得对不对，
+  是走完率（iPhone 27% · Mac 31% · Chrome 17% · Firefox 8%）。
+- ⚠️ **砍掉第 3 屏是判断，不是数据**：我们仍然看不到人在第几屏掉队。
+  `onboarding_done.step`（telemetry-design §3.6）出货之后才会告诉我们，**到那时要回头核**
+  这一刀有没有用。
+
+## extObSeen 是流程标记，不是配置标记
+
+`extObSeen` 只回答一句话：**这个人看过扩展的引导页没有。** 它与「配好了没有」正交，
+而且两个方向都能拆开：
+
+- 什么都没配、它却已置位 —— 任何一次「以后再设置」都会写它；
+- 配得好好的、它却没置位 —— 设置页点一下「重看引导」就会删掉它。
+
+所以**拿它当「配好了」的信号会立刻出错**。要判「配好了没有」，用
+`content/engine-state.js` 的 `needsSetup`（判据见上一节）。
+
+落点：写它的只有引导页的 `finish()`，删它的只有设置页的「重看引导」，**读它的只有弹窗
+那条「第一次用？」**。`test/ext-ob-seen.test.js` 钉住这三条 —— 一句提醒不是门禁。
+
+它**故意不与 App 的 `onboardSeen` 同名**：两边存储不通（`app/chrome-shim.js` 把
+`chrome.storage` 垫在 `file://` 的 localStorage 上），同名会让人写出「App 看过了扩展
+就不用看」这种假联动。
+
+## 一键配置与逐引擎配置永不同屏
+
+**不变量。** 任何界面、任何时刻，一键配置卡与逐引擎配置控件不同时渲染。一键卡在场时，
+必须有且只有一条可见、有标签的路通向逐引擎配置，且那条路落地后一键卡不在场。
+
+第二句和第一句一样重要：一键卡只覆盖「同一个 host 一把 key 通吃翻译+朗读+转写」的
+平台 —— 全球版 11 个对话引擎里覆盖 2 个，中国版 7 个里覆盖 1 个，且中国版没有免费
+通道。**只藏不给路是退化，不是简化。**
+
+**为什么这是正确性而不是排版。** 两者共存时，用户在逐引擎那一侧改了引擎或 key，
+一键卡里那份「已配过 / 没配过」的判断当场变成谎话，而它下一次被按下就会照着那份谎话
+写存储：把用户刚输入的 key 覆盖掉，并报告「✓ 通了」。反向同样成立（清空了 key，卡片
+说「没动 · 你已经配过了」，翻译其实没配上）。2026-08-31 在设置页上实测到这三种表现。
+
+配套的两条实现约束：
+
+- **一键卡在按下按钮那一刻才读设置**，不用渲染时的快照。快照会跨模式、跨标签过期，
+  而「重画一次」修不干净（重画会吃掉用户填了一半的 key）。读失败必须什么都不写 ——
+  一个读不出设置的时刻不该被当成「用户没配过」。
+- **两处的控件是同一个组件生成的**（`extension/learn/engine-fields.js`），id 也是同一套。
+  两份「长得像的实现」意味着以后每次改都要改两遍，而漏掉的那一遍不会有人发现。
+
+*(2026-09-08:)* 免费额度段落（`#grant-card`，见「免费额度」一节）住在一键卡**里面**，
+不含任何引擎控件，所以不构成第二张卡；它与「用自己的 key」表单同 tab 并列。
+
+*(2026-09-12:)* 本机条目（`设备内置转写` / `设备内置朗读`，见下「实时转写（可选）」的本机段）
+不属于任何 key 组（`needsKey: false`），所以**永远不出现在一键卡上** —— 既有的 `eligible()`
+规则已经得出这个结果，不用新画任何东西；选了本机条目的人，一键卡照旧只管它覆盖的那几个
+云端槽。
+
+### 实时转写（可选）— 2026-09-11
+
+> **2026-09-17：本节整体退役（待人评审）。** 实时转写固定为设备内置识别（learning-design §9.6 门控
+> 2026-09-17 修订、domain-design §2.4 / §7），云端实时引擎从产品里去掉。于是一键卡**没有**「实时转写
+> （可选）」格（所有宿主）、`#quick-live` 锚点删除、转写下拉没有「· 实时」「· 实时 · 本机」后缀、
+> 弹窗没有 `file_only` 态、免费额度卡上「另配实时引擎 →」尾巴删除、`grant_no_live` 删除。
+> 一键卡结果区两宿主都是**三行**（翻译 / 朗读 / 整段转写），卡下一行小字「对话 · 实时字幕（App）
+> 用设备内置识别，不需要 key」。「本机引擎（2026-09-12 补记）」段里的 `设备内置转写` 下拉条目与
+> `device_no_file` 随注册表条目一起消失；`设备内置朗读` 条目**不受影响**（它仍是朗读下拉里的一项）。
+> 下文逐字保留作为 2026-09-11 → 09-17 这段路的记录。设置页的新形状见下一节「设置页信息架构」。
+
+**起因**：一键配置的默认平台 OpenRouter 没有实时转写接口（官方只有 HTTP 转写），于是一键配好的人
+在直播 / 流媒体上按「实时转写」、或打开 App 的「对话 · 实时听译」时撞到「没有实时接口」，且没有出口。
+用户裁定：**一键卡多一段可选的实时转写 key**，不改默认平台。
+
+- **出现条件**：所选平台自身的转写条目没有 `liveEndpoint`（从注册表推导，domain-design §7）。
+  中国版千问有实时接口 ⇒ 不出现。另一触发：现读存储后转写引擎没有实时接口（含免费额度的
+  `grant_stt`、本机引擎）⇒ 即使平台自身有实时接口也显示这段的副文。
+- **形状**（住在一键卡里，`keyLink` 之后、隐私句之前，`#qs-live`）：标题 「实时转写（可选）」；
+  副文 「{p} 没有实时接口。视频/播客的实时转写，和 App 的『对话 · 实时听译』都需要它 —— 另配一把
+  {live} 的 key 就能用；不填也行，转写走整段模式。」（`{p}`/`{live}` 从注册表标签注入，**串里不写
+  品牌**，中国版合规门会红）；key 输入框；「还没有 key？去 {live} 申请 ↗」（同 host 的 chat 条目的
+  `keyUrl`）；隐私句 「实时转写会把页面音频送到 {liveHost}」只在填了时显示。
+- **写盘规则**：**只在实时框里填了 key 时**才把转写槽换成有实时接口的引擎（`sttEngine` = 该条目、
+  `sttApiKey` = 这把 key、端点/模型清空 = 走注册表默认；文件档与实时档都走它）。转写槽已配但没有
+  实时接口（含用户自配的本机引擎）⇒ 视为可覆盖，结果行如实写 「替换了原来的 {cur}（它没有实时
+  接口）」；已有实时接口 ⇒ 跳过 「已有实时接口」；**不填一字不动**（与今天逐字相同）。
+- **结果区转写行三态**：「✓ 通了（{live}，含实时接口）」/「✓ 通了 · {engine} 没有实时接口 —— 需要
+  实时转写时在上面另配 ↑」/「替换了原来的 {cur}」。
+- **配套出口**：`asr_err_nolive` 停机行带 「去配一个带实时接口的引擎 →」（`options.html#quick-live`，
+  锚点先切到快速 tab、聚焦实时框；中国版无此段时回落 `#stt`）；免费额度卡上 「实时听译不在额度
+  范围内」那句加尾巴 「另配实时引擎 →」；App 「去设置里选择 →」落到一键卡的实时框。
+- **转写引擎下拉标注**：三处（设置页 / App 设置页 / 引导页）的转写下拉，有实时接口的条目后缀
+  「· 实时」（`engine-fields.js populate` 的 `liveSuffix`），让「哪一项能实时」对用户可见。
+- **不做**：默认平台改 OpenAI（要补三条实测推荐轴、改钉死的顺序、翻译成本上升、官网教程改口，
+  只解决国际版；本方案用一格可选输入换来同样的结果）。
+
+**本机引擎（2026-09-12 补记，随 device-speech 领域设计变更）**
+
+- **这段不出现的第三个条件**：现读存储后所选转写引擎是 `设备内置转写`（注册表 `type ===
+  'device-transcribe'`）。本机引擎**本身就是实时接口**（domain-design §7：是否实时由 `type`
+  推导，不加布尔字段），所以「另配一把实时 key」对它是个假问题；上面 2026-09-11 那句「含本机
+  引擎 ⇒ 显示副文」自 2026-09-12 起**只指本机之外没有实时接口的引擎**。
+- **下拉里的本机条目**：`设备内置转写（免费 · 离线 · 仅 App）` 与 `设备内置朗读（离线模型 · 仅 App）`
+  **只在宿主 App 的下拉出现**（`engine-fields.populate` 收调用方注入的 `deviceOk`，组件自己不探桥），
+  **扩展的三处下拉永远没有它们** —— 扩展没有原生桥，出现一个选了没用的项等于承诺一件做不到的事。
+  它们渲染成**只有选择、没有字段**的行：不出 key、接口地址、模型三个输入框（注册表全部
+  `supports* = false`、`requiresEndpoint: false`、`defaultEndpoint: null`）；转写条目的后缀是
+  「· 实时 · 本机」（`stt_device_suffix`，接在 2026-09-11 的 `liveSuffix` 机制上），让「这一项能实时、
+  且不出设备」在下拉里就看得见。旧系统（iOS 26 / macOS 26 之前）的 App 里桥报 `unsupported`
+  ⇒ `deviceOk=false` ⇒ 条目不出现；入口那边给具名原因（见「对话 · 实时听译 › Entry & gating」）。
+- **说题型（复习里的「朗读这句」）**：转写引擎选了 `设备内置转写` 时，说题不是「没有端点」——
+  本机引擎目前只接对话的流式路，没有整段文件档。说题控件因此 disabled 并给**具名**原因
+  `device_no_file`「设备内置转写目前只用于对话」，**不是**通用的「没有接口地址」句（那句会把
+  用户引去填一个本机引擎根本没有的地址框）。掌握阶梯照 2026-08-12 的规则跳过说题形态。
+
+落点：设置页是「快速 | 详细」两个 tab；扩展引导页第 2 屏是「一键配置 | 三引擎分别配」
+两个 tab，后面几屏共用。门禁在 `scripts/verify-onboard.js`（互斥、旧块不在 DOM、
+两个 tab 之外没有任何引擎控件）与 `scripts/verify-extension-smoke.js`。
+
+## 设置页信息架构 — 2026-09-17（两宿主，待人评审）
+
+画布（用户已按默认便签点头）：https://claude.ai/artifact/7QC3NQBgtto5SrH3tceYTo；工作文件
+`design/settings-ia/`（`gen.mjs` 生成 `project/*.dc.html`）。起因是用户 2026-09-17 的五条投诉：一键卡 /
+快速 / 详细三层叠在一起；朗读的模式 / 引擎 / 音色 / 语速 / 试听散在一堆；听译一组孤立；账号 / 额度 /
+遥测等非引擎项混在长页；「系统 tts 下载触发也没感受到」。
+
+**四节，按「用户想做什么」分，两宿主同一词表**（【E】仅扩展，【A】仅 App）：
+
+1. **引擎与密钥**（页顶）。`#mode-tabs` 搬到本节标题右侧，**「快速 / 详细」只管这一节**（用户裁定
+   2026-09-17）—— 其余三节与档位无关、永远可见，这正是「采集开关与登录入口不属于逐引擎配置那一档」
+   那条的推广。快速档：`#grant-card`【国际版】→ `#quick-setup-card`（结果区三行）。详细档（`.adv-only`）
+   **三张**槽卡，同一个 `EngineFields.render`：**翻译** `#engine-card` + 折叠子块「解析这句：跟随翻译引擎 /
+   改用别的引擎 ▸」（notes 槽从 learn-card 搬入）；**整段转写** `#stt-card`（新包裹节，`stt-*` id 原样；
+   用途一句「说题 · 转写整段音视频」【E】/「说题」【A】+ Gate C 句；下拉只列云端 / 自建）；**朗读**
+   `#tts-card`（引擎 + 字段 + **音色** `tts-voice`（App 从两档可见变为详细才可见）+ **离线模型行**（仅
+   `device-speech` 选中时，learning-design §9.1.1 五态）+「试听一句」两态）。详细卡顶一行小字「一键配置在
+   『快速』里 →」——「永不同屏」照旧，但路必须有。
+2. **功能**。每块**首行一条只读「依赖」行**（新共享组件 `learn/dep-line.js`，进 app-bundle MODULES）：
+   「依赖 · 朗读：{label} ✓ · 解析：跟随翻译引擎 ✓」/「实时转写：设备内置（本机 · iOS 26 / macOS 26）✓」/
+   「{slot}：未配置 → 去配置」/ 快速档「由一键配置提供 ✓」。标签走 `EngineFields.labelOf`（不在注册表外
+   复述引擎名）；「去配置」按下面的锚点表翻到对应槽卡。块：**网页翻译显示**【E】（`#lang-card` +
+   `#style-card` 合排；App 只有 `ui-lang`）；**复习**（`tts-mode`、`tts-autoplay`【E】/ `tts-auto`【A】、
+   `tts-rate`、`learn-daily-new`【E】/ `daily`【A】、`btn-open-review`【E】）；**学习采集**（`learn-enabled`
+   【E】、`doc-capture`、学习语言、来源管理）；**播客模式**【A】（`drive-*`）；**对话 · 实时听译 与 实时字幕**
+   【A】（依赖行 + 「识别语言包」行 `listen-pack-row` + `listen-my-lang` / `listen-other-lang` / **新**
+   `subtitle-video-lang` + `listen-autospeak` / `listen-capture` / `subtitle-capture` + Gate H 句；语言下拉
+   只列本机识别器支持的；**旧系统态整块换成一句**「需要 iOS 26 / macOS 26 —— 本机识别器在这台设备上不可用」）；
+   **文档翻译**（`doc-capture`、`doc-prefetch`【A】、`btn-open-docs`【E】）。
+3. **账号与数据**。`#sync-section`【E】/ `account-*`【A】原样；**免费额度只读摘要行**【国际版】
+   「免费额度：{status} · 剩 {left} · 管理 →」链回 `#grant`（卡本身留在 ①，不含引擎控件，不构成第二张卡）；
+   学习库（统计 · 导入导出 · 拆分 · 清理）；缓存（`#cache-card` 去 `adv-only`，`tts-cache` / `btn-clear-tts`
+   从 tts-card 搬出 —— 缓存不是引擎配置）。
+4. **关于**。版本 · 反馈 · 遥测开关 · 重看引导 · 清除本机全部数据。
+
+**搬家规则**：「搬」= 移动 DOM 节点，**id 一个不改**（`SAVE_FIELDS` 29 个、`verify-app-bundle` 的
+`settingsMissing`、smoke / onboard 门禁都钉着 id）；新 id 只有 `subtitle-video-lang`、`listen-pack-*`、
+`tts-offline-*`（原拟 `tts-model-*`，与既有的 `tts-model-label` 撞名，落地时改名）、`dep-*`。控件搬家表见画布「解剖」板；从 `adv-only` 卡搬进 ②③ 的控件（`tts-mode` /
+`tts-rate` / `tts-autoplay` / `learn-daily-new` / `cache-card` / `tts-cache`）**去掉 `adv-only`**，
+`verify-extension-smoke` 反过来断言它们在快速档可见；`ENGINE_CARDS` 互斥清单加 `stt-card`。
+
+**锚点**：统一规则「目标或祖先带 `.adv-only` ⇒ 先切详细；带 `.quick-only` ⇒ 先切快速」（`options.js`
+`#engine` 的 `before` 先例推广到全部）。【E】`#engine` · `#stt`（改为切详细）· `#grant` · `#learn` ·
+`#sync` · 新 `#tts` · 新 `#review`；删 `#quick-live`。【A】新增与 options.js 同形的 `ANCHORS`：
+`stt / tts / notes / listen / account`。首页灰态（旧系统）**不跳设置**，原因写在按钮上方。
+
+**不做**：按引擎类型分组 + 加「用途」列（画布第 2 页存档）—— 只回应了投诉 ④ 的一半。
+
+## 系统翻译（iPhone）与快速翻译（Mac）— 2026-09-19（App 专属）
+
+展开见画布 `design/system-translate/`（https://claude.ai/artifact/8MhQaLV87tzgoG13GBaUpb ，6 页 35 板；用户 2026-09-19
+「按默认」落定 12 条）。这里只记**不变量**；来源模型在 domain-design §2.6，桥与采集在 learning-design §9.9。
+
+### 两个面共用
+
+- **原文永远留着。** 加载、失败、未配置，任何一态都先显示用户交来的文字 —— 失败不该连用户选的字一起吞掉。
+- **右上角小字是将要用的引擎。** 用户一眼知道字发给了谁。
+- **失败 = 一句具名的话 + 一个出口**，文案**逐字复用**既有的那几句（`auth_err_key`、`grant_err_*`、`err_reasoning_starved`、
+  `engine_test_timeout` …），不另写。出口只有两种：能自己好的给「重试」，要改配置的给「打开大肚猴翻译 / 打开设置」；
+  两者不同时出现（要改配置时给「重试」= 再失败一次）。
+- **原文已是目标语言 ⇒ 自动反向**（中↔英），语言 chip 变绿并写明原因；没有「无需翻译」这种死路。判不出语种按「不是目标语言」处理，
+  不为判语种多发一次请求。
+- **慢的时候要诚实**：5 秒后骨架下多一行「还在翻 —— 免费额度走我们的中转，比自己的 key 慢」；不转圈、不假进度条；
+  「取消」真的中断请求。
+- **第一版不做**：朗读按钮、独立的翻译历史、加星、弹层 / 面板里的采集开关（画布裁定 1、2、7）。
+- **超过 2 000 字**：照翻，不进复习库，一行小字说明，不弹框。
+
+### 系统翻译（iPhone 弹层）
+
+- 「替换原文」只在系统说可替换时**存在**；不可替换时按钮不存在，不是灰掉。
+- 目标语言在弹层里改**只对这一次生效**（扩展回写不了 App 的设置）；菜单最后一行指路「默认在 App 的设置里改」。
+- **第一次使用时系统自己先弹一页**「所选内容将发送给大肚猴翻译进行翻译处理 · 继续 / 更改默认翻译App」。我们自己的披露排在它之后：
+  弹层底部一行小字，点名引擎、说明不经过我们的服务器；**不可点、不拦路**，读过即止。用免费额度时换成中转那一句。
+- 未配置两态：从没配过（国际版主行动「领免费额度」、次行动「用自己的 key」；中国版只有「配置引擎」）/ App 里配了但还没同步
+  （「打开一次 App 就好」）。按钮拉起 App，落在设置的「引擎与密钥」，顶上一行「从系统翻译过来的：配好后回到刚才的 App 再点一次翻译」。
+- App 设置里的「系统翻译」块四态：系统低于 18.4（变淡 + 具名原因）/ 引擎未配 / 已同步（写明同步过去的是哪个引擎、译成什么）/
+  同步失败（一句原因 + 再同步 + 反馈出口）。三步指引是文字：系统不提供直达那一页的链接，也不告诉我们「是不是默认」——
+  首页发现卡的「已在用」以**第一次从收件箱收进句子**为判据。
+- **弹层字号**（#495，2026-09-29 裁定）：App 设置「系统翻译」块内一个三档选择（小 0.85 / 标准 1 / 大 1.2），与实时字幕条的
+  `FONT_STEPS` 同族。只缩放弹层里**原文与译文正文**；状态、披露、按钮保持系统字阶。档位与系统 Dynamic Type **相乘**（跟随系统
+  + 单 App 微调都成立）。存值不在档上时就近落档；经 vault 快照传给扩展，改动**下次弹层生效**（运行中的弹层不热更——它的
+  生命周期半分钟，不值得为它加一条监听通道）。
+- 收件箱收进复习库**静默**；采集关着时**丢弃并清空**。
+
+### 快速翻译（Mac 面板）
+
+- **默认不抢焦点**：面板出现时，别的 App 里的光标、选区、全屏状态都不变。只有「输入翻译」与用户主动点进原文框时才拿键盘焦点。
+  从右键「服务」进来时系统会把我们拉到前台 —— 收到文字的同一刻把焦点还给刚才那个 App。
+- **来源标签常在**：选中文字 / 剪贴板 / 截图 / 输入 / 服务。零权限路径下，它与可见的原文框就是「发出去的是什么」的防线。
+- 出现在鼠标右下 12 px；贴边翻转；多屏留在鼠标所在的屏；盖在全屏 App 之上；与实时字幕条同时在时面板在上、字幕条不动。
+- 关闭：Esc、✕、点面板外、切 App（没钉住时）。**拖动即钉住**；钉住不拦 Esc、不跨重启记忆。再次触发 = 同一面板换内容；
+  上一句还在翻时再触发 = 取消上一句。
+- 原文可编辑，回车重翻。面板里改目标语言**会写回**「译成」设置（与 iPhone 弹层不同，因为面板就在 App 进程里）。
+- **零权限路径的三个陷阱**各有一句话：剪贴板为空 / 非文字（同时教 ⌘C 与增强取词两条路）；与上一次完全相同（显示上次结果 +
+  「是不是忘了 ⌘C？」，不重发请求）；**带隐藏 / 临时标记 ⇒ 不读、不发、不存**（硬规则，不是设置项）。
+- **增强取词**：默认关 → 我们先说「会做 / 不会做」各两条 → 系统弹窗 → 授权后「**重新打开后生效**」+ 重开按钮；被拒 ⇒ 开关弹回 +
+  一句话 + 「打开系统设置」；**「允许了」与「拒绝了」在点完的那一刻分不清**（系统弹窗不回调，授权后正在运行的进程也读不到新权限）⇒
+  画布的 ④ / ⑤ 两态落地成一态「请在系统窗口里允许 · 允许之后要重开才生效」+「现在重开」「打开系统设置」，**开关此时仍显示为关**；
+  分晓在下一次启动：权限在 ⇒ 开关是开的，不在 ⇒ 弹回 + 那句话（2026-09-19 落地时定）。事后被撤销 ⇒ 热键自动退回剪贴板路径 + 面板一行提示。**任何地方都不出现「请手动把 App 加进列表」。**
+  发出 ⌘C 后 0.3 秒剪贴板没变 ⇒ 「没有取到选中的文字」+ 改用截图；**绝不退回去翻旧剪贴板**。剪贴板原样奉还是不变量。
+  系统收紧剪贴板之后：读取 1 秒超时 ⇒ 当作没取到，面板不卡。
+- **截图翻译**：第一次用时才要录屏权限，之前先说一句「只在你框选的那一刻截你框的那一块，识别完即丢弃」；授权后要重开；被拒时入口**不消失**。
+  框选层：全屏变暗、十字光标、尺寸标注、Esc 取消、每块屏各一层；小于 12 × 12 当误触。识别出的原文可编辑。一台 Mac 上第一次识别多一行
+  「要准备一下，大约 20 秒」。没认出文字 ⇒ 「重新框选」；引擎支持识图时多一个次级按钮，**旁边写明截图会发给谁** —— 点了之后截图才离开设备。
+  macOS 低于 14 ⇒ 入口整个不出现。
+- 设置块只在 Mac 出现；「快速 / 详细」照旧只管「引擎与密钥」一节，这一块两档都在、详细档多露几行。快捷键录制控件五态
+  （空 / 录制中 / 已设 / 冲突 / 被拒绝的组合 —— 只有 ⌥ 加字母数字的直接不让设）；默认 ⌃⌥T、⌃⌥S、输入翻译留空。「登录时启动」默认关。
+- **常驻**：第一次关主窗口时一次性提示「大肚猴还在菜单栏」；`quickEnabled` 关掉 ⇒ 菜单栏图标消失、关窗即退出（实时字幕进行中不退出那条规则不变）。
+- 新增的「译成」设置（两宿主同一个组件）默认「跟随界面语言」，老用户升级后行为不变；它不管对话 · 实时字幕（那里有自己的一对语言），
+  也不管扩展的网页翻译（两边存储不通）。
+
+## 从翻译到复习：跨面交接 — 2026-09-01
+
+**这条链路有四个环节，任何一环断了，用户看到的都是同一个症状：App 里永远是空的。**
+2026-09-01 用户在真机 1.7.0 上顺着引导走完一遍之后报的正是这个 —— 翻译成功了，然后
+什么都没发生。
+
+| 环节 | 谁做 | 触发点 |
+|---|---|---|
+| ① 采集 | 内容脚本 `learn-collector.js` | `learnEnabled` 打开 + 停留够久（默认**关**） |
+| ② 落库 | `drain.js` | 弹窗 / 设置页 / 复习页打开时 |
+| ③ 上传 | `sync.js` 的 `push` | **弹窗**、复习页、设置页打开时（见下） |
+| ④ 下拉 | App 的 `quietSync` | App 启动、回前台、`online` |
+
+### 链路的形状（2026-09-02 重排）
+
+```
+引导四屏：边读边记 → 配引擎 → 开采集 → 去翻一页        ← 引导到此结束
+                                             ↓ 新标签
+官网试翻页：点悬浮球 → **出现译文** → 交接块「看看你的卡」
+                                             ↓（先落盘）
+复习页：看到刚读过的那句 →「未登录，仅本机数据 →」可点
+                                             ↓
+设置页登录 → 下一步是「去看你的卡」+「在 App 里继续复习 →」
+```
+
+四条不变量，每条都是从一次真实的断裂里来的：
+
+1. **登录永远不是墙。** *(2026-09-08 改写；原文「登录不在引导里」。)* 它曾经是第 4 屏，
+   排在「翻一页」之前 —— 要人在看到第一句译文之前先填邮箱、收验证码，那是墙。带着免费
+   额度之后，登录可以在**选引擎屏**作为一个**选项**出现：与「用自己的 key」并列、「继续」
+   同屏可见、不选也能走。登录的请求仍归官网交接块与复习页；引导里只多一张卡，不多一道门。
+   `verify-onboard.js` 的判据随之改为：「登录」字样只许在 `#ob-grant` 内，且与 `#ob-quick`、
+   `#ob-next` 同屏可见；中国版零登录字样。
+2. **交接块只在译文真的出现之后才画。** 它说的是「译文出来了」；在初始化期就画等于
+   在页面一打开、一个字没翻的时候说这句话。判据是 `.mt-translation` 落进 DOM
+   （MutationObserver，命中即断开），不是「脚本跑到了这里」。
+3. **进复习页之前先落盘。** 采集只在 30 秒定时器或 `pagehide` 时写 outbox，而交接块用
+   `window.open`——源页不卸载，两个条件一个都不满足。不落盘就开，等于把人送进一个
+   刚刚还空着的房间，然后由空态告诉他「去打开采集」——而采集正是他两分钟前亲手打开的。
+   落盘放在**画块时**，不是点击时：点击那一刻必须留给同步的 `window.open`（用户手势）。
+4. **空态分两支。** 采集关着 ⇒「去设置里打开采集」；采集**开着**而 0 条 ⇒「采集已经
+   开着了，读几段就会出现」，且不再给那个按钮。判据读 `learnEnabled`，不是只数条数。
+
+**「去看你的卡」两个 flavor 都有。** 中国版没有同步，但采集与复习是完好的**本地**功能；
+`MT_SYNC_ENABLED` 只管登录/同步那一支的文案与「直接去登录」链接，不许把整块关掉
+（2026-09-02 之前它就是被整块关掉的，于是中国版从翻译到学习零路径）。
+
+**登录之后的下一步要往前，不是往回。** 那里曾经唯一的按钮是「现在翻一页看看」——
+引导 `try` 屏干的事。登录的价值在后面两件事上：看到自己的卡，以及让它们出现在 App 里。
+
+### 弹窗也是心跳（推翻 2026-08 的「弹窗不加载 auth.js」）
+
+③ 原来只有复习页与设置页两个入口级触发点。一个装好扩展、天天在网页上翻译、采集攒了
+几百张卡、但**从没点开过那两页**的人，服务器上是空的 —— 于是他在 App 里读到「同步完成，
+但服务器上还没有内容」，而他确实什么都没做错。
+
+原来那条决定（弹窗只负责快点画出一个数字）成立的前提是「别的面会推」，而探查证明没有
+别的面会推。所以弹窗现在也算一次心跳，规矩三条：**排在画计数之后**、**不带 force**
+（受 10 分钟节流）、**失败全吞**。代价如实记：弹窗一关 JS 就死，push 可能被打断 ——
+后果是下次重推、服务器多一条 chunk 行（append-only，replay 幂等），不是数据损坏，
+而水位线 `syncPushedAt` 是全有或全无，被打断时不推进。门禁 `test/popup-heartbeat.test.js`。
+
+### 官网试翻页上的交接块
+
+「现在翻一页看看」落到 `/try/<目标语言>.html`（由 `scripts/gen-try-pages.js` 从
+`build/try-pages.config.js` 生成）。**按目标语言分页**：示例段落的价值在于「这段你读不顺，
+翻一下就顺了」，而把目标语言设成 English 的人打开一页英文示例，看到的是英文翻英文。
+
+那一页上有一个交接块，三条不变量：
+
+1. **页面只发空容器，文案由扩展的内容脚本填。** 于是它跟随用户在**扩展里**选的界面
+   语言（11 份，不是站点的 8 份），且没装扩展时不可能出现。
+2. **它不知道、也不许知道用户登没登录。** 内容脚本只读显式键列表，`learnAuth` 永不
+   加入任何一份（`learning-design.md` §8.4.1）。所以它不假装知道 —— 它把人送到复习页，
+   登录状态由那一页自己讲。
+   *(2026-09-08:)* 免费额度也一样 —— 官网只说「有这条路」（安装后登录可领），不知道
+   也不问用户领没领；内容脚本连 `grantTail` 也不带进这一块。
+3. **中国版站点不发它。** 那个 flavor 的扩展 sync 是关的，给了就是死路。
+
+主行动是**复习页**而不是设置页：复习页打开就是一次强制同步，一步同时完成「看到你的卡」
+与「把它们推上去」。采集关着时换一套文案、改指设置页 —— 把一个没开采集的人送去空的
+复习页，是把失败推迟到下一屏。门禁 `scripts/verify-site-handoff.js`（真实主机名 +
+真实扩展，走 CDP 请求拦截）。
+
+### 「不登录 = App 是空的」必须说在人会等的那个点上
+
+`learning-design.md` §8.1 早就要求过这句话，但在这之前它没有落地处。现在有三处：
+扩展引导的 sync 屏、官网交接块、App 空态。三处措辞可以不同，但都不许把登录说成
+「可选的小功能」——它不是降级，它是 App 里有没有东西的分界。
+
+### 界限是「浏览器 ↔ App」，不是「电脑 ↔ 手机」
+
+**不许再写「让它们到手机上」「在手机上复习电脑上读到的句子」这一类话。**
+两个面完全可能在**同一台设备**上：iPhone 上的 Safari 扩展与 iPhone 上的 App，
+Mac 上的 Safari 与 Mac 上的 App。2026-09-02 用户正是在手机上读到「让它们到手机上」。
+
+写这一族文案时的规矩：
+
+- 说 **App**，不说「手机」。平台名（iPhone / Mac）只在告诉别人**去哪儿拿它**时出现。
+- 说 **这个浏览器**，不说「电脑」。
+- 「同步」要说清它连的是什么：浏览器里读到的句子 ↔ App 与你的其它设备。
+
+### 采集开关与登录入口不属于「逐引擎配置」那一档
+
+两者都曾被打上 `adv-only`，而那个类是「一键配置 vs 逐引擎配置」互斥用的
+（见上一节）。代价是默认模式（快速）下**两个入口都看不见**，而产品里恰好各有一个
+按钮把人往那里送：官网试翻页的「去打开采集」、引导第 4 屏的「打开设置去登录」。
+按钮点了、人到了、控件不在 —— 两次真机实测，间隔一天。
+
+- 任何把人往某个控件送的按钮，落点是**那个控件**，不是页面顶部
+  （`options.html#sync` / `#learn`，锚点表在 options.js 里只有一份）。
+- `verify-extension-smoke` 的互斥清单只列**引擎配置卡**，并反过来断言采集开关与
+  登录入口在快速模式下**必须可见** —— 藏起来等于没有。
+
+### 登录成功不是终点，是倒数第二步
+
+登录本身对用户没有价值 —— 它的价值全在后面那两件事上：去翻一页，以及**在 App 里用
+同一个账号登录**。所以登录成功之后必须给出这两条，而不是把界面切成邮箱 + 用量 +
+三个管理按钮就完事（2026-09-02 真机实测：那一刻是个死胡同）。
+
+- 「用同一个账号」这句话**必须带上刚登录的那个邮箱**。不带具体值时用户没有可对照的
+  东西，而两端账号不一致正是这条链路最常见、最难自查的失败（见下一节）。
+  在这之前，这句话在全仓只出现一次，且只在 App 引导的最后一屏 —— 也就是只有已经装了
+  App 的人才看得到，而需要它的恰恰是还没装的人。
+- 任何把人往登录送的按钮，落点都是**登录框本身**（`options.html#sync`），不是设置页
+  顶部。`openOptionsPage()` 不接受 hash，所以那条路必须走 `getURL(...) + '#sync'`。
+  滚动要排在模式切换（`applyDetailMode`）之后并等两帧 —— 那一步会增删卡片，
+  滚完再改布局落点就偏了。
+- 登录区的标题必须含「登录」。从一个写着「去登录」的按钮点过来，看到一个只写着
+  「同步」的标题，人会以为走错了地方。
+
+门禁 `scripts/verify-signin-flow.js`：手机视口（窗口默认 1300×900 时登录区本来就在
+屏幕里，锚点滚没滚过去测不出来），断言落点坐标、标题含「登录」、下一步那一块可见
+且句子里带着刚登录的邮箱。
+
+### 两端账号不一致
+
+**代码里没有跨端一致性检查，也不该有**（不变量在数据层：`sync.js` 的 `ownerGate()`）。
+能做的是**让用户看得见可对比的事实**：App 空态那句话带上这台设备登录的邮箱，并提醒
+确认扩展那边是同一个。原来那句「先在浏览器里采集一些」在最常见的触发场景里是反过来
+指责一个已经采集了一周的人。
+
+`ownerGate()` 的两个 code（`owner_mismatch` / `owner_unknown`）必须两端都有人话 ——
+两个界面的兜底都是 `return e.message`，漏掉就是把英文标识符摆到用户眼前。
+门禁 `test/error-copy.test.js` 从源码数 code，不维护手写清单。
+
+## App 首屏：两段（2026-10-01 #532 的三段 → **2026-10-03 用户裁定撤掉引导屏**）— 登录（硬门）→ 资源包（硬门）→ 首页
+
+> **2026-10-03 裁定（issue #547/#548 同一条线）**：引导屏整块撤出屏序。原因是它已经空了 ——
+> 「开始设置 / 以后再设置」下面没有任何可设的东西（引擎随登录到账、两个包刚下完）；
+> 它的登录那一版还会对**已经登录的人**再问一次「登录，顺手领一份免费额度」，并写「扩展里也要登录一次」
+> （用户裁定：扩展登录的入口**只在设置页**）。就绪 ⇒ **直接落首页**（首页就是「对话 · 实时听译」那两张主角卡）。
+> 配套：首页**不再报状态**（配好就不显示那行「登录已配好…」）；设置页里**额度在用时不显示一键卡**
+> （额度在用与自己填 key 互斥）。
+
+**起因**：1.19.0 TestFlight 的第一条真机反馈（iPhone）。未登录的首页把「设置」、三个功能入口
+（对话·实时听译 / 实时字幕 / 翻译文档）与一张登录卡摆在同屏 —— 那三件在未登录、没配引擎、
+没下设备包时**一件都用不了**；同屏底下还写着「不登录也能完整使用」，与卡里那句「登录同一个
+账号，它们就会同步到这台设备」互相矛盾。更根本的一层：两个设备包当时是**懒加载**（第一次
+「开始听」/ 第一次朗读才下），失败发生在**已经开始使用**的中途 —— 用户原话是「这是用户用
+app 最大卡点」。
+
+**三段与唯一入口**（画布 · 可点击原型 · 判据原文：`design/firstrun-3step/`）：
+
+| 屏 | 守卫 | 内容 | 出口 | 可跳过 |
+|---|---|---|---|---|
+| **屏 1 · 登录** | `!isLoggedIn` | **只有登录**：品牌 + 一句话 + Apple / Google / 邮箱。没有设置、没有功能入口、没有复习入口 | 成功 → 屏 2 | **否** |
+| **屏 2 · 资源包** | 已登录且缺包 | **多选语言**（改稿 F，2026-10-11）：系统语言 + 中文 + English 默认勾上；听译基础必下；勾选的朗读包一起下。下载中主信号是一条细总进度（`xx% · 约 N MB`），逐项收在「进度详情」。蜂窝先问 | 下完自动离开这一屏（首启→首页，设置里补下→回设置）；不自动开听译；失败留在这一屏，按钮改成「重试」 | **否**（无跳过，下载中也不能改勾选） |
+| ~~**屏 3 · 引导**~~ | ~~就绪且没看过引导~~ | **2026-10-03 撤**（见上）：那一屏已空，且会向已登录的人再要一次登录、并导去扩展登录 | — | — |
+
+- **就绪 = 登录 ∧ 引擎可解析 ∧ 识别语言包 ∧ 朗读包 ∧ 基础组件**（语种识别 ECAPA 与人声检测 VAD
+  都要在本机；2026-10-11 改稿 F）。**不含 Safari 扩展** —— 扩展是屏 3
+  引导里的一步，不是门（`#485`「问过就不再问」的口径不变）。听译页的胶囊、两个说话键、状态卡
+  读的是**同一个** `readiness()` / `talkChrome()`。
+- **引擎可解析不参与屏序**（2026-10-01 模拟器实测改的口径，`src/app/firstrun.js`）。原来把
+  「引擎不可解析」也判到屏 1，理由是「同一屏，不为它另造一屏」；实测下来**不是同一屏**：
+  带着会话的人落在那一支时登录卡不适用，实际露出来的是**首页** ⇒ **屏 2 的硬门被整个跳过**
+  （两个包一个没下），而首页上没有任何东西能用 —— 死角。现在引擎只进 `isReady()`
+  （「配好了」的判据一个字节都不放松），不进 `step()`：缺包就一定是屏 2；包齐而引擎不通的人
+  落首页，由那里的「设置」出去。**领取额度排在首屏判定之前** —— 额度令牌晚一步落地，
+  就会把刚登录的人读成「引擎不通」（同一轮实测）。
+- **老用户直进**：已登录且就绪 ⇒ 不出现任何屏，直接首页；已登录但缺包 ⇒ 只出**补齐单屏**
+  （`TopUp`），既不重放登录也不重放引导。
+- **屏 2 完成过一次就不再回来**（1.19.4 r6，真机「划掉重进又回到下载页」）：下载完成那一刻记
+  `listenPacksDone`，之后冷启动**不按探针**回屏 2 —— 冷启动是系统模型清单最不稳的时刻。之后哪门
+  真没就绪，由首页与听译页的「未就绪 · 补回」接住。老用户首次启动探针全齐即补记。
+  详见 `learning-design.md` §9.6.1.11 ②。
+- **勾到第 N+1 门**（改稿 H 第 1 张）：名额卡下出一块提示「已满 N 门：{语言} 会标为「未就绪」」+
+  怎么补回；那一行标「未就绪 · 第 N 门」、右侧「这次不下载」。放不下的**不下、也不算进就绪**。
+  「已用」从本 App 占着的全部名额起算（不只是这次勾了的）。
+- **唯一允许的降级**：该语种系统不支持识别 ⇒ 只下朗读包 → `Home(notReady)`；**其余情形一律
+  不许绕过屏 2**。首页的未就绪态要写清缺什么、去哪补。
+- **为什么是硬门**：新用户的失败模式不是「找不到入口」，而是**没配好就开始用、第一次就失败**。
+  硬门把失败前移到一个能解释、能重试、有进度的位置；懒加载则把同样的失败放在人已经进入心流之后。
+- **App 的前提是登录**（`AGENTS.md` 规则 2/3 的 2026-10-01 注）；**浏览器扩展不受影响**。
+- 中国版与国际版**逐条同构**，只有引擎来源与出境同意那一条不同（`learning-design.md` §8.10.1）。
+
+**六条红线**（判据原文见 `design/firstrun-3step/firstrun-spec.html`）：① 未登录首屏只有登录
+（可点击元素 ⊆ {Apple, Google, 邮箱}，实心按钮 == 1）② 屏序可达且屏 2 无跳过、屏 3 有跳过
+③ 就绪判据覆盖且不含扩展（32 组布尔组合逐一断言；2026-10-11 起第五个输入是基础组件）④ 两 flavor 同构（DOM 快照对比，差异白名单 =
+出境同意条 / 额度来源行 / 引擎标识）⑤ 旧承诺防复活（「不登录也能完整使用」一类，含 12 语种）
+⑥ 一屏一填色 + AA + 文案齐。
+
+## 首次运行引导（App 侧）— 2026-09-01 补记
+
+`src/app/shell-model.js`（PR6a 前是 `app/app.js`）与 `app/index.html` 长期引用「§引导」，而这一节直到今天都不存在。
+
+> **2026-10-01 更新（#532）**：这一节描述的是**屏 3**（引导）的内部。它原来的第 2 屏 `signin`
+> **已移出**，成为独立的**屏 1 · 登录（硬门）**，并在登录与引导之间插入了**屏 2 · 资源包**；
+> 见上一节「App 首屏三段式」。本节的三条结论（登录必须尽早、`browser` 屏删掉、`ext` 收尾）
+> 仍然成立，只是登录现在早到「第一屏，且是唯一的门」。本节里「按这个构建有没有额度分岔」那一条，
+> 在中国版额度翻转（在 1.19.0 范围内，#532）之后，中国版也走「有额度」那一支。
+
+**2026-09-22 重排为三到四屏**：`welcome → signin → firstuse → ext`（`signin` 仍按
+`MT_BACKEND.enabled` 决定在不在）。三件事同时发生，理由都在读数里：
+
+- **登录从最后一屏提到第 2 屏。** 登录 = 拿到账号级的免费额度 = 引擎就绪，顺带把扩展
+  那边也备好。读数：App 侧登录过 29%、**有引擎只有 13%**；54 台登录并同步过的里
+  **47 台（87%）既没配引擎也没领额度**。而 **176/247 台整个生命周期不到 5 分钟** ——
+  没有第二次会话，放在最后等于多数人在拿到引擎之前就走了。
+- **`browser`（「还有两件事在浏览器里做」：填 Key + 打开采集）删掉。** 填 Key 正是
+  83% 卡住的那一步，而它的零摩擦替代（登录领额度）此前被排在它后面，顺序是反的；
+  采集默认就是开的。
+- **`ext` 降到最后一屏**，它是唯一会把人送出 App 的动作，而送出去就不回来（18 台点过
+  「我已打开」的里 16 台点完再没有任何事件）。因此那一屏的主按钮**兼作收尾键** ——
+  它排在中间时兼作前进键，两种情形都不能把照做的人卡在原地。
+
+**登录屏（第 2 屏）必须就地能登录**（2026-09-22 补，#396 落下的洞）。它原来能登录，是因为
+它是最后一屏、主按钮其实是「结束引导、落到首页登录卡上」；挪到中间之后若不跟着改，这一屏就
+只是一张说明，**点了只翻页、根本不登录**。所以：
+
+- 主按钮**代理首页那张卡上真的登录按钮**，不写第二份登录：一键的在前（Apple → Google），
+  都不在（桥缺席、或这个构建没开那家）才退到「用邮箱登录」—— 邮箱是多步表单，放不进引导，
+  它是唯一一条「结束引导、去首页那张卡」的路。
+- 副按钮「先不登录」排在主按钮**下面**，往下翻一屏。这一屏**不挂**全局的「以后再设置」：
+  两个意思相近的「不」并排，分不清哪个是跳过这一屏、哪个是整条引导都不要。
+- 登录成功后引导**自动前进一屏**，挂在 `show(session)` 上（Apple / Google / 邮箱三条路的唯一汇合点）。
+- 标题与正文按**这个构建有没有额度**分岔（问 `LearnGrant.enabled()`，不问 flavor 名）：有 ⇒
+  「登录，顺手领一份免费额度」；没有 ⇒「登录（可选）」+「翻译引擎可以在设置里填你自己的 key」。
+  中国版的额度已裁定但还没落地，现在对它说「领一份免费额度」是假话。
+
+**出境单独同意（中国版，2026-09-22）**：中国版 App 的账号与卡片存在东京，**登录就是出境的那一刻**
+（PIPL 第 39 条；人数少只免申报，告知与单独同意不免 —— learning-design §8.10.2）。所以：
+
+- 同意框放在登录按钮**之前**：首页登录卡 `#xb-box`、引导登录屏 `#ob-xb-box`，两份读写同一个存储键
+  `xbConsent`，一处勾了另一处跟着勾，**只问一次**。
+- **默认不勾**；不勾时 Apple · Google · 邮箱验证码 · 密码**四条登录路全部拦下** —— 拦在卡片的捕获阶段
+  （click / submit），新加一条登录路只要放在这张卡里就自动被拦；引导的主按钮在 `obStartSignIn` 入口先问。
+- 拦下时**在框上说为什么**（整块描边 + 一句话），并说明「不勾也能用，只是卡片不会同步」—— 登录本来就是
+  可选的，不同意不得影响其它功能，否则就不是「单独」同意。
+- 框里写明**接收方**（Supabase Pte. Ltd.）、**地点**（日本东京）、**哪些信息**（账号标识 + 卡片内容），
+  并链到隐私页第 3 节（接收方联系方式、用途、怎么撤回）。
+- 出不出现按**值**判（`xbNeeded`：flavor 为 china **且**后端域名在 `*.supabase.co`），不按 flavor 名：
+  境内后端就绪、产物地址换成境内域名那天，框自己消失。国际版永远不出现。
+
+门禁（`scripts/verify-app-bundle.js`，两个 flavor）：判据是**后端收到了什么** —— fetch 换成计数器，不勾就提交
+邮箱表单必须 0 个请求、勾上再提交必须 ≥1；框默认不勾、勾了落盘、两份同步；引导登录屏不勾点主按钮
+必须原地不动。国际版反过来断言：没有框、不勾也能发出请求（没被误拦）。三处先红后绿验过。
+
+**误点了「我已打开」：设置里能把首页横幅找回来（2026-09-22，画布 YEDD4VmT9Pv2htUpoWZ9ZB 第 2 页板 ⑤，用户点头）。**
+数据说延时提醒触达不到（18 台点过「我已打开」且没卡的里隔天回来 0 台），所以**不做**「7 天后自动回来」，只给手动入口：
+
+- 设置「② 功能」新开一组「Safari 扩展」，**只在横幅被「我已打开」收起过时出现**（没点过的人看不到 —— 对他那是一个什么都
+  不会发生的按钮）。说明里引用按钮原话用 `{done}` 占位、运行时填 `app_ext_done`，不在 12 份译文里各抄一遍（第一版抄了，
+  4 门语言对不上）。
+- 点「在首页重新显示『打开扩展』提示」：清掉 `extBannerDoneAt` **与当天已显示的计数** `tm:extBannerDay`（回首页立刻可见，
+  不用等到明天），就地说「已恢复」，按钮收起。Mac 能读到扩展开没开，恢复出来的横幅按真实状态显示。
+- 不加读数：横幅回来后照常发 `ext_banner{shown}`。
+
+门禁（`verify-app-bundle.js`，两个 flavor，真的重开 App）：点过 ⇒ 横幅收起、设置里有这一组且原话填对 · 点恢复 ⇒ 存储两键
+清掉、就地说已恢复 · 回首页横幅当场出现 · 恢复后再进设置这一组不在。证伪：让这一组永远显示 ⇒ 红。
+
+**「以后再设置」只记这一次（2026-09-22，画布「以后再设置只记这一次」，用户点头两处）。** 原来跳过与走完写同一个
+`onboardSeen` ——「以后」这两个字是句假话，按下去就是「永远不」。现在：
+
+- **跳过**只写 `onboardResume: { step, shows }`（停在哪一屏、那张卡跟着出现过几次启动），**不写** `onboardSeen`；
+  **走完**照旧写 `onboardSeen` 并清掉 `onboardResume`。
+- 下次打开 App：**已登录或已有引擎**（`EngineState.needsSetup` 为假，判据只有这一处）⇒ 什么都不出，并永久收起。
+  否则**不重弹整条引导**（被跳过的东西再挡一次路是打扰），未登录首页顶部出一张卡：「继续设置 · 还差 N 步」，
+  主按钮「从上次停下的地方继续」回到那一屏。
+- **✕ = 永久收起**（写 `onboardSeen`）；卡最多跟着 **3 次**启动，第 4 次自己收起并永久记上，不纠缠。
+- 卡在场时**扩展横幅让路**：它继续的那条引导最后一屏就是「打开扩展」，首页不挂两张「还差一步」。
+- 2026-09-22 之前跳过过的人已经写了 `onboardSeen`，不受影响（分不出来，也不追溯）。
+
+门禁（`scripts/verify-app-bundle.js`，两个 flavor）：**真的重开 App**（重载页面），逐次读回存储与界面 —— 跳过不写
+`onboardSeen` · 重开出卡不出引导 · 横幅让路（且卡收起后横幅能回来，防空转）· 点继续回到停下那屏 · 第 3 次还在、第 4 次
+收起 · ✕ 当场永久 · 已有引擎就不出。证伪：跳过改回写 `onboardSeen` ⇒ 红；摘掉横幅让路 ⇒ 红。
+
+**「就地试一句」（第 3 屏，替换原来的「去读一篇」）**：素材**内置**，不让人自己找、自己粘；目标
+语言是英文的人换一句非英文的（拿英文翻英文，译文和原文几乎一样，看起来就像没翻）。两个动作
+走的都是功能真正用的那条传输（`TranslationAPI.translate` / `LearnTTS.speak`），不另造请求。
+**主行动是「翻这一句」**（填色），「继续」在这一屏退成次级 —— 两个填色按钮并排时看不出该点
+哪个，而填错成「继续」时，人一眼看到的主行动是「跳过去」。没有引擎时**具名**说出来（不带 ✗，
+与传输失败分得开），且同样按「有没有额度」分岔。**不给「先跳过」**（右上角全局的「以后再设置」仍在）。
+
+门禁（`scripts/verify-app-bundle.js`，两个 flavor 都跑）：按**页面自报的屏名**走屏（`body.dataset.obStep`），
+不是固定点 5 次 —— 原来那条 `seen.length === 5` 数的是循环次数，屏数变了它照样是 5，结构上红不了。
+断言屏序、登录屏主按钮不是「继续」、**填色的是哪一个**（不只是「至多一个」），以及「翻这一句」
+在**钉死的两个状态**下各说出正确的话（没有引擎 / 有引擎且传输桩成一句译文）。
+
+**登录成功即自动领额度**（2026-09-22，learning-design §8.10.1）：不再让人自己去点一次
+「领取」。挂在 `show(session)` 上 —— 那是**所有**改变登录态的路径的唯一汇合点，所以
+启动时带着旧会话进来的人也会被补上（读数：54 台登录并同步过的里 **47 台既没配引擎也
+没领额度**）。三个闸：没登录不做 · 这个 flavor 没有额度这条路不做（中国版 `MT_GRANT`
+恒为 null）· **已经配好引擎的不做**（判据只用 `EngineState.needsSetup`，`overwrite`
+传 false，绝不碰用户自己的 key）。领取那一刻**不弹三行自检卡** —— 它会盖住引导；
+回执留给设置页与引导自己那一屏。领额度这条流程只有一份实现（`AppSettings.claimAndApply`），
+门禁在 `test/grant-one-implementation.test.js`。
+
+`ob_welcome_title` 同日改为「学习你真正在读的东西」，正文改成先讲**这个 App 自己能做
+什么**（划词翻译 / 听一段 / 实时字幕），不再一上来就讲分工 —— 24% 的人本来就会自己去
+找听译，而其中一多半手里没引擎。
+
+原文（2026-09-01）：四到五屏 `welcome → ext → browser → read` (+ `signin`)；少掉的三屏
+（配翻译引擎 / 打开采集 / 看第一张卡）当时 App 做不到 —— 它们都在扩展那一侧，两边存储
+不通。
+
+> **「在 App 里画一个引擎选择器是假控件」这句话在 2026-09-20 作废。**
+> 它写于 App 还只是复习壳的时候。1.12.0 的设置重设计之后，App 自己就有「引擎与密钥」
+> 一节（一键配置卡 + 详细模式），文档翻译 / 对话听译 / 实时字幕 / Mac 快速翻译 /
+> iPhone 系统翻译**五个功能都只读 App 这一侧的配置** —— 在 App 里选引擎是真控件，
+> 而且是那五个功能唯一的配置入口。
+>
+> **但引导屏仍然不加第五屏**（用户裁定 2026-09-20，维持 09-19「已定 3」）。理由变了：
+> 不是做不到，是引导该短。配引擎的入口改为**首页 + 设置块**两处常驻，配完之后由
+> `app/setup-done.js` 就地给一次带自检的回执（画布第 7 页 SetupDone）。
+
+- **`ext` 屏没有「继续」**：App 在 iOS 上判不了扩展启没启用，一个「继续」只能是
+  「假装你做完了」。主行动「在网页上完成设置」同时是前进键。
+- **`browser` 屏不给外链**：上一屏已经把人送去官网了，第二个竞争入口只会分散注意力。
+- **`signin` 屏按构建取舍**：同步没编进这个构建时不渲染它。中国版扩展的登录入口是被
+  整节 `remove()` 掉的，让人去那里登录是死路（对齐本文件「不存在的功能不许长死状态条」）。
+- **行动键钉在页脚**（`position: sticky`）：`#onboard` 的父级是普通 block，flex 那条
+  高度链是断的，靠 `overflow` 会静默失效。判据是渲染坐标，不是 CSS 里写了什么。
+
+`#ext-banner` 说的是「材料来源没开」，**不是「你没登录」**——两件事不许混。它的出现
+条件是：没有别的视图开着、引导没在进行中、`state.enabled` 不为真、**且用户没点过
+「我已打开」/「在 Safari 里打开扩展」**（2026-09-10 加，键 `extBannerDoneAt`，UI 状态键，不进
+`settings.js KEYS`，同 `onboardSeen` 先例）。macOS 上「`browserSideOk === false`」仍是判据之一
+（那边有真实扩展状态）；**iOS 上不再是** —— 见下面「问过就不再问」。
+
+**iOS 形态（2026-09-10 重做）**：5 天遥测里 App 装机 72、Safari 扩展装机 25 —— 装了 App 的人大多
+没把扩展打开，而横幅上 iOS 唯一能用的动作是一个次级按钮。改成：标题「Safari 扩展还没打开」+
+三步（与引导 `ext` 屏同一份文案与插图，容器另建，不搬 `#ob-steps` 那个节点）+ **填色主按钮
+「在 Safari 里打开扩展 →」**（开 `setup.html` 检测页，绿灯亮了自己收步骤）+ 次级链接**「我已打开」**
+（用户裁定：只有用户说了才收起 —— iOS 上 App 判不了，诚实的做法是由用户告诉我们）。macOS 形态
+不变（直达按钮 + fail-closed）。2026-09-27 淘汰了那句灰字「不确定？打开检测页看绿灯 →」（30 天
+只有 1 台点过，形同虚设）。
+横幅在场时首页 `#review` 降为次级 —— 「每屏至多一个填色按钮」这条家规同样管首页，而扩展没开
+的人本来也没有复习材料。两个动作各发一条 `ext_banner`（telemetry-design §3.1）。
+
+**「问过就不再问」+ 不再拿材料冒充启用状态（2026-09-28，Issue #384 重定）**：
+2026-09-27 的原设计想让「点过『我已打开』却没材料」的人 3 天后被**复核**一次。模拟器实测
+（2026-09-28，iPhone 17 Pro / iOS 27）**证伪了它**：真把扩展在 Safari 里开起来
+（设置 → App → Safari浏览器 → 扩展 → 大肚猴翻译 →「允许扩展」拨到绿）之后回到 App，
+横幅**照样**写「Safari 扩展还没打开 / 它还没启用」—— 因为横幅的清除判据是 `browserSideOk`
+（**有没有材料同步进 App**），而 iOS 上 App 拿不到扩展状态（`getStateOfSafariExtension`
+是 macOS-only）。材料要「开启 + 允许网站 + 开采集 + 登录 + 同步」全走完才出现，所以复核会
+**再次打扰已经开好扩展、只是还没抓到卡/没登录的人**。改成：
+
+- **一次动作即视为问过。** iOS 上点过「在 Safari 里打开扩展」**或**「我已打开」之后，就不再出现
+  「还没打开」形态的横幅（写 `extBannerDoneAt`）。**不设 3 天窗口，不做复核** ——
+  `extBannerRecheckedAt` 这套不再引入。
+- **不用材料冒充启用状态。** iOS 上 `browserSideOk` 不再是横幅的判据（本机 0 张卡不再让横幅
+  继续出现）。macOS 有真实状态（`getStateOfSafariExtension`），维持原样。
+- 想再确认的人走设置页那条**常驻**入口（「在首页重新显示『打开扩展』提示」复位键保留，清
+  `extBannerDoneAt` + 当天计数 `tm:extBannerDay`）。
+- app-bundle 门禁里「点 `ext-banner-done` 立即收起 + 落 `extBannerDoneAt`」的断言不变；
+  新增一条：**iOS 上点过主按钮后重开 App，横幅不再出现**（哪怕本机 0 张卡）。
+
+### 迎新页意图分叉（2026-09-28 提案 → **2026-10-02 用户裁定改向**）
+
+**2026-10-02 裁定（现行，issue #547）**：这一屏**不再给选项** —— 模型 chips 与用途三分全部撤掉。
+
+- 默认就是 **「主要想听 · 即时字幕」**：点「开始设置」即按它走，不问、不选。
+- **网页翻译的配置引导只留在设置页**：设置 › 功能 ›「先把浏览器那半边打通」+「在网页上完成设置」
+  （`#g-webext` / `#webext-setup`，复用引导 ext 屏那几个既有键）。引导序列里那一屏（`ext`）
+  随之撤出 —— `OB` 去掉 `'ext'`。
+- 离开首屏时仍记一次 `onboard_intent{goal:'listen'}`：首页的扩展横幅据此给「不要浏览器扩展」的
+  人让路。`onboard_done{result:'web_only'}` 这个取值**不再产生**（枚举照留，用来收老客户端的行）。
+- **⚠️ 本次落地没有 OpenDesign 设计稿（历史：OpenDesign 是 2026-10-08 之前的工具，现为 Pencil）**：设计门当次卡住（三个 agent 分别撞限额 / 未登录 / 空手），
+  用户 2026-10-02 明确授权「先按产品意图落最小可用版」。**屏级正式文案（标题 / 正文）待出稿后替换** ——
+  现用两个既有键（`ob_intent_listen` / `firstrun_packs_lede`），不新造 12 语种文案，也不新写布局。
+- **语音包页的语言对（2026-10-04，用户拍板）**：这一页加「**我的语言 / 对方的语言**」两个下拉，
+  与听译页**共用** `listenMyLang` / `listenOtherLang` 两个键（同一件事只写一份），选项走
+  `listenModel.langOptions` —— **注册表全量（含泰语）**，引擎当下不支持的**灰显而不是从列表里拿掉**；
+  识别包按所选语言对下载（`firstRunLocales` 优先读这对键，用户没选过才回落界面语言 + 目标语言，
+  所以老用户行为不变）。**用语决定**：第二个选择器就叫「对方的语言」，不叫「目标语言」——
+  这一页的两个包要的是**被识别的语言**（ASR 包按口语语言下），与「译成」（`targetLang`）是两个概念；
+  Pencil 稿上那句「目标语言（译成哪一种）」以产品内既有命名为准（2026-10-04 用户明确裁定）。
+- **语音包页改为多选（2026-10-11 改稿 F，用户已在 Pencil 上签过，取代上面那一对下拉）**：
+  不再有「我的语言 / 对方的语言」两个下拉，也没有单独的「对方语言」默认。默认勾选是
+  **系统语言 + 中文 + English**，去重（系统是中文 ⇒ 中文、English；系统是泰语 ⇒ ไทย、中文、English）。
+  每一门的名字用它自己的字（注册表 `label`：中文 / English / ไทย / 日本語），不译成界面语言。
+  固定展开中文、English、ไทย、日本語；其余收在「其他 N 种语言」里，默认折起。系统语言不在这四门里时插到最前。
+  **基础组件**（语种识别 + 人声检测，一起约 40 MB）锁住、必选，算进首启就绪。中英共用的朗读包是**一行**，
+  勾了中文或 English 就带上；两门都去掉它才去掉；用户可以单独把它关掉，再勾回任一门时它回来。
+  泰语朗读包（约 105 MB）默认不勾，勾了 ไทย **不会**自动带上 —— 不下也能听译、看译文，只是泰语译文不朗读。
+  朗读包不拦听译页的说话键。识别包按勾选的语言下，空选择视为已齐；`ok` 且资产仍 `missing` 不算齐
+  （夹具的 `ready: true` 仍算齐）。下载中勾选锁住，没有跳过；加语言以后去设置里的「管理语言包」
+  （同一张包屏，不是第二份列表）。蜂窝网络先问：「等连上 Wi-Fi」留下勾选、连上再下；「用蜂窝下载」现在就下。
+  未知网络不拦。下完**不**停在「好了」页、也没有「进入实时听译」挡路：齐了就自动离开（首启进首页，从设置补下则回设置），不自动开听译。失败留在这一屏，主按钮是「重试」。
+  **下载中（N24v2 D-02，2026-10-28 接回 1.22）**：主信号是一条 4px 细进度条，旁边 `{pct}% · 约 {size}`（本批勾选的总字节，不随已经下完缩水）。主按钮写「下载中 {n}%」；还没有百分比时（等 Wi-Fi）按钮写「下载中」、细条走不定动画。朗读与听译基础默认折在「下载内容详情」里；下载这一态摘要改成「进度详情」。名额未满时只留一行「识别最多 5 门」，下载中这一行收起。文案锁：标题「正在下载」/「选择语言」，说明「可以切到后台，下完再回来」/「勾选你要听译的语言」。
+  听译那一对从多选里算：我的 = 已勾的系统语言，否则勾选里的第一门；对方 = 另一门，中英都在时优先对面那门。
+  下载开始前先把这对和勾选落盘。体积用清单里的字节收成「约 N MB」（MiB 与十进制 MB 哪边更接近整数用哪边，再按 5 取整），
+  不在首启模块里写死供应商表。进度回调必须带组件名或语言本名。
+
+<details><summary>2026-09-28 的原始提案（已被上面取代，历史保留）</summary>
+
+**为什么**：近 30 天 App 安装 394 台里，用「聽 / 即時字幕」的 **113 台**、翻译成功 13、复习 7 ——
+而引导假设人人冲浏览器扩展来（`ext` 屏与首页横幅都在推扩展）。于是最大的一批人被推着做一件
+他们本来不要的事，横幅还反复念「还没打开」。依据：`#384` 调查
+（`.local/handoff/ext-enablement-investigation-2026-09-27.md`：真把扩展开起来后横幅仍在）。
+
+**方案**：在迎新首屏加一个**意图分叉**（把现有的「我只要网页翻译」出口扩成三分）：
+
+| 选择 | 后续 |
+|---|---|
+| **读网页**（双语对照） | 照旧：走 `ext` 屏；首页按 #485 挂一次扩展横幅 |
+| **听**（即时字幕 / 对话） | **跳过 `ext` 屏**；首页**不挂**扩展横幅；首行动指向「聽」 |
+| **都要** | 照旧（走 `ext` 屏） |
+
+三条规则：① 记粗粒度枚举 `onboard_intent{goal: read|listen|both}`（加事件属领域设计变更，先过人评审）；
+② 选 `listen` 的人首页不出现扩展横幅；③ 不追溯 2026-09-28 之前装的人。
+
+**未定的取舍**：分两档还是三档 · 放首屏还是第二步 · 要不要也把「复习 / 背单词」当一个意图 · 埋点粒度。
+
+</details>
+
+### App 设置页：文字不出界（2026-10-03，设计稿 `app-settings-layout-2026-10-03`，**用户已签**）
+
+真机截图：「听译 · 实时字幕」段的「自动朗读译文」那一行**越过卡片右边界**。根因是 flex item 默认
+`min-width:auto` —— **不肯收缩到内容宽度以下**；长文案（12 语种里德 / 俄 / 阿最长）+ 最窄视口，
+整行就被顶出 `.sgroup` 的圆角边界。三条规则（`app/style.css`，复习 / 听译 / 快速三段同类行一并适用）：
+
+1. **文字侧可收缩**：`.check > span` / `.field > span` / `.note` 一律 `min-width:0` + `overflow-wrap:anywhere`；
+2. **控件不收缩**：`.check > input` / `.field > button` 一律 `flex:none`（44px 点击区、整行可点不变）；
+3. **卡片不被顶破**：`#app-settings .sgroup` 及其直接子元素 `min-width:0`。
+
+判据：`test/app-settings-layout.test.js`（静态四条）+ `test:app` 的「**320px × 全部语种**」探针
+（逐张 `.sgroup` 量 `scrollWidth <= clientWidth + 1`）。
+
+> **⚠️ 2026-10-03 记录（历史：OpenDesign，2026-10-08 前；现为 Pencil）：这一稿没有走 OpenDesign 的生成流水线。** 四次尝试全部失败 ——
+> Claude（周/月限额 429）、Codex（401 未登录）、Reasonix（跑完 `artifactCount:0`）、
+> opencode（stall 600s 超时）。画布是**人（agent）直接写进 OpenDesign** 的，
+> 因此「设计稿 → 人工签署」这一步的**审核对象是画布，不是 OD 生成物** —— 用户签的就是那份画布。
+> 流水线恢复后应让它重出正式稿并 diff。
+
+## Interface language (界面语言)
+The extension's own UI chrome — popup/options labels, the FAB tooltip, the in-player
+menu, and every subtitle/notice state (`⏳ 译文准备中…`, `⏳ 翻译中…`, `⚠️ 翻译失败,点此
+重试`, `⏳ 字幕加载中…`, `字幕不可用`, …) — is shown in the **UI language**.
+- **Default = follow the OS/system locale** (`uiLang: 'auto'`). The user can
+  **explicitly override** it from a 「界面语言」 selector in **both** the popup and the
+  options page (mirroring the 「目标语言」 selector), choosing any of the shipped locales.
+- **UI language ≠ target language.** `targetLang` is what pages get *translated into*;
+  `uiLang` is the language of the extension's chrome. They are independent.
+- Switching applies **live** (no reload): the popup/options re-localize immediately,
+  and content-script notices pick up the new language on the next render.
+- Implementation note: `chrome.i18n.getMessage` is locked to the browser/OS locale and
+  can't be switched at runtime, so `t()` consults a bundled message table
+  (`MT_I18N_MESSAGES`, generated from `_locales/`) keyed by the effective locale, then
+  falls back to `chrome.i18n`, then the literal Chinese fallback.
+- **All user-visible strings are localized — hardcoded copy is a defect, not a
+  style choice** *(hardened 2026-08-08)*. This covers **every surface in every
+  module**: extension pages, content-script notices, **and the host app shell** —
+  the app bundle has carried `MT_I18N_MESSAGES` + `PageI18n` from the start, so
+  "this surface has no `chrome.i18n`" was never a reason. A string a user can see
+  lives as a key in `_locales/` (all locales, identical key sets), and the Chinese
+  literal appears in code **only as the fallback argument of a `t()` call** — the
+  convention that keeps a missing key from blanking the UI. Dynamic details go in
+  as `{placeholders}` replaced at the call site, never concatenated into the
+  fallback (a built-in detail is dead the moment the key resolves).
+  **Enforced by `test/no-hardcoded-copy.test.js`** on every `npm test`: a CJK
+  string literal outside a `t()` fallback position fails the build.
+- The **deliberate exceptions, shown verbatim**, are exactly three: language-picker
+  **endonyms** (简体中文 / English / 日本語 …), third-party **brand names**
+  (ChatGPT (OpenAI) / Claude (Anthropic) / DeepSeek / 智谱 GLM), and the product's
+  own **译 button glyph** — an icon that happens to be a character, identical in
+  every locale. The test's allowlist must stay exactly as long as this list.
+
+## 复习 / Review (记忆层)
+
+Domain model, scheduler math and storage live in
+[`learning-design.md`](learning-design.md); the boundary rule lives in
+[`domain-design.md`](domain-design.md) §9. **Only the user-facing behavior is here.**
+
+### Capture — consent and control
+- **OFF until the user turns it on, once.** Capture never starts by itself on
+  upgrade. The first-run copy says plainly what is recorded (the sentence, its
+  translation, the page URL and title, and how long it was on screen) and that it
+  **stays on this device**.
+- **Capture is invisible while it happens.** No badge, no toast, no highlight, no
+  count ticking up in the corner. Reading a page with capture on must look and feel
+  **exactly** like reading it with capture off — this is the user-facing face of the
+  "capture is a sink" law (domain-design §9.1).
+- **Off and purge are one tap each**, both in the options page: a master switch and a
+  「清空学习库」 button with a confirm step. Turning it off stops capture immediately;
+  it does **not** silently delete what was already collected (say so on the switch).
+- **Saving a sentence deliberately** is a long-press / right-click on an injected
+  `.mt-translation`, which stars it and bypasses the salience gate. A plain tap on
+  body text still produces **no perceptible action** (see "Webpage bilingual
+  translation → One unified path" — the SPA / selection / interaction triad); only
+  the translation sibling is interactive, and only on
+  long-press. A brief inline confirmation appears on the sibling itself — never a
+  page-level toast.
+
+### 来源治理 (source governance) — 2026-08-09
+
+Three user-authored controls over *what enters and stays in* the learning layer
+(learning-design §4.1, §7.4, §8.9; the Collector-law carve-out is domain-design
+§9.1 law 3). All three sync with the account; signed out they work locally.
+
+- **学习语言 (language whitelist).** A chip row in options 学习 and in the app's
+  settings: first chip 「全部（默认）」, then one chip per registry language. Picking
+  chips means "only capture these"; on Safari the gate falls back to writing-system
+  compatibility (learning-design §4.1) — the hint under the row says so in one line.
+  Changing it never deletes what was already captured. A starred (long-pressed)
+  sentence bypasses the whitelist — an explicit gesture outranks a standing filter.
+- **来源管理 (sources manager).** In options 学习 and the app's settings: a list of
+  captured domains, one row per domain — `host · N 张卡` — with two actions,
+  「删除已存」 and 「不再收录」. A blocked domain shows 「已屏蔽」 and 「恢复收录」.
+  Below the list: the block-rule chips (each removable) and an *advanced* wildcard
+  input (`*.example.com/news/*`); the list is the primary path — nobody is required
+  to type a wildcard. Deleting asks for confirmation **with the count and the
+  consequence**: 「删除 {host} 的 {n} 张卡？会同步到所有设备，不可恢复。」 A card
+  that later reappears was re-encountered on another device after the delete — the
+  docs and support copy say that plainly (learning-design §7.4).
+- **popup 「本站」 section.** The in-page quick entry, deliberately in the popup and
+  not on the page (capture must stay invisible in the browsing flow). Shows the
+  current host and a 「收录本站」 switch: off appends the site rule, on removes it.
+  If the site is blocked by a **broader** wildcard rule the switch is replaced by
+  「由规则 {pattern} 屏蔽」 plus a 管理 link — never a switch that lies. Hidden on
+  pages the extension cannot read (chrome:// etc.).
+- **Review card source actions.** The ⓘ source line gains a 「⋯」 button revealing
+  two inline actions: 「删除已存 · {host}」 (same confirm-with-count flow, then the
+  deck rebuilds) and 「不再收录 · {host}」 (already-blocked shows 已屏蔽, disabled).
+  This is law 2's fix-action surface: the place you notice unwanted material is the
+  place you can act on it.
+
+### Entry points
+- **popup**: a 「复习 (N)」 row at the top, N = cards currently due. Zero due ⇒ the row
+  still shows, reading 「复习」 with no count — never hidden, or the feature becomes
+  undiscoverable. Below it, the 「本站」 section (see 来源治理).
+- **App 首页，未登录也算**（2026-09-27 · Issue #386）：本机 `stats.total > 0` 时，首页在
+  「设置」链接与登录卡之间多一行「复习本地收藏的句子」，副行按到期与否显示「今天有 N 张卡片
+  待复习」或「共保存了 N 个句子」。**没有卡片时这一行不存在** —— 不给一个必然空着的入口。
+  未登录也能进：卡片是本机数据，登录只影响跨设备同步（`learning-design.md` §7.2）。
+  · 从复习面返回按「从哪来、回哪去」分流：`currentSession` 在 ⇒ 回登录态首页，否则回未登录
+  首页。此前无条件回登录态，未登录的人点「← 返回」会落到一个他从没见过的界面。
+- **options**: a 学习 section (master switch, 学习语言 whitelist, daily new-card
+  cap, corpus size / usage, 来源管理, export, purge).
+- **Never the action badge.** The service worker dies on Safari iOS, so a badge count
+  would be silently wrong there (domain-design §5.3.1). Counts are rendered by the
+  page that shows them.
+- **一轮的善终**（2026-09-27 用户裁定）：做满 5 张后点「今天就到这儿」记 `done`（此前记
+  `left`）；评过 ≥1 张后离开复习面同样记 `done`；只有**一张都没评**才记 `left`。完整取值
+  口径见 `telemetry-design.md` §3，理由见 `learning-design.md` §5.1。
+
+### The review card
+Reveal is **always** user-initiated. Nothing auto-advances, nothing is timed.
+
+```
+①  source sentence, large                ← media card: a 「▶ 重听这个片段」 button below
+    [ 显示译文 ]                            one reveal button, nothing else on screen
+─────────────────────────────  after reveal
+②  translation, in the bilingual sage (same visual language as .mt-translation)
+    [不记得] [有点难] [记得] [太简单]        ← grades 0/1/2/3, always four, never two
+    ⓘ source: site · title · 打开原文
+```
+
+- **Four grades, not two.** The scheduler's stability update is graded; collapsing to
+  记得/不记得 would throw away the signal it needs.
+- **Every grade button shows its consequence** *(2026-08-08 — real-device feedback:
+  「点击完后不知道意味着什么」)*: 「不记得 → 重新学」「有点难 → 2 天后」「记得 →
+  5 天后」「太简单 → 12 天后」, computed for the card on screen via
+  `previewIntervals` (learning-design §5.1). Choosing a grade is choosing a preview,
+  never a surprise.
+- **Memory strength is always visible on the card**: a small bar plus
+  「记忆强度 {s} 天 / 180 天」. 「已掌握」 has a user-visible definition — strength
+  reaching 180 days ≈ nine-in-ten recall after half a year untouched.
+- **First visit shows a one-time explainer** (three sentences: 记得→间隔拉长；
+  忘了→重来；强度攒满→毕业), dismissed forever once seen. Stored in `meta`.
+- **Media cards replay the original audio, never TTS.** They do it by **opening the
+  source at the timestamp in a new tab**, not with an inline player. Our own bilingual
+  subtitles are active on that tab, so the replay is still a bilingual one.
+  - **There is no inline player, and this is permanent.** YouTube's embedded player
+    only accepts an http(s) embedding origin; from `chrome-extension://` it refuses
+    with 「错误 153 · 视频播放器配置错误」. Measured 2026-08-02 across four variants —
+    `youtube-nocookie.com` and `youtube.com`, each with the default referrer policy
+    and with `no-referrer` — all four failed identically. The `no-referrer` runs also
+    rule out a sandboxed extension page (opaque origin, no referrer). **Do not
+    re-add the iframe**; it will look like a regression to fix and is not one.
+- **Passage cards are re-reads, not tests.** Source and translation shown together,
+  one 「已重读」 action (recorded as grade 2). No reveal step — there is nothing to hide.
+- **Source attribution is always present and always clickable.** A card the user
+  cannot trace back to where they met it is a flashcard, which is exactly what this
+  feature is not.
+- **LLM quizzes are opt-in and must state their cost.** When the selected engine is
+  the free Google endpoint the toggle is **disabled with the reason shown** — never
+  offered and then silently failing.
+
+### 语音 (TTS)
+
+> **2026-09-17（待人评审）：设置页里这一块拆成两处。** 引擎 · 字段 · 音色 · 试听归「① 引擎与密钥 › 朗读」
+> 槽卡；语音模式 · 语速 · 自动播放归「② 功能 › 复习」（见「设置页信息架构」）。朗读卡在选了 `设备内置朗读`
+> 时多一行「离线模型」（未下载 · 大小 · [下载] / 下载中 pct% / 已安装 · [重新下载] / 下载失败 · [重试] · 或换
+> 系统语音），试听按钮在模型未装时写「下载并试听（{size}）」；四处首播（设置试听 · 复习 ▶ · 播客 · 对话）
+> 统一走 `LearnTTS.ensureDeviceReady`，进度在各自状态行，不弹框 —— 规则与读数在 learning-design §9.1.1。
+> **「设备内置语音」在没有系统语音的浏览器上**（Linux 桌面常见；`LearnTTS.available()` 回 `unsupported`）
+> 下拉条目标灰并写原因，不让人选了再试听才发现。Windows 上的 `speechSynthesis` 尚未实机验过（待办）。
+
+Turns a review card into listening practice. **Off until the user turns it on** in
+the browser extension, like capture — with one dated exception:
+
+- **The app defaults to `assist`** *(2026-08-08)*. Two reasons, both app-specific:
+  the default engine is the platform's own on-device `speechSynthesis` (free, sends
+  nothing anywhere — the off-default was never privacy-motivated for it), and the
+  mastery ladder's 听懂 form gates on TTS being available: an app that ships the
+  ladder with speech permanently off ships a ladder missing a rung, plus settings
+  (autoplay / rate) that govern a feature which can never run. The extension keeps
+  the off-default — it lives next to capture, and its users chose their modes
+  already. The app's 语音模式 control offers the same three modes either way.
+
+- **On-device first.** The default engine is the platform's own `speechSynthesis`:
+  free, offline, nothing sent anywhere. A self-hosted or cloud endpoint is a choice
+  the user makes, never the default. The settings list is ordered on-device →
+  self-hosted → cloud, so the principle is visible rather than merely stated.
+  *(2026-08-08)* **Both hosts offer the full engine choice**: the extension's
+  options page and the app's settings render the same registry
+  (`MT_TTS_ENGINES`), same order, same per-engine fields; the app's speech key is
+  a device-local credential under learning-design §7.2's boundaries (never
+  synced), and app-side changes reconfigure TTS live — next card, no relaunch.
+- **Three modes.**
+  - `off` — no audio UI at all.
+  - `assist` — the card looks as it always did, plus a ▶ control.
+  - `audio-first` — **the original text starts hidden**: listen → 「显示原文」→
+    「显示译文」→ grade.
+- **`audio-first` does not violate "reveal is always user-initiated."** That rule
+  governs the **translation**. Playing the original aloud reveals nothing — it is the
+  same information the card was already going to show, in another channel. Revealing
+  the text and revealing the translation both remain explicit taps.
+- **Voices are matched to the card's language, not chosen globally.** A Japanese
+  sentence read in an English voice is worse than silence. The user's preferred voice
+  is used **only if it speaks that language**; otherwise the best system voice for
+  that language is used; if there is none, **the card says so and the ▶ control is
+  disabled** — never a button that silently does nothing.
+- **Unknown-language cards (`und`) speak only with a user-chosen voice** *(2026-08-08)*.
+  This is a population, not an edge case: the browser-native detector is absent on
+  every Safari, so every card captured there is `und` — on the phone that is MOST
+  cards. Guessing a voice would read text in the wrong language (the exact thing the
+  rule above forbids), so `und` plays with the explicitly chosen voice or not at all
+  — and its failure message must point at OUR voice setting (「这张卡的语言未知 ——
+  在设置里选一个朗读语音后即可朗读」), never claim the system lacks a voice. Both
+  hosts offer the voice picker: the extension's options page and the app's settings
+  (the app's reconfigures TTS live — a picked voice works on the next card, no
+  relaunch).
+- **Loading is visible, and the ▶ control is disabled for the whole attempt**
+  *(2026-08-09, revised same day per 全局原则「IO 在途，控件不可用」)*. From the
+  moment a play is requested — auto or manual — the card shows 「正在加载音频…」
+  (`tts_loading`) and the ▶ button is DISABLED; once playback starts the note
+  becomes 「播放中…」(`tts_playing`) and the button STAYS disabled until playback
+  finishes (`speak()`'s `done` promise: ended / errored / interrupted), then
+  re-enables. A failed attempt re-enables immediately with its named reason.
+  *(The first 2026-08-09 revision kept the button live during auto attempts so a
+  tap could rescue a blocked autoplay; that mattered only while the app's
+  WKWebView media gate was still up — lifted the same day — and the user ruled
+  the IO rule wins. On hosts where autoplay is refused (iOS Safari extension
+  page), the auto attempt settles fast and the button returns with the blocked
+  message naming the tap as the fix.)*
+- **Every failure names itself — auto attempts included** *(revised 2026-08-09)*:
+  no voice for this language / no built-in speech in this browser / no endpoint
+  URL / no API key / the service returned an error / autoplay blocked. The
+  blocked-autoplay message doubles as the instruction (「点一下播放」), and with a
+  visible loading state the old silent handling would read as a loading line that
+  vanished into nothing. *(The pre-2026-08-09 rule kept auto-blocked silent; that
+  predates the loading state.)*
+- **Autoplay is a setting, and never blocks anything.** If the browser refuses it,
+  the card is fully usable via the button.
+  - **On iOS Safari (the extension page), autoplay IS refused** — measured
+    2026-08-03 on the iPhone simulator (iOS 17.2): the card renders, the ▶
+    control is enabled, and nothing is spoken until the user taps it. So there,
+    `audio-first` means *tap to listen, then reveal*, not *listen hands-free*.
+    This is a platform rule about user gestures, not a defect. *(The app's 播客模式
+    is the one sanctioned hands-free regime — see its section below; it cannot and
+    does not exist on the extension page.)*
+  - **In the APP, the gate is lifted** *(2026-08-09, 真机定案)*: the shell's
+    WKWebView sets `mediaTypesRequiringUserActionForPlayback = []` (patched by
+    `scripts/sync-app-assets.js` — the converter template never sets it). The
+    default policy only allows `play()` inside a gesture's SYNCHRONOUS call
+    stack, but endpoint-engine playback is inherently "tap → async fetch →
+    play()": first plays of every card were rejected (`blocked`), cache hits
+    raced the gesture window and worked only sometimes. The review page is our
+    own content; auto-read is a feature, not third-party abuse — so in the app,
+    autoplay genuinely plays.
+  - **A blocked autoplay must be DETECTED, not assumed to have worked.** iOS ignores
+    `speechSynthesis.speak()` without a gesture *silently*: no exception, no error
+    event, no sound. Treating a non-throwing call as success made the card announce
+    「播放中…」 over silence. Playback counts as started only when the utterance's
+    `start` event fires.
+- **Synthesized audio is cached on the device** (endpoint engines only — the built-in
+  voice cannot return audio data at all). Cache size and a one-tap clear are visible
+  in settings, because a cache the user cannot see is a cache they will one day be
+  surprised by.
+
+### 掌握阶梯与技能轮换 (mastery ladder & skill rotation) — 2026-08-08 / 2026-08-12
+
+One schedule; the exercise FORM is gated by memory strength (learning-design §5.2)
+and rotated across the four skills (learning-design §5.4). The grading flow does not
+change: four grades, consequence previews, strength bar.
+
+- **What a due card asks** is the eligible skill verified longest ago: 读 always
+  exists; 听 / 说 from `s ≥ 4` (each behind its own capability); 写 from `s ≥ 30`.
+  One review may append ONE extra exercise for a second stale skill, labelled
+  「再练一项 · 不再计入间隔」 — it refreshes that skill's badge; a fail lapses the
+  card, a pass never lengthens the interval (the §5.3 asymmetry, reused verbatim).
+- **Exercise variants per skill** — deterministic local ones always exist; AI ones
+  appear only when the 解析引擎 gate is open (learning-design §9.3), and **any AI
+  failure falls back to the local variant of the same skill** — never a dead card:
+  - **读**: recall (existing) / **译文选择题** — 4 options as real buttons, one tap
+    locks the option row, the objective result constrains the grades (same rule as
+    cloze: all-correct disables 不记得, a wrong pick disables the passing grades).
+  - **听**: audio-first recall (existing) / **盲听选词** — the audio plays FIRST;
+    the options render only after playback has started. Replay is allowed and the
+    card says so. Pick the words actually heard; objective result constrains grades.
+  - **写**: cloze (existing); when the card has cached 解析, the blanks are drawn
+    from its 生词/短语 and rotate across reviews (§5.4 — 这次挖这个词).
+    Pack-provided `accept` alternates widen the checker — the sentence's own
+    answer stays the answer of record and the correction shown.
+  - **说**: see 说题卡 below. Capability-gated: no microphone or no transcription
+    engine ⇒ the form does not exist; the 「跟着读一遍」 shadowing hint stays at the
+    listen tier, still labelled 练习，不验证.
+- **Skill badges 读 / 听 / 写（/ 说 when its gate is open）** on every card — lit
+  when that form was passed at ≥「记得」. A lit badge past its freshness window
+  (learning-design §5.4) shows a 「待重验」 style, never goes dark. All available
+  skills fresh + strength full ⇒ 「全面掌握」; full strength with stale or unlit
+  badges reads 「记忆已牢，技能待验」, never a demotion.
+- **A card whose language has no TTS skips the 听 forms entirely** — a missing
+  capability means the form does not exist, not that the card failed (same
+  semantics as domain-design §5.3 rule 1). The same sentence covers 说.
+
+### 语言未知的卡也要读得出来（2026-09-02）
+
+Safari 上没有 `chrome.i18n.detectLanguage`，所以**在 Safari 里采集的每一张卡的
+`lang` 都是 `und`** —— 也就是 iOS 上的全部素材。而挑音色的规则原来是「und 且没有
+显式选过音色 ⇒ 没有音色」，于是播客模式在 iOS 上一张卡都播不了：4 张卡、4 张跳过、
+一轮瞬间结束，而界面只说「读不出来的卡（媒体卡或无语音）」。
+
+- **语言未知时按文本的主导脚本挑音色**（`LearnRules.dominantScript`）。假名 ⇒ ja、
+  谚文 ⇒ ko、西里尔 ⇒ ru、汉字 ⇒ zh…… 拉丁字母是唯一含糊的一支，退回 en：
+  我们的用户读的外文绝大多数是英文，而英文文本用英文音色念即使猜错也读得出来。
+- 「日文卡用英文音色念比不念更糟」那条判断**不变** —— 它针对的是**已知**的语言。
+  这里处理的是未知，而未知 ≠ 已知不匹配。
+- **用户显式选过的音色永远最优先**：那是他的决定，不是我们的推断。
+- 猜出来的语言仍然没有音色 ⇒ 照旧 `no_voice_und`，理由必须与 `no_voice` 分开：
+  后者会让人去 iOS 设置里找一个他手机上明明有的音色，而真正的修法在我们的设置里。
+
+**跳过的两个原因必须分开说。** 「媒体卡」（视频字幕的锚点，没有可朗读的正文）无解；
+「没有能读它的音色」去设置里配一个就好。合成一句「读不出来的卡（媒体卡或无语音）」
+等于让用户猜自己该做什么。
+
+### 说题卡 (speaking exercise) — 2026-08-12
+
+- **Anatomy**: the original sentence stays VISIBLE (this is reading aloud, not
+  recall) → 🎙 「朗读这句」 → recording state (the button becomes 停止 with elapsed
+  seconds; any TTS playback is stopped before recording starts) → on stop the whole
+  speak control is DISABLED with 「识别中…」 (全局原则「IO 在途，控件不可用」) →
+  the transcript renders (textContent only — model output is untrusted) with a
+  score line 「与原句匹配 {n}%」 and the missed words → the score constrains the
+  grades (≥90% disables 不记得; <50% leaves only 不记得/有点难).
+- **Cost is stated at the point of use**: 「使用你配置的转写端点，每次录音一次
+  调用」. Re-recording is allowed once the attempt settles.
+- **Every failure names itself**: no endpoint URL / no API key / no microphone /
+  microphone denied / **endpoint unreachable — including the CORS case** / the
+  service returned an error / empty transcript. The unreachable message names
+  BOTH causes a user can act on (address, and that a self-hosted server must
+  allow cross-origin requests) — WebKit reports a blocked-by-CORS response as an
+  indistinguishable network error, so guessing one cause would mislead half the time. A mic
+  denial mid-session removes the 说 form for the session and the card re-renders on
+  its next eligible skill.
+- **Recordings are never stored** — sent only to the user-configured endpoint and
+  discarded when the transcript returns (learning-design §9.4, §10 Gate C).
+### 接口地址字段（所有引擎共用一条规则）
+
+- **字段的语义是「完整的接口地址」**，不是主机名。用户填什么我们就请求什么，一个字符都不
+  加（domain-design §7 零拼接）。空着表示「用这个引擎的默认端点」——那仍然是最常见、也最
+  该鼓励的状态，占位符显示的就是那个完整默认地址。
+- **占位符来自注册表**（`defaultEndpoint` 或 `placeholder`），不来自文案。一条路径写进
+  十一种语言的翻译串就是十一份会过时的拷贝。
+- **切换引擎时，若地址框非空则清空它**，并给一条可见提示。地址不能跨端点携带——理由与
+  语音那条一样（`app/settings.js` 换引擎会重置 voice：「Voice names don't carry across
+  engines」）。对有默认端点的条目，清空恰好回到一个能工作的配置；对必须自填的条目，本来
+  就得重填。**不许静默清空**。
+- **失败要分得开。** 「测试连接」在发请求之前做一次离线形状检查：地址缺协议头 ⇒
+  `bad_url`；只有主机名没有路径 ⇒ `no_path`。这两条**只在自检里硬失败，运行时不拦**——
+  逐字发送是承诺，而根路径端点虽罕见却合法。之所以要单独具名：缺路径造成的失败与 CORS
+  失败在 WebKit 里表征完全相同（learning-design §9.4，2026-08-13 实测的裸 TypeError），
+  运行时无法区分，只有离线检查能。
+- **结果行回显真正请求的地址**（成功与失败都回显，key 永不出现在这一行）。用户填了自定义
+  端点时最常见的故障就是地址错，而「我们调用了哪个地址」是唯一能把它和「连不上」分开的
+  事实，没有任何错误文案能提供它。
+- *(2026-09-21，#385:)* **上面那条离线检查提前到失焦，而且不许有第二份判定。**
+  - **填完离开输入框就说**，不必等用户点「测试连接」：判据与文案都来自
+    `EngineTest.shapeHint`（它内部就是 `assertEndpointShape` + `reason`），**地址为空不提示**。
+    扩展由共用组件 `learn/engine-fields.js` 一处挂全（设置页 + 引导页），提示画在**该行
+    里面**（行随字段可见性收起时提示跟着收）；App 的输入框是静态 HTML，进不了那个组件，
+    在 `app/settings.js` 对三个槽各挂一次，提示写进该槽的**自检结果行**。
+    已经在说话时才跟着每次输入重判 —— 否则用户一边打字一边被红字追着跑。
+  - **四条传输（translation / notes / stt / tts）各自在内部做这次检查**，宿主不许在外面
+    补一份：解析组可以为空并跟随翻译组，「该检查哪个地址」归 `LearnNotes.resolveConfig`，
+    在调用方猜就是第二份判定。
+  - **「试听」是播放不是探活**（「听得见才算通」），所以它不走那四条传输；但它同样先判一次
+    地址形状，失败就在结果行具名说出来、不去合成。
+  - 为什么要提前：2026-09-21 回读线上 `engine_test`，失败码 `http` 34 条、`no_path` 9 条、
+    **`bad_url` 0 条** —— 「只填了主机名」本来离线就能判，却因为四处入口绕开了产地而被
+    当成 404。门禁在 `test/endpoint-shape.test.js`。
+- *(2026-09-22，#385，用户裁定:)* **没填 key 也离线就说，翻译与解析两槽与朗读 / 转写对齐。**
+  - 「测试连接」在发请求之前判一次：引擎在注册表里 `needsKey` 且 key 为空 ⇒ 具名 `no_key`
+    （「还没填 API Key」），**一个请求都不发**。原来这两槽照样发出去、回 401、被记成 `http`。
+  - **只对「地址由注册表给定」的平台生效**。自定义地址（`requiresEndpoint`：`custom_chat` /
+    `custom_msg`）注册表里也标着要 key，但接本地模型（Ollama 等）的人根本没有 key —— 对它们
+    **照旧真的试一次**，不能把一个能用的配置说成坏的。认不出的引擎也不拦。
+  - 判据只在 `EngineTest` 的两条传输里（同上一条「不许有第二份判定」），读注册表生成物，不另写引擎表。
+
+- **Settings**: a 「转写引擎」 block in options 学习 and in the app's settings —
+  engine list from `MT_STT_ENGINES` (self-hosted → cloud order; there is no
+  on-device engine), endpoint URL / key / model per registry flags. It never follows
+  the translation or 解析 group: where a recording goes is an explicit choice. The
+  hint under the block carries the Gate C sentence.
+  *(2026-09-12:)* 「there is no on-device engine」自本日起只对**扩展**成立。宿主 App 的
+  同一块多一条 `设备内置转写（免费 · 离线 · 仅 App）`（iOS 26 / macOS 26 起），排在 `local`
+  之前，只有选择没有字段；它接的是对话的流式路，**说题在它下面是具名 disabled**
+  （`device_no_file`），规则见「一键配置与逐引擎配置永不同屏 › 实时转写（可选）› 本机引擎」。
+  *(2026-09-17，待人评审:)* 上一条撤回：`设备内置转写` 从注册表删除（learning-design §9.4 同日修订），
+  「there is no on-device engine」对**两个宿主**重新成立，`device_no_file` 随之消失。用户裁定说题不接本机；
+  这一块在设置页里改叫「整段转写」，用途一句「说题 · 转写整段音视频」【扩展】/「说题」【App】，见「设置页信息架构」。
+
+### 播客模式 (driving mode) — 2026-08-17，2026-08-18 重定位（App 专属）
+
+An app-only **player** for the deck (learning-design §9.5): TTS reads each card
+原文 → 译文 (→ 解析, if the user turned that on), one card runs straight into the
+next with nothing waiting on the user, in one of four playback orders. In **both host apps
+(iOS and macOS)** it keeps playing once the app is no longer visible — backgrounded,
+locked, minimised or switched away (2026-08-24, learning-design §9.5「后台与锁屏播放」);
+on iOS the screen is also kept awake by the `app:sync` idle-timer patch while the app is
+in front.
+
+**It writes nothing** — no review row, no skill stamp, no `lastSeenAt`, no scheduler
+call. The 跟读 exercise and the spoken 「有没有疑问？」 loop that v1 had are gone: a
+recording window has to interrupt continuous playback to exist, and continuous
+playback is the whole content of "listening while driving". Every write path stays on
+the review surface, where the user can see what they are grading.
+
+**Two explicit carve-outs, each naming the rule it amends** *(anything not carved
+out follows the standing rules unchanged)*:
+
+1. **Amends 「reveal is always user-initiated; nothing auto-advances」 and the
+   `audio-first` ruling above.** Inside a driving session only, the translation is
+   spoken without a reveal tap and cards auto-advance. The single entry tap
+   (「播客模式」) is the consent for the whole session — same shape as the
+   audio-first exception: what the rule protects is the *user's* pacing, and the
+   user chose this pacing by entering the mode. 暂停/退出 returns to the normal
+   regime instantly; nothing outside the session changes behaviour.
+2. **Amends 全局原则「IO 在途，控件不可用」.** A driving session is one continuous
+   IO chain; disabling controls for its duration would mean *no* controls.
+   Carve-out: **⏸ 暂停/停止 is enabled at all times** (it is the interrupt for the
+   in-flight IO, not a second trigger — double-fire is impossible by construction:
+   `LearnTTS.stop()` is idempotent and epoch-guarded); ⏭ 下一张 / 🔁 再听一遍 are
+   enabled between segments and debounced by the TTS epoch; the **playback-order
+   button is enabled at all times and never interrupts audio** — it changes only what
+   happens after the current card, which is exactly why it is safe to press while
+   moving.
+
+- **The gate ladder (capability semantics, never disabled buttons)**:
+  - the 「播客模式」 entry button exists ⇔ TTS is usable at all;
+  - the 解析 segment exists ⇔ the user turned it on AND the 解析引擎 gate is open
+    (§9.2). Engine not configured ⇒ the segment does not exist, it is not greyed.
+- **What is spoken per card — THREE passes** (2026-08-18): 原句 / 原句 + 译句 +
+  解析 / 原句. The plan is flat but every segment carries its pass, because once
+  flattened nothing else can tell the first pass's 原句 from the third's, and the
+  status line says which one is playing. Text stays **visible** throughout —
+  audio-first, never text-hidden (passengers and parked use exist).
+- **暂停时出现「解析这句」**: analyse (generating if needed), show, read aloud, then
+  **return to paused on the same segment**. Pausing means "I am in control", so
+  finishing a piece of analysis must not decide to resume for the user; 继续 stays a
+  tap. The button exists only when the notes engine is usable.
+- **Playback order** — 随机 (default) / 顺序 / 循环 / 单曲循环, cycled by one button
+  and persisted. 随机 is a *permutation*, not per-step sampling, and reshuffles when
+  it wraps. ⏭ 下一张 moves on even in 单曲循环 — a player that ignores its own next
+  button is broken. Only 顺序 ever reaches 「本轮听完了」.
+- **Reading the 解析 aloud is ON by default and its cost is stated twice**: beside
+  the setting ("a card that has never been analysed is analysed on the spot, using
+  your engine — charged once per card, cached from then on") and as a standing line
+  in the player while it is happening. Default-on means the FIRST session through a
+  fresh deck analyses every card in it, which is exactly why the cost sentence is in
+  two places rather than one. No per-session cap: a cap makes the analysis stop
+  appearing partway through a session for no visible reason, which is harder to
+  understand than the cost itself.
+- **A switch the user turned ON must never do nothing in silence.** If 播放解析 is on
+  while no notes engine is configured, the player says so once, in the standing line,
+  and names where to configure it — this is NOT the "capability semantics" case
+  (that covers forms the user never asked for). Shipped 2026-08-17 without it and the
+  feature was indistinguishable from unimplemented on a real device.
+- **Failures are told apart** (§9.1/§9.4 reason conventions): a whole-engine failure
+  (`blocked`, `unsupported`) stops the session on a named reason, because it will
+  recur on every card; a per-card failure (`no_voice`) says so and skips to the next,
+  because one unreadable card must not end a session whose other cards are fine.
+  Never silent either way.
+- **Hiding is no longer pausing** (2026-08-24). The test is one question — *can this host
+  keep making sound while it is not visible?* — and it answers differently per platform.
+  On **macOS** the answer is unconditionally yes: the process is never suspended, so
+  minimising, ⌘H or switching away just keeps playing (the only thing that ever stopped it
+  was this handler). On **iOS** it holds while the host actually has an audio session AND
+  the engine yields audio bytes. When it holds, `visibilitychange` does nothing and the
+  session plays on — backgrounding is what "listening while driving" looks like, not an
+  interruption. When it fails, hiding pauses exactly as before **and the standing line says
+  which condition failed and where to change it**: a player the user entered expecting a
+  music app must not go quiet without a sentence. Where background audio is unconditional
+  it says nothing at all — there is nothing to explain. A **real** interruption (a phone
+  call, another app taking the session) still pauses, and it resumes by itself only when
+  the system says `.shouldResume`. Pulling headphones pauses and never auto-resumes on
+  reconnect.
+  > **This is the host app, not a browser.** 播客模式 ships zero bytes into the extension
+  > (`manifest.json` never lists it), and the app's UI is `app/**` loaded with
+  > `loadFileURL` into the app's own web view. "Background" here means *the app went to
+  > the background*; Safari and the extension page are not involved on either platform.
+- **Lock-screen / car / headset controls are the second surface of the same four buttons.**
+  They dispatch the SAME events as the on-screen controls, so the session state machine
+  gains no event and no state:
+
+  | Remote | Event | |
+  |---|---|---|
+  | play / pause / toggle | `tap_resume` / `tap_pause` | shares one helper with the ⏸/▶ button |
+  | next track | `tap_next` | |
+  | **previous track** | **`tap_repeat`** | there is no "previous card" — 随机 is a one-shot permutation, so going back is undefined. Previous = 🔁 再听一遍 |
+
+  The surface differs per platform — iOS: the lock screen, the car head unit, headset
+  buttons; macOS: the keyboard media keys, AirPods, and Control Center's Now Playing
+  (there is no lock-screen card on a Mac). The wiring is one `MediaPlayer` code path for
+  both.
+
+  **No timeline is published**: three passes over five segments make every scrub bar a lie,
+  so seek / skip / position commands are all disabled. What is shown is the card itself —
+  原句 large, 译句 under it, `第 i / n 张 · 第 k 遍` below that. That the sentence being
+  studied appears on the lock screen (and in Control Center) is the intended behaviour of
+  "show the card", stated here so it is agreed rather than discovered.
+
+  **The analysis is read line by line, and the artwork follows it** (2026-08-26). While the
+  解析 segment plays, the artwork keeps 原句/译句 where they are and lights up the line being
+  spoken — 生词, 短语, 语法, one at a time, current one in full ink behind an accent bar, the
+  others dimmed. It is the only place a third line can go: the control row's three slots are
+  already 原句/译句/进度, and no lock-screen lyrics API exists. The analysis is split by those
+  three blocks rather than by sentence because the block count is bounded and known before the
+  text arrives — which is what lets 出发前预载 quote an honest upper bound. An empty block
+  produces no line at all: an empty line would be an empty utterance, and that sounds exactly
+  like a stall.
+
+  **The artwork IS the card** (2026-08-25). Without one the system draws a placeholder —
+  which is what the Dynamic Island's "question mark" was. The artwork is drawn from the
+  live card, in the app's own card typography scaled up with its 21:19:12 ratio intact, in
+  the system's light or dark palette. It exists because the control row is one truncating
+  line and our sentences are long: **the artwork is the only place a long sentence can
+  actually be read.** It carries no pass number — it is drawn once per card while the pass
+  changes within one, and a lock screen must not display a sentence that stops being true
+  a few seconds later; the pass belongs to the control row, which follows the segment. A
+  card with no translation lets the 原句 grow into the space rather than leaving a hole.
+  At small sizes (the Dynamic Island's ~24pt slot) the system is handed the **app icon**
+  instead — a sentence is unreadable there, and being recognisable is the whole job of
+  that slot.
+- **开卡即并行，并前瞻一张**（2026-08-23，learning-design §9.5）: opening a card fires
+  every network call that card needs at once — 原句音频 / 译句音频 / 解析，and the
+  notes audio the moment the notes text lands — then warms the NEXT card's 原句/译句
+  audio only. Not its notes: audio already in cache costs nothing extra, a notes call
+  for a card the user quits before hearing is money spent on nothing. **Playback never
+  translates on the spot**: the 译句 comes from `item.tr`, else a cached 补译文, else
+  the card reads 原句 three times as it always did.
+- **「出发前预载」 in settings**（2026-08-23）: one button that fills the local cache
+  for 今天的牌库 + 未来 N 天 so a whole session plays with no network. It is the one
+  sanctioned batch, and it wears all four conditions on the surface: **the first tap
+  only prices it** (「N 张卡 · 待合成 P 段音频 · 待解析 M 张 · 待补译文 K 张」, no
+  request sent), the second tap spends, 停止 works throughout, and it closes with a
+  named tally including failures. A `returnsAudio: false` engine (设备内置语音, the
+  default) says plainly that it produces no audio cache and is already offline, rather
+  than showing a progress bar that can never move. Engine not configured ⇒ the price
+  line names what will be skipped and where to configure it — the 10d′ rule again.
+  预载写入的只有缓存: no review row, no skill stamp, no `lastSeenAt`, no scheduler call.
+
+
+### 对话 · 实时听译 (live conversation) — 2026-09-07（App 专属）
+
+Governed by [`learning-design.md`](learning-design.md) §9.6 (and domain-design §2.4
+rule 7). Canvas: https://claude.ai/code/artifact/36a2cded-50a7-4713-a854-d5bdf327e40f .
+Same dual display as the extension's live subtitles: **now** on top (word-by-word
+original + provisional translation), **finalized sentences** below.
+
+#### Entry & gating
+- Home gains a row 「对话 · 实时听译」 with one line:
+  「两个人面对面谈事情，各说各的话，译文自动读出来」 and, under the group,
+  「音频只发往你配置的转写端点。」
+- Gating *(ruled 2026-09-07, differs from 播客模式)*: when the transcription engine has no
+  live endpoint or no key, the row **stays visible but disabled** (45 % opacity) and the
+  sentence 「「对话 · 实时听译」需要一个带实时接口的转写引擎」 + 「去设置里选择 →」 sits
+  under it. A vanished entry answered no question; a grey one says why.
+- *(2026-09-12:)* **入口可用的第二条路：本机转写。** 入口可用 ⇔ 云端 `liveEndpoint && liveType
+  && key` **或** 转写引擎是 `设备内置转写`（`type === 'device-transcribe'`）且原生桥报告本机
+  资产可用（`NativeSpeech.probe()` → `ready`）。选了本机引擎但系统太旧（iOS 26 / macOS 26 之前，
+  桥报 `unsupported`）⇒ 行**同样是灰的 + 具名**，第三句原因：
+  「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」（`listen_need_device_os`）
+  + 「去设置里选择 →」。三句原因（没实时接口 / 没 key / 系统太旧）互斥，一次只出一句。**首页上「对话 · 实时听译」与「实时字幕」两个入口因同一个原因灰掉时（例：旧系统上选了设备内置转写），原因句只出一次**——留对话那一行，字幕那行藏起，两个入口照样灰（2026-09-15 用户裁定「合成一句」；全回归观察 O1：同一句连写两遍像出错了）。
+  本机路下入口组下面那句隐私句换成 「声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎」
+  （`listen_entry_privacy_device`）—— 「音频只发往你配置的转写端点」对本机路是假话。
+- *(2026-09-17，待人评审:)* **上面两条门控整体改写：入口只看本机识别器。** 没有云端路了
+  （learning-design §9.6 门控 2026-09-17 修订）。入口可用 ⇔ `NativeSpeech.probe(locales)` → `ready`。
+  灰态只剩两句、互斥：系统太旧「对话 · 实时字幕需要 iOS 26 / macOS 26」（**没有**「去设置里选择 →」——
+  不是配置问题，App 下限仍 iOS 16.4 / macOS 13.3）；语言不支持「本机识别器不支持{lang}」+ 换语言。
+  「需要一个带实时接口的转写引擎」「没填 key」两句原因、`listen_need_device_os` 里「—— 或去设置里选一个
+  云端实时引擎」半句、`openSettings('stt-engine')` 深链全部删除。首页入口组下的隐私句**只剩本机那句**
+  （`listen_entry_privacy_device`）。「两个入口因同一个原因灰掉时原因句只出一次」照旧。
+- First tap after install triggers the **native** microphone permission once; denied
+  ⇒ stop state 「麦克风被拒绝」 (below), never a silent no-op.
+
+#### States (the state × control table is the canvas 「对话 · 实时听译 交互逻辑」 sheet 1)
+- **preparing**: pill 「准备中」; 「开始听」 reads 「准备中…」 and is disabled; 「按住 · 我说」
+  disabled. Early interruptions (≤ 3 s after start) retry with backoff ×3 *inside* this
+  state — no red line until all three fail.
+- **downloading** *(2026-09-12，本机路专有)*: pill 「正在下载{lang}离线模型 · {pct}%」
+  (`listen_downloading`)；「开始听」 disabled；进度按桥的 `assets-progress {kind, locale,
+  fraction}` 走，**转写资产与朗读模型共用这一种态**（用户不关心是哪一种模型，关心的是
+  「还要等多久」），两种都要下时依次显示，`{lang}` 是当前那一路的语言名。首次使用才会进这个态；
+  之后资产在本机，直接到 preparing。`{pct}` 必须真的在动 —— 一个停住的百分比等于没有百分比。
+  下载失败 ⇒ stop state `listen_assets_failed`（见 Stop states），**留云端出口**，不自动重试下载。
+- **listening**: pill 「听译中 · mm:ss」; the top card names **who is talking right now** —
+  「对方正在说」/「我正在说」 decided from the partial's script, or 「正在说…」 while it is
+  still undecidable — with words as they arrive and the provisional translation; history
+  auto-scrolls unless the user scrolled up. *(2026-09-08: there is no **speaking** state
+  any more — nothing to hold, both sides just talk.)*
+- **paused** (user / 30 s silence) and **stopped** (socket / interrupted / failed): pill
+  「已暂停 · mm:ss」, one reason line (none for a user pause; grey for silence; red for the
+  rest), 「开始听」 resumes. Socket loss first **reconnects once after 2 s** — button reads
+  「重连中…」, 「按住 · 我说」 disabled — then names the cause with the server's sentence.
+  「麦克风被拒绝」 keeps 「按住 · 我说」 disabled and points at Settings › Privacy › Microphone.
+- **ended**: the summary card replaces the top card; history stays (rows still enlarge and
+  star); the two big buttons are gone — 「再来一段」 starts a new session.
+- **Disabled look is one thing everywhere**: 45 % opacity, label unchanged — and every grey
+  button has its reason on screen (the pill or the reason line). 「按住 · 我说」 is grey only
+  in preparing, while held (the pause button), microphone denied, and socket reconnecting;
+  in paused/stopped it works and brings the microphone up itself.
+
+#### 录音两键 · 点一下开 / 点一下停（2026-10-09 改稿 D，用户真机裁定）
+
+**取代 2026-10-08「按住说 / 点一下」的一切规则**（推翻了 0.4 s 分界、锁定态、8 秒静默自动结束
+与「那门语言的小字」）。稿：Pencil `E4Q9y6`（改稿 D）；本文写的是**规则**，逐字文案见稿与 `_locales/`。
+
+- **位置**：页面底部固定贴底的一条两半按钮。左＝你这门（界面语言的「说」+ 本名，如「说中文」）；
+  右＝对方那门（本名大字）。**两个键的小字都跟界面语言**：未收音「点一下开始」（`listen_ptt_tap_start`）、
+  收音中「● 正在录 · 点一下结束」（`listen_ptt_recording`）。语言注册表的 `pttHint`（那门语言写的小字）
+  随之退役。
+- **只有「点一下」**：点一下某个键 = **开始收音**（这一句按这门语言识别 —— 不跑语种判定，原生暂停 LID；
+  `pttForce` 生效到这一句的 final 到）；**再点同一个键 = 停止收音**（先 `stt-cut` 收口，给它
+  `PTT_STOP_GRACE_MS`(450ms) 落定稿，再关麦）。点**另一个**键 = 先收口当前这句、**换到那一侧继续收音**
+  （麦不重开）。
+- **收音＝开麦**：没有独立的「开始听 / 暂停」按钮了（`#app-listen-actions` 只留给实时字幕）。
+  会话在**第一次点键**那一刻建立；停止收音就是关麦（phase → paused），再点可续。**没有 30 秒静音自动暂停**
+  （用户定：「一直录到你点停」；静音门只留给实时字幕）。
+- **收音期间朗读照常（2026-10-09 用户裁定 A）**：**不冻**朗读队列 —— 收音＝常开，冻住就等于自动朗读
+  永不发声。App 自己的朗读声进麦由**回声闸**挡（M3/M4 正验的那个）。旧的 vbD0C（按下停朗读 + 冻队列）
+  随之退役；若真机上回声闸挡不住，再谈「只冻用户这句在说的那一小段」（选项 B）。
+- **进页面不开麦**：`open('conv')` 只读配置，不 `start()`；麦克风与灵动岛/Now Playing 只在收音中出现，
+  停止收音即清掉。
+- **录音键说的行**：同一套行渲染，但**出生即 `pinned`** —— 语言是人指定的，没有「判错」这回事 ⇒
+  **不画 ↔**。后面几行的自动逻辑也改不动它。
+- **灰掉**：只在设备/系统不支持时（`liveCapable()` 假）两个键一起灰，就近一句真实原因；点了不开麦。
+- **麦克风没授权**：复用「麦克风被拒绝 —— 到设置 › 隐私 › 麦克风允许大肚猴翻译」。**识别包没装好**：
+  沿用 `listen_lang_assets_missing`。
+- **「现在」卡**：收音期间写「正在听」+ 本名 +「…」。
+- **实时字幕没有录音键**（单向译成，没有「谁在说」）；它保留自己的「开始」按钮。**Mac** 用鼠标点，同一套语义；
+  **不加快捷键**。
+- **删掉的**：`正在听·暂停`大按钮（只留字幕模式）、`听到 A → 译成 B`提示行、`已听`费用行、`结束`链接、
+  小结卡。**两段披露搬去「设置 › 听译」**（对话的本机转写段 + 字幕的 Gate I 段），文字一字不改。
+
+#### 布局：三种形态（改稿 E · 2026-10-09 用户裁定）
+
+**稿：Pencil `改稿 E · 宽屏三栏定稿（iPad / Mac / 窄窗回落）`。** 规则是「**一张稿覆盖全部形态因子**」
+（AGENTS.md「Every draft must cover every form factor」）。形态由**窗口宽度**决定，不是设备 ——
+断点只有一道：`app/style.css` 的 `@media (min-width: 720px)`。
+
+| 形态 | 何时 | 布局 |
+|---|---|---|
+| **窄**（mobile） | iPhone；**以及 iPad 分屏 / Slide Over、Mac 缩窗 < 720px** | 单栏竖排（现在卡 → 定稿卡 → 控制区 → 两个键）；两个键**贴底通栏**；命中区 ≥44pt |
+| **宽 · iPad** | 全屏 iPad（竖 768 / 横 1024，都 ≥720） | 双栏：左栏 = 现在卡 + 控制区 + **两个键**；右栏 = 整句定稿。**触控口径：不依赖 hover**；`<select>` 点开是原生弹层 |
+| **宽 · Mac** | Mac 窗口 ≥720 | 同「宽 · iPad」的排布；**指针口径**可以有 hover 态；「线上会议…」那句说明只在这边出现 |
+
+- **不写 iPad 专属布局**：iPad 走宽版；分屏时按宽度**自动回落窄版**。仓库里没有第二套 iPad 版。
+- **宽版的两个键只在左栏内**（不再 `position:fixed` 通栏）**且上下竖排**（各占满左栏宽、各 64 高）：
+  左栏只有 250pt，并排时每个约 117pt，小字「● 正在录 · 点一下停」会挤成两行并顶到底边
+  （2026-10-09 Mac 真机截图实测）。窄版仍并排、贴底通栏。左栏固定约 **250pt**，右栏吃掉剩余宽度。
+- **现在卡在宽版收成紧凑两行**（不再 `calc(100vh - 250px)` 撑满，那正是「左栏空得离谱」的来源）。
+- **删掉顶部那行重复的语言行**（`langLineText`）：语言对只由控制区那个胶囊表达，宽窄两版都删。
+- 「线上会议…」收成**标题下一行小字**（只 Mac）。
+- 图标统一**单色内联 SVG**（话筒 / 喇叭），跟随文字色；不用 emoji（各平台渲染不一致）。
+
+#### 准备中 / 下载中（2026-10-11 改稿 G，用户已在 Pencil 上签过）
+
+说话键、右上角胶囊、现在卡读的是**首启那同一个** `readiness()` / `talkChrome()`。某一侧要能开口，
+得有**这门语言的识别包**和**基础组件**。朗读包不拦键。没有本机桥（云端路）时不拦。还没探完时两个键都灰。
+
+- **只灰还没好的那一侧。** 小字变成「准备中 · {语言本名} 下载 xx%」（`listen_ptt_preparing`）。点灰键不开麦，
+  现在卡短闪一下那句「还不能开始」。已经能开口的那一侧保持「点一下开始」，点了就录。
+- **现在卡**在还不能开口时写「还不能开始，下好后再点」（`listen_not_ready`），下面是进度条和
+  「{组件或语言}下载中 · xx% · {已就绪的}已就绪」。这个窗口里**不许**出现「正在听…」或「正在录」。
+- **下完不自动开始。** 键回到「点一下开始」，卡片写「下好了，点下面的键开始」，下面一行
+  「不会自动开始 · 点「说{我的}」或「{对方}」开始收音」。右上角「✓ 已就绪」停几秒再消失。
+  只有这一轮真的下过，才出这张「下好了」卡；打开时包已经在，不闪这一句。
+  进页后台补包、以及听译里改语言触发的下载，都走这一条：下完只出这张卡和胶囊，不开麦。
+- 进听译页就在后台把缺的识别包和基础组件补上：不改相位、不开麦、不调用开始收音。进度回调带语言本名或「基础组件」，
+  胶囊写短的「{本名} xx%」，不写长的「正在下载某语言离线模型」。
+  **进页这一轮也要出右上角胶囊**（进度，下完是「✓ 已就绪」），不只开会话那条路才有。
+- **切到还没装好的语言，立刻走和开会话同一条下载**（`ensureAssets('stt', [完整 locale])`，例如 `ja-JP`）。
+  这一门一开始就把名字换成语言本名、百分比从 0 起，不沿用上一门的进度，也不把 `ja-JP` 这种代码印在卡片上。
+  本名是拉丁字母、后面紧挨汉字时中间加一个空格。
+- **120 秒没有回执就停。** 卡片写「系统语音包下载没动静 — 检查网络，再点一次。」，旁边是「重试」。不许停在 100% 一直转。
+- **包屏和听译页用同一个 `asrInstalled`。** 只有这一门探针的 `assets === 'installed'` 算就绪。
+  聚合的 `ready: true`、或别的语言已经装好，都不能把这一行画成「已就绪」。
+- **已经就绪的一侧可以单独开麦。** 另一侧的包还缺，不把那一门塞进这次识别，也不报「转写连接中断：assets」去自动重连。
+  缺的那一侧继续在后台下。
+- **麦已经开着时，键的小字跟这一场。** 胶囊是「听译中」、麦克风已开，正在录的那一侧写「● 正在录 · 点一下停」，
+  不能两边都停在「点一下开始」。
+- **宽屏**仍是上面那张 ≥720px 的双栏（左栏两个键上下排）。准备中的进度条和说明留在现在卡里面，不另做一套 iPad 布局。
+  灰键沿用 45% 透明度；宽屏上灰键高度跟着两行小字长，不把字裁掉。
+
+#### 非正常分支（改稿 D · 2026-10-09）
+
+三条不变式：**I1 逐句落盘**（每句定稿即写本机学习素材 ⇒ 异常最多丢正在说的半句，已定稿的一句不丢）；
+**I2 收音＝开麦**（任何异常一律回到「未收音」＝关麦 + 停朗读 + 清队列，收敛到唯一出口 `pttAbort()`）；
+**I3 灵动岛 / Now Playing 是「收音中」的显示面**（不是独立状态，只能跟着收音出现 / 消失）。
+
+| 触发 | 麦 | 灵动岛 / Now Playing | 数据 | 恢复 |
+|---|---|---|---|---|
+| 进程被杀（强杀 / 崩溃 / 回收 / Mac Cmd-Q） | 系统收回 | **可能残留** → 靠**冷启动对账**清（`sweepOrphanActivities()`） | 已定稿都在，半句丢 | 下次进页是全新一场 |
+| 退后台 / 锁屏 | 继续（`UIBackgroundModes: audio`） | 继续（提醒「还在录」） | 照写 | 回前台接着录 |
+| 来电 / 闹钟 / 抢麦（`interrupt begin`） | 关 | 清 | 在 | `interrupt end` 且系统说可续 ⇒ 自动回到收音 |
+| 麦克风被拒 / 被撤 | 关 | 无 | — | 提示去设置；不自动重试 |
+| 转写连接断 | 关 | 清 | 在 | 提示 + 一次自动重连（2 s）；连上回收音 |
+| 翻译失败（http / 网络 / 429） | 不停 | 在 | 该行「译文失败 · 重试」 | 不升格停泵；单次超时也不停 |
+| 翻译停泵（额度用完 / 池子不可用 / 模型不在免费名单 / 密钥无效；或连续 5 次超时） | 不停麦 | 在 | 现在卡一张失败面（见下） | 不再发翻译请求。评分请求不叠在这张面上 |
+| 模型下载失败 / 语言名额满 / 语言不支持 | 关 | 清 | 在 | 按协议码说人话 + 重试；不支持 ⇒ 回上一对，不丢整场 |
+| 学习素材写失败 | 不停 | 在 | **可见提示**（不静默丢） | — |
+| 超长录音 | 在 | 在 | 在 | 免费额度到顶 ⇒ 服务端 402 ⇒ 停麦 + 提示回自带 key |
+
+**判据**：未定稿不算数；异常一律关麦 + 清灵动岛；启动对账不依赖「系统会不会自己清」（各 iOS 版本不一致）。
+
+#### 谁在说 — 按语言自动判，判错了点 ↔（2026-09-08，取代按住说话）
+
+**推翻 2026-09-07 的裁定「我说 = 按住说话（walkie-talkie），按住期间对方的话接受漏掉」。**
+那条裁定的场景是「线下听外语」，我偶尔说一句；商务洽谈里双方话量相当，每说一句按一次
+是对讲机不是对话，而漏掉对方的话不可接受。
+
+- 语言对（我的语言 / 对方的语言）设好之后，每句定稿**比两边语言的文字系统**判归属：
+  只命中一边就定，两边都含汉字（中↔日、中↔韩）再按假名/谚文消歧一次。判断器是
+  `LearnRules.dominantScript`，文字系统表读的是语言注册表自己的 `scripts` 字段 ——
+  **不新写语种识别，也不重述任何语言列表**。
+- **能判到什么程度，如实说**：中↔英法德西葡意俄阿全判准；中↔日、中↔韩多数判准（日文
+  假名多、韩文谚文占绝大多数；纯汉字的日文短句判不出）；**拉丁对拉丁（英↔法等）判不出**，
+  进会话时在提示行留一句灰字说清楚，不禁用功能。
+- 判不出时**先粘性**（跟上一句同一边 —— 一个人一轮通常说好几句），**再归对方**。
+  归对方不是随手选的：归错成「我」会把这句译成对方的语言**并朗读出来**，等于当着客户
+  念一句莫名其妙的话；归错成「对方」只是屏幕上多一行我看得懂的字。错误往安静的方向倒。
+- 凡是走到兜底的行，归属标带**虚线下划线**，可读名是「按语言猜的 · 点 ↔ 改」。
+- 每行行尾一个 **↔**。点它：翻转归属并**钉住**（此后不被任何自动逻辑改动）→ 先按旧方向
+  算出已写进语料的那张卡并删掉（语料里「学的永远是外语那一面」，改边会让两面互换，
+  不回收就留下一张面反了的卡）→ 按新方向重译。旧卡若**已经被复习过**，删除会被保护
+  挡下，这时如实说一句「之前那张卡你已经复习过，留在来源里」，**不假装删干净了**。
+  正在朗读这一行就停掉；改边后**不自动重读** —— 翻历史时突然大声念一句是最吓人的副作用。
+- 两边的行都给「朗读」（配了 TTS 引擎时）与「给对方看」。
+
+**本机转写路的归属（2026-09-12 补记）。** 本机路每种语言各跑一路识别器（我方一路、对方一路），
+同一段声音两路都会吐字，归属判的不再是「一句文字属于哪边」，而是「取哪一路的输出」。
+尖刺实测：zh 识别器会把英文音频也「认」成中文（错得离谱但置信度 0.72–0.92），en 识别器对
+中文音频置信度只有 0.05–0.27 —— 置信度单独用不可靠。规则：
+
+- **先看文字系，置信度只做第二判据。** zh 路输出以拉丁字母为主 ⇒ 这段是英文，取 en 路；
+  en 路置信度 < 0.4 且 zh 路是汉字 ⇒ 取 zh 路。判断器仍是 `LearnRules.dominantScript`，
+  文字系统表仍读语言注册表的 `scripts` —— 与上面云端路同一个判断器，不另写一套。
+- **同文字系的语言对（英↔法等）本机路同样判不出**：退回上面云端路的 `sideOf` 脚本判 +
+  粘性 + 归对方，记 `guessed:true`，归属标虚线下划线 —— 就是既有的灰字「按语言猜的 · 点 ↔ 改」
+  那一档，不新增文案。↔ 的语义不变：翻转并钉住，重译，不重读。
+- 被弃的那一路输出**整段丢弃**，不进历史、不进语料、不计入小结。
+
+#### 给对方看 (show card) — an overlay on a history row, not a state
+- Tapping any history row (or 「给对方看」) opens a full-screen card: the foreign line
+  large, the Chinese line small, buttons 「朗读」 (TTS configured only) / 「关闭」; tap
+  anywhere to close. No star on the card (ruled E) — the star lives on the row.
+- Listening continues underneath: new sentences join the history without closing the
+  card; a stop that happens meanwhile shows its reason after the card closes.
+
+#### Stop states — every one names its cause and returns to 「开始听」
+| Cause | Line |
+|---|---|
+| microphone denied | 「麦克风被拒绝 — 去「设置 › 隐私 › 麦克风」允许大肚猴翻译。」 |
+| socket lost, first time | 「转写连接中断：{server sentence} — 正在重连…」 then silent success or the line below |
+| socket lost again | 「转写连接中断：{server sentence, ≤ 1 line} — 已听的句子还在。」 |
+| capture stopped by the system (call, another app took the mic) | 「录音被系统停止了（来电或其它 App 占用麦克风）— 挂断后会自动继续，或点「开始听」。」 — resumes by itself when the interruption ends with `shouldResume` |
+| microphone failed to start | 「麦克风启动失败：{why} — 再点一次「开始听」。」 |
+| 30 s silence | 「听不到声音（30 秒静音）— 已暂停以免计费。」 (grey, not red) |
+| a row's translation failed (http / network / 429, or a single timeout) | the row shows 「译文失败 · 重试」 instead of an endless ⏳. The pump keeps going |
+| translation pump halted (credit used up, pool unavailable, model not on the free list, key rejected, or 5 timeouts in a row) | the Now card shows one fail surface (title, one next sentence, one primary button). Landings are the grant card or the notes provider. China does not offer 「改用免费通道」. The row names the reason and does not fire another request. A stalled request does not count toward the 5. Rating is not asked while this surface, or any row error, is up |
+| offline assets failed to download *(2026-09-12，本机路)* | 「离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎 →」（`listen_assets_failed`，红；「→」落到设置页转写引擎行）。资产没到就没有本机路可退，所以出口是**云端引擎**，不是「稍后再试」一句空话 |
+| on-device recognizer stopped *(2026-09-12，本机路)* | 桥的 `stt-state {state: failed, reason}` 走既有的「麦克风启动失败：{why}」行；`ended`（系统回收识别器）走「录音被系统停止了…」行 —— 本机路**不新增**这两类文案，原因句由桥的 `reason` 填 |
+
+#### 免费额度条与停泵失败面（2026-10-28）
+
+翻译槽正在用免费额度、并且本机缓存里有 `grantBalance.spentUsd` 与 `limitUsd` 时，现在卡里多一行「免费额度」加 `$x.xx / $y.yy`。不读段数、不读日限额、不读别的余额字段。用完时这行挪到失败面上，数字同样是那两个字段（用完的样子是 `$0.20 / $0.20`，零花费是 `$0.00 / $0.20`）。
+
+失败面只有一句下一步和一个主按钮。主按钮的落点是设置页的 `grant-card` 或 `notes-provider`。超时停泵的主按钮是「重试」，重试才重新发请求。中国版不出现「改用免费通道 / 改免费通道」。失败面和还挂着「译文失败」的行在的时候，结束会话不弹系统评分。
+
+窄屏（< 720px）这张面在现在卡里、按钮通栏、命中区 ≥ 48px。宽屏（≥ 720px，iPad 全屏与 Mac 同一套）它跟着现在卡留在左栏，不另做 iPad 布局；Mac 上主按钮可以有 hover。
+
+#### 返回 / 结束
+- 「‹ 返回」 while a session is live asks once — 「还在听。离开会结束这次对话，已听的句子保留。」
+  (ruled B) — then ends the session and returns home without a summary.
+- 「结束」 shows the summary card: 时长 · 对方说了 N 句 · 我说了 N 句 · 进复习（来源「对话」）N 句
+  · 含 N 句加星, then 「录音已丢弃；只保留文字。进复习的句子可在「来源 › 对话」里管理或整段删除。」
+  Buttons 「回到首页」 / 「再来一段」.
+
+#### Lock screen (iOS)
+- Reuses the podcast-mode Now Playing channel: title 「对话 · 实时听译中」, subtitle
+  「大肚猴翻译 · mm:ss · N 句」, body = the latest finalized pair, controls ⏸ and ■ only,
+  no timeline. Listening continues while locked (native capture, learning-design §9.6).
+
+#### macOS
+- Same section in a wide layout (≥ 720 px, CSS grid over the unchanged DOM): left = now
+  card + the one button + the language pair + the read-aloud switch, right = the
+  finalized list, taller and self-scrolling, with 「复制全文」 in its head (one line
+  original, one line translation, blank line between; 「我：」 on my rows; untranslated
+  rows copy the original only). Typical use named in one grey line under the language
+  line: online meetings and video calls — let the other side play through the speakers.
+  *(Not done: naming the input device in the status pill — the bridge does not report
+  the device name.)*
+
+#### 自动朗读与回声（2026-09-08）
+
+**推翻裁定 D「朗读只在点了才读」。** 那时朗读是「给对方看一句」时的辅助动作；现在它是把
+话传过去的主通道，每句都要。开关默认开，没配 TTS 引擎时**灰掉 + 一句原因**，不消失。
+
+- **两边都读**：对方说的读给我听（我的语言），我说的读给对方听（对方的语言）。
+- **排队逐句读完，不漏句**（裁定 7）。朗读引擎每次开口前会先掐掉上一次，并发调用互相
+  打断 —— 队列不是为了优雅。排队时列表下方显示「还有 N 句待读」，因为对方说得快时朗读
+  会拖后，不说就成了「怎么读的不是刚才那句」。
+- **改边后的重译与手动重试不自动读**：翻历史时突然大声念一句是最吓人的副作用。
+- 连续三次朗读失败才说话（引擎类的失败会每一句都复现，不设门槛就是满屏错误行），
+  且只关**这一场**的自动朗读，绝不改用户的设置；行内的单句朗读照常可用。
+- 暂停 / 停止 / 结束都清空队列并掐掉朗读 —— 停了听就别再读积压的译文，那些话的上下文
+  已经过去了。关闭「放大给对方看」只掐**一次性**的那种朗读（队列空时），整场排队的不断。
+- *(2026-09-12，本机朗读：)* 朗读引擎选 `设备内置朗读` 时，译文落地 → **起声 ≤ 0.5 s**
+  （真机实测首块 0.16–0.26 s；边合成边播，音频在原生侧 playerNode 出，不经 JS）。队列语义、
+  三次失败门、回声四道闸**一字不改** —— 本机朗读只是换了一个更快的出声口。
+  **离线模型不覆盖的语言回落系统语音**（既有 `browser` 引擎），并且**在那一行上具名**：
+  行尾灰字 「用系统语音朗读（离线模型不含{lang}）」（`tts_device_lang_fallback`），不静默换声。
+  回落不算失败，不计入三次失败门；系统也没有该语言语音时才走既有的「该语言无可用语音」路。
+  首次用到某语言的离线模型时进 **downloading** 态（与转写资产共用，见 States）。
+
+**回声必须由 JS 自己堵，不能只靠原生回声消除。** 朗读的是译文，而译文的语言恰好是对话
+另一边的 —— 它一旦被自己的麦克风录回去，就会被判成「另一个人说的」，再翻译、再朗读，
+无限循环。四道闸：
+
+| 层 | 在哪 | 做什么 |
+|---|---|---|
+| 0 | 原生 | 回声消除。**是升级不是前提** —— 能不能消掉网页播放器的声音没有依据，要真机实测 |
+| 1 | 定稿前 | 朗读时登记文本；转写句落在朗读窗口内、且与它高度重合 ⇒ **整句丢弃**：不进历史、不翻译、不写语料、不朗读、不算进小结 |
+| 1b | 半句 | 同一道闸也拦 partial —— 边说边译在半句上就会发翻译请求，环虽断在定稿那层，钱已经花了 |
+| 2 | 入队前 | 同一段话 60 秒内不读第二遍。漏过第 1 层的，环在第二跳断掉 |
+| 3 | 保险丝 | 10 秒内自动入队超过 6 句 ⇒ 停掉本场自动朗读 + 一句灰字。任何会自己往前跑的东西都要有一个人能按下的停止 |
+
+**明确不做的一层**：「朗读期间到达的句子，若语言恰好等于正在朗读的那个，就直接丢」。
+它会把**对方在我朗读时插话**整句吃掉，而插话在洽谈里正是最要紧的那一句。只用相似度，
+不用语言。
+
+#### 语言区 — 两门**对称**互译（2026-10-07 用户第三次裁定；§9.6.1.8）
+
+**用户的话**：「界面改成让用户选两种语言，不管到底几方是哪种语言对方是哪种语言，反正就是听到一种
+语言，就译另一种语言。比方说用户选了中文和泰文，那听到中文就译泰文，听到泰文就译中文。」
+
+**现在的样子**：
+- **听译页**：`［中文 ▾］ ⇄ ［泰文 ▾］`（改稿 D，2026-10-09：原来那行「听到{a} → 译成{b}」**撤了** ——
+  语言对本身就写在底部两个录音键上；控制区收成一行：语言对 + 自动朗读译文 + 这次不留记录）。
+  两个下拉都是注册表全集（与语音包页同一份清单）；默认：一格 = 系统语言，另一格 = 上次用的。
+  **没有「我 / 对方」的角色**，也没有自动跟随、没有「语言不对？」那一层。
+- **实时字幕**：`视频语言：［自动 ▾］ → 译成 ［中文 ▾］`。左格默认「自动」（候选 = 上次认出来的那门
+  + 译成，由 LID 在两门里取；认出来的那门记进 `subtitleVideoLang`，下次当候选）；指了具体语言就只开
+  那一路。**两格不挂反**：识别器开在左格（视频语言），译文恒为右格（译成）—— 2026-10-07 发现并修了
+  「识别器开在译成、译文去了视频语言」这处反挂。
+- **方向**：听到 A 译 B、听到 B 译 A（`targetLangFor`：行归属 `who` 由 locale 推，
+  目标 = 两门里的另一门）。
+- **不分「说 / 听」**（2026-10-08 用户拍）：「对 App 来说谁说话都是在听」⇒「现在」卡在 listening 时
+  **永远**「正在听…」，没有「我正在说 / 对方正在说」；非 listening 的态仍「正在说…」。
+- **行左侧标签 = 那门语言的名字**（「中文」/「泰语」），不再是「我 / 对方」—— 两门对称之后 `who`
+  只是「这行落在 A 还是 B」，而 A 是哪门是用户选过的。**↔ 的语义**：判错了点它，这句换到另一门。
+- **LID 提速**：≥0.5s 起判、每 0.5s 一次，**判词落在两门里就用**（第三门 = 还没判到，继续听）——
+  第一句预览从 ~3.5s 提前到 **~0.5–1s**。代价：A/B 翻错时译文会译成另一门；CPU 略升。
+- **语种识别默认走 ECAPA**（2026-10-08 用户拍板）：判词每场只用一条、稳稳地定下来 —— 第一行因此
+  比旧引擎早约 5 s（10.6 s → 5.3 s）。旧引擎（whisper）保留为开发开关，它判词会乱跳，是**已知缺口**。
+
+**下面这些是更早的规则，仍然成立**（键、对调、引擎不受支持时的出路都没变）：
+- 两边选成同一种语言时**不是拒绝，而是对调**，并说一句「两边不能是同一种语言 — 已对调」。
+  相同会同时坏三件事（归属恒判不出、翻译变成中译中、朗读把原文念一遍），而且一件都不
+  会报错 —— 禁在源头比在下游处处防守便宜。
+- 改语言**不重连** socket（云端路）：语言从来没下发给转写端（靠厂商自动检测），所以它只影响翻译
+  方向与归属判断。已定稿的行不动 —— 要改用 ↔。
+- *(2026-09-12:)* **本机转写路是例外：改语言要重连。** 本机路每种语言各占一路识别器
+  （每路一个 locale），语言就是识别器的构造参数，改了必须停旧路、起新路。表现：pill 短暂显示
+  「连接中」（复用 preparing 的 pill 文案，约 1 s 空档），「开始听」这 1 s 里 disabled，
+  空档里说的话丢掉不补 —— 如实，不假装无缝。新语言的离线资产没下过 ⇒ 先进 downloading 态。
+  云端路一字不改（上一条仍成立）。两边选同一种语言仍是对调 + 一句话，本机路对调后重连一次。
+  *(2026-10-07:)* **自动跟随也走这条重连**：试过 `SpeechAnalyzer.setModules` 就地换模块，
+  实测在 macOS 27 SDK 上直接 trap（EXC_BREAKPOINT），所以自动跟随就复用这条已验证的路。
+
+#### 本机转写路 — 先原始句，后修正句（2026-09-12，App 专属，iOS 26 / macOS 26 起）
+
+用户裁定：「本地转写模型快速吐字 + 断句，断句完了交由远程模型修正转写，再交由远程翻译模型
+翻译」，修正 + 翻译**合成一次**远程调用（契约见 domain-design §7 / learning-design §9.6）。
+管线：本机识别器 → 我们自己的静音检测收口 → 按标点切句 → **立即渲染原始句** → 一次远程
+调用回「修正后原文 + 译文」→ 行换成修正文、译文落地 → 语料写修正文 → 自动朗读。
+云端实时引擎不走这条路，它的行为一字不改。
+
+**行的三个时刻，每个都看得见：**
+
+1. **原始句立即上屏**（`row.raw`）。停顿 → 整句定稿目标 ≤ 1.0 s（实测 0.4–0.9），
+   行先以原始识别文出现，不等远程。此刻这一行的译文位置是**临时译文** —— 复用「正在说」
+   临时行（`partial` 机制）已经拿到的那份边说边译结果，**用斜体**显示，让「这是半成品」
+   在不读文字的情况下就能分辨；没有临时译文时显示既有的 ⏳。
+2. **远程返回**（定稿 → 修正 + 译文目标 ≤ 1.0 s，实测 p50 0.1 s / max 0.5 s）：`row.text`
+   换成修正文，译文换成正体的最终译文。修正接受门（token 长度比 0.7–1.3 且 `dominantScript`
+   不变）不过 ⇒ 行保持原始句，只落译文 —— 一个把「四十五天」改成「7045 天」的修正不该上屏。
+3. **修正后与原文不同时**，行尾一个小字可点的 「识别原文」（`listen_raw_label`）；点它翻面，
+   翻面卡副行显示 raw。修正与原文相同 ⇒ 这个字不出现（没有可看的东西就不给按钮）。
+   语料写的是修正文；翻面卡的 raw 只在对话页可见，不进复习卡。
+
+远程失败（http / 网络 / 429，以及单次超时）⇒ 既有的 「译文失败 · 重试」 行；重试重发同一次「修正 + 翻译」调用，行上的原始句
+不动（原文不丢是底线：只返回译文、无标签的响应都按 `{text: raw, tr: 整段}` 解）。
+额度用完、池子不可用、模型不在免费名单、密钥无效，以及连续 5 次超时，走上面「翻译停泵」那一行：
+不再发下一次「修正 + 翻译」。实时字幕与听译同一闸。
+
+**费用行**（改稿 D，2026-10-09 撤下）：听译页底部那句「已听 {t}」不再显示（`listen_cost_line_device`
+随之退役；`listen_cost_line` 仍用于需要显示转写端点成本的云端路场景）。
+**也不写「音频不离开设备」**（2026-10-07 用户裁定：「上传诊断录音」这条可选通道存在时，页内那句
+「音频不离开设备 / 不发往任何服务器」不再无条件为真 ⇒ 页内不再做绝对声明）。修正 + 翻译那次调用走
+用户自己的翻译引擎，成本和翻译一样按 token，不在这一行重述。30 s 静音自动暂停那句「已暂停以免计费」
+在本机路照旧显示（省的是翻译调用与电，句子不改 —— 一句话多一个分支不值得）。
+
+**页内说明**（`listen_device_privacy`；**2026-10-07 起不再是 Gate H 的披露** —— 用户裁定页内
+**只讲转写的效果**，一个「服务器」字都不出现）：对话页底部与设置页转写引擎行下
+「本机转写：边说边出字；整句定稿后连同前几句上下文一起发到你配置的翻译引擎做修正与翻译。选「设备内置
+朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型」。
+**绝对声明（「不发往任何服务器」「音频不离开设备」）从页内撤下**：Gate H 的披露仍由
+`README ×2` + 两个站点的隐私页承担（见 §10 Gate H）；页内只描述行为。
+
+**延迟目标（写进规约，验证按 verification-spec）**：首个临时字 ≤ 2 s（实测 1.0–1.9，比云端的
+0.2–0.35 慢 —— 如实，「正在说…」占位照旧）；停顿 → 定稿 ≤ 1.0 s；定稿 → 修正 + 译文 ≤ 1.0 s；
+译文 → 朗读起声 ≤ 0.5 s。
+
+**归属由端上语种识别模型给（2026-10-07，learning-design §9.6.1.3 / §9.6.1.4）**：本机路开着两路识别器（我的语言、
+对方的语言），「这一段是哪种语言」不再按文字系/置信度硬编码猜 —— 由端上 LID 模型判，**只有它判定的
+那一路**的半句与定稿会上屏；而且**判词要先稳住 ~1.5 s 才算数**（难音频上判词会乱跳）。用户可见的都如实：
+1. **每句话开头一小段没有实时预览**（LID 要听到 ~2 s 才敢判，判词还要再稳 1.5 s）—— 那一段显示既有的
+   「正在说…」；判出来之后照常逐词出字。第一句最明显（会话刚开始时还没有判词）。
+2. **归属在一句话中途不会翻语言**：说中文时不会先闪一行泰文再改回中文（那正是这套模型要根治的）。
+3. **难音频（背景乐 / 多人交叠 / 电平低）上宁可少显示**：判词乱跳 ⇒ 屏上只剩「正在说…」——
+   显示一行错语言的行比不显示糟得多。
+模型缺失时进场先走既有的“正在下载…”态（与识别资产、朗读模型同一个下载入口）；VAD 模型（644 KB）
+拿不到不影响听译（退回能量门）。
+
+**本节新增的文案键（实现者对照，12 个 locale 同键集）**：
+
+| 键 | 用在哪 | 中文兜底 |
+|---|---|---|
+| `stt_engine_device` | 转写引擎下拉（仅 App） | 设备内置转写（免费 · 离线 · 仅 App） |
+| `stt_hint_device` | 该条目选中时的块下提示 | 声音只在你的设备上识别；识别出的文字发往你配置的翻译引擎做修正与翻译。需要 iOS 26 / macOS 26 |
+| `tts_engine_device` | 朗读引擎下拉（仅 App） | 设备内置朗读（离线模型 · 仅 App） |
+| `tts_hint_device` | 该条目选中时的块下提示 | 语音在你的设备上合成；首次使用会下载一次离线模型（只是模型文件）。不覆盖的语言用系统语音 |
+| `stt_device_suffix` | 下拉条目后缀 | · 实时 · 本机 |
+| `listen_need_device_os` | 入口灰化的第三句原因 | 设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎 |
+| `listen_downloading` | downloading 态的 pill | 正在下载{lang}离线模型 · {pct}% |
+| `listen_assets_failed` | 停机行 | 离线模型下载失败：{why} — 再点一次「开始听」重试，或去设置里选一个云端实时引擎 → |
+| `listen_raw_label` | 行尾小字 / 翻面卡副行标签 | 识别原文 |
+| `listen_device_privacy` | 对话页底部、设置页转写行下 | 本机转写：边说边出字；整句定稿后连同前几句上下文一起发到你配置的翻译引擎做修正与翻译。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线模型 |
+| `listen_entry_privacy_device` | 首页入口组下的说明（本机路） | 本机转写，边说边出字；整句定稿后接上你自己配置的翻译引擎 |
+| `listen_cost_line_device` | 对话页底部费用行（本机路） | 已听 {t} |
+| `tts_device_lang_fallback` | 行尾灰字 | 用系统语音朗读（离线模型不含{lang}） |
+
+`device_no_file`（说题在本机转写下的具名 disabled 原因，「设备内置转写目前只用于对话」）住在
+说题的失败键族里，见「一键配置与逐引擎配置永不同屏 › 实时转写（可选）› 本机引擎」。
+所有键都带中文兜底（「Interface language」一节的规则），**串里不写品牌、不写模型名**。
+
+#### Settings & sources
+- Settings 学习 gains 「对话进复习」 (default on) next to the capture switch, with the
+  Gate E sentence under the transcription-engine row.
+- 来源管理 lists conversations one row per session — 「🎙 对话 · 2026-09-07 机场问路 · 23 句」
+  — with 「删除已存」 only (no block rule: blocking a session is meaningless). A note under
+  the list: 「每句原文来自转写、译文来自你的翻译引擎，都可能有错——加星的句子优先进复习。」
+
+### 实时字幕 (live subtitles) — 2026-09-13（App 专属）
+
+交互画布（用户已点头）：https://claude.ai/code/artifact/40723584-a674-418b-ae71-cac6fab7cb19；工作文件 `design/live-subtitles/`。下文括号里是画板编号（M = Mac，I = iPhone 一期，B = iPhone 二期，X2 = 文案表）。**文案以 X2 为准。** 管线与规则见 learning-design §9.8；未提到的行为同「对话 · 实时听译」。
+
+**入口与门控**（M1 / M2 / I1）。首页「听」组新行「实时字幕 · 给正在播放的视频、直播、会议配双语字幕」。门没过整行 45% + 一条原因 + 直达设置，按顺序判：① 没有带实时接口的转写引擎 ② 转写引擎没填 key（「设备内置转写」可用时 ① ② 不拦）③ 系统低于本机识别器的下限（iOS/macOS 26，2026-09-17 §9.6 修订后的唯一实时通路）：「对话 · 实时字幕需要 iOS 26 / macOS 26」。**2026-09-29 清理**：原 ③ 的「系统声音字幕需要 macOS 14.4 或更新」已删 —— 26 下限把 14.4 那条永远挡在前面（caps.system='os' 只出现在 <14.4 的机器上，那里的 entryGate 先回 ③ 的 26 那句），留着只是第二份会过期的版本号。
+
+*(2026-09-17，待人评审:)* 上一段三种原因里的 ① ② 随云端路一起删除（learning-design §9.6 / §9.8 同日修订）；
+只剩系统版本一句（iPhone / Mac 各自的）与语言不支持一句。准备页「转写 / 翻译引擎一行」改为只写翻译引擎，
+转写固定显示「设备内置识别」；「视频的语言」下拉只列本机识别器支持的语种，且**同一份设置也出现在设置页**
+（`subtitleVideoLang`，「对话 · 实时听译 与 实时字幕」块）—— 语言对「两处一份设置」的规则推广到它。费用行改为
+只算修正 + 翻译那一次远程调用。
+
+**准备页**（M3 / I2 / B1）。「视频的语言 → 我的语言」摊在外面（理由同对话的语言对）；转写 / 翻译引擎一行；「字幕进复习（来源『实时字幕』）」默认开、「这次不留记录」默认关（开始即钉住）；主按钮「开始」；费用行；Gate I 隐私段。iPhone 多一张提示卡「先点开始，再去任意 App（Safari、Chrome、YouTube、播客…）外放播放；字幕会浮在画中画小窗里。戴耳机时听不到视频声音。」（2026-09-14 起不点名 Safari，learning-design §9.8 协议补充决定 28）（顺序是尖刺 S5 定的：Safari 一离开前台 iOS 就暂停网页视频，所以先放视频再切来 App 开始，视频会停）二期多一个次按钮「用屏幕录制方式开始 · 戴耳机也能用」，隐私段换成屏幕录制版本。
+
+**Mac · 进行中**
+- 首次开始弹系统权限（M4，系统界面）。允许后屏幕下方居中出现**悬浮字幕条**（M5）：深色半透明、不跟随主题；译文大字最多 2 行在上，原文小字 1 行在下；半句斜体加省略号，定稿换正体。盖在所有窗口（含全屏视频）上，**不抢焦点**（点条之后空格仍暂停视频）。
+- 鼠标移上去才出控件（M6 ④）：暂停 / 穿透 / A− / A+ / 主窗口 / 结束。穿透中控件不出现、右上角「穿透」角标；取消穿透走菜单「窗口 › 取消字幕条穿透」（M9）。
+- 拖动与吸附（M7）：底部居中、顶部居中两个吸附位；右下角拉宽；位置、宽度、字号都记住。
+- 主窗口（M8）：对话页面的字幕模式 —— 胶囊「● 字幕中 · {t}」、现在卡、整句定稿（复制全文 / 结束）、「● 正在听 · 暂停」；**没有**我 / 对方标签、↔、给对方看、朗读。
+- 关主窗口 = 隐藏，字幕继续；点 Dock 找回（M9）。只有条上的 ✕、主窗口「结束」、菜单「结束实时字幕」会停。
+
+**字幕条状态**（M6，都写在条上）。正在听系统声音… · 半句 · 定稿 · 已暂停 · 继续 · 30 秒没有声音，已暂停以免计费 · 继续（不自动恢复）· 听不到系统声音 — 请到 系统设置 › 隐私与安全性 › 屏幕与系统录音，允许「大肚猴翻译」· 打开系统设置（只在权限框 90 秒没点时出现）· **还没听到系统声音 — 视频在放却一直没字？可能没开系统录音权限 · 打开系统设置**（不中断：系统开始回声音数据后 3 秒全零且有别的 App 开着输出时出现 —— 点「不允许」的情况下 HAL 约 15 秒后才回数据，所以提示约在点完 18 秒内出现；一有声音就撤掉；30 秒静音暂停时若从没听到过声音，暂停句也指向权限 —— 2026-09-15 learning-design §9.8 协议补充决定 10 修订二，全回归 F13：权限已给、开始瞬间静音曾被误判成「被拒」）· **30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限 · 打开系统设置**（上一条提示出过、从没听到过声音就到了 30 秒静音门时，条上用这句代替「…已暂停以免计费 · 继续」；「继续」在悬停控件里 —— 2026-09-15 M30 真机观察 O2，用户裁定条上也提权限：全屏看视频的人只看得见条）· 转写连接中断 · 正在重连… / 重试 · 正在下载{语言}识别资产 · {pct}%。某句翻译失败（M10）：http / 网络 / 429 时条上只显示原文 +「这句译文失败 · 主窗口里可重试」，主窗口那一行「译文失败 · 重试」。停泵（额度用完 / 池子不可用 / 模型不在免费名单 / 密钥无效 / 连续 5 次超时）时条上的译文行换成那句原因，主窗口现在卡出同一张失败面，不再为后面的句子发翻译请求。
+
+**iPhone 一期 · 进行中**（I3–I10）。开始后去任意 App 外放播放 —— 麦克风听的是外放出来的声音，不挑 App（Safari、Chrome、YouTube App、播客都行）；若视频原本在放而那个 App 离开前台会暂停（Safari 网页视频就是），切回去后要再点一次播放。**iPhone 上「现在」卡换成小窗预览**（2026-09-14，learning-design §9.8 协议补充决定（三）17）：与画中画同一帧的 **4:5** 深色小图（2026-09-14 用户手测后改为偏竖）—— 系统要求画中画的来源就在屏幕上，离开 App 时由它浮出；小窗被 ✕ 关掉 = **暂停听**（2026-09-15 用户裁定，原为继续听；learning-design §9.8 协议补充决定（三）19 修订）：状态「已暂停」、预览收起、主按钮「继续」；暂停期间离开 App **不**自动浮出小窗；点「继续」恢复听，之后离开 App 再自动浮出。小窗因失败没浮出来（不是用户关的）时，预览下方出「浮出字幕窗」按钮。**原生预览没叠上来的时候（开始前 / 结束后），占位块上写一句说明**：开始前「点『开始』后，这里是字幕小窗的预览；离开本 App 时它会浮在其它 App 上」，结束后「这次字幕已结束，小窗已关闭」—— 不是一块黑（2026-09-14 用户 15 Pro 手测：「这个地方都黑屏很奇怪」）。**离开 App 时自动浮出画中画小窗**（I4；尖刺 S7 真机 1.7 秒内出现）：深色底 4:5，最近四五句往上滚，译文粗体在上、原文小字在下，最新一句在最下面，半句用斜体。**还没有一句字幕时，小窗画三行说明**（「实时字幕」·「在任意 App 里外放视频或音频，字幕会出现在这里」·「点一下小窗：⏸ 暂停 · ⏪⏩ 翻看历史 · ✕ 关掉（回 App 可再打开）」），不是一块黑（2026-09-14 用户：「最小化 app 后立刻出现了这个黑色小窗，用户很莫名其妙」）。捏合放大按系统回报的新尺寸重画（I5）；拖到任意角落，滑到屏幕边缘收成把手；点一下出系统控件：✕ 关小窗 = 暂停听（系统麦克风指示随之消失；回 App 点「继续」接着听 —— 2026-09-15 修订，原为不停止听译）、⧉ 回到 App（Safari 视频会被系统暂停）、⏸ 暂停听（与 App 里的暂停同一个；**15 Pro 实测会连同那边的视频一起暂停**，用户 2026-09-14 裁定维持 —— 按钮是系统的、没有公开接口隐藏）、**⏪ / ⏩ 翻看历史**（每次 3 句；翻看时顶部标「历史 · 点 ⏩ 回到最新」，learning-design §9.8 协议补充决定 25）（I6）。锁屏时系统不显示画中画，照常听，解锁后小窗回来（I7，待真机验证）。停下时小窗不消失，最后一句留着、底部换成一行原因（I8）。回 App 看完整历史（I9）。**不再做灵动岛 / 锁屏卡**（2026-09-13 用户看真机：「这个灵动岛展示没什么意义，字小看不清」；专注模式开着时根本不展开）。停机（I10）各带出口：听不到视频声音（戴耳机）· 30 秒没有声音 · 麦克风被拒绝 · 录音被系统停止了 · 转写连接中断。
+
+**iPhone 二期 · 屏幕录制**（B1–B7，一期发版后）。「用屏幕录制方式开始」→ 等待屏幕录制（B2）→ 系统直播面板预选大肚猴翻译、麦克风关（B3）→ 录制中切 Safari，戴耳机也出字幕（B4）。没在 App 里开始就直接录制 ⇒ 立即结束，系统显示「请先在大肚猴翻译里点『实时字幕 › 用屏幕录制方式开始』」（B5）。状态栏停录 ⇒「屏幕录制已结束 · 继续」；受保护内容 ⇒「这个内容不允许录制声音 — 换『开始（外放）』试试」（B6）。控制中心路径（B7）。
+
+**结束**（M11 / I11）。「这次字幕」：时长 {t} · 共 {n} 句 · 进复习（来源「实时字幕」）{k} 句 · 含 {s} 句加星；「声音没有保存，只保留文字。进复习的句子可在『来源 › 实时字幕』里管理或整段删除。」；「再开一场 / 回到首页」。不留记录 ⇒「这次没有留下记录。」
+
+**设置与来源。** 设置页「对话 · 实时听译」一节加开关「字幕进复习」；来源管理多一个类别「实时字幕」，每场一行。
+
+### 自由练习 (free practice) — 2026-08-08
+
+- **Entry**: a standing 「自由练习」 on the review page, and 「继续巩固练习」 on
+  the deck-done screen — 「今天的复习做完了」 is no longer a dead end. That screen
+  also names the daily-new cap and links to its setting.
+- **Pool**: 学习中 by default (weakest `R` first); switchable to 全部 (candidates
+  and known included). Batch 10 / 20 / 不限. `spreadBySource` applies as always.
+- **The asymmetric rule, stated on the surface in one line**:
+  **「练习不能刷出掌握，但能暴露遗忘。」** A practice FAIL counts fully (lapse,
+  card comes back soon); a practice PASS is logged but never lengthens the
+  interval. Candidates in practice are exposure only — introduction stays with the
+  daily deck (learning-design §5.3).
+
+### 解析 (sentence notes) — 2026-08-08
+
+- **「解析这句」 on the answer face** generates 生词表 / 短语搭配 / 一个语法点
+  via the user's own chat-capable engine (learning-design §9.2).
+- **Capability-gated like everything else**: no chat-capable engine configured ⇒
+  the button does not render at all. Never a disabled button with an apology.
+- **Cost is stated at the point of use**: 「使用你配置的 API，一次调用，永久缓存」.
+  Cached notes render instantly with no spinner and no second charge. Generation is
+  always **user-initiated** — never automatic. *(2026-08-23: this line used to end
+  「never bulk, never automatic」. Bulk was never the disease; a bill the user cannot
+  see is. A batch is allowed when it meets all four of learning-design §9.2's
+  conditions — price it first, spend on the second tap, stay stoppable, report by
+  name. 「出发前预载」 below is the ONE place that holds, and it stays the only one:
+  a second feature wanting this exception goes back through domain review rather than
+  asserting it also meets the four.)*
+- **In the app** *(2026-08-08)*: the app's settings can hold a chat engine + key of
+  their own (learning-design §7.2 — device-local, never synced; the wording must not
+  imply it is safer than the extension's storage). Configured ⇒ the same gate opens;
+  not configured ⇒ the entry point does not render, same as everywhere else.
+- **独立解析引擎** *(2026-08-09 二，用户裁定)*: options 学习区新增「解析引擎」——
+  默认「跟随翻译引擎」，选定后 key/地址/模型整组切换到解析组（learning-design
+  §9.2 的整组规则）。提示语点名思考（推理）型模型不适合解析。字段属 settings
+  即时本地保存，适用全局原则的豁免条款。
+
+### 多设备同步一致性 — 2026-08-09（用户裁定，取代 2026-08-08「App 内同步与时效」）
+
+> **原则（用户原话）：同一账号下，不管什么情况下，学习素材在多设备中一定要保持同步。**
+
+- **每个设备显示总条目数与各状态数。** 复习页头部的计数行为
+  「总计 N · 待复习 N · 学习中 N · 候选 N · 已掌握 N」，App 主屏同口径。同一账号
+  完成同步后，各设备的这一行**逐字一致**——这是可验证的验收条，不是愿景
+  （`verify-sync-consistency` 的王冠断言）。
+- **常驻同步状态行**（复习页头部，计数行下方，小字弱色，永不遮挡卡片）：
+  - 同步进行中 → 「与服务器同步中…」
+  - 成功落定 → 「同步完成 · {时间}」（用户词「同步完成」逐字保留；追加时间是因为
+    这行**常驻**，没有时间的「完成」放一小时就成了谎言）
+  - 网络不通 → 「当前网络离线，稍后自动重试。学习记录已保存在本机。」
+  - 其它失败 → 「同步没能完成，稍后自动重试。」
+  - 未登录 → 「未登录，仅本机数据」（用户裁定：提醒此设备计数可能与其它设备不同）
+  - 公开构建（同步未编入）→ 整行不渲染。不存在的功能不许长死状态条。
+- **每次进入即同步，绕过节流**：App 启动、App 回前台、扩展复习页每次打开，三者
+  都算「进入」，都强制触发一次完整 `sync()`（10 分钟节流只对被动面——设置页——
+  继续生效）。断网恢复（`online` 事件）视同进入，立刻补一次。No timers, no
+  background tasks — on iOS those die with the service worker（原 §8.8 约束不变）。
+- **自动同步可见，但不打断。** 这是全局原则「IO 在途，控件不可用」的**明确豁免**：
+  该规则约束的是*触发 IO 的控件*；自动同步没有触发控件，评分按钮永不因同步而
+  禁用，卡片永不被同步抢走（在屏卡片不重建，只有空态/收官态才因新素材重建）。
+  手动 同步 按钮维持响亮语义（成功报数字、失败报原因）且全程禁用（IO 规则照常）。
+- **每日新卡预算是账户级的**：今天已引入的新卡数从**同步的复习台账**推导（每卡
+  首条非练习复习落在 UTC 今天），不再是设备本地计数——手机上引入的新卡同样消耗
+  电脑侧的当日预算。日界取 UTC：一个账号一个日界，跨时区一致。
+- **一致性的边界（如实陈述）**：驱逐上限（单设备 2 万条）以内保证一致；设备时钟
+  漂移会让「待复习」短暂偏差（同一时刻同一数据必然同数）；收敛判据不变——
+  无活动时双向同步稳定「收到 0 · 上传 0」。
+
+### 存储压力
+
+Capture stopping, or collected material being discarded, is **never** announced in
+the page — but it is **always** visible to a user who turned capture on
+(domain-design §9.1 law 2). It surfaces in the review page and settings, never as a
+toast over an article.
+
+- **Review page**: a single line above the card — 「学习库已满，正在自动淘汰旧卡」 or
+  「有采集内容没能存下来」 — with the cleanup action beside it. It never blocks the
+  card; a full corpus still reviews perfectly well.
+- **Settings**: the same state, stated with numbers, next to the usage readout.
+- **The primary cleanup is targeted, not nuclear.** 「清理已掌握的卡」 removes only
+  `state='known'` items — the ones the scheduler itself concluded you no longer need
+  — and never a starred card or one you are learning. 「清空学习库」 stays available
+  for people who want a clean slate, with its existing confirm step.
+- **Never offer to sell local storage.** The local cap is self-imposed and costs the
+  project nothing; see learning-design §7.1. A paid option may only ever appear
+  against the *server* quota, and only if such a tier exists.
+- Once cleared, the message goes away on its own — it reports a live state, not a
+  dismissed alert.
+
+### States
+- **Empty corpus**: explain how material gets collected (browse and translate), not
+  「暂无数据」.
+- **Nothing due**: say when the next card comes up. Do not fabricate work by
+  advancing cards early — the whole product claim is that timing is principled.
+- **Injected review UI obeys the same rules as every other piece of our chrome**:
+  `translate="no"` **and** `data-mt-skip-region`, so we never translate, re-render, or
+  re-capture our own interface.
+
+## 命令行 (CLI) — 2026-09-30（已评审通过）
+
+CLI 是第三个宿主的用户可见面；架构在 `docs/domain-design.md` §2.7 与
+`docs/learning-design.md` §9.10，本节定它**长什么样**。
+
+### 全局
+- 默认**双语并排**：原文一段、译文紧跟一段；`--only` 只出译文，`--json` 出结构
+  （`{src, tr, provider, ms}`）供脚本消费。
+- 结果走 stdout，进度 / 诊断走 stderr；**管道里 stdout 只有结果**。
+- 退出码：`0` 成功 · `1` 用法 / 参数错 · `2` 引擎未配置 · `3` 翻译失败（带 `code`）·
+  `4` 语料 / 文件错。失败行说人话并指向「配置引擎」。
+- 界面语言跟随系统 `LANG`，可 `--lang` 覆盖；文案源仍是 `_locales`（CLI 只取需要的几十个键，
+  与 `build/ext-bundle.js` 的 `ExtCopy` 同法，不抄第二份）。
+- **绝不回显 API key**；`config get` 对 key 打码。
+
+### 翻译命令
+- `translate <text|->`：一段文本或 stdin。同语言输入反向译（中↔英），与 App 一致。
+- `doc <file>`：pdf / docx / txt / md，**一页一页**翻并输出（默认 stdout，`-o` 写文件）。
+  图片页 / 扫描页 v1 CLI 不接（domain-design §2.7 / §8），**明说不支持**而不是静默跳过。
+- `batch <path>`：文件或目录逐个翻，`-o <dir>` 输出，进度走 stderr。
+- `subtitle <file.vtt|.srt>`：整份读入 → 译 → `-o` 写译文字幕（默认同名 `.zh.vtt`）。
+
+### 复习命令
+- `plan [--days N]`：打印今日牌库与未来 N 天，**只读、不写**。空库 / 无到期照「复习 /
+  Review › States」四条说清楚，不编造工作量。
+- `review`：逐张出卡，`0/1/2/3` 打分（`q` 退出并保存）；每张显示来源与本次技能（v1 只读）。
+- `import <file.mtlearn>` / `export [-o file]`：§8.2 的导出 / 导入。
+
+### 遥测
+v1 不发任何事件；见 `docs/telemetry-design.md` §2。
+
+## General
+- **Screenshot-verify** every visual change against the built/loaded extension.
+- Don't cover more of the frame/page than necessary.
+- Branding: the product is「大肚猴翻译 / BelliedMonkey Translator」. Never reference the
+  reference extension's name anywhere in code, docs, or UI.
+
+---
+
+## App 登录后首页 —— 听译与字幕当主角（2026-10-01 裁定；**2026-10-02 真机评审修订**）
+
+设计稿：`design/home-reorder-2026-10-01/od/`（初版）；**修订稿**：`design/home-reorder-2026-10-02-rev/od/`（`homepage-spec.html` 的 J14–J19 即本轮新增）。
+
+**2026-10-02 真机评审与签署**（ZHAO的iPhone · iPhone 14 Pro · iOS 27.0，逐屏截图）：三条视觉缺陷经 OpenDesign（历史工具，2026-10-08 前）出修订稿后，用户当日签署 ——
+① 两张主角卡**不等高**（听译卡标题折行把卡撑高）⇒ 卡高写死为**常量**（J15/J16）；
+② 卡内实心 CTA 带是**空橙块** ⇒ 带与按钮**合成同一元素**、中英两个非空子节点（J17）；
+③ 顶部「Safari extension isn't on yet」继续设置卡**挤占首屏** ⇒ 从首屏删除，降级为折叠线以下一行（J18/J19）。
+同次确认：首页**不留**系统翻译行（裁定 1 维持、J05 不变）；顶栏账号行收进 **44×44 圆形键**（设置/退出进它的菜单）。
+
+**设计与评审**（2026-10-01 起强制，见 `AGENTS.md`「Interaction / UX constraints」）：这一屏由 **OpenDesign**（历史工具，2026-10-08 前；现为 Pencil）出稿
+（画布 + iPhone/Mac 可点击原型 + 一页规格），**人工签署后**才写进本节。签署记录 —— 用户 2026-10-01 对设计稿四问的回答：
+
+1. **系统翻译的设置引导只放设置页** —— 不进首页、**也不进新手引导**（比设计稿问的那版更彻底）。
+2. 首页复习只留**一个**数字；「已掌握 0」进二级页。
+3. 实时字幕的「浮窗 / 锁屏」开关留在**进行中态**，默认态只留启动决策。
+4. Mac 版走**侧栏 + 双栏工作台**，不要求与 iPhone 逐块对称。
+
+**这一屏只回答一个问题：现在能干什么。** 所有与「已经做完的事」有关的内容（系统翻译接管、词库总量统计）
+都必须让位给还没开始的事。
+
+| 块 | 级 | iOS 尺寸 | 为什么在这 |
+|---|---|---|---|
+| 顶栏（身份 + 44×44 账号键） | H2 | 高 52 | 账号是全局动作，不该占首屏版面 |
+| **引擎状态行** | H3 | 高 32（命中 44） | 唯一的前置条件说明位：就位时是低对比绿摘要，**缺失时原地变成可点 chip**（待办必须前置 —— 现状把它扔在 y≈1275 的页脚） |
+| **实时字幕卡** | H1 | 高 **236（窄）/ 220（≥720 宽）** · CTA **44 触控 / 30 Mac 指针** | 本页主角之一（听设备正在播放的声音）。构成：32–36pt 图标 + 20/16pt 标题（**单行**）+ 标题下 EN sub + 13.5/12.5pt 说明 + **hug 中文 CTA（卡内右下）** |
+| **实时听译卡** | H1 | 高 **236（窄）/ 220（≥720 宽）** · CTA **44 触控 / 30 Mac 指针** | 与字幕**等高同权**（麦克风面对面）；只有卡内视觉不同（波形 vs A·B 译文条） |
+| 复习条 | H3 | 高 76（按钮 40，淡色档） | 「看得见、一眼能开始」，但不抢戏 |
+| 文档分区 + 行 | H4 | 眉 20 + 行 56 | 异步任务，列表行形态，**独立于「听」分区** |
+| ~~系统翻译行~~ | — | — | **已从首页移除**：设置引导只在设置页（裁定 1、J05） |
+| 扩展引导行 | H4 | 行 56 · **y ≥ 800（折叠线以下）** | 材料来源没开时只说一句事实，**不进首屏、不阻断任何实时能力**；与系统翻译行同槽互斥（J19） |
+
+**引擎（登录即就位）**：登录领取额度时把**三个**引擎一起配好 —— 翻译（`provider`）、转写（`sttEngine`）、朗读（`ttsEngine`）。
+这是「这一屏上实时字幕与听译直接可用」的前提，也**不得**再出现「还没配语音引擎」这类纯文本告警（J07）。
+
+**判据**（可写进门禁；原文与「怎么测」见 `design/home-reorder-2026-10-01/od/homepage-spec.html`）：
+
+- **J01** 首屏 844pt 内完整出现「实时字幕 / 实时听译 / 今天待复习」，顺序固定：引擎状态行 → 实时字幕 → 实时听译 → 复习条。
+- **J02** 两张主卡等高、等宽，主按钮的颜色/圆角/高度/字号完全一致；任一卡被降级为描边或淡色即不通过（**防「以视觉节制为名悄悄降级听译」**）。
+- **J03** 折叠线以内实心按钮 ≤ 2，且恰好是「开始实时字幕」「开始听译」。
+- **J04** 所有可点元素命中区 ≥ 44×44 CSS px（视觉不足 44 的由外扩命中区补足，源码标 `data-hit="44"`）。
+- **J05** 首页**不得出现**「系统翻译」区块或行 —— 设置引导只在设置页。
+- **J07** 不得出现任何无恢复路径的纯文本告警；每个缺失项挂在状态行上且自身可点。
+- **J08** 引擎状态行三态高度一致，切换时下方两块主卡的 `offsetTop` 不变。
+- **J09** 缺失项的命中区带 `aria-label` 指明目标页（例：「朗读引擎未配置，前往 设置 › 朗读 选择语音」）。
+- **J10** 复习卡首屏展示数字 ≤ 2 个；「已掌握 0」不得作主视觉（0% 空进度条同样不得出现）。
+- **J11** 「翻译文档」不得出现在「听」分区内。
+- **J12** 折叠线以下只允许列表行与分区眉，不得出现主要操作按钮。
+- **J13** 任一交互态（hover / press / focus-visible）的对比度不低于默认态；每个可 Tab 元素有 ≥2.5px 可见焦点环。
+- **J14** 系统翻译行的文案必须是**事实陈述**（匹配 `/已交给|已接管/`），区块内 `button` 数 = 0（不得含步骤、教程、「我已设好」类按钮）。该行只活在设置页（裁定 1）。
+- **J15** 两张主角卡的 `frame.height` **完全相等**；卡高是**常量**（`height`，不是 `min-height`）—— 文案长度、字体回退、Dynamic Type 都不得改变它。*为什么是常量：按内容对齐只在当前文案下等高，换语言即复发；真机这次复发的根因就是标题折行。*
+- **J16** 两张卡的标题块高度差 = 0，且每张标题**单行**（中文一行 + 标题下 EN sub 一行），超长在块内截断。手段：`white-space:nowrap; min-width:0`。
+- **J17** 每条可见实心 CTA 带内必须有**非空主标**，且颜色**显式声明**（非 `transparent`、非纯继承）；带与「按钮」必须是同一个元素。**BEL-168（2026-10-31）起**：主标**只放一种语言**（界面语言的动作，`home_cta_listen` / `home_cta_subs`），EN 对照移到**标题下** `.mode-sub`；CTA **hug content、卡内右下**，不得是全卡宽胶囊。*根因：全宽双语胶囊在 Mac 上像 iPhone 首页被拉宽；空橙块常来自「带是装饰层（`::after` / 渐变 / `background-clip:text`），文字在带外」⇒ 修法是把带与按钮合成同一元素。*
+- **J18** 折叠线（844pt）以内不得出现任何**带操作按钮的设置类元素**（`y < 844` 的 `.engines` / `.setup-card` / `.hero--setup` 内 `.cta, .btn` 计数 = 0）。*理由：设置类引导与「开始」争同一个第一眼，且诱导用户先配置后使用。*
+- **J19** 系统翻译 / 扩展引导恒为**折叠线以下的一个槽位一行**（`y ≥ 800`），两个事实态互斥（已就绪 · 未开启）；三引擎未就位时两者都不渲染。
+
+**落地（2026-10-02，J14–J19）**：
+
+- **J17 · CTA 带（BEL-168 修订）**：CTA 是卡内一个真实的 `<span class="cta">`（整卡仍是 `button`），
+  主标只放**界面语言**的动作（`home_cta_listen` / `home_cta_subs`，`_locales` 各一条译文）。
+  EN 对照移到**标题下** `.mode-sub`（固定英文，COPY-LOCK）：听译卡 `Conversation · Live interpretation`、
+  字幕卡 `Live bilingual subtitles` —— 它不再进按钮，所以不会再出现全宽双语胶囊。
+- **J04 · 顶栏**：品牌留在左侧，账号（邮箱 + 设置/退出）收进右侧 44×44 圆键；点键展开菜单，点外部 / Esc 收起。
+  圆键里的字母取显示名首字符，可读名走 `aria-label`（`opt_sec_account`）。
+- **J18/J19 · 扩展引导行**：`#ext-banner` 从首屏的整张卡降级为 `#signed-in` 末尾的**一行**（`y ≥ 800`），
+  点行才展开二级面板（动作 + 三步）。**系统翻译横幅维持退役**（J05 / 裁定 1 / `sys-banner.js` 的 `decide()` 恒 `'none'`），
+  所以「一个槽位两个事实态」在当前产品里只会渲染**扩展那一态** —— 系统翻译仍是设置页的事。
+
+### Mac 首页 · 双列 + CTA hug（BEL-168，2026-10-31）
+
+设计源：`~/qa/bel168-design-20261031/design/`（`COPY-LOCK.md` + `html/{light,dark}.html` + `shots/{light,dark}.png`；
+IX 线框半稿，非 pen.dev 真机稿）。范围只到**首页入口区**；窄窗叠态本拍**未画**，记 ACCEPT。
+
+- **断点**：沿用本仓库唯一的 `@media (min-width: 720px)`。宽窗（Mac 全宽、iPad 全屏）两卡
+  `.heroes` 用 `grid-template-columns: repeat(2, minmax(0, 1fr))` **并排双列**；`<720` 回落竖叠。
+  不为 iPad 另写布局。
+- **卡面**：宽窗卡高 **220（常量）**、`padding 18`、图标 36、标题 16、EN sub 11、说明 12.5、
+  圆角 `--radius-md`；两卡等高同权（J15）。窄窗卡高仍 236（既有 iPhone 规格）。
+- **CTA**：`align-self: flex-end` + `margin-top: auto` ⇒ 卡内**右下**；`hug content`（`0 20` 左右内边距），
+  不 `stretch`、不 `width:100%`。指针设备（Mac）高 **30**；触控宽窗（iPad）保留 **44** 命中区
+  —— 判据是 `(hover:hover) and (pointer:fine)`，不是「Mac 就 30」。
+- **颜色**：亮色沿用共享 Organic 亮 token；**暗色**在 `app/style.css` 覆盖为设计稿的**暖棕黑**
+  （`--bg #2a211c` / `--card-bg #3a2f28` / `--section-bg #4a3a30` / `--text #f7efe6`），
+  不再是共享的冷 slate。只覆盖 **App 壳**；扩展三页继续用 `build/palette.config.js` 的共享深色。
+  两套文字/底色仍由 `test:app` 的深浅双扫量过 AA。
+- **页脚**：保留「今天待复习」与「上次同步 …」（`.today` 区块既有结构，本拍未改）。
+
+**新手引导（屏 3）**：**不含**系统翻译的设置步骤（裁定 1）。系统翻译那一段的做法仍见
+`learning-design.md`（把 iPhone 自带「翻译」指向我们），但它的**入口与说明只在设置页**。
+
+## Agent 确认 / 失败卡（N25 · 1.22.0）
+
+2026-10-26。只在 `belliedmonkey://agent/v1/…` 或 `belliedmonkeycn://agent/v1/…` 进来时出现。旧的 `://listen`、`://review`、`://setup` 不走这张卡。
+
+文案锁逐字（确认帧、F1–F5、BEL-104 附录）。动作短名是槽，锁了「打开设置」「实时字幕」「收进复习」。入站 `open_setup`（深链 / MCP）也先出确认帧（BEL-151）。其余工具不对用户露出另一套短名。匿名帧没有「始终允许此助手」。确认帧的次按钮是「取消」。匿名来源行是「来自：深链 / MCP（无法确认助手身份）」；有 `caller_id` 时是「来自：已识别助手」。展示名 `caller` 不写上来源行。
+
+- **窄**（窗口宽度小于 720px）：底栏通栏。主按钮与次按钮上下排，命中高度 48px。不依赖 hover。
+- **宽**（≥ 720px，iPad 与 Mac 同一断点）：卡片居中，最大宽度 420px。Mac 上主按钮有 hover；iPad 不把 hover 当唯一反馈。焦点环 2.5px。
+- 确认前不开麦、不读页、不写学习库。`start_live_subtitles` 通过后只打开字幕独立表面，用户再点「开始」才开麦。
+- 入站 `open_setup` 同样先出确认帧，再打开设置步：动作名「打开本机设置（安装引导）」，可勾「本机始终允许（打开设置）」；touches 照实写「打开本机设置页（安装或就绪检查）」，**不**宣称开麦。取消 →「已取消」，不回「已打开设置」。它**不**并进五工具的 `isSensitive` 集合。
+- 失败帧标题「还差一步」。没有专卡的失败码也用这个标题，正文用回执里的 message。取消回执的标题是「已取消」。F3 的次按钮复制一段说明，不放商店一键安装。F4「改用实时字幕」只打开字幕表面。
+- 附录卡，主次按钮逐字：`need_app` 正文 `尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。`，主 `去安装 / 打开 App`，次 `打开安装说明`；`need_login`「需要登录 / 去登录 / 取消」；`grant_or_key_unavailable`「本机额度或密钥不可用 / 去配置引擎与密钥 / 取消」，脚注「亦可在宿主配置自有 Key 或订阅」；`network_unavailable`「网络暂时不可用 / 重试 / 取消」。线协议里额度或密钥仍是 `quota_or_key`，卡上的 code 是 `grant_or_key_unavailable`。宿主订阅被提供方拒绝代付时，线协议码是 `subscription_cannot_pay`，用户看见的仍是这张卡。
+- `grant_or_key_unavailable` 的「去配置引擎与密钥」打开设置里的引擎与密钥（用户自己的 key）。它不去登录页。宿主 API Key 会打到提供方，用量不进回执。宿主订阅走同一条请求；不肯代付时回执是 `subscription_cannot_pay`，不改走大肚猴额度假装成功。环境变量非空本身不是成功。本机已经填好的 key 仍然可以跑。`network_unavailable` 的「重试」再走同一次调用，不打开引擎、登录或鉴权页。
+- 安装引导（Claude Code / Codex / dsh）脚注含「宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径」，并保留本机 stdio、Remote 未发布、不把产品服务器写进仓库根 `.mcp.json`。
+- CLI 没有确认卡。没有 elicitation 时回执是 `need_confirm`，正文「需要你在本机点确认」。确认卡只在 App。
+- 在途时主次按钮 disabled，并降到 45% 不透明度。
+

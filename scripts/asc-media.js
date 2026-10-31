@@ -1,0 +1,527 @@
+#!/usr/bin/env node
+// scripts/asc-media.js — 把商店截图与预览片推到 App Store Connect 的四条线。
+//
+// 用法：
+//   node scripts/asc-media.js                        # 只打印计划，什么都不动（默认）
+//   node scripts/asc-media.js --apply                # 真的替换（**对外动作**，会改线上商店页）
+//   node scripts/asc-media.js --apply --only cn-ios  # 只做一条线
+//   node scripts/asc-media.js --version 1.6.5        # 版本默认取 package.json，可覆盖
+//   node scripts/asc-media.js --screenshots-only     # 只换截图，预览片保留线上现有（修文案类拒审时用）
+//
+// --only 的取值就是 PLAN 里的 id：global-ios / global-mac / global-ios-zh /
+// global-mac-zh / cn-ios / cn-mac。
+//
+// 与 cws-publish / amo-publish 同一套分档：默认什么都不做，替换商店素材是对外动作，
+// 不该是副作用。
+//
+// ASC 的资产上传是三步，缺一步就得到一个「已创建但永远转不完」的空壳：
+//   ① 预留   POST /appScreenshots  {fileName,fileSize} → 返回 uploadOperations
+//   ② 传字节 按 uploadOperations 逐段 PUT（可能不止一段，必须按 offset/length 切）
+//   ③ 提交   PATCH {uploaded:true, sourceFileChecksum:<md5>}
+// 校验和不是可选的：漏了它 Apple 侧会一直停在 UPLOAD_COMPLETE 而不进 COMPLETE。
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const ROOT = path.join(__dirname, '..');
+const KEYS = path.join(ROOT, '.local', 'keys.md');
+const API = 'https://api.appstoreconnect.apple.com/v1';
+
+function slot(name) {
+  if (!fs.existsSync(KEYS)) return null;
+  const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS, 'utf8'));
+  return m ? m[1] : null;
+}
+function jwt() {
+  const now = Math.floor(Date.now() / 1000);
+  const b64 = (o) => Buffer.from(JSON.stringify(o)).toString('base64url');
+  const head = b64({ alg: 'ES256', kid: slot('ascKeyId'), typ: 'JWT' });
+  const body = b64({ iss: slot('ascIssuerId'), iat: now, exp: now + 900, aud: 'appstoreconnect-v1' });
+  const key = fs.readFileSync(slot('ascKeyPath').replace(/^~/, process.env.HOME));
+  const sig = crypto.sign('sha256', Buffer.from(`${head}.${body}`), { key, dsaEncoding: 'ieee-p1363' });
+  return `${head}.${body}.${sig.toString('base64url')}`;
+}
+async function api(method, url, body) {
+  const r = await fetch(url.startsWith('http') ? url : API + url, {
+    method,
+    headers: Object.assign({ Authorization: 'Bearer ' + jwt() },
+      body ? { 'Content-Type': 'application/json' } : {}),
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (r.status === 204) return null;
+  const text = await r.text();
+  let d = null;
+  try { d = JSON.parse(text); } catch (_) { /* 非 JSON 也要留住原文 */ }
+  if (!r.ok) {
+    const detail = d && d.errors ? d.errors.map((e) => `${e.title}: ${e.detail}`).join('; ')
+      : String(text).slice(0, 400);
+    throw new Error(`HTTP ${r.status} ${method} ${url} — ${detail}`);
+  }
+  return d;
+}
+
+// ── 出货清单 ──────────────────────────────────────────────────────────────
+// 每条线要替换哪些集合、用哪些文件。文件顺序 = 商店里的显示顺序。
+const g = (n) => path.join(ROOT, 'store-assets', n);
+const c = (n) => path.join(ROOT, 'screenshots-cn', n);
+// 帧号 = 两份 scene.html 里的 f（只往后加、不重排 —— 官网直接拷 web-1/4/7）；数组顺序 = 商店里的显示顺序。
+// 1.11.0：App 的两个新功能排到网页双语之后。商店页前三张决定人点不点开，而这两样是这一版的主角。
+//   国际版 1 网页双语 · 8 实时字幕 · 9 对话听译 · 2 视频字幕 · 7 文档 · 3 复习卡 · 4 手机复习 · 5 跨设备 · 6 一键配置
+//   中国版 1 网页双语 · 6 实时字幕 · 7 对话听译 · 5 文档 · 3 复习卡 · 2 自带 Key · 4 学习设置
+// 以前写死「前 5 张 / 前 4 张」，于是 1.7 的一键配置帧、1.10 的文档帧渲染出来了却从没上过商店。
+// ORDER_GLOBAL 现在只喂扩展两店（amo-listing.js 的 AMO 预览图 + CWS 截图）。App 的
+// 截图集一律走 ORDER_APP_GLOBAL —— 2026-09-28 国际 iOS 1.17.0 被 Guideline 2.3.7 拒审
+// （截图里的价格引用，「free 也算」），帧 6 一键配置引导页整个从 App 商店图撤下；
+// 扩展两店不归苹果审，帧 6 保留。
+const ORDER_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5, 6];
+// App 截图集（iPhone 65 / iPad / 九份本地化）的共用表：ORDER_GLOBAL 去掉帧 6。
+const ORDER_APP_GLOBAL = [1, 8, 9, 2, 7, 3, 4, 5];
+// iPhone 那一集多一帧：10 = 系统翻译（1.14 的主角），排在第 2 位。
+// **只有 iPhone 集有它** —— iPad 没有原料（没有 iPad 硬件，模拟器里没有那个扩展点），
+// Mac 根本没有这个功能。
+const ORDER_IPHONE = [1, 10, 8, 9, 2, 7, 3, 4, 5];
+// Mac 那一集同样多一帧：11 = 快速翻译（1.13.1 的主角），排在第 2 位 —— 与 iPhone 的
+// 帧 10 镜像对称。**只有 Mac 集有它**：iPhone / iPad 上没有这个功能，扩展两店不放
+// App 独有的东西。
+const ORDER_MAC = [1, 11, 8, 9, 2, 7, 3, 4, 5];
+const ORDER_CN = [1, 6, 7, 5, 3, 2, 4];
+// 中国版的 iPhone 集也多一帧：8 = 系统翻译，排在第 2 位 —— 与国际版 ORDER_IPHONE 的
+// 帧 10 同一个位置、同一条理由。**只有 iPhone 集有它**：iPad 没有原料（没有 iPad 硬件），
+// Mac 根本没有这个功能。2026-09-23 真机补拍（cn-phone-systrans.png）之后才有。
+const ORDER_CN_IPHONE = [1, 8, 6, 7, 5, 3, 2, 4];
+// App 独有功能的帧（8 实时字幕、9 对话听译）：只上 App Store。扩展商店（AMO 预览图、CWS 截图）不放 ——
+// 装 Firefox / Chrome 扩展的人得不到这两样，放上去就是在宣传用户拿不到的东西。scripts/amo-listing.js 读这一行。
+const APP_ONLY_GLOBAL = [8, 9];
+// 帧 10 与帧 11 都不在这张表里，**因为它们根本不在 ORDER_GLOBAL 里** —— 扩展两店按
+// ORDER_GLOBAL 取图，所以它们是「按构造排除」，不是「按名单排除」。写进 APP_ONLY_GLOBAL
+// 反而会被门禁判成帧号写错（test/asc-media-plan.test.js：这张表里的号必须在 ORDER_GLOBAL 里）。
+const frames = (order, p) => order.map((i) => p(`${i}`));
+// 预览视频放仓库里（原来在 /tmp，重启即丢，1.10 那轮已经找不回源文件）。中国版沿用中文那两条 —— 画面里没有境外站点。
+const v = (n) => path.join(ROOT, "store-assets", "video", n);
+
+const PLAN = [
+  {
+    id: 'global-ios', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'en-US',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_IPHONE, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: { IPHONE_65: v('en-ios.mp4') },
+  },
+  {
+    id: 'global-mac', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'en-US',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: { DESKTOP: v('en-mac.mp4') },
+  },
+  // 国际版的 zh-Hans 本地化原本一张截图都没有 ⇒ 中文用户看到的是 en-US 那套英文图。
+  // 这两条只是把已有的 zh-* 出货图配上去，不动 en-US。
+  {
+    id: 'global-ios-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hans',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_IPHONE, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
+    },
+    previews: { IPHONE_65: v('zh-ios.mp4') },
+  },
+  {
+    id: 'global-mac-zh', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hans',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`zh-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
+  },
+  // 其余九份本地化（2026-09-03 补）。它们有文案、有关键词，**却一张截图都没有** ——
+  // 而截图是必填项，缺了会让整条线在提审时被 409 挡下，且 Apple 的报错只说
+  // 「not in valid state, please check associated errors」，不指出是哪一项、哪个 locale。
+  // 那次是逐份数出来的：只有 en-US 与 zh-Hans 各 5 张，另外九份是 0。
+  //
+  // 用英文那套：这九种语言的用户看不懂中文界面，而英文界面是产品的真实样子。
+  // zh-Hant 用中文那套（同为汉字，简体界面对繁体用户可读）。
+  {
+    id: 'global-ios-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ru',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ru', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ru',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'de-DE',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-dede', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'de-DE',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ja',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ja', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ja',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'fr-FR',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-frfr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'fr-FR',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ko',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ko', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ko',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pt-BR',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-ptbr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pt-BR',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'es-ES',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-eses', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'es-ES',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'ar-SA',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-arsa', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'ar-SA',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  // 1.11.0 新增的四个语种（it / tr / vi / pl）：文案在 store-assets/aso.md，截图用英文那套（理由同上）。
+  {
+    id: 'global-ios-it', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'it',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-it', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'it',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'tr',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-tr', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'tr',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'vi',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-vi', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'vi',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'pl',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`en-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`en-ipad-${i}.png`)),
+    },
+    previews: {},
+  },
+  {
+    id: 'global-mac-pl', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'pl',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`en-mac-${i}.png`)) },
+    previews: {},
+  },
+  {
+    id: 'global-ios-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'IOS', locale: 'zh-Hant',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_APP_GLOBAL, (i) => g(`zh-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_APP_GLOBAL, (i) => g(`zh-ipad-${i}.png`)),
+    },
+    previews: { IPHONE_65: v('zh-ios.mp4') },
+  },
+  {
+    id: 'global-mac-zhhant', bundleId: 'com.belliedmonkeytranslator', platform: 'MAC_OS', locale: 'zh-Hant',
+    screenshots: { APP_DESKTOP: frames(ORDER_MAC, (i) => g(`zh-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
+  },
+  {
+    id: 'cn-ios', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'IOS', locale: 'zh-Hans',
+    screenshots: {
+      APP_IPHONE_65: frames(ORDER_CN_IPHONE, (i) => c(`cn-iphone-${i}.png`)),
+      APP_IPAD_PRO_3GEN_129: frames(ORDER_CN, (i) => c(`cn-ipad-${i}.png`)),
+    },
+    previews: { IPHONE_65: v('zh-ios.mp4') },
+  },
+  {
+    id: 'cn-mac', bundleId: 'com.belliedmonkeytranslator.cn', platform: 'MAC_OS', locale: 'zh-Hans',
+    screenshots: { APP_DESKTOP: frames(ORDER_CN, (i) => c(`cn-mac-${i}.png`)) },
+    previews: { DESKTOP: v('zh-mac.mp4') },
+  },
+];
+
+// ── 三步上传 ──────────────────────────────────────────────────────────────
+async function uploadAsset(kind, setId, file, extraAttrs) {
+  const isPreview = kind === 'preview';
+  const type = isPreview ? 'appPreviews' : 'appScreenshots';
+  const setType = isPreview ? 'appPreviewSets' : 'appScreenshotSets';
+  const buf = fs.readFileSync(file);
+
+  const created = await api('POST', `/${type}`, {
+    data: {
+      type,
+      attributes: Object.assign({ fileName: path.basename(file), fileSize: buf.length }, extraAttrs || {}),
+      relationships: { [isPreview ? 'appPreviewSet' : 'appScreenshotSet']: { data: { type: setType, id: setId } } },
+    },
+  });
+  const asset = created.data;
+  const ops = asset.attributes.uploadOperations || [];
+  if (!ops.length) throw new Error(`${path.basename(file)}: Apple 没有给 uploadOperations`);
+
+  // 可能不止一段。**必须按 offset/length 切**，整文件重复 PUT 会得到一个损坏的资产。
+  for (const op of ops) {
+    const chunk = buf.subarray(op.offset, op.offset + op.length);
+    const headers = {};
+    for (const h of op.requestHeaders || []) headers[h.name] = h.value;
+    const r = await fetch(op.url, { method: op.method || 'PUT', headers, body: chunk });
+    if (!r.ok) throw new Error(`${path.basename(file)}: 传字节失败 HTTP ${r.status}`);
+  }
+
+  // 校验和不是可选的：漏了它资产会永远停在 UPLOAD_COMPLETE，商店页看不到。
+  const md5 = crypto.createHash('md5').update(buf).digest('hex');
+  await api('PATCH', `/${type}/${asset.id}`, {
+    data: { type, id: asset.id, attributes: { uploaded: true, sourceFileChecksum: md5 } },
+  });
+  return asset.id;
+}
+
+async function findVersionLocalization(bundleId, platform, locale) {
+  const apps = await api('GET', '/apps?limit=200');
+  const app = apps.data.find((a) => a.attributes.bundleId === bundleId);
+  if (!app) throw new Error(`找不到 app ${bundleId}`);
+  // **必须按平台过滤。** 两个平台的版本记录混在同一个 app 下，不过滤的话 `limit=10`
+  // 会被其中一个平台整个占满，另一个平台的记录**一条都看不到** —— 与 build 号那个坑
+  // 同一族（`asc.js builds` 早就按平台分开问了，这里当时漏了）。
+  //
+  // 症状特别会骗人：2026-09-25 实测，1.16.0 四条线全部 READY_FOR_SALE，而这里报的是
+  // 「没有 1.16.0 版本记录」—— 把「没查到」说成了「不存在」，正是本文件下面那段注释
+  // 警告过的形状（「让人以为是 ASC 的问题」）。真相是它该报「状态是 READY_FOR_SALE」。
+  const vs = await api('GET', `/apps/${app.id}/appStoreVersions?limit=20`
+    + `&filter[platform]=${platform}`
+    + '&fields[appStoreVersions]=versionString,appStoreState,platform');
+  const v = vs.data.find((x) => x.attributes.versionString === VERSION && x.attributes.platform === platform);
+  if (!v) {
+    const seen = vs.data.map((x) => `${x.attributes.versionString}(${x.attributes.appStoreState})`).join(', ');
+    throw new Error(`${bundleId} ${platform} 没有 ${VERSION} 版本记录 —— 该平台现有：${seen || '（一条都没有）'}`);
+  }
+  // 只有 PREPARE_FOR_SUBMISSION 能动。
+  //
+  // 2026-08-22 实测：版本进 WAITING_FOR_REVIEW 之后，`POST /appScreenshotSets` 被
+  // Apple 以 409「Can't Create Screenshot Set while In Review」拒掉。**好消息是它拒得
+  // 很干净** —— 四条线的状态原封不动，排队位置没丢。所以别为了补素材去撤审：
+  // 撤审重提会把排队清零（中国版上次排了 40 天），而补图属于下一个版本的事。
+  // 可编辑的两种状态：还没提交，或开发者自己撤回过（撤审后 Apple 给的就是
+  // DEVELOPER_REJECTED，不是被拒的意思）。
+  // 在审中（WAITING_FOR_REVIEW / IN_REVIEW）不行：2026-08-22 实测
+  // `POST /appScreenshotSets` 会被 409「Can't Create Screenshot Set while In Review」
+  // 拒掉 —— 拒得很干净，状态不受影响，所以那条路是安全的死路，不是隐患。
+  // REJECTED（苹果拒审）也在这里改：2.3.7 拒审后的标准闭环就是在**同一个版本**上换图、
+  // 改文案、回复 Resolution Center、重提 —— 回复挂在这个版本的会话上，版本不可编辑就没法修
+  // （2026-09-28 国际 iOS 1.17.0 实走通）。要防的只是白名单外的在审/上架状态。
+  const EDITABLE = ['PREPARE_FOR_SUBMISSION', 'DEVELOPER_REJECTED', 'REJECTED'];
+  if (!EDITABLE.includes(v.attributes.appStoreState)) {
+    throw new Error(`${bundleId} ${platform} ${VERSION} 状态是 ${v.attributes.appStoreState}`
+      + ' —— 不动它（在审期间 Apple 不接受新建截图集）');
+  }
+  const locs = await api('GET', `/appStoreVersions/${v.id}/appStoreVersionLocalizations?limit=25`
+    + '&fields[appStoreVersionLocalizations]=locale');
+  const L = locs.data.find((x) => x.attributes.locale === locale);
+  if (!L) throw new Error(`${bundleId} ${platform} 没有 ${locale} 本地化`);
+  return { appName: app.attributes.name, versionId: v.id, locId: L.id };
+}
+
+// 版本号跟着 package.json 走，`--version` 可覆盖。
+//
+// 这里**曾经是一行硬编码** `const VERSION = '1.6.4'`。那种写法的坏处不是「要记得改」，
+// 而是忘了改之后它**不会报错**：脚本会去找上一个版本的本地化，把新素材推到已经上架的
+// 那一版上，或者报一句「没有 X 版本记录」而让人以为是 ASC 的问题。
+function resolveVersion(argv) {
+  const i = argv.indexOf('--version');
+  if (i >= 0 && argv[i + 1]) return argv[i + 1];
+  return JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+}
+let VERSION = null;
+
+// 出货清单也给别人用 —— `asc-submit.js` 的提审门禁要拿它当「应该有几张」的判据。
+// 2026-09-24 查出：`ORDER_MAC` 配 10 张而商店上只有 9、`ORDER_CN_IPHONE` 配 8 而商店上 7
+// —— 那两帧渲染出来了、进了仓库、写进了这张表，却**从来没传上去过**（每次发版都撞上
+// 在审状态被跳过）。配置与商店各说各话，而没有任何东西会因此变红。
+// 导出的是**期望张数**，不是文件路径：门禁只关心「配了几张」对不对得上「商店有几张」。
+function expectedCounts() {
+  const out = [];
+  for (const p of PLAN) {
+    for (const [displayType, files] of Object.entries(p.screenshots || {})) {
+      out.push({ id: p.id, bundleId: p.bundleId, platform: p.platform, locale: p.locale, displayType, count: files.length });
+    }
+  }
+  return out;
+}
+module.exports = { expectedCounts };
+
+// 只有直接跑这个脚本才连 ASC —— 被 require 时不做任何网络动作（asc-submit 会 require 它）。
+if (require.main === module) (async () => {
+  const argv = process.argv.slice(2);
+  const apply = argv.includes('--apply');
+  // --previews-only：只挂预览视频，跳过截图段。截图段一挂就整条抛出，预览段根本轮不到
+  // （2026-09-16：苹果 `POST /appScreenshots` 连续 500 数小时，而 `POST /appPreviews` 是另一个端点）
+  const previewsOnly = argv.includes('--previews-only');
+  // --screenshots-only：跳过预览片替换（预览逻辑是「文件在就重传」，而修 metadata 类拒审时
+  // 预览片没变 —— 2026-09-28 2.3.7 只点截图，视频不该跟着重传一遍）。
+  const screenshotsOnly = argv.includes('--screenshots-only');
+  const onlyIdx = argv.indexOf('--only');
+  const only = onlyIdx >= 0 ? argv[onlyIdx + 1] : null;
+  VERSION = resolveVersion(argv);
+  console.log(`版本 ${VERSION}${argv.includes('--version') ? '（--version 指定）' : '（来自 package.json）'}`);
+
+  console.log(apply ? '\x1b[1m模式：真的替换（对外动作）\x1b[0m' : '模式：只打印计划（加 --apply 才动）');
+
+  for (const line of PLAN) {
+    if (only && line.id !== only) continue;
+    const { appName, locId } = await findVersionLocalization(line.bundleId, line.platform, line.locale);
+    console.log(`\n■ ${line.id}  ${appName} [${line.platform}] ${VERSION} ${line.locale}`);
+
+    // ── 截图 ──
+    const sets = await api('GET', `/appStoreVersionLocalizations/${locId}/appScreenshotSets?limit=20`
+      + '&fields[appScreenshotSets]=screenshotDisplayType');
+    for (const [displayType, files] of Object.entries(previewsOnly ? {} : line.screenshots)) {
+      for (const f of files) if (!fs.existsSync(f)) throw new Error(`缺文件 ${f}`);
+      let set = sets.data.find((s) => s.attributes.screenshotDisplayType === displayType);
+      const existing = set
+        ? (await api('GET', `/appScreenshotSets/${set.id}/appScreenshots?limit=20&fields[appScreenshots]=fileName`)).data
+        : [];
+      console.log(`  ${displayType}: 现有 ${existing.length} 张 → 换成 ${files.length} 张`);
+      files.forEach((f) => console.log(`      ${path.basename(f)}`));
+      if (!apply) continue;
+
+      if (!set) {
+        set = (await api('POST', '/appScreenshotSets', {
+          data: { type: 'appScreenshotSets', attributes: { screenshotDisplayType: displayType },
+            relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: locId } } } },
+        })).data;
+      }
+      // **逐张替换**：删一张旧的、紧接着传一张新的。2026-09-16 一天里把两种极端都踩了一遍：
+      //   · 先删后传 ⇒ 上传一挂，线上只剩空集合（早上 cn-mac / global-mac-zh 被这样清空）；
+      //   · 先传后删 ⇒ 5 张旧 + 9 张新 = 14 张，**撞每组 10 张上限**，苹果时而报
+      //     409「Too many screenshots」、时而报 500 UNEXPECTED_ERROR，看着像服务端故障，实则是自己撑爆的；
+      //     而且每次「失败」的重试都真的塞进去了几张，集合里越积越多重复图。
+      // 逐张替换的峰值 = max(旧, 新) ≤ 9 < 10，且任何时刻集合里都有图。
+      // ASC 的 500 是偶发的：单次 DELETE / 上传失败**不该让整轮中止**（2026-09-16 全量推送就是被
+      // 一个 DELETE 500 打断，前 15 组已成、后 18 个集合停在旧图）。退避重试三次，仍失败才抛。
+      const retry = async (what, fn) => {
+        for (let a = 1; a <= 3; a++) {
+          try { return await fn(); } catch (e) {
+            if (a === 3) throw e;
+            process.stdout.write(`(${what} 第 ${a} 次失败，${a * 5}s 后重试)`);
+            await new Promise((r) => setTimeout(r, a * 5000));
+          }
+        }
+      };
+      const pairs = Math.max(existing.length, files.length);
+      for (let i = 0; i < pairs; i++) {
+        if (existing[i]) await retry('删', () => api('DELETE', `/appScreenshots/${existing[i].id}`));
+        if (files[i]) { await retry('传', () => uploadAsset('screenshot', set.id, files[i])); process.stdout.write('.'); }
+      }
+      console.log(' ✓');
+    }
+
+    // ── 预览片 ──
+    const psets = await api('GET', `/appStoreVersionLocalizations/${locId}/appPreviewSets?limit=20`
+      + '&fields[appPreviewSets]=previewType');
+    for (const [previewType, file] of Object.entries(screenshotsOnly ? {} : (line.previews || {}))) {
+      // 预览视频要重录（assets.md 的 cap 配方），不是每次发版都重做；文件不在就保留线上那份，
+      // 只换截图 —— 但要说出来，别让「没换」看起来像「换了」（2026-09-08，1.8.0 只换图）。
+      if (!fs.existsSync(file)) { console.log(`  ⚠ 预览 ${previewType}: 本地没有 ${file}，保留线上现有预览不动`); continue; }
+      let set = psets.data.find((s) => s.attributes.previewType === previewType);
+      const existing = set
+        ? (await api('GET', `/appPreviewSets/${set.id}/appPreviews?limit=20&fields[appPreviews]=fileName`)).data
+        : [];
+      console.log(`  ${previewType}: 现有 ${existing.length} 个 → 换成 ${path.basename(file)}`
+        + ` (${(fs.statSync(file).size / 1048576).toFixed(1)} MB)`);
+      if (!apply) continue;
+
+      if (!set) {
+        set = (await api('POST', '/appPreviewSets', {
+          data: { type: 'appPreviewSets', attributes: { previewType },
+            relationships: { appStoreVersionLocalization: { data: { type: 'appStoreVersionLocalizations', id: locId } } } },
+        })).data;
+      }
+      for (const old of existing) await api('DELETE', `/appPreviews/${old.id}`);
+      await uploadAsset('preview', set.id, file, { previewFrameTimeCode: '00:00:08:00' });
+      console.log('    ✓');
+    }
+  }
+
+  if (!apply) console.log('\n（只是计划。确认无误后加 --apply）');
+})().catch((e) => { console.error('\n✗ ' + ((e && e.message) || e)); process.exit(1); });

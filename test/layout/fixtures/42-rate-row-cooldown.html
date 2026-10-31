@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rating prompt row: after the last translation, once, only on the 3rd successful session</title>
+<style>
+  body { font-family: sans-serif; margin: 0; padding: 24px; max-width: 720px; }
+  p { margin: 0 0 14px; line-height: 1.7; }
+  aside { margin-top: 24px; padding: 12px; background: #f3f3f3; }
+</style>
+</head>
+<body>
+
+<p id="p1">Spaced repetition schedules each review just before you would forget it.</p>
+<p id="p2">The forgetting curve describes how memory fades over time without practice.</p>
+<p id="p3">Reading in two languages keeps the original in view while the translation sits beneath it.</p>
+<aside id="side">Editorial note: this box is the page's own footer content.</aside>
+
+<script type="application/json" id="mt-expect">
+{
+  "name": "rate-row-cooldown",
+  "unitCount": 4,
+  "storage": { "mtOkSessions": 5, "mtRatingAskedAt": 4102444800000 },
+  "rateRow": { "count": 0 }
+}
+</script>
+</body>
+</html>

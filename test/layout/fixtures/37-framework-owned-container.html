@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>a framework-owned container keeps its own children in place</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  main { max-width: 640px; margin: 24px auto; line-height: 1.6; }
+  .fw p { margin: 0 0 1em; }
+</style>
+<body>
+<main>
+  <!-- 这个容器由「框架」管辖：它按**位置**对齐自己的子节点，就像 React 的
+       reconciler。往里插一个它不认识的节点，会把它后面每一个位置都错开，于是
+       下一次提交不是打补丁，而是把整串子节点搬一遍。
+       实测形状来自 lennysnewsletter.com（Substack）：容器里有 3 个我们的节点，
+       一次选区变化就搬动 76 个 <p>；一个都没有时搬动 0 个。 -->
+  <div id="fw" class="fw">
+    <p id="fw-1">Founders who lived the problem speak with credibility, and that
+      credibility is what carries an early pitch further than any deck.</p>
+    <p id="fw-2">The <a id="fw-link" href="#guide">full methodology guide</a> explains
+      why the first ten customers matter more than the next thousand.</p>
+    <p id="fw-3">Distribution is not a phase that comes after the product is finished;
+      it is a constraint that shapes what the product can be.</p>
+    <p id="fw-4">Retention is the only growth loop that does not get more expensive
+      every quarter, which is why it is the one worth instrumenting first.</p>
+  </div>
+</main>
+<script>
+  const fw = document.getElementById('fw');
+  const owned = [...fw.children];          // 框架认得的子节点，顺序固定
+  const bump = (k) => { document.body.dataset[k] = String(parseInt(document.body.dataset[k] || '0', 10) + 1); };
+
+  // React 的 placement：逐位置比对，第 i 个位置不是期望的那个就把期望的插过去。
+  function reconcile() {
+    for (let i = 0; i < owned.length; i++) {
+      const want = owned[i];
+      if (fw.children[i] !== want) { fw.insertBefore(want, fw.children[i] || null); bump('moves'); }
+    }
+  }
+  // 框架在选区变化时重渲染（Substack 的划词分享 UI 就是这么做的）
+  document.addEventListener('selectionchange', reconcile);
+
+  // 反空转自检：先故意把一个子节点挪到末尾，再 reconcile —— 必须真的搬回来。
+  // 少了这一步，一个从不搬动任何东西的 reconciler 也能让断言全绿。
+  fw.appendChild(owned[1]);
+  reconcile();
+  if (fw.children[1] !== owned[1]) { document.title = 'BROKEN FIXTURE: reconciler 没把节点搬回来'; }
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "framework-owned-container",
+  "unitCount": 4,
+  "targets": [
+    { "sel": "#fw-1", "assert": ["translationMarked"] },
+    { "sel": "#fw-2", "assert": ["translationMarked"] }
+  ],
+  "interaction": {
+    "counters": ["moves"],
+    "frameworkChurn": { "select": "#fw-3", "counter": "moves", "max": 0 }
+  }
+}
+</script>
+</body>
+</html>

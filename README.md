@@ -1,0 +1,557 @@
+<h1 align="center">BelliedMonkey Translator</h1>
+
+<p align="center">
+  <b>Read the world's web — both languages at once. And actually remember it.</b><br>
+  Bilingual pages, dual subtitles for video and podcasts, and live subtitles for anything your Mac or iPhone plays.<br>
+  A live interpreter for face-to-face conversations, in the app.<br>
+  Sentences you actually read become review cards — on your phone too, if you turn on sync.<br>
+  Bring your own LLM key, and no server of ours is in the translation path.
+</p>
+
+<p align="center">
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml"><img alt="tests" src="https://github.com/belliedmonkey/belliedmonkey-translator/actions/workflows/test.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
+  <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
+</p>
+
+<p align="center">
+  <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
+</p>
+
+<!-- BEL-153 first screen: install CTAs + store deep links + star path (above the fold) -->
+<p align="center">
+  <a href="https://apps.apple.com/app/belliedmonkey-translator/id6787190032"><img alt="Download on the App Store" src="https://img.shields.io/badge/App%20Store-iPhone%20·%20iPad%20·%20Mac-000000?logo=apple&logoColor=white"></a>
+  &nbsp;
+  <a href="https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf"><img alt="Add to Chrome" src="https://img.shields.io/badge/Chrome-Add%20extension-4285F4?logo=googlechrome&logoColor=white"></a>
+  &nbsp;
+  <a href="https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/"><img alt="Add to Firefox" src="https://img.shields.io/badge/Firefox-Add%20extension-FF7139?logo=firefoxbrowser&logoColor=white"></a>
+</p>
+<p align="center">
+  <a href="https://belliedmonkey.cc/#install"><b>Install guide →</b></a>
+  ·
+  <a href="https://belliedmonkey.cc"><b>Website</b></a>
+  ·
+  <a href="https://apps.apple.com/cn/app/id6789718038"><b>中国大陆 App Store</b></a>
+  ·
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator"><b>★ Star this repo</b></a>
+</p>
+
+<p align="center">
+  <img src="docs/media/app-live-subtitles.gif" alt="Live Subtitles / listening translation on iPhone: a picture-in-picture window floats over another app, stacking each spoken sentence with its translation — the English translation in bold, the Chinese original beneath it." width="27%">
+</p>
+<p align="center"><sub><b>Listening translation (Live Subtitles):</b> point the app at whatever is playing and bilingual captions float in a picture-in-picture window. <a href="https://belliedmonkey.cc/#app-preview">Watch the 30-second preview →</a></sub></p>
+
+<p align="center">
+  <img src="docs/media/hero-bilingual.gif" alt="A Wikipedia article: tap the floating button and every paragraph keeps its original text with the translation right beneath it, in a distinct colour." width="720">
+</p>
+<p align="center"><sub>One tap on the floating button. The original stays; the translation goes underneath.</sub></p>
+
+<p align="center">
+  <img src="docs/media/review-phone.gif" alt="On a phone: the review page shows a sentence captured from the article, you pick the right translation, grade how well you remembered it, and the next card comes up." width="27%">
+  &nbsp;&nbsp;
+  <img src="docs/media/review-mac.gif" alt="The same review session on a Mac: the card, the four grade buttons with their next-review intervals, and the following card." width="66%">
+</p>
+<p align="center"><sub>Sentences you actually read come back as review cards — on your phone or on your Mac.</sub></p>
+
+---
+
+## Install
+
+Install from a store — building from source is for contributors, not for using it.
+
+| Platform | |
+|---|---|
+| **iPhone · iPad · Mac** (app + Safari extension) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three; iOS 16.4 / macOS 13.3 or later |
+| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip); steps below |
+| **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
+| **Mainland China** | A separate edition, [**大肚猴翻译**](https://apps.apple.com/cn/app/id6789718038), with mainland engines only — site at [belliedmonkey.com](https://belliedmonkey.com/) |
+| **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
+
+Then open the extension's settings and pick a translation engine. Nothing else is required.
+
+Using it? Tell me what for, or what to change — [come say so on Discord](https://belliedmonkey.cc/discord), or [open a thread](https://github.com/belliedmonkey/belliedmonkey-translator/discussions). Any language.
+
+<details>
+<summary><b>Installing the ZIP directly (Chrome / Edge)</b></summary>
+
+Chrome Web Store review can lag a version behind; the [latest ZIP](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) is always the newest release, built from the same source submitted to the store. Illustrated guide: [belliedmonkey.cc/#install](https://belliedmonkey.cc/#install).
+
+1. Unzip the download. You get a folder — keep it; Chrome runs the extension from that folder.
+2. Open `chrome://extensions` (`edge://extensions` on Edge) and switch on **Developer mode** in the top corner.
+3. Click **Load unpacked** and pick the unzipped folder.
+4. Pin the icon from the puzzle menu 🧩. Direct installs don't auto-update — grab new versions from [Releases](https://github.com/belliedmonkey/belliedmonkey-translator/releases), or use the store build for automatic updates.
+
+</details>
+
+<details>
+<summary><b>Building from source</b></summary>
+
+Zero dependencies — no `npm install`. Node.js ≥ 16.
+
+```bash
+node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
+node build.js firefox             # Firefox          → dist-firefox/ + .xpi
+node build.js --flavor china      # China flavor     → dist-china/
+```
+
+Load `dist/` via `chrome://extensions` → Developer mode → Load unpacked.
+
+For Safari you additionally need macOS with a full Xcode install:
+
+```bash
+bash build-safari.sh                  # generates the iOS Xcode project
+bash build-safari.sh global macos     # …or the macOS one
+BUILD_NUMBER=11 bash build-safari.sh global macos   # explicit build number for uploads
+```
+
+In Xcode: set your Team on **both** targets → select your device → Run. Then on the phone,
+**设置 → Safari → 扩展** and allow access to all websites.
+
+Two things that surprise people: an app installed with a free Apple ID **expires after 7
+days** (re-run from Xcode to renew), and on macOS the *Allow Unsigned Extensions* switch
+**resets every time Safari restarts**. Neither applies to a store install.
+
+`build-safari.sh` re-applies version, bundle id, display name and the Info.plist keys on
+**every** run. That is deliberate: `safari-project*/` is gitignored local state, so without
+re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmonkey-translator/issues/51)).
+
+</details>
+
+---
+
+## What it does
+
+<p align="center">
+  <img src="docs/media/shot-page.png" alt="A web page on iPhone: every paragraph keeps its original text with the translation directly beneath it" width="30%">
+  <img src="docs/media/shot-subtitles.png" alt="A video with the original subtitle above and the translation below, matched sentence by sentence" width="30%">
+  <img src="docs/media/shot-review.png" alt="A review card built from a sentence read earlier, with read, listen and write tiers" width="30%">
+</p>
+<p align="center">
+  <img src="docs/media/shot-live.png" alt="Live Subtitles: bilingual captions over whatever the device is playing, in a picture-in-picture window above another app" width="30%">
+  <img src="docs/media/shot-talk.png" alt="Conversation · live interpreter: each side's sentences transcribed and translated as they speak, sorted by speaker" width="30%">
+  <img src="docs/media/shot-docs.png" alt="Document translation: a PDF read one page at a time, each paragraph with its translation beneath" width="30%">
+</p>
+
+At a glance:
+
+- **Bilingual web pages** — the original stays in place, the translation appears directly beneath it
+- **Live Subtitles (app)** — bilingual subtitles for whatever your device is playing. On Mac, a floating bar above every window, full-screen video included (macOS 14.4 or later); on iPhone, a picture-in-picture window over any app, from what plays through the speaker
+- **Quick Translate (Mac app)** — select text in any app and press a shortcut, or use the right-click Services menu; type a sentence; or drag a box around anything on screen that cannot be selected (images, video frames, scans). The translation appears in a small panel next to the pointer without taking focus from the app you are in. On-screen text is recognised on your Mac. Shortcuts are configurable; it lives in the menu bar and can be turned off
+- **System translation (iPhone / iPad app)** — set BelliedMonkey Translator as the Default Translation App under Settings › Apps › Translate, then select text in any app and tap Translate: the sheet that opens is ours, translating with the engine you configured. Requires iOS or iPadOS 18.4 or later
+- **Conversation · live interpreter (app)** — both people speak freely; each sentence is transcribed, translated and can be read aloud. On iOS 26 / macOS 26 speech can be recognised on the device (no audio leaves it), with only the text sent to your translation engine, and read aloud by an offline voice model
+- **Thai listen & translate (1.21.2, international)** — in Conversation / live interpreter, microphone audio now reaches speech recognition reliably for Thai (Grok STT). The China edition still peels Grok.
+- **Dual subtitles** for YouTube, x.com video and podcasts, merged into whole sentences and translated ahead of the playhead
+- **AI transcript subtitles** for media that has no captions at all, using your own transcription key (nothing is transcribed unless you tap the button)
+- **Review cards** from the sentences you actually read — spaced repetition with read / listen / write tiers; off by default
+- **Bring your own key** — any OpenAI- or Anthropic-compatible endpoint, or a free Google channel with no key
+- **No account required**; multi-device sync is optional; only anonymous usage events, and one switch turns them off
+- **Safari on iPhone, iPad and Mac, Chrome and Firefox** — one codebase, six store surfaces
+  (Apple iOS and macOS × international and China editions, plus the Chrome Web Store and
+  Firefox Add-ons)
+- **Free, MIT**; after sign-in, an optional $0.20 free credit paid for by us
+- **Document translation** — upload a PDF, Word file or image (scanned pages via your own multimodal engine) and read it bilingually, one page at a time; sentences you read can join your review deck (capped per page and per document)
+- **Agent plugins (1.22.0)** — Claude Code and Codex can drive the translator through a local MCP server (stdio). The seven actions match the app: readiness check, setup, live subtitles, page translation, video captions, study capture, and explain or drill. Sensitive actions ask you to confirm on this device first. A remote MCP is deployed for the connect flow (see Agent plugins below); it orchestrates only — page, subtitle and microphone work stays on this device.
+- **What’s new (1.22.3)** — On the Safari extension, translation of the rest of a page, or the remaining subtitle lines, stops as soon as a failure is final: the free credit is used up (`credit_exhausted`), the credit pool is unavailable (`grant_unavailable`), the model is not on the free list (`model_not_allowed`), or the API key is rejected (`auth`). Chrome and Firefox use that same stop. A timeout pauses only after five failures in a row. An ordinary HTTP error, a network error, or a rate limit (429) stays a retry on that line and is not treated as an invalid key. Agent actions that need confirmation still ask you on this device. When a coding host drives the translator through MCP, you can pay with the host's subscription, or with that host's own key, for page translation, video subtitle translation, and explain or drill, on the China and international editions. The app records first-listen steps — permission, start, failure, and whether translation began — to improve listening. Those steps include no audio and no words. While language packs download, one progress bar shows the overall percent and an approximate size. When that download finishes successfully, the pack screen closes on its own: first run returns home, and a download started from Settings returns to Settings. Settings includes a Language packs & speech block for pack and speech status. On the pack screen, Choose languages says to select the languages you want to listen and translate, and Downloading says you can switch away and come back when it finishes. Switching between one-tap and per-engine setup asks you to confirm first, so the setup you are not using is not overwritten without asking. In listen and translate, the sentence list shows the newest sentence on top.
+- **What’s new (1.23.1)** — On Mac, the app home now puts Conversation · live interpreter and Live Subtitles side by side once the window is at least 720 pt wide: two equal-height cards instead of two full-width ones. Each card’s action is a single-language label that hugs its text at the card’s bottom-right; the fixed English line now sits under the title. The dark app chrome uses the design pack’s warmer brown-black; the extension pages keep the shared palette. On Mac, Settings can connect this device to an assistant you have already set up: it asks for confirmation on this device before it registers the Mac as reachable, and a deep link or MCP call that wants to open setup now asks on this device first. That confirmation says only that it opens the Settings page — it does not open the microphone, read the page, or write the study library.
+- **What’s new (1.22.4)** — On the China edition, anonymous usage events now use the same set as the international edition: which features you used, and whether the free credit was claimed or used up. Never page content, never audio, and never the words. Events stay on our in-country server. One switch turns them off, the same as on the international edition.
+
+**Bilingual pages.** Every paragraph keeps its original text, with the translation directly
+beneath it in a distinct colour. No tab switching, no losing your place. The translation
+inherits the original's font, size, weight and alignment — only the colour differs — and
+re-measures when the window resizes, so it never breaks out of the column it belongs to.
+
+**Dual subtitles for video.** The full transcript is fetched **once, up front**, merged into
+whole sentences, and translated **ahead of the playhead in a 60-second sliding window**.
+Because the work runs ahead of playback, translation latency is invisible — you get matched
+whole-sentence pairs, never word-by-word fragments, and no stutter even with a slow model.
+
+**Dual subtitles for podcasts and audio.** The same engine, with no video frame at all:
+a viewport-anchored overlay tracks the audio clock.
+
+**Any LLM you want, or none.** Transport is keyed by request *format* rather than by vendor —
+Google, OpenAI-compatible chat completions, and Anthropic-compatible messages — so any
+endpoint speaking one of those shapes works, including your own. (A fourth shape,
+OpenAI-compatible *responses*, is implemented but no built-in engine uses it; it is
+reachable only by typing an address whose path ends in `/responses`.) You give it the **complete endpoint URL** and that exact address is
+what gets requested; nothing is appended. The path you write is also what picks the
+request shape, so one host serving two of them is a matter of typing a different address. The list of built-in engines
+lives in the extension's settings page; the single source of truth in this repo is
+[`build/providers.config.js`](build/providers.config.js), and it is deliberately not
+duplicated here — every copy of it is one more thing that goes stale.
+
+---
+
+## Agent plugins (Claude Code · Codex · MCP)
+
+From **1.22.0**, a coding agent on your machine can call BelliedMonkey Translator through MCP.
+
+- **Hosts.** Claude Code (its plugin, or `claude mcp add`) and Codex (`codex mcp add`, or a project config). Both start the same local stdio server, named `belliedmonkey`.
+- **Actions.** Seven, and the names match the app contract: `ready.check`, `open_setup`, `start_live_subtitles`, `translate_page`, `translate_video_captions`, `capture_to_study`, `explain_or_drill`.
+- **Confirm on this device.** An action that touches the page, captions, live audio, or study material shows a confirm card first. Cancel returns `cancelled`.
+- **Your own key on the host (1.22.3).** That confirm card stays on this device. The host can run the tools with your own API key, or with the subscription or key already set in that host, on both the China edition and the international edition. The free credit is an optional fallback, not a requirement.
+- **Connect this Mac (1.23.1).** On Mac, Settings → Account has “连接此设备到助手”. It asks for confirmation on this device, then registers this Mac as reachable with the assistant you already connected; it sends no page content and no files, and it does not open the microphone. A deep link or MCP call that wants to open setup also asks first, and its card says only that it opens the Settings page.
+- **Local first, remote for pairing.** Stdio on this Mac or PC is the day-to-day path. A remote MCP service is deployed at `https://mcp.belliedmonkey.cc/mcp/v1` (international) and `https://mcp.belliedmonkey.com/mcp/v1` (China) for the connect flow. It orchestrates; it does not translate, read the page, or open the microphone itself — those side effects stay on this device. It is not a store-listed cloud MCP, and it is not the inference gateway (`bt-relay`), which is a separate hosted service.
+- **Setup.** Developer steps are in [`agent/hosts/README.md`](agent/hosts/README.md). To use it, install Claude Code or Codex, point it at this repo's launcher, then ask the agent to translate a page or start live subtitles.
+
+---
+
+## Supported sites
+
+Most of the web needs no per-site code: the segmenter uses only standard HTML semantics and
+has **zero site selectors**. What follows is the awkward 20% — sites whose markup defeats the
+general rules, or whose media needs a transcript path of its own.
+
+| Site | Page text | Video subtitles | Audio subtitles |
+|---|:---:|:---:|:---:|
+| **YouTube** — incl. `m.youtube.com`, `youtube-nocookie.com` embeds | generic | ✅ | — |
+| **x.com / twitter.com** | ✅ de-cluttered | ⚠️ needs a real caption track | — |
+| **Substack** — incl. custom domains | ✅ | ✅ video posts | ✅ |
+| **Spotify** — episode pages | generic | — | ⚠️ fragile |
+| **Wikipedia** — and any page with a data table | ✅ incl. infobox cells | — | — |
+| **Apple Podcasts (web)** · **小宇宙** | generic | — | ❌ impossible |
+| **Anything else** | ✅ | — | ✅ if the page has a transcript |
+
+**generic** — works through the general rules, with no site-specific code.
+**⚠️** — see [Known limitations](#known-limitations).
+**❌ impossible** — those two sites expose no timed transcript anywhere on the web, so there is
+nothing to translate. They fall back to page text.
+
+"Anything else" is not a hedge. Any page carrying a WebVTT/SRT file or a `<track>`, and any
+podcast publishing a Podcasting 2.0 `<podcast:transcript>`, gets subtitles with no adapter at
+all. Web components are handled too — open shadow roots are traversed, which is why sites
+that keep their content in custom elements work without special-casing.
+
+### Adapted sites don't regress
+
+Two mechanisms, each covering half of that promise:
+
+- **Page text and layout** — every site-specific layout fix ships with a new regression
+  fixture distilled from that site's minimal markup pattern, and **that fixture must fail
+  before the fix**, with the red run recorded in the issue. Pre-existing fixtures are never
+  edited to accommodate a new one. 44 fixtures today, run against a real headless Chrome.
+
+  Worked example, issue #59: on Wikipedia the translations inside a floated infobox became an
+  extra table column, doubling the table's width and collapsing the prose beside it to ~115px.
+  The fix is generic — no hostname or selector entered the segmenter — but Wikipedia now has a
+  fixture of its own, so that page cannot silently break again.
+- **Video and audio subtitles** — once a device or browser is adapted it is **permanently
+  added to the verification matrix** and exercised on every future change, during actual
+  playback. Subtitles are deliberately *not* covered by the layout fixtures; that gate is
+  scoped to renderer logic in Chromium and says so.
+
+The rules are written down in [`docs/verification-spec.md`](docs/verification-spec.md), not
+just practised.
+
+---
+
+## Why bring your own key
+
+- **No server of ours in the translation path — with your own key.** Those requests go from
+  your browser straight to the provider you chose. There is nothing in between to log, store,
+  or resell — because there is nothing in between. (Sync and anonymous usage events do use a
+  server of ours; both are described under [Privacy](#privacy), and neither ever sees what you
+  translate. The optional **free credit** is the one path that does route your text through us —
+  see [Privacy](#privacy).)
+- **Your key stays local.** It lives in `chrome.storage.local` and never leaves your device.
+- **You control the cost.** Which engine, which model, how much you spend — all yours. A free
+  engine is available if you'd rather not configure anything, though a real model is
+  noticeably better.
+- **Auditable.** Every claim above is a line of source you can read. That is the point of
+  publishing it.
+
+On **iPhone and iPad this works exactly as it does on desktop**, which is harder than it
+sounds and is why the architecture looks unusual. See
+[Safari iOS, and why the service worker does nothing](#safari-ios-and-why-the-service-worker-does-nothing).
+
+---
+
+## Effect vs industry waterline (2026-10)
+
+Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
+
+| Dimension | Ours (measured) | Public industry anchor | Gap |
+|---|---|---|---|
+| Translation | plus · App-contract COMET **88.8** (1600 sentences) | Same-protocol DeepL/Google **no public number** | Self-measured high quality; cannot rank vs DeepL |
+| ASR Chinese | Live SA; offline SenseVoice CER **~5–7%** | AA English top ~1.7–2.3% WER (**not convertible**) | On-device Chinese upgrade under validation |
+| ASR Thai | Grok streaming archdemo CER **9.66%**, 0 drops | On-device gap filled by cloud | **Ships in 1.21.2** (intl; tip aac5a87d; CN peeled; direct xAI, relay unchanged) |
+| Interpret latency | Doc targets; unified online telemetry **unpublished** | Meet 63-language UX (vendor) | Instrument first |
+| TTS | Local / offline-capable | AA e.g. Eleven v4 Turbo Elo 1335 | Cloud voices pending listen tests |
+
+**Not shipping soon:** flash/DeepSeek replacing plus; Grok streaming as caption primary; Ming TTS CPU path. **Next:** monthly on the 1st (or sooner on material change). Numbers labeled self-measured / third-party / vendor-reported.
+
+## How we choose models
+
+Every module runs the same loop: **hard gates → experiment → what ships → what we
+rejected → last verified**. The gates are written first — privacy, first-word latency,
+severe-error count, regional flavor — and a candidate that misses one never becomes the
+default, however fast or cheap it is. That is why the free tier still runs Qwen plus after
+a 1600-sentence app-contract evaluation, and why a faster DeepSeek Flash was rejected on
+severe errors instead of being quietly swapped in.
+
+The public ledger, with tables, numbers, and the gaps we have not closed yet:
+
+- [How we choose models for listening, subtitles and page translation](https://belliedmonkey.cc/technology/model-selection)
+- [Why listen-translate ASR stays on-device](https://belliedmonkey.cc/technology/model-selection/listen-asr)
+- [Why free-tier listen translation stays on Qwen plus](https://belliedmonkey.cc/technology/model-selection/subtitle-mt)
+- [Zero-setup page translate, and honest failure on long units](https://belliedmonkey.cc/technology/model-selection/page-mt)
+
+The China edition is a separate app with its own site:
+[the same ledger on belliedmonkey.com](https://belliedmonkey.com/technology/model-selection).
+
+## Known limitations
+
+Stated up front, because finding them yourself is worse.
+
+- **iOS has no subtitles in video fullscreen.** iOS hands fullscreen playback to the system's
+  native player, which a web overlay cannot draw on. On iPhone and iPad, subtitles are an
+  inline-playback feature. This is a platform boundary, not a to-do. On iPhone the way around
+  it is the app's **Live Subtitles**: it listens to what plays through the speaker and shows
+  subtitles in a picture-in-picture window over any app.
+- **The extension never transcribes on its own.** If a video or podcast has no existing timed
+  transcript, you get an honest `字幕不可用` notice and the page-text translation as the floor —
+  never a word-by-word guess. With a transcription engine of your own configured, you can tap
+  to transcribe: file mode works everywhere; live capture from the page works in Chrome and
+  Firefox, and in Safari only for directly readable audio — Safari hands extensions silence for
+  streaming video such as YouTube, Twitch and X. For those, use the app's **Live Subtitles**
+  (Mac: system audio; iPhone: the speaker). With your own key, no server of ours touches the audio.
+- **x.com video usually has no caption track.** Captions on X are typically *burned into the
+  video image*, which no translator can read. Of four candidate videos sampled while
+  preparing demo material, three had burned-in captions and one had none — only a long-form
+  upload with a real CC track worked. If the player shows a working CC button, so will we.
+- **Traditional and Simplified Chinese are not distinguished.** A Traditional Chinese
+  paragraph under a Simplified Chinese target is skipped and shows nothing (and vice versa).
+  Browser language detectors report both as plain `zh`; separating them needs
+  character-repertoire analysis, which isn't built yet. This is a gap, not intended behaviour.
+- **Spotify's transcript scraping is structurally fragile.** Spotify's cue classes are hashed,
+  so the code anchors on the seek button plus the `m:ss` timestamp pattern instead. It works,
+  and it needs periodic re-verification. Episode pages only.
+- **Browsers are not identical, on purpose.** The "don't re-translate text already in your
+  target language" check uses the browser's own language detector, which Safari does not
+  implement. On Safari the request is still made. Holding every browser down to Safari's floor
+  would mean permanently spending your quota on answers that get discarded, so the asymmetry
+  was chosen deliberately and written down.
+- **Sentence notes (解析) want a chat model, not a reasoning model.** The notes feature asks
+  your configured chat engine for a small JSON answer in the message body. Thinking/reasoner
+  models spend their output budget on a reasoning phase first and can come back with no answer
+  text at all — the failure line names this when it happens. Pick a plain chat model for the
+  engine you use with notes.
+
+---
+
+## Privacy
+
+- **No servers of ours in the translation path — with your own key.** Requests go from your
+  browser to the engine you picked.
+- **Free credit (optional).** Once you sign in and claim it, you can use the $0.20 of credit we pay for across translation, speech and transcription. On this path your text passes through our server on its way to the model provider (OpenRouter); we do not store or log the content, only how much each call spent. The credit stops when it runs out and never bills you. The bring-your-own-key path is unchanged: that text still goes from your browser straight to the provider, and we never see it. Signing out deactivates the credit on this device; deleting your account also deletes the credit record.
+- **On-device transcription and speech (optional).** With "On-device transcription" selected, microphone audio is recognised on your device and never sent to any server. The recognised text, with a few preceding sentences for context, goes to the translation engine you configured for correction and translation — our servers are not involved. With "On-device speech (offline model)" selected, speech is synthesised on your device; the first use downloads the offline model once from our file server (the model file only, never any of your content). No recording is kept, only text.
+- **Document translation (optional).** The PDF, Word and image files you upload stay on this device — never synced, never exported. When translating, the text of the page you open is sent to the translation endpoint you configured — not the whole file, and not on upload. Images and scanned pages without a text layer are sent as images to that same endpoint for recognition, only when your engine supports images. On the free-credit path the text passes through our server to the model provider (not stored, not logged); the free credit never recognises images — images and scanned pages need your own API key and never pass through us. Sentences you have read can enter your learning material (optional); deleting a document also deletes its cards.
+- **Live Subtitles (optional, app only).** Only after you tap "Start", the app listens to the sound this device is playing (on a Mac, the system audio). The audio is recognised on your device or sent only to the transcription endpoint you configured; nothing is recorded or saved, and it never passes through our servers. Recognised text stays in your review only while "Add subtitles to review" is on.
+- **Quick Translate (optional, Mac app only).** It works only when you start it: pressing the shortcut, using the right-click Services menu, typing, or selecting an area of the screen. The text you hand over goes straight to the translation engine you configured and never passes through our servers (on the free credit it is relayed through our server to the model provider; we do not store the content). Text in a screenshot is recognised on your Mac; the screenshot is not saved and does not leave the device — unless nothing was recognised and you tap "Try again with my image-capable engine". We do not read anything you did not hand over: no keyboard monitoring, no background clipboard reading. "Enhanced Capture" is off by default; when on, it presses ⌘C once for you at the moment you press the shortcut, reads the selected text and restores your clipboard exactly as it was. Clipboard content marked as concealed (for example by a password manager) is never read or sent. The original and its translation stay in your review library only while "Save to review library" is on.
+- **System translation (optional, iPhone / iPad app).** It works only when you start it: selecting text in any app and tapping Translate from the system menu. The selected text goes straight to the translation engine you configured and never passes through our servers (on the free credit it is relayed through our server to the model provider; we do not store the content). We do not read anything you did not hand over: only the text you selected reaches us, and only at the moment you ask for it. The original and its translation stay in your review library only while "Save to review library" is on.
+- **Your API key never leaves your device.** It is stored in `chrome.storage.local`.
+- **No ad tracking, no third-party analytics — and no account unless you want one.** Syncing your
+  learning material between your own devices needs a free account; everything else works without one.
+- **Anonymous usage events, off in one switch.** The extension sends which features are used, on
+  which browser, and whether a translation succeeded or failed — never the pages you read, the
+  text, the addresses, your keys or your account. From 1.22.3 the app also records first-listen
+  steps — microphone permission, listening started, listening failed, and translation started —
+  to improve the listen experience. Those events carry no audio and no transcript, and the
+  extension does not send this set. A random per-install id, never joined to an
+  account; turning it off in Settings deletes what that device sent. The China edition sends
+  the same anonymous usage events to our in-country server. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
+- **Learning material is built on your device.** If you turn on the learning feature, the
+  extension keeps the sentences you actually read — with the page URL, its title, and how long
+  the text was on screen — in local storage on that device, so it can show them to you again
+  later. It is off until you turn it on, it stays on your device **unless you turn on sync**,
+  and one button erases all of it.
+- **Speaking practice sends your recording only where you point it.** If you configure a
+  transcription engine and use the speaking exercise, your recording is sent to that endpoint
+  you chose — and nowhere else — then discarded once the transcript comes back. It is never
+  stored, never synced, and never touches a server of ours. No engine configured means the
+  speaking exercise simply doesn't appear.
+- **The app's live interpreter streams your microphone only where you point it.**
+  “Conversation · live interpreter” sends microphone audio to the transcription endpoint you
+  configured, only after you tap “Start listening” and only to that endpoint. Our servers never
+  touch the audio; no recording is kept, only text — and only while “add conversations to
+  review” is on. No realtime-capable engine configured means the mode simply doesn't appear.
+  From 1.21.2, Thai on the international edition uses Grok speech recognition on that same path;
+  the China edition peels Grok and does not offer it.
+- **What is sent for translation** is the text, and nothing else — not the URL, not the page
+  title, not the referrer, not any identifier. **What sync sends, if you turn it on, is
+  different and larger: every sentence the extension kept, the page URL and title it came
+  from, and when you reviewed it — in readable form on our servers.** Deleting learning
+  material by source is account-wide: the deletion syncs to all your devices. This is also
+  what the extension declares to Firefox under `data_collection_permissions`:
+  `websiteContent`, `browsingActivity`, and `personallyIdentifyingInfo` (your account email).
+
+Full policy: [belliedmonkey.cc/privacy.html](https://belliedmonkey.cc/privacy.html)
+
+---
+
+## For developers
+
+### Safari iOS, and why the service worker does nothing
+
+On Safari iOS the background service worker becomes permanently `undefined` after the device
+locks, and `chrome.runtime.sendMessage()` from a content script then fails **silently** — no
+exception, no rejection. The extension appears to work, you pocket your phone, and translation
+is dead until Safari is force-quit.
+
+So the standard MV3 architecture is inverted here: **every provider `fetch()` runs in the
+content script** ([`extension/content/translation-api.js`](extension/content/translation-api.js)),
+and content scripts read settings straight from `chrome.storage.local` rather than asking the
+worker. [`extension/background.js`](extension/background.js) is 179 lines that handle defaults,
+badge text and cache clearing — it is never on the critical path.
+
+### How subtitles are acquired
+
+Never word-by-word, and never by scraping the rendered captions. The transcript is fetched
+whole, merged into sentences, and translated ahead of playback.
+
+Getting the transcript is the hard part and differs per source. YouTube gates
+`/api/timedtext` behind a proof-of-origin token that only its own player can mint — a forged
+request returns **HTTP 200 with an empty body**, the worst possible failure mode. So the
+extension lets YouTube fetch it, then reads YouTube's own request URL out of the **Resource
+Timing API** and re-fetches that exact URL. Because that buffer evicts, a 28-line
+`document_start` script exists purely to record those URLs before they vanish. x.com is easier
+— its subtitle segments are not token-gated — and podcasts use in-page WebVTT/SRT or the
+podcast feed's `<podcast:transcript>`.
+
+### Build and test
+
+```bash
+npm test              # pure-logic suite, zero dependencies, Node ≥18
+npm run test:layout   # 44 layout fixtures against real headless Chrome (Node ≥22)
+```
+
+`npm run test:layout` is **mandatory** before any push touching `extension/content/**` or
+`extension/styles/**`. CI runs the unit tests and all three builds; it deliberately does not
+run the layout corpus or the device matrix, and the workflow says so rather than letting a
+green badge imply coverage it doesn't have.
+
+### Where the rules live
+
+| Document | What it owns |
+|---|---|
+| [`docs/domain-design.md`](docs/domain-design.md) | The domain model: `source → Extractor → units → Engine → Renderer`, the zero-site-selectors rule, provider registry. **Changes here need human review first.** |
+| [`docs/verification-spec.md`](docs/verification-spec.md) | How anything is verified. The full-matrix rule, per-surface traps, honesty rules. |
+| [`docs/interaction-spec.md`](docs/interaction-spec.md) | User-facing interaction and layout constraints. |
+| [`docs/regression-tests.md`](docs/regression-tests.md) | The manual device checklist. |
+| [`AGENTS.md`](AGENTS.md) | Conventions for both humans and AI agents working here. |
+
+### Code layout
+
+```
+extension/
+├── manifest.json           Manifest V3 — Chrome / Safari / Firefox
+├── background.js           State only. Never translation. (See above.)
+├── content/                38 files — the ones worth knowing:
+│   ├── translation-core.js Platform-agnostic engine: subtitle state machine,
+│   │                       60s sliding window, sentence merge, paging, i18n
+│   ├── fail-surface.js     Halt row: next step and settings anchor
+│   ├── translation-api.js  Every provider fetch() — runs in the content script
+│   ├── wire-format.js      The one place an endpoint address is resolved
+│   ├── request-shape.js    The one place a request body is built
+│   ├── dom-processor.js    DomSegmenter — standard HTML semantics, zero site selectors
+│   ├── content-webpage.js  Bilingual page rendering
+│   ├── content-youtube.js  ├─ subtitle sources, one adapter each
+│   ├── content-podcast.js  │
+│   ├── content-twitter.js  │
+│   ├── site-twitter.js     └─ x.com chrome de-cluttering
+│   ├── asr-source.js       AI transcript subtitles, when a page has none
+│   ├── learn-*.js          Capture, scheduling, exercises (6 files)
+│   ├── *.gen.js            Generated registries: providers, langs, stt, tts, palette
+│   └── content-main.js     Entry point: reads settings, routes
+├── learn/                  23 files — the learning layer, sync, documents, free
+│                           credit, telemetry, read-aloud (docs/learning-design.md)
+├── onboard/ · popup/ · options/   Onboarding and settings UI
+├── styles/ · fonts/ · icons/ · vendor/
+└── _locales/               13 languages
+```
+
+The host app is a sibling tree:
+
+```
+app/                        iPhone · iPad · Mac: Live Subtitles, conversation
+                            interpreting, Quick Translate, System translation,
+                            document translation, review
+```
+
+---
+
+## FAQ
+
+<details>
+<summary><b>How is this different from Immersive Translate?</b></summary>
+
+Same reading model — original paragraph, translation right under it, dual video subtitles. The differences: BelliedMonkey Translator is MIT open source, has no subscription and no account requirement, and with your own key the translation request goes straight from your browser to the model provider with no server of ours in between. In the other direction, Immersive Translate supports far more sites through hand-written adapters and offers a hosted plan that needs no key; this project has neither — the segmenter works from HTML semantics alone, so most sites work without site-specific code, but unusual layouts can still break. The full comparison, including Readlang, Trancy and built-in browser translation, is at [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html).
+</details>
+
+<details>
+<summary><b>Is it really free? What is the catch?</b></summary>
+
+The extension and the apps are free with no ads, no paid tier and no in-app purchase. The only cost is the translation itself: with your own AI key you pay the provider directly at their prices (roughly $0.0004 per page on a budget model); the free Google channel costs nothing but is general-purpose machine translation. After sign-in you can claim a small free credit we pay for (about $0.20); on that path your text passes through our relay to the model provider and is not stored. Details: [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html).
+</details>
+
+<details>
+<summary><b>What data leaves my device?</b></summary>
+
+With your own key, the text you translate goes straight from your browser to the provider you chose. Nothing else leaves unless you turn on sync and sign in, in which case your saved sentences, their source URLs and your review times are stored for your account. There is no advertising and no ad tracking; the only thing collected is anonymous usage events (which features you used, never page content). From 1.22.3 that includes the app’s first-listen steps, never the audio and never the words. One switch turns them off. See [Privacy](#privacy).
+</details>
+
+<details>
+<summary><b>Which translation engines can I use?</b></summary>
+
+A free channel that needs no key, or your own key for any AI service — the built-in list lives in [`build/providers.config.js`](build/providers.config.js), and any OpenAI- or Anthropic-compatible endpoint works, including a company gateway or a model you host yourself. You enter the complete endpoint URL and that exact address is what gets requested.
+</details>
+
+<details>
+<summary><b>Why not just use the browser's built-in translation?</b></summary>
+
+Built-in translation replaces the page, so the original disappears; this keeps both languages visible in the same place. Built-in translation also does nothing for video subtitles and gives you no choice of engine.
+</details>
+
+<details>
+<summary><b>Does it work on iPhone?</b></summary>
+
+Yes — Safari on iPhone and iPad is the primary target, not a port. The service worker is unusable there after the device locks, so every network call lives in the content script; see [Safari iOS, and why the service worker does nothing](#safari-ios-and-why-the-service-worker-does-nothing). Firefox on iOS cannot run extensions at all.
+</details>
+
+<details>
+<summary><b>What is the review part, and can I turn it off?</b></summary>
+
+If you turn learning on, sentences you genuinely stopped and read — not ones you scrolled past — are saved with the page they came from and come back on a forgetting curve, with read / listen / write reviews, sentence notes and read-aloud. It is off by default, and turning it off leaves translation exactly as it was.
+</details>
+
+---
+
+## Where to talk
+
+**[Discord](https://belliedmonkey.cc/discord)** — the chat room, opened September 2026. Three channels, on purpose: `#general` for anything, `#help` when something is broken, `#announcements` for releases. It is the same link behind the "Discuss" button in the app and the extension. Any language — Chinese, English, Russian; mixed-language chat is this project's own use case.
+
+[GitHub Discussions](https://github.com/belliedmonkey/belliedmonkey-translator/discussions) stays open for anything worth keeping. A chat room is not searchable and Google does not index it; a thread is and does.
+
+- **Something broken or confusing?** [Q&A](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/q-a) — say which version and which surface (Safari on iPhone, Chrome, the Mac app…).
+- **Want a site, engine or feature?** [Ideas](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/ideas) — upvote an existing one before opening a new one.
+- **Using it in a way we didn't expect?** [Show and tell](https://github.com/belliedmonkey/belliedmonkey-translator/discussions/categories/show-and-tell).
+
+The China edition (大肚猴翻译) points at Discussions instead — Discord is not reachable from mainland China.
+
+## Contributing
+
+Bug reports and site requests both have a form — the fields on them are the ones that
+actually determine whether something can be reproduced. If you want a specific site to work
+properly, [open a site request](https://github.com/belliedmonkey/belliedmonkey-translator/issues/new?template=site_adaptation.yml);
+that is how the roadmap gets decided.
+
+Every change is recorded in an issue capturing the problem, the fix, **and the reasoning** —
+so the thinking survives, not just the diff. See [`AGENTS.md`](AGENTS.md).
+
+## License
+
+[MIT License](LICENSE). Use it, study it, change it, share it —
+keep the copyright and permission notice with substantial copies.
+
+Copyright © 2026 belliedmonkey and contributors.

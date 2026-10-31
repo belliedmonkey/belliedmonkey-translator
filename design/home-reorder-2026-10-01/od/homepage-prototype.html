@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可点击原型 · 登录后首页 · iPhone | 大肚猴翻译</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Caprasimo&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5ead8; --surface:#ffffff; --fg:#201e1d; --muted:#6b645c; --line:#e0d5c2;
+  --terra:#c67139; --btn:#ac6231; --ok:#56633f; --danger:#b3261e;
+  --terra-ink:oklch(0.47 .105 52);
+  --btn-hover:oklch(0.50 .12 52); --btn-press:oklch(0.455 .12 52);
+  --terra-wash:oklch(0.633 .128 51 / .11); --terra-wash-ink:oklch(0.44 .10 52);
+  --ok-wash:oklch(0.45 .07 118 / .12); --ok-ink:oklch(0.40 .075 118);
+  --danger-wash:oklch(0.42 .13 27 / .10); --danger-ink:oklch(0.40 .15 27);
+  --hair:oklch(0.93 .012 75);
+  --font-body:'Figtree','PingFang SC','Hiragino Sans GB',system-ui,sans-serif;
+  --font-title:'PingFang SC','Hiragino Sans GB','Figtree',system-ui,sans-serif;
+  --font-disp:'Caprasimo','Songti SC','PingFang SC',serif;
+  /* 评审台（不是产品界面） */
+  --inst:#1d1b19; --inst-2:#262320; --inst-line:#3b3733; --inst-ink:#f1ebe1; --inst-dim:#a49b8f;
+  --inst-mark:#d59a6a; --sheet:#e9e6e0;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sheet);color:#221f1c;font-family:var(--font-body);font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2.5px solid var(--terra-ink);outline-offset:2px;border-radius:6px}
+
+.page{display:grid;grid-template-columns:322px 1fr;gap:36px;max-width:1180px;margin:0 auto;padding:34px 28px 90px;align-items:start}
+
+/* ═══════════ 评审台 ═══════════ */
+.rail{position:sticky;top:34px;max-height:calc(100vh - 68px);overflow:auto;background:var(--inst);color:var(--inst-ink);
+  border-radius:16px;padding:20px 18px 22px;box-shadow:0 20px 44px -30px rgba(0,0,0,.7)}
+.rail h1{font-size:17px;font-weight:600;margin:0;line-height:1.4}
+.rail h1 span{color:var(--inst-mark)}
+.rail .sub{font-size:12px;color:var(--inst-dim);margin:7px 0 0;line-height:1.55}
+.rail .sep{height:1px;background:var(--inst-line);margin:16px -18px}
+.rail h2{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--inst-dim);margin:0 0 10px;font-weight:700}
+.grp{margin:0 0 14px}
+.grp > b{display:block;font-size:11.5px;color:var(--inst-mark);font-weight:600;margin:0 0 5px;letter-spacing:.02em}
+.st{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 9px;border-radius:8px;font-size:13px;
+  color:var(--inst-ink);border:1px solid transparent}
+.st:hover{background:#2c2825;border-color:var(--inst-line)}
+.st[aria-current="true"]{background:#332d28;border-color:var(--inst-mark);color:#fff}
+.st .k{font-family:var(--font-disp);font-size:12px;color:var(--inst-mark);flex:none;width:20px}
+.st .e{margin-left:auto;font-size:10.5px;color:var(--inst-dim);font-family:var(--font-body);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;max-width:118px}
+.st[aria-current="true"] .e{color:#e4c3a3}
+
+.gate{display:grid;gap:6px}
+.g{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline;font-size:12px;line-height:1.45}
+.g .b{font:700 9.5px/16px var(--font-body);letter-spacing:.06em;padding:0 6px;border-radius:4px;flex:none}
+.g.pass .b{background:#2f3a24;color:#b6d19a}
+.g.fail .b{background:#4a201c;color:#f0a89e}
+.g.na   .b{background:#332f2b;color:var(--inst-dim)}
+.g span{color:var(--inst-dim)}
+.g.pass span{color:#cbc3b6}
+.strings{width:100%;border-collapse:collapse;font-size:11.5px}
+.strings td{padding:5px 0;border-bottom:1px solid var(--inst-line);vertical-align:top}
+.strings td:last-child{text-align:right;color:var(--inst-dim);padding-left:10px}
+.strings tr:last-child td{border-bottom:0}
+.strings td:first-child{color:var(--inst-ink)}
+.hint{font-size:11.5px;color:var(--inst-dim);line-height:1.55;margin:9px 0 0}
+.resets{display:flex;gap:8px;margin-top:14px}
+.rbtn{flex:1;padding:8px 10px;border:1px solid var(--inst-line);border-radius:8px;font-size:12px;color:var(--inst-ink);text-align:center}
+.rbtn:hover{background:#2c2825;border-color:var(--inst-mark)}
+
+/* ═══════════ 舞台 ═══════════ */
+.stage{display:grid;justify-items:center;gap:18px}
+.stagebar{width:100%;max-width:406px;display:flex;align-items:baseline;gap:10px;font-size:13px;color:#5c564e}
+.stagebar b{font-weight:600;color:#221f1c}
+.stagebar .en{margin-left:auto;font-size:11.5px;color:#6b645c;font-family:var(--font-body)}
+.phone{position:relative;width:406px;height:860px;border-radius:50px;overflow:hidden;background:#141210;
+  box-shadow:0 1px 0 #4a443d inset,0 40px 70px -40px rgba(40,30,20,.75),0 0 0 1px #2a251f}
+.scr{position:absolute;inset:8px;border-radius:42px;overflow:hidden;background:var(--bg);display:flex;flex-direction:column}
+
+/* 状态栏 */
+.sbar{flex:none;height:47px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;
+  font-size:12.5px;font-weight:600;color:var(--fg);font-variant-numeric:tabular-nums;position:relative;z-index:3}
+.sbar .notch{position:absolute;left:50%;top:12px;transform:translateX(-50%);width:104px;height:26px;border-radius:999px;background:#141210}
+.tb{flex:none;height:52px;display:flex;align-items:center;padding:0 8px 0 16px;position:relative;z-index:2}
+.tb .brand{font-family:var(--font-title);font-size:17px;font-weight:600;letter-spacing:-.01em}
+.tb .brand em{font-style:normal;font-family:var(--font-disp);font-weight:400;letter-spacing:-.01em}
+.tb .acct{margin-left:auto;width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.tb .acct i{width:34px;height:34px;border-radius:50%;background:var(--terra-wash);border:1px solid var(--line);
+  color:var(--terra-ink);font:700 12.5px/34px var(--font-body);text-align:center;font-style:normal}
+.tb .acct:hover i{background:oklch(0.633 .128 51 / .19)}
+
+.body{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:22px;scrollbar-width:none}
+.body::-webkit-scrollbar{display:none}
+
+/* 引擎状态行 —— 视觉 32pt，可点项命中区外扩至 44pt */
+.engines{flex:none;height:32px;display:flex;align-items:center;gap:7px;margin:0 16px 14px;padding:0 10px;
+  background:rgba(255,255,255,.74);border:1px solid var(--line);border-radius:10px;font-size:12.5px;position:relative;z-index:2}
+.engines .lb{color:var(--ink);font-weight:500;flex:none}
+.seg{display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-weight:500;position:relative;flex:none}
+.seg .dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.seg.miss{color:var(--terra-ink);background:var(--terra-wash);border-radius:8px;padding:5px 8px;margin:-5px -2px;font-weight:600}
+.seg.miss::after{content:"";position:absolute;left:-2px;right:-2px;top:-6px;bottom:-6px;border-radius:12px}
+.seg.miss:hover{background:oklch(0.633 .128 51 / .2)}
+.engines .sum{margin-left:auto;flex:none;color:var(--ok-ink);font-weight:600;font-size:12px}
+.engines .todo{margin-left:auto;flex:none;color:var(--terra-ink);font-weight:600;font-size:12px}
+
+.hero{flex:none;margin:0 16px 12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:16px;display:grid;gap:10px;position:relative;z-index:1}
+.htop{display:flex;align-items:center;gap:10px;min-height:28px}
+.ic{width:28px;height:28px;border-radius:9px;background:var(--terra-wash);color:var(--terra-ink);display:grid;place-items:center;flex:none}
+.ic svg{width:17px;height:17px;display:block}
+.htop h3{font-family:var(--font-title);font-size:20px;font-weight:600;letter-spacing:-.01em;margin:0;line-height:1.2}
+.tag{margin-left:auto;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;flex:none}
+.tag.ok{color:var(--ok-ink);background:var(--ok-wash)}
+.tag.live{color:var(--surface);background:var(--danger);display:inline-flex;align-items:center;gap:5px}
+.tag.live i{width:6px;height:6px;border-radius:50%;background:#fff;animation:blip 1.2s ease-in-out infinite}
+@keyframes blip{0%,100%{opacity:1}50%{opacity:.25}}
+.hd{font-size:13.5px;line-height:1.55;color:var(--muted);margin:0}
+.live-hd{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.live-hd b{color:var(--fg);font-weight:600}
+
+.band{height:46px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:flex;align-items:center;
+  gap:3px;padding:0 12px;overflow:hidden}
+.band i{flex:1;min-width:2px;background:var(--terra);border-radius:2px;height:30%;opacity:.9}
+.band.live i{animation:pulse 1.05s ease-in-out infinite alternate;height:26%}
+@keyframes pulse{from{transform:scaleY(.35)}to{transform:scaleY(1)}}
+.ab{height:46px;border-radius:10px;background:var(--bg);border:1px solid var(--line);padding:5px 10px;display:grid;
+  gap:1px;align-content:center;overflow:hidden}
+.ab span{font-size:11.5px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ab .en{color:var(--muted)} .ab .zh{color:var(--fg);font-weight:500}
+
+.live-rows{padding:9px 11px;border-radius:10px;background:var(--bg);border:1px solid var(--line);display:grid;gap:3px}
+.live-rows .r{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
+.live-rows .lg{font:600 10px/17px var(--font-body);color:var(--ink-2);border:1px solid var(--line);border-radius:4px;text-align:center}
+.live-rows .tx{font-size:12.5px;line-height:1.45;color:var(--fg)}
+.live-rows .tx.en{color:var(--muted)}
+.hear{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink-2)}
+.hear i{width:7px;height:7px;border-radius:50%;background:var(--terra);animation:blip 1.2s ease-in-out infinite}
+
+.btn{height:50px;border-radius:12px;background:var(--btn);color:#fff;font:600 17px/50px var(--font-body);
+  text-align:center;width:100%;transition:background .12s}
+.btn em{font-style:normal;font-weight:500;font-size:12.5px;opacity:.88;margin-left:8px;letter-spacing:.01em}
+.btn:hover{background:var(--btn-hover)} .btn:active{background:var(--btn-press)}
+.btn.ghost{background:var(--surface);border:1px solid var(--line);color:var(--fg);font-size:15px;line-height:48px}
+.btn.ghost:hover{background:var(--bg);border-color:var(--muted)}
+.btn.tinted{background:var(--bg);border:1px solid var(--line);color:var(--fg);height:44px;font-size:15px;line-height:42px}
+.btn.tinted:hover{background:var(--surface);border-color:var(--muted)}
+.btn.sm{height:40px;font-size:15px;line-height:38px;border-radius:11px;padding:0 18px;width:auto}
+.btnrow{display:flex;gap:8px}
+.btnrow .btn{flex:1}
+.plain{height:44px;display:grid;place-items:center;font-size:15px;font-weight:500;color:var(--btn);border-radius:10px}
+.plain:hover{background:var(--terra-wash);color:var(--terra-ink)}
+
+/* 准备检查表 */
+.checks{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.checks .hd{font-size:11.5px;font-weight:600;color:var(--ink-2);padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+.chk{display:flex;align-items:center;gap:9px;padding:10px 12px;font-size:13px;color:var(--fg);border-top:1px solid var(--hair)}
+.chk:first-of-type{border-top:0}
+.chk .mk{width:17px;height:17px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+.chk .mk.y{background:var(--ok-wash);color:var(--ok-ink)}
+.chk .mk.w{background:var(--terra-wash);color:var(--terra-wash-ink)}
+.chk .vv{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:500;flex:none}
+.note-line{display:flex;gap:8px;font-size:12.5px;line-height:1.5;color:var(--ink-2);padding:2px 0}
+.note-line i{font-style:normal;color:var(--terra);flex:none;font-weight:700}
+
+/* 复习条 */
+.strip{flex:none;margin:0 16px 20px;min-height:76px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:11px 12px 11px 14px;display:flex;align-items:center;gap:12px;position:relative;z-index:1}
+.strip .lft{display:grid;gap:1px;min-width:0}
+.strip .big{font-family:var(--font-title);font-size:15.5px;font-weight:600;display:flex;align-items:baseline;gap:5px}
+.strip .big i{font-style:normal;font-family:var(--font-disp);font-size:20px;line-height:1}
+.strip .mini{display:flex;align-items:center;gap:7px;margin-top:4px}
+.track{width:64px;height:4px;border-radius:999px;background:var(--line);overflow:hidden;flex:none}
+.track i{display:block;height:100%;width:34%;background:var(--terra)}
+.mini em{font-style:normal;font-size:11.5px;color:var(--ink-2)}
+.strip .stats{font-size:11.5px;color:var(--ink-2);margin-top:3px}
+.strip .go{flex:none}
+.strip.zero .big{font-weight:500;color:var(--fg)}
+.strip.zero .track{display:none}
+.strip .plain.mini{position:relative;width:auto;height:auto;padding:0;margin-top:3px;font-size:12.5px;
+  justify-self:start;display:inline-flex;align-items:center}
+.strip .plain.mini::after{content:'';position:absolute;inset:-12px -9px}
+
+.sechead{flex:none;height:20px;margin:0 18px 8px;font-family:var(--font-title);font-size:12px;font-weight:600;
+  letter-spacing:.08em;color:var(--muted)}
+.row{flex:none;height:56px;margin:0 16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:0 10px 0 12px;display:flex;align-items:center;gap:11px;width:calc(100% - 32px);text-align:left}
+.row:hover{background:#fffdf9;border-color:#cdbfab}
+.row .thumb{width:30px;height:30px;border-radius:8px;flex:none;background:var(--bg);border:1px solid var(--line);
+  display:grid;place-items:center;overflow:hidden}
+.row .thumb img{width:22px;height:22px;border-radius:6px}
+.row .tx{display:grid;gap:0;min-width:0}
+.row .t{font-size:15px;font-weight:500;line-height:1.35}
+.row .s{font-size:12px;color:var(--muted);line-height:1.35}
+.row .ch{margin-left:auto;color:var(--ink);font-size:17px;flex:none;padding-left:6px}
+.row.sys{margin-top:14px}
+.hr{flex:none;height:1px;background:var(--line);margin:16px 16px 0}
+
+.foot{flex:none;padding:0 18px 6px;font-size:11px;color:var(--muted);line-height:1.5}
+.home{flex:none;height:22px;display:grid;place-items:center}
+.home i{display:block;width:134px;height:5px;border-radius:999px;background:var(--fg);opacity:.3}
+
+/* 变量开关 */
+.var{display:none !important}
+.var.on{display:var(--d,block) !important}
+
+/* ═══════════ 系统权限弹窗（原生 chrome，示意） ═══════════ */
+.alert-layer{position:absolute;inset:0;z-index:40;display:flex !important;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.28);padding:0 46px}
+.alert{width:100%;background:rgba(252,252,252,.97);border-radius:14px;overflow:hidden;text-align:center;
+  box-shadow:0 20px 50px rgba(0,0,0,.28);padding:19px 16px 14px}
+.alert h4{font-family:var(--font-title);font-size:17px;font-weight:600;margin:0 0 5px;line-height:1.35}
+.alert p{font-size:13px;line-height:1.45;color:#3a3a3c;margin:0}
+.alert .acts{display:flex;border-top:1px solid rgba(60,60,67,.29);margin-top:14px}
+.alert .acts button{flex:1;height:44px;font-size:17px;color:#007aff}
+.alert .acts button + button{border-left:1px solid rgba(60,60,67,.29);font-weight:600}
+.alert .acts button:hover{background:rgba(0,0,0,.06)}
+.alert .acts button:active{background:rgba(0,0,0,.12)}
+
+/* ═══════════ 底部面板 ═══════════ */
+.sheet-layer{position:absolute;inset:0;z-index:30;display:flex !important;flex-direction:column;justify-content:flex-end}
+.sheet-layer .scrim{position:absolute;inset:0;background:rgba(0,0,0,.3);border:0;width:100%;cursor:default}
+.sheet{position:relative;background:var(--bg);border-radius:18px 18px 0 0;padding:8px 16px 26px;max-height:78%;
+  overflow:auto;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+.grab{width:36px;height:5px;border-radius:999px;background:var(--line);margin:0 auto 12px}
+.sheet h3{font-family:var(--font-title);font-size:20px;font-weight:600;margin:0 0 3px;letter-spacing:-.01em}
+.sheet .crumb{font-size:12.5px;color:var(--muted);margin:0 0 14px}
+.sheet .panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sheet .row2{display:flex;align-items:center;gap:10px;padding:12px;border-top:1px solid var(--hair);width:100%;text-align:left}
+.sheet .row2:first-child{border-top:0}
+.sheet .row2 .t{font-size:15px}
+.sheet .row2 .s{font-size:12px;color:var(--muted);margin-top:1px}
+.sheet .row2 .ch{margin-left:auto;color:var(--ink);font-size:16px}
+.sheet .row2 .tick{color:var(--ok-ink);font-weight:700;font-size:15px}
+.sheet .row2:hover{background:#fffdf9}
+.sheet .foot-note{font-size:12px;color:var(--muted);margin:12px 2px 0;line-height:1.5}
+.sheet .big{width:100%;margin-top:12px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden}
+.kv div{background:var(--surface);padding:12px 14px}
+.kv b{display:block;font-family:var(--font-disp);font-size:22px;font-weight:400;line-height:1.2}
+.kv span{font-size:12px;color:var(--muted)}
+.statline{display:flex;gap:14px;font-size:12.5px;color:var(--ink-2);margin:10px 2px 0;flex-wrap:wrap}
+.statline b{color:var(--fg);font-weight:600;font-variant-numeric:tabular-nums}
+
+/* 标注层（评审专用，默认关） */
+.ann{position:absolute;inset:0;z-index:35;pointer-events:none;display:none}
+.ann.on{display:block}
+.ann .g{position:absolute;left:8px;right:8px;border:1.5px dashed var(--danger);border-radius:14px;background:rgba(179,38,30,.05)}
+.ann .g b{position:absolute;left:-1px;top:-21px;font-size:10.5px;font-weight:700;color:#fff;background:var(--danger);
+  padding:2px 7px;border-radius:5px}
+.ann-toggle{display:flex;align-items:center;gap:7px;font-size:12px;color:#5c564e;user-select:none}
+.ann-toggle input{accent-color:var(--btn);width:15px;height:15px}
+@media (max-width:820px){
+  .page{grid-template-columns:1fr;padding:20px 16px 70px}
+  .rail{position:static;max-height:none}
+  .stage{justify-items:start}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════ 评审台 ═══════════ -->
+<aside class="rail" data-od-id="review-rail">
+  <h1>登录后首页 · 可点击原型 <span>iPhone</span></h1>
+  <p class="sub">屏幕内区精确 390×844（外框 406×860，含 8px 边框）· 47pt 状态栏 + 52pt 顶栏 · WKWebView 内的 HTML/CSS 界面 · 左侧面板与门禁为评审工具，不属于产品</p>
+  <div class="sep"></div>
+  <h2>状态索引 · 10</h2>
+  <div class="grp"><b>稳态</b>
+    <button class="st" data-go="home"><span class="k">01</span>三引擎就绪<span class="e">Home</span></button>
+    <button class="st" data-go="home-missing"><span class="k">02</span>朗读缺失 → 可点提示<span class="e">Missing engine</span></button>
+  </div>
+  <div class="grp"><b>实时字幕</b>
+    <button class="st" data-go="cap-perm"><span class="k">03</span>权限弹窗<span class="e">Permission</span></button>
+    <button class="st" data-go="cap-armed"><span class="k">04</span>准备中<span class="e">Armed</span></button>
+    <button class="st" data-go="cap-live"><span class="k">05</span>进行中<span class="e">Live</span></button>
+  </div>
+  <div class="grp"><b>实时听译</b>
+    <button class="st" data-go="int-perm"><span class="k">06</span>权限弹窗<span class="e">Permission</span></button>
+    <button class="st" data-go="int-armed"><span class="k">07</span>准备中<span class="e">Armed</span></button>
+    <button class="st" data-go="int-live"><span class="k">08</span>进行中<span class="e">Live</span></button>
+  </div>
+  <div class="grp"><b>单词卡降级</b>
+    <button class="st" data-go="review-sheet"><span class="k">09</span>展开统计（二级）<span class="e">Review sheet</span></button>
+    <button class="st" data-go="review-zero"><span class="k">10</span>待复习 = 0<span class="e">Empty state</span></button>
+  </div>
+
+  <div class="sep"></div>
+  <h2>门禁自检 · 对当前状态实时判定</h2>
+  <div class="gate" id="gate" data-od-id="gate-inspector"></div>
+  <label class="ann-toggle" style="margin-top:12px;color:var(--inst-dim)">
+    <input type="checkbox" id="ann">显示区块缺席标注
+  </label>
+  <p class="hint">「缺席」只标系统翻译：三引擎就位前该块<strong>不渲染</strong>，不是隐藏的空容器。判定 05 会对这一点做实测。</p><p class="hint">字幕与听译中的英文句子是<strong>功能演示文案</strong>，不代表产品内数据。复习相关的 190 / 190 / 4664 / 4474 / 0 沿用线上真值；其余位置（版本号、同步时间、用量余量）在页面上以「——」占位，交付前由接口填入。</p>
+
+  <div class="sep"></div>
+  <h2>关键文案 · 中 / EN</h2>
+  <table class="strings"><tbody>
+    <tr><td>开始实时字幕</td><td>Start Live Captions</td></tr>
+    <tr><td>开始听译</td><td>Start Interpreting</td></tr>
+    <tr><td>开始复习</td><td>Start Review</td></tr>
+    <tr><td>停止</td><td>Stop</td></tr>
+    <tr><td>结束并保存</td><td>End &amp; Save</td></tr>
+    <tr><td>还在听…</td><td>Listening…</td></tr>
+    <tr><td>点按译文行可重播</td><td>Tap a line to replay</td></tr>
+    <tr><td>引擎 · 已就位</td><td>Engines · All set</td></tr>
+    <tr><td>朗读 · 去配置</td><td>Speech · Set up</td></tr>
+    <tr><td>翻译文档</td><td>Document Translation</td></tr>
+    <tr><td>系统翻译 · 已交给「翻译」App</td><td>System Translate · Handed to Translate</td></tr>
+    <tr><td>设置 › 朗读</td><td>Settings › Speech</td></tr>
+    <tr><td>取消 / 好</td><td>Cancel / OK</td></tr>
+  </tbody></table>
+
+  <div class="resets">
+    <button class="rbtn" id="prev">← 上一个状态</button>
+    <button class="rbtn" id="next">下一个状态 →</button>
+  </div>
+</aside>
+
+<!-- ═══════════ 手机 ═══════════ -->
+<main class="stage">
+  <div class="stagebar">
+    <b id="stateName">三引擎就绪</b>
+    <span class="en" id="stateEn">Home</span>
+  </div>
+
+  <div class="phone">
+    <div class="scr" id="scr" data-od-id="phone-screen">
+
+      <div class="sbar"><span>9:41</span><i class="notch"></i><span>5G ▮</span></div>
+
+      <div class="tb">
+        <span class="brand">大肚猴 <em>BelliedMonkey</em></span>
+        <button class="acct" data-act="sheet-acct" aria-label="账户设置"><i>BM</i></button>
+      </div>
+
+      <div class="body" id="body">
+
+        <!-- 引擎状态行 -->
+        <div class="engines" data-od-id="engine-status-row" role="group" aria-label="翻译引擎状态">
+          <span class="var on" data-for="eng-ready" style="--d:contents">
+            <span class="lb">引擎</span>
+            <span class="seg"><i class="dot"></i>翻译</span>
+            <span class="seg"><i class="dot"></i>语音转写</span>
+            <span class="seg"><i class="dot"></i>朗读</span>
+            <span class="sum">已就位</span>
+          </span>
+          <span class="var" data-for="eng-miss" style="--d:contents">
+            <span class="lb">待办</span>
+            <span class="seg"><i class="dot"></i>翻译</span>
+            <span class="seg"><i class="dot"></i>语音转写</span>
+            <button class="seg miss" data-act="sheet-engines" data-hit="44" aria-label="朗读引擎未配置，前往 设置 › 朗读 选择语音">朗读 · 去配置 ›</button>
+            <span class="todo">1 项待配置</span>
+          </span>
+        </div>
+
+        <!-- 实时字幕 -->
+        <section class="hero" data-od-id="card-live-captions" aria-label="实时字幕">
+          <div class="htop">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M6.5 10.5h5M6.5 14h8"/></svg></span>
+            <h3>实时字幕</h3>
+            <span class="tag ok var on" data-for="cap-idle,cap-perm">就绪</span>
+            <span class="tag var" data-for="cap-armed" style="--d:inline-block;color:var(--terra-wash-ink);background:var(--terra-wash)">准备中</span>
+            <span class="tag live var" data-for="cap-live"><i></i>进行中</span>
+          </div>
+
+          <p class="hd var on" data-for="cap-idle,cap-perm,cap-armed">听这台设备正在播放的声音，实时出双语字幕。</p>
+          <div class="live-hd var" data-for="cap-live">
+            <b>字幕已上屏</b><span id="capTimer">00:42</span>
+            <button class="plain" style="height:32px;width:auto;padding:0 9px;margin-left:auto;font-size:12.5px;background:var(--bg);border:1px solid var(--line)" data-act="cap-float">字幕浮窗</button>
+          </div>
+
+          <div class="band var on" data-for="cap-idle,cap-perm,cap-armed" aria-hidden="true">
+            <i style="height:34%"></i><i style="height:62%"></i><i style="height:44%"></i><i style="height:88%"></i><i style="height:52%"></i>
+            <i style="height:70%"></i><i style="height:38%"></i><i style="height:80%"></i><i style="height:46%"></i><i style="height:66%"></i>
+            <i style="height:30%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:42%"></i><i style="height:60%"></i>
+          </div>
+
+          <div class="checks var" data-for="cap-armed">
+            <div class="hd">开始前的三项检查</div>
+            <div class="chk"><span class="mk y">✓</span>翻译引擎<span class="vv">就绪</span></div>
+            <div class="chk"><span class="mk y">✓</span>语音转写引擎<span class="vv">就绪</span></div>
+            <div class="chk"><span class="mk y">✓</span>音频输入<span class="vv">iPhone 扬声器</span></div>
+            <div class="note-line" style="padding:10px 12px 2px"><i>!</i><span>字幕来自设备<strong>正在播放</strong>的声音，耳机输出时需要取音授权。</span></div>
+          </div>
+
+          <div class="live-rows var" data-for="cap-live">
+            <div class="r"><span class="lg">EN</span><span class="tx en">…the flight leaves at 6:40, gate B12.</span></div>
+            <div class="r"><span class="lg">ZH</span><span class="tx">航班六点四十起飞，登机口 B12。</span></div>
+          </div>
+
+          <button class="btn var on" data-for="cap-idle,cap-perm" data-act="cap-perm">开始实时字幕 <em>Start Live Captions</em></button>
+          <div class="btnrow var" data-for="cap-armed">
+            <button class="btn" data-act="cap-live">开始实时字幕</button>
+            <button class="btn ghost" data-act="cap-stop">取消</button>
+          </div>
+          <div class="btnrow var" data-for="cap-live">
+            <button class="btn ghost" data-act="cap-stop">停止</button>
+          </div>
+        </section>
+
+        <!-- 实时听译 -->
+        <section class="hero" data-od-id="card-live-interpret" aria-label="实时听译">
+          <div class="htop">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4a2.6 2.6 0 0 1 2.6 2.6v4.9a2.6 2.6 0 0 1-5.2 0V6A2.6 2.6 0 0 1 12 3.4Z"/><path d="M6.4 11.1a5.6 5.6 0 0 0 11.2 0M12 16.7V20.4M9 20.4h6"/></svg></span>
+            <h3>实时听译</h3>
+            <span class="tag ok var on" data-for="int-idle,int-perm">就绪</span>
+            <span class="tag var" data-for="int-armed" style="--d:inline-block;color:var(--terra-wash-ink);background:var(--terra-wash)">准备中</span>
+            <span class="tag var" data-for="int-blocked" style="--d:inline-block;color:var(--terra-ink);background:var(--terra-wash)">待配置朗读</span>
+            <span class="tag live var" data-for="int-live"><i></i>进行中</span>
+          </div>
+
+          <p class="hd var on" data-for="int-idle,int-perm,int-armed,int-blocked">面对面逐句转写 → 翻译 → 朗读，一人一句。</p>
+          <div class="live-hd var" data-for="int-live">
+            <b>中 ⇄ 英</b><span id="intTimer">00:18</span>
+            <span>已完成 3 句</span>
+          </div>
+
+          <div class="ab var on" data-for="int-idle,int-perm,int-armed" aria-hidden="true">
+            <span class="en">Good evening. How was the flight?</span>
+            <span class="zh">晚上好。航班怎么样？</span>
+          </div>
+
+          <div class="checks var" data-for="int-armed">
+            <div class="hd">开始前</div>
+            <div class="note-line"><i>·</i><span>把 iPhone <strong>平放在两人中间</strong>，一次一人一句，句子说完会自动断句。</span></div>
+            <div class="chk"><span class="mk y">✓</span>识别语言<span class="vv">自动 · 中英互译</span></div>
+            <div class="chk"><span class="mk y">✓</span>朗读输出<span class="vv">打开 · Tingting</span></div>
+            <div class="chk"><span class="mk w">!</span>对方也戴着耳机时可能互相盖音<span class="vv">建议摘一只</span></div>
+          </div>
+
+          <div class="live-rows var" data-for="int-live">
+            <div class="r"><span class="lg">EN</span><span class="tx en">Good evening.</span></div>
+            <div class="r"><span class="lg">ZH</span><span class="tx">晚上好。&nbsp;·&nbsp;点按重播</span></div>
+            <div class="r"><span class="lg">EN</span><span class="tx en">How was the flight?</span></div>
+            <div class="r"><span class="lg">ZH</span><span class="tx">航班怎么样？&nbsp;·&nbsp;点按重播</span></div>
+            <div class="r"><span class="lg">··</span><span class="hear"><i></i>还在听…</span></div>
+          </div>
+
+          <button class="btn var on" data-for="int-idle,int-perm" data-act="int-perm">开始听译 <em>Start Interpreting</em></button>
+          <button class="btn tinted var" data-for="int-blocked" data-act="sheet-engines" style="width:100%;height:50px;font-size:15px;padding:0 12px">朗读未选声音 · 先选一个 ›</button>
+          <div class="btnrow var" data-for="int-armed">
+            <button class="btn" data-act="int-live">开始听译</button>
+            <button class="btn ghost" data-act="int-stop">取消</button>
+          </div>
+          <div class="btnrow var" data-for="int-live">
+            <button class="btn ghost" data-act="int-stop">结束并保存</button>
+          </div>
+        </section>
+
+        <!-- 单词卡 -->
+        <section class="strip var on" data-for="review-190" data-od-id="review-strip" aria-label="单词卡">
+          <div class="lft">
+            <span class="big"><i>190</i>今天待复习</span>
+            <button class="plain mini" data-act="sheet-review" data-hit="44">查看统计 ›</button>
+          </div>
+          <button class="btn tinted sm go" data-act="sheet-review">开始复习</button>
+        </section>
+
+        <section class="strip zero var" data-for="review-zero" data-od-id="review-strip-empty" aria-label="单词卡">
+          <div class="lft">
+            <span class="big">今天没有待复习</span>
+            <span class="mini">新词进入复习队列后会出现在这里</span>
+          </div>
+          <button class="btn tinted sm go" data-act="sheet-review">提前复习</button>
+        </section>
+
+        <!-- 文档 -->
+        <div class="sechead var on" data-for="doc-on,sys-on">文档</div>
+        <button class="row var on" data-for="doc-on,sys-on" data-act="sheet-doc" data-od-id="row-document">
+          <span class="thumb"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#201e1d" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"><path d="M6.5 3.5h7L18.5 8.5v12h-12z"/><path d="M13.5 3.5v5h5"/></svg></span>
+          <span class="tx"><span class="t">翻译文档</span><span class="s">PDF / Word / 图片 · 异步</span></span>
+          <span class="ch">›</span>
+        </button>
+
+        <div class="hr var" data-for="sys-on" style="--d:block"></div>
+
+        <!-- 系统翻译（仅就位后出现） -->
+        <button class="row sys var" data-for="sys-on" data-act="sheet-sys" data-od-id="row-system-translate">
+          <span class="thumb"><img src="assets/apple-translate-icon.png" alt="" width="22" height="22"></span>
+          <span class="tx"><span class="t">系统翻译</span><span class="s">已交给「翻译」App · 轻点查看说明</span></span>
+          <span class="ch">›</span>
+        </button>
+
+        <div class="foot">大肚猴翻译 · 已登录（版本号与账号待接入）</div>
+        <div class="home"><i></i></div>
+      </div>
+
+      <!-- 缺席标注（仅在「朗读缺失」态出现） -->
+      <div class="ann" id="annLayer2" aria-hidden="true"></div>
+
+      <!-- ═══ 系统权限弹窗 ═══ -->
+      <div class="alert-layer var" data-for="cap-perm" style="--d:flex">
+        <div class="alert" role="alertdialog" aria-label="麦克风权限">
+          <h4>“大肚猴翻译”想访问麦克风</h4>
+          <p>实时字幕需要取到这台设备正在播放的声音，实时听译需要听到对面说话。</p>
+          <div class="acts">
+            <button data-act="cap-perm-deny">取消</button>
+            <button data-act="cap-perm-ok">好</button>
+          </div>
+        </div>
+      </div>
+      <div class="alert-layer var" data-for="int-perm" style="--d:flex">
+        <div class="alert" role="alertdialog" aria-label="麦克风权限">
+          <h4>“大肚猴翻译”想访问麦克风</h4>
+          <p>实时听译会用麦克风逐句转写你和对面的说话，并朗读译文。</p>
+          <div class="acts">
+            <button data-act="int-perm-deny">取消</button>
+            <button data-act="int-perm-ok">好</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ 底部面板 ═══ -->
+      <div class="sheet-layer var" data-for="sheet-engines" style="--d:flex">
+        <button class="scrim" data-act="close-sheet" aria-label="关闭"></button>
+        <div class="sheet" data-od-id="sheet-settings-speech">
+          <div class="grab"></div>
+          <h3>朗读</h3>
+          <p class="crumb">设置 › 朗读 · 来自「朗读缺失」提示</p>
+          <div class="panel">
+            <button class="row2"><span class="tx"><span class="t">Tingting</span><span class="s">普通话 · 中国大陆</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">Meijia</span><span class="s">普通话 · 中国台湾</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">Samantha</span><span class="s">英语 · 美国</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">Kyoko</span><span class="s">日本語 · 日本</span></span><span class="ch">›</span></button>
+          </div>
+          <p class="foot-note">选一个即可。回到首页后顶部状态行会自己更新，实时听译的「朗读输出」同步生效 —— 不需要任何「我已设好」。</p>
+        </div>
+      </div>
+
+      <div class="sheet-layer var" data-for="sheet-sys" style="--d:flex">
+        <button class="scrim" data-act="close-sheet" aria-label="关闭"></button>
+        <div class="sheet" data-od-id="sheet-system-translate">
+          <div class="grab"></div>
+          <h3>系统翻译</h3>
+          <p class="crumb">已交给「翻译」App · 轻点查看说明</p>
+          <div class="panel">
+            <button class="row2"><span class="tx"><span class="t">打开系统「翻译」App</span><span class="s">用系统键盘输入，走大肚猴的翻译与朗读引擎</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">Safari 扩展设置</span><span class="s">Safari › 管理扩展 › 大肚猴翻译</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">重新接管</span><span class="s">如果系统不再调用，重新授权一次</span></span><span class="ch">›</span></button>
+          </div>
+          <p class="foot-note">这一行取代了原来的三步说明：说明只在这一行被点开后才出现。</p>
+        </div>
+      </div>
+
+      <div class="sheet-layer var" data-for="sheet-doc" style="--d:flex">
+        <button class="scrim" data-act="close-sheet" aria-label="关闭"></button>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>翻译文档</h3>
+          <p class="crumb">PDF / Word / 图片 · 异步任务，不占用实时通道</p>
+          <div class="panel">
+            <button class="row2"><span class="tx"><span class="t">选择文件</span><span class="s">从「文件」中选取</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">从照片选取</span><span class="s">图片 OCR 后翻译</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">粘贴文本</span><span class="s">粘贴一段文本</span></span><span class="ch">›</span></button>
+          </div>
+          <p class="foot-note">上次同步 ——。文档任务与实时字幕、实时听译不共用通道，可同时进行。</p>
+        </div>
+      </div>
+
+      <div class="sheet-layer var" data-for="sheet-review" style="--d:flex">
+        <button class="scrim" data-act="close-sheet" aria-label="关闭"></button>
+        <div class="sheet" data-od-id="sheet-review-detail">
+          <div class="grab"></div>
+          <h3>单词卡</h3>
+          <p class="crumb">首页那一行的全部数据在这里 · 二级页面</p>
+          <div class="kv">
+            <div><b>190</b><span>今天待复习</span></div>
+            <div><b>190</b><span>学习中</span></div>
+            <div><b>4664</b><span>总计</span></div>
+            <div><b>4474</b><span>候选</span></div>
+          </div>
+          <div class="statline"><span>已掌握 <b>0</b></span><span>已过 7 天 <b>——</b></span><span>词库同步 <b>——</b></span></div>
+          <button class="btn big" data-act="rev-start">开始复习 <em>190 张</em></button>
+          <button class="plain" data-act="sync" style="width:100%">同步词库 <em style="font-style:normal;opacity:.7;font-size:12px">Sync</em></button>
+          <p class="foot-note">「已掌握 0」在首页不做主视觉，但在这里按真值呈现 —— 它是判断学习进度是否正常的关键数字。</p>
+        </div>
+      </div>
+
+      <div class="sheet-layer var" data-for="sheet-acct" style="--d:flex">
+        <button class="scrim" data-act="close-sheet" aria-label="关闭"></button>
+        <div class="sheet">
+          <div class="grab"></div>
+          <h3>已登录账户</h3>
+          <p class="crumb">账号 · 原来占据整行的一条带，现在收在顶栏 44×44 圆形键后面</p>
+          <div class="panel">
+            <button class="row2"><span class="tx"><span class="t">设置</span><span class="s">引擎、语言、朗读、词库</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">订阅与用量</span><span class="s">剩余 —— 待接入</span></span><span class="ch">›</span></button>
+            <button class="row2"><span class="tx"><span class="t">退出登录</span><span class="s">退出后需重新登录才能开实时字幕</span></span><span class="ch" style="color:var(--danger-ink)">›</span></button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <p class="stagebar" style="color:#6b645c;max-width:390px;font-size:12px">
+    点界面里的按钮走真实流转；也可以用左侧索引直接跳状态。当前状态与门禁判定随点击实时更新。
+  </p>
+</main>
+</div>
+
+<script>
+const STATES = {
+  'home':          {n:'三引擎就绪',              en:'Home',                 v:['eng-ready','cap-idle','int-idle','review-190','doc-on','sys-on']},
+  'home-missing':  {n:'朗读未配置 → 就地可点',    en:'Missing engine',       v:['eng-miss','cap-idle','int-blocked','review-190','doc-on']},
+  'cap-perm':      {n:'实时字幕 · 权限',         en:'Permission',           v:['eng-ready','cap-perm','int-idle','review-190','doc-on','sys-on']},
+  'cap-armed':     {n:'实时字幕 · 准备中',       en:'Armed',                v:['eng-ready','cap-armed','int-idle','review-190','doc-on','sys-on']},
+  'cap-live':      {n:'实时字幕 · 进行中',       en:'Live',                 v:['eng-ready','cap-live','int-idle','review-190','doc-on','sys-on']},
+  'int-perm':      {n:'实时听译 · 权限',         en:'Permission',           v:['eng-ready','cap-idle','int-perm','review-190','doc-on','sys-on']},
+  'int-armed':     {n:'实时听译 · 准备中',       en:'Armed',                v:['eng-ready','cap-idle','int-armed','review-190','doc-on','sys-on']},
+  'int-live':      {n:'实时听译 · 进行中',       en:'Live',                 v:['eng-ready','cap-idle','int-live','review-190','doc-on','sys-on']},
+  'review-sheet':  {n:'单词卡 · 二级统计',       en:'Review sheet',         v:['eng-ready','cap-idle','int-idle','review-190','doc-on','sys-on','sheet-review']},
+  'review-zero':   {n:'单词卡 · 待复习 0',       en:'Empty state',          v:['eng-ready','cap-idle','int-idle','review-zero','doc-on','sys-on']}
+};
+const ORDER = Object.keys(STATES);
+const EXPECT_SYS = { 'home-missing':false };
+// 默认版面态：两卡都是 idle 形态（armed/live 会合法地长高，位移属预期，不参与 J01/J02）
+const BASE_STATES = ['home','home-missing','cap-perm','int-perm','review-sheet','review-zero'];
+let cur = 'home';
+let sheet = null;
+let sheetFrom = 'home';
+
+const scr = document.getElementById('scr');
+const body = document.getElementById('body');
+
+function go(id, keepScroll){
+  if(!STATES[id]) return;
+  cur = id;
+  const st = STATES[id];
+  scr.dataset.state = id;
+  const active = st.v.concat(sheet ? [sheet] : []);
+  document.querySelectorAll('.var').forEach(el=>{
+    el.classList.toggle('on', active.some(v => el.dataset.for.split(',').includes(v)));
+  });
+  document.getElementById('stateName').textContent = st.n;
+  document.getElementById('stateEn').textContent = st.en;
+  document.querySelectorAll('.st').forEach(b=>b.setAttribute('aria-current', String(b.dataset.go===id)));
+  if(!keepScroll) body.scrollTop = 0;
+  // 缺席标注：只在「朗读缺失」态点亮系统翻译该在的位置
+  const ann = document.getElementById('annLayer2');
+  ann.innerHTML = '';
+  if(EXPECT_SYS[id]===false){
+    ann.innerHTML = '<div class="g" style="top:'+(docRowBottom()+30)+'px;height:56px">'
+      + '<b>系统翻译 · 此状态下不渲染</b></div>';
+  }
+  localStorage.setItem('bm-proto-ios', id);
+  gate();
+}
+function docRowBottom(){
+  const r = scr.querySelector('[data-od-id="row-document"]');
+  return r ? r.offsetTop + r.offsetHeight : 0;
+}
+
+/* ── 交互 ── */
+document.addEventListener('click', e=>{
+  const st = e.target.closest('.st');
+  if(st){ go(st.dataset.go); return; }
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  const a = b.dataset.act;
+  if(a.startsWith('sheet-')){ sheet = a; sheetFrom = cur; go(cur, true); return; }
+  sheet = null;
+  if(a==='cap-perm') go('cap-perm');
+  else if(a==='cap-perm-ok'||a==='cap-perm-deny') go('cap-armed');
+  else if(a==='int-perm') go('int-perm');
+  else if(a==='int-perm-ok'||a==='int-perm-deny') go('int-armed');
+  else if(a==='cap-live') go('cap-live');
+  else if(a==='int-live') go('int-live');
+  else if(a==='cap-stop') go('home');
+  else if(a==='int-stop') go('home');
+  else if(a==='cap-float') b.textContent = '浮窗已开';
+  else if(a==='close-sheet'){ sheet = null; go(sheetFrom, true); }
+  else if(a==='rev-start') b.textContent = '已进入复习 · 190 张';
+  else if(a==='sync') b.textContent = '词库已同步';
+});
+
+document.getElementById('prev').onclick = ()=> go(ORDER[(ORDER.indexOf(cur)-1+ORDER.length)%ORDER.length]);
+document.getElementById('next').onclick = ()=> go(ORDER[(ORDER.indexOf(cur)+1)%ORDER.length]);
+document.getElementById('ann').onchange = e=>{
+  document.querySelectorAll('.ann').forEach(a=>a.classList.toggle('on', e.target.checked && cur==='home-missing'));
+};
+
+/* ── 门禁自检 ── */
+const gateBox = document.getElementById('gate');
+function row(ok, label, detail){
+  return '<div class="g '+(ok===null?'na':ok?'pass':'fail')+'">'
+    + '<span class="b">'+(ok===null?'N/A':ok?'PASS':'FAIL')+'</span>'
+    + '<span>'+label+' · '+detail+'</span></div>';
+}
+function gate(){
+  const vis = el => el && getComputedStyle(el).display !== 'none' && el.offsetParent !== null;
+  const rows = [];
+
+  // 01 首屏三块
+  const cap = scr.querySelector('[data-od-id="card-live-captions"]');
+  const int = scr.querySelector('[data-od-id="card-live-interpret"]');
+  const rev = scr.querySelector('.strip');
+  const blocks = [cap, int, rev].filter(vis);
+  const y = el => el.getBoundingClientRect().top - scr.getBoundingClientRect().top;
+  const isBase = BASE_STATES.includes(cur);
+  const fits = isBase && blocks.length===3 && blocks.every(el => y(el) + el.offsetHeight <= 844);
+  rows.push(row(isBase ? fits : null,
+    '首屏三块在 844 内',
+    isBase ? blocks.map(el=>Math.round(y(el))+'+'+Math.round(el.offsetHeight)).join(' / ')
+           : '进行中/准备中，卡片按设计长高 · 不适用'));
+
+  // 02 实心按钮数
+  const solids = [...scr.querySelectorAll('.btn')].filter(b=>{
+    if(!vis(b)) return false;
+    const st = getComputedStyle(b); return st.backgroundColor === 'rgb(172, 98, 49)';
+  });
+  const inFold = solids.filter(b => (y(b)) < 844);
+  rows.push(row(inFold.length<=2, '首屏内实心按钮 ≤ 2', '实测 '+inFold.length+' 枚'+(solids.length>inFold.length?'（面板内 '+solids.length+'）':'')));
+
+  // 03 两卡等高
+  if(vis(cap)&&vis(int)&&isBase){
+    const d = Math.abs(cap.offsetHeight - int.offsetHeight);
+    rows.push(row(d===0, '两张主卡等高', d===0?'差 0pt':'差 '+d+'pt'));
+  } else rows.push(row(null,'两张主卡等高', vis(cap)&&vis(int)?'进行中/准备中 · 不适用':'—'));
+
+  // 04 命中区
+  const small = [...scr.querySelectorAll('button,[role="button"]')].filter(b=>{
+    if(!vis(b)) return false;
+    const r = b.getBoundingClientRect();
+    return (r.width<44 || r.height<44) && !b.dataset.hit;
+  });
+  rows.push(row(small.length===0, '命中区 ≥ 44×44',
+    small.length===0?'全部达标':'越界 '+small.length+' 个'+(small[0]?':「'+small[0].textContent.trim().slice(0,10)+'」':'')));
+
+  // 05 系统翻译渲染
+  const sys = scr.querySelector('[data-od-id="row-system-translate"]');
+  const want = EXPECT_SYS[cur]!==false;
+  const got = vis(sys);
+  rows.push(row(want===got, '系统翻译'+(want?'已渲染':'未渲染'),
+    want?(got?'三引擎就位 → 出现一行':'缺失'):(got?'不该出现却出现':'未渲染（非空容器）')));
+
+  // 06 无未恢复的红色文字告警
+  const red = [...scr.querySelectorAll('*')].filter(el=>{
+    if(!vis(el) || el.children.length) return false;
+    const c = getComputedStyle(el).color;
+    return c==='rgb(179, 38, 30)' || c==='rgb(140, 33, 27)';
+  });
+  rows.push(row(red.length===0, '无未恢复的红色文字',
+    red.length===0?'本页 0 处文字使用 #b3261e':(red.length+' 处：'+red.map(e=>e.textContent.trim().slice(0,12)).join(' / '))));
+
+  // 07 旧版页脚告警是否已移除
+  const legacy = scr.textContent.includes('还没配语音引擎');
+  rows.push(row(!legacy, '旧版底部红字已移除',
+    legacy?'仍能找到「还没配语音引擎」':'全屏 0 处'));
+
+  gateBox.innerHTML = rows.join('');
+}
+
+/* 计时器（演示用） */
+let t = null;
+function tick(){
+  clearInterval(t);
+  if(cur==='cap-live'||cur==='int-live'){
+    let s = cur==='cap-live' ? 42 : 18;
+    t = setInterval(()=>{
+      s++;
+      const el = document.getElementById(cur==='cap-live'?'capTimer':'intTimer');
+      if(el) el.textContent = String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    },1000);
+  }
+}
+const _go = go;
+go = function(id,k){ _go(id,k); tick(); gate(); };
+
+const saved = localStorage.getItem('bm-proto-ios');
+go(saved && STATES[saved] ? saved : 'home');
+window.addEventListener('resize', gate);
+</script>
+</body>
+</html>

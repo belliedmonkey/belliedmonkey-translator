@@ -1,0 +1,297 @@
+// learn/notes.js — 句子解析 (§9.2): 生词 / 短语搭配 / 一个语法点.
+// See docs/learning-design.md §9.2 and interaction-spec 「解析」.
+//
+// Uses the user's OWN chat-capable engine, read from the same provider registry the
+// translator uses (window.MT_PROVIDERS — the single source of provider truth;
+// nothing vendor-specific is restated here, only the two wire formats — note the
+// China gate scans shipped COMMENTS too, so no repo-doc names in this file). The free Google
+// channel is a translation API and cannot do this, so capability is a hard gate:
+// no chat engine configured ⇒ `capable()` is false ⇒ the UI renders no entry point.
+//
+// One generation per card, ever — the caller caches through LearnStore's `notes`
+// store, and `get()` is cache-first. Cost is a real per-call charge on the user's
+// key; predictability is part of the feature.
+//
+// EXTENSION PAGES ONLY (and the app's WKWebView, where the app's own settings may
+// hold a chat engine + key — learning-design §7.2's device-local credentials; no
+// key configured ⇒ the gate simply stays closed).
+
+var LearnNotes = (() => {
+  let cfg = { provider: '', apiKey: '', baseUrl: '', model: '' };
+
+  function configure(c) { cfg = Object.assign({}, cfg, c || {}); }
+
+  // §9.2 (2026-08-09 二): the notes engine may be configured independently of
+  // the translator. `notesProvider` empty ⇒ follow the translation engine's
+  // WHOLE group; set ⇒ use the notes group ONLY. All-or-nothing on purpose —
+  // borrowing the translator's key under a different provider would pair a key
+  // with an endpoint it was never issued for.
+  function resolveConfig(s) {
+    s = s || {};
+    if (s.notesProvider) {
+      return { provider: s.notesProvider, apiKey: s.notesApiKey || '',
+        baseUrl: s.notesBaseUrl || '', model: s.notesModel || '' };
+    }
+    return { provider: s.provider || '', apiKey: s.apiKey || '',
+      baseUrl: s.apiBaseUrl || '', model: s.apiModel || '' };
+  }
+
+  function providerInfo() {
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    return list.find((p) => p.id === cfg.provider) || null;
+  }
+
+  // The one place that knows which registry TYPES can do this job. The app's
+  // settings select is built from this, so "what counts as a chat engine" cannot
+  // drift between the gate and the picker.
+  function chatEngines() {
+    const list = (typeof window !== 'undefined' && window.MT_PROVIDERS) || [];
+    // grantOnly（免费额度的中继，§8.10）排除在外：它不是一个可以**选**的解析引擎。
+    // 解析组的缺省是「跟随翻译引擎」（notesProvider === ''），额度生效时它自然跟着
+    // 走中继 —— 那条路本来就通，不需要在选择器里再出现一次。而它出现在选择器里，
+    // 就是一个没有 key 可填、选了必然 401 的选项。
+    return list.filter((p) => !p.grantOnly
+      && (p.type === 'chat-compat' || p.type === 'messages-compat'));
+  }
+
+  // Chat-capable AND keyed. `google` is excluded by type, not by name — the registry
+  // stays the single place that knows what each engine is.
+  function capable() {
+    const p = providerInfo();
+    return !!(p && (p.type === 'chat-compat' || p.type === 'messages-compat') && cfg.apiKey);
+  }
+
+  // Prompt contract version, stored on every cached note. Bump ONLY when a prompt
+  // change corrects WRONG output (wording polish never qualifies): a bump makes
+  // get() treat older notes as a miss and regenerate — at most one extra charge
+  // per card per bump, the one deliberate exception to §9.2's "cached forever".
+  // v1 → v2: v1 never said which side the words come from, and on `und` cards
+  // (every Safari capture — domain-design §5.3) the model had no study-language
+  // signal at all; observed on-device studying the TRANSLATION (an English card
+  // "parsed" into pinyin'd Chinese vocabulary).
+  const PROMPT_VERSION = 2;
+
+  // English system prompt (the project convention); the EXPLANATIONS come back in
+  // the user's UI language. JSON-only output so the parser has a fighting chance.
+  // The study side is pinned explicitly: words come FROM THE SENTENCE, never the
+  // translation — `lang` is 'und' on every Safari capture, so the prompt is the
+  // only place this can be said.
+  function buildPrompt(explainLang) {
+    return 'You are a language-learning assistant. The learner is studying the '
+      + 'language the Sentence is written in; the Translation is in the learner\'s '
+      + 'own language and is context only. Produce concise study notes: every word '
+      + 'and phrase must be picked FROM THE SENTENCE ONLY, copied verbatim — never '
+      + 'from the Translation. Write all glosses and explanations in '
+      + (explainLang || 'zh-CN') + '. The grammar point must be about the Sentence\'s '
+      + 'language. Respond with ONLY a JSON object, no markdown, in exactly this shape: '
+      + '{"words":[{"w":"...","g":"..."}],"phrases":[{"p":"...","g":"..."}],"grammar":"..."} '
+      + '— 3 to 6 key words with glosses, 1 to 3 phrases or collocations, and one '
+      + 'grammar point worth knowing.';
+  }
+
+  // Model output is untrusted input, as a premise rather than a surprise: strip
+  // fences, cut to the outermost braces, parse defensively, keep only well-typed
+  // entries, clamp counts. Returns null when nothing usable survives — the caller
+  // turns that into its own error code instead of showing garbage.
+  function parseNotes(text) {
+    let s = String(text == null ? '' : text).trim();
+    s = s.replace(/^```[a-z]*\s*/i, '').replace(/```\s*$/, '');
+    const a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a < 0 || b <= a) return null;
+    let j;
+    try { j = JSON.parse(s.slice(a, b + 1)); } catch (_) { return null; }
+    if (!j || typeof j !== 'object') return null;
+
+    const pair = (arr, k) => (Array.isArray(arr) ? arr : [])
+      .filter((x) => x && typeof x[k] === 'string' && typeof x.g === 'string'
+        && x[k].trim() && x.g.trim())
+      .map((x) => ({ [k]: x[k].trim(), g: x.g.trim() }));
+
+    const out = {
+      words: pair(j.words, 'w').slice(0, 8),
+      phrases: pair(j.phrases, 'p').slice(0, 4),
+      grammar: typeof j.grammar === 'string' ? j.grammar.trim() : '',
+    };
+    if (!out.words.length && !out.phrases.length && !out.grammar) return null;
+    return out;
+  }
+
+  // A cross-origin POST to a user-configured endpoint is the normal case here, and a
+  // server that omits `Access-Control-Allow-Origin` makes WebKit reject the response
+  // before any status is visible to us — `fetch` throws a bare TypeError ("Load
+  // failed"), indistinguishable from "host unreachable" unless we name it (measured
+  // 2026-08-13, learning-design §9.4). speech-input.js has named this since #130;
+  // this transport did not, so every such failure reached the UI as the raw string.
+  // `url` rides along so the settings page can echo the address it actually requested.
+  async function fetchNamed(url, init) {
+    try {
+      return await fetch(url, init);
+    } catch (netErr) {
+      const e = new Error(String((netErr && netErr.message) || netErr));
+      e.code = 'network';
+      e.url = url;
+      throw e;
+    }
+  }
+
+  // The three wire formats, one branch each. Extracted rather than written as nested
+  // ternaries: at two shapes the ternary was already the hardest thing to read here,
+  // and a third would have made the headers, the body and the extraction disagree
+  // about which shape they were building without anyone noticing.
+  //
+  // 3000, not 1000: hybrid thinking models (observed on the DeepSeek default) spend
+  // their budget on the reasoning phase FIRST — at 1000 the budget died mid-think and
+  // the content came back empty, indistinguishable from a broken endpoint. The JSON
+  // itself is small; the headroom is for thinking. The Responses shape needs it MORE,
+  // not less: there the reasoning tokens are charged against the same ceiling.
+  const MAX_OUT = 3000;
+
+  // The shared chat transport (§9.2 / §9.3): the ONE place that knows the wire
+  // formats. Returns the model's raw text; throws with a named code
+  // (no_base / network / http / empty_output). exercise-pack.js rides this same
+  // function — a third copy of the format branch is exactly how the formats would drift.
+  async function chat(system, user) {
+    const p = providerInfo();
+    // The endpoint is used EXACTLY as stored — see content/wire-format.js. `p` may be
+    // null when the stored provider id is not in this flavor's registry; resolving
+    // against `null` yields '' and lands on the no_base error below, where it used to
+    // throw a TypeError with no code at all.
+    const url = WireFormat.resolveEndpoint(cfg.baseUrl, p);
+    if (!url) { const e = new Error('missing endpoint URL'); e.code = 'no_base'; throw e; }
+    const model = cfg.model || (p && p.defaultModel) || '';
+
+    // Registry `type` is the default shape; the endpoint's path suffix refines it
+    // (content/wire-format.js) — one host can serve more than one request shape, and
+    // which one the user wants is something only their address can say.
+    // 请求体由 RequestShape 一处构造（content/request-shape.js）——翻译那条走的是同一个
+    // 函数。在此之前这里有一份与它逐字重复的实现，连 extractResponses 的注释都一样。
+    // 预算仍然由这里传：3000 的论证在 MAX_OUT 旁边，不该跟着搬走。
+    await RequestShape.ready();
+    const req = RequestShape.build(WireFormat.formatFor(url, p && p.type), {
+      url, apiKey: cfg.apiKey, model, system, user, budget: MAX_OUT,
+      // 解析引擎默认跟随翻译引擎（§9.2），此时 cfg.provider 与翻译那边是同一个 id，
+      // 于是自定义参数天然一致；用户单独选了别的引擎时，它拿到的也是自己那份。
+      providerId: cfg.provider,
+    });
+    const resp = await fetchNamed(url, {
+      method: 'POST', headers: req.headers, body: JSON.stringify(req.body),
+    });
+    if (!resp.ok) {
+      // 有的调用方（含测试里的假响应）给的不是完整 Response —— 没有 text() 就当没有正文，
+      // 绝不让「读不到正文」变成一个抛出去的异常，那会把真正的错误码整个吃掉。
+      const raw = typeof resp.text === 'function' ? await resp.text().catch(() => '') : '';
+      const e = new Error('HTTP ' + resp.status);
+      // 免费额度中继的具名错误优先（§8.10）——「额度用完了」和「服务端出错了」
+      // 指向完全不同的出口，混成一个 http 就等于把用户支到错的地方。
+      const gcode = (typeof WireFormat !== 'undefined' && WireFormat.grantError)
+        ? WireFormat.grantError(resp.status, raw) : '';
+      e.code = gcode || 'http'; e.status = resp.status; e.url = url;
+      if (gcode) { e.grant = true; e.retryable = false; }
+      throw e;
+    }
+    const d = await resp.json();
+    const msg = d && d.choices && d.choices[0] && d.choices[0].message;
+    const text = req.extract(d);
+    // Empty content is its OWN failure, not "unparsable": a reasoning/thinking
+    // model that never reached its answer (or a model that only emits
+    // reasoning_content) needs the user to switch models — retrying is useless,
+    // so the UI names the fix instead of asking them to try again.
+    if (!String(text == null ? '' : text).trim()) {
+      const thinking = !!(msg && msg.reasoning_content);
+      try {
+        console.error('[learn/notes] empty content' + (thinking ? ' (reasoning_content present — thinking model)' : ''),
+          JSON.stringify(d).slice(0, 300));
+      } catch (_) {}
+      const e = new Error('model returned no content'); e.code = 'empty_output'; e.url = url; throw e;
+    }
+    return text;
+  }
+
+  async function callEngine(item, explainLang) {
+    const user = 'Sentence (' + (item.lang || 'und') + '): ' + item.text
+      + '\nTranslation: ' + item.tr;
+    const text = await chat(buildPrompt(explainLang), user);
+    const parsed = parseNotes(text);
+    // Both gates share the user-facing code, so the console line is the only
+    // place that says WHICH gate rejected and what the model actually sent —
+    // without it every bad_output is an identical dead end.
+    if (!parsed) {
+      try { console.error('[learn/notes] bad_output (unparsable):', String(text).slice(0, 500)); } catch (_) {}
+      const e = new Error('unusable model output'); e.code = 'bad_output'; throw e;
+    }
+    if (!notesMatchSentence(parsed, item.text)) {
+      try { console.error('[learn/notes] bad_output (not from sentence):', JSON.stringify(parsed).slice(0, 500), '| sentence:', String(item.text).slice(0, 200)); } catch (_) {}
+      const e = new Error('notes not from the sentence'); e.code = 'bad_output'; throw e;
+    }
+    return parsed;
+  }
+
+  // Mechanical enforcement of the prompt's core rule — the prompt alone is an
+  // instruction a model can ignore. The wrong-side failure produced ZERO entries
+  // from the sentence (every word came from the translation), so requiring just
+  // ONE case-insensitive verbatim hit rejects that wholesale while tolerating a
+  // lemmatized entry here and there. Failing this is bad_output: nothing cached,
+  // the user sees the failure line and can retry.
+  function notesMatchSentence(notes, sentence) {
+    const s = String(sentence || '').toLowerCase();
+    if (!s) return true;
+    const entries = (notes.words || []).map((x) => x.w)
+      .concat((notes.phrases || []).map((x) => x.p));
+    if (!entries.length) return true;   // grammar-only output has nothing to check
+    return entries.some((w) => s.indexOf(String(w).toLowerCase()) >= 0);
+  }
+
+  // In-flight generations by card id: the same sentence can be on screen in two
+  // places (practice deck + review, or app + extension page), and two concurrent
+  // get()s would charge the key twice for one answer.
+  const inflight = new Map();
+
+  // Cache-first. The user's key is charged at most once per card — per prompt
+  // version. A version mismatch (or a pre-versioning record) is a miss: those
+  // notes were generated by a prompt that produced wrong output, and serving
+  // them forever is worse than one more charge.
+  async function get(item, explainLang) {
+    if (inflight.has(item.id)) return inflight.get(item.id);
+    const hit = await LearnStore.getNote(item.id);
+    if (hit && hit.data && hit.v === PROMPT_VERSION) return { data: hit.data, cached: true };
+    if (inflight.has(item.id)) return inflight.get(item.id);
+    const p = (async () => {
+      const data = await callEngine(item, explainLang);
+      // The charge already happened and the data is in hand — a failed cache
+      // write must not surface as "解析失败" and bait a SECOND charge. Same
+      // best-effort stance as the audio cache (tts.js putAudio).
+      try {
+        await LearnStore.putNote(item.id, data, { provider: cfg.provider, v: PROMPT_VERSION });
+      } catch (_) {}
+      return { data, cached: false };
+    })();
+    inflight.set(item.id, p);
+    try { return await p; } finally { inflight.delete(item.id); }
+  }
+
+  // Same gates as get(): a stale-version or dataless note must not auto-render
+  // on the answer face — the button comes back instead, and clicking regenerates.
+  function cached(id) {
+    return LearnStore.getNote(id)
+      .then((h) => (h && h.data && h.v === PROMPT_VERSION ? h : null))
+      .catch(() => null);
+  }
+
+  // 连通性自检（设置页的「测试」按钮）。走同一个 chat() 传输，所以它通过就代表
+  // 解析与 AI 题包用的那条路真的能通。刻意要一个极短的回答：这是连通性检查，
+  // 不是能力评测，跑 20 秒的题包提示词只会让人以为坏了。
+  //
+  // 顺带白捡一个诊断：思考（推理）型模型会在这里就暴露 —— 它们把预算烧在推理段、
+  // 正文为空，chat() 抛 empty_output。那正是 2026-08-08 真机上咬过一次的坑，
+  // 现在配的时候就能发现，而不是等复习到一半点解析才发现。
+  async function test() {
+    const t0 = Date.now();
+    const text = await chat('You are a connectivity check. Reply with exactly: OK', 'ping');
+    return { ok: true, ms: Date.now() - t0, sample: String(text).trim().slice(0, 40) };
+  }
+
+  return { configure, resolveConfig, capable, chatEngines, parseNotes, buildPrompt,
+    chat, test, get, cached, notesMatchSentence, PROMPT_VERSION };
+})();
+
+if (typeof module !== 'undefined' && module.exports) module.exports = LearnNotes;

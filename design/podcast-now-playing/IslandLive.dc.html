@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", system-ui, sans-serif; }
+    a { color: #c67139; } a:hover { color: #8c491a; }
+    .lbl { color: #82796a; font-size: 12px; letter-spacing: .3px; }
+    .cap { color: #201e1d; font-size: 14px; font-weight: 600; }
+    .note { color: #82796a; font-size: 13px; line-height: 1.6; }
+  </style>
+</helmet>
+<div style="width: 620px; height: 560px; box-sizing: border-box; background: #f9f4ed; padding: 32px; display: flex; flex-direction: column; gap: 24px;">
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="lbl">Live Activity · 收起态（约 126 × 37pt）</div>
+    <div style="border-radius: 18px; background: #1c1b19; padding: 16px 0 22px; display: flex; justify-content: center;">
+      <div style="display: flex; align-items: center; gap: 12px; background: #000; border-radius: 20px; height: 37px; padding: 0 12px;">
+        <svg width="20" height="20" viewBox="0 0 128 128" style="display:block;border-radius:5px;flex:none;"><rect width="128" height="128" rx="28" fill="#c67139"/><circle cx="26" cy="36" r="11" fill="#f5ead8"/><circle cx="102" cy="36" r="11" fill="#f5ead8"/><circle cx="26" cy="36" r="5" fill="#ffc6a5"/><circle cx="102" cy="36" r="5" fill="#ffc6a5"/><circle cx="64" cy="42" r="26" fill="#f5ead8"/><circle cx="55" cy="38" r="3.4" fill="#201e1d"/><circle cx="73" cy="38" r="3.4" fill="#201e1d"/><path d="M58 48c3.5 3.4 8.5 3.4 12 0" stroke="#201e1d" stroke-width="2.75" stroke-linecap="round" fill="none"/><circle cx="64" cy="89" r="33" fill="#f5ead8"/><g fill="#8c491a" transform="translate(64 91) scale(0.72) translate(-45 -51)"><rect x="28" y="34" width="34" height="7" rx="2"/><rect x="41.5" y="26" width="7" height="11" rx="2"/><path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"/></g></svg>
+        <div style="width: 30px;"></div>
+        <div style="color: #fff; font-size: 11px; letter-spacing: .2px;">第 3 / 20 张</div>
+      </div>
+    </div>
+    <div class="note">收起态只有约 24pt 高，句子放不下 —— 所以放**进度**：它短，且是这个尺寸上唯一还读得出来的信息。</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div class="lbl">Live Activity · 展开态（长按）</div>
+    <div style="background: #000; border-radius: 40px; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg width="38" height="38" viewBox="0 0 128 128" style="display:block;border-radius:9px;flex:none;"><rect width="128" height="128" rx="28" fill="#c67139"/><circle cx="26" cy="36" r="11" fill="#f5ead8"/><circle cx="102" cy="36" r="11" fill="#f5ead8"/><circle cx="26" cy="36" r="5" fill="#ffc6a5"/><circle cx="102" cy="36" r="5" fill="#ffc6a5"/><circle cx="64" cy="42" r="26" fill="#f5ead8"/><circle cx="55" cy="38" r="3.4" fill="#201e1d"/><circle cx="73" cy="38" r="3.4" fill="#201e1d"/><path d="M58 48c3.5 3.4 8.5 3.4 12 0" stroke="#201e1d" stroke-width="2.75" stroke-linecap="round" fill="none"/><circle cx="64" cy="89" r="33" fill="#f5ead8"/><g fill="#8c491a" transform="translate(64 91) scale(0.72) translate(-45 -51)"><rect x="28" y="34" width="34" height="7" rx="2"/><rect x="41.5" y="26" width="7" height="11" rx="2"/><path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"/></g></svg>
+        <div style="flex: 1;"></div>
+        <div style="color: rgba(255,255,255,0.6); font-size: 11px;">第 3 / 20 张</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 3px;">
+        <div style="color: #fff; font-size: 15px; font-weight: 600; line-height: 1.35;">Once people began sharing workspaces, apps, and outputs.</div>
+        <div style="color: rgba(255,255,255,0.62); font-size: 13px; line-height: 1.4;">一旦人们开始共享工作区、应用和输出内容。</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="border-top: 1px solid #dcd3c4; padding-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+    <div class="cap">已知代价：岛上会挤</div>
+    <div class="note">Live Activity 与系统的媒体播放形态**并存**，两者会同时争用灵动岛。这是真机验收（M20 第 ⑥ 条）要看的：难看到不可接受，就退回只留系统形态。<br>另：iOS 16.1 以下、或用户在系统设置里关掉「实时活动」时，这一半整个不存在，其余照常 —— 能力语义，不是降级。</div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

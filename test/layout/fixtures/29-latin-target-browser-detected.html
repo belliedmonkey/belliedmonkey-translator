@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>a Latin target skips same-language text via the browser detector</title>
+<style>
+  /* Target language is **en** here (see "cfg" in the manifest below) — the one case
+     fixture 27 deliberately could not cover. Script can separate Han from Latin, so
+     zh/ja/ko targets are decidable everywhere; English and French are the SAME script,
+     so a Latin target needs the browser's own detector
+     (chrome.i18n.detectLanguage — docs/domain-design.md §5.3). This suite runs in real
+     Chrome, so the detector here is the REAL one, not a stub.
+
+       #english-long   long, unmistakably English  → MUST get no translation sibling
+                                                     (the detector says en == target)
+       #french-long    long French                 → MUST still be translated
+                                                     (over-suppression guard: the
+                                                      detector must not skip everything
+                                                      merely because the page is Latin)
+       #english-short  English under 60 letters    → MUST still be translated
+                                                     (the length gate: detectors are
+                                                      confidently wrong on short text —
+                                                      measured, "Bonjour." comes back
+                                                      Norwegian at 100%)
+
+     Before the fix the engine had no detector at all, so #english-long was sent to the
+     provider — RED on `expectNotRequested`.
+
+     Note WHICH assertion carries this fixture. `noTranslationSibling` does NOT: an
+     echoed translation is caught by the renderer's identical-output backstop, so the
+     DOM looks the same with and without the detector. The whole benefit of the detector
+     is the request that is never sent — the user's quota — and `expectNotRequested` is
+     the only thing that can see it. (Verified: with `detect` forced to null this
+     fixture stays green on the DOM asserts and fails only on the request assert.)
+
+     `echoRe` makes the canned provider hand ASCII-only lines back unchanged, which is
+     what a real provider does when asked to render English into English. That keeps
+     #english-short honest: it reaches the provider (the length gate let it through)
+     and is then caught by the renderer's identical-output backstop. */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { width: 640px; padding: 24px; }
+  p { margin: 16px 0; line-height: 1.6; }
+</style>
+<body>
+<main>
+  <p id="english-long">The committee published its findings on Tuesday morning, and the report immediately drew criticism from several members who had expected a far broader review of the underlying data.</p>
+  <p id="french-long">Le comité a publié ses conclusions mardi matin, et le rapport a immédiatement suscité des critiques de la part de plusieurs membres qui attendaient un examen beaucoup plus large des données.</p>
+  <p id="english-short">The meeting starts at noon.</p>
+</main>
+
+<script type="application/json" id="mt-expect">
+{
+  "name": "latin-target-browser-detected",
+  "cfg": { "targetLang": "en" },
+  "echoRe": "^[\\x20-\\x7E]+$",
+  "unitCount": 1,
+  "expectNotRequested": [
+    "The committee published its findings"
+  ],
+  "expectRequested": [
+    "Le comité a publié ses conclusions",
+    "The meeting starts at noon"
+  ],
+  "skipUniversal": {
+    "translationVisible": [
+      "#english-long",
+      "#english-short"
+    ],
+    "translationContent": [
+      "#english-long",
+      "#english-short"
+    ]
+  },
+  "targets": [
+    {
+      "sel": "#english-long",
+      "assert": [
+        "noTranslationSibling"
+      ]
+    },
+    {
+      "sel": "#french-long",
+      "assert": [
+        "translationMarked"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

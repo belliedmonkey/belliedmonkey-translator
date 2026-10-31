@@ -1,0 +1,393 @@
+// build/app-bundle.js — build the host app's web assets.
+//
+// The app is a `WKWebView` on a `file://` origin loading ONE html, ONE script and ONE
+// stylesheet. That shape is not an aesthetic preference — it is what keeps the Xcode
+// project disposable:
+//
+//   `safari-project/` is gitignored and regenerated with `safari-web-extension-
+//   converter`, which resets the project's file list (release-checklist #72). The
+//   converter's App target already references exactly `Main.html`, `Script.js` and
+//   `Style.css`. Emitting those three names, and no others, means the app's assets can
+//   change forever without a single pbxproj edit — so regeneration stays a safe,
+//   routine operation instead of the thing that deletes your work.
+//
+// The cost is that the shared modules are concatenated rather than loaded as separate
+// files. Worth it: the alternative is either hand-maintaining the Xcode project or
+// re-discovering "new files never enter the bundle" (see the ios-sim note in
+// verification-spec) every time the app grows a module.
+
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const esbuild = require('esbuild');
+const { buildOptions } = require('./run-esbuild.js');
+const { rewriteBundledCredentials } = require('./china-host-literals.js');
+
+const ROOT = path.join(__dirname, '..');
+
+// Order matters — these are IIFEs assigning globals, exactly as the extension's
+// manifest loads them, and each depends on the ones above it. Keep this list in sync
+// with what `src/app/main.jsx` actually uses; an unused module here is dead weight
+// shipped to a phone, and a missing one is a blank screen.
+const MODULES = [
+  'app/chrome-shim.js',                  // FIRST — the rest read `chrome` at load time
+  'extension/learn/backend.config.js',   // MT_BACKEND
+  'extension/learn/page-settings.js',    // settings reader (uses chrome.storage)
+  'extension/content/i18n-messages.js',  // MT_I18N_MESSAGES
+  'extension/content/palette.gen.js',    // MT_PALETTE — generated brand palette
+                                         // (shared views read it via Registry.palette())
+  'extension/learn/i18n.js',             // t() / applyI18n()
+  'extension/content/learn-model.js',    // LearnModel — ids, merge semantics, touchedAt
+  'extension/content/learn-rules.js',    // LearnRules — 来源治理 pure logic (§4.1/§7.4/§8.9)
+  'extension/content/learn-scheduler.js',// LearnScheduler — retrievability / buildDeck
+  'extension/content/learn-exercises.js',// LearnExercises — §9.3 variant generation (pure)
+  'extension/content/learn-driving.js',  // LearnDriving — §9.5 driving-session state
+                                         // machine + reply intents + write decision (pure)
+  'extension/content/tts.gen.js',        // generated speech-engine registry
+  'extension/content/stt.gen.js',        // generated transcription-engine registry (§9.4)
+  'extension/content/providers.gen.js',  // generated provider registry — the notes
+                                         // gate and the app's engine picker both
+                                         // read it (§7.2 / §9.2)
+  'extension/learn/app-link.js',         // AppLink —— 「去 App 里复习」的地址与出口。
+                                         // App 宿主里那个按钮不该出现（人已经在 App 里了）：
+                                         // renderGoApp 用 AppLink.inApp() 关门，真值是
+                                         // buildAppBundle 写在包头的 window.MT_HOST。但模块
+                                         // 本身必须进包 —— review.js 引用它，漏了这一行就是
+                                         // 加载期 ReferenceError —— 同 engine-state 那次（见下）。
+  'extension/learn/feedback.js',         // MTFeedback —— 反馈 / 评分出口；settings.js 与 review.js 引用
+  'extension/learn/telemetry.js',        // MTTelemetry —— 匿名用量事件（docs/telemetry-design.md）
+  'extension/content/stt-state.js',      // SttState — 转写四键「配好了没有」的唯一判据（说题 / 字幕 / 弹窗共用，§9.4）
+  'extension/content/engine-state.js',   // EngineState — provider 归一化 + 「配好了没有」。
+                                         // translation-api.js 的 providerById /
+                                         // defaultProvider / resolveProvider 全部转调它，
+                                         // 所以它**必须**跟着进 App 包。2026-09-01 漏了这一行：
+                                         // App 里每次补译文都抛 `EngineState is not defined`，
+                                         // 被 driving.js 收成一句 translate_failed —— 整条
+                                         // 补译文在 App 上是死的，而扩展那边一切正常。
+  'extension/content/translation-core.js', // TranslationCore —— createEngine（文档阅读器按页驱动它，§9.7）
+  'extension/content/wire-format.js',    // WireFormat — endpoint resolution + wire shape.
+                                         // After providers.gen.js only for readability;
+                                         // it reads its globals lazily, at call time.
+  'extension/content/request-shape.js',  // RequestShape — 请求体：发哪些可选字段 + 怎么
+                                         // 解回来。必须在 wire-format.js 之后（用它的
+                                         // hostOf）、在四条传输之前。
+  'extension/content/translation-api.js',// TranslationAPI — §9.5 补译文 的传输。The app
+                                         // translated nothing until 2026-08-23; that
+                                         // boundary gave way for ONE button (§7.2), and
+                                         // this file is what it rides. Reusing the
+                                         // extension's transport verbatim is the point:
+                                         // a second translate path would be a second
+                                         // prompt and a second format branch to drift.
+                                         // Needs MT_PROVIDERS / WireFormat / RequestShape
+                                         // above it; it has zero TranslationCore
+                                         // dependency, which is why it can be here at all.
+  'extension/content/langs.gen.js',      // generated learnable-language registry (§4.1)
+  'extension/learn/store.js',            // LearnStore — the app's own corpus (§7.2)
+  'extension/learn/tts.js',              // LearnTTS
+  'extension/learn/speech-input.js',     // LearnSpeech — §9.4 录音 + BYO 转写
+  'extension/content/ws-transcribe.js',  // WsTranscribe — 实时转写 socket（§2.4 / §9.6）；自足，只用 WebSocket/btoa
+  'extension/learn/drain.js',            // LearnDrain — a no-op here (no outbox), see below
+  'extension/learn/auth.js',             // LearnAuth
+  'extension/learn/chunk.js',            // LearnChunk
+  'extension/learn/sync.js',             // LearnSync
+  'extension/learn/notes.js',            // LearnNotes — review.js references it; the
+                                         // app's own settings may hold a chat engine
+                                         // + key (§7.2), else the gate stays closed
+  'app/translate-fill.js',               // LearnTranslateFill — §9.5 补译文. App-only,
+                                         // so it lives in app/ rather than
+                                         // extension/learn/: 播客模式 ships no bytes into
+                                         // the extension. Needs LearnNotes (config
+                                         // resolution) and TranslationAPI above it.
+  'extension/learn/align.js',            // LearnAlign — §4.2c LLM 对齐裁决 (rides
+                                         // LearnNotes.chat; explicit split action only)
+  'extension/learn/exercise-pack.js',    // LearnExercisePack — §9.3 AI 题包 (rides
+                                         // LearnNotes.chat; gate follows the notes gate)
+  'extension/learn/engine-test.js',      // EngineTest —— engine-fields 与 quick-setup 的
+                                         // 「测试连接」都调它。**是 test/app-bundle 的
+                                         // 门禁把它逼出来的**：不加这一行，包拼得出来、
+                                         // App 也起得来，只有用户真去点那个按钮时才
+                                         // ReferenceError —— 同 engine-state.js 那次。
+                                         // 依赖 LearnNotes/LearnTTS/LearnSpeech/
+                                         // TranslationAPI/WireFormat，都排在它前面。
+  // PR7a 起不在 MODULES：'extension/learn/dep-line.js' 收编为 src/shared/dep-line.js
+  // （纯逻辑）+ dep-line-view.jsx（组件），随 APP_ENTRY 的 esbuild bundle 拼进尾部。
+  // PR7b 起不在 MODULES：learn/ 下四个共享模块（engine-fields、quick-setup、grant、
+  // sources-view —— 文件名故意不带路径引号，engine-fields.test.js 的防回潮断言
+  // 会扫这份文本）收编为 src/shared/ 的纯逻辑 + 视图组件，随 APP_ENTRY 的 esbuild
+  // bundle 拼进尾部（settings-view 直接 import，无全局 ABI 可查）。
+  // window.EngineFields / window.LearnGrant 两个**纯逻辑** ABI 由 main.jsx 副作用
+  // import 的 *-host 壳挂回 —— 前者给 verify-app-bundle 的 §8.10 回读，后者给
+  // shell-model / settings-model / docs-model / quick-model 的裸全局调用。
+  // PR7a 起不在 MODULES：'extension/learn/dialog.js' 收编为 src/shared/dialog.jsx
+  // （组件）+ dialog-host.jsx（入口壳，main.jsx import —— 挂回 window.LearnDialog ABI，
+  // review.js / listen-model / shell-model / docs-model 的裸全局调用照常）。
+  // extension/learn/review.js（复习面，加载即开学习库并发心跳）PR7c 起不在 MODULES：
+  // 收编为 src/shared/review.js（boot()，体内与扩展同一份字节），扩展经 review-host.js
+  // 同名覆盖产物在原标签位调 boot；App 由 main.jsx 在 #quick 分流的 else 分支调。
+  // 求值时机从「APP_ENTRY 之前的拼接段」移到「组合根分叉处」：裸全局依赖（PageI18n /
+  // PageSettings / LearnStore / MTTelemetry / LearnDialog…）都是先于 APP_ENTRY 的拼接
+  // 段或 *-host 壳挂的 ABI，不受影响；window.LearnReview 在 boot() 内同步挂，
+  // shell-model 全部 call-time 读取（if (window.LearnReview)）。
+  'app/quick-core.js',                // HandoffCore —— 「交来的文字」的纯逻辑（domain-design §2.6）
+  // PR6d 起不在 MODULES：'app/quick.js' 收编为 src/app/quick-model.js（状态）+ quick-view.jsx
+  // （画布），随 APP_ENTRY 的 esbuild bundle 拼进尾部；window.AppQuick 由 main.jsx 挂。
+  // 所有对它的引用都是 call-time（main.jsx 的 #quick 分叉、原生中继的 _fromNative、
+  // verify-quick 的 ABI），求值时机后移无影响。
+  'app/hotkey-core.js',               // HotkeyCore —— 快捷键的键码表 / 校验 / 显示（纯逻辑；quick-host 与 quick-settings 都用）
+  'app/quick-host.js',                // AppQuickHost —— 快速翻译在主页面这一侧的接线（mtQuick；macOS 才有原生半边）
+  'app/vault-mirror.js',              // AppVault —— 引擎配置镜像给系统翻译扩展（mtVault；iOS 才有原生半边）
+  'app/sys-settings.js',              // AppSysSettings —— 设置里「系统翻译」那一块（iOS 才显示）
+  // app/setup-done.js（AppSetupDone）PR6d 起不在 MODULES：收编为 src/app/setup-done-model.js
+  // （「配好了」的回执，四个落点一种回执；命令式 DOM 写保留），随 src/app/main.jsx 拼 Script.js
+  // 尾部 —— 所有对它的引用都是 call-time（settings-model/settings-view/shell-model 的异步流），
+  // 求值时机后移无影响。
+  'app/sys-banner.js',                // AppSysBanner —— 首页「把系统翻译设成默认」横幅（iOS 才显示）
+  'app/quick-settings.js',            // AppQuickSettings —— 设置里「快速翻译」块的 M-7 那几行
+  'app/handoff.js',                   // AppHandoff —— 「交来的文字」进复习库的唯一写入者（learning-design §9.9）
+  'app/target-lang.js',               // AppTargetLang —— 「译成」的唯一出口（domain-design §2.6）；docs / driving / settings 都读它
+  // app/settings.js（AppSettings）PR6b 起不在 MODULES：模型层收编为 src/app/settings-model.js、
+  // 视图层为 src/app/settings-view.jsx，随 src/app/main.jsx（APP_ENTRY 的 esbuild bundle）
+  // 拼在 Script.js 尾部 —— 所有对它的引用都是 call-time（bootShell 的异步流），求值时机后移无影响。
+  'app/now-playing-art.js',              // NowPlayingArt — §9.5 锁屏封面：把当前卡片画成
+                                         // 一张 1024² 的图交给原生。纯 canvas 图元（file://
+                                         // 下画外部图会污染 canvas），颜色读 CSS token。
+                                         // 必须在 driving.js 之前：openCard 会调它。
+  'app/native-audio.js',                 // NativeAudio — §9.5 后台/锁屏播放的宿主能力
+  'app/native-speech.js',                // NativeSpeech — §9.6.1 设备内置转写/朗读的桥（只在 App 里有桥）
+  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.4.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
+  'app/offline-video-asr.js',            // OfflineVideoAsr — Mac 完整视频离线字幕（domain-design §2.8）。
+                                         // 不 import 听译。原生通道只在 macOS 存在；缺桥时 start 直接返回。
+  'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）
+  'app/model-sources.js',                // ModelSources — 离线模型下载地址从后端表来：探测 / 默认 / 备用 / 清单兜底（§9.6.1.1，只有 App 用）
+                                         // 适配器。无依赖（锁屏上的字由调用方传入，
+                                         // 同 notesToSpeech(notes, labels) 的纪律）。
+                                         // 必须在 driving.js 之前：那边在 wire() 里
+                                         // 注册回调。桥不在时全是 no-op，所以它在
+                                         // Chrome 的 test:learn 里也照常加载。
+  'app/listen-core.js',                  // ListenCore — §9.6 对话·实时听译的纯逻辑（归属、门、小结）
+                                         // （app/listen.js 的 UI 半边 PR6c 起归 src/app/listen-model.js +
+                                         // listen-view.jsx，进 app-ui.js bundle，不再单独拼接。）
+  'extension/learn/doc-core.js',         // DocCore —— §9.7 文档翻译的纯逻辑（分段、分页、七门）
+  'extension/learn/doc-reader.js',       // DocReader —— PDF / docx / 文本 / 图片读取（IO）
+  'extension/learn/doc-store.js',        // DocStore —— 独立 IDB mt-docs
+  'extension/learn/pdfjs-loader.js',     // PdfJsLoader —— 按宿主装 pdf.js（App 走 blob，见下方 __MT_PDFJS）
+  // extension/learn/doc-view.js（DocView 渲染器）PR7c 起不在 MODULES：收编为
+  // src/shared/doc-view.js（哑视图，deps 注入），docs-model 直接 import；扩展页
+  // docs.html 的标签经 doc-view-host.js 同名覆盖产物挂回 window.DocView。
+  // app/docs.js（AppDocs）PR6d 起不在 MODULES：收编为 src/app/docs-model.js（编排/读设置/
+  // 接线，逐字）+ src/app/docs-view.jsx（页骨架），随 src/app/main.jsx 拼 Script.js 尾部 ——
+  // 所有对它的引用都是 call-time（shell-model 的异步流），求值时机后移无影响。
+  // app/driving.js（AppDriving — §9.5 orchestrator, app-only; the extension page cannot
+  // autoplay）PR6d 起不在 MODULES：收编为 src/app/driving-model.js（状态/效果/会话编排，
+  // 逐字）+ src/app/driving-view.jsx（#app-drive 骨架与按钮），随 src/app/main.jsx 拼
+  // Script.js 尾部 —— shell-model 对它的引用全是 call-time（异步流与监听回调），求值
+  // 时机后移无影响。
+];
+
+// `drain.js` ships even though the app has no outbox: with the shim's empty
+// `chrome.storage`, `LearnDrain.run()` finds nothing and returns — a natural no-op
+// rather than a branch someone has to remember. Capture happens in browsers only
+// (domain-design §9.2); the app receives material through sync, never through a drain.
+
+// The app's own UI (React, PR6a): `src/app/main.jsx` mounts the static shell and then
+// runs what used to be `app/app.js`'s boot (./shell-model.js) — always LAST, because
+// it drives the modules above and reads the globals they assign. esbuild turns it
+// (plus React) into one IIFE appended after MODULES below; one Script.js, one React.
+const APP_ENTRY = 'src/app/main.jsx';
+
+// 加载即自启动的模块（不是「定义一个对象等人来调」）。快速翻译的面板页是同一份包以 #quick 加载的第二个
+// WKWebView（learning-design §9.9），它不该打开学习库、不该发心跳 —— 学习库按账号分库，第二个打开者会握着
+// 过期的库名。main.jsx 自己在入口处分流；曾以「加载即自启动」进包的共享段（review.js）由包来包一层：
+// 字节不动，只是 #quick 下整段不执行。漏列的由 test:quick 抓（它数 indexedDB.open 与
+// MTTelemetry.init 的次数），2026-09-19 第一次跑就抓到了 review.js。PR7c 起 review 收编
+// src/shared/review.js（boot()），门移到组合根（main.jsx 的 #quick 分流 else 分支）——
+// 集合空置，机制与 PANEL_HASH_TEST 保留给未来同类段。
+const MAIN_ONLY = new Set([]);
+const PANEL_HASH_TEST = "/^#quick\\b/.test(String(location.hash || ''))";
+
+function buildAppBundle(outDir, log, opts) {
+  opts = opts || {};
+  fs.mkdirSync(outDir, { recursive: true });
+
+  const parts = [
+    '// GENERATED by build/app-bundle.js — do not edit.',
+    '// Sources: ' + MODULES.concat([APP_ENTRY]).join(', ')
+      + ' (+ src/app/AppShell.jsx, src/app/shell-model.js — bundled into the entry by esbuild)',
+    '',
+    // 宿主标记：唯一的「我在 App 里」真值（AppLink.inApp 读它）。放在一切之前，因为
+    // review.js 在 bundle 加载时就决定「在 App 里继续复习」按钮显不显示 —— 人已经在
+    // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
+    // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
+    "window.MT_HOST = 'app';",
+    // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
+    'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
+    '',
+    // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
+    // Worker / fetch 对 file:// 一律拒绝而 blob: 三样都通（D0 探针 2026-09-11）。PdfJsLoader 看到
+    // window.__MT_PDFJS 就走 blob 路。体积 +1.8 MB，换来两宿主同构、不需要 pbxproj 加文件或 PDFKit 桥。
+    'window.__MT_PDFJS = ' + JSON.stringify({
+      lib: fs.readFileSync(path.join(ROOT, 'extension/vendor/pdfjs/legacy/pdf.min.mjs'), 'utf8'),
+      worker: fs.readFileSync(path.join(ROOT, 'extension/vendor/pdfjs/legacy/pdf.worker.min.mjs'), 'utf8'),
+    }) + ';',
+    '',
+  ];
+  // 生成物必须跟着 flavor 走。`generateProviders/Tts/Stt` 把**全局**那一份写进
+  // `extension/content/`，中国版那一份只覆盖到 `dist-china/content/`。这里如果照旧读
+  // `extension/`，中国版宿主 App 拿到的就是国际版注册表 —— 设置页列出 ChatGPT /
+  // Claude / Google，而它旁边的中国版扩展早把这些滤掉了（1.6.4 就这么出货的）。
+  //
+  // 只重定向**生成物**：手写模块两个 flavor 完全相同，从 dist 读它们只会让「源码在
+  // extension/」这件事变得不真。
+  const GENERATED = new Set([
+    'i18n-messages.js', 'palette.gen.js', 'providers.gen.js',
+    'tts.gen.js', 'stt.gen.js', 'langs.gen.js',
+  ]);
+  const srcFor = (rel) => {
+    if (!opts.genRoot) return path.join(ROOT, rel);
+    const base = path.basename(rel);
+    if (!rel.startsWith('extension/content/') || !GENERATED.has(base)) return path.join(ROOT, rel);
+    const alt = path.join(opts.genRoot, 'content', base);
+    // 缺了就报错，**不回落**到 extension/ —— 回落正是上一版那个 bug 的形状：拿到了
+    // 另一个 flavor 的东西，而全程没有一行警告。
+    if (!fs.existsSync(alt)) throw new Error(`app bundle: genRoot 里缺 content/${base}（${alt}）`);
+    return alt;
+  };
+
+  for (const rel of MODULES) {
+    const abs = srcFor(rel);
+    if (!fs.existsSync(abs)) {
+      // Hard fail. A missing module would produce a bundle that loads and then throws
+      // on first use — i.e. an app that opens to a blank screen, which is the failure
+      // mode hardest to trace back to the build.
+      throw new Error(`app bundle: missing source ${rel}`);
+    }
+    let text = fs.readFileSync(abs, 'utf8');
+    // MT_SYNC=on: the bundle concatenates backend.config.js from SOURCE, so the
+    // self-use flip must happen here too — dist/ and dist-app/ are two separate
+    // emission paths and flipping only one shipped a phone build with sync on
+    // while the Chrome side silently reverted (2026-08-09).
+    if (opts.syncOn && rel === 'extension/learn/backend.config.js') {
+      text = opts.flipSyncFlag(text, rel + ' (app bundle)');
+    }
+    // 中国版 App 只提供 Apple 登录：Google 在大陆连不上（build.js 的 limitProviders）。
+    // **这里必须单独做一次** —— App 包拼的是**源码**那份 backend.config.js，不是
+    // dist-china 里那份，所以 build.js 对 dist-china 的改写在这条路上完全不生效。
+    // 同一份文件、两条发射路径，2026-08-09 的 sync 翻转就是在这里漏过一次。
+    // 境内后端（china.ready=true）：同一个坑的第三次 —— build.js 只改写了 dist-china 那份，
+    // App 包拼源码，不单独切的话中国版扩展连境内、中国版 App 仍连东京（2026-09-22 翻开关时发现）。
+    if (opts.switchBackend && rel === 'extension/learn/backend.config.js') {
+      text = opts.switchBackend(text, rel + ' (app bundle)');
+    }
+    if (opts.limitProviders && rel === 'extension/learn/backend.config.js') {
+      text = opts.limitProviders(text, rel + ' (app bundle)', ['apple']);
+    }
+    parts.push(`// ─── ${rel} ${'─'.repeat(Math.max(0, 60 - rel.length))}`);
+    if (MAIN_ONLY.has(rel)) { parts.push(`if (!${PANEL_HASH_TEST}) {`); parts.push(text); parts.push('}'); }
+    else parts.push(text);
+    parts.push('');
+  }
+
+  // ─── App UI: one esbuild bundle appended where app/app.js used to sit ──────
+  // Same position, same contract: always last (it boots after every global above is
+  // assigned), and the ONLY React on this page — a second copy in Script.js would
+  // double-hook hooks and break. Compiled fresh on every build; hand-written sources
+  // only, so no genRoot/flavor rewrite applies here. sourcemap off: concatenated
+  // segments have no per-file map to link to (same as every other part above).
+  const appUi = esbuild.buildSync(buildOptions({
+    entryPoints: [path.join(ROOT, APP_ENTRY)],
+    write: false,
+    sourcemap: false,
+  })).outputFiles[0].text;
+  parts.push(`// ─── ${APP_ENTRY} (esbuild bundle — React runtime included) ${'─'.repeat(6)}`);
+  parts.push(appUi);
+  parts.push('');
+
+  // §0.4 分层验证矩阵：页面侧驱动接口，只在**显式要求**时进包（scripts/test-mac.js 传
+  // opts.testHarness）。正常 `node build.js` 不带它 —— 出货包的 Script.js 里出现
+  // __mtTest 即红（test/app-test-bridge.test.js 双向门：不带 opt 构建 ⇒ 无；带 ⇒ 有）。
+  // 追加在尾部的理由与上面那些段相同：它引用的一切（NativeSpeech、DOM）都是 call-time。
+  if (opts.testHarness) {
+    parts.push('// ─── app/test-harness.js (testHarness build only — docs/verification-spec.md §0.4) ' + '─'.repeat(4));
+    parts.push(fs.readFileSync(path.join(ROOT, 'app', 'test-harness.js'), 'utf8').trimEnd());
+    parts.push('');
+  }
+
+  const scriptPath = path.join(outDir, 'Script.js');
+  let script = parts.join('\n');
+  // 中国版：esbuild 同步 API 不能挂插件，所以在落盘前改写 credentials 那一段。
+  // 只动 `// agent/credentials.js` 到下一个文件横幅之间，别处的品牌词仍交给合规门。
+  // 国际版不传这个开关。拼接在 esbuild 之后，避免被折回一个字符串。
+  if (opts.rewriteHostLiterals) script = rewriteBundledCredentials(script);
+  fs.writeFileSync(scriptPath, script);
+
+  // ─── The review surface is INLINED, not a second page ────────────────────
+  // Three filenames is the whole deal (see the header), so the app cannot have a
+  // `Review.html`. Its markup is lifted out of the extension's own `review.html` at
+  // build time instead of being retyped here: one implementation, two hosts. If the
+  // extension's review page grows a section, the app gets it on the next build.
+  const reviewHtml = fs.readFileSync(path.join(ROOT, 'extension/learn/review.html'), 'utf8');
+  const body = reviewHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (!body) throw new Error('app bundle: cannot find <body> in extension/learn/review.html');
+  // Drop its <script> tags — the app loads those modules through Script.js, in its
+  // own order, and a duplicate load would run every IIFE twice.
+  const markup = body[1].replace(/<script[\s\S]*?<\/script>/gi, '').trim();
+
+  let html = fs.readFileSync(path.join(ROOT, 'app/index.html'), 'utf8');
+  const SLOT = '<!--REVIEW-->';
+  // String.replace swaps only the FIRST occurrence, so any second sighting of the
+  // slot (a comment quoting it, a stale duplicate) would swallow the injection and
+  // leave the real slot — and everything after it — untouched in the shipped page.
+  // Count and refuse anything but exactly one. (Cost us a build on PR6a: a comment
+  // inside <main> quoted the slot verbatim, the review markup landed inside that
+  // comment, and the browser never parsed <script src="../Script.js"> at all.)
+  const slotCount = html.split(SLOT).length - 1;
+  if (slotCount !== 1) {
+    throw new Error(`app bundle: app/index.html must contain the ${SLOT} slot exactly once, found ${slotCount}`
+      + ' — if a comment mentions the slot, paraphrase it (the literal carries "-->" and terminates comments)');
+  }
+
+  // ─── ID collisions are the standing hazard of inlining, so fail the BUILD ──
+  //
+  // Both documents were written as whole pages, each free to use any id. Merged, a
+  // duplicate id does NOT error anywhere — `getElementById` simply returns the first
+  // match, so one page silently drives the other page's element. It cost a build and
+  // a screenshot to notice `counts` (review.js wrote its own counts into the app
+  // shell's element, and the app's card totals vanished).
+  //
+  // The app shell yields on a clash: `review.html` is a SHARED source and must not be
+  // renamed to suit one host. Prefix the shell's id with `app-`. Since PR6a the
+  // shell's body lives in src/app/AppShell.jsx (React), so its id="…" attributes are
+  // scanned as part of the shell half too.
+  const idsOf = (s) => [...s.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]);
+  const shellHalf = html.replace(SLOT, '')
+    + '\n' + fs.readFileSync(path.join(ROOT, 'src/app/AppShell.jsx'), 'utf8');
+  const clash = idsOf(shellHalf).filter((id) => idsOf(markup).indexOf(id) >= 0);
+  if (clash.length) {
+    throw new Error('app bundle: id collision with review.html: ' + clash.join(', ')
+      + ' — rename the one in app/index.html / src/app/AppShell.jsx (prefix `app-`), never the shared file');
+  }
+
+  html = html.replace(SLOT, markup);
+  fs.writeFileSync(path.join(outDir, 'Main.html'), html);
+
+  // Same for styles: the shared Organic token sheet FIRST (both halves below
+  // consume it and declare no colour of their own — see the concatenation-trap
+  // note in each), then review.css (it owns the review markup), then the app
+  // shell's, which is written to sit on top of it.
+  const palette = require(path.join(ROOT, 'build/palette.config.js'));
+  fs.writeFileSync(path.join(outDir, 'Style.css'), [
+    '/* GENERATED by build/app-bundle.js — do not edit. */',
+    '/* ─── organic tokens (build/palette.config.js) ─── */',
+    palette.tokensCss(),
+    '/* ─── extension/learn/review.css ─── */',
+    fs.readFileSync(path.join(ROOT, 'extension/learn/review.css'), 'utf8'),
+    '/* ─── app/style.css ─── */',
+    fs.readFileSync(path.join(ROOT, 'app/style.css'), 'utf8'),
+  ].join('\n'));
+
+  const bytes = fs.statSync(path.join(outDir, 'Script.js')).size;
+  if (log) log(`  app bundle → ${path.relative(ROOT, outDir)}/ (Script.js ${(bytes / 1024).toFixed(0)} KB)`);
+  return { modules: MODULES.length + 1, bytes };
+}
+
+module.exports = { buildAppBundle, MODULES, APP_ENTRY };

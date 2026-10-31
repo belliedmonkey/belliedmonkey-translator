@@ -1,0 +1,58 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>M9 · 关窗不停 · 找回</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 820px; height: 480px; padding: 28px 32px; display: flex; gap: 28px;">
+
+<div style="width: 440px; flex: none; display: flex; flex-direction: column; gap: 10px;">
+  <p style="font-size: 14px; font-weight: 700;">关掉主窗口 = 隐藏，字幕继续</p>
+  <div style="position: relative; height: 300px; border-radius: 14px; overflow: hidden; background: linear-gradient(160deg, #cdbfa9 0%, #a89a86 50%, #7c7062 100%);">
+    <div style="position: absolute; left: 20px; right: 20px; top: 20px; height: 170px; border-radius: 10px; background: linear-gradient(135deg, #4a4540 0%, #2a2724 55%, #1a1917 100%);"></div>
+    <div style="position: absolute; left: 50%; top: 150px; transform: translateX(-50%);"><div style="position: relative; width: 330px; max-width: 100%; background: rgba(22,20,18,0.74); border: 1px solid rgba(255,255,255,0.08); border-radius: 11px; padding: 9px 14px 10px; display: flex; flex-direction: column; gap: 3px; box-shadow: 0 12px 34px rgba(0,0,0,0.38); backdrop-filter: blur(18px);  "><div style="color: #ffffff; font-size: 16px; line-height: 1.35; font-weight: 600; text-wrap: pretty; ">这批货的交期是四十五天。</div><div style="color: rgba(255,255,255,0.66); font-size: 10px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ">Lead time for this batch is forty-five days.</div></div></div>
+    <div style="position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); padding: 7px 12px; border-radius: 16px; background: rgba(255,255,255,0.3); display: flex; gap: 9px; align-items: center;"><span style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.45);"></span><span style="width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.45);"></span><span style="position: relative; display: block;"><svg width="38" height="38" viewBox="0 0 128 128" aria-hidden="true" style="display: block; flex: none;"><rect width="128" height="128" rx="28" fill="#c67139"></rect><circle cx="26" cy="36" r="11" fill="#f5ead8"></circle><circle cx="102" cy="36" r="11" fill="#f5ead8"></circle><circle cx="26" cy="36" r="5" fill="#ffc6a5"></circle><circle cx="102" cy="36" r="5" fill="#ffc6a5"></circle><circle cx="64" cy="42" r="26" fill="#f5ead8"></circle><circle cx="55" cy="38" r="3.4" fill="#201e1d"></circle><circle cx="73" cy="38" r="3.4" fill="#201e1d"></circle><path d="M58 48c3.5 3.4 8.5 3.4 12 0" stroke="#201e1d" stroke-width="2.75" stroke-linecap="round" fill="none"></path><circle cx="64" cy="89" r="33" fill="#f5ead8"></circle><g fill="#8c491a" transform="translate(64 91) scale(0.72) translate(-45 -51)"><rect x="28" y="34" width="34" height="7" rx="2"></rect><rect x="41.5" y="26" width="7" height="11" rx="2"></rect><path d="M45 41c0 13-6 22-17 29l5 6c8-6 13-13 15-21 2 8 7 15 15 21l5-6c-11-7-17-16-17-29z"></path></g></svg><span style="position: absolute; left: 50%; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: #201e1d; transform: translateX(-50%);"></span></span></div>
+  </div>
+  <p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; ">会话进行中关窗口，App 不退出，只是把窗口藏起来；点 Dock 里的大肚猴翻译，主窗口带着完整历史回来。只有字幕条上的 ✕、主窗口「结束」或菜单「结束实时字幕」才会停。</p>
+</div>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px;">
+  <p style="font-size: 14px; font-weight: 700;">菜单「窗口」</p>
+  <div style="position: relative; background: #f2f0ed; color: #201e1d; border: 1px solid #d6d0c6; border-radius: 10px; padding: 6px; box-shadow: 0 12px 30px rgba(0,0,0,0.18); font-size: 13.5px; display: flex; flex-direction: column;">
+    <span style="position: absolute; top: 12px; left: 12px; z-index: 5; font-size: 11px; font-weight: 600; color: #6a6255; background: #ffffff; border: 1px dashed #b9ad9a; border-radius: 999px; padding: 2px 9px;">系统菜单示意</span>
+    <div style="height: 32px;"></div>
+    <div style="padding: 5px 10px; color: #9a948a;">最小化</div><div style="padding: 5px 10px; color: #9a948a;">缩放</div>
+    <div style="height: 1px; background: #d6d0c6; margin: 4px 6px;"></div>
+    <div style="padding: 5px 10px; border-radius: 6px; background: #ac6231; color: #ffffff;">显示主窗口</div>
+    <div style="padding: 5px 10px;">取消字幕条穿透</div>
+    <div style="padding: 5px 10px;">结束实时字幕</div>
+  </div>
+  <p style="margin: 0; color: var(--dim); font-size: 13.6px; line-height: 1.5; text-wrap: pretty; ">字幕条穿透时它自己收不到点击，所以「取消穿透」必须在别处也有一个出口。三项只在字幕会话进行中出现。</p>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":820,"height":480}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

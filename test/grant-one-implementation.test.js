@@ -1,0 +1,79 @@
+// test/grant-one-implementation.test.js — 领额度那条流程**只许有一份**。
+//
+// 2026-09-22：引导登录成功后要自动领额度（learning-design §8.10.1），而设置页的
+// 「领取 / 改回」按钮早就有一条完整流程。当时有两条路可走：在 app.js 里再写一遍，
+// 或者把 settings.js 那条抽成共用。选了后者，因为那段里有四件**容易各写各的**事：
+//
+//   · overwrite 的语义（「领取」不碰用户自己的 key，「改回」才替换）
+//   · engine_set 什么时候才算数（写进了槽才算，一个槽都没写不算）
+//   · 「已配好」这句话要有证据（跑一次真的自检，不是写完就说通了）
+//   · 一个槽都没写时那句话是假的（三槽都是用户自己的 key 时要换一句）
+//
+// 这四件任何一件在第二份实现里写漏，症状都是「看起来配好了，其实没有」——
+// 而那正是 §8.10 这条功能存在的理由的反面。
+
+const fs = require('fs');
+const path = require('path');
+const { describe, test, ok } = require('./harness');
+
+const ROOT = path.join(__dirname, '..');
+const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
+// 先去注释再比：这个仓库的注释里到处是它解释过的调用形状，负向断言会被自己的
+// 说明绊倒（同 telemetry-registry.test.js 里那条）。
+const strip = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '')
+  .split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
+
+describe('免费额度：领取 → 写槽 → 回执，只有一份实现', () => {
+  test('settings-model.js 把它导出了（共用层的唯一出口）', () => {
+    const src = strip(read('src/app/settings-model.js'));
+    ok(/async function claimAndApply\(/.test(src), 'src/app/settings-model.js 里没有 claimAndApply');
+    ok(/export default \{[^}]*claimAndApply/.test(src), 'claimAndApply 没有被导出，别处拿不到');
+  });
+
+  test('main 壳（shell-model.js）不自己调 LearnGrant.claim —— 它走共用层', () => {
+    const src = strip(read('src/app/shell-model.js'));
+    ok(!src.includes('LearnGrant.claim('),
+      'src/app/shell-model.js 又直接调 LearnGrant.claim() 了 —— 那是第二份实现的开头');
+    ok(!src.includes('LearnGrant.plan('),
+      'src/app/shell-model.js 又自己 plan() 了 —— overwrite 的语义会在这里走样');
+    ok(src.includes('settingsModel.claimAndApply('),
+      'src/app/shell-model.js 没有走共用层');
+  });
+
+  // 2026-09-30（§8.10.3，issue #513）：这条门禁原来钉的是「三个闸」——其中第二闸
+  // `EngineState.needsSetup` 已被证明是错的（它只看 apiKey 非空，把残值 key 的设备
+  // 判成「配好了」，整条领取被跳过、也没有自愈）。现在只剩两闸，并把「不许再拿
+  // needsSetup 当引擎判据」写成反向断言 —— 门禁换了，它守的东西（enabled /
+  // overwrite:false / 一次会话一试）一条没少。
+  test('自动领取只有两个闸（配没配过不再问），而且一次会话只试一次', () => {
+    const src = strip(read('src/app/shell-model.js'));
+    const i = src.indexOf('async function autoClaimGrant');
+    ok(i >= 0, '找不到 autoClaimGrant');
+    const body = src.slice(i, i + 1400);
+    ok(body.includes('LearnGrant.enabled()'),
+      '没判「这个 flavor 有没有额度这条路」—— 中国版 MT_GRANT 恒为 null');
+    ok(!body.includes('EngineState.needsSetup'),
+      '又拿 needsSetup 判「配好了没有」—— 它只看 apiKey 非空，会把残值 key 的设备判成已配（§8.10.3）');
+    ok(/overwrite:\s*false/.test(body),
+      'overwrite 不是 false —— 自动领取绝不能碰用户自己的 key');
+    ok(/_autoClaimed/.test(body), '没有「一次会话只试一次」的闸');
+  });
+
+  // 2026-10-02：用户报「登录后扩展端需要手动领取免费额度」。App 侧早就在登录汇合点
+  // 自动领了，扩展侧只有设置页那张卡的「领取」按钮 —— 这一段把扩展侧也钉上，且用
+  // **同一套闸**（两闸 + overwrite:false + 一次只试一次），免得两宿主又各写各的。
+  test('扩展端登录后也自动领取（options.jsx）：同样两闸 + overwrite:false + 一次只试一次', () => {
+    const src = strip(read('src/pages/options.jsx'));
+    const i = src.indexOf('const autoClaimGrant');
+    ok(i >= 0, 'src/pages/options.jsx 里没有 autoClaimGrant —— 扩展端登录后仍要手点「领取」');
+    const body = src.slice(i, i + 1600);
+    ok(body.includes('LearnGrant.enabled()'), '没判「这个 flavor 有没有额度这条路」（中国版 MT_GRANT 可能为 null）');
+    ok(!body.includes('EngineState.needsSetup'), '又拿 needsSetup 判「配好了没有」（§8.10.3：只看 apiKey 非空会把残值 key 判成已配）');
+    ok(/overwrite:\s*false/.test(body), 'overwrite 不是 false —— 自动领取会碰用户自己的 key');
+    ok(/autoClaimRef/.test(body), '没有「一次只试一次」的闸');
+    // 挂在登录汇合点（refreshSyncUI）里 —— 邮箱验证码 / 第三方回跳 / 打开设置页时已登录，三条路都会走到。
+    const rs = src.slice(src.indexOf('const refreshSyncUI'), src.indexOf('const runSync'));
+    ok(/autoClaimGrant\(\)/.test(rs),
+      '自动领取没有挂在 refreshSyncUI 上 —— 登录后不会自动领取，仍要手点');
+  });
+});

@@ -1,0 +1,202 @@
+#!/usr/bin/env node
+// scripts/cws-publish.js — 用 Chrome Web Store API 传包 / 提审。
+//
+// 用法：
+//   node scripts/cws-publish.js --check            # 只体检：凭证、item 状态，不动任何东西
+//   node scripts/cws-publish.js --upload           # 传 zip，生成草稿（**不**提审）
+//   node scripts/cws-publish.js --upload --publish # 传 + 提审（对外动作，需显式加这个旗标）
+//
+// 默认什么都不做，必须显式说要做哪一步 —— 提审是对外动作，不该是某个命令的副作用。
+//
+// 凭证从 .local/keys.md 读（gitignored）：
+//   cws_client_id / cws_client_secret / cws_refresh_token / cws_item_id
+// 前三个由 scripts/cws-auth.js 取得，item id 是扩展在商店里的 id。
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+const { assertVersionIntegrity, versionInZip } = require('./lib/release-gate.js');
+
+const ROOT = path.join(__dirname, '..');
+const KEYS = path.join(ROOT, '.local', 'keys.md');
+let ZIP = path.join(ROOT, 'belliedmonkeytranslator.zip');   // 可被 --zip 覆盖（见下方 --worktree）
+
+function slot(name) {
+  if (!fs.existsSync(KEYS)) return null;
+  // `[^\\S\\n]*` 而不是 `\\s*`：`\\s` **包含换行**，于是一个空槽位（`key =` 后面什么都没有）
+  // 会贪婪地跨行吃到下一行的内容，把下一行的字段名当成 key 返回。实测 2026-08-21：
+  // 空的 cws_client_id 取到了字符串 "cws_client_secret"，于是「缺凭证」被伪装成
+  // 「凭证错误」，报错指向完全错误的方向。
+  const m = new RegExp('^' + name + '[^\\S\\n]*=[^\\S\\n]*(\\S+)', 'm').exec(fs.readFileSync(KEYS, 'utf8'));
+  return m ? m[1] : null;
+}
+
+// 错误正文可能带 token 之类的东西吗？CWS 的不会，但它会带很长的 HTML。截断并压平。
+const brief = (t) => String(t).replace(/\s+/g, ' ').slice(0, 300);
+
+async function accessToken() {
+  const [id, secret, refresh] = ['cws_client_id', 'cws_client_secret', 'cws_refresh_token'].map(slot);
+  // client_secret **可以为空**：Google 现在给桌面应用类型签发的客户端可以不带密钥，
+  // 授权走 PKCE（见 cws-auth.js）。刷新时同样只带 client_id。
+  const missing = ['cws_client_id', 'cws_refresh_token'].filter((n) => !slot(n));
+  if (missing.length) {
+    console.error('✗ .local/keys.md 缺：' + missing.join(', '));
+    console.error('  client id/secret 在 Google Cloud 控制台建；refresh token 跑 '
+      + 'node scripts/cws-auth.js 取。');
+    process.exit(1);
+  }
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(Object.assign({ client_id: id,
+      refresh_token: refresh, grant_type: 'refresh_token' },
+    secret ? { client_secret: secret } : {})).toString(),
+  });
+  const d = await r.json();
+  if (!r.ok || !d.access_token) {
+    console.error(`✗ 换 access token 失败 HTTP ${r.status}: ${d.error || ''} ${d.error_description || ''}`);
+    if (d.error === 'invalid_grant') {
+      console.error('  invalid_grant 常见于：refresh token 被撤销、client secret 换过、'
+        + '或 OAuth 同意屏幕还停在「测试」状态（测试模式下 refresh token 7 天就过期）。');
+    }
+    process.exit(1);
+  }
+  return d.access_token;
+}
+
+async function api(token, method, url, body, extraHeaders) {
+  const headers = Object.assign({
+    Authorization: 'Bearer ' + token,
+    'x-goog-api-version': '2',
+  }, extraHeaders || {});
+  const r = await fetch(url, { method, headers, body });
+  const text = await r.text();
+  let d = null;
+  try { d = JSON.parse(text); } catch (_) { /* 非 JSON 也要留住原文 */ }
+  return { ok: r.ok, status: r.status, d, text };
+}
+
+(async () => {
+  const argv = process.argv.slice(2);
+  const opt = (name) => { const i = argv.indexOf(name); return i >= 0 ? argv[i + 1] : null; };
+  if (opt('--zip')) ZIP = opt('--zip');
+  const want = { check: argv.includes('--check'), upload: argv.includes('--upload'),
+    publish: argv.includes('--publish') };
+  if (!want.check && !want.upload) {
+    console.log('用法: node scripts/cws-publish.js --check | --upload [--publish]');
+    console.log('  从历史 tag 重出产物: --zip <路径> --tag <tag> --worktree <目录>');
+    console.log('  --check   只体检，不动任何东西');
+    console.log('  --upload  传 zip 生成草稿');
+    console.log('  --publish 提审（对外动作，必须与 --upload 一起显式给出）');
+    process.exit(1);
+  }
+
+  const itemId = slot('cws_item_id');
+  if (!itemId) { console.error('✗ .local/keys.md 缺 cws_item_id'); process.exit(1); }
+
+  const token = await accessToken();
+  console.log('✓ access token 已取得');
+
+  // ── 体检：拿 item 的当前状态 ─────────────────────────────────────────────
+  const info = await api(token, 'GET',
+    `https://www.googleapis.com/chromewebstore/v1.1/items/${itemId}?projection=DRAFT`);
+  if (!info.ok) {
+    console.error(`✗ 读 item 失败 HTTP ${info.status}: ${brief(info.text)}`);
+    if (info.status === 404) {
+      console.error('  404 通常是 item id 不对，或这个 Google 账号不是该扩展的所有者/发布者。');
+    }
+    process.exit(1);
+  }
+  console.log(`  item ${itemId}`);
+  // `uploadState` 说的是**草稿里有没有一个待处理的上传**，不是条目的审核状态。
+  // 直接印 `NOT_FOUND` 会被读成「找不到这个扩展」，而它的意思恰恰相反 ——
+  // 条目好好的，只是草稿里现在没有待传的包。2026-09-03 就这样误读过一次。
+  //
+  // **审核状态这个 API 读不到。** CWS 只提供 ?projection=DRAFT（PUBLISHED 直接 400
+  // 让你改回 DRAFT），而那份数据里没有「在审 / 已发布 / 待发布」。唯一能问出来的
+  // 时机是上传：条目在审时 PUT 会带着一句明文理由被拒（HTTP 仍是 200）。所以这里
+  // 只说自己知道的，不假装知道审核状态。
+  const US = { NOT_FOUND: '草稿里没有待传的包', SUCCESS: '草稿里有一个已传好的包',
+    IN_PROGRESS: '上传处理中', FAILURE: '上一次上传失败' };
+  const us = info.d.uploadState || '?';
+  console.log(`  草稿上传状态: ${us}${US[us] ? `（${US[us]}）` : ''}  crx 版本: `
+    + `${info.d.crxVersion || '（草稿里还没有）'}`);
+  console.log('  审核状态: 未知 —— CWS 的 API 不提供；条目若在审，上传会被明文拒绝');
+  if (Array.isArray(info.d.itemError) && info.d.itemError.length) {
+    for (const e of info.d.itemError) console.log('  ⚠️ ' + brief(e.error_detail || JSON.stringify(e)));
+  }
+
+  const pkgVersion = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version;
+  console.log(`  本地 package.json: ${pkgVersion}`);
+
+  if (!want.upload) {
+    console.log('\n（--check 到此为止，什么都没动）');
+    return;
+  }
+
+  // ── 传包 ────────────────────────────────────────────────────────────────
+  if (!fs.existsSync(ZIP)) {
+    console.error(`✗ 找不到 ${ZIP} —— 先跑 node build.js`);
+    process.exit(1);
+  }
+  // 包里的版本才是要紧的那个：本地 package.json 与 zip 可能不同步（zip 是上一次
+  // build 的产物）。这一步的教训代价很大 —— 见 verify-extension-smoke.js 的注释。
+  const zipBytes = fs.readFileSync(ZIP);
+
+  // ── 同一个版本号必须对应同一份内容 ──────────────────────────────────────
+  //
+  // 2026-08-21 实测：磁盘上的 zip 写着 1.6.2，但它是在 v1.6.2 打完标签之后又构建的，
+  // 里面多了一个未发布的修复。传上去的话 CWS 的「1.6.2」与 GitHub Release 的「1.6.2」
+  // 是两份不同的东西 —— 而两边都自称 1.6.2，事后没有任何办法分辨用户装的是哪一份。
+  //
+  // 实现在 lib/release-gate.js，三条发布路（CWS / AMO / GitHub Release）共用一份。
+  // 原来这里和 amo-publish.js 各抄了一份，而第三条路没抄 —— 那条路当天就出了事。
+  const zipVersion = versionInZip(ZIP);
+  console.log(`\n准备上传 ${(zipBytes.length / 1024).toFixed(0)} KB，包内版本 ${zipVersion || '?'}`);
+  // `--tag` 与 gh-release 对齐：让「从某个 tag 重出正确产物」在这两条路上也是**被验证过的**
+  // 操作，而不是只能 --allow-dirty 绕过去。三条路共用一道门禁的意义，就是三条路都能走完
+  // 同一套恢复流程 —— 少一个入口，那条路上的人就只剩绕过去这一个选择。
+  // `--worktree <目录>` + `--zip/--xpi <路径>`：从一棵**别的**工作树出货，门禁去那棵树里
+  // 验 HEAD。三条路共用一道门禁的意义是三条路都能走完 —— 而在此之前只有 gh-release 有
+  // 这两个参数，另外两条一旦 HEAD 往前走就只剩 --allow-dirty 或者不停补 `-storeN` tag，
+  // 两个都是噪声：前者丢掉溯源，后者让 tag 变成一次性用品。2026-09-03 当天撞到。
+  assertVersionIntegrity({ version: zipVersion, what: '这个包', allowDirty: argv.includes('--allow-dirty'), tag: opt('--tag'), cwd: opt('--worktree') });
+
+  const up = await api(token, 'PUT',
+    `https://www.googleapis.com/upload/chromewebstore/v1.1/items/${itemId}`,
+    zipBytes, { 'Content-Type': 'application/zip' });
+  if (!up.ok || (up.d && up.d.uploadState === 'FAILURE')) {
+    console.error(`✗ 上传失败 HTTP ${up.status}`);
+    // 在审是最常撞到的一种，而它不是错误、也不需要改任何东西 —— 只需要等。
+    // 单看 `HTTP 200` 三个字会以为是脚本坏了。
+    if (/pending review|ready to publish/i.test(up.text || '')) {
+      console.error('  这是「上一版还在审」，不是包有问题：CWS 不允许对在审条目再上传，');
+      console.error('  也没有撤回提交的 API。等上一版审完（通过或被拒都行）再跑同一条命令。');
+    }
+    const errs = (up.d && up.d.itemError) || [];
+    for (const e of errs) console.error('  ' + brief(e.error_detail || JSON.stringify(e)));
+    if (!errs.length) console.error('  ' + brief(up.text));
+    process.exit(1);
+  }
+  console.log(`✓ 上传完成，uploadState=${up.d.uploadState}`);
+
+  if (!want.publish) {
+    console.log('\n草稿已就位，**未提审**。确认无误后：');
+    console.log('  node scripts/cws-publish.js --upload --publish');
+    return;
+  }
+
+  // ── 提审 ────────────────────────────────────────────────────────────────
+  const pub = await api(token, 'POST',
+    `https://www.googleapis.com/chromewebstore/v1.1/items/${itemId}/publish`,
+    '', { 'Content-Length': '0' });
+  if (!pub.ok) {
+    console.error(`✗ 提审失败 HTTP ${pub.status}: ${brief(pub.text)}`);
+    process.exit(1);
+  }
+  console.log(`✓ 已提交：status=${JSON.stringify(pub.d.status)}`);
+  for (const d of (pub.d.statusDetail || [])) console.log('  ' + d);
+  console.log('\n⚠️ API 只能告诉你「提交成功」，**分不出排队中 / 已上线 / 被拒** —— '
+    + '那要进开发者后台看。这一点已记在 gbrain 的发布状态页。');
+})().catch((e) => { console.error('✗ ' + ((e && e.stack) || e)); process.exit(1); });

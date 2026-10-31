@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>block paragraphs baseline</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { padding: 24px; }
+  p { line-height: 1.5; }
+</style>
+<body>
+<main>
+  <p>The quick brown fox jumps over the lazy dog near the quiet river bank.</p>
+  <p>Reading foreign articles every morning is a simple habit that compounds into fluency.</p>
+  <p>Most people underestimate how much vocabulary they absorb from context alone.</p>
+</main>
+<script type="application/json" id="mt-expect">
+{
+  "name": "block-paragraphs",
+  "unitCount": 3,
+  "targets": [
+    {
+      "sel": "main > p",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2",
+        "translationMarked"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

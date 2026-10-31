@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大肚猴翻译 · 首屏与首次使用流程 · 一页规格</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/firstrun.css">
+<style>
+  .doc { max-width: 1020px; margin: 0 auto; padding: 48px 28px 110px; }
+  .doc h1 { font-family: var(--f-display); font-weight: 400; font-size: 32px; margin: 10px 0 8px; line-height: 1.2; }
+  .doc h2 { font-family: var(--f-display); font-weight: 400; font-size: 22px; margin: 52px 0 6px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .doc h3 { font-size: 16px; margin: 26px 0 8px; }
+  .doc p, .doc li { font-size: 15px; line-height: 1.7; color: #4a453f; }
+  .doc p b, .doc li b { color: var(--fg); }
+  .doc code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: rgba(32,30,29,.06); padding: 2px 6px; border-radius: 6px; }
+  pre { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 16px 18px; overflow-x: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; line-height: 1.7; margin: 0 0 8px; color: var(--fg); }
+  .sub { color: var(--muted); font-size: 15px; line-height: 1.7; max-width: 70ch; }
+  .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px; margin: 14px 0 6px; }
+  .fnode { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-chip); padding: 10px 12px; font-size: 13px; font-weight: 700; min-width: 96px; text-align: center; }
+  .fnode small { display: block; font-weight: 500; color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .fnode--gate { border-color: var(--accent); background: rgba(198,113,57,.07); }
+  .fnode--soft { border-color: var(--sage-on); background: rgba(113,129,87,.09); }
+  .fnode--none { border-style: dashed; color: var(--muted); }
+  .farrow { align-self: center; color: var(--muted); font-size: 17px; }
+  .rl { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: var(--r-card); padding: 16px 18px; margin: 14px 0; }
+  .rl h4 { margin: 0 0 4px; font-size: 15px; display: flex; gap: 9px; align-items: baseline; }
+  .rl h4 em { font-style: normal; font-size: 12px; font-weight: 800; color: #fff; background: var(--accent-press); border-radius: var(--r-ctl); padding: 2px 9px; }
+  .rl p { margin: 6px 0 0; font-size: 14px; }
+  .rl .judge { color: var(--danger); font-weight: 600; }
+  .two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin: 18px 0 4px; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px; }
+  .kpi b { display: block; font-size: 13px; letter-spacing: .02em; }
+  .kpi span { font-size: 21px; font-weight: 800; font-family: var(--f-display); }
+  .kpi em { display: block; font-style: normal; font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+  .todo { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; margin: 0 0 10px; font-size: 14px; line-height: 1.65; }
+  .backlink { display: inline-block; margin-top: 4px; font-size: 13.5px; color: #96531f; font-weight: 600; text-decoration: none; }
+  .backlink:hover { text-decoration: underline; }
+  .legend { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<main class="doc" data-od-id="spec-doc">
+  <span class="tile">译</span>
+  <h1>首屏与首次使用流程 · 一页规格</h1>
+  <p class="sub">大肚猴翻译 · App（iPhone / iPad / Mac）。三段序列：屏 1 登录（硬门） → 屏 2 资源包（硬门，无跳过） → 屏 3 引导（可跳过）。就绪 = 登录 ∧ 引擎可解析 ∧ 识别语言包 ∧ 朗读包，<b>不含 Safari 扩展</b>。中国版与国际版逐条同构，只有引擎来源不同。</p>
+  <p class="sub">对应画布：<a class="backlink" href="firstrun-canvas.html">firstrun-canvas.html</a>　·　可点击原型：<a class="backlink" href="firstrun-prototype.html">firstrun-prototype.html</a></p>
+
+  <h2>1 · 判定顺序（唯一入口函数）</h2>
+  <pre>boot() {
+  if (!isLoggedIn)              return Screen1_Login;      // 硬门：这一屏只有登录
+  if (!engineResolvable())      return Screen1_Login;      // 引擎不通（如额度用尽且无自带 Key）→ 同一屏，不新造一屏
+  if (!asrPackInstalled() || !ttsPackInstalled())
+                                return Screen2_Packs;      // 硬门：无跳过
+  if (!onboardingSeen())        return Screen3_Onboarding;  // 软门：可跳过，不阻塞
+                                return Home;               // 已登录 + 已就绪 ⇒ 直进
+}
+
+// 降级：系统不支持该语种识别时，唯一允许绕过 Screen2 的情形
+degrade(asrUnsupported) { enableTtsOnly(); Home(state: notReady) }</pre>
+  <p class="sub">老用户已登录、但缺包时走的是 <b>TopUp（补齐屏）</b>，不是 Screen2 的三段重来：登录已成立、无需再登录、无需重放引导。</p>
+
+  <h2>2 · 状态机</h2>
+  <p class="sub"><b>新用户（未登录）</b></p>
+  <div class="flow">
+    <span class="fnode">未登录启动<small>冷启动</small></span><span class="farrow">→</span>
+    <span class="fnode fnode--gate">屏 1 登录<small>硬门 · 仅登录</small></span><span class="farrow">→</span>
+    <span class="fnode fnode--gate">屏 2 资源包<small>硬门 · 无跳过</small></span><span class="farrow">→</span>
+    <span class="fnode fnode--soft">屏 3 引导<small>可跳过</small></span><span class="farrow">→</span>
+    <span class="fnode">首页 · 就绪</span>
+  </div>
+  <p class="sub"><b>老用户</b></p>
+  <div class="flow">
+    <span class="fnode">已登录 + 已就绪</span><span class="farrow">→</span>
+    <span class="fnode fnode--none">不出现任何屏<small>直进首页</small></span>
+    <span class="fnode">已登录 + 缺包</span><span class="farrow">→</span>
+    <span class="fnode fnode--gate">补齐屏（单屏）<small>不重走三段</small></span><span class="farrow">→</span>
+    <span class="fnode">首页 · 未就绪</span>
+  </div>
+
+  <div class="tbl-wrap" style="margin-top:22px">
+    <table class="tbl" data-od-id="tbl-states">
+      <thead><tr><th>状态</th><th>守卫（进入条件）</th><th>可做的事</th><th>出口</th><th>可否跳过</th></tr></thead>
+      <tbody>
+        <tr><td><b>S1 Login</b></td><td class="mono">!isLoggedIn || !engineResolvable</td><td>仅登录：Apple / Google / 邮箱；中国版多一个出境同意勾选</td><td>成功 → S2；失败 / 取消 / Apple 不可用 → 留在 S1 内的对应态</td><td><b>否</b></td></tr>
+        <tr><td><b>S2 Packs</b></td><td class="mono">isLoggedIn &amp;&amp; !asr || !tts</td><td>下载两包、切网络、换语种、重试、空间检测</td><td>两包齐 → S3；不支持识别 → 降级 → Home(notReady)</td><td><b>否</b></td></tr>
+        <tr><td><b>S3 Onboarding</b></td><td class="mono">ready &amp;&amp; !onboardingSeen</td><td>欢迎 / 试一句 / 开启扩展</td><td>完成或跳过 → Home(ready)</td><td><b>是</b>（跳过不落阻塞态）</td></tr>
+        <tr><td><b>TopUp</b></td><td class="mono">isLoggedIn &amp;&amp; engine &amp;&amp; (!asr || !tts)</td><td>只补缺的那个包</td><td>补齐 → Home；「先回首页」→ Home(notReady)</td><td>可「先回首页」</td></tr>
+        <tr><td><b>Home ready</b></td><td class="mono">ready</td><td>全部功能</td><td>—</td><td>—</td></tr>
+        <tr><td><b>Home notReady</b></td><td class="mono">!ready</td><td>可用功能照常；缺项灰掉 + 原因 + 去处</td><td>去补齐 → TopUp</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>3 · 就绪判据表</h2>
+  <div id="readiness"></div>
+
+  <h2>4 · 端到端路径</h2>
+  <div id="flow"></div>
+
+  <h2>5 · 六条红线与判据</h2>
+  <p class="sub">每条给出「怎么判红」——可直接落成 UI 断言、快照比对或文案 lint。</p>
+
+  <div class="rl" data-od-id="redline-1">
+    <h4><em>红线 1</em>未登录首屏只有登录</h4>
+    <p><b>判据：</b>在 <code>!isLoggedIn</code> 下渲染 S1，屏内可见的可点击元素集合必须 <code>⊆ {Apple, Google, 邮箱}</code>，且页面上 <b>不存在</b>「设置」「复习」「对话/字幕/文档」任何入口词；实心按钮数 <code>== 1</code>。</p>
+    <p class="judge">判红：出现任一非登录入口，或出现 0 个 / 2 个以上实心按钮，或出现指向 S2/S3/Home 的导航。</p>
+  </div>
+
+  <div class="rl" data-od-id="redline-2">
+    <h4><em>红线 2</em>屏序可达，且屏 2 无跳过、屏 3 有跳过</h4>
+    <p><b>判据：</b>可达性 = 从冷启动出发，S1→S2→S3→Home 每一步都有正向触发路径；<code>S2</code> 的可见文案与可及性节点中<b>不出现</b>「跳过 / 稍后 / 先用着 / skip」；<code>S3</code> 的三态均存在可点击的「跳过引导」且跳过后 <code>onboardingSeen = true</code>、直接落 Home。</p>
+    <p class="judge">判红：S2 出现任何跳过出口（即使灰色、即使二次确认）；或 S3 无跳过；或跳过 S3 后仍回到 S3 / 停在中间态。</p>
+  </div>
+
+  <div class="rl" data-od-id="redline-3">
+    <h4><em>红线 3</em>就绪判据 = 引擎 + 识别包 + 朗读包，不含扩展</h4>
+    <p><b>判据：</b>就绪函数的可观测输入只有 <code>{isLoggedIn, engineResolvable, asrInstalled, ttsInstalled}</code>；对 16 种布尔组合逐一断言：任一项为假 ⇒ 不可进 Home(ready)；四项全真 ⇒ 必进 Home(ready)。Safari 扩展状态<b>不出现在</b>该函数签名、S2 完成摘要或放行判断中。</p>
+    <p class="judge">判红：扩展未开却判为就绪；或只差一个包却放行；或就绪函数读取了扩展开关。</p>
+  </div>
+
+  <div class="rl" data-od-id="redline-4">
+    <h4><em>红线 4</em>两个 flavor 逐条同构</h4>
+    <p><b>判据：</b>同一 <code>locale</code> 下分别以 <code>flavor = cn / intl</code> 渲染全流程，做 DOM 快照对比：节点数、文案串、按钮顺序、状态分支数必须<b>完全一致</b>；允许的差异仅限白名单（出境同意勾选条、额度来源行「境内中继 / 通义千问」、引擎标识）。</p>
+    <p class="judge">判红：差异超出白名单，或某个 flavor 多出/少一屏、多一种失败分支。</p>
+  </div>
+
+  <div class="rl" data-od-id="redline-5">
+    <h4><em>红线 5</em>旧承诺不得复活</h4>
+    <p><b>判据：</b>对 App 侧所有可见字符串跑否定式文案 lint，禁止匹配 <code>不登录也能|无需登录即可|不用登录也|登录后不影响使用|游客可用</code> 等模式；同一 lint 在扩展侧允许命中（需标注 scope = extension）。所有出现「登录」的说明句必须与硬门一致：<b>App 需要登录</b>。</p>
+    <p class="judge">判红：App 字符串集中出现上述任一模式；或出现「完整使用」与硬门冲突的组合表述。</p>
+  </div>
+
+  <div class="rl" data-od-id="redline-6">
+    <h4><em>红线 6</em>每屏至多一个填色按钮 · 对比度 AA · 文案可落 12 语种</h4>
+    <p><b>判据：</b>(a) 每屏 <code>background === accent-press</code> 的实心按钮计数 <code>≤ 1</code>；(b) 全部文本/图标对底色对比度：正文 ≥ 4.5:1、大字与图标 ≥ 3:1，hover/focus/active 状态<b>不得低于</b>默认值，禁用态是唯一例外；(c) 每个新文案落在已定义的文案槽位表内，且在 320pt 宽下不折行超过 2 行，超长先改句子后改字号。</p>
+    <p class="judge">判红：出现第二个实心按钮；hover 时前景变灰；浅底浅字或深底深字；新增文案未登记槽位。</p>
+  </div>
+
+  <h2>6 · 失败与边界矩阵</h2>
+  <div id="matrix"></div>
+
+  <h2>7 · 待回填的占位</h2>
+  <p class="todo"><b>体积数字</b>：识别语言包、高质量朗读包各 ≈ 000 MB（占位），需按实测回填；屏 2 三处出现（包行、蜂窝 sheet、空间不足计算）须同源。</p>
+  <p class="todo"><b>额度数字</b>：翻译 / 朗读 / 听写各 000 次、有效期 30 天（占位）。</p>
+  <p class="todo"><b>语种清单</b>：识别支持状态读系统能力实时判定；画板中的语种样例（含「系统不支持识别」的那一条）为示意数据，非承诺清单。</p>
+  <p class="todo"><b>12 语种</b>：按画布「12 语种文案占位表」的槽位铺开，中英两版锁定后再本地化。</p>
+  <p class="todo"><b>iPad / Mac</b>：同一判定与同一套屏，仅布局自适应（宽屏双栏、Mac 面板复用屏 2 判据），本轮原型以 iPhone 390pt 为准。</p>
+</main>
+
+<script src="assets/boards.js"></script>
+<script>
+  document.getElementById('readiness').innerHTML = W_READINESS.replace(/^<div class="board wide"[^>]*>/, '').replace(/<\/div>$/, '');
+  document.getElementById('flow').innerHTML = W_FLOW.replace(/^<div class="board wide"[^>]*>/, '').replace(/<\/div>$/, '');
+  document.getElementById('matrix').innerHTML = W_MATRIX.replace(/^<div class="board wide"[^>]*>/, '').replace(/<\/div>$/, '');
+</script>
+</body>
+</html>

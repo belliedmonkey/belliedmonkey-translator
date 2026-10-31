@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 系统翻译扩展（ExtensionKit）的 entitlements（learning-design §9.9 / iOS 线 I-5）。
+     由 scripts/sync-app-assets.js 复制进生成的工程；`__MT_APP_BUNDLE_ID__` 换成这个
+     flavor 的 **App** bundle id（不是扩展自己的 —— 扩展的是 <app>.MTTranslateExt，
+     而共享的两个组都跟着 App 走）。
+
+     **只有两项，一项都不多**：
+       · App Group      读镜像过来的引擎配置；翻完往收件箱写一条（I-6）
+       · 共享 Keychain   读 key。key 不进 App Group —— 那里是明文、会被备份走
+
+     **`com.apple.developer.translation-app` 不在这里。** 那一项是「我可以当默认翻译
+     App」，属于宿主 App；扩展只是被系统拉起来的那一面。多给一项的代价不是报错，是
+     审核时多一个要解释的点。
+
+     **applesignin 也不在这里。** 扩展不登录：弹层里没有账号，未配置时给的是
+     「打开大肚猴翻译」。 -->
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.application-groups</key>
+    <array>
+        <string>group.__MT_APP_BUNDLE_ID__</string>
+    </array>
+    <key>keychain-access-groups</key>
+    <array>
+        <string>$(AppIdentifierPrefix)__MT_APP_BUNDLE_ID__.shared</string>
+    </array>
+</dict>
+</plist>

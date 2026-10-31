@@ -1,0 +1,72 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "扩展设置页 · 未登录",
+      "x": 0,
+      "y": 0,
+      "w": 560,
+      "h": 400
+    },
+    {
+      "file": "ExtEmail.dc.html",
+      "title": "扩展设置页 · 邮箱展开",
+      "x": 660,
+      "y": 0,
+      "w": 560,
+      "h": 520
+    },
+    {
+      "file": "ExtCode.dc.html",
+      "title": "扩展设置页 · 验证码",
+      "x": 1320,
+      "y": 0,
+      "w": 560,
+      "h": 420
+    },
+    {
+      "file": "AppSignedOut.dc.html",
+      "title": "iPhone · 未登录",
+      "x": 0,
+      "y": 680,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AppCode.dc.html",
+      "title": "iPhone · 验证码",
+      "x": 480,
+      "y": 680,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AppOnboardSignin.dc.html",
+      "title": "iPhone · 引导最后一屏",
+      "x": 960,
+      "y": 680,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "MacSignedOut.dc.html",
+      "title": "Mac App · 未登录",
+      "x": 1440,
+      "y": 680,
+      "w": 720,
+      "h": 520
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -170,
+      "w": 560,
+      "text": "登录页重设计 2026-09-05\n一键登录（Apple 黑 / Google 白）在最上面，邮箱默认折叠成一行链接；验证码是第二屏，不往下堆。\n色板/字体/胶囊按钮取自现有 Organic 体系。右上角 dark 开关看暗色。"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

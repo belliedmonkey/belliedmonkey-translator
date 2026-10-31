@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>现状 · 横幅（iOS 形态）与它的读数</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:1120px; height:720px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">现状：横幅说完三步，然后把人送出 App</h1><span>155 台看过它，31 台说打开了</span></div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start">
+  <div class="phoneframe">
+    <div class="ban">
+      <h4><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.5v.01"/></svg> Safari 扩展还没打开</h4>
+      <p>网页翻译在浏览器里，复习在这个 App 里。要先把浏览器那半边打开。</p>
+      <ol class="steps"><li>打开「设置」App</li><li>Safari › 扩展</li><li>打开「大肚猴翻译」，并允许它访问网页</li></ol>
+      <button class="btn p" type="button">在 Safari 里打开扩展 →</button>
+      <button class="btn s" type="button">我已打开</button>
+      <p style="font-size:.8rem">不确定？打开检测页看绿灯 →</p>
+    </div>
+    <p class="hint" style="margin:0">（macOS 上多一个「打开 Safari 扩展设置」的直达按钮；iOS 没有那条路。）</p>
+  </div>
+  <div class="cell"><div class="cap"><b>线上读数（2026-09-21）</b><span>口径：只从 09-05 收 · 中国版不发 · 自己的机器也在里面</span></div><div class="num"><div class="stat"><b>237</b><span>App 装机</span></div><div class="stat"><b>155</b><span>看过横幅</span></div><div class="stat"><b>36</b><span>点「去打开」</span></div><div class="stat bad"><b>31</b><span>点「我已打开」</span></div></div>
+     <div class="num" style="margin-top:12px"><div class="stat bad"><b>104</b><span>只看过横幅 1 次</span></div><div class="stat"><b>120</b><span>safari 扩展装机 ≈ App 的一半</span></div></div>
+     <p class="hint"><b>关键的一条是 104。</b>不是有人把横幅无视了五遍 —— 是多数人只启动过一次 App。所以「第二次再说一遍」这条路不存在，第一次说不动就没有第二次。</p>
+     <p class="hint">这三个数只能当<b>下限</b>读：<code class="code">shown</code> 只在 iOS 形态发，macOS 的曝光一条都没量到；macOS 那个直达按钮完全没有埋点；<code class="code">setup</code> 里混着主按钮与「检测页」两个来源。见板 6。</p></div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1120,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

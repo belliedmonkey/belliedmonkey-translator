@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>spa re-render preserves the user's selection</title>
+<style>
+  body { font-family: Georgia, serif; margin: 0; }
+  #article { max-width: 640px; margin: 24px auto; line-height: 1.6; }
+</style>
+<body>
+<div id="article">
+  <p id="p0">Founders who lived the problem speak with unmatched credibility, because they understand the customer better than anyone.</p>
+  <p id="p1">When a problem caused you so much pain that you rearranged your life to solve it, you carry a unique kind of power.</p>
+  <p id="p2">That narrative is one of the strongest tools for building belonging and brand loyalty over the long run.</p>
+  <p id="p3">Problem founders position themselves as the customer first and the business owner second, which anchors their strategy.</p>
+</div>
+<script>
+  // Substack-class SPA behaviour, verified live on lennysnewsletter.com
+  // (2026-08-12, re-measured 2026-08-23): selecting text triggers a React
+  // re-render (the selection share menu), and the commit MOVES the article's
+  // paragraph nodes — remove+insert of the SAME node objects. A node move that
+  // contains a selection endpoint destroys the selection.
+  //
+  // **This fixture used to depend on our own siblings to provoke the storm**, and
+  // that dependency is gone: since 2026-08-23 the translation is a CHILD of its
+  // paragraph, so it no longer shifts any of the framework's positions and a
+  // position-matching reconciler finds nothing to move (fixture 37 is the one that
+  // pins that, and it is the reason「链接打不开」stopped happening). The anti-vacuous
+  // guard below caught the change immediately — the reconciler had quietly become a
+  // no-op and this fixture was passing without testing anything.
+  //
+  // So the storm is now the PAGE's own: this reconciler re-appends its children on
+  // every commit whether or not anything is out of place, which is what a framework
+  // that rebuilds its list wholesale does (virtualized feeds, sort/filter, a second
+  // hydration pass). The selection keeper must survive that too — it is not excused
+  // just because we stopped being the cause.
+  //
+  // The reconciler is memoized on the selection text, the way a real framework
+  // memoizes its render: re-asserting the SAME selection does not re-render.
+  // Without that memo the fixture would model a page that fights forever, which
+  // the live page demonstrably does not (its storm settles).
+  window.__moves = 0;
+  let lastRendered = null;
+  const article = document.getElementById('article');
+  const reactChildren = [...article.querySelectorAll('p')];
+  function reconcile() {
+    // 无条件重挂一遍：不是「有东西错位了才修」，而是每次提交都把自己的子节点
+    // 重新放一遍。每一次都是同一个节点对象的 remove+insert —— 页面自己搬自己。
+    for (const p of reactChildren) {
+      article.appendChild(p); // remove+insert of the same node
+      window.__moves++;
+      // DOM-visible copy: the assert lib runs in the extension's ISOLATED
+      // world and cannot read this world's `window.__moves`.
+      article.dataset.moves = String(window.__moves);
+    }
+  }
+  let scheduled = false;
+  document.addEventListener('selectionchange', () => {
+    const text = String(getSelection());
+    // Memoized on the non-empty selection text: the live page re-renders to
+    // POSITION its share menu, so only a real (non-collapsed) selection with new
+    // text commits; the collapse after its own node moves does not re-commit.
+    // This is also what makes a pre-paint restore convergent: re-asserting the
+    // SAME text is a state bailout, not another commit.
+    if (!text || text === lastRendered) return;
+    lastRendered = text;
+    if (scheduled) return; scheduled = true;
+    setTimeout(() => { scheduled = false; reconcile(); }, 30); // commit ~ next task
+  });
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "spa-selection-restored",
+  "unitCount": 4,
+  "selection": { "from": "#p0", "to": "#p2" },
+  "targets": [
+    {
+      "sel": "#article > p",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

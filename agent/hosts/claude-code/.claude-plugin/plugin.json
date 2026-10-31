@@ -1,0 +1,10 @@
+{
+  "name": "belliedmonkey",
+  "displayName": "BelliedMonkey Translator",
+  "version": "1.22.0-n25",
+  "description": "Local stdio MCP for BelliedMonkey Translator. The daily server is this machine. A remote MCP is not published.",
+  "author": {
+    "name": "BelliedMonkey"
+  },
+  "license": "MIT"
+}

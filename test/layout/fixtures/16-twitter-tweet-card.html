@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>twitter tweet card + chrome</title>
+<style>
+  /* Minimal reproduction of x.com's shell: a primary column of tweets beside a
+     right rail of non-content chrome, plus the left nav banner. The tweet body is
+     a column-flex card (like X's article). Only the tweet text should translate;
+     the site adapter (site-twitter.js) marks the sidebar / banner / engagement bar
+     data-mt-skip-region and the segmenter must exclude them. Before the fix those
+     long letter-bearing chrome phrases translate too, so the settled count never
+     reaches 1 (RED). See docs/verification-spec.md §3.2 (incremental adaptation). */
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  .app { display: flex; align-items: flex-start; }
+  header[role="banner"] { width: 240px; padding: 12px; box-sizing: border-box; }
+  header nav a { display: block; padding: 8px 0; }
+  [data-testid="primaryColumn"] { width: 600px; }
+  [data-testid="sidebarColumn"] { width: 350px; padding: 12px; box-sizing: border-box; }
+  article[role="article"] { display: flex; flex-direction: column; padding: 16px; border-bottom: 1px solid #eee; }
+  [data-testid="tweetText"] { font-size: 15px; line-height: 1.4; }
+  [role="group"] { display: flex; gap: 40px; margin-top: 12px; color: #536471; }
+  .trend { padding: 8px 0; }
+</style>
+<body>
+<div class="app">
+
+  <!-- LEFT NAV — chrome. "Notifications" (13) / "Communities" (11) are >10 chars and
+       would otherwise translate. -->
+  <header role="banner">
+    <nav role="navigation">
+      <a href="/home">Home</a>
+      <a href="/notifications">Notifications</a>
+      <a href="/communities">Communities</a>
+    </nav>
+  </header>
+
+  <!-- PRIMARY COLUMN — real content. The one translatable unit is the tweet text. -->
+  <main data-testid="primaryColumn">
+    <article role="article">
+      <div data-testid="User-Name"><span>Claude Developers</span> <span>@ClaudeDevs</span> · <span>2h</span></div>
+      <div data-testid="tweetText"><span>Building agents with Claude just got dramatically easier. The new tool-use API handles multi-step reasoning out of the box, so you can ship complex workflows in an afternoon.</span></div>
+      <div role="group" aria-label="engagement">
+        <span>128</span><span>45</span><span>1.2K</span><span>89K</span>
+      </div>
+    </article>
+  </main>
+
+  <!-- RIGHT RAIL — chrome. Trend phrases are long, letter-bearing prose that passes
+       every content filter; they must be excluded by the skip-region marker. -->
+  <aside data-testid="sidebarColumn">
+    <div class="trend">Trending in Technology worldwide right now</div>
+    <div class="trend">Subscribe to Premium to unlock longer posts and analytics</div>
+  </aside>
+
+</div>
+<script type="application/json" id="mt-expect">
+{
+  "name": "twitter-tweet-card",
+  "unitCount": 1,
+  "targets": [
+    {
+      "sel": "[data-testid=\"tweetText\"]",
+      "assert": [
+        "parentNotMutated",
+        "sameWidth:4"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>

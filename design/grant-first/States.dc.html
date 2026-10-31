@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; color:#201e1d;
+      font:15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans", "Noto Sans", sans-serif; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+    .cap { font-size:.78rem; font-weight:700; color:#6a6255; letter-spacing:.04em; }
+    .card { background:#fff; border:1px solid #dcd3c4; border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  </style>
+</helmet>
+<div style="padding:22px; display:flex; flex-direction:column; gap:14px; height:456px; box-sizing:border-box">
+  <div>
+    <div style="font-size:1.05rem; font-weight:700">选了「免费开始」之后 —— 三个状态</div>
+    <div style="font-size:.86rem; color:#6a6255; margin-top:4px">领取在设置页发生（PKCE 约束），但引导页<b style="color:#201e1d">不必干等</b>：<code style="font-size:.82rem">chrome.storage.onChanged</code> 一监听到 <code style="font-size:.82rem">grantTail</code> 变非空，这一屏自己往下走。</div>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; flex:1; min-height:0">
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">① 等待中（跳转后立刻）</div>
+      <div class="card" style="flex:1">
+        <div style="display:flex; align-items:center; gap:10px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ac6231" stroke-width="2" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9" opacity=".9"/></svg>
+          <span style="font-weight:600">正在新标签页里领取…</span>
+        </div>
+        <p style="margin:0; color:#6a6255; font-size:.88rem; line-height:1.5">登录完成后回到这里，会自动继续。</p>
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px">
+          <div style="border:1px solid #dcd3c4; color:#8c491a; padding:11px; border-radius:11px; text-align:center; font-size:.9rem">重新打开领取页</div>
+          <div style="color:#8c491a; font-size:.86rem; text-align:center">改用自己的 key</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">② 到账（onChanged 触发）</div>
+      <div class="card" style="flex:1; border-color:#8fa073">
+        <div style="display:flex; align-items:center; gap:10px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#728157" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5.2 5L20 7"/></svg>
+          <span style="font-weight:600">额度已到账</span>
+        </div>
+        <p style="margin:0; color:#6a6255; font-size:.88rem; line-height:1.5">不用填 key 了，这就带你去下一步。</p>
+        <div style="height:4px; background:#dcd3c4; border-radius:999px; overflow:hidden; margin-top:2px">
+          <div style="height:100%; width:75%; background:#8fa073; border-radius:999px"></div>
+        </div>
+        <div style="margin-top:auto; background:#ac6231; color:#fff; padding:13px; border-radius:11px; text-align:center; font-weight:600; font-size:.94rem">继续 →</div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px">
+      <div class="cap">③ 领不到（池空 / 已停用）</div>
+      <div class="card" style="flex:1">
+        <div style="display:flex; align-items:center; gap:10px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b3261e" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5M12 16h.01"/></svg>
+          <span style="font-weight:600">这次没领到</span>
+        </div>
+        <p style="margin:0; color:#6a6255; font-size:.88rem; line-height:1.5">文案直接用 <code style="font-size:.8rem">grant_err_*</code> 那一组现成的句子，不新写。</p>
+        <div style="margin-top:auto; display:flex; flex-direction:column; gap:8px">
+          <div style="background:#ac6231; color:#fff; padding:13px; border-radius:11px; text-align:center; font-weight:600; font-size:.94rem">用自己的 key →</div>
+          <div style="color:#8c491a; font-size:.86rem; text-align:center">再试一次</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex:none; border-top:1px dashed #dcd3c4; padding-top:10px; font-size:.84rem; line-height:1.5; color:#6a6255">
+    <b style="color:#201e1d">为什么这三态值得画：</b>方案 A 唯一没解决的是「要跳出去领」。①② 把那个断点变成一条可见的回路——人回来时屏幕已经等在那里；③ 保证领不到的人<b style="color:#201e1d">不会卡死在一张只有一个按钮的屏上</b>（那正是现在 14 台「配完就再没试过」的形状）。
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

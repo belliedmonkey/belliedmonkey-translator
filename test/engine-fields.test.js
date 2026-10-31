@@ -1,0 +1,465 @@
+// test/engine-fields.test.js — 「露哪几个框」和「怎么填下拉」的唯一实现。
+//
+// 这一组的价值在于它**替代了八份抄写**（options.js 四份、app/settings.js 三份、
+// onboard.js 一份）。所以判据不是「函数返回了什么」，而是两件事：
+//   1. 对**真实生成物**的每一个条目，判据都还成立（不是手写 fixture —— 手写的
+//      fixture 只能证明我理解的规则自洽，证明不了它和用户手上那张表对得上）；
+//   2. options.js 里**不许再残留第二份**同能力的判断。抽完之后旧代码还在，就是抽了
+//      个寂寞：下一个人改其中一份，另一份静默保持旧行为。
+
+const fs = require('fs');
+const path = require('path');
+const { loadModule, loadSrc, describe, test, ok, eq, deepEq } = require('./harness');
+
+const ROOT = path.join(__dirname, '..');
+const EF = loadSrc('src/shared/engine-fields.js', 'EngineFields').EngineFields;
+
+// 真实生成物。没跑过 build 就跳过，并说清楚 —— 一个静默跳过的断言等于没有断言。
+function registries(dir) {
+  const base = path.join(ROOT, dir, 'content');
+  const files = ['providers.gen.js', 'tts.gen.js', 'stt.gen.js'].map((f) => path.join(base, f));
+  if (!files.every((f) => fs.existsSync(f))) return null;
+  const window = {};
+  loadModule(files.map((f) => path.relative(path.join(ROOT, 'extension'), f)), { window });
+  return {
+    chat: window.MT_PROVIDERS || [],
+    tts: window.MT_TTS_ENGINES || [],
+    stt: window.MT_STT_ENGINES || [],
+  };
+}
+
+describe('EngineFields.visibility — 一条规则，对三张真表都成立', () => {
+  for (const dir of ['dist', 'dist-china']) {
+    test(`${dir}：key 的判据是「supportsKey 没声明就看 needsKey」`, () => {
+      const r = registries(dir);
+      if (!r) return ok(true, `（${dir}/ 不存在，跳过 —— 先跑 node build.js）`);
+      // 自检用「三张表都非空」，不用总数阈值 —— 中国版只有 12 个条目，写死一个数
+      // 会让这条断言变成 flavor 的函数，而它要验的根本不是数量。
+      for (const [group, list] of Object.entries(r)) {
+        ok(list.length > 0, `${dir} 的 ${group} 注册表是空的 —— 生成物没读进来，这一组在空转`);
+      }
+      for (const [group, list] of Object.entries(r)) {
+        for (const e of list) {
+          const want = e.supportsKey === undefined ? !!e.needsKey : !!e.supportsKey;
+          eq(EF.visibility(e).key, want, `${group}/${e.id}`);
+        }
+      }
+    });
+
+    test(`${dir}：地址与模型的框跟着 supportsBaseUrl / supportsModel`, () => {
+      const r = registries(dir);
+      if (!r) return ok(true, `（${dir}/ 不存在，跳过）`);
+      for (const list of Object.values(r)) {
+        for (const e of list) {
+          const v = EF.visibility(e);
+          eq(v.baseUrl, !!e.supportsBaseUrl, e.id + ' baseUrl');
+          eq(v.model, !!e.supportsModel, e.id + ' model');
+        }
+      }
+    });
+
+    test(`${dir}：要自填地址的条目，地址框必须露出来`, () => {
+      const r = registries(dir);
+      if (!r) return ok(true, `（${dir}/ 不存在，跳过）`);
+      let seen = 0;
+      for (const list of Object.values(r)) {
+        for (const e of list) {
+          if (!e.requiresEndpoint) continue;
+          seen += 1;
+          ok(EF.visibility(e).baseUrl,
+            `${e.id} 要求自填端点，却不显示地址框 —— 这个引擎会永远配不成`);
+        }
+      }
+      ok(seen > 0, 'requiresEndpoint 的条目一个都没有？那这条断言在空转');
+    });
+
+    test(`${dir}：示例地址永远不为空 —— 空的示例等于没有示例`, () => {
+      const r = registries(dir);
+      if (!r) return ok(true, `（${dir}/ 不存在，跳过）`);
+      for (const list of Object.values(r)) {
+        for (const e of list) {
+          ok(String(EF.visibility(e).basePlaceholder || '').trim().length > 0, e.id);
+        }
+      }
+    });
+  }
+
+  test('没有条目（下拉选了哨兵项）⇒ 一个框都不露', () => {
+    deepEq(EF.visibility(null),
+      { key: false, baseUrl: false, model: false, basePlaceholder: '', modelPlaceholder: '' },
+      'null 必须是「什么都不显示」，不是「显示全部」');
+    deepEq(EF.visibility(undefined), EF.visibility(null), '');
+  });
+
+  test('needsKey=false 但 supportsKey=true ⇒ 露 Key 框（自建端点那一类）', () => {
+    eq(EF.visibility({ needsKey: false, supportsKey: true }).key, true,
+      'stt.config.js:36 明写过：needsKey=false 是「不强制」，supportsKey=true 是「可以填」');
+  });
+});
+
+describe('EngineFields.populate — 下拉文字就是注册表标签（2026-09-17 起没有「· 实时」后缀）', () => {
+  function fakeSelect() {
+    const kids = [];
+    return { innerHTML: '', value: '', ownerDocument: { createElement: () => ({ value: '', textContent: '' }) }, appendChild: (o) => kids.push(o), options: kids };
+  }
+  test('条目文字逐字等于标签 —— 实时转写固定为设备内置后，注册表里没有实时档可标', () => {
+    const s = fakeSelect();
+    const t = (k, d) => d;
+    EF.populate(s, [{ id: 'a', label: 'A', liveEndpoint: 'wss://x', liveType: 'ws-realtime' }, { id: 'b', label: 'B' }], { t });
+    deepEq(s.options.map((o) => o.textContent), ['A', 'B'], '就算条目带着旧的 live* 字段，下拉也不再给它后缀');
+  });
+});
+
+describe('EngineFields.populate — 哨兵项与回落', () => {
+  // 极小的 document 替身：只要 createElement / appendChild / value 三样。
+  function fakeSelect() {
+    const kids = [];
+    const sel = {
+      innerHTML: '', value: '',
+      ownerDocument: { createElement: () => ({ value: '', textContent: '' }) },
+      appendChild: (o) => kids.push(o),
+      options: kids,
+    };
+    return sel;
+  }
+  const LIST = [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }];
+
+  test('存着的 id 认识 ⇒ 选它', () => {
+    const s = fakeSelect();
+    eq(EF.populate(s, LIST, { selected: 'b' }), 'b', '');
+  });
+
+  test('存着的 id 不认识 ⇒ 落到第一项（换 flavor / 厂商下架都会走到这里）', () => {
+    const s = fakeSelect();
+    eq(EF.populate(s, LIST, { selected: 'gone' }), 'a',
+      '留一个空 select 比落到一个能用的选项糟 —— 用户看不出发生了什么');
+  });
+
+  test('有哨兵项时，不认识的 id 落回哨兵而不是第一个引擎', () => {
+    const s = fakeSelect();
+    eq(EF.populate(s, LIST, { selected: 'gone', sentinel: { value: '', text: '未配置' } }), '',
+      '转写的 \'\' 是「不出说题」、解析的 \'\' 是「跟随翻译引擎」—— 有语义的空，'
+      + '悄悄替换成第一个引擎会打开一个用户没选过的功能');
+    eq(s.options.length, 3, '哨兵项要置顶');
+    eq(s.options[0].textContent, '未配置', '');
+  });
+
+  test('显式 fallback 压过其它回落', () => {
+    const s = fakeSelect();
+    eq(EF.populate(s, LIST, { selected: 'gone', fallback: 'b' }), 'b', '');
+  });
+
+  test('空注册表 ⇒ 不炸，回空串', () => {
+    const s = fakeSelect();
+    eq(EF.populate(s, [], {}), '', '');
+    eq(EF.populate(null, LIST, {}), '', 'select 不存在也不许抛');
+  });
+
+  test('labelKey 走 t()，没有就用 label / id', () => {
+    eq(EF.labelOf({ id: 'x', labelKey: 'k', label: 'L' }, (k, fb) => 'T:' + fb), 'T:L', '');
+    eq(EF.labelOf({ id: 'x', label: 'L' }, null), 'L', '');
+    eq(EF.labelOf({ id: 'x' }, null), 'x', '');
+  });
+});
+
+describe('options.jsx 里不许再有第二份同能力的判断', () => {
+  // PR5 迁移：设置页源码是 src/pages/options.jsx，四组引擎以命令式孤岛挂载（§10.9）。
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'pages', 'options.jsx'), 'utf8');
+
+  test('抽完之后设置页不再自己判 supportsBaseUrl / supportsModel / supportsKey', () => {
+    const hits = src.split('\n')
+      .map((l, i) => [i + 1, l])
+      .filter(([, l]) => /supportsBaseUrl|supportsModel|supportsKey/.test(l));
+    eq(hits.length, 0,
+      '还留着第二份判据 —— 下一个人改其中一份，另一份会静默保持旧行为：\n  '
+      + hits.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
+  });
+
+  // 判据不是「调了几次」——那是个会随迁移不断失效的代理。要守的是：**四组引擎配置
+  // 一组都不许自己另写一套**。孤岛形态下这等于：容器表正好四个槽各一次，且全页
+  // 唯一的 renderEngineFields 长在遍历这张表的循环上（翻译 / 朗读 / 解析 / 转写）。
+  test('四组引擎配置全都接在组件上，一组都不落', () => {
+    const slots = [...src.matchAll(/\[\s*\w+Ref,\s*'(\w+)'/g)].map((m) => m[1]);
+    eq(slots.length, 4,
+      `孤岛容器表是 ${slots.length} 项（${slots.join('/') || '空'}），期望 chat/tts/notes/stt 四组`
+      + ' —— 漏掉的那一组会另写一套并慢慢漂走');
+    eq(new Set(slots).size, 4, '同一个 slot 挂了两次：' + slots.join('/'));
+    const renders = (src.match(/renderEngineFields\(/g) || []).length;
+    eq(renders, 1, `renderEngineFields 出现 ${renders} 次 —— 绕开容器表单挂的那一个，就是第二套判据`);
+    const loop = src.indexOf('for (const [ref, slot, entriesFn] of containers)');
+    ok(loop >= 0 && loop < src.indexOf('renderEngineFields('),
+      'render 没有长在容器表的循环上 —— 有人开始按组手写了？');
+  });
+
+  test('两个 host 都加载了它，且在自己的脚本之前', () => {
+    for (const [page, own] of [['options/options.html', 'options.js'], ['onboard/onboard.html', 'onboard.js']]) {
+      const html = fs.readFileSync(path.join(ROOT, 'extension', page), 'utf8');
+      const a = html.indexOf('engine-fields.js');
+      const b = html.indexOf(own + '"');
+      ok(a >= 0, page + ' 没加载 engine-fields.js');
+      ok(a < b, page + ' 把 engine-fields.js 排在了自己的脚本后面 —— 加载期就会 ReferenceError');
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 宿主 App 也是它的 host —— 2026-09-04 补。
+//
+// 上面那一组门禁只 grep options.js，于是 `app/settings.js` 的三份手抄**从来不会让
+// 任何测试变红**。用户当天报的「App 设置页与扩展端不一致」就是这么攒出来的：
+//
+//   · paintNotesFields 是 `hidden = !p` —— 只要选了引擎就露出 Key 框，不看 needsKey；
+//     扩展那边看。不需要 Key 的引擎在 App 上多一个空 Key 框。
+//   · tts / stt 两处只判 needsKey，不判 `supportsKey ?? needsKey`。
+//   · 四个输入框的 id 与 SLOTS 对不上（notes-key / notes-base / stt-key / stt-base）。
+//
+// 三条都不报错、都不被任何门禁看见 —— 这正是「静默漂移」的形状，也是这一组断言
+// 存在的全部理由。规则只能有一份，而守它的门禁必须覆盖**每一个** host。
+describe('src/app/settings-view.jsx 也不许有第二份同能力的判断', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'app', 'settings-view.jsx'), 'utf8');
+  const bundle = fs.readFileSync(path.join(ROOT, 'build', 'app-bundle.js'), 'utf8');
+
+  test('App 不再自己判 supportsBaseUrl / supportsModel / supportsKey / needsKey', () => {
+    const hits = src.split('\n')
+      .map((l, i) => [i + 1, l])
+      .filter(([, l]) => !/^\s*\/\//.test(l))                    // 注释里说得起这些词
+      .filter(([, l]) => /supportsBaseUrl|supportsModel|supportsKey|needsKey/.test(l));
+    eq(hits.length, 0,
+      'App 又留了第二份判据 —— 它不会报错，只会在某个引擎某个字段上与扩展不一样：\n  '
+      + hits.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
+  });
+
+  test('三组引擎配置都接在组件的判据上（App 没有翻译引擎那一组）', () => {
+    const n = (src.match(/EngineFields\.visibility\(/g) || []).length;
+    eq(n, 3,
+      `只接上了 ${n} 组，期望 3 组 —— 朗读 / 解析 / 转写。App 没有网页翻译，`
+      + '所以没有 chat 那一组；漏掉的任何一组都会另写一套并慢慢漂走');
+  });
+
+  test('下拉一律用组件填，不许再手写 createElement(\'option\') 塞引擎', () => {
+    // 声音列表是系统语音 / 注册表 voices，不是引擎注册表 —— 那几处是正当的。
+    const bad = src.split('\n')
+      .map((l, i) => [i + 1, l])
+      .filter(([n]) => {
+        const around = src.split('\n').slice(Math.max(0, n - 6), n + 2).join('\n');
+        return /MT_TTS_ENGINES|MT_STT_ENGINES|chatEngines\(\)/.test(around);
+      })
+      .filter(([, l]) => /createElement\('option'\)/.test(l));
+    eq(bad.length, 0,
+      '又在手写引擎下拉 —— populate() 比手抄多做两件事（不认识的 id 落到能用的选项、'
+      + '哨兵语义），漏掉的那一件不会有人发现：\n  '
+      + bad.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
+  });
+
+  test('输入框 id 从 SLOTS 取，不是第八份手抄表', () => {
+    ok(/EngineFields\.SLOTS\[/.test(src),
+      'src/app/settings-view.jsx 没有从 EngineFields.SLOTS 取 id —— 这个仓库已经有七份手抄的'
+      + '设置键表了，第八份只会让「改一处、另外七处不红」再发生一次');
+    for (const id of ['notes-key', 'notes-base', 'stt-key', 'stt-base']) {
+      ok(!new RegExp(`['"]${id}['"]`).test(src),
+        `旧 id '${id}' 又回来了 —— 它与 EngineFields.SLOTS 对不上，`
+        + '组件渲染出来的框和 App 读写的框会是两个东西');
+    }
+  });
+
+  test('组件真的在 App 包里，且 app/settings.js 已退出模块清单', () => {
+    for (const m of ['engine-test.js']) {
+      const a = bundle.indexOf('extension/learn/' + m);
+      ok(a >= 0, `build/app-bundle.js 的 MODULES 里没有 ${m} —— App 包里没有这个模块，`
+        + '设置视图就只能继续手抄');
+    }
+    // PR7b：engine-fields / quick-setup 退出 MODULES —— 它们随 APP_ENTRY 的 esbuild
+    // 依赖图进包（settings-view 直接 import），源集合由 §9.4 对账门（shared-graph）管。
+    // 这里守反向：不许以 IIFE 模块身份回流 MODULES（回流 = 两份实现并存）。
+    for (const m of ['learn/engine-fields.js', 'learn/quick-setup.js']) {
+      ok(!bundle.includes(`'extension/${m}'`), `build/app-bundle.js 的 MODULES 里又出现了 '${m}'`
+        + ' —— PR7b 起它随 APP_ENTRY 的 import 图进包，回流 IIFE 就是第二份实现');
+    }
+    ok(!bundle.includes("'app/settings.js'"),
+      "build/app-bundle.js 的 MODULES 里还有 'app/settings.js' —— PR6b 起设置页已拆成 "
+      + 'src/app/settings-view.jsx（视图）+ src/app/settings-model.js（模型），随 src/app/main.jsx'
+      + '（APP_ENTRY 的 esbuild bundle）拼进 Script.js 尾部，不许再以 IIFE 模块回来');
+    ok(bundle.includes("APP_ENTRY = 'src/app/main.jsx'"),
+      "build/app-bundle.js 里找不到 APP_ENTRY = 'src/app/main.jsx' —— 设置视图靠它拼进包");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// App 里不许存在「设置页看不见、也清不掉，却会被读走」的键 —— 2026-09-04。
+//
+// 起因是「解析引擎键名挪用」：App 设置页那一档叫「解析引擎」，写的却是基础组
+// (`provider/apiKey/apiBaseUrl/apiModel`)。这本身是对的 —— App 没有网页翻译，
+// 没有第二个 chat 引擎要区分，`LearnNotes.resolveConfig` 的回落分支正是为它准备的。
+//
+// **真正的隐患是不对称**：`src/app/driving-model.js`（原 app/driving.js，PR6d 迁）的
+// 读取清单里还有 notes* 四个键，而
+// `LearnNotes.resolveConfig` 一旦看见 `notesProvider` 就会**优先用它**，静默赢过
+// 设置页写的 `provider` —— 而 App 设置页没有那一档控件，用户既看不见也清不掉。
+//
+// ⚠️ **不能靠「把 notes* 从 driving.js 删掉」来修**（2026-09-04 差点这么做）：
+// `src/shared/review.js` 与扩展是**同一份源**（PR7c 起 ESM 单源、各自编译进包），它自己那份读取
+// 清单里也有 notes*，也调 resolveConfig。只删一处的结果是同一个 App 里播客模式回落
+// 到基础组、复习页仍用 notes 组 —— 从「一个静默赢」变成「两处解出两个不同引擎」。
+// 而 review.js 那份不能动：扩展那边 notes 组是真实可配的。
+//
+// 所以这里钉的是**不变量本身**，而不是某一处读取：读得到的键，必须要么设置页管得到，
+// 要么在下面这张写明理由的白名单上。往清单里加一个键会撞上这道门，那是刻意的 ——
+// 「加一个 App 读得到却改不了的设置」必须是一次自觉的动作。
+// 读取清单不止一份：播客模式与对话模式各有一份，而这道门禁**两份都要看**。
+// 2026-09-08 之前它只解析 driving.js —— 于是对话模式那边可以随便加读得到、改不到的
+// 键，一道都撞不上。补上的时候差集没有变化（对话读的 16 个键里，设置页管不到的恰好
+// 就是已经在白名单上的那四个 notes*），也就是说这个洞当时还没被踩过。
+describe('App 读得到的设置，设置页必须管得到', () => {
+  // PR9：三份消费清单（driving 的 SETTINGS_KEYS、listen/docs 的 READ_KEYS）已收编
+  // schema，settings-model 的 KEYS 同步收编 —— 「App 读得到」改由 schema 的面并集
+  // 表达，「设置页管得到」= keysFor('app')。消费端取键已被 keysFor 门咬住
+  // （store-schema-i18n）：App 侧想多读一个键，就必须先动 schema 的 surfaces，
+  // 而这一动就落进本门的差集里 —— 门还在原地，只是锚点从手抄清单换成了登记处。
+  const S = loadSrc('src/store/schema.js', 'SETTINGS_SCHEMA', { MT_PALETTE: {} }).SETTINGS_SCHEMA;
+  const known = new Set(S.keysFor('app'));
+  const read = new Set();
+  for (const f of ['app', 'listen', 'docs']) for (const k of S.keysFor(f)) read.add(k);
+
+  // 读得到、但设置页管不到 —— 每一条都要有理由。PR9 前的白名单还有
+  // drivePlaybackMode（收编时登记了 app 面）、notes×4 与 grantTail（schema 本就
+  // 有 options 面）—— surfaces 一登记，它们就从「无人管辖」变成「设置页管得到」。
+  const ALLOW = {
+    subtitleFontScale: '实时字幕条的字号：由 Mac 字幕条上的 A− / A+ 写（原生发 remote font-down / font-up，页面落盘并重发 '
+      + 'subtitle-config，§9.8 协议补充决定 9）。控件在字幕条上，看得见也改得到。',
+    grant: '免费额度的领取回执（[flow] 标记）：docs 页只读它判「额度在用」，领取与清退由'
+      + ' LearnGrant 在登录面上做 —— 不是可编辑配置（grantTail 同族，但它有 options 面的额度卡）。',
+  };
+
+  test('差集恰好等于白名单 —— 多一个少一个都要说明', () => {
+    const gap = [...read].filter((k) => !known.has(k)).sort();
+    const allow = Object.keys(ALLOW).sort();
+    eq(gap.join(','), allow.join(','),
+      'App 读得到但设置页管不到的键变了（schema 的 app/listen/docs 三面并集，减去 app 面）。\n'
+      + '  实际：' + (gap.join(' ') || '（无）') + '\n'
+      + '  白名单：' + allow.join(' ') + '\n'
+      + '  多出来的那个会**静默赢过**设置页写的值，而用户看不见也清不掉它 ——'
+      + '要么给它一个控件，要么写进 ALLOW 并说明理由。');
+  });
+
+  test('App 从不写 notes* —— 回落分支恒成立，靠的是这一条', () => {
+    // settings.js 已拆成 settings-view.jsx + settings-model.js（PR6b）；app.js 的正文
+    // 已迁 src/app/shell-model.js（PR6a）—— 这里列的一律是**现在**的写路径。
+    for (const p of ['src/app/settings-view.jsx', 'src/app/settings-model.js',
+      'src/app/shell-model.js', 'src/app/driving-model.js', 'app/translate-fill.js']) {
+      const src = fs.readFileSync(path.join(ROOT, p), 'utf8');
+      const writes = src.split('\n')
+        .map((l, i) => [i + 1, l])
+        .filter(([, l]) => !/^\s*\/\//.test(l))
+        .filter(([, l]) => /\bnotes(Provider|ApiKey|BaseUrl|Model)\b/.test(l))
+        .filter(([, l]) => !/SETTINGS_KEYS|^\s*'notes/.test(l));
+      eq(writes.length, 0,
+        `${p} 动了 notes* 键 —— 一旦 App 存储里出现 notesProvider，`
+        + 'resolveConfig 会优先用它，而设置页读不回它：\n  '
+        + writes.map(([n, l]) => `${n}: ${l.trim()}`).join('\n  '));
+    }
+  });
+});
+
+// 界面语言：四份清单必须都等于 build/ui-langs.config.js —— 2026-09-04。
+//
+// 「这个产品的界面能说哪些语言」此前在四处各写一份，且已经不一致：扩展少 hi，
+// 官网少 de/ja/ko/zh-TW。两边都不报错，只是那门语言的人看到兜底语言。用户裁定
+// **三个面取全集**，于是有了那张注册表，也就必须有这道门 —— endonym 是
+// no-hardcoded-copy 的刻意例外，抽不成 t()，端点只能留在 markup 里。
+//
+// **四份都对着注册表核，不是互核** —— 两份一起抄错时互核照样绿。
+describe('界面语言 = build/ui-langs.config.js', () => {
+  const REG = require(path.join(ROOT, 'build', 'ui-langs.config.js'));
+  const ids = REG.map((l) => l.id);
+  const dirs = REG.map((l) => l.chrome);
+
+  test('注册表自身自洽：id / chrome 目录 / endonym 都不重复', () => {
+    for (const [f, list] of [['id', ids], ['chrome', dirs], ['endonym', REG.map((l) => l.endonym)]]) {
+      eq(new Set(list).size, list.length, f + ' 有重复：' + list.join(' '));
+    }
+  });
+
+  test('扩展 _locales/ 与注册表一一对应', () => {
+    const shipped = fs.readdirSync(path.join(ROOT, 'extension', '_locales'))
+      .filter((d) => fs.existsSync(path.join(ROOT, 'extension', '_locales', d, 'messages.json')))
+      .sort();
+    eq(shipped.join(','), dirs.slice().sort().join(','),
+      '_locales/ 与注册表对不上。\n  磁盘上：' + shipped.join(' ')
+      + '\n  注册表：' + dirs.slice().sort().join(' ')
+      + '\n  少一份 = 选择器里列了一门根本没有文案的语言（选了回落到兜底且不报错）；'
+      + '多一份 = 有翻译却没人选得到。');
+  });
+
+  const optionsOf = (html) => {
+    // [^>]*：React 版开标签带 value/onChange（PR5 起设置页源码在 src/pages/options.jsx）。
+    const m = html.match(/<select id="ui-lang"[^>]*>([\s\S]*?)<\/select>/);
+    ok(!!m, '找不到 ui-lang 选择器');
+    return [...m[1].matchAll(/value="([^"]+)"[^>]*>([^<]*)</g)].map((x) => [x[1], x[2].trim()]);
+  };
+
+  // 两个宿主的 <option> 用的是 **chrome 那一列**（两边共用 uiLang 这个存储键，
+  // 而它的取值一直是 Chrome 的 locale 码）。官网用 id 那一列。
+  for (const [label, file] of [
+    ['扩展设置页', path.join('src', 'pages', 'options.jsx')],
+    // 宿主 App 的标记随 PR6b 拆进 src/app/settings-view.jsx（设置节离开 AppShell）—— 对账面跟着搬。
+    ['宿主 App 设置页', path.join('src', 'app', 'settings-view.jsx')],
+  ]) {
+    test(label + '：auto 在最前，其余逐项等于注册表（含顺序与 endonym）', () => {
+      const list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'));
+      eq(list[0][0], 'auto', label + ' 的第一项不是 auto —— 「跟随系统」是默认，必须在最前');
+      const got = list.slice(1);
+      eq(got.map((x) => x[0]).join(','), dirs.join(','),
+        label + ' 的语言项与注册表对不上（顺序也算）。\n  选择器：'
+        + got.map((x) => x[0]).join(' ') + '\n  注册表：' + dirs.join(' '));
+      const badName = got.filter((x, i) => x[1] && x[1] !== REG[i].endonym);
+      eq(badName.length, 0,
+        label + ' 的 endonym 与注册表不同字：'
+        + badName.map((x, i) => x[0] + ' 写「' + x[1] + '」').join(' · ')
+        + ' —— endonym 按定义不翻译，三个面必须逐字相同');
+    });
+  }
+});
+
+// 目标语言：四份清单必须都等于 build/target-langs.config.js —— 2026-09-19。
+//
+// 与上面「界面语言」同一个形状、同一个理由。立这道门时已经漂了一处：弹窗的选择器 11 项、
+// 设置页 12 项（缺 it）—— 意大利语用户在弹窗里选不到自己在设置页里选过的语言，两边都不报错。
+// App 此前根本没有这个设置；补上「译成」= 多一个端点 = 多一处会漂的地方，所以门与端点同一个 PR 进。
+describe('目标语言 = build/target-langs.config.js', () => {
+  const REG = require(path.join(ROOT, 'build', 'target-langs.config.js'));
+  const ids = REG.map((l) => l.id);
+  const optionsOf = (html, where) => {
+    const m = html.match(/<select id="target-lang"[^>]*>([\s\S]*?)<\/select>/);
+    ok(!!m, where + '：找不到 target-lang 选择器');
+    return [...m[1].matchAll(/value="([^"]*)"[^>]*>([^<]*)</g)].map((x) => [x[1], x[2].trim()]);
+  };
+  test('注册表自洽：id 与 endonym 都不重复', () => {
+    eq(new Set(ids).size, ids.length); eq(new Set(REG.map((l) => l.endonym)).size, REG.length);
+  });
+  for (const [label, file, follow] of [
+    // 设置页的语言项随 React 迁移（PR5）搬进 JSX —— 对账面跟着搬：静态 option
+    // 就是渲染出的全部选项，源码文本照样逐项可对。
+    ['扩展设置页', path.join('src', 'pages', 'options.jsx'), false],
+    // 弹窗的语言项随 React 迁移（PR3）搬进 JSX —— 对账面跟着搬：静态 option
+    // 就是渲染出的全部选项，源码文本照样逐项可对。
+    ['扩展弹窗', path.join('src', 'pages', 'popup.jsx'), false],
+    // 宿主 App 的标记随 PR6b 拆进 src/app/settings-view.jsx（设置节离开 AppShell）—— 对账面跟着搬。
+    ['宿主 App 设置页', path.join('src', 'app', 'settings-view.jsx'), true],
+  ]) {
+    test(label + '：逐项等于注册表（含顺序与 endonym）' + (follow ? '，且第一项是空值「跟随界面语言」' : ''), () => {
+      let list = optionsOf(fs.readFileSync(path.join(ROOT, file), 'utf8'), label);
+      if (follow) { eq(list[0][0], '', label + ' 的第一项必须是空值 —— 「跟随界面语言」是默认，老用户升级后行为不变'); list = list.slice(1); }
+      eq(list.map((x) => x[0]).join(','), ids.join(','), label + ' 的语言项与注册表对不上（顺序也算）');
+      const bad = list.filter((x, i) => x[1] !== REG[i].endonym);
+      eq(bad.length, 0, label + ' 的 endonym 与注册表不同：' + bad.map((x) => x.join('=')).join(' '));
+    });
+  }
+  test('传输层提示词里的语言名（LANG_NAMES）与注册表一一对应', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'extension', 'content', 'translation-api.js'), 'utf8');
+    const m = src.match(/const LANG_NAMES = \{([\s\S]*?)\};/);
+    ok(!!m, '找不到 LANG_NAMES');
+    const got = [...m[1].matchAll(/'([^']+)':\s*'([^']+)'/g)].map((x) => [x[1], x[2]]);
+    eq(got.map((x) => x[0]).sort().join(','), ids.slice().sort().join(','), 'LANG_NAMES 的键与注册表不同 —— 选得到却没有语言名，提示词里就只剩一个语言码');
+    for (const [id, name] of got) eq(name, REG.find((l) => l.id === id).endonym, id + ' 的语言名与注册表不同');
+  });
+});

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Safari 那一行：从「去商店评分」改成「回 App 复习」</title>
+  <script src="./support.js"></script>
+  <link rel="stylesheet" href="./ui.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; background:#f5ead8; }
+    a { color:#8c491a; } a:hover { color:#643312; }
+  </style>
+</helmet>
+<div class="page" style="width:2040px; height:960px; padding:24px; display:flex; flex-direction:column; gap:18px">
+
+<div class="frame-h"><div class="cap"><h1 style="margin:0;font-size:1.25rem">同一个位置、同一个节奏，换一个目的地</h1><span>只给已登录的人（17 台真在用的里 11 台）· 每天至多一次、最多 5 个不同日子 · 点或 × 立刻 90 天冷却</span></div></div>
+<div>
+  <span class="tag-now">现在</span>
+  <div class="tl" style="margin-top:8px">
+    <div class="step"><span class="day">Safari 网页</span><div class="ph-sm" style="min-height:170px"><div class="homeline w3"></div><div class="homeline w2"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div class="homeline w2"></div><div class="homeline w3"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sage);font-size:.84rem;border-top:1px dashed var(--rule);padding-top:7px">
+  <span>觉得好用？去商店给个评分 →</span><span style="color:var(--muted)">×</span></div></div></div><span class="arr">→</span>
+    <div class="step"><span class="day">点了之后</span><div class="ph-sm" style="min-height:170px"><div class="empty"><div class="homeline w3"></div><div class="homeline w2"></div></div><p class="hint" style="margin:0">跳出 Safari → App Store 商品页的「写评价」→ 还要自己点星、再找提交</p></div><p class="why">三四步，离开当前阅读。</p></div>
+  </div>
+</div>
+<div>
+  <span class="tag-new">提议</span>
+  <div class="tl diff" style="margin-top:8px">
+    <div class="step"><span class="day">Safari 网页</span><div class="ph-sm" style="min-height:170px"><div class="homeline w3"></div><div class="homeline w2"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div class="homeline w2"></div><div class="homeline w3"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div><div style="display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--sage);font-size:.84rem;border-top:1px dashed var(--rule);padding-top:7px">
+  <span>今天读过的句子，去 App 里复习 →</span><span style="color:var(--muted)">×</span></div></div><p class="why">只在已登录、句子已同步的前提下出现。</p></div><span class="arr">→</span>
+    <div class="step"><span class="day">点了之后</span><div class="ph-sm" style="min-height:170px"><p class="hint" style="margin:0">系统询问「在大肚猴翻译中打开？」→ 落在 App 的复习屏</p><div class="homeline w3"></div><div class="homeline w2"></div><div style="color:var(--sage);font-size:.78rem;line-height:1.5">译文译文译文译文译文译文译文译文</div></div><p class="why">走现成的 AppLink.open(uid, …, 'review')；没接住就说出口（下载 / 本平台没有 App）。</p></div><span class="arr">→</span>
+    <div class="step"><span class="day">在 App 里评完 ≥5 张</span><div class="ph-sm" style="min-height:170px"><div class="ban" style="background:var(--card)"><h4>喜欢大肚猴翻译吗？</h4><p>★ ★ ★ ★ ★</p><p class="hint" style="margin:0">（系统弹层，样子由 Apple 决定）</p></div></div><p class="why">这才是收获时刻 —— 事件回调里调 requestReview，不是那一次点击。</p></div>
+  </div>
+</div>
+<table class="tbl">
+  <tr><th></th><th>现在</th><th>提议</th></tr>
+  <tr><td>合规</td><td class="no">自定义评分提示（5.6.1）</td><td class="yes">应用内入口 + 系统评分 API</td></tr>
+  <tr><td>评分那一步的门槛</td><td class="no">离开 Safari、跳商店、自己找写评价</td><td class="yes">一次点星，不离开 App</td></tr>
+  <tr><td>顺带</td><td>—</td><td class="yes">把扩展用户带回 App（复习闭环今天几乎为 0）</td></tr>
+</table>
+<p class="hint">文案里不带具体句数：内容脚本拿不到扩展学习库里「今天几句」，为它另开通道不值。以后能便宜拿到再加。</p>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2040,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

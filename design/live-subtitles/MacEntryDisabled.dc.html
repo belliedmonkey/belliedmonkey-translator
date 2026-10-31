@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <title>M2 · 入口不可用的三种说法</title>
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif; -webkit-font-smoothing: antialiased; }
+    a { color: #8c491a; } a:hover { color: #ac6231; }
+    .root { --bg: #f5ead8; --card: #ffffff; --section: #f9f4ed; --text: #201e1d; --dim: #6a6255; --line: #dcd3c4;
+            --accent: #ac6231; --accent-deep: #8c491a; --link: #8c491a; --accent-track: #ffe1d0; --sage: #728157; --sage-strong: #56633f; --danger: #b3261e;
+            background: var(--bg); color: var(--text); box-sizing: border-box; font-size: 16px; line-height: 1.45; position: relative; overflow: hidden; }
+    .root.dark { --bg: #0f172a; --card: #1e293b; --section: #273549; --text: #f9fafb; --dim: #9ca3af; --line: #374151;
+            --accent-deep: #f6a06b; --link: #f6a06b; --accent-track: #643312; --sage: #8fa073; --sage-strong: #aebf92; --danger: #ff7070; }
+    .root * { box-sizing: border-box; }
+    .root p, .root h1, .root h2, .root h3 { margin: 0; }
+    .root button { font: inherit; cursor: default; }
+  </style>
+</helmet>
+<div class="{{rootClass}}" style="width: 820px; height: 490px; padding: 28px 32px; display: flex; flex-direction: column; gap: 18px;">
+<p style="font-size: 13.6px; color: var(--dim);">门没过时整行灰（45%），下面一行写原因，并给一条直达设置的路。三种原因互斥，按顺序判；转写引擎是「设备内置转写」且可用时，① ② 不拦。</p>
+<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: start;"><span style="font-size: 13.6px; font-weight: 700; padding-top: 22px;">① 没有带实时接口的转写引擎</span><div style="display: flex; flex-direction: column; gap: 6px;"><div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 24px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 14px; padding: 16px 18px; min-height: 72px;  opacity: 0.45;"><span style="width: 40px; height: 40px; border-radius: 14px; background: var(--section); display: flex; align-items: center; justify-content: center; flex: none; color: var(--accent-deep);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><path d="M7 12.5h6"></path><path d="M15.5 12.5h1.5"></path><path d="M7 16h3"></path><path d="M12.5 16h4.5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">实时字幕</span><span style="font-size: 13.6px; color: var(--dim);">给正在播放的视频、直播、会议配双语字幕</span></span><span style="color: var(--dim);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6l6 6-6 6"></path></svg></span></div></div><p style="margin: 0; padding: 0 4px; font-size: 13.6px; color: var(--dim);">「实时字幕」需要一个带实时接口的转写引擎　<span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; ">去设置里选择 →</span></p></div></div><div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: start;"><span style="font-size: 13.6px; font-weight: 700; padding-top: 22px;">② 转写引擎没填 key</span><div style="display: flex; flex-direction: column; gap: 6px;"><div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 24px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 14px; padding: 16px 18px; min-height: 72px;  opacity: 0.45;"><span style="width: 40px; height: 40px; border-radius: 14px; background: var(--section); display: flex; align-items: center; justify-content: center; flex: none; color: var(--accent-deep);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><path d="M7 12.5h6"></path><path d="M15.5 12.5h1.5"></path><path d="M7 16h3"></path><path d="M12.5 16h4.5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">实时字幕</span><span style="font-size: 13.6px; color: var(--dim);">给正在播放的视频、直播、会议配双语字幕</span></span><span style="color: var(--dim);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6l6 6-6 6"></path></svg></span></div></div><p style="margin: 0; padding: 0 4px; font-size: 13.6px; color: var(--dim);">转写引擎还没填 API Key　<span style="color: var(--link); text-decoration: underline; text-underline-offset: 3px; font-size: 13.6px; ">去设置里填写 →</span></p></div></div><div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 16px; align-items: start;"><span style="font-size: 13.6px; font-weight: 700; padding-top: 22px;">③ Mac 系统版本不够</span><div style="display: flex; flex-direction: column; gap: 6px;"><div style="background: var(--card); border: 1.5px solid var(--line); border-radius: 24px; overflow: hidden;"><div style="display: flex; align-items: center; gap: 14px; padding: 16px 18px; min-height: 72px;  opacity: 0.45;"><span style="width: 40px; height: 40px; border-radius: 14px; background: var(--section); display: flex; align-items: center; justify-content: center; flex: none; color: var(--accent-deep);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><rect x="3" y="4.5" width="18" height="15" rx="2.5"></rect><path d="M7 12.5h6"></path><path d="M15.5 12.5h1.5"></path><path d="M7 16h3"></path><path d="M12.5 16h4.5"></path></svg></span><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">实时字幕</span><span style="font-size: 13.6px; color: var(--dim);">给正在播放的视频、直播、会议配双语字幕</span></span><span style="color: var(--dim);"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display: block; flex: none;"><path d="M9 6l6 6-6 6"></path></svg></span></div></div><p style="margin: 0; padding: 0 4px; font-size: 13.6px; color: var(--dim);">系统声音字幕需要 macOS 14.4 或更新 —— 或在「对话」里让声音从扬声器放出来</p></div></div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false,"section":"主题"},"$preview":{"width":820,"height":490}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { rootClass: this.props.dark ? 'root dark' : 'root' };
+  }
+}
+</script>
+</body>
+</html>

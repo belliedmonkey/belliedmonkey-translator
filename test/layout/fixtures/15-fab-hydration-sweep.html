@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>fab survives hydration sweep</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 0; }
+  main { max-width: 640px; margin: 24px auto; }
+</style>
+<body>
+<main>
+  <p>A framework that hydrates late will sweep unknown children out of the body element.</p>
+  <p>The floating button must come back after such a sweep instead of vanishing forever.</p>
+</main>
+<script>
+  // Simulate Next.js/React hydration reconciliation: ~900ms after load, remove
+  // every DIRECT body child that was not in the initial markup (the extension's
+  // FAB is exactly such a child; translation siblings live inside <main>, untouched).
+  const initial = new Set(document.body.children);
+  setTimeout(() => {
+    for (const el of [...document.body.children]) {
+      if (!initial.has(el)) el.remove();
+    }
+    document.body.dataset.hydrated = '1';
+  }, 900);
+</script>
+<script type="application/json" id="mt-expect">
+{
+  "name": "fab-hydration-sweep",
+  "unitCount": 2,
+  "timeoutMs": 20000,
+  "requireFab": true,
+  "targets": [
+    {
+      "sel": "main > p",
+      "assert": [
+        "sameLeft:2",
+        "sameWidth:2"
+      ]
+    }
+  ]
+}
+</script>
+</body>
+</html>
