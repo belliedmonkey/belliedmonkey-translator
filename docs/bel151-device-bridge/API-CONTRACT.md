@@ -10,7 +10,17 @@
   - **base 以增长冻结为准** — if growth RESULT DIFF paths/fields, follow DIFF.
 
 ## Auth
-- Bearer OAuth for logged-in App user; oauth_sub from token only; ban cross-account.
+- Bearer **must be an MCP OAuth access token** (public client, PKCE S256,
+  `token_endpoint_auth_method=none`, scope `mcp:read mcp:write offline_access`).
+  A LearnAuth / GoTrue session token is **not** an MCP grant and must never be
+  presented here; a probe that sees one calls the path wrong, not passing.
+- The App registers its public client with DCR (`/oauth/register`, client_name
+  `belliedmonkey-app <flavor>`, redirect `belliedmonkey://oauth/mcp/callback` /
+  `belliedmonkeycn://oauth/mcp/callback`) and exchanges only **after** the local
+  pairing confirm and **before** `register` (src/app/mcp-oauth-client.js).
+- Refresh token → system Keychain service `mt.mcp.oauth` (account `mcp_refresh`),
+  a separate slot from `device_cred`; never UserDefaults / a plaintext file.
+- oauth_sub from token only; ban cross-account.
 
 ## Endpoints
 | Method | Path | Purpose |
@@ -38,4 +48,7 @@
 2. Ban localhost companion as Remote truth
 3. Ban 听译已通 / 完整 D3 copy
 4. Mac P0 only
-5. 401 → clear device_cred, stop heartbeat
+5. 401 → clear MCP access + device_cred, stop heartbeat; status says
+   「需重新允许连接此设备」 (never a fake paired)
+6. Refresh rejected for good (invalid_grant) → clear both Keychain slots + owner;
+   a network failure keeps them (one retry) and is reported as network, not revoked

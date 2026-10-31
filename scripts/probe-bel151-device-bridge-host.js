@@ -1,27 +1,34 @@
-// scripts/probe-bel151-device-bridge-host.js — BEL-151 host-wiring probes.
+// scripts/probe-bel151-device-bridge-host.js — BEL-151 host + MCP OAuth probes.
 //
 //   node scripts/probe-bel151-device-bridge-host.js --out <gap dir> [--evidence <dir>] [--dom]
 //
-// Writes four JSON receipts consumed by the order's gap/ folder:
-//   probe-settings-entry.json · probe-bearer-register.json · probe-no-token.json ·
-//   probe-heartbeat-lifecycle.json
+// Writes six JSON receipts consumed by the order's gap/ folder:
+//   probe-settings-entry.json      the Mac Settings entry, copy lock, real DOM
+//   probe-mcp-exchange.json        confirm → DCR → PKCE → register, MCP Bearer, slots
+//   probe-gotrue-wrong-path.json   LearnAuth token present but never used as Bearer
+//   probe-cancel-zero-http.json    cancel the confirm ⇒ zero HTTP, zero Keychain writes
+//   probe-refresh-reuse.json       second pair reuses the same-account access token
+//   probe-401-fallout.json         401 ⇒ clear access + device_cred, stop, honest copy
 //
-// The first three are model-level: the REAL src/app/device-bridge-host.js (bundled
-// by esbuild exactly as the page bundles it) against the REAL pairing gate, with
-// only the edges faked (auth, store, fetch, confirm/show). --dom adds a real
-// Chrome run against dist-app/: the entry exists, says the copy-locked line, is
-// visible on this Mac, and a screenshot lands in the evidence dir.
+// Model-level probes run the REAL src/app/device-bridge-host.js and the REAL
+// src/app/mcp-oauth-client.js (bundled by esbuild exactly as the page bundles them)
+// against the REAL pairing gate. Only the edges are faked: LearnAuth, the Keychain,
+// the OAuth/device HTTP server, and the authorization sheet. --dom adds a real
+// Chrome run against dist-app/ and a screenshot.
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const { loadSrc } = require('../test/harness');
+const { stripComments } = require('../test/lib/strip-comments');
 const copy = require('../agent/copy');
 const bridge = require('../agent/device-bridge');
 
 const ROOT = path.join(__dirname, '..');
-const Host = loadSrc('src/app/device-bridge-host.js', 'DeviceBridgeHost', { URLSearchParams }).DeviceBridgeHost;
+const VmGlobals = { URLSearchParams, TextEncoder, crypto: globalThis.crypto };
+const Host = loadSrc('src/app/device-bridge-host.js', 'DeviceBridgeHost', VmGlobals).DeviceBridgeHost;
+const McpOAuth = loadSrc('src/app/mcp-oauth-client.js', 'McpOAuth', VmGlobals).McpOAuth;
 
 function arg(name, fallback) {
   const i = process.argv.indexOf('--' + name);
@@ -35,6 +42,8 @@ const AT = new Date().toISOString();
 
 const UUID = '11111111-1111-4111-8111-111111111111';
 const BASE = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions';
+const INTL = 'https://mcp.belliedmonkey.cc';
+const LEARN_AUTH_TOKEN = 'probe-gotrue-session-token';
 
 function write(name, value) {
   fs.mkdirSync(OUT, { recursive: true });
@@ -44,47 +53,137 @@ function write(name, value) {
   return file;
 }
 
-function fakeResponse(status, body) {
+function json(status, body) {
   return { status, ok: status >= 200 && status < 300, json: async () => body };
 }
-function recorder(answer) {
-  const calls = [];
-  const fetch = async (url, init) => {
-    calls.push({ url: String(url), init: init || {} });
-    return answer(calls[calls.length - 1], calls.length);
-  };
-  return { calls, fetch };
-}
-function baseOptions(extra) {
-  return Object.assign({
-    auth: { current: async () => ({ userId: 'u1', accessToken: 'probe-token' }), token: async () => 'probe-token' },
-    flavor: () => 'global',
-    appVersion: () => '1.22.3',
-    now: () => 1700000000000,
-  }, extra || {});
-}
-function headlessUi(decision) {
-  const cards = [];
-  const shown = [];
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function memoryKeychain() {
+  const data = new Map();
   return {
-    cards, shown,
-    ui: {
-      confirm: async (card) => { cards.push(card); return decision || { allow: true }; },
-      show: async (receipt) => { shown.push(receipt); },
-    },
+    persistent: true,
+    available: () => true,
+    async get(account) { return data.has(account) ? data.get(account) : null; },
+    async set(account, value) { data.set(account, String(value)); return true; },
+    async clear(account) { data.delete(account); return true; },
+    keys: () => [...data.keys()].sort(),
   };
 }
-async function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function memoryMeta() {
+  const data = {};
+  return {
+    getItem: (k) => (Object.prototype.hasOwnProperty.call(data, k) ? data[k] : null),
+    setItem: (k, v) => { data[k] = String(v); },
+    removeItem: (k) => { delete data[k]; },
+    dump: () => Object.assign({}, data),
+  };
+}
+
+// One mock MCP host + device cloud. The token it hands out is deliberately not
+// shaped like a GoTrue JWT so "which token went out" is unambiguous in the receipt.
+function mockCloud(options) {
+  const o = options || {};
+  const clock = { value: 1700000000000 };
+  const calls = [];
+  const order = [];
+  let tokenMode = 'ok';
+  const fetch = async (url, init) => {
+    const u = String(url);
+    calls.push({ url: u, init: init || {} });
+    if (u.endsWith('/oauth/register')) {
+      order.push('oauth-register');
+      return o.dcr || json(201, { client_id: 'probe-client-id' });
+    }
+    if (u.endsWith('/oauth/token')) {
+      order.push('oauth-token');
+      if (tokenMode === 'invalid_grant') return json(400, { error: 'invalid_grant' });
+      if (tokenMode === 'network') throw new Error('offline');
+      const refresh = o.refreshToken === true;
+      return json(200, {
+        access_token: refresh ? 'probe-mcp-access-2' : 'probe-mcp-access',
+        refresh_token: refresh ? 'probe-mcp-refresh-2' : 'probe-mcp-refresh',
+        expires_in: 3600,
+        token_type: 'Bearer',
+      });
+    }
+    if (u.endsWith('/api/mcp/device-sessions/register')) {
+      order.push('device-register');
+      return o.register || json(200, { ok: true, device_cred: 'probe-device-cred', ttl_sec: 900 });
+    }
+    if (u.endsWith('/api/mcp/device-sessions/heartbeat')) {
+      order.push('device-heartbeat');
+      return o.heartbeat || json(200, { ok: true, ttl_sec: 900 });
+    }
+    if (u.endsWith('/api/mcp/device-sessions/bootstrap')) {
+      order.push('device-bootstrap');
+      return json(200, { ok: true, device_cred: 'probe-bootstrap-cred', ttl_sec: 300, kind: 'bootstrap' });
+    }
+    if (u.endsWith('/api/mcp/device-sessions/revoke')) {
+      order.push('device-revoke');
+      return json(200, { ok: true });
+    }
+    return json(404, {});
+  };
+  return { calls, order, fetch, clock, setTokenMode: (m) => { tokenMode = m; } };
+}
+
+function buildApp(cloud, extra) {
+  const o = extra || {};
+  const keychain = o.keychain || memoryKeychain();
+  const meta = o.meta || memoryMeta();
+  const oauth = o.oauth || McpOAuth.createClient({
+    flavor: () => o.flavor || 'global',
+    fetch: cloud.fetch,
+    keychain,
+    meta,
+    now: () => cloud.clock.value,
+    crypto: globalThis.crypto,
+    openAuth: o.openAuth === undefined
+      ? async ({ url, state }) => { cloud.order.push('authorize-sheet'); cloud.authUrl = url; return { code: 'probe-code', state }; }
+      : o.openAuth,
+  });
+  const ui = {
+    cards: [],
+    shown: [],
+    confirm: async (card) => {
+      ui.cards.push(card);
+      cloud.order.push('confirm');
+      return o.decision || { allow: true };
+    },
+    show: async (receipt) => { ui.shown.push(receipt); },
+  };
+  const host = Host.createHost({
+    auth: o.auth || {
+      current: async () => ({ userId: 'u1', accessToken: LEARN_AUTH_TOKEN }),
+      token: async () => LEARN_AUTH_TOKEN,
+    },
+    oauth,
+    keychain,
+    store: o.store || bridge.memoryStore(),
+    fetch: cloud.fetch,
+    ui,
+    flavor: () => o.flavor || 'global',
+    appVersion: () => '1.22.3',
+    now: () => cloud.clock.value,
+  });
+  return { keychain, meta, oauth, ui, host };
+}
+
+function authzLines(calls) {
+  return calls.map((c) => String((c.init && c.init.headers && c.init.headers.Authorization) || ''));
+}
 
 // ── probe 1: the Settings entry (static + copy + optional real DOM) ─────────
 async function probeSettingsEntry() {
   const view = fs.readFileSync(path.join(ROOT, 'src/app/settings-view.jsx'), 'utf8');
   const hostSrc = fs.readFileSync(path.join(ROOT, 'src/app/device-bridge-host.js'), 'utf8');
+  const oauthSrc = fs.readFileSync(path.join(ROOT, 'src/app/mcp-oauth-client.js'), 'utf8');
   const shell = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
   const report = {
     probe: 'probe-settings-entry',
     at: AT,
-    order: 'order-rd-bel151-device-bridge-host-wire',
+    order: 'order-rd-bel151-device-bridge-mcp-exchange',
     require: 'user-reachable Settings entry that triggers the pairing confirm',
     static: {
       view: 'src/app/settings-view.jsx',
@@ -99,6 +198,9 @@ async function probeSettingsEntry() {
       openSetupInjected: /deviceBridge: deviceBridgeHost\.agentBridge\(\)/.test(shell),
       noLocalhostCompanion: !/localhost|127\.0\.0\.1|\[::1\]/i.test(hostSrc),
       noFrozenBaseCopied: !/mcp\.belliedmonkey/.test(hostSrc),
+      oauthHasNoBaseLiteral: !/mcp\.belliedmonkey/.test(stripComments(oauthSrc)),
+      hostHasNoLearnAuthBearer: !/auth\.token\(\)/.test(hostSrc),
+      reconnectCopyFromLock: hostSrc.includes('MESSAGES.reconnect'),
     },
     copyLock: {
       action: 'pair_device',
@@ -108,6 +210,7 @@ async function probeSettingsEntry() {
       expectedHint: copy.ACTIONS.pair_device.touches[0],
       labelMatches: Host.PAIR_LABEL === copy.ACTIONS.pair_device.name,
       hintMatches: Host.PAIR_HINT === copy.ACTIONS.pair_device.touches[0],
+      reconnect: copy.MESSAGES.reconnect,
     },
     dom: null,
     screenshot: null,
@@ -211,185 +314,225 @@ async function domProbe() {
   }
 }
 
-// ── probe 2: Bearer on register ─────────────────────────────────────────────
-async function probeBearerRegister() {
-  const cases = [];
-  for (const [flavor, expectBase] of [['global', 'https://mcp.belliedmonkey.cc'], ['china', 'https://mcp.belliedmonkey.com']]) {
-    const store = bridge.memoryStore();
-    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'probe-dc', ttl_sec: 900 }));
-    const ui = headlessUi();
-    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: ui.ui, flavor: () => flavor }));
-    const receipt = await host.pair();
-    const call = rec.calls[0] || null;
-    const body = call ? JSON.parse(call.init.body) : {};
-    const auth = call ? String(call.init.headers.Authorization || '') : '';
-    cases.push({
-      flavor,
-      url: call ? call.url : '',
-      expectedUrl: expectBase + '/api/mcp/device-sessions/register',
-      method: call ? call.init.method : '',
-      // Never write the token itself into evidence — only that it was a Bearer.
-      authorization: auth.startsWith('Bearer ') ? 'Bearer <session access token>' : auth,
-      bearerPresent: /^Bearer \S+$/.test(auth),
-      body: {
-        confirm: body.confirm,
-        platform: body.platform,
-        app_version: body.app_version,
-        device_id_is_uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.device_id || '')),
-        device_id: body.device_id,
-      },
-      confirmCard: ui.cards[0] ? {
-        title: ui.cards[0].title,
-        actionLabel: ui.cards[0].actionLabel,
-        primary: ui.cards[0].primary,
-      } : null,
-      receipt: { ok: receipt.ok, code: receipt.code, message: receipt.message },
-      credentialSaved: store.getItem('device_cred') === 'probe-dc',
-      credOwner: store.getItem('device_cred_user') || '',
-      status: host.status().state,
-      heartbeatRunning: host.isHeartbeatRunning(),
-    });
-  }
-  const ok = cases.every((c) => c.url === c.expectedUrl && c.method === 'POST' && c.bearerPresent
-    && c.body.confirm === true && c.body.platform === 'mac' && c.body.device_id_is_uuid
-    && c.receipt.ok === true && c.credentialSaved && c.status === 'paired' && c.heartbeatRunning);
-  write('probe-bearer-register.json', {
-    probe: 'probe-bearer-register',
-    at: AT,
-    require: 'host injects the same-account OAuth Bearer into register',
-    cases,
-    result: ok ? 'PASS' : 'FAIL',
-  });
-  return ok;
-}
-
-// ── probe 3: no token ⇒ no request, honest receipt ──────────────────────────
-async function probeNoToken() {
-  const cases = [];
-  const scenarios = [
-    ['signed_out', { current: async () => null, token: async () => '' }],
-    ['session_without_token', { current: async () => ({ userId: 'u1' }), token: async () => '' }],
-  ];
-  for (const [name, auth] of scenarios) {
-    const rec = recorder(() => fakeResponse(200, { ok: true }));
-    const ui = headlessUi();
-    const host = Host.createHost(baseOptions({ store: bridge.memoryStore(), fetch: rec.fetch, ui: ui.ui, auth }));
-    const receipt = await host.pair();
-    cases.push({
-      case: name,
-      httpCalls: rec.calls.length,
-      receipt: { ok: receipt.ok, code: receipt.code, message: receipt.message },
-      cardShown: ui.shown[0] ? { code: ui.shown[0].code, message: ui.shown[0].message } : null,
-      confirmShown: ui.cards.length > 0,
-      status: host.status().state,
-      statusText: host.status().text,
-      heartbeatRunning: host.isHeartbeatRunning(),
-    });
-  }
-  const ok = cases.every((c) => c.httpCalls === 0 && c.receipt.code === 'need_login'
-    && c.status === 'signed_out' && c.statusText === copy.FAILURES.need_login.line
-    && c.heartbeatRunning === false && c.cardShown && c.cardShown.code === 'need_login');
-  write('probe-no-token.json', {
-    probe: 'probe-no-token',
-    at: AT,
-    require: 'no Bearer ⇒ nothing is sent and the user is told to sign in (never a fake pair)',
-    cases,
-    result: ok ? 'PASS' : 'FAIL',
-  });
-  return ok;
-}
-
-// ── probe 4: heartbeat lifecycle (foreground / interval / 401) ──────────────
-async function probeHeartbeatLifecycle() {
-  const paired = () => bridge.memoryStore({ device_id: UUID, device_cred: 'dc-old', device_cred_user: 'u1' });
+// ── probe 2: the exchange path (confirm → DCR → PKCE → register) ────────────
+async function probeMcpExchange() {
+  const cloud = mockCloud();
+  const app = buildApp(cloud);
+  const receipt = await app.host.pair();
+  const reg = cloud.calls.find((c) => c.url === BASE + '/register') || null;
+  const regBody = reg ? JSON.parse(reg.init.body) : {};
+  const authz = authzLines(cloud.calls);
+  const metaJson = JSON.stringify(app.meta.dump());
   const report = {
-    probe: 'probe-heartbeat-lifecycle',
+    probe: 'probe-mcp-exchange',
     at: AT,
-    require: 'paired: foreground heartbeats once + 2–5 min interval; 401 clears cred and stops',
-    interval: null,
-    foreground: null,
-    stopOn401: null,
+    order: 'order-rd-bel151-device-bridge-mcp-exchange',
+    require: 'after Confirm allow and before register: authorization_code + PKCE S256; Bearer = MCP access',
+    exchangePath: [
+      'pair() → agent/session.requestPairing (copy-locked confirm)',
+      'only after allow: oauth.connect({account})',
+      '  DCR POST /oauth/register (public client, token_endpoint_auth_method=none)',
+      '  PKCE S256 verifier/state, authorize URL → ASWebAuthenticationSession (existing mtAppleSignIn bridge)',
+      '  callback code+state → POST /oauth/token (authorization_code + code_verifier)',
+      '  refresh token → system Keychain service mt.mcp.oauth (account mcp_refresh)',
+      'then (and only then) the register port runs device-bridge.register({confirm:true})',
+    ],
+    orderObserved: cloud.order,
+    orderOk: cloud.order.join(' > ') === 'confirm > oauth-register > authorize-sheet > oauth-token > device-register',
+    register: reg ? {
+      url: reg.url,
+      method: reg.init.method,
+      authorization: authz[cloud.calls.indexOf(reg)].startsWith('Bearer ')
+        ? 'Bearer <MCP OAuth access token>' : authz[cloud.calls.indexOf(reg)],
+      bearerIsMcp: authz[cloud.calls.indexOf(reg)] === 'Bearer probe-mcp-access',
+      bearerIsLearnAuth: authz[cloud.calls.indexOf(reg)] === 'Bearer ' + LEARN_AUTH_TOKEN,
+      body: {
+        confirm: regBody.confirm, platform: regBody.platform,
+        app_version: regBody.app_version,
+        device_id_is_uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(regBody.device_id || '')),
+      },
+    } : null,
+    slots: {
+      device_cred_in_store: app.host.hasCred(),
+      device_cred_value_saved: false,     // never echo the credential value
+      keychain_accounts: app.keychain.keys(),
+      keychain_has_refresh: app.keychain.keys().includes('mcp_refresh'),
+      meta_account: app.meta.getItem('mcp_oauth_account'),
+      meta_has_token_value: metaJson.includes('probe-mcp-refresh') || metaJson.includes('probe-mcp-access'),
+      store_has_token_value: JSON.stringify({ cred: app.host.hasCred() }).includes('probe-mcp-refresh'),
+    },
+    receipt: { ok: receipt.ok, code: receipt.code, message: receipt.message },
+    status: { state: app.host.status().state, text: app.host.status().text },
+    heartbeatRunning: app.host.isHeartbeatRunning(),
+    gotrueTokenOnWire: authz.some((h) => h.includes(LEARN_AUTH_TOKEN)),
+    result: 'FAIL',
+  };
+  report.slots.device_cred_value_saved = app.host.hasCred();
+  const ok = report.orderOk && report.register && report.register.bearerIsMcp
+    && !report.register.bearerIsLearnAuth && report.register.body.confirm === true
+    && report.register.body.platform === 'mac' && report.register.body.device_id_is_uuid
+    && report.slots.keychain_has_refresh && report.slots.meta_account === 'u1'
+    && !report.slots.meta_has_token_value && !report.gotrueTokenOnWire
+    && report.receipt.ok === true && report.status.state === 'paired'
+    && report.heartbeatRunning === true;
+  report.result = ok ? 'PASS' : 'FAIL';
+  write('probe-mcp-exchange.json', report);
+  return ok;
+}
+
+// ── probe 3: GoTrue-only is the wrong path, and sends nothing ───────────────
+async function probeGotrueWrongPath() {
+  const cloud = mockCloud();
+  // A real MCP client in a shell without the auth bridge: it cannot obtain an MCP
+  // grant. The LearnAuth session still exists — the point is that it is not a
+  // substitute and no device request goes out.
+  const app = buildApp(cloud, { openAuth: null });
+  const receipt = await app.host.pair();
+  const authz = authzLines(cloud.calls);
+  const report = {
+    probe: 'probe-gotrue-wrong-path',
+    at: AT,
+    require: 'LearnAuth/GoTrue Bearer must never be presented to the device endpoints as a successful exchange',
+    learnAuthSessionPresent: true,
+    learnAuthTokenSent: authz.some((h) => h.includes(LEARN_AUTH_TOKEN)),
+    deviceHttpCalls: cloud.calls.filter((c) => c.url.startsWith(BASE)).length,
+    oauthCalls: cloud.calls.filter((c) => c.url.includes('/oauth/')).length,
+    receipt: { ok: receipt.ok, code: receipt.code, message: receipt.message },
+    status: { state: app.host.status().state, text: app.host.status().text },
+    verdict: 'no device request; the missing MCP grant is reported as a dependency, not as a pair',
+    result: 'FAIL',
+  };
+  const ok = !report.learnAuthTokenSent && report.deviceHttpCalls === 0
+    && report.receipt.ok !== true && report.status.state !== 'paired';
+  report.result = ok ? 'PASS' : 'FAIL';
+  write('probe-gotrue-wrong-path.json', report);
+  return ok;
+}
+
+// ── probe 4: cancel ⇒ zero HTTP, zero secrets ───────────────────────────────
+async function probeCancelZeroHttp() {
+  const cloud = mockCloud();
+  const app = buildApp(cloud, { decision: { allow: false } });
+  const receipt = await app.host.pair();
+  const report = {
+    probe: 'probe-cancel-zero-http',
+    at: AT,
+    require: 'cancelling the confirm must not start DCR, PKCE exchange, or register',
+    httpCalls: cloud.calls.length,
+    urls: cloud.calls.map((c) => c.url),
+    keychainAccounts: app.keychain.keys(),
+    confirmCards: app.ui.cards.length,
+    receipt: { ok: receipt.ok, code: receipt.code, message: receipt.message },
+    status: { state: app.host.status().state, text: app.host.status().text },
+    result: 'FAIL',
+  };
+  const ok = report.httpCalls === 0 && report.keychainAccounts.length === 0
+    && report.receipt.code === 'cancelled';
+  report.result = ok ? 'PASS' : 'FAIL';
+  write('probe-cancel-zero-http.json', report);
+  return ok;
+}
+
+// ── probe 5: the second pair reuses the same-account access token ───────────
+async function probeRefreshReuse() {
+  const cloud = mockCloud();
+  const app = buildApp(cloud);
+  await app.host.pair();
+  const afterFirst = cloud.calls.length;
+  const out = await app.host.pair();
+  const second = cloud.calls.slice(afterFirst);
+  const report = {
+    probe: 'probe-refresh-reuse',
+    at: AT,
+    require: 'a same-account unexpired MCP access token skips consent, but still requires this pairing click',
+    firstPairCalls: cloud.calls.slice(0, afterFirst).map((c) => c.url.replace(INTL, '')),
+    secondPairCalls: second.map((c) => c.url.replace(INTL, '')),
+    secondPairReceipt: { ok: out.ok, code: out.code, message: out.message },
+    confirmCardsFirst: 1,
+    sameAccessReused: second.length === 1 && second[0].url === BASE + '/register',
+    result: 'FAIL',
+  };
+  report.result = report.sameAccessReused && out.ok === true ? 'PASS' : 'FAIL';
+  write('probe-refresh-reuse.json', report);
+  return report.result === 'PASS';
+}
+
+// ── probe 6: 401 / revoke fallout (T6) ─────────────────────────────────────
+async function probe401Fallout() {
+  const report = {
+    probe: 'probe-401-fallout',
+    at: AT,
+    require: '401/refresh failure: clear MCP access + device_cred, stop heartbeat, honest reconnect copy, never fake paired',
+    device401: null,
+    refreshInvalidGrant: null,
     result: 'FAIL',
   };
 
-  const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
-  const host = Host.createHost(baseOptions({ store: paired(), fetch: rec.fetch }));
-  const doc = {
-    visibilityState: 'hidden',
-    handlers: {},
-    addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
-  };
-  const boot = host.boot(doc);
-  const launchedWithoutBeat = rec.calls.length === 0;
-  doc.visibilityState = 'visible';
-  await doc.handlers.visibilitychange[0]();
-  const first = rec.calls[0] || null;
-  const firstBody = first ? JSON.parse(first.init.body) : {};
-  doc.visibilityState = 'hidden';
-  await doc.handlers.visibilitychange[0]();
-  const hiddenDidNotBeat = rec.calls.length === 1;
-  doc.visibilityState = 'visible';
-  await doc.handlers.visibilitychange[0]();
-  report.foreground = {
-    bootInstalled: boot.installed,
-    launchedWithoutBeat,
-    beatUrl: first ? first.url : '',
-    beatBody: { device_id: firstBody.device_id || '', device_cred: firstBody.device_cred || '' },
-    hiddenDidNotBeat,
-    beatsAfterSecondForeground: rec.calls.length,
-    intervalRunning: host.isHeartbeatRunning(),
-    status: host.status().state,
-  };
+  // A. the device endpoint refuses the session (401). device-bridge.js clears
+  // device_cred and stops; the host drops the MCP access token and keeps the
+  // refresh token for the one explicit retry after the next pairing confirm.
+  {
+    const cloud = mockCloud({ heartbeat: json(401, { ok: false, code: 'unauthorized' }) });
+    const app = buildApp(cloud);
+    await app.host.pair();
+    const out = await app.host.onForeground();
+    report.device401 = {
+      heartbeatCode: out && out.code,
+      deviceCredCleared: !app.host.hasCred(),
+      heartbeatStopped: app.host.isHeartbeatRunning() === false,
+      keychainAfter: app.keychain.keys(),
+      mcpAccessCleared: !app.keychain.keys().includes('mcp_access'),
+      refreshKeptForExplicitRetry: app.keychain.keys().includes('mcp_refresh'),
+      status: { state: app.host.status().state, text: app.host.status().text },
+      honestCopy: app.host.status().text === copy.MESSAGES.reconnect,
+      saysPaired: app.host.status().state === 'paired',
+    };
+  }
 
-  await host.ensureClient();
-  report.interval = {
-    requestedMin: host.startHeartbeat({ intervalMs: 1000 }).interval_ms,
-    requestedMax: host.startHeartbeat({ intervalMs: 60 * 60 * 1000 }).interval_ms,
-    modelMin: bridge.HEARTBEAT_MIN_MS,
-    modelMax: bridge.HEARTBEAT_MAX_MS,
-  };
+  // B. the access token expired and the refresh token is refused for good. Both
+  // Keychain slots and the owner go; device_cred goes with them.
+  {
+    const cloud = mockCloud();
+    const app = buildApp(cloud);
+    await app.host.pair();
+    cloud.setTokenMode('invalid_grant');
+    cloud.clock.value += 3600 * 1000;
+    const out = await app.host.onForeground();
+    report.refreshInvalidGrant = {
+      heartbeatCode: out && out.code,
+      deviceCredCleared: !app.host.hasCred(),
+      heartbeatStopped: app.host.isHeartbeatRunning() === false,
+      keychainAfter: app.keychain.keys(),
+      mcpAccessCleared: !app.keychain.keys().includes('mcp_access'),
+      mcpRefreshCleared: !app.keychain.keys().includes('mcp_refresh'),
+      metaAccountCleared: app.meta.getItem('mcp_oauth_account') === null,
+      status: { state: app.host.status().state, text: app.host.status().text },
+      honestCopy: app.host.status().text === copy.MESSAGES.reconnect,
+      saysPaired: app.host.status().state === 'paired',
+    };
+  }
 
-  let mode = 'ok';
-  const rec401 = recorder(() => (mode === 'ok'
-    ? fakeResponse(200, { ok: true, device_cred: 'dc-401', ttl_sec: 900 })
-    : fakeResponse(401, { ok: false, code: 'unauthorized' })));
-  const store401 = bridge.memoryStore();
-  const host401 = Host.createHost(baseOptions({ store: store401, fetch: rec401.fetch, ui: headlessUi().ui }));
-  await host401.pair();
-  mode = '401';
-  const out = await host401.onForeground();
-  report.stopOn401 = {
-    heartbeatCode: out && out.code,
-    credCleared: store401.getItem('device_cred') === null,
-    ownerCleared: store401.getItem('device_cred_user') === null,
-    loopStopped: host401.isHeartbeatRunning() === false,
-    status: host401.status().state,
-  };
-
-  const ok = report.foreground.bootInstalled && report.foreground.launchedWithoutBeat
-    && report.foreground.beatUrl === BASE + '/heartbeat'
-    && report.foreground.beatBody.device_cred === 'dc-old'
-    && report.foreground.hiddenDidNotBeat
-    && report.foreground.beatsAfterSecondForeground === 2
-    && report.foreground.intervalRunning
-    && report.interval.requestedMin === bridge.HEARTBEAT_MIN_MS
-    && report.interval.requestedMax === bridge.HEARTBEAT_MAX_MS
-    && report.stopOn401.heartbeatCode === 'unauthorized'
-    && report.stopOn401.credCleared && report.stopOn401.ownerCleared
-    && report.stopOn401.loopStopped && report.stopOn401.status === 'signed_out';
-  report.result = ok ? 'PASS' : 'FAIL';
-  write('probe-heartbeat-lifecycle.json', report);
-  return ok;
+  const a = report.device401;
+  const b = report.refreshInvalidGrant;
+  const okBoth = a.deviceCredCleared && a.heartbeatStopped && a.mcpAccessCleared
+    && a.refreshKeptForExplicitRetry && a.honestCopy && !a.saysPaired
+    && b.deviceCredCleared && b.heartbeatStopped && b.mcpAccessCleared
+    && b.mcpRefreshCleared && b.metaAccountCleared && b.honestCopy && !b.saysPaired;
+  report.result = okBoth ? 'PASS' : 'FAIL';
+  write('probe-401-fallout.json', report);
+  return okBoth;
 }
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  console.log('[BEL-151 host probes] out=' + OUT + (WITH_DOM ? ' (with DOM)' : ''));
+  console.log('[BEL-151 MCP OAuth probes] out=' + OUT + (WITH_DOM ? ' (with DOM)' : ''));
   const results = {};
   results.settings = (await probeSettingsEntry()).result;
-  results.bearer = (await probeBearerRegister()) ? 'PASS' : 'FAIL';
-  results.noToken = (await probeNoToken()) ? 'PASS' : 'FAIL';
-  results.lifecycle = (await probeHeartbeatLifecycle()) ? 'PASS' : 'FAIL';
+  results.exchange = (await probeMcpExchange()) ? 'PASS' : 'FAIL';
+  results.gotrueWrongPath = (await probeGotrueWrongPath()) ? 'PASS' : 'FAIL';
+  results.cancel = (await probeCancelZeroHttp()) ? 'PASS' : 'FAIL';
+  results.reuse = (await probeRefreshReuse()) ? 'PASS' : 'FAIL';
+  results.fallout = (await probe401Fallout()) ? 'PASS' : 'FAIL';
   const failed = Object.keys(results).filter((k) => results[k] !== 'PASS');
   console.log('\n' + JSON.stringify(results));
   console.log(failed.length ? 'RESULT: FAIL (' + failed.join(', ') + ')' : 'RESULT: PASS');

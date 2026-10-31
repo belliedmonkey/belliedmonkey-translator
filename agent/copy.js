@@ -144,6 +144,10 @@ const MESSAGES = {
   gapPrefix: '缺口 ',
   openedSetup: '已打开设置',
   paired: '已连接此设备',
+  // BEL-151 / T6: the device credential or the MCP grant was refused (401) or the
+  // refresh token is gone. "需要登录" would send a signed-in user to a screen that
+  // changes nothing; this says the actual next step — allow the device again.
+  reconnect: '需重新允许连接此设备',
   openedSubtitles: '已打开实时双语字幕。点「开始」后才会使用麦克风。',
   captured: '已收进复习',
   explained: '已开始解析',

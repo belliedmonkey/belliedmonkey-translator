@@ -5,32 +5,42 @@
 // takes getAccessToken / store / fetch as options on purpose. This module is the
 // App half of that contract, and it invents no transport of its own:
 //
-//   · getAccessToken ← the signed-in LearnAuth session (refresh included). Empty
-//     token means no request goes out, and the user is told to sign in — never a
-//     silent no-op and never a fake "paired".
+//   · getAccessToken ← **MCP OAuth access** (src/app/mcp-oauth-client.js), never
+//     LearnAuth/GoTrue. An empty token means no request goes out, and the user is
+//     told the honest thing (sign in, or allow this device again) — never a fake
+//     "paired".
 //   · store ← this install's chrome.storage.local, read once into a synchronous
 //     cache (the device client needs a sync get/set) and written through. One
 //     device_id per install; the device_cred is cleared on 401/403 by the client.
+//     MCP refresh tokens are NOT here: they live in the system Keychain under their
+//     own service (mcp-oauth-client.js), a separate slot from device_cred.
 //   · pair() ← the Settings entry. It asks agent/session.requestPairing, so the
 //     existing needsConfirm gate is the one that runs, and the confirm card is the
 //     copy-locked one (agent/copy.js ACTIONS.pair_device). Cancelling sends
-//     nothing.
+//     nothing. The PKCE exchange is injected as the register port, so it can only
+//     run after that gate has passed and before the device POST.
 //   · boot() ← the foreground lifecycle: one heartbeat on launch / return to
 //     foreground, plus the client's own 2–5 minute interval while paired.
 //   · agentBridge() ← the same client for shell-model's agent host, so an
-//     inbound open_setup's short-lived bootstrap also has a Bearer path.
+//     inbound open_setup's short-lived bootstrap also has an MCP Bearer path.
+//
+// LearnAuth is still the login / userId gate and the cross-account check. It is
+// never a bearer for the device endpoints.
 //
 // It does not claim listening works, does not open the microphone, and does not
 // make a machine-local companion a truth source.
 //
-// Every side effect is injectable: createHost({ bridge, auth, store, storage,
-// fetch, now, appVersion, flavor, ui, timers }).
+// Every side effect is injectable: createHost({ bridge, auth, oauth, keychain,
+// store, storage, fetch, now, appVersion, flavor, ui, timers }).
 
 import Bridge from '../../agent/device-bridge.js';
 import { ACTIONS, MESSAGES, failureRow } from '../../agent/copy.js';
 import { requestPairing } from '../../agent/session.js';
+import { hasGrant } from '../../agent/grants-model.js';
 import { pairingUi } from './agent-face.js';
+import { createClient as createOAuthClient, META_KEYS as OAUTH_META } from './mcp-oauth-client.js';
 import Registry from '../lib/registry.js';
+
 
 export const PAIR_ACTION = 'pair_device';
 export const PAIR_BUTTON_ID = 'pair-device-btn';
@@ -43,12 +53,16 @@ export const PAIR_HINT = ACTIONS[PAIR_ACTION].touches[0];
 
 // The client's own keys plus one host key: which account asked for this pairing.
 // A device_cred belongs to the session that registered it, and a second account
-// signing in on the same Mac must not keep beating with it.
+// signing in on the same Mac must not keep beating with it. The MCP OAuth meta keys
+// (client_id / expiry / owner — no token values) share the same preload so the OAuth
+// client's synchronous meta surface works from the first call.
 const CRED_USER_KEY = 'device_cred_user';
-const STORED_KEYS = Object.values(Bridge.KEYS).concat([CRED_USER_KEY]);
+const STORED_KEYS = Object.values(Bridge.KEYS)
+  .concat([CRED_USER_KEY], Object.values(OAUTH_META));
 
 function statusText(state) {
   if (state === 'paired') return MESSAGES.paired;
+  if (state === 'reconnect') return MESSAGES.reconnect;
   if (state === 'signed_out' || state === 'unauthorized') return failureRow('need_login').line;
   if (state === 'network') return MESSAGES.network;
   return '';
@@ -119,9 +133,9 @@ export function createHost(options) {
       ? chrome.storage.local : null));
 
   let client = null;
+  let oauth = null;
   let bootedDoc = null;
   let grants = { device: {}, assistants: {} };
-  let lastTokenThrew = false;
   let status = { state: 'unknown', code: '', at: 0 };
   const subscribers = new Set();
 
@@ -134,30 +148,35 @@ export function createHost(options) {
     } catch (_) { return null; }
   }
 
-  async function getAccessToken() {
-    lastTokenThrew = false;
-    if (!auth) return '';
-    const session = await auth.current().catch(() => null);
-    if (!session) return '';
-    try {
-      const token = typeof auth.token === 'function' ? await auth.token() : session.accessToken;
-      return token ? String(token) : '';
-    } catch (_) {
-      lastTokenThrew = true;
-      return '';
-    }
+  // The MCP OAuth client is created once and shares the App's storage for its
+  // non-secret meta (client_id / expiry / owner). Tokens themselves are in the
+  // Keychain slot owned by mcp-oauth-client.js.
+  function ensureOauth() {
+    if (oauth) return oauth;
+    if (opts.oauth) { oauth = opts.oauth; return oauth; }
+    oauth = createOAuthClient({
+      flavor: flavorOf,
+      fetch: doFetch,
+      keychain: opts.keychain,
+      meta: store,
+      openAuth: opts.openAuth,
+      now,
+      crypto: opts.crypto,
+    });
+    return oauth;
   }
 
-  // A refresh rejected for good kills the LearnAuth session itself; a transient
-  // failure leaves it alone. Only the second one is a network story.
-  async function primeToken() {
-    if (!auth) return { ok: false, signedOut: true };
+  // **MCP OAuth access only.** LearnAuth is the login/userId gate, never a bearer
+  // for the device endpoints (a GoTrue token is not an MCP grant and the cloud
+  // rejects it). An empty string means the caller sends nothing.
+  async function getAccessToken() {
+    const session = await currentSession();
+    if (!session || !session.userId) return '';
     try {
-      await (typeof auth.token === 'function' ? auth.token() : Promise.resolve(''));
-      return { ok: true, signedOut: false };
+      const token = await ensureOauth().accessToken({ account: String(session.userId) });
+      return token ? String(token) : '';
     } catch (_) {
-      const still = await auth.current().catch(() => null);
-      return { ok: false, signedOut: !(still && still.userId) };
+      return '';
     }
   }
 
@@ -241,13 +260,20 @@ export function createHost(options) {
 
   // Signed out (or a different account on the same Mac): the old credential is
   // worthless. We cannot call revoke — that needs the token we just lost — so
-  // clear locally; the cloud's 900 s TTL is the backstop.
-  function noteSessionFallout(session) {
-    if (!session || !session.userId) { clearLocalCred(); stopHeartbeat(); return 'signed_out'; }
+  // clear locally; the cloud's 900 s TTL is the backstop. The MCP refresh token
+  // goes with it: it belongs to the account that is no longer here.
+  async function noteSessionFallout(session) {
+    if (!session || !session.userId) {
+      clearLocalCred();
+      stopHeartbeat();
+      try { await ensureOauth().clearTokens(); } catch (_) {}
+      return 'signed_out';
+    }
     const owner = store.getItem(CRED_USER_KEY);
     if (hasCred() && owner && owner !== session.userId) {
       clearLocalCred();
       stopHeartbeat();
+      try { await ensureOauth().clearTokens(); } catch (_) {}
       return 'switched';
     }
     return '';
@@ -255,7 +281,7 @@ export function createHost(options) {
 
   async function noteSession(session) {
     await store.ready();
-    const why = noteSessionFallout(session);
+    const why = await noteSessionFallout(session);
     if (why === 'signed_out') return setStatus({ state: 'signed_out', code: 'need_login' });
     if (why === 'switched') return setStatus({ state: 'unpaired', code: '' });
     return refreshStatus();
@@ -266,32 +292,39 @@ export function createHost(options) {
     const o = pairOptions || {};
     await store.ready();
     const session = await currentSession();
-    let login = !!(session && session.userId);
-    let tokenOk = true;
-    if (login) {
-      const primed = await primeToken();
-      tokenOk = primed.ok;
-      if (primed.signedOut) login = false;
-    }
+    const login = !!(session && session.userId);
     const ui = o.ui || defaultUi || pairingUi(o.onSignIn);
 
     if (!login) setStatus({ state: 'signed_out', code: 'need_login' });
-    else if (!tokenOk) setStatus({ state: 'network', code: 'network_unavailable' });
     else setStatus(hasCred() ? { state: 'paired', code: 'ok' } : { state: 'unpaired', code: '' });
 
     let bridgeClient = null;
     if (login) bridgeClient = await ensureClient();
 
+    // A remembered 「本机始终允许」 may skip the card. That is fine when an MCP grant
+    // already exists (nothing new is being minted), but if this pairing would have
+    // to open a browser consent, the user must see the copy-locked card again —
+    // "no new long-lived grant without a confirm, this time".
+    let ctxGrants = grants;
+    if (login && hasGrant(grants, 'pair_device', '')) {
+      let usable = false;
+      try { usable = await ensureOauth().hasGrant({ account: String(session.userId) }); } catch (_) { usable = false; }
+      if (!usable) ctxGrants = { device: {}, assistants: {} };
+    }
+
     const ctx = {
-      readiness: async () => ({ login, network: networkUp() && tokenOk }),
-      grants,
+      readiness: async () => ({ login, network: networkUp() }),
+      grants: ctxGrants,
       persistGrants(next) {
         grants = {
           device: (next && next.device) || {},
           assistants: (next && next.assistants) || {},
         };
       },
-      deviceBridge: bridgeClient || undefined,
+      // The register port is the ONLY place the PKCE exchange runs. runAgentAction
+      // calls it after preconditions + the confirm gate (or a remembered device
+      // grant) and before any device POST. Cancelling the card never reaches it.
+      deviceBridge: bridgeClient ? pairingBridge(bridgeClient, session) : undefined,
       hostConnected: true,
       ports: {},
     };
@@ -299,6 +332,35 @@ export function createHost(options) {
     const receipt = await requestPairing(ctx, ui);
     await finishPair(receipt, session);
     return receipt;
+  }
+
+  function pairingBridge(bridgeClient, session) {
+    const account = session && session.userId ? String(session.userId) : '';
+    return {
+      async register(callOptions) {
+        if (!account) return { ok: false, code: 'need_login', sent: false };
+        const prepared = await ensureOauth().connect({ account });
+        if (!prepared || prepared.ok !== true) {
+          return {
+            ok: false,
+            code: (prepared && prepared.code) || 'network_unavailable',
+            sent: false,
+            detail: (prepared && prepared.detail) || '',
+          };
+        }
+        const out = await bridgeClient.register(callOptions);
+        if (out && out.code === 'unauthorized') {
+          // The cloud refused the grant. Drop the access token (the refresh token
+          // stays for one explicit retry after the next pairing confirm) and stop
+          // the loop; the status says what the user must do, not "signed out".
+          store.removeItem(CRED_USER_KEY);
+          stopHeartbeat();
+          try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
+        }
+        return out;
+      },
+      bootstrap: (callOptions) => bridgeClient.bootstrap(callOptions),
+    };
   }
 
   async function finishPair(receipt, session) {
@@ -312,7 +374,17 @@ export function createHost(options) {
     }
     if (code === 'cancelled') return;          // user said no: nothing changed
     if (code === 'need_login') {
-      setStatus({ state: lastTokenThrew ? 'network' : 'signed_out', code: 'need_login' });
+      if (session && session.userId) {
+        // Signed in, but the device grant is gone: re-allowing the device is the
+        // honest next step ("sign in" would send them to a screen that changes
+        // nothing). The local device_cred is worthless without the MCP grant.
+        clearLocalCred();
+        stopHeartbeat();
+        try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+      } else {
+        setStatus({ state: 'signed_out', code: 'need_login' });
+      }
       return;
     }
     if (code === 'network_unavailable') { setStatus({ state: 'network', code }); return; }
@@ -330,7 +402,16 @@ export function createHost(options) {
     }
     if (!hasCred()) {
       stopHeartbeat();
-      setStatus({ state: 'unpaired', code: '' });
+      // After a 401 the credential is gone but "unpaired" would erase the honest
+      // "re-allow this device" state on the next foreground. Keep that state until
+      // the user pairs again (a fresh launch has no lastError and stays unpaired).
+      let mcp = {};
+      try { mcp = ensureOauth().state() || {}; } catch (_) {}
+      if (session.userId && (mcp.lastError === 'unauthorized' || mcp.lastError === 'invalid_grant')) {
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+      } else {
+        setStatus({ state: 'unpaired', code: '' });
+      }
       return { ok: false, code: 'not_paired', sent: false };
     }
     const owner = store.getItem(CRED_USER_KEY);
@@ -350,11 +431,29 @@ export function createHost(options) {
     if (out && out.ok) setStatus({ state: 'paired', code: 'ok' });
     else if (out && out.code === 'unauthorized') {
       // device-bridge.js already cleared device_cred and stopped the loop; the
-      // host's own "which account paired this" key goes with it.
+      // host's own "which account paired this" key goes with it. The MCP ACCESS
+      // token is dead too (T6): drop it, keep the refresh token for the one explicit
+      // retry after the next pairing confirm, and say re-allow the device.
       store.removeItem(CRED_USER_KEY);
-      setStatus({ state: 'signed_out', code: 'need_login' });
+      try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
+      stopHeartbeat();
+      setStatus({ state: 'reconnect', code: 'need_reconnect' });
     } else if (out && out.code === 'need_login') {
-      setStatus({ state: lastTokenThrew ? 'network' : 'signed_out', code: 'need_login' });
+      // Paired locally but no usable MCP access token. A transient refresh failure
+      // is a network story; anything else means the grant must be allowed again.
+      let mcp = {};
+      try { mcp = ensureOauth().state() || {}; } catch (_) {}
+      if (mcp.lastError === 'network') {
+        setStatus({ state: 'network', code: 'network_unavailable' });
+      } else if (session && session.userId) {
+        // T6: no usable MCP grant means the local pair cannot beat anymore. Clear
+        // device_cred as well, so the status cannot be mistaken for "paired".
+        clearLocalCred();
+        stopHeartbeat();
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+      } else {
+        setStatus({ state: 'signed_out', code: 'need_login' });
+      }
     } else if (out && (out.code === 'network_unavailable' || out.code === 'server_error')) {
       setStatus({ state: 'network', code: 'network_unavailable' });
     } else if (out && out.code === 'not_paired') setStatus({ state: 'unpaired', code: '' });
@@ -383,13 +482,21 @@ export function createHost(options) {
 
   // The same client, exposed as the object agent/session.js expects. Every call
   // resolves the client lazily, so it can be handed out before storage is ready.
+  // `register` is NOT here: pairing goes through pair()/pairingBridge so the OAuth
+  // exchange can never be reached without the local confirm gate.
   function agentBridge() {
     const withClient = (fn) => ensureClient().then(fn);
     return {
-      register: (o) => withClient((c) => c.register(o)),
-      heartbeat: () => withClient((c) => c.heartbeat()),
       bootstrap: (o) => withClient((c) => c.bootstrap(o)),
-      revoke: () => withClient((c) => c.revoke()),
+      heartbeat: () => withClient((c) => c.heartbeat()),
+      // T6: revoke ends the device session, so the MCP access token that was used
+      // for it goes too. The refresh token stays in its Keychain slot — the next
+      // pairing confirm may still find the same account and skip a browser consent.
+      revoke: () => withClient(async (c) => {
+        const out = await c.revoke();
+        try { await ensureOauth().invalidateAccess({ reason: 'revoked' }); } catch (_) {}
+        return out;
+      }),
       hasCred,
       isHeartbeatRunning,
       startHeartbeat: (o) => withClient((c) => c.startHeartbeat(o)),

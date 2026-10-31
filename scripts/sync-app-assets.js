@@ -272,6 +272,19 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ offline video asr install: test bridge block missing');
   }
+  // MCP OAuth 的 refresh token Keychain 槽（BEL-151）。**两个平台都装** ——
+  // 与 vault 那行不同，这里不能包 #if os(iOS)：Mac 正是这条功能的第一站。
+  // 锚在测试桥那一整块后面（与离线字幕同一处），不落进 vault 的 #if 里。
+  const MCPO_NEEDLE = 'MTMcpOAuth.shared.install';
+  const MCPO_LINES = '        MTMcpOAuth.shared.install(webView: self.webView)';
+  if (src.includes(MCPO_NEEDLE)) {
+    notes.push('mcp oauth install already patched');
+  } else if (src.includes(TESTB_LINES)) {
+    src = src.replace(TESTB_LINES, TESTB_LINES + '\n' + MCPO_LINES);
+    notes.push(src.includes(MCPO_NEEDLE) ? 'mcp oauth install patched' : '✗ mcp oauth install: test bridge block anchor missing');
+  } else {
+    notes.push('✗ mcp oauth install: test bridge block missing');
+  }
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
   // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
@@ -443,6 +456,11 @@ const BLOCKS = [
   //   · vault-bridge 是 mtVault 通道本身；attach 见 patchViewController 的 install 行
   { name: 'mt-vault-names', src: 'translate-ext/VaultNames.swift', label: 'vault names' },
   { name: 'mt-vault-bridge', src: 'vault-bridge.swift', label: 'vault bridge' },
+  // MCP OAuth 的 refresh token（BEL-151）：**独立**的 Keychain service
+  // （mt.mcp.oauth），两个平台都在。不并进 mtVault —— 那个槽是 iOS-only 且属于
+  // 引擎 key；两个凭据两种生命周期，清一个不能碰另一个。JS 半边：
+  // src/app/mcp-oauth-client.js（通道 mtMcpOAuth）；attach 见 patchViewController。
+  { name: 'mt-mcp-oauth', src: 'mcp-oauth-bridge.swift', label: 'mcp oauth bridge' },
   // §0.4 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
   // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
   // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。

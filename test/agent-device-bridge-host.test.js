@@ -1,13 +1,15 @@
 // test/agent-device-bridge-host.test.js — BEL-151 host wiring (App side).
 //
-// agent/device-bridge.js is the transport; agent/session.js is the confirm gate.
-// This file tests the piece that was missing: the App's own Settings entry, the
-// OAuth Bearer the host must supply, the honest no-token path, 401 clearing the
-// local credential, and the foreground heartbeat lifecycle.
+// agent/device-bridge.js is the transport; agent/session.js is the confirm gate;
+// src/app/mcp-oauth-client.js is the MCP OAuth public client. This file tests the
+// piece that joins them: the App's Settings entry, the MCP access Bearer the host
+// must supply (never a LearnAuth/GoTrue token), the exchange timing (confirm →
+// PKCE exchange → register), the honest no-grant path, 401 clearing both slots, and
+// the foreground heartbeat lifecycle.
 //
 // It runs the REAL host module (bundled the way the page bundles it) against the
-// REAL pairing gate, with only the edges injected: a fake LearnAuth, a memory
-// store, a recording fetch, and a headless confirm/show UI.
+// REAL pairing gate, with only the edges injected: a fake LearnAuth, a fake OAuth
+// client, a memory store, a recording fetch, and a headless confirm/show UI.
 const fs = require('fs');
 const path = require('path');
 const { describe, test, loadSrc, ok, eq } = require('./harness');
@@ -26,6 +28,9 @@ const REGISTER = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/register'
 const HEARTBEAT = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/heartbeat';
 const BOOTSTRAP = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/bootstrap';
 
+const MCP_TOKEN = 'mcp-access-1';
+const GOTRUE_TOKEN = 'gotrue-session-token';   // must never become a Bearer here
+
 function fakeResponse(status, body) {
   return { status, ok: status >= 200 && status < 300, json: async () => body };
 }
@@ -39,26 +44,59 @@ function recorder(answer) {
   return { calls, fetch };
 }
 
+// The OAuth edge, faked. Every method records its call so a test can prove the
+// order (confirm → connect → register) and that a cancelled confirm never reached
+// the exchange at all.
+function oauthStub(extra) {
+  const calls = [];
+  let lastError = '';
+  const stub = {
+    calls,
+    state: () => ({ hasAccess: lastError === '', hasRefresh: lastError !== 'invalid_grant', lastError, owner: 'u1', keychain: true }),
+    async hasGrant() { calls.push(['hasGrant']); return true; },
+    async connect(args) {
+      calls.push(['connect', (args && args.account) || '']);
+      return { ok: true, token: MCP_TOKEN, skipped: 'access' };
+    },
+    async accessToken(args) {
+      calls.push(['accessToken', (args && args.account) || '']);
+      return MCP_TOKEN;
+    },
+    async invalidateAccess(args) {
+      calls.push(['invalidateAccess', (args && args.reason) || '']);
+      lastError = (args && args.reason) || 'unauthorized';
+      return { ok: true };
+    },
+    async clearTokens() {
+      calls.push(['clearTokens']);
+      lastError = 'invalid_grant';
+      return { ok: true };
+    },
+  };
+  return Object.assign(stub, extra || {});
+}
+
 function baseOptions(extra) {
   return Object.assign({
     auth: {
-      current: async () => ({ userId: 'u1', accessToken: 'tok-1' }),
-      token: async () => 'tok-1',
+      current: async () => ({ userId: 'u1', accessToken: GOTRUE_TOKEN }),
+      token: async () => GOTRUE_TOKEN,
     },
+    oauth: oauthStub(),
     flavor: () => 'global',
     appVersion: () => '1.22.3',
     now: () => 1700000000000,
   }, extra || {});
 }
 
-function headlessUi() {
+function headlessUi(decision) {
   const cards = [];
   const shown = [];
   return {
     cards,
     shown,
     ui: {
-      confirm: async (card) => { cards.push(card); return { allow: true }; },
+      confirm: async (card) => { cards.push(card); return decision || { allow: true }; },
       show: async (receipt) => { shown.push(receipt); },
     },
   };
@@ -98,7 +136,7 @@ describe('BEL-151 host: the Settings entry is reachable and copy-locked', () => 
     ok(!view.includes(copy.ACTIONS.pair_device.touches[0]), 'the locked touch line is retyped in the view');
   });
 
-  test('the host adds no transport: frozen bases stay in agent/device-bridge.js', () => {
+  test('the host adds no transport: frozen device bases stay in agent/device-bridge.js', () => {
     ok(!/mcp\.belliedmonkey/.test(hostSrc), 'host hardcodes a base URL instead of passing the flavor');
     ok(!/localhost|127\.0\.0\.1|\[::1\]/i.test(hostSrc), 'host grew a localhost companion');
   });
@@ -116,12 +154,13 @@ describe('BEL-151 host: the Settings entry is reachable and copy-locked', () => 
   });
 });
 
-describe('BEL-151 host: Bearer register', () => {
-  test('pair() sends the session access token as a Bearer and stores the credential', async () => {
+describe('BEL-151 host: MCP Bearer register', () => {
+  test('pair() sends the MCP access token and stores the device credential', async () => {
     const store = bridge.memoryStore();
     const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 }));
     const ui = headlessUi();
-    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: ui.ui }));
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: ui.ui, oauth }));
 
     const out = await host.pair();
     eq(out.code, 'ok');
@@ -129,7 +168,7 @@ describe('BEL-151 host: Bearer register', () => {
     eq(rec.calls.length, 1);
     eq(rec.calls[0].url, REGISTER);
     eq(rec.calls[0].init.method, 'POST');
-    eq(rec.calls[0].init.headers.Authorization, 'Bearer tok-1');
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
     const body = JSON.parse(rec.calls[0].init.body);
     eq(body.confirm, true);
     eq(body.platform, 'mac');
@@ -151,6 +190,54 @@ describe('BEL-151 host: Bearer register', () => {
     ok(ui.shown.length === 1 && ui.shown[0].ok === true, 'success receipt was not shown');
   });
 
+  test('the exchange runs after the confirm and before the device POST', async () => {
+    const order = [];
+    const store = bridge.memoryStore();
+    const rec = recorder(() => {
+      order.push('device-register');
+      return fakeResponse(200, { ok: true, device_cred: 'dc-order', ttl_sec: 900 });
+    });
+    const oauth = oauthStub({
+      async connect(args) {
+        order.push('pkce-exchange');
+        oauth.calls.push(['connect', (args && args.account) || '']);
+        return { ok: true, token: MCP_TOKEN, skipped: 'consent' };
+      },
+    });
+    const host = Host.createHost(baseOptions({
+      store,
+      fetch: rec.fetch,
+      oauth,
+      ui: {
+        confirm: async () => { order.push('confirm'); return { allow: true }; },
+        show: async () => {},
+      },
+    }));
+    const out = await host.pair();
+    eq(out.code, 'ok');
+    eq(order.join(' > '), 'confirm > pkce-exchange > device-register');
+  });
+
+  test('the Bearer is never the LearnAuth/GoTrue token', async () => {
+    const store = bridge.memoryStore();
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-mcp', ttl_sec: 900 }));
+    const oauth = oauthStub({
+      async connect() { return { ok: true, token: 'mcp-only-token', skipped: 'access' }; },
+      async accessToken() { return 'mcp-only-token'; },
+    });
+    const auth = {
+      current: async () => ({ userId: 'u1', accessToken: GOTRUE_TOKEN }),
+      token: async () => GOTRUE_TOKEN,
+    };
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth, auth, ui: headlessUi().ui }));
+    eq((await host.pair()).code, 'ok');
+    const authz = rec.calls.map((c) => String(c.init.headers.Authorization || ''));
+    eq(authz.length, 1);
+    eq(authz[0], 'Bearer mcp-only-token');
+    for (const line of authz) ok(!line.includes(GOTRUE_TOKEN), 'a GoTrue token became the device Bearer');
+    ok(!JSON.stringify(rec.calls).includes(GOTRUE_TOKEN), 'the GoTrue token appears in the device request');
+  });
+
   test('china flavor posts to mcp.belliedmonkey.com, same frozen path', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-cn', ttl_sec: 900 }));
     const ui = headlessUi();
@@ -168,6 +255,7 @@ describe('BEL-151 host: Bearer register', () => {
     const host = Host.createHost(baseOptions({
       store,
       fetch: rec.fetch,
+      oauth: oauthStub(),
       ui: {
         confirm: async (card) => {
           cards.push(card);
@@ -181,22 +269,43 @@ describe('BEL-151 host: Bearer register', () => {
     eq(cards.length, 1, 'the remembered grant did not skip the second confirm');
     eq(rec.calls.length, 2);
   });
+
+  test('a remembered grant still confirms when a new browser consent would be needed', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-1', ttl_sec: 900 }));
+    const cards = [];
+    const oauth = oauthStub({ async hasGrant() { return false; } });
+    const host = Host.createHost(baseOptions({
+      store: bridge.memoryStore(),
+      fetch: rec.fetch,
+      oauth,
+      ui: {
+        confirm: async (card) => { cards.push(card); return { allow: true, device: true }; },
+        show: async () => {},
+      },
+    }));
+    eq((await host.pair()).code, 'ok');
+    eq((await host.pair()).code, 'ok');
+    eq(cards.length, 2, 'a new consent was started behind a remembered grant without a card');
+  });
 });
 
-describe('BEL-151 host: no token means no request, and an honest card', () => {
-  test('signed out: no confirm, no fetch, need_login', async () => {
+describe('BEL-151 host: no grant means no request, and an honest card', () => {
+  test('signed out: no confirm, no fetch, no exchange, need_login', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true }));
     const ui = headlessUi();
+    const oauth = oauthStub();
     const host = Host.createHost(baseOptions({
       store: bridge.memoryStore(),
       fetch: rec.fetch,
       ui: ui.ui,
+      oauth,
       auth: { current: async () => null, token: async () => '' },
     }));
     const out = await host.pair();
     eq(out.code, 'need_login');
     eq(rec.calls.length, 0, 'a signed-out pair sent HTTP');
     eq(ui.cards.length, 0, 'a signed-out pair asked for confirmation first');
+    eq(oauth.calls.length, 0, 'a signed-out pair touched the OAuth client');
     eq(ui.shown.length, 1);
     eq(ui.shown[0].code, 'need_login');
     eq(host.status().state, 'signed_out');
@@ -204,59 +313,63 @@ describe('BEL-151 host: no token means no request, and an honest card', () => {
     eq(host.isHeartbeatRunning(), false);
   });
 
-  test('session present but token empty: still no fetch, and the receipt is need_login', async () => {
-    const rec = recorder(() => fakeResponse(200, { ok: true }));
-    const ui = headlessUi();
-    const host = Host.createHost(baseOptions({
-      store: bridge.memoryStore(),
-      fetch: rec.fetch,
-      ui: ui.ui,
-      auth: { current: async () => ({ userId: 'u1' }), token: async () => '' },
-    }));
-    const out = await host.pair();
-    eq(out.code, 'need_login');
-    eq(rec.calls.length, 0, 'register went out with an empty Bearer');
-    eq(ui.shown.length, 1);
-    eq(ui.shown[0].code, 'need_login');
-    eq(host.status().state, 'signed_out');
-  });
-
-  test('a transient token failure is named as network, not as "sign in"', async () => {
-    const rec = recorder(() => fakeResponse(200, { ok: true }));
-    const ui = headlessUi();
-    const host = Host.createHost(baseOptions({
-      store: bridge.memoryStore(),
-      fetch: rec.fetch,
-      ui: ui.ui,
-      auth: {
-        current: async () => ({ userId: 'u1', accessToken: 'stale' }),
-        token: async () => { const e = new Error('offline'); e.code = 'offline'; throw e; },
-      },
-    }));
-    const out = await host.pair();
-    eq(out.code, 'network_unavailable');
-    eq(rec.calls.length, 0);
-    eq(host.status().state, 'network');
-  });
-
-  test('cancelling the confirm sends nothing and changes no credential', async () => {
+  test('cancelling the confirm runs no exchange and sends nothing', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-x' }));
     const store = bridge.memoryStore();
+    const oauth = oauthStub();
     const host = Host.createHost(baseOptions({
       store,
       fetch: rec.fetch,
+      oauth,
       ui: { confirm: async () => ({ allow: false }), show: async () => {} },
     }));
     const out = await host.pair();
     eq(out.code, 'cancelled');
     eq(rec.calls.length, 0);
+    eq(oauth.calls.length, 0, 'the OAuth client ran even though the user cancelled');
     eq(store.getItem('device_cred'), null);
     eq(host.status().state, 'unpaired');
+  });
+
+  test('signed in but the grant is missing: no register HTTP, honest reconnect', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 }));
+    const ui = headlessUi();
+    const oauth = oauthStub({
+      async connect() { return { ok: false, code: 'need_login', sent: false }; },
+      async accessToken() { return ''; },
+    });
+    const host = Host.createHost(baseOptions({
+      store: bridge.memoryStore(), fetch: rec.fetch, ui: ui.ui, oauth,
+    }));
+    const out = await host.pair();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0, 'register went out without an MCP access token');
+    eq(ui.shown.length, 1);
+    eq(ui.shown[0].code, 'need_login');
+    eq(host.status().state, 'reconnect');
+    eq(host.status().text, copy.MESSAGES.reconnect);
+    eq(host.isHeartbeatRunning(), false);
+  });
+
+  test('a transient OAuth failure is named as network, not as "sign in again"', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true }));
+    const ui = headlessUi();
+    const oauth = oauthStub({
+      async connect() { return { ok: false, code: 'network_unavailable', sent: false }; },
+    });
+    const host = Host.createHost(baseOptions({
+      store: bridge.memoryStore(), fetch: rec.fetch, ui: ui.ui, oauth,
+    }));
+    const out = await host.pair();
+    eq(out.code, 'network_unavailable');
+    eq(rec.calls.length, 0);
+    eq(host.status().state, 'network');
+    eq(host.status().text, copy.MESSAGES.network);
   });
 });
 
 describe('BEL-151 host: heartbeat lifecycle', () => {
-  test('foreground beats once, keeps a 2–5 min interval, and hidden does not beat', async () => {
+  test('foreground beats once with the MCP Bearer, keeps a 2–5 min interval, hidden does not beat', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
     const store = pairedStore();
     const host = Host.createHost(baseOptions({ store, fetch: rec.fetch }));
@@ -272,7 +385,7 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     await doc.handlers.visibilitychange[0]();
     eq(rec.calls.length, 1);
     eq(rec.calls[0].url, HEARTBEAT);
-    eq(rec.calls[0].init.headers.Authorization, 'Bearer tok-1');
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
     const body = JSON.parse(rec.calls[0].init.body);
     eq(body.device_id, UUID);
     eq(body.device_cred, 'dc-old');
@@ -313,13 +426,14 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(rec.calls.length, 0);
   });
 
-  test('401 clears the credential and stops the loop', async () => {
+  test('401 clears the device credential, the MCP access token, and the loop', async () => {
     let phase = 'pair';
     const rec = recorder(() => (phase === 'pair'
       ? fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 })
       : fakeResponse(401, { ok: false, code: 'unauthorized' })));
     const store = bridge.memoryStore();
-    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui }));
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui, oauth }));
 
     eq((await host.pair()).code, 'ok');
     eq(host.isHeartbeatRunning(), true);
@@ -330,7 +444,48 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(store.getItem('device_cred'), null);
     eq(store.getItem('device_cred_user'), null);
     eq(host.isHeartbeatRunning(), false);
-    eq(host.status().state, 'signed_out');
+    eq(host.status().state, 'reconnect');
+    eq(host.status().text, copy.MESSAGES.reconnect);
+    ok(oauth.calls.some((c) => c[0] === 'invalidateAccess'), 'MCP access token was not invalidated');
+
+    // A later foreground must not repaint a signed-out/unpaired lie over that.
+    const again = await host.onForeground();
+    eq(again.code, 'not_paired');
+    eq(host.status().state, 'reconnect');
+    eq(host.status().text, copy.MESSAGES.reconnect);
+  });
+
+  test('an MCP refresh network failure keeps the credential and says network', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: true, lastError: 'network' }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.onForeground();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0, 'a heartbeat went out with an empty Bearer');
+    eq(store.getItem('device_cred'), 'dc-old');
+    eq(host.status().state, 'network');
+    eq(host.status().text, copy.MESSAGES.network);
+  });
+
+  test('a dead MCP grant clears device_cred and says re-allow the device', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: false, lastError: 'invalid_grant' }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.onForeground();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0);
+    eq(store.getItem('device_cred'), null, 'device_cred survived a dead MCP grant');
+    eq(host.status().state, 'reconnect');
+    eq(host.status().text, copy.MESSAGES.reconnect);
+    eq(host.isHeartbeatRunning(), false);
   });
 
   test('a network failure keeps the credential and the interval, and says network', async () => {
@@ -351,16 +506,18 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(host.status().text, copy.MESSAGES.network);
   });
 
-  test('signing out clears the pair; a different account cannot reuse it', async () => {
+  test('signing out clears the pair and the MCP grant; a different account cannot reuse it', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 }));
     const store = bridge.memoryStore();
-    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui }));
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui, oauth }));
     eq((await host.pair()).code, 'ok');
 
     await host.noteSession(null);
     eq(store.getItem('device_cred'), null);
     eq(host.isHeartbeatRunning(), false);
     eq(host.status().state, 'signed_out');
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'sign-out left the MCP grant behind');
 
     // Pair again as u1, then a different account appears in the same store.
     eq((await host.pair()).code, 'ok');
@@ -371,7 +528,7 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
 });
 
 describe('BEL-151 host: bootstrap stays short-lived', () => {
-  test('agentBridge().bootstrap carries the Bearer and never becomes the pair', async () => {
+  test('agentBridge().bootstrap carries the MCP Bearer and never becomes the pair', async () => {
     const rec = recorder(() => fakeResponse(200, {
       ok: true, device_cred: 'short-lived', ttl_sec: 300, kind: 'bootstrap',
     }));
@@ -383,7 +540,7 @@ describe('BEL-151 host: bootstrap stays short-lived', () => {
     eq(out.paired, false);
     eq(rec.calls.length, 1);
     eq(rec.calls[0].url, BOOTSTRAP);
-    eq(rec.calls[0].init.headers.Authorization, 'Bearer tok-1');
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
     const body = JSON.parse(rec.calls[0].init.body);
     eq(body.source, 'open_setup');
     eq(body.platform, 'mac');
@@ -398,5 +555,10 @@ describe('BEL-151 host: bootstrap stays short-lived', () => {
     const out = await host.agentBridge().bootstrap({ source: 'user' });
     eq(out.code, 'bad_request');
     eq(rec.calls.length, 0);
+  });
+
+  test('there is no agentBridge().register door around the confirm gate', async () => {
+    const host = Host.createHost(baseOptions({ store: bridge.memoryStore() }));
+    eq(typeof host.agentBridge().register, 'undefined');
   });
 });
