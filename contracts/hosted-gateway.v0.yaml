@@ -1,0 +1,252 @@
+openapi: 3.1.0
+info:
+  title: BelliedMonkey Hosted Gateway (contract v0)
+  version: 0.0.0
+  description: >
+    Public contract for the closed-source hosted gateway. The implementation lives in the
+    private `*-hosted` repository; this repository ships only this contract and the mock in
+    `mocks/hosted-gateway/`. Security axioms: BYOK never transits this gateway; the hosted
+    path carries only a user session JWT / grant token; responses never echo an upstream
+    provider key, `service_role`, or `GRANT_KEK`. See BOUNDARY.md §3 and
+    docs/architecture-p0/CONTRACT-v0-hosted-gateway-2026-11-01.md §0.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://hosted.invalid
+    description: placeholder — the real base is injected by build/CI, never committed
+tags:
+  - name: grant
+  - name: relay
+  - name: models
+  - name: telemetry
+  - name: account
+  - name: legacy
+paths:
+  /v0/grant/balance:
+    get:
+      tags: [grant]
+      summary: Remaining entitlement for the caller
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Balance" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v0/grant/consume:
+    post:
+      tags: [grant]
+      summary: Atomically consume entitlement (idempotent)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 0, exclusiveMinimum: true }
+                unit: { type: string, enum: [usd, tokens, requests] }
+      responses:
+        "200":
+          description: Consumed (or replay of the same idempotency key)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [consumed, remaining]
+                properties:
+                  consumed: { type: number }
+                  remaining: { type: number }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/Quota"
+  /v0/relay:
+    post:
+      tags: [relay]
+      summary: Hosted inference relay (never BYOK)
+      description: >
+        Forwards a provider-shaped request. The model is pinned server-side; a request that
+        carries a user provider key in the body is rejected with 400 and is not forwarded.
+        Responses must not contain upstream credentials.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RelayRequest" }
+      responses:
+        "200":
+          description: Provider-compatible response (or audio bytes for TTS)
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+            audio/mpeg:
+              schema: { type: string, format: binary }
+        "400":
+          description: Bad request, including a BYOK provider key in the body
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/Quota"
+        "429":
+          $ref: "#/components/responses/Quota"
+  /v0/models:
+    get:
+      tags: [models]
+      summary: Models visible to this entitlement
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Entitled models only; no upstream account metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [models]
+                properties:
+                  models:
+                    type: array
+                    items: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v0/telemetry/ingest:
+    post:
+      tags: [telemetry]
+      summary: Anonymous event ingest (reserved; public repo ships a stub only)
+      description: >
+        The real pipeline is hosted. The public event-name whitelist is
+        `supabase/functions/bt-ingest/events.gen.json` (BEL-135: china == intl).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events: { type: array, maxItems: 50, items: { type: object } }
+      responses:
+        "200":
+          description: Accepted / rejected counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: integer }
+                  rejected: { type: array, items: { type: string } }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v0/account/delete:
+    post:
+      tags: [account]
+      summary: One-action account deletion (reserved)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deleted]
+                properties:
+                  deleted: { type: string }
+                  grant: { type: boolean }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /functions/v1/bt-relay/chat/completions:
+    post:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of POST /v0/relay (chat shape)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Same as /v0/relay }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /functions/v1/bt-relay/audio/speech:
+    post:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of POST /v0/relay (TTS shape)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Audio bytes }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /functions/v1/bt-relay/balance:
+    get:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of GET /v0/grant/balance
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Balance }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: User session JWT or grant token (`bmg_...`). BYOK requests never use this.
+  schemas:
+    Balance:
+      type: object
+      required: [remaining, unit, resets_at, product]
+      properties:
+        remaining: { type: number }
+        unit: { type: string, enum: [usd, tokens, requests] }
+        resets_at: { type: [string, "null"], format: date-time }
+        product: { type: string, enum: [free, monthly, yearly, unknown] }
+    RelayRequest:
+      type: object
+      required: [model, input]
+      properties:
+        model: { type: string }
+        input: { type: object, additionalProperties: true }
+        stream: { type: boolean, default: false }
+        client:
+          type: object
+          properties:
+            app: { type: string, enum: [extension, app, agent] }
+            build: { type: string }
+            flavor: { type: string, enum: [global, china] }
+      additionalProperties: true
+      description: >
+        A body containing `upstream_api_key`, `provider_api_key`, or an Authorization
+        header value is rejected with 400 (CONTRACT-v0 §0.4; BYOK stays local).
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+  responses:
+    Unauthorized:
+      description: Missing or invalid session / grant token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Quota:
+      description: Quota exhausted or rate limited (client may fall back to local BYOK)
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

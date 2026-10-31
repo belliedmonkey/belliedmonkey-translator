@@ -5,6 +5,8 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node test/run.js",
+    "boundary": "node scripts/check-boundary.js",
+    "mock:hosted-gateway": "node mocks/hosted-gateway/server.js",
     "agent:mcp": "node agent/mcp-stdio.js",
     "test:layout": "node test/layout/run-layout.js",
     "test:inject": "node scripts/verify-content-inject.js",

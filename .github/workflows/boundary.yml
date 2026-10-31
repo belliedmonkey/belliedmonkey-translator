@@ -1,0 +1,42 @@
+name: boundary
+
+# BEL-172 P0 — public/private repo split is a gate, not a paragraph.
+# BOUNDARY.md §2 is the table; scripts/check-boundary.js is the executable.
+on:
+  push:
+    branches: [main, 'release/**', 'oss/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  boundary:
+    name: boundary + secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # PR mode diffs against the base branch; full tree scan does not need history,
+          # but fetch-depth 0 keeps the base ref available without a second fetch.
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: BOUNDARY path-deny (full tree)
+        run: node scripts/check-boundary.js
+      - name: BOUNDARY path-deny (changed vs base)
+        if: github.event_name == 'pull_request'
+        run: node scripts/check-boundary.js --changed "origin/${{ github.base_ref }}"
+      - name: secret scan (tip)
+        # Tip-only by design. The GPL store-tip history contains the *publishable* anon
+        # key (role=anon, RLS-protected) from before the split; the OSS release is cut from
+        # a history-free orphan root (BOUNDARY.md §2 / docs/oss-release.md). A full-history
+        # scan therefore reports a known, non-secret class on this branch. See
+        # evidence/secret-scan.md for the one-off history classification.
+        run: |
+          set -euo pipefail
+          V=8.30.1
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${V}/gitleaks_${V}_linux_x64.tar.gz" -o /tmp/gitleaks.tgz
+          tar -xzf /tmp/gitleaks.tgz -C /tmp gitleaks
+          /tmp/gitleaks dir . --no-banner --redact -c .gitleaks.toml --exit-code 1

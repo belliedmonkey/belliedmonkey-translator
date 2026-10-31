@@ -74,9 +74,15 @@ curl -s https://addons.mozilla.org/api/v5/addons/addon/mobiletranslator@belliedm
 ```bash
 npm test                 # 纯逻辑
 npm run test:layout      # 真实 headless Chrome，36+ fixture（含行为 phase：选区/交互）
+npm run boundary         # 公仓/旁仓边界（BOUNDARY.md §2；CI 也跑）
 node build.js            # Chrome/Safari；含全部构建期闸门
 node build.js firefox    # Firefox
 ```
+
+**开源分轨（BEL-172，2026-11-01）**：OSS tag 从 orphan MIT 根切，**不等于**商店 tip；
+开源准备禁盲合未 scrub 的商店 tip。见 [`oss-release.md`](oss-release.md)。商店轨的
+BEL-123～126 防丢闸不因开源撤销。发版前另查：公仓无旁仓引用 / 无闭源符号
+（`npm run boundary` + `gitleaks dir . -c .gitleaks.toml`），后端 host/anon key 仅由构建注入。
 
 ## 1. 设备矩阵
 

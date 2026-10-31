@@ -34,6 +34,14 @@ const ZIP = path.join(ROOT,
   TARGET === 'firefox' ? 'belliedmonkeytranslator-firefox.xpi'
     : (FLAVOR === 'china' ? 'belliedmonkeytranslator-china.zip' : 'belliedmonkeytranslator.zip'));
 
+// BEL-172 (P0 scrub): backend host / anon key are build-time values. The source carries
+// inert placeholders; this installs the injected config into the require cache so every
+// registry generated below sees the same values. With no env/`.local/backend.env`, the
+// build still succeeds but deliberately points at *.invalid — it cannot reach a real
+// backend, and `log` says so below.
+const backendInject = require('./build/backend-inject.js');
+const backendInjection = backendInject.install(ROOT);
+
 // Set to a reason string when the build is deliberately NOT shippable. dist/ is
 // still written (so it can be loaded unpacked for testing) but the packaged
 // artifact is withheld — see the Gate B escape hatch in validateManifest().
@@ -683,11 +691,10 @@ function applyChinaLocales(dir) {
 // reference. See docs/domain-design.md.
 
 function complianceGateChina(dir, label) {
-  // 判据与禁令表在 build/china-gate.js（纯函数，有单测与证伪）。这里只负责走目录。
-  // 额度那一条（2026-09-22 改写）：原来是「产物里不许有额度端点」，现在是「产物里的额度
-  // 端点必须是境内那一个」—— grantHost 为空（grant.china 未就绪）时两者等价，与从前逐字相同。
+  // 公仓只守通用不变量（品牌词 + 无 *.supabase.co），判据与证伪在 build/china-gate.js。
+  // 区域策略（境内 host 白名单 / MT_GRANT 形状 / grantOnly 端点）在 compliance 私仓的
+  // china-gate/ —— BEL-172 拆仓，见 BOUNDARY.md §4。
   const G = require('./build/china-gate.js');
-  const cn = chinaGrant();
   const files = [];
   (function walk(d) {
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
@@ -697,18 +704,14 @@ function complianceGateChina(dir, label) {
       files.push({ name: path.relative(dir, p), text: fs.readFileSync(p, 'utf8') });
     }
   })(dir);
-  let ingestHost = '';
-  if (chinaBackendReady()) {
-    try { ingestHost = new URL(chinaBackend().url).hostname.toLowerCase(); } catch (_) { ingestHost = ''; }
-  }
-  const hits = G.scan(files, { grantHost: cn ? cn.host : '', ingestHost });
+  const hits = G.scan(files);
   if (hits.length) {
     err(`China compliance gate FAILED — forbidden brand/endpoint references in ${label || 'dist-china'}/:`);
     hits.slice(0, 30).forEach((h) => console.error('   ' + h));
     process.exit(1);
   }
-  log(`China compliance gate passed for ${label || 'dist-china'} (no OpenAI/ChatGPT/Claude/global-endpoint references`
-    + (cn ? `; grant endpoints only on ${cn.host})` : '; no grant)'));
+  log(`China compliance gate passed for ${label || 'dist-china'} (public invariant:`
+    + ' no OpenAI/ChatGPT/Claude brand, no *.supabase.co host)');
 }
 
 // ─── Speech (TTS) engine registry bundle ────────────────────────────────────
@@ -1245,6 +1248,16 @@ generatePalette(SRC);
 // Copy sources
 copyDir(SRC, DIST);
 log(`Copied extension sources → ${path.basename(DIST)}/`);
+
+// BEL-172: inject the real backend host/anon key into the copied config (placeholders
+// stay when no values were supplied). This must run before the china override below,
+// because switchBackend reads the dist copy and swaps the top-level url/anonKey.
+backendInject.applyToDir(DIST, ROOT);
+if (backendInjection.values.injected) {
+  log('Backend host/key injected from env or .local/backend.env');
+} else {
+  log('\x1b[33mBackend: placeholders only (no MT_BACKEND_* / .local/backend.env) — this build cannot reach a real backend\x1b[0m');
+}
 
 // MT_SYNC=on retired (Gate B): sync is on in source. Warn instead of failing so
 // old scripts keep working, but make clear nothing special happened.
