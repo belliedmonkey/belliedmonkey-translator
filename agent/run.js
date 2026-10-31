@@ -231,16 +231,20 @@ async function runAgentAction(action, ctx) {
   const blocked = preconditions(action, ctx);
   if (blocked) return { receipt: blocked };
 
+  // BEL-151: inbound open_setup confirms like the five sensitive tools, but it
+  // is not side-effect sensitive — SENSITIVE stays untouched, and the card does
+  // not claim the microphone. The gate only decides "confirmed.allow or grant".
+  const gate = isSensitive(action) || action === 'open_setup';
   const granted = hasGrant(grants, action, callerId);
   const confirmed = ctx.confirmed;
-  if (isSensitive(action) && !granted && !(confirmed && confirmed.allow === true)) {
+  if (gate && !granted && !(confirmed && confirmed.allow === true)) {
     return {
       receipt: receipt(action, 'untrusted_denied', copy.MESSAGES.untrusted, {}),
     };
   }
 
   let nextGrants = grants;
-  if (confirmed && confirmed.allow === true && isSensitive(action)
+  if (confirmed && confirmed.allow === true && gate
       && (confirmed.device || (confirmed.assistant && callerId))) {
     nextGrants = remember(grants, action, confirmed, callerId);
     if (typeof ctx.persistGrants === 'function') {

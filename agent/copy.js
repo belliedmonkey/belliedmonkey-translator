@@ -4,8 +4,9 @@
 // Near-synonyms are a failure. Slots ({动作短名}) are the only part that varies.
 // Banned: 语音包, 收录复习.
 //
-// User-facing action names exist only for the two locked actions. The other
-// five tools keep their action ids and do not grow a short name here.
+// User-facing action names exist only for the three locked actions (open_setup
+// since BEL-151). The other four tools keep their action ids and do not grow a
+// short name here.
 'use strict';
 
 const TITLE = '确认调用';
@@ -17,7 +18,7 @@ const FAILURE_TITLE = '还差一步';
 const CLOSE = '关闭';
 const ORIGIN_PREFIX = '来自：';
 const ORIGIN_KNOWN = '已识别助手';
-const ORIGIN_UNKNOWN = '未知助手';
+const ORIGIN_UNKNOWN = '深链 / MCP（无法确认助手身份）';
 
 // t291u. Host subscription or API key is a first-class path. The in-app grant
 // is auxiliary. P-01…P-04 carry HOST_KEY_HONEST. P-14b carries HOST_KEY_NOTE.
@@ -29,6 +30,17 @@ function deviceAllow(shortName) {
 }
 
 const ACTIONS = {
+  // BEL-151: an inbound open_setup confirms before it opens a settings page.
+  // The touches line is honest — this action never opens the microphone.
+  'open_setup': {
+    name: '打开本机设置（安装引导）',
+    short: '打开设置',
+    touches: [
+      '打开本机设置页（安装或就绪检查）',
+      '确认前不开麦、不读页、不写学习库',
+      '不把全文发回聊天（默认）',
+    ],
+  },
   'start_live_subtitles': {
     name: '开实时双语字幕',
     short: '实时字幕',
@@ -68,9 +80,9 @@ const FAILURES = {
     secondary: '取消',
   },
   need_app: {
-    line: '需要安装 App',
-    primary: '去安装 App',
-    secondary: '取消',
+    line: '尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。',
+    primary: '去安装 / 打开 App',
+    secondary: '打开安装说明',
   },
   need_login: {
     line: '需要登录',

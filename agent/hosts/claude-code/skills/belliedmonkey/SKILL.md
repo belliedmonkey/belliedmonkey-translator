@@ -27,7 +27,7 @@ Do not call `ready_check`. If a host cannot display a dot, map it only in that h
 
 Only the seven names above are tools. A tool result is receipt JSON in `content[0].text`. Do not replace that receipt with a `belliedmonkey://` string and call it done.
 
-`ready.check` and `open_setup` are not sensitive. The other five are sensitive. A sensitive tool confirms on this machine before any microphone, page read, or study-library write. Do not pass `confirmed`, `allow`, or `grant`. Those arguments are dropped and do not count as a yes.
+`ready.check` is not sensitive. `open_setup` is not side-effect sensitive, but an inbound open_setup (deeplink or MCP) still confirms on this machine before it opens a settings page — it never opens the microphone, reads the page, or writes the study library. The other five are sensitive. A sensitive tool confirms on this machine before any microphone, page read, or study-library write. Do not pass `confirmed`, `allow`, or `grant`. Those arguments are dropped and do not count as a yes.
 
 The receipt has no page text, transcript, or translation. Do not ask the tool to return the sentence, and do not paste the user's API key into a tool argument.
 
@@ -44,9 +44,9 @@ Confirm card, every confirm frame:
 - Cancel: `取消`
 - Footnote: `确认前不开麦、不读页、不写学习库`
 
-Action names: `开实时双语字幕`, `收进复习`.
+Action names: `打开本机设置（安装引导）`, `开实时双语字幕`, `收进复习`. For `open_setup` the line `打开本机设置页（安装或就绪检查）` is a touch, not a microphone claim.
 
-Device allow, only with the characters 本机: `本机始终允许（实时字幕）`. The slot form is `本机始终允许（{动作短名}）`.
+Device allow, only with the characters 本机: `本机始终允许（实时字幕）` / `本机始终允许（打开设置）`. The slot form is `本机始终允许（{动作短名}）`.
 
 `始终允许此助手` is only for a caller that has a real `caller_id`. If there is no `caller_id`, that line must not appear.
 
@@ -59,7 +59,7 @@ Failure title: `还差一步`.
 | `need_ext` | `需要浏览器扩展` | `安装扩展说明` | `复制给 AI 的说明` |
 | `site_unsupported` | `当前网站暂不支持视频双语字幕` | `改用实时字幕` | `关闭` |
 | `need_engine` | `还没配置翻译引擎` | `去配置引擎与密钥` | `取消` |
-| `need_app` | `需要安装 App` | `去安装 App` | `取消` |
+| `need_app` | `尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。` | `去安装 / 打开 App` | `打开安装说明` |
 | `need_login` | `需要登录` | `去登录` | `取消` |
 | `grant_or_key_unavailable` | `本机额度或密钥不可用` | `去配置引擎与密钥` | `取消` |
 | `network_unavailable` | `网络暂时不可用` | `重试` | `取消` |
