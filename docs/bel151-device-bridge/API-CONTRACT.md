@@ -52,3 +52,13 @@
    「需重新允许连接此设备」 (never a fake paired)
 6. Refresh rejected for good (invalid_grant) → clear both Keychain slots + owner;
    a network failure keeps them (one retry) and is reported as network, not revoked
+7. Launch is an entry **even when WKWebView reports `hidden`** — it can show the
+   window without a `visibilitychange`. The first heartbeat must not be gated on
+   visibility (2026-10-31 D.8: the App sent zero device-sessions requests after
+   every restart, so a revoked session was never discovered).
+8. **One fallout for every 401/403**, whichever POST carried it: foreground beat,
+   the client's own interval, `bootstrap`, `register`, `revoke`. Clear
+   `device_cred` + Keychain `mcp_access`, stop the loop, persist the re-allow
+   reason (`device_reconnect`) across relaunch, and show
+   「需重新允许连接此设备」. The client reports through `onUnauthorized`; call
+   sites must not each invent their own cleanup.

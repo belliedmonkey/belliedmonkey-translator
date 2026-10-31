@@ -426,3 +426,34 @@ describe('BEL-151 regression: the existing confirm surface', () => {
     }
   });
 });
+
+describe('BEL-151 regression: WKWebView timer receivers', () => {
+  test('startHeartbeat calls setTimeout with the Window receiver', () => {
+    // Safari/WKWebView throws "Can only call Window.setTimeout on instances of
+    // Window" when the timer is invoked as a method of another object. The client
+    // used to call timers.setTimeout(...) that way, so the App's first heartbeat
+    // threw before fetch — the D.8 401 could never arrive.
+    const receivers = [];
+    function windowSetTimeout(fn, ms) {
+      receivers.push(this);
+      if (this !== globalThis) throw new Error('Can only call Window.setTimeout on instances of Window');
+      return setTimeout(fn, ms);
+    }
+    function windowClearTimeout(id) {
+      if (this !== globalThis) throw new Error('Can only call Window.clearTimeout on instances of Window');
+      return clearTimeout(id);
+    }
+    const client = bridge.createClient({
+      store: bridge.memoryStore({ device_cred: 'dc-old' }),
+      getAccessToken: () => 'mcp-access',
+      fetch: async () => response(200, { ok: true, ttl_sec: 900 }),
+      setTimeout: windowSetTimeout,
+      clearTimeout: windowClearTimeout,
+    });
+    const out = client.startHeartbeat({ intervalMs: 120000 });
+    eq(out.ok, true);
+    eq(receivers.length, 1);
+    eq(receivers[0], globalThis);
+    client.stopHeartbeat();
+  });
+});

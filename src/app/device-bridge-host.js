@@ -57,8 +57,14 @@ export const PAIR_HINT = ACTIONS[PAIR_ACTION].touches[0];
 // (client_id / expiry / owner — no token values) share the same preload so the OAuth
 // client's synchronous meta surface works from the first call.
 const CRED_USER_KEY = 'device_cred_user';
+// D.8 / T5: "re-allow this device" is a state, not a toast. A 401 removes the
+// credential immediately, and the App may be relaunched before the user opens
+// Settings — so the fact has to survive the process, or the next launch paints
+// "unpaired" over a pairing the cloud already refused. This key is a reason
+// marker, not a credential (one byte, no token, no account).
+const RECONNECT_KEY = 'device_reconnect';
 const STORED_KEYS = Object.values(Bridge.KEYS)
-  .concat([CRED_USER_KEY], Object.values(OAUTH_META));
+  .concat([CRED_USER_KEY, RECONNECT_KEY], Object.values(OAUTH_META));
 
 function statusText(state) {
   if (state === 'paired') return MESSAGES.paired;
@@ -187,9 +193,16 @@ export function createHost(options) {
 
   // ── status ──────────────────────────────────────────────────────────────
   function statusNow() {
+    const has = store.getItem(Bridge.KEYS.cred) != null;
+    // A credential that vanished under a "paired" state (the device client clears
+    // it synchronously on 401, before the host callback runs) must never print
+    // 已连接此设备. The state is repaired by unauthorizedFallout; this only makes
+    // the in-between instant honest.
+    const state = status.state === 'paired' && !has ? 'unpaired' : status.state;
     return Object.freeze(Object.assign({}, status, {
-      text: statusText(status.state),
-      paired: store.getItem(Bridge.KEYS.cred) != null,
+      state,
+      text: statusText(state),
+      paired: has,
       persistent: store.persistent,
     }));
   }
@@ -211,6 +224,15 @@ export function createHost(options) {
     const session = await currentSession();
     if (!session || !session.userId) return setStatus({ state: 'signed_out', code: 'need_login' });
     if (hasCred()) return setStatus({ state: 'paired', code: 'ok' });
+    // A 401 leaves a reason marker behind. It outranks "unpaired" across a relaunch:
+    // the credential is gone, but the user's next step is still "allow this device
+    // again", not "pair a device you never paired".
+    if (store.getItem(RECONNECT_KEY) === '1') return setStatus({ state: 'reconnect', code: 'need_reconnect' });
+    let mcp = {};
+    try { mcp = ensureOauth().state() || {}; } catch (_) {}
+    if (mcp.lastError === 'unauthorized' || mcp.lastError === 'invalid_grant') {
+      return setStatus({ state: 'reconnect', code: 'need_reconnect' });
+    }
     return setStatus({ state: 'unpaired', code: '' });
   }
 
@@ -227,6 +249,9 @@ export function createHost(options) {
         now,
         setTimeout: timers.setTimeout,
         clearTimeout: timers.clearTimeout,
+        // Every device POST goes through the same 401 branch in the client, so
+        // the App's fallout cannot depend on which call site noticed it.
+        onUnauthorized: () => unauthorizedFallout(),
       });
     }
     return client;
@@ -242,6 +267,20 @@ export function createHost(options) {
       store.removeItem(Bridge.KEYS.credAt);
     }
     store.removeItem(CRED_USER_KEY);
+    store.removeItem(RECONNECT_KEY);
+  }
+
+  // The one D.8 fallout. Any 401/403 — foreground beat, the client's own interval,
+  // agentBridge heartbeat/bootstrap, register — lands here: the device credential
+  // goes, the loop stops, the MCP **access** token leaves the Keychain, and the
+  // status says 需重新允许连接此设备. Idempotent, because a 401 and the next
+  // foreground can both fire.
+  async function unauthorizedFallout() {
+    stopHeartbeat();
+    clearLocalCred();
+    try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
+    store.setItem(RECONNECT_KEY, '1');
+    setStatus({ state: 'reconnect', code: 'need_reconnect' });
   }
 
   function startHeartbeat(callOptions) {
@@ -350,12 +389,10 @@ export function createHost(options) {
         }
         const out = await bridgeClient.register(callOptions);
         if (out && out.code === 'unauthorized') {
-          // The cloud refused the grant. Drop the access token (the refresh token
-          // stays for one explicit retry after the next pairing confirm) and stop
-          // the loop; the status says what the user must do, not "signed out".
-          store.removeItem(CRED_USER_KEY);
-          stopHeartbeat();
-          try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
+          // The cloud refused the grant. unauthorizedFallout also stops the loop and
+          // drops the access token (the refresh token stays for one explicit retry
+          // after the next pairing confirm); the status says re-allow, not "signed out".
+          await unauthorizedFallout();
         }
         return out;
       },
@@ -368,6 +405,7 @@ export function createHost(options) {
     const code = receipt.code;
     if (receipt.ok) {
       if (session && session.userId) store.setItem(CRED_USER_KEY, session.userId);
+      store.removeItem(RECONNECT_KEY);
       startHeartbeat();
       setStatus({ state: 'paired', code: 'ok' });
       return;
@@ -378,10 +416,7 @@ export function createHost(options) {
         // Signed in, but the device grant is gone: re-allowing the device is the
         // honest next step ("sign in" would send them to a screen that changes
         // nothing). The local device_cred is worthless without the MCP grant.
-        clearLocalCred();
-        stopHeartbeat();
-        try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
-        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+        await unauthorizedFallout();
       } else {
         setStatus({ state: 'signed_out', code: 'need_login' });
       }
@@ -407,7 +442,8 @@ export function createHost(options) {
       // the user pairs again (a fresh launch has no lastError and stays unpaired).
       let mcp = {};
       try { mcp = ensureOauth().state() || {}; } catch (_) {}
-      if (session.userId && (mcp.lastError === 'unauthorized' || mcp.lastError === 'invalid_grant')) {
+      if (store.getItem(RECONNECT_KEY) === '1'
+        || (session.userId && (mcp.lastError === 'unauthorized' || mcp.lastError === 'invalid_grant'))) {
         setStatus({ state: 'reconnect', code: 'need_reconnect' });
       } else {
         setStatus({ state: 'unpaired', code: '' });
@@ -428,16 +464,14 @@ export function createHost(options) {
     // tick clears the credential and stops the loop (device-bridge.js).
     startHeartbeat();
     const out = await c.heartbeat();
-    if (out && out.ok) setStatus({ state: 'paired', code: 'ok' });
-    else if (out && out.code === 'unauthorized') {
-      // device-bridge.js already cleared device_cred and stopped the loop; the
-      // host's own "which account paired this" key goes with it. The MCP ACCESS
-      // token is dead too (T6): drop it, keep the refresh token for the one explicit
-      // retry after the next pairing confirm, and say re-allow the device.
-      store.removeItem(CRED_USER_KEY);
-      try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
-      stopHeartbeat();
-      setStatus({ state: 'reconnect', code: 'need_reconnect' });
+    if (out && out.ok) {
+      store.removeItem(RECONNECT_KEY);
+      setStatus({ state: 'paired', code: 'ok' });
+    } else if (out && out.code === 'unauthorized') {
+      // The client's 401 branch already called unauthorizedFallout through
+      // onUnauthorized; call it again so a future client without the hook (or a
+      // host built without it) still lands in the same state. It is idempotent.
+      await unauthorizedFallout();
     } else if (out && out.code === 'need_login') {
       // Paired locally but no usable MCP access token. A transient refresh failure
       // is a network story; anything else means the grant must be allowed again.
@@ -448,9 +482,7 @@ export function createHost(options) {
       } else if (session && session.userId) {
         // T6: no usable MCP grant means the local pair cannot beat anymore. Clear
         // device_cred as well, so the status cannot be mistaken for "paired".
-        clearLocalCred();
-        stopHeartbeat();
-        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+        await unauthorizedFallout();
       } else {
         setStatus({ state: 'signed_out', code: 'need_login' });
       }
@@ -474,9 +506,13 @@ export function createHost(options) {
     if (auth && typeof auth.onChange === 'function') {
       try { auth.onChange((session) => { noteSession(session).catch(noop); }); } catch (_) {}
     }
-    // Launch counts as an entry. A signed-out or unpaired launch is a quiet
-    // no-op — it must not paint an error on a page the user never opened.
-    if (doc.visibilityState === 'visible') onForeground().catch(noop);
+    // Launch counts as an entry — unconditionally. WKWebView can report the page
+    // hidden while the window is occluded/not yet key, and it does not always emit
+    // a visibilitychange when the window later appears. Gating the launch beat on
+    // visibility was therefore a silent dead end: the App never sent its first
+    // heartbeat after a restart, so it could never discover a revoked session.
+    // A signed-out or unpaired launch is still a quiet no-op (no request).
+    onForeground().catch(noop);
     return { installed: true };
   }
 
@@ -495,6 +531,11 @@ export function createHost(options) {
       revoke: () => withClient(async (c) => {
         const out = await c.revoke();
         try { await ensureOauth().invalidateAccess({ reason: 'revoked' }); } catch (_) {}
+        // A revoke ends the session on purpose: same state as a 401, and it must
+        // not keep claiming 已连接此设备.
+        clearLocalCred();
+        store.setItem(RECONNECT_KEY, '1');
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
         return out;
       }),
       hasCred,

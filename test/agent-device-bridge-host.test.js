@@ -369,7 +369,7 @@ describe('BEL-151 host: no grant means no request, and an honest card', () => {
 });
 
 describe('BEL-151 host: heartbeat lifecycle', () => {
-  test('foreground beats once with the MCP Bearer, keeps a 2–5 min interval, hidden does not beat', async () => {
+  test('launch beats even when WKWebView reports hidden, then every foreground entry', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
     const store = pairedStore();
     const host = Host.createHost(baseOptions({ store, fetch: rec.fetch }));
@@ -379,11 +379,11 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
       addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
     };
     eq(host.boot(doc).installed, true);
-    eq(rec.calls.length, 0, 'a hidden launch sent a heartbeat');
-
-    doc.visibilityState = 'visible';
-    await doc.handlers.visibilitychange[0]();
-    eq(rec.calls.length, 1);
+    // The launch beat runs unconditionally: WKWebView can report hidden while the
+    // window is occluded/not yet key, and does not always fire visibilitychange when
+    // it appears. Gating this was why an App restart never discovered a revoke.
+    await new Promise((r) => setTimeout(r, 20));
+    eq(rec.calls.length, 1, 'a hidden launch skipped the launch beat');
     eq(rec.calls[0].url, HEARTBEAT);
     eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
     const body = JSON.parse(rec.calls[0].init.body);
@@ -392,13 +392,17 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(host.isHeartbeatRunning(), true);
     eq(host.status().state, 'paired');
 
-    doc.visibilityState = 'hidden';
-    await doc.handlers.visibilitychange[0]();
-    eq(rec.calls.length, 1, 'going hidden sent a heartbeat');
-
     doc.visibilityState = 'visible';
     await doc.handlers.visibilitychange[0]();
     eq(rec.calls.length, 2, 'returning to the foreground did not beat');
+
+    doc.visibilityState = 'hidden';
+    await doc.handlers.visibilitychange[0]();
+    eq(rec.calls.length, 2, 'going hidden sent a heartbeat');
+
+    doc.visibilityState = 'visible';
+    await doc.handlers.visibilitychange[0]();
+    eq(rec.calls.length, 3, 'returning to the foreground did not beat again');
   });
 
   test('the interval is clamped into the contract window', async () => {
@@ -453,6 +457,46 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(again.code, 'not_paired');
     eq(host.status().state, 'reconnect');
     eq(host.status().text, copy.MESSAGES.reconnect);
+  });
+
+  test('a 401 on agentBridge().heartbeat gets the same D.8 fallout', async () => {
+    // The background interval and the agent host both call agentBridge().heartbeat().
+    // Before onUnauthorized, that path cleared device_cred inside the client and then
+    // forgot about it: no Keychain clear, no status, no copy — an invisible revoke.
+    const rec = recorder(() => fakeResponse(401, { ok: false, code: 'unauthorized' }));
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.agentBridge().heartbeat();
+    eq(out.code, 'unauthorized');
+    eq(store.getItem('device_cred'), null);
+    eq(store.getItem('device_cred_user'), null);
+    eq(store.getItem('device_reconnect'), '1');
+    eq(host.isHeartbeatRunning(), false);
+    eq(host.status().state, 'reconnect');
+    eq(host.status().text, copy.MESSAGES.reconnect);
+    eq(host.status().paired, false);
+    ok(oauth.calls.some((c) => c[0] === 'invalidateAccess'), 'MCP access token was not invalidated');
+  });
+
+  test('the re-allow state survives a relaunch and the relaunch sends no heartbeat', async () => {
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const dead = recorder(() => fakeResponse(401, { ok: false, code: 'unauthorized' }));
+    const first = Host.createHost(baseOptions({ store, fetch: dead.fetch, oauth }));
+    eq((await first.onForeground()).code, 'unauthorized');
+    eq(store.getItem('device_reconnect'), '1');
+
+    // A fresh App process over the same storage: no credential, but the reason must
+    // not be erased into "unpaired" — the user still has to allow this device again.
+    const live = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const second = Host.createHost(baseOptions({ store, fetch: live.fetch }));
+    const out = await second.onForeground();
+    eq(out.code, 'not_paired');
+    eq(live.calls.length, 0, 'an unpaired relaunch sent a heartbeat');
+    eq(second.status().state, 'reconnect');
+    eq(second.status().text, copy.MESSAGES.reconnect);
+    eq(second.status().paired, false);
   });
 
   test('an MCP refresh network failure keeps the credential and says network', async () => {

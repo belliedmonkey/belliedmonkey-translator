@@ -9,7 +9,7 @@
 // Pure Node, no runtime deps. Every side effect is injectable so the probes and
 // tests run against a mock fetch and an in-memory store:
 //   createClient({ flavor, baseUrl, fetch, getAccessToken, getAppVersion,
-//                  store, now, paths, setTimeout, clearTimeout })
+//                  store, now, paths, setTimeout, clearTimeout, onUnauthorized })
 //
 // No Node I/O lives here on purpose: this module is also bundled into the App
 // (src/app/device-bridge-host.js), whose page has no `fs`. The caller always
@@ -147,10 +147,19 @@ function createClient(options) {
   const getAccessToken = opts.getAccessToken || (() => '');
   const getAppVersion = opts.getAppVersion || (() => '');
   const now = opts.now || (() => Date.now());
+  // **Bind the timer to the global.** Safari/WKWebView brands setTimeout and
+  // clearTimeout as Window methods: `timers.setTimeout(...)` with `timers` as the
+  // receiver throws "Can only call Window.setTimeout on instances of Window".
+  // That is not a hypothetical — it stopped the App's very first heartbeat, so
+  // every 401 went undiscovered (BEL-151 D.8). Reflect.apply keeps injected test
+  // timers working while giving the native ones the receiver they demand.
+  const rawSetTimeout = opts.setTimeout || setTimeout;
+  const rawClearTimeout = opts.clearTimeout || clearTimeout;
   const timers = {
-    setTimeout: opts.setTimeout || setTimeout,
-    clearTimeout: opts.clearTimeout || clearTimeout,
+    setTimeout: (fn, ms) => Reflect.apply(rawSetTimeout, globalThis, [fn, ms]),
+    clearTimeout: (id) => Reflect.apply(rawClearTimeout, globalThis, [id]),
   };
+  const onUnauthorized = typeof opts.onUnauthorized === 'function' ? opts.onUnauthorized : null;
 
   let deviceId = null;
   let timer = null;
@@ -195,6 +204,17 @@ function createClient(options) {
     stopHeartbeat();
   }
 
+  // Every 401/403 is the same fact no matter which POST carried it (foreground
+  // beat, interval tick, bootstrap, register, revoke). The client cannot clear the
+  // MCP access token or paint the App's status — those live in the host — so it
+  // hands the fact out through onUnauthorized. Without this, a 401 caught by the
+  // background interval cleared device_cred but left the App saying "paired".
+  async function noteUnauthorized(route, status) {
+    forgetAndStop();
+    if (!onUnauthorized) return;
+    try { await onUnauthorized({ route, status: Number(status) || 0 }); } catch (_) { /* the host owns its fallout */ }
+  }
+
   async function post(route, body) {
     const token = await tokenOf(getAccessToken);
     if (!token) return { ok: false, code: 'need_login', status: 0 };
@@ -221,7 +241,7 @@ function createClient(options) {
       data = null;
     }
     if (status === 401 || status === 403) {
-      forgetAndStop();
+      await noteUnauthorized(route, status);
       return { ok: false, code: 'unauthorized', status };
     }
     if (status === 400) return { ok: false, code: 'bad_request', status };
@@ -230,7 +250,7 @@ function createClient(options) {
     }
     if (data && data.ok === false) {
       if (data.code === 'unauthorized') {
-        forgetAndStop();
+        await noteUnauthorized(route, status);
         return { ok: false, code: 'unauthorized', status };
       }
       return { ok: false, code: 'server_error', status };

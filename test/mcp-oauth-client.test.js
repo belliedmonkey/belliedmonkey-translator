@@ -448,9 +448,9 @@ describe('MCP OAuth: the native half mirrors the JS protocol', () => {
   test('the bridge is in the sync block list and gets an install on both platforms', () => {
     const sync = fs.readFileSync(path.join(ROOT, 'scripts/sync-app-assets.js'), 'utf8');
     ok(/name: 'mt-mcp-oauth', src: 'mcp-oauth-bridge\.swift'/.test(sync), 'BLOCKS entry missing');
-    ok(/MTMcpOAuth\.shared\.install/.test(sync), 'install patch missing');
+    ok(/MTMcpOAuth\.install/.test(sync), 'install patch missing');
     // The install line must not be wrapped in #if os(iOS) — the Mac is the P0 host.
-    const around = sync.slice(sync.indexOf('MTMcpOAuth.shared.install') - 400, sync.indexOf('MTMcpOAuth.shared.install') + 100);
+    const around = sync.slice(sync.indexOf('MTMcpOAuth.install') - 400, sync.indexOf('MTMcpOAuth.install') + 100);
     ok(!/#if os\(iOS\)\n\s*MTMcpOAuth/.test(around), 'the MCP Keychain install is iOS-only');
   });
 
