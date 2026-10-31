@@ -122,7 +122,7 @@ describe('agent H1 Claude Code + Codex packaging', () => {
 
     const pkg = JSON.parse(read(path.join(ROOT, 'package.json')));
     // 产品版本。插件 version（上面的 1.22.0-n25）是另一条轨，不跟这里对齐。
-    eq(pkg.version, '1.22.3');
+    eq(pkg.version, '1.22.5');
     eq(pkg.scripts['agent:mcp'], 'node agent/mcp-stdio.js');
   });
 
