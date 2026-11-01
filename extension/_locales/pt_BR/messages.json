@@ -4208,5 +4208,32 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Passar para por motor descarta a configuração atual de um toque"
+  },
+  "grant_title_monthly": {
+    "message": "Cota mensal"
+  },
+  "grant_title_yearly": {
+    "message": "Cota anual"
+  },
+  "grant_body_sub_active": {
+    "message": "Você está usando a cota da sua assinatura. Quando ela acabar, você pode continuar com sua própria chave."
+  },
+  "grant_body_sub_low": {
+    "message": "A cota da sua assinatura está quase acabando. Quando ela acabar, você pode continuar com sua própria chave."
+  },
+  "grant_body_sub_exhausted": {
+    "message": "A cota da sua assinatura acabou. Continue com sua própria chave — uma chave cobre tradução, leitura em voz alta e transcrição."
+  },
+  "grant_body_sub_replaced": {
+    "message": "Você está usando sua própria chave agora. A cota da sua assinatura continua lá; você pode voltar quando quiser."
+  },
+  "grant_restore_sub": {
+    "message": "Voltar para a cota da assinatura"
+  },
+  "grant_popup_low_sub": {
+    "message": "A cota da sua assinatura está quase acabando — toque para verificar"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "A cota da sua assinatura acabou — toque para ver como continuar"
   }
 }

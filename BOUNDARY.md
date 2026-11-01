@@ -84,7 +84,8 @@
 
 - **推理网关（旧 `bt-relay`）≠ Remote MCP**（连接 / OAuth / 工具面）。
 - 推理网关 → `*-hosted`；`belliedmonkey-mcp-remote` 的协议/OAuth 壳可留公。
-- 额度计量 / 托管上游调用 → hosted 或经 `contracts/hosted-gateway.v0.yaml`。
+- 额度计量 / 托管上游调用 → hosted 或经 `contracts/hosted-gateway.v0.yaml`（v0.1 的
+  billing/sync 增补见 `contracts/hosted-gateway.v0.1.yaml`；实现仍在 hosted）。
 - **禁**借本拍把 BEL-151 标 Done；README 的「remote not published」一句按已发布事实修正。
 
 ## 6 · 改动纪律

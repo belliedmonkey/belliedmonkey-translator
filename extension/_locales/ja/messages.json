@@ -4208,5 +4208,32 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
+  },
+  "grant_title_monthly": {
+    "message": "月額クォータ"
+  },
+  "grant_title_yearly": {
+    "message": "年額クォータ"
+  },
+  "grant_body_sub_active": {
+    "message": "サブスクリプションのクォータを使用中です。使い切ったら、自分のキーで続けられます。"
+  },
+  "grant_body_sub_low": {
+    "message": "サブスクリプションのクォータがもうすぐなくなります。使い切ったら、自分のキーで続けられます。"
+  },
+  "grant_body_sub_exhausted": {
+    "message": "サブスクリプションのクォータを使い切りました。自分のキーで続けられます —— 1 つのキーで翻訳・読み上げ・文字起こしすべてに使えます。"
+  },
+  "grant_body_sub_replaced": {
+    "message": "現在は自分のキーを使っています。サブスクリプションのクォータは残っているので、いつでも戻せます。"
+  },
+  "grant_restore_sub": {
+    "message": "サブスクリプションのクォータに戻す"
+  },
+  "grant_popup_low_sub": {
+    "message": "サブスクリプションのクォータがもうすぐなくなります —— ここをタップして確認"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "サブスクリプションのクォータを使い切りました —— ここをタップして続け方を見る"
   }
 }

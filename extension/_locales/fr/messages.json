@@ -4208,5 +4208,32 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Passer au réglage par moteur annule le réglage actuel en un geste"
+  },
+  "grant_title_monthly": {
+    "message": "Quota mensuel"
+  },
+  "grant_title_yearly": {
+    "message": "Quota annuel"
+  },
+  "grant_body_sub_active": {
+    "message": "Votre quota d'abonnement est utilisé. Quand il sera épuisé, vous pourrez continuer avec votre propre clé."
+  },
+  "grant_body_sub_low": {
+    "message": "Votre quota d'abonnement est presque épuisé. Quand il sera épuisé, vous pourrez continuer avec votre propre clé."
+  },
+  "grant_body_sub_exhausted": {
+    "message": "Votre quota d'abonnement est épuisé. Continuez avec votre propre clé — une clé couvre la traduction, la lecture et la transcription."
+  },
+  "grant_body_sub_replaced": {
+    "message": "Vous utilisez votre propre clé en ce moment. Votre quota d'abonnement est toujours là ; vous pouvez y revenir à tout moment."
+  },
+  "grant_restore_sub": {
+    "message": "Revenir au quota d'abonnement"
+  },
+  "grant_popup_low_sub": {
+    "message": "Votre quota d'abonnement est presque épuisé — appuyez pour vérifier"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "Votre quota d'abonnement est épuisé — appuyez pour voir comment continuer"
   }
 }

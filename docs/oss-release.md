@@ -2,6 +2,10 @@
 
 - **Status:** P0 lane definition (BEL-172). This document defines how an OSS tag is cut; it
   is **not** an announcement that the project is MIT-licensed today.
+- **P1 entry (2026-11-01):** the stranger path is
+  [`docs/oss-quickstart.md`](oss-quickstart.md); own-key and local-model guides are
+  [`docs/byok.md`](byok.md) and [`docs/local-model.md`](local-model.md). Those docs describe
+  the orphan tip; they do not change the tag rules below.
 - **Applies to:** the public MIT orphan root (`oss/mit-orphan`) and any `oss/**` tag.
 - **Does not apply to:** store submission, App Store Connect, marketing copy.
 
@@ -103,11 +107,12 @@ node build.js
 - 额度计量/托管上游调用若存在 → hosted 或经 CONTRACT-v0；**禁**借开源叙事宣称「无托管云」，
   也**禁**把 BEL-151 标 Done。
 
-## 7 · 本拍不包含（P1/P2）
+## 7 · P1 落地（2026-11-01）
 
-- 「陌生人按文档跑通 BYOK」的验收与文档 —— **P1**。
-- 订阅/云同步同拍验收 —— **P2**。
-- 遥测默认 off 的代码实现 —— P1（本文件只钉方向）。
-- 任何 `Done` 状态变更（BEL-171～175 / BEL-151…）。
+- 陌生人路径、BYOK、本地模型、三端构建文档已落在
+  [`docs/oss-quickstart.md`](oss-quickstart.md) / [`docs/byok.md`](byok.md) /
+  [`docs/local-model.md`](local-model.md)；验收证据在 QA OUT，不改变本文件的 tag 规则。
+- 订阅/云同步（P2）仍由增长令负责；公仓只消费 `contracts/` + `mocks/`，不落服务端实现。
+- 遥测默认 off 的代码实现、任何 `Done` 状态变更（BEL-171～175 / BEL-151…）不在本文件授权内。
 
 P0 出口以 `docs/architecture-p0/P0-SPLIT-opencode-b-prime-2026-11-01.md` §6 的 **E1–E7** 为准。

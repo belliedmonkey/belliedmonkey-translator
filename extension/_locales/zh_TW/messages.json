@@ -4209,5 +4209,32 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "改用分項會作廢目前的一鍵配置"
+  },
+  "grant_title_monthly": {
+    "message": "月度額度"
+  },
+  "grant_title_yearly": {
+    "message": "年度額度"
+  },
+  "grant_body_sub_active": {
+    "message": "訂閱額度正在使用。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_sub_low": {
+    "message": "訂閱額度快用完了。用完之後可以填一把自己的 key 繼續。"
+  },
+  "grant_body_sub_exhausted": {
+    "message": "訂閱額度已經用完了。填一把自己的 key 就能繼續 —— 一把通吃翻譯、朗讀、轉寫。"
+  },
+  "grant_body_sub_replaced": {
+    "message": "你現在用的是自己的 key。訂閱額度還留著，隨時可以換回來。"
+  },
+  "grant_restore_sub": {
+    "message": "改回訂閱額度"
+  },
+  "grant_popup_low_sub": {
+    "message": "訂閱額度快用完了 —— 點這裡看看"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "訂閱額度已用完 —— 點這裡看怎麼繼續"
   }
 }

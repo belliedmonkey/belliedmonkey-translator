@@ -4208,5 +4208,32 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · about {size}"
+  },
+  "grant_title_monthly": {
+    "message": "Monthly quota"
+  },
+  "grant_title_yearly": {
+    "message": "Yearly quota"
+  },
+  "grant_body_sub_active": {
+    "message": "Your subscription quota is in use. When it runs out you can continue with your own key."
+  },
+  "grant_body_sub_low": {
+    "message": "Your subscription quota is nearly gone. When it runs out you can continue with your own key."
+  },
+  "grant_body_sub_exhausted": {
+    "message": "Your subscription quota is used up. Continue with your own key — one key covers translation, speech and transcription."
+  },
+  "grant_body_sub_replaced": {
+    "message": "You are using your own key right now. Your subscription quota is still there; you can switch back any time."
+  },
+  "grant_restore_sub": {
+    "message": "Switch back to subscription quota"
+  },
+  "grant_popup_low_sub": {
+    "message": "Subscription quota is nearly gone — tap to review"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "Subscription quota is used up — tap to see how to continue"
   }
 }

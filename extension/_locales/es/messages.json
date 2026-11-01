@@ -4208,5 +4208,32 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Pasar a por motor descarta la configuración actual de un toque"
+  },
+  "grant_title_monthly": {
+    "message": "Cuota mensual"
+  },
+  "grant_title_yearly": {
+    "message": "Cuota anual"
+  },
+  "grant_body_sub_active": {
+    "message": "Estás usando la cuota de tu suscripción. Cuando se agote, puedes continuar con tu propia clave."
+  },
+  "grant_body_sub_low": {
+    "message": "La cuota de tu suscripción está casi agotada. Cuando se agote, puedes continuar con tu propia clave."
+  },
+  "grant_body_sub_exhausted": {
+    "message": "La cuota de tu suscripción se ha agotado. Continúa con tu propia clave: una clave cubre traducción, lectura en voz alta y transcripción."
+  },
+  "grant_body_sub_replaced": {
+    "message": "Ahora mismo usas tu propia clave. La cuota de tu suscripción sigue ahí; puedes volver cuando quieras."
+  },
+  "grant_restore_sub": {
+    "message": "Volver a la cuota de suscripción"
+  },
+  "grant_popup_low_sub": {
+    "message": "La cuota de tu suscripción está casi agotada: toca para revisar"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "La cuota de tu suscripción se ha agotado: toca para ver cómo continuar"
   }
 }

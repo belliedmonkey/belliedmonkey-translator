@@ -31,6 +31,7 @@
 
 import Registry from '../lib/registry.js';
 import { plan as qsPlan } from './quick-setup.js';
+import { productOf, isSubscription } from './hosted-contract.js';
 
 export const CACHE_MS = 10 * 60 * 1000;
 export const LOW_USD = 0.02;                 // 「余额低」的线，只在设置页与弹窗提示（裁定 D5）
@@ -86,6 +87,9 @@ export async function claim(deps) {
     token: String(body.token || ''),
     limitUsd: Number(body.limit_usd || sp.limitUsd || 0),
     spentUsd: Number(body.spent_usd || 0),
+    // v0.1 adds the product enum. An older server omits it; productOf() then reports
+    // `free`, which is the only safe default for a free-credit claim.
+    product: productOf({ product: body.product }),
     reused: !!body.reused,
   };
   // grant_claimed 记在**这里**，不记在调用方（telemetry-design §3.4）。此前它挂在扩展设置页
@@ -146,7 +150,12 @@ export function plan(claimed, settings, reg, opts) {
         at: Date.now(),
         reused: !!claimed.reused,
       },
-      grantBalance: { spentUsd: claimed.spentUsd, limitUsd: claimed.limitUsd, at: Date.now() },
+      grantBalance: {
+        spentUsd: claimed.spentUsd,
+        limitUsd: claimed.limitUsd,
+        product: productOf({ product: claimed.product }),
+        at: Date.now(),
+      },
     },
   });
 }
@@ -256,7 +265,24 @@ export function cardFor(status, opts) {
     ? t('grant_privacy', '免费额度（可选）。登录并领取后，你可以用我们出的 0.2 美元额度翻译、朗读、转写。这条路上，你的文本会经过我们的服务器转发到模型提供方（{vendor}），我们不保存、不记录内容，只记录每次花了多少；额度用完即停，不会自动收费。自带 key 的路径不变：文本仍从你的浏览器直接发往提供方，我们看不到。退出登录时额度在这台设备上停用；删除账号会一并删除额度记录。').replace('{vendor}', vend)
     : '';
 
-  const base = { title: t('grant_title', '免费额度'), action: null, links: [], progress: null, note: '' };
+  // v0.1: a balance carries `product` (free | monthly | yearly). The card must say
+  // which quota is in use, because "free credit" is a lie once the user is on a paid
+  // subscription. Unknown/absent product falls back to free — the old contract's shape.
+  const prod = productOf(o.product ? { product: o.product } : (o.balance || {}));
+  const sub = isSubscription(prod);
+  const title = sub
+    ? (prod === 'monthly'
+      ? t('grant_title_monthly', '月度额度')
+      : t('grant_title_yearly', '年度额度'))
+    : t('grant_title', '免费额度');
+
+  const base = {
+    title,
+    // The selection surface is the card itself: `byok` = own key, `subscription` = the
+    // included/paid quota. Render() exposes it as data-route for tests and for the host.
+    route: sub ? 'subscription' : 'byok',
+    action: null, links: [], progress: null, note: '',
+  };
   const byo = { id: 'byo', text: t('grant_byo', '用自己的 key') };
   const community = { id: 'community', text: t('grant_community', '加入社群问问') };
 
@@ -286,15 +312,21 @@ export function cardFor(status, opts) {
     case 'active':
     case 'low':
       return Object.assign({}, base, {
-        body: status === 'low'
-          ? t('grant_body_low', '免费额度快用完了。用完之后可以填一把自己的 key 继续。')
-          : t('grant_body_active', '免费额度正在用。用完之后可以填一把自己的 key 继续。'),
+        body: sub
+          ? (status === 'low'
+            ? t('grant_body_sub_low', '订阅额度快用完了。用完之后可以填一把自己的 key 继续。')
+            : t('grant_body_sub_active', '订阅额度正在用。用完之后可以填一把自己的 key 继续。'))
+          : (status === 'low'
+            ? t('grant_body_low', '免费额度快用完了。用完之后可以填一把自己的 key 继续。')
+            : t('grant_body_active', '免费额度正在用。用完之后可以填一把自己的 key 继续。')),
         progress: left == null ? null : { left, limit, text: money(left) + ' / ' + money(limit) },
         links: [byo],
       });
     case 'exhausted':
       return Object.assign({}, base, {
-        body: t('grant_body_exhausted', '免费额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。'),
+        body: sub
+          ? t('grant_body_sub_exhausted', '订阅额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。')
+          : t('grant_body_exhausted', '免费额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。'),
         progress: { left: 0, limit, text: money(0) + ' / ' + money(limit) },
         links: [byo, community],
       });
@@ -307,8 +339,15 @@ export function cardFor(status, opts) {
       });
     case 'replaced':
       return Object.assign({}, base, {
-        body: t('grant_body_replaced', '你现在用的是自己的 key。免费额度还留着，随时可以换回来。'),
-        action: { id: 'restore', text: t('grant_restore', '改回免费额度') },
+        body: sub
+          ? t('grant_body_sub_replaced', '你现在用的是自己的 key。订阅额度还留着，随时可以换回来。')
+          : t('grant_body_replaced', '你现在用的是自己的 key。免费额度还留着，随时可以换回来。'),
+        action: {
+          id: 'restore',
+          text: sub
+            ? t('grant_restore_sub', '改回订阅额度')
+            : t('grant_restore', '改回免费额度'),
+        },
       });
     default:
       return null;                                   // 认不出的状态：什么都不画
@@ -369,10 +408,23 @@ export function popupRow(settings, opts) {
     return { kind: 'model', text: t('grant_popup_model', '免费额度只能用它指定的模型 —— 点这里改回去') };
   }
   const bal = s.grantBalance || null;
+  const sub = isSubscription(productOf(bal));
   const left = leftUsd(bal);
-  if (left === 0) return { kind: 'exhausted', text: t('grant_popup_exhausted', '免费额度已用完 —— 点这里看怎么继续') };
+  if (left === 0) {
+    return {
+      kind: 'exhausted',
+      text: sub
+        ? t('grant_popup_exhausted_sub', '订阅额度已用完 —— 点这里看怎么继续')
+        : t('grant_popup_exhausted', '免费额度已用完 —— 点这里看怎么继续'),
+    };
+  }
   if (left != null && left < LOW_USD) {
-    return { kind: 'low', text: t('grant_popup_low', '免费额度快用完了 —— 点这里看看') };
+    return {
+      kind: 'low',
+      text: sub
+        ? t('grant_popup_low_sub', '订阅额度快用完了 —— 点这里看看')
+        : t('grant_popup_low', '免费额度快用完了 —— 点这里看看'),
+    };
   }
   return null;                                  // 一切正常：不占那一行
 }

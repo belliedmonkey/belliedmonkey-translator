@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
   <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
-  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
   ·
   <a href="https://belliedmonkey.cc"><b>Website</b></a>
   ·
-  <a href="https://apps.apple.com/cn/app/id6789718038"><b>中国大陆 App Store</b></a>
+  <a href="https://belliedmonkey.com/"><b>大肚猴翻译 · 中国站</b></a>
   ·
   <a href="https://github.com/belliedmonkey/belliedmonkey-translator"><b>★ Star this repo</b></a>
 </p>
@@ -57,6 +57,32 @@
 
 ---
 
+## Source and license
+
+This branch is the **MIT-licensed OSS root** (`oss/mit-orphan`; exact P0 snapshot tag
+`oss-v0.1.0-bel172-p0`). The store builds are cut from a separate
+**GPL-3.0-or-later** branch (`main`); the two lanes are never merged.
+
+```bash
+git clone --branch oss/mit-orphan \
+  https://github.com/belliedmonkey/belliedmonkey-translator.git
+cd belliedmonkey-translator
+npm ci
+node build.js
+```
+
+- **Five-minute source path:** [`docs/oss-quickstart.md`](docs/oss-quickstart.md)
+- **Own key (BYOK):** [`docs/byok.md`](docs/byok.md)
+- **Local model (Ollama / LM Studio):** [`docs/local-model.md`](docs/local-model.md)
+- **License:** [`LICENSE`](LICENSE) (MIT) · **notices:** [`NOTICE`](NOTICE)
+- **OSS lane rules:** [`docs/oss-release.md`](docs/oss-release.md) ·
+  **public/private boundary:** [`BOUNDARY.md`](BOUNDARY.md)
+
+Installing from a store is still the normal way to use it; the source build is for
+contributors, auditors, and people who want to run it without a store.
+
+---
+
 ## Install
 
 Install from a store — building from source is for contributors, not for using it.
@@ -64,9 +90,9 @@ Install from a store — building from source is for contributors, not for using
 | Platform | |
 |---|---|
 | **iPhone · iPad · Mac** (app + Safari extension) | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) — one app record covers all three; iOS 16.4 / macOS 13.3 or later |
-| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and grab the [**latest ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip); steps below |
+| **Chrome · Edge** (desktop) | [**Chrome Web Store**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) — or skip the store-review lag and use the [**Releases page**](https://github.com/belliedmonkey/belliedmonkey-translator/releases); steps below |
 | **Firefox** (desktop · Android) | [**Firefox Add-ons**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
-| **Mainland China** | A separate edition, [**大肚猴翻译**](https://apps.apple.com/cn/app/id6789718038), with mainland engines only — site at [belliedmonkey.com](https://belliedmonkey.com/) |
+| **Mainland China** | A separate edition, [**大肚猴翻译**](https://belliedmonkey.com/), with mainland engines only |
 | **iPhone Chrome / Firefox** | Not possible — iOS forbids browser extensions outside Safari. This is a platform rule, not a gap in this project |
 
 Then open the extension's settings and pick a translation engine. Nothing else is required.
@@ -76,7 +102,7 @@ Using it? Tell me what for, or what to change — [come say so on Discord](https
 <details>
 <summary><b>Installing the ZIP directly (Chrome / Edge)</b></summary>
 
-Chrome Web Store review can lag a version behind; the [latest ZIP](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) is always the newest release, built from the same source submitted to the store. Illustrated guide: [belliedmonkey.cc/#install](https://belliedmonkey.cc/#install).
+Chrome Web Store review can lag a version behind; the [Releases page](https://github.com/belliedmonkey/belliedmonkey-translator/releases) is where the newest packaged ZIP is published, built from the same source submitted to the store. Illustrated guide: [belliedmonkey.cc/#install](https://belliedmonkey.cc/#install).
 
 1. Unzip the download. You get a folder — keep it; Chrome runs the extension from that folder.
 2. Open `chrome://extensions` (`edge://extensions` on Edge) and switch on **Developer mode** in the top corner.
@@ -88,9 +114,16 @@ Chrome Web Store review can lag a version behind; the [latest ZIP](https://githu
 <details>
 <summary><b>Building from source</b></summary>
 
-Zero dependencies — no `npm install`. Node.js ≥ 16.
+Build-time devDependencies only (`esbuild`, `react`), pinned by `package-lock.json`; the
+built extension has **no runtime npm dependencies** and loads no CDN. Node.js ≥ 20
+(`package.json` → `engines`). Run `npm ci` first — without it the build stops with
+`esbuild 不在 node_modules`.
 
 ```bash
+git clone --branch oss/mit-orphan \
+  https://github.com/belliedmonkey/belliedmonkey-translator.git
+cd belliedmonkey-translator
+npm ci
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi
 node build.js --flavor china      # China flavor     → dist-china/
@@ -104,6 +137,16 @@ For Safari you additionally need macOS with a full Xcode install:
 bash build-safari.sh                  # generates the iOS Xcode project
 bash build-safari.sh global macos     # …or the macOS one
 BUILD_NUMBER=11 bash build-safari.sh global macos   # explicit build number for uploads
+```
+
+The Safari project is generated from `dist/`, but the **host App** assets are not: for a
+complete App (on-device speech and LID), fetch the native binaries and sync the bundle
+once before opening Xcode. `app:sync` fails loudly instead of shipping a stubbed App.
+
+```bash
+node scripts/fetch-native-deps.js   # sherpa-onnx + onnxruntime, ~330 MB, gitignored
+node build.js
+npm run app:sync
 ```
 
 In Xcode: set your Team on **both** targets → select your device → Run. Then on the phone,
@@ -260,6 +303,15 @@ just practised.
   noticeably better.
 - **Auditable.** Every claim above is a line of source you can read. That is the point of
   publishing it.
+- **Guide, failure table and the no-hosted check:** [`docs/byok.md`](docs/byok.md).
+
+### Own key vs hosted quota
+
+The own-key path above is the default and is complete on its own. The optional **free
+credit** and any **subscription quota** are the only paths that use our hosted gateway;
+they are explicit opt-ins, and this public tree ships only the contract and a local mock.
+When a quota is exhausted, the client falls back to your own key. The server never
+redirects a request that declared BYOK. See [`BOUNDARY.md`](BOUNDARY.md) §3.
 
 On **iPhone and iPad this works exactly as it does on desktop**, which is harder than it
 sounds and is why the architecture looks unusual. See
@@ -422,7 +474,7 @@ podcast feed's `<podcast:transcript>`.
 ### Build and test
 
 ```bash
-npm test              # pure-logic suite, zero dependencies, Node ≥18
+npm test              # pure-logic suite, zero runtime dependencies, Node ≥20
 npm run test:layout   # 44 layout fixtures against real headless Chrome (Node ≥22)
 ```
 
@@ -435,6 +487,11 @@ green badge imply coverage it doesn't have.
 
 | Document | What it owns |
 |---|---|
+| [`docs/README.md`](docs/README.md) | The documentation index — start here. |
+| [`docs/oss-quickstart.md`](docs/oss-quickstart.md) | Clone the MIT root, build, load, add a key, translate. |
+| [`docs/byok.md`](docs/byok.md) | Own-key path, key locality, failure table, no-hosted check. |
+| [`docs/local-model.md`](docs/local-model.md) | Ollama, LM Studio, self-hosted gateway. |
+| [`docs/oss-release.md`](docs/oss-release.md) | How an OSS tag is cut; OSS tag ≠ store tip. |
 | [`docs/domain-design.md`](docs/domain-design.md) | The domain model: `source → Extractor → units → Engine → Renderer`, the zero-site-selectors rule, provider registry. **Changes here need human review first.** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | How anything is verified. The full-matrix rule, per-surface traps, honesty rules. |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | User-facing interaction and layout constraints. |
@@ -486,13 +543,13 @@ app/                        iPhone · iPad · Mac: Live Subtitles, conversation
 <details>
 <summary><b>How is this different from Immersive Translate?</b></summary>
 
-Same reading model — original paragraph, translation right under it, dual video subtitles. The differences: BelliedMonkey Translator is MIT open source, has no subscription and no account requirement, and with your own key the translation request goes straight from your browser to the model provider with no server of ours in between. In the other direction, Immersive Translate supports far more sites through hand-written adapters and offers a hosted plan that needs no key; this project has neither — the segmenter works from HTML semantics alone, so most sites work without site-specific code, but unusual layouts can still break. The full comparison, including Readlang, Trancy and built-in browser translation, is at [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html).
+Same reading model — original paragraph, translation right under it, dual video subtitles. The differences: BelliedMonkey Translator is MIT open source on this branch. The free path — your own key or the free Google channel — has no subscription and no account requirement, and with your own key the translation request goes straight from your browser to the model provider with no server of ours in between. An optional hosted plan (free credit, and when offered a paid subscription) is an add-on: it never gates the free path, and quota exhaustion falls back to your own key. In the other direction, Immersive Translate supports far more sites through hand-written adapters and offers a hosted plan that needs no key; this project has neither — the segmenter works from HTML semantics alone, so most sites work without site-specific code, but unusual layouts can still break. The full comparison, including Readlang, Trancy and built-in browser translation, is at [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html).
 </details>
 
 <details>
 <summary><b>Is it really free? What is the catch?</b></summary>
 
-The extension and the apps are free with no ads, no paid tier and no in-app purchase. The only cost is the translation itself: with your own AI key you pay the provider directly at their prices (roughly $0.0004 per page on a budget model); the free Google channel costs nothing but is general-purpose machine translation. After sign-in you can claim a small free credit we pay for (about $0.20); on that path your text passes through our relay to the model provider and is not stored. Details: [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html).
+The extension and the apps are free with no ads, and the free path has no paid tier and no in-app purchase. An optional hosted plan may be offered as an add-on; it never replaces the own-key path, and running out of quota falls back to your own key. The only cost of the free path is the translation itself: with your own AI key you pay the provider directly at their prices (roughly $0.0004 per page on a budget model); the free Google channel costs nothing but is general-purpose machine translation. After sign-in you can claim a small free credit we pay for (about $0.20); on that path your text passes through our relay to the model provider and is not stored. Details: [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html).
 </details>
 
 <details>
@@ -553,5 +610,10 @@ so the thinking survives, not just the diff. See [`AGENTS.md`](AGENTS.md).
 
 [MIT License](LICENSE). Use it, study it, change it, share it —
 keep the copyright and permission notice with substantial copies.
+
+This branch is the MIT orphan root. The store lane (`main`) remains
+**GPL-3.0-or-later** until the relicensing lane is separately approved; the two are not
+merged, and no OSS tag is cut from `main`. Third-party components keep their own licenses
+— see [`NOTICE`](NOTICE).
 
 Copyright © 2026 belliedmonkey and contributors.

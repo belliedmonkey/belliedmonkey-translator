@@ -13,7 +13,7 @@
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <a href="https://belliedmonkey.cc"><img alt="website" src="https://img.shields.io/badge/site-belliedmonkey.cc-c67139"></a>
   <a href="https://belliedmonkey.cc/discord"><img alt="discord" src="https://img.shields.io/badge/chat-Discord-5865F2"></a>
-  <a href="https://github.com/belliedmonkey/belliedmonkey-translator/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator"><img alt="GitHub stars" src="https://img.shields.io/github/stars/belliedmonkey/belliedmonkey-translator?style=social"></a>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 <!-- BEL-153 首屏：一键装扩展 + 商店深链 + 星标路径 -->
 <p align="center">
-  <a href="https://apps.apple.com/cn/app/id6789718038"><img alt="中国大陆 App Store" src="https://img.shields.io/badge/App%20Store-大肚猴翻译-000000?logo=apple&logoColor=white"></a>
+  <a href="https://belliedmonkey.com/"><img alt="中国站 大肚猴翻译" src="https://img.shields.io/badge/中国站-大肚猴翻译-000000?logo=apple&logoColor=white"></a>
   &nbsp;
   <a href="https://apps.apple.com/app/belliedmonkey-translator/id6787190032"><img alt="International App Store" src="https://img.shields.io/badge/App%20Store-International-555555?logo=apple&logoColor=white"></a>
   &nbsp;
@@ -57,6 +57,30 @@
 
 ---
 
+## 源码与许可
+
+本分支是 **MIT 的 OSS 根**（`oss/mit-orphan`；P0 快照 tag `oss-v0.1.0-bel172-p0`）。
+商店构建从另一条 **GPL-3.0-or-later** 轨（`main`）切出；两条永不合入。
+
+```bash
+git clone --branch oss/mit-orphan \
+  https://github.com/belliedmonkey/belliedmonkey-translator.git
+cd belliedmonkey-translator
+npm ci
+node build.js
+```
+
+- **五分钟源码路径：** [`docs/oss-quickstart.md`](docs/oss-quickstart.md)
+- **自带 Key（BYOK）：** [`docs/byok.md`](docs/byok.md)
+- **本地模型（Ollama / LM Studio）：** [`docs/local-model.md`](docs/local-model.md)
+- **许可证：** [`LICENSE`](LICENSE)（MIT）· **第三方声明：** [`NOTICE`](NOTICE)
+- **OSS 轨规则：** [`docs/oss-release.md`](docs/oss-release.md) ·
+  **公私边界：** [`BOUNDARY.md`](BOUNDARY.md)
+
+日常使用仍建议从商店安装；源码构建是给贡献者、审计者和不想走商店的人。
+
+---
+
 ## 安装
 
 从商店安装即可。从源码构建是给贡献者的，不是给使用者的。
@@ -64,9 +88,9 @@
 | 平台 | |
 |---|---|
 | **iPhone · iPad · Mac**（App + Safari 扩展） | [**App Store**](https://apps.apple.com/app/belliedmonkey-translator/id6787190032) —— 三个平台共用同一个 App 记录；需要 iOS 16.4 / macOS 13.3 或更新 |
-| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可直接下载[**最新 ZIP**](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip)，步骤见下 |
+| **Chrome · Edge**（桌面） | [**Chrome 网上应用店**](https://chromewebstore.google.com/detail/ilnmffeejeohomjelipejdldhkjeoinf) —— 商店审核慢，也可到 [**Releases 页**](https://github.com/belliedmonkey/belliedmonkey-translator/releases) 取打包 ZIP，步骤见下 |
 | **Firefox**（桌面 · Android） | [**Firefox 附加组件**](https://addons.mozilla.org/firefox/addon/belliedmonkey-translator/) |
-| **中国大陆** | 另一个版本：[**大肚猴翻译**](https://apps.apple.com/cn/app/id6789718038)，只带境内引擎，站点在 [belliedmonkey.com](https://belliedmonkey.com/) |
+| **中国大陆** | 另一个版本：[**大肚猴翻译**](https://belliedmonkey.com/)，只带境内引擎 |
 | **iPhone 上的 Chrome / Firefox** | 做不到 —— iOS 禁止 Safari 以外的浏览器装扩展。这是平台规则，不是本项目的缺口 |
 
 装好后打开扩展设置，选一个翻译引擎，就没有别的步骤了。
@@ -76,7 +100,7 @@
 <details>
 <summary><b>直接安装 ZIP（Chrome / Edge）</b></summary>
 
-商店审核可能落后一个版本；[最新 ZIP](https://github.com/belliedmonkey/belliedmonkey-translator/releases/latest/download/belliedmonkey-translator-chrome.zip) 始终是最新发布版，与提交商店的源码一致。图文教程：[belliedmonkey.cc/#install](https://belliedmonkey.cc/#install)。
+商店审核可能落后一个版本；[Releases 页](https://github.com/belliedmonkey/belliedmonkey-translator/releases) 会发布与提交商店源码一致的打包 ZIP。图文教程：[belliedmonkey.cc/#install](https://belliedmonkey.cc/#install)。
 
 1. 解压下载的文件，得到一个文件夹——请保留它，Chrome 会从这个文件夹运行扩展。
 2. 打开 `chrome://extensions`（Edge 为 `edge://extensions`），开启右上角的**开发者模式**。
@@ -88,9 +112,15 @@
 <details>
 <summary><b>从源码构建</b></summary>
 
-零依赖，无需 `npm install`。需要 Node.js ≥ 16。
+只有构建期 devDependencies（`esbuild`、`react`），由 `package-lock.json` 钉住；产物没有
+运行时 npm 依赖，也不加载 CDN。需要 Node.js ≥ 20（见 `package.json` 的 `engines`）。
+先跑 `npm ci` —— 不跑会停在 `esbuild 不在 node_modules`。
 
 ```bash
+git clone --branch oss/mit-orphan \
+  https://github.com/belliedmonkey/belliedmonkey-translator.git
+cd belliedmonkey-translator
+npm ci
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi
 node build.js --flavor china      # 中国版            → dist-china/
@@ -104,6 +134,16 @@ Safari 还需要 macOS + 完整版 Xcode：
 bash build-safari.sh                  # 生成 iOS 工程
 bash build-safari.sh global macos     # 或 macOS 工程
 BUILD_NUMBER=11 bash build-safari.sh global macos   # 上传时显式指定 build 号
+```
+
+Safari 工程从 `dist/` 生成，但**宿主 App** 的资源不会自动进去：要完整的 App（端上
+语音与 LID），先拉原生二进制并同步一次，再打开 Xcode。`app:sync` 缺东西会直接报错，
+不会悄悄装一个被裁过的 App。
+
+```bash
+node scripts/fetch-native-deps.js   # sherpa-onnx + onnxruntime，约 330 MB，gitignored
+node build.js
+npm run app:sync
 ```
 
 在 Xcode 里给**两个 target** 都设好 Team → 选中你的设备 → Run。然后在手机上打开
@@ -242,6 +282,13 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 - **成本你自己控制。** 用哪个引擎、哪个模型、花多少钱，全是你的选择。也有不需要 key 的免费
   引擎可以零配置试用，不过用真正的模型效果明显更好。
 - **可自行审计。** 上面每一条都是你能逐行读到的源码。这正是开源的意义。
+- **完整指南（含失败对照表与「不经 hosted」自检）：** [`docs/byok.md`](docs/byok.md)。
+
+### 自有 Key 与托管额度
+
+上面这条自带 key 的路是默认，本身已经完整。可选的**免费额度**与**订阅额度**是仅有的两条
+经过我们托管网关的路；它们都是显式选择，本公开树只带契约与本地 mock。额度用尽时，客户端
+回落到你自己的 key；服务端不会把已声明 BYOK 的请求改道进托管。见 [`BOUNDARY.md`](BOUNDARY.md) §3。
 
 在 **iPhone 和 iPad 上，这一切和桌面完全一样** —— 这比听起来难得多，也是这套架构看上去
 不寻常的原因。见 [Safari iOS，以及为什么 service worker 什么都不做](#safari-ios以及为什么-service-worker-什么都不做)。
@@ -377,7 +424,7 @@ token 限制；播客则用页内的 WebVTT/SRT 或 feed 里的 `<podcast:transc
 ### 构建与测试
 
 ```bash
-npm test              # 纯逻辑测试套件，零依赖，Node ≥18
+npm test              # 纯逻辑测试套件，零运行时依赖，Node ≥20
 npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（Node ≥22）
 ```
 
@@ -389,6 +436,11 @@ npm run test:layout   # 44 个排版 fixture，跑在真实无头 Chrome 上（N
 
 | 文档 | 它拥有什么 |
 |---|---|
+| [`docs/README.md`](docs/README.md) | 文档索引 —— 从这里开始。 |
+| [`docs/oss-quickstart.md`](docs/oss-quickstart.md) | 克隆 MIT 根、构建、加载、配 key、翻译。 |
+| [`docs/byok.md`](docs/byok.md) | 自带 key 路径、key 本机、失败对照表、不经 hosted 自检。 |
+| [`docs/local-model.md`](docs/local-model.md) | Ollama、LM Studio、自建网关。 |
+| [`docs/oss-release.md`](docs/oss-release.md) | OSS tag 怎么切；OSS tag ≠ 商店 tip。 |
 | [`docs/domain-design.md`](docs/domain-design.md) | 领域模型：`source → Extractor → units → Engine → Renderer`、零站点选择器规则、provider 注册表。**改这里必须先过人工评审。** |
 | [`docs/verification-spec.md`](docs/verification-spec.md) | 一切如何被验证。全矩阵规则、各平台的坑、诚实性规则。 |
 | [`docs/interaction-spec.md`](docs/interaction-spec.md) | 面向用户的交互与排版约束。 |
@@ -439,13 +491,13 @@ app/                        iPhone · iPad · Mac：实时字幕、对话实时�
 <details>
 <summary><b>和沉浸式翻译有什么不同？</b></summary>
 
-阅读模型是一样的 —— 原文段落、译文紧跟其下、视频双语字幕。差别在于：大肚猴翻译是 MIT 开源、没有订阅、不强制账号，而且用自己的密钥时，翻译请求从你的浏览器直达模型服务商，中间没有我们的服务器。反过来说，沉浸式翻译靠手写适配支持的站点多得多，还有不用填密钥的托管方案；这两样我们都没有 —— 分段器只靠 HTML 语义工作，大多数站点不需要逐站代码，但奇怪的版式仍可能翻不好。完整对比（含 Readlang、Trancy 与浏览器自带翻译）在 [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html)。
+阅读模型是一样的 —— 原文段落、译文紧跟其下、视频双语字幕。差别在于：大肚猴翻译在本分支是 MIT 开源；**免费路径**（自带 key 或免费 Google 通道）没有订阅、不强制账号，而且用自己的密钥时，翻译请求从你的浏览器直达模型服务商，中间没有我们的服务器。可选的托管方案（免费额度，以及将来的付费订阅）是附加项：它不挡住免费路径，额度用尽会回落到自带 key。反过来说，沉浸式翻译靠手写适配支持的站点多得多，还有不用填密钥的托管方案；这两样我们都没有 —— 分段器只靠 HTML 语义工作，大多数站点不需要逐站代码，但奇怪的版式仍可能翻不好。完整对比（含 Readlang、Trancy 与浏览器自带翻译）在 [belliedmonkey.cc/alternatives](https://belliedmonkey.cc/alternatives.html)。
 </details>
 
 <details>
 <summary><b>真的免费吗？有什么代价？</b></summary>
 
-扩展和 App 免费，没有广告、没有付费档、没有内购。唯一的花费是翻译本身：用自己的 AI 密钥时按服务商价格直接付给它（便宜的模型一页约 0.0004 美元）；免费 Google 通道不花钱，但是普通机器翻译。登录后可以领一份我们出的小额免费额度（约 0.2 美元）；这条路上你的文本会经过我们的中继转发给模型服务商，我们不保存。细节见 [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html)。
+扩展和 App 免费，没有广告；免费路径没有付费档、没有内购。可选的托管方案是附加项，它不替代自带 key 的路；额度用尽会回落到自带 key。免费路径唯一的花费是翻译本身：用自己的 AI 密钥时按服务商价格直接付给它（便宜的模型一页约 0.0004 美元）；免费 Google 通道不花钱，但是普通机器翻译。登录后可以领一份我们出的小额免费额度（约 0.2 美元）；这条路上你的文本会经过我们的中继转发给模型服务商，我们不保存。细节见 [belliedmonkey.cc/pricing](https://belliedmonkey.cc/pricing.html)。
 </details>
 
 <details>
@@ -506,5 +558,9 @@ diff，还有当时的思考。见 [`AGENTS.md`](AGENTS.md)。
 
 [MIT 许可证](LICENSE)。你可以自由使用、研究、修改、分发；
 保留版权声明与许可声明即可。
+
+本分支是 MIT 的 orphan 根。商店轨（`main`）在重新许可单独获批之前仍是
+**GPL-3.0-or-later**；两条不合入，也不从 `main` 切 OSS tag。第三方组件保留各自的
+许可证 —— 见 [`NOTICE`](NOTICE)。
 
 Copyright © 2026 belliedmonkey and contributors.

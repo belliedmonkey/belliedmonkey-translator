@@ -37,6 +37,10 @@ export function render(box, opts) {
     return n;
   };
   const wrap = el('div', 'gr-wrap');
+  // The route is part of the card's meaning, not decoration: the host and the tests can
+  // read which path the card is offering (own key vs included/paid quota) without
+  // scraping the copy.
+  if (card.route) wrap.setAttribute('data-route', card.route);
   wrap.append(el('h3', 'gr-title', card.title));
   wrap.append(el('p', 'gr-body', card.body));
 

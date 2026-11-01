@@ -4209,5 +4209,32 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · 约 {size}"
+  },
+  "grant_title_monthly": {
+    "message": "月度额度"
+  },
+  "grant_title_yearly": {
+    "message": "年度额度"
+  },
+  "grant_body_sub_active": {
+    "message": "订阅额度正在使用。用完之后可以填一把自己的 key 继续。"
+  },
+  "grant_body_sub_low": {
+    "message": "订阅额度快用完了。用完之后可以填一把自己的 key 继续。"
+  },
+  "grant_body_sub_exhausted": {
+    "message": "订阅额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。"
+  },
+  "grant_body_sub_replaced": {
+    "message": "你现在用的是自己的 key。订阅额度还留着，随时可以换回来。"
+  },
+  "grant_restore_sub": {
+    "message": "改回订阅额度"
+  },
+  "grant_popup_low_sub": {
+    "message": "订阅额度快用完了 —— 点这里看看"
+  },
+  "grant_popup_exhausted_sub": {
+    "message": "订阅额度已用完 —— 点这里看怎么继续"
   }
 }

@@ -18,7 +18,17 @@ Looking for a first PR? Start from issues labeled
 (keep the pending sync code-entry state when settings close) or
 [#385](https://github.com/belliedmonkey/belliedmonkey-translator/issues/385)
 (validate engine endpoint shape on blur / every test entry).
-Read `AGENTS.md` before coding; open a PR against `main`.
+Read `AGENTS.md` before coding. Open a PR against **`oss/mit-orphan`** — this is the MIT
+OSS lane. **Never** open a PR that merges this tree into `main`: `main` is the
+GPL-3.0-or-later store lane, and mixing the two is the half-wash path this repository
+rejects. If you want to work on the store lane, start from `main` in its own worktree.
+
+## First build
+
+The five-minute path is [`docs/oss-quickstart.md`](docs/oss-quickstart.md). For the
+own-key path see [`docs/byok.md`](docs/byok.md); for a local model see
+[`docs/local-model.md`](docs/local-model.md). The clone URL there is the orphan branch or
+the `oss-v0.1.0-bel172-p0` tag, never `main`.
 
 ## Pull requests
 
@@ -48,5 +58,6 @@ See the [For developers](README.md#for-developers) section of the README for the
 
 ## License
 
-By contributing you agree your contribution is licensed under
-[MIT](LICENSE), the same as the project. By contributing you agree your contribution is licensed under MIT.
+By contributing you agree your contribution is licensed under [MIT](LICENSE), the same
+as this branch. The store lane (`main`) remains GPL-3.0-or-later and is not merged with
+this tree; a contribution to that lane is governed by that lane's license.
