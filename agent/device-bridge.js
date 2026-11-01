@@ -215,8 +215,11 @@ function createClient(options) {
     try { await onUnauthorized({ route, status: Number(status) || 0 }); } catch (_) { /* the host owns its fallout */ }
   }
 
-  async function post(route, body) {
-    const token = await tokenOf(getAccessToken);
+  async function post(route, body, tokenOverride) {
+    // The host may hand in the Bearer it already resolved for a disconnect. That
+    // keeps the revoke request in flight while the host clears the Keychain, and it
+    // avoids a refresh racing the explicit clear.
+    const token = tokenOverride !== undefined ? String(tokenOverride || '') : await tokenOf(getAccessToken);
     if (!token) return { ok: false, code: 'need_login', status: 0 };
     if (typeof doFetch !== 'function') return { ok: false, code: 'network_unavailable', status: 0 };
     let res;
@@ -321,18 +324,23 @@ function createClient(options) {
     return result;
   }
 
-  async function revoke() {
+  async function revoke(callOptions) {
+    const call = callOptions || {};
     const device_id = ensureDeviceId();
     const device_cred = cred();
+    // Local teardown is unconditional and happens before the network call: a
+    // revoke that never lands must not leave the App claiming it is paired.
     clearLocalCred();
     stopHeartbeat();
-    if (!device_cred) return { ok: true, revoked: false, cloud: false, status: 0 };
-    const out = await post('revoke', { device_id, device_cred });
+    if (!device_cred) return { ok: true, revoked: false, cloud: false, status: 0, code: 'not_paired' };
+    const out = await post('revoke', { device_id, device_cred }, call.token);
     return {
       ok: true,
       revoked: true,
       cloud: !!(out && out.ok),
       status: out ? out.status : 0,
+      code: out ? out.code : 'network_unavailable',
+      attempted: true,
     };
   }
 
