@@ -1,0 +1,537 @@
+openapi: 3.1.0
+info:
+  title: BelliedMonkey Hosted Gateway (contract v0.1)
+  version: 0.1.0
+  description: >
+    Public contract v0.1 for the closed-source hosted gateway. Minor addition over v0:
+    personal monthly/yearly billing (checkout + customer portal), entitlement balance /
+    idempotent consume, BYOK rejection on relay, minimal cloud sync, and account
+    deletion/export. The implementation lives in the private `*-hosted` repository; this
+    repository ships only this contract and the mock in `mocks/hosted-gateway/`.
+
+    Security axioms (CONTRACT-v0 §0, unchanged): BYOK never transits this gateway; the
+    hosted path carries only a user session JWT / grant token; responses never echo an
+    upstream provider key, `service_role`, `GRANT_KEK`, or Stripe secret material; the
+    server never silently reroutes a BYOK request into hosted; public CI uses mocks only.
+
+    Webhook receiving is **hosted-internal** and intentionally not part of this public
+    contract. Its event names/payloads are never published here.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: https://hosted.invalid
+    description: placeholder — the real base is injected by build/CI, never committed
+tags:
+  - name: billing
+  - name: grant
+  - name: relay
+  - name: sync
+  - name: models
+  - name: telemetry
+  - name: account
+  - name: legacy
+paths:
+  /v0/billing/plans:
+    get:
+      tags: [billing]
+      summary: Public pricing catalogue (personal + enterprise placeholder)
+      description: >
+        No authentication. `monthly` and `yearly` are purchasable personal SKUs.
+        `enterprise` is a placeholder only: `available=false`, `status=coming_soon`,
+        grayscale copy. No enterprise seat/ledger API exists in v0.1.
+      security: []
+      responses:
+        "200":
+          description: Plan catalogue
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PlanCatalogue" }
+  /v0/billing/checkout:
+    post:
+      tags: [billing]
+      summary: Create a hosted Checkout session for a personal monthly/yearly SKU
+      description: >
+        Returns a hosted payment URL created by the primary rail (intl: Stripe
+        Checkout). The server never returns a payment secret, Stripe secret key, or
+        upstream provider key. `product` is limited to `monthly` and `yearly`;
+        enterprise is not purchasable (`400 enterprise_not_available`). A client-side
+        flavor (`global` / `china`) selects the equivalent local rail but must keep the
+        same request/response shape.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CheckoutRequest" }
+      responses:
+        "200":
+          description: Checkout session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CheckoutResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          description: Billing rail not configured (no payment window is opened)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /v0/billing/portal:
+    get:
+      tags: [billing]
+      summary: Create a customer portal session (change card / cancel)
+      description: >
+        Returns a short-lived hosted URL. Requires a signed-in user; a user with no
+        billing customer gets `409 no_billing_account` rather than a fake URL.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Portal session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PortalResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: No billing account for this user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /v0/grant/balance:
+    get:
+      tags: [grant]
+      summary: Remaining entitlement for the caller
+      description: >
+        `product` is exactly one of `free`, `monthly`, `yearly`; an account with no
+        subscription is `free`. `unit` may be `usd`, `tokens`, or `requests` depending
+        on the SKU. A grant token (`bmg_...`) reports the free grant as `free`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Balance
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Balance" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v0/grant/consume:
+    post:
+      tags: [grant]
+      summary: Atomically consume entitlement (idempotent)
+      description: >
+        `Idempotency-Key` is required. Replaying the same key with the same caller
+        returns the original result with `replayed=true` and charges once. Keys are
+        scoped per user. Insufficient balance returns `402` with `fallback=byok` so the
+        client can offer local BYOK; this server never switches modes on its own.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount]
+              properties:
+                amount: { type: number, minimum: 0, exclusiveMinimum: true }
+                unit: { type: string, enum: [usd, tokens, requests] }
+      responses:
+        "200":
+          description: Consumed (or replay of the same idempotency key)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ConsumeResponse" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/Quota"
+        "429":
+          $ref: "#/components/responses/Quota"
+  /v0/relay:
+    post:
+      tags: [relay]
+      summary: Hosted inference relay (never BYOK)
+      description: >
+        Forwards a provider-shaped request. The model is pinned server-side; a request
+        that carries a user provider key in the body (`upstream_api_key`,
+        `provider_api_key`, `api_key`, `openai_api_key`, `anthropic_api_key`, or a
+        key-shaped `sk-...` value) is rejected with `400 byok_key_rejected` and is not
+        forwarded. Responses are sanitized and must not contain upstream credentials.
+        `402`/`429` carry `fallback=byok` plus user-facing copy; the client decides
+        whether to switch to local BYOK.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RelayRequest" }
+      responses:
+        "200":
+          description: Provider-compatible response (or audio bytes for TTS)
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+            audio/mpeg:
+              schema: { type: string, format: binary }
+        "400":
+          description: Bad request, including a BYOK provider key in the body
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/Quota"
+        "403":
+          description: Model not allowed / not entitled
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429":
+          $ref: "#/components/responses/Quota"
+        "503":
+          description: Upstream temporarily unavailable (not the user's quota)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /v0/sync/{collection}:
+    parameters:
+      - name: collection
+        in: path
+        required: true
+        schema: { type: string, enum: [settings, session-meta] }
+    get:
+      tags: [sync]
+      summary: Download one private sync collection
+      description: >
+        Minimal cloud sync. The server returns a versioned envelope with an `ETag`.
+        BYOK/api keys are never accepted for sync; the mock and the hosted gateway
+        reject any key-shaped field or value with `400 byok_key_rejected`.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Collection (or `404` when the user has never uploaded it)
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncEnvelope" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No such collection for this user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [sync]
+      summary: Upload one private sync collection
+      description: >
+        Conflict policy: last-write-wins by default; if `If-Match` is supplied it must
+        equal the current ETag or the write fails with `409` and the current envelope.
+        The stored body is opaque JSON up to 64 KiB. `api_key`/BYOK material is
+        rejected with `400` and never stored.
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: If-Match
+          in: header
+          required: false
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SyncPutRequest" }
+      responses:
+        "200":
+          description: Stored; new version in `ETag`
+          headers:
+            ETag:
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncEnvelope" }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          description: Version conflict (If-Match mismatch)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SyncEnvelope" }
+  /v0/models:
+    get:
+      tags: [models]
+      summary: Models visible to this entitlement
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Entitled models only; no upstream account metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [models]
+                properties:
+                  models:
+                    type: array
+                    items: { type: string }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v0/telemetry/ingest:
+    post:
+      tags: [telemetry]
+      summary: Anonymous event ingest (reserved; public repo ships a stub only)
+      description: >
+        The real pipeline is hosted. The public event-name whitelist is
+        `supabase/functions/bt-ingest/events.gen.json` (BEL-135: china == intl).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events: { type: array, maxItems: 50, items: { type: object } }
+      responses:
+        "200":
+          description: Accepted / rejected counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: integer }
+                  rejected: { type: array, items: { type: string } }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+  /v0/account/delete:
+    post:
+      tags: [account]
+      summary: One-action account deletion (hosted)
+      description: >
+        Deletes the caller's hosted account, entitlement/ledger rows, sync collections,
+        and (when the hosted service role is configured) the auth user. Accepts no user
+        id in the body: the caller is derived from the bearer token.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeleteResponse" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /v0/account/export:
+    get:
+      tags: [account]
+      summary: Export the caller's hosted data (minimal P2)
+      description: >
+        Returns entitlement, ledger entries, sync collections, and billing customer id
+        (never secrets, never upstream keys). `Content-Disposition: attachment` is set
+        so the client can save the JSON without a second format.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Export bundle
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExportBundle" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /functions/v1/bt-relay/chat/completions:
+    post:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of POST /v0/relay (chat shape)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Same as /v0/relay }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /functions/v1/bt-relay/audio/speech:
+    post:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of POST /v0/relay (TTS shape)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Audio bytes }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /functions/v1/bt-relay/balance:
+    get:
+      tags: [legacy]
+      deprecated: true
+      summary: Legacy alias of GET /v0/grant/balance
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Balance }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: User session JWT or grant token (`bmg_...`). BYOK requests never use this.
+  schemas:
+    Balance:
+      type: object
+      required: [remaining, unit, resets_at, product]
+      properties:
+        remaining: { type: number }
+        unit: { type: string, enum: [usd, tokens, requests] }
+        resets_at: { type: [string, "null"], format: date-time }
+        product: { type: string, enum: [free, monthly, yearly] }
+    ConsumeResponse:
+      type: object
+      required: [consumed, remaining, replayed]
+      properties:
+        consumed: { type: number }
+        remaining: { type: number }
+        replayed: { type: boolean }
+    CheckoutRequest:
+      type: object
+      required: [product]
+      properties:
+        product: { type: string, enum: [monthly, yearly] }
+        flavor: { type: string, enum: [global, china], default: global }
+        success_url: { type: string, format: uri }
+        cancel_url: { type: string, format: uri }
+    CheckoutResponse:
+      type: object
+      required: [id, url, product, mode, flavor]
+      properties:
+        id: { type: string }
+        url: { type: string, format: uri }
+        product: { type: string, enum: [monthly, yearly] }
+        mode: { type: string, enum: [subscription] }
+        flavor: { type: string, enum: [global, china], description: same shape for intl and china rails }
+    PortalResponse:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, format: uri }
+    PlanCatalogue:
+      type: object
+      required: [plans]
+      properties:
+        plans:
+          type: array
+          items: { $ref: "#/components/schemas/Plan" }
+    Plan:
+      type: object
+      required: [id, available, status, currency, amount, interval]
+      properties:
+        id: { type: string, enum: [free, monthly, yearly, enterprise] }
+        available: { type: boolean }
+        status: { type: string, enum: [available, coming_soon] }
+        currency: { type: string, enum: [usd, cny] }
+        amount: { type: number }
+        interval: { type: string, enum: [none, month, year, seat] }
+        label: { type: string }
+        grayscale: { type: boolean }
+        cta: { type: [string, "null"] }
+      additionalProperties: true
+    SyncEnvelope:
+      type: object
+      required: [collection, data, version, updated_at]
+      properties:
+        collection: { type: string, enum: [settings, session-meta] }
+        data: { type: object, additionalProperties: true }
+        version: { type: integer, minimum: 1 }
+        updated_at: { type: string, format: date-time }
+    SyncPutRequest:
+      type: object
+      required: [data]
+      properties:
+        data: { type: object, additionalProperties: true, maxProperties: 256 }
+    DeleteResponse:
+      type: object
+      required: [deleted, grant, sync, entitlement]
+      properties:
+        deleted: { type: string }
+        grant: { type: boolean }
+        sync: { type: integer }
+        entitlement: { type: boolean }
+    ExportBundle:
+      type: object
+      required: [exported_at, user_id, entitlement, ledger, sync, billing]
+      properties:
+        exported_at: { type: string, format: date-time }
+        user_id: { type: string }
+        entitlement: { type: [object, "null"], additionalProperties: true }
+        ledger:
+          type: array
+          items: { type: object, additionalProperties: true }
+        sync:
+          type: object
+          additionalProperties: true
+        billing:
+          type: object
+          properties:
+            customer_id: { type: [string, "null"] }
+    RelayRequest:
+      type: object
+      required: [model]
+      properties:
+        model: { type: string }
+        input:
+          oneOf:
+            - type: object
+            - type: string
+        messages: { type: array, items: { type: object } }
+        stream: { type: boolean, default: false }
+        client:
+          type: object
+          properties:
+            app: { type: string, enum: [extension, app, agent] }
+            build: { type: string }
+            flavor: { type: string, enum: [global, china] }
+      additionalProperties: true
+      description: >
+        A body containing `upstream_api_key`, `provider_api_key`, `api_key`,
+        `openai_api_key`, `anthropic_api_key`, or a key-shaped `sk-...` value is
+        rejected with 400 (CONTRACT-v0 §0.4; BYOK stays local).
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        detail: { type: string }
+        fallback: { type: string, enum: [byok] }
+        message: { type: string }
+    Quota:
+      type: object
+      properties:
+        error: { type: string }
+        fallback: { type: string, enum: [byok] }
+        message: { type: string }
+  responses:
+    Unauthorized:
+      description: Missing or invalid session / grant token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Quota:
+      description: >
+        Quota exhausted or rate limited. `fallback=byok` tells the client it may offer
+        local BYOK; this server never switches the request path itself.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Quota" }
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
