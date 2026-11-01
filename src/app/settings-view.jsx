@@ -26,7 +26,7 @@ import { withUtm } from '../shared/utm.js';
 import SettingsStore from '../store/settings-store.js';
 import settingsModel from './settings-model.js';
 import listenModel from './listen-model.js';
-import { deviceBridgeHost, PAIR_HINT, PAIR_LABEL } from './device-bridge-host.js';
+import { deviceBridgeHost, DISCONNECT, PAIR_HINT, PAIR_LABEL } from './device-bridge-host.js';
 import LearnDialog from '../shared/dialog.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
 
@@ -778,13 +778,33 @@ export default function SettingsView() {
     } finally { btn.disabled = false; }
   };
 
-  // BEL-151：设备桥的状态行。文案全部来自 agent/copy.js 的锁（配对成功 / 需要登录 /
-  // 网络暂时不可用），这一层不另写句子。空态 = 不占位（hidden）。
+  // BEL-151：设备桥的四态互斥（ACCEPT-U1）。connected → 「断开此设备」+
+  // 断开说明；pending → disabled「正在连接…」且**没有**断开；reconnect / unpaired
+  // → 既有配对主按钮 + 既有说明。状态行文案来自 agent/copy.js 的锁。
+  // 空的未连接状态不占位（hidden）。
   function paintPairStatus() {
+    const btn = $('pair-device-btn');
+    const hint = $('pair-device-hint');
     const el = $('pair-device-status');
-    if (!el) return;
+    if (!btn || !hint || !el) return;
     let s = null;
     try { s = deviceBridgeHost.status(); } catch (_) { s = null; }
+    const state = s && s.state ? s.state : 'unpaired';
+    const connected = state === 'paired' && s && s.paired === true;
+    const pending = state === 'pending';
+    btn.textContent = connected ? DISCONNECT.label : (pending ? DISCONNECT.pending : PAIR_LABEL);
+    btn.disabled = pending;
+    btn.classList.add('secondary');
+    btn.classList.toggle('danger', connected);
+    btn.dataset.state = connected ? 'connected' : (pending ? 'pending' : (state === 'reconnect' ? 'reconnect' : 'unpaired'));
+    btn.setAttribute('aria-busy', pending ? 'true' : 'false');
+    hint.textContent = connected ? DISCONNECT.hint : PAIR_HINT;
+    // `data-hb` is a non-visual read-back for the smoke: it proves the loop the
+    // user cannot see actually stopped after an explicit disconnect.
+    let hb = false;
+    try { hb = deviceBridgeHost.isHeartbeatRunning(); } catch (_) { hb = false; }
+    el.dataset.hb = hb ? '1' : '0';
+    el.dataset.state = btn.dataset.state;
     const text = s && s.text ? s.text : '';
     el.textContent = text;
     el.hidden = !text;
@@ -1274,19 +1294,37 @@ export default function SettingsView() {
     } catch (_) {}
 
     // BEL-151 设备桥（Mac P0）。入口只在 Mac 揭开（JSX 的 hidden），这里仍判空 ——
-    // iPhone 上按钮在 DOM 里但点不到，加监听无害。确认卡与文案锁都在 agent/ 那侧：
-    // 未登录时卡片说「需要登录」并把主按钮接到登录页，一个请求都不发。
+    // iPhone 上按钮在 DOM 里但点不到，加监听无害。同一个按钮按状态互斥：
+    // connected → 独立断开确认 sheet（≠ 配对卡 / open_setup Confirm）；
+    // pending → 不响应；其余 → 既有配对确认卡。
     const pairBtn = $('pair-device-btn');
+    let pairBusy = false;
     if (pairBtn) {
       pairBtn.addEventListener('click', async () => {
-        pairBtn.disabled = true;
+        if (pairBusy) return;
+        let snap = null;
+        try { snap = deviceBridgeHost.status(); } catch (_) { snap = null; }
+        if (snap && snap.state === 'pending') return;
+        pairBusy = true;
         try {
+          if (snap && snap.state === 'paired' && snap.paired) {
+            // ACCEPT-U4: its own destructive sheet, not the pair_device card and
+            // not the open_setup 「允许这一次」 Confirm. Cancel is a no-op.
+            const ok = await LearnDialog.confirm(
+              DISCONNECT.confirmTitle + '\n' + DISCONNECT.confirmBody,
+              { ok: DISCONNECT.confirmOk, cancel: DISCONNECT.confirmCancel, danger: true });
+            if (!ok) return;
+            pairBtn.disabled = true;
+            await deviceBridgeHost.disconnect();
+            return;
+          }
+          pairBtn.disabled = true;
           const hooks = settingsModel.hooks();
           await deviceBridgeHost.pair({ onSignIn: () => { if (hooks.onSignIn) hooks.onSignIn(); } });
         } catch (_) {
-          // 卡片自己收口；宿主级异常不许被说成「已配对」。
+          // 卡片自己收口；宿主级异常不许被说成「已配对」/「已断开」。
         } finally {
-          pairBtn.disabled = false;
+          pairBusy = false;
           paintPairStatus();
         }
       });

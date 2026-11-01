@@ -328,6 +328,29 @@ describe('BEL-151 device bridge client', () => {
     eq(rec2.calls.length, 0);
   });
 
+  test('revoke can use the host-captured Bearer so a refresh never races the clear', async () => {
+    const paired = bridge.memoryStore({
+      device_cred: 'dc-3',
+      device_id: '11111111-1111-4111-8111-111111111111',
+    });
+    let tokenReads = 0;
+    const rec = recorder(() => response(200, { ok: true, revoked: true }));
+    const client = bridge.createClient({
+      baseUrl: 'https://staging.example.test',
+      fetch: rec.fetch,
+      getAccessToken: () => { tokenReads += 1; return 'fresh-token'; },
+      store: paired,
+    });
+    const out = await client.revoke({ token: 'captured-token' });
+    eq(out.cloud, true);
+    eq(out.attempted, true);
+    eq(tokenReads, 0, 'revoke asked for a token instead of using the captured one');
+    eq(rec.calls.length, 1);
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer captured-token');
+    eq(bodyOf(rec.calls[0]).device_cred, 'dc-3');
+    eq(paired.getItem('device_cred'), null);
+  });
+
   test('device bridge has no localhost companion and no listening claim', () => {
     const src = fs.readFileSync(path.join(ROOT, 'agent/device-bridge.js'), 'utf8');
     ok(!/localhost|127\.0\.0\.1|\[::1\]/i.test(src));
