@@ -4209,5 +4209,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "改用分項會作廢目前的一鍵配置"
+  },
+  "thai_grok_section": {
+    "message": "泰語識別（Grok）"
+  },
+  "thai_grok_enable_label": {
+    "message": "使用 Grok 識別泰語"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI（金鑰）"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "貼上 xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••（已儲存）"
+  },
+  "thai_grok_key_clear": {
+    "message": "清除"
+  },
+  "thai_grok_nokey": {
+    "message": "未填 API Key · 泰語識別不可用"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "只影響泰語識別，不中斷整場聽譯"
+  },
+  "thai_grok_local_note": {
+    "message": "金鑰只存在本機"
+  },
+  "thai_grok_key_url": {
+    "message": "前往 xAI 申請 Key"
+  },
+  "subtitle_recent": {
+    "message": "最近句子"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "聽譯中 · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "在分割畫面的另一半開啟影片或瀏覽器播放；這邊看字幕。也可離開 App，字幕浮在子母畫面。"
+  },
+  "home_gate_badge": {
+    "message": "暫不可用"
+  },
+  "subtitle_stage_empty": {
+    "message": "開始後，字幕會出現在這裡"
   }
 }

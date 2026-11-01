@@ -47,8 +47,22 @@ function serve() {
         stats.chatTexts.push(String(user));
         // 提示词把目标语言明文写进 system（"…into English."），抓出来就知道这次翻译往哪个方向
         // —— ↔ 改边那条断言唯一的判据。
-        stats.chatDirs.push(((sys.match(/into ([^.]+)\./) || [])[1] || '?').trim());
+        // 断句提示词跟界面语言走（listen_seg_system），按输出格式里的 "segments" 认，不按英文措辞
+        const segStage = /"segments"/.test(sys);
+        stats.chatDirs.push(((sys.match(segStage ? /(?:target language: |目标语言：)([^.。\n]+)/ : /into ([^.]+)\./) || [])[1] || '?').trim());
         res.writeHead(200, { 'Content-Type': 'application/json' });
+        // 对话页走模型断句路（listen-core buildSegPrompt）：整段缓冲当一句、remainder 空，回 JSON。
+        // 修正同下：只认「几搂」→「几楼」。
+        if (segStage) {
+          stats.passCalls++;
+          // 用户消息 = 上文块 \n\n 待处理块（首行是标题）\n\n 强制收尾行
+          const blocks = String(user).split('\n\n');
+          const buf = (blocks.length >= 2 ? blocks[blocks.length - 2].trim().split('\n').slice(1).join('\n') : '').trim();
+          const fixed = buf.replace('几搂', '几楼');
+          const reply = { segments: fixed ? [{ source: fixed, translation: '译：' + fixed }] : [], remainder: '' };
+          res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reply) } }] }));
+          return;
+        }
         // 本机路的「修正 + 翻译」一次调用（§9.6.1）：system 是 correction stage，回 T:/X: 两行。
         // 假修正只认一个错：「几搂」→「几楼」——够断言 raw / text / tr 三者的关系。
         if (/correction stage/.test(sys)) {
@@ -122,6 +136,9 @@ const FAKE_BRIDGES = `(() => {
     else if (msg.type === 'url-probe') { (fs.probed = fs.probed || []).push(msg.url); setTimeout(() => emit({ type: 'url-probe', id: msg.id, ok: fs.probeOk !== false, status: fs.probeOk !== false ? 206 : 0 }), 0); }
     else if (msg.type === 'tts-speak') { (fs.spoken = fs.spoken || []).push({ id: msg.id, text: msg.text, lang: msg.lang }); setTimeout(() => { emit({ type: 'tts-start', id: msg.id }); emit({ type: 'tts-end', id: msg.id }); }, 30); }
     else if (msg.type === 'tts-stop') { fs.ttsStops = (fs.ttsStops || 0) + 1; }
+    // 改稿 D：录音键就绪要「基础组件」（语种判定 + 人声检测）也在 —— 假桥报两者已装
+    else if (msg.type === 'lid-probe') setTimeout(() => emit({ type: 'lid-state', state: 'ready' }), 0);
+    else if (msg.type === 'vad-probe') setTimeout(() => emit({ type: 'vad-state', state: 'ready' }), 0);
   } };
   // §9.6.1.1：离线模型下载地址由后端表决定 —— 这里接一个假后端（默认 srv / 备用 alt），ModelSources 只吃它，不碰真 Supabase。
   // 行的 path 字段必须镜像 app/device-models.config.js 的当前文件名 —— 模型集换过之后这里的旧名
@@ -164,6 +181,30 @@ const FAKE_BRIDGES = `(() => {
   // 假识别器「听到」一句：两路识别器各自吐 partial + final（locale 决定归属，§9.6.1）
   const say = (locale, text, conf = 0.95) => evalIn(cdp, sessionId, `(__fakeSpeech.say(${JSON.stringify(locale)}, ${JSON.stringify(text)}, ${conf}), 'ok')`);
   const rowsOf = async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((AppListen._debug().rows || []).map((x) => ({ who: x.who, guessed: x.guessed, pinned: x.pinned, text: x.text, raw: x.raw, tr: x.tr, temp: !!x.trTemp, err: !!x.trErr })))`));
+  const tap = (id) => evalIn(cdp, sessionId, `(document.getElementById(${JSON.stringify(id)}).click(), 'ok')`);
+  const phaseIs = (p, label) => waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === p || null, 10000, label);
+  // 改稿 D（#578）：进对话页不开麦；点一侧的录音键才起会话，且这一侧的语言就是这一句的语言
+  // （不跑语种判定）。所以每句话都要先按对那一侧 —— 按错了那一句就被归属闸丢掉。
+  const pttId = (side) => (side === 'me' ? 'app-listen-ptt-mine' : 'app-listen-ptt-other');
+  const convStart = async (label, side = 'other') => {
+    if (await evalIn(cdp, sessionId, `document.getElementById('app-listen').hidden`)) { await tap('app-listen-entry'); await sleep(300); }
+    await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById(${JSON.stringify(pttId(side))}).disabled && AppListen.pttView().${side === 'me' ? 'mineHint' : 'otherHint'} === '点一下开始'`)) || null, 8000, label + ': 录音键就绪');
+    await tap(pttId(side));
+    await phaseIs('listening', label + ': 进入 listening');
+  };
+  const convSide = async (side) => {
+    await tap(pttId(side));
+    await waitFor(async () => JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(AppListen._debug().ptt)`)).side === side || null, 3000, '换到 ' + side + ' 一侧收音');
+    await sleep(100);
+  };
+  // 对话页没有「结束」链接了：结束 = 返回 → 页内确认「结束并离开」
+  const convLeave = async () => {
+    await tap('app-listen-back');
+    await waitFor(async () => (await evalIn(cdp, sessionId, `!!document.querySelector('.ld-ok')`)) || null, 3000, '返回时出现确认框');
+    await evalIn(cdp, sessionId, `(document.querySelector('.ld-ok').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `document.getElementById('app-listen').hidden`)) || null, 3000, '结束并离开后回到首页');
+    await sleep(300);
+  };
   try {
     cdp = await CDP.connect(chrome.port);
     const targets = await cdp.send('Target.getTargets', {});
@@ -202,12 +243,16 @@ const FAKE_BRIDGES = `(() => {
     need((await evalIn(cdp, sessionId, `document.getElementById('app-listen-entry').disabled`)) === false, 'A: 系统恢复后入口该重新可用');
 
     // ── B. 开始听：麦克风只要电平、识别器起两路（zh-CN + en-US）、定稿 + 译文进历史 ──
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'B: 进入 listening');
-    const b0 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ deliver: __fakeBridge.deliver, started: __fakeSpeech.started, locales: __fakeSpeech.lastLocales, cost: document.getElementById('app-listen-cost').textContent })`));
+    // 进页面不开麦（改稿 D）：点入口只开页，mic-start 要等点录音键
+    await tap('app-listen-entry');
+    await sleep(400);
+    const b00 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, mic: __fakeBridge.started, stt: __fakeSpeech.started, hidden: document.getElementById('app-listen').hidden, ptt: !!document.getElementById('app-listen-ptt-other') })`));
+    need(b00.hidden === false && b00.ptt && b00.mic === 0 && b00.stt === 0 && b00.phase !== 'listening', 'B: 进对话页不该开麦/起识别器，实际 ' + JSON.stringify(b00));
+    await convStart('B');
+    const b0 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ deliver: __fakeBridge.deliver, started: __fakeSpeech.started, locales: __fakeSpeech.lastLocales, ptt: AppListen._debug().ptt })`));
     need(b0.deliver === 'level', 'B: mic-start 该带 deliver:level（PCM 留在原生），实际 ' + JSON.stringify(b0));
     need(b0.started === 1 && JSON.stringify(b0.locales) === JSON.stringify(['zh-CN', 'en-US']), 'B: 该按我方/对方各开一路（zh-CN, en-US），实际 ' + JSON.stringify(b0));
-    need(/已听|Listened|Écouté|gehört|Escuchado|Ouvido|Прослушано|استمع|सुना|聞き取り|들음|ฟังไป/.test(b0.cost) && !/不离开设备|never leaves|不離開/.test(b0.cost), 'B: 费用行只报「已听 <t>」，不再有「音频不离开设备」的绝对说法，实际 ' + b0.cost);
+    need(b0.ptt.on && b0.ptt.side === 'other', 'B: 点「对方」键该在对方一侧收音，实际 ' + JSON.stringify(b0.ptt));
     await say('en-US', 'Does this bus go to the airport?');
     const rowB = await waitFor(async () => { const rows = await rowsOf(); return rows.find((x) => x.text === 'Does this bus go to the airport?' && x.tr && !x.temp) || null; }, 10000, '定稿句带译文进历史');
     need(rowB.who === 'them', 'B: en 路的句子该归对方，实际 ' + rowB.who);
@@ -230,31 +275,24 @@ const FAKE_BRIDGES = `(() => {
     need(narrow.histTop >= narrow.nowBottom - 1, 'W: 390px 宽时历史应回到当下卡下方，实际 ' + JSON.stringify(narrow));
     await cdp.send('Emulation.clearDeviceMetricsOverride', {}, sessionId);
 
-    // ── C. 归属按识别器 locale 判 + ↔ 改边（**全程不按任何键**）──────────────────
+    // ── C. 归属跟录音键走（改稿 D）+ ↔ 改边 ──────────────────
+    await convSide('me');
     await say('zh-CN', '我要去机场，末班车几点？', 0.93);
     const rows2 = await waitFor(async () => { const r = await rowsOf(); return (r.length === 2 && r[1].tr && !r[1].temp) ? r : null; }, 8000, '第二句（中文）定稿并带译文');
     need(rows2[0].who === 'them' && rows2[1].who === 'me', 'C: en 路该归对方、zh 路该归我，实际 ' + JSON.stringify(rows2.map((x) => x.who)));
-    need(rows2[0].guessed === false && rows2[1].guessed === false, 'C: 归属来自 locale，不该标成「猜的」，实际 ' + JSON.stringify(rows2.map((x) => x.guessed)));
+    need(rows2[0].guessed === false && rows2[1].guessed === false, 'C: 归属来自录音键，不该标成「猜的」，实际 ' + JSON.stringify(rows2.map((x) => x.guessed)));
     need(rows2[1].text === '我要去机场，末班车几点？' && rows2[1].tr === '译：我要去机场，末班车几点？', 'C: 我说的那行文本/译文不对：' + JSON.stringify(rows2[1]));
     // 方向：对方那句译成我的语言，我这句译成对方的语言 —— 两次调用的方向必须相反
     const dirs = stats.chatDirs.slice(0, 2);
     need(dirs.length === 2 && dirs[0] !== dirs[1] && dirs[0] !== '?' && dirs[1] !== '?', 'C: 两句的翻译方向该相反，实际 ' + JSON.stringify(stats.chatDirs));
     const domC = await evalIn(cdp, sessionId, `document.getElementById('app-listen-history').textContent`);
     need(domC.includes('对方') && domC.includes('我'), 'C: 每行该有归属标，实际 ' + domC.slice(0, 120));
+    // 录音键录的行是钉住的（语言是按键的人指定的，没有「判错」）⇒ 不画 ↔（listen-view.jsx）
     const swapN = await evalIn(cdp, sessionId, `document.querySelectorAll('#app-listen-history .listen-swap').length`);
-    need(swapN === 2, 'C: 每行该有一个 ↔，实际 ' + swapN);
+    need(swapN === 0 && rows2.every((x) => x.pinned === true), 'C: 录音键录的行该钉住、不画 ↔，实际 ' + JSON.stringify({ swapN, pinned: rows2.map((x) => x.pinned) }));
     const shN = await evalIn(cdp, sessionId, `[...document.querySelectorAll('#app-listen-history .listen-act')].filter((b) => b.textContent === '给对方看').length`);
     need(shN === 2, 'C: 两边的行都该有「给对方看」，实际 ' + shN);
     need(!domC.includes('朗读'), 'C: 没有 TTS 引擎时「朗读」不该出现（能力语义）');
-    // ↔ 改边：我说的那行改成对方说的 ⇒ 重译方向反过来（等**新方向的翻译真的发出去了**，不是「有译文」）
-    const dirsBefore = stats.chatDirs.length;
-    await evalIn(cdp, sessionId, `(document.querySelectorAll('#app-listen-history .listen-swap')[1].click(), 'ok')`);
-    const flipped = await waitFor(async () => { if (stats.chatDirs.length <= dirsBefore) return null; const r = await rowsOf(); return (r[1].who === 'them' && r[1].tr) ? r : null; }, 8000, '改边后按新方向重译完成');
-    need(flipped[1].pinned === true && flipped[1].guessed === false, 'C: 改边后该被钉住，实际 ' + JSON.stringify(flipped[1]));
-    need(stats.chatDirs[stats.chatDirs.length - 1] === dirs[0], 'C: 改边后该按对方那句的方向重译（译成我的语言），实际 ' + JSON.stringify(stats.chatDirs));
-    await evalIn(cdp, sessionId, `(document.querySelectorAll('#app-listen-history .listen-swap')[1].click(), 'ok')`);
-    const backToMe = await waitFor(async () => { const r = await rowsOf(); return (r[1].who === 'me' && r[1].tr === '译：我要去机场，末班车几点？') ? r : null; }, 8000, '改回「我说的」并重译');
-    need(!!backToMe, 'C: ↔ 该能来回改');
 
     // ── C2. 「返回」在会话中先确认（页内对话框，不是 window.confirm —— App 里那个恒为 false）──
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
@@ -286,21 +324,16 @@ const FAKE_BRIDGES = `(() => {
     const starred = await waitFor(async () => JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.some((x) => x.text === 'Does this bus go to the airport?' && x.starred)))`)), 5000, '加星写进语料');
     need(starred === true, 'D: 加星没写进语料');
 
-    // ── E. 结束：小结数字与历史一致；识别器停了；再开始是新会话 ──
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
-    const sum = await evalIn(cdp, sessionId, `document.getElementById('app-listen-summary-body').textContent`);
-    need(/对方说了 1 句/.test(sum) && /我说了 1 句/.test(sum) && /2 句 · 含 1 句加星/.test(sum), 'E: 小结数字不对：' + sum);
-    const endedUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ actions: document.getElementById('app-listen-actions').hidden, now: document.getElementById('app-listen-now').hidden, rows: document.querySelectorAll('#app-listen-history .listen-row').length })`));
-    need(endedUi.actions === true && endedUi.now === true && endedUi.rows === 2, 'E: 结束后两个大按钮与上卡该收起、历史留着，实际 ' + JSON.stringify(endedUi));
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
-    await sleep(300);
-    const home = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), listenHidden: document.getElementById('app-listen').hidden, outShown: !document.getElementById('signed-out').hidden })`));
-    need(!home.mask && home.listenHidden && home.outShown, 'E: 结束后「返回」该直接回首页，实际 ' + JSON.stringify(home));
+    // ── E. 结束（改稿 D 删了「结束」链接与小结卡）：返回 → 「结束并离开」⇒ 回首页、识别器与麦克风都停 ──
+    await convLeave();
+    const home = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ mask: !!document.querySelector('.ld-mask'), listenHidden: document.getElementById('app-listen').hidden, outShown: !document.getElementById('signed-out').hidden, phase: AppListen._debug().phase })`));
+    need(!home.mask && home.listenHidden && home.outShown && (home.phase === 'ended' || home.phase === 'idle'), 'E: 「结束并离开」该结束会话并回首页，实际 ' + JSON.stringify(home));
+    const kept = JSON.parse(await evalIn(cdp, sessionId, `LearnStore.allItems().then((a) => JSON.stringify(a.filter((x) => String(x.sourceId).startsWith('conv:')).length))`));
+    need(kept === 2, 'E: 结束后语料该留着两句，实际 ' + kept);
     await sleep(500);
     const e1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeSpeech.started, stopped: __fakeSpeech.stopped, mStarted: __fakeBridge.started, mStopped: __fakeBridge.stopped, timer: __fakeBridge.timer })`));
     need(e1.stopped >= e1.started, 'E: 结束后识别器该收到 stt-stop，实际 ' + JSON.stringify(e1));
     need(e1.mStarted >= 1 && e1.mStopped >= e1.mStarted && !e1.timer, 'E: 结束后原生桥该收到 mic-stop，实际 ' + JSON.stringify(e1));
-    need((await evalIn(cdp, sessionId, `!document.getElementById('app-listen-summary').hidden`)) === true, 'E: 结束态该显示小结');
 
     // ── T. 用量事件真的走得到（telemetry-design §3.3 裁定 1、§3.4）──────────────────
     // 09-16 裁定「App 听译出译文 ⇒ translate_ok{kind:'subtitle'}」只进了文档没进代码：1.12.x 有
@@ -313,13 +346,17 @@ const FAKE_BRIDGES = `(() => {
     need(okEv.length === 1, 'T: 一场听译（两句定稿）该恰好 1 条 translate_ok，实际 ' + JSON.stringify(okEv));
     need(okEv[0] && okEv[0].p.kind === 'subtitle' && okEv[0].p.provider === 'custom_chat' && Number.isInteger(okEv[0].p.ms) && inList(okEv[0]), 'T: translate_ok 该是 {provider, kind:subtitle, ms:int} 且全在白名单里，实际 ' + JSON.stringify(okEv[0]));
     need((await tmOf('translate_fail')).length === 0, 'T: 译文都成功的一场不该有 translate_fail');
-    // 失败的一场：端点 401，连说两句 ⇒ 两行都落「译文失败 · 重试」，而 translate_fail **只发 1 条**
-    // （每会话每个 code 一条 —— 网页侧一段一条，5 天里 308 条 401 来自同一台机器，§3.1）。
+    // 失败的一场：端点 401 ⇒ 这一句落「译文失败」、会话具名停下（key 被拒）；点录音键续上再说一句、
+    // 又 401 ⇒ translate_fail 仍**只发 1 条**（每会话每个 code 一条 —— 网页侧一段一条，5 天里
+    // 308 条 401 来自同一台机器，§3.1）。
     stats.fail401 = true;
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'T: 进入 listening');
+    await convStart('T');
     await say('en-US', 'Where is the ticket office?');
     await waitFor(async () => (await rowsOf()).find((x) => x.text === 'Where is the ticket office?' && x.err) || null, 20000, 'T: 第一句落「译文失败」');
+    const tHalt = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, note: (document.getElementById('app-listen-note') || {}).textContent || '' })`)); return r.phase === 'halted' ? r : null; }, 5000, 'T: 401 后会话具名停下');
+    need(/401/.test(tHalt.note), 'T: 401 停下时该说 key 被拒，实际 ' + JSON.stringify(tHalt));
+    await tap(pttId('other'));
+    await phaseIs('listening', 'T: 点录音键续上');
     await say('en-US', 'Is there a later train?');
     await waitFor(async () => (await rowsOf()).find((x) => x.text === 'Is there a later train?' && x.err) || null, 20000, 'T: 第二句落「译文失败」');
     const failEv = await tmOf('translate_fail');
@@ -327,9 +364,8 @@ const FAKE_BRIDGES = `(() => {
     need(failEv[0] && failEv[0].p.provider === 'custom_chat' && failEv[0].p.status === 401 && inList(failEv[0]), 'T: translate_fail 该带 provider / code（白名单内）/ status:401，实际 ' + JSON.stringify(failEv[0]));
     need((await tmOf('translate_ok')).length === 1, 'T: 失败的一场不该多出 translate_ok');
     stats.fail401 = false;
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
-    await sleep(800);
+    await convLeave();
+    await sleep(500);
 
     // ── F. 自动朗读 + 回声闸：自己读出去的话被录回来，必须**整句丢掉** ──────────
     await evalIn(cdp, sessionId, `(() => {
@@ -341,8 +377,7 @@ const FAKE_BRIDGES = `(() => {
       return 'ok';
     })()`);
     await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.set({ listenAutoSpeak: true }, r))`);
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'F: 新会话进入 listening');
+    await convStart('F');
     await sleep(100);   // 让上一会话的 ended 回执先到（2026-09-18 起它只销账、不再误杀新会话 —— 这一拍只是让读数稳定）
     await say('en-US', 'Please confirm the price.');
     const spoke = await waitFor(async () => { const a2 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(window.__tts)`)); return a2.length ? a2 : null; }, 8000, 'F: 译文自动朗读');
@@ -357,37 +392,52 @@ const FAKE_BRIDGES = `(() => {
     need(afterEcho.rows === beforeEcho.rows, 'F: 回声不该进历史，实际 ' + JSON.stringify(afterEcho));
     need(stats.chatCalls === callsBefore, 'F: 回声不该触发翻译（那是白花的钱）');
     need(afterEcho.tts === spoke.length, 'F: 回声不该被再读一遍 —— 那就是环的第二跳');
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
-    await sleep(400);
+    await convLeave();
 
     // ── G. 两路 final 的收法（§9.6.1）：zh 路吐的英文垃圾、en 路吐的低置信拼音都要丢；修正稿替换原文；改语言重连 ──
     if (process.env.TRACE) console.log('  …G');
     await evalIn(cdp, sessionId, `(async () => { LearnTTS.speak = __origTts.speak; LearnTTS.stop = __origTts.stop; LearnTTS.engine = __origTts.engine; await new Promise((r) => chrome.storage.local.set({ listenAutoSpeak: false }, r)); return 'ok'; })()`);
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'G: 进入 listening');
+    await convStart('G');
     const callsG = stats.chatCalls;
+    // 对方一侧收音（强制 en）：zh 路对英文音频吐的英文 ⇒ 不是这一侧的语言，丢
     await evalIn(cdp, sessionId, `(() => { const f = __fakeSpeech;
-      f.say('zh-CN', 'Where is the mee ting room', 0.88);     // zh 路对英文音频：文字系不对 ⇒ 丢
+      f.say('zh-CN', 'Where is the mee ting room', 0.88);
       f.say('en-US', 'Where is the meeting room?', 0.96);     // 真的
-      f.say('en-US', 'Hui, Yi, Shi', 0.2);                    // en 路对中文音频：低置信拼音 ⇒ 丢
+      return 'ok'; })()`);
+    await waitFor(async () => (await rowsOf()).find((x) => x.text === 'Where is the meeting room?') || null, 8000, 'G: 对方那句定稿');
+    await convSide('me');
+    // 换边后 1.5s 内旧一侧的第一条 final 算「被 cut 收口的那一片」照收（EA-01，SEG_SWITCH_GRACE_MS）——
+    // 等它过去，下面那条 en 垃圾才是「我这一侧收音时 en 路吐的」。
+    await sleep(1700);
+    // 我这一侧收音（强制 zh）：en 路对中文音频吐的低置信拼音 ⇒ 丢
+    await evalIn(cdp, sessionId, `(() => { const f = __fakeSpeech;
+      f.say('en-US', 'Hui, Yi, Shi', 0.2);
       f.say('zh-CN', '会议室在几搂？', 0.93);                   // 真的（带一个同音错字，留给远程修正）
       return 'ok'; })()`);
     const rowsG = await waitFor(async () => { const r = await rowsOf(); return r.length >= 2 && r.every((x) => x.tr && !x.temp) ? r : null; }, 8000, 'G: 两句定稿 + 修正 + 译文');
     need(rowsG.length === 2, 'G: 该只有两行（两条垃圾被丢），实际 ' + JSON.stringify(rowsG));
     need(rowsG[0].who === 'them' && rowsG[0].text === 'Where is the meeting room?' && rowsG[0].guessed === false, 'G: en 路的句子归对方且不是猜的，实际 ' + JSON.stringify(rowsG[0]));
-    need(rowsG[1].who === 'me' && rowsG[1].raw === '会议室在几搂？' && rowsG[1].text === '会议室在几楼？' && rowsG[1].tr === '译：会议室在几楼？' && rowsG[1].guessed === false,
-      'G: zh 路的句子该先存原文、再换成修正稿、译文来自同一次调用，实际 ' + JSON.stringify(rowsG[1]));
+    // 模型断句路（对话页的默认路）：断句 + 修正 + 翻译同一次调用，行直接是修正稿；这条路的行
+    // 没有 raw，「识别原文」不出现（learning-design §9.6 模型断句路的行语义）。
+    need(rowsG[1].who === 'me' && rowsG[1].text === '会议室在几楼？' && rowsG[1].tr === '译：会议室在几楼？' && rowsG[1].raw === undefined && rowsG[1].guessed === false,
+      'G: zh 路的句子该是修正稿、译文来自同一次断句调用、没有 raw，实际 ' + JSON.stringify(rowsG[1]));
     need(stats.chatCalls >= callsG + 2, 'G: 两句都该走「修正 + 翻译」一次调用，实际 chatCalls ' + (stats.chatCalls - callsG));
     const rawUi = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const b = [...document.querySelectorAll('#app-listen-history .listen-raw-toggle')]; if (!b.length) return { toggles: 0 }; b[0].click(); const rw = document.querySelector('#app-listen-history .listen-raw'); return { toggles: b.length, raw: rw && rw.textContent }; })())`));
-    need(rawUi.toggles === 1 && rawUi.raw === '会议室在几搂？', 'G: 修正过的那一行该有「识别原文」可点展开，实际 ' + JSON.stringify(rawUi));
-    // 改语言 ⇒ 重连（一路一个 locale）。app-listen-other 是 React 受控 select（listen-view.jsx）：
+    need(rawUi.toggles === 0, 'G: 模型断句路的行不该有「识别原文」，实际 ' + JSON.stringify(rawUi));
+    // 改语言 ⇒ 下一次收音按新的一对开识别器（一路一个 locale）。先点停（收音中改「对方」只等
+    // 正在录的那一侧，见 ensurePacksForPair），改完点「对方」键。
+    // app-listen-other 是 React 受控 select（listen-view.jsx）：
     // 直接 `s.value=` 会先过 React 的 value tracker，随后派发的 change 被 React 判「值没变」丢弃、
     // DOM 还被拉回旧值 —— 必须经原型原生 setter 赋值（PR5 实测配方，input 的同款坑）。
+    await tap(pttId('me'));
+    await phaseIs('paused', 'G: 点停后暂停');
+    const startedG = await evalIn(cdp, sessionId, `__fakeSpeech.started`);
     await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('app-listen-other'); Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(s, 'ja'); s.dispatchEvent(new Event('change', { bubbles: true })); return 'ok'; })()`);
-    const g4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeSpeech.started, stopped: __fakeSpeech.stopped, locales: __fakeSpeech.lastLocales, mic: __fakeBridge.stopped })`)); return r.started >= 3 ? r : null; }, 5000, 'G: 改语言后重连');
+    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen.pttView().otherHint === '点一下开始' && !document.getElementById('app-listen-ptt-other').disabled`)) || null, 5000, 'G: 改语言后「对方」键就绪');
+    await tap(pttId('other'));
+    const g4 = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ started: __fakeSpeech.started, stopped: __fakeSpeech.stopped, locales: __fakeSpeech.lastLocales, mic: __fakeBridge.stopped })`)); return r.started > startedG ? r : null; }, 5000, 'G: 改语言后重连');
     need(JSON.stringify(g4.locales) === JSON.stringify(['zh-CN', 'ja-JP']) && g4.stopped >= 1, 'G: 重连后该是 zh-CN + ja-JP，实际 ' + JSON.stringify(g4));
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
-    await sleep(400);
+    await convLeave();
     await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.set({ listenOtherLang: 'en' }, r))`);
 
     // ── G6. 设备内置朗读：模型缺失 ⇒ 先进 downloading 下载；定稿译文经原生朗读；清单按 flavor 解开成字符串地址 ──
@@ -399,10 +449,11 @@ const FAKE_BRIDGES = `(() => {
       await AppListen.refreshEntry();
       return 'ok';
     })()`);
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-entry').click(), 'ok')`);
-    await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'G6: 下载完模型后进入 listening');
-    const g6a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ dl: __fakeSpeech.ttsDownloads, models: (__fakeSpeech.ttsModels || []).map((m) => [m.lang, typeof m.files[0].url]) })`));
-    need(g6a.dl === 1 && JSON.stringify(g6a.models) === JSON.stringify([['zh', 'string'], ['en', 'string']]), 'G6: 该先下载一次模型，清单按 flavor 解成字符串地址，实际 ' + JSON.stringify(g6a));
+    await convStart('G6: 下载完模型后');
+    // 改稿 D：会话都由录音键起，按着键时不为朗读包挡开口（ensurePacksForPair 的 !ptt）——
+    // 朗读包的下载路由设置页 S3–S5 验。
+    const g6a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ dl: __fakeSpeech.ttsDownloads || 0, phase: AppListen._debug().phase })`));
+    need(g6a.dl === 0 && g6a.phase === 'listening', 'G6: 按录音键开口不该先等朗读包下载，实际 ' + JSON.stringify(g6a));
     await say('en-US', 'Delivery takes forty five days.', 0.97);
     const g6b = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify(__fakeSpeech.spoken || [])`)); return r.length ? r : null; }, 8000, 'G6: 译文经原生朗读');
     need(g6b[0].lang === 'zh' && g6b[0].text === '译：Delivery takes forty five days.', 'G6: 该把译文按我的语言（zh）交给原生朗读，实际 ' + JSON.stringify(g6b[0]));
@@ -414,45 +465,50 @@ const FAKE_BRIDGES = `(() => {
       'G6: lat 该有 final/pass/engine/ttsStart/ttsEngine，实际 ' + JSON.stringify(g6lat.rows));
     need(g6lat.sum && g6lat.sum.pass && g6lat.sum.pass.n === g6lat.rows.length && typeof g6lat.sum.pass.p50 === 'number' && g6lat.sum.ttsEngines && g6lat.sum.ttsEngines.device === g6lat.rows.length,
       'G6: _debug().lat 该汇总出 pass p50 与朗读引擎计数，实际 ' + JSON.stringify(g6lat.sum));
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-end').click(), 'ok')`);
-    await sleep(300);
+    await convLeave();
     await evalIn(cdp, sessionId, `(async () => { await new Promise((r) => chrome.storage.local.set({ ttsEngine: '', listenAutoSpeak: false }, r)); LearnTTS.configure({ engineId: '' }); await AppListen.refreshEntry(); return 'ok'; })()`);
 
-    // ── S. 设置页（learning-design §9.1.1，2026-09-17）：离线模型行五态 / 试听两态 / 识别语言包行 / 语言下拉只列本机支持的 ──
+    // ── S. 设置页（learning-design §9.1.1）：离线模型行 / 试听 / 识别语言包行（语言对在听译页，不在这里）──
     if (process.env.TRACE) console.log('  …S');
-    await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
+    // 会话页的语言下拉只在对话页开着时才渲染：先进页读一次（不开麦），再返回去设置页
+    await tap('app-listen-entry');
+    await sleep(300);
+    const sessLangs = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify([...document.getElementById('app-listen-other').options].map((o) => ({ v: o.value, d: o.disabled })))`));
+    await tap('app-listen-back');
     await sleep(300);
     // 朗读引擎下拉是启动时按「桥在不在」填的（本机条目只在桥在时出现）；假桥是页面起来之后才装的，所以重填一次
     await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.ttsReady = false; __fakeSpeech.ttsDownloads = 0; __fakeSpeech.assetsUrls = []; __fakeSpeech.probed = []; __fakeSources.asked = 0; localStorage.removeItem('mt:deviceModelSources'); document.getElementById('gear').click(); return 'ok'; })()`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S: 设置页打开');
     await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
     await sleep(200);
-    // S1. 语言下拉列**注册表全量**，但本机识别器不支持的标为**不可选**（2026-10-04 用户裁定：
-    // 「所有选语言的地方都要有泰语……不能只在部分入口有」⇒ 不从列表里拿掉，`disabled` + 后缀，
-    // 并在旁边给「换引擎」的出路。会话页 listen-view.jsx 与设置页 shell-model 都设 `option.disabled`）。
-    // 假桥支持 12 门（不含 ar/ru/th）：这三门**必须在列表里、且 disabled**；en/ja 在、且可选。
-    // （旧断言「该只列本机支持的」是 2026-10-04 之前的规则，已过期。）
-    const s1 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({
-      settings: [...document.getElementById('listen-other-lang').options].map((o) => ({ v: o.value, d: o.disabled })),
-      session: [...document.getElementById('app-listen-other').options].map((o) => ({ v: o.value, d: o.disabled })),
-    })`));
-    const ALL_LANGS = ['en', 'ja', 'ko', 'zh', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
-    for (const [name, list] of Object.entries(s1)) {
-      const by = {}; for (const o of list) by[o.v] = o.d;
-      need(ALL_LANGS.every((c) => c in by), 'S1: ' + name + ' 语言下拉不是注册表全量（含泰语），实际 ' + JSON.stringify(list.map((o) => o.v)));
-      need(by.en === false && by.ja === false, 'S1: ' + name + ' 本机支持的 en/ja 不该被禁用，实际 ' + JSON.stringify(list));
-      need(by.ar === true && by.ru === true && by.th === true, 'S1: ' + name + ' 本机不支持的 ar/ru/th 该在列表里、但标为不可选，实际 ' + JSON.stringify(list));
+    // S1. 语言下拉只在听译页（设置页自 2026-10-07 起不再常驻语言对，只留一句说明）。
+    // 列**注册表全量**，本机识别器不支持的标为**不可选**（2026-10-04 用户裁定：不从列表里拿掉）。
+    // 假桥支持 12 门（不含 ar/ru/th）：这三门必须在列表里且 disabled；en/ja 在且可选。
+    const s1set = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ gone: !document.getElementById('listen-other-lang'), note: (document.getElementById('listen-lang-note') || {}).textContent || '' })`));
+    need(s1set.gone && /听译页/.test(s1set.note), 'S1: 设置页不该再有语言下拉，该留「到听译页改」的说明，实际 ' + JSON.stringify(s1set));
+    {
+      const by = {}; for (const o of sessLangs) by[o.v] = o.d;
+      const ALL_LANGS = ['en', 'ja', 'ko', 'zh', 'fr', 'de', 'es', 'pt', 'it', 'ru', 'ar', 'th'];
+      need(ALL_LANGS.every((c) => c in by), 'S1: 听译页语言下拉不是注册表全量（含泰语），实际 ' + JSON.stringify(sessLangs.map((o) => o.v)));
+      need(by.en === false && by.ja === false, 'S1: 本机支持的 en/ja 不该被禁用，实际 ' + JSON.stringify(sessLangs));
+      // 泰语永远可选（2026-10-08 用户裁定「泰语不能是灰的」），不跟探针的支持表走
+      need(by.ar === true && by.ru === true && by.th === false, 'S1: ar/ru 该不可选、泰语永远可选，实际 ' + JSON.stringify(sessLangs));
     }
-    // S2. 识别语言包行：语言包已装 ⇒ 「已就绪」无按钮；缺 ⇒ 「未下载」+ 下载按钮 ⇒ 点了进度 ⇒ 已就绪
+    // S2. 识别语言包行跟存储里的语言对走（设置页没有下拉了）：已装 ⇒ 「已就绪」+ 语言本名、无按钮；
+    // 换一门再进设置、包缺 ⇒ 「未下载」+ 下载按钮 ⇒ 点了回到「已就绪」。本名，不写 locale 码（改稿 C2）。
     const s2a = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ hidden: document.getElementById('listen-pack-row').hidden, text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 语言包行说「已就绪」');
-    need(s2a.hidden === false && s2a.dl === true && /zh-CN/.test(s2a.text) && /en-US/.test(s2a.text), 'S2: 已装时该列出 locale、不给下载按钮，实际 ' + JSON.stringify(s2a));
-    await evalIn(cdp, sessionId, `(() => { __fakeSpeech.assets = 'missing'; const s = document.getElementById('listen-other-lang'); s.value = 'ja'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    need(s2a.hidden === false && s2a.dl === true && /中文/.test(s2a.text) && /English/.test(s2a.text) && !/zh-CN|en-US/.test(s2a.text), 'S2: 已装时该写语言本名、不给下载按钮、不写 locale 码，实际 ' + JSON.stringify(s2a));
+    await evalIn(cdp, sessionId, `(async () => { __fakeSpeech.assets = 'missing'; await new Promise((r) => chrome.storage.local.set({ listenOtherLang: 'ja' }, r)); document.getElementById('settings-back').click(); return 'ok'; })()`);
+    await sleep(400);
+    await evalIn(cdp, sessionId, `(document.getElementById('gear').click(), 'ok')`);
+    await waitFor(async () => (await evalIn(cdp, sessionId, `!document.getElementById('app-settings').hidden`)) || null, 5000, 'S2: 重进设置页');
+    await evalIn(cdp, sessionId, `(document.getElementById('mode-detail').click(), 'ok')`);
     const s2b = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden, dlText: document.getElementById('listen-pack-dl').textContent })`)); return /未下载/.test(r.text) ? r : null; }, 5000, 'S2: 换语言后语言包行说「未下载」');
-    need(s2b.dl === false && s2b.dlText === '下载' && /ja-JP/.test(s2b.text), 'S2: 缺包时该给「下载」按钮并列出新 locale，实际 ' + JSON.stringify(s2b));
+    need(s2b.dl === false && s2b.dlText === '下载', 'S2: 缺包时该给「下载」按钮，实际 ' + JSON.stringify(s2b));
     await evalIn(cdp, sessionId, `(document.getElementById('listen-pack-dl').click(), 'ok')`);
     const s2c = await waitFor(async () => { const r = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ text: document.getElementById('listen-pack-state').textContent, dl: document.getElementById('listen-pack-dl').hidden, prog: document.getElementById('listen-pack-progress').hidden })`)); return /已就绪/.test(r.text) ? r : null; }, 5000, 'S2: 下载后语言包行回到「已就绪」');
     need(s2c.dl === true && s2c.prog === true, 'S2: 下载完该收起按钮与进度条，实际 ' + JSON.stringify(s2c));
-    await evalIn(cdp, sessionId, `(() => { const s = document.getElementById('listen-other-lang'); s.value = 'en'; s.dispatchEvent(new Event('change')); return 'ok'; })()`);
+    await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.set({ listenOtherLang: 'en' }, r))`);
     // S3. 离线模型行：选设备内置朗读 ⇒ 行出现「未下载 · <总大小>」+ 「下载」，试听按钮写「下载并试听（<总大小>）」
     // 期望值**从当前清单推导**（app/device-models.config.js）—— 模型集换过之后硬编码的
     // 129 MB / zh·en 就过期了（2026-10-06 修 S3；现在是 th·zh·en 共 380 MB）。
@@ -478,7 +534,7 @@ const FAKE_BRIDGES = `(() => {
         cache: JSON.parse(localStorage.getItem('mt:deviceModelSources') || 'null'), builtinSha: ms.map((m) => m.files[0].sha256),
         paths: ms.map((m) => m.files[0].path), flavor: window.MT_FLAVOR || 'global', srv: ms.map((m) => 'https://srv.example/' + m.files[0].path) };
     })())`));
-    need(s4b.asked === 1 && /bt_model_sources\?select=path,url,url_alt&kind=eq\.tts&flavor=eq\./.test(s4b.url || ''), 'S4b: 没缓存该先问服务器一次（表 bt_model_sources），实际 ' + JSON.stringify({ asked: s4b.asked, url: s4b.url }));
+    need(s4b.asked === 1 && /bt_model_sources\?select=path,url,url_alt&kind=in\.\(tts,lid\)&flavor=eq\./.test(s4b.url || ''), 'S4b: 没缓存该先问服务器一次（表 bt_model_sources，tts 与 lid 一起问），实际 ' + JSON.stringify({ asked: s4b.asked, url: s4b.url }));
     need(JSON.stringify(s4b.urls[s4b.urls.length - 1]) === JSON.stringify(s4b.srv), 'S4b: 原生收到的该是服务器的默认地址，实际 ' + JSON.stringify(s4b.urls) + ' 期望 ' + JSON.stringify(s4b.srv));
     need(JSON.stringify(s4b.sha) === JSON.stringify(s4b.builtinSha), 'S4b: sha256 该仍是清单里的（服务器给的 EVIL 被忽略），实际 ' + JSON.stringify(s4b.sha));
     need(s4b.cache && s4b.cache[s4b.flavor] && s4b.paths.every((p) => s4b.cache[s4b.flavor][p] === 'https://srv.example/' + p) && !JSON.stringify(s4b.cache).includes('alt.example'), 'S4b: 默认地址该落缓存、备用不落，实际 ' + JSON.stringify(s4b.cache));
@@ -548,10 +604,11 @@ const FAKE_BRIDGES = `(() => {
     const startedBeforeH = await evalIn(cdp, sessionId, `__fakeBridge.started`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-subs-entry').click(), 'ok')`);
     await sleep(600);
-    const h3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const d = AppListen._debug(); const pr = document.getElementById('app-subs-privacy'); return { mode: d.mode, phase: d.phase, listenHidden: document.getElementById('app-listen').hidden, prep: !document.getElementById('app-subs-prep').hidden, privHidden: pr.hidden, priv: pr.textContent, started: __fakeBridge.started, title: document.getElementById('app-listen-title').textContent, toggle: document.getElementById('app-listen-toggle').textContent }; })())`));
-    need(h3.mode === 'subtitle' && h3.phase === 'idle' && h3.listenHidden === false && h3.prep && !h3.privHidden && /这台 Mac/.test(h3.priv)
+    // 隐私句（Gate I）改稿 D 起搬进「设置 › 听译」（set-subs-privacy），听译页上不再有
+    const h3 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify((() => { const d = AppListen._debug(); const pr = document.getElementById('set-subs-privacy'); return { mode: d.mode, phase: d.phase, listenHidden: document.getElementById('app-listen').hidden, prep: !document.getElementById('app-subs-prep').hidden, priv: pr ? pr.textContent : null, inPage: !!document.querySelector('#app-listen #set-subs-privacy, #app-subs-privacy'), started: __fakeBridge.started, title: document.getElementById('app-listen-title').textContent, toggle: document.getElementById('app-listen-toggle').textContent }; })())`));
+    need(h3.mode === 'subtitle' && h3.phase === 'idle' && h3.listenHidden === false && h3.prep && /这台 Mac/.test(h3.priv || '') && !h3.inPage
       && h3.started === startedBeforeH && h3.title === '实时字幕' && h3.toggle === '开始',
-      'H3: 点入口该停在准备态（不开麦）、标题「实时字幕」、按钮「开始」、Mac 隐私句可见，实际 ' + JSON.stringify(h3));
+      'H3: 点入口该停在准备态（不开麦）、标题「实时字幕」、按钮「开始」，Mac 隐私句在设置页，实际 ' + JSON.stringify(h3));
     // H4. 点「开始」⇒ 字幕档会话 + 系统声音来源 + 字幕条配置；先过一次「等系统授权」
     const msgMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(__fakeBridge.holdGrant = true, 'ok')`);
@@ -663,13 +720,13 @@ const FAKE_BRIDGES = `(() => {
     await sleep(300);
     const h7b = JSON.parse(await evalIn(cdp, sessionId, `new Promise((r) => chrome.storage.local.get(['subtitleFontScale'], (s) => r(JSON.stringify({ stored: (s || {}).subtitleFontScale, cfgs: __fakeBridge.msgs.slice(${fontMark}).filter((m) => m.type === 'subtitle-config').map((m) => m.fontScale) }))))`));
     need(h7b.stored === 1.2 && JSON.stringify(h7b.cfgs) === '[1.2]', 'H7b: A+ 该把字号存成 1.2 并恰好重发一条 subtitle-config，实际 ' + JSON.stringify(h7b));
-    // H8. 字幕条上的「结束」⇒ 会话结束、字幕条收起、小结「这次字幕」
+    // H8. 字幕条上的「结束」⇒ 会话结束、字幕条收起、历史留在页上（改稿 D 起没有小结卡）
     const endMark = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'remote', command: 'end' }), 'ok')`);
     await sleep(400);
-    const h8 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, msgs: __fakeBridge.msgs.slice(${endMark}).map((m) => m.type), sumShown: !document.getElementById('app-listen-summary').hidden, sumTitle: document.getElementById('app-listen-summary-title').textContent, sumBody: document.getElementById('app-listen-summary-body').textContent })`));
+    const h8 = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, msgs: __fakeBridge.msgs.slice(${endMark}).map((m) => m.type), rows: document.querySelectorAll('#app-listen-history .listen-row').length })`));
     need(h8.phase === 'ended' && h8.msgs.includes('subtitle-hide') && h8.msgs.includes('mic-stop'), 'H8: remote end 该结束会话、发 subtitle-hide 与 mic-stop，实际 ' + JSON.stringify(h8));
-    need(h8.sumShown && h8.sumTitle === '这次字幕' && /共 2 句/.test(h8.sumBody), 'H8: 小结该是「这次字幕 · 共 2 句」，实际 ' + JSON.stringify(h8));
+    need(h8.rows === 2, 'H8: 结束后两句历史该留在页上，实际 ' + JSON.stringify(h8));
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-back').click(), 'ok')`);
     await sleep(300);
 
@@ -677,11 +734,13 @@ const FAKE_BRIDGES = `(() => {
     if (process.env.TRACE) console.log('  …H9');
     await evalIn(cdp, sessionId, `(async () => { __fakeBridge.caps = { sources: ['mic'], system: 'unsupported', broadcast: 'unsupported' }; NativeAudio._fromNative(Object.assign({ type: 'audio-caps' }, __fakeBridge.caps)); await AppListen.refreshEntry(); AppListen.open('subtitle'); return 'ok'; })()`);
     await sleep(500);
-    const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: document.getElementById('app-subs-privacy').textContent, tip: document.getElementById('app-subs-tip').textContent, note: document.getElementById('app-subs-pip-note').textContent })`));
+    const h9a = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ pip: !document.getElementById('app-subs-pip').hidden, partialHidden: document.getElementById('app-listen-partial').hidden, priv: (document.getElementById('set-subs-privacy') || {}).textContent || '', tip: document.getElementById('app-subs-tip').textContent, note: document.getElementById('app-subs-pip-note').textContent })`));
     need(/字幕小窗的预览/.test(h9a.note), 'H9: 开始前预览占位块上该有一句说明（不是一块黑），实际 ' + JSON.stringify(h9a.note));
     const ar9 = await evalIn(cdp, sessionId, `(function(){ var r=document.getElementById('app-subs-pip').getBoundingClientRect(); return r.height ? r.width / r.height : 0; })()`);
     need(Math.abs(ar9 - 0.8) < 0.03, 'H9: 小窗预览占位块该是 4:5（与画中画同一帧），实际宽高比 ' + ar9);
-    need(h9a.pip && h9a.partialHidden && /iPhone/.test(h9a.priv) && /画中画/.test(h9a.tip), 'H9: iPhone 准备页该显示小窗预览占位、iPhone 隐私句与画中画提示，实际 ' + JSON.stringify(h9a));
+    // 隐私句跟着宿主平台（设置页 isMacHost），不跟这次假的 audio-caps 走；这条 Chrome 跑在 Mac 上，读到的是 Mac 那句。
+    // 画中画提示与小窗预览才是「原生报不了系统声音」这一路的页面表现。
+    need(h9a.pip && h9a.partialHidden && /这台 Mac/.test(h9a.priv) && /画中画/.test(h9a.tip), 'H9: iPhone 一路该显示小窗预览与画中画提示，隐私句是宿主那句，实际 ' + JSON.stringify(h9a));
     const mark9 = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H9: iPhone 字幕模式进入 listening');
@@ -707,11 +766,11 @@ const FAKE_BRIDGES = `(() => {
     const markX = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(NativeAudio._fromNative({ type: 'subtitle-window', state: 'closed' }), 'ok')`);
     await sleep(400);
-    const h9x = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, pauseReason: AppListen._debug().pauseReason, toggle: document.getElementById('app-listen-toggle').textContent, summaryHidden: document.getElementById('app-listen-summary').hidden, float: document.getElementById('app-subs-float').hidden, rows: AppListen._debug().rows.length, msgs: __fakeBridge.msgs.slice(${markX}).map((m) => ({ type: m.type, hasRect: 'rect' in m, rect: m.rect })) })`));
+    const h9x = JSON.parse(await evalIn(cdp, sessionId, `JSON.stringify({ phase: AppListen._debug().phase, pauseReason: AppListen._debug().pauseReason, toggle: document.getElementById('app-listen-toggle').textContent, float: document.getElementById('app-subs-float').hidden, rows: AppListen._debug().rows.length, msgs: __fakeBridge.msgs.slice(${markX}).map((m) => ({ type: m.type, hasRect: 'rect' in m, rect: m.rect })) })`));
     need(h9x.phase === 'paused' && h9x.pauseReason === 'user', 'H9: ✕ 关掉小窗该按用户暂停处理，实际 ' + JSON.stringify(h9x));
     need(h9x.msgs.some((m) => m.type === 'mic-stop'), 'H9: ✕ 暂停该发 mic-stop，实际 ' + JSON.stringify(h9x.msgs));
     need(h9x.msgs.some((m) => m.type === 'subtitle-float' && m.hasRect && m.rect === null), 'H9: ✕ 暂停该发 subtitle-float {rect:null} 收起预览，实际 ' + JSON.stringify(h9x.msgs));
-    need(h9x.toggle === '继续' && h9x.summaryHidden === true && h9x.float === true, 'H9: ✕ 暂停后主按钮该是「继续」、不出小结、不出「浮出字幕窗」，实际 ' + JSON.stringify(h9x));
+    need(h9x.toggle === '继续' && h9x.float === true, 'H9: ✕ 暂停后主按钮该是「继续」、不出「浮出字幕窗」，实际 ' + JSON.stringify(h9x));
     const markR = await evalIn(cdp, sessionId, `__fakeBridge.msgs.length`);
     await evalIn(cdp, sessionId, `(document.getElementById('app-listen-toggle').click(), 'ok')`);
     await waitFor(async () => (await evalIn(cdp, sessionId, `AppListen._debug().phase`)) === 'listening' || null, 10000, 'H9: 点「继续」该回到 listening');
@@ -796,6 +855,6 @@ const FAKE_BRIDGES = `(() => {
 
   console.log(`  假端点：翻译请求 ${stats.chatCalls} 次（其中修正 + 翻译 ${stats.passCalls} 次）`);
   if (problems.length) { console.log('\n✗ 对话 · 实时听译端到端有问题：\n  - ' + problems.join('\n  - ')); process.exit(1); }
-  console.log('\n✓ 对话 · 实时听译端到端：门控只看本机识别器（旧系统灰 + 具名、无「去设置」）/ 听 / 归属按 locale / ↔ 改边并反向重译 / 语料 conv / 加星 / 结束小结 / 自动朗读与回声闸 / 两路 final 收法与修正稿 / 改语言重连 / 设备内置朗读下载 / 实时字幕（老壳隐藏、系统版本灰态、准备态不开麦、单向、字幕条消息、语料 mode、字幕条结束、iPhone 画中画）/ 启动迁移 全部通过');
+  console.log('\n✓ 对话 · 实时听译端到端：门控只看本机识别器（旧系统灰 + 具名、无「去设置」）/ 进页不开麦、点录音键才听 / 归属跟录音键（钉住、无 ↔）/ 语料 conv / 加星 / 返回确认结束 / 自动朗读与回声闸 / 两路 final 收法与修正稿 / 改语言后按新的一对重开 / 开口不等朗读包、译文经原生朗读 / 实时字幕（老壳隐藏、系统版本灰态、准备态不开麦、单向、字幕条消息、语料 mode、字幕条结束、iPhone 画中画）/ 启动迁移 全部通过');
   process.exit(0);
 })();

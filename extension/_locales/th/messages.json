@@ -4021,5 +4021,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "เปลี่ยนไปตั้งแยกเอนจินจะยกเลิกการตั้งแตะครั้งเดียวที่มีอยู่"
+  },
+  "thai_grok_section": {
+    "message": "การรู้จำภาษาไทย (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "ใช้ Grok สำหรับเสียงภาษาไทย"
+  },
+  "thai_grok_key_label": {
+    "message": "คีย์ API · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "วางคีย์ API ของ xAI"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-•••••••• (บันทึกแล้ว)"
+  },
+  "thai_grok_key_clear": {
+    "message": "ล้าง"
+  },
+  "thai_grok_nokey": {
+    "message": "ไม่มีคีย์ API · การรู้จำภาษาไทยใช้ไม่ได้"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "มีผลเฉพาะการรู้จำภาษาไทย ส่วนที่เหลือของเซสชันยังคงดำเนินต่อ"
+  },
+  "thai_grok_local_note": {
+    "message": "คีย์เก็บอยู่บนอุปกรณ์นี้เท่านั้น"
+  },
+  "thai_grok_key_url": {
+    "message": "รับคีย์จาก xAI"
+  },
+  "subtitle_recent": {
+    "message": "ประโยคล่าสุด"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "กำลังฟัง · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "เปิดวิดีโอหรือเบราว์เซอร์ในอีกครึ่งของหน้าจอแยก แล้วดูคำบรรยายที่นี่ หรือออกจากแอปได้ คำบรรยายจะลอยอยู่ในหน้าต่างภาพซ้อนภาพ"
+  },
+  "home_gate_badge": {
+    "message": "ใช้งานไม่ได้ชั่วคราว"
+  },
+  "subtitle_stage_empty": {
+    "message": "เมื่อเริ่มแล้ว คำบรรยายจะปรากฏที่นี่"
   }
 }

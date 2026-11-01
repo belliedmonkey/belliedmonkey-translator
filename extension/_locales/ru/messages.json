@@ -4208,5 +4208,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Переход к настройке по движкам отменит текущую настройку одним нажатием"
+  },
+  "thai_grok_section": {
+    "message": "Распознавание тайского (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "Использовать Grok для тайской речи"
+  },
+  "thai_grok_key_label": {
+    "message": "API-ключ · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "Вставьте API-ключ xAI"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-•••••••• (сохранён)"
+  },
+  "thai_grok_key_clear": {
+    "message": "Очистить"
+  },
+  "thai_grok_nokey": {
+    "message": "Нет API-ключа · распознавание тайского недоступно"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "Это влияет только на распознавание тайского; остальная сессия продолжается"
+  },
+  "thai_grok_local_note": {
+    "message": "Ключ хранится только на этом устройстве"
+  },
+  "thai_grok_key_url": {
+    "message": "Получить ключ в xAI"
+  },
+  "subtitle_recent": {
+    "message": "Последние фразы"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "Слушаю · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "Откройте видео или браузер во второй половине Split View — субтитры будут здесь. Можно выйти из приложения: субтитры останутся в режиме «картинка в картинке»."
+  },
+  "home_gate_badge": {
+    "message": "Временно недоступно"
+  },
+  "subtitle_stage_empty": {
+    "message": "После запуска субтитры появятся здесь"
   }
 }

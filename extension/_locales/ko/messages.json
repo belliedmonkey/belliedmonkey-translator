@@ -4208,5 +4208,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "항목별로 바꾸면 현재 원탭 설정이 사라집니다"
+  },
+  "thai_grok_section": {
+    "message": "태국어 인식(Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "태국어 음성 인식에 Grok 사용"
+  },
+  "thai_grok_key_label": {
+    "message": "API 키 · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "xAI API 키 붙여넣기"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••(저장됨)"
+  },
+  "thai_grok_key_clear": {
+    "message": "지우기"
+  },
+  "thai_grok_nokey": {
+    "message": "API 키 없음 · 태국어 인식 사용 불가"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "태국어 인식에만 영향을 주며 나머지 세션은 계속됩니다"
+  },
+  "thai_grok_local_note": {
+    "message": "키는 이 기기에만 저장됩니다"
+  },
+  "thai_grok_key_url": {
+    "message": "xAI에서 키 받기"
+  },
+  "subtitle_recent": {
+    "message": "최근 문장"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "통역 중 · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "분할 화면의 다른 쪽에서 동영상이나 브라우저를 열어 재생하세요. 이쪽에서 자막을 봅니다. 앱을 나가도 자막은 화면 속 화면으로 떠 있습니다."
+  },
+  "home_gate_badge": {
+    "message": "일시 사용 불가"
+  },
+  "subtitle_stage_empty": {
+    "message": "시작하면 자막이 여기에 표시됩니다"
   }
 }

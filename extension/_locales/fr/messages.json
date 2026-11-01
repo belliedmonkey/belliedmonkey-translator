@@ -4208,5 +4208,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Passer au réglage par moteur annule le réglage actuel en un geste"
+  },
+  "thai_grok_section": {
+    "message": "Thai recognition (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "Use Grok for Thai speech"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "Paste xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••"
+  },
+  "thai_grok_key_clear": {
+    "message": "Clear"
+  },
+  "thai_grok_nokey": {
+    "message": "API Key missing · Thai recognition unavailable"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "Only Thai recognition is affected; the rest of the session continues"
+  },
+  "thai_grok_local_note": {
+    "message": "The key stays on this device"
+  },
+  "thai_grok_key_url": {
+    "message": "Get a key from xAI"
+  },
+  "subtitle_recent": {
+    "message": "Phrases récentes"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "Écoute · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "Ouvrez la vidéo ou le navigateur dans l'autre moitié de l'écran partagé ; les sous-titres s'affichent ici. Vous pouvez aussi quitter l'app : les sous-titres restent en incrustation."
+  },
+  "home_gate_badge": {
+    "message": "Indisponible pour le moment"
+  },
+  "subtitle_stage_empty": {
+    "message": "Les sous-titres apparaîtront ici après le démarrage"
   }
 }

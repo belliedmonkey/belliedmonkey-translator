@@ -4208,5 +4208,50 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
+  },
+  "thai_grok_section": {
+    "message": "タイ語認識（Grok）"
+  },
+  "thai_grok_enable_label": {
+    "message": "タイ語の音声認識に Grok を使う"
+  },
+  "thai_grok_key_label": {
+    "message": "APIキー · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "xAI の API キーを貼り付け"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••（保存済み）"
+  },
+  "thai_grok_key_clear": {
+    "message": "クリア"
+  },
+  "thai_grok_nokey": {
+    "message": "APIキー未設定 · タイ語認識は利用できません"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "影響するのはタイ語認識のみ。セッションの残りは続行します"
+  },
+  "thai_grok_local_note": {
+    "message": "キーはこの端末にのみ保存されます"
+  },
+  "thai_grok_key_url": {
+    "message": "xAI でキーを取得"
+  },
+  "subtitle_recent": {
+    "message": "最近の文"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "通訳中 · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "分割表示のもう半分で動画かブラウザを開いて再生してください。こちらに字幕が出ます。アプリを離れても、字幕はピクチャ・イン・ピクチャで表示できます。"
+  },
+  "home_gate_badge": {
+    "message": "一時的に利用不可"
+  },
+  "subtitle_stage_empty": {
+    "message": "開始すると、ここに字幕が表示されます"
   }
 }
