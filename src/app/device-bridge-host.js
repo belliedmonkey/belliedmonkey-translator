@@ -34,7 +34,7 @@
 // store, storage, fetch, now, appVersion, flavor, ui, timers }).
 
 import Bridge from '../../agent/device-bridge.js';
-import { ACTIONS, MESSAGES, failureRow } from '../../agent/copy.js';
+import { ACTIONS, DISCONNECT as DISCONNECT_COPY, MESSAGES, failureRow } from '../../agent/copy.js';
 import { requestPairing } from '../../agent/session.js';
 import { hasGrant } from '../../agent/grants-model.js';
 import { pairingUi } from './agent-face.js';
@@ -50,6 +50,9 @@ export const PAIR_HINT_ID = 'pair-device-hint';
 // confirm card shows. A Chinese literal here would fail test/no-hardcoded-copy.
 export const PAIR_LABEL = ACTIONS[PAIR_ACTION].name;
 export const PAIR_HINT = ACTIONS[PAIR_ACTION].touches[0];
+// ACCEPT-U1/U4: the connected-state label, hint and its own confirm sheet. All
+// four states (connected / pending / reconnect / unpaired) read from this lock.
+export const DISCONNECT = DISCONNECT_COPY;
 
 // The client's own keys plus one host key: which account asked for this pairing.
 // A device_cred belongs to the session that registered it, and a second account
@@ -68,6 +71,7 @@ const STORED_KEYS = Object.values(Bridge.KEYS)
 
 function statusText(state) {
   if (state === 'paired') return MESSAGES.paired;
+  if (state === 'pending') return DISCONNECT.pending;
   if (state === 'reconnect') return MESSAGES.reconnect;
   if (state === 'signed_out' || state === 'unauthorized') return failureRow('need_login').line;
   if (state === 'network') return MESSAGES.network;
@@ -143,6 +147,12 @@ export function createHost(options) {
   let bootedDoc = null;
   let grants = { device: {}, assistants: {} };
   let status = { state: 'unknown', code: '', at: 0 };
+  // ACCEPT-U2: a revoke that answers 401 must not repaint the reconnect state in
+  // the middle of an explicit disconnect. The user asked to unpair; unpair wins.
+  let disconnecting = false;
+  let disconnectEpoch = 0;
+  const disconnectTimeoutMs = Number(opts.disconnectTimeoutMs) > 0
+    ? Number(opts.disconnectTimeoutMs) : 8000;
   const subscribers = new Set();
 
   // ── session / token ─────────────────────────────────────────────────────
@@ -276,6 +286,14 @@ export function createHost(options) {
   // status says 需重新允许连接此设备. Idempotent, because a 401 and the next
   // foreground can both fire.
   async function unauthorizedFallout() {
+    // During an explicit disconnect the local teardown is already the user's
+    // intent. A 401 from the best-effort revoke is not a "re-allow this device"
+    // event: keep the final state unpaired instead of flipping to reconnect.
+    if (disconnecting) {
+      stopHeartbeat();
+      clearLocalCred();
+      return;
+    }
     stopHeartbeat();
     clearLocalCred();
     try { await ensureOauth().invalidateAccess({ reason: 'unauthorized' }); } catch (_) {}
@@ -330,12 +348,18 @@ export function createHost(options) {
   async function pair(pairOptions) {
     const o = pairOptions || {};
     await store.ready();
+    // A new pairing intent ends any late-disconnect suppression window.
+    disconnectEpoch += 1;
+    disconnecting = false;
     const session = await currentSession();
     const login = !!(session && session.userId);
     const ui = o.ui || defaultUi || pairingUi(o.onSignIn);
 
     if (!login) setStatus({ state: 'signed_out', code: 'need_login' });
-    else setStatus(hasCred() ? { state: 'paired', code: 'ok' } : { state: 'unpaired', code: '' });
+    // ACCEPT-U1: while the authorize/exchange/register flow is in front of the user
+    // the entry is pending. The view disables the button and shows 正在连接…; there
+    // is no disconnect control on the same screen until the flow settles.
+    else setStatus({ state: 'pending', code: 'pairing' });
 
     let bridgeClient = null;
     if (login) bridgeClient = await ensureClient();
@@ -368,7 +392,21 @@ export function createHost(options) {
       ports: {},
     };
 
-    const receipt = await requestPairing(ctx, ui);
+    let receipt;
+    try {
+      receipt = await requestPairing(ctx, ui);
+    } catch (e) {
+      // A thrown gate must not strand the button in pending. Restore the state the
+      // local credentials support (paired / reconnect / unpaired).
+      await refreshStatus();
+      throw e;
+    }
+    // Cancel is not a state change: no HTTP, no token, no credential. Restore the
+    // pre-click state explicitly because pair() painted pending before the card.
+    if (receipt && receipt.code === 'cancelled') {
+      await refreshStatus();
+      return receipt;
+    }
     await finishPair(receipt, session);
     return receipt;
   }
@@ -424,6 +462,102 @@ export function createHost(options) {
     }
     if (code === 'network_unavailable') { setStatus({ state: 'network', code }); return; }
     setStatus({ state: 'error', code: code || '' });
+  }
+
+  // ── disconnect (Settings connected state) ───────────────────────────────
+  // ACCEPT-U2 order is load-bearing:
+  //   1. stop the heartbeat immediately;
+  //   2. if an MCP Bearer still exists, fire the frozen best-effort revoke;
+  //   3. whether it returns 200, 401 or a network error, clear device_cred and
+  //      both Keychain slots (mcp_access + mcp_refresh);
+  //   4. flip the UI to unpaired now, without waiting for the cloud receipt.
+  // No account sign-out, no cloud-corpus delete, no assistant-side connector
+  // removal. The revoke response is recorded for evidence but never gates the UI.
+  async function disconnect() {
+    await store.ready();
+    const epoch = ++disconnectEpoch;
+    disconnecting = true;
+    const hadCred = hasCred();
+    // 1. local heartbeat stop is not allowed to wait for anything.
+    stopHeartbeat();
+
+    // 2. capture the Bearer before the Keychain is cleared. A refresh here is the
+    // last legitimate cloud read; if it fails there is no Bearer to revoke with.
+    let token = '';
+    if (hadCred) {
+      try { token = await getAccessToken(); } catch (_) { token = ''; }
+    }
+
+    let revokePromise = null;
+    if (hadCred && token) {
+      const c = await ensureClient();
+      // revoke() clears device_cred and stops the loop synchronously, then POSTs
+      // with the captured Bearer. Do not await it before the local/UI teardown.
+      revokePromise = c.revoke({ token }).catch((e) => ({
+        ok: true, revoked: true, cloud: false, status: 0,
+        code: 'network_unavailable', error: String((e && e.message) || e || ''),
+      }));
+    } else {
+      clearLocalCred();
+    }
+
+    // 3. always clear the MCP grant, even if revoke failed or never happened.
+    try { await ensureOauth().clearTokens(); } catch (_) {}
+    clearLocalCred();
+    store.removeItem(RECONNECT_KEY);
+
+    // 4. unpaired is the user's explicit choice; a 401 revoke must not flip it.
+    setStatus({ state: 'unpaired', code: '' });
+
+    const fallback = {
+      ok: true, revoked: false, cloud: false, status: 0,
+      code: hadCred ? 'no_bearer' : 'not_paired', attempted: false,
+    };
+    const settled = revokePromise || Promise.resolve(fallback);
+    // A hung cloud call must not keep the Settings click busy forever. The UI has
+    // already flipped; the timeout only bounds the receipt we return.
+    let timeoutId = null;
+    const timeout = new Promise((resolve) => {
+      timeoutId = setTimeout(() => resolve(null), disconnectTimeoutMs);
+    });
+    const revoke = await Promise.race([settled, timeout]);
+    if (timeoutId != null) clearTimeout(timeoutId);
+
+    if (revoke == null) {
+      // Still in flight: keep the 401 guard until it settles, then enforce the
+      // user's unpaired intent one final time. A later pairing bumps the epoch and
+      // owns the state from then on.
+      settled.then(() => {
+        if (epoch !== disconnectEpoch) return;
+        disconnecting = false;
+        setStatus({ state: 'unpaired', code: '' });
+      }, () => {});
+      return {
+        ok: true,
+        state: 'unpaired',
+        had_cred: hadCred,
+        bearer: !!token,
+        revoke: { attempted: true, ok: false, code: 'timeout', status: 0, timed_out: true },
+      };
+    }
+
+    if (epoch === disconnectEpoch) disconnecting = false;
+    // A late status callback (e.g. the revoke's own 401 fallout) must not win.
+    setStatus({ state: 'unpaired', code: '' });
+
+    return {
+      ok: true,
+      state: 'unpaired',
+      had_cred: hadCred,
+      bearer: !!token,
+      revoke: {
+        attempted: revoke.attempted === true,
+        ok: revoke.cloud === true,
+        code: revoke.code || (revoke.cloud === true ? 'ok' : 'failed'),
+        status: Number(revoke.status) || 0,
+        timed_out: false,
+      },
+    };
   }
 
   // ── heartbeat lifecycle ─────────────────────────────────────────────────
@@ -554,6 +688,7 @@ export function createHost(options) {
     status: statusNow,
     // settings entry
     pair,
+    disconnect,
     // lifecycle
     boot,
     onForeground,
@@ -592,6 +727,7 @@ function defaultHost() {
 export const deviceBridgeHost = {
   boot: (doc) => defaultHost().boot(doc),
   pair: (o) => defaultHost().pair(o),
+  disconnect: () => defaultHost().disconnect(),
   onForeground: () => defaultHost().onForeground(),
   onStatus: (fn) => defaultHost().onStatus(fn),
   status: () => defaultHost().status(),

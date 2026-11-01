@@ -65,6 +65,21 @@ const ACTIONS = {
   },
 };
 
+// BEL-151 / ACCEPT-U1…U4: the connected-state settings entry and its own confirm
+// sheet. This is NOT the pairing card: connecting asks before it mints a device
+// session; disconnecting asks before it drops the local pair. The wording is the
+// product decision verbatim — "断开" never means "删除" (account deletion) and never
+// claims the assistant-side connector was removed.
+const DISCONNECT = {
+  label: '断开此设备',
+  hint: '断开后，已连接的助手将无法再访问本机可达状态；可随时重新连接。',
+  confirmTitle: '断开此设备？',
+  confirmBody: '助手将无法再调用本机工具。',
+  confirmOk: '断开',
+  confirmCancel: '取消',
+  pending: '正在连接…',
+};
+
 const FAILURES = {
   need_permission_mic: {
     line: '需要麦克风 / 系统音频权限',
@@ -183,6 +198,7 @@ module.exports = {
   HOST_KEY_NOTE,
   deviceAllow,
   ACTIONS,
+  DISCONNECT,
   FAILURES,
   RECEIPT_CARD,
   failureRow,
