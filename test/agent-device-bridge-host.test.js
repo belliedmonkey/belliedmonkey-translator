@@ -27,6 +27,7 @@ const UUID = '11111111-1111-4111-8111-111111111111';
 const REGISTER = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/register';
 const HEARTBEAT = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/heartbeat';
 const BOOTSTRAP = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/bootstrap';
+const REVOKE = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/revoke';
 
 const MCP_TOKEN = 'mcp-access-1';
 const GOTRUE_TOKEN = 'gotrue-session-token';   // must never become a Bearer here
@@ -134,6 +135,20 @@ describe('BEL-151 host: the Settings entry is reachable and copy-locked', () => 
     ok(view.includes('{PAIR_HINT}'), 'the hint does not render PAIR_HINT');
     ok(!view.includes(copy.ACTIONS.pair_device.name), 'the locked name is retyped in the view');
     ok(!view.includes(copy.ACTIONS.pair_device.touches[0]), 'the locked touch line is retyped in the view');
+  });
+
+  test('connected state has its own copy lock and its own confirm sheet', () => {
+    eq(Host.DISCONNECT.label, '断开此设备');
+    eq(Host.DISCONNECT.hint, '断开后，已连接的助手将无法再访问本机可达状态；可随时重新连接。');
+    eq(Host.DISCONNECT.confirmTitle, '断开此设备？');
+    eq(Host.DISCONNECT.confirmBody, '助手将无法再调用本机工具。');
+    eq(Host.DISCONNECT.confirmOk, '断开');
+    eq(Host.DISCONNECT.confirmCancel, '取消');
+    ok(view.includes('DISCONNECT.confirmTitle'), 'the disconnect sheet does not use the locked title');
+    ok(view.includes('DISCONNECT.confirmBody'), 'the disconnect sheet does not use the locked body');
+    ok(view.includes('deviceBridgeHost.disconnect()'), 'the view never calls the disconnect host');
+    ok(view.includes("btn.dataset.state = connected ? 'connected'"), 'the view has no connected state marker');
+    ok(view.includes("pending ? 'pending'"), 'the view has no pending state marker');
   });
 
   test('the host adds no transport: frozen device bases stay in agent/device-bridge.js', () => {
@@ -568,6 +583,171 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     await host.noteSession({ userId: 'u2' });
     eq(store.getItem('device_cred'), null);
     eq(host.status().state, 'unpaired');
+  });
+});
+
+describe('BEL-151 host: explicit disconnect (ACCEPT-U2)', () => {
+  test('connected → best-effort revoke with the captured Bearer, clear both slots, unpaired', async () => {
+    let atFetch = null;
+    const rec = recorder(() => {
+      atFetch = { heartbeat: host.isHeartbeatRunning(), cred: store.getItem('device_cred') };
+      return fakeResponse(200, { ok: true, revoked: true });
+    });
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    await host.noteSession({ userId: 'u1' });
+    eq(host.status().state, 'paired');
+    await host.ensureClient();
+    host.startHeartbeat();
+    eq(host.isHeartbeatRunning(), true);
+
+    const out = await host.disconnect();
+    eq(out.ok, true);
+    eq(out.state, 'unpaired');
+    eq(out.revoke.attempted, true);
+    eq(out.revoke.ok, true);
+    eq(out.revoke.status, 200);
+
+    // The heartbeat was already stopped and device_cred already dropped when the
+    // revoke hit the wire; the UI does not wait for the cloud receipt.
+    eq(atFetch.heartbeat, false);
+    eq(atFetch.cred, null);
+    eq(rec.calls.length, 1);
+    eq(rec.calls[0].url, REVOKE);
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
+    const body = JSON.parse(rec.calls[0].init.body);
+    eq(body.device_id, UUID);
+    eq(body.device_cred, 'dc-old');
+
+    eq(store.getItem('device_cred'), null);
+    eq(store.getItem('device_cred_user'), null);
+    eq(store.getItem('device_reconnect'), null);
+    eq(host.hasCred(), false);
+    eq(host.isHeartbeatRunning(), false);
+    eq(host.status().state, 'unpaired');
+    eq(host.status().paired, false);
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'mcp_access/mcp_refresh were not cleared');
+  });
+
+  test('the UI flips to unpaired before a slow revoke answers', async () => {
+    let release = null;
+    const rec = recorder(() => new Promise((r) => { release = () => r(fakeResponse(200, { ok: true })); }));
+    const store = pairedStore();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth: oauthStub() }));
+    await host.noteSession({ userId: 'u1' });
+    await host.ensureClient();
+    host.startHeartbeat();
+
+    const pending = host.disconnect();
+    for (let i = 0; i < 20 && !release; i++) await new Promise((r) => setTimeout(r, 5));
+    ok(!!release, 'disconnect never reached the revoke POST');
+    eq(host.status().state, 'unpaired');
+    eq(host.isHeartbeatRunning(), false);
+    eq(store.getItem('device_cred'), null);
+    release();
+    const out = await pending;
+    eq(out.revoke.ok, true);
+  });
+
+  test('revoke 401 still clears both slots and never flips to reconnect', async () => {
+    const rec = recorder(() => fakeResponse(401, { ok: false, code: 'unauthorized' }));
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    await host.noteSession({ userId: 'u1' });
+
+    const out = await host.disconnect();
+    eq(out.revoke.attempted, true);
+    eq(out.revoke.ok, false);
+    eq(out.revoke.status, 401);
+    eq(out.revoke.code, 'unauthorized');
+    eq(store.getItem('device_cred'), null);
+    eq(store.getItem('device_reconnect'), null, 'a 401 during disconnect persisted reconnect');
+    eq(host.status().state, 'unpaired');
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'mcp_access/mcp_refresh were not cleared');
+    ok(!oauth.calls.some((c) => c[0] === 'invalidateAccess'),
+      'disconnect cleared only the access token instead of both slots');
+  });
+
+  test('revoke network failure still clears both slots and stays unpaired', async () => {
+    const rec = recorder(() => { throw new Error('offline'); });
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    await host.noteSession({ userId: 'u1' });
+
+    const out = await host.disconnect();
+    eq(out.revoke.attempted, true);
+    eq(out.revoke.ok, false);
+    eq(out.revoke.status, 0);
+    eq(out.revoke.code, 'network_unavailable');
+    eq(store.getItem('device_cred'), null);
+    eq(host.status().state, 'unpaired');
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'));
+  });
+
+  test('no MCP Bearer: no revoke request, but the local pair and both slots still go', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true }));
+    const store = pairedStore();
+    const oauth = oauthStub({ async accessToken() { return ''; } });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    await host.noteSession({ userId: 'u1' });
+
+    const out = await host.disconnect();
+    eq(rec.calls.length, 0, 'revoke went out without a Bearer');
+    eq(out.revoke.attempted, false);
+    eq(out.revoke.code, 'no_bearer');
+    eq(store.getItem('device_cred'), null);
+    eq(host.status().state, 'unpaired');
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'));
+  });
+
+  test('a hung revoke times out with the UI already unpaired and the slots cleared', async () => {
+    const rec = recorder(() => new Promise(() => {}));
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({
+      store, fetch: rec.fetch, oauth, disconnectTimeoutMs: 25,
+    }));
+    await host.noteSession({ userId: 'u1' });
+    await host.ensureClient();
+    host.startHeartbeat();
+    const out = await host.disconnect();
+    eq(out.state, 'unpaired');
+    eq(out.revoke.attempted, true);
+    eq(out.revoke.ok, false);
+    eq(out.revoke.code, 'timeout');
+    eq(out.revoke.timed_out, true);
+    eq(host.status().state, 'unpaired');
+    eq(host.isHeartbeatRunning(), false);
+    eq(store.getItem('device_cred'), null);
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'));
+  });
+
+  test('pairing is pending while the confirm is open and cancel restores the prior state', async () => {
+    let release = null;
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9' }));
+    const ui = {
+      confirm: () => new Promise((resolve) => { release = resolve; }),
+      show: async () => {},
+    };
+    const host = Host.createHost(baseOptions({
+      store: bridge.memoryStore({ device_id: UUID }), fetch: rec.fetch, oauth: oauthStub(), ui,
+    }));
+    const pending = host.pair();
+    for (let i = 0; i < 20 && typeof release !== 'function'; i++) {
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    ok(typeof release === 'function', 'pair() never reached the confirm card');
+    eq(host.status().state, 'pending');
+    eq(host.status().text, copy.DISCONNECT.pending);
+    release({ allow: false });
+    const out = await pending;
+    eq(out.code, 'cancelled');
+    eq(rec.calls.length, 0);
+    eq(host.status().state, 'unpaired');
+    eq(host.status().text, '');
   });
 });
 
