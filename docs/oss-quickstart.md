@@ -4,15 +4,16 @@ This is the **single entry page** for the public MIT source tree. It is written 
 stranger on a clean machine: no private repository, no internal SSH, no real grant key,
 and no hosted backend are required for the path below.
 
-> **Which tree is this?** This page lives on the **MIT orphan root**
-> (`oss/mit-orphan`, tag `oss-v0.1.0-bel172-p0`). The App Store / Chrome / Firefox store
-> builds are cut from a separate **GPL-3.0-or-later** branch (`main`). The two lanes are
-> never merged. If you cloned `main`, you are on the store lane, not this one.
+> **Which tree is this?** This is the **MIT orphan root**, published as
+> [`belliedmonkey-translator-oss`](https://github.com/belliedmonkey/belliedmonkey-translator-oss)
+> (same tip mirrored as branch `oss/mit-orphan`, tag `oss-v0.1.0-bel172-p0`, in the
+> original repository). The App Store / Chrome / Firefox store builds are cut from a
+> separate **GPL-3.0-or-later** branch (`main`). The two lanes are never merged.
 > See [`docs/oss-release.md`](oss-release.md) and [`BOUNDARY.md`](../BOUNDARY.md).
 
 ## 0 · Five-minute path
 
-1. `git clone` the orphan branch (or the tag) below.
+1. `git clone` the MIT repository (or check out the exact tag) below.
 2. `npm ci` — build-time devDependencies only.
 3. `node build.js` — produces `dist/` plus a Chrome ZIP.
 4. Load `dist/` unpacked in Chrome/Edge.
@@ -37,7 +38,14 @@ for the build step (`esbuild` and `react` are build-time devDependencies, pinned
 
 ## 2 · Clone the MIT root
 
-Track the branch:
+Canonical repository (clone the default branch — it is the MIT orphan root):
+
+```bash
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
+```
+
+The identical tip is mirrored on the original repository:
 
 ```bash
 git clone --branch oss/mit-orphan \
@@ -45,15 +53,16 @@ git clone --branch oss/mit-orphan \
 cd belliedmonkey-translator
 ```
 
-Or check out the exact P0 snapshot:
+Or check out the exact P0 snapshot (present in both repositories):
 
 ```bash
-git clone https://github.com/belliedmonkey/belliedmonkey-translator.git
-cd belliedmonkey-translator
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
 git checkout oss-v0.1.0-bel172-p0
 ```
 
-**Do not** clone `main` and call it the OSS tree. `main` is the GPL store lane.
+**Do not** clone `main` of the original repository and call it the OSS tree. `main` there
+is the GPL store lane.
 
 Confirm you are on the MIT root:
 

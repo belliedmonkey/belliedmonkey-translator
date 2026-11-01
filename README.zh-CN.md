@@ -20,6 +20,12 @@
   <a href="README.md">English</a> · <b>简体中文</b>
 </p>
 
+<p align="center">
+  <b>MIT 许可源码：</b>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator-oss"><code>belliedmonkey-translator-oss</code></a>
+  · <a href="docs/oss-quickstart.md">五分钟 clone 并构建</a>
+</p>
+
 <!-- BEL-153 首屏：一键装扩展 + 商店深链 + 星标路径 -->
 <p align="center">
   <a href="https://belliedmonkey.com/"><img alt="中国站 大肚猴翻译" src="https://img.shields.io/badge/中国站-大肚猴翻译-000000?logo=apple&logoColor=white"></a>
@@ -59,16 +65,20 @@
 
 ## 源码与许可
 
-本分支是 **MIT 的 OSS 根**（`oss/mit-orphan`；P0 快照 tag `oss-v0.1.0-bel172-p0`）。
-商店构建从另一条 **GPL-3.0-or-later** 轨（`main`）切出；两条永不合入。
+本树是 **MIT 的 OSS 根**，独立发布在
+[`belliedmonkey-translator-oss`](https://github.com/belliedmonkey/belliedmonkey-translator-oss)
+仓库，history 是全新的 orphan 根（不含 GPL 提交）。商店构建从原仓库另一条
+**GPL-3.0-or-later** 轨（`main`）切出；两条永不合入。
 
 ```bash
-git clone --branch oss/mit-orphan \
-  https://github.com/belliedmonkey/belliedmonkey-translator.git
-cd belliedmonkey-translator
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
 npm ci
 node build.js
 ```
+
+同一个 orphan tip 也镜像在原仓库的 `oss/mit-orphan` 分支（tag `oss-v0.1.0-bel172-p0`），
+便于追溯。
 
 - **五分钟源码路径：** [`docs/oss-quickstart.md`](docs/oss-quickstart.md)
 - **自带 Key（BYOK）：** [`docs/byok.md`](docs/byok.md)
@@ -117,9 +127,8 @@ node build.js
 先跑 `npm ci` —— 不跑会停在 `esbuild 不在 node_modules`。
 
 ```bash
-git clone --branch oss/mit-orphan \
-  https://github.com/belliedmonkey/belliedmonkey-translator.git
-cd belliedmonkey-translator
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
 npm ci
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi

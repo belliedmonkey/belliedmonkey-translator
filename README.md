@@ -20,6 +20,12 @@
   <b>English</b> · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
+<p align="center">
+  <b>MIT-licensed source:</b>
+  <a href="https://github.com/belliedmonkey/belliedmonkey-translator-oss"><code>belliedmonkey-translator-oss</code></a>
+  · <a href="docs/oss-quickstart.md">clone &amp; build in 5 minutes</a>
+</p>
+
 <!-- BEL-153 first screen: install CTAs + store deep links + star path (above the fold) -->
 <p align="center">
   <a href="https://apps.apple.com/app/belliedmonkey-translator/id6787190032"><img alt="Download on the App Store" src="https://img.shields.io/badge/App%20Store-iPhone%20·%20iPad%20·%20Mac-000000?logo=apple&logoColor=white"></a>
@@ -59,17 +65,20 @@
 
 ## Source and license
 
-This branch is the **MIT-licensed OSS root** (`oss/mit-orphan`; exact P0 snapshot tag
-`oss-v0.1.0-bel172-p0`). The store builds are cut from a separate
-**GPL-3.0-or-later** branch (`main`); the two lanes are never merged.
+This tree is the **MIT-licensed OSS root**. It is published as its own repository,
+[`belliedmonkey-translator-oss`](https://github.com/belliedmonkey/belliedmonkey-translator-oss),
+with a fresh orphan history (no GPL commits). The store builds are cut from a separate
+**GPL-3.0-or-later** branch (`main`) of the original repository; the two lanes are never merged.
 
 ```bash
-git clone --branch oss/mit-orphan \
-  https://github.com/belliedmonkey/belliedmonkey-translator.git
-cd belliedmonkey-translator
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
 npm ci
 node build.js
 ```
+
+The same orphan tip is mirrored on the original repository as branch `oss/mit-orphan`
+(tag `oss-v0.1.0-bel172-p0`), if you need to trace it back.
 
 - **Five-minute source path:** [`docs/oss-quickstart.md`](docs/oss-quickstart.md)
 - **Own key (BYOK):** [`docs/byok.md`](docs/byok.md)
@@ -120,9 +129,8 @@ built extension has **no runtime npm dependencies** and loads no CDN. Node.js �
 `esbuild 不在 node_modules`.
 
 ```bash
-git clone --branch oss/mit-orphan \
-  https://github.com/belliedmonkey/belliedmonkey-translator.git
-cd belliedmonkey-translator
+git clone https://github.com/belliedmonkey/belliedmonkey-translator-oss.git
+cd belliedmonkey-translator-oss
 npm ci
 node build.js                     # Chrome / Safari  → dist/  + belliedmonkeytranslator.zip
 node build.js firefox             # Firefox          → dist-firefox/ + .xpi
