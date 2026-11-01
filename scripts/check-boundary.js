@@ -114,10 +114,23 @@ function inspectTree(root = ROOT) {
   return violations;
 }
 
+function headPaths() {
+  return new Set(git(['ls-tree', '-r', '--name-only', '-z', 'HEAD']).split('\0').filter(Boolean));
+}
+
+// A PR that REMOVES a denylisted path is doing the boundary's work, not violating it.
+// Only changed paths that still exist at HEAD (added/modified) can be violations; the
+// full-tree scan above already proves the removed path is gone. Keep this filter out of
+// inspectTree/inspectPaths so full-tree semantics stay unchanged.
+function filterExistingAtHead(paths, atHead) {
+  return paths.filter((p) => atHead.has(p));
+}
+
 function changedPaths(ref) {
   if (!ref) return [];
   const mergeBase = git(['merge-base', ref, 'HEAD']).trim();
-  return git(['diff', '--name-only', mergeBase, 'HEAD']).split('\n').filter(Boolean);
+  const changed = git(['diff', '--name-only', mergeBase, 'HEAD']).split('\n').filter(Boolean);
+  return filterExistingAtHead(changed, headPaths());
 }
 
 function main(argv) {
@@ -144,4 +157,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv.slice(2));
 
-module.exports = { inspectTree, inspectPaths, denied, deniedRules: DENY, allowedRules: ALLOW, changedPaths };
+module.exports = { inspectTree, inspectPaths, denied, deniedRules: DENY, allowedRules: ALLOW, changedPaths, filterExistingAtHead };

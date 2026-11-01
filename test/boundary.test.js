@@ -6,8 +6,8 @@
 //   2. the deny rules actually catch the paths they claim to (a rule that cannot go red
 //      is not a gate),
 //   3. the contract/whitelist/mock exceptions are exactly the intended ones.
-const { describe, test, ok, eq } = require('./harness');
-const { inspectTree, inspectPaths, denied } = require('../scripts/check-boundary.js');
+const { describe, test, ok, eq, deepEq } = require('./harness');
+const { inspectTree, inspectPaths, denied, filterExistingAtHead } = require('../scripts/check-boundary.js');
 
 describe('BOUNDARY — public tree', () => {
   test('公仓树干净：无 denylist 实现 / 无旁仓 import / 无 JWT 形状 token', () => {
@@ -52,5 +52,22 @@ describe('BOUNDARY — public tree', () => {
     eq(v.length, 1);
     eq(v[0].path, 'supabase/functions/bt-relay/index.ts');
     ok(/hosted relay/.test(v[0].why), 'violation 没带可读原因');
+  });
+
+  test('--changed 只查 HEAD 仍存在的路径：删除 denylist 不红，现存 denylist 仍红', () => {
+    const atHead = new Set(['supabase/functions/bt-relay/index.ts', 'docs/ok.md']);
+    const changed = [
+      'deploy/china/README.md',                 // deleted by the PR: doing the boundary's work
+      'supabase/functions/bt-relay/index.ts',  // modified and still present: must stay red
+      'docs/ok.md',
+    ];
+    deepEq(filterExistingAtHead(changed, atHead), [
+      'supabase/functions/bt-relay/index.ts',
+      'docs/ok.md',
+    ]);
+    eq(inspectPaths(filterExistingAtHead(['deploy/china/README.md'], atHead)).length, 0);
+    const live = inspectPaths(filterExistingAtHead(changed, atHead));
+    eq(live.length, 1);
+    eq(live[0].path, 'supabase/functions/bt-relay/index.ts');
   });
 });

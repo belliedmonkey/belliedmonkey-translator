@@ -52,7 +52,8 @@
 
 ### 2.1 CI path-deny
 
-- PR / tip 触及上面任一路径 → **FAIL**（`scripts/check-boundary.js`）。
+- PR / tip **新增或修改**上面任一路径 → **FAIL**（`scripts/check-boundary.js`）。
+  **删除** denylist 路径是清边界，不是违规：`--changed` 只检查在 HEAD 仍存在的变更路径。
 - 全树 secret scan（gitleaks）高危 → **FAIL**（`.github/workflows/boundary.yml`）。
 - 公仓构建里出现旁仓路径（`HOSTED_REPO` / `../belliedmonkey-translator-hosted` 等）→ **FAIL**。
 - 例外只允许**契约/白名单/mock**：`contracts/**`、`mocks/**`、
