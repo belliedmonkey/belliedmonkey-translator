@@ -248,21 +248,21 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 
 ---
 
-## 效果与业界水位（2026-10）
+## 效果与业界水位（2026-11）
 
-大肚猴听译/字幕当前管线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。
+大肚猴听译/字幕当前管线：**端上 SpeechAnalyzer → VAD/LID/切句 → 云端 qwen plus（修正+翻译）→ 本地 TTS**。（仅认 App Store 上架路径；研究 tip 另标。）更完整的说明见 [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md)。
 
-| 维度 | 我们（有数） | 业界公开锚（第三方） | 差距一句话 |
+| 维度 | 我们（有数） | 业界公开锚（第三方/厂商） | 差距一句话 |
 |---|---|---|---|
-| 翻译 | plus · App 契约 COMET **88.8**（1600 句） | 同口径 DeepL/Google **无公开数** | 自测高质量；无法与 DeepL 横比 |
-| ASR 中文 | 线上 SA；离线 SenseVoice CER **~5–7%**（口语/会议） | AA 英文榜顶尖 ~1.7–2.3% WER（**语种不同，不可换算**） | 中文端上升级在验证，未进近版 |
-| ASR 泰语 | Grok 流式 archdemo CER **9.66%**、丢句 0 | 端上空白被云端补上 | **1.21.2 已随国际版发布**（tip aac5a87d；中国版剥离 Grok；直连 xAI，中继未改） |
-| 听译延迟 | 文档目标有；线上统一遥测 **未出数** | Meet 63 语体验标杆（厂商） | 先补遥测再谈对标 |
-| TTS | 本地可离线 | AA：Eleven v4 Turbo Elo 1335 等 | 云端音色升级待试听 |
+| 翻译 | plus · App 契约 COMET **88.8**（1600 句）；Prod 小样 COMET **85.0** | 同口径 DeepL/Google **无公开数**；Hy-SimulMT FLEURS **90.3**（厂商自报·不同形态） | 自测高质量；无法与 DeepL 横比 |
+| ASR | 同集 SA：zh CER **6.3** · en WER **6.8**；SV 中英略优、日韩粤 SA 优 | AA 英文顶尖 ~**1.7–2.3%** WER（**语种不可换算**） | 端上升级验证中；**不宜统一换 SenseVoice** |
+| ASR 泰语 | 端上 locale 缺口；Grok 流式 archdemo CER **9.66%**、丢句 0 | 云端补端上空白 | **合入待用户批** |
+| 听译延迟 | Debug App mic zh 首 volatile p50 **1.32s**（近 ≤2s 目标） | Meet 63 语（厂商）；Seed 首词 2.21s（论文） | 生产统一遥测仍缺 |
+| TTS | 本地可离线；MOS **未测** | AA：Eleven v4 Elo ~**1334** 等 | 音色升级待试听；Drama3/OmniVoice watchlist |
 
-**不进近版**：qwen-flash / DeepSeek Flash 替换 plus（质量门未过）；Grok 流式主驱动字幕；Ming TTS CPU 路径。
+**不进近版**：qwen-flash / DeepSeek Flash 替换 plus；Grok 流式主驱动字幕；Fish ASR（hold to GA）；Ming TTS CPU；Hy-SimulMT 租 GPU；SenseVoice 统一换心。
 
-**下期**：例行每月 1 日；或效果有实质变化时加更。数字一律标「自测 / 第三方 / 厂商自报」。
+**下期**：每月 1 日例行；效果实质变化时加更。数字一律标「自测 / 第三方 / 厂商自报」。
 
 ## 我们如何选模型
 
