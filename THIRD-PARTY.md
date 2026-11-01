@@ -1,6 +1,6 @@
 # 第三方组件与许可（THIRD-PARTY）
 
-本文件登记**随产品分发**的第三方组件及其许可。产品本体是 Apache-2.0（见 [`LICENSE`](LICENSE)）。
+本文件登记**随产品分发**的第三方组件及其许可。产品本体的许可见根 [`LICENSE`](LICENSE)：本分支为 GPL-3.0-or-later，OSS orphan 根为 MIT。第三方组件不随产品本体换牌。
 
 三处纪律：
 

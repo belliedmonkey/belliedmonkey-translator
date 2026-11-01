@@ -266,7 +266,12 @@ describe('性能台账：新增供应商必须先打一遍', () => {
         // 我们量不了一个还不存在的地址。google 用查询参数在调用时拼地址，
         // browser 那条根本不说 HTTP，同理。
         if (e.requiresEndpoint || !e.defaultEndpoint) continue;
-        for (const h of hostsOfEntry(e)) if (!covered.has(h)) missing.push(`${reg}/${e.id} → ${h}`);
+        for (const h of hostsOfEntry(e)) {
+          // BEL-172: an un-injected build points at a *.invalid placeholder; there is no
+          // service to measure, and inventing a ledger row for it would be a lie.
+          if (/\.invalid$/i.test(h)) continue;
+          if (!covered.has(h)) missing.push(`${reg}/${e.id} → ${h}`);
+        }
       }
     }
     eq(missing.length, 0,
@@ -285,6 +290,7 @@ describe('性能台账：新增供应商必须先打一遍', () => {
     }
     for (const p of PARAMS) for (const h of p.hosts) live.add(h);
     for (const r of LEDGER) {
+      if (/\.invalid$/i.test(r.host)) continue;   // placeholder, never a measured host
       ok(live.has(r.host),
         `台账里的 ${r.host} 已经不属于任何引擎或能力表条目 —— 条目删了，台账该跟着删`);
     }

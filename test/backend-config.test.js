@@ -194,7 +194,59 @@ describe('build.js — 两条路都要在', () => {
   });
 });
 
-// ── BEL-135：中国版遥测与国际版同一白名单，入口是境内 bt-ingest ──
+describe('backend.config.js — build-time injection (BEL-172)', () => {
+  const INJECT = require('../build/backend-inject.js');
+
+  test('源码里没有真 JWT / 真后端主机', () => {
+    ok(!/eyJ[A-Za-z0-9_-]{10,}\.eyJ/.test(CFG_SRC), 'backend.config.js 又出现了 JWT 字面量');
+    // Comments may *name* the gate (e.g. "must not be *.supabase.co"); only code lines
+    // are the contract. A comment cannot route traffic.
+    const code = CFG_SRC.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    for (const host of ['supabase.co', 'api.belliedmonkey.com', 'tencentscf.com']) {
+      ok(!code.includes(host), `backend.config.js 又写死了 ${host}`);
+    }
+  });
+
+  test('占位符是惰性的：*.invalid + 非 JWT', () => {
+    eq(new URL(CFG.url).hostname, 'backend.invalid');
+    eq(new URL(CFG.china.url).hostname, 'cn.backend.invalid');
+    ok(!/^eyJ/.test(CFG.anonKey), 'anonKey 占位符不该长得像真 key');
+    ok(!/^eyJ/.test(CFG.china.anonKey));
+    eq(new URL(CFG.grant.china.relayUrl).hostname, 'relay.invalid');
+  });
+
+  test('apply() 注入后占位符消失', () => {
+    const values = {
+      url: 'https://real.example', anonKey: 'sb_publishable_real',
+      chinaUrl: 'https://cn.real.example', chinaAnonKey: 'sb_publishable_cn',
+      chinaRelay: 'https://relay.real.example',
+    };
+    const out = INJECT.apply(CFG_SRC, values);
+    for (const v of Object.values(values)) ok(out.includes(v), `注入结果缺 ${v}`);
+    for (const s of Object.values(INJECT.SENTINEL)) ok(!out.includes(s), `占位符 ${s} 还在`);
+  });
+
+  test('service_role / 非 https / 同后端 一律拒绝注入', () => {
+    const service = 'x.' + Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url') + '.y';
+    const throws = (fn, why) => { let hit = false; try { fn(); } catch (_) { hit = true; } ok(hit, why); };
+    throws(() => INJECT.resolve('/tmp/no-such-root', { MT_BACKEND_ANON_KEY: service }), 'service_role 被注入了客户端包');
+    throws(() => INJECT.resolve('/tmp/no-such-root', { MT_BACKEND_URL: 'http://plain.example' }), 'http 后端被接受');
+    throws(() => INJECT.resolve('/tmp/no-such-root', {
+      MT_BACKEND_URL: 'https://same.example', MT_CHINA_BACKEND_URL: 'https://same.example',
+    }), '两个 flavor 共用同一后端');
+  });
+
+  test('build.js 在 copy 之后、china override 之前注入', () => {
+    const BUILD = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8')
+      .split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    const copy = BUILD.indexOf('copyDir(SRC, DIST)');
+    const inject = BUILD.indexOf('backendInject.applyToDir(DIST');
+    const china = BUILD.indexOf('applyChinaLocales(DIST)');
+    ok(copy >= 0 && inject > copy, 'applyToDir 没有排在 copyDir 之后');
+    ok(china < 0 || inject < china, 'applyToDir 必须排在 china override 之前');
+  });
+});
+
 function telemetryFrom(src) {
   const line = src.split('\n').find((l) => l.startsWith('window.MT_TELEMETRY = '));
   if (!line) return null;
@@ -216,7 +268,15 @@ describe('telemetry — 中国版打境内 ingest，白名单与国际版同一�
     const tel = telemetryFrom(src);
     ok(tel && tel.url, 'china 产物解析不出 MT_TELEMETRY');
     const u = new URL(tel.url);
-    const want = new URL(CFG.china.url);
+    // Compare against the *dist* china config (it may carry injected values), falling back
+    // to the source placeholder when dist-china has not been built.
+    const cnCfg = path.join(ROOT, 'dist-china', 'learn', 'backend.config.js');
+    let cnUrl = CFG.china.url;
+    if (fs.existsSync(cnCfg)) {
+      const m = /^  url: '([^']*)',/m.exec(fs.readFileSync(cnCfg, 'utf8'));
+      if (m) cnUrl = m[1];
+    }
+    const want = new URL(cnUrl);
     eq(u.protocol, 'https:');
     eq(u.hostname, want.hostname);
     ok(/\/functions\/v1\/bt-ingest$/.test(u.pathname), u.pathname);

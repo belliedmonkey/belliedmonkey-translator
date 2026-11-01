@@ -1,11 +1,12 @@
 // learn/backend.config.js — where the optional sync backend lives.
 // See docs/learning-design.md §8.4.1.
 //
-// EVERYTHING here is public by design: the URL is a hostname and the key is the
-// *publishable* anon key, which grants nothing on its own — every table is behind RLS
-// keyed on `auth.uid()`, so an anon key with no session can read and write nothing.
-// It ships in the extension bundle, which anyone can unzip; that is fine and expected.
-// A key that must stay secret must never appear in this file.
+// The host and the *publishable* anon key are **injected at build time**
+// (build/backend-inject.js; values from CI secrets or the private side-repo recipe).
+// What is checked in here are inert placeholders — a real anon key is still publishable
+// (RLS keyed on `auth.uid()` means no session can read/write anything), but the OSS
+// tree does not carry a copy. A key that must stay secret must never appear in this
+// file at all: the build rejects a `service_role` JWT instead of injecting it.
 //
 // This is also the whole "which backend" decision, in one object. §8.4.1 explains why
 // the client is written so that changing it is a one-file change.
@@ -37,9 +38,11 @@ var MT_BACKEND = {
   // us-east-1 the other projects use: sync is not latency-critical, but the users
   // are, and from mainland China us-east-1 is ~250-350ms and unreliable where Tokyo
   // is ~50-80ms. Region cannot be changed after creation, so it is a decision, not
-  // a default.
-  url: 'https://cavezcufztzqsohpjmup.supabase.co',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdmV6Y3VmenR6cXNvaHBqbXVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4MTczNTAsImV4cCI6MjEwMTM5MzM1MH0.VdL1B_jYLySEkhecL6WHOLV_vYbnRItpciFx7ZSxO4M',
+  // a default. **The real host/key are injected at build time**, not committed.
+  // Placeholders are deliberately not resolvable: an un-injected build points at an
+  // .invalid host and cannot silently reach a real backend.
+  url: 'https://backend.invalid',
+  anonKey: 'PUBLIC_ANON_KEY_INJECTED_AT_BUILD',
   table: 'bt_chunks',
   quotaBytes: 50 * 1024 * 1024,
 
@@ -96,20 +99,21 @@ var MT_BACKEND = {
   //                   这是今天的值，代码与门禁先落地，不动运行时。
   //   ready: true  —— 中国版产物的 url/anonKey 换成下面这两个，且**不再关 sync**。
   //
-  // 翻它之前必须全部为真（`deploy/china/README.md` 有逐条判据）：
+  // 翻它之前必须全部为真（compliance 私仓的 `deploy/china/README.md` 有逐条判据）：
   //   1. 服务器上五条真实链路都跑通了（Apple 登录 · 邮箱 OTP · push · pull · 删号）
   //   2. `url` 那个域名的 ICP 备案已通过，且接入商就是这台机器所在的云厂商
   //   3. `anonKey` 是该后端 GoTrue 同一个 JWT secret 签出的 `role: anon` 长期 token
   //
   // 只有一处写死了「境内」这件事：门禁要求 `url` 不是 *.supabase.co
   // （见 test/backend-config.test.js）—— 否则「切过去了」会是一句假话。
-  // 2026-09-22 翻（用户裁定「1.15.0 就切」）：服务器五条链路 + 一小时刷新已验（deploy/china/README §4），
-  // 真机 Apple 登录随 1.15.0 验收矩阵补。已有中国版用户的东京数据**不迁移**（用户裁定），发布说明与隐私页写明。
+  // 2026-09-22 翻（用户裁定「1.15.0 就切」）：服务器五条链路 + 一小时刷新已验，真机 Apple
+  // 登录随 1.15.0 验收矩阵补。已有中国版用户的东京数据**不迁移**（用户裁定），发布说明与隐私页写明。
+  // **2026-11-01（BEL-172）**：真实 host / anon key 改为 build 注入，仓库只留占位。
   china: {
     ready: true,
-    url: 'https://api.belliedmonkey.com',
-    // 公开值；服务器 /opt/bt/deploy/china/.env 的 ANON_KEY 为准
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6ImJlbGxpZWRtb25rZXkiLCJpYXQiOjE3OTAwNTEwNDIsImV4cCI6MjEwNTQxMTA0Mn0.fLi55wvR7_fGoYRyCvgfBOMRjgx1qGV2wcdQ7SjX5x8',
+    url: 'https://cn.backend.invalid',
+    // 占位；真实值来自 CI secret / 私仓配方（MT_CHINA_BACKEND_URL / MT_CHINA_BACKEND_ANON_KEY）
+    anonKey: 'PUBLIC_CN_ANON_KEY_INJECTED_AT_BUILD',
   },
 
   // ─── 免费额度（§8.10，2026-09-08）────────────────────────────────────────
@@ -154,11 +158,12 @@ var MT_BACKEND = {
     //   ready: false —— 中国版 MT_GRANT 恒为 null，产物与从前逐字相同（今天的值）。
     //   ready: true  —— relayUrl 必须是 https、不在 *.supabase.co；否则构建直接失败。
     //
-    // 翻它之前（deploy/china-relay/README.md 有逐条判据）：境内机器上 /spec 回读到千问、
+    // 翻它之前（hosted 私仓的 deploy/china-relay/README.md 有逐条判据）：境内机器上 /spec 回读到千问、
     // 在境内手机网络下回读通过（首选腾讯云云函数的默认地址，不绑域名就不涉及备案）、出境单独同意已随版上线（#399）。
     // **只有翻译这一槽**：百炼没有与中继同形状的朗读 / 转写接口，中国版额度不含那两槽。
     // 披露文案里的 {vendor} 不在这里写：取注册表 qwen 条目的中国区 label（build.js chinaGrant）。
-    china: { ready: true, relayUrl: 'https://1320551096-0kh88p4r7e.ap-beijing.tencentscf.com', vendor: 'dashscope' },
+    // **2026-11-01（BEL-172）**：真实 relay URL 改为 build 注入（MT_CHINA_RELAY_URL）。
+    china: { ready: true, relayUrl: 'https://relay.invalid', vendor: 'dashscope' },
   },
 };
 

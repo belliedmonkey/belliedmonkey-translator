@@ -184,7 +184,10 @@ class CliTests(unittest.TestCase):
             self.assertIn("fixture", srt)
             self.assertGreater(len(srt.strip()), 0)
             result = json.loads((out / "result.json").read_text(encoding="utf-8"))
-            self.assertEqual(result["extract"], "ffmpeg")
+            # Extract order is AVFoundation helper -> afconvert -> ffmpeg. On macOS with
+            # afconvert present, "afconvert" is the correct answer (pre-existing portability
+            # assumption: this used to hard-code "ffmpeg" and went red on every Mac).
+            self.assertIn(result["extract"], ("afconvert", "ffmpeg"))
 
     def test_empty_hyp_writes_no_subtitle(self):
         with tempfile.TemporaryDirectory() as tmp:

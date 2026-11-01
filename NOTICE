@@ -1,0 +1,53 @@
+# NOTICE
+
+This product includes third-party components. Their licenses are **not** changed by the
+project's own license (see `LICENSE`). The project license at this branch is
+GPL-3.0-or-later; the OSS orphan root (`oss/mit-orphan`) uses MIT. Third-party components
+keep their original licenses in both cases.
+
+## Bundled in the distributed artifact
+
+| Component | Version / source | License | License text kept at |
+|---|---|---|---|
+| PDF.js (`pdfjs-dist`, legacy build) | 6.3.289, npm tarball, unmodified | Apache-2.0 | `extension/vendor/pdfjs/LICENSE` |
+| Figtree (variable) | Figtree Project Authors | SIL Open Font License 1.1 | `extension/fonts/OFL-Figtree.txt` |
+| Caprasimo | Caprasimo Project Authors | SIL Open Font License 1.1 | `extension/fonts/OFL-Caprasimo.txt` |
+
+PDF.js files and their sha256 pins are recorded in `extension/vendor/pdfjs/VERSION`; the
+fonts ship as `.woff2` next to their OFL text. These files are redistributed unmodified.
+
+## Downloaded at runtime (not bundled)
+
+The App downloads speech/language models on demand and verifies a pinned sha256 before use
+(`app/device-models.config.js`). The weight files are **not** part of this repository or
+the shipped bundle:
+
+| Component | License | Note |
+|---|---|---|
+| SpeechBrain ECAPA VoxLingua107 (CoreML) | Apache-2.0 (model); training set VoxLingua107 is CC-BY-4.0 and is not redistributed | language identification |
+| OpenAI Whisper tiny (ONNX) | MIT | optional LID engine |
+| Silero VAD (ONNX) | MIT | voice activity detection |
+| Kokoro-82M | Apache-2.0 | on-device TTS |
+
+## Native build dependencies (fetched, not vendored here)
+
+| Component | License | Note |
+|---|---|---|
+| sherpa-onnx | Apache-2.0 | fetched by `scripts/fetch-native-deps.js` with pinned version + sha256 |
+| ONNX Runtime | MIT | same |
+
+## Offline video ASR (BEL-103)
+
+`tools/offline-video-asr/NOTICE` records the `mlx-qwen3-asr` 0.4.4 dependency and the
+Apache-2.0 Qwen3-ASR / Qwen3-ForcedAligner weights (community 8-bit snapshots, downloaded
+and sha256-verified, not shipped).
+
+## No third-party GPL-only source
+
+A scan for GNU GPL license text outside the project's own `LICENSE` found no third-party
+GPL-only source in this tree. The vendored trees carry Apache-2.0 / SIL OFL 1.1 as listed
+above, both compatible with distribution under MIT provided the original notices and
+license texts are retained (they are).
+
+If you add or replace a component, update this file **and** the license text it points to
+in the same change.
