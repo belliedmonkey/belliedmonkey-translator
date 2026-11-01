@@ -1,0 +1,233 @@
+{
+  "manifest_version": 3,
+  "default_locale": "en",
+  "name": "__MSG_extension_name__",
+  "description": "__MSG_extension_description__",
+  "version": "1.19.0",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/yt-hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/yt-timedtext-observer.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/i18n-messages.js",
+        "content/palette.gen.js",
+        "content/providers.gen.js",
+        "content/langs.gen.js",
+        "content/stt.gen.js",
+        "learn/telemetry.js",
+        "learn/app-link.js",
+        "learn/feedback.js",
+        "content/translation-core.js",
+        "content/lang-detect.js",
+        "content/engine-state.js",
+        "content/stt-state.js",
+        "content/wire-format.js",
+        "content/request-shape.js",
+        "content/translation-api.js",
+        "content/dom-processor.js",
+        "content/floating-button.js",
+        "content/learn-model.js",
+        "content/learn-rules.js",
+        "content/learn-scheduler.js",
+        "content/learn-collector.js",
+        "content/content-webpage.js",
+        "content/media-finder.js",
+        "content/subtitle-adapter.js",
+        "content/ws-transcribe.js",
+        "content/asr-source.js",
+        "content/content-youtube.js",
+        "content/content-podcast.js",
+        "content/content-main.js"
+      ],
+      "css": [
+        "styles/bilingual.css",
+        "styles/floating-button.css"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/media-probe.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.x.com/*",
+        "*://*.twitter.com/*"
+      ],
+      "js": [
+        "content/tw-media-observer.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "*://*.youtube.com/*",
+        "*://*.youtube-nocookie.com/*"
+      ],
+      "js": [
+        "content/i18n-messages.js",
+        "content/palette.gen.js",
+        "content/providers.gen.js",
+        "content/langs.gen.js",
+        "content/stt.gen.js",
+        "learn/telemetry.js",
+        "learn/app-link.js",
+        "learn/feedback.js",
+        "content/translation-core.js",
+        "content/lang-detect.js",
+        "content/engine-state.js",
+        "content/stt-state.js",
+        "content/wire-format.js",
+        "content/request-shape.js",
+        "content/translation-api.js",
+        "content/dom-processor.js",
+        "content/floating-button.js",
+        "content/learn-model.js",
+        "content/learn-rules.js",
+        "content/learn-scheduler.js",
+        "content/learn-collector.js",
+        "content/content-webpage.js",
+        "content/media-finder.js",
+        "content/subtitle-adapter.js",
+        "content/ws-transcribe.js",
+        "content/asr-source.js",
+        "content/content-youtube.js",
+        "content/content-podcast.js",
+        "content/content-twitter.js",
+        "content/site-twitter.js",
+        "content/content-main.js"
+      ],
+      "css": [
+        "styles/bilingual.css",
+        "styles/floating-button.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "__MSG_action_title__"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "content/sub-menu.bundle.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
+        "content/content-injected.js"
+      ],
+      "matches": [
+        "*://*.youtube.com/*"
+      ]
+    },
+    {
+      "resources": [
+        "options/options.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
+        "learn/review.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    },
+    {
+      "resources": [
+        "onboard/onboard.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mobiletranslator@belliedmonkey",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteContent",
+          "browsingActivity",
+          "personallyIdentifyingInfo"
+        ],
+        "optional": [
+          "technicalAndInteraction"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "113.0"
+    }
+  }
+}

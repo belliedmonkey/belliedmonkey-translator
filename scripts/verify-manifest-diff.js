@@ -12,7 +12,23 @@ const { execFileSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 const tag = process.argv[2] || 'v1.19.0';
-const gitShow = (p) => execFileSync('git', ['show', `${tag}:${p}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+// The standalone MIT repository is history-free: the store tag `v1.19.0` is not in it.
+// When `git show` cannot resolve the tag, fall back to the exact published manifest kept
+// as a fixture (`test/fixtures/manifest-published-v1.19.0.json`). The comparison below is
+// unchanged — only the data source differs, and the fallback is printed in the output.
+const BASELINE = path.join(ROOT, 'test', 'fixtures', 'manifest-published-v1.19.0.json');
+let baselineNote = '';
+const gitShow = (p) => {
+  try {
+    return execFileSync('git', ['show', `${tag}:${p}`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch (err) {
+    if (p === 'extension/manifest.json' && fs.existsSync(BASELINE)) {
+      baselineNote = `tag ${tag} 不在本仓 history 中 —— 退回已提交的已上架清单 baseline：test/fixtures/manifest-published-v1.19.0.json`;
+      return fs.readFileSync(BASELINE, 'utf8');
+    }
+    throw err;
+  }
+};
 
 const KEYS = ['permissions', 'host_permissions', 'optional_permissions', 'optional_host_permissions'];
 const asSet = (v) => new Set(Array.isArray(v) ? v : []);
@@ -69,6 +85,7 @@ for (const d of ['dist', 'dist-china', 'dist-firefox']) {
 }
 
 console.log(`清单差异（对照 ${tag}）`);
+if (baselineNote) console.log('  ' + baselineNote);
 if (!notes.length) console.log('  （无差异）');
 for (const n of notes) console.log('  · ' + n);
 console.log();
