@@ -1,0 +1,194 @@
+From d65db5e08edb205fe18bd2820cc1deb789e1a7dd Mon Sep 17 00:00:00 2001
+From: belliedmonkey <belliedmonkey@gmail.com>
+Date: Mon, 2 Nov 2026 16:39:20 +0800
+Subject: [PATCH] fix(remote-agents): deliver personal memory to remote Bots
+
+PersonalMemoryMiddleware is applied with .use(), which HttpAgent.run
+bypasses, so remote AG-UI Bots never received the person's memory.
+Pass the loader into CloningRemoteAgent and prepend the memory system
+message in its run seam; clone() preserves it.
+---
+ server/src/copilot.ts            | 70 ++++++++++++++++++--------------
+ toolkit/src/copilotkit/agents.ts | 34 +++++++++++++++-
+ 2 files changed, 72 insertions(+), 32 deletions(-)
+
+diff --git a/server/src/copilot.ts b/server/src/copilot.ts
+index bd085978..26499b98 100644
+--- a/server/src/copilot.ts
++++ b/server/src/copilot.ts
+@@ -646,8 +646,9 @@ export async function buildAgents(
+           loadAttachment,
+           markAttachmentsSent,
+           acquireLearnedSkills,
++          loadPersonalMemory,
+         );
+-        if (loadPersonalMemory)
++        if (loadPersonalMemory && agent.type === "built_in")
+           built.use(new PersonalMemoryMiddleware(agent.id, loadPersonalMemory));
+         return [agent.id, built];
+       }),
+@@ -908,6 +909,7 @@ async function buildAgent(
+   /** How this run records that those files were sent. See {@link buildAgents}. */
+   markAttachmentsSent?: MarkAttachmentsSent,
+   acquireLearnedSkills?: AcquireLearnedSkills,
++  loadPersonalMemory?: LoadPersonalMemory,
+ ): Promise<AbstractAgent> {
+   if (agent.type === "unavailable") {
+     return new UnavailableAgent(agent);
+@@ -1011,6 +1013,7 @@ async function buildAgent(
+       acquireLearnedSkills,
+       handoff,
+       initiator,
++      loadPersonalMemory,
+     );
+   }
+ 
+@@ -1324,6 +1327,7 @@ function remoteAgentWithStandingRole(
+   acquireLearnedSkills?: AcquireLearnedSkills,
+   coordination?: HandoffForRun,
+   initiator?: AuditInitiator,
++  loadPersonalMemory?: LoadPersonalMemory,
+ ) {
+   /*
+    * What this Bot holds, as a second standing message.
+@@ -1514,37 +1518,41 @@ function remoteAgentWithStandingRole(
+    * straight away. `defer` puts the work on the subscription, which is where the run actually
+    * begins, so nothing happens until somebody is listening and a retried run chooses again.
+    */
+-  return new CloningRemoteAgent(remote, (target) => {
+-    target.use((input, next) => {
+-      const stream = defer(() =>
+-        from(
+-          Promise.all([
+-            narrow ? narrow(input) : Promise.resolve(tools),
+-            coordination?.(agent.id, input) ?? Promise.resolve([]),
+-          ]).then(([offered, coordinationTools]) => [
+-            ...offered,
+-            ...coordinationTools,
+-          ]),
+-        ).pipe(switchMap((offered) => runWith(offered, input, next))),
+-      );
+-      const owned =
+-        !!process.env.MANAGED_AGENT_TOKEN &&
+-        agent.headers?.["x-openbot-agent-token"] ===
+-          process.env.MANAGED_AGENT_TOKEN &&
+-        [
+-          process.env.PICKED_HARNESS_URL,
+-          process.env.MANAGED_AGENT_AG_UI_URL,
+-        ].some(
+-          (url) =>
+-            url?.replace(/\/$/, "") === agent.endpoint.replace(/\/$/, ""),
++  return new CloningRemoteAgent(
++    remote,
++    (target) => {
++      target.use((input, next) => {
++        const stream = defer(() =>
++          from(
++            Promise.all([
++              narrow ? narrow(input) : Promise.resolve(tools),
++              coordination?.(agent.id, input) ?? Promise.resolve([]),
++            ]).then(([offered, coordinationTools]) => [
++              ...offered,
++              ...coordinationTools,
++            ]),
++          ).pipe(switchMap((offered) => runWith(offered, input, next))),
+         );
+-      return owned ? observeModelConnection(stream) : stream;
+-    });
+-    if (acquireLearnedSkills)
+-      target.use(
+-        new RemoteLearnedSkillsMiddleware(agent.id, acquireLearnedSkills),
+-      );
+-  });
++        const owned =
++          !!process.env.MANAGED_AGENT_TOKEN &&
++          agent.headers?.["x-openbot-agent-token"] ===
++            process.env.MANAGED_AGENT_TOKEN &&
++          [
++            process.env.PICKED_HARNESS_URL,
++            process.env.MANAGED_AGENT_AG_UI_URL,
++          ].some(
++            (url) =>
++              url?.replace(/\/$/, "") === agent.endpoint.replace(/\/$/, ""),
++          );
++        return owned ? observeModelConnection(stream) : stream;
++      });
++      if (acquireLearnedSkills)
++        target.use(
++          new RemoteLearnedSkillsMiddleware(agent.id, acquireLearnedSkills),
++        );
++    },
++    loadPersonalMemory ? () => loadPersonalMemory(agent.id) : undefined,
++  );
+ }
+ 
+ const RESERVED_MASTRA_CONTEXT_DESCRIPTIONS = new Set([
+diff --git a/toolkit/src/copilotkit/agents.ts b/toolkit/src/copilotkit/agents.ts
+index 46e62249..1a6fd859 100644
+--- a/toolkit/src/copilotkit/agents.ts
++++ b/toolkit/src/copilotkit/agents.ts
+@@ -51,6 +51,25 @@ export type BuiltInAgentHooks = {
+   observe: (run: Observable<BaseEvent>) => Observable<BaseEvent>;
+ };
+ 
++function withPersonalMemory(
++  input: RunAgentInput,
++  content: string,
++): RunAgentInput {
++  if (!content) return input;
++  const memory: Message = {
++    id: "openbot:personal-memory",
++    role: "system",
++    content,
++  };
++  return {
++    ...input,
++    messages: [
++      memory,
++      ...input.messages.filter((message) => message.id !== memory.id),
++    ],
++  };
++}
++
+ export class CloningRemoteAgent extends AbstractAgent {
+   headers?: AgentHeaders;
+   private readonly remote: HeaderBearingAgent;
+@@ -58,6 +77,13 @@ export class CloningRemoteAgent extends AbstractAgent {
+   constructor(
+     remote: AbstractAgent,
+     private readonly attachOpenBotMiddleware: (target: AbstractAgent) => void,
++    /**
++     * Personal memory for this Bot's person, loaded when a run starts.
++     *
++     * `run` here delegates straight to the remote, so middleware attached to this wrapper is not
++     * what reaches the endpoint; this seam is. Absent leaves the run exactly as it was.
++     */
++    private readonly personalMemory?: () => Promise<string>,
+   ) {
+     super({
+       agentId: remote.agentId,
+@@ -78,7 +104,12 @@ export class CloningRemoteAgent extends AbstractAgent {
+     if (this.headers) {
+       this.remote.headers = { ...this.headers };
+     }
+-    return this.remote.run(input);
++    if (!this.personalMemory) return this.remote.run(input);
++    return from(this.personalMemory()).pipe(
++      switchMap((content) =>
++        this.remote.run(withPersonalMemory(input, content)),
++      ),
++    );
+   }
+ 
+   async getCapabilities() {
+@@ -95,6 +126,7 @@ export class CloningRemoteAgent extends AbstractAgent {
+     const clone = new CloningRemoteAgent(
+       clonedRemote,
+       this.attachOpenBotMiddleware,
++      this.personalMemory,
+     );
+     if (this.headers) {
+       clone.headers = { ...this.headers };
+-- 
+2.55.0
+
