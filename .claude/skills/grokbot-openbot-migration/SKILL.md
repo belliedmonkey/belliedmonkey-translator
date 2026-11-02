@@ -15,6 +15,25 @@ export. Every number below is from that run; treat them as expected shape, not c
 - Re-importing after an OpenBot database reset.
 - A remote OpenBot Bot answers "I have no memory" even though `/capabilities/memory` shows rows.
 
+## Official ZIP import first (newer OpenBot)
+
+OpenBot now documents a first-party path:
+<https://openbot.run/guides/import-grok-bot-agents> — **Server settings → Import → Grok Bot**,
+then add **Migrator by OpenBot** in Grok Bot and ask it to export. The ZIP carries instructions,
+skills, memories, routines and optional files; OpenBot previews it and creates **new** agents
+(usually built-in, with provider/model chosen in OpenBot).
+
+Prefer that path when all three are true:
+
+- the checkout actually has the import UI (`find app/src/routes -iname '*import*'` is non-empty);
+- Grok Bot still has usage left to run the Migrator agent;
+- creating new agents is acceptable (the ZIP import does **not** update existing agents).
+
+Use this skill instead when the checkout predates the importer, when Grok Bot quota is exhausted and
+you already have `/workspace/backup*`, or when the target must be an **existing remote_ag_ui Bot**.
+The official importer creates built-in agents, so it does not need the Phase 4 memory seam; the seam
+is specifically for in-place imports into remote agents.
+
 ## Safety rules
 
 1. **Back up OpenBot PostgreSQL before any write.** No exceptions:
