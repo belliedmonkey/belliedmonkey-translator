@@ -1233,7 +1233,7 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 @media (min-width: 720px) {
   /* 并排两卡，门控紧随。卡高/CTA 不在这里覆盖：168/44 的组合装不下卡内容，
      overflow:hidden 会把 CTA 裁到只剩一条边（BEL-183）。卡高交给下方 720 块的
-     220，CTA 指针/触控统一 44/44（BEL-183 改判）。 */
+     220，CTA 交给指针块 30 / 触控块 44。 */
   #signed-in .heroes {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1397,8 +1397,8 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 #app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; margin-bottom: 12px; }
 #app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
 /* CTA：hug content（不 stretch）、卡内右下；只有中文主标。它是卡内真实元素，不是
-   ::after 装饰层 —— 整卡可点，所以是 span 不是 button。窄窗 44 命中区；Mac 宽窗
-   同样 44/44 可见高，不再压到 30（见下面的 ≥720 块，BEL-183）。 */
+   ::after 装饰层 —— 整卡可点，所以是 span 不是 button。窄窗 44 命中区；Mac 宽窗按
+   设计稿压到 30 高（见下面的 ≥720 块）。 */
 #app-listen-entry .cta, #app-subs-entry .cta {
   flex: none; align-self: flex-end; margin-top: auto;
   height: 44px; min-height: 44px; padding: 0 20px;
@@ -1426,11 +1426,12 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
   #app-listen-entry .mode-sub, #app-subs-entry .mode-sub { margin-top: 4px; font-size: 0.6875rem; }
   #app-listen-entry .mode-desc, #app-subs-entry .mode-desc { margin-top: 8px; font-size: 0.78125rem; line-height: 1.5; }
 }
-/* CTA 44/44：指针设备（Mac）与触控（iPad）都用 base 的 44 可见高；这里只保留
-   桌面内边距/字号，不再压高度、不再改 margin-top（margin-top:auto 把 CTA 压到
-   卡底）。产品裁定 2026-11-03：可见高 44、裁切 0，不得靠加高 220 卡蒙混。 */
+/* 指针设备（Mac）才把 CTA 收到设计稿的 ~30 高；iPad 是触控，保留 44 命中区
+   （AGENTS.md：宽版 iPad 命中区 ≥44，不依赖 hover）。 */
 @media (min-width: 720px) and (hover: hover) and (pointer: fine) {
-  #app-listen-entry .cta, #app-subs-entry .cta { padding: 0 20px; }
+  #app-listen-entry .cta, #app-subs-entry .cta {
+    height: 30px; min-height: 30px; margin-top: 14px; padding: 0 20px;
+  }
   #app-listen-entry .cta .cn, #app-subs-entry .cta .cn { font-size: 0.8125rem; }
 }
 
