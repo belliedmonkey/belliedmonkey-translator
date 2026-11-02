@@ -3,11 +3,40 @@
 'use strict';
 
 const { buildConfirmCard, failureCard, needsConfirm } = require('./confirm');
-const { callerIdOf, parseAgentDeepLink, sourceOf } = require('./parse');
+const { callerIdOf, parseAgentDeepLink, pendingIdOf, sourceOf } = require('./parse');
 const { emptyGrants } = require('./grants-model');
 const {
-  runAgentAction, cancelledReceipt, unsupportedReceipt, badRequestReceipt, preconditions,
+  runAgentAction, cancelledReceipt, unsupportedReceipt, badRequestReceipt,
+  failureReceipt, preconditions,
 } = require('./run');
+
+// BEL-151 GAP-2. The decision goes back to the Worker through the same device
+// bridge that carries pairing/heartbeat, only after the user decided. A missing
+// bridge or a failed POST never becomes an `openedSubtitles` claim.
+async function sendDecision(deviceBridge, pendingId, decision) {
+  if (!deviceBridge || typeof deviceBridge.confirm !== 'function') return null;
+  try {
+    return await deviceBridge.confirm({ pending_id: pendingId, decision });
+  } catch (_) {
+    return { ok: false, code: 'network_unavailable', sent: false };
+  }
+}
+
+async function rememberPending(deviceBridge, pendingId, action) {
+  if (!deviceBridge || typeof deviceBridge.rememberPending !== 'function') return;
+  try {
+    await deviceBridge.rememberPending({ pending_id: pendingId, action });
+  } catch (_) { /* local pre-card bookkeeping only; the POST is still authoritative */ }
+}
+
+function callbackFailureCode(result) {
+  const code = result && result.code;
+  if (code === 'bad_request') return 'bad_request';
+  // No local session / refused grant: the honest next step is to allow this
+  // device again, not to retry the pending decision behind the user's back.
+  if (code === 'not_paired' || code === 'need_login' || code === 'unauthorized') return 'need_login';
+  return 'network_unavailable';
+}
 
 async function handleAgentUrl(raw, ctx, ui) {
   const parsed = parseAgentDeepLink(raw);
@@ -16,11 +45,19 @@ async function handleAgentUrl(raw, ctx, ui) {
     return rec;
   };
   if (!parsed) return null;
-  if (parsed.error === 'bad_request') return show(badRequestReceipt(parsed.action || ''));
-  if (parsed.error === 'unsupported_action') return show(unsupportedReceipt(parsed.action));
+  const errorPending = parsed.query ? pendingIdOf(parsed.query.pending_id) : '';
+  if (parsed.error === 'bad_request') {
+    if (errorPending) await sendDecision(ctx.deviceBridge, errorPending, 'deny');
+    return show(badRequestReceipt(parsed.action || ''));
+  }
+  if (parsed.error === 'unsupported_action') {
+    if (errorPending) await sendDecision(ctx.deviceBridge, errorPending, 'deny');
+    return show(unsupportedReceipt(parsed.action));
+  }
 
   const query = parsed.query || {};
   const callerId = callerIdOf(query);
+  const pendingId = pendingIdOf(query.pending_id);
   let readiness = ctx.readiness || {};
   if (typeof readiness === 'function') readiness = await readiness();
   const grants = ctx.grants || emptyGrants();
@@ -40,13 +77,35 @@ async function handleAgentUrl(raw, ctx, ui) {
   };
 
   const blocked = preconditions(parsed.action, full);
-  if (blocked) return show(blocked);
+  if (blocked) {
+    // A local gate still has to close the Worker's pending: leaving it open
+    // would make the cloud wait until TTL for a decision this App already knows
+    // cannot run.
+    if (pendingId) await sendDecision(ctx.deviceBridge, pendingId, 'deny');
+    return show(blocked);
+  }
 
-  if (needsConfirm(parsed.action, grants, callerId)) {
+  // A local grant can skip the card for an ordinary deep link, but a Worker
+  // pending_confirm is waiting for an explicit decision: never answer it with a
+  // remembered device grant the user did not just give.
+  if (needsConfirm(parsed.action, grants, callerId) || pendingId) {
     const card = buildConfirmCard(parsed.action, query);
+    // Remember before the card so an explicit disconnect while it is open can
+    // clear the same pending id (CONTRACT §4).
+    if (pendingId) await rememberPending(ctx.deviceBridge, pendingId, parsed.action);
     let decision = { allow: false };
     if (ui && typeof ui.confirm === 'function') decision = await ui.confirm(card) || { allow: false };
-    if (!decision.allow) return show(cancelledReceipt(parsed.action));
+    if (!decision.allow) {
+      if (pendingId) await sendDecision(ctx.deviceBridge, pendingId, 'deny');
+      return show(cancelledReceipt(parsed.action));
+    }
+    if (pendingId) {
+      const sent = await sendDecision(ctx.deviceBridge, pendingId, 'allow');
+      if (!sent || sent.ok !== true) {
+        return show(failureReceipt(
+          parsed.action, callbackFailureCode(sent), parsed.scheme, full.sourceFallback));
+      }
+    }
     full.confirmed = decision;
   }
 

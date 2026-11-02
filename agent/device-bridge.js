@@ -17,6 +17,8 @@
 // ~/.belliedmonkey) lives in agent/device-bridge-store.js.
 'use strict';
 
+const { pendingIdOf } = require('./parse');
+
 const PLATFORM = 'mac';
 const DEFAULT_TTL_SEC = 900; // growth freeze: 900s (15 min) without a heartbeat
 const BOOTSTRAP_TTL_SEC = 300; // short-lived after open_setup only
@@ -36,6 +38,9 @@ const PATHS = Object.freeze({
   heartbeat: '/api/mcp/device-sessions/heartbeat',
   bootstrap: '/api/mcp/device-sessions/bootstrap',
   revoke: '/api/mcp/device-sessions/revoke',
+  // BEL-151 GAP-2 placeholder. Growth owns the final path; until it is pinned,
+  // this is the one line to override through createClient({ paths: { confirm } }).
+  confirm: '/device/v1/confirm',
 });
 
 const KEYS = Object.freeze({
@@ -43,7 +48,18 @@ const KEYS = Object.freeze({
   cred: 'device_cred',
   credTtl: 'device_cred_ttl_sec',
   credAt: 'device_cred_saved_at',
+  // Local, non-secret list of pending_confirm ids the user is being asked about.
+  // It exists so an explicit disconnect / revoke / 401 can wipe a decision the
+  // cloud may still be waiting for. Never a credential.
+  pending: 'device_pending_confirms',
 });
+
+// pending_id is opaque to the App. parse.pendingIdOf bounds only its transport
+// shape so a malformed deep link cannot smuggle whitespace / control characters
+// into the callback body or the local pending store.
+const PENDING_MAX = 8;
+const PENDING_TTL_SEC = 300; // CONTRACT §1 suggests 120–300s; Worker is the authority
+const DECISIONS = new Set(['allow', 'deny']);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -181,10 +197,71 @@ function createClient(options) {
     store.set(KEYS.credAt, String(now()));
   }
 
+  // ── local pending_confirm bookkeeping ───────────────────────────────────
+  // A decision that never reaches the cloud is still a local fact: the user was
+  // shown a card for this pending id. Keep only ids + a short expiry; no args,
+  // no account, no token. `clearLocalCred` also clears this list so disconnect,
+  // revoke and 401 cannot leave a stale card behind (CONTRACT §4).
+  function readPending() {
+    const raw = store.get(KEYS.pending);
+    if (!raw) return [];
+    let list;
+    try { list = JSON.parse(String(raw)); } catch (_) { return []; }
+    if (!Array.isArray(list)) return [];
+    return list.filter((row) => row && pendingIdOf(row.pending_id));
+  }
+
+  function writePending(list) {
+    const rows = (list || []).slice(-PENDING_MAX);
+    if (!rows.length) store.remove(KEYS.pending);
+    else store.set(KEYS.pending, JSON.stringify(rows));
+    return rows;
+  }
+
+  function prunePending() {
+    const nowMs = now();
+    const alive = readPending().filter((row) => !row.expires_at || Number(row.expires_at) > nowMs);
+    return writePending(alive);
+  }
+
+  function rememberPending(call) {
+    const c = call || {};
+    const pending_id = pendingIdOf(c.pending_id);
+    if (!pending_id) return { ok: false, code: 'bad_request', sent: false };
+    const ttlSec = Number(c.ttl_sec) > 0 ? Math.min(Number(c.ttl_sec), PENDING_TTL_SEC) : PENDING_TTL_SEC;
+    const nowMs = now();
+    const list = prunePending().filter((row) => row.pending_id !== pending_id);
+    list.push({
+      pending_id,
+      action: c.action ? String(c.action).slice(0, 64) : '',
+      remembered_at: nowMs,
+      expires_at: nowMs + ttlSec * 1000,
+    });
+    writePending(list);
+    return { ok: true, pending_id, ttl_sec: ttlSec, count: list.length };
+  }
+
+  function pendingIds() {
+    return prunePending().map((row) => row.pending_id);
+  }
+
+  function forgetPending(pendingId) {
+    const id = pendingIdOf(pendingId);
+    if (!id) return false;
+    writePending(readPending().filter((row) => row.pending_id !== id));
+    return true;
+  }
+
+  function clearPending() {
+    store.remove(KEYS.pending);
+    return true;
+  }
+
   function clearLocalCred() {
     store.remove(KEYS.cred);
     store.remove(KEYS.credTtl);
     store.remove(KEYS.credAt);
+    clearPending();
     return true;
   }
 
@@ -324,6 +401,55 @@ function createClient(options) {
     return result;
   }
 
+  // BEL-151 GAP-2: send the on-device decision for a Worker-owned pending_confirm.
+  // The same `device_cred` the heartbeat carries is in the body, and the same MCP
+  // Bearer is on the request, so the Worker can bind pending.oauth_sub +
+  // pending.device_id to this device (CONTRACT §3). This never opens the
+  // microphone; the caller's local surface path is a separate, opt-in port.
+  //
+  // The local pending row ends with the attempt. A network failure therefore
+  // cannot be retried silently later with a decision the user has moved on from.
+  async function confirm(call) {
+    const c = call || {};
+    const pending_id = pendingIdOf(c.pending_id);
+    const decision = DECISIONS.has(c.decision) ? c.decision : '';
+    if (!pending_id || !decision) {
+      return { ok: false, code: 'bad_request', sent: false };
+    }
+    const device_id = ensureDeviceId();
+    const device_cred = cred();
+    if (!device_cred) {
+      // No session to bind the pending to. Drop the local row rather than leave
+      // a card that can only produce another not_paired.
+      forgetPending(pending_id);
+      return { ok: false, code: 'not_paired', sent: false, pending_id, decision };
+    }
+    const out = await post('confirm', { pending_id, decision, device_id, device_cred });
+    forgetPending(pending_id);
+    if (!out.ok) {
+      return {
+        ok: false,
+        code: out.code,
+        status: out.status,
+        sent: true,
+        pending_id,
+        decision,
+      };
+    }
+    const data = out.data || {};
+    return {
+      ok: true,
+      sent: true,
+      pending_id,
+      decision,
+      // Worker-owned state when it reports one; otherwise the honest local
+      // meaning of the decision, never an "openedSubtitles" claim.
+      state: typeof data.state === 'string' ? data.state : (decision === 'allow' ? 'allowed' : 'cancelled'),
+      cloud: true,
+      status: out.status,
+    };
+  }
+
   async function revoke(callOptions) {
     const call = callOptions || {};
     const device_id = ensureDeviceId();
@@ -377,7 +503,12 @@ function createClient(options) {
     register,
     heartbeat,
     bootstrap,
+    confirm,
     revoke,
+    rememberPending,
+    pendingIds,
+    forgetPending,
+    clearPending,
     clearLocalCred,
     startHeartbeat,
     stopHeartbeat,
@@ -391,11 +522,14 @@ module.exports = {
   HEARTBEAT_MIN_MS,
   HEARTBEAT_MAX_MS,
   HEARTBEAT_DEFAULT_MS,
+  PENDING_MAX,
+  PENDING_TTL_SEC,
   BASES,
   PATHS,
   KEYS,
   baseUrlForFlavor,
   getOrCreateDeviceId,
+  pendingIdOf,
   createClient,
   memoryStore,
 };

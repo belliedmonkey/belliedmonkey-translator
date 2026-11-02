@@ -4,6 +4,7 @@
 // It does not start the microphone and it does not read the page.
 import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, ORIGIN_PREFIX } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
+import { pendingIdOf } from '../../agent/parse.js';
 import { handleAgentUrl } from '../../agent/session.js';
 
 function $(id) { return document.getElementById(id); }
@@ -114,7 +115,21 @@ function mount(card, opts) {
   };
 
   return new Promise((resolve) => {
-    const finish = (value) => { clearFace(); resolve(value); };
+    let finished = false;
+    let timerId = null;
+    const finish = (value) => {
+      if (finished) return;
+      finished = true;
+      if (timerId != null) { try { clearTimeout(timerId); } catch (_) {} }
+      clearFace();
+      resolve(value);
+    };
+    // GAP-2: a Worker pending has a short TTL. If the sheet is left open past the
+    // local window, close it and let session.js send the deny instead of leaving
+    // the cloud (and the card) waiting forever.
+    if (Number(opts.timeoutMs) > 0) {
+      timerId = setTimeout(() => finish({ allow: false, timedOut: true }), Number(opts.timeoutMs));
+    }
     primary.addEventListener('click', () => {
       busy(true);
       const value = {
@@ -222,7 +237,17 @@ export function pairingUi(onSignIn) {
   };
 }
 
+// CONTRACT §1 suggests a 120–300 s Worker TTL. The App cannot know the exact
+// value the Worker chose, so it uses the low end and sends deny on expiry.
+const PENDING_CONFIRM_TIMEOUT_MS = 120000;
+
+function pendingOf(raw) {
+  try { return pendingIdOf(new URL(String(raw || '')).searchParams.get('pending_id')); }
+  catch (_) { return ''; }
+}
+
 export async function presentAgentDeepLink(raw, host) {
+  const pendingId = pendingOf(raw);
   let retry = false;
   const ui = {
     confirm(card) {
@@ -230,7 +255,7 @@ export async function presentAgentDeepLink(raw, host) {
       // sheet renders that control as the secondary button.
       return mount(Object.assign({}, card, {
         secondary: card.secondary || card.cancel || '',
-      }), {});
+      }), pendingId ? { timeoutMs: PENDING_CONFIRM_TIMEOUT_MS } : {});
     },
     async show(receipt, fail) {
       if (receipt && (receipt.ok || receipt.code === 'cancelled')) {
