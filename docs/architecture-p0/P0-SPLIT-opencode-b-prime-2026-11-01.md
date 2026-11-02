@@ -1,5 +1,7 @@
 # P0 · 拆仓图 + BOUNDARY（OpenCode B′）
 
+> **状态（2026-11）：历史。** 本图规划的 MIT orphan 轨已关闭；现行许可见 [`BOUNDARY.md`](../../BOUNDARY.md)（GPL 主轨）。
+
 - **ID：** `P0-SPLIT-opencode-b-prime`
 - **时间：** 2026-11-01 ~06:17 Asia/Shanghai
 - **触发：** 用户认关 PASS-WITH-ACCEPT；**O1=A**；产品令补拆仓图/契约 v0；跟踪 [BEL-172](https://linear.app/belliedmonkey/issue/BEL-172) / [BEL-175](https://linear.app/belliedmonkey/issue/BEL-175)
