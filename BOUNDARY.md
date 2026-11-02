@@ -1,11 +1,12 @@
 # BOUNDARY.md · 公仓 / 旁仓边界（OpenCode B′ · P0）
 
-- **状态：** P0 落地稿（BEL-172）。**不是**「已按 MIT 开源」的公告。
+- **状态：** P0 落地稿（BEL-172）；**2026-11 起 MIT 双轨已关闭**。**不是**「已按 MIT 开源」的公告。
 - **依据：** [`docs/architecture-p0/P0-SPLIT-opencode-b-prime-2026-11-01.md`](docs/architecture-p0/P0-SPLIT-opencode-b-prime-2026-11-01.md) §2 ·
   [`docs/architecture-p0/CONTRACT-v0-hosted-gateway-2026-11-01.md`](docs/architecture-p0/CONTRACT-v0-hosted-gateway-2026-11-01.md) §0/§5/§7
-- **许可证状态：** 本文件所在分支（商店/开发 tip）仍是 **GPL-3.0-or-later**。OSS 公 tip 是
-  独立 orphan 根（分支 `oss/mit-orphan`，MIT）。**在用户/产品另认之前，不得对外宣称已 MIT 开源**；
-  README badge 与营销文案不在本拍改。
+- **许可证状态：** 本文件所在分支（商店/开发 tip）为 **GPL-3.0-or-later**，是**唯一现行源码主轨**
+  （`belliedmonkey/belliedmonkey-translator`）。原 MIT orphan 轨（`belliedmonkey-translator-oss` /
+  `oss/mit-orphan`）已于 **2026-11 关闭**：镜像枝已删除，仓库归档只读；**不得再当现行源，
+  不得再推 MIT 牌提交**。README badge 与营销文案以 GPL 主轨为准。
 - **执行：** `scripts/check-boundary.js` + `.github/workflows/boundary.yml`；`npm test` 里的
   `test/boundary.test.js` 守同一张表。
 
@@ -23,7 +24,7 @@
 | `extension/` `src/{content,pages,shared,store,lib}` | 扩展壳；**后端地址/anon key 改为 build 注入**（`build/backend-inject.js`） |
 | `agent/`（stdio / 本地协议 / BYOK credentials 槽） | **禁**内嵌上游供应商 Key；grant 客户端只调契约 |
 | `build.js` `build/*.config.js` | flavor 公开配方；`china.ready` / `grant.china.ready` **布尔语义**可留 |
-| `docs/` | 含 tip 防丢闸与 `docs/oss-release.md`（商店 tip ≠ OSS tag） |
+| `docs/` | 含 tip 防丢闸；`docs/oss-release.md` 仅存历史（MIT 分轨已关闭，不再切 OSS tag） |
 | `scripts/tip-*.sh` 等防丢闸脚本 | 可开；含内网 URL 的 runbook 去旁仓 |
 | `contracts/` | 托管 API 契约（OpenAPI），纯 schema，**无真钥** |
 | `mocks/` | 契约 mock（`mocks/hosted-gateway/`），CI 只打这里 |
