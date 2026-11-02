@@ -1,7 +1,10 @@
-# Pencil 设计稿归档（截至 2026-10-11）
+# Pencil 设计稿归档（截至 2026-10-11；2026-11-03 起为历史归档）
+
+> **工具变更（2026-11-03）**：新稿改用 OpenPencil（`net.dannote.open-pencil` ≥0.16，`.fig`）。本目录是
+> pen.dev / Pencil（`.pen`）时代的归档，只作历史参考；新稿放 `design/_work/<ticket>/`。
 
 - `.pen` 是 Pencil（pen.dev）的加密格式，只能用 Pen 应用（或 `@pen.dev/cli` ≥ 0.3.11）打开，GitHub 上无法直接预览，请看 `png/` 下的导出图。
-- 规定：设计稿只用 Pencil 出，不再用 OD（`design/` 下其余 HTML/OD 稿为 10-03 之前的早期稿，仅作历史参考）。
+- 历史规定（已失效）：设计稿只用 Pencil 出，不用 OD；`design/` 下其余 HTML/OD 稿为 10-03 之前的早期稿，仅作历史参考。
 
 ## 文件
 

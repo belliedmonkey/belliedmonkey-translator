@@ -70,29 +70,29 @@
 - UX-29 不要遮挡超过必要的画面 / 页面 —— 来源「docs/interaction-spec.md:2600」
 - UX-30 三种形态（窄 / 宽·iPad / 宽·Mac）由窗口宽度决定而非设备，断点只有一道 `@media (min-width: 720px)`；不写 iPad 专属布局 —— 来源「docs/interaction-spec.md:2130-2142」
 
-## 2. Pencil 稿规矩（PEN）
+## 2. Pencil / OpenPencil 稿规矩（PEN）
 
-- PEN-01 交互变更必须先出 Pencil 稿并过人评审再实现；固定顺序：Pencil 稿 → 人工签核 → `docs/interaction-spec.md` → 代码 → 门禁 —— 来源「AGENTS.md:139-146」
-- PEN-02 不得没有稿子就把新交互 / 新文案写进代码，也不得用 HTML 手搓一份当捷径 —— 来源「.claude/skills/pencil-draft/SKILL.md:8-10」
-- PEN-03 本仓库只用 Pencil（pen.dev），禁止 Open Design / OD；文案类改动同样要出稿 —— 来源「.claude/skills/pencil-draft/SKILL.md:12-13」
-- PEN-04 画布 MCP 的所有工具（取应用状态 / 读技能 / execute / browser / 取样式）都要求编辑器里有一个 `.pen` 文档处于打开状态，否则一律报「文件需在编辑器中打开才能执行此操作」—— 来源「.claude/skills/pencil-draft/SKILL.md:41-46」
-- PEN-05 画布 MCP 不能新建文档；要空白文档就让用户在 Pen.app 里新建，或打开一个已有的 —— 来源「.claude/skills/pencil-draft/SKILL.md:58」
-- PEN-06 `.pen` 是加密的：永远不要用读文件 / 内容搜索的方式去读它，只能经画布 MCP —— 来源「.claude/skills/pencil-draft/SKILL.md:59」
-- PEN-07 动手前必须先读 execute 与 pen-schema 两份文档；优先照抄已有稿的视觉语言（字体 / 字号 / 底色 / 圆角），别自造一套 —— 来源「.claude/skills/pencil-draft/SKILL.md:63-65」
-- PEN-08 execute 的 input 是一段「脚本」而不是函数：不要写顶层 return，结果用 `Print(...)` 读 —— 来源「.claude/skills/pencil-draft/SKILL.md:67-70」
-- PEN-09 别把 pen 的代码写进 Code Mode 的顶层沙箱：那层没有画布 API，会报 Unknown identifier（Print/Get/Insert/document 同理）；那是误报，不是版本或授权问题 —— 来源「.claude/skills/pencil-draft/SKILL.md:71-74」
-- PEN-10 每个新增节点都要有可读的 `name`；更新操作不能改 id / type / ref —— 来源「.claude/skills/pencil-draft/SKILL.md:79」
-- PEN-11 文本节点必须同时给 `textGrowth: "fixed-width"` 和宽度（`width: "fill_container"`）；只设宽度不生效，长文本会撑破父 frame 被裁 —— 来源「.claude/skills/pencil-draft/SKILL.md:80-82」
-- PEN-12 别在普通 frame 上用「先 placeholder: true 再更新为 false」；要显式数字高度，`height: "fit_content"` 出 NaN 时也退回显式数字 —— 来源「.claude/skills/pencil-draft/SKILL.md:88-90」
-- PEN-13 用带访问器的读取查 problems（溢出 / 被裁）与 bounds 量测；截图一次一张、只在成稿后截一次 —— 来源「.claude/skills/pencil-draft/SKILL.md:91-94」
-- PEN-14 评审：把截图 / 预览给用户看，说清改了什么、代价是什么；等明确通过再改 app/ 或扩展代码，并在同一个提交里带上相应文档 —— 来源「.claude/skills/pencil-draft/SKILL.md:101-104」
-- PEN-15 评审对象是 Pencil 稿而非 diff：`.pen` 画布才是人批准的东西，实现必须匹配它；内部诊断页与开发者开关豁免 —— 来源「AGENTS.md:153-155」
+- PEN-01 交互变更必须先出 OpenPencil 稿并过人评审再实现；固定顺序：稿 → 人工签核 → `docs/interaction-spec.md` → 代码 → 门禁 —— 来源「AGENTS.md:142-151」
+- PEN-02 不得没有稿子就把新交互 / 新文案写进代码，也不得用 HTML/CSS 手搓一份当捷径 —— 来源「.claude/skills/pencil-draft/SKILL.md:8-10」
+- PEN-03 本仓库自 2026-11-03 起只用 OpenPencil（`net.dannote.open-pencil` ≥0.16，`.fig`）；pen.dev/Pencil 与 Open Design/OD 均为历史工具；文案类改动同样要出稿 —— 来源「AGENTS.md:142-146」
+- PEN-04 MCP 工具要求 OpenPencil 桌面 App 在运行（本地 socket）；App 没开则桥不可用，先 `list_documents` 确认文档 —— 来源「.claude/skills/pencil-draft/SKILL.md §1」
+- PEN-05 新稿用 `new_document` 建 `.fig` 存进仓库；旧稿用 `open_file`，不覆盖已签署稿 —— 来源「SKILL §0」
+- PEN-06 `.fig` 是 App 文档格式，不要用读文件 / 内容搜索去解析；只能经 MCP / App —— 来源「SKILL §1」
+- PEN-07 出稿前先 `get_jsx` / 照抄旧稿的视觉语言（字体 / 字号 / 底色 / 圆角），别自造一套 —— 来源「SKILL §1」
+- PEN-08 `render` 的 JSX 是一个表达式：不要写顶层语句 / `return`；循环与函数用 IIFE —— 来源「SKILL §1」
+- PEN-09 MCP 的文件操作被限制在 `OPENPENCIL_MCP_ROOT` 内；跑桥时把根设成仓库 —— 来源「SKILL §1」
+- PEN-10 每个新增节点都要有可读 `name`；`update_node` 不能改 id / type —— 来源「SKILL §1」
+- PEN-11 文本折行必须给 `w="fill"`（或定宽 + `textAutoResize="height"`），否则会撑破父框 —— 来源「SKILL §1」
+- PEN-12 高度用显式数字；`h="hug"` 出 NaN 就退回数字；底部对齐用 spacer + grow，不猜坐标 —— 来源「SKILL §1」
+- PEN-13 查溢出 / 被裁用 `lint` / `describe` / `node_bounds`；导出一次、只在成稿后 —— 来源「SKILL §1」
+- PEN-14 评审：把 PNG 给用户看，说清改了什么、代价是什么；等明确通过再改 app/ 或扩展代码，并在同一个提交里带上文档 —— 来源「SKILL §3」
+- PEN-15 评审对象是 OpenPencil 稿而非 diff：`.fig` 画布才是人批准的东西，实现必须匹配它；内部诊断页与开发者开关豁免 —— 来源「AGENTS.md:153-155」
 - PEN-16 稿子先行：画不出稿的任务必须等，不得「同时」推进交互工作，要停下并说明 —— 来源「AGENTS.md:149-152」
 - PEN-17 每份稿必须覆盖该面所有形态、每个变体一列（窄 / 宽·iPad / 宽·Mac，断点 720px）；不写 iPad-only 布局 —— 来源「AGENTS.md:166-181」
 - PEN-18 某个变体确实画不出，就说出来并停 —— 来源「AGENTS.md:185」
-- PEN-19 所有设计稿都收进版本控制并归档（`.pen` + `png/` 导出）；INDEX 只记录已知的过审 / 取代关系 —— 来源「design/pencil-archive:design/pencil/INDEX.md:3-12」
-- PEN-20 `.pen` 只能用 Pen 应用（或 `@pen.dev/cli` ≥ 0.3.11）打开，GitHub 上无法直接预览，要看 `png/` 下的导出图 —— 来源「design/pencil-archive:design/pencil/INDEX.md:3」
-- PEN-21 稿子的工具自 2026-10-08 起是 Pencil，不再是 OpenDesign/OD —— 来源「AGENTS.md:139-141」
+- PEN-19 所有设计稿都收进版本控制（`.fig` + PNG 导出，放 `design/_work/<ticket>/`）；INDEX 只记录已知的过审 / 取代关系 —— 来源「AGENTS.md / design/pencil/INDEX.md」
+- PEN-20 `.fig` 用 OpenPencil（≥0.16）打开；GitHub 不能直接预览，审稿看 PNG —— 来源「SKILL §1」
+- PEN-21 稿子的工具自 2026-11-03 起是 OpenPencil；pen.dev/Pencil（2026-10-08–11-02）与 OD（更早）都只作历史 —— 来源「AGENTS.md:142-146」
 
 ## 3. 测试和回归（TST）
 
@@ -312,7 +312,7 @@
 
 > 用户 2026-10-12 11:38 已批准以下处理口径，本单已在源文件按口径改掉；行号为**改完后**的当前行号，来源已重新核对。只改文档类文件，未改代码 / 脚本 / 配置。
 
-- CON-01 Pencil 出稿方式冲突 —— **已处理**：`.claude/skills/pencil-draft/SKILL.md:15-34` 新增 §0「出稿主路径：pen.dev 自带 AI」（写需求 → `npx @pen.dev/cli --in/--out/--prompt` 出稿 → 审稿 → 不合要求打回重画、**最多 3 轮**）；原「自己用 MCP 逐条画」降为 `.claude/skills/pencil-draft/SKILL.md:36-94` 的排查 / 微调**备用手段**，画布硬坑保留；同口径写进 `AGENTS.md:157-165`、`docs/release-checklist.md:27-29`。
+- CON-01 Pencil 出稿方式冲突 —— **已被 2026-11-03 决定取代**：工具改为 OpenPencil（`.fig` 画布；MCP `render` JSX / App 内 AI），pen.dev 的 `--in/--out/--prompt` 不再使用；流程仍是「写需求 → 出稿 → 审稿 ≤3 轮 → 签核 → 同 commit spec + 代码 → 真包像素验收」。同口径已写进 `AGENTS.md:142-168`、`docs/release-checklist.md` 与 `.claude/skills/pencil-draft/SKILL.md`。
 - CON-02 影子技能根 —— **已处理**：`AGENTS.md:300` 与 `CLAUDE.md:33-37` 补例外——用户目录 `~/.agents/skills/` 下**指向仓库 `.claude/skills/` 的符号链接是允许的**（为了让 dsh 自动发现技能，2026-10-12）；仓库里的 `.agents/skills` 仍须为空 / 不存在。
 - CON-03 发版 / 提审 / 推送流程冲突 —— **已处理**：`.claude/skills/store-release/SKILL.md:28-48` 新增「阶段闸门：提审 / 推送 / 传扩展 / 发 Release **默认禁止**，只有用户**当次明确授权**才能做」，并在对应步骤 `.claude/skills/store-release/SKILL.md:362-364`（§8 提审）、`:380-382`（§9 撤审）、`:403-405`（§10 两店扩展）、`:464-466`（§11 GitHub Release + 官网）各加禁令；`docs/release-checklist.md:16-21`（顶部闸门）与 `:82-84`（§2 推送）同口径。**只上传 TestFlight 不在禁止之列**，但「已在 TestFlight」只以 ASC 读回该 build 为 `VALID` 为准。
 - CON-04 OD 稿与历史设计工具 —— **已处理**：`AGENTS.md:139-141`、`docs/release-checklist.md:27-29`、`docs/interaction-spec.md:1431`、`:1492`、`:2610`、`:2616` 的 OpenDesign / OD 字样统一标为「**2026-10-08 之前的历史工具**，不要据它实现任何界面」，纯历史记录保留不删；`.claude/skills/pencil-draft/SKILL.md:12-13` 保持「禁止 Open Design / OD」。`design/pencil-archive:design/pencil/INDEX.md` 不在本单允许改的文档类内，未动。
