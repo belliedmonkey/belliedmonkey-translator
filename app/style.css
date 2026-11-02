@@ -1231,20 +1231,15 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 .heroes-need { margin: 0 0 10px; }
 .heroes-need .note { margin: 4px 0 0; }
 @media (min-width: 720px) {
-  /* 并排两卡，压缩高度，门控紧随 —— viewport≈669 时无需滚 */
+  /* 并排两卡，门控紧随。卡高/CTA 不在这里覆盖：168/44 的组合装不下卡内容，
+     overflow:hidden 会把 CTA 裁到只剩一条边（BEL-183）。卡高交给下方 720 块的
+     220，CTA 交给指针块 30 / 触控块 44。 */
   #signed-in .heroes {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin: 0 0 8px;
   }
-  #signed-in #app-listen-entry,
-  #signed-in #app-subs-entry {
-    height: 168px;
-    padding: 14px;
-  }
-  #signed-in #app-listen-entry .cta,
-  #signed-in #app-subs-entry .cta { height: 44px; }
   #signed-in .status { margin: 2px 0 8px; min-height: 28px; }
   #signed-in .heroes-need { margin: 0 0 8px; }
 }
