@@ -1,21 +1,24 @@
 # OSS release lane（OpenCode B′ · P0）
 
-- **Status:** P0 lane definition (BEL-172). This document defines how an OSS tag is cut; it
-  is **not** an announcement that the project is MIT-licensed today.
-- **Applies to:** the public MIT orphan root (`oss/mit-orphan`) and any `oss/**` tag.
+- **Status: CLOSED / historical (2026-11).** The MIT orphan track has been shut down. Do
+  **not** cut new `oss/**` tags and do **not** use the archived repository as a current
+  source; the GPL repository `belliedmonkey/belliedmonkey-translator` is the only current
+  public source. This document is retained for audit of the former lane.
+- **Applies to:** historical only — the archived MIT orphan root (`belliedmonkey-translator-oss`,
+  former mirror branch `oss/mit-orphan`) and existing `oss/**` tags.
 - **Does not apply to:** store submission, App Store Connect, marketing copy.
 
 ## 0 · 一句话
 
-**OSS tag ≠ 商店 tip。** 开源 tag 永远从 **orphan MIT 根**切，禁止从带未 scrub 材料的商店 tip
-直接打 tag；商店轨的防丢闸（BEL-123～126）在这一拍**不撤、不弱化**。
+**本轨已关闭，OSS tag ≠ 商店 tip。** 不再从 **orphan MIT 根**切任何新 tag；唯一现行源码主轨是
+GPL 商店 tip。商店轨的防丢闸（BEL-123～126）**继续硬闸，不撤、不弱化**。
 
-## 1 · 两条轨
+## 1 · 两条轨（历史）
 
 | 轨 | 分支 / tag | 内容 | 许可 |
 |---|---|---|---|
-| 商店 tip | `main`、`release/**` | 实际提交 App Store / CWS / AMO 的树 | 本分支 **GPL-3.0-or-later**（until the orphan root is adopted） |
-| OSS release | `oss/mit-orphan`、`oss-v*` tag | 公开源码、契约、mock、文档 | **MIT**（orphan root，无 GPL history） |
+| 商店 tip | `main`、`release/**` | 实际提交 App Store / CWS / AMO 的树 | **GPL-3.0-or-later**（唯一现行公开源码） |
+| OSS release（已关闭） | `oss/mit-orphan`（已删）、`oss-v*` tag | 公开源码、契约、mock、文档（历史） | **MIT**（orphan root，无 GPL history；归档只读） |
 
 规则：
 
@@ -27,7 +30,9 @@
    BEL-124（submit QD 模板）、BEL-125（主干先行）、BEL-126（大合入 checklist）对商店轨
    **继续硬闸**。本文件不放宽任何一条。
 
-## 2 · 切 OSS tag
+## 2 · 切 OSS tag（已停用 · 仅存档）
+
+> **Do not run.** This procedure is closed as of 2026-11; no new `oss/**` tags may be cut.
 
 ```bash
 # 1) orphan root 必须只有一个 root commit，且没有 GPL 祖先
@@ -53,7 +58,7 @@ git push origin oss-v<version>
 **判据是回读，不是命令退出码**：tag 解引用后必须是 orphan 根的后代；`git log` 里不得出现
 GPL 时代的提交；`git show oss-v<version>:LICENSE` 必须是 MIT 全文。
 
-## 3 · 每次 OSS 发版必查
+## 3 · 历史检查表（已停用；勿再作为发版闸）
 
 | # | 检查 | 判据 |
 |---|---|---|
@@ -64,7 +69,7 @@ GPL 时代的提交；`git show oss-v<version>:LICENSE` 必须是 MIT 全文。
 | 5 | 无 service_role / 上游 Key | 构建拒绝 `role=service_role` 的 JWT；relay mock 拒绝 BYOK key 回显 |
 | 6 | 遥测 | 开源构建默认 **off / 显式同意**（O8；P1 落地，P0 只钉方向） |
 | 7 | 文档 | README 的 mcp-remote 叙述与已发布事实一致；本文件 + `BOUNDARY.md` 在树 |
-| 8 | 公告闸 | README badge / 营销文案**不写**「已 MIT 开源」，直到产品另行认关 |
+| 8 | 公告闸（历史） | README badge / 营销文案**不写**「已 MIT 开源」；MIT 双轨已于 2026-11 关闭 |
 
 ## 4 · 后端注入（构建，不是提交）
 

@@ -1,5 +1,7 @@
 # STEER · 架构补件（2026-11-01）
 
+> **状态（2026-11）：历史。** MIT orphan 轨已关闭；现行许可见 [`BOUNDARY.md`](../../BOUNDARY.md)（GPL 主轨）。
+
 架构师交：按下列三件执行，覆盖本拍出口形检。
 
 1. `P0-SPLIT-opencode-b-prime-2026-11-01.md` — 拆仓图+BOUNDARY；**§6 E1–E7** 出口表

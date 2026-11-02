@@ -2,10 +2,13 @@
 
 - **ID:** `O1-A-CONSENT` (BEL-172, parent BEL-171, tracker BEL-175)
 - **Date:** 2026-11-01 (Asia/Shanghai)
-- **Status:** written relicensing instrument + authorship proof for the **orphan MIT root**.
+- **Status (2026-11): CLOSED / historical.** The MIT orphan track was shut down and its
+  repository archived read-only. This record is retained for audit only; it does not describe
+  a current public source or a current license of the GPL repository.
+- **Original status:** written relicensing instrument + authorship proof for the **orphan MIT root**.
   **Not** a public announcement of MIT. The branch this file lives on
-  (`bel172-p0-scrub-relicense`, and `main`) keeps GPL-3.0-or-later until the orphan root is
-  published by a separate product decision.
+  (`bel172-p0-scrub-relicense`, and `main`) keeps GPL-3.0-or-later; the orphan root was never
+  adopted and the track closed in 2026-11.
 
 ## 1. Consenting party
 
