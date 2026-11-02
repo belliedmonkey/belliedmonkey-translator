@@ -15,7 +15,7 @@ const session = require('../agent/session');
 const parse = require('../agent/parse');
 
 const UUID = '11111111-1111-4111-8111-111111111111';
-const CONFIRM = 'https://mcp.belliedmonkey.cc/device/v1/confirm';
+const CONFIRM = 'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/confirm';
 const PENDING = 'pnd_0123456789abcdef';
 const READY = {
   login: true,
@@ -238,13 +238,26 @@ describe('BEL-151 GAP-2: local pending is cleared by disconnect / revoke / 401',
     deepEq(await client.pendingIds(), []);
   });
 
-  test('the confirm path is configurable until growth pins it', async () => {
-    const { rec, client } = clientWith(() => response(200, { ok: true }), {
-      options: { paths: { confirm: '/api/mcp/device-sessions/confirm' } },
-    });
-    const out = await client.confirm({ pending_id: PENDING, decision: 'deny' });
-    eq(out.ok, true);
-    eq(rec.calls[0].url,
+  test('the frozen confirm path is the default for intl and china, still overridable', async () => {
+    eq(bridge.PATHS.confirm, '/api/mcp/device-sessions/confirm');
+
+    const intl = clientWith(() => response(200, { ok: true }));
+    eq((await intl.client.confirm({ pending_id: PENDING, decision: 'deny' })).ok, true);
+    eq(intl.rec.calls[0].url,
       'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/confirm');
+
+    const china = clientWith(() => response(200, { ok: true }), {
+      options: { flavor: 'china' },
+    });
+    eq((await china.client.confirm({ pending_id: PENDING, decision: 'deny' })).ok, true);
+    eq(china.rec.calls[0].url,
+      'https://mcp.belliedmonkey.com/api/mcp/device-sessions/confirm');
+
+    const override = clientWith(() => response(200, { ok: true }), {
+      options: { paths: { confirm: '/api/mcp/device-sessions/confirm-alt' } },
+    });
+    eq((await override.client.confirm({ pending_id: PENDING, decision: 'deny' })).ok, true);
+    eq(override.rec.calls[0].url,
+      'https://mcp.belliedmonkey.cc/api/mcp/device-sessions/confirm-alt');
   });
 });

@@ -38,9 +38,10 @@ const PATHS = Object.freeze({
   heartbeat: '/api/mcp/device-sessions/heartbeat',
   bootstrap: '/api/mcp/device-sessions/bootstrap',
   revoke: '/api/mcp/device-sessions/revoke',
-  // BEL-151 GAP-2 placeholder. Growth owns the final path; until it is pinned,
-  // this is the one line to override through createClient({ paths: { confirm } }).
-  confirm: '/device/v1/confirm',
+  // BEL-151 GAP-2 CONTRACT FREEZE (2026-11-02): POST {base}/api/mcp/device-sessions/confirm.
+  // Still overridable through createClient({ paths: { confirm } }) for tests/forks,
+  // but this default is the pinned Worker path — never a placeholder.
+  confirm: '/api/mcp/device-sessions/confirm',
 });
 
 const KEYS = Object.freeze({
