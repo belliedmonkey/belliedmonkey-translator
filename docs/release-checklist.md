@@ -36,14 +36,16 @@
 
 **架构形检**须核「用户可见是否在 **main 祖先**」（可引用 main-first-scan 收据中的 ancestry + MISSING）。曾上架（含曾经 `READY_FOR_SALE`）的 IA / 用户可见项若不在 main 祖先上，形检不通过 —— 只堆在提审 tip 上不算入库。
 
-## 交互改动：先有 Pencil 稿，再有人工评审（**2026-10-01 起强制；稿子的工具 2026-10-08 改成 Pencil**）
+## 交互改动：先有 OpenPencil 稿，再有人工评审（**2026-10-01 起强制；稿子的工具 2026-11-03 改成 OpenPencil**）
 
-**任何交互改动，没有「Pencil 稿 + 人工签署」就不发版。** 顺序固定：Pencil 稿 → 人工签署 →
+**任何交互改动，没有「OpenPencil 稿 + 人工签署」就不发版。** 顺序固定：OpenPencil 稿 → 人工签署 →
 `docs/interaction-spec.md` → 代码 → 门禁。画不出稿子时**停下**，不要先写代码
 （理由与两条推论见 `AGENTS.md` 的「Interaction / UX constraints」）。
-**不用 OpenDesign / OD** —— 那是 **2026-10-08 之前的**历史**工具，不要据 OD 稿实现任何界面。
-出稿由 pen.dev 自带 AI 做：我们写需求（`--in` / `--out` / `--prompt`），负责审稿，不合要求打回
-重画、最多 3 轮（见 `.claude/skills/pencil-draft/SKILL.md`）。内部诊断页与开发开关不算用户可见，不需要稿。
+**不用 pen.dev/Pencil，也不用 OpenDesign / OD** —— 两者都是历史工具（`.pen` 稿与 OD 稿），不要据它们
+实现任何界面。
+稿子在 OpenPencil 的 `.fig` 画布上出（MCP `render` JSX / App 内 AI；导 PNG 送审），不合要求打回
+重画、最多 3 轮；通过后同 commit 更新 spec 与代码，再在真包上走像素验收
+（见 `.claude/skills/pencil-draft/SKILL.md`）。内部诊断页与开发开关不算用户可见，不需要稿。
 
 ---
 

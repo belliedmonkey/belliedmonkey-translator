@@ -1,128 +1,93 @@
 ---
 name: pencil-draft
-description: 交互/UI/文案变更先出 Pencil 稿再改代码。稿子由 pen.dev 自带的 AI 出：写需求 → pen.dev 命令行（npx @pen.dev/cli）--in/--out/--prompt（输入已有 .pen、输出新 .pen、写需求）→ 审稿，不合要求打回重画，最多 3 轮。我们只写需求、审稿，不自己逐条画。**绝不用 Open Design**（历史工具）。手动画布 MCP（Pen.app 自带，服务名 pencil）只在排查 / 微调时当备用手段，也记着它的硬坑。当任务要改用户看得见或摸得着的界面、交互或可见文案时用它——新页面、弹窗/气泡、字幕条、工具栏、设置项、空/加载/错误态、引导步骤、手势/转场，以及布局、间距、层级、\"这里该用 sheet 还是内联\"之类的问题。
+description: 交互/UI/文案变更先出 OpenPencil 稿再改代码。稿子在 OpenPencil（.fig 画布）上出：写需求 → 用画布 MCP 的 render（JSX）或 App 内 AI 搭稿 → export_image 出 PNG → 审稿，不合要求打回重画，最多 3 轮。**pen.dev/Pencil 与 Open Design/OD 都已停用**（历史工具）。当任务要改用户看得见或摸得着的界面、交互或可见文案时用它——新页面、弹窗/气泡、字幕条、工具栏、设置项、空/加载/错误态、引导步骤、手势/转场，以及布局、间距、层级、"这里该用 sheet 还是内联"之类的问题。
 ---
 
-# pencil-draft — 写需求，让 pen.dev AI 出稿，审稿
+# pencil-draft — 写需求，在 OpenPencil 里出稿，审稿
 
 改动涉及**用户可见的界面、交互或可见文案**时用它（宿主 app `app/`：iPhone/iPad/Mac；浏览器
-扩展 UI：Safari/Chrome/Firefox）。**不要**没有稿子就把新交互/新文案写进代码，也**不要**用 HTML
-手搓一份当捷径。
+扩展 UI：Safari/Chrome/Firefox）。**不要**没有稿子就把新交互/新文案写进代码，也**不要**用 HTML /
+CSS 手搓一份当捷径。
 
-> **本仓库只用 Pencil（pen.dev）；Open Design / OD 是历史工具（2026-10-08 之前），不要再用。**
-> 出稿、评审、通过之后再动代码；文案类改动同样要出稿（用户 2026-10-07 明确要求）。
+> **工具（2026-11-03 起）：OpenPencil（`net.dannote.open-pencil`，≥0.16）。**
+> pen.dev / Pencil（`.pen`）与 Open Design / OD 都是**历史**工具，只读旧稿，不要再用它们出稿。
+> 稿子是 `.fig` 画布 + 导出的 PNG，审的是画布，不是 diff。
 
-## 0. 出稿主路径：pen.dev 自带 AI（2026-10-12 起）
+## 0. 出稿主路径：OpenPencil 画布
 
-**稿子由 pen.dev 自带的 AI 出，我们只写需求、负责审稿。** 不再由 agent 自己用画布 MCP 逐条画。
+1. **写需求**：改什么、为什么、要覆盖哪些形态（§3），以及不能动的东西。写约束，不写逐步实现。
+   需求同时落一份在 `design/_work/<ticket>/`，方便复跑。
+2. **开稿**：在 OpenPencil 里新建或复用一份 `.fig`，存进仓库（`design/_work/<ticket>/<票号>-<主题>.fig`）。
+   - 新稿：MCP `new_document { path }`（路径在 `OPENPENCIL_MCP_ROOT` 内）。
+   - 有可参考的旧稿：先 `open_file`，再在空白处加画框；不要覆盖已签署的旧稿。
+3. **搭稿**：优先用 MCP `render` 的 JSX（`Frame` / `Text` / `Icon` / `Rectangle`，`w` / `h` / `flex` /
+   `gap` / `p` / `bg` / `rounded`），结构清楚、可 diff、可复跑；也可以用 OpenPencil 内置 AI 或画布
+   手工微调。禁止把 HTML/CSS 页面当稿子交。
+4. **落盘 + 导出**：先 `save_file`，再 `export_image` 到**同一目录**的 PNG（审稿看这张，GitHub 不能
+   预览 `.fig`）。导出失败见 §1 的 WASM 处理。
+5. **审稿**：把 PNG 给用户，说清**改了什么、代价是什么**；不合要求把具体缺口写回需求再出一版，
+   **最多 3 轮**。3 轮仍不达标就停下报告，不要自己手搓成一份「合格的稿子」。
 
-1. **写需求**：改什么、为什么、要覆盖哪些形态（见 §3），以及不能动的东西。需求里写约束，别写
-   逐步实现。
-2. **出稿**：用 pen.dev 命令行（`npx @pen.dev/cli`），输入是已有 `.pen`（当视觉 / 结构底稿），输出是一份**新** `.pen`：
+## 1. MCP 工具与硬坑
 
-   ```bash
-   npx @pen.dev/cli --in "<已有稿>.pen" --out "<新稿>.pen" --prompt "<需求>"
-   ```
+OpenPencil 桌面 App 启动时会在 `~/Library/Application Support/OpenPencil/` 下开一个本地 socket；
+`openpencil-mcp` 只是 stdio → socket 的桥。**App 没开，所有工具都不可用。**
 
-   没有可参考的底稿时 `--in` 可省略（或指向一份空底稿）；`--out` 永远是一份**新文件**，不要覆盖
-   已签署 / 已归档的旧稿。
-3. **审稿**：把 `--out` 的稿子导出的图（§1 的 `Export`，或 `png/` 导出）对需求逐条过，说清改了什么、
-   代价是什么。
-4. **不合要求就打回重画**：把不达标的具体点写回 `--prompt` 再出一版；**最多改 3 轮**。3 轮仍不
-   达标就停下报告，不要自己用画布 MCP 逐条画成一份「合格的稿子」——那就不是「AI 出稿」了。
+- 发现文档：`list_documents`（拿 `document_id` / `page_id`）；没有文档时 `new_document`。
+- 文件工具（`save_file` / `open_file` / `export_image` 的 `path`）被限制在 `OPENPENCIL_MCP_ROOT`
+  内；跑 MCP 时把根设成仓库：`OPENPENCIL_MCP_ROOT=/path/to/repo`。
+- 常用：`render`（JSX）、`get_jsx`、`update_node`、`set_layout`、`export_image`、`save_file`、
+  `lint`、`describe`、`get_page_tree`、`find_nodes`。
+- **WASM OOM**：大画框导出可能报 `Aborted()` / `Out of bounds memory access`。
+  先 `save_file`（稿不能丢）→ 退出并重开 OpenPencil → `open_file` 重开 `.fig` → 再导出，
+  `maxEdge` 先给 2560–3000。不要反复重试同一个大导出。
+- `.fig` 是 App 的文档格式：**不要**用 Read / Grep 去解析；只用 MCP 工具或 App。
+- JSX 是**一个表达式**：没有顶层语句 / `return`；需要循环或函数就在 `{(() => { … })()}` 里写。
+- 文本要折行：给 `w="fill"`（定宽文本用固定 `w` + `textAutoResize="height"`）。只给宽度不给
+  auto-resize 会撑破父框。
+- 底部对齐用 spacer：`<Frame w="fill" h={1} grow={1} />`，不要靠猜坐标。
+- 高度用显式数字；`h="hug"` 出 `NaN` 时退回数字。`overflow="hidden"` 会真裁切，别拿它掩盖溢出。
+- 每个节点给可读 `name`；`update_node` 不改 `id` / `type`。
+- 查溢出 / 被裁：`lint`、`describe`、`node_bounds`；截图 / 导出一次，在成稿后做。
 
-> `pen` 的生成模式需要本机已登录（见 §4）；未登录时它用不了。这时**不要**退回手搓，把情况报告出来。
+## 2. 稿子的最小结构
 
-## 1. 备用手段：人工在画布上排查 / 微调（不是出稿主路径）
+一张审稿板至少包含：标题（票号 + 一句话）、三形态列、每列的规格标注、变更前后的数值对照、
+以及「待签核」清单。参考 `design/_work/bel183/draft.jsx` 与同名 PNG。
 
-只有在 AI 稿已经出来、需要**排查**（为什么溢出 / 被裁）或**微调**（改一个字、挪 2px）时才用画布
-MCP。它**不是**第二条出稿路：新稿永远走 §0。
-
-`tools["pencil"].*` 的所有工具（`get_app_state` / `read_skill` / `execute` / `browser` / `get_style`）
-都要求 Pencil 编辑器里**有一个 `.pen` 文档是打开状态**。否则一律报：
-
+```jsx
+<Frame name="稿 · <票号> · <主题>" w={1600} h="hug" bg="#f5ead8" flex="col" gap={32} p={48}>
+  <Text name="标题" w="fill" size={30} weight={700} color="#201e1d"><票号> · <一句话></Text>
+  <Frame name="三形态" w="fill" flex="row" gap={32} items="start">
+    {/* 窄 / 宽·iPad / 宽·Mac 各一列 */}
+  </Frame>
+</Frame>
 ```
-Failed to access file "<path|undefined>". A file needs to be open in the editor to perform this action.
-```
 
-**怎么办**：
-
-- 先 `get_app_state()` —— 它回 `Currently active canvas editor: <path>` 和顶层 frame 清单。通了就直接用。
-- 不通时用系统打开一个文档（本机文档在 `~/.pencil/documents/<uuid>/*.pen`）：
-
-  ```bash
-  find "$HOME/.pencil/documents" -name "*.pen" | head
-  open -a Pen "/Users/<you>/.pencil/documents/<uuid>/<name>.pen"
-  ```
-
-- **MCP 不能新建文档**；要空白文档就让用户在 Pen.app 里 ⌘N，或打开一个已有的。
-- `.pen` 是**加密**的：**永远不要**用 Read / Grep 去读它，只能经 MCP。
-
-## 2. 备用手段的用法与硬坑（`execute`）
-
-- `read_skill({})` 拿 pen-dev 的技能目录；**必须**读 `read_skill({ path: "execute.md" })` 与
-  `read_skill({ path: "pen-schema.md" })` 再动手；**优先照抄已有稿的视觉语言**（字体/字号/底色/圆角），
-  别自造一套。
-- **调用形状**：`tools["pencil"]["execute"]({ filePath: "<打开的 .pen 路径>", input: "<脚本文本>" })`。
-- **`input` 是一段「脚本」，不是函数**：**不要写顶层 `return`**（会报
-  `SyntaxError: return not in a function`）。要把结果读出来用 **`Print(...)`**（会出现在返回的
-  `Print output` 里）。想取值跨调用传递时，用**不带 `const`/`let` 的裸赋值**（`myId = Insert(...)`），
-  因为每次 execute 是独立作用域。
-- **别把 pen 的代码写进 Code Mode 的顶层沙箱**：那层沙箱里**没有**画布 API，你会看到
-  `ReferenceError: Unknown identifier 'Print'`（`Get` / `Insert` / `document` 同理）——**那是误报**，
-  不是版本/授权问题。pen 代码只能放在 `input` 里。区分方法：`input` 里 `Print('x=' + typeof Insert)`
-  会回 `x=function`。
-- 可用 API：`Insert(parentId, node)`→返回 id、`Copy` / `Update` / `Replace` / `Delete` / `Move`、
-  `Get(idOrPath, {depth}|{depth:0})`、`Get(id, visitor, {depth})`（`ctx.bounds` / `ctx.problems`）、
-  `FindEmptySpace({width,height,direction,padding})`、`SetVariables` / `GetVariables`、
-  `Print(...)`、`TakeScreenshot([ids])`、`Export(...)`、`Generate(...)`。
-- **每个新增节点都要 `name`**（可读的名字）；`Update` **不能**改 `id` / `type` / `ref`。
-- **文字要折行**：文本节点必须同时给 `textGrowth: "fixed-width"` **和**宽度（`width: "fill_container"`）。
-  只设 `width` **不生效**（schema 原文："`textGrowth` Required before width/height take effect"），
-  长文本会一路撑宽把父 frame 撑破、被裁。建节点时就带上：
-
-  ```js
-  const T = (name, content, size, weight, fill) => ({ type: 'text', name, content, fontFamily: 'Inter',
-    fontSize: size, fontWeight: weight, fill, textGrowth: 'fixed-width', width: 'fill_container' });
-  ```
-- **别在普通 frame 上用 `placeholder: true → Update({placeholder:false})` 这套**：它会把尺寸锁在
-  建时的状态，后续换行/增删导致高度不重算，甚至算出 `NaN`。**用显式数字高度**；若 `height:
-  "fit_content"` 出现 `NaN`，也退回显式数字。
-- **量测**：用 `Get(id, (n, c) => c.problems && Print(n.name, c.problems), { depth: N })` 查溢出/被裁；
-  用 `c.bounds` 看实际尺寸。**同一调用里刚 `Update` 完立刻 `TakeScreenshot` 可能读到 `NaN` 尺寸**——
-  复核时**另起一次** `execute`（不截图）再读。
-- **截图**：`TakeScreenshot([nodeId])` 一次一张、只在成稿后**一次**（它贵）。
-
-## 3. 审稿 / 形态与签署（与出稿方式无关，照旧）
+## 3. 审稿 / 形态与签署
 
 - **每份稿必须覆盖该面所有形态：窄（mobile）/ 宽·iPad / 宽·Mac，断点 720px，每个变体一列**
   （`AGENTS.md`「Interaction / UX constraints」）。不写 iPad-only 布局；某个变体确实画不出，就说出来
   并停。
-- 把截图/预览给用户看，说清**改了什么、代价是什么**；等**明确通过**再改 `app/` / `ext/` 代码。
-- 通过后再改代码，并在**同一个提交**里带上相应文档（交互规则进 `docs/interaction-spec.md`；
-  涉及领域设计的先改 `docs/domain-design.md` / `docs/learning-design.md` 并过人工评审）。
-- 每次改动都要有 GitHub issue（见 `AGENTS.md`）。
+- 把 PNG 给用户看，说清**改了什么、代价是什么**；等**明确通过**再改 `app/` / `ext/` 代码。
+- 通过后改代码，并在**同一个提交**里带上相应文档（交互规则进 `docs/interaction-spec.md`；涉及领域
+  设计的先改 `docs/domain-design.md` / `docs/learning-design.md` 并过人工评审）。
+- **像素验收在稿子通过之后**，而且要在**真实构建包**上做（不是拼接 CSS 的 ad-hoc 副本）：按稿子的
+  标注量卡高、控件盒、可见高、裁切、滚动，数值对得上才算过。
+- 每次改动都要有 GitHub / Linear 单据（见 `AGENTS.md`）。
 
 ## 4. 版本与更新：逐个查，别假设
 
-- **CLI**：`npm view @pen.dev/cli version` 对比本机（`pen version` / `npm ls -g @pen.dev/cli`）。
-- **Pen.app**：更新源在 `app-update.yml`（GitHub `highagency/pen-desktop-releases`）；查
-  `curl -s https://api.github.com/repos/highagency/pen-desktop-releases/releases/latest`。
-- **技能包**：`~/.pencil/skills/`（`latest.json` 指一个远端 zip）；内容可能只是被重传、**逐字节
-  相同**——下载解包 `diff -rq` 一下再说有没有新版。
-- **agent 授权**：`~/.pencil/agent-auth` 为空（`{}`）/ `pen status` 未登录时，CLI 的生成模式
-  （`npx @pen.dev/cli --in x.pen --out y.pen --prompt "…"`）用不了；MCP 的读写一般不受影响（先按 §1 确认调用形状再说）。
+- **App**：`defaults read net.dannote.open-pencil CFBundleShortVersionString`（或看 `/Applications/OpenPencil.app`）。
+  更新走 App 自带更新。
+- **MCP**：`npm ls -g @open-pencil/mcp`；`npm i -g @open-pencil/mcp` 升级（版本要与 App 匹配）。
+- **桥**：`which openpencil-mcp`；连不上时先确认 App 在跑、`~/Library/Application Support/OpenPencil/mcp.sock` 存在。
+- 本机已验证版本：OpenPencil 0.16.0 + `@open-pencil/mcp` 0.16.0（2026-11-03）。
 
-## 5. 最小可用骨架（备用手段，照抄起步）
+## 5. 历史工具（只读，不要用）
 
-```js
-const pos = FindEmptySpace({ width: 960, height: 700, direction: 'bottom', padding: 80 });
-const root = Insert(document, { type: 'frame', name: '稿 · <主题> <日期>', x: pos.x, y: pos.y,
-  layout: 'vertical', gap: 18, padding: 32, fill: '#FFFFFF', cornerRadius: 28, width: 960 });
-Insert(root, T('标题', '<一句话标题>', 22, '700', '#2B2B2B'));
-Insert(root, T('导语', '<这次改什么、为什么>', 13, 'normal', '#8A8578'));
-// …内容（两栏对照 / 页面复刻）…
-Print('rootId', root);
-Get(root, (n, c) => { if (c.problems) Print('P', n.name, '|', c.problems); });
-TakeScreenshot([root]);
-```
+- **pen.dev / Pencil（`.pen`）**：2026-10-08 至 2026-11-02 的稿子工具。`.pen` 加密，只能用 Pen 应用
+  或 `@pen.dev/cli` 打开；归档在 `design/pencil/`，只作历史参考。
+- **Open Design / OD**：2026-10-08 之前的历史工具，`design/` 下早期 HTML 稿只作历史参考。
+- 旧的操作手册（pen 的 execute / pen-schema / 硬坑）保留在 git 历史与本文件的历史版本里；新稿不要
+  再走那条路。

@@ -141,31 +141,30 @@ these in order when designing anything new:
 
 ## Interaction / UX constraints
 
-**Interaction changes are Pencil-designed and human-reviewed before release (mandatory；稿子的工具
-自 2026-10-08 起是 Pencil。OpenDesign/OD 是 2026-10-08 之前的**历史**工具，仅 `design/` 下的早期稿
-作历史参考，不要据它实现任何界面。)**
+**Interaction changes are OpenPencil-designed and human-reviewed before release (mandatory；稿子的工具
+自 2026-11-03 起是 OpenPencil。pen.dev/Pencil 与 OpenDesign/OD 都是**历史**工具，仅 `design/` 下的
+早期稿作历史参考，不要据它们实现任何界面。)**
 
 Any change to how the product **looks or behaves on screen** — a new screen, a re-layout, a moved or
-restyled control, copy that changes what a surface promises — **must first be designed as a Pencil
+restyled control, copy that changes what a surface promises — **must first be designed as an OpenPencil
 draft and pass human review**, and only then implemented. The order is fixed:
-**Pencil draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
+**OpenPencil draft → human sign-off → `docs/interaction-spec.md` → code → gates.**
 Two corollaries, both load-bearing:
 
-- **The Pencil draft comes first; if it cannot be produced, the task waits.** A session that cannot
+- **The OpenPencil draft comes first; if it cannot be produced, the task waits.** A session that cannot
   draw the draft does **not** proceed with interaction work "in the meantime" — it stops and says so.
   The failure this prevents is specific and cheap to fall into: an agent hand-writes a layout, calls
   it "designed", and the human review happens on the **code** instead of on a design.
-- **The artifact under review is the Pencil draft, not the diff.** The `.pen` canvas is what a human
+- **The artifact under review is the OpenPencil draft, not the diff.** The `.fig` canvas is what a human
   approves; the implementation then has to match it — not the other way round. Internal diagnostic
   pages and developer switches are exempt (they are not user-visible).
 
-**The draft is produced by pen.dev's built-in AI — we write the requirement and review
-(2026-10-12).** A session does **not** draw the draft tool by tool. It writes the requirement, runs
-pen's CLI (`--in` an existing `.pen`, `--out` a **new** `.pen`, `--prompt` the requirement) to have
-the AI produce the draft, and reviews the result against the requirement. A draft that does not meet
-it goes back with the specific gaps, **at most 3 rounds**; if it still is not there, stop and report
-— do not hand-draw it into a "passing" draft. The canvas MCP is a fallback for troubleshooting /
-small tweaks only, never the draft path — see
+**The draft is produced on the OpenPencil canvas — we write the requirement and review
+(2026-11-03).** A session builds the draft in OpenPencil: `new_document` / `open_file`, then `render`
+JSX (or the app's AI / canvas tweaks), `save_file`, and `export_image` a PNG for review. It does **not**
+hand-write an HTML/CSS page and call it a draft. A draft that does not meet the requirement goes back
+with the specific gaps, **at most 3 rounds**; if it still is not there, stop and report — do not
+hand-draw it into a "passing" draft. pen.dev / Pencil and the old canvas MCP are historical — see
 [`.claude/skills/pencil-draft/SKILL.md`](.claude/skills/pencil-draft/SKILL.md).
 
 **Every draft must cover every form factor the surface has — one column per variant (mandatory,
