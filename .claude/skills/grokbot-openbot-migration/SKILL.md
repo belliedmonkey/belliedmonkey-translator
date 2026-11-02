@@ -34,6 +34,46 @@ you already have `/workspace/backup*`, or when the target must be an **existing 
 The official importer creates built-in agents, so it does not need the Phase 4 memory seam; the seam
 is specifically for in-place imports into remote agents.
 
+## Quota-free official ZIP (OpenBot 0.58+)
+
+When the Migrator agent cannot run (Grok Bot quota exhausted) but the Bots already wrote
+`/workspace/backup*`, build the official ZIP yourself:
+
+```bash
+python3 .claude/skills/grokbot-openbot-migration/scripts/build_official_zip.py \
+  --root ~/Downloads/grok-bot-export-20261102 \
+  --config .claude/skills/grokbot-openbot-migration/scripts/official-config.example.json \
+  --out ~/Downloads/openbot-export-2026-11-02.zip
+```
+
+Then in OpenBot: **Server settings → 导入 → Grok Bot → 选择导出文件**. The result was verified
+on OpenBot 0.58.0: 10 agents, 456 memories (64 per agent max in the manifest), 12 routines
+(all `active=false`), and `imported/MEMORY.md` / `INSTRUCTIONS.md` / `ROUTINES.md` in each
+workspace (`~/OpenBot/Agents/<id>/imported/`).
+
+Verification without the UI:
+
+```bash
+DB="$HOME/Library/Application Support/OpenBot/openbot.db"
+sqlite3 -header -column "$DB" "
+  SELECT json_extract(agent_json,'\$.name') AS name,
+    (SELECT count(*) FROM projection_agent_memories m WHERE m.agent_id=a.agent_id) AS mem,
+    (SELECT count(*) FROM projection_agent_routines r WHERE r.agent_id=a.agent_id) AS rout
+  FROM projection_agents a ORDER BY name;"
+```
+
+Notes:
+
+- The manifest caps `memories` at 64 per agent; the full fact list belongs in
+  `agents/<key>/files/MEMORY.md` (the importer copies it to `imported/`).
+- `routines` use `{"kind":"custom","expression":"<cron>"}` and stay paused; the app's minimum
+  interval is 3 minutes.
+- The desktop app signs in with an email one-time code. Without sign-in there is no import UI.
+- A free model may refuse with "Free models may train on request data"; that is a provider/privacy
+  setting, not an import failure. Pick a paid provider or allow free endpoints before a live test.
+- The official app is a different product from the old `CopilotKit/OpenBot` server (0.2.0):
+  installing it does not upgrade that checkout, and the two databases are unrelated.
+
 ## Safety rules
 
 1. **Back up OpenBot PostgreSQL before any write.** No exceptions:
@@ -213,7 +253,9 @@ Restoring needs the OpenBot services stopped; restart them afterwards.
 
 ## Files
 
-- `scripts/build_import.py` — export → SQL (facts, memory.md, shards, routines, channels).
+- `scripts/build_import.py` — export → SQL for the old server (facts, memory.md, shards, routines, channels).
 - `scripts/import-config.example.json` — config shape with this run's bot mapping.
 - `scripts/verify_import.sql` — counts, orphans, duplicates, routines, channels.
+- `scripts/build_official_zip.py` — export → official `openbot-agent-import` v1 ZIP (0.58+).
+- `scripts/official-config.example.json` — agent list, sources, notes, roles for the ZIP builder.
 - `patch/openbot-personal-memory.patch` — Phase 4 seam (git-am-able).
