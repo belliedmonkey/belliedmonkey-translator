@@ -406,6 +406,13 @@ function badRequestReceipt(action) {
   return receipt(action || '', 'bad_request', copy.MESSAGES.badRequest, {});
 }
 
+// A callback failure is still a §6 receipt: the confirm card must not disappear
+// into an unlabelled success when the Worker never got the decision.
+function failureReceipt(action, code, scheme, source) {
+  const safe = CODE_SET.has(code) ? code : 'network_unavailable';
+  return receipt(action, safe, messageFor(safe, {}), fixFor(safe, scheme, source));
+}
+
 module.exports = {
   receipt,
   preconditions,
@@ -415,5 +422,6 @@ module.exports = {
   needConfirmReceipt,
   unsupportedReceipt,
   badRequestReceipt,
+  failureReceipt,
   suppliedText,
 };
