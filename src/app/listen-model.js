@@ -2488,10 +2488,18 @@ const listenModel = (() => {
     //     3 秒量一次，而我们自己的文档教的顺序是「先在 App 里开始，再去点播放」，
     //     于是最常见的那一种恰好量不到：#420 当天就是这样，30 秒后得到的是「没有声音」。
     const deaf = !session.heardAny || (sysSilent && !sysSound);
+    // BEL-188：静音门那句「可能没开权限」指哪一门，由采集源决定。iOS 的 capsProbe() 报
+    // 'unsupported' ⇒ captureSource() 是 'mic'，不能把 macOS 的「屏幕与系统录音」印给 iPhone。
+    const src = (session && session.mode === 'subtitle')
+      ? C.captureSource(bridged() ? NativeAudio.audioCaps() : null)
+      : null;
     if (reason === 'silence') note(session.mode !== 'subtitle' ? t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。')
-      : deaf ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : deaf && src === 'system' ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : deaf && src === 'mic' ? t('subtitle_stop_silence_mic_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开麦克风权限：到 设置 › 隐私与安全性 › 麦克风 允许「大肚猴翻译」，再点「继续」。')
       : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
-    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf ? 'silence-permission' : 'silence');
+    // 'silence-permission' 会渲染 subtitle_bar_silence_permission 并在条上给「打开系统设置」，
+    // 只在真·系统录音（macOS）时发；mic / 未知源发通用的 'silence'，别把 iOS 引去 Mac 设置。
+    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf && src === 'system' ? 'silence-permission' : 'silence');
     canvas.view('state');
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
