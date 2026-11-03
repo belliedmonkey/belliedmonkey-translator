@@ -547,14 +547,17 @@ describe('改稿 F / 改稿 G · 多选语言包与听译准备中（2026-10-11�
     eq(one.asrPack, false, '日本語不该因为 ready:true 或中文已装好就被当成已就绪');
   });
 
-  test('G1–G6：就绪侧单独开麦、下完不开麦、进页有胶囊、键跟收音', () => {
+  test('G1–G6：就绪侧单独开麦、没就绪不开麦、进页有胶囊、键跟收音', () => {
     const model = stripComments(read('src/app/listen-model.js'));
     const view = read('src/app/listen-view.jsx');
     const shell = stripComments(read('src/app/shell-model.js'));
     const pipe = model.slice(model.indexOf('async function beginPipeline'), model.indexOf('let startedAt'));
-    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
+    // BEL-188 Q7：开麦前 return 只留给「这一轮下过包且这一侧没就绪」；side ready 必须继续开麦。
+    const ready = pipe.search(/const sideReady = ptt \? talkSideReady\(ptt\.side\) : false;/);
+    const guard = pipe.search(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen && !sideReady\) \{\s*pttAbort\(\);\s*phase = 'idle';/);
     const open = pipe.indexOf('openSocket()');
-    ok(guard > -1 && open > guard, 'G4：这一轮下过包之后 beginPipeline 仍会 openSocket');
+    ok(ready > -1 && guard > ready, 'G4：beginPipeline 没有在 ensurePacksForPair 之后按 side ready 收窄开麦前的 return');
+    ok(open > guard, 'G4：下过包且没就绪时 beginPipeline 仍会 openSocket');
     ok(!/micStart\(/.test(pipe.slice(guard, open > guard ? open : guard)), 'G4：下完到开麦之间还有 micStart');
     ok(/function sessionLocales\(\)/.test(model) && /const locales = sessionLocales\(\)/.test(model),
       'G1：openDevice 仍把两门语言都交给识别器');

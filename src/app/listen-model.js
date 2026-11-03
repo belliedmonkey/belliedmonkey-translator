@@ -2169,8 +2169,10 @@ const listenModel = (() => {
             if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
           });
           prep.assets.vad = true;
-          prep.didDownload = true;
-          prep.dlGen = (prep.dlGen || 0) + 1;
+          // BEL-188 Q7：VAD **不计入**这一轮的 dlGen。ensureVad 成功不等于这一轮真下过
+          // （模型本来就在时它照样回成功、进度回调也可能回一帧 100%），而 VAD 本来就不拦
+          // 听译（失败退回能量门）。原来这里无条件 +1，冷启动首点「开始」会把它当成
+          // 「这一轮下过包」而在开麦前 return。ASR 真下载由上面的 downloadAsrLangs 计。
         } catch (e) {
           if (ptt) { halt('assets', e && e.reason); return false; }
         }
@@ -2217,8 +2219,12 @@ const listenModel = (() => {
     // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
     const beforeGen = prep.dlGen || 0;
     if (!(await ensurePacksForPair())) return;
-    // 这一轮真的下过包：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
-    if ((prep.dlGen || 0) !== beforeGen) {
+    // BEL-188 Q7：这一侧已经真的能开口 ⇒ 不管这一轮下过什么，都继续开麦。
+    // 冷启动首点「开始」时 VAD 的 ensure 成功曾被无条件记成「下过包」，side 明明 ready
+    // 也在开麦前 return（随后胶囊显示「已暂停」）。开麦前 return 只能留给还没就绪的一侧。
+    const sideReady = ptt ? talkSideReady(ptt.side) : false;
+    // 这一轮真的下过 ASR / 基础包、且这一侧还没就绪：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
+    if ((prep.dlGen || 0) !== beforeGen && !sideReady) {
       pttAbort();
       phase = 'idle';
       prep.readyUntil = Date.now() + 4000;
@@ -2227,11 +2233,12 @@ const listenModel = (() => {
       setTimeout(() => canvas.view('state'), 4200);
       return;
     }
-    // 这一侧仍没就绪（基础组件或识别包没落地）就不开麦，也不留「正在录」。
-    if (ptt && !talkSideReady(ptt.side)) {
+    // 这一侧仍没就绪（基础组件或识别包没落地）、也不在下载：不静默 idle ——
+    // 给具名错误（识别包还没装好），卡片上的「重试」走 retryPacks；胶囊留在「准备中」。
+    if (ptt && !sideReady) {
       pttAbort();
-      phase = 'idle';
-      canvas.view('state');
+      prep.stalled = true;
+      halt('device', 'assets');
       return;
     }
     openSocket();
@@ -2858,7 +2865,12 @@ const listenModel = (() => {
         : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
         : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
         : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
-        : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms)),
+        // BEL-188 Q7：只有用户主动暂停 / 不可重试的停机才是「已暂停」。idle（刚下完待点开始、
+        // 准备还没完成）和可重试的失败都还在「准备中」，不能再无条件落到「已暂停」——
+        // 冷启动那 9 秒 idle 曾被显示成「已暂停 · 00:0x」。
+        : (phase === 'paused' || (phase === 'halted' && !prep.stalled))
+          ? t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms))
+        : t('listen_pill_preparing', '准备中'),
       live: listening,
     };
   }

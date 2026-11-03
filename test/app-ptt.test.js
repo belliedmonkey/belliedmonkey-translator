@@ -298,3 +298,49 @@ describe('BEL-188 · 字幕静音门文案按采集源门控', () => {
       'mic / 未知源仍会发 silence-permission（条上会指向 Mac 系统设置）');
   });
 });
+
+// BEL-188 Q7：冷启动首点「开始」时，VAD 的 ensureVad 成功被无条件记成这一轮下过包，
+// beginPipeline 因此在开麦前 return，胶囊又把这 9 秒 idle 画成「已暂停 · 00:0x」。
+// 这里守四个规则：VAD 不计 dlGen；side ready 不因 dlGen 变化 return；没就绪不静默 idle；idle 不画「已暂停」。
+describe('BEL-188 Q7 · 冷启动首点开始不在开麦前 return', () => {
+  const VAD = MODEL.slice(MODEL.indexOf('if (deviceBridge() && !prep.assets.vad)'),
+    MODEL.indexOf('// 设备内置朗读'));
+  const BEGIN = MODEL.slice(MODEL.indexOf('async function beginPipeline()'),
+    MODEL.indexOf('let startedAt = 0'));
+  const PILL = MODEL.slice(MODEL.indexOf('function pillView()'), MODEL.indexOf('// footView'));
+
+  test('VAD 块不再无条件 dlGen++ / didDownload（ensure 成功 ≠ 这一轮下过）', () => {
+    ok(!/prep\.dlGen\s*=\s*\(prep\.dlGen \|\| 0\) \+ 1/.test(VAD),
+      'VAD 块还在自增 dlGen —— 已装但 ensure 成功会被当成这一轮下过包');
+    ok(!/prep\.didDownload = true/.test(VAD), 'VAD 块还在无条件置 didDownload');
+    ok(/prep\.assets\.vad = true;/.test(VAD), 'VAD 装好后的就绪标记被一起删了（会一直判没就绪）');
+  });
+
+  test('beginPipeline 在 side ready 时不因 dlGen 变化 return，继续开麦', () => {
+    ok(/const sideReady = ptt \? talkSideReady\(ptt\.side\) : false;/.test(BEGIN),
+      'beginPipeline 没有在 ensurePacksForPair 之后取这一侧的就绪态');
+    ok(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen && !sideReady\)/.test(BEGIN),
+      'dlGen 变化仍在 side ready 时直接 return（冷启动 Q7 的老写法）');
+    ok(!/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\)\s*\{/.test(BEGIN),
+      '还有不看 side ready 的裸 dlGen 判据');
+    const gate = BEGIN.indexOf('!== beforeGen && !sideReady');
+    const open = BEGIN.indexOf('openSocket();');
+    ok(gate >= 0 && open > gate, 'side ready 的这一支没有继续走到 openSocket（还在开麦前 return）');
+  });
+
+  test('这一侧仍没就绪时给具名错误并可重试，不静默 idle', () => {
+    ok(/prep\.stalled = true;[\s\S]{0,120}halt\('device', 'assets'\)/.test(BEGIN),
+      '没就绪的分支没有落到具名错误（识别包还没装好）/ 可重试的卡片');
+    ok(!/if \(ptt && !sideReady\) \{\s*\n\s*pttAbort\(\);\s*\n\s*phase = 'idle';/.test(BEGIN),
+      '没就绪的分支又静默回到 idle');
+  });
+
+  test('idle 未主动暂停时胶囊不渲染「已暂停」，落到「准备中」', () => {
+    ok(/\(phase === 'paused' \|\| \(phase === 'halted' && !prep\.stalled\)\)\s*\n?\s*\?\s*t\('listen_pill_paused'/.test(PILL),
+      '「已暂停」没有限定在用户主动暂停 / 不可重试的停机');
+    ok(/:\s*t\('listen_pill_preparing', '准备中'\)/.test(PILL), 'idle 没有落到「准备中」');
+    ok(!/:\s*t\('listen_pill_paused'/.test(PILL), '「已暂停」仍是最后无条件兜底（idle 会被画成已暂停）');
+    ok(/prep\.readyUntil > Date\.now\(\)[\s\S]{0,120}listen_pill_ready/.test(MODEL),
+      'prep.readyUntil 的「已就绪」既有语义被改掉了');
+  });
+});
