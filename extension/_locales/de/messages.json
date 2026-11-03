@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Einstellungen werden gelesen…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Eigene Gerätesprache sprechen"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Sprache des Gegenübers"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Einstellungen und Sprachpakete werden gelesen, einen Moment…"
+  },
+  "listen_ptt_checking": {
+    "message": "Vorbereitung · Sprachpakete werden geprüft"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Das lokale Erkennungspaket wird vorbereitet…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

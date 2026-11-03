@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Reading settings…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Say your language"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Their language"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Reading settings and language packs, one moment…"
+  },
+  "listen_ptt_checking": {
+    "message": "Getting ready · checking language packs"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Preparing the on-device recognition pack…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

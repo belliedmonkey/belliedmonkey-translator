@@ -1497,6 +1497,8 @@ const listenModel = (() => {
       }
       // 百分比只属于正在下的那一门。另一侧不许借走上一门留下的 100。
       const pct = (prep.forCode && code === prep.forCode) ? (prep.pct || 0) : 0;
+      // BEL-184: 没在真下（首帧 pct 尚为 0）就不报百分比，改说在检查语言包。
+      if (!(pct > 0)) return t('listen_ptt_checking', '准备中 · 正在检查语言包');
       return t('listen_ptt_preparing', '准备中 · {lang} 下载 {pct}%')
         .replace('{lang}', endonymOf(lang)).replace('{pct}', String(pct));
     }
@@ -1505,6 +1507,25 @@ const listenModel = (() => {
   }
   function pttView() {
     const sub = mode === 'subtitle';
+    // BEL-184: cfg 由 readCfg() 异步写入、prep 也要等探针。首帧/未进面不得画成「准备中 0%」。
+    if (!sub && (!cfg || !prep.probed)) {
+      const loadingHint = t('listen_ptt_loading', '正在读取设置…');
+      return {
+        shown: true,
+        loading: true,
+        mineSide: 'me',
+        otherSide: 'other',
+        mineLabel: t('listen_ptt_loading_label', '说本机语言'),
+        otherLabel: t('listen_ptt_loading_other', '对方的语言'),
+        mineHint: loadingHint,
+        otherHint: loadingHint,
+        activeSide: '',
+        disabled: true,
+        mineDisabled: true,
+        otherDisabled: true,
+        whyText: t('listen_ptt_loading_why', '正在读取设置与语言包，请稍候…'),
+      };
+    }
     const canUse = !sub && liveCapable();
     // 高亮只在这一侧真的在录（相位已经是 listening）。没下好的那一侧保持灰，不亮成「正在录」。
     const on = !!ptt && phase === 'listening';
@@ -1533,7 +1554,11 @@ const listenModel = (() => {
       disabled: mineChrome.disabled,
       mineDisabled: mineChrome.disabled,
       otherDisabled: otherChrome.disabled,
-      whyText: canUse ? '' : needText(unavailableReason()),
+      whyText: canUse
+        ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
+          ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
+          : '')
+        : needText(unavailableReason()),
     };
   }
   // 这里曾经有一道「整句落行要判词稳住 1.5s」的闸（2026-10-08 上午，`1ae1280a`）—— 为挡 whisper
