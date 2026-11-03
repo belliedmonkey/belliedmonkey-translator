@@ -218,3 +218,43 @@ describe('BEL-184 · 首帧/未就绪不显示 0%', () => {
     ok(/下载 \{pct\}%/.test(MODEL), '百分比模板被删了（只该被 0 守卫兜住）');
   });
 });
+
+// BEL-187：首页/状态 meter 首帧不得画成「下载中 0% · 已就绪」。复用 BEL-184 的同一
+// readiness 判据（cfg 异步写入、prep 等探针），不另起 timer/flag。
+describe('BEL-187 · 首页/状态 meter 首帧不显示「下载中 0% · 已就绪」', () => {
+  const NOW = MODEL.slice(MODEL.indexOf('nowView: () =>'), MODEL.indexOf('formView:'));
+  const PRETEXT = NOW.slice(NOW.indexOf('const prepText'), NOW.indexOf('const readySub'));
+
+  test('nowView 复用 BEL-184 的显式 loading 判据', () => {
+    ok(/const prepLoading = !cfg \|\| !prep\.probed;/.test(NOW), '没有 (!cfg || !prep.probed) 同一 readiness 判据');
+    ok(/const prepProgress = !prepLoading && \(prep\.running \|\| prep\.pct > 0\);/.test(NOW),
+      '没有 prepProgress（loading 期间仍可能误报真实进度）');
+    ok(/listen_prep_loading/.test(NOW), 'loading 分支没有 listen_prep_loading');
+  });
+
+  test('prepText：loading → 无进度检查语言包 → 有进度才报百分比', () => {
+    ok(/const prepText = prepLoading/.test(PRETEXT), 'prepText 没有先走 loading 分支');
+    ok(/!prepProgress/.test(PRETEXT), '没有 !prepProgress 的「准备中 · 正在检查语言包」分支');
+    ok(/listen_prep_checking/.test(PRETEXT), '没有 listen_prep_checking 兜底');
+    ok(/listen_prep_downloading/.test(PRETEXT), '没有无「已就绪」尾缀的下载文案 listen_prep_downloading');
+  });
+
+  test('「已就绪」模板只能留在 readyNames 分支里（不是无条件前缀）', () => {
+    const DETAIL_AT = PRETEXT.indexOf("t('listen_prep_detail'");
+    const READY_AT = PRETEXT.indexOf('readyNames.length');
+    const PROGRESS_AT = PRETEXT.indexOf('!prepProgress');
+    ok(DETAIL_AT >= 0, '已就绪模板被整个删了（有成功资产时仍应显示已就绪）');
+    ok(READY_AT >= 0 && PROGRESS_AT >= 0 && PROGRESS_AT < DETAIL_AT, '已就绪模板没有落在进度/就绪守卫之后');
+    ok(/readyNames\.length\s*\n?\s*\? fillPrepDetail\(t\('listen_prep_detail'/.test(PRETEXT),
+      '已就绪模板不在 readyNames.length 分支里');
+    ok(/listen_prep_detail', '\{what\}下载中 · \{pct\}% · \{ready\}已就绪'\)/.test(PRETEXT),
+      '已就绪模板的占位符被动过');
+  });
+
+  test('prepBar / prepPct 跟着 prepProgress，loading 时不出进度条', () => {
+    ok(/prepBar: !!\(chrome && chrome\.card === 'not-ready' && !stalled && prepProgress\)/.test(NOW),
+      'prepBar 没有用 prepProgress');
+    ok(/prepPct: prepLoading \? 0 : \(prep\.pct \|\| 0\)/.test(NOW), 'prepPct 在 loading 时没有归零');
+    ok(/prepShown: !!\(chrome && chrome\.card === 'not-ready'\)/.test(NOW), 'prepShown 逻辑被改了');
+  });
+});

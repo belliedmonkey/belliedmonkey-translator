@@ -3776,6 +3776,15 @@
   "listen_prep_detail": {
     "message": "กำลังโหลด {what} · {pct}% · {ready} พร้อมแล้ว"
   },
+  "listen_prep_loading": {
+    "message": "กำลังอ่านการตั้งค่าและชุดภาษา…"
+  },
+  "listen_prep_checking": {
+    "message": "กำลังเตรียม · กำลังตรวจสอบชุดภาษา"
+  },
+  "listen_prep_downloading": {
+    "message": "กำลังดาวน์โหลด {what} · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "จะไม่เริ่มเอง · กด «{mine}» หรือ «{other}» เพื่อเริ่มฟัง"
   },

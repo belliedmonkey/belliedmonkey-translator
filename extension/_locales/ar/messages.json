@@ -3963,6 +3963,15 @@
   "listen_prep_detail": {
     "message": "جارٍ تنزيل {what} · {pct}% · {ready} جاهز"
   },
+  "listen_prep_loading": {
+    "message": "جارٍ قراءة الإعدادات وحزم اللغات…"
+  },
+  "listen_prep_checking": {
+    "message": "التحضير · جارٍ فحص حزم اللغات"
+  },
+  "listen_prep_downloading": {
+    "message": "جارٍ تنزيل {what} · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "لن يبدأ تلقائيًا · اضغط «{mine}» أو «{other}» لبدء الاستماع"
   },

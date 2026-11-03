@@ -3796,6 +3796,15 @@
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
   },
+  "listen_prep_loading": {
+    "message": "सेटिंग और भाषा पैक पढ़े जा रहे हैं…"
+  },
+  "listen_prep_checking": {
+    "message": "तैयारी · भाषा पैक जाँचे जा रहे हैं"
+  },
+  "listen_prep_downloading": {
+    "message": "{what} डाउनलोड हो रहा है · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
   },

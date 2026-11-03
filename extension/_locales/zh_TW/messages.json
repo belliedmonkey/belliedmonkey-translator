@@ -3964,6 +3964,15 @@
   "listen_prep_detail": {
     "message": "{what}下載中 · {pct}% · {ready}已就緒"
   },
+  "listen_prep_loading": {
+    "message": "正在讀取設定與語言包…"
+  },
+  "listen_prep_checking": {
+    "message": "準備中 · 正在檢查語言包"
+  },
+  "listen_prep_downloading": {
+    "message": "{what}下載中 · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "不會自動開始 · 點「說{mine}」或「{other}」開始收音"
   },
