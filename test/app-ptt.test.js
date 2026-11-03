@@ -258,3 +258,43 @@ describe('BEL-187 · 首页/状态 meter 首帧不显示「下载中 0% · 已�
     ok(/prepShown: !!\(chrome && chrome\.card === 'not-ready'\)/.test(NOW), 'prepShown 逻辑被改了');
   });
 });
+
+// BEL-188：iOS（capsProbe ⇒ system:'unsupported'，captureSource ⇒ 'mic'）在 30 秒静音门
+// 被印上了 macOS 的「屏幕与系统录音」文案。这里守暂停句与 subtitle-state 的采集源门控。
+describe('BEL-188 · 字幕静音门文案按采集源门控', () => {
+  // 从 deaf 判据到 halt() 之前，正好覆盖 pause() 里的静音门出口。
+  const PAUSE = MODEL.slice(MODEL.indexOf('const deaf = '), MODEL.indexOf('function halt('));
+
+  test('halt/暂停路径取一次 captureSource（只在 subtitle 取）', () => {
+    ok(/const src = \(session && session\.mode === 'subtitle'\)\s*\n?\s*\?\s*C\.captureSource\(bridged\(\) \? NativeAudio\.audioCaps\(\) : null\)\s*\n?\s*:\s*null;/.test(PAUSE),
+      '暂停路径没有按 captureSource 取采集源（或没复用 C.captureSource / bridged() ? audioCaps() : null）');
+  });
+
+  test('subtitle_stop_silence_permission 只在 src === \'system\' 分支', () => {
+    ok(/deaf && src === 'system'\s*\?\s*t\('subtitle_stop_silence_permission'/.test(PAUSE),
+      'macOS 权限文案没有挂在 src === \'system\' 分支上');
+    ok((PAUSE.split('subtitle_stop_silence_permission').length - 1) === 1,
+      'subtitle_stop_silence_permission 出现了不止一次（可能又变成无条件）');
+    ok(!/deaf\s*\?\s*t\('subtitle_stop_silence_permission'/.test(PAUSE),
+      '又回到只看 deaf、不看采集源的老写法');
+  });
+
+  test('mic 分支引用 subtitle_stop_silence_mic_permission', () => {
+    ok(/deaf && src === 'mic'\s*\?\s*t\('subtitle_stop_silence_mic_permission'/.test(PAUSE),
+      'mic 分支没有引用 subtitle_stop_silence_mic_permission');
+  });
+
+  test('未知/其它采集源走通用 subtitle_stop_silence，不再提权限', () => {
+    const micAt = PAUSE.indexOf("src === 'mic'");
+    const fallbackAt = PAUSE.indexOf("t('subtitle_stop_silence'", micAt);
+    ok(micAt >= 0 && fallbackAt > micAt, '未知源没有落到最后的通用 subtitle_stop_silence 兜底');
+    const fallback = PAUSE.slice(fallbackAt, PAUSE.indexOf('false);', fallbackAt));
+    ok(!/src === 'system'|src === 'mic'|subtitle_stop_silence_(mic_)?permission|系统录音|麦克风/.test(fallback),
+      '未知源兜底仍在提权限或 macOS 设置');
+  });
+
+  test('subState 的 silence-permission 只在 src === \'system\' 时发', () => {
+    ok(/session\.mode === 'subtitle' && deaf && src === 'system'\s*\?\s*'silence-permission'\s*:\s*'silence'/.test(PAUSE),
+      'mic / 未知源仍会发 silence-permission（条上会指向 Mac 系统设置）');
+  });
+});
