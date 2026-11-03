@@ -54,6 +54,13 @@ function callerIdOf(query) {
   return id;
 }
 
+// BEL-151 GAP-2: the Worker-owned pending_confirm id rides the action deep link
+// (CONTRACT §2). Opaque to the App; validate only the transport shape.
+function pendingIdOf(value) {
+  const id = value == null ? '' : String(value).trim();
+  return /^[A-Za-z0-9._:-]{1,256}$/.test(id) ? id : '';
+}
+
 function langOf(value) {
   const s = value == null ? '' : String(value);
   if (!/^[A-Za-z]{2,8}(-[A-Za-z0-9]{1,8})*$/.test(s)) return '';
@@ -75,6 +82,7 @@ module.exports = {
   parseAgentDeepLink,
   sourceOf,
   callerIdOf,
+  pendingIdOf,
   langOf,
   hostnameOf,
 };

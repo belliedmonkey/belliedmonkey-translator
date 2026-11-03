@@ -275,6 +275,7 @@ export function createHost(options) {
       store.removeItem(Bridge.KEYS.cred);
       store.removeItem(Bridge.KEYS.credTtl);
       store.removeItem(Bridge.KEYS.credAt);
+      store.removeItem(Bridge.KEYS.pending);
     }
     store.removeItem(CRED_USER_KEY);
     store.removeItem(RECONNECT_KEY);
@@ -659,6 +660,13 @@ export function createHost(options) {
     return {
       bootstrap: (o) => withClient((c) => c.bootstrap(o)),
       heartbeat: () => withClient((c) => c.heartbeat()),
+      // BEL-151 GAP-2: the deep-link confirm surface sends its decision through
+      // this same client. `confirm` carries device_cred + the MCP Bearer; the
+      // local pending row is remembered before the card and cleared by the
+      // client itself on 401 and by every disconnect path.
+      rememberPending: (o) => withClient((c) => c.rememberPending(o)),
+      confirm: (o) => withClient((c) => c.confirm(o)),
+      pendingIds: () => withClient((c) => c.pendingIds()),
       // T6: revoke ends the device session, so the MCP access token that was used
       // for it goes too. The refresh token stays in its Keychain slot — the next
       // pairing confirm may still find the same account and skip a browser consent.
