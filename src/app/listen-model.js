@@ -3521,15 +3521,25 @@ const listenModel = (() => {
     modeView, pillView, nowLabel, ephemeralView, toggleView,
     nowView: () => {
       const chrome = mode === 'subtitle' ? null : pageChrome();
+      // BEL-187：与 BEL-184 同一 readiness 判据（cfg 由 readCfg() 异步写入、prep 等探针）。
+      // 首帧/未就绪不画「下载中 0% · 已就绪」；只有真实下载进度才报百分比。
+      const prepLoading = !cfg || !prep.probed;
+      const prepProgress = !prepLoading && (prep.running || prep.pct > 0);
       const readyNames = [];
       if (prep.assets.lid && prep.assets.vad) readyNames.push(t('firstrun_packs_base', '基础组件'));
       for (const code of Object.keys(prep.assets.asr || {})) {
         if (prep.assets.asr[code]) readyNames.push(endonymOf(code));
       }
       const stalled = !!(chrome && chrome.card === 'not-ready' && prep.stalled);
-      const prepText = stalled
+      const prepText = prepLoading
+        ? t('listen_prep_loading', '正在读取设置与语言包…')
+        : stalled
         ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
-        : fillPrepDetail(t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪'), prep.name || '', prep.pct || 0, readyNames.join('、'));
+        : !prepProgress
+          ? t('listen_prep_checking', '准备中 · 正在检查语言包')
+          : (readyNames.length
+            ? fillPrepDetail(t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪'), prep.name || '', prep.pct || 0, readyNames.join('、'))
+            : fillPrepDetail(t('listen_prep_downloading', '{what}下载中 · {pct}%'), prep.name || '', prep.pct || 0, ''));
       const readySub = (chrome && chrome.card === 'ready-tap')
         ? t('listen_ready_tap_sub', '不会自动开始 · 点「说{mine}」或「{other}」开始收音')
           .replace('{mine}', endonymOf(cfg && cfg.myLang))
@@ -3541,8 +3551,8 @@ const listenModel = (() => {
         flash: !!(chrome && prep.flashUntil > Date.now()),
         prepShown: !!(chrome && chrome.card === 'not-ready'),
         prepText,
-        prepBar: !!(chrome && chrome.card === 'not-ready' && !stalled && (prep.running || prep.pct > 0)),
-        prepPct: prep.pct || 0,
+        prepBar: !!(chrome && chrome.card === 'not-ready' && !stalled && prepProgress),
+        prepPct: prepLoading ? 0 : (prep.pct || 0),
         prepRetry: stalled ? t('tts_pack_retry', '重试') : '',
         readySub,
       };

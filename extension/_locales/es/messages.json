@@ -3963,6 +3963,15 @@
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
   },
+  "listen_prep_loading": {
+    "message": "Leyendo ajustes y paquetes de idioma…"
+  },
+  "listen_prep_checking": {
+    "message": "Preparando · comprobando paquetes de idioma"
+  },
+  "listen_prep_downloading": {
+    "message": "Descargando {what} · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
   },

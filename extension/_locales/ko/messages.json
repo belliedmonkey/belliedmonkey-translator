@@ -3963,6 +3963,15 @@
   "listen_prep_detail": {
     "message": "{what} 받는 중 · {pct}% · {ready} 준비됨"
   },
+  "listen_prep_loading": {
+    "message": "설정과 언어 팩을 읽는 중…"
+  },
+  "listen_prep_checking": {
+    "message": "준비 중 · 언어 팩 확인 중"
+  },
+  "listen_prep_downloading": {
+    "message": "{what} 다운로드 중 · {pct}%"
+  },
   "listen_ready_tap_sub": {
     "message": "저절로 시작하지 않습니다 · 「{mine}」 또는 「{other}」를 누르면 듣습니다"
   },
