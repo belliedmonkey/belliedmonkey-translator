@@ -3931,6 +3931,24 @@
   "listen_ptt_preparing": {
     "message": "准备中 · {lang} 下载 {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "正在读取设置…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "说本机语言"
+  },
+  "listen_ptt_loading_other": {
+    "message": "对方的语言"
+  },
+  "listen_ptt_loading_why": {
+    "message": "正在读取设置与语言包，请稍候…"
+  },
+  "listen_ptt_checking": {
+    "message": "准备中 · 正在检查语言包"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "正在准备本机识别包…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

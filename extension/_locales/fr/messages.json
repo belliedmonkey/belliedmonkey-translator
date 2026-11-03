@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Lecture des réglages…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Parler votre langue"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Sa langue"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Lecture des réglages et des packs de langue, un instant…"
+  },
+  "listen_ptt_checking": {
+    "message": "Préparation · vérification des packs de langue"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Préparation du pack de reconnaissance local…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

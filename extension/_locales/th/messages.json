@@ -3743,6 +3743,24 @@
   "listen_ptt_preparing": {
     "message": "กำลังเตรียม · โหลด {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "กำลังอ่านการตั้งค่า…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "พูดภาษาของเครื่องนี้"
+  },
+  "listen_ptt_loading_other": {
+    "message": "ภาษาของอีกฝ่าย"
+  },
+  "listen_ptt_loading_why": {
+    "message": "กำลังอ่านการตั้งค่าและชุดภาษา โปรดรอสักครู่…"
+  },
+  "listen_ptt_checking": {
+    "message": "กำลังเตรียม · กำลังตรวจสอบชุดภาษา"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "กำลังเตรียมชุดรู้จำในเครื่อง…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

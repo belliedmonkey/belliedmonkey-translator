@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "準備中 · {lang} を {pct}% ダウンロード"
   },
+  "listen_ptt_loading": {
+    "message": "設定を読み込んでいます…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "この端末の言語で話す"
+  },
+  "listen_ptt_loading_other": {
+    "message": "相手の言語"
+  },
+  "listen_ptt_loading_why": {
+    "message": "設定と言語パックを読み込んでいます。少々お待ちください…"
+  },
+  "listen_ptt_checking": {
+    "message": "準備中 · 言語パックを確認しています"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "端末の認識パックを準備しています…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

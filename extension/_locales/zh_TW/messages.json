@@ -3931,6 +3931,24 @@
   "listen_ptt_preparing": {
     "message": "準備中 · {lang} 下載 {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "正在讀取設定…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "說本機語言"
+  },
+  "listen_ptt_loading_other": {
+    "message": "對方的語言"
+  },
+  "listen_ptt_loading_why": {
+    "message": "正在讀取設定與語言包，請稍候…"
+  },
+  "listen_ptt_checking": {
+    "message": "準備中 · 正在檢查語言包"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "正在準備本機辨識包…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

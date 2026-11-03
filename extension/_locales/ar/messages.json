@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "جارٍ التجهيز · تنزيل {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "جارٍ قراءة الإعدادات…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "تحدّث بلغتك"
+  },
+  "listen_ptt_loading_other": {
+    "message": "لغة الطرف الآخر"
+  },
+  "listen_ptt_loading_why": {
+    "message": "جارٍ قراءة الإعدادات وحزم اللغة، لحظة…"
+  },
+  "listen_ptt_checking": {
+    "message": "جارٍ التجهيز · التحقق من حزم اللغة"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "جارٍ تجهيز حزمة التعرّف على الجهاز…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

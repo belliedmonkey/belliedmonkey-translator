@@ -3763,6 +3763,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "सेटिंग्स पढ़ी जा रही हैं…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "अपनी भाषा में बोलें"
+  },
+  "listen_ptt_loading_other": {
+    "message": "सामने वाले की भाषा"
+  },
+  "listen_ptt_loading_why": {
+    "message": "सेटिंग्स और भाषा पैक पढ़े जा रहे हैं, कृपया प्रतीक्षा करें…"
+  },
+  "listen_ptt_checking": {
+    "message": "तैयार हो रहा है · भाषा पैक जाँचे जा रहे हैं"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "ऑन-डिवाइस पहचान पैक तैयार हो रहा है…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

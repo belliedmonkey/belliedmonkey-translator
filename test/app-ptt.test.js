@@ -189,3 +189,32 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(/lidPaused\(\)/.test(HOOK), '没有只读的 lidPaused()');
   });
 });
+
+// BEL-184：cfg 由 readCfg() 异步写入、prep 也要等探针 —— 首帧/未就绪不得画成「准备中 0%」。
+describe('BEL-184 · 首帧/未就绪不显示 0%', () => {
+  const PTTHINT = MODEL.slice(MODEL.indexOf('function pttHintFor'), MODEL.indexOf('function pttView'));
+  const PTTVIEW = MODEL.slice(MODEL.indexOf('function pttView'), MODEL.indexOf('function lidModel'));
+
+  test('pttView 在 cfg / 探针未就绪时走显式 loading 分支', () => {
+    ok(/!sub && \(!cfg \|\| !prep\.probed\)/.test(PTTVIEW), '没有 (!cfg || !prep.probed) 首帧闸');
+    ok(/loading: true/.test(PTTVIEW), 'loading 分支没有标记 loading: true');
+    ok(/正在读取设置/.test(PTTVIEW), 'loading 分支没有「正在读取设置」小字');
+    ok(/listen_ptt_loading_why/.test(PTTVIEW), 'loading 分支没有 listen_ptt_loading_why');
+  });
+
+  test('pttHintFor 只在真实下载时出现百分比', () => {
+    ok(/if \(!\(pct > 0\)\)/.test(PTTHINT), '没有 pct > 0 的守卫（0 仍会画成「下载 0%」）');
+    ok(/检查语言包/.test(PTTHINT), '没有「检查语言包」兜底小字');
+  });
+
+  test('side 未就绪时 whyText 非空（preparing why）', () => {
+    ok(/listen_ptt_preparing_why/.test(PTTVIEW), 'pttView 没有 listen_ptt_preparing_why');
+    ok(/mineChrome\.hint === 'preparing' \|\| otherChrome\.hint === 'preparing'/.test(PTTVIEW),
+      'whyText 没有按两侧 preparing 判定');
+  });
+
+  test('不出现固定的「下载 0%」文案（模板保留，0 由 loading 分支兜住）', () => {
+    ok(!/下载 0%['"`]/.test(MODEL), '源码里仍有固定的「下载 0%」');
+    ok(/下载 \{pct\}%/.test(MODEL), '百分比模板被删了（只该被 0 守卫兜住）');
+  });
+});

@@ -3930,6 +3930,24 @@
   "listen_ptt_preparing": {
     "message": "준비 중 · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "설정을 읽는 중…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "이 기기의 언어로 말하기"
+  },
+  "listen_ptt_loading_other": {
+    "message": "상대의 언어"
+  },
+  "listen_ptt_loading_why": {
+    "message": "설정과 언어 팩을 읽는 중입니다. 잠시만 기다려 주세요…"
+  },
+  "listen_ptt_checking": {
+    "message": "준비 중 · 언어 팩 확인 중"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "기기 인식 팩을 준비하는 중…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
