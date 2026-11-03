@@ -1428,7 +1428,7 @@ nameLengthGate(DIST);
   buildAppBundle(path.join(ROOT, APP_OUT), log,
     FLAVOR === 'china' ? { genRoot: DIST, limitProviders,
       rewriteHostLiterals: true,
-      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : {});
+      switchBackend: chinaBackendReady() ? (text, what) => switchBackend(text, what, chinaBackend()) : null } : { flavor: 'global' });
   // 两条发射路径必须指向同一个后端：china.ready=true 时中国版 App 包里不许再出现 *.supabase.co。
   if (FLAVOR === 'china' && chinaBackendReady()) {
     const js = fs.readFileSync(path.join(ROOT, APP_OUT, 'Script.js'), 'utf8');

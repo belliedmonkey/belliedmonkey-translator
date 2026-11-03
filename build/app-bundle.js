@@ -321,6 +321,15 @@ function buildAppBundle(outDir, log, opts) {
     if (opts.syncOn && rel === 'extension/learn/backend.config.js') {
       text = opts.flipSyncFlag(text, rel + ' (app bundle)');
     }
+    // 国际包拼的是**源码**那份 backend.config.js，build/backend-inject.js 对 dist/ 的
+    // 注入到不了这里 —— Script.js 会带着 *.invalid 占位符出货。对源码文本做同一
+    // 次替换；只传已 resolve 的 url / anonKey，china 占位符留空由 apply 跳过
+    // （中国版随后由 switchBackend 覆盖 url / anonKey）。
+    if (opts.flavor !== 'china' && rel === 'extension/learn/backend.config.js') {
+      const backendInject = require('./backend-inject');
+      const resolved = backendInject.resolve(ROOT);
+      text = backendInject.apply(text, { url: resolved.url, anonKey: resolved.anonKey });
+    }
     // 中国版 App 只提供 Apple 登录：Google 在大陆连不上（build.js 的 limitProviders）。
     // **这里必须单独做一次** —— App 包拼的是**源码**那份 backend.config.js，不是
     // dist-china 里那份，所以 build.js 对 dist-china 的改写在这条路上完全不生效。
