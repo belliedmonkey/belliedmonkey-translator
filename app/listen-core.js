@@ -1057,16 +1057,71 @@ var ListenCore = (() => {
     return segRouteOf({ providerId: (o && o.providerId) || (p && p.id) || '', providerType: p ? p.type : '', model, fmt, translationModel });
   }
 
+  // 送到端上 LID（ECAPA）的那两门语言。**必须是真的两门**：ECAPA 只算这两门的 log 概率差
+  // （LLR），少于两门时 LLR 恒为 0、永远过不了阈值 —— 一条判词都不会出（BEL-188 真机）。
+  // 「自动」字幕的两路识别器由 deviceLocales() 解析成具体 locale（如 en-US + zh-CN），
+  // 候选就是它们；不能拿字面量 'auto' 去喂模型（'auto' 不是一个语言，会被 native 过滤掉）。
+  function lidPairLangs(cfg, locales) {
+    const a = baseCode(cfg && cfg.myLang), b = baseCode(cfg && cfg.otherLang);
+    const auto = a === 'auto' || b === 'auto';
+    const raw = auto ? (Array.isArray(locales) ? locales : []) : [a, b];
+    const out = [];
+    for (const x of raw) {
+      const c = baseCode(x);
+      if (c && c !== 'auto' && out.indexOf(c) < 0) out.push(c);
+    }
+    return out.slice(0, 2);
+  }
+
   // 收到一条 final 时的接受判定（P1-5 的可测形状）：
   //   · 换边宽限：换键后 1.5s 内、**换之前那门**的**第一条** final 放行（收口片），用完即止；
   //   · 否则按 LID 归属：不是这一路 ⇒ 丢。
   const SEG_SWITCH_GRACE_MS = 1500;
+  const NO_LID_WINDOW_MS = 1500;
+  // BEL-188 兜底（只在「自动」字幕、且**本场一条 LID 判词都没有**时启用）：
+  //   ① 用 final 自带文字的主文字系在两门候选里取**唯一**匹配的一门（Latin→en / Han→zh）；
+  //   ② 文字系分不开（纯数字、混写）⇒ 取「自动」的默认候选（上次认出的那门，缺省 en）；
+  //   ③ 同一时间窗内只放行**一路** —— 两路识别器同一段音频各吐一条时，不会两路都上屏。
+  // 返回 null = 维持原来的 attrib 丢弃；返回对象 = 放行，并带 `note` 给调用方更新窗口。
+  function noLidAdmit(o, fb) {
+    const base = baseCode(o && o.base);
+    const cands = (fb.candidates || []).map(baseCode).filter((c, i, a) => c && c !== 'auto' && a.indexOf(c) === i).slice(0, 2);
+    if (!base || cands.indexOf(base) < 0) return null;
+    const now = Number(o.now) || 0, since = Number(fb.since) || 0;
+    if (since && now - since < (Number(fb.graceMs) || 0)) return null;   // 先给真判词一个到场的机会
+    const script = String(fb.script || '');
+    let winner = '';
+    if (script) {
+      const hit = cands.filter((c) => scriptsOf(c, fb.registry).has(script));
+      if (hit.length === 1) winner = hit[0];      // 唯一匹配才算判据；两门同文字系 ⇒ 交给默认候选
+    }
+    if (!winner) {
+      const want = baseCode(fb.prefer);
+      winner = (want && cands.indexOf(want) >= 0) ? want : cands[0];   // 默认候选必须在两门里
+    }
+    if (base !== winner) return null;
+    const last = fb.last;
+    const win = Number(fb.windowMs) || NO_LID_WINDOW_MS;
+    if (last && last.base && last.base !== base && now - (Number(last.at) || 0) < win) return null;
+    return { admit: true, markUsed: false, fallback: 'no-lid', note: { base, at: now } };
+  }
   function finalAdmit(o) {
     const base = baseCode(o && o.base), lid = baseCode(o && o.lid);
     const sw = o && o.pttSwitch;
     if (sw && !sw.used && base && base === baseCode(sw.from) && ((o.now || 0) - sw.at) <= SEG_SWITCH_GRACE_MS) return { admit: true, markUsed: true };
-    if (!base || !lid || base !== lid) return { admit: false, markUsed: false };
-    return { admit: true, markUsed: false };
+    if (!base) return { admit: false, markUsed: false };
+    if (lid && base === lid) return { admit: true, markUsed: false };
+    // lid 为空有两种：① 本场还没有任何判词；② 判词落在第三门（lidPair() 会丢掉它，但 lidRaw 有值）。
+    // 自动字幕的兜底只在前一种、或「第三门」时启用；落在两门里的判词正在 0.5s 确认期时**不兜底**。
+    if (!lid && o && o.noLid) {
+      const raw = baseCode(o.lidRaw);
+      const cands = (o.noLid.candidates || []).map(baseCode);
+      if (!raw || cands.indexOf(raw) < 0) {
+        const fb = noLidAdmit(o, o.noLid);
+        if (fb) return fb;
+      }
+    }
+    return { admit: false, markUsed: false };
   }
   // 识别定稿的**唯一闸**（纯，方案 §四）：两条路（模型断句 / 旧路）都走这一个函数，按顺序
   //   ① 正在朗读这门语言 ⇒ 丢（防回声的老规则，保留到做回声消除）
@@ -1079,14 +1134,14 @@ var ListenCore = (() => {
     if (!base) return { admit: false, markUsed: false, force: false, reason: 'nolang', xfer: false };
     const playing = p.playing;
     if (playing && typeof playing.has === 'function' && playing.has(base)) return { admit: false, markUsed: false, force: false, reason: 'speaking', xfer: false };
-    const adm = finalAdmit({ base, lid: p.lid, pttSwitch: p.pttSwitch, now: p.now });
+    const adm = finalAdmit({ base, lid: p.lid, lidRaw: p.lidRaw, pttSwitch: p.pttSwitch, now: p.now, noLid: p.noLid });
     const text = String(p.text || '').replace(/\s+/g, ' ').trim();
     // R14 ②：被归属闸拒掉的结果，可能是「中文路把英文短句听成中文」——多返回一个「可转交」标记
     // （只是**可**：等待期间英文路一有带字母的结果就丢弃）。方向只有中文路 → 英文路一个。
     if (!adm.admit) return { admit: false, markUsed: false, force: false, reason: 'attrib', xfer: isXferCandidate({ base, lid: p.lid, text }) };
     if (!text) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'empty', xfer: false };
     if (typeof p.isEcho === 'function' && p.isEcho(text)) return { admit: false, markUsed: adm.markUsed, force: false, reason: 'echo', xfer: false };
-    return { admit: true, markUsed: adm.markUsed, force: !!adm.markUsed, reason: '', xfer: false };
+    return { admit: true, markUsed: adm.markUsed, force: !!adm.markUsed, reason: '', xfer: false, fallback: adm.fallback || '', note: adm.note || null };
   }
 
   // 断句+翻译 prompt（规则五条 2026-10-10 用户批准，措辞可微调、规则不改）。
@@ -2376,7 +2431,7 @@ var ListenCore = (() => {
 
     LISTEN_PASS, LISTEN_CONTEXT_ROWS, buildListenPrompt, parseListenReply, acceptCorrection, contextRows,
 
-    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, intakeDecide, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
+    SEG_SOFT, SEG_HARD, SEG_IDLE_MS, SEG_RELEASE_MS, SEG_MAX_CALLS, SEG_END_WAIT_MS, SEG_PARTIAL_MS, segCounts, segRouteOf, segRouteFor, segIsFragment, segShortPiece, normDupText, joinFrag, finalAdmit, intakeDecide, lidPairLangs, buildSegPrompt, parseSegReply, hardCutSentences, makeSegmentRouter,
 
     toLocale, scriptOfLocale, acceptDeviceFinal, rejectDeviceFinal, makeFinalGate, makeStreamCutter, LATIN_MIN_CONF, STREAM_FLUSH_MS, STREAM_MAX_MS,
     overlapTs,

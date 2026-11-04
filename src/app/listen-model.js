@@ -150,6 +150,9 @@ const listenModel = (() => {
   let lidLang = '';
   let lidLangAt = 0;      // 当前判词是什么时候换过来的（确认用，见 lidConfirm）
   let lidUnsub = null;
+  // BEL-188：「自动」字幕在 LID 完全没判词时的兜底窗口（最近一次放行的 base / 时刻）。
+  // 只影响 noLidAdmit 的去重，不参与正常 LID 归属。
+  let noLidLast = null;
   let session = null;
   let cfg = null;
   let sock = null;
@@ -934,6 +937,7 @@ const listenModel = (() => {
   function lidOn() {
     lidLang = '';
     lidLangAt = 0;
+    noLidLast = null;
     if (lidUnsub) return;
     try {
       lidUnsub = NativeSpeech.onLid((r) => {
@@ -1572,7 +1576,10 @@ const listenModel = (() => {
       const engine = cfg && cfg.lidEngine === 'whisper' ? 'whisper' : 'ecapa';
       return mtDeviceLidModelsFor(Registry.flavor() || 'global', {
         engine,
-        langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
+        // BEL-188：ECAPA 只算这两门的 LLR，少于两门就永远不出判词。「自动」字幕必须把
+        // deviceLocales() 解析出来的真实 locale（en-US + zh-CN）给它 —— 字面量 'auto' 会被
+        // native 的 labels 过滤掉，只剩一门 ⇒ LLR 恒为 0 ⇒ 所有 final 被 attrib 丢掉。
+        langs: cfg ? C.lidPairLangs(cfg, deviceLocales(cfg)) : [],
         threshold: (cfg && Number(cfg.lidThreshold)) || 6,
         cpuOnly: !!(cfg && cfg.lidCpuOnly),
         trace: !!(cfg && cfg.lidTrace),
@@ -1711,8 +1718,22 @@ const listenModel = (() => {
         if (xferGate) xferGate.noteEnLetter();
       }
       // 唯一闸（两条路共用；纯函数在 listen-core，可测）：朗读中 / 换边宽限 / LID 归属 / 回声文本相似度
+      // BEL-188 兜底：只在「自动」字幕、本场一条 LID 原始判词都没有时启用；规则在 listen-core
+      // 的 noLidAdmit（文字系唯一匹配 + 同一时间窗只放行一路）。
+      const autoSub = mode === 'subtitle' && C.baseCode(cfg && cfg.myLang) === 'auto';
+      const noLid = (autoSub && !lidPair()) ? {
+        candidates: C.lidPairLangs(cfg, deviceLocales(cfg)),
+        prefer: C.baseCode(subGuess || 'en'),
+        registry: cfg && cfg.registry,
+        script: routeDeps.dominantScript(String((ev && ev.text) || '')),
+        since: startedAt,
+        graceMs: 2500,
+        windowMs: 1500,
+        now: Date.now(),
+        last: noLidLast,
+      } : null;
       const dec = C.intakeDecide({
-        base, lid: lidPair(), pttSwitch, now: Date.now(),
+        base, lid: lidPair(), lidRaw: lidLang, noLid, pttSwitch, now: Date.now(),
         playing: echo.playingLangs(Date.now()),
         text: String((ev && ev.text) || ''),
         isEcho: (s) => echo.isEcho(s, now()),
@@ -1729,6 +1750,8 @@ const listenModel = (() => {
         }
         return;
       }
+      if (dec.note) noLidLast = dec.note;
+      if (dec.fallback) diagBump('intake', 'admit-fallback', { why: dec.fallback });
       if (dec.markUsed && pttSwitch) pttSwitch.used = true;
       // 告诉句头闸「另一门语言收到了这条定稿」：**唯一**裁决入口 noteOtherText ——
       // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
