@@ -2732,7 +2732,7 @@ IX 线框半稿，非 pen.dev 真机稿）。范围只到**首页入口区**；�
 - 失败帧标题「还差一步」。没有专卡的失败码也用这个标题，正文用回执里的 message。取消回执的标题是「已取消」。F3 的次按钮复制一段说明，不放商店一键安装。F4「改用实时字幕」只打开字幕表面。
 - 附录卡，主次按钮逐字：`need_app` 正文 `尚未检测到本机「大肚猴翻译」。请先安装或打开 App，再重试。`，主 `去安装 / 打开 App`，次 `打开安装说明`；`need_login`「需要登录 / 去登录 / 取消」；`grant_or_key_unavailable`「本机额度或密钥不可用 / 去配置引擎与密钥 / 取消」，脚注「亦可在宿主配置自有 Key 或订阅」；`network_unavailable`「网络暂时不可用 / 重试 / 取消」。线协议里额度或密钥仍是 `quota_or_key`，卡上的 code 是 `grant_or_key_unavailable`。宿主订阅被提供方拒绝代付时，线协议码是 `subscription_cannot_pay`，用户看见的仍是这张卡。
 - `grant_or_key_unavailable` 的「去配置引擎与密钥」打开设置里的引擎与密钥（用户自己的 key）。它不去登录页。宿主 API Key 会打到提供方，用量不进回执。宿主订阅走同一条请求；不肯代付时回执是 `subscription_cannot_pay`，不改走大肚猴额度假装成功。环境变量非空本身不是成功。本机已经填好的 key 仍然可以跑。`network_unavailable` 的「重试」再走同一次调用，不打开引擎、登录或鉴权页。
-- 安装引导（Claude Code / Codex / dsh）脚注含「宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径」，并保留本机 stdio、Remote 未发布、不把产品服务器写进仓库根 `.mcp.json`。
+- 安装引导（Claude Code / Codex / dsh）脚注含「宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径」，并保留本机 stdio、Remote 已发布（`https://mcp.belliedmonkey.com/mcp/v1`，OAuth）、仓库根 `.mcp.json` 声明产品 remote server。
 - CLI 没有确认卡。没有 elicitation 时回执是 `need_confirm`，正文「需要你在本机点确认」。确认卡只在 App。
 - 在途时主次按钮 disabled，并降到 45% 不透明度。
 

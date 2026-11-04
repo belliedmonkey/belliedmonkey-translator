@@ -1,14 +1,14 @@
 # dsh · 本机 stdio
 
-Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。
+Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth). Local stdio is still the daily entry point. 不要把本进程说成已上架云 MCP。
 
 宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径。dsh 用 `DEEPSEEK_AUTH_TOKEN`（订阅）或 `DEEPSEEK_API_KEY`。API Key 会打到提供方并留下用量观测。订阅令牌走同一条请求；提供方不肯代付时回执是 `subscription_cannot_pay`，不会改走大肚猴额度假装成功。环境变量非空本身不是成功，也不是额度。
 
-本目录是 dsh 的 plugin 包装。`stdio.js` 只加载 W2 内核 `agent/mcp-stdio.js`。工具的线协议名与内核的七个动作 ID 相同，含 `ready.check`。没有第二份名字 `ready_check`。本包装没有 Remote 地址，没有 H3，也没有 Grok 或 Muse 的本地插件。
+本目录是 dsh 的 plugin 包装。`stdio.js` 只加载 W2 内核 `agent/mcp-stdio.js`。工具的线协议名与内核的七个动作 ID 相同，含 `ready.check`。没有第二份名字 `ready_check`。本包装是 stdio，不写 Remote 地址；产品的 Remote 已发布（OAuth）。没有 H3，也没有 Grok 或 Muse 的本地插件。
 
 dsh 的函数名只允许 `[A-Za-z0-9_-]`。六个没有点号的工具，模型看见的名字是 `mcp__belliedmonkey__` 加上动作 ID。`ready.check` 的模型侧映射是 `mcp__belliedmonkey__ready_check_bc683c60f54e`（SHA-256(`belliedmonkey` + NUL + `ready.check`) 的前 12 位十六进制）。这是宿主映射注解。`tools/call` 收到的仍是 `ready.check`。
 
-不要把 `belliedmonkey` 写进仓库根的 `.mcp.json`。不要执行 `dsh plugin add @deepseek-ai/dsh-mcp-client`：那个客户端已经随 dsh 自带，单独再装会落到旧的 dist-tag。
+仓库根的 `.mcp.json` 声明产品 remote server `belliedmonkey`（`https://mcp.belliedmonkey.com/mcp/v1`，OAuth）。本目录只做本机 stdio，不要在本目录的 patch 里加 `url`。不要执行 `dsh plugin add @deepseek-ai/dsh-mcp-client`：那个客户端已经随 dsh 自带，单独再装会落到旧的 dist-tag。
 
 ## 装成 bundle
 

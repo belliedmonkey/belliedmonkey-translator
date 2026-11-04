@@ -3,7 +3,7 @@
   "version": "1.22.0-n25",
   "private": true,
   "type": "module",
-  "description": "Local stdio MCP packaging for dsh. The daily server is this machine. A remote MCP is not published.",
+  "description": "Local stdio MCP packaging for dsh. The daily server is this machine. Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).",
   "license": "GPL-3.0-or-later",
   "main": "./index.js",
   "files": [
