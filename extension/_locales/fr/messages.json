@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "Les sous-titres apparaîtront ici après le démarrage"
+  },
+  "grant_balance_stale": {
+    "message": "Dernier solde connu · non actualisé"
   }
 }

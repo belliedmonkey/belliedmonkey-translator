@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "시작하면 자막이 여기에 표시됩니다"
+  },
+  "grant_balance_stale": {
+    "message": "마지막으로 확인된 잔액 · 새로 고침 안 됨"
   }
 }

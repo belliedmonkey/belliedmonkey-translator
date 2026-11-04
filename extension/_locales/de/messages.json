@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "Nach dem Start erscheinen die Untertitel hier"
+  },
+  "grant_balance_stale": {
+    "message": "Zuletzt bekannter Stand · nicht aktualisiert"
   }
 }

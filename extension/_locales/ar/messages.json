@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "ستظهر الترجمة هنا بعد البدء"
+  },
+  "grant_balance_stale": {
+    "message": "الرصيد الأخير المعروف · لم يُحدَّث"
   }
 }

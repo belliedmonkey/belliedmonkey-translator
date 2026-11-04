@@ -4096,5 +4096,8 @@
   },
   "subtitle_stage_empty": {
     "message": "เมื่อเริ่มแล้ว คำบรรยายจะปรากฏที่นี่"
+  },
+  "grant_balance_stale": {
+    "message": "ยอดคงเหลือล่าสุด · ยังไม่อัปเดต"
   }
 }

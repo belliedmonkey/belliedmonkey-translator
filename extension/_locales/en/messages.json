@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "Captions will appear here once you start."
+  },
+  "grant_balance_stale": {
+    "message": "Last known balance · not refreshed"
   }
 }

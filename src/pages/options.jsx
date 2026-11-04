@@ -65,6 +65,7 @@ import QuickSetup from '../shared/quick-setup.js';
 import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
 import { render as renderEngineFields } from './engine-fields-view.jsx';
 import * as LearnGrant from '../shared/grant.js';
+import * as Quota from '../shared/quota.js';
 import { render as renderGrant } from '../shared/grant-view.jsx';
 import * as SourcesView from '../shared/sources-view-view.jsx';
 import DepLineView from '../shared/dep-line-view.jsx';
@@ -571,6 +572,12 @@ function Options() {
     let marks = {};
     try {
       marks = await new Promise((res) => chrome.storage.local.get(['grant', 'grantTail', 'grantBalance'], (v) => res(v || {})));
+    } catch (_) {}
+    // P1-1：进设置页先拉一次余额，写回同一个 grantBalance 键；失败时 quota 保留
+    // 上次值并打 stale，下面的 renderGrant / 字幕条都会看到同一条旧值 + 标注。
+    try {
+      const q = await Quota.refresh({ settings: Object.assign({}, cur, marks), force: true });
+      if (q && q.balance) marks.grantBalance = q.balance;
     } catch (_) {}
     const st = LearnGrant.status(Object.assign({}, cur, marks),
       { signedIn: !!gs, unavailable: grantUnavailableRef.current });
@@ -1145,6 +1152,13 @@ function Options() {
     if (!ready) return;
     paintGrant().catch(() => {});
   }, [ready, uiLangNow]);
+
+  // 回前台（设置页在扩展里可能长期开着，或从别的标签切回来）也刷一次余额。
+  useEffect(() => {
+    const onVis = () => { if (!document.hidden) paintGrant().catch(() => {}); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { try { document.removeEventListener('visibilitychange', onVis); } catch (_) {} };
+  }, []);
 
   // ── 依赖行（DepLineView ×2，JSX 里挂在复习卡与文档卡首行）──────────────────
   // PR7a 前是「无依赖数组的 useLayoutEffect、每次渲染现读快照重画」；组件化后同一

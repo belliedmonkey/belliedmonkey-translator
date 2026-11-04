@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "開始すると、ここに字幕が表示されます"
+  },
+  "grant_balance_stale": {
+    "message": "前回の残高 · 未更新"
   }
 }

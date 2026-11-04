@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "As legendas aparecerão aqui depois de iniciar"
+  },
+  "grant_balance_stale": {
+    "message": "Último saldo conhecido · não atualizado"
   }
 }

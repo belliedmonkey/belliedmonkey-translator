@@ -4116,5 +4116,8 @@
   },
   "subtitle_stage_empty": {
     "message": "शुरू करने पर सबटाइटल यहाँ दिखेंगे"
+  },
+  "grant_balance_stale": {
+    "message": "अंतिम ज्ञात शेष · रीफ़्रेश नहीं हुआ"
   }
 }

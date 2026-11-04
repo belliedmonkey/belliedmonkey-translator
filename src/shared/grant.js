@@ -209,6 +209,32 @@ export function leftUsd(bal) {
   return Math.max(0, Math.round((l - sp2) * 10000) / 10000);
 }
 
+// 两个界面（设置页的额度卡 / 对话与字幕的额度条）共用这一个 formatter。
+//
+// 2026-11-04 P1-1 的根因：设置页画的是「剩余 / 上限」，对话条画的是「已用 / 上限」。
+// 同一个 grantBalance（$0.14 已用、上限 $0.20）在设置页显示成 $0.06，在字幕条显示成
+// $0.14 —— 两处都在说真话，只是说的是不同的量。用户看到的是同一个数字对不上。
+// 从这一版起**两处只显示 spent / limit**，设置页不再自己解释成剩余；进度条仍按
+// 剩余宽度画，但数字口径只有一个。
+//
+// stale：断网 / 刷新失败时保留上次成功值，并明确标注「未刷新」。只要 at 超过
+// CACHE_MS 或刷新失败打了 stale，就不让旧值冒充当前值。
+export function spentText(bal, opts) {
+  const o = opts || {};
+  if (!bal || typeof bal !== 'object') return '';
+  const hasUsd = Object.prototype.hasOwnProperty.call(bal, 'limitUsd')
+    || Object.prototype.hasOwnProperty.call(bal, 'spentUsd');
+  if (!hasUsd) return '';
+  const limit = Number(bal.limitUsd);
+  const spent = Number(bal.spentUsd || 0);
+  if (!(limit > 0) || !Number.isFinite(limit) || !Number.isFinite(spent)) return '';
+  const money = (v) => '$' + Number(v).toFixed(2);
+  let text = money(spent) + ' / ' + money(limit);
+  const stale = bal.stale === true || !fresh(bal, o.now);
+  if (stale) text += ' · ' + (o.t ? o.t('grant_balance_stale', '上次已知余额 · 未刷新') : 'stale');
+  return text;
+}
+
 // 退出登录时要清掉的东西（裁定 D4：必须登录才能用）。
 // **`grant` 记录留着** —— 它只有 hash 与时间，没有令牌；留着才能在重新登录时
 // 认出「这台机器领过」，也才能诚实地说「余额保留，再登录就回来」。
@@ -289,13 +315,21 @@ export function cardFor(status, opts) {
         body: status === 'low'
           ? t('grant_body_low', '免费额度快用完了。用完之后可以填一把自己的 key 继续。')
           : t('grant_body_active', '免费额度正在用。用完之后可以填一把自己的 key 继续。'),
-        progress: left == null ? null : { left, limit, text: money(left) + ' / ' + money(limit) },
+        // 数字与对话 / 字幕的额度条同源、同口径：spent / limit。
+        // left 只留给进度条的宽度，不再参与文案。
+        progress: left == null ? null : {
+          left, limit, spent: Number(o.balance.spentUsd || 0),
+          text: spentText(o.balance, { t, now: o.now }) || (money(left) + ' / ' + money(limit)),
+        },
         links: [byo],
       });
     case 'exhausted':
       return Object.assign({}, base, {
         body: t('grant_body_exhausted', '免费额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。'),
-        progress: { left: 0, limit, text: money(0) + ' / ' + money(limit) },
+        progress: {
+          left: 0, limit, spent: Number((o.balance && o.balance.spentUsd) || limit),
+          text: spentText(o.balance, { t, now: o.now }) || (money(limit) + ' / ' + money(limit)),
+        },
         links: [byo, community],
       });
     case 'unavailable':
@@ -379,5 +413,5 @@ export function popupRow(settings, opts) {
 
 export default {
   spec, enabled, claim, plan, platform, status, active, activeIn,
-  fresh, leftUsd, clearOnSignOut, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
+  fresh, leftUsd, spentText, clearOnSignOut, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
 };

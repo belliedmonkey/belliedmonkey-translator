@@ -4284,5 +4284,8 @@
   },
   "subtitle_stage_empty": {
     "message": "开始后，字幕会出现在这里"
+  },
+  "grant_balance_stale": {
+    "message": "上次已知余额 · 未刷新"
   }
 }

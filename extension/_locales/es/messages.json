@@ -4283,5 +4283,8 @@
   },
   "subtitle_stage_empty": {
     "message": "Los subtítulos aparecerán aquí al empezar"
+  },
+  "grant_balance_stale": {
+    "message": "Último saldo conocido · sin actualizar"
   }
 }
