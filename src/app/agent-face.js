@@ -2,7 +2,7 @@
 //
 // Copy is the lock in agent/copy.js. This file does not invent those strings.
 // It does not start the microphone and it does not read the page.
-import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, ORIGIN_PREFIX } from '../../agent/copy.js';
+import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, OAUTH_INTERRUPTED, ORIGIN_PREFIX } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
 import { pendingIdOf } from '../../agent/parse.js';
 import { handleAgentUrl } from '../../agent/session.js';
@@ -223,7 +223,11 @@ export function pairingUi(onSignIn) {
         secondary: fail.secondary,
       } : {
         title: FAILURE_TITLE,
-        message: receipt.message,
+        // An OAuth callback that could not be exchanged is a pairing failure,
+        // not an unknown agent action. The wire code stays compatible, the
+        // sentence does not lie to the user.
+        message: (receipt.code === 'unsupported_action' || receipt.code === 'bad_request')
+          ? OAUTH_INTERRUPTED : receipt.message,
         primary: ctaFor(receipt) || CLOSE,
         secondary: ctaFor(receipt) ? CLOSE : '',
       };

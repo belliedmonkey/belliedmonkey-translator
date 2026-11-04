@@ -3291,7 +3291,19 @@ export function bootShell() {
           hasUid: has, uid: has ? String(u.searchParams.get('uid') || '') : null };
       } catch (_) { return null; }
     }
-    NativeBridge.onNative('deeplink', (raw) => { const d = parseDeepLink(raw); if (d) applyDeepLink(d); });
+    NativeBridge.onNative('deeplink', (raw) => {
+      // MCP OAuth 回调（BEL-151 / BEL-188 P0）有自己的收件人。它必须在
+      // parseDeepLink 之前截走：`belliedmonkey://oauth/mcp/callback` 的 host 是
+      // `oauth`，落进下面那三支会被当成一次「复习/登录」深链，code 被丢掉。
+      // 只有真正交换成功 + device register 成功，设置页才会变成「已连接此设备」。
+      try {
+        if (deviceBridgeHost.isOAuthCallback(raw)) {
+          deviceBridgeHost.handleOAuthCallback(raw).catch(() => {});
+          return;
+        }
+      } catch (_) { /* fall through to the existing routes */ }
+      const d = parseDeepLink(raw); if (d) applyDeepLink(d);
+    });
 
     // 「从哪来」的那一行。只有真的被推过来时才出现 —— 自己走进设置页的人不需要它。
     // 配好之后它不必自己变：回执块就在同一屏上，那才是「你可以回去了」的载体。

@@ -15,6 +15,11 @@ const CANCEL = '取消';
 const ASSISTANT_ALLOW = '始终允许此助手';
 const FOOTNOTE = '确认前不开麦、不读页、不写学习库';
 const FAILURE_TITLE = '还差一步';
+// The OAuth callback died between consent and the PKCE exchange (missing bridge,
+// stale/foreign state, refused exchange). That is NOT "this action does not
+// exist" — the user's next step is to start the pairing again. Kept here so the
+// pairing sheet does not invent a second sentence.
+const OAUTH_INTERRUPTED = '授权没有完成，请重新点「连接此设备到助手」。';
 const CLOSE = '关闭';
 const ORIGIN_PREFIX = '来自：';
 const ORIGIN_KNOWN = '已识别助手';
@@ -190,6 +195,7 @@ module.exports = {
   ASSISTANT_ALLOW,
   FOOTNOTE,
   FAILURE_TITLE,
+  OAUTH_INTERRUPTED,
   CLOSE,
   ORIGIN_PREFIX,
   ORIGIN_KNOWN,
