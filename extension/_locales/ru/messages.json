@@ -3021,6 +3021,9 @@
   "subtitle_stop_silence_permission": {
     "message": "Нет звука 30 секунд — пауза. Если видео шло, а субтитров не было, возможно, запись системного звука не разрешена: Системные настройки › Конфиденциальность и безопасность › Запись экрана и системного звука, разрешите BelliedMonkey Translator и нажмите «Продолжить»."
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "Нет звука 30 секунд — пауза. Если видео шло, а субтитров не было, возможно, не разрешён доступ к микрофону: Настройки › Конфиденциальность и безопасность › Микрофон, разрешите BelliedMonkey Translator и нажмите «Продолжить»."
+  },
   "subtitle_bar_silence_permission": {
     "message": "Нет звука 30 секунд — пауза. Видео идёт, а субтитров нет? Возможно, запись системного звука не разрешена"
   },
@@ -3930,6 +3933,24 @@
   "listen_ptt_preparing": {
     "message": "Подготовка · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Чтение настроек…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Говорить на своём языке"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Язык собеседника"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Чтение настроек и языковых пакетов, подождите…"
+  },
+  "listen_ptt_checking": {
+    "message": "Подготовка · проверка языковых пакетов"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Подготовка локального пакета распознавания…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3944,6 +3965,15 @@
   },
   "listen_prep_detail": {
     "message": "Загрузка {what} · {pct}% · готово: {ready}"
+  },
+  "listen_prep_loading": {
+    "message": "Чтение настроек и языковых пакетов…"
+  },
+  "listen_prep_checking": {
+    "message": "Подготовка · проверка языковых пакетов"
+  },
+  "listen_prep_downloading": {
+    "message": "Загрузка {what} · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "Само не начнётся · нажмите «{mine}» или «{other}», чтобы слушать"
@@ -4208,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Переход к настройке по движкам отменит текущую настройку одним нажатием"
+  },
+  "grant_balance_stale": {
+    "message": "Последний известный баланс · не обновлён"
   }
 }

@@ -162,8 +162,12 @@ var MT_BACKEND = {
     // 在境内手机网络下回读通过（首选腾讯云云函数的默认地址，不绑域名就不涉及备案）、出境单独同意已随版上线（#399）。
     // **只有翻译这一槽**：百炼没有与中继同形状的朗读 / 转写接口，中国版额度不含那两槽。
     // 披露文案里的 {vendor} 不在这里写：取注册表 qwen 条目的中国区 label（build.js chinaGrant）。
-    // **2026-11-01（BEL-172）**：真实 relay URL 改为 build 注入（MT_CHINA_RELAY_URL）。
-    china: { ready: true, relayUrl: 'https://relay.invalid', vendor: 'dashscope' },
+    // **2026-11-04（BEL-188）**：旧函数已于 11-01 14:30:39 删除，境内 NXDOMAIN，
+    // CN 141/142 的译文因此全失败。现入口是新建的 Web 函数，/spec 实测 200
+    // （Qualifier=1）。主机名仍只写这一处，不要抄到别处。
+    // **2026-11-01（BEL-172）**：intl 的 sync host / anon key 已改为 build 注入；
+    // CN 的中继 URL 是本次发布必须钉死的现网入口，故在本分支保留字面值。
+    china: { ready: true, relayUrl: 'https://1320551096-573eoa6wc4.ap-beijing.tencentscf.com', vendor: 'dashscope' },
   },
 };
 

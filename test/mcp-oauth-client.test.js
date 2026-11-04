@@ -253,6 +253,142 @@ describe('MCP OAuth: DCR + authorization_code', () => {
   });
 });
 
+// Wait until connect() has written its persisted transaction and posted the
+// authorize URL. A few macrotasks are enough; the assertion is not a sleep.
+async function waitPending(client) {
+  for (let i = 0; i < 50; i++) {
+    const p = client._pending();
+    if (p) return p;
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  return null;
+}
+
+describe('MCP OAuth: the app-level callback handler', () => {
+  test('a deeplink callback completes the in-flight connect and persists the tokens', async () => {
+    let release = null;
+    const h = harness({ openAuth: () => new Promise((resolve) => { release = resolve; }) });
+    const pendingPair = h.client.connect({ account: 'u1' });
+    const p = await waitPending(h.client);
+    ok(!!p, 'connect() never wrote a pending authorization transaction');
+    eq(p.account, 'u1');
+    eq(typeof p.verifier, 'string');
+    ok(p.verifier.length > 20, 'verifier missing from the transaction');
+
+    const cb = await h.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?code=good-code&state=' + encodeURIComponent(p.state));
+    eq(cb.ok, true);
+    eq(cb.handled, true);
+    eq(cb.delegated, true, 'the live connect() did not get the code delegated to it');
+
+    const out = await pendingPair;
+    eq(out.ok, true);
+    eq(out.account, 'u1');
+    eq(await h.keychain.get('mcp_access'), 'mcp-access-1');
+    eq(await h.keychain.get('mcp_refresh'), 'mcp-refresh-1');
+    eq(h.meta.getItem('mcp_oauth_account'), 'u1');
+    eq(h.client._pending(), null, 'the transaction survived a successful exchange');
+
+    // The native sheet also settles after the deeplink. It must not redeem the
+    // same single-use code a second time.
+    release({ code: 'good-code', state: p.state });
+    await new Promise((r) => setTimeout(r, 0));
+    eq(h.state.calls.filter((c) => c.url.endsWith('/oauth/token')).length, 1,
+      'the callback was exchanged twice');
+  });
+
+  test('a callback after relaunch uses the persisted transaction (cold start)', async () => {
+    const h = harness({ openAuth: async () => ({ error: 'no_callback' }) });
+    const first = await h.client.connect({ account: 'u1' });
+    eq(first.code, 'network_unavailable');
+    const p = h.client._pending();
+    ok(!!p, 'a no_callback result threw the transaction away');
+
+    // A fresh process has the same Keychain + meta (the App's storage) but no
+    // in-memory waiter. This is the restart / browser-handoff case.
+    const h2 = harness({ keychain: h.keychain, meta: h.meta, openAuth: null });
+    const out = await h2.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?code=late-code&state=' + encodeURIComponent(p.state));
+    eq(out.ok, true);
+    eq(out.handled, true);
+    eq(out.account, 'u1');
+    eq(await h2.keychain.get('mcp_refresh'), 'mcp-refresh-1');
+    eq(h2.client._pending(), null);
+    const form = tokenForm(h2.state.calls.find((c) => c.url.endsWith('/oauth/token')));
+    eq(form.get('code'), 'late-code');
+    eq(form.get('code_verifier'), p.verifier);
+  });
+
+  test('a foreign state or a missing code is refused before any exchange', async () => {
+    const h = harness({ openAuth: () => new Promise(() => {}) });
+    const pendingPair = h.client.connect({ account: 'u1' });
+    const p = await waitPending(h.client);
+    ok(!!p);
+
+    const badState = await h.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?code=good-code&state=not-ours');
+    eq(badState.ok, false);
+    eq(badState.code, 'unsupported_action');
+    eq(badState.detail, 'oauth_state');
+    eq(h.client._pending().state, p.state, 'a stale callback deleted the live transaction');
+
+    const noCode = await h.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?state=' + encodeURIComponent(p.state));
+    eq(noCode.ok, false);
+    eq(noCode.code, 'bad_request');
+    eq(noCode.detail, 'oauth_no_code');
+    eq(h.state.calls.filter((c) => c.url.endsWith('/oauth/token')).length, 0,
+      'a bad state / missing code reached the token endpoint');
+
+    // A state-matching redirect with no code is terminal: it settles the live
+    // connect() instead of leaving the pairing button pending for 5 minutes.
+    const out = await pendingPair;
+    eq(out.code, 'network_unavailable');
+    eq(out.detail, 'authorize:no_code');
+  });
+
+  test('an access_denied callback settles the live connect and drops the transaction', async () => {
+    const h = harness({ openAuth: () => new Promise(() => {}) });
+    const pendingPair = h.client.connect({ account: 'u1' });
+    const p = await waitPending(h.client);
+    ok(!!p);
+    const cb = await h.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?error=access_denied&state=' + encodeURIComponent(p.state));
+    eq(cb.code, 'cancelled');
+    const out = await pendingPair;
+    eq(out.code, 'cancelled');
+    eq(h.client._pending(), null, 'an access_denied transaction was left behind');
+    eq(h.state.calls.filter((c) => c.url.endsWith('/oauth/token')).length, 0);
+  });
+
+  test('a callback with no transaction cannot mint a grant', async () => {
+    const h = harness();
+    const out = await h.client.handleCallback(
+      'belliedmonkey://oauth/mcp/callback?code=good-code&state=s1');
+    eq(out.ok, false);
+    eq(out.handled, true);
+    eq(out.code, 'oauth_no_pending');
+    eq(h.state.calls.length, 0, 'a stray callback sent HTTP');
+    eq(await h.keychain.get('mcp_access'), null);
+    eq(await h.keychain.get('mcp_refresh'), null);
+  });
+
+  test('the transaction carries no token and expires on its own', async () => {
+    let release = null;
+    const h = harness({ openAuth: () => new Promise((resolve) => { release = resolve; }) });
+    const pendingPair = h.client.connect({ account: 'u1' });
+    const p = await waitPending(h.client);
+    ok(!!p);
+    const raw = String(h.meta.getItem('mcp_oauth_pending') || '');
+    ok(raw.indexOf('mcp-access') === -1 && raw.indexOf('mcp-refresh') === -1,
+      'a token leaked into the pending transaction');
+    h.state.clock += 11 * 60 * 1000;
+    eq(h.client._pending(), null, 'an expired transaction was still usable');
+    release({ error: 'canceled' });
+    await pendingPair;
+  });
+});
+
 describe('MCP OAuth: refresh, expiry and 401 fallout', () => {
   test('an expired access token refreshes once (single-flight) and rotates the refresh token', async () => {
     const h = harness();

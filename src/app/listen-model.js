@@ -35,6 +35,7 @@ import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import { createHalt, meterText, failSurface } from './n26-session.js';
+import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -120,6 +121,9 @@ const listenModel = (() => {
   let lidLang = '';
   let lidLangAt = 0;      // 当前判词是什么时候换过来的（确认用，见 lidConfirm）
   let lidUnsub = null;
+  // BEL-188：「自动」字幕在 LID 完全没判词时的兜底窗口（最近一次放行的 base / 时刻）。
+  // 只影响 noLidAdmit 的去重，不参与正常 LID 归属。
+  let noLidLast = null;
   let session = null;
   let cfg = null;
   let sock = null;
@@ -127,7 +131,10 @@ const listenModel = (() => {
   let partial = '', partialTr = '';
   let partialRec = '';   // 当前识别中的文字（partial = 缓冲 + partialRec；P1-6 的 result 比对用这个）
   let clockTimer = 0;
-  let cameFrom = 'signed-in';
+  // P1-2：来源必须显式从登录态来，不能再读 DOM 可见性 —— 进了 listen 视图之后
+  // #signed-in 本来就是 hidden 的，再 open() 一次就会把自己记成「未登录」。
+  let cameFrom = '';
+  let sessionGetter = null;      // wire({ session })：shell 的 currentSession getter
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
   let speakingRid = 0;      // 正在朗读哪一行（0 = 没在读）
   const sq = C.makeSpeakQueue();     // 朗读队列（裁定 7：排队逐句读完）
@@ -831,6 +838,7 @@ const listenModel = (() => {
   function lidOn() {
     lidLang = '';
     lidLangAt = 0;
+    noLidLast = null;
     if (lidUnsub) return;
     try {
       lidUnsub = NativeSpeech.onLid((r) => {
@@ -1391,6 +1399,8 @@ const listenModel = (() => {
       }
       // 百分比只属于正在下的那一门。另一侧不许借走上一门留下的 100。
       const pct = (prep.forCode && code === prep.forCode) ? (prep.pct || 0) : 0;
+      // BEL-184: 没在真下（首帧 pct 尚为 0）就不报百分比，改说在检查语言包。
+      if (!(pct > 0)) return t('listen_ptt_checking', '准备中 · 正在检查语言包');
       return t('listen_ptt_preparing', '准备中 · {lang} 下载 {pct}%')
         .replace('{lang}', endonymOf(lang)).replace('{pct}', String(pct));
     }
@@ -1399,6 +1409,25 @@ const listenModel = (() => {
   }
   function pttView() {
     const sub = mode === 'subtitle';
+    // BEL-184: cfg 由 readCfg() 异步写入、prep 也要等探针。首帧/未进面不得画成「准备中 0%」。
+    if (!sub && (!cfg || !prep.probed)) {
+      const loadingHint = t('listen_ptt_loading', '正在读取设置…');
+      return {
+        shown: true,
+        loading: true,
+        mineSide: 'me',
+        otherSide: 'other',
+        mineLabel: t('listen_ptt_loading_label', '说本机语言'),
+        otherLabel: t('listen_ptt_loading_other', '对方的语言'),
+        mineHint: loadingHint,
+        otherHint: loadingHint,
+        activeSide: '',
+        disabled: true,
+        mineDisabled: true,
+        otherDisabled: true,
+        whyText: t('listen_ptt_loading_why', '正在读取设置与语言包，请稍候…'),
+      };
+    }
     const canUse = !sub && liveCapable();
     // 高亮只在这一侧真的在录（相位已经是 listening）。没下好的那一侧保持灰，不亮成「正在录」。
     const on = !!ptt && phase === 'listening';
@@ -1427,7 +1456,11 @@ const listenModel = (() => {
       disabled: mineChrome.disabled,
       mineDisabled: mineChrome.disabled,
       otherDisabled: otherChrome.disabled,
-      whyText: canUse ? '' : needText(unavailableReason()),
+      whyText: canUse
+        ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
+          ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
+          : '')
+        : needText(unavailableReason()),
     };
   }
   // 这里曾经有一道「整句落行要判词稳住 1.5s」的闸（2026-10-08 上午，`1ae1280a`）—— 为挡 whisper
@@ -1441,7 +1474,10 @@ const listenModel = (() => {
       const engine = cfg && cfg.lidEngine === 'whisper' ? 'whisper' : 'ecapa';
       return mtDeviceLidModelsFor(Registry.flavor() || 'global', {
         engine,
-        langs: cfg ? [C.baseCode(cfg.myLang), C.baseCode(cfg.otherLang)].filter(Boolean) : [],
+        // BEL-188：ECAPA 只算这两门的 LLR，少于两门就永远不出判词。「自动」字幕必须把
+        // deviceLocales() 解析出来的真实 locale 给它 —— 字面量 'auto' 会被 native 的
+        // labels 过滤掉，只剩一门 ⇒ LLR 恒为 0 ⇒ 所有 final 被 attrib 丢掉。
+        langs: cfg ? C.lidPairLangs(cfg, deviceLocales(cfg)) : [],
         threshold: (cfg && Number(cfg.lidThreshold)) || 6,
         cpuOnly: !!(cfg && cfg.lidCpuOnly),
         trace: !!(cfg && cfg.lidTrace),
@@ -1566,8 +1602,23 @@ const listenModel = (() => {
         if (xferGate) xferGate.noteEnLetter();
       }
       // 唯一闸（两条路共用；纯函数在 listen-core，可测）：朗读中 / 换边宽限 / LID 归属 / 回声文本相似度
+      // BEL-188 兜底：只在「自动」字幕、本场一条 LID 原始判词都没有时启用；规则在 listen-core
+      // 的 noLidAdmit（文字系唯一匹配 + 同一时间窗只放行一路）。
+      const autoSub = mode === 'subtitle'
+        && (C.baseCode(cfg && cfg.myLang) === 'auto' || C.baseCode(cfg && cfg.otherLang) === 'auto');
+      const noLid = (autoSub && !lidPair()) ? {
+        candidates: C.lidPairLangs(cfg, deviceLocales(cfg)),
+        prefer: C.baseCode(cfg && cfg.myLang),
+        registry: cfg && cfg.registry,
+        script: routeDeps.dominantScript(String((ev && ev.text) || '')),
+        since: startedAt,
+        graceMs: 2500,
+        windowMs: 1500,
+        now: Date.now(),
+        last: noLidLast,
+      } : null;
       const dec = C.intakeDecide({
-        base, lid: lidPair(), pttSwitch, now: Date.now(),
+        base, lid: lidPair(), lidRaw: lidLang, noLid, pttSwitch, now: Date.now(),
         playing: echo.playingLangs(Date.now()),
         text: String((ev && ev.text) || ''),
         isEcho: (s) => echo.isEcho(s, now()),
@@ -1584,6 +1635,7 @@ const listenModel = (() => {
         }
         return;
       }
+      if (dec.note) noLidLast = dec.note;
       if (dec.markUsed && pttSwitch) pttSwitch.used = true;
       // 告诉句头闸「另一门语言收到了这条定稿」：**唯一**裁决入口 noteOtherText ——
       // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
@@ -2144,8 +2196,10 @@ const listenModel = (() => {
             if (typeof named.fraction === 'number') prep.pct = Math.round(named.fraction * 100);
           });
           prep.assets.vad = true;
-          prep.didDownload = true;
-          prep.dlGen = (prep.dlGen || 0) + 1;
+          // BEL-188 Q7：VAD **不计入**这一轮的 dlGen。ensureVad 成功不等于这一轮真下过
+          // （模型本来就在时它照样回成功、进度回调也可能回一帧 100%），而 VAD 本来就不拦
+          // 听译（失败退回能量门）。原来这里无条件 +1，冷启动首点「开始」会把它当成
+          // 「这一轮下过包」而在开麦前 return。ASR 真下载由上面的 downloadAsrLangs 计。
         } catch (e) {
           if (ptt) { halt('assets', e && e.reason); return false; }
         }
@@ -2192,8 +2246,12 @@ const listenModel = (() => {
     // 本机路：先探（旧系统 / 语言不支持 / 资产缺失都具名），缺资产就先进 downloading 态下载，下完再起识别
     const beforeGen = prep.dlGen || 0;
     if (!(await ensurePacksForPair())) return;
-    // 这一轮真的下过包：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
-    if ((prep.dlGen || 0) !== beforeGen) {
+    // BEL-188 Q7：这一侧已经真的能开口 ⇒ 不管这一轮下过什么，都继续开麦。
+    // 冷启动首点「开始」时 VAD 的 ensure 成功曾被无条件记成「下过包」，side 明明 ready
+    // 也在开麦前 return（随后胶囊显示「已暂停」）。开麦前 return 只能留给还没就绪的一侧。
+    const sideReady = ptt ? talkSideReady(ptt.side) : false;
+    // 这一轮真的下过 ASR / 基础包、且这一侧还没就绪：停在「下好了，点下面的键开始」，不开麦（改稿 G）。
+    if ((prep.dlGen || 0) !== beforeGen && !sideReady) {
       pttAbort();
       phase = 'idle';
       prep.readyUntil = Date.now() + 4000;
@@ -2202,11 +2260,12 @@ const listenModel = (() => {
       setTimeout(() => canvas.view('state'), 4200);
       return;
     }
-    // 这一侧仍没就绪（基础组件或识别包没落地）就不开麦，也不留「正在录」。
-    if (ptt && !talkSideReady(ptt.side)) {
+    // 这一侧仍没就绪（基础组件或识别包没落地）、也不在下载：不静默 idle ——
+    // 给具名错误（识别包还没装好），卡片上的「重试」走 retryPacks；胶囊留在「准备中」。
+    if (ptt && !sideReady) {
       pttAbort();
-      phase = 'idle';
-      canvas.view('state');
+      prep.stalled = true;
+      halt('device', 'assets');
       return;
     }
     openSocket();
@@ -2262,10 +2321,18 @@ const listenModel = (() => {
     //     3 秒量一次，而我们自己的文档教的顺序是「先在 App 里开始，再去点播放」，
     //     于是最常见的那一种恰好量不到：#420 当天就是这样，30 秒后得到的是「没有声音」。
     const deaf = !session.heardAny || (sysSilent && !sysSound);
+    // BEL-188：静音门那句「可能没开权限」指哪一门，由采集源决定。iOS 的 capsProbe() 报
+    // 'unsupported' ⇒ captureSource() 是 'mic'，不能把 macOS 的「屏幕与系统录音」印给 iPhone。
+    const src = (session && session.mode === 'subtitle')
+      ? C.captureSource(bridged() ? NativeAudio.audioCaps() : null)
+      : null;
     if (reason === 'silence') note(session.mode !== 'subtitle' ? t('listen_stop_silence', '听不到声音（30 秒静音）— 已暂停以免计费。')
-      : deaf ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : deaf && src === 'system' ? t('subtitle_stop_silence_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。')
+      : deaf && src === 'mic' ? t('subtitle_stop_silence_mic_permission', '30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开麦克风权限：到 设置 › 隐私与安全性 › 麦克风 允许「大肚猴翻译」，再点「继续」。')
       : t('subtitle_stop_silence', '30 秒没有声音 — 已暂停以免计费。视频继续播放后点「继续」。'), false);
-    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf ? 'silence-permission' : 'silence');
+    // 'silence-permission' 会渲染 subtitle_bar_silence_permission 并在条上给「打开系统设置」，
+    // 只在真·系统录音（macOS）时发；mic / 未知源发通用的 'silence'，别把 iOS 引去 Mac 设置。
+    subState(reason !== 'silence' ? 'paused' : session.mode === 'subtitle' && deaf && src === 'system' ? 'silence-permission' : 'silence');
     canvas.view('state');
   }
   // 具名停止：与暂停同一形状，但原因来自外部（拒绝、连接断、被打断、启动失败）。
@@ -2414,11 +2481,40 @@ const listenModel = (() => {
     if (seg) { try { seg.dispose(); } catch (_) {} }   // P1-1：清掉计时器，停掉旧会话的在途
     seg = null; segDegrade = false; segSpeakN = 0;
     $('app-listen').hidden = true;   // shell 级直写（JSX 恒 true，React 不覆盖 —— 头注释）
-    $(cameFrom).hidden = false;
+    // 离开时按**当下**的登录态回，而不是永远回进入时那一页：会话期间真退出了，
+    // 这里也必须落到登录页，不能拿旧的 cameFrom 冒充。
+    cameFrom = sourceNow();
+    // 两个首页互斥：显式来源之外的那一页也压住，避免退出时两页同时可见。
+    $('signed-in').hidden = cameFrom !== 'signed-in';
+    $('signed-out').hidden = cameFrom !== 'signed-out';
     // 回首页时把入口状态按**当下的系统真实资产状态**重算一次（第 4 轮问题 1）：会话期间
     // 的探针（切语言触发的 storage 变更）可能留下过时结论，离开不重算就会把入口钉成灰的。
     try { await refreshEntry(); } catch (_) {}
   }
+  // P1-2：当前登录态只从宿主显式注入的 getter 读（shell 的 currentSession）。
+  // 没有 getter 就是「未知 → 按未登录处理」；绝不读 #signed-in.hidden 猜。
+  // LearnAuth.userId() 是 async，Promise 恒真 —— 不能拿它做同步判据。
+  function signedInNow() {
+    try {
+      if (typeof sessionGetter === 'function') return !!sessionGetter();
+    } catch (_) {}
+    return false;
+  }
+  function sourceNow() { return signedInNow() ? 'signed-in' : 'signed-out'; }
+
+  // P1-1：进 listen / 回前台拉一次余额。失败时 quota 保留上次值并带 stale，
+  // meterView 会由 spentText 统一标注「未刷新」。
+  function refreshGrantBalance(force) {
+    try {
+      Quota.refresh({ force: !!force }).then((r) => {
+        if (r && r.balance) {
+          grantBalance = r.balance;
+          try { canvas.view('meter'); } catch (_) {}
+        }
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
   // m === 'subtitle' 打开实时字幕（§9.8）：先停在准备态，点「开始」才开始（画布 M3 / I2）；
   // 其余（含点击事件对象）一律是对话，照旧一进来就开始听。
   function open(m) {
@@ -2430,8 +2526,9 @@ const listenModel = (() => {
     try {
       if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
     } catch (_) {}
-    cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
+    cameFrom = sourceNow();
     $(cameFrom).hidden = true;
+    refreshGrantBalance(true);
     $('app-listen').hidden = false;   // shell 级直写（同上）
     note('');
     paintMode();
@@ -2825,7 +2922,12 @@ const listenModel = (() => {
         : phase === 'preparing' ? t('listen_pill_preparing', '准备中')
         : listening ? (session.mode === 'subtitle' ? t('subtitle_pill_live', '● 字幕中 · {t}') : t('listen_pill_listening', '听译中 · {t}')).replace('{t}', C.fmtClock(ms))
         : phase === 'ended' ? t('listen_pill_ended', '已结束 · {t}').replace('{t}', C.fmtClock(ms))
-        : t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms)),
+        // BEL-188 Q7：只有用户主动暂停 / 不可重试的停机才是「已暂停」。idle（刚下完待点开始、
+        // 准备还没完成）和可重试的失败都还在「准备中」，不能再无条件落到「已暂停」——
+        // 冷启动那 9 秒 idle 曾被显示成「已暂停 · 00:0x」。
+        : (phase === 'paused' || (phase === 'halted' && !prep.stalled))
+          ? t('listen_pill_paused', '已暂停 · {t}').replace('{t}', C.fmtClock(ms))
+        : t('listen_pill_preparing', '准备中'),
       live: listening,
     };
   }
@@ -3033,7 +3135,7 @@ const listenModel = (() => {
   // 免费额度条：只在翻译槽正在用额度、且缓存里有 spentUsd/limitUsd 时出现。
   // 用完那张失败面自己带同一行数字，这里就不再重复。
   function meterView() {
-    const text = grantOn ? meterText(grantBalance) : '';
+    const text = grantOn ? meterText(grantBalance, { t }) : '';
     if (!text || (trHalt.blocksPump() && trHalt.code === 'credit_exhausted')) {
       return { shown: false, label: '', text: '' };
     }
@@ -3165,6 +3267,19 @@ const listenModel = (() => {
   // 这里只留 IO 订阅与初始探询。回调经 model 动作（导出的 open 等），与原 addEventListener
   // 挂的是同一批函数。
   function wire(opts) {
+    // P1-2：登录态是显式的宿主输入，不是 DOM 可见性。shell 的 currentSession 是
+    // 启动恢复 / 登录 / 退出三处唯一的汇合点，所以进程重开后它已经就位。
+    if (opts && typeof opts.session === 'function') sessionGetter = opts.session;
+    else if (opts && typeof opts.getSession === 'function') sessionGetter = opts.getSession;
+    // P1-1：订阅同一个 provider。storage 里的 grantBalance 被别的宿主写时，
+    // watch() 把内存快照也换掉；refresh() 成功时由 subscribe() 回调。
+    try { Quota.watch(); } catch (_) {}
+    try {
+      Quota.subscribe((bal) => {
+        grantBalance = bal || null;
+        try { canvas.view('meter'); } catch (_) {}
+      });
+    } catch (_) {}
     // 「换引擎」就地入口（2026-10-04）：shell 拥有 openSettings，所以由它注入 —— 与
     // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
     if (opts && typeof opts.openSettings === 'function') {
@@ -3196,6 +3311,7 @@ const listenModel = (() => {
     if (bridged() && NativeAudio.onTick) NativeAudio.onTick(() => { if (document.hidden && session && phase !== 'ended') paintClock(); });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) return;
+      refreshGrantBalance(true);   // 回前台：余额可能已经在会话里走了一段
       if (bridged() && NativeAudio.micPermRead) NativeAudio.micPermRead();
       if (session) paint();
       // 回前台且没在会话里：入口按系统真实资产状态重算（第 4 轮问题 1/2，不靠一次性缓存）。
@@ -3220,15 +3336,25 @@ const listenModel = (() => {
     modeView, pillView, nowLabel, ephemeralView, toggleView,
     nowView: () => {
       const chrome = mode === 'subtitle' ? null : pageChrome();
+      // BEL-187：与 BEL-184 同一 readiness 判据（cfg 由 readCfg() 异步写入、prep 等探针）。
+      // 首帧/未就绪不画「下载中 0% · 已就绪」；只有真实下载进度才报百分比。
+      const prepLoading = !cfg || !prep.probed;
+      const prepProgress = !prepLoading && (prep.running || prep.pct > 0);
       const readyNames = [];
       if (prep.assets.lid && prep.assets.vad) readyNames.push(t('firstrun_packs_base', '基础组件'));
       for (const code of Object.keys(prep.assets.asr || {})) {
         if (prep.assets.asr[code]) readyNames.push(endonymOf(code));
       }
       const stalled = !!(chrome && chrome.card === 'not-ready' && prep.stalled);
-      const prepText = stalled
+      const prepText = prepLoading
+        ? t('listen_prep_loading', '正在读取设置与语言包…')
+        : stalled
         ? t('firstrun_packs_stt_slow', '系统语音包下载没动静 — 检查网络，再点一次。')
-        : fillPrepDetail(t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪'), prep.name || '', prep.pct || 0, readyNames.join('、'));
+        : !prepProgress
+          ? t('listen_prep_checking', '准备中 · 正在检查语言包')
+          : (readyNames.length
+            ? fillPrepDetail(t('listen_prep_detail', '{what}下载中 · {pct}% · {ready}已就绪'), prep.name || '', prep.pct || 0, readyNames.join('、'))
+            : fillPrepDetail(t('listen_prep_downloading', '{what}下载中 · {pct}%'), prep.name || '', prep.pct || 0, ''));
       const readySub = (chrome && chrome.card === 'ready-tap')
         ? t('listen_ready_tap_sub', '不会自动开始 · 点「说{mine}」或「{other}」开始收音')
           .replace('{mine}', endonymOf(cfg && cfg.myLang))
@@ -3240,8 +3366,8 @@ const listenModel = (() => {
         flash: !!(chrome && prep.flashUntil > Date.now()),
         prepShown: !!(chrome && chrome.card === 'not-ready'),
         prepText,
-        prepBar: !!(chrome && chrome.card === 'not-ready' && !stalled && (prep.running || prep.pct > 0)),
-        prepPct: prep.pct || 0,
+        prepBar: !!(chrome && chrome.card === 'not-ready' && !stalled && prepProgress),
+        prepPct: prepLoading ? 0 : (prep.pct || 0),
         prepRetry: stalled ? t('tts_pack_retry', '重试') : '',
         readySub,
       };
@@ -3262,6 +3388,7 @@ const listenModel = (() => {
       ptt: ptt ? { on: true, side: ptt.side, stopping: !!pttStopTimer } : { on: false, side: '', stopping: false },
       pttForce: pttForce ? pttForce.side : '', translateCalls,
       n26: { halted: trHalt.halted, code: trHalt.code, streak: trHalt.streak },
+      cameFrom, signedIn: signedInNow(),
       // 断句路读数（2026-10-10）：走的是模型断句还是旧串句器、降级没有、调用数、各路缓冲长度。
       seg: Object.assign({ route: segRoute, degrade: segDegrade, diag: segDiag }, seg ? seg.state() : {}),
       // 句头闸读数（2026-10-11 第九轮）：扣住（hold）**不等于**路由器扣住结果 —— 扣住的片还没进账本，

@@ -3021,6 +3021,9 @@
   "subtitle_stop_silence_permission": {
     "message": "Seit 30 Sekunden kein Ton – pausiert. Lief das Video, aber es kamen keine Untertitel, ist die Systemaudioaufnahme vielleicht nicht erlaubt: Systemeinstellungen › Datenschutz & Sicherheit › Bildschirm- & Systemaudioaufnahme, BelliedMonkey Translator erlauben, dann „Fortsetzen“."
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "Seit 30 Sekunden kein Ton – pausiert. Lief das Video, aber es kamen keine Untertitel, ist die Mikrofonberechtigung vielleicht nicht erteilt: Einstellungen › Datenschutz & Sicherheit › Mikrofon, BelliedMonkey Translator erlauben, dann „Fortsetzen“."
+  },
   "subtitle_bar_silence_permission": {
     "message": "Seit 30 Sekunden kein Ton – pausiert. Video läuft, aber keine Untertitel? Vielleicht ist die Systemaudioaufnahme nicht erlaubt"
   },
@@ -3930,6 +3933,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Einstellungen werden gelesen…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Eigene Gerätesprache sprechen"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Sprache des Gegenübers"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Einstellungen und Sprachpakete werden gelesen, einen Moment…"
+  },
+  "listen_ptt_checking": {
+    "message": "Vorbereitung · Sprachpakete werden geprüft"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Das lokale Erkennungspaket wird vorbereitet…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3944,6 +3965,15 @@
   },
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_prep_loading": {
+    "message": "Einstellungen und Sprachpakete werden gelesen…"
+  },
+  "listen_prep_checking": {
+    "message": "Vorbereitung · Sprachpakete werden geprüft"
+  },
+  "listen_prep_downloading": {
+    "message": "{what} wird heruntergeladen · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
@@ -4208,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Wechsel zu „pro Engine“ verwirft die aktuelle Ein-Tipp-Einstellung"
+  },
+  "grant_balance_stale": {
+    "message": "Zuletzt bekannter Stand · nicht aktualisiert"
   }
 }

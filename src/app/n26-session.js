@@ -11,6 +11,8 @@
 // stay on the row. The meter reads grantBalance.spentUsd and limitUsd only
 // and prints `$spent / $limit` (F-A02: `$0.00 / $0.20`, exhausted `$0.20 / $0.20`).
 
+import { spentText } from '../shared/grant.js';
+
 export const TIMEOUT_STREAK_MAX = 5;
 
 export const HALT_IMMEDIATE = Object.freeze([
@@ -83,19 +85,10 @@ export function createHalt() {
   };
 }
 
-// F-A02 signed meter: `$spent / $limit`, same `$x.xx` printer as grant.js.
-// Zero spend is `$0.00 / $0.20`. Exhausted (spent === limit) is `$0.20 / $0.20`.
-// Reads grantBalance.spentUsd and grantBalance.limitUsd only.
-export function meterText(grantBalance) {
-  if (!grantBalance || typeof grantBalance !== 'object') return '';
-  const hasUsd = Object.prototype.hasOwnProperty.call(grantBalance, 'limitUsd')
-    || Object.prototype.hasOwnProperty.call(grantBalance, 'spentUsd');
-  if (!hasUsd) return '';
-  const limit = Number(grantBalance.limitUsd);
-  const spent = Number(grantBalance.spentUsd || 0);
-  if (!(limit > 0) || !Number.isFinite(limit) || !Number.isFinite(spent)) return '';
-  const money = (v) => '$' + Number(v).toFixed(2);
-  return money(spent) + ' / ' + money(limit);
+// F-A02 signed meter: `$spent / $limit` —— 与设置页的额度卡共用 grant.js 的
+// spentText()，两处不再各解释一遍字段。stale 的旧值由它统一追加「未刷新」。
+export function meterText(grantBalance, opts) {
+  return spentText(grantBalance, opts);
 }
 
 function actionBtn(label, action, extra) {
@@ -110,7 +103,7 @@ export function failSurface(code, opts) {
   const t = o.t || ((k, d) => d);
   const global = o.region !== 'cn';
   const exhausted = code === 'credit_exhausted';
-  const meter = exhausted ? meterText(o.grantBalance) : '';
+  const meter = exhausted ? meterText(o.grantBalance, { t: t }) : '';
   const common = {
     code: code || 'unknown',
     halt: false,

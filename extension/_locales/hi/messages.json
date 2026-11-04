@@ -2854,6 +2854,9 @@
   "subtitle_stop_silence_permission": {
     "message": "30 सेकंड से आवाज़ नहीं — रोक दिया गया। अगर वीडियो चल रहा था पर सबटाइटल नहीं आए, तो शायद सिस्टम ऑडियो रिकॉर्डिंग की अनुमति नहीं है: सिस्टम सेटिंग्स › गोपनीयता और सुरक्षा › स्क्रीन और सिस्टम ऑडियो रिकॉर्डिंग में BelliedMonkey Translator को अनुमति दें, फिर «जारी रखें» दबाएँ।"
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "30 सेकंड से आवाज़ नहीं — रोक दिया गया। अगर वीडियो चल रहा था पर सबटाइटल नहीं आए, तो शायद माइक्रोफ़ोन की अनुमति नहीं है: सेटिंग्स › गोपनीयता और सुरक्षा › माइक्रोफ़ोन में BelliedMonkey Translator को अनुमति दें, फिर «जारी रखें» दबाएँ।"
+  },
   "subtitle_bar_silence_permission": {
     "message": "30 सेकंड से आवाज़ नहीं — रोक दिया गया। वीडियो चल रहा है पर सबटाइटल नहीं? शायद सिस्टम ऑडियो रिकॉर्डिंग की अनुमति नहीं है"
   },
@@ -3763,6 +3766,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "सेटिंग्स पढ़ी जा रही हैं…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "अपनी भाषा में बोलें"
+  },
+  "listen_ptt_loading_other": {
+    "message": "सामने वाले की भाषा"
+  },
+  "listen_ptt_loading_why": {
+    "message": "सेटिंग्स और भाषा पैक पढ़े जा रहे हैं, कृपया प्रतीक्षा करें…"
+  },
+  "listen_ptt_checking": {
+    "message": "तैयार हो रहा है · भाषा पैक जाँचे जा रहे हैं"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "ऑन-डिवाइस पहचान पैक तैयार हो रहा है…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3777,6 +3798,15 @@
   },
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_prep_loading": {
+    "message": "सेटिंग और भाषा पैक पढ़े जा रहे हैं…"
+  },
+  "listen_prep_checking": {
+    "message": "तैयारी · भाषा पैक जाँचे जा रहे हैं"
+  },
+  "listen_prep_downloading": {
+    "message": "{what} डाउनलोड हो रहा है · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
@@ -4041,5 +4071,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "प्रति इंजन पर जाने से मौजूदा एक-टैप सेटअप रद्द हो जाएगा"
+  },
+  "grant_balance_stale": {
+    "message": "अंतिम ज्ञात शेष · रीफ़्रेश नहीं हुआ"
   }
 }

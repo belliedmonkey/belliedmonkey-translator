@@ -3022,6 +3022,9 @@
   "subtitle_stop_silence_permission": {
     "message": "30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开系统录音权限：到 系统设置 › 隐私与安全性 › 屏幕与系统录音 允许「大肚猴翻译」，再点「继续」。"
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "30 秒没有声音 — 已暂停。如果视频一直在放却没字，可能没开麦克风权限：到 设置 › 隐私与安全性 › 麦克风 允许「大肚猴翻译」，再点「继续」。"
+  },
   "subtitle_bar_silence_permission": {
     "message": "30 秒没有声音，已暂停 — 视频在放却没字？可能没开系统录音权限"
   },
@@ -3931,6 +3934,24 @@
   "listen_ptt_preparing": {
     "message": "准备中 · {lang} 下载 {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "正在读取设置…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "说本机语言"
+  },
+  "listen_ptt_loading_other": {
+    "message": "对方的语言"
+  },
+  "listen_ptt_loading_why": {
+    "message": "正在读取设置与语言包，请稍候…"
+  },
+  "listen_ptt_checking": {
+    "message": "准备中 · 正在检查语言包"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "正在准备本机识别包…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3945,6 +3966,15 @@
   },
   "listen_prep_detail": {
     "message": "{what}下载中 · {pct}% · {ready}已就绪"
+  },
+  "listen_prep_loading": {
+    "message": "正在读取设置与语言包…"
+  },
+  "listen_prep_checking": {
+    "message": "准备中 · 正在检查语言包"
+  },
+  "listen_prep_downloading": {
+    "message": "{what}下载中 · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "不会自动开始 · 点「说{mine}」或「{other}」开始收音"
@@ -4209,5 +4239,8 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · 约 {size}"
+  },
+  "grant_balance_stale": {
+    "message": "上次已知余额 · 未刷新"
   }
 }

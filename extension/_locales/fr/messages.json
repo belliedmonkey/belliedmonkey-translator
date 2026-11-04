@@ -3021,6 +3021,9 @@
   "subtitle_stop_silence_permission": {
     "message": "Aucun son depuis 30 secondes — en pause. Si la vidéo jouait sans sous-titres, l’enregistrement audio du système n’est peut-être pas autorisé : Réglages Système › Confidentialité et sécurité › Enregistrement de l’écran et de l’audio système, autorisez BelliedMonkey Translator, puis « Reprendre »."
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "Aucun son depuis 30 secondes — en pause. Si la vidéo jouait sans sous-titres, l’autorisation du micro n’est peut-être pas accordée : Réglages › Confidentialité et sécurité › Micro, autorisez BelliedMonkey Translator, puis « Reprendre »."
+  },
   "subtitle_bar_silence_permission": {
     "message": "Aucun son depuis 30 secondes — en pause. La vidéo joue mais pas de sous-titres ? L’enregistrement audio du système n’est peut-être pas autorisé"
   },
@@ -3930,6 +3933,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Lecture des réglages…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Parler votre langue"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Sa langue"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Lecture des réglages et des packs de langue, un instant…"
+  },
+  "listen_ptt_checking": {
+    "message": "Préparation · vérification des packs de langue"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Préparation du pack de reconnaissance local…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3944,6 +3965,15 @@
   },
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_prep_loading": {
+    "message": "Lecture des réglages et des packs de langue…"
+  },
+  "listen_prep_checking": {
+    "message": "Préparation · vérification des packs de langue"
+  },
+  "listen_prep_downloading": {
+    "message": "Téléchargement de {what} · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
@@ -4208,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Passer au réglage par moteur annule le réglage actuel en un geste"
+  },
+  "grant_balance_stale": {
+    "message": "Dernier solde connu · non actualisé"
   }
 }

@@ -189,3 +189,158 @@ describe('录音两键 · 规则（改稿 D · 点一下开 / 停）', () => {
     ok(/lidPaused\(\)/.test(HOOK), '没有只读的 lidPaused()');
   });
 });
+
+// BEL-184：cfg 由 readCfg() 异步写入、prep 也要等探针 —— 首帧/未就绪不得画成「准备中 0%」。
+describe('BEL-184 · 首帧/未就绪不显示 0%', () => {
+  const PTTHINT = MODEL.slice(MODEL.indexOf('function pttHintFor'), MODEL.indexOf('function pttView'));
+  const PTTVIEW = MODEL.slice(MODEL.indexOf('function pttView'), MODEL.indexOf('function lidModel'));
+
+  test('pttView 在 cfg / 探针未就绪时走显式 loading 分支', () => {
+    ok(/!sub && \(!cfg \|\| !prep\.probed\)/.test(PTTVIEW), '没有 (!cfg || !prep.probed) 首帧闸');
+    ok(/loading: true/.test(PTTVIEW), 'loading 分支没有标记 loading: true');
+    ok(/正在读取设置/.test(PTTVIEW), 'loading 分支没有「正在读取设置」小字');
+    ok(/listen_ptt_loading_why/.test(PTTVIEW), 'loading 分支没有 listen_ptt_loading_why');
+  });
+
+  test('pttHintFor 只在真实下载时出现百分比', () => {
+    ok(/if \(!\(pct > 0\)\)/.test(PTTHINT), '没有 pct > 0 的守卫（0 仍会画成「下载 0%」）');
+    ok(/检查语言包/.test(PTTHINT), '没有「检查语言包」兜底小字');
+  });
+
+  test('side 未就绪时 whyText 非空（preparing why）', () => {
+    ok(/listen_ptt_preparing_why/.test(PTTVIEW), 'pttView 没有 listen_ptt_preparing_why');
+    ok(/mineChrome\.hint === 'preparing' \|\| otherChrome\.hint === 'preparing'/.test(PTTVIEW),
+      'whyText 没有按两侧 preparing 判定');
+  });
+
+  test('不出现固定的「下载 0%」文案（模板保留，0 由 loading 分支兜住）', () => {
+    ok(!/下载 0%['"`]/.test(MODEL), '源码里仍有固定的「下载 0%」');
+    ok(/下载 \{pct\}%/.test(MODEL), '百分比模板被删了（只该被 0 守卫兜住）');
+  });
+});
+
+// BEL-187：首页/状态 meter 首帧不得画成「下载中 0% · 已就绪」。复用 BEL-184 的同一
+// readiness 判据（cfg 异步写入、prep 等探针），不另起 timer/flag。
+describe('BEL-187 · 首页/状态 meter 首帧不显示「下载中 0% · 已就绪」', () => {
+  const NOW = MODEL.slice(MODEL.indexOf('nowView: () =>'), MODEL.indexOf('formView:'));
+  const PRETEXT = NOW.slice(NOW.indexOf('const prepText'), NOW.indexOf('const readySub'));
+
+  test('nowView 复用 BEL-184 的显式 loading 判据', () => {
+    ok(/const prepLoading = !cfg \|\| !prep\.probed;/.test(NOW), '没有 (!cfg || !prep.probed) 同一 readiness 判据');
+    ok(/const prepProgress = !prepLoading && \(prep\.running \|\| prep\.pct > 0\);/.test(NOW),
+      '没有 prepProgress（loading 期间仍可能误报真实进度）');
+    ok(/listen_prep_loading/.test(NOW), 'loading 分支没有 listen_prep_loading');
+  });
+
+  test('prepText：loading → 无进度检查语言包 → 有进度才报百分比', () => {
+    ok(/const prepText = prepLoading/.test(PRETEXT), 'prepText 没有先走 loading 分支');
+    ok(/!prepProgress/.test(PRETEXT), '没有 !prepProgress 的「准备中 · 正在检查语言包」分支');
+    ok(/listen_prep_checking/.test(PRETEXT), '没有 listen_prep_checking 兜底');
+    ok(/listen_prep_downloading/.test(PRETEXT), '没有无「已就绪」尾缀的下载文案 listen_prep_downloading');
+  });
+
+  test('「已就绪」模板只能留在 readyNames 分支里（不是无条件前缀）', () => {
+    const DETAIL_AT = PRETEXT.indexOf("t('listen_prep_detail'");
+    const READY_AT = PRETEXT.indexOf('readyNames.length');
+    const PROGRESS_AT = PRETEXT.indexOf('!prepProgress');
+    ok(DETAIL_AT >= 0, '已就绪模板被整个删了（有成功资产时仍应显示已就绪）');
+    ok(READY_AT >= 0 && PROGRESS_AT >= 0 && PROGRESS_AT < DETAIL_AT, '已就绪模板没有落在进度/就绪守卫之后');
+    ok(/readyNames\.length\s*\n?\s*\? fillPrepDetail\(t\('listen_prep_detail'/.test(PRETEXT),
+      '已就绪模板不在 readyNames.length 分支里');
+    ok(/listen_prep_detail', '\{what\}下载中 · \{pct\}% · \{ready\}已就绪'\)/.test(PRETEXT),
+      '已就绪模板的占位符被动过');
+  });
+
+  test('prepBar / prepPct 跟着 prepProgress，loading 时不出进度条', () => {
+    ok(/prepBar: !!\(chrome && chrome\.card === 'not-ready' && !stalled && prepProgress\)/.test(NOW),
+      'prepBar 没有用 prepProgress');
+    ok(/prepPct: prepLoading \? 0 : \(prep\.pct \|\| 0\)/.test(NOW), 'prepPct 在 loading 时没有归零');
+    ok(/prepShown: !!\(chrome && chrome\.card === 'not-ready'\)/.test(NOW), 'prepShown 逻辑被改了');
+  });
+});
+
+// BEL-188：iOS（capsProbe ⇒ system:'unsupported'，captureSource ⇒ 'mic'）在 30 秒静音门
+// 被印上了 macOS 的「屏幕与系统录音」文案。这里守暂停句与 subtitle-state 的采集源门控。
+describe('BEL-188 · 字幕静音门文案按采集源门控', () => {
+  // 从 deaf 判据到 halt() 之前，正好覆盖 pause() 里的静音门出口。
+  const PAUSE = MODEL.slice(MODEL.indexOf('const deaf = '), MODEL.indexOf('function halt('));
+
+  test('halt/暂停路径取一次 captureSource（只在 subtitle 取）', () => {
+    ok(/const src = \(session && session\.mode === 'subtitle'\)\s*\n?\s*\?\s*C\.captureSource\(bridged\(\) \? NativeAudio\.audioCaps\(\) : null\)\s*\n?\s*:\s*null;/.test(PAUSE),
+      '暂停路径没有按 captureSource 取采集源（或没复用 C.captureSource / bridged() ? audioCaps() : null）');
+  });
+
+  test('subtitle_stop_silence_permission 只在 src === \'system\' 分支', () => {
+    ok(/deaf && src === 'system'\s*\?\s*t\('subtitle_stop_silence_permission'/.test(PAUSE),
+      'macOS 权限文案没有挂在 src === \'system\' 分支上');
+    ok((PAUSE.split('subtitle_stop_silence_permission').length - 1) === 1,
+      'subtitle_stop_silence_permission 出现了不止一次（可能又变成无条件）');
+    ok(!/deaf\s*\?\s*t\('subtitle_stop_silence_permission'/.test(PAUSE),
+      '又回到只看 deaf、不看采集源的老写法');
+  });
+
+  test('mic 分支引用 subtitle_stop_silence_mic_permission', () => {
+    ok(/deaf && src === 'mic'\s*\?\s*t\('subtitle_stop_silence_mic_permission'/.test(PAUSE),
+      'mic 分支没有引用 subtitle_stop_silence_mic_permission');
+  });
+
+  test('未知/其它采集源走通用 subtitle_stop_silence，不再提权限', () => {
+    const micAt = PAUSE.indexOf("src === 'mic'");
+    const fallbackAt = PAUSE.indexOf("t('subtitle_stop_silence'", micAt);
+    ok(micAt >= 0 && fallbackAt > micAt, '未知源没有落到最后的通用 subtitle_stop_silence 兜底');
+    const fallback = PAUSE.slice(fallbackAt, PAUSE.indexOf('false);', fallbackAt));
+    ok(!/src === 'system'|src === 'mic'|subtitle_stop_silence_(mic_)?permission|系统录音|麦克风/.test(fallback),
+      '未知源兜底仍在提权限或 macOS 设置');
+  });
+
+  test('subState 的 silence-permission 只在 src === \'system\' 时发', () => {
+    ok(/session\.mode === 'subtitle' && deaf && src === 'system'\s*\?\s*'silence-permission'\s*:\s*'silence'/.test(PAUSE),
+      'mic / 未知源仍会发 silence-permission（条上会指向 Mac 系统设置）');
+  });
+});
+
+// BEL-188 Q7：冷启动首点「开始」时，VAD 的 ensureVad 成功被无条件记成这一轮下过包，
+// beginPipeline 因此在开麦前 return，胶囊又把这 9 秒 idle 画成「已暂停 · 00:0x」。
+// 这里守四个规则：VAD 不计 dlGen；side ready 不因 dlGen 变化 return；没就绪不静默 idle；idle 不画「已暂停」。
+describe('BEL-188 Q7 · 冷启动首点开始不在开麦前 return', () => {
+  const VAD = MODEL.slice(MODEL.indexOf('if (deviceBridge() && !prep.assets.vad)'),
+    MODEL.indexOf('// 设备内置朗读'));
+  const BEGIN = MODEL.slice(MODEL.indexOf('async function beginPipeline()'),
+    MODEL.indexOf('let startedAt = 0'));
+  const PILL = MODEL.slice(MODEL.indexOf('function pillView()'), MODEL.indexOf('// footView'));
+
+  test('VAD 块不再无条件 dlGen++ / didDownload（ensure 成功 ≠ 这一轮下过）', () => {
+    ok(!/prep\.dlGen\s*=\s*\(prep\.dlGen \|\| 0\) \+ 1/.test(VAD),
+      'VAD 块还在自增 dlGen —— 已装但 ensure 成功会被当成这一轮下过包');
+    ok(!/prep\.didDownload = true/.test(VAD), 'VAD 块还在无条件置 didDownload');
+    ok(/prep\.assets\.vad = true;/.test(VAD), 'VAD 装好后的就绪标记被一起删了（会一直判没就绪）');
+  });
+
+  test('beginPipeline 在 side ready 时不因 dlGen 变化 return，继续开麦', () => {
+    ok(/const sideReady = ptt \? talkSideReady\(ptt\.side\) : false;/.test(BEGIN),
+      'beginPipeline 没有在 ensurePacksForPair 之后取这一侧的就绪态');
+    ok(/if \(\(prep\.dlGen \|\| 0\) !== beforeGen && !sideReady\)/.test(BEGIN),
+      'dlGen 变化仍在 side ready 时直接 return（冷启动 Q7 的老写法）');
+    ok(!/if \(\(prep\.dlGen \|\| 0\) !== beforeGen\)\s*\{/.test(BEGIN),
+      '还有不看 side ready 的裸 dlGen 判据');
+    const gate = BEGIN.indexOf('!== beforeGen && !sideReady');
+    const open = BEGIN.indexOf('openSocket();');
+    ok(gate >= 0 && open > gate, 'side ready 的这一支没有继续走到 openSocket（还在开麦前 return）');
+  });
+
+  test('这一侧仍没就绪时给具名错误并可重试，不静默 idle', () => {
+    ok(/prep\.stalled = true;[\s\S]{0,120}halt\('device', 'assets'\)/.test(BEGIN),
+      '没就绪的分支没有落到具名错误（识别包还没装好）/ 可重试的卡片');
+    ok(!/if \(ptt && !sideReady\) \{\s*\n\s*pttAbort\(\);\s*\n\s*phase = 'idle';/.test(BEGIN),
+      '没就绪的分支又静默回到 idle');
+  });
+
+  test('idle 未主动暂停时胶囊不渲染「已暂停」，落到「准备中」', () => {
+    ok(/\(phase === 'paused' \|\| \(phase === 'halted' && !prep\.stalled\)\)\s*\n?\s*\?\s*t\('listen_pill_paused'/.test(PILL),
+      '「已暂停」没有限定在用户主动暂停 / 不可重试的停机');
+    ok(/:\s*t\('listen_pill_preparing', '准备中'\)/.test(PILL), 'idle 没有落到「准备中」');
+    ok(!/:\s*t\('listen_pill_paused'/.test(PILL), '「已暂停」仍是最后无条件兜底（idle 会被画成已暂停）');
+    ok(/prep\.readyUntil > Date\.now\(\)[\s\S]{0,120}listen_pill_ready/.test(MODEL),
+      'prep.readyUntil 的「已就绪」既有语义被改掉了');
+  });
+});

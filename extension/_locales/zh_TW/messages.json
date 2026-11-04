@@ -3022,6 +3022,9 @@
   "subtitle_stop_silence_permission": {
     "message": "30 秒沒有聲音 — 已暫停。如果影片一直在放卻沒字，可能沒開系統錄音權限：到 系統設定 › 隱私權與安全性 › 螢幕與系統錄音 允許「大肚猴翻譯」，再點「繼續」。"
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "30 秒沒有聲音 — 已暫停。如果影片一直在放卻沒字，可能沒開麥克風權限：到 設定 › 隱私權與安全性 › 麥克風 允許「大肚猴翻譯」，再點「繼續」。"
+  },
   "subtitle_bar_silence_permission": {
     "message": "30 秒沒有聲音，已暫停 — 影片在放卻沒字？可能沒開系統錄音權限"
   },
@@ -3931,6 +3934,24 @@
   "listen_ptt_preparing": {
     "message": "準備中 · {lang} 下載 {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "正在讀取設定…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "說本機語言"
+  },
+  "listen_ptt_loading_other": {
+    "message": "對方的語言"
+  },
+  "listen_ptt_loading_why": {
+    "message": "正在讀取設定與語言包，請稍候…"
+  },
+  "listen_ptt_checking": {
+    "message": "準備中 · 正在檢查語言包"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "正在準備本機辨識包…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3945,6 +3966,15 @@
   },
   "listen_prep_detail": {
     "message": "{what}下載中 · {pct}% · {ready}已就緒"
+  },
+  "listen_prep_loading": {
+    "message": "正在讀取設定與語言包…"
+  },
+  "listen_prep_checking": {
+    "message": "準備中 · 正在檢查語言包"
+  },
+  "listen_prep_downloading": {
+    "message": "{what}下載中 · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "不會自動開始 · 點「說{mine}」或「{other}」開始收音"
@@ -4209,5 +4239,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "改用分項會作廢目前的一鍵配置"
+  },
+  "grant_balance_stale": {
+    "message": "上次已知餘額 · 未重新整理"
   }
 }

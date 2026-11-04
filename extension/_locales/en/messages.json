@@ -3021,6 +3021,9 @@
   "subtitle_stop_silence_permission": {
     "message": "No sound for 30 seconds — paused. If the video was playing but no subtitles appeared, system audio recording may not be allowed: go to System Settings › Privacy & Security › Screen & System Audio Recording, allow BelliedMonkey Translator, then tap “Resume”."
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "No sound for 30s — paused. If the video is still playing but no captions appear, the microphone permission may be off: Settings › Privacy & Security › Microphone, allow “BelliedMonkey Translator”, then tap Resume."
+  },
   "subtitle_bar_silence_permission": {
     "message": "No sound for 30 seconds — paused. Video playing but no subtitles? System audio recording may not be allowed"
   },
@@ -3930,6 +3933,24 @@
   "listen_ptt_preparing": {
     "message": "Preparing · {lang} {pct}%"
   },
+  "listen_ptt_loading": {
+    "message": "Reading settings…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "Say your language"
+  },
+  "listen_ptt_loading_other": {
+    "message": "Their language"
+  },
+  "listen_ptt_loading_why": {
+    "message": "Reading settings and language packs, one moment…"
+  },
+  "listen_ptt_checking": {
+    "message": "Getting ready · checking language packs"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "Preparing the on-device recognition pack…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3944,6 +3965,15 @@
   },
   "listen_prep_detail": {
     "message": "Downloading {what} · {pct}% · {ready} ready"
+  },
+  "listen_prep_loading": {
+    "message": "Reading settings and language packs…"
+  },
+  "listen_prep_checking": {
+    "message": "Getting ready · checking language packs"
+  },
+  "listen_prep_downloading": {
+    "message": "Downloading {what} · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "It will not start on its own · tap Say {mine} or {other} to listen"
@@ -4208,5 +4238,8 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · about {size}"
+  },
+  "grant_balance_stale": {
+    "message": "Last known balance · not refreshed"
   }
 }

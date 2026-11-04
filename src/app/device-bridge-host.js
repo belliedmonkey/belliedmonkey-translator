@@ -38,7 +38,7 @@ import { ACTIONS, DISCONNECT as DISCONNECT_COPY, MESSAGES, failureRow } from '..
 import { requestPairing } from '../../agent/session.js';
 import { hasGrant } from '../../agent/grants-model.js';
 import { pairingUi } from './agent-face.js';
-import { createClient as createOAuthClient, META_KEYS as OAUTH_META } from './mcp-oauth-client.js';
+import { createClient as createOAuthClient, callbackFromUrl, META_KEYS as OAUTH_META } from './mcp-oauth-client.js';
 import Registry from '../lib/registry.js';
 
 
@@ -269,6 +269,93 @@ export function createHost(options) {
 
   function hasCred() { return store.getItem(Bridge.KEYS.cred) != null; }
 
+  // Which deep links belong to the MCP callback rather than to review/setup/agent.
+  // Exposed synchronously so the shell's single deeplink subscriber can route
+  // BEFORE parseDeepLink turns `oauth` into an account/review action.
+  function isOAuthCallback(raw) {
+    try { return !!callbackFromUrl(raw); } catch (_) { return false; }
+  }
+
+  function delay(ms) {
+    return new Promise((resolve) => {
+      try { Reflect.apply(timers.setTimeout, globalThis, [resolve, ms]); }
+      catch (_) { resolve(); }
+    });
+  }
+
+  // The app-level half of the callback. It runs even when no pair() is waiting
+  // (cold start / relaunch) and never claims "paired" for a redirect alone:
+  //   · a live pair() gets the code delegated to it and keeps its own order;
+  //   · otherwise the OAuth client exchanges the persisted transaction, and only
+  //     a successful exchange is followed by the device register that writes
+  //     device_cred and flips the Settings row to 已连接此设备.
+  async function handleOAuthCallback(raw) {
+    await store.ready();
+    let out;
+    try {
+      out = await ensureOauth().handleCallback(raw);
+    } catch (e) {
+      return { ok: false, handled: true, code: 'network_unavailable', detail: String((e && e.message) || e) };
+    }
+    if (!out || out.handled !== true) return out || { ok: false, handled: false };
+    if (out.ok && out.delegated) return out;   // pair() owns the register
+    if (!out.ok) {
+      // A redirect without a live transaction is not a pair and must not be
+      // painted as one. Say the honest next step instead.
+      if (out.code === 'oauth_no_pending') {
+        // A live pair() may have already claimed and exchanged the transaction
+        // by the time this duplicate delivery lands; do not repaint its pending
+        // state as unpaired.
+        if (statusNow().state !== 'pending') await refreshStatus();
+      } else if ((out.code === 'unsupported_action' || out.code === 'bad_request')
+        && !hasCred() && statusNow().state !== 'pending') {
+        // A stale/foreign redirect must not downgrade an already-paired device
+        // or interrupt the pair() that is still waiting for its own callback.
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
+      }
+      return out;
+    }
+
+    // Tokens were saved by the exchange. Resume the device half that the
+    // relaunch interrupted: same account, same confirm the user already gave.
+    const account = String(out.account || '');
+    let session = await currentSession();
+    if (!session || !session.userId) {
+      // WKWebView can report the page before LearnAuth's first storage read has
+      // settled; one short retry distinguishes "not loaded yet" from signed out.
+      await delay(300);
+      session = await currentSession();
+    }
+    if (!session || !session.userId || String(session.userId) !== account) {
+      try { await ensureOauth().clearTokens(); } catch (_) {}
+      setStatus({
+        state: session && session.userId ? 'unpaired' : 'signed_out',
+        code: session && session.userId ? '' : 'need_login',
+      });
+      return { ok: false, handled: true, code: 'need_login' };
+    }
+
+    const c = await ensureClient();
+    const reg = await c.register({ confirm: true });
+    if (reg && reg.ok) {
+      store.setItem(CRED_USER_KEY, account);
+      store.removeItem(RECONNECT_KEY);
+      startHeartbeat();
+      setStatus({ state: 'paired', code: 'ok' });
+      return { ok: true, handled: true, resumed: true, register: reg };
+    }
+    if (reg && reg.code === 'unauthorized') {
+      await unauthorizedFallout();
+      return reg;
+    }
+    if (reg && reg.code === 'network_unavailable') {
+      setStatus({ state: 'network', code: 'network_unavailable' });
+      return reg;
+    }
+    setStatus({ state: 'error', code: (reg && reg.code) || '' });
+    return reg || { ok: false, code: 'network_unavailable' };
+  }
+
   function clearLocalCred() {
     if (client) client.clearLocalCred();
     else {
@@ -462,6 +549,13 @@ export function createHost(options) {
       return;
     }
     if (code === 'network_unavailable') { setStatus({ state: 'network', code }); return; }
+    // The OAuth callback path reports a missing dependency / bad state /
+    // refused exchange with this code. It is not "this action does not exist";
+    // the honest next step is to allow this device again.
+    if (code === 'unsupported_action' || code === 'bad_request') {
+      setStatus({ state: 'reconnect', code: 'need_reconnect' });
+      return;
+    }
     setStatus({ state: 'error', code: code || '' });
   }
 
@@ -697,6 +791,9 @@ export function createHost(options) {
     // settings entry
     pair,
     disconnect,
+    // OAuth callback (app-level deeplink router)
+    isOAuthCallback,
+    handleOAuthCallback,
     // lifecycle
     boot,
     onForeground,
@@ -736,6 +833,8 @@ export const deviceBridgeHost = {
   boot: (doc) => defaultHost().boot(doc),
   pair: (o) => defaultHost().pair(o),
   disconnect: () => defaultHost().disconnect(),
+  isOAuthCallback: (raw) => defaultHost().isOAuthCallback(raw),
+  handleOAuthCallback: (raw) => defaultHost().handleOAuthCallback(raw),
   onForeground: () => defaultHost().onForeground(),
   onStatus: (fn) => defaultHost().onStatus(fn),
   status: () => defaultHost().status(),

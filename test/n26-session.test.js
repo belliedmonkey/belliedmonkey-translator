@@ -47,16 +47,16 @@ describe('n26-session — USD meter', () => {
   test('只读 spentUsd / limitUsd，格式 $x.xx / $y.yy', () => {
     eq(N.meterText(null), '');
     eq(N.meterText({ freeQuotaUsed: 3, daily: 1 }), '');
-    eq(N.meterText({ spentUsd: 0, limitUsd: 0.2 }), '$0.00 / $0.20');
-    eq(N.meterText({ spentUsd: 0.2, limitUsd: 0.2 }), '$0.20 / $0.20');
-    eq(N.meterText({ spentUsd: 0.05, limitUsd: 0.2, segments: 9 }), '$0.05 / $0.20');
+    eq(N.meterText({ spentUsd: 0, limitUsd: 0.2, at: Date.now() }), '$0.00 / $0.20');
+    eq(N.meterText({ spentUsd: 0.2, limitUsd: 0.2, at: Date.now() }), '$0.20 / $0.20');
+    eq(N.meterText({ spentUsd: 0.05, limitUsd: 0.2, segments: 9, at: Date.now() }), '$0.05 / $0.20');
     eq(N.meterText({ spentUsd: 0, limitUsd: 0 }), '');
   });
 });
 
 describe('n26-session — fail surface', () => {
   test('落点 grant-card / notes-provider；中国版没有免费通道次按钮；不自动重试', () => {
-    const bal = { spentUsd: 0.2, limitUsd: 0.2 };
+    const bal = { spentUsd: 0.2, limitUsd: 0.2, at: Date.now() };
     const ex = N.failSurface('credit_exhausted', { t, region: 'global', grantBalance: bal });
     eq(ex.halt, true);
     eq(ex.showAutoRetry, false);
@@ -129,6 +129,19 @@ function hostSandbox(opts) {
     provider: 'deepseek', apiKey: 'k',
   }, o.stored || {});
   const tr = { provider: stored.provider, apiKey: stored.apiKey, baseUrl: 'https://api.example.test', model: 'm' };
+  const els = {};
+  const getEl = (id) => {
+    if (!els[id]) els[id] = mkEl();
+    return els[id];
+  };
+  // 两个首页 section 在真 DOM 里恒存在（AppShell 静态 JSX），这里也先建出来，
+  // 否则测试看的是「元素不存在」而不是「hidden 有没有被翻对」。
+  getEl('signed-in'); getEl('signed-out');
+  // 首页两个 section 默认都 hidden（AppShell 静态 JSX 的初始态）。
+  getEl('signed-in').hidden = true; getEl('signed-out').hidden = true;
+  // P1-2：模拟「已经站在 listen 视图里」——#signed-in 被上一轮 open() 藏掉了。
+  if (o.domSignedInHidden) getEl('signed-in').hidden = true;
+  if (o.domSignedInVisible) getEl('signed-in').hidden = false;
   const sb = {
     window: {
       addEventListener() {}, removeEventListener() {},
@@ -136,7 +149,7 @@ function hostSandbox(opts) {
       MT_FLAVOR: o.flavor || 'global',
       MT_LANGS: [{ code: 'en', label: 'English' }, { code: 'zh', label: '中文' }],
     },
-    document: { getElementById: () => mkEl(), querySelector: () => mkEl(), querySelectorAll: () => [], addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(), hidden: false },
+    document: { getElementById: getEl, querySelector: () => mkEl(), querySelectorAll: () => [], addEventListener() {}, createElement: () => mkEl(), body: mkEl(), documentElement: mkEl(), hidden: false },
     navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test', mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
     btoa: (s) => Buffer.from(s, 'binary').toString('base64'), atob: (s) => Buffer.from(s, 'base64').toString('binary'),
     chrome: { storage: { local: {
@@ -202,7 +215,7 @@ function hostSandbox(opts) {
     setInterval: (fn, ms) => clk.setT(fn, ms), clearInterval: (id) => clk.clearT(id),
     console, URL,
   };
-  return { sb, clk, calls, opened, moments, shows, stored };
+  return { sb, clk, calls, opened, moments, shows, stored, els };
 }
 
 async function openConv(opts) {
@@ -250,7 +263,7 @@ describe('listen host pump — N26 halt / meter / CTA', () => {
     const box = await openConv({
       fail: () => boom('credit_exhausted', { status: 402, grant: true }),
       stored: {
-        grantBalance: { spentUsd: 0.2, limitUsd: 0.2, at: 1 },
+        grantBalance: { spentUsd: 0.2, limitUsd: 0.2, at: 1_700_000_000_000 },
         grantTail: 'abcd1234', apiKey: 'token-abcd1234', provider: 'deepseek',
       },
     });
@@ -347,7 +360,7 @@ describe('listen host pump — N26 halt / meter / CTA', () => {
 
     const box = await openConv({
       stored: {
-        grantBalance: { spentUsd: 0.05, limitUsd: 0.2, at: 1 },
+        grantBalance: { spentUsd: 0.05, limitUsd: 0.2, at: 1_700_000_000_000 },
         grantTail: 'abcd1234', apiKey: 'token-abcd1234', provider: 'deepseek',
       },
     });
@@ -369,5 +382,61 @@ describe('listen host pump — N26 halt / meter / CTA', () => {
       rows: before.rows.map((r) => ({ who: r.who, tr: r.tr, err: r.trErr })),
     }));
     eq(box.moments[0], 'listen');
+  });
+});
+
+
+// ── P1-2：离开会话误显「未登录」────────────────────────────────────────────
+// open() 旧实现读 #signed-in.hidden：第一次进 listen 就把它藏了，视图里再 open()
+// 一次就把 cameFrom 记成 signed-out，离开时露出登录页。这里把 DOM 两向都设成
+// 与登录态相反，证明来源只认显式 session，不认 DOM；再做一次「杀进程重开」。
+function loadListen(session, opts) {
+  const box = hostSandbox(opts);
+  const ctx = loadSrc('src/app/listen-model.js', 'AppListen', box.sb);
+  const A = ctx.AppListen;
+  A.wire({ openSettings: () => {}, session: () => session });
+  return { box, A };
+}
+
+describe('P1-2 离开会话 — cameFrom 是显式登录态，不是 DOM 可见性', () => {
+  test('已在 listen 视图里再 open()：仍是 signed-in；离开回到登录态首页', async () => {
+    const { box, A } = loadListen({ userId: 'u1' }, { domSignedInHidden: true });
+    A.open('conv');
+    await box.clk.runTo(0);
+    eq(A._debug().cameFrom, 'signed-in', '第一次进 listen 就被 DOM hidden 骗了');
+    A.open('conv');                       // 旧实现在这里会记成 signed-out
+    await box.clk.runTo(0);
+    eq(A._debug().cameFrom, 'signed-in');
+    await A.leave();
+    await box.clk.runTo(0);
+    eq(box.els['signed-in'].hidden, false, '离开后没回到登录态首页');
+    eq(box.els['signed-out'].hidden, true, '离开后误露了未登录页');
+  });
+
+  test('杀进程重开：新模型实例 + 已恢复的 session，open/leave 仍是 signed-in', async () => {
+    const first = loadListen({ userId: 'u1' }, { domSignedInHidden: true });
+    first.A.open('conv');
+    await first.box.clk.runTo(0);
+    await first.A.leave();
+    // 新实例 = 进程重开（内存里的 cameFrom 不在了，session 由宿主从存储恢复）
+    const second = loadListen({ userId: 'u1' }, { domSignedInHidden: true });
+    second.A.open('conv');
+    await second.box.clk.runTo(0);
+    eq(second.A._debug().cameFrom, 'signed-in');
+    await second.A.leave();
+    await second.box.clk.runTo(0);
+    eq(second.box.els['signed-in'].hidden, false);
+    eq(second.box.els['signed-out'].hidden, true);
+  });
+
+  test('真未登录：DOM 显示 signed-in 也不许冒充，离开落到登录页', async () => {
+    const { box, A } = loadListen(null, { domSignedInVisible: true });   // DOM 说已登录
+    A.open('conv');
+    await box.clk.runTo(0);
+    eq(A._debug().cameFrom, 'signed-out');
+    await A.leave();
+    await box.clk.runTo(0);
+    eq(box.els['signed-out'].hidden, false, '真未登录却没有登录页');
+    eq(box.els['signed-in'].hidden, true);
   });
 });

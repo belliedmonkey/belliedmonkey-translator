@@ -66,10 +66,21 @@ export const META_KEYS = Object.freeze({
   expires: 'mcp_oauth_expires_at',
   account: 'mcp_oauth_account',
   obtained: 'mcp_oauth_obtained_at',
+  // One in-flight authorization transaction: state + PKCE verifier + the client
+  // and redirect they were issued for. Both are one-time secrets, never tokens,
+  // and the row expires in PENDING_TTL_MS. Persisting it is what lets a callback
+  // that arrives after an app relaunch (or after the native sheet already
+  // returned) still finish the code→token exchange instead of being dropped.
+  pending: 'mcp_oauth_pending',
 });
 
 const REFRESH_SKEW_MS = 60 * 1000;
 const KEYCHAIN_TIMEOUT_MS = 4000;
+// The user has ten minutes to finish consent; the verifier is useless after that.
+const PENDING_TTL_MS = 10 * 60 * 1000;
+// A native auth sheet that never returns must not leave the pairing button
+// pending forever. This is a backstop, not the happy path.
+const AUTH_WAIT_MS = 5 * 60 * 1000;
 const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
 function b64url(bytes) {
@@ -227,7 +238,7 @@ export function nativeOpenAuth(win) {
   let handlers = null;
   try { handlers = w && w.webkit && w.webkit.messageHandlers; } catch (_) { handlers = null; }
   if (!handlers || !handlers.mtAppleSignIn) return null;
-  return ({ url, scheme }) => new Promise((resolve) => {
+  return ({ url, scheme, state: expected }) => new Promise((resolve) => {
     let done = false;
     let offWa = () => {};
     let offDeep = () => {};
@@ -238,10 +249,19 @@ export function nativeOpenAuth(win) {
       offDeep();
       resolve(r || { error: 'no_callback' });
     };
-    offWa = NativeBridge.onNative('webauth-result', (r) => finish(r));
+    // A late redirect from an EARLIER attempt must not settle this one. Before
+    // this check, a stale `state` did exactly that: the current connect() saw a
+    // mismatched state and reported unsupported_action for a flow nobody had
+    // cancelled. Ignore anything that is not the state we just asked for.
+    const ours = (r) => {
+      if (!r) return false;
+      if (r.error === 'canceled' || r.error === 'access_denied') return true;
+      return !!r.state && (!expected || r.state === expected);
+    };
+    offWa = NativeBridge.onNative('webauth-result', (r) => { if (ours(r)) finish(r); });
     offDeep = NativeBridge.onNative('deeplink', (raw) => {
       const cb = callbackFromUrl(raw);
-      if (cb) finish(cb);
+      if (cb && ours(cb)) finish(cb);
     });
     try { handlers.mtAppleSignIn.postMessage({ url, scheme }); }
     catch (_) { finish({ error: 'post_failed' }); }
@@ -278,6 +298,13 @@ export function createClient(options) {
   let refreshing = null;   // single-flight
   let lastError = '';
   let lastDetail = '';
+  // One persisted authorization transaction and the in-process waiters that
+  // connect() installed. A callback may arrive while a pair is waiting (the
+  // waiter hands it the code and connect() keeps its confirm→exchange→register
+  // order), or after a relaunch (no waiter; handleCallback exchanges directly).
+  let pendingAuth = null;
+  const authWaiters = new Set();
+  const authWaitMs = Number(o.authWaitMs) > 0 ? Number(o.authWaitMs) : AUTH_WAIT_MS;
 
   function flavor() { return flavorOf() === 'china' ? 'china' : 'global'; }
   function baseUrl() {
@@ -310,6 +337,126 @@ export function createClient(options) {
   }
 
   function owner() { return meta.getItem(META_KEYS.account) || ''; }
+
+  // ── one in-flight authorization transaction ─────────────────────────────
+  // The row contains state + verifier + client/redirect/account. It is written
+  // before the browser opens and removed as soon as an exchange claims it, so a
+  // replayed callback cannot redeem the same code twice. No token ever lives here.
+  function readPending() {
+    if (pendingAuth) {
+      if (Number(pendingAuth.expiresAt) > now()) return pendingAuth;
+      pendingAuth = null;
+      meta.removeItem(META_KEYS.pending);
+      return null;
+    }
+    const raw = meta.getItem(META_KEYS.pending);
+    if (!raw) return null;
+    let p = null;
+    try { p = JSON.parse(String(raw)); } catch (_) { p = null; }
+    if (!p || typeof p !== 'object' || !p.state || !p.verifier || !p.clientId || !p.account) {
+      meta.removeItem(META_KEYS.pending);
+      return null;
+    }
+    if (!(Number(p.expiresAt) > now())) {
+      meta.removeItem(META_KEYS.pending);
+      return null;
+    }
+    pendingAuth = p;
+    return p;
+  }
+
+  function writePending(p) {
+    pendingAuth = p;
+    meta.setItem(META_KEYS.pending, JSON.stringify(p));
+  }
+
+  function dropPending(state) {
+    // A callback for a newer attempt must not delete the transaction the newer
+    // attempt is still waiting on.
+    if (state && pendingAuth && pendingAuth.state !== state) return false;
+    pendingAuth = null;
+    meta.removeItem(META_KEYS.pending);
+    return true;
+  }
+
+  // Claim the transaction BEFORE the network call. If the native sheet and the
+  // app-level deeplink both deliver the same URL, the second one sees no pending
+  // row and cannot exchange the single-use code a second time.
+  async function completeAuthorization(p, cb) {
+    if (!p || !cb) return { ok: false, code: 'bad_request', detail: 'oauth_no_pending' };
+    if (!cb.code) return { ok: false, code: 'bad_request', detail: 'oauth_no_code' };
+    if (!cb.state || cb.state !== p.state) {
+      lastDetail = 'oauth_state';
+      return { ok: false, code: 'unsupported_action', detail: lastDetail };
+    }
+    if (pendingAuth && pendingAuth.state === p.state) dropPending(p.state);
+    const ex = await postForm({
+      grant_type: 'authorization_code',
+      code: String(cb.code),
+      client_id: p.clientId,
+      code_verifier: p.verifier,
+      redirect_uri: p.redirectUri || redirectUri(),
+    });
+    if (!ex.ok) {
+      if (ex.code === 'denied') {
+        lastDetail = 'exchange:' + (ex.error || 'denied');
+        return { ok: false, code: 'unsupported_action', detail: lastDetail };
+      }
+      lastDetail = ex.detail || '';
+      return { ok: false, code: 'network_unavailable', detail: lastDetail };
+    }
+    await saveTokens(ex.tokens, p.account);
+    lastError = '';
+    return { ok: true, account: p.account, token: access ? access.token : '' };
+  }
+
+  // The one callback entry point. It is safe to call for ANY deeplink: a URL that
+  // is not our redirect returns handled:false and stays with its owner.
+  async function handleCallback(raw) {
+    const cb = callbackFromUrl(raw);
+    if (!cb) return { ok: false, handled: false, code: 'not_oauth_callback' };
+    const p = readPending();
+    if (!p) return { ok: false, handled: true, code: 'oauth_no_pending' };
+    const waiterFor = (state) => Array.from(authWaiters).find((w) => w.state === state) || null;
+
+    // A callback that names a DIFFERENT state belongs to an earlier attempt.
+    // It must neither delete nor settle the live transaction.
+    if (cb.state && cb.state !== p.state) {
+      lastDetail = 'oauth_state';
+      return { ok: false, handled: true, code: 'unsupported_action', detail: lastDetail };
+    }
+
+    if (cb.error) {
+      // A provider refusal / cancel is definitive for the transaction it names.
+      // Settle a live connect() too, or its pairing button would stay pending
+      // until the 5-minute backstop.
+      const w = waiterFor(p.state);
+      if (w) w.resolve(cb);
+      if (cb.error === 'access_denied') dropPending(p.state);
+      return {
+        ok: false,
+        handled: true,
+        code: cb.error === 'access_denied' ? 'cancelled' : 'unsupported_action',
+        detail: 'authorize:' + String(cb.error),
+      };
+    }
+    if (!cb.code) {
+      const w = waiterFor(p.state);
+      if (w) w.resolve({ error: 'no_code' });
+      return { ok: false, handled: true, code: 'bad_request', detail: 'oauth_no_code' };
+    }
+    // A live connect() owns the exchange so the confirm→exchange→register order
+    // never inverts. Hand it the code and let its own promise settle.
+    const waiter = waiterFor(p.state);
+    if (waiter) {
+      waiter.resolve(cb);
+      return { ok: true, handled: true, delegated: true, account: p.account };
+    }
+    // No waiter: this process was relaunched (or the sheet already returned).
+    // The persisted transaction is enough to finish the exchange here.
+    const out = await completeAuthorization(p, cb);
+    return Object.assign({ handled: true }, out);
+  }
 
   function accessUsable(account) {
     if (!access || !account) return null;
@@ -351,6 +498,7 @@ export function createClient(options) {
   async function clearTokens() {
     access = null;
     refresh = null;
+    dropPending();
     meta.removeItem(META_KEYS.expires);
     meta.removeItem(META_KEYS.account);
     meta.removeItem(META_KEYS.obtained);
@@ -536,18 +684,62 @@ export function createClient(options) {
     const challenge = await pkceChallenge(verifier, cryptoObj);
     const url = authorizeUrl(clientId, challenge, state);
 
-    let cb;
+    // Persist BEFORE the browser opens. Everything the callback needs (state,
+    // verifier, client, redirect, account) survives a relaunch; the exchange can
+    // then be finished by handleCallback even when this promise is gone.
+    const transaction = {
+      state,
+      verifier,
+      clientId,
+      account,
+      redirectUri: redirectUri(),
+      flavor: flavor(),
+      expiresAt: now() + PENDING_TTL_MS,
+    };
+    writePending(transaction);
+
+    // One settle point for BOTH transports: the native sheet result and the
+    // app-level deeplink handed over by handleCallback. Whichever arrives first
+    // wins; the loser cannot redeem the code again.
+    let settle;
+    const callback = new Promise((resolve) => { settle = resolve; });
+    const waiter = { state, resolve: (r) => settle(r) };
+    authWaiters.add(waiter);
+    let timer = null;
+    const finishWait = () => {
+      if (timer != null) { try { clearTimeout(timer); } catch (_) {} }
+      authWaiters.delete(waiter);
+    };
+    timer = setTimeout(() => settle({ error: 'timeout' }), authWaitMs);
     try {
-      cb = await openAuth({ url, scheme: scheme(), state, redirectUri: redirectUri() });
-    } catch (_) {
-      lastDetail = 'auth_sheet_error';
+      Promise.resolve(openAuth({ url, scheme: scheme(), state, redirectUri: redirectUri() }))
+        .then((r) => settle(r || { error: 'no_callback' }))
+        .catch((e) => settle({ error: 'auth_sheet_error', detail: String((e && e.message) || e) }));
+    } catch (e) {
+      settle({ error: 'auth_sheet_error', detail: String((e && e.message) || e) });
+    }
+
+    let cb;
+    try { cb = await callback; }
+    finally { finishWait(); }
+    if (!cb) cb = { error: 'no_callback' };
+
+    if (cb.error === 'timeout') {
+      dropPending(state);
+      lastDetail = 'auth_timeout';
       return { ok: false, code: 'network_unavailable', detail: lastDetail };
     }
-    if (!cb || cb.error === 'canceled' || cb.error === 'access_denied') {
+    if (cb.error === 'canceled' || cb.error === 'access_denied') {
       lastError = 'cancelled';
+      // A provider refusal is final. A plain cancel leaves the transaction in
+      // place for the app-level handler: the macOS browser handoff can report
+      // canceled while the custom-scheme redirect is still arriving.
+      if (cb.error === 'access_denied') dropPending(state);
       return { ok: false, code: 'cancelled' };
     }
     if (cb.error) {
+      // no_callback / auth_sheet_error. Keep the transaction: handleCallback may
+      // still complete it from the deeplink (and then resume the device register).
       lastDetail = 'authorize:' + String(cb.error);
       return { ok: false, code: 'network_unavailable', detail: lastDetail };
     }
@@ -555,29 +747,14 @@ export function createClient(options) {
       lastDetail = 'authorize:no_code';
       return { ok: false, code: 'network_unavailable', detail: lastDetail };
     }
-    // state is checked when the transport can carry it (the auth sheet now returns
-    // it; the PKCE verifier binds the code even when it cannot).
-    if (cb.state && cb.state !== state) {
+    if (!cb.state || cb.state !== state) {
       lastDetail = 'oauth_state';
       return { ok: false, code: 'unsupported_action', detail: lastDetail };
     }
 
-    const ex = await postForm({
-      grant_type: 'authorization_code',
-      code: String(cb.code),
-      client_id: clientId,
-      code_verifier: verifier,
-      redirect_uri: redirectUri(),
-    });
-    if (!ex.ok) {
-      if (ex.code === 'denied') {
-        lastDetail = 'exchange:' + (ex.error || 'denied');
-        return { ok: false, code: 'unsupported_action', detail: lastDetail };
-      }
-      return { ok: false, code: 'network_unavailable', detail: ex.detail || '' };
-    }
-    await saveTokens(ex.tokens, account);
-    return { ok: true, token: access.token, skipped: 'consent' };
+    const out = await completeAuthorization(transaction, cb);
+    if (out.ok) out.skipped = 'consent';
+    return out;
   }
 
   async function invalidateAccess(call) {
@@ -606,6 +783,7 @@ export function createClient(options) {
     dcrBody,
     // protocol
     connect,
+    handleCallback,
     accessToken,
     hasGrant,
     refreshOnce,
@@ -615,6 +793,7 @@ export function createClient(options) {
     // test surface
     _keys: { KEYCHAIN, META_KEYS },
     _meta: meta,
+    _pending: () => readPending(),
   };
 }
 

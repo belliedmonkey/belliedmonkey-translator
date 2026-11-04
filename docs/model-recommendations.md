@@ -82,7 +82,7 @@
 
 ## 实测台账（全部）
 
-共 70 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 71 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -223,6 +223,12 @@
 |---|---|---|---|---|---|
 | `kimi-k2.6` | 2026-08-21 | ✅ 采纳 | 基线 27275ms · 思考 1999tok · 降档后 3348ms | `{"thinking":{"type":"disabled"}}` | 基线两次里饿死一次（HTTP 200、正文 0 字），与 gpt-5-mini / glm-4.6 同一种坏法。五个候选里只有 thinking:disabled 有效，另外四个要么救不了要么让思考变多 —— 「名字里带 disable/false」不等于「行为是关闭」，这一条只有实测能分辨。 |
 | `moonshot-v1-8k` | 2026-08-21 | ⚠️ 打不到 | — | — | 404 Not found the model moonshot-v1-8k or Permission denied —— 该型号已从国际站下架。这一行记的不是参数结论，是「注册表默认模型失效」这个事实本身。 |
+
+### `1320551096-573eoa6wc4.ap-beijing.tencentscf.com`
+
+| 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
+|---|---|---|---|---|---|
+| `qwen-plus` | 2026-10-01 | 🔵 可达（参数未扫） | 基线 100ms | — | 中国版额度的境内中继；额度翻转（grant.china.ready）依赖它。延迟从境内量（判据 <1 s）。2026-11-04 旧函数删除、迁到新函数（本行 host），控制面 100 ms 基线沿用旧函数，**参数层面一次都没扫过** —— 它转发的是 qwen-plus，参数结论在 dashscope 那一行 |
 
 ---
 

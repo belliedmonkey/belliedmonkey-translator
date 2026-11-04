@@ -197,33 +197,44 @@ describe('build.js — 两条路都要在', () => {
 describe('backend.config.js — build-time injection (BEL-172)', () => {
   const INJECT = require('../build/backend-inject.js');
 
-  test('源码里没有真 JWT / 真后端主机', () => {
+  test('源码里没有真 JWT / 真后端主机（CN 中继是唯一例外，且必须是现网入口）', () => {
     ok(!/eyJ[A-Za-z0-9_-]{10,}\.eyJ/.test(CFG_SRC), 'backend.config.js 又出现了 JWT 字面量');
     // Comments may *name* the gate (e.g. "must not be *.supabase.co"); only code lines
     // are the contract. A comment cannot route traffic.
     const code = CFG_SRC.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
-    for (const host of ['supabase.co', 'api.belliedmonkey.com', 'tencentscf.com']) {
+    for (const host of ['supabase.co', 'api.belliedmonkey.com']) {
       ok(!code.includes(host), `backend.config.js 又写死了 ${host}`);
     }
+    // BEL-188: this CN release branch intentionally pins the live relay host. It is a
+    // public SCF endpoint, not a secret; intl keeps the BEL-172 placeholder + injection.
+    const cnRelay = new URL(CFG.grant.china.relayUrl);
+    eq(cnRelay.hostname, '1320551096-573eoa6wc4.ap-beijing.tencentscf.com');
+    ok(!code.replace(cnRelay.hostname, '').includes('tencentscf.com'),
+      'backend.config.js 出现了非现网入口的 tencentscf.com 主机');
   });
 
-  test('占位符是惰性的：*.invalid + 非 JWT', () => {
+  test('占位符是惰性的：*.invalid + 非 JWT；CN 中继钉在现网入口', () => {
     eq(new URL(CFG.url).hostname, 'backend.invalid');
     eq(new URL(CFG.china.url).hostname, 'cn.backend.invalid');
     ok(!/^eyJ/.test(CFG.anonKey), 'anonKey 占位符不该长得像真 key');
     ok(!/^eyJ/.test(CFG.china.anonKey));
-    eq(new URL(CFG.grant.china.relayUrl).hostname, 'relay.invalid');
+    eq(new URL(CFG.grant.china.relayUrl).hostname, '1320551096-573eoa6wc4.ap-beijing.tencentscf.com');
   });
 
   test('apply() 注入后占位符消失', () => {
+    // chinaRelay 在 CN 发布分支是字面值（BEL-188），没有占位符可替换；其余四项照常注入。
     const values = {
       url: 'https://real.example', anonKey: 'sb_publishable_real',
       chinaUrl: 'https://cn.real.example', chinaAnonKey: 'sb_publishable_cn',
-      chinaRelay: 'https://relay.real.example',
     };
     const out = INJECT.apply(CFG_SRC, values);
     for (const v of Object.values(values)) ok(out.includes(v), `注入结果缺 ${v}`);
-    for (const s of Object.values(INJECT.SENTINEL)) ok(!out.includes(s), `占位符 ${s} 还在`);
+    for (const s of Object.values(INJECT.SENTINEL)) {
+      if (s === INJECT.SENTINEL.chinaRelay) continue;   // pinned on this branch
+      ok(!out.includes(s), `占位符 ${s} 还在`);
+    }
+    ok(out.includes('https://1320551096-573eoa6wc4.ap-beijing.tencentscf.com'),
+      'CN 中继字面值被注入覆盖或丢失');
   });
 
   test('service_role / 非 https / 同后端 一律拒绝注入', () => {

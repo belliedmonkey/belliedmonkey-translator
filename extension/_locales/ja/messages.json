@@ -3021,6 +3021,9 @@
   "subtitle_stop_silence_permission": {
     "message": "30 秒間音がありません — 一時停止しました。動画が再生中なのに字幕が出なかった場合、システム音声の収録が許可されていないかもしれません：システム設定 › プライバシーとセキュリティ › 画面収録とシステムオーディオ録音 で「大肚猴翻訳」を許可し、「再開」を押してください。"
   },
+  "subtitle_stop_silence_mic_permission": {
+    "message": "30 秒間音がありません — 一時停止しました。動画が再生中なのに字幕が出ない場合、マイクの権限が許可されていないかもしれません：設定 › プライバシーとセキュリティ › マイク で「大肚猴翻訳」を許可し、「再開」を押してください。"
+  },
   "subtitle_bar_silence_permission": {
     "message": "30 秒間音がないため一時停止しました — 動画は再生中なのに字幕が出ない？システム音声の収録が許可されていないかもしれません"
   },
@@ -3930,6 +3933,24 @@
   "listen_ptt_preparing": {
     "message": "準備中 · {lang} を {pct}% ダウンロード"
   },
+  "listen_ptt_loading": {
+    "message": "設定を読み込んでいます…"
+  },
+  "listen_ptt_loading_label": {
+    "message": "この端末の言語で話す"
+  },
+  "listen_ptt_loading_other": {
+    "message": "相手の言語"
+  },
+  "listen_ptt_loading_why": {
+    "message": "設定と言語パックを読み込んでいます。少々お待ちください…"
+  },
+  "listen_ptt_checking": {
+    "message": "準備中 · 言語パックを確認しています"
+  },
+  "listen_ptt_preparing_why": {
+    "message": "端末の認識パックを準備しています…"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
@@ -3944,6 +3965,15 @@
   },
   "listen_prep_detail": {
     "message": "{what}をダウンロード中 · {pct}% · {ready}は準備完了"
+  },
+  "listen_prep_loading": {
+    "message": "設定と言語パックを読み込んでいます…"
+  },
+  "listen_prep_checking": {
+    "message": "準備中 · 言語パックを確認しています"
+  },
+  "listen_prep_downloading": {
+    "message": "{what} をダウンロード中 · {pct}%"
   },
   "listen_ready_tap_sub": {
     "message": "自動では始まりません · 「{mine}」か「{other}」を押すと聞き取りが始まります"
@@ -4208,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
+  },
+  "grant_balance_stale": {
+    "message": "前回の残高 · 未更新"
   }
 }
