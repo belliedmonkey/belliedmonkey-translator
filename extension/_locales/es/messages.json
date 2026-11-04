@@ -4238,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "Pasar a por motor descarta la configuración actual de un toque"
+  },
+  "grant_balance_stale": {
+    "message": "Último saldo conocido · sin actualizar"
   }
 }

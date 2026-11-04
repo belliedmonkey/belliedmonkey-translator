@@ -4239,5 +4239,8 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · 约 {size}"
+  },
+  "grant_balance_stale": {
+    "message": "上次已知余额 · 未刷新"
   }
 }

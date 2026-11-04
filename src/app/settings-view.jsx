@@ -39,6 +39,7 @@ import EngineFields from '../shared/engine-fields.js';
 import QuickSetup from '../shared/quick-setup.js';
 import { render as renderQuickSetup } from '../shared/quick-setup-view.jsx';
 import * as LearnGrant from '../shared/grant.js';
+import * as Quota from '../shared/quota.js';
 import { render as renderGrant } from '../shared/grant-view.jsx';
 import * as SourcesView from '../shared/sources-view-view.jsx';
 
@@ -585,6 +586,12 @@ export default function SettingsView() {
     if (!box) return;
     let cur = {};
     try { cur = await settingsModel.get(settingsModel.KEYS.concat(['grant', 'grantTail', 'grantBalance'])); } catch (_) {}
+    // P1-1：进设置页先拉一次余额。force 忽略 10 分钟缓存；失败时 quota 保留上次值
+    // 并打 stale，卡面的 spentText 会标注「未刷新」，不拿旧数字冒充当前。
+    try {
+      const q = await Quota.refresh({ settings: cur, force: true });
+      if (q && q.balance) cur.grantBalance = q.balance;
+    } catch (_) {}
     renderGrant(box, {
       t,
       status: LearnGrant.status(cur, { signedIn: !!session, unavailable: grantUnavailable.current }),
@@ -607,6 +614,16 @@ export default function SettingsView() {
       } catch (_) { setGrantActive(false); }
     });
   }
+
+  // 回前台时也刷一次：设置页可能停在前台很久，或者从其它 App 切回来。
+  useEffect(() => {
+    const onVis = () => {
+      if (document.hidden) return;
+      try { paintGrant(settingsModel.currentSession()).catch(() => {}); } catch (_) {}
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { try { document.removeEventListener('visibilitychange', onVis); } catch (_) {} };
+  }, []);
 
   async function grantAction(id, session) {
     const hooks = settingsModel.hooks();

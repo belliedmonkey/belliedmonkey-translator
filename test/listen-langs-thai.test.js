@@ -68,7 +68,8 @@ describe('听译页语言列表：始终列全（含 ไทย）', () => {
     ok(/listenModel\.changeEngine\(\)/.test(VIEW), '按钮没接到 changeEngine()');
     ok(/app-listen-change-engine/.test(VIEW), '按钮缺少稳定 id');
     ok(/setOpenEnginePicker/.test(MODEL) && /function changeEngine/.test(MODEL), '模型没有注入点');
-    ok(/AppListen\.wire\(\{ openSettings \}\)/.test(read('src/app/shell-model.js')),
+    // P1-2 起 wire 还必须带显式 session getter；这里只守 openSettings 仍在注入。
+    ok(/AppListen\.wire\(\{[\s\S]{0,120}?openSettings[\s\S]{0,160}?\}\)/.test(read('src/app/shell-model.js')),
       'shell 没有把 openSettings 注入进来 —— 按钮会点了没反应');
   });
 });

@@ -4238,5 +4238,8 @@
   },
   "firstrun_packs_progress_pct": {
     "message": "{pct}% · about {size}"
+  },
+  "grant_balance_stale": {
+    "message": "Last known balance · not refreshed"
   }
 }

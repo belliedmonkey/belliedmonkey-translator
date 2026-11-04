@@ -4238,5 +4238,8 @@
   },
   "opt_mode_switch_to_detail": {
     "message": "項目別に切り替えると、今のワンタップ設定は破棄されます"
+  },
+  "grant_balance_stale": {
+    "message": "前回の残高 · 未更新"
   }
 }

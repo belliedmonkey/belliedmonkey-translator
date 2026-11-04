@@ -35,6 +35,7 @@ import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import { createHalt, meterText, failSurface } from './n26-session.js';
+import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
 
 const listenModel = (() => {
   const $ = (id) => document.getElementById(id);
@@ -130,7 +131,10 @@ const listenModel = (() => {
   let partial = '', partialTr = '';
   let partialRec = '';   // 当前识别中的文字（partial = 缓冲 + partialRec；P1-6 的 result 比对用这个）
   let clockTimer = 0;
-  let cameFrom = 'signed-in';
+  // P1-2：来源必须显式从登录态来，不能再读 DOM 可见性 —— 进了 listen 视图之后
+  // #signed-in 本来就是 hidden 的，再 open() 一次就会把自己记成「未登录」。
+  let cameFrom = '';
+  let sessionGetter = null;      // wire({ session })：shell 的 currentSession getter
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
   let speakingRid = 0;      // 正在朗读哪一行（0 = 没在读）
   const sq = C.makeSpeakQueue();     // 朗读队列（裁定 7：排队逐句读完）
@@ -2477,11 +2481,40 @@ const listenModel = (() => {
     if (seg) { try { seg.dispose(); } catch (_) {} }   // P1-1：清掉计时器，停掉旧会话的在途
     seg = null; segDegrade = false; segSpeakN = 0;
     $('app-listen').hidden = true;   // shell 级直写（JSX 恒 true，React 不覆盖 —— 头注释）
-    $(cameFrom).hidden = false;
+    // 离开时按**当下**的登录态回，而不是永远回进入时那一页：会话期间真退出了，
+    // 这里也必须落到登录页，不能拿旧的 cameFrom 冒充。
+    cameFrom = sourceNow();
+    // 两个首页互斥：显式来源之外的那一页也压住，避免退出时两页同时可见。
+    $('signed-in').hidden = cameFrom !== 'signed-in';
+    $('signed-out').hidden = cameFrom !== 'signed-out';
     // 回首页时把入口状态按**当下的系统真实资产状态**重算一次（第 4 轮问题 1）：会话期间
     // 的探针（切语言触发的 storage 变更）可能留下过时结论，离开不重算就会把入口钉成灰的。
     try { await refreshEntry(); } catch (_) {}
   }
+  // P1-2：当前登录态只从宿主显式注入的 getter 读（shell 的 currentSession）。
+  // 没有 getter 就是「未知 → 按未登录处理」；绝不读 #signed-in.hidden 猜。
+  // LearnAuth.userId() 是 async，Promise 恒真 —— 不能拿它做同步判据。
+  function signedInNow() {
+    try {
+      if (typeof sessionGetter === 'function') return !!sessionGetter();
+    } catch (_) {}
+    return false;
+  }
+  function sourceNow() { return signedInNow() ? 'signed-in' : 'signed-out'; }
+
+  // P1-1：进 listen / 回前台拉一次余额。失败时 quota 保留上次值并带 stale，
+  // meterView 会由 spentText 统一标注「未刷新」。
+  function refreshGrantBalance(force) {
+    try {
+      Quota.refresh({ force: !!force }).then((r) => {
+        if (r && r.balance) {
+          grantBalance = r.balance;
+          try { canvas.view('meter'); } catch (_) {}
+        }
+      }).catch(() => {});
+    } catch (_) {}
+  }
+
   // m === 'subtitle' 打开实时字幕（§9.8）：先停在准备态，点「开始」才开始（画布 M3 / I2）；
   // 其余（含点击事件对象）一律是对话，照旧一进来就开始听。
   function open(m) {
@@ -2493,8 +2526,9 @@ const listenModel = (() => {
     try {
       if (typeof MTTelemetry !== 'undefined') MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
     } catch (_) {}
-    cameFrom = $('signed-in').hidden ? 'signed-out' : 'signed-in';
+    cameFrom = sourceNow();
     $(cameFrom).hidden = true;
+    refreshGrantBalance(true);
     $('app-listen').hidden = false;   // shell 级直写（同上）
     note('');
     paintMode();
@@ -3101,7 +3135,7 @@ const listenModel = (() => {
   // 免费额度条：只在翻译槽正在用额度、且缓存里有 spentUsd/limitUsd 时出现。
   // 用完那张失败面自己带同一行数字，这里就不再重复。
   function meterView() {
-    const text = grantOn ? meterText(grantBalance) : '';
+    const text = grantOn ? meterText(grantBalance, { t }) : '';
     if (!text || (trHalt.blocksPump() && trHalt.code === 'credit_exhausted')) {
       return { shown: false, label: '', text: '' };
     }
@@ -3233,6 +3267,19 @@ const listenModel = (() => {
   // 这里只留 IO 订阅与初始探询。回调经 model 动作（导出的 open 等），与原 addEventListener
   // 挂的是同一批函数。
   function wire(opts) {
+    // P1-2：登录态是显式的宿主输入，不是 DOM 可见性。shell 的 currentSession 是
+    // 启动恢复 / 登录 / 退出三处唯一的汇合点，所以进程重开后它已经就位。
+    if (opts && typeof opts.session === 'function') sessionGetter = opts.session;
+    else if (opts && typeof opts.getSession === 'function') sessionGetter = opts.getSession;
+    // P1-1：订阅同一个 provider。storage 里的 grantBalance 被别的宿主写时，
+    // watch() 把内存快照也换掉；refresh() 成功时由 subscribe() 回调。
+    try { Quota.watch(); } catch (_) {}
+    try {
+      Quota.subscribe((bal) => {
+        grantBalance = bal || null;
+        try { canvas.view('meter'); } catch (_) {}
+      });
+    } catch (_) {}
     // 「换引擎」就地入口（2026-10-04）：shell 拥有 openSettings，所以由它注入 —— 与
     // `AppDocs.wire({ openSettings })` 同一条分工（模型画控件、shell 管跳转）。
     if (opts && typeof opts.openSettings === 'function') {
@@ -3264,6 +3311,7 @@ const listenModel = (() => {
     if (bridged() && NativeAudio.onTick) NativeAudio.onTick(() => { if (document.hidden && session && phase !== 'ended') paintClock(); });
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) return;
+      refreshGrantBalance(true);   // 回前台：余额可能已经在会话里走了一段
       if (bridged() && NativeAudio.micPermRead) NativeAudio.micPermRead();
       if (session) paint();
       // 回前台且没在会话里：入口按系统真实资产状态重算（第 4 轮问题 1/2，不靠一次性缓存）。
@@ -3340,6 +3388,7 @@ const listenModel = (() => {
       ptt: ptt ? { on: true, side: ptt.side, stopping: !!pttStopTimer } : { on: false, side: '', stopping: false },
       pttForce: pttForce ? pttForce.side : '', translateCalls,
       n26: { halted: trHalt.halted, code: trHalt.code, streak: trHalt.streak },
+      cameFrom, signedIn: signedInNow(),
       // 断句路读数（2026-10-10）：走的是模型断句还是旧串句器、降级没有、调用数、各路缓冲长度。
       seg: Object.assign({ route: segRoute, degrade: segDegrade, diag: segDiag }, seg ? seg.state() : {}),
       // 句头闸读数（2026-10-11 第九轮）：扣住（hold）**不等于**路由器扣住结果 —— 扣住的片还没进账本，
