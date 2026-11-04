@@ -1751,7 +1751,6 @@ const listenModel = (() => {
         return;
       }
       if (dec.note) noLidLast = dec.note;
-      if (dec.fallback) diagBump('intake', 'admit-fallback', { why: dec.fallback });
       if (dec.markUsed && pttSwitch) pttSwitch.used = true;
       // 告诉句头闸「另一门语言收到了这条定稿」：**唯一**裁决入口 noteOtherText ——
       // 只把「已被入口接收且**含汉字**」的定稿记进重叠表（短片与长片共用这一套判定）；
