@@ -836,9 +836,11 @@ module.exports = [
   {
     // 中国版免费额度的中继（腾讯云 Web 函数，ap-beijing）。2026-10-01 上线当天量过：
     // 从北京那台机器上 /spec 五次 0.07–0.16 s、/claim 0.28 s、窄口一跳 0.085 s。
+    // **2026-11-04（BEL-188）**：旧函数已删除（境内 NXDOMAIN），迁到下面这个新函数；
+    // 100 ms 基线是旧函数上的控制面数字，模型与转发代码没变，暂沿用，待境内复测。
     // verdict=reachable 的意思就是这一行：**打通了、量了耗时，参数层一次都没扫过**。
     // 真正发出去的模型是 qwen-plus，参数结论在 dashscope 那一行，不在这里重复。
-    host: '1320551096-0kh88p4r7e.ap-beijing.tencentscf.com', model: 'qwen-plus', date: '2026-10-01',
+    host: '1320551096-573eoa6wc4.ap-beijing.tencentscf.com', model: 'qwen-plus', date: '2026-10-01',
     baseline: { ms: 100, thinkTokens: null, outChars: 0, finish: 'stop' },
     tried: [
       { params: {}, ms: 100, thinkTokens: null, outChars: 0,
@@ -846,6 +848,7 @@ module.exports = [
     ],
     verdict: 'reachable',
     why: '中国版额度的境内中继；额度翻转（grant.china.ready）依赖它。延迟从境内量（判据 <1 s）。'
+      + '2026-11-04 旧函数删除、迁到新函数（本行 host），控制面 100 ms 基线沿用旧函数，'
       + '**参数层面一次都没扫过** —— 它转发的是 qwen-plus，参数结论在 dashscope 那一行',
   },
 ];

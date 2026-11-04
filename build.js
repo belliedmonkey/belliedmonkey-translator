@@ -1242,6 +1242,26 @@ generateStt(SRC, 'global');
 generateLangs(SRC);
 generatePalette(SRC);
 
+// CN relay liveness gate — BEFORE any artifact is written.
+//
+// A deleted SCF function keeps the old hostname compiling and signing perfectly; the
+// failure only shows up when a user taps translate (BEL-188, CN 141/142). The CN
+// flavor therefore probes `<grant.china.relayUrl>/spec` and refuses to build unless
+// it answers 200. intl is untouched: this branch only runs for `--flavor china`.
+if (FLAVOR === 'china') {
+  const cn = chinaGrant();
+  if (cn) {
+    try {
+      require('./build/cn-relay-gate.js').assertCnRelaySpec(cn.relayUrl, { log });
+    } catch (e) {
+      err(e.message);
+      process.exit(1);
+    }
+  } else {
+    log('CN relay spec gate skipped — grant.china.ready=false，本 flavor 不带额度');
+  }
+}
+
 // Copy sources
 copyDir(SRC, DIST);
 log(`Copied extension sources → ${path.basename(DIST)}/`);
