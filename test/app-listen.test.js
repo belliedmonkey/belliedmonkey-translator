@@ -869,7 +869,7 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   test('撤闸后：定稿也只用 0.5s 那道确认，扣住队列整体退场', () => {
     eq(typeof C.makeLidHold, 'undefined', 'makeLidHold 应当已从 listen-core 退场');
     ok(!/lidHold|lidPairFinal|LID_HOLD_MAX_MS|LID_CONFIRM_FINAL_MS/.test(MODEL), 'listen-model 里不该再有扣住队列的残留');
-    ok(/lid: lidPair\(\), pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限）');
+    ok(/lid: lidPair\(\), lidRaw: lidLang, noLid, pttSwitch, now: Date\.now\(\)/.test(MODEL), '定稿那一道闸没有回到 lidPair()（2026-10-10 起经 C.finalAdmit 纯判定：LID 归属 + 换边宽限；BEL-188 另带 lidRaw/noLid 给「无判词」兜底）');
   });
 
   test('模型接线：撤闸后定稿直接用 lidPair()；引擎默认 ECAPA、可开发开关回 whisper', () => {
