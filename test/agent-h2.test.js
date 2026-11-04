@@ -26,11 +26,11 @@ const KERNEL = path.join(ROOT, 'agent/mcp-stdio.js');
 const CLAUDE_LAUNCHER = path.join(ROOT, 'agent/hosts/claude-code/stdio.js');
 
 const HONEST = [
-  'Local stdio is the daily server.',
-  'Remote MCP is later.',
-  'A remote MCP is not published.',
+  'Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).',
+  'Local stdio is still the daily entry point.',
   '不要把本进程说成已上架云 MCP',
 ];
+const REMOTE = 'https://mcp.belliedmonkey.com/mcp/v1';
 
 const CODE_FILES = [LAUNCHER, SHIM, PKG, BUNDLE_PATCH, REPO_PATCH];
 
@@ -139,7 +139,9 @@ describe('agent H2 dsh packaging', () => {
     ok(repo.includes('args: ["agent/hosts/dsh/stdio.js"]'));
 
     const rootMcp = JSON.parse(read(path.join(ROOT, '.mcp.json')));
-    ok(!rootMcp.mcpServers.belliedmonkey, 'product server leaked into the developer .mcp.json');
+    deepEq(Object.keys(rootMcp.mcpServers), ['belliedmonkey']);
+    eq(rootMcp.mcpServers.belliedmonkey.type, 'http');
+    eq(rootMcp.mcpServers.belliedmonkey.url, REMOTE);
   });
 
   test('shim and launcher have no tool schema and load agent/mcp-stdio.js', async () => {
@@ -183,7 +185,7 @@ describe('agent H2 dsh packaging', () => {
       const text = read(file);
       for (const line of HONEST) ok(text.includes(line), path.basename(file) + ' missing: ' + line);
       ok(text.includes(copy.HOST_KEY_HONEST), path.basename(file) + ' missing host-key line');
-      ok(!/https?:\/\//.test(text), path.basename(file) + ' has a URL');
+      ok(!/https?:\/\//.test(text.split(REMOTE).join('')), path.basename(file) + ' has an unexpected URL');
     }
     ok(read(README).includes('没有第二份名字 `ready_check`'));
     ok(read(README).includes('没有 H3'));
@@ -227,7 +229,7 @@ describe('agent H2 dsh packaging', () => {
     const claude = await listedTools(CLAUDE_LAUNCHER);
     eq(dsh.init.result.serverInfo.name, 'belliedmonkey');
     eq(dsh.init.result.serverInfo.version, contract.TRACK);
-    ok(/not published/i.test(dsh.init.result.instructions));
+    ok(dsh.init.result.instructions.includes('Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).'));
     deepEq(dsh.tools.map((t) => t.name), contract.ACTIONS.slice());
     deepEq(dsh.tools, kernel.tools);
     deepEq(dsh.tools, claude.tools);

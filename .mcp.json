@@ -1,20 +1,8 @@
 {
   "mcpServers": {
-    "cua-driver": {
-      "type": "stdio",
-      "command": "cua-driver",
-      "args": ["mcp"],
-      "env": {}
-    },
-    "gbrain": {
-      "type": "stdio",
-      "command": "gbrain",
-      "args": ["serve"],
-      "env": {}
-    },
-    "bt-supabase": {
+    "belliedmonkey": {
       "type": "http",
-      "url": "https://mcp.supabase.com/mcp?project_ref=cavezcufztzqsohpjmup"
+      "url": "https://mcp.belliedmonkey.com/mcp/v1"
     }
   }
 }

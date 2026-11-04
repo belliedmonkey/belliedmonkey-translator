@@ -4,7 +4,7 @@
 - 内核：W2 stdio MCP，`agent/mcp-stdio.js`。本目录只有包装。
 - 工具名：与 `agent/contract.js` 的七个动作 ID 逐字相同，含 `ready.check`。没有第二份公开名字。
 
-Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。Remote 若以后做，必须复用同一份 tool schema。
+Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth). Local stdio is still the daily entry point. 不要把本进程说成已上架云 MCP。Remote 复用同一份 tool schema。
 
 宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径。宿主订阅或宿主 API Key 就能跑这些工具。大肚猴额度是可选的备用，不是唯一条件。
 
@@ -30,7 +30,7 @@ Local stdio is the daily server. Remote MCP is later. A remote MCP is not publis
 
 `agent/hosts/claude-code/stdio.js` 与 `agent/hosts/dsh/stdio.js` 都只加载 `agent/mcp-stdio.js`。它们不声明工具。
 
-仓库根上的 `.mcp.json` 是开发宿主的服务器列表（验证驱动等）。不要把 `belliedmonkey` 写进那份文件，也不要在本仓库里执行 `claude mcp add --scope project`。
+仓库根上的 `.mcp.json` 声明产品 remote server `belliedmonkey`（`https://mcp.belliedmonkey.com/mcp/v1`，OAuth）。本目录的 Claude Code / Codex / dsh 包装仍是本机 stdio，不声明 remote URL；也不要在本仓库里执行 `claude mcp add --scope project` 来覆盖它。
 
 ## Claude Code
 
@@ -62,7 +62,7 @@ codex mcp add belliedmonkey -- node "$PWD/agent/hosts/claude-code/stdio.js"
 
 ## dsh
 
-包装在 `agent/hosts/dsh/`。日用是本机 stdio。Remote 未发布。没有 H3，也没有 Grok 或 Muse 的本地插件。
+包装在 `agent/hosts/dsh/`。日用是本机 stdio。Remote 已发布（OAuth）；本包装仍走 stdio。没有 H3，也没有 Grok 或 Muse 的本地插件。
 
 在仓库根把 plugin 装进 profile：
 

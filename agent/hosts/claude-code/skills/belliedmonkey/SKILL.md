@@ -1,11 +1,11 @@
 ---
 name: belliedmonkey
-description: Call BelliedMonkey Translator through the local stdio MCP server belliedmonkey. Tool names are the seven N25 action ids ready.check, open_setup, start_live_subtitles, translate_page, translate_video_captions, capture_to_study, and explain_or_drill. Use when the user wants a readiness check, setup, live bilingual subtitles, page translation, video captions, study capture, or an explanation. Local stdio is the daily server. A remote MCP is not published.
+description: Call BelliedMonkey Translator through the local stdio MCP server belliedmonkey. Tool names are the seven N25 action ids ready.check, open_setup, start_live_subtitles, translate_page, translate_video_captions, capture_to_study, and explain_or_drill. Use when the user wants a readiness check, setup, live bilingual subtitles, page translation, video captions, study capture, or an explanation. Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth). Local stdio is still the daily entry point.
 ---
 
 # BelliedMonkey Translator
 
-Local stdio is the daily server. Remote MCP is later. A remote MCP is not published. 不要把本进程说成已上架云 MCP。 Do not tell the user that a cloud server is already on a store, and do not invent an endpoint URL.
+Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth). Local stdio is still the daily entry point. 不要把本进程说成已上架云 MCP。 Do not tell the user that a cloud server is already on a store, and do not invent an endpoint URL.
 
 宿主可用自有订阅或 API Key · 大肚猴额度不是唯一路径. A host API key calls the provider; usage is observed and is not placed on the receipt. A host subscription token (`ANTHROPIC_AUTH_TOKEN` or `CLAUDE_CODE_OAUTH_TOKEN`) uses that same call. If the provider will not bill the token, the receipt code is `subscription_cannot_pay` and the Bellied Monkey grant is not a silent success. A non-empty OAuth variable alone is not a grant and is not success. Do not tell the user the tool succeeded when that code comes back. A host API key (`ANTHROPIC_API_KEY`) that the provider accepts does not require login.
 

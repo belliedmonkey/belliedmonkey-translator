@@ -74,6 +74,7 @@ curl -s https://addons.mozilla.org/api/v5/addons/addon/mobiletranslator@belliedm
 ```bash
 npm test                 # 纯逻辑
 npm run test:layout      # 真实 headless Chrome，36+ fixture（含行为 phase：选区/交互）
+npm run boundary         # 公仓/旁仓边界（BOUNDARY.md §2；CI 也跑）
 node build.js            # Chrome/Safari；含全部构建期闸门
 node build.js firefox    # Firefox
 ```

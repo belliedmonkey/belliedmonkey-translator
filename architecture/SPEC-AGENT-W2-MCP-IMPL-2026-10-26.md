@@ -7,7 +7,7 @@
 - 代码：`agent/contract.js`（工具 schema 的运行时源）、`agent/mcp-stdio.js`、`agent/run.js`、`src/app/agent-face.js`
 - **假 MCP / 仅 echo 深链字符串却标 D3 = FAIL**
 
-本文件是 W2 首交的实现规格。它不宣称已经上架云 MCP。Remote 后继若做，必须复用下面同一份 tool schema，而不是另起一套动作。
+本文件是 W2 首交的实现规格。Remote MCP 已发布（`https://mcp.belliedmonkey.com/mcp/v1`，OAuth）；本地 stdio 仍是日常入口。Remote 复用下面同一份 tool schema，而不是另起一套动作。
 
 ---
 
@@ -20,9 +20,9 @@
 | npm | `npm run agent:mcp` |
 | 服务名 | `belliedmonkey` |
 | 版本戳 | `1.22.0-n25`（轨名，不是商店营销号） |
-| Remote | **未发布**。初始化说明里写明 not published。不要把本进程说成已上架云 MCP |
-| H1 包装 | `agent/hosts/`。Claude Code 的 `.mcp.json` 与 Codex 的 `.codex/config.toml` 都启动 `agent/hosts/claude-code/stdio.js`，该文件只加载 `agent/mcp-stdio.js`。工具名仍是本表七个动作 ID。Remote 未发布。 |
-| H2 包装 | `agent/hosts/dsh/`。`cordis.patch.yml` 让 `@deepseek-ai/dsh-mcp-client` 启动 `agent/hosts/dsh/stdio.js`，该文件只加载 `agent/mcp-stdio.js`。工具名仍是本表七个动作 ID。dsh 函数名不允许点号时，模型侧名字是宿主映射注解，线协议名仍是 `ready.check`。Remote 未发布。没有 H3。 |
+| Remote | **已发布**：`https://mcp.belliedmonkey.com/mcp/v1`（OAuth）。初始化说明写明 published。不要把本进程说成已上架云 MCP |
+| H1 包装 | `agent/hosts/`。Claude Code 的 `.mcp.json` 与 Codex 的 `.codex/config.toml` 都启动 `agent/hosts/claude-code/stdio.js`，该文件只加载 `agent/mcp-stdio.js`。工具名仍是本表七个动作 ID。Remote 已发布（OAuth）。 |
+| H2 包装 | `agent/hosts/dsh/`。`cordis.patch.yml` 让 `@deepseek-ai/dsh-mcp-client` 启动 `agent/hosts/dsh/stdio.js`，该文件只加载 `agent/mcp-stdio.js`。工具名仍是本表七个动作 ID。dsh 函数名不允许点号时，模型侧名字是宿主映射注解，线协议名仍是 `ready.check`。Remote 已发布（OAuth）。没有 H3。 |
 
 Flavor：环境变量 `MT_FLAVOR=china` 时，回执里的 `fix.open_setup` 用 `belliedmonkeycn://`，否则 `belliedmonkey://`。
 

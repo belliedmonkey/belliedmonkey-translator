@@ -1,85 +1,61 @@
-// test/china-gate.test.js — 中国版合规门的判据（build/china-gate.js）。
+// test/china-gate.test.js — the **public** China-build invariant (BEL-172 split).
 //
-// 2026-09-22 额度那一条从「不许有额度端点」改成「额度端点只许是境内中继」。改写一条门禁时
-// 最容易漏的是**它还红不红得了**，所以这里每一组都先喂「该红」的输入。grantHost 为空的那组
-// 就是改写前的行为：它必须与旧门禁逐条等价。
+// The detailed region policy (allowed in-country hosts, MT_GRANT shape, grantOnly endpoints)
+// moved to the private compliance repo with its own 13-case falsification suite. This file
+// guards only what the public artifact must prove by itself:
+//   ① no brand strings, ② no *.supabase.co host.
+//
+// A gate that cannot go red is not a gate, so each rule is fed an input that must hit.
 
 const { describe, test, ok } = require('./harness');
 const G = require('../build/china-gate.js');
 
-const TOKYO = 'https://cavezcufztzqsohpjmup.supabase.co';
-const CN = 'relay.example.cn';
-const INGEST = 'api.belliedmonkey.com';
-const scan = (text, grantHost, ingestHost) => G.scan([{ name: 'x.js', text }], { grantHost, ingestHost });
+const scan = (text) => G.scan([{ name: 'x.js', text }]);
 
-describe('中国合规门：品牌与东京路径（与额度开没开无关）', () => {
+describe('中国版公开不变量：品牌词', () => {
   test('品牌词红', () => {
     ok(scan('label: "OpenAI"').length === 1, 'OpenAI 没被拦');
     ok(scan('x = "api.anthropic.com"').length === 1, 'anthropic 端点没被拦');
     ok(scan('ChatGPT 兼容').length === 1, 'ChatGPT 没被拦');
+    ok(scan('Claude 风格').length === 1, 'Claude 没被拦');
+    ok(scan('api.openai.com/v1').length === 1, 'openai 端点没被拦');
   });
-  test('协议头 anthropic-version 不算品牌', () => {
-    ok(scan("h['anthropic-version'] = '2023-06-01'").length === 0, '协议头被误拦');
+
+  test('通用协议头不算品牌（anthropic-version）', () => {
+    ok(scan("headers: { 'anthropic-version': '2023-06-01' }").length === 0,
+      'anthropic-version 是 Messages 协议头，不是品牌指代');
   });
-  test('东京三条路径：境内主机配了也照样红', () => {
-    for (const host of ['', CN]) {
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-ingest"`, host, INGEST).length === 1, '东京 bt-ingest 没被拦（' + host + '）');
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-grant"`, host, INGEST).length === 1, '东京 bt-grant 没被拦（' + host + '）');
-      ok(scan(`u = "${TOKYO}/functions/v1/bt-relay/chat/completions"`, host, INGEST).length === 1, '东京 bt-relay 没被拦（' + host + '）');
+});
+
+describe('中国版公开不变量：*.supabase.co', () => {
+  test('任何路径的 supabase.co 主机都红', () => {
+    for (const p of ['/functions/v1/bt-ingest', '/functions/v1/bt-relay/chat/completions',
+      '/functions/v1/bt-grant', '/auth/v1/user', '/rest/v1/bt_events']) {
+      ok(scan(`u = "https://x.supabase.co${p}"`).length === 1, `东京主机漏了：${p}`);
     }
+    ok(scan('u = "https://example.supabase.co/"').length === 1, '根路径也应在内');
   });
-  test('境内 bt-ingest 放行；别的主机或未就绪仍红', () => {
-    const url = `https://${INGEST}/functions/v1/bt-ingest`;
-    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, CN, INGEST).length === 0, '境内 ingest 被误拦');
-    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, '', INGEST).length === 0, '没配额度时境内 ingest 被误拦');
-    ok(scan(`window.MT_TELEMETRY = {"url":"${url}"};`, CN, '').length === 1, 'ingestHost 为空却放行了');
-    ok(scan(`window.MT_TELEMETRY = {"url":"https://evil.example/functions/v1/bt-ingest"};`, CN, INGEST).length === 1, '别的主机的 bt-ingest 被放行');
-    ok(scan(`window.MT_TELEMETRY = {"url":"http://${INGEST}/functions/v1/bt-ingest"};`, CN, INGEST).length === 1, 'http 的境内 ingest 被放行');
+
+  test('非 supabase 的境内主机放行', () => {
+    ok(scan('u = "https://api.example.cn/functions/v1/bt-ingest"').length === 0);
+    ok(scan('u = "https://relay.example.cn/functions/v1/bt-relay/chat/completions"').length === 0);
   });
-  test('grant/relay：东京仍红；境内 grantHost 上不由路径字面量误杀', () => {
-    ok(scan(`u = "https://${CN}/functions/v1/bt-grant"`, CN, INGEST).length === 0, '境内 bt-grant 被路径字面量误杀');
-    ok(scan(`u = "https://${CN}/functions/v1/bt-relay/chat/completions"`, CN, INGEST).length === 0, '境内 bt-relay 被路径字面量误杀');
-    ok(scan(`u = "https://evil.example/functions/v1/bt-grant"`, CN, INGEST).length === 1, '非 grantHost 的 bt-grant 被放行');
-    ok(scan(`u = "https://${CN}/functions/v1/bt-grant"`, '', INGEST).length === 1, 'grantHost 为空时 bt-grant 被放行');
+
+  test('普通文本 / 别的 URL 不误伤', () => {
+    ok(scan('https://api.deepseek.com/v1/chat/completions').length === 0);
+    ok(scan('这是一段中文说明，没有 URL').length === 0);
+    ok(scan('supabase').length === 0, '裸词不是主机名');
   });
 });
 
-describe('中国合规门：额度规格 MT_GRANT', () => {
-  test('= null 永远放行', () => {
-    ok(scan('window.MT_GRANT = null;').length === 0, '「恒为 null」被误拦');
-    ok(scan('window.MT_GRANT = null;', CN).length === 0, '就绪时 null 被误拦');
+describe('这道门本身能红（返回 file:line，不是静默 true/false）', () => {
+  test('命中带文件名与行号', () => {
+    const hits = G.scan([{ name: 'a.js', text: 'ok\nconst k = "OpenAI";' }]);
+    ok(hits.length === 1 && /^a\.js:2/.test(hits[0]), `实际：${JSON.stringify(hits)}`);
   });
-  test('未就绪（grantHost 空）：出现额度规格即红 —— 与改写前等价', () => {
-    ok(scan(`window.MT_GRANT = {"claimUrl":"https://${CN}/claim"};`).length === 1,
-      '未就绪时一份指向境内的额度规格被放行了');
-  });
-  test('就绪：领取地址在境内中继上 → 放行', () => {
-    ok(scan(`window.MT_GRANT = {"vendor":"dashscope","limitUsd":0.2,"claimUrl":"https://${CN}/claim","models":{"chat":"qwen-plus"}};`, CN).length === 0,
-      '合法的中国版额度规格被误拦');
-  });
-  test('就绪：任一地址不在境内中继上 → 红', () => {
-    ok(scan(`window.MT_GRANT = {"claimUrl":"https://evil.example.com/claim"};`, CN).length === 1, '别的主机被放行');
-    ok(scan(`window.MT_GRANT = {"claimUrl":"https://${CN}/claim","x":"https://other.cn/a"};`, CN).length === 1,
-      '混进一个别的主机被放行（判据必须是「每一个」）');
-    ok(scan(`window.MT_GRANT = {"limitUsd":0.2};`, CN).length === 1, '一个地址都没有的规格被放行');
-    ok(scan(`window.MT_GRANT = {broken;`, CN).length === 1, '解析不了的规格被放行');
-  });
-  test('认不出的形状也红（不能换个写法就绕过去）', () => {
-    ok(scan('window.MT_GRANT = spec;', CN).length === 1, '非字面量的赋值被放行');
-  });
-});
 
-describe('中国合规门：注册表里的额度条目（原文真正发去的地址）', () => {
-  const entry = (u) => `window.MT_PROVIDERS = [{"id":"qwen","grantOnly":false,"defaultEndpoint":"https://dashscope.aliyuncs.com/x"},{"id":"grant","grantOnly":true,"defaultEndpoint":"${u}"}];`;
-  test('未就绪：出现额度条目即红', () => {
-    ok(scan(entry(`https://${CN}/chat/completions`)).length === 1, '未就绪时额度条目被放行');
-  });
-  test('就绪：条目端点在境内 → 放行；在别处 → 红', () => {
-    ok(scan(entry(`https://${CN}/chat/completions`), CN).length === 0, '境内的额度条目被误拦');
-    ok(scan(entry('https://relay.elsewhere.com/chat/completions'), CN).length === 1, '境外的额度条目被放行');
-  });
-  test('普通条目不受影响', () => {
-    ok(scan('window.MT_PROVIDERS = [{"id":"qwen","grantOnly":false,"defaultEndpoint":"https://dashscope.aliyuncs.com/x"}];', CN).length === 0,
-      '普通引擎被误拦');
+  test('空输入不红', () => {
+    ok(G.scan([]).length === 0);
+    ok(G.scan([{ name: 'a.js', text: '' }]).length === 0);
   });
 });

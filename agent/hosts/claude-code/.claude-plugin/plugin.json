@@ -1,10 +1,11 @@
 {
-  "name": "belliedmonkey",
+  "name": "belliedmonkey-translator",
   "displayName": "BelliedMonkey Translator",
-  "version": "1.22.0-n25",
-  "description": "Local stdio MCP for BelliedMonkey Translator. The daily server is this machine. A remote MCP is not published.",
-  "author": {
-    "name": "BelliedMonkey"
-  },
-  "license": "GPL-3.0-or-later"
+  "version": "1.23.2",
+  "description": "Translate pages, video captions, and live audio between languages. Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth); a local stdio MCP ships with the app and desktop extension.",
+  "author": { "name": "BelliedMonkey", "url": "https://belliedmonkey.cc" },
+  "license": "GPL-3.0-or-later",
+  "repository": "https://github.com/belliedmonkey/belliedmonkey-translator",
+  "homepage": "https://belliedmonkey.cc",
+  "keywords": ["translation", "live subtitles", "captions", "mcp"]
 }

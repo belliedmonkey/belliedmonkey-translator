@@ -19,11 +19,11 @@ const PLUGIN = path.join(ROOT, 'agent/hosts/claude-code/.claude-plugin/plugin.js
 const CODEX_TOML = path.join(ROOT, '.codex/config.toml');
 
 const HONEST = [
-  'Local stdio is the daily server.',
-  'Remote MCP is later.',
-  'A remote MCP is not published.',
+  'Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).',
+  'Local stdio is still the daily entry point.',
   '不要把本进程说成已上架云 MCP',
 ];
+const REMOTE = 'https://mcp.belliedmonkey.com/mcp/v1';
 
 function read(file) {
   return fs.readFileSync(file, 'utf8');
@@ -106,8 +106,9 @@ describe('agent H1 Claude Code + Codex packaging', () => {
     ok(server.url == null, 'Claude Code packaging declares a remote URL');
 
     const plugin = JSON.parse(read(PLUGIN));
-    eq(plugin.name, 'belliedmonkey');
-    eq(plugin.version, '1.22.0-n25');
+    eq(plugin.name, 'belliedmonkey-translator');
+    eq(plugin.version, '1.23.2');
+    deepEq(plugin, JSON.parse(read(path.join(ROOT, '.claude-plugin/plugin.json'))));
     ok(!plugin.mcpServers, 'plugin.json must not grow a second server map');
 
     const toml = read(CODEX_TOML);
@@ -118,10 +119,12 @@ describe('agent H1 Claude Code + Codex packaging', () => {
     ok(!/^url\s*=/m.test(toml));
 
     const rootMcp = JSON.parse(read(path.join(ROOT, '.mcp.json')));
-    ok(!rootMcp.mcpServers.belliedmonkey, 'product server leaked into the developer .mcp.json');
+    deepEq(Object.keys(rootMcp.mcpServers), ['belliedmonkey']);
+    eq(rootMcp.mcpServers.belliedmonkey.type, 'http');
+    eq(rootMcp.mcpServers.belliedmonkey.url, REMOTE);
 
     const pkg = JSON.parse(read(path.join(ROOT, 'package.json')));
-    // 产品版本。插件 version（上面的 1.22.0-n25）是另一条轨，不跟这里对齐。
+    // 产品版本。插件 version（上面的 1.23.2）是 marketplace manifest 轨，不跟这里对齐。
     eq(pkg.version, '1.23.2');
     eq(pkg.scripts['agent:mcp'], 'node agent/mcp-stdio.js');
   });
@@ -148,7 +151,7 @@ describe('agent H1 Claude Code + Codex packaging', () => {
       const text = read(file);
       for (const line of HONEST) ok(text.includes(line), path.basename(file) + ' missing: ' + line);
       ok(text.includes(copy.HOST_KEY_HONEST), path.basename(file) + ' missing host-key line');
-      ok(!/https?:\/\//.test(text), path.basename(file) + ' has a URL');
+      ok(!/https?:\/\//.test(text.split(REMOTE).join('')), path.basename(file) + ' has an unexpected URL');
     }
     ok(read(HOSTS_README).includes('codex mcp add belliedmonkey -- node "$PWD/agent/hosts/claude-code/stdio.js"'));
     ok(read(HOSTS_README).includes('claude mcp add --transport stdio --scope user belliedmonkey -- node "$PWD/agent/hosts/claude-code/stdio.js"'));
@@ -192,7 +195,7 @@ describe('agent H1 Claude Code + Codex packaging', () => {
       });
       eq(init.result.serverInfo.name, 'belliedmonkey');
       eq(init.result.serverInfo.version, contract.TRACK);
-      ok(/not published/i.test(init.result.instructions));
+      ok(init.result.instructions.includes('Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).'));
       const list = await c.request('tools/list', {});
       deepEq(list.result.tools.map((t) => t.name), contract.ACTIONS.slice());
       const missing = await c.request('tools/call', { name: 'ready_check', arguments: {} });

@@ -1,0 +1,29 @@
+# gitleaks policy — BEL-172 P0 scrub.
+#
+# The default ruleset is extended, not replaced. The only allowlist is a path-scoped list
+# of files whose matches are known non-secrets, each verified by reading the line:
+#
+#   design/pencil/*.pen            — Pencil canvas metadata; matches a per-file UUID
+#                                    (`fileToken`), not a credential.
+#   tools/offline-video-asr/pin.json — pinned sha256 digests of model files.
+#   scripts/verify-grant.js        — test fixture token (`bmg_verifygrant…`, no backend).
+#   scripts/verify-onboard.js      — test fixture key (`sk-verify-0123456789`).
+#   scripts/verify-app-bundle.js   — test fixture key (`sk-gate-0123456789`).
+#   deploy/china/gotrue.env.example — empty env slots (`GOTRUE_JWT_SECRET=`), no value.
+#
+# Do not add a path here because a scan is inconvenient. A real key anywhere else still
+# fails the gate, and the history is handled by cutting the OSS tag from a history-free
+# orphan root (docs/oss-release.md).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secret fixtures (see comments above)"
+paths = [
+  '''design/pencil/.*\.pen''',
+  '''tools/offline-video-asr/pin\.json''',
+  '''scripts/verify-grant\.js''',
+  '''scripts/verify-onboard\.js''',
+  '''scripts/verify-app-bundle\.js''',
+  '''deploy/china/gotrue\.env\.example''',
+]

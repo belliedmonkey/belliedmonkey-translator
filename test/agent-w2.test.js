@@ -713,7 +713,7 @@ describe('agent W2 stdio MCP', () => {
       const init = await c.handshake(false);
       eq(init.result.serverInfo.name, 'belliedmonkey');
       eq(init.result.serverInfo.version, '1.22.0-n25');
-      ok(/not published/i.test(init.result.instructions));
+      ok(init.result.instructions.includes('Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth).'));
       const list = await c.request('tools/list', {});
       const names = list.result.tools.map((t) => t.name);
       deepEq(names, contract.ACTIONS.slice());

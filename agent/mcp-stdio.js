@@ -3,7 +3,7 @@
 //
 // Start: `node agent/mcp-stdio.js` or `npm run agent:mcp`.
 // stdout is JSON-RPC only. Logs go to stderr.
-// Remote MCP is not served here. Tool names are the N25 action ids.
+// Remote MCP is published separately; this file serves local stdio. Tool names are the N25 action ids.
 'use strict';
 
 const fs = require('fs');
@@ -194,7 +194,7 @@ async function onMessage(msg) {
         protocolVersion,
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: 'belliedmonkey', version: TRACK },
-        instructions: 'Local stdio MCP for BelliedMonkey Translator. This is the daily default. A remote MCP is not published. Tool names are the N25 action ids, including ready.check. Sensitive tools confirm on this machine before any microphone, page read, or study-library write. Each result is a receipt JSON object. Receipts omit page text, transcripts, and translations.',
+        instructions: 'Local stdio MCP for BelliedMonkey Translator. This is the daily default. Remote MCP is published at https://mcp.belliedmonkey.com/mcp/v1 (OAuth). Tool names are the N25 action ids, including ready.check. Sensitive tools confirm on this machine before any microphone, page read, or study-library write. Each result is a receipt JSON object. Receipts omit page text, transcripts, and translations.',
       });
       return;
     }
