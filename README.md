@@ -267,19 +267,19 @@ sounds and is why the architecture looks unusual. See
 
 ---
 
-## Effect vs industry waterline (2026-10)
+## Effect vs industry waterline (2026-11)
 
-Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS**. Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
+Live interpret / caption pipeline today: **on-device SpeechAnalyzer → VAD/LID/segmentation → cloud qwen plus (repair + translate) → local TTS** (App Store path only; research tips labeled separately). Full table and notes: [`docs/benchmark-waterlevel.md`](docs/benchmark-waterlevel.md).
 
 | Dimension | Ours (measured) | Public industry anchor | Gap |
 |---|---|---|---|
-| Translation | plus · App-contract COMET **88.8** (1600 sentences) | Same-protocol DeepL/Google **no public number** | Self-measured high quality; cannot rank vs DeepL |
-| ASR Chinese | Live SA; offline SenseVoice CER **~5–7%** | AA English top ~1.7–2.3% WER (**not convertible**) | On-device Chinese upgrade under validation |
-| ASR Thai | Grok streaming archdemo CER **9.66%**, 0 drops | On-device gap filled by cloud | **Ships in 1.21.2** (intl; tip aac5a87d; CN peeled; direct xAI, relay unchanged) |
-| Interpret latency | Doc targets; unified online telemetry **unpublished** | Meet 63-language UX (vendor) | Instrument first |
-| TTS | Local / offline-capable | AA e.g. Eleven v4 Turbo Elo 1335 | Cloud voices pending listen tests |
+| Translation | plus · App-contract COMET **88.8** (1600 sentences); Prod sample COMET **85.0** | Same-protocol DeepL/Google **no public number**; Hy-SimulMT FLEURS **90.3** (vendor-reported · different shape) | Self-measured high quality; cannot rank vs DeepL |
+| ASR | Same-set SA: zh CER **6.3** · en WER **6.8**; SV slightly better on zh/en, SA better on ja/ko/yue | AA English top ~**1.7–2.3%** WER (**not language-convertible**) | On-device upgrade under validation; **do not wholesale-swap to SenseVoice** |
+| ASR Thai | On-device locale gap; Grok streaming archdemo CER **9.66%**, 0 drops | Cloud fills on-device gap | **Merge still awaiting user approval** |
+| Interpret latency | Debug App mic zh first volatile p50 **1.32s** (near ≤2s target) | Meet 63 languages (vendor); Seed first-word 2.21s (paper) | Unified production telemetry still missing |
+| TTS | Local / offline-capable; MOS **unmeasured** | AA: e.g. Eleven v4 Elo ~**1334** | Cloud voices pending listen tests; Drama3/OmniVoice watchlist |
 
-**Not shipping soon:** flash/DeepSeek replacing plus; Grok streaming as caption primary; Ming TTS CPU path. **Next:** monthly on the 1st (or sooner on material change). Numbers labeled self-measured / third-party / vendor-reported.
+**Not shipping soon:** flash/DeepSeek replacing plus; Grok streaming as caption primary; Fish ASR (hold to GA); Ming TTS CPU; Hy-SimulMT on rented GPU; wholesale SenseVoice swap. **Next:** monthly on the 1st (or sooner on material change). Numbers labeled self-measured / third-party / vendor-reported.
 
 ## How we choose models
 
