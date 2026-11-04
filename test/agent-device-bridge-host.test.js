@@ -383,6 +383,93 @@ describe('BEL-151 host: no grant means no request, and an honest card', () => {
   });
 });
 
+describe('BEL-151 host: app-level OAuth callback', () => {
+  test('only the two registered schemes and /oauth/mcp/callback are ours', () => {
+    const host = Host.createHost(baseOptions({ store: bridge.memoryStore() }));
+    eq(host.isOAuthCallback('belliedmonkey://oauth/mcp/callback?code=x&state=s'), true);
+    eq(host.isOAuthCallback('belliedmonkeycn://oauth/mcp/callback?code=x&state=s'), true);
+    eq(host.isOAuthCallback('belliedmonkey://auth?code=x'), false);
+    eq(host.isOAuthCallback('belliedmonkey://agent/v1/open_setup?step=login'), false);
+    eq(host.isOAuthCallback('https://mcp.belliedmonkey.cc/oauth/mcp/callback?code=x'), false);
+  });
+
+  test('a finished callback resumes the device register and writes device_cred', async () => {
+    const store = bridge.memoryStore({ device_id: UUID });
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-resume', ttl_sec: 900 }));
+    const oauth = oauthStub({
+      async handleCallback() { return { ok: true, handled: true, account: 'u1' }; },
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.handleOAuthCallback('belliedmonkey://oauth/mcp/callback?code=x&state=s');
+    eq(out.ok, true);
+    eq(out.resumed, true);
+    eq(rec.calls.length, 1, 'resume did not make exactly one device register');
+    eq(rec.calls[0].url, REGISTER);
+    eq(rec.calls[0].init.headers.Authorization, 'Bearer ' + MCP_TOKEN);
+    eq(JSON.parse(rec.calls[0].init.body).confirm, true);
+    eq(store.getItem('device_cred'), 'dc-resume');
+    eq(store.getItem('device_cred_user'), 'u1');
+    eq(host.status().state, 'paired');
+    eq(host.status().text, copy.MESSAGES.paired);
+    eq(host.isHeartbeatRunning(), true);
+  });
+
+  test('a live pair() gets the code delegated and remains the only registrant', async () => {
+    const store = bridge.memoryStore({ device_id: UUID });
+    const rec = recorder(() => fakeResponse(200, { ok: true }));
+    const oauth = oauthStub({
+      async handleCallback() { return { ok: true, handled: true, delegated: true, account: 'u1' }; },
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.handleOAuthCallback('belliedmonkey://oauth/mcp/callback?code=x&state=s');
+    eq(out.delegated, true);
+    eq(rec.calls.length, 0, 'the callback handler registered a second device session');
+    eq(host.status().state, 'unknown');
+    eq(store.getItem('device_cred'), null);
+  });
+
+  test('a callback with no pending transaction never claims paired', async () => {
+    const store = bridge.memoryStore({ device_id: UUID });
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-x' }));
+    const oauth = oauthStub({
+      async handleCallback() { return { ok: false, handled: true, code: 'oauth_no_pending' }; },
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.handleOAuthCallback('belliedmonkey://oauth/mcp/callback?code=x&state=s');
+    eq(out.ok, false);
+    eq(out.code, 'oauth_no_pending');
+    eq(rec.calls.length, 0);
+    eq(store.getItem('device_cred'), null);
+    eq(host.status().state, 'unpaired');
+  });
+
+  test('a callback for another account clears the grant and never pairs', async () => {
+    const store = bridge.memoryStore({ device_id: UUID });
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-x' }));
+    const oauth = oauthStub({
+      async handleCallback() { return { ok: true, handled: true, account: 'u2' }; },
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.handleOAuthCallback('belliedmonkey://oauth/mcp/callback?code=x&state=s');
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0, 'another account reached the device register');
+    eq(store.getItem('device_cred'), null);
+    eq(host.status().state, 'unpaired');
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'the other account grant was kept');
+  });
+
+  test('the shell routes the callback before parseDeepLink, not into review', () => {
+    const shell = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
+    ok(/deviceBridgeHost\.isOAuthCallback\(raw\)/.test(shell),
+      'shell has no OAuth callback predicate — oauth would fall into the account branches');
+    ok(/deviceBridgeHost\.handleOAuthCallback\(raw\)/.test(shell),
+      'shell never hands the callback to the host');
+    const at = shell.indexOf('deviceBridgeHost.isOAuthCallback(raw)');
+    const parse = shell.indexOf('const d = parseDeepLink(raw)');
+    ok(at > 0 && parse > 0 && at < parse, 'the OAuth check is not before parseDeepLink');
+  });
+});
+
 describe('BEL-151 host: heartbeat lifecycle', () => {
   test('launch beats even when WKWebView reports hidden, then every foreground entry', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
