@@ -61,6 +61,7 @@ const EXPLAINED = {
   'ob-resume-close': '#532 退役；监听注册已判空（局部变量）',
   'ob-resume-go': '#532 退役；监听注册已判空（局部变量）',
   'ob-resume-title': '#532 退役；只在 paintObResume 内、且已过 `if (!card) return false`（改为从 card 往下找）',
+  'btn-google-cancel': 'BEL-197 运行时创建（Google 等待默认浏览器期间的应用内取消钮）',
 };
 
 const universe = (() => {

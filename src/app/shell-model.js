@@ -44,6 +44,192 @@ import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
 import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 
+// BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
+// CN `belliedmonkeycn`). On macOS the native side now opens the system default
+// browser, so there is no `webauth-result` any more — this deeplink is the only
+// carrier. It must be taken before parseDeepLink, or host=`auth` becomes action
+// `auth` and falls into the account branches with the code dropped (the 11-04
+// deadlock, with `auth` instead of `oauth`).
+export const GOOGLE_AUTH_WAIT_MS = 5 * 60 * 1000;
+
+// Only the exact provider callback belongs here. `://oauth/mcp/callback` is
+// handled earlier and is NOT this shape; `isOAuthCallback('belliedmonkey://auth')`
+// must stay false (MCP must not steal Google).
+export function providerAuthFromUrl(raw) {
+  try {
+    const u = new URL(String(raw || ''));
+    if (u.protocol !== 'belliedmonkey:' && u.protocol !== 'belliedmonkeycn:') return null;
+    const host = String(u.hostname || '').toLowerCase();
+    const path = String(u.pathname || '').replace(/\/+$/, '');
+    if (host !== 'auth' && path !== '/auth') return null;
+    const code = u.searchParams.get('code');
+    const state = u.searchParams.get('state') || u.searchParams.get('st');
+    const error = u.searchParams.get('error');
+    return {
+      code: code ? String(code) : '',
+      state: state ? String(state) : '',
+      error: error ? String(error) : '',
+    };
+  } catch (_) { return null; }
+}
+
+// One route decision, testable without a DOM. The boot listener supplies the real
+// device host / Google flow; the order here is the load-bearing part: MCP first
+// (BEL-188), Google auth second. Anything else returns 'deeplink' and is parsed by
+// the caller AFTER this function, so `://auth` can never fall through to
+// applyDeepLink's account branches.
+export function routeDeepLink(raw, deps) {
+  const d = deps || {};
+  try {
+    if (d.isOAuthCallback && d.isOAuthCallback(raw)) {
+      try {
+        const p = d.handleOAuthCallback(raw);
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (_) { /* fall through to the existing routes */ }
+      return 'oauth';
+    }
+  } catch (_) { /* fall through to the existing routes */ }
+  const auth = providerAuthFromUrl(raw);
+  if (auth) {
+    try {
+      const p = d.finishProviderAuth(auth);
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    } catch (_) { /* the flow reports its own failure; never fall into applyDeepLink */ }
+    return 'provider-auth';
+  }
+  return 'deeplink';
+}
+
+// The Google flow's single settle point. Both carriers feed it: the iOS
+// `webauth-result` sheet result and the macOS `://auth` deeplink. Keeping one
+// function is what makes "code only works once" and "busy is unlocked exactly
+// once" true on both platforms — do not add a second exchange down there.
+export function createGoogleAuthFlow(options) {
+  const o = options || {};
+  const auth = o.learnAuth;
+  const setBusy = o.setBusy || (() => {});
+  const onPending = o.onPending || (() => {});
+  const say = o.say || (() => {});
+  const setTimeoutFn = o.setTimeout || ((fn, ms) => setTimeout(fn, ms));
+  const clearTimeoutFn = o.clearTimeout || ((id) => clearTimeout(id));
+  const waitMs = Number(o.waitMs) > 0 ? Number(o.waitMs) : GOOGLE_AUTH_WAIT_MS;
+  let active = null;
+  let seq = 0;
+  let lastSettledKey = '';
+
+  const safe = (fn, ...args) => { try { return fn(...args); } catch (_) { return undefined; } };
+  const keyOf = (r) => (r && r.code) ? String(r.code) + '\n' + String(r.state || '') : '';
+  const clearTimer = (a) => {
+    if (a && a.timer != null) { try { clearTimeoutFn(a.timer); } catch (_) {} a.timer = null; }
+  };
+  const rotateVerifier = () => {
+    try { Promise.resolve(o.prepare && o.prepare()).catch(() => {}); } catch (_) {}
+  };
+  const settleUi = (a, busy) => {
+    clearTimer(a);
+    if (a) a.settled = true;
+    if (active === a) active = null;
+    safe(setBusy, busy);
+    safe(onPending, false);
+  };
+
+  function begin() {
+    if (active && !active.settled) {
+      clearTimer(active);
+      active.settled = true;
+    }
+    const a = { id: ++seq, settled: false, timer: null };
+    active = a;
+    safe(setBusy, true);
+    safe(onPending, true);
+    if (waitMs > 0) {
+      a.timer = setTimeoutFn(() => {
+        if (active !== a || a.settled) return;
+        // A closed browser tab is not a canceled session; this is only a backstop.
+        settleUi(a, false);
+        safe(say, o.timeoutText ? o.timeoutText() : '', true);
+        rotateVerifier();
+      }, waitMs);
+    }
+    return a;
+  }
+
+  function cancel() {
+    const a = active;
+    if (!a || a.settled) return false;
+    settleUi(a, false);
+    safe(say, '');
+    // The old verifier must not remain usable for a callback the user no longer
+    // wants; rotating it also gives the next click a fresh challenge.
+    rotateVerifier();
+    return true;
+  }
+
+  async function finish(result) {
+    let r = result || { error: 'no_callback' };
+    const k = keyOf(r);
+    if (!active || active.settled) {
+      if (k && lastSettledKey === k) return null;   // a second carrier for the same code
+      begin();                                      // cold start / relaunch: finish the persisted transaction
+    }
+    const a = active;
+    if (!a) return null;
+    if (k) lastSettledKey = k;
+    clearTimer(a);
+    a.settled = true;
+    active = null;
+    safe(onPending, false);
+    safe(o.diag, r);
+
+    const error = String(r.error || '');
+    if (error) {
+      safe(setBusy, false);
+      if (error === 'canceled' || error === 'access_denied') { safe(say, ''); return null; }
+      safe(o.noteNative, error);
+      safe(say, o.failedText ? o.failedText() : '', true);
+      return null;
+    }
+    if (!r.code) {
+      safe(setBusy, false);
+      safe(o.noteNative, 'no_code');
+      safe(say, o.failedText ? o.failedText() : '', true);
+      return null;
+    }
+
+    safe(say, o.verifyingText ? o.verifyingText() : '');
+    let session = null;
+    try {
+      session = await auth.completeProviderSignIn({ code: r.code, state: r.state || undefined });
+    } catch (err) {
+      safe(setBusy, false);
+      safe(say, o.humanError ? o.humanError(err) : '', true);
+      rotateVerifier();
+      return null;
+    }
+    try {
+      await o.show(session);
+      await o.doSync();
+    } catch (err) {
+      safe(setBusy, false);
+      safe(o.notePostLogin, err);
+      safe(say, o.humanError ? o.humanError(err) : '', true);
+      return null;
+    }
+    // The signed-out screen is usually gone by now, but a deeplink-only flow must
+    // still release every entry (the acceptance asserts busy is false). This is a
+    // no-op once show() hid the section.
+    safe(setBusy, false);
+    return session;
+  }
+
+  return {
+    begin,
+    cancel,
+    finish,
+    isPending: () => !!(active && !active.settled),
+  };
+}
+
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
@@ -2429,6 +2615,7 @@ export function bootShell() {
     $('btn-signin').hidden = true;
     try { $('email').focus(); } catch (_) {}
   }
+  let googleFlow = null;
   $('btn-signin').addEventListener('click', openEmailForms);
 
   // ── 原生 Sign in with Apple（§8.4.1.2）────────────────────────────────────
@@ -2454,6 +2641,51 @@ export function bootShell() {
       if (e) e.disabled = busy;
     }
   }
+
+  // macOS now opens the default browser, so neither the sheet's canceledLogin nor
+  // a browser-close event comes back. The user needs an in-App way out; without
+  // this the Google button stays disabled until the 5-minute backstop fires.
+  // This button is intentionally not in LOGIN_ENTRY_IDS — it must stay clickable
+  // while every other entry is locked.
+  function paintGoogleCancel(pending) {
+    let b = $('btn-google-cancel');
+    if (!b) {
+      if (!pending) return;
+      b = document.createElement('button');
+      b.id = 'btn-google-cancel';
+      b.type = 'button';
+      b.className = 'link';
+      b.hidden = true;
+      b.addEventListener('click', () => { if (googleFlow) googleFlow.cancel(); });
+      const g = $('btn-google');
+      if (g && g.parentNode) g.parentNode.insertBefore(b, g.nextSibling);
+      else return;
+    }
+    b.textContent = t('firstrun_quota_cancel', '取消');
+    b.hidden = !pending;
+  }
+
+  const googleFailedText = () => t('app_apple_failed', '登录没能完成。可以改用下面的邮箱或手机号。');
+  const googleTimeoutText = () => t('sync_err_pkce_missing',
+    '这次登录没能接上 —— 中途换了浏览器、或清过数据。回到这一页重新点一次登录就行。');
+  googleFlow = createGoogleAuthFlow({
+    learnAuth: LearnAuth,
+    setBusy: setLoginBusy,
+    onPending: paintGoogleCancel,
+    say,
+    humanError,
+    show,
+    doSync,
+    prepare: () => LearnAuth.prepareProviderSignIn(),
+    noteNative: (err) => LearnAuth.noteAuthFail('google', 'native', err),
+    notePostLogin: (err) => LearnAuth.noteAuthFail('google', 'post_login', err),
+    verifyingText: () => t('app_verifying', '正在登录…'),
+    failedText: googleFailedText,
+    timeoutText: googleTimeoutText,
+    diag: (r) => {
+      try { DiagLog.push('auth', { provider: 'google', phase: (r && r.error) ? 'fail' : 'done', code: String((r && r.error) || '') }); } catch (_) {}
+    },
+  });
 
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
     $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
@@ -2486,51 +2718,25 @@ export function bootShell() {
       const url = LearnAuth.providerSignInUrl('google', scheme + '://auth');
       if (!url) { say(humanError({ code: 'pkce_missing' }), true); return; }
       setLoginBusy(true);
+      googleFlow.begin();
       say(t('app_apple_waiting', '正在打开登录…'));
       try {
         window.webkit.messageHandlers.mtAppleSignIn.postMessage({ url, scheme });
-      } catch (err) { setLoginBusy(false); try { LearnAuth.noteAuthFail('google', 'native', err); } catch (_) {} say(humanError(err), true); }
+      } catch (err) {
+        googleFlow.finish({ error: 'post_failed' }).catch(() => {});
+        say(humanError(err), true);
+      }
     });
   }
 
-  // 系统鉴权会话回来的 code。与扩展那条路唯一的不同是票不经内容脚本 ——
+  // 系统鉴权会话回来的 code（iOS）。与扩展那条路唯一的不同是票不经内容脚本 ——
   // 它直接从原生进到这一页，而这一页本来就持有 verifier。
   // 冷启动时结果可能先到：pending 槽由 install 回放、早到的调用由桥的
   // hold-and-replay 补发（native-bridge.js 头注释），这里不再自兜。
-  NativeBridge.onNative('webauth-result', async (r) => {
-    try { DiagLog.push('auth', { provider: 'google', phase: (r && r.error) ? 'fail' : 'done', code: String((r && r.error) || '') }); } catch (_) {}
-    if (!r || r.error) {
-      setLoginBusy(false);
-      if (r && r.error === 'canceled') { say(''); return; }
-      try { LearnAuth.noteAuthFail('google', 'native', (r && r.error) ? String(r.error) : 'native_error'); } catch (_) {}
-      say(t('app_apple_failed', '登录没能完成。可以改用下面的邮箱或手机号。'), true);
-      return;
-    }
-    say(t('app_verifying', '正在登录…'));
-    // 交换与「登录之后」分开埋（telemetry-design §3.14）：交换那条路 auth.js 自己记；
-    // show()/doSync() 抛的错以前没有任何记录 —— 真机上「登录已完成却报连不上服务器」
-    // 最可能就是它。
-    let session = null;
-    try {
-      session = await LearnAuth.completeProviderSignIn({ code: r.code, state: r.state });
-    } catch (err) {
-      setLoginBusy(false);
-      say(humanError(err), true);
-      // 兑换失败会把 verifier 作废（它是一次性的），**必须重新备一份** ——
-      // 不备的话，下一次点击拿到的是 pkce_missing，按钮直到刷新页面前都是死的。
-      // 2026-09-03 用户实测「重试也没成功」就是这个：第一次 pkce_state，
-      // 第二次开始永远 pkce_missing。
-      LearnAuth.prepareProviderSignIn().catch(() => {});
-      return;
-    }
-    try {
-      await show(session);
-      await doSync();
-    } catch (err) {
-      setLoginBusy(false);
-      try { LearnAuth.noteAuthFail('google', 'post_login', err); } catch (_) {}
-      say(humanError(err), true);
-    }
+  // macOS 从 BEL-197 起没有 sheet，这条不会来；同一个 googleFlow 由 `://auth`
+  // deeplink 喂（见下面的 routeDeepLink），交换/成功/失败/解锁只有一份实现。
+  NativeBridge.onNative('webauth-result', (r) => {
+    if (googleFlow) googleFlow.finish(r).catch(() => {});
   });
 
   // 原生那边把结果送回来。冷启动时结果可能先到（同 deeplink 的形状），兜法同上。
@@ -3295,12 +3501,18 @@ export function bootShell() {
       // parseDeepLink 之前截走：`belliedmonkey://oauth/mcp/callback` 的 host 是
       // `oauth`，落进下面那三支会被当成一次「复习/登录」深链，code 被丢掉。
       // 只有真正交换成功 + device register 成功，设置页才会变成「已连接此设备」。
-      try {
-        if (deviceBridgeHost.isOAuthCallback(raw)) {
-          deviceBridgeHost.handleOAuthCallback(raw).catch(() => {});
-          return;
-        }
-      } catch (_) { /* fall through to the existing routes */ }
+      //
+      // BEL-197：Google 的 `scheme://auth?code=…` 排在 MCP 之后、parseDeepLink 之前。
+      // 没有这一截，host=`auth` 会变成 action=auth，code 被丢进账号三支，登录钮
+      // 永远停在 setLoginBusy(true) —— 11-04 同类死锁，只是 host 从 oauth 换成 auth。
+      const route = routeDeepLink(raw, {
+        // Keep these two call shapes verbatim: the BEL-188 regression test greps
+        // for them to prove OAuth still precedes parseDeepLink.
+        isOAuthCallback: (raw) => deviceBridgeHost.isOAuthCallback(raw),
+        handleOAuthCallback: (raw) => deviceBridgeHost.handleOAuthCallback(raw),
+        finishProviderAuth: (r) => googleFlow.finish(r),
+      });
+      if (route !== 'deeplink') return;
       const d = parseDeepLink(raw); if (d) applyDeepLink(d);
     });
 

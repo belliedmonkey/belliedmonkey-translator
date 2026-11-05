@@ -18,6 +18,9 @@
 
 import AuthenticationServices
 import CryptoKit
+#if os(macOS)
+import AppKit
+#endif
 
 @available(iOS 13.0, macOS 10.15, *)
 final class MTAppleSignIn: NSObject, ASAuthorizationControllerDelegate,
@@ -114,13 +117,18 @@ final class MTAppleSignIn: NSObject, ASAuthorizationControllerDelegate,
     }
 }
 
-/// Google：走 ASWebAuthenticationSession，**不能**在 WKWebView 里跑。
+/// Google：iOS 走 ASWebAuthenticationSession（系统鉴权 sheet），macOS 走系统默认浏览器。
+/// **不能**在 WKWebView 里跑。
 ///
 /// Google 明确禁止在内嵌 WebView 里做 OAuth（`disallowed_useragent`），所以 App 里
-/// 这条必须交给系统的鉴权会话。它长得像浏览器、但由系统持有，Google 认它。
+/// 这条必须交给系统持有或默认浏览器。iOS 的 ASWebAuthenticationSession 长得像浏览器、
+/// 但由系统持有，Google 认它；macOS 从 BEL-197 起改成交给系统默认浏览器 —— 用户在那里
+/// 已有登录 cookie，不再是无痕空邮箱页。两条路都回我们自己已经注册好的自定义 scheme
+/// （`belliedmonkey://` / `belliedmonkeycn://`，见 sync-app-assets 的 urlTypeXml）。
 ///
-/// 回调用我们自己已经注册好的自定义 scheme（`belliedmonkey://` / `belliedmonkeycn://`，
-/// 见 sync-app-assets 的 urlTypeXml）—— 不必再登记一个新的。
+/// **macOS 没有 ASWebAuthenticationSession fallback。** 双通道会把 2026-11-04 的
+/// sheet/deeplink 竞态加回来；Mac 上 `webauth-result` 不会再来，code 只经 MTDeepLink。
+/// iOS 仍保留 sheet + `webauth-result`，且 `prefersEphemeralWebBrowserSession = true`。
 ///
 /// 跨桥的只有 **code 与 state**，和扩展那条路完全一样：没有 verifier 它换不出东西，
 /// 而 verifier 只在页面那一侧（learning-design §8.4.1.1 第二条跨界裁定）。
@@ -130,16 +138,22 @@ final class MTWebAuth: NSObject, ASWebAuthenticationPresentationContextProviding
     private weak var webView: WKWebView?
     // 强引用住会话：ASWebAuthenticationSession 出了作用域就会被回收，
     // 表现是「弹窗一闪而过」——同 ASAuthorizationController 的那个坑。
+    // iOS 用；macOS 的默认浏览器没有 session 可持有。
     private var session: ASWebAuthenticationSession?
 
     static func attach(_ view: WKWebView) { shared.webView = view }
 
     /// 页面把整条 authorize URL 与回调 scheme 递进来。**URL 由页面算**（PKCE 的
-    /// challenge 在那一侧），原生这边只负责把系统鉴权会话开起来。
+    /// challenge 在那一侧），原生这边只负责把系统鉴权会话/默认浏览器打开。
     static func start(url: String, scheme: String) { shared.begin(url: url, scheme: scheme) }
 
     private func begin(url: String, scheme: String) {
         guard let u = URL(string: url) else { deliver(error: "bad_url"); return }
+        #if os(macOS)
+        // 系统默认浏览器，不指定 Chrome、不传 --profile-directory。
+        // 也不启动 ASWebAuthenticationSession：Mac 上只要一条 deeplink 通道。
+        NSWorkspace.shared.open(u)
+        #else
         let s = ASWebAuthenticationSession(url: u, callbackURLScheme: scheme) { [weak self] cb, err in
             self?.session = nil
             if let e = err as NSError?,
@@ -164,6 +178,7 @@ final class MTWebAuth: NSObject, ASWebAuthenticationPresentationContextProviding
         s.prefersEphemeralWebBrowserSession = true
         session = s
         s.start()
+        #endif
     }
 
     func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
