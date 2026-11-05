@@ -532,6 +532,30 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(rec.calls.length, 0);
   });
 
+  test('foreground with an empty session keeps the pair and says unknown', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true }));
+    const store = pairedStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({
+      store, fetch: rec.fetch, oauth,
+      auth: { current: async () => null, token: async () => '' },
+    }));
+    const out = await host.onForeground();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0, 'an empty-session foreground sent a heartbeat');
+    eq(store.getItem('device_cred'), 'dc-old', 'empty session cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'empty session cleared the owner');
+    eq(host.status().state, 'unknown');
+    const withBlank = Host.createHost(baseOptions({
+      store, fetch: rec.fetch, oauth,
+      auth: { current: async () => ({ userId: '' }), token: async () => '' },
+    }));
+    eq((await withBlank.onForeground()).code, 'need_login');
+    eq(store.getItem('device_cred'), 'dc-old', 'blank userId cleared device_cred');
+    eq(host.status().state, 'unknown');
+    ok(!oauth.calls.some((c) => c[0] === 'clearTokens'), 'empty session cleared the MCP grant');
+  });
+
   test('401 clears the device credential, the MCP access token, and the loop', async () => {
     let phase = 'pair';
     const rec = recorder(() => (phase === 'pair'
@@ -617,6 +641,71 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(host.status().text, copy.MESSAGES.network);
   });
 
+  test('need_login + no_refresh keeps the credential and does not delete the slot', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: true, lastError: 'no_refresh', keychain: true }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.onForeground();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0);
+    eq(store.getItem('device_cred'), 'dc-old', 'no_refresh cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'no_refresh cleared the owner');
+    eq(host.status().state, 'unknown');
+    ok(!oauth.calls.some((c) => c[0] === 'invalidateAccess' || c[0] === 'clearTokens'),
+      'no_refresh invalidated the MCP grant');
+    ok(oauth.calls.every((c) => c[0] !== 'clearTokens'), 'no_refresh cleared the Keychain slots');
+  });
+
+  test('need_login + timeout keeps the credential and says network', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: true, lastError: 'timeout', keychain: true }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    const out = await host.onForeground();
+    eq(out.code, 'need_login');
+    eq(rec.calls.length, 0);
+    eq(store.getItem('device_cred'), 'dc-old', 'timeout cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'timeout cleared the owner');
+    eq(host.status().state, 'network');
+    eq(host.status().text, copy.MESSAGES.network);
+  });
+
+  test('need_login + no_client keeps the credential', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: true, lastError: 'no_client', keychain: true }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    eq((await host.onForeground()).code, 'need_login');
+    eq(store.getItem('device_cred'), 'dc-old', 'no_client cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'no_client cleared the owner');
+    eq(host.status().state, 'unknown');
+  });
+
+  test('need_login + an unavailable Keychain keeps the credential', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
+    const store = pairedStore();
+    const oauth = oauthStub({
+      async accessToken() { return ''; },
+      state: () => ({ hasAccess: false, hasRefresh: false, lastError: 'no_refresh', keychain: false }),
+    });
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, oauth }));
+    eq((await host.onForeground()).code, 'need_login');
+    eq(store.getItem('device_cred'), 'dc-old', 'keychain:false cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'keychain:false cleared the owner');
+    eq(host.status().state, 'reconnect');
+    ok(!oauth.calls.some((c) => c[0] === 'clearTokens'), 'keychain:false cleared the Keychain slots');
+  });
+
   test('a dead MCP grant clears device_cred and says re-allow the device', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, ttl_sec: 900 }));
     const store = pairedStore();
@@ -652,24 +741,43 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(host.status().text, copy.MESSAGES.network);
   });
 
-  test('signing out clears the pair and the MCP grant; a different account cannot reuse it', async () => {
+  test('an empty session keeps the pair and the MCP grant (BEL-191)', async () => {
+    const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 }));
+    const store = bridge.memoryStore();
+    const oauth = oauthStub();
+    const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui, oauth }));
+    eq((await host.pair()).code, 'ok');
+    eq(store.getItem('device_cred_user'), 'u1');
+
+    // 11-04: LearnAuth can notify with a session whose userId is not hydrated
+    // yet. That must not be read as "signed out" — it cleared the 7-key union.
+    await host.noteSession(null);
+    eq(store.getItem('device_cred'), 'dc-9', 'null session cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'null session cleared the owner');
+    eq(host.status().state, 'unknown');
+    ok(!oauth.calls.some((c) => c[0] === 'clearTokens'), 'null session cleared the MCP grant');
+
+    await host.noteSession({ userId: '' });
+    eq(store.getItem('device_cred'), 'dc-9', 'empty userId cleared device_cred');
+    eq(store.getItem('device_cred_user'), 'u1', 'empty userId cleared the owner');
+    eq(host.status().state, 'unknown');
+    ok(!oauth.calls.some((c) => c[0] === 'clearTokens'), 'empty userId cleared the MCP grant');
+    host.stopHeartbeat();
+  });
+
+  test('a different account still clears the pair and the MCP grant', async () => {
     const rec = recorder(() => fakeResponse(200, { ok: true, device_cred: 'dc-9', ttl_sec: 900 }));
     const store = bridge.memoryStore();
     const oauth = oauthStub();
     const host = Host.createHost(baseOptions({ store, fetch: rec.fetch, ui: headlessUi().ui, oauth }));
     eq((await host.pair()).code, 'ok');
 
-    await host.noteSession(null);
-    eq(store.getItem('device_cred'), null);
-    eq(host.isHeartbeatRunning(), false);
-    eq(host.status().state, 'signed_out');
-    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'sign-out left the MCP grant behind');
-
-    // Pair again as u1, then a different account appears in the same store.
-    eq((await host.pair()).code, 'ok');
     await host.noteSession({ userId: 'u2' });
     eq(store.getItem('device_cred'), null);
+    eq(store.getItem('device_cred_user'), null);
     eq(host.status().state, 'unpaired');
+    eq(host.isHeartbeatRunning(), false);
+    ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'account switch left the MCP grant behind');
   });
 });
 
