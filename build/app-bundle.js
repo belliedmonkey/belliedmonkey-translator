@@ -22,6 +22,7 @@ const path = require('path');
 const esbuild = require('esbuild');
 const { buildOptions } = require('./run-esbuild.js');
 const { rewriteBundledCredentials } = require('./china-host-literals.js');
+const backendInject = require('./backend-inject.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -262,6 +263,19 @@ function buildAppBundle(outDir, log, opts) {
       throw new Error(`app bundle: missing source ${rel}`);
     }
     let text = fs.readFileSync(abs, 'utf8');
+    // BEL-197（P0）: **同一份 backend.config.js、两条发射路径。** build.js 把真实
+    // host / anon key 注入 dist/ 的那份（`backendInject.applyToDir`），而 App 包拼的是
+    // **源码**这份 —— 于是 `node build.js` 直出的 dist-app/Script.js 仍指向
+    // `https://backend.invalid`、anon key 仍是占位。质量抽核时安装包里是 0，是因为
+    // 事后对 dist-app 又跑了一次 inject；那正好掩盖了管道本身没接上。
+    //
+    // 复用**同一个** injector（backend-inject.js），不在这里写第二套替换：两条路径
+    // 的 sentinel、优先级与 service_role 拒绝规则必须逐字相同。必须排在
+    // switchBackend / limitProviders 之前 —— 与 build.js 的 dist 路径同序：
+    // 先注入顶层 url/anonKey，再让中国版把它们换成境内那一套。
+    if (rel === 'extension/learn/backend.config.js') {
+      text = backendInject.apply(text, backendInject.resolve(ROOT));
+    }
     // MT_SYNC=on: the bundle concatenates backend.config.js from SOURCE, so the
     // self-use flip must happen here too — dist/ and dist-app/ are two separate
     // emission paths and flipping only one shipped a phone build with sync on
