@@ -163,6 +163,10 @@ export function nativeKeychain(win) {
 
   const waiters = new Map();
   let seq = 0;
+  // Last get() transport error. A native timeout and a "not found" both resolve
+  // to null (see get below), but they are different facts for the host: a timeout
+  // is network-ish and must not be read as "the grant is gone" (BEL-191).
+  let lastError = '';
 
   function install() {
     if (!w) return;
@@ -209,9 +213,15 @@ export function nativeKeychain(win) {
   return {
     persistent: true,
     available: () => true,
+    // Exposed as a function so callers cannot accidentally freeze a stale error.
+    lastError: () => lastError,
     async get(account) {
       const r = await call('get', account);
-      if (!r || !r.ok) return null;
+      if (!r || !r.ok) {
+        lastError = String((r && r.error) || 'no_reply');
+        return null;
+      }
+      lastError = '';
       return r.found && typeof r.value === 'string' ? r.value : null;
     },
     async set(account, value) {
@@ -577,8 +587,15 @@ export function createClient(options) {
     refreshing = (async () => {
       const token = await readRefresh();
       if (!token) {
-        lastError = 'no_refresh';
-        return { ok: false, code: 'no_refresh' };
+        // A native Keychain read that timed out is network-ish, not "no grant".
+        // The host keeps the device pair either way, but it can only say
+        // 需重连/网络 correctly if the two are distinguishable here.
+        let keychainError = '';
+        try {
+          if (keychain && typeof keychain.lastError === 'function') keychainError = String(keychain.lastError() || '');
+        } catch (_) { keychainError = ''; }
+        lastError = keychainError === 'timeout' ? 'timeout' : 'no_refresh';
+        return { ok: false, code: lastError };
       }
       const clientId = meta.getItem(META_KEYS.clientId) || '';
       if (!clientId) {
