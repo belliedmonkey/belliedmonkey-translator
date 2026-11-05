@@ -232,7 +232,10 @@ export function createHost(options) {
 
   async function refreshStatus() {
     const session = await currentSession();
-    if (!session || !session.userId) return setStatus({ state: 'signed_out', code: 'need_login' });
+    // BEL-191: an empty session is "not hydrated yet", not a sign-out. It is the
+    // page's initial state (unknown), never the signed_out row that would imply
+    // the device should be unpaired.
+    if (!session || !session.userId) return setStatus({ state: 'unknown', code: '' });
     if (hasCred()) return setStatus({ state: 'paired', code: 'ok' });
     // A 401 leaves a reason marker behind. It outranks "unpaired" across a relaunch:
     // the credential is gone, but the user's next step is still "allow this device
@@ -407,13 +410,15 @@ export function createHost(options) {
   // worthless. We cannot call revoke — that needs the token we just lost — so
   // clear locally; the cloud's 900 s TTL is the backstop. The MCP refresh token
   // goes with it: it belongs to the account that is no longer here.
+  //
+  // BEL-191: an EMPTY session is not a sign-out. LearnAuth can notify onChange
+  // with a session whose userId has not landed yet while the page is still
+  // hydrating (11-04: the 7 keys disappeared in one write, exactly
+  // clearLocalCred() ∪ clearTokens()). Clearing on that transient state is what
+  // dropped device_cred + mcp_access across a relaunch. Unbind only on a real
+  // account switch, an explicit disconnect, or a cloud 401/403.
   async function noteSessionFallout(session) {
-    if (!session || !session.userId) {
-      clearLocalCred();
-      stopHeartbeat();
-      try { await ensureOauth().clearTokens(); } catch (_) {}
-      return 'signed_out';
-    }
+    if (!session || !session.userId) return 'unknown';
     const owner = store.getItem(CRED_USER_KEY);
     if (hasCred() && owner && owner !== session.userId) {
       clearLocalCred();
@@ -427,7 +432,7 @@ export function createHost(options) {
   async function noteSession(session) {
     await store.ready();
     const why = await noteSessionFallout(session);
-    if (why === 'signed_out') return setStatus({ state: 'signed_out', code: 'need_login' });
+    if (why === 'unknown') return setStatus({ state: 'unknown', code: '' });
     if (why === 'switched') return setStatus({ state: 'unpaired', code: '' });
     return refreshStatus();
   }
@@ -661,7 +666,10 @@ export function createHost(options) {
     const session = await currentSession();
     if (!session || !session.userId) {
       stopHeartbeat();
-      setStatus({ state: 'signed_out', code: 'need_login' });
+      // BEL-191: no session yet is a transient launch state, not a sign-out.
+      // Keep device_cred / device_cred_user / the Keychain grant; a later
+      // foreground or noteSession with a real userId decides what they mean.
+      setStatus({ state: 'unknown', code: '' });
       return { ok: false, code: 'need_login', sent: false };
     }
     if (!hasCred()) {
@@ -702,18 +710,25 @@ export function createHost(options) {
       // host built without it) still lands in the same state. It is idempotent.
       await unauthorizedFallout();
     } else if (out && out.code === 'need_login') {
-      // Paired locally but no usable MCP access token. A transient refresh failure
-      // is a network story; anything else means the grant must be allowed again.
+      // Paired locally but no usable MCP access token. BEL-191: an empty Bearer is
+      // NOT a 401. The Keychain read can be a 4 s timeout, a not-found (rc=44), or
+      // an unregistered client, and the native bridge returns null for all of
+      // them; clearing device_cred here is how a launch wiped the pairing. Only a
+      // definitive grant rejection falls out. Everything else keeps the pair and
+      // retries on the next foreground.
       let mcp = {};
       try { mcp = ensureOauth().state() || {}; } catch (_) {}
-      if (mcp.lastError === 'network') {
+      const lastError = String(mcp.lastError || '');
+      if (lastError === 'network' || lastError === 'timeout') {
         setStatus({ state: 'network', code: 'network_unavailable' });
-      } else if (session && session.userId) {
-        // T6: no usable MCP grant means the local pair cannot beat anymore. Clear
-        // device_cred as well, so the status cannot be mistaken for "paired".
+      } else if (lastError === 'unauthorized' || lastError === 'invalid_grant') {
         await unauthorizedFallout();
+      } else if (mcp.keychain === false) {
+        setStatus({ state: 'reconnect', code: 'need_reconnect' });
       } else {
-        setStatus({ state: 'signed_out', code: 'need_login' });
+        // no_refresh / no_client / '' — the grant may still be in the Keychain;
+        // do not delete the local pair just because this read has not landed.
+        setStatus({ state: 'unknown', code: '' });
       }
     } else if (out && (out.code === 'network_unavailable' || out.code === 'server_error')) {
       setStatus({ state: 'network', code: 'network_unavailable' });
