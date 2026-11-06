@@ -273,6 +273,20 @@ header #who { min-width: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
 #app-settings > button { align-self: flex-start; }
 #settings-back { align-self: flex-start; }
+/* BEL-198：侧栏默认不存在（窄窗）。**只**由下面 ≥720 的媒体查询显示 —— 不给 nav
+   设 hidden 属性，避免和 hidden-guard 那套 display/hidden 的旧账打架。 */
+#settings-nav { display: none; }
+#settings-nav .settings-nav-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; min-height: 36px; padding: 8px 10px;
+  background: none; color: var(--fg); border: 0; border-radius: 8px;
+  font: inherit; font-size: .86rem; font-weight: 500; text-align: left; cursor: pointer;
+}
+#settings-nav .settings-nav-item[aria-current="page"] {
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  color: var(--accent-deep); font-weight: 600;
+}
+#settings-nav .settings-nav-ico { flex: none; }
 .field { display: flex; flex-direction: column; gap: 6px; font-size: 0.9rem; min-width: 0; }
 /* 2026-10-03（设计稿 `app-settings-layout-2026-10-03`，**用户已签署**）：设置页文字不许出界。
    真机截图里「听译 · 实时字幕」的「自动朗读译文」那一行越过了卡片右边界。
@@ -287,7 +301,7 @@ header #who { min-width: 0; }
 .field input[type=number] { max-width: 8em; }
 .field input[type=range] { width: 100%; }
 .field > button { flex: none; }
-.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; min-width: 0; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; min-width: 0; min-height: 44px; }
 .check > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .check > input { flex: none; }
 .check input { width: 22px; height: 22px; }
@@ -480,6 +494,40 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #signin-prompt form { margin: 0; }
 :where(#signed-out) .link-row button.link { min-height: 44px; padding: 10px 8px; }
 #signin-forms { display: flex; flex-direction: column; gap: 14px; }
+
+/* ─── BEL-198 · 登录桌面布局（≥720，与 #app-listen 同一断点）──────────────────
+   认关稿（bel198-preview/bel198-login）：左栏品牌 + 定宽约 380 的说明，右栏一张
+   320 卡。**CTA 只在卡内**，不再拉满整个窗口。窄窗（<720）这一段完全不生效，
+   iPhone / Mac 缩窗仍是现在的单栏、全宽按钮。
+   三 id（#app-brand / #lede / #signin-prompt）不动，也不用居中 400 卡的
+   MacSignedOut.dc.html —— 那不是这个认关稿。 */
+@media (min-width: 720px) {
+  #signed-out:not([hidden]) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas: "brand card" "lede card";
+    column-gap: 48px;
+    align-items: center;
+    align-content: center;
+    min-height: calc(100vh - 40px);
+    max-width: 1120px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  #signed-out > #app-brand {
+    grid-area: brand; align-self: end;
+    margin: 0 0 14px; font-size: 2.2rem; line-height: 1.2;
+  }
+  #signed-out > #lede {
+    grid-area: lede; align-self: start;
+    max-width: 380px; margin: 0;
+    font-size: 1rem; line-height: 1.6;
+  }
+  #signed-out > #signin-prompt {
+    grid-area: card; justify-self: end; align-self: center;
+    width: 320px;
+  }
+}
 
 /* 首次运行引导（§引导）。与 App 其余部分同一套 token，不另起一套视觉。 */
 #onboard { display: flex; flex-direction: column; gap: 16px; flex: 1; min-height: 0; }
@@ -903,6 +951,103 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 .dep .dep-ok, .dep .dep-follow, .dep .dep-quick { color: var(--sage-text); }   /* 浅底上 --sage 只有 3.5:1，--sage-text 深浅两色都 ≥ 4.5:1 */
 .dep .dep-unset, .dep .dep-na { color: var(--accent-deep); }
 .dep .dep-go { background: none; border: none; padding: 0; margin: 0 0 0 .35em; width: auto; color: var(--link); font: inherit; cursor: pointer; text-decoration: underline; }
+
+/* ─── BEL-198 · 设置桌面布局（≥720）────────────────────────────────────────
+   认关稿（bel198-preview/bel198-engines / -enterprise / -features）：220 侧栏五顶，
+   右侧一次只揭一节；没有「← 返回」，没有 #engine-keys-entry。侧栏由 CSS 出现，
+   各节的 hidden 由 settings-view.jsx 切（永不 remove），缩过断点时由 matchMedia 清掉。
+   宽窗字段：标签左、控件右，select/input ≤240；开关画成 40×24（id 不动）。
+   ⚠️ `.field { flex-direction: row }` 只许活在这个媒体查询里 —— 无媒体查询的
+   纵向规则是 320px / iPhone 的契约（test/app-settings-720.test.js 钉着）。 */
+@media (min-width: 720px) {
+  #app-settings:not([hidden]) {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 0 28px;
+    align-items: start;
+  }
+  /* 宽窗的导航 = 侧栏；页级返回键与页标题都不再出现（窗标题已是「设置」）。 */
+  #settings-back, #settings-title { display: none; }
+  #settings-nav {
+    grid-column: 1; grid-row: 1;
+    display: flex; flex-direction: column; gap: 4px;
+    padding: 10px; border-radius: 16px;
+    background: var(--section-bg);
+    position: sticky; top: 0;
+  }
+  #app-settings .sec { grid-column: 2; grid-row: 1; gap: 14px; }
+  #app-settings .sec-head { margin: 0 0 16px; }
+  /* 侧栏已点名，宽窗不再画序号圆点。 */
+  #app-settings .sec-n { display: none; }
+  #app-settings .sec-title h3 { font-size: 1.3rem; }
+  /* 侧栏就是跳转，功能节那条「引擎与密钥 →」入口在宽窗退出。
+     详细档顶上那条「一键配置在『一键』里 →」也是窄窗的折叠线索，宽窗 segmented 已在
+     标题行，不需要第二句。 */
+  #engine-keys-entry, #app-adv-hint { display: none; }
+
+  /* 额度与一键卡在宽窗是右栏里的两张白卡（认关稿 02：额度不是通栏进度条）。 */
+  #app-settings #grant-card,
+  #app-settings #quick-setup-card {
+    background: var(--card-bg);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 16px;
+    margin: 0;
+  }
+
+  /* 一键 | 分项：28 高 segmented，放在右栏标题行右侧。JSX 宽窗不再渲染 ✓ 与
+     「选用将覆盖…」hint（那是文字节点，CSS 藏不掉）。 */
+  #app-settings .mode-tabs { height: 28px; margin: 0; }
+  #app-settings .mode-tabs button {
+    height: 28px; min-height: 28px; padding: 0 14px; font-size: .75rem;
+  }
+
+  /* 标签左、控件右。只改方向，不把窄窗的纵向契约带出去。 */
+  #app-settings .field {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  #app-settings .field > span { flex: 1 1 auto; }
+  /* 「译成」下面那句说明是整行，不挤在标签与下拉之间。 */
+  #app-settings .field > small { flex: 1 1 100%; }
+  #app-settings .field > select,
+  #app-settings .field > input:not([type=range]):not([type=checkbox]):not([type=number]) {
+    flex: 0 0 240px; width: 240px; max-width: 240px;
+  }
+  #app-settings .field > input[type=number] { flex: 0 0 8em; width: 8em; max-width: 8em; }
+  #app-settings .field > input[type=range] { flex: 1 1 120px; width: auto; max-width: none; }
+  #app-settings .field > button { margin-left: auto; }
+  /* 离线朗读行是 .field，但内容是「说明 + 进度 + 下载」——保持纵向，不硬排成一行。 */
+  #app-settings #tts-offline-row { flex-direction: column; align-items: stretch; }
+
+  /* 开关：把现有 input[type=checkbox] 直接画成 40×24，id 一个不动、不换组件。
+     窄窗仍是 22×22 视觉 + 整行 44 命中。 */
+  #app-settings .check { flex-direction: row-reverse; justify-content: space-between; min-height: 44px; }
+  #app-settings .check input[type=checkbox],
+  #app-settings .row-toggle input[type=checkbox] {
+    -webkit-appearance: none; appearance: none;
+    width: 40px; height: 24px; min-width: 40px;
+    margin: 0; padding: 0; border: 0; border-radius: 999px;
+    background: var(--line);
+    position: relative; flex: none; cursor: pointer;
+    transition: background .15s ease;
+  }
+  #app-settings .check input[type=checkbox]:checked,
+  #app-settings .row-toggle input[type=checkbox]:checked { background: var(--accent); }
+  #app-settings .check input[type=checkbox]::after,
+  #app-settings .row-toggle input[type=checkbox]::after {
+    content: "";
+    position: absolute; top: 3px; left: 3px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+    transition: transform .15s ease;
+  }
+  #app-settings .check input[type=checkbox]:checked::after,
+  #app-settings .row-toggle input[type=checkbox]:checked::after { transform: translateX(16px); }
+}
 
 /* ── 快速翻译面板（#quick 模式，learning-design §9.9）────────────────────────────
    同一份页面：html.quick-mode 时只显示 #quick-root。颜色只用共享 token（上面的规矩）。 */
