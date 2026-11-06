@@ -45,6 +45,43 @@ import * as SourcesView from '../shared/sources-view-view.jsx';
 
 const $ = (id) => document.getElementById(id);
 
+// BEL-198（2026-11-06）：≥720 桌面设置侧栏五顶。顺序就是 System Settings 的顺序，
+// 也是认关图里的顺序；`sec` 是每一节自己的 id（不是新造的 hash）。
+const SETTINGS_PANES = [
+  { sec: 'sec-engines', icon: 'key' },
+  { sec: 'sec-features', icon: 'sliders' },
+  { sec: 'sec-langpacks', icon: 'lang' },
+  { sec: 'sec-account', icon: 'user' },
+  { sec: 'sec-about', icon: 'info' },
+];
+
+// 标签的 fallback 中文必须**直接**写在 t() 的第二个参数位（零硬编码文案门禁）。
+function paneLabel(sec, t) {
+  if (sec === 'sec-engines') return t('opt_sec_engines', '引擎与密钥');
+  if (sec === 'sec-features') return t('opt_sec_features', '功能');
+  if (sec === 'sec-langpacks') return t('langpacks_title', '语言包与朗读');
+  if (sec === 'sec-account') return t('opt_sec_account', '账号与数据');
+  return t('options_about_section', '关于');
+}
+
+const NAV_ICON_PATH = {
+  key: 'M21 2l-2 2m-7.6 7.6a5.5 5.5 0 1 1-7.8 7.8 5.5 5.5 0 0 1 7.8-7.8ZM15.5 7.5 19 4m-6.5 6.5 3 3',
+  sliders: 'M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6',
+  lang: 'M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1m14 20-5-10-5 10M14 18h6',
+  user: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM12 16v-4M12 8h.01',
+};
+
+function NavIcon({ kind }) {
+  return (
+    <svg className="settings-nav-ico" width="16" height="16" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+      strokeLinejoin="round" aria-hidden="true">
+      <path d={NAV_ICON_PATH[kind] || NAV_ICON_PATH.info} />
+    </svg>
+  );
+}
+
 export default function SettingsView() {
   const t = PageText.useT();
 
@@ -58,6 +95,12 @@ export default function SettingsView() {
   // （额度在用与自己填 key 是互斥的两条路）。
   const [grantActive, setGrantActive] = useState(false);
   const [followLabel, setFollowLabel] = useState('');
+  // BEL-198：宽窗 = ≥720（与 #app-listen / 首页同一断点）。形态由窗口宽度决定；
+  // 窄窗仍是长滚 + ← 返回，宽窗才是 220 侧栏 + 单 pane。
+  const [wide, setWide] = useState(() => {
+    try { return window.matchMedia('(min-width: 720px)').matches; } catch (_) { return false; }
+  });
+  const [activeSec, setActiveSec] = useState('sec-engines');
 
   const uiLangNow = useRef('auto');
   // 出发前预载（§9.5）：两态按钮。`pending` 持有算好的账单，点第二下才开跑；
@@ -1373,6 +1416,63 @@ export default function SettingsView() {
     });
   }, []);
 
+  // ─── BEL-198：≥720 侧栏单 pane ────────────────────────────────────────────
+  // 侧栏只用 CSS 显隐（`#settings-nav` 永远没有 hidden 属性，见 app/style.css）；
+  // 各节则只切 hidden、**永不 remove()** —— 这一页按字面量 id 读控件。
+  // 切 pane 走命令式 + React 状态两条：命令式让点击立刻见效，状态保证下一次
+  // 重渲染（换界面语言等）不会把刚点开的那一节盖回去。
+  function showPane(secId) {
+    setActiveSec(secId);
+    if (!wide) return;
+    document.querySelectorAll('#app-settings .sec').forEach((s) => {
+      s.hidden = s.id !== secId;
+    });
+  }
+
+  useEffect(() => {
+    let mq = null;
+    try { mq = window.matchMedia('(min-width: 720px)'); } catch (_) { return undefined; }
+    const onChange = (e) => {
+      setWide(e.matches);
+      if (!e.matches) {
+        // 缩过断点：窄窗必须长滚。不清掉各节 hidden 的话，用户会只剩上次点开的那一节
+        // —— 而「返回 + 长滚」正是 <720 的验收形态。
+        document.querySelectorAll('#app-settings .sec').forEach((s) => { s.hidden = false; });
+      }
+    };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', onChange);
+      else if (mq.removeListener) mq.removeListener(onChange);
+    };
+  }, []);
+
+  // shell 的 openSettings(anchorId) 会在落点元素上加 .anchor-flash（在 paint 之后）。
+  // 宽窗里那个落点可能位于未点开的节（例如「语言包管理」/ agent 的「账号与数据」），
+  // 直接 scrollIntoView 会落空。看到这一笔就把所属节揭开，再滚一次。
+  useEffect(() => {
+    if (!wide) return undefined;
+    const box = $('app-settings');
+    if (!box || typeof MutationObserver === 'undefined') return undefined;
+    const mo = new MutationObserver((muts) => {
+      for (const m of muts) {
+        if (m.attributeName !== 'class') continue;
+        const el = m.target;
+        if (!el || el.nodeType !== 1 || !el.classList.contains('anchor-flash')) continue;
+        const sec = el.closest('#app-settings .sec');
+        if (!sec || !sec.hidden) continue;
+        setActiveSec(sec.id);
+        requestAnimationFrame(() => {
+          try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
+        });
+        break;
+      }
+    });
+    mo.observe(box, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    return () => mo.disconnect();
+  }, [wide]);
+
   // shell 打开设置页 → 整页重画（旧 paint() 的时序位）。旧 paint 是 async、shell 的
   // 「paint 之后再滚」要等它跑完；换通知制后时序由 notifySettingsShown 的返回值保住。
   // setGen 只是给重渲染一个由头（静态标签的 t 在下一次渲染里换新 locale）。
@@ -1414,23 +1514,39 @@ export default function SettingsView() {
       <button id="settings-back" type="button" className="link">{t('app_review_back', '← 返回')}</button>
       <h2 id="settings-title">{t('app_set_title', '设置')}</h2>
 
+      {/* BEL-198：宽窗 220 侧栏取代「← 返回」。nav 的显隐**只由 CSS 的 ≥720 媒体查询**
+          决定 —— 这里刻意不写 hidden 属性（hidden 与 CSS display 的旧账见 hidden-guard）。
+          五顶顺序 = 认关图：引擎与密钥 / 功能 / 语言包与朗读 / 账号与数据 / 关于。 */}
+      <nav id="settings-nav" aria-label={t('app_set_title', '设置')}>
+        {SETTINGS_PANES.map((p) => (
+          <button key={p.sec} type="button" className="settings-nav-item"
+            data-sec={p.sec}
+            aria-current={wide && activeSec === p.sec ? 'page' : undefined}
+            onClick={() => showPane(p.sec)}>
+            <NavIcon kind={p.icon} />
+            <span>{paneLabel(p.sec, t)}</span>
+          </button>
+        ))}
+      </nav>
+
       {/* 2026-09-17 设置页信息架构（interaction-spec「设置页信息架构」，画布 design/settings-ia）：四节按用途 ——
            ① 引擎与密钥 ② 功能 ③ 账号与数据 ④ 关于。控件只搬不改 id；「快速 / 详细」只管第一节。
            与扩展设置页同一套类名契约（.adv-only / .quick-only）和同一条不变量：一键配置卡与逐引擎控件**永不同屏**。
-           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护。 */}
-      <div className="sec" id="sec-engines">
+           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护。
+           BEL-198：⑤ 语言包与朗读升级为独立节（窄窗也独立成节）；宽窗一次只揭一节。 */}
+      <div className="sec" id="sec-engines" hidden={wide && activeSec !== 'sec-engines'}>
         <div className="sec-head">
           <div className="sec-title"><span className="sec-n">1</span><h3 id="sec-engines-title">{t('opt_sec_engines', '引擎与密钥')}</h3></div>
           <div className="mode-tabs" id="mode-tabs" role="tablist" hidden={!quickAvail}>
             <button id="mode-quick" type="button" role="tab" aria-selected={!detail}
               className={!detail ? '' : 'mode-tab-muted'}>
-              {!detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
-              {detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
+              {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
+              {!wide && detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
             </button>
             <button id="mode-detail" type="button" role="tab" aria-selected={detail}
               className={detail ? '' : 'mode-tab-muted'}>
-              {detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
-              {!detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
+              {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
+              {!wide && !detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
             </button>
           </div>
         </div>
@@ -1476,13 +1592,16 @@ export default function SettingsView() {
             <input id="notes-api-key" type="password" autoComplete="off" autoCapitalize="none"
               autoCorrect="off" spellCheck="false" />
           </label>
+          {/* BEL-198：宽窗把「自定义接口地址」从高级参数提到分项主行（认关稿：
+              标签左/字段右，企业网关就在这里）。窄窗没有专门的双挂载 —— 同一份
+              DOM 仍在字段流里，只是不再折进 <details>。id 不动。 */}
+          <label className="field" id="notes-base-field">
+            <span id="notes-base-label">{t('app_set_notes_base', '自定义接口地址')}</span>
+            <input id="notes-base-url" type="url" autoComplete="off" autoCapitalize="none"
+              autoCorrect="off" spellCheck="false" />
+          </label>
           <details className="adv-params adv-only" id="notes-adv-params" hidden={!detail}>
             <summary id="notes-adv-summary">{t('options_advanced', '高级参数')}</summary>
-            <label className="field" id="notes-base-field">
-              <span id="notes-base-label">{t('app_set_notes_base', '自定义接口地址')}</span>
-              <input id="notes-base-url" type="url" autoComplete="off" autoCapitalize="none"
-                autoCorrect="off" spellCheck="false" />
-            </label>
             <label className="field" id="notes-model-field">
               <span id="notes-model-label">{t('app_set_notes_model', '引擎模型名')}</span>
               <input id="notes-model" type="text" autoComplete="off" autoCapitalize="none"
@@ -1575,7 +1694,7 @@ export default function SettingsView() {
         </div>
       </div>
 
-        <div className="sec" id="sec-features">
+        <div className="sec" id="sec-features" hidden={wide && activeSec !== 'sec-features'}>
           <div className="sec-head">
             <div className="sec-title"><span className="sec-n">2</span><h3 id="sec-features-title">{t('opt_sec_features', '功能')}</h3></div>
           </div>
@@ -1640,15 +1759,8 @@ export default function SettingsView() {
           <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
         </label>
 
-        {/* N24 M-03：语言包与朗读（日常块）—— 状态 + 管理；不含 API Key / 端点 / 引擎模型名 */}
-        <div className="sgroup" id="g-langpacks">
-          <h3 id="langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3>
-          <div className="langpacks-row" id="langpacks-status-row">
-            <p className="note" id="langpacks-state" role="status" aria-live="polite"></p>
-            <button id="set-pack-manage" type="button" className="secondary">{t('langpacks_manage', '管理')}</button>
-          </div>
-          <p className="note" id="langpacks-tts-state" role="status" aria-live="polite">{t('langpacks_tts_ready', '离线朗读 · 已就绪')}</p>
-        </div>
+        {/* N24 M-03：语言包与朗读已升为独立节（BEL-198，见下面 #sec-langpacks）。
+            功能节不再内嵌 #g-langpacks —— 内部 id 一个不动，也不做双挂载。 */}
 
         {/* 复习：怎么听、每天多少张。语音模式 / 自动朗读 / 语速此前混在「语音」组里，与引擎字段同屏。 */}
         <div className="sgroup" id="g-review">
@@ -1879,9 +1991,26 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="sec" id="sec-account">
+      {/* BEL-198：语言包与朗读升为独立侧栏项（原嵌在功能节里的 #g-langpacks）。
+          内部 id 全不动：g-langpacks / langpacks-state / set-pack-manage。窄窗也是
+          独立一节（ACCEPT），仍长滚、仍有 ← 返回。不做双挂载。 */}
+      <div className="sec" id="sec-langpacks" hidden={wide && activeSec !== 'sec-langpacks'}>
         <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">3</span><h3 id="sec-account-title">{t('opt_sec_account', '账号与数据')}</h3></div>
+          <div className="sec-title"><span className="sec-n">3</span><h3 id="sec-langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3></div>
+        </div>
+        <div className="sgroup" id="g-langpacks">
+          <h3 id="langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3>
+          <div className="langpacks-row" id="langpacks-status-row">
+            <p className="note" id="langpacks-state" role="status" aria-live="polite"></p>
+            <button id="set-pack-manage" type="button" className="secondary">{t('langpacks_manage', '管理')}</button>
+          </div>
+          <p className="note" id="langpacks-tts-state" role="status" aria-live="polite">{t('langpacks_tts_ready', '离线朗读 · 已就绪')}</p>
+        </div>
+      </div>
+
+      <div className="sec" id="sec-account" hidden={wide && activeSec !== 'sec-account'}>
+        <div className="sec-head">
+          <div className="sec-title"><span className="sec-n">4</span><h3 id="sec-account-title">{t('opt_sec_account', '账号与数据')}</h3></div>
         </div>
         <div className="sgroup" id="g-account">
           <h3 id="account-title">{t('app_set_account', '账号')}</h3>
@@ -1913,9 +2042,9 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="sec" id="sec-about">
+      <div className="sec" id="sec-about" hidden={wide && activeSec !== 'sec-about'}>
         <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">4</span><h3 id="sec-about-title">{t('options_about_section', '关于')}</h3></div>
+          <div className="sec-title"><span className="sec-n">5</span><h3 id="sec-about-title">{t('options_about_section', '关于')}</h3></div>
         </div>
         <div className="sgroup" id="g-feedback">
           {/* 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
