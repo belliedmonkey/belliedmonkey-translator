@@ -1340,3 +1340,72 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
   .agent-sheet button:hover:not(:disabled) { background: var(--accent-hover); }
   .agent-sheet button.secondary:hover:not(:disabled) { background: var(--field); }
 }
+
+/* ─── BEL-199 · Mac ≥720：包屏 / 文档 / 播客的桌面布局 ──────────────────────
+   与 #app-listen（听译）和 BEL-198（登录/设置）同一条**窗口宽度**断点。iPhone、
+   iPad 分屏、Mac 缩窗 <720 全部继续走上方的单栏 —— 本块里的 max-width /
+   grid-template-columns 一条都不许挪到媒体查询之外（test/app-bel199-720.test.js
+   钉着）。三屏都不是设置页那种五节 IA，所以这里不造 220 侧栏：
+   · 包屏 = 一条 560 的列，CTA 跟列宽走，不是窗宽；语言行仍一行一语言。
+   · 文档 = 顶栏 + 960 主列；只有阅读器的 .docv-unit 在 #app-docs 作用域里分栏，
+     文件列表仍单列。doc-view.js 的 STYLE 字符串是 App 与扩展 docs 页共用的，不动。
+   · 播客 = 卡内原文 | 译文左右，notes 通栏在卡底；2×N 键不变，键高仍由窄窗
+     基线的 min-height:64px 决定，字号 1.25 / 1.05 也不在这里改小。 */
+@media (min-width: 720px) {
+  /* —— 首启包屏：约束列宽；CTA 不拉满窗 —— */
+  #firstrun-packs:not([hidden]) {
+    width: 100%;
+    max-width: 560px;
+    margin-inline: auto;
+  }
+  #firstrun-packs > #packs-go { width: 100%; }
+  /* .pack-line 的基线是 flex 单行（勾选 + 名称/状态），宽窗保持一行一语言；
+     不改成多列语言表 —— 名额 / 让出 / 未就绪的文案会挤。 */
+
+  /* —— 文档：顶栏 + 阅读器主列 ~960 —— */
+  #app-docs > .docs-head {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+  #app-docs > #app-docs-root {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+  /* 原文 | 译文只在这个作用域里左右分栏。:where(#app-docs) 是硬作用域：
+     扩展 learn/docs.html 与 App 共用 doc-view.js 注入的 .docv-* 规则，绝不外溢。 */
+  :where(#app-docs) .docv-unit .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 20px;
+    align-items: start;
+  }
+  :where(#app-docs) .docv-unit .body .orig { margin: 0; }
+  :where(#app-docs) .docv-unit .body .tr {
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    padding: 0 0 0 20px;
+  }
+  /* 文件列表（.docv-list）保持单列 —— 不写列，也不给它 grid-template-columns。 */
+
+  /* —— 播客：卡内左右分栏，不是侧栏 —— */
+  #app-drive:not([hidden]) {
+    width: 100%;
+    max-width: 960px;
+    margin-inline: auto;
+  }
+  #app-drive .drive-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: 28px;
+    row-gap: 12px;
+    align-items: start;
+  }
+  #app-drive .drive-card #app-drive-text { grid-column: 1; grid-row: 1; }
+  #app-drive .drive-card #app-drive-tr { grid-column: 2; grid-row: 1; }
+  /* 解析文本（notes）通栏在卡底，仍然跟着卡走，不是一条全窗横幅。 */
+  #app-drive .drive-card #app-drive-notes { grid-column: 1 / -1; grid-row: 2; }
+  /* 键仍是 2 列、min-height 仍是基线那一条 64px；宽窗只松一点 gap，不压窄。 */
+  #app-drive .drive-grid { gap: 14px 16px; }
+}
