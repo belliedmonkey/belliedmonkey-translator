@@ -156,6 +156,8 @@ export function createHost(options) {
   // BEL-151 B-PUSH pending watch (separate from the 2–5 min pairing heartbeat).
   let pendingPresenter = typeof opts.presentPending === 'function' ? opts.presentPending : null;
   let pendingTimer = null;
+  let pendingProbeTimer = null;
+  let pendingProbeLeft = 0;
   let pendingRunning = false;
   let pendingDelayMs = PENDING_WATCH_MS;
   let pendingActive = '';
@@ -512,19 +514,54 @@ export function createHost(options) {
     if (Object.prototype.hasOwnProperty.call(o, 'presentPending')) setPendingPresenter(o.presentPending);
     if (!client) return { ok: false, code: 'no_client' };
     if (!hasCred()) return { ok: false, code: 'not_paired' };
-    if (currentVisibility() !== 'visible') return { ok: false, code: 'hidden' };
     if (pendingRunning) return { ok: true, interval_ms: pendingDelayMs };
+    pendingDelayMs = PENDING_WATCH_MS;
+    if (currentVisibility() === 'visible') return beginPendingWatch();
+    // WKWebView can report `hidden` right before the window becomes key and then
+    // never emit a visibilitychange when it appears (the same D.8 shape the launch
+    // beat already handles). Probe briefly instead of permanently missing the
+    // pending; an explicit background event still wins because stopPendingWatch
+    // clears this probe.
+    pendingProbeLeft = 5;
+    schedulePendingProbe();
+    return { ok: false, code: 'hidden', probing: true };
+  }
+
+  function beginPendingWatch() {
+    if (pendingRunning) return { ok: true, interval_ms: pendingDelayMs };
+    if (!client || !hasCred()) return { ok: false, code: 'not_paired' };
+    if (pendingProbeTimer != null) {
+      try { timers.clearTimeout(pendingProbeTimer); } catch (_) {}
+      pendingProbeTimer = null;
+    }
+    pendingProbeLeft = 0;
     pendingRunning = true;
     pendingDelayMs = PENDING_WATCH_MS;
     schedulePending(PENDING_WATCH_MS);
     return { ok: true, interval_ms: PENDING_WATCH_MS };
   }
 
+  function schedulePendingProbe() {
+    if (pendingRunning || pendingProbeLeft <= 0) return;
+    pendingProbeTimer = timers.setTimeout(() => {
+      pendingProbeTimer = null;
+      if (pendingRunning || !hasCred()) return;
+      if (currentVisibility() === 'visible') { beginPendingWatch(); return; }
+      pendingProbeLeft -= 1;
+      schedulePendingProbe();
+    }, 1000);
+  }
+
   function stopPendingWatch() {
     pendingRunning = false;
+    pendingProbeLeft = 0;
     if (pendingTimer != null) {
       try { timers.clearTimeout(pendingTimer); } catch (_) {}
       pendingTimer = null;
+    }
+    if (pendingProbeTimer != null) {
+      try { timers.clearTimeout(pendingProbeTimer); } catch (_) {}
+      pendingProbeTimer = null;
     }
     return true;
   }

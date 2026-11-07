@@ -902,6 +902,36 @@ describe('BEL-151 host: B-PUSH pending watch', () => {
     eq(host.isPendingWatchRunning(), false, 'going hidden left the 5 s table running');
   });
 
+  test('a hidden-looking foreground probes until WKWebView reports visible', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer((n) => (n === 1 ? [] : [row()]));
+    const seen = [];
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers,
+      presentPending: async (p) => { seen.push(p); },
+    }));
+    const doc = {
+      visibilityState: 'hidden',
+      handlers: {},
+      addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
+    };
+    host.boot(doc);
+    await tick(20);
+    eq(rec.calls.length, 1, 'the foreground beat was skipped');
+    eq(host.isPendingWatchRunning(), false, 'the 5 s table ran while the window was not key');
+
+    // The window becomes key without a visibilitychange — the D.8 shape. The
+    // 1 s probe must start the watch, and the next 5 s tick must pick the pending up.
+    doc.visibilityState = 'visible';
+    timers.fire(1000);
+    await tick(20);
+    eq(host.isPendingWatchRunning(), true, 'a stale-hidden foreground never started the watch');
+    timers.fire(Host.PENDING_WATCH_MS);
+    await tick(20);
+    eq(rec.calls.length, 2, 'the 5 s tick did not beat');
+    eq(seen.length, 1, 'the pending discovered by the watch never reached the card');
+  });
+
   test('a 429 backs the watch off to 15 s', async () => {
     const timers = fakeTimers();
     const rec = recorder(() => fakeResponse(429, { ok: false, error: 'rate_limited' }));
