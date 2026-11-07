@@ -5,7 +5,7 @@
 import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, OAUTH_INTERRUPTED, ORIGIN_PREFIX } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
 import { pendingIdOf } from '../../agent/parse.js';
-import { handleAgentUrl } from '../../agent/session.js';
+import { handleAgentUrl, handlePendingConfirm } from '../../agent/session.js';
 
 function $(id) { return document.getElementById(id); }
 
@@ -248,6 +248,121 @@ const PENDING_CONFIRM_TIMEOUT_MS = 120000;
 function pendingOf(raw) {
   try { return pendingIdOf(new URL(String(raw || '')).searchParams.get('pending_id')); }
   catch (_) { return ''; }
+}
+
+function writeFaceDbg(row) {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_face', JSON.stringify(row));
+  } catch (_) {}
+}
+
+function tellHostMounted(host, pendingId) {
+  const bridge = host && host.deviceBridge;
+  if (bridge && typeof bridge.notePendingMounted === 'function') {
+    try { bridge.notePendingMounted(pendingId); } catch (_) {}
+  } else if (host && typeof host.notePendingMounted === 'function') {
+    try { host.notePendingMounted(pendingId); } catch (_) {}
+  }
+}
+
+// BEL-151 C-r9: B-PUSH pending must not round-trip a custom-scheme URL.
+// Heartbeat {action, pending_id} goes straight to handlePendingConfirm —
+// no pendingHref, no new URL, no parseAgentDeepLink, no presentAgentDeepLink.
+export async function presentPending(pending, host) {
+  const pendingId = pendingIdOf(pending && pending.pending_id);
+  let confirmCalled = false;
+  let remembered = false;
+  let code = null;
+  const dbg = () => writeFaceDbg({
+    id: pendingId,
+    href: false,
+    parse: null,
+    confirmCalled,
+    remembered,
+    code,
+  });
+  dbg();
+  if (!pendingId) return null;
+
+  const baseBridge = host && host.deviceBridge;
+  const deviceBridge = {
+    rememberPending(row) {
+      remembered = true;
+      dbg();
+      if (baseBridge && typeof baseBridge.rememberPending === 'function') {
+        return baseBridge.rememberPending(row);
+      }
+    },
+    confirm(row) {
+      if (baseBridge && typeof baseBridge.confirm === 'function') return baseBridge.confirm(row);
+    },
+  };
+  const ctx = Object.assign({}, host || {}, { deviceBridge });
+  let retry = false;
+  const ui = {
+    confirm(card) {
+      confirmCalled = true;
+      dbg();
+      const sheet = mount(Object.assign({}, card, {
+        secondary: card.secondary || card.cancel || '',
+      }), { timeoutMs: PENDING_CONFIRM_TIMEOUT_MS });
+      tellHostMounted(host, pendingId);
+      return sheet;
+    },
+    async show(receipt, fail) {
+      if (receipt && (receipt.ok || receipt.code === 'cancelled')) {
+        const sheet = mount({
+          title: receipt.message || '',
+          primary: CLOSE,
+        }, {});
+        tellHostMounted(host, pendingId);
+        await sheet;
+        return;
+      }
+      const card = fail ? {
+        title: fail.title,
+        line: fail.line,
+        footnote: fail.footnote || '',
+        site: receipt.code === 'site_unsupported' ? siteTail(receipt.message, fail.line) : '',
+        primary: fail.primary,
+        secondary: fail.secondary,
+      } : {
+        title: FAILURE_TITLE,
+        message: receipt.message,
+        primary: ctaFor(receipt) || CLOSE,
+        secondary: ctaFor(receipt) ? CLOSE : '',
+      };
+      const sheet = mount(card, {
+        onPrimary: async () => {
+          if (isNetwork(receipt, fail)) {
+            retry = true;
+            return { allow: false };
+          }
+          if (receipt.code === 'site_unsupported' && host && host.ports && host.ports.enterSubtitle) {
+            await host.ports.enterSubtitle({ action: 'start_live_subtitles', langs: {}, step: '', mode: 'explain', text: '', site: '', auth: { kind: 'none', via: '', host: '', provider: '' } });
+          } else if (host && host.ports && host.ports.openSetup && stepOf(receipt.fix)) {
+            await host.ports.openSetup({ step: stepOf(receipt.fix), langs: {}, mode: 'explain', text: '', site: '' });
+          }
+          return { allow: false };
+        },
+        onSecondary: async () => {
+          if (receipt.code === 'need_ext' && navigator.clipboard && navigator.clipboard.writeText) {
+            const link = receipt.fix && receipt.fix.open_setup ? receipt.fix.open_setup : '';
+            const body = link ? EXT_NOTE_FOR_AI + '\n' + link : EXT_NOTE_FOR_AI;
+            try { await navigator.clipboard.writeText(body); } catch (_) {}
+          }
+          return { allow: false };
+        },
+      });
+      tellHostMounted(host, pendingId);
+      await sheet;
+    },
+  };
+  const rec = await handlePendingConfirm(pending, ctx, ui);
+  code = rec == null ? null : (rec.code || '');
+  dbg();
+  if (retry) return presentPending(pending, host);
+  return rec;
 }
 
 export async function presentAgentDeepLink(raw, host) {

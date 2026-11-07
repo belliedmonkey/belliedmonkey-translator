@@ -37,7 +37,7 @@ import NativeBridge from '../lib/native-bridge.js';
 import PageText from '../lib/i18n.js';
 import settingsModel from './settings-model.js';
 import { parseAgentDeepLink } from '../../agent/parse.js';
-import { presentAgentDeepLink } from './agent-face.js';
+import { presentAgentDeepLink, presentPending } from './agent-face.js';
 import { deviceBridgeHost } from './device-bridge-host.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
@@ -3024,6 +3024,8 @@ export function bootShell() {
   // BEL-151 设备桥：与 quietSync 同一个「进 App / 回前台」入口 —— 已配对就 heartbeat
   // 一次并把 2–5 分钟的存活 interval 挂上；未登录 / 未配对是安静的 no-op，不在用户
   // 没打开的页上画错误。boot 同时订阅登录态变化（退出 / 换账号 ⇒ 清掉本机 cred）。
+  // B-PUSH（BEL-151）：heartbeat 带回的 pending 由 host 交回 presentPending —— 内存里
+  // 拼同一条 action 链接，复用同一张「确认调用」卡；不经过 NSWorkspace / open / dsh。
   try { deviceBridgeHost.boot(); } catch (_) { /* 设备桥不能挡住 App 启动 */ }
 
   // ─── Review ───────────────────────────────────────────────────────────────
@@ -3451,6 +3453,11 @@ export function bootShell() {
         },
       };
     }
+
+    // B-PUSH（BEL-151）：presenter 必须和 agentHost 在同一个词法块里创建 —— 在
+    // boot() 调用处传一个尾随引用会在真机上报 "Can't find variable: agentHost"
+    // （esbuild 的块级作用域）。boot 先起，presenter 就绪后 host 会排空早到的 pending。
+    try { deviceBridgeHost.setPendingPresenter((pending) => presentPending(pending, agentHost())); } catch (_) {}
 
     function runAgentSetup(step) {
       $('onboard').hidden = true;

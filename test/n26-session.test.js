@@ -440,3 +440,102 @@ describe('P1-2 离开会话 — cameFrom 是显式登录态，不是 DOM 可见�
     eq(box.els['signed-in'].hidden, true);
   });
 });
+
+describe('BEL-151 B-PUSH handlePendingConfirm — no URL roundtrip', () => {
+  const session = require('../agent/session');
+  const PENDING = '4839f0b4-8948-4c2c-861e-bd8bc1726167';
+  const READY = { login: true, network: true };
+
+  function ctxOf(extra) {
+    const remembered = [];
+    const decisions = [];
+    const opened = [];
+    return {
+      remembered,
+      decisions,
+      opened,
+      ctx: Object.assign({
+        scheme: 'belliedmonkey',
+        readiness: READY,
+        ports: { enterSubtitle() { opened.push('subtitle'); return { ok: true }; } },
+        deviceBridge: {
+          rememberPending(row) { remembered.push(row); },
+          confirm(call) { decisions.push(call); return { ok: true, sent: true }; },
+        },
+      }, extra || {}),
+    };
+  }
+
+  test('pending mounts confirm with no URL and cancel never openedSubtitles', async () => {
+    const { ctx, remembered, decisions, opened } = ctxOf();
+    const shown = [];
+    const out = await session.handlePendingConfirm(
+      { action: 'start_live_subtitles', pending_id: PENDING },
+      ctx,
+      {
+        confirm(card) {
+          eq(card.title, '确认调用');
+          return { allow: false };
+        },
+        show(rec) { shown.push(rec); },
+      },
+    );
+    eq(out.code, 'cancelled');
+    eq(remembered.length, 1);
+    eq(remembered[0].pending_id, PENDING);
+    eq(decisions.length, 1);
+    eq(decisions[0].decision, 'deny');
+    eq(opened.length, 0);
+    eq(shown.length, 1);
+    ok(!JSON.stringify(out).includes('openedSubtitles'), 'cancel claimed a surface');
+  });
+
+  test('parse-fail / 无 URL 仍 mount：listen URL returns null, structured pending does not', async () => {
+    const { ctx, remembered, opened } = ctxOf();
+    const silent = await session.handleAgentUrl('belliedmonkey://listen/subtitle', ctx, {
+      confirm() { throw new Error('confirm must not run on parse-null'); },
+      show() { throw new Error('show must not run on parse-null'); },
+    });
+    eq(silent, null);
+
+    let confirmCalled = false;
+    const out = await session.handlePendingConfirm(
+      { action: 'start_live_subtitles', pending_id: PENDING },
+      ctx,
+      {
+        confirm(card) {
+          confirmCalled = true;
+          eq(card.title, '确认调用');
+          return { allow: false };
+        },
+        show() {},
+      },
+    );
+    eq(confirmCalled, true);
+    eq(out.code, 'cancelled');
+    eq(remembered.length, 1);
+    eq(opened.length, 0);
+    ok(out !== null, 'pending must not return null');
+    ok(!JSON.stringify(out).includes('openedSubtitles'));
+  });
+
+  test('unknown action is a failure card + deny, never silent null or openedSubtitles', async () => {
+    const { ctx, remembered, decisions, opened } = ctxOf();
+    const shown = [];
+    const out = await session.handlePendingConfirm(
+      { action: 'not_a_tool', pending_id: PENDING },
+      ctx,
+      {
+        confirm() { throw new Error('unknown action must not confirm-run'); },
+        show(rec) { shown.push(rec); },
+      },
+    );
+    eq(out.code, 'unsupported_action');
+    eq(remembered.length, 1);
+    eq(decisions[0].decision, 'deny');
+    eq(shown.length, 1);
+    eq(opened.length, 0);
+    ok(out !== null);
+    ok(!JSON.stringify(out).includes('openedSubtitles'));
+  });
+});
