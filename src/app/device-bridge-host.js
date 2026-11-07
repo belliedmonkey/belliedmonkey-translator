@@ -441,9 +441,19 @@ export function createHost(options) {
     return !!pendingPresenter;
   }
 
-  // The presenter is the App face's presentPending(). It builds the action link
-  // in memory and reuses the copy-locked sheet; there is no NSWorkspace / open /
-  // shell here, and no path that opens a surface without a card and a user click.
+  // Overlay already in the DOM (or a confirm POST already on the wire). Silent
+  // present / throw must NOT add: the next 5 s watch is allowed to re-queue.
+  function notePendingMounted(pending_id) {
+    const id = Bridge.pendingIdOf(pending_id);
+    if (!id) return '';
+    pendingSeen.add(id);
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_seen', JSON.stringify({ at: now(), id, seen: pendingSeen.size })); } catch (_) {}
+    return id;
+  }
+
+  // The presenter is the App face's presentPending() → handlePendingConfirm.
+  // No NSWorkspace / open / shell here, and no path that opens a surface
+  // without a card and a user click.
   function presentPendingNow(pending) {
     try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_present', JSON.stringify({ at: now(), id: pending && pending.pending_id, presenter: typeof pendingPresenter })); } catch (_) {}
     if (typeof pendingPresenter !== 'function') return Promise.resolve(null);
@@ -463,12 +473,17 @@ export function createHost(options) {
     if (typeof pendingPresenter !== 'function') return;
     const next = pendingQueue.shift();
     pendingActive = next.pending_id;
-    try { await presentPendingNow(next); } catch (_) { /* the face reports its own failure */ }
+    try {
+      const rec = await presentPendingNow(next);
+      if (rec && rec.mounted) notePendingMounted(next.pending_id);
+    } catch (_) { /* the face reports its own failure */ }
     pendingActive = '';
     if (pendingQueue.length) drainPending();
   }
 
-  // One card at a time, oldest first, and a pending_id is never re-mounted.
+  // One card at a time, oldest first. A pending_id already in the DOM
+  // (pendingActive) or already mounted (pendingSeen) is not re-queued; a
+  // silent miss is left unseen so the next watch can try again.
   function enqueuePending(rows) {
     if (!Array.isArray(rows)) return [];
     const added = [];
@@ -476,11 +491,10 @@ export function createHost(options) {
       const pending_id = Bridge.pendingIdOf(row && row.pending_id);
       if (!pending_id || pending_id === pendingActive || pendingSeen.has(pending_id)) continue;
       if (pendingQueue.some((q) => q.pending_id === pending_id)) continue;
-      pendingSeen.add(pending_id);
       pendingQueue.push({ pending_id, action: String((row && row.action) || '') });
       added.push(pending_id);
     }
-    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_enqueue', JSON.stringify({ at: now(), added, presenter: typeof pendingPresenter, active: pendingActive, queued: pendingQueue.length, rows: Array.isArray(rows) ? rows.length : -1 })); } catch (_) {}
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_enqueue', JSON.stringify({ at: now(), added, presenter: typeof pendingPresenter, active: pendingActive, queued: pendingQueue.length, seen: pendingSeen.size, rows: Array.isArray(rows) ? rows.length : -1 })); } catch (_) {}
     if (added.length) drainPending();
     return added;
   }
@@ -979,6 +993,7 @@ export function createHost(options) {
       // client itself on 401 and by every disconnect path.
       rememberPending: (o) => withClient((c) => c.rememberPending(o)),
       confirm: (o) => withClient((c) => c.confirm(o)),
+      notePendingMounted: (id) => notePendingMounted(id),
       pendingIds: () => withClient((c) => c.pendingIds()),
       // T6: revoke ends the device session, so the MCP access token that was used
       // for it goes too. The refresh token stays in its Keychain slot — the next
@@ -1025,6 +1040,7 @@ export function createHost(options) {
     stopPendingWatch,
     isPendingWatchRunning: () => pendingRunning,
     pendingWatchState,
+    notePendingMounted,
     setPendingPresenter,
     pollPendingOnce,
     hasCred,

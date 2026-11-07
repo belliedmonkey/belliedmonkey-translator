@@ -878,7 +878,10 @@ describe('BEL-151 host: B-PUSH pending watch', () => {
     const rec = pendingServer(() => [row(), { pending_id: p2, action: 'start_live_subtitles' }]);
     const host = Host.createHost(baseOptions({
       store: pairedStore(), fetch: rec.fetch, timers,
-      presentPending: (p) => new Promise((resolve) => { seen.push(p); release = resolve; }),
+      presentPending: (p) => new Promise((resolve) => {
+        seen.push(p);
+        release = () => resolve({ mounted: true });
+      }),
     }));
     await host.onForeground();
     eq(seen.length, 1, 'two pending were mounted at once');
@@ -965,6 +968,63 @@ describe('BEL-151 host: B-PUSH pending watch', () => {
     await tick(20);
     eq(rec.calls.length, 2, 'the 5 s tick did not beat');
     eq(seen.length, 1, 'the pending discovered by the watch never reached the card');
+  });
+
+  test('a silent present leaves the id unseen so the next watch can re-queue it', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer(() => [row()]);
+    const seen = [];
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers,
+      presentPending: async (p) => { seen.push(p); return null; },
+    }));
+    await host.onForeground();
+    await tick(20);
+    eq(seen.length, 1, 'the first present never ran');
+    eq(host.pendingWatchState().seen, 0, 'a silent fail marked the id seen');
+    eq(host.pendingWatchState().active, '');
+    await host.pollPendingOnce();
+    await tick(20);
+    eq(seen.length, 2, 'the same pending_id was not re-queued after a silent fail');
+    eq(seen[1].pending_id, UUID);
+    eq(host.pendingWatchState().seen, 0);
+  });
+
+  test('seen is recorded only after the overlay mounts', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer(() => [row()]);
+    const order = [];
+    let host;
+    host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers,
+      presentPending: async (p) => {
+        order.push(['before', host.pendingWatchState().seen]);
+        host.notePendingMounted(p.pending_id);
+        order.push(['after', host.pendingWatchState().seen]);
+        return { mounted: true };
+      },
+    }));
+    await host.onForeground();
+    await tick(20);
+    eq(order[0][1], 0, 'seen was set before mount');
+    eq(order[1][1], 1, 'mount did not record seen');
+    eq(host.pendingWatchState().seen, 1);
+    await host.pollPendingOnce();
+    await tick(20);
+    eq(order.length, 2, 'a mounted id was re-queued');
+  });
+
+  test('presentPending source skips URL roundtrip and writes dbg', () => {
+    const face = fs.readFileSync(path.join(ROOT, 'src/app/agent-face.js'), 'utf8');
+    const start = face.indexOf('export async function presentPending');
+    const end = face.indexOf('export async function presentAgentDeepLink');
+    ok(start !== -1 && end > start, 'presentPending is missing');
+    const body = face.slice(start, end);
+    ok(body.includes('handlePendingConfirm'), 'presentPending does not call handlePendingConfirm');
+    ok(!body.includes('pendingHref'), 'presentPending still calls pendingHref');
+    ok(!body.includes('presentAgentDeepLink'), 'presentPending still calls presentAgentDeepLink');
+    ok(body.includes('confirmCalled') && body.includes('remembered'), 'presentPending dropped dbg flags');
+    ok(body.includes('href: false') && body.includes('code'), 'presentPending dropped dbg href/code');
   });
 
   test('a 429 backs the watch off to 15 s', async () => {
