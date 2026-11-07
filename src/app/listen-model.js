@@ -263,6 +263,7 @@ const listenModel = (() => {
     return r.ok ? '' : (r.reason === 'locale' ? 'locale' : 'os');
   }
   function needText(reason) {
+    if (!reason) return '';
     return reason === 'locale'
       ? t('listen_need_locale', '本机识别器不支持这门语言 —— 换一种语言试试')
       : t('listen_need_os', '对话 · 实时字幕需要 iOS 26 / macOS 26');
@@ -1456,11 +1457,15 @@ const listenModel = (() => {
       disabled: mineChrome.disabled,
       mineDisabled: mineChrome.disabled,
       otherDisabled: otherChrome.disabled,
-      whyText: canUse
-        ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
-          ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
-          : '')
-        : needText(unavailableReason()),
+      whyText: sub
+        // BEL-184: 字幕模式本来就没有对话收音键。禁用不等于「系统太旧」——
+        // 旧代码在这里走 needText('')，在 macOS 27 上误报「需要 macOS 26」。
+        ? t('listen_ptt_subtitle_only', '实时字幕模式没有对话收音键')
+        : canUse
+          ? ((mineChrome.hint === 'preparing' || otherChrome.hint === 'preparing')
+            ? t('listen_ptt_preparing_why', '正在准备本机识别包…')
+            : '')
+          : needText(unavailableReason()),
     };
   }
   // 这里曾经有一道「整句落行要判词稳住 1.5s」的闸（2026-10-08 上午，`1ae1280a`）—— 为挡 whisper

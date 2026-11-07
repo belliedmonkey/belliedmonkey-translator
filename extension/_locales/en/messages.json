@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "Preparing the on-device recognition pack…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "Subtitle mode has no conversation mic keys"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

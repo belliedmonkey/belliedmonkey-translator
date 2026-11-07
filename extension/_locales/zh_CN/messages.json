@@ -3952,6 +3952,9 @@
   "listen_ptt_preparing_why": {
     "message": "正在准备本机识别包…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "实时字幕模式没有对话收音键"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

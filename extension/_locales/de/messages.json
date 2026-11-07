@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "Das lokale Erkennungspaket wird vorbereitet…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "Im Untertitelmodus gibt es keine Gesprächs-Mikrofontasten"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

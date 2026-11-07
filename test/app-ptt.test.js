@@ -217,6 +217,14 @@ describe('BEL-184 · 首帧/未就绪不显示 0%', () => {
     ok(!/下载 0%['"`]/.test(MODEL), '源码里仍有固定的「下载 0%」');
     ok(/下载 \{pct\}%/.test(MODEL), '百分比模板被删了（只该被 0 守卫兜住）');
   });
+
+  test('字幕模式不把空 reason 误报成「需要 iOS 26 / macOS 26」', () => {
+    const NEED = MODEL.slice(MODEL.indexOf('function needText'), MODEL.indexOf('let trackedNoLive'));
+    ok(/if \(!reason\) return '';/.test(NEED),
+      'needText 对空 reason 仍会落到「需要 iOS 26 / macOS 26」—— macOS 27 上会误报');
+    ok(/whyText: sub[\s\S]{0,260}listen_ptt_subtitle_only/.test(PTTVIEW),
+      '字幕模式没有独立的 whyText（禁用原因不诚实）');
+  });
 });
 
 // BEL-187：首页/状态 meter 首帧不得画成「下载中 0% · 已就绪」。复用 BEL-184 的同一

@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "Preparando el paquete de reconocimiento local…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "El modo de subtítulos no tiene teclas de micrófono para conversación"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
