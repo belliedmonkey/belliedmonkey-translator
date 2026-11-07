@@ -12,7 +12,7 @@
 // client, a memory store, a recording fetch, and a headless confirm/show UI.
 const fs = require('fs');
 const path = require('path');
-const { describe, test, loadSrc, ok, eq } = require('./harness');
+const { describe, test, loadSrc, ok, eq, tick } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const copy = require('../agent/copy');
@@ -103,6 +103,33 @@ function headlessUi(decision) {
   };
 }
 
+// Deterministic timers for the 5 s pending watch and the 2–5 min pairing beat.
+// Nothing here waits on wall-clock time.
+function fakeTimers() {
+  let seq = 0;
+  const map = new Map();
+  return {
+    setTimeout(fn, ms) { const id = ++seq; map.set(id, { fn, ms: Number(ms) || 0 }); return id; },
+    clearTimeout(id) { map.delete(id); },
+    fire(ms) {
+      const due = [...map.entries()].filter(([, t]) => t.ms === ms);
+      for (const [id, t] of due) { map.delete(id); t.fn(); }
+      return due.length;
+    },
+    delays() { return [...map.values()].map((t) => t.ms).sort((a, b) => a - b); },
+    count() { return map.size; },
+  };
+}
+
+function pendingServer(rowsFor) {
+  return recorder((call, n) => {
+    if (String(call.url).endsWith('/heartbeat')) {
+      return fakeResponse(200, { ok: true, ttl_sec: 900, pending: rowsFor(n) });
+    }
+    return fakeResponse(200, { ok: true });
+  });
+}
+
 function pairedStore(extra) {
   return bridge.memoryStore(Object.assign({
     device_id: UUID,
@@ -157,7 +184,7 @@ describe('BEL-151 host: the Settings entry is reachable and copy-locked', () => 
   });
 
   test('the lifecycle is mounted next to quietSync, and open_setup gets the same client', () => {
-    ok(/deviceBridgeHost\.boot\(\)/.test(shell), 'shell-model never boots the device host');
+    ok(/deviceBridgeHost\.boot\(/.test(shell), 'shell-model never boots the device host');
     ok(/deviceBridge: deviceBridgeHost\.agentBridge\(\)/.test(shell),
       'agentHost has no deviceBridge, so open_setup would never bootstrap');
   });
@@ -778,6 +805,116 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
     eq(host.status().state, 'unpaired');
     eq(host.isHeartbeatRunning(), false);
     ok(oauth.calls.some((c) => c[0] === 'clearTokens'), 'account switch left the MCP grant behind');
+  });
+});
+
+describe('BEL-151 host: B-PUSH pending watch', () => {
+  const row = () => ({ pending_id: UUID, action: 'start_live_subtitles', expires_at: 1700000120000, expires_in_sec: 120 });
+
+  test('the foreground beat presents a pending at once and opens a separate 5 s table', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer(() => [row()]);
+    const seen = [];
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers,
+      presentPending: async (p) => { seen.push(p); },
+    }));
+    const out = await host.onForeground();
+    eq(out.ok, true);
+    eq(seen.length, 1, 'the first foreground beat did not present its pending');
+    eq(seen[0].pending_id, UUID);
+    eq(seen[0].action, 'start_live_subtitles');
+    eq(host.isPendingWatchRunning(), true);
+    eq(host.pendingWatchState().delay_ms, Host.PENDING_WATCH_MS);
+    ok(timers.delays().includes(Host.PENDING_WATCH_MS), 'no 5 s watch timer: ' + timers.delays());
+    eq(Host.PENDING_WATCH_MS, 5000);
+    eq(Host.PENDING_WATCH_BACKOFF_MS, 15000);
+    // The pairing TTL beat is still clamped to 2–5 min, not the 5 s table.
+    eq(host.startHeartbeat({ intervalMs: 1000 }).interval_ms, bridge.HEARTBEAT_MIN_MS);
+    host.stopHeartbeat();
+    eq(host.isPendingWatchRunning(), false);
+  });
+
+  test('the same pending_id is never re-mounted, and multiple pending go one at a time', async () => {
+    const timers = fakeTimers();
+    const p2 = '22222222-2222-4222-8222-222222222222';
+    const seen = [];
+    let release = null;
+    const rec = pendingServer(() => [row(), { pending_id: p2, action: 'start_live_subtitles' }]);
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers,
+      presentPending: (p) => new Promise((resolve) => { seen.push(p); release = resolve; }),
+    }));
+    await host.onForeground();
+    eq(seen.length, 1, 'two pending were mounted at once');
+    eq(host.pendingWatchState().active, UUID);
+    eq(host.pendingWatchState().queued, 1);
+
+    // A later poll returning the same ids must not re-mount the first card.
+    await host.pollPendingOnce();
+    eq(seen.length, 1);
+
+    release();
+    await tick(20);
+    eq(seen.length, 2, 'the second pending never came up after the first closed');
+    eq(seen[0].pending_id, UUID);
+    eq(seen[1].pending_id, p2);
+    release();
+    await tick(20);
+    eq(host.pendingWatchState().active, '');
+    eq(host.pendingWatchState().queued, 0);
+  });
+
+  test('no presenter means no card and no silent surface action', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer(() => [row()]);
+    const host = Host.createHost(baseOptions({ store: pairedStore(), fetch: rec.fetch, timers }));
+    const out = await host.onForeground();
+    eq(out.ok, true);
+    eq(host.pendingWatchState().queued, 1, 'the pending row was dropped');
+    eq(host.pendingWatchState().active, '');
+    ok(!rec.calls.some((c) => String(c.url).includes('/confirm')), 'a card-less host sent /confirm');
+  });
+
+  test('hidden stops the 5 s table; returning to the foreground beats at once', async () => {
+    const timers = fakeTimers();
+    const rec = pendingServer(() => []);
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers, presentPending: async () => {},
+    }));
+    const doc = {
+      visibilityState: 'hidden',
+      handlers: {},
+      addEventListener(name, fn) { (this.handlers[name] = this.handlers[name] || []).push(fn); },
+    };
+    eq(host.boot(doc).installed, true);
+    await tick(20);
+    eq(rec.calls.length, 1, 'the launch beat was skipped while hidden');
+    eq(host.isPendingWatchRunning(), false, 'the 5 s table ran while hidden');
+
+    doc.visibilityState = 'visible';
+    await doc.handlers.visibilitychange[0]();
+    eq(rec.calls.length, 2, 'the foreground entry did not beat immediately');
+    eq(host.isPendingWatchRunning(), true);
+
+    doc.visibilityState = 'hidden';
+    await doc.handlers.visibilitychange[0]();
+    eq(host.isPendingWatchRunning(), false, 'going hidden left the 5 s table running');
+  });
+
+  test('a 429 backs the watch off to 15 s', async () => {
+    const timers = fakeTimers();
+    const rec = recorder(() => fakeResponse(429, { ok: false, error: 'rate_limited' }));
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers, presentPending: async () => {},
+    }));
+    await host.ensureClient();
+    eq(host.startPendingWatch().ok, true);
+    timers.fire(Host.PENDING_WATCH_MS);
+    await tick(20);
+    eq(host.pendingWatchState().delay_ms, Host.PENDING_WATCH_BACKOFF_MS);
+    ok(timers.delays().includes(Host.PENDING_WATCH_BACKOFF_MS),
+      'no 15 s backoff timer: ' + timers.delays());
   });
 });
 

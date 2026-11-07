@@ -10,6 +10,21 @@ const {
   failureReceipt, preconditions,
 } = require('./run');
 
+// BEL-151 B-PUSH: a heartbeat pending becomes the SAME action link the deep-link
+// path already understands. It is built in memory and never handed to the OS:
+// the caller passes it straight to handleAgentUrl / presentAgentDeepLink, so the
+// copy-locked card, the 120 s timeout and the allow→confirm order stay single-
+// sourced. Invalid ids/actions return '' rather than a component-shaped URL.
+function pendingHref(pending, scheme) {
+  const p = pending || {};
+  const pendingId = pendingIdOf(p.pending_id);
+  const action = String(p.action || '').trim();
+  if (!pendingId || !/^[A-Za-z0-9._:-]{1,64}$/.test(action)) return '';
+  const proto = scheme === 'belliedmonkeycn' ? 'belliedmonkeycn' : 'belliedmonkey';
+  return proto + '://agent/v1/' + encodeURIComponent(action)
+    + '?source=mcp&pending_id=' + encodeURIComponent(pendingId);
+}
+
 // BEL-151 GAP-2. The decision goes back to the Worker through the same device
 // bridge that carries pairing/heartbeat, only after the user decided. A missing
 // bridge or a failed POST never becomes an `openedSubtitles` claim.
@@ -156,4 +171,4 @@ async function requestPairing(ctx, ui) {
   return out.receipt;
 }
 
-module.exports = { handleAgentUrl, requestPairing };
+module.exports = { handleAgentUrl, requestPairing, pendingHref };

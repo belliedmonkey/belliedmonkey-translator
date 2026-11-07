@@ -5,7 +5,7 @@
 import { EXT_NOTE_FOR_AI, CLOSE, FAILURE_TITLE, MESSAGES, OAUTH_INTERRUPTED, ORIGIN_PREFIX } from '../../agent/copy.js';
 import { failureCard } from '../../agent/confirm.js';
 import { pendingIdOf } from '../../agent/parse.js';
-import { handleAgentUrl } from '../../agent/session.js';
+import { handleAgentUrl, pendingHref } from '../../agent/session.js';
 
 function $(id) { return document.getElementById(id); }
 
@@ -248,6 +248,17 @@ const PENDING_CONFIRM_TIMEOUT_MS = 120000;
 function pendingOf(raw) {
   try { return pendingIdOf(new URL(String(raw || '')).searchParams.get('pending_id')); }
   catch (_) { return ''; }
+}
+
+// BEL-151 B-PUSH: the Worker heartbeat carries {action, pending_id}. pendingHref
+// (agent/session.js) builds the SAME action link in memory — no NSWorkspace, no
+// window.open, no shell, no dsh — so presentAgentDeepLink can reuse the
+// copy-locked confirm sheet, the 120 s timeout, allow→deviceBridge.confirm and
+// deny/expiry→deny unchanged.
+export async function presentPending(pending, host) {
+  const href = pendingHref(pending, host && host.scheme);
+  if (!href) return null;
+  return presentAgentDeepLink(href, host);
 }
 
 export async function presentAgentDeepLink(raw, host) {

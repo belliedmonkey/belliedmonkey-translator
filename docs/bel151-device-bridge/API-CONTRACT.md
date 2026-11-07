@@ -35,7 +35,25 @@
 → 200 `{ "ok":true, "device_cred", "ttl_sec":900 }` · 401/403/400
 
 ### heartbeat
-`{ "device_id", "device_cred" }` · every 2–5 min · TTL 10–15 min cloud · 401→clear
+`{ "device_id", "device_cred" }` · pairing TTL beat every 2–5 min · TTL 10–15 min cloud · 401→clear
+
+200 also carries the Worker-owned confirms bound to this session (B-PUSH, BEL-151):
+
+```json
+{ "ok": true, "ttl_sec": 900, "last_seen": 0,
+  "pending": [{ "pending_id": "uuid", "action": "start_live_subtitles",
+                "expires_at": 0, "expires_in_sec": 0 }] }
+```
+
+- `pending` is **always present** (`[]` when none) and never carries args / text /
+  translation. It is scoped to the same `oauth_sub` + `device_id` as the beat.
+- Worker `PENDING_TTL_SEC = 120` is the authority. The paired foreground App opens a
+  **separate 5 s** watch that calls this same endpoint while `visibilityState=visible`
+  (429 → 15 s); background keeps only the 2–5 min pairing beat. A pending outside the
+  120 s window is not shown and never becomes a silent `openedSubtitles`.
+- The watch hands each new `pending_id` to the in-memory `presentPending`, which reuses
+  the copy-locked 「确认调用」 sheet. No `NSWorkspace` / `open` / shell / dsh is on this
+  path; the user still clicks allow or cancel, and only allow reaches `/confirm`.
 
 ### bootstrap
 `{ "device_id", "platform":"mac", "source":"open_setup", "ttl_sec":300 }` · after open_setup allow only · ≠ permanent pair

@@ -143,6 +143,31 @@ describe('BEL-151 pair_device confirm gate', () => {
     eq(hbody.device_cred, 'dc-1');
   });
 
+  test('heartbeat carries pending rows unopened and ignores malformed ones', async () => {
+    const rows = [
+      { pending_id: 'p-1', action: 'start_live_subtitles', expires_at: 1234, expires_in_sec: 119 },
+      { pending_id: '', action: 'start_live_subtitles' },
+      { pending_id: 'p-2', action: '' },
+    ];
+    const { rec, client } = clientWith(() => response(200, {
+      ok: true, ttl_sec: 900, pending: rows,
+    }), { store: bridge.memoryStore({ device_cred: 'dc-1' }) });
+    const beat = await client.heartbeat();
+    eq(beat.ok, true);
+    deepEq(beat.pending, [
+      { pending_id: 'p-1', action: 'start_live_subtitles', expires_at: 1234, expires_in_sec: 119 },
+    ]);
+    eq(rec.calls.length, 1);
+
+    const none = clientWith(() => response(200, { ok: true, ttl_sec: 900 }), {
+      store: bridge.memoryStore({ device_cred: 'dc-1' }),
+    });
+    deepEq((await none.client.heartbeat()).pending, []);
+    // The pairing TTL heartbeat window is untouched by B-PUSH.
+    eq(bridge.HEARTBEAT_MIN_MS, 2 * 60 * 1000);
+    eq(bridge.HEARTBEAT_MAX_MS, 5 * 60 * 1000);
+  });
+
   test('register without confirm:true refuses locally and sends nothing', async () => {
     const { rec, store, client } = clientWith(() => response(200, {
       ok: true, device_cred: 'dc-x', ttl_sec: 900,
@@ -429,6 +454,99 @@ describe('BEL-151 open_setup bootstrap hook', () => {
     });
     eq(out.code, 'need_app');
     eq(boots.length, 0);
+  });
+});
+
+describe('BEL-151 B-PUSH: a heartbeat pending becomes the same confirm card', () => {
+  const PENDING = '11111111-1111-4111-8111-111111111111';
+  const OPENED = '已打开实时双语字幕。点「开始」后才会使用麦克风。';
+
+  test('pendingHref is built in memory from action + pending_id only', () => {
+    eq(
+      session.pendingHref({ action: 'start_live_subtitles', pending_id: PENDING }, 'belliedmonkey'),
+      'belliedmonkey://agent/v1/start_live_subtitles?source=mcp&pending_id=' + PENDING,
+    );
+    eq(
+      session.pendingHref({ action: 'start_live_subtitles', pending_id: PENDING }, 'belliedmonkeycn'),
+      'belliedmonkeycn://agent/v1/start_live_subtitles?source=mcp&pending_id=' + PENDING,
+    );
+    eq(session.pendingHref({ action: 'start_live_subtitles' }, 'belliedmonkey'), '');
+    eq(session.pendingHref({ action: '', pending_id: PENDING }, 'belliedmonkey'), '');
+    eq(session.pendingHref({ action: 'bad action!', pending_id: PENDING }, 'belliedmonkey'), '');
+  });
+
+  test('allow answers /confirm then opens the surface with the gate-4 message', async () => {
+    const decisions = [];
+    const opened = [];
+    const ctx = {
+      scheme: 'belliedmonkey',
+      readiness: READY,
+      ports: { enterSubtitle() { opened.push('subtitle'); return { ok: true }; } },
+      deviceBridge: {
+        rememberPending() {},
+        confirm(call) { decisions.push(call); return { ok: true, sent: true }; },
+      },
+    };
+    const raw = session.pendingHref({ action: 'start_live_subtitles', pending_id: PENDING });
+    const out = await session.handleAgentUrl(raw, ctx, {
+      confirm(card) {
+        eq(card.title, '确认调用');
+        eq(card.actionLabel, confirm.actionCopy('start_live_subtitles').name);
+        return { allow: true };
+      },
+      show() {},
+    });
+    eq(out.code, 'ok');
+    eq(out.message, OPENED);
+    eq(decisions.length, 1);
+    eq(decisions[0].pending_id, PENDING);
+    eq(decisions[0].decision, 'allow');
+    deepEq(opened, ['subtitle']);
+  });
+
+  test('cancel sends deny and never opens a surface or claims openedSubtitles', async () => {
+    const decisions = [];
+    const opened = [];
+    const ctx = {
+      scheme: 'belliedmonkey',
+      readiness: READY,
+      ports: { enterSubtitle() { opened.push('subtitle'); return { ok: true }; } },
+      deviceBridge: {
+        rememberPending() {},
+        confirm(call) { decisions.push(call); return { ok: true, sent: true }; },
+      },
+    };
+    const raw = session.pendingHref({ action: 'start_live_subtitles', pending_id: PENDING });
+    const out = await session.handleAgentUrl(raw, ctx, {
+      confirm() { return { allow: false }; },
+      show() {},
+    });
+    eq(out.code, 'cancelled');
+    eq(opened.length, 0);
+    eq(decisions.length, 1);
+    eq(decisions[0].decision, 'deny');
+    ok(!JSON.stringify(out).includes('openedSubtitles'), 'cancel receipt claimed a surface');
+  });
+
+  test('no card is a deny, not a silent openedSubtitles', async () => {
+    const decisions = [];
+    const opened = [];
+    const ctx = {
+      scheme: 'belliedmonkey',
+      readiness: READY,
+      ports: { enterSubtitle() { opened.push('subtitle'); return { ok: true }; } },
+      deviceBridge: {
+        rememberPending() {},
+        confirm(call) { decisions.push(call); return { ok: true, sent: true }; },
+      },
+    };
+    const raw = session.pendingHref({ action: 'start_live_subtitles', pending_id: PENDING });
+    const out = await session.handleAgentUrl(raw, ctx, {});
+    eq(out.code, 'cancelled');
+    eq(opened.length, 0);
+    eq(decisions.length, 1);
+    eq(decisions[0].decision, 'deny');
+    ok(!JSON.stringify(out).includes('openedSubtitles'), 'a missing card claimed a surface');
   });
 });
 
