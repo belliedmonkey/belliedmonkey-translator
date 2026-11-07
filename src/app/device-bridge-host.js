@@ -496,9 +496,22 @@ export function createHost(options) {
     return out;
   }
 
+  // WKWebView brands setTimeout/clearTimeout as Window methods: calling them as
+  // `timers.setTimeout(...)` throws "Can only call Window.setTimeout on instances
+  // of Window". Reflect.apply keeps injected test timers working while giving the
+  // native ones the receiver they demand (the same trap agent/device-bridge.js hit).
+  function setTimer(fn, ms) {
+    try { return Reflect.apply(timers.setTimeout, globalThis, [fn, ms]); }
+    catch (_) { return setTimeout(fn, ms); }
+  }
+  function clearTimer(id) {
+    try { Reflect.apply(timers.clearTimeout, globalThis, [id]); }
+    catch (_) { try { clearTimeout(id); } catch (_) {} }
+  }
+
   function schedulePending(ms) {
     if (!pendingRunning) return;
-    pendingTimer = timers.setTimeout(() => {
+    pendingTimer = setTimer(() => {
       pendingTimer = null;
       if (!pendingRunning) return;
       if (!hasCred() || currentVisibility() !== 'visible') { stopPendingWatch(); return; }
@@ -531,7 +544,7 @@ export function createHost(options) {
     if (pendingRunning) return { ok: true, interval_ms: pendingDelayMs };
     if (!client || !hasCred()) return { ok: false, code: 'not_paired' };
     if (pendingProbeTimer != null) {
-      try { timers.clearTimeout(pendingProbeTimer); } catch (_) {}
+      clearTimer(pendingProbeTimer);
       pendingProbeTimer = null;
     }
     pendingProbeLeft = 0;
@@ -543,7 +556,7 @@ export function createHost(options) {
 
   function schedulePendingProbe() {
     if (pendingRunning || pendingProbeLeft <= 0) return;
-    pendingProbeTimer = timers.setTimeout(() => {
+    pendingProbeTimer = setTimer(() => {
       pendingProbeTimer = null;
       if (pendingRunning || !hasCred()) return;
       if (currentVisibility() === 'visible') { beginPendingWatch(); return; }
@@ -556,11 +569,11 @@ export function createHost(options) {
     pendingRunning = false;
     pendingProbeLeft = 0;
     if (pendingTimer != null) {
-      try { timers.clearTimeout(pendingTimer); } catch (_) {}
+      clearTimer(pendingTimer);
       pendingTimer = null;
     }
     if (pendingProbeTimer != null) {
-      try { timers.clearTimeout(pendingProbeTimer); } catch (_) {}
+      clearTimer(pendingProbeTimer);
       pendingProbeTimer = null;
     }
     return true;

@@ -130,6 +130,27 @@ function pendingServer(rowsFor) {
   });
 }
 
+// A browser brands setTimeout/clearTimeout as Window methods: calling them as
+// `timers.setTimeout(...)` throws. This wrapper refuses a receiver that is not
+// the module's global, so a regression is caught without a WKWebView.
+function strictTimers() {
+  const real = fakeTimers();
+  const api = {
+    setTimeout(fn, ms) {
+      if (!(this && this.globalThis === this)) throw new Error('bad setTimeout receiver');
+      return real.setTimeout(fn, ms);
+    },
+    clearTimeout(id) {
+      if (!(this && this.globalThis === this)) throw new Error('bad clearTimeout receiver');
+      return real.clearTimeout(id);
+    },
+    fire: real.fire,
+    delays: real.delays,
+    count: real.count,
+  };
+  return api;
+}
+
 function pairedStore(extra) {
   return bridge.memoryStore(Object.assign({
     device_id: UUID,
@@ -810,6 +831,20 @@ describe('BEL-151 host: heartbeat lifecycle', () => {
 
 describe('BEL-151 host: B-PUSH pending watch', () => {
   const row = () => ({ pending_id: UUID, action: 'start_live_subtitles', expires_at: 1700000120000, expires_in_sec: 120 });
+
+  test('the 5 s timer survives the WKWebView Window-method receiver', async () => {
+    const timers = strictTimers();
+    const rec = pendingServer(() => []);
+    const host = Host.createHost(baseOptions({
+      store: pairedStore(), fetch: rec.fetch, timers, presentPending: async () => {},
+    }));
+    const out = await host.onForeground();
+    eq(out.ok, true);
+    eq(host.isPendingWatchRunning(), true, 'the watch never started under a Window-method timer');
+    timers.fire(Host.PENDING_WATCH_MS);
+    await tick(20);
+    eq(rec.calls.length, 2, 'the first 5 s tick never beat');
+  });
 
   test('the foreground beat presents a pending at once and opens a separate 5 s table', async () => {
     const timers = fakeTimers();
