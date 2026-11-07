@@ -3257,7 +3257,16 @@ export function bootShell() {
       closeAcctMenu();
     }
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAcctMenu(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    closeAcctMenu();
+    // BEL-212：冒泡扩关设置。#agent-confirm 不 stopPropagation，必须先看见再 return。
+    // LearnDialog 已 capture+stop；.ld-mask 是腰带。不改 dialog.jsx / agent-face.js。
+    if (document.getElementById('agent-confirm')) return;
+    if (document.querySelector('.ld-mask')) return;
+    const settings = $('app-settings');
+    if (settings && !settings.hidden) closeSettings();
+  });
   $('gear').addEventListener('click', () => { closeAcctMenu(); openSettings(); });
   // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
   // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
