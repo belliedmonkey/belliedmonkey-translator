@@ -1511,23 +1511,25 @@ export default function SettingsView() {
 
   return (
     <section id="app-settings" hidden>
-      <button id="settings-back" type="button" className="link">{t('app_review_back', '← 返回')}</button>
+      {/* BEL-212：#settings-rail 包 nav（上）+ #settings-back（脚）。无 hidden 属性。
+          窄窗 CSS display:contents：nav 仍 none，back 回到页顶「← 返回」，title 仍在 back 后。
+          宽窗 rail 占左栏，back 文案「完成」；title 仍 display:none。
+          五顶仍只在 #settings-nav；#settings-back 不得进 nav（窄窗 nav display:none 会把返回一起藏掉）。 */}
+      <div id="settings-rail">
+        <nav id="settings-nav" aria-label={t('app_set_title', '设置')}>
+          {SETTINGS_PANES.map((p) => (
+            <button key={p.sec} type="button" className="settings-nav-item"
+              data-sec={p.sec}
+              aria-current={wide && activeSec === p.sec ? 'page' : undefined}
+              onClick={() => showPane(p.sec)}>
+              <NavIcon kind={p.icon} />
+              <span>{paneLabel(p.sec, t)}</span>
+            </button>
+          ))}
+        </nav>
+        <button id="settings-back" type="button" className="link">{wide ? t('app_set_done', '完成') : t('app_review_back', '← 返回')}</button>
+      </div>
       <h2 id="settings-title">{t('app_set_title', '设置')}</h2>
-
-      {/* BEL-198：宽窗 220 侧栏取代「← 返回」。nav 的显隐**只由 CSS 的 ≥720 媒体查询**
-          决定 —— 这里刻意不写 hidden 属性（hidden 与 CSS display 的旧账见 hidden-guard）。
-          五顶顺序 = 认关图：引擎与密钥 / 功能 / 语言包与朗读 / 账号与数据 / 关于。 */}
-      <nav id="settings-nav" aria-label={t('app_set_title', '设置')}>
-        {SETTINGS_PANES.map((p) => (
-          <button key={p.sec} type="button" className="settings-nav-item"
-            data-sec={p.sec}
-            aria-current={wide && activeSec === p.sec ? 'page' : undefined}
-            onClick={() => showPane(p.sec)}>
-            <NavIcon kind={p.icon} />
-            <span>{paneLabel(p.sec, t)}</span>
-          </button>
-        ))}
-      </nav>
 
       {/* 2026-09-17 设置页信息架构（interaction-spec「设置页信息架构」，画布 design/settings-ia）：四节按用途 ——
            ① 引擎与密钥 ② 功能 ③ 账号与数据 ④ 关于。控件只搬不改 id；「快速 / 详细」只管第一节。

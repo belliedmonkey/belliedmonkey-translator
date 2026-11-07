@@ -17,6 +17,7 @@ const ROOT = path.join(__dirname, '..');
 const CSS = fs.readFileSync(path.join(ROOT, 'app/style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const VIEW = fs.readFileSync(path.join(ROOT, 'src/app/settings-view.jsx'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 const SHELL = fs.readFileSync(path.join(ROOT, 'src/app/AppShell.jsx'), 'utf8');
+const MODEL = fs.readFileSync(path.join(ROOT, 'src/app/shell-model.js'), 'utf8');
 const WIDE_Q = '(min-width: 720px)';
 
 // 取出每一个 @media (min-width: 720px) { … } 的 body（大括号配平，嵌套媒体也能算）。
@@ -77,17 +78,58 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     ok(!/MacSignedOut\.dc\.html/.test(SHELL), '落了居中 400 卡的 MacSignedOut.dc.html —— 那不是认关稿');
   });
 
-  test('设置：220 侧栏五顶，宽窗一次只揭一节；无返回、无 engine-keys-entry', () => {
+  test('设置：220 侧栏五顶，宽窗一次只揭一节；侧栏脚完成可见，无 engine-keys-entry', () => {
     ok(/grid-template-columns\s*:\s*220px\s+minmax\(0,\s*1fr\)/.test(wide),
       '≥720 设置不是「220 侧栏 + 右栏」');
     const nav = rule(wide, '#settings-nav');
     ok(/display\s*:\s*flex/.test(nav), '≥720 #settings-nav 没有显示：' + nav);
-    ok(/#settings-back\s*,\s*#settings-title\s*\{[^}]*display\s*:\s*none/.test(wide),
-      '宽窗还留着「← 返回」或页标题');
+    const title = rule(wide, '#settings-title');
+    ok(/display\s*:\s*none/.test(title), '宽窗 #settings-title 必须仍 none：' + title);
+    const backWide = rule(wide, '#settings-back');
+    ok(backWide && !/display\s*:\s*none/.test(backWide),
+      '≥720 #settings-back 必须可见（侧栏脚「完成」）：' + backWide);
+    ok(/min-height\s*:\s*44px/.test(backWide),
+      '≥720 #settings-back 命中区不是 44：' + backWide);
+    ok(!/#settings-back[^{]*\{[^}]*min-height\s*:\s*30px/.test(wide),
+      '≥720 #settings-back 被收到 30');
     ok(/#engine-keys-entry[^{]*\{[^}]*display\s*:\s*none/.test(wide),
       '宽窗还露着 #engine-keys-entry');
     ok(/#app-settings \.sec\s*\{[^}]*grid-column\s*:\s*2[^}]*grid-row\s*:\s*1/.test(wide),
       '各 .sec 没有落在右栏同一格（单 pane）');
+  });
+
+  test('BEL-212：#settings-rail 包 nav+back；back 不是 nav 子节点；<720 仍 ← 返回', () => {
+    const rail = (VIEW.match(/<div[^>]*id="settings-rail"[^>]*>/) || [])[0] || '';
+    ok(rail, 'settings-view.jsx 里没有 #settings-rail');
+    ok(!/\shidden(\s|=|>)/.test(rail), '#settings-rail 带了 hidden 属性：' + rail);
+    ok(/#settings-rail\s*\{\s*display\s*:\s*contents/.test(narrow),
+      '窄窗 #settings-rail 不是 display:contents');
+    const iRail = VIEW.indexOf('id="settings-rail"');
+    const iNav = VIEW.indexOf('id="settings-nav"');
+    const iBack = VIEW.indexOf('id="settings-back"');
+    const iNavClose = VIEW.indexOf('</nav>', iNav);
+    ok(iRail >= 0 && iNav > iRail && iBack > iNavClose,
+      '#settings-back 必须在 #settings-nav 之后、rail 脚上，不得进 nav');
+    ok(!VIEW.slice(iNav, iNavClose).includes('id="settings-back"'),
+      '#settings-back 进了 #settings-nav —— 窄窗 nav display:none 会把返回藏掉');
+    ok(/wide \? t\('app_set_done', '完成'\) : t\('app_review_back', '← 返回'\)/.test(VIEW),
+      '宽窗文案不是完成 / 窄窗不是 ← 返回');
+    ok(VIEW.indexOf('id="settings-title"') > iBack,
+      '窄窗 contents 下流里 title 必须在 back 之后，才保持页顶「← 返回」');
+    ok(/#settings-back\s*\{\s*align-self:\s*flex-start/.test(narrow),
+      '窄窗 #settings-back 不再是页顶链');
+  });
+
+  test('BEL-212：Esc 冒泡先守卫 #agent-confirm / .ld-mask，再 closeSettings', () => {
+    ok(/getElementById\('agent-confirm'\)/.test(MODEL),
+      'shell-model.js Esc 分支没有 #agent-confirm 守卫');
+    ok(/\.ld-mask/.test(MODEL), 'shell-model.js Esc 分支没有 .ld-mask 守卫');
+    const esc = MODEL.slice(MODEL.indexOf("e.key !== 'Escape'"), MODEL.indexOf("e.key !== 'Escape'") + 700);
+    ok(/closeAcctMenu\(\)/.test(esc) && /closeSettings\(\)/.test(esc),
+      'Esc 不是 closeAcctMenu → 守卫 → closeSettings：' + esc.slice(0, 240));
+    const iConfirm = esc.indexOf('agent-confirm');
+    const iClose = esc.indexOf('closeSettings');
+    ok(iConfirm >= 0 && iConfirm < iClose, '#agent-confirm 守卫必须在 closeSettings 之前');
   });
 
   test('侧栏是 CSS 显隐：nav 没有 hidden 属性，窄窗默认 display:none', () => {

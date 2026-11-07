@@ -273,6 +273,9 @@ header #who { min-width: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
 #app-settings > button { align-self: flex-start; }
 #settings-back { align-self: flex-start; }
+/* BEL-212：rail 窄窗拆掉自己（contents），nav / back 回到 #app-settings 的 flex 流。
+   无 hidden 属性。宽窗才由 ≥720 把 rail 画成左栏。 */
+#settings-rail { display: contents; }
 /* BEL-198：侧栏默认不存在（窄窗）。**只**由下面 ≥720 的媒体查询显示 —— 不给 nav
    设 hidden 属性，避免和 hidden-guard 那套 display/hidden 的旧账打架。 */
 #settings-nav { display: none; }
@@ -954,8 +957,9 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 
 /* ─── BEL-198 · 设置桌面布局（≥720）────────────────────────────────────────
    认关稿（bel198-preview/bel198-engines / -enterprise / -features）：220 侧栏五顶，
-   右侧一次只揭一节；没有「← 返回」，没有 #engine-keys-entry。侧栏由 CSS 出现，
+   右侧一次只揭一节；没有 #engine-keys-entry。侧栏由 CSS 出现，
    各节的 hidden 由 settings-view.jsx 切（永不 remove），缩过断点时由 matchMedia 清掉。
+   BEL-212：宽窗侧栏脚复用 #settings-back 为「完成」（调 closeSettings）；页标题仍藏。
    宽窗字段：标签左、控件右，select/input ≤240；开关画成 40×24（id 不动）。
    ⚠️ `.field { flex-direction: row }` 只许活在这个媒体查询里 —— 无媒体查询的
    纵向规则是 320px / iPhone 的契约（test/app-settings-720.test.js 钉着）。 */
@@ -966,14 +970,34 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
     gap: 0 28px;
     align-items: start;
   }
-  /* 宽窗的导航 = 侧栏；页级返回键与页标题都不再出现（窗标题已是「设置」）。 */
-  #settings-back, #settings-title { display: none; }
-  #settings-nav {
+  /* 宽窗页标题仍藏。返回键改画成侧栏脚「完成」，不再 display:none。 */
+  #settings-title { display: none; }
+  #settings-rail {
     grid-column: 1; grid-row: 1;
     display: flex; flex-direction: column; gap: 4px;
     padding: 10px; border-radius: 16px;
     background: var(--section-bg);
     position: sticky; top: 0;
+    min-height: calc(100vh - 40px);
+  }
+  #settings-nav {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  #settings-back {
+    margin-top: auto;
+    min-height: 44px;
+    width: 100%;
+    align-self: stretch;
+    text-decoration: none;
+    background: none;
+    color: var(--accent-deep);
+    border: 1.5px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    font-size: .86rem;
+    font-weight: 600;
+    padding: 8px 10px;
+    cursor: pointer;
   }
   #app-settings .sec { grid-column: 2; grid-row: 1; gap: 14px; }
   #app-settings .sec-head { margin: 0 0 16px; }
