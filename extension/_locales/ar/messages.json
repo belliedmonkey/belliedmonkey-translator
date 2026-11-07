@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "جارٍ تجهيز حزمة التعرّف على الجهاز…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "لا يوجد في وضع الترجمة الفورية مفاتيح ميكروفون للمحادثة"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

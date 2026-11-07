@@ -3764,6 +3764,9 @@
   "listen_ptt_preparing_why": {
     "message": "กำลังเตรียมชุดรู้จำในเครื่อง…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "โหมดคำบรรยายไม่มีปุ่มไมโครโฟนสำหรับบทสนทนา"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

@@ -1167,13 +1167,14 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
 #app-listen-entry .mode-icon, #app-subs-entry .mode-icon { width: 32px; height: 32px; margin-bottom: 12px; }
 #app-listen-entry .mode-chev, #app-subs-entry .mode-chev { display: none; }
 /* CTA：hug content（不 stretch）、卡内右下；只有中文主标。它是卡内真实元素，不是
-   ::after 装饰层 —— 整卡可点，所以是 span 不是 button。窄窗 44 命中区；Mac 宽窗按
-   设计稿压到 30 高（见下面的 ≥720 块）。 */
+   ::after 装饰层 —— 整卡可点，所以是 span 不是 button。窄窗 44 命中区；Mac 宽窗
+   同样保留 44 可见高（BEL-183 验收：CTA 全文可见，不得再被卡底裁成一条边）。 */
 #app-listen-entry .cta, #app-subs-entry .cta {
   flex: none; align-self: flex-end; margin-top: auto;
   height: 44px; min-height: 44px; padding: 0 20px;
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--cta-bg, var(--accent, #ac6231)); border-radius: 999px; overflow: hidden;
+  max-width: 100%; min-width: 0;
 }
 #app-listen-entry .cta .cn, #app-subs-entry .cta .cn {
   max-width: 100%; color: var(--cta-fg, #fff); font-size: 1rem; font-weight: 600; line-height: 1.2;
@@ -1196,11 +1197,12 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
   #app-listen-entry .mode-sub, #app-subs-entry .mode-sub { margin-top: 4px; font-size: 0.6875rem; }
   #app-listen-entry .mode-desc, #app-subs-entry .mode-desc { margin-top: 8px; font-size: 0.78125rem; line-height: 1.5; }
 }
-/* 指针设备（Mac）才把 CTA 收到设计稿的 ~30 高；iPad 是触控，保留 44 命中区
-   （AGENTS.md：宽版 iPad 命中区 ≥44，不依赖 hover）。 */
+/* 指针设备（Mac）也保留 44 可见高：BEL-183 的验收就是「CTA 全文可见、约 44pt」，
+   不再按设计稿压到 30（30 在 220 卡里虽不裁，但不是缺陷报告里的期望值）。iPad 是
+   触控，同一 44 命中区（AGENTS.md：宽版命中区 ≥44，不依赖 hover）。 */
 @media (min-width: 720px) and (hover: hover) and (pointer: fine) {
   #app-listen-entry .cta, #app-subs-entry .cta {
-    height: 30px; min-height: 30px; margin-top: 14px; padding: 0 20px;
+    height: 44px; min-height: 44px; margin-top: 14px; padding: 0 20px;
   }
   #app-listen-entry .cta .cn, #app-subs-entry .cta .cn { font-size: 0.8125rem; }
 }

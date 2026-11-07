@@ -84,11 +84,15 @@ describe('App 首页出场顺序（2026-10-01 设计稿 · J01/J03/J05/J07）', 
       'CTA 仍是 stretch —— 全宽胶囊复发了');
     ok(!/#app-(?:listen|subs)-entry \.cta[^}]*(?:^|[;{\s])width:\s*100%/.test(css),
       'CTA 被写成 width:100% —— 全宽胶囊复发了');
-    // 宽窗双列：同一 720 断点，两卡并排；指针设备才压到设计稿的 30 高。
+    // 宽窗双列：同一 720 断点，两卡并排；指针设备也保留 44 可见高（BEL-183 验收）。
     ok(/@media \(min-width: 720px\) \{[\s\S]{0,220}\.heroes \{ display: grid; grid-template-columns: repeat\(2,/.test(css),
       '≥720 宽窗没有双列 —— Mac 首页仍是上下叠的两张大卡');
-    ok(/@media \(min-width: 720px\) and \(hover: hover\) and \(pointer: fine\) \{[\s\S]{0,260}height: 30px/.test(css),
-      'Mac 指针设备上的 CTA 没有按设计稿收到 ~30 高');
+    ok(/@media \(min-width: 720px\) and \(hover: hover\) and \(pointer: fine\) \{[\s\S]{0,260}height: 44px/.test(css),
+      'Mac 指针设备上的 CTA 不是 44 可见高（BEL-183：不得再被裁成 14.5 / 收到 30）');
+    // 右缘裁切的另一条路：CTA 自身的 min-content 比卡内容宽时，flex 列里会溢出卡外。
+    ok(/#app-listen-entry \.cta[\s\S]{0,400}max-width: 100%/.test(css)
+      && /#app-listen-entry \.cta[\s\S]{0,400}min-width: 0/.test(css),
+      'CTA 没有 max-width:100% / min-width:0 —— 长文案会从卡右缘溢出');
     // 老壳不回 audio-caps 时字幕卡整行不存在：剩下那张听译卡必须占满，不能半宽空着。
     ok(/\.heroes:not\(:has\(#app-subs-entry:not\(\[hidden\]\)\)\) \{ grid-template-columns: minmax\(0, 1fr\)/.test(css),
       '只剩一张主角卡时仍是双列 —— 会留半宽空白列');

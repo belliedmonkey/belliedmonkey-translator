@@ -3784,6 +3784,9 @@
   "listen_ptt_preparing_why": {
     "message": "ऑन-डिवाइस पहचान पैक तैयार हो रहा है…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "सबटाइटल मोड में बातचीत के लिए माइक कुंजियाँ नहीं हैं"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

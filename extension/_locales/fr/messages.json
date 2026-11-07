@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "Préparation du pack de reconnaissance local…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "Le mode sous-titres n'a pas de touches micro de conversation"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },

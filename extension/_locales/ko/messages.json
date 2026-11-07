@@ -3951,6 +3951,9 @@
   "listen_ptt_preparing_why": {
     "message": "기기 인식 팩을 준비하는 중…"
   },
+  "listen_ptt_subtitle_only": {
+    "message": "실시간 자막 모드에는 대화용 마이크 키가 없습니다"
+  },
   "listen_pill_pct": {
     "message": "{lang} {pct}%"
   },
