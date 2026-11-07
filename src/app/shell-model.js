@@ -3026,11 +3026,7 @@ export function bootShell() {
   // 没打开的页上画错误。boot 同时订阅登录态变化（退出 / 换账号 ⇒ 清掉本机 cred）。
   // B-PUSH（BEL-151）：heartbeat 带回的 pending 由 host 交回 presentPending —— 内存里
   // 拼同一条 action 链接，复用同一张「确认调用」卡；不经过 NSWorkspace / open / dsh。
-  try {
-    deviceBridgeHost.boot(undefined, {
-      presentPending: (pending) => presentPending(pending, agentHost()),
-    });
-  } catch (_) { /* 设备桥不能挡住 App 启动 */ }
+  try { deviceBridgeHost.boot(); } catch (_) { /* 设备桥不能挡住 App 启动 */ }
 
   // ─── Review ───────────────────────────────────────────────────────────────
   // `review.js` runs its own boot on load and owns everything inside #review-view.
@@ -3457,6 +3453,11 @@ export function bootShell() {
         },
       };
     }
+
+    // B-PUSH（BEL-151）：presenter 必须和 agentHost 在同一个词法块里创建 —— 在
+    // boot() 调用处传一个尾随引用会在真机上报 "Can't find variable: agentHost"
+    // （esbuild 的块级作用域）。boot 先起，presenter 就绪后 host 会排空早到的 pending。
+    try { deviceBridgeHost.setPendingPresenter((pending) => presentPending(pending, agentHost())); } catch (_) {}
 
     function runAgentSetup(step) {
       $('onboard').hidden = true;

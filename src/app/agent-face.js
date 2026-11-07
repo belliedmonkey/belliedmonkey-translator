@@ -257,6 +257,7 @@ function pendingOf(raw) {
 // deny/expiry→deny unchanged.
 export async function presentPending(pending, host) {
   const href = pendingHref(pending, host && host.scheme);
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_face', JSON.stringify({ id: pending && pending.pending_id, href: !!href })); } catch (_) {}
   if (!href) return null;
   return presentAgentDeepLink(href, host);
 }

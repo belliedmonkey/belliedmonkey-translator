@@ -437,6 +437,7 @@ export function createHost(options) {
 
   function setPendingPresenter(fn) {
     pendingPresenter = typeof fn === 'function' ? fn : null;
+    if (pendingPresenter) drainPending();
     return !!pendingPresenter;
   }
 
@@ -444,12 +445,18 @@ export function createHost(options) {
   // in memory and reuses the copy-locked sheet; there is no NSWorkspace / open /
   // shell here, and no path that opens a surface without a card and a user click.
   function presentPendingNow(pending) {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_present', JSON.stringify({ at: now(), id: pending && pending.pending_id, presenter: typeof pendingPresenter })); } catch (_) {}
     if (typeof pendingPresenter !== 'function') return Promise.resolve(null);
-    try { return Promise.resolve(pendingPresenter(pending)); }
-    catch (_) { return Promise.resolve(null); }
+    const onErr = (e) => {
+      try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_err', JSON.stringify({ at: now(), msg: String((e && e.message) || e), stack: String((e && e.stack) || '').slice(0, 600) })); } catch (_) {}
+      return null;
+    };
+    try { return Promise.resolve(pendingPresenter(pending)).catch(onErr); }
+    catch (e) { return Promise.resolve(onErr(e)); }
   }
 
   async function drainPending() {
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_drain', JSON.stringify({ at: now(), active: pendingActive, queued: pendingQueue.length, presenter: typeof pendingPresenter })); } catch (_) {}
     if (pendingActive || !pendingQueue.length) return;
     // No presenter (e.g. a headless host) keeps the queue; it must never fall
     // through to a silent action / openedSubtitles claim.
@@ -473,6 +480,7 @@ export function createHost(options) {
       pendingQueue.push({ pending_id, action: String((row && row.action) || '') });
       added.push(pending_id);
     }
+    try { if (typeof localStorage !== 'undefined') localStorage.setItem('mt:dbg_enqueue', JSON.stringify({ at: now(), added, presenter: typeof pendingPresenter, active: pendingActive, queued: pendingQueue.length, rows: Array.isArray(rows) ? rows.length : -1 })); } catch (_) {}
     if (added.length) drainPending();
     return added;
   }
