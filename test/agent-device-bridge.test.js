@@ -548,6 +548,32 @@ describe('BEL-151 B-PUSH: a heartbeat pending becomes the same confirm card', ()
     eq(decisions[0].decision, 'deny');
     ok(!JSON.stringify(out).includes('openedSubtitles'), 'a missing card claimed a surface');
   });
+
+  test('handlePendingConfirm mounts without a URL and never returns null', async () => {
+    const remembered = [];
+    const decisions = [];
+    const opened = [];
+    const ctx = {
+      scheme: 'belliedmonkey',
+      readiness: READY,
+      ports: { enterSubtitle() { opened.push('subtitle'); return { ok: true }; } },
+      deviceBridge: {
+        rememberPending(row) { remembered.push(row); },
+        confirm(call) { decisions.push(call); return { ok: true, sent: true }; },
+      },
+    };
+    const out = await session.handlePendingConfirm(
+      { action: 'start_live_subtitles', pending_id: PENDING },
+      ctx,
+      { confirm() { return { allow: false }; }, show() {} },
+    );
+    eq(out.code, 'cancelled');
+    eq(remembered[0].pending_id, PENDING);
+    eq(decisions[0].decision, 'deny');
+    eq(opened.length, 0);
+    ok(out !== null);
+    ok(!JSON.stringify(out).includes('openedSubtitles'));
+  });
 });
 
 describe('BEL-151 regression: the existing confirm surface', () => {
