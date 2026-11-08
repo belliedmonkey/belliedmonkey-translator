@@ -369,9 +369,12 @@ Stated up front, because finding them yourself is worse.
   together for support and abuse investigation, and free-credit usage rows carry the same
   install id — so usage can be linked to an account. It is not used for advertising or
   cross-site tracking, and is never sold to third parties. Turning the switch off stops the
-  events and deletes the event rows this device sent; the sign-in ledger is still written,
-  and first-party rows already written follow their 90-day retention. The China edition
-  sends the same anonymous usage events to our in-country server. Details:
+  events and, in one atomic request, deletes this device's event rows **and the matching
+  `bt_auth_ok` rows** — so the account↔install link for this install is forgotten. What
+  remains is the free-credit billing ledger, `bt_grant_usage`: it keeps the `user_id`,
+  `install_id`, cost and timing of each relayed call for 90 days for reconciliation and
+  abuse prevention, and is then deleted on schedule; opting out does not delete it. The
+  China edition sends the same anonymous usage events to our in-country server. Details:
   [`docs/telemetry-design.md`](docs/telemetry-design.md).
 - **Learning material is built on your device.** If you turn on the learning feature, the
   extension keeps the sentences you actually read — with the page URL, its title, and how long

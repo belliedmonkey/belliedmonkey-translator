@@ -64,8 +64,11 @@ these in order when designing anything new:
    (`user_id` ↔ `install_id`, kept for support and abuse investigation) and through
    `bt_grant_usage.install_id` — never for advertising, cross-site tracking, or
    resale. It is on by default, disclosed at first run, switchable off in settings;
-   switching it off erases that install's event rows, while first-party rows already
-   written follow their 90-day retention. The
+   switching it off atomically erases that install's event rows **and the matching
+   `bt_auth_ok` rows** (the account↔install link is forgotten). The free-credit
+   billing ledger `bt_grant_usage` remains: it carries `user_id` / `install_id` /
+   cost / timing and is kept for 90 days for reconciliation and abuse prevention,
+   then deleted on schedule; opting out does not delete it. The
    *(Note 2026-10-06 — 诊断日志 L2，`36465e49`.)* **中国版不再「一个字节都不发」。** 诊断上报把
     **匿名诊断事件**（随机安装 id + 事件名 + 计数；字段白名单在 `app/diag-log.js` 的 `push` 处强制 ——
     内容 / URL / 账号 / 密钥一个键都进不来）POST 到自有后端信箱 `bt_diag_events`（**INSERT-only**）。

@@ -468,3 +468,46 @@ begin
   end if;
 end
 $cron$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- bt_forget_install（BEL-227，2026-11-08）：关掉遥测 = 原子忘掉一个 install。
+--
+-- 单事务内删两类行，顺序固定：
+--   1. public.bt_events  —— 匿名用量事件
+--   2. public.bt_auth_ok —— 第一方登录成功台账里这个 install 的行
+-- 返回两行删除计数，形状固定为 (table_name text, deleted bigint)：
+--   'bt_events'  → 删掉的事件行数
+--   'bt_auth_ok' → 删掉的登录台账行数
+-- 任一 delete 失败，整个函数回滚 —— 不会留下「事件已删、台账没删」的半状态。
+--
+-- **故意不删 public.bt_grant_usage**：那是免费额度的计费流水（含 user_id /
+-- install_id / cost_usd / ms），用于对账与滥用排查，按 90 天保留，由
+-- bt_grant_usage_retention 的 pg_cron 清扫。关遥测不是删账，别在这里顺手删。
+--
+-- 只给 service role：调用面与 bt_events / bt_auth_ok 的 RLS 纪律一致（RLS 开着、
+-- 零策略），这里再 revoke 掉 public / anon / authenticated 的执行权。
+-- ─────────────────────────────────────────────────────────────────────────────
+create or replace function public.bt_forget_install(p_install_id uuid)
+returns table (table_name text, deleted bigint)
+language plpgsql
+security definer
+set search_path = public, pg_catalog
+as $$
+declare
+  n_events bigint;
+  n_auth   bigint;
+begin
+  delete from public.bt_events where install_id = p_install_id;
+  get diagnostics n_events = row_count;
+
+  delete from public.bt_auth_ok where install_id = p_install_id;
+  get diagnostics n_auth = row_count;
+
+  return query
+    select 'bt_events'::text, n_events
+    union all
+    select 'bt_auth_ok'::text, n_auth;
+end;
+$$;
+
+revoke all on function public.bt_forget_install(uuid) from public, anon, authenticated;

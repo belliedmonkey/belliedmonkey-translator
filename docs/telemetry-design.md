@@ -24,8 +24,9 @@
 > **2026-11-08（BEL-222）**：第一方登录台账 `bt_auth_ok` 把 `user_id` 与 `install_id` 写进
 > 同一张表，`bt_grant_usage` 也带 `install_id` ⇒ 匿名用量与账号**可连接**（仅支持与滥用
 > 排查，不用于广告 / 跨站追踪 / 转售）。§2 原则 2/7、§3 的 `auth_ok`、§3.4、§5、§6 的
-> 「不可连接 / 关掉即删」的旧口径同版改写；`.cc`/`.com` 隐私页与 ASC 标签（linked，tracking
-> 仍 no）随版手改。
+> 「不可连接 / 关掉即删」的旧口径同版改写：**关掉遥测 = 原子删除该 install 的事件行与
+> `bt_auth_ok` 对应行**（账号↔安装的关联随之消失）；`bt_grant_usage` 计费流水仍按 90 天
+> 保留。`.cc`/`.com` 隐私页与 ASC 标签（linked，tracking 仍 no）随版手改。
 
 ## 0. Why this exists (issue #174, answered)
 
@@ -70,9 +71,12 @@ If a proposed event does not serve one of these rows, it does not go in.
    ledger `bt_auth_ok` records `user_id` ↔ `install_id` on sign-in (support and abuse
    investigation), and `bt_grant_usage` rows carry the same `install_id`. Never used
    for advertising, cross-site tracking, or resale. Turning the switch off = delete
-   the local id, send one final `telemetry_off`, and the server deletes every telemetry
-   row for that id; first-party rows already written (sign-in ledger, grant usage)
-   follow their 90-day retention.
+   the local id, send one final `telemetry_off`, and the server **atomically** deletes
+   every telemetry row for that id **and the matching `bt_auth_ok` rows** (the
+   account↔install link is forgotten). What remains is `bt_grant_usage`, the
+   free-credit billing ledger: it carries `user_id` / `install_id` / cost / timing and
+   is kept for 90 days for reconciliation and abuse prevention, then deleted on
+   schedule. Opting out does not delete it.
 3. **No third party.** Straight into our own Supabase; no SDK, no GA, no PostHog. "No
    third-party analytics" stays literally true; "no telemetry" is the sentence that changes.
 4. **On by default, off in one switch, said up front.** One sentence in onboarding, a
@@ -86,6 +90,7 @@ If a proposed event does not serve one of these rows, it does not go in.
    `MT_BACKEND.china.url` + `/functions/v1/bt-ingest`。**禁**共东京生产 / `*.supabase.co`。china-gate 按**主机维**
    放行境内 ingest，东京路径上的 grant/relay 仍禁。诊断通道（L2）独立并列，不并进 `track()`。原文/译文/音频/URL/账号/key
    硬禁。台账与匿名用量可由 `install_id` 连接（`bt_auth_ok` + `bt_grant_usage.install_id`；仅支持与滥用排查，不进第三方）。
+   关掉遥测会删除该 install 的 `bt_auth_ok` 行（关联消失），但 `bt_grant_usage` 计费流水仍按 90 天保留。
    listen_* 若已在 intl 注册表里，字段与 intl 全表相同；本仓当前没有 `listen_session` / `listen_first_line`，
    本修订不新造事件。若产品书面保留子集，须另列 ACCEPT 并改隐私表。
    隐私页 / 首启与发出事件同版；.cc ≡ .com；商店 `privacy.html` 硬 URL 不改 path（旁观 BEL-128）。
@@ -99,7 +104,8 @@ If a proposed event does not serve one of these rows, it does not go in.
    （领了 / 用完了），不带金额。**2026-11-08 起 `bt_grant_usage` 带 `install_id`，`bt_auth_ok`
    把 `user_id` 与 `install_id` 写进同一张第一方表** —— 匿名事件的 `install_id` 与账号
    **可连接**；这不是「不可连接」，是「只在自有库、仅用于支持与滥用排查，不进第三方」。
-   广告 / 跨站追踪 / 卖给第三方仍禁止。
+   关掉遥测会删该 install 的 `bt_auth_ok` 行（关联消失），但 `bt_grant_usage` 计费流水
+   仍按 90 天保留；广告 / 跨站追踪 / 卖给第三方仍禁止。
 
 **8. 命令行宿主（CLI，2026-09-30 设计通过）v1 不发任何事件。** 它是新的 `host` 值（`cli`）的候选，
 但 v1 不实现遥测模块：没有 `install_id`、没有心跳、没有 `translate_ok`。将来若要发，先在这里进
@@ -947,8 +953,9 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   not ride in a script injected into every page; the URL alone is public anyway.
 - **Server** `supabase/functions/bt-ingest/index.ts`: event name and property keys
   must be on the whitelist; ≤ 1 KB per event, ≤ 50 per batch; per-`install_id` rate
-  limit (60/min); on `telemetry_off`, `delete where install_id = ?`; writes with the
-  service role.
+  limit (60/min); on `telemetry_off`, one RPC `bt_forget_install` **atomically** deletes
+  that install's `bt_events` rows and its matching `bt_auth_ok` rows; it does **not**
+  touch `bt_grant_usage` (billing rows, 90-day retention); writes with the service role.
 - **Table** (`supabase/schema.sql`): `bt_events(id bigint identity, install_id uuid,
   ts timestamptz, v text, flavor text, host text, device text, ui text, name text,
   props jsonb, received_at timestamptz default now())`. RLS **denies everything** to
@@ -971,8 +978,10 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   Sentence keys stay `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint` / `telemetry_what`.
   App last screen shows `#ob-telemetry` with the same onboard sentence. No new screen.
 - **Privacy page** (`belliedmonkey.cc`, 12 locales): a new section listing every
-  field, the default, the switch, what opt-out stops, and the retention period for
-  first-party rows.
+  field, the default, the switch, what opt-out deletes (this install's event rows **and
+  the matching `bt_auth_ok` rows**), and the 90-day billing rows that remain
+  (`bt_grant_usage`: `user_id` / `install_id` / cost / timing). Opt-out does not delete
+  those billing rows.
   「5. No tracking」 narrows to cross-site tracking / profiles / third-party analytics
   and points at the new section.
 
@@ -987,9 +996,11 @@ is not restated here. The one-sentence disclosure used verbatim everywhere:
 > sign-in ledger, `bt_auth_ok`, that records your account and your install id together
 > for support and abuse investigation, and free-credit usage rows carry the install id —
 > so usage can be linked to an account. Not used for advertising, cross-site tracking,
-> or resale. On by default; off in one switch; switching it off deletes the event rows
-> this device sent; the sign-in ledger is still written, and first-party rows already
-> written follow their 90-day retention.
+> or resale. On by default; off in one switch; switching it off atomically deletes this
+> device's event rows **and the matching `bt_auth_ok` rows** (the account↔install link is
+> forgotten). The free-credit billing ledger `bt_grant_usage` remains: it carries
+> `user_id` / `install_id` / cost / timing and is kept for 90 days for reconciliation and
+> abuse prevention, then deleted on schedule; opting out does not delete it.
 
 ## 7. Delivery order
 

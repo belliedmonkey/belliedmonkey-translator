@@ -1135,19 +1135,38 @@ if (fs.readFileSync(path.join(__dirname, 'src', 'app', 'listen-model.js'), 'utf8
     if (!/匿名用量/.test(readmeZh)) staleHits.push('README.zh-CN.md: 没有「匿名用量」的披露 (Gate D)');
     // ── BEL-222（2026-11-08）：bt_auth_ok 把 user_id 与 install_id 写进同一张第一方表，
     // bt_grant_usage 也带 install_id ⇒ 匿名用量与账号可连接。旧句「never joined to an
-    // account / 永不与账号关联」是假话；两份 README 必须披露第一方台账、用途边界与保留期。
-    // 这条与上面的词干检查互补：只查「anonymous usage」在不在，删掉连接披露也能过。
+    // account / 永不与账号关联」是假话；两份 README 必须披露第一方台账与用途边界。
+    // ── BEL-227（2026-11-08）：关掉遥测 = 原子删事件行 + bt_auth_ok 对应行；计费流水
+    // bt_grant_usage 仍按 90 天保留。旧的「台账仍在写入 / 已写入的第一方行按 90 天删」
+    // 是假话。两个方向都查：新句必须在，旧句必须不在 —— 只查一边，删掉整段也能过。
     if (!/bt_auth_ok/.test(readme)) staleHits.push('README.md: no bt_auth_ok account↔install disclosure (BEL-222)');
     if (!/cross-site tracking/i.test(readme)) staleHits.push('README.md: no "cross-site tracking" limit (BEL-222)');
-    if (!/90-day retention/i.test(readme)) staleHits.push('README.md: no first-party retention (BEL-222)');
+    if (!/bt_grant_usage/.test(readme)) staleHits.push('README.md: no bt_grant_usage billing-row disclosure (BEL-227)');
+    if (!/90 days/.test(readme)) staleHits.push('README.md: no 90-day billing retention (BEL-227)');
+    if (!/deletes this device's event rows/.test(readme)) staleHits.push('README.md: no opt-out event-row deletion (BEL-227)');
+    if (!/matching\s+`bt_auth_ok` rows/.test(readme)) staleHits.push('README.md: no opt-out bt_auth_ok deletion (BEL-227)');
+    if (!/opting out does not delete it/.test(readme)) staleHits.push('README.md: no "opting out does not delete billing rows" (BEL-227)');
     if (!/bt_auth_ok/.test(readmeZh)) staleHits.push('README.zh-CN.md: no bt_auth_ok account↔install disclosure (BEL-222)');
     if (!/跨站追踪/.test(readmeZh)) staleHits.push('README.zh-CN.md: no 「跨站追踪」limit (BEL-222)');
-    if (!/90 天/.test(readmeZh)) staleHits.push('README.zh-CN.md: no first-party retention (BEL-222)');
-    for (const [name, text, re] of [
-      ['README.md', readme, /never joined to an account/i],
-      ['README.zh-CN.md', readmeZh, /永不与账号关联/],
+    if (!/bt_grant_usage/.test(readmeZh)) staleHits.push('README.zh-CN.md: no bt_grant_usage billing-row disclosure (BEL-227)');
+    if (!/90 天/.test(readmeZh)) staleHits.push('README.zh-CN.md: no 90-day billing retention (BEL-227)');
+    if (!/与这个安装 id 对应的行/.test(readmeZh)) staleHits.push('README.zh-CN.md: no opt-out bt_auth_ok deletion (BEL-227)');
+    if (!/关遥测不会删它/.test(readmeZh)) staleHits.push('README.zh-CN.md: no "opt-out keeps billing rows" (BEL-227)');
+    for (const [name, text, res] of [
+      ['README.md', readme, [
+        [/never joined to an account/i, 'old no-link promise (BEL-222)'],
+        [/sign-in ledger is still written/i, 'old "ledger still written" (BEL-227)'],
+        [/first-party rows already written/i, 'old "first-party rows already written" (BEL-227)'],
+        [/follow their 90-day retention/i, 'old "90-day retention" wording (BEL-227)'],
+      ]],
+      ['README.zh-CN.md', readmeZh, [
+        [/永不与账号关联/, 'old no-link promise (BEL-222)'],
+        [/登录台账仍在登录时写入/, 'old 「登录台账仍在登录时写入」(BEL-227)'],
+        [/已写入的\s*第一方行按保留期/, 'old 「已写入的第一方行按保留期」(BEL-227)'],
+        [/台账仍在/, 'old 「台账仍在」(BEL-227)'],
+      ]],
     ]) {
-      if (re.test(text)) staleHits.push(`${name}: still says the old no-link promise (BEL-222)`);
+      for (const [re, why] of res) if (re.test(text)) staleHits.push(`${name}: still says the ${why}`);
     }
     // 产品内的开关与说明：每一门 locale 都要有，且说明不能是开关那一句的复读。
     for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
