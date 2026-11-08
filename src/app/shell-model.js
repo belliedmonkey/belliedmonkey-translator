@@ -3272,6 +3272,9 @@ export function bootShell() {
   // gear2 的监听随该入口一并退役（#532）。注意这一行以前是**无条件**注册的：元素不在 DOM 里
   // 时会抛，且发生在初始化期（`$('ob-resume-go')` 之后第二处）。
   $('settings-back').addEventListener('click', closeSettings);
+  // BEL-217：宽窗内容区左上角的第二个出口。**只绑这一处** —— 新按钮不挂 React onClick，
+  // 否则一次点击会走两条 handler。窄窗节点仍在（CSS display:none），绑定照样安全。
+  $('settings-page-back').addEventListener('click', closeSettings);
   // 播客入口下面「没配语音 → 设置」的出口。driving.js 只管显隐与文案，点击归这里
   // （它才拥有 openSettings）—— 而这条线以前没接，按钮是死的，恰恰在「还没配语音」
   // 这个最需要出路的场景里（2026-09-06）。落点是语音引擎那个控件，不是页面顶部。
