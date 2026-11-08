@@ -5,12 +5,17 @@
 // 桩，断言的是「发了什么、带没带 token、同一启动是不是同一个 launch_id」。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, loadModule } = require('./harness');
+const cfg = require('../build/telemetry.config.js');
 
 const ROOT = path.join(__dirname, '..');
 const MOD = 'src/app/telemetry-session.js';
 const INSTALL = '11111111-1111-4111-8111-111111111111';
 const SETUP = '22222222-2222-4222-8222-222222222222';
+const TEL_SPEC = {
+  url: 'https://ingest.test/functions/v1/bt-ingest',
+  spec: { common: cfg.COMMON, events: cfg.EVENTS, limits: cfg.LIMITS },
+};
 
 function store() { return Object.create(null); }
 
@@ -43,6 +48,7 @@ function load(opts) {
     chrome: chromeOf(s),
     fetch: o.fetch || (async () => ({ ok: true, status: 200 })),
     MTTelemetry: o.telemetry || {
+      enabled: async () => true,
       track(name, props) { events.push({ name, props }); },
       installId: async () => ({ id: INSTALL }),
     },
@@ -58,6 +64,49 @@ function load(opts) {
   const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
   return { TS: ctx.TelemetrySession, events, store: s, sandbox };
 }
+
+// 真 MTTelemetry（extension/learn/telemetry.js）+ 本模块，共用同一个 storage / fetch 桩。
+// 这样测的是产品里真正那道 enabled() 闸，而不是假 telemetry 的 track() 记录。
+function loadReal(opts) {
+  const o = opts || {};
+  const s = o.store || store();
+  const fetches = [];
+  const window = {
+    MT_VERSION: '1.23.3',
+    MT_FLAVOR: o.flavor || 'global',
+    MT_TELEMETRY: TEL_SPEC,
+  };
+  if (o.backend) window.MT_BACKEND = o.backend;
+  const chrome = chromeOf(s);
+  chrome.i18n = { getUILanguage: () => 'en' };
+  const sandbox = {
+    console: { debug() {}, log: console.log, error: console.error },
+    window,
+    chrome,
+    navigator: {
+      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 Version/26.0 Mobile/15E148 Safari/604.1',
+      platform: 'iPhone',
+      language: 'en',
+    },
+    crypto: require('crypto').webcrypto,
+    localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    fetch: async (url, init) => { fetches.push({ url, init }); return { ok: true, status: 200 }; },
+    LearnAuth: o.learnAuth || { currentStable: async () => null, lastLoadError: () => '' },
+  };
+  const telCtx = loadModule(['learn/telemetry.js'], sandbox);
+  const T = telCtx.MTTelemetry;
+  let trackCalls = 0;
+  const origTrack = T.track;
+  T.track = function countedTrack(name, props, now) {
+    trackCalls += 1;
+    return origTrack.call(T, name, props, now);
+  };
+  sandbox.MTTelemetry = T;
+  const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
+  return { TS: ctx.TelemetrySession, T, store: s, fetches, trackCalls: () => trackCalls };
+}
+
+const settle = () => new Promise((r) => setTimeout(r, 0));
 
 describe('BEL-225 app_open', () => {
   test('一次冷启一条；launch_id 同启动一致；登录墙前的未登录也能发', async () => {
@@ -319,5 +368,87 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     const { TS, events } = load();
     await TS.packsReady({ base: { required: 0, ready: 0 }, asr: { required: 0, ready: 0 }, tts: { required: 0, ready: 0 }, all: { required: 0, ready: 0 } });
     eq(events.length, 0);
+  });
+});
+
+// BEL-222 的 opt-out 闸（2026-11-08）：用户关掉遥测后，新事件与第一方 bt-auth-ok
+// 必须一起停。这里用**真的** MTTelemetry（extension/learn/telemetry.js）跑，不再用
+// 记录调用的假体 —— 假体不会执行 enabled()，测不出开关。
+describe('opt-out 闸：新事件与 bt-auth-ok 受同一个开关约束', () => {
+  test('关掉开关 → 冷启：track 0 次、fetch 0 次、队列为空', async () => {
+    const s = store();
+    s['tm:on'] = false;
+    const a = loadReal({ store: s });
+    await a.TS.appOpen();
+    await settle();
+    eq(a.trackCalls(), 0, '关掉时连 track() 都不该调');
+    eq(a.fetches.length, 0, '关掉时不能有任何网络请求');
+    eq((s['tm:queue'] || []).length, 0, '关掉时队列里不能多出 app_open');
+  });
+
+  test('关掉开关 → 登录成功：auth_ok 与 bt-auth-ok POST 都是 0 次', async () => {
+    const s = store();
+    s['tm:on'] = false;
+    const a = loadReal({ store: s, backend: { url: 'https://bt.test' } });
+    eq(await a.TS.noteAuthOk({ provider: 'google', userId: 'u1', accessToken: 'token-xyz' }), false);
+    await settle();
+    eq(a.trackCalls(), 0, '关掉时不能发 auth_ok');
+    eq(a.fetches.length, 0, '关掉时不能 POST bt-auth-ok');
+    eq((s['tm:queue'] || []).length, 0);
+    ok(!s['tm:authSeen'], '关掉时连 method 判定都不该写 storage');
+  });
+
+  test('开关在调用当时读取：同一实例先开后关，第二次不再发', async () => {
+    const s = store();
+    const a = loadReal({ store: s, backend: { url: 'https://bt.test' } });
+    eq(await a.TS.noteAuthOk({ provider: 'email', userId: 'u1', accessToken: 'token-xyz' }), true);
+    await settle();
+    eq(a.fetches.length, 1);
+    eq(a.trackCalls(), 1);
+
+    s['tm:on'] = false;                       // 设置页这一刻改掉；模块不能缓存旧状态
+    eq(await a.TS.noteAuthOk({ provider: 'email', userId: 'u1', accessToken: 'token-xyz' }), false);
+    await settle();
+    eq(a.fetches.length, 1, '关掉后的第二次登录不许再 POST');
+    eq(a.trackCalls(), 1, '关掉后的第二次登录不许再发 auth_ok');
+  });
+
+  test('打开开关 → auth_ok 入队、bt-auth-ok POST 都发生', async () => {
+    const s = store();
+    const a = loadReal({ store: s, backend: { url: 'https://bt.test' } });
+    eq(await a.TS.noteAuthOk({ provider: 'google', userId: 'u1', accessToken: 'token-xyz' }), true);
+    await settle();
+    eq(a.trackCalls(), 1, '打开时 auth_ok 走一次 track()');
+    deepEq((s['tm:queue'] || []).map((e) => e.name), ['auth_ok']);
+    eq(a.fetches.length, 1);
+    eq(a.fetches[0].url, 'https://bt.test/functions/v1/bt-auth-ok');
+  });
+
+  test('关掉后队列里已有的事件不再 flush（发送前复查 enabled）', async () => {
+    const s = store();
+    const a = loadReal({ store: s });
+    eq(await a.T.track('heartbeat'), true);
+    eq((s['tm:queue'] || []).length, 1);
+
+    s['tm:on'] = false;                       // 队列还在，但开关已关
+    eq(await a.T.flush(), false);
+    eq(a.fetches.length, 0, '关掉后旧队列也不许发');
+    eq((s['tm:queue'] || []).length, 1, '不发也不该丢队列');
+  });
+
+  test('关掉开关：七个新事件全部不入队、不发请求', async () => {
+    const s = store();
+    s['tm:on'] = false;
+    const a = loadReal({ store: s });
+    await a.TS.appOpen();
+    a.TS.liveGate('listen', true);
+    a.TS.grantClaimFail('unavailable');
+    await a.TS.packStart('listen');
+    await a.TS.packOk('live_caption');
+    await a.TS.packFail('doc', 'timeout');
+    await a.TS.packsReady({ base: { required: 1, ready: 1 }, asr: { required: 1, ready: 1 }, tts: { required: 1, ready: 1 }, all: { required: 3, ready: 3 } });
+    await settle();
+    eq((s['tm:queue'] || []).length, 0, '关掉时任何新事件都不能入队');
+    eq(a.fetches.length, 0, '关掉时不能发任何请求');
   });
 });

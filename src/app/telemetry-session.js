@@ -87,6 +87,17 @@ function sset(obj) {
 function telemetry() {
   try { return (typeof MTTelemetry !== 'undefined' && MTTelemetry) || null; } catch (_) { return null; }
 }
+// 开关必须**调用当时**读：设置页改了 tm:on，本模块不缓存，下一次调用立刻生效。
+// MTTelemetry.enabled() 每次都读 chrome.storage（缺省 = 开），所以这里不保存结果。
+async function telemetryOn() {
+  try {
+    const t = telemetry();
+    if (!t || typeof t.enabled !== 'function') return false;
+    return !!(await t.enabled());
+  } catch (_) { return false; }
+}
+// 所有新事件只从这个口出。MTTelemetry.track 自己的 trackOne() 会先过 enabled()，
+// 所以关掉开关时既不入队也不发；flushOnce() 发送前还会再查一次（旧队列也不发）。
 function track(name, props) {
   try {
     const t = telemetry();
@@ -172,6 +183,8 @@ let appOpenFlight = null;
 export function appOpen() {
   if (appOpenFlight) return appOpenFlight;
   appOpenFlight = (async () => {
+    // 冷启第一件事先读开关：关掉时连 track() 都不调，队列里不会多出一条 app_open。
+    if (!(await telemetryOn())) return false;
     const surface = await currentSurfaceAsync();
     let authState = 'unknown';
     try {
@@ -263,11 +276,14 @@ export function noteAuthOk(o) {
   const provider = ['apple', 'google', 'email', 'phone', 'unknown'].indexOf(src.provider) >= 0
     ? src.provider : 'unknown';
   return (async () => {
+    // 两条路共用同一个开关：关掉时必须**两条都不做** —— 不记匿名 auth_ok，也不写
+    // 第一方 bt-auth-ok（否则「关了还留着账号关联」就是假话）。开关状态现读，不缓存。
+    if (!(await telemetryOn())) return false;
     const method = src.method === 'signup' || src.method === 'signin'
       ? src.method : await classifyMethod(src.userId);
     const surface = currentSurfaceSync();
     track('auth_ok', { surface, provider, method });
-    // 第一方台账与匿名事件是两条路：Telemetry 关掉也照写（bt_auth_ok 不含遥测正文）。
+    // 开关打开时才写第一方窄口；与上面的匿名事件同进同退。
     return reportAuthOk({ accessToken: src.accessToken, provider, method });
   })().catch(() => false);
 }
