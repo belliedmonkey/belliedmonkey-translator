@@ -42,9 +42,15 @@ function load(opts) {
   const o = opts || {};
   const s = o.store || store();
   const events = [];
+  const window = o.window || {};
+  // 默认给一份规格：本组测的是事件正文/返回值，不是「spec 未到」。要测等 spec 的
+  // 三条新用例显式传 telemetrySpec:null，再按需要把 window.MT_TELEMETRY 补上。
+  if (!('MT_TELEMETRY' in window) && o.telemetrySpec !== null) {
+    window.MT_TELEMETRY = o.telemetrySpec || TEL_SPEC;
+  }
   const sandbox = {
     console: { debug() {}, log: console.log, error: console.error },
-    window: o.window || {},
+    window,
     chrome: chromeOf(s),
     fetch: o.fetch || (async () => ({ ok: true, status: 200 })),
     MTTelemetry: o.telemetry || {
@@ -60,7 +66,6 @@ function load(opts) {
   };
   if (o.backend) sandbox.window.MT_BACKEND = o.backend;
   if (o.flavor) sandbox.window.MT_FLAVOR = o.flavor;
-  if (o.telemetrySpec) sandbox.window.MT_TELEMETRY = o.telemetrySpec;
   const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
   return { TS: ctx.TelemetrySession, events, store: s, sandbox };
 }
@@ -74,8 +79,8 @@ function loadReal(opts) {
   const window = {
     MT_VERSION: '1.23.3',
     MT_FLAVOR: o.flavor || 'global',
-    MT_TELEMETRY: TEL_SPEC,
   };
+  if (o.telemetrySpec !== null) window.MT_TELEMETRY = o.telemetrySpec || TEL_SPEC;
   if (o.backend) window.MT_BACKEND = o.backend;
   const chrome = chromeOf(s);
   chrome.i18n = { getUILanguage: () => 'en' };
@@ -103,10 +108,19 @@ function loadReal(opts) {
   };
   sandbox.MTTelemetry = T;
   const ctx = loadSrc(MOD, 'TelemetrySession', sandbox);
-  return { TS: ctx.TelemetrySession, T, store: s, fetches, trackCalls: () => trackCalls };
+  return { TS: ctx.TelemetrySession, T, store: s, fetches, sandbox, trackCalls: () => trackCalls };
 }
 
 const settle = () => new Promise((r) => setTimeout(r, 0));
+// 等到条件成立或超时；返回是否等到。用于「spec 延迟就位」这类真实计时用例。
+async function waitUntil(fn, ms) {
+  const deadline = Date.now() + ms;
+  while (!fn()) {
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  return true;
+}
 
 describe('BEL-225 app_open', () => {
   test('一次冷启一条；launch_id 同启动一致；登录墙前的未登录也能发', async () => {
@@ -434,6 +448,58 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
       if (e.name === 'app_open') ok(/^[0-9a-f]{32}$/.test(e.props.launch_id), 'app_open.launch_id 必须过 shape()');
       else ok(/^[0-9a-f]{32}$/.test(e.props.setup_id), e.name + '.setup_id 必须过 shape()');
     }
+  });
+});
+
+// BEL-227 防御：track() 入口等 spec 就位（最多 200ms，10ms 一查）。
+// spec 缺失时 MTTelemetry 的 shape() 会把整条事件判 null —— 这里证明后到的 spec
+// 也能接住，同时不把「等不到」变成抛错/入队，也不绕过 opt-out。
+describe('spec 等就位：track() 入口的 200ms 缓冲', () => {
+  test('spec 立即就位 → 事件仍同步入队（与改动前一致）', () => {
+    const { TS, events } = load();
+    TS.liveGate('listen', true);
+    eq(events.length, 1, 'spec 在时不许被缓冲改成异步');
+    eq(events[0].name, 'live_gate');
+    deepEq(events[0].props, { surface: 'listen', ok: 'true' });
+  });
+
+  test('spec 延迟 50ms 就位 → 200ms 内入队', async () => {
+    const { TS, events, sandbox } = load({ telemetrySpec: null });
+    const t0 = Date.now();
+    TS.liveGate('listen', true);
+    eq(events.length, 0, 'spec 未到不能提前入队');
+    await new Promise((r) => setTimeout(r, 50));
+    eq(events.length, 0, '50ms 时 spec 尚未就位');
+    sandbox.window.MT_TELEMETRY = TEL_SPEC;
+    const got = await waitUntil(() => events.length === 1, 140);
+    const dt = Date.now() - t0;
+    ok(got, 'spec 就位后 200ms 内必须入队');
+    ok(dt <= 200, '从调用到入队必须 ≤200ms，实际 ' + dt + 'ms');
+    eq(events[0].name, 'live_gate');
+    deepEq(events[0].props, { surface: 'listen', ok: 'true' }, '不改事件名/属性');
+  });
+
+  test('spec 始终缺失 → 200ms 后放弃：不入队、不抛错', async () => {
+    const { TS, events } = load({ telemetrySpec: null });
+    const t0 = Date.now();
+    const ret = TS._track('live_gate', { surface: 'listen', ok: 'true' });
+    ok(ret && typeof ret.then === 'function', 'spec 未到时 track() 返回可等待的 Promise');
+    eq(await ret, false, '等不到 spec 时 track() 返回 false');
+    const dt = Date.now() - t0;
+    ok(dt >= 190, '至少要等满 200ms 的窗口，实际 ' + dt + 'ms');
+    ok(dt < 1000, '不能无限等，实际 ' + dt + 'ms');
+    eq(events.length, 0, 'spec 始终缺失不能入队');
+  });
+
+  test('spec 延迟期间 opt-out 仍生效：enabled=false 时不入队', async () => {
+    const s = store();
+    s['tm:on'] = false;
+    const a = loadReal({ store: s, telemetrySpec: null });
+    const p = a.TS._track('live_gate', { surface: 'listen', ok: 'true' });
+    setTimeout(() => { a.sandbox.window.MT_TELEMETRY = TEL_SPEC; }, 50);
+    eq(await p, false, '开关关着时 track() 返回 false');
+    await settle();
+    eq((s['tm:queue'] || []).length, 0, '关掉时即使 spec 后到也不能入队');
   });
 });
 

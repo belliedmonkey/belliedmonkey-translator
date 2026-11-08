@@ -103,16 +103,56 @@ async function telemetryOn() {
   try {
     const t = telemetry();
     if (!t || typeof t.enabled !== 'function') return false;
+    // 规格未就位时 MTTelemetry.enabled() 会直接返回 false（它先看 spec()）。若此时
+    // 就放弃，app_open / auth_ok 会在 track() 的缓冲之外提前丢掉 —— 所以这里也等
+    // 同一小段；等不到就维持原来的「没有规格 ⇒ 不发」。
+    if (!specReady() && !(await waitForSpec())) return false;
     return !!(await t.enabled());
   } catch (_) { return false; }
 }
-// 所有新事件只从这个口出。MTTelemetry.track 自己的 trackOne() 会先过 enabled()，
-// 所以关掉开关时既不入队也不发；flushOnce() 发送前还会再查一次（旧队列也不发）。
-function track(name, props) {
+
+// ── 等 spec 就位（BEL-227 防御）──────────────────────────────────────────────
+// App 的 bundle 与 providers.gen.js 是两个 script：极少数冷启顺序里 telemetry 规格
+// （Registry.telemetrySpec() 背后的 window.MT_TELEMETRY）会晚一拍。规格没到时
+// MTTelemetry.track() 的 shape() 直接判 null，事件静默消失。这里只等 200ms（10ms
+// 一查），给后到的 spec 一个机会；仍没有就保持原来的静默语义（不抛、不入队）。
+// 每次都现读，绝不把「已就位」缓存成永久真 —— 允许同一个进程里 spec 后到。
+const SPEC_WAIT_MS = 200;
+const SPEC_POLL_MS = 10;
+
+function specReady() {
+  try { return !!(Registry.telemetrySpec && Registry.telemetrySpec()); } catch (_) { return false; }
+}
+function waitForSpec() {
+  return new Promise((resolve) => {
+    if (specReady()) return resolve(true);
+    const deadline = Date.now() + SPEC_WAIT_MS;
+    const poll = () => {
+      if (specReady()) return resolve(true);
+      if (Date.now() >= deadline) return resolve(false);
+      setTimeout(poll, SPEC_POLL_MS);
+    };
+    poll();
+  });
+}
+function trackNow(name, props) {
   try {
     const t = telemetry();
-    if (t && typeof t.track === 'function') t.track(name, props || {});
+    if (t && typeof t.track === 'function') return t.track(name, props || {});
   } catch (_) { /* 埋点永远不能挡住产品 */ }
+  return false;
+}
+
+// 所有新事件只从这个口出。MTTelemetry.track 自己的 trackOne() 会先过 enabled()，
+// 所以关掉开关时既不入队也不发；flushOnce() 发送前还会再查一次（旧队列也不发）。
+// 规格已就位时保持同步调用（与改动前逐字一致）；未就位才返回一个最多 200ms 的
+// Promise，供调用方（和实跑证据）观察结果。
+function track(name, props) {
+  try {
+    if (specReady()) return trackNow(name, props);
+    return waitForSpec().then((ready) => (ready ? trackNow(name, props) : false));
+  } catch (_) { /* 埋点永远不能挡住产品 */ }
+  return false;
 }
 function debug(msg, err) {
   // 只记事件名 / 状态 / 错误名 —— 永不记 Authorization、token、邮箱、正文。
@@ -430,6 +470,7 @@ async function packsReadyOne(state) {
 
 // 测试/调试出口（不进产物面）：不改变线上行为。
 export const _KEYS = K;
+export const _track = track;
 export const _resetForTest = () => {
   appOpenFlight = null;
   setupFlight = null;
