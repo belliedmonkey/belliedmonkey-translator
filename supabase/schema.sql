@@ -452,7 +452,7 @@ create index if not exists bt_auth_ok_install_ts_idx on public.bt_auth_ok (insta
 create index if not exists bt_auth_ok_ts_idx         on public.bt_auth_ok (ts);
 
 comment on table public.bt_auth_ok is
-  '第一方登录成功台账（BEL-222）：user_id ↔ install_id，使匿名用量可与账号对上（仅支持与滥用排查，不导出第三方）；90 天后删。';
+  '第一方登录成功台账（BEL-222）：user_id ↔ install_id，用于支持与滥用排查，不用于广告/跨站追踪；关掉遥测时按 install_id 删除本表行（bt_forget_install），其余行 90 天后删。';
 
 alter table public.bt_auth_ok enable row level security;
 revoke all on table public.bt_auth_ok from anon, authenticated;
