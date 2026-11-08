@@ -349,8 +349,15 @@ as $$
 $$;
 
 -- 记账。**唯一**的写路径，一条语句里做完三件事，返回花完之后还剩多少。
+-- BEL-222（2026-11-08）：后三个参数是归因列，**可缺**（默认 NULL）。旧调用方（5 个参数）
+-- 行为不变；新调用方（bt-relay / bt-grant-ledger）把请求里带的 install_id/host/surface
+-- 原样传进来。它们只是「哪个安装 / 哪个宿主 / 哪个功能面」，不进内容，也不改花费口径。
+-- 先 drop 旧的 5 参签名再建 8 参（带默认值）：PostgREST 按具名参数调用，5 参调用仍会落到
+-- 这个新函数；留着两个重载会让解析变得依赖参数个数，部署时容易出现「调到了旧函数」。
+drop function if exists public.bt_grant_charge(text, text, text, numeric, int);
 create or replace function public.bt_grant_charge(
-  p_hash text, p_kind text, p_model text, p_cost numeric, p_ms int)
+  p_hash text, p_kind text, p_model text, p_cost numeric, p_ms int,
+  p_install_id uuid default null, p_host text default null, p_surface text default null)
 returns numeric
 language plpgsql
 security definer
@@ -368,8 +375,11 @@ begin
 
   if uid is null then return null; end if;
 
-  insert into public.bt_grant_usage (user_id, kind, model, cost_usd, ms)
-  values (uid, p_kind, p_model, greatest(p_cost, 0), greatest(p_ms, 0));
+  insert into public.bt_grant_usage
+    (user_id, kind, model, cost_usd, ms, install_id, host, surface)
+  values
+    (uid, p_kind, p_model, greatest(p_cost, 0), greatest(p_ms, 0),
+     p_install_id, p_host, p_surface);
 
   return left_;
 end;
@@ -394,7 +404,7 @@ $$;
 
 revoke all on function public.bt_grant_claim(uuid, text, text, text, numeric, int) from public, anon, authenticated;
 revoke all on function public.bt_grant_check(text) from public, anon, authenticated;
-revoke all on function public.bt_grant_charge(text, text, text, numeric, int) from public, anon, authenticated;
+revoke all on function public.bt_grant_charge(text, text, text, numeric, int, uuid, text, text) from public, anon, authenticated;
 revoke all on function public.bt_grant_stats() from public, anon, authenticated;
 
 -- 流水 90 天保留（额度本身与账号同寿，删号 cascade 带走）。
