@@ -1146,6 +1146,10 @@ const listenModel = (() => {
     const qf = prep.quotaFull;
     if (!qf) return { shown: false, sheetShown: false };
     const pair = quotaPairNow();
+    const need = C.baseCode(qf.need);
+    // BEL-216：卡是挂起态，但「还需要这门吗」要按**当下**的语言对与资产重算。
+    // 切回已缓存的语言（need 不在当前 pair）或 need 已装好 ⇒ 卡与 sheet 都不画。
+    if (pair.indexOf(need) < 0 || prep.assets.asr[need] === true) return { shown: false, sheetShown: false };
     const rows = (qf.reserved || []).map((loc) => {
       const code = C.baseCode(loc);
       return { code, name: endonymOf(code), when: quotaWhenText(code), disabled: !C.canYield(code, pair), selected: qf.pick === code };
@@ -1261,7 +1265,7 @@ const listenModel = (() => {
     canvas.view('state');
     const missingBase = !(prep.assets.lid && prep.assets.vad);
     const missingAsr = langs.filter((c) => !prep.assets.asr[c]);
-    if (!missingBase && !missingAsr.length) { prep.running = false; prep.stalled = false; prep.quotaFull = null; return; }
+    if (!missingBase && !missingAsr.length) { prep.running = false; prep.stalled = false; prep.quotaFull = null; canvas.view('state'); return; }
     // 第 5 轮 A7/A8：名额满、而且需要的那门不在系统预留里 ⇒ 不硬下（会撞 Code=11），
     // 显示「名额已满」这张独立卡片，出路是「让出一门并补回」。已就绪的一侧照旧能说（A9）。
     if (missingAsr.length) {
@@ -3319,6 +3323,11 @@ const listenModel = (() => {
     if (!Object.keys(p).length) { canvas.view('mode'); return; }
     chrome.storage.local.set(p);
     cfg.myLang = video; cfg.otherLang = target; cfg.targetLang = target; cfg.lang = target;
+    // BEL-216 防御：字幕模式一般不设 quotaFull，但同一句清卡逻辑留着（切走后不再指向 need）。
+    if (prep.quotaFull) {
+      const need = C.baseCode(prep.quotaFull.need);
+      if (need && pairLangs().indexOf(need) < 0) { prep.quotaFull = null; prep.stalled = false; }
+    }
     if (swapped) note(t('listen_lang_swapped', '两边不能是同一种语言 — 已对调'), false);
     if (video !== prevVideo && session && sock && (phase === 'listening' || phase === 'preparing')) {
       langRevert = { video: prevVideo };
@@ -3349,6 +3358,12 @@ const listenModel = (() => {
     if (cfg) {
       cfg.myLang = mySelVal; cfg.targetLang = mySelVal;
       cfg.otherLang = otherSelVal; cfg.lang = otherSelVal;
+    }
+    // BEL-216：切走后「名额已满」卡指向的那门可能已不在当前语言对里 —— 立刻清掉挂起态。
+    // 放在 which 分支之前，my / other 两条都覆盖（my 的中段短路根本不走 warmPacks）。
+    if (prep.quotaFull) {
+      const need = C.baseCode(prep.quotaFull.need);
+      if (need && pairLangs().indexOf(need) < 0) { prep.quotaFull = null; prep.stalled = false; }
     }
     // 语言不下发给转写端（langs 恒为空数组，厂商自动检测），所以改语言**不重连**，
     // 只影响翻译方向与归属判断。已定稿的行不动 —— 要改用行尾的 ↔。
@@ -3675,6 +3690,13 @@ const listenModel = (() => {
       // 方案 4（R12）的纯判据读数点：测试直接喂 (finalEv, partial, at) 读结论，不重启会话。
       rescueWorth: (ev, p, at) => partialWorthRescue(ev, p, at),
       asrFailReason: (reason, why) => asrFailReason(reason, why),
+      // BEL-216/218 的读数点（真模型跑在假 NativeSpeech 上时，测试直接读这三项）：
+      // 当前 pair、挂起卡与已装资产、以及左格迁移的纯判据。
+      cfgLangs: () => (cfg ? { myLang: cfg.myLang, otherLang: cfg.otherLang, targetLang: cfg.targetLang } : null),
+      quotaState: () => ({
+        full: prep.quotaFull ? { need: prep.quotaFull.need, sheetOpen: !!prep.quotaFull.sheetOpen } : null,
+        asr: Object.assign({}, prep.assets.asr),
+      }),
     lat: C.latencySummary(session ? session.rows : []) }),
     // DEBUG-only：强制 phase=listening（绕过麦授权/STT ready）。AC-D3 PiP✕/暂停语义用。
     // 无 session 时先建一场 subtitle/conv 会话；不 openSocket、不抢真麦。

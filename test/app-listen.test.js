@@ -7,7 +7,7 @@
 //   4. 静音计时与会话计时：30 s 没声音才算静，暂停不计入已听时长。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok, eq, deepEq, loadSrc } = require('./harness');
+const { describe, test, ok, eq, deepEq, loadSrc, tick } = require('./harness');
 const C = require('../app/listen-core.js');
 const LANGS = require('../build/langs.config.js');
 const LearnRules = require('../extension/content/learn-rules.js');
@@ -1109,5 +1109,143 @@ describe('SourcesView — 实时字幕句子在来源页单独成组（§9.8）'
     ];
     deepEq(SV.groupConversations(items, sources).map((g) => [g.sourceId, g.count]), [['conv:a', 1]], '缺省（对话）不收字幕句');
     deepEq(SV.groupConversations(items, sources, 'subtitle').map((g) => [g.sourceId, g.count]), [['conv:b', 2]]);
+  });
+});
+
+// ─── BEL-216 / BEL-218：真模型跑在假 NativeSpeech 上（不下载、不开麦）──────────
+// 这两个卡都在 src/app/listen-model.js 的内部状态里（prep.quotaFull / cfg），
+// 静态读源码证明不了「切回已缓存语言后卡真的没了」。这里用 esbuild + vm 加载
+// 真模型，只把原生桥换成假实现：quota() 报满 5 门，probe() 按 installed 集合回答。
+function mkListenEl() {
+  return { hidden: false, disabled: false, textContent: '', value: '', style: {},
+    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    addEventListener() {}, setAttribute() {}, removeAttribute() {}, appendChild() {},
+    querySelector() { return mkListenEl(); }, querySelectorAll() { return []; }, getAttribute() { return ''; } };
+}
+
+function bootListen(seed, installed) {
+  const writes = [];
+  const store = Object.assign({ listenAutoSpeak: false, listenCapture: false }, seed || {});
+  const get = (keys, cb) => {
+    const out = {};
+    const arr = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys || {}));
+    for (const k of arr) if (k in store) out[k] = store[k];
+    if (cb) cb(out);
+    return Promise.resolve(out);
+  };
+  const set = (o, cb) => { writes.push(Object.assign({}, o)); Object.assign(store, o); if (cb) cb(); };
+  const remove = (k, cb) => { delete store[k]; if (cb) cb(); };
+  const NativeSpeech = {
+    available: () => true,
+    supportedLocales: () => ['zh-CN', 'en-US', 'es-ES', 'ja-JP', 'ko-KR', 'fr-FR'],
+    quota: () => ({ max: 5, reserved: ['zh', 'en', 'ja', 'ko', 'fr'] }),
+    probeResult: () => ({ ok: true, reason: '', assets: 'installed', locales: [] }),
+    probe: async (locales) => {
+      const arr = Array.isArray(locales) ? locales : [locales];
+      const any = arr.some((l) => installed.has(String(l).split(/[-_]/)[0]));
+      return { ok: true, reason: '', assets: any ? 'installed' : 'missing', locales: arr };
+    },
+    ensureAssets: async () => ({ ok: true }), ensureLid: async () => ({ ok: true }), ensureVad: async () => ({ ok: true }),
+    lidPause() {}, diagAudio() {}, onLid: () => () => {},
+    sttOpen: () => ({ sendPcm: () => true, close() {}, cut() {} }),
+  };
+  const NativeAudio = {
+    available: () => true, suspends: () => false, audioCaps: () => ({ system: 'ok' }),
+    micStart: () => true, micStop() {}, recordMode() {}, sessionStart() {}, sessionStop() {},
+    onEvent() {}, onTick() {}, micPermRead: () => true, playingState() {}, nowPlaying() {},
+    subtitleShow() {}, subtitleState() {}, subtitleConfig() {}, subtitleHide() {}, subtitleFloat() {},
+  };
+  const sb = {
+    window: { addEventListener() {}, removeEventListener() {}, AudioContext: function () {}, webkitAudioContext: function () {}, MT_LANGS: LANGS },
+    document: { getElementById: () => mkListenEl(), querySelector: () => mkListenEl(), querySelectorAll: () => [], addEventListener() {}, createElement: () => mkListenEl(), body: mkListenEl(), documentElement: mkListenEl(), hidden: false },
+    navigator: { platform: 'MacIntel', maxTouchPoints: 0, language: 'zh-CN', userAgent: 'test', mediaDevices: { getUserMedia: async () => ({ getTracks: () => [] }) } },
+    btoa: (s) => Buffer.from(s, 'binary').toString('base64'), atob: (s) => Buffer.from(s, 'base64').toString('binary'),
+    chrome: { storage: { local: { get, set, remove }, onChanged: { addListener() {} } }, runtime: { getURL: (u) => u } },
+    ListenCore: C, NativeAudio, NativeSpeech,
+    DiagLog: { push() {} }, MTTelemetry: { track() {}, once() {} }, MTFeedback: {},
+    LearnNotes: { resolveConfig: () => ({ provider: 'deepseek', apiKey: 'k', baseUrl: 'https://api.deepseek.com', model: 'deepseek-chat' }), shouldCapture: () => false, langAllowed: () => true },
+    LearnRules: { dominantScript: (t) => (/[\u4e00-\u9fff]/.test(String(t || '')) ? 'Han' : 'Latin'), langAllowed: () => true },
+    LearnDialog: { confirm: async () => true },
+    TranslationAPI: { resolveProvider: () => 'deepseek', listenPass: async () => '{}', translate: async () => 'x' },
+    EngineState: { byId: () => ({ id: 'deepseek', type: 'chat-compat', defaultModel: 'deepseek-chat' }) },
+    WireFormat: { formatFor: () => 'chat-compat', resolveEndpoint: () => 'https://api.deepseek.com/chat/completions', translationModelName: () => false },
+    console, URL, setTimeout, clearTimeout, setInterval, clearInterval,
+  };
+  const ctx = loadSrc('src/app/listen-model.js', 'AppListen', sb);
+  return { A: ctx.AppListen, store, writes, installed };
+}
+
+async function waitUntil(fn, ms) {
+  const until = Date.now() + (ms || 1500);
+  while (Date.now() < until) { if (fn()) return true; await tick(5); }
+  return !!fn();
+}
+
+describe('BEL-216 — 名额已满卡按当下语言对/资产派生（真模型，假 NativeSpeech）', () => {
+  async function bootWithQuotaCard() {
+    const box = bootListen({ listenMyLang: 'es', listenOtherLang: 'en' }, new Set(['en', 'zh']));
+    box.A.open('conv');
+    const shown = await waitUntil(() => box.A.quotaView().shown);
+    ok(shown, '满 5 门 + 选了未缓存的 es ⇒ 应出「名额已满」卡：' + JSON.stringify(box.A._debug().quotaState()));
+    eq(box.A._debug().quotaState().full.need, 'es');
+    return box;
+  }
+
+  test('★ 满 5 → 选未缓存 es → 卡出 → 切回已缓存 zh ⇒ 卡和 sheet 都没', async () => {
+    const { A } = await bootWithQuotaCard();
+    A.quotaOpenSheet();
+    eq(A.quotaView().sheetShown, true, '点「让出一门」后 sheet 应打开');
+    A.langChange('my', 'zh');
+    await waitUntil(() => A._debug().quotaState().full === null);
+    eq(A._debug().cfgLangs().myLang, 'zh');
+    eq(A.quotaView().shown, false, '切回已缓存的 zh 后卡必须没');
+    eq(A.quotaView().sheetShown, false, '切回已缓存的 zh 后 sheet 必须没');
+    eq(A._debug().quotaState().full, null, '挂起态也要清干净（防止从别的入口复活）');
+  });
+
+  test('★ 真满且仍指向未缓存 es ⇒ 卡留（不过度清）', async () => {
+    const { A } = await bootWithQuotaCard();
+    // 同一对里再走一次补包（es 仍未装）—— 卡必须还在，不能因为「有一次 bump」就清掉。
+    A.langChange('other', 'en');
+    await waitUntil(() => A.quotaView().shown);
+    eq(A.quotaView().shown, true, '真满且 pair 仍含 es ⇒ 卡留');
+    eq(A.quotaView().need, 'es');
+    eq(A._debug().quotaState().full.need, 'es');
+  });
+
+  test('★ need 已装好（asr[need]===true）⇒ quotaView 派生隐藏，不靠清对象', async () => {
+    const { A, installed } = await bootWithQuotaCard();
+    installed.add('es');                       // es 现在已在设备上，但卡对象还没清
+    const snaps = [];
+    A.canvas.view = (area) => {
+      if (area !== 'state') return;
+      snaps.push({ full: A._debug().quotaState().full, qv: A.quotaView() });
+    };
+    A.langChange('other', 'en');               // pair 仍是 es/en，不清对象，只让 warm 重探
+    await waitUntil(() => A._debug().quotaState().full === null);
+    ok(snaps.some((s) => s.full && s.full.need === 'es' && s.qv.shown === false),
+      'warmBody 的 bump 时 quotaView 应已因 assets.asr.es 为真而隐藏（那时对象还在）');
+  });
+
+  test('源码钉：派生条件、langChange/subLangChange 的窄清卡、warmBody 清卡后有 bump', () => {
+    const model = stripComments(MODEL);
+    const qv = model.slice(model.indexOf('function quotaView'), model.indexOf('function quotaOpenSheet'));
+    ok(/pair\.indexOf\(need\) < 0 \|\| prep\.assets\.asr\[need\] === true/.test(qv),
+      'quotaView 没有按「need 不在当前 pair / need 已装」派生隐藏');
+    const lc = model.slice(model.indexOf('function langChange'), model.indexOf('function setAutoSpeak'));
+    const cfgAt = lc.indexOf('cfg.myLang = mySelVal');
+    const clearAt = lc.indexOf('prep.quotaFull = null');
+    const whichAt = lc.indexOf("if (which === 'my')");
+    ok(cfgAt >= 0 && clearAt > cfgAt && whichAt > clearAt,
+      'langChange 的清卡必须在 cfg 更新后、which 分支前（my 的中段短路不走 warm）');
+    ok(/pairLangs\(\)\.indexOf\(need\) < 0/.test(lc), 'langChange 清卡条件必须按当前 pairLangs()');
+    const sl = model.slice(model.indexOf('function subLangChange'), model.indexOf('function langChange'));
+    const slCfgAt = sl.indexOf('cfg.myLang = video');
+    const slClearAt = sl.indexOf('prep.quotaFull = null');
+    ok(slCfgAt >= 0 && slClearAt > slCfgAt && /pairLangs\(\)\.indexOf\(need\) < 0/.test(sl),
+      'subLangChange 没有同一句防御');
+    const wb = model.slice(model.indexOf('async function warmBody'), model.indexOf('async function ensurePacksForPair'));
+    ok(/prep\.quotaFull = null; canvas\.view\('state'\); return;/.test(wb),
+      'warmBody 在 :1264 清卡后没有补一次 canvas.view —— 状态清了、DOM 不重画');
   });
 });
