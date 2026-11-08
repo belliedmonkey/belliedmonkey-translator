@@ -208,3 +208,54 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     ok(VIEW.slice(iBase, iDetails).includes('id="notes-base-url"'), '#notes-base-url 不在主行字段里');
   });
 });
+
+describe('BEL-217 · 宽窗设置内容顶栏「← 返回」', () => {
+  test('DOM：全局 #settings-page-back 在 #app-settings 下、#settings-rail 前，始终渲染、恒 ← 返回', () => {
+    const iSettings = VIEW.indexOf('id="app-settings"');
+    const iPage = VIEW.indexOf('id="settings-page-back"');
+    const iRail = VIEW.indexOf('id="settings-rail"');
+    ok(iSettings >= 0 && iPage > iSettings, '#settings-page-back 不在 #app-settings 下');
+    ok(iPage < iRail, '#settings-page-back 不在 #settings-rail 之前');
+
+    const open = VIEW.lastIndexOf('<', iPage);
+    const tag = VIEW.slice(open, VIEW.indexOf('>', iPage) + 1);
+    ok(!/\shidden(\s|=|>)/.test(tag), '#settings-page-back 带了 hidden —— 必须始终渲染：' + tag);
+    ok(!/onClick=/.test(tag), '#settings-page-back 挂了 React onClick —— 会和 shell-model 的绑定重复');
+    const body = VIEW.slice(VIEW.indexOf('>', iPage) + 1, VIEW.indexOf('</button>', iPage));
+    ok(/t\('app_review_back',\s*'← 返回'\)/.test(body), '文案不是 t(app_review_back, ← 返回)：' + body);
+    ok(!/\bwide\s*\?/.test(body), '文案跟着 wide 变了 —— 宽窗必须仍是 ← 返回：' + body);
+
+    // 不进 .sec-head（五个同 id），也不进 #settings-nav。
+    const head = VIEW.indexOf('className="sec-head"');
+    const nav = VIEW.indexOf('id="settings-nav"');
+    const navEnd = VIEW.indexOf('</nav>', nav);
+    ok(!(iPage > head && iPage < VIEW.indexOf('</div>', head)), '#settings-page-back 进了 .sec-head');
+    ok(!(iPage > nav && iPage < navEnd), '#settings-page-back 进了 #settings-nav');
+  });
+
+  test('CSS：<720 display:none；≥720 grid-column:2 / grid-row:1；.sec-head 左让位', () => {
+    const base = rule(narrow, '#settings-page-back');
+    ok(/display\s*:\s*none/.test(base), '<720 #settings-page-back 不是 display:none：' + base);
+    const wideBack = rule(wide, '#settings-page-back');
+    ok(/display\s*:\s*inline-flex/.test(wideBack), '≥720 #settings-page-back 没有显示：' + wideBack);
+    ok(/grid-column\s*:\s*2/.test(wideBack), '≥720 不在内容栏（grid-column:2）：' + wideBack);
+    ok(/grid-row\s*:\s*1/.test(wideBack), '≥720 不在内容区第一行（grid-row:1）：' + wideBack);
+    const head = rule(wide, '#app-settings .sec-head');
+    ok(/padding-left\s*:\s*88px/.test(head), '≥720 .sec-head 没有给返回键左让位：' + head);
+  });
+
+  test('绑定：宽窗双出口都走 closeSettings；新按钮只绑一次；#settings-back 仍是「完成」', () => {
+    const back = "$('settings-back').addEventListener('click', closeSettings)";
+    const page = "$('settings-page-back').addEventListener('click', closeSettings)";
+    const iBack = MODEL.indexOf(back);
+    const iPage = MODEL.indexOf(page);
+    ok(iBack >= 0, 'shell-model.js 丢了 #settings-back → closeSettings');
+    ok(iPage > iBack, '#settings-page-back 的绑定不在 #settings-back 之后');
+    ok((MODEL.match(/settings-page-back/g) || []).length === 1,
+      '#settings-page-back 在 shell-model.js 里绑了不止一次');
+    ok(/wide \? t\('app_set_done', '完成'\) : t\('app_review_back', '← 返回'\)/.test(VIEW),
+      '#settings-back 的宽窗「完成」/窄窗「← 返回」文案被改');
+    ok(/getElementById\('agent-confirm'\)/.test(MODEL) && /\.ld-mask/.test(MODEL),
+      'Esc 守卫（#agent-confirm / .ld-mask）被动了');
+  });
+});

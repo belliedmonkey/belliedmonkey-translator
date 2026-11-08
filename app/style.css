@@ -286,6 +286,9 @@ header #who { min-width: 0; }
 #app-settings h3 { font-size: 0.95rem; margin: 10px 0 0; color: var(--dim); }
 #app-settings > button { align-self: flex-start; }
 #settings-back { align-self: flex-start; }
+/* BEL-217：宽窗内容区左上角的第二个出口。窄窗不出现（212 的 #settings-back
+   已经是页顶「← 返回」）；宽窗显示由下面 ≥720 媒体查询接管。 */
+#settings-page-back { display: none; }
 /* BEL-212：rail 窄窗拆掉自己（contents），nav / back 回到 #app-settings 的 flex 流。
    无 hidden 属性。宽窗才由 ≥720 把 rail 画成左栏。 */
 #settings-rail { display: contents; }
@@ -1357,6 +1360,19 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   }
   /* 宽窗页标题仍藏。返回键改画成侧栏脚「完成」，不再 display:none。 */
   #settings-title { display: none; }
+  /* BEL-217：内容区左上角的第二个返回出口。与各 .sec 同占 grid 2/1，
+     叠在节头之上；节头左让位，标题不被压住。点击绑定在 shell-model.js。 */
+  #settings-page-back {
+    display: inline-flex; align-items: center;
+    grid-column: 2; grid-row: 1;
+    justify-self: start; align-self: start;
+    position: relative; z-index: 2;
+    margin: 0; padding: 4px 2px; min-height: 32px;
+    background: none; border: 0;
+    color: var(--accent-deep);
+    font: inherit; font-size: .9rem;
+    text-decoration: underline; cursor: pointer;
+  }
   #settings-rail {
     grid-column: 1; grid-row: 1;
     display: flex; flex-direction: column; gap: 4px;
@@ -1385,7 +1401,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
     cursor: pointer;
   }
   #app-settings .sec { grid-column: 2; grid-row: 1; gap: 14px; }
-  #app-settings .sec-head { margin: 0 0 16px; }
+  /* BEL-217：给左上角 #settings-page-back 让位（它与 .sec 同格叠放）。 */
+  #app-settings .sec-head { margin: 0 0 16px; padding-left: 88px; }
   /* 侧栏已点名，宽窗不再画序号圆点。 */
   #app-settings .sec-n { display: none; }
   #app-settings .sec-title h3 { font-size: 1.3rem; }

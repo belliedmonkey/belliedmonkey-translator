@@ -1627,6 +1627,11 @@ export default function SettingsView() {
 
   return (
     <section id="app-settings" hidden>
+      {/* BEL-217：宽窗内容区左上角的全局「← 返回」。始终渲染（窄窗 CSS display:none，
+          不在条件分支里 —— 条件渲染会让启动期没有节点可绑），放在 #settings-rail 之前。
+          不进 .sec-head（五个 .sec 都在 DOM，会出 5 个同 id），也不进 #settings-nav；
+          点击由 shell-model.js 绑一次 closeSettings，本节点**不加** React onClick。 */}
+      <button id="settings-page-back" type="button" className="link">{t('app_review_back', '← 返回')}</button>
       {/* BEL-212：#settings-rail 包 nav（上）+ #settings-back（脚）。无 hidden 属性。
           窄窗 CSS display:contents：nav 仍 none，back 回到页顶「← 返回」，title 仍在 back 后。
           宽窗 rail 占左栏，back 文案「完成」；title 仍 display:none。
