@@ -121,6 +121,12 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 
 ---
 
+## What's new (1.23.3)
+
+- **Merged back the user-visible surfaces already shipped on 1.23.2-intl**: the Thai speech route with a key kept on this device, the caption desk and Split View caption layout, and the Duo home cards.
+- **BEL-197 / 198 / 199 / 212**: the default-browser setup prompt, the Mac login and settings layout at ≥720 px, the Mac onboarding, document and podcast layouts at ≥720 px, and the settings sidebar **Done** action back to the home screen.
+- Live interpretation is still a work in progress; this release does not claim it is finished.
+
 ## What it does
 
 <p align="center">
