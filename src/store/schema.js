@@ -128,7 +128,10 @@ const SETTINGS_SCHEMA = (() => {
     // **不**进 schema（禁 localStorage 明文唯一真源）。CN flavor 设置页隐藏整块。
     thaiGrokStt:     { default: false, surfaces: ['listen', 'app'] },
     subtitleCapture: { default: true,  surfaces: ['listen', 'app'] },
-    subtitleVideoLang: { default: 'en', surfaces: ['listen', 'app'] },
+    subtitleVideoLang: { default: 'auto', surfaces: ['listen', 'app'] },
+    // BEL-218：左格被用户显式点过没有。旧数据没有这个标记，读时只把「无标记 + 存量 en」
+    // 窄迁成 auto（ACCEPT-1）；存量 zh 等具体值保留（ACCEPT-2）。读时不写盘，点选时才置 true。
+    subtitleVideoLangPicked: { default: false, surfaces: ['listen', 'app'], note: '[flow] user touched the subtitle video-language cell' },
     subtitleFontScale: { default: '',  surfaces: ['listen'] },
     // ── drive mode（App 设置页的驾驶一节）────────────────────────────────
     // PR9：driving-model 的 SETTINGS_KEYS 已收编 —— 播客模式自己读的键全部在此
