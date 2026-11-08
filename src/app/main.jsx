@@ -25,6 +25,7 @@ import QuickView from './quick-view.jsx';
 import drivingModel from './driving-model.js';
 import DrivingView from './driving-view.jsx';
 import { bootShell } from './shell-model.js';
+import * as TelemetrySession from './telemetry-session.js';
 import NativeBridge from '../lib/native-bridge.js';
 import '../shared/dialog-host.jsx';   // PR7a 副作用：挂 DialogHost 宿主 div + window.LearnDialog
                                       // ABI —— listen-model / shell-model / docs-model / review.js
@@ -101,4 +102,18 @@ if (typeof AppQuick !== 'undefined' && AppQuick.isQuickMode()) {
 }
 
 // 用量事件：App 打开即 flush + 当日心跳。（原 app.js:1779 逐字。）
-try { if (typeof MTTelemetry !== 'undefined' && !(typeof AppQuick !== 'undefined' && AppQuick.isQuickMode())) MTTelemetry.init({ flushNow: true }); } catch (_) {}
+// BEL-225：冷启一条 app_open，**在登录墙之前**。quick 面板也是一次冷启，surface 记
+// quick（它有单独的 #quick 分支，不跑 bootShell —— 所以由这里补进面标记）。
+// quick 仍**不做 init**（既有门禁：quick 下让路，不跑 installed/heartbeat）；app_open
+// 走 track 自己入队，随后显式 flush 一次，避免面板关掉时还在队列里。
+// launch_id 的注入装在 init 之前：engine_test / mic_permission / asr_start / asr_entry
+// 的发送点在冻结的共用模块里，App 侧统一补（见 telemetry-session.js 的头注释）。
+try {
+  const quickMode = typeof AppQuick !== 'undefined' && AppQuick.isQuickMode();
+  if (quickMode) TelemetrySession.enter('quick');
+  TelemetrySession.installLaunchId();
+  if (typeof MTTelemetry !== 'undefined' && !(typeof AppQuick !== 'undefined' && AppQuick.isQuickMode())) MTTelemetry.init({ flushNow: true });
+  TelemetrySession.appOpen().then(() => {
+    if (quickMode && typeof MTTelemetry !== 'undefined' && typeof MTTelemetry.flush === 'function') MTTelemetry.flush();
+  });
+} catch (_) {}

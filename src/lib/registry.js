@@ -42,6 +42,9 @@ const Registry = (() => {
   // 遥测开关。两个 flavor 在 MT_TELEMETRY 有 URL 时都亮（BEL-135）；null 才藏。
   // !! 归一 —— src/ 的字符串字面量过不了 src-boundaries 的 MT_ 门，收口在这里。
   const telemetryEnabled = () => !!get('MT_TELEMETRY');
+  // 完整遥测规格（事件/属性白名单）。telemetry-session.js 要给共用模块的事件补
+  // launch_id，必须读 `spec.events` —— 但 src/ 的 MT_ 门禁只许本文件出现那个名字。
+  const telemetrySpec = () => get('MT_TELEMETRY') || null;
   // 「会发送什么」链到隐私 #usage。中国版去 .com，国际版去 .cc。path 不变。
   const telemetryPrivacyUrl = () => (flavor() === 'china'
     ? 'https://belliedmonkey.com/privacy.html#usage'
@@ -52,8 +55,8 @@ const Registry = (() => {
   const defaultTargetLang = () => get('MT_DEFAULT_TARGET_LANG') || '';
 
   return { get, providers, palette, langs, messages, modelParams, version,
-    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled, telemetryPrivacyUrl,
-    recommendedHosts, defaultTargetLang };
+    grant, sttEngines, ttsEngines, backend, flavor, telemetryEnabled, telemetrySpec,
+    telemetryPrivacyUrl, recommendedHosts, defaultTargetLang };
 })();
 
 export default Registry;

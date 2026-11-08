@@ -16,6 +16,7 @@ import PageText from '../lib/i18n.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
 import DocView from '../shared/doc-view.js'; // PR7c：渲染器收编 src/shared/doc-view.js（哑视图，
                                              // deps 注入同前）—— 裸全局 DocView 换组合根 import。
+import * as TelemetrySession from './telemetry-session.js'; // BEL-223：文档面 surface
 
 const $ = (id) => document.getElementById(id);
 // PR9：t 翻 PageText（src/ 已离开共享字节的 PageI18n；白名单见 test/src-boundaries.test.js）。
@@ -109,6 +110,8 @@ function leave() {
   $(cameFrom).hidden = false;
 }
 function open(docId, page) {
+  // BEL-223：文档翻译是一个功能面（doc）。冷启时若上次停在这里，app_open.surface 用它。
+  try { TelemetrySession.enter('doc'); } catch (_) {}
   enter();
   const v = ensureView();
   if (docId) v.openDoc(docId, page || 1); else v.showList();

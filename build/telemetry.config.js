@@ -353,8 +353,9 @@ const SEAMS = {
   // 层，两宿主同一次编译）。file 指源码，门禁对源码核 track 字面量 —— 同 onboarding_done 先例。
   grant_claimed: SHARED('src/shared/grant.js'),
   grant_exhausted: SHARED('extension/learn/telemetry.js'),
-  // BEL-224／225／226（2026-11-08）P0：只登记白名单，**发送点留 P1**。SEAMS 先写 none，
-  // 门禁才知道这是「有意未接」而不是漏接；P1 接线时把对应宿主换成 file，别删掉了事。
+  // BEL-224／225／226（2026-11-08）：P0 已登记白名单；P1（本拍）只接 App 侧。
+  // extension/ 在 1.23.3 冻结（CWS 在审），所以 ext 侧仍是 none；这不是漏接。
+  // App 的发送点全部收在 src/app/telemetry-session.js 一处（launch_id 也只有一个生成点）。
   grant_debited: [
     { host: 'ext', none: 'hosted bt_grant_charge 记账成功时直接落事件；客户端不直接发（实现不在公仓）' },
     { host: 'app', none: 'hosted bt_grant_charge 记账成功时直接落事件；客户端不直接发（实现不在公仓）' },
@@ -364,36 +365,36 @@ const SEAMS = {
     { host: 'app', none: 'hosted bt_grant_charge 记账失败时直接落事件；客户端不直接发（实现不在公仓）' },
   ],
   app_open: [
-    { host: 'ext', none: 'app_open 只在 App 冷启发；扩展没有 App 生命周期（P1 BEL-225）' },
-    { host: 'app', none: 'P1 BEL-225 接 App 冷启发送点；P0 只登记白名单' },
+    { host: 'ext', none: 'app_open 只在 App 冷启发；扩展没有 App 生命周期（BEL-225）' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('app_open'" },
   ],
   auth_ok: [
-    { host: 'ext', none: 'P1 BEL-223 接扩展登录成功的 track；P0 只登记白名单' },
-    { host: 'app', none: 'P1 BEL-223 接 App 登录成功的 track；P0 只登记白名单' },
+    { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；auth_ok 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('auth_ok'" },
   ],
   live_gate: [
-    { host: 'ext', none: 'P1 BEL-223 接实时字幕开门判定的 track；P0 只登记白名单' },
-    { host: 'app', none: 'P1 BEL-223 接 App 实时字幕开门判定的 track；P0 只登记白名单' },
+    { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；live_gate 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('live_gate'" },
   ],
   grant_claim_fail: [
-    { host: 'ext', none: 'P1 BEL-223 接扩展领取失败分支的 track；P0 只登记白名单' },
-    { host: 'app', none: 'P1 BEL-223 接 App 领取失败分支的 track；P0 只登记白名单' },
+    { host: 'ext', none: 'extension/ 在本拍冻结（CWS 1.23.3 在审）；grant_claim_fail 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('grant_claim_fail'" },
   ],
   pack_download_start: [
-    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
-    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载开始的 track；P0 只登记白名单' },
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('pack_download_start'" },
   ],
   pack_download_ok: [
-    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
-    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载完成的 track；P0 只登记白名单' },
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('pack_download_ok'" },
   ],
   pack_download_fail: [
-    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
-    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载失败分支的 track；P0 只登记白名单' },
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('pack_download_fail'" },
   ],
   packs_ready: [
-    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
-    { host: 'app', none: 'P1 BEL-226 接 App「包齐了」过渡的 track；P0 只登记白名单' },
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；BEL-226 只接 App' },
+    { host: 'app', file: 'src/app/telemetry-session.js', match: "track('packs_ready'" },
   ],
   sync_on: SHARED('extension/learn/sync.js'),
   rate_prompt: [

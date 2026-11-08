@@ -34,6 +34,7 @@ import SETTINGS_SCHEMA from '../store/schema.js';
 import * as FirstRun from './firstrun.js';
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的 launch_id/surface/gate
 import { createHalt, meterText, failSurface } from './n26-session.js';
 import * as Quota from '../shared/quota.js';   // P1-1：余额的唯一运行时来源（刷新 / stale / 同口径）
 import {
@@ -2241,6 +2242,15 @@ const listenModel = (() => {
     trHalt = createHalt();
     pttAbort();            // 新一场：按住态与强制语言清零（含原生「恢复判定」）
     cfg = await readCfg();
+    // BEL-223 live_gate：这里是「能不能开」的判定点（点击开始之后、建会话之前）。
+    // listen 看本机识别器是否可用；live_caption 还要看系统声音/麦克风来源能不能拿到。
+    // ok 在注册表里是字符串枚举，TelemetrySession.liveGate 负责 String 化。
+    const gateSurface = mode === 'subtitle' ? 'live_caption' : 'listen';
+    let gateOk = liveCapable();
+    if (gateOk && mode === 'subtitle') {
+      try { gateOk = !!(C.captureSource && C.captureSource(NativeAudio.audioCaps())); } catch (_) { gateOk = false; }
+    }
+    try { TelemetrySession.liveGate(gateSurface, gateOk); } catch (_) {}
     if (!liveCapable()) { note(needText(unavailableReason()), true); return; }
     session = C.newSession(now(), Math.random(), mode);
     lidOn();   // 新会话：LID 语言从头判（§9.6.1.3，半句/定稿归属的唯一判据）
@@ -2740,6 +2750,9 @@ const listenModel = (() => {
   // 打开听译页。若已有 session（例如从设置返回），不新建 —— 尺寸变化更不得走 open（INV-1）。
   function open(m) {
     mode = m === 'subtitle' ? 'subtitle' : 'conv';
+    // BEL-223：把这次进入的功能面记给冷启会话 —— listen（对话听译）/ live_caption（实时字幕）。
+    // App 没有 web_caption 这个面（它只由扩展的网页字幕会话产生），这里不发。
+    try { TelemetrySession.enter(mode === 'subtitle' ? 'live_caption' : 'listen'); } catch (_) {}
     // asr_entry（telemetry-design §3，surface 'app_home' 是 2026-09-16 加的枚举）：
     // 两张模式卡的**共同落点**，一处覆盖「对话 · 实时听译」与「实时字幕」。
     // 只可能是 started —— 灰态时按钮是 disabled，不发 click；「想用但被挡住」那一下

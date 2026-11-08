@@ -42,6 +42,7 @@ import { deviceBridgeHost } from './device-bridge-host.js';
 import * as FirstRun from './firstrun.js';   // 首屏三段式的纯判定（#532）
 import * as PackProgress from './pack-progress.js';
 import * as ASRQuota from './asr-quota.js';   // 识别语言名额的本机记忆（第 5 轮 A / 改稿 H）
+import * as TelemetrySession from './telemetry-session.js';   // BEL-223/225/226 的冷启会话
 import { withUtm } from '../shared/utm.js'; // BEL-155 官网外链 UTM
 
 // BEL-197: Google provider callbacks land on `scheme://auth` (intl `belliedmonkey`,
@@ -206,6 +207,9 @@ export function createGoogleAuthFlow(options) {
       rotateVerifier();
       return null;
     }
+    // BEL-223：登录成功的那一刻记 auth_ok（匿名）+ 第一方窄口。fire-and-forget ——
+    // noteAuthOk 自己吞错，绝不把登录/后面的 show()/doSync() 拖住。
+    safe(o.noteAuthOk, session);
     try {
       await o.show(session);
       await o.doSync();
@@ -237,6 +241,18 @@ export function bootShell() {
   // above that point, so a `let` further down would be a temporal-dead-zone trap
   // waiting for the first refactor that calls `show()` earlier.
   let currentSession = null;
+
+  // BEL-223：登录/注册成功后的唯一上报口。fire-and-forget —— 第一方窄口失败只吞错，
+  // 不阻塞登录（noteAuthOk 自己 catch；这里再包一层防 await 前抛）。
+  function noteAuthOk(provider, session) {
+    try {
+      return TelemetrySession.noteAuthOk({
+        provider,
+        userId: session && session.userId,
+        accessToken: session && session.accessToken,
+      });
+    } catch (_) { return null; }
+  }
 
   // Same i18n as every other surface (interaction-spec 「界面语言」: no hardcoded
   // copy, anywhere). The bundle has carried MT_I18N_MESSAGES from the start — the
@@ -568,6 +584,28 @@ export function bootShell() {
     return asrPlan().keep;
   }
 
+  // BEL-226 packs_ready 的计数：与 FirstRun.readiness() 的分项同源（base / asr / tts），
+  // 但这里只数「当前所需包数 / 已就绪数」，不记语言名单。tts 的中英共用一行，泰语单独
+  // 一行（与 readiness() 的 items 一致）；base 是语种识别 + 人声检测这一项。
+  function packReadinessCounts(s) {
+    const asrLangs = firstRunAsrLangs(s);
+    const asrReady = packAsrUnsupported
+      ? asrLangs.length
+      : asrLangs.filter((c) => !!packAsrByLang[FirstRun.baseCode(c)]).length;
+    const ttsLangs = firstRunLocales(s).map((x) => FirstRun.baseCode(x));
+    const kokoro = ttsLangs.some((c) => c === 'zh' || c === 'en');
+    const thai = ttsLangs.indexOf('th') >= 0;
+    const ttsRequired = (kokoro ? 1 : 0) + (thai ? 1 : 0);
+    const ttsReady = packTtsReady ? ttsRequired : 0;
+    const baseReady = (packLidReady && packVadReady) ? 1 : 0;
+    return {
+      base: { required: 1, ready: baseReady },
+      asr: { required: asrLangs.length, ready: asrReady },
+      tts: { required: ttsRequired, ready: ttsReady },
+      all: { required: 1 + asrLangs.length + ttsRequired, ready: baseReady + asrReady + ttsReady },
+    };
+  }
+
   function firstRunEngineOk(s) {
     // 引擎「可解析」＝**能用**，不是「apiKey 非空」——后者会把残值 key 的设备判成已配
     // （§8.10.3 / #513；`test/grant-one-implementation.test.js` 反向钉着「不许再拿
@@ -725,6 +763,9 @@ export function bootShell() {
         packVadReady = !!(vr && vr.ok);
       } catch (_) { packLidReady = false; packVadReady = false; }
     }
+    // BEL-226：每次探包后交给过渡去重器。只在「未齐 → 齐」时发一条（按 kind），
+    // 重复探、重启后仍齐都不会再发；从齐变不齐再变齐可再记（见 telemetry-session.js）。
+    try { TelemetrySession.packsReady(packReadinessCounts(s)); } catch (_) {}
   }
 
   function packsState(s) {
@@ -1733,10 +1774,24 @@ export function bootShell() {
   }
 
   // 下载 → 重新探 → 齐态自动进首页/回来源（D-03）。失败留在这一屏，不跳。
+  // BEL-226：pack_download_fail 的 code 只发 id 型（注册表 'id'）。不塞系统长文/路径。
+  function packFailCode(e) {
+    if (!e) return 'download';
+    if (e.mtSttTimeout) return 'timeout';
+    if (e.mtTtsFailed) return 'tts_failed';
+    if (e.mtBaseFailed) return 'base_failed';
+    const code = String(e.code || '').toLowerCase().replace(/[^a-z0-9_-]/g, '_').slice(0, 32);
+    return /^[a-z0-9_-]+$/.test(code) ? code : 'download';
+  }
+
   async function runFirstRunPacks() {
     if (packsBusy) return;
     packsBusy = true;
     packPhase = 'downloading';
+    // 一条「把包配齐」的流程 = 一个 setup_id（跨启动不变，见 telemetry-session.js）。
+    // start / ok / fail 共用它；surface 用当前功能面（首启时默认 listen）。
+    const packSurface = TelemetrySession.currentSurfaceSync();
+    try { await TelemetrySession.packStart(packSurface); } catch (_) {}
     // 把当前这一对**落盘**（#564）：选「默认值」不触发 change 时，重画不能按「未设置」重算。
     try { chrome.storage.local.set({ listenMyLang: langPair[0], listenOtherLang: langPair[1], listenPackLangs: packLangs.slice(), listenPackThaiTts: !!packThaiTts, listenPackKokoro: packKokoroOff ? false : true }, () => {}); } catch (_) {}
     try { await paintFirstRun(currentSession); } catch (_) {}
@@ -1748,6 +1803,7 @@ export function bootShell() {
       await downloadTts(s);
       await downloadAsr(s);
     } catch (e) {
+      try { await TelemetrySession.packFail(packSurface, packFailCode(e)); } catch (_) {}
       if (err) {
         err.hidden = false;
         if (e && e.mtSttTimeout) {
@@ -1775,6 +1831,7 @@ export function bootShell() {
       await paintFirstRun(currentSession);
       return;
     }
+    try { await TelemetrySession.packOk(packSurface); } catch (_) {}
     packPhase = 'done';
     // 下载完成就记；齐态立刻 dismiss（D-03），不停留完成页。
     try { await writePacksDone(); } catch (_) {}
@@ -2680,6 +2737,8 @@ export function bootShell() {
     prepare: () => LearnAuth.prepareProviderSignIn(),
     noteNative: (err) => LearnAuth.noteAuthFail('google', 'native', err),
     notePostLogin: (err) => LearnAuth.noteAuthFail('google', 'post_login', err),
+    // BEL-223：Google 的成功点（iOS sheet 与 macOS deeplink 共用 settle 点）。
+    noteAuthOk: (session) => noteAuthOk('google', session),
     verifyingText: () => t('app_verifying', '正在登录…'),
     failedText: googleFailedText,
     timeoutText: googleTimeoutText,
@@ -2759,6 +2818,7 @@ export function bootShell() {
     try {
       session = await LearnAuth.signInWithIdToken('apple', r.idToken, r.nonce);
     } catch (err) { setLoginBusy(false); say(humanError(err), true); return; }
+    noteAuthOk('apple', session);
     try {
       await show(session);
       // 与验证码那条路逐字相同：刚登录的人要的就是他的材料，让他再去找一个按钮，
@@ -2811,6 +2871,7 @@ export function bootShell() {
         setLoginBusy(false);
         return;
       }
+      noteAuthOk('email', session);
       try {
         await show(session);
         // Pull immediately. A user who just signed in is asking for their material —
@@ -2880,6 +2941,7 @@ export function bootShell() {
         say(humanError(err), true);   // 交换那条已由 auth.js 记过
         return;
       }
+      noteAuthOk('email', session);
       try {
         await show(session);
         // Same as the OTP path: a user who just signed in is asking for their
@@ -3302,6 +3364,11 @@ export function bootShell() {
 
   (async () => {
     paintStatic();
+    // BEL-225：冷启一条 app_open，**必须在任何登录墙判定之前**。这里在
+    // `LearnAuth.currentStable()` / `show()` 之前启动；appOpen 自己读会话只用来填
+    // auth_state（signed_in / signed_out / unknown），读不到人也不影响它发出。
+    // main.jsx 也会调一次（quick 面板不跑 bootShell），模块内单飞 ⇒ 一次冷启只有一条。
+    try { TelemetrySession.appOpen(); } catch (_) {}
     // 上面那一遍是按**系统**语言画的（存储还没读回来）。补这一次重画，否则首页
     // 永远不跟随「界面语言」—— 而设置页会跟随（它经 review.js 调过 setUiLang），
     // 于是同一个 App 里一半英文一半中文。非中文用户的第一屏就是这块。

@@ -25,6 +25,7 @@
 import PageText from '../lib/i18n.js';
 import Registry from '../lib/registry.js';
 import SETTINGS_SCHEMA from '../store/schema.js';
+import * as TelemetrySession from './telemetry-session.js';
 
 // Same i18n as everything else (interaction-spec 「界面语言」: no hardcoded copy).
 // Chinese literals below are FALLBACKS beside their keys, never the only copy.
@@ -216,7 +217,15 @@ async function trackEngineSet() {
 // 「已配好」这句话要有证据、以及一个槽都没写时那句话是假的。
 async function claimAndApply(opts) {
   const o = opts || {};
-  const claimed = await LearnGrant.claim();
+  let claimed;
+  try {
+    claimed = await LearnGrant.claim();
+  } catch (e) {
+    // BEL-223：领取失败**只记事件**，文案/流程一个字都不改（错误原样抛回调用方）。
+    // 两个 App 入口（登录即领取、设置页「领取 / 改回」）都经过这里，所以只接一处。
+    try { TelemetrySession.grantClaimFail(e && e.code); } catch (_) {}
+    throw e;
+  }
   const cur = await get(KEYS);
   // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
   const plan = LearnGrant.plan(claimed, cur, window, { overwrite: !!o.overwrite });
