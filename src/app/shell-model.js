@@ -872,6 +872,7 @@ export function bootShell() {
     if (used) used.textContent = t('firstrun_quota_used', '已用 {n} / {max}').replace('{n}', String(q.used)).replace('{max}', String(q.max));
     const bar = $('packs-quota-bar');
     if (bar) {
+      bar.hidden = false;
       bar.textContent = '';
       const max = Math.max(1, q.max);
       for (let i = 0; i < max; i++) {

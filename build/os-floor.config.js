@@ -18,6 +18,8 @@
 'use strict';
 
 const FLOOR = { ios: '16.4', macos: '13.3', safari: '16.4', decided: '2026-09-13' };
+// Duo P0 T10（SPEC-DUO-P0）：deployment 保持 16.4；目标编包 SDK = 27.1（见 docs/duo-toolchain-note.md）。
+// 勿在此或 pbxproj 擅自抬高 deployment。
 
 // 解析期语法 × 首个支持它的 Safari 版本。只登记**解析期**就炸的东西：运行时 API（structuredClone、
 // CompressionStream…）要么有特性检测、要么只在某条路上跑，grep 会误报，不在这里。

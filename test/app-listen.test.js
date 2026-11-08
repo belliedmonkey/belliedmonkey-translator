@@ -819,7 +819,8 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
   });
   test('语言区 = 两门对称（听到 A 译 B / 听到 B 译 A），字幕用角色标签', () => {
     ok(/langPairLabels: sub/.test(MODEL), '没有两门对称的语言区数据');
-    ok(/langDirArrow: sub \? '→' : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕页不是 →');
+    ok(/langDirArrow: sub \? \(lay\.captionChrome === 'captionDesk' \? '⇋' : '→'\) : '⇄'/.test(MODEL), '听译页不是 ⇄、字幕 compact 不是 →、desk 不是 ⇋');
+    ok(/subtitle_desk_wide_cta/.test(MODEL), 'deskWide CTA 应走 i18n 键');
     ok(!/autoFollow\(/.test(MODEL), '自动跟随应当退场（语言由用户选）');
     ok(!/listen_lang_edit|langTargetLabel/.test(MODEL), '「语言不对？」/「我说的语言」那一套应当退场');
     const view = read('src/app/listen-view.jsx');
@@ -849,8 +850,8 @@ describe('ListenCore — 本机转写路：locale、收 final 的规则、串句
 
 
     ok(/reason === 'socket' && why1 === 'locale' \? needText\('locale'\)/.test(MODEL), '协议码 locale 会被当原文印出来');
-    ok(/const otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
-    ok(/const myLang = langOk\(storedTarget\)/.test(MODEL), '「译成」也没过 langOk');
+    ok(/otherLang = langOk\(storedOther\) \? storedOther : 'en'/.test(MODEL), '存量 listenOtherLang 的坏值没有自愈');
+    ok(/const target = langOk\(storedTarget\)/.test(MODEL) && /myLang = target/.test(MODEL), '「译成」也没过 langOk');
   });
   test('模型里半句与定稿两处闸都接了「稳定的 LID 判词」；旧的手写规则已退场', () => {
     eq((MODEL.match(/C\.sideMatchesLid\(ev && ev\.locale, lidPair\(\)\)/g) || []).length, 1, '半句那道 LID 闸');
@@ -1073,8 +1074,7 @@ describe('ListenCore — 实时字幕条字号三档（§9.8 协议补充决定 
 });
 
 describe('ListenModel / ListenView — P0-B 最近句子默认最新在上（1.21.1）', () => {
-  // 源码钉：存储仍 push；展示只在 historyView 翻转；跟滚贴顶。禁 column-reverse / unshift 叠加。
-  // 本线字幕舞台走 partial，不从历史行取「当前句」，所以不要求 subtitleStageLines。
+  // 源码钉：存储仍 push；展示只在 historyView 翻转；舞台取 rows[0]；跟滚贴顶。禁 column-reverse / unshift 叠加。
   const VIEW = read('src/app/listen-view.jsx');
   test('historyView：map 后 reverse，展示新→旧；不改 addFinal', () => {
     ok(/out\.reverse\(\)/.test(MODEL), 'historyView 须 out.reverse 展示新→旧');
@@ -1082,6 +1082,11 @@ describe('ListenModel / ListenView — P0-B 最近句子默认最新在上（1.2
     const core = read('app/listen-core.js');
     ok(/s\.rows\.push\(row\)/.test(core), 'addFinal 须仍 push');
     ok(!/s\.rows\.unshift\(row\)/.test(core), '禁 addFinal unshift');
+  });
+  test('subtitleStageLines：取展示序 rows[0]（最新定稿）', () => {
+    ok(/const r = rows\[0\];/.test(VIEW), '舞台须取 rows[0]');
+    ok(!/rows\[rows\.length - 1\]/.test(VIEW.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')),
+      '舞台不得再取 rows[last]（旧贴底语义）');
   });
   test('跟滚改贴顶；禁 CSS column-reverse 当分叉', () => {
     ok(/el\.scrollTop = 0/.test(VIEW), '须贴顶 scrollTop=0');

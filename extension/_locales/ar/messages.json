@@ -4241,5 +4241,53 @@
   },
   "grant_balance_stale": {
     "message": "الرصيد الأخير المعروف · لم يُحدَّث"
+  },
+  "thai_grok_section": {
+    "message": "التعرف على التايلاندية (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "استخدام Grok للكلام التايلاندي"
+  },
+  "thai_grok_key_label": {
+    "message": "مفتاح API · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "الصق مفتاح API من xAI"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-•••••••• (محفوظ)"
+  },
+  "thai_grok_key_clear": {
+    "message": "مسح"
+  },
+  "thai_grok_nokey": {
+    "message": "مفتاح API مفقود · التعرف على التايلاندية غير متاح"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "يؤثر ذلك على التعرف على التايلاندية فقط؛ وتستمر بقية الجلسة"
+  },
+  "thai_grok_local_note": {
+    "message": "يبقى المفتاح على هذا الجهاز فقط"
+  },
+  "thai_grok_key_url": {
+    "message": "احصل على مفتاح من xAI"
+  },
+  "subtitle_recent": {
+    "message": "الجمل الأخيرة"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "يستمع · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "افتح الفيديو أو المتصفح في النصف الآخر من العرض المنقسم؛ ستظهر الترجمة هنا. يمكنك أيضًا مغادرة التطبيق وستبقى الترجمة في نافذة صورة داخل صورة."
+  },
+  "home_gate_badge": {
+    "message": "غير متاح مؤقتًا"
+  },
+  "subtitle_stage_empty": {
+    "message": "ستظهر الترجمة هنا بعد البدء"
+  },
+  "app_set_done": {
+    "message": "تم"
   }
 }

@@ -4074,5 +4074,53 @@
   },
   "grant_balance_stale": {
     "message": "अंतिम ज्ञात शेष · रीफ़्रेश नहीं हुआ"
+  },
+  "thai_grok_section": {
+    "message": "Thai recognition (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "Use Grok for Thai speech"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "Paste xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••"
+  },
+  "thai_grok_key_clear": {
+    "message": "Clear"
+  },
+  "thai_grok_nokey": {
+    "message": "API Key missing · Thai recognition unavailable"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "Only Thai recognition is affected; the rest of the session continues"
+  },
+  "thai_grok_local_note": {
+    "message": "The key stays on this device"
+  },
+  "thai_grok_key_url": {
+    "message": "Get a key from xAI"
+  },
+  "subtitle_recent": {
+    "message": "हाल के वाक्य"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "सुन रहा है · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "स्प्लिट व्यू के दूसरे हिस्से में वीडियो या ब्राउज़र खोलें; सबटाइटल यहाँ दिखेंगे। आप ऐप छोड़ भी सकते हैं — सबटाइटल पिक्चर-इन-पिक्चर में बने रहेंगे।"
+  },
+  "home_gate_badge": {
+    "message": "अभी उपलब्ध नहीं"
+  },
+  "subtitle_stage_empty": {
+    "message": "शुरू करने पर सबटाइटल यहाँ दिखेंगे"
+  },
+  "app_set_done": {
+    "message": "हो गया"
   }
 }

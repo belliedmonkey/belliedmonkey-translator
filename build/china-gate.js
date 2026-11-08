@@ -15,7 +15,10 @@
 // `scan(files)` is a pure function: `[{ name, text }] → ['file:line  fragment', …]`.
 // The second argument (`opts`) is accepted for call compatibility but is not used.
 
-const BRANDS = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com/i;
+// Thai Grok peel (BEL-169 / SPEC-THAI-GROK-RELEASE-PEEL): the China artifact must not
+// carry the Grok STT protocol event or the xAI endpoints. This is a product peel, not
+// the region policy that moved to the private compliance repo (BOUNDARY.md §4).
+const BRANDS = /ChatGPT|OpenAI|\bClaude\b|api\.openai\.com|api\.anthropic\.com|api\.x\.ai|wss:\/\/api\.x\.ai|grok-stt-open/i;
 const TOKYO = /(^|\.)supabase\.co$/i;
 const URL_RE = /https?:\/\/[^\s"'`)\\]+/g;
 
