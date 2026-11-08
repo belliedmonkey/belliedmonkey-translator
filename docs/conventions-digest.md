@@ -213,7 +213,7 @@
 - BAN-26 竞品全名绝不进 App Store keywords（官网 / README / HN / Reddit 可以写）—— 来源「docs/seo-geo-checklist.md:57-58」「docs/growth-spec.md:137」
 - BAN-27 永远不要把第三方的短码直接写进产品或 README；对外发自己域名下的 307 短链（不用 308，它会被浏览器永久缓存）—— 来源「docs/growth-spec.md:64-72」
 - BAN-28 绝不用第三方分析（无 SDK、无第三方统计、无第三方分析平台）；遥测数据直连自有后端。中国版与国际版同一份用量白名单，入口是境内 ingest，不共东京；诊断通道仍单独披露、不含原文 / 译文（2026-10-29，BEL-135）—— 来源「docs/telemetry-design.md §2 原则 6」
-- BAN-29 台账（账号 ↔ 花费）与遥测永不 join；中继转发的文本不进任何表、不进日志 —— 来源「docs/telemetry-design.md:75-78」「docs/telemetry-design.md:129」
+- BAN-29 台账（账号 ↔ 花费）与遥测可经 `install_id` / `bt_auth_ok` 连接（仅支持与滥用排查，不进第三方）；中继转发的文本不进任何表、不进日志 —— 来源「docs/telemetry-design.md §2 原则 2/7」
 - BAN-30 采集是汇绝不是源：Collector 绝不反向施压引擎（不影响选活跃、不改泵节奏、不标记单元、绝不自发翻译请求）；运行时删掉学习层，翻译输出必须逐字节相同 —— 来源「docs/learning-design.md:213-217」
 - BAN-31 禁止自我采集：注入的学习 UI 必须带 `translate="no"` 且带跳过区标记；Collector 跳过译文节点与所有 `#mt-*` 子树 —— 来源「docs/learning-design.md:239-242」
 - BAN-32 凭证是设备本地的、永不同步（服务器无端到端加密）；绝不硬编码语言、绝不做词汇 / 单词卡 —— 来源「docs/learning-design.md:878-880」「docs/learning-design.md:102-107」

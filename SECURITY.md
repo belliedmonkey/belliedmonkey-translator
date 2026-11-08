@@ -16,7 +16,9 @@ What the threat model looks like, so you know what counts:
 - Sync stores learning material under row-level security scoped to the account. Cross-account
   reads are the thing to look for.
 - Anonymous usage events carry a random per-install id and a whitelist of event names
-  (`build/telemetry.config.js`). Anything that smuggles page content, URLs, keys or account
-  identity into them is a vulnerability.
+  (`build/telemetry.config.js`). The event body must never carry page content, URLs, keys or
+  account identity. The disclosed first-party `bt_auth_ok` ledger (account ↔ install id, for
+  support and abuse investigation) is the only permitted link; anything else that joins the
+  event stream to an account is a vulnerability.
 
 Supported: the latest release on each store. Older versions are not patched.

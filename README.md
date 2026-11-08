@@ -361,12 +361,18 @@ Stated up front, because finding them yourself is worse.
   learning material between your own devices needs a free account; everything else works without one.
 - **Anonymous usage events, off in one switch.** The extension sends which features are used, on
   which browser, and whether a translation succeeded or failed — never the pages you read, the
-  text, the addresses, your keys or your account. From 1.22.3 the app also records first-listen
+  text, the addresses, your keys or your account id. From 1.22.3 the app also records first-listen
   steps — microphone permission, listening started, listening failed, and translation started —
   to improve the listen experience. Those events carry no audio and no transcript, and the
-  extension does not send this set. A random per-install id, never joined to an
-  account; turning it off in Settings deletes what that device sent. The China edition sends
-  the same anonymous usage events to our in-country server. Details: [`docs/telemetry-design.md`](docs/telemetry-design.md).
+  extension does not send this set. Each event carries a random per-install id; we also keep a
+  first-party sign-in ledger, `bt_auth_ok`, that records your account and that install id
+  together for support and abuse investigation, and free-credit usage rows carry the same
+  install id — so usage can be linked to an account. It is not used for advertising or
+  cross-site tracking, and is never sold to third parties. Turning the switch off stops the
+  events and deletes the event rows this device sent; the sign-in ledger is still written,
+  and first-party rows already written follow their 90-day retention. The China edition
+  sends the same anonymous usage events to our in-country server. Details:
+  [`docs/telemetry-design.md`](docs/telemetry-design.md).
 - **Learning material is built on your device.** If you turn on the learning feature, the
   extension keeps the sentences you actually read — with the page URL, its title, and how long
   the text was on screen — in local storage on that device, so it can show them to you again

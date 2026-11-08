@@ -115,14 +115,15 @@ const EVENTS = {
   // 每轮：opened 一条 + 结局一条（done / left / nothing_due 三选一，互斥）。
   review_session: { graded: 'int', result: ['done', 'left', 'opened', 'nothing_due'], left: 'int' },
   // 免费额度（§8.10）。两个都**无属性** —— 需要的只是「多少人领了」与「多少人用完了」
-  // 这两个计数。台账（谁花了多少）是账号级数据，与遥测**永不 join**（telemetry-design
-  // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
+  // 这两个计数。台账（谁花了多少）是账号级数据；2026-11-08 起 bt_auth_ok 把 user_id 与
+  // install_id 写进同一张第一方表、bt_grant_usage 也带 install_id，所以与遥测**可连接**
+  // （仅支持与滥用排查，不进第三方；telemetry-design 原则 7）。
   grant_claimed: {},
   grant_exhausted: {},
   // ── BEL-224／225／226（2026-11-08）归因遥测 ──────────────────────────────────
   // 本拍（P0）只登记名字、属性与枚举；**客户端发送点留 P1**（BEL-223/225/226）。
   // 事件正文仍守规则 4：没有 user_id / 邮箱 / 凭证 / 原文 / URL。user_id 只进第一方
-  // bt_auth_ok（BEL-222），与这里的事件**永不 join**。
+  // bt_auth_ok（BEL-222）；该表的 install_id 与这里的事件可对上（仅支持与滥用排查，不进第三方）。
   //
   // 免费额度记账（BEL-224）：只在 hosted `bt_grant_charge` 写成功 / 写失败时各记一条，
   // 不按请求重试次数记。`kind` 与 bt_grant_usage.kind 同源；`surface` 是这次花费落在
@@ -140,7 +141,8 @@ const EVENTS = {
   },
   // 登录成功（BEL-223）。P3 要求「signup / signin 各一次」⇒ method 必须能分开这两种；
   // provider 与 auth_fail.provider 同一套值（apple / google / email / phone）。
-  // 服务端另写第一方 bt_auth_ok（含 user_id），这条匿名事件不带 user_id。
+  // 服务端另写第一方 bt_auth_ok（含 user_id），这条匿名事件不带 user_id；两边可由
+  // install_id 对上（仅支持与滥用排查，不进第三方）。
   auth_ok: {
     surface: SURFACES,
     provider: ['apple', 'google', 'email', 'phone', 'unknown'],

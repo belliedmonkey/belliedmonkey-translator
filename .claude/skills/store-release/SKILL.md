@@ -281,8 +281,9 @@ node scripts/asc.js privacy --apply  # 有进行中的版本时才改得动
 匿名用量事件上线之后，两处**手填**的商店披露必须跟着改，否则提审即说假话：
 
 - **App Store 隐私标签**（ASC 网页 → App 隐私）：除「User Content」外，加
-  **Usage Data → Product Interaction，Not linked to you**。两个 app 记录都改（中国版
-  虽然不发，但同一份 bundle 里有开关代码 —— 如实按「中国版不采集」填，别照抄）。
+  **Usage Data → Product Interaction，Linked to you**（tracking 仍 **No**）。两个 app 记录都改：
+  `bt_auth_ok` 把账号与 install id 写在同一张第一方表、`bt_grant_usage` 也带 install id，
+  所以不能再填 Not linked；中国版发同一套白名单，按同一口径填。
 - **Chrome Web Store 数据披露**（开发者后台 → 隐私）：勾 **User activity**；三条
   「不出售 / 不用于无关用途 / 不用于信用评估」声明保持。
 - Firefox 的 `data_collection_permissions` 由 `build.js` 的 `WANT_DCP` 钉住，不用手填。

@@ -2211,7 +2211,7 @@ export default function SettingsView() {
         <div id="telemetry-block" hidden>
           <h3 id="telemetry-title">{t('telemetry_section', '匿名用量数据')}</h3>
           <label className="row-toggle"><span id="telemetry-label">{t('telemetry_toggle', '分享匿名用量数据')}</span><input type="checkbox" id="telemetry-on" /></label>
-          <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号。关掉即删除这台设备发过的数据。')}</p>
+          <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号标识；登录时另记一张账号↔安装 id 的第一方台账（仅支持与滥用排查）。关掉会删除这台设备发过的事件行，已写入的第一方行按 90 天保留期删除。')}</p>
           <button id="telemetry-what" type="button" className="secondary">{t('telemetry_what', '会发送什么')}</button>
         </div>
         {/* 诊断日志（§0.4.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。

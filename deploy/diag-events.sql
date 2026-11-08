@@ -8,7 +8,7 @@
 
 create table if not exists public.bt_diag_events (
   id          bigint generated always as identity primary key,
-  install_id  uuid not null,                    -- 与遥测同一个匿名安装 id，永不 join 到账号
+  install_id  uuid not null,                    -- 与遥测同一个匿名安装 id；本身不含账号，但可与第一方台账 bt_auth_ok 对上（仅支持与滥用排查）
   flavor      text not null check (flavor in ('global', 'china')),
   app_version text not null,
   app_build   text not null,

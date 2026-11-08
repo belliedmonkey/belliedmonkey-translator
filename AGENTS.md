@@ -55,12 +55,17 @@ these in order when designing anything new:
    首页只会把人引向一堆用不了的入口。服务器仍然只承担真正无法在本机完成的事；账号与同步仍然
    免费；**不付费仍然完整** —— 变的只是「不登录」。三屏序列与判据见
    `docs/interaction-spec.md`「App 首屏三段式」。
-4. **No tracking, no content, no identity in telemetry — and server-side computation
-   only as a paid, opt-in exception.** The product sends **anonymous usage events**
-   (`docs/telemetry-design.md`): a fixed whitelist of event names, a random per-install
-   id that is never joined to an account, and never any page content, URL, hostname,
-   API key, email or server error text. It is on by default, disclosed at first run,
-   switchable off in settings, and switching it off erases that install's rows. The
+4. **No tracking, no content, no third-party audience data — and server-side
+   computation only as a paid, opt-in exception.** The product sends **anonymous
+   usage events** (`docs/telemetry-design.md`): a fixed whitelist of event names, a
+   random per-install id, and never any page content, URL, hostname, API key, email
+   or server error text. The event body carries no `user_id`; the install id is
+   linkable to an account through the first-party sign-in ledger `bt_auth_ok`
+   (`user_id` ↔ `install_id`, kept for support and abuse investigation) and through
+   `bt_grant_usage.install_id` — never for advertising, cross-site tracking, or
+   resale. It is on by default, disclosed at first run, switchable off in settings;
+   switching it off erases that install's event rows, while first-party rows already
+   written follow their 90-day retention. The
    *(Note 2026-10-06 — 诊断日志 L2，`36465e49`.)* **中国版不再「一个字节都不发」。** 诊断上报把
     **匿名诊断事件**（随机安装 id + 事件名 + 计数；字段白名单在 `app/diag-log.js` 的 `push` 处强制 ——
     内容 / URL / 账号 / 密钥一个键都进不来）POST 到自有后端信箱 `bt_diag_events`（**INSERT-only**）。
@@ -83,7 +88,8 @@ these in order when designing anything new:
    允许我们选择承担的那种成本。代价要如实写：这条路上用户的文本**会经过我们的服务端**
    转发到提供方 —— 不保存、不记录内容、只记每次花费，且按 §2.1 第 3 条**对这条路单独
    披露**（§10 Gate F）。台账（`bt_grants`：账号 ↔ 花费总数）是账号级数据，与遥测
-   **永不 join**；遥测里只多两个匿名事件（领了 / 用完了）。
+   **可连接**（`bt_auth_ok` 的 `user_id` ↔ `install_id`；仅支持与滥用排查，不进
+   第三方）；遥测里只多两个匿名事件（领了 / 用完了）。
    *(Amended 2026-09-05. This rule used to read "No telemetry, ever … permanently
    forbidden". It was declared, never argued — issue #174 — and its cost was paid
    silently: 75 sync accounts of which 54 never produced a card, and nobody could say

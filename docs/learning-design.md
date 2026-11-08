@@ -1951,7 +1951,8 @@ key 喂给**现有的** `QuickSetup.plan()`，平台 = 我们的中继（注册�
 
 **它不是什么。** 不是订阅制的前奏（§12 2026-08-03 那行的**部分重开**：重开的是「我们出钱、
 免费、封顶的样品额度」，付费本身仍否决）；不是第二条默认路径（自带 key 仍是默认、引导仍
-教它；用完回到 BYO 与免费引擎，一字不改）；不是遥测（台账与遥测永不 join，telemetry §2 原则 7）。
+教它；用完回到 BYO 与免费引擎，一字不改）；不是遥测（台账与遥测可由 `install_id` 连接，
+仅支持与滥用排查；telemetry §2 原则 7）。
 
 #### 六条裁定（画布 D1–D5 + 金额，2026-09-08）
 
@@ -1966,7 +1967,7 @@ key 喂给**现有的** `QuickSetup.plan()`，平台 = 我们的中继（注册�
 
 #### 后端
 
-- **表 `bt_grants`**（`supabase/schema.sql`）：`user_id uuid primary key references auth.users on delete cascade`、`token_hash text unique`、`token_ct` / `token_iv`（AES-256-GCM，KEK 只在函数密钥 `GRANT_KEK`；只为 D1 回传同一枚）、`limit_usd numeric`、`spent_usd numeric default 0`、`status active | revoked`、`created_at`、`last_used_at`。**表 `bt_grant_usage`**：`user_id`、`at`、`kind chat | tts | stt`、`model`、`cost_usd`、`ms` —— **没有内容列，也没有 URL 列**；90 天清扫。两表 RLS 开、**零策略**（同 `bt_events`：只有 service role）。记账走一个 SQL 函数 `bt_grant_charge(hash, cost)`：`update … set spent_usd = spent_usd + cost where token_hash = $1 and status = 'active' returning limit_usd - spent_usd` —— 原子，且是**唯一**的写路径。
+- **表 `bt_grants`**（`supabase/schema.sql`）：`user_id uuid primary key references auth.users on delete cascade`、`token_hash text unique`、`token_ct` / `token_iv`（AES-256-GCM，KEK 只在函数密钥 `GRANT_KEK`；只为 D1 回传同一枚）、`limit_usd numeric`、`spent_usd numeric default 0`、`status active | revoked`、`created_at`、`last_used_at`。**表 `bt_grant_usage`**：`user_id`、`at`、`kind chat | tts | stt`、`model`、`cost_usd`、`ms`，2026-11-08 起加可空的 `install_id` / `host` / `surface`（归因；与 `bt_auth_ok` 一起使账号与匿名用量**可连接**，仅支持与滥用排查）—— **没有内容列，也没有 URL 列**；90 天清扫。两表 RLS 开、**零策略**（同 `bt_events`：只有 service role）。记账走一个 SQL 函数 `bt_grant_charge(hash, cost)`：`update … set spent_usd = spent_usd + cost where token_hash = $1 and status = 'active' returning limit_usd - spent_usd` —— 原子，且是**唯一**的写路径。
 - **`bt-grant`**（领取；鉴权照抄 `bt-delete-account`：经 `GET /auth/v1/user` 解析调用者，不接受任何 user id 入参；限流照抄 `bt-ingest`）：OPTIONS → 鉴权 → 每 IP ≤ 5/小时 → 已有行 `active` ⇒ 解密回传 `reused:true`；`revoked` ⇒ 409 → 全局日上限 `GRANT_DAILY_CAP=50` → 生成令牌、写 hash + 密文 → `200 {token, limit_usd, reused:false}`。错误只回 `{error:<snake_id>}`，日志不带 user id。
 - **`bt-relay`**（中继；**不用 Supabase JWT**，用令牌 —— 内容脚本永不持有 `learnAuth`，§8.4.1.1）：OPTIONS（ACAO `*`，同 `bt-ingest`）→ `Authorization: Bearer bmg_…` → hash 查行（`active` 且 `spent_usd < limit_usd`，否则 **402** `credit_exhausted`）→ 每令牌限速（≤ 60 请求/分钟）、体积上限（chat 64 KB、stt 25 MB）→ 按路径后缀分三种：`chat/completions` 只放行 `{model, messages, temperature, max_tokens, response_format}`，`model` 必须等于钉住的模型（否则 **403** `model_not_allowed`），补 `usage:{include:true}`；`audio/speech` 放行 `{model, input, voice, response_format}`，`model` 钉住；`audio/transcriptions` 透传 multipart，`model` 钉住 → 用我们的 `OPENROUTER_GRANT_KEY` 转发 → 记账：chat 用返回的 `usage.cost`，tts 按字符数 × 价目表，stt 按时长 × 价目表（价目表是函数环境变量，改价不发版）→ 原样回传状态码与正文（**不改写请求或响应的形状**，`wire-format` / `request-shape` 眼里它就是一个兼容端点）。池子：转发前每 10 分钟查一次 `GET /api/v1/credits`，低于 `GRANT_FLOAT_MIN_USD=5` 回 **503** `grant_unavailable`。`GET bt-relay/balance`（带令牌）→ `{spent_usd, limit_usd}`。**不记日志正文**：日志只有 hash 前 8 位、kind、cost、ms、状态码。
 - **`bt-delete-account`**：`on delete cascade` 带走两表；响应加 `grant: true|false`。
@@ -2096,8 +2097,9 @@ flavor，境内后端就绪后中国版直接复用，DashScope 本来就没有 
 （百炼条款：用户 2026-09-22 裁定「API 肯定可以调用」，不再列为前置。）
 
 **可观测性要提前说清**：自 2026-10-29 起中国版把与国际版同一份匿名用量发到境内 ingest（原则 6）。
-额度台账仍是账号侧，**永不**与 `install_id` join。境内 `bt-ingest` 现网未回读（Phase B）之前，
-客户端可以持有 URL，但抓包见不到 2xx 就不得把「0 行」说成「没人用」。
+额度台账仍是账号侧，但 **2026-11-08 起** `bt_grant_usage` 带 `install_id`、`bt_auth_ok`
+把账号与安装 id 写在同一张第一方表 —— 与匿名用量**可连接**（仅支持与滥用排查，不进第三方）。
+境内 `bt-ingest` 现网未回读（Phase B）之前，客户端可以持有 URL，但抓包见不到 2xx 就不得把「0 行」说成「没人用」。
 
 #### 8.10.2 出境告知与单独同意 —— 这是今天就存在的缺口（2026-09-22 提案；**同日用户裁定「现在就补」并落地**）
 
@@ -4448,7 +4450,8 @@ settled §8: **we host the corpus, in plaintext, under a fixed quota**.)*
   encrypted", because it is not.
 - **App Store privacy labels** must be refilled — adds "User Content"; *(2026-09-05: and
   "Usage Data · Product Interaction, not linked to you", once Gate D ships — this line
-  used to say "not Usage Data, since there is still no telemetry")* — and the host app
+  used to say "not Usage Data, since there is still no telemetry". **2026-11-08:
+  linked to you** — `bt_auth_ok` records account ↔ install id; tracking stays no)* — and the host app
   must offer in-app **account deletion**, an Apple requirement wherever accounts exist.
 - **Export ships with sync, not after** (§8.2). It is simultaneously the portability
   right, the no-account path, and the honest answer to "I don't trust you".
@@ -4541,9 +4544,14 @@ review-visible, and shipping the code before any one of them is shipping a lie.)
 What becomes true, in one sentence used verbatim everywhere it is disclosed:
 
 > **We collect anonymous usage events — which features are used, on which browser,
-> and whether a translation succeeded or failed. Never the pages you read, the text,
-> the addresses, your keys or your account. On by default; off in one switch; turning
-> it off deletes what that device sent.**
+> and whether a translation succeeded or failed. The event body never carries the pages
+> you read, the text, the addresses, your keys or your account id. We also keep a
+> first-party sign-in ledger, `bt_auth_ok`, that records your account and your install id
+> together for support and abuse investigation, and free-credit usage rows carry the
+> same install id — so usage can be linked to an account. Not used for advertising,
+> cross-site tracking, or resale. On by default; off in one switch; switching it off
+> deletes the event rows this device sent; the sign-in ledger is still written, and
+> first-party rows already written follow their 90-day retention.**
 
 Every surface that currently says "no telemetry", and what replaces it — all in the
 **same PR as the code**, or the release does not ship:
@@ -4551,16 +4559,16 @@ Every surface that currently says "no telemetry", and what replaces it — all i
 | Surface | Today | Gate D |
 |---|---|---|
 | `AGENTS.md` rule 4 | No telemetry, ever | amended 2026-09-05 (done in the docs PR, ahead of code — the one place where "before" is right, because it is the design, not the disclosure) |
-| `README.md` / `README.zh-CN.md` | "No tracking, no telemetry" | "No tracking, no third-party analytics. Anonymous usage events (never page content or URLs), off in one switch." |
-| `build.js` Gate B | asserts the README does **not** say "no telemetry" | inverted: README ×2 and the 12-locale `telemetry_hint` must carry the "anonymous usage / 匿名用量" stem. **2026-10-29（BEL-135）**：中国版产物的 `MT_TELEMETRY.url` 主机是境内后端、路径含 `bt-ingest`；`*.supabase.co` 上的 ingest 仍禁。不再要求中国版产物里没有遥测 URL |
+| `README.md` / `README.zh-CN.md` | "No tracking, no telemetry" | "No tracking, no third-party analytics. Anonymous usage events (never page content or URLs), with a first-party account↔install ledger; off in one switch." |
+| `build.js` Gate D | asserts the README does **not** say "no telemetry" | inverted: README ×2 must carry the "anonymous usage / 匿名用量" stem **and** the `bt_auth_ok` account↔install disclosure; a stale 不可连接 claim fails. The in-product `telemetry_hint` is checked for presence only — its text lives in `extension/_locales`, frozen in this change. **2026-10-29（BEL-135）**：中国版产物的 `MT_TELEMETRY.url` 主机是境内后端、路径含 `bt-ingest`；`*.supabase.co` 上的 ingest 仍禁。不再要求中国版产物里没有遥测 URL |
 | Firefox `data_collection_permissions` (`WANT_DCP`) | 3 categories, exact set | + `technicalAndInteraction` |
-| App Store privacy labels | User Content = yes; **Usage Data = no** (Gate B) | Usage Data → **Product Interaction, not linked to you**. Refill both app records at submission |
+| App Store privacy labels | User Content = yes; **Usage Data = no** (Gate B) | Usage Data → **Product Interaction, linked to you**; tracking stays **no**. Refill both app records at submission |
 | Chrome Web Store data disclosure | 3 items | + "User activity"; the three "not sold / not for unrelated purposes / not for creditworthiness" attestations stay |
 | `store-assets/aso.md` en + 11 locales · `amo-listing.md` | "No tracking, no telemetry, no ads" | same sentence as README; **keywords untouched** |
-| `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, the deletion, the 180-day retention; §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
+| `belliedmonkey.cc` `home.f4b` + `privacy.*` ×12 | "no telemetry" | new section listing every field, the switch, what opt-out stops, the first-party account↔install link, and retention (first-party 90 days / events 180 days); §5 "No tracking" narrows to cross-site tracking / profiles / third-party analytics and points at the new section |
 | `belliedmonkey.com` | 「『无遥测』是长期承诺」 | **2026-10-29（BEL-135）覆盖**：中国版发与国际版同一份匿名用量白名单，入口境内 `api.belliedmonkey.com/.../bt-ingest`，不共东京。该句与「一个字节都不发」必须删掉，字段表与 intl 同构。诊断通道（L2）仍并列、不含原文与译文。网站正文另一次改；未回读境内 ingest（Phase B）不得宣称生产已对齐 |
 | `belliedmonkey.cc/llms.txt` + the 11 prerendered language sets (`scripts/gen-site-langs.js`) | "no telemetry" | same sentence as README; **regenerate the language pages** — the root page swaps copy at runtime and looks current while the 44 static pages do not |
-| Options 学习 hint (`learn_section_hint` ×12) | describes sync | unchanged; telemetry gets its **own** key (`telemetry_hint`) at its own switch — §10's rule against weakening a true statement to cover a different thing |
+| Options / App 遥测 hint (`telemetry_hint` ×12) | describes sync-adjacent telemetry | same switch, own key; **2026-11-08**：App 侧源码兜底串已改成新口径，但 `extension/_locales` 里的实际 hint 仍为旧句（扩展包冻结），列为缺口，解冻后同版改 |
 
 The Gate B sentence above ("**not** Usage Data, since there is still no telemetry")
 is superseded by this table; it is left in place as history.
@@ -4756,8 +4764,10 @@ I-1…I-8 一行未写、且带外部风险（新能力首次出包、审核）�
   account and stopped there (§8.10). The default stays local/BYO; the sample is never the
   path onboarding teaches first.
 - **Telemetry that carries content or identity**, permanently: page text, URLs,
-  hostnames, keys, emails, account ids, server error text, or any join between an
-  install and an account. *(Narrowed 2026-09-05 from "telemetry and usage analytics,
+  hostnames, keys, emails, account ids in the event body, server error text, or any
+  third-party / advertising join between an install and an account. A first-party
+  support-and-abuse ledger (`bt_auth_ok`, 90 days) is the bounded exception added
+  2026-11-08. *(Narrowed 2026-09-05 from "telemetry and usage analytics,
   permanently" — anonymous whitelist events are in scope under §10 Gate D and
   `docs/telemetry-design.md`.)*
 - **Converting anything already free into paid.** Per `AGENTS.md` rule 8. A paid

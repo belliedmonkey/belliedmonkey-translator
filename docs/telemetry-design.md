@@ -21,6 +21,11 @@
 > 起因与互斥口径在 §3.16。
 > **2026-10-29（BEL-135）**：中国 flavor 的白名单 ≡ intl，入口境内。见 §2 原则 6。本注册表尚无
 > `listen_session` / `listen_first_line`，本修订不新造这两条。
+> **2026-11-08（BEL-222）**：第一方登录台账 `bt_auth_ok` 把 `user_id` 与 `install_id` 写进
+> 同一张表，`bt_grant_usage` 也带 `install_id` ⇒ 匿名用量与账号**可连接**（仅支持与滥用
+> 排查，不用于广告 / 跨站追踪 / 转售）。§2 原则 2/7、§3 的 `auth_ok`、§3.4、§5、§6 的
+> 「不可连接 / 关掉即删」的旧口径同版改写；`.cc`/`.com` 隐私页与 ASC 标签（linked，tracking
+> 仍 no）随版手改。
 
 ## 0. Why this exists (issue #174, answered)
 
@@ -56,13 +61,18 @@ If a proposed event does not serve one of these rows, it does not go in.
 
 ## 2. Principles（写进规则 4 的那几条）
 
-1. **Events, never content.** Never sent: source text, translations, page URLs, page
+1. **Events, never content.** Never sent in an event: source text, translations, page URLs,
    titles, hostnames, API keys, emails, account ids, and the server's own error text
-   (`serverMessage` can quote user text).
-2. **One random id per device**, a UUID in `chrome.storage.local`, **never joined to an
-   account**: events carry no `user_id`, and the server has no column that could link an
-   `install_id` to `auth.users`. Turning the switch off = delete the local id, send one
-   final `telemetry_off`, and the server deletes every row for that id.
+   (`serverMessage` can quote user text). Account ↔ install linking lives only in the
+   first-party ledger (principle 2), never in the event body.
+2. **One random id per device**, a UUID in `chrome.storage.local`. Event bodies carry
+   no `user_id`, but the id is **linkable to an account**: the first-party sign-in
+   ledger `bt_auth_ok` records `user_id` ↔ `install_id` on sign-in (support and abuse
+   investigation), and `bt_grant_usage` rows carry the same `install_id`. Never used
+   for advertising, cross-site tracking, or resale. Turning the switch off = delete
+   the local id, send one final `telemetry_off`, and the server deletes every telemetry
+   row for that id; first-party rows already written (sign-in ledger, grant usage)
+   follow their 90-day retention.
 3. **No third party.** Straight into our own Supabase; no SDK, no GA, no PostHog. "No
    third-party analytics" stays literally true; "no telemetry" is the sentence that changes.
 4. **On by default, off in one switch, said up front.** One sentence in onboarding, a
@@ -75,7 +85,7 @@ If a proposed event does not serve one of these rows, it does not go in.
    中国构建发出与国际版同一注册表的匿名用量事件；`COMMON.flavor` 含 `china`；`MT_TELEMETRY.url` 派生自
    `MT_BACKEND.china.url` + `/functions/v1/bt-ingest`。**禁**共东京生产 / `*.supabase.co`。china-gate 按**主机维**
    放行境内 ingest，东京路径上的 grant/relay 仍禁。诊断通道（L2）独立并列，不并进 `track()`。原文/译文/音频/URL/账号/key
-   硬禁。`bt_grants` 永不与 `install_id` join。
+   硬禁。台账与匿名用量可由 `install_id` 连接（`bt_auth_ok` + `bt_grant_usage.install_id`；仅支持与滥用排查，不进第三方）。
    listen_* 若已在 intl 注册表里，字段与 intl 全表相同；本仓当前没有 `listen_session` / `listen_first_line`，
    本修订不新造事件。若产品书面保留子集，须另列 ACCEPT 并改隐私表。
    隐私页 / 首启与发出事件同版；.cc ≡ .com；商店 `privacy.html` 硬 URL 不改 path（旁观 BEL-128）。
@@ -83,10 +93,13 @@ If a proposed event does not serve one of these rows, it does not go in.
    `#ob-telemetry` 与设置里的同一开关。
    境内 ingest 现网部署+回读（Phase B）另批；未回读不得宣称「已对齐上线」。
    诊断上报仍是单独披露的通道（见「诊断上报」）：随机安装 id + 事件名 + 计数，**原文与译文一律不发**。
-7. **台账 ≠ 遥测**（2026-09-08，免费额度）。`bt_grants` / `bt_grant_usage` 记的是账号 ↔ 花费
-   （kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design §8.7/§8.10 管；中继
-   转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件（领了 / 用完了），不带金额，
-   且服务器上没有任何一列能把 `install_id` 连到 `bt_grants`。
+7. **台账 ≠ 遥测**（2026-09-08，免费额度；**2026-11-08 修订**）。`bt_grants` / `bt_grant_usage`
+   记的是账号 ↔ 花费（kind、cost、ms，**没有内容列**）—— 账号级数据，归 learning-design
+   §8.7/§8.10 管；中继转发的文本不进任何表、不进日志。遥测这边只多两个**匿名**事件
+   （领了 / 用完了），不带金额。**2026-11-08 起 `bt_grant_usage` 带 `install_id`，`bt_auth_ok`
+   把 `user_id` 与 `install_id` 写进同一张第一方表** —— 匿名事件的 `install_id` 与账号
+   **可连接**；这不是「不可连接」，是「只在自有库、仅用于支持与滥用排查，不进第三方」。
+   广告 / 跨站追踪 / 卖给第三方仍禁止。
 
 **8. 命令行宿主（CLI，2026-09-30 设计通过）v1 不发任何事件。** 它是新的 `host` 值（`cli`）的候选，
 但 v1 不实现遥测模块：没有 `install_id`、没有心跳、没有 `translate_ok`。将来若要发，先在这里进
@@ -131,7 +144,7 @@ from `MTFeedback.device()`) · `ui` (UI language, coarse: `zh`, `en`, …).
 | `grant_debited` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `kind: chat \| tts \| stt` | 免费额度**记账成功**时记一条（BEL-224）：回答「哪个功能面、哪一档真的花掉了额度」。只在 `bt_grant_charge` 写成功那一步记，不按请求或重试记；不带金额、模型、内容 | hosted `bt_grant_charge` 调用点（`functions/bt-relay`；P0 落码，P1 客户端补 `install_id` / `surface`） |
 | `grant_debit_fail` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `kind: chat \| tts \| stt` | 免费额度**记账失败**时记一条（BEL-224）：把「花了但没记上」与「没花」分开。失败不另造错误枚举，靠事件名区分；不带金额、内容 | hosted `bt_grant_charge` 调用点（同上；P0 落码，P1 客户端补 `install_id` / `surface`） |
 | `app_open` | `launch_id`（uuid，一次冷启一个）· `surface: listen \| live_caption \| quick \| doc \| web_caption`（可缺）· `auth_state: signed_in \| signed_out \| unknown` | App 冷启、**登录墙之前**也记（BEL-225）：回答「谁打开了 App、打开时是否已登录」。`launch_id` 把同一次启动的事件串起来，不是安装 id，也不是账号；`unknown` 只给启动瞬间会话还没读出来 | P1 `src/app` 冷启 init 之后（P0 只登记白名单） |
-| `auth_ok` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `provider: apple \| google \| email \| phone \| unknown` · `method: signup \| signin` | 一次**登录成功**（BEL-223）：把 signup 与 signin 分开，回答「哪个登录方式真的成功」。匿名事件不带 user_id；user_id 只进第一方 `bt_auth_ok`（BEL-222），两边永不 join | hosted `bt-auth-ok` 第一方落表 + P1 客户端登录成功上报（P0 落码） |
+| `auth_ok` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `provider: apple \| google \| email \| phone \| unknown` · `method: signup \| signin` | 一次**登录成功**（BEL-223）：把 signup 与 signin 分开，回答「哪个登录方式真的成功」。匿名事件不带 user_id；user_id 只进第一方 `bt_auth_ok`（BEL-222），该表的 `install_id` 与事件、用量行可对上（仅支持与滥用排查，不进第三方） | hosted `bt-auth-ok` 第一方落表 + P1 客户端登录成功上报（P0 落码） |
 | `live_gate` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `ok: 'true' \| 'false'` | 实时字幕的**开门判定**结果（BEL-223）：回答「这次能不能开、卡在哪一步」。注册表没有 bool 类型，钉成字符串枚举；不带设备/权限细节 | P1 `src/app/listen-model.js` 开门判定处（P0 只登记白名单） |
 | `grant_claim_fail` | `surface: listen \| live_caption \| quick \| doc \| web_caption` · `code: exhausted \| unavailable \| misconfigured \| revoked \| invalid \| model \| busy` | 免费额度**领取失败**（BEL-223）：七个码来自扩展 `grant_err_*` 文案键，回答「领取卡在哪一类」。不记账号、令牌或错误长文 | P1 领取失败分支（P0 只登记白名单） |
 | `pack_download_start` | `setup_id`（uuid）· `surface: listen \| live_caption \| quick \| doc \| web_caption` | 语言包下载开始（BEL-226）：`setup_id` 是一条「把包配齐」流程的 id，跨启动保持不变，start / ok / fail 共用它；回答「有没有开始下、下哪一类」 | P1 `src/app` 下载开始处（P0 只登记白名单） |
@@ -189,7 +202,7 @@ post-1.19.4 窗里海外 App 是 `installed` → `asr_entry` → `translate_ok`�
 `translate_fail.code` 的枚举同时加了 `credit_exhausted`（402）、`model_not_allowed`
 （403 钉住模型）、`grant_unavailable`（503 池空）—— 不在枚举里的 code 会被客户端白名单
 **静默丢掉**，于是「有多少人用完了」这个数永远是 0，而那正是判断这笔钱该不该继续花的
-唯一依据。台账与遥测**永不 join**（原则 7）。
+唯一依据。台账与遥测可由 `install_id` 连接（原则 7；仅支持与滥用排查，不进第三方）。
 
 ### 3.1 2026-09-10 amendment（第八期：评分为 0 的真因是激活）
 
@@ -477,7 +490,7 @@ App 的听译 / 实时字幕，以及在文档阅读器（两宿主）都没有�
 `onboarding_done → grant_claimed → engine_set`，这条线一直是通的。`grant_claimed` 在 App 上、`translate_ok{subtitle}` 在 App 上、
 `grant_exhausted` 在所有宿主上，**修复版本出货之前的 0 都是「量不到」**，不可与之后比较；
 账号侧 `bt_grants` 的逐日新领数（09-15 起每天 2–6 个）是这段时间唯一可用的领取读数，
-按原则 7 它不与遥测 join。
+按原则 7 它可经 `bt_auth_ok` 的 `user_id` ↔ `install_id` 连到遥测（仅支持与滥用排查，不进第三方）。
 
 ### 3.5 2026-09-19 amendment（二）：系统翻译与快速翻译（同日用户评审通过）
 
@@ -958,7 +971,8 @@ App 原生那一步（`apple-result` 带 `error`）经 `LearnAuth.noteAuthFail('
   Sentence keys stay `telemetry_onboard` / `telemetry_toggle` / `telemetry_hint` / `telemetry_what`.
   App last screen shows `#ob-telemetry` with the same onboard sentence. No new screen.
 - **Privacy page** (`belliedmonkey.cc`, 12 locales): a new section listing every
-  field, the default, the switch, deletion on opt-out, and the retention period.
+  field, the default, the switch, what opt-out stops, and the retention period for
+  first-party rows.
   「5. No tracking」 narrows to cross-site tracking / profiles / third-party analytics
   and points at the new section.
 
@@ -968,9 +982,14 @@ The full surface-by-surface table lives in `docs/learning-design.md` §10 Gate D
 is not restated here. The one-sentence disclosure used verbatim everywhere:
 
 > We collect anonymous usage events — which features are used, on which browser, and
-> whether a translation succeeded or failed. Never the pages you read, the text, the
-> addresses, your keys or your account. On by default; off in one switch; turning it
-> off deletes what that device sent.
+> whether a translation succeeded or failed. The event body never carries the pages you
+> read, the text, the addresses, your keys or your account id. We also keep a first-party
+> sign-in ledger, `bt_auth_ok`, that records your account and your install id together
+> for support and abuse investigation, and free-credit usage rows carry the install id —
+> so usage can be linked to an account. Not used for advertising, cross-site tracking,
+> or resale. On by default; off in one switch; switching it off deletes the event rows
+> this device sent; the sign-in ledger is still written, and first-party rows already
+> written follow their 90-day retention.
 
 ## 7. Delivery order
 

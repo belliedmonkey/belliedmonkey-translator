@@ -1133,6 +1133,22 @@ if (fs.readFileSync(path.join(__dirname, 'src', 'app', 'listen-model.js'), 'utf8
     if (!/anonymous usage/i.test(readme)) staleHits.push('README.md: no "anonymous usage" disclosure (Gate D)');
     if (/无遥测/.test(readmeZh)) staleHits.push('README.zh-CN.md: 仍写着「无遥测」(Gate D)');
     if (!/匿名用量/.test(readmeZh)) staleHits.push('README.zh-CN.md: 没有「匿名用量」的披露 (Gate D)');
+    // ── BEL-222（2026-11-08）：bt_auth_ok 把 user_id 与 install_id 写进同一张第一方表，
+    // bt_grant_usage 也带 install_id ⇒ 匿名用量与账号可连接。旧句「never joined to an
+    // account / 永不与账号关联」是假话；两份 README 必须披露第一方台账、用途边界与保留期。
+    // 这条与上面的词干检查互补：只查「anonymous usage」在不在，删掉连接披露也能过。
+    if (!/bt_auth_ok/.test(readme)) staleHits.push('README.md: no bt_auth_ok account↔install disclosure (BEL-222)');
+    if (!/cross-site tracking/i.test(readme)) staleHits.push('README.md: no "cross-site tracking" limit (BEL-222)');
+    if (!/90-day retention/i.test(readme)) staleHits.push('README.md: no first-party retention (BEL-222)');
+    if (!/bt_auth_ok/.test(readmeZh)) staleHits.push('README.zh-CN.md: no bt_auth_ok account↔install disclosure (BEL-222)');
+    if (!/跨站追踪/.test(readmeZh)) staleHits.push('README.zh-CN.md: no 「跨站追踪」limit (BEL-222)');
+    if (!/90 天/.test(readmeZh)) staleHits.push('README.zh-CN.md: no first-party retention (BEL-222)');
+    for (const [name, text, re] of [
+      ['README.md', readme, /never joined to an account/i],
+      ['README.zh-CN.md', readmeZh, /永不与账号关联/],
+    ]) {
+      if (re.test(text)) staleHits.push(`${name}: still says the old no-link promise (BEL-222)`);
+    }
     // 产品内的开关与说明：每一门 locale 都要有，且说明不能是开关那一句的复读。
     for (const loc of fs.readdirSync(path.join(distDir, '_locales'))) {
       const f = path.join(distDir, '_locales', loc, 'messages.json');

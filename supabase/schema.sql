@@ -124,7 +124,8 @@ grant execute on function public.bt_usage() to authenticated;
 -- 匿名用量事件（docs/telemetry-design.md；AGENTS.md 规则 4，2026-09-05 修订）。
 --
 -- 一行 = 一个事件。install_id 是客户端随机生成的 UUID，**这张表里没有、也永远不会有**
--- 任何能连到 auth.users 的列 —— 这是设计上的承诺，不是暂时没加。
+-- 任何能直接标识账号的列。但 install_id 可与第一方登录台账 bt_auth_ok 对上
+-- （2026-11-08；仅支持与滥用排查，不导出第三方）。
 -- 只有边缘函数 bt-ingest（service role）能写；anon / authenticated 一条策略都没有，
 -- 所以没有任何客户端能读到别人的、或自己的事件。
 -- 原始行 180 天后由 pg_cron 删除；bt_daily 是不含 install_id 的日聚合，长期保留。
@@ -149,7 +150,7 @@ create index if not exists bt_events_received_idx on public.bt_events (received_
 create index if not exists bt_events_name_day_idx on public.bt_events (name, received_at);
 
 comment on table public.bt_events is
-  'BelliedMonkey Translator 匿名用量事件。无账号关联；180 天后删；见 docs/telemetry-design.md。';
+  'BelliedMonkey Translator 匿名用量事件。事件本身无账号列；install_id 可与第一方台账 bt_auth_ok 对上（仅支持与滥用排查）；180 天后删；见 docs/telemetry-design.md。';
 
 -- RLS 开着、**没有任何策略** = 对 anon / authenticated 全拒。service role 绕过 RLS，
 -- 这正是「只有边缘函数能写」的实现方式。往这里加一条 select 策略就是把别人的事件
@@ -278,6 +279,7 @@ create table if not exists public.bt_grant_usage (
 -- BEL-222（2026-11-08）：归因用的三列，**可空**。旧行保持 NULL；新行由中继从请求里带，
 -- 缺了也照记花费（不能因为归因字段缺失而漏记一笔真实花费）。
 -- 仍然**没有内容列** —— 这三列只是「哪个安装 / 哪个宿主 / 哪个功能面」，不是原文。
+-- install_id 使这些账号级用量行可与匿名事件对上（配合 bt_auth_ok；仅支持与滥用排查，不导出第三方）。
 alter table public.bt_grant_usage add column if not exists install_id uuid;
 alter table public.bt_grant_usage add column if not exists host      text;
 alter table public.bt_grant_usage add column if not exists surface   text;
@@ -412,9 +414,10 @@ $cron$;
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 第一方登录成功台账（BEL-222，2026-11-08）。
 --
--- 一行 = 服务端确认的一次登录成功。**与 bt_events 分开**：user_id 只在这张表里出现，
--- 永远不进事件正文（AGENTS.md 规则 4）；install_id 在这里承担「账号 ↔ 安装」的归因，
--- 但不进 PostHog —— BEL-227 的导入映射会丢掉 user_id / 邮箱，只保留匿名 install_id。
+-- 一行 = 服务端确认的一次登录成功。**与 bt_events 分开**：user_id 只在第一方表里出现，
+-- 永远不进事件正文（AGENTS.md 规则 4）；install_id 在这里承担「账号 ↔ 安装」的归因 ——
+-- 这正是匿名用量与账号可连接的那一列（仅支持与滥用排查），但不进 PostHog —— BEL-227
+-- 的导入映射会丢掉 user_id / 邮箱，只保留匿名 install_id。
 --
 -- 只有 service role 能写读：与 bt_events / bt_grant_usage 同一条纪律 —— RLS 开着、
 -- **零策略**。往这里加一条 select 策略就是把账号↔安装关系开放给客户端，别加。
@@ -439,7 +442,7 @@ create index if not exists bt_auth_ok_install_ts_idx on public.bt_auth_ok (insta
 create index if not exists bt_auth_ok_ts_idx         on public.bt_auth_ok (ts);
 
 comment on table public.bt_auth_ok is
-  '第一方登录成功台账（BEL-222）：user_id ↔ install_id，不 join 遥测事件；90 天后删。';
+  '第一方登录成功台账（BEL-222）：user_id ↔ install_id，使匿名用量可与账号对上（仅支持与滥用排查，不导出第三方）；90 天后删。';
 
 alter table public.bt_auth_ok enable row level security;
 revoke all on table public.bt_auth_ok from anon, authenticated;
