@@ -734,12 +734,19 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
    语言对做成一个壳 —— 两个 select 在**同一个**圆角胶囊里，中间的 ⇄ 既是分隔、也一眼看出「一对」；
    窄屏自然折行（胶囊不被拆开）。变量只用调色板里真实存在的 token。 */
 :where(#app-listen) .listen-ctl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; }
+/* BEL-219：角色标签 + 胶囊一行。<720 这一行可以整体换行（先标签后胶囊），但标签与胶囊
+   自身 nowrap、不缩到 CJK min-content —— 那正是「视频语言 / 译成」逐字竖折的根因。 */
+:where(#app-listen) .listen-lang-row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-width: 0; max-width: 100%; }
+:where(#app-listen) .listen-lang-label { flex: none; white-space: nowrap; color: var(--dim); font-size: 0.9rem; }
 :where(#app-listen) #app-listen-lang-wrap { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
-  background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px; }
-:where(#app-listen) .listen-pair-seg { display: inline-flex; align-items: center; gap: 4px; margin: 0; }
+  background: var(--card-bg); border: 1px solid var(--border); border-radius: 999px;
+  flex: none; white-space: nowrap; min-width: 0; max-width: 100%; }
+:where(#app-listen) .listen-pair-seg { display: inline-flex; align-items: center; gap: 4px; margin: 0;
+  min-width: 0; white-space: nowrap; }
 :where(#app-listen) .listen-pair-seg select { font: inherit; font-size: 0.95rem; color: var(--text);
-  background: transparent; border: 0; padding: 2px 2px; max-width: 42vw; }
-:where(#app-listen) .listen-pair-arrow { color: var(--accent); font-weight: 600; padding: 0 2px; }
+  background: transparent; border: 0; padding: 2px 2px; min-width: 0; max-width: 42vw; }
+:where(#app-listen) .listen-pair-arrow { color: var(--accent); font-weight: 600; padding: 0 2px;
+  flex: none; white-space: nowrap; }
 :where(#app-listen) .listen-toggles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; }
 :where(#app-listen) .listen-tg { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 6px 12px;
   min-height: 40px; border: 1px solid var(--border); border-radius: 999px; background: var(--card-bg);
@@ -1001,7 +1008,10 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   /* 左栏里的控制区：药丸换行排，不挤成一行 */
   :where(#app-listen) .listen-ctl-row { flex-direction: column; align-items: stretch; gap: 8px; }
   :where(#app-listen) .listen-toggles { margin-left: 0; }
-  :where(#app-listen) .listen-pair-seg select { max-width: none; }
+  /* BEL-219：宽窗不再把 select 的 max-width 放开（那会按最长 option 撑开、把标签挤成
+     CJK min-content 竖折）。上限约 9em；标签/胶囊 flex:none，整行 nowrap。 */
+  :where(#app-listen) .listen-lang-row { flex-wrap: nowrap; }
+  :where(#app-listen) .listen-pair-seg select { min-width: 0; max-width: 9em; }
   /* Duo P0 B3：右栏历史跟网格剩余高，去掉 100vh-210px 经验常数 */
   :where(#app-listen) .listen-history { flex: 1 1 auto; min-height: 0; max-height: 100%; height: 100%; overflow-y: auto; }
   :where(#app-listen) .listen-fail-acts button:hover:not(:disabled) { background: var(--accent-hover); }
