@@ -432,22 +432,32 @@ export function ListenView() {
         <button id="app-listen-toggle" type="button" disabled={tv.disabled} onClick={listenModel.toggle}>{tv.text}</button>
       </div>
       {/* 控制区（改稿 E）：**语言对做成一个胶囊**（两个 select 包在同一个圆角壳里，中间 ⇄
-          既分隔也一眼看出「一对」），右侧两个图标开关靠右；窄屏自然折行。 */}
+          既分隔也一眼看出「一对」），右侧两个图标开关靠右；窄屏自然折行。
+          BEL-219：字幕的「视频语言」在胶囊**外**（角色标签，不是胶囊成员）；「译成」在胶囊内
+          但**独立成 span**，不单独占一个 .listen-pair-seg —— 否则宽窗每个 seg 都按 CJK
+          min-content 收缩，标签逐字竖折。听译的 langPairLabels 是 ['','']，两个 span 都不渲染，
+          保持 [中文 ▾] ⇄ [English ▾]。 */}
       <div className="listen-ctl-row" id="app-listen-ctl">
-        <div className="listen-pair" id="app-listen-lang-wrap">
-          <label className="listen-pair-seg">
-            {mv.langPairLabels[0] ? <span id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span> : null}{' '}
-            <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
-              {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
-          <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
-          <label className="listen-pair-seg">
-            {mv.langPairLabels[1] ? <span id="app-listen-target-label">{mv.langPairLabels[1]}</span> : null}{' '}
-            <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
-              {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
-            </select>
-          </label>
+        <div className="listen-lang-row">
+          {mv.langPairLabels[0]
+            ? <span className="listen-lang-label" id="app-listen-video-lang-label">{mv.langPairLabels[0]}</span>
+            : null}
+          <div className="listen-pair" id="app-listen-lang-wrap">
+            <label className="listen-pair-seg">
+              <select id="app-listen-my" value={mv.langValueA} onChange={(e) => listenModel.langChange('my', e.target.value)}>
+                {mv.langOptionsA.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+              </select>
+            </label>
+            <span className="listen-pair-arrow" aria-hidden="true">{mv.langDirArrow}</span>
+            {mv.langPairLabels[1]
+              ? <span className="listen-lang-label" id="app-listen-target-label">{mv.langPairLabels[1]}</span>
+              : null}
+            <label className="listen-pair-seg">
+              <select id="app-listen-other" value={mv.langValueB} onChange={(e) => listenModel.langChange('other', e.target.value)}>
+                {mv.langOptionsB.map((o) => <option key={o.code} value={o.code} disabled={o.disabled}>{o.label}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
         <div className="listen-toggles" id="app-listen-toggles">
           <label className="listen-tg" id="app-listen-autospeak-row" hidden={mv.autospeakRowHidden}>
