@@ -59,6 +59,10 @@ function wideBlock() {
 
 // position: fixed / absolute 的子元素（翻面大字那一层）不占格子，不在此列。
 function outOfFlow(c) {
+  // Caption desk（BEL-29）把 #app-listen 从 grid 换成 flex；这两个提示条只在
+  // captionDesk 下渲染（Mac 永不进这个模式，见 layout-caption.js 的 macLike 闸），
+  // 不参与 720px 网格，和 position:fixed/absolute 的翻面层同理不占格。
+  if (c.id === 'app-subs-desk-cta' || c.id === 'app-subs-desk-lang') return true;
   const keys = [c.id && '#' + c.id, ...c.cls.map((k) => '.' + k)].filter(Boolean)
     .map((k) => new RegExp(k.replace(/[.#-]/g, '\\$&') + '(?![\\w-])'));
   for (const r of CSS.matchAll(/([^{}]+)\{([^}]*)\}/g)) {

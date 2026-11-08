@@ -4241,5 +4241,53 @@
   },
   "grant_balance_stale": {
     "message": "Last known balance · not refreshed"
+  },
+  "thai_grok_section": {
+    "message": "Thai recognition (Grok)"
+  },
+  "thai_grok_enable_label": {
+    "message": "Use Grok for Thai speech"
+  },
+  "thai_grok_key_label": {
+    "message": "API Key · xAI"
+  },
+  "thai_grok_key_placeholder": {
+    "message": "Paste xAI API Key"
+  },
+  "thai_grok_key_masked": {
+    "message": "xai-••••••••"
+  },
+  "thai_grok_key_clear": {
+    "message": "Clear"
+  },
+  "thai_grok_nokey": {
+    "message": "API Key missing · Thai recognition unavailable"
+  },
+  "thai_grok_nokey_scope": {
+    "message": "Only Thai recognition is affected; the rest of the session continues"
+  },
+  "thai_grok_local_note": {
+    "message": "The key stays on this device"
+  },
+  "thai_grok_key_url": {
+    "message": "Get a key from xAI"
+  },
+  "subtitle_recent": {
+    "message": "Recent sentences"
+  },
+  "subtitle_desk_pill_live": {
+    "message": "Listening · {t}"
+  },
+  "subtitle_desk_wide_cta": {
+    "message": "Open the video or browser in the other half of Split View; watch captions here. You can also leave the app and keep captions in Picture in Picture."
+  },
+  "home_gate_badge": {
+    "message": "Temporarily unavailable"
+  },
+  "subtitle_stage_empty": {
+    "message": "Captions will appear here once you start."
+  },
+  "app_set_done": {
+    "message": "Done"
   }
 }
