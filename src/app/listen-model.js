@@ -250,7 +250,10 @@ const listenModel = (() => {
         if (sub) {
           otherLang = target;
           const v = B(s.subtitleVideoLang);
-          myLang = videoLangOf(v, target);
+          // BEL-218：旧数据没有「点过」标记；只有显式点选过才保留存量 en，
+          // 否则无标记的 en（旧 schema 默认）读时当 auto（ACCEPT-1，不写盘）。
+          const picked = s.subtitleVideoLangPicked === true;
+          myLang = videoLangOf(v, target, picked);
         } else {
           myLang = target;
           const storedOther = B(s.listenOtherLang);
@@ -3295,9 +3298,12 @@ const listenModel = (() => {
   /** 字幕「视频的语言」：'auto' 或一门具体语言。存量里与「译成」相同的值是 #590 之前挂反的键
    *  留下的（那时 subtitleVideoLang 存的是译成），一律当「自动」。 */
   let subGuess = '';
-  function videoLangOf(v, target) {
+  function videoLangOf(v, target, picked) {
     const b = C.baseCode(v);
     if (!b || b === 'auto' || b === C.baseCode(target) || !langOk(b)) return 'auto';
+    // BEL-218：无「点过」标记的存量 en 是旧 schema 默认（ACCEPT-1），读时当 auto；
+    // 只是读时 coercion，不写盘。点过的 en / 存量 zh 等具体值保留（ACCEPT-2）。
+    if (!picked && b === 'en') return 'auto';
     return b;
   }
   /** 视图要的选项清单（与 langOptions 同一份；这里只是包一层，视图不必再读全局）。 */
@@ -3319,6 +3325,9 @@ const listenModel = (() => {
     }
     const p = {};
     if (video !== prevVideo) p.subtitleVideoLang = video;
+    // BEL-218：写 subtitleVideoLang 的**用户动作**（左格点选/对调）同时置「点过」标记；
+    // revertLangIfNeeded 的回退不写标记，旧默认 en 的窄迁移只在读取侧做。
+    if (p.subtitleVideoLang !== undefined) p.subtitleVideoLangPicked = true;
     if (target !== prevTarget) p.listenMyLang = target;
     if (!Object.keys(p).length) { canvas.view('mode'); return; }
     chrome.storage.local.set(p);
@@ -3697,6 +3706,7 @@ const listenModel = (() => {
         full: prep.quotaFull ? { need: prep.quotaFull.need, sheetOpen: !!prep.quotaFull.sheetOpen } : null,
         asr: Object.assign({}, prep.assets.asr),
       }),
+      videoLangOf: (v, target, picked) => videoLangOf(v, target, picked),
     lat: C.latencySummary(session ? session.rows : []) }),
     // DEBUG-only：强制 phase=listening（绕过麦授权/STT ready）。AC-D3 PiP✕/暂停语义用。
     // 无 session 时先建一场 subtitle/conv 会话；不 openSocket、不抢真麦。

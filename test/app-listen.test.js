@@ -1249,3 +1249,51 @@ describe('BEL-216 — 名额已满卡按当下语言对/资产派生（真模型
       'warmBody 在 :1264 清卡后没有补一次 canvas.view —— 状态清了、DOM 不重画');
   });
 });
+
+describe('BEL-218 — 字幕视频语言默认 auto + 显式点选标记（真模型 readCfg）', () => {
+  test('videoLangOf：缺键/坏值/等于译成 ⇒ auto；无 marker 的旧 en ⇒ auto；zh 保留；点过 en 保留', () => {
+    const { A } = bootListen({ listenMyLang: 'zh' }, new Set(['zh', 'en']));
+    const f = A._debug().videoLangOf;
+    eq(f('', 'en'), 'auto', '缺键 ⇒ auto');
+    eq(f('auto', 'en'), 'auto');
+    eq(f('en', 'zh', false), 'auto', '旧默认 en、无 marker ⇒ 读时 auto（ACCEPT-1）');
+    eq(f('en', 'zh', true), 'en', '点过 English ⇒ 保留');
+    eq(f('zh', 'en', false), 'zh', '存量 zh 保留（ACCEPT-2）');
+    eq(f('en', 'en', true), 'auto', '等于译成 ⇒ auto（现规则优先）');
+    eq(f('zz', 'en', false), 'auto', '坏值 ⇒ auto');
+  });
+
+  test('readCfg：清键/旧 en ⇒ 左格 auto；zh 保留；点过 en 保留；坏值 auto；读时不写盘', async () => {
+    const box = bootListen({ listenMyLang: 'zh' }, new Set(['zh', 'en']));
+    const { A, store, writes } = box;
+    const leftOf = async (patch, target) => {
+      for (const k of ['listenMyLang', 'subtitleVideoLang', 'subtitleVideoLangPicked']) delete store[k];
+      Object.assign(store, { listenMyLang: target || 'zh' }, patch);
+      A.open('subtitle');
+      await tick(10);
+      return A._debug().cfgLangs().myLang;
+    };
+    eq(await leftOf({}), 'auto', '清掉 subtitleVideoLang（缺键）⇒ 左格 auto');
+    eq(await leftOf({ subtitleVideoLang: 'en' }), 'auto', '存量 en 无 marker ⇒ auto');
+    eq(await leftOf({ subtitleVideoLang: 'zh' }, 'en'), 'zh', '存量 zh ⇒ 保留中文（ACCEPT-2）');
+    eq(await leftOf({ subtitleVideoLang: 'en', subtitleVideoLangPicked: true }), 'en', '点过 English ⇒ 保留');
+    eq(await leftOf({ subtitleVideoLang: 'zh', subtitleVideoLangPicked: true }, 'en'), 'zh', '点过中文 ⇒ 保留');
+    eq(await leftOf({ subtitleVideoLang: 'zz' }), 'auto', '坏值 ⇒ auto');
+    eq(writes.filter((w) => 'subtitleVideoLang' in w || 'subtitleVideoLangPicked' in w).length, 0,
+      'readCfg 的窄迁移只读不写盘');
+  });
+
+  test('subLangChange：写 subtitleVideoLang 时同时置 marker；revertLangIfNeeded 不写 marker', async () => {
+    const { A, writes } = bootListen({ listenMyLang: 'zh', subtitleVideoLang: 'auto' }, new Set(['zh', 'en']));
+    A.open('subtitle');
+    await tick(10);
+    A.langChange('my', 'en');                 // 字幕模式 → subLangChange
+    const w = writes[writes.length - 1] || {};
+    eq(w.subtitleVideoLang, 'en', '左格点 English 要写具体语言');
+    eq(w.subtitleVideoLangPicked, true, '同一笔要置「点过」标记（否则下次读又被抬成 auto）');
+    const model = stripComments(MODEL);
+    const rv = model.slice(model.indexOf('function revertLangIfNeeded'), model.indexOf('function revertLangIfNeeded') + 700);
+    ok(/subtitleVideoLang: r\.video/.test(rv), '回退仍要写回旧 video');
+    ok(!/subtitleVideoLangPicked/.test(rv), '回退路径不得写 marker（否则用户没点过也被当成点过）');
+  });
+});

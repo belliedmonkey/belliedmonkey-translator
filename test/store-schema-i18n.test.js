@@ -69,6 +69,17 @@ describe('SETTINGS_SCHEMA', () => {
     deepEq(S.keysFor('no-such-surface'), []);
   });
 
+  // BEL-218：左格默认「自动」；新增「点过」标记必须同时对 listen 与 app 两面可见，
+  // 否则 engine-fields 的「读得到但设置页管不到」差集会多一个键（见同目录 engine-fields.test.js）。
+  test('字幕视频语言默认 auto；subtitleVideoLangPicked 注册、默认 false、surfaces 含 app', () => {
+    const S = bootSchema({});
+    eq(S.defaultFor('subtitleVideoLang'), 'auto');
+    eq(S.defaultFor('subtitleVideoLangPicked'), false);
+    ok(S.KEYS.includes('subtitleVideoLangPicked'), 'subtitleVideoLangPicked 没进 schema');
+    ok(S.keysFor('listen').includes('subtitleVideoLangPicked'), 'listen 面读不到点选标记');
+    ok(S.keysFor('app').includes('subtitleVideoLangPicked'), 'app 面读不到 —— engine-fields 差集门会红');
+  });
+
   // ── 手抄清单 ⊆ schema 的对账门（本文件存在的理由）───────────────────────
   // PR9 之后 src/ 的五份清单（review/listen/quick/settings/driving）全部删掉、
   // 消费端改走 keysFor —— 见下面的「不许回潮」断言。唯一剩下的是扩展侧
