@@ -275,6 +275,12 @@ create table if not exists public.bt_grant_usage (
   cost_usd numeric(12,6) not null,
   ms       int not null default 0
 );
+-- BEL-222（2026-11-08）：归因用的三列，**可空**。旧行保持 NULL；新行由中继从请求里带，
+-- 缺了也照记花费（不能因为归因字段缺失而漏记一笔真实花费）。
+-- 仍然**没有内容列** —— 这三列只是「哪个安装 / 哪个宿主 / 哪个功能面」，不是原文。
+alter table public.bt_grant_usage add column if not exists install_id uuid;
+alter table public.bt_grant_usage add column if not exists host      text;
+alter table public.bt_grant_usage add column if not exists surface   text;
 -- 没有内容列。加一列存原文/URL/译文，就是把 Gate F 那段承诺变成假话。
 create index if not exists bt_grant_usage_at_idx on public.bt_grant_usage (at);
 create index if not exists bt_grant_usage_user_idx on public.bt_grant_usage (user_id, at);
@@ -399,6 +405,53 @@ begin
       $$delete from public.bt_grant_usage where at < now() - interval '90 days'$$);
   else
     raise notice 'pg_cron 不可用：跳过 bt_grant_usage 的 90 天清理（改用宿主机 crontab）';
+  end if;
+end
+$cron$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 第一方登录成功台账（BEL-222，2026-11-08）。
+--
+-- 一行 = 服务端确认的一次登录成功。**与 bt_events 分开**：user_id 只在这张表里出现，
+-- 永远不进事件正文（AGENTS.md 规则 4）；install_id 在这里承担「账号 ↔ 安装」的归因，
+-- 但不进 PostHog —— BEL-227 的导入映射会丢掉 user_id / 邮箱，只保留匿名 install_id。
+--
+-- 只有 service role 能写读：与 bt_events / bt_grant_usage 同一条纪律 —— RLS 开着、
+-- **零策略**。往这里加一条 select 策略就是把账号↔安装关系开放给客户端，别加。
+--
+-- 90 天保留：照 bt_grant_usage 的既有写法登记 pg_cron；没有 pg_cron 的库（中国版境内
+-- 后端）跳过，那边开这条通道时用宿主机 crontab 跑同一句 delete。
+-- ─────────────────────────────────────────────────────────────────────────────
+create table if not exists public.bt_auth_ok (
+  id         bigint generated always as identity primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  install_id uuid,                                 -- 客户端带；老客户端缺失时为 NULL，不丢这次登录
+  ts         timestamptz not null default now(),   -- 服务端时间；登录成功那一刻
+  provider   text not null default '',             -- apple / google / email / phone
+  method     text not null default '',             -- signup / signin
+  host       text not null default '',             -- safari / chrome / firefox / app
+  flavor     text not null default ''              -- global / china
+);
+
+-- 按 user、按 install、按 ts 三种查法各一条。前两条带 ts desc，最近一次登录排在最前。
+create index if not exists bt_auth_ok_user_ts_idx    on public.bt_auth_ok (user_id, ts desc);
+create index if not exists bt_auth_ok_install_ts_idx on public.bt_auth_ok (install_id, ts desc);
+create index if not exists bt_auth_ok_ts_idx         on public.bt_auth_ok (ts);
+
+comment on table public.bt_auth_ok is
+  '第一方登录成功台账（BEL-222）：user_id ↔ install_id，不 join 遥测事件；90 天后删。';
+
+alter table public.bt_auth_ok enable row level security;
+revoke all on table public.bt_auth_ok from anon, authenticated;
+
+do $cron$
+begin
+  if exists (select 1 from pg_extension where extname = 'pg_cron') then
+    perform cron.unschedule(jobid) from cron.job where jobname = 'bt_auth_ok_retention';
+    perform cron.schedule('bt_auth_ok_retention', '47 3 * * *',
+      $$delete from public.bt_auth_ok where ts < now() - interval '90 days'$$);
+  else
+    raise notice 'pg_cron 不可用：跳过 bt_auth_ok 的 90 天清理（改用宿主机 crontab）';
   end if;
 end
 $cron$;

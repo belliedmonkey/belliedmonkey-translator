@@ -23,6 +23,12 @@ const COMMON = {
   ui: 'lang',              // 界面语言，粗到 zh / en 这一级；/^[a-z]{2,3}$/
 };
 
+// BEL-223（2026-11-08）：归因用的**五个功能面**。这不是「入口」（那是 asr_entry.surface
+// 的 popup / notice / …），而是「这次动作发生在哪个产品面」。五个值来自 BEL-223 验收口径：
+// listen（对话听译）· live_caption（实时字幕）· quick（Mac 快速翻译）· doc（文档）·
+// web_caption（网页字幕）。新增值 = 改提案 + 过评审 + 同步 docs §3，不是顺手加。
+const SURFACES = ['listen', 'live_caption', 'quick', 'doc', 'web_caption'];
+
 const EVENTS = {
   installed: {},
   heartbeat: {},
@@ -75,6 +81,9 @@ const EVENTS = {
     code: ['no_key', 'no_base', 'no_path', 'bad_url', 'no_engine', 'unknown_provider',
       'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
       'reasoning_starved', 'device_no_file', 'other'],
+    // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
+    launch_id: 'uuid',
+    surface: SURFACES,
   },
   translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc', 'quick'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
   translate_fail: {
@@ -110,6 +119,58 @@ const EVENTS = {
   // 原则 7）：那张表在我们的库里，遥测只有匿名 install_id，两边没有可对上的列。
   grant_claimed: {},
   grant_exhausted: {},
+  // ── BEL-224／225／226（2026-11-08）归因遥测 ──────────────────────────────────
+  // 本拍（P0）只登记名字、属性与枚举；**客户端发送点留 P1**（BEL-223/225/226）。
+  // 事件正文仍守规则 4：没有 user_id / 邮箱 / 凭证 / 原文 / URL。user_id 只进第一方
+  // bt_auth_ok（BEL-222），与这里的事件**永不 join**。
+  //
+  // 免费额度记账（BEL-224）：只在 hosted `bt_grant_charge` 写成功 / 写失败时各记一条，
+  // 不按请求重试次数记。`kind` 与 bt_grant_usage.kind 同源；`surface` 是这次花费落在
+  // 哪个功能面（BEL-223 五值）。失败事件不另造错误枚举 —— 区分「成功/失败」靠事件名。
+  grant_debited: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
+  grant_debit_fail: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
+  // 冷启（BEL-225）：登录墙**之前**也记，所以必须能分开已登录/未登录。`launch_id` 是
+  // 一次进程启动的随机 uuid（同一次冷启里的事件可串起来；不是安装 id，也不是账号）。
+  // `auth_state` 的 unknown 只给「启动瞬间会话还没读出来」这一种情况，不拿来兜底别的事。
+  // `entry_kind` **没有约定 ⇒ 不加**（研发令明确：没约定就不带）。
+  app_open: {
+    launch_id: 'uuid',
+    surface: SURFACES,                 // home / 登录墙这种不在这五面时**不带这个键**（props 可缺）
+    auth_state: ['signed_in', 'signed_out', 'unknown'],
+  },
+  // 登录成功（BEL-223）。P3 要求「signup / signin 各一次」⇒ method 必须能分开这两种；
+  // provider 与 auth_fail.provider 同一套值（apple / google / email / phone）。
+  // 服务端另写第一方 bt_auth_ok（含 user_id），这条匿名事件不带 user_id。
+  auth_ok: {
+    surface: SURFACES,
+    provider: ['apple', 'google', 'email', 'phone', 'unknown'],
+    method: ['signup', 'signin'],
+  },
+  // 实时字幕的开门判定（BEL-223）：`ok` 是这次判定过没过。注册表没有 bool 类型，
+  // 所以钉成字符串枚举 'true' / 'false'；P1 发之前自己 String(ok)，不要发 JSON 布尔。
+  live_gate: { surface: SURFACES, ok: ['true', 'false'] },
+  // 领取失败（BEL-223）。code 的七个值来自 extension 的 grant_err_* 文案键
+  // （exhausted / unavailable / misconfigured / revoked / invalid / model / busy）——
+  // 与 translate_fail.code 同一条纪律：不在枚举里的码会被服务端整条拒，宁可先钉全。
+  grant_claim_fail: {
+    surface: SURFACES,
+    code: ['exhausted', 'unavailable', 'misconfigured', 'revoked', 'invalid', 'model', 'busy'],
+  },
+  // 语言包下载（BEL-226）。`setup_id` 是一条「把包配齐」的流程 id，**跨启动保持不变**，
+  // 所以「上次没下完、这次接着下」能串成一条；start/ok/fail 用同一个 setup_id。
+  // fail 的 code 用 id 型（小写字母/数字/_/-, ≤32），不塞系统长文或路径。
+  pack_download_start: { setup_id: 'uuid', surface: SURFACES },
+  pack_download_ok: { setup_id: 'uuid', surface: SURFACES },
+  pack_download_fail: { setup_id: 'uuid', surface: SURFACES, code: 'id' },
+  // 「包齐了」的过渡（BEL-226）：按过渡去重（同一 setup_id + ready_kind 只发一次）。
+  // ready_kind 取 `src/app/firstrun.js` readiness() 的分项 kind（base / asr / tts）加
+  // `all`（全就绪）；required / ready 是这一轮要求数与已就绪数，用整数，不记语言名单。
+  packs_ready: {
+    setup_id: 'uuid',
+    ready_kind: ['base', 'asr', 'tts', 'all'],
+    required: 'int',
+    ready: 'int',
+  },
   sync_on: {},
   // auth_fail（2026-10-02，telemetry-design §3.14，用户报障 + 评审通过）：**新账号第三方登录
   // 第一次失败、第二次成功**，扩展与 App 都有。此前登录失败只在用户眼前一闪，我们这边零行。
@@ -163,6 +224,8 @@ const EVENTS = {
   asr_entry: {
     surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
+    // BEL-223：这里的 surface 是「入口」，不是功能面五值；只补 launch_id。
+    launch_id: 'uuid',
   },
   // 首启听译漏斗（2026-10-28，BEL-113，telemetry-design §3.16）。
   // asr_entry 只回答「打开了听译/字幕页」。下面四条把「没授权 / 没真开麦 / 听译失败 /
@@ -173,8 +236,11 @@ const EVENTS = {
     kind: ['mic', 'system'],
     engine: 'id',
     locale_pair: 'id',
+    // BEL-223：从哪个功能面读权限、哪次启动。键可缺（老客户端不发）。
+    launch_id: 'uuid',
+    surface: SURFACES,
   },
-  asr_start: { engine: 'id', locale_pair: 'id' },
+  asr_start: { engine: 'id', locale_pair: 'id', launch_id: 'uuid', surface: SURFACES },
   asr_fail: {
     fail_reason: ['permission', 'interrupted', 'socket', 'assets', 'device', 'os',
       'capture', 'locale', 'quota', 'timeout', 'other'],
@@ -287,6 +353,48 @@ const SEAMS = {
   // 层，两宿主同一次编译）。file 指源码，门禁对源码核 track 字面量 —— 同 onboarding_done 先例。
   grant_claimed: SHARED('src/shared/grant.js'),
   grant_exhausted: SHARED('extension/learn/telemetry.js'),
+  // BEL-224／225／226（2026-11-08）P0：只登记白名单，**发送点留 P1**。SEAMS 先写 none，
+  // 门禁才知道这是「有意未接」而不是漏接；P1 接线时把对应宿主换成 file，别删掉了事。
+  grant_debited: [
+    { host: 'ext', none: 'hosted bt_grant_charge 记账成功时直接落事件；客户端不直接发（实现不在公仓）' },
+    { host: 'app', none: 'hosted bt_grant_charge 记账成功时直接落事件；客户端不直接发（实现不在公仓）' },
+  ],
+  grant_debit_fail: [
+    { host: 'ext', none: 'hosted bt_grant_charge 记账失败时直接落事件；客户端不直接发（实现不在公仓）' },
+    { host: 'app', none: 'hosted bt_grant_charge 记账失败时直接落事件；客户端不直接发（实现不在公仓）' },
+  ],
+  app_open: [
+    { host: 'ext', none: 'app_open 只在 App 冷启发；扩展没有 App 生命周期（P1 BEL-225）' },
+    { host: 'app', none: 'P1 BEL-225 接 App 冷启发送点；P0 只登记白名单' },
+  ],
+  auth_ok: [
+    { host: 'ext', none: 'P1 BEL-223 接扩展登录成功的 track；P0 只登记白名单' },
+    { host: 'app', none: 'P1 BEL-223 接 App 登录成功的 track；P0 只登记白名单' },
+  ],
+  live_gate: [
+    { host: 'ext', none: 'P1 BEL-223 接实时字幕开门判定的 track；P0 只登记白名单' },
+    { host: 'app', none: 'P1 BEL-223 接 App 实时字幕开门判定的 track；P0 只登记白名单' },
+  ],
+  grant_claim_fail: [
+    { host: 'ext', none: 'P1 BEL-223 接扩展领取失败分支的 track；P0 只登记白名单' },
+    { host: 'app', none: 'P1 BEL-223 接 App 领取失败分支的 track；P0 只登记白名单' },
+  ],
+  pack_download_start: [
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
+    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载开始的 track；P0 只登记白名单' },
+  ],
+  pack_download_ok: [
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
+    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载完成的 track；P0 只登记白名单' },
+  ],
+  pack_download_fail: [
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
+    { host: 'app', none: 'P1 BEL-226 接 App 语言包下载失败分支的 track；P0 只登记白名单' },
+  ],
+  packs_ready: [
+    { host: 'ext', none: '扩展没有 App 的离线语言包下载流程；P1 BEL-226 只接 App' },
+    { host: 'app', none: 'P1 BEL-226 接 App「包齐了」过渡的 track；P0 只登记白名单' },
+  ],
   sync_on: SHARED('extension/learn/sync.js'),
   rate_prompt: [
     { host: 'ext', none: '§3.12 第三轮：译文末尾不再主动要评分，评分只留常驻链接（不发事件）；老版本客户端仍会发 shown/tap/dismiss，服务端照收' },

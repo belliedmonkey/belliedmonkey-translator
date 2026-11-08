@@ -97,6 +97,14 @@
         "reasoning_starved",
         "device_no_file",
         "other"
+      ],
+      "launch_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
       ]
     },
     "translate_ok": {
@@ -161,6 +169,142 @@
     },
     "grant_claimed": {},
     "grant_exhausted": {},
+    "grant_debited": {
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "kind": [
+        "chat",
+        "tts",
+        "stt"
+      ]
+    },
+    "grant_debit_fail": {
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "kind": [
+        "chat",
+        "tts",
+        "stt"
+      ]
+    },
+    "app_open": {
+      "launch_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "auth_state": [
+        "signed_in",
+        "signed_out",
+        "unknown"
+      ]
+    },
+    "auth_ok": {
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "provider": [
+        "apple",
+        "google",
+        "email",
+        "phone",
+        "unknown"
+      ],
+      "method": [
+        "signup",
+        "signin"
+      ]
+    },
+    "live_gate": {
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "ok": [
+        "true",
+        "false"
+      ]
+    },
+    "grant_claim_fail": {
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "code": [
+        "exhausted",
+        "unavailable",
+        "misconfigured",
+        "revoked",
+        "invalid",
+        "model",
+        "busy"
+      ]
+    },
+    "pack_download_start": {
+      "setup_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
+    },
+    "pack_download_ok": {
+      "setup_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
+    },
+    "pack_download_fail": {
+      "setup_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ],
+      "code": "id"
+    },
+    "packs_ready": {
+      "setup_id": "uuid",
+      "ready_kind": [
+        "base",
+        "asr",
+        "tts",
+        "all"
+      ],
+      "required": "int",
+      "ready": "int"
+    },
     "sync_on": {},
     "auth_fail": {
       "provider": [
@@ -230,7 +374,8 @@
         "no_live",
         "gesture_needed",
         "to_app"
-      ]
+      ],
+      "launch_id": "uuid"
     },
     "mic_permission": {
       "permission_state": [
@@ -245,11 +390,27 @@
         "system"
       ],
       "engine": "id",
-      "locale_pair": "id"
+      "locale_pair": "id",
+      "launch_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
     },
     "asr_start": {
       "engine": "id",
-      "locale_pair": "id"
+      "locale_pair": "id",
+      "launch_id": "uuid",
+      "surface": [
+        "listen",
+        "live_caption",
+        "quick",
+        "doc",
+        "web_caption"
+      ]
     },
     "asr_fail": {
       "fail_reason": [
