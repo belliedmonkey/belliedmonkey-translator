@@ -9,7 +9,7 @@
 //
 // 值类型（服务端逐条校验，客户端 track() 同样校验后才入队）：
 //   'int'    非负整数，≤ 10 位
-//   'id'     /^[a-z0-9_-]{1,32}$/   —— 引擎 id 这种
+//   'id'     /^[a-z0-9_-]{1,32}$/   —— 引擎 id 这种；launch_id / setup_id 的 32-hex 也走这条
 //   [...]    枚举，只允许列出的值
 'use strict';
 
@@ -82,7 +82,8 @@ const EVENTS = {
       'network', 'timeout', 'http', 'bad_output', 'empty_output', 'empty_audio',
       'reasoning_starved', 'device_no_file', 'other'],
     // BEL-223（2026-11-08）：从哪个功能面发起测试、哪次启动。键可缺。
-    launch_id: 'uuid',
+    // launch_id = 32 位小写十六进制（uuid 去掉连字符），与 UUID 同义；用 'id' 规则见 app_open。
+    launch_id: 'id',
     surface: SURFACES,
   },
   translate_ok: { provider: 'id', kind: ['page', 'subtitle', 'doc', 'quick'], ms: 'int' },   // doc：文档翻译（2026-09-11，learning-design §9.7）
@@ -131,11 +132,15 @@ const EVENTS = {
   grant_debited: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
   grant_debit_fail: { surface: SURFACES, kind: ['chat', 'tts', 'stt'] },
   // 冷启（BEL-225）：登录墙**之前**也记，所以必须能分开已登录/未登录。`launch_id` 是
-  // 一次进程启动的随机 uuid（同一次冷启里的事件可串起来；不是安装 id，也不是账号）。
+  // 一次进程启动的**32 位小写十六进制**（同一次冷启里的事件可串起来；不是安装 id，也不是账号）。
+  // 2026-11-08（BEL-227）：值仍然是 UUID 的 32-hex 同义写法（uuid 去掉连字符），但注册表
+  // 类型从 'uuid' 改成 'id'。**卡面写 UUID，因扩展冻结只能用 id 规则**：扩展 1.23.3 已冻结
+  // （CWS 在审），其 okValue 只认 数组 / int / id —— 36 字符带连字符的 uuid 过不了
+  // /^[a-z0-9_-]{1,32}$/，app_open 会被整条丢掉。所以 App 发 32-hex、白名单按 'id' 收。
   // `auth_state` 的 unknown 只给「启动瞬间会话还没读出来」这一种情况，不拿来兜底别的事。
   // `entry_kind` **没有约定 ⇒ 不加**（研发令明确：没约定就不带）。
   app_open: {
-    launch_id: 'uuid',
+    launch_id: 'id',
     surface: SURFACES,                 // home / 登录墙这种不在这五面时**不带这个键**（props 可缺）
     auth_state: ['signed_in', 'signed_out', 'unknown'],
   },
@@ -160,15 +165,19 @@ const EVENTS = {
   },
   // 语言包下载（BEL-226）。`setup_id` 是一条「把包配齐」的流程 id，**跨启动保持不变**，
   // 所以「上次没下完、这次接着下」能串成一条；start/ok/fail 用同一个 setup_id。
+  // 2026-11-08（BEL-227）：`setup_id` 与 app_open.launch_id 一样是 **32 位小写十六进制**
+  // （uuid 去掉连字符的 32-hex 同义标识）。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
+  // 36 字符带连字符的 uuid 过不了扩展的 /^[a-z0-9_-]{1,32}$/，pack_* / packs_ready 会被
+  // 整条丢掉；旧 uuid 值由 App 迁移成 32-hex（同一标识，不换新的）。
   // fail 的 code 用 id 型（小写字母/数字/_/-, ≤32），不塞系统长文或路径。
-  pack_download_start: { setup_id: 'uuid', surface: SURFACES },
-  pack_download_ok: { setup_id: 'uuid', surface: SURFACES },
-  pack_download_fail: { setup_id: 'uuid', surface: SURFACES, code: 'id' },
+  pack_download_start: { setup_id: 'id', surface: SURFACES },
+  pack_download_ok: { setup_id: 'id', surface: SURFACES },
+  pack_download_fail: { setup_id: 'id', surface: SURFACES, code: 'id' },
   // 「包齐了」的过渡（BEL-226）：按过渡去重（同一 setup_id + ready_kind 只发一次）。
   // ready_kind 取 `src/app/firstrun.js` readiness() 的分项 kind（base / asr / tts）加
   // `all`（全就绪）；required / ready 是这一轮要求数与已就绪数，用整数，不记语言名单。
   packs_ready: {
-    setup_id: 'uuid',
+    setup_id: 'id',
     ready_kind: ['base', 'asr', 'tts', 'all'],
     required: 'int',
     ready: 'int',
@@ -227,7 +236,7 @@ const EVENTS = {
     surface: ['popup', 'notice', 'pill', 'app_home', 'popup_app_row'],
     result: ['started', 'no_media', 'no_engine', 'no_live', 'gesture_needed', 'to_app'],
     // BEL-223：这里的 surface 是「入口」，不是功能面五值；只补 launch_id。
-    launch_id: 'uuid',
+    launch_id: 'id',
   },
   // 首启听译漏斗（2026-10-28，BEL-113，telemetry-design §3.16）。
   // asr_entry 只回答「打开了听译/字幕页」。下面四条把「没授权 / 没真开麦 / 听译失败 /
@@ -239,10 +248,10 @@ const EVENTS = {
     engine: 'id',
     locale_pair: 'id',
     // BEL-223：从哪个功能面读权限、哪次启动。键可缺（老客户端不发）。
-    launch_id: 'uuid',
+    launch_id: 'id',
     surface: SURFACES,
   },
-  asr_start: { engine: 'id', locale_pair: 'id', launch_id: 'uuid', surface: SURFACES },
+  asr_start: { engine: 'id', locale_pair: 'id', launch_id: 'id', surface: SURFACES },
   asr_fail: {
     fail_reason: ['permission', 'interrupted', 'socket', 'assets', 'device', 'os',
       'capture', 'locale', 'quota', 'timeout', 'other'],

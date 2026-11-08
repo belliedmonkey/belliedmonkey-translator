@@ -98,7 +98,7 @@
         "device_no_file",
         "other"
       ],
-      "launch_id": "uuid",
+      "launch_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -198,7 +198,7 @@
       ]
     },
     "app_open": {
-      "launch_id": "uuid",
+      "launch_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -264,7 +264,7 @@
       ]
     },
     "pack_download_start": {
-      "setup_id": "uuid",
+      "setup_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -274,7 +274,7 @@
       ]
     },
     "pack_download_ok": {
-      "setup_id": "uuid",
+      "setup_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -284,7 +284,7 @@
       ]
     },
     "pack_download_fail": {
-      "setup_id": "uuid",
+      "setup_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -295,7 +295,7 @@
       "code": "id"
     },
     "packs_ready": {
-      "setup_id": "uuid",
+      "setup_id": "id",
       "ready_kind": [
         "base",
         "asr",
@@ -375,7 +375,7 @@
         "gesture_needed",
         "to_app"
       ],
-      "launch_id": "uuid"
+      "launch_id": "id"
     },
     "mic_permission": {
       "permission_state": [
@@ -391,7 +391,7 @@
       ],
       "engine": "id",
       "locale_pair": "id",
-      "launch_id": "uuid",
+      "launch_id": "id",
       "surface": [
         "listen",
         "live_caption",
@@ -403,7 +403,7 @@
     "asr_start": {
       "engine": "id",
       "locale_pair": "id",
-      "launch_id": "uuid",
+      "launch_id": "id",
       "surface": [
         "listen",
         "live_caption",

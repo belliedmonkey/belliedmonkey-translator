@@ -39,10 +39,20 @@ const K = {
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ID_RE = /^[a-z0-9_-]{1,32}$/;
+const HEX32_RE = /^[0-9a-f]{32}$/;
+
+// 32-hex 同义标识：uuid 去掉连字符。**卡面写 UUID，因扩展冻结只能用 id 规则** ——
+// extension/learn/telemetry.js 的 okValue 只认 数组 / int / id，36 字符带连字符的
+// uuid 过不了 /^[a-z0-9_-]{1,32}$/，整条事件会被丢掉（BEL-227，2026-11-08）。
+// launch_id / setup_id 一律走这里；install_id 仍是 uuid（既有约定，服务端按 uuid 收）。
+function hex32(id) {
+  return String(id || '').toLowerCase().replace(/-/g, '');
+}
 
 // ── 一次启动的 id ─────────────────────────────────────────────────────────
 // 模块求值一次 = 这次冷启生成一次；同一进程里的所有事件共用。不是安装 id，也不是账号。
-const LAUNCH_ID = uuid();
+// 值 = 32 位小写十六进制（uuid 去掉连字符）；理由见上面 hex32()：扩展冻结，只认 id 规则。
+const LAUNCH_ID = hex32(uuid());
 
 function uuid() {
   try {
@@ -318,14 +328,30 @@ export function grantClaimFail(code) {
 // setup_id 与 install_id **分开存**（仿它的存法，不复用）：install_id 是安装级随机
 // uuid，setup_id 是「把包配齐」这条流程的 id，跨启动保持不变，这样上次没下完、这次
 // 接着下能串成一条。首次用到时生成，之后一直读同一个键。
+//
+// 格式是 **32 位小写十六进制**（uuid 去掉连字符），理由同 launch_id：扩展冻结，okValue
+// 只认 id 规则，36 字符带连字符的 uuid 会被整条丢掉（BEL-227，2026-11-08）。
+function normalizeSetupId(v) {
+  if (typeof v !== 'string') return '';
+  if (HEX32_RE.test(v)) return v;
+  // 平滑迁移：旧版本存的是带连字符的 uuid。去掉连字符就是**同一个标识**的 32-hex 写法，
+  // 转换一次并写回；不重新生成 —— 否则老用户跨启动的「同一个 setup」会断掉。
+  if (UUID_RE.test(v)) return hex32(v);
+  return '';
+}
 let setupFlight = null;
 export function setupId() {
   if (setupFlight) return setupFlight;
   setupFlight = (async () => {
     const r = await sget([K.setupId]);
-    const cur = r[K.setupId];
-    if (typeof cur === 'string' && UUID_RE.test(cur)) return cur;
-    const id = uuid();
+    const cur = normalizeSetupId(r[K.setupId]);
+    if (cur) {
+      // 旧 uuid 一次性写回 32-hex；已是 32-hex 时这里不写，之后每次启动都读同一个值。
+      if (r[K.setupId] !== cur) await sset({ [K.setupId]: cur });
+      return cur;
+    }
+    // 没有值 / 值坏掉：生成一次并写回，之后一直读同一个键（不是每次启动都换）。
+    const id = hex32(uuid());
     await sset({ [K.setupId]: id });
     return id;
   })().catch(() => LAUNCH_ID);
@@ -361,8 +387,11 @@ async function packsCacheOnce() {
   if (packsCache) return packsCache;
   const r = await sget([K.packsReady]);
   const v = r[K.packsReady];
-  packsCache = (v && v.setup_id && v.kinds && typeof v.kinds === 'object')
-    ? { setup_id: String(v.setup_id), kinds: Object.assign({}, v.kinds) }
+  // 缓存里的 setup_id 也按同一套规则归一化（旧 uuid → 32-hex），这样升级后
+  // setupId() 迁移出来的新写法仍能和旧的「已经齐过」缓存对上，不重复发 packs_ready。
+  const cached = normalizeSetupId(v && v.setup_id);
+  packsCache = (cached && v && v.kinds && typeof v.kinds === 'object')
+    ? { setup_id: cached, kinds: Object.assign({}, v.kinds) }
     : { setup_id: '', kinds: {} };
   return packsCache;
 }

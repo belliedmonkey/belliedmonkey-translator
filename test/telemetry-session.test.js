@@ -117,9 +117,23 @@ describe('BEL-225 app_open', () => {
     eq(events.length, 1, '一次冷启只能有一条 app_open');
     eq(events[0].name, 'app_open');
     eq(events[0].props.launch_id, TS.launchId());
+    ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'launch_id 必须是 32 位小写十六进制');
     eq(events[0].props.surface, 'listen', '没有上次面时按首页默认面 listen');
     eq(events[0].props.auth_state, 'signed_out');
     ok(!('entry_kind' in events[0].props), 'entry_kind 没约定 ⇒ 不带');
+  });
+
+  test('launch_id 是 32-hex；同一次启动内两条带 launch_id 的事件相同', async () => {
+    // 用注册表真规格，让发送口注入走 installLaunchId() 那一步（asr_entry / engine_test 等）。
+    const { TS, events, sandbox } = load({ telemetrySpec: TEL_SPEC });
+    TS.installLaunchId();
+    await TS.appOpen();
+    sandbox.MTTelemetry.track('asr_entry', { surface: 'app_home', result: 'started' });
+    eq(events.length, 2, 'app_open 与 asr_entry 都应入队');
+    deepEq(events.map((e) => e.name), ['app_open', 'asr_entry']);
+    ok(/^[0-9a-f]{32}$/.test(events[0].props.launch_id), 'app_open.launch_id 必须是 32-hex');
+    eq(events[1].props.launch_id, events[0].props.launch_id, '同一次启动内两条事件必须同一个 launch_id');
+    eq(events[1].props.launch_id, TS.launchId());
   });
 
   test('会话已读出 ⇒ signed_in；读失败 ⇒ unknown（不是 signed_out）', async () => {
@@ -280,10 +294,10 @@ describe('BEL-223 live_gate / grant_claim_fail / launch_id', () => {
     };
     const spec = {
       spec: { events: {
-        asr_entry: { launch_id: 'uuid' },
-        engine_test: { launch_id: 'uuid' },
-        mic_permission: { launch_id: 'uuid' },
-        asr_start: { launch_id: 'uuid' },
+        asr_entry: { launch_id: 'id' },
+        engine_test: { launch_id: 'id' },
+        mic_permission: { launch_id: 'id' },
+        asr_start: { launch_id: 'id' },
         other: { foo: 'id' },
       } },
     };
@@ -325,6 +339,41 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     await b.TS.packStart('listen');
     eq(b.events[0].props.setup_id, sid);
     ok(sid !== INSTALL, 'setup_id 必须与 install_id 独立');
+    ok(/^[0-9a-f]{32}$/.test(sid), 'setup_id 必须是 32 位小写十六进制');
+  });
+
+  test('setup_id 是 32-hex；packs_ready / pack_download_start 跨两次「启动」不变', async () => {
+    const s = store();
+    const a = load({ store: s });
+    // 先由 packs_ready 生成 setup_id，再让 pack_download_start 共用它。
+    await a.TS.packsReady({ base: { required: 1, ready: 1 } });
+    eq(a.events.length, 1);
+    const sid = a.events[0].props.setup_id;
+    ok(/^[0-9a-f]{32}$/.test(sid), 'packs_ready.setup_id 必须是 32-hex');
+    await a.TS.packStart('listen');
+    eq(a.events[1].props.setup_id, sid, 'pack_download_start 必须与 packs_ready 用同一个 setup_id');
+
+    // 模拟第二次启动：新模块实例、同一份存储（不调 _resetForTest，模块常量会重新求值）。
+    const b = load({ store: s });
+    await b.TS.packStart('listen');
+    await b.TS.packsReady({ asr: { required: 1, ready: 1 } });
+    deepEq(b.events.map((e) => e.name), ['pack_download_start', 'packs_ready']);
+    eq(b.events[0].props.setup_id, sid, '跨启动 pack_download_start 的 setup_id 不能变');
+    eq(b.events[1].props.setup_id, sid, '跨启动 packs_ready 的 setup_id 不能变');
+  });
+
+  test('旧 uuid 的 tm:setupId 迁移成 32-hex 并写回；之后跨启动保持稳定', async () => {
+    const s = store();
+    s['tm:setupId'] = SETUP;                  // 旧版本落盘的带连字符 uuid
+    const want = SETUP.replace(/-/g, '');
+    const a = load({ store: s });
+    eq(await a.TS.setupId(), want, '旧 uuid 去连字符 = 同一个标识的 32-hex');
+    eq(s['tm:setupId'], want, '迁移结果必须一次性写回，不能每次启动都换');
+
+    const b = load({ store: s });
+    eq(await b.TS.setupId(), want, '下一次启动读到的是迁移后的值');
+    await b.TS.packStart('listen');
+    eq(b.events[0].props.setup_id, want);
   });
 
   test('fail 的 code 只发 id 型；长文/路径不落事件', async () => {
@@ -368,6 +417,23 @@ describe('BEL-226 pack_download_* / packs_ready', () => {
     const { TS, events } = load();
     await TS.packsReady({ base: { required: 0, ready: 0 }, asr: { required: 0, ready: 0 }, tts: { required: 0, ready: 0 }, all: { required: 0, ready: 0 } });
     eq(events.length, 0);
+  });
+
+  test('真 shape() 不再丢事件：app_open / pack_download_start / packs_ready 全部入队', async () => {
+    // 这条用 extension/learn/telemetry.js 的**真** shape()/okValue()（只读、不改扩展）：
+    // 旧规则 'uuid' 不在客户端 okValue 的白名单里，带连字符的 36 字符值也过不了 id 规则，整条不入队；这里钉住 'id' + 32-hex 能过。
+    const s = store();
+    const a = loadReal({ store: s });
+    await a.TS.appOpen();
+    await a.TS.packStart('listen');
+    await a.TS.packsReady({ base: { required: 1, ready: 1 } });
+    await settle();
+    const q = s['tm:queue'] || [];
+    deepEq(q.map((e) => e.name).sort(), ['app_open', 'pack_download_start', 'packs_ready'].sort());
+    for (const e of q) {
+      if (e.name === 'app_open') ok(/^[0-9a-f]{32}$/.test(e.props.launch_id), 'app_open.launch_id 必须过 shape()');
+      else ok(/^[0-9a-f]{32}$/.test(e.props.setup_id), e.name + '.setup_id 必须过 shape()');
+    }
   });
 });
 
