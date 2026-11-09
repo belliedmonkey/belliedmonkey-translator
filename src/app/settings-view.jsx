@@ -805,8 +805,22 @@ export default function SettingsView() {
     const hooks = settingsModel.hooks();
     if (id === 'signin') { if (hooks.onSignIn) hooks.onSignIn(); return; }
     if (id === 'byo') {
-      const p = (Registry.providers() || []).find((x) => x.keyUrl);
-      if (p && p.keyUrl && hooks.openExternal) hooks.openExternal(p.keyUrl);
+      // BEL-233（1.23.4，App only）：额度卡的「用自己的 key」不再把用户踢到
+      // platform.openai.com —— 注册表第一个带 keyUrl 的提供商不等于用户想配的那家。
+      // 走与 #app-adv-hint-go 同一条页内路径：分项档先用 wireModeTabs 的确认框问一次
+      // （切换会覆盖分项配置），取消就原地不动；确认后切一键、进引擎子页、滚到一键卡。
+      // keyUrl 仍只在一键配置页里用；options.jsx（扩展）按令不动。
+      if (detailRef.current) {
+        const ok = await LearnDialog.confirm(
+          t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
+          { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
+        if (!ok) return;
+        await setDetailFn(false);
+      }
+      setPage('sec-engines');
+      requestAnimationFrame(() => {
+        try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {}
+      });
       return;
     }
     if (id === 'community') {

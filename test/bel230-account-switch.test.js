@@ -188,7 +188,11 @@ describe('BEL-230 exhausted 卡 —— 重新领取入口', () => {
       const at = Math.max(src.indexOf('const grantAction'), src.indexOf('function grantAction'));
       ok(at > -1, rel + ' 里找不到 grantAction');
       const fn = src.slice(at);
-      ok(/id !== 'claim'/.test(fn.slice(0, 900)), rel + ' 的 grantAction 不接 claim');
+      // 判据是「claim 守卫在领取调用之前」，不是它落在前 N 个字符里 —— BEL-233 给
+      // byo 分支加页内导航后，固定 900 的窗口会把一个仍然正确的 guard 判红。
+      const guard = fn.indexOf("id !== 'claim'");
+      const claimAt = fn.search(/claimAndApply|LearnGrant\.claim/);
+      ok(guard > -1 && claimAt > guard, rel + ' 的 grantAction 不接 claim');
       ok(/claimAndApply|LearnGrant\.claim/.test(fn.slice(0, 2600)),
         rel + ' 的 claim 没走共用领取层');
       const fin = fn.indexOf('finally');
