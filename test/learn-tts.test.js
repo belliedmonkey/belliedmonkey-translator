@@ -940,6 +940,28 @@ describe('语音默认：不许有回落到系统自带的暗门', () => {
     }
   });
 
+  // BEL-230：额度用尽/失效时，TTS 不能再只说「这句暂时读不出来 (HTTP 402)」。
+  // 四个额度码各有一句话，但都指向同一个方向：免费额度用完了 / 不可用了。
+  test('BEL-230 reason：额度码说额度，5xx/超时仍是网络/服务类兜底', () => {
+    const { TTS } = setup();
+    const t = (k, fb) => fb;
+    for (const code of ['credit_exhausted', 'grant_unavailable', 'grant_revoked',
+      'grant_invalid', 'model_not_allowed']) {
+      const line = TTS.reason(code, t);
+      ok(/免费额度/.test(line), code + ' 没说免费额度：' + line);
+      ok(!/暂时读不出来/.test(line), code + ' 仍然落到「这句暂时读不出来」：' + line);
+    }
+    // 具名额度码 + 状态（新调用形状）也必须说额度。
+    ok(/免费额度/.test(TTS.reason(402, 'credit_exhausted', t)),
+      'reason(status, code) 形状没接住额度码');
+    // 服务/网络类兜底不能被额度分支吞掉。
+    ok(/服务|网络/.test(TTS.reason('http', t)), 'http 不再说服务错误');
+    ok(/超时|网络/.test(TTS.reason('timeout', t)), 'timeout 不再说超时/网络');
+    ok(/服务|网络/.test(TTS.reason('network', t)), 'network 不再说网络');
+    ok(/服务|网络/.test(TTS.reason(500, '', t)),
+      'HTTP 500 落回「这句暂时读不出来」—— 服务类兜底丢了');
+  });
+
   // ─── 系统语音的原生后端（2026-09-13）────────────────────────────────────
   // 真机实证：WKWebView 的 speechSynthesis 只暴露 compact 档，用户装的增强/优质声只有原生
   // AVSpeechSynthesizer 拿得到。所以 App 里 browser 引擎先问桥 systemVoice(lang)：有就走原生

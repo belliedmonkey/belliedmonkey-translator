@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "받기"
   },
+  "grant_reclaim": {
+    "message": "다시 받기"
+  },
   "grant_claiming": {
     "message": "받는 중…"
   },

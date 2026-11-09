@@ -779,8 +779,33 @@ var LearnTTS = (() => {
   // 放在这里而不是某个 UI 文件里：reason 是这个模块产的，谁产它谁说它是什么意思
   // （`EngineTest.reason` 已经是这个形状）。`t` 由调用方传入 —— 这个文件在扩展页、
   // 宿主 App 两个宿主里跑，i18n 的取法不一样，而文案的**内容**必须一样。
-  function reason(code, t) {
+  // `reason(code, t)` 是既有 ABI。BEL-230 起它也接 `reason(status, code, t)`：
+  // 传输层同时知道 HTTP 状态与具名额度码，而调用方常常只拿到 reason 字符串 ——
+  // 两种形状都收，避免为了一句话改 20 个调用点。
+  function reason(codeOrStatus, codeOrT, maybeT) {
+    let status = 0;
+    let code = codeOrStatus;
+    let t = codeOrT;
+    if (typeof codeOrStatus === 'number') {
+      status = codeOrStatus;
+      code = typeof codeOrT === 'string' ? codeOrT : '';
+      t = typeof maybeT === 'function' ? maybeT : ((k, d) => d);
+    } else {
+      t = typeof codeOrT === 'function' ? codeOrT : ((k, d) => d);
+    }
+    code = code == null ? '' : String(code);
+    // 没有具名码时，5xx 仍然说「语音服务返回了错误」，不冒充额度问题。
+    if (!code && status >= 500) code = 'http';
     switch (code) {
+      // ── 额度码（BEL-230）──────────────────────────────────────────────
+      // 此前这五个码全落到 default 的「这句暂时读不出来」，用户只知道 HTTP 402，
+      // 不知道是自己的免费额度用完了、池子空了，还是令牌失效。文案复用
+      // grant_err_*（与设置页/听译同一批键），不另写第二份。
+      case 'credit_exhausted': return t('grant_err_exhausted', '免费额度已经用完了。你可以填一把自己的 key 继续用（一把通吃翻译、朗读、转写），或者到社群里问问。');
+      case 'grant_unavailable': return t('grant_err_unavailable', '不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。');
+      case 'grant_revoked': return t('grant_err_revoked', '这份免费额度已经停用了（退出登录或删除账号会停用它）。重新登录同一个账号就会回来，余额不变。');
+      case 'grant_invalid': return t('grant_err_invalid', '这份免费额度认不出来了。到设置里重新领一次。');
+      case 'model_not_allowed': return t('grant_err_model', '免费额度只能用它指定的那个模型。你在「分项」里改过模型 —— 改回去，或者填一把自己的 key。');
       case 'no_voice': return t('tts_no_voice', '系统里没有这门语言的语音');
       case 'no_voice_und': return t('tts_no_voice_und', '这张卡的语言未知 —— 在设置里选一个朗读语音后即可朗读');
       // 「没配过」与「这平台做不到」分开说 —— 前者有出路，后者没有。

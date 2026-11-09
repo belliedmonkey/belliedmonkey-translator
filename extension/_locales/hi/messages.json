@@ -2464,6 +2464,9 @@
   "grant_claim": {
     "message": "लें"
   },
+  "grant_reclaim": {
+    "message": "फिर से दावा करें"
+  },
   "grant_claiming": {
     "message": "लिया जा रहा है…"
   },

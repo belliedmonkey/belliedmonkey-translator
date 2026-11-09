@@ -234,6 +234,44 @@ export function createGoogleAuthFlow(options) {
   };
 }
 
+// BEL-230：换号即失效上一账号令牌。
+//
+// 四条登录路径（Apple / Google / 邮箱 OTP / 邮箱密码）最后都进 show(session)，
+// 所以「账号真的变了」只在这里判一次。同一账号重复登录（userId 没变）不触发 ——
+// 那一次 claim 已经由 _autoClaimed 的 single-flight 挡掉，不重复领。
+export function accountSwitched(prev, next) {
+  const a = prev && prev.userId ? String(prev.userId) : '';
+  const b = next && next.userId ? String(next.userId) : '';
+  return !!a && !!b && a !== b;
+}
+
+// 换号串行步骤：清三槽 → 重新 claim。做成依赖注入的单个 async 函数，是为了让
+// 「三步之间不插队」可被单测钉住，而不是靠读源码猜顺序。deps：
+//   read()            读当前设置（至少含三槽 + grantTail）
+//   clear(settings)   算清理 patch —— 生产是 LearnGrant.clearForAccountSwitch
+//   write(patch)      一次落盘；必须在 claim 之前完成
+//   enabled()         这个 flavor 有没有额度这条路
+//   claimAndApply(o)  共用领取层（settingsModel.claimAndApply，overwrite:false）
+//
+// **顺序即原子性**：清理是一笔 storage.set；它 resolve 之后，任何重新读设置的
+// relay 请求都看不到旧 bmg_ 令牌。claim 失败也不回填旧槽 —— 失败的是「新令牌
+// 没到」，不是「旧令牌还能用」。真正的网络请求串行化靠 _autoClaimed 这个
+// 既有 single-flight 队列（见 switchAccountGrant），没有另造框架。
+export function createAccountSwitch(deps) {
+  const d = deps || {};
+  return async function accountSwitch() {
+    const cur = (await d.read()) || {};
+    const oldTail = String(cur.grantTail || '');
+    const clear = d.clear(cur) || { writes: {}, marks: {} };
+    await d.write(Object.assign({}, clear.writes, clear.marks));
+    if (typeof d.enabled === 'function' && !d.enabled()) return { cleared: true, claimed: false };
+    // replaceKeyTail 显式给**旧尾号**：三槽刚被清空，plan() 不能再指望
+    // settings.grantTail 还在；而这三槽本来就是上一账号的额度，新令牌可以直接盖。
+    await d.claimAndApply({ overwrite: false, selfTest: false, replaceKeyTail: oldTail });
+    return { cleared: true, claimed: true };
+  };
+}
+
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
@@ -480,8 +518,23 @@ export function bootShell() {
   }
 
   // 一次会话只试一次 —— 存的是**那一次尝试本身**，晚来的调用者（引导的「就地试一句」）
-  // 等同一次，而不是看见「已经试过」就当作有了引擎。
+  // 等同一次，而不是看见「已经试过」就当作有了引擎。它同时是换号的串行队列：
+  // switchAccountGrant() 把「清理 + 重新领取」整段放进同一个 promise，别的调用者
+  // await 到的就是这一整段，中间插不进第二次 claim。
   let _autoClaimed = null;
+  const SWITCH_KEYS = ['apiKey', 'apiModel', 'ttsApiKey', 'ttsModel', 'ttsEngine',
+    'sttApiKey', 'sttModel', 'sttEngine', 'grantTail', 'grantBalance', 'grant'];
+  const runAccountSwitch = createAccountSwitch({
+    enabled: () => typeof LearnGrant !== 'undefined' && LearnGrant.enabled(),
+    read: () => new Promise((res) => {
+      try { chrome.storage.local.get(SWITCH_KEYS, (v) => res(v || {})); } catch (_) { res({}); }
+    }),
+    clear: (s) => LearnGrant.clearForAccountSwitch(s),
+    write: (patch) => new Promise((res) => {
+      try { chrome.storage.local.set(patch, res); } catch (_) { res(); }
+    }),
+    claimAndApply: (o) => settingsModel.claimAndApply(o),
+  });
   async function autoClaimGrant() {
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
@@ -510,6 +563,16 @@ export function bootShell() {
       claimFailed = true;          // 交给状态行去说人话；错误本身仍然由 autoClaimGrant 的 catch 吞掉
       throw e;
     }
+  }
+  // BEL-230：换号后**一个串行步骤** —— 清 _autoClaimed → 清三槽旧令牌 →
+  // 重新 claim（plan 按旧尾号换绑到新 token）。整段由 _autoClaimed 这个既有
+  // single-flight 队列承载：谁在这期间调 autoClaimGrant()，拿到的都是同一个
+  // promise，不会用旧令牌再发一次 claim/relay。
+  async function switchAccountGrant() {
+    _autoClaimed = null;                 // 先清会话级 memo（J07 的重领路同一条）
+    claimFailed = false;
+    _autoClaimed = runAccountSwitch().catch(() => { claimFailed = true; });
+    return _autoClaimed;
   }
   const readObSettings = () => new Promise((r) => {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
@@ -1855,7 +1918,16 @@ export function bootShell() {
   }
 
   async function show(session) {
+    const prevSession = currentSession;
+    const switched = accountSwitched(prevSession, session);
     currentSession = session;
+    // 退出登录也把会话级 memo 清掉：退出时三槽令牌已由 LearnGrant.clearOnSignOut/
+    // clearForAccountSwitch 清空，同一个账号再登录必须重新领，不能命中旧 promise。
+    if (!session) { _autoClaimed = null; claimFailed = false; }
+    // BEL-230：换号的串行步骤在 show() 入口就**启动**（不是等 bindCorpus/paint 之后），
+    // 并立刻占用 _autoClaimed 这个既有 single-flight 队列 —— 后续任何 autoClaimGrant()
+    // 都排在同一段清理+领取后面。下面揭屏前再 await 它。
+    const switchP = switched ? switchAccountGrant() : null;
     // Bind the corpus BEFORE anything reads it. Every path that changes who is
     // signed in arrives here — startup, both sign-in forms, sign-out — so this is
     // the one place where "which database" gets decided, and there is no second
@@ -1886,6 +1958,12 @@ export function bootShell() {
     //
     // **在判定之前启动、在状态行之前 await**（2026-10-02）：启动早于判定，冷启动那一帧里它
     // 一定跑得到；但等待晚于判定与揭屏，那次网络往返不再把揭屏拖住 1–2 秒（R2c / R2d）。
+    // BEL-230：换号时先把「清三槽 → 重新 claim」整段跑完，再启动首屏判定/揭屏。
+    // 这一段是串行的：清理落盘之前不 claim，claim 完成之前不画任何读设置的界面 ——
+    // 于是中间不存在「用旧账号 bmg_ 令牌发 relay」的那一帧。同一账号不走这里。
+    if (switchP) {
+      try { await switchP; } catch (_) { /* 失败已清槽，状态行会说没领到 */ }
+    }
     const claimP = session ? autoClaimGrant().catch(() => { /* 领不到不挡首屏 */ }) : Promise.resolve();
     try { await paintFirstRun(session); } catch (_) {}
     // paintFirstRun 非 packs 时只判定、不揭屏；这里把首页露出来（屏 2 由它自己露）。

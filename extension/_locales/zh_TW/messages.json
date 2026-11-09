@@ -2632,6 +2632,9 @@
   "grant_claim": {
     "message": "領取"
   },
+  "grant_reclaim": {
+    "message": "重新領取"
+  },
   "grant_claiming": {
     "message": "領取中…"
   },

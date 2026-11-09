@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "Holen"
   },
+  "grant_reclaim": {
+    "message": "Erneut abrufen"
+  },
   "grant_claiming": {
     "message": "Wird geholt …"
   },

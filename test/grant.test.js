@@ -309,9 +309,12 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     ok(/somevendor/.test(c.note), '没退到厂商 id');
   });
 
-  test('用完了给两个出口，且没有主按钮（没有可点的补救动作）', () => {
+  test('用完了给三个出口：重新领取（BEL-230）+ 自己的 key + 社群', () => {
     const c = G.cardFor('exhausted', { t, balance: bal(0.2) });
-    eq(c.action, null);
+    // BEL-230：换号/换设备后旧令牌可能失效，"重新领取" 是唯一能自愈的入口。
+    // 它走宿主既有的 claim 路径（与手动重领 chip 同一条），成功后才重画卡。
+    eq(c.action && c.action.id, 'claim');
+    eq(c.action && c.action.text, '重新领取');
     deepEq(c.links.map((l) => l.id).sort(), ['byo', 'community']);
     eq(c.progress.left, 0);
   });

@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "احصل عليه"
   },
+  "grant_reclaim": {
+    "message": "استلام مرة أخرى"
+  },
   "grant_claiming": {
     "message": "جارٍ الحصول عليه…"
   },

@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "Pegar"
   },
+  "grant_reclaim": {
+    "message": "Resgatar novamente"
+  },
   "grant_claiming": {
     "message": "Pegando…"
   },

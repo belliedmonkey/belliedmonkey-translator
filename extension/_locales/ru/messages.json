@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "Получить"
   },
+  "grant_reclaim": {
+    "message": "Получить снова"
+  },
   "grant_claiming": {
     "message": "Получаем…"
   },

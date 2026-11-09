@@ -2459,6 +2459,9 @@
   "grant_claim": {
     "message": "รับ"
   },
+  "grant_reclaim": {
+    "message": "รับอีกครั้ง"
+  },
   "grant_claiming": {
     "message": "กำลังรับ…"
   },

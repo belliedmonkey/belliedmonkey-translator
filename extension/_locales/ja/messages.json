@@ -2631,6 +2631,9 @@
   "grant_claim": {
     "message": "受け取る"
   },
+  "grant_reclaim": {
+    "message": "もう一度受け取る"
+  },
   "grant_claiming": {
     "message": "受け取り中…"
   },

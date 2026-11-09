@@ -2632,6 +2632,9 @@
   "grant_claim": {
     "message": "领取"
   },
+  "grant_reclaim": {
+    "message": "重新领取"
+  },
   "grant_claiming": {
     "message": "领取中…"
   },

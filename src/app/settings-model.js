@@ -227,8 +227,12 @@ async function claimAndApply(opts) {
     throw e;
   }
   const cur = await get(KEYS);
-  // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
-  const plan = LearnGrant.plan(claimed, cur, window, { overwrite: !!o.overwrite });
+  // BEL-230：换号时三槽已在 claim 之前清空，replaceKeyTail 由调用方显式带旧尾号
+  // 进来，plan() 仍按「这是上一枚额度令牌」处理（而不是把它当用户自己的 key）。
+  const plan = LearnGrant.plan(claimed, cur, window, {
+    overwrite: !!o.overwrite,
+    replaceKeyTail: o.replaceKeyTail != null ? o.replaceKeyTail : undefined,
+  });
   if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
   if (plan.marks) await set(plan.marks);
   // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。

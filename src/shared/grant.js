@@ -122,6 +122,9 @@ export function platform(reg) {
 
 // plan(claimed, settings, reg, opts) → { writes, skipped, replaced, tests, marks }
 //   opts.overwrite：「改回免费额度」—— 三槽无论装着什么都换成额度（宿主先弹确认）。
+//   opts.replaceKeyTail：显式指定「哪一枚尾号算我们发的」—— 换号时三槽已经在
+//     claim 之前被清空，紧接着的重新领取仍要按**旧尾号**认定这三槽可覆盖；不能
+//     依赖 settings.grantTail（它刚被一起清掉了）。
 export function plan(claimed, settings, reg, opts) {
   const sp = spec();
   const p = platform(reg);
@@ -129,10 +132,12 @@ export function plan(claimed, settings, reg, opts) {
   if (!sp || !p || !key) return { writes: {}, skipped: [], replaced: [], tests: [], marks: {} };
 
   const s = settings || {};
+  const replaceTail = (opts && opts.replaceKeyTail != null)
+    ? tail(opts.replaceKeyTail) : tail(s.grantTail);
   const out = qsPlan({
     platform: p, key, settings: s,
     pinModel: true,                 // 中继按白名单放行，留空会撞 403
-    replaceKeyTail: tail(s.grantTail),
+    replaceKeyTail: replaceTail,
     overwrite: !!(opts && opts.overwrite),
   });
   return Object.assign({}, out, {
@@ -247,6 +252,29 @@ export function clearOnSignOut(s) {
   return { writes, marks: { grantTail: '', grantBalance: null } };
 }
 
+// BEL-230：换号即失效上一账号令牌。
+//
+// `clearOnSignOut` 的判据是「尾号命中 grantTail」，而换号场景里 grantTail 可能
+// 已经丢了（或槽里是更早一枚 bmg_ 令牌）—— 那时尾号判不出来，旧令牌会留在槽里，
+// 下一次 relay 请求继续记在旧账号头上。这里多认一条 `bmg_` 前缀：额度令牌没有
+// 别的用途，看见它就是我们的，不是用户自己粘的 key（用户的 key 一个字节不动）。
+// `grant` 记录也一并清掉 —— 它是上一账号的「领过/余额」，留给新账号就是谎话。
+export function clearForAccountSwitch(s) {
+  const st = s || {};
+  const oldTail = tail(st.grantTail);
+  const isGrantToken = (v) => {
+    const x = String(v == null ? '' : v).trim();
+    if (!x) return false;
+    if (/^bmg_/i.test(x)) return true;
+    return !!oldTail && tail(x) === oldTail;
+  };
+  const writes = {};
+  if (isGrantToken(st.apiKey)) { writes.apiKey = ''; writes.apiModel = ''; }
+  if (isGrantToken(st.ttsApiKey)) { writes.ttsApiKey = ''; writes.ttsModel = ''; }
+  if (isGrantToken(st.sttApiKey)) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; }
+  return { writes, marks: { grantTail: '', grantBalance: null, grant: null } };
+}
+
 // ── 卡面：状态 → 说什么、能点什么 ────────────────────────────────────────
 //
 // 做成**纯函数**是刻意的：render() 需要 DOM，跑不进纯逻辑套件，于是「哪个状态说哪句
@@ -330,6 +358,10 @@ export function cardFor(status, opts) {
           left: 0, limit, spent: Number((o.balance && o.balance.spentUsd) || limit),
           text: spentText(o.balance, { t, now: o.now }) || (money(limit) + ' / ' + money(limit)),
         },
+        // BEL-230：额度用完后也给一条**重领**的路。换号/换设备之后旧令牌可能已
+        // 失效，而服务端是幂等的：同一个账号重领回同一枚，余额刷新；换了账号则
+        // 拿到新令牌。宿主接的仍是 `claim`（与手动重领 chip 同一条），成功后重画。
+        action: { id: 'claim', text: t('grant_reclaim', '重新领取') },
         links: [byo, community],
       });
     case 'unavailable':
@@ -413,5 +445,5 @@ export function popupRow(settings, opts) {
 
 export default {
   spec, enabled, claim, plan, platform, status, active, activeIn,
-  fresh, leftUsd, spentText, clearOnSignOut, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
+  fresh, leftUsd, spentText, clearOnSignOut, clearForAccountSwitch, tail, cardFor, officialCard, popupRow, toastKey, CACHE_MS, LOW_USD,
 };
