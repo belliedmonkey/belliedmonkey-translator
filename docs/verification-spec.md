@@ -132,43 +132,7 @@ but say so.
 
 ---
 
-## 1. Current surface matrix
-
-The product is adapted to these surfaces (`README.md` 平台支持). **Only iPhone + iPad
-run in the Xcode Simulator** (it only simulates iOS-family devices); the three desktop
-browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot+restore
-— nothing permanent left behind).
-
-| # | Surface | Execution mode | Status |
-|---|---|---|---|
-| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
-| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
-| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified（2026-09-05 重验：引导页语音哨兵 + DeepSeek 测试连接 663ms 通过 + 整页双语）— see §2.C；勾选与选文件夹是仅有的两步人工 |
-| 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
-| 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
-| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
-| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
-| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
-| 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。**模拟器承载不了这个扩展点**（2026-09-20 量过：里面没有苹果的「翻译」App，因此没有「默认翻译App」那一行）—— 但收件箱摄入那一半可以在模拟器上验，见 §2.I | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
-| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
-| 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 设计通过）。自动化门见 §3.1.13 `npm run test:cli` |
-> **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
-> 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
-> 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
-> 用户改口时再加回。
->
-> **Windows 曾与 Linux 同列（同日凌晨的裁定，#321），当晚用户改口「windows 进入验收矩阵」，于是有了第 8 行。** 按 §0
-> 「矩阵只增不减」，它从此是每次回归的一行；没跑就写 ⬜，不写 N/A。
-
-Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
-(`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
-not run there, and `domain-design.md` §9.4's constraint (the app is an *additional*
-surface, never the only working path) means a change to translation is N/A for them by
-construction, not by exemption.
-
-Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
-
-### 0.1 凭证与登录：两件事，两个固定来源（2026-08-23）
+### 0.3 凭证与登录：两件事，两个固定来源（2026-08-23）
 
 验证要花的两样东西——**引擎凭证**和**一个登录态**——都有固定来源。两条都是**纪律**，
 不是建议：每次开口问，验证就从「跑一遍」变成「等人回话」，而这两样东西一直都在机器上。
@@ -203,7 +167,7 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 表是 `ItemTable(key, value)`，**value 是 UTF-16LE**。写之前先把 App 停掉。
 （脚本形态见 §2 F 行的 simulator 记录。）
 
-### 0.2 真机：一律走 iPhone 镜像驱动（2026-08-23 用户裁定）
+### 0.4 真机：一律走 iPhone 镜像驱动（2026-08-23 用户裁定）
 
 **真机验收由 iPhone 镜像（iPhone Mirroring）全程驱动，用户只做两件物理动作：把包弄上机、
 把手机锁屏。** 其余（点按、翻页、截图取证、判定）都不该再麻烦人 —— 一个每步都要人伸手的
@@ -212,12 +176,12 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 - **镜像要求手机处于锁屏状态。** 屏幕上写着「iPhone 使用中，锁定 iPhone 以连接」时，
   不是坏了，是手机正被拿在手里。装完包请把它放下、锁屏、别再碰。
 - **窗口底部约 70px 是悬浮条，会吃掉点击** —— 目标落在那一带时先滚动，别硬点。
-- **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.1）。
+- **`⌘V` 在镜像里会被吞**，同模拟器。要填长文本就别走键盘（见 §0.3）。
 - **镜像只用来驱动屏幕；任何要读麦克风的环节先把它退出（2026-09-12）。** 镜像开着时
   Mac 占用手机麦克风：tap 帧照流（47.7k 帧/s）、样本**全零**（Mac 弹「无法从 Mac 使用
   iPhone 麦克风」）。09-07 的尖刺记过一次、09-12 又废掉探针的前两轮读数，所以升成规则：
   **音频读数 = 镜像已关**。被测 App 自己留 append-only 时间戳日志，读数在重开镜像后
-  回读（同下文「关掉镜像窗口就是锁屏」那条的做法）。声源按 §0.3 用播放语料，不用真人。
+  回读（同下文「关掉镜像窗口就是锁屏」那条的做法）。声源按 §0.5 用播放语料，不用真人。
 
 **把包弄上机的两条路，代价不同：**
 
@@ -298,7 +262,7 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
    `content/request-shape.js`」，而工程其实刚重新生成过、是好的。**假红和假绿同样致命**：
    同一个默认路径也可能让一个真的漏文件的包通过。
 
-### 0.2.0 真机验证的固定做法：QuickTime 展示 + `screencapture` 录屏 + 逐帧判定（2026-10-09 用户裁定，**强制**）
+### 0.4.0 真机验证的固定做法：QuickTime 展示 + `screencapture` 录屏 + 逐帧判定（2026-10-09 用户裁定，**强制**）
 
 > **以后所有真机验证都必须这么做。** 做不到就说清原因并停下 —— 不许退回「一张末态截图 + DOM 断言」。
 
@@ -311,7 +275,7 @@ Every regression must cover **all rows**, or explicitly mark a row N/A for the c
 
 | 角色 | 用什么 | 注意 |
 |---|---|---|
-| 驱动 | XCUITest runner（`tools/ios-runner` → 工作区 `.local/spike/S6`），JSON `testDrive` | **不用 iPhone 镜像**：镜像占设备麦克风（§0.2）且与收音互斥 |
+| 驱动 | XCUITest runner（`tools/ios-runner` → 工作区 `.local/spike/S6`），JSON `testDrive` | **不用 iPhone 镜像**：镜像占设备麦克风（§0.4）且与收音互斥 |
 | 展示（给人看） | QuickTime Player → 文件 › 新建影片录制 → 源选 **iPhone** | **麦克风必须选「无」**：选设备麦会占麦，选 Mac 麦会把环境音录进去 |
 | 录屏（判据） | Mac 本机 `screencapture`（cap）录 **Mac 屏幕**（含 QuickTime 窗口） | `screencapture -v -V <秒> -x out.mov`（定时）或 `-v -x` 手动起停；**不要加 `-g`**（那是录 Mac 麦克风） |
 | 逐帧分析 | `ffmpeg -i out.mov -vf fps=2 frames/%04d.png` | 按用例判据**逐帧**读，不是只看末态；必要时 `fps=4` |
@@ -342,7 +306,7 @@ ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/fr
 ```
 
 **取证要求**：`.mov` + 抽帧目录 + 一份**逐条判据表**（每条用例写「第几秒到第几秒、屏幕上应当出现什么」）。
-判据读的是**帧**，不是 `passed`（§0.2.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
+判据读的是**帧**，不是 `passed`（§0.4.3 第 1 条）。做不到录屏就必须写明原因，不许静默降级。
 
 **录屏前的两条（2026-10-12 一次真机验收里各废了一段录像）：**
 
@@ -355,21 +319,21 @@ ffmpeg -i .local/dev-verify/<日期>-<用例>.mov -vf fps=2 .local/dev-verify/fr
   盖上去，28 分钟里几乎每一帧都是 Cursor。先给 QuickTime 开「浮动在最前面」再录**整屏**（浮动后它离开 layer 0，
   `cap record windows` 里就找不到它了，按窗口录也录不成）。开录后先抽一帧看 iPhone 画面在不在，再开始驱动。
 
-### 0.2.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
+### 0.4.1 镜像的硬前提：手机必须设了锁屏密码（2026-09-17）
 
 Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18 或更高版本**并设置为使用密码**」。
 测试机把密码去掉之后，`open -b com.apple.ScreenContinuity` 直接弹配对向导，「继续」→「无法连接 iPhone，
 请确保已开机…蓝牙和 Wi-Fi」—— 而 `devicectl` 明明 `connected localNetwork`、蓝牙也配着。**排查顺序：先问手机
 有没有密码，再查网络。** 没密码这条路就不存在，别在「重试」上耗。
 
-### 0.2.2 真机：镜像之外的两条路，以及哪条能走（2026-09-17 实测）
+### 0.4.2 真机：镜像之外的两条路，以及哪条能走（2026-09-17 实测）
 
 09-17 晚要在真机上验设置页改版（离线模型行、识别语言包行），镜像因上面那条连不上，把另外两条路都走了一遍。
 **结论先写：XCUITest 在 Wi-Fi 连接下被拒，走不通；「调试包 + 局域网控制通道 + devicectl 截屏」走通了全部真机项。**
 
 | 路 | 结果 | 一句话 |
 |---|---|---|
-| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试。**⚠️ 2026-09-23 推翻：那一整天几十轮 `test-without-building` 全部正常起了 runner**（见 §0.2.3）⇒ 这条不是恒真的路障，别因为它跳过 XCUITest；再遇到先插 USB |
+| XCUITest（§F-bis 的 runner，`test-without-building`） | ✗ | runner 在手机上 `exit 74`、`dtxproxy … XCTestManager_IDEInterface refused`。重启手机、`launchctl kickstart` Mac 端 `testmanagerd`、去掉新加用例重编、换 `-destination` 写法都无效。当天上午 USB 连着时同一 runner 是好的，所以**怀疑是 Wi-Fi 隧道**，未证实 —— 下次先插 USB 再试。**⚠️ 2026-09-23 推翻：那一整天几十轮 `test-without-building` 全部正常起了 runner**（见 §0.4.3）⇒ 这条不是恒真的路障，别因为它跳过 XCUITest；再遇到先插 USB |
 | Device Hub「View Screen」（Xcode 27 `Contents/Applications/DeviceHub.app`） | 半通 | 能实时看真机屏幕（AX 里 `AXButton (View Screen)` 可按），但 cua 的像素点击 / 前台点击 / 按住松开都**落不到手机上** —— 只当监视器 |
 | 调试包 + 局域网控制通道 + `devicectl` 截屏 | ✓ | 下面这一节 |
 
@@ -410,7 +374,7 @@ Apple 官方要求（support.apple.com/zh-cn/120421）：「iPhone 使用 iOS 18
 `HEAD` 10 s 超时、下载 2.5 分钟停在 1% 后失败，行进入「下载失败 · 重试」—— **失败态是对的，但境内网络拉不动 GitHub 是事实**，
 china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
 
-### 0.2.3 XCUITest 驱动真机：一天里踩实的十件事（2026-09-23）
+### 0.4.3 XCUITest 驱动真机：一天里踩实的十件事（2026-09-23）
 
 09-23 用 XCUITest（`.local/spike/S6/runner`，`test-without-building`）在 ZHAO的iPhone 上补拍中国版与国际版的
 「系统翻译」商店原料，全程无人值守。**这条路今天是通的** —— 上表里那条「XCUITest 在 Wi-Fi 下被拒」当天没有重现，
@@ -434,11 +398,11 @@ china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
    ⇒ 真正省事的仍是**少装少重建**：加新流程用脚本驱动的 `testDrive`（`tools/ios-runner/README.md`），写 JSON 不改 Swift。
 3. **锁屏做不到，所以 iPhone 镜像在无人值守时不可用。** `devicectl` 没有 lock 子命令；XCUITest 的私有选择器
    `pressLockButton` 调用成功但**没有效果**（截图回读手机仍亮着）。而镜像自己要求「连接前请锁定 iPhone」
-   （窗口原话），加上 §0.2.1 的密码前提 —— 两道都得人来。
+   （窗口原话），加上 §0.4.1 的密码前提 —— 两道都得人来。
 4. **Safari 会缓存本机测试页。** 改了 `http://<Mac IP>:<port>/` 的内容后必须加 `?v=N`，否则真机拍到的还是旧文案，
    而页面看起来完全正常。
 5. **境内真机打不开 Wikipedia。** 第一次拍中国版原料得到一张**纯白页**。真机要英文正文时，用本机起的页走局域网
-   （同 §0.2.2 的控制通道那套 IP），别依赖外网站点 —— 何况中国版商店图本来就不该出现境内打不开的站点。
+   （同 §0.4.2 的控制通道那套 IP），别依赖外网站点 —— 何况中国版商店图本来就不该出现境内打不开的站点。
 
 **两份 App 并存的代价（扩展 §2.0）**
 
@@ -472,7 +436,7 @@ china flavor 的模型地址与 global 相同，已记 `.local/TODO.md`。
 Mac 上 `curl` 两次都是 **200**（Mac 走代理），手机上 **403**（境内直连）。只在 Mac 上验这把 key，
 会得出与事实完全相反的结论。
 
-### 0.3 语音类验证：用播放代替真人（2026-09-12 用户裁定）
+### 0.5 语音类验证：用播放代替真人（2026-09-12 用户裁定）
 
 **语音类验证一律不靠真人说话。** 凡是要往麦克风里送声音的验证 ——「对话 · 实时听译」的
 云端路与本机路、AI 转写字幕的 tier B、回声消除、锁屏续听 —— 声源一律是 **Mac 或另一台
@@ -487,7 +451,7 @@ iPhone 播放的音频 / 视频 / TTS 语料**。用户原话（2026-09-12）：
   （VP 关 zh CER 25.6% vs VP 开 32.2% / 34.4%，同一段 conv 语料）就是这么得到的 ——
   换成真人，那张表一行都不成立。
 - **无人值守。** 读数要跑几分钟到十几分钟（有声书 3 分钟一档、实时转写 12 分钟一档、
-  锁屏 60 s 一档）。让人对着手机念 12 分钟的验证，跑一次就没有下一次（同 §0.2 的理由）。
+  锁屏 60 s 一档）。让人对着手机念 12 分钟的验证，跑一次就没有下一次（同 §0.4 的理由）。
 - **错误率要有分母。** 语料带参照文本（`.local/spike/conv/ref.txt`、`.local/asr/*`），
   CER / WER 才算得出来；真人说的话没有参照，只剩「听着差不多」，而那不是读数。
 
@@ -510,7 +474,7 @@ iPhone 播放的音频 / 视频 / TTS 语料**。用户原话（2026-09-12）：
 
 | 现象 | 真相 | 规则 |
 |---|---|---|
-| 麦克风 tap 帧在流（47.7k 帧/s）、样本**全零**、识别器一字不出 | **iPhone 镜像在 Mac 上开着**，Mac 占了手机麦克风 | **任何要读麦克风的环节之前先退出 iPhone 镜像**；镜像只用来驱动屏幕（§0.2）。探针前两轮读数全废在这上面，09-07 的尖刺已记过一次、这次又踩，所以升成规则 |
+| 麦克风 tap 帧在流（47.7k 帧/s）、样本**全零**、识别器一字不出 | **iPhone 镜像在 Mac 上开着**，Mac 占了手机麦克风 | **任何要读麦克风的环节之前先退出 iPhone 镜像**；镜像只用来驱动屏幕（§0.4）。探针前两轮读数全废在这上面，09-07 的尖刺已记过一次、这次又踩，所以升成规则 |
 | 探针跑到一半没读数了，重开镜像看到它被挂起 | 探针没持有后台音频会话，锁屏 / 切走即挂起 | **探针 / 测试 App 必须持有后台音频会话**（`.playAndRecord` 已激活 + `UIBackgroundModes: audio`），否则锁屏那一档量到的是「挂起」不是功能 |
 | `xcrun devicectl device process launch` 报 `RequestDenied` | 手机锁着 | **launch 只在解锁后做**；解锁后可 launch 任意 bundle id（含 `com.apple.Preferences`，用来把人带到权限页）。与 F-bis 那张表一致：USB 要解锁、镜像要锁屏 |
 | 第二次装探针后麦克风权限没再弹，采集 0 帧 | 权限曾被拒，iOS 不再提示 | **被拒的麦克风权限不会再弹**；iOS 27 路径：设置 → 应用 → <App> → 麦克风。判据是权限状态**回读**，不是「弹没弹」 |
@@ -538,7 +502,7 @@ dist/ 与 dist-app/ 的每个 .js（比下限更新的解析期语法 ⇒ 红）
 
 **云端转写两条在测试机上打不到（2026-09-13）。** 同机同料的「本机路 vs 云端路」并排只做成了一半：`openai_transcribe` 两次都 `socket error`（会话停在 halted，句子还在），`gemini_transcribe` 8 s 超时，`qwen_asr` 国际版包里没有；同一时刻 `api.deepseek.com` 103 ms、`openrouter.ai` 608 ms 都通。这是家用 Wi-Fi 无代理的真实网络，不是环境故障 —— **在这种网络下本机路是唯一能用的转写**，准确率并排只能拿 Mac 侧直喂 PCM 的旧读数（OpenAI 实时 zh 3.9% / en 3.7%、千问 5.2% / 3.6%）对本机路修正后的 zh 4.3%。云端两档在真机的读数是欠条，等有代理的网络补。
 
-### 0.4 分层验证矩阵：Mac 版当自动化音频验证台（2026-10-05 用户拍板）
+### 0.6 分层验证矩阵：Mac 版当自动化音频验证台（2026-10-05 用户拍板）
 
 **音频链路的改动（STT / TTS / 回声闸 / 模型下载）先在 Mac 版 App 上自验通过，才准出
 TestFlight 包。** 用户原话（2026-10-05）：「如果某 iOS 真机才能验证的功能，恰好 mac app
@@ -589,12 +553,12 @@ TestFlight 上发现哑 / 回声 / 语言对跳掉 → 再出包」的循环，�
 STT 探测 zh / en / th 全部 `ok:true`（本机识别资产已装）。macOS 上 SpeechTranscriber 可用，
 #563 那个 iOS 假阳性在 Mac 上未复现 —— 恰好是「Mac 替代不了的四样」第 4 条的佐证。
 
-**音源三板斧**（接 §0.3「播放代替真人」—— 同一条规则的延伸，不是第二条）：
+**音源三板斧**（接 §0.5「播放代替真人」—— 同一条规则的延伸，不是第二条）：
 
 - zh / en：`say -v Ting-Ting` / `say -v Samantha`
 - th：**`say -v Kanya`**（本机实测有，step 0）；或 `afplay` 泰语语料；或**用 App 自己的
   vits-mms-tha 当音源**（App 念泰语 → 扬声器 → 麦克风 → 识别 → 回声闸），完全自包含
-- 对照重放：同一段波形放两遍 —— §0.3 的可比性论据（A/B 之间只差被测变量）原样成立
+- 对照重放：同一段波形放两遍 —— §0.5 的可比性论据（A/B 之间只差被测变量）原样成立
 
 **M 系列 case**（对着 2026-10 的未验证项，进 `test:mac`；跑一条勾一条）：
 
@@ -627,7 +591,7 @@ speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克
 一处 —— harness 接口、端点行为、音源、case 清单 —— 同一 commit 更新本节。矩阵只增不减
 （§0 总规则）；Mac 层是**新增的自动化层**，不替代任何既有行，也不豁免任何一次全矩阵回归。
 
-### 0.4.1 取证靠自己：观察项一律代理侧完成（2026-10-06 用户裁定）
+### 0.6.1 取证靠自己：观察项一律代理侧完成（2026-10-06 用户裁定）
 
 **人工验证时的一切观察由代理自己完成 —— SSH 读服务器日志、Debug 包仪器读设备状态 ——
 不依赖用户肉眼观察与口述反馈。** 用户原话：「这几条都应该是你自己打日志 我操作 你在
@@ -656,6 +620,42 @@ speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克
    `87.124.74.53 … 504 10004ms /auth/v1/token?grant_type=id_token` + GoTrue 全程秒级
    + 服务器直测 Apple JWKS 0.5–1.9s 抖动 —— 病根为**大陆服务器出海到 Apple**，与手机
    网络无关；架构决策（出海代理/JWKS 镜像等）待 `bt-jwks-probe.log` 积累后定。
+
+## 1. Current surface matrix
+
+The product is adapted to these surfaces (`README.md` 平台支持). **Only iPhone + iPad
+run in the Xcode Simulator** (it only simulates iOS-family devices); the three desktop
+browsers run on the **real Mac, fully sandboxed** (throwaway profiles / snapshot+restore
+— nothing permanent left behind).
+
+| # | Surface | Execution mode | Status |
+|---|---|---|---|
+| 1 | **iPhone Safari** | Xcode iOS Simulator (e.g. iPhone 15, iOS 17.2) | ✅ verified（2026-09-04 重验：启用扩展 → 授权站点 → FAB 注入 → 整页双语，走 DeepSeek）|
+| 2 | **iPad Safari** | Xcode iOS Simulator (e.g. iPad Air 5th) — same iOS build, different UDID | ✅ verified（2026-09-04 重验：同上，且目录侧栏/正文/图注三种容器都正确双语）|
+| 3 | **macOS Safari** | Real Mac, sandboxed. **Side-load `dist/` via 开发者→添加临时扩展** (no Xcode/signing; auto-clears on quit; **SNAPSHOT — re-add after every rebuild**, see §2.C) | ✅ verified（2026-09-05 重验：引导页语音哨兵 + DeepSeek 测试连接 663ms 通过 + 整页双语）— see §2.C；勾选与选文件夹是仅有的两步人工 |
+| 4 | **macOS Chrome / Edge** | Real Mac, throwaway profile — **CDP `Extensions.loadUnpacked`** (CLI `--load-extension` blocked on Chrome ≥137) | ✅ verified (FAB + 11 translations) — see §2.D |
+| 5 | **Firefox (desktop)** | Real Mac, `npx web-ext run` (throwaway profile, live-references `dist-firefox/`) + WebDriver BiDi driving | ✅ verified (FAB + page bilingual + podcast playback + 0px click) — see §2.E |
+| 6 | **iOS host app** | Xcode iOS Simulator, `BelliedMonkey Translator (iOS)` scheme | ✅ Stage 2 verified (登录 → 拉到 11 张卡 → 收敛 → 重启仍在) — see §2.F |
+| 7 | **macOS host app** | Real Mac, **signed** build copied to `/Applications` | ✅ verified（2026-09-05 重验：两档互斥 · 语音「未配置（不朗读）」· Key/端点第一眼不露 · 点「试听一句」说「✗ 还没配语音引擎 —— 到「设置›语音」里选一个」而不是「播放中」；曾误判为「白屏」，真因是窗口捕捉故障 — see §2.G 第 5 条）|
+| 8 | **Windows 11 Chrome / Edge / Firefox** | **VMware Fusion 虚拟机**（Windows 11 ARM，`~/Virtual Machines.localized/Windows 11 64 位 ARM.vmwarevm`，NAT 网段 vmnet8）。从 Mac 走网络驱动：Chrome / Edge 经 portproxy 转出来的 CDP（`scripts/win-matrix/chromium.js`），Firefox 经 WebDriver BiDi（`scripts/win-matrix/firefox.js`）| ✅ **verified 2026-09-18**（Chrome 153 · Edge 145 · Firefox 156，均 1.12.1：扩展装上、设置页无运行期错误、FAB「开启翻译」、三段 + 标题全部出中文译文 —— Edge 抓到后台 worker 向 DeepSeek 发 4 条 0.3 s 全 200；Windows 专属读数见 §2.H）— see §2.H |
+| 9 | **iOS 系统翻译扩展**（learning-design §9.9）| **仅真机**，iOS 18.4+。`devicectl` 装调试包；用 `.local/spike/S6/runner` 式的 UI 测试程序遥控（点按算真触摸、能截整屏、能驱动「设置」与别的 App）。**模拟器承载不了这个扩展点**（2026-09-20 量过：里面没有苹果的「翻译」App，因此没有「默认翻译App」那一行）—— 但收件箱摄入那一半可以在模拟器上验，见 §2.I | ⬜ 未出货。尖刺 T1（2026-09-19，ZHAO的iPhone / iOS 27）已把整条链走通：可选为默认 → Safari 选字 › 翻译 → 弹层出译文 → 替换原文 → 拉起宿主 — see §2.I |
+| 10 | **macOS 快速翻译**（learning-design §9.9）| Real Mac，**签名构建**拷到 `/Applications`（服务菜单与 TCC 授权都认安装位置与签名）；cua-driver + System Events。两处系统授权（辅助功能里的「增强取词」、录屏）**由人点**，不代点 | ✅ **verified 2026-09-19**（1.13.x 签名构建装在 /Applications，macOS 27）：服务登记含 `NSRequiredContext` · 别的 App 在前台按 ⌃⌥T 出译文且不抢焦点 · 关主窗口后常驻、热键仍响应 · 截图翻译三行一字不差、不落盘 · 右键「服务」· 输入翻译 · 复习库三个来源分组 · 关常驻后关窗即退出；增强取词「有权限」一支沿用同日读数（用户当晚关了权限）— see §2.J 与「矩阵执行记录：全回归（2026-09-19）」 |
+| 11 | **CLI（命令行宿主）**（learning-design §9.10）| 本机终端（macOS / Linux）。`node cli/bin/belliedmonkey.js` 直接跑；无头、无浏览器。命令与退出码见 interaction-spec「命令行」；两个 flavor 各一个产物（`dist-cli/` · `dist-cli-china/`）| ⬜ 未出货（2026-09-30 设计通过）。自动化门见 §3.1.13 `npm run test:cli` |
+> **不在矩阵里的：Linux 上的 Chrome / Firefox 暂不进验收矩阵（2026-09-18 用户裁定）。** 不为它装容器、不留待办。
+> 能用桩重现的平台差异在 macOS 无头 Chrome 里验 —— 例：Linux 没装 speech-dispatcher 时 `speechSynthesis.getVoices()`
+> 恒为 `[]`，把它钉成 `[]` 后回读设置页试听的提示（#320 就是这么验并修的：改前「系统里没有这门语言的语音」，改后「这个浏览器不提供内置语音」）。
+> 用户改口时再加回。
+>
+> **Windows 曾与 Linux 同列（同日凌晨的裁定，#321），当晚用户改口「windows 进入验收矩阵」，于是有了第 8 行。** 按 §0
+> 「矩阵只增不减」，它从此是每次回归的一行；没跑就写 ⬜，不写 N/A。
+
+Rows 6–7 were added 2026-08-07 with the learning surface moving into a companion app
+(`learning-design.md` §7.2). **They are learning-layer rows only** — translation does
+not run there, and `domain-design.md` §9.4's constraint (the app is an *additional*
+surface, never the only working path) means a change to translation is N/A for them by
+construction, not by exemption.
+
+Every regression must cover **all rows**, or explicitly mark a row N/A for the change.
 
 ### 1.0 Provider matrix — every shipped engine must have been reached at least once
 
@@ -900,7 +900,7 @@ test with the key from `.local/keys.md`.
 | macOS Safari | ✅ **measured 2026-09-07** (Safari 26.5, transistor.fm, whisper-1 + DeepSeek, driven by AppleScript `do JavaScript` — log `.local/asr/results/2026-09-07-safari-macos-file-tier.log`): the entry appears once the page's own subtitles are ruled out (≈16 s, 6 acquire attempts), one upload of the whole 25-min file, first pair 101 s after the tap, pairs follow playback. Content-script fetch of the CDN worked as on Chrome. | ❌ **measured 2026-09-07: MSE (`blob:`) sources are SILENT** — Twitch live and a YouTube video both stayed audible while `createMediaElementSource` output RMS 0.00000, confirmed in the page world with a real click and a `running` AudioContext (`2026-09-07-safari-macos-live-tier.log`). Since #216 the session stops **before** the socket opens with the named 「Safari 抓不到这类流媒体视频的声音」; before that the silence guard reported 「捕获不到声音」 within 5 s (correct, but blamed the speakers). Http(s) `<audio>` with CORS (the crossorigin-reload path) is unmeasured on Safari — every real podcast page took tier A. | same; plus: an AudioContext created outside a user gesture stays `suspended` in Safari and `resume()` never settles, so the **toolbar-popup entry** (a gesture in the popup, not in the page) cannot start capture on Safari — the in-page notice button is the path that works. *Since 2026-09-11 (第九期)* the popup entry on Safari lands on a named `gesture` stop and the notice offer reads 「▶ 点此开始实时转写」 — one in-page tap, then capture (to be measured on a real iPhone: the Simulator cannot produce a real gesture) |
 | iPhone / iPad Safari (≥ iOS 17.1) | ✅ **measured 2026-09-08** (iPhone 15 Pro Simulator, iOS 17.2, transistor.fm, whisper-1 + DeepSeek, driven by `safaridriver` — extensions DO run inside a WebDriver session on the Simulator; log `.local/asr/results/2026-09-07-safari-ios-sim-file-tier.log`): entry after 12 s, one upload, **first pair 90 s** after the tap, pairs follow playback | ❌ **measured 2026-09-08**: native HLS (`<video src=.m3u8>`, Apple's bipbop sample) stops by name 「Safari 抓不到这类流媒体视频的声音」 within 3 s (#216 treats a manifest URL as a non-fetchable source; before that it took tier A and failed as 「无法读取该音频」 — a playlist is not audio). m.youtube.com on iOS 17.2 serves a **progressive http(s)** `googlevideo` URL (not MSE): the CORS probe passed, the element was reloaded with `crossorigin`, then 「捕获不到声音」 3 s after 「实时转写中」 — the trigger was a WebDriver click (no user gesture, AudioContext suspended), so whether a real tap captures audio on an http(s) source is **still unmeasured** (manual taps are blocked while a WebDriver session is open, and ending the session blanks the tab). iPad not run separately (same WebKit, same layout code). | same; the named stops above all appear within 3 s, no stuck state seen | same; screen lock during a live session ⇒ 「转写连接中断」 on return, not silence |
 | iOS / macOS host app | N/A (no page media) | **对话 · 实时听译** (learning-design §9.6): the microphone is the source, captured **natively** (`AVAudioEngine` tap → bridge → `ws-transcribe.js`). iPhone real device only (the Simulator microphone yields 0 bytes): a finalized pair appears ≈ 2 s after speech; **60 s locked ⇒ frames and finals keep arriving** (the reading that failed for in-page capture, see 「尖刺：WKWebView 能不能后台录」); 「我说」 flips and speaks. macOS App: same, no lock case | four named stop states (learn-regression M21–M23); silence for 30 s ⇒ paused with the cost line, never a stuck 「听译中」 |
-| iOS / macOS host app — **本机路** (`device` STT → own VAD → `finalize(through:)` → `sentenceCutter` → **one** remote correct+translate call → `device` TTS; designed 2026-09-12, verifiable from D2) | N/A (no page media) | Source per §0.3: a played corpus, **mirroring closed**. The row shows the **raw** sentence first (`row.raw`), then swaps to the corrected text with the translation; timing per the §0.3 table (volatile ≤ 2 s · pause → final ≤ 1.0 s · final → corrected+translated ≤ 1.0 s · translation → speech ≤ 0.5 s), proven by a timestamped log or recording. The corpus stores the **corrected** text. The bridge carries `mic-level {rms}` only — never base64 PCM (`mic-start.deliver === 'level'`). iPhone real device: **60 s locked ⇒ `stt-final` keeps arriving** (M24). iOS < 26 / macOS < 26 ⇒ entry greyed with the named sentence 「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」; the cloud live engine stays the full baseline | named `downloading` / `listen_assets_failed` with the cloud exit; switching a language on the device path **reconnects** (one locale per recognizer) — a silent no-op here is a defect; an all-zero `mic-level` is an invalid reading, not silence (§4, 2026-09-12) |
+| iOS / macOS host app — **本机路** (`device` STT → own VAD → `finalize(through:)` → `sentenceCutter` → **one** remote correct+translate call → `device` TTS; designed 2026-09-12, verifiable from D2) | N/A (no page media) | Source per §0.5: a played corpus, **mirroring closed**. The row shows the **raw** sentence first (`row.raw`), then swaps to the corrected text with the translation; timing per the §0.5 table (volatile ≤ 2 s · pause → final ≤ 1.0 s · final → corrected+translated ≤ 1.0 s · translation → speech ≤ 0.5 s), proven by a timestamped log or recording. The corpus stores the **corrected** text. The bridge carries `mic-level {rms}` only — never base64 PCM (`mic-start.deliver === 'level'`). iPhone real device: **60 s locked ⇒ `stt-final` keeps arriving** (M24). iOS < 26 / macOS < 26 ⇒ entry greyed with the named sentence 「设备内置转写需要 iOS 26 / macOS 26 —— 或去设置里选一个云端实时引擎」; the cloud live engine stays the full baseline | named `downloading` / `listen_assets_failed` with the cloud exit; switching a language on the device path **reconnects** (one locale per recognizer) — a silent no-op here is a defect; an all-zero `mic-level` is an invalid reading, not silence (§4, 2026-09-12) |
 | iOS / macOS host app — **实时字幕** (learning-design §9.8, designed 2026-09-13) | N/A (no page media) | the device's **playback** is the source, captured natively: macOS system-audio process tap (14.4+), iOS microphone in the background listening to the speaker, iOS phase 2 ReplayKit broadcast (app audio, screen frames dropped unread). **This row exists to close the Safari tier-B cells above**: a YouTube / Twitch MSE video playing in macOS Safari, and a video playing in iPhone Safari on the speaker, must produce subtitles in the floating panel / picture-in-picture subtitle window. ⬜ not yet measured (M26, M31) | named stops on the panel / page: 30 s silence ⇒ paused (no auto-resume), permission denied (with the System Settings path), socket lost, asset download progress; iOS phase 1 names the headphones case; closing the macOS main window does **not** stop (M28) |
 
 **Check the request, not the overlay.** A live session that re-sends an already-closed
@@ -1931,9 +1931,9 @@ FAB 注入 → 点一下整页双语（`September Event` → `九月活动`、`L
 
 - **真机现在是 iOS 27.0（24A5430a）。** 本节标题与 §2 各处的「iOS 26.5」是当时读数的
   条件，只增不改；新读数一律标 27.0。
-- §0.3 那张坑表在这一行全部适用：先退出镜像再读麦克风；`devicectl … process launch`
+- §0.5 那张坑表在这一行全部适用：先退出镜像再读麦克风；`devicectl … process launch`
   要解锁；被拒的麦克风权限不再弹（设置 → 应用 → <App> → 麦克风）；探针要持有后台
-  音频会话。声源按 §0.3 用 Mac `afplay` 语料，不用真人。
+  音频会话。声源按 §0.5 用 Mac `afplay` 语料，不用真人。
 
 **本机语音（device-speech，D2–D6）在这一行新增两项，与 M21–M23 同列**（G 行 macOS
 宿主 App 同样跑 M25；M24 的锁屏一档 macOS 无对应，记 N/A）。`learn-regression.md` 的
@@ -1941,8 +1941,8 @@ M 表要同步加这两行，编号在此钉住：
 
 | # | 项 | 怎么做 | 通过判据 |
 |---|---|---|---|
-| **M24** | 本机转写锁屏 60 s 续听 | 引擎选「设备内置转写」，按 §0.3 配方开始听译，Mac `afplay` conv 语料；**退出镜像 = 真锁屏**，60 s 后重开镜像回读 | 锁屏窗口内 `stt-final` 持续到达（App 内 append-only 时间戳日志，≥ 5 条 final 的时间戳落在锁屏窗口内），历史里多出对应的定稿 + 译文；`mic-level` 的 rms **不是恒 0**（恒 0 是镜像没退干净或权限被拒，§4 2026-09-12）。M22 的云端路基线同场跑一遍，不得退化 |
-| **M25** | 本机朗读后台出声 | 引擎选「设备内置朗读（离线模型）」，触发一句自动朗读，按 Home 退到后台（镜像可驱动这一步，§0.2） | 后台期间桥收到 `tts-start` / `tts-end`，且**用户人耳听到声音**（Swift 侧 playerNode 出声，JS 里没有任何可断言的音频元素 —— 这是 §4「静音要报成静音」在本机路的形态）；模型未下载时先出具名 `downloading` 态，下载失败 `listen_assets_failed` 并留 `browser` / 云端出口 |
+| **M24** | 本机转写锁屏 60 s 续听 | 引擎选「设备内置转写」，按 §0.5 配方开始听译，Mac `afplay` conv 语料；**退出镜像 = 真锁屏**，60 s 后重开镜像回读 | 锁屏窗口内 `stt-final` 持续到达（App 内 append-only 时间戳日志，≥ 5 条 final 的时间戳落在锁屏窗口内），历史里多出对应的定稿 + 译文；`mic-level` 的 rms **不是恒 0**（恒 0 是镜像没退干净或权限被拒，§4 2026-09-12）。M22 的云端路基线同场跑一遍，不得退化 |
+| **M25** | 本机朗读后台出声 | 引擎选「设备内置朗读（离线模型）」，触发一句自动朗读，按 Home 退到后台（镜像可驱动这一步，§0.4） | 后台期间桥收到 `tts-start` / `tts-end`，且**用户人耳听到声音**（Swift 侧 playerNode 出声，JS 里没有任何可断言的音频元素 —— 这是 §4「静音要报成静音」在本机路的形态）；模型未下载时先出具名 `downloading` 态，下载失败 `listen_assets_failed` 并留 `browser` / 云端出口 |
 | **M25-sys** | 系统语音（原生后端）锁屏出声 | 引擎选「设备内置语音」（App 内走原生 `AVSpeechSynthesizer`，P3 #251），开始听，**用户按电源键锁屏**（远程锁不了：无密码 + App 前台使用中时 iPhone 镜像连不上，`devicectl` 无锁屏命令），Mac 连放两遍 conv.wav | 锁屏期间每行 `lat.ttsOk` 为真、`ttsStart` 与前台同量级，且**用户人耳听到译文**。✅ **2026-09-13 11:55 真机通过**（iPhone 14 Pro · iOS 27.0）：锁屏 83 s 内 21 句到齐、21 句全由原生系统语音念出、0 失败、开口 86–108 ms；用户回读「锁屏期间听到在念译文了」 |
 | **M26** | Mac 系统声音字幕 | App「实时字幕」开始 → Mac `afplay conv.wav`；再用 Safari 播一个 MSE 视频（YouTube，扩展在 Safari 里静音的那格） | ≥ 11/12 句定稿；说完 ≤ 3 s 悬浮条出双语；把输出切到耳机再跑一遍仍出字幕；记 CER 与 `lat.pass`（数字声音应优于麦克风读数）。**开始后 ~10 s 没有第一条定稿就当这一档没通过** —— 本地重签的包会静默采到静音而界面照说「正在听」，先按 §2.G 第 6 条切一次「仅系统录音」授权（#420） |
 | **M27** | 悬浮条层级与焦点 | 条盖在全屏 Safari 视频与全屏 Zoom 上；点条后按空格；拖到别处后重启 App | 条始终在最上层；空格仍暂停视频（焦点没被抢）；位置、宽度、字号还在 |
@@ -1960,7 +1960,7 @@ M 表要同步加这两行，编号在此钉住：
 |---|---|---|---|
 | 真机双识别器 CPU | 探针里的采样器写错了（线程时间差出负数），**没量准**；只有旁证：四档转写 `thermalState` 全程 nominal，双路 conv 与单路 conv 的滞后 / 首字无差别 | Instruments（Time Profiler + Energy Log），zh+en 双路对 conv 语料 3 分钟，镜像已关 | 进程 CPU 均值与 max 写进 `READINGS.md`；`thermalState` 不进 `serious`；与单路的差值具名 |
 | 中国网络下的资产下载（无 VPN） | 手机一直在家里 Wi-Fi，走的是有代理的网 | 手机关 VPN，走蜂窝或国内直连 Wi-Fi；触发一个**未预装** locale（如 ja）的 `SpeechTranscriber` 资产下载 + 一次 Piper 模型下载（我们的文件服务器） | 两条进度都到 1.0，用时记下；失败必须出具名 `listen_assets_failed`，不许转圈。这一项**没有绿之前，中国版不得把两个 `device` 条目放进出货列表** |
-| 转写中插拔耳机（音频路由切换） | 没跑 | 本机路转写进行中，插入 / 拔出有线耳机各一次（蓝牙耳机与镜像互斥，§0.2；所以这一档也是镜像关着、日志回读） | `AVAudioEngineConfigurationChange` 后 tap 继续有帧、`stt-final` 继续到，历史不断；掉帧要具名，不许静默停 |
+| 转写中插拔耳机（音频路由切换） | 没跑 | 本机路转写进行中，插入 / 拔出有线耳机各一次（蓝牙耳机与镜像互斥，§0.4；所以这一档也是镜像关着、日志回读） | `AVAudioEngineConfigurationChange` 后 tap 继续有帧、`stt-final` 继续到，历史不断；掉帧要具名，不许静默停 |
 
 另有一条尖刺**未解**，D2 必须单独验：`setVoiceProcessingEnabled(true)` 在挂了 playerNode
 的 engine 上 tap 收 **0 帧**（两次都是），不挂 player 时开 VP 能正常收帧并识别外部人声。
@@ -2429,7 +2429,7 @@ Node ≥22）。本机假 chat 端点记下**每一次请求**，断言：3 页 
 **每次重新生成 `safari-project/` 之后都要跑。** 那棵树是 gitignored、可丢弃的；仓库里的
 `app/` 才是真正的源。它同时会 patch `ViewController`。
 
-⚠️ 它有**产物过期守卫**，触发时会**静默丢掉 Swift 补丁** —— 见 §0.2.2 与 §F 的记录。
+⚠️ 它有**产物过期守卫**，触发时会**静默丢掉 Swift 补丁** —— 见 §0.4.2 与 §F 的记录。
 
 ### 3.1.13 `npm run test:cli` — 命令行宿主端到端（未出货，2026-09-30 设计通过）
 
@@ -2648,9 +2648,9 @@ by an ancestor's `overflow:hidden`.
   iPhone 镜像在 Mac 上开着（Mac 占了手机麦克风）。安静的房间是 −45 到 −50 dBFS 的底噪
   （09-12 实测环境 −46.8 dB），不是 −∞。所以任何麦克风读数**同时报帧率（帧/s）与
   dBFS**，并且把 **−120 dBFS（rms 恒 0）判为无效读数**、大声失败 —— 报的不是
-  「未检测到声音」，而是「观察手段坏了」（§0.3 的坑表列了三种：镜像未退出、权限被拒、
+  「未检测到声音」，而是「观察手段坏了」（§0.5 的坑表列了三种：镜像未退出、权限被拒、
   探针被挂起）。这与本节开头那条同源：抓不到画面先怀疑观察手段，再怀疑被观察对象。
-  §0.3 的声源规则是它的另一半：真人说话时「没出字」分不清是没说清还是没收到，播放语料
+  §0.5 的声源规则是它的另一半：真人说话时「没出字」分不清是没说清还是没收到，播放语料
   时帧率 + dBFS 两个数就能把「没收到」钉死。
 
 - Don't trust your own injected test hacks as proof of the shipped code — verify the
@@ -3314,7 +3314,7 @@ socket 与翻译留在 JS —— 用户 2026-09-07 裁定「原生做吧」。PR
 （`learn-regression` M17），不是一次测量。macOS 唯一值得看一眼的是控制中心的
 「正在播放」长什么样，跟着 M17 一起看。
 
-**装机走 USB**（`xcrun devicectl device install app`，§0.2 的默认路径），不碰 TestFlight
+**装机走 USB**（`xcrun devicectl device install app`，§0.4 的默认路径），不碰 TestFlight
 —— 尖刺不该消耗一个构建号，更不该消耗一个版本号。
 
 **音频素材内联，运行期零网络**：照 `scripts/verify-sim-audio.js` 的做法用 `say` +

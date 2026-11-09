@@ -1436,7 +1436,7 @@ export default function SettingsView() {
     // 反馈 / 评分。MTFeedback.open 在宿主 App 里走原生桥（window.open 在 WKWebView 里
     // 是哑的），且**同步**发生在点击里 —— 别在它前面 await。
     $('feedback-mail').addEventListener('click', () => { MTFeedback.open(MTFeedback.mailtoUrl('app')); });
-    // 诊断日志（§0.4.1）：复制 = 导出全文进剪贴板（按钮点击是手势，WKWebView 允许写剪贴板）
+    // 诊断日志（§0.6.1）：复制 = 导出全文进剪贴板（按钮点击是手势，WKWebView 允许写剪贴板）
     $('diag-copy').addEventListener('click', async () => {
       const txt = (typeof DiagLog !== 'undefined' && DiagLog.exportText) ? DiagLog.exportText() : '';
       let okFlag = false;
@@ -2214,7 +2214,7 @@ export default function SettingsView() {
           <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号标识；登录时另记一张账号↔安装 id 的第一方台账（仅支持与滥用排查）。关掉会删除这台设备发过的事件行，已写入的第一方行按 90 天保留期删除。')}</p>
           <button id="telemetry-what" type="button" className="secondary">{t('telemetry_what', '会发送什么')}</button>
         </div>
-        {/* 诊断日志（§0.4.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
+        {/* 诊断日志（§0.6.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
             内部排障面，不走产品稿（用户裁定：只有我们自己看）；不上传 —— 复制出来贴给排障的人。 */}
         <div className="sgroup" id="g-diag">
           <h3 id="diag-title">{t('diag_section', '诊断日志')}</h3>

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/verify-listen-flash.js — 听译半句「错语言闪现」的音频层回归（Mac，§0.4 音频层）。
+// scripts/verify-listen-flash.js — 听译半句「错语言闪现」的音频层回归（Mac，§0.6 音频层）。
 //
 // 为什么在 Mac 上做：半句闪现是**识别器行为**，只有真音频 + 真识别器能复现（假桥注入复现不了）。
 // 判据两条，缺一不可：
