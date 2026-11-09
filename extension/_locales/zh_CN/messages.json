@@ -2662,6 +2662,9 @@
   "grant_restore": {
     "message": "改回免费额度"
   },
+  "grant_switch_free": {
+    "message": "改用免费额度"
+  },
   "grant_byo": {
     "message": "用自己的 key"
   },

@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "無料クレジットに戻す"
   },
+  "grant_switch_free": {
+    "message": "無料クレジットに切り替える"
+  },
   "grant_byo": {
     "message": "自分のキーを使う"
   },

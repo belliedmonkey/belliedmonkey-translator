@@ -170,9 +170,9 @@ describe('配好之后不再报状态；额度在用就不再让人配 key（202
 
   test('★ 额度在用 ⇒ 设置页收起「用一把 key 配好全部」（两条路互斥）', () => {
     const sv = read('src/app/settings-view.jsx');
-    ok(/id="quick-setup-card"[\s\S]{0,90}grantActive/.test(sv),
-      '一键卡没有按 grantActive 收起 —— 额度正在用的时候设置页还挂着「用一把 key 配好全部」');
-    ok(/setGrantActive\(/.test(sv) && /LearnGrant\.active\(/.test(sv),
-      'settings-view 没有从 LearnGrant.active 算出 grantActive');
+    ok(/!grantActive[\s\S]{0,120}id="quick-setup-card"/.test(sv),
+      '一键卡没有按 grantActive 条件渲染 —— 额度正在用的时候设置页还挂着「用一把 key 配好全部」');
+    ok(/setGrantActive\(/.test(sv) && /LearnGrant\.activeIn\(cur,\s*'chat'\)/.test(sv),
+      "settings-view 没有从 LearnGrant.activeIn(cur, 'chat') 算出 grantActive");
   });
 });

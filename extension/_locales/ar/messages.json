@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "العودة إلى الرصيد المجاني"
   },
+  "grant_switch_free": {
+    "message": "التبديل إلى الرصيد المجاني"
+  },
   "grant_byo": {
     "message": "استخدام مفتاحي الخاص"
   },

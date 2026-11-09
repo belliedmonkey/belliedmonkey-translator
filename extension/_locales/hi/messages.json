@@ -2494,6 +2494,9 @@
   "grant_restore": {
     "message": "मुफ़्त क्रेडिट पर लौटें"
   },
+  "grant_switch_free": {
+    "message": "मुफ़्त क्रेडिट पर स्विच करें"
+  },
   "grant_byo": {
     "message": "अपनी key इस्तेमाल करें"
   },

@@ -180,9 +180,14 @@ export default function SettingsView() {
   const [detail, setDetailState] = useState(false);
   const [quickAvail, setQuickAvail] = useState(true);
   const [grantVisible, setGrantVisible] = useState(false);
-  // 2026-10-03：额度**正在用**时为真 —— 一键卡（「用一把 key 配好全部」）随之收起
-  // （额度在用与自己填 key 是互斥的两条路）。
+  // BEL-233 r3：**chat 槽**是否正在用免费额度。判据从 LearnGrant.active（任一路）
+  // 收窄到 activeIn(cur,'chat') —— 三张卡互斥的是「翻译这一路走哪条通道」，朗读 /
+  // 转写还留着额度时不等于翻译也在用额度。
   const [grantActive, setGrantActive] = useState(false);
+  // 额度卡上的「用自己的 key」是一次**界面意图**：此刻存储里 chat 槽还在用额度，
+  // 但用户明确要填自己的 key，所以先出一键卡；填完 key 后存储自己会落到 key 态。
+  // 只由这一次点击置位，切回免费额度 / 重新打开设置页时清掉。
+  const [keyMode, setKeyMode] = useState(false);
   const [followLabel, setFollowLabel] = useState('');
   // BEL-198：宽窗 = ≥720（与 #app-listen / 首页同一断点）。形态由窗口宽度决定；
   // 窄窗仍是长滚 + ← 返回，宽窗才是 220 侧栏 + 单 pane。
@@ -783,10 +788,12 @@ export default function SettingsView() {
     flushSync(() => {
       setGrantVisible(hasGrant);
       setGrantState({ status, card: card || null, balance: cur.grantBalance || null, signedIn: !!session });
-      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。
+      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。BEL-233 r3
+      // 把判据收窄到 chat 槽：翻译走额度才算「额度态」，朗读/转写留着额度不影响
+      // 翻译这一路要不要出一键卡。
       try {
         setGrantActive(!!(typeof LearnGrant !== 'undefined' && LearnGrant.enabled && LearnGrant.enabled()
-          && LearnGrant.active && LearnGrant.active(cur)));
+          && LearnGrant.activeIn && LearnGrant.activeIn(cur, 'chat')));
       } catch (_) { setGrantActive(false); }
     });
   }
@@ -801,6 +808,36 @@ export default function SettingsView() {
     return () => { try { document.removeEventListener('visibilitychange', onVis); } catch (_) {} };
   }, []);
 
+  // 一键 | 分项：两颗 segmented（主屏额度卡里那颗、引擎子页标题旁那颗）共用这一份
+  // 状态机。返回 true 表示「已经落到目标档」，取消 / 原地不动返回 false —— 只有
+  // 额度卡上「用自己的 key」的界面意图需要知道它到底切没切。
+  async function switchMode(toQuick) {
+    const wantQuick = !!toQuick;
+    if (wantQuick ? !detailRef.current : detailRef.current) { setPage('sec-engines'); return false; }
+    const ok = await LearnDialog.confirm(
+      wantQuick ? t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置')
+        : t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
+      wantQuick
+        ? { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') }
+        : { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
+    if (!ok) return false;
+    await setDetailFn(!wantQuick);
+    setPage('sec-engines');
+    return true;
+  }
+
+  // 一键配置卡底的「改用免费额度」：走与额度卡 restore 完全相同的一条路
+  // （learnGrant.claim → claimAndApply({overwrite:true}) → 重画）。成功时 chat 槽
+  // 换成额度令牌，freeCard 重新成立，一键卡自然消失；失败由 grantAction 的 catch
+  // 交给 hooks.say，不静默。
+  async function switchToFree(session) {
+    await grantAction('restore', session);
+    try {
+      const cur = await settingsModel.get(['apiKey', 'grantTail']);
+      if (LearnGrant.activeIn(cur, 'chat')) setKeyMode(false);
+    } catch (_) {}
+  }
+
   async function grantAction(id, session) {
     const hooks = settingsModel.hooks();
     if (id === 'signin') { if (hooks.onSignIn) hooks.onSignIn(); return; }
@@ -814,14 +851,14 @@ export default function SettingsView() {
         const ok = await LearnDialog.confirm(
           t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
           { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
-        if (!ok) return;
+        if (!ok) return false;
         await setDetailFn(false);
       }
       setPage('sec-engines');
       requestAnimationFrame(() => {
         try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {}
       });
-      return;
+      return true;
     }
     if (id === 'community') {
       if (hooks.openExternal && typeof MTFeedback !== 'undefined') hooks.openExternal(MTFeedback.discussUrl());
@@ -896,6 +933,16 @@ export default function SettingsView() {
     try { on = await settingsModel.readStoredDetail(); } catch (_) {}
     await setDetailFn(on, false);
   }
+
+  // BEL-233 r3：额度卡上的「用自己的 key」把 keyMode 打开后，一键卡是**新挂载**的
+  // （额度态下它整块不在 DOM）。#quick-setup 是命令式孤岛，不会自己长出来 —— 这里
+  // 补一次 render，否则用户被滚到一张空卡上。正常打开设置时由 paintNow 的
+  // setupQuickCard 负责，两条路不重复（keyMode 只在这次点击时变 true）。
+  useEffect(() => {
+    if (!keyMode) return;
+    const h = settingsModel.hooks();
+    setupQuickCard(settingsModel.currentSession(), h.say).catch(() => {});
+  }, [keyMode]);
 
   // §9.2 in the app: write the SAME keys review.js reads, and reconfigure
   // LearnNotes immediately — review.js only reads settings once at bundle load,
@@ -1200,27 +1247,15 @@ export default function SettingsView() {
 
     // N24v2：一键/分项互斥 —— 点另一档先确认（覆盖，不是展开/收起）。
     // BEL-231：主屏额度卡与引擎子页各有一颗 segmented；同一份 detail 状态、同一套
-    // 确认框。id 不同只是 DOM 唯一，不是第二套逻辑。
+    // 确认框。id 不同只是 DOM 唯一，不是第二套逻辑。主屏那颗是 React onClick
+    // （它会随额度卡一起条件渲染），引擎子页这颗常驻，仍在这里接一次。
     const wireModeTabs = (quickId, detailId) => {
       const q = $(quickId), d = $(detailId);
       if (!q || !d) return;
-      q.addEventListener('click', async () => {
-        if (!detailRef.current) { setPage('sec-engines'); return; }
-        const ok = await LearnDialog.confirm(
-          t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
-          { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
-        if (ok) { await setDetailFn(false); setPage('sec-engines'); }
-      });
-      d.addEventListener('click', async () => {
-        if (detailRef.current) { setPage('sec-engines'); return; }
-        const ok = await LearnDialog.confirm(
-          t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
-          { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
-        if (ok) { await setDetailFn(true); setPage('sec-engines'); }
-      });
+      q.addEventListener('click', () => switchMode(true));
+      d.addEventListener('click', () => switchMode(false));
     };
     wireModeTabs('mode-quick', 'mode-detail');
-    wireModeTabs('quota-mode-quick', 'quota-mode-detail');
     $('app-adv-hint-go').addEventListener('click', () => { setDetailFn(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
@@ -1798,6 +1833,9 @@ export default function SettingsView() {
   // 窄窗每次打开都回主屏；宽窗保留上次的组（侧栏就是导航）。
   useEffect(() => settingsModel.onSettingsShown(() => {
     setPage((p) => (wideRef.current ? (p === 'home' ? 'sec-language' : p) : 'home'));
+    // 每次重新打开设置页都从存储判据出发：上次点过「用自己的 key」但没填 key 的
+    // 界面意图不该跨一次打开活着（存储里 chat 槽还在用额度）。
+    setKeyMode(false);
     setGen((g) => g + 1);
     return paintNow();
   }), []);
@@ -1959,8 +1997,94 @@ export default function SettingsView() {
   const quotaPct = quotaLimit > 0 && quotaLeft != null
     ? Math.max(0, Math.min(100, (quotaLeft / quotaLimit) * 100)) : 0;
 
+  // BEL-233 r3：额度卡与一键配置卡共用同一个位置，二选一。withTabs=true 是主屏
+  // 那颗（主屏没有页面级 segmented），false 是「引擎与密钥」页顶那颗（页面标题旁
+  // 已有 #mode-tabs，不再画第二颗）。两个落点同一份 JSX，避免以后改一处漏一处。
+  function renderQuotaCard(withTabs) {
+    return (
+      <section className="settings-quota-card" id="settings-quota">
+        <div className="settings-quota-head">
+          <span className="settings-quota-title">{quotaCard ? quotaCard.title : t('grant_title', '免费额度')}</span>
+          {withTabs ? (
+            <div className="mode-tabs" id="quota-mode-tabs" role="tablist" hidden={!quickAvail}>
+              <button id="quota-mode-quick" type="button" role="tab" aria-selected={!detail}
+                className={!detail ? '' : 'mode-tab-muted'}
+                onClick={() => switchMode(true)}>
+                {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
+                {!wide && detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
+              </button>
+              <button id="quota-mode-detail" type="button" role="tab" aria-selected={detail}
+                className={detail ? '' : 'mode-tab-muted'}
+                onClick={() => switchMode(false)}>
+                {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
+                {!wide && !detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <section id="grant-card" hidden={!grantVisible}>
+          {quotaCard ? (
+            <>
+              {quotaCard.progress && quotaLeft != null ? (
+                <>
+                  <div className="settings-quota-amount">
+                    <span className="settings-quota-left">{'$' + Number(quotaLeft).toFixed(2)}</span>
+                    <span className="settings-quota-total">
+                      {t('settings_quota_left', '剩余')} / {'$' + Number(quotaLimit).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="settings-quota-bar">
+                    <div className="settings-quota-fill" style={{ width: quotaPct + '%' }}></div>
+                  </div>
+                  <div className="settings-quota-foot">
+                    <span>{t('settings_quota_used', '已用 {spent} · 每日重置')
+                      .replace('{spent}', '$' + Number(quotaSpent).toFixed(2))}</span>
+                    <button type="button" className="settings-quota-link" data-quota-link="reclaim"
+                      onClick={() => grantAction('claim', settingsModel.currentSession())}>
+                      {t('grant_reclaim', '重新领取')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="settings-quota-body">{quotaCard.body}</p>
+                  {quotaCard.note ? <p className="settings-quota-note">{quotaCard.note}</p> : null}
+                </>
+              )}
+              <div className="settings-quota-links">
+                {!quotaCard.progress && quotaCard.action ? (
+                  <button type="button" className="settings-quota-link" data-quota-link={quotaCard.action.id}
+                    onClick={() => grantAction(quotaCard.action.id, settingsModel.currentSession())}>
+                    {quotaCard.action.text}
+                  </button>
+                ) : null}
+                <button type="button" className="settings-quota-link" data-quota-link="byo"
+                  onClick={async () => {
+                    // 先置界面意图，让一键卡在 rAF 滚动之前就挂上；分项档确认取消时
+                    // grantAction 返回 false，再把意图撤回（额度卡回来、一键卡不出现）。
+                    setKeyMode(true);
+                    const moved = await grantAction('byo', settingsModel.currentSession());
+                    if (!moved) setKeyMode(false);
+                  }}>
+                  {t('grant_byo', '用自己的 key')}
+                </button>
+                <button type="button" className="settings-quota-link" data-quota-link="community"
+                  onClick={() => grantAction('community', settingsModel.currentSession())}>
+                  {t('settings_quota_community', '加入社群')}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </section>
+      </section>
+    );
+  }
+
   return (
     <section id="app-settings" hidden>
+      {/* 共享 renderGrant 的落点。额度卡会随判据条件渲染（BEL-233 r3），这个
+          hidden 容器必须常驻，否则 key 态下 paintGrant 找不到落点、状态再也回不来。 */}
+      <div id="grant-box" hidden></div>
       {/* BEL-217：宽窗内容区左上角的全局「← 返回」。始终渲染（窄窗 CSS display:none，
           不在条件分支里 —— 条件渲染会让启动期没有节点可绑），放在 #settings-rail 之前。
           不进 .sec-head（每页都在 DOM，会出多个同 id），也不进 #settings-nav；
@@ -1997,75 +2121,9 @@ export default function SettingsView() {
 
       {/* ── 主屏：1 张额度卡 + 5 组（BEL-231 r2）────────────────────────── */}
       <div id="settings-home" hidden={page !== 'home'}>
-        <section className="settings-quota-card" id="settings-quota">
-          <div className="settings-quota-head">
-            <span className="settings-quota-title">{quotaCard ? quotaCard.title : t('grant_title', '免费额度')}</span>
-            {/* 一键 | 分项：r2 的额度卡顶部分段。点任一段落到引擎子页看那一档。 */}
-            <div className="mode-tabs" id="quota-mode-tabs" role="tablist" hidden={!quickAvail}>
-              <button id="quota-mode-quick" type="button" role="tab" aria-selected={!detail}
-                className={!detail ? '' : 'mode-tab-muted'}>
-                {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
-                {!wide && detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
-              </button>
-              <button id="quota-mode-detail" type="button" role="tab" aria-selected={detail}
-                className={detail ? '' : 'mode-tab-muted'}>
-                {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
-                {!wide && !detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
-              </button>
-            </div>
-          </div>
-          <section id="grant-card" hidden={!grantVisible}>
-            {/* 共享的 renderGrant 仍在这里算卡（状态机在 src/shared/grant.js 只有一份）；
-                box 不可见，App 只读它的返回值画 r2 的卡面。 */}
-            <div id="grant-box" hidden></div>
-            {quotaCard ? (
-              <>
-                {quotaCard.progress && quotaLeft != null ? (
-                  <>
-                    <div className="settings-quota-amount">
-                      <span className="settings-quota-left">{'$' + Number(quotaLeft).toFixed(2)}</span>
-                      <span className="settings-quota-total">
-                        {t('settings_quota_left', '剩余')} / {'$' + Number(quotaLimit).toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="settings-quota-bar">
-                      <div className="settings-quota-fill" style={{ width: quotaPct + '%' }}></div>
-                    </div>
-                    <div className="settings-quota-foot">
-                      <span>{t('settings_quota_used', '已用 {spent} · 每日重置')
-                        .replace('{spent}', '$' + Number(quotaSpent).toFixed(2))}</span>
-                      <button type="button" className="settings-quota-link" data-quota-link="reclaim"
-                        onClick={() => grantAction('claim', settingsModel.currentSession())}>
-                        {t('grant_reclaim', '重新领取')}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <p className="settings-quota-body">{quotaCard.body}</p>
-                    {quotaCard.note ? <p className="settings-quota-note">{quotaCard.note}</p> : null}
-                  </>
-                )}
-                <div className="settings-quota-links">
-                  {!quotaCard.progress && quotaCard.action ? (
-                    <button type="button" className="settings-quota-link" data-quota-link={quotaCard.action.id}
-                      onClick={() => grantAction(quotaCard.action.id, settingsModel.currentSession())}>
-                      {quotaCard.action.text}
-                    </button>
-                  ) : null}
-                  <button type="button" className="settings-quota-link" data-quota-link="byo"
-                    onClick={() => grantAction('byo', settingsModel.currentSession())}>
-                    {t('grant_byo', '用自己的 key')}
-                  </button>
-                  <button type="button" className="settings-quota-link" data-quota-link="community"
-                    onClick={() => grantAction('community', settingsModel.currentSession())}>
-                    {t('settings_quota_community', '加入社群')}
-                  </button>
-                </div>
-              </>
-            ) : null}
-          </section>
-        </section>
+        {/* BEL-233 r3：key 态下额度卡不渲染（不是 hidden）；点过「用自己的 key」的
+            界面意图也先让位给一键卡，等填完 / 切回免费额度再按存储判据回来。 */}
+        {grantActive && !keyMode && page === 'home' ? renderQuotaCard(true) : null}
 
         {renderGroup('language')}
         {renderGroup('speech')}
@@ -2285,10 +2343,27 @@ export default function SettingsView() {
             {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
           </button>
         </div>
-        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail || grantActive}>
-          <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
-          <div id="quick-setup"></div>
-        </section>
+        {/* BEL-233 r3：额度卡与一键配置卡在这个位置二选一，按 chat 槽的存储判据
+            条件渲染 —— 不是 hidden。key 态下额度卡整块不挂，额度态下一键卡整块不挂。
+            分项档（detail=true）只收起一键卡；额度卡与下面的分项三组照旧都在，
+            位置随卡片高度自然下移。 */}
+        {grantActive && !keyMode && page === 'sec-engines' ? renderQuotaCard(false) : null}
+        {!grantActive || keyMode ? (
+          <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail}>
+            <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
+            <div id="quick-setup"></div>
+            {/* 卡底切回免费额度：复用额度卡 restore 的同一条 claimAndApply
+                ({overwrite:true})。成功 → chat 槽换成额度令牌 → 重画后 freeCard
+                成立，一键卡随之消失；失败 → grantAction 的 catch 交给 hooks.say。
+                中国版没有免费额度通道，这个入口不出现。 */}
+            {LearnGrant.enabled() ? (
+              <button type="button" id="quick-switch-free" className="quick-switch-free"
+                onClick={() => switchToFree(settingsModel.currentSession())}>
+                {t('grant_switch_free', '改用免费额度')}
+              </button>
+            ) : null}
+          </section>
+        ) : null}
 
         {/* 「从哪来」的那一行（画布第 7 页 SetupFrom）。系统翻译的弹层 / Mac 快译面板把人
              推过来配引擎时，先说清楚他为什么在这儿；配好之后同一行就地变成「你可以回去了」。 */}

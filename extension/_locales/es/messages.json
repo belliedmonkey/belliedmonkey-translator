@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "Volver al crédito gratuito"
   },
+  "grant_switch_free": {
+    "message": "Cambiar al crédito gratuito"
+  },
   "grant_byo": {
     "message": "Usar mi propia clave"
   },

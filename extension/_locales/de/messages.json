@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "Zurück zum Gratis-Guthaben"
   },
+  "grant_switch_free": {
+    "message": "Zum Gratis-Guthaben wechseln"
+  },
   "grant_byo": {
     "message": "Eigenen Schlüssel nutzen"
   },

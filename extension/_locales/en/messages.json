@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "Switch back to free credit"
   },
+  "grant_switch_free": {
+    "message": "Switch to free credit"
+  },
   "grant_byo": {
     "message": "Use your own key"
   },

@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "무료 크레딧으로 되돌리기"
   },
+  "grant_switch_free": {
+    "message": "무료 크레딧으로 전환"
+  },
   "grant_byo": {
     "message": "내 키 사용"
   },

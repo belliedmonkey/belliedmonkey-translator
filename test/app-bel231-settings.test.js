@@ -207,9 +207,9 @@ describe('BEL-231 · 旧控件都在（只搬壳，不丢功能）', () => {
   });
 
   test('BEL-230 / BEL-230 ACCEPT-1 的出口还在：一键卡按 grantActive 收起', () => {
-    ok(/id="quick-setup-card"[\s\S]{0,90}grantActive/.test(VIEW),
-      '一键卡没有按 grantActive 收起');
-    ok(/setGrantActive\(/.test(VIEW) && /LearnGrant\.active\(/.test(VIEW),
-      'settings-view 没有从 LearnGrant.active 算出 grantActive');
+    ok(/!grantActive[\s\S]{0,120}id="quick-setup-card"/.test(VIEW),
+      '一键卡没有按 grantActive 条件渲染');
+    ok(/setGrantActive\(/.test(VIEW) && /LearnGrant\.activeIn\(cur,\s*'chat'\)/.test(VIEW),
+      "settings-view 没有从 LearnGrant.activeIn(cur, 'chat') 算出 grantActive");
   });
 });

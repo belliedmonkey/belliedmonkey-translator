@@ -2489,6 +2489,9 @@
   "grant_restore": {
     "message": "สลับกลับไปใช้เครดิตฟรี"
   },
+  "grant_switch_free": {
+    "message": "สลับไปใช้เครดิตฟรี"
+  },
   "grant_byo": {
     "message": "ใช้คีย์ของคุณเอง"
   },

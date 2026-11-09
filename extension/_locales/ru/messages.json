@@ -2661,6 +2661,9 @@
   "grant_restore": {
     "message": "Вернуться к бесплатному лимиту"
   },
+  "grant_switch_free": {
+    "message": "Перейти на бесплатный лимит"
+  },
   "grant_byo": {
     "message": "Использовать свой ключ"
   },
