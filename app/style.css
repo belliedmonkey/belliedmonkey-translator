@@ -947,8 +947,8 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings details.adv-params > summary::after { content: " ▸"; font-weight: 400; color: var(--text-secondary); }
 #app-settings details.adv-params[open] > summary::after { content: " ▾"; }
 /* N24v2：一键/分项互斥态 */
-#app-settings .mode-tabs button.mode-tab-muted { opacity: .55; }
-#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }
+#app-settings .mode-tabs button.mode-tab-muted { opacity: 1; color: var(--text-secondary); }
+#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: 1; color: var(--text-secondary); }
 :where(#firstrun-packs) .packs-more { background: none; border: 0; color: var(--accent-deep); font: inherit; padding: 6px 0 10px; cursor: pointer; text-decoration: underline; }
 #packs-cellular:not([hidden]) {
   position: fixed; inset: 0; z-index: 40;
@@ -1332,6 +1332,158 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 #app-settings .sgroup { background: var(--card-bg); border-radius: 20px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; overflow-wrap: anywhere; }
 #app-settings .sgroup > * { min-width: 0; }
 #app-settings .sgroup h3 { margin: 0; color: var(--fg); }
+/* ─── BEL-231 · iOS 设置页 r2（2026-11-09 APPROVED）──────────────────────
+   主屏 = 1 张额度卡 + 5 组；子页 = ← 返回 + 大标题。颜色只用共享 token：
+   --bg / --card-bg / --text / --text-secondary / --border / --accent / --link /
+   --accent-track / --sage；圆角 16。行高 44；卡片外边距 16、内边距 16；
+   分隔线左缩进 16（屏幕 x=32）；字号 17 / 13 / 30。 */
+#settings-title { margin: 4px 16px 0; font-size: 30px; line-height: 1.15; font-weight: 700; color: var(--text); }
+#settings-subpage-head { display: flex; flex-direction: column; gap: 4px; padding: 0 16px; }
+#settings-subpage-back {
+  align-self: flex-start; background: none; border: 0; color: var(--link);
+  font: inherit; font-size: 17px; min-height: 44px; padding: 0; cursor: pointer;
+  text-decoration: none;
+}
+#settings-subpage-title { margin: 0 0 8px; font-size: 30px; line-height: 1.15; font-weight: 700; color: var(--text); }
+#settings-home { display: flex; flex-direction: column; gap: 24px; }
+
+.settings-quota-card {
+  margin: 0 16px; background: var(--card-bg); border-radius: 16px; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px; color: var(--text);
+}
+.settings-quota-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.settings-quota-head .mode-tabs { margin: 0; }
+#app-settings .settings-quota-head .mode-tabs { height: 28px; }
+#app-settings .settings-quota-head .mode-tabs button {
+  height: 28px; min-height: 28px; padding: 0 12px; font-size: 13px;
+}
+#app-settings .settings-quota-head .mode-tabs .mode-tab-hint { font-size: 11px; }
+.settings-quota-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.settings-quota-body, .settings-quota-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.settings-quota-amount { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.settings-quota-left { font-size: 30px; font-weight: 700; line-height: 1.1; }
+.settings-quota-total { font-size: 17px; color: var(--text-secondary); }
+.settings-quota-bar { height: 4px; border-radius: 2px; background: var(--accent-track); overflow: hidden; }
+.settings-quota-fill { height: 100%; background: var(--accent); }
+.settings-quota-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-secondary); }
+.settings-quota-links { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+#app-settings .settings-quota-link {
+  background: none; border: 0; border-radius: 0; color: var(--link);
+  font: inherit; font-size: 13px; font-weight: 600; min-height: 32px; padding: 0;
+  cursor: pointer; text-decoration: none;
+}
+#app-settings .settings-quota-link:hover { text-decoration: underline; }
+
+.settings-group { display: flex; flex-direction: column; }
+.settings-group-title { margin: 0 16px 8px 32px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.settings-group-card { margin: 0 16px; background: var(--card-bg); border-radius: 16px; overflow: hidden; }
+.settings-row {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+  padding: 0 16px; background: none; border: 0; border-radius: 0;
+  color: var(--text); font: inherit; font-size: 17px; font-weight: 400;
+  text-align: left; cursor: pointer; position: relative;
+}
+#app-settings .settings-row { color: var(--text); }
+.settings-row + .settings-row::before {
+  content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px;
+  background: var(--border);
+}
+.settings-row-label { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.settings-row-value {
+  flex: none; max-width: 58%; color: var(--text-secondary); font-size: 17px;
+  text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.settings-row-chevron { flex: none; color: var(--text-secondary); font-size: 18px; line-height: 1; }
+.settings-row[hidden] { display: none !important; }
+
+#app-settings .settings-pane { gap: 16px; padding: 0 16px; }
+/* 窄窗的标题由共享子页顶栏说一次；每个 .sec 自己的 .sec-head 只在宽窗出现。 */
+#app-settings .settings-pane > .sec-head { display: none; }
+#app-settings .settings-pane .sgroup { border-radius: 16px; }
+#app-settings .settings-card { gap: 0; padding: 0; }
+#app-settings .settings-card h3 { padding: 14px 16px 6px; }
+.settings-field-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 44px; padding: 0 16px; position: relative;
+}
+.settings-field-row + .settings-field-row::before,
+.settings-field-row + .settings-slider-row::before {
+  content: ""; position: absolute; left: 16px; right: 0; top: 0; height: 1px;
+  background: var(--border);
+}
+.settings-field-row > label, .settings-field-row > span {
+  flex: 1 1 auto; min-width: 0; color: var(--text); font-size: 17px;
+}
+.settings-field-row > select {
+  flex: none; max-width: 58%; background-color: transparent; border: 0;
+  color: var(--text-secondary); font: inherit; font-size: 17px; text-align: right;
+  padding: 0 20px 0 0; -webkit-appearance: none; appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-secondary) 50%),
+    linear-gradient(135deg, var(--text-secondary) 50%, transparent 50%);
+  background-position: right 8px center, right 3px center;
+  background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+}
+.settings-field-row > output { flex: none; color: var(--text-secondary); font-size: 17px; }
+.settings-slider-row { padding-bottom: 10px; position: relative; }
+.settings-slider-row > input[type=range] {
+  display: block; width: calc(100% - 32px); margin: 2px 16px 8px;
+  accent-color: var(--accent);
+}
+.settings-stepper { display: inline-flex; align-items: center; gap: 4px; }
+#app-settings .settings-stepper button {
+  width: 32px; height: 32px; min-height: 32px; padding: 0; border-radius: 50%;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  font-size: 18px; line-height: 1;
+}
+#app-settings .settings-stepper input[type=number] {
+  width: 3.5em; max-width: 3.5em; padding: 4px; border: 0; border-radius: 0;
+  background: none; color: var(--text-secondary); font: inherit; font-size: 17px;
+  text-align: center; -moz-appearance: textfield;
+}
+#app-settings .settings-stepper input[type=number]::-webkit-inner-spin-button,
+#app-settings .settings-stepper input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none; margin: 0;
+}
+.settings-switch-row { justify-content: space-between; }
+#app-settings .settings-switch {
+  -webkit-appearance: none; appearance: none; flex: none;
+  width: 51px; height: 31px; min-width: 51px; margin: 0; padding: 0;
+  border: 0; border-radius: 16px; background: var(--border); position: relative;
+  cursor: pointer;
+}
+#app-settings .settings-switch:checked { background: var(--sage); }
+#app-settings .settings-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px;
+  border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .18);
+  transition: transform .15s ease;
+}
+#app-settings .settings-switch:checked::after { transform: translateX(20px); }
+#daily-hint { margin: 0 16px 10px; font-size: 13px; color: var(--text-secondary); }
+#speech-hint { margin: 0 16px; font-size: 13px; color: var(--text-secondary); }
+/* r2：语速轨道 4px、旋钮 26 白 + 1px 边框；已填部分 accent、未填 --accent-track。
+   --range-pct 由 paintNow / input 事件写（行内 style，不另造一份值）。 */
+#app-settings #tts-rate {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 2px; border: 0;
+  background: var(--accent-track);
+}
+#app-settings #tts-rate::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12);
+  margin-top: -11px; cursor: pointer;
+}
+#app-settings #tts-rate::-moz-range-thumb {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #fff; border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .12); cursor: pointer;
+}
+#app-settings #tts-rate::-moz-range-track {
+  height: 4px; border-radius: 2px; background: var(--accent-track);
+}
+.settings-version-value { margin: 0; font-size: 17px; color: var(--text-secondary); }
+
 /* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句）。
    例外：#thai-grok-block（BYOK）在 .na 时仍可见 —— 泰语识别走云端 Grok，不依赖本机识别器。 */
 #app-settings #g-listen.na > :not(h3):not(#listen-pack-row):not(#thai-grok-block) { display: none; }
@@ -1473,6 +1625,15 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
   }
   #app-settings .check input[type=checkbox]:checked::after,
   #app-settings .row-toggle input[type=checkbox]:checked::after { transform: translateX(16px); }
+
+  /* 深链落点可能就在主屏（grant-card）。宽窗正常从侧栏进组页，只有深链才揭主屏。 */
+  #app-settings #settings-home { grid-column: 2; grid-row: 1; }
+  /* BEL-231：宽窗子页与主屏组的卡不再重复外边距（右栏自己就是内容区）。 */
+  #app-settings .settings-pane { padding: 0; gap: 14px; }
+  #app-settings .settings-pane > .sec-head { display: flex; }
+  #app-settings .settings-pane .sgroup { border-radius: 16px; }
+  #app-settings .settings-group-card, #app-settings .settings-quota-card { margin: 0; }
+  #app-settings .settings-row, #app-settings .settings-field-row { min-height: 44px; }
 }
 
 /* ── 快速翻译面板（#quick 模式，learning-design §9.9）────────────────────────────
@@ -1836,8 +1997,8 @@ html.quick-mode #app, html.quick-mode #status { display: none !important; }
   #app-drive .drive-grid { gap: 14px 16px; }
 }
 /* N24v2：一键/分项互斥态（结构；像素后补） */
-#app-settings .mode-tabs button.mode-tab-muted { opacity: .55; }
-#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: .9; }
+#app-settings .mode-tabs button.mode-tab-muted { opacity: 1; color: var(--text-secondary); }
+#app-settings .mode-tabs .mode-tab-hint { font-size: .75em; font-weight: 400; opacity: 1; color: var(--text-secondary); }
 
 /* 1.21.2 泰语 Grok BYOK：开开关但无 Key 的行内失败（Pencil B-03） */
 #thai-grok-nokey { color: var(--accent-deep); font-weight: 600; }

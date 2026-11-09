@@ -4292,5 +4292,65 @@
   },
   "app_set_done": {
     "message": "تم"
+  },
+  "settings_group_language": {
+    "message": "اللغة"
+  },
+  "settings_group_speech": {
+    "message": "القراءة والمراجعة"
+  },
+  "settings_row_tts_rate": {
+    "message": "السرعة"
+  },
+  "settings_row_daily": {
+    "message": "بطاقات جديدة يوميًا"
+  },
+  "settings_row_tts_voice": {
+    "message": "الصوت"
+  },
+  "settings_row_version": {
+    "message": "الإصدار"
+  },
+  "settings_row_webext": {
+    "message": "إضافة المتصفح"
+  },
+  "settings_daily_hint": {
+    "message": "عدد البطاقات الجديدة التي تُضاف يوميًا. بعد بلوغ الحد، تراجع البطاقات القديمة فقط."
+  },
+  "settings_speech_hint": {
+    "message": "تؤثر السرعة في القراءة فقط، لا في الترجمة أو الترجمة النصية."
+  },
+  "settings_quota_left": {
+    "message": "المتبقي"
+  },
+  "settings_quota_used": {
+    "message": "المستخدم {spent} · يُعاد ضبطه يوميًا"
+  },
+  "settings_quota_community": {
+    "message": "انضم إلى المجتمع"
+  },
+  "settings_quota_signed_in": {
+    "message": "تم تسجيل الدخول"
+  },
+  "settings_quota_signed_out": {
+    "message": "لم تسجل الدخول"
+  },
+  "settings_stepper_minus": {
+    "message": "إنقاص"
+  },
+  "settings_stepper_plus": {
+    "message": "زيادة"
+  },
+  "settings_value_all_langs": {
+    "message": "كل اللغات"
+  },
+  "settings_value_on": {
+    "message": "مفعّل"
+  },
+  "settings_value_off": {
+    "message": "متوقف"
+  },
+  "settings_value_follow": {
+    "message": "اتبع لغة الواجهة"
   }
 }

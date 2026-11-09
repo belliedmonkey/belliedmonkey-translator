@@ -4292,5 +4292,65 @@
   },
   "app_set_done": {
     "message": "Fertig"
+  },
+  "settings_group_language": {
+    "message": "Sprache"
+  },
+  "settings_group_speech": {
+    "message": "Vorlesen & Wiederholen"
+  },
+  "settings_row_tts_rate": {
+    "message": "Geschwindigkeit"
+  },
+  "settings_row_daily": {
+    "message": "Neue Karten pro Tag"
+  },
+  "settings_row_tts_voice": {
+    "message": "Stimme"
+  },
+  "settings_row_version": {
+    "message": "Version"
+  },
+  "settings_row_webext": {
+    "message": "Browsererweiterung"
+  },
+  "settings_daily_hint": {
+    "message": "Wie viele neue Karten pro Tag eingeführt werden. Danach werden nur noch ältere Karten wiederholt."
+  },
+  "settings_speech_hint": {
+    "message": "Die Geschwindigkeit betrifft nur das Vorlesen, nicht Untertitel oder Übersetzungen."
+  },
+  "settings_quota_left": {
+    "message": "übrig"
+  },
+  "settings_quota_used": {
+    "message": "Verbraucht {spent} · Täglich zurückgesetzt"
+  },
+  "settings_quota_community": {
+    "message": "Community beitreten"
+  },
+  "settings_quota_signed_in": {
+    "message": "Angemeldet"
+  },
+  "settings_quota_signed_out": {
+    "message": "Abgemeldet"
+  },
+  "settings_stepper_minus": {
+    "message": "Verringern"
+  },
+  "settings_stepper_plus": {
+    "message": "Erhöhen"
+  },
+  "settings_value_all_langs": {
+    "message": "Alle Sprachen"
+  },
+  "settings_value_on": {
+    "message": "An"
+  },
+  "settings_value_off": {
+    "message": "Aus"
+  },
+  "settings_value_follow": {
+    "message": "Der Oberflächensprache folgen"
   }
 }

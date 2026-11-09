@@ -39,4 +39,24 @@ describe('设置页排版：文字不许出界（2026-10-03 设计稿已签）',
     ok(/min-width\s*:\s*0/.test(rule('#app-settings .sgroup')), '.sgroup 没有 min-width:0');
     ok(/min-width\s*:\s*0/.test(rule('#app-settings .sgroup > *')), '.sgroup 的直接子元素没有 min-width:0');
   });
+
+  test('★ BEL-231 r2：行高 44、卡边距 16、分隔线左缩进 16、字号 17 / 13 / 30', () => {
+    const row = rule('.settings-row');
+    ok(/min-height\s*:\s*44px/.test(row), '入口行行高不是 44：' + row);
+    ok(/font-size\s*:\s*17px/.test(row), '入口行字号不是 17：' + row);
+    const card = rule('.settings-group-card');
+    ok(/margin\s*:\s*0\s+16px/.test(card), '组卡外边距不是 16：' + card);
+    ok(/border-radius\s*:\s*16px/.test(card), '组卡圆角不是 16：' + card);
+    const title = rule('.settings-group-title');
+    ok(/font-size\s*:\s*13px/.test(title), '分组标题不是 13：' + title);
+    const quota = rule('.settings-quota-card');
+    ok(/padding\s*:\s*16px/.test(quota), '额度卡内边距不是 16：' + quota);
+    ok(/border-radius\s*:\s*16px/.test(quota), '额度卡圆角不是 16：' + quota);
+    const amount = rule('.settings-quota-left');
+    ok(/font-size\s*:\s*30px/.test(amount), '额度数字不是 30：' + amount);
+    const pageTitle = rule('#settings-subpage-title');
+    ok(/font-size\s*:\s*30px/.test(pageTitle), '子页大标题不是 30：' + pageTitle);
+    ok(/\.settings-row \+ \.settings-row::before\s*\{[^}]*left\s*:\s*16px/.test(css),
+      '分隔线没有左缩进 16（屏幕 x=32）');
+  });
 });

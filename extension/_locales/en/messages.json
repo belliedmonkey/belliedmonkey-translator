@@ -4292,5 +4292,65 @@
   },
   "app_set_done": {
     "message": "Done"
+  },
+  "settings_group_language": {
+    "message": "Language"
+  },
+  "settings_group_speech": {
+    "message": "Speech & review"
+  },
+  "settings_row_tts_rate": {
+    "message": "Speed"
+  },
+  "settings_row_daily": {
+    "message": "New cards per day"
+  },
+  "settings_row_tts_voice": {
+    "message": "Voice"
+  },
+  "settings_row_version": {
+    "message": "Version"
+  },
+  "settings_row_webext": {
+    "message": "Browser extension"
+  },
+  "settings_daily_hint": {
+    "message": "How many new cards to introduce each day. Once you hit the limit, you only review older cards."
+  },
+  "settings_speech_hint": {
+    "message": "Speed only affects speech, not subtitles or translations."
+  },
+  "settings_quota_left": {
+    "message": "left"
+  },
+  "settings_quota_used": {
+    "message": "Used {spent} · Resets daily"
+  },
+  "settings_quota_community": {
+    "message": "Join the community"
+  },
+  "settings_quota_signed_in": {
+    "message": "Signed in"
+  },
+  "settings_quota_signed_out": {
+    "message": "Signed out"
+  },
+  "settings_stepper_minus": {
+    "message": "Decrease"
+  },
+  "settings_stepper_plus": {
+    "message": "Increase"
+  },
+  "settings_value_all_langs": {
+    "message": "All languages"
+  },
+  "settings_value_on": {
+    "message": "On"
+  },
+  "settings_value_off": {
+    "message": "Off"
+  },
+  "settings_value_follow": {
+    "message": "Follow interface language"
   }
 }

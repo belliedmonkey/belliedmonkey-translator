@@ -4292,5 +4292,65 @@
   },
   "app_set_done": {
     "message": "完了"
+  },
+  "settings_group_language": {
+    "message": "言語"
+  },
+  "settings_group_speech": {
+    "message": "読み上げと復習"
+  },
+  "settings_row_tts_rate": {
+    "message": "速度"
+  },
+  "settings_row_daily": {
+    "message": "1日の新しいカード"
+  },
+  "settings_row_tts_voice": {
+    "message": "声"
+  },
+  "settings_row_version": {
+    "message": "バージョン"
+  },
+  "settings_row_webext": {
+    "message": "ブラウザ拡張"
+  },
+  "settings_daily_hint": {
+    "message": "1日に追加する新しいカードの枚数。上限に達すると、古いカードの復習だけになります。"
+  },
+  "settings_speech_hint": {
+    "message": "速度は読み上げだけに影響し、字幕や翻訳には影響しません。"
+  },
+  "settings_quota_left": {
+    "message": "残り"
+  },
+  "settings_quota_used": {
+    "message": "使用済み {spent} · 毎日リセット"
+  },
+  "settings_quota_community": {
+    "message": "コミュニティに参加"
+  },
+  "settings_quota_signed_in": {
+    "message": "ログイン済み"
+  },
+  "settings_quota_signed_out": {
+    "message": "未ログイン"
+  },
+  "settings_stepper_minus": {
+    "message": "減らす"
+  },
+  "settings_stepper_plus": {
+    "message": "増やす"
+  },
+  "settings_value_all_langs": {
+    "message": "すべての言語"
+  },
+  "settings_value_on": {
+    "message": "オン"
+  },
+  "settings_value_off": {
+    "message": "オフ"
+  },
+  "settings_value_follow": {
+    "message": "表示言語に合わせる"
   }
 }

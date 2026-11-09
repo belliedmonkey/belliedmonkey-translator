@@ -1,12 +1,13 @@
-// test/app-settings-720.test.js — BEL-198 · Mac ≥720 桌面布局的源码契约。
+// test/app-settings-720.test.js — BEL-198 / BEL-231 · Mac ≥720 桌面布局的源码契约。
 //
 // 认关四窗：登录 / 一键 / 分项网关 / 功能（OpenBot/Shared/bel198-preview/）。
 // `npm test` 没有 jsdom（docs/domain-design.md §10），所以这里钉**结构 + 媒体查询边界**：
 //   · 登录 ≥720 左文右 320 卡，三 id 不动；
-//   · 设置 220 侧栏五顶，一次只揭一节（hidden，不 remove），nav 无 hidden 属性；
-//   · 语言包升 #sec-langpacks，内部 id 不动、不双挂载；
+//   · 设置 220 侧栏五顶 = BEL-231 主屏五组（语言 / 朗读与复习 / 功能 / 账号与数据 / 关于），
+//     宽窗一次只揭一页（hidden 由 page 派生，不 remove）；
+//   · 窄窗子页共享顶栏「← 返回」+ 大标题；宽窗仍然是内容区左上角 ← 返回 + 侧栏脚「完成」；
 //   · 宽窗 segmented 28、字段行布局只在媒体查询里、开关 40×24；
-//   · 缩过断点由 matchMedia 清掉各 .sec 的 hidden。
+//   · 缩过断点由 matchMedia 把组页送回主屏；详情页保留。
 // 真实视口下的行为由 test:app / 真机截图验收（本文件不假装跑了浏览器）。
 
 const fs = require('fs');
@@ -78,7 +79,7 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     ok(!/MacSignedOut\.dc\.html/.test(SHELL), '落了居中 400 卡的 MacSignedOut.dc.html —— 那不是认关稿');
   });
 
-  test('设置：220 侧栏五顶，宽窗一次只揭一节；侧栏脚完成可见，无 engine-keys-entry', () => {
+  test('设置：220 侧栏五组，宽窗一次只揭一页；侧栏脚完成可见，主屏在宽窗收起', () => {
     ok(/grid-template-columns\s*:\s*220px\s+minmax\(0,\s*1fr\)/.test(wide),
       '≥720 设置不是「220 侧栏 + 右栏」');
     const nav = rule(wide, '#settings-nav');
@@ -92,10 +93,10 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
       '≥720 #settings-back 命中区不是 44：' + backWide);
     ok(!/#settings-back[^{]*\{[^}]*min-height\s*:\s*30px/.test(wide),
       '≥720 #settings-back 被收到 30');
-    ok(/#engine-keys-entry[^{]*\{[^}]*display\s*:\s*none/.test(wide),
-      '宽窗还露着 #engine-keys-entry');
     ok(/#app-settings \.sec\s*\{[^}]*grid-column\s*:\s*2[^}]*grid-row\s*:\s*1/.test(wide),
       '各 .sec 没有落在右栏同一格（单 pane）');
+    ok(/id="settings-home" hidden=\{page !== 'home'\}/.test(VIEW),
+      '主屏 #settings-home 的 hidden 不是由 page 派生');
   });
 
   test('BEL-212：#settings-rail 包 nav+back；back 不是 nav 子节点；<720 仍 ← 返回', () => {
@@ -140,16 +141,20 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
       '窄窗默认没有把 #settings-nav 藏掉');
   });
 
-  test('五顶顺序与 id：引擎与密钥 / 功能 / 语言包与朗读 / 账号与数据 / 关于', () => {
+  test('五顶顺序与 id：语言 / 朗读与复习 / 功能 / 账号与数据 / 关于', () => {
     const ids = [...VIEW.matchAll(/^\s*\{ sec: '([^']+)'/gm)].map((m) => m[1]);
-    const want = ['sec-engines', 'sec-features', 'sec-langpacks', 'sec-account', 'sec-about'];
+    const want = ['sec-language', 'sec-langpacks', 'sec-features', 'sec-account', 'sec-about'];
     ok(JSON.stringify(ids) === JSON.stringify(want), '侧栏五顶不对：' + JSON.stringify(ids));
     for (const id of want) {
-      ok(new RegExp(`<div className="sec" id="${id}"`).test(VIEW), `缺少 .sec#${id}`);
+      ok(new RegExp(`<div className="sec settings-pane" id="${id}"`).test(VIEW), `缺少 .sec#${id}`);
+    }
+    // 五组的标签来自各自的主屏组名；不再用旧的「引擎与密钥」当第一顶。
+    for (const key of ['settings_group_language', 'settings_group_speech', 'opt_sec_features', 'opt_sec_account']) {
+      ok(VIEW.includes(key), '侧栏标签没有走 ' + key);
     }
   });
 
-  test('语言包升 #sec-langpacks；g-langpacks / langpacks-state / set-pack-manage 不动且不双挂载', () => {
+  test('朗读与复习：#sec-langpacks 收 g-langpacks / langpacks-state / set-pack-manage，不双挂载', () => {
     ok(/id="sec-langpacks"/.test(VIEW), '没有 #sec-langpacks');
     const g = [...VIEW.matchAll(/id="g-langpacks"/g)].length;
     ok(g === 1, `#g-langpacks 应恰好一份（不做双挂载），实际 ${g}`);
@@ -158,22 +163,25 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     const iAcct = VIEW.indexOf('id="sec-account"');
     ok(iSec >= 0 && iG > iSec && iG < iAcct, '#g-langpacks 不在 #sec-langpacks 里');
     const iFeat = VIEW.indexOf('id="sec-features"');
-    ok(iFeat < iSec, '#sec-langpacks 没排在功能节之后');
-    ok(!VIEW.slice(iFeat, iSec).includes('id="g-langpacks"'), '#g-langpacks 还嵌在功能节里');
+    ok(iFeat >= 0 && iFeat !== iSec, '功能组与朗读组不是两页');
     for (const id of ['langpacks-state', 'set-pack-manage']) {
       ok(new RegExp(`id="${id}"`).test(VIEW), `语言包内部 id #${id} 丢了`);
     }
   });
 
-  test('缩过 720：matchMedia 清掉各 .sec 的 hidden；宽窗用 hidden 切节、不 remove', () => {
+  test('缩过 720：组页回主屏；宽窗用 page 派生 hidden、不 remove', () => {
     ok(/matchMedia\('\(min-width: 720px\)'\)/.test(VIEW), '没有 matchMedia(\'(min-width: 720px)\')');
-    ok(/querySelectorAll\('#app-settings \.sec'\)/.test(VIEW), '没有遍历各 .sec');
-    ok(/\.hidden\s*=\s*false/.test(VIEW), '缩过断点时没有清掉 .sec 的 hidden');
-    for (const id of ['sec-engines', 'sec-features', 'sec-langpacks', 'sec-account', 'sec-about']) {
-      ok(new RegExp(`id="${id}" hidden=\\{wide && activeSec !== '${id}'\\}`).test(VIEW),
-        `#${id} 的 hidden 不是由 wide + activeSec 派生（宽窗才能一次只揭一节）`);
+    ok(/setPage\(\(p\) => \(p === 'sec-language' \|\| p === 'sec-features' \|\| p === 'sec-account' \|\| p === 'sec-about'/.test(VIEW),
+      '缩过断点时没有把组页送回主屏');
+    ok(/p === 'home' \? 'sec-language' : p/.test(VIEW), '放大到宽窗时没有从主屏落到第一组');
+    for (const id of ['sec-language', 'sec-langpacks', 'sec-features', 'sec-account', 'sec-about',
+      'sec-engines', 'sec-ui-lang', 'sec-target-lang', 'sec-learn-lang', 'sec-listen', 'sec-subtitles',
+      'sec-quick', 'sec-docs', 'sec-drive', 'sec-sources', 'sec-account-profile', 'sec-corpus',
+      'sec-telemetry', 'sec-diag', 'sec-feedback', 'sec-version']) {
+      ok(new RegExp(`id="${id}" hidden=\\{page !== '${id}'\\}`).test(VIEW),
+        `#${id} 的 hidden 不是由 page 派生（宽窗一次只揭一页）`);
     }
-    ok(!/\$\(['"]sec-[^'"]*['"]\)\.remove\(\)/.test(VIEW), '出现了 remove() —— 设置节只许切 hidden');
+    ok(!/\$\(['"]sec-[^'"]*['"]\)\.remove\(\)/.test(VIEW), '出现了 remove() —— 设置页只许切 hidden');
   });
 
   test('一键|分项：宽窗 segmented 28 高，✓ 与覆盖 hint 只在窄窗渲染', () => {
@@ -182,6 +190,8 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     ok(/\{!wide && detail \? <small className="mode-tab-hint">/.test(VIEW), '宽窗还渲染「选用将覆盖…」hint');
     ok(/opt_mode_switch_to_quick/.test(VIEW) && /opt_mode_switch_to_detail/.test(VIEW),
       '一键↔分项的确认 dialog 不再走 opt_mode_switch_to_*');
+    ok(/id="mode-quick"/.test(VIEW) && /id="mode-detail"/.test(VIEW),
+      'mode-quick / mode-detail 被移出了 DOM');
   });
 
   test('宽窗字段：标签左控件右，select/input ≤240；纵向规则保留给窄窗', () => {
@@ -199,6 +209,8 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     ok(/\.check input\s*\{\s*width\s*:\s*22px;\s*height\s*:\s*22px/.test(narrow),
       '窄窗 checkbox 不再是 22×22');
     ok(/\.check \{[^}]*min-height\s*:\s*44px/.test(narrow), '窄窗开关行没有 44 命中区');
+    ok(/\.settings-switch\s*\{[^}]*width\s*:\s*51px;\s*height\s*:\s*31px/.test(narrow),
+      'r2 的 iOS 开关不是 51×31');
   });
 
   test('分项：#notes-base-url 在分项主行、不在高级参数 details 里', () => {
@@ -206,6 +218,37 @@ describe('BEL-198 · Mac ≥720 桌面布局（认关四窗）', () => {
     const iDetails = VIEW.indexOf('id="notes-adv-params"');
     ok(iBase >= 0 && iDetails > iBase, '#notes-base-field 还折在 #notes-adv-params 里');
     ok(VIEW.slice(iBase, iDetails).includes('id="notes-base-url"'), '#notes-base-url 不在主行字段里');
+  });
+});
+
+describe('BEL-231 · 主屏入口与子页导航', () => {
+  test('engine_keys_row 是左对齐入口行，不是居中的状态残件；点它开 sec-engines', () => {
+    ok(/id="engine_keys_row"/.test(VIEW), '没有字面量 id="engine_keys_row"');
+    ok(/<SettingsRow[^>]*id="engine_keys_row"/.test(VIEW), 'engine_keys_row 不是 SettingsRow（一行一入口）');
+    const row = rule(narrow, '.settings-row');
+    ok(/text-align\s*:\s*left/.test(row), '入口行不是左对齐：' + row);
+    ok(!/justify-content\s*:\s*center/.test(row), '入口行还在居中');
+    ok(/id="sec-engines" hidden=\{page !== 'sec-engines'\}/.test(VIEW), 'sec-engines 子页不在 DOM');
+    ok(/function openEngine\(\)[\s\S]*setPage\('sec-engines'\)/.test(VIEW),
+      'engine_keys_row 没有打开引擎子页');
+  });
+
+  test('主屏 = 额度卡 + 5 组；子页 = ← 返回 + 大标题', () => {
+    ok(/id="settings-home"/.test(VIEW), '没有主屏 #settings-home');
+    for (const key of ['language', 'speech', 'features', 'account', 'about']) {
+      ok(new RegExp(`renderGroup\\('${key}'\\)`).test(VIEW), `主屏缺组：${key}`);
+    }
+    ok(/id="settings-subpage-head"/.test(VIEW), '没有窄窗子页顶栏');
+    ok(/id="settings-subpage-back"[\s\S]{0,120}onClick=\{\(\) => goPage\('home'\)\}/.test(VIEW),
+      '子页返回不是回主屏');
+    ok(/id="settings-subpage-title">\{subpageTitle\(page, t\)\}/.test(VIEW),
+      '子页大标题没有跟 page 走');
+  });
+
+  test('窄窗 ← 返回 / 宽窗 完成 两个出口都在，且宽窗有内容区 ← 返回', () => {
+    ok(/hidden=\{!wide && page !== 'home'\}>\{wide \? t\('app_set_done', '完成'\) : t\('app_review_back', '← 返回'\)\}/.test(VIEW),
+      '#settings-back 的窄/宽文案或 hidden 不对');
+    ok(/id="settings-page-back"/.test(VIEW), 'BEL-217 的 #settings-page-back 丢了');
   });
 });
 
@@ -225,7 +268,6 @@ describe('BEL-217 · 宽窗设置内容顶栏「← 返回」', () => {
     ok(/t\('app_review_back',\s*'← 返回'\)/.test(body), '文案不是 t(app_review_back, ← 返回)：' + body);
     ok(!/\bwide\s*\?/.test(body), '文案跟着 wide 变了 —— 宽窗必须仍是 ← 返回：' + body);
 
-    // 不进 .sec-head（五个同 id），也不进 #settings-nav。
     const head = VIEW.indexOf('className="sec-head"');
     const nav = VIEW.indexOf('id="settings-nav"');
     const navEnd = VIEW.indexOf('</nav>', nav);

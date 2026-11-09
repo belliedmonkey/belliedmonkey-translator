@@ -4292,5 +4292,65 @@
   },
   "app_set_done": {
     "message": "Hecho"
+  },
+  "settings_group_language": {
+    "message": "Idioma"
+  },
+  "settings_group_speech": {
+    "message": "Lectura y repaso"
+  },
+  "settings_row_tts_rate": {
+    "message": "Velocidad"
+  },
+  "settings_row_daily": {
+    "message": "Tarjetas nuevas por día"
+  },
+  "settings_row_tts_voice": {
+    "message": "Voz"
+  },
+  "settings_row_version": {
+    "message": "Versión"
+  },
+  "settings_row_webext": {
+    "message": "Extensión del navegador"
+  },
+  "settings_daily_hint": {
+    "message": "Cuántas tarjetas nuevas introducir cada día. Al llegar al límite, solo repasas las antiguas."
+  },
+  "settings_speech_hint": {
+    "message": "La velocidad solo afecta a la lectura, no a los subtítulos ni a las traducciones."
+  },
+  "settings_quota_left": {
+    "message": "restante"
+  },
+  "settings_quota_used": {
+    "message": "Usado {spent} · Se restablece a diario"
+  },
+  "settings_quota_community": {
+    "message": "Únete a la comunidad"
+  },
+  "settings_quota_signed_in": {
+    "message": "Sesión iniciada"
+  },
+  "settings_quota_signed_out": {
+    "message": "Sesión cerrada"
+  },
+  "settings_stepper_minus": {
+    "message": "Disminuir"
+  },
+  "settings_stepper_plus": {
+    "message": "Aumentar"
+  },
+  "settings_value_all_langs": {
+    "message": "Todos los idiomas"
+  },
+  "settings_value_on": {
+    "message": "Activado"
+  },
+  "settings_value_off": {
+    "message": "Desactivado"
+  },
+  "settings_value_follow": {
+    "message": "Seguir el idioma de la interfaz"
   }
 }
