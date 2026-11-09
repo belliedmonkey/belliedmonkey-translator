@@ -272,6 +272,32 @@ export function createAccountSwitch(deps) {
   };
 }
 
+// BEL-230 Q1：**退出登录**也走与换号同一份清理判据，不再用 `if (cur.grantTail)` 前置。
+//
+// 上一版只修了「同一页面里 A→B 直接换号」，而 UI 上真实的主路径是「A 退出 → 退到登录
+// → B 登录」：三条退出路径都先 show(null)，B 登录时 prevSession 已是 null，
+// accountSwitched() 返回 false，换号清理永远不启动。退出这一刻才是唯一能确定「A 的
+// 令牌该失效」的时机，所以把清理收口到 show(null)。
+//
+// 判据必须用 clearForAccountSwitch（^bmg_ 前缀 + 旧尾号），不能用 activeIn 的尾号
+// 命中：grantTail 丢了的时候尾号判不出来，一个字节都不会清，B 会继续用 A 的令牌。
+// 用户自己粘的 key 不是 bmg_，一个字节都不动。
+export function createSignOutClear(deps) {
+  const d = deps || {};
+  return async function signOutClear() {
+    const cur = (await d.read()) || {};
+    const clear = (typeof d.clear === 'function' ? d.clear(cur) : null) || { writes: {}, marks: {} };
+    const patch = Object.assign({}, clear.writes || {}, clear.marks || {});
+    if (Object.keys(patch).length) await d.write(patch);
+    // TTS 的模块级 cfg 是第二份快照（extension/learn/tts.js），storage 清了它不会自己
+    // 变；落盘后立刻重配，退出期间不会再用 A 的令牌朗读。
+    if (typeof d.afterWrite === 'function') {
+      try { await d.afterWrite(cur, patch); } catch (_) {}
+    }
+    return patch;
+  };
+}
+
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
@@ -535,6 +561,20 @@ export function bootShell() {
     }),
     claimAndApply: (o) => settingsModel.claimAndApply(o),
   });
+  // 退出登录的清理由 show(null) 调用，判据与换号相同（clearForAccountSwitch）。
+  // 这里**没有** `if (cur.grantTail)`：尾号丢了也必须靠 ^bmg_ 前缀清掉旧令牌。
+  const runSignOutClear = createSignOutClear({
+    read: () => new Promise((res) => {
+      try { chrome.storage.local.get(SWITCH_KEYS, (v) => res(v || {})); } catch (_) { res({}); }
+    }),
+    clear: (s) => (typeof LearnGrant !== 'undefined' && LearnGrant.clearForAccountSwitch)
+      ? LearnGrant.clearForAccountSwitch(s)
+      : { writes: {}, marks: {} },
+    write: (patch) => new Promise((res) => {
+      try { chrome.storage.local.set(patch, res); } catch (_) { res(); }
+    }),
+    afterWrite: () => settingsModel.syncLiveTts(),
+  });
   async function autoClaimGrant() {
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
@@ -569,10 +609,55 @@ export function bootShell() {
   // single-flight 队列承载：谁在这期间调 autoClaimGrant()，拿到的都是同一个
   // promise，不会用旧令牌再发一次 claim/relay。
   async function switchAccountGrant() {
+    // 上一段可能是 A 的 claim（autoClaimGrant 刚启动）。**先等它收口再开新段**：
+    // 否则 A 的晚到结果会落在 B 刚清过/刚写好的三槽上。代际检查是第二道闸，
+    // 这一句保证连「A 先清后写」的中间态都不会和 B 的清理交错。
+    const prevClaim = _autoClaimed;
     _autoClaimed = null;                 // 先清会话级 memo（J07 的重领路同一条）
     claimFailed = false;
-    _autoClaimed = runAccountSwitch().catch(() => { claimFailed = true; });
+    _autoClaimed = (async () => {
+      if (prevClaim) { try { await prevClaim; } catch (_) { /* 上一段失败不挡新段 */ } }
+      try { return await runAccountSwitch(); }
+      catch (e) { claimFailed = true; throw e; }
+    })();
     return _autoClaimed;
+  }
+  // BEL-230 Q1：show() 里「登录态变了」的那一段。抽成闭包函数有两个理由：
+  //   1. 退出清理要串行化（先等 A 在途 claim，再清），代码不该把 show() 撑大 ——
+  //      show() 的既有门禁用固定窗口读它末尾的 setLoginBusy(false)；
+  //   2. 判据只有这一处，换号与退出不会各写一份。
+  // 返回一个 promise（退出清理）或 null（换号时只做同步的代际/听译复位）。
+  function reconcileAccountChange(prevSession, session, switched) {
+    if (!session) {
+      const prevClaim = _autoClaimed;
+      _autoClaimed = null; claimFailed = false;
+      // 账号代际先递增：A 在途的 claim 一回来就看到变化，不会写进 B 的槽。
+      try { settingsModel.bumpAccountEpoch(); } catch (_) {}
+      // 听译的 cfg 在 start() 只读一次（listen-model），换号/退出必须让旧快照作废。
+      try { if (typeof AppListen !== 'undefined' && AppListen.accountChanged) AppListen.accountChanged(); } catch (_) {}
+      // 冷启动读不到登录态（lastLoadError）≠ 用户退出：§8.4.1 要求这种瞬断不把
+      // 还登着的人判成未登录，更不能顺手清掉他的令牌。进程里确实有过会话
+      // （prevSession）时按真退出处理。
+      let loadErr = false;
+      try { loadErr = !!(typeof LearnAuth !== 'undefined' && LearnAuth.lastLoadError && LearnAuth.lastLoadError()); } catch (_) {}
+      if (!prevSession && loadErr) return null;
+      // 先等 A 在途的 claim 收口（同一段 single-flight），再清。否则 A 的 storage.set
+      // 可能排在退出清理之后落盘，把刚清掉的槽又写回 A 的令牌。清理完成后把
+      // _autoClaimed 放回 null —— B 登录时必须能发起新的一次 claim。
+      const gate = (async () => {
+        if (prevClaim) { try { await prevClaim; } catch (_) { /* A 失败不挡退出 */ } }
+        await runSignOutClear();
+      })();
+      const gated = gate.catch(() => { /* 清不掉不挡登录面；下一次登录 claim 仍会覆盖空槽 */ });
+      _autoClaimed = gated;
+      return gated.finally(() => { if (_autoClaimed === gated) _autoClaimed = null; });
+    }
+    if (switched) {
+      // 直接换号（不经过 show(null)）：代际/听译快照与退出走同一条。
+      try { settingsModel.bumpAccountEpoch(); } catch (_) {}
+      try { if (typeof AppListen !== 'undefined' && AppListen.accountChanged) AppListen.accountChanged(); } catch (_) {}
+    }
+    return null;
   }
   const readObSettings = () => new Promise((r) => {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
@@ -1921,9 +2006,11 @@ export function bootShell() {
     const prevSession = currentSession;
     const switched = accountSwitched(prevSession, session);
     currentSession = session;
-    // 退出登录也把会话级 memo 清掉：退出时三槽令牌已由 LearnGrant.clearOnSignOut/
-    // clearForAccountSwitch 清空，同一个账号再登录必须重新领，不能命中旧 promise。
-    if (!session) { _autoClaimed = null; claimFailed = false; }
+    // BEL-230 Q1：退出即清 / 换号复位都收口到这一个闭包（判据与串行化见函数注释）。
+    // 三条 UI 退出路径（设置页、「退出」按钮、跨账号深链）都只是 show(null)，所以
+    // 清理必须挂在这里，而不是挂在 accountSwitched 的分支上：B 登录时 prevSession
+    // 已经是 null，走不到 accountSwitched，但 A 的令牌在退出这一刻已经清掉了。
+    const accountP = reconcileAccountChange(prevSession, session, switched);
     // BEL-230：换号的串行步骤在 show() 入口就**启动**（不是等 bindCorpus/paint 之后），
     // 并立刻占用 _autoClaimed 这个既有 single-flight 队列 —— 后续任何 autoClaimGrant()
     // 都排在同一段清理+领取后面。下面揭屏前再 await 它。
@@ -1961,6 +2048,9 @@ export function bootShell() {
     // BEL-230：换号时先把「清三槽 → 重新 claim」整段跑完，再启动首屏判定/揭屏。
     // 这一段是串行的：清理落盘之前不 claim，claim 完成之前不画任何读设置的界面 ——
     // 于是中间不存在「用旧账号 bmg_ 令牌发 relay」的那一帧。同一账号不走这里。
+    if (accountP) {
+      try { await accountP; } catch (_) { /* 退出清理失败不挡登录面 */ }
+    }
     if (switchP) {
       try { await switchP; } catch (_) { /* 失败已清槽，状态行会说没领到 */ }
     }
@@ -3507,7 +3597,8 @@ export function bootShell() {
       openExternal,
       onSignIn: () => { show(null); },
       onSignOut: async () => {
-        // 同扩展设置页（F06）：额度在用先确认，退出即清三槽令牌与 grantTail / grantBalance。
+        // 同扩展设置页（F06）：额度在用先确认。真正的清理由 show(null) 统一做 ——
+        // 这里再清一份会变成第二处判据，这正是上一版 `if (cur.grantTail)` 漏清的来源。
         const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
         const active = typeof LearnGrant !== 'undefined' && LearnGrant.active(cur);
         if (active) {
@@ -3515,10 +3606,6 @@ export function bootShell() {
           if (!go) return;
         }
         await LearnAuth.signOut();
-        if (cur.grantTail) {
-          const c = LearnGrant.clearOnSignOut(cur);
-          await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
-        }
         await show(null);
       },
     });

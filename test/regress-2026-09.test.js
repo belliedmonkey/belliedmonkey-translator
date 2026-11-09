@@ -14,9 +14,16 @@ describe('回归 2026-09 · F06 退出登录要先确认并清掉免费额度令
     // PR5 迁移：设置页源码在 src/pages/options.jsx（构建覆盖 dist 同名 .js）。
     ok(/clearOnSignOut/.test(read('src/pages/options.jsx')), 'options.jsx 的退出登录处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
   });
-  test('App 的退出登录也走 LearnGrant.clearOnSignOut', () => {
+  test('App 的退出登录走与换号同一份 clearForAccountSwitch（BEL-230 Q1）', () => {
     // PR6a 迁移：App 壳正文在 src/app/shell-model.js（原 app/app.js，esbuild 进 Script.js）。
-    ok(/clearOnSignOut/.test(read('src/app/shell-model.js')), 'shell-model.js 的 onSignOut 没调 LearnGrant.clearOnSignOut');
+    // BEL-230 Q1：退出不再用 clearOnSignOut（尾号命中判据，grantTail 丢了就不清），
+    // 改由 show(null) 的 reconcileAccountChange → runSignOutClear 走 ^bmg_ 前缀判据。
+    const src = read('src/app/shell-model.js');
+    ok(/createSignOutClear/.test(src), 'shell-model.js 没有退出清理的共用收口');
+    ok(/clearForAccountSwitch/.test(src), '退出清理没有复用换号的 ^bmg_ 判据');
+    const rec = src.slice(src.indexOf('function reconcileAccountChange'), src.indexOf('const readObSettings'));
+    ok(/runSignOutClear\(\)/.test(rec), 'show(null) 的退出分支没调 runSignOutClear');
+    ok(/grant_signout_confirm/.test(src), 'App 的退出登录没有先确认（F06）');
   });
   test('12 份 locale 都有退出确认文案 grant_signout_confirm', () => {
     for (const loc of fs.readdirSync(path.join(ROOT, 'extension/_locales'))) {
