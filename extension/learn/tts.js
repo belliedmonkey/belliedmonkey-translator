@@ -599,7 +599,7 @@ var LearnTTS = (() => {
     return { ok: true, engine: engineId, done };
   }
 
-  // 诊断包装（§0.4.1，2026-10-06）：一切朗读结局（含在途失败 #568 那类）进环形日志。
+  // 诊断包装（§0.6.1，2026-10-06）：一切朗读结局（含在途失败 #568 那类）进环形日志。
   // 零内容：只有语言码/结局/原因/引擎 —— 文本一个字节不进。
   async function speak(text, lang, opts) {
     const r = await speakImpl(text, lang, opts);

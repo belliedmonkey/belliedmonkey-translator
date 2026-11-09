@@ -1,5 +1,5 @@
 // app/test-harness.js — window.__mtTest：分层验证矩阵的页面侧驱动接口
-// （docs/verification-spec.md §0.4，2026-10-05 用户拍板）。
+// （docs/verification-spec.md §0.6，2026-10-05 用户拍板）。
 //
 // 进包纪律：只在 buildAppBundle 收到 opts.testHarness 时拼进 Script.js；正常构建不带它。
 // 它自己不发起任何网络请求（门禁按名词扫全文，注释也算）—— 没有原生端点的包里它就是死代码。

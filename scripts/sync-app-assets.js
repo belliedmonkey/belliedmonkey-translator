@@ -298,7 +298,7 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ secure store install: vault install 块缺失');
   }
-  // §0.4 分层验证矩阵：测试桥的 attach（DEBUG-only）。锚在 secure-store / vault 那**一整块**后面。
+  // §0.6 分层验证矩阵：测试桥的 attach（DEBUG-only）。锚在 secure-store / vault 那**一整块**后面。
   // 锚在 MTVault.shared.install 那一行上会落进 #if os(iOS) 里，Mac 上就永远没有端点，
   // 而 Mac 层恰恰是这一层的验证台。整块 #if DEBUG：Release 里 MTTestBridge 符号不存在，
   // 这行若不跟着裁掉编译都过不了 —— 双保险是编译器给的，不是我们记性给的。
@@ -480,7 +480,7 @@ const BLOCKS = [
   // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
   // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
   { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
-  // §0.4.1 诊断录音（2026-10-06）：采集与上传（麦克风/TTS PCM → write-only 信箱）。无 attach ——
+  // §0.6.1 诊断录音（2026-10-06）：采集与上传（麦克风/TTS PCM → write-only 信箱）。无 attach ——
   // speech-bridge 与 audio-bridge 直接调 MTDiagAudio.shared。
   { name: 'mt-diag-audio', src: 'diag-audio.swift', label: 'diag audio' },
   // 实时字幕的 Mac 悬浮字幕条（learning-design §9.8）。整份 #if os(macOS)；无 attach —— 由 MTAudioBridge 在
@@ -518,7 +518,7 @@ const BLOCKS = [
   { name: 'mt-mcp-oauth', src: 'mcp-oauth-bridge.swift', label: 'mcp oauth bridge' },
   // 1.21.2 泰语 Grok BYOK：App 私有 Keychain（intl iOS+Mac；#if !CHINA）。不进 App Group。
   { name: 'mt-secure-store', src: 'secure-store-bridge.swift', label: 'secure store' },
-  // §0.4 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
+  // §0.6 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
   // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
   // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。
   { name: 'mt-test-bridge', src: 'test-bridge.swift', label: 'test bridge' },

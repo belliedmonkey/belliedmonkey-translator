@@ -100,7 +100,7 @@ xcrun xcresulttool export attachments --path x.xcresult --output-path att   # �
 | `wait` / `shot` / `dump` | `s` / `name` / `tag` | |
 
 **没有 `MT_SCRIPT` 会直接 `XCTFail`** —— 「passed 但什么都没做」是这个 runner 的老毛病
-（`docs/verification-spec.md` §0.2.3 第 1 条：判据看附件，不看 passed）。
+（`docs/verification-spec.md` §0.4.3 第 1 条：判据看附件，不看 passed）。
 
 ## 其余用例
 

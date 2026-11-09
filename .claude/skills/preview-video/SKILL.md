@@ -193,6 +193,6 @@ AUDIO=… AUD_T0=… bash store-assets/src/compose-preview-ios.sh zh
 
 - `store-assets/README.md`「App Preview 视频」—— 输入怎么生成、录屏参数
 - `.claude/skills/store-release/assets.md` —— 素材是否过时、截图管线
-- `docs/verification-spec.md` §0.2.3 —— XCUITest 驱动真机的十件事
+- `docs/verification-spec.md` §0.4.3 —— XCUITest 驱动真机的十件事
 - `store-assets/src/compose-preview.sh` · `compose-preview-ios.sh` · `make-preview-inputs.sh`
 - `store-assets/src/preview-quick.html`（快速翻译背景页）· `preview-stage.html`（字幕段声源舞台）

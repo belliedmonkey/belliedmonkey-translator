@@ -22,7 +22,7 @@
 | 2026-10-07（**提案 · 待人评审**；**代码已实装**） | belliedmonkey | **语种识别（LID）取代手写规则**（用户裁定「不要再用硬代码处理语言理解逻辑，直接上模型」）：半句/定稿的归属改由**端上 LID 模型**（sherpa-onnx 自带 SLID / whisper tiny，Swift API 已就绪、零新运行时、模型 zip 60.3MB 走既有模型通道）判定；`dominantScript` 文字系比、置信度三档、`§9.6.1.2` 的「定稿确立」全部退场。代价如实记：半句预览延到 ~1–3s 才出；准确率 80–90%（非零错）。闭集 ⇒ VAD 门 + 静音不判。新增 §9.6.1.3。**实装（2026-10-07）**：模型已托管（ModelScope，sha256 校验过）+ Caddy 302 中转 + `MT_DEVICE_LID` 入清单 + `verify:model-urls` 覆盖；原生 `MTDeviceLid`（`lid-probe`/`lid-assets` → `assets-progress{kind:'lid'}`/`lid-state`/`lid-live`/`lid-result`）；JS `NativeSpeech.onLid/ensureLid/lidProbe`，`listen-model` 两处闸改 `sideMatchesLid`，`makeFinalArbiter`/`arbScore`/`pickPartial`/`partialEstablished` 已删。 | 待评审（代码先行，评审通过不改变实现方向） |
 | 2026-10-07 | belliedmonkey | **听译页文案：撤下「音频不离开设备 / 不发往任何服务器」的绝对声明**（用户裁定）：页内只讲转写/朗读的**行为**，也**不写「会上传服务器」**。改 `_locales ×12` 三键（`listen_entry_privacy_device` / `listen_device_privacy` / `listen_cost_line_device`）+ `src/app/listen-model.js` 兜底串 + `verify-listen` 的 B 断言 + interaction-spec。**Gate H 的披露正文不变**（README ×2 / 两个站点隐私页 / `NSMicrophoneUsageDescription` / 三类 usage 串）—— 页内撤下的只是绝对声明。 | 已按用户指名裁定执行（2026-10-07：「换成只讲转写效果」「入口提示一起改」） |
 | 2026-10-06（**提案 · 待人评审**） | belliedmonkey | **半句层仲裁 + 回声优先**（95/96 号包真机反馈）：(e) 半句层改用与定稿同一套三档判据 `pickPartial` + 300 ms 扣留，取消「半句粘滞」—— 修「说中文先闪泰文再改中文」；(f) 仲裁窗口里任一路匹配我们自己朗读的文本 ⇒ 整窗判成回声、两路都丢，判定在**到达时刻**做；(g) 「**播放进行中 + 同语言 ⇒ 丢**」—— 真机时序实测回声总在 `speak` 后 ~500ms、播放中到达，文字比对不足以拦（代价：抢话那几秒同语言会丢，念完后回话照收，M4 已改）。另修诊断采集（真机 mic.caf 超接收器 25MB 被整包拒 → 每流 20MB 上限；sidecar 先传 + 写 meta.json）。§9.6.1.2 追加 (e)(f)(g)。 | 待评审 |
-| 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.3 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
+| 2026-10-06 | belliedmonkey | **双语定稿仲裁**（真机 94 号中泰「说中文转成泰文」追根）：①删掉会话级 `needDictation` 全量降级，每种语言各按 `mtTranscriberFor` 选引擎、同一个 `SpeechAnalyzer` 混装两种模块（拿回 zh 的置信度）；②新增跨语言定稿仲裁：final 到达先扣 W ms（600 ms），**两片文字系不同**才仲裁、按**三档**（高置信＝可信 / 已知低置信＝可疑 / 无置信 Dictation＝中性）定去留，同档都放行；③两边都只能用 Dictation 的语言对（th↔ru）没有置信度可比，是已知缺口、退化为都放行；④门限 T 与窗口 W 待 §0.5 判分台在真机录音上校准。新增 §9.6.1.2。第一批（文字系补全 + 切句器绝对上限 + 诊断 sidecar 竞态）已先行落地（#570）。 | **已评审通过（2026-10-06，用户：「都同意 都通过」）** —— 实现：`speech-bridge.swift` 每语言各选引擎，`listen-core.js` 的 `makeFinalArbiter`/`arbScore`，`listen-model.js` final 分支 + `closeSocket` flushAll |
 | 2026-09-30（**提案 · 待人评审**） | belliedmonkey | **命令行宿主（CLI）**（用户提议）：新增第三个宿主，复用同一份传输字节（Node 垫片；`build/cli-bundle.js`）与同一套学习层纯逻辑（`LearnModel`/`LearnScheduler`/`LearnChunk`，**不用 `LearnStore`**）。翻译面：文本 / 文档(pdf·docx·txt·md) / 批量 / 本地字幕(VTT·SRT)；复习面：只读 `plan` + 交互式 `review`（打分 → `applyReview` → `recordReview`）。语料三条来源：导入/导出 `.mtlearn`、翻译时按句采集、登录后经 §8 同步。v1 不发遥测、不接免费额度中继。新增 §9.10；domain-design §2.7 + §6 + §7 + §8；interaction-spec「命令行」；verification-spec 矩阵第 11 行 + §3.1.13；telemetry-design §2 | **已评审通过（2026-09-30，用户评审 PR #509）** |
 | 2026-09-22 | belliedmonkey | **后端换了：主库跟着第一个登录的人走**（§8.4.3 新增一节）。中国版 1.15.0 切境内后端时模拟器实测：老用户用同一邮箱在境内重登，境内 userId ≠ 东京 userId，被判「另一个账号」给了空库，本机 4660 张卡永久看不见。用户裁定「留在本机并上传到国内」。规则：主库归属 = (userId, 认领时的后端)；后端不同 ⇒ 这次登录的人接管主库并整库上传（ownerGate 清同步账与 syncedAt / viaSync）；旧后端签的会话不许认领 / 接管；国际版（无 previousUrl）行为逐字不变。代码 2f84ded。 | **通过（2026-09-22，用户：「设计文档没问题」）** |
 | 2026-09-22（待人评审） | belliedmonkey | **引导屏序重排 + 额度发放三件**（由 2026-09-21/22 的线上读数驱动）。用户当日已裁定：① 登录从 App 引导第 5 屏**提到第 2 屏** ② 登录之后**自动**领额度、不再问 ③ 扩展引导第 3 屏（采集，默认已开）**砍掉** ④ 中国版**也给免费额度**，模型走**通义千问** ⑤ 中继按**方案 C**（身份走现有后端、只传令牌不含原文；**原文只走境内中继 → 千问，一步不出境**）。交互稿：https://claude.ai/artifact/PTAr3ymseUw7s1sKvUX7Kf （3 页 13 板）。本行涉及**额度发放规则**与**跨境路径**，按 `AGENTS.md` 规则 2/4 与治理条属领域设计改动 ⇒ 先出本提案（§8.10.1）过评审，代码不先走。 |
@@ -3422,7 +3422,7 @@ zh 路会把英文音频也「认」成英文（错得离谱但置信度 0.72–
 **(c) 已知缺口，不假装解决。** 两边**都只能用 Dictation** 的语言对（如 th↔ru）没有置信度可比，
 仲裁退化为「都放行」，症状可能残留。写在这里，作为下一批的输入。
 
-**(d) 校准。** 门限 T（初值 0.4）与窗口 W（初值 600 ms）由 §0.3 判分台在真机录音上校准：
+**(d) 校准。** 门限 T（初值 0.4）与窗口 W（初值 600 ms）由 §0.5 判分台在真机录音上校准：
 `npm run diag:judge` 用 whisper large-v3-turbo 独立转写当参考、数**伪行**（locale 与参考语种不符）
 与 CER/WER，取伪行最少的一组。初值来自 §9.6.1 已有的 0.4（错语言拉丁音频 0.05–0.27、正确
 0.7–0.98）与「两路共用一次 `finalize(through:)`」的到达差；真机读数回来前按初值走。
@@ -4682,7 +4682,7 @@ the gate requires the same key on all 12):
 | `build.js` Gate H coupling | `dist-app*/app/native-speech.js` present ⇒ README ×2 contain the 「设备内置转写」 stem **and** all 12 locales have the key; the model download URLs and sha256 live in one registry file, never restated |
 
 *(2026-10-07 用户裁定：**App 页内不再做「音频不离开设备 / 不发往任何服务器」的绝对声明。** 理由：
-`§0.4.1` 的「上传诊断录音」是一条**可选**通道（默认关、设置里单独披露），它存在时页内那句
+`§0.6.1` 的「上传诊断录音」是一条**可选**通道（默认关、设置里单独披露），它存在时页内那句
 「音频不离开设备」不再**无条件**为真；用户同时裁定页内**也不写「会上传服务器」** ⇒ 页内只描述
 转写/朗读的**行为**（「边说边出字…自己配置的翻译引擎…语音在设备上合成、首次下离线模型」）。
 **Gate H 的披露正文不变**（README ×2、两个站点隐私页、`NSMicrophoneUsageDescription`、本地化的

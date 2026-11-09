@@ -98,7 +98,7 @@ var NativeSpeech = (() => {
       }
       if (msg.state === 'unsupported') sttProbe = { ok: false, reason: msg.reason || 'os', assets: 'missing', locales: sttProbe.locales };
       else if (msg.state === 'ready' && msg.assets) sttProbe = { ok: true, reason: '', assets: msg.assets, locales: sttProbe.locales };
-      // 诊断（§0.4.1）：单点记录（stt-state ready 只有一条）——engines = 每门语言选了哪台
+      // 诊断（§0.6.1）：单点记录（stt-state ready 只有一条）——engines = 每门语言选了哪台
       // 识别器（st/dt），转写质量「混对被拖回旧引擎」的量化数据。原 per-waiter 记法重复，已撤。
       if (msg.state === 'ready') {
         try { DiagLog.push('probe', { kind: 'stt', ok: sttProbe.ok, reason: sttProbe.reason || '', assets: sttProbe.assets || '', engines: Array.isArray(msg.engines) ? msg.engines.join('|') : '' }); } catch (_) {}
@@ -148,7 +148,7 @@ var NativeSpeech = (() => {
     }
     if (t === 'lid-result' || t === 'lid-live') {
       lidLast = { lang: String(msg.lang || ''), ms: (typeof msg.ms === 'number') ? msg.ms : 0, at: Date.now(), kind: t === 'lid-live' ? 'live' : 'final' };
-      // 诊断（§0.4.1）：判词只记语言与时长 —— 零内容。
+      // 诊断（§0.6.1）：判词只记语言与时长 —— 零内容。
       try { DiagLog.push('lid', { lang: lidLast.lang, ms: lidLast.ms, kind: lidLast.kind }); } catch (_) {}
       for (const fn of lidListeners) { try { fn(lidLast); } catch (_) {} }
       return;
@@ -160,7 +160,7 @@ var NativeSpeech = (() => {
     }
     if (t === 'stt-partial' || t === 'stt-final') {
       if (t === 'stt-final') {
-        // 诊断（§0.4.1，2026-10-06 转写质量量化）：哪路出了定稿、多长、置信度 —— 零内容
+        // 诊断（§0.6.1，2026-10-06 转写质量量化）：哪路出了定稿、多长、置信度 —— 零内容
         try { DiagLog.push('stt_final', { locale: String(msg.locale || ''), chars: String(msg.text || '').length, conf: (typeof msg.conf === 'number') ? msg.conf : undefined }); } catch (_) {}
       }
       if (sttSession) sttSession.fire(t === 'stt-final' ? 'final' : 'partial', msg);
@@ -181,14 +181,14 @@ var NativeSpeech = (() => {
       else if (t === 'tts-end') { speakJob = null; job.started(true); job.done(); }
       else {
         speakJob = null;
-        // 诊断（§0.4.1）：#567 那类 reason:"load" 此前只进 WebKit 控制台 —— 真机上一个字节都回不来
+        // 诊断（§0.6.1）：#567 那类 reason:"load" 此前只进 WebKit 控制台 —— 真机上一个字节都回不来
         try { DiagLog.push('tts_engine', { phase: 'failed', fail_reason: String(msg.reason || 'failed') }); } catch (_) {}
         job.started(false); job.fail(msg.reason || 'failed');
       }
     }
   }
 
-  // §0.4.1 诊断录音（2026-10-06）：JS 武装/收尾原生采集（默认关；文本 sidecar 只随音频包走）。
+  // §0.6.1 诊断录音（2026-10-06）：JS 武装/收尾原生采集（默认关；文本 sidecar 只随音频包走）。
   function diagAudio(on, session, url, sidecar) {
     const body = { type: 'diag-audio', on: on ? 1 : 0 };
     if (on) { body.session = session || ''; body.url = url || ''; } else { body.sidecar = sidecar || ''; }

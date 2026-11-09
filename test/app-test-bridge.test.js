@@ -1,4 +1,4 @@
-// test/app-test-bridge.test.js — §0.4 分层验证矩阵的三件套门（docs/verification-spec.md §0.4，
+// test/app-test-bridge.test.js — §0.6 分层验证矩阵的三件套门（docs/verification-spec.md §0.6，
 // 2026-10-05 用户拍板「要修改也同步更新文档」—— 这份门就是那条规则的机检版：代码与文档
 // 任何一边漂了，这里红）。
 //
@@ -6,7 +6,7 @@
 //   1. app/test-harness.js —— 只在 opts.testHarness 时进包，自己不发起网络
 //   2. app/native/test-bridge.swift —— 整份 #if DEBUG（Release 编译器裁掉，不是运行时关）
 //   3. scripts/sync-app-assets.js —— BLOCKS + install 行（#if DEBUG 块，锚在 vault 整块后）
-// 加一条文档同步门：§0.4 必须点名这三个文件与 test:mac。
+// 加一条文档同步门：§0.6 必须点名这三个文件与 test:mac。
 
 'use strict';
 
@@ -52,7 +52,7 @@ test('★ harness 只在 opts.testHarness 时进包（双向，真构建）', ()
   const plain = mk();
   buildAppBundle(plain, quiet, {});
   const plainJs = fs.readFileSync(path.join(plain, 'Script.js'), 'utf8');
-  ok(!plainJs.includes('__mtTest'), '不带 testHarness 构建出的 Script.js 里有 __mtTest —— 出货包不带它，这是 §0.4 的进包纪律');
+  ok(!plainJs.includes('__mtTest'), '不带 testHarness 构建出的 Script.js 里有 __mtTest —— 出货包不带它，这是 §0.6 的进包纪律');
 
   const withH = mk();
   buildAppBundle(withH, quiet, { testHarness: true });
@@ -60,12 +60,12 @@ test('★ harness 只在 opts.testHarness 时进包（双向，真构建）', ()
   ok(withJs.includes('window.__mtTest'), '带 testHarness 构建出的 Script.js 里没有 __mtTest —— 驱动端点起来了也没接口可调');
 });
 
-test('★ §0.4 文档点名三件套 + test:mac —— 代码与文档不得单边漂', () => {
+test('★ §0.6 文档点名三件套 + test:mac —— 代码与文档不得单边漂', () => {
   const doc = read('docs/verification-spec.md');
-  const sec = doc.slice(doc.indexOf('### 0.4 分层验证矩阵'), doc.indexOf('### 1.0 Provider matrix'));
-  ok(sec.length > 200, 'verification-spec.md 里找不到 §0.4（或它空得可疑）');
+  const sec = doc.slice(doc.indexOf('### 0.6 分层验证矩阵'), doc.indexOf('## 1. Current surface matrix'));
+  ok(sec.length > 200, 'verification-spec.md 里找不到 §0.6（或它空得可疑）');
   for (const needle of ['app/test-harness.js', 'app/native/test-bridge.swift', 'scripts/test-mac.js', 'test:mac', '127.0.0.1:8790']) {
-    ok(sec.includes(needle), `§0.4 没有提到 ${needle} —— 改了机制必须同一 commit 更新文档（用户 2026-10-05 原话）`);
+    ok(sec.includes(needle), `§0.6 没有提到 ${needle} —— 改了机制必须同一 commit 更新文档（用户 2026-10-05 原话）`);
   }
-  ok(/Mac 替代不了/.test(sec), '§0.4 丢了「Mac 替代不了」清单 —— Mac 绿了不等于全绿');
+  ok(/Mac 替代不了/.test(sec), '§0.6 丢了「Mac 替代不了」清单 —— Mac 绿了不等于全绿');
 });
