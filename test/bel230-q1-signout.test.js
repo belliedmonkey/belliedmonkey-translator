@@ -183,8 +183,8 @@ async function waitUntil(fn, ms) {
 }
 
 // ── 1. 退出即清（主路径）────────────────────────────────────────────────────
-describe('BEL-230 Q1 — 退出时按 ^bmg_ 清三槽（grantTail 为空也清）', () => {
-  test('★ grantTail 丢失时三个 bmg_ 槽仍被清；用户自己粘的 key 不动', async () => {
+describe('BEL-230 Q1 — 退出时按 ^bmg_ 清三槽（grantTail 为空也清），但保留 grant', () => {
+  test('★ grantTail 丢失时三个 bmg_ 槽仍被清；grant 记录保留 ⇒ 卡面仍说余额保留', async () => {
     const G = loadGrant();
     const storage = makeStorage({
       apiKey: OLD_TOKEN, ttsApiKey: 'sk-user-own-tts', sttApiKey: OLD_TOKEN,
@@ -204,8 +204,19 @@ describe('BEL-230 Q1 — 退出时按 ^bmg_ 清三槽（grantTail 为空也清�
     eq(storage.store.sttApiKey, '', '转写槽的 bmg_ 令牌没清');
     eq(storage.store.ttsApiKey, 'sk-user-own-tts', '把用户自己粘的朗读 key 清掉了');
     eq(storage.store.grantTail, '', 'grantTail 应保持空');
-    eq(storage.store.grant, null, '上一账号的 grant 记录没清');
+    // BEL-230 ACCEPT-1：退出保留 grant 记录（只有 hash 与时间，无令牌）。它一旦被
+    // 清掉，status() 就从 signed_out 掉回 none，卡面也从「余额保留着」变成
+    // 「登录之后可以领一份免费额度」—— 与退出确认里的承诺自相矛盾。
+    ok(storage.store.grant && storage.store.grant.vendor === 'openrouter',
+      '退出把上一账号的 grant 记录清掉了 —— 卡面会说成「登录后可以领一份」');
+    eq(storage.store.grant.apiKey, undefined, 'grant 记录里不该回填令牌');
     eq(storage.store.grantBalance, null, '上一账号的余额缓存没清');
+    ok(!('grant' in storage.writes[0]), '退出清理 patch 不该包含 grant');
+    eq(G.status(storage.store, { signedIn: false }), 'signed_out',
+      '退出后 status 不是 signed_out —— 卡面会掉回「登录后可以领一份」');
+    const card = G.cardFor('signed_out', { t: (k, d) => d });
+    ok(card && /余额保留着/.test(card.body), '退出卡面没有说「余额保留着」');
+    eq(card.action.id, 'signin', '退出卡面的入口不是「重新登录」');
     ok(!('ttsApiKey' in storage.writes[0]), '清理 patch 不该包含用户自己的 tts key');
     eq(after, 1, '落盘后没有重配在线 TTS');
   });
@@ -226,6 +237,34 @@ describe('BEL-230 Q1 — 退出时按 ^bmg_ 清三槽（grantTail 为空也清�
       ok(at > -1, '找不到退出路径：' + anchor);
       ok(src.slice(at, at + 1400).includes('await show(null)'), anchor + ' 没有走 show(null)');
     }
+  });
+});
+
+// ── 1b. 直接换号仍清 grant —— ACCEPT-1 的另一半 ────────────────────────────
+describe('BEL-230 ACCEPT-1 — 直接换号（A→B 同进程）仍清上一账号的 grant', () => {
+  test('★ createAccountSwitch 的清理 patch 里 grant=null；退出保留不漏到换号', async () => {
+    const G = loadGrant();
+    const storage = makeStorage({
+      apiKey: OLD_TOKEN, ttsApiKey: OLD_TOKEN, sttApiKey: OLD_TOKEN,
+      grantTail: OLD_TOKEN.slice(-8),
+      grantBalance: { spentUsd: 0.1, limitUsd: 0.2, at: 1 },
+      grant: { vendor: 'openrouter', limitUsd: 0.2, at: 1 },
+    });
+    const Shell = loadShell();
+    const switchFn = Shell.createAccountSwitch({
+      enabled: () => true,
+      read: async () => Object.assign({}, storage.store),
+      clear: (s) => G.clearForAccountSwitch(s),
+      write: async (patch) => { await storage.set(patch); },
+      claimAndApply: async () => {},   // 只考「清理」这一段，claim 由别的用例覆盖
+    });
+    await switchFn();
+    eq(storage.store.grant, null,
+      '直接换号把上一账号的 grant 记录留下了 —— B 会继承 A 的领过/余额');
+    eq(storage.store.grantTail, '', '直接换号没清旧 grantTail');
+    eq(storage.store.grantBalance, null, '直接换号没清旧余额缓存');
+    ok('grant' in storage.writes[0] && storage.writes[0].grant === null,
+      '换号清理 patch 里没有 grant=null');
   });
 });
 

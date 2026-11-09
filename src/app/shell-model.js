@@ -288,6 +288,12 @@ export function createSignOutClear(deps) {
     const cur = (await d.read()) || {};
     const clear = (typeof d.clear === 'function' ? d.clear(cur) : null) || { writes: {}, marks: {} };
     const patch = Object.assign({}, clear.writes || {}, clear.marks || {});
+    // BEL-230 ACCEPT-1：退出保留领取记录（无令牌），换号仍清。
+    // clearForAccountSwitch 同时服务换号与退出：换号必须清 grant（B 不该看到 A 的
+    // 「领过/余额」），而退出只清令牌与余额缓存。grant 只有 hash 与时间，留着
+    // status() 才是 signed_out（卡面说「余额保留着」），而不是 none（「登录之后
+    // 可以领一份免费额度」）—— 后者与退出确认里的「余额保留」自相矛盾。
+    delete patch.grant;
     if (Object.keys(patch).length) await d.write(patch);
     // TTS 的模块级 cfg 是第二份快照（extension/learn/tts.js），storage 清了它不会自己
     // 变；落盘后立刻重配，退出期间不会再用 A 的令牌朗读。
