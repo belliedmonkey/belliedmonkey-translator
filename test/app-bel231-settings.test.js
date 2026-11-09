@@ -81,13 +81,20 @@ describe('BEL-231 · 主屏：额度卡 + 五组', () => {
     eq(bodyPad, 20, 'body 左右内边距的基线变了，抵消值要一起改');
     const neg = Number((/#app-settings\s*\{[^}]*?margin:\s*0\s+(-?\d+)px/.exec(narrow) || [])[1]);
     eq(neg, -bodyPad, '窄屏没有把 body 的左右内边距抵掉');
-    ok(/#app-settings \.settings-pane\s*\{[^}]*?padding:\s*0(?:\s*;|\s*\})/.test(narrow),
-      '窄屏 .settings-pane 还留着左右内边距，会和卡片 margin 叠成第二份');
+    // 子页卡片没有横向 margin，唯一的 16 来自基础规则 .settings-pane 的左右内边距。
+    // 窄窗覆盖不能把 pane 再置 0 —— 那正是 215 验收的整页全宽回归。
+    const paneOverride = /#app-settings \.settings-pane\s*\{([^}]*)\}/.exec(narrow);
+    ok(!paneOverride || !/padding:\s*0(?:\s*;|\s*\})/.test(paneOverride[1]),
+      '窄屏 .settings-pane 被置 0，子页卡片会塌成整屏宽（215 回归）');
+    const panePad = Number((/padding:\s*0\s+(\d+)px/.exec(rule('#app-settings .settings-pane')) || [])[1]);
+    eq(panePad, 16, '子页 pane 的左右内边距必须还是 16');
+    eq(Number((/margin:\s*0\s+(\d+)px/.exec(rule('#app-settings .sgroup')) || [])[1] || 0), 0,
+      '子页 .sgroup 不应再有横向 margin（否则和 pane 的 16 叠成两份）');
 
     const cardMargin = Number((/margin:\s*0\s+(\d+)px/.exec(rule('.settings-group-card')) || [])[1]);
     eq(cardMargin, 16, '组卡外边距必须还是 16');
     eq(bodyPad + neg + cardMargin, 16, '窄屏主屏卡片左缘应为 16');
-    eq(bodyPad + neg + 0 + cardMargin, 16, '窄屏子页卡片左缘应为 16（pane 不再叠 16）');
+    eq(bodyPad + neg + panePad, 16, '窄屏子页卡片左缘应为 16（pane 16，卡片无横向 margin）');
 
     const rowPad = Number((/padding:\s*0\s+(\d+)px/.exec(rule('.settings-row')) || [])[1]);
     eq(bodyPad + neg + cardMargin + rowPad, 32, '分隔线左缘应为 32');

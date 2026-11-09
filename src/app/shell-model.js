@@ -467,7 +467,18 @@ export function bootShell() {
     return t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。');
   }
 
+  // BEL-231（215 验收）：登录按钮的标签是命令式写的，启动时按**系统**语言画一次；
+  // 存储里的 uiLang（英文界面）是在 applyStoredUiLang → paintStatic 之后才生效的。
+  // 不在这里补画，英文界面就会一直停在启动时的中文兜底（实测 en 表有译文也不生效）。
+  function paintProviderLabels() {
+    const a = $('btn-apple-label');
+    if (a) a.textContent = t('sync_with_apple', '用 Apple 登录');
+    const g = $('btn-google-label');
+    if (g) g.textContent = t('sync_with_google', '用 Google 登录');
+  }
+
   function paintStatic() {
+    paintProviderLabels();
     // 产品名也是要本地化的一句（`action_title`，12 个语种都有）。它原来是 index.html 里
     // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
     // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
@@ -2996,7 +3007,7 @@ export function bootShell() {
   });
 
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
-    $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
+    paintProviderLabels();
     $('btn-apple').hidden = false;
     $('btn-apple').addEventListener('click', () => {
       setLoginBusy(true);
@@ -3017,7 +3028,7 @@ export function bootShell() {
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('google')) {
     const scheme = (Registry.flavor() === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
     const g = $('btn-google');
-    $('btn-google-label').textContent = t('sync_with_google', '用 Google 登录');
+    paintProviderLabels();
     g.hidden = false;
     g.disabled = true;
     LearnAuth.prepareProviderSignIn().then(() => { g.disabled = false; })
