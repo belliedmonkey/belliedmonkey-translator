@@ -158,7 +158,7 @@ const MODULES = [
   'app/secure-store.js',                 // AppSecureStore — 1.21.2 本机 Keychain（泰语 Grok BYOK；无桥=no-op）
   // app/grok-stt.js — **不**恒进 MODULES。见下方 INTL_GROK_MODULES：仅国际包（Debug+Release）链入；
   // 中国包（flavor=china / omitGrokStt / genRoot）构建时省略，避免 api.x.ai / grok-stt-* 进产物。
-  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.4.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
+  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.6.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
   'app/offline-video-asr.js',            // OfflineVideoAsr — Mac 完整视频离线字幕（domain-design §2.8）。
                                          // 不 import 听译。原生通道只在 macOS 存在；缺桥时 start 直接返回。
   'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）
@@ -267,7 +267,7 @@ function buildAppBundle(outDir, log, opts) {
     // App 里了，那个按钮不该出现（2026-09-06 报障）。**不放进 chrome-shim.js**：
     // test:learn 把垫片也注入扩展复习页那个宿主，放那里两个宿主都会变成 App。
     "window.MT_HOST = 'app';",
-    // 版本戳（§0.4.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
+    // 版本戳（§0.6.1 诊断上报要带）：取 package.json —— 信箱表里 app_version 的唯一来源。
     'window.MT_APP_VERSION = ' + JSON.stringify(require('../package.json').version) + ';',
     '',
     // pdf.js（vendor，一个字节不改）作为**文本**编进包：App 是 file:// 的 WKWebView，模块脚本 /
@@ -368,12 +368,12 @@ function buildAppBundle(outDir, log, opts) {
   parts.push(appUi);
   parts.push('');
 
-  // §0.4 分层验证矩阵：页面侧驱动接口，只在**显式要求**时进包（scripts/test-mac.js 传
+  // §0.6 分层验证矩阵：页面侧驱动接口，只在**显式要求**时进包（scripts/test-mac.js 传
   // opts.testHarness）。正常 `node build.js` 不带它 —— 出货包的 Script.js 里出现
   // __mtTest 即红（test/app-test-bridge.test.js 双向门：不带 opt 构建 ⇒ 无；带 ⇒ 有）。
   // 追加在尾部的理由与上面那些段相同：它引用的一切（NativeSpeech、DOM）都是 call-time。
   if (opts.testHarness) {
-    parts.push('// ─── app/test-harness.js (testHarness build only — docs/verification-spec.md §0.4) ' + '─'.repeat(4));
+    parts.push('// ─── app/test-harness.js (testHarness build only — docs/verification-spec.md §0.6) ' + '─'.repeat(4));
     parts.push(fs.readFileSync(path.join(ROOT, 'app', 'test-harness.js'), 'utf8').trimEnd());
     parts.push('');
   }

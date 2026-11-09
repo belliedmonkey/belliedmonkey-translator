@@ -503,7 +503,7 @@ Markers: `#mt-tw-overlay` + `.mt-tw-orig`/`.mt-tw-trans` (overlay), `#mt-tw-btn`
 > **双 flavor**：两台模拟器各装一版（§2.0 一机一版）；标注「intl-only / cn-only」的除外，
 > 中国版的判据见各项尾注（chips 无 google/openai/claude、额度位置放的是**阿里云官方**那张卡而不是
 > 我们那张。用量事件与国际版同一白名单，发往境内 `api.belliedmonkey.com/.../bt-ingest`，不共东京（BEL-135）。Phase B 未回读不得把 404 当成没发）。
-> 声源一律用播放代替真人（§0.3：Mac `afplay` conv 语料 / 外放英语视频）。
+> 声源一律用播放代替真人（§0.5：Mac `afplay` conv 语料 / 外放英语视频）。
 
 ### 9.0 前置（每次开跑前）
 

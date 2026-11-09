@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // scripts/test-mac.js — 分层验证矩阵的「音频层」驱动（npm run test:mac）。
-// docs/verification-spec.md §0.4（2026-10-05 用户拍板）。
+// docs/verification-spec.md §0.6（2026-10-05 用户拍板）。
 //
 // 流程：重建带 __mtTest 的 App 包 → app:sync → xcodebuild macOS Debug → 起 App →
 // 等 127.0.0.1:8790–8799 里的活口 → 能力探针（step 0）→ M1–M7。
@@ -135,7 +135,7 @@ function runAppSync() {
 function buildMacDebug() {
   if (!fs.existsSync(PROJ)) die(`工程不存在：${PROJ} —— 先跑 bash build-safari.sh`);
   log('▶ xcodebuild macOS Debug（第一次要几分钟）');
-  // ENABLE_INCOMING_NETWORK_CONNECTIONS：沙盒 App 监听端口的权利（§0.4 的端点）。只在
+  // ENABLE_INCOMING_NETWORK_CONNECTIONS：沙盒 App 监听端口的权利（§0.6 的端点）。只在
   // 这条 Debug 命令行上给 —— Release 归档不带它，App Store 的 entitlement 一个字节不变。
   // 判据不是「构建没报错」而是端点真的 /ping 得通（macos-app.entitlements 头上写的规矩）。
   const r = spawnSync('xcodebuild', ['-project', PROJ, '-scheme', SCHEME, '-configuration', 'Debug',
@@ -259,7 +259,7 @@ async function waitFor(fn, ms, what) {
 
 // ── 能力探针（step 0）─────────────────────────────────────────────────────────
 async function probe() {
-  log('\n═══ 能力探针（§0.4 step 0 — 先知道这台 Mac 能测什么）═══');
+  log('\n═══ 能力探针（§0.6 step 0 — 先知道这台 Mac 能测什么）═══');
   try {
     const voices = execSync("say -v '?'", { env: cleanEnv(), encoding: 'utf8' });
     const pick = (re) => voices.split('\n').filter((l) => re.test(l)).map((l) => l.trim().replace(/\s+/g, ' '));
@@ -298,7 +298,7 @@ async function muteOff() {
   mutedRestore = null;
 }
 
-// ── M 系列 case（§0.4 的表）───────────────────────────────────────────────────
+// ── M 系列 case（§0.6 的表）───────────────────────────────────────────────────
 // M1 包屏只下所选语言对的模型 — 没选泰语就不下 105 MB（a1e9a232）
 // 模型全就绪后 step 直接跳引导屏、包屏不再出来 —— 所以**直接判据恒跑**（deviceStatus
 // 按对过滤），UI 下载流程只在包屏出现时验（模型未装的容器 / CI 新装环境）。
@@ -536,7 +536,7 @@ async function m2(ctx) {
 }
 
 // M3 自己念的被认回来 ⇒ 拦住。注入版：tts-end 后 3s 窗内把念过的泰语喂回麦克风。
-// （物理版 —— 扬声器出声被麦克风采回 —— 是 §0.4 音频层的真回环，静音状态下另案观察。）
+// （物理版 —— 扬声器出声被麦克风采回 —— 是 §0.6 音频层的真回环，静音状态下另案观察。）
 async function m3(ctx) {
   if (!ctx.spokenThai) throw new Error('M2 没跑成（没有可回声的泰语）—— 先看 M2 的失败');
   await recSide('other');                    // 这一条注入的是泰语 ⇒ 收音侧摆到泰语侧

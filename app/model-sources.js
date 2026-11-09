@@ -112,7 +112,7 @@ var ModelSources = (() => {
       if (!urls.length || attempts.some((a) => JSON.stringify(a.urls) === JSON.stringify(urls))) return null;   // 同一组地址不重试
       if (attempts.length && typeof onSwitch === 'function') { try { onSwitch(source); } catch (_) {} }
       const t0 = Date.now();
-      // 诊断（§0.4.1，2026-10-06）：tier 失败链是真机「下不动」的唯一现场证据
+      // 诊断（§0.6.1，2026-10-06）：tier 失败链是真机「下不动」的唯一现场证据
       // （2026-10-06 泰国：server/server-alt 双挂、兜到 builtin 才成 —— 服务器日志只看得见最后一级）
       const diagPath = (models || []).map((m) => (m.files || []).map((x) => x && x.path).filter(Boolean).join('+') || m.path || '').filter(Boolean).join(',');
       try {

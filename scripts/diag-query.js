@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/diag-query.js — 诊断信箱查询（§0.4.1 L2：上报到自有后端，排障自己查）。
+// scripts/diag-query.js — 诊断信箱查询（§0.6.1 L2：上报到自有后端，排障自己查）。
 // 用法：
 //   npm run diag:latest            # 每个 install 的最新一包 + 最近事件摘要
 //   npm run diag:dump -- <uuid>    # 某个 install 的全部事件（完整 JSON）
