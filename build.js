@@ -1425,9 +1425,11 @@ validateManifest(DIST, isFirefox);
 //   第 4/5 轮 34 个 App 文案 key 从没进表 + r6 新增 4 个，38 key × 13 语言补齐（钉前预算只剩 ≈5 KB）。
 //   这批是 **App 专用**文案，网页内容脚本用不到 —— 根治是把 App-only key 从内容脚本那份表里拆出去，
 //   不在发版前做（改产物结构），另开 issue 跟进。
-// 2026-11-09 再钉 4144221（1.23.3，BEL-230）：3989865 → 4144221，+154356 字节（自上次钉以来
-//   的累计增长；BEL-230 的 13 个 grant_reclaim 键让总量越过旧 PIN+150KB 预算，故显式重新钉）。
-//   BEL-230: +154356 bytes (13 locales × grant_reclaim)
+// 2026-11-09 再钉 4144221（1.23.3，BEL-230）：3989865 → 4144221，+154356 字节，是自上次钉
+//   以来的累计增长（含既有页面进 content 表的量，非本单独有）。本单增量 1036 字节 =
+//   i18n-messages.js +518 × 2 个 content_scripts 块（13 locale 各 1 个 grant_reclaim 键，
+//   清单里每个块各计一次）；该增量越过旧 PIN+150KB 预算 756 字节，故显式重钉，未改 BUDGET。
+//   BEL-230: +1036 bytes (i18n table +518 × 2 blocks); 756 over the old budget.
 function contentSyncBytesGate(distDir) {
   const manifest = JSON.parse(fs.readFileSync(path.join(distDir, "manifest.json"), "utf8"));
   let total = 0;
