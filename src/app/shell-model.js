@@ -304,6 +304,69 @@ export function createSignOutClear(deps) {
   };
 }
 
+// 1.23.3 第一优先级：登录页邮箱框回车即发验证码。
+//
+// 键盘弹出后盖住「发送验证码」，真人要先挪键盘、XCUITest 点击 isHittable=false，
+// 换号/重登反复卡在这一步。用户令：回车直接触发发送，不新增按钮、不改视觉。
+//
+// 发送逻辑只留这一份：表单 submit 与邮箱框 Enter 都落到 submitEmailCode()。
+// Enter 走 form.requestSubmit() 而不是直接调它 —— requestSubmit 会真的派发 submit
+// 事件，于是 #signin-prompt 捕获阶段的出境单独同意闸（unchecked ⇒ stopImmediatePropagation）
+// 仍然先跑，和点 #send 完全同一条路。
+//
+// 抽成工厂（不在 bootShell 的闭包里）是为了能在无 DOM 的 Node 套件里钉住
+// 「两条路共用同一个发送函数」「发送中再回车只发一次」—— bootShell 本身要整页 DOM。
+export function createEmailCodeSender(deps) {
+  const d = deps || {};
+  const {
+    form, emailInput, sendButton, codeForm, codeInput, prompt,
+    t, say, humanError, setLoginBusy, isLoginBusy, LearnAuth, setPendingEmail,
+  } = d;
+
+  async function submitEmailCode() {
+    // in-flight 守卫：setLoginBusy(true) 是同步的，所以第二次回车/提交在这里就返回，
+    // 不会在 await 期间再发一封。频率限制与「正在发送…」禁用态保持原样。
+    if (isLoginBusy()) return;
+    const email = emailInput.value.trim();
+    if (!email) return;                       // 空邮箱：与原来的 submit 一致，不发
+    setLoginBusy(true);
+    sendButton.textContent = t('app_sending', '正在发送…');
+    say('');
+    try {
+      await LearnAuth.signIn(email);
+      setPendingEmail(email);
+      form.hidden = true;
+      codeForm.hidden = false;
+      prompt.classList.add('code-step');      // 验证码是第二屏，不往下堆
+      codeInput.focus();
+      say(t('app_code_sent', '验证码已发送，查收邮件。'));
+    } catch (err) {
+      say(humanError(err), true);
+    } finally {
+      setLoginBusy(false);
+      sendButton.textContent = t('app_send', '发送验证码');
+    }
+  }
+
+  function onEmailSubmit(e) {
+    e.preventDefault();                       // 发送由我们自己走（与回车同一个函数）
+    submitEmailCode();
+  }
+
+  function onEmailKeydown(e) {
+    if (!e || e.key !== 'Enter' || e.isComposing) return;   // 输入法组词中的回车不算
+    e.preventDefault();                       // 不让 WKWebView 再做一次不可靠的隐式提交
+    form.requestSubmit();                     // 仍经过 submit 事件 → 同意闸 / 同一发送函数
+  }
+
+  function wire() {
+    form.addEventListener('submit', onEmailSubmit);
+    emailInput.addEventListener('keydown', onEmailKeydown);
+  }
+
+  return { submitEmailCode, onEmailSubmit, onEmailKeydown, wire };
+}
+
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
@@ -2867,7 +2930,11 @@ export function bootShell() {
   // 还能点，双开登录流。原则：从点击到流程终了（成功即离屏 / 失败与取消才解锁），
   // 这一屏的所有登录入口保持 disabled。
   const LOGIN_ENTRY_IDS = ['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify', 'app-use-pw', 'app-pw-login'];
+  // 入口 disabled 只挡指针；键盘回车不经过禁用按钮，所以发送函数还要一个**读得到的**
+  // 进行中标志（1.23.3：发送中重复回车只能发一次）。setLoginBusy 是唯一写入口。
+  let loginBusy = false;
   function setLoginBusy(busy) {
+    loginBusy = !!busy;
     for (const id of LOGIN_ENTRY_IDS) {
       const e = $(id);
       if (e) e.disabled = busy;
@@ -3007,28 +3074,19 @@ export function bootShell() {
 
   $('email').addEventListener('input', refreshPwEntry);
 
-  $('email-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('email').value.trim();
-    if (!email) return;
-    setLoginBusy(true);
-    $('send').textContent = t('app_sending', '正在发送…');
-    say('');
-    try {
-      await LearnAuth.signIn(email);
-      pendingEmail = email;
-      $('email-form').hidden = true;
-      $('code-form').hidden = false;
-      $('signin-prompt').classList.add('code-step');   // 验证码是第二屏，不往下堆
-      $('code').focus();
-      say(t('app_code_sent', '验证码已发送，查收邮件。'));
-    } catch (err) {
-      say(humanError(err), true);
-    } finally {
-      setLoginBusy(false);
-      $('send').textContent = t('app_send', '发送验证码');
-    }
+  const emailSender = createEmailCodeSender({
+    form: $('email-form'),
+    emailInput: $('email'),
+    sendButton: $('send'),
+    codeForm: $('code-form'),
+    codeInput: $('code'),
+    prompt: $('signin-prompt'),
+    t, say, humanError, setLoginBusy,
+    isLoginBusy: () => loginBusy,
+    LearnAuth,
+    setPendingEmail: (v) => { pendingEmail = v; },
   });
+  emailSender.wire();   // submit（#send 点击 / 键盘 Go）与 #email 回车共用 submitEmailCode()
 
   $('code-form').addEventListener('submit', async (e) => {
     e.preventDefault();
