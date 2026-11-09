@@ -3,6 +3,15 @@
 - `.pen` 是 Pencil（pen.dev）的加密格式，只能用 Pen 应用（或 `@pen.dev/cli` ≥ 0.3.11）打开，GitHub 上无法直接预览，请看 `png/` 下的导出图。
 - 规定：设计稿只用 Pencil 出，不再用 OD（`design/` 下其余 HTML/OD 稿为 10-03 之前的早期稿，仅作历史参考）。
 
+## 2026-11-09 · BEL-231 iOS 设置页重构
+
+| 文件 | 说明 |
+|---|---|
+| `BEL-231-settings.pen` | 画板「iOS 设置 · 主页」（390×1400）与「iOS 设置 · 朗读与复习」（390×844）；r2 配色改用 Organic token |
+| `BEL-231-settings.review.md` | 评审记录：r1 作废（配色不符），r2 待用户 review |
+| `exports/BEL-231/ios-settings-home@1x.png` / `@2x.png` | 主页导出图 |
+| `exports/BEL-231/ios-settings-speech@1x.png` / `@2x.png` | 朗读与复习子页导出图 |
+
 ## 文件
 
 | 文件 | 说明 |
