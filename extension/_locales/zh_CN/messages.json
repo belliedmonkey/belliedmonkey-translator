@@ -879,6 +879,9 @@
   "app_email_label": {
     "message": "邮箱"
   },
+  "app_email_invalid": {
+    "message": "邮箱格式不对"
+  },
   "app_send": {
     "message": "发送验证码"
   },

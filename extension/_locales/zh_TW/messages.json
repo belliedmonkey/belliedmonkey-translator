@@ -879,6 +879,9 @@
   "app_email_label": {
     "message": "電子郵件"
   },
+  "app_email_invalid": {
+    "message": "電子郵件格式不正確"
+  },
   "app_send": {
     "message": "傳送驗證碼"
   },

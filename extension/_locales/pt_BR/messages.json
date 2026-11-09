@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "E-mail"
   },
+  "app_email_invalid": {
+    "message": "Formato de e-mail inválido."
+  },
   "app_send": {
     "message": "Enviar código"
   },

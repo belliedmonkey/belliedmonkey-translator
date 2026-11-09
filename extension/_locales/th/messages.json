@@ -845,6 +845,9 @@
   "app_email_label": {
     "message": "อีเมล"
   },
+  "app_email_invalid": {
+    "message": "รูปแบบอีเมลไม่ถูกต้อง"
+  },
   "app_send": {
     "message": "ส่งรหัส"
   },

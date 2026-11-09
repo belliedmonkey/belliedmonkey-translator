@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "البريد الإلكتروني"
   },
+  "app_email_invalid": {
+    "message": "صيغة البريد الإلكتروني غير صحيحة."
+  },
   "app_send": {
     "message": "إرسال الرمز"
   },

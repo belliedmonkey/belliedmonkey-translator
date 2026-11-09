@@ -74,7 +74,7 @@ function make(overrides) {
     codeForm: els.codeForm,
     codeInput: els.code,
     prompt: els.prompt,
-    t: (k, fallback) => fallback,
+    t: o.t || ((k, fallback) => fallback),
     say: (msg, isErr) => { calls.say.push({ msg, isErr: !!isErr }); },
     humanError: (e) => 'human:' + ((e && e.code) || 'error'),
     setLoginBusy: (b) => {
@@ -165,6 +165,38 @@ describe('1.23.3 登录页：回车即发验证码（同一个发送函数）', 
     eq(env.calls.signIn.length, 0);
     deepEq(env.calls.busy, [], '连忙碌态都不该进');
     eq(env.els.send.textContent, '', '「正在发送…」不该闪一下');
+  });
+
+  test('★ 无效邮箱（abc，无 @）客户端先拦：0 次 signIn，显示 app_email_invalid', async () => {
+    const keys = [];
+    const env = make({
+      t: (k, fallback) => { keys.push(k); return k === 'app_email_invalid' ? 'app_email_invalid' : fallback; },
+    });
+    env.els.email.value = 'abc';
+    pressEnter(env);
+    await tick();
+    eq(env.calls.signIn.length, 0, '格式不对时一条 POST 都不该发');
+    deepEq(env.calls.busy, [], '不进「正在发送…」状态');
+    eq(env.els.send.textContent, '', '「正在发送…」不该闪一下');
+    eq(env.els.form.hidden, false, '停留在邮箱页');
+    eq(env.pending, '', '不写 pendingEmail');
+    ok(!env.els.prompt.classList.added.includes('code-step'), '不切到验证码第二屏');
+    ok(keys.includes('app_email_invalid'), '错误文案走共享表 app_email_invalid');
+    const last = env.calls.say[env.calls.say.length - 1];
+    eq(last.msg, 'app_email_invalid', '页面显示「邮箱格式不对」（这里用 key 代表译文）');
+    eq(last.isErr, true, '按错误态上屏');
+  });
+
+  test('★ 完整地址仍只发 1 次并进验证码页（有效路径不受影响）', async () => {
+    const env = make();
+    env.els.email.value = 'user@example.com';
+    pressEnter(env);
+    await tick();
+    deepEq(env.calls.signIn, ['user@example.com'], '有效地址照常发一次');
+    eq(env.pending, 'user@example.com');
+    eq(env.els.form.hidden, true);
+    ok(env.els.prompt.classList.added.includes('code-step'), '切到验证码第二屏');
+    eq(env.els.code.focused, 1);
   });
 
   test('非 Enter 键不发送', async () => {

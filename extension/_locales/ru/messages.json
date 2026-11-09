@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "Эл. почта"
   },
+  "app_email_invalid": {
+    "message": "Неверный формат адреса электронной почты."
+  },
   "app_send": {
     "message": "Отправить код"
   },

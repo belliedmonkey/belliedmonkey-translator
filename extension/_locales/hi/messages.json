@@ -845,6 +845,9 @@
   "app_email_label": {
     "message": "Email"
   },
+  "app_email_invalid": {
+    "message": "ईमेल पता का प्रारूप सही नहीं है।"
+  },
   "app_send": {
     "message": "कोड भेजें"
   },

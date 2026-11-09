@@ -1484,6 +1484,27 @@ button.danger { background: none; color: var(--danger); border: 1.5px solid curr
 }
 .settings-version-value { margin: 0; font-size: 17px; color: var(--text-secondary); }
 
+/* ─── BEL-231 修正 · 窄窗横向边距（<720）──────────────────────────────────
+   body 左右各有 max(20px, safe-area) 的内边距，设置页的卡片又自带 16 外边距：
+   390×844 上卡片因此落在 x=36（分隔线 x=52），比设计多 20。
+   卡片外边距必须留 16，所以这里把 body 那 20 从设置页这一层吃掉；子页原来还有
+   .settings-pane 的左右 16，会和卡片 margin 再叠成第二份，一并归零。
+   结果：卡片距屏幕 16（唯一的 16 = 卡片 margin）、分隔线 x=32、分组标题 x=32。
+   宽窗（≥720）有自己的覆盖，这条查询不碰它。 */
+@media (max-width: 719.98px) {
+  #app-settings { margin: 0 -20px; }
+  #app-settings .settings-pane { padding: 0; }
+  /* 「← 返回」是 button.link，自带 6 的内边距；补 10 让文字仍从 16 起。 */
+  #app-settings #settings-back { margin-left: 10px; }
+  /* `#app-settings h2`(1,0,1) 也压过 `#settings-title`(1,0,0) 的 16 边距；补回来，
+     免得吃掉 body 的 20 之后大标题贴到屏幕边。字号不动。 */
+  #app-settings #settings-title { margin: 4px 16px 0; }
+  /* `#app-settings h3`(1,0,1) 一直压过 `.settings-group-title`(0,1,0)：分组的 32 左边距
+     和 13 字号都没生效（实测 0 / 15.2px，左缘只剩 body 的 20；质量读到的 20.7 是字形墨迹）。窄窗用 (1,1,0)
+     把 r2 的这两个值要回来；宽窗按本轮要求保持原样。 */
+  #app-settings .settings-group-title { margin: 0 16px 8px 32px; font-size: 13px; }
+}
+
 /* 对话 · 实时字幕块的旧系统态：本机识别器不可用 ⇒ 只留标题 + 一句（#listen-pack-row 里那句）。
    例外：#thai-grok-block（BYOK）在 .na 时仍可见 —— 泰语识别走云端 Grok，不依赖本机识别器。 */
 #app-settings #g-listen.na > :not(h3):not(#listen-pack-row):not(#thai-grok-block) { display: none; }

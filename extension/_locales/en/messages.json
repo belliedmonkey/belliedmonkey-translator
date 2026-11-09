@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "Email"
   },
+  "app_email_invalid": {
+    "message": "Enter a valid email address."
+  },
   "app_send": {
     "message": "Send code"
   },

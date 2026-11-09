@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "メールアドレス"
   },
+  "app_email_invalid": {
+    "message": "メールアドレスの形式が正しくありません。"
+  },
   "app_send": {
     "message": "認証コードを送信"
   },

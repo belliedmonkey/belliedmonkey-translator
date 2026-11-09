@@ -8,7 +8,7 @@
 // 宽窗侧栏切组、额度卡三条链接、以及 r2 的排版数字。真实视口由 test:app / 真机验收。
 const fs = require('fs');
 const path = require('path');
-const { describe, test, ok } = require('./harness');
+const { describe, test, ok, eq } = require('./harness');
 
 const ROOT = path.join(__dirname, '..');
 const VIEW = fs.readFileSync(path.join(ROOT, 'src/app/settings-view.jsx'), 'utf8')
@@ -69,6 +69,35 @@ describe('BEL-231 · 主屏：额度卡 + 五组', () => {
       ok(!new RegExp(hex, 'i').test(VIEW),
         'JSX 里出现裸 hex ' + hex + ' —— 必须走共享 CSS 变量');
     }
+  });
+
+  test('★ 窄屏横向边距：body 的 20 被抵掉，卡片 16 / 分隔线 32 / 分组标题 32', () => {
+    const media = /@media \(max-width: 719\.98px\) \{([\s\S]*?)\n\}/.exec(CSS);
+    ok(media, '没有窄屏（<720）的设置页边距覆盖');
+    const narrow = media[1];
+
+    // 从规则里读出数字，再算「屏幕左缘」；改任何一个值都会让下面的等式红。
+    const bodyPad = Number((/body\s*\{[^}]*?padding:\s*max\((\d+)px/.exec(CSS) || [])[1]);
+    eq(bodyPad, 20, 'body 左右内边距的基线变了，抵消值要一起改');
+    const neg = Number((/#app-settings\s*\{[^}]*?margin:\s*0\s+(-?\d+)px/.exec(narrow) || [])[1]);
+    eq(neg, -bodyPad, '窄屏没有把 body 的左右内边距抵掉');
+    ok(/#app-settings \.settings-pane\s*\{[^}]*?padding:\s*0(?:\s*;|\s*\})/.test(narrow),
+      '窄屏 .settings-pane 还留着左右内边距，会和卡片 margin 叠成第二份');
+
+    const cardMargin = Number((/margin:\s*0\s+(\d+)px/.exec(rule('.settings-group-card')) || [])[1]);
+    eq(cardMargin, 16, '组卡外边距必须还是 16');
+    eq(bodyPad + neg + cardMargin, 16, '窄屏主屏卡片左缘应为 16');
+    eq(bodyPad + neg + 0 + cardMargin, 16, '窄屏子页卡片左缘应为 16（pane 不再叠 16）');
+
+    const rowPad = Number((/padding:\s*0\s+(\d+)px/.exec(rule('.settings-row')) || [])[1]);
+    eq(bodyPad + neg + cardMargin + rowPad, 32, '分隔线左缘应为 32');
+
+    // 基础 .settings-group-title 被 #app-settings h3 压掉，窄屏必须有一条 (1,1,0) 的覆盖。
+    const titleRule = /#app-settings \.settings-group-title\s*\{([^}]*)\}/.exec(narrow);
+    ok(titleRule, '窄屏没有接回分组标题的左缩进（#app-settings h3 会压过类选择器）');
+    const titleLeft = Number((/margin:\s*0\s+16px\s+8px\s+(\d+)px/.exec(titleRule[1]) || [])[1]);
+    eq(bodyPad + neg + titleLeft, 32, '分组标题左缘应为 32');
+    ok(/font-size\s*:\s*13px/.test(titleRule[1]), '分组标题在窄屏仍是 13 号（不是被 h3 拉成 15.2）');
   });
 });
 

@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "이메일"
   },
+  "app_email_invalid": {
+    "message": "이메일 형식이 올바르지 않습니다."
+  },
   "app_send": {
     "message": "인증 코드 보내기"
   },

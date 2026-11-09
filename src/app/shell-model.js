@@ -329,6 +329,13 @@ export function createEmailCodeSender(deps) {
     if (isLoginBusy()) return;
     const email = emailInput.value.trim();
     if (!email) return;                       // 空邮箱：与原来的 submit 一致，不发
+    // BEL-231：格式在客户端先拦。服务端对 `abc` 也会 400，但那条路已经发出一条
+    // POST /auth/v1/otp，界面却只会说「验证码不对或已过期」——用户看到的因果是错的。
+    // 判据是最小可用形状：本地部分 + @ + 域名 + 点 + 后缀；不做 RFC 级校验。
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      say(t('app_email_invalid', '邮箱格式不对'), true);
+      return;
+    }
     setLoginBusy(true);
     sendButton.textContent = t('app_sending', '正在发送…');
     say('');
