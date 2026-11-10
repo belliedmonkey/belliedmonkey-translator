@@ -362,6 +362,9 @@ export function cardFor(status, opts) {
         // 失效，而服务端是幂等的：同一个账号重领回同一枚，余额刷新；换了账号则
         // 拿到新令牌。宿主接的仍是 `claim`（与手动重领 chip 同一条），成功后重画。
         action: { id: 'claim', text: t('grant_reclaim', '重新领取') },
+        // BEL-237：重领是**幂等**的（同一账号拿回同一枚，余额刷新），不是再领一份。
+        // 不写这句，用户会以为点一次多一份额度；写完还是会在用完时点，但不会再误会。
+        note: t('grant_exhausted_reclaim_note', '重新领取不会增加额度 —— 只是把同一账号的额度重新找回。'),
         links: [byo, community],
       });
     case 'unavailable':

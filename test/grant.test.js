@@ -319,6 +319,34 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     eq(c.progress.left, 0);
   });
 
+  test('★ 用完了那张卡说清「重新领取不会增加额度」（BEL-237）', () => {
+    // 重领是幂等的：同一账号拿回同一枚，余额刷新。不写这一句，用户会以为
+    // 点一次多领一份 —— 卡面的「重新领取」看起来就像再发一笔。
+    const keys = [];
+    const tt = (k, d) => { keys.push(k); return d; };
+    const c = G.cardFor('exhausted', { t: tt, balance: bal(0.2) });
+    ok(c.note && /重新领取不会增加额度/.test(c.note), '没写清重领不加额度：' + c.note);
+    ok(keys.includes('grant_exhausted_reclaim_note'),
+      '新句必须走 grant_ 前缀的 key（App 与扩展共用卡面）');
+  });
+
+  test('★ 13 个 locale 都带 grant_exhausted_reclaim_note', () => {
+    // 键集齐全由 i18n-parity 管；这里守的是「新句本身真的进了 13 份文件」，
+    // 免得只加了 en / zh_CN 还能绿。
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..', 'extension', '_locales');
+    const locs = fs.readdirSync(root).filter((d) => fs.existsSync(path.join(root, d, 'messages.json')));
+    eq(locs.length, 13, `locale 数量变了：${locs.join(', ')}`);
+    const miss = [];
+    for (const loc of locs) {
+      const m = JSON.parse(fs.readFileSync(path.join(root, loc, 'messages.json'), 'utf8'));
+      const s = m.grant_exhausted_reclaim_note && m.grant_exhausted_reclaim_note.message;
+      if (!s || !String(s).trim()) miss.push(loc);
+    }
+    eq(miss.join(','), '', '这些 locale 没有 grant_exhausted_reclaim_note：' + miss.join(','));
+  });
+
   test('退出登录那句先说余额还在', () => {
     const c = G.cardFor('signed_out', { t });
     ok(/余额保留|余额还在/.test(c.body), '没说余额还在，用户以为钱没了：' + c.body);

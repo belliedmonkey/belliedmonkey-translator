@@ -2652,6 +2652,9 @@
   "grant_body_exhausted": {
     "message": "Your free credit is used up. Add your own API key to carry on — one key covers translation, speech and transcription."
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "Reclaiming doesn't add credit — it only brings back this account's remaining balance."
+  },
   "grant_body_unavailable": {
     "message": "This isn't you running out — our free-credit pool is empty and we're topping it up. Use your own key for now, or come back later."
   },

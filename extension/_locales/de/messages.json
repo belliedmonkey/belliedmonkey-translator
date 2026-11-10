@@ -2652,6 +2652,9 @@
   "grant_body_exhausted": {
     "message": "Dein Gratis-Guthaben ist aufgebraucht. Trag einen eigenen API-Schlüssel ein und mach weiter — ein Schlüssel deckt Übersetzung, Vorlesen und Transkription ab."
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "Erneut abrufen erhöht das Guthaben nicht — es holt nur das Guthaben dieses Kontos zurück."
+  },
   "grant_body_unavailable": {
     "message": "Nicht du bist am Ende — unser Topf für Gratis-Guthaben ist leer und wird gerade aufgefüllt. Nutze vorerst deinen eigenen Schlüssel oder komm später wieder."
   },
