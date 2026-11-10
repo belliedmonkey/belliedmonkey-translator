@@ -12,7 +12,14 @@ const read = (p) => fs.readFileSync(path.join(ROOT, p), 'utf8');
 describe('回归 2026-09 · F06 退出登录要先确认并清掉免费额度令牌', () => {
   test('扩展设置页的退出登录走 LearnGrant.clearOnSignOut', () => {
     // PR5 迁移：设置页源码在 src/pages/options.jsx（构建覆盖 dist 同名 .js）。
-    ok(/clearOnSignOut/.test(read('src/pages/options.jsx')), 'options.jsx 的退出登录处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
+    // BEL-230 Q1 / 1.23.4 C2：不再 `if (cur.grantTail)` 前置 —— 判据是 ^bmg_ 前缀，
+    // 尾号丢了也要清；退出保留 grant 记录（clearForAccountSwitch 才清）。
+    const src = read('src/pages/options.jsx');
+    ok(/clearOnSignOut/.test(src), 'options.jsx 的退出登录处理器没调 LearnGrant.clearOnSignOut —— 退出后三槽里的 bmg_ 令牌与 grantTail 原样留着');
+    const at = src.indexOf('const btnSyncOut');
+    const fn = src.slice(at, src.indexOf('const btnSyncDelete'));
+    ok(!/if\s*\(cur\.grantTail\)/.test(fn), '退出清理还有 `if (cur.grantTail)` 前置');
+    ok(/autoClaimRef\.current\s*=\s*false/.test(fn), '退出后没有复位 autoClaimRef');
   });
   test('App 的退出登录走与换号同一份 clearForAccountSwitch（BEL-230 Q1）', () => {
     // PR6a 迁移：App 壳正文在 src/app/shell-model.js（原 app/app.js，esbuild 进 Script.js）。

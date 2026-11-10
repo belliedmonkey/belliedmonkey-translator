@@ -231,6 +231,27 @@ describe('§8.10 退出登录：清令牌，留记录', () => {
     ok(!('grant' in r.marks), 'grant 记录必须留着 —— 它只有时间与上限，没有令牌');
   });
 
+  test('★ BEL-230 Q1：grantTail 丢了也按 ^bmg_ 清三槽；grant 记录仍留着（C2）', () => {
+    // 退出时 grantTail 可能已经丢了（或槽里是更早一枚 bmg_ 令牌）。只按尾号命中
+    // 会漏掉主路径 —— 旧令牌留在槽里，下一次 relay 请求继续记在旧账号头上。
+    const r = G.clearOnSignOut({
+      grantTail: '', apiKey: TOKEN, ttsApiKey: 'sk-user-own-tts', sttApiKey: TOKEN,
+      sttEngine: 'grant_stt', grant: { vendor: 'openrouter', at: 1 }, grantBalance: { at: 1 },
+    });
+    eq(r.writes.apiKey, '', '翻译槽的 bmg_ 令牌没清');
+    eq(r.writes.sttApiKey, '', '转写槽的 bmg_ 令牌没清');
+    ok(!('ttsApiKey' in r.writes), '把用户自己粘的朗读 key 清掉了');
+    eq(r.marks.grantTail, '');
+    eq(r.marks.grantBalance, null);
+    ok(!('grant' in r.marks), '退出清理 patch 不该包含 grant —— 卡面还要说「余额保留着」');
+  });
+
+  test('★ 换号仍用 clearForAccountSwitch，且它真的清 grant（与退出不同）', () => {
+    const r = G.clearForAccountSwitch({ grantTail: '', apiKey: TOKEN, grant: { at: 1 } });
+    eq(r.writes.apiKey, '');
+    eq(r.marks.grant, null, '换号没清上一账号的 grant —— B 会继承 A 的领过/余额');
+  });
+
   test('用户自己的 key 不受退出登录影响', () => {
     const r = G.clearOnSignOut({ grantTail: 'OLDTAIL9', apiKey: 'sk-mine', ttsApiKey: 'sk-mine' });
     deepEq(r.writes, {});
