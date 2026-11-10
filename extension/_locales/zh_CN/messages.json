@@ -2653,6 +2653,9 @@
   "grant_body_exhausted": {
     "message": "免费额度已经用完了。填一把自己的 key 就能继续 —— 一把通吃翻译、朗读、转写。"
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "重新领取不会增加额度 —— 只是把同一账号的额度重新找回。"
+  },
   "grant_body_unavailable": {
     "message": "不是你用完了 —— 是我们这边的免费额度池空了，正在补。先用自己的 key，或者稍后再来。"
   },

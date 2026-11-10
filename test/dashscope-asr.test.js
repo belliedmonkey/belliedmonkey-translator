@@ -24,9 +24,10 @@ describe('通义千问语音转写 — 形状判定', () => {
   });
 
   test('家族封闭：它只可能在转写家族里出现', () => {
-    // 转写引擎遇到一个对话形状的地址，**留在转写家族**（回落到注册表 type），
-    // 绝不会变成 chat-compat —— 那正是「厂商永不参与分派」这条的机械保证。
-    eq(WF.formatFor('https://x.example/v1/chat/completions', 'transcribe-dashscope'), 'transcribe-dashscope');
+    // 转写引擎遇到一个对话形状的地址，**留在转写家族**：2026-11-10 起那条后缀
+    // 在转写家族里明确落到 transcribe-chat-audio，绝不会变成 chat-compat ——
+    // 那正是「厂商永不参与分派」这条的机械保证。
+    eq(WF.formatFor('https://x.example/v1/chat/completions', 'transcribe-dashscope'), 'transcribe-chat-audio');
     // 反过来：多模态后缀在对话家族里不生效（那不是它的家族）
     eq(WF.formatFor(ENDPOINT, 'chat-compat'), 'chat-compat');
   });
@@ -59,6 +60,59 @@ describe('通义千问语音转写 — 注册表条目', () => {
   test('它的默认端点必须与 wire-format 的判定自洽', () => {
     // 这一条是两份文件之间的锁：改了任一边而没改另一边，这里红。
     eq(WF.formatFor(e.defaultEndpoint, e.type), 'transcribe-dashscope');
+  });
+});
+
+describe('QwenCloud 转写 — chat/completions + input_audio（BEL-236 C4）', () => {
+  const e = STT.find((x) => x.id === 'qwencloud_asr');
+  const EP = 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions';
+  const DATA = 'data:audio/wav;base64,QUJD';
+
+  test('条目存在，global-only，用新 type', () => {
+    ok(e, 'stt.config.js 里没有 qwencloud_asr');
+    eq(e.type, 'transcribe-chat-audio');
+    eq(e.flavors.join(), 'global');
+    eq(e.defaultEndpoint, EP);
+    eq(e.defaultModel, 'qwen3-asr-flash');
+  });
+
+  test('★ 同一个 /chat/completions 后缀，在转写家族里落到新 type —— 不是 chat-compat', () => {
+    eq(WF.formatFor(EP, 'transcribe-chat-audio'), 'transcribe-chat-audio');
+    // 后缀优先于注册表 type：哪怕 entry 写的是 transcribe-compat，也判成新形状。
+    eq(WF.formatFor(EP, 'transcribe-compat'), 'transcribe-chat-audio');
+    // 对照：同一个地址在 chat 家族里仍是 chat-compat（家族封闭）。
+    eq(WF.formatFor(EP, 'chat-compat'), 'chat-compat');
+  });
+
+  test('★ 请求体是 chat/completions 形状，音频在 messages[].input_audio.data', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('transcribe-chat-audio', {
+      url: EP, apiKey: 'k', model: 'qwen3-asr-flash', audioDataUri: DATA,
+    });
+    eq(req.isForm, false, '这条路不是 multipart');
+    eq(req.headers['Content-Type'], 'application/json');
+    eq(req.headers.Authorization, 'Bearer k');
+    const body = JSON.parse(req.body);
+    eq(body.model, 'qwen3-asr-flash');
+    eq(body.messages.length, 1);
+    eq(body.messages[0].role, 'user');
+    eq(body.messages[0].content[0].type, 'input_audio');
+    eq(body.messages[0].content[0].input_audio.data, DATA);
+    // 回包是普通对话形状：choices[0].message.content
+    eq(req.extract({ choices: [{ message: { content: 'hello world' } }] }), 'hello world');
+  });
+
+  test('没有音频 ⇒ no_audio，而不是发一个空 data URI', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('transcribe-chat-audio', { url: EP, apiKey: 'k', model: 'm' });
+    eq(req.error, 'no_audio');
+    eq(req.body, null);
+  });
+
+  test('★ 编码三态：它要 data URI（与 dashscope 同一档，不是 base64 也不是 blob）', () => {
+    const RS = loadRequestShape();
+    eq(RS.audioEncoding('transcribe-chat-audio'), 'dataUri');
+    ok(RS.wantsAudioDataUri('transcribe-chat-audio'));
   });
 });
 
@@ -165,3 +219,35 @@ describe('会出声的对话模型 — 与专用 TTS 的差别要被判据看住
     eq(code, 'empty_audio');
   });
 });
+
+describe('QwenCloud 语音合成 — 同一形状，另一个 host（BEL-236）', () => {
+  const e = TTS.find((x) => x.id === 'qwencloud_tts');
+
+  test('条目存在，global-only，端点在 maas 的 multimodal-generation 上', () => {
+    ok(e, 'tts.config.js 里没有 qwencloud_tts');
+    eq(e.flavors.join(), 'global', '中国版继续用 qwen_tts，这一条不许进中国包');
+    eq(e.type, 'speech-dashscope');
+    ok(/^https:\/\/maas\.qwencloudapi\.com\/api\/v1\/services\/aigc\/multimodal-generation\/generation$/.test(e.defaultEndpoint),
+      '端点不是 maas 的多模态生成地址：' + e.defaultEndpoint);
+  });
+
+  test('模型与额度朗读档逐字相同（build/grant-models.config.js）', () => {
+    eq(e.defaultModel, 'qwen3-tts-flash');
+  });
+
+  test('voices 是 qwen3-tts-flash 服务端报出的名字，不是 qwen-tts 那四个', () => {
+    ok(e.voices.includes('Cherry'), '至少保留一个已验音色');
+    ok(!(e.voices.length === 4 && e.voices.join(',') === 'Cherry,Serena,Ethan,Chelsie'),
+      '照抄了 qwen-tts 的四音色表 —— 那是另一档模型');
+  });
+
+  test('请求体与 audioUrlFrom 与 qwen_tts 同形状', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-dashscope', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: '你好', voice: 'Cherry' });
+    eq(req.body.input.text, '你好');
+    eq(req.body.input.voice, 'Cherry');
+    eq(req.audioUrlFrom({ output: { audio: { url: 'http://x.oss.example/a.wav' } } }),
+      'https://x.oss.example/a.wav');
+  });
+});
+

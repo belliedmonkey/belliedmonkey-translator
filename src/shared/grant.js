@@ -243,36 +243,42 @@ export function spentText(bal, opts) {
 // 退出登录时要清掉的东西（裁定 D4：必须登录才能用）。
 // **`grant` 记录留着** —— 它只有 hash 与时间，没有令牌；留着才能在重新登录时
 // 认出「这台机器领过」，也才能诚实地说「余额保留，再登录就回来」。
-export function clearOnSignOut(s) {
-  const st = s || {};
+//
+// BEL-230 Q1 / 1.23.4 C2：判据与换号共用「`^bmg_` 前缀 + 旧尾号」。退出时 grantTail
+// 可能已经丢了（或槽里是更早一枚 bmg_ 令牌），只按尾号命中就清不掉 —— 旧令牌会
+// 留在槽里，下一次 relay 请求继续记在旧账号头上。这里只多认前缀，**不清 grant**：
+// 清掉它 status() 就从 signed_out 掉回 none，卡面也会从「余额保留着」变成
+// 「登录之后可以领一份免费额度」。
+const isGrantToken = (st, v) => {
+  const s = st || {};
+  const x = String(v == null ? '' : v).trim();
+  if (!x) return false;
+  if (/^bmg_/i.test(x)) return true;
+  const oldTail = tail(s.grantTail);
+  return !!oldTail && tail(x) === oldTail;
+};
+
+const grantTokenWrites = (st) => {
+  const s = st || {};
   const writes = {};
-  if (activeIn(st, 'chat')) { writes.apiKey = ''; writes.apiModel = ''; }
-  if (activeIn(st, 'tts')) { writes.ttsApiKey = ''; writes.ttsModel = ''; }
-  if (activeIn(st, 'stt')) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; }
-  return { writes, marks: { grantTail: '', grantBalance: null } };
+  if (isGrantToken(s, s.apiKey)) { writes.apiKey = ''; writes.apiModel = ''; }
+  if (isGrantToken(s, s.ttsApiKey)) { writes.ttsApiKey = ''; writes.ttsModel = ''; }
+  if (isGrantToken(s, s.sttApiKey)) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; }
+  return writes;
+};
+
+export function clearOnSignOut(s) {
+  // 不写 grant:null —— 退出保留领取记录，换号才由 clearForAccountSwitch 清。
+  return { writes: grantTokenWrites(s), marks: { grantTail: '', grantBalance: null } };
 }
 
 // BEL-230：换号即失效上一账号令牌。
 //
-// `clearOnSignOut` 的判据是「尾号命中 grantTail」，而换号场景里 grantTail 可能
-// 已经丢了（或槽里是更早一枚 bmg_ 令牌）—— 那时尾号判不出来，旧令牌会留在槽里，
-// 下一次 relay 请求继续记在旧账号头上。这里多认一条 `bmg_` 前缀：额度令牌没有
-// 别的用途，看见它就是我们的，不是用户自己粘的 key（用户的 key 一个字节不动）。
+// 判据与退出共用（见上面的 isGrantToken）。额度令牌没有别的用途，看见 `bmg_`
+// 就是我们的，不是用户自己粘的 key（用户的 key 一个字节不动）。
 // `grant` 记录也一并清掉 —— 它是上一账号的「领过/余额」，留给新账号就是谎话。
 export function clearForAccountSwitch(s) {
-  const st = s || {};
-  const oldTail = tail(st.grantTail);
-  const isGrantToken = (v) => {
-    const x = String(v == null ? '' : v).trim();
-    if (!x) return false;
-    if (/^bmg_/i.test(x)) return true;
-    return !!oldTail && tail(x) === oldTail;
-  };
-  const writes = {};
-  if (isGrantToken(st.apiKey)) { writes.apiKey = ''; writes.apiModel = ''; }
-  if (isGrantToken(st.ttsApiKey)) { writes.ttsApiKey = ''; writes.ttsModel = ''; }
-  if (isGrantToken(st.sttApiKey)) { writes.sttApiKey = ''; writes.sttModel = ''; writes.sttEngine = ''; }
-  return { writes, marks: { grantTail: '', grantBalance: null, grant: null } };
+  return { writes: grantTokenWrites(s), marks: { grantTail: '', grantBalance: null, grant: null } };
 }
 
 // ── 卡面：状态 → 说什么、能点什么 ────────────────────────────────────────
@@ -362,6 +368,9 @@ export function cardFor(status, opts) {
         // 失效，而服务端是幂等的：同一个账号重领回同一枚，余额刷新；换了账号则
         // 拿到新令牌。宿主接的仍是 `claim`（与手动重领 chip 同一条），成功后重画。
         action: { id: 'claim', text: t('grant_reclaim', '重新领取') },
+        // BEL-237：重领是**幂等**的（同一账号拿回同一枚，余额刷新），不是再领一份。
+        // 不写这句，用户会以为点一次多一份额度；写完还是会在用完时点，但不会再误会。
+        note: t('grant_exhausted_reclaim_note', '重新领取不会增加额度 —— 只是把同一账号的额度重新找回。'),
         links: [byo, community],
       });
     case 'unavailable':

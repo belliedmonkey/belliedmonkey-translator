@@ -225,6 +225,21 @@ module.exports = [
     note: 'compatible-mode 完整支持 Chat Completions 的可选字段（文档）。 reasoning 一列是 2026-08-30 实测填上的，此前是空的 —— 而空的代价是：这个网关上每一个会思考的模型都在为每个段落思考，我们什么都不发。四个模型实测（870 字正文）：glm-4.6 68.9 秒 → 4.2 秒（**17 倍**）、kimi-k3 24.4 → 6.6、qwen3.8-flash 21.2 → 2.2、deepseek-v4-flash-0731 16.5 → 2.6，四个都是思考归零、译文长度不变。 **只有 enable_thinking:false 对四个全部有效**：thinking:{type:disabled} 在 glm-4.6 上被完全无视（而那正是同一个模型在 open.bigmodel.cn 上采纳的写法），reasoning_effort:minimal 反而让 glm-4.6 思考得更多、在 deepseek 上直接 400。 按主机通行而不按模型前缀，是因为做过安全性检查：qwen-turbo / qwen-plus / qwen-flash / qwen-mt-turbo / qwen-mt-plus 五个本来就不思考的模型带上它照常 200、译文正确、出参 4 tok —— 「一个优化把能用的路打断」是这张表最贵的错，所以这一条必须验过才敢通行。',
   },
   {
+    // QwenCloud 国际站（2026-11-10，BEL-236）。与 dashscope 同一个 compatible-mode
+    // 形状，但**另立一行**：host 不同、默认行为也不同，并进 dashscope 行等于把
+    // 一个没在那边验过的假设带过去。
+    //
+    // 只写 reasoning 一列。temperature / budget / systemRole 没有在 A/B 里单独验过，
+    // 按三态表留「不知道」—— 请求体因此仍是最小必要集加这一个字段，不是猜。
+    id: 'qwencloud', flavors: ['global'],
+    hosts: ['maas.qwencloudapi.com'],
+    models: ['qwen3.7-plus'],
+    reasoning: { enable_thinking: false },
+    note: '2026-11-10 A/B（真 key，同一段）：不钉任何参数时 200 但会思考（218 completion tok）；'
+      + '显式 enable_thinking:false 后 200 / completion 1 tok / reasoning 0，译文长度不变。'
+      + '台账那一行是 adopted，测试按运行时最长前缀匹配核对这行真的会发给 qwen3.7-plus。',
+  },
+  {
     id: 'glm', flavors: ['global', 'china'],
     hosts: ['open.bigmodel.cn', 'api.z.ai'],
     temperature: true, budget: true, systemRole: 'system',

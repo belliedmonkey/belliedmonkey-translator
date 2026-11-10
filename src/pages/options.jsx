@@ -798,10 +798,13 @@ function Options() {
         if (!go) return;
       }
       await LearnAuth.signOut();
-      if (cur.grantTail) {
-        const c = LearnGrant.clearOnSignOut(cur);
-        await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
-      }
+      // BEL-230 Q1 / 1.23.4 C2：**无条件**清。判据是 `^bmg_` 前缀 + 旧尾号（与换号
+      // 共用），所以 grantTail 已经丢了也要把三槽里的旧令牌清掉；用户自己的 key 不动。
+      // clearOnSignOut 保留 grant 记录（只有 hash 与时间），卡面才会说「余额保留着」。
+      const c = LearnGrant.clearOnSignOut(cur);
+      await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
+      // 同一次页面会话里再登录另一个账号时，自动领取要能再跑一次。
+      autoClaimRef.current = false;
       // The corpus stays. Signing out is not a reason to lose what you learned.
       await LearnSync.forget();
       await refreshSyncUI();

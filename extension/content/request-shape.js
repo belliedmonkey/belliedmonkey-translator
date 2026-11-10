@@ -598,6 +598,38 @@ var RequestShape = (() => {
       };
     }
 
+    if (fmt === 'transcribe-chat-audio') {
+      // Chat Completions 形状的转写（2026-11-10，BEL-236 C4）：音频以 data URI 内联在
+      // messages[].input_audio.data 里，回包就是普通的 choices[0].message.content。
+      //
+      // 为什么不是 transcribe-dashscope：QwenCloud 国际站的 multimodal-generation
+      // 对 qwen3-asr-flash 答 400，而同一个 host 的 compatible-mode chat/completions
+      // 收这个形状并回 200 与正确文本（探针，2026-11-10）。两条都是「JSON + 内联
+      // base64」，但**层级不同**，不能互相冒充。
+      //
+      // 语言字段不猜：探针没有验证过它收不收 language，所以这里只发协议最小集。
+      if (!o.audioDataUri) {
+        return { headers: {}, body: null, error: 'no_audio', caps };
+      }
+      return {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + (o.apiKey || ''),
+        },
+        body: JSON.stringify({
+          model: o.model,
+          messages: [{
+            role: 'user',
+            content: [{ type: 'input_audio', input_audio: { data: o.audioDataUri } }],
+          }],
+        }),
+        isForm: false,
+        // 与对话同一种回包：choices[0].message.content。复用 extractChat，不另写。
+        extract: extractChat,
+        caps,
+      };
+    }
+
     if (fmt === 'transcribe-dashscope') {
       // DashScope 的转写形状：JSON（不是 multipart），音频以 data URI 内联。
       //
@@ -707,10 +739,12 @@ var RequestShape = (() => {
 
   // 哪些形状要把音频编成 data URI 再交过来。**形状知识留在这里**：调用方只问
   // 「这条路要不要」，不需要知道有几种转写形状、各自长什么样。
-  function wantsAudioDataUri(fmt) { return fmt === 'transcribe-dashscope'; }
+  function wantsAudioDataUri(fmt) {
+    return fmt === 'transcribe-dashscope' || fmt === 'transcribe-chat-audio';
+  }
   // 同一个问题的三态版本（§2.4 的文件一档要区分 Blob / base64 / data URI）。
   function audioEncoding(fmt) {
-    if (fmt === 'transcribe-dashscope') return 'dataUri';
+    if (fmt === 'transcribe-dashscope' || fmt === 'transcribe-chat-audio') return 'dataUri';
     if (fmt === 'transcribe-gemini') return 'base64';
     return 'blob';
   }

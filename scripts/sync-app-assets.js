@@ -105,6 +105,48 @@ function openUrlHosts(flavor) {
   return out;
 }
 
+// ── Native HTTP bridge allowlist (1.23.4 C5 / BEL-236) ─────────────────────
+//
+// Two categories of host have no `Access-Control-Allow-Origin`: the QwenCloud MaaS
+// host (chat/tts/stt) and the TTS OSS result host. The native bridge is allowed to
+// reach exactly those, by flavor:
+//   global — maas (POST) + OSS result regex (GET)
+//   china  — OSS result regex only; `maas` must never enter a China build
+//
+// The same JSON is embedded in the Swift bridge and in http-shim.js, so the page's
+// first-line check and the native authority cannot drift. Exported for tests.
+function httpAllowlist(flavor) {
+  // OSS result host shape from the TTS probe: dashscope-result-sgp.
+  // oss-ap-southeast-1.aliyuncs.com. The regex covers other regions without
+  // opening up *.aliyuncs.com (which would be the origin boundary removal C5 forbids).
+  const oss = '^dashscope-result-[a-z0-9-]+\\.oss-[a-z0-9-]+\\.aliyuncs\\.com$';
+  const rules = [{ re: oss, methods: ['GET'] }];
+  if (flavor !== 'china') rules.unshift({ host: 'maas.qwencloudapi.com', methods: ['POST'] });
+  return rules;
+}
+
+const HTTP_SHIM_PATH = path.join(ROOT, 'app', 'native', 'http-shim.js');
+const HTTP_BRIDGE_PATH = path.join(ROOT, 'app', 'native', 'http-bridge.swift');
+
+// Read the shim, substitute the allowlist, embed it base64 into the Swift template.
+// Everything is generated from repo files on every sync — no hand-edited copies.
+function httpBridgeTemplate(flavor) {
+  const allowJson = JSON.stringify(httpAllowlist(flavor));
+  const shim = fs.readFileSync(HTTP_SHIM_PATH, 'utf8')
+    .split('__MT_HTTP_ALLOW_JSON__').join(allowJson);
+  const shimB64 = Buffer.from(shim, 'utf8').toString('base64');
+  return fs.readFileSync(HTTP_BRIDGE_PATH, 'utf8')
+    .split('__MT_HTTP_ALLOW_JSON__').join(allowJson)
+    .split('__MT_HTTP_SHIM_BASE64__').join(shimB64);
+}
+
+// Named entry for the tests: insert/replace the marker block in a ViewController.
+function patchHttpBridgeSwift(src, flavor) {
+  return patchMarkerBlockSwift(src, httpBridgeTemplate(flavor || 'global'), {
+    name: 'mt-http-bridge', src: 'http-bridge.swift', label: 'http bridge',
+  });
+}
+
 function patchViewController(sharedDir) {
   const f = path.join(sharedDir, 'ViewController.swift');
   if (!fs.existsSync(f)) return 'no ViewController.swift';
@@ -337,6 +379,19 @@ function patchViewController(sharedDir) {
   } else {
     notes.push('✗ mcp oauth install: test bridge block missing');
   }
+  // 原生 HTTP 桥（1.23.4 C5 / BEL-236）：主 WebView 在重建之后、loadFileURL 之前
+  // 装一次。**两个 flavor 都装** —— China 的 allowlist 只有 OSS，没有 maas。
+  // 快速面板的第二个 WKWebView 在 quick-panel.swift 里自己装（同一个单例）。
+  const HTTP_NEEDLE = 'MTHttpBridge.shared.install';
+  const HTTP_LINES = '        MTHttpBridge.shared.install(webView: self.webView)';
+  if (src.includes(HTTP_NEEDLE)) {
+    notes.push('http bridge install already patched');
+  } else if (src.includes(MCPO_LINES)) {
+    src = src.replace(MCPO_LINES, MCPO_LINES + '\n' + HTTP_LINES);
+    notes.push(src.includes(HTTP_NEEDLE) ? 'http bridge install patched' : '✗ http bridge install: 锚点替换失败');
+  } else {
+    notes.push('✗ http bridge install: MCP OAuth install 行缺失');
+  }
   // Patch 9 (#177): 让 macOS 的两条 Safari 调用**失败可见**。
   //
   // 转换器模板在两处都留了一句字面上的邀请 ——「Insert code to inform the user
@@ -518,6 +573,12 @@ const BLOCKS = [
   { name: 'mt-mcp-oauth', src: 'mcp-oauth-bridge.swift', label: 'mcp oauth bridge' },
   // 1.21.2 泰语 Grok BYOK：App 私有 Keychain（intl iOS+Mac；#if !CHINA）。不进 App Group。
   { name: 'mt-secure-store', src: 'secure-store-bridge.swift', label: 'secure store' },
+  // 原生 HTTP 桥（1.23.4 C5 / BEL-236）：maas 与 TTS OSS 结果域没有 ACAO，标准
+  // WKWebView 带着 Bearer 过不了预检。桥只放这两类主机，其余 BYO 仍走浏览器 CORS。
+  // allowlist 与注入的 http-shim.js 由 sync 按 flavor 同源生成（见 httpBridgeTemplate），
+  // 所以 China 包里没有 maas。attach 见 patchViewController 的 install 行；快速面板
+  // 的第二个 WKWebView 在 app/native/quick-panel.swift 里各装一次。
+  { name: 'mt-http-bridge', src: 'http-bridge.swift', label: 'http bridge' },
   // §0.6 分层验证矩阵：DEBUG-only 控制端点（127.0.0.1:8790，/ping 与 /eval）。
   // 整份 #if DEBUG —— Release 包里编译器裁掉（抽查：strings 二进制 | grep MTTestBridge ⇒ 空）；
   // attach 见 patchViewController 的 install 行（#if DEBUG 块，锚在 vault 那一整块后面）。
@@ -572,15 +633,19 @@ function patchAudioBridgeSwift(src, tpl) {
   return patchMarkerBlockSwift(src, tpl, BLOCKS[0]);
 }
 
-function patchAudioBridge(sharedDir) {
+function patchAudioBridge(sharedDir, flavor) {
+  const fl = flavor === 'china' ? 'china' : 'global';
   const f = path.join(sharedDir, 'ViewController.swift');
   if (!fs.existsSync(f)) return '✗ bridges: no ViewController.swift';
   const notes = [];
   for (const cfg of BLOCKS) {
     const tplPath = path.join(ROOT, 'app', 'native', cfg.src);
     if (!fs.existsSync(tplPath)) { notes.push(`✗ ${cfg.label}: app/native/${cfg.src} 不存在`); continue; }
-    const { swift, note } = patchMarkerBlockSwift(
-      fs.readFileSync(f, 'utf8'), fs.readFileSync(tplPath, 'utf8'), cfg);
+    // 原生 HTTP 桥的模板要先注入这个 flavor 的 allowlist + 页面 shim；其余块原样。
+    const tpl = cfg.name === 'mt-http-bridge'
+      ? httpBridgeTemplate(fl)
+      : fs.readFileSync(tplPath, 'utf8');
+    const { swift, note } = patchMarkerBlockSwift(fs.readFileSync(f, 'utf8'), tpl, cfg);
     if (!/^✗/.test(note)) fs.writeFileSync(f, swift);
     notes.push(note);
   }
@@ -2063,7 +2128,8 @@ function main() {
       fs.copyFileSync(path.join(SRC, 'Script.js'), path.join(res, 'Script.js'));
       fs.copyFileSync(path.join(SRC, 'Style.css'), path.join(res, 'Style.css'));
       const vc = loud(proj, 'ViewController', patchViewController(shared));
-      const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared));
+      const bridgeFlavor = APP_SRC[proj].endsWith('-china') ? 'china' : 'global';
+      const bridge = loud(proj, 'audio bridge', patchAudioBridge(shared, bridgeFlavor));
       const plists = loud(proj, 'Info.plist', patchInfoPlists(shared)) + ' · ' + loud(proj, 'InfoPlist.strings', patchInfoPlistStrings(shared))
         + ' · ' + loud(proj, 'ServicesMenu.strings', patchServicesMenuStrings(shared));
       const dlg = loud(proj, 'delegates', patchDelegates(shared));
@@ -2108,4 +2174,5 @@ module.exports = {
   patchEntitlements, ENTITLEMENTS, patchChinaCompileFlag,
   patchWidgetTarget, patchExtensionTarget, WIDGET_SPEC, patchWidgetFiles, patchExtensionFiles,
   EMBED_PLUGINS, EMBED_EXTENSIONKIT, TRANSLATE_EXT_SPEC, appBundleId, stripExtensionTarget, openUrlHosts, patchDelegates, DELEGATE_PATCHES,
+  httpAllowlist, httpBridgeTemplate, patchHttpBridgeSwift,
 };

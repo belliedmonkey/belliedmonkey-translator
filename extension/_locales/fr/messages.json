@@ -2652,6 +2652,9 @@
   "grant_body_exhausted": {
     "message": "Votre crédit gratuit est épuisé. Ajoutez votre propre clé API pour continuer — une seule clé couvre traduction, synthèse vocale et transcription."
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "Réclamer à nouveau n'ajoute pas de crédit — cela ne fait que récupérer le solde de ce compte."
+  },
   "grant_body_unavailable": {
     "message": "Ce n'est pas vous qui êtes à court : notre réserve de crédit gratuit est vide et nous la rechargeons. Utilisez votre propre clé pour l'instant, ou revenez plus tard."
   },

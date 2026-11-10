@@ -43,7 +43,9 @@ describe('WireFormat.formatFor — 后缀判定，家族封闭', () => {
     // 一个碰巧以 /messages 结尾的语音端点，如果判定跨家族，就会被拿去发对话请求。
     eq(WF.formatFor('https://tts.example/v1/messages', 'speech-compat'), 'speech-compat');
     eq(WF.formatFor('https://tts.example/v1/audio/speech', 'speech-compat'), 'speech-compat');
-    eq(WF.formatFor('https://stt.example/v1/chat/completions', 'transcribe-compat'), 'transcribe-compat');
+    // 同一个后缀在转写家族里仍只落到转写变体（2026-11-10 新增的 chat-audio），
+    // 绝不会变成对话传输 —— 这就是家族封闭的机械保证。
+    eq(WF.formatFor('https://stt.example/v1/chat/completions', 'transcribe-compat'), 'transcribe-chat-audio');
     eq(WF.formatFor('https://stt.example/v1/audio/transcriptions', 'transcribe-compat'), 'transcribe-compat');
   });
 

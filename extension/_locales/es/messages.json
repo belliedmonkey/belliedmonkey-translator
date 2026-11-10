@@ -2652,6 +2652,9 @@
   "grant_body_exhausted": {
     "message": "Se ha agotado tu crédito gratuito. Añade tu propia clave API para seguir: una sola clave cubre traducción, lectura en voz alta y transcripción."
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "Reclamar de nuevo no añade crédito: solo recupera el saldo de esta cuenta."
+  },
   "grant_body_unavailable": {
     "message": "No eres tú quien se ha quedado sin crédito: nuestra reserva gratuita está vacía y la estamos reponiendo. Usa tu propia clave por ahora, o vuelve más tarde."
   },

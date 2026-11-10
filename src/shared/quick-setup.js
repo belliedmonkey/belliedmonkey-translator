@@ -121,6 +121,12 @@ function platforms(reg) {
       // 的对话模型）。
       chat: g.chat[0], tts: g.tts[0], stt: g.stt[0],
     }))
+    // `oneClick:false`（1.23.4，BEL-236）：只影响**卡片列表**，不影响准入与
+    // represents/prefill 之外的任何判定。OpenAI / OpenRouter 的三档都打了这个标记，
+    // 因为一张卡承诺「一把 key 配好三样」，而这两家是「已配的人继续可用，但不再
+    // 作为新用户的一键推荐」。它们仍出现在详细配置里；已配它们的人由宿主判成
+    // 「一键卡表示不了」并落到详细页 —— 不把他们硬塞进 QwenCloud 名下。
+    .filter((p) => p.chat.oneClick !== false && p.tts.oneClick !== false && p.stt.oneClick !== false)
     .concat(customPlatform(reg) ? [customPlatform(reg)] : []);
 }
 // 2026-09-11 → 09-17 这里曾有「实时转写（可选）」一格：平台自身没有实时接口时另配一把

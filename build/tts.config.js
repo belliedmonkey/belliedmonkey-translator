@@ -42,6 +42,8 @@
 // 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
 const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+// 额度三档的模型名（build/grant-models.config.js 单一来源）。
+const GRANT_MODELS = require('./grant-models.config.js');
 
 module.exports = [
   {
@@ -103,6 +105,25 @@ module.exports = [
     hintKey: 'tts_hint_local',
   },
   {
+    // QwenCloud 国际站（2026-11-10，BEL-236）。与 qwen_tts 同一形状、不同 host：
+    // 探针实测不带 `X-DashScope-SSE` 也回 200，`output.audio.url` 可取，所以现有
+    // `speech-dashscope` 够用，这条只是注册表。
+    //
+    // GLOBAL ONLY：中国版继续用 qwen_tts / dashscope.aliyuncs.com 那一行，一行不改。
+    //
+    // voices 是 relay 已验的 QC_FLASH_VOICES 的一个子集（服务端报出来的名字），
+    // 不能照抄 qwen-tts 那四个 —— 那是另一档模型的音色表。
+    // defaultModel 与额度朗读档同源（build/grant-models.config.js）。
+    id: 'qwencloud_tts', type: 'speech-dashscope', flavors: ['global'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://maas.qwencloudapi.com/api/v1/services/aigc/multimodal-generation/generation',
+    placeholder: null, defaultModel: GRANT_MODELS.tts,
+    voices: ['Cherry', 'Serena', 'Ethan', 'Chelsie', 'Momo', 'Vivian', 'Moon', 'Maia', 'Kai', 'Nofish'],
+    returnsAudio: true,
+    labelKey: null, label: 'QwenCloud · speech',
+    hintKey: 'tts_hint_local',
+  },
+  {
     // 聚合网关的**专用** TTS。走已有的 speech-compat 形状，不需要新传输 —— 这是它
     // 比同网关的「会出声的对话模型」（openrouter_audio）更该作为默认的原因：更便宜、
     // 不会不照着念、音色自带语种。
@@ -149,6 +170,7 @@ module.exports = [
     returnsAudio: true,
     labelKey: null, label: 'OpenRouter · speech',
     hintKey: 'tts_hint_local',
+    oneClick: false,   // 1.23.4：与 OpenRouter 的 chat/stt 一起从一键卡撤下
   },
   {
     // 「会出声的对话模型」这条路。GLOBAL ONLY —— 地址与型号名都带品牌，中国版不发。
@@ -181,6 +203,7 @@ module.exports = [
     returnsAudio: true,
     labelKey: null, label: 'OpenAI Speech',
     hintKey: 'tts_hint_openai',
+    oneClick: false,   // 1.23.4：与 OpenAI 的 chat/stt 一起从一键卡撤下
   },
   // 免费额度的中继 · 朗读档（§8.10）。同 chat 那条：grantOnly，不进下拉。
   {
@@ -188,7 +211,7 @@ module.exports = [
     needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
     requiresEndpoint: false,
     defaultEndpoint: RELAY + '/audio/speech',
-    defaultModel: 'deepgram/aura-2',
+    defaultModel: GRANT_MODELS.tts,
     voices: ['aura-2-thalia-en'],
     returnsAudio: true,
     label: { global: 'BelliedMonkey 免费额度' },

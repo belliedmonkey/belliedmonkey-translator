@@ -231,6 +231,27 @@ describe('§8.10 退出登录：清令牌，留记录', () => {
     ok(!('grant' in r.marks), 'grant 记录必须留着 —— 它只有时间与上限，没有令牌');
   });
 
+  test('★ BEL-230 Q1：grantTail 丢了也按 ^bmg_ 清三槽；grant 记录仍留着（C2）', () => {
+    // 退出时 grantTail 可能已经丢了（或槽里是更早一枚 bmg_ 令牌）。只按尾号命中
+    // 会漏掉主路径 —— 旧令牌留在槽里，下一次 relay 请求继续记在旧账号头上。
+    const r = G.clearOnSignOut({
+      grantTail: '', apiKey: TOKEN, ttsApiKey: 'sk-user-own-tts', sttApiKey: TOKEN,
+      sttEngine: 'grant_stt', grant: { vendor: 'openrouter', at: 1 }, grantBalance: { at: 1 },
+    });
+    eq(r.writes.apiKey, '', '翻译槽的 bmg_ 令牌没清');
+    eq(r.writes.sttApiKey, '', '转写槽的 bmg_ 令牌没清');
+    ok(!('ttsApiKey' in r.writes), '把用户自己粘的朗读 key 清掉了');
+    eq(r.marks.grantTail, '');
+    eq(r.marks.grantBalance, null);
+    ok(!('grant' in r.marks), '退出清理 patch 不该包含 grant —— 卡面还要说「余额保留着」');
+  });
+
+  test('★ 换号仍用 clearForAccountSwitch，且它真的清 grant（与退出不同）', () => {
+    const r = G.clearForAccountSwitch({ grantTail: '', apiKey: TOKEN, grant: { at: 1 } });
+    eq(r.writes.apiKey, '');
+    eq(r.marks.grant, null, '换号没清上一账号的 grant —— B 会继承 A 的领过/余额');
+  });
+
   test('用户自己的 key 不受退出登录影响', () => {
     const r = G.clearOnSignOut({ grantTail: 'OLDTAIL9', apiKey: 'sk-mine', ttsApiKey: 'sk-mine' });
     deepEq(r.writes, {});
@@ -317,6 +338,34 @@ describe('§8.10 卡面 —— 哪个状态说哪句话', () => {
     eq(c.action && c.action.text, '重新领取');
     deepEq(c.links.map((l) => l.id).sort(), ['byo', 'community']);
     eq(c.progress.left, 0);
+  });
+
+  test('★ 用完了那张卡说清「重新领取不会增加额度」（BEL-237）', () => {
+    // 重领是幂等的：同一账号拿回同一枚，余额刷新。不写这一句，用户会以为
+    // 点一次多领一份 —— 卡面的「重新领取」看起来就像再发一笔。
+    const keys = [];
+    const tt = (k, d) => { keys.push(k); return d; };
+    const c = G.cardFor('exhausted', { t: tt, balance: bal(0.2) });
+    ok(c.note && /重新领取不会增加额度/.test(c.note), '没写清重领不加额度：' + c.note);
+    ok(keys.includes('grant_exhausted_reclaim_note'),
+      '新句必须走 grant_ 前缀的 key（App 与扩展共用卡面）');
+  });
+
+  test('★ 13 个 locale 都带 grant_exhausted_reclaim_note', () => {
+    // 键集齐全由 i18n-parity 管；这里守的是「新句本身真的进了 13 份文件」，
+    // 免得只加了 en / zh_CN 还能绿。
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..', 'extension', '_locales');
+    const locs = fs.readdirSync(root).filter((d) => fs.existsSync(path.join(root, d, 'messages.json')));
+    eq(locs.length, 13, `locale 数量变了：${locs.join(', ')}`);
+    const miss = [];
+    for (const loc of locs) {
+      const m = JSON.parse(fs.readFileSync(path.join(root, loc, 'messages.json'), 'utf8'));
+      const s = m.grant_exhausted_reclaim_note && m.grant_exhausted_reclaim_note.message;
+      if (!s || !String(s).trim()) miss.push(loc);
+    }
+    eq(miss.join(','), '', '这些 locale 没有 grant_exhausted_reclaim_note：' + miss.join(','));
   });
 
   test('退出登录那句先说余额还在', () => {

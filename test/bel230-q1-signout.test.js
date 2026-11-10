@@ -240,6 +240,40 @@ describe('BEL-230 Q1 — 退出时按 ^bmg_ 清三槽（grantTail 为空也清�
   });
 });
 
+// ── 1a. 扩展设置页退出：无条件清令牌，grant 保留（1.23.4 C2）──────────────
+describe('BEL-230 C2 — 扩展退出按 ^bmg_ 无条件清三槽，但保留 grant', () => {
+  test('★ grantTail 为空也清；用户自己的 key 不动；grant 记录仍在 storage', async () => {
+    const G = loadGrant();
+    const storage = makeStorage({
+      apiKey: OLD_TOKEN, ttsApiKey: 'sk-user-own-tts', sttApiKey: OLD_TOKEN,
+      grantTail: '', grantBalance: { spentUsd: 0.2, limitUsd: 0.2, at: 1 },
+      grant: { vendor: 'openrouter', limitUsd: 0.2, at: 1 },
+    });
+    const c = G.clearOnSignOut(Object.assign({}, storage.store));
+    await storage.set(c.writes);
+    await storage.remove(['grantTail', 'grantBalance']);
+    eq(storage.store.apiKey, '', '翻译槽的 bmg_ 令牌没清');
+    eq(storage.store.sttApiKey, '', '转写槽的 bmg_ 令牌没清');
+    eq(storage.store.ttsApiKey, 'sk-user-own-tts', '把用户自己粘的朗读 key 清掉了');
+    ok(storage.store.grant && storage.store.grant.vendor === 'openrouter',
+      '退出把 grant 记录清掉了 —— 卡面会掉回「登录后可以领一份」');
+    ok(!('grant' in storage.writes[0]), '退出清理 patch 不该包含 grant');
+    eq(G.status(storage.store, { signedIn: false }), 'signed_out');
+  });
+
+  test('★ options.jsx 的退出处理器无条件调用，并复位 autoClaimRef', () => {
+    const src = read('src/pages/options.jsx');
+    const at = src.indexOf('const btnSyncOut');
+    ok(at > -1, 'options.jsx 找不到 btnSyncOut');
+    const fn = src.slice(at, src.indexOf('const btnSyncDelete'));
+    ok(/LearnGrant\.clearOnSignOut\(cur\)/.test(fn), '退出处理器没调 clearOnSignOut');
+    ok(!/if\s*\(cur\.grantTail\)/.test(fn),
+      '还有 `if (cur.grantTail)` 前置 —— 尾号丢了就不清三槽里的旧令牌');
+    ok(/autoClaimRef\.current\s*=\s*false/.test(fn),
+      '退出后没有复位 autoClaimRef —— 同一会话里再登录另一个账号不会自动领取');
+  });
+});
+
 // ── 1b. 直接换号仍清 grant —— ACCEPT-1 的另一半 ────────────────────────────
 describe('BEL-230 ACCEPT-1 — 直接换号（A→B 同进程）仍清上一账号的 grant', () => {
   test('★ createAccountSwitch 的清理 patch 里 grant=null；退出保留不漏到换号', async () => {

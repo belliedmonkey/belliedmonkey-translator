@@ -2652,6 +2652,9 @@
   "grant_body_exhausted": {
     "message": "Seu crédito gratuito acabou. Adicione sua própria chave de API para continuar — uma chave cobre tradução, leitura em voz alta e transcrição."
   },
+  "grant_exhausted_reclaim_note": {
+    "message": "Resgatar novamente não adiciona crédito — apenas recupera o saldo desta conta."
+  },
   "grant_body_unavailable": {
     "message": "Não foi você que acabou o crédito — nosso fundo de crédito gratuito está vazio e estamos repondo. Use sua própria chave por enquanto, ou volte mais tarde."
   },

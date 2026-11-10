@@ -36,6 +36,7 @@ var WireFormat = (() => {
     'speech-compat': 'speech',
     'transcribe-compat': 'transcribe',
     'transcribe-dashscope': 'transcribe',
+    'transcribe-chat-audio': 'transcribe',
     'transcribe-gemini': 'transcribe',
     // 2026-09-06 → 09-17 这里还有第五个家族 transcribe-live（ws-realtime / ws-bidi / ws-duplex，
     // 一条 WebSocket）。实时转写自 2026-09-17 起固定为设备内置、经原生桥，注册表里没有 wss 地址，
@@ -62,6 +63,10 @@ var WireFormat = (() => {
     ],
     transcribe: [
       ['/audio/transcriptions', 'transcribe-compat'],
+      // 有的转写端点收的是 Chat Completions 形状（messages[].input_audio.data），
+      // 不是 /audio/transcriptions。**家族仍然封闭**：同一个后缀在 chat 家族里是
+      // chat-compat，在转写家族里只能落到转写变体，绝不会被翻译成对话传输。
+      ['/chat/completions', 'transcribe-chat-audio'],
       // DashScope 的转写不走上面那条通用路：它没有 /audio/transcriptions（实测 404，
       // 带 key 也一样），语音能力挂在自家的多模态生成端点上。后缀仍取最后两段，
       // 规则不变。

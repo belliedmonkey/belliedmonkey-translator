@@ -37,6 +37,9 @@ const {
   appBundleId,
   stripExtensionTarget,
   patchSwiftPackageText,
+  httpAllowlist,
+  httpBridgeTemplate,
+  patchHttpBridgeSwift,
 } = require('../scripts/sync-app-assets.js');
 const { resourceRoot, findApp, checkBackgroundAudio } = require('../scripts/verify-ios-bundle.js');
 
@@ -2800,5 +2803,81 @@ describe('sync-app-assets: 系统翻译扩展（I-5b）', () => {
     }
     ok(all.includes('__mtFetch') && all.includes('__mtTimer') && all.includes('__mtSeed'),
       '三个钩子的名字要与 app/ext-shim.js 逐字一致');
+  });
+});
+
+// ─── 1.23.4 C5 / BEL-236: native HTTP bridge (maas + TTS OSS) ───────────────
+describe('sync-app-assets: native HTTP bridge (C5)', () => {
+  test('BLOCKS carries mt-http-bridge and both files exist', () => {
+    const { BLOCKS } = require('../scripts/sync-app-assets.js');
+    ok(BLOCKS.some((b) => b.name === 'mt-http-bridge' && b.src === 'http-bridge.swift'));
+    ok(fs.existsSync(path.join(__dirname, '..', 'app', 'native', 'http-bridge.swift')));
+    ok(fs.existsSync(path.join(__dirname, '..', 'app', 'native', 'http-shim.js')));
+  });
+
+  test('allowlist: global has maas POST + OSS GET; china has OSS only', () => {
+    const g = httpAllowlist('global');
+    const c = httpAllowlist('china');
+    ok(g.some((r) => r.host === 'maas.qwencloudapi.com' && r.methods.join() === 'POST'),
+      'global allowlist 缺 maas POST');
+    const ossRe = '^dashscope-result-[a-z0-9-]+\\.oss-[a-z0-9-]+\\.aliyuncs\\.com$';
+    ok(g.some((r) => r.re === ossRe && r.methods.join() === 'GET'), 'global 缺 OSS GET');
+    ok(c.some((r) => r.re === ossRe && r.methods.join() === 'GET'), 'china 缺 OSS GET');
+    ok(!c.some((r) => r.host === 'maas.qwencloudapi.com'), '★ china allowlist 里出现了 maas');
+  });
+
+  test('★ the generated China block contains no maas host (the gate that complianceGateChina cannot see)', () => {
+    const c = patchHttpBridgeSwift('import WebKit\n\nclass ViewController {}\n', 'china');
+    eq((c.swift.match(/BEGIN mt-http-bridge/g) || []).length, 1);
+    ok(!c.swift.includes('maas.qwencloudapi.com'), '中国版 ViewController.swift 里出现了 maas');
+    ok(c.swift.includes('dashscope-result'), 'china 仍要能取 TTS 的 OSS 音频');
+    const g = patchHttpBridgeSwift('import WebKit\n\nclass ViewController {}\n', 'global');
+    ok(g.swift.includes('maas.qwencloudapi.com'), 'global 少了 maas —— 桥装了也过不去');
+  });
+
+  test('the shim is embedded base64, and the allowlist is one JSON source for both halves', () => {
+    const g = patchHttpBridgeSwift('import WebKit\n\nclass ViewController {}\n', 'global');
+    ok(!g.swift.includes('window.webkit.messageHandlers'), 'shim 不是 base64 嵌进去的 —— 手写内联字符串会漂');
+    ok(g.swift.includes('__mtHttpResolve'), '响应回传的全局函数没接上');
+    const shim = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'http-shim.js'), 'utf8');
+    ok(shim.includes('__MT_HTTP_OFF'), '缺少 JS 运行开关 __MT_HTTP_OFF');
+    ok(shim.includes('MTHttpBridge'), '缺少 MTHttpBridge.enabled 运行开关');
+  });
+
+  test('the main ViewController gets an install line; the quick-panel web view attaches too', () => {
+    const sync = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'sync-app-assets.js'), 'utf8');
+    ok(sync.includes("MTHttpBridge.shared.install(webView: self.webView)"),
+      '主 WebView 没有 attach —— 桥装了也不生效');
+    const qp = fs.readFileSync(path.join(__dirname, '..', 'app', 'native', 'quick-panel.swift'), 'utf8');
+    ok(qp.includes('MTHttpBridge.shared.install(webView: w)'),
+      '快速面板的第二个 WKWebView 没有 attach —— 快捷翻译仍会撞 CORS');
+  });
+
+  test('idempotent: the same template produces byte-identical output', () => {
+    const once = patchHttpBridgeSwift('import WebKit\n\nclass ViewController {}\n', 'global').swift;
+    const again = patchHttpBridgeSwift(once, 'global');
+    eq(again.swift, once);
+    match(again.note, /already current/);
+  });
+});
+
+describe('C5 China gate: no international maas host in the China app tree', () => {
+  test('safari-project-china ViewController.swift (when generated) contains no maas host', () => {
+    const root = path.join(__dirname, '..', 'safari-project-china');
+    if (!fs.existsSync(root)) return ok(true, '（safari-project-china 未生成，跳过）');
+    const banned = 'maas.qwencloudapi.com';
+    const hits = [];
+    const walk = (dir, depth) => {
+      if (depth > 8) return;
+      for (const name of fs.readdirSync(dir)) {
+        const p = path.join(dir, name);
+        let st;
+        try { st = fs.statSync(p); } catch (_) { continue; }
+        if (st.isDirectory()) { walk(p, depth + 1); continue; }
+        if (name === 'ViewController.swift' && fs.readFileSync(p, 'utf8').includes(banned)) hits.push(p);
+      }
+    };
+    walk(root, 0);
+    eq(hits.length, 0, '中国版 ViewController.swift 里出现了 maas：' + hits.join(', '));
   });
 });
