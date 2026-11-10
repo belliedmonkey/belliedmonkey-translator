@@ -142,7 +142,7 @@ describe('BEL-233 r3 · 一键卡底「改用免费额度」', () => {
     const calls = { grant: [], keyMode: [] };
     const grantAction = async (id, session) => { calls.grant.push(id); return true; };
     const settingsModel = {
-      get: async () => ({ apiKey: 'bmg_test12345678', grantTail: '12345678' }),
+      get: async () => ({ apiKey: 'bmg_test12345678', grantTail: '12345678' }), // gitleaks:allow — test fixture, no backend
     };
     const LearnGrant = { activeIn: (cur, slot) => slot === 'chat' && /12345678$/.test(cur.apiKey) };
     const switchToFree = makeSwitchToFree(grantAction, settingsModel, LearnGrant, (v) => calls.keyMode.push(v));
