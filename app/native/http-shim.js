@@ -136,7 +136,22 @@
     }
   }
 
-  window.__mtHttpResolve = function (id, payload) { finish(String(id), payload || {}); };
+  // The native side (http-bridge.swift, respond) evaluates
+  //   window.__mtHttpResolve(<json>);
+  // with ONE object `{id,status,headers,bodyBase64}`. In-page callers and the older
+  // tests used the two-argument form `(id, payload)`. Accept BOTH: unwrap the object
+  // envelope when the first argument is an object, otherwise keep the legacy shape.
+  // Getting this wrong keys `pending` by "[object Object]" and the fetch never settles.
+  window.__mtHttpResolve = function (id, payload) {
+    if (id && typeof id === 'object') {
+      var msg = id;
+      var rest = {};
+      Object.keys(msg).forEach(function (k) { if (k !== 'id') rest[k] = msg[k]; });
+      finish(String(msg.id), rest);
+      return;
+    }
+    finish(String(id), payload || {});
+  };
 
   function viaBridge(input, init) {
     var url = typeof input === 'string' ? input : ((input && input.url) || '');

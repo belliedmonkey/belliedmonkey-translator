@@ -47,7 +47,7 @@ function load(allow, opts) {
   vm.createContext(ctx);
   const src = SRC.split('__MT_HTTP_ALLOW_JSON__').join(JSON.stringify(allow || GLOBAL_ALLOW));
   vm.runInContext(src, ctx);
-  return { win, calls };
+  return { win, calls, ctx };
 }
 
 describe('http-shim — only the allowlisted host/method uses the bridge', () => {
@@ -121,6 +121,51 @@ describe('http-shim — only the allowlisted host/method uses the bridge', () =>
     eq(await win.fetch('https://evil.oss-example.aliyuncs.com/a.wav', { method: 'GET' }), 'native');
     eq(await win.fetch('https://dashscope-result-sgp.oss-ap-southeast-1.aliyuncs.com.evil.test/a', { method: 'GET' }), 'native');
     eq(calls.messages.length, 0);
+  });
+});
+
+describe('http-shim — native callback arity (Swift → shim seam)', () => {
+  // The seam that hung on the real intl Mac build (BEL-238 C5): http-bridge.swift
+  // evaluates `window.__mtHttpResolve(<json>);` — ONE object — while the shim took
+  // `(id, payload)`. The old shim keyed pending by "[object Object]", so the fetch
+  // never settled and the caller aborted after 10s. Feed the exact JSON text here.
+  test('★ Swift JSON one-object callback finishes(id, payload); id is never "[object Object]"', async () => {
+    const { win, calls, ctx } = load();
+    const p = win.fetch(MAAS, { method: 'POST', body: '{"model":"qwen3.7-plus"}' });
+    await Promise.resolve();
+    eq(calls.messages.length, 1);
+    const id = calls.messages[0].id;
+    ok(id && id !== '[object Object]');
+
+    // Byte-for-byte the shape Swift serialises: one JSON object, one argument.
+    const json = JSON.stringify({
+      id: id,
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+      bodyBase64: Buffer.from('{"ok":true}').toString('base64'),
+    });
+    vm.runInContext('window.__mtHttpResolve(' + json + ');', ctx);
+
+    const result = await Promise.race([
+      p.then(async (r) => ({ status: r.status, text: await r.text() })),
+      new Promise((_, reject) => setTimeout(() => reject(new Error(
+        'one-object callback did not finish the pending fetch — pending is still keyed by "[object Object]"',
+      )), 200)),
+    ]);
+    eq(result.status, 200);
+    eq(result.text, '{"ok":true}');
+  });
+
+  test('legacy two-argument callers (id, payload) remain supported', async () => {
+    const { win, calls } = load();
+    const p = win.fetch(MAAS, { method: 'POST' });
+    await Promise.resolve();
+    win.__mtHttpResolve(calls.messages[0].id, {
+      status: 200, headers: {}, bodyBase64: Buffer.from('two-arg').toString('base64'),
+    });
+    const resp = await p;
+    eq(resp.status, 200);
+    eq(await resp.text(), 'two-arg');
   });
 });
 
