@@ -113,15 +113,17 @@ function AppShell() {
           <div id="signin-forms" hidden>
             <form id="email-form">
               <label htmlFor="email" id="email-label"></label>
-              <input id="email" type="text" inputMode="email" autoComplete="username"
-                autoCapitalize="none" autoCorrect="off" spellCheck="false" required />
+              <input id="email" type="text" inputMode="email" enterKeyHint="send"
+                autoComplete="username" autoCapitalize="none" autoCorrect="off"
+                spellCheck="false" required />
               <button id="send" type="submit" className="secondary"></button>
             </form>
 
             <form id="code-form" hidden>
               <label htmlFor="code" id="code-label"></label>
-              <input id="code" type="text" inputMode="numeric" autoComplete="one-time-code"
-                autoCapitalize="none" autoCorrect="off" spellCheck="false" required />
+              <input id="code" type="text" inputMode="numeric" enterKeyHint="done"
+                autoComplete="one-time-code" autoCapitalize="none" autoCorrect="off"
+                spellCheck="false" required />
               <button id="verify" type="submit"></button>
               <div className="link-row">
                 <button id="resend" type="button" className="link"></button>

@@ -845,6 +845,9 @@
   "app_email_label": {
     "message": "Email"
   },
+  "app_email_invalid": {
+    "message": "ईमेल पता का प्रारूप सही नहीं है।"
+  },
   "app_send": {
     "message": "कोड भेजें"
   },
@@ -2464,6 +2467,9 @@
   "grant_claim": {
     "message": "लें"
   },
+  "grant_reclaim": {
+    "message": "फिर से दावा करें"
+  },
   "grant_claiming": {
     "message": "लिया जा रहा है…"
   },
@@ -2487,6 +2493,9 @@
   },
   "grant_restore": {
     "message": "मुफ़्त क्रेडिट पर लौटें"
+  },
+  "grant_switch_free": {
+    "message": "मुफ़्त क्रेडिट पर स्विच करें"
   },
   "grant_byo": {
     "message": "अपनी key इस्तेमाल करें"
@@ -4122,5 +4131,65 @@
   },
   "app_set_done": {
     "message": "हो गया"
+  },
+  "settings_group_language": {
+    "message": "भाषा"
+  },
+  "settings_group_speech": {
+    "message": "पढ़ना और दोहराना"
+  },
+  "settings_row_tts_rate": {
+    "message": "गति"
+  },
+  "settings_row_daily": {
+    "message": "हर दिन नए कार्ड"
+  },
+  "settings_row_tts_voice": {
+    "message": "आवाज़"
+  },
+  "settings_row_version": {
+    "message": "संस्करण"
+  },
+  "settings_row_webext": {
+    "message": "ब्राउज़र एक्सटेंशन"
+  },
+  "settings_daily_hint": {
+    "message": "हर दिन कितने नए कार्ड जोड़े जाएँ। सीमा पूरी होने पर सिर्फ़ पुराने कार्ड दोहराए जाते हैं।"
+  },
+  "settings_speech_hint": {
+    "message": "गति सिर्फ़ पढ़ने को प्रभावित करती है, उपशीर्षक या अनुवाद को नहीं।"
+  },
+  "settings_quota_left": {
+    "message": "शेष"
+  },
+  "settings_quota_used": {
+    "message": "{spent} इस्तेमाल · हर दिन रीसेट"
+  },
+  "settings_quota_community": {
+    "message": "समुदाय से जुड़ें"
+  },
+  "settings_quota_signed_in": {
+    "message": "साइन इन है"
+  },
+  "settings_quota_signed_out": {
+    "message": "साइन आउट है"
+  },
+  "settings_stepper_minus": {
+    "message": "घटाएँ"
+  },
+  "settings_stepper_plus": {
+    "message": "बढ़ाएँ"
+  },
+  "settings_value_all_langs": {
+    "message": "सभी भाषाएँ"
+  },
+  "settings_value_on": {
+    "message": "चालू"
+  },
+  "settings_value_off": {
+    "message": "बंद"
+  },
+  "settings_value_follow": {
+    "message": "इंटरफ़ेस भाषा का पालन करें"
   }
 }

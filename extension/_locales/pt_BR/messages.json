@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "E-mail"
   },
+  "app_email_invalid": {
+    "message": "Formato de e-mail inválido."
+  },
   "app_send": {
     "message": "Enviar código"
   },
@@ -2631,6 +2634,9 @@
   "grant_claim": {
     "message": "Pegar"
   },
+  "grant_reclaim": {
+    "message": "Resgatar novamente"
+  },
   "grant_claiming": {
     "message": "Pegando…"
   },
@@ -2654,6 +2660,9 @@
   },
   "grant_restore": {
     "message": "Voltar ao crédito gratuito"
+  },
+  "grant_switch_free": {
+    "message": "Mudar para o crédito gratuito"
   },
   "grant_byo": {
     "message": "Usar minha própria chave"
@@ -4289,5 +4298,65 @@
   },
   "app_set_done": {
     "message": "Concluído"
+  },
+  "settings_group_language": {
+    "message": "Idioma"
+  },
+  "settings_group_speech": {
+    "message": "Leitura e revisão"
+  },
+  "settings_row_tts_rate": {
+    "message": "Velocidade"
+  },
+  "settings_row_daily": {
+    "message": "Novos cartões por dia"
+  },
+  "settings_row_tts_voice": {
+    "message": "Voz"
+  },
+  "settings_row_version": {
+    "message": "Versão"
+  },
+  "settings_row_webext": {
+    "message": "Extensão do navegador"
+  },
+  "settings_daily_hint": {
+    "message": "Quantos cartões novos apresentar por dia. Ao atingir o limite, você só revisa os antigos."
+  },
+  "settings_speech_hint": {
+    "message": "A velocidade afeta apenas a leitura, não as legendas ou traduções."
+  },
+  "settings_quota_left": {
+    "message": "restante"
+  },
+  "settings_quota_used": {
+    "message": "Usado {spent} · Redefinido diariamente"
+  },
+  "settings_quota_community": {
+    "message": "Entrar na comunidade"
+  },
+  "settings_quota_signed_in": {
+    "message": "Conectado"
+  },
+  "settings_quota_signed_out": {
+    "message": "Desconectado"
+  },
+  "settings_stepper_minus": {
+    "message": "Diminuir"
+  },
+  "settings_stepper_plus": {
+    "message": "Aumentar"
+  },
+  "settings_value_all_langs": {
+    "message": "Todos os idiomas"
+  },
+  "settings_value_on": {
+    "message": "Ativado"
+  },
+  "settings_value_off": {
+    "message": "Desativado"
+  },
+  "settings_value_follow": {
+    "message": "Seguir o idioma da interface"
   }
 }

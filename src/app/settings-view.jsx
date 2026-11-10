@@ -45,23 +45,112 @@ import * as SourcesView from '../shared/sources-view-view.jsx';
 
 const $ = (id) => document.getElementById(id);
 
-// BEL-198（2026-11-06）：≥720 桌面设置侧栏五顶。顺序就是 System Settings 的顺序，
-// 也是认关图里的顺序；`sec` 是每一节自己的 id（不是新造的 hash）。
+// BEL-231（2026-11-09，r2 APPROVED）：≥720 桌面设置侧栏五顶 = 主屏五组。
+// 顺序就是 System Settings 的顺序，也是认关图里的顺序；`sec` 是每一组自己的 id。
+// 引擎与密钥不再是侧栏一级入口：它从功能组的 engine_keys_row 进入（深链 sec-engines
+// 也落那一页），所以不在下表里。
 const SETTINGS_PANES = [
-  { sec: 'sec-engines', icon: 'key' },
-  { sec: 'sec-features', icon: 'sliders' },
-  { sec: 'sec-langpacks', icon: 'lang' },
+  { sec: 'sec-language', icon: 'lang' },
+  { sec: 'sec-langpacks', icon: 'sliders' },
+  { sec: 'sec-features', icon: 'key' },
   { sec: 'sec-account', icon: 'user' },
   { sec: 'sec-about', icon: 'info' },
 ];
 
 // 标签的 fallback 中文必须**直接**写在 t() 的第二个参数位（零硬编码文案门禁）。
 function paneLabel(sec, t) {
-  if (sec === 'sec-engines') return t('opt_sec_engines', '引擎与密钥');
+  if (sec === 'sec-language') return t('settings_group_language', '语言');
+  if (sec === 'sec-langpacks') return t('settings_group_speech', '朗读与复习');
   if (sec === 'sec-features') return t('opt_sec_features', '功能');
-  if (sec === 'sec-langpacks') return t('langpacks_title', '语言包与朗读');
   if (sec === 'sec-account') return t('opt_sec_account', '账号与数据');
   return t('options_about_section', '关于');
+}
+
+// 一行一入口（BEL-231）。值靠右、17 号；分组标题 13 号在卡片外。命中区 44。
+function SettingsRow({ id, label, value, onClick, chevron = true }) {
+  return (
+    <button id={id} type="button" className="settings-row" onClick={onClick}>
+      <span className="settings-row-label">{label}</span>
+      {value != null && value !== '' ? <span className="settings-row-value">{value}</span> : null}
+      {chevron ? <span className="settings-row-chevron" aria-hidden="true">›</span> : null}
+    </button>
+  );
+}
+
+function SettingsGroup({ title, children, id }) {
+  return (
+    <section className="settings-group" id={id}>
+      {title ? <h3 className="settings-group-title">{title}</h3> : null}
+      <div className="settings-group-card">{children}</div>
+    </section>
+  );
+}
+
+// page id → 侧栏高亮组。窄窗的详情页在宽窗下仍由它所属的组点亮。
+const RAIL_FOR_PAGE = {
+  'sec-language': 'sec-language',
+  'sec-ui-lang': 'sec-language',
+  'sec-target-lang': 'sec-language',
+  'sec-learn-lang': 'sec-language',
+  'sec-langpacks': 'sec-langpacks',
+  'sec-features': 'sec-features',
+  'sec-engines': 'sec-features',
+  'sec-listen': 'sec-features',
+  'sec-subtitles': 'sec-features',
+  'sec-quick': 'sec-features',
+  'sec-docs': 'sec-features',
+  'sec-drive': 'sec-features',
+  'sec-sources': 'sec-features',
+  'sec-systrans': 'sec-features',
+  'sec-webext': 'sec-features',
+  'sec-extbanner': 'sec-features',
+  'sec-account': 'sec-account',
+  'sec-account-profile': 'sec-account',
+  'sec-corpus': 'sec-account',
+  'sec-telemetry': 'sec-account',
+  'sec-diag': 'sec-account',
+  'sec-feedback': 'sec-account',
+  'sec-about': 'sec-about',
+  'sec-version': 'sec-about',
+};
+function railForPage(page) { return RAIL_FOR_PAGE[page] || ''; }
+
+// 子页大标题（窄窗共享顶栏 + 宽窗 .sec-head 共用一份）。
+function subpageTitle(page, t) {
+  switch (page) {
+    case 'sec-language': return t('settings_group_language', '语言');
+    case 'sec-ui-lang': return t('ui_lang_label', '界面语言');
+    case 'sec-target-lang': return t('target_lang_label', '译成');
+    case 'sec-learn-lang': return t('learn_langs_label', '学习语言');
+    case 'sec-langpacks': return t('settings_group_speech', '朗读与复习');
+    case 'sec-features': return t('opt_sec_features', '功能');
+    case 'sec-engines': return t('opt_sec_engines', '引擎与密钥');
+    case 'sec-listen': return t('listen_settings_title', '对话 · 实时听译');
+    case 'sec-subtitles': return t('subtitle_title', '实时字幕');
+    case 'sec-quick': return t('quick_title', '快速翻译');
+    case 'sec-docs': return t('doc_title', '文档翻译');
+    case 'sec-drive': return t('drive_entry', '播客模式');
+    case 'sec-sources': return t('learn_sources_manage', '来源管理');
+    case 'sec-systrans': return t('systrans_title', '系统翻译');
+    case 'sec-webext': return t('settings_row_webext', '浏览器扩展');
+    case 'sec-extbanner': return t('extb_title', 'Safari 扩展');
+    case 'sec-account': return t('opt_sec_account', '账号与数据');
+    case 'sec-account-profile': return t('app_set_account', '账号');
+    case 'sec-corpus': return t('app_set_corpus', '学习库');
+    case 'sec-telemetry': return t('telemetry_section', '匿名用量数据');
+    case 'sec-diag': return t('diag_section', '诊断日志');
+    case 'sec-feedback': return t('feedback_section', '反馈');
+    case 'sec-about': return t('options_about_section', '关于');
+    case 'sec-version': return t('settings_row_version', '版本');
+    default: return t('app_set_title', '设置');
+  }
+}
+
+// 语言注册表的自名（label 是 endonym，t() 的 key 供翻译；两者都不是新文案）。
+function langLabel(code, t) {
+  const base = String(code || '').split(/[-_]/)[0];
+  const e = (Registry.langs() || []).find((x) => x.code === base);
+  return e ? t(e.labelKey, e.label) : String(code || '');
 }
 
 const NAV_ICON_PATH = {
@@ -91,18 +180,45 @@ export default function SettingsView() {
   const [detail, setDetailState] = useState(false);
   const [quickAvail, setQuickAvail] = useState(true);
   const [grantVisible, setGrantVisible] = useState(false);
-  // 2026-10-03：额度**正在用**时为真 —— 一键卡（「用一把 key 配好全部」）随之收起
-  // （额度在用与自己填 key 是互斥的两条路）。
+  // BEL-233 r3：**chat 槽**是否正在用免费额度。判据从 LearnGrant.active（任一路）
+  // 收窄到 activeIn(cur,'chat') —— 三张卡互斥的是「翻译这一路走哪条通道」，朗读 /
+  // 转写还留着额度时不等于翻译也在用额度。
   const [grantActive, setGrantActive] = useState(false);
+  // 额度卡上的「用自己的 key」是一次**界面意图**：此刻存储里 chat 槽还在用额度，
+  // 但用户明确要填自己的 key，所以先出一键卡；填完 key 后存储自己会落到 key 态。
+  // 只由这一次点击置位，切回免费额度 / 重新打开设置页时清掉。
+  const [keyMode, setKeyMode] = useState(false);
   const [followLabel, setFollowLabel] = useState('');
   // BEL-198：宽窗 = ≥720（与 #app-listen / 首页同一断点）。形态由窗口宽度决定；
   // 窄窗仍是长滚 + ← 返回，宽窗才是 220 侧栏 + 单 pane。
   const [wide, setWide] = useState(() => {
     try { return window.matchMedia('(min-width: 720px)').matches; } catch (_) { return false; }
   });
-  const [activeSec, setActiveSec] = useState('sec-engines');
+  // BEL-231：page = 'home'（主屏）或某个 .sec 子页 id。宽窗从第一组进入；窄窗从主屏。
+  const [page, setPage] = useState(() => {
+    try { return window.matchMedia('(min-width: 720px)').matches ? 'sec-language' : 'home'; } catch (_) { return 'home'; }
+  });
+  // 主屏/子页里那几行要显示的值（都是已有状态，不新造数据源）。
+  const [uiLangText, setUiLangText] = useState('');
+  const [targetLangText, setTargetLangText] = useState('');
+  const [learnLangs, setLearnLangs] = useState(null);
+  const [corpusTotal, setCorpusTotal] = useState(0);
+  const [sourceCount, setSourceCount] = useState(0);
+  const [signedIn, setSignedIn] = useState(false);
+  const [telemetryOn, setTelemetryOn] = useState(false);
+  const [telemetryAvailable, setTelemetryAvailable] = useState(false);
+  // 系统翻译 / Safari 扩展恢复卡是条件节（原生或 shell 决定揭不揭）。它们仍是功能组
+  // 的入口，所以行也只在那一节真的可用时出现 —— 不给一个点进去是空的入口。
+  const [auxRows, setAuxRows] = useState({ systrans: false, extbanner: false });
+  // 额度卡改用 App 自己的 React 画法（r2 的大数字 + 进度条 + 三条链接）；
+  // 约束仍是那一个命令式孤岛：renderGrant 负责算卡与写 #grant-box，这里只读它的返回值。
+  const [grantState, setGrantState] = useState(null);
 
   const uiLangNow = useRef('auto');
+  const pageRef = useRef(page);
+  const wideRef = useRef(wide);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { wideRef.current = wide; }, [wide]);
   // 出发前预载（§9.5）：两态按钮。`pending` 持有算好的账单，点第二下才开跑；
   // `running` 时按钮是「停止」。这不是 UI 花样，是 §9.2 修订后那条例外的构成要件之一。
   const preloadState = useRef('idle');     // idle | pending | running
@@ -220,7 +336,7 @@ export default function SettingsView() {
   // 全量盖写没有了，档位布尔就地并进每一次逐引擎写，DOM 终态与旧一致。
   function applyFields(vis, slot, prefix) {
     const ids = EngineFields.SLOTS[slot].ids;
-    const off = !detailRef.current;
+    const off = !detailRef.current && pageRef.current !== 'sec-langpacks';
     $(prefix + '-key-field').hidden = off || !vis.key;
     const baseField = $(prefix + '-base-field');
     const modelField = $(prefix + '-model-field');
@@ -236,6 +352,16 @@ export default function SettingsView() {
   function paintTtsFields(engineId) {
     applyFields(EngineFields.visibility(settingsModel.engineById(engineId)), 'tts', 'tts');
     paintTtsPack(engineId);
+  }
+
+  // r2 语速 slider 的已填宽度（0.5–1.5 → 0–100%）。只写一个 CSS 变量，不改值。
+  function paintRatePct() {
+    const el = $('tts-rate');
+    if (!el) return;
+    const v = Number(el.value);
+    const pct = Math.max(0, Math.min(100, ((v - 0.5) / 1) * 100));
+    el.style.background = 'linear-gradient(to right, var(--accent) 0 ' + pct.toFixed(2)
+      + '%, var(--accent-track) ' + pct.toFixed(2) + '% 100%)';
   }
 
   // ── 离线模型行（learning-design §9.1.1，2026-09-17）────────────────────────
@@ -267,7 +393,7 @@ export default function SettingsView() {
     const row = $('tts-offline-row'); if (!row) return;
     const e = settingsModel.engineById(engineId);
     const dev = !!(e && e.type === 'device-speech');
-    row.hidden = !detailRef.current || !dev;
+    row.hidden = (!detailRef.current && pageRef.current !== 'sec-langpacks') || !dev;
     if (!dev) {
       paintTtsTestLabel(null);
       try {
@@ -469,8 +595,10 @@ export default function SettingsView() {
         paintGovernance(say);
       },
     });
+    setLearnLangs((rules && Array.isArray(rules.langs)) ? rules.langs.slice() : null);
 
     const [items, sources] = await Promise.all([LearnStore.allItems(), LearnStore.allSources()]);
+    setSourceCount(sources.length);
     SourcesView.render(srcBox, {
       items, sources, rules, t,
       onDelete: async ({ host, itemIds, sourceIds }) => {
@@ -627,7 +755,6 @@ export default function SettingsView() {
   // 由 shell-model 经 bind() 传进来 —— 这一页自己 postMessage 的话，宿主判断会散成两份。
   async function paintGrant(session) {
     const box = $('grant-box');
-    const card = $('grant-card');
     if (!box) return;
     let cur = {};
     try { cur = await settingsModel.get(settingsModel.KEYS.concat(['grant', 'grantTail', 'grantBalance'])); } catch (_) {}
@@ -637,25 +764,36 @@ export default function SettingsView() {
       const q = await Quota.refresh({ settings: cur, force: true });
       if (q && q.balance) cur.grantBalance = q.balance;
     } catch (_) {}
-    renderGrant(box, {
+    const status = LearnGrant.status(cur, { signedIn: !!session, unavailable: grantUnavailable.current });
+    // 卡面仍由共享的 renderGrant 算（哪个状态说哪句话是纯逻辑层的事）；App 只把它的
+    // 返回值重新画成 r2 的大数字卡。box 留在 DOM 里但不可见 —— renderGrant 的
+    // `box.hidden` 回读语义不变，别的宿主不受影响。
+    const card = renderGrant(box, {
       t,
-      status: LearnGrant.status(cur, { signedIn: !!session, unavailable: grantUnavailable.current }),
+      status,
       flavor: Registry.flavor(),       // 中国版：官方免费额度那张卡（G5）
       keyUrl: ((Registry.providers() || []).find((x) => x.keyUrl) || {}).keyUrl || '',
       balance: cur.grantBalance || null,
       busy: grantBusy.current,
       onAction: (id) => grantAction(id, session),
     });
+    // #grant-box 只是共享渲染器的落点，App 自己画 r2 卡面；renderGrant 会把
+    // box.hidden 写成 false，这里回读「有没有卡」后立刻藏回去，否则两张卡同屏。
+    const hasGrant = !box.hidden;
+    box.hidden = true;
     // grant-card 的 hidden 是 React 派生的（grantVisible）；renderGrant 刚在 box 上
     // 写完 box.hidden —— flushSync 让卡片同一帧跟上，不等下一次渲染。
     // 安全性：paintGrant 只从 paintNow / grantAction 的 async 链调用，从不在 React
     // 渲染生命周期里跑（渲染中不能 flushSync）。
     flushSync(() => {
-      setGrantVisible(!box.hidden);
-      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。
+      setGrantVisible(hasGrant);
+      setGrantState({ status, card: card || null, balance: cur.grantBalance || null, signedIn: !!session });
+      // 额度**在用** ⇒ 一键卡收起（2026-10-03 用户裁定：这两条路互斥）。BEL-233 r3
+      // 把判据收窄到 chat 槽：翻译走额度才算「额度态」，朗读/转写留着额度不影响
+      // 翻译这一路要不要出一键卡。
       try {
         setGrantActive(!!(typeof LearnGrant !== 'undefined' && LearnGrant.enabled && LearnGrant.enabled()
-          && LearnGrant.active && LearnGrant.active(cur)));
+          && LearnGrant.activeIn && LearnGrant.activeIn(cur, 'chat')));
       } catch (_) { setGrantActive(false); }
     });
   }
@@ -670,13 +808,57 @@ export default function SettingsView() {
     return () => { try { document.removeEventListener('visibilitychange', onVis); } catch (_) {} };
   }, []);
 
+  // 一键 | 分项：两颗 segmented（主屏额度卡里那颗、引擎子页标题旁那颗）共用这一份
+  // 状态机。返回 true 表示「已经落到目标档」，取消 / 原地不动返回 false —— 只有
+  // 额度卡上「用自己的 key」的界面意图需要知道它到底切没切。
+  async function switchMode(toQuick) {
+    const wantQuick = !!toQuick;
+    if (wantQuick ? !detailRef.current : detailRef.current) { setPage('sec-engines'); return false; }
+    const ok = await LearnDialog.confirm(
+      wantQuick ? t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置')
+        : t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
+      wantQuick
+        ? { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') }
+        : { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
+    if (!ok) return false;
+    await setDetailFn(!wantQuick);
+    setPage('sec-engines');
+    return true;
+  }
+
+  // 一键配置卡底的「改用免费额度」：走与额度卡 restore 完全相同的一条路
+  // （learnGrant.claim → claimAndApply({overwrite:true}) → 重画）。成功时 chat 槽
+  // 换成额度令牌，freeCard 重新成立，一键卡自然消失；失败由 grantAction 的 catch
+  // 交给 hooks.say，不静默。
+  async function switchToFree(session) {
+    await grantAction('restore', session);
+    try {
+      const cur = await settingsModel.get(['apiKey', 'grantTail']);
+      if (LearnGrant.activeIn(cur, 'chat')) setKeyMode(false);
+    } catch (_) {}
+  }
+
   async function grantAction(id, session) {
     const hooks = settingsModel.hooks();
     if (id === 'signin') { if (hooks.onSignIn) hooks.onSignIn(); return; }
     if (id === 'byo') {
-      const p = (Registry.providers() || []).find((x) => x.keyUrl);
-      if (p && p.keyUrl && hooks.openExternal) hooks.openExternal(p.keyUrl);
-      return;
+      // BEL-233（1.23.4，App only）：额度卡的「用自己的 key」不再把用户踢到
+      // platform.openai.com —— 注册表第一个带 keyUrl 的提供商不等于用户想配的那家。
+      // 走与 #app-adv-hint-go 同一条页内路径：分项档先用 wireModeTabs 的确认框问一次
+      // （切换会覆盖分项配置），取消就原地不动；确认后切一键、进引擎子页、滚到一键卡。
+      // keyUrl 仍只在一键配置页里用；options.jsx（扩展）按令不动。
+      if (detailRef.current) {
+        const ok = await LearnDialog.confirm(
+          t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
+          { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
+        if (!ok) return false;
+        await setDetailFn(false);
+      }
+      setPage('sec-engines');
+      requestAnimationFrame(() => {
+        try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {}
+      });
+      return true;
     }
     if (id === 'community') {
       if (hooks.openExternal && typeof MTFeedback !== 'undefined') hooks.openExternal(MTFeedback.discussUrl());
@@ -751,6 +933,16 @@ export default function SettingsView() {
     try { on = await settingsModel.readStoredDetail(); } catch (_) {}
     await setDetailFn(on, false);
   }
+
+  // BEL-233 r3：额度卡上的「用自己的 key」把 keyMode 打开后，一键卡是**新挂载**的
+  // （额度态下它整块不在 DOM）。#quick-setup 是命令式孤岛，不会自己长出来 —— 这里
+  // 补一次 render，否则用户被滚到一张空卡上。正常打开设置时由 paintNow 的
+  // setupQuickCard 负责，两条路不重复（keyMode 只在这次点击时变 true）。
+  useEffect(() => {
+    if (!keyMode) return;
+    const h = settingsModel.hooks();
+    setupQuickCard(settingsModel.currentSession(), h.say).catch(() => {});
+  }, [keyMode]);
 
   // §9.2 in the app: write the SAME keys review.js reads, and reconfigure
   // LearnNotes immediately — review.js only reads settings once at bundle load,
@@ -974,6 +1166,16 @@ export default function SettingsView() {
     uiLangNow.current = cur.uiLang || 'auto';
     $('target-lang').value = cur.targetLang || '';
     updateFollowLabel();
+    // 主屏行的值直接取下拉当前显示的文字（界面语言 / 译成都是 t() 或 endonym 出来的，
+    // 不在这里再写一份中文表）。
+    try {
+      setUiLangText(($('ui-lang').selectedOptions[0] || {}).textContent || '');
+      // 「跟随界面语言（简体中文）」太长，行值只留短句；具体跟到哪门语言由子页说明。
+      setTargetLangText(cur.targetLang
+        ? (($('target-lang').selectedOptions[0] || {}).textContent || '')
+        : t('settings_value_follow', '跟随界面语言'));
+    } catch (_) {}
+    setSignedIn(!!session);
     $('daily').value = cur.learnDailyNew != null ? cur.learnDailyNew : 15;
     $('tts-mode').value = cur.ttsMode || 'off';
     // 不认识的 id（换 flavor / 降级安装 / 厂商下架）落到**哨兵**，不是第一个引擎 ——
@@ -987,6 +1189,7 @@ export default function SettingsView() {
     $('tts-auto').checked = !!cur.ttsAutoPlay;
     $('tts-rate').value = cur.ttsRate != null ? cur.ttsRate : 1;
     $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
+    paintRatePct();
     $('notes-provider').value = cur.provider || '';
     $('notes-api-key').value = cur.apiKey || '';
     $('notes-base-url').value = cur.apiBaseUrl || '';
@@ -1027,6 +1230,7 @@ export default function SettingsView() {
       stats.total + ' ' + t('app_unit_cards', '张卡') + ' · '
       + reviews.length + ' ' + t('app_unit_reviews', '条复习记录')
       + ' · ' + (stats.by.known || 0) + ' ' + t('app_unit_known', '已掌握');
+    setCorpusTotal(stats.total);
 
     await paintGovernance(say);
     await paintGrant(session);          // 额度卡排在一键卡之前（界面上也在它上面）
@@ -1042,20 +1246,16 @@ export default function SettingsView() {
     const say = (...a) => { const h = settingsModel.hooks(); if (h.say) h.say(...a); };
 
     // N24v2：一键/分项互斥 —— 点另一档先确认（覆盖，不是展开/收起）。
-    $('mode-quick').addEventListener('click', async () => {
-      if (!detailRef.current) return;
-      const ok = await LearnDialog.confirm(
-        t('opt_mode_switch_to_quick', '改用一键会覆盖当前分项配置'),
-        { ok: t('opt_mode_switch_to_quick_ok', '改用一键'), cancel: t('opt_mode_switch_cancel', '取消') });
-      if (ok) await setDetailFn(false);
-    });
-    $('mode-detail').addEventListener('click', async () => {
-      if (detailRef.current) return;
-      const ok = await LearnDialog.confirm(
-        t('opt_mode_switch_to_detail', '改用分项会作废当前一键配置'),
-        { ok: t('opt_mode_switch_to_detail_ok', '改用分项'), cancel: t('opt_mode_switch_cancel', '取消') });
-      if (ok) await setDetailFn(true);
-    });
+    // BEL-231：主屏额度卡与引擎子页各有一颗 segmented；同一份 detail 状态、同一套
+    // 确认框。id 不同只是 DOM 唯一，不是第二套逻辑。主屏那颗是 React onClick
+    // （它会随额度卡一起条件渲染），引擎子页这颗常驻，仍在这里接一次。
+    const wireModeTabs = (quickId, detailId) => {
+      const q = $(quickId), d = $(detailId);
+      if (!q || !d) return;
+      q.addEventListener('click', () => switchMode(true));
+      d.addEventListener('click', () => switchMode(false));
+    };
+    wireModeTabs('mode-quick', 'mode-detail');
     $('app-adv-hint-go').addEventListener('click', () => { setDetailFn(false); try { $('quick-setup-card').scrollIntoView({ block: 'start' }); } catch (_) {} });
 
     // Persist on change, not behind a Save button. There is no multi-field state to
@@ -1065,6 +1265,15 @@ export default function SettingsView() {
       $('daily').value = n;
       await settingsModel.set({ learnDailyNew: n });
     });
+    // r2 的「每天新卡」是 stepper，不是一个裸 number 输入。两个键只改同一个值、
+    // 派发同一个 change —— 落的还是 learnDailyNew，没有第二套状态。
+    const bumpDaily = (delta) => {
+      const n = Math.max(1, Math.min(200, (parseInt($('daily').value, 10) || 15) + delta));
+      $('daily').value = n;
+      $('daily').dispatchEvent(new Event('change'));
+    };
+    $('daily-minus').addEventListener('click', () => bumpDaily(-1));
+    $('daily-plus').addEventListener('click', () => bumpDaily(1));
     // 界面语言：**改完立刻生效，不等下次启动**（interaction-spec「Switching applies live」）。
     // 三件事要一起做，漏一件都是「改了没反应」：
     //   1. PageText.setUiLang —— 之后每一次 t() 才走新 locale；静态标签由 useT 的
@@ -1151,6 +1360,7 @@ export default function SettingsView() {
     $('tts-auto').addEventListener('change', () => settingsModel.set({ ttsAutoPlay: $('tts-auto').checked }));
     $('tts-rate').addEventListener('input', () => {
       $('tts-rate-out').textContent = Number($('tts-rate').value).toFixed(1) + '×';
+      paintRatePct();
     });
     $('tts-rate').addEventListener('change', async () => {
       const r = Number($('tts-rate').value);
@@ -1459,8 +1669,12 @@ export default function SettingsView() {
     try {
       if (Registry.telemetryEnabled() && typeof MTTelemetry !== 'undefined') {
         $('telemetry-block').hidden = false;
-        MTTelemetry.enabled().then((on) => { $('telemetry-on').checked = !!on; });
-        $('telemetry-on').addEventListener('change', () => { MTTelemetry.setEnabled($('telemetry-on').checked); });
+        setTelemetryAvailable(true);
+        MTTelemetry.enabled().then((on) => { $('telemetry-on').checked = !!on; setTelemetryOn(!!on); });
+        $('telemetry-on').addEventListener('change', () => {
+          setTelemetryOn($('telemetry-on').checked);
+          MTTelemetry.setEnabled($('telemetry-on').checked);
+        });
         const what = $('telemetry-what');
         if (what) what.addEventListener('click', () => {
           const hooks = settingsModel.hooks();
@@ -1532,17 +1746,15 @@ export default function SettingsView() {
     });
   }, []);
 
-  // ─── BEL-198：≥720 侧栏单 pane ────────────────────────────────────────────
+  // ─── BEL-198 / BEL-231：≥720 侧栏单 pane ─────────────────────────────────
   // 侧栏只用 CSS 显隐（`#settings-nav` 永远没有 hidden 属性，见 app/style.css）；
-  // 各节则只切 hidden、**永不 remove()** —— 这一页按字面量 id 读控件。
-  // 切 pane 走命令式 + React 状态两条：命令式让点击立刻见效，状态保证下一次
-  // 重渲染（换界面语言等）不会把刚点开的那一节盖回去。
+  // 各页则只切 hidden、**永不 remove()** —— 这一页按字面量 id 读控件。
+  // 切 pane 只 setPage：hidden 由 React 从 page 派生（宽窗一次只揭一节），不再命令式
+  // 写 DOM —— 命令式那半在 React 之后会被下一次重渲染盖回去，正是旧注释说的两条机制。
   function showPane(secId) {
-    setActiveSec(secId);
-    if (!wide) return;
-    document.querySelectorAll('#app-settings .sec').forEach((s) => {
-      s.hidden = s.id !== secId;
-    });
+    pageRef.current = secId;
+    setPage(secId);
+    if (secId === 'sec-langpacks') { try { repaintEngineFields(); } catch (_) {} }
   }
 
   useEffect(() => {
@@ -1550,10 +1762,13 @@ export default function SettingsView() {
     try { mq = window.matchMedia('(min-width: 720px)'); } catch (_) { return undefined; }
     const onChange = (e) => {
       setWide(e.matches);
+      // 宽 → 窄：主屏是窄窗的家；组页（语言/功能/账号/关于）在窄窗就是主屏本身，
+      // 留在组页只会让「← 返回」多一层。详情页（朗读与复习 / 各子页）保留。
       if (!e.matches) {
-        // 缩过断点：窄窗必须长滚。不清掉各节 hidden 的话，用户会只剩上次点开的那一节
-        // —— 而「返回 + 长滚」正是 <720 的验收形态。
-        document.querySelectorAll('#app-settings .sec').forEach((s) => { s.hidden = false; });
+        setPage((p) => (p === 'sec-language' || p === 'sec-features' || p === 'sec-account' || p === 'sec-about'
+          ? 'home' : p === 'home' ? 'home' : p));
+      } else {
+        setPage((p) => (p === 'home' ? 'sec-language' : p));
       }
     };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
@@ -1565,10 +1780,9 @@ export default function SettingsView() {
   }, []);
 
   // shell 的 openSettings(anchorId) 会在落点元素上加 .anchor-flash（在 paint 之后）。
-  // 宽窗里那个落点可能位于未点开的节（例如「语言包管理」/ agent 的「账号与数据」），
-  // 直接 scrollIntoView 会落空。看到这一笔就把所属节揭开，再滚一次。
+  // 落点可能在未点开的子页（例如 tts-engine / set-pack-manage / sec-account）：
+  // 窄窗与宽窗都先切到它所属的那一页，再滚一次。
   useEffect(() => {
-    if (!wide) return undefined;
     const box = $('app-settings');
     if (!box || typeof MutationObserver === 'undefined') return undefined;
     const mo = new MutationObserver((muts) => {
@@ -1576,9 +1790,16 @@ export default function SettingsView() {
         if (m.attributeName !== 'class') continue;
         const el = m.target;
         if (!el || el.nodeType !== 1 || !el.classList.contains('anchor-flash')) continue;
+        const home = el.closest('#settings-home');
         const sec = el.closest('#app-settings .sec');
-        if (!sec || !sec.hidden) continue;
-        setActiveSec(sec.id);
+        if (!home && !sec) continue;
+        if (home) {
+          if (pageRef.current !== 'home') { pageRef.current = 'home'; setPage('home'); }
+        } else if (pageRef.current !== sec.id) {
+          pageRef.current = sec.id;
+          setPage(sec.id);
+          if (sec.id === 'sec-langpacks') { try { repaintEngineFields(); } catch (_) {} }
+        }
         requestAnimationFrame(() => {
           try { el.scrollIntoView({ block: 'center' }); } catch (_) {}
         });
@@ -1587,12 +1808,37 @@ export default function SettingsView() {
     });
     mo.observe(box, { subtree: true, attributes: true, attributeFilter: ['class'] });
     return () => mo.disconnect();
-  }, [wide]);
+  }, []);
+
+  // 系统翻译 / Safari 扩展恢复卡由原生或 shell 决定揭不揭（它们直接写 hidden）。
+  // 功能组的两行跟着那一笔走：不可用时不给一个点进去是空卡的入口。
+  useEffect(() => {
+    const read = () => setAuxRows({
+      systrans: !!($('g-systrans') && !$('g-systrans').hidden),
+      extbanner: !!($('g-extbanner') && !$('g-extbanner').hidden),
+    });
+    read();
+    if (typeof MutationObserver === 'undefined') return undefined;
+    const mo = new MutationObserver(read);
+    for (const id of ['g-systrans', 'g-extbanner']) {
+      const el = $(id);
+      if (el) mo.observe(el, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    return () => mo.disconnect();
+  }, []);
 
   // shell 打开设置页 → 整页重画（旧 paint() 的时序位）。旧 paint 是 async、shell 的
   // 「paint 之后再滚」要等它跑完；换通知制后时序由 notifySettingsShown 的返回值保住。
   // setGen 只是给重渲染一个由头（静态标签的 t 在下一次渲染里换新 locale）。
-  useEffect(() => settingsModel.onSettingsShown(() => { setGen((g) => g + 1); return paintNow(); }), []);
+  // 窄窗每次打开都回主屏；宽窗保留上次的组（侧栏就是导航）。
+  useEffect(() => settingsModel.onSettingsShown(() => {
+    setPage((p) => (wideRef.current ? (p === 'home' ? 'sec-language' : p) : 'home'));
+    // 每次重新打开设置页都从存储判据出发：上次点过「用自己的 key」但没填 key 的
+    // 界面意图不该跨一次打开活着（存储里 chat 槽还在用额度）。
+    setKeyMode(false);
+    setGen((g) => g + 1);
+    return paintNow();
+  }), []);
 
   // shell 要切「快速 / 详细」档（旧 setDetail 的时序位）。
   useEffect(() => settingsModel.onDetailRequest((on) => setDetailFn(on)), []);
@@ -1625,11 +1871,223 @@ export default function SettingsView() {
     return () => { alive = false; };
   }, [detail, busGen]);
 
+  // ─── BEL-231：主屏五组 + 子页导航 ─────────────────────────────────────────
+  // 一行一入口；行只负责 setPage。所有子页始终挂载（按字面量读控件、零 null 保护），
+  // 切页只切 hidden。窄窗返回主屏，宽窗由侧栏切组（#settings-back 仍是「完成」）。
+  function goPage(id) {
+    pageRef.current = id;
+    setPage(id);
+    if (id === 'sec-langpacks') { try { repaintEngineFields(); } catch (_) {} }
+  }
+  function openEngine() {
+    // 引擎子页是「分项」的落点；从功能组进来先切到分项（quickAvail=false 时也是它）。
+    try { setDetailFn(true); } catch (_) {}
+    pageRef.current = 'sec-engines';
+    setPage('sec-engines');
+  }
+
+  function groupTitle(kind, t) {
+    if (kind === 'language') return t('settings_group_language', '语言');
+    if (kind === 'speech') return t('settings_group_speech', '朗读与复习');
+    if (kind === 'features') return t('opt_sec_features', '功能');
+    if (kind === 'account') return t('opt_sec_account', '账号与数据');
+    return t('options_about_section', '关于');
+  }
+
+  function renderGroupRows(kind, wideRows) {
+    const s = depsSettings || {};
+    const prefix = wideRows ? 'wide-row-' : 'settings-row-';
+    const rows = [];
+    const add = (key, label, value, target, id, onClick) => {
+      rows.push(
+        <SettingsRow key={key} id={id || (prefix + key)} label={label} value={value}
+          onClick={onClick || (() => goPage(target))} />
+      );
+    };
+    const onOff = (v) => (v === false ? t('settings_value_off', '关') : t('settings_value_on', '开'));
+
+    if (kind === 'language') {
+      add('ui-lang', t('ui_lang_label', '界面语言'), uiLangText, 'sec-ui-lang');
+      add('target-lang', t('target_lang_label', '译成'), targetLangText, 'sec-target-lang');
+      add('learn-lang', t('learn_langs_label', '学习语言'),
+        learnLangs && learnLangs.length
+          ? learnLangs.map((c) => langLabel(c, t)).join(' · ')
+          : t('settings_value_all_langs', '全部语言'),
+        'sec-learn-lang');
+    } else if (kind === 'speech') {
+      const mode = s.ttsMode || 'off';
+      const modeText = mode === 'assist'
+        ? t('tts_mode_assist', '显示原文，可点播放')
+        : mode === 'audio-first' ? t('tts_mode_audio_first', '先听后看（原文先隐藏）')
+          : t('tts_mode_off', '关闭');
+      add('tts-mode', t('tts_mode', '语音模式'), modeText, 'sec-langpacks');
+      add('tts-rate', t('settings_row_tts_rate', '语速'),
+        Number(s.ttsRate != null ? s.ttsRate : 1).toFixed(1) + '×', 'sec-langpacks');
+      add('daily', t('settings_row_daily', '每天新卡'),
+        String(s.learnDailyNew != null ? s.learnDailyNew : 15) + ' ' + t('app_unit_cards', '张卡'),
+        'sec-langpacks');
+    } else if (kind === 'features') {
+      // 旧「功能节顶部那条引擎与密钥 → 分项已配」的残件：现在是一行左对齐入口。
+      let engineText = t('engine_keys_status_none', '未配置');
+      try {
+        const rep = QuickSetup.represents(s);
+        if (rep) {
+          const name = (rep.chat && (rep.chat.label || rep.chat.id)) || rep.host || '';
+          engineText = t('engine_keys_status_quick', '{p} · 一键已配')
+            .replace('{p}', typeof name === 'string' ? name : (name.global || name.china || rep.host));
+        } else if (s.apiKey) {
+          engineText = t('engine_keys_status_detail', '分项已配');
+        }
+      } catch (_) {}
+      // 左对齐入口行（旧「引擎与密钥　分项已配」残件）。id 保持 engine_keys_row，
+      // 点它打开引擎子页；sec-engines 深链也落同一页。
+      if (wideRows) {
+        rows.push(<SettingsRow key="engine" id="wide-engine-keys-row"
+          label={t('engine_keys_row', '引擎与密钥')} value={engineText} onClick={openEngine} />);
+      } else {
+        rows.push(<SettingsRow key="engine" id="engine_keys_row"
+          label={t('engine_keys_row', '引擎与密钥')} value={engineText} onClick={openEngine} />);
+      }
+      add('listen', t('listen_settings_title', '对话 · 实时听译'),
+        onOff(s.listenCapture), 'sec-listen');
+      add('subtitles', t('subtitle_title', '实时字幕'),
+        onOff(s.subtitleCapture), 'sec-subtitles');
+      add('quick', t('quick_title', '快速翻译'), onOff(s.quickEnabled), 'sec-quick');
+      add('docs', t('doc_title', '文档翻译'), '', 'sec-docs');
+      add('drive', t('drive_entry', '播客模式'), '', 'sec-drive');
+      add('sources', t('learn_sources_manage', '来源管理'),
+        String(sourceCount) + ' ' + t('app_unit_sources', '来源'), 'sec-sources');
+      // 旧「系统翻译 / 扩展引导」仍归功能组（BEL-231 的映射），但只在对应节真的可用时
+      // 长出一行；否则点进去是一张空卡。
+      if (auxRows.systrans) add('systrans', t('systrans_title', '系统翻译'), '', 'sec-systrans');
+      add('webext', t('settings_row_webext', '浏览器扩展'), '', 'sec-webext');
+      if (auxRows.extbanner) add('extbanner', t('extb_title', 'Safari 扩展'), '', 'sec-extbanner');
+    } else if (kind === 'account') {
+      add('account', t('app_set_account', '账号'),
+        signedIn ? t('settings_quota_signed_in', '已登录') : t('settings_quota_signed_out', '未登录'),
+        'sec-account-profile');
+      add('corpus', t('app_set_corpus', '学习库'),
+        String(corpusTotal) + ' ' + t('app_unit_cards', '张卡'), 'sec-corpus');
+      if (telemetryAvailable) {
+        add('telemetry', t('telemetry_section', '匿名用量数据'),
+          telemetryOn ? t('settings_value_on', '开') : t('settings_value_off', '关'), 'sec-telemetry');
+      }
+      add('diag', t('diag_section', '诊断日志'), '', 'sec-diag');
+      add('feedback', t('feedback_section', '反馈'), '', 'sec-feedback');
+    } else {
+      add('version', t('settings_row_version', '版本'), Registry.version() || '', 'sec-version');
+    }
+    return rows;
+  }
+
+  function renderGroup(kind, wideRows) {
+    return (
+      <SettingsGroup key={kind} id={wideRows ? undefined : 'settings-group-' + kind}
+        title={wideRows ? '' : groupTitle(kind, t)}>
+        {renderGroupRows(kind, wideRows)}
+      </SettingsGroup>
+    );
+  }
+
+  const quotaCard = grantState && grantState.card;
+  const quotaBal = (grantState && grantState.balance) || null;
+  const quotaLeft = LearnGrant.leftUsd(quotaBal);
+  const quotaLimit = Number((quotaBal && quotaBal.limitUsd) || 0);
+  const quotaSpent = Number((quotaBal && quotaBal.spentUsd) || 0);
+  const quotaPct = quotaLimit > 0 && quotaLeft != null
+    ? Math.max(0, Math.min(100, (quotaLeft / quotaLimit) * 100)) : 0;
+
+  // BEL-233 r3：额度卡与一键配置卡共用同一个位置，二选一。withTabs=true 是主屏
+  // 那颗（主屏没有页面级 segmented），false 是「引擎与密钥」页顶那颗（页面标题旁
+  // 已有 #mode-tabs，不再画第二颗）。两个落点同一份 JSX，避免以后改一处漏一处。
+  function renderQuotaCard(withTabs) {
+    return (
+      <section className="settings-quota-card" id="settings-quota">
+        <div className="settings-quota-head">
+          <span className="settings-quota-title">{quotaCard ? quotaCard.title : t('grant_title', '免费额度')}</span>
+          {withTabs ? (
+            <div className="mode-tabs" id="quota-mode-tabs" role="tablist" hidden={!quickAvail}>
+              <button id="quota-mode-quick" type="button" role="tab" aria-selected={!detail}
+                className={!detail ? '' : 'mode-tab-muted'}
+                onClick={() => switchMode(true)}>
+                {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
+                {!wide && detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
+              </button>
+              <button id="quota-mode-detail" type="button" role="tab" aria-selected={detail}
+                className={detail ? '' : 'mode-tab-muted'}
+                onClick={() => switchMode(false)}>
+                {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
+                {!wide && !detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
+              </button>
+            </div>
+          ) : null}
+        </div>
+        <section id="grant-card" hidden={!grantVisible}>
+          {quotaCard ? (
+            <>
+              {quotaCard.progress && quotaLeft != null ? (
+                <>
+                  <div className="settings-quota-amount">
+                    <span className="settings-quota-left">{'$' + Number(quotaLeft).toFixed(2)}</span>
+                    <span className="settings-quota-total">
+                      {t('settings_quota_left', '剩余')} / {'$' + Number(quotaLimit).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="settings-quota-bar">
+                    <div className="settings-quota-fill" style={{ width: quotaPct + '%' }}></div>
+                  </div>
+                  <div className="settings-quota-foot">
+                    <span>{t('settings_quota_used', '已用 {spent} · 每日重置')
+                      .replace('{spent}', '$' + Number(quotaSpent).toFixed(2))}</span>
+                    <button type="button" className="settings-quota-link" data-quota-link="reclaim"
+                      onClick={() => grantAction('claim', settingsModel.currentSession())}>
+                      {t('grant_reclaim', '重新领取')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="settings-quota-body">{quotaCard.body}</p>
+                  {quotaCard.note ? <p className="settings-quota-note">{quotaCard.note}</p> : null}
+                </>
+              )}
+              <div className="settings-quota-links">
+                {!quotaCard.progress && quotaCard.action ? (
+                  <button type="button" className="settings-quota-link" data-quota-link={quotaCard.action.id}
+                    onClick={() => grantAction(quotaCard.action.id, settingsModel.currentSession())}>
+                    {quotaCard.action.text}
+                  </button>
+                ) : null}
+                <button type="button" className="settings-quota-link" data-quota-link="byo"
+                  onClick={async () => {
+                    // 先置界面意图，让一键卡在 rAF 滚动之前就挂上；分项档确认取消时
+                    // grantAction 返回 false，再把意图撤回（额度卡回来、一键卡不出现）。
+                    setKeyMode(true);
+                    const moved = await grantAction('byo', settingsModel.currentSession());
+                    if (!moved) setKeyMode(false);
+                  }}>
+                  {t('grant_byo', '用自己的 key')}
+                </button>
+                <button type="button" className="settings-quota-link" data-quota-link="community"
+                  onClick={() => grantAction('community', settingsModel.currentSession())}>
+                  {t('settings_quota_community', '加入社群')}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </section>
+      </section>
+    );
+  }
+
   return (
     <section id="app-settings" hidden>
+      {/* 共享 renderGrant 的落点。额度卡会随判据条件渲染（BEL-233 r3），这个
+          hidden 容器必须常驻，否则 key 态下 paintGrant 找不到落点、状态再也回不来。 */}
+      <div id="grant-box" hidden></div>
       {/* BEL-217：宽窗内容区左上角的全局「← 返回」。始终渲染（窄窗 CSS display:none，
           不在条件分支里 —— 条件渲染会让启动期没有节点可绑），放在 #settings-rail 之前。
-          不进 .sec-head（五个 .sec 都在 DOM，会出 5 个同 id），也不进 #settings-nav；
+          不进 .sec-head（每页都在 DOM，会出多个同 id），也不进 #settings-nav；
           点击由 shell-model.js 绑一次 closeSettings，本节点**不加** React onClick。 */}
       <button id="settings-page-back" type="button" className="link">{t('app_review_back', '← 返回')}</button>
       {/* BEL-212：#settings-rail 包 nav（上）+ #settings-back（脚）。无 hidden 属性。
@@ -1641,49 +2099,271 @@ export default function SettingsView() {
           {SETTINGS_PANES.map((p) => (
             <button key={p.sec} type="button" className="settings-nav-item"
               data-sec={p.sec}
-              aria-current={wide && activeSec === p.sec ? 'page' : undefined}
+              aria-current={wide && railForPage(page) === p.sec ? 'page' : undefined}
               onClick={() => showPane(p.sec)}>
               <NavIcon kind={p.icon} />
               <span>{paneLabel(p.sec, t)}</span>
             </button>
           ))}
         </nav>
-        <button id="settings-back" type="button" className="link">{wide ? t('app_set_done', '完成') : t('app_review_back', '← 返回')}</button>
+        <button id="settings-back" type="button" className="link"
+          hidden={!wide && page !== 'home'}>{wide ? t('app_set_done', '完成') : t('app_review_back', '← 返回')}</button>
       </div>
-      <h2 id="settings-title">{t('app_set_title', '设置')}</h2>
+      <h2 id="settings-title" hidden={!wide && page !== 'home'}>{t('app_set_title', '设置')}</h2>
 
-      {/* 2026-09-17 设置页信息架构（interaction-spec「设置页信息架构」，画布 design/settings-ia）：四节按用途 ——
-           ① 引擎与密钥 ② 功能 ③ 账号与数据 ④ 关于。控件只搬不改 id；「快速 / 详细」只管第一节。
-           与扩展设置页同一套类名契约（.adv-only / .quick-only）和同一条不变量：一键配置卡与逐引擎控件**永不同屏**。
-           切换只切 hidden，**永不 remove()**：这一页按字面量读控件、零 null 保护。
-           BEL-198：⑤ 语言包与朗读升级为独立节（窄窗也独立成节）；宽窗一次只揭一节。 */}
-      <div className="sec" id="sec-engines" hidden={wide && activeSec !== 'sec-engines'}>
-        <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">1</span><h3 id="sec-engines-title">{t('opt_sec_engines', '引擎与密钥')}</h3></div>
-          <div className="mode-tabs" id="mode-tabs" role="tablist" hidden={!quickAvail}>
-            <button id="mode-quick" type="button" role="tab" aria-selected={!detail}
-              className={!detail ? '' : 'mode-tab-muted'}>
-              {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
-              {!wide && detail ? <small className="mode-tab-hint"> {t('opt_mode_detail_hint_other', '选用将覆盖分项配置')}</small> : null}
-            </button>
-            <button id="mode-detail" type="button" role="tab" aria-selected={detail}
-              className={detail ? '' : 'mode-tab-muted'}>
-              {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
-              {!wide && !detail ? <small className="mode-tab-hint"> {t('opt_mode_quick_hint_other', '选用将作废一键配置')}</small> : null}
-            </button>
+      {/* 窄窗子页顶栏：← 返回（回主屏）+ 大标题。宽窗由侧栏切组、内容区左上角
+          #settings-page-back 负责关闭设置，所以这一条只在 <720 出现。 */}
+      <div id="settings-subpage-head" hidden={wide || page === 'home'}>
+        <button id="settings-subpage-back" type="button" className="link"
+          onClick={() => goPage('home')}>{t('app_review_back', '← 返回')}</button>
+        <h1 id="settings-subpage-title">{subpageTitle(page, t)}</h1>
+      </div>
+
+      {/* ── 主屏：1 张额度卡 + 5 组（BEL-231 r2）────────────────────────── */}
+      <div id="settings-home" hidden={page !== 'home'}>
+        {/* BEL-233 r3：key 态下额度卡不渲染（不是 hidden）；点过「用自己的 key」的
+            界面意图也先让位给一键卡，等填完 / 切回免费额度再按存储判据回来。 */}
+        {grantActive && !keyMode && page === 'home' ? renderQuotaCard(true) : null}
+
+        {renderGroup('language')}
+        {renderGroup('speech')}
+        {renderGroup('features')}
+        {renderGroup('account')}
+        {renderGroup('about')}
+      </div>
+
+      {/* ── 语言：组页（宽窗侧栏用） + 三个子页 ─────────────────────────── */}
+      <div className="sec settings-pane" id="sec-language" hidden={page !== 'sec-language'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('settings_group_language', '语言')}</h3></div></div>
+        {renderGroup('language', true)}
+      </div>
+
+      <div className="sec settings-pane" id="sec-ui-lang" hidden={page !== 'sec-ui-lang'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('ui_lang_label', '界面语言')}</h3></div></div>
+        <div className="sgroup" id="g-ui-lang">
+          <label className="field">
+            <span id="ui-lang-label">{t('ui_lang_label', '界面语言')}</span>
+            <select id="ui-lang">
+              <option value="auto" id="ui-lang-auto">{t('ui_lang_auto', '跟随系统')}</option>
+              <option value="zh_CN">简体中文</option>
+              <option value="zh_TW">繁體中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="es">Español</option>
+              <option value="hi">हिन्दी</option>
+              <option value="ar">العربية</option>
+              <option value="pt_BR">Português</option>
+              <option value="ru">Русский</option>
+              <option value="th">ไทย</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-target-lang" hidden={page !== 'sec-target-lang'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('target_lang_label', '译成')}</h3></div></div>
+        <div className="sgroup" id="g-target-lang">
+          <label className="field">
+            <span id="target-lang-label">{t('target_lang_label', '译成')}</span>
+            <select id="target-lang">
+              <option value="" id="target-lang-follow">{followLabel}</option>
+              <option value="zh-CN">简体中文</option>
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="es">Español</option>
+              <option value="ar">العربية</option>
+              <option value="pt">Português</option>
+              <option value="ru">Русский</option>
+              <option value="it">Italiano</option>
+              <option value="th">ไทย</option>
+            </select>
+            <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
+          </label>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-learn-lang" hidden={page !== 'sec-learn-lang'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('learn_langs_label', '学习语言')}</h3></div></div>
+        <div className="sgroup" id="g-learn-langs">
+          <div id="app-langs"></div>
+          <p className="note" id="app-langs-note">{t('learn_langs_hint', '只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。')}</p>
+        </div>
+      </div>
+
+      {/* ── 朗读与复习：r2 完整子页 + 搬进来的语音/转写/语言包 ───────────── */}
+      <div className="sec settings-pane" id="sec-langpacks" hidden={page !== 'sec-langpacks'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('settings_group_speech', '朗读与复习')}</h3></div></div>
+
+        <div className="sgroup settings-card" id="g-speech-read">
+          <h3>{t('tts_section', '朗读')}</h3>
+          <div className="settings-field-row">
+            <label htmlFor="tts-mode" id="tts-mode-label">{t('tts_mode', '语音模式')}</label>
+            <select id="tts-mode">
+              <option value="off" id="tts-mode-off">{t('tts_mode_off', '关闭')}</option>
+              <option value="assist" id="tts-mode-assist">{t('tts_mode_assist', '显示原文，可点播放')}</option>
+              <option value="audio-first" id="tts-mode-audio-first">{t('tts_mode_audio_first', '先听后看（原文先隐藏）')}</option>
+            </select>
+          </div>
+          <div className="settings-field-row">
+            <label htmlFor="tts-voice" id="tts-voice-label">{t('settings_row_tts_voice', '音色')}</label>
+            <select id="tts-voice"></select>
+          </div>
+          <div className="settings-slider-row" id="app-tts-section">
+            <div className="settings-field-row">
+              <label htmlFor="tts-rate" id="tts-rate-label">{t('settings_row_tts_rate', '语速')}</label>
+              <output id="tts-rate-out"></output>
+            </div>
+            <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1" />
           </div>
         </div>
 
-        {/* 一把 key 配好全部（QuickSetup）：与扩展设置页、扩展引导第 2 屏是**同一个组件**；它算出 patch 交给 host 写盘。 */}
-        {/* 免费额度（§8.10）。与一键卡并排在同一个 tab 里（裁定 D2：登录不是墙）。注册表没有额度时整块不出。 */}
-        <section className="quick-only" id="grant-card" hidden={detail || !quickAvail || !grantVisible}>
-          <div id="grant-box"></div>
-        </section>
+        <div className="sgroup settings-card" id="g-speech-review">
+          <h3>{t('review_section', '复习')}</h3>
+          <div className="settings-field-row">
+            <label htmlFor="daily" id="daily-label">{t('settings_row_daily', '每天新卡')}</label>
+            <div className="settings-stepper">
+              <button id="daily-minus" type="button" aria-label={t('settings_stepper_minus', '减少')}>−</button>
+              <input id="daily" type="number" min="1" max="200" step="1" inputMode="numeric" />
+              <button id="daily-plus" type="button" aria-label={t('settings_stepper_plus', '增加')}>+</button>
+            </div>
+          </div>
+          <p className="note" id="daily-hint">{t('settings_daily_hint', '每天引入多少张新卡；到上限后只复习旧卡。')}</p>
+          <label className="settings-field-row settings-switch-row">
+            <span id="tts-auto-label">{t('app_set_tts_auto', '显示译文时自动朗读')}</span>
+            <input id="tts-auto" type="checkbox" className="settings-switch" />
+          </label>
+        </div>
+        <p className="note" id="speech-hint">{t('settings_speech_hint', '语速只影响朗读，不影响字幕与译文。')}</p>
 
-        <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail || grantActive}>
-          <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
-          <div id="quick-setup"></div>
-        </section>
+        <div className="sgroup" id="g-tts">
+          <h3 id="tts-title">{t('tts_engine', '语音引擎')}</h3>
+          <DepLineView id="dep-review" {...depProps} slots={['tts', 'notes']} />
+          <label className="field">
+            <span id="tts-engine-label">{t('app_set_notes_provider', '引擎')}</span>
+            <select id="tts-engine"></select>
+          </label>
+          <label className="field" id="tts-key-field">
+            <span id="tts-key-label">{t('tts_api_key', '语音 API Key')}</span>
+            <input id="tts-api-key" type="password" autoComplete="off" autoCapitalize="none"
+              autoCorrect="off" spellCheck="false" />
+          </label>
+          <details className="adv-params" id="tts-adv-params">
+            <summary id="tts-adv-summary">{t('options_advanced', '高级参数')}</summary>
+            <label className="field" id="tts-base-field">
+              <span id="tts-base-label">{t('tts_base_url', '语音端点地址')}</span>
+              <input id="tts-base-url" type="url" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+            <label className="field" id="tts-model-field">
+              <span id="tts-model-label">{t('tts_model', '引擎模型名')}</span>
+              <input id="tts-model" type="text" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+          </details>
+          {/* 离线模型行（learning-design §9.1.1，2026-09-17）：只在选了「设备内置朗读」时出现。此前模型只在
+               对话开始那一步下载，设置里选了、试听了都静默回落系统语音 —— 用户「没感受到下载」。
+               五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。
+               行 hidden 由 paintTtsPack 写（档位布尔并在里面），React 不碰。 */}
+          <div className="field" id="tts-offline-row" hidden>
+            <span id="tts-offline-label">{t('tts_pack_label', '离线朗读')}</span>
+            <p className="note" id="tts-offline-state" role="status" aria-live="polite"></p>
+            <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
+            <button id="tts-offline-dl" type="button" className="secondary"></button>
+          </div>
+          <label className="field">
+            <button id="btn-tts-test" type="button"></button>
+          </label>
+          <p className="note" id="test-tts-note"></p>
+          <p className="note" id="tts-note">{t('app_set_tts_note', '语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。语音 API Key 与句子解析的密钥一样：只存这台设备、不随账号同步，本机明文保存。')}</p>
+        </div>
+        <div className="sgroup" id="g-stt">
+          <h3 id="stt-title">{t('stt_engine', '转写引擎')}</h3>
+          <label className="field">
+            <span id="stt-engine-label">{t('app_set_notes_provider', '引擎')}</span>
+            <select id="stt-engine"></select>
+          </label>
+          <label className="field" id="stt-key-field">
+            <span id="stt-key-label">{t('stt_api_key', '转写 API Key')}</span>
+            <input id="stt-api-key" type="password" autoComplete="off" autoCapitalize="none"
+              autoCorrect="off" spellCheck="false" />
+          </label>
+          <details className="adv-params" id="stt-adv-params">
+            <summary id="stt-adv-summary">{t('options_advanced', '高级参数')}</summary>
+            <label className="field" id="stt-base-field">
+              <span id="stt-base-label">{t('stt_base_url', '转写端点地址')}</span>
+              <input id="stt-base-url" type="url" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+            <label className="field" id="stt-model-field">
+              <span id="stt-model-label">{t('stt_model', '引擎模型名')}</span>
+              <input id="stt-model" type="text" autoComplete="off" autoCapitalize="none"
+                autoCorrect="off" spellCheck="false" />
+            </label>
+          </details>
+          <label className="field">
+            <button id="btn-test-stt" type="button">{t('engine_test', '测试连接')}</button>
+          </label>
+          <p className="note" id="test-stt-note"></p>
+          <p className="note" id="stt-note">{t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。')}</p>
+        </div>
+        <div className="sgroup" id="g-langpacks">
+          <h3 id="langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3>
+          <div className="langpacks-row" id="langpacks-status-row">
+            <p className="note" id="langpacks-state" role="status" aria-live="polite"></p>
+            <button id="set-pack-manage" type="button" className="secondary">{t('langpacks_manage', '管理')}</button>
+          </div>
+          <p className="note" id="langpacks-tts-state" role="status" aria-live="polite">{t('langpacks_tts_ready', '离线朗读 · 已就绪')}</p>
+        </div>
+      </div>
+
+      {/* ── 功能：组页（宽窗侧栏用） + 各功能子页 ───────────────────────── */}
+      <div className="sec settings-pane" id="sec-features" hidden={page !== 'sec-features'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('opt_sec_features', '功能')}</h3></div></div>
+        {renderGroup('features', true)}
+      </div>
+
+      <div className="sec settings-pane" id="sec-engines" hidden={page !== 'sec-engines'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('opt_sec_engines', '引擎与密钥')}</h3></div></div>
+        {/* 引擎子页自己的 segmented：宽窗主屏收起（侧栏直达各组），档位开关必须在这里
+            还有一份；额度卡上那一份是窄窗主屏的入口（id 不同，状态同一个 detail）。 */}
+        <div className="mode-tabs" id="mode-tabs" role="tablist" hidden={!quickAvail}>
+          <button id="mode-quick" type="button" role="tab" aria-selected={!detail}
+            className={!detail ? '' : 'mode-tab-muted'}>
+            {!wide && !detail ? '✓ ' : ''}{t('opt_mode_quick', '一键')}
+          </button>
+          <button id="mode-detail" type="button" role="tab" aria-selected={detail}
+            className={detail ? '' : 'mode-tab-muted'}>
+            {!wide && detail ? '✓ ' : ''}{t('opt_mode_detail', '分项')}
+          </button>
+        </div>
+        {/* BEL-233 r3：额度卡与一键配置卡在这个位置二选一，按 chat 槽的存储判据
+            条件渲染 —— 不是 hidden。key 态下额度卡整块不挂，额度态下一键卡整块不挂。
+            分项档（detail=true）只收起一键卡；额度卡与下面的分项三组照旧都在，
+            位置随卡片高度自然下移。 */}
+        {grantActive && !keyMode && page === 'sec-engines' ? renderQuotaCard(false) : null}
+        {!grantActive || keyMode ? (
+          <section className="quick-only" id="quick-setup-card" hidden={detail || !quickAvail}>
+            <h3 id="quick-setup-title">{t('qs_title', '用一把 key 配好全部')}</h3>
+            <div id="quick-setup"></div>
+            {/* 卡底切回免费额度：复用额度卡 restore 的同一条 claimAndApply
+                ({overwrite:true})。成功 → chat 槽换成额度令牌 → 重画后 freeCard
+                成立，一键卡随之消失；失败 → grantAction 的 catch 交给 hooks.say。
+                中国版没有免费额度通道，这个入口不出现。 */}
+            {LearnGrant.enabled() ? (
+              <button type="button" id="quick-switch-free" className="quick-switch-free"
+                onClick={() => switchToFree(settingsModel.currentSession())}>
+                {t('grant_switch_free', '改用免费额度')}
+              </button>
+            ) : null}
+          </section>
+        ) : null}
 
         {/* 「从哪来」的那一行（画布第 7 页 SetupFrom）。系统翻译的弹层 / Mac 快译面板把人
              推过来配引擎时，先说清楚他为什么在这儿；配好之后同一行就地变成「你可以回去了」。 */}
@@ -1702,8 +2382,6 @@ export default function SettingsView() {
         {/* 永不同屏，但路必须有：详细档顶上一行指回快速档 */}
         <p className="note adv-only" id="app-adv-hint" hidden={!detail}><button type="button" className="link" id="app-adv-hint-go">{t('opt_adv_hint', '一键配置在「一键」里 →')}</button></p>
 
-        {/* 详细档是三张槽卡：翻译与句子解析 / 整段转写 / 朗读。第一张**就是主翻译引擎**
-             —— #421 方案 A 之前它自称「仅用于生成句子解析」，于是没人知道翻译该在哪儿配。 */}
         <div className="sgroup adv-only" id="g-notes" hidden={!detail}>
           <h3 id="notes-title">{t('app_set_notes_title', '翻译与句子解析')}</h3>
           <label className="field adv-only" hidden={!detail}>
@@ -1737,229 +2415,10 @@ export default function SettingsView() {
           <p className="note" id="test-notes-note"></p>
           <p className="note" id="notes-note">{t('app_set_notes_note', '这个引擎负责 App 里的每一处翻译：系统翻译、快速翻译、文档翻译、对话与实时字幕的译文，以及句子解析（生词 / 短语 / 语法）。调用你自己的 API；密钥只存在这台设备上，不随账号同步；与浏览器扩展里配置的密钥互不相通，安全性也相同 —— 都是本机明文保存。')}</p>
         </div>
-
-        {/* 整段转写（learning-design §9.4）：「说」题的录音只发到这里配置的端点，识别后即弃；设备本地凭证（§7.2）。
-             实时转写不在这里 —— 它固定为设备内置，不是引擎（2026-09-17）。 */}
-        <div className="sgroup adv-only" id="g-stt" hidden={!detail}>
-          <h3 id="stt-title">{t('stt_engine', '转写引擎')}</h3>
-          <label className="field adv-only" hidden={!detail}>
-            <span id="stt-engine-label">{t('stt_engine', '转写引擎')}</span>
-            <select id="stt-engine"></select>
-          </label>
-          <label className="field adv-only" id="stt-key-field">
-            <span id="stt-key-label">{t('stt_api_key', '转写 API Key')}</span>
-            <input id="stt-api-key" type="password" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
-          <details className="adv-params adv-only" id="stt-adv-params" hidden={!detail}>
-            <summary id="stt-adv-summary">{t('options_advanced', '高级参数')}</summary>
-            <label className="field" id="stt-base-field">
-              <span id="stt-base-label">{t('stt_base_url', '转写端点地址')}</span>
-              <input id="stt-base-url" type="url" autoComplete="off" autoCapitalize="none"
-                autoCorrect="off" spellCheck="false" />
-            </label>
-            <label className="field" id="stt-model-field">
-              <span id="stt-model-label">{t('stt_model', '引擎模型名')}</span>
-              <input id="stt-model" type="text" autoComplete="off" autoCapitalize="none"
-                autoCorrect="off" spellCheck="false" />
-            </label>
-          </details>
-          <label className="field adv-only" hidden={!detail}>
-            <button id="btn-test-stt" type="button">{t('engine_test', '测试连接')}</button>
-          </label>
-          <p className="note" id="test-stt-note"></p>
-          <p className="note" id="stt-note">{t('stt_hint', '「说」题的录音会发到这里配置的端点转写，识别完立即丢弃、不存储不同步；不配置则不出「说」题。密钥只存本机。')}</p>
-        </div>
-
-        <div className="sgroup adv-only" id="g-tts" hidden={!detail}>
-          <h3 id="tts-title">{t('tts_section', '朗读')}</h3>
-          <label className="field adv-only" hidden={!detail}>
-            <span id="tts-engine-label">{t('tts_engine', '语音引擎')}</span>
-            <select id="tts-engine"></select>
-          </label>
-          <label className="field adv-only" id="tts-key-field">
-            <span id="tts-key-label">{t('tts_api_key', '语音 API Key')}</span>
-            <input id="tts-api-key" type="password" autoComplete="off" autoCapitalize="none"
-              autoCorrect="off" spellCheck="false" />
-          </label>
-          <details className="adv-params adv-only" id="tts-adv-params" hidden={!detail}>
-            <summary id="tts-adv-summary">{t('options_advanced', '高级参数')}</summary>
-            <label className="field" id="tts-base-field">
-              <span id="tts-base-label">{t('tts_base_url', '语音端点地址')}</span>
-              <input id="tts-base-url" type="url" autoComplete="off" autoCapitalize="none"
-                autoCorrect="off" spellCheck="false" />
-            </label>
-            <label className="field" id="tts-model-field">
-              <span id="tts-model-label">{t('tts_model', '引擎模型名')}</span>
-              <input id="tts-model" type="text" autoComplete="off" autoCapitalize="none"
-                autoCorrect="off" spellCheck="false" />
-            </label>
-          </details>
-          <label className="field">
-            <span id="tts-voice-label">{t('app_set_tts_voice', '朗读语音')}</span>
-            <select id="tts-voice"></select>
-          </label>
-          {/* 离线模型行（learning-design §9.1.1，2026-09-17）：只在选了「设备内置朗读」时出现。此前模型只在
-               对话开始那一步下载，设置里选了、试听了都静默回落系统语音 —— 用户「没感受到下载」。
-               五态：未下载 · 大小 · [下载] / 下载中 pct% / 已安装 / 下载失败 · [重试] / 试听回落具名（在试听结果行）。
-               行 hidden 由 paintTtsPack 写（档位布尔并在里面），React 不碰。 */}
-          <div className="field adv-only" id="tts-offline-row" hidden>
-            <span id="tts-offline-label">{t('tts_pack_label', '离线朗读')}</span>
-            <p className="note" id="tts-offline-state" role="status" aria-live="polite"></p>
-            <progress id="tts-offline-progress" max="100" value="0" hidden></progress>
-            <button id="tts-offline-dl" type="button" className="secondary"></button>
-          </div>
-          <label className="field adv-only" hidden={!detail}>
-            <button id="btn-tts-test" type="button"></button>
-          </label>
-          <p className="note" id="test-tts-note"></p>
-          <p className="note" id="tts-note">{t('app_set_tts_note', '语言未知的卡（例如在 Safari 里采集的 —— 那里没有语言检测）只用上面选定的朗读语音；不选则这类卡无法朗读。语音 API Key 与句子解析的密钥一样：只存这台设备、不随账号同步，本机明文保存。')}</p>
-        </div>
       </div>
 
-        <div className="sec" id="sec-features" hidden={wide && activeSec !== 'sec-features'}>
-          <div className="sec-head">
-            <div className="sec-title"><span className="sec-n">2</span><h3 id="sec-features-title">{t('opt_sec_features', '功能')}</h3></div>
-          </div>
-          {/* N24v2 S-01：功能页入口「引擎与密钥」状态行 → 滚到① */}
-          <button type="button" className="link row" id="engine-keys-entry"
-            onClick={() => { try { $('sec-engines').scrollIntoView({ block: 'start' }); } catch (_) {} }}>
-            <span>{t('engine_keys_row', '引擎与密钥')}</span>
-            <span className="note" id="engine-keys-status">{(() => {
-              const s = depsSettings || {};
-              const rep = QuickSetup.represents(s);
-              if (rep) {
-                const name = (rep.chat && (rep.chat.label || rep.chat.id)) || rep.host || '';
-                return t('engine_keys_status_quick', '{p} · 一键已配').replace('{p}', typeof name === 'string' ? name : (name.global || name.china || rep.host));
-              }
-              if (s.apiKey) return t('engine_keys_status_detail', '分项已配');
-              return t('engine_keys_status_none', '未配置');
-            })()}</span>
-          </button>
-
-        {/* 界面语言。与扩展设置页是同一个键（uiLang）、同一份选项；在 App 里它还是 driving.js 眼里用户的母语。 */}
-        <label className="field">
-          <span id="ui-lang-label">{t('ui_lang_label', '界面语言')}</span>
-          <select id="ui-lang">
-            <option value="auto" id="ui-lang-auto">{t('ui_lang_auto', '跟随系统')}</option>
-            <option value="zh_CN">简体中文</option>
-            <option value="zh_TW">繁體中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="es">Español</option>
-            <option value="hi">हिन्दी</option>
-            <option value="ar">العربية</option>
-            <option value="pt_BR">Português</option>
-            <option value="ru">Русский</option>
-            <option value="th">ไทย</option>
-          </select>
-        </label>
-
-        {/* 译成（2026-09-19）。存储键 targetLang；空 = 跟随界面语言（此前的实际行为）。选项对着
-             build/target-langs.config.js 核（test/engine-fields.test.js）。它管文档翻译、播客补译文、
-             系统翻译与快速翻译；不管对话 · 实时字幕（那里有自己的一对语言）。 */}
-        <label className="field">
-          <span id="target-lang-label">{t('target_lang_label', '译成')}</span>
-          <select id="target-lang">
-            <option value="" id="target-lang-follow">{followLabel}</option>
-            <option value="zh-CN">简体中文</option>
-            <option value="zh-TW">繁體中文</option>
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="es">Español</option>
-            <option value="ar">العربية</option>
-            <option value="pt">Português</option>
-            <option value="ru">Русский</option>
-            <option value="it">Italiano</option>
-            <option value="th">ไทย</option>
-          </select>
-          <small id="target-lang-hint">{t('target_lang_hint', '文档翻译、系统翻译与快速翻译用它。对话 · 实时字幕有自己的语言设置。')}</small>
-        </label>
-
-        {/* N24 M-03：语言包与朗读已升为独立节（BEL-198，见下面 #sec-langpacks）。
-            功能节不再内嵌 #g-langpacks —— 内部 id 一个不动，也不做双挂载。 */}
-
-        {/* 复习：怎么听、每天多少张。语音模式 / 自动朗读 / 语速此前混在「语音」组里，与引擎字段同屏。 */}
-        <div className="sgroup" id="g-review">
-          <h3 id="app-review-title">{t('review_section', '复习')}</h3>
-          <DepLineView id="dep-review" {...depProps} slots={['tts', 'notes']} />
-          <label className="field" id="app-tts-section">
-            <span id="tts-mode-label">{t('tts_mode', '语音模式')}</span>
-            <select id="tts-mode">
-              <option value="off" id="tts-mode-off">{t('tts_mode_off', '关闭')}</option>
-              <option value="assist" id="tts-mode-assist">{t('tts_mode_assist', '显示原文，可点播放')}</option>
-              <option value="audio-first" id="tts-mode-audio-first">{t('tts_mode_audio_first', '先听后看（原文先隐藏）')}</option>
-            </select>
-          </label>
-          <label className="check">
-            <input id="tts-auto" type="checkbox" />
-            <span id="tts-auto-label">{t('app_set_tts_auto', '显示译文时自动朗读')}</span>
-          </label>
-          <label className="field">
-            <span id="tts-rate-label">{t('app_set_tts_rate', '朗读速度')}</span>
-            <input id="tts-rate" type="range" min="0.5" max="1.5" step="0.1" />
-            <output id="tts-rate-out"></output>
-          </label>
-          <label className="field">
-            <span id="daily-label">{t('app_set_daily', '每天最多学几张新卡')}</span>
-            <input id="daily" type="number" min="1" max="200" step="1" inputMode="numeric" />
-          </label>
-        </div>
-
-        <div className="sgroup" id="g-capture">
-          {/* 来源治理（interaction-spec）：规则随账号同步（§8.9），在手机上改是
-               自然场景。App 自身不采集 —— 这里改的是浏览器扩展那头的采集行为。 */}
-          <h3 id="app-langs-title">{t('learn_langs_label', '学习语言')}</h3>
-          <div id="app-langs"></div>
-          <p className="note" id="app-langs-note">{t('learn_langs_hint', '只收录选中语言的句子。Safari 无法精确识别语言时按文字系统判断；长按收藏不受限制。')}</p>
-
-          <h3 id="app-sources-title">{t('learn_sources_manage', '来源管理')}</h3>
-          <div id="app-sources"></div>
-        </div>
-
-        {/* 播客模式（learning-design §9.5）。这里只放**要花钱**的那个开关与出发前预载。 */}
-        <div className="sgroup" id="g-drive">
-          <h3 id="drive-title">{t('drive_entry', '播客模式')}</h3>
-          <DepLineView id="dep-drive" {...depProps} slots={['tts', 'notes']} />
-          <label className="check">
-            <input id="drive-play-notes" type="checkbox" />
-            <span id="drive-play-notes-label">{t('drive_play_notes', '播放时朗读句子解析')}</span>
-          </label>
-          <p className="note" id="drive-play-notes-note">{t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。')}</p>
-          {/* 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
-               这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
-               可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 */}
-          <label className="field">
-            <span id="drive-preload-days-label">{t('drive_preload_days', '预载范围')}</span>
-            <select id="drive-preload-days">
-              <option value="0" id="drive-preload-days-0">{t('drive_preload_days_0', '今天要听的牌库')}</option>
-              <option value="3" id="drive-preload-days-3">{t('drive_preload_days_3', '今天 + 未来 3 天')}</option>
-              <option value="7" id="drive-preload-days-7">{t('drive_preload_days_7', '今天 + 未来 7 天')}</option>
-            </select>
-          </label>
-          {/* 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
-               那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
-               里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
-               这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 */}
-          <button id="btn-drive-preload" type="button" className="secondary"></button>
-          <p className="note" id="drive-preload-note" role="status" aria-live="polite"></p>
-          <p className="note" id="drive-preload-hint">{t('drive_preload_hint', '出发前点一下，把要听的语音、解析、译文全部下载到本机，路上没网也能整轮播完。第一下只算账、不花钱，看清楚要调用多少次再点第二下。')}</p>
-          <p className="note" id="drive-audio-cache"></p>
-          <button id="btn-drive-clear-audio" type="button" className="danger">{t('tts_clear_cache', '清空语音缓存')}</button>
-          {/* 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
-               但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
-               系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 */}
-          <p className="note" id="drive-awake-note">{t('drive_awake_note',
-            '播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。')}</p>
-        </div>
-
-        {/* 对话 · 实时听译 与 实时字幕（§9.6 / §9.8）：实时转写固定为设备内置 —— 依赖行说它在不在，语言包行说包在不在。 */}
+      <div className="sec settings-pane" id="sec-listen" hidden={page !== 'sec-listen'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('listen_settings_title', '对话 · 实时听译')}</h3></div></div>
         <div className="sgroup" id="g-listen">
           <h3 id="listen-title">{t('listen_settings_title', '对话 · 实时听译')}</h3>
           <DepLineView id="dep-listen" {...depProps} slots={['live', 'chat', 'tts']} />
@@ -1971,13 +2430,6 @@ export default function SettingsView() {
           {/* 两段披露从听译页搬到这里（改稿 D，2026-10-09 用户定：听译页精简，说明放设置）。
               文字一字不改 —— 免费额度那条路仍有单独披露（AGENTS.md 规则 4 / learning-design §2.1）。 */}
           <p className="note" id="set-listen-privacy">{t('listen_device_privacy', '本机转写：边说边出字；整句定稿后连同前几句上下文一起发去翻译：自己配了 key 时直接发给你配的服务商，用免费额度时经我们的服务器转发，不保存文字。选「设备内置朗读」时，语音在你的设备上合成，首次使用会下载一次离线朗读。')}</p>
-          <p className="note" id="set-subs-privacy">{listenModel.isMacHost()
-            ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
-            : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')}</p>
-          <label className="check">
-            <input id="subtitle-capture" type="checkbox" />
-            <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
-          </label>
           {/* 语言对**不再常驻**（§9.6.1.5，2026-10-07 用户拍）：端上 LID 认得出，用户不用先选。
                这里只留一句说明 —— 手动指定在听译页的语言控件里（兜底）。 */}
           <p className="note" id="listen-lang-note">{t('listen_lang_note',
@@ -2026,10 +2478,24 @@ export default function SettingsView() {
             </p>
           </div>
         </div>
+      </div>
 
-        {/* 文档翻译（§9.7） */}
-        {/* 快速翻译（learning-design §9.9）。只在 macOS 出现：原生回了 quick-caps 才显示（AppQuickHost.onCaps），
-             iOS 与老原生壳整块不出现。M-1 只有「在菜单栏常驻」这一个开关，快捷键 / 增强取词 / 截图随各自的 PR 进来。 */}
+      <div className="sec settings-pane" id="sec-subtitles" hidden={page !== 'sec-subtitles'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('subtitle_title', '实时字幕')}</h3></div></div>
+        <div className="sgroup" id="g-subtitles">
+          <h3 id="subtitles-title">{t('subtitle_title', '实时字幕')}</h3>
+          <p className="note" id="set-subs-privacy">{listenModel.isMacHost()
+            ? t('subtitle_privacy', '只在你点「开始」后听这台 Mac 正在播放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')
+            : t('subtitle_privacy_ios', '只在你点「开始」后听这台 iPhone 外放的声音；声音只在本机识别（或只发往你配置的转写端点），不录音、不保存，我们的服务器不参与。只有「字幕进复习」开着时，识别出的文字才会留在复习里。')}</p>
+          <label className="check">
+            <input id="subtitle-capture" type="checkbox" />
+            <span id="subtitle-capture-label">{t('subtitle_capture_label', '字幕进复习（来源「实时字幕」）')}</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-quick" hidden={page !== 'sec-quick'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('quick_title', '快速翻译')}</h3></div></div>
         <div className="sgroup" id="g-quick" hidden>
           <h3 id="quick-title">{t('quick_title', '快速翻译')}</h3>
           <label className="check">
@@ -2079,11 +2545,72 @@ export default function SettingsView() {
             <p className="note"><button id="quick-services-go" type="button" className="link"></button></p>
           </details>
         </div>
+      </div>
 
-        {/* 系统翻译（learning-design §9.9 / iOS 线 I-7）。只在 iPhone / iPad 上出现：
-             原生装了 mtVault 通道才显示（AppVault.available()），macOS 与老原生壳整块不出现。
-             系统不提供「我是不是默认翻译 App」的接口 —— 所以这里说的是**我们答得上来的那件事**：
-             引擎配置有没有同步过去。选没选成默认，让用户自己在那三步里看。 */}
+      <div className="sec settings-pane" id="sec-docs" hidden={page !== 'sec-docs'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('doc_title', '文档翻译')}</h3></div></div>
+        <div className="sgroup" id="g-docs">
+          <h3 id="docs-title">{t('doc_title', '文档翻译')}</h3>
+          <DepLineView id="dep-docs" {...depProps} slots={['chat']} />
+          <label className="check">
+            <input id="doc-capture" type="checkbox" />
+            <span id="doc-capture-label">{t('doc_capture_label', '文档译文进复习（来源「文档」）')}</span>
+          </label>
+          <p className="note" id="doc-capture-note">{t('doc_privacy', '文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。')}</p>
+          <label className="check">
+            <input id="doc-prefetch" type="checkbox" />
+            <span id="doc-prefetch-label">{t('doc_prefetch_label', '提前解析下一页（不翻译）')}</span>
+          </label>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-drive" hidden={page !== 'sec-drive'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('drive_entry', '播客模式')}</h3></div></div>
+        <div className="sgroup" id="g-drive">
+          <h3 id="drive-title">{t('drive_entry', '播客模式')}</h3>
+          <DepLineView id="dep-drive" {...depProps} slots={['tts', 'notes']} />
+          <label className="check">
+            <input id="drive-play-notes" type="checkbox" />
+            <span id="drive-play-notes-label">{t('drive_play_notes', '播放时朗读句子解析')}</span>
+          </label>
+          <p className="note" id="drive-play-notes-note">{t('drive_play_notes_note', '开启后每张卡在原文和译文之后再读一遍解析（生词 / 短语 / 语法）。**没解析过的卡会自动调用你配置的解析引擎**——每张卡只收一次费，之后一直用缓存。不开则只读原文和译文。')}</p>
+          {/* 出发前预载（learning-design §9.5）。第一下只算账、不发请求；第二下才花钱。
+               这是 §9.2 修订后「允许的批量」的唯一实例，四个构成要件（先算账 / 第二下才跑 /
+               可停 / 具名报账）都长在这几个元素上，别把它简化成一个直接开跑的按钮。 */}
+          <label className="field">
+            <span id="drive-preload-days-label">{t('drive_preload_days', '预载范围')}</span>
+            <select id="drive-preload-days">
+              <option value="0" id="drive-preload-days-0">{t('drive_preload_days_0', '今天要听的牌库')}</option>
+              <option value="3" id="drive-preload-days-3">{t('drive_preload_days_3', '今天 + 未来 3 天')}</option>
+              <option value="7" id="drive-preload-days-7">{t('drive_preload_days_7', '今天 + 未来 7 天')}</option>
+            </select>
+          </label>
+          {/* 裸 button，**不要**包进 <label class="field">：label 会把激活转发给它内部的
+               那个控件，于是一次点击派发两个 click 事件。旁边 btn-test-notes 之类包在 label
+               里没出事，只是因为 runTest 在同步阶段就 disabled 了按钮（禁用的按钮不再派发）。
+               这个按钮是两态的（算账 → 开跑），第二个事件会在开跑的瞬间把自己停掉。 */}
+          <button id="btn-drive-preload" type="button" className="secondary"></button>
+          <p className="note" id="drive-preload-note" role="status" aria-live="polite"></p>
+          <p className="note" id="drive-preload-hint">{t('drive_preload_hint', '出发前点一下，把要听的语音、解析、译文全部下载到本机，路上没网也能整轮播完。第一下只算账、不花钱，看清楚要调用多少次再点第二下。')}</p>
+          <p className="note" id="drive-audio-cache"></p>
+          <button id="btn-drive-clear-audio" type="button" className="danger">{t('tts_clear_cache', '清空语音缓存')}</button>
+          {/* 亮屏（§9.5）。App 在前台时屏幕不自动锁，这是 app:sync 的 idle-timer 补丁。
+               但**锁屏之后保持亮屏第三方 App 做不到** —— 唯一能让锁屏卡片持续可见的是
+               系统的「息屏常显」。所以这里写的是「去哪儿开」，不是「我们做不到」。 */}
+          <p className="note" id="drive-awake-note">{t('drive_awake_note',
+            '播客模式在前台时屏幕不会自动锁。锁屏之后想一直看到卡片，请打开系统的「息屏常显」：设置 → 显示与亮度 → 始终显示。')}</p>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-sources" hidden={page !== 'sec-sources'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('learn_sources_manage', '来源管理')}</h3></div></div>
+        <div className="sgroup" id="g-sources">
+          <div id="app-sources"></div>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-systrans" hidden={page !== 'sec-systrans'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('systrans_title', '系统翻译')}</h3></div></div>
         <div className="sgroup" id="g-systrans" hidden>
           <h3 id="systrans-title"></h3>
           <p className="note" id="systrans-state" role="status" aria-live="polite"></p>
@@ -2111,60 +2638,35 @@ export default function SettingsView() {
           </label>
           <p className="note" id="systrans-font-hint"></p>
         </div>
+      </div>
 
-        {/* 误点了「我已打开」能把首页横幅找回来（2026-09-22，画布 YEDD4VmT9Pv2htUpoWZ9ZB 第 2 页板 ⑤，用户点头）。
-             只在横幅被「我已打开」收起过时出现；点了就地说「已恢复」，这一组随即收起。显隐由 shell-model 的 paintExtRestore()。 */}
+      <div className="sec settings-pane" id="sec-webext" hidden={page !== 'sec-webext'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('settings_row_webext', '浏览器扩展')}</h3></div></div>
+        <div className="sgroup" id="g-webext">
+          <h3 id="webext-title">{t('app_ext_unknown_title', '先把浏览器那半边打通')}</h3>
+          <p className="note" id="webext-note">{t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。')}</p>
+          <button id="webext-setup" type="button" className="secondary">{t('app_ext_open_setup', '在网页上完成设置')}</button>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-extbanner" hidden={page !== 'sec-extbanner'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('extb_title', 'Safari 扩展')}</h3></div></div>
         <div className="sgroup" id="g-extbanner" hidden>
           <h3 id="extb-title"></h3>
           <p className="note" id="extb-note"></p>
           <button id="extb-restore" type="button" className="secondary"></button>
           <p className="note" id="extb-done" role="status" aria-live="polite" hidden></p>
         </div>
-
-        {/* 网页翻译配置引导（2026-10-02 用户裁定 #547：从引导首屏撤掉，**只留这里**）。
-            文案复用引导 ext 屏那几个既有键 —— 12 语种已经在位，不必新造。 */}
-        <div className="sgroup" id="g-webext">
-          <h3 id="webext-title">{t('app_ext_unknown_title', '先把浏览器那半边打通')}</h3>
-          <p className="note" id="webext-note">{t('app_ext_ios_body', '卡片来自 Safari 扩展：在 Safari 里点地址栏左边的扩展图标 →「管理扩展」→ 打开大肚猴翻译。')}</p>
-          <button id="webext-setup" type="button" className="secondary">{t('app_ext_open_setup', '在网页上完成设置')}</button>
-        </div>
-
-        <div className="sgroup" id="g-docs">
-          <h3 id="docs-title">{t('doc_title', '文档翻译')}</h3>
-          <DepLineView id="dep-docs" {...depProps} slots={['chat']} />
-          <label className="check">
-            <input id="doc-capture" type="checkbox" />
-            <span id="doc-capture-label">{t('doc_capture_label', '文档译文进复习（来源「文档」）')}</span>
-          </label>
-          <p className="note" id="doc-capture-note">{t('doc_privacy', '文档只保存在本机，不同步、不导出。翻译时，文档的文字按你点开的页发往你配置的翻译端点 —— 不是整份，也不是打开就发；图片与扫描页以图片形式发往同一端点识别，只在你的引擎支持识别图片时。')}</p>
-          <label className="check">
-            <input id="doc-prefetch" type="checkbox" />
-            <span id="doc-prefetch-label">{t('doc_prefetch_label', '提前解析下一页（不翻译）')}</span>
-          </label>
-        </div>
       </div>
 
-      {/* BEL-198：语言包与朗读升为独立侧栏项（原嵌在功能节里的 #g-langpacks）。
-          内部 id 全不动：g-langpacks / langpacks-state / set-pack-manage。窄窗也是
-          独立一节（ACCEPT），仍长滚、仍有 ← 返回。不做双挂载。 */}
-      <div className="sec" id="sec-langpacks" hidden={wide && activeSec !== 'sec-langpacks'}>
-        <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">3</span><h3 id="sec-langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3></div>
-        </div>
-        <div className="sgroup" id="g-langpacks">
-          <h3 id="langpacks-title">{t('langpacks_title', '语言包与朗读')}</h3>
-          <div className="langpacks-row" id="langpacks-status-row">
-            <p className="note" id="langpacks-state" role="status" aria-live="polite"></p>
-            <button id="set-pack-manage" type="button" className="secondary">{t('langpacks_manage', '管理')}</button>
-          </div>
-          <p className="note" id="langpacks-tts-state" role="status" aria-live="polite">{t('langpacks_tts_ready', '离线朗读 · 已就绪')}</p>
-        </div>
+      {/* ── 账号与数据：组页（宽窗侧栏用） + 各子页 ─────────────────────── */}
+      <div className="sec settings-pane" id="sec-account" hidden={page !== 'sec-account'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('opt_sec_account', '账号与数据')}</h3></div></div>
+        {renderGroup('account', true)}
       </div>
 
-      <div className="sec" id="sec-account" hidden={wide && activeSec !== 'sec-account'}>
-        <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">4</span><h3 id="sec-account-title">{t('opt_sec_account', '账号与数据')}</h3></div>
-        </div>
+      <div className="sec settings-pane" id="sec-account-profile" hidden={page !== 'sec-account-profile'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('app_set_account', '账号')}</h3></div></div>
         <div className="sgroup" id="g-account">
           <h3 id="account-title">{t('app_set_account', '账号')}</h3>
           <p className="note" id="account-who"></p>
@@ -2183,6 +2685,10 @@ export default function SettingsView() {
           <button id="delete-account" type="button" className="danger">{t('app_set_delete', '删除账号与云端数据')}</button>
           <p className="note" id="delete-note">{t('app_set_delete_note', '删除后，服务器上的语料与复习记录会被永久移除，账号也会注销。这台设备上已经下载的内容不受影响 —— 想一并清掉，删除 App 即可。')}</p>
         </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-corpus" hidden={page !== 'sec-corpus'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('app_set_corpus', '学习库')}</h3></div></div>
         <div className="sgroup" id="g-corpus">
           <h3 id="corpus-title">{t('app_set_corpus', '学习库')}</h3>
           <div className="counts" id="settings-counts"></div>
@@ -2195,27 +2701,18 @@ export default function SettingsView() {
         </div>
       </div>
 
-      <div className="sec" id="sec-about" hidden={wide && activeSec !== 'sec-about'}>
-        <div className="sec-head">
-          <div className="sec-title"><span className="sec-n">5</span><h3 id="sec-about-title">{t('options_about_section', '关于')}</h3></div>
-        </div>
-        <div className="sgroup" id="g-feedback">
-          {/* 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
-               打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 */}
-          <h3 id="feedback-title">{t('feedback_section', '反馈')}</h3>
-          <button id="feedback-mail" type="button" className="secondary">{t('feedback_row', '发送反馈')}</button>
-          <button id="feedback-rate" type="button" className="secondary">{t('feedback_rate', '去商店评分')}</button>
-          <p className="note" id="feedback-note">{t('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。')}</p>
-        </div>
-        {/* 匿名用量事件的开关（docs/telemetry-design.md §5）。有 MT_TELEMETRY 才揭开，句形不改。 */}
+      <div className="sec settings-pane" id="sec-telemetry" hidden={page !== 'sec-telemetry'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('telemetry_section', '匿名用量数据')}</h3></div></div>
         <div id="telemetry-block" hidden>
           <h3 id="telemetry-title">{t('telemetry_section', '匿名用量数据')}</h3>
           <label className="row-toggle"><span id="telemetry-label">{t('telemetry_toggle', '分享匿名用量数据')}</span><input type="checkbox" id="telemetry-on" /></label>
           <p className="note" id="telemetry-note">{t('telemetry_hint', '只发送用了哪些功能、在哪个浏览器、翻译成功还是失败 —— 不含你读的网页、文字、地址、密钥或账号标识；登录时另记一张账号↔安装 id 的第一方台账（仅支持与滥用排查）。关掉会删除这台设备发过的事件行，已写入的第一方行按 90 天保留期删除。')}</p>
           <button id="telemetry-what" type="button" className="secondary">{t('telemetry_what', '会发送什么')}</button>
         </div>
-        {/* 诊断日志（§0.6.1 缺口补法，2026-10-06）：纯设备侧环形日志 + 手动导出。
-            内部排障面，不走产品稿（用户裁定：只有我们自己看）；不上传 —— 复制出来贴给排障的人。 */}
+      </div>
+
+      <div className="sec settings-pane" id="sec-diag" hidden={page !== 'sec-diag'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('diag_section', '诊断日志')}</h3></div></div>
         <div className="sgroup" id="g-diag">
           <h3 id="diag-title">{t('diag_section', '诊断日志')}</h3>
           <button id="diag-copy" type="button" className="secondary">{t('diag_copy', '复制诊断日志')}</button>
@@ -2224,6 +2721,31 @@ export default function SettingsView() {
           <span id="diag-copied" className="ok" hidden>{t('diag_copied', '已复制')}</span>
           <label className="row-toggle"><span id="diag-audio-label">{t('diag_audio_toggle', '上传诊断录音（排查转写质量）')}</span><input type="checkbox" id="diag-audio-on" /></label>
           <p className="note" id="diag-audio-note">{t('diag_audio_hint', '开启后，听译会话的麦克风声音、朗读声音和对应文字会打包上传到我们的服务器（仅用于排查转写问题，72 小时后自动删除）。默认关闭；关闭即刻停止采集。')}</p>
+        </div>
+      </div>
+
+      <div className="sec settings-pane" id="sec-feedback" hidden={page !== 'sec-feedback'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('feedback_section', '反馈')}</h3></div></div>
+        <div className="sgroup" id="g-feedback">
+          {/* 反馈 / 评分：宿主 App 里 window.open 是哑的，两个按钮经原生桥在系统里
+               打开（邮件 App / App Store 评分页），地址由 learn/feedback.js 统一给。 */}
+          <h3 id="feedback-title">{t('feedback_section', '反馈')}</h3>
+          <button id="feedback-mail" type="button" className="secondary">{t('feedback_row', '发送反馈')}</button>
+          <button id="feedback-rate" type="button" className="secondary">{t('feedback_rate', '去商店评分')}</button>
+          <p className="note" id="feedback-note">{t('feedback_hint', '会打开你的邮件 App。主题里带着版本号和平台，除此之外什么都不发送。')}</p>
+        </div>
+      </div>
+
+      {/* ── 关于：组页（宽窗侧栏用） + 版本子页 ─────────────────────────── */}
+      <div className="sec settings-pane" id="sec-about" hidden={page !== 'sec-about'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('options_about_section', '关于')}</h3></div></div>
+        {renderGroup('about', true)}
+      </div>
+
+      <div className="sec settings-pane" id="sec-version" hidden={page !== 'sec-version'}>
+        <div className="sec-head"><div className="sec-title"><h3>{t('settings_row_version', '版本')}</h3></div></div>
+        <div className="sgroup" id="g-version">
+          <p className="settings-version-value" id="settings-version">{Registry.version() || ''}</p>
         </div>
       </div>
     </section>

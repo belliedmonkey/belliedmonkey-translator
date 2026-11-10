@@ -845,6 +845,9 @@
   "app_email_label": {
     "message": "อีเมล"
   },
+  "app_email_invalid": {
+    "message": "รูปแบบอีเมลไม่ถูกต้อง"
+  },
   "app_send": {
     "message": "ส่งรหัส"
   },
@@ -2459,6 +2462,9 @@
   "grant_claim": {
     "message": "รับ"
   },
+  "grant_reclaim": {
+    "message": "รับอีกครั้ง"
+  },
   "grant_claiming": {
     "message": "กำลังรับ…"
   },
@@ -2482,6 +2488,9 @@
   },
   "grant_restore": {
     "message": "สลับกลับไปใช้เครดิตฟรี"
+  },
+  "grant_switch_free": {
+    "message": "สลับไปใช้เครดิตฟรี"
   },
   "grant_byo": {
     "message": "ใช้คีย์ของคุณเอง"
@@ -4102,5 +4111,65 @@
   },
   "app_set_done": {
     "message": "เสร็จสิ้น"
+  },
+  "settings_group_language": {
+    "message": "ภาษา"
+  },
+  "settings_group_speech": {
+    "message": "การอ่านและการทบทวน"
+  },
+  "settings_row_tts_rate": {
+    "message": "ความเร็ว"
+  },
+  "settings_row_daily": {
+    "message": "การ์ดใหม่ต่อวัน"
+  },
+  "settings_row_tts_voice": {
+    "message": "เสียง"
+  },
+  "settings_row_version": {
+    "message": "เวอร์ชัน"
+  },
+  "settings_row_webext": {
+    "message": "ส่วนขยายเบราว์เซอร์"
+  },
+  "settings_daily_hint": {
+    "message": "จำนวนการ์ดใหม่ที่เพิ่มในแต่ละวัน เมื่อถึงขีดจำกัดจะทบทวนเฉพาะการ์ดเก่า"
+  },
+  "settings_speech_hint": {
+    "message": "ความเร็วมีผลกับการอ่านเท่านั้น ไม่มีผลกับคำบรรยายหรือคำแปล"
+  },
+  "settings_quota_left": {
+    "message": "เหลือ"
+  },
+  "settings_quota_used": {
+    "message": "ใช้ไป {spent} · รีเซ็ตทุกวัน"
+  },
+  "settings_quota_community": {
+    "message": "เข้าร่วมชุมชน"
+  },
+  "settings_quota_signed_in": {
+    "message": "เข้าสู่ระบบแล้ว"
+  },
+  "settings_quota_signed_out": {
+    "message": "ออกจากระบบแล้ว"
+  },
+  "settings_stepper_minus": {
+    "message": "ลดลง"
+  },
+  "settings_stepper_plus": {
+    "message": "เพิ่มขึ้น"
+  },
+  "settings_value_all_langs": {
+    "message": "ทุกภาษา"
+  },
+  "settings_value_on": {
+    "message": "เปิด"
+  },
+  "settings_value_off": {
+    "message": "ปิด"
+  },
+  "settings_value_follow": {
+    "message": "ตามภาษาของอินเทอร์เฟซ"
   }
 }

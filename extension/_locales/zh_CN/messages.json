@@ -879,6 +879,9 @@
   "app_email_label": {
     "message": "邮箱"
   },
+  "app_email_invalid": {
+    "message": "邮箱格式不对"
+  },
   "app_send": {
     "message": "发送验证码"
   },
@@ -2632,6 +2635,9 @@
   "grant_claim": {
     "message": "领取"
   },
+  "grant_reclaim": {
+    "message": "重新领取"
+  },
   "grant_claiming": {
     "message": "领取中…"
   },
@@ -2655,6 +2661,9 @@
   },
   "grant_restore": {
     "message": "改回免费额度"
+  },
+  "grant_switch_free": {
+    "message": "改用免费额度"
   },
   "grant_byo": {
     "message": "用自己的 key"
@@ -4290,5 +4299,65 @@
   },
   "app_set_done": {
     "message": "完成"
+  },
+  "settings_group_language": {
+    "message": "语言"
+  },
+  "settings_group_speech": {
+    "message": "朗读与复习"
+  },
+  "settings_row_tts_rate": {
+    "message": "语速"
+  },
+  "settings_row_daily": {
+    "message": "每天新卡"
+  },
+  "settings_row_tts_voice": {
+    "message": "音色"
+  },
+  "settings_row_version": {
+    "message": "版本"
+  },
+  "settings_row_webext": {
+    "message": "浏览器扩展"
+  },
+  "settings_daily_hint": {
+    "message": "每天引入多少张新卡；到上限后只复习旧卡。"
+  },
+  "settings_speech_hint": {
+    "message": "语速只影响朗读，不影响字幕与译文。"
+  },
+  "settings_quota_left": {
+    "message": "剩余"
+  },
+  "settings_quota_used": {
+    "message": "已用 {spent} · 每日重置"
+  },
+  "settings_quota_community": {
+    "message": "加入社群"
+  },
+  "settings_quota_signed_in": {
+    "message": "已登录"
+  },
+  "settings_quota_signed_out": {
+    "message": "未登录"
+  },
+  "settings_stepper_minus": {
+    "message": "减少"
+  },
+  "settings_stepper_plus": {
+    "message": "增加"
+  },
+  "settings_value_all_langs": {
+    "message": "全部语言"
+  },
+  "settings_value_on": {
+    "message": "开"
+  },
+  "settings_value_off": {
+    "message": "关"
+  },
+  "settings_value_follow": {
+    "message": "跟随界面语言"
   }
 }

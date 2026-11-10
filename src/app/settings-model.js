@@ -48,6 +48,18 @@ function set(items) {
   return new Promise((res) => chrome.storage.local.set(items, res));
 }
 
+// BEL-230 Q1：**账号**代际。它不是听译的会话 gen（listen-model 里另有一个），也不是
+// LearnTTS 的播放 epoch —— 那两个回答「这一场/这一次播放还算不算数」，这个只回答
+// 「这次 claim 发起之后，登录的人有没有换」。
+//
+// 为什么需要它：claim() 是一次网络往返。A 的 claim 晚到时，B 可能已经登录并写好了
+// 三槽；没有代际，A 的令牌会覆盖 B 的槽，下一次 relay 又记在 A 头上。代际在
+// show(null)（退出）与 show(B)（换号）两处递增；claimAndApply 在 claim 前捕获、
+// await 回来后再比一次，变了就整段作废（不写盘、不 trackEngineSet）。
+let accountEpoch = 0;
+function bumpAccountEpoch() { accountEpoch++; return accountEpoch; }
+function currentAccountEpoch() { return accountEpoch; }
+
 // `learnEnabled` 被强制打开，因为「有没有材料来源」在 App 上确实为真：材料经同步
 // 进来，浏览器的采集开关不归这个面管。
 //
@@ -179,12 +191,34 @@ function liveTtsConfigure(cfg) {
   }));
 }
 
+// BEL-230 Q1（TTS 那半）：把**当前存储**里的三槽/引擎推给在线的 LearnTTS。
+//
+// 选了「落盘后立即重配」而不是「让 fetchAudio() 每请求读当前令牌」：后者的落点在
+// extension/learn/tts.js，本拍冻结（extension/** 不许动）。而 liveTtsConfigure 是 App
+// 已有的唯一在线入口 —— 设置页每改一个朗读字段都走它。领取/退出写完 storage 后立刻
+// 调一次，旧令牌就不会留在模块级 cfg 里继续发请求（那正是「B 的朗读记在 A 头上」）。
+async function syncLiveTts(settings) {
+  if (typeof LearnTTS === 'undefined' || !LearnTTS || typeof LearnTTS.configure !== 'function') return false;
+  const s = settings || await get(KEYS);
+  liveTtsConfigure({
+    engineId: s.ttsEngine,
+    apiKey: s.ttsApiKey,
+    baseUrl: s.ttsBaseUrl,
+    model: s.ttsModel,
+    voice: s.ttsVoice,
+  });
+  return true;
+}
+
 // `engineChosen` 此前**在 App 里一处都没写**（只有扩展设置页与扩展引导页写过），
 // 而 `EngineState.needsSetup` 要读它：于是在 App 里选了一个不需要 key 的引擎之后，
 // 界面仍然说「还没配过翻译引擎」。写入点跟着「真的写了 provider」走。
-async function markEngineChosen(plan) {
+async function markEngineChosen(plan, expectedEpoch) {
   const w = (plan && plan.writes) || {};
   if (!w.provider) return;
+  // BEL-230 Q1：读完设置到写 engineChosen 之间也可能换号；多一道代际检查，
+  // 让 A 的领取不会在 B 的会话里留下「选过引擎」。
+  if (expectedEpoch != null && expectedEpoch !== accountEpoch) return;
   try { await set({ engineChosen: 1 }); } catch (_) {}
 }
 
@@ -200,9 +234,11 @@ async function markEngineChosen(plan) {
 // （engine-state.js 那条「没有人再另写一份判据」由 test/engine-state.test.js 守着）。
 // 两条路写完都带 key，所以这里几乎总为真；照样走判据，是为了两个宿主的 engine_set
 // 永远表示同一件事 —— 否则同一个数在两张表里含义不同，比没有更糟。
-async function trackEngineSet() {
+async function trackEngineSet(expectedEpoch) {
   try {
     const cur = await get(KEYS.concat(['engineChosen']));
+    // BEL-230 Q1：await 期间换号 ⇒ 这一次 claim 的 engine_set 不算数。
+    if (expectedEpoch != null && expectedEpoch !== accountEpoch) return;
     if (typeof EngineState !== 'undefined' && typeof MTTelemetry !== 'undefined'
         && !EngineState.needsSetup(cur)) {
       MTTelemetry.track('engine_set', { provider: String(EngineState.resolve(cur.provider) || '') });
@@ -217,6 +253,9 @@ async function trackEngineSet() {
 // 「已配好」这句话要有证据、以及一个槽都没写时那句话是假的。
 async function claimAndApply(opts) {
   const o = opts || {};
+  // BEL-230 Q1：捕获**账号**代际。claim() 是网络往返，期间完全可能退出/换号 ——
+  // 那时这枚令牌属于上一账号，写进三槽就是覆盖 B 的配置，并让下一次 relay 记在 A 上。
+  const myEpoch = accountEpoch;
   let claimed;
   try {
     claimed = await LearnGrant.claim();
@@ -226,17 +265,34 @@ async function claimAndApply(opts) {
     try { TelemetrySession.grantClaimFail(e && e.code); } catch (_) {}
     throw e;
   }
+  // 账号变了 ⇒ 整段作废：不读设置、不写盘、不 trackEngineSet。返回值带 stale，
+  // 调用方（autoClaimGrant / 设置页按钮）照常收口，只是什么都不落。
+  if (myEpoch !== accountEpoch) return { wroteAny: false, plan: null, stale: true };
   const cur = await get(KEYS);
-  // 「改回」= 用户已确认替换掉自己的 key ⇒ overwrite；「领取」不碰用户自己的 key。
-  const plan = LearnGrant.plan(claimed, cur, window, { overwrite: !!o.overwrite });
-  if (plan.writes && Object.keys(plan.writes).length) await set(plan.writes);
-  if (plan.marks) await set(plan.marks);
+  // 读设置也是一次 await；期间换了号同样不能继续。
+  if (myEpoch !== accountEpoch) return { wroteAny: false, plan: null, stale: true };
+  // BEL-230：换号时三槽已在 claim 之前清空，replaceKeyTail 由调用方显式带旧尾号
+  // 进来，plan() 仍按「这是上一枚额度令牌」处理（而不是把它当用户自己的 key）。
+  const plan = LearnGrant.plan(claimed, cur, window, {
+    overwrite: !!o.overwrite,
+    replaceKeyTail: o.replaceKeyTail != null ? o.replaceKeyTail : undefined,
+  });
+  // writes + marks 一笔落盘：拆成两次 set 会在中间留下「槽写了、grantTail 还没写」
+  // 的半状态，而两次 await 之间正是换号能插进来的地方。
+  const patch = Object.assign({}, plan.writes || {}, plan.marks || {});
+  if (Object.keys(patch).length) {
+    await set(patch);
+    if (myEpoch !== accountEpoch) return { wroteAny: false, plan, stale: true };
+  }
+  // 落盘后立即把新令牌推给在线 TTS。放在 trackEngineSet / 自检之前：朗读要用的
+  // 就是刚落盘的那一枚，晚一步就可能先读出去一次旧令牌。
+  try { await syncLiveTts(Object.assign({}, cur, patch)); } catch (_) {}
   // 领到额度并写进了槽 = 引擎配好了（grant_claimed 由 LearnGrant.claim() 自己记）。
-  if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet();
+  if (plan.writes && Object.keys(plan.writes).length) await trackEngineSet(myEpoch);
   // 一个槽都没写（三槽都是用户自己的 key）时，「已配好」是假话（扩展设置页同一条）。
   // §8.10.3（2026-09-30）：判据从「写过任何一槽」改成「**翻译槽**真被写了」——见 grant.toastKey。
   const wroteAny = plan.tests && plan.tests.length > 0;
-  await markEngineChosen(plan);
+  await markEngineChosen(plan, myEpoch);
   if (o.say) o.say(LearnGrant.toastKey(plan) === 'grant_claimed_toast'
     ? t('grant_claimed_toast', '免费额度已配好')
     : t('grant_claimed_kept_toast', '免费额度已领到。你自己的 key 保留着 —— 想换用额度，点「改回免费额度」。'));
@@ -306,7 +362,8 @@ function writeStoredDetail(on) {
 
 export default {
   KEYS, DETAIL_KEY, get, set, ensureDefaults, engineById, sttSupportedBases, myLangOf,
-  priceText, tallyText, writeRules, liveTtsConfigure, markEngineChosen, trackEngineSet,
-  claimAndApply, bind, hooks, notifySettingsShown, onSettingsShown, currentSession,
+  priceText, tallyText, writeRules, liveTtsConfigure, syncLiveTts, markEngineChosen, trackEngineSet,
+  claimAndApply, bumpAccountEpoch, currentAccountEpoch,
+  bind, hooks, notifySettingsShown, onSettingsShown, currentSession,
   requestDetail, onDetailRequest, readStoredDetail, writeStoredDetail,
 };

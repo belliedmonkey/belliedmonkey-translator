@@ -125,6 +125,12 @@ re-applying it drifts silently ([#51](https://github.com/belliedmonkey/belliedmo
 
 - **Merged back the user-visible surfaces already shipped on 1.23.2-intl**: the Thai speech route with a key kept on this device, the caption desk and Split View caption layout, and the Duo home cards.
 - **BEL-197 / 198 / 199 / 212**: the default-browser setup prompt, the Mac login and settings layout at ≥720 px, the Mac onboarding, document and podcast layouts at ≥720 px, and the settings sidebar **Done** action back to the home screen.
+- **Quota and live-subtitle defaults**: switching back to a language whose packs are already cached now clears the “quota full” card right away. Subtitle video language now starts at Auto.
+- **Mac settings and listen row**: in wide windows the subtitle and language row stays on one line; Settings has a Back control that returns to the previous page, while Finish still closes Settings.
+- **iOS Settings**: the first screen is a quota card plus five groups (language, speech & review, features, account & data, about); deeper items live on subpages.
+- **Sign-in**: pressing Return on the email field sends the code.
+- **Own key vs free credit**: tapping “use your own key” on the quota card opens one-tap setup in the app (it does not jump to OpenAI). While free credit is in use, one-tap setup is hidden; one-tap setup has a control to switch back to free credit.
+- **Account switch**: switching accounts no longer keeps the previous account’s exhausted credit token.
 - Live interpretation is still a work in progress; this release does not claim it is finished.
 
 ## What it does

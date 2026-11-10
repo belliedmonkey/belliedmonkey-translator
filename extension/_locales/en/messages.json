@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "Email"
   },
+  "app_email_invalid": {
+    "message": "Enter a valid email address."
+  },
   "app_send": {
     "message": "Send code"
   },
@@ -2128,11 +2131,11 @@
     "description": "A local storage read failed mid-flow — not the signed-out state"
   },
   "sync_with_apple": {
-    "message": "Continue with Apple",
+    "message": "Sign in with Apple",
     "description": "Sign in with Apple button"
   },
   "sync_with_google": {
-    "message": "Continue with Google",
+    "message": "Sign in with Google",
     "description": "Sign in with Google button"
   },
   "sync_or": {
@@ -2631,6 +2634,9 @@
   "grant_claim": {
     "message": "Claim"
   },
+  "grant_reclaim": {
+    "message": "Claim again"
+  },
   "grant_claiming": {
     "message": "Claiming…"
   },
@@ -2654,6 +2660,9 @@
   },
   "grant_restore": {
     "message": "Switch back to free credit"
+  },
+  "grant_switch_free": {
+    "message": "Switch to free credit"
   },
   "grant_byo": {
     "message": "Use your own key"
@@ -4289,5 +4298,65 @@
   },
   "app_set_done": {
     "message": "Done"
+  },
+  "settings_group_language": {
+    "message": "Language"
+  },
+  "settings_group_speech": {
+    "message": "Speech & review"
+  },
+  "settings_row_tts_rate": {
+    "message": "Speed"
+  },
+  "settings_row_daily": {
+    "message": "New cards per day"
+  },
+  "settings_row_tts_voice": {
+    "message": "Voice"
+  },
+  "settings_row_version": {
+    "message": "Version"
+  },
+  "settings_row_webext": {
+    "message": "Browser extension"
+  },
+  "settings_daily_hint": {
+    "message": "How many new cards to introduce each day. Once you hit the limit, you only review older cards."
+  },
+  "settings_speech_hint": {
+    "message": "Speed only affects speech, not subtitles or translations."
+  },
+  "settings_quota_left": {
+    "message": "left"
+  },
+  "settings_quota_used": {
+    "message": "Used {spent} · Resets daily"
+  },
+  "settings_quota_community": {
+    "message": "Join the community"
+  },
+  "settings_quota_signed_in": {
+    "message": "Signed in"
+  },
+  "settings_quota_signed_out": {
+    "message": "Signed out"
+  },
+  "settings_stepper_minus": {
+    "message": "Decrease"
+  },
+  "settings_stepper_plus": {
+    "message": "Increase"
+  },
+  "settings_value_all_langs": {
+    "message": "All languages"
+  },
+  "settings_value_on": {
+    "message": "On"
+  },
+  "settings_value_off": {
+    "message": "Off"
+  },
+  "settings_value_follow": {
+    "message": "Follow interface language"
   }
 }

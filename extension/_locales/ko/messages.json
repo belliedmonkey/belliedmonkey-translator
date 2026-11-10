@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "이메일"
   },
+  "app_email_invalid": {
+    "message": "이메일 형식이 올바르지 않습니다."
+  },
   "app_send": {
     "message": "인증 코드 보내기"
   },
@@ -2631,6 +2634,9 @@
   "grant_claim": {
     "message": "받기"
   },
+  "grant_reclaim": {
+    "message": "다시 받기"
+  },
   "grant_claiming": {
     "message": "받는 중…"
   },
@@ -2654,6 +2660,9 @@
   },
   "grant_restore": {
     "message": "무료 크레딧으로 되돌리기"
+  },
+  "grant_switch_free": {
+    "message": "무료 크레딧으로 전환"
   },
   "grant_byo": {
     "message": "내 키 사용"
@@ -4289,5 +4298,65 @@
   },
   "app_set_done": {
     "message": "완료"
+  },
+  "settings_group_language": {
+    "message": "언어"
+  },
+  "settings_group_speech": {
+    "message": "읽기 및 복습"
+  },
+  "settings_row_tts_rate": {
+    "message": "속도"
+  },
+  "settings_row_daily": {
+    "message": "하루 새 카드"
+  },
+  "settings_row_tts_voice": {
+    "message": "목소리"
+  },
+  "settings_row_version": {
+    "message": "버전"
+  },
+  "settings_row_webext": {
+    "message": "브라우저 확장"
+  },
+  "settings_daily_hint": {
+    "message": "하루에 새 카드를 몇 장 소개할지 정합니다. 한도에 도달하면 오래된 카드만 복습합니다."
+  },
+  "settings_speech_hint": {
+    "message": "속도는 읽기에만 영향을 주며 자막이나 번역에는 영향을 주지 않습니다."
+  },
+  "settings_quota_left": {
+    "message": "남음"
+  },
+  "settings_quota_used": {
+    "message": "사용 {spent} · 매일 초기화"
+  },
+  "settings_quota_community": {
+    "message": "커뮤니티 참여"
+  },
+  "settings_quota_signed_in": {
+    "message": "로그인됨"
+  },
+  "settings_quota_signed_out": {
+    "message": "로그아웃됨"
+  },
+  "settings_stepper_minus": {
+    "message": "줄이기"
+  },
+  "settings_stepper_plus": {
+    "message": "늘리기"
+  },
+  "settings_value_all_langs": {
+    "message": "모든 언어"
+  },
+  "settings_value_on": {
+    "message": "켜짐"
+  },
+  "settings_value_off": {
+    "message": "꺼짐"
+  },
+  "settings_value_follow": {
+    "message": "인터페이스 언어 따르기"
   }
 }

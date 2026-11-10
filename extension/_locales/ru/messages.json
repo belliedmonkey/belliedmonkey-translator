@@ -878,6 +878,9 @@
   "app_email_label": {
     "message": "Эл. почта"
   },
+  "app_email_invalid": {
+    "message": "Неверный формат адреса электронной почты."
+  },
   "app_send": {
     "message": "Отправить код"
   },
@@ -2631,6 +2634,9 @@
   "grant_claim": {
     "message": "Получить"
   },
+  "grant_reclaim": {
+    "message": "Получить снова"
+  },
   "grant_claiming": {
     "message": "Получаем…"
   },
@@ -2654,6 +2660,9 @@
   },
   "grant_restore": {
     "message": "Вернуться к бесплатному лимиту"
+  },
+  "grant_switch_free": {
+    "message": "Перейти на бесплатный лимит"
   },
   "grant_byo": {
     "message": "Использовать свой ключ"
@@ -4289,5 +4298,65 @@
   },
   "app_set_done": {
     "message": "Готово"
+  },
+  "settings_group_language": {
+    "message": "Язык"
+  },
+  "settings_group_speech": {
+    "message": "Озвучивание и повторение"
+  },
+  "settings_row_tts_rate": {
+    "message": "Скорость"
+  },
+  "settings_row_daily": {
+    "message": "Новых карточек в день"
+  },
+  "settings_row_tts_voice": {
+    "message": "Голос"
+  },
+  "settings_row_version": {
+    "message": "Версия"
+  },
+  "settings_row_webext": {
+    "message": "Расширение браузера"
+  },
+  "settings_daily_hint": {
+    "message": "Сколько новых карточек добавлять в день. После лимита вы повторяете только старые."
+  },
+  "settings_speech_hint": {
+    "message": "Скорость влияет только на озвучивание, не на субтитры и перевод."
+  },
+  "settings_quota_left": {
+    "message": "осталось"
+  },
+  "settings_quota_used": {
+    "message": "Использовано {spent} · Сброс ежедневно"
+  },
+  "settings_quota_community": {
+    "message": "Присоединиться к сообществу"
+  },
+  "settings_quota_signed_in": {
+    "message": "Вход выполнен"
+  },
+  "settings_quota_signed_out": {
+    "message": "Вход не выполнен"
+  },
+  "settings_stepper_minus": {
+    "message": "Уменьшить"
+  },
+  "settings_stepper_plus": {
+    "message": "Увеличить"
+  },
+  "settings_value_all_langs": {
+    "message": "Все языки"
+  },
+  "settings_value_on": {
+    "message": "Вкл."
+  },
+  "settings_value_off": {
+    "message": "Выкл."
+  },
+  "settings_value_follow": {
+    "message": "Следовать языку интерфейса"
   }
 }

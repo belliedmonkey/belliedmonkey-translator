@@ -234,6 +234,146 @@ export function createGoogleAuthFlow(options) {
   };
 }
 
+// BEL-230：换号即失效上一账号令牌。
+//
+// 四条登录路径（Apple / Google / 邮箱 OTP / 邮箱密码）最后都进 show(session)，
+// 所以「账号真的变了」只在这里判一次。同一账号重复登录（userId 没变）不触发 ——
+// 那一次 claim 已经由 _autoClaimed 的 single-flight 挡掉，不重复领。
+export function accountSwitched(prev, next) {
+  const a = prev && prev.userId ? String(prev.userId) : '';
+  const b = next && next.userId ? String(next.userId) : '';
+  return !!a && !!b && a !== b;
+}
+
+// 换号串行步骤：清三槽 → 重新 claim。做成依赖注入的单个 async 函数，是为了让
+// 「三步之间不插队」可被单测钉住，而不是靠读源码猜顺序。deps：
+//   read()            读当前设置（至少含三槽 + grantTail）
+//   clear(settings)   算清理 patch —— 生产是 LearnGrant.clearForAccountSwitch
+//   write(patch)      一次落盘；必须在 claim 之前完成
+//   enabled()         这个 flavor 有没有额度这条路
+//   claimAndApply(o)  共用领取层（settingsModel.claimAndApply，overwrite:false）
+//
+// **顺序即原子性**：清理是一笔 storage.set；它 resolve 之后，任何重新读设置的
+// relay 请求都看不到旧 bmg_ 令牌。claim 失败也不回填旧槽 —— 失败的是「新令牌
+// 没到」，不是「旧令牌还能用」。真正的网络请求串行化靠 _autoClaimed 这个
+// 既有 single-flight 队列（见 switchAccountGrant），没有另造框架。
+export function createAccountSwitch(deps) {
+  const d = deps || {};
+  return async function accountSwitch() {
+    const cur = (await d.read()) || {};
+    const oldTail = String(cur.grantTail || '');
+    const clear = d.clear(cur) || { writes: {}, marks: {} };
+    await d.write(Object.assign({}, clear.writes, clear.marks));
+    if (typeof d.enabled === 'function' && !d.enabled()) return { cleared: true, claimed: false };
+    // replaceKeyTail 显式给**旧尾号**：三槽刚被清空，plan() 不能再指望
+    // settings.grantTail 还在；而这三槽本来就是上一账号的额度，新令牌可以直接盖。
+    await d.claimAndApply({ overwrite: false, selfTest: false, replaceKeyTail: oldTail });
+    return { cleared: true, claimed: true };
+  };
+}
+
+// BEL-230 Q1：**退出登录**也走与换号同一份清理判据，不再用 `if (cur.grantTail)` 前置。
+//
+// 上一版只修了「同一页面里 A→B 直接换号」，而 UI 上真实的主路径是「A 退出 → 退到登录
+// → B 登录」：三条退出路径都先 show(null)，B 登录时 prevSession 已是 null，
+// accountSwitched() 返回 false，换号清理永远不启动。退出这一刻才是唯一能确定「A 的
+// 令牌该失效」的时机，所以把清理收口到 show(null)。
+//
+// 判据必须用 clearForAccountSwitch（^bmg_ 前缀 + 旧尾号），不能用 activeIn 的尾号
+// 命中：grantTail 丢了的时候尾号判不出来，一个字节都不会清，B 会继续用 A 的令牌。
+// 用户自己粘的 key 不是 bmg_，一个字节都不动。
+export function createSignOutClear(deps) {
+  const d = deps || {};
+  return async function signOutClear() {
+    const cur = (await d.read()) || {};
+    const clear = (typeof d.clear === 'function' ? d.clear(cur) : null) || { writes: {}, marks: {} };
+    const patch = Object.assign({}, clear.writes || {}, clear.marks || {});
+    // BEL-230 ACCEPT-1：退出保留领取记录（无令牌），换号仍清。
+    // clearForAccountSwitch 同时服务换号与退出：换号必须清 grant（B 不该看到 A 的
+    // 「领过/余额」），而退出只清令牌与余额缓存。grant 只有 hash 与时间，留着
+    // status() 才是 signed_out（卡面说「余额保留着」），而不是 none（「登录之后
+    // 可以领一份免费额度」）—— 后者与退出确认里的「余额保留」自相矛盾。
+    delete patch.grant;
+    if (Object.keys(patch).length) await d.write(patch);
+    // TTS 的模块级 cfg 是第二份快照（extension/learn/tts.js），storage 清了它不会自己
+    // 变；落盘后立刻重配，退出期间不会再用 A 的令牌朗读。
+    if (typeof d.afterWrite === 'function') {
+      try { await d.afterWrite(cur, patch); } catch (_) {}
+    }
+    return patch;
+  };
+}
+
+// 1.23.3 第一优先级：登录页邮箱框回车即发验证码。
+//
+// 键盘弹出后盖住「发送验证码」，真人要先挪键盘、XCUITest 点击 isHittable=false，
+// 换号/重登反复卡在这一步。用户令：回车直接触发发送，不新增按钮、不改视觉。
+//
+// 发送逻辑只留这一份：表单 submit 与邮箱框 Enter 都落到 submitEmailCode()。
+// Enter 走 form.requestSubmit() 而不是直接调它 —— requestSubmit 会真的派发 submit
+// 事件，于是 #signin-prompt 捕获阶段的出境单独同意闸（unchecked ⇒ stopImmediatePropagation）
+// 仍然先跑，和点 #send 完全同一条路。
+//
+// 抽成工厂（不在 bootShell 的闭包里）是为了能在无 DOM 的 Node 套件里钉住
+// 「两条路共用同一个发送函数」「发送中再回车只发一次」—— bootShell 本身要整页 DOM。
+export function createEmailCodeSender(deps) {
+  const d = deps || {};
+  const {
+    form, emailInput, sendButton, codeForm, codeInput, prompt,
+    t, say, humanError, setLoginBusy, isLoginBusy, LearnAuth, setPendingEmail,
+  } = d;
+
+  async function submitEmailCode() {
+    // in-flight 守卫：setLoginBusy(true) 是同步的，所以第二次回车/提交在这里就返回，
+    // 不会在 await 期间再发一封。频率限制与「正在发送…」禁用态保持原样。
+    if (isLoginBusy()) return;
+    const email = emailInput.value.trim();
+    if (!email) return;                       // 空邮箱：与原来的 submit 一致，不发
+    // BEL-231：格式在客户端先拦。服务端对 `abc` 也会 400，但那条路已经发出一条
+    // POST /auth/v1/otp，界面却只会说「验证码不对或已过期」——用户看到的因果是错的。
+    // 判据是最小可用形状：本地部分 + @ + 域名 + 点 + 后缀；不做 RFC 级校验。
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      say(t('app_email_invalid', '邮箱格式不对'), true);
+      return;
+    }
+    setLoginBusy(true);
+    sendButton.textContent = t('app_sending', '正在发送…');
+    say('');
+    try {
+      await LearnAuth.signIn(email);
+      setPendingEmail(email);
+      form.hidden = true;
+      codeForm.hidden = false;
+      prompt.classList.add('code-step');      // 验证码是第二屏，不往下堆
+      codeInput.focus();
+      say(t('app_code_sent', '验证码已发送，查收邮件。'));
+    } catch (err) {
+      say(humanError(err), true);
+    } finally {
+      setLoginBusy(false);
+      sendButton.textContent = t('app_send', '发送验证码');
+    }
+  }
+
+  function onEmailSubmit(e) {
+    e.preventDefault();                       // 发送由我们自己走（与回车同一个函数）
+    submitEmailCode();
+  }
+
+  function onEmailKeydown(e) {
+    if (!e || e.key !== 'Enter' || e.isComposing) return;   // 输入法组词中的回车不算
+    e.preventDefault();                       // 不让 WKWebView 再做一次不可靠的隐式提交
+    form.requestSubmit();                     // 仍经过 submit 事件 → 同意闸 / 同一发送函数
+  }
+
+  function wire() {
+    form.addEventListener('submit', onEmailSubmit);
+    emailInput.addEventListener('keydown', onEmailKeydown);
+  }
+
+  return { submitEmailCode, onEmailSubmit, onEmailKeydown, wire };
+}
+
 export function bootShell() {
   const $ = (id) => document.getElementById(id);
 
@@ -327,7 +467,18 @@ export function bootShell() {
     return t('app_apple_failed', 'Apple 登录没能完成。可以改用下面的邮箱或手机号。');
   }
 
+  // BEL-231（215 验收）：登录按钮的标签是命令式写的，启动时按**系统**语言画一次；
+  // 存储里的 uiLang（英文界面）是在 applyStoredUiLang → paintStatic 之后才生效的。
+  // 不在这里补画，英文界面就会一直停在启动时的中文兜底（实测 en 表有译文也不生效）。
+  function paintProviderLabels() {
+    const a = $('btn-apple-label');
+    if (a) a.textContent = t('sync_with_apple', '用 Apple 登录');
+    const g = $('btn-google-label');
+    if (g) g.textContent = t('sync_with_google', '用 Google 登录');
+  }
+
   function paintStatic() {
+    paintProviderLabels();
     // 产品名也是要本地化的一句（`action_title`，12 个语种都有）。它原来是 index.html 里
     // 一段**写死的 h1**：没有 id、没有 data-i18n，于是谁都重画不到它 —— 界面语言切成
     // English、系统语言也切成英文之后，整屏只剩这四个字还是中文（2026-09-25 用户当场指出）。
@@ -480,8 +631,37 @@ export function bootShell() {
   }
 
   // 一次会话只试一次 —— 存的是**那一次尝试本身**，晚来的调用者（引导的「就地试一句」）
-  // 等同一次，而不是看见「已经试过」就当作有了引擎。
+  // 等同一次，而不是看见「已经试过」就当作有了引擎。它同时是换号的串行队列：
+  // switchAccountGrant() 把「清理 + 重新领取」整段放进同一个 promise，别的调用者
+  // await 到的就是这一整段，中间插不进第二次 claim。
   let _autoClaimed = null;
+  const SWITCH_KEYS = ['apiKey', 'apiModel', 'ttsApiKey', 'ttsModel', 'ttsEngine',
+    'sttApiKey', 'sttModel', 'sttEngine', 'grantTail', 'grantBalance', 'grant'];
+  const runAccountSwitch = createAccountSwitch({
+    enabled: () => typeof LearnGrant !== 'undefined' && LearnGrant.enabled(),
+    read: () => new Promise((res) => {
+      try { chrome.storage.local.get(SWITCH_KEYS, (v) => res(v || {})); } catch (_) { res({}); }
+    }),
+    clear: (s) => LearnGrant.clearForAccountSwitch(s),
+    write: (patch) => new Promise((res) => {
+      try { chrome.storage.local.set(patch, res); } catch (_) { res(); }
+    }),
+    claimAndApply: (o) => settingsModel.claimAndApply(o),
+  });
+  // 退出登录的清理由 show(null) 调用，判据与换号相同（clearForAccountSwitch）。
+  // 这里**没有** `if (cur.grantTail)`：尾号丢了也必须靠 ^bmg_ 前缀清掉旧令牌。
+  const runSignOutClear = createSignOutClear({
+    read: () => new Promise((res) => {
+      try { chrome.storage.local.get(SWITCH_KEYS, (v) => res(v || {})); } catch (_) { res({}); }
+    }),
+    clear: (s) => (typeof LearnGrant !== 'undefined' && LearnGrant.clearForAccountSwitch)
+      ? LearnGrant.clearForAccountSwitch(s)
+      : { writes: {}, marks: {} },
+    write: (patch) => new Promise((res) => {
+      try { chrome.storage.local.set(patch, res); } catch (_) { res(); }
+    }),
+    afterWrite: () => settingsModel.syncLiveTts(),
+  });
   async function autoClaimGrant() {
     if (!_autoClaimed) _autoClaimed = autoClaimOnce().catch(() => {});
     return _autoClaimed;
@@ -510,6 +690,61 @@ export function bootShell() {
       claimFailed = true;          // 交给状态行去说人话；错误本身仍然由 autoClaimGrant 的 catch 吞掉
       throw e;
     }
+  }
+  // BEL-230：换号后**一个串行步骤** —— 清 _autoClaimed → 清三槽旧令牌 →
+  // 重新 claim（plan 按旧尾号换绑到新 token）。整段由 _autoClaimed 这个既有
+  // single-flight 队列承载：谁在这期间调 autoClaimGrant()，拿到的都是同一个
+  // promise，不会用旧令牌再发一次 claim/relay。
+  async function switchAccountGrant() {
+    // 上一段可能是 A 的 claim（autoClaimGrant 刚启动）。**先等它收口再开新段**：
+    // 否则 A 的晚到结果会落在 B 刚清过/刚写好的三槽上。代际检查是第二道闸，
+    // 这一句保证连「A 先清后写」的中间态都不会和 B 的清理交错。
+    const prevClaim = _autoClaimed;
+    _autoClaimed = null;                 // 先清会话级 memo（J07 的重领路同一条）
+    claimFailed = false;
+    _autoClaimed = (async () => {
+      if (prevClaim) { try { await prevClaim; } catch (_) { /* 上一段失败不挡新段 */ } }
+      try { return await runAccountSwitch(); }
+      catch (e) { claimFailed = true; throw e; }
+    })();
+    return _autoClaimed;
+  }
+  // BEL-230 Q1：show() 里「登录态变了」的那一段。抽成闭包函数有两个理由：
+  //   1. 退出清理要串行化（先等 A 在途 claim，再清），代码不该把 show() 撑大 ——
+  //      show() 的既有门禁用固定窗口读它末尾的 setLoginBusy(false)；
+  //   2. 判据只有这一处，换号与退出不会各写一份。
+  // 返回一个 promise（退出清理）或 null（换号时只做同步的代际/听译复位）。
+  function reconcileAccountChange(prevSession, session, switched) {
+    if (!session) {
+      const prevClaim = _autoClaimed;
+      _autoClaimed = null; claimFailed = false;
+      // 账号代际先递增：A 在途的 claim 一回来就看到变化，不会写进 B 的槽。
+      try { settingsModel.bumpAccountEpoch(); } catch (_) {}
+      // 听译的 cfg 在 start() 只读一次（listen-model），换号/退出必须让旧快照作废。
+      try { if (typeof AppListen !== 'undefined' && AppListen.accountChanged) AppListen.accountChanged(); } catch (_) {}
+      // 冷启动读不到登录态（lastLoadError）≠ 用户退出：§8.4.1 要求这种瞬断不把
+      // 还登着的人判成未登录，更不能顺手清掉他的令牌。进程里确实有过会话
+      // （prevSession）时按真退出处理。
+      let loadErr = false;
+      try { loadErr = !!(typeof LearnAuth !== 'undefined' && LearnAuth.lastLoadError && LearnAuth.lastLoadError()); } catch (_) {}
+      if (!prevSession && loadErr) return null;
+      // 先等 A 在途的 claim 收口（同一段 single-flight），再清。否则 A 的 storage.set
+      // 可能排在退出清理之后落盘，把刚清掉的槽又写回 A 的令牌。清理完成后把
+      // _autoClaimed 放回 null —— B 登录时必须能发起新的一次 claim。
+      const gate = (async () => {
+        if (prevClaim) { try { await prevClaim; } catch (_) { /* A 失败不挡退出 */ } }
+        await runSignOutClear();
+      })();
+      const gated = gate.catch(() => { /* 清不掉不挡登录面；下一次登录 claim 仍会覆盖空槽 */ });
+      _autoClaimed = gated;
+      return gated.finally(() => { if (_autoClaimed === gated) _autoClaimed = null; });
+    }
+    if (switched) {
+      // 直接换号（不经过 show(null)）：代际/听译快照与退出走同一条。
+      try { settingsModel.bumpAccountEpoch(); } catch (_) {}
+      try { if (typeof AppListen !== 'undefined' && AppListen.accountChanged) AppListen.accountChanged(); } catch (_) {}
+    }
+    return null;
   }
   const readObSettings = () => new Promise((r) => {
     try { chrome.storage.local.get(settingsModel.KEYS, (v) => r(v || {})); } catch (_) { r({}); }
@@ -1855,7 +2090,18 @@ export function bootShell() {
   }
 
   async function show(session) {
+    const prevSession = currentSession;
+    const switched = accountSwitched(prevSession, session);
     currentSession = session;
+    // BEL-230 Q1：退出即清 / 换号复位都收口到这一个闭包（判据与串行化见函数注释）。
+    // 三条 UI 退出路径（设置页、「退出」按钮、跨账号深链）都只是 show(null)，所以
+    // 清理必须挂在这里，而不是挂在 accountSwitched 的分支上：B 登录时 prevSession
+    // 已经是 null，走不到 accountSwitched，但 A 的令牌在退出这一刻已经清掉了。
+    const accountP = reconcileAccountChange(prevSession, session, switched);
+    // BEL-230：换号的串行步骤在 show() 入口就**启动**（不是等 bindCorpus/paint 之后），
+    // 并立刻占用 _autoClaimed 这个既有 single-flight 队列 —— 后续任何 autoClaimGrant()
+    // 都排在同一段清理+领取后面。下面揭屏前再 await 它。
+    const switchP = switched ? switchAccountGrant() : null;
     // Bind the corpus BEFORE anything reads it. Every path that changes who is
     // signed in arrives here — startup, both sign-in forms, sign-out — so this is
     // the one place where "which database" gets decided, and there is no second
@@ -1886,6 +2132,15 @@ export function bootShell() {
     //
     // **在判定之前启动、在状态行之前 await**（2026-10-02）：启动早于判定，冷启动那一帧里它
     // 一定跑得到；但等待晚于判定与揭屏，那次网络往返不再把揭屏拖住 1–2 秒（R2c / R2d）。
+    // BEL-230：换号时先把「清三槽 → 重新 claim」整段跑完，再启动首屏判定/揭屏。
+    // 这一段是串行的：清理落盘之前不 claim，claim 完成之前不画任何读设置的界面 ——
+    // 于是中间不存在「用旧账号 bmg_ 令牌发 relay」的那一帧。同一账号不走这里。
+    if (accountP) {
+      try { await accountP; } catch (_) { /* 退出清理失败不挡登录面 */ }
+    }
+    if (switchP) {
+      try { await switchP; } catch (_) { /* 失败已清槽，状态行会说没领到 */ }
+    }
     const claimP = session ? autoClaimGrant().catch(() => { /* 领不到不挡首屏 */ }) : Promise.resolve();
     try { await paintFirstRun(session); } catch (_) {}
     // paintFirstRun 非 packs 时只判定、不揭屏；这里把首页露出来（屏 2 由它自己露）。
@@ -2693,7 +2948,11 @@ export function bootShell() {
   // 还能点，双开登录流。原则：从点击到流程终了（成功即离屏 / 失败与取消才解锁），
   // 这一屏的所有登录入口保持 disabled。
   const LOGIN_ENTRY_IDS = ['btn-apple', 'btn-google', 'btn-signin', 'send', 'verify', 'app-use-pw', 'app-pw-login'];
+  // 入口 disabled 只挡指针；键盘回车不经过禁用按钮，所以发送函数还要一个**读得到的**
+  // 进行中标志（1.23.3：发送中重复回车只能发一次）。setLoginBusy 是唯一写入口。
+  let loginBusy = false;
   function setLoginBusy(busy) {
+    loginBusy = !!busy;
     for (const id of LOGIN_ENTRY_IDS) {
       const e = $(id);
       if (e) e.disabled = busy;
@@ -2748,7 +3007,7 @@ export function bootShell() {
   });
 
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('apple')) {
-    $('btn-apple-label').textContent = t('sync_with_apple', '用 Apple 登录');
+    paintProviderLabels();
     $('btn-apple').hidden = false;
     $('btn-apple').addEventListener('click', () => {
       setLoginBusy(true);
@@ -2769,7 +3028,7 @@ export function bootShell() {
   if (appleBridge && Registry.backend() && Registry.backend().enabled && (Registry.backend().providers || []).includes('google')) {
     const scheme = (Registry.flavor() === 'china') ? 'belliedmonkeycn' : 'belliedmonkey';
     const g = $('btn-google');
-    $('btn-google-label').textContent = t('sync_with_google', '用 Google 登录');
+    paintProviderLabels();
     g.hidden = false;
     g.disabled = true;
     LearnAuth.prepareProviderSignIn().then(() => { g.disabled = false; })
@@ -2833,28 +3092,19 @@ export function bootShell() {
 
   $('email').addEventListener('input', refreshPwEntry);
 
-  $('email-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('email').value.trim();
-    if (!email) return;
-    setLoginBusy(true);
-    $('send').textContent = t('app_sending', '正在发送…');
-    say('');
-    try {
-      await LearnAuth.signIn(email);
-      pendingEmail = email;
-      $('email-form').hidden = true;
-      $('code-form').hidden = false;
-      $('signin-prompt').classList.add('code-step');   // 验证码是第二屏，不往下堆
-      $('code').focus();
-      say(t('app_code_sent', '验证码已发送，查收邮件。'));
-    } catch (err) {
-      say(humanError(err), true);
-    } finally {
-      setLoginBusy(false);
-      $('send').textContent = t('app_send', '发送验证码');
-    }
+  const emailSender = createEmailCodeSender({
+    form: $('email-form'),
+    emailInput: $('email'),
+    sendButton: $('send'),
+    codeForm: $('code-form'),
+    codeInput: $('code'),
+    prompt: $('signin-prompt'),
+    t, say, humanError, setLoginBusy,
+    isLoginBusy: () => loginBusy,
+    LearnAuth,
+    setPendingEmail: (v) => { pendingEmail = v; },
   });
+  emailSender.wire();   // submit（#send 点击 / 键盘 Go）与 #email 回车共用 submitEmailCode()
 
   $('code-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3429,7 +3679,8 @@ export function bootShell() {
       openExternal,
       onSignIn: () => { show(null); },
       onSignOut: async () => {
-        // 同扩展设置页（F06）：额度在用先确认，退出即清三槽令牌与 grantTail / grantBalance。
+        // 同扩展设置页（F06）：额度在用先确认。真正的清理由 show(null) 统一做 ——
+        // 这里再清一份会变成第二处判据，这正是上一版 `if (cur.grantTail)` 漏清的来源。
         const cur = await new Promise((res) => chrome.storage.local.get(['apiKey', 'ttsApiKey', 'sttApiKey', 'grantTail'], (v) => res(v || {})));
         const active = typeof LearnGrant !== 'undefined' && LearnGrant.active(cur);
         if (active) {
@@ -3437,10 +3688,6 @@ export function bootShell() {
           if (!go) return;
         }
         await LearnAuth.signOut();
-        if (cur.grantTail) {
-          const c = LearnGrant.clearOnSignOut(cur);
-          await new Promise((res) => chrome.storage.local.set(c.writes, () => chrome.storage.local.remove(['grantTail', 'grantBalance'], res)));
-        }
         await show(null);
       },
     });

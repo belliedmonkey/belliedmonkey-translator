@@ -167,6 +167,11 @@ const listenModel = (() => {
   let cameFrom = '';
   let sessionGetter = null;      // wire({ session })：shell 的 currentSession getter
   let gen = 0;              // 会话代际：旧会话的异步回调按它作废
+  // BEL-230 Q1：**账号**代际，与会话 gen 分开。gen 回答「这一场还算不算」，
+  // acctEpoch 回答「这一刻登录的是不是开场时那个人」。换号/退出都要递增：cfg 在
+  // start() 只读一次（:2244），旧快照里是 A 的 provider/apiKey，不递增就会继续
+  // 拿 A 的令牌发请求、并把结果写进 B 的界面。
+  let acctEpoch = 0;
   let speakingRid = 0;      // 正在朗读哪一行（0 = 没在读）
   const sq = C.makeSpeakQueue();     // 朗读队列（裁定 7：排队逐句读完）
   const echo = C.makeEchoGuard();    // 回声闸第一层：自己读出去的别再当成一句话收回来
@@ -496,8 +501,18 @@ const listenModel = (() => {
   // ── 翻译 ──────────────────────────────────────────────────────────────────
   // errOut：定稿行的调用方传一个空对象进来接住错误（遥测要它的 code）；半句的增量翻译不传 ——
   // 半句失败没有界面后果，也不记。
+  function staleAccountError() {
+    const e = new Error('stale-account');
+    e.code = 'stale_account';
+    return e;
+  }
   async function translate(text, toLang, errOut, myGen) {
-    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) return '';
+    // BEL-230 Q1：捕获账号代际 + cfg 快照。之后所有 await 回来都要再比一次 ——
+    // 换号后 cfg 已置空，绝不能再用旧账号的 cfg.tr.apiKey 发请求或接结果。
+    const myEpoch = acctEpoch;
+    const c = cfg;
+    if (!c || !c.tr || !c.tr.provider || !c.tr.apiKey) return '';
+    if (myEpoch !== acctEpoch) return '';
     if (trHalt.blocksPump()) {
       if (errOut) errOut.err = haltErr();
       return '';
@@ -508,11 +523,12 @@ const listenModel = (() => {
     // 一行都不该落、一次翻译都不该发 —— 光看界面「没出行」分不清是没发还是发了没回来。
     translateCalls++;
     try {
-      const out = await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
+      const out = await TranslationAPI.translate(text, toLang, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '');
+      if (myEpoch !== acctEpoch) return '';
       if (out) notePumpSuccess(myGen);
       return out;
     } catch (e) {
-      notePumpFailure(e, myGen);
+      if (myEpoch === acctEpoch) notePumpFailure(e, myGen);
       if (errOut) errOut.err = e;
       return '';
     }
@@ -632,11 +648,14 @@ const listenModel = (() => {
   async function translateRow(row, toLang, quiet) {
     if (trHalt.blocksPump()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     const myGen = gen;
+    const myEpoch = acctEpoch;
     row.trErr = false; row.trBusy = true; canvas.view('history');
     const t0 = now();
     const eo = {};
     const tr = await translate(row.text, toLang == null ? targetLangFor(row) : toLang, eo, myGen);
-    if (myGen !== gen) return;
+    // BEL-230 Q1：账号变了 ⇒ 这行属于上一账号，迟到译文丢掉（并把忙态收掉，
+    // 免得旧行永远转圈）。
+    if (myGen !== gen || myEpoch !== acctEpoch) { row.trBusy = false; canvas.view('history'); return; }
     if (row.lat) row.lat.pass = now() - t0;
     row.trBusy = false; row.tr = tr || ''; row.trErr = !tr;
     if (row.tr) tmOk(); else if (!(eo.err && eo.err.halted)) tmFail(eo.err);
@@ -661,13 +680,17 @@ const listenModel = (() => {
   }
   async function passRow(row, quiet) {
     if (trHalt.blocksPump()) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
-    if (!cfg || !cfg.tr || !cfg.tr.provider || !cfg.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
+    // BEL-230 Q1：cfg 快照 + 账号代际。cfg 在 start() 读一次；换号后它已被置空，
+    // 这里不能再回读旧快照。
+    const c = cfg;
+    const myEpoch = acctEpoch;
+    if (!c || !c.tr || !c.tr.provider || !c.tr.apiKey) { row.trErr = true; row.trBusy = false; canvas.view('history'); return; }
     if (trHalt.blocksPump()) { markPumpBlocked(row); return; }
     const myGen = gen;
     row.trErr = false; row.trBusy = true; canvas.view('history');
     // 字幕：源语言是**视频的语言**（左格），「自动」时取这句识别器那一路的语言。#590 之前这里
     // 取的是 otherLang（= 译成）⇒ 提示写成「一句中文转写 … 译成中文」，英文被原样当译文留下。
-    const srcLang = cfg.mode === 'subtitle' ? subSrcLang(row) : row.who === 'me' ? cfg.myLang : cfg.otherLang;
+    const srcLang = c.mode === 'subtitle' ? subSrcLang(row) : row.who === 'me' ? c.myLang : c.otherLang;
     const dstLang = targetLangFor(row);
     const prompt = C.buildListenPrompt({
       text: row.raw || row.text, alts: row.alts || [], who: row.who,
@@ -678,10 +701,11 @@ const listenModel = (() => {
     const t0 = now();
     noteTranslateStart();
     try {
-      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '');
-      if (reply) notePumpSuccess(myGen);
-    } catch (e) { reply = ''; passErr = e; notePumpFailure(e, myGen); }
-    if (myGen !== gen) return;
+      reply = await TranslationAPI.listenPass(prompt, TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '');
+      if (myEpoch === acctEpoch && reply) notePumpSuccess(myGen);
+    } catch (e) { reply = ''; passErr = e; if (myEpoch === acctEpoch) notePumpFailure(e, myGen); }
+    // 账号在 await 期间变了：回复属于 A，不能写进 B 的界面。
+    if (myGen !== gen || myEpoch !== acctEpoch) { row.trBusy = false; canvas.view('history'); return; }
     if (row.lat) row.lat.pass = now() - t0;
     const parsed = C.parseListenReply(reply, row.raw || row.text);
     if (parsed.tagged && C.acceptCorrection(row.raw || row.text, parsed.text, routeDeps)) row.text = parsed.text;
@@ -761,16 +785,23 @@ const listenModel = (() => {
   // （中转不代管超时，AbortController 在 direct/proxy 两条路上都在调用方这一侧）。
   function segCall(prompt) {
     const myGen = gen;
+    // BEL-230 Q1：断句+翻译也是一次网络往返。捕获账号代际与 cfg 快照；回来时
+    // 账号变了就 reject（让路由器丢弃这一段），绝不把 A 的结果交给 B 的会话。
+    const myEpoch = acctEpoch;
+    const c = cfg;
+    if (!c || !c.tr || !c.tr.provider || !c.tr.apiKey) return Promise.reject(staleAccountError());
+    if (myEpoch !== acctEpoch) return Promise.reject(staleAccountError());
     if (trHalt.blocksPump()) return Promise.reject(haltErr());
     translateCalls++;
     noteTranslateStart();
     return TranslationAPI.listenPass(prompt,
-      TranslationAPI.resolveProvider(cfg.tr.provider), cfg.tr.apiKey, cfg.tr.baseUrl || '', cfg.tr.model || '',
+      TranslationAPI.resolveProvider(c.tr.provider), c.tr.apiKey, c.tr.baseUrl || '', c.tr.model || '',
       { budget: 512, timeoutMs: 12000 }).then((raw) => {
+      if (myEpoch !== acctEpoch) throw staleAccountError();
       if (raw) notePumpSuccess(myGen);
       return raw;
     }, (err) => {
-      notePumpFailure(err, myGen);
+      if (myEpoch === acctEpoch) notePumpFailure(err, myGen);
       throw err;
     });
   }
@@ -782,6 +813,11 @@ const listenModel = (() => {
   const SEG_USER_TMPL = t('listen_seg_user', '已定稿的上文（只作参考，不要重复输出）：\n{ctx}\n\n待处理文本：\n{buffer}\n\n是否强制收尾：{force}');
   // 路由器的上下文（prompt 用）：源/目标语言名 + 最近 6 行已定稿 + prompt 模板。
   function segCtx(locale) {
+    // 账号在旧路由器的计时器里被换掉时 cfg 已为空 —— 交一个空上下文，让路由器
+    // 自己按 gen 收尾，而不是在这里抛 TypeError。
+    if (!cfg) {
+      return { srcName: '', dstName: '', context: [], sysTmpl: SEG_SYS_TMPL, userTmpl: SEG_USER_TMPL };
+    }
     const base = C.baseCode(locale);
     const srcLang = base === C.baseCode(cfg.myLang) ? cfg.myLang : cfg.otherLang;
     const dstLang = srcLang === cfg.myLang ? cfg.otherLang : cfg.myLang;
@@ -2236,6 +2272,24 @@ const listenModel = (() => {
     NativeAudio.sessionStop();
     NativeAudio.recordMode(false);
   }
+  // BEL-230 Q1：账号变了（退出或换号）。shell 的 show() 是唯一汇合点，由它调这里。
+  //   · acctEpoch++：在途的 translate / passRow / segCall 回来时作废（它们捕获的是
+  //     旧 epoch），迟到结果不再写进界面；
+  //   · gen++：旧会话的 socket/回调也一并失效（与 start/leave 同一条作废语义）；
+  //   · cfg = null：cfg 只在 start() 读一次；不置空，下一次翻译还会拿 A 的
+  //     provider/apiKey 发请求（:511 / :681 / :767）。
+  function accountChanged() {
+    acctEpoch++;
+    gen++;
+    cfg = null;
+    sq.clear(); speakingRid = 0;
+    // 旧账号的断句路由器还挂着计时器/在途请求：先停掉。它的 emit/fallback 本来就会
+    // 按 gen 丢弃，但留着计时器没有意义，且 segCtx 读不到 cfg。
+    if (seg) { try { seg.dispose(); } catch (_) {} }
+    seg = null; segDegrade = false; segSpeakN = 0;
+    if (inc) { try { inc.reset(); } catch (_) {} }
+    try { if (typeof LearnTTS !== 'undefined' && LearnTTS.stop) LearnTTS.stop(); } catch (_) {}
+  }
   async function start() {
     if (phase !== 'idle' && phase !== 'ended') return;
     gen++;
@@ -3635,6 +3689,8 @@ const listenModel = (() => {
   return {
     canvas,
     wire, open, leave, start, pause, resume, end, refreshEntry,
+    // BEL-230 Q1：shell 的 show() 在退出/换号时调；递增账号 epoch、清 cfg、停 TTS。
+    accountChanged,
     // 视图动作（原 addEventListener 的 handler 们）
     toggle, flipRow, toggleShowRaw, openShow, closeShow, speakNow, speakShownRow, floatBtn,
     copyAll, langChange, noteTap, setAutoSpeak, setSubsCapture, setEphemeral,
@@ -3695,6 +3751,7 @@ const listenModel = (() => {
     // 视图直写 pip 预览矩形的通道（几何感知在画布，去重与发桥在模型）
     pipRectUpdate,
     _debug: () => ({ mode, subsReason, pipWindow, pipReason, phase, pauseReason, showRid, rows: session ? session.rows.slice() : [], partial, partialTr, id: session && session.id,
+      acctEpoch, cfgReady: !!cfg,   // BEL-230 Q1：账号代际 / 旧 cfg 是否已作废
       lid: lidPair(), lidRaw: lidLang,   // §9.6.1.3：归属用的是**已稳住**的判词；lidRaw 是当前原始判词
       pcmFrames, pcmSent, sock: !!sock, bridged: bridged(), ctx: audioCtx ? audioCtx.state : null, track: stream && stream.getAudioTracks()[0] ? stream.getAudioTracks()[0].readyState : null,
       echoDropped: echo.dropped(), speakQueue: sq.size(), speakingRid, autoSpeakOff, lastSpoken, autoSkip, speakPumping,
