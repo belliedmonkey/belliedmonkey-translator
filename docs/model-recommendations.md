@@ -82,7 +82,7 @@
 
 ## 实测台账（全部）
 
-共 71 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
+共 74 行。结局的含义见 `build/perf-ledger.config.js` 的文件头。
 
 ### `api.openai.com`
 
@@ -130,6 +130,14 @@
 | `kimi-k3` | 2026-08-30 | ✅ 采纳 | 基线 24365ms · 思考 805tok · 降档后 6498ms | `{"enable_thinking":false}` | 基线 24.4 秒 / 思考 805 tok → 6.6 秒 / 思考 0，快 3.7 倍。四种拼法有效，选 enable_thinking:false 是因为它同时是 glm-4.6 唯一有效的那一种 —— 一个网关一行，比按模型分叉更不容易漏。 |
 | `qwen3.8-flash` | 2026-08-30 | ✅ 采纳 | 基线 21247ms · 思考 2365tok · 降档后 2023ms | `{"enable_thinking":false}` | 基线抖得厉害（21.2 秒 / 思考 2365，与 4.0 秒 / 思考 217 两次），正说明「思考多少」不由输入决定 —— 这也是墙钟时间证据力最弱的原因。降档后稳定在 2.2 秒 / 思考 0。 |
 | `deepseek-v4-flash-0731` | 2026-08-30 | ✅ 采纳 | 基线 16506ms · 思考 1410tok · 降档后 2624ms | `{"enable_thinking":false}` | 基线 16.5 秒 / 思考 1410 → 2.6 秒 / 思考 0，快 6.3 倍。顺带拿到一条服务端拒绝原话：这个端点的 reasoning_effort 不收 minimal（只收 low/medium/high/xhigh/max）—— 那正是「写 false 必须有引文」要的那种证据。 |
+
+### `maas.qwencloudapi.com`
+
+| 模型 | 日期 | 结局 | 数字 | 采纳的参数 | 说明 |
+|---|---|---|---|---|---|
+| `qwen3.7-plus` | 2026-11-10 | ✅ 采纳 | — | `{"enable_thinking":false}` | 不钉会思考（218 completion tok）；钉后 200、completion 1 tok、reasoning 0 —— 翻译不该为每段付思考成本 |
+| `qwen3-tts-flash` | 2026-11-10 | 🔵 可达（参数未扫） | — | — | 形状可达：回 OSS URL 而不是字节，现有 speech-dashscope 够用。音色与参数层面没扫过 |
+| `qwen3-asr-flash` | 2026-11-10 | 🔵 可达（参数未扫） | — | — | chat/completions + input_audio 200 并回正确文本；语言字段等参数层面没扫过 |
 
 ### `openrouter.ai`
 

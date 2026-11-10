@@ -165,3 +165,35 @@ describe('会出声的对话模型 — 与专用 TTS 的差别要被判据看住
     eq(code, 'empty_audio');
   });
 });
+
+describe('QwenCloud 语音合成 — 同一形状，另一个 host（BEL-236）', () => {
+  const e = TTS.find((x) => x.id === 'qwencloud_tts');
+
+  test('条目存在，global-only，端点在 maas 的 multimodal-generation 上', () => {
+    ok(e, 'tts.config.js 里没有 qwencloud_tts');
+    eq(e.flavors.join(), 'global', '中国版继续用 qwen_tts，这一条不许进中国包');
+    eq(e.type, 'speech-dashscope');
+    ok(/^https:\/\/maas\.qwencloudapi\.com\/api\/v1\/services\/aigc\/multimodal-generation\/generation$/.test(e.defaultEndpoint),
+      '端点不是 maas 的多模态生成地址：' + e.defaultEndpoint);
+  });
+
+  test('模型与额度朗读档逐字相同（build/grant-models.config.js）', () => {
+    eq(e.defaultModel, 'qwen3-tts-flash');
+  });
+
+  test('voices 是 qwen3-tts-flash 服务端报出的名字，不是 qwen-tts 那四个', () => {
+    ok(e.voices.includes('Cherry'), '至少保留一个已验音色');
+    ok(!(e.voices.length === 4 && e.voices.join(',') === 'Cherry,Serena,Ethan,Chelsie'),
+      '照抄了 qwen-tts 的四音色表 —— 那是另一档模型');
+  });
+
+  test('请求体与 audioUrlFrom 与 qwen_tts 同形状', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('speech-dashscope', { url: e.defaultEndpoint, apiKey: 'k', model: e.defaultModel, input: '你好', voice: 'Cherry' });
+    eq(req.body.input.text, '你好');
+    eq(req.body.input.voice, 'Cherry');
+    eq(req.audioUrlFrom({ output: { audio: { url: 'http://x.oss.example/a.wav' } } }),
+      'https://x.oss.example/a.wav');
+  });
+});
+

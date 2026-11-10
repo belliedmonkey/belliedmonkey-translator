@@ -37,6 +37,8 @@
 // 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
 const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+// 额度三档的模型名（build/grant-models.config.js 单一来源）。
+const GRANT_MODELS = require('./grant-models.config.js');
 
 module.exports = [
   {
@@ -78,6 +80,21 @@ module.exports = [
     hintKey: 'stt_hint',
   },
   {
+    // QwenCloud 国际站（2026-11-10，BEL-236）。**与 qwen_asr 不是同一条路**：探针实测
+    // 该 host 的 multimodal-generation 对 qwen3-asr-flash 答 400，而
+    // `chat/completions + messages[].input_audio.data` 回 200 与正确文本 ——
+    // 所以它用新形状 transcribe-chat-audio（C4），不是 transcribe-dashscope。
+    //
+    // GLOBAL ONLY：中国版继续用 qwen_asr / dashscope.aliyuncs.com，一行不改。
+    // defaultModel 与额度转写档同源（build/grant-models.config.js）。
+    id: 'qwencloud_asr', type: 'transcribe-chat-audio', flavors: ['global'],
+    needsKey: true, supportsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions',
+    placeholder: null, defaultModel: GRANT_MODELS.stt,
+    labelKey: null, label: 'QwenCloud · transcription',
+    hintKey: 'stt_hint',
+  },
+  {
     // 聚合网关的转写。走**已有的** transcribe-compat 形状（multipart /audio/transcriptions），
     // 不需要新传输。
     //
@@ -94,6 +111,7 @@ module.exports = [
     defaultModel: 'openai/gpt-4o-mini-transcribe',
     labelKey: null, label: 'OpenRouter · transcription',
     hintKey: 'stt_hint',
+    oneClick: false,   // 1.23.4：与 OpenRouter 的 chat/tts 一起从一键卡撤下
   },
   {
     // GLOBAL ONLY: label and defaultEndpoint carry a brand the China bundle may not
@@ -104,6 +122,7 @@ module.exports = [
     defaultModel: 'whisper-1',
     labelKey: null, label: 'OpenAI Transcribe',
     hintKey: 'stt_hint',
+    oneClick: false,   // 1.23.4：与 OpenAI 的 chat/tts 一起从一键卡撤下
   },
   {
     // GLOBAL ONLY（Gemini 在中国大陆不开放）。文件一档走 Interactions 接口：JSON 内联
@@ -126,7 +145,7 @@ module.exports = [
     needsKey: true, supportsKey: true, supportsBaseUrl: false, supportsModel: false,
     requiresEndpoint: false,
     defaultEndpoint: RELAY + '/audio/transcriptions',
-    defaultModel: 'openai/whisper-1',
+    defaultModel: GRANT_MODELS.stt,
     // **必须是能出时间戳的那个。** gpt-4o-mini-transcribe 便宜约三倍，但它拒绝
     // verbose_json（经中继实测三段音频全 400），而字幕正是靠 segments 拿时间轴 ——
     // 钉它等于这一档只能做「说题」，做不了字幕。这个坑台账里对同族的另一个模型

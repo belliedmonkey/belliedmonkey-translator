@@ -191,6 +191,41 @@ module.exports = [
     why: '翻译专用模型，不思考，且本身就是最快的一档（383ms，对比 qwen-plus 509ms）',
   },
 
+  // ── maas.qwencloudapi.com（1.23.4 · QwenCloud 国际站）────────────────
+  //
+  // 2026-11-10 探针（真 key）：
+  //   chat  qwen3.7-plus      200，会思考（218 completion tok）
+  //   tts   qwen3-tts-flash   不带 X-DashScope-SSE 也 200，output.audio.url 可取
+  //   stt   qwen3-asr-flash   multimodal 400；chat/completions + input_audio 200
+  //
+  // 探针只证明了可达与形状；chat 另做了 enable_thinking:false 的 A/B，所以那一行
+  // 是 adopted，语音两档是 reachable（参数层面没扫过），不是「测过之后决定不写」。
+  {
+    host: 'maas.qwencloudapi.com', model: 'qwen3.7-plus', date: '2026-11-10',
+    baseline: { ms: null, thinkTokens: null, outChars: null, finish: 'stop',
+      note: '探针 200，会思考（218 completion tok）—— 没有单独拆 reasoning tok' },
+    tried: [{ params: { enable_thinking: false }, ms: null, thinkTokens: 0, outChars: null,
+      note: 'A/B：200 / completion 1 tok / reasoning 0；译文长度与基线相同' }],
+    verdict: 'adopted', adopted: { enable_thinking: false },
+    why: '不钉会思考（218 completion tok）；钉后 200、completion 1 tok、reasoning 0 —— 翻译不该为每段付思考成本',
+  },
+  {
+    host: 'maas.qwencloudapi.com', model: 'qwen3-tts-flash', date: '2026-11-10',
+    baseline: { ms: null, thinkTokens: null, outChars: null, finish: null,
+      note: '探针 200（不带 X-DashScope-SSE），output.audio.url 有值' },
+    tried: [],
+    verdict: 'reachable',
+    why: '形状可达：回 OSS URL 而不是字节，现有 speech-dashscope 够用。音色与参数层面没扫过',
+  },
+  {
+    host: 'maas.qwencloudapi.com', model: 'qwen3-asr-flash', date: '2026-11-10',
+    baseline: { ms: null, thinkTokens: null, outChars: null, finish: 'stop',
+      note: '探针：multimodal-generation 400；chat/completions + messages[].input_audio.data 200' },
+    tried: [],
+    verdict: 'reachable',
+    why: 'chat/completions + input_audio 200 并回正确文本；语言字段等参数层面没扫过',
+  },
+
   // ── openrouter ───────────────────────────────────────────────────────
   {
     host: 'openrouter.ai', model: 'openai/gpt-5-mini', date: '2026-08-21',

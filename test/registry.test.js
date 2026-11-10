@@ -15,7 +15,7 @@
 // An entry that forgets is not "defaulted to global" — it is an error, because the
 // silent default is precisely how a brand reaches a bundle that may not carry one.
 
-const { describe, test, ok, eq } = require('./harness');
+const { describe, test, ok, eq, deepEq } = require('./harness');
 
 // stt was missing from this list until #147. It went unnoticed only because its one
 // branded entry happens to be global-only — i.e. the exact silent-default failure this
@@ -48,17 +48,19 @@ const KNOWN_KEYS = {
     'vision',   // §9.7 文档翻译：默认模型接不接受 image_url（缺省 = 未知）
     // §8.10：免费额度中继那一档。grantOnly = **不进任何下拉** —— 它不是用户可以选的
     // 引擎，是领到额度之后系统替他填上的那一档；手动选它只会得到 401。
-    'grantOnly'],
+    'grantOnly',
+    // 1.23.4（BEL-236）：一键卡是否列出这个平台。缺省 true，只有显式 false 才发。
+    'oneClick'],
   tts: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'voices',
-    'returnsAudio', 'label', 'labelKey', 'hintKey', 'grantOnly'],
+    'returnsAudio', 'label', 'labelKey', 'hintKey', 'grantOnly', 'oneClick'],
   stt: ['id', 'type', 'flavors', 'needsKey', 'supportsKey', 'supportsBaseUrl', 'supportsModel',
     'requiresEndpoint', 'defaultEndpoint', 'placeholder', 'defaultModel', 'label',
     'labelKey', 'hintKey',
     // docs/domain-design.md §2.4 / §7: the live-transcription socket and the large-file
     // upload are STORED addresses (complete URLs, used verbatim), never derived.
     'uploadEndpoint',
-    'grantOnly'],
+    'grantOnly', 'oneClick'],
   'model-params': ['id', 'flavors', 'hosts', 'models', 'temperature', 'budget',
     'systemRole', 'reasoning', 'note'],
 };
@@ -510,3 +512,50 @@ describe('设备内置朗读条目（learning-design §9.6.1）', () => {
     ok(/loaded\.removeValue\(forKey: k\)/.test(swift), '引擎缓存没有封顶 —— 中英同时驻留会占约 0.9 GB');
   });
 });
+
+// ─── BEL-236 / 1.23.4：QwenCloud 一键三样，OpenAI/OpenRouter 从卡上撤下 ──────
+describe('provider one-click registration (BEL-236)', () => {
+  const P = require('../build/providers.config.js');
+  const T = require('../build/tts.config.js');
+  const S = require('../build/stt.config.js');
+  const byId = (list, id) => list.find((e) => e.id === id);
+
+  test('three QwenCloud ids are global-only and share the maas host', () => {
+    for (const [list, id] of [[P, 'qwencloud'], [T, 'qwencloud_tts'], [S, 'qwencloud_asr']]) {
+      const e = byId(list, id);
+      ok(e, `missing ${id}`);
+      eq(e.flavors.join(), 'global', `${id} must be global-only`);
+      const ep = (e.defaultEndpoint && typeof e.defaultEndpoint === 'object')
+        ? e.defaultEndpoint[e.flavors[0]] : e.defaultEndpoint;
+      ok(/^https:\/\/maas\.qwencloudapi\.com\//.test(ep),
+        `${id} is not on the maas host: ${ep}`);
+      ok(e.needsKey && e.supportsKey !== false, `${id} cannot be one-clicked without a key`);
+    }
+    eq(byId(P, 'qwencloud').defaultModel, 'qwen3.7-plus');
+    eq(byId(T, 'qwencloud_tts').defaultModel, 'qwen3-tts-flash');
+    eq(byId(S, 'qwencloud_asr').defaultModel, 'qwen3-asr-flash');
+  });
+
+  test('★ OpenAI and OpenRouter chat/tts/stt are exactly the six oneClick:false rows', () => {
+    const off = [];
+    for (const [name, list] of [['providers', P], ['tts', T], ['stt', S]]) {
+      for (const e of list) if (e.oneClick === false) off.push(`${name}/${e.id}`);
+    }
+    deepEq(off.sort(), [
+      'providers/openai', 'providers/openrouter',
+      'stt/openai_transcribe', 'stt/openrouter_transcribe',
+      'tts/openai_speech', 'tts/openrouter_speech',
+    ], '一键卡的撤下名单变了 —— 同 host 三档必须一起，否则组会从另一条长回来');
+  });
+
+  test('China DashScope one-click entries are untouched', () => {
+    // 中国版的 qwen / qwen_tts / qwen_asr 仍留给境内一键组，一个 oneClick 都没有。
+    for (const [list, id] of [[P, 'qwen'], [P, 'qwen_mt'], [T, 'qwen_tts'], [S, 'qwen_asr']]) {
+      const e = byId(list, id);
+      ok(e, `missing ${id}`);
+      ok(e.flavors.includes('china'), `${id} no longer ships in China`);
+      ok(e.oneClick !== false, `${id} was hidden from the China one-click card`);
+    }
+  });
+});
+

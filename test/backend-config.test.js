@@ -71,6 +71,14 @@ describe('backend.config.js — 境内后端（§C）', () => {
       '额度上限不在合理区间 —— 0.2 是裁定值，改它要同时改卡上的进度条与 §8.10 的估算');
   });
 
+  test('★ 披露名跟着 /spec 走（1.23.4 QwenCloud，不再写 OpenRouter）', () => {
+    // Gate F 那段话里的 {vendor} 由这里代入。中继已切 QwenCloud 国际站，名字还写
+    // OpenRouter 就是替另一家做披露 —— 用户看到的转交对象是错的。
+    const B = require('../extension/learn/backend.config.js');
+    eq(B.grant.vendor, 'qwencloud');
+    eq(B.grant.vendorLabel, 'QwenCloud');
+  });
+
   test('中继地址由 url + relayPath 拼出来 —— 主机名在仓库里只写一处', () => {
     const B = require('../extension/learn/backend.config.js');
     const P = require('../build/providers.config.js');

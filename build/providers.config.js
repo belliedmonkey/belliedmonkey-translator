@@ -47,6 +47,9 @@
 // 拼出来 —— **主机名在这个仓库里只写一处**，换后端只改那一个字段。
 const MT_BACKEND = require('../extension/learn/backend.config.js');
 const RELAY = MT_BACKEND.url + MT_BACKEND.grant.relayPath;
+// 免费额度三档的模型名（单一来源）。中继 /spec 必须回读同一组，否则领取后第一次
+// 请求就撞 403 model_not_allowed —— `npm run grant:status` 是那道对账。
+const GRANT_MODELS = require('./grant-models.config.js');
 // 中国版额度（方案 C）：境内中继，只在 grant.china.ready 时进中国版注册表。
 // 合法性（https、不在 *.supabase.co）由 build.js 的 chinaGrant() 把关，这里只取值。
 const CN = (MT_BACKEND.grant && MT_BACKEND.grant.china) || {};
@@ -76,6 +79,7 @@ const LIST = [
     defaultEndpoint: { global: 'https://api.openai.com/v1/chat/completions' }, placeholder: null,
     defaultModel: 'gpt-4o-mini', label: { global: 'ChatGPT (OpenAI)' }, hintKey: 'hint_openai',
     keyUrl: { global: 'https://platform.openai.com/api-keys' },
+    oneClick: false,   // 1.23.4：一键卡只留 QwenCloud 这一条自助路（同 host 三档全藏）
   },
   {
     id: 'claude', type: 'messages-compat', flavors: ['global'],
@@ -144,6 +148,30 @@ const LIST = [
     label: { china: '通义千问·翻译版', global: 'Qwen MT' }, hintKey: 'hint_qwen_mt',
   },
   {
+    // QwenCloud 国际站（2026-11-10，BEL-236）。**新 id，不复用 `qwen`**：后者的
+    // 国内外两域、中国一键分支与 grant 中国线都在用，改它会牵动中国包；而这是一条
+    // 独立的国际站 MaaS，host 不同、模型名不同、账也不同。
+    //
+    // GLOBAL ONLY：域名与标签只属于国际站，中国版不发（`flavors` 挡住，合规门复核）。
+    //
+    // 它是 1.23.4 一键卡唯一留下的自助平台：chat / 朗读 / 转写三档同 host，一把 key
+    // 通吃。OpenAI 与 OpenRouter 的六条 entry 打 `oneClick:false`，只影响卡片列表，
+    // 不影响 represents/prefill —— 已配它们的人落详细页（本拍接受）。
+    //
+    // defaultModel 来自 build/grant-models.config.js，与额度三档、中继 /spec 同源：
+    // 换模型必须三处一起动，`npm run grant:status` 逐字比。
+    //
+    // keyUrl 指向官网首页：产品尚未给出可核实的控制台深链，而一键卡强制 https 且
+    // 必须有入口（test/quick-setup.test.js）。给一个真实存在的域名，好过编一条 404。
+    id: 'qwencloud', type: 'chat-compat', flavors: ['global'],
+    vision: false,
+    needsKey: true, supportsBaseUrl: true, supportsModel: true, requiresEndpoint: false,
+    defaultEndpoint: { global: 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions' },
+    placeholder: null, defaultModel: GRANT_MODELS.chat,
+    label: { global: 'QwenCloud' }, hintKey: null,
+    keyUrl: { global: 'https://www.qwencloud.com/' },
+  },
+  {
     id: 'kimi', type: 'chat-compat', flavors: ['global', 'china'],
     vision: false,
     needsKey: true, supportsBaseUrl: true, supportsModel: true,
@@ -176,6 +204,7 @@ const LIST = [
     defaultEndpoint: { global: 'https://openrouter.ai/api/v1/chat/completions' }, placeholder: null,
     defaultModel: 'google/gemini-3.7-flash', label: { global: 'OpenRouter' }, hintKey: null,
     keyUrl: { global: 'https://openrouter.ai/keys' },
+    oneClick: false,   // 1.23.4：已配 OpenRouter 的人落详细页（接受）
   },
   {
     // Generic OpenAI Chat-Completions-format endpoint. User supplies the COMPLETE
@@ -211,7 +240,8 @@ const LIST = [
     defaultEndpoint: CN_READY ? { global: RELAY + '/chat/completions', china: CN_RELAY + '/chat/completions' } : RELAY + '/chat/completions',
     // 中国线的模型**不在这里另写** —— 取注册表里 qwen 那一条的中国区默认值（一处真相）。
     // 境内中继的 GRANT_MODELS.chat 必须与它一致，否则每次请求都撞 403 model_not_allowed。
-    defaultModel: { global: 'deepseek/deepseek-v4-flash', china: null },   // ← 下面从 qwen 那一条填
+    // 国际线跟 build/grant-models.config.js 同源（中继 /spec 逐字比）。
+    defaultModel: { global: GRANT_MODELS.chat, china: null },   // ← 下面从 qwen 那一条填
     label: { global: 'BelliedMonkey 免费额度', china: '大肚猴免费额度' },
     labelKey: 'grant_engine_label',
   },
