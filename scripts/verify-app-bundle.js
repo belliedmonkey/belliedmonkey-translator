@@ -36,6 +36,43 @@ const FLAVOR = (() => {
 })();
 const APP_DIR = FLAVOR === 'china' ? 'dist-app-china' : 'dist-app';
 const SRC = path.join(ROOT, APP_DIR);
+
+// ── China HTTP-bridge gate (1.23.4 C5 / BEL-236) ───────────────────────────
+// The bridge itself is native, so `complianceGateChina` (which scans dist js/json/
+// html/css/txt) cannot see its allowlist. The China build must contain no
+// `maas.qwencloudapi.com` anywhere: Script.js is the page half, and the generated
+// ViewController.swift carries the native allowlist. Check both when present.
+// Keep this independent of the browser run so a bad build fails immediately.
+function findMTHttpHostInChina() {
+  const banned = 'maas.qwencloudapi.com';
+  const hits = [];
+  const script = path.join(SRC, 'Script.js');
+  if (fs.existsSync(script) && fs.readFileSync(script, 'utf8').indexOf(banned) >= 0) {
+    hits.push(path.relative(ROOT, script));
+  }
+  const walk = (dir, depth) => {
+    if (depth > 8 || !fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+      const p = path.join(dir, name);
+      let st;
+      try { st = fs.statSync(p); } catch (_) { continue; }
+      if (st.isDirectory()) { walk(p, depth + 1); continue; }
+      if (name !== 'ViewController.swift') continue;
+      if (fs.readFileSync(p, 'utf8').indexOf(banned) >= 0) hits.push(path.relative(ROOT, p));
+    }
+  };
+  walk(path.join(ROOT, 'safari-project-china'), 0);
+  return hits;
+}
+if (FLAVOR === 'china') {
+  const hits = findMTHttpHostInChina();
+  if (hits.length) {
+    console.error('✗ 中国版包/工程里出现了国际站 maas 主机 —— C5 allowlist 的 flavor 注入错了：');
+    for (const h of hits) console.error('  ' + h);
+    process.exit(1);
+  }
+}
+
 // 出境同意要不要出现，独立于页面自己的判定再算一遍：中国版 **且** 包里的后端在 *.supabase.co（东京）。
 // 2026-09-22 中国版切到境内后端（china.ready=true）⇒ 中国版包里这条为假，框必须消失。
 // 不按 FLAVOR 写死 —— 写死的那版在翻开关当天红了四条，而产品行为是对的。

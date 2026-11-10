@@ -107,6 +107,9 @@ final class MTQuickPanel: NSObject, WKScriptMessageHandler {
                                                               injectionTime: .atDocumentStart, forMainFrameOnly: true))
         conf.userContentController.add(self, name: MTQuickPanel.channel)
         let w = MTQuickWebView(frame: NSRect(x: 0, y: 0, width: MTQuickPanel.width, height: MTQuickPanel.minHeight), configuration: conf)
+        // 原生 HTTP 桥（1.23.4 C5 / BEL-236）：这是第二个 WKWebView，主窗口装了它也要装，
+        // 否则快捷翻译的 QwenCloud 请求仍然撞 CORS —— 而主窗口看起来一切正常。
+        MTHttpBridge.shared.install(webView: w)
         w.setValue(false, forKey: "drawsBackground")          // 圆角之外要透出去
         w.autoresizingMask = [.width, .height]
         let p = MTQuickPanelWindow(contentRect: w.frame, styleMask: [.nonactivatingPanel, .borderless],

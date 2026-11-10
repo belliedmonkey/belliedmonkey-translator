@@ -149,6 +149,28 @@ describe('backend.config.js — 境内后端（§C）', () => {
     eq(S.filter((e) => e.grantOnly).length, 1, '转写那一档不是恰好一条');
   });
 
+  test('★ 三档模型与 build/grant-models.config.js 逐字一致（中继 /spec 同源）', () => {
+    // 1.23.4（BEL-236）：中继已切 QwenCloud，三档模型名收进一个构建期文件。
+    // 这不能替代 grant:status（那要真后端），但它保证客户端三档不会各写各的。
+    const M = require('../build/grant-models.config.js');
+    const P = require('../build/providers.config.js').find((e) => e.grantOnly);
+    const T = require('../build/tts.config.js').find((e) => e.grantOnly);
+    const S = require('../build/stt.config.js').find((e) => e.grantOnly);
+    const pGlobal = (P.defaultModel && typeof P.defaultModel === 'object')
+      ? P.defaultModel.global : P.defaultModel;
+    eq(pGlobal, M.chat);
+    eq(T.defaultModel, M.tts);
+    eq(S.defaultModel, M.stt);
+    eq(P.defaultModel.china, 'qwen-plus', '中国分支仍从 qwen 取，不读这份国际站 const');
+    // 新的 BYO QwenCloud 三档也用同一组 —— 一键卡配出来的就是额度那一档。
+    const qc = require('../build/providers.config.js').find((e) => e.id === 'qwencloud');
+    const qt = require('../build/tts.config.js').find((e) => e.id === 'qwencloud_tts');
+    const qs = require('../build/stt.config.js').find((e) => e.id === 'qwencloud_asr');
+    eq(qc.defaultModel, M.chat);
+    eq(qt.defaultModel, M.tts);
+    eq(qs.defaultModel, M.stt);
+  });
+
   test('china 块存在，且三个键齐全', () => {
     ok(CFG.china && typeof CFG.china === 'object', 'MT_BACKEND.china 不见了');
     eq(typeof CFG.china.ready, 'boolean', 'china.ready 必须是布尔 —— 它是「切没切」的唯一判据');
