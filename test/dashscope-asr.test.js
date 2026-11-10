@@ -24,9 +24,10 @@ describe('通义千问语音转写 — 形状判定', () => {
   });
 
   test('家族封闭：它只可能在转写家族里出现', () => {
-    // 转写引擎遇到一个对话形状的地址，**留在转写家族**（回落到注册表 type），
-    // 绝不会变成 chat-compat —— 那正是「厂商永不参与分派」这条的机械保证。
-    eq(WF.formatFor('https://x.example/v1/chat/completions', 'transcribe-dashscope'), 'transcribe-dashscope');
+    // 转写引擎遇到一个对话形状的地址，**留在转写家族**：2026-11-10 起那条后缀
+    // 在转写家族里明确落到 transcribe-chat-audio，绝不会变成 chat-compat ——
+    // 那正是「厂商永不参与分派」这条的机械保证。
+    eq(WF.formatFor('https://x.example/v1/chat/completions', 'transcribe-dashscope'), 'transcribe-chat-audio');
     // 反过来：多模态后缀在对话家族里不生效（那不是它的家族）
     eq(WF.formatFor(ENDPOINT, 'chat-compat'), 'chat-compat');
   });
@@ -59,6 +60,59 @@ describe('通义千问语音转写 — 注册表条目', () => {
   test('它的默认端点必须与 wire-format 的判定自洽', () => {
     // 这一条是两份文件之间的锁：改了任一边而没改另一边，这里红。
     eq(WF.formatFor(e.defaultEndpoint, e.type), 'transcribe-dashscope');
+  });
+});
+
+describe('QwenCloud 转写 — chat/completions + input_audio（BEL-236 C4）', () => {
+  const e = STT.find((x) => x.id === 'qwencloud_asr');
+  const EP = 'https://maas.qwencloudapi.com/compatible-mode/v1/chat/completions';
+  const DATA = 'data:audio/wav;base64,QUJD';
+
+  test('条目存在，global-only，用新 type', () => {
+    ok(e, 'stt.config.js 里没有 qwencloud_asr');
+    eq(e.type, 'transcribe-chat-audio');
+    eq(e.flavors.join(), 'global');
+    eq(e.defaultEndpoint, EP);
+    eq(e.defaultModel, 'qwen3-asr-flash');
+  });
+
+  test('★ 同一个 /chat/completions 后缀，在转写家族里落到新 type —— 不是 chat-compat', () => {
+    eq(WF.formatFor(EP, 'transcribe-chat-audio'), 'transcribe-chat-audio');
+    // 后缀优先于注册表 type：哪怕 entry 写的是 transcribe-compat，也判成新形状。
+    eq(WF.formatFor(EP, 'transcribe-compat'), 'transcribe-chat-audio');
+    // 对照：同一个地址在 chat 家族里仍是 chat-compat（家族封闭）。
+    eq(WF.formatFor(EP, 'chat-compat'), 'chat-compat');
+  });
+
+  test('★ 请求体是 chat/completions 形状，音频在 messages[].input_audio.data', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('transcribe-chat-audio', {
+      url: EP, apiKey: 'k', model: 'qwen3-asr-flash', audioDataUri: DATA,
+    });
+    eq(req.isForm, false, '这条路不是 multipart');
+    eq(req.headers['Content-Type'], 'application/json');
+    eq(req.headers.Authorization, 'Bearer k');
+    const body = JSON.parse(req.body);
+    eq(body.model, 'qwen3-asr-flash');
+    eq(body.messages.length, 1);
+    eq(body.messages[0].role, 'user');
+    eq(body.messages[0].content[0].type, 'input_audio');
+    eq(body.messages[0].content[0].input_audio.data, DATA);
+    // 回包是普通对话形状：choices[0].message.content
+    eq(req.extract({ choices: [{ message: { content: 'hello world' } }] }), 'hello world');
+  });
+
+  test('没有音频 ⇒ no_audio，而不是发一个空 data URI', () => {
+    const RS = loadRequestShape();
+    const req = RS.build('transcribe-chat-audio', { url: EP, apiKey: 'k', model: 'm' });
+    eq(req.error, 'no_audio');
+    eq(req.body, null);
+  });
+
+  test('★ 编码三态：它要 data URI（与 dashscope 同一档，不是 base64 也不是 blob）', () => {
+    const RS = loadRequestShape();
+    eq(RS.audioEncoding('transcribe-chat-audio'), 'dataUri');
+    ok(RS.wantsAudioDataUri('transcribe-chat-audio'));
   });
 });
 

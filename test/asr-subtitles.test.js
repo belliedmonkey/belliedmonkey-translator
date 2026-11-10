@@ -568,6 +568,8 @@ describe('§2.4 request-shape: bodies and cue extraction', () => {
   });
   test('audioEncoding keeps wantsAudioDataUri as its alias', () => {
     eq(RS.audioEncoding('transcribe-dashscope'), 'dataUri'); ok(RS.wantsAudioDataUri('transcribe-dashscope'));
+    // 2026-11-10（BEL-236 C4）：chat/completions + input_audio 的转写同样内联 data URI。
+    eq(RS.audioEncoding('transcribe-chat-audio'), 'dataUri'); ok(RS.wantsAudioDataUri('transcribe-chat-audio'));
     eq(RS.audioEncoding('transcribe-gemini'), 'base64');
     eq(RS.audioEncoding('transcribe-compat'), 'blob');
   });

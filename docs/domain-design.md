@@ -1357,7 +1357,8 @@ is a build-time concern, not a runtime one.
   in this order:**
 
   1. **The endpoint URL's path suffix** — `/chat/completions`, `/responses`,
-     `/messages`, `/audio/speech`, `/audio/transcriptions`. A path is part of an API
+     `/messages`, `/audio/speech`, `/audio/transcriptions`,
+     `/multimodal-generation/generation`, `/interactions`. A path is part of an API
      contract, not part of a vendor's identity.
   2. **The registry entry's `type`** — the default shape, used when the address says
      nothing we recognise.
@@ -1374,6 +1375,20 @@ is a build-time concern, not a runtime one.
   is Chat Completions, and an Azure-shaped `…/chat/completions?api-version=…` is
   recognised rather than missed. Unrecognised suffix ⇒ fall back to `type`, which is
   what keeps every unknown third-party endpoint behaving exactly as it does today.
+
+  **The same suffix may mean different shapes in different families** (added
+  2026-11-10, BEL-236 C4). `/chat/completions` is `chat-compat` for a translation
+  provider and `transcribe-chat-audio` for a transcription engine. That second
+  variant exists because the QwenCloud probe found the two paths are not
+  interchangeable: the same host's `multimodal-generation/generation` endpoint
+  answered **400** for `qwen3-asr-flash`, while
+  `compatible-mode/v1/chat/completions` accepted
+  `messages: [{ role: 'user', content: [{ type: 'input_audio', input_audio: { data: 'data:audio/wav;base64,…' } }] }]`
+  and returned the transcript in the ordinary `choices[0].message.content`. It is
+  one capability with two body shapes: `request-shape.js` owns the body, and the
+  response extractor is the chat one — no second parser, no model-name branch.
+  Language is deliberately not sent on this shape: the probe did not establish
+  whether it is accepted, and guessing a field is how a working path breaks.
 
   **A third declaration, added 2026-08-20 for translation-specialised models: within a
   single address, a model family may carry its own shape.** `qwen-mt-*` is served from
