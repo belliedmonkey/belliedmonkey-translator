@@ -216,7 +216,7 @@ const listenModel = (() => {
   // 1.21.2：thaiGrokStt 已进 SETTINGS_SCHEMA（默认 false）—— 产品 BYOK 开关。
   // LID_DEV 其余键仍是开发开关、不进 schema。Debug 可继续手灌 storage.local.thaiGrokStt
   //（与 schema 同键，OR 自然成立）；Release 商店路径只认设置页写入的 schema 值。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix', 'zh_asr_e1_arm'];
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix'];
   // 泰语 Grok Key：真源 = 本机 Keychain（AppSecureStore account=thaiGrokSttApiKey）。
   // 内存快照只在开关开时填充；绝不 console / DiagLog / 写仓库。
   // Debug OR：进程 env XAI_API_KEY、或 storage.local.thaiGrokSttApiKey（旧手灌捷径）。
@@ -276,8 +276,8 @@ const listenModel = (() => {
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
-          // BEL-19 E1 Debug 臂（不进 schema；默认 sa；Release 原生忽略非 sa）
-          zhAsrE1Arm: s.zh_asr_e1_arm === 'e1_b1' ? 'e1_b1' : 'sa',
+          // BEL-19 E1 A 层：Release 只认 schema `zhAsrE1`；Debug 由设置开关/存储同键控制
+          zhAsrE1Arm: s.zhAsrE1 === true ? 'e1_b1' : 'sa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
@@ -1431,7 +1431,7 @@ const listenModel = (() => {
   function pttToggle(side) {
     if (mode === 'subtitle') return false;                 // 字幕是单向的，没有「谁在说」
     // 没授权麦克风：复用既有那句「麦克风被拒绝」（不新增说法）。`__mtMicDenied` 由 Debug 的
-    // __mtTest.micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
+    // 测试桥 micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
     if (typeof window !== 'undefined' && window.__mtMicDenied) { halt('denied'); return false; }
     if (!liveCapable()) return false;                      // 灰掉（原因见 pttView）
     if (!talkSideReady(side)) { flashNotReady(side); return false; }

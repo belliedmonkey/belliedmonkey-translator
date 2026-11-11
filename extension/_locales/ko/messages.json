@@ -4361,5 +4361,11 @@
   },
   "settings_value_follow": {
     "message": "인터페이스 언어 따르기"
+  },
+  "app_e1_label": {
+    "message": "실험: 중국어 음성 인식 SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "기본적으로 꺼져 있습니다. 켜면 중국어(zh) 대화만 기기 내 SenseVoice로 최종 인식합니다. 모델은 처음 사용할 때 다운로드됩니다(약 160MB). 실패하면 자동으로 시스템 받아쓰기로 돌아갑니다."
   }
 }

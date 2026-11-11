@@ -199,10 +199,11 @@ function mtDeviceVadFor(flavor) {
 
 
 // ── SenseVoice ASR（BEL-19 E1，SPEC-E1 2026-10-25）────────────────────────────
-// 只在 Debug 臂 `zh_asr_e1_arm=e1_b1` 且会话 zh 路需要定稿时触发下载（对齐「仅 SV 组下」）。
+// A 层：Release 由 schema `zhAsrE1` 开；Debug 测试桥与设置开关写同一 schema 键。
+// 只在臂 `e1_b1` 且会话 zh 路需要定稿时触发下载（对齐「仅 SV 组下」）。
 // 走 MT_MODEL_RELAY；中国版 url/urlAlt **不得**直连境外模型托管（只许中继）。
 // sha256/size 已换真包标定（2026-10-25）；中继/下载接线另拍。未预置时 ensureReady 仍失败 → 回退 SA。
-// Debug 可用本地桩覆盖（仅 Debug）；Release 用户路径走不到 e1_b1，不依赖桩。
+// Debug 可用本地桩覆盖（仅 Debug）；Release 未开 `zhAsrE1` 时走不到 e1_b1，不依赖桩。
 var MT_DEVICE_SENSEVOICE = {
   kind: 'sensevoice', dir: 'sherpa-onnx-sense-voice',
   model: 'model.int8.onnx',

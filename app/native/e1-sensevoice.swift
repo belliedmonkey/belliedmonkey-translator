@@ -3,7 +3,7 @@
 // 唯一分叉：RecognizerFactory.make(lane:, arm:)；默认臂仍是 SA（MTDeviceTranscriber）。
 // B1 = SA partial + SenseVoice final，原生合并后仍走 stt-partial / stt-final。
 // VAD 锁死 sil0.5_thr0.3_max8（只锁 SV 定稿前 silero；LID 门 MTDeviceVad 默认不改）。
-// Release：resolveArm 恒 sa，用户路径走不到 e1_b1。失败回退 SA + e1_fallback_reason 封闭枚举。
+// Release 也接受显式 e1_b1（默认仍 sa；用户路径由设置开关决定）。失败回退 SA + e1_fallback_reason 封闭枚举。
 // ensureReady 接下行（MTBackgroundDownloader + sha + MTZip）；中继无包/未下完 ⇒ 回退 SA。
 
 import Foundation
@@ -48,11 +48,9 @@ enum MTE1FallbackReason: String {
 
 @available(iOS 26.0, macOS 26.0, *)
 enum RecognizerFactory {
-    /// Debug 可读 `e1_b1`；**Release 恒 `sa`**（暗代码可在，用户路径走不到 e1_b1）。
+    /// 显式 `e1_b1` 即接受（Release 亦然）；`nil` / 其它一律 `sa`。默认 sa，用户路径由设置开关决定。
     static func resolveArm(_ raw: String?) -> MTE1Arm {
-        #if DEBUG
         if (raw ?? "").lowercased() == MTE1Arm.e1_b1.rawValue { return .e1_b1 }
-        #endif
         return .sa
     }
 
