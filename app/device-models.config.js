@@ -32,7 +32,7 @@ var MT_KOKORO_PACK = {
   path: 'kokoro-zh-en.zip', size: 146767700,
   sha256: '5bab4f620353a5d80f98f8bd0a5e68cbeedccfb1c68c53baa83b834a0e926326',
   url: {
-    // 两个 flavor 同址（见文件头）；备选托管 hf-mirror.com/belliedmonkey/belliedmonkey-device-models。
+    // 两个 flavor 同址（见文件头）；备选托管已迁中继，客户端不暴露真实源。
     global: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
     china: MT_MODEL_RELAY + 'kokoro-zh-en.zip',
   },
@@ -197,4 +197,40 @@ function mtDeviceVadFor(flavor) {
   });
 }
 
-if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor, MT_DEVICE_VAD, mtDeviceVadFor };
+
+// ── SenseVoice ASR（BEL-19 E1，SPEC-E1 2026-10-25）────────────────────────────
+// A 层：Release 由 schema `zhAsrE1` 开；Debug 测试桥与设置开关写同一 schema 键。
+// 只在臂 `e1_b1` 且会话 zh 路需要定稿时触发下载（对齐「仅 SV 组下」）。
+// 走 MT_MODEL_RELAY；中国版 url/urlAlt **不得**直连境外模型托管（只许中继）。
+// sha256/size 已换真包标定（2026-10-25）；中继/下载接线另拍。未预置时 ensureReady 仍失败 → 回退 SA。
+// Debug 可用本地桩覆盖（仅 Debug）；Release 未开 `zhAsrE1` 时走不到 e1_b1，不依赖桩。
+var MT_DEVICE_SENSEVOICE = {
+  kind: 'sensevoice', dir: 'sherpa-onnx-sense-voice',
+  model: 'model.int8.onnx',
+  tokens: 'tokens.txt',
+  // VAD 臂名（与原生 MTE1VadLock.armName 同字）—— 单测钉
+  vadArm: 'sil0.5_thr0.3_max8',
+  vad: { minSilenceDuration: 0.5, threshold: 0.3, maxSpeechDuration: 8 },
+  files: [{
+    path: 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip',
+    // 真包标定 2026-10-25（research/e1-sv-relay-proxy-mapping）：扁平 zip 字节
+    size: 160304482,
+    sha256: '286a4b89c62be15c78f195b908bf746c80a655f07588346ee0383a8f20f21e04',
+    url: {
+      global: MT_MODEL_RELAY + 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip',
+      china: MT_MODEL_RELAY + 'sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17.zip',
+    },
+  }],
+};
+
+function mtDeviceSenseVoiceFor(flavor) {
+  const f = flavor === 'china' ? 'china' : 'global';
+  return Object.assign({}, MT_DEVICE_SENSEVOICE, {
+    files: MT_DEVICE_SENSEVOICE.files.map((x) => Object.assign({}, x, {
+      url: typeof x.url === 'string' ? x.url : x.url[f],
+      ...(x.urlAlt ? { urlAlt: typeof x.urlAlt === 'string' ? x.urlAlt : x.urlAlt[f] } : {}),
+    })),
+  });
+}
+
+if (typeof module !== 'undefined' && module.exports) module.exports = { MT_DEVICE_TTS_MODELS, mtDeviceTtsModelsFor, MT_DEVICE_LID, mtDeviceLidModelsFor, MT_DEVICE_VAD, mtDeviceVadFor, MT_DEVICE_SENSEVOICE, mtDeviceSenseVoiceFor };

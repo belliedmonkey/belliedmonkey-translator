@@ -4362,5 +4362,11 @@
   },
   "settings_value_follow": {
     "message": "跟隨介面語言"
+  },
+  "app_e1_label": {
+    "message": "實驗：中文聽譯 SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "預設關閉。開啟後僅中文（zh）對話改用本機 SenseVoice 定稿；模型首次使用會下載（約 160MB）。失敗會自動回到系統聽寫。"
   }
 }

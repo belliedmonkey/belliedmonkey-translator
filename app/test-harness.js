@@ -137,6 +137,18 @@
 
     // 模拟麦克风没授权（P-09）：产品侧读 window.__mtMicDenied（正式包里没人设它）。
     micPermission(v) { try { window.__mtMicDenied = (v === 'denied'); } catch (_) {} return !!window.__mtMicDenied; },
+    // BEL-19 E1 Debug 开关（SPEC-E1）：显式臂 sa|e1_b1；写 schema 键 zhAsrE1，下一会话生效。
+    // Release 包不带本文件；Debug 与设置开关共用同一 schema 键，旧键 zh_asr_e1_arm 顺手清掉。
+    e1Arm(v) {
+      const arm = (v === 'e1_b1') ? 'e1_b1' : 'sa';
+      try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ zhAsrE1: arm === 'e1_b1' });
+          chrome.storage.local.remove('zh_asr_e1_arm');
+        }
+      } catch (_) {}
+      return arm;
+    },
 
     // ── H5：ECAPA 包「坏输入」（M-05）────────────────────────────────────────
     // 不模拟「装好了」，而是**把坏输入喂给原生**：'sha' 改 sha256、'truncate' 把 size 砍半。

@@ -276,6 +276,8 @@ const listenModel = (() => {
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
+          // BEL-19 E1 A 层：Release 只认 schema `zhAsrE1`；Debug 由设置开关/存储同键控制
+          zhAsrE1Arm: s.zhAsrE1 === true ? 'e1_b1' : 'sa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
@@ -1429,7 +1431,7 @@ const listenModel = (() => {
   function pttToggle(side) {
     if (mode === 'subtitle') return false;                 // 字幕是单向的，没有「谁在说」
     // 没授权麦克风：复用既有那句「麦克风被拒绝」（不新增说法）。`__mtMicDenied` 由 Debug 的
-    // __mtTest.micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
+    // 测试桥 micPermission('denied') 设置，正式包里没人设它 ⇒ 这段是死代码。
     if (typeof window !== 'undefined' && window.__mtMicDenied) { halt('denied'); return false; }
     if (!liveCapable()) return false;                      // 灰掉（原因见 pttView）
     if (!talkSideReady(side)) { flashNotReady(side); return false; }
@@ -1640,6 +1642,13 @@ const listenModel = (() => {
     try {
       if (typeof mtDeviceVadFor !== 'function') return null;
       return mtDeviceVadFor(Registry.flavor() || 'global');
+    } catch (_) { return null; }
+  }
+  // SenseVoice 清单（BEL-19 E1）；只在 Debug 臂 e1_b1 时随 stt-start 下发。
+  function senseVoiceModel() {
+    try {
+      if (typeof mtDeviceSenseVoiceFor !== 'function') return null;
+      return mtDeviceSenseVoiceFor(Registry.flavor() || 'global');
     } catch (_) { return null; }
   }
   // 画当前该显示的那一路半句（只有 LID 那一路会进 partialBy，见 pickPartial）。
@@ -1875,14 +1884,21 @@ const listenModel = (() => {
       else if (kind === 'error') socketLost(ev.reason || '');
       else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
     };
+    // BEL-19 E1 Debug 臂：会话开始读一次；关臂 ⇒ 不传模型清单，原生 ≡ 基线。
+    const e1Models = ((cfg && cfg.zhAsrE1Arm === 'e1_b1') && senseVoiceModel()) ? [senseVoiceModel()] : undefined;
     if (!grokRoute) {
-      // 基线单路：开关关或本场无 th。参数与原实现逐字相同。
+      // 基线单路：开关关或本场无 th。开臂时只多传 E1 三键，其余参数不变。
       sock = NativeSpeech.sttOpen({
         locales,
         // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
         // 定稿碎一点不会再切行，只是更早进账本。走旧路（Google / qwen-mt / 降级）时两个模式
         // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
         vadMs,
+        // BEL-19 E1：Debug 臂；会话开始读一次（下一会话再生效）。关臂 ⇒ 不传 / sa，原生 ≡ 基线。
+        zhAsrE1Arm: (cfg && cfg.zhAsrE1Arm === 'e1_b1') ? 'e1_b1' : 'sa',
+        // 仅当本会话 locales 含 zh 时 lane=zh，否则工厂不会开 E1 臂
+        lane: (locales || []).some((x) => String(x).toLowerCase().split(/[-_]/)[0] === 'zh') ? 'zh' : String((locales && locales[0]) || 'en'),
+        senseVoiceModels: e1Models,
         onEvent,
       });
       return;
@@ -1892,7 +1908,13 @@ const listenModel = (() => {
     // 它的失败只作用于自己（见上面 dropGrok）。
     const grokOnEvent = (kind, ev) => onEvent(kind, ev, 'grok');
     if (nativeLocales.length) {
-      handles.push(NativeSpeech.sttOpen({ locales: nativeLocales, vadMs, onEvent }));
+      handles.push(NativeSpeech.sttOpen({
+        locales: nativeLocales, vadMs, onEvent,
+        // E1 三键同样下发原生这一路（th 已剥给 Grok）；lane 按这一路的 locales 判。
+        zhAsrE1Arm: (cfg && cfg.zhAsrE1Arm === 'e1_b1') ? 'e1_b1' : 'sa',
+        lane: (nativeLocales || []).some((x) => String(x).toLowerCase().split(/[-_]/)[0] === 'zh') ? 'zh' : String((nativeLocales && nativeLocales[0]) || 'en'),
+        senseVoiceModels: e1Models,
+      }));
     }
     try {
       if (typeof GrokStt !== 'undefined' && GrokStt && typeof GrokStt.open === 'function') {

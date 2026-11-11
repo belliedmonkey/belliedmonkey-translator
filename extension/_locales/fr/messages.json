@@ -4361,5 +4361,11 @@
   },
   "settings_value_follow": {
     "message": "Suivre la langue de l'interface"
+  },
+  "app_e1_label": {
+    "message": "Expérimental : transcription chinoise avec SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "Désactivé par défaut. Une fois activé, seules les conversations en chinois (zh) utilisent SenseVoice sur l'appareil pour la transcription finale ; le modèle se télécharge à la première utilisation (environ 160 Mo). En cas d'échec, retour automatique à la dictée du système."
   }
 }

@@ -1209,6 +1209,7 @@ export default function SettingsView() {
     paintListenPack();
     setDepsSettings(Object.assign({}, cur));
     $('listen-autospeak').checked = cur.listenAutoSpeak !== false;
+    $('listen-e1').checked = cur.zhAsrE1 === true;
     await paintThaiGrok(cur);
     $('doc-capture').checked = cur.docCapture !== false;
     if ($('quick-enabled')) $('quick-enabled').checked = cur.quickEnabled !== false;
@@ -1389,6 +1390,7 @@ export default function SettingsView() {
     $('listen-capture').addEventListener('change', () => { settingsModel.set({ listenCapture: $('listen-capture').checked }); });
     if ($('subtitle-capture')) $('subtitle-capture').addEventListener('change', () => { settingsModel.set({ subtitleCapture: $('subtitle-capture').checked }); });
     $('listen-autospeak').addEventListener('change', () => { settingsModel.set({ listenAutoSpeak: $('listen-autospeak').checked }); });
+    if ($('listen-e1')) $('listen-e1').addEventListener('change', () => { settingsModel.set({ zhAsrE1: $('listen-e1').checked === true }); });
     if ($('thai-grok-enable')) {
       $('thai-grok-enable').addEventListener('change', async () => {
         await settingsModel.set({ thaiGrokStt: $('thai-grok-enable').checked === true });
@@ -2447,6 +2449,16 @@ export default function SettingsView() {
           </label>
           <p className="note" id="listen-autospeak-note">{t('listen_autospeak_note',
             '整句翻译完之后自动读出来。对方说的读给你听，你说的读给对方听。')}</p>
+          {/* BEL-19 E1 A 层：Release opt-in（默认 SA）。仅 macOS 非中国版、高级档可见。 */}
+          <label className="check adv-only" id="listen-e1-row"
+            hidden={!detail || !listenModel.isMacHost() || isChinaFlavor()}>
+            <input id="listen-e1" type="checkbox" />
+            <span id="listen-e1-label">{t('app_e1_label', '实验：中文听译 SenseVoice')}</span>
+          </label>
+          <p className="note adv-only" id="listen-e1-note"
+            hidden={!detail || !listenModel.isMacHost() || isChinaFlavor()}>
+            {t('app_e1_note', '默认关闭。打开后仅中文（zh）会话改用本机 SenseVoice 定稿；模型首次使用会下载（约 160MB）。失败会自动回到系统听写。')}
+          </p>
           {/* 1.21.2 泰语 Grok BYOK（Pencil B-01/02/03）。china flavor 整块隐藏。 */}
           <div id="thai-grok-block" hidden>
             <h4 id="thai-grok-title">{t('thai_grok_section', '泰语识别（Grok）')}</h4>

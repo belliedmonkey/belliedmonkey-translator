@@ -4361,5 +4361,11 @@
   },
   "settings_value_follow": {
     "message": "表示言語に合わせる"
+  },
+  "app_e1_label": {
+    "message": "実験：中国語音声認識 SenseVoice"
+  },
+  "app_e1_note": {
+    "message": "既定ではオフです。オンにすると中国語（zh）の会話のみ、オンデバイスの SenseVoice で最終認識を行います。モデルは初回使用時にダウンロードされます（約 160MB）。失敗時は自動的にシステムの音声入力に戻ります。"
   }
 }
