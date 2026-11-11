@@ -5,7 +5,7 @@
 // 零文案纪律同样适用 —— 这里没有一个用户可见的字，状态与原因都是协议 id，文案在 JS/locale。
 //
 // ── 协议（app/native-speech.js 的 PROTOCOL 与这里逐字对表，npm test 钉住）──────────
-//   JS → 原生：stt-probe {locales} · stt-assets {locales} · stt-start {locales, vadMs?, vadLevel?} · stt-stop
+//   JS → 原生：stt-probe {locales} · stt-assets {locales} · stt-start {locales, vadMs?, vadLevel?, zhAsrE1Arm?, senseVoiceModels?} · stt-stop
 //             tts-probe {models} · tts-assets {models} · tts-speak {id, text, lang, rate?} · tts-stop
 //   原生 → JS：stt-state {state: ready|unsupported|failed|ended, reason?, assets?}
 //             assets-progress {kind: stt|tts, locale, fraction, state: downloading|installed|failed|missing|unsupported}
@@ -213,7 +213,10 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         case "lid-resume": MTDeviceLid.shared.resume()
         // 松手 / 结束锁定时**立刻收口这一句**（不等 400ms 静音检测）—— 按住说的时间由人控制。
         case "stt-cut":
-            if #available(iOS 26.0, macOS 26.0, *), let dt = transcriber as? MTDeviceTranscriber { dt.cut() }
+            if #available(iOS 26.0, macOS 26.0, *) {
+                if let e1 = transcriber as? MTE1B1Transcriber { e1.cut() }
+                else if let dt = transcriber as? MTDeviceTranscriber { dt.cut() }
+            }
         case "vad-probe":  MTDeviceVad.shared.probe(models: body["models"])
         case "vad-assets": MTDeviceVad.shared.install(models: body["models"])
         case "network":    emit(["type": "network", "kind": netKind])
@@ -375,12 +378,24 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
         }
         let locales = strings(body["locales"])
         guard !locales.isEmpty else { emit(["type": "stt-state", "state": "failed", "reason": "locales"]); return }
-        let t = MTDeviceTranscriber(locales: locales,
-                                    vadMs: (body["vadMs"] as? Double) ?? 400,
-                                    vadLevel: (body["vadLevel"] as? Double) ?? 0.012)
-        t.emit = { [weak self] in self?.emit($0) }
-        transcriber = t
-        t.start()
+        let vadMs = (body["vadMs"] as? Double) ?? 400
+        let vadLevel = (body["vadLevel"] as? Double) ?? 0.012
+        // BEL-19 E1：唯一分叉 RecognizerFactory（SPEC-E1）。Release 下 resolveArm 恒 sa。
+        let arm = RecognizerFactory.resolveArm(body["zhAsrE1Arm"] as? String)
+        let laneRaw = (body["lane"] as? String) ?? locales.first ?? "zh"
+        let lane = laneRaw.split(separator: "-").first.map(String.init)?.lowercased() ?? "zh"
+        let runner = RecognizerFactory.make(lane: lane, arm: arm, locales: locales,
+                                            vadMs: vadMs, vadLevel: vadLevel,
+                                            senseVoiceModels: body["senseVoiceModels"])
+        if let e1 = runner as? MTE1B1Transcriber {
+            e1.emit = { [weak self] in self?.emit($0) }
+            transcriber = e1
+            e1.start()
+        } else if let t = runner as? MTDeviceTranscriber {
+            t.emit = { [weak self] in self?.emit($0) }
+            transcriber = t
+            t.start()
+        }
     }
 
     private func sttStop() {
@@ -391,7 +406,10 @@ final class MTSpeechBridge: NSObject, WKScriptMessageHandler {
     private func mtStopCurrentTranscriber(announce: Bool) {
         guard let t = transcriber else { return }
         transcriber = nil
-        if #available(iOS 26.0, macOS 26.0, *), let dt = t as? MTDeviceTranscriber { dt.stop() }
+        if #available(iOS 26.0, macOS 26.0, *) {
+            if let e1 = t as? MTE1B1Transcriber { e1.stop() }
+            else if let dt = t as? MTDeviceTranscriber { dt.stop() }
+        }
         if announce { emit(["type": "stt-state", "state": "ended"]) }
     }
 
@@ -656,6 +674,8 @@ private final class MTGrokSttSession {
 @available(iOS 26.0, macOS 26.0, *)
 final class MTDeviceTranscriber {
     var emit: (([String: Any]) -> Void)?
+    /// E1 B1：把 16 kHz PCM 旁路给 SV-VAD（不改 SA / LID 门行为）。
+    var pcm16Tap: (([Float]) -> Void)?
     private let locales: [String]
     private let vadMs: Double
     private let vadLevel: Double
@@ -878,6 +898,7 @@ final class MTDeviceTranscriber {
         if let pcm = MTDeviceLid.shared.pcm16(buffer) {
             let speech = MTDeviceVad.shared.accept(pcm, fallback: rms > vadLevel)
             MTDeviceLid.shared.feed(pcm, speech: speech)
+            pcm16Tap?(pcm)   // E1：SV 定稿前 VAD（与 LID 门分离）
         }
         guard !stopped, let fmt = format, let cont = continuation, let an = analyzer else { return }
         if converter == nil || converter!.inputFormat != buffer.format {
@@ -935,6 +956,7 @@ final class MTDeviceTranscriber {
 
     func stop() {
         stopped = true
+        pcm16Tap = nil
         MTAudioBridge.shared.micSink = nil
         MTDeviceLid.shared.reset()   // 会话结束：丢掉没判完的那半句
         MTDeviceVad.shared.reset()

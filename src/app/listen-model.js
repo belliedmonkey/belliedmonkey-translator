@@ -216,7 +216,7 @@ const listenModel = (() => {
   // 1.21.2：thaiGrokStt 已进 SETTINGS_SCHEMA（默认 false）—— 产品 BYOK 开关。
   // LID_DEV 其余键仍是开发开关、不进 schema。Debug 可继续手灌 storage.local.thaiGrokStt
   //（与 schema 同键，OR 自然成立）；Release 商店路径只认设置页写入的 schema 值。
-  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix'];
+  const LID_DEV_KEYS = ['lidEngine', 'lidThreshold', 'lidCpuOnly', 'lidTrace', 'lidRewriteFix', 'zh_asr_e1_arm'];
   // 泰语 Grok Key：真源 = 本机 Keychain（AppSecureStore account=thaiGrokSttApiKey）。
   // 内存快照只在开关开时填充；绝不 console / DiagLog / 写仓库。
   // Debug OR：进程 env XAI_API_KEY、或 storage.local.thaiGrokSttApiKey（旧手灌捷径）。
@@ -276,6 +276,8 @@ const listenModel = (() => {
           captureOn: sub ? s.subtitleCapture !== false : s.listenCapture !== false,
           mode: sub ? 'subtitle' : 'conv',
           lidEngine: s.lidEngine === 'whisper' ? 'whisper' : 'ecapa',
+          // BEL-19 E1 Debug 臂（不进 schema；默认 sa；Release 原生忽略非 sa）
+          zhAsrE1Arm: s.zh_asr_e1_arm === 'e1_b1' ? 'e1_b1' : 'sa',
           lidThreshold: Number(s.lidThreshold) > 0 ? Number(s.lidThreshold) : 6,
           lidCpuOnly: s.lidCpuOnly === true,
           lidTrace: s.lidTrace === true,
@@ -1642,6 +1644,13 @@ const listenModel = (() => {
       return mtDeviceVadFor(Registry.flavor() || 'global');
     } catch (_) { return null; }
   }
+  // SenseVoice 清单（BEL-19 E1）；只在 Debug 臂 e1_b1 时随 stt-start 下发。
+  function senseVoiceModel() {
+    try {
+      if (typeof mtDeviceSenseVoiceFor !== 'function') return null;
+      return mtDeviceSenseVoiceFor(Registry.flavor() || 'global');
+    } catch (_) { return null; }
+  }
   // 画当前该显示的那一路半句（只有 LID 那一路会进 partialBy，见 pickPartial）。
   // 第二轮 P1-6：实时框 = **缓冲里尚未出行的全部文字** + 当前识别中的文字，一直显示到对应行
   // 出来（`segEmit` 才清）。缓冲文字不受 PARTIAL_TTL_MS（2.5s）影响 —— 那段是「说过、还没出行」，
@@ -1875,14 +1884,21 @@ const listenModel = (() => {
       else if (kind === 'error') socketLost(ev.reason || '');
       else if (kind === 'close') { if (phase !== 'ended' && phase !== 'halted' && phase !== 'paused' && phase !== 'idle') socketLost(ev.reason || ''); }
     };
+    // BEL-19 E1 Debug 臂：会话开始读一次；关臂 ⇒ 不传模型清单，原生 ≡ 基线。
+    const e1Models = ((cfg && cfg.zhAsrE1Arm === 'e1_b1') && senseVoiceModel()) ? [senseVoiceModel()] : undefined;
     if (!grokRoute) {
-      // 基线单路：开关关或本场无 th。参数与原实现逐字相同。
+      // 基线单路：开关关或本场无 th。开臂时只多传 E1 三键，其余参数不变。
       sock = NativeSpeech.sttOpen({
         locales,
         // 只有**模型断句路**才降静音定稿门槛到 600ms（第五轮 P2-2）：行界已由账本+模型断句决定，
         // 定稿碎一点不会再切行，只是更早进账本。走旧路（Google / qwen-mt / 降级）时两个模式
         // 都维持原节奏（旧路的行界仍由标点/长度决定，不能改）。
         vadMs,
+        // BEL-19 E1：Debug 臂；会话开始读一次（下一会话再生效）。关臂 ⇒ 不传 / sa，原生 ≡ 基线。
+        zhAsrE1Arm: (cfg && cfg.zhAsrE1Arm === 'e1_b1') ? 'e1_b1' : 'sa',
+        // 仅当本会话 locales 含 zh 时 lane=zh，否则工厂不会开 E1 臂
+        lane: (locales || []).some((x) => String(x).toLowerCase().split(/[-_]/)[0] === 'zh') ? 'zh' : String((locales && locales[0]) || 'en'),
+        senseVoiceModels: e1Models,
         onEvent,
       });
       return;
@@ -1892,7 +1908,13 @@ const listenModel = (() => {
     // 它的失败只作用于自己（见上面 dropGrok）。
     const grokOnEvent = (kind, ev) => onEvent(kind, ev, 'grok');
     if (nativeLocales.length) {
-      handles.push(NativeSpeech.sttOpen({ locales: nativeLocales, vadMs, onEvent }));
+      handles.push(NativeSpeech.sttOpen({
+        locales: nativeLocales, vadMs, onEvent,
+        // E1 三键同样下发原生这一路（th 已剥给 Grok）；lane 按这一路的 locales 判。
+        zhAsrE1Arm: (cfg && cfg.zhAsrE1Arm === 'e1_b1') ? 'e1_b1' : 'sa',
+        lane: (nativeLocales || []).some((x) => String(x).toLowerCase().split(/[-_]/)[0] === 'zh') ? 'zh' : String((nativeLocales && nativeLocales[0]) || 'en'),
+        senseVoiceModels: e1Models,
+      }));
     }
     try {
       if (typeof GrokStt !== 'undefined' && GrokStt && typeof GrokStt.open === 'function') {

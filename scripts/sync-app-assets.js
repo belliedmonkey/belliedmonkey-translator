@@ -535,6 +535,8 @@ const BLOCKS = [
   // 设备内置转写 + 设备内置朗读（learning-design §9.6.1）。attach 见 patchViewController 的 install 行；
   // 它要链接 app/native/vendor/ 的本地 SwiftPM 包，见 patchSwiftPackage。
   { name: 'mt-speech-bridge', src: 'speech-bridge.swift', label: 'speech bridge' },
+  // BEL-19 E1 SenseVoice VAD（SPEC-E1）：RecognizerFactory + B1 臂；紧跟 speech-bridge。
+  { name: 'mt-e1-sensevoice', src: 'e1-sensevoice.swift', label: 'e1 sensevoice vad' },
   // §0.6.1 诊断录音（2026-10-06）：采集与上传（麦克风/TTS PCM → write-only 信箱）。无 attach ——
   // speech-bridge 与 audio-bridge 直接调 MTDiagAudio.shared。
   { name: 'mt-diag-audio', src: 'diag-audio.swift', label: 'diag audio' },

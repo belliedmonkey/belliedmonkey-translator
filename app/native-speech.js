@@ -420,6 +420,10 @@ var NativeSpeech = (() => {
     const body = { type: 'stt-start', locales: (o && o.locales) || [] };
     if (o && o.vadMs) body.vadMs = o.vadMs;
     if (o && o.vadLevel) body.vadLevel = o.vadLevel;
+    // BEL-19 E1：臂与 SenseVoice 清单只随 stt-start 下发（不新开收听口；Release 原生恒 sa）。
+    if (o && o.zhAsrE1Arm) body.zhAsrE1Arm = o.zhAsrE1Arm;
+    if (o && o.lane) body.lane = o.lane;
+    if (o && o.senseVoiceModels) body.senseVoiceModels = o.senseVoiceModels;
     if (!post(body)) { sttSession = null; setTimeout(() => session.fire('error', { reason: 'no-bridge' }), 0); }
     return {
       sendPcm() {},

@@ -1659,6 +1659,8 @@ describe('sync-app-assets: speech bridge block (§9.6.1)', () => {
       '"com.apple.voice."', '"ttsbundle"', '"com.apple.eloquence."', '"com.apple.speech.synthesis.voice."',
       // 字段
       '"type"', '"state"', '"reason"', '"assets"', '"kind"', '"locale"', '"fraction"', '"locales"', '"vadMs"', '"vadLevel"',
+      // BEL-19 E1：stt-start 的臂 / lane / SenseVoice 清单字段（协议 id 与语言码，非文案）
+      '"zhAsrE1Arm"', '"lane"', '"senseVoiceModels"', '"zh"',
       // 第 4 轮：请求 id（stt-probe / stt-assets 与它们的终态一一对应，防跨轮串话）。协议字段名，非文案。
       '"req"',
       '"text"', '"conf"', '"alts"', '"t0"', '"t1"', '"langs"', '"id"', '"lang"', '"rate"', '"models"', '"dir"', '"model"',
