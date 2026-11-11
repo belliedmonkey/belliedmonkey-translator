@@ -40,7 +40,8 @@ enum MTE1FallbackReason: String {
     case loadFailed = "load_failed"
     case initTimeout = "init_timeout"
     case oom = "oom"
-    case consecutiveEmptyFinal = "consecutive_empty_final"
+    case svNoFinalTimeout = "sv_no_final_timeout"
+    case svEmptyFinals = "sv_empty_finals"
     case sherpaUnavailable = "sherpa_unavailable"
 }
 
@@ -287,13 +288,24 @@ final class MTE1B1Transcriber {
     var emit: (([String: Any]) -> Void)?
     private let sa: MTDeviceTranscriber
     private let locales: [String]
+    // 唯一硬锁：只有 start() 里 SV 根本装不起来才置 true（本会话没有 E1 可能）。
     private var sessionLockedToSa = false
     private var fallbackReason: MTE1FallbackReason?
     private var segSeq = 0
     private var emptyFinalStreak = 0
     private let emptyFinalLimit = 3
-    private var suppressedSaFinals = 0
-    private let suppressedSaFinalLimit = 5
+    // 软放行（BEL-19 B1 五条锁拆除）：被扣住的 zh SA final 等 SV 定稿等够 svWaitMs 就回放。
+    private var svPassthrough = false
+    private let svWaitMs: Double = 15.0
+    private var pendingSince: Double?                    // 最早一条被扣 SA final 的 systemUptime
+    private var pendingSaFinals: [[String: Any]] = []
+    private let pendingSaFinalLimit = 32
+    private var passthroughReason: MTE1FallbackReason?
+    private var passthroughAtFed16k: Int64 = 0           // 进入软放行时的音频位置（land_drop 用）
+    private var svFinals = 0
+    private var saFinalsSinceSv = 0
+    // tap 线程（onPcm16/onSvSegment）与 SA reader 线程（routeSaEvent）共用上面这些状态。
+    private let e1Lock = NSLock()
     private var fed16k: Int64 = 0
 #if canImport(SherpaOnnx)
     private let svVad = MTE1SvVad()
@@ -329,6 +341,8 @@ final class MTE1B1Transcriber {
 
     func stop() {
         sa.pcm16Tap = nil
+        // 说一句就停、不等 15s：先回放被扣住的 SA 定稿，再清 emit（否则最后一句永远丢）。
+        flushPendingSaFinals()
         sa.emit = nil
 #if canImport(SherpaOnnx)
         svVad.reset()
@@ -365,8 +379,24 @@ final class MTE1B1Transcriber {
 
     private func emitFallbackTelemetry() {
         guard let r = fallbackReason else { return }
-        // 诊断/遥测：封闭枚举；不进听译事件体（SPEC：引擎名只进原生遥测）
-        emit?(["type": "stt-state", "state": "ready", "e1_fallback_reason": r.rawValue, "asr_zh": "sa"])
+        emitE1Telemetry(reason: r, phase: "hard", afterMs: 0, svFinals: 0, saFinals: 0)
+    }
+
+    /// E1 遥测：封闭枚举 + 计数，零内容。state 不用 "ready" —— 否则会误 fire sttSession 的 ready。
+    private func emitE1Telemetry(reason: MTE1FallbackReason, phase: String, afterMs: Int,
+                                 svFinals: Int, saFinals: Int, dropped: Int = 0) {
+        var body: [String: Any] = [
+            "type": "stt-state",
+            "state": "e1-fallback",
+            "e1_fallback_reason": reason.rawValue,
+            "e1_phase": phase,
+            "e1_after_ms": max(0, afterMs),
+            "e1_sv_finals": svFinals,
+            "e1_sa_finals": saFinals,
+            "asr_zh": "sa",
+        ]
+        if dropped > 0 { body["e1_dropped"] = dropped }
+        emit?(body)
     }
 
     private func routeSaEvent(_ payload: [String: Any]) {
@@ -392,14 +422,31 @@ final class MTE1B1Transcriber {
         }
 
         if typ == "stt-final" {
-            // B1：zh final 由 SV 段回调出；抑制 SA final，避免双定稿。
-            // 若 SV 迟迟无段（VAD 未切 / 模型哑），连续抑制若干次 ⇒ 本会话回退 SA。
-            suppressedSaFinals += 1
-            if suppressedSaFinals >= suppressedSaFinalLimit {
-                sessionLockedToSa = true
-                fallbackReason = .consecutiveEmptyFinal
-                emitFallbackTelemetry()
-                emit?(p)  // 本条起放行 SA final
+            // B1：zh final 默认由 SV 段回调出。SV 迟迟不出定稿时先扣住 SA final；
+            // 有文字被扣住的年龄 ≥ svWaitMs 才软放行（不再 5 条整场锁、也不再硬锁）。
+            e1Lock.lock()
+            saFinalsSinceSv += 1
+            e1Lock.unlock()
+            // 先给 SV 一次机会（本次 SA final 可能刚好撞上 SV 定稿）；超时才软放行。
+            maybeEnterPassthrough()
+            e1Lock.lock()
+            if svPassthrough {
+                e1Lock.unlock()
+                emit?(p)  // 软放行出的是 SA 定稿（conf 用 SA 的真实值）
+            } else {
+                if pendingSaFinals.isEmpty { pendingSince = monoNow() }
+                pendingSaFinals.append(p)
+                let overflowed = pendingSaFinals.count > pendingSaFinalLimit
+                var flushed: [[String: Any]] = []
+                if overflowed { flushed = enterPassthroughLocked(.svNoFinalTimeout) }
+                let sv = svFinals
+                let sa = saFinalsSinceSv
+                e1Lock.unlock()
+                for q in flushed { emit?(q) }
+                if overflowed {
+                    emitE1Telemetry(reason: .svNoFinalTimeout, phase: "soft", afterMs: 0,
+                                    svFinals: sv, saFinals: sa)
+                }
             }
             return
         }
@@ -410,11 +457,63 @@ final class MTE1B1Transcriber {
         "e1-\(segSeq)"
     }
 
+    private func monoNow() -> Double { ProcessInfo.processInfo.systemUptime }
+
+    /// 调用方持 e1Lock。进入软放行：记入口 fed16k（land_drop 用），取走 pending 供锁外 emit。
+    private func enterPassthroughLocked(_ reason: MTE1FallbackReason) -> [[String: Any]] {
+        guard !svPassthrough else { return [] }
+        svPassthrough = true
+        passthroughReason = reason
+        passthroughAtFed16k = fed16k
+        let flushed = pendingSaFinals
+        pendingSaFinals.removeAll(keepingCapacity: true)
+        pendingSince = nil
+        return flushed
+    }
+
+    /// 超时入口：从 onPcm16（svVad.accept 之后）调用。
+    /// 锚点是「最早一条被扣住的 zh SA final 的年龄」（pendingSince），不是会话开始 ——
+    /// 用户先静音 20s 再开口时，第一条 SA final 仍该给 SV 机会。
+    private func maybeEnterPassthrough() {
+        e1Lock.lock()
+        guard !sessionLockedToSa, !svPassthrough, let since = pendingSince else {
+            e1Lock.unlock()
+            return
+        }
+        let ageMs = Int((monoNow() - since) * 1000.0)
+        guard Double(ageMs) >= svWaitMs * 1000.0 else {
+            e1Lock.unlock()
+            return
+        }
+        let flushed = enterPassthroughLocked(.svNoFinalTimeout)
+        let sv = svFinals
+        let sa = saFinalsSinceSv
+        e1Lock.unlock()
+        for p in flushed { emit?(p) }  // 锁外 emit：不持锁跨 evaluateJavaScript
+        emitE1Telemetry(reason: .svNoFinalTimeout, phase: "soft", afterMs: ageMs,
+                        svFinals: sv, saFinals: sa)
+    }
+
+    /// 回放被扣住的 SA 定稿：锁内拷贝、锁外 emit（tap / SA reader 两线程共用）。
+    private func flushPendingSaFinals() {
+        e1Lock.lock()
+        let pending = pendingSaFinals
+        pendingSaFinals.removeAll(keepingCapacity: true)
+        pendingSince = nil
+        e1Lock.unlock()
+        for p in pending { emit?(p) }
+    }
+
     private func onPcm16(_ pcm: [Float]) {
+        e1Lock.lock()
         fed16k += Int64(pcm.count)
+        e1Lock.unlock()
 #if canImport(SherpaOnnx)
         guard !sessionLockedToSa else { return }
         svVad.accept(pcm)
+        // 必须在 accept 之后：本次 accept 若刚好产出 SV 定稿，成功路径已清掉 pending，
+        // 不会被误判超时；反过来则短句/说完即停在静音里永远等不到下一次 final。
+        maybeEnterPassthrough()
 #endif
     }
 
@@ -431,13 +530,40 @@ final class MTE1B1Transcriber {
             noteEmptyFinal()
             return
         }
-        emptyFinalStreak = 0
-        suppressedSaFinals = 0
         segSeq += 1
         let sid = "e1-\(segSeq)"
         let sr = Double(MTE1VadLock.sampleRate)
         let t0 = Int(Double(startIdx) / sr * 1000.0)
         let t1 = Int(Double(startIdx + samples.count) / sr * 1000.0)
+
+        e1Lock.lock()
+        emptyFinalStreak = 0
+        let wasPassthrough = svPassthrough
+        let passReason = passthroughReason
+        let passAt = passthroughAtFed16k
+        let sa = saFinalsSinceSv
+        svFinals += 1
+        let sv = svFinals
+        saFinalsSinceSv = 0
+        pendingSaFinals.removeAll(keepingCapacity: true)
+        pendingSince = nil
+        svPassthrough = false
+        passthroughReason = nil
+        passthroughAtFed16k = 0
+        e1Lock.unlock()
+
+        // 用户认的 land_drop（ARCH §5.2）：整段起点落在 passthrough 入口之前 ⇒ 这段音频
+        // 已经由软放行的 SA 定稿上屏，丢 SV 定稿，只发 recover，避免重复行。
+        if wasPassthrough && startIdx < Int(passAt) {
+            emitE1Telemetry(reason: passReason ?? .svNoFinalTimeout, phase: "recover",
+                            afterMs: 0, svFinals: sv, saFinals: sa, dropped: 1)
+            return
+        }
+        if wasPassthrough {
+            emitE1Telemetry(reason: passReason ?? .svNoFinalTimeout, phase: "recover",
+                            afterMs: 0, svFinals: sv, saFinals: sa)
+        }
+
         var payload: [String: Any] = [
             "type": "stt-final",
             "locale": zhLocale(),
@@ -457,12 +583,23 @@ final class MTE1B1Transcriber {
 #endif
 
     private func noteEmptyFinal() {
+        e1Lock.lock()
         emptyFinalStreak += 1
-        if emptyFinalStreak >= emptyFinalLimit {
-            sessionLockedToSa = true
-            fallbackReason = .consecutiveEmptyFinal
-            emitFallbackTelemetry()
+        // 空/全标点 SV 段只软放行（sv_empty_finals）；绝不硬锁，也绝不碰 sessionLockedToSa。
+        let hit = emptyFinalStreak >= emptyFinalLimit && !svPassthrough && !sessionLockedToSa
+        var flushed: [[String: Any]] = []
+        var ageMs = 0
+        if hit {
+            ageMs = pendingSince.map { Int((monoNow() - $0) * 1000.0) } ?? 0
+            flushed = enterPassthroughLocked(.svEmptyFinals)
         }
+        let sv = svFinals
+        let sa = saFinalsSinceSv
+        e1Lock.unlock()
+        guard hit else { return }
+        for p in flushed { emit?(p) }
+        emitE1Telemetry(reason: .svEmptyFinals, phase: "soft", afterMs: ageMs,
+                        svFinals: sv, saFinals: sa)
     }
 
     private func sanitize(_ s: String) -> String {
