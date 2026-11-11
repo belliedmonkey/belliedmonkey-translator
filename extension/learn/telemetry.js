@@ -108,6 +108,12 @@ var MTTelemetry = (() => {
     if (typeof v === 'string' && (v.length > STR_MAX || /http|@/i.test(v))) return false;
     if (rule === 'int') return Number.isInteger(v) && v >= 0 && v < 1e10;
     if (rule === 'id') return typeof v === 'string' && /^[a-z0-9_-]{1,32}$/.test(v);
+    // 下面四种与 bt-ingest 的 okValue **逐字**一致（UUID / SEMVER / LANG 的正则照抄）。
+    // iso 只做 Date.parse 形状校验：±7 天窗口是服务端的判断，不在客户端 replicate。
+    if (rule === 'uuid') return typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+    if (rule === 'semver') return typeof v === 'string' && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(v);
+    if (rule === 'lang') return typeof v === 'string' && (v === '' || /^[a-z]{2,3}$/.test(v));
+    if (rule === 'iso') return typeof v === 'string' && Number.isFinite(Date.parse(v));
     return false;
   }
   // 返回可入队的事件，或 null（原因写在 reason 上，测试用）。
@@ -336,7 +342,7 @@ var MTTelemetry = (() => {
   return {
     track, once, flush, init, enabled, setEnabled, installId, dwell,
     // 测试与调试
-    _shape: shape, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
+    _shape: shape, _okValue: okValue, _envelope: envelope, host, device, KEYS: K, FLUSH_AT, QUEUE_CAP,
     // 本机诊断（没有遥测规格时的 auth_fail）：只读出口，给测试与设备容器回读用。
     _diag: diag, DIAG_KEY: DIAG_KEY, DIAG_CAP: DIAG_CAP,
   };
