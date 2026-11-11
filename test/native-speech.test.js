@@ -160,3 +160,46 @@ describe('NativeSpeech —— 并发探针/安装不跨轮串话（第 4 轮）'
     eq(NS.probeResult().assets, 'installed');
   });
 });
+
+// BEL-19 E1：原生 state:"e1-fallback" 只映射成一条零内容 DiagLog('e1')，
+// 不得冒充 ready/error 去动 sttSession（否则软放行会误 fire 会话状态）。
+describe('NativeSpeech —— E1 e1-fallback 遥测 → DiagLog', () => {
+  function setupDiag() {
+    const posted = [];
+    const pushes = [];
+    const window = { webkit: { messageHandlers: { mtSpeech: { postMessage: (m) => posted.push(m) } } } };
+    const ctx = loadModule('../app/native-speech.js', { window, DiagLog: { push: (k, f) => pushes.push([k, f]) } });
+    return { NS: ctx.NativeSpeech, pushes };
+  }
+
+  test('e1-fallback 精确映射五个零内容字段，text 丢弃，不误 fire ready/error', () => {
+    const { NS, pushes } = setupDiag();
+    const ev = [];
+    NS.sttOpen({ locales: ['zh-CN'], onEvent: (k) => ev.push(k) });
+    NS._fromNative({
+      type: 'stt-state', state: 'e1-fallback',
+      e1_fallback_reason: 'sv_no_final_timeout', e1_phase: 'soft',
+      e1_after_ms: 15000, e1_sv_finals: 0, e1_sa_finals: 6, text: 'x',
+    });
+    eq(pushes.length, 1, 'e1-fallback 没落成一条 DiagLog');
+    eq(pushes[0][0], 'e1', '日志 kind 不是 e1');
+    deepEq(pushes[0][1], { reason: 'sv_no_final_timeout', phase: 'soft', after_ms: 15000, sv_finals: 0, sa_finals: 6 },
+      'e1 字段没被精确映射（或混进了 text）');
+    deepEq(ev, [], 'e1-fallback 误 fire 了会话事件');
+  });
+
+  test('recover 阶段同样映射；没有 DiagLog 的宿主不抛', () => {
+    const { NS, pushes } = setupDiag();
+    NS._fromNative({
+      type: 'stt-state', state: 'e1-fallback',
+      e1_fallback_reason: 'sv_empty_finals', e1_phase: 'recover',
+      e1_after_ms: 0, e1_sv_finals: 1, e1_sa_finals: 3,
+    });
+    eq(pushes.length, 1);
+    eq(pushes[0][1].phase, 'recover');
+    eq(pushes[0][1].reason, 'sv_empty_finals');
+    const bare = setup();   // 沙箱里没有 DiagLog
+    bare.NS._fromNative({ type: 'stt-state', state: 'e1-fallback', e1_fallback_reason: 'sv_empty_finals' });
+    ok(true, '无 DiagLog 宿主时 e1 遥测不该抛');
+  });
+});

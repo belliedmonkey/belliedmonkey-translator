@@ -85,6 +85,19 @@ var NativeSpeech = (() => {
       return;
     }
     if (t === 'stt-state') {
+      // BEL-19 E1：软放行 / SV 恢复 / 硬回退。只搬 reason/phase/after_ms/计数，零内容；
+      // DIAGLOG 的 SCHEMA 必须同版有 e1（否则会像 lid 一样被 push 静默丢掉）。
+      if (msg.e1_fallback_reason) {
+        try {
+          DiagLog.push('e1', {
+            reason: String(msg.e1_fallback_reason || ''),
+            phase: String(msg.e1_phase || ''),
+            after_ms: Number(msg.e1_after_ms) || 0,
+            sv_finals: Number(msg.e1_sv_finals) || 0,
+            sa_finals: Number(msg.e1_sa_finals) || 0,
+          });
+        } catch (_) {}
+      }
       // 「ended」是 stt-stop 的回执，原生总晚一拍才到（postMessage 与 evaluateJavaScript 各排一次队）。
       // closeSocket() 紧接 openSocket()（改语言重连 / 结束后立刻再开）时，回执落在**新**会话开好之后 ——
       // 2026-09-14 起 test:listen F 段偶发失败就是它把刚开的会话当成「结束」杀掉了。所以自己叫停的每一路

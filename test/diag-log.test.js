@@ -1,7 +1,7 @@
 // test/diag-log.test.js — 诊断日志三道门（§0.6.1 缺口补法，2026-10-06 用户拍板：
 // 手机端补打点；中国版零网络，选项 A —— L1 本机 + 手动导出先上，L2 另批）。
 //
-//   1. schema 白名单：事件种类固定六类，白名单外的 kind 直接丢；
+//   1. schema 白名单：事件种类是固定白名单（当前九类），白名单外的 kind 直接丢；
 //   2. **零内容**：字段白名单在 push 处强制 —— 事件里进不来用户文本/译文/URL；
 //   3. write-only：L2 信箱表（deploy/diag-events.sql）永远没有 SELECT/DELETE policy。
 'use strict';
@@ -9,7 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
-const { test, ok } = require('./harness');
+const { test, ok, eq, deepEq } = require('./harness');
 
 const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 
@@ -35,13 +35,37 @@ function loadDiagCtx(over) {
 }
 function loadDiag(over) { return loadDiagCtx(over).DiagLog; }
 
-test('★ schema 白名单：六类之外的事件类型直接丢', () => {
+test('★ schema 白名单：白名单之外的事件类型直接丢', () => {
   const D = loadDiag();
   D.push('dl', { tier: 'server', phase: 'done' });
   D.push('location', { lat: 1, lng: 2 });           // 不在白名单里的 kind
   D.push('raw_text', { text: '秘密' });
   const all = D.all();
   ok(all.length === 1 && all[0].k === 'dl', `白名单外的 kind 没被丢掉（收到 ${all.length} 条）`);
+});
+
+test('★ schema 类数：固定九类（加类必须同时进 SCHEMA，防 lid 式静默丢）', () => {
+  const D = loadDiag();
+  deepEq(Object.keys(D.SCHEMA).sort(),
+    ['auth', 'dl', 'e1', 'engine_fix', 'probe', 'seg', 'speak', 'stt_final', 'tts_engine'],
+    'SCHEMA 不是九类');
+});
+
+test('★ e1：零内容 —— 只留 reason/phase/after_ms/sv_finals/sa_finals', () => {
+  const D = loadDiag();
+  D.push('e1', { reason: 'sv_no_final_timeout', phase: 'soft', after_ms: 15000,
+    sv_finals: 0, sa_finals: 6, text: '秘密', url: 'https://secret.example/x' });
+  const all = D.all();
+  eq(all.length, 1, 'e1 事件没被收下 —— SCHEMA 白名单漏了');
+  eq(all[0].k, 'e1');
+  deepEq(Object.keys(all[0].f).sort(), ['after_ms', 'phase', 'reason', 'sa_finals', 'sv_finals'],
+    'e1 字段集不是五个零内容字段');
+  eq(all[0].f.reason, 'sv_no_final_timeout');
+  eq(all[0].f.phase, 'soft');
+  eq(all[0].f.after_ms, 15000);
+  eq(all[0].f.sv_finals, 0);
+  eq(all[0].f.sa_finals, 6);
+  ok(!('text' in all[0].f) && !('url' in all[0].f), 'e1 混进了文本/URL');
 });
 
 test('★ 零内容：字段白名单在 push 处强制 —— 文本/译文进不来', () => {
@@ -61,10 +85,11 @@ test('★ 体量：200 条环形 —— 超了从头丢，不无限长', () => {
   ok(D.all().length === D.MAX && D.MAX === 200, `环形上限不对（${D.all().length} 条）`);
 });
 
-test('★ 接线在位：六个捕获点都在（引擎装载 / 探测 / 朗读结局 / 下载 tier / 登录 / 自愈）', () => {
+test('★ 接线在位：捕获点都在（引擎装载 / 探测 / 朗读结局 / 下载 tier / 登录 / 自愈 / E1）', () => {
   const ns = read('app/native-speech.js');
   ok(/DiagLog\.push\('tts_engine'/.test(ns), 'native-speech 没记引擎装载失败（#567 reason:load 真机不可见的根）');
   ok(/DiagLog\.push\('probe'/.test(ns), 'native-speech 没记探测结果');
+  ok(/DiagLog\.push\('e1'/.test(ns), 'native-speech 没记 E1 软放行/恢复（BEL-19）');
   ok(/DiagLog\.push\('speak'/.test(read('extension/learn/tts.js')), 'tts.js 没记朗读结局（#568 在途失败不可见）');
   const ms = read('app/model-sources.js');
   ok(/DiagLog\.push\('dl'/.test(ms) && /phase: 'done'/.test(ms) && /phase: 'fail'/.test(ms), 'model-sources 没记 tier 失败链（泰国拉不动魔搭那类的唯一现场证据）');

@@ -158,7 +158,7 @@ const MODULES = [
   'app/secure-store.js',                 // AppSecureStore — 1.21.2 本机 Keychain（泰语 Grok BYOK；无桥=no-op）
   // app/grok-stt.js — **不**恒进 MODULES。见下方 INTL_GROK_MODULES：仅国际包（Debug+Release）链入；
   // 中国包（flavor=china / omitGrokStt / genRoot）构建时省略，避免 api.x.ai / grok-stt-* 进产物。
-  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.6.1 缺口补法，2026-10-06：六类事件、零内容、200 条环形）
+  'app/diag-log.js',                     // DiagLog — 诊断日志（§0.6.1 缺口补法，2026-10-06：九类事件、零内容、200 条环形）
   'app/offline-video-asr.js',            // OfflineVideoAsr — Mac 完整视频离线字幕（domain-design §2.8）。
                                          // 不 import 听译。原生通道只在 macOS 存在；缺桥时 start 直接返回。
   'app/device-models.config.js',         // MT_DEVICE_TTS_MODELS — 离线朗读模型清单（§9.6.1，只有 App 用，所以不在 extension/ 下）

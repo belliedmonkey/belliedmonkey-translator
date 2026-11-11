@@ -11,6 +11,19 @@ const SWIFT_E1 = read('app/native/e1-sensevoice.swift');
 const SWIFT_SB = read('app/native/speech-bridge.swift');
 const MODELS = require('../app/device-models.config.js');
 
+// 源码形态门（Swift 没有运行时测试目标）：按成员切段，钉「谁在谁之后 / 谁不再出现」。
+// 这是形态断言，不是行为证明 —— 真机矩阵仍按 docs/verification-spec.md 跑。
+function member(startMarker, endMarker) {
+  const i = SWIFT_E1.indexOf(startMarker);
+  if (i < 0) return '';
+  let j = SWIFT_E1.length;
+  if (endMarker) {
+    const k = SWIFT_E1.indexOf(endMarker, i + startMarker.length);
+    if (k >= 0) j = k;
+  }
+  return SWIFT_E1.slice(i, j);
+}
+
 describe('E1 VAD 参数锁 sil0.5_thr0.3_max8', () => {
   test('原生 MTE1VadLock 三值写死', () => {
     ok(/static let armName = "sil0\.5_thr0\.3_max8"/.test(SWIFT_E1), 'armName 缺失');
@@ -90,11 +103,108 @@ describe('E1 模型中继', () => {
   });
 });
 
+describe('E1 B1 五条锁拆除（BEL-19 land_drop）', () => {
+  test('5 条 SA final 整场锁的旋钮彻底消失', () => {
+    ok(!/suppressedSaFinalLimit|suppressedSaFinals/.test(SWIFT_E1), 'suppressedSaFinal/Limit 仍在');
+    ok(!/consecutive_empty_final/.test(SWIFT_E1), '旧 consecutive_empty_final 仍在');
+  });
+
+  test('硬锁只留 start()：sessionLockedToSa = true 全文件一处', () => {
+    eq((SWIFT_E1.match(/sessionLockedToSa\s*=\s*true/g) || []).length, 1, '硬锁赋值点不是一处');
+    const i = SWIFT_E1.indexOf('sessionLockedToSa = true');
+    const s = SWIFT_E1.indexOf('func start()');
+    const t = SWIFT_E1.indexOf('func stop()');
+    ok(i > s && i < t, '唯一的硬锁赋值不在 start() 里');
+    const note = member('private func noteEmptyFinal', 'private func sanitize');
+    ok(note && !/sessionLockedToSa\s*=\s*true/.test(note), '空 SV 段仍硬锁整场');
+  });
+
+  test('软等待 svWaitMs 在 12–20 秒（钉 15.0），时钟用 systemUptime', () => {
+    const m = SWIFT_E1.match(/private let svWaitMs: Double = ([0-9.]+)/);
+    ok(m, 'svWaitMs 常量缺失');
+    const v = Number(m[1]);
+    ok(v >= 12 && v <= 20, 'svWaitMs 越界: ' + v);
+    eq(v, 15, 'svWaitMs 不是 15.0');
+    ok(/ProcessInfo\.processInfo\.systemUptime/.test(SWIFT_E1), '计时源不是 systemUptime');
+  });
+
+  test('计时锚 = 最早被扣 SA final 的年龄（pendingSince），不是会话开始', () => {
+    ok(/private var pendingSince: Double\?/.test(SWIFT_E1), 'pendingSince 缺失');
+    ok(/private var pendingSaFinals: \[\[String: Any\]\]/.test(SWIFT_E1), 'pendingSaFinals 缓存缺失');
+    ok(/private func flushPendingSaFinals\(\)/.test(SWIFT_E1), 'flushPendingSaFinals 缺失');
+    ok(/NSLock\(\)/.test(SWIFT_E1) && /e1Lock\.lock\(\)/.test(SWIFT_E1), 'NSLock 跨线程守卫缺失');
+    const maybe = member('private func maybeEnterPassthrough', 'private func onPcm16');
+    ok(/pendingSince/.test(maybe) && /svWaitMs/.test(maybe), '超时判定没用 pendingSince/svWaitMs');
+    ok(!/sessionStartedAt|sessionStart|startedAt\b/.test(SWIFT_E1), '仍在用会话开始做计时锚');
+  });
+
+  test('计时检查在 onPcm16、且在 svVad.accept 之后', () => {
+    const on = member('private func onPcm16', 'private func onSvSegment');
+    const accept = on.indexOf('svVad.accept(pcm)');
+    const maybe = on.indexOf('maybeEnterPassthrough()');
+    ok(accept >= 0, 'onPcm16 不再喂 svVad');
+    ok(maybe > accept, 'maybeEnterPassthrough 不在 svVad.accept 之后');
+  });
+
+  test('stop() 清 emit 前回放 pending SA final', () => {
+    const stop = member('func stop()', 'func cut()');
+    const flush = stop.indexOf('flushPendingSaFinals()');
+    const clear = stop.indexOf('sa.emit = nil');
+    ok(flush >= 0 && clear >= 0 && flush < clear, 'stop() 没有在清 emit 前 flushPendingSaFinals()');
+  });
+
+  test('SA final：SV 出定稿前扣住、软放行；不再 5 条整场锁', () => {
+    const fin = member('if typ == "stt-final"', 'private func currentSegId');
+    ok(/svPassthrough/.test(fin) && /pendingSaFinals\.append/.test(fin), 'final 分支没有 pending 缓存/软放行');
+    ok(/emit\?\(p\)/.test(fin), '软放行后没有放行 SA final');
+    ok(!/suppressedSaFinalLimit/.test(fin) && !/saFinalsSinceSv\s*>=\s*5/.test(fin), '5 条整场锁还在');
+  });
+
+  test('SV 成功恢复：清 pending / 撤销 passthrough / conf 0.9 仍在', () => {
+    const seg = member('private func onSvSegment', 'private func noteEmptyFinal');
+    ok(/guard !sessionLockedToSa/.test(seg), 'onSvSegment 硬锁 guard 被改坏');
+    ok(/svFinals \+= 1/.test(seg), 'SV 成功未计数');
+    ok(/saFinalsSinceSv = 0/.test(seg), 'SV 成功未清 SA 计数');
+    ok(/pendingSaFinals\.removeAll/.test(seg) && /pendingSince = nil/.test(seg), 'SV 成功未清 pending');
+    ok(/svPassthrough = false/.test(seg), 'SV 成功未撤销 passthrough');
+    ok(/"conf": 0\.9/.test(seg), 'SV 定稿 conf 0.9 被改');
+    ok(/phase: "recover"/.test(seg), '恢复未发 recover 遥测');
+  });
+
+  test('land_drop：整段起点早于 passthroughAtFed16k ⇒ 丢 SV 定稿，只发 recover', () => {
+    ok(/private var passthroughAtFed16k: Int64/.test(SWIFT_E1), '未记 passthroughAtFed16k');
+    const seg = member('private func onSvSegment', 'private func noteEmptyFinal');
+    const i = seg.search(/startIdx\s*<\s*Int\((passthroughAtFed16k|passAt)\)/);
+    const j = seg.indexOf('emit?(payload)');
+    ok(i >= 0, '恢复时未按 startIdx 与入口比较');
+    ok(/let passAt = passthroughAtFed16k/.test(seg), '入口位置未在锁内取快照（跨线程读 passthroughAtFed16k）');
+    ok(j > i, '丢段判断不在 emit SV 定稿之前');
+    ok(/dropped: 1/.test(seg), '重叠段未标 dropped');
+    const drop = seg.slice(i, j);
+    ok(/return/.test(drop), '丢段分支没有 return，SV 定稿仍会上屏');
+  });
+
+  test('空 SV 段改软：sv_empty_finals，不碰 sessionLockedToSa', () => {
+    const note = member('private func noteEmptyFinal', 'private func sanitize');
+    ok(/svEmptyFinals/.test(note), '空段未走 sv_empty_finals 软放行');
+    ok(/enterPassthroughLocked/.test(note), '空段未进软放行');
+    ok(!/sessionLockedToSa\s*=\s*true/.test(note), '空段仍硬锁');
+  });
+
+  test('e1 遥测：state e1-fallback + phase/after_ms/sv_finals/sa_finals，零内容', () => {
+    ok(/"state": "e1-fallback"/.test(SWIFT_E1), 'state 不是 e1-fallback');
+    for (const k of ['e1_phase', 'e1_after_ms', 'e1_sv_finals', 'e1_sa_finals']) ok(SWIFT_E1.includes(k), '缺遥测字段 ' + k);
+    ok(!/"state": "ready"/.test(SWIFT_E1), 'E1 回退仍发 state:ready（会误 fire sttSession）');
+    ok(/phase: "hard"/.test(SWIFT_E1) && /phase: "soft"/.test(SWIFT_E1), '硬/软 phase 缺失');
+  });
+});
+
 describe('E1 失败回退枚举', () => {
-  test('e1_fallback_reason 封闭枚举', () => {
+  test('e1_fallback_reason 封闭枚举（9 值，旧值已删）', () => {
     for (const r of ['model_not_ready', 'model_sha_mismatch', 'download_failed', 'load_failed',
-                     'init_timeout', 'oom', 'consecutive_empty_final', 'sherpa_unavailable']) {
-      ok(SWIFT_E1.includes('"' + r + '"') || SWIFT_E1.includes("= \"" + r + "\""), '缺枚举 ' + r);
+                     'init_timeout', 'oom', 'sv_no_final_timeout', 'sv_empty_finals', 'sherpa_unavailable']) {
+      ok(SWIFT_E1.includes('"' + r + '"'), '缺枚举 ' + r);
     }
+    ok(!SWIFT_E1.includes('consecutive_empty_final'), '旧 consecutive_empty_final 仍在');
   });
 });

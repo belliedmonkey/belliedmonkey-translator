@@ -610,7 +610,7 @@ speakPump/即报门钉着。M3 是**注入版**回声（同一文本喂回麦克
    GoTrue 在 `docker logs china-auth-1`，DB 在 `china-db-1`。Apple 出海质量监控
    `/var/log/bt-jwks-probe.log`（cron 每 5 分钟）。
 3. **设备侧仪器（L2 已启用，2026-10-06 用户拍板）**：诊断日志自动上报到自有后端的
-   write-only 信箱 `bt_diag_events`（六类事件、字段白名单零内容、失败静默；启动后 5s +
+   write-only 信箱 `bt_diag_events`（九类事件、字段白名单零内容（`seg` 内容离机前剥成 `_len`）、失败静默；启动后 5s +
    每 40 条 + 失败类快发）。**中国库已部署并端到端验通**（真包 POST→201→SSH 读回，
    `npm run diag:latest` / `diag:dump -- <uuid>` 自查）；东京库待建。**上架 App Store 前
    必须回来处理**：国际版遥测白名单加 diag 事件类 + 中国版隐私页措辞同版本更新
