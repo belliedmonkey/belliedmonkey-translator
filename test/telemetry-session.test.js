@@ -584,3 +584,103 @@ describe('opt-out 闸：新事件与 bt-auth-ok 受同一个开关约束', () =>
     eq(a.fetches.length, 0, '关掉时不能发任何请求');
   });
 });
+
+// 2026-11-08（BEL-222/225/226 后续；BEL-228 校验器补全）：launch_id / setup_id 是 32-hex `id`，
+// **不是** uuid —— app_open.launch_id、pack_download_*.setup_id、packs_ready.setup_id 都走 `id`
+// 规则，能过 shape()。本块只测 `_okValue` 新增的 uuid/iso/semver/lang 四条规则，不测任何
+// 不存在的 uuid 事件；这里用**真的** MTTelemetry（loadReal），不再让假 telemetry 遮住 shape。
+describe('okValue — uuid/iso/semver/lang 与服务端 bt-ingest 同规则', () => {
+  const UUID = '11111111-1111-4111-8111-111111111111';
+
+  test('uuid 逐字照抄服务端正则（版本 1–8、variant 8/9/a/b、大小写不敏感）', () => {
+    const { T } = loadReal();
+    eq(T._okValue('uuid', UUID), true);
+    eq(T._okValue('uuid', UUID.toUpperCase()), true, '服务端 /i，大小写都收');
+    eq(T._okValue('uuid', '11111111-1111-0111-8111-111111111111'), false, '版本位 0 服务端不收');
+    eq(T._okValue('uuid', '11111111-1111-4111-7111-111111111111'), false, 'variant 位 7 服务端不收');
+    eq(T._okValue('uuid', '00000000-0000-0000-0000-000000000000'), false, 'nil uuid 不是合法 v4');
+  });
+
+  test('iso / semver / lang 与服务端同规则（iso 不含 ±7 天窗口）', () => {
+    const { T } = loadReal();
+    eq(T._okValue('iso', '2026-11-08T12:00:00Z'), true);
+    eq(T._okValue('iso', '2026-11-08T12:00:00+08:00'), true);
+    eq(T._okValue('iso', 'not-a-date'), false);
+    eq(T._okValue('semver', '1.23.3'), true);
+    eq(T._okValue('semver', '1.23'), false);
+    eq(T._okValue('semver', '1.2.3.4'), false);
+    eq(T._okValue('lang', 'zh'), true);
+    eq(T._okValue('lang', ''), true, '服务端显式允许空串（ui 可能为空）');
+    eq(T._okValue('lang', 'zh-CN'), false);
+  });
+
+  test('app_open 带合法 launch_id ⇒ 入队，且出现在后端请求体', async () => {
+    const a = loadReal();
+    await a.TS.appOpen();
+    await settle();
+    const q = a.store['tm:queue'] || [];
+    eq(q.length, 1, 'app_open 必须入队，不能被 shape() 丢掉');
+    eq(q[0].name, 'app_open');
+    eq(q[0].props.launch_id, a.TS.launchId());
+
+    eq(await a.T.flush(), true);
+    eq(a.fetches.length, 1);
+    const body = JSON.parse(a.fetches[0].init.body);
+    eq(body.length, 1);
+    eq(body[0].name, 'app_open');
+    eq(body[0].props.launch_id, a.TS.launchId(), '请求体里必须能看到该 launch_id');
+    ok(a.T._okValue(cfg.COMMON.install_id, body[0].install_id), '信封 install_id 也过 uuid');
+  });
+
+  test('pack_download_start / packs_ready 带 setup_id ⇒ 同样入队并出现在请求体', async () => {
+    const a = loadReal();
+    const sid = await a.TS.packStart('listen');
+    await settle();
+    await a.TS.packsReady({
+      base: { required: 1, ready: 1 }, asr: { required: 2, ready: 2 },
+      tts: { required: 1, ready: 1 }, all: { required: 4, ready: 4 },
+    });
+    await settle();
+
+    const q = a.store['tm:queue'] || [];
+    eq(q.length, 5, '1 条 pack_download_start + 4 条 packs_ready');
+    eq(q[0].name, 'pack_download_start');
+    eq(q[0].props.setup_id, sid);
+    ok(q.slice(1).every((e) => e.name === 'packs_ready' && e.props.setup_id === sid),
+      'packs_ready 每条都要带同一个 setup_id');
+
+    eq(await a.T.flush(), true);
+    const body = JSON.parse(a.fetches[0].init.body);
+    eq(body.length, 5);
+    eq(body[0].name, 'pack_download_start');
+    eq(body[0].props.setup_id, sid);
+    deepEq(body.slice(1).map((e) => e.name), ['packs_ready', 'packs_ready', 'packs_ready', 'packs_ready']);
+    ok(body.slice(1).every((e) => e.props.setup_id === sid), '请求体里的 setup_id 不能被改写');
+  });
+
+  test('非法 uuid 被 _okValue 拒；http、@ 护栏没有放宽', async () => {
+    const a = loadReal();
+    eq(a.T._okValue('uuid', 'x'), false, 'x 不是 uuid');
+    for (const bad of ['http://example.com/a', 'a@b']) {
+      eq(a.T._shape('app_open', { launch_id: bad }), null, bad + ' 不该过 shape()');
+      eq(await a.T.track('app_open', { launch_id: bad }), false, bad + ' 不该入队');
+    }
+    eq((a.store['tm:queue'] || []).length, 0);
+  });
+
+  test('COMMON 的 ts / v / ui 仍能过；它们不走 shape()，由 envelope 生成后由服务端校验', async () => {
+    // shape() 只遍历 props；COMMON 的 ts/v/ui 是 envelope() 在 flush 时加的。
+    // 这里两头都钉：① 客户端 okValue 认得这三种规则；② 真发出去的值确实合法。
+    const a = loadReal();
+    const { T } = a;
+    eq(T._okValue(cfg.COMMON.ts, '2026-11-08T12:00:00Z'), true);
+    eq(T._okValue(cfg.COMMON.v, '1.23.3'), true);
+    eq(T._okValue(cfg.COMMON.ui, 'en'), true);
+
+    await a.TS.appOpen();
+    await settle();
+    eq(await a.T.flush(), true);
+    const env = JSON.parse(a.fetches[0].init.body)[0];
+    for (const k of ['ts', 'v', 'ui']) eq(T._okValue(cfg.COMMON[k], env[k]), true, k + '=' + env[k]);
+  });
+});
