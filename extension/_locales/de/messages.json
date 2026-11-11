@@ -4363,9 +4363,9 @@
     "message": "Der Oberflächensprache folgen"
   },
   "app_e1_label": {
-    "message": "Experimentell: Chinesische Spracherkennung mit SenseVoice"
+    "message": "Chinesische Spracherkennung mit SenseVoice"
   },
   "app_e1_note": {
-    "message": "Standardmäßig aus. Wenn aktiviert, nutzen nur chinesische (zh) Gespräche das lokale SenseVoice für die endgültige Transkription; das Modell wird bei der ersten Nutzung heruntergeladen (ca. 160 MB). Bei einem Fehler wird automatisch auf die Systemdiktierung zurückgegriffen."
+    "message": "Standardmäßig aktiviert, nur für Chinesisch (zh). Das Modell wird bei der ersten Nutzung im Hintergrund heruntergeladen (ca. 160 MB). Bis zum Abschluss und bei Fehlern wird die Systemdiktierung verwendet. Die Änderung gilt ab der nächsten Sitzung. Ausschalten kehrt zur Systemdiktierung zurück."
   }
 }

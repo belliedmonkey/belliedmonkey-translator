@@ -124,8 +124,8 @@ const SETTINGS_SCHEMA = (() => {
     listenMyLang:    { default: '',    surfaces: ['listen', 'app'], note: "'' = follow uiLang" },
     listenOtherLang: { default: 'en',  surfaces: ['listen', 'app'] },
     listenAutoSpeak: { default: true,  surfaces: ['listen', 'app'] },
-    // BEL-19 E1 A 层：Release opt-in，默认关。
-    zhAsrE1:         { default: false, surfaces: ['app', 'listen'] },
+    // BEL-19 E1 A 层：中文默认开；显式 false 关；平台/flavor 门在 listen-model。
+    zhAsrE1:         { default: true,  surfaces: ['app', 'listen'] },
     // 1.21.2 泰语 Grok 商店 BYOK：产品开关（默认关）。Key 走本机 Keychain（AppSecureStore），
     // **不**进 schema（禁 localStorage 明文唯一真源）。CN flavor 设置页隐藏整块。
     thaiGrokStt:     { default: false, surfaces: ['listen', 'app'] },
