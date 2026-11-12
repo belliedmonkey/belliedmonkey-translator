@@ -56,7 +56,7 @@ function get(url, cap) {
   });
 }
 
-function streamWanted(url, wanted, budget, timeoutMs) {
+function streamWanted(url, wanted, budget, timeoutMs, hooks) {
   const names = [...wanted];
   return new Promise((resolve, reject) => {
     const collector = createTarCollector(names);
@@ -111,6 +111,15 @@ function streamWanted(url, wanted, budget, timeoutMs) {
           res.resume();
           fail(new Error('HTTP ' + res.statusCode + ' for ' + target));
           return;
+        }
+        if (hooks && typeof hooks.onResponse === 'function') {
+          hooks.onResponse({
+            status: res.statusCode,
+            url: target,
+            etag: res.headers.etag || null,
+            contentLength: res.headers['content-length'] || null,
+            contentType: res.headers['content-type'] || null,
+          });
         }
         res.on('data', (chunk) => {
           budget.used += chunk.length;
