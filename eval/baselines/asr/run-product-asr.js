@@ -39,8 +39,13 @@ function planRun(input) {
   const base = {
     productMetric: false,
     hypotheses: null,
-    path: 'apple-speechanalyzer',
+    arm: 'sa',
+    component: 'apple-speech-analyzer-file',
     sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    intlMacChineseDefaultArm: 'e1_b1',
+    endToEnd: false,
+    swiftCompiledByPackager: false,
   };
   if (errors.length) {
     return Object.assign(base, { ok: false, code: 'sample-check', errors });
@@ -68,9 +73,10 @@ function planRun(input) {
   return Object.assign(base, {
     ok: true,
     code: 'run-sa-file',
-    sameProductProcess: false,
     helper: 'eval/baselines/asr/product-asr-mac.swift',
-    note: 'SA file adapter only. It is not the app process and it does not run intl-Mac e1_b1.',
+    eligibleToAttemptCompileAndRun: true,
+    macProductVersion: input.macProductVersion || '',
+    note: 'Darwin macOS major >= 26, including 27, may attempt to compile and run the SA file helper. That detection is not a compile result. swiftCompiledByPackager stays false. The helper is the sa arm only. It is not the app process, not intl-Mac Chinese default e1_b1, and not an end-to-end listen or subtitle run.',
   });
 }
 
@@ -107,8 +113,10 @@ function macProductVersion() {
 function main(argv) {
   const args = argv.slice(2);
   let setPath = DEFAULT_SET;
+  let outDir = '';
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
+    else if (args[i] === '--out-dir') outDir = args[++i];
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(1);
@@ -126,12 +134,41 @@ function main(argv) {
   plan.checked = inspected.length;
   console.log(JSON.stringify(plan, null, 2));
   if (!plan.ok) process.exit(2);
-  const outPath = path.join(__dirname, '.cache', 'product-asr-hypotheses.json');
-  fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  execFileSync('swift', [HELPER, '--set', setPath, '--out', outPath], {
-    stdio: 'inherit',
-    timeout: 15 * 60 * 1000,
-  });
+  if (!outDir) {
+    console.error('{"ok":false,"code":"need-out-dir","productMetric":false,"hypotheses":null,"arm":"sa"}');
+    process.exit(2);
+  }
+  const dest = path.resolve(outDir);
+  fs.mkdirSync(dest, { recursive: true });
+  const metaPath = path.join(dest, 'run-metadata.json');
+  const hypPath = path.join(dest, 'hypotheses.json');
+  const meta = {
+    arm: 'sa',
+    component: 'apple-speech-analyzer-file',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    intlMacChineseDefaultArm: 'e1_b1',
+    endToEnd: false,
+    productMetric: false,
+    swiftCompiledByPackager: false,
+    note: 'sa arm file feed only. Not the intl-Mac Chinese default e1_b1 arm and not an end-to-end result.',
+  };
+  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  try {
+    execFileSync('swift', [HELPER, '--set', setPath, '--out', hypPath], {
+      stdio: 'inherit',
+      timeout: 15 * 60 * 1000,
+    });
+  } catch (err) {
+    meta.swiftExit = err.status == null ? 1 : err.status;
+    meta.hypotheses = null;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(meta.swiftExit || 1);
+  }
+  meta.swiftExit = 0;
+  meta.hypothesesFile = 'hypotheses.json';
+  fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
 }
 
 if (require.main === module) main(process.argv);

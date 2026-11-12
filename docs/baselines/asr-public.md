@@ -82,7 +82,15 @@ node eval/baselines/asr/fetch-fleurs.js --audio --record
 node eval/baselines/asr/run-product-asr.js
 ```
 
-它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。macOS 26 上同一命令才会启动 `product-asr-mac.swift`，并且那个文件适配器只覆盖 SA 文件喂入，不跑 `e1_b1`。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
+它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。Darwin 且 `sw_vers` 主版本 ≥ 26（含已测机器上的 macOS 27.0）时，同一命令在给出 `--out-dir` 后才会尝试用 `swift` 编译并运行 `product-asr-mac.swift`。那个文件适配器只覆盖 SA 文件喂入，臂是 `sa`，不是国际版 Mac 中文默认的 `e1_b1`，也不是端到端。`swiftCompiledByPackager` 在这份源码里恒为 false：本环境没有在 Mac 上编译过它。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
+
+在 Mac 上把输出只写到指定目录：
+
+```bash
+node eval/baselines/asr/run-product-asr.js --out-dir /path/to/asr-output
+```
+
+首次调用系统语音框架时，macOS 可能弹出语音识别权限或语言资源下载的原生提示。脚本不会代替用户点允许，也不会改 App 或系统配置。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

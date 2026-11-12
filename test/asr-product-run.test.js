@@ -24,6 +24,24 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(plan.sameProductProcess, false);
   });
 
+  test('macOS 27 is eligible to attempt the sa file helper and is not e1_b1', () => {
+    const plan = planRun({
+      platform: 'darwin',
+      macProductVersion: '27.0',
+      items: [{ id: 'a', present: true, shaMatch: true, wavOk: true, samples: 10, numSamples: 10 }],
+    });
+    eq(plan.ok, true);
+    eq(plan.code, 'run-sa-file');
+    eq(plan.arm, 'sa');
+    eq(plan.sameProductProcess, false);
+    eq(plan.matchesIntlMacChineseDefaultArm, false);
+    eq(plan.intlMacChineseDefaultArm, 'e1_b1');
+    eq(plan.endToEnd, false);
+    eq(plan.swiftCompiledByPackager, false);
+    eq(plan.eligibleToAttemptCompileAndRun, true);
+    eq(plan.productMetric, false);
+  });
+
   test('macOS before 26 does not run', () => {
     const plan = planRun({
       platform: 'darwin',
