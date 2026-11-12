@@ -34,6 +34,14 @@ struct AssetFail: Error {
     let attempts: Int
 }
 
+struct StageFail: Error {
+    let stage: String
+    let locale: String
+    let sampleId: String
+    let underlyingCode: String
+    let underlying: Error
+}
+
 if #available(macOS 26.0, *) {
     Task {
         let code = await FileASR.run()
@@ -77,7 +85,7 @@ enum FileASR {
             var rows: [[String: String]] = []
             for item in set.items {
                 let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
-                let text = try await transcribe(url: audio, locale: locale(for: item.config))
+                let text = try await transcribe(url: audio, locale: locale(for: item.config), sampleId: item.id, statusURL: statusURL)
                 rows.append(["id": item.id, "hypothesis": text])
             }
             let body = try JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted, .sortedKeys])
@@ -85,7 +93,12 @@ enum FileASR {
             return 0
         } catch {
             try? FileManager.default.removeItem(at: outURL)
-            fputs(failLine(error, install: install), stderr)
+            let line = failLine(error, install: install)
+            if let statusURL {
+                let errURL = statusURL.deletingLastPathComponent().appendingPathComponent("recognition-error.json")
+                try? Data(line.utf8).write(to: errURL, options: .atomic)
+            }
+            fputs(line, stderr)
             return 2
         }
     }
@@ -253,25 +266,167 @@ enum FileASR {
         try? data.write(to: url, options: .atomic)
     }
 
-    static func failLine(_ error: Error, install: Bool) -> String {
-        let fail: AssetFail
-        if let known = error as? AssetFail { fail = known }
-        else { fail = classify(error, locale: "", attempts: 0) }
-        let detail = fail.detail.replacingOccurrences(of: "\"", with: "'")
-        return "{\"ok\":false,\"code\":\"\(fail.code)\",\"locale\":\"\(fail.locale)\",\"status\":\"\(fail.status)\",\"attempts\":\(fail.attempts),\"installFlag\":\(install),\"productMetric\":false,\"hypotheses\":null,\"arm\":\"sa\",\"detail\":\"\(detail)\"}\n"
+    static func redact(_ text: String) -> String {
+        let pattern = "(?:/Users/|/home/|file://)\\S+"
+        guard let re = try? NSRegularExpression(pattern: pattern) else { return text }
+        let range = NSRange(text.startIndex..., in: text)
+        return re.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "<path>")
     }
 
-    static func transcribe(url: URL, locale: Locale) async throws -> String {
-        let file = try AVAudioFile(forReading: url)
+    static func errorChain(_ error: Error) -> [[String: Any]] {
+        var chain: [[String: Any]] = []
+        var current: Error? = error
+        var depth = 0
+        while let e = current, depth < 6 {
+            depth += 1
+            if let stage = e as? StageFail {
+                current = stage.underlying
+                continue
+            }
+            if let asset = e as? AssetFail {
+                chain.append([
+                    "swiftType": String(reflecting: type(of: asset)),
+                    "domain": "product-asr",
+                    "code": 0,
+                    "description": redact(asset.detail),
+                    "userInfo": ["code": asset.code, "status": asset.status],
+                ])
+                break
+            }
+            let ns = e as NSError
+            var info: [String: Any] = [:]
+            for (key, value) in ns.userInfo {
+                let name = String(describing: key)
+                if name == NSUnderlyingErrorKey { continue }
+                if let text = value as? String {
+                    info[name] = redact(String(text.prefix(300)))
+                } else if let number = value as? NSNumber {
+                    info[name] = number
+                }
+            }
+            chain.append([
+                "swiftType": String(reflecting: type(of: e)),
+                "domain": ns.domain,
+                "code": ns.code,
+                "description": redact(String(String(describing: e).prefix(500))),
+                "userInfo": info,
+            ])
+            if let next = ns.userInfo[NSUnderlyingErrorKey] as? Error {
+                current = next
+            } else {
+                current = nil
+            }
+        }
+        return chain
+    }
+
+    static func failObject(_ error: Error, install: Bool) -> [String: Any] {
+        if let stage = error as? StageFail {
+            let keep = stage.underlyingCode == "speech-assets-not-installed" || stage.underlyingCode == "unsupported-locale"
+            return [
+                "ok": false,
+                "code": keep ? stage.underlyingCode : "recognition-failed",
+                "phase": "recognition",
+                "stage": stage.stage,
+                "locale": stage.locale,
+                "sampleId": stage.sampleId,
+                "installFlag": install,
+                "hypotheses": NSNull(),
+                "rates": NSNull(),
+                "productMetric": false,
+                "arm": "sa",
+                "sameProductProcess": false,
+                "matchesIntlMacChineseDefaultArm": false,
+                "endToEnd": false,
+                "permissionPrompt": "unknown",
+                "chain": errorChain(stage),
+            ]
+        }
+        if let known = error as? AssetFail {
+            return [
+                "ok": false,
+                "code": known.code,
+                "phase": "install",
+                "locale": known.locale,
+                "status": known.status,
+                "attempts": known.attempts,
+                "installFlag": install,
+                "productMetric": false,
+                "hypotheses": NSNull(),
+                "rates": NSNull(),
+                "arm": "sa",
+                "permissionPrompt": "unknown",
+                "detail": redact(known.detail),
+                "chain": errorChain(known),
+            ]
+        }
+        let wrapped = StageFail(stage: "unspecified", locale: "", sampleId: "", underlyingCode: "", underlying: error)
+        return failObject(wrapped, install: install)
+    }
+
+    static func failLine(_ error: Error, install: Bool) -> String {
+        let obj = failObject(error, install: install)
+        guard let data = try? JSONSerialization.data(withJSONObject: obj, options: [.sortedKeys]) else {
+            return "{\"ok\":false,\"code\":\"recognition-failed\",\"hypotheses\":null,\"rates\":null,\"productMetric\":false}\n"
+        }
+        return String(decoding: data, as: UTF8.self) + "\n"
+    }
+
+    static func note(_ stage: String, locale: String, sampleId: String, statusURL: URL?) {
+        guard let statusURL else { return }
+        let url = statusURL.deletingLastPathComponent().appendingPathComponent("recognition-trace.json")
+        let body: [String: Any] = [
+            "stage": stage,
+            "locale": locale,
+            "sampleId": sampleId,
+            "permissionPrompt": "unknown",
+            "hypotheses": NSNull(),
+            "rates": NSNull(),
+            "productMetric": false,
+            "arm": "sa",
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
+    static func stage<T>(_ name: String, locale: String, sampleId: String, statusURL: URL?, _ body: () async throws -> T) async throws -> T {
+        note(name, locale: locale, sampleId: sampleId, statusURL: statusURL)
+        do {
+            return try await body()
+        } catch let fail as StageFail {
+            throw fail
+        } catch let fail as AssetFail {
+            throw StageFail(stage: name, locale: locale, sampleId: sampleId, underlyingCode: fail.code, underlying: fail)
+        } catch {
+            throw StageFail(stage: name, locale: locale, sampleId: sampleId, underlyingCode: "", underlying: error)
+        }
+    }
+
+    static func transcribe(url: URL, locale: Locale, sampleId: String, statusURL: URL?) async throws -> String {
+        let localeId = locale.identifier(.bcp47)
+        let file = try await stage("audio-open", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            try AVAudioFile(forReading: url)
+        }
         let speech = speechModule(locale)
-        let status = await AssetInventory.status(forModules: [speech])
+        let status = try await stage("asset-status", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            await AssetInventory.status(forModules: [speech])
+        }
         guard status == .installed else {
-            throw AssetFail(code: "speech-assets-not-installed", locale: locale.identifier(.bcp47), status: statusName(status), detail: "status is not installed", attempts: 0)
+            throw StageFail(
+                stage: "asset-status",
+                locale: localeId,
+                sampleId: sampleId,
+                underlyingCode: "speech-assets-not-installed",
+                underlying: AssetFail(code: "speech-assets-not-installed", locale: localeId, status: statusName(status), detail: "status is not installed", attempts: 0))
         }
         let module: any SpeechModule = speech
-        guard let fmt = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else {
-            throw NSError(domain: "product-asr", code: 2, userInfo: [NSLocalizedDescriptionKey: "format"])
+        let fmt = try await stage("audio-format", locale: localeId, sampleId: sampleId, statusURL: statusURL) { () -> AVAudioFormat in
+            guard let found = await SpeechAnalyzer.bestAvailableAudioFormat(compatibleWith: [module]) else {
+                throw NSError(domain: "product-asr", code: 2, userInfo: [NSLocalizedDescriptionKey: "format"])
+            }
+            return found
         }
+        note("analyzer-init", locale: localeId, sampleId: sampleId, statusURL: statusURL)
         let (stream, cont) = AsyncStream<AnalyzerInput>.makeStream()
         let analyzer = SpeechAnalyzer(
             inputSequence: stream,
@@ -279,7 +434,9 @@ enum FileASR {
             options: nil,
             analysisContext: AnalysisContext(),
             volatileRangeChangedHandler: nil)
-        try await analyzer.prepareToAnalyze(in: fmt)
+        try await stage("analyzer-prepare", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            try await analyzer.prepareToAnalyze(in: fmt)
+        }
         let reader: Task<String, Error> = Task {
             if let t = module as? SpeechTranscriber {
                 var last = ""
@@ -297,48 +454,54 @@ enum FileASR {
             }
             return ""
         }
-        // AVAudioConverter(from:to:) is optional. A nil converter must fail closed.
-        // Force-unwrap would abort, and skipping the call would still look like a run.
-        guard let converter = AVAudioConverter(from: file.processingFormat, to: fmt) else {
-            throw NSError(domain: "product-asr", code: 4, userInfo: [
-                NSLocalizedDescriptionKey: "audio converter unavailable",
-            ])
-        }
-        guard let inBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096) else {
-            throw NSError(domain: "product-asr", code: 5, userInfo: [
-                NSLocalizedDescriptionKey: "input buffer unavailable",
-            ])
-        }
-        var fed: Int64 = 0
-        while true {
-            try file.read(into: inBuf)
-            if inBuf.frameLength == 0 { break }
-            let cap = AVAudioFrameCount(Double(inBuf.frameLength) * fmt.sampleRate / file.processingFormat.sampleRate) + 16
-            guard let out = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: cap) else {
-                throw NSError(domain: "product-asr", code: 5, userInfo: [
-                    NSLocalizedDescriptionKey: "output buffer unavailable",
+        let fed: Int64 = try await stage("convert", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            // AVAudioConverter(from:to:) is optional. A nil converter must fail closed.
+            guard let converter = AVAudioConverter(from: file.processingFormat, to: fmt) else {
+                throw NSError(domain: "product-asr", code: 4, userInfo: [
+                    NSLocalizedDescriptionKey: "audio converter unavailable",
                 ])
             }
-            var consumed = false
-            var err: NSError?
-            converter.convert(to: out, error: &err) { _, status in
-                if consumed { status.pointee = .noDataNow; return nil }
-                consumed = true
-                status.pointee = .haveData
-                return inBuf
+            guard let inBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096) else {
+                throw NSError(domain: "product-asr", code: 5, userInfo: [
+                    NSLocalizedDescriptionKey: "input buffer unavailable",
+                ])
             }
-            if let err { throw err }
-            if out.frameLength == 0 { continue }
-            cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
-            fed += Int64(out.frameLength)
+            var fed: Int64 = 0
+            while true {
+                try file.read(into: inBuf)
+                if inBuf.frameLength == 0 { break }
+                let cap = AVAudioFrameCount(Double(inBuf.frameLength) * fmt.sampleRate / file.processingFormat.sampleRate) + 16
+                guard let out = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: cap) else {
+                    throw NSError(domain: "product-asr", code: 5, userInfo: [
+                        NSLocalizedDescriptionKey: "output buffer unavailable",
+                    ])
+                }
+                var consumed = false
+                var err: NSError?
+                converter.convert(to: out, error: &err) { _, status in
+                    if consumed { status.pointee = .noDataNow; return nil }
+                    consumed = true
+                    status.pointee = .haveData
+                    return inBuf
+                }
+                if let err { throw err }
+                if out.frameLength == 0 { continue }
+                cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
+                fed += Int64(out.frameLength)
+            }
+            cont.finish()
+            return fed
         }
-        cont.finish()
-        let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
-        try await analyzer.finalize(through: through)
-        let text = try await reader.value
-        if text.isEmpty {
-            throw NSError(domain: "product-asr", code: 3, userInfo: [NSLocalizedDescriptionKey: "empty final"])
+        try await stage("analyzer-finish", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
+            try await analyzer.finalize(through: through)
         }
-        return text
+        return try await stage("result-consume", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
+            let text = try await reader.value
+            if text.isEmpty {
+                throw NSError(domain: "product-asr", code: 3, userInfo: [NSLocalizedDescriptionKey: "empty final"])
+            }
+            return text
+        }
     }
 }

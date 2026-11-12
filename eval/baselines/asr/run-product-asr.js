@@ -91,6 +91,61 @@ function assetPlan(input) {
   });
 }
 
+function redactText(value) {
+  return String(value).replace(/(?:\/Users\/|\/home\/|file:\/\/)\S+/g, '<path>');
+}
+
+function redactChain(chain) {
+  return (chain || []).map((link) => {
+    const userInfo = {};
+    const raw = link && link.userInfo ? link.userInfo : {};
+    for (const key of Object.keys(raw)) {
+      const value = raw[key];
+      userInfo[key] = typeof value === 'string' ? redactText(value).slice(0, 300) : value;
+    }
+    return {
+      swiftType: link && link.swiftType ? link.swiftType : '',
+      domain: link && link.domain ? link.domain : '',
+      code: link && link.code != null ? link.code : null,
+      description: redactText(link && link.description ? link.description : '').slice(0, 500),
+      userInfo: userInfo,
+    };
+  });
+}
+
+function reportFailure(input) {
+  const phase = input.phase === 'install' ? 'install' : 'recognition';
+  if (phase === 'install') {
+    const classified = classifyAssetError(input.error || {});
+    classified.phase = 'install';
+    classified.rates = null;
+    classified.hypotheses = null;
+    return classified;
+  }
+  const underlying = input.underlyingCode;
+  const code = underlying === 'speech-assets-not-installed' || underlying === 'unsupported-locale'
+    ? underlying
+    : 'recognition-failed';
+  return {
+    ok: false,
+    code: code,
+    phase: 'recognition',
+    stage: input.stage || 'unspecified',
+    locale: input.locale == null ? '' : input.locale,
+    sampleId: input.sampleId == null ? '' : input.sampleId,
+    installFlag: input.installFlag === true,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    arm: 'sa',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    endToEnd: false,
+    permissionPrompt: 'unknown',
+    chain: redactChain(input.chain),
+  };
+}
+
 function classifyAssetError(err) {
   const attempts = err && err.attempts != null ? err.attempts : null;
   let code = 'asset-install-failed';
@@ -266,4 +321,4 @@ function main(argv) {
 
 if (require.main === module) main(process.argv);
 
-module.exports = { planRun, macMajor, inspectItem, assetPlan, classifyAssetError };
+module.exports = { planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText };

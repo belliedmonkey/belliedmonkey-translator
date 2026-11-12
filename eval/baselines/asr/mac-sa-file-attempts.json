@@ -54,7 +54,65 @@
       "endToEnd": false,
       "productMetric": false,
       "hypotheses": null
+    },
+    {
+      "n": 3,
+      "startedAt": "2026-11-12T13:42:36+08:00",
+      "endedAt": "2026-11-12T13:42:39+08:00",
+      "timezone": "Asia/Shanghai",
+      "os": "macOS 27.0",
+      "swift": "6.4",
+      "compile": "passed",
+      "command": "node eval/baselines/asr/run-product-asr.js --install-assets --out-dir <output-dir>",
+      "nodeAndSwiftExit": 0,
+      "locales": [
+        {"locale": "en-US", "before": "supported", "after": "installed", "downloadAndInstallCalls": 1},
+        {"locale": "zh-CN", "before": "supported", "after": "installed", "downloadAndInstallCalls": 1}
+      ],
+      "hypotheses": null,
+      "rates": null,
+      "productMetric": false,
+      "arm": "sa",
+      "sameProductProcess": false,
+      "endToEnd": false,
+      "permissionPrompt": "unknown"
+    },
+    {
+      "n": 4,
+      "startedAt": "2026-11-12T13:43:01+08:00",
+      "endedAt": "2026-11-12T13:43:02+08:00",
+      "timezone": "Asia/Shanghai",
+      "os": "macOS 27.0",
+      "swift": "6.4",
+      "installFlag": false,
+      "command": "node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>",
+      "nodeAndSwiftExit": 2,
+      "assetStatusRecheck": "installed",
+      "locales": ["en-US", "zh-CN"],
+      "hypothesesFile": false,
+      "hypotheses": null,
+      "rates": null,
+      "permissionPromptObserved": false,
+      "permissionPrompt": "unknown",
+      "permissionState": "unknown",
+      "productMetric": false,
+      "arm": "sa",
+      "sameProductProcess": false,
+      "matchesIntlMacChineseDefaultArm": false,
+      "endToEnd": false,
+      "stderr": {
+        "ok": false,
+        "code": "asset-install-failed",
+        "locale": "",
+        "status": "unknown",
+        "attempts": 0,
+        "installFlag": false,
+        "detail": "The operation couldn’t be completed. (Foundation._GenericObjCError error 0.)"
+      },
+      "known": "The recognition error was labeled asset-install-failed with an empty locale.",
+      "notKnown": "Which stage threw, and the Swift error type behind Foundation._GenericObjCError error 0."
     }
   ],
-  "stop": "Recognition stopped after two attempts. This record does not authorize another run or a system speech-asset download."
+  "stop": "Attempts 1 and 2 stopped before any install request. Attempts 3 and 4 are later Mac checks. Attempt 4 did not produce a hypothesis. The recognition error is not root-caused.",
+  "attemptsNote": "Attempt 3 and 4 were appended after the install flag existed. They do not replace attempts 1 and 2."
 }

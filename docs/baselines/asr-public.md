@@ -123,7 +123,19 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 官方文档没有给出资源字节数，所以大小记为 unknown，这里不编数字。文档也没有写安装会不会弹出系统权限对话框。第二次运行没有调用安装接口，所以也没有观察到对话框。如果系统弹出对话框，脚本不会代点。这里不说用户必须点。
 
-这两条命令还没有在 Mac 上编译或运行。`swiftCompiledByPackager` 仍是 false。没有产品 CER/WER。端到端仍 **待测**。
+`swiftCompiledByPackager` 仍是 false。没有产品 CER/WER。端到端仍 **待测**。
+
+### Mac 上安装已完成，识别被错误归类
+
+2026-11-12 13:42:36–13:42:39（Asia/Shanghai），macOS 27.0，Swift 6.4。补丁编译通过。`--install-assets` 退出码 0。`en-US` 与 `zh-CN` 都是 `supported` → `installed`，每种语言调用了一次 `downloadAndInstall()`。没有再下载已经安装的资源。
+
+13:43:01–13:43:02，不带 `--install-assets` 的识别退出码 2。两种语言的状态复查仍是 `installed`。没有假设文件，没有比率。stderr 是 `asset-install-failed`，`locale` 为空，`attempts` 为 0，`installFlag` 为 false，detail 为 `Foundation._GenericObjCError error 0`。没有看到阻塞用的权限提示。`permissionPrompt` 仍是 unknown，不能据此说已授权或被拒绝。
+
+已知：`run()` 的 `catch` 把不是 `AssetFail` 的错误交给 `classify`，而 `classify` 的默认码就是 `asset-install-failed`，并且把 locale 写成空。`error as NSError` 再只留 `localizedDescription`，原始 Swift 类型就丢了。这是这次能确定的代码错误。
+
+假设，还没有被这次日志证明：Apple 的 [finalize(through:)](https://developer.apple.com/documentation/speech/speechanalyzer/finalize%28through:%29) 写明，如果分析在给定时间之前提前结束，会抛 `CancellationError`。把这种非 `NSError` 再转成 `NSError` 时，描述可以变成 `Foundation._GenericObjCError error 0`。文件入口的官方读法是 [analyzeSequence(from:)](https://developer.apple.com/documentation/speech/speechanalyzer/analyzesequence%28from:%29)，读完文件后返回最后采样时间，再交给 `finalize(through:)` 或 [finalizeAndFinish(through:)](https://developer.apple.com/documentation/speech/speechanalyzer/finalizeandfinish%28through:%29)。当前脚本是自己转 PCM、喂 `AnalyzerInput`，再 `finalize(through:)`。日志没有阶段名，所以这次不把喂入路径换掉，也不把这个错误说成已经根治。
+
+下一次只跑识别，不带 `--install-assets`，因此不会再次下载已安装资源。进程超时 15 分钟，没有重试循环。失败时 stderr 和 `recognition-error.json` 会带 `stage`、`locale`、`sampleId` 和错误链（`swiftType`、domain、code、脱敏后的 userInfo）。`/Users/`、`/home/`、`file://` 会换成 `<path>`。`hypotheses` 与 `rates` 仍是 null。权限字段保持 unknown。
 
 ```bash
 node eval/baselines/asr/run-product-asr.js --install-assets --out-dir <output-dir>

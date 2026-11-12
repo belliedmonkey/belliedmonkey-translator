@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -140,6 +140,65 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(classifyAssetError({ timeout: true, attempts: 2 }).code, 'asset-download-timeout');
     eq(classifyAssetError({ domain: 'SFSpeechErrorDomain', code: 4 }).code, 'unsupported-locale');
     eq(classifyAssetError({ domain: 'Other', code: 1 }).code, 'asset-install-failed');
+  });
+
+  test('a recognition error is not relabeled as an asset install failure', () => {
+    const report = reportFailure({
+      phase: 'recognition',
+      installFlag: false,
+      stage: 'analyzer-finish',
+      locale: 'en-US',
+      sampleId: 'en_us/1/clip.wav',
+      chain: [{
+        swiftType: 'CancellationError',
+        domain: 'Foundation._GenericObjCError',
+        code: 0,
+        description: "The operation couldn’t be completed. (Foundation._GenericObjCError error 0.) file:///Users/someone/qa/clip.wav",
+        userInfo: { NSLocalizedDescription: 'see /Users/someone/qa/clip.wav' },
+      }],
+    });
+    eq(report.ok, false);
+    eq(report.code, 'recognition-failed');
+    eq(report.code === 'asset-install-failed', false);
+    eq(report.stage, 'analyzer-finish');
+    eq(report.locale, 'en-US');
+    eq(report.sampleId, 'en_us/1/clip.wav');
+    eq(report.hypotheses, null);
+    eq(report.rates, null);
+    eq(report.productMetric, false);
+    eq(report.permissionPrompt, 'unknown');
+    eq(report.chain[0].domain, 'Foundation._GenericObjCError');
+    eq(report.chain[0].code, 0);
+    eq(report.chain[0].swiftType, 'CancellationError');
+    ok(report.chain[0].description.indexOf('/Users/someone') === -1);
+    ok(report.chain[0].userInfo.NSLocalizedDescription.indexOf('/Users/someone') === -1);
+  });
+
+  test('an asset-status miss during recognition keeps its own code and stage', () => {
+    const report = reportFailure({
+      phase: 'recognition',
+      stage: 'asset-status',
+      locale: 'zh-CN',
+      sampleId: 'cmn_hans_cn/1/clip.wav',
+      underlyingCode: 'speech-assets-not-installed',
+      chain: [],
+    });
+    eq(report.code, 'speech-assets-not-installed');
+    eq(report.stage, 'asset-status');
+    eq(report.hypotheses, null);
+    eq(report.rates, null);
+  });
+
+  test('the Mac helper records the recognition stage and does not relabel it as an install', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(src.includes('recognition-failed'));
+    ok(src.includes('audio-open'));
+    ok(src.includes('audio-format'));
+    ok(src.includes('analyzer-prepare'));
+    ok(src.includes('analyzer-finish'));
+    ok(src.includes('result-consume'));
+    ok(src.includes('swiftType'));
+    ok(!src.includes('classify(error, locale: "", attempts: 0)'));
   });
 
   test('the Mac helper installs only through AssetInventory and only when asked', () => {
