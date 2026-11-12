@@ -135,7 +135,13 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 这条样本是 16 kHz、单声道、32-bit float WAV，170880 个采样（10.68 秒）。[AVAudioFile.read(into:)](https://developer.apple.com/documentation/avfaudio/avaudiofile/read(into:)) 从 `framePosition` 顺序读，读到的帧数写在 `frameLength`。它的 Objective-C 实现在读不到帧时返回 `NO` 且不填 `NSError`。Swift 导入这类方法时，失败又没有错误对象，就会抛出 `Foundation._GenericObjCError.nilError`（[Handling Cocoa Errors in Swift](https://developer.apple.com/documentation/swift/handling-cocoa-errors-in-swift)）。旧循环在文件读完后再调用一次 `read`，正好落在这个点，而且包在 `convert` 阶段里。转换器的 `convert` 本身不 `throw`；`.endOfStream` 和 `.inputRanDry` 不是失败（[AVAudioConverter.OutputStatus](https://developer.apple.com/documentation/avfaudio/avaudioconverter/outputstatus)）。
 
-修复只停在读完之前不再调用 `read`。文件已经到头时的 `nilError` 视为正常结束。文件还没读完时的 `nilError` 或其他错误仍然抛出，不写假设。没有改成 `analyzeSequence(from:)`。`analyzer-finish` 还没有在这次日志里跑到，所以不能说识别已经成功。
+修复只停在读完之前不再调用 `read`。文件已经到头时的 `nilError` 视为正常结束。文件还没读完时的 `nilError` 或其他错误仍然抛出，不写假设。没有改成 `analyzeSequence(from:)`。
+
+13:54:54–14:09:55，`74fc3224` 编译通过，EOF 的 `convert` 错误已经越过，识别没有跑通。trace 大约从 13:56 起停在 `analyzer-finish`，直到 Node 的 15 分钟上限把进程杀掉。没有进入 `result-consume`。其余 15 条没有开始。stderr 为空，没有 `recognition-error.json`。两种语言仍是 `installed`，没有安装开关，没有权限提示。没有假设，没有比率。Node 把这次杀掉记成 `swiftExit` 1，那不是 Swift 自己的退出码。
+
+结果任务在 `finalize` 之前就已经创建，所以不是「没启动消费」。[finalize(through:)](https://developer.apple.com/documentation/speech/speechanalyzer/finalize%28through:%29) 写明：如果输入序列里还没消费到给定时间，方法会一直等到消费到；返回时结果已经发到结果流，但调用方可以还没读。所以文档不支持「必须先读完结果，finalize 才会返回」这种死锁。`cont.finish()` 在进入 `analyzer-finish` 之前已经调用。产品侧是在麦克风流还开着时，用另一个 `Task` 调 `finalize(through:)`，并不在同一处等待它返回。我们这里用的结束时间是已喂帧数 `fed`，和产品的帧计数相同。输入已经关闭后再等这个时间，会不会永远等不到，目前只是假设，没有被这次日志单独证明。因此没有把结束调用换成 `finalizeAndFinishThroughEndOfInput()`。
+
+每条样本的 `analyzer-finish` 现在自己限 45 秒。到点由 Swift 写出 `recognition-timeout` 并退出，这不是把 15 分钟上限加长。总进程上限仍是 15 分钟。如果仍是 Node 杀掉子进程，记录为 `timedOut`、信号、trace 里的阶段，`swiftExit` 为 null，没有假设。这不表示识别已经成功。
 
 下一次只验证这次读循环修复，不带 `--install-assets`，不重新下载。进程超时 15 分钟，没有重试。`analyzer-finish` 尚未被这次日志执行到。失败时仍看 stderr 和 `recognition-error.json`。`hypotheses` 与 `rates` 仍是 null。权限字段保持 unknown。
 

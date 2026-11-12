@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -214,6 +214,42 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(failed.action, 'throw');
     eq(failed.hypotheses, null);
     eq(converterOutputAction('error', false).useNsError, false);
+  });
+
+  test('a node kill is a timeout, not a swift exit code', () => {
+    const report = childFailure({
+      killed: true,
+      signal: 'SIGTERM',
+      status: null,
+      stderr: '',
+    }, {
+      stage: 'analyzer-finish',
+      sampleId: 'en_us/1660/12742373433258665797.wav',
+      locale: 'en-US',
+    });
+    eq(report.timedOut, true);
+    eq(report.signal, 'SIGTERM');
+    eq(report.swiftExit, null);
+    eq(report.code, 'recognition-timeout');
+    eq(report.stage, 'analyzer-finish');
+    eq(report.sampleId, 'en_us/1660/12742373433258665797.wav');
+    eq(report.hypotheses, null);
+    eq(report.rates, null);
+    eq(report.productMetric, false);
+  });
+
+  test('a real swift status is kept and is not a timeout', () => {
+    const report = childFailure({ killed: false, signal: null, status: 2 }, null);
+    eq(report.timedOut, false);
+    eq(report.swiftExit, 2);
+    eq(report.code, 'recognition-failed');
+  });
+
+  test('the Mac helper bounds analyzer-finish and names that timeout', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(src.includes('recognition-timeout'));
+    ok(src.includes('45_000_000_000'));
+    ok(src.includes('finalizeAndFinishThroughEndOfInput') === false);
   });
 
   test('the Mac helper stops reading at the file end and checks converter status', () => {

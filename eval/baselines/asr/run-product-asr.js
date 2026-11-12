@@ -173,6 +173,40 @@ function converterOutputAction(status, hasNsError) {
   };
 }
 
+function childFailure(err, trace) {
+  const signal = err && err.signal ? err.signal : null;
+  const status = err && err.status != null ? err.status : null;
+  const timedOut = !!(err && (err.killed || err.code === 'ETIMEDOUT' || (signal && status == null)));
+  const base = {
+    ok: false,
+    arm: 'sa',
+    sameProductProcess: false,
+    matchesIntlMacChineseDefaultArm: false,
+    endToEnd: false,
+    productMetric: false,
+    hypotheses: null,
+    rates: null,
+    permissionPrompt: 'unknown',
+    stage: trace && trace.stage ? trace.stage : 'unknown',
+    sampleId: trace && trace.sampleId ? trace.sampleId : '',
+    locale: trace && trace.locale ? trace.locale : '',
+  };
+  if (timedOut) {
+    return Object.assign(base, {
+      code: 'recognition-timeout',
+      timedOut: true,
+      signal: signal || 'SIGTERM',
+      swiftExit: null,
+    });
+  }
+  return Object.assign(base, {
+    code: 'recognition-failed',
+    timedOut: false,
+    signal: signal,
+    swiftExit: status,
+  });
+}
+
 function classifyAssetError(err) {
   const attempts = err && err.attempts != null ? err.attempts : null;
   let code = 'asset-install-failed';
@@ -330,11 +364,14 @@ function main(argv) {
       timeout: installAssets ? (15 * 60 * 1000) + 30000 : 15 * 60 * 1000,
     });
   } catch (err) {
-    meta.swiftExit = err.status == null ? 1 : err.status;
-    meta.hypotheses = null;
+    let trace = null;
+    try {
+      trace = JSON.parse(fs.readFileSync(path.join(dest, 'recognition-trace.json'), 'utf8'));
+    } catch (_) {}
+    Object.assign(meta, childFailure(err, trace));
     fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
     try { fs.unlinkSync(hypPath); } catch (_) {}
-    process.exit(meta.swiftExit || 1);
+    process.exit(2);
   }
   meta.swiftExit = 0;
   if (installAssets) {
@@ -350,5 +387,5 @@ if (require.main === module) main(process.argv);
 
 module.exports = {
   planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
-  pcmReadAction, readThrownAction, converterOutputAction,
+  pcmReadAction, readThrownAction, converterOutputAction, childFailure,
 };

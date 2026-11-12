@@ -327,7 +327,7 @@ enum FileASR {
 
     static func failObject(_ error: Error, install: Bool) -> [String: Any] {
         if let stage = error as? StageFail {
-            let keep = stage.underlyingCode == "speech-assets-not-installed" || stage.underlyingCode == "unsupported-locale"
+            let keep = stage.underlyingCode == "speech-assets-not-installed" || stage.underlyingCode == "unsupported-locale" || stage.underlyingCode == "recognition-timeout"
             return [
                 "ok": false,
                 "code": keep ? stage.underlyingCode : "recognition-failed",
@@ -524,7 +524,27 @@ enum FileASR {
         }
         try await stage("analyzer-finish", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
-            try await analyzer.finalize(through: through)
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask { try await analyzer.finalize(through: through) }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 45_000_000_000)
+                    throw StageFail(
+                        stage: "analyzer-finish",
+                        locale: localeId,
+                        sampleId: sampleId,
+                        underlyingCode: "recognition-timeout",
+                        underlying: NSError(domain: "product-asr", code: 7, userInfo: [
+                            NSLocalizedDescriptionKey: "analyzer-finish exceeded 45s",
+                        ]))
+                }
+                do {
+                    try await group.next()
+                } catch {
+                    group.cancelAll()
+                    throw error
+                }
+                group.cancelAll()
+            }
         }
         return try await stage("result-consume", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             let text = try await reader.value
