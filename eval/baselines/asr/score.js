@@ -57,7 +57,16 @@ function levenshtein(a, b) {
 
 function scorePair(item) {
   const lang = item && item.lang;
-  const metric = metricFor(lang);
+  let metric;
+  try { metric = metricFor(lang); }
+  catch (_) {
+    return { ok: false, reason: 'language', id: item && item.id, productMetric: false };
+  }
+  // Only an explicit string is a hypothesis. Missing, null, and numbers are
+  // not an empty recognizer result. A reference-only row has no hypothesis.
+  if (!item || typeof item.hypothesis !== 'string') {
+    return { ok: false, reason: 'hypothesis-type', lang, metric, id: item && item.id, productMetric: false };
+  }
   const ref = unitsFor(lang, item.reference);
   const hyp = unitsFor(lang, item.hypothesis);
   if (!ref.length) {
@@ -79,7 +88,7 @@ function scorePair(item) {
     errors,
     length: ref.length,
     rate: errors / ref.length,
-    emptyHypothesis: hyp.length === 0,
+    emptyHypothesis: item.hypothesis === '',
     productMetric: false,
   };
 }
@@ -160,15 +169,35 @@ function scoreFrozen(set, hypotheses) {
     b.length += row.length;
   }
   for (const b of Object.values(byLang)) b.rate = b.length ? b.errors / b.length : null;
+  const failed = missing.length > 0 || unknown.length > 0 || rejected.length > 0;
+  const reason = missing.length ? 'missing-hypothesis'
+    : unknown.length ? 'unknown-id'
+      : rejected.length ? rejected[0].reason : '';
+  if (failed) {
+    return Object.assign(base, {
+      ok: false,
+      reason,
+      missing,
+      unknown,
+      rejected,
+      items: [],
+      rates: null,
+      diagnostic: {
+        note: 'not-a-score',
+        partial: scored,
+      },
+    });
+  }
   return Object.assign(base, {
-    ok: missing.length === 0 && unknown.length === 0 && rejected.length === 0,
-    reason: missing.length ? 'missing-hypothesis' : unknown.length ? 'unknown-id' : rejected.length ? 'empty-reference' : '',
+    ok: true,
+    reason: '',
     missing,
     unknown,
     rejected,
     items: scored,
     byLang,
     rates: byLang,
+    diagnostic: null,
   });
 }
 

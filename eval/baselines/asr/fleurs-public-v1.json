@@ -20,7 +20,7 @@
     "dataset": "google/fleurs",
     "paper": "Conneau et al., FLEURS, arXiv:2205.12446, https://arxiv.org/abs/2205.12446",
     "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
-    "modification": "Subset only. The normalized transcription (field index 3) is copied unchanged and is the scoring reference. The raw transcription (field index 2) is kept beside it and is not scored. For Chinese, field index 3 is the published character-spaced line. Audio is not included. No other text was edited."
+    "modification": "Subset only. Field index 3 is copied unchanged and is the scoring reference. Field index 2 is kept beside it and is not scored. Chinese field 3 is not one spacing pattern: some lines put a space between characters, and cmn_hans_cn/1663 keeps run-on Han plus a Latin name with spaces. Nothing was rewritten to look uniform. The 16 wav files are in the gitignored cache, not in git."
   },
   "sourceFiles": [
     {
@@ -45,13 +45,17 @@
     "referenceField": "normalized transcription, TSV field index 3 (the fourth tab-separated field)"
   },
   "audio": {
-    "fetched": false,
+    "fetched": true,
     "inGit": false,
-    "blocker": "Original clips are packed in data/en_us/audio/test.tar.gz (289851356 bytes) and data/cmn_hans_cn/audio/test.tar.gz (525346466 bytes) at the same revision. The datasets-server rows API returns TooBigContentError for one test row. No per-clip URL under a small byte cap was found. Those archives were not downloaded."
+    "cache": "eval/baselines/asr/.cache/audio",
+    "compressedBytes": 489272487,
+    "cap": 1073741824,
+    "timeoutMs": 900000,
+    "note": "16 wav files copied out of the two test tar.gz archives. The archives themselves are not stored. This is not a system hypothesis and not a product score."
   },
   "normalization": {
     "en": "NFKC, lower case, every run of non-letters and non-numbers becomes one space, then whitespace tokens. Metric name: wer.",
-    "zh": "NFKC, drop whitespace, punctuation, and symbols, then one character each. Metric name: cer. Latin letters that remain inside a Chinese normalized line stay in that character sequence. They are not scored a second time as English words.",
+    "zh": "NFKC, then drop whitespace, punctuation, and symbols. Han characters, Latin letters, and digits stay in order, so an embedded name or number is not deleted. Spaces the publisher put around a Latin name are not word boundaries in this character comparison. Metric name: cer. This is not a second English WER on the same line.",
     "notCombined": "en and zh rates are reported separately. A shared sentence id is not a time alignment and is not a translation score."
   },
   "items": [
@@ -65,7 +69,15 @@
       "referenceSha256": "7fb2b8d1326d30bfdbea5da65cdb5e61b206cbf65bbc1dcc7094559245a5d191",
       "raw": "Romanticism had a large element of cultural determinism, drawn from writers such as Goethe, Fichte, and Schlegel.",
       "numSamples": 170880,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 683578,
+      "audioSha256": "f17abcd4a9abded45086642ab68174b5447b6e73dcb2c0fcf6a9b1f5e788688c",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 170880,
+      "durationSeconds": 10.68,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/12742373433258665797.wav"
     },
     {
       "id": "en_us/1661/6917907748364342404.wav",
@@ -77,7 +89,15 @@
       "referenceSha256": "352682f5be8499491bdde56e797d71a62e44b8bb17d37106cbdf7053b9bae23e",
       "raw": "He did not set a figure for the cuts, saying they will be made based on China's economic output.",
       "numSamples": 101760,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 407098,
+      "audioSha256": "8a90dfd1aebb2b9c8315d8293c720223d7436079ace5299ad30a3ba552915081",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 101760,
+      "durationSeconds": 6.36,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/6917907748364342404.wav"
     },
     {
       "id": "en_us/1662/10614481583312370701.wav",
@@ -89,7 +109,15 @@
       "referenceSha256": "b6c1e1c5342cabbc399a3ee8414860e546c13f26fd5535c09678377ee3675359",
       "raw": "Alloys are basically a mixture of two or more metals. Don't forget that there are many elements on the periodic table.",
       "numSamples": 134080,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 536378,
+      "audioSha256": "0f92f2bed63210286148e6947faf7ca90bb635ec7525bcb7f48bdedfe79b425d",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 134080,
+      "durationSeconds": 8.38,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/10614481583312370701.wav"
     },
     {
       "id": "en_us/1663/3156459702070203007.wav",
@@ -101,7 +129,15 @@
       "referenceSha256": "4d2bb8bbe94e44f1d26e317ed48bdd55a00f3b5927fd424749192709626d9966",
       "raw": "Cochamó Valley - Chile's premier climbing destination, known as the Yosemite of South America, with a variety of granite big walls and crags.",
       "numSamples": 193920,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 775738,
+      "audioSha256": "e2e96ea1e18d8b0bd44a61e51259820c87a4c11c304908a75c567086d00e9928",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 193920,
+      "durationSeconds": 12.12,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/3156459702070203007.wav"
     },
     {
       "id": "en_us/1664/13031516147694203229.wav",
@@ -113,7 +149,15 @@
       "referenceSha256": "6e7c95bfe245d3a809d672d46153381258484ac2f663543bfcaf7ed1c96be9b6",
       "raw": "Swirl the two dry powders together and then, with clean wet hands, squeeze them into a ball.",
       "numSamples": 133760,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 535098,
+      "audioSha256": "f13d74d68688d73d07f7f2ac80e9731a95433332e94ad419bd2e99c5533a62c7",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 133760,
+      "durationSeconds": 8.36,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/13031516147694203229.wav"
     },
     {
       "id": "en_us/1665/3364947814969998944.wav",
@@ -125,7 +169,15 @@
       "referenceSha256": "a972c8d506cd9f4679e397101f7ba94aa0bcbd95af7ebf89b6990acf209dfd6e",
       "raw": "The document, according to the leak, will refer to the borders dispute, which Palestine wants based on the borders before the 1967 Mideast War.",
       "numSamples": 132480,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 529978,
+      "audioSha256": "e0d5a14a08db942a49abe3e607f0b27ccf1f618e375e9f17553447a7960af9ce",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 132480,
+      "durationSeconds": 8.28,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/3364947814969998944.wav"
     },
     {
       "id": "en_us/1666/13875708868701082683.wav",
@@ -137,7 +189,15 @@
       "referenceSha256": "c1603bcb38ae4b5aac75d21ba3272534058463394b365b6f883e7bc6e3898b10",
       "raw": "You may also wish to consult the advice of governments other than your own, but their advice is designed for their citizens.",
       "numSamples": 133440,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 533818,
+      "audioSha256": "bbad04c9fb1db53228f77105d6eee8202a998f4227c08ec540889eb1f562113e",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 133440,
+      "durationSeconds": 8.34,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/13875708868701082683.wav"
     },
     {
       "id": "en_us/1667/11554335886429174193.wav",
@@ -149,7 +209,15 @@
       "referenceSha256": "e25f418b4b17f4bfe5418857260a107a6b3a61437e220782ac512ffae8035c88",
       "raw": "Generally speaking, two behaviors can emerge as managers begin to lead their former peers. One end of the spectrum is trying to remain “one of the guys” (or gals).",
       "numSamples": 227520,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 910138,
+      "audioSha256": "6e8948a700c2ee114c7131b8e52a44897b3cf86cf86a1d89bf93b4ad10c802c0",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 227520,
+      "durationSeconds": 14.22,
+      "audioCache": "eval/baselines/asr/.cache/audio/en_us/11554335886429174193.wav"
     },
     {
       "id": "cmn_hans_cn/1660/14273482665670127172.wav",
@@ -161,7 +229,15 @@
       "referenceSha256": "20faf92106d7ab9b1d34dcbbf4f397c0583a17c213745a85a9ac24be3ec667b9",
       "raw": "浪漫主义具有很强的文化决定论色彩。这源于歌德、费希特和施莱格尔等作家。",
       "numSamples": 153600,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 614458,
+      "audioSha256": "f5e034bd47fd46f93e51dd5353916843db0b9e364f31bf4aa9d3585b552cee98",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 153600,
+      "durationSeconds": 9.6,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/14273482665670127172.wav"
     },
     {
       "id": "cmn_hans_cn/1661/1061358881165519725.wav",
@@ -173,7 +249,15 @@
       "referenceSha256": "8a7a322ecc15006f8b8fe09867b9e8a3dd7e66b3fdd1aaa3d0655abd31a97d89",
       "raw": "他没有设定削减数额，只是表示将根据中国的经济产出来决定数额。",
       "numSamples": 123840,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 495418,
+      "audioSha256": "35bda8450990ea1636e5bfbaea0a1c302042caaa87475919c8288ac1ebb0a05c",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 123840,
+      "durationSeconds": 7.74,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/1061358881165519725.wav"
     },
     {
       "id": "cmn_hans_cn/1662/13372204995113843403.wav",
@@ -185,7 +269,15 @@
       "referenceSha256": "3a22f1bcbea763c1f0e7d12a1c35ed5cd36b73fd24e13ee7a38c71dc30194bef",
       "raw": "合金基本上由两种或以上金属混合而成。不要忘记一点，元素周期表上有很多元素。",
       "numSamples": 120000,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 480058,
+      "audioSha256": "b75aabdac9cad2115e28da41eb6c2c7763286e7362610b91f870f844bafd8898",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 120000,
+      "durationSeconds": 7.5,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/13372204995113843403.wav"
     },
     {
       "id": "cmn_hans_cn/1663/17125746560393607835.wav",
@@ -197,7 +289,15 @@
       "referenceSha256": "d726ed1cc7579ab6956c65da8d9b8baba44cc53353264af38cc3198200dabb1a",
       "raw": "智利首选登山目的地科茶莫山谷 (Cochamó Valley) 被称为南美洲的优胜美地 (Yosemite)，这里有各式各样的花岗岩大石壁和峭壁。",
       "numSamples": 214080,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 856378,
+      "audioSha256": "0b242eb4c06512556915e53463bb712beaffc56bcee751865c7461d79e93e95c",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 214080,
+      "durationSeconds": 13.38,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/17125746560393607835.wav"
     },
     {
       "id": "cmn_hans_cn/1664/11553758827513957267.wav",
@@ -209,7 +309,15 @@
       "referenceSha256": "d552fcbbd2241cfe5b972d1bda6817baee464f8b0c1b2704d3b4cd20af787007",
       "raw": "搅动两种干粉使其混合，然后用干净的湿手把它们揉成一个球。",
       "numSamples": 182400,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 729658,
+      "audioSha256": "3553b61a26947f8725a36649341ff6322915be06470b7f2fcdad0c3dd7c38c15",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 182400,
+      "durationSeconds": 11.4,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/11553758827513957267.wav"
     },
     {
       "id": "cmn_hans_cn/1665/11220805329666166649.wav",
@@ -221,7 +329,15 @@
       "referenceSha256": "8c706fb5e026b4d9d6d4801a6d3cf30ed97253d6b29888fd87c0329bdfcaf8ff",
       "raw": "据透露，这份文件将提及边界争端，巴勒斯坦希望以1967年中东战争前的边界为基础。",
       "numSamples": 241600,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 966458,
+      "audioSha256": "01ef9680f388c6254fb0f5c83800b063c9197d99a403cd92337e91560d579f4d",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 241600,
+      "durationSeconds": 15.1,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/11220805329666166649.wav"
     },
     {
       "id": "cmn_hans_cn/1666/11031078104467854733.wav",
@@ -233,7 +349,15 @@
       "referenceSha256": "657a697a12e753838dc1a8c43cf72c475b88924ee95aa67298e6410e896b3cd6",
       "raw": "你也可以咨询除贵国以外其他政府的建议，但他们的建议是为他们的公民而制定的。",
       "numSamples": 130560,
-      "speakerLabel": "FEMALE"
+      "speakerLabel": "FEMALE",
+      "audioBytes": 522298,
+      "audioSha256": "d5e1073d61d66c1e95aa17de16d60e2edb48d96f34d4c01f4526910e1cec9923",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 130560,
+      "durationSeconds": 8.16,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/11031078104467854733.wav"
     },
     {
       "id": "cmn_hans_cn/1667/18066249635479552429.wav",
@@ -245,7 +369,20 @@
       "referenceSha256": "78a137bb9599e74be0ea479efbc98c8776607c22fc31622434bc941ade3608c2",
       "raw": "一般来说，当管理者开始领导过去的同事时，会出现两种行为。一种情况是，他们会努力与团队成员保持“亲密关系”。",
       "numSamples": 250240,
-      "speakerLabel": "MALE"
+      "speakerLabel": "MALE",
+      "audioBytes": 1001018,
+      "audioSha256": "fd71a931ff048301509dd7d72611b544b2a25de2eddc0aaec756ba346503f5fd",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "wavSamples": 250240,
+      "durationSeconds": 15.64,
+      "audioCache": "eval/baselines/asr/.cache/audio/cmn_hans_cn/18066249635479552429.wav"
     }
-  ]
+  ],
+  "hypothesisInput": {
+    "file": "JSON array of { id, hypothesis }. id must match this set. hypothesis is recognizer text, never the reference field.",
+    "command": "node eval/baselines/asr/score.js --set eval/baselines/asr/fleurs-public-v1.json --hyp hypotheses.json",
+    "audio": "Each id maps to audioCache. The cache is gitignored."
+  }
 }

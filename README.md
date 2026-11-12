@@ -292,7 +292,7 @@ What the source on this version actually shows, as an inventory rather than a me
 - Webpage text, YouTube timed text, x.com VTT, and podcast timed transcripts are separate extension paths. A podcast page with no transcript does not transcribe. Opt-in transcription of captionless media is a further path. Mac offline transcription of a local video file is none of these.
 - Document translation reads PDF, Word (docx), text, and images. Two-column layouts and tables are not specially reconstructed. OCR runs for images and for PDF pages that have no text layer, when the configured engine can see images.
 
-A separate public ASR slice is in [`docs/baselines/asr-public.md`](docs/baselines/asr-public.md): 8 English and 8 Chinese read-speech references from FLEURS test, CC BY 4.0, text only. The scorer can compute WER and CER when given an external hypothesis file. No system hypothesis has been scored, the audio archives were not downloaded, and the result is not an end-to-end listen or subtitle baseline.
+A separate public ASR slice is in [`docs/baselines/asr-public.md`](docs/baselines/asr-public.md): 8 English and 8 Chinese read-speech references from FLEURS test, CC BY 4.0. The 16 wavs are in a gitignored cache. The scorer can compute WER and CER from an external hypothesis file. No system hypothesis has been scored, so there is no product error rate, and this is not an end-to-end listen or subtitle baseline.
 
 The 2026-10 waterline below is a historical snapshot. Those numbers were not re-run under the baseline protocol.
 

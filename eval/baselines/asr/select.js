@@ -5,8 +5,8 @@
 //   0 sentence id (shared by every reading of one FLORES sentence)
 //   1 wav file name
 //   2 raw transcription (punctuation kept)
-//   3 normalized transcription (the ASR reference this slice scores)
-//   4 character-spaced form (not used)
+//   3 normalized transcription (the ASR reference this slice scores; copied as published, not re-spaced)
+//   4 another published form, unused here. It is not a promise that column 3 is character-spaced.
 //   5 num samples at 16 kHz
 //   6 speaker label as published (MALE / FEMALE / OTHER)
 

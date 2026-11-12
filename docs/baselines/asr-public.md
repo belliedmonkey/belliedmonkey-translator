@@ -19,7 +19,7 @@
 - 数据集 `gated` 为 false。直接 GET 上述修订的 test TSV 返回 200，没有登录页，也没有条款点击。
 - CC BY 4.0 摘要页写明可复制、改编，包括商业性使用，并要求署名、标明修改、不再附加限制。法律文本：<https://creativecommons.org/licenses/by/4.0/legalcode>。
 
-署名：Conneau 等，FLEURS，arXiv:2205.12446。修改说明写在冻结集的 `attribution.modification`：只取子集；评分用的是 TSV 第 4 个字段（归一化转写）的原文；第 3 个字段（带标点的 raw）只作对照、不参与计分；中文归一化行是数据集公布的按字隔开的那一列。
+署名：Conneau 等，FLEURS，arXiv:2205.12446。修改说明写在冻结集的 `attribution.modification`：只取子集；评分用的是 TSV 第 4 个字段的原文，没有为了格式重写。第 3 个字段（带标点的 raw）只作对照、不参与计分。中文这一列并不都是字间空格。多数行是按字隔开的；`cmn_hans_cn/1663/17125746560393607835.wav` 的参考是连写汉字，中间夹着带空格的拉丁专名 `cochamó valley`，与 TSV 该字段逐字相同。
 
 TSV 校验：
 
@@ -34,7 +34,7 @@ TSV 校验：
 
 英文：NFKC，小写，连续的非字母非数字变成一个空格，再按空白切词。指标名 `wer`。
 
-中文：NFKC，去掉空白、标点和符号，剩下的每个字符是一个单位。指标名 `cer`。归一化行里留下的拉丁字母仍算在这条中文的字符序列里，不另算一次英文词错。
+中文：NFKC，去掉空白、标点和符号。汉字、拉丁字母和数字按原顺序保留，不删掉夹在句中的专名或数字。发布稿在拉丁专名两侧加的空格，在这个字符比较里不是词边界。指标名 `cer`。同一行不再另算一次英文 WER。
 
 同一 FLORES 句号的中英两句不是时间对齐，也不在这里做翻译分。
 
@@ -58,16 +58,19 @@ node eval/baselines/asr/score.js --set eval/baselines/asr/fleurs-public-v1.json 
 
 `productMetric` 恒为 false。工具夹具 [`eval/baselines/fixtures/asr-score-tool-only.json`](../../eval/baselines/fixtures/asr-score-tool-only.json) 只证明评分器算术，里面的 0 不是产品结果。
 
-## 音频阻塞
+## 音频
 
-原片只在这两个包里：
+默认命令不下载音频。显式获取会流式读取两个 test tar.gz，只把冻结的 16 个 wav 写进 `eval/baselines/asr/.cache/audio/`，整包不落盘、不进 Git。总下载上限 1 GiB，单次连接超时 15 分钟，失败最多两次就停。
 
-- `data/en_us/audio/test.tar.gz`，289851356 字节
-- `data/cmn_hans_cn/audio/test.tar.gz`，525346466 字节
+这次在本环境实际跑过：
 
-`datasets-server` 的单行接口对一条 test 样本返回 `TooBigContentError`。没有找到低于 8 MB 上限的单条音频 URL。这两个包没有下载，音频也不在 Git 里。`node eval/baselines/asr/fetch-fleurs.js --audio` 只做 HEAD，长度超过上限就停。
+```bash
+node eval/baselines/asr/fetch-fleurs.js --audio --record
+```
 
-因此这条切片现在能核对参考转写，并对外部导出的假设算 CER/WER。它还不能对产品听写输出打分。听译和实时字幕的端到端仍然 **待测**。
+压缩流读了 489272487 字节，16 个 wav 都抽到了。每个文件的 SHA-256、字节数、16 kHz、单声道、32 bit、采样数都写进冻结集，并且采样数与 TSV 的 `numSamples` 一致。没有系统假设文件，所以仍然没有产品 CER/WER。听译和实时字幕的端到端仍然 **待测**。
+
+假设文件是 JSON 数组，元素只有 `{ "id", "hypothesis" }`。`hypothesis` 必须是字符串；缺字段、null 或数字会被拒绝。只有显式 `""` 表示识别器给出了空输出。`id` 用冻结集里的 id，对应缓存里的 `audioCache`。不要把 `reference` 填进 `hypothesis`。
 
 ## 这批不引入的来源
 
