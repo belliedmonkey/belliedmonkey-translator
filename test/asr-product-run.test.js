@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -243,6 +243,53 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(report.timedOut, false);
     eq(report.swiftExit, 2);
     eq(report.code, 'recognition-failed');
+  });
+
+  test('the default plan stays the full set and the one-clip mode is not a score', () => {
+    const full = diagnosticPlan({ diagnosticFirst: false });
+    eq(full.itemLimit, null);
+    eq(full.completeSet, true);
+    eq(full.nodeTimeoutMs, 15 * 60 * 1000);
+    const one = diagnosticPlan({ diagnosticFirst: true });
+    eq(one.itemLimit, 1);
+    eq(one.completeSet, false);
+    eq(one.notAFullSetScore, true);
+    eq(one.hypotheses, null);
+    eq(one.rates, null);
+    eq(one.productMetric, false);
+    eq(one.sameProductProcess, false);
+    eq(one.nodeTimeoutMs, 3 * 60 * 1000);
+    eq(one.sampleCapMs, 45 * 1000);
+    eq(one.feeds.join(','), 'manual-pcm-analyzer-input,apple-analyzeSequence-file');
+  });
+
+  test('timeline coverage says whether the finish time matches the fed audio', () => {
+    const aligned = coverageReport([
+      { startFrame: 0, endFrame: 4096 },
+      { startFrame: 4096, endFrame: 8000 },
+    ], 8000);
+    eq(aligned.continuous, true);
+    eq(aligned.finishMatchesCoveredEnd, true);
+    eq(aligned.hypotheses, null);
+    eq(aligned.rates, null);
+    const gap = coverageReport([
+      { startFrame: 0, endFrame: 100 },
+      { startFrame: 200, endFrame: 300 },
+    ], 300);
+    eq(gap.continuous, false);
+    const past = coverageReport([{ startFrame: 0, endFrame: 100 }], 101);
+    eq(past.finishMatchesCoveredEnd, false);
+  });
+
+  test('the one-clip helper records both feeds and does not write a set score', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(src.includes('--diagnostic-first'));
+    ok(src.includes('notAFullSetScore'));
+    ok(src.includes('manual-pcm-analyzer-input'));
+    ok(src.includes('apple-analyzeSequence-file'));
+    ok(src.includes('resultEventsReceived'));
+    ok(src.includes('analyzeSequence(from:'));
+    ok(src.includes('hypotheses.json') === false || src.includes('does not write hypotheses.json'));
   });
 
   test('the Mac helper bounds analyzer-finish and names that timeout', () => {

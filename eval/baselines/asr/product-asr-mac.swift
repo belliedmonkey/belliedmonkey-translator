@@ -42,6 +42,43 @@ struct StageFail: Error {
     let underlying: Error
 }
 
+final class TimeBox: @unchecked Sendable {
+    var value: CMTime?
+}
+
+final class FeedTrace {
+    var inputs: [[String: Any]] = []
+    var sourceFrames: Int64 = 0
+    var sourceSampleRate: Double = 0
+    var targetFrames: Int64 = 0
+    var targetSampleRate: Double = 0
+    var targetChannels: AVAudioChannelCount = 0
+    var resultTaskStarted = false
+    var resultEventsReceived = 0
+    var lastResultEndSeconds: Double?
+    var finishRequestedFrame: Int64 = 0
+    var finalizeReturned = false
+    var volatileStartSeconds: Double?
+    var volatileEndSeconds: Double?
+    var flush: () -> Void = {}
+    func noteInput(start: Int64, frames: Int64, rate: Double) {
+        let end = start + frames
+        inputs.append([
+            "startFrame": start,
+            "endFrame": end,
+            "startSeconds": rate > 0 ? Double(start) / rate : 0,
+            "endSeconds": rate > 0 ? Double(end) / rate : 0,
+            "frameLength": frames,
+        ])
+        flush()
+    }
+    func bumpResult(endSeconds: Double?) {
+        resultEventsReceived += 1
+        if let endSeconds { lastResultEndSeconds = endSeconds }
+        flush()
+    }
+}
+
 if #available(macOS 26.0, *) {
     Task {
         let code = await FileASR.run()
@@ -69,6 +106,7 @@ enum FileASR {
             return 2
         }
         let install = args.contains("--install-assets")
+        let diagnostic = args.contains("--diagnostic-first")
         let setURL = URL(fileURLWithPath: args[setIdx + 1])
         let outURL = URL(fileURLWithPath: args[outIdx + 1])
         let statusURL = statusOutURL(args)
@@ -76,10 +114,17 @@ enum FileASR {
         do {
             let data = try Data(contentsOf: setURL)
             let set = try JSONDecoder().decode(SetFile.self, from: data)
-            let locales = try assetLocales(set)
+            let chosen = diagnostic ? Array(set.items.prefix(1)) : set.items
+            let locales = try assetLocales(SetFile(items: chosen))
             try await prepareAssets(locales: locales, install: install, statusURL: statusURL)
             if install {
                 try? FileManager.default.removeItem(at: outURL)
+                return 0
+            }
+            if diagnostic, let item = chosen.first {
+                // Diagnostic mode does not write hypotheses.json.
+                try? FileManager.default.removeItem(at: outURL)
+                try await writeFirstClipDiagnostic(item: item, root: root, statusURL: statusURL)
                 return 0
             }
             var rows: [[String: String]] = []
@@ -407,7 +452,7 @@ enum FileASR {
         }
     }
 
-    static func transcribe(url: URL, locale: Locale, sampleId: String, statusURL: URL?) async throws -> String {
+    static func transcribe(url: URL, locale: Locale, sampleId: String, statusURL: URL?, trace: FeedTrace? = nil) async throws -> String {
         let localeId = locale.identifier(.bcp47)
         let file = try await stage("audio-open", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             try AVAudioFile(forReading: url)
@@ -443,9 +488,12 @@ enum FileASR {
             try await analyzer.prepareToAnalyze(in: fmt)
         }
         let reader: Task<String, Error> = Task {
+            trace?.resultTaskStarted = true
+            trace?.flush()
             if let t = module as? SpeechTranscriber {
                 var last = ""
                 for try await result in t.results {
+                    trace?.bumpResult(endSeconds: result.range.end.seconds)
                     if result.isFinal { last = String(result.text.characters) }
                 }
                 return last
@@ -471,7 +519,18 @@ enum FileASR {
                     NSLocalizedDescriptionKey: "input buffer unavailable",
                 ])
             }
+            trace?.sourceFrames = file.length
+            trace?.sourceSampleRate = file.processingFormat.sampleRate
+            trace?.targetSampleRate = fmt.sampleRate
+            trace?.targetChannels = fmt.channelCount
             var fed: Int64 = 0
+            func deliver(_ out: AVAudioPCMBuffer) {
+                let start = fed
+                let frames = Int64(out.frameLength)
+                trace?.noteInput(start: start, frames: frames, rate: fmt.sampleRate)
+                cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: start, timescale: CMTimeScale(fmt.sampleRate))))
+                fed += frames
+            }
             readLoop: while true {
                 // AVAudioFile.read returns NO without an NSError once framePosition
                 // reaches length. Swift then throws Foundation._GenericObjCError.nilError.
@@ -504,26 +563,25 @@ enum FileASR {
                         NSLocalizedDescriptionKey: "audio convert status error without NSError",
                     ])
                 case .endOfStream:
-                    if out.frameLength > 0 {
-                        cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
-                        fed += Int64(out.frameLength)
-                    }
+                    if out.frameLength > 0 { deliver(out) }
                     break readLoop
                 case .haveData, .inputRanDry:
                     if out.frameLength == 0 { continue }
-                    cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
-                    fed += Int64(out.frameLength)
+                    deliver(out)
                 default:
                     if out.frameLength == 0 { continue }
-                    cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
-                    fed += Int64(out.frameLength)
+                    deliver(out)
                 }
             }
             cont.finish()
+            trace?.targetFrames = fed
+            trace?.finishRequestedFrame = fed
+            trace?.flush()
             return fed
         }
         try await stage("analyzer-finish", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             let through = CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))
+            trace?.flush()
             try await withThrowingTaskGroup(of: Void.self) { group in
                 group.addTask { try await analyzer.finalize(through: through) }
                 group.addTask {
@@ -545,13 +603,151 @@ enum FileASR {
                 }
                 group.cancelAll()
             }
+            trace?.finalizeReturned = true
+            if let range = await analyzer.volatileRange {
+                trace?.volatileStartSeconds = range.start.seconds
+                trace?.volatileEndSeconds = range.end.seconds
+            }
+            trace?.flush()
         }
         return try await stage("result-consume", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             let text = try await reader.value
             if text.isEmpty {
+                if trace != nil { return "" }
                 throw NSError(domain: "product-asr", code: 3, userInfo: [NSLocalizedDescriptionKey: "empty final"])
             }
             return text
         }
+    }
+
+    static func writeFirstClipDiagnostic(item: Item, root: URL, statusURL: URL?) async throws {
+        let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
+        let locale = locale(for: item.config)
+        var paths: [[String: Any]] = []
+        let manualTrace = FeedTrace()
+        var manual: [String: Any] = [
+            "feed": "manual-pcm-analyzer-input",
+            "notAProductScore": true,
+            "notAFullSetScore": true,
+            "productMetric": false,
+            "hypotheses": NSNull(),
+            "rates": NSNull(),
+        ]
+        manualTrace.flush = {
+            manual["sourceFrames"] = manualTrace.sourceFrames
+            manual["sourceSampleRate"] = manualTrace.sourceSampleRate
+            manual["targetFrames"] = manualTrace.targetFrames
+            manual["targetSampleRate"] = manualTrace.targetSampleRate
+            manual["targetChannels"] = manualTrace.targetChannels
+            manual["inputs"] = manualTrace.inputs
+            manual["finishRequestedFrame"] = manualTrace.finishRequestedFrame
+            manual["resultTaskStarted"] = manualTrace.resultTaskStarted
+            manual["resultEventsReceived"] = manualTrace.resultEventsReceived
+            manual["finalizeReturned"] = manualTrace.finalizeReturned
+            if let end = manualTrace.lastResultEndSeconds { manual["lastResultEndSeconds"] = end }
+            if let a = manualTrace.volatileStartSeconds { manual["volatileStartSeconds"] = a }
+            if let b = manualTrace.volatileEndSeconds { manual["volatileEndSeconds"] = b }
+            paths = [manual]
+            writeDiagnostic(statusURL, item: item, paths: paths)
+        }
+        do {
+            let text = try await transcribe(url: audio, locale: locale, sampleId: item.id, statusURL: statusURL, trace: manualTrace)
+            manual["diagnosticText"] = text
+            manual["finalizeReturned"] = true
+        } catch {
+            manual["error"] = redact(String(describing: error))
+            manual["finalizeReturned"] = manualTrace.finalizeReturned
+        }
+        manualTrace.flush()
+        paths = [manual]
+        let official = await officialFileProbe(url: audio, locale: locale, sampleId: item.id)
+        paths.append(official)
+        writeDiagnostic(statusURL, item: item, paths: paths)
+    }
+
+    static func officialFileProbe(url: URL, locale: Locale, sampleId: String) async -> [String: Any] {
+        var row: [String: Any] = [
+            "feed": "apple-analyzeSequence-file",
+            "notAProductScore": true,
+            "notAFullSetScore": true,
+            "sameProductProcess": false,
+            "endToEnd": false,
+            "productMetric": false,
+            "hypotheses": NSNull(),
+            "rates": NSNull(),
+            "resultTaskStarted": false,
+            "resultEventsReceived": 0,
+            "finalizeReturned": false,
+        ]
+        let counter = FeedTrace()
+        do {
+            let file = try AVAudioFile(forReading: url)
+            row["sourceFrames"] = file.length
+            row["sourceSampleRate"] = file.processingFormat.sampleRate
+            let speech = speechModule(locale)
+            let status = await AssetInventory.status(forModules: [speech])
+            guard status == .installed else {
+                row["error"] = "speech-assets-not-installed"
+                row["status"] = statusName(status)
+                return row
+            }
+            counter.resultTaskStarted = true
+            row["resultTaskStarted"] = true
+            let analyzer = SpeechAnalyzer(modules: [speech])
+            let box = TimeBox()
+            async let pending: String = {
+                var last = ""
+                for try await result in speech.results {
+                    counter.bumpResult(endSeconds: result.range.end.seconds)
+                    if result.isFinal { last = String(result.text.characters) }
+                }
+                return last
+            }()
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask { box.value = try await analyzer.analyzeSequence(from: file) }
+                group.addTask {
+                    try await Task.sleep(nanoseconds: 45_000_000_000)
+                    throw StageFail(stage: "apple-analyzeSequence-file", locale: locale.identifier(.bcp47), sampleId: sampleId, underlyingCode: "recognition-timeout", underlying: NSError(domain: "product-asr", code: 7, userInfo: [NSLocalizedDescriptionKey: "analyzeSequence exceeded 45s"]))
+                }
+                try await group.next()
+                group.cancelAll()
+            }
+            if let lastSample = box.value {
+                row["lastSampleSeconds"] = lastSample.seconds
+                try await analyzer.finalizeAndFinish(through: lastSample)
+                row["finalizeReturned"] = true
+            } else {
+                await analyzer.cancelAndFinishNow()
+                row["lastSampleSeconds"] = NSNull()
+                row["finalizeReturned"] = true
+            }
+            row["diagnosticText"] = try await pending
+            row["resultEventsReceived"] = counter.resultEventsReceived
+        } catch {
+            row["error"] = redact(String(describing: error))
+            row["resultTaskStarted"] = counter.resultTaskStarted
+            row["resultEventsReceived"] = counter.resultEventsReceived
+        }
+        return row
+    }
+
+    static func writeDiagnostic(_ statusURL: URL?, item: Item, paths: [[String: Any]]) {
+        guard let statusURL else { return }
+        let url = statusURL.deletingLastPathComponent().appendingPathComponent("diagnostic-run.json")
+        let body: [String: Any] = [
+            "schema": "baseline-sa-file-diagnostic.v1",
+            "completeSet": false,
+            "notAFullSetScore": true,
+            "productMetric": false,
+            "rates": NSNull(),
+            "hypotheses": NSNull(),
+            "sameProductProcess": false,
+            "endToEnd": false,
+            "arm": "sa",
+            "sampleId": item.id,
+            "paths": paths,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: body, options: [.prettyPrinted, .sortedKeys]) else { return }
+        try? data.write(to: url, options: .atomic)
     }
 }

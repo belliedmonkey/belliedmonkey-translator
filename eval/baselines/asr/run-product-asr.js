@@ -173,6 +173,45 @@ function converterOutputAction(status, hasNsError) {
   };
 }
 
+function diagnosticPlan(input) {
+  const on = input.diagnosticFirst === true;
+  return {
+    diagnosticFirst: on,
+    itemLimit: on ? 1 : null,
+    completeSet: !on,
+    notAFullSetScore: on,
+    productMetric: false,
+    rates: null,
+    hypotheses: null,
+    sameProductProcess: false,
+    endToEnd: false,
+    arm: 'sa',
+    nodeTimeoutMs: on ? 3 * 60 * 1000 : 15 * 60 * 1000,
+    sampleCapMs: 45 * 1000,
+    feeds: on
+      ? ['manual-pcm-analyzer-input', 'apple-analyzeSequence-file']
+      : ['manual-pcm-analyzer-input'],
+  };
+}
+
+function coverageReport(inputs, finishRequestedFrame) {
+  let cursor = 0;
+  let continuous = true;
+  for (const row of inputs || []) {
+    if (row.startFrame !== cursor) continuous = false;
+    cursor = row.endFrame;
+  }
+  return {
+    continuous: continuous,
+    lastInputEndFrame: cursor,
+    finishMatchesCoveredEnd: finishRequestedFrame === cursor,
+    completeSet: false,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+  };
+}
+
 function childFailure(err, trace) {
   const signal = err && err.signal ? err.signal : null;
   const status = err && err.status != null ? err.status : null;
@@ -311,10 +350,12 @@ function main(argv) {
   let setPath = DEFAULT_SET;
   let outDir = '';
   let installAssets = false;
+  let diagnosticFirst = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
     else if (args[i] === '--out-dir') outDir = args[++i];
     else if (args[i] === '--install-assets') installAssets = true;
+    else if (args[i] === '--diagnostic-first') diagnosticFirst = true;
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(1);
@@ -329,9 +370,14 @@ function main(argv) {
     macProductVersion: process.platform === 'darwin' ? macProductVersion() : '',
     items: inspected,
   });
+  const diag = diagnosticPlan({ diagnosticFirst: diagnosticFirst });
   plan.checked = inspected.length;
   plan.installFlag = installAssets;
   plan.installRequested = false;
+  plan.diagnosticFirst = diag.diagnosticFirst;
+  plan.completeSet = diag.completeSet;
+  plan.notAFullSetScore = diag.notAFullSetScore;
+  plan.rates = null;
   console.log(JSON.stringify(plan, null, 2));
   if (!plan.ok) process.exit(2);
   if (!outDir) {
@@ -358,10 +404,12 @@ function main(argv) {
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
   const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
   if (installAssets) swiftArgs.push('--install-assets');
+  if (diagnosticFirst) swiftArgs.push('--diagnostic-first');
+  const diagTimeout = diagnosticPlan({ diagnosticFirst: diagnosticFirst }).nodeTimeoutMs;
   try {
     execFileSync('swift', swiftArgs, {
       stdio: 'inherit',
-      timeout: installAssets ? (15 * 60 * 1000) + 30000 : 15 * 60 * 1000,
+      timeout: installAssets ? (15 * 60 * 1000) + 30000 : diagTimeout,
     });
   } catch (err) {
     let trace = null;
@@ -374,8 +422,11 @@ function main(argv) {
     process.exit(2);
   }
   meta.swiftExit = 0;
-  if (installAssets) {
+  if (installAssets || diagnosticFirst) {
     meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = !diagnosticFirst;
+    meta.notAFullSetScore = diagnosticFirst;
     meta.recognition = false;
   } else {
     meta.hypothesesFile = 'hypotheses.json';
@@ -388,4 +439,5 @@ if (require.main === module) main(process.argv);
 module.exports = {
   planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
+  diagnosticPlan, coverageReport,
 };

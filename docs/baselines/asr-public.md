@@ -143,11 +143,17 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 每条样本的 `analyzer-finish` 现在自己限 45 秒。到点由 Swift 写出 `recognition-timeout` 并退出，这不是把 15 分钟上限加长。总进程上限仍是 15 分钟。如果仍是 Node 杀掉子进程，记录为 `timedOut`、信号、trace 里的阶段，`swiftExit` 为 null，没有假设。这不表示识别已经成功。
 
-下一次只验证这次读循环修复，不带 `--install-assets`，不重新下载。进程超时 15 分钟，没有重试。`analyzer-finish` 尚未被这次日志执行到。失败时仍看 stderr 和 `recognition-error.json`。`hypotheses` 与 `rates` 仍是 null。权限字段保持 unknown。
+`e05a6beb` 的 45 秒上限还没有在 Mac 上跑过。最后一次真实运行仍是 `74fc3224`。
+
+官方文件样例在 [WWDC25 session 277](https://developer.apple.com/videos/play/wwdc2025/277/)：`SpeechAnalyzer(modules:)`，然后 [analyzeSequence(from:)](https://developer.apple.com/documentation/speech/speechanalyzer/analyzesequence%28from:%29) 自己读文件并返回最后采样时间，再 `finalizeAndFinish(through: lastSample)`。结果用 `async let` 在分析之前开始读。当前脚本是另一条路：自己转 PCM，用输出帧数作 `AnalyzerInput` 的 `bufferStartTime`，`cont.finish()` 之后 `finalize(through: fed)`。源码里没有 `@MainActor`，所以不能从文件本身证明任务继承了 MainActor。结果任务创建了，不等于收到了事件。
+
+待验证的唯一假设：手动路径的 `fed` 结束时间和分析器消费到的时间不一致，所以 `finalize(through:)` 停住；官方 `analyzeSequence` 对照如果能收到结果事件并返回，就说明识别器本身可用，故障在手动时间线。如果两条都收不到结果事件，这个假设不成立。这不是整集分数，`completeSet` 为 false，`rates` 为 null，不写 `hypotheses.json`。
 
 ```bash
-node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
+node eval/baselines/asr/run-product-asr.js --diagnostic-first --out-dir <output-dir>
 ```
+
+每条路径最多 45 秒，Node 总上限 3 分钟。不带 `--install-assets`。看 `<output-dir>/diagnostic-run.json` 里两条 `feed` 的 `resultEventsReceived`、`finalizeReturned`、`finishRequestedFrame` 和 `inputs` 的首尾帧。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 
