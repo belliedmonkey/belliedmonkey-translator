@@ -170,9 +170,33 @@ function readProgress(file) {
   }
 }
 
+function signalProcessGroup(pid, signal, platform) {
+  const plat = platform || process.platform;
+  if (plat === 'win32' || !Number.isInteger(pid) || pid <= 1 || pid === process.pid) {
+    return { ok: false, code: 'process-tree-unsupported' };
+  }
+  try {
+    process.kill(-pid, signal);
+    return { ok: true, code: 'signaled' };
+  } catch (err) {
+    if (err && err.code === 'ESRCH') return { ok: true, code: 'esrch' };
+    return { ok: false, code: 'signal-failed' };
+  }
+}
+
 function watchChild(spawnFn, bin, args, opts) {
+  const platform = opts.platform || process.platform;
+  if (platform === 'win32') {
+    return Promise.resolve({
+      code: null, signal: null, cap: null, tree: 'process-tree-unsupported',
+    });
+  }
   return new Promise((resolve) => {
-    const child = spawnFn(bin, args, { cwd: opts.cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const child = spawnFn(bin, args, {
+      cwd: opts.cwd,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: true,
+    });
     const outChunks = [];
     const errChunks = [];
     if (child.stdout) child.stdout.on('data', (chunk) => outChunks.push(chunk));
@@ -183,14 +207,16 @@ function watchChild(spawnFn, bin, args, opts) {
     let cap = null;
     let settled = false;
     let killTimer = null;
-    function finish(payload) {
-      if (settled) return;
+    let childDone = null;
+    let holdForKill = false;
+    function finish() {
+      if (settled || !childDone || holdForKill) return;
       settled = true;
       clearInterval(timer);
       if (killTimer) clearTimeout(killTimer);
       fs.writeFileSync(opts.stdoutPath, Buffer.concat(outChunks));
       fs.writeFileSync(opts.stderrPath, Buffer.concat(errChunks));
-      resolve(payload);
+      resolve(childDone);
     }
     const timer = setInterval(() => {
       const seen = opts.progressFile ? readProgress(opts.progressFile) : '';
@@ -208,14 +234,24 @@ function watchChild(spawnFn, bin, args, opts) {
       });
       if (reason && !cap) {
         cap = reason;
-        child.kill('SIGTERM');
+        holdForKill = true;
+        if (child.pid) signalProcessGroup(child.pid, 'SIGTERM', platform);
         killTimer = setTimeout(() => {
-          if (!settled) child.kill('SIGKILL');
+          if (child.pid) signalProcessGroup(child.pid, 'SIGKILL', platform);
+          holdForKill = false;
+          finish();
         }, opts.killGraceMs == null ? KILL_GRACE_MS : opts.killGraceMs);
       }
     }, opts.pollMs || 200);
-    child.on('error', () => finish({ code: null, signal: null, cap: cap }));
-    child.on('exit', (code, signal) => finish({ code: code, signal: signal, cap: cap }));
+    child.on('error', () => {
+      childDone = { code: null, signal: null, cap: cap, tree: 'spawn-failed' };
+      if (!cap) holdForKill = false;
+      finish();
+    });
+    child.on('exit', (code, signal) => {
+      childDone = { code: code, signal: signal, cap: cap, tree: cap ? 'timeout' : 'exited' };
+      finish();
+    });
   });
 }
 
@@ -463,6 +499,9 @@ async function runSaFile(opts) {
       ok: false, code: code, runId: runId, rates: null, hypotheses: null,
     }, extra)));
   }
+  if ((opts.treePlatform || process.platform) === 'win32') {
+    return fail('process-tree-unsupported', { swiftExit: null, timedOut: false, signal: null });
+  }
   let set;
   try {
     set = JSON.parse(fs.readFileSync(opts.setPath, 'utf8'));
@@ -479,6 +518,9 @@ async function runSaFile(opts) {
   const bin = path.join(runDir, 'sa-file-bin');
   if (opts.compiler === 'swiftc') appleExecutionStarted = true;
   const compiled = await Promise.resolve(opts.compile(bin));
+  if (compiled && compiled.tree === 'process-tree-unsupported') {
+    return fail('process-tree-unsupported', { swiftExit: null, timedOut: false, signal: null });
+  }
   if (!compiled || compiled.code !== 0 || compiled.cap) {
     const killed = compiled && (compiled.cap || compiled.signal === 'SIGTERM' || compiled.signal === 'SIGKILL');
     return fail(killed ? 'compile-timeout' : 'compile-failed', {
@@ -507,7 +549,11 @@ async function runSaFile(opts) {
     itemCapMs: opts.itemCapMs || ITEM_MS,
     killGraceMs: opts.killGraceMs,
     pollMs: opts.pollMs,
+    platform: opts.treePlatform || process.platform,
   });
+  if (watched.tree === 'process-tree-unsupported') {
+    return fail('process-tree-unsupported', { swiftExit: null, timedOut: false, signal: null });
+  }
   for (const logName of ['child-stdout.txt', 'child-stderr.txt']) {
     const logPath = path.join(runDir, logName);
     try {
@@ -637,6 +683,7 @@ function main(argv) {
       progressFile: '',
       processCapMs: COMPILE_MS,
       itemCapMs: COMPILE_MS + 1,
+      platform: process.platform,
     }),
   }).then((result) => {
     console.log(JSON.stringify({
@@ -658,6 +705,7 @@ if (require.main === module) {
 module.exports = {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText, cacheRelative,
   tarCreateSpec, writeEvidenceArchive, verifyEvidenceArchive, listArchiveMembers, packExisting,
+  signalProcessGroup, watchChild,
   preflight, runSaFile,
   COMPILE_MS, PROCESS_MS, ITEM_MS,
 };

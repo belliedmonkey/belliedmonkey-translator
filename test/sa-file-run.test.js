@@ -9,7 +9,7 @@ const { describe, test, eq, ok } = require('./harness');
 const {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText,
   preflight, runSaFile, cacheRelative, tarCreateSpec, writeEvidenceArchive,
-  verifyEvidenceArchive, listArchiveMembers, packExisting,
+  verifyEvidenceArchive, listArchiveMembers, packExisting, signalProcessGroup, watchChild,
 } = require('../eval/baselines/asr/run-sa-file.js');
 const { buildBundle } = require('../eval/baselines/asr/pack-sa-file.js');
 
@@ -239,6 +239,149 @@ describe('sa file run — one entry, no reused score', () => {
     eq(empty.rates, null);
     eq(empty.hypotheses, null);
     eq(empty.code, 'incomplete-hypotheses');
+  });
+
+  function pidAlive(pid) {
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch (err) {
+      return !(err && err.code === 'ESRCH');
+    }
+  }
+
+  test('a grandchild that ignores SIGTERM dies after the direct child exits', async () => {
+    const set = tinySet();
+    const audio = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-tree-'));
+    writeAudio(audio, set);
+    const setPath = path.join(audio, 'set.json');
+    fs.writeFileSync(setPath, JSON.stringify(set));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-tree-out-'));
+    const pidFile = path.join(root, 'grandchild.pid');
+    let grandchild = 0;
+    try {
+      const out = await runSaFile({
+        setPath: setPath,
+        audioCache: audio,
+        outRoot: root,
+        now: 31,
+        nonce: 'treeleak',
+        platform: 'darwin',
+        swiftc: process.execPath,
+        appleResult: false,
+        itemCapMs: 150,
+        processCapMs: 2000,
+        killGraceMs: 200,
+        pollMs: 20,
+        compile: (outBin) => {
+          const grand = path.join(path.dirname(outBin), 'grand.js');
+          fs.writeFileSync(grand, [
+            "'use strict';",
+            "process.on('SIGTERM', function () {});",
+            'setInterval(function () {}, 1000);',
+            '',
+          ].join('\n'));
+          const src = [
+            '#!/usr/bin/env node',
+            "'use strict';",
+            "const fs = require('fs');",
+            "const path = require('path');",
+            "const { spawn } = require('child_process');",
+            'const dir = path.dirname(process.argv[1]);',
+            'const child = spawn(process.execPath, [path.join(dir, "grand.js")], { stdio: "ignore" });',
+            'fs.writeFileSync(' + JSON.stringify(pidFile) + ', String(child.pid));',
+            'const status = process.argv[process.argv.indexOf("--status-out") + 1];',
+            'fs.writeFileSync(path.join(path.dirname(status), "item-progress.json"), JSON.stringify({ index: 0, id: "stuck", stage: "item-start" }));',
+            "process.on('SIGTERM', function () { process.exit(0); });",
+            'setInterval(function () {}, 1000);',
+            '',
+          ].join('\n');
+          fs.writeFileSync(outBin, src, { mode: 0o755 });
+          return { code: 0, signal: null, cap: null };
+        },
+      });
+      eq(out.timedOut, true);
+      eq(out.rates, null);
+      eq(out.appleResult, false);
+      eq(fs.existsSync(path.join(out.runDir, 'evidence.tar.gz')), true);
+      grandchild = Number(fs.readFileSync(pidFile, 'utf8'));
+      eq(grandchild > 1, true);
+      let still = pidAlive(grandchild);
+      const deadline = Date.now() + 500;
+      while (still && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        still = pidAlive(grandchild);
+      }
+      eq(still, false);
+    } finally {
+      if (grandchild > 1 && pidAlive(grandchild)) {
+        try { process.kill(grandchild, 'SIGKILL'); } catch (_) {}
+      }
+    }
+  });
+
+  test('process-group signals report ESRCH, reject Windows, and spare a bystander', async () => {
+    const gone = spawn(process.execPath, ['-e', 'process.exit(0)'], { detached: true, stdio: 'ignore' });
+    await new Promise((resolve) => gone.on('exit', resolve));
+    eq(signalProcessGroup(gone.pid, 'SIGTERM', 'linux').code, 'esrch');
+    eq(signalProcessGroup(gone.pid, 'SIGKILL', 'win32').code, 'process-tree-unsupported');
+    const sentinel = spawn(process.execPath, ['-e', 'setInterval(function(){},1000)'], { detached: true, stdio: 'ignore' });
+    const logs = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-bystander-'));
+    try {
+      const watched = await watchChild(spawn, process.execPath, ['-e', 'process.exit(0)'], {
+        cwd: logs,
+        stdoutPath: path.join(logs, 'out.txt'),
+        stderrPath: path.join(logs, 'err.txt'),
+        progressFile: '',
+        processCapMs: 2000,
+        itemCapMs: 2000,
+        killGraceMs: 100,
+        pollMs: 20,
+        platform: 'linux',
+      });
+      eq(watched.code, 0);
+      eq(watched.cap, null);
+      eq(pidAlive(sentinel.pid), true);
+      const missing = await watchChild(spawn, path.join(logs, 'no-such-bin'), [], {
+        cwd: logs,
+        stdoutPath: path.join(logs, 'missing-out.txt'),
+        stderrPath: path.join(logs, 'missing-err.txt'),
+        progressFile: '',
+        processCapMs: 2000,
+        itemCapMs: 2000,
+        killGraceMs: 100,
+        pollMs: 20,
+        platform: 'linux',
+      });
+      eq(missing.tree, 'spawn-failed');
+      eq(missing.cap, null);
+      eq(pidAlive(sentinel.pid), true);
+    } finally {
+      try { process.kill(sentinel.pid, 'SIGKILL'); } catch (_) {}
+    }
+    const set = tinySet();
+    const audio = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-win-'));
+    writeAudio(audio, set);
+    const setPath = path.join(audio, 'set.json');
+    fs.writeFileSync(setPath, JSON.stringify(set));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-win-out-'));
+    const blocked = await runSaFile({
+      setPath: setPath,
+      audioCache: audio,
+      outRoot: root,
+      now: 32,
+      nonce: 'winblock',
+      platform: 'win32',
+      treePlatform: 'win32',
+      swiftc: process.execPath,
+      appleResult: false,
+    });
+    eq(blocked.code, 'process-tree-unsupported');
+    eq(blocked.processExit, 2);
+    eq(blocked.rates, null);
+    eq(blocked.appleResult, false);
+    eq(fs.existsSync(path.join(blocked.runDir, 'evidence.tar.gz')), true);
+    eq(fs.existsSync(path.join(blocked.runDir, 'score.json')), false);
   });
 
   test('a child that ignores SIGTERM is killed and is not a score', async () => {
