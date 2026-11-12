@@ -222,6 +222,27 @@ function diagnosticProcesses(input) {
   return { ok: true, processes: processes, totalCapMs: 3 * 60 * 1000 };
 }
 
+function diagnosticAggregate(pathRecords) {
+  const records = pathRecords || [];
+  const failed = records.length === 0 || records.some((item) => {
+    if (!item || item.timedOut) return true;
+    if (item.swiftExit == null || item.swiftExit !== 0) return true;
+    return false;
+  });
+  return {
+    paths: records,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    completeSet: false,
+    notAFullSetScore: true,
+    success: false,
+    swiftExit: null,
+    timedOut: records.some((item) => item && item.timedOut),
+    processExit: failed ? 2 : 0,
+  };
+}
+
 function pathTimeoutRecord(err, partial) {
   const failure = childFailure(err, partial || null);
   return {
@@ -510,17 +531,18 @@ function main(argv) {
         pathRecords.push(pathTimeoutRecord(err, partial));
       }
     }
-    meta.paths = pathRecords;
+    const agg = diagnosticAggregate(pathRecords);
+    meta.paths = agg.paths;
     meta.hypotheses = null;
     meta.rates = null;
     meta.completeSet = false;
     meta.notAFullSetScore = true;
-    meta.timedOut = pathRecords.some((item) => item.timedOut);
-    meta.swiftExit = meta.timedOut ? null : 0;
+    meta.timedOut = agg.timedOut;
+    meta.swiftExit = null;
     meta.success = false;
     fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
     try { fs.unlinkSync(hypPath); } catch (_) {}
-    process.exit(meta.timedOut ? 2 : 0);
+    process.exit(agg.processExit);
   }
   const swiftArgs = [HELPER, '--set', setPath, '--out', hypPath, '--status-out', path.join(dest, 'asset-status.json')];
   if (installAssets) swiftArgs.push('--install-assets');
@@ -558,5 +580,5 @@ if (require.main === module) main(process.argv);
 module.exports = {
   planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
-  diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord,
+  diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
 };

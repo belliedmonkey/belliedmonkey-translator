@@ -151,11 +151,11 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 14:52:56–14:55:57 的单句双路径把手动路径跑满 Node 的 3 分钟 `SIGTERM`（`swiftExit` 为 null，stderr 为空）。42 段从 0 连续到 170880，源和目标都是 170880 帧、16000 Hz、单声道，`finishRequestedFrame` 等于最后一段的 `endFrame`。`resultEventsReceived` 为 37，`finalizeReturned` 为 false。官方 `analyzeSequence` 条目不存在，因为同进程里的手动 `finalize` 没有把控制交回来。`withThrowingTaskGroup` 在 body 退出前会等已取消的子任务；`finalize(through:)` 不响应取消，所以 45 秒时限不会返回。37 个结果事件否定了「没有结果事件」。末次 `result.end` 为 9 秒，这不是消费位置的证据。
 
-下一次只跑官方文件路径，单独进程，不重跑手动路径。编译预算 90 秒，运行硬上限 45 秒，总时间不超过 3 分钟。超时不是成功。
+15:05:03–15:05:05，`diagnosticPath` 是 `let` 又被赋值，`swiftc` 失败，没有二进制，没有运行。随后改成 `var`。15:08:40–15:08:43，Mac 编译通过。编出来的 `diag-sa` 退出码 2，停在安装阶段：`speech-assets-not-installed`，locale `en-US`，状态 `supported`，`installFlag` false。`asset-status` 只有 en-US，`before` 为 `supported`，`installed` 为 false。没有 `diagnostic-run.json`，没有 trace，没有假设，没有分数。官方 `analyzeSequence` 仍未进入。同一命令这是第二次失败，到此停止，不再为了日志重跑。
 
-```bash
-node eval/baselines/asr/run-product-asr.js --diagnostic-first --diagnostic-path apple-file --out-dir <output-dir>
-```
+源码里安装检查和手动路径用同一个 `speechModule`：`Locale(identifier: "en-US")`，`transcriptionOptions: []`，同一组 `reportingOptions` / `attributeOptions`，没有 `preset`。状态只调 `AssetInventory.status(forModules:)`。`install` 为 false 时不调用 `assetInstallationRequest`。源码里没有按解释执行或 `swiftc` 分支改这些参数，也没有 `release`。两小时前同机曾报 `installed`。源码不能说明状态为何回到 `supported`。
+
+Node 把子进程退出码 2 收成总退出 0，并把顶层 `swiftExit` 写成 0。子进程的 2 只留在 `paths[0]`。这是包装错误，不是 Swift 退出 0。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

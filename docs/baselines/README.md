@@ -14,7 +14,7 @@
 | [forms/realtime.md](forms/realtime.md) | 实时听译、实时字幕各自的端到端协议 | 协议；待测 |
 | [forms/web.md](forms/web.md) | 网页文字，以及四种预制媒体路径 | 协议；待测 |
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
-| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结；16 条 wav 在忽略缓存里。资源已安装，EOF 已越过，analyzer-finish 曾停满 15 分钟。单句诊断对照还没在 Mac 上跑。没有产品分数。端到端仍待测 |
+| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结；16 条 wav 在忽略缓存里。官方单句对照编译已通过，但 en-US 状态回到 supported，识别未进入。没有产品分数。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

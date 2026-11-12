@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -262,6 +262,31 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(one.runCapMs, 45 * 1000);
     eq(one.compileCapMs <= 90 * 1000, true);
     eq(one.compileCapMs + one.runCapMs <= 3 * 60 * 1000, true);
+  });
+
+  test('a child that exits 2 makes the wrapper non-zero without a fake swiftExit 0', () => {
+    let caught = null;
+    try {
+      execFileSync(process.execPath, ['-e', 'process.exit(2)'], { stdio: 'pipe' });
+    } catch (err) {
+      caught = err;
+    }
+    eq(caught.status, 2);
+    const record = pathTimeoutRecord(caught, {
+      feed: 'apple-analyzeSequence-file',
+      resultEventsReceived: 0,
+    });
+    const agg = diagnosticAggregate([record]);
+    eq(agg.processExit, 2);
+    eq(agg.swiftExit, null);
+    eq(agg.paths.length, 1);
+    eq(agg.paths[0].swiftExit, 2);
+    eq(agg.paths[0].success, false);
+    eq(agg.hypotheses, null);
+    eq(agg.rates, null);
+    const unknown = diagnosticAggregate([{ path: 'apple-analyzeSequence-file', swiftExit: null, timedOut: false, success: false }]);
+    eq(unknown.processExit, 2);
+    eq(unknown.swiftExit, null);
   });
 
   test('apple-file is its own process and a kill is not success', () => {
