@@ -15,6 +15,7 @@
 | [forms/web.md](forms/web.md) | 网页文字，以及四种预制媒体路径 | 协议；待测 |
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
 | [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结。2026-11-12 主席摘要：英文 WER 11/174，中文 CER 33/301。探索性组件分数，不是产品分。端到端仍待测 |
+| [asr-file-pits.md](asr-file-pits.md) | SA 文件组件已踩的坑和回归入口 | 入口是 `node eval/baselines/asr/run-sa-file.js`。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

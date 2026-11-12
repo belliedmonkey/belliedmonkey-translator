@@ -268,7 +268,7 @@ Web Component 也覆盖了 —— 开放的 shadow root 会被遍历，所以把
 - 网页文字、YouTube 已有字幕、x.com 的 VTT、播客已有时轴稿，是扩展侧不同的路径。播客页没有稿就不会转写。没有字幕时的转写要用户点按，是又一条路径。Mac 上对本地视频文件的离线转写哪一条都不是。
 - 文档翻译读 PDF、Word（docx）、文本和图片。双栏和表格没有专门重排。OCR 用于图片，以及没有文字层的 PDF 页，并且当前引擎要能看图。
 
-另有一条公开 ASR 对照，见 [`docs/baselines/asr-public.md`](docs/baselines/asr-public.md)：FLEURS test 的英文和中文各 8 句朗读参考，CC BY 4.0。16 条 wav 在被 Git 忽略的缓存里。2026-11-12 的 Mac 文件跑分是探索性组件分数：英文 WER 11/174，中文 CER 33/301。这不是产品错误率。端到端仍 **待测**。
+另有一条公开 ASR 对照，见 [`docs/baselines/asr-public.md`](docs/baselines/asr-public.md)：FLEURS test 的英文和中文各 8 句朗读参考，CC BY 4.0。16 条 wav 在被 Git 忽略的缓存里。2026-11-12 的 Mac 文件跑分是探索性组件分数：英文 WER 11/174，中文 CER 33/301。可复现入口是 `node eval/baselines/asr/run-sa-file.js`。这不是产品错误率。端到端仍 **待测**。
 
 下面的 2026-10 水位是历史快照，没有按基线协议重测。
 

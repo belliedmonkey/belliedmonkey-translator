@@ -687,10 +687,12 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(src.includes('does not write hypotheses.json'));
   });
 
-  test('the Mac helper bounds analyzer-finish and names that timeout', () => {
+  test('the file transcriber does not use an in-process 45s task group', () => {
     const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
-    ok(src.includes('recognition-timeout'));
-    ok(src.includes('45_000_000_000'));
+    const body = src.slice(src.indexOf('static func transcribe'), src.indexOf('static func writeFirstClipDiagnostic'));
+    ok(body.includes('analyzer.finalizeAndFinish(through: through)'));
+    ok(body.includes('withThrowingTaskGroup') === false);
+    ok(body.includes('45_000_000_000') === false);
     ok(src.includes('finalizeAndFinishThroughEndOfInput') === false);
   });
 

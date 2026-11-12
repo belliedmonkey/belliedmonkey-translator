@@ -142,7 +142,12 @@ enum FileASR {
         let setURL = URL(fileURLWithPath: args[setIdx + 1])
         let outURL = URL(fileURLWithPath: args[outIdx + 1])
         let statusURL = statusOutURL(args)
-        let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let root: URL
+        if let audioIdx = args.firstIndex(of: "--audio-root"), audioIdx + 1 < args.count {
+            root = URL(fileURLWithPath: args[audioIdx + 1], isDirectory: true)
+        } else {
+            root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        }
         do {
             let data = try Data(contentsOf: setURL)
             let set = try JSONDecoder().decode(SetFile.self, from: data)
@@ -187,7 +192,8 @@ enum FileASR {
                 return 2
             }
             var rows: [[String: String]] = []
-            for item in set.items {
+            for (index, item) in set.items.enumerated() {
+                writeItemProgress(statusURL, index: index, id: item.id, stage: "item-start")
                 let audio = URL(fileURLWithPath: item.audioCache, relativeTo: root)
                 let text = try await transcribe(url: audio, locale: locale(for: item.config), sampleId: item.id, statusURL: statusURL)
                 rows.append(["id": item.id, "hypothesis": text])
@@ -205,6 +211,14 @@ enum FileASR {
             fputs(line, stderr)
             return 2
         }
+    }
+
+    static func writeItemProgress(_ statusURL: URL?, index: Int, id: String, stage: String) {
+        guard let statusURL else { return }
+        let url = statusURL.deletingLastPathComponent().appendingPathComponent("item-progress.json")
+        let body: [String: Any] = ["index": index, "id": id, "stage": stage]
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        try? data.write(to: url, options: .atomic)
     }
 
     static func statusOutURL(_ args: [String]) -> URL? {
@@ -725,27 +739,9 @@ enum FileASR {
         try await stage("analyzer-finish", locale: localeId, sampleId: sampleId, statusURL: statusURL) {
             let through = CMTime(value: lastSampleFrame, timescale: CMTimeScale(fmt.sampleRate))
             trace?.flush()
-            try await withThrowingTaskGroup(of: Void.self) { group in
-                group.addTask { try await analyzer.finalizeAndFinish(through: through) }
-                group.addTask {
-                    try await Task.sleep(nanoseconds: 45_000_000_000)
-                    throw StageFail(
-                        stage: "analyzer-finish",
-                        locale: localeId,
-                        sampleId: sampleId,
-                        underlyingCode: "recognition-timeout",
-                        underlying: NSError(domain: "product-asr", code: 7, userInfo: [
-                            NSLocalizedDescriptionKey: "analyzer-finish exceeded 45s",
-                        ]))
-                }
-                do {
-                    try await group.next()
-                } catch {
-                    group.cancelAll()
-                    throw error
-                }
-                group.cancelAll()
-            }
+            // The parent process kills this process. An in-process task group does not return
+            // when finalizeAndFinish ignores cancellation.
+            try await analyzer.finalizeAndFinish(through: through)
             trace?.finalizeReturned = true
             if let range = await analyzer.volatileRange {
                 trace?.volatileStartSeconds = range.start.seconds
