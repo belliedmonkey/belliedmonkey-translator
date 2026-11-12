@@ -64,18 +64,37 @@ function itemWatchDecision(state) {
   return null;
 }
 
+function portableMemberName(name) {
+  if (typeof name !== 'string') return false;
+  const bytes = Buffer.byteLength(name);
+  if (bytes < 1 || bytes > 100) return false;
+  if (name !== path.posix.basename(name)) return false;
+  return /^[A-Za-z0-9._-]+$/.test(name);
+}
+
 function archiveAllowed(names) {
   for (const name of names || []) {
-    if (typeof name !== 'string' || name.includes('..') || path.isAbsolute(name)) {
-      return { ok: false, code: 'archive-path' };
-    }
-    const base = path.basename(name);
-    if (base.startsWith('._') || base === '.DS_Store') return { ok: false, code: 'archive-appledouble' };
-    if (/\.wav$/i.test(base) || base === '.env' || base.includes('.env') || base === 'sa-file-bin') {
+    if (!portableMemberName(name)) return { ok: false, code: 'archive-path' };
+    if (name.startsWith('._') || name === '.DS_Store') return { ok: false, code: 'archive-appledouble' };
+    if (/\.wav$/i.test(name) || name === '.env' || name.includes('.env') || name === 'sa-file-bin') {
       return { ok: false, code: 'archive-forbidden' };
     }
   }
   return { ok: true };
+}
+
+function archiveError(code) {
+  const err = new Error(code);
+  err.code = code;
+  throw err;
+}
+
+function diagnosed(err) {
+  const code = err && typeof err.code === 'string' && err.code ? err.code : (err && err.message);
+  if (code === 'archive-members' || code === 'archive-type' || code === 'archive-path'
+    || code === 'archive-forbidden' || code === 'archive-appledouble'
+    || code === 'archive-checksum' || code === 'missing-evidence-file') return code;
+  return 'evidence-pack-failed';
 }
 
 function exactHypotheses(items, rows) {
@@ -241,6 +260,8 @@ function baseSummary(extra) {
 function tarCreateSpec(platform) {
   const args = [];
   if (platform === 'darwin') args.push('--disable-copyfile');
+  // ustar holds these short basenames. It does not carry pax extended headers.
+  args.push('--format=ustar');
   args.push('-czf');
   return {
     args: args,
@@ -274,15 +295,18 @@ function listArchiveMembers(tarPath) {
     }
     const name = longName || parsed.name;
     longName = '';
+    const typeflag = parsed.typeflag === '\0' ? '0' : parsed.typeflag;
+    // A pax header is its own member. Its path= text is not applied to the next file.
     members.push({
       name: name,
-      typeflag: parsed.typeflag === '\0' ? '0' : parsed.typeflag,
+      typeflag: typeflag,
+      sha256: typeflag === '0' ? crypto.createHash('sha256').update(body).digest('hex') : null,
     });
   }
   return { ok: true, members: members };
 }
 
-function verifyEvidenceArchive(tarPath, names) {
+function verifyEvidenceArchive(tarPath, names, runDir) {
   const listed = listArchiveMembers(tarPath);
   if (!listed.ok) return { ok: false, code: 'archive-members' };
   if (listed.members.length !== names.length) return { ok: false, code: 'archive-members' };
@@ -291,11 +315,15 @@ function verifyEvidenceArchive(tarPath, names) {
   for (const member of listed.members) {
     const name = member.name;
     if (member.typeflag !== '0') return { ok: false, code: 'archive-type', name: name };
-    if (typeof name !== 'string' || name !== path.posix.basename(name) || name.includes('..')) {
-      return { ok: false, code: 'archive-path', name: name };
-    }
+    if (!portableMemberName(name)) return { ok: false, code: 'archive-path', name: name };
     if (name.startsWith('._') || name === '.DS_Store' || !expected.has(name) || seen.has(name)) {
       return { ok: false, code: 'archive-members', name: name };
+    }
+    if (runDir) {
+      const full = path.join(runDir, name);
+      if (!fs.existsSync(full) || sha256File(full) !== member.sha256) {
+        return { ok: false, code: 'archive-checksum', name: name };
+      }
     }
     seen.add(name);
   }
@@ -305,12 +333,12 @@ function verifyEvidenceArchive(tarPath, names) {
 
 function writeEvidenceArchive(runDir, names) {
   const allowed = archiveAllowed(names);
-  if (!allowed.ok) throw new Error(allowed.code);
+  if (!allowed.ok) archiveError(allowed.code);
   for (const name of names) {
     const full = path.join(runDir, name);
-    if (!fs.existsSync(full)) throw new Error('missing-evidence-file');
+    if (!fs.existsSync(full)) archiveError('missing-evidence-file');
     const st = fs.lstatSync(full);
-    if (st.isSymbolicLink() || !st.isFile()) throw new Error('archive-type');
+    if (st.isSymbolicLink() || !st.isFile()) archiveError('archive-type');
   }
   const tarPath = path.join(runDir, 'evidence.tar.gz');
   const spec = tarCreateSpec(process.platform);
@@ -318,11 +346,11 @@ function writeEvidenceArchive(runDir, names) {
     encoding: 'utf8',
     env: Object.assign({}, process.env, spec.env),
   });
-  if (result.status !== 0) throw new Error(redactText(result.stderr || 'tar failed'));
-  const checked = verifyEvidenceArchive(tarPath, names);
+  if (result.status !== 0) archiveError('evidence-pack-failed');
+  const checked = verifyEvidenceArchive(tarPath, names, runDir);
   if (!checked.ok) {
     try { fs.unlinkSync(tarPath); } catch (_) {}
-    throw new Error(checked.code);
+    archiveError(checked.code);
   }
 }
 
@@ -348,12 +376,19 @@ function packExisting(runDir) {
   const before = {};
   for (const name of names) before[name] = fs.readFileSync(path.join(runDir, name));
   const lines = names.map((name) => sha256File(path.join(runDir, name)) + '  ' + name);
-  fs.writeFileSync(path.join(runDir, 'MANIFEST.sha256'), lines.join('\n') + '\n');
+  const manifestPath = path.join(runDir, 'MANIFEST.sha256');
+  const previousManifest = fs.existsSync(manifestPath) ? fs.readFileSync(manifestPath) : null;
+  fs.writeFileSync(manifestPath, lines.join('\n') + '\n');
   const packed = names.concat(['MANIFEST.sha256']);
   try {
     writeEvidenceArchive(runDir, packed);
-  } catch (_) {
-    return { ok: false, code: 'evidence-pack-failed', processExit: 2 };
+  } catch (err) {
+    if (previousManifest) fs.writeFileSync(manifestPath, previousManifest);
+    else {
+      try { fs.unlinkSync(manifestPath); } catch (_) {}
+    }
+    try { fs.unlinkSync(path.join(runDir, 'evidence.tar.gz')); } catch (_) {}
+    return { ok: false, code: diagnosed(err), processExit: 2 };
   }
   for (const name of Object.keys(before)) {
     if (!fs.readFileSync(path.join(runDir, name)).equals(before[name])) {
@@ -389,11 +424,11 @@ async function runSaFile(opts) {
     const lines = present.map((name) => sha256File(path.join(runDir, name)) + '  ' + name);
     fs.writeFileSync(path.join(runDir, 'MANIFEST.sha256'), lines.join('\n') + '\n');
     const names = present.concat(['MANIFEST.sha256']);
-    if (!archiveAllowed(names).ok) throw new Error('archive-forbidden');
+    if (!archiveAllowed(names).ok) archiveError('archive-forbidden');
     if (opts.writeArchive) opts.writeArchive(runDir, names);
     else writeEvidenceArchive(runDir, names);
-    const checked = verifyEvidenceArchive(path.join(runDir, 'evidence.tar.gz'), names);
-    if (!checked.ok) throw new Error(checked.code || 'archive-members');
+    const checked = verifyEvidenceArchive(path.join(runDir, 'evidence.tar.gz'), names, runDir);
+    if (!checked.ok) archiveError(checked.code || 'archive-members');
   }
   function seal(summary) {
     summary.platformEligible = platformEligible;
@@ -409,11 +444,11 @@ async function runSaFile(opts) {
     archiveTries += 1;
     try {
       publishArchive(summary);
-    } catch (_) {
+    } catch (err) {
       summary.ok = false;
       summary.rates = null;
       summary.hypotheses = null;
-      if (summary.code === 'ok') summary.code = 'evidence-pack-failed';
+      if (summary.code === 'ok') summary.code = diagnosed(err);
       try { fs.unlinkSync(path.join(runDir, 'score.json')); } catch (__) {}
       writeSummary(runDir, summary);
       if (archiveTries < 2) {

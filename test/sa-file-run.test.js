@@ -9,7 +9,7 @@ const { describe, test, eq, ok } = require('./harness');
 const {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText,
   preflight, runSaFile, cacheRelative, tarCreateSpec, writeEvidenceArchive,
-  verifyEvidenceArchive, packExisting,
+  verifyEvidenceArchive, listArchiveMembers, packExisting,
 } = require('../eval/baselines/asr/run-sa-file.js');
 const { buildBundle } = require('../eval/baselines/asr/pack-sa-file.js');
 
@@ -544,11 +544,97 @@ describe('sa file run — one entry, no reused score', () => {
     });
     eq(slipped.ok, false);
     eq(slipped.processExit, 2);
-    eq(slipped.code, 'evidence-pack-failed');
+    eq(slipped.code, 'archive-members');
     eq(slipped.rates, null);
     const summary = JSON.parse(fs.readFileSync(path.join(slipped.runDir, 'run-summary.json'), 'utf8'));
     eq(summary.ok, false);
     eq(summary.rates, null);
+  });
+
+  test('pax headers fail and ustar keeps exactly the six files', () => {
+    const six = [
+      'run-summary.json', 'score.json', 'hypotheses.json',
+      'child-stdout.txt', 'child-stderr.txt', 'MANIFEST.sha256',
+    ];
+    const specMac = tarCreateSpec('darwin');
+    const specLinux = tarCreateSpec('linux');
+    ok(specMac.args.indexOf('--format=ustar') >= 0);
+    ok(specLinux.args.indexOf('--format=ustar') >= 0);
+    ok(specMac.args.indexOf('--disable-copyfile') >= 0);
+    ok(specLinux.args.indexOf('--disable-copyfile') < 0);
+    eq(specMac.env.COPYFILE_DISABLE, '1');
+    eq(specLinux.env.COPY_EXTENDED_ATTRIBUTES_DISABLE, '1');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-ustar-'));
+    for (const name of six) fs.writeFileSync(path.join(dir, name), 'bytes-' + name + '\n');
+    const env = Object.assign({}, process.env, specMac.env);
+    const pax = path.join(dir, 'pax.tar.gz');
+    const paxRun = spawnSync('bsdtar', [
+      '--disable-copyfile', '--format', 'pax', '-czf', pax, '-C', dir,
+    ].concat(six), { encoding: 'utf8', env: env });
+    eq(paxRun.status, 0);
+    const paxMembers = listArchiveMembers(pax);
+    eq(paxMembers.members.length, 12);
+    eq(paxMembers.members.filter((member) => member.typeflag === 'x').length, 6);
+    ok(paxMembers.members.some((member) => member.name === 'PaxHeader/run-summary.json'));
+    const rejected = verifyEvidenceArchive(pax, six, dir);
+    eq(rejected.ok, false);
+    eq(rejected.code, 'archive-members');
+    const ustar = path.join(dir, 'ustar.tar.gz');
+    const ustarRun = spawnSync('bsdtar', specMac.args.concat([ustar, '-C', dir]).concat(six), {
+      encoding: 'utf8', env: env,
+    });
+    eq(ustarRun.status, 0);
+    const ustarMembers = listArchiveMembers(ustar);
+    eq(ustarMembers.members.length, 6);
+    eq(ustarMembers.members.every((member) => member.typeflag === '0'), true);
+    eq(verifyEvidenceArchive(ustar, six, dir).ok, true);
+    const gnu = path.join(dir, 'gnu.tar.gz');
+    const gnuRun = spawnSync('tar', specLinux.args.concat([gnu, '-C', dir]).concat(six), {
+      encoding: 'utf8', env: Object.assign({}, process.env, specLinux.env),
+    });
+    eq(gnuRun.status, 0);
+    eq(listArchiveMembers(gnu).members.length, 6);
+    eq(verifyEvidenceArchive(gnu, six, dir).ok, true);
+    fs.appendFileSync(path.join(dir, 'run-summary.json'), 'changed');
+    eq(verifyEvidenceArchive(ustar, six, dir).code, 'archive-checksum');
+    const longName = 'a'.repeat(120) + '.json';
+    fs.writeFileSync(path.join(dir, longName), 'too-long');
+    let longCode = '';
+    try { writeEvidenceArchive(dir, [longName]); }
+    catch (err) { longCode = err.code || err.message; }
+    eq(longCode, 'archive-path');
+    const kept = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-keep-'));
+    const summary = '{"ok":true,"productMetric":false}\n';
+    const score = '{"ok":true}\n';
+    const hyp = '[{"id":"kept","hypothesis":"same"}]\n';
+    fs.writeFileSync(path.join(kept, 'run-summary.json'), summary);
+    fs.writeFileSync(path.join(kept, 'score.json'), score);
+    fs.writeFileSync(path.join(kept, 'hypotheses.json'), hyp);
+    const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-tar-bin-'));
+    fs.writeFileSync(path.join(bin, 'tar'), [
+      '#!/usr/bin/env node',
+      'const {spawnSync}=require("child_process");',
+      'const args=process.argv.slice(2).filter(function(arg){return arg!=="--format=ustar";});',
+      'args.unshift("--format=pax");',
+      'const result=spawnSync("bsdtar", args, {stdio:"inherit"});',
+      'process.exit(result.status==null?1:result.status);',
+      '',
+    ].join('\n'), { mode: 0o755 });
+    const packed = spawnSync(process.execPath, [
+      path.join(ROOT, 'eval/baselines/asr/run-sa-file.js'), '--pack-existing', kept,
+    ], {
+      encoding: 'utf8',
+      env: Object.assign({}, process.env, { PATH: bin + path.delimiter + process.env.PATH }),
+    });
+    eq(packed.status, 2);
+    const body = JSON.parse(packed.stdout);
+    eq(body.ok, false);
+    eq(body.code, 'archive-members');
+    eq(body.rates, null);
+    eq(fs.readFileSync(path.join(kept, 'run-summary.json'), 'utf8'), summary);
+    eq(fs.readFileSync(path.join(kept, 'score.json'), 'utf8'), score);
+    eq(fs.readFileSync(path.join(kept, 'hypotheses.json'), 'utf8'), hyp);
+    eq(fs.existsSync(path.join(kept, 'evidence.tar.gz')), false);
   });
 
   test('repack uses only files already present', () => {
