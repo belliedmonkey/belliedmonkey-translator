@@ -11,6 +11,7 @@ const zlib = require('zlib');
 const { parseTsv, selectFirst } = require('./select.js');
 const { createTarCollector } = require('./tar-member.js');
 const { wavInfo } = require('./wav-info.js');
+const { cacheRelative } = require('./run-sa-file.js');
 
 const SET_PATH = path.join(__dirname, 'fleurs-public-v1.json');
 const CACHE = path.join(__dirname, '.cache');
@@ -215,7 +216,10 @@ async function main() {
     for (const item of items) {
       const buf = got.found.get(item.audioName);
       if (!buf) throw new Error('missing wav after stream ' + item.id);
-      const dest = path.join(audioDir, config, item.audioName);
+      const stored = 'eval/baselines/asr/.cache/audio/' + config + '/' + item.audioName;
+      const rel = cacheRelative(stored);
+      if (!rel) throw new Error('cache path ' + item.id);
+      const dest = path.join(audioDir, rel);
       fs.mkdirSync(path.dirname(dest), { recursive: true });
       fs.writeFileSync(dest, buf);
       const info = wavInfo(buf);
@@ -230,7 +234,7 @@ async function main() {
       item.bitsPerSample = info.bitsPerSample;
       item.wavSamples = info.samples;
       item.durationSeconds = Math.round(info.durationSeconds * 1000) / 1000;
-      item.audioCache = 'eval/baselines/asr/.cache/audio/' + config + '/' + item.audioName;
+      item.audioCache = stored;
       console.log('wav', item.id, item.audioBytes, item.audioSha256, item.durationSeconds + 's');
     }
   }

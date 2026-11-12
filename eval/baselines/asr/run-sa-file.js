@@ -25,6 +25,37 @@ function redactText(value) {
   return String(value == null ? '' : value).replace(/(?:\/Users\/|\/home\/|file:\/\/)\S+/g, '<path>');
 }
 
+// Frozen audioCache is the repo-relative string written by fetch:
+// eval/baselines/asr/.cache/audio/<config>/<audioName>
+// --audio-cache is the directory that already contains <config>/.
+function cacheRelative(stored) {
+  if (typeof stored !== 'string' || stored.length === 0) return null;
+  if (path.isAbsolute(stored) || stored.includes('\\')) return null;
+  const norm = stored.replace(/\/+/g, '/');
+  if (norm.split('/').includes('..')) return null;
+  const mark = '.cache/audio/';
+  const at = norm.lastIndexOf(mark);
+  const rel = at >= 0 ? norm.slice(at + mark.length) : norm;
+  if (!rel || rel.startsWith('/') || rel.split('/').includes('..')) return null;
+  const parts = rel.split('/');
+  if (parts.length !== 2) return null;
+  if (parts[0] !== 'en_us' && parts[0] !== 'cmn_hans_cn') return null;
+  if (!/^[A-Za-z0-9._-]+\.wav$/.test(parts[1])) return null;
+  const rootProbe = path.resolve('/cache-root');
+  const full = path.resolve(rootProbe, rel);
+  if (full !== rootProbe && !full.startsWith(rootProbe + path.sep)) return null;
+  return parts[0] + '/' + parts[1];
+}
+
+function cacheFile(cacheRoot, stored) {
+  const rel = cacheRelative(stored);
+  if (!rel) return null;
+  const root = path.resolve(cacheRoot);
+  const full = path.resolve(root, rel);
+  if (full !== root && !full.startsWith(root + path.sep)) return null;
+  return full;
+}
+
 function itemWatchDecision(state) {
   if (state.now - state.started >= state.processCapMs) return 'process-cap';
   if (state.itemId && state.now - state.itemSince >= state.itemCapMs) return 'item-cap';
@@ -89,8 +120,8 @@ function preflight(input) {
     return Object.assign(blank, { code: 'need-16' });
   }
   for (const item of set.items) {
-    const rel = item.audioCache || path.join(item.config, item.audioName);
-    const full = path.join(input.audioCache, rel);
+    const full = cacheFile(input.audioCache, item.audioCache);
+    if (!full) return Object.assign(blank, { code: 'audio-path', id: item.id });
     if (!fs.existsSync(full)) {
       return Object.assign(blank, { code: 'missing-audio', id: item.id });
     }
@@ -223,13 +254,57 @@ async function runSaFile(opts) {
     };
   }
   fs.mkdirSync(runDir);
-  const appleResult = opts.appleResult === true;
-  function fail(code, extra) {
-    const summary = baseSummary(Object.assign({
-      ok: false, code: code, runId: runId, appleResult: appleResult, rates: null, hypotheses: null,
-    }, extra));
+  const platformEligible = opts.platform === 'darwin' && !!(opts.swiftc && fs.existsSync(opts.swiftc));
+  let appleExecutionStarted = false;
+  let recognitionCompleted = false;
+  let archiveTries = 0;
+  function publishArchive(summary) {
+    const present = ['run-summary.json', 'score.json', 'hypotheses.json', 'child-stdout.txt', 'child-stderr.txt']
+      .filter((name) => fs.existsSync(path.join(runDir, name)) && archiveAllowed([name]).ok);
+    if (summary.ok !== true) {
+      const drop = present.indexOf('score.json');
+      if (drop >= 0) present.splice(drop, 1);
+      try { fs.unlinkSync(path.join(runDir, 'score.json')); } catch (_) {}
+    }
+    const lines = present.map((name) => sha256File(path.join(runDir, name)) + '  ' + name);
+    fs.writeFileSync(path.join(runDir, 'MANIFEST.sha256'), lines.join('\n') + '\n');
+    const names = present.concat(['MANIFEST.sha256']);
+    if (!archiveAllowed(names).ok) throw new Error('archive-forbidden');
+    if (opts.writeArchive) opts.writeArchive(runDir, names);
+    else defaultArchive(runDir, names);
+  }
+  function seal(summary) {
+    summary.platformEligible = platformEligible;
+    summary.appleExecutionStarted = appleExecutionStarted;
+    summary.recognitionCompleted = recognitionCompleted;
+    summary.appleResult = !!(platformEligible && appleExecutionStarted && recognitionCompleted && opts.compiler === 'swiftc');
+    if (summary.ok !== true) {
+      summary.rates = null;
+      summary.hypotheses = null;
+    }
     writeSummary(runDir, summary);
-    return Object.assign(summary, { processExit: 2, runDir: runDir });
+    if (archiveTries >= 2) return Object.assign(summary, { processExit: summary.ok ? 0 : 2, runDir: runDir });
+    archiveTries += 1;
+    try {
+      publishArchive(summary);
+    } catch (_) {
+      summary.ok = false;
+      summary.rates = null;
+      summary.hypotheses = null;
+      if (summary.code === 'ok') summary.code = 'evidence-pack-failed';
+      try { fs.unlinkSync(path.join(runDir, 'score.json')); } catch (__) {}
+      writeSummary(runDir, summary);
+      if (archiveTries < 2) {
+        archiveTries += 1;
+        try { publishArchive(summary); } catch (___) {}
+      }
+    }
+    return Object.assign(summary, { processExit: summary.ok ? 0 : 2, runDir: runDir });
+  }
+  function fail(code, extra) {
+    return seal(baseSummary(Object.assign({
+      ok: false, code: code, runId: runId, rates: null, hypotheses: null,
+    }, extra)));
   }
   let set;
   try {
@@ -245,6 +320,7 @@ async function runSaFile(opts) {
   });
   if (!checked.ok) return fail(checked.code, { id: checked.id || '' });
   const bin = path.join(runDir, 'sa-file-bin');
+  if (opts.compiler === 'swiftc') appleExecutionStarted = true;
   const compiled = await Promise.resolve(opts.compile(bin));
   if (!compiled || compiled.code !== 0 || compiled.cap) {
     const killed = compiled && (compiled.cap || compiled.signal === 'SIGTERM' || compiled.signal === 'SIGKILL');
@@ -255,7 +331,10 @@ async function runSaFile(opts) {
     });
   }
   const setForRun = path.join(runDir, 'set-for-run.json');
-  fs.writeFileSync(setForRun, JSON.stringify(set));
+  const runSet = Object.assign({}, set, {
+    items: set.items.map((item) => Object.assign({}, item, { audioCache: cacheRelative(item.audioCache) })),
+  });
+  fs.writeFileSync(setForRun, JSON.stringify(runSet));
   const hypPath = path.join(runDir, 'hypotheses.json');
   const watched = await watchChild(opts.spawn || spawn, bin, [
     '--set', setForRun,
@@ -302,11 +381,23 @@ async function runSaFile(opts) {
     try { fs.unlinkSync(hypPath); } catch (_) {}
     return fail('score-failed', { swiftExit: 0, timedOut: false, signal: null });
   }
-  const summary = baseSummary({
+  recognitionCompleted = true;
+  fs.writeFileSync(path.join(runDir, 'score.json'), JSON.stringify({
+    ok: true,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+    leaderboard: false,
+    exploratory: true,
+    rates: scored.byLang,
+    missing: scored.missing,
+    unknown: scored.unknown,
+    rejected: scored.rejected,
+  }, null, 2) + '\n');
+  return seal(baseSummary({
     ok: true,
     code: 'ok',
     runId: runId,
-    appleResult: appleResult,
     hypothesisCount: accepted.count,
     rates: scored.byLang,
     hypotheses: null,
@@ -321,39 +412,7 @@ async function runSaFile(opts) {
       'score.js': sha256File(path.join(__dirname, 'score.js')),
     },
     fleursRevision: set.attribution && set.attribution.revision ? set.attribution.revision : null,
-  });
-  writeSummary(runDir, summary);
-  fs.writeFileSync(path.join(runDir, 'score.json'), JSON.stringify({
-    ok: true,
-    productMetric: false,
-    sameProductProcess: false,
-    endToEnd: false,
-    leaderboard: false,
-    exploratory: true,
-    rates: scored.byLang,
-    missing: scored.missing,
-    unknown: scored.unknown,
-    rejected: scored.rejected,
-  }, null, 2) + '\n');
-  const names = ['run-summary.json', 'score.json', 'hypotheses.json', 'child-stdout.txt', 'child-stderr.txt'];
-  const allowed = archiveAllowed(names);
-  if (!allowed.ok) return fail(allowed.code, { swiftExit: 0 });
-  const lines = names.map((name) => sha256File(path.join(runDir, name)) + '  ' + name);
-  fs.writeFileSync(path.join(runDir, 'MANIFEST.sha256'), lines.join('\n') + '\n');
-  names.push('MANIFEST.sha256');
-  try {
-    if (opts.writeArchive) opts.writeArchive(runDir, names);
-    else defaultArchive(runDir, names);
-  } catch (_) {
-    try { fs.unlinkSync(path.join(runDir, 'score.json')); } catch (__) {}
-    const broken = baseSummary({
-      ok: false, code: 'evidence-pack-failed', runId: runId, appleResult: appleResult,
-      swiftExit: 0, timedOut: false, signal: null,
-    });
-    writeSummary(runDir, broken);
-    return Object.assign(broken, { processExit: 2, runDir: runDir });
-  }
-  return Object.assign(summary, { processExit: 0, runDir: runDir });
+  }));
 }
 
 function main(argv) {
@@ -402,7 +461,7 @@ function main(argv) {
     outRoot: outRoot,
     platform: process.platform,
     swiftc: which,
-    appleResult: process.platform === 'darwin' && !!which,
+    compiler: 'swiftc',
     compile: async (outBin) => watchChild(spawn, which, [
       '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
       SWIFT, '-o', outBin,
@@ -432,6 +491,7 @@ if (require.main === module) {
 }
 
 module.exports = {
-  runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText, preflight, runSaFile,
+  runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText, cacheRelative,
+  preflight, runSaFile,
   COMPILE_MS, PROCESS_MS, ITEM_MS,
 };

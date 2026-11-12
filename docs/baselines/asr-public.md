@@ -177,7 +177,7 @@ t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令�
 
 评分口径没有改。分母与冻结集第 3 字段经现有 `enTokens` / `zhChars` 后的长度一致，所以没有重算，也没有按假设去改参考。英文这 8 句的参考用单词 two；`Two` 与 `two` 是同一个词，数字 `2` 不是，规则不把 `2` 改写成 two。中文 CER 去掉空白、标点和符号，保留汉字、拉丁字母和数字，参考和假设走同一个函数。`cmn_hans_cn/1663` 的计分参考长 63，其中 42 个汉字、21 个拉丁字母（去掉空格后是 `cochamóvalleyyosemite`）。原始字段有括号，计分字段没有括号，但两边去掉标点后都是 63，括号不是多出来的长度。26/63 是中文 33 个错误里的大头。音频没有核对这串拉丁是不是被念出来了。参考保持冻结，分数不优化。这不是评分器分叉，所以不因此阻断这次冻结口径下的记录；它仍然只是探索性结果，不是排行榜比较。
 
-一条命令完成预检、编译、资源、16 句、评分和证据包。已有目录不会被覆盖。失败也写 `run-summary.json`，`rates` 为 null。坑和边界在 [asr-file-pits.md](asr-file-pits.md)。
+一条命令完成预检、编译、资源、16 句、评分和证据包。`--audio-cache` 是已经含 `en_us/` 和 `cmn_hans_cn/` 的目录。冻结字段里的仓库前缀会在运行时去掉，JSON 本身不改。已有目录不会被覆盖。预检失败也写证据包，`rates` 为 null，并且 `appleResult` 为 false。坑和边界在 [asr-file-pits.md](asr-file-pits.md)。
 
 ```bash
 node eval/baselines/asr/run-sa-file.js --audio-cache eval/baselines/asr/.cache/audio --out-root eval/baselines/asr/runs

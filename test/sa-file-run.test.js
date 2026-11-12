@@ -8,7 +8,7 @@ const { spawn, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
 const {
   runDirName, itemWatchDecision, archiveAllowed, exactHypotheses, redactText,
-  preflight, runSaFile,
+  preflight, runSaFile, cacheRelative,
 } = require('../eval/baselines/asr/run-sa-file.js');
 const { buildBundle } = require('../eval/baselines/asr/pack-sa-file.js');
 
@@ -108,6 +108,34 @@ describe('sa file run — one entry, no reused score', () => {
     eq(checked.code, 'need-apple-speechanalyzer');
     eq(checked.appleResult, false);
     eq(checked.rates, null);
+  });
+
+  test('frozen audioCache resolves under the cache root, not inside itself', () => {
+    const fleurs = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/fleurs-public-v1.json'), 'utf8'));
+    const first = fleurs.items[0];
+    eq(first.id, 'en_us/1660/12742373433258665797.wav');
+    eq(first.audioCache, 'eval/baselines/asr/.cache/audio/en_us/12742373433258665797.wav');
+    eq(cacheRelative(first.audioCache), 'en_us/12742373433258665797.wav');
+    eq(cacheRelative('eval/baselines/asr/.cache/audio/../../../tmp/x.wav'), null);
+    eq(cacheRelative('/tmp/en_us/x.wav'), null);
+    eq(cacheRelative('en_us/../cmn_hans_cn/x.wav'), null);
+    const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-cache-'));
+    const real = path.join(cache, 'en_us', '12742373433258665797.wav');
+    fs.mkdirSync(path.dirname(real), { recursive: true });
+    fs.writeFileSync(real, Buffer.from('one-real-wav'));
+    const nested = path.join(cache, 'eval/baselines/asr/.cache/audio/en_us/12742373433258665797.wav');
+    fs.mkdirSync(path.dirname(nested), { recursive: true });
+    fs.writeFileSync(nested, Buffer.from('wrong-nest'));
+    const set = JSON.parse(JSON.stringify(fleurs));
+    set.items.forEach((item) => { item.audioSha256 = 'f'.repeat(64); });
+    const crypto = require('crypto');
+    set.items[0].audioSha256 = crypto.createHash('sha256').update(Buffer.from('one-real-wav')).digest('hex');
+    const hit = preflight({
+      platform: 'darwin', set: set, audioCache: cache, swiftc: process.execPath,
+    });
+    eq(hit.code, 'missing-audio');
+    eq(hit.id, set.items[1].id);
+    eq(hit.appleResult, false);
   });
 
   test('a checksum mismatch stops before compile', () => {
@@ -313,6 +341,102 @@ describe('sa file run — one entry, no reused score', () => {
     eq(fs.existsSync(path.join(first.runDir, 'hypotheses.json')), true);
     const again = JSON.parse(fs.readFileSync(path.join(first.runDir, 'run-summary.json'), 'utf8'));
     eq(again.hypothesisCount, 16);
+  });
+
+  test('preflight failure still archives evidence and is not an Apple result', async () => {
+    const cache = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-empty-'));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-empty-out-'));
+    const missing = await runSaFile({
+      setPath: path.join(ROOT, 'eval/baselines/asr/fleurs-public-v1.json'),
+      audioCache: cache,
+      outRoot: root,
+      now: 11,
+      nonce: 'missing1',
+      platform: 'darwin',
+      swiftc: process.execPath,
+      appleResult: true,
+    });
+    eq(missing.processExit, 2);
+    eq(missing.code, 'missing-audio');
+    eq(missing.id, 'en_us/1660/12742373433258665797.wav');
+    eq(missing.appleResult, false);
+    eq(missing.platformEligible, true);
+    eq(missing.appleExecutionStarted, false);
+    eq(missing.recognitionCompleted, false);
+    eq(missing.rates, null);
+    const summary = JSON.parse(fs.readFileSync(path.join(missing.runDir, 'run-summary.json'), 'utf8'));
+    eq(summary.appleResult, false);
+    eq(summary.rates, null);
+    eq(fs.existsSync(path.join(missing.runDir, 'MANIFEST.sha256')), true);
+    eq(fs.existsSync(path.join(missing.runDir, 'evidence.tar.gz')), true);
+    const text = fs.readFileSync(path.join(missing.runDir, 'run-summary.json'), 'utf8');
+    ok(text.includes('/Users/') === false);
+    ok(text.includes(cache) === false);
+    const listed = spawnSync('tar', ['-tzf', path.join(missing.runDir, 'evidence.tar.gz')], { encoding: 'utf8' });
+    ok(listed.stdout.includes('MANIFEST.sha256'));
+    ok(listed.stdout.includes('.wav') === false);
+    ok(listed.stdout.includes('sa-file-bin') === false);
+    const bad = JSON.parse(fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/fleurs-public-v1.json'), 'utf8'));
+    const audio = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-sum2-'));
+    for (const item of bad.items) {
+      const rel = cacheRelative(item.audioCache);
+      const full = path.join(audio, rel);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, Buffer.from('bytes-' + item.id));
+    }
+    bad.items[0].audioSha256 = '0'.repeat(64);
+    const setPath = path.join(audio, 'set.json');
+    fs.writeFileSync(setPath, JSON.stringify(bad));
+    const summed = await runSaFile({
+      setPath: setPath,
+      audioCache: audio,
+      outRoot: root,
+      now: 12,
+      nonce: 'sumfail1',
+      platform: 'darwin',
+      swiftc: process.execPath,
+      appleResult: true,
+    });
+    eq(summed.code, 'checksum-mismatch');
+    eq(summed.appleResult, false);
+    eq(summed.rates, null);
+    eq(fs.existsSync(path.join(summed.runDir, 'evidence.tar.gz')), true);
+    eq(fs.existsSync(path.join(summed.runDir, 'MANIFEST.sha256')), true);
+  });
+
+  test('an archive failure does not leave a success summary', async () => {
+    const set = tinySet();
+    const audio = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-pack2-'));
+    writeAudio(audio, set);
+    const setPath = path.join(audio, 'set.json');
+    fs.writeFileSync(setPath, JSON.stringify(set));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sa-pack2-out-'));
+    let calls = 0;
+    const packed = await runSaFile({
+      setPath: setPath,
+      audioCache: audio,
+      outRoot: root,
+      now: 13,
+      nonce: 'packloop',
+      platform: 'darwin',
+      swiftc: process.execPath,
+      appleResult: true,
+      compile: (outBin) => {
+        fs.writeFileSync(outBin, '#!/usr/bin/env node\n' + successBin() + '\n', { mode: 0o755 });
+        return { code: 0, signal: null, cap: null };
+      },
+      writeArchive: () => { calls += 1; throw new Error('disk full'); },
+    });
+    eq(packed.processExit, 2);
+    eq(packed.ok, false);
+    eq(packed.code, 'evidence-pack-failed');
+    eq(packed.rates, null);
+    eq(packed.appleResult, false);
+    ok(calls <= 2 && calls >= 1);
+    const summary = JSON.parse(fs.readFileSync(path.join(packed.runDir, 'run-summary.json'), 'utf8'));
+    eq(summary.ok, false);
+    eq(summary.rates, null);
+    eq(fs.existsSync(path.join(packed.runDir, 'score.json')), false);
   });
 
   test('compile failure and an evidence pack failure are not success', async () => {
