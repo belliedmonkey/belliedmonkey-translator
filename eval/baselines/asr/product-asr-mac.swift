@@ -118,6 +118,15 @@ enum FileASR {
         do {
             let data = try Data(contentsOf: setURL)
             let set = try JSONDecoder().decode(SetFile.self, from: data)
+            if diagnostic && args.contains("--diagnostic-prepare-assets") {
+                let sentenceId = "en_us/1660/12742373433258665797.wav"
+                guard diagnosticPath == "apple-file", let item = set.items.first(where: { $0.id == sentenceId }) else {
+                    fputs("{\"ok\":false,\"code\":\"prepare-assets-requires-apple-file\",\"hypotheses\":null,\"rates\":null,\"productMetric\":false}\n", stderr)
+                    return 2
+                }
+                try? FileManager.default.removeItem(at: outURL)
+                return await prepareAndRecognizeOfficial(item: item, root: root, statusURL: statusURL, args: args)
+            }
             let chosen = diagnostic ? Array(set.items.prefix(1)) : set.items
             let locales = try assetLocales(SetFile(items: chosen))
             try await prepareAssets(locales: locales, install: install, statusURL: statusURL)
@@ -679,6 +688,144 @@ enum FileASR {
             paths.append(official)
         }
         writeDiagnostic(statusURL, item: item, paths: paths)
+    }
+
+    static func writePhase(_ statusURL: URL?, _ phase: String) {
+        guard let statusURL else { return }
+        let url = statusURL.deletingLastPathComponent().appendingPathComponent("diagnostic-phase.json")
+        let body: [String: Any] = ["phase": phase]
+        guard let data = try? JSONSerialization.data(withJSONObject: body) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
+    static func argValue(_ args: [String], _ flag: String) -> String {
+        guard let idx = args.firstIndex(of: flag), idx + 1 < args.count else { return "" }
+        return args[idx + 1]
+    }
+
+    // Same SpeechTranscriber instance for status, the one install request, and analyzeSequence.
+    // Node kills this process. There is no in-process task-group deadline.
+    static func prepareAndRecognizeOfficial(item: Item, root: URL, statusURL: URL?, args: [String]) async -> Int32 {
+        let locale = locale(for: item.config)
+        let speech = speechModule(locale)
+        var row: [String: Any] = [
+            "feed": "apple-analyzeSequence-file",
+            "notAProductScore": true,
+            "notAFullSetScore": true,
+            "sameProductProcess": false,
+            "endToEnd": false,
+            "productMetric": false,
+            "hypotheses": NSNull(),
+            "rates": NSNull(),
+            "completeSet": false,
+            "success": false,
+            "downloadBytes": "unknown",
+            "permissionPrompt": "unknown",
+            "module": [
+                "constructedBy": "speechModule",
+                "locale": locale.identifier(.bcp47),
+                "transcriptionOptions": "[]",
+                "reportingOptions": "volatileResults,fastResults,alternativeTranscriptions",
+                "attributeOptions": "audioTimeRange,transcriptionConfidence",
+                "preset": NSNull(),
+            ],
+            "sourceSha256": argValue(args, "--source-sha256"),
+            "runtimeKind": argValue(args, "--runtime-kind"),
+            "resultTaskStarted": false,
+            "resultEventsReceived": 0,
+            "finalizeReturned": false,
+        ]
+        func publish() { writeDiagnostic(statusURL, item: item, paths: [row]) }
+        guard locale.identifier(.bcp47) == "en-US" else {
+            row["code"] = "unsupported-locale"
+            publish()
+            return 2
+        }
+        writePhase(statusURL, "prepare-before")
+        let before = await AssetInventory.status(forModules: [speech])
+        row["statusBefore"] = statusName(before)
+        publish()
+        if before == .installed {
+            row["installRequest"] = "not-called"
+        } else if before == .supported {
+            do {
+                if let request = try await AssetInventory.assetInstallationRequest(supporting: [speech]) {
+                    row["installRequest"] = "downloadAndInstall"
+                    try await request.downloadAndInstall()
+                } else {
+                    row["installRequest"] = "nil"
+                }
+            } catch {
+                row["code"] = "speech-assets-not-installed"
+                row["error"] = redact(String(describing: error))
+                publish()
+                return 2
+            }
+            let afterRequest = await AssetInventory.status(forModules: [speech])
+            row["statusAfterRequest"] = statusName(afterRequest)
+            if afterRequest != .installed {
+                row["code"] = row["installRequest"] as? String == "nil" ? "nil-request-not-installed" : "speech-assets-not-installed"
+                publish()
+                return 2
+            }
+        } else {
+            row["code"] = "speech-assets-not-installed"
+            row["status"] = statusName(before)
+            publish()
+            return 2
+        }
+        let afterPrepare = await AssetInventory.status(forModules: [speech])
+        row["statusAfterPrepare"] = statusName(afterPrepare)
+        writePhase(statusURL, "prepare-after")
+        publish()
+        guard afterPrepare == .installed else {
+            row["code"] = "speech-assets-not-installed"
+            publish()
+            return 2
+        }
+        writePhase(statusURL, "recognize-before")
+        let beforeRecognize = await AssetInventory.status(forModules: [speech])
+        row["statusBeforeRecognize"] = statusName(beforeRecognize)
+        publish()
+        do {
+            let file = try AVAudioFile(forReading: URL(fileURLWithPath: item.audioCache, relativeTo: root))
+            row["sourceFrames"] = file.length
+            row["sourceSampleRate"] = file.processingFormat.sampleRate
+            let counter = FeedTrace()
+            counter.resultTaskStarted = true
+            row["resultTaskStarted"] = true
+            let analyzer = SpeechAnalyzer(modules: [speech])
+            async let pending: String = {
+                var last = ""
+                for try await result in speech.results {
+                    counter.bumpResult(endSeconds: result.range.end.seconds)
+                    if result.isFinal { last = String(result.text.characters) }
+                }
+                return last
+            }()
+            if let lastSample = try await analyzer.analyzeSequence(from: file) {
+                row["lastSampleSeconds"] = lastSample.seconds
+                try await analyzer.finalizeAndFinish(through: lastSample)
+                row["finalizeReturned"] = true
+            } else {
+                await analyzer.cancelAndFinishNow()
+                row["code"] = "no-last-sample"
+                row["finalizeReturned"] = false
+            }
+            row["diagnosticText"] = try await pending
+            row["resultEventsReceived"] = counter.resultEventsReceived
+            if let end = counter.lastResultEndSeconds { row["lastResultEndSeconds"] = end }
+        } catch {
+            row["error"] = redact(String(describing: error))
+            publish()
+            writePhase(statusURL, "done")
+            return 2
+        }
+        let atEnd = await AssetInventory.status(forModules: [speech])
+        row["statusAtEnd"] = statusName(atEnd)
+        publish()
+        writePhase(statusURL, "done")
+        return row["finalizeReturned"] as? Bool == true ? 0 : 2
     }
 
     // A task group waits for a cancelled child. finalize(through:) does not

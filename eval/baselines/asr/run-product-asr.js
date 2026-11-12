@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 const { wavInfo } = require('./wav-info.js');
 
 const DEFAULT_SET = path.join(__dirname, 'fleurs-public-v1.json');
@@ -197,6 +197,82 @@ function diagnosticPlan(input) {
     compileCapMs: 90 * 1000,
     feeds: selected ? [selected] : [],
   };
+}
+
+function diagnosticInvocation(input) {
+  const prepare = input.prepareAssets === true;
+  const first = input.diagnosticFirst === true;
+  const pathName = input.diagnosticPath || '';
+  const base = {
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    sameProductProcess: false,
+    endToEnd: false,
+  };
+  if (prepare && !(first && pathName === 'apple-file')) {
+    return Object.assign(base, {
+      ok: false,
+      code: 'prepare-assets-requires-apple-file',
+      processExit: 2,
+      prepare: false,
+      sameProcess: false,
+    });
+  }
+  if (first && pathName !== 'apple-file' && pathName !== 'manual' && pathName !== 'both') {
+    return Object.assign(base, {
+      ok: false,
+      code: 'need-diagnostic-path',
+      processExit: 2,
+      prepare: false,
+      sameProcess: false,
+    });
+  }
+  return Object.assign(base, {
+    ok: true,
+    code: 'ok',
+    processExit: 0,
+    prepare: prepare,
+    sameProcess: prepare,
+    path: pathName,
+  });
+}
+
+function interpretSupervisedExit(result) {
+  const signal = result.signal || null;
+  const killedByCap = result.cap != null || signal === 'SIGTERM';
+  const code = result.code == null ? null : result.code;
+  const swiftExit = killedByCap ? null : code;
+  const failed = killedByCap || swiftExit !== 0;
+  return {
+    ok: !failed,
+    path: 'apple-analyzeSequence-file',
+    phase: result.phase || (killedByCap ? 'killed' : 'exited'),
+    timedOut: killedByCap,
+    signal: signal,
+    swiftExit: swiftExit,
+    processExit: failed ? 2 : 0,
+    hypotheses: null,
+    rates: null,
+    productMetric: false,
+    notAProductScore: true,
+    notAFullSetScore: true,
+    completeSet: false,
+    success: false,
+    sameProductProcess: false,
+    endToEnd: false,
+  };
+}
+
+function stageKillDecision(state) {
+  if (state.now - state.started >= state.processCapMs) return 'process-cap';
+  if ((state.phase === 'prepare-before' || state.phase === 'prepare-after') && state.now - state.phaseAt >= state.prepareCapMs) {
+    return 'prepare-cap';
+  }
+  if (state.phase === 'recognize-before' && state.now - state.phaseAt >= state.recognizeCapMs) {
+    return 'recognize-cap';
+  }
+  return null;
 }
 
 function diagnosticProcesses(input) {
@@ -412,19 +488,72 @@ function macProductVersion() {
   }
 }
 
-function main(argv) {
+function superviseChild(bin, args, opts) {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, { stdio: 'inherit' });
+    const started = Date.now();
+    const grace = opts.killGraceMs == null ? 5000 : opts.killGraceMs;
+    let phase = 'start';
+    let phaseAt = started;
+    let cap = null;
+    let settled = false;
+    let killTimer = null;
+    function finish(payload) {
+      if (settled) return;
+      settled = true;
+      clearInterval(timer);
+      if (killTimer) clearTimeout(killTimer);
+      resolve(payload);
+    }
+    const timer = setInterval(() => {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(opts.phaseFile, 'utf8'));
+        if (parsed.phase && parsed.phase !== phase) {
+          phase = parsed.phase;
+          phaseAt = Date.now();
+        }
+      } catch (_) {}
+      const reason = stageKillDecision({
+        started: started,
+        phase: phase,
+        phaseAt: phaseAt,
+        now: Date.now(),
+        processCapMs: opts.processCapMs,
+        prepareCapMs: opts.prepareCapMs,
+        recognizeCapMs: opts.recognizeCapMs,
+      });
+      if (reason && !cap) {
+        cap = reason;
+        child.kill('SIGTERM');
+        killTimer = setTimeout(() => {
+          if (!settled) child.kill('SIGKILL');
+        }, grace);
+      }
+    }, 200);
+    child.on('error', () => {
+      finish({ code: null, signal: null, cap: cap, phase: 'spawn-error' });
+    });
+    child.on('exit', (code, signal) => {
+      finish({ code: code, signal: signal, cap: cap, phase: phase });
+    });
+  });
+}
+
+async function main(argv) {
   const args = argv.slice(2);
   let setPath = DEFAULT_SET;
   let outDir = '';
   let installAssets = false;
   let diagnosticFirst = false;
   let diagnosticPath = '';
+  let prepareAssets = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--set') setPath = args[++i];
     else if (args[i] === '--out-dir') outDir = args[++i];
     else if (args[i] === '--install-assets') installAssets = true;
     else if (args[i] === '--diagnostic-first') diagnosticFirst = true;
     else if (args[i] === '--diagnostic-path') diagnosticPath = args[++i];
+    else if (args[i] === '--diagnostic-prepare-assets') prepareAssets = true;
     else {
       console.error('unknown arg ' + args[i]);
       process.exit(1);
@@ -471,6 +600,74 @@ function main(argv) {
     note: 'sa arm file feed only. Not the intl-Mac Chinese default e1_b1 arm and not an end-to-end result.',
   };
   fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+  const invocation = diagnosticInvocation({
+    prepareAssets: prepareAssets,
+    diagnosticFirst: diagnosticFirst,
+    diagnosticPath: diagnosticPath,
+  });
+  if (!invocation.ok) {
+    meta.code = invocation.code;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.success = false;
+    meta.swiftExit = null;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    process.exit(invocation.processExit);
+  }
+  if (prepareAssets) {
+    const bin = path.join(dest, 'diag-sa');
+    const sourceSha = crypto.createHash('sha256').update(fs.readFileSync(HELPER)).digest('hex');
+    const experimentStart = Date.now();
+    try {
+      execFileSync('swiftc', [
+        '-framework', 'Speech', '-framework', 'AVFoundation', '-framework', 'CoreMedia',
+        HELPER, '-o', bin,
+      ], { stdio: 'inherit', timeout: 90 * 1000 });
+    } catch (err) {
+      const rec = pathTimeoutRecord(err, { feed: 'compile', resultEventsReceived: 0 });
+      rec.phase = 'compile';
+      if (rec.timedOut) rec.code = 'compile-timeout';
+      const agg = diagnosticAggregate([rec]);
+      meta.paths = agg.paths;
+      meta.hypotheses = null;
+      meta.rates = null;
+      meta.timedOut = agg.timedOut;
+      meta.signal = rec.signal;
+      meta.swiftExit = null;
+      meta.success = false;
+      fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+      process.exit(agg.processExit);
+    }
+    const elapsed = Date.now() - experimentStart;
+    const processCapMs = Math.min(180 * 1000, (4 * 60 * 1000) - elapsed);
+    const watched = await superviseChild(bin, [
+      '--set', setPath, '--out', hypPath,
+      '--status-out', path.join(dest, 'asset-status.json'),
+      '--diagnostic-first', '--diagnostic-path', 'apple-file', '--diagnostic-prepare-assets',
+      '--source-sha256', sourceSha, '--runtime-kind', 'compiled-binary',
+    ], {
+      phaseFile: path.join(dest, 'diagnostic-phase.json'),
+      processCapMs: processCapMs,
+      prepareCapMs: 120 * 1000,
+      recognizeCapMs: 45 * 1000,
+    });
+    const view = interpretSupervisedExit(watched);
+    const agg = diagnosticAggregate([view]);
+    meta.paths = agg.paths;
+    meta.hypotheses = null;
+    meta.rates = null;
+    meta.completeSet = false;
+    meta.notAFullSetScore = true;
+    meta.notAProductScore = true;
+    meta.timedOut = agg.timedOut;
+    meta.signal = view.signal;
+    meta.swiftExit = null;
+    meta.success = false;
+    meta.cap = watched.cap;
+    fs.writeFileSync(metaPath, JSON.stringify(meta, null, 2) + '\n');
+    try { fs.unlinkSync(hypPath); } catch (_) {}
+    process.exit(agg.processExit);
+  }
   if (diagnosticFirst) {
     const specs = diagnosticProcesses({ diagnosticPath: diagnosticPath });
     if (!specs.ok) {
@@ -581,4 +778,5 @@ module.exports = {
   planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
   pcmReadAction, readThrownAction, converterOutputAction, childFailure,
   diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate,
+  diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild,
 };

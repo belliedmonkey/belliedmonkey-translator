@@ -4,9 +4,9 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction, childFailure, diagnosticPlan, coverageReport, diagnosticProcesses, pathTimeoutRecord, diagnosticAggregate, diagnosticInvocation, interpretSupervisedExit, stageKillDecision, superviseChild } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -264,6 +264,108 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(one.compileCapMs + one.runCapMs <= 3 * 60 * 1000, true);
   });
 
+  test('prepare-assets is legal only with the official one-clip path', () => {
+    const bad = diagnosticInvocation({
+      prepareAssets: true, diagnosticFirst: false, diagnosticPath: '',
+    });
+    eq(bad.ok, false);
+    eq(bad.processExit, 2);
+    eq(bad.hypotheses, null);
+    const alsoBad = diagnosticInvocation({
+      prepareAssets: true, diagnosticFirst: true, diagnosticPath: 'manual',
+    });
+    eq(alsoBad.ok, false);
+    const okCall = diagnosticInvocation({
+      prepareAssets: true, diagnosticFirst: true, diagnosticPath: 'apple-file',
+    });
+    eq(okCall.ok, true);
+    eq(okCall.prepare, true);
+    eq(okCall.sameProcess, true);
+    const installOnly = diagnosticInvocation({
+      prepareAssets: false, installAssets: true, diagnosticFirst: false, diagnosticPath: '',
+    });
+    eq(installOnly.ok, true);
+    eq(installOnly.prepare, false);
+  });
+
+  test('a fake child exit 2 is not wrapped as success, and exit 0 is not a product score', () => {
+    let failed = null;
+    try {
+      execFileSync(process.execPath, ['-e', 'process.exit(2)'], { stdio: 'pipe' });
+    } catch (err) {
+      failed = err;
+    }
+    eq(failed.status, 2);
+    const prepareFail = interpretSupervisedExit({
+      code: failed.status, signal: failed.signal, cap: null, phase: 'prepare',
+    });
+    eq(prepareFail.processExit, 2);
+    eq(prepareFail.swiftExit, 2);
+    eq(prepareFail.success, false);
+    eq(prepareFail.hypotheses, null);
+    eq(prepareFail.rates, null);
+    const agg = diagnosticAggregate([prepareFail]);
+    eq(agg.processExit, 2);
+    eq(agg.swiftExit, null);
+    eq(agg.paths[0].swiftExit, 2);
+    const clean = spawnSync(process.execPath, ['-e', 'process.exit(0)'], { encoding: 'utf8' });
+    eq(clean.status, 0);
+    const done = interpretSupervisedExit({ code: clean.status, signal: clean.signal, cap: null, phase: 'done' });
+    eq(done.processExit, 0);
+    eq(done.hypotheses, null);
+    eq(done.rates, null);
+    eq(done.notAProductScore, true);
+    eq(done.notAFullSetScore, true);
+    eq(done.success, false);
+    eq(diagnosticAggregate([done]).swiftExit, null);
+  });
+
+  test('a child that ignores SIGTERM is killed and is not a swift exit or a score', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mt-asr-cap-'));
+    const phaseFile = path.join(dir, 'diagnostic-phase.json');
+    fs.writeFileSync(phaseFile, '{"phase":"prepare-before"}\n');
+    const watched = await superviseChild(process.execPath, [
+      '-e', 'process.on("SIGTERM", function () {}); setInterval(function () {}, 1000);',
+    ], {
+      phaseFile: phaseFile,
+      processCapMs: 5000,
+      prepareCapMs: 100,
+      recognizeCapMs: 45000,
+      killGraceMs: 300,
+    });
+    eq(watched.signal, 'SIGKILL');
+    eq(watched.cap, 'prepare-cap');
+    const view = interpretSupervisedExit(watched);
+    eq(view.swiftExit, null);
+    eq(view.timedOut, true);
+    eq(view.processExit, 2);
+    eq(view.hypotheses, null);
+    eq(view.rates, null);
+    eq(view.success, false);
+    eq(diagnosticAggregate([view]).processExit, 2);
+    eq(diagnosticAggregate([view]).swiftExit, null);
+  });
+
+  test('stage caps are poll decisions inside one process, not a task-group timeout', () => {
+    const started = 0;
+    eq(stageKillDecision({
+      started: started, phase: 'prepare-before', phaseAt: started,
+      now: 120000, processCapMs: 180000, prepareCapMs: 120000, recognizeCapMs: 45000,
+    }), 'prepare-cap');
+    eq(stageKillDecision({
+      started: started, phase: 'recognize-before', phaseAt: 1000,
+      now: 46000, processCapMs: 180000, prepareCapMs: 120000, recognizeCapMs: 45000,
+    }), 'recognize-cap');
+    eq(stageKillDecision({
+      started: started, phase: 'prepare-before', phaseAt: started,
+      now: 180000, processCapMs: 180000, prepareCapMs: 120000, recognizeCapMs: 45000,
+    }), 'process-cap');
+    eq(stageKillDecision({
+      started: started, phase: 'prepare-before', phaseAt: started,
+      now: 1000, processCapMs: 180000, prepareCapMs: 120000, recognizeCapMs: 45000,
+    }), null);
+  });
+
   test('a child that exits 2 makes the wrapper non-zero without a fake swiftExit 0', () => {
     let caught = null;
     try {
@@ -388,6 +490,27 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(src.includes('result-consume'));
     ok(src.includes('swiftType'));
     ok(!src.includes('classify(error, locale: "", attempts: 0)'));
+  });
+
+  test('same-process prepare stays on one module and has no task-group deadline', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    const start = src.indexOf('static func prepareAndRecognizeOfficial');
+    const end = src.indexOf('static func officialFileProbe');
+    ok(start > 0 && end > start);
+    const body = src.slice(start, end);
+    eq(body.split('speechModule(').length - 1, 1);
+    ok(body.includes('downloadAndInstall()'));
+    ok(body.includes('analyzeSequence(from:'));
+    ok(body.includes('nil-request-not-installed'));
+    ok(body.includes('"downloadBytes": "unknown"'));
+    ok(src.includes('en_us/1660/12742373433258665797.wav'));
+    ok(!body.includes('withThrowingTaskGroup'));
+    ok(!body.includes('AssetInventory.release'));
+    ok(!body.includes('AssetInventory.reserve'));
+    const js = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/run-product-asr.js'), 'utf8');
+    ok(js.includes('--diagnostic-prepare-assets'));
+    ok(js.includes('function superviseChild'));
+    ok(js.includes('child.kill(\'SIGTERM\')'));
   });
 
   test('the Mac helper installs only through AssetInventory and only when asked', () => {

@@ -157,6 +157,10 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 Node 把子进程退出码 2 收成总退出 0，并把顶层 `swiftExit` 写成 0。子进程的 2 只留在 `paths[0]`。这是包装错误，不是 Swift 退出 0。
 
+t10u（15:14+08）要求换一次可证伪实验，不是重跑 15:08 的命令。选项 `--diagnostic-prepare-assets` 只在同时有 `--diagnostic-first` 和 `--diagnostic-path apple-file` 时合法。默认 16 句和单独的 `--install-assets` 不变。它只对公开英文首句 `en_us/1660/12742373433258665797.wav` 做一次 en-US 准备：状态已是 `installed` 就不下载；是 `supported` 就按官方 `assetInstallationRequest(supporting:)` 加一次 `downloadAndInstall()`。请求为 nil 时按官方含义不再下载，并立刻复查；复查仍不是 `installed` 就失败退出，不把 nil 或 `supported` 当成就绪。不调用 `release` / `reserve`，不碰其他语言。准备和 `analyzeSequence` 使用同一份编译出的 binary、同一个进程、同一个 `speechModule` 实例。`swiftc` 上限 90 秒。该进程的硬上限是 `min(180 秒, 4 分钟 − 编译用时)`。到点先发 `SIGTERM`；若 5 秒后进程还在，再发 `SIGKILL`。记录里的 `signal` 是实际结束进程的那个，`swiftExit` 为 null。阶段文件里的准备 120 秒、识别 45 秒是轮询杀掉，不是三套叠在一起的时钟；没有阶段文件时只剩进程硬上限。这一项还没有在 Mac 上跑。
+
+唯一假设：上述同进程序列可以返回。返回只证明这一次同进程能走完，不能证明 en-US 为什么从 `installed` 变成 `supported`。进程退出 0 仍不是产品分数，`hypotheses` 和 `rates` 为 null，`completeSet` 为 false。准备成功不是识别成功。若这次仍不能走完，就停：缺的证据是同实例上 `analyzeSequence` 有没有进入并返回；若停在准备，缺的是官方请求的真实 error，或 nil 之后的 status。
+
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 
 ## 这批不引入的来源
