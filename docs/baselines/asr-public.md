@@ -82,15 +82,27 @@ node eval/baselines/asr/fetch-fleurs.js --audio --record
 node eval/baselines/asr/run-product-asr.js
 ```
 
-它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。Darwin 且 `sw_vers` 主版本 ≥ 26（含已测机器上的 macOS 27.0）时，同一命令在给出 `--out-dir` 后才会尝试用 `swift` 编译并运行 `product-asr-mac.swift`。那个文件适配器只覆盖 SA 文件喂入，臂是 `sa`，不是国际版 Mac 中文默认的 `e1_b1`，也不是端到端。`swiftCompiledByPackager` 在这份源码里恒为 false。Mac 首次真实编译（macOS 27.0 build 26A428，Swift 6.4，node 26.10.0）失败在 `AVAudioConverter?` 未解包，尚未进入识别或系统权限，没有假设文件。随后的源码用 `guard let` 失败退出，不用 `!`。这里没有在 Mac 上重新编译，所以不能说编译已通过。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
+它先核对缓存 wav 的 SHA-256、WAV 头和采样数。不是 Darwin 时退出码 2，`hypotheses` 为 null。Darwin 且 `sw_vers` 主版本 ≥ 26 时，给出 `--out-dir` 才会尝试用 `swift` 编译并运行 `product-asr-mac.swift`。那个文件适配器只覆盖 SA 文件喂入，臂是 `sa`，不是国际版 Mac 中文默认的 `e1_b1`，也不是端到端。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
 
-在 Mac 上把输出只写到指定目录：
+可复现命令（输出目录自定，不写本机路径）：
 
 ```bash
-node eval/baselines/asr/run-product-asr.js --out-dir /path/to/asr-output
+node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 ```
 
-首次调用系统语音框架时，macOS 可能弹出语音识别权限或语言资源下载的原生提示。脚本不会代替用户点允许，也不会改 App 或系统配置。
+源文件 SHA-256（`516fae6e`）：`product-asr-mac.swift` 为 `e1f1ffd1d271e3c64d0edbc1232a8dbce62a1a9466bd372aa19290cf17417606`，`run-product-asr.js` 为 `77bef37427ad8a528b9b08375c95fc290fd4269909cfe69a0305d9f1642d9151`。
+
+### Mac 上的两次运行，到此停止
+
+脱敏记录在 [`eval/baselines/asr/mac-sa-file-attempts.json`](../../eval/baselines/asr/mac-sa-file-attempts.json)。没有本机家目录、用户名或设备标识，也没有假设文本。
+
+第一次（macOS 27.0 build 26A428，Swift 6.4，node 26.10.0）：Swift 编译失败。`product-asr-mac.swift` 当时第 134 行，`AVAudioConverter?` 必须解包才能调用 `convert`。没有进入识别，没有权限提示，没有假设文件。随后源码改为 `guard let`，nil 就抛错，不用 `!`。
+
+第二次（2026-11-12 13:26:32–13:26:34，Asia/Shanghai，macOS 27.0，Swift 6.4）：Swift 编译已通过。`node` 与 `swift` 退出码 2。stderr 为 `sa-file-failed`，detail 是 `speech assets not installed`。`checked` 为 16。假设文件不存在。metadata：`arm` 为 `sa`，`sameProductProcess` 为 false，`matchesIntlMacChineseDefaultArm` 为 false，`endToEnd` 为 false，`productMetric` 为 false，`hypotheses` 为 null。`swiftCompiledByPackager` 仍是 false，这只表示打包端没有预先编译，不表示这次 Mac 编译失败。
+
+当前阻塞是语音资源状态不是已安装。脚本对 `SpeechTranscriber` 查了 `AssetInventory.status`，不是 `.installed` 后又查了回落的 `DictationTranscriber`，仍不是 `.installed`，于是抛出 domain `product-asr`、code 1。这次抛错前没有请求安装语音资源，也没有出现权限提示。权限是否已授予是未知的，因为执行没有走到那一步。怎样安装这些资源没有在这里研究，本文不写谁才能安装。
+
+识别步骤停在这次失败。这份记录不授权第三次运行，也不授权下载系统语音资源。
 
 产品实施建议（不在本 PR 改 App）：给现有 `MTDeviceTranscriber` / `MTE1B1Transcriber` 加一条文件 PCM 入口，而不是再写一套识别器。
 

@@ -1,0 +1,60 @@
+{
+  "schema": "baseline-sa-file-attempts.v1",
+  "productMetric": false,
+  "endToEnd": false,
+  "arm": "sa",
+  "component": "apple-speech-analyzer-file",
+  "sameProductProcess": false,
+  "matchesIntlMacChineseDefaultArm": false,
+  "intlMacChineseDefaultArm": "e1_b1",
+  "hypotheses": null,
+  "command": "node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>",
+  "sources": {
+    "eval/baselines/asr/product-asr-mac.swift": "e1f1ffd1d271e3c64d0edbc1232a8dbce62a1a9466bd372aa19290cf17417606",
+    "eval/baselines/asr/run-product-asr.js": "77bef37427ad8a528b9b08375c95fc290fd4269909cfe69a0305d9f1642d9151",
+    "git": "516fae6e8cd5d9195bcd15ac0f63b3a007bcebb4"
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "os": "macOS 27.0",
+      "osBuild": "26A428",
+      "swift": "6.4",
+      "node": "26.10.0",
+      "compile": "failed",
+      "stage": "swift-compile",
+      "error": "value of optional type AVAudioConverter? must be unwrapped to refer to member convert",
+      "source": "eval/baselines/asr/product-asr-mac.swift",
+      "line": 134,
+      "recognitionReached": false,
+      "permissionPromptObserved": false,
+      "hypotheses": null
+    },
+    {
+      "n": 2,
+      "startedAt": "2026-11-12T13:26:32+08:00",
+      "endedAt": "2026-11-12T13:26:34+08:00",
+      "timezone": "Asia/Shanghai",
+      "os": "macOS 27.0",
+      "swift": "6.4",
+      "compile": "passed",
+      "nodeAndSwiftExit": 2,
+      "code": "sa-file-failed",
+      "detail": "speech assets not installed",
+      "checked": 16,
+      "hypothesesFile": false,
+      "assetInstallRequested": false,
+      "permissionPromptObserved": false,
+      "permissionState": "unknown-not-reached",
+      "blocker": "speech-assets-not-installed",
+      "swiftCompiledByPackager": false,
+      "arm": "sa",
+      "sameProductProcess": false,
+      "matchesIntlMacChineseDefaultArm": false,
+      "endToEnd": false,
+      "productMetric": false,
+      "hypotheses": null
+    }
+  ],
+  "stop": "Recognition stopped after two attempts. This record does not authorize another run or a system speech-asset download."
+}
