@@ -14,7 +14,7 @@
 | [forms/realtime.md](forms/realtime.md) | 实时听译、实时字幕各自的端到端协议 | 协议；待测 |
 | [forms/web.md](forms/web.md) | 网页文字，以及四种预制媒体路径 | 协议；待测 |
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
-| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结；16 条 wav 在忽略缓存里。macOS 27 上 en-US / zh-CN 已从 supported 装到 installed。随后一次识别失败，错误被误标成 asset-install-failed，阶段仍未知。没有假设、没有产品分数。端到端仍待测 |
+| [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结；16 条 wav 在忽略缓存里。macOS 27 上资源已安装。识别停在第一句的 convert：`AVAudioFile.read` 在文件结束后抛出 nilError。读循环已改到文件末尾停止。还没有假设、没有产品分数。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

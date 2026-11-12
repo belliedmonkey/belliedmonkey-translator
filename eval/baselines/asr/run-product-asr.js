@@ -146,6 +146,33 @@ function reportFailure(input) {
   };
 }
 
+function pcmReadAction(framePosition, length) {
+  if (framePosition >= length) return { action: 'end', callRead: false };
+  return { action: 'read', callRead: true };
+}
+
+function readThrownAction(error, framePosition, length) {
+  const atEnd = framePosition >= length;
+  const nilError = error
+    && error.domain === 'Foundation._GenericObjCError'
+    && error.code === 0
+    && error.description === 'nilError';
+  if (atEnd && nilError) return { action: 'end', hypotheses: null };
+  return { action: 'throw', hypotheses: null };
+}
+
+function converterOutputAction(status, hasNsError) {
+  if (status === 'endOfStream') return { action: 'end', throw: false, hypotheses: null };
+  if (status === 'inputRanDry') return { action: 'continue', throw: false, hypotheses: null };
+  if (status === 'haveData') return { action: 'yield', throw: false, hypotheses: null };
+  return {
+    action: 'throw',
+    throw: true,
+    useNsError: hasNsError === true,
+    hypotheses: null,
+  };
+}
+
 function classifyAssetError(err) {
   const attempts = err && err.attempts != null ? err.attempts : null;
   let code = 'asset-install-failed';
@@ -321,4 +348,7 @@ function main(argv) {
 
 if (require.main === module) main(process.argv);
 
-module.exports = { planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText };
+module.exports = {
+  planRun, macMajor, inspectItem, assetPlan, classifyAssetError, reportFailure, redactText,
+  pcmReadAction, readThrownAction, converterOutputAction,
+};

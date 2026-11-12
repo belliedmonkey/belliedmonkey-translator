@@ -6,7 +6,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { describe, test, eq, ok } = require('./harness');
-const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure } = require('../eval/baselines/asr/run-product-asr.js');
+const { planRun, macMajor, assetPlan, classifyAssetError, reportFailure, pcmReadAction, readThrownAction, converterOutputAction } = require('../eval/baselines/asr/run-product-asr.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -187,6 +187,42 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(report.stage, 'asset-status');
     eq(report.hypotheses, null);
     eq(report.rates, null);
+  });
+
+  test('a file read at the end does not throw nilError, and a mid-file nilError still throws', () => {
+    eq(pcmReadAction(170880, 170880).callRead, false);
+    eq(pcmReadAction(0, 170880).callRead, true);
+    eq(readThrownAction({
+      domain: 'Foundation._GenericObjCError',
+      code: 0,
+      description: 'nilError',
+    }, 170880, 170880).action, 'end');
+    eq(readThrownAction({
+      domain: 'Foundation._GenericObjCError',
+      code: 0,
+      description: 'nilError',
+    }, 4096, 170880).action, 'throw');
+    eq(readThrownAction({ domain: 'NSOSStatusErrorDomain', code: -50, description: 'param' }, 0, 170880).action, 'throw');
+  });
+
+  test('converter end statuses are not errors and a real convert error does not yield', () => {
+    eq(converterOutputAction('endOfStream', false).throw, false);
+    eq(converterOutputAction('inputRanDry', false).throw, false);
+    eq(converterOutputAction('haveData', false).action, 'yield');
+    const failed = converterOutputAction('error', true);
+    eq(failed.throw, true);
+    eq(failed.action, 'throw');
+    eq(failed.hypotheses, null);
+    eq(converterOutputAction('error', false).useNsError, false);
+  });
+
+  test('the Mac helper stops reading at the file end and checks converter status', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    ok(src.includes('file.framePosition >= file.length'));
+    ok(src.includes('Foundation._GenericObjCError'));
+    ok(src.includes('.endOfStream'));
+    ok(src.includes('.inputRanDry'));
+    ok(src.includes('.error'));
   });
 
   test('the Mac helper records the recognition stage and does not relabel it as an install', () => {

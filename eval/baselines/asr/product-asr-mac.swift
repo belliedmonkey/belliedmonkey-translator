@@ -266,6 +266,11 @@ enum FileASR {
         try? data.write(to: url, options: .atomic)
     }
 
+    static func isNilObjCError(_ error: Error) -> Bool {
+        let ns = error as NSError
+        return ns.domain == "Foundation._GenericObjCError" && ns.code == 0 && String(describing: error) == "nilError"
+    }
+
     static func redact(_ text: String) -> String {
         let pattern = "(?:/Users/|/home/|file://)\\S+"
         guard let re = try? NSRegularExpression(pattern: pattern) else { return text }
@@ -467,8 +472,16 @@ enum FileASR {
                 ])
             }
             var fed: Int64 = 0
-            while true {
-                try file.read(into: inBuf)
+            readLoop: while true {
+                // AVAudioFile.read returns NO without an NSError once framePosition
+                // reaches length. Swift then throws Foundation._GenericObjCError.nilError.
+                if file.framePosition >= file.length { break }
+                do {
+                    try file.read(into: inBuf)
+                } catch {
+                    if file.framePosition >= file.length && isNilObjCError(error) { break }
+                    throw error
+                }
                 if inBuf.frameLength == 0 { break }
                 let cap = AVAudioFrameCount(Double(inBuf.frameLength) * fmt.sampleRate / file.processingFormat.sampleRate) + 16
                 guard let out = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: cap) else {
@@ -478,16 +491,33 @@ enum FileASR {
                 }
                 var consumed = false
                 var err: NSError?
-                converter.convert(to: out, error: &err) { _, status in
+                let outputStatus = converter.convert(to: out, error: &err) { _, status in
                     if consumed { status.pointee = .noDataNow; return nil }
                     consumed = true
                     status.pointee = .haveData
                     return inBuf
                 }
                 if let err { throw err }
-                if out.frameLength == 0 { continue }
-                cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
-                fed += Int64(out.frameLength)
+                switch outputStatus {
+                case .error:
+                    throw NSError(domain: "product-asr", code: 6, userInfo: [
+                        NSLocalizedDescriptionKey: "audio convert status error without NSError",
+                    ])
+                case .endOfStream:
+                    if out.frameLength > 0 {
+                        cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
+                        fed += Int64(out.frameLength)
+                    }
+                    break readLoop
+                case .haveData, .inputRanDry:
+                    if out.frameLength == 0 { continue }
+                    cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
+                    fed += Int64(out.frameLength)
+                default:
+                    if out.frameLength == 0 { continue }
+                    cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
+                    fed += Int64(out.frameLength)
+                }
             }
             cont.finish()
             return fed

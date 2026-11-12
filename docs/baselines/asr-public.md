@@ -131,14 +131,15 @@ node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 
 13:43:01–13:43:02，不带 `--install-assets` 的识别退出码 2。两种语言的状态复查仍是 `installed`。没有假设文件，没有比率。stderr 是 `asset-install-failed`，`locale` 为空，`attempts` 为 0，`installFlag` 为 false，detail 为 `Foundation._GenericObjCError error 0`。没有看到阻塞用的权限提示。`permissionPrompt` 仍是 unknown，不能据此说已授权或被拒绝。
 
-已知：`run()` 的 `catch` 把不是 `AssetFail` 的错误交给 `classify`，而 `classify` 的默认码就是 `asset-install-failed`，并且把 locale 写成空。`error as NSError` 再只留 `localizedDescription`，原始 Swift 类型就丢了。这是这次能确定的代码错误。
+13:49:16–13:49:18 的诊断把上面那个归类问题排除了。编译通过，16 条 wav 门禁通过，两种语言安装前后都是 `installed`，`installRequested` 为 false。`recognition-error.json` 与 trace 一致：`recognition-failed`，阶段 `convert`，locale `en-US`，样本 `en_us/1660/12742373433258665797.wav`。错误链只有一项：`swiftType` 为 `Foundation._GenericObjCError`，domain 同名，code 0，description 为 `nilError`，userInfo 为空，没有 underlying。没有假设，没有比率。阶段停在 `convert`，所以不是 `finalize` 的 `CancellationError`。
 
-假设，还没有被这次日志证明：Apple 的 [finalize(through:)](https://developer.apple.com/documentation/speech/speechanalyzer/finalize%28through:%29) 写明，如果分析在给定时间之前提前结束，会抛 `CancellationError`。把这种非 `NSError` 再转成 `NSError` 时，描述可以变成 `Foundation._GenericObjCError error 0`。文件入口的官方读法是 [analyzeSequence(from:)](https://developer.apple.com/documentation/speech/speechanalyzer/analyzesequence%28from:%29)，读完文件后返回最后采样时间，再交给 `finalize(through:)` 或 [finalizeAndFinish(through:)](https://developer.apple.com/documentation/speech/speechanalyzer/finalizeandfinish%28through:%29)。当前脚本是自己转 PCM、喂 `AnalyzerInput`，再 `finalize(through:)`。日志没有阶段名，所以这次不把喂入路径换掉，也不把这个错误说成已经根治。
+这条样本是 16 kHz、单声道、32-bit float WAV，170880 个采样（10.68 秒）。[AVAudioFile.read(into:)](https://developer.apple.com/documentation/avfaudio/avaudiofile/read(into:)) 从 `framePosition` 顺序读，读到的帧数写在 `frameLength`。它的 Objective-C 实现在读不到帧时返回 `NO` 且不填 `NSError`。Swift 导入这类方法时，失败又没有错误对象，就会抛出 `Foundation._GenericObjCError.nilError`（[Handling Cocoa Errors in Swift](https://developer.apple.com/documentation/swift/handling-cocoa-errors-in-swift)）。旧循环在文件读完后再调用一次 `read`，正好落在这个点，而且包在 `convert` 阶段里。转换器的 `convert` 本身不 `throw`；`.endOfStream` 和 `.inputRanDry` 不是失败（[AVAudioConverter.OutputStatus](https://developer.apple.com/documentation/avfaudio/avaudioconverter/outputstatus)）。
 
-下一次只跑识别，不带 `--install-assets`，因此不会再次下载已安装资源。进程超时 15 分钟，没有重试循环。失败时 stderr 和 `recognition-error.json` 会带 `stage`、`locale`、`sampleId` 和错误链（`swiftType`、domain、code、脱敏后的 userInfo）。`/Users/`、`/home/`、`file://` 会换成 `<path>`。`hypotheses` 与 `rates` 仍是 null。权限字段保持 unknown。
+修复只停在读完之前不再调用 `read`。文件已经到头时的 `nilError` 视为正常结束。文件还没读完时的 `nilError` 或其他错误仍然抛出，不写假设。没有改成 `analyzeSequence(from:)`。`analyzer-finish` 还没有在这次日志里跑到，所以不能说识别已经成功。
+
+下一次只验证这次读循环修复，不带 `--install-assets`，不重新下载。进程超时 15 分钟，没有重试。`analyzer-finish` 尚未被这次日志执行到。失败时仍看 stderr 和 `recognition-error.json`。`hypotheses` 与 `rates` 仍是 null。权限字段保持 unknown。
 
 ```bash
-node eval/baselines/asr/run-product-asr.js --install-assets --out-dir <output-dir>
 node eval/baselines/asr/run-product-asr.js --out-dir <output-dir>
 ```
 
