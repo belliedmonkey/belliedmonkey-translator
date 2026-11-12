@@ -55,7 +55,9 @@
 
 ## 默认链路目录
 
-`eval/baselines/default-chain-catalog.json` 把已有的 16 句公开朗读标成 `sa` 文件 smoke，新集合的 `plannedTarget` 是 30，`actualCount` 是 0，真实失败是 0。`cmn_hans_cn/1663` 的人耳核对仍是 `blocked`，不能按假设改参考。离线命令是 `node eval/baselines/default-chain-check.js`。产品进程里的文件喂入仍要另一次批准，本文件不实现它。
+`eval/baselines/default-chain-catalog.json` 把已有的 16 句公开朗读标成 `sa` 文件 smoke，新集合的 `plannedTarget` 是 30，`actualCount` 是 0，真实失败是 0。这 30 仍是计划里的捐献名额，不是下面的公开候选。`cmn_hans_cn/1663` 的人耳核对仍是 `blocked`，不能按假设改参考。离线命令是 `node eval/baselines/default-chain-check.js`。产品进程里的文件喂入仍要另一次批准，本文件不实现它。
+
+同一 FLEURS 修订 `70bb2e84b976b7e960aa89f1c648e09c59f894dd` 上，冻结 16 句没用到的下一批 15 个共同句子编号在 `eval/baselines/asr/public-candidates-v1.json`。那是 30 条朗读文本、15 个编号对齐，来源许可不是人审核对。`humanVerifiedCount`、`approvedPlannedSetCount`、`realFailureCount` 都是 0。口音、噪声、混语、连续对话的计数是 0，状态是 unknown。音频只缓存了句子 1668 的中英两条 wav，不进 git。重跑命令是 `node eval/baselines/asr/fetch-public-candidates.js --offline`。
 
 ## 公开对照不是这份目录
 

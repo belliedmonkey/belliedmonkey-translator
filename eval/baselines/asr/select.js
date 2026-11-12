@@ -64,4 +64,43 @@ function selectFirst(rows, n) {
   return out;
 }
 
-module.exports = { N_PER_LANGUAGE, SELECTION_RULE, parseTsv, selectFirst };
+function selectDisjointPairs(enRows, zhRows, excludedIds, pairLimit) {
+  const limit = pairLimit == null ? 15 : pairLimit;
+  const excluded = new Set((excludedIds || []).map(String));
+  function index(rows) {
+    const map = new Map();
+    for (const row of selectFirst(rows, 1000000)) map.set(String(row.sentenceId), row);
+    return map;
+  }
+  const en = index(enRows);
+  const zh = index(zhRows);
+  const ids = [...en.keys()].filter((id) => zh.has(id) && !excluded.has(id));
+  ids.sort((a, b) => Number(a) - Number(b));
+  const pairs = [];
+  for (const id of ids) {
+    if (pairs.length >= limit) break;
+    pairs.push({ sentenceId: id, en: en.get(id), zh: zh.get(id) });
+  }
+  const items = [];
+  for (const pair of pairs) {
+    items.push(Object.assign({ lang: 'en', config: 'en_us' }, pair.en));
+    items.push(Object.assign({ lang: 'zh', config: 'cmn_hans_cn' }, pair.zh));
+  }
+  return {
+    pairs: pairs,
+    items: items,
+    alignment: 'shared-flores-sentence-id',
+    humanVerifiedCount: 0,
+    approvedPlannedSetCount: 0,
+    realFailureCount: 0,
+    buckets: {
+      readSpeech: { count: items.length, status: 'read-speech-only' },
+      accent: { count: 0, status: 'unknown' },
+      noise: { count: 0, status: 'unknown' },
+      codeSwitch: { count: 0, status: 'unknown' },
+      continuousDialogue: { count: 0, status: 'unknown' },
+    },
+  };
+}
+
+module.exports = { N_PER_LANGUAGE, SELECTION_RULE, parseTsv, selectFirst, selectDisjointPairs };

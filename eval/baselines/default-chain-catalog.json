@@ -7,5 +7,9 @@
   "plannedTarget": 30,
   "records": [],
   "realFailures": 0,
-  "zh1663AudioChecked": false
+  "zh1663AudioChecked": false,
+  "publicCandidates": {
+    "path": "eval/baselines/asr/public-candidates-v1.json",
+    "role": "public-candidate-intake"
+  }
 }

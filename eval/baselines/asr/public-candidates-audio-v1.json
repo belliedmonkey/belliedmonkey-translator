@@ -1,0 +1,33 @@
+{
+  "schema": "belliedmonkey.public-candidate-audio.v1",
+  "inGit": false,
+  "cache": "eval/baselines/asr/.cache/public-candidates",
+  "revision": "70bb2e84b976b7e960aa89f1c648e09c59f894dd",
+  "note": "Two readings of FLEURS sentence 1668, outside the frozen 16. Read speech only. Not accent, noise, code-switch, or dialogue. Not human-reviewed.",
+  "items": [
+    {
+      "sentenceId": "1668",
+      "config": "en_us",
+      "audioName": "12519810849995407480.wav",
+      "bytes": 852538,
+      "sha256": "d6ab97bb7e3232b60b61910d3ac7e1cf37acbcbfd062773b453c76217682f49e",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "samples": 213120,
+      "durationSeconds": 13.32
+    },
+    {
+      "sentenceId": "1668",
+      "config": "cmn_hans_cn",
+      "audioName": "14773716009564433047.wav",
+      "bytes": 560698,
+      "sha256": "7b95a45446dc31d99d50232a7a6dbda26cc9c87eb26aec1263f73e7f9dd6405f",
+      "sampleRate": 16000,
+      "channels": 1,
+      "bitsPerSample": 32,
+      "samples": 140160,
+      "durationSeconds": 8.76
+    }
+  ]
+}

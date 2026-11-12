@@ -81,6 +81,7 @@ function referenceEditAllowed(row) {
 function checkCatalog() {
   const catalog = readJson(CATALOG);
   const smoke = readJson(catalog.smoke.path);
+  const pub = catalog.publicCandidates ? readJson(catalog.publicCandidates.path) : null;
   const actualCount = Array.isArray(catalog.records) ? catalog.records.length : null;
   const base = {
     ok: false,
@@ -92,6 +93,9 @@ function checkCatalog() {
     actualCount: actualCount,
     realFailures: catalog.realFailures,
     zh1663AudioChecked: catalog.zh1663AudioChecked === true,
+    publicCandidateCount: pub ? pub.publicCandidateCount : 0,
+    humanVerifiedCount: pub ? pub.humanVerifiedCount : 0,
+    approvedPlannedSetCount: pub ? pub.approvedPlannedSetCount : 0,
     smoke: {
       role: catalog.smoke.role,
       itemCount: Array.isArray(smoke.items) ? smoke.items.length : 0,
@@ -110,6 +114,10 @@ function checkCatalog() {
   if (actualCount !== 0) return Object.assign(base, { code: 'actual-count' });
   if (catalog.realFailures !== 0) return Object.assign(base, { code: 'real-failures' });
   if (catalog.zh1663AudioChecked !== false) return Object.assign(base, { code: 'zh1663' });
+  if (!pub || pub.humanVerifiedCount !== 0 || pub.approvedPlannedSetCount !== 0 || pub.realFailureCount !== 0 || pub.productMetric !== false) {
+    return Object.assign(base, { code: 'public-candidate-claim' });
+  }
+  if (pub.publicCandidateCount !== pub.items.length) return Object.assign(base, { code: 'public-candidate-count' });
   return Object.assign(base, { code: 'empty-set' });
 }
 
