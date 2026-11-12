@@ -305,6 +305,24 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     eq(past.finishMatchesCoveredEnd, false);
   });
 
+  test('diagnosticPath is a var; this text check is not a swiftc compile', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
+    const start = src.indexOf('static func run()');
+    const end = src.indexOf('let setURL', start);
+    const block = src.slice(start, end);
+    ok(block.includes('var diagnosticPath'));
+    ok(block.includes('let diagnosticPath') === false);
+    const lets = [];
+    for (const line of block.split('\n')) {
+      const found = line.match(/\blet\s+([A-Za-z_][A-Za-z0-9_]*)\b/);
+      if (found) lets.push(found[1]);
+    }
+    for (const name of lets) {
+      const assigned = new RegExp('^\\s*' + name + '\\s*=', 'm');
+      ok(assigned.test(block) === false);
+    }
+  });
+
   test('the one-clip helper records both feeds and does not write a set score', () => {
     const src = fs.readFileSync(path.join(ROOT, 'eval/baselines/asr/product-asr-mac.swift'), 'utf8');
     ok(src.includes('--diagnostic-first'));

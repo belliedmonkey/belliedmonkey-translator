@@ -107,7 +107,7 @@ enum FileASR {
         }
         let install = args.contains("--install-assets")
         let diagnostic = args.contains("--diagnostic-first")
-        let diagnosticPath = ""
+        var diagnosticPath = ""
         if let pathIdx = args.firstIndex(of: "--diagnostic-path"), pathIdx + 1 < args.count {
             diagnosticPath = args[pathIdx + 1]
         }
