@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { checkCatalog } = require('./default-chain-check.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const CELL_STATUS = new Set(['applies', 'not-applicable', 'pending', 'opt-in', 'route-dependent']);
@@ -102,6 +103,7 @@ function checkCatalogs() {
   const samples = readJson('eval/baselines/samples.json');
   const frozen = readJson('eval/baselines/frozen-sets.json');
   const tool = readJson('eval/baselines/fixtures/tool-only-sample.json');
+  const chain = checkCatalog();
   if (samples.schema !== 'belliedmonkey.baseline-samples.v1') errors.push('samples schema');
   if (!Array.isArray(samples.records) || samples.records.length !== 0) errors.push('samples catalog must stay empty');
   if (!samples.blocked) errors.push('samples blocked reason');
@@ -114,6 +116,9 @@ function checkCatalogs() {
     authorization: { kind: 'tool-only' }, redaction: { identity: true }, setVersion: 'x',
   });
   if (unlabeled.ok) errors.push('tool-only must never become eligible');
+  if (chain.status !== 'blocked' || chain.actualCount !== 0 || chain.realFailures !== 0 || chain.productMetric !== null || chain.e2eMetric !== null) {
+    errors.push('default-chain catalog must stay blocked with no product score');
+  }
   return errors;
 }
 

@@ -16,7 +16,7 @@
 | [forms/documents.md](forms/documents.md) | 文档，以及不能并进上两类的相邻形态 | 协议；待测 |
 | [asr-public.md](asr-public.md) | FLEURS 中英 test 各 8 句的公开 ASR 参考，加离线 CER/WER | 16 条文本已冻结。`cbc0c0e1` 一键两次退出码 0，英文 WER 11/174，中文 CER 33/301。探索性组件分数，不是产品分。`3bd90f75` 的只打包已在 Mac 上退出码 0，不是再跑 16 句。端到端仍待测 |
 | [asr-file-pits.md](asr-file-pits.md) | SA 文件组件已踩的坑和回归入口 | 入口是 `node eval/baselines/asr/run-sa-file.js`。端到端仍待测 |
-| [default-chain-plan.md](default-chain-plan.md) | 国际版 Mac 中文默认臂和实时听译/字幕的后续测量方案 | 方案，不是实现。现有 16 句仍只是 `sa` 文件组件。端到端仍待测 |
+| [default-chain-plan.md](default-chain-plan.md) | 国际版 Mac 中文默认臂和实时听译/字幕的后续测量方案 | 方案，不是实现。离线命令 `node eval/baselines/default-chain-check.js` 对空的新集合返回 blocked。现有 16 句仍只是 `sa` 文件组件。端到端仍待测 |
 
 离线检查：`node eval/baselines/check.js`。它核对证据摘录仍在源码里、矩阵每一格都在、真实失败样本库仍为空、工具用合成句不能变成质量样本。公开 ASR 切片另见上表，不打产品分。
 

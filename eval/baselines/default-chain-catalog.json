@@ -1,0 +1,11 @@
+{
+  "schema": "belliedmonkey.default-chain-catalog.v1",
+  "smoke": {
+    "path": "eval/baselines/asr/fleurs-public-v1.json",
+    "role": "sa-file-component-smoke"
+  },
+  "plannedTarget": 30,
+  "records": [],
+  "realFailures": 0,
+  "zh1663AudioChecked": false
+}

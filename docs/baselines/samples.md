@@ -53,6 +53,10 @@
 
 因此没有真实失败冻结集、没有人工金标、没有 LLM judge 校准集。这些都 **待测**。
 
+## 默认链路目录
+
+`eval/baselines/default-chain-catalog.json` 把已有的 16 句公开朗读标成 `sa` 文件 smoke，新集合的 `plannedTarget` 是 30，`actualCount` 是 0，真实失败是 0。`cmn_hans_cn/1663` 的人耳核对仍是 `blocked`，不能按假设改参考。离线命令是 `node eval/baselines/default-chain-check.js`。产品进程里的文件喂入仍要另一次批准，本文件不实现它。
+
 ## 公开对照不是这份目录
 
 FLEURS `en_us` / `cmn_hans_cn` test 各 8 句在 [`asr-public.md`](asr-public.md)。许可记录为 CC BY 4.0，`kind` 为 `public-comparison`。它不进入 `samples-0`，也不把朗读参考写成用户失败。真实失败行数仍是 0。

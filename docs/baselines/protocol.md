@@ -14,6 +14,8 @@
 
 它不调用模型，不读音频，不计算 COMET、CER、时延或费用。公开 ASR 的 CER/WER 在 [`asr-public.md`](asr-public.md)，只在外部提供假设文件时计算，而且 `productMetric` 为 false。没有假设文件时不会把参考转写当成预测。端到端仍 **待测**。
 
+`node eval/baselines/default-chain-check.js` 读默认链路目录。真实新集合是空的，所以退出码是 2，`status` 为 `blocked`，产品分和端到端分都是 null。`--selftest` 只证明校验器能拒绝合成夹具，输出里 `synthetic` 为 true，不能当成实测。
+
 质量运行器要等 `samples.json` 出现授权记录，并按形态写下冻结集版本之后再做。在那之前加一个会打印分数的空壳，不算基建完成。
 
 ## 一次将来的运行要钉什么
