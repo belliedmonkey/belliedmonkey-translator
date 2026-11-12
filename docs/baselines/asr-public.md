@@ -82,7 +82,7 @@ node eval/baselines/asr/fetch-fleurs.js --audio --record
 node eval/baselines/asr/run-product-asr.js
 ```
 
-它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。Darwin 且 `sw_vers` 主版本 ≥ 26（含已测机器上的 macOS 27.0）时，同一命令在给出 `--out-dir` 后才会尝试用 `swift` 编译并运行 `product-asr-mac.swift`。那个文件适配器只覆盖 SA 文件喂入，臂是 `sa`，不是国际版 Mac 中文默认的 `e1_b1`，也不是端到端。`swiftCompiledByPackager` 在这份源码里恒为 false：本环境没有在 Mac 上编译过它。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
+它先核对缓存 wav 的 SHA-256、WAV 头和采样数，然后因不是 Apple SpeechAnalyzer 而退出码 2，`hypotheses` 为 null。Darwin 且 `sw_vers` 主版本 ≥ 26（含已测机器上的 macOS 27.0）时，同一命令在给出 `--out-dir` 后才会尝试用 `swift` 编译并运行 `product-asr-mac.swift`。那个文件适配器只覆盖 SA 文件喂入，臂是 `sa`，不是国际版 Mac 中文默认的 `e1_b1`，也不是端到端。`swiftCompiledByPackager` 在这份源码里恒为 false。Mac 首次真实编译（macOS 27.0 build 26A428，Swift 6.4，node 26.10.0）失败在 `AVAudioConverter?` 未解包，尚未进入识别或系统权限，没有假设文件。随后的源码用 `guard let` 失败退出，不用 `!`。这里没有在 Mac 上重新编译，所以不能说编译已通过。没有假设文件，所以没有产品 CER/WER。端到端仍 **待测**。
 
 在 Mac 上把输出只写到指定目录：
 

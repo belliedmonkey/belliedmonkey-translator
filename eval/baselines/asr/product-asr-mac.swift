@@ -121,14 +121,28 @@ enum FileASR {
             }
             return ""
         }
-        let converter = AVAudioConverter(from: file.processingFormat, to: fmt)
-        let inBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096)!
+        // AVAudioConverter(from:to:) is optional. A nil converter must fail closed.
+        // Force-unwrap would abort, and skipping the call would still look like a run.
+        guard let converter = AVAudioConverter(from: file.processingFormat, to: fmt) else {
+            throw NSError(domain: "product-asr", code: 4, userInfo: [
+                NSLocalizedDescriptionKey: "audio converter unavailable",
+            ])
+        }
+        guard let inBuf = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: 4096) else {
+            throw NSError(domain: "product-asr", code: 5, userInfo: [
+                NSLocalizedDescriptionKey: "input buffer unavailable",
+            ])
+        }
         var fed: Int64 = 0
         while true {
             try file.read(into: inBuf)
             if inBuf.frameLength == 0 { break }
             let cap = AVAudioFrameCount(Double(inBuf.frameLength) * fmt.sampleRate / file.processingFormat.sampleRate) + 16
-            guard let out = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: cap) else { break }
+            guard let out = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: cap) else {
+                throw NSError(domain: "product-asr", code: 5, userInfo: [
+                    NSLocalizedDescriptionKey: "output buffer unavailable",
+                ])
+            }
             var consumed = false
             var err: NSError?
             converter.convert(to: out, error: &err) { _, status in
@@ -137,7 +151,8 @@ enum FileASR {
                 status.pointee = .haveData
                 return inBuf
             }
-            if err != nil || out.frameLength == 0 { break }
+            if let err { throw err }
+            if out.frameLength == 0 { continue }
             cont.yield(AnalyzerInput(buffer: out, bufferStartTime: CMTime(value: fed, timescale: CMTimeScale(fmt.sampleRate))))
             fed += Int64(out.frameLength)
         }

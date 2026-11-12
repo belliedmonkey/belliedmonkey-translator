@@ -70,6 +70,11 @@ describe('product ASR gate — no hypothesis off the Apple recognizer', () => {
     ok(src.includes('progressiveLongDictation'));
     ok(!src.includes('romanticism had a large element'));
     ok(src.includes('e1_b1') === false || src.includes('does not run e1_b1') || src.includes('Does not run intl-Mac e1_b1') || src.includes('it does not run e1_b1'));
+    ok(src.includes('guard let converter = AVAudioConverter(from: file.processingFormat, to: fmt)'));
+    ok(src.includes('audio converter unavailable'));
+    ok(!src.includes('AVAudioConverter(from: file.processingFormat, to: fmt)!' ));
+    ok(!src.includes('frameCapacity: 4096)!'));
+    ok(!src.includes(')!'));
   });
 
   test('the command on a checked wav still emits no hypothesis file', () => {
